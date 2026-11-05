@@ -1,7 +1,5 @@
 // Global constants. Change APP_NAME here to rebrand the whole site.
 export const APP_NAME = 'NEON SPEAKEASY';
-export const APP_TAGLINE = 'four minds // one signal';
-export const APP_VERSION = '1.1.0';
 
 // Where the music files (audio/music/*.mp3, the mood songs included) are fetched from: '' = this site; or a CDN folder with a trailing
 // slash, e.g. 'https://cdn.example.com/music/' (docs/audio.md#city-20-music; js/audio/music-url.js). The ONE setting for moving the songs.
@@ -83,5 +81,3 @@ export const GAMES = [ // lobby order
 
 /** WINDOWS: can a match of this game start? (the one switch: GAMES[].playable) */
 export const isPlayable = id => !!GAMES.find(g => g.id === id && g.playable);
-/** THE FIVE SIGNS: the games on the city's signs (the roof signs, the blade, the billboard, the speakeasy's ghost ad) */
-export const signGames = list => list.filter(g => g.sign);

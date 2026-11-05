@@ -25,8 +25,8 @@ import { knob } from './harbor-schedule.js';
 export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'showcase', 'hint', 'horn', 'hum', 'depart', 'round', 'min'];
 /** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): every PREVIEW flag a link may carry — the panel's keys (not the tools &debug / &grid)
  *  + the previews' own extras (&moment, &hush, &letter, &ad, &season, &n, &wind, &rained, &tagms) + &at (a place for the sun WITH A FORCED
- *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city,
- *  &emu, &slot, &panel stay: they are where + how you look, not what is forced. */
+ *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city (an
+ *  old link's — nothing reads it since CITY 1.0 OUT), &emu, &slot stay: they are where + how you look, not what is forced. */
 // (NIGHT-A: + &prop (the harvest display's model / drawn) + &light (the night light's old / new) — CLEAR ALL took neither off: the owner's
 // &prop=model stayed after it)
 export const PREVIEW_KEYS = Object.freeze([...REMOTE_KEYS.filter(k => k !== 'debug' && k !== 'grid'), 'moment', 'dance', 'hush', 'letter', 'ad', 'season', 'n', 'wind', 'rained', 'tagms', 'at', 'prop', 'light', 'stage']);

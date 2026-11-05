@@ -23,8 +23,7 @@
 // ripples still (the lights still follow the city). HOOKS for later parts (docs/harbor.md
 // "stubs"): reflect(fn, axisY) — an object standing in the water drawn flipped about its own waterline (the wheel + the
 // lighthouse use it now; Part 5's boats, Rosie, the train, the beam) · light(x, y, col, a, w) — a light that is not in the frame
-// above the waterline (fireworks high in the sky, Part 10; the ghost ship's glow, 11a) as a column in the water · wake(o) — Part 5
-// draws boat wakes · set({ rain, fog }) — the weather (rain roughens the mirror; the fog over the water is waterfog.js, 9a; the rain's rings: ATM).
+// above the waterline (fireworks high in the sky, Part 10; the ghost ship's glow, 11a) as a column in the water · set({ rain, fog }) — the weather (rain roughens the mirror; the fog over the water is waterfog.js, 9a; the rain's rings: ATM).
 import { rgb, mix } from './shapes.js';
 import { blit, safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { groundY, project } from '../../core/harbor-layout.js';
@@ -77,7 +76,7 @@ export function createWater() {
   const tex = [mk(), mk()];
   let L = null, cam = null, W = 0, y0 = 0, y1 = 0, Hw = 0, top = 0, sh = 0, dpr = 1, rr = 1, tier = 2, A0 = 0, oy = 0, oyD = 0;
   let strips = [], dashes = [], glints = [], texKey = '', lastT = 0, updAt = -1e9, ready = false, set0 = { rain: 0, fog: 0 };
-  let queue = [], mirrors = [], wakes = [], stats = { strips: 0, copies: 0, lights: 0, paths: '' };
+  let queue = [], mirrors = [], stats = { strips: 0, copies: 0, lights: 0, paths: '' };
 
   function size(cv, w, h) { const cw = Math.max(1, Math.ceil(w)), ch = Math.max(1, Math.ceil(h)); if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; } return safeCtx(cv); }
   /** the layout: the band, the canvases, the strips (thin far, thick near: one wave phase per depth) */
@@ -415,14 +414,13 @@ export function createWater() {
      *  length (pt; NEON PASS 2 — the waterfront's long streaks; default: by its height above the water) */
     light(x, y, col, a = 1, w = 3, len = 0) { if (queue.length < 400) queue.push({ x, y, col, a, w, len }); },
     /** HOOK (Part 5): a boat's wake — { x, z, len, dir, k } world units; stored, not yet drawn */
-    wake(o) { wakes.push(o); if (wakes.length > 16) wakes.shift(); },
     /** the weather (9a): { rain: 0..1 (roughens the mirror; the rings: ATM), fog: 0..1 (the fog over the water itself: waterfog.js) } */
     set(o) { Object.assign(set0, o || {}); },
     band: () => ({ y0, y1 }),
     mem: () => +([src, bright, sm, R, wc, ...tex, ...cols.values()].reduce((s, cv) => s + cv.width * cv.height * 4, 0) / 1e6).toFixed(2),
     debug: () => ({ y0: +y0.toFixed(1), y1: +y1.toFixed(1), strips: stats.strips, copies: stats.copies, lights: stats.lights, paths: stats.paths.trim(), rough: stats.rough, ms: stats.ms, rr, tier,
       // (NEON PASS 4: every strip on whole device rows, edge to edge from the canvas's top — no seam can anti-alias)
-      grid: Number.isInteger(oyD) && strips.every((s, i) => Number.isInteger(s.r) && Number.isInteger(s.hd) && s.hd >= 1 && s.r === (i ? strips[i - 1].r + strips[i - 1].hd : 0)) && !!strips.length && strips[strips.length - 1].r + strips[strips.length - 1].hd <= wc.height, rows: [oyD, ...strips.map(s => s.r)], wakes: wakes.length, mb: +([src, bright, sm, R, wc, ...tex].reduce((s, cv) => s + cv.width * cv.height * 4, 0) / 1e6).toFixed(2) }),
+      grid: Number.isInteger(oyD) && strips.every((s, i) => Number.isInteger(s.r) && Number.isInteger(s.hd) && s.hd >= 1 && s.r === (i ? strips[i - 1].r + strips[i - 1].hd : 0)) && !!strips.length && strips[strips.length - 1].r + strips[strips.length - 1].hd <= wc.height, rows: [oyD, ...strips.map(s => s.r)], mb: +([src, bright, sm, R, wc, ...tex].reduce((s, cv) => s + cv.width * cv.height * 4, 0) / 1e6).toFixed(2) }),
     destroy() { for (const cv of [src, bright, sm, R, wc, ...tex, ...cols.values()]) { cv.width = 0; cv.height = 0; } cols.clear(); ready = false; },
   };
 }

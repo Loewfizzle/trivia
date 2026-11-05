@@ -232,23 +232,5 @@ ${A.base.map(p => dot(p, '#ff8a3d')).join('')}${dot(A.centre, '#ff3b6b')}${A.cor
 </svg>`;
 }
 
-/** The tube "N" alone (app icon / favicon). */
-export function monogramSvg({ id = 'ndm', size = 100, blur = 1 } = {}) {
-  const L = LETTERS[0];
-  return `<svg viewBox="-34 -30 132 160" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-<defs>
-  <filter id="${id}-b1" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="${3.4 * blur}"/></filter>
-  <filter id="${id}-b2" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="${12 * blur}"/></filter>
-</defs>
-<g fill="none" stroke-linecap="round" stroke-linejoin="round">
-  ${L.ends.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${TUBE * 0.5}" fill="#2a1626"/>`).join('')}
-  <path d="${L.d}" stroke="${PINK.glow}" stroke-width="${TUBE + 16}" filter="url(#${id}-b2)" opacity="0.9"/>
-  <path d="${L.d}" stroke="${PINK.glow}" stroke-width="${TUBE + 4}" filter="url(#${id}-b1)"/>
-  <path d="${L.d}" stroke="${PINK.body}" stroke-width="${TUBE + 1}"/>
-  <path d="${L.d}" stroke="${PINK.core}" stroke-width="${TUBE * 0.38}"/>
-  <path d="${L.d}" stroke="#fff" stroke-width="1.2" transform="translate(-1.8 -1.8)" opacity="0.5"/>
-</g>
-</svg>`;
-}
 
 export const TAGLINE = 'YOUR FRIENDS ARE ALREADY INSIDE.';

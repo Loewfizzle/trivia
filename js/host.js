@@ -195,8 +195,6 @@ export function startGame(gameId, settings, { quick = false } = {}) {
   p.then(ok => setTimeout(() => { if (starting === p) starting = null; }, ok ? startOf(quick ? 'q' : '').len : 0), () => { if (starting === p) starting = null; });
   return p;
 }
-/** (tests) a start in flight or in its walk */
-export const startBusy = () => !!starting;
 async function startGameNow(gameId, settings, quick = false) {
   const mod = GAME_MODULES[gameId];
   if (!mod || !isHost()) return false;

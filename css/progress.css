@@ -418,7 +418,6 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 .pf-acc-row b { font: 700 15.5px/1.2 var(--font-ui); }
 .pf-acc-row span { font: 500 13.5px/1.25 var(--font-ui); color: rgba(245, 236, 218, 0.75); text-align: right; }
 .pf-acc-row[disabled] { cursor: default; opacity: 1; }
-.pf-acc-key { display: flex; flex-direction: column; gap: 10px; }
 .pf-bday-slot:empty { display: none; }
 
 /* LOBBY 2.0 A — FOUNDER's GLINT (the owner's 2C review): a light stripe sweeping across the badge every ~5 s (transform + opacity) */

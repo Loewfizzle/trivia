@@ -15,8 +15,8 @@
 //     Never a per-frame bake, never a pixel readback.
 //   - DEPTH: drawn after the sun + the moon + the stars, before the skyline (behind every building), under the page (the NEON sign
 //     + the tagline draw over the canvas; DT1's dark halo keeps SPEAKEASY readable), never over the dock.
-// PART 9 PLUGS IN: KINDS (the shape builders — add 'nimbus', 'fog' …) and set({ grey, dark, base }) (greys / darkens / lowers the
-// whole sky for rain, storms, snow; re-lit at once). Part 6b: the sky messages drift through the same sky (skywriting is drawn after).
+// KINDS (the shape builders) and set({ grey, dark, base }) (greys / darkens / lowers the whole sky for rain, storms, snow; re-lit at
+// once) — Part 9 + ATM built on them. Part 6b: the sky messages drift through the same sky (skywriting is drawn after).
 import { rngFrom } from '../../core/rng.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
 import { cloudMix, cloudPlan, driftX, driftSpeed, skyLight, cloudLit, sunOnClouds, haloOf } from '../../core/harbor-clouds.js';
@@ -316,7 +316,7 @@ function* layerField(d, F, N, box) {
   }
 }
 
-/** the shape builders: ATM adds its own (a 'nimbus' heap with a dark flat base, 'fog' banks …) */
+/** the shape builders, per kind */
 export const KINDS = { cumulus: heapField, scud: heapField, strato: heapField, alto: layerField, cirrus: layerField, deck: layerField };
 // per kind: the edge softness (σ soft / σ on the sunlit side: crisper), how solid it reads, how much it self-shades
 const LOOK = {

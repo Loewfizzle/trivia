@@ -214,26 +214,6 @@ export function neonTwitch({ gain = NEON_GAINS.dropout * 0.5625, louder = false 
 export function neonDropout({ level = 1 } = {}) { playNeon(NEON_REC.dropout, level, () => neonBuzz({ on: false, level: level * 0.5 }), 'strike', NEON_GAINS.dropout); }
 /** THE CATCH: the whole sign striking and settling into its hum */
 export function neonCatch({ level = 1, dur = 0 } = {}) { return playNeon(NEON_REC.powerOn, level, () => neonPowerOn({ crackles: [0, 0.05, 0.13], dur: dur ? Math.min(1.6, dur) : 1.6 }), 'strike', NEON_GAINS.powerOn, dur); }
-/** the hum while the sign is lit: a seamless loop, very quiet; returns stop(fade s) */
-export function startNeonHum({ level = 1, fadeIn = 2.5 } = {}) {
-  if (!isUnlocked()) return () => {};
-  const ctx = getContext(), out = ctx.createGain();
-  let src = null, stopped = false;
-  out.gain.setValueAtTime(0, ctx.currentTime);
-  out.connect(getSfxBus());
-  neonBuf(ctx, NEON_REC.hum).then(buf => {
-    if (!buf || stopped) return;
-    src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
-    src.connect(out); src.start();
-    const n = ctx.currentTime; out.gain.setValueAtTime(0, n); out.gain.linearRampToValueAtTime(NEON_GAIN * NEON_GAINS.hum * level, n + fadeIn);
-  });
-  return (fade = 0.6) => {
-    if (stopped) return; stopped = true;
-    const n = ctx.currentTime;
-    out.gain.cancelScheduledValues(n); out.gain.setValueAtTime(out.gain.value, n); out.gain.linearRampToValueAtTime(0, n + fade);
-    setTimeout(() => { try { if (src) src.stop(); } catch {} out.disconnect(); }, fade * 1000 + 100);
-  };
-}
 
 /**
  * NEON PASS 3 (the owner's ears): the hum is no longer a loop all night — it comes up with the power-on, holds until the sign is
