@@ -137,6 +137,9 @@ export function createView({ onBack = null, overlay = false } = {}) {
   let data = null, destroyed = false;
 
   function mount(el) {
+    // (HOTFIX after THE SPEED PASS — the owner's live iPhone: the YOU page was UNSTYLED for a non-Gilded card — css/progress.css + vault.css
+    //  loaded only through memberCard(), which paintHero skips for a full card. The page loads its sheets itself, before anything paints)
+    pgSheet();
     el.classList.add('pf-screen');
     document.body.classList.add('pf-on');
     els.card = h('div.pf-card-slot');

@@ -96,6 +96,16 @@ G('youcard', async () => {
     `THE CARD OPENS ON YOURS: the YOU page's first card is the equipped ${cd} (painted: ${seq.join(' → ')}); never the Gilded first`);
   ok(seq.filter(x => /^vl-fc/.test(x)).length === 1, `… mounted ONCE — the server's answer doesn't repaint the same card (${seq.filter(x => /^vl-fc/.test(x)).length})`);
   ok(!(await ev(A.p, "!!document.querySelector('.pf-pen')")), '… no ✎ beside the name on the card (EDIT USERNAME in CUSTOMIZE is the one way in)');
+  // (THE HOTFIX — the owner's live iPhone: with a NON-Gilded card the YOU page was UNSTYLED — css/progress.css + vault.css loaded only through
+  //  the Gilded card's own builder. A fresh tab, his kind of card: the level bar, the goal, the stats + ACCOUNT carry their computed styles)
+  await waitFor(A.p, "!!document.querySelector('.pf-overlay .pg-bar') && !!document.querySelector('.pf-overlay .pg-stats') && !!document.querySelector('.pf-overlay .pf-account .pf-gb')", 'the sections', 15000).catch(() => {});
+  await sleep(600);
+  const sty = await ev(A.p, `(() => { const g = s => document.querySelector('.pf-overlay ' + s), cs = s => g(s) ? getComputedStyle(g(s)) : null;
+    const bar = cs('.pg-bar'), goal = cs('.pf-goal-t'), stats = cs('.pg-stats'), btn = cs('.pf-account .pf-gb');
+    return { bar: bar && bar.height + ' ' + bar.borderRadius, goal: goal ? goal.borderRadius : 'none', stats: stats && stats.display, btn: btn && btn.borderRadius + ' ' + btn.minHeight,
+      sheets: [...document.querySelectorAll('link[rel=stylesheet]')].map(l => l.href.split('/').pop()).filter(x => /progress|vault/.test(x)) }; })()`);
+  ok(sty.bar && !/^0px|\s0px$/.test(sty.bar) && sty.stats === 'grid' && sty.btn === '14px 46px' && (sty.goal === '18px' || sty.goal === 'none') && sty.sheets.length >= 2,
+    `THE YOU PAGE STYLED with a non-Gilded card (a fresh tab, 402): the level bar ${sty.bar}, the goal ${sty.goal}, the stats ${sty.stats}, ACCOUNT's buttons ${sty.btn} (sheets: ${sty.sheets.join(', ')})`);
   if (SHOTS) await A.p.screenshot({ path: `${OUT}youcard.png` });
   await A.Q.ctx.close().catch(() => {});
 });

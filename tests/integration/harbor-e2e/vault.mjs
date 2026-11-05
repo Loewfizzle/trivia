@@ -21,7 +21,8 @@ import { BASE, ok, okT, sleep, ev, waitFor, G, launch, launchReal, closeReal, OU
 
 // THE SPEED PASS — G4 (review-6.md): the FULL LOBBY speed checks warned in ALL FOUR cloud runs — the 2-core runner has no GPU path ("2D at
 // tier 2, 0 draws", 10–60 fps) and cannot answer them (CALM LOAD's case): on CI the SPEED half is skipped with its reason, the RULE half
-// (8 slots drawn, the emblems quiet, the glows on) stays a hard check; on a real machine both, as before
+// (8 slots drawn, the effect tier, the emblems quiet, the glows on) stays a hard check — the full dpr is the GPU path's, so it sits in the
+// SPEED half (the cloud run 1: the runner's 2D fallback draws at 2× by design); on a real machine both, as before
 const gpuCheck = (speed, rule, what) => { if (ON_CI) { ok(rule, `${what} — its rule half (the speed: skipped on CI)`); skipCI(what, 'no GPU path on the 2-core runner (2D at tier 2, 0 draws) — the speed is the mini PC’s + the owner’s iPhone’s'); } else okT(speed && rule, what); };
 import puppeteer from '../kit/puppeteer.mjs';
 
@@ -295,7 +296,7 @@ G('vault', async () => {
     const s = [...t].sort((a, b) => a - b), med = s[90], slow = t.filter(x => x > 20).length, fps = 1000 / (t.reduce((a, b) => a + b, 0) / t.length);
     // (4× CPU on the mini PC is the stress case — an iPhone 16 Pro's CPU is well ahead of it: ≥ 54 fps on average + a median frame ≤ 18 ms
     //  there, at the FULL tier, is the bar; the busiest mix — glitter + smoke + the bulbs + the frost's clip — sits ~56)
-    gpuCheck(st.gpu && fps >= 54 && med <= 18, st.tier === 2 && st.dpr >= 2.9, `SPEED (the GPU path): A FULL LOBBY of ${({ legend: '8 LEGENDARIES', samples: 'THE 8 SAMPLES', sightings: 'THE 8 SIGHTING CARDS', held: 'THE NEW 21 (8 of them)' })[mix]} at 4× CPU — ${fps.toFixed(1)} fps, median ${med.toFixed(1)} ms, ${slow}/180 slow, ${st.gpu ? 'GPU' : '2D'} at tier ${st.tier} ${st.dpr}× (${st.draws} draws, ${st.ms} ms of script)`);
+    gpuCheck(st.gpu && st.dpr >= 2.9 && fps >= 54 && med <= 18, st.tier === 2, `SPEED (the GPU path): A FULL LOBBY of ${({ legend: '8 LEGENDARIES', samples: 'THE 8 SAMPLES', sightings: 'THE 8 SIGHTING CARDS', held: 'THE NEW 21 (8 of them)' })[mix]} at 4× CPU — ${fps.toFixed(1)} fps, median ${med.toFixed(1)} ms, ${slow}/180 slow, ${st.gpu ? 'GPU' : '2D'} at tier ${st.tier} ${st.dpr}× (${st.draws} draws, ${st.ms} ms of script)`);
     await ctx.close(); await gpuB.close();
   }
   // SCROLL-PAUSE + THE DIAGNOSTICS ROW: a scroll holds the effects (no frames), they resume after; &diag= sets the switches; 7 of them
