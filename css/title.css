@@ -1022,6 +1022,9 @@ body.nd-idle .rc-tags { opacity: 1; }
 @keyframes rc-tube-on { 0% { opacity: 0; } 8% { opacity: 0.85; } 14% { opacity: 0.05; } 26% { opacity: 0.7; } 33% { opacity: 0.15; } 48% { opacity: 1; } 58% { opacity: 0.62; } 70%, 100% { opacity: 1; } }
 /* the dock + the tags step aside the moment it starts (nothing to tap during the start) */
 body.rc-going .nd-actions, body.rc-going .rc-tags { opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+/* SPEED PASS B — H5 (review-6.md, for LOBBY FIXES' new start): NO glass while the start runs — a backdrop-filter over the moving city (the lit
+   sign, the walk-in, the fade) re-samples it every frame; the dock's glass bar flat for the 5 s (it fades with the actions anyway) */
+body.rc-going *, body.rc-going *::before, body.rc-going *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 /* the clean fade into the game (no push: the city stays put while the lines walk in, then the veil comes up) */
 .rc-veil { position: fixed; inset: 0; z-index: 60; background: #04030a; pointer-events: none; opacity: 0; animation: rc-veil var(--rc-fadelen, 700ms) ease-in calc(var(--rc-age, 0ms) + var(--rc-fadeat, 4300ms)) both; }
 /* FR6 FIXES A (B3): a slow start's one line on the veil (a bank / a song still loading) */

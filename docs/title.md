@@ -736,3 +736,12 @@ The SAVE-YOUR-KEY POP-UP's pink dot sits on YOU (both docks) until the key is sa
   `skyline` + `skyTops`); on a wide screen it rises over the SPEAKEASY word and the sign dims while it crosses (the owner: readability wins).
 - THE YOU PAGE opens on YOUR equipped card at once (this device's saved profile), a blank card shape while its full card loads — never the
   Gilded first; the server's answer never re-mounts the same card (`screens/profile.js#paintHero`).
+
+## THE LEAVE + THE HOST's OWN LEAVE + TWO TABS (THE SPEED PASS B, Nov 4 night — docs/harbor/passes/speed-b.md)
+- **LEAVE** (`room.js#leaveRoom`): its own write is never read as a disconnect (`leavingCode`) — no "DISCONNECTED" toast; out of the room ONLY
+  this phone's figure leaves the promenade (`people.js#room(null, { me, wave })` — it waves only on a LEAVE; a drop / kick / closed room
+  just walks off); every other room figure carries on INSIDE through the side door. `exitHow()` = how the last room was left.
+- **THE HOST LEAVES**: the next player in join order is the host at once; every phone says it ONCE (`host.js#watchHand`): the heir "YOU’RE THE
+  HOST NOW", the rest "AVA IS THE HOST NOW"; a dropped host stays a claim ("HOST SIGNAL LOST — YOU ARE NOW THE HOST", the claimer only).
+- **TWO TABS of one player**: the tab ON SCREEN is the player (its host loop + its music); the other yields (the banner), quiet.
+- **THE START** (LOBBY FIXES' lit sign + walk-in + fade): no backdrop-filter anywhere while `body.rc-going`.

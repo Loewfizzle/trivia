@@ -64,6 +64,7 @@ function parseColour(s) {
   colours.set(s, c); return c;
 }
 
+const sigs = new Map();   // (A3: raw stops → [sig, max alpha, parsed stops])
 /** a gradient object (what createLinearGradient / createRadialGradient hand back) */
 class Grad {
   constructor(kind, a) { this.kind = kind; this.a = a; this.stops = []; }
@@ -71,10 +72,16 @@ class Grad {
   /** its LUT signature with the stops' alpha normalised by their max (a gradient whose alpha breathes keeps ONE row) → [sig, max] */
   sig() {
     if (this._sig) return this._sig;
+    // (SPEED PASS B — A3: gradients are new objects every frame — the signature was re-built per use (toFixed + a parse per stop); now
+    //  ONE per distinct stop list for the page, keyed by the raw stops)
+    let raw = this.kind; for (const [o, col] of this.stops) raw += `|${o}:${col}`;
+    const hit = sigs.get(raw); if (hit) return (this._sig = hit);
     let M = 0; const st = this.stops.map(([o, col]) => { const c = parseColour(col); M = Math.max(M, c[3]); return [o, c]; });
     const m = M > 0 ? M : 1;
     const sig = st.map(([o, c]) => `${o.toFixed(4)}:${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)},${(c[3] / m).toFixed(3)}`).join('|');
     this._sig = [sig, M, st.map(([o, c]) => [o, c, c[3] / m])];
+    if (sigs.size > 2000) sigs.clear();
+    sigs.set(raw, this._sig);
     return this._sig;
   }
 }

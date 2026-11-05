@@ -26,6 +26,28 @@ export const speakerLead = () => Math.max(0, Math.min(0.5, (Number(settings.spea
 const LOOKAHEAD_MS = 45_000; // decode the next song this long before its crossfade
 const END_FADE = 1.5;        // seconds: the very end of the last song fades out
 
+// SPEED PASS B — E2 (b) (review-6.md: the host re-fetched + re-decoded a station song 4× in a session — the player re-made after the city's
+// pause — and the game song 2× — two consumers): ONE decode per song URL on this page, shared by every player that wants it (refs); a song
+// no player wants any more stays decoded a little (KEEP_N, KEEP_MS) so the city's rebuild after a match picks it up again — at most ONE extra
+// (a decoded song is tens of MB: never more than the three the players held before). `decoded` = THE MUSIC CACHE (docs/audio.md).
+const KEEP_N = 1, KEEP_MS = 4 * 60_000;
+const decoded = new Map();   // url → { p: Promise<AudioBuffer>, refs, at (released) }
+let decodes = 0;
+function prune() {
+  const now = Date.now(), idle = [...decoded].filter(([, e]) => !e.refs).sort((a, b) => b[1].at - a[1].at);
+  idle.forEach(([u, e], k) => { if (k >= KEEP_N || now - e.at > KEEP_MS) decoded.delete(u); });
+}
+function acquire(url) {
+  prune();
+  let e = decoded.get(url);
+  if (!e) { e = { p: decode(url), refs: 0, at: 0 }; decodes++; decoded.set(url, e); e.p.catch(() => { if (decoded.get(url) === e) decoded.delete(url); }); }
+  e.refs++;
+  return e.p;
+}
+function release(url) { const e = decoded.get(url); if (!e) return; e.refs = Math.max(0, e.refs - 1); if (!e.refs) { e.at = Date.now(); prune(); } }
+/** TESTS + THE AUDIO panel: the shared decodes (url → refs) and how many fetch + decodes this page has started */
+export const songCache = () => ({ decodes, held: [...decoded].map(([u, e]) => ({ url: u.split('/').pop(), refs: e.refs })) });
+
 function decode(url) {
   return fetch(url).then(r => { if (!r.ok) throw new Error(`song ${r.status}`); return r.arrayBuffer(); }).then(ab => {
     // an offline context decodes without an unlocked (tapped) audio context
@@ -51,10 +73,12 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
   function load(i) {
     const k = keyOf(i);
     if (bufs.has(k)) return;
-    const e = { buf: null, failed: false };
+    const url = urlFor(game.songs[i]);
+    const e = { buf: null, failed: false, url };
     bufs.set(k, e);
-    decode(urlFor(game.songs[i])).then(b => { e.buf = b; }).catch(err => { e.failed = true; console.warn(label, err && err.message); });
+    acquire(url).then(b => { e.buf = b; }).catch(err => { e.failed = true; console.warn(label, err && err.message); });
   }
+  const drop = k => { const e = bufs.get(k); if (!e) return; bufs.delete(k); release(e.url); };
 
   // which songs matter at server time t: the one playing, the next (close to its turn), the previous (still fading)
   function wanted(t, starts) {
@@ -62,7 +86,9 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     while (cur + 1 < starts.length && t >= starts[cur + 1]) cur++;
     const w = [cur];
     if (cur + 1 < starts.length && starts[cur + 1] - t < LOOKAHEAD_MS) w.push(cur + 1);
-    if (cur > 0 && t < starts[cur] + XF_MS) w.push(cur - 1);
+    // (SPEED PASS B — E2 (a): the PREVIOUS song only if this phone already has it — a phone arriving mid-crossfade never fetches a whole song
+    //  for the last few seconds of its fade, inaudible under the new one)
+    if (cur > 0 && t < starts[cur] + XF_MS && bufs.has(keyOf(cur - 1))) w.push(cur - 1);
     return w;
   }
 
@@ -141,7 +167,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
       // drop decoded songs we no longer need (a decoded song is tens of MB)
       for (const k of [...bufs.keys()]) {
         const [m, si] = k.split(':');
-        if (m !== game.matchId || (!want.includes(Number(si)) && !voices.has(Number(si)))) bufs.delete(k);
+        if (m !== game.matchId || (!want.includes(Number(si)) && !voices.has(Number(si)))) drop(k);
       }
       const ctx = getContext();
       // a rebuilt context (engine.js#rebuild, iOS): the old voices died with the old one — drop them now (they must not report a
@@ -209,7 +235,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
       const ctx = getContext();
       if (ctx) for (const i of [...voices.keys()]) stopVoice(ctx, i, fade);
       voices.clear();
-      bufs.clear();
+      for (const k of [...bufs.keys()]) drop(k);   // (E2 (b): back to the shared cache — the rebuild's new player picks them up)
       const d = dest;
       dest = null;
       if (d) setTimeout(() => { try { d.disconnect(); } catch { /* gone */ } }, (fade + 0.1) * 1000);

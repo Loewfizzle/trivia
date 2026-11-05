@@ -90,8 +90,10 @@ try {
   // ahead of this machine: the station's songs follow it) — still no socket
   { const T = await phone('CLOCK', null);
     await T.page.setRequestInterception(true);
+    // (SPEED PASS B — E3: each answer ~60 ms late (a phone network: no early stop at ≤ 30 ms) — the requests counted)
+    let timeReqs = 0;
     T.page.on('request', r => {
-      if (/\/api\/time(\?|$)/.test(r.url())) r.respond({ status: 200, contentType: 'application/json', headers: { 'cache-control': 'no-store' }, body: JSON.stringify({ t: Date.now() + 5000 }) });
+      if (/\/api\/time(\?|$)/.test(r.url())) { timeReqs++; setTimeout(() => r.respond({ status: 200, contentType: 'application/json', headers: { 'cache-control': 'no-store' }, body: JSON.stringify({ t: Date.now() + 5000 }) }).catch(() => {}), 60); }
       else r.continue().catch(() => {});
     });
     await go(T, '/?city=2');
@@ -101,6 +103,12 @@ try {
     const skew = await T.page.evaluate(() => window.__arcade.serverNow() - Date.now());
     ok(L && L.timeSyncs > 0 && Math.abs(skew - 5000) < 400, `THE TITLE's CLOCK: /api/time sets the offset with the line parked (${L && L.timeSyncs} sync, serverNow − Date.now = ${Math.round(skew)} ms, want ≈ 5000)`);
     ok(T.opened === 0, `…and opens no socket (${T.opened})`);
+    // E3: 3 samples at boot, no refine round (the best < 80 ms), no re-sync on a return to the screen within 10 min
+    await sleep(9000);
+    const atBoot = timeReqs;
+    await T.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
+    await sleep(2500);
+    ok(atBoot === 3 && timeReqs === 3, `E3 — /api/time: ${atBoot} requests in the first ~20 s of a title (3 samples, no refine round — was 5 + 5), ${timeReqs - atBoot} on a return to the screen within 10 min (was 5)`);
     await T.ctx.close(); }
 
   // ---- 2. HOST

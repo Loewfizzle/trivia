@@ -3,7 +3,7 @@
 //   staleroom — out of the room (a disconnect / a leave): the room's figures walk off the city, a host claim for that room never toasts,
 //               ONE toast at a time (the newer replaces the older)
 // ADDING A GROUP: G('name', …) here + the name in ../harbor-jobs.mjs (CI_JOBS.speed).
-import { log, sleep, ok, okT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI, BASE, launchReal, closeReal } from './kit.mjs';
+import { log, sleep, ok, okT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI, BASE, launchReal, closeReal, NIGHT } from './kit.mjs';
 import { dbPatch, dbDel, dbGet, ROOMQ, hostRoom, joinRoom, fakeGuests, settledRoom, startOC, onTitle, podium } from './lobby2.mjs';
 
 const people = p => ev(p, 'window.__district.roomPeople ? window.__district.roomPeople() : null');
@@ -385,4 +385,126 @@ G('twotabs', async () => {
   ok(saved === false, `… the quiet tab never saves "music off" for the device (saved musicOff ${saved})`);
   await p2.close().catch(() => {});
   await H.Q.ctx.close().catch(() => {});
+});
+
+// H5 (review-6.md — for LOBBY FIXES' NEW start: the lit sign + the walk-in + the fade): no backdrop-filter on anything while the start
+// runs (a blur over the moving city re-samples it every frame); the start's frames at 4× CPU, the real compositor, 402 @3 — before / after.
+const glassNow = p => ev(p, `[...document.querySelectorAll('body *')].filter(e => { const s = getComputedStyle(e); return (s.backdropFilter || 'none') !== 'none' && s.visibility !== 'hidden' && +s.opacity > 0 && e.getClientRects().length; }).map(e => e.className && e.className.baseVal == null ? String(e.className).split(' ')[0] : e.tagName).slice(0, 8)`);
+G('startglass', async () => {
+  const Q = await open({ slot: 'sgh', qs: ROOMQ, view: [402, 874], dpr: 3, real: true }), p = Q.page;
+  await harborUp(p); await sleep(900);
+  await ev(p, "document.querySelector('.nd-hostbtn').click()");
+  await waitFor(p, 'window.__arcade.state.code && window.__district.room()', 'hosted', 20000);
+  const code = await ev(p, 'window.__arcade.state.code');
+  await fakeGuests(code, 3, 30000, 'sg');
+  await settledRoom(p, 4, 40000).catch(() => {});
+  await sleep(1500);
+  const before = await glassNow(p);
+  const cd = await p.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  await ev(p, `(() => { window.__sg = { t: [] }; let last = 0; const f = x => { if (last && document.body.classList.contains('rc-going')) window.__sg.t.push(x - last); last = x;
+    if (window.__sg.t.length < 400 && !document.querySelector('.screen:not(.title-screen)')) requestAnimationFrame(f); }; requestAnimationFrame(f); return 1; })()`);
+  if (process.env.PROF) { await cd.send('Profiler.enable'); await cd.send('Profiler.setSamplingInterval', { interval: 200 }); await cd.send('Profiler.start'); }
+  await startOC(p);
+  // (the glass read ONCE, mid-start — never inside the measured frames)
+  await waitFor(p, `window.__arcade.state.meta.go && window.__arcade.serverNow() - window.__arcade.state.meta.go.at >= 2300`, 'mid-start', 8000).catch(() => {});
+  const mid = await glassNow(p);
+  await waitFor(p, `!(${onTitle})`, 'the game', 15000).catch(() => {});
+  if (process.env.PROF) { const { profile } = await cd.send('Profiler.stop'); const self = new Map(), dt = profile.timeDeltas, byId = new Map(profile.nodes.map(n => [n.id, n]));
+    profile.samples.forEach((id, i) => { const n = byId.get(id), k = `${n.callFrame.functionName || '(anon)'} ${n.callFrame.url.split('/').slice(-2).join('/')}:${n.callFrame.lineNumber + 1}`; self.set(k, (self.get(k) || 0) + (dt[i] || 0) / 1000); });
+    log('PROFILE', [...self].sort((a, b) => b[1] - a[1]).slice(0, 28).map(([k, v]) => `${v.toFixed(0)}ms ${k}`).join(' | ')); }
+  const r = { ...(await ev(p, 'window.__sg')), glass: mid.length }; const s = [...r.t].sort((a, b) => a - b);
+  const med = s[s.length >> 1], p95 = s[Math.floor(s.length * 0.95)], slow = s.filter(x => x > 20).length;
+  log('startglass', JSON.stringify({ med, p95, slow, n: s.length, glass: r.glass, before }));
+  ok(r.glass === 0 && before.length > 0, `H5 — THE START WITHOUT MOVING GLASS: ${r.glass} backdrop-filters on screen while the start runs (${mid.join(', ')}) (in the room before it: ${before.length} — ${before.join(', ')})`);
+  // (a RECORD, not a gate: the start's cost at 4× is the machine's native paint, not the glass — speed-b.md)
+  log('startglass', `… the start's frames at 4× CPU (402 @3, the real compositor): median ${med.toFixed(1)} ms, p95 ${p95.toFixed(1)}, ${slow} of ${s.length} slow`);
+  await Q.ctx.close().catch(() => {}); await closeReal();
+});
+
+// E2 (review-6.md — the music bytes): (a) a phone arriving mid-crossfade never fetches the PREVIOUS song (it had none decoded — the last
+// few seconds of its fade, inaudible under the new one); (b) ONE fetch + decode per song on the page, shared + kept a little across a
+// player's stop (the city's rebuild after a match picks the station's song up again). Song fetches counted by Resource Timing.
+G('musiccache', async () => {
+  const Q = await open({ slot: 'mcc', qs: NIGHT, view: [402, 874] }), p = Q.page;
+  const r = await ev(p, `(async () => {
+    const S = await import('/js/audio/synced-songs.js'), F = await import('/js/firebase.js');
+    const seen = []; if (!window.__fetchWrapped) { const f0 = window.fetch.bind(window); window.fetch = (u, o) => { seen.push(String(u)); return f0(u, o); }; window.__fetchWrapped = 1; }
+    const urlFor = id => '/audio/music/' + id + '.mp3?mc=1', n = id => seen.filter(u => u.includes('/audio/music/' + id + '.mp3')).length;
+    const settle = async () => { for (let k = 0; k < 60; k++) { await new Promise(r => setTimeout(r, 100)); } };
+    // (a) song 1 began 1.5 s ago — song 0 still fading out (XF_MS 4 s) on a phone that was here; this phone just arrived
+    const A = S.createSyncedSongs({ urlFor, connect: ctx => ctx.destination, label: 'test a' });
+    A.setGame({ matchId: 'mc1', songs: ['c2-day1', 'c2-day2'], sd: [60000, 60000], songStartAt: F.serverNow() - 56000 - 1500 });
+    A.tick(); await settle(); A.tick();
+    const prevFetched = n('c2-day1'), curFetched = n('c2-day2');
+    A.stop(0.05);
+    // (b) a station player plays c2-day3, stops (the city's pause), a NEW player wants c2-day3 again (the rebuild)
+    const B = S.createSyncedSongs({ urlFor, connect: ctx => ctx.destination, label: 'test b' });
+    B.setGame({ matchId: 'mc2', songs: ['c2-day3'], sd: [180000], songStartAt: F.serverNow() - 20000 });
+    B.tick(); await settle(); B.tick();
+    const d0 = S.songCache ? S.songCache().decodes : -1, ready0 = B.ready(0);
+    B.stop(0.05);
+    const C = S.createSyncedSongs({ urlFor, connect: ctx => ctx.destination, label: 'test c' });
+    C.setGame({ matchId: 'mc3', songs: ['c2-day3'], sd: [180000], songStartAt: F.serverNow() - 25000 });
+    C.tick(); await settle(); C.tick();
+    const out = { prevFetched, curFetched, ready0, readyC: C.ready(0), fetches3: n('c2-day3'), decodes: S.songCache ? S.songCache().decodes - d0 : -1 };
+    C.stop(0.05); return out; })()`);
+  ok(r.prevFetched === 0 && r.curFetched === 1, `E2 (a) — ARRIVING MID-CROSSFADE: the previous song never fetched (${r.prevFetched}; was 1 — a whole song for 2.5 s of fade), the playing one once (${r.curFetched})`);
+  ok(r.ready0 && r.readyC && r.fetches3 === 1 && r.decodes === 0, `E2 (b) — THE MUSIC CACHE: a song stopped + wanted again by a NEW player (the city's rebuild) is ready from the page's own decode — ${r.fetches3} fetch, ${r.decodes} new decodes (was 2 + 1)`);
+  await Q.ctx.close().catch(() => {});
+});
+
+// A2 (review-6.md — THE CITY's REBUILD AFTER A MATCH, ~5 s at 4× CPU, ≈ 0.6 s of dark sky on a phone): BACK TO THE ROOM → the city shown,
+// at 4× CPU (402 @3): the time to the city shown + the long tasks (their sum + the biggest) from a PerformanceObserver that outlives the
+// title's remount. PROF=1 prints the rebuild's top self-time functions.
+G('rebuild', async () => {
+  const H = await hostRoom('rbh', [402, 874], { dpr: 3 });
+  await fakeGuests(H.code, 1, 30000, 'rb');
+  await settledRoom(H.p, 2, 30000).catch(() => {});
+  const runs = [];
+  for (let k = 0; k < 2; k++) {
+    await startOC(H.p);
+    await waitFor(H.p, `!(${onTitle})`, 'the game', 15000);
+    await podium(H.p, H.code, [H.me]); await sleep(1200);
+    const cd = await H.p.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    await ev(H.p, `(() => { window.__lt = []; const o = new PerformanceObserver(l => { for (const e of l.getEntries()) window.__lt.push(Math.round(e.duration)); }); o.observe({ type: 'longtask' }); window.__ltO = o; window.__lt0 = performance.now(); return 1; })()`);
+    if (process.env.PROF && k === 1) { await cd.send('Profiler.enable'); await cd.send('Profiler.setSamplingInterval', { interval: 200 }); await cd.send('Profiler.start'); }
+    await ev(H.p, "import('/js/host.js').then(m => { m.backToLobby(); return 1; })");
+    await waitFor(H.p, `${onTitle} && window.__district && window.__district.harbor && window.__district.harbor() && window.__district.harbor().shown`, 'the city shown', 30000).catch(() => {});
+    const shownMs = await ev(H.p, 'Math.round(performance.now() - window.__lt0)');
+    await ev(H.p, 'window.__ltO.disconnect(), 1');   // (the rebuild = BACK TO THE ROOM → the city shown)
+    await sleep(300);
+    if (process.env.PROF && k === 1) { const { profile } = await cd.send('Profiler.stop'); const self = new Map(), dt = profile.timeDeltas, byId = new Map(profile.nodes.map(n => [n.id, n]));
+      profile.samples.forEach((id, i) => { const n = byId.get(id), key = `${n.callFrame.functionName || '(anon)'} ${n.callFrame.url.split('/').slice(-2).join('/')}:${n.callFrame.lineNumber + 1}`; self.set(key, (self.get(key) || 0) + (dt[i] || 0) / 1000); });
+      log('PROFILE', [...self].sort((a, b) => b[1] - a[1]).slice(0, 30).map(([key, v]) => `${v.toFixed(0)}ms ${key}`).join(' | ')); }
+    const lt = await ev(H.p, 'window.__lt'); await cd.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    const stageN = await ev(H.p, 'window.__district.harbor && window.__district.harbor().people && window.__district.harbor().people.stageN != null ? window.__district.harbor().people.stageN : null');
+    runs.push({ shownMs, n: lt.length, sum: lt.reduce((a, b) => a + b, 0), max: Math.max(0, ...lt), top: [...lt].sort((a, b) => b - a).slice(0, 8), stageN });
+    await sleep(1500);
+  }
+  log('rebuild', JSON.stringify(runs));
+  const worst = runs.reduce((a, r) => (r.max > a.max ? r : a), runs[0]);
+  okT(runs.every(r => r.shownMs < 6000 && r.max < 900), `A2 — THE REBUILD AFTER A MATCH at 4× CPU: the city shown in ${runs.map(r => r.shownMs).join(' / ')} ms; long tasks ${runs.map(r => `${r.n} = ${r.sum} ms (the biggest ${r.max})`).join(' / ')} — the budget line: shown < 6 s, no task ≥ 900 ms (worst ${worst.max})`);
+  await H.Q.ctx.close().catch(() => {});
+});
+
+// A6 (review-6.md — THE RESIZE on a desktop): a resize whose walking map comes out the same KEEPS every visit (re-projected, never
+// re-planned) — the same people where they were; a resize that moves the screen's edges (where people enter) plans again, as it must.
+// + the resize's long tasks (1440×900, 1× CPU) before / after.
+G('resizekeep', async () => {
+  const Q = await open({ slot: 'rzk', qs: NIGHT, view: [1440, 900] }), p = Q.page;
+  await harborUp(p); await sleep(2500);
+  const snap = () => ev(p, `(() => { const P = window.__district.harbor().people; return { plans: P.plans, m: (P.members || []).filter(m => m.role === 'lead').map(m => m.id + '@' + m.x.toFixed(1)) }; })()`);
+  const lt = async fn => { await ev(p, `(() => { window.__rz = []; window.__rzO = new PerformanceObserver(l => { for (const e of l.getEntries()) window.__rz.push(Math.round(e.duration)); }); window.__rzO.observe({ type: 'longtask' }); return 1; })()`); await fn(); await sleep(2500); return ev(p, '(() => { window.__rzO.disconnect(); return window.__rz; })()'); };
+  const a = await snap();
+  // (the window moved to a screen of another pixel ratio: the city re-lays out, the walking map comes out the same → the plan kept)
+  const tH = await lt(() => p.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 }));
+  const b = await snap();
+  const same = a.m.filter(x => b.m.some(y => y === x || y.split('@')[0] === x.split('@')[0])).length;
+  ok(a.plans && b.plans.kept > a.plans.kept && b.plans.replans === a.plans.replans && same >= Math.min(a.m.length, b.m.length) - 1,
+    `A6 — A RE-LAYOUT WITH THE SAME WALKING MAP KEEPS THE VISITS (1440×900 @1 → @2): the plan kept (kept ${a.plans && a.plans.kept} → ${b.plans.kept}, re-plans ${a.plans && a.plans.replans} → ${b.plans.replans}); ${same} of ${a.m.length} walkers still there; long tasks ${tH.reduce((x, y) => x + y, 0)} ms`);
+  // (a real size change moves the screen's edges — where people walk in — so the map changes and the plan is made again, as it must)
+  const tW = await lt(() => p.setViewport({ width: 1300, height: 860, deviceScaleFactor: 2 }));
+  const c = await snap();
+  ok(c.plans.replans > b.plans.replans, `… a SIZE change moves the edges people enter from → planned again (re-plans ${b.plans.replans} → ${c.plans.replans}; long tasks ${tW.length} = ${tW.reduce((x, y) => x + y, 0)} ms: ${tW.join(', ')})`);
+  await Q.ctx.close().catch(() => {});
 });

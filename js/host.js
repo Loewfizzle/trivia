@@ -264,15 +264,15 @@ export async function backToLobby() {
   // (LOBBY 2.0 B — AFTER THE MATCH: the walk back out, THE WINNER's BANNER PLANE + the REMATCH ring all read this stamp — core/room-show.js.
   //  Written FIRST (the room still 'playing': nothing shows yet), so every phone has it when the room comes back; its own write — a room on
   //  rules not yet re-published still gets back to the lobby below, it only misses the show)
-  await update(dbRef(`rooms/${state.code}`), {
-    'meta/go': null,
-    'meta/back': g && g.matchId ? { at: serverTimestamp(), m: g.matchId, g: g.id, rm: isPlayable(g.id) } : null,
-    rv: null,
-  }).catch(e => stampRefused('back', e));
-  await update(dbRef(`rooms/${state.code}`), {
-    game: null,
-    ...clearPlayerNodes(),
-    'meta/status': 'lobby',
-    'meta/activeAt': serverTimestamp(),
-  }).catch(e => console.warn('lobby', e));
+  // (SPEED PASS B — A2 (2): the stamp + the room's return in ONE update — one round trip, and every phone sees meta/back WITH status 'lobby'.
+  //  The RULES-LAG fallback stays: a refusal (rules without meta/back) → the old two writes, the second alone always gets the room back)
+  const code = state.code;
+  const stamp = { 'meta/go': null, 'meta/back': g && g.matchId ? { at: serverTimestamp(), m: g.matchId, g: g.id, rm: isPlayable(g.id) } : null, rv: null };
+  const back = { game: null, ...clearPlayerNodes(), 'meta/status': 'lobby', 'meta/activeAt': serverTimestamp() };
+  backWrites.n++;
+  try { await update(dbRef(`rooms/${code}`), { ...stamp, ...back }); return; } catch (e) { backWrites.fallback++; stampRefused('back', e); }
+  await update(dbRef(`rooms/${code}`), stamp).catch(() => {});
+  await update(dbRef(`rooms/${code}`), back).catch(e => console.warn('lobby', e));
 }
+/** TESTS: backToLobby's writes — n (calls) · fallback (the one update refused → the old two) */
+export const backWrites = { n: 0, fallback: 0 };

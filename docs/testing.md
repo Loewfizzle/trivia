@@ -412,3 +412,12 @@ load problem, not a flake to patch.
   they never meet), then `perf` + `partyroom` alone (SERIAL — speed measurements). **SHARDS STAYS 4**: one measured SHARDS=6 run on the mini PC
   took 24 min (vs ~20 at 4), peaked at 20 GB of 32, and overloaded the machine — six timing reds + one CDP timeout, every one green alone.
 - `lobby` / `room2` / `lobbyfix` SECONDS refreshed from LOBBY FIXES' cloud run's own per-group times (`harbor-jobs.mjs`).
+
+## THE SPEED PASS B (Nov 4 night) — the new groups
+- `speed` job: `fullcard` (the full card over CUSTOMIZE vs alone at 4× CPU, the real compositor + nothing moving behind it), `startglass` (no
+  glass during the start + its frames, recorded), `musiccache` (E2 a + b), `rebuild` (A2: BACK TO THE ROOM → the city shown at 4× CPU, the long
+  tasks; PROF=1 prints a profile), `resizekeep` (A6). `lobbyfix2` job: `leaver` (every DRAWN figure counted through the walk-off —
+  `__district.drawnNow()`), `hostleave` (three slots), `twotabs` (two pages of one slot: one director, one song — headless puts the first page
+  in the background when the second opens, so the visible one plays). e2e-conn: E3's `/api/time` count. Unit: `tests/speed-b.test.mjs`.
+- `harbor-jobs.mjs`: the speed rows' seconds were inside a comment (so the cap check never saw them) — out now; the job split to stay < 10 min.
+- `tests/integration/bytes-probe.mjs` — a fresh visit's bytes (music / the rest) in its first 25 s.

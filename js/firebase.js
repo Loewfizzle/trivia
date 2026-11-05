@@ -126,7 +126,10 @@ export const serverNow = () => Date.now() + offset;
 // stamped off the main thread; mapped onto Date.now()'s clock), with Date.now() only as the fallback; up to TIME_SAMPLES samples on idle
 // turns, stopping early on a clean one; a later round only replaces the clock with a SHORTER round trip (or after 10 min); a REFINE round
 // ~6 s after the boot when the first one's best was slow. Proof: e2e-harbor partysync (+ PS_CPU=6).
-const TIME_SAMPLES = 5, TIME_GOOD_RTT = 30, TIME_REFINE_RTT = 45;
+// SPEED PASS B — E3 (review-6.md: /api/time was the biggest per-phone invocation source — 5 at boot, 5 more at 7.5 s nearly always, 5 per
+// return from the background ≈ 40/h for an app-switching title phone): 3 samples; the refine round only when the boot's best was ≥ 80 ms;
+// "back on screen" re-syncs only when the last sync is > 10 min old (the faster clock is kept 10 min anyway). Proof: e2e-conn THE CLOCK.
+const TIME_SAMPLES = 3, TIME_GOOD_RTT = 30, TIME_REFINE_RTT = 80, TIME_BACK_MS = 600_000;
 const idleTurn = () => new Promise(r => (typeof requestIdleCallback === 'function' ? requestIdleCallback(() => r(), { timeout: 400 }) : setTimeout(r, 30)));
 let timeN = 0;
 /** watch for a url's Resource Timing entry (a PerformanceObserver: it sees entries even once the page's timing BUFFER is full — the city
@@ -183,7 +186,7 @@ if (typeof document !== 'undefined') {
   // (after the first paint: a tiny request, never in the way of the boot; then once more when the bakes are done if that one was slow)
   setTimeout(() => { if (document.visibilityState === 'visible') syncTimeNoSocket('boot'); }, 1500);
   setTimeout(() => { if (document.visibilityState === 'visible' && (!timeSyncLast || timeSyncLast.rtt > TIME_REFINE_RTT)) syncTimeNoSocket('refine', { refine: true }); }, 7500);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncTimeNoSocket('back on screen'); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (!timeSyncAt || Date.now() - timeSyncAt > TIME_BACK_MS)) syncTimeNoSocket('back on screen'); });
 }
 
 // ---------------------------------------------------------------- CONN — want / release (the parked database)

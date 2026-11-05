@@ -13,7 +13,7 @@
 // speakeasy's doors (6b: filled), the dance circle (6b: the wands' swish on big moves, the watchers' clapping, a rare whoop).
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
-import { FOLK, folkMap, folkAt, roofAt, linePlaces, linePlaces2, lineRect, capByTier, planVisit, visitAt, route, pathLen, doorLeg, DOOR } from '../../core/harbor-people.js';
+import { FOLK, folkMap, folkAt, folkWarmSteps, roofAt, linePlaces, linePlaces2, lineRect, capByTier, planVisit, visitAt, route, pathLen, doorLeg, DOOR } from '../../core/harbor-people.js';
 import { roomSlots, roomRects, uidSeed, arriveSide } from '../../core/harbor-room.js';
 import { rngFrom } from '../../core/rng.js';
 import { tierVal } from '../../core/harbor-tiers.js';
@@ -86,13 +86,32 @@ export function createPeople() {
   const PD = createDanceClock(); let pdT = null;   // (SP5: the promenade dancers' energy — core/harbor-dance.js)
   const pnow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   let backLight = () => 0;   // (PROM: the back road's light at x, z — road.js#crossLightOf)
-  function layout(l) { L = l; mapKey = ''; solidsHP = undefined; cache.clear(); roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; backLight = L ? crossLightOf(L) : () => 0; }
+  let mapSig = '', replans = 0, kept = 0, lived = false;
+  const mapSigOf = m => { try { return JSON.stringify(m, (k, v) => (typeof v === 'number' ? Math.round(v * 1000) / 1000 : v)); } catch { return String(Math.random()); } };
+  // SPEED PASS B — A2 (1): the staged first plan (see frame): one block of folkWarmSteps(t) per task, in order; true once all are cached
+  let staging = true, stageBusy = false, stageN = 0;
+  function staged(t, ctx) {
+    const left = folkWarmSteps(t).filter(([w, k]) => !cache.has(`${w}|${k}`));
+    if (!left.length) { staging = false; return true; }
+    if (!stageBusy) {
+      stageBusy = true; const Mw = M, step = left[0];
+      setTimeout(() => { stageBusy = false; if (!L || M !== Mw) return; try { folkAt(t, { L, M, ctx, warm: step }, cache); stageN++; } catch { staging = false; } }, 0);
+    }
+    return false;
+  }
+  // (SPEED PASS B — A6, review-6.md: a resize RE-PLANNED the whole promenade (~130 ms of routing in the resize's held frame on a desktop).
+  //  The plan is in world units on the walking map: a re-layout whose map comes out the SAME (mapSig) keeps every visit — re-projected by
+  //  the new camera, never re-planned; a changed map (a wider screen moves the edges people enter from) plans again, as it must. The staged
+  //  first plan (A2) is for the FIRST plan only — a later re-layout never blanks the promenade for a frame (THE PEOPLE RULE))
+  function layout(l) { L = l; mapKey = ''; if (!lived) staging = true; solidsHP = undefined; roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; backLight = L ? crossLightOf(L) : () => 0; }
   function ensureMap(event, ring = false) {
     const key = `${event ? 1 : 0}${ring ? 1 : 0}|${lineN}|${roomOn ? 'room' : ''}`;
     if (key === mapKey && M) return;
     // (LOBBY 2.0 A — THE ROOM's TWO LINES are SOLIDS: the city's people route round them; the players themselves walk on roomMap — the
     //  same floor without the lines — into their places)
-    M = folkMap(L, { event, ring, line: roomOn ? roomRects(L) : lineN ? lineRect(L, lineN) : null }); mapKey = key; cache.clear();
+    M = folkMap(L, { event, ring, line: roomOn ? roomRects(L) : lineN ? lineRect(L, lineN) : null }); mapKey = key;
+    const sig = mapSigOf(M); if (sig !== mapSig) { cache.clear(); replans++; } else kept++;   // (A6: the same map → the same plan, kept)
+    mapSig = sig;
     roomMap = folkMap(L, { event, ring });
   }
   // (FR6 FIXES A: a look is chosen from the weather's STEADY wind (env.windLook), never the per-frame gust field (env.wind) — a gust
@@ -141,8 +160,11 @@ export function createPeople() {
       // the breaks' conflicts (scene.js#danceBlocked: a raid, a legendary, a show — never reached the street party before PART 10)
       fwShows: f.fwShows || null, fireworks: f.fireworks || null, blocked: f.blocked || null };
     const p0 = pnow();
-    now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
-    if (f.off == null) guardT = null; else guard(now, t);   // (no plan yet — the clock's offset unknown: the first real frame is a load)
+    // (SPEED PASS B — A2 (1): after a (re)build the first plan is WARMED one block per task while the city bakes (staged()), nobody drawn
+    //  until it's in — the scene holds its reveal for it (ready()) — so the first frame's ~1.3 s of routing at 4× CPU never lands in one task)
+    const early = f.off != null && staging && !staged(t, ctx);
+    now = f.off == null || early ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
+    if (f.off == null || early) guardT = null; else { guard(now, t); lived = true; }   // (no plan yet — the clock's offset unknown: the first real frame is a load)
     roofNow = roofAt(t, L, ctx, roofCache);
     frameMs = pnow() - p0; if (frameMs > frameMsMax) frameMsMax = frameMs;
     lastT = t;
@@ -865,6 +887,10 @@ export function createPeople() {
     line(n) { lineN = Math.max(0, Math.min(12, Math.round(n || 0))); },
     /** LOBBY 2.0 A — the room's roster (null: no room) + where each player was drawn this frame (uid → box | null: off screen) */
     room, roomBoxes: () => roomBox,
+    /** SPEED PASS B — A2 (1): the first plan is in (the scene's reveal waits for it) · how many blocks were warmed one per task */
+    ready: () => !staging, stageN: () => stageN,
+    /** SPEED PASS B — A6: how often the walking map changed (the plan re-made) vs came out the same (the plan kept) */
+    plans: () => ({ replans, kept }),
     /** SPEED PASS B — every figure the last NEAR pass drew: [{ vid, kind, seed, room, x, z, pose }] (the leaver's figures counted — e2e speed.mjs leaver) */
     drawnNow: () => lastNear.map(m => ({ vid: m.vid, kind: m.kind, seed: m.m && m.m.seed, room: m.room || null, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })),
     /** LOBBY 2.0 B: the side door on screen (the push through it at the game start zooms on this point) → { x, y } in CSS px */

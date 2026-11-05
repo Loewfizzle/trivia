@@ -2775,7 +2775,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // after it; a failed load gives up at REVEAL_MAX like everything else — the stand-in song clock then)
     const songs = !!partyDeckNow() || now - t0 > REVEAL_MAX - 500;
     const late = now - t0 > REVEAL_MAX;
-    if (!(ready && fonts && wx && sky && panel && songs) && !late) return;
+    // (SPEED PASS B — A2 (1): the people's first plan warmed one block a task in the dark — the city shown WITH them, never a pop-in)
+    const folk = (clock.force && clock.force.has && clock.force.has('no-people')) || !people.ready || people.ready() || now - t0 > REVEAL_MAX - 500;
+    if (!(ready && fonts && wx && sky && panel && songs && folk) && !late) return;
     // (the look the weather brought must be IN the bake that shows: an answer that landed since the last look (read every 2.5 s) is
     // read now, and a changed look re-bakes once more, still dark)
     { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none'; if (!late && sig !== wxSig) { lookAt = 0; return; } }
@@ -2785,7 +2787,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!late && L && S.measure) { const mv = rectsMoved(); if (mv) { LOADLOG.add('dock', `measured before the reveal: ${mv}`); layout('measured before the reveal'); return; } }
     shownAt = now; shownClock = clock.now() / 1000; revealWhy = ready && fonts && wx && sky && panel ? 'ready' : 'late';
     clouds.settle();                              // (the clouds baked in the dark show at once with the city — no fade of their own)
-    const waits = [!ready && 'the bake', !fonts && 'the fonts', !wx && 'the weather', !sky && 'the clouds', !panel && "the panel's stored state", !songs && 'the party songs'].filter(Boolean);
+    const waits = [!folk && 'the people', !ready && 'the bake', !fonts && 'the fonts', !wx && 'the weather', !sky && 'the clouds', !panel && "the panel's stored state", !songs && 'the party songs'].filter(Boolean);
     wxRevealed = true; wxHeld = wxNow() || wxHeld;
     { const a = weatherAsk(); if (a) LOADLOG.add('note', `wx asked: ${a.status ? `HTTP ${a.status}` : `failed (${a.err})`} in ${a.ms} ms`); }
     LOADLOG.reveal(revealWhy, `t${tier} dpr ${dpr} · ${Math.round(W)}×${Math.round(H)} · wx ${LK.wxKind || 'seeded'} (${wxSourceNow()})${waits.length ? ` · still waiting for ${waits.join(', ')}` : ''}`, now);
@@ -3051,7 +3053,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (6b: THE DIRECTOR — the budget, what runs, who asked + got a yes)
       director: director.state(),
       // 8P: THE PEOPLE — who's on the promenade + the roof, the bus; setLine(n): Lobby 2.0's line at the door; budget(k): 6b's director
-      people: { ...people.debug(), wind: folkWind(), party: people.party(), cars: people.cars(), traffic: people.traffic(), crew: people.crew(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k), rigs: () => people.rigs(), cost: () => people.cost() },   // (PEO: rigs() + cost() — the motion probe)      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
+      people: { ...people.debug(), stageN: people.stageN ? people.stageN() : null, plans: people.plans ? people.plans() : null, wind: folkWind(), party: people.party(), cars: people.cars(), traffic: people.traffic(), crew: people.crew(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k), rigs: () => people.rigs(), cost: () => people.cost() },   // (PEO: rigs() + cost() — the motion probe)      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
       // (8b1: THE WILDLIFE — who's where; scare(x, z, r) / startle(): Group 3's witnesses; budget(k): THE DIRECTOR)
       raid: (() => { const P = raidPlanNow(), nowS = clock.now() / 1000, R = P ? raidAt(P, nowS) : null; return P ? { key: P.key, why: P.why, party: P.party, s: +(nowS - P.t0).toFixed(1), tAppear: +(P.tAppear - P.t0).toFixed(1), tStop: P.tStop != null ? +(P.tStop - P.t0).toFixed(1) : null, tDepart: P.tDepart != null ? +(P.tDepart - P.t0).toFixed(1) : null, tBack: +(P.tBack - P.t0).toFixed(1), tEnd: +(P.tEnd - P.t0).toFixed(1), phase: R ? R.phase : 'after', power: R ? +R.power.toFixed(2) : 1, cars: R ? R.cars.length : 0, beam: R ? +R.beam.toFixed(2) : 0, club: R ? +R.club.toFixed(2) : 1 } : null; })(),
       wildlife: { ...wild.debug(), scare: (x, z, r) => wild.scare(x, z, r), startle: () => wild.startle(), budget: k => wild.budget(k), hydrantState: () => wild.hydrantState(), busy: wild.busy() },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)

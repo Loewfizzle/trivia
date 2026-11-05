@@ -47,8 +47,51 @@ A3 H5 E2 E3) + the owner's four notes from his SPEED PASS test + the two red spe
   beats + steps), the one on screen; flipped, the other takes over and the first goes quiet; the quiet tab's music off; the device's own
   music setting never written as off.
 
-## Group 1 — THE PHONE's SPEED
-(below)
+## Group 1 — THE PHONE's SPEED (review-6.md A + E + H5)
+
+### A2 — THE REBUILD AFTER A MATCH (`speed` job `rebuild`: BACK TO THE ROOM → the city shown, 4× CPU, 402 @3, the long tasks to the reveal)
+- **(1) the people's first plan, one block a task**: `core/harbor-people.js#folkWarmSteps(t)` names the blocks the first frame reads
+  (`A(kb)`, `A(kb+1)`, `A(ka)`, `Bv(kb)`); `folkAt(t, { warm: [kind, k] })` plans ONE into the cache and stops. `people.js#staged` warms
+  them one per task (setTimeout 0) while the city bakes, nobody drawn until they're in, and the scene's reveal waits for `people.ready()`
+  (the city is shown WITH its people — no pop-in). FIRST plan only: a later re-layout never blanks the promenade (`lived`).
+- **(2) ONE update**: `host.js#backToLobby` writes `meta/back` + `meta/status: lobby` + the wipe in one update (one round trip, every phone
+  sees the stamp with the status); a refusal (rules without meta/back) is reported and falls back to the old two writes (`backWrites`).
+- **Numbers (4 runs each, the mini PC)**: shown **6.25–6.45 s → 6.05–6.30 s**; long-task time to the reveal **5.3–5.9 s → 4.97–5.24 s**; the 4
+  blocks warmed in 4 tasks. The BIGGEST task stays **~900–1000 ms** (the build itself — the title's mount + `scene.js#layout` + the first
+  bakes' `drawImage`), not the people → (3) held back (Known issues). On the phone (÷4): ≈ 50 ms sooner, ≈ 0.1 s less blocked time.
+
+### A6 — THE RESIZE (`resizekeep`)
+- Measured: the walking map (`folkMap`) uses the camera's half-width at each depth for the edges people walk in from — ANY size change (width
+  OR height: the camera's focal length follows the height) changes it, so re-planning on a resize is CORRECT (old visits would enter
+  mid-screen). Built: the plan is KEPT whenever the map comes out the same (`people.js#mapSig` — e.g. the window moved to a screen of another
+  pixel ratio: kept, the same walkers); a size change re-plans. The −130 ms the review hoped for needs world-fixed entry points → held back.
+
+### A3 — THE BORDER LASER (THE VAULT BENCH, 8 legendaries, 4× CPU, 402 @3)
+- `parseColour` was ALREADY cached by string (FR6's 172 ms was the strings re-built per segment). Now: the tail's stroke colours made ONCE per
+  (colour, second colour, segments) — `laser.js#tailStyles`; the edge's lengths once a draw (`alongL`); a gradient's stop signature ONCE per
+  distinct stop list for the page (`gl.js#sigs` — gradients are new objects every frame); **18 segments at tier ≤ 1** (30 at tier 2).
+- **GPU path** (SW=0): busy **4.11–4.19 → 3.87–3.99 ms** a frame at tier 2 (slow frames 4–6 → 2–3 of ~240); at tier 1 **3.59–3.67 → 2.65–2.71
+  ms (−26 %)**. Software canvas (the iPhone stand-in): busy unchanged (3.8–4.1 ms — the strokes' pixels are the cost), JS 12.5–14.6 → 10–10.7.
+  Proof: `tests/speed-b.test.mjs` (the same strings frame to frame; 60 strokes at tier 2, 36 at tier 1 — 60 before).
+
+### H5 — NO GLASS DURING THE START (`startglass`)
+- `css/title.css`: `body.rc-going *` → `backdrop-filter: none` for the whole start (the dock's glass bar was live over the moving city).
+  **1 → 0** glass layers mid-start. The start's frames at 4× CPU (the real compositor, 402 @3) **unchanged — median ~66.7 ms** before and after:
+  on this machine the glass wasn't the cost (native paint is — `(program)` + road.js's sign words + the people); recorded, not gated.
+
+### E2 — THE MUSIC (`musiccache`, `tests/integration/bytes-probe.mjs`)
+- **(a)** `synced-songs.js#wanted`: the PREVIOUS song only if this phone already has it (an arrival in the 4-s crossfade never fetches a whole
+  song for its last seconds of fade). **(b) THE MUSIC CACHE**: one fetch + decode per song URL on the page, shared by every player (refs); a
+  released song stays decoded (`KEEP_N` 1, `KEEP_MS` 4 min) so the city's rebuild after a match picks the station song up again.
+  Proof: mid-crossfade 1 → 0 previous-song fetches; a song stopped + wanted by a NEW player: 2 fetches + 2 decodes → 1 + 1 (both fail on the old code).
+- **The bytes probe** (a fresh visit, 25 s, one tap, the same city time): **10.2 MB before and after (4.4 MB music)** — at an ordinary moment
+  nothing changes; the saving is one whole song (~2–4 MB) for an arrival inside a crossfade and one song per return from a match. The review's
+  17.6 MB was not reproduced at this moment (its count included a previous + next song); (d) re-encoding stays the owner's call (not done).
+
+### E3 — `/api/time` (e2e-conn THE CLOCK)
+- 3 samples (was 5); the refine round only when the boot's best was ≥ 80 ms (was 45 — it nearly always fired); "back on screen" re-syncs
+  only when the last sync is > 10 min old. Measured (answers 60 ms late, a phone network): **10 → 3** requests in a title's first ~20 s;
+  **5 → 0** on a return to the screen within 10 min.
 
 ## Group 2 — THE RED SPEED CHECKS
 (below)

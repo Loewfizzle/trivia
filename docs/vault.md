@@ -497,6 +497,14 @@ The full card's plate takes its second line's real width (the level, or THE DEVE
 Checked by `tests/integration/plate-preview.html` (every full card + strip, no Firebase) in the harbor's `platefit` group (390 / 402 / 430). Both
 dev full cards v4 (CHANGED in THE LAB).
 
+## THE COVER — A FULL CARD HOLDS EVERYTHING BEHIND IT (THE SPEED PASS B, Nov 4 — the owner's 8:05 pm lag)
+`vault/full.js#openFullCard` (CUSTOMIZE's VIEW FULL, GUESTS, a player tap, the profile — every full card on top) covers what's behind it:
+`fx/renderer.js#fxCover(keep)` HOLDS every fx surface outside the card (not drawn, not cleared — the frame it showed; its clock stopped and
+resumed from that frame on CLOSE; covers count), `body.vl-covered` pauses every CSS animation outside `.vl-full` (css/vault.css), the city's
+frames are held (`vl-cover` → scene.js), the backdrop 92 % near-black, never a backdrop-filter. Measured (4× CPU, 402 @3, SKY KING over
+CUSTOMIZE): 33.3 ms a frame (206 of 240 slow) → 16.7 ms (0 slow) — the same as the card alone. `fxBehind()` = slots drawn behind (tests).
+A NEW pop-up that shows a full card goes through `openFullCard` (or calls `fxCover` itself).
+
 ## A FONT THAT ARRIVES LATE (THE SPEED PASS, Nov 4)
 `ui/fit.js#fitName` + `full.js#fitTop` fitted on `document.fonts.ready` + a box resize only — a name whose face started loading AFTER `ready`
 resolved kept the fallback face's fit and overflowed once the real face landed (LOBBY FIXES' cloud red: 2 of 42 glowing names). Every fitted

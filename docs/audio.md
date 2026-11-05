@@ -31,6 +31,16 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   unmasking); a track change resets it.
 
 
+## THE MUSIC CACHE + THE QUIET TAB (THE SPEED PASS B, Nov 4 2026) — `audio/synced-songs.js`, `audio/settings.js` — docs/harbor/passes/speed-b.md
+- **One decode per song** on a page (`synced-songs.js#acquire / release`): every synced player (the stations, the party deck, the lobby song,
+  PRISM DROP / SLIPSTREAM) shares the fetch + `decodeAudioData` of a song URL (refs); a song no player wants stays decoded `KEEP_N` = 1 for
+  `KEEP_MS` = 4 min — the city's rebuild after a match picks the station's song up again instead of fetching + decoding it twice. Never more
+  than ONE extra decoded song (tens of MB each). `songCache()` = the decodes + what's held.
+- **The previous song** (`wanted()`): only if this phone already has it — an arrival inside the 4-s crossfade never fetches a whole song.
+- **THE QUIET TAB**: a tab that yielded to another tab of the same player (`identity.js#watchDuplicateTabs` — the tab ON SCREEN plays) has its
+  music off for that page only (`setPageQuiet`), never saved; it plays again once it's the player's tab.
+- The bytes probe: `node tests/integration/bytes-probe.mjs "<chrome>"` (a fresh visit's music / other bytes in its first 25 s).
+
 ## THE BEAT (PARTY NIGHTS, Oct 20 2026) — `js/audio/beat.js`
 `beatSource()` → `{ id, bpm, pos }` for the song sounding on this phone right now: in a lobby the room's synced song
 (`lobby-music.js#lobbyNow`, the synced player's loudest voice), else this phone's mood song (`music.js#nowPlaying`); bpm from

@@ -952,6 +952,11 @@ export function aroundSolids(vis, S0, key = '', circles = [], base = []) {
   SOLID_SEEN.set(vis, { key, out });
   return out;
 }
+/** SPEED PASS B — A2 (1): the blocks folkAt(t) reads first, in the order they build on each other → [['A', k] | ['B', k]] */
+export function folkWarmSteps(t) {
+  const B = FOLK.block, ka = Math.floor(t / B), kb = Math.floor((t - B / 2) / B);
+  return [['A', kb], ['A', kb + 1], ['A', ka], ['B', kb]].filter((x, i, a) => a.findIndex(y => y[0] === x[0] && y[1] === x[1]) === i);
+}
 export function folkAt(t, world, cache = new Map()) {
   const { M, ctx = {} } = world, L = world.L, B = FOLK.block, cx0 = {};
   // (HOTFIX Oct 29 — THE FORCED BUS AT 5 FPS: this was first-in-first-out at 80 entries; &force=bus (a bus every ~47 s) touches ~95
@@ -1119,6 +1124,9 @@ export function folkAt(t, world, cache = new Map()) {
   const cabOcc = (a, b) => [...cabsNear(a, b).flatMap(pl => occOf(pl.riders)), ...occOf(standsNear(a, b).map(pl => pl.rider))];
   const A = k => get(`A|${k}`, () => { const t0 = k * B; return blockVisits(0, k, M, { ...cx, others: [...busesNear(t0, t0 + B).flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B), ...cabOcc(t0, t0 + B)] }); });
   const Bv = k => get(`B|${k}`, () => { const t0 = k * B + B / 2, bs = busesNear(t0, t0 + B); return blockVisits(1, k, M, { ...cx, others: [...occOf(A(k)), ...occOf(A(k + 1)), ...bs.flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B), ...cabOcc(t0, t0 + B)], seats: [...seatsOf(A(k)), ...seatsOf(A(k + 1))] }); });
+  // (SPEED PASS B — A2 (1): world.warm = ['A' | 'B', k] plans ONE block into the cache and stops — the scene warms the first frame's
+  //  blocks one per task while the city bakes, never the whole first plan inside one long task; folkWarmSteps(t) names them)
+  if (world.warm) { const [w, k] = world.warm; if (w === 'A') A(k); else Bv(k); return null; }
   const ka = Math.floor(t / B), kb = Math.floor((t - B / 2) / B);
   const buses = busesLive(t, t).filter(b => t >= b.tE && t < b.tX);
   // 11a-1 — THE PEOPLE OF THE HOLIDAYS (core/harbor-holidayfolk.js): Halloween night's trick-or-treaters + zombies (seeded per block, on

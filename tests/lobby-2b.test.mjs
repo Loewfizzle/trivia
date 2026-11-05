@@ -173,7 +173,9 @@ test('THE STAMPS NEVER DEPEND ON A RULES RE-PUBLISH (the owner\'s real-phone tes
   assert.ok(bannerAt({ status: 'lobby', activeAt: 160000 }, { a: {} }, night) > 160000);
   const h = read('js/host.js');
   assert.match(h, /game: \{ \.\.\.game, go: serverTimestamp\(\) \}/);
-  assert.match(h, /\.catch\(e => stampRefused\('go', e\)\)/); assert.match(h, /\.catch\(e => stampRefused\('back', e\)\)/);
+  assert.match(h, /\.catch\(e => stampRefused\('go', e\)\)/);
+  // (SPEED PASS B — A2 (2): the back stamp + the room's return in ONE update; refused → reported, then the old two writes)
+  assert.match(h, /catch \(e\) \{ backWrites\.fallback\+\+; stampRefused\('back', e\); \}/);
   assert.match(h, /reportError\(new Error\(`ROOM STAMP REFUSED/);
 });
 
