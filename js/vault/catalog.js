@@ -219,9 +219,13 @@ export function registerLabText(t) { for (const x of LAB) if (t && t[x.id]) Obje
 // beside his old mark. (An APPROVE still ships the newer art: CHANGED asks for a re-look, it never pulls approved art.)
 export const LAB_V = Object.freeze({
   'card-inferno': 2, 'full-card-inferno': 2, 'card-century': 4, 'full-card-century': 3,
-  'card-dev-switchboard': 3, 'card-dev-source': 3, 'card-prism': 2, 'card-emerald': 2, 'card-sg-ufo': 2, 'card-marquee': 2, 'full-card-dev-switchboard': 5, 'full-card-dev-source': 5,
+  'card-prism': 2, 'card-emerald': 2, 'card-sg-ufo': 2, 'card-marquee': 2,
   'card-camo': 2, 'card-sg-tr3b': 2,   // (SHELL 2.0 B2 — THE HERO-SPOT AUDIT + the 1 OF 1's gradient)
   'card-founder': 2, 'full-card-founder': 2, 'full-card-house': 2,
+  // (CARD FIXES — the owner's LAB notes + THE CARD LAYOUT RULE: every gift's full card, the strips whose art moved, the dev line)
+  'full-card-gift-playerone': 2, 'full-card-gift-halloffame': 2, 'full-card-gift-enforcer': 2, 'full-card-gift-linebacker': 2, 'full-card-gift-underlights': 2, 'full-card-gift-sunsetstrip': 2, 'full-card-gift-goldenhour': 2, 'full-card-gift-goldenboot': 2, 'full-card-gift-youngbuck': 2, 'full-card-gift-icecold': 2, 'full-card-gift-anarchist': 2,
+  'card-gift-playerone': 2, 'card-gift-halloffame': 2, 'card-gift-sunsetstrip': 2, 'card-gift-youngbuck': 2, 'card-gift-icecold': 2, 'card-gift-anarchist': 2,
+  'card-dev-switchboard': 4, 'card-dev-source': 4, 'full-card-dev-switchboard': 6, 'full-card-dev-source': 6,
 });
 /** an item's current version */
 export const verOf = id => LAB_V[id] || 1;

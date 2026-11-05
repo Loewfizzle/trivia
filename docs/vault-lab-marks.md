@@ -1,20 +1,20 @@
 # THE CARD LAB — the owner's marks (read this FIRST in the next VAULT pass)
 
-Exported 2026-11-04 20:21 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
+Exported 2026-11-05 22:21 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
 
 | # | item | tier | mark | note | when | v |
 | --- | --- | --- | --- | --- | --- | --- |
-| 116 | THE SWITCHBOARD (`card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-04 02:03 UTC | v2 |
-| 117 | THE SOURCE (`card-dev-source`) | legendary | APPROVE |  | 2026-11-04 02:04 UTC | v2 |
-| 118 | THE SWITCHBOARD · FULL CARD (`full-card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-04 02:09 UTC | CHANGED (marked v2, now v3) |
-| 119 | THE SOURCE · FULL CARD (`full-card-dev-source`) | legendary | APPROVE |  | 2026-11-04 02:10 UTC | CHANGED (marked v2, now v3) |
+| 116 | THE SWITCHBOARD (`card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-05 21:54 UTC | v3 |
+| 117 | THE SOURCE (`card-dev-source`) | legendary | APPROVE |  | 2026-11-05 21:54 UTC | v3 |
+| 118 | THE SWITCHBOARD · FULL CARD (`full-card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-05 21:56 UTC | v5 |
+| 119 | THE SOURCE · FULL CARD (`full-card-dev-source`) | legendary | APPROVE |  | 2026-11-05 21:56 UTC | v5 |
 | 92 | FOUNDING MEMBER (`card-founder`) | legendary | APPROVE |  | 2026-11-04 02:04 UTC | v2 |
 | 93 | THE HOUSE (`card-house`) | legendary | APPROVE |  | 2026-11-03 19:25 UTC | v1 |
 | 94 | PLATINUM (`card-platinum`) | epic | APPROVE |  | 2026-11-03 19:25 UTC | v1 |
 | 95 | FOUNDING MEMBER · FULL CARD (`full-card-founder`) | legendary | APPROVE |  | 2026-11-04 02:10 UTC | v2 |
 | 96 | THE HOUSE · FULL CARD (`full-card-house`) | legendary | APPROVE |  | 2026-11-04 02:04 UTC | v2 |
 | 97 | PLATINUM · FULL CARD (`full-card-platinum`) | epic | APPROVE |  | 2026-11-03 19:27 UTC | v1 |
-| 34 | LIGHTS OUT (`card-sg-tr3b`) | legendary | APPROVE |  | 2026-11-03 19:25 UTC | v1 |
+| 34 | LIGHTS OUT (`card-sg-tr3b`) | legendary | APPROVE |  | 2026-11-05 21:54 UTC | v2 |
 | 35 | SKY KING (`card-sg-blackbird`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC | v1 |
 | 36 | AFTERBURNER (`card-sg-f22`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC | v1 |
 | 37 | THE FLYING DUTCHMAN (`card-sg-ghostship`) | legendary | APPROVE |  | 2026-11-03 16:41 UTC | v1 |
@@ -34,17 +34,17 @@ Exported 2026-11-04 20:21 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 2 | SMOKE ROOM (`card-smoke`) | uncommon | APPROVE |  | 2026-11-03 11:23 UTC | v1 |
 | 3 | FROSTBITE (`card-frostbite`) | uncommon | APPROVE |  | 2026-11-03 11:23 UTC | v1 |
 | 4 | INFERNO (`card-inferno`) | rare | APPROVE |  | 2026-11-04 02:05 UTC | v2 |
-| 5 | PRISM (`card-prism`) | rare | APPROVE |  | 2026-11-03 11:24 UTC | v1 |
-| 6 | THE MARQUEE (`card-marquee`) | epic | APPROVE |  | 2026-11-03 11:24 UTC | v1 |
+| 5 | PRISM (`card-prism`) | rare | APPROVE |  | 2026-11-05 21:55 UTC | v2 |
+| 6 | THE MARQUEE (`card-marquee`) | epic | APPROVE |  | 2026-11-05 21:55 UTC | v2 |
 | 7 | GLITTER BOMB (`card-glitter`) | epic | APPROVE |  | 2026-11-03 11:24 UTC | v1 |
-| 8 | I WANT TO BELIEVE (`card-sg-ufo`) | legendary | APPROVE |  | 2026-11-03 11:24 UTC | v1 |
+| 8 | I WANT TO BELIEVE (`card-sg-ufo`) | legendary | APPROVE |  | 2026-11-05 21:55 UTC | v2 |
 | 9 | BOLT · NEON (`emb-test-neon`) | common | APPROVE |  | 2026-11-03 19:36 UTC | v1 |
 | 10 | BOLT · PRISM (`emb-test-prism`) | rare | APPROVE |  | 2026-11-03 19:36 UTC | v1 |
 | 19 | GILDED (`card-gilded`) | common | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
 | 20 | MIDNIGHT (`card-midnight`) | common | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
 | 21 | HEARTBREAKER (`card-heartbreaker`) | uncommon | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
 | 22 | BRASS DECO (`card-brass`) | common | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
-| 23 | EMERALD & BRASS (`card-emerald`) | uncommon | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
+| 23 | EMERALD & BRASS (`card-emerald`) | uncommon | APPROVE |  | 2026-11-05 21:55 UTC | v2 |
 | 24 | NEON GLASS (`card-neonglass`) | uncommon | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
 | 25 | SILVER CHROME (`card-chrome`) | uncommon | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
 | 26 | MIDNIGHT & CHAMPAGNE (`card-champagne`) | uncommon | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
@@ -64,7 +64,7 @@ Exported 2026-11-04 20:21 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 33 | MIDNIGHT & CHAMPAGNE · FULL CARD (`full-card-champagne`) | uncommon | APPROVE |  | 2026-11-03 14:21 UTC | v1 |
 | 18 | I WANT TO BELIEVE · FULL CARD (`full-card-sg-ufo`) | legendary | APPROVE |  | 2026-11-03 14:21 UTC | v1 |
 | 50 | ZEBRA (`card-zebra`) | uncommon | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
-| 51 | CAMO (`card-camo`) | uncommon | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
+| 51 | CAMO (`card-camo`) | uncommon | APPROVE |  | 2026-11-05 21:55 UTC | v2 |
 | 52 | VELVET ROOM (`card-velvet`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 53 | AURORA (`card-aurora`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 54 | ONYX & ROSE GOLD (`card-rosegold`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
@@ -78,7 +78,7 @@ Exported 2026-11-04 20:21 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 62 | VELVET NOIR (`card-noir`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 63 | SAPPHIRE & SILVER (`card-sapphire`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 64 | PRISM LEGEND (`card-legend`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
-| 65 | CENTURY (`card-century`) | epic | APPROVE |  | 2026-11-04 12:47 UTC | v3 |
+| 65 | CENTURY (`card-century`) | epic | APPROVE |  | 2026-11-05 21:55 UTC | v4 |
 | 66 | THE MARQUEE · GOLD BULBS (`card-marquee-gold`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 67 | PENTHOUSE (`card-penthouse`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 68 | WILDFIRE (`card-wildfire`) | legendary | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
@@ -163,3 +163,25 @@ Exported 2026-11-04 20:21 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 157 | CHAMPAGNE (`glow-champagne`) | rare | APPROVE |  | 2026-11-03 23:43 UTC | v1 |
 | 158 | PRISM (`glow-prism`) | epic | APPROVE |  | 2026-11-03 23:43 UTC | v1 |
 | 159 | GLITCH (`glow-glitch`) | epic | APPROVE |  | 2026-11-03 23:43 UTC | v1 |
+| 160 | PLAYER ONE (`card-gift-playerone`) | legendary | FIX | Show more of his face | 2026-11-05 22:12 UTC | v1 |
+| 161 | HALL OF FAME (`card-gift-halloffame`) | legendary | FIX | Show more of his face | 2026-11-05 22:12 UTC | v1 |
+| 162 | THE ENFORCER (`card-gift-enforcer`) | legendary | APPROVE |  | 2026-11-05 22:12 UTC | v1 |
+| 163 | THE LINEBACKER (`card-gift-linebacker`) | legendary | APPROVE |  | 2026-11-05 22:12 UTC | v1 |
+| 164 | UNDER THE LIGHTS (`card-gift-underlights`) | legendary | APPROVE |  | 2026-11-05 22:11 UTC | v1 |
+| 165 | SUNSET STRIP (`card-gift-sunsetstrip`) | legendary | APPROVE |  | 2026-11-05 22:11 UTC | v1 |
+| 166 | GOLDEN HOUR (`card-gift-goldenhour`) | legendary | APPROVE |  | 2026-11-05 22:11 UTC | v1 |
+| 167 | GOLDEN BOOT (`card-gift-goldenboot`) | legendary | APPROVE |  | 2026-11-05 22:10 UTC | v1 |
+| 168 | YOUNG BUCK (`card-gift-youngbuck`) | legendary | APPROVE |  | 2026-11-05 22:11 UTC | v1 |
+| 169 | ICE COLD (`card-gift-icecold`) | legendary | APPROVE |  | 2026-11-05 22:11 UTC | v1 |
+| 170 | THE ANARCHIST (`card-gift-anarchist`) | legendary | APPROVE |  | 2026-11-05 22:11 UTC | v1 |
+| 171 | PLAYER ONE · FULL CARD (`full-card-gift-playerone`) | legendary | APPROVE |  | 2026-11-05 22:10 UTC | v1 |
+| 172 | HALL OF FAME · FULL CARD (`full-card-gift-halloffame`) | legendary | APPROVE |  | 2026-11-05 22:10 UTC | v1 |
+| 173 | THE ENFORCER · FULL CARD (`full-card-gift-enforcer`) | legendary | APPROVE |  | 2026-11-05 22:10 UTC | v1 |
+| 174 | THE LINEBACKER · FULL CARD (`full-card-gift-linebacker`) | legendary | APPROVE |  | 2026-11-05 22:09 UTC | v1 |
+| 175 | UNDER THE LIGHTS · FULL CARD (`full-card-gift-underlights`) | legendary | APPROVE |  | 2026-11-05 22:09 UTC | v1 |
+| 176 | SUNSET STRIP · FULL CARD (`full-card-gift-sunsetstrip`) | legendary | FIX | Fix the glint on its sunglasses.  Right now it goes across the whole face, needs to be glasses only, make the glint more noticeable.  Maybe add a twinkle.  This card is a special card, It needs to feel that way. | 2026-11-05 22:06 UTC | v1 |
+| 177 | GOLDEN HOUR · FULL CARD (`full-card-gift-goldenhour`) | legendary | APPROVE |  | 2026-11-05 22:06 UTC | v1 |
+| 178 | GOLDEN BOOT · FULL CARD (`full-card-gift-goldenboot`) | legendary | APPROVE |  | 2026-11-05 22:06 UTC | v1 |
+| 179 | YOUNG BUCK · FULL CARD (`full-card-gift-youngbuck`) | legendary | FIX | Everything looks great but don’t cut off the bottom of his face | 2026-11-05 22:07 UTC | v1 |
+| 180 | ICE COLD · FULL CARD (`full-card-gift-icecold`) | legendary | FIX | Move him over to the right side of the frame More, so he is visible | 2026-11-05 22:08 UTC | v1 |
+| 181 | THE ANARCHIST · FULL CARD (`full-card-gift-anarchist`) | legendary | — |  | — | v1 |

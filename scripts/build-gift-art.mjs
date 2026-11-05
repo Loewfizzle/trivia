@@ -117,8 +117,14 @@ const files = await p.evaluate(async () => {
     x.fillStyle = '#d23a7a'; x.font = 'italic 600 38px "Segoe Script", "Brush Script MT", cursive'; x.textAlign = 'center'; x.fillText('cambria ♥', 190, 412);
     save('goldenhour-polaroid', c, 0.9); }
   // ---- THE ADD-ON's four: already laid out for the card (1280 × 800) — converted only
-  for (const [id, f] of [['anarchist', 'the-anarchist.png'], ['goldenboot', 'liam-golden-boot.png'], ['youngbuck', 'liam-young-buck.png'], ['icecold', 'liam-ice-cold.png']]) {
-    const img = await load(f), c = canvas(), x = c.getContext('2d'); x.drawImage(img, 0, 0, W, H); save(id, c);
+  // (CARD FIXES, the owner's LAB notes: ICE COLD "move him over to the right" + YOUNG BUCK "don't cut off the bottom of his face" — the
+  //  picture slid right by dx so the face sits right of the full card's plate (the hero-spot rule); the strip of art that opens on the
+  //  left is the picture's own left edge MIRRORED — its dark ground, no seam)
+  for (const [id, f, dx = 0] of [['anarchist', 'the-anarchist-v2.png'], ['goldenboot', 'liam-golden-boot.png'], ['youngbuck', 'liam-young-buck.png', 130], ['icecold', 'liam-ice-cold.png', 150]]) {
+    const img = await load(f), c = canvas(), x = c.getContext('2d'), k = img.naturalWidth / W;
+    x.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, dx, 0, W, H);
+    if (dx) { x.save(); x.translate(dx, 0); x.scale(-1, 1); x.drawImage(img, 0, 0, dx * k, img.naturalHeight, 0, 0, dx, H); x.restore(); }
+    save(id, c);
   }
   return out;
 });

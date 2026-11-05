@@ -977,7 +977,7 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 @media (prefers-reduced-motion: reduce) { .vl-fc-fd::after { animation: none; display: none; } }
 /* LOBBY 2.0 A — THE STEPPED PLATE (strip.js#layStep): the step's edge line, over the glass, under nothing that's tapped */
 .vl-lv { align-self: flex-start; }   /* (the stepped plate measures the level row by its text) */
-.vl-plate > .vl-step { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.vl-plate > .vl-step, .vl-fc-plate > .vl-step { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }   /* (CARD FIXES: the full card steps too) */
 /* LOBBY FIXES — CUSTOMIZE's top: YOUR NAME + YOUR COLOUR, two plain rows (the owner's ADD-ON 3) — each opens its editor (profile/edit.js) */
 .vl-yr { display: flex; flex-direction: column; gap: 8px; margin: 2px 0 10px; }
 
@@ -985,8 +985,12 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
    reduced motion: it simply appears) */
 .vl-gift-head { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 0 0 14px; text-align: center; }
 .vl-gift-head small { font: 700 12px/1 var(--font-ui); letter-spacing: 0.34em; color: #ffd6f2; }
-.vl-gift-head b { font: 900 clamp(18px, 5.4vw, 26px)/1.05 var(--font-display); letter-spacing: 0.08em; color: transparent; -webkit-text-fill-color: transparent;
-  background: linear-gradient(90deg, #ff9ed8, #ffe07a 30%, #8dffbe 55%, #7aeeff 78%, #d2bdff); -webkit-background-clip: text; background-clip: text; }   /* (no filter: it moves in — the vault's no-filter-under-motion rule) */
+/* CARD FIXES — the owner (Nov 5 4:58 pm): the rainbow header was "too much" → SOLID: ONE OF ONE white + IT'S YOURS gold, a soft static glow (no
+   gradient, no filter: it moves in — the vault's no-filter-under-motion rule) */
+.vl-gift-head b { font: 900 clamp(18px, 5.4vw, 26px)/1.05 var(--font-display); letter-spacing: 0.08em; }
+.vl-gift-head .vl-gift-one { color: #fffaf2; text-shadow: 0 0 10px rgba(255, 255, 255, 0.35), 0 1px 2px rgba(0, 0, 0, 0.8); }
+.vl-gift-head .vl-gift-dot { font-style: normal; color: rgba(255, 250, 242, 0.7); }
+.vl-gift-head .vl-gift-yours { color: #ffd36a; text-shadow: 0 0 12px rgba(255, 196, 80, 0.45), 0 1px 2px rgba(0, 0, 0, 0.8); }
 .vl-full-flip .vl-gift-head { animation: vl-gift-head 0.7s ease-out both; }
 .vl-full-flip { perspective: 1400px; }
 .vl-full-flip .vl-full-stage { animation: vl-gift-flip 1.15s cubic-bezier(.2, .8, .2, 1) 0.25s both; transform-origin: 50% 50%; backface-visibility: hidden; }   /* (the stage: the card + its fx canvas turn together — slots are placed by offsets) */
@@ -1003,9 +1007,9 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-fcm-g-linebacker .vl-mat { background-position: 50% 50%; }
 .vl-s-g-underlights .vl-mat { background: #07060a url('../assets/vault/gift/underlights.webp') 50% 28% / cover no-repeat; }
 .vl-fcm-g-underlights .vl-mat { background-position: 50% 50%; }
-.vl-s-g-halloffame .vl-mat { background: #07060a url('../assets/vault/gift/halloffame.webp') 50% 28% / cover no-repeat; }
+.vl-s-g-halloffame .vl-mat { background: #0b0806 url('../assets/vault/gift/halloffame.webp') 100% 40% / 90% auto no-repeat; }   /* (CARD FIXES: "show more of his face" — zoomed out, the face whole) */
 .vl-fcm-g-halloffame .vl-mat { background-position: 50% 50%; }
-.vl-s-g-playerone .vl-mat { background: #07060a url('../assets/vault/gift/playerone.webp') 50% 32.5% / cover no-repeat; }
+.vl-s-g-playerone .vl-mat { background: #0b1640 url('../assets/vault/gift/playerone.webp') 100% 38.5% / 75% auto no-repeat; }   /* (the same: his face whole; the art's navy carried on under the plate) */
 .vl-fcm-g-playerone .vl-mat { background-position: 50% 50%; }
 .vl-s-g-sunsetstrip .vl-mat { background: #07060a url('../assets/vault/gift/sunsetstrip.webp') 50% 43% / cover no-repeat; }
 .vl-fcm-g-sunsetstrip .vl-mat { background-position: 50% 50%; }
@@ -1024,3 +1028,8 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-fcm-g-goldenhour .vl-fc-house, .vl-fcm-g-goldenhour .vl-fc-since small, .vl-fcm-g-goldenhour .vl-fc-since b, .vl-fcm-g-goldenhour .vl-fc-card { color: #6e2445; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }   /* (the light page: dark ink) */
 .vl-gift-pvrow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; text-align: center; }
 .vl-gift-pvrow small { font: 600 12px/1.35 var(--font-ui); color: var(--text-dim); max-width: 340px; }
+/* CARD FIXES — THE PLATE PLACEMENT RULE on a GIFT card's full card (the owner: "show THE MOST OF THE CARD"): the plate hugs its text a little
+   tighter (a smaller emblem, less air, the level line's letters closer) so it ends before the hero (vault/layout.js keeps it off) */
+.vl-gift-fc .vl-fc-plate { gap: 2.4cqi; padding: 2cqi 3.6cqi 2cqi 2.2cqi; }
+.vl-gift-fc .vl-fc-emb { width: 10.5cqi; height: 10.5cqi; }
+.vl-gift-fc .vl-fc-lv { letter-spacing: 0.13em; }

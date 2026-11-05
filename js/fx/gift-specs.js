@@ -3,6 +3,10 @@
 // tests/shell-b2.test.mjs checks they match) + its LAYERS, every position in ART pixels. `on: 'full'` = the full card only (the strip is the
 // calmer cut). PURE data — no names (the names are the server's).
 //   hero    [x, y, w, h] — the card's MAIN FEATURE (the face) in art px: THE HERO-SPOT RULE checks it on the strip (vault/hero.js)
+//   heroFull [x, y, w, h] — the full card's hero (the face + what matters round it — the rifle, the ball …; default `hero`): THE PLATE
+//           PLACEMENT RULE keeps the full card's plate off it (vault/layout.js — CARD FIXES)
+//   strip   [px, py, z?] — the strip's crop: the CSS background-position %, z = a zoom OUT (< 1: more of the art in the band — the face whole;
+//           the art then sits right, its dark left under the plate; css/vault.css `background-size: z·100% auto`)
 //   motes   { box, n, rgb, size: [min, max], dir: 'up'|'down'|'drift', speed (art px/s), a, kind: 'glow'|'spark'|'dot', tw (twinkle 0..1) }
 //   breathe { at, r, rgb, a: [lo, hi], period, flicker (quick dips a second, 0..1) }      — a light pulsing / buzzing / flickering
 //   sweep   { box, period, dur, angle, rgb, width, a }                                    — a soft band crossing the box (a gleam, a glint)
@@ -26,6 +30,8 @@
 //   streaks { box, n, rgb, a }                                                            — speed streaks shimmering
 //   edge    { rgb, a: [lo, hi], period }                                                  — the card's own neon edge pulsing
 //   bar     { box, period, rgb, width, a }                                                — a photocopier's light bar sweeping
+//   glint   { lenses: [[cx, cy, rx, ry]…], period, dur, angle, rgb, width, a, stars: [[x, y]…], size } — a glint across the LENSES only
+//           (clipped to them) + a star twinkling on the rims after it passes (CARD FIXES: the shiba's sunglasses)
 export const GIFT_SPECS = Object.freeze({
   'card-gift-enforcer': { art: 'enforcer', hero: [720, 140, 260, 290], strip: [50, 28], layers: [
     { t: 'breathe', at: [290, 370], r: 340, rgb: '255,244,225', a: [0.02, 0.16], period: 3.2, flicker: 0.7 },
@@ -45,22 +51,22 @@ export const GIFT_SPECS = Object.freeze({
     { t: 'grid', y0: 600, rgb: '255,79,216', a: 0.55, speed: 0.35 },
     { t: 'edge', rgb: '255,79,216', a: [0.25, 0.75], period: 2.4 },
   ] },
-  'card-gift-halloffame': { art: 'halloffame', hero: [847, 244, 140, 207], strip: [50, 28], layers: [
+  'card-gift-halloffame': { art: 'halloffame', hero: [848, 236, 190, 222], strip: [100, 40, 0.9], layers: [
     { t: 'breathe', at: [1060, 300], r: 560, rgb: '255,210,150', a: [0.04, 0.15], period: 5 },
     { t: 'sweep', box: [740, 0, 540, 712], period: 6, dur: 1.8, angle: -0.5, rgb: '255,240,200', width: 120, a: 0.5 },
     { t: 'motes', box: [760, 0, 500, 700], n: 24, rgb: '255,226,180', size: [1.2, 2.6], dir: 'up', speed: 6, a: 0.6, kind: 'dot', tw: 0.6 },
   ] },
-  'card-gift-playerone': { art: 'playerone', hero: [790, 200, 220, 280], strip: [50, 32.5], layers: [
+  'card-gift-playerone': { art: 'playerone', hero: [790, 200, 220, 290], heroFull: [790, 60, 440, 440], strip: [100, 38.5, 0.75], layers: [
     { t: 'scan', a: 0.16, gap: 3, flicker: 0.06 },
     { t: 'twinkle', box: [640, 30, 600, 620], n: 9, rgb: '255,255,255', size: 26, period: 1.7, pixel: true },
     { t: 'twinkle', box: [640, 30, 600, 620], n: 5, rgb: '255,214,90', size: 22, period: 2.3, pixel: true },
-    { t: 'text', on: 'full', at: [640, 752], text: 'PRESS START', font: '700 34px "JetBrains Mono", Consolas, monospace', fill: '#7fe9ff', size: 300, mode: 'blink', period: 1.2, center: true },
+    { t: 'text', on: 'full', at: [640, 752], text: 'PRESS START', font: '800 118px "JetBrains Mono", Consolas, monospace', fill: '#8ff0ff', stroke: '#06102a', size: 540, mode: 'blink', period: 1.1, center: true },   // (CARD FIXES: readable at 402 unzoomed — it was a 19 pt smudge; an arcade's blink)
   ] },
-  'card-gift-sunsetstrip': { art: 'sunsetstrip', hero: [760, 270, 340, 200], strip: [50, 43], layers: [
+  'card-gift-sunsetstrip': { art: 'sunsetstrip', hero: [760, 270, 340, 200], heroFull: [730, 90, 480, 470], strip: [50, 43], layers: [
     { t: 'haze', box: [440, 300, 500, 340], rgb: '255,220,160', a: 0.1 },
     { t: 'palm', at: [150, 655], h: 430, sway: 0.035, period: 5.5, rgb: '28,8,40' },
     { t: 'palm', at: [345, 655], h: 300, sway: 0.03, period: 6.3, rgb: '28,8,40', flip: true },   // (both palms left: a palm across the shiba's face read as a mistake)
-    { t: 'sweep', box: [720, 270, 420, 150], period: 4.5, dur: 0.8, angle: -0.6, rgb: '255,255,255', width: 46, a: 0.85 },
+    { t: 'glint', lenses: [[806, 331, 62, 53], [995, 342, 77, 60]], period: 3.6, dur: 0.9, angle: -0.7, rgb: '255,255,255', width: 70, a: 1, stars: [[858, 292], [1056, 300]], size: 64 },
     { t: 'motes', box: [300, 280, 980, 520], n: 22, rgb: '255,214,150', size: [3, 6], dir: 'up', speed: 14, a: 0.8, kind: 'spark', tw: 0.8 },
   ] },
   'card-gift-goldenhour': { art: 'goldenhour', hero: [725, 180, 360, 420], strip: [50, 43], layers: [
@@ -69,16 +75,16 @@ export const GIFT_SPECS = Object.freeze({
     { t: 'heart', at: [612, 300], size: 96, period: 1.15 },
     { t: 'twinkle', pts: [[600, 150], [690, 600], [1110, 640], [1060, 190], [760, 520]], rgb: '255,250,220', size: 34, period: 1.9 },
   ] },
-  'card-gift-anarchist': { art: 'anarchist', hero: [760, 250, 110, 170], strip: [50, 38], layers: [
-    { t: 'breathe', at: [850, 330], r: 640, rgb: '255,50,110', a: [0.08, 0.22], period: 1.9, flicker: 0.6 },
-    { t: 'beams', at: [905, -40], rgb: ['255,210,120', '255,90,180'], a: 0.09, spread: 0.22, sway: 0.12, period: 9 },
-    { t: 'drips', pts: [[606, 610, 70], [648, 628, 55], [1088, 600, 60], [1116, 572, 80], [858, 30, 40], [1150, 380, 50]], rgb: '255,60,120' },
-    { t: 'twinkle', ring: [850, 330, 300], n: 16, rgb: '255,220,240', size: 22, period: 2.1 },
-    { t: 'motes', box: [520, 120, 720, 680], n: 30, rgb: '255,170,80', size: [2, 4], dir: 'up', speed: 26, a: 0.85, kind: 'glow', tw: 0.4 },
-    { t: 'sweep', box: [760, 280, 140, 70], period: 5, dur: 0.7, angle: 0, rgb: '255,255,255', width: 40, a: 0.95, star: true },
-    { t: 'smoke', box: [0, 480, 1280, 320], n: 6, rgb: '190,170,200', a: 0.08 },
+  'card-gift-anarchist': { art: 'anarchist', hero: [935, 255, 100, 170], heroFull: [855, 255, 395, 440], strip: [50, 38], layers: [   // (v2 — CARD FIXES)
+    { t: 'breathe', at: [995, 310], r: 540, rgb: '255,50,110', a: [0.08, 0.22], period: 1.9, flicker: 0.6 },
+    { t: 'beams', at: [1080, -40], rgb: ['255,210,120', '255,90,180'], a: 0.09, spread: 0.22, sway: 0.12, period: 9 },
+    { t: 'drips', pts: [[752, 500, 60], [795, 545, 35], [868, 590, 50], [1003, 650, 55], [1186, 560, 45], [1222, 530, 40]], rgb: '255,60,120' },
+    { t: 'twinkle', ring: [995, 310, 255], n: 16, rgb: '255,220,240', size: 22, period: 2.1 },
+    { t: 'motes', box: [700, 60, 580, 740], n: 30, rgb: '255,170,80', size: [2, 4], dir: 'up', speed: 26, a: 0.85, kind: 'glow', tw: 0.4 },
+    { t: 'sweep', box: [930, 290, 100, 45], period: 5, dur: 0.7, angle: 0, rgb: '255,255,255', width: 40, a: 0.95, star: true },
+    { t: 'smoke', box: [560, 560, 720, 240], n: 6, rgb: '190,170,200', a: 0.08 },
   ] },
-  'card-gift-goldenboot': { art: 'goldenboot', hero: [755, 270, 100, 110], strip: [50, 43], layers: [
+  'card-gift-goldenboot': { art: 'goldenboot', hero: [755, 270, 100, 110], heroFull: [745, 250, 175, 230], strip: [50, 43], layers: [
     { t: 'breathe', at: [560, 70], r: 280, rgb: '255,255,235', a: [0.12, 0.34], period: 4 },
     { t: 'breathe', at: [1010, 95], r: 300, rgb: '255,255,235', a: [0.12, 0.34], period: 4.7 },
     { t: 'motes', box: [380, 0, 900, 720], n: 30, rgb: '255,214,120', size: [2, 4], dir: 'drift', speed: 9, a: 0.8, kind: 'glow', tw: 0.5 },
@@ -87,18 +93,18 @@ export const GIFT_SPECS = Object.freeze({
     { t: 'twinkle', box: [0, 474, 1280, 64], n: 22, rgb: '200,240,255', size: 12, period: 1.4 },
     { t: 'streaks', box: [480, 200, 300, 220], n: 7, rgb: '255,240,220', a: 0.35 },
   ] },
-  'card-gift-youngbuck': { art: 'youngbuck', hero: [700, 340, 330, 140], strip: [50, 52], layers: [
-    { t: 'bar', box: [522, 0, 758, 800], period: 7, rgb: '220,255,255', width: 70, a: 0.32 },
-    { t: 'region', src: [598, 548, 548, 100], mode: 'jitter', period: 0.14, amp: 2.2 },
-    { t: 'breathe', at: [1032, 262], r: 180, rgb: '250,255,90', a: [0.0, 0.34], period: 0.8, flicker: 0.9 },
-    { t: 'haze', box: [522, 0, 758, 800], rgb: '255,190,240', a: 0.05, halftone: true },
-    { t: 'sweep', box: [500, 0, 50, 800], period: 5.5, dur: 1.2, angle: 1.5708, rgb: '255,255,255', width: 50, a: 0.7 },
+  'card-gift-youngbuck': { art: 'youngbuck', hero: [840, 340, 270, 140], heroFull: [770, 80, 470, 570], strip: [50, 52], layers: [   // (the art slid right 130 — CARD FIXES)
+    { t: 'bar', box: [652, 0, 628, 800], period: 7, rgb: '220,255,255', width: 70, a: 0.32 },
+    { t: 'region', src: [728, 548, 548, 100], mode: 'jitter', period: 0.14, amp: 2.2 },
+    { t: 'breathe', at: [1162, 262], r: 180, rgb: '250,255,90', a: [0.0, 0.34], period: 0.8, flicker: 0.9 },
+    { t: 'haze', box: [652, 0, 628, 800], rgb: '255,190,240', a: 0.05, halftone: true },
+    { t: 'sweep', box: [630, 0, 50, 800], period: 5.5, dur: 1.2, angle: 1.5708, rgb: '255,255,255', width: 50, a: 0.7 },
   ] },
-  'card-gift-icecold': { art: 'icecold', hero: [690, 140, 260, 300], strip: [50, 32.5], layers: [
-    { t: 'aurora', box: [430, 30, 760, 280], rgbs: ['110,255,220', '170,130,255'], a: 0.16 },
+  'card-gift-icecold': { art: 'icecold', hero: [840, 140, 260, 300], heroFull: [840, 70, 300, 460], strip: [50, 32.5], layers: [   // (the art slid right 150 — CARD FIXES)
+    { t: 'aurora', box: [580, 30, 700, 280], rgbs: ['110,255,220', '170,130,255'], a: 0.16 },
     { t: 'motes', box: [0, -20, 1280, 840], n: 46, rgb: '255,255,255', size: [1.5, 3.6], dir: 'down', speed: 34, a: 0.85, kind: 'dot', tw: 0.2 },
     { t: 'frost', rgb: '215,240,255', a: [0.08, 0.32], period: 10 },
-    { t: 'puff', at: [728, 412], rgb: '235,248,255', period: 3.6, dir: -1 },
-    { t: 'sweep', box: [690, 60, 430, 740], period: 6.5, dur: 1.4, angle: -1.2, rgb: '210,245,255', width: 34, a: 0.45 },
+    { t: 'puff', at: [878, 412], rgb: '235,248,255', period: 3.6, dir: -1 },
+    { t: 'sweep', box: [840, 60, 440, 740], period: 6.5, dur: 1.4, angle: -1.2, rgb: '210,245,255', width: 34, a: 0.45 },
   ] },
 });

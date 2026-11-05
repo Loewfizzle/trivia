@@ -33,7 +33,7 @@ export const HERO = {
 const AW = 1280, AH = 800, SW = 358, SH = 64;
 for (const [id, S] of Object.entries(GIFT_SPECS)) {
   if (!S.hero) continue;
-  const k = Math.max(SW / AW, SH / AH), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - AH * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
+  const k = Math.max(SW / AW, SH / AH) * (S.strip[2] || 1), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - AH * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
   const y0 = Math.max(0, (oy + y * k) / SH), y1 = Math.min(1, (oy + (y + h) * k) / SH);
   HERO[id] = Object.freeze([[(ox + x * k) / SW, y0, (w * k) / SW, Math.max(0.05, y1 - y0)]]);
 }

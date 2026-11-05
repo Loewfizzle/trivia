@@ -12,9 +12,10 @@ import { GIFT_SPECS } from './gift-specs.js';
 
 export const GIFT_ART = new URL('../../assets/vault/gift/', import.meta.url).href;
 const AW = 1280, AH = 800;
-/** the art → slot mapping (CSS `background: … px% py% / cover`): { k, ox, oy } */
+/** the art → slot mapping (CSS `background: … px% py% / cover`; crop[2] = a zoom out — CARD FIXES: `z·100% auto`, the strip's width-bound
+ *  cover × z): { k, ox, oy } */
 export function artMap(w, h, crop) {
-  const k = Math.max(w / AW, h / AH), dw = AW * k, dh = AH * k;
+  const k = Math.max(w / AW, h / AH) * (crop[2] || 1), dw = AW * k, dh = AH * k;
   return { k, ox: (w - dw) * (crop[0] / 100), oy: (h - dh) * (crop[1] / 100) };
 }
 const TAU = Math.PI * 2;
@@ -98,6 +99,35 @@ const DRAW = {
     c.translate(vert ? bx + bw / 2 : bx - len * 0.2 + (bw + len * 0.4) * u, vert ? by - bh * 0.2 + bh * 1.4 * u : by + bh / 2); c.rotate(vert ? Math.PI / 2 : L.angle + Math.PI / 2);
     c.globalAlpha = a; c.drawImage(tinted(L.rgb, 'h'), -wd / 2, -len / 2, wd, len);
     c.restore();
+  },
+  // CARD FIXES — the shiba's sunglasses (the owner's LAB note: "the glint goes across the whole face, needs to be glasses only, more noticeable, maybe a
+  // twinkle — this card is special"): a bright band (+ a thin second one) crossing the LENSES only (clipped to their ellipses), then a star
+  // twinkling on each rim as it leaves
+  glint(c, L, M, t, s, Q, F) {
+    const tt = F.still ? L.dur * 0.5 : t % L.period, u = tt / L.dur;
+    if (u >= 0 && u <= 1) {
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      c.save(); c.beginPath();
+      for (const [cx, cy, rx, ry] of L.lenses) {
+        const [x, y] = P(M, cx, cy), a = rx * M.k, b = ry * M.k;
+        c.moveTo(x + a, y); c.ellipse(x, y, a, b, 0, 0, TAU);
+        x0 = Math.min(x0, x - a); x1 = Math.max(x1, x + a); y0 = Math.min(y0, y - b); y1 = Math.max(y1, y + b);
+      }
+      c.clip(); c.globalCompositeOperation = 'lighter';
+      const bw = x1 - x0, bh = y1 - y0, len = Math.hypot(bw, bh) * 1.6, wd = L.width * M.k, al = Math.sin(u * Math.PI) * L.a * F.calmA;
+      for (const [off, wk, ak] of [[0, 1, 1], [-wd * 1.3, 0.3, 0.75]]) {
+        c.save(); c.translate(x0 - bh + (bw + bh * 2) * u + off, (y0 + y1) / 2); c.rotate(L.angle + Math.PI / 2);
+        c.globalAlpha = al * ak; c.drawImage(tinted(L.rgb, 'h'), -wd * wk / 2, -len / 2, wd * wk, len); c.restore();
+      }
+      c.restore();
+    }
+    // the twinkle on the rims: the band's last moment → a beat after
+    const v = F.still ? 0.5 : (tt - L.dur * 0.7) / (L.dur * 0.9);
+    if (v > 0 && v < 1) {
+      c.globalCompositeOperation = 'lighter';
+      L.stars.forEach(([sx, sy], i) => { const w = Math.min(1, Math.max(0, v * 1.6 - i * 0.35)), a = Math.sin(w * Math.PI) * F.calmA, [x, y] = P(M, sx, sy);
+        if (a > 0.01) { stamp(c, sparkle(L.rgb), x, y, L.size * M.k * 3 * (0.7 + 0.3 * a), a); stamp(c, glow(L.rgb, 0.3), x, y, L.size * M.k * 1.6, a * 0.5); } });
+    }
   },
   rays(c, L, M, t, s, Q, F) {
     const [x, y] = P(M, L.at[0], L.at[1]), R = 1800 * M.k, rot = (F.still ? 0.2 : t * L.speed);
@@ -245,7 +275,7 @@ export function giftFx(card) {
     draw(c, s, t, Q) {
       if (!S) return;
       const full = !!s.opts.full, still = !!Q.still, calm = s.opts.calm ? 0.75 : 1;
-      const M = artMap(s.w, s.h, full ? [50, 50] : S.strip);
+      const M = artMap(s.w, s.h, full ? (S.full || [50, 50]) : S.strip);
       s.giftArt = S.art;
       const F = { full, still, calmA: full ? 1 : 0.85 * calm };
       c.save(); rrect(c, 0, 0, s.w, s.h, s.opts.radius || 12); c.clip();
