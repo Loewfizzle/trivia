@@ -44,15 +44,12 @@ export function paintFlame(cv, state = 'lit', layer = 'tube', dpr = Math.min(3, 
   x.lineWidth = 4; x.stroke(inner); x.lineWidth = 6; x.stroke(core);
 }
 
-/** The badge for a streak (pstats.st, or { n, d } from the public profile) — null when there's no streak alive. (await pgSheet() first) */
-export function flameBadge(st, now = Date.now()) {
+/** SHELL 2.0 A — THE DOCK's STREAK PILL (the owner, Nov 5 6:57 am: the dock's flame goes): the count in a small neon pill on YOU — an amber
+ *  tube lit (played tonight), quieter while it waits for tonight's match, ice-blue when a freeze holds it. null with no streak alive. */
+export function streakPill(st, now = Date.now()) {
   const v = st ? streakView(st, streakDay(now)) : null;
   if (!v || !v.n) return null;
   pgSheet();
   const state = v.state === 'lit' ? 'lit' : v.state === 'frozen' ? 'frozen' : 'waiting';
-  const glow = h('canvas.pg-dock-glow'), tube = h('canvas');
-  paintFlame(glow, state, 'glow'); paintFlame(tube, state, 'tube');
-  const fl = h('span', { style: { position: 'relative', display: 'block', width: `${W}px`, height: `${H}px` } }, glow, tube);
-  for (const c of [glow, tube]) Object.assign(c.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: '100%' });
-  return h('span.pg-dock', { class: `is-${state}`, dataset: { n: String(v.n), state }, 'aria-hidden': 'true' }, fl, h('b', String(v.n)));
+  return h('span.pg-dock.pg-pill', { class: `is-${state}`, dataset: { n: String(v.n), state }, 'aria-hidden': 'true' }, h('b', String(v.n)));
 }

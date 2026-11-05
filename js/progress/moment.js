@@ -101,7 +101,7 @@ export async function openMoment(o, ctx = {}) {
   const folded = [...unlockRows, ...achRows].slice(1);
   folded.forEach(r => r.classList.add('is-fold'));
   const moreRow = folded.length ? h('button.pg-box.pg-more', { type: 'button', onclick: e => { e.stopPropagation(); moreRow.remove(); folded.forEach(r => { r.classList.remove('is-fold'); r.classList.add('is-in'); }); } }, h('b', `+${folded.length} MORE`)) : null;
-  const cont = h('button.pg-btn', { type: 'button', onclick: e => { e.stopPropagation(); if (upShown && !upAck) { ackUp(); return; } close(); } }, 'CONTINUE');
+  const cont = h('button.btn.btn-primary.btn-block.pg-btn', { type: 'button', onclick: e => { e.stopPropagation(); if (upShown && !upAck) { ackUp(); return; } close(); } }, 'CONTINUE');
   const panel = h('div.pg-panel', { role: 'dialog', 'aria-label': `${pl.place} — your progress` },
     fanCrown(),
     h('div.pg-kick', [game, ctx.match ? `MATCH ${ctx.match}` : null].filter(Boolean).join(' · ') || 'MATCH COMPLETE'),

@@ -80,16 +80,16 @@ test('THE PROFILE POLISH: only ‹ BACK + the music mute; the page order; NOT YE
   assert.doesNotMatch(sp, /NOT PLAYED YET/);
   // the account: ONE key block, the two big glass buttons, NEW KEY small + red + a second tap
   assert.match(sp, /h\('div\.pf-kb',/); assert.doesNotMatch(sp, /saveBox\(\)/, 'no second "YOUR KEY IS SAVED" panel');
-  assert.match(sp, /h\('b', 'USE THIS CARD ON ANOTHER DEVICE'\)/); assert.match(sp, /h\('b', h\('i\.pf-key-ic'.*'RESTORE YOUR ACCOUNT'\)/);   // (LOBBY 2.0 B: + its key icon)
-  assert.match(sp, /button\.pf-gb\.pf-gb-sm\.is-danger\.pf-newkey/); assert.match(sp, /'TAP AGAIN — THE OLD KEY STOPS WORKING'/);
+  assert.match(sp, /label: 'Use this card on another device'/); assert.match(sp, /icon: 'key', ic: '#3ff0ff', label: 'Restore your account'/);   // (SHELL 2.0 A: THE ROW — RESTORE keeps its cyan + its key)   // (LOBBY 2.0 B: + its key icon)
+  assert.match(sp, /tubeButton\('NEW KEY', \{ kind: 'danger', size: 'sm', cls: 'pf-newkey'/); assert.match(sp, /'TAP AGAIN — THE OLD KEY STOPS WORKING'/);
   // EDIT PROFILE: NAME › + COLOUR › real rows, each its own sheet (back = one step)
   // (LOBBY FIXES — the owner's ADD-ON 3: NAME + COLOUR = two rows at CUSTOMIZE's top, each its editor (profile/edit.js); the card's ✎ the
   //  same name editor; NOTHING in ACCOUNT)
   const dr = read('js/vault/dress.js'), ed = read('js/profile/edit.js');
   // (THE SPEED PASS — the owner's FINAL, Nov 4 6:25 pm: ONE "EDIT USERNAME" row at the VERY TOP → ONE editor (the name + the colour); no
   //  COLOUR row; no ✎ on the card)
-  assert.match(dr, /vl-yr-name', \{ type: 'button', 'aria-label': 'Edit your username and colour', onclick: \(\) => openYouEditor\(/);
-  assert.match(dr, /h\('b', 'EDIT USERNAME'\)/); assert.doesNotMatch(dr, /vl-yr-colour|openColourEditor/, 'no separate COLOUR row');
+  assert.match(dr, /cls: 'vl-yr-row vl-yr-name', attrs: \{ 'aria-label': 'Edit your username and colour' \},\n\s+onClick: \(\) => openYouEditor\(/);   // (SHELL 2.0 A: THE ROW)
+  assert.match(dr, /label: 'Edit username'/); assert.doesNotMatch(dr, /vl-yr-colour|openColourEditor/, 'no separate COLOUR row');
   assert.match(dr, /h\('h2', 'CUSTOMIZE'\)\),\s*youRows,\s*pin,/, 'the row sits at the VERY TOP, above the slim preview');
   assert.match(ed, /export async function openYouEditor/); assert.match(ed, /title: 'EDIT USERNAME'/); assert.match(ed, /pf-swatches/);
   assert.doesNotMatch(sp, /pf-pen|openNameEditor/, 'no ✎ on the card'); assert.doesNotMatch(sp, /pf-er-name|pf-er-colour/, 'no rows in ACCOUNT');

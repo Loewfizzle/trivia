@@ -3,7 +3,7 @@
 // writes an audit entry. Search players, remove a record, reset a board, rename, hide from the boards, the audit log.
 import { h } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';   // (SHELL 2.0 A: THE MESSAGE — was the page's own .ad-toast)
-import { avatar } from '../ui/components.js';
+import { avatar, tubeButton } from '../ui/components.js';
 import { emblem, installEmblems } from '../ui/emblems.js';
 import { initFirebase, isConfigured } from '../firebase.js';
 import { api } from '../profile/api.js';
@@ -24,13 +24,12 @@ async function call(action, body = {}) {
   try { return await api('admin', { action, ...body }); } catch (e) { toast(e.message || 'Failed', 'err'); throw e; }
 }
 
+// (SHELL 2.0 A: THE NEON TUBE — a small tube; the second tap to confirm turns the button itself red: ui/components.js#confirmTap)
 function confirmBtn(label, onConfirm, cls = '') {
-  let armed = false;
-  const b = h('button.ad-btn', { type: 'button', class: cls, onclick: async () => {
-    if (!armed) { armed = true; b.textContent = 'Sure? Tap again'; b.classList.add('is-armed'); setTimeout(() => { armed = false; b.textContent = label; b.classList.remove('is-armed'); }, 3500); return; }
-    armed = false; b.disabled = true;
-    try { await onConfirm(); } finally { b.disabled = false; b.textContent = label; b.classList.remove('is-armed'); }
-  } }, label);
+  const b = tubeButton(label, { kind: /is-danger/.test(cls) ? 'danger' : 'secondary', size: 'sm', cls: 'ad-btn', confirm: 'TAP AGAIN TO CONFIRM', onClick: async () => {
+    b.disabled = true;
+    try { await onConfirm(); } finally { b.disabled = false; }
+  } });
   return b;
 }
 
@@ -40,7 +39,7 @@ function denied(who) {
     h('h1', 'Not authorized'),
     h('p', 'This page only works for the profile ids listed in the ADMIN_PIDS environment variable on Vercel.'),
     who && who.pid ? h('div.ad-pidbox', h('span', 'This browser’s profile id'), h('code', who.pid),
-      h('button.ad-btn', { type: 'button', onclick: () => navigator.clipboard.writeText(who.pid).then(() => toast('Copied')) }, 'Copy')) : h('p', 'No profile on this browser yet — open the game once (or restore your key) and come back.'),
+      h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: () => navigator.clipboard.writeText(who.pid).then(() => toast('Copied')) }, 'Copy')) : h('p', 'No profile on this browser yet — open the game once (or restore your key) and come back.'),
     h('ol.ad-steps',
       h('li', 'Copy the id above (open this page in the browser where you play).'),
       h('li', 'Vercel → your project → Settings → Environment Variables → ADMIN_PIDS = that id (several: comma-separated).'),
@@ -75,7 +74,7 @@ function jumpBar() {
 function logTools(id, onFilter, onRefresh, clearAll) {
   return h('div.ad-row.ad-logtools',
     h('input.input.ad-filter', { type: 'search', placeholder: 'Filter', 'aria-label': 'Filter', autocomplete: 'off', oninput: e => onFilter(e.target.value) }),
-    h('button.ad-btn', { type: 'button', onclick: onRefresh }, 'Refresh'), clearAll);
+    h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: onRefresh }, 'Refresh'), clearAll);
 }
 
 function shell() {
@@ -85,11 +84,11 @@ function shell() {
     card('ad-live', 'Live now', { cls: 'ad-live' }, h('div', { id: 'ad-live-b2' }, h('p.ad-dim', 'Loading…'))),
     card('ad-stats', 'Stats', { cls: 'ad-stats', open: false }, h('div', { id: 'ad-stats-b2' })),
     card('ad-search', 'Players', { cls: 'ad-search' },
-      h('div.ad-row', q, h('button.ad-btn.is-primary', { type: 'button', onclick: () => search(q.value) }, 'Search')),
+      h('div.ad-row', q, h('button.btn.btn-primary.btn-sm.ad-btn', { type: 'button', onclick: () => search(q.value) }, 'Search')),
       h('div.ad-results', { id: 'ad-results' }, h('p.ad-dim', 'Search by name to start.'))),
     card('ad-player', 'Player', { cls: 'ad-player' }, h('div', { id: 'ad-player-b2' }, h('p.ad-dim', 'Pick a player.'))),
     card('reports', 'Board reports', { cls: 'ad-errors' },
-      h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: flags }, 'Refresh'),
+      h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: flags }, 'Refresh'),
         confirmBtn('Dismiss all', async () => { renderFlags((await call('clearFlag')).flags); toast('Dismissed'); audit(); }, 'is-danger')),
       h('p.ad-dim', 'REPORT on THE BOARD (anyone, no sign-in; limited per device + IP). The public sees the player’s username (a rude one as a house nickname) — never an id or key. OPEN the player to hide them from every board.'),
       h('ol.ad-errs', { id: 'ad-flags' }, h('li.ad-dim', 'Loading…'))),
@@ -104,8 +103,8 @@ function shell() {
     // LOBBY FIXES → THE SPEED PASS — TEST PLAYERS, ALL OF THEM: CREATED SINCE (default the very first profile) → review the pre-ticks → PREVIEW → CONFIRM
     card('ad-tp', 'Test players', { cls: 'ad-tp', open: false },
       h('div.ad-row.ad-tp-since', h('label.ad-dim', { for: 'ad-tp-date' }, 'Created since'), h('input.input.ad-tp-date', { id: 'ad-tp-date', type: 'date', onchange: () => { tpTicked.clear(); tpSeeded = false; testPlayers(); } }),
-        h('button.ad-btn', { type: 'button', onclick: () => { const d = document.getElementById('ad-tp-date'); d.value = ''; tpTicked.clear(); tpSeeded = false; testPlayers(); } }, 'From the first'),
-        h('button.ad-btn', { type: 'button', onclick: () => testPlayers() }, 'Refresh')),
+        h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: () => { const d = document.getElementById('ad-tp-date'); d.value = ''; tpTicked.clear(); tpSeeded = false; testPlayers(); } }, 'From the first'),
+        h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: () => testPlayers() }, 'Refresh')),
       h('p.ad-dim', 'Every profile made since the date (default: the very first). PRE-TICKED = looks like a test (two of: 0 nights played · a test-ish name · made in a test burst) — review them; nothing is ever removed without CONFIRM. Never pre-ticked: an admin, TESTER#2599, anyone who played on 2+ nights. Their card, items, key, tag + board entries go. Member numbers never move and are never re-used: the counter only rolls back when every number above the new top is going.'),
       h('div.ad-tp-list', { id: 'ad-tp-list' }, h('p.ad-dim', 'Loading…')),
       h('div.ad-tp-out', { id: 'ad-tp-out' })),
@@ -113,7 +112,7 @@ function shell() {
     // MEMBER first, everyone keeps every item; REPEATABLE (now + at THE SWITCH-OVER); the backups below, each restorable (type RESTORE)
     card('ad-reset', 'Progress reset', { cls: 'ad-reset', open: false },
       h('p.ad-dim', 'Resets EVERY profile’s progress: XP (back to level 1), the rank, streaks (the freezes held stay), weekly goals, achievements, mastery counters, THE BOARD’s records + boards. KEEPS: the profile, its key, name + tag, colour, emblem, MEMBER Nº, FOUNDING MEMBER (stamped on everyone who qualifies FIRST), every card / emblem / finish / glow they own (dev + gift 1-of-1s too), the equipped card. A backup is written first. Repeatable.'),
-      h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: resetPreview }, 'Preview')),
+      h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: resetPreview }, 'Preview')),
       h('div.ad-reset-out', { id: 'ad-reset-out' }),
       h('h3', 'Backups'),
       h('div.ad-reset-bk', { id: 'ad-reset-bk' }, h('p.ad-dim', 'Loading…'))),
@@ -121,7 +120,7 @@ function shell() {
     card('ad-outage', 'Streak outage', { cls: 'ad-outage' },
       h('p.ad-dim', 'The site was down? Mark the day: nobody’s streak breaks over it (no freeze used, no day added). The streak day turns at 4 am Eastern.'),
       h('div.ad-row', { id: 'ad-outage-row' }, h('span.ad-dim', 'Loading…'))),
-    card('ad-audit', 'Audit log', { cls: 'ad-audit', open: false }, h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' })));
+    card('ad-audit', 'Audit log', { cls: 'ad-audit', open: false }, h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' })));
   app.replaceChildren(
     h('header.ad-head', h('div', h('div.ad-kicker', 'NEON SPEAKEASY'), h('h1', 'Admin')), h('div.ad-head-links', h('a.ad-link', { href: '/lab' }, 'The Card Lab ›'), ' ', h('a.ad-link', { href: '/board' }, 'The Board ›'))),
     jumpBar(),
@@ -165,7 +164,7 @@ function render(v) {
       isOffensive(p.n) ? h('span.ad-tag.is-bad', 'OFFENSIVE NAME') : null,
       p.bid ? h('span.ad-tag', `ON THE BOARD AS ${(isOffensive(p.n) ? houseNick(p.bid).n : p.n).toUpperCase()}${(p.m || 0) < (p.mm || 3) ? ` · ${p.m || 0}/${p.mm || 3} MATCHES — NOT LISTED YET` : ''}`) : null),
     h('h3', 'Rename'),
-    h('div.ad-row', name, h('button.ad-btn', { type: 'button', onclick: async () => { render(await call('rename', { pid: p.pid, name: name.value })); toast('Renamed'); audit(); } }, 'Rename')),
+    h('div.ad-row', name, h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: async () => { render(await call('rename', { pid: p.pid, name: name.value })); toast('Renamed'); audit(); } }, 'Rename')),
     h('h3', 'Visibility'),
     h('div.ad-row', v.priv.banned
       ? confirmBtn('Return to the boards', async () => { render(await call('hide', { pid: p.pid, on: false })); toast('Back on the boards'); audit(); })
@@ -214,7 +213,7 @@ async function testPlayers() {
       ...(p.why || []).map(w => h('span.ad-tag.is-why', w)));
   };
   box.replaceChildren(...(players.length ? players.map(row) : [h('p.ad-dim', 'No profiles since then.')]),
-    h('div.ad-row', h('span.ad-dim', `Member counter: next Nº ${next || '—'}`), h('button.ad-btn.is-primary', { type: 'button', onclick: tpPreview }, 'Preview removal')));
+    h('div.ad-row', h('span.ad-dim', `Member counter: next Nº ${next || '—'}`), h('button.btn.btn-primary.btn-sm.ad-btn', { type: 'button', onclick: tpPreview }, 'Preview removal')));
 }
 async function tpPreview() {
   const out = document.getElementById('ad-tp-out');
@@ -305,7 +304,7 @@ function renderLive() {
   box.replaceChildren(
     h('div.ad-row.ad-between', h('span', h('i.ad-dot', { class: L.online ? 'is-on' : '' }), h('span.ad-dim', L.online ? 'people in rooms' : 'quiet')),
       h('div.ad-row', h('span.ad-dim', `updated ${new Date(S.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`),
-        h('button.ad-btn', { type: 'button', onclick: () => loadStats(true) }, 'Refresh'))),
+        h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: () => loadStats(true) }, 'Refresh'))),
     h('div.ad-bigs', big(L.online, 'players in rooms'), big(L.rooms, 'rooms open'), big(inGame, 'games in progress')),
     L.list.length ? h('ul.ad-rooms', ...L.list.map(r => h('li', { style: { '--c': r.game ? light(r.game) : 'rgba(255,240,220,0.35)' } },
       h('b', r.game ? gameName(r.game) : 'Lobby'),
@@ -426,7 +425,7 @@ function groupRow({ g, open, onToggle, meta, items, onSeen, onClear }) {
     h('div.ad-err-top',
       h('b.ad-err-n', `×${g.n}`),
       h('button.ad-err-m', { type: 'button', 'aria-expanded': String(open), onclick: onToggle }, g.title, g.newN ? h('span.ad-new', `${g.newN} new`) : null),
-      g.newN ? h('button.ad-btn.ad-btn-sm', { type: 'button', onclick: onSeen }, 'Mark seen') : null,
+      g.newN ? h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: onSeen }, 'Mark seen') : null,
       confirmBtn('Clear', onClear)),
     h('div.ad-err-meta', ...meta),
     body);

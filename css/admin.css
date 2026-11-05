@@ -17,11 +17,6 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-row .input { flex: 1; min-width: 180px; }
 .ad-between { justify-content: space-between; }
 .ad-dim { color: var(--bd-dim); font-size: 13px; }
-.ad-btn { min-height: 40px; padding: 0 14px; border-radius: 999px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.12em; color: #f6ecd8; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 220, 180, 0.28); }
-.ad-btn.is-primary { color: #1a1007; background: linear-gradient(180deg, #ffe9b8, #f2c869 55%, #c99234); border: 0; }
-.ad-btn.is-danger { color: #ffc2cf; border-color: rgba(255, 110, 140, 0.5); }
-.ad-btn.is-armed { color: #fff; background: rgba(255, 51, 85, 0.35); border-color: rgba(255, 110, 140, 0.8); }
-.ad-btn:disabled { opacity: 0.5; }
 .ad-results { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; max-height: 60vh; overflow-y: auto; }
 .ad-hit { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 10px; border-radius: 12px; text-align: left; color: inherit; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 220, 180, 0.1); }
 .ad-hit:hover, .ad-hit:focus-visible { border-color: rgba(242, 200, 105, 0.5); }
@@ -138,7 +133,6 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-jump-b { flex: none; min-height: 36px; padding: 0 12px; border-radius: 999px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.08em; color: #f6ecd8; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 220, 180, 0.2); cursor: pointer; }
 .ad-logtools .ad-filter { flex: 1; min-width: 140px; min-height: 40px; }
 .ad-new { display: inline-block; margin-left: 8px; padding: 3px 7px; border-radius: 6px; font: 700 10px/1 var(--font-mono); letter-spacing: 0.08em; color: #1a1007; background: #f2c869; vertical-align: 1px; }
-.ad-btn-sm { min-height: 34px; padding: 0 10px; font-size: 10px; }
 .ad-grp-b { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; padding-left: 54px; }
 .ad-inst { padding: 6px 0; border-top: 1px dashed rgba(255, 220, 180, 0.1); }
 .ad-inst-meta { padding-left: 0; }

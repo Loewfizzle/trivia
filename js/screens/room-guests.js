@@ -5,6 +5,7 @@
 // owner hasn't approved keeps its plain palette. THE JOIN ENTRANCE: a joiner's strip slides in playing its FULL animation once (~3.2 s),
 // then settles into the calm cut; its card-in sound (audio/lobby-sfx.js).
 //   openGuestList({ st (a live getter), openCard(uid), onClose }) → { update(st), close() }
+import { row, tubeButton } from '../ui/components.js';
 import { h } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { isHost } from '../store.js';
@@ -26,12 +27,8 @@ export async function openGuestList(ctx) {
   let approved = new Set();
   const list = h('div.rg-list'), count = h('span.rg-count'), lockRow = h('div.rg-lock'), night = h('div.rg-night');
   // (LOBBY 2.0 B — the owner's ADD-ON: LEAVE ROOM at the foot of the guest list — red-edged, a second tap = "SURE?")
-  let leaveAt = 0;
-  const leave = h('button.pf-gb.is-danger.rg-leave', { type: 'button', onclick: () => {
-    if (Date.now() - leaveAt < 2500) { sheet.close(); leaveRoom(); return; }
-    leaveAt = Date.now(); leave.textContent = 'SURE? TAP AGAIN';
-    setTimeout(() => { if (leave.isConnected) leave.textContent = 'LEAVE ROOM'; }, 2500);
-  } }, 'LEAVE ROOM');
+  // (SHELL 2.0 A: the danger tube; the second tap = the button itself red — ui/components.js#confirmTap)
+  const leave = tubeButton('LEAVE ROOM', { kind: 'danger', block: true, cls: 'rg-leave', confirm: 'TAP AGAIN TO LEAVE', onClick: () => { sheet.close(); leaveRoom(); } });
   const surfHost = h('div.rg-strips');
   list.append(surfHost);
   const surface = (await import('../fx/renderer.js')).createSurface(surfHost, { label: 'guests' });
@@ -82,8 +79,8 @@ export async function openGuestList(ctx) {
     // LOCK THE DOOR (host only): no new players; everyone inside keeps their seat
     const locked = !!(st.meta && st.meta.locked === true);
     lockRow.hidden = !host;
-    if (host) lockRow.replaceChildren(h('button.pf-acc-row.rg-lockbtn', { type: 'button', role: 'switch', 'aria-checked': String(locked), onclick: toggleLock },
-      h('b', locked ? 'THE DOOR IS LOCKED' : 'LOCK THE DOOR'), h('span', locked ? 'no new players · tap to open' : 'anyone with the word can join')));
+    // (SHELL 2.0 A: THE ROW with the pink switch)
+    if (host) lockRow.replaceChildren(row({ icon: 'lock', ic: '#ffd84a', label: locked ? 'The door is locked' : 'Lock the door', sub: locked ? 'No new players · tap to open' : 'Anyone with the word can join', cls: 'rg-lockbtn', toggle: () => toggleLock(), on: locked }));
     // GAME NIGHT (every match played in this room): 3 / 2 / 1 points
     const nr = nightStandings(st.night, P);
     night.hidden = !nr.length;
@@ -94,7 +91,7 @@ export async function openGuestList(ctx) {
   function onKick(uid, name) {
     if (kickArmed.uid === uid && Date.now() - kickArmed.at < 3000) {
       kickArmed = { uid: null, at: 0 };
-      kickPlayer(uid).then(() => toast(`${String(name || 'THE PLAYER').toUpperCase()} WAS SHOWN OUT`, 'ok')).catch(() => toast('KICK FAILED', 'err'));
+      kickPlayer(uid).then(() => toast(`${String(name || 'The player')} was shown out`, 'ok')).catch(() => toast('KICK FAILED', 'err'));
       return;
     }
     kickArmed = { uid, at: Date.now() }; paint();

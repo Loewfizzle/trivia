@@ -142,12 +142,12 @@ export function mountLab(root, o = {}) {
     const note = h('textarea.vl-note', { placeholder: 'What should change? (it goes to the next pass)', maxLength: 400, hidden: m.m !== 'fix' }, m.note || '');
     const st = labStatus(id, m);
     const who = h('div.vl-who-m', m.at ? `${st === 'changed' ? 'YOUR MARK (before the change): ' : ''}${(m.m || 'cleared').toUpperCase()} · ${when(m.at)}${m.note && m.m !== 'fix' ? ` · “${m.note}”` : ''}` : 'Not marked yet');
-    const btn = (k, label) => h('button.vl-mark', { type: 'button', dataset: { m: k }, class: m.m === k && st !== 'changed' ? 'is-on' : m.m === k ? 'is-was' : '', onclick: () => {
+    const btn = (k, label) => h('button.btn.btn-sm.vl-mark', { type: 'button', dataset: { m: k }, class: m.m === k && st !== 'changed' ? 'is-on' : m.m === k ? 'is-was' : '', onclick: () => {
       const cur = labStatus(id, marks[id]) === 'changed' ? null : (marks[id] || {}).m || null;
       if (k === 'fix') { note.hidden = false; if (cur !== 'fix') send(id, 'fix', note.value); else note.focus(); return; }
       send(id, cur === k ? null : k, '');
     } }, label);
-    const saveNote = h('button.vl-mark', { type: 'button', hidden: m.m !== 'fix', onclick: () => send(id, 'fix', note.value) }, 'SAVE NOTE');
+    const saveNote = h('button.btn.btn-sm.btn-ghost.vl-mark', { type: 'button', hidden: m.m !== 'fix', onclick: () => send(id, 'fix', note.value) }, 'SAVE NOTE');
     note.addEventListener('input', () => { saveNote.hidden = false; });
     return h('div.vl-markbox', { dataset: { id } }, h('div.vl-marks', btn('approve', 'APPROVE'), btn('fix', 'FIX'), btn('cut', 'CUT')), note, saveNote, who);
   }

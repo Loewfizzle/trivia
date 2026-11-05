@@ -29,7 +29,7 @@ export function customizeBar(data, o = {}) {
   const n = k => ownedOf(owned, k).length;
   const cnt = (v, one, many) => h('span', h('b', String(v)), ` ${v === 1 ? one : many}`);
   return h('div.pg-cz',
-    h('button.vl-dp-go.pg-cz-go', { type: 'button', onclick: () => openDress(data, { name: o.name, wear: o.onWear, view: o.onView, onYou: o.onYou }) }, 'CUSTOMIZE YOUR CARD'),
+    h('button.btn.btn-primary.btn-block.vl-dp-go.pg-cz-go', { type: 'button', onclick: () => openDress(data, { name: o.name, wear: o.onWear, view: o.onView, onYou: o.onYou }) }, 'CUSTOMIZE YOUR CARD'),
     h('div.vl-dc-row.pg-cz-n', { 'aria-label': 'Your collection' }, cnt(n('card'), 'card', 'cards'), cnt(n('emblem'), 'emblem', 'emblems'), cnt(n('glow'), 'glow', 'glows'), cnt(n('tube'), 'tube', 'tubes')));
 }
 

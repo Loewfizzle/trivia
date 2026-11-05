@@ -136,7 +136,7 @@ export async function openBring({ lead = false, onDone = null } = {}) {
       last.restored = r.pid;
       dismissOffer('done');
       document.querySelectorAll('.byc-chip').forEach(c => c.remove());
-      toast(`WELCOME BACK, ${String(r.profile.n || '').toUpperCase()} — THIS DEVICE JOINED YOUR CARD`, 'ok', 4200);
+      toast(`Welcome back, ${String(r.profile.n || '')}`, 'ok', { ms: 4200, sub: 'This device joined your card.' });
       import('../audio/sfx.js').then(m => m.sfx('join')).catch(() => {});
       close(); onDone && onDone(r);
     } catch (e) {

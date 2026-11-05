@@ -103,7 +103,7 @@ G('roomfix', async () => {
       ok(t1 === 'vl-dress', `THE LAYER STACK (the title dock): YOU → CUSTOMIZE opens on top (${t1})`);
       // RESTORE YOUR ACCOUNT stands out: a cyan edge + title + the key icon (USE THIS CARD ON ANOTHER DEVICE stays glass)
       await ev(p, "document.querySelector('.vl-dress .vl-dr-back').click()"); await sleep(400);
-      const rs = await ev(p, "(() => { const r = document.querySelector('.pf-restore'), u = document.querySelector('.pf-elsewhere'); if (!r) return null; r.scrollIntoView({ block: 'center' }); const b = getComputedStyle(r.querySelector('b')); return { color: b.color, key: !!r.querySelector('.pf-key-ic svg'), shadow: /63, 240, 255/.test(getComputedStyle(r).boxShadow), other: u ? /63, 240, 255/.test(getComputedStyle(u).boxShadow) : null }; })()");
+      const rs = await ev(p, "(() => { const r = document.querySelector('.pf-restore'), u = document.querySelector('.pf-elsewhere'); if (!r) return null; r.scrollIntoView({ block: 'center' }); const b = getComputedStyle(r.querySelector('b')); return { color: b.color, key: !!r.querySelector('.sh-row-ic svg'), shadow: /63, 240, 255/.test(getComputedStyle(r).boxShadow), other: u ? /63, 240, 255/.test(getComputedStyle(u).boxShadow) : null }; })()");
       ok(rs && /\b111, 246, 255\b/.test(rs.color) && rs.key && rs.shadow && rs.other === false, `RESTORE YOUR ACCOUNT stands out: a neon-CYAN edge + glow, the title in cyan, a small key (${JSON.stringify(rs)}); USE THIS CARD ON ANOTHER DEVICE stays glass`);
       if (SHOTS) { await sleep(400); await p.screenshot({ path: `${OUT}room2-restore.png` }); }
     } else ok(false, 'THE LAYER STACK (the title dock): the profile shows CUSTOMIZE YOUR CARD');
@@ -413,7 +413,7 @@ G('leaveroom', async () => {
   await ev(c, "document.querySelector('.rg-sheet .rg-leave').click()");
   const left2 = await waitFor(c, '!window.__arcade.state.code', 'C left', 8000).then(() => true, () => false);
   const wave2 = await waitFor(p, `(() => { const r = window.__district.room(); const x = r && r.people.find(y => y.uid === '${meC}'); return !!(x && x.leaving); })()`, 'the wave on A', 6000).then(() => true, () => false);
-  ok(pos.last && pos.txt === 'LEAVE ROOM' && /SURE/.test(arm2) && left2 && wave2, `LEAVE ROOM — the foot of GUESTS (the last thing in the sheet: ${pos.last}); "${arm2}" → left (${left2}); the wave on the other phone (${wave2})`);
+  ok(pos.last && pos.txt === 'LEAVE ROOM' && /TAP AGAIN/.test(arm2) && left2 && wave2, `LEAVE ROOM — the foot of GUESTS (the last thing in the sheet: ${pos.last}); "${arm2}" → left (${left2}); the wave on the other phone (${wave2})`);
   await A.ctx.close(); await B.ctx.close(); await C.ctx.close();
 });
 

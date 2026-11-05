@@ -1,6 +1,6 @@
 /* PROGRESSION A — THE GILDED LOOK (the owner's mockups: Downloads\NEON\progression\ — the A · GILDED panels): black lacquer, brass foil, the
    Art Deco fan crown, ONE hot-pink neon accent for what you just earned. The end-of-round moment (pg-moment), the level-up (pg-up), the streak
-   card (pg-sc), the membership card (pg-card) + the profile (pg-prof), the dock's flame (pg-dock). Classes pg-*. Only transform + opacity move;
+   card (pg-sc), the membership card (pg-card) + the profile (pg-prof), the dock's streak pill (pg-dock). Classes pg-*. Only transform + opacity move;
    reduced motion = the end state, still. Text ≥ 4.5 : 1 on the lacquer (--pg-dim #c2ae86 on #0b0a0d ≈ 8.6 : 1). */
 :root {
   --pg-lac: #0b0a0d; --pg-lac-2: #141217; --pg-brass: #d8b46a; --pg-brass-hi: #f6e3a8; --pg-brass-lo: #8e6e33;
@@ -43,10 +43,7 @@
 .pg-sw.is-tube i { width: 70%; height: 4px; border-radius: 3px; background: linear-gradient(90deg, #ff4fb8, #4fe3ff); box-shadow: 0 0 8px #ff4fb8; }
 .pg-sw.is-favor b { color: var(--pg-brass-hi); font-size: 20px; }
 
-.pg-btn { display: block; width: 100%; min-height: 50px; margin-top: 12px; border: 0; border-radius: 12px; cursor: pointer;
-  background: var(--pg-foil); color: #1d1405; font: 800 15px/1 var(--font-ui); letter-spacing: 0.32em; text-indent: 0.32em;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -2px 0 rgba(90, 60, 10, 0.45), 0 6px 18px rgba(0, 0, 0, 0.5); }
-.pg-btn:active { transform: translateY(1px) scale(0.99); }
+.pg-btn { margin-top: 12px; }   /* (SHELL 2.0 A: CONTINUE is THE NEON TUBE's main — the gold foil left the button; the card keeps its gold) */
 
 .pg-box { position: relative; display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 12px;
   border: 1px solid rgba(216, 180, 106, 0.35); background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); }
@@ -98,7 +95,7 @@
 .pg-extras { display: grid; gap: 7px; margin-top: 10px; }
 .pg-extras .pg-box { padding: 9px 12px; }
 .pg-extras .pg-unl div > span { display: none; }   /* (the moment: the name, its tier + X%; the line lives on the profile) */
-.pg-moment .pg-btn { position: sticky; bottom: 0; z-index: 2; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -2px 0 rgba(90, 60, 10, 0.45), 0 -10px 24px 6px var(--pg-lac); }
+.pg-moment .pg-btn { position: sticky; bottom: 0; z-index: 2; }
 .pg-extras .pg-box { opacity: 0; transform: translateY(10px); transition: opacity 0.3s ease, transform 0.35s cubic-bezier(.2, .8, .2, 1); }
 .pg-extras .pg-box.is-in { opacity: 1; transform: none; }
 .pg-extras .pg-ach.is-in, .pg-extras .pg-unl.is-in { animation: pg-slide 0.45s cubic-bezier(.2, .9, .25, 1) both; }
@@ -219,19 +216,18 @@
 .pg-vitem.is-on::after { content: 'EQUIPPED'; position: absolute; top: -7px; left: 50%; transform: translateX(-50%); padding: 2px 6px; border-radius: 6px; background: var(--pg-brass); color: #1d1405; font: 800 7.5px/1 var(--font-ui); letter-spacing: 0.16em; }
 .pg-only { margin: 10px 0 0; text-align: center; font: italic 400 13px/1.3 var(--pg-serif); color: var(--pg-dim); }
 
-/* ------------------------------------------------------------------ THE DOCK's FLAME (the badge on YOU) */
-.pg-dock { position: absolute; right: -9px; top: -11px; z-index: 3; display: flex; align-items: center; height: 22px; padding: 0 6px 0 2px; border-radius: 11px; pointer-events: none;
-  background: rgba(14, 8, 6, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 150, 70, 0.55), 0 1px 4px rgba(0, 0, 0, 0.5); }
-.pg-dock canvas { display: block; width: 18px; height: 22px; }
-.pg-dock b { margin-left: 1px; font: 800 12px/1 var(--font-num); color: #fff1df; letter-spacing: 0.02em; text-shadow: 0 0 4px rgba(255, 122, 46, 0.8); }
-.pg-dock.is-waiting { opacity: 0.85; } .pg-dock.is-waiting b { text-shadow: none; color: #e9cdb4; }
-.pg-dock.is-frozen { box-shadow: inset 0 0 0 1px rgba(110, 210, 255, 0.6), 0 1px 4px rgba(0, 0, 0, 0.5); }
-.pg-dock.is-frozen b { text-shadow: 0 0 4px rgba(90, 209, 255, 0.8); }
-.pg-dock-glow { animation: pg-flick 3.2s steps(1, end) infinite; }
-@keyframes pg-flick { 0%, 100% { opacity: 1; } 37% { opacity: 0.86; } 39% { opacity: 1; } 71% { opacity: 0.92; } 73% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .pg-dock-glow { animation: none; } .pg-moment *, .pg-moment *::before { animation: none !important; transition: none !important; } }
-/* on the title dock's YOU cell: hugging the emblem's top-right corner */
-.nd-tab .pg-dock { left: calc(50% + 4px); top: calc(50% - 27px); right: auto; }
+/* ------------------------------------------------------------------ THE DOCK's STREAK (on YOU — SHELL 2.0 A: a neon number pill, .pg-pill below) */
+.pg-dock { position: absolute; right: -9px; top: -11px; z-index: 3; display: flex; align-items: center; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .pg-moment *, .pg-moment *::before { animation: none !important; transition: none !important; } }
+/* SHELL 2.0 A — THE DOCK's STREAK PILL: the count in a small neon tube (amber lit · dim while it waits · ice when a freeze holds it); static */
+.pg-pill { height: 20px; min-width: 22px; padding: 0 6px; justify-content: center; border-radius: 10px; background: rgba(14, 8, 4, 0.92);
+  border: 1.2px solid #ffe2c2; box-shadow: 0 0 0 1.2px #ff8a2a, 0 0 8px rgba(255, 138, 42, 0.6); }
+.pg-pill b { margin: 0; font: 800 12px/1 var(--font-num); color: #fff; text-shadow: 0 0 5px rgba(255, 150, 60, 0.85); }
+.pg-pill.is-waiting { border-color: rgba(255, 226, 194, 0.55); box-shadow: 0 0 0 1.2px rgba(255, 138, 42, 0.55); opacity: 1; }
+.pg-pill.is-waiting b { color: #f3d8bd; text-shadow: none; }
+.pg-pill.is-frozen { border-color: #dff6ff; box-shadow: 0 0 0 1.2px #5ad1ff, 0 0 8px rgba(90, 209, 255, 0.55); }
+.pg-pill.is-frozen b { text-shadow: 0 0 5px rgba(90, 209, 255, 0.85); }
+.nd-tab .pg-pill { left: calc(50% + 4px); top: 0; }   /* (hugging the emblem's top-right corner) */
 
 /* the live site's ?preview=card / profile: the card + the profile over the city (a sample member — nothing is read or written) */
 .pg-pv { position: fixed; inset: 0; z-index: 9000; overflow-y: auto; overscroll-behavior: contain; }
@@ -260,7 +256,7 @@
 .pg-moment .pg-bar { margin: 7px 0 6px; }
 .pg-moment .pg-extras { gap: 6px; margin-top: 8px; }
 .pg-moment .pg-extras .pg-box { padding: 8px 12px; }
-.pg-moment .pg-btn { position: static; margin-top: 10px; min-height: 48px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -2px 0 rgba(90, 60, 10, 0.45), 0 6px 18px rgba(0, 0, 0, 0.5); }
+.pg-moment .pg-btn { position: static; margin-top: 10px; }
 .pg-extras .is-fold { display: none !important; }
 .pg-more { width: 100%; min-height: 44px; justify-content: center; cursor: pointer; color: inherit; font: inherit; }
 .pg-more b { color: var(--pg-pink-hi) !important; letter-spacing: 0.16em !important; font-size: 13px !important; }
@@ -428,31 +424,17 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .pg-card-fd::after { animation: none; display: none; } }
 
 /* ===================================================================================================================================
-   LOBBY 2.0 A — THE PROFILE POLISH (the owner's 2C review, Nov 3 9:20–9:40 pm). ONE BUTTON SYSTEM: CUSTOMIZE YOUR CARD is the screen's ONE
-   gold primary; every other button is NEON GLASS (.pf-gb: dark glass, a soft white edge, white text); NEW KEY small + red-edged. Text ≥ 4.5:1.
+   LOBBY 2.0 A — THE PROFILE POLISH (the owner's 2C review, Nov 3 9:20–9:40 pm). SHELL 2.0 A: every button is THE NEON TUBE (components.css
+   THE SHELL — CUSTOMIZE YOUR CARD the screen's one pink main); the account's links are THE ROW; NEW KEY a small red tube. Text ≥ 4.5:1.
    =================================================================================================================================== */
 .pf-bar { min-height: 44px; }
-.pf-gb { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 18px; border: 0; border-radius: 14px; cursor: pointer;
-  font: 800 13px/1 var(--font-ui); letter-spacing: 0.18em; color: #fff; background: rgba(12, 11, 20, 0.78);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 14px rgba(0, 0, 0, 0.35); -webkit-tap-highlight-color: transparent; }
-.pf-gb:active { transform: scale(0.985); }
-.pf-gb:focus-visible { outline: 2px solid #ff6fc8; outline-offset: 2px; }
-.pf-gb.is-busy { opacity: 0.7; pointer-events: none; }
-.pf-gb-big { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; width: 100%; min-height: 64px; padding: 12px 40px 12px 18px; text-align: left; }
-.pf-gb-big b { font: 800 14px/1.15 var(--font-ui); letter-spacing: 0.14em; color: #fff; }
-.pf-gb-big small { font: 600 12.5px/1.25 var(--font-ui); letter-spacing: 0.02em; color: rgba(240, 236, 250, 0.82); }
-.pf-gb-big::after { content: "\203A"; position: absolute; right: 16px; top: 50%; transform: translateY(-52%); font: 700 22px/1 var(--font-ui); color: rgba(255, 255, 255, 0.82); }
 /* LOBBY 2.0 B — RESTORE YOUR ACCOUNT stands out (the owner, Nov 4 7:10 am): a bright neon-CYAN edge + glow, the title in cyan + a small key (not gold) */
-.pf-restore { background: rgba(4, 16, 24, 0.82); box-shadow: inset 0 0 0 1.5px #3ff0ff, inset 0 0 14px rgba(63, 240, 255, 0.16), 0 0 14px rgba(63, 240, 255, 0.38), 0 4px 14px rgba(0, 0, 0, 0.35); }
-.pf-restore b { display: inline-flex; align-items: center; gap: 8px; color: #6ff6ff; text-shadow: 0 0 8px rgba(63, 240, 255, 0.55); }
-.pf-restore small { color: rgba(214, 250, 255, 0.86); }
-.pf-restore::after { color: #6ff6ff; }
-.pf-key-ic svg { display: block; width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; filter: drop-shadow(0 0 3px rgba(63, 240, 255, 0.7)); }
-.pf-restore:focus-visible { outline-color: #3ff0ff; }
-.pf-gb-sm { min-height: 36px; padding: 0 14px; border-radius: 999px; font-size: 10.5px; letter-spacing: 0.16em; }
-.pf-gb.is-danger { color: #ffd0da; background: rgba(30, 6, 12, 0.6); box-shadow: inset 0 0 0 1px rgba(255, 110, 140, 0.6); }
-.pf-gb.is-danger.is-armed { color: #ffe3ea; box-shadow: inset 0 0 0 1.5px rgba(255, 90, 125, 0.95), 0 0 12px rgba(255, 70, 110, 0.3); letter-spacing: 0.06em; }
 .pf-newkey-row { display: flex; justify-content: center; margin-top: 4px; }
+/* LOBBY 2.0 B — RESTORE YOUR ACCOUNT stands out (the owner, Nov 4 7:10 am): a bright neon-CYAN edge + glow, the label in cyan + its key icon */
+.sh-row.pf-restore { border: 1.5px solid #3ff0ff; box-shadow: inset 0 0 14px rgba(63, 240, 255, 0.14), 0 0 14px rgba(63, 240, 255, 0.28); }
+.sh-row.pf-restore .sh-row-l b { color: #6ff6ff; }
+.sh-row.pf-restore .sh-row-l small { color: rgba(214, 250, 255, 0.86); }
+.pf-kb-acts .btn, .kp-acts .btn { flex: 1 1 0; }
 .pf-account { gap: 12px; }
 .pf-account .pf-acc-row { width: 100%; }
 
@@ -467,7 +449,6 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 .pf-kb-val small { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.24em; color: rgba(240, 236, 250, 0.7); }
 .pf-kb-val.is-shown small { visibility: hidden; }
 .pf-kb-acts { display: flex; gap: 10px; }
-.pf-kb-acts .pf-gb { flex: 1 1 0; }
 .pf-kb-saved { margin: 0; font: 600 13.5px/1.3 var(--font-ui); color: rgba(240, 236, 250, 0.82); }
 .pf-kb-saved.is-ok { color: #9ff0c0; }
 .pf-kb-did { padding: 0; border: 0; background: none; color: #fff; font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 44px; }
@@ -565,7 +546,6 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 .kp-card > * { width: 100%; max-width: 420px; }
 .kp-line { margin: 2px 0 0; font: 800 clamp(18px, 5.4vw, 21px)/1.25 var(--font-ui); color: #fff; text-align: center; }
 .kp-acts { display: flex; gap: 10px; }
-.kp-acts .pf-gb { flex: 1 1 0; min-height: 52px; font-size: 14px; }
 .kp-later { color: rgba(240, 236, 250, 0.82) !important; }
 
 /* LOBBY 2.0 B — LEAVE ROOM at the foot of GUESTS (the owner's ADD-ON): red-edged glass, a second tap = SURE? */

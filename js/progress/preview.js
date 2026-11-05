@@ -73,8 +73,8 @@ export async function preview(view, q = new URLSearchParams(), root = null, keep
     return;
   }
   if (view === 'flame') {
-    const { flameBadge } = await import('./flame.js');
-    const b = flameBadge(data.stats.st);
+    const { streakPill } = await import('./flame.js');   // (SHELL 2.0 A: the dock's pill)
+    const b = streakPill(data.stats.st);
     if (root) root.append(h('div.dockbtn', b));
     window.__pg = { flame: b };
     return b;

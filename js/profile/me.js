@@ -71,7 +71,7 @@ export function syncMe() {
       store(r.pid, r.profile);
       if (r.rename && r.rename.blocked && !sessionStorage.getItem('pf:renote')) {
         try { sessionStorage.setItem('pf:renote', '1'); } catch { /* fine */ }
-        toast(`BOARD NAMES CHANGE ONCE A DAY — YOU’RE STILL ${r.profile.n.toUpperCase()}#${r.profile.t} ON THE BOARD`, 'info', 5200);
+        toast('Board names change once a day', 'info', { ms: 5200, sub: `You’re still ${r.profile.n}#${r.profile.t} on the board.` });
       }
       linkRoomSeat();
       return r;

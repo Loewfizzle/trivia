@@ -53,7 +53,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
       //  guest's tap = their VOTE (again = take it back); nothing ever starts by itself)
       const vs = voteNow();
       if (vs.on) { if (isHost()) { sfx('select'); import('../host.js').then(m => m.rematch()).catch(() => {}); } else toggleVote(vs); return; }
-      if (!isHost()) { toast(`WAITING FOR ${hostName().toUpperCase()} TO START`, 'info'); return; }
+      if (!isHost()) { toast(`Waiting for ${hostName()} to start`, 'info'); return; }
       sfx('select'); openGames(true);
     },
     you: () => { sfx('select'); import('./profile.js').then(m => m.openCard()); },
@@ -72,7 +72,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const url = inviteUrl(), text = `Get in here — the hush word is ${code()}`;
     import('../audio/lobby-sfx.js').then(m => m.lobbySfx('invite')).catch(() => {});
     if (navigator.share) { try { await navigator.share({ title: APP_NAME, text, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
-    try { await navigator.clipboard.writeText(url); toast(`INVITE LINK COPIED — THE HUSH WORD IS ${code()}`, 'ok'); } catch { toast(`THE HUSH WORD IS ${code()}`, 'info', 6000); }
+    try { await navigator.clipboard.writeText(url); toast('Invite link copied', 'ok', { sub: `The hush word is ${code()}.` }); } catch { toast(`The hush word is ${code()}`, 'info', 6000); }
   }
 
   // ---------------------------------------------------------------- LOBBY FIXES — AFTER HOST: HOW TO SHARE (the owner, Nov 4 2:28–2:29 pm: "after
@@ -94,7 +94,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const fresh = st.meta.createdAt && serverNow() - st.meta.createdAt < 20000;
     if (!mine || !fresh || flag(`rc:hc:${code()}`)) return;
     flag(`rc:hc:${code()}`, true);
-    const share = h('button.rc-hc-share', { type: 'button', onclick: e => { e.stopPropagation(); sfx('select'); invite(); } }, 'SHARE INVITE');
+    const share = h('button.btn.btn-primary.btn-block.rc-hc-share', { type: 'button', onclick: e => { e.stopPropagation(); sfx('select'); invite(); } }, 'SHARE INVITE');   // (SHELL 2.0 A: THE NEON TUBE's main)
     const el = h('div.rc-hostcard', { role: 'status', 'aria-live': 'polite' },
       h('small.rc-hc-k', 'YOUR ROOM IS OPEN'),
       h('b.rc-hc-t', 'THE HUSH WORD IS ', h('span.rc-hc-w', code())),

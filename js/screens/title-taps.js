@@ -82,7 +82,7 @@ export function createTaps(T) {
     if (r && x >= r.x && x <= r.x + r.w && y >= r.y - 12 && y <= r.y + r.h + 12) { buzz(Math.max(0, Math.min(3, Math.floor((x - r.x) / r.w * 4)))); return; }
     const hit = T.scene.hit(x, y);
     if (!hit) return;
-    if (hit.kind === 'sign') { const g = GAMES.find(x => x.id === hit.id); if (g && !g.playable) { toast(`${g.name} · COMING SOON`, 'info'); return; } sfx('select'); openHelp(hit.id); }   // (WINDOWS — THE FIVE SIGNS: next on deck = a quiet COMING SOON)
+    if (hit.kind === 'sign') { const g = GAMES.find(x => x.id === hit.id); if (g && !g.playable) { toast(`${g.name} — coming soon`, 'info'); return; } sfx('select'); openHelp(hit.id); }   // (WINDOWS — THE FIVE SIGNS: next on deck = a quiet COMING SOON)
     else if (hit.kind === 'ufo') sfx('portal');
     else if (hit.kind === 'cat') sfx('key');
     // THE STREET: knock on the speakeasy's door — a soft double knock, the peephole slides open, and the JOIN panel opens (a real

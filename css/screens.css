@@ -38,17 +38,16 @@
 .setup-screen { gap: 0; }
 .form { display: flex; flex-direction: column; gap: 20px; flex: 1; }
 .form-cta { position: sticky; bottom: 0; padding-top: 16px; background: linear-gradient(transparent, var(--bg-0) 35%); }
-.swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
-.swatch {
-  aspect-ratio: 1;
-  min-height: 36px;
-  background: var(--c);
-  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
-  opacity: 0.45;
-  transform: scale(0.82);
-  transition: transform 0.2s var(--ease-back), opacity 0.2s;
-}
-.swatch[aria-checked='true'] { opacity: 1; transform: scale(1.06); }
+/* THE COLOURS = NEON RINGS (SHELL 2.0 A — the owner: "neon rings, not glossy balls"): 8 in a row of 44-pt targets; each a ring of its colour
+   with a white-hot core line, dark inside; the picked one lit (its glow + a soft fill), the others quieter. Static glows (no animation). */
+.swatches { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.swatch { position: relative; display: grid; place-items: center; min-width: 0; min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.swatch::before { content: ''; width: 30px; height: 30px; border-radius: 50%; box-sizing: border-box; background: rgba(8, 6, 18, 0.9);
+  border: 1.5px solid color-mix(in srgb, var(--c) 40%, #fff); box-shadow: 0 0 0 1.5px var(--c), inset 0 0 0 1.5px var(--c); opacity: 0.62; transition: transform 0.18s var(--ease), opacity 0.18s; }
+.swatch[aria-checked='true']::before { opacity: 1; transform: scale(1.12); background: color-mix(in srgb, var(--c) 22%, #08060f);
+  border-color: #fff; box-shadow: 0 0 0 2px var(--c), inset 0 0 0 2px var(--c), 0 0 12px var(--c), inset 0 0 10px color-mix(in srgb, var(--c) 60%, transparent); }
+.swatch:active::before { transform: scale(0.94); }
+@media (prefers-reduced-motion: reduce) { .swatch::before { transition: none; } }
 .avatars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
 .avatar-pick {
   position: relative;

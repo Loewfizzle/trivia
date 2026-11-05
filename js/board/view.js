@@ -13,6 +13,7 @@
 //   createBoardView({ mode: 'app' | 'public', me: () => ({ pid, profile }) | null, ranks: (boards) => Promise<{…}>,
 //                     onBack, onProfile, onPlay, initial: { game, cat, period, board } })
 //   → { el, start(), destroy() }
+import { openSheet } from '../ui/sheet.js';
 import { h, reducedMotion } from '../ui/dom.js';
 import { avatar } from '../ui/components.js';
 import { emblem, rankBadge, RANK_COLORS } from '../ui/emblems.js';
@@ -221,7 +222,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       return d;
     } catch { return ''; }
   };
-  function closeReport() { if (els.rep) { els.rep.remove(); els.rep = null; } }
+  function closeReport() { if (els.rep) { const r = els.rep; els.rep = null; r.close(); } }
   function openReport(r, def) {
     closeReport();
     boardSfx('tab');
@@ -240,19 +241,16 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
         btns.forEach(b => { b.disabled = false; });
       }
     };
+    // (SHELL 2.0 A: THE SHEET + THE NEON TUBE — the two reasons quiet tubes; the × / CANCEL close)
     btns = [
-      h('button.bd-rep-b', { type: 'button', onclick: send('score') }, 'SUSPICIOUS SCORE'),
-      h('button.bd-rep-b', { type: 'button', onclick: send('name') }, 'BAD NAME OR EMBLEM'),
+      h('button.btn.btn-ghost.btn-block.bd-rep-b', { type: 'button', onclick: send('score') }, 'SUSPICIOUS SCORE'),
+      h('button.btn.btn-ghost.btn-block.bd-rep-b', { type: 'button', onclick: send('name') }, 'BAD NAME OR EMBLEM'),
     ];
-    els.rep = h('div.bd-rep', { role: 'dialog', 'aria-modal': 'true', 'aria-label': `Report ${r.n}`, onclick: e => { if (e.target === els.rep) closeReport(); } },
-      h('div.bd-rep-sheet',
-        h('span.bd-rep-k', 'REPORT'),
-        h('div.bd-rep-who', avatar(r.a, r.c, 30), h('b', r.n)),
-        h('span.bd-rep-on', `${els.label.textContent} · #${r.rank}`),
-        msg,
-        ...btns,
-        h('button.bd-rep-b.is-cancel', { type: 'button', onclick: closeReport }, 'CANCEL')));
-    els.el.append(els.rep);
+    els.rep = openSheet({ title: 'REPORT', kicker: `${els.label.textContent} · #${r.rank}`, cls: 'bd-rep', label: `Report ${r.n}`, onClose: () => { els.rep = null; }, body: [
+      h('div.bd-rep-who', avatar(r.a, r.c, 30), h('b', r.n)),
+      msg,
+      ...btns,
+      h('button.btn.btn-text.btn-block.bd-rep-b.is-cancel', { type: 'button', onclick: closeReport }, 'CANCEL')] });
   }
 
   async function refresh() {

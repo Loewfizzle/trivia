@@ -76,7 +76,7 @@ function watchHand() {
   if (to === state.uid && myClaim && myClaim.code === code && Date.now() - myClaim.at < 15000) return;   // (a claim of mine landed first)
   const name = (state.players && state.players[to] && state.players[to].name) || 'SOMEONE';
   if (to === state.uid) toast('YOU’RE THE HOST NOW', 'ok', 3500);
-  else toast(`${String(name).toUpperCase()} IS THE HOST NOW`, 'info', 3500);
+  else toast(`${String(name)} is the host now`, 'info', 3500);
 }
 
 // FR6 FIXES A (B2): the host that stamped a start died (or this phone refreshed) between the stamp and the match: nobody is preparing it —

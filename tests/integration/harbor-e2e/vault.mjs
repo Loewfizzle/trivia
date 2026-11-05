@@ -228,7 +228,7 @@ G('vault', async () => {
     await ev(p, `import('/js/profile/bring.js').then(B => { B.openBring({ lead: true }); return true; })`);
     await waitFor(p, `!!document.querySelector('.byc-bring .byc-help')`, 'the bring sheet');
     await sleep(800);
-    const read = () => ev(p, `(() => { const s = document.querySelector('.byc-bring .sheet'); return { top: Math.round(s.scrollTop), max: s.scrollHeight - s.clientHeight }; })()`);
+    const read = () => ev(p, `(() => { const s = document.querySelector('.byc-bring .sh-body'); return { top: Math.round(s.scrollTop), max: s.scrollHeight - s.clientHeight }; })()`);
     const r = await swipeToEnd(p, 200, 360, 260, read);
     const nw = await ev(p, `!document.querySelector('.byc-bring .byc-new') && document.querySelector('.byc-bring .byc-help').getBoundingClientRect().bottom <= innerHeight + 1`);
     ok(r.first.max > 0 && r.last.top >= r.last.max - 2 && nw, `BY FINGER: BRING YOUR CARD on a 402 × 400 screen scrolls inside by swipes — ${r.moved} of ${r.first.max} px, its last line reachable + no I'M NEW HERE (THE VAULT 2A) (${nw})`);

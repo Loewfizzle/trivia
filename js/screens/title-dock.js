@@ -62,11 +62,13 @@ export function dressCorners(onTitle) {
 export function createDock(on) {
   const els = {};
   let destroyed = false;
-  const tab = (cls, aria, icon, onclick) => h(`button.nd-tab.${cls}`, { type: 'button', 'aria-label': aria, onclick },
-    h('span.nd-tab-ic', { html: icon }));
-  els.boardTab = tab('nd-tab-board', 'The Board', ICON.board, on.board);
-  els.gamesTab = tab('nd-tab-games.nd-link-games', 'The games', ICON.games, on.games);
-  els.youTab = tab('nd-tab-you.nd-me', 'Your membership card', ICON.guest, on.you);
+  // (SHELL 2.0 A — the owner: THE TITLE DOCK gets LABELS under its icons like the room dock — the same font, size, colours + spacing:
+  //  the room dock's .rdk-tab + .rdk-lbl)
+  const tab = (cls, aria, icon, label, onclick) => h(`button.nd-tab.rdk-tab.${cls}`, { type: 'button', 'aria-label': aria, onclick },
+    h('span.nd-tab-ic', { html: icon }), h('span.rdk-lbl', { 'aria-hidden': 'true' }, label));
+  els.boardTab = tab('nd-tab-board', 'The Board', ICON.board, 'BOARD', on.board);
+  els.gamesTab = tab('nd-tab-games.nd-link-games', 'The games', ICON.games, 'GAMES', on.games);
+  els.youTab = tab('nd-tab-you.nd-me', 'Your membership card', ICON.guest, 'YOU', on.you);
   // a ring: a dark glass disc, the neon tube ring, its word inside; its slot carries its colours (the reflection wears them too)
   const ring = (cls, id, word, aria, onclick) => h(`button.nd-ringbtn.${cls}`, { type: 'button', 'aria-label': aria, onclick, dataset: { multi: '0' } },
     h('span.nd-hdisc'),
@@ -251,8 +253,9 @@ export function createDockWork(T) {
     if (text && ms) noteT = setTimeout(() => note(''), ms);
   }
 
-  // PROGRESSION A — THE DOCK's STREAK FLAME: a small neon flame + the count on YOU (js/progress/flame.js; built at the full dpr); no streak =
-  // no badge. ?preview=flame&streak=N shows a sample one (a preview of the badge on a phone with no streak yet).
+  // PROGRESSION A — THE DOCK's STREAK on YOU; SHELL 2.0 A (the owner, 6:57 am: ONLY the dock's flame goes): the streak NUMBER in a small
+  // neon pill (js/progress/flame.js#streakPill — the member card's flame, the round-end line + the big streak card's flame stay); no streak =
+  // no pill. ?preview=flame&streak=N shows a sample one (a preview of the pill on a phone with no streak yet).
   let flameSig = null;
   function paintDockFlame(pub) {
     let pv = null;
@@ -269,7 +272,7 @@ export function createDockWork(T) {
       if (pv) { const P = await import('../progress/preview.js'); st = P.sampleStreak(pv.n, pv.state); }
       await (await import('../progress/look.js')).pgSheet();
       if (T.destroyed || flameSig !== sig) return;
-      const b = m.flameBadge(st);
+      const b = m.streakPill(st);
       const was = T.els.youTab.querySelector('.pg-dock');
       if (was) was.remove();
       if (b) T.els.youTab.append(b);

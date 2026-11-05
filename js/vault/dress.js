@@ -13,6 +13,7 @@
 // tiles on screen draw (js/fx/renderer.js), every emblem a stack of composited layers (emblem-art.js), the calmer cut on the tiles.
 //   dressPanel(data, o) → [panel, collection]     o = { name, wear(slot, id) → Promise<boolean>, view(id, who) }
 //   openDress(data, o) → { close() }
+import { row } from '../ui/components.js';
 import { h } from '../ui/dom.js';
 import { createSurface } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
@@ -86,7 +87,7 @@ export function dressPanel(data, o = {}) {
     h('div.vl-dp-k', 'YOUR CARD'),
     host,
     h('p.vl-dp-worn', wornLine(W, who)),
-    h('button.vl-dp-go', { type: 'button', onclick: () => openDress(data, o) }, 'CUSTOMIZE YOUR CARD'));
+    h('button.btn.btn-primary.btn-block.vl-dp-go', { type: 'button', onclick: () => openDress(data, o) }, 'CUSTOMIZE YOUR CARD'));
   const n = k => ownedOf(owned, k).length;
   const cnt = (v, one, many) => h('span', h('b', String(v)), ` ${v === 1 ? one : many}`);
   const coll = h('section.pg-panel.vl-dc',
@@ -146,11 +147,12 @@ export function openDress(data, o = {}) {
   }
   // THE SPEED PASS — EDIT USERNAME (the owner's FINAL, Nov 4 6:25 pm): ONE row at the VERY TOP of CUSTOMIZE — your name + its colour dot —
   // opening ONE editor with the name + the colour together (profile/edit.js — on top, ‹ = one step back); your strip follows
-  const nameV = h('span.vl-yr-v');
-  const paintYou = () => { nameV.replaceChildren(h('i.vl-yr-sw', { style: { '--c': colorHex(who.color) } }), h('span.vl-yr-nm', who.name)); };
+  // (SHELL 2.0 A: THE ROW — the user icon lit in your colour (the old colour dot), your name as its value)
+  const youRow = row({ icon: 'user', ic: colorHex(who.color), label: 'Edit username', value: who.name, cls: 'vl-yr-row vl-yr-name', attrs: { 'aria-label': 'Edit your username and colour' },
+    onClick: () => openYouEditor((v, done) => { who.name = v.name.toUpperCase(); who.color = v.color; youChanged(done); }) });
+  const paintYou = () => { youRow.style.setProperty('--ic', colorHex(who.color)); const v = youRow.querySelector('.sh-row-v'); if (v) v.textContent = who.name; };
   const youChanged = done => { paintYou(); paintPin(); paintGrid(); line.textContent = wornLine(W, who); if (done && o.onYou) done.then(() => o.onYou()).catch(() => {}); };
-  const youRows = h('div.vl-yr',
-    h('button.vl-yr-row.vl-yr-name', { type: 'button', 'aria-label': 'Edit your username and colour', onclick: () => openYouEditor((v, done) => { who.name = v.name.toUpperCase(); who.color = v.color; youChanged(done); }) }, h('b', 'EDIT USERNAME'), nameV, h('i.vl-yr-pen', { 'aria-hidden': 'true' }, '›')));
+  const youRows = h('div.vl-yr', youRow);
   function paintGrid() {
     for (const b of tabBtns) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
     gridSurf.clear();

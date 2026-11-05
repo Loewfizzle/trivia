@@ -3,7 +3,7 @@
 // global leaderboards"; and per-game cards (wins, win rate, highlights, records, weekly and all-time ranks).
 import { h, reducedMotion } from '../ui/dom.js';
 import { onCloseAll } from '../ui/layers.js';
-import { avatar } from '../ui/components.js';
+import { avatar, tubeButton, row } from '../ui/components.js';
 import { emblem } from '../ui/emblems.js';
 import { toast } from '../ui/toast.js';
 import { setState, state } from '../store.js';
@@ -65,7 +65,8 @@ onCloseAll(() => closeCard());   // (FR6 FIXES A — B1 + B7: the game start + a
 // the full card + CUSTOMIZE YOUR CARD (the ONE gold button) · LEVEL (the pink tube) · THE GOAL TILE · STATS · the latest 3 trophies (+ THE
 // TROPHY CASE) · the latest sightings (+ ALL) · MASTERY (a game → its records in a sheet) · a short ACCOUNT block. POP-UPS (profile/sheets.js)
 // hold the rest, one step at a time: Edit profile → NAME / COLOUR, RESTORE YOUR ACCOUNT, a game's records. ONE BUTTON SYSTEM: every other
-// button is NEON GLASS (.pf-gb — dark glass, a soft white edge, white text); NEW KEY small + red-edged, a second tap confirms.
+// button is THE NEON TUBE (SHELL 2.0 A — components.css THE SHELL); NEW KEY a small red tube, a second tap confirms; the account's two
+// links are THE ROW.
 /** LOBBY FIXES — a MOUSE drag scrolls the YOU page (a desktop): past 6 px of movement it's a drag (the click after it is swallowed); a touch
  *  or a pen scrolls natively, as before */
 function dragScroll(sc) {
@@ -99,11 +100,12 @@ export function createView({ onBack = null, overlay = false } = {}) {
     els.bday = h('div.pf-bday-slot');
     els.keyBox = h('div.pf-keybox-slot');
     els.mast = h('div.pf-mast-slot');
-    els.newKey = h('button.pf-gb.pf-gb-sm.is-danger.pf-newkey', { type: 'button', onclick: onNewKey }, 'NEW KEY');
-    els.elsewhere = h('button.pf-gb.pf-gb-big.pf-elsewhere', { type: 'button', onclick: () => import('../profile/bring.js').then(B => B.openElsewhere()) }, h('b', 'USE THIS CARD ON ANOTHER DEVICE'), h('small', 'your card on a second phone, a computer or the Home Screen app'));
+    // (SHELL 2.0 A — THE ONE LOOK: NEW KEY a small danger tube, its second tap the button itself red; the two account rows THE ROW)
+    els.newKey = tubeButton('NEW KEY', { kind: 'danger', size: 'sm', cls: 'pf-newkey', confirm: 'TAP AGAIN — THE OLD KEY STOPS WORKING', onClick: onNewKey });
+    els.elsewhere = row({ icon: 'card', label: 'Use this card on another device', sub: 'Your card on a second phone, a computer or the Home Screen app', cls: 'pf-elsewhere', onClick: () => import('../profile/bring.js').then(B => B.openElsewhere()) });
     // (LOBBY 2.0 B — the owner, Nov 4 7:10 am: RESTORE must stand out — a bright neon-CYAN edge + glow, a cyan title, a small key icon; not gold:
     //  CUSTOMIZE stays the screen's one gold primary; USE THIS CARD ON ANOTHER DEVICE stays glass)
-    els.restore = h('button.pf-gb.pf-gb-big.pf-restore', { type: 'button', onclick: openRestore }, h('b', h('i.pf-key-ic', { 'aria-hidden': 'true', html: '<svg viewBox="0 0 24 24"><circle cx="8" cy="12" r="3.6"/><path d="M11.6 12H21M17.6 12v3.2M20.4 12v2.4"/></svg>' }), 'RESTORE YOUR ACCOUNT'), h('small', 'have a key from another device? bring that card here'));
+    els.restore = row({ icon: 'key', ic: '#3ff0ff', label: 'Restore your account', sub: 'Have a key from another device? Bring that card here', cls: 'pf-restore', onClick: openRestore });
     el.append(
       h('header.bar.pf-bar',
         h('button.icon-btn.pf-back', { type: 'button', 'aria-label': 'Back', onclick: back }, '‹')),
@@ -151,19 +153,15 @@ export function createView({ onBack = null, overlay = false } = {}) {
     };
     val.addEventListener('click', () => { shown = !shown; clearTimeout(timer); if (shown) { timer = setTimeout(() => { shown = false; paintT(); }, 20000); sfx('select'); } paintT(); });
     const acts = h('div.pf-kb-acts',
-      h('button.pf-gb', { type: 'button', 'data-act': 'copy', onclick: async () => { const B = await import('../profile/bring.js'); await B.copyKey(k, text); paintS(); } }, 'COPY'),
-      typeof navigator.share === 'function' ? h('button.pf-gb', { type: 'button', 'data-act': 'share', onclick: async () => { const B = await import('../profile/bring.js'); await B.shareKey(k); paintS(); } }, 'SHARE') : null);
+      h('button.btn.btn-ghost.btn-sm', { type: 'button', 'data-act': 'copy', onclick: async () => { const B = await import('../profile/bring.js'); await B.copyKey(k, text); paintS(); } }, 'COPY'),
+      typeof navigator.share === 'function' ? h('button.btn.btn-ghost.btn-sm', { type: 'button', 'data-act': 'share', onclick: async () => { const B = await import('../profile/bring.js'); await B.shareKey(k); paintS(); } }, 'SHARE') : null);
     els.keyBox.replaceChildren(h('div.pf-kb',
       h('div.pf-kb-h', h('b', 'YOUR KEY'), h('span', 'the password at the door')),
       val, acts, saved,
       h('p.pf-kb-why', 'It brings this card to any device. Never give it to anyone else — whoever has it is you.')));
     paintT(); paintS();
   }
-  let armed = 0;
   async function onNewKey() {
-    const b = els.newKey;
-    if (!armed) { armed = setTimeout(() => { armed = 0; b.textContent = 'NEW KEY'; b.classList.remove('is-armed'); }, 4000); b.textContent = 'TAP AGAIN — THE OLD KEY STOPS WORKING'; b.classList.add('is-armed'); return; }
-    clearTimeout(armed); armed = 0; b.textContent = 'NEW KEY'; b.classList.remove('is-armed');
     try { await regenKey(); setNotes({ saved: false }); paintKey(); toast('A NEW KEY — THE OLD ONE NO LONGER WORKS', 'ok'); } catch (err) { toast(err.message || 'COULDN’T REACH THE SERVER', 'err'); }
   }
 
@@ -193,7 +191,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
   function paintWhy(m0) {
     const off = keyOffer();
     if (off) {
-      const go = h('button.pf-gb.pf-gb-big', { type: 'button', onclick: () => doRestore(off.key, go) }, h('b', 'RESTORE IT'));
+      const go = h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => doRestore(off.key, go) }, h('span', 'RESTORE IT'));
       els.why.replaceChildren(h('div.pf-note.is-offer',
         h('b', 'THIS DEVICE ALREADY HAD A KEY — RESTORE IT?'),
         h('p', 'A new profile was made on this device, but the key it already had is kept. Restore it to get that profile + its stats back.'),
@@ -202,12 +200,12 @@ export function createView({ onBack = null, overlay = false } = {}) {
       return;
     }
     if (m0 && m0.uid !== state.uid && loadKey()) {
-      const go = h('button.pf-gb.pf-gb-big', { type: 'button', onclick: () => doRestore(loadKey(), go) }, h('b', 'RESTORE WITH YOUR KEY'));
+      const go = h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => doRestore(loadKey(), go) }, h('span', 'RESTORE WITH YOUR KEY'));
       els.why.replaceChildren(h('div.pf-note', h('b', 'THIS DEVICE’S SIGN-IN CHANGED'), h('p', 'Your key is still here — restore it to bring your profile back.'), go));
       return;
     }
     if (!m0 && !loadKey()) {
-      const go = h('button.pf-gb.pf-gb-big', { type: 'button', onclick: () => import('../profile/bring.js').then(B => B.openBring({ onDone: () => { paintKey(); paintLocal(); load(); } })) }, h('b', 'BRING YOUR CARD'));
+      const go = h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => import('../profile/bring.js').then(B => B.openBring({ onDone: () => { paintKey(); paintLocal(); load(); } })) }, h('span', 'BRING YOUR CARD'));
       els.why.replaceChildren(h('div.pf-note', h('b', 'ALREADY A MEMBER?'), h('p', `Nothing is saved on this device yet (${location.host}) — your card wasn’t deleted. Bring it here with your key: your card works on all your devices at once.`), go));
       return;
     }
@@ -217,7 +215,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
     if (btn) btn.classList.add('is-busy');
     try {
       const r = await restoreKey(key, { onRetry: () => toast('WAKING THE SERVER — TRYING AGAIN', 'info', 2600) });
-      toast(`WELCOME BACK, ${r.profile.n.toUpperCase()}`, 'ok');
+      toast(`Welcome back, ${r.profile.n}`, 'ok');
       sfx('join');
       data = null;
       paintKey();

@@ -1054,16 +1054,17 @@ G('roofcrisp', async () => {
 G('progress', async () => {
   const N = await open({ slot: 'pgn', qs: NIGHT, view: [390, 844], dpr: 3 });
   await harborUp(N.page); await sleep(1500);
-  ok(!(await ev(N.page, '!!document.querySelector(".nd-tab-you .pg-dock")')), 'THE DOCK FLAME: no streak → no badge');
+  ok(!(await ev(N.page, '!!document.querySelector(".nd-tab-you .pg-dock")')), 'THE DOCK STREAK PILL: no streak → none');
   await N.ctx.close();
   for (const view of [[390, 844], [430, 932]]) {
     const F = await open({ slot: 'pgf', qs: `${NIGHT}&preview=flame&streak=12`, view, dpr: 3 });
     await harborUp(F.page);
-    await waitFor(F.page, '!!document.querySelector(".nd-tab-you .pg-dock canvas")', 'the flame badge', 10000).catch(() => {});
-    const b = await ev(F.page, `(() => { const d = document.querySelector('.nd-tab-you .pg-dock'); if (!d) return null; const c = d.querySelector('canvas'), r = d.getBoundingClientRect(), y = document.querySelector('.nd-tab-you').getBoundingClientRect(), n = d.querySelector('b'), cs = getComputedStyle(n);
-      return { cw: c.width, ch: c.height, w: Math.round(r.width), h: Math.round(r.height), n: n.textContent, fs: parseFloat(cs.fontSize), pe: getComputedStyle(d).pointerEvents, inYou: r.left < y.right && r.right > y.left && r.top < y.bottom, youW: Math.round(y.width), youH: Math.round(y.height) }; })()`);
-    ok(b && b.cw === 54 && b.ch === 66 && b.n === '12' && b.fs >= 12 && b.pe === 'none' && b.inYou && b.youW >= 44 && b.youH >= 44,
-      `THE DOCK FLAME at ${view.join('×')}: a ${b && b.cw}×${b && b.ch} px canvas (3× of 18×22 pt), "${b && b.n}" at ${b && b.fs} pt, on YOU, taps pass through (${JSON.stringify(b)})`);
+    // (SHELL 2.0 A — the owner: the dock's flame goes → the streak NUMBER in a small neon pill on YOU)
+    await waitFor(F.page, '!!document.querySelector(".nd-tab-you .pg-pill b")', 'the streak pill', 10000).catch(() => {});
+    const b = await ev(F.page, `(() => { const d = document.querySelector('.nd-tab-you .pg-pill'); if (!d) return null; const r = d.getBoundingClientRect(), y = document.querySelector('.nd-tab-you').getBoundingClientRect(), n = d.querySelector('b'), cs = getComputedStyle(n);
+      return { flame: !!d.querySelector('canvas'), w: Math.round(r.width), h: Math.round(r.height), n: n.textContent, fs: parseFloat(cs.fontSize), pe: getComputedStyle(d).pointerEvents, inYou: r.left < y.right && r.right > y.left && r.top < y.bottom, youW: Math.round(y.width), youH: Math.round(y.height), lbl: (document.querySelector('.nd-tab-you .rdk-lbl') || {}).textContent }; })()`);
+    ok(b && !b.flame && b.n === '12' && b.fs >= 12 && b.pe === 'none' && b.inYou && b.youW >= 44 && b.youH >= 44 && b.lbl === 'YOU',
+      `THE DOCK's STREAK PILL at ${view.join('×')}: "${b && b.n}" at ${b && b.fs} pt in a ${b && b.w}×${b && b.h} pt neon pill (no flame), on YOU (its label ${b && b.lbl}), taps pass through (${JSON.stringify(b)})`);
     if (SHOTS) await F.page.screenshot({ path: `${OUT}progress-dock-${view.join('x')}.png` });
     await F.ctx.close();
   }

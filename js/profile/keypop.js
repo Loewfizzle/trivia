@@ -47,8 +47,8 @@ async function show(why) {
   const m = loadMe(), pub = m && m.uid === state.uid ? m.profile : null;
   let saved = false;
   const done = () => { if (saved) return; saved = true; setNotes({ saved: true }); emit(); if (open) open.close(); };   // (copyKey / shareKey say so themselves)
-  const copy = h('button.pf-gb.kp-copy', { type: 'button', 'data-act': 'copy', onclick: async () => { if (await B.copyKey(loadKey())) done(); } }, 'COPY');
-  const share = typeof navigator.share === 'function' ? h('button.pf-gb.kp-share', { type: 'button', 'data-act': 'share', onclick: async () => { if (await B.shareKey(loadKey())) done(); } }, 'SHARE') : null;
+  const copy = h('button.btn.btn-primary.kp-copy', { type: 'button', 'data-act': 'copy', onclick: async () => { if (await B.copyKey(loadKey())) done(); } }, 'COPY');
+  const share = typeof navigator.share === 'function' ? h('button.btn.btn-ghost.kp-share', { type: 'button', 'data-act': 'share', onclick: async () => { if (await B.shareKey(loadKey())) done(); } }, 'SHARE') : null;
   const later = h('button.btn.btn-text.btn-block.kp-later', { type: 'button', onclick: () => { setNotes({ kp: 'later' }); open && open.close(); } }, 'LATER');
   open = openPfSheet({ kicker: 'YOUR MEMBERSHIP', title: 'SAVE YOUR KEY', cls: 'kp-sheet',
     body: [h('div.kp-card', memberCard(pub, {}, pub ? pub.x : 0)),

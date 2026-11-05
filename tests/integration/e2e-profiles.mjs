@@ -206,14 +206,14 @@ await H.run(async () => {
   // (LOBBY FIXES — the owner's ADD-ON 3: CUSTOMIZE's TOP = NAME ✎ + COLOUR ● ✎ (the current values); each opens its editor ON TOP)
   // (THE SPEED PASS — the owner's FINAL: ONE "EDIT USERNAME" row at the VERY TOP (the name + its colour dot) → ONE editor, the name + the colour)
   const yr = await p3.evaluate(() => { const n = document.querySelector('.vl-yr-name'), pin = document.querySelector('.vl-dr-pin'), c = document.querySelector('.vl-yr-colour');
-    return { name: n && n.textContent, col: !!c, sw: !!(n && n.querySelector('.vl-yr-sw')), above: !!(n && pin && n.getBoundingClientRect().bottom <= pin.getBoundingClientRect().top) }; });
+    return { name: n && n.textContent, col: !!c, sw: !!(n && n.querySelector('.sh-row-ic')), above: !!(n && pin && n.getBoundingClientRect().bottom <= pin.getBoundingClientRect().top) }; });
   await p3.evaluate(() => document.querySelector('.vl-yr-name').click());
   await p3.waitForSelector('.pf-name-sheet:not(.is-out) .pf-name-in', { timeout: 6000 });
   await p3.evaluate(() => { const i = document.querySelector('.pf-name-sheet .pf-name-in'); i.value = 'KATIEJO'; document.querySelector('.pf-name-sheet .swatch[data-id="green"]').click(); document.querySelector('.pf-name-sheet .pf-save').click(); });
   for (let i = 0; i < 40 && !((await val(`profiles/${me0.pid}/n`)) === 'KATIEJO' && (await val(`profiles/${me0.pid}/c`)) === 'green'); i++) await sleep(200);
   await sleep(400);
-  const yr2 = await p3.evaluate(() => { const n = document.querySelector('.vl-yr-name'), sw = n && n.querySelector('.vl-yr-sw'); return { pin: (document.querySelector('.vl-dr-pin .vl-name') || {}).textContent || '', name: n.textContent, swc: sw ? getComputedStyle(sw).backgroundColor : '', dress: !!document.querySelector('.vl-dress') }; });
-  ok(yr.sw && yr.above && !yr.col && /EDIT USERNAME/.test(yr.name), `CUSTOMIZE's TOP: ONE row "${yr.name}" (its colour dot) — above the slim preview; no COLOUR row (${!yr.col})`);
+  const yr2 = await p3.evaluate(() => { const n = document.querySelector('.vl-yr-name'), sw = n && n.querySelector('.sh-row-ic'); return { pin: (document.querySelector('.vl-dr-pin .vl-name') || {}).textContent || '', name: n.textContent, swc: sw ? getComputedStyle(sw).color : '', dress: !!document.querySelector('.vl-dress') }; });
+  ok(yr.sw && yr.above && !yr.col && /EDIT USERNAME/i.test(yr.name), `CUSTOMIZE's TOP: ONE row "${yr.name}" (its colour dot) — above the slim preview; no COLOUR row (${!yr.col})`);
   ok(/KATIEJO/.test(yr2.pin) && /KATIEJO/.test(yr2.name) && yr2.dress && (await val(`profiles/${me0.pid}/n`)) === 'KATIEJO' && (await val(`profiles/${me0.pid}/c`)) === 'green',
     `…EDIT USERNAME → KATIEJO + GREEN in one editor: the row + the strip at once ("${yr2.pin}", the dot ${yr2.swc}), CUSTOMIZE still open under it, the server has both`);
   await p3.click('.vl-dt[data-id="card-founder"]');   // (THE VAULT 2B: tap its tile — worn at once)
@@ -305,10 +305,10 @@ await H.run(async () => {
   { const kept = JSON.parse(await p5.evaluate(() => localStorage.getItem('na:f5:pkey'))), n5 = await p5.evaluate(() => JSON.parse(localStorage.getItem('na:f5:pnotes')));
     ok(kept === fresh && n5.saved === true && n5.heldNew && n5.heldNew !== fresh, `THE KEY KEPT: a new profile for a lost login never overwrites the device's key (kept ${kept === fresh}, "saved" ${n5.saved}, the new key aside ${!!n5.heldNew})`); }
   await p5.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));
-  await p5.waitForSelector('.pf-note.is-offer .pf-gb', { timeout: 15000 });
+  await p5.waitForSelector('.pf-note.is-offer .btn', { timeout: 15000 });
   ok(/ALREADY HAD A KEY/.test(await p5.$eval('.pf-note.is-offer', e => e.textContent)), 'the membership card offers the restore');
   await shotAll(p5, 'pf-06b-key-offer');
-  await p5.click('.pf-note.is-offer .pf-gb');
+  await p5.click('.pf-note.is-offer .btn');
   await p5.waitForFunction(pid => { const m = JSON.parse(localStorage.getItem('na:f5:me') || 'null'); return m && m.pid === pid; }, { timeout: 20000 }, me0.pid);
   { const n5 = await p5.evaluate(() => JSON.parse(localStorage.getItem('na:f5:pnotes')));
     ok(!n5.heldNew && !(await p5.$('.pf-note.is-offer')), 'RESTORE IT: ALICE is back on this device, the offer gone'); }
