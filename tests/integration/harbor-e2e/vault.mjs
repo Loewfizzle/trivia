@@ -17,14 +17,17 @@ import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { BASE, ok, okT, sleep, ev, waitFor, G, launch, launchReal, closeReal, OUT, SHOTS, log, checks, warnings, BROWSER, ON_CI, skipCI } from './kit.mjs';
+import { BASE, ok, okT, sleep, ev, waitFor, G, launch, launchReal, closeReal, OUT, SHOTS, log, checks, warnings, BROWSER, ON_CI, skipCI, skipNoDisplay } from './kit.mjs';
 
 // THE SPEED PASS — G4 (review-6.md): the FULL LOBBY speed checks warned in ALL FOUR cloud runs — the 2-core runner has no GPU path ("2D at
 // tier 2, 0 draws", 10–60 fps) and cannot answer them (CALM LOAD's case): on CI the SPEED half is skipped with its reason, the RULE half
 // (8 slots drawn, the effect tier, the emblems quiet, the glows on) stays a hard check — the full dpr is the GPU path's, so it sits in the
 // SPEED half (the cloud run 1: the runner's 2D fallback draws at 2× by design); on a real machine both, as before
+// SHELL 2.0 B2 — THE DISPLAY CHECK: the REAL-COMPOSITOR lobbies (launchReal) measure the frames a screen would show — no display on the
+// mini PC → skipped with the reason (kit/puppeteer.mjs#displayAttached), never a fail; attached → exactly as before
+const realCheck = async (speed, rule, what) => { const d = await displayAttached(); if (!ON_CI && !d.attached) { ok(rule, `${what} — its rule half`); skipNoDisplay(what, d.reason); } else gpuCheck(speed, rule, what); };
 const gpuCheck = (speed, rule, what) => { if (ON_CI) { ok(rule, `${what} — its rule half (the speed: skipped on CI)`); skipCI(what, 'no GPU path on the 2-core runner (2D at tier 2, 0 draws) — the speed is the mini PC’s + the owner’s iPhone’s'); } else okT(speed && rule, what); };
-import puppeteer from '../kit/puppeteer.mjs';
+import puppeteer, { displayAttached } from '../kit/puppeteer.mjs';
 
 async function page(qs, { real = false, cpu = 0, view = [402, 874], dpr = 3 } = {}) {
   const ctx = await (await (real ? launchReal() : launch())).createBrowserContext();
@@ -57,6 +60,7 @@ G('vault', async () => {
     await ctx.close(); }
   // THE LAB 2.0 (THE VAULT 2C — the owner: "getting cluttered"): &marks=old = every item APPROVED at version 1 (+ INFERNO's FIX) — the view he
   // meets after a pass: NEEDS YOU by default = the CHANGED rows (a version bump), each with its dated "CHANGED — what" line beside his old mark;
+  // (SHELL 2.0 B2: 6 → 12 CHANGED rows — the hero-spot audit's six: camo, the TR-3B, prism, emerald, the UFO, the marquee)
   // the counts; one row per item + the FULL toggle flipping in place (its own mark); a re-mark leaves NEEDS YOU; ALL CAUGHT UP; NEW since his
   // last visit (vl:seen); the top bar's ← THE CITY
   { const { ctx, p } = await page('marks=old');
@@ -65,8 +69,8 @@ G('vault', async () => {
       chg: [...document.querySelectorAll('.vl-item .vl-chg:not([hidden]) b')].length, was: document.querySelectorAll('.vl-mark.is-was').length,
       counts: Object.fromEntries([...document.querySelectorAll('.vl-filter')].map(b => [b.dataset.f, +b.querySelector('.vl-filter-n').textContent])),
       back: (document.querySelector('.vl-back') || {}).getAttribute && document.querySelector('.vl-back').getAttribute('href'), house: ((document.querySelector('.vl-item[data-id="card-house"]') || {}).dataset || {}).face || '' }))()`);
-    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 6 && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.chg === 6 && L.was >= 5 && /^6 NEEDS? YOU$/.test(L.need)
-      && L.counts.needs === 6 && L.counts.changed === 6 && L.counts.all === 50 && L.back === '/' && L.house === 'full',
+    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 12 && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.rows.includes('card-camo') && L.chg === 12 && L.was >= 11 && /^12 NEEDS? YOU$/.test(L.need)
+      && L.counts.needs === 12 && L.counts.changed === 12 && L.counts.all === 50 && L.back === '/' && L.house === 'full',
       `THE LAB 2.0: NEEDS YOU by default — ${L.rows.length} CHANGED rows (${L.rows.join(', ')}), each with its CHANGED line (${L.chg}) beside the old mark (${L.was} lit as "was"); the bar "${L.need}"; counts ${JSON.stringify(L.counts)}; THE HOUSE opens on its FULL face (only it changed); ← THE CITY → ${L.back}`);
     // the FULL toggle flips in place (the strip's surface slot swapped), its own mark; a re-mark drops the row's CHANGED count
     await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-face').click()`); await sleep(400);
@@ -77,7 +81,7 @@ G('vault', async () => {
     await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-mark[data-m="approve"]').click()`);
     await sleep(400);
     const A = await ev(p, `({ need: document.querySelector('.vl-need').textContent, m: window.__lab.marks['full-card-founder'], rows: document.querySelectorAll('.vl-item').length })`);
-    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^5 NEEDS? YOU$/.test(A.need) && A.rows === 6,
+    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^11 NEEDS? YOU$/.test(A.need) && A.rows === 12,
       `THE LAB 2.0: FULL CARD › flips the row in place (${F.face}, one canvas) with the full card's own marks (${F.mk}); a re-mark stores the version seen (v${A.m.v}) — "${A.need}" (the rows stay put until the filter changes: ${A.rows})`);
     await ctx.close(); }
   { const { ctx, p } = await page('marks=none&filter=needs&view=glows');
@@ -131,7 +135,7 @@ G('vault', async () => {
     const t = await frames(p, 240); t.sort((a, b) => a - b);
     const st = await ev(p, 'window.__lab.stats');
     const med = t[t.length >> 1], p95 = t[Math.floor(t.length * 0.95)], slow = t.filter(x => x > 20).length;
-    gpuCheck(med < 17.5 && slow < t.length * 0.06, st.slots === 8, `THE VAULT: A FULL LOBBY of 8 LEGENDARY strips at 4× CPU — median ${med.toFixed(1)} ms, p95 ${p95.toFixed(1)}, ${slow}/${t.length} slow frames; ${st.slots} drawn on one canvas, effect tier ${st.tier}, draw ${st.ms} ms`);
+    await realCheck(med < 17.5 && slow < t.length * 0.06, st.slots === 8, `THE VAULT: A FULL LOBBY of 8 LEGENDARY strips at 4× CPU — median ${med.toFixed(1)} ms, p95 ${p95.toFixed(1)}, ${slow}/${t.length} slow frames; ${st.slots} drawn on one canvas, effect tier ${st.tier}, draw ${st.ms} ms`);
     await ctx.close(); await closeReal(); }
   // ONLY ON SCREEN: a slot scrolled away isn't drawn; a hidden page draws nothing
   { const { ctx, p } = await page('view=lobby&mix=legend', { view: [402, 600], dpr: 2 });
@@ -283,7 +287,7 @@ G('vault', async () => {
   // THE GPU PATH at the FULL tier: 8 legendaries, then the 8 samples, 4× CPU, the real compositor, 3× — every frame on time
   // (its own browser: the real compositor + the GPU for WebGL — headless Chromium's default GL is a software one, which a phone never runs)
   // (THE VAULT 1C: + THE 8 SIGHTINGS + THE NEW 21's lobby mix — every new card at the same bar)
-  for (const mix of ['samples', 'legend', 'sightings', 'held']) {
+  for (const mix of ['samples', 'legend', 'sightings', 'held', 'gifts', 'gifts2']) {   // (SHELL 2.0 B2: + THE GIFT CARDS — the 11 in two lobbies of 8)
     const gpuB = await puppeteer.launch({ executablePath: BROWSER, headless: 'new', realCompositor: true, args: ['--enable-gpu', '--mute-audio', '--no-sandbox'] });   // (a fresh one per mix, like THE VAULT BENCH)
     const ctx = await gpuB.createBrowserContext(), p = await ctx.newPage();
     await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
@@ -296,7 +300,22 @@ G('vault', async () => {
     const s = [...t].sort((a, b) => a - b), med = s[90], slow = t.filter(x => x > 20).length, fps = 1000 / (t.reduce((a, b) => a + b, 0) / t.length);
     // (4× CPU on the mini PC is the stress case — an iPhone 16 Pro's CPU is well ahead of it: ≥ 54 fps on average + a median frame ≤ 18 ms
     //  there, at the FULL tier, is the bar; the busiest mix — glitter + smoke + the bulbs + the frost's clip — sits ~56)
-    gpuCheck(st.gpu && st.dpr >= 2.9 && fps >= 54 && med <= 18, st.tier === 2, `SPEED (the GPU path): A FULL LOBBY of ${({ legend: '8 LEGENDARIES', samples: 'THE 8 SAMPLES', sightings: 'THE 8 SIGHTING CARDS', held: 'THE NEW 21 (8 of them)' })[mix]} at 4× CPU — ${fps.toFixed(1)} fps, median ${med.toFixed(1)} ms, ${slow}/180 slow, ${st.gpu ? 'GPU' : '2D'} at tier ${st.tier} ${st.dpr}× (${st.draws} draws, ${st.ms} ms of script)`);
+    gpuCheck(st.gpu && st.dpr >= 2.9 && fps >= 54 && med <= 18, st.tier === 2, `SPEED (the GPU path): A FULL LOBBY of ${({ legend: '8 LEGENDARIES', samples: 'THE 8 SAMPLES', sightings: 'THE 8 SIGHTING CARDS', held: 'THE NEW 21 (8 of them)', gifts: 'THE GIFT CARDS 1–8', gifts2: 'THE GIFT CARDS 4–11' })[mix]} at 4× CPU — ${fps.toFixed(1)} fps, median ${med.toFixed(1)} ms, ${slow}/180 slow, ${st.gpu ? 'GPU' : '2D'} at tier ${st.tier} ${st.dpr}× (${st.draws} draws, ${st.ms} ms of script)`);
+    await ctx.close(); await gpuB.close();
+  }
+  // SHELL 2.0 B2 — THE GIFT CARDS' FULL SHOW (the full card plays every layer): the three busiest, alone at 3×, 4× CPU, the GPU path — 60 fps
+  for (const id of ['card-gift-anarchist', 'card-gift-goldenboot', 'card-gift-icecold']) {
+    const gpuB = await puppeteer.launch({ executablePath: BROWSER, headless: 'new', realCompositor: true, args: ['--enable-gpu', '--mute-audio', '--no-sandbox'] });
+    const ctx = await gpuB.createBrowserContext(), p = await ctx.newPage();
+    await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+    await p.goto(`${BASE}/tests/integration/vault-preview.html?view=gifts&filter=all&face=full&only=${id}&marks=none&tier=2`);
+    await waitFor(p, '!!(document.body.dataset.ready && window.__lab && document.querySelector(".vl-item .vl-fc"))', 'the gift full card', 30000);
+    await ev(p, "document.querySelector('.vl-item .vl-fc').scrollIntoView({ block: 'center' })");
+    { const cd = await p.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: 4 }); }
+    await sleep(1500);
+    const t = await frames(p, 180);
+    const s2 = [...t].sort((a, b) => a - b), med = s2[90], slow = t.filter(x => x > 20).length, fps = 1000 / (t.reduce((a, b) => a + b, 0) / t.length);
+    gpuCheck(fps >= 54 && med <= 18, true, `SPEED (the GPU path): ${id.replace('card-gift-', 'the gift card ')}'s FULL SHOW at 3×, 4× CPU — ${fps.toFixed(1)} fps, median ${med.toFixed(1)} ms, ${slow}/180 slow`);
     await ctx.close(); await gpuB.close();
   }
   // SCROLL-PAUSE + THE DIAGNOSTICS ROW: a scroll holds the effects (no frames), they resume after; &diag= sets the switches; 7 of them
@@ -492,6 +511,6 @@ G('vault', async () => {
     const st = await ev(p, 'window.__lab.stats');
     const ems = await ev(p, `({ n: document.querySelectorAll('.vl-strip .ve').length, quiet: document.querySelectorAll('.vl-strip .ve.is-quiet').length, glows: document.querySelectorAll('.vl-strip .vg.vg-still').length })`);
     const med = t[t.length >> 1], p95 = t[Math.floor(t.length * 0.95)], slow = t.filter(x => x > 20).length;
-    gpuCheck(med < 17.5 && slow < t.length * 0.08, ems.n === 8 && ems.quiet === 8 && ems.glows === 8, `THE VAULT 2A: A FULL LOBBY of 8 LEGENDARIES wearing every sample's emblem + glow at 4× CPU — median ${med.toFixed(1)} ms, p95 ${p95.toFixed(1)}, ${slow}/${t.length} slow; the card leads (${ems.quiet}/8 emblems + ${ems.glows}/8 glows holding still); effect tier ${st.tier}`);
+    await realCheck(med < 17.5 && slow < t.length * 0.08, ems.n === 8 && ems.quiet === 8 && ems.glows === 8, `THE VAULT 2A: A FULL LOBBY of 8 LEGENDARIES wearing every sample's emblem + glow at 4× CPU — median ${med.toFixed(1)} ms, p95 ${p95.toFixed(1)}, ${slow}/${t.length} slow; the card leads (${ems.quiet}/8 emblems + ${ems.glows}/8 glows holding still); effect tier ${st.tier}`);
     await ctx.close(); await closeReal(); }
 });

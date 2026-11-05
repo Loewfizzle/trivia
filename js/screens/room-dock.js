@@ -13,9 +13,6 @@ export const RICON = {
   guests: tube('<circle cx="8.6" cy="8.4" r="2.7"/><path d="M3.6 18.6c.8-3.2 2.6-4.9 5-4.9s4.2 1.7 5 4.9"/><circle cx="16.4" cy="9.2" r="2.3"/><path d="M15 13.9c.5-.1 1-.2 1.4-.2 2.1 0 3.6 1.5 4.3 4.3"/>'),
   chat: tube('<path d="M4.4 6.2c0-1.1.9-2 2-2h11.2c1.1 0 2 .9 2 2v7.6c0 1.1-.9 2-2 2h-6.9l-4.3 3.6v-3.6h0c-1.1 0-2-.9-2-2z"/><path d="M8.6 10h.01M12 10h.01M15.4 10h.01"/>'),
   // (SHELL 2.0 B1 — THE LOOK SWITCH's three states: a sun · a moon · AUTO = half a sun (its rays on the left) + half a moon)
-  sun: tube('<circle cx="12" cy="12" r="4.2"/><path d="M12 3.2v2.3M12 18.5v2.3M3.2 12h2.3M18.5 12h2.3M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M5.8 18.2l1.6-1.6M16.6 7.4l1.6-1.6"/>'),
-  moon: tube('<path d="M15.8 4.6a7.6 7.6 0 1 0 3.6 13.1 6.4 6.4 0 0 1-3.6-13.1z"/>'),
-  auto: tube('<path d="M12 6.4a5.6 5.6 0 0 0 0 11.2z"/><path d="M12 6.4a5.6 5.6 0 0 1 0 11.2 3.8 3.8 0 0 0 0-11.2z"/><path d="M12 2.8v1.8M12 19.4v1.8M3 12h1.8M5.6 5.6l1.3 1.3M5.6 18.4l1.3-1.3"/>'),
 };
 
 /** on = { invite, play, you, guests, games, chat, note } → the dock (the same API as createDock: el, els, light, all, ringOn, …) + set(view) */
@@ -39,11 +36,7 @@ export function createRoomDock(on) {
   E.pips = h('span.rdk-pips', { 'aria-hidden': 'true' });
   E.votes = h('span.rdk-votes', { role: 'status', hidden: true });
   E.host.append(E.pips, E.votes);
-  // (SHELL 2.0 B1 — THE ROOM's LOOK SWITCH: a small round tube right above PLAY, ONLY in a room of one before the match — its icon + its word
-  //  under it (the dock's label style) always show the state; one tap cycles AUTO → DAY → NIGHT — games/kit/look.js)
-  E.look = h('button.rdk-look', { type: 'button', hidden: true, onclick: () => on.look && on.look() },
-    h('span.rdk-look-ic', { 'aria-hidden': 'true' }), h('span.rdk-lbl.rdk-look-l', { 'aria-hidden': 'true' }, 'AUTO'));
-  E.hostSlot.append(E.look);
+  // (SHELL 2.0 B2: B1's LOOK SWITCH above PLAY is gone — the owner: "more confusing than helpful" → ☰ → Settings → Game look)
   // the pill: YOU · GUESTS · GAMES · CHAT, a tiny label under each icon
   const tab = (cls, aria, icon, label, onclick) => h(`button.nd-tab.rdk-tab.${cls}`, { type: 'button', 'aria-label': aria, onclick },
     h('span.nd-tab-ic', { html: icon }), h('span.rdk-lbl', { 'aria-hidden': 'true' }, label), h('i.rdk-dot', { 'aria-hidden': 'true', hidden: true }));
@@ -73,16 +66,6 @@ export function createRoomDock(on) {
       E.gamesTab.classList.toggle('rdk-newgame', !!ng); E.gamesTab.classList.toggle('rdk-breathe', ng === 'breathe');
       E.gamesTab.querySelector('.rdk-lbl').textContent = ng ? 'NEW GAME' : 'GAMES';
       E.gamesTab.setAttribute('aria-label', ng ? 'New game — pick another game' : 'The games');
-    }
-    // (THE LOOK SWITCH: v.look = { show, choice } — painted before the key check: it changes on its own taps)
-    const lk = v.look && v.look.show ? v.look.choice || 'auto' : null;
-    if ((E.look.dataset.l || '') !== (lk || '')) {
-      E.look.dataset.l = lk || ''; E.look.hidden = !lk;
-      if (lk) {
-        E.look.querySelector('.rdk-look-ic').innerHTML = RICON[lk === 'day' ? 'sun' : lk === 'night' ? 'moon' : 'auto'];
-        E.look.querySelector('.rdk-look-l').textContent = lk.toUpperCase();
-        E.look.setAttribute('aria-label', `The match's look: ${lk === 'auto' ? 'AUTO — day or night by the real sun' : lk.toUpperCase()}. Tap for ${lk === 'auto' ? 'DAY' : lk === 'day' ? 'NIGHT' : 'AUTO'}`);
-      }
     }
     const k = `${v.host ? 1 : 0}|${v.hostName || ''}|${v.guestsDot ? 1 : 0}|${v.chatDot ? 1 : 0}|${v.chatN || 0}|${rm ? `${rm.voted ? 1 : 0}${rm.n}/${rm.total}:${rm.pips.map(p => `${p.col}${p.on ? 1 : 0}`).join(',')}` : ''}`;
     // (LOBBY FIXES — AFTER HOST: the INVITE ring breathes until the host invites someone or a guest arrives — opacity + scale only, CSS)

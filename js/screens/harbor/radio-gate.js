@@ -1,6 +1,7 @@
 // CITY CONTROLS A — THE RADIO's GATE: asks the server (radioWho — the role per profile: the owner = ADMIN_PIDS, THE CREW) once the app is
 // up; ONLY a yes loads radio.js + css/radio.css and puts the corner button on the page — nobody else ever gets it, not even in the DOM.
 // A yes is remembered for the tab (6 h — never a "no": a profile restored later asks again on 'nd:me'). City 2.0 only (app.js).
+// SHELL 2.0 B2: drop() / fresh() — the crew switch live (a stamp on the room: rooms/{CODE}/radioCrew/role/{uid}).
 import { api } from '../../profile/api.js';
 import { firebaseReady } from '../../firebase.js';
 
@@ -28,7 +29,8 @@ export function startRadioGate(o) {
         l.onload = l.onerror = () => res(true); setTimeout(() => res(true), 3000); document.head.append(l);
       });
       const m = await import('./radio.js');
-      radio = m.createRadio({ role, remote: o.remote, roomCode: o.roomCode, sheetsReady: css });
+      const made = m.createRadio({ role, remote: o.remote, roomCode: o.roomCode, sheetsReady: css, onGone: () => { if (radio === made) { radio = null; ss.set(KEY, null); try { delete window.__radio; } catch { /* fine */ } } } });
+      radio = made;
       try { window.__radio = radio; } catch { /* (tests: the desk's debug) */ }
       return radio;
     })().catch(e => { console.warn('[radio] gate', e); return null; }).finally(() => { starting = null; });
@@ -36,5 +38,9 @@ export function startRadioGate(o) {
   };
   window.addEventListener('nd:me', () => { if (!radio) tryIt(); });
   tryIt();
-  return { get: () => radio, retry: tryIt };
+  // (SHELL 2.0 B2 — THE CREW SWITCH LIVE: the owner flipped this player's CREW — app.js#paintCrew: ON → ask the server again now (no cached
+  //  answer); OFF → the radio goes at once (its button, its panel if open))
+  const drop = () => { ss.set(KEY, null); if (radio) { try { radio.destroy(); } catch { /* gone */ } radio = null; try { delete window.__radio; } catch { /* fine */ } } };
+  const fresh = () => { ss.set(KEY, null); if (!radio) return tryIt(); return radio; };
+  return { get: () => radio, retry: tryIt, drop, fresh };
 }

@@ -18,6 +18,7 @@ import { ownerCounts, pctOf, bumpOwners } from './_lib/owners.js';
 import { val, ref, adminPids } from './_lib/fb.js';
 import { memberNo } from './_lib/members.js';
 import { DEV_CARDS, isDevCard } from '../js/core/dev-cards.js';
+import { OWNER_GIFTS, isOwnerGift, isGiftCard } from '../js/core/gift-cards.js';
 import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo, setPrefs } from './_lib/profiles.js';
 import { boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
@@ -72,11 +73,14 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
       // THE VAULT 2B — MEMBER Nº (assigned the first time a profile without one asks) + THE TWO DEV CARDS: granted to the owner's profile
       // (ADMIN_PIDS) only — never earnable, in no reward table; a profile not in ADMIN_PIDS never holds them (taken back if one did)
       if (profile && !profile.mn) { await memberNo(pid, now).catch(() => null); profile = await publicProfile(pid); }
-      const dev = adminPids().includes(pid), it0 = (stats && stats.it) || {};
-      if (DEV_CARDS.some(id => !!it0[id] !== dev)) {
+      // (SHELL 2.0 B2 — + THE OWNER's OWN GIFT CARD (core/gift-cards.js#OWNER_GIFTS — the owner's ADD-ON, Nov 5): the same rule, its grant
+      //  audited the first time; never in /admin → GIFTS; a profile not in ADMIN_PIDS never holds it)
+      const dev = adminPids().includes(pid), it0 = (stats && stats.it) || {}, OWN = [...DEV_CARDS, ...OWNER_GIFTS];
+      if (OWN.some(id => !!it0[id] !== dev)) {
         const patch = {};
-        for (const id of DEV_CARDS) patch[`pstats/${pid}/it/${id}`] = dev ? (it0[id] || now) : null;
-        if (!dev && isDevCard(profile && profile.cd)) patch[`profiles/${pid}/cd`] = null;
+        for (const id of OWN) patch[`pstats/${pid}/it/${id}`] = dev ? (it0[id] || now) : null;
+        if (!dev && (isDevCard(profile && profile.cd) || isOwnerGift(profile && profile.cd))) patch[`profiles/${pid}/cd`] = null;
+        if (dev) for (const id of OWNER_GIFTS) if (!it0[id]) patch[`audit/${ref('audit').push().key}`] = { at: now, by: pid, act: 'giftOwner', pid, b: id };
         await ref('/').update(patch);
         stats = await val(`pstats/${pid}`);
         if (!dev) profile = await publicProfile(pid);
@@ -97,6 +101,9 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
       const [ranks, prof] = await Promise.all([myRanks(pid, boards, now), publicProfile(pid)]);
       return { ranks, m: prof ? prof.m : 0, mm: prof ? prof.mm : 3 };
     }
+    // SHELL 2.0 B2 — THE GIFT's reveal seen (the phone showed "A gift from the house"): clear the waiting gift
+    case 'giftCheck': { const pid = await mine(uid); const g = await val(`ppriv/${pid}/gift`); return { gift: g && g.id ? { id: String(g.id), at: g.at || 0 } : null }; }   // (a light boot check — profile/gift-reveal.js)
+    case 'giftSeen': { const pid = await mine(uid); await ref(`ppriv/${pid}/gift`).remove(); return { ok: true }; }
     case 'restore': return restore(uid, body.key, ip, now);
     case 'regen': return { key: await newKey(await mine(uid)) };
     case 'rename': return { profile: await rename(await mine(uid), body.name, { now }) };
@@ -112,7 +119,7 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
         if (!id) { patch[`profiles/${pid}/${field}`] = null; continue; }
         const it = ITEM[id];
         if (!it || it.kind !== kind || !(owned[id] || STARTER.includes(id))) throw new ApiError(403, 'locked');
-        if (isDevCard(id) && !adminPids().includes(pid)) throw new ApiError(403, 'locked');   // (THE DEV CARDS: the owner's only)
+        if ((isDevCard(id) || isOwnerGift(id)) && !adminPids().includes(pid)) throw new ApiError(403, 'locked');   // (THE DEV CARDS + the owner's own gift card: his only)
         // (THE VAULT 2C — ONE EMBLEM SYSTEM: a sign-up shape IS the profile's shape — `a` — and takes a worn earned emblem off)
         if (k === 'shape' && signOf(id)) { patch[`profiles/${pid}/a`] = signOf(id); patch[`profiles/${pid}/es`] = null; continue; }
         patch[`profiles/${pid}/${field}`] = id;

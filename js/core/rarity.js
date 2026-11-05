@@ -25,8 +25,13 @@ export function programTier(i) {
   if (c === 'legendary' || i.legend) return 'legendary';          // (the ghost ship is a holiday row + a legendary sighting)
   if (c === 'fireworks' || c === 'raid' || (c === 'holiday' && i.big)) return 'epic';
   if ((c === 'windows' && i.rare) || i.rare) return 'rare';
-  if (c === 'windows' || c === 'medium' || c === 'party' || c === 'holiday' || c === 'holidays') return 'uncommon';
+  // (SHELL 2.0 B2 — the owner, Nov 5 12:22 pm: ~8 airliners an hour tagged UNCOMMON read wrong → THE MEDIUM MOMENTS are tagged by HOW OFTEN
+  //  they come: the word MEDIUM (programWord) in the common grey — they're the city's regular texture, not a rarity)
+  if (c === 'medium') return 'common';
+  if (c === 'windows' || c === 'party' || c === 'holiday' || c === 'holidays') return 'uncommon';
   return 'common';
 }
+/** a program row's TAG word — its tier's name, except THE MEDIUM MOMENTS: MEDIUM (how often they come) */
+export const programWord = i => (i && i.cat === 'medium' ? 'MEDIUM' : RARITY_NAME[programTier(i)]);
 /** one of HIS moments (a radio jack — core/harbor-radio.js#jacks: its lane) → its tier */
 export const jackTier = j => (!j ? 'uncommon' : j.lane === 'legend' ? 'legendary' : j.lane === 'show' ? 'epic' : 'uncommon');

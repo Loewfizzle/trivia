@@ -39,7 +39,7 @@ test('THE LAB 2.0 — VERSIONS: every bumped item has its dated "what changed" l
 
 test('THE LAB 2.0 — the page: ← THE CITY, NEEDS YOU by default, 4 sections, 5 filters with counts, ONE ROW PER ITEM + the FULL toggle, NEW, "All caught up."; the ☰ row admins-only', () => {
   const v = read('js/vault/lab-views.js');
-  assert.match(v, /\['cards', 'CARDS'\], \['emblems', 'EMBLEMS'\], \['glows', 'GLOWS \+ TUBES'\], \['lobby', 'LOBBY TEST'\]/);
+  assert.match(v, /\['cards', 'CARDS'\], \['gifts', 'GIFTS'\], \['emblems', 'EMBLEMS'\], \['glows', 'GLOWS \+ TUBES'\], \['lobby', 'LOBBY TEST'\]/);
   assert.match(v, /\['needs', 'NEEDS YOU'\], \['changed', 'CHANGED'\], \['fix', 'FIX'\], \['approved', 'APPROVED'\], \['all', 'ALL'\]/);
   assert.match(v, /'‹ THE CITY'/); assert.match(v, /href: '\/'/);
   assert.match(v, /'All caught up\.'/); assert.match(v, /h\('span\.vl-new', 'NEW'\)/); assert.match(v, /'FULL CARD ›'/);
@@ -55,7 +55,7 @@ test('THE LAB 2.0 — the page: ← THE CITY, NEEDS YOU by default, 4 sections, 
 test('THE TIER GEMS + THE DEV GEM: one per tier, no words on a strip; motion by transform + opacity only; reduced motion = still', () => {
   const g = read('js/vault/gems.js'), css = read('css/vault.css'), s = read('js/vault/strip.js');
   for (const t of ['common', 'uncommon', 'rare', 'epic', 'legendary', 'dev']) assert.match(css, new RegExp(`\\.vl-gem-${t}`));
-  assert.match(s, /gemEl\(plain && !tierIn \? 'common' : tier, \{ dev \}\)/);
+  assert.match(s, /gemEl\(plain && !tierIn \? 'common' : tier, \{ dev: one \}\)/);
   assert.doesNotMatch(s, /h\('span\.vl-tier'/, 'the strip carries no tier words');
   assert.match(g, /SPECTRUM/); assert.match(g, /vl-gem-halo/); assert.match(g, /vl-gem-sweep/); assert.match(g, /vl-gem-spk/);
   const keys = [...css.matchAll(/@keyframes (vl-gem-[\w-]+) \{([^@]*?)\}\s*(?=@|\n[^ ]|$)/g)];

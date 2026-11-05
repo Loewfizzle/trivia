@@ -9,9 +9,8 @@
 //   · the notes above the dock: the room closing soon (host: KEEP OPEN), a match on that this phone stepped out of (WATCH).
 // EACH PHONE KEEPS ITS OWN CITY (its sky, sun, weather, its local-time events); the ROOM's things are the same on every phone — all of
 // them derived from rooms/{CODE} (players, presence, meta, kicked): a refresh / a rejoin / a host change = everyone back in place.
-import * as LK from '../games/kit/look.js';
 import { h } from '../ui/dom.js';
-import { avatar } from '../ui/components.js';
+import { avatar, row } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
 import { colorHex, GAMES, APP_NAME, ROOM_IDLE_WARN_MS } from '../config.js';
 import { state, isHost, setState } from '../store.js';
@@ -45,9 +44,6 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   const code = () => st.code || '';
   const players = () => st.players || {};
   const hostName = () => ((players()[st.meta && st.meta.hostId] || {}).name || 'the host');
-  // THE ROOM's LOOK SWITCH (SHELL 2.0 B1 — games/kit/look.js): a room of ONE — the solo player is the host — before the match only
-  let lookChoice = LK.savedLook();
-  const lookOn = () => Object.keys(players()).length === 1 && isHost() && !(st.meta && st.meta.status === 'playing');
 
   // ---------------------------------------------------------------- the dock
   dock = createRoomDock({
@@ -64,8 +60,6 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     guests: () => { sfx('select'); openGuests(); },
     games: () => { sfx('select'); ngTapped(); openGames(isHost()); },
     chat: () => { sfx('tap'); import('../chat/ui.js').then(m => m.openChat()); },
-    // (SHELL 2.0 B1 — THE ROOM's LOOK SWITCH: a room of one, before the match — AUTO → DAY → NIGHT, remembered on this device)
-    look: () => { if (!lookOn()) return; sfx('tap'); lookChoice = LK.nextLook(lookChoice); LK.saveLook(lookChoice); paintDock(); },
     note: () => onNote(),
   });
   if (dockHost) dockHost.append(dock.els.door);
@@ -159,7 +153,10 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const p = players()[uid]; if (!p) return;
     popName(uid, TAP_NAME_MS);
     const pub = st.pub && p.pid ? st.pub[p.pid] : null;
-    const foot = uid !== st.uid ? await import('./crew-row.js').then(m => (m.isOwnerPhone() ? m.crewRow(uid) : null)).catch(() => null) : null;
+    const crew = uid !== st.uid ? await import('./crew-row.js').then(m => (m.isOwnerPhone() ? m.crewRow(uid) : null)).catch(() => null) : null;
+    // (SHELL 2.0 B2 — MAKE HOST: the host's phone, another player, in the room — the second tap confirms; offline → said, not offered)
+    const mk = uid !== st.uid && isHost() && !(st.meta && st.meta.status === 'playing') ? makeHostRow(uid, p) : null;
+    const foot = crew || mk ? h('div.rc-foot', mk, crew) : null;
     if (pub && pub.cd && pub.cd !== 'card-gilded') {
       try {
         const F = await import('../vault/full.js');
@@ -169,6 +166,13 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     }
     const [{ openPfSheet }, { memberCard }] = await Promise.all([import('../profile/sheets.js'), import('./profile.js')]);
     openPfSheet({ kicker: uid === st.uid ? 'YOUR CARD' : 'THEIR CARD', title: String(p.name || '').toUpperCase(), cls: 'rc-card-sheet', body: [memberCard(pub, { name: p.name, color: p.color, avatar: p.avatar }, pub ? pub.x : 0), foot] });
+  }
+
+  function makeHostRow(uid, p) {
+    const online = isOnline(st.presence, uid);
+    return row({ icon: 'crown', ic: '#ffd977', label: 'Make host', sub: online ? `${String(p.name || 'They').toUpperCase()} runs the room from here` : 'Offline — they need to be here', cls: 'rc-mkhost',
+      attrs: online ? {} : { disabled: true }, confirm: online ? 'TAP AGAIN TO HAND OVER' : null,
+      onClick: online ? async () => { const r = await import('../room.js').then(m => m.makeHost(uid)); if (r !== true) toast(r, 'warn'); else closeAll(); } : null });
   }
 
   // ---------------------------------------------------------------- the tags over the heads (the emblem · the name · the typing bubble)
@@ -263,15 +267,13 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   import('../chat/chat.js').then(m => { if (destroyed) return; chatMod = m; offChat = m.onChat(() => { paintDock(); paintBubbles(); }); paintDock(); }).catch(() => {});
   function paintDock() {
     if (!dock || destroyed) return;
-    // (the look switch: shown to the ONE player of a room, before the match — locked once it starts: the dock is the match's then)
     const P = players(), me = P[st.uid] || {}, ids = Object.keys(P);
     if (!seen) seen = loadSeen() || new Set(ids);
     const unread = chatMod ? chatMod.chat.unread || 0 : 0;
     const vs = voteNow();
     const rm = vs.on ? { on: true, voted: !!(st.rv && st.rv[st.uid] === vs.m), n: vs.voters.length, total: vs.total, pips: vs.guests.map(u => ({ col: colorHex((P[u] || {}).color), on: vs.voters.includes(u) })) } : null;
     dock.set({ host: isHost(), hostName: hostName(), invitePulse: isHost() && ids.length === 1 && !invited(), newGame: isHost() && vs.on ? (ngSeen() ? 'calm' : 'breathe') : null, guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
-      you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm,
-      look: { show: lookOn(), choice: lookChoice } });
+      you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm });
   }
   function paintBubbles() {
     const ty = chatMod ? chatMod.chat.typing || {} : {}, now = serverNow();

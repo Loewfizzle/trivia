@@ -14,7 +14,7 @@ import { emblemEl, hasArt } from './emblem-art.js';
 import { applyGlow } from './glows.js';
 import { emblemSvg, prominence, TEST_EMBLEMS } from './emblems.js';
 import { fitName } from '../ui/fit.js';
-import { isDevCard } from '../core/dev-cards.js';
+import { isDevCard, isOneOfOne } from '../core/dev-cards.js';
 import { gemEl } from './gems.js';
 
 /** each card's strip: its material (css/vault.css .vl-m-*), its effect (js/fx), the emblem it's shown with in the lab */
@@ -74,6 +74,18 @@ export const LOOKS = Object.freeze({
   // THE VAULT 2B — THE TWO DEV CARDS (the owner's own: ONE OF ONE · DEV, his Nº on the plate)
   'card-dev-switchboard': { mat: 'devswitch', fx: 'devSwitch' },
   'card-dev-source': { mat: 'devsource', fx: 'devSource' },
+  // SHELL 2.0 B2 — THE GIFT CARDS (1 OF 1): the art = the material (css/vault.css .vl-s-g-*), the motion = js/fx/gift.js
+  'card-gift-playerone': { mat: 'g-playerone', fx: 'gift:card-gift-playerone' },
+  'card-gift-halloffame': { mat: 'g-halloffame', fx: 'gift:card-gift-halloffame' },
+  'card-gift-enforcer': { mat: 'g-enforcer', fx: 'gift:card-gift-enforcer' },
+  'card-gift-linebacker': { mat: 'g-linebacker', fx: 'gift:card-gift-linebacker' },
+  'card-gift-underlights': { mat: 'g-underlights', fx: 'gift:card-gift-underlights' },
+  'card-gift-sunsetstrip': { mat: 'g-sunsetstrip', fx: 'gift:card-gift-sunsetstrip' },
+  'card-gift-goldenhour': { mat: 'g-goldenhour', fx: 'gift:card-gift-goldenhour' },
+  'card-gift-goldenboot': { mat: 'g-goldenboot', fx: 'gift:card-gift-goldenboot' },
+  'card-gift-youngbuck': { mat: 'g-youngbuck', fx: 'gift:card-gift-youngbuck' },
+  'card-gift-icecold': { mat: 'g-icecold', fx: 'gift:card-gift-icecold' },
+  'card-gift-anarchist': { mat: 'g-anarchist', fx: 'gift:card-gift-anarchist' },
 });
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });
@@ -93,18 +105,18 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
   else { embId = hasArt(emblem) ? emblem : ''; mode = prominence(tier, embTier(embId)); emb = emblemEl({ id: embId || null, avatar, color, tube, mode }); }
   // (the name glow follows the same rule: on a LEGENDARY card it holds its still, lit look — the card leads)
   // (THE VAULT 2B — a DEV card: THE DEVELOPER · his № on the plate; 2C: THE DEV GEM for its tag)
-  const dev = !plain && isDevCard(card);
+  const dev = !plain && isDevCard(card), one = !plain && isOneOfOne(card);   // (B2: a GIFT card is 1-of-1 too — the gem; the plate's dev line stays the dev cards')
   const nameEl = applyGlow(h('b.vl-name', name), glow);
   if (tier === 'legendary') nameEl.classList.add('vg-still');
   const plate = h('div.vl-plate',
     h('span.vl-emb', emb),
     h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', dev ? `THE DEV · № ${no || '0001'}` : host ? `LV ${lv} · HOST` : `LV ${lv}`)));
-  const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}${dev ? ' vl-dev1' : ''}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
+  const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}${one ? ' vl-dev1' : ''}${one && !dev ? ' vl-gift' : ''}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     plate,
     // (THE VAULT 2C — THE TIER GEM, the owner's approved mock: no words on the strip — a small gem in the corner; the DEV cards' own
     //  PRISMATIC gem outshines them all; the full card + CUSTOMIZE still spell the tier)
-    gemEl(plain && !tierIn ? 'common' : tier, { dev }),
+    gemEl(plain && !tierIn ? 'common' : tier, { dev: one }),
     // (FOUNDING MEMBER — the member's REAL number in gold: a numbered first edition; THE VAULT 2A)
     card === 'card-founder' && !plain && no != null ? h('span.vl-no', `№ ${no}`) : null,
     h('i.vl-frame', { 'aria-hidden': 'true' }));

@@ -21,7 +21,7 @@ import { memberLabel } from '../core/member.js';
 
 export const ENTRANCE_MS = 3200;
 export async function openGuestList(ctx) {
-  const [{ openPfSheet }, V, { FX }, { cardVars }, { approvedIds }, { isDevCard }, { lobbySfx }] = await Promise.all([
+  const [{ openPfSheet }, V, { FX }, { cardVars }, { approvedIds }, { isOneOfOne }, { lobbySfx }] = await Promise.all([
     import('../profile/sheets.js'), import('../vault/strip.js'), import('../fx/index.js'), import('../progress/look.js'), import('../vault/approved.js'), import('../core/dev-cards.js'), import('../audio/lobby-sfx.js')]);
   V.vaultSheet();
   let approved = new Set();
@@ -60,7 +60,7 @@ export async function openGuestList(ctx) {
         const row = h('div.rg-row', { dataset: { uid }, class: `${off ? 'is-off' : ''}${uid === st.uid ? ' is-me' : ''}`, role: 'button', tabindex: '0', 'aria-label': `${p.name}${off ? ' — signal lost' : ''} — their card`,
           onclick: () => ctx.openCard(uid), onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ctx.openCard(uid); } } },
           el, off ? h('span.rg-off', 'SIGNAL LOST') : null, kick);
-        if (isDevCard(card) && real) import('../vault/dress.js').then(m => m.oneOfOne(el)).catch(() => {});
+        if (isOneOfOne(card) && real) import('../vault/dress.js').then(m => m.oneOfOne(el)).catch(() => {});
         // THE JOIN ENTRANCE: a strip that wasn't in the list when it opened slides in at its FULL animation once, then the calm cut
         const fresh = !r && !first;
         if (r) { surface.remove(r.el.querySelector('.vl-strip')); r.el.replaceWith(row); }

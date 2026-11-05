@@ -53,11 +53,11 @@ test('THE TWO DEV CARDS: owner-only (granted on me, refused on style), legendary
   }
   assert.deepEqual(LAB.filter(x => x.kind === 'card').slice(0, 2).map(x => x.id), DEV_CARDS, 'FIRST in the lab');
   const api = read('api/profile.js');
-  assert.match(api, /adminPids\(\)\.includes\(pid\)/); assert.match(api, /isDevCard\(id\) && !adminPids\(\)\.includes\(pid\)\) throw new ApiError\(403, 'locked'\)/);
+  assert.match(api, /adminPids\(\)\.includes\(pid\)/); assert.match(api, /\(isDevCard\(id\) \|\| isOwnerGift\(id\)\) && !adminPids\(\)\.includes\(pid\)\) throw new ApiError\(403, 'locked'\)/);
   const strip = read('js/vault/strip.js'), fx = read('js/fx/index.js');
   assert.match(strip, /'card-dev-switchboard': \{ mat: 'devswitch', fx: 'devSwitch' \}/); assert.match(strip, /'card-dev-source': \{ mat: 'devsource', fx: 'devSource' \}/);
   assert.match(fx, /devSwitch, devSource/);
-  assert.match(read('js/vault/approved.js'), /for \(const id of DEV_CARDS\)/, 'his own art shows while he marks it');
+  assert.match(read('js/vault/approved.js'), /for \(const id of ONE_OF_ONE_CARDS\)/, 'his own art shows while he marks it (B2: + the gift cards — their one owner sees their art)');
 });
 
 test('THE REST OF THE SET: every 2B emblem / glow / tube style a real item at the lab\'s tier, earned somewhere, its art registered, its lab text', async () => {
@@ -65,7 +65,7 @@ test('THE REST OF THE SET: every 2B emblem / glow / tube style a real item at th
   const art = read('js/vault/emblem-art.js'), glows = read('js/vault/glows.js');
   const sightEmb = new Set(Object.values(SIGHTING).map(s => s.emblem));
   const earned = id => LEVEL_REWARD_ROWS.some(r => r.item === id) || ACH_ROWS.some(a => a.item === id) || Object.values(MILESTONE_ITEMS).flat().includes(id) || Object.values(SEASONAL_ITEMS).includes(id) || sightEmb.has(id);
-  const items = NEW2B.filter(x => !x.dev);
+  const items = NEW2B.filter(x => !x.dev && !x.gift);   // (SHELL 2.0 B2: the gift cards are given, never earned — tests/shell-b2.test.mjs)
   assert.ok(items.length >= 40, `${items.length} new lab rows`);
   for (const x of items) {
     assert.ok(ROW[x.id], `${x.id}: an item`); assert.equal(ROW[x.id].tier, x.tier, `${x.id}: the item's tier = the lab's`);

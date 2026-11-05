@@ -42,7 +42,7 @@ test('THE PROGRAM: every day-chart row gets a tier', () => {
   assert.equal(programTier({ cat: 'raid' }), 'epic');
   assert.equal(programTier({ cat: 'holiday', big: true }), 'epic');
   assert.equal(programTier({ cat: 'windows', rare: true }), 'rare');
-  assert.equal(programTier({ cat: 'medium' }), 'uncommon');
+  assert.equal(programTier({ cat: 'medium' }), 'common');   // (SHELL 2.0 B2: the medium moments say MEDIUM, in the common grey)
   assert.equal(programTier({ cat: 'windows' }), 'uncommon');
   assert.equal(programTier({ cat: 'party' }), 'uncommon');
   for (const c of ['workers', 'sky', 'billboard', 'harbor', 'lights', 'wildlife', 'weather']) assert.equal(programTier({ cat: c }), 'common', c);
@@ -54,7 +54,8 @@ test('THE PROGRAM: every day-chart row gets a tier', () => {
 test('THE PROGRAM paints a badge on every row + tints its name; the vault tags read the tokens', () => {
   const prog = read('js/screens/harbor/radio-program.js');
   assert.match(prog, /programTier\(i\)/);
-  assert.match(prog, /h\('i\.rd-tier', RARITY_NAME\[r\.tier\]\)/);
+  assert.match(prog, /h\('i\.rd-tier', r\.word \|\| RARITY_NAME\[r\.tier\]\)/);
+  assert.match(prog, /word: programWord\(i\)/);   // (SHELL 2.0 B2: the medium moments say MEDIUM)
   assert.doesNotMatch(prog, /'LEGEND'\)/, 'the old LEGEND-only tag is gone');
   const radio = read('css/radio.css');
   for (const t of RARITY) assert.match(radio, new RegExp(`data-tier="${t}"\\] \\{ --tc-ink: var\\(--tier-${t}-ink\\)`));

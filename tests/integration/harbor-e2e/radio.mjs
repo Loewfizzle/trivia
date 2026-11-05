@@ -399,16 +399,49 @@ G('crew', async () => {
   // (SHELL 2.0 A: + body.rd-owner — the radio marks the owner's phone a moment AFTER its button appears; a tap before it opened a card
   //  without the CREW row: wait for the condition the row reads, crew-row.js#isOwnerPhone)
   await waitFor(O.page, `!!document.querySelector('.rd-btn') && document.body.classList.contains('rd-owner') && !!document.querySelector('.rc-tag[data-uid="${cuid}"], .chip.player[data-uid="${cuid}"]')`, 'the owner radio + the lobby list', 25000);
-  await ev(O.page, `(() => { const c = document.querySelector('.rc-tag[data-uid="${cuid}"], .chip.player[data-uid="${cuid}"]'), r = c.getBoundingClientRect(), o = { bubbles: true, clientX: r.left + 20, clientY: r.top + 10 }; c.dispatchEvent(new PointerEvent('pointerdown', o)); c.dispatchEvent(new PointerEvent('pointerup', o)); return true; })()`);
-  await waitFor(O.page, `(([...document.querySelectorAll('.cr-row .cr-sw')].filter(x => !x.closest('.is-out')).pop()) || {}).getAttribute && ([...document.querySelectorAll('.cr-row .cr-sw')].filter(x => !x.closest('.is-out')).pop()).getAttribute('aria-checked') === 'true'`, 'the card says CREW ON', 10000).catch(() => {});
-  const diag = await ev(O.page, "({ sheets: [...document.querySelectorAll('.sh:not(.is-out)')].map(x => x.className).join('|'), full: !!document.querySelector('.vl-full'), rows: [...document.querySelectorAll('.cr-row')].map(r => (r.closest('.is-out') ? 'OUT:' : '') + r.textContent.slice(0, 60)).join('|'), owner: document.body.classList.contains('rd-owner') })");
-  const on1 = await ev(O.page, `(() => { const l = [...document.querySelectorAll('.cr-row .cr-sw')].filter(x => !x.closest('.is-out')).pop(); return l ? l.getAttribute('aria-checked') : null; })()`);
+  // (SHELL 2.0 B2 — the "no row" half of the flake: a tap opens the NEAREST figure's card (THE TAP AREA), and the owner had just reloaded —
+  //  his OWN figure, still walking in, could be nearer to the tag's corner than C → HIS card, no CREW row. Now: the three settled in their
+  //  lines first, then the tap at the CENTRE of C's own hit box)
+  await waitFor(O.page, "(() => { const r = window.__district.room(); return !!r && r.people && r.people.length === 3 && r.people.every(x => x.s && x.s.pose === 'wait'); })()", 'the three settled at the door', 40000).catch(() => {});
+  let opened = '';
+  for (let k = 0; k < 4; k++) {
+    await ev(O.page, `(() => { const c = document.querySelector('.rc-tag[data-uid="${cuid}"], .chip.player[data-uid="${cuid}"]'), hb = (window.__district.room().hits || {})['${cuid}'], r = c.getBoundingClientRect();
+      const x = hb ? (hb.x0 + hb.x1) / 2 : r.left + 20, y = hb ? (hb.y0 + hb.y1) / 2 : r.top + 10, o = { bubbles: true, clientX: x, clientY: y }; c.dispatchEvent(new PointerEvent('pointerdown', o)); c.dispatchEvent(new PointerEvent('pointerup', o)); return true; })()`);
+    await waitFor(O.page, "!!document.querySelector('.sh.is-in .sh-t b, .vl-full')", 'a card', 8000).catch(() => {});
+    opened = await ev(O.page, "(() => { const t = document.querySelector('.sh.is-in .sh-t b'); return t ? t.textContent : document.querySelector('.vl-full') ? 'full' : ''; })()");
+    if (/CREW HOST/.test(opened)) break;
+    // (a figure walking past was nearer: the wrong card — close it, tap again)
+    await ev(O.page, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(500);
+  }
+  // (SHELL 2.0 B2 — GREEN MEANS GREEN, CREW's flaky switch (B1: red on the pre-pass code too). THE CAUSE, reproduced 1 in 5 under load: the
+  //  peek (radioCrewPeek) + the set (radioCrewSet) are /api round trips; the step gave them FIXED windows (10 s / 8 s) whose timeouts were
+  //  SWALLOWED, then clicked a switch still disabled (the peek not back) or read the server before the set had answered — "no row" / "the
+  //  click didn't take". Now it waits for THE CONDITIONS: the switch ready (ON + enabled), then its own answer (OFF + enabled — busy over),
+  //  then the server's node gone; nothing swallowed.)
+  const swJs = "([...document.querySelectorAll('.cr-row .cr-sw')].filter(x => !x.closest('.is-out')).pop())";
+  await waitFor(O.page, `(() => { const b = ${swJs}; return !!b && b.getAttribute('aria-checked') === 'true' && !b.disabled; })()`, 'the card says CREW ON (the switch ready)', 30000).catch(() => {});
+  const diag0 = opened, diag = await ev(O.page, "({ opened: '', sheets: [...document.querySelectorAll('.sh:not(.is-out)')].map(x => x.className).join('|'), full: !!document.querySelector('.vl-full'), rows: [...document.querySelectorAll('.cr-row')].map(r => (r.closest('.is-out') ? 'OUT:' : '') + r.textContent.slice(0, 60)).join('|'), owner: document.body.classList.contains('rd-owner') })");
+  const on1 = await ev(O.page, `(() => { const l = ${swJs}; return l ? l.getAttribute('aria-checked') : null; })()`);
   if (on1 == null) log('CREW DIAG', JSON.stringify(diag));
-  await ev(O.page, `(() => { const b = [...document.querySelectorAll('.cr-row .cr-sw')].filter(x => !x.closest('.is-out')).pop(); if (b) b.click(); })()`);
-  await waitFor(O.page, `([...document.querySelectorAll('.cr-row .cr-sw')].filter(x => !x.closest('.is-out')).pop()).getAttribute('aria-checked') === 'false'`, 'CREW OFF', 8000).catch(() => {});
+  // (SHELL 2.0 B2 — THE CREW SWITCH LIVE: C's radio is up + its panel OPEN when the owner flips C's CREW off)
+  await ev(C.page, 'window.__radio && window.__radio.open()'); await sleep(300);
+  const cBefore = await ev(C.page, "({ btn: !!document.querySelector('.rd-btn'), open: !!document.querySelector('.rd-modal.is-in') })");
+  await ev(O.page, `(() => { const b = ${swJs}; if (b) b.click(); })()`);
+  await waitFor(O.page, `(() => { const b = ${swJs}; return !!b && b.getAttribute('aria-checked') === 'false' && !b.disabled; })()`, 'CREW OFF (the server answered)', 30000).catch(() => {});
+  for (let i = 0; i < 50 && (await get(`radio/crew/${cpid}`)) !== null; i++) await sleep(200);
   const off = await get(`radio/crew/${cpid}`);
   const note1 = await ev(O.page, "(document.querySelector('.cr-row .cr-t') || {}).textContent || '(no row)'");
   ok(on1 === 'true' && off === null, `CREW: the owner taps a player in the lobby → their card's CREW switch (${on1}) → OFF (the server: ${JSON.stringify(off)}; the row: "${note1}"; ${JSON.stringify(diag)})`);
+  // …C's phone: the radio + its open panel GONE at once (no reload, no rejoin); then ON again → C's radio button BACK
+  const t0 = Date.now(); await waitFor(C.page, "!document.querySelector('.rd-btn') && !document.querySelector('.rd-modal')", 'C’s radio gone', 15000).catch(() => {});
+  const gone = await ev(C.page, "({ btn: !!document.querySelector('.rd-btn'), modal: !!document.querySelector('.rd-modal'), radio: !!window.__radio })"), goneMs = Date.now() - t0;
+  await waitFor(O.page, `(() => { const b = ${swJs}; return !!b && b.getAttribute('aria-checked') === 'false' && !b.disabled; })()`, 'the switch ready again', 20000).catch(() => {});
+  await ev(O.page, `(() => { const b = ${swJs}; if (b) b.click(); })()`);
+  const t1 = Date.now(); await waitFor(C.page, "!!document.querySelector('.rd-btn')", 'C’s radio back', 20000).catch(() => {});
+  const back = await ev(C.page, "!!document.querySelector('.rd-btn')"), backMs = Date.now() - t1, reloads = await ev(C.page, 'performance.getEntriesByType("navigation").length');
+  ok(cBefore.btn && cBefore.open && !gone.btn && !gone.modal && back, `THE CREW SWITCH LIVE (two phones): C's radio up + its panel open (${JSON.stringify(cBefore)}) → the owner's OFF → gone at once (${goneMs} ms: ${JSON.stringify(gone)}) → ON → C's radio back (${backMs} ms) — no reload (${reloads} navigation)`);
+  // (back to OFF for what follows: the owner removes C below)
+  await waitFor(O.page, `(() => { const b = ${swJs}; return !!b && b.getAttribute('aria-checked') === 'true' && !b.disabled; })()`, 'the switch ready', 20000).catch(() => {});
   await ev(O.page, `import('/js/room.js').then(m => m.leaveRoom()).catch(() => {})`);
   // ---- the owner removes them; the audit log
   await call(O.page, { action: 'radioCrewSet', pid: cpid, on: false }); await call(O.page, { action: 'radioCrewSet', pid: dpid, on: false });
@@ -419,6 +452,9 @@ G('crew', async () => {
   await dbPut(`rooms/${code}`, null);
   // ---- CC-B — "A ROOM JUST OPENED": a FAKE subscription (keys made here) at a local receiver → the owner's switch ON → SEND A TEST + a new
   // room → each push arrives ENCRYPTED (aes128gcm) with a VAPID header, decrypted here to its words; THE LEDGER's paper; OFF
+  // (SHELL 2.0 B2 — green means green: the server sends at most PUSH_LIMITS.perHour room pushes an HOUR in all (rl/push_all_<hour>, on the
+  //  emulator it outlives a run) — repeated runs within the hour spent it and this step got 'limit', not a push. Each run starts it fresh.)
+  { const hr = Math.floor(Date.now() / 3600e3); for (const k of [hr - 1, hr, hr + 1]) await dbPut(`rl/push_all_${k}`, null); }
   { const { createServer } = await import('node:http'), C2 = await import('node:crypto');
     const got = [];
     const srv = createServer((req, res) => { const ch = []; req.on('data', c => ch.push(c)); req.on('end', () => { got.push({ h: req.headers, body: Buffer.concat(ch) }); res.statusCode = 201; res.end(); }); });
@@ -442,7 +478,8 @@ G('crew', async () => {
     // a new room by a guest → the owner's phone hears of it (once)
     const code2 = await ev(D.page, `import('/js/room.js').then(m => m.createRoom({ name: 'MIKE', color: 'pink', avatar: 'star' })).then(() => import('/js/store.js')).then(s => s.state.code)`);
     // (FR6 FIXES A: the push is asked ROOM_PUSH_MS (10 s) after the room opened, and only while its host is still in it — js/room.js#roomPushLater)
-    for (let i = 0; i < 160 && got.length < 2; i++) await sleep(100);
+    //  (SHELL 2.0 B2 — green means green: it waits for THE PUSH, up to 40 s — the old 16 s window was the 10 s delay + one slow /api call)
+    for (let i = 0; i < 400 && got.length < 2; i++) await sleep(100);
     const p2 = got[1] ? open8291(got[1].body) : null;
     const again = await call(D.page, { action: 'radioRoomOpened', room: code2 }); await sleep(300);
     ok(p2 && p2.title === 'A ROOM JUST OPENED' && p2.body === `${code2} · 1 player` && p2.url === `/?room=${code2}` && got.length === 2 && again.ok, `PUSH (CC-B): a guest opens ${code2} → "${p2 && p2.body}" (once — a second call sends nothing)`);

@@ -38,6 +38,8 @@ export const okT = soft('timing'), okF = soft('flaky');
 // these speed questions are never answered there, only warned about): skipped on CI with a named reason (listed in the summary), run
 // as before on a real machine. TIMING=strict runs them anyway.
 export const ON_CI = !!process.env.CI && process.env.TIMING !== 'strict';
+// SHELL 2.0 B2 — a REAL-COMPOSITOR speed check on a machine with NO DISPLAY: skipped with its reason, counted apart ("skipped (no display)")
+export const skipNoDisplay = (what, why) => { checks.push({ what, ok: true, warn: 'skipped-display' }); warnings.push(`[skipped (no display)] ${what} — ${why}`); log('SKIP', `${what} (${why})`); };
 export const skipCI = (what, why) => { checks.push({ what, ok: true, warn: 'skipped' }); warnings.push(`[skipped] ${what} — on CI: ${why}`); log('SKIP', `${what} (on CI: ${why})`); };
 export const GR = '&tz=America/Detroit&at=42.96,-85.67';
 // (HOTFIX Oct 29: THE BASELINE GUARD's scenes — the perf group; the owner's forced-bus link at its stop, a plain night, the forced dog walk)
@@ -120,6 +122,18 @@ export async function tap(p, sel) {
   const r = await p.evaluate(s => { const el = document.querySelector(s); if (!el) return null; const b = el.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; }, sel);
   if (!r) throw new Error(`no ${sel}`);
   await tapAt(p, r.x, r.y);
+}
+// SHELL 2.0 B2 — GREEN MEANS GREEN (the preview panel's cloud red: "timeout: the sheet" 5 s after the ☰ ADMIN tap — the panel opens
+// SYNCHRONOUSLY on the row's click, so the TAP itself missed: on the slow runner the menu was still laying out). Tap → wait for the
+// CONDITION; while it hasn't come and the target is still there, re-measure + tap again (every 2.5 s), up to `ms` — never a fixed window.
+export async function tapUntil(p, sel, cond, what, ms = 20000) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    try { await tap(p, sel); } catch { /* the target gone: the condition decides */ }
+    const t = Date.now() + 2500;
+    while (Date.now() < t) { try { if (await ev(p, cond)) return true; } catch { /* navigating */ } await sleep(100); }
+  }
+  throw new Error(`timeout: ${what}`);
 }
 export const harborUp = p => waitFor(p, '!!(window.__district.harbor() && window.__district.harbor().shown)', 'the harbor baked', 15000);
 const DB = 'http://127.0.0.1:9000';

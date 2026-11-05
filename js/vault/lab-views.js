@@ -20,11 +20,13 @@ import { fullCardEl, mountFull } from './full.js';
 import { emblemEl } from './emblem-art.js';
 import { applyGlow } from './glows.js';
 import { gemEl } from './gems.js';
-import { isDevCard } from '../core/dev-cards.js';
+import { isDevCard, isOneOfOne } from '../core/dev-cards.js';
 import { AVATAR_IDS } from '../config.js';
 import { memberLabel } from '../core/member.js';
 
-const CARDS = LAB.filter(x => x.kind === 'card');
+const CARDS = LAB.filter(x => x.kind === 'card' && !x.gift);
+// SHELL 2.0 B2 — THE GIFT CARDS (1 OF 1): their own section, GIFTS (the owner picks; PREVIEW shows one on HIS card — nothing is granted here)
+const GIFTS = LAB.filter(x => x.kind === 'card' && x.gift);
 /** the sample member number the lab dresses FOUNDING MEMBER + the DEV cards with (the owner's own: Nº 0001 — a real card shows the member's own №) */
 const SAMPLE_NO = 1;
 const noOf = n => memberLabel(n);
@@ -52,12 +54,12 @@ const when = at => new Date(at).toLocaleString('en-US', { month: 'short', day: '
 const day = iso => { try { return new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch { return iso; } };
 
 // THE SECTIONS + THE FILTERS
-export const SECTIONS = Object.freeze([['cards', 'CARDS'], ['emblems', 'EMBLEMS'], ['glows', 'GLOWS + TUBES'], ['lobby', 'LOBBY TEST']]);
+export const SECTIONS = Object.freeze([['cards', 'CARDS'], ['gifts', 'GIFTS'], ['emblems', 'EMBLEMS'], ['glows', 'GLOWS + TUBES'], ['lobby', 'LOBBY TEST']]);
 export const FILTERS = Object.freeze([['needs', 'NEEDS YOU'], ['changed', 'CHANGED'], ['fix', 'FIX'], ['approved', 'APPROVED'], ['all', 'ALL']]);
 const FULL_OF = new Map(LAB.filter(x => x.kind === 'full').map(x => [x.of, x]));
 /** the rows of a section: { key, item, ids (the markable faces), full? } */
 export function rowsOf(sec) {
-  if (sec === 'cards') return CARDS.map(item => { const full = FULL_OF.get(item.id); return { key: item.id, item, full, ids: full ? [item.id, full.id] : [item.id] }; });
+  if (sec === 'cards' || sec === 'gifts') return (sec === 'gifts' ? GIFTS : CARDS).map(item => { const full = FULL_OF.get(item.id); return { key: item.id, item, full, ids: full ? [item.id, full.id] : [item.id] }; });
   if (sec === 'emblems') return LAB.filter(x => x.kind === 'emblem').sort((a, b) => (a.n < 90) - (b.n < 90) || a.n - b.n).map(item => ({ key: item.id, item, ids: [item.id] }));
   if (sec === 'glows') return LAB.filter(x => x.kind === 'glow' || x.kind === 'tube').sort((a, b) => (a.kind === 'tube') - (b.kind === 'tube') || a.n - b.n).map(item => ({ key: item.id, item, ids: [item.id] }));
   return [];
@@ -68,7 +70,7 @@ export function rowMatches(row, f, marks) {
   return row.ids.some(id => { const s = labStatus(id, marks[id]); return f === 'needs' ? NEEDS.includes(s) : f === 'approved' ? s === 'approve' : s === f; });
 }
 export const countOf = (sec, f, marks) => rowsOf(sec).filter(r => rowMatches(r, f, marks)).length;
-export const needCount = marks => ['cards', 'emblems', 'glows'].reduce((a, s) => a + countOf(s, 'needs', marks), 0);
+export const needCount = marks => ['cards', 'gifts', 'emblems', 'glows'].reduce((a, s) => a + countOf(s, 'needs', marks), 0);
 
 // NEW since his last visit (this device): the highest lab number he has seen (localStorage vl:seen) — a first visit marks nothing new
 const SEEN_KEY = 'vl:seen';
@@ -175,7 +177,7 @@ export function mountLab(root, o = {}) {
     const headName = h('b');
     const stateChip = h('span.vl-st');
     const isNew = item.n > lastSeen || (row.full && row.full.n > lastSeen);
-    const head = h('div.vl-item-h', gemEl(item.tier, { dev: isDevCard(item.id) }), headName, isNew ? h('span.vl-new', 'NEW') : null, stateChip, h('code', item.id));
+    const head = h('div.vl-item-h', gemEl(item.tier, { dev: isOneOfOne(item.of || item.id) }), headName, isNew ? h('span.vl-new', 'NEW') : null, stateChip, h('code', item.id));
     const toggle = row.full ? h('button.vl-face', { type: 'button', 'aria-pressed': 'false', onclick: () => { R.face = R.face ? 0 : 1; mountFace(); R.paint(); } }) : null;
     const changed = h('div.vl-chg');
     const motion = h('p.vl-motion');
@@ -222,6 +224,14 @@ export function mountLab(root, o = {}) {
     const look = LOOKS[item.id];
     if (look && look.fx) surface.add(el, FX[look.fx], fxOpts(item.id, { seed: g.lv || 1, radius: 12 }));
     return [el];
+  }
+  // (SHELL 2.0 B2 — a GIFT row: the card's own faces + PREVIEW ON MY CARD — the reveal exactly as its one owner will see it, on HIS name —
+  //  nothing granted: /admin → GIFTS gives)
+  function giftStage(stage, row, face, surface) {
+    const els = cardStage(stage, row, face, surface);
+    const pv = h('button.vl-tab.vl-gift-pv', { type: 'button', onclick: () => import('../profile/gift-reveal.js').then(m => m.revealGift(row.item.id, undefined, { preview: true })).catch(() => {}) }, 'PREVIEW ON MY CARD ›');
+    stage.append(h('div.vl-gift-pvrow', pv, h('small', 'The full card as its owner meets it — “A gift from the house”. Nothing is given here: /admin → GIFTS.')));
+    return els;
   }
   const sayOf = tier => h('small', 'full size · at 28 pt (its lobby size)', h('br'), `On a COMMON card it ${prominence('common', tier) === 'lead' ? 'LEADS' : 'plays even'} · on a LEGENDARY it ${prominence('legendary', tier) === 'quiet' ? 'HOLDS STILL (the card leads)' : 'plays even'}`);
   function stripsOn(stage, rows, surface) {
@@ -270,7 +280,7 @@ export function mountLab(root, o = {}) {
     if (sheet && s === 'glows') { sheetGlows(only); return; }
     const rows = rowsOf(s).filter(r => (only.length ? only.includes(r.key) : rowMatches(r, filter, marks)));
     if (!rows.length) {
-      const others = ['cards', 'emblems', 'glows'].filter(k => k !== s).map(k => [k, countOf(k, filter, marks)]).filter(([, n]) => n);
+      const others = ['cards', 'gifts', 'emblems', 'glows'].filter(k => k !== s).map(k => [k, countOf(k, filter, marks)]).filter(([, n]) => n);
       content.replaceChildren(h('div.vl-empty',
         h('b', filter === 'needs' ? 'All caught up.' : 'Nothing here.'),
         h('p', filter === 'needs' ? 'Nothing waits for your marks in this section.' : `No ${FILTERS.find(f => f[0] === filter)[1]} items in this section.`),
@@ -281,7 +291,7 @@ export function mountLab(root, o = {}) {
     const grid = h('div.vl-items');
     content.replaceChildren(grid);
     const surface = createSurface(grid, { label: `lab-${s}` });
-    const stageFor = s === 'cards' ? cardStage : s === 'emblems' ? emblemStage : glowStage;
+    const stageFor = s === 'cards' ? cardStage : s === 'gifts' ? giftStage : s === 'emblems' ? emblemStage : glowStage;
     for (const r of rows) grid.append(rowEl(r, surface, stageFor));
     mounted.push({ destroy: () => surface.destroy() });
   }
@@ -301,7 +311,7 @@ export function mountLab(root, o = {}) {
   function lobbyView() {
     const pick = h('select.vl-tab', { 'aria-label': '8 of one card', onchange: () => { mix = pick.value; draw(); } },
       h('option', { value: '' }, '8 OF ONE…'), ...CARDS.map(c => h('option', { value: c.id }, c.name || c.id)));
-    const mixes = [['samples', 'THE 8 SAMPLES'], ['new', 'THE NEW 8'], ['legend', '8 LEGENDARIES'], ['sightings', 'THE 8 SIGHTINGS'], ['held', 'THE NEW 21']].map(([k, l]) => h('button.vl-tab', { type: 'button', dataset: { k }, onclick: () => { mix = k; pick.value = ''; draw(); } }, l));
+    const mixes = [['samples', 'THE 8 SAMPLES'], ['new', 'THE NEW 8'], ['legend', '8 LEGENDARIES'], ['sightings', 'THE 8 SIGHTINGS'], ['held', 'THE NEW 21'], ['gifts', 'THE GIFTS']].map(([k, l]) => h('button.vl-tab', { type: 'button', dataset: { k }, onclick: () => { mix = k; pick.value = ''; draw(); } }, l));
     const wearBtns = [['emb', 'EMBLEMS'], ['glow', 'GLOWS']].map(([k]) => h('button.vl-tab', { type: 'button', dataset: { w: k }, onclick: () => { wearMix[k] = !wearMix[k]; draw(); } }));
     const list = h('div.vl-list');
     const box = h('div.vl-lobby', h('div.vl-lobby-h', 'IN THE LOBBY · 8 / 8'), list);
@@ -323,7 +333,7 @@ export function mountLab(root, o = {}) {
         TUB = B2 ? [null, 'tube-beat', null, 'tube-flicker', null, 'tube-gold', null, 'tube-ember'] : [null, null, null, null, null, null, null, 'tube-chase'],
         GLO = B2 ? ['glow-glitch', 'glow-prism', 'glow-fire', 'glow-champagne', 'glow-tinsel', 'glow-starlight', 'glow-frost', 'glow-neon'] : ['glow-gold', 'glow-spark', 'glow-ember'];
       const AV = ['bolt', 'diamond', 'crown', 'alien', 'star', 'moon', 'ghost', 'hex'], COL = ['cyan', 'magenta', 'yellow', 'green', 'violet', 'orange', 'magenta', 'cyan'];
-      const rows = GUESTS.map((g, i) => ({ avatar: AV[i], color: COL[i], ...(wearMix.emb ? (wearMix.one ? (/^tube-/.test(wearMix.one) ? { emblem: 'emb-key', tube: wearMix.one } : { emblem: wearMix.one }) : { emblem: EMB[i], tube: TUB[i] }) : {}), ...(wearMix.glow ? { glow: GLO[i % GLO.length] } : {}), card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0, no: noOf(SAMPLE_NO + i * 7) }));
+      const rows = GUESTS.map((g, i) => ({ avatar: AV[i], color: COL[i], ...(wearMix.emb ? (wearMix.one ? (/^tube-/.test(wearMix.one) ? { emblem: 'emb-key', tube: wearMix.one } : { emblem: wearMix.one }) : { emblem: EMB[i], tube: TUB[i] }) : {}), ...(wearMix.glow ? { glow: GLO[i % GLO.length] } : {}), card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'gifts' ? GIFTS[i % GIFTS.length].id : mix === 'gifts2' ? GIFTS[(i + 3) % GIFTS.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0, no: noOf(SAMPLE_NO + i * 7) }));
       mounted.push(mountStrips(list, rows, { calm: true, label: 'lobby' }));
       window.__lab && (window.__lab.mix = mix, window.__lab.wear = { ...wearMix });
     };
@@ -360,7 +370,7 @@ export function mountLab(root, o = {}) {
   if (q0.get('mix')) mix = q0.get('mix');
   if (q0.get('wear')) for (const w of q0.get('wear').split(',')) { if (w === 'emb2') { wearMix.emb = true; wearMix.set = 2; } else if (w in wearMix) wearMix[w] = true; else if (/^(emb|tube)-/.test(w)) { wearMix.emb = true; wearMix.one = w; } }
   // the first section: the one asked for, else the first that needs him
-  if (!sec) sec = ['cards', 'emblems', 'glows'].find(k => countOf(k, filter, marks)) || 'cards';
+  if (!sec) sec = ['cards', 'gifts', 'emblems', 'glows'].find(k => countOf(k, filter, marks)) || 'cards';
   show(sec);
   return {
     setMarks(m) { marks = m || {}; show(sec); },

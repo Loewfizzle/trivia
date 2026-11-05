@@ -20,7 +20,8 @@ export default {
       stamp(c, glow('120,255,140', 0.1, 32), x, h / 2, U * 0.5, 0.45 * a, h * 1.4);
     }
     // the reticle: it slides in on its target as the line passes, holds, fades
-    const tx = w * (s.opts.full ? 0.78 : 0.86), ty = h * (s.opts.full ? 0.36 : 0.5), lk = Q.still ? 1 : smooth(0.62, 0.72, u) * (1 - smooth(0.9, 0.98, u));
+    const tx = w * (s.opts.full ? 0.78 : 0.7),   // (SHELL 2.0 B2 — THE HERO-SPOT RULE: the strip's reticle off the tier gem, middle-right)
+          ty = h * (s.opts.full ? 0.36 : 0.5), lk = Q.still ? 1 : smooth(0.62, 0.72, u) * (1 - smooth(0.9, 0.98, u));
     if (lk > 0.01) {
       const r = U * (0.32 + 0.3 * (1 - lk)), L = r * 0.45;
       c.globalAlpha = 0.9 * lk; c.strokeStyle = 'rgb(150,255,160)'; c.lineWidth = 1.2;

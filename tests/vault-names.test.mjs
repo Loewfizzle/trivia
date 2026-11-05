@@ -33,6 +33,9 @@ test('THE SITE\'S CODE carries no catalog: no item\'s line, no achievement\'s li
   }
   // (THE VAULT 2A: the 3 held cards' names out of the art's code — FOUNDING MEMBER is the public pill's word, exempt)
   for (const [p, src] of files) if (/[\\/](vault|progress|fx)[\\/]|vault\.css$/.test(p)) for (const n of ['PLATINUM', 'THE HOUSE', 'OPENING NIGHT', 'THE METAL CARD', 'FULL BLAZE']) if (src.includes(n)) hits.push(`${p.slice(ROOT.length)}: ${n}`);
+  // (SHELL 2.0 B2: THE GIFT CARDS' names — the owner's tool + THE LAB get them from the server; no shipped file names one)
+  //  (everyday words — GOLDEN HOUR, HALL OF FAME, ICE COLD — live in the city's code too: checked where cards are drawn + named)
+  for (const n of ITEM_ROWS.filter(x => x.gift).map(x => x.name)) for (const [p, src] of files) if (/[\\/](vault|progress|fx|profile|admin)[\\/]|vault\.css$|admin\.css$/.test(p) && src.includes(n)) hits.push(`${p.slice(ROOT.length)}: ${n}`);
   assert.deepEqual(hits, [], `${hits.length} leaks`);
   assert.ok(files.length > 300, `${files.length} shipped files read`);
 });

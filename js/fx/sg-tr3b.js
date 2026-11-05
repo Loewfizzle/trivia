@@ -46,7 +46,7 @@ export default {
     c.save(); rrect(c, 0, 0, w, h, rad); c.clip();
     c.drawImage(backdrop(full ? 'tr3b-full' : 'tr3b', w, h, dpr, full ? SKY : SKY_STRIP), 0, 0, w, h);
     // the craft's place: high, a slow drift + bob
-    const len = full ? w * 0.6 : h * 1.95, cx = S.cx + (still ? 0 : wob(tt * 0.2, 3) * len * 0.03), cy = (full ? h * 0.26 : h * 0.4) + (still ? 0 : wob(tt * 0.35, 1) * len * 0.02);
+    const len = full ? w * 0.6 : h * 1.95, cx = (full ? S.cx : w * 0.62) +   /* (B2 — THE HERO-SPOT RULE: the strip's craft clear of the gem) */ (still ? 0 : wob(tt * 0.2, 3) * len * 0.03), cy = (full ? h * 0.26 : h * 0.4) + (still ? 0 : wob(tt * 0.35, 1) * len * 0.02);
     const cxu = cx / w, dark = 1 - smooth(0.12, 0.42, u) * (1 - smooth(0.7, 0.84, u));      // (1 lit … 0 the whole city dark)
     // THE CITY: its towers, then their windows column by column with the power
     const C = full ? CITY : CITY_STRIP, foot = full ? h * 0.9 : h;

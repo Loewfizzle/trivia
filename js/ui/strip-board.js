@@ -14,7 +14,7 @@ import { memberLabel } from '../core/member.js';
 export async function upgradeBoard(list, rows, players) {
   if (!list || list.dataset.strips) return;
   list.dataset.strips = 'loading';
-  const [V, { FX }, { cardVars }, { approvedIds }, { createSurface }, { isDevCard }] = await Promise.all([
+  const [V, { FX }, { cardVars }, { approvedIds }, { createSurface }, { isOneOfOne }] = await Promise.all([
     import('../vault/strip.js'), import('../fx/index.js'), import('../progress/look.js'), import('../vault/approved.js'), import('../fx/renderer.js'),
     import('../core/dev-cards.js')]);
   V.vaultSheet();
@@ -31,7 +31,7 @@ export async function upgradeBoard(list, rows, players) {
     const real = !!(approved.has(card) && V.LOOKS[card]);
     const el = V.stripEl({ card: real ? card : null, tier, plain: real ? null : cardVars(card), name: String((pub && pub.n) || p.name || '').toUpperCase(),
       lv: levelOf((pub && pub.x) || 0), emblem: pub && pub.es, avatar: p.avatar, color: p.color, tube: pub && pub.tb, glow: pub && pub.g, no: pub ? memberLabel(pub.mn) : null });
-    if (isDevCard(card) && real) import('../vault/dress.js').then(m => m.oneOfOne(el)).catch(() => {});
+    if (isOneOfOne(card) && real) import('../vault/dress.js').then(m => m.oneOfOne(el)).catch(() => {});
     // the row keeps its rank + its score (the count-up runs on the same element); the strip takes the avatar + name's place
     // (the score laid over the strip's top-right with its delta + arrow; a game's note — "3 KO · 2 SENT" — under it)
     const keep = c => row.querySelector(c);

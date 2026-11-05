@@ -67,7 +67,7 @@ export default {
     for (let i = 0; i < (full ? 18 : 7); i++) { const x = r() * w, y = r() * h * 0.5, p = r() * 6; stamp(c, glow('220,255,235', 0.3, 16), x, y, 5, still ? 0.5 : 0.25 + 0.6 * Math.max(0, Math.sin(t * 1.3 + p))); }
     // the craft: right of the name plate, high in the strip; a slow bob + a slow turn
     // (a FULL CARD — the reference card-i-want-to-believe.png: the craft centred high, ~55 % of the card wide, its beam down to the quay)
-    const R = full ? w * 0.27 : h * 0.84, cx = full ? w * 0.5 : w * 0.6, cy = (full ? h * 0.25 : h * 0.24) + (still ? 0 : wob(t * 0.45, 2) * (full ? h * 0.018 : h * 0.035));
+    const R = full ? w * 0.27 : h * 0.84, cx = full ? w * 0.5 : w * 0.66 /* (B2 — THE HERO-SPOT RULE) */, cy = (full ? h * 0.25 : h * 0.24) + (still ? 0 : wob(t * 0.45, 2) * (full ? h * 0.018 : h * 0.035));
     const pulse = still ? 0.9 : 0.78 + 0.22 * (0.5 + 0.5 * Math.sin(t * 2.2)) + 0.05 * wob(t * 3, 5);
     const belly = cy + R * 0.27;
     beam(c, cx, belly, R * 0.5, R * 1.7, h + 2, pulse * (s.opts.calm ? 0.85 : 1));

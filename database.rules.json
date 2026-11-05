@@ -16,7 +16,7 @@
           ".validate": "newData.hasChildren(['hostId', 'status', 'createdAt'])",
           "hostId": {
             ".write": "auth != null && newData.val() === auth.uid && data.exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (root.child('rooms/' + $code + '/presence/' + auth.uid + '/c').exists() || (root.child('rooms/' + $code + '/presence/' + auth.uid + '/online').val() === true && root.child('rooms/' + $code + '/presence/' + auth.uid + '/v').val() !== 2)) && (!root.child('rooms/' + $code + '/players/' + data.val()).exists() || ((root.child('rooms/' + $code + '/meta/status').val() === 'playing' && root.child('rooms/' + $code + '/meta/hostBeat').isNumber()) && root.child('rooms/' + $code + '/meta/hostBeat').val() < now - 10000) || ((root.child('rooms/' + $code + '/meta/status').val() !== 'playing' || !root.child('rooms/' + $code + '/meta/hostBeat').isNumber()) && (!root.child('rooms/' + $code + '/presence/' + data.val() + '/c').exists() && (root.child('rooms/' + $code + '/presence/' + data.val() + '/online').val() === false || root.child('rooms/' + $code + '/presence/' + data.val() + '/v').val() === 2) && root.child('rooms/' + $code + '/presence/' + data.val() + '/lastSeen').val() < now - 10000)))",
-            ".validate": "newData.isString() && newData.val().length < 128"
+            ".validate": "newData.isString() && newData.val().length < 128 && (!data.exists() || newData.val() === data.val() || newData.val() === auth.uid || (root.child('rooms/' + $code + '/players/' + newData.val()).exists() && !root.child('rooms/' + $code + '/kicked/' + newData.val()).exists() && (root.child('rooms/' + $code + '/presence/' + newData.val() + '/c').exists() || (root.child('rooms/' + $code + '/presence/' + newData.val() + '/online').val() === true && root.child('rooms/' + $code + '/presence/' + newData.val() + '/v').val() !== 2))))"
           },
           "status": {
             ".validate": "newData.val() === 'lobby' || newData.val() === 'playing'"
@@ -32,6 +32,9 @@
           },
           "hostBeat": {
             ".validate": "newData.isNumber()"
+          },
+          "hostBy": {
+            ".validate": "newData.isString() && newData.val().length < 128"
           },
           "settings": {
             ".validate": "newData.hasChildren()"

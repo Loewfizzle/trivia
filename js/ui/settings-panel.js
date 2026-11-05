@@ -77,6 +77,14 @@ function chatHostRows() {
 
 // SETTINGS (SHELL 2.0 A — THE SHEET + THE ROWS): sound first, then this phone, the playable games' own controls, the host's chat, the hush
 // word, CREDITS last. The menu's rows (LEAVE ROOM, QUIT, END GAME, HOW TO PLAY) live in the ☰ menu only.
+/** THE GAME LOOK (games/kit/look.js — lazy: the row fills in once the tiny module is in; AUTO until then) */
+function gameLookRow() {
+  const el = h('div.set-row.set-seg.set-look', h('span.label', 'GAME LOOK'));
+  import('../games/kit/look.js').then(LK => {
+    el.append(segmented(LK.LOOKS.map(v => ({ value: v, label: LK.LOOK_LABEL[v] })), LK.currentLook(), v => LK.saveLook(v)));
+  }).catch(() => {});
+  return el;
+}
 function open() {
   if (sheet) return;
   const playable = id => GAMES.some(g => g.id === id && g.playable);
@@ -94,6 +102,8 @@ function open() {
     toggle('Haptics', 'haptics'),
     toggle('Reduced effects', 'reducedFx'),
     toggle('Colour-blind colours', 'colorBlind'),   // (SHELL 2.0 B1 — right in BLUE, close in ORANGE in every game: ui/colorblind.js)
+    // (SHELL 2.0 B2 — THE GAME LOOK: AUTO = the real sun · DAY · NIGHT, this phone only, no lock — a change mid-game re-themes at once)
+    gameLookRow(),
     toggle('Always night', 'alwaysNight'),
     ...(playable('prism') ? [
       h('div.sh-sub', 'PRISM DROP'),

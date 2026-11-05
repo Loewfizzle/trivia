@@ -20,7 +20,7 @@ import { FX } from '../fx/index.js';
 import { TIER_NAMES, TIERS, ITEM, ownedOf, signOf, signName } from '../core/items.js';
 import { levelInfo } from '../core/levels.js';
 import { memberLabel } from '../core/member.js';
-import { isDevCard, ONE_OF_ONE, DEV_CARDS } from '../core/dev-cards.js';
+import { isDevCard, isOneOfOne, ONE_OF_ONE, DEV_CARDS, ONE_OF_ONE_CARDS } from '../core/dev-cards.js';
 import { gemEl } from './gems.js';
 import { emblemEl, hasArt, tubeApplies, TUBE_STYLES } from './emblem-art.js';
 import { applyGlow, GLOW_ART } from './glows.js';
@@ -40,7 +40,7 @@ const NONE = { glow: 'NO GLOW', tube: 'PLAIN TUBE' };   // (2C: no "YOUR SHAPE" 
 const shapeName = a => signName(a || 'bolt');
 const nameOf = id => (ITEM[id] || {}).name || '';
 /** dev cards first (ONE OF ONE), then the rarest, then the newest (ownedOf's order) */
-const devAt = id => (isDevCard(id) ? DEV_CARDS.indexOf(id) : 99);
+const devAt = id => (isOneOfOne(id) ? ONE_OF_ONE_CARDS.indexOf(id) : 99);   // (B2: the dev cards, then the gift cards, lead)
 const order = list => list.map((x, i) => [x, i]).sort(([a, i], [b, j]) => (devAt(a.id) - devAt(b.id)) || (TIERS.indexOf(b.tier) - TIERS.indexOf(a.tier)) || i - j).map(([x]) => x);
 
 /** what the profile says you wear */
@@ -53,7 +53,7 @@ function wornStrip(surface, W, who, approved, seed = 1) {
   const real = !!(approved && approved.has(card) && LOOKS[card]);
   const s = stripEl({ card: real ? card : null, tier, name: who.name, lv: who.lv, plain: real ? null : cardVars(card),
     emblem: hasArt(W.shape) ? W.shape : null, avatar: who.avatar, color: who.color, tube: W.tube, glow: W.glow, no: who.no });
-  if (isDevCard(card)) oneOfOne(s);
+  if (isOneOfOne(card)) oneOfOne(s);
   if (real && LOOKS[card].fx && FX[LOOKS[card].fx]) surface.add(s, FX[LOOKS[card].fx], fxOpts(card, { seed, calm: 0, radius: 12 }));
   return s;
 }
@@ -139,8 +139,8 @@ export function openDress(data, o = {}) {
       art.append(emblemEl({ id: hasArt(shape) ? shape : null, avatar: who.avatar, color: who.color, tube: id || null, mode: 'lead', size: 46 }));
     }
     const label = it ? it.name : NONE[kind];
-    const t = h('button.vl-dt', { type: 'button', class: `vl-dt-${tier}${on ? ' is-on' : ''}${it && isDevCard(id) ? ' is-one' : ''}${it ? '' : ' is-none'}`,
-      dataset: { id: id || 'none', tier: it ? tier : '' }, 'aria-pressed': String(on), 'aria-label': `${on ? 'Equipped' : 'Equip'} ${label}${it ? ` (${isDevCard(id) ? ONE_OF_ONE : TIER_NAMES[tier]})` : ''}` },
+    const t = h('button.vl-dt', { type: 'button', class: `vl-dt-${tier}${on ? ' is-on' : ''}${it && isOneOfOne(id) ? ' is-one' : ''}${it ? '' : ' is-none'}`,
+      dataset: { id: id || 'none', tier: it ? tier : '' }, 'aria-pressed': String(on), 'aria-label': `${on ? 'Equipped' : 'Equip'} ${label}${it ? ` (${isOneOfOne(id) ? ONE_OF_ONE : TIER_NAMES[tier]})` : ''}` },
       art, h('span.vl-dt-n', label), on ? h('i.vl-dt-on', { 'aria-hidden': 'true' }, '✓') : null);
     press(t, () => wear(kind, id), kind === 'card' && it ? () => (o.view ? o.view(id, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }) : import('./full.js').then(m => m.openFullCard(id, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }))) : null);
     return t;

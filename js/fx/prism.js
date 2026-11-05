@@ -14,7 +14,8 @@ export default {
     c.save(); rrect(c, 0, 0, w, h, rad); c.clip();
     // the prism: an equilateral triangle, point up, at ~55 % across
     // (a FULL CARD: the prism stands right of the name plate, smaller against the card, the beam coming in low from the left)
-    const full = !!s.opts.full, pcx = w * (full ? 0.6 : 0.55), cy = h * (full ? 0.5 : 0.5), ph = h * (full ? 0.46 : 0.74), pw = ph * 1.155, top = [pcx, cy - ph / 2], bl = [pcx - pw / 2, cy + ph / 2], br = [pcx + pw / 2, cy + ph / 2];
+    const full = !!s.opts.full, pcx = w * (full ? 0.6 : 0.63),   /* (B2 — THE HERO-SPOT RULE: the strip's prism middle-right, clear of a long name's plate) */
+       cy = h * (full ? 0.5 : 0.5), ph = h * (full ? 0.46 : 0.74), pw = ph * 1.155, top = [pcx, cy - ph / 2], bl = [pcx - pw / 2, cy + ph / 2], br = [pcx + pw / 2, cy + ph / 2];
     const hit = [pcx - pw * 0.26, cy + ph * 0.08], out = [pcx + pw * 0.22, cy - ph * 0.03];
     c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
     // THE BEAM: from the left edge to the prism's face (a soft halo, then the white core)

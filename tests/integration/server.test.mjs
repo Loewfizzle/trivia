@@ -1358,3 +1358,46 @@ test('THE SOLO LANE: a solo OVERCLOCK counts once, small XP, no win; 3 night poi
   else assert.match(String(pr && pr.message), /too few players/, 'PRISM DROP alone is not a reportable match');
   tick();
 });
+
+// SHELL 2.0 B2 — THE GIFT TOOL (api/_lib/gifts.js): the owner GIVES a 1-of-1 card to a name tag — server-granted (the item, equipped, a
+// reveal waiting), audited; ONE PROFILE EVER (a second give refused, whoever asks); a non-owner refused; THE OWNER's OWN CARD never
+// giftable — granted to the owner (ADMIN_PIDS) on 'me', refused to anyone else on 'style'
+test('THE GIFT TOOL: owner-only, one profile ever, equipped + revealed once; the owner\'s own card his alone', async () => {
+  const owner = await ensure('u-gift-owner', 'Giver'), kid = await ensure('u-gift-kid', 'Nephew'), other = await ensure('u-gift-other', 'Other');
+  const tagOf = p => `${p.profile.n}#${p.profile.t}`;
+  await rejects(adminAction('u-gift-other', { action: 'giftGive', card: 'card-gift-enforcer', tag: tagOf(kid) }), 403, 'not_admin');
+  process.env.ADMIN_PIDS = `${owner.pid}`;
+  try {
+    const list0 = (await adminAction('u-gift-owner', { action: 'giftList' })).gifts;
+    assert.equal(list0.length, 10, 'ten giftable cards (the owner\'s own never listed)');
+    assert.ok(!list0.some(g => g.id === 'card-gift-anarchist') && list0.every(g => !g.given && g.name && g.name !== g.id));
+    await rejects(adminAction('u-gift-owner', { action: 'giftGive', card: 'card-gift-anarchist', tag: tagOf(kid) }), 403, 'not_giftable');
+    await rejects(adminAction('u-gift-owner', { action: 'giftGive', card: 'card-gilded', tag: tagOf(kid) }), 400, 'bad_card');
+    await rejects(adminAction('u-gift-owner', { action: 'giftGive', card: 'card-gift-enforcer', tag: 'NOBODY#0000' }), 404, 'no_tag');
+    const r = await adminAction('u-gift-owner', { action: 'giftGive', card: 'card-gift-enforcer', tag: tagOf(kid) }, clock);
+    assert.equal(r.gift.pid, kid.pid);
+    assert.ok(await val(`pstats/${kid.pid}/it/card-gift-enforcer`), 'in their items');
+    assert.equal(await val(`profiles/${kid.pid}/cd`), 'card-gift-enforcer', 'EQUIPPED');
+    assert.equal((await val(`gifts/card-gift-enforcer`)).pid, kid.pid, 'the one-owner lock');
+    assert.ok(r.gifts.find(g => g.id === 'card-gift-enforcer').given, 'the list says GIVEN');
+    assert.ok(Object.values((await val('audit')) || {}).some(l => l.act === 'giftGive' && l.pid === kid.pid), 'audited');
+    // ONE PROFILE EVER: the same card again (to another player, or to the same) — refused
+    await rejects(adminAction('u-gift-owner', { action: 'giftGive', card: 'card-gift-enforcer', tag: tagOf(other) }), 409, 'taken');
+    await rejects(adminAction('u-gift-owner', { action: 'giftGive', card: 'card-gift-enforcer', tag: tagOf(kid) }), 409, 'taken');
+    assert.equal(await val(`pstats/${other.pid}/it/card-gift-enforcer`), null, 'the other player got nothing');
+    // the reveal: waiting once, then seen
+    assert.equal((await profileAction('u-gift-kid', { action: 'giftCheck' }, '', clock)).gift.id, 'card-gift-enforcer');
+    await profileAction('u-gift-kid', { action: 'giftSeen' }, '', clock);
+    assert.equal((await profileAction('u-gift-kid', { action: 'giftCheck' }, '', clock)).gift, null, 'shown once');
+    // THE OWNER's OWN CARD: his on 'me' (audited), wearable by him; never anyone else's
+    await profileAction('u-gift-owner', { action: 'me' }, '', clock);
+    assert.ok(await val(`pstats/${owner.pid}/it/card-gift-anarchist`), 'the owner owns his card');
+    assert.ok(Object.values((await val('audit')) || {}).some(l => l.act === 'giftOwner' && l.pid === owner.pid), 'its grant audited');
+    await profileAction('u-gift-owner', { action: 'style', card: 'card-gift-anarchist' }, '', clock);
+    assert.equal(await val(`profiles/${owner.pid}/cd`), 'card-gift-anarchist', 'he can wear it');
+    await ref(`pstats/${other.pid}/it/card-gift-anarchist`).set(clock);   // (a forged grant …)
+    await rejects(profileAction('u-gift-other', { action: 'style', card: 'card-gift-anarchist' }, '', clock), 403, 'locked');
+    await profileAction('u-gift-other', { action: 'me' }, '', clock);
+    assert.equal(await val(`pstats/${other.pid}/it/card-gift-anarchist`), null, '… taken back on their next open');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('audit').remove(); await ref('gifts').remove(); }
+});

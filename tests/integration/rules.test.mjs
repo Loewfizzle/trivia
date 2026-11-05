@@ -1162,3 +1162,28 @@ test('RUMRUNNER: a day log is the owner\'s secret until night, written only duri
   await assertSucceeds(get(ref(db('host'), L)), 'and after the match, for the books');
   await assertFails(set(ref(db('p2'), `${L}/p2/20`), log), 'no writing after the match');
 });
+
+// SHELL 2.0 B2 — MAKE HOST: the host hands meta/hostId to a LIVE, ONLINE, UNKICKED player of the room (+ meta/hostBy = who handed it);
+// a hand-off to an offline / kicked / non-player refused; a non-host can't hand it at all; the old self-claims + the room's creation unchanged
+test('MAKE HOST: the host hands the room to a live online player only; never to an offline, kicked or outside uid; a non-host never', async () => {
+  const room = lobbyRoom({ players: {
+    host: { name: 'HOST', color: 'cyan', avatar: 'bolt', joinedAt: 1 }, p2: { name: 'TWO', color: 'magenta', avatar: 'eye', joinedAt: 2 },
+    p3: { name: 'THREE', color: 'green', avatar: 'hex', joinedAt: 3 }, p4: { name: 'FOUR', color: 'green', avatar: 'hex', joinedAt: 4 }, p5: { name: 'FIVE', color: 'green', avatar: 'hex', joinedAt: 5 } } });
+  room.rooms[CODE].presence = { host: { online: true, lastSeen: now(), v: 2, c: { a: true } }, p2: { online: true, lastSeen: now(), v: 2, c: { b: true } },
+    p3: { online: false, lastSeen: now() - 60000, v: 2 }, p4: { online: true, lastSeen: now(), v: 2, c: { d: true } }, p5: { online: true, lastSeen: now() } };
+  room.rooms[CODE].kicked = { p4: true };
+  await seed(room);
+  const M = `${R}/meta`;
+  await assertFails(update(ref(db('host'), M), { hostId: 'p3', hostBy: 'host' }), 'to an OFFLINE player');
+  await assertFails(update(ref(db('host'), M), { hostId: 'p4', hostBy: 'host' }), 'to a KICKED player');
+  await assertFails(update(ref(db('host'), M), { hostId: 'stranger', hostBy: 'host' }), 'to someone NOT in the room');
+  await assertFails(update(ref(db('p2'), M), { hostId: 'p5', hostBy: 'p2' }), 'a non-host hands it on');
+  await assertFails(set(ref(db('p2'), `${M}/hostId`), 'p5'), '… or writes it for someone else');
+  await assertSucceeds(update(ref(db('host'), M), { hostId: 'p5', hostBy: 'host' }), 'the old presence shape, online');
+  await assertSucceeds(update(ref(db('p5'), M), { hostId: 'p2', hostBy: 'p5' }), 'the new host hands it on to a live connection');
+  await assertFails(update(ref(db('p2'), M), { hostBy: 7 }), 'hostBy is a uid');
+  // the gift lock is the server's: a client reads + writes nothing under gifts/
+  await assertFails(get(ref(db('p2'), 'gifts/card-gift-enforcer')), 'gifts/ unreadable');
+  await assertFails(set(ref(db('p2'), 'gifts/card-gift-enforcer'), { pid: 'x' }), 'gifts/ unwritable');
+  await assertFails(set(ref(db('p2'), 'rooms/' + CODE + '/radioCrew/role/p2'), { on: true, at: 1 }), 'the crew stamp is the server\'s');
+});

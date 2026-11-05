@@ -247,6 +247,7 @@ export function row({ icon = null, label = '', sub = null, value = null, chevron
 // the rows' neon LINE icons (24 × 24, stroked in the row's --ic colour)
 const svg = d => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 export const ICONS = {
+  crown: svg('<path d="M3.5 8.5l4.6 4 3.9-6.8 3.9 6.8 4.6-4-2.1 10.3H5.6z"/>'),   // (SHELL 2.0 B2 — MAKE HOST)
   card: svg('<path d="M12 3l7 3v5.5c0 4.3-3 7.7-7 9.5-4-1.8-7-5.2-7-9.5V6z"/>'),
   help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8"/><path d="M12 17.2v.1"/>'),
   settings: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>'),

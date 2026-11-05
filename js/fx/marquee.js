@@ -28,7 +28,8 @@ function bulbs(w, h) {
 /** the tube: a left-pointing arrow (the marquee's "this way in") along the right half */
 function tubePath(c, w, h, full = false) {
   // (a FULL CARD: the arrow right of the name plate, its size the strip's, a touch bigger)
-  const x0 = w * (full ? 0.62 : 0.5), x1 = w * (full ? 0.88 : 0.84), y = h * 0.5, a = full ? h * 0.1 : h * 0.17;
+  const x0 = w * (full ? 0.62 : 0.6), x1 = w * (full ? 0.88 : 0.86),   /* (B2 — THE HERO-SPOT RULE: the arrowhead clear of a long name's plate) */
+        y = h * 0.5, a = full ? h * 0.1 : h * 0.17;
   c.beginPath();
   c.moveTo(x1, y); c.lineTo(x0 + a * 0.6, y);
   c.moveTo(x0 + a * 1.25, y - a); c.lineTo(x0, y); c.lineTo(x0 + a * 1.25, y + a);

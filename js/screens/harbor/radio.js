@@ -52,7 +52,7 @@ function glyph() {
   return s;
 }
 
-export function createRadio({ role = 'owner', remote = () => null, roomCode = () => null, api = apiCall, sheetsReady = Promise.resolve() } = {}) {
+export function createRadio({ role = 'owner', remote = () => null, roomCode = () => null, api = apiCall, sheetsReady = Promise.resolve(), onGone = null } = {}) {
   let destroyed = false, open = false, modal = null, sheet = null, st = null, stAt = 0, pollT = 0, tickT = 0, busy = false;
   let band = ls.get(BAND_KEY) || 'desk', aud = role === 'crew' ? 'room' : (RD.AUDIENCES.includes(ls.get(AUD_KEY)) ? ls.get(AUD_KEY) : 'everyone'), room = null;
   let card = null, cover = false, coverT = 0, arrange = false, bubble = null, err = '';
@@ -547,6 +547,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     document.removeEventListener('visibilitychange', onVis);
     unsub(); clearTimeout(storeT); if (askEl) askEl.remove(); document.body.classList.remove('rd-owner');
     if (modal) modal.remove(); btn.remove(); document.body.classList.remove('rd-open');
+    if (onGone) try { onGone(); } catch { /* fine */ }   // (SHELL 2.0 B2: the gate forgets it — a later ON loads a fresh one)
   }
   return {
     open: show, close: hide, destroy, refresh,

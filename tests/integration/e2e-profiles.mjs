@@ -312,20 +312,28 @@ await H.run(async () => {
   await p5.waitForFunction(pid => { const m = JSON.parse(localStorage.getItem('na:f5:me') || 'null'); return m && m.pid === pid; }, { timeout: 20000 }, me0.pid);
   { const n5 = await p5.evaluate(() => JSON.parse(localStorage.getItem('na:f5:pnotes')));
     ok(!n5.heldNew && !(await p5.$('.pf-note.is-offer')), 'RESTORE IT: ALICE is back on this device, the offer gone'); }
-  // ---- 7c. PERF-A — THE SECOND TAB (Grok 5.4): the same player opened again → the NEW tab yields with a banner that stays ("ALREADY OPEN IN
-  // ANOTHER TAB — USE THAT ONE", never ?slot=2), its host loop stopped; USE THIS TAB swaps them; closing the other tab frees this one
+  // ---- 7c. PERF-A — THE SECOND TAB (Grok 5.4) + THE SPEED PASS B's rule (the owner, Nov 4 8:56 pm: "only the VISIBLE tab acts as host"):
+  // the same player opened again → ONE tab yields with a banner that stays ("… ALREADY OPEN IN ANOTHER TAB", never ?slot=2), its host loop
+  // stopped — the tab OFF SCREEN yields (both on screen: the newer); bringing the yielded tab on screen swaps them (the tab you look at
+  // plays); closing the other tab frees this one. (SHELL 2.0 B2 — GREEN MEANS GREEN: this step still expected the NEWER tab to yield, so it
+  // timed out on `.dup-tab` and every check after it never ran — A, B1 + THE SPEED PASS B reported "63/63", the checks BEFORE it.)
+  const until = async (fn, ms, what) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await fn()) return true; } catch { /* busy */ } await sleep(150); } ok(false, `timeout: ${what}`); throw new Error(`timeout: ${what}`); };
   const p6 = await openPlayer(5);
-  await p6.waitForSelector('.dup-tab', { timeout: 15000 });
-  // (a phone is slot 1: "ALREADY OPEN IN ANOTHER TAB — USE THAT ONE"; this test's slot f5 names itself: "SLOT f5 IS ALREADY OPEN …")
-  ok(/ALREADY OPEN IN ANOTHER TAB/.test(await p6.$eval('.dup-tab', e => e.textContent)) && !/slot=2/i.test(await p6.$eval('.dup-tab', e => e.textContent)), `THE SECOND TAB says so: "${(await p6.$eval('.dup-tab span', e => e.textContent))}" (no ?slot=2)`);
-  ok((await p6.evaluate(() => import('/js/store.js').then(m => !!m.state.dupTab))) && !(await p5.$('.dup-tab')), 'the newer tab yields (its host loop idle); the first tab stays the player');
-  await p6.click('.dup-tab .btn');
-  await p5.waitForSelector('.dup-tab', { timeout: 15000 });
-  await p6.waitForFunction(() => !document.querySelector('.dup-tab'), { timeout: 15000 });
-  ok(true, 'USE THIS TAB: the tabs swap (the other one yields now)');
-  await p6.close();
-  await p5.waitForFunction(() => !document.querySelector('.dup-tab'), { timeout: 20000 });
+  await until(async () => !!((await p6.$('.dup-tab')) || (await p5.$('.dup-tab'))), 15000, 'one tab yields');
+  const [Y, A] = (await p6.$('.dup-tab')) ? [p6, p5] : [p5, p6];
+  const hid = { y: await Y.evaluate(() => document.hidden), a: await A.evaluate(() => document.hidden) };
+  const rightOne = hid.y !== hid.a ? hid.y === true : Y === p6;
+  const said = await Y.$eval('.dup-tab', e => e.textContent);
+  ok(rightOne && /ALREADY OPEN IN ANOTHER TAB/.test(said) && !/slot=2/i.test(said), `THE SECOND TAB says so on the tab that yields — the ${Y === p6 ? 'new' : 'first'} one (hidden: it ${hid.y}, the other ${hid.a}): "${await Y.$eval('.dup-tab span', e => e.textContent)}" (no ?slot=2)`);
+  ok((await Y.evaluate(() => import('/js/store.js').then(m => !!m.state.dupTab))) && !(await A.$('.dup-tab')) && !(await A.evaluate(() => import('/js/store.js').then(m => !!m.state.dupTab))), 'the yielded tab\'s host loop idle (state.dupTab); the other stays the player, no banner');
+  await Y.bringToFront();
+  await until(async () => !(await Y.$('.dup-tab')) && !!(await A.$('.dup-tab')), 15000, 'the swap');
+  ok(true, 'THE TAB YOU LOOK AT PLAYS: the yielded tab brought on screen takes over — the other yields now');
+  await A.close();
+  await until(async () => !(await Y.$('.dup-tab')) && !(await Y.evaluate(() => import('/js/store.js').then(m => !!m.state.dupTab))), 20000, 'the banner gone');
   ok(true, 'the other tab closed: this one is the player again, the banner gone');
+  const p5b = Y;   // (the tab left open — the later steps don't use p5 / p6)
+  void p5b;
   // ---- 7d. PERF-A — THE EMPTY CARD SAYS WHY (the Oct 31 scare): no key + no profile on this address → one line, never a card that looks wiped
   const p7 = await openPlayer(7);
   await p7.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));

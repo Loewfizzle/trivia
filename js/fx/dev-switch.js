@@ -23,14 +23,15 @@ const CABLES = ['255,70,70', '255,200,80', '90,220,255', '120,255,150', '255,90,
 /** where everything sits: the full card vs the strip (CSS px) */
 function layoutOf(w, h, full) {
   if (full) {
-    // (ON AIR beside the plate, the jacks it would cover left out; the meter + its lamps in the band under the top line)
-    const cols = 11, rows = [0.42, 0.57, 0.72, 0.87], x0 = w * 0.07, x1 = w * 0.93, air = [w * 0.765, h * 0.35, w * 0.19, h * 0.13];
+    // (the meter + its lamps + ON AIR in the band under the top line — SHELL 2.0 B2, THE HERO-SPOT RULE: ON AIR sat beside the plate, and a
+    //  long name's plate ran over its left end (the owner's B1 look) → up in the band, right of the lamps, clear of the plate + the 1 OF 1)
+    const cols = 11, rows = [0.42, 0.57, 0.72, 0.87], x0 = w * 0.07, x1 = w * 0.93, air = [w * 0.66, h * 0.205, w * 0.25, h * 0.095];
     const jacks = []; rows.forEach((ry, j) => { for (let i = 0; i < cols; i++) { const x = x0 + (x1 - x0) * i / (cols - 1), y = h * ry; if (x > air[0] - w * 0.03 && y < air[1] + air[3] + h * 0.06) continue; jacks.push([x, y, j, i]); } });
     return { full, jacks, r: Math.min((x1 - x0) / (cols - 1), h * 0.15) * 0.27, air, vu: [w * 0.065, h * 0.185, w * 0.15, h * 0.115], leds: [w * 0.25, h * 0.245, w * 0.3, 10],
       beam: [w * 0.02, -h * 0.05, w * 0.9, h * 1.05],
       cables: [[[w * 0.6, h + 8], 27], [[w * 0.84, h + 8], 37], [[-1, 0], 2, 35], [[w * 0.95, h + 8], 19], [[-1, 0], 23, 33]] };
   }
-  const cols = 4, rows = [0.4, 0.78], x0 = w * 0.6, x1 = w * 0.76;
+  const cols = 4, rows = [0.4, 0.78], x0 = w * 0.635, x1 = w * 0.765;   // (B2 — THE HERO-SPOT RULE: clear of THE DEV · № line's plate)
   const jacks = []; rows.forEach((ry, j) => { for (let i = 0; i < cols; i++) jacks.push([x0 + (x1 - x0) * i / (cols - 1), h * ry, j, i]); });
   return { full, jacks, r: Math.min((x1 - x0) / (cols - 1), h * 0.3) * 0.3, air: [w * 0.785, h * 0.1, w * 0.19, h * 0.4], vu: null, leds: [0, 0, 0, 0],
     beam: [w * 0.35, -h * 0.4, w * 0.55, h * 1.6],

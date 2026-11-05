@@ -125,23 +125,7 @@ test('THE SOLO LANE (the room): the host writes 0 night points for a room of one
   assert.match(rep, /\(ex\.solo \? 0 : NIGHT_POINTS\[r\.rank\] \|\| 0\)/);
 });
 
-// ---- THE ROOM's LOOK SWITCH (the owner via the dailies chat): AUTO → DAY → NIGHT, remembered, locked for the match; AUTO = the real sun
-test('THE LOOK SWITCH: cycles AUTO → DAY → NIGHT → AUTO; AUTO follows the sun; the match keeps the look it started with', async () => {
-  const mem = new Map(), store = { getItem: k => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)), removeItem: k => mem.delete(k) };
-  globalThis.localStorage = store; globalThis.sessionStorage = { ...store };
-  const L = await import('../js/games/kit/look.js');
-  assert.deepEqual([L.nextLook('auto'), L.nextLook('day'), L.nextLook('night'), L.nextLook('x')], ['day', 'night', 'auto', 'day']);
-  assert.equal(L.savedLook(), 'auto'); L.saveLook('night'); assert.equal(L.savedLook(), 'night', 'remembered on this device');
-  L.saveLook('nonsense'); assert.equal(L.savedLook(), 'night');
-  assert.equal(L.resolveLook('auto', true), 'day'); assert.equal(L.resolveLook('auto', false), 'night'); assert.equal(L.resolveLook('day', false), 'day');
-  assert.equal(L.matchLook('m1', 'auto', true), 'day');
-  assert.equal(L.matchLook('m1', 'night', false), 'day', 'LOCKED: a change after the start never reaches the match');
-  assert.equal(L.matchLook('m2', 'night', true), 'night', 'the next match takes the new choice');
-  const dock = read('js/screens/room-dock.js'), city = read('js/screens/room-city.js'), app = read('js/app.js');
-  assert.match(dock, /E\.look = h\('button\.rdk-look'/); assert.match(dock, /textContent = lk\.toUpperCase\(\)/);
-  assert.match(city, /const lookOn = \(\) => Object\.keys\(players\(\)\)\.length === 1 && isHost\(\) && !\(st\.meta && st\.meta\.status === 'playing'\);/);
-  assert.match(app, /document\.body\.dataset\.look = v;/);
-});
+// ---- THE ROOM's LOOK SWITCH → SHELL 2.0 B2's GAME LOOK (a Settings row, no lock): tests/shell-b2.test.mjs
 // ---- COLOUR-BLIND (the dailies chat): one row → body[data-cb] swaps the two tokens; OVERCLOCK reads them; on the profile too
 test('COLOUR-BLIND: --good / --close in :root, swapped under body[data-cb]; OVERCLOCK right / close read them; the setting + the profile copy', () => {
   const base = read('css/base.css'), oc = read('css/overclock.css');

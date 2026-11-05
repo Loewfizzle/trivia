@@ -2,7 +2,7 @@
 //   roomfix  — Group 0: THE TAP AREA (the whole person, ≥ 44 pt, the nearest wins), THE LAYER STACK (CUSTOMIZE on top of the profile from the
 //              title dock AND the room dock; VIEW FULL on top of CUSTOMIZE; Esc = one step), RESTORE in cyan, "1 OF 1" + THE TOP LINE NEVER CLIPS
 // ADDING A GROUP: G('name', …) here + the name in ../harbor-jobs.mjs (CI_JOBS.room2).
-import { log, sleep, ok, okT, NIGHT, open, ev, waitFor, harborUp, G, OUT, SHOTS, tapAt } from './kit.mjs';
+import { log, sleep, ok, okT, NIGHT, open, ev, waitFor, harborUp, G, OUT, SHOTS, tapAt, tap } from './kit.mjs';
 
 const DBH = 'http://127.0.0.1:9000', NS = 'demo-arcade-default-rtdb';
 export const dbPatch = (path, v) => fetch(`${DBH}/${path}.json?ns=${NS}`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'content-type': 'application/json' }, body: JSON.stringify(v) });
@@ -125,16 +125,20 @@ G('roomfix', async () => {
           const top = el.querySelector('.vl-fc-top'), hs = top.querySelector('.vl-fc-house'), pill = top.querySelector('.vl-fc-gem'), T = top.getBoundingClientRect(), H = hs.getBoundingClientRect(), P = pill.getBoundingClientRect();
           const rg = document.createRange(); rg.selectNodeContents(hs); const W = rg.getBoundingClientRect();
           const clip = W.right > P.left - 1 || W.left < T.left - 1 || P.right > T.right + 1 || P.left < T.left;
-          // (SHELL 2.0 B1 — the owner, 9:12 am: the 1 OF 1 READABLE on the gold card: solid letters (never gradient-filled), a dark backing,
-          //  the contrast of the letters over the backing laid on WHITE (the lightest any card gets) ≥ 7, a clear gap before the gem's halo)
+          // (SHELL 2.0 B2 — the owner, 12:14 pm: the RAINBOW GRADIENT letters (B1's solid white was a mistake), READABLE: EVERY letter's own
+          //  colour — the gradient at its centre — against the dark backing laid on WHITE (the lightest any card gets) ≥ 6 : 1, the last "1"
+          //  too; a clear gap before the gem's halo + after the top line's words (FOUNDER))
           const one = pill.querySelector('.vl-fc-1of1');
           if (one) {
-            const cs = getComputedStyle(one), rgb = s => (s.match(/[\\d.]+/g) || []).map(Number);
-            const [r, g, b] = rgb(cs.color), bg = rgb(cs.backgroundColor), a = bg[3] ?? 1;
-            const mix = bg.slice(0, 3).map(c => c * a + 255 * (1 - a)), lum = ([R, G, B]) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(R) + 0.7152 * f(G) + 0.0722 * f(B); };
-            const L1 = lum([r, g, b]), L2 = lum(mix), ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+            const t = one.querySelector('.vl-fc-1of1-t'), cs = getComputedStyle(one), ts = getComputedStyle(t), rgb = s => (s.match(/[\\d.]+/g) || []).map(Number);
+            const bg = rgb(cs.backgroundColor), a = bg[3] ?? 1, mix = bg.slice(0, 3).map(c => c * a + 255 * (1 - a));
+            const lum = ([R, G, B]) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(R) + 0.7152 * f(G) + 0.0722 * f(B); };
+            const stops = [...ts.backgroundImage.matchAll(/rgba?\\(([^)]+)\\)\\s*([\\d.]+)%/g)].map(m => ({ c: m[1].split(',').map(Number), p: +m[2] / 100 }));
+            const at = u => { let i = 0; while (i < stops.length - 2 && u > stops[i + 1].p) i++; const A = stops[i], B = stops[i + 1], k = Math.max(0, Math.min(1, (u - A.p) / ((B.p - A.p) || 1))); return [0, 1, 2].map(j => A.c[j] + (B.c[j] - A.c[j]) * k); };
+            const T = t.getBoundingClientRect(), node = t.firstChild, letters = [];
+            for (let i = 0; i < node.length; i++) { if (node.data[i] === ' ') continue; const r = document.createRange(); r.setStart(node, i); r.setEnd(node, i + 1); const L = r.getBoundingClientRect(), u = (L.left + L.width / 2 - T.left) / T.width, c = at(u), L1 = lum(c), L2 = lum(mix); letters.push(+((Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05)).toFixed(1)); }
             const gem = pill.querySelector('.vl-gem').getBoundingClientRect(), O = one.getBoundingClientRect();
-            out.push({ id, clip, fit: top.dataset.fit || '', pill: pill.textContent, one: { clipText: /text/.test(cs.backgroundClip + cs.webkitBackgroundClip), ratio: +ratio.toFixed(1), gap: +(gem.left - O.right).toFixed(1), gemW: +gem.width.toFixed(1) } });
+            out.push({ id, clip, fit: top.dataset.fit || '', pill: pill.textContent, one: { clipText: /text/.test(ts.backgroundClip + ts.webkitBackgroundClip), stops: stops.length, letters, ratio: Math.min(...letters), gap: +(gem.left - O.right).toFixed(1), fd: +(P.left - W.right).toFixed(1), gemW: +gem.width.toFixed(1) } });
             continue;
           }
           out.push({ id, clip, fit: top.dataset.fit || '', pill: pill.textContent });
@@ -144,7 +148,7 @@ G('roomfix', async () => {
       })()`));
     }
     const ones = res.flatMap(r => r.ones.map(o => ({ w: r.w, ...o })));
-    ok(ones.length >= 2 && ones.every(o => !o.clipText && o.ratio >= 7 && o.gap >= 6), `THE 1 OF 1 READS ON GOLD: solid letters on a dark backing (contrast over white ≥ 7), ≥ 6 pt clear of the gem (${ones.map(o => `${o.id.replace('card-dev-', '')}@${o.w}: ${o.clipText ? 'GRADIENT ' : ''}${o.ratio}:1 gap ${o.gap}`).join(' · ')})`);
+    ok(ones.length >= 2 && ones.every(o => o.clipText && o.stops >= 4 && o.letters.length === 4 && o.ratio >= 6 && o.gap >= 6 && o.fd >= (/72/.test(o.w) ? 6 : 10)), `THE 1 OF 1 in the RAINBOW GRADIENT, READABLE on gold: every letter (the last "1" too) ≥ 6 : 1 over the dark backing laid on white, ≥ 6 pt clear of the gem, ≥ 10 pt after FOUNDER (≥ 6 in the 72 % viewer) (${ones.map(o => `${o.id.replace('card-dev-', '')}@${o.w}: ${o.clipText ? 'gradient' : 'SOLID'} [${o.letters.join(' ')}] gap ${o.gap} · FOUNDER ${o.fd}`).join(' · ')})`);
     ok(res.every(r => r.dev.every(x => /^1 OF 1:/.test(x))), `THE DEV PILL reads just "1 OF 1" (${res[0].dev.join(' · ')})`);
     ok(res.every(r => r.n > 30 && !r.bad.length), `THE TOP LINE NEVER CLIPS: every full card (${res[0].n}) with FOUNDER + № at 390 / 402 / 430 (+ a 72 % viewer) — the words + the pill side by side, whole (${res.map(r => `${r.w}: ${r.bad.length ? r.bad.join(',') : 'ok'} · ${r.tight} tightened`).join(' | ')})`);
     await Q.ctx.close(); }
@@ -597,46 +601,101 @@ G('oldrules', async () => {
 //      tube right above PLAY, its icon + word always showing the state; one tap cycles AUTO → DAY → NIGHT; remembered on this device (a
 //      reload); gone the moment a second player joins; a SOLO cartridge (OVERCLOCK) starts with ONE player; the match wears the look LOCKED
 //      (body[data-look]) — a change after the start never reaches it
+// THE GAME LOOK (SHELL 2.0 B2 — the owner, 12:20 pm: B1's sun / moon above PLAY "more confusing than helpful"): NO button on the dock; a
+// Settings row "GAME LOOK: AUTO · DAY · NIGHT" in ☰ → Settings, in the room AND in a game; per device (two phones, two looks); NO LOCK —
+// a change mid-game re-themes this screen at once (OVERCLOCK). (The group keeps its name: harbor-jobs.mjs.)
+async function pickLook(p, v) {
+  await tap(p, '.menu-btn');
+  await waitFor(p, "!!document.querySelector('.gm-settings')", 'the ☰ menu', 8000);
+  await ev(p, "document.querySelector('.gm-settings').click()");
+  await waitFor(p, "!!document.querySelector('.set-look .seg-btn')", 'the GAME LOOK row', 8000);
+  const row = await ev(p, `(() => { const r = document.querySelector('.set-look'), b = [...r.querySelectorAll('.seg-btn')], R = r.getBoundingClientRect(); b.find(x => x.dataset.v === '${v}').click();
+    return { words: b.map(x => x.textContent).join(' · '), on: (b.find(x => x.classList.contains('is-on')) || {}).dataset.v, inView: R.bottom <= innerHeight + 2 && R.top >= 0 || true, h: Math.round(Math.min(...b.map(x => x.getBoundingClientRect().height))) }; })()`);
+  await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(150);
+  await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(250);
+  return row;
+}
 G('sololook', async () => {
   const { Q, p, code } = await hostRoom('slk');
-  await waitFor(p, "!!document.querySelector('.rdk-look:not([hidden])')", 'the look switch (a room of one)', 15000).catch(() => {});
-  const read = () => ev(p, `(() => { const b = document.querySelector('.rdk-look'); if (!b || b.hidden) return null; const r = b.getBoundingClientRect(), ring = document.querySelector('.rdk-play').getBoundingClientRect();
-    return { l: b.dataset.l, word: b.querySelector('.rdk-look-l').textContent, svg: !!b.querySelector('.rdk-look-ic svg'), w: Math.round(r.width), h: Math.round(r.height), above: r.bottom <= ring.top + 2 && Math.abs((r.left + r.right) / 2 - (ring.left + ring.right) / 2) < 6, inView: r.top >= 0 && r.right <= innerWidth }; })()`);
-  const seen = [await read()];
-  for (let i = 0; i < 3; i++) { await ev(p, "document.querySelector('.rdk-look').click()"); await sleep(250); seen.push(await read()); }
-  ok(seen.every(Boolean) && seen.map(s => s.word).join(',') === 'AUTO,DAY,NIGHT,AUTO' && seen.every(s => s.svg && s.above && s.inView && s.w >= 44),
-    `THE LOOK SWITCH (alone): above PLAY, its icon + word always shown — one tap cycles ${seen.map(s => s && s.word).join(' → ')} (${JSON.stringify(seen[0])})`);
-  await ev(p, "document.querySelector('.rdk-look').click()"); await sleep(200);   // → DAY
+  await sleep(800);
+  const noBtn = await ev(p, "!document.querySelector('.rdk-look')");
+  const r1 = await pickLook(p, 'day');
+  ok(noBtn && r1.words === 'AUTO · DAY · NIGHT' && r1.on === 'day' && r1.h >= 32, `THE GAME LOOK: no button on the room dock (${noBtn}); ☰ → Settings → GAME LOOK reads ${r1.words}, DAY picked (${r1.on}), its buttons ${r1.h} pt`);
+  if (SHOTS) { await tap(p, '.menu-btn'); await sleep(500); await ev(p, "document.querySelector('.gm-settings').click()"); await sleep(700);
+    await ev(p, "document.querySelector('.set-look').scrollIntoView({ block: 'center' })"); await sleep(300); await p.screenshot({ path: `${OUT}gamelook-402.png` });
+    await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(150); await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(300); }
   await p.reload(); await harborUp(p);
-  await waitFor(p, "window.__arcade.state.code && !!document.querySelector('.rdk-look:not([hidden])')", 'the room again', 20000).catch(() => {});
-  const kept = await read();
-  ok(kept && kept.word === 'DAY', `THE LOOK SWITCH: remembered on this device — a reload shows ${kept && kept.word}`);
-  if (SHOTS) await p.screenshot({ path: `${OUT}sololook-402.png` });
-  // (the look review: the switch at 390 / 430 + a desktop 1440 — above PLAY, whole, in view)
-  const sizes = [];
-  for (const [w, hh] of [[390, 844], [430, 932], [1440, 900]]) {
-    await p.setViewport({ width: w, height: hh, deviceScaleFactor: w > 1000 ? 1 : 2, isMobile: w < 1000, hasTouch: w < 1000 });
-    // (the dock re-lays itself after a resize — the cloud's runner takes longer: wait for the switch, never a fixed pause)
-    await waitFor(p, "(() => { const b = document.querySelector('.rdk-look'), r = document.querySelector('.rdk-play'); if (!b || b.hidden || !r) return false; const x = b.getBoundingClientRect(), y = r.getBoundingClientRect(); return x.width > 0 && x.bottom <= y.top + 2 && x.right <= innerWidth; })()", `the look switch at ${w}`, 10000).catch(() => {});
-    const r = await read(); sizes.push(`${w}: ${r ? `${r.word} ${r.above && r.inView ? 'ok' : 'OFF'}` : 'none'}`);
-    if (SHOTS) await p.screenshot({ path: `${OUT}sololook-${w}.png` });
-  }
-  await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await sleep(600);
-  ok(sizes.every(s => / ok$/.test(s)), `THE LOOK SWITCH at every size — above PLAY, whole, in view (${sizes.join(' · ')})`);
-  // a SOLO cartridge starts with one player; the match wears the look, LOCKED
+  await waitFor(p, "window.__arcade.state.code && !!document.querySelector('.menu-btn')", 'the room again', 20000).catch(() => {});
+  await tap(p, '.menu-btn'); await waitFor(p, "!!document.querySelector('.gm-settings')", 'the menu', 8000);
+  await ev(p, "document.querySelector('.gm-settings').click()"); await waitFor(p, "!!document.querySelector('.set-look .seg-btn.is-on')", 'the row', 8000);
+  const kept = await ev(p, "document.querySelector('.set-look .seg-btn.is-on').dataset.v");
+  await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(150); await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(300);
+  ok(kept === 'day', `THE GAME LOOK: remembered on this device — a reload shows ${kept}`);
+  // a SOLO cartridge starts with one player; the match wears DAY — then NIGHT mid-game, AT ONCE (no lock)
   const started = await ev(p, "import('/js/host.js').then(m => m.startGame('overclock', { mode: 'quick' }))");
   await waitFor(p, "window.__arcade.state.meta.status === 'playing' && document.body.dataset.look", 'the solo match + its look', 20000).catch(() => {});
   const look1 = await ev(p, 'document.body.dataset.look'), solo = await ev(p, 'Object.keys(window.__arcade.state.game.participants || {}).length');
-  await ev(p, "localStorage.setItem('ns:look', 'night')"); await sleep(1500);
-  const look2 = await ev(p, 'document.body.dataset.look'), hidden = await ev(p, "!document.querySelector('.rdk-look') || document.querySelector('.rdk-look').hidden || !document.querySelector('.rdk-look').offsetParent");
-  ok(started === true && solo === 1 && look1 === 'day' && look2 === 'day' && hidden, `THE SOLO LANE: OVERCLOCK starts with ONE player (${started}, ${solo}); the match wears DAY (${look1}) and keeps it after a change (${look2}); no switch in the match (${hidden})`);
+  await waitFor(p, "!!document.querySelector('.menu-btn') && !document.querySelector('.rc-walk, .rs-go')", 'the game screen', 15000).catch(() => {});
+  const r2 = await pickLook(p, 'night');
+  const t0 = Date.now(); await waitFor(p, "document.body.dataset.look === 'night'", 'the live re-theme', 3000).catch(() => {});
+  const look2 = await ev(p, 'document.body.dataset.look'), ms = Date.now() - t0;
+  ok(started === true && solo === 1 && look1 === 'day' && r2.on === 'night' && look2 === 'night', `THE GAME LOOK in a GAME: OVERCLOCK alone (${started}, ${solo}) wears DAY (${look1}); ☰ → Settings → NIGHT mid-game re-themes AT ONCE (${look2}, ${ms} ms — no lock)`);
   await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
   await waitFor(p, "window.__arcade.state.meta.status === 'lobby'", 'back in the room', 20000).catch(() => {});
   await waitFor(p, "!document.body.dataset.look", 'the look off the body', 8000).catch(() => {});
-  // a second player → no switch (a room of 2+ is not a solo room)
+  const off = await ev(p, '!document.body.dataset.look');
+  // MULTIPLAYER: each phone its own look (the host NIGHT, the guest DAY)
   const { Q: B } = await joinRoom('slk2', code);
   await waitFor(p, "Object.keys(window.__arcade.state.players).length === 2", 'two players', 20000).catch(() => {});
   await sleep(600);
-  ok(!(await read()) && !(await ev(p, 'document.body.dataset.look')), 'THE LOOK SWITCH: gone once a second player joins (a room of 2+); no look on the body outside a solo match');
+  await pickLook(B.page, 'day');
+  await ev(p, "import('/js/host.js').then(m => m.startGame('overclock', { mode: 'quick' }))");
+  await waitFor(p, "window.__arcade.state.meta.status === 'playing' && document.body.dataset.look", 'the 2-player match', 20000).catch(() => {});
+  await waitFor(B.page, "window.__arcade.state.meta.status === 'playing' && document.body.dataset.look", 'the guest in the match', 20000).catch(() => {});
+  const two = [await ev(p, 'document.body.dataset.look'), await ev(B.page, 'document.body.dataset.look')];
+  ok(off && two[0] === 'night' && two[1] === 'day', `THE GAME LOOK per device in MULTIPLAYER: the host's screen ${two[0]}, the guest's ${two[1]}; none on the body outside a match (${off})`);
+  await ev(p, "import('/js/host.js').then(m => m.backToLobby())").catch(() => {});
+  await ev(p, "localStorage.removeItem('ns:look')").catch(() => {});
   await B.ctx.close(); await Q.ctx.close();
+});
+
+// SHELL 2.0 B2 — MAKE HOST (two phones): the host taps a player → MAKE HOST at the foot of their card → a second tap confirms → meta/hostId is
+// theirs; both phones say it once ("YOU’RE THE HOST NOW" · "TWO is the host now"); the host's controls move (isHost on the new phone only);
+// the old host's card for them has no MAKE HOST row any more; a player who is OFFLINE is never offered it
+G('makehost', async () => {
+  const { Q, p, code, me: hostUid } = await hostRoom('mkh');
+  const { Q: B, me: twoUid } = await joinRoom('mkh2', code);
+  await waitFor(p, "Object.keys(window.__arcade.state.players).length === 2", 'two players', 20000).catch(() => {});
+  await waitFor(p, `(() => { const r = window.__district.room(); return !!r && r.people && r.people.length === 2 && r.people.every(x => x.s && x.s.pose === 'wait'); })()`, 'the two settled', 40000).catch(() => {});
+  const tapCard = async (page, uid) => ev(page, `(() => { const c = document.querySelector('.rc-tag[data-uid="${uid}"]'), hb = (window.__district.room().hits || {})['${uid}'], r = c.getBoundingClientRect();
+    const x = hb ? (hb.x0 + hb.x1) / 2 : r.left + 20, y = hb ? (hb.y0 + hb.y1) / 2 : r.top + 10, o = { bubbles: true, clientX: x, clientY: y }; c.dispatchEvent(new PointerEvent('pointerdown', o)); c.dispatchEvent(new PointerEvent('pointerup', o)); return true; })()`);
+  await tapCard(p, twoUid);
+  await waitFor(p, "!!document.querySelector('.rc-mkhost')", 'the MAKE HOST row', 10000).catch(() => {});
+  const row = await ev(p, "(() => { const b = document.querySelector('.rc-mkhost'); if (!b) return null; const r = b.getBoundingClientRect(); return { txt: b.textContent, h: Math.round(r.height), dis: b.disabled }; })()");
+  if (SHOTS) await p.screenshot({ path: `${OUT}makehost-row.png` });
+  await ev(p, "document.querySelector('.rc-mkhost').click()"); await sleep(250);
+  const armed = await ev(p, "(document.querySelector('.rc-mkhost') || {}).textContent || ''");
+  await ev(p, "document.querySelector('.rc-mkhost').click()");
+  await waitFor(p, `window.__arcade.state.meta.hostId === '${twoUid}'`, 'the hand-over', 10000).catch(() => {});
+  await waitFor(B.page, `window.__arcade.state.meta.hostId === '${twoUid}'`, 'B sees it', 10000).catch(() => {});
+  await sleep(600);
+  const said = async page => ev(page, "[...document.querySelectorAll('.sh-msgs *')].map(x => x.textContent).join(' | ')");
+  const sA = await said(p), sB = await said(B.page), twoName = await ev(p, `window.__arcade.state.players['${twoUid}'].name`);
+  const hostNow = [await ev(p, "import('/js/store.js').then(m => m.isHost())"), await ev(B.page, "import('/js/store.js').then(m => m.isHost())")];
+  ok(row && /Make host/i.test(row.txt) && row.h >= 44 && !row.dis && /TAP AGAIN/i.test(armed), `MAKE HOST: the host taps TWO → "${row && row.txt}" at the foot of their card (${row && row.h} pt); the first tap arms it ("${armed}")`);
+  ok(hostNow[0] === false && hostNow[1] === true && new RegExp(`${twoName} is the host now`, 'i').test(sA) && /YOU.RE THE HOST NOW/i.test(sB) && !/is the host now/i.test(sB), `MAKE HOST: the second tap hands it over — the host is TWO on both phones (old ${hostNow[0]}, new ${hostNow[1]}); A says "${sA.slice(0, 60)}", B says "${sB.slice(0, 60)}"`);
+  // the old host (a guest now): no MAKE HOST on TWO's card
+  await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(400);
+  await tapCard(p, twoUid); await sleep(1200);
+  const guestRow = await ev(p, "!!document.querySelector('.rc-mkhost')");
+  await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(300);
+  // the new host: the first player goes OFFLINE (their phone closed) → the row says so, not offered
+  await Q.ctx.close();
+  await waitFor(B.page, `(() => { const p = (window.__arcade.state.presence || {})['${hostUid}']; return !p || !p.online; })()`, 'A offline', 30000).catch(() => {});
+  await sleep(800);
+  await tapCard(B.page, hostUid);
+  await waitFor(B.page, "!!document.querySelector('.rc-mkhost')", 'the row on an offline player', 10000).catch(() => {});
+  const off = await ev(B.page, "(() => { const b = document.querySelector('.rc-mkhost'); return b ? { dis: b.disabled, txt: b.textContent } : null; })()");
+  ok(!guestRow && off && off.dis && /offline/i.test(off.txt), `MAKE HOST: the old host (a guest now) is offered nothing (${!guestRow}); an OFFLINE player's card says so, not offered (${JSON.stringify(off)})`);
+  await B.ctx.close();
 });

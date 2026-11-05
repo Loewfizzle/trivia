@@ -11,7 +11,7 @@ import { dayChart, clockOf, DAY_FROM, DAY_TO } from '../../core/harbor-daychart.
 import { legendsTonight } from '../../core/harbor-showcase.js';
 import { jackDef, phaseOf, localStart } from '../../core/harbor-radio.js';
 import { ownerWindow } from '../../core/harbor-billboard.js';
-import { programTier, jackTier, RARITY_NAME } from '../../core/rarity.js';
+import { programTier, programWord, jackTier, RARITY_NAME } from '../../core/rarity.js';
 
 const DOW = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -47,7 +47,7 @@ export function paint({ st, now, cancel, edit }) {
   const dayH = ms => { const x = (ms - new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()) / 3600e3; return x; };
   // TONIGHT: the city's rows + YOURS (his moments + messages on this day)
   const rows = C.items.filter(i => filter === 'all' || isRare(i))
-    .map(i => ({ h0: i.h0, h1: i.h1, label: nice(i.label), tag: null, tier: programTier(i) }));
+    .map(i => ({ h0: i.h0, h1: i.h1, label: nice(i.label), tag: null, tier: programTier(i), word: programWord(i) }));
   const mine = (st && st.moments || []).filter(m => m.mine && m.state !== 'stopped');
   for (const m of mine) {
     const S0 = m.local ? localStart(m.local, m.made || m.at, off) : m.at, j = jackDef(m.jack), h0 = dayH(S0);
@@ -70,7 +70,7 @@ export function paint({ st, now, cancel, edit }) {
   rows.sort((a, b) => a.h0 - b.h0);
   const clock = r => clockOf(r.h0).toUpperCase().replace(':00 ', ' ').replace(/^12 AM$/, 'MIDNIGHT');
   // (THE ONE TIER PALETTE — THE VAULT 1C: every row its tier badge + its name tinted; YOURS stays beside it)
-  const tags = r => [r.tag === 'you' ? h('i.you', 'YOURS') : null, r.tier ? h('i.rd-tier', RARITY_NAME[r.tier]) : null];
+  const tags = r => [r.tag === 'you' ? h('i.you', 'YOURS') : null, r.tier ? h('i.rd-tier', r.word || RARITY_NAME[r.tier]) : null];
   const at = r => (r.tier ? { dataset: { tier: r.tier } } : {});
   const onNow = rows.filter(r => r.h0 <= hNow && hNow < r.h1), coming = rows.filter(r => r.h0 > hNow), earlier = rows.filter(r => r.h1 <= hNow);
   const sec = (k, kids) => h('div.rd-prsec', { dataset: { sec: k } }, ...kids);

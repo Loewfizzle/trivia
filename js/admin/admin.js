@@ -120,6 +120,14 @@ function shell() {
     card('ad-outage', 'Streak outage', { cls: 'ad-outage' },
       h('p.ad-dim', 'The site was down? Mark the day: nobody’s streak breaks over it (no freeze used, no day added). The streak day turns at 4 am Eastern.'),
       h('div.ad-row', { id: 'ad-outage-row' }, h('span.ad-dim', 'Loading…'))),
+    // SHELL 2.0 B2 — THE GIFT TOOL (api/_lib/gifts.js): a 1-of-1 card → a player's name tag → GIVE (the second tap confirms). Server-granted,
+    // equipped, audited; ONE PROFILE EVER — a card that belongs to anyone can't be given again. The owner's own card is never listed.
+    card('ad-gifts', 'Gifts', { cls: 'ad-gifts', open: false },
+      h('p.ad-dim', 'Give a 1-of-1 card. Pick it, type the player’s name tag (NAME#1234), GIVE — then tap again to confirm. It goes onto their card at once (equipped); their next visit shows “A gift from the house”. A gift card belongs to ONE player, ever — it can’t be given twice or taken back here.'),
+      h('div.ad-gift-list', { id: 'ad-gift-list' }, h('p.ad-dim', 'Loading…')),
+      h('div.ad-gift-prev', { id: 'ad-gift-prev' }),
+      h('div.ad-row.ad-gift-give', h('input.input.ad-gift-tag', { id: 'ad-gift-tag', type: 'text', placeholder: 'NAME#1234', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'The player’s name tag' }),
+        tubeButton('GIVE', { kind: 'main', size: 'sm', cls: 'ad-btn ad-gift-go', confirm: 'TAP AGAIN TO GIVE', onClick: giveGift }))),
     card('ad-audit', 'Audit log', { cls: 'ad-audit', open: false }, h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' })));
   app.replaceChildren(
     h('header.ad-head', h('div', h('div.ad-kicker', 'NEON SPEAKEASY'), h('h1', 'Admin')), h('div.ad-head-links', h('a.ad-link', { href: '/lab' }, 'The Card Lab ›'), ' ', h('a.ad-link', { href: '/board' }, 'The Board ›'))),
@@ -132,6 +140,7 @@ function shell() {
   flags();
   testPlayers();
   backups();
+  gifts();
   loadStats();
   // "live now" keeps itself current while the page is open and visible (the server caches it for 30 s)
   setInterval(() => { if (document.visibilityState === 'visible') loadStats(false, true); }, 30_000);
@@ -230,6 +239,36 @@ async function tpPreview() {
       toast(`Removed ${r.remove.length}`);
       testPlayers(); audit();
     }, 'is-danger')));
+}
+
+// ---------------------------------------------------------------- SHELL 2.0 B2 — THE GIFT TOOL
+let giftPick = null, giftPrev = null;
+async function gifts(r) {
+  const box = document.getElementById('ad-gift-list'); if (!box) return;
+  const { gifts: list } = r || await call('giftList');
+  const free = list.filter(g => !g.given).length;
+  { const c = cardOf('ad-gifts'); if (c) c.count(`${free} to give · ${list.length - free} given`); }
+  if (!giftPick || !list.some(g => g.id === giftPick && !g.given)) giftPick = (list.find(g => !g.given) || {}).id || null;
+  box.replaceChildren(...list.map(g => h('label.ad-gift-row', { dataset: { id: g.id }, class: `${g.given ? 'is-given' : ''}${g.id === giftPick ? ' is-on' : ''}` },
+    h('input', { type: 'radio', name: 'ad-gift', value: g.id, checked: g.id === giftPick, disabled: !!g.given, onchange: () => { giftPick = g.id; gifts({ gifts: list }); } }),
+    h('b', g.name), g.given ? h('span.ad-tag', `GIVEN · ${g.given.who} · ${when(g.given.at)}`) : h('span.ad-tag.is-free', 'FREE'))));
+  // the picked card's slim strip, live (its art + motion — the vault's own strip on one surface)
+  const prev = document.getElementById('ad-gift-prev');
+  if (prev && giftPick && (!giftPrev || giftPrev.id !== giftPick)) {
+    if (giftPrev) giftPrev.m.destroy();
+    const S = await import('../vault/strip.js'); await S.vaultSheet();
+    prev.replaceChildren(); const host = h('div.ad-gift-strip'); prev.append(host);
+    giftPrev = { id: giftPick, m: S.mountStrips(host, [{ card: giftPick, name: 'PREVIEW', lv: 1 }]) };
+  }
+}
+async function giveGift() {
+  const tag = (document.getElementById('ad-gift-tag') || {}).value || '';
+  if (!giftPick) { toast('Pick a card', 'err'); return; }
+  if (!/#\s*\d{4}\s*$/.test(tag)) { toast('Type a name tag like MIKE#4821', 'err'); return; }
+  const r = await call('giftGive', { card: giftPick, tag });
+  toast(`${r.gift.name} is ${r.gift.who}’s now`, 'ok', { sub: 'Equipped — their next visit shows the gift.' });
+  document.getElementById('ad-gift-tag').value = '';
+  giftPick = null; gifts(r); audit();
 }
 
 // ---------------------------------------------------------------- THE SPEED PASS add-on — THE PROGRESS RESET

@@ -30,9 +30,10 @@ import { settings, onSettings, PAGE_SILENT, setPageQuiet } from './audio/setting
 import { lazyView } from './games/lazy-view.js';
 import { startShow } from './core/room-show.js';
 import { debugTool, onDebugTools } from './ui/debug-tools.js';
-// (SHELL 2.0 B1: declared before anything can render — routeKey / paintLook run from the first render on)
+// (SHELL 2.0 B1: declared before anything can render — routeKey / paintLook run from the first render on; B2: + paintLook's + paintCrew's)
 const wanting = new Set();
-let lookM = '', lookV = null;
+let lookMod = null, lookSun = null, lookSunAt = -1e9, lookOnNow = false, lookHooked = false;
+let radioGate = null, crewSeen;
 
 // THE BOARD and the profile load only when opened (they're behind the title's buttons)
 const createBoardScreen = lazyView(() => import('./board/screen.js'));
@@ -77,19 +78,33 @@ function routeKey(st) {
   return harborPending() ? 'boot' : 'title';   // (a refresh in a room waits for City 2.0's module, like the title does)
 }
 
-// SHELL 2.0 B1 — THE ROOM's LOOK on the body: a match in a room of ONE wears the look its player picked (games/kit/look.js) — AUTO resolved by
-// the real sun at the start, then LOCKED for the match; games READ body[data-look]; nothing for a room of 2+ (or outside a match)
+// THE GAME LOOK on the body (SHELL 2.0 B2 — games/kit/look.js): EVERY match on screen (solo or not — it only changes this screen) wears this
+// device's choice from ☰ → Settings, resolved LIVE: a change mid-game re-themes at once ('ns-look'); AUTO follows the real sun (re-read each
+// minute). Games READ body[data-look]; nothing outside a match.
 function paintLook(st) {
-  const g = st.game, on = !!(g && st.meta && st.meta.status === 'playing' && st.quit !== g.matchId && Object.keys(g.participants || {}).length === 1);
-  if (!on) { lookM = ''; lookV = null; if (document.body.dataset.look) delete document.body.dataset.look; return; }
-  if (lookM === g.matchId) { if (lookV && document.body.dataset.look !== lookV) document.body.dataset.look = lookV; return; }
-  lookM = g.matchId;
-  const m = g.matchId;
-  import('./games/kit/look.js').then(async LK => {
-    const choice = LK.savedLook(), v = LK.matchLook(m, choice, choice === 'auto' ? await LK.sunUpNow(serverNow()) : true);
-    if (lookM !== m) return;
-    lookV = v; document.body.dataset.look = v;
-  }).catch(() => {});
+  const g = st.game;
+  lookOnNow = !!(g && st.meta && st.meta.status === 'playing' && st.quit !== g.matchId);
+  if (!lookOnNow) { if (document.body.dataset.look) delete document.body.dataset.look; return; }
+  applyLook();
+}
+async function applyLook() {
+  if (!lookMod) { try { lookMod = await import('./games/kit/look.js'); } catch { return; } }
+  if (!lookHooked) { lookHooked = true; window.addEventListener(lookMod.LOOK_EVENT, () => { if (lookOnNow) applyLook(); }); setInterval(() => { if (lookOnNow) applyLook(); }, 60000); }
+  const choice = lookMod.currentLook();
+  if (choice === 'auto' && performance.now() - lookSunAt > 55000) { lookSunAt = performance.now(); lookSun = await lookMod.sunUpNow(serverNow()); }
+  if (!lookOnNow) return;
+  const v = lookMod.resolveLook(choice, lookSun !== false);
+  if (document.body.dataset.look !== v) document.body.dataset.look = v;
+}
+// SHELL 2.0 B2 — THE CREW SWITCH LIVE: the owner flips this player's CREW on their card → the server stamps rooms/{CODE}/radioCrew/role/{uid}
+// → this phone loads (ON) or drops (OFF) its radio at once — no reload, no rejoin. The stamp already there when the room opens is history.
+function paintCrew(st) {
+  const r = st && st.code && st.radioCrew && st.radioCrew.role ? st.radioCrew.role[st.uid] : null, k = r ? `${r.on ? 1 : 0}:${r.at}` : '';
+  if (crewSeen === undefined || !radioGate) { crewSeen = k; return; }
+  if (k === crewSeen) return;
+  crewSeen = k;
+  if (!r) return;
+  if (r.on) radioGate.fresh(); else radioGate.drop();
 }
 function wantGame(id) {
   if (wanting.has(id)) return;
@@ -192,6 +207,7 @@ function render(st) {
   const theme = st.game && st.meta && st.meta.status === 'playing' && st.quit !== st.game.matchId ? (GAMES.find(g => g.id === st.game.id) || {}).theme : '';
   document.body.dataset.theme = theme || '';
   paintLook(st);
+  paintCrew(st);
   keepAwake(!!(st.code && st.meta && st.meta.status === 'playing'));
   renderConnection(st);
   // the menus (setup, the profile) sit on glass over a still of the city, like the title
@@ -337,6 +353,8 @@ async function boot() {
 
   setState({ invite: inviteCode() });
   render(state);
+  // (SHELL 2.0 B2 — THE GIFT's REVEAL: a gift card given by the owner waits on the server → one light check once the title is up)
+  setTimeout(() => { import('./profile/gift-reveal.js').then(m => m.checkGift()).catch(() => {}); }, 6000);
   // First-time visitors: show the title first, then start the Firebase SDK (~120 KB) once it has painted —
   // nothing on the title needs it (HOST/JOIN wait for firebaseReady). Returning players reconnect right away.
   if (!resuming) { await dismissBoot(); await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0))); }
@@ -372,7 +390,7 @@ async function boot() {
   dismissBoot();
   startHostLoop();
   // CITY CONTROLS A — THE RADIO: the server says who has one (radio-gate.js) — only then does anything load (City 2.0 only)
-  setTimeout(() => import('./screens/harbor/radio-gate.js').then(m => m.startRadioGate({ remote: harborRemote, roomCode: () => state.code || null })).catch(e => console.warn('radio', e)), 2500);
+  setTimeout(() => import('./screens/harbor/radio-gate.js').then(m => { radioGate = m.startRadioGate({ remote: harborRemote, roomCode: () => state.code || null }); paintCrew(state); }).catch(e => console.warn('radio', e)), 2500);
   // Installable app: a network-first service worker (never caches Firebase traffic). Not on localhost/dev.
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !/^(localhost|127\.)/.test(location.hostname)) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});

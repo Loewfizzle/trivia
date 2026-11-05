@@ -480,7 +480,7 @@ pinned to its tile (Safari sized the grid item to its text, so the fit never saw
 
 ## LOBBY 2.0 A (Nov 3) — CENTURY's sunburst, THE STEPPED PLATE, FOUNDER's glint, EQUIP — passes/lobby-2a.md
 - **CENTURY** (epic, v3 — `js/fx/deco.js`, `fx/index.js#century`): NO FLAMES (the owner: too close to INFERNO) — burnished BRONZE foil + an ART
-  DECO SUNBURST pressed into it from behind the name plate (broad + slender rays, stepped arcs, a sun disc — baked once, one drawImage a frame),
+  DECO SUNBURST pressed into it — its heart MIDDLE-RIGHT on the strip since SHELL 2.0 B2 (the hero-spot rule; was behind the name plate) (broad + slender rays, stepped arcs, a sun disc — baked once, one drawImage a frame),
   a slow LIGHT SWEEP across the metal, golden embers (embers, no bed). **THE MOTIF RULE**: no two cards share a main motif on the strip — the
   flames are INFERNO's alone (tests/lobby-2a.test.mjs); GOLD FOIL's gold rays (lit in turn at the strip's right foot) are the nearest cousin.
 - **THE STEPPED PLATE** (`strip.js#stepPlate`): the name row full length, the level row past "LV n" by 12 pt then a rounded inner step; the

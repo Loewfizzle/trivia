@@ -67,6 +67,19 @@ export const ITEM_ROWS = [
   // ADMIN_PIDS, never earnable (in no reward table); legendary in every rule, a tier above it in look
   C('card-dev-switchboard', 'THE SWITCHBOARD', 'legendary', '#120a04', '#ffd27a', '#ff3a3a', 'The brass desk you run the city from. One of one.', { dev: true }),
   C('card-dev-source', 'THE SOURCE', 'legendary', '#030a06', '#7affb0', '#ff4fe0', 'The code that runs the city. One of one.', { dev: true }),
+  // ---- SHELL 2.0 B2 — THE GIFT CARDS (1 OF 1 — js/core/gift-cards.js): never earnable, in no reward table; given by the owner's GIFT TOOL
+  // (/admin → GIFTS — one profile ever, api/_lib/gifts.js); THE ANARCHIST is the owner's own (granted on /api/profile 'me' to ADMIN_PIDS)
+  C('card-gift-playerone', 'PLAYER ONE', 'legendary', '#0b1a4a', '#7fe3ff', '#ffd23a', 'A 16-bit hero, ready for the next level. One of one.', { gift: true }),
+  C('card-gift-halloffame', 'HALL OF FAME', 'legendary', '#140c04', '#e6b45a', '#ffd27a', 'Cast in bronze. One of one.', { gift: true }),
+  C('card-gift-enforcer', 'THE ENFORCER', 'legendary', '#121212', '#e6e6e6', '#ffd27a', 'Charcoal on dark paper. One of one.', { gift: true }),
+  C('card-gift-linebacker', 'THE LINEBACKER', 'legendary', '#0e1d44', '#ffd23a', '#ffffff', 'Hit hard. One of one.', { gift: true }),
+  C('card-gift-underlights', 'UNDER THE LIGHTS', 'legendary', '#1a0630', '#ff6fe0', '#5fe9ff', 'Neon under the stadium lights. One of one.', { gift: true }),
+  C('card-gift-sunsetstrip', 'SUNSET STRIP', 'legendary', '#2a0f3e', '#ffd27a', '#ff6fb5', 'Aviators on, sun going down. One of one.', { gift: true }),
+  C('card-gift-goldenhour', 'GOLDEN HOUR', 'legendary', '#3a1e22', '#ffcf7a', '#ff5fa2', 'A polaroid, a heart, the golden hour. One of one.', { gift: true, ink: '#3a1e22' }),
+  C('card-gift-goldenboot', 'GOLDEN BOOT', 'legendary', '#120a2a', '#ffd27a', '#7affc0', 'Under the floodlights, the ball at his feet. One of one.', { gift: true }),
+  C('card-gift-youngbuck', 'YOUNG BUCK', 'legendary', '#14060f', '#ff4fd8', '#f6ff4a', 'Cut out, pasted up, punk. One of one.', { gift: true }),
+  C('card-gift-icecold', 'ICE COLD', 'legendary', '#04102a', '#cfefff', '#7fd8ff', 'Snow, aurora, ice in the veins. One of one.', { gift: true }),
+  C('card-gift-anarchist', 'THE ANARCHIST', 'legendary', '#0a0608', '#ff4f8b', '#ffd27a', 'No masters. One of one.', { gift: true }),
   // ---- PROGRESSION B — CITY SIGHTINGS: each legendary's MATCHED PAIR (a LEGENDARY card + its EMBLEM), first tap that the server
   // believes (core/sightings.js — the ids final, the art THE VAULT's: the city's own baked models on the cards)
   C('card-sg-ufo', 'I WANT TO BELIEVE', 'legendary', '#04100a', '#9dffc4', '#5dff9a', 'The saucer over the harbor. You saw it.', { sg: 'ufo' }),

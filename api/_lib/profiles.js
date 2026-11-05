@@ -226,5 +226,6 @@ export async function privateInfo(pid) {
   const p = (await val(`ppriv/${pid}`)) || {};
   // (PROGRESSION B: the birthday — month + day only, private to its owner; bdAt = when it may change next)
   const bd = p.bd && !p.bd.off && p.bd.m ? { m: p.bd.m, d: p.bd.d } : null;
-  return { cb: !!p.cb, shown: !p.opt, banned: !!p.ban, nameAt: p.nameAt || 0, renameAt: p.nameAt ? p.nameAt + RENAME_MS : 0, keyAt: p.keyAt || 0, bd, bdAt: p.bd && p.bd.at ? p.bd.at + 365 * 864e5 : 0 };
+  // (SHELL 2.0 B2: a GIFT waiting to be revealed — api/_lib/gifts.js; cleared by 'giftSeen')
+  return { gift: p.gift && p.gift.id ? { id: String(p.gift.id), at: p.gift.at || 0 } : null, cb: !!p.cb, shown: !p.opt, banned: !!p.ban, nameAt: p.nameAt || 0, renameAt: p.nameAt ? p.nameAt + RENAME_MS : 0, keyAt: p.keyAt || 0, bd, bdAt: p.bd && p.bd.at ? p.bd.at + 365 * 864e5 : 0 };
 }

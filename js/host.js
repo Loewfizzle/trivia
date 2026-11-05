@@ -71,7 +71,8 @@ function watchHand() {
   }
   if (!handPending) return;
   if (Date.now() - handPending.at > HAND_WAIT_MS || id !== handPending.to) { handPending = null; return; }
-  if (state.players && state.players[handPending.from]) return;
+  // (SHELL 2.0 B2 — MAKE HOST: the old host STAYS — meta/hostBy names them; a leave: their node is gone)
+  if (state.players && state.players[handPending.from] && state.meta.hostBy !== handPending.from) return;
   const to = handPending.to; handPending = null;
   if (to === state.uid && myClaim && myClaim.code === code && Date.now() - myClaim.at < 15000) return;   // (a claim of mine landed first)
   const name = (state.players && state.players[to] && state.players[to].name) || 'SOMEONE';

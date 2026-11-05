@@ -420,6 +420,10 @@ async function crewSet(me, role, body, now) {
     if (!all[pid]) await ref(`radio/crew/${pid}`).set({ at: now, by: me, n: prof.n || '', t: prof.t || '' });
   } else await ref(`radio/crew/${pid}`).remove();
   await audit(me, on ? 'radioCrewAdd' : 'radioCrewRemove', { b: `${(prof && prof.n) || '?'}#${(prof && prof.t) || ''}`, pid });
+  // (SHELL 2.0 B2 — THE CREW SWITCH LIVE: flipped from a player's card in a room → a stamp on the room's node, so THEIR phone loads / drops its
+  //  radio at once — app.js#paintCrew → radio-gate.js; only for a uid that really is in that room)
+  const room = String(body.room || '').toUpperCase();
+  if (body.uid && /^[A-Z]{4}$/.test(room) && (await val(`rooms/${room}/players/${String(body.uid)}`))) await ref(`rooms/${room}/radioCrew/role/${String(body.uid)}`).set({ on, at: now });
   return { pid, on, crew: await crewList() };
 }
 /** ASK FOR THE RADIO (a crew member who doesn't hold it) → the holder's phone sees it on the room's node */

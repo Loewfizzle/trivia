@@ -5,7 +5,7 @@ import {
 } from './firebase.js';
 import { state, setState } from './store.js';
 import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe, testMode } from './identity.js';
-import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence } from './core/room-logic.js';
+import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence, isOnline } from './core/room-logic.js';
 import { MAX_PLAYERS, ROOM_TTL_MS, NAME_MAX } from './config.js';
 import { pickLine } from './core/room-lines.js';
 import { hushCandidates, staleHush, claimFirst, missCooldown, recentMisses } from './core/hush.js';
@@ -412,7 +412,9 @@ export async function leaveRoom({ keepSeat = false, reason = null, heir: given =
     if (state.meta && state.meta.hostId === uid) {
       if (given || others.length) {
         const heir = given || nextHost({ players: state.players, presence: state.presence, exclude: uid });
-        await update(dbRef(`${R(code)}/meta`), { hostId: heir, hostBeat: serverTimestamp() });
+        // (SHELL 2.0 B2 — the rules take a hand-off only to a live, online player (MAKE HOST's rule): an offline heir is refused — then this
+        //  phone still leaves; the others claim the empty seat the usual way)
+        try { await update(dbRef(`${R(code)}/meta`), { hostId: heir, hostBeat: serverTimestamp() }); } catch (e) { console.warn('hand-off refused', e && e.message); }
       } else {
         await closeRoom(code); // last one out turns off the lights
         exitRoom(reason, 'info', { keepSeat, how: 'leave' });
@@ -423,6 +425,19 @@ export async function leaveRoom({ keepSeat = false, reason = null, heir: given =
     await update(dbRef(R(code)), { [`presence/${uid}`]: null, [`players/${uid}`]: null });
   } catch (e) { console.warn('leave', e); }
   if (state.code === code) exitRoom(reason, 'info', { keepSeat, how: 'leave' });
+}
+
+// SHELL 2.0 B2 — MAKE HOST (the owner, Nov 4 7:54 pm): the host hands the room to another player — IN THE ROOM (never mid-match), only to a
+// player who is ONLINE (the rules check it too: meta/hostId takes a live, online, unkicked player). meta/hostBy says who handed it over, so
+// every phone says it once (host.js#watchHand): "MIKE is the host now" · "YOU’RE THE HOST NOW". → true | a reason (a string)
+export async function makeHost(uid) {
+  const code = state.code, P = state.players || {};
+  if (!code || !state.meta || state.meta.hostId !== state.uid) return 'Only the host can do that.';
+  if (state.meta.status === 'playing') return 'Not during a match — in the room.';
+  if (!uid || uid === state.uid || !P[uid]) return 'They’re not in the room.';
+  if (!isOnline(state.presence, uid)) return 'They’re offline — they need to be here.';
+  try { await update(dbRef(`${R(code)}/meta`), { hostId: uid, hostBy: state.uid, hostBeat: serverTimestamp() }); return true; }
+  catch (e) { return 'The room didn’t take it — try again.'; }
 }
 
 export async function kickPlayer(uid) {

@@ -111,7 +111,7 @@ test('THE TITLE DOCK: labels under its icons (the room dock\'s) + NO STREAK on i
 test('THE CARDS: the full card wears the tier gem in its top-right corner; a 1-of-1 the rainbow gem + "1 OF 1" to its left', () => {
   const f = read('js/vault/full.js');
   assert.match(f, /function tierBadge\(t, dev\)/);
-  assert.match(f, /dev \? h\('b\.vl-fc-1of1', ONE_OF_ONE\) : null, gemEl\(dev \? null : t, \{ dev \}\)/);
+  assert.match(f, /dev \? h\('b\.vl-fc-1of1', h\('i\.vl-fc-1of1-t', ONE_OF_ONE\)\) : null, gemEl\(dev \? null : t, \{ dev \}\)/);   // (B2: the gradient on the inner span)
   assert.doesNotMatch(f, /h\('span\.vl-tier'/);
   assert.doesNotMatch(read('css/vault.css'), /\.vl-tier\b/);
 });

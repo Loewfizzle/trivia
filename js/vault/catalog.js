@@ -184,6 +184,31 @@ LAB.push(
   { id: 'glow-prism', kind: 'glow', tier: 'epic', n: 158 },
   { id: 'glow-glitch', kind: 'glow', tier: 'epic', n: 159 },
 );
+// SHELL 2.0 B2 — THE GIFT CARDS (1 OF 1): the GIFTS section of THE LAB (the owner picks; NOTHING is granted from the lab — /admin → GIFTS gives)
+LAB.push(
+  { id: 'card-gift-playerone', kind: 'card', tier: 'legendary', n: 160, gift: true },
+  { id: 'card-gift-halloffame', kind: 'card', tier: 'legendary', n: 161, gift: true },
+  { id: 'card-gift-enforcer', kind: 'card', tier: 'legendary', n: 162, gift: true },
+  { id: 'card-gift-linebacker', kind: 'card', tier: 'legendary', n: 163, gift: true },
+  { id: 'card-gift-underlights', kind: 'card', tier: 'legendary', n: 164, gift: true },
+  { id: 'card-gift-sunsetstrip', kind: 'card', tier: 'legendary', n: 165, gift: true },
+  { id: 'card-gift-goldenhour', kind: 'card', tier: 'legendary', n: 166, gift: true },
+  { id: 'card-gift-goldenboot', kind: 'card', tier: 'legendary', n: 167, gift: true },
+  { id: 'card-gift-youngbuck', kind: 'card', tier: 'legendary', n: 168, gift: true },
+  { id: 'card-gift-icecold', kind: 'card', tier: 'legendary', n: 169, gift: true },
+  { id: 'card-gift-anarchist', kind: 'card', tier: 'legendary', n: 170, gift: true },
+  { id: 'full-card-gift-playerone', kind: 'full', of: 'card-gift-playerone', tier: 'legendary', n: 171, gift: true },
+  { id: 'full-card-gift-halloffame', kind: 'full', of: 'card-gift-halloffame', tier: 'legendary', n: 172, gift: true },
+  { id: 'full-card-gift-enforcer', kind: 'full', of: 'card-gift-enforcer', tier: 'legendary', n: 173, gift: true },
+  { id: 'full-card-gift-linebacker', kind: 'full', of: 'card-gift-linebacker', tier: 'legendary', n: 174, gift: true },
+  { id: 'full-card-gift-underlights', kind: 'full', of: 'card-gift-underlights', tier: 'legendary', n: 175, gift: true },
+  { id: 'full-card-gift-sunsetstrip', kind: 'full', of: 'card-gift-sunsetstrip', tier: 'legendary', n: 176, gift: true },
+  { id: 'full-card-gift-goldenhour', kind: 'full', of: 'card-gift-goldenhour', tier: 'legendary', n: 177, gift: true },
+  { id: 'full-card-gift-goldenboot', kind: 'full', of: 'card-gift-goldenboot', tier: 'legendary', n: 178, gift: true },
+  { id: 'full-card-gift-youngbuck', kind: 'full', of: 'card-gift-youngbuck', tier: 'legendary', n: 179, gift: true },
+  { id: 'full-card-gift-icecold', kind: 'full', of: 'card-gift-icecold', tier: 'legendary', n: 180, gift: true },
+  { id: 'full-card-gift-anarchist', kind: 'full', of: 'card-gift-anarchist', tier: 'legendary', n: 181, gift: true },
+);
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 // THE VAULT 1B — NAMES ONLY TO OWNERS: the lab's NAMES + what each one does are the SERVER's (api/_lib/lab-text.js) — handed to the lab with
 // the marks (admins only: /api/admin labMarks → { marks, text }); the look previews (never deployed) import them off the local server.
@@ -193,8 +218,9 @@ export function registerLabText(t) { for (const x of LAB) if (t && t[x.id]) Obje
 // was made at (the server stamps it); a newer version = CHANGED → the item drops back into NEEDS YOU with its "CHANGED <date> — what" line
 // beside his old mark. (An APPROVE still ships the newer art: CHANGED asks for a re-look, it never pulls approved art.)
 export const LAB_V = Object.freeze({
-  'card-inferno': 2, 'full-card-inferno': 2, 'card-century': 3, 'full-card-century': 3,
-  'card-dev-switchboard': 2, 'card-dev-source': 2, 'full-card-dev-switchboard': 4, 'full-card-dev-source': 4,
+  'card-inferno': 2, 'full-card-inferno': 2, 'card-century': 4, 'full-card-century': 3,
+  'card-dev-switchboard': 3, 'card-dev-source': 3, 'card-prism': 2, 'card-emerald': 2, 'card-sg-ufo': 2, 'card-marquee': 2, 'full-card-dev-switchboard': 5, 'full-card-dev-source': 5,
+  'card-camo': 2, 'card-sg-tr3b': 2,   // (SHELL 2.0 B2 — THE HERO-SPOT AUDIT + the 1 OF 1's gradient)
   'card-founder': 2, 'full-card-founder': 2, 'full-card-house': 2,
 });
 /** an item's current version */

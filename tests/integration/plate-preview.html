@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Plate preview</title>
 <!-- LOBBY FIXES — THE NAME PLATE COVERS ITS WIDEST LINE: every full card + every strip with a long name + the dev line, without Firebase.
-     ?name=WWWWWWWWWWWW&lv=100&host=1&cards=card-dev-source,card-founder (default: every card) · ?only=full|strip -->
+     ?name=WWWWWWWWWWWW&lv=100&host=1&cards=card-dev-source,card-founder (default: every card) · ?only=full|strip · &fx=1 = the strips live on one surface (THE HERO-SPOT AUDIT) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
@@ -17,15 +17,17 @@
 <body>
 <div id="stage"></div>
 <script type="module">
-import { fullCardEl } from '/js/vault/full.js';
-import { stripEl, LOOKS } from '/js/vault/strip.js';
+import { fullCardEl, mountFullCard } from '/js/vault/full.js';
+import { stripEl, LOOKS, mountStrips } from '/js/vault/strip.js';
 const q = new URLSearchParams(location.search);
 const name = q.get('name') || 'WWWWWWWWWWWW', lv = Number(q.get('lv') || 100), only = q.get('only') || '';
 const cards = q.get('cards') ? q.get('cards').split(',') : Object.keys(LOOKS);
 await document.fonts.ready;
 const stage = document.getElementById('stage');
 for (const card of cards) {
-  if (only !== 'strip') stage.append(Object.assign(document.createElement('div'), { className: 'lbl', textContent: `${card} · full` }), fullCardEl({ card, who: { name, lv, no: '0001', avatar: 'crown', color: 'magenta', at: Date.UTC(2026, 9, 2), fd: true } }));
+  if (only !== 'strip' && q.has('fx')) { const host = Object.assign(document.createElement('div'), { style: 'position:relative' }); stage.append(Object.assign(document.createElement('div'), { className: 'lbl', textContent: `${card} · full` }), host); mountFullCard(host, card, { name, lv, no: '0001', avatar: 'crown', color: 'magenta', at: Date.UTC(2026, 9, 2), fd: true }); }
+  else if (only !== 'strip') stage.append(Object.assign(document.createElement('div'), { className: 'lbl', textContent: `${card} · full` }), fullCardEl({ card, who: { name, lv, no: '0001', avatar: 'crown', color: 'magenta', at: Date.UTC(2026, 9, 2), fd: true } }));
+  if (only !== 'full' && q.has('fx')) { const list = document.createElement('div'); stage.append(Object.assign(document.createElement('div'), { className: 'lbl', textContent: card }), list); mountStrips(list, [{ card, name: q.get('name') || 'MIKE', lv, no: '0001', avatar: 'crown', color: 'magenta' }]); continue; }
   if (only !== 'full') { const list = Object.assign(document.createElement('div'), { className: 'vl-list' }); list.append(stripEl({ card, name, lv, host: q.has('host'), no: '0001', avatar: 'crown', color: 'magenta' })); stage.append(list); }
 }
 window.__ready = true;

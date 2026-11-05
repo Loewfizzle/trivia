@@ -38,8 +38,9 @@ export default {
   id: 'deco', tier: 'epic', bleed: 0, stillT: 2.4,
   draw(c, s, t, Q) {
     const { w, h } = s, rad = s.opts.radius || 12, full = !!s.opts.full, calm = s.opts.calm ? 0.8 : 1, tt = Q.still ? 2.4 : t;
-    // the burst's heart: behind the name plate (the strip: under its left third; the full card: behind the name block, low centre)
-    const ox = full ? w * 0.5 : w * 0.2, oy = full ? h * 0.66 : h * 0.5, Rr = full ? Math.hypot(w, h) * 0.9 : w * 0.95;
+    // the burst's heart: the full card — behind the name block, low centre; the strip — MIDDLE-RIGHT (SHELL 2.0 B2, THE HERO-SPOT RULE: the
+    // sun disc was under the plate's left third, the card's main feature hidden)
+    const ox = full ? w * 0.5 : w * 0.62, oy = full ? h * 0.66 : h * 0.5, Rr = full ? Math.hypot(w, h) * 0.9 : w * 0.95;
     c.save(); rrect(c, 0, 0, w, h, rad); c.clip();
     c.globalCompositeOperation = 'lighter';
     c.globalAlpha = 0.62 * calm; c.drawImage(burst(), ox - Rr, oy - Rr, Rr * 2, Rr * 2);

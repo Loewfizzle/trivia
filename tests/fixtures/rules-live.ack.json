@@ -1,0 +1,4 @@
+{
+ "hash": "4d017b1becda0fc4",
+ "line": "RULES CHANGED: rooms/{CODE}/meta/hostId (MAKE HOST — a hand-off only to a live online player) + meta/hostBy — RE-PUBLISH database.rules.json in the Firebase console"
+}

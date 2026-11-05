@@ -201,14 +201,19 @@ body.vl-covered *:not(.vl-full, .vl-full *), body.vl-covered *:not(.vl-full, .vl
 .vl-fc-gem { flex: none; display: inline-flex; align-items: center; gap: 0.5em; margin: -2px 1% 0 0; font-size: max(11px, 3.3cqi); }
 .vl-fc-gem .vl-gem { flex: none; --gs: clamp(20px, 7.6cqi, 28px); }
 .vl-fc-gem.is-1of1 .vl-gem { --gs: clamp(22px, 8.7cqi, 32px); }
-.vl-fc-gem.is-1of1 { margin: 3px 3.5% 0 0; font-size: clamp(9px, 3.6cqi, 13px); }   /* (inset: the rainbow halo clears the rounded corner) */
-/* SHELL 2.0 B1 — the owner (Nov 5 9:12 am): the LAST "1" was hard to read — gradient-filled letters ended in violet on THE SWITCHBOARD's gold
-   + the gem's halo bled over it → SOLID near-white letters with a thin RAINBOW GLOW EDGE (never gradient-filled text), on a small DARK BACKING
-   (reads on the lightest card), a clear gap before the gem's halo (the badge's gap). Static. */
-.vl-fc-gem.is-1of1 { gap: 0.95em; }
-.vl-fc-1of1 { font: 900 1em/1 var(--font-display); letter-spacing: 0.16em; white-space: nowrap; color: #fffaf3;
-  padding: 0.38em 0.5em 0.36em 0.66em; border-radius: 0.6em; background: rgba(10, 6, 16, 0.78); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
-  text-shadow: -0.6px 0 0 rgba(255, 111, 168, 0.9), 0.6px 0 0 rgba(111, 232, 255, 0.9), 0 -0.6px 0 rgba(255, 214, 90, 0.75), 0 0.6px 0 rgba(197, 139, 255, 0.85), 0 0 5px rgba(255, 140, 220, 0.55), 0 0 9px rgba(111, 232, 255, 0.35); }
+.vl-fc-gem.is-1of1 { margin: 3px 3.5% 0 0; font-size: clamp(10px, 4cqi, 14.5px); }   /* (inset: the rainbow halo clears the rounded corner) */
+/* SHELL 2.0 B2 — the owner (Nov 5 12:14 pm): "the fancy GRADIENT colour, just more VISIBLE — not a colour change" (B1's solid white was the
+   chat's mistake) → the RAINBOW GRADIENT fill again, BRIGHT stops only (pink → gold → mint → cyan → lilac: no dark violet end — that lost the
+   last "1"), a touch bigger, a thin dark edge under the letters (drop-shadows on the text span — a text-shadow would paint OVER a clipped
+   gradient), the dark backing pill kept + a soft glow; a clear gap from the top line's FOUNDER (the margin — fitTop counts it). Static (no
+   animated filter). Every letter ≥ 6 : 1 over the backing laid on white (harbor-e2e/lobby2.mjs — the last "1" too). */
+.vl-fc-gem.is-1of1 { gap: 0.9em; margin-left: 10px; }
+@container (max-width: 300px) { .vl-fc-gem.is-1of1 { gap: 0.7em; margin-left: 6px; } .vl-fc-1of1 { letter-spacing: 0.1em; padding: 0.36em 0.4em 0.34em 0.5em; } }   /* (a small viewer: the line at its 8 px floor — the badge gives back its own air) */
+.vl-fc-1of1 { font: 900 1em/1 var(--font-display); letter-spacing: 0.15em; white-space: nowrap;
+  padding: 0.4em 0.52em 0.38em 0.68em; border-radius: 0.6em; background: rgba(8, 5, 14, 0.88); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 0 8px rgba(255, 150, 220, 0.28), 0 0 14px rgba(122, 238, 255, 0.18); }
+.vl-fc-1of1-t { display: inline-block; font-style: normal; color: transparent; -webkit-text-fill-color: transparent;
+  background: linear-gradient(90deg, #ff9ed8 0%, #ffe07a 30%, #8dffbe 55%, #7aeeff 78%, #d2bdff 100%); -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.95)) drop-shadow(0 1px 0.6px rgba(0, 0, 0, 0.8)) drop-shadow(0 0 3px rgba(255, 170, 230, 0.45)); }
 .vl-fc-house { font: 700 max(10px, 2.9cqi)/1 var(--font-ui); letter-spacing: 0.34em; color: #e9cf8e; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75); white-space: nowrap; min-width: 0; }
 .vl-fc-plate { position: absolute; left: 4.5%; top: 31%; z-index: 3; display: flex; align-items: center; gap: 3.2cqi; max-width: 70%; padding: 2.4cqi 5cqi 2.4cqi 2.6cqi; border-radius: 14px;
   background: linear-gradient(90deg, rgba(8, 6, 12, 0.8), rgba(8, 6, 12, 0.64)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 18px rgba(0, 0, 0, 0.4); }
@@ -325,7 +330,7 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
 .vl-s-emerald .vl-mat { background-position: right 30% bottom, 0 0, 0 0; background-size: auto 96%, auto, auto; }
 .vl-s-chrome .vl-mat { background: linear-gradient(180deg, #dfe6f0 0%, #f4f7fb 30%, #ffffff 41%, #353c48 42.5%, #4d5562 52%, #7b8492 70%, #b9c1cd 88%, #e3e8ef 100%); }
 .vl-s-chrome .vl-mat::after { background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, rgba(0, 0, 0, 0.04) 1px 3px), linear-gradient(100deg, rgba(255, 255, 255, 0) 28%, rgba(255, 255, 255, 0.4) 44%, rgba(255, 255, 255, 0) 50%), linear-gradient(90deg, rgba(255, 140, 210, 0.1), rgba(140, 210, 255, 0.1) 50%, rgba(180, 255, 170, 0.08)); }
-.vl-s-emerald .vl-mat { background-position: right 46% bottom, 0 0, 0 0; background-size: auto 88%, auto, auto; }
+.vl-s-emerald .vl-mat { background-position: right 24% bottom, 0 0, 0 0; background-size: auto 88%, auto, auto; }   /* (B2 — THE HERO-SPOT RULE: the crown middle-right, was 46 %) */
 
 /* (refine pass 3) on the FULL CARD the deco motifs keep a strip's proportion: the crown + the arches stand to the right of the plate */
 .vl-fcm-emerald .vl-mat { background-position: right 8% bottom, 0 0, 0 0; background-size: auto 58%, auto, auto; }
@@ -975,3 +980,47 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-plate > .vl-step { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 /* LOBBY FIXES — CUSTOMIZE's top: YOUR NAME + YOUR COLOUR, two plain rows (the owner's ADD-ON 3) — each opens its editor (profile/edit.js) */
 .vl-yr { display: flex; flex-direction: column; gap: 8px; margin: 2px 0 10px; }
+
+/* SHELL 2.0 B2 — THE GIFT's REVEAL (profile/gift-reveal.js): the gift line over the full card FLIPPING IN (transform + opacity only;
+   reduced motion: it simply appears) */
+.vl-gift-head { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 0 0 14px; text-align: center; }
+.vl-gift-head small { font: 700 12px/1 var(--font-ui); letter-spacing: 0.34em; color: #ffd6f2; }
+.vl-gift-head b { font: 900 clamp(18px, 5.4vw, 26px)/1.05 var(--font-display); letter-spacing: 0.08em; color: transparent; -webkit-text-fill-color: transparent;
+  background: linear-gradient(90deg, #ff9ed8, #ffe07a 30%, #8dffbe 55%, #7aeeff 78%, #d2bdff); -webkit-background-clip: text; background-clip: text; }   /* (no filter: it moves in — the vault's no-filter-under-motion rule) */
+.vl-full-flip .vl-gift-head { animation: vl-gift-head 0.7s ease-out both; }
+.vl-full-flip { perspective: 1400px; }
+.vl-full-flip .vl-full-stage { animation: vl-gift-flip 1.15s cubic-bezier(.2, .8, .2, 1) 0.25s both; transform-origin: 50% 50%; backface-visibility: hidden; }   /* (the stage: the card + its fx canvas turn together — slots are placed by offsets) */
+@keyframes vl-gift-head { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+@keyframes vl-gift-flip { 0% { opacity: 0; transform: rotateY(-180deg) scale(0.7); } 55% { opacity: 1; } 100% { opacity: 1; transform: rotateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .vl-full-flip .vl-gift-head, .vl-full-flip .vl-full-stage { animation: none; } }
+
+/* SHELL 2.0 B2 — THE GIFT CARDS (1 OF 1): the art is the MATERIAL (assets/vault/gift/<art>.webp — scripts/build-gift-art.mjs); the strip shows its
+   middle band at the spec's crop (js/fx/gift-specs.js `strip` — the SAME numbers: tests/shell-b2.test.mjs), the full card nearly all of it;
+   the motion is js/fx/gift.js on the shared surface. The full card's plate sits LOWER (the approved mocks: the face stays clear). */
+.vl-s-g-enforcer .vl-mat { background: #07060a url('../assets/vault/gift/enforcer.webp') 50% 28% / cover no-repeat; }
+.vl-fcm-g-enforcer .vl-mat { background-position: 50% 50%; }
+.vl-s-g-linebacker .vl-mat { background: #07060a url('../assets/vault/gift/linebacker.webp') 50% 28% / cover no-repeat; }
+.vl-fcm-g-linebacker .vl-mat { background-position: 50% 50%; }
+.vl-s-g-underlights .vl-mat { background: #07060a url('../assets/vault/gift/underlights.webp') 50% 28% / cover no-repeat; }
+.vl-fcm-g-underlights .vl-mat { background-position: 50% 50%; }
+.vl-s-g-halloffame .vl-mat { background: #07060a url('../assets/vault/gift/halloffame.webp') 50% 28% / cover no-repeat; }
+.vl-fcm-g-halloffame .vl-mat { background-position: 50% 50%; }
+.vl-s-g-playerone .vl-mat { background: #07060a url('../assets/vault/gift/playerone.webp') 50% 32.5% / cover no-repeat; }
+.vl-fcm-g-playerone .vl-mat { background-position: 50% 50%; }
+.vl-s-g-sunsetstrip .vl-mat { background: #07060a url('../assets/vault/gift/sunsetstrip.webp') 50% 43% / cover no-repeat; }
+.vl-fcm-g-sunsetstrip .vl-mat { background-position: 50% 50%; }
+.vl-s-g-goldenhour .vl-mat { background: #07060a url('../assets/vault/gift/goldenhour.webp') 50% 43% / cover no-repeat; }
+.vl-fcm-g-goldenhour .vl-mat { background-position: 50% 50%; }
+.vl-s-g-anarchist .vl-mat { background: #07060a url('../assets/vault/gift/anarchist.webp') 50% 38% / cover no-repeat; }
+.vl-fcm-g-anarchist .vl-mat { background-position: 50% 50%; }
+.vl-s-g-goldenboot .vl-mat { background: #07060a url('../assets/vault/gift/goldenboot.webp') 50% 43% / cover no-repeat; }
+.vl-fcm-g-goldenboot .vl-mat { background-position: 50% 50%; }
+.vl-s-g-youngbuck .vl-mat { background: #07060a url('../assets/vault/gift/youngbuck.webp') 50% 52% / cover no-repeat; }
+.vl-fcm-g-youngbuck .vl-mat { background-position: 50% 50%; }
+.vl-s-g-icecold .vl-mat { background: #07060a url('../assets/vault/gift/icecold.webp') 50% 32.5% / cover no-repeat; }
+.vl-fcm-g-icecold .vl-mat { background-position: 50% 50%; }
+.vl-fc.vl-gift-fc .vl-fc-plate { top: 47%; }
+.vl-s-g-goldenhour .vl-plate, .vl-fcm-g-goldenhour .vl-fc-plate { background: rgba(58, 22, 34, 0.86); }
+.vl-fcm-g-goldenhour .vl-fc-house, .vl-fcm-g-goldenhour .vl-fc-since small, .vl-fcm-g-goldenhour .vl-fc-since b, .vl-fcm-g-goldenhour .vl-fc-card { color: #6e2445; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }   /* (the light page: dark ink) */
+.vl-gift-pvrow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; text-align: center; }
+.vl-gift-pvrow small { font: 600 12px/1.35 var(--font-ui); color: var(--text-dim); max-width: 340px; }

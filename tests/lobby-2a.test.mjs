@@ -30,7 +30,7 @@ test('CENTURY: NO FLAMES — the bronze deco sunburst + embers (INFERNO keeps th
   assert.match(d, /sprite\('fx-deco-burst'/, 'the burst baked ONCE (one drawImage a frame)');
   const code = d.split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
   assert.doesNotMatch(code, /import[^\n]*(fire|flames|lick)|lick\(/, 'no flame painters in it');
-  assert.equal(LAB_V['card-century'], 3); assert.equal(LAB_V['full-card-century'], 3);
+  assert.ok(LAB_V['card-century'] >= 3); assert.equal(LAB_V['full-card-century'], 3);   // (SHELL 2.0 B2: the strip v4 — its sun moved middle-right)
   for (const id of ['card-century', 'full-card-century']) assert.ok(LAB_CHANGES[id].some(c => c.v === 3 && /SUNBURST/.test(c.what)), id);
   assert.match(LAB_TEXT['card-century'].motion, /sunburst/i); assert.doesNotMatch(LAB_TEXT['card-century'].motion, /flame/i);
   assert.match(read('js/vault/strip.js'), /'card-inferno': \{ mat: 'inferno', fx: 'flames' \}/, 'INFERNO keeps its fire');

@@ -5,6 +5,7 @@
 // never opens from a player tap.
 import { h } from '../ui/dom.js';
 import { api } from '../profile/api.js';
+import { state } from '../store.js';
 
 /** the owner's CREW switch for one room player → an element (fills itself in) */
 export function crewRow(uid) {
@@ -25,7 +26,7 @@ export function crewRow(uid) {
   async function toggle() {
     if (!can() || busy) return;
     busy = true; paint();
-    try { const r = await api('admin', { action: 'radioCrewSet', uid, on: !pk.on }); pk.on = r.on; err = ''; } catch (e) { err = e.message || 'Couldn’t reach the server'; }
+    try { const r = await api('admin', { action: 'radioCrewSet', uid, on: !pk.on, room: state.code || null }); pk.on = r.on; err = ''; } catch (e) { err = e.message || 'Couldn’t reach the server'; }
     busy = false; paint();
   }
   paint();

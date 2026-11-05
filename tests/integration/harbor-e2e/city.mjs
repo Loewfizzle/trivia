@@ -3,7 +3,7 @@
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
 import { normalize as wxNormalize } from '../../../js/core/weather.js';
 import { easternParts } from '../../../js/core/week.js';
-import { OUT, BASE, SHOTS, t0, log, sleep, errors, ok, okT, okF, GR, NIGHT, launch, open, ev, waitFor, tapAt, tap, harborUp, dbPut, flags, settled, G } from './kit.mjs';
+import { OUT, BASE, SHOTS, t0, log, sleep, errors, ok, okT, okF, GR, NIGHT, launch, open, ev, waitFor, tapAt, tap, tapUntil, harborUp, dbPut, flags, settled, G } from './kit.mjs';
 
 // ================================================================ THE PREVIEW PANEL (the owner's test remote; ONLY=panel runs just this)
 async function panelSection() {
@@ -22,8 +22,7 @@ async function panelSection() {
   // LOBBY FIXES — THE ADMIN ROW (→ /admin) beside THE LAB, admins only (the same server yes)
   const ap = await ev(O.page, `(() => { const b = document.querySelector('.gm-admpage'), l = document.querySelector('.gm-lab'); return b ? { txt: b.textContent, h: b.getBoundingClientRect().height, next: !!l && Math.abs(b.getBoundingClientRect().top - l.getBoundingClientRect().bottom) < 30 } : null; })()`);
   ok(ap && /^Admin/i.test(ap.txt) && ap.h >= 44 && ap.next, `LOBBY FIXES — the ☰ menu's ADMIN row (→ /admin) right under THE LAB ("${ap && ap.txt}")`);
-  await tap(O.page, '.gm-adm .sh-row');
-  await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000);
+  await tapUntil(O.page, '.gm-adm .sh-row', '!!document.querySelector(".hr-sheet")', 'the sheet'); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000);
   await sleep(450);
   // SP4 (the owner: the readouts drew on top of the open panel): body.hr-sheet-open while the sheet is up — debug-strip.js hides the column
   const openCls = await ev(O.page, "document.body.classList.contains('hr-sheet-open')");
@@ -31,9 +30,9 @@ async function panelSection() {
   // registry section (core/harbor-remote.js#sectionOf — no positions hard-coded here); JUST ME marked green
   // (the C2 helpers: close = the queue starts — after the delay; NOW (0) for the steps that aren't about the delay)
   const R0 = await import('../../../js/core/harbor-remote.js');
-  const sheetUp = async p => { await waitFor(p, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(p, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000); await sleep(300); };
+  const sheetUp = async p => { await waitFor(p, '!!document.querySelector(".hr-sheet")', 'the sheet', 15000); await waitFor(p, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000); await sleep(300); };
   const closeSheet = async p => { await ev(p, 'window.__district.remote().close()'); await waitFor(p, '!document.querySelector(".hr-modal")', 'the sheet gone', 4000); };
-  const openAdmin = async p => { await tap(p, '.menu-btn'); await waitFor(p, '!!document.querySelector(".gm-adm .sh-row") && document.querySelector(".gm .sh-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000); await tap(p, '.gm-adm .sh-row'); };
+  const openAdmin = async p => { await tap(p, '.menu-btn'); await waitFor(p, '!!document.querySelector(".gm-adm .sh-row") && document.querySelector(".gm .sh-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 15000); await tapUntil(p, '.gm-adm .sh-row', '!!document.querySelector(".hr-sheet")', 'the sheet'); };
   const reopen = async p => { await openAdmin(p); await sheetUp(p); };
   await ev(O.page, 'window.__district.remote().delay(0)');
   {

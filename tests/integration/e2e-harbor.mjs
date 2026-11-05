@@ -88,8 +88,9 @@ else if (SHARDS > 1) {
     await child('perf', 'perf', { GPU: '1' });
   }
 } else { for (const g of [...GROUPS.keys()].filter(g => !SERIAL.includes(g)).concat(SERIAL)) await runGroup(g); }
-const passed = checks.filter(c => c.ok).length;
-log(`checks ${passed}/${checks.length} passed${warnings.length ? ` · warnings ${warnings.length}:\n${warnings.map(w => `  ~ ${w}`).join('\n')}` : ''}`);
+const passed = checks.filter(c => c.ok).length, noDisp = checks.filter(c => c.warn === 'skipped-display').length, onCi = checks.filter(c => c.warn === 'skipped').length;
+// (SHELL 2.0 B2: the skips counted apart — "N skipped (no display)" + "N skipped (on CI)"; `passed` still counts them as not-failed for the cloud's line)
+log(`checks ${passed}/${checks.length} passed${noDisp || onCi ? ` (of them ${passed - noDisp - onCi} ran + passed${noDisp ? ` · ${noDisp} skipped (no display)` : ''}${onCi ? ` · ${onCi} skipped (on CI)` : ''})` : ''}${warnings.length ? ` · warnings ${warnings.length}:\n${warnings.map(w => `  ~ ${w}`).join('\n')}` : ''}`);
 log(errors.length ? `errors:\n${errors.join('\n')}` : 'errors none');
 writeFileSync(`${OUT}result${TAG ? '-' + TAG : ''}.json`, JSON.stringify({ checks, errors, warnings }, null, 1));
 // on GitHub (the top process only): each warning + error as an annotation on the run, and a table in the job's summary page

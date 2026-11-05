@@ -315,6 +315,24 @@ G('platefit', async () => {
       const n = await ev(p, "document.querySelectorAll('.vl-fc-plate, .vl-plate').length");
       ok(n > 40 && !miss.length, `THE PLATE COVERS ITS WIDEST LINE at ${w} — ${what}: ${n} plates (full cards + strips, the dev line incl.)${miss.length ? ` — PAST: ${miss.slice(0, 8).join(', ')}` : ''}`);
     }
+    // THE HERO-SPOT RULE (SHELL 2.0 B2 — the audit): every card's declared hero (js/vault/hero.js) clear of the LIVE stepped plate (its name
+    // row + its level row up to the step) and the tier gem, with the owner's own name, at this width
+    { const H = await ev(p, "import('/js/vault/hero.js').then(m => Object.keys(m.HERO).join(','))");
+      await p.goto(`${BASE}/tests/integration/plate-preview.html?only=strip&name=LOEWFIZZLE&lv=9&cards=${H}`);
+      await waitFor(p, 'window.__ready', 'the preview', 15000); await sleep(700);
+      const r = await ev(p, `(async () => { const M = await import('/js/vault/hero.js'), out = [];
+        for (const s of document.querySelectorAll('.vl-strip')) {
+          const S = s.getBoundingClientRect(), P = s.querySelector('.vl-plate').getBoundingClientRect(), N = s.querySelector('.vl-name').getBoundingClientRect(), V = s.querySelector('.vl-lv').getBoundingClientRect(), G = s.querySelector('.vl-gem').getBoundingClientRect();
+          const fr = (x, y, w, h) => [(x - S.left) / S.width, (y - S.top) / S.height, w / S.width, h / S.height], y1 = (N.bottom + V.top) / 2;
+          const stepped = s.querySelector('.vl-plate').classList.contains('vl-stepped');
+          const plate = stepped ? [fr(P.left, P.top, P.width, y1 - P.top), fr(P.left, y1, V.right + 12 - P.left, P.bottom - y1)] : [fr(P.left, P.top, P.width, P.height)];
+          const gem = fr(G.left, G.top, G.width, G.height);
+          // (the hero's CENTRE clear of the name row — a long name may cover a wing; the whole box clear of the level row + the gem)
+          for (const b of M.HERO[s.dataset.card] || []) { const c = [b[0] + b[2] / 2 - 0.005, b[1] + b[3] / 2 - 0.005, 0.01, 0.01];
+            if (M.overlaps(c, plate[0]) || plate.slice(1).some(q => M.overlaps(b, q)) || M.overlaps(b, gem)) out.push(s.dataset.card); }
+        }
+        return { n: document.querySelectorAll('.vl-strip').length, bad: [...new Set(out)], pure: M.heroMisses() }; })()`);
+      ok(r.n >= 15 && !r.bad.length && !r.pure.length, `THE HERO-SPOT RULE at ${w}: ${r.n} cards' main features middle → middle-right, clear of the stepped plate (LOEWFIZZLE) + the tier gem${r.bad.length || r.pure.length ? ` — OVER: ${[...r.bad, ...r.pure].join(', ')}` : ''}`); }
     if (SHOTS) { await p.goto(`${BASE}/tests/integration/plate-preview.html?name=LOEWFIZZLE&lv=9&cards=card-dev-source,card-dev-switchboard,card-founder`); await waitFor(p, 'window.__ready', 'p', 15000); await sleep(900); await p.screenshot({ path: `${OUT}platefit-${w}.png`, fullPage: true }); }
     await Q.ctx.close();
   }

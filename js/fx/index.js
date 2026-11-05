@@ -41,6 +41,8 @@ import house from './house.js';
 import devSwitch from './dev-switch.js';
 import devSource from './dev-source.js';
 import deco from './deco.js';
+import { giftFx } from './gift.js';
+import { GIFT_SPECS } from './gift-specs.js';
 
 /** COMBO (THE VAULT 1C — an EPIC's two effects together on ONE slot): parts = [[effect, opts the part overrides]…], drawn in order */
 export function combo(id, tier, ...parts) {
@@ -62,4 +64,6 @@ export const FX = Object.freeze({ deco, ufo, laser, smoke, frost, flames, prism,
   bevel, opening, house,
   // THE VAULT 2B — THE TWO DEV CARDS (ONE OF ONE · DEV — the owner's own)
   devSwitch, devSource,
+  // SHELL 2.0 B2 — THE GIFT CARDS (1 OF 1): one engine (gift.js), each card's layers as data (gift-specs.js) — fx id 'gift:<card id>'
+  ...Object.fromEntries(Object.keys(GIFT_SPECS).map(id => [`gift:${id}`, giftFx(id)])),
   platinum: combo('platinum', 'epic', [sheen, { tint: '214,228,255', gain: 2.4 }], [bevel, null]) });

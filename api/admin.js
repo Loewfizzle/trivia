@@ -33,6 +33,9 @@
 //   progressReset { confirm?, typed? } · progressBackups · progressRestore { stamp, confirm?, typed? } → THE SPEED PASS add-on — THE PROGRESS
 //                                    RESET (api/_lib/reset.js): the preview (a dry run), then a backup + FOUNDING MEMBER first + the reset
 //                                    (typed RESET); the backups; a restore (typed RESTORE) — every one audited
+//   giftList · giftGive { card, tag } → SHELL 2.0 B2 — THE GIFT TOOL (api/_lib/gifts.js): the giftable 1-of-1 cards + who has each; GIVE a
+//                                    card to a player's name tag — server-granted, equipped, a reveal waiting; ONE PROFILE EVER (gifts/{card}),
+//                                    the owner's own card never giftable; audited
 //   radio…                         → CITY CONTROLS A — THE RADIO (api/_lib/radio.js): radioState · radioFire · radioStop · radioClearAll ·
 //                                    radioBoard · radioBoardEdit · radioBoardCancel · radioDial · radioRooms · radioWho · radioHello —
 //                                    each checks the caller's ROLE (the owner = ADMIN_PIDS, THE CREW = radio/crew/{pid}) per action
@@ -53,6 +56,7 @@ import { radioAction, radioPublic, clipOf } from './_lib/radio.js';
 import { labMarks, labMark, labExport, LAB_CACHE, LAB_TEXT, LAB_CHANGES } from './_lib/lab.js';
 import { listTestPlayers, removeTestPlayers } from './_lib/testplayers.js';
 import { progressReset, progressBackups, progressRestore } from './_lib/reset.js';
+import { giftList, giftGive } from './_lib/gifts.js';
 
 async function audit(by, act, pid, detail = {}) {
   await ref('audit').push({ at: Date.now(), by, act, pid: pid || null, ...detail });
@@ -296,6 +300,9 @@ export async function adminAction(uid, body, now = Date.now()) {
       return r;
     }
     case 'progressBackups': return progressBackups();
+    // SHELL 2.0 B2 — THE GIFT TOOL (api/_lib/gifts.js): the giftable cards + who has each; GIVE (one profile ever — audited)
+    case 'giftList': return giftList();
+    case 'giftGive': { const r = await giftGive(me, body, now); await audit(me, 'giftGive', r.gift.pid, { b: `${r.gift.id} → ${r.gift.who}` }); return { ...r, ...(await giftList()) }; }
     case 'progressRestore': {
       const r = await progressRestore({ stamp: body.stamp, confirm: body.confirm === true, typed: String(body.typed || '') });
       if (r.done) await audit(me, 'progressRestore', null, { b: `${r.stamp} · ${r.profiles} profiles` });

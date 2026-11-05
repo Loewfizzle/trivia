@@ -25,7 +25,8 @@ import { emblemEl, hasArt } from './emblem-art.js';
 import { applyGlow } from './glows.js';
 import { prominence } from './emblems.js';
 import { embTier } from './strip.js';
-import { isDevCard, ONE_OF_ONE } from '../core/dev-cards.js';
+import { isDevCard, isOneOfOne, ONE_OF_ONE } from '../core/dev-cards.js';
+import { isGiftCard } from '../core/gift-cards.js';
 import { gemEl } from './gems.js';
 import { takeLayer, onCloseAll } from '../ui/layers.js';
 
@@ -44,7 +45,7 @@ const timeOf = at => { try { return new Date(at).toLocaleTimeString('en-US', { h
 // part.) slot: 'pill' (under the top line, left — the default) · 'top' (in the top line itself: "NEON SPEAKEASY · FOUNDER") · 'stamp'
 // (FOUNDING MEMBER's own gold stamp is its badge). tests/integration/harbor-e2e/vault.mjs proves no overlap at 390 / 402 / 430.
 export const BADGE = Object.freeze({
-  'card-dev-switchboard': { slot: 'top', moving: [[0.065, 0.185, 0.15, 0.115], [0.24, 0.215, 0.33, 0.06], [0.765, 0.35, 0.19, 0.13], [0.05, 0.39, 0.9, 0.52]] },
+  'card-dev-switchboard': { slot: 'top', moving: [[0.065, 0.185, 0.15, 0.115], [0.24, 0.215, 0.33, 0.06], [0.66, 0.205, 0.25, 0.095], [0.05, 0.39, 0.9, 0.52]] },
   'card-dev-source': { slot: 'top', moving: [[0.49, 0.6, 0.43, 0.21], [0.07, 0.2, 0.62, 0.075]] },
   'card-founder': { slot: 'stamp', moving: [[0.362, 0.205, 0.276, 0.2], [0.41, 0.6, 0.14, 0.22]] },
   'card-house': { slot: 'pill', moving: [[0.47, 0.14, 0.47, 0.75]] },
@@ -115,7 +116,7 @@ function layCover(plate) {
 // bigger + brighter than the mock (readable on gold), the gem inset so its glow clears the rounded corner.
 function tierBadge(t, dev) {
   return h('span.vl-fc-gem', { class: dev ? 'is-1of1' : null, dataset: { tier: dev ? 'dev' : t } },
-    dev ? h('b.vl-fc-1of1', ONE_OF_ONE) : null, gemEl(dev ? null : t, { dev }));   // (its size: css/vault.css — 28 / 32 pt, smaller in a small viewer)
+    dev ? h('b.vl-fc-1of1', h('i.vl-fc-1of1-t', ONE_OF_ONE)) : null, gemEl(dev ? null : t, { dev }));   // (its size: css/vault.css; B2: the rainbow on the inner span, the backing on the outer)
 }
 export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const look = LOOKS[card] || LOOKS['card-brushed'], t = tier || tierOf(card), lv = who.lv || 1;
@@ -126,8 +127,8 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
     h('span.vl-fc-emb', emblemEl({ id: hasArt(who.shape) ? who.shape : null, avatar: who.avatar || 'bolt', color: who.color || 'magenta', tube: who.tube, mode: prominence(t, embTier(hasArt(who.shape) ? who.shape : null)) })),
     h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', { class: t === 'legendary' ? 'vg-still' : '' }, name), who.glow), { min: 15, two: 17 }), h('small.vl-fc-lv', isDevCard(card) ? `THE DEVELOPER · № ${who.no || '0001'}` : `${bandOf(lv).name} · LV ${lv}`)));
   coverWidest(plate);
-  const dev = isDevCard(card), badge = badgeOf(card);
-  const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}${dev ? ' vl-dev1' : ''}`, dataset: { card, tier: t } },
+  const dev = isOneOfOne(card), badge = badgeOf(card);   // (B2: `dev` here = any 1-of-1 — the rainbow gem + 1 OF 1; the plate's dev line reads isDevCard)
+  const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}${dev ? ' vl-dev1' : ''}${isGiftCard(card) ? ' vl-gift-fc' : ''}`, dataset: { card, tier: t } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     t !== 'common' ? h('i.vl-fc-sheen', { 'aria-hidden': 'true' }, h('i')) : null,
     fitTop(h('div.vl-fc-top', badge.slot === 'top'
@@ -210,10 +211,12 @@ export async function openFullCard(id, who = {}) {
     card = fullCardEl({ card: id, who, spotted: who.spotted || null });
   } else card = gildedCard({ ...(who.pub || {}), n: who.name, a: who.avatar, c: who.color, cd: id }, {}, { card: id });
   let release = null, uncover = null;
-  const close = () => { if (surface) surface.destroy(); el.remove(); open = null; if (release) release(); if (uncover) { uncover(); uncover = null; } };
+  const close = () => { if (surface) surface.destroy(); el.remove(); open = null; if (release) release(); if (uncover) { uncover(); uncover = null; } if (who.onClose) try { who.onClose(); } catch { /* fine */ } };
   const stage = h('div.vl-full-stage', card);
   // (LOBBY FIXES: `who.foot` — a row under the card, e.g. the owner's CREW switch on a room player's card)
-  box.append(stage, who.foot || '', h('button.vl-full-x', { type: 'button', 'aria-label': 'Close', onclick: close }, 'CLOSE'));
+  // (SHELL 2.0 B2 — THE GIFT's reveal: `who.head` above the card (the gift line), `who.flip` = the card flips in; `who.onClose`)
+  if (who.flip) box.classList.add('vl-full-flip');
+  box.append(who.head || '', stage, who.foot || '', h('button.vl-full-x', { type: 'button', 'aria-label': 'Close', onclick: close }, who.closeWord || 'CLOSE'));
   // (THE VAULT 2B: a backdrop click in its first 350 ms is the finger that opened it lifting — a long-press — never a close)
   const born = performance.now();
   const el = h('div.vl-full', { role: 'dialog', 'aria-modal': 'true', 'aria-label': nameOf(id), onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);
