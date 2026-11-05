@@ -87,7 +87,12 @@ SWITCH-OVER), before SHELL 2.0. Source: review-6.md H (H7, H8, H12 + the big fil
   and roomperf's own cost, red before this pass too); the failed groups alone after the
   fix 111/111; **run 2 (the fix in): 1155/1159** — every sighting green; the 4 reds all green ALONE (crew + desktop 29/29, the vault
   111/111 above): the resize's re-fit hitch 767 ms (< 750) + the 8-legendary lobby at 4× CPU (timing under the shard load), CREW's switch
-  OFF + PUSH's guest call (the crew group; a race under load). The cloud run confirms.
+  OFF + PUSH's guest call (the crew group; a race under load).
+- **The cloud run (68191f7, run 1 of the cap's two):** tests ✅ (unit → rules → /api → smoke). Harbor **13 / 15 jobs green**; the 2 reds, one check
+  each, both GREEN on the mini PC twice alone (and in both full local runs): `speed` — A6, the desktop re-layout @1 → @2 re-planned once
+  (re-plans 2 → 3; the cloud page had ALREADY kept one re-layout before the check began — "kept 1 → 1" where the mini PC starts at 0: an
+  extra resize on the slower machine); `models` — the boxer's window at 11:45 pm read its blind as undefined (a timing read; the mini PC:
+  "blind 1, out"). Neither touches what this pass changed (the walking plan + the window scenes are untouched). Not re-run (the two-run cap).
 
 ## Decisions (made unattended — the owner was asleep)
 - **A failed Harbor load** (was: City 1.0): the import is tried once more after 1.5 s, then THE CITY COULDN'T LOAD + RELOAD (a plain card on
@@ -109,5 +114,7 @@ SWITCH-OVER), before SHELL 2.0. Source: review-6.md H (H7, H8, H12 + the big fil
   icons were rendered from City 1.0's scene (`brand.html`, deleted) — a Harbor link preview = a later look job.
 - **H7's long tail:** ~70 more exports nothing imports (many are console / test hooks reached as `module.name` — a scan can't tell them
   apart); `daily/contract.js` is THE DAILY plug-in (ships OFF — kept).
+- **The cloud's two reds** (A6's re-layout count on a desktop dpr change; the boxer's blind read at 11:45 pm) — green locally; watch them in
+  the next cloud run (if A6 repeats, the check wants to start its count after the page's own first re-layout).
 - Carried from SPEED PASS B (not this pass — no visible change allowed): the after-match freeze (~0.9 s at 4×), the party room's top 3
   costs, roomperf's red.
