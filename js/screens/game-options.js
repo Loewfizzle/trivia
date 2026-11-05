@@ -3,7 +3,7 @@
 // LOBBY 2.0 B replaces the walk inside, not this). An option with when(players) shows (+ applies) only with that many connected players.
 //   openGameOptions(g, { meta, onClose }) → { close }
 import { h } from '../ui/dom.js';
-import { openSheet } from '../ui/sheet.js';
+import { openSheet, closeAllSheets } from '../ui/sheet.js';
 import { segmented, chips as chipSelect } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
 import { MIN_PLAYERS } from '../config.js';
@@ -56,7 +56,7 @@ export function openGameOptions(g, { meta = null, onClose = null } = {}) {
     startBtn.classList.add('is-busy');
     startBtn.firstChild.textContent = 'BOOTING…';
     try {
-      if (await startGame(g.id, settings)) close();
+      if (await startGame(g.id, settings)) { close(); closeAllSheets(); }   // (SHELL 2.0 B1: the picker under it goes too)
       else { startBtn.classList.remove('is-busy'); startBtn.firstChild.textContent = 'INITIATE'; }
     } catch (e) { toast(String(e.message || e).toUpperCase(), 'err'); startBtn.classList.remove('is-busy'); startBtn.firstChild.textContent = 'INITIATE'; }
   };

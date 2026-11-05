@@ -1,4 +1,4 @@
-// PROGRESSION A — THE PREVIEWS: every screen with scripted data, no match needed. The live site: ?preview=moment | card | streak | flame
+// PROGRESSION A — THE PREVIEWS: every screen with scripted data, no match needed. The live site: ?preview=moment | card | streak (flame — the dock's streak — gone, SHELL 2.0 B1)
 // (title.js opens it over the city; nothing is written, nothing is sent — a preview never counts). The look page:
 // tests/integration/progress-preview.html?view=… (no Firebase). Flags: &at=end · &up=0 · &card=<card id> · &streak=N · &state=lit|waiting|frozen
 // · &cards=1 (every card look) · &rm=1 (reduced motion).
@@ -71,13 +71,6 @@ export async function preview(view, q = new URLSearchParams(), root = null, keep
     const { openStreakCard } = await import('./streak-card.js');
     window.__pg = { streak: await openStreakCard(data.stats.st) };
     return;
-  }
-  if (view === 'flame') {
-    const { streakPill } = await import('./flame.js');   // (SHELL 2.0 A: the dock's pill)
-    const b = streakPill(data.stats.st);
-    if (root) root.append(h('div.dockbtn', b));
-    window.__pg = { flame: b };
-    return b;
   }
   if (view === 'card' || view === 'profile') {
     const { gildedCard } = await import('./card.js');

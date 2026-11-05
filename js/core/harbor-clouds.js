@@ -14,6 +14,7 @@
 //                            lit from below after sunset, the haze of distance — and the key its bake follows.
 // PART 9 PLUGS IN: cloudMix's result is the whole recipe (set more deck / scud, a darker base: `extra` in skyLight greys + darkens
 // everything); new kinds are new entries in the renderer's KINDS.
+import { phaseClock } from './harbor-phase.js';
 import { rngFrom } from './rng.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -215,10 +216,18 @@ export function cloudPlan(box, M, seed = '') {
  *  2.4 at 6, capped at 2.6 for a gale (a 402-pt phone: ≥ 2.5 min for the nearest, 10+ for the far cirrus) */
 export const driftSpeed = wind => Math.min(2.6, 0.5 + Math.max(0, wind || 0) * 0.32);
 /** a cloud's left edge now: it drifts with the real wind (nearer = faster), wrapping round the screen (each its own margin) */
-export function driftX(d, tSec, wind, windX, W) {
-  const span = W + d.w * 1.08, sp = driftSpeed(wind) * windX * d.v;
-  const x = d.x0 + d.w * 1.04 + sp * tSec;
+export function driftX(d, tSec, wind, windX, W) { return driftAt(d, driftSpeed(wind) * windX * tSec, W); }
+/** SHELL 2.0 B1 — the same from THE WIND's DISTANCE P (pt at d.v = 1 — core/harbor-phase.js: the speed's integral, never speed × the clock) */
+export function driftAt(d, P, W) {
+  const span = W + d.w * 1.08, x = d.x0 + d.w * 1.04 + d.v * P;
   return ((x % span) + span) % span - d.w * 1.04;
+}
+/** SHELL 2.0 B1 — THE RACING CLOUDS: the cloud field's one phase — every cloud (and the deck) at d.v × P(t) where P is the drift speed's
+ *  INTEGRAL (core/harbor-phase.js): a change of the mean wind keeps every cloud where it is and only changes how fast it goes on.
+ *  dist(tSec, wind, windX) → P (pt at d.v = 1) */
+export function cloudDrift() {
+  const ph = phaseClock();
+  return { dist: (tSec, wind, windX) => ph.at(tSec, driftSpeed(wind) * windX), reset: () => ph.reset() };
 }
 
 // ------------------------------------------------------------------ THE LIGHT FOR THE HOUR

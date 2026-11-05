@@ -3,7 +3,9 @@
 // after dark), the billboard jack's queue + a REPEAT on THE PROGRAM, THE LEDGER's nixies, a nobody refused at every action, the city
 // behind keeps its tier while the radio is open. NEVER fires anything the other shards' pages would play (the emulators are shared
 // locally): JUST ME, a test room, a city banner set AT A TIME hours away (then cancelled).
-import { BASE, log, sleep, ok, okT, open, ev, waitFor, harborUp, dbPut, G } from './kit.mjs';
+import { BASE, log, sleep, ok, okT, open, ev, waitFor, harborUp, dbPut, G, SHOTS, OUT } from './kit.mjs';
+// (SHELL 2.0 B1: each face shot top + bottom — the neon desk's look review)
+const shotFace = async (p, name) => { if (!SHOTS) return; await sleep(500); await p.screenshot({ path: `${OUT}radio-${name}.png` }); await p.evaluate(() => { const s = document.querySelector('.rd-sheet'); if (s) s.scrollTop = s.scrollHeight; }); await sleep(300); await p.screenshot({ path: `${OUT}radio-${name}-end.png` }); await p.evaluate(() => { const s = document.querySelector('.rd-sheet'); if (s) s.scrollTop = 0; }); };
 import * as RD from '../../../js/core/harbor-radio.js';
 
 const DB = 'http://127.0.0.1:9000', get = async p => (await fetch(`${DB}/${p}.json?ns=demo-arcade-default-rtdb`, { headers: { Authorization: 'Bearer owner' } })).json();
@@ -37,10 +39,20 @@ G('radio', async () => {
   ok(btn.top > btn.mBot && btn.dl < 1 && btn.dw < 1 && btn.tap >= 44, `RADIO: the corner button UNDER the ☰ — the same size + left edge, a 44 pt tap area (${JSON.stringify(btn)})`);
   await ev(O.page, `document.querySelector('.rd-btn').click()`);
   await waitFor(O.page, '!!document.querySelector(".rd-modal.is-in .rd-jack")', 'the desk', 10000);
+  await shotFace(O.page, 'desk');
   const desk = await ev(O.page, `[...document.querySelectorAll('.rd-jack')].map(j => j.dataset.jack)`);
   ok(desk.join() === RD.jacks().map(j => j.id).join(), `RADIO: THE DESK's jacks = the timetable's rows with a jack (${desk.length}: ${desk.join(' ')})`);
   const faces = await ev(O.page, `[...document.querySelectorAll('.rd-bb')].map(b => b.textContent).join()`);
   ok(faces === 'DESK,PROGRAM,LEDGER', `RADIO: the band selector (${faces})`);
+  // (SHELL 2.0 B1 — THE RADIO MATCHES THE REST: no brass left — the panels dark glass, the tabs + buttons neon tubes (the on tab PINK), the
+  //  jacks neon rings, the dial dark with a neon needle, no gradient-filled letters, no cream paper)
+  { const look = await ev(O.page, `(() => { const cs = s => { const e = document.querySelector(s); return e ? getComputedStyle(e) : null; }, lum = c => { const m = (c || '').match(/[\\d.]+/g); if (!m) return 1; const [r, g, b] = m.map(Number); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
+      const on = cs('.rd-bb.is-on'), off = cs('.rd-bb:not(.is-on)'), face = cs('.rd-face'), tune = cs('.rd-tune'), hole = cs('.rd-jack:not(.is-grey) .rd-hole'), brand = cs('.rd-brand b'), plate = cs('.rd-plate'), arr = cs('.rd-done');
+      const brass = [...document.querySelectorAll('.rd-modal *')].filter(e => /#e2b867|226, 184, 103|214, 178, 104|255, 243, 207/.test(getComputedStyle(e).backgroundImage)).length;
+      return { onPink: /rgb\\(255, 79, 216\\) 0px 0px 0px 1\\.5px/.test(on.boxShadow) && !/255, 243, 207|226, 184, 103/.test(on.backgroundImage), offWhite: !/255, 79, 216/.test(off.boxShadow) && /rgb\\(147, 166, 204\\) 0px 0px 0px 1\\.5px/.test(off.boxShadow), tube: on.borderRadius, faceDark: lum(face.backgroundImage.match(/rgba?\\([^)]+\\)/)[0]) < 0.2, tuneDark: lum((tune.backgroundImage.match(/rgba?\\([^)]+\\)/g) || [])[1]) < 0.2,
+        ring: /\\d+px/.test(hole.boxShadow) && !/90, 74, 42/.test(hole.backgroundImage), clipText: /text/.test(brand.backgroundClip + brand.webkitBackgroundClip), plateBg: plate.backgroundImage, arrTube: /147, 166, 204/.test(arr.boxShadow), brass }; })()`);
+    ok(look.onPink && look.offWhite && look.faceDark && look.tuneDark && look.ring && !look.clipText && look.plateBg === 'none' && look.arrTube && look.brass === 0,
+      `THE RADIO IN THE SHELL LOOK: the on tab a PINK tube (${look.onPink}), the others quiet white tubes (${look.offWhite}), ARRANGE a tube (${look.arrTube}), the panels dark glass (${look.faceDark}), the dial dark (${look.tuneDark}), the jacks neon rings (${look.ring}), no gradient letters (${!look.clipText}), no brass plates (${look.plateBg}), brass left: ${look.brass}`); }
   // ---- a greyed jack's note (by day) — or every night jack ready (after dark at the owner's city, the real clock)
   { const st = await call(O.page, { action: 'radioState' }), grey = st.r.jacks.filter(j => !j.run.ok);
     if (grey.length) { await tapJack(O.page, grey[0].id); await sleep(300); const bub = await ev(O.page, `(document.querySelector('.rd-bub') || {}).textContent || ''`);
@@ -206,11 +218,13 @@ G('radio', async () => {
   await waitFor(O.page, '!document.querySelector(".rd-cardwrap")', 'the billboard posted', 6000);
   await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'PROGRAM').click()`);
   await waitFor(O.page, `[...document.querySelectorAll('.rd-paper h4')].some(h => /YOUR QUEUE/.test(h.textContent))`, 'THE PROGRAM', 8000);
+  await shotFace(O.page, 'program');
   const prog = await ev(O.page, `({ heads: [...document.querySelectorAll('.rd-paper h4')].map(h => h.firstChild.textContent), rows: document.querySelectorAll('.rd-paper .rd-pr').length, queue: [...document.querySelectorAll('.rd-paper')].pop().textContent, week: document.querySelectorAll('.rd-wk div').length })`);
   ok(prog.heads.length === 3 && prog.rows >= 3 && prog.week === 7 && /GAME NIGHT · 8 PM/.test(prog.queue) && /FRI 19:45|FRI \d/.test(prog.queue) === /FRI/.test(prog.queue), `RADIO: THE PROGRAM — tonight (${prog.rows} rows), the week (${prog.week}), YOUR QUEUE with the billboard REPEAT ("${prog.queue.slice(0, 90)}")`);
   // ---- THE LEDGER's nixies
   await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'LEDGER').click()`);
   await waitFor(O.page, '!!document.querySelector(".rd-big3 .rd-nixie")', 'THE LEDGER', 10000);
+  await shotFace(O.page, 'ledger');
   const led = await ev(O.page, `({ nix: document.querySelectorAll('.rd-big3 .rd-nixie').length, rows: document.querySelectorAll('.rd-lg').length, bars: document.querySelectorAll('.rd-chart > div').length })`);
   ok(led.nix === 3 && led.rows >= 6 && led.bars === 7, `RADIO: THE LEDGER — 3 nixies, TODAY's rows (${led.rows}), THIS WEEK's 7 bars`);
   // ---- PROGRESSION A — THE FOUNDER WINDOW on THE LEDGER: OPEN by default; a tap arms it, a second tap CLOSES it (the server, audited);

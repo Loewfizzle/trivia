@@ -3,10 +3,12 @@
 // wind; pale grey-white by day, at night lit from inside by the city (its glow + a touch of the neon's colour). One baked tile of soft
 // blobs (made once), scrolled + drawn twice at two speeds (a parallax); a vertical gradient over it. A frame: three drawImage + a fill.
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { phaseClock } from '../../core/harbor-phase.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 
 export function createWaterFog() {
+  const ph = phaseClock();
   let tile = null, grad = null, gradKey = '', wisp = null;   // (PERF-A: grad = a 1-px-wide strip of the body's gradient; wisp = the two layers at CSS resolution)
   function bake() {
     tile = mk(512, 64);
@@ -46,13 +48,14 @@ export function createWaterFog() {
       c.save();
       c.drawImage(grad, 0, 0, 1, hp, 0, top, s.W, H);
       // the wisps: the tile at two depths, drifting with the wind (the far one slower)
-      const v = (s.wind == null ? 2 : s.wind) * 2.2, tt = s.motion ? s.t : 0, op = day > 0.5 ? 'source-over' : 'lighter';
+      // (SHELL 2.0 B1: the wisps' drift = the wind's INTEGRAL — core/harbor-phase.js; a new wind never flings them)
+      const v = (s.wind == null ? 2 : s.wind) * 2.2, dist = s.motion ? ph.at(s.t, v) : 0, op = day > 0.5 ? 'source-over' : 'lighter';
       const ww = Math.ceil(s.W), wh = Math.ceil(H) + 2;
       if (!wisp || wisp.width !== ww || wisp.height !== wh) { if (wisp) wisp.width = 0; wisp = mk(ww, wh); }
       const wx = safeCtx(wisp);
       wx.setTransform(1, 0, 0, 1, 0, 0); wx.globalAlpha = 1; wx.globalCompositeOperation = 'source-over'; wx.clearRect(0, 0, ww, wh); wx.globalCompositeOperation = op;
       for (const [sp, y, hh, a] of [[0.45, top + H * 0.08, H * 0.42, 0.7], [1, top + H * 0.3, H * 0.5, 0.5]]) {
-        const off = (((tt * v * sp) % 512) + 512) % 512, sc = hh / 64, tw = 512 * sc;
+        const off = (((dist * sp) % 512) + 512) % 512, sc = hh / 64, tw = 512 * sc;
         wx.globalAlpha = a * k * (day > 0.5 ? 0.9 : 0.55);
         for (let x0 = -off * sc; x0 < s.W; x0 += tw) wx.drawImage(tile, x0, y - top, tw, hh);
       }

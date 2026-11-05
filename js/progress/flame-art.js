@@ -3,7 +3,7 @@
 // stack + its coloured tube + a white core line (built like the sign's tubes, no filters: crisp at 3×), a soft FILL of light inside the
 // outer flame (clear at the top → warm at the base) and a warm radial glow behind. Motion (css/progress.css pg-fl-*): the licks flicker +
 // the core breathes — transform + opacity only; reduced motion = lit, still. ONE SHAPE everywhere: the streak card (big), the week's
-// seven days, the end-of-round streak line + the profile (flameIcon), the dock's badge (flame.js paints the same paths on its canvas).
+// seven days, the end-of-round streak line + the profile (flameIcon).
 import { h } from '../ui/dom.js';
 
 /** the paths (viewBox 0 0 120 150 — the base at the bottom centre) */

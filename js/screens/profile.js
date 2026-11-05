@@ -133,7 +133,9 @@ export function createView({ onBack = null, overlay = false } = {}) {
   }
   // (THE SPEED PASS — the owner, Nov 4 6:28 pm: the ✎ beside the name on the card is GONE — CUSTOMIZE's EDIT USERNAME row is the one way in)
 
-  function back() { closeAllPfSheets(); if (onBack) { onBack(); return; } try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); }
+  // (SHELL 2.0 B1: opened from the ☰ menu → its ‹ BACK brings the menu back on top — settings-panel.js#backToMenu)
+  const toMenu = () => import('../ui/settings-panel.js').then(m => m.backToMenu()).catch(() => {});
+  function back() { closeAllPfSheets(); if (onBack) { onBack(); toMenu(); return; } try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); toMenu(); }
 
   // ---------------------------------------------------------------- YOUR KEY — ONE block (2C's page showed the key THREE times)
   function paintKey() {

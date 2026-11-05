@@ -125,12 +125,26 @@ G('roomfix', async () => {
           const top = el.querySelector('.vl-fc-top'), hs = top.querySelector('.vl-fc-house'), pill = top.querySelector('.vl-fc-gem'), T = top.getBoundingClientRect(), H = hs.getBoundingClientRect(), P = pill.getBoundingClientRect();
           const rg = document.createRange(); rg.selectNodeContents(hs); const W = rg.getBoundingClientRect();
           const clip = W.right > P.left - 1 || W.left < T.left - 1 || P.right > T.right + 1 || P.left < T.left;
+          // (SHELL 2.0 B1 — the owner, 9:12 am: the 1 OF 1 READABLE on the gold card: solid letters (never gradient-filled), a dark backing,
+          //  the contrast of the letters over the backing laid on WHITE (the lightest any card gets) ≥ 7, a clear gap before the gem's halo)
+          const one = pill.querySelector('.vl-fc-1of1');
+          if (one) {
+            const cs = getComputedStyle(one), rgb = s => (s.match(/[\\d.]+/g) || []).map(Number);
+            const [r, g, b] = rgb(cs.color), bg = rgb(cs.backgroundColor), a = bg[3] ?? 1;
+            const mix = bg.slice(0, 3).map(c => c * a + 255 * (1 - a)), lum = ([R, G, B]) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(R) + 0.7152 * f(G) + 0.0722 * f(B); };
+            const L1 = lum([r, g, b]), L2 = lum(mix), ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+            const gem = pill.querySelector('.vl-gem').getBoundingClientRect(), O = one.getBoundingClientRect();
+            out.push({ id, clip, fit: top.dataset.fit || '', pill: pill.textContent, one: { clipText: /text/.test(cs.backgroundClip + cs.webkitBackgroundClip), ratio: +ratio.toFixed(1), gap: +(gem.left - O.right).toFixed(1), gemW: +gem.width.toFixed(1) } });
+            continue;
+          }
           out.push({ id, clip, fit: top.dataset.fit || '', pill: pill.textContent });
         }
         box.remove();
-        return { w: '${w}' + (${k} < 1 ? ' (the viewer, 72 %)' : ''), n: out.length, bad: out.filter(x => x.clip).map(x => x.id), dev: out.filter(x => /dev/.test(x.id)).map(x => x.pill + ':' + x.fit), tight: out.filter(x => x.fit && x.fit !== 'css').length };
+        return { w: '${w}' + (${k} < 1 ? ' (the viewer, 72 %)' : ''), n: out.length, bad: out.filter(x => x.clip).map(x => x.id), dev: out.filter(x => /dev/.test(x.id)).map(x => x.pill + ':' + x.fit), tight: out.filter(x => x.fit && x.fit !== 'css').length, ones: out.filter(x => x.one).map(x => ({ id: x.id, ...x.one })) };
       })()`));
     }
+    const ones = res.flatMap(r => r.ones.map(o => ({ w: r.w, ...o })));
+    ok(ones.length >= 2 && ones.every(o => !o.clipText && o.ratio >= 7 && o.gap >= 6), `THE 1 OF 1 READS ON GOLD: solid letters on a dark backing (contrast over white ≥ 7), ≥ 6 pt clear of the gem (${ones.map(o => `${o.id.replace('card-dev-', '')}@${o.w}: ${o.clipText ? 'GRADIENT ' : ''}${o.ratio}:1 gap ${o.gap}`).join(' · ')})`);
     ok(res.every(r => r.dev.every(x => /^1 OF 1:/.test(x))), `THE DEV PILL reads just "1 OF 1" (${res[0].dev.join(' · ')})`);
     ok(res.every(r => r.n > 30 && !r.bad.length), `THE TOP LINE NEVER CLIPS: every full card (${res[0].n}) with FOUNDER + № at 390 / 402 / 430 (+ a 72 % viewer) — the words + the pill side by side, whole (${res.map(r => `${r.w}: ${r.bad.length ? r.bad.join(',') : 'ok'} · ${r.tight} tightened`).join(' | ')})`);
     await Q.ctx.close(); }
@@ -460,16 +474,18 @@ G('sheetstack', async () => {
   const T = await open({ slot: 'sst', qs: ROOMQ, view: [402, 874] }), t = T.page;
   await harborUp(t); await sleep(900);
   await ev(t, "document.querySelector('.nd-tab-you').click()");
-  const ts = [];
+  const ts = []; let nameBack = false;
   if (await waitFor(t, "!!document.querySelector('.vl-dp-go')", 'the profile', 15000).then(() => true, () => false)) {
     await ev(t, "document.querySelector('.vl-dp-go').click()"); await sleep(600); ts.push(await topAt(t));
     await ev(t, "document.querySelector('.vl-dress .vl-dr-view').click()"); await sleep(700); ts.push(await topAt(t));
     // (LOBBY FIXES — the owner's ADD-ON 3: NAME + COLOUR are rows at CUSTOMIZE's top — its NAME sheet opens ON TOP of CUSTOMIZE, ‹ one step back)
     await ev(t, "document.querySelector('.vl-full-x').click()"); await sleep(400); ts.push(await topAt(t));
     await ev(t, "document.querySelector('.vl-dress .vl-yr-name').click()"); await sleep(700); ts.push(await topAt(t));
+    // (SHELL 2.0 B1 — the owner, 9:15 am: CUSTOMIZE → EDIT USERNAME had only an × — its ‹ must SHOW, not just exist)
+    nameBack = await ev(t, "(() => { const b = document.querySelector('.pf-name-sheet:not(.is-out) .sh-back'); return !!(b && !b.hidden && b.getBoundingClientRect().width >= 40); })()");
     await ev(t, "[...document.querySelectorAll('.sh:not(.is-out) .sh-back')].pop().click()"); await sleep(500); ts.push(await topAt(t));
   }
-  ok(ts.length === 5 && ts[0] === 'vl-dress' && ts[1] === 'vl-full' && ts[2] === 'vl-dress' && /^sheet:pf-name-sheet/.test(ts[3]) && ts[4] === 'vl-dress', `ONE SHEET STACK (the title dock): CUSTOMIZE [${ts[0]}] → VIEW FULL [${ts[1]}] → closed [${ts[2]}] → its NAME row → the name sheet ON TOP [${ts[3]}] → ‹ one step back [${ts[4]}]`);
+  ok(nameBack && ts.length === 5 && ts[0] === 'vl-dress' && ts[1] === 'vl-full' && ts[2] === 'vl-dress' && /^sheet:pf-name-sheet/.test(ts[3]) && ts[4] === 'vl-dress', `ONE SHEET STACK (the title dock): EDIT USERNAME's ‹ visible (${nameBack}); CUSTOMIZE [${ts[0]}] → VIEW FULL [${ts[1]}] → closed [${ts[2]}] → its NAME row → the name sheet ON TOP [${ts[3]}] → ‹ one step back [${ts[4]}]`);
   await T.ctx.close();
 });
 

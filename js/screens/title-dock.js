@@ -162,7 +162,7 @@ export function createDock(on) {
 }
 
 // ------------------------------------------------------------------ THE DOCK's WORK (CITY 1.0 OUT: out of title.js — JOIN, HOST, the notes,
-// the rings' light, the streak flame on YOU). title.js calls createDockWork(T) where this code sat and reads dk.<name>.
+// the rings' light, no streak on the dock — SHELL 2.0 B1). title.js calls createDockWork(T) where this code sat and reads dk.<name>.
 /** createDockWork(T) — moved out of title.js#createTitle by scripts/split-closure.mjs (no behaviour change): T carries the names it shares
  *  with that closure, live (getters + setters); what it returns, the closure reads as dk.<name>. */
 export function createDockWork(T) {
@@ -252,34 +252,6 @@ export function createDockWork(T) {
     T.els.note.classList.toggle('is-on', !!text);
     if (text && ms) noteT = setTimeout(() => note(''), ms);
   }
-
-  // PROGRESSION A — THE DOCK's STREAK on YOU; SHELL 2.0 A (the owner, 6:57 am: ONLY the dock's flame goes): the streak NUMBER in a small
-  // neon pill (js/progress/flame.js#streakPill — the member card's flame, the round-end line + the big streak card's flame stay); no streak =
-  // no pill. ?preview=flame&streak=N shows a sample one (a preview of the pill on a phone with no streak yet).
-  let flameSig = null;
-  function paintDockFlame(pub) {
-    let pv = null;
-    try { const q = new URLSearchParams(location.search); if (q.get('preview') === 'flame') pv = { n: Math.max(1, Number(q.get('streak') || 7)), state: q.get('state') || 'lit' }; } catch { /* fine */ }
-    const sig = pv ? `pv|${pv.n}|${pv.state}` : pub && pub.s ? `${pub.s}|${pub.sd || ''}` : '';
-    if (sig === flameSig) return;
-    flameSig = sig;
-    const old = T.els.youTab.querySelector('.pg-dock');
-    if (old) old.remove();
-    if (!sig) return;
-    import('../progress/flame.js').then(async m => {
-      if (T.destroyed || flameSig !== sig) return;
-      let st = pub && pub.s ? { n: pub.s, d: pub.sd } : null;
-      if (pv) { const P = await import('../progress/preview.js'); st = P.sampleStreak(pv.n, pv.state); }
-      await (await import('../progress/look.js')).pgSheet();
-      if (T.destroyed || flameSig !== sig) return;
-      const b = m.streakPill(st);
-      const was = T.els.youTab.querySelector('.pg-dock');
-      if (was) was.remove();
-      if (b) T.els.youTab.append(b);
-    }).catch(() => {});
-  }
-
-
 
   const clean = v => String(v || '').toUpperCase().replace(/[^A-Z]/g, '');
 
@@ -394,7 +366,6 @@ export function createDockWork(T) {
     get openJoin() { return openJoin; },
     get outsideDown() { return outsideDown; },
     get paintCode() { return paintCode; },
-    get paintDockFlame() { return paintDockFlame; },
     get ringColors() { return ringColors; },
     get ringOn() { return ringOn; },
     get ringsWanted() { return ringsWanted; },

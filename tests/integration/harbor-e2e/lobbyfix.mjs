@@ -437,18 +437,48 @@ G('shell', async () => {
     return { labels: rows.map(x => x.querySelector('.sh-row-l b').textContent), h: Math.min(...rows.map(x => Math.round(x.getBoundingClientRect().height))), solid: !!(mid && mid.closest('.sh-panel')), bg: getComputedStyle(pn).backgroundImage, blur: getComputedStyle(pn).backdropFilter }; })()`);
   ok(m.labels.join(' · ') === 'Your card · How to play · Settings · Sound effects' && m.h >= 56 && m.solid && !/rgba/.test(m.bg) && (!m.blur || m.blur === 'none'),
     `THE ☰ MENU: ${m.labels.join(' · ')} (no admin rows for a member), rows ${m.h} pt, the sheet SOLID (${m.solid}, no blur)`);
-  // ---- a sheet on a sheet: ‹ shows on the second; Esc closes the TOP only, then the next
-  await ev(p, "document.querySelector('.gm .gm-settings').click()");
-  await waitFor(p, "!!document.querySelector('.sh.settings.is-in')", 'SETTINGS', 6000); await sleep(400);
-  // (the menu closes itself when it opens SETTINGS; open HOW TO PLAY on top of SETTINGS to test the stack)
-  await ev(p, "import('/js/ui/help.js').then(m => { m.openHelp('prism'); return 1; })");
-  await waitFor(p, "!!document.querySelector('.help-sheet.is-in')", 'HOW TO PLAY', 6000); await sleep(400);
-  const st = await ev(p, `({ n: document.querySelectorAll('.sh:not(.is-out)').length, back: !document.querySelector('.help-sheet .sh-back').hidden, top: document.elementFromPoint(innerWidth / 2, innerHeight - 120).closest('.sh').className })`);
+  // ---- SHELL 2.0 B1 — ‹ BACK ON EVERY NESTED SHEET (the owner, 9:15 am: ☰'s sheets had only an ×): a sheet opened FROM another shows a
+  //      VISIBLE ‹ at its top-left + its parent's name small under the title; ‹ = one step back to the parent; × closes everything; Esc = the
+  //      top only; a top-level sheet = the × only. One case per nested path: ☰ → SETTINGS, ☰ → HOW TO PLAY, SETTINGS → CREDITS, ☰ → YOUR CARD
+  //      (a full screen — its ‹ brings the menu back)
+  const vis = sel => `(() => { const s = [...document.querySelectorAll('${sel}')].filter(x => !x.classList.contains('is-out')).pop(); if (!s) return null; const b = s.querySelector('.sh-back'), r = b && b.getBoundingClientRect(), pr = s.querySelector('.sh-panel').getBoundingClientRect();
+    return { back: !!(b && !b.hidden && r.width >= 40 && getComputedStyle(b).display !== 'none' && r.left - pr.left < 60), kick: (s.querySelector('.sh-t small') || {}).textContent || '', x: !!s.querySelector('.sh-x') }; })()`;
+  const live = () => ev(p, "[...document.querySelectorAll('.sh:not(.is-out)')].map(x => x.className)");
+  const top0 = await ev(p, vis('.sh.gm'));
+  const nest = [];
+  for (const [row, sel, name] of [['.gm-settings', '.sh.settings', 'SETTINGS'], ['.gm-help', '.help-sheet', 'HOW TO PLAY']]) {
+    await ev(p, `document.querySelector('.gm ${row}').click()`);
+    await waitFor(p, `!!document.querySelector('${sel}.is-in')`, name, 6000); await sleep(400);
+    const v = await ev(p, vis(sel)), open1 = await live();
+    await ev(p, `[...document.querySelectorAll('${sel} .sh-back')].pop().click()`); await sleep(450);
+    const after = await live();
+    nest.push({ name, ...v, under: open1.length === 2 && /\bgm\b/.test(open1[0]), backTo: after.length === 1 && /\bgm\b/.test(after[0]) });
+  }
+  // SETTINGS → CREDITS (a sheet two deep): ‹ → SETTINGS; Esc = the top only; then × closes all
+  await ev(p, "document.querySelector('.gm .gm-settings').click()"); await waitFor(p, "!!document.querySelector('.sh.settings.is-in')", 'SETTINGS', 6000); await sleep(350);
+  const credits = "[...document.querySelectorAll('.sh.settings .sh-row')].find(r => /Credits/.test(r.textContent)).click()";
+  await ev(p, credits);
+  await waitFor(p, "!!document.querySelector('.cr-sheet.is-in')", 'CREDITS', 6000); await sleep(400);
+  const cr = await ev(p, vis('.cr-sheet'));
+  await ev(p, "document.querySelector('.cr-sheet .sh-back').click()"); await sleep(450);
+  const crBack = await live();
+  await ev(p, credits);
+  await waitFor(p, "!!document.querySelector('.cr-sheet.is-in')", 'CREDITS again', 6000); await sleep(350);
   await p.keyboard.press('Escape'); await sleep(450);
-  const e1 = await ev(p, `({ help: !!document.querySelector('.help-sheet:not(.is-out)'), set: !!document.querySelector('.sh.settings:not(.is-out)') })`);
-  await p.keyboard.press('Escape'); await sleep(450);
-  const e2 = await ev(p, `!!document.querySelector('.sh:not(.is-out)')`);
-  ok(st.n === 2 && st.back && /help-sheet/.test(st.top) && !e1.help && e1.set && !e2, `THE SHEET STACK: HOW TO PLAY on SETTINGS (‹ ${st.back}, on top) → Esc closes HOW TO PLAY only (settings still ${e1.set}) → Esc closes SETTINGS (${!e2})`);
+  const esc = await live();
+  await ev(p, "[...document.querySelectorAll('.sh:not(.is-out) .sh-x')].pop().click()"); await sleep(500);
+  const xAll = await live();
+  nest.push({ name: 'CREDITS (on SETTINGS)', ...cr, under: true, backTo: crBack.length === 2 && /settings/.test(crBack[1]) });
+  // ☰ → YOUR CARD (the membership card, a full screen): the menu steps aside; the card's ‹ BACK brings the menu back on top
+  await ev(p, "document.querySelector('.menu-btn').click()"); await waitFor(p, "!!document.querySelector('.gm.is-in .sh-row')", 'the menu again', 6000); await sleep(350);
+  await ev(p, "document.querySelector('.gm .gm-card').click()");
+  const card = await waitFor(p, "!!document.querySelector('.vl-dp-go, .pf-back, .screen-profile')", 'YOUR CARD', 12000).then(() => true, () => false);
+  await sleep(600);
+  await ev(p, "(() => { const b = document.querySelector('.pf-back') || [...document.querySelectorAll('.screen button')].find(x => /back/i.test(x.getAttribute('aria-label') || x.textContent)); if (b) b.click(); })()");
+  const cardBack = await waitFor(p, "!!document.querySelector('.gm.is-in .sh-row')", 'the menu back after YOUR CARD', 8000).then(() => true, () => false);
+  await ev(p, "(() => { const x = document.querySelector('.gm .sh-x'); if (x) x.click(); })()"); await sleep(450);
+  ok(!top0.back && top0.x && nest.every(n => n.back && n.x && n.under && n.backTo && n.kick) && esc.length === 2 && /settings/.test(esc[1] || '') && !xAll.length && card && cardBack,
+    `‹ BACK ON EVERY NESTED SHEET: the menu (top level) × only (‹ ${top0.back}); ${nest.map(n => `${n.name}: ‹ ${n.back} "${n.kick}" on the parent ${n.under} → ‹ back ${n.backTo}`).join(' · ')}; Esc on CREDITS → SETTINGS stays (${esc.length} open); × closes all (${xAll.length} left); ☰ → YOUR CARD (${card}) → its ‹ → the menu again (${cardBack})`);
   // ---- ONE MESSAGE at a time, above the dock, never on the sign
   await ev(p, "import('/js/ui/toast.js').then(m => { m.toast('FIRST', 'info', 5000); m.toast('Host left — you’re the host now', 'warn', { ms: 5000, sub: 'Your friends are still in the room.' }); return 1; })");
   await sleep(500);

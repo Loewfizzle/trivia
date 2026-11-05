@@ -1,6 +1,6 @@
 /* PROGRESSION A — THE GILDED LOOK (the owner's mockups: Downloads\NEON\progression\ — the A · GILDED panels): black lacquer, brass foil, the
    Art Deco fan crown, ONE hot-pink neon accent for what you just earned. The end-of-round moment (pg-moment), the level-up (pg-up), the streak
-   card (pg-sc), the membership card (pg-card) + the profile (pg-prof), the dock's streak pill (pg-dock). Classes pg-*. Only transform + opacity move;
+   card (pg-sc), the membership card (pg-card) + the profile (pg-prof), (no streak on the dock — SHELL 2.0 B1). Classes pg-*. Only transform + opacity move;
    reduced motion = the end state, still. Text ≥ 4.5 : 1 on the lacquer (--pg-dim #c2ae86 on #0b0a0d ≈ 8.6 : 1). */
 :root {
   --pg-lac: #0b0a0d; --pg-lac-2: #141217; --pg-brass: #d8b46a; --pg-brass-hi: #f6e3a8; --pg-brass-lo: #8e6e33;
@@ -216,18 +216,6 @@
 .pg-vitem.is-on::after { content: 'EQUIPPED'; position: absolute; top: -7px; left: 50%; transform: translateX(-50%); padding: 2px 6px; border-radius: 6px; background: var(--pg-brass); color: #1d1405; font: 800 7.5px/1 var(--font-ui); letter-spacing: 0.16em; }
 .pg-only { margin: 10px 0 0; text-align: center; font: italic 400 13px/1.3 var(--pg-serif); color: var(--pg-dim); }
 
-/* ------------------------------------------------------------------ THE DOCK's STREAK (on YOU — SHELL 2.0 A: a neon number pill, .pg-pill below) */
-.pg-dock { position: absolute; right: -9px; top: -11px; z-index: 3; display: flex; align-items: center; pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .pg-moment *, .pg-moment *::before { animation: none !important; transition: none !important; } }
-/* SHELL 2.0 A — THE DOCK's STREAK PILL: the count in a small neon tube (amber lit · dim while it waits · ice when a freeze holds it); static */
-.pg-pill { height: 20px; min-width: 22px; padding: 0 6px; justify-content: center; border-radius: 10px; background: rgba(14, 8, 4, 0.92);
-  border: 1.2px solid #ffe2c2; box-shadow: 0 0 0 1.2px #ff8a2a, 0 0 8px rgba(255, 138, 42, 0.6); }
-.pg-pill b { margin: 0; font: 800 12px/1 var(--font-num); color: #fff; text-shadow: 0 0 5px rgba(255, 150, 60, 0.85); }
-.pg-pill.is-waiting { border-color: rgba(255, 226, 194, 0.55); box-shadow: 0 0 0 1.2px rgba(255, 138, 42, 0.55); opacity: 1; }
-.pg-pill.is-waiting b { color: #f3d8bd; text-shadow: none; }
-.pg-pill.is-frozen { border-color: #dff6ff; box-shadow: 0 0 0 1.2px #5ad1ff, 0 0 8px rgba(90, 209, 255, 0.55); }
-.pg-pill.is-frozen b { text-shadow: 0 0 5px rgba(90, 209, 255, 0.85); }
-.nd-tab .pg-pill { left: calc(50% + 4px); top: 0; }   /* (hugging the emblem's top-right corner) */
 
 /* the live site's ?preview=card / profile: the card + the profile over the city (a sample member — nothing is read or written) */
 .pg-pv { position: fixed; inset: 0; z-index: 9000; overflow-y: auto; overscroll-behavior: contain; }

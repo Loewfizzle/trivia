@@ -49,7 +49,7 @@ export async function openYouEditor(onDone) {
     s.close();
   };
   input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-  s = openPfSheet({ kicker: 'CUSTOMIZE', title: 'EDIT USERNAME', cls: 'pf-name-sheet', body: [
+  s = openPfSheet({ kicker: 'CUSTOMIZE', from: 'CUSTOMIZE', title: 'EDIT USERNAME', cls: 'pf-name-sheet', body: [   // (SHELL 2.0 B1: opened FROM CUSTOMIZE — its ‹ back)
     h('label.field', h('span.label', 'USERNAME'), input),
     h('p.pf-public', 'This name shows on the public board — don’t use your full real name.'),
     h('div.field', h('span.label', 'COLOUR'), sw),

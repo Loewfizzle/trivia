@@ -1116,7 +1116,6 @@ export function createTitle() {
       els.youTab.setAttribute('aria-label', 'Create your player');
       els.youTab.classList.add('is-guest');
     }
-    dk.paintDockFlame(pub);
     if (els.sub) els.sub.hidden = !!(p && p.name);
     if ((state.rejoin || '') !== els.rejoinCode) els.rejoin.replaceChildren(...(state.rejoin ? [h('button.nd-rejoin-btn', { type: 'button', 'aria-label': `Rejoin room ${state.rejoin}`, onclick: () => dk.join(state.rejoin, true) },
       h('i.nd-rejoin-dot', { 'aria-hidden': 'true' }), h('span.nd-rejoin-l', 'REJOIN'), ' ', h('b.nd-rejoin-c', state.rejoin))] : []));

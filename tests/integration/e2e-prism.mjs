@@ -15,7 +15,8 @@ const BROWSER = process.argv[2];
 const OUT = (process.argv[3] || './shots-prism').replace(/\/?$/, '/');
 mkdirSync(OUT, { recursive: true });
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
-const N = Number(process.env.N || 8);
+const FAST = process.env.FAST === '1';   // (SHELL 2.0 B1: two phones, one battle to its end, back to the room — ≈ 1 min)
+const N = Number(process.env.N || (FAST ? 2 : 8));
 const SHOTS = process.env.SHOTS !== '0';
 const CPU = Number(process.env.CPU || 4);
 const NAMES = ['ALICE', 'BOB', 'CHARLIE', 'DANA', 'EVE', 'FINN', 'GRACE', 'HAL'];
@@ -82,7 +83,7 @@ async function joinAll() {
   }
   await host.type('.setup-screen input.input', NAMES[0]);
   await host.click('.form-cta .btn-primary');
-  await host.waitForSelector('.lobby-screen .room-code', { timeout: 20000 });
+  await host.waitForSelector('.title-screen.is-room .rdk-dock', { timeout: 20000 });   // (SHELL 2.0 B1: the room in the city)
   code = await evalIn(host, s => s.code);
   log('room', code);
   for (let i = 1; i < N; i++) {
@@ -93,7 +94,7 @@ async function joinAll() {
     await p.waitForSelector('.input-code');
     await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
     await p.click('.form-cta .btn-primary');
-    await p.waitForSelector('.lobby-screen', { timeout: 20000 });
+    await p.waitForSelector('.title-screen.is-room', { timeout: 20000 });
   }
   await waitFor(host, (s, n) => Object.keys(s.players).length === n, `${N} players`, 30000, N);
   for (let i = 0; i < N; i++) uids[i] = await evalIn(pages[i], s => s.uid);
@@ -160,16 +161,19 @@ try {
     throw new Error('PERF_ONLY done');
   }
 
-  // ---------------------------------------------------------------- lobby card + options
-  await host.evaluate(() => document.querySelector('.game-card[data-theme="prism"]').scrollIntoView({ block: 'center' }));
+  // ---------------------------------------------------------------- the room dock's GAMES → PRISM DROP → its options (THE ROOM IN THE CITY)
+  await host.waitForSelector('.rdk-games', { timeout: 20000 });
+  await host.evaluate(() => document.querySelector('.rdk-games').click());
+  await host.waitForSelector('.rc-games-sheet .rc-game[data-game="prism"]', { timeout: 8000 });
   await sleep(500);
-  await shotBoth(host, 'pd-00-lobby-card');
-  await host.evaluate(() => document.querySelector('.game-card[data-theme="prism"]').click());
+  await shotBoth(host, 'pd-00-games');
+  await host.evaluate(() => document.querySelector('.rc-games-sheet .rc-game[data-game="prism"]').click());
   await host.waitForSelector('.sh.options', { timeout: 8000 });
   await sleep(500);
+  ok(await host.evaluate(() => !!document.querySelector('.sh.options .btn-primary') && /PRISM/i.test(document.querySelector('.sh.options .sh-t b').textContent)), 'THE ROOM: GAMES → PRISM DROP opens its options (INITIATE)');
   await shotBoth(host, 'pd-01-options');
-  await host.evaluate(() => document.querySelector('.sh.options .btn-text.btn-block').click());
-  await sleep(400);
+  await host.evaluate(() => { const x = document.querySelector('.sh:not(.is-out) .sh-x'); if (x) x.click(); });
+  await sleep(500);
 
   // ================================================================ MATCH A — BATTLE
   await host.evaluate(() => import('/js/host.js').then(m => m.startGame('prism', { mode: 'battle' })));
@@ -221,11 +225,20 @@ try {
   const e4 = await engOf(A);
   ok(e4.n === e3.n && yBefore - e4.cur.y >= 2, `GESTURE: a slow drag down soft-drops (${yBefore - e4.cur.y} rows), no hard drop`);
   // flick down: hard drop (counted from the hard-drop sound: the soft-dropped piece may have landed on its own by now)
-  const hard0 = await P(A, "window.__prism.synthLog().filter(x => x.name === 'hard').length");
+  // (SHELL 2.0 B1: since 9acac61 the flick SLAMS only with SWIPE-DOWN SLAM on (settings.prismFlick — off by default: the SLAM button
+  //  drops); this check had never run on the new default — the E2E stopped at the old lobby. By default a flick never hard-drops; on, it does.)
+  const hardN = () => P(A, "window.__prism.synthLog().filter(x => x.name === 'hard').length");
+  const hard00 = await hardN();
+  await touch(A, line(bx, by - 80, bx + 4, by - 80 + cell * 4, 5), 12);
+  const hardOff = (await hardN()) - hard00;
+  await P(A, "import('/js/audio/settings.js').then(m => { m.updateSettings({ prismFlick: true }); return 1; })");
+  await sleep(150);
+  const hard0 = await hardN();
   await touch(A, line(bx, by - 80, bx + 4, by - 80 + cell * 4, 5), 12);
   const e5 = await engOf(A);
-  const hard1 = await P(A, "window.__prism.synthLog().filter(x => x.name === 'hard').length");
-  ok(hard1 === hard0 + 1, `GESTURE: a fast flick down hard-drops (${hard1 - hard0})`);
+  const hard1 = await hardN();
+  await P(A, "import('/js/audio/settings.js').then(m => { m.updateSettings({ prismFlick: false }); return 1; })");
+  ok(hardOff === 0 && hard1 === hard0 + 1, `GESTURE: a fast flick down never slams by default (${hardOff}); with SWIPE-DOWN SLAM on it hard-drops (${hard1 - hard0})`);
   // swipe up: hold
   await touch(A, line(bx, by + 40, bx + 2, by + 40 - cell * 3.2, 6), 16);
   const e6 = await engOf(A);
@@ -244,6 +257,27 @@ try {
   }
   ok(accidental === 0, `GESTURE: 8 fast sideways swipes with downward drift, ${accidental} accidental hard drops`);
   await shotBoth(A, 'pd-03-play');
+
+  // ---------------------------------------------------------------- FAST=1 (SHELL 2.0 B1): two phones — the battle to its end, the
+  // results, the walk back out to the ROOM IN THE CITY (the full path below needs 8: the host killed, the late joiner, the call)
+  if (FAST) {
+    await P(A, 'window.__prism.bot({ skill: 0.95, every: 140, seed: 1 })');
+    await P(pages[1], 'window.__prism.bot({ skill: 0.4, every: 260, seed: 2 })');
+    await sleep(6000);
+    await P(pages[1], 'window.__prism.topOut()');
+    await waitFor(A, s => s.game.phase === 'end' || s.game.phase === 'final', 'FAST: the battle over', 60000);
+    await waitFor(A, s => s.game.phase === 'final', 'FAST: the results', 30000);
+    const gF = await game(A);
+    ok(gF.winner === uids[0], `FAST: ${NAMES[0]} is the last one standing (2 phones)`);
+    await A.waitForSelector('.final, .pd-res', { timeout: 15000 }).catch(() => {});
+    ok(await A.evaluate(() => !!document.querySelector('.final .final-back, .pd-res')), 'FAST: the podium shows (the results + BACK TO THE ROOM)');
+    await cleanText(A, 'final');
+    await A.evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
+    await waitFor(A, s => s.meta.status === 'lobby' && !s.game, 'FAST: back in the room', 30000);
+    await A.waitForSelector('.title-screen.is-room .rdk-dock', { timeout: 30000 });
+    ok(true, 'FAST: back in THE ROOM IN THE CITY (the room dock)');
+    throw new Error('FAST done');
+  }
 
   // ---------------------------------------------------------------- bots + battle
   // CHARLIE plays best (the test lets them win and calls it); everyone else is human-ish
@@ -452,7 +486,7 @@ try {
   await sleep(300);
   await shotBoth(s0, 'pd-18-settings');
 } catch (e) {
-  if (e.message !== 'PERF_ONLY done') errors.push(`FATAL ${e.message}`);
+  if (e.message !== 'PERF_ONLY done' && e.message !== 'FAST done') errors.push(`FATAL ${e.message}`);
   log('FAILED', e.message);
 }
 

@@ -121,7 +121,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const { gameArt } = await import('../ui/game-art.js');
     const list = h('div.rc-games', ...games.map(g => h('button.rc-game', { type: 'button', dataset: { theme: g.theme, game: g.id }, onclick: () => {
       if (!asHost || !isHost()) { openHelp(g.id); return; }
-      s.close();
+      // (SHELL 2.0 B1: the options open ON the picker — ‹ = back to the games, × = both)
       // (the host picks ANOTHER game after a match: the REMATCH ring goes back to PLAY + every vote clears)
       if (st.meta && st.meta.back && st.meta.back.rm) dbUpdate(dbRef(`rooms/${code()}`), { 'meta/back/rm': false, rv: null }).catch(() => {});
       import('./game-options.js').then(m => m.openGameOptions(g, { meta: st.meta }));

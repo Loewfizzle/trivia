@@ -197,6 +197,7 @@ function myName() {
   return lp && lp.name ? String(lp.name).toUpperCase() : '';
 }
 function openMenu() {
+  menuReturn = false;
   if (menuPanel) return;
   const inRoom = !!state.code;
   const playing = inRoom && state.meta && state.meta.status === 'playing' && state.game && state.quit !== state.game.matchId;
@@ -206,9 +207,12 @@ function openMenu() {
     const n = chatMod.chat.unread;
     rows.push(row({ icon: 'chat', label: 'Chat', value: n ? `${Math.min(99, n)} new` : null, cls: 'gm-chat', onClick: () => { closeMenu(); chatUi.openChat(); } }));
   }
-  rows.push(row({ icon: 'card', label: 'Your card', value: myName(), cls: 'gm-card', onClick: () => { closeMenu(); if (inRoom) import('../screens/profile.js').then(m => m.openCard()); else setState({ view: 'profile' }); } }));
-  rows.push(row({ icon: 'help', ic: '#5fe3ff', label: 'How to play', cls: 'gm-help', onClick: () => { closeMenu(); openHelp(playing ? state.game.id : undefined); } }));
-  rows.push(row({ icon: 'settings', ic: '#b48cff', label: 'Settings', cls: 'gm-settings', onClick: () => { closeMenu(); open(); } }));
+  // (SHELL 2.0 B1 — ‹ BACK ON EVERY NESTED SHEET, the owner 9:15 am: SHELL 2.0 A closed the menu before opening these, so they came up
+  //  top-level with only an ×. HOW TO PLAY + SETTINGS now open ON the menu (‹ = back to it, × = everything); YOUR CARD is a full screen —
+  //  the menu steps aside and the card's own ‹ BACK brings it back (backToMenu))
+  rows.push(row({ icon: 'card', label: 'Your card', value: myName(), cls: 'gm-card', onClick: () => { closeMenu(); menuReturn = true; if (inRoom) import('../screens/profile.js').then(m => m.openCard()); else setState({ view: 'profile' }); } }));
+  rows.push(row({ icon: 'help', ic: '#5fe3ff', label: 'How to play', cls: 'gm-help', onClick: () => { openHelp(playing ? state.game.id : undefined); } }));
+  rows.push(row({ icon: 'settings', ic: '#b48cff', label: 'Settings', cls: 'gm-settings', onClick: () => { open(); } }));
   rows.push(row({ icon: 'sound', ic: '#4dff9a', label: 'Sound effects', cls: 'gm-sfx', on: !settings.sfxOff && !settings.muted, toggle: next => updateSettings(next ? { sfxOff: false, muted: false } : { sfxOff: true }) }));
   // (9d: the registered extras — THE LAB, ADMIN, the CITY PREVIEW (admins only, after the server said so) — outside a game)
   if (!playing) for (const render of menuExtras.values()) { let el = null; try { el = render({ close: closeMenu }); } catch { el = null; } if (el) rows.push(el); }
@@ -225,4 +229,8 @@ function openMenu() {
 function paintBtn(on) { if (!menuBtn) return; menuBtn.setAttribute('aria-expanded', String(on)); menuBtn.classList.toggle('is-open', on); }
 function closeMenu() { if (menuPanel) menuPanel.close(); }
 export { closeMenu };
-onCloseAll(closeMenu);   // (FR6 FIXES A — B1: the ☰ menu closes at the game start)
+// (a full screen opened from the menu — YOUR CARD — calls this from its ‹ BACK: true = the menu is back on top)
+let menuReturn = false;
+export function backToMenu() { if (!menuReturn) return false; menuReturn = false; openMenu(); return true; }
+export function forgetMenuReturn() { menuReturn = false; }
+onCloseAll(() => { closeMenu(); forgetMenuReturn(); });   // (FR6 FIXES A — B1: the ☰ menu closes at the game start)

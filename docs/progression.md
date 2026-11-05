@@ -150,7 +150,7 @@ and no card gets it now) — so "everyone who played before the launch" is exact
 - **THE DOCK's FLAME** (`flame.js`) — on the title's YOU: a neon tube flame painted at the FULL dpr (3× → 54 × 66 px for 18 × 22 pt — a soft
   glow stack, the tube, a white-hot core; the glow layer flickers by opacity) + the count; lit / waiting / frozen; no streak = no badge; taps pass through.
 - **THE PREVIEWS** (nothing written or sent): the live site `?preview=moment` (`&up=0` no level-up) · `?preview=card` (the card + profile) ·
-  `?preview=streak` · `?preview=flame&streak=N` (`&state=lit|waiting|frozen`); the look page `tests/integration/progress-preview.html?view=…` (`&cards=1` every look).
+  `?preview=streak`; the look page `tests/integration/progress-preview.html?view=…` (`&cards=1` every look).
 - Toasts: an event that earned something (the knock, the watcher) — "ACHIEVEMENT · KNOCK KNOCK" + the bell.
 
 ## CITY SIGHTINGS (PROGRESSION B, Nov 2 — TAP TO UNLOCK, server-verified, NO HINT EVER)

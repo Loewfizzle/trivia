@@ -26,6 +26,7 @@
 // above the waterline (fireworks high in the sky, Part 10; the ghost ship's glow, 11a) as a column in the water · set({ rain, fog }) — the weather (rain roughens the mirror; the fog over the water is waterfog.js, 9a; the rain's rings: ATM).
 import { rgb, mix } from './shapes.js';
 import { blit, safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
+import { phaseClock } from '../../core/harbor-phase.js';
 import { groundY, project } from '../../core/harbor-layout.js';
 
 /** the water's surface (world y): the far quay wall stands 1.2 above it (its stones show between the lamps + the water) */
@@ -71,6 +72,7 @@ export function waterSteps(L, T) {
 
 /** THE REFLECTION ENGINE (per frame): see the top of this file */
 export function createWater() {
+  const ph1 = phaseClock(), ph2 = phaseClock();   // (the two wavelet textures' drift — core/harbor-phase.js)
   const mk = () => document.createElement('canvas');
   const src = mk(), bright = mk(), sm = mk(), R = mk(), wc = mk(), cols = new Map();
   const tex = [mk(), mk()];
@@ -306,7 +308,9 @@ export function createWater() {
     }
     const ta = (0.95 * dayK + 0.45 * T.night) * (0.55 + 0.45 * rough) * fa * (1 - 0.3 * T.day);
     if (ta > 0.01) {
-      const o1 = still ? 0 : ((t * (3 + 9 * rough)) % W + W) % W, o2 = still ? W * 0.37 : ((-t * (2 + 6 * rough)) % W + W) % W;
+      // (SHELL 2.0 B1 — THE RACING CLOUDS' cousin: the drift is its speed's INTEGRAL — a rougher sea from a new wind never flings it)
+      const d1 = ph1.at(t, 3 + 9 * rough), d2 = ph2.at(t, 2 + 6 * rough);
+      const o1 = still ? 0 : ((d1 % W) + W) % W, o2 = still ? W * 0.37 : ((-d2 % W) + W) % W;
       for (const [cv, o0, al] of [[tex[0], o1, ta], [tex[1], o2, ta * 0.8]].slice(0, tier === 2 ? 2 : 1)) {
         x.globalAlpha = al;
         // (the texture wraps: its two pieces, each drawn once, 1:1 — the wrap on a whole device column, so no seam there either)

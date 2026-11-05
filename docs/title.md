@@ -773,5 +773,5 @@ Four parts, ONE builder + ONE block of CSS each (components.css "THE SHELL"); a 
 - **THE ROW** — lists + menus: `row({ icon, label, sub?, value?, toggle?, on?, danger?, confirm?, onClick })` (icons: `ICONS` in components.js).
 - **THE MESSAGE** — `toast(text, 'info' | 'ok' | 'warn' | 'err', ms | { ms, sub })`: one at a time, above the dock (in a game under the corner),
   sentence case — write the text in sentence case with names as typed.
-The title dock's tabs carry labels (BOARD · GAMES · YOU — the room dock's `.rdk-lbl`); the dock's streak is a neon NUMBER pill on YOU
-(`progress/flame.js#streakPill`).
+The title dock's tabs carry labels (BOARD · GAMES · YOU — the room dock's `.rdk-lbl`); NO streak on the dock (SHELL 2.0 B1 — the owner, Nov 5: not the flame, not a
+number pill; the streak lives on YOU, the member card, the round-end line + the streak card).

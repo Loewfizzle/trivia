@@ -3,7 +3,10 @@
 // when it sits on another sheet + an × in a circle (closes the whole stack); the city behind dims. ONE STEP AT A TIME (the owner, Nov 3:
 // "back goes to the main page instead of one screen back — very annoying"): the sheets STACK; ‹, a swipe down on the handle / header, the
 // scrim or Esc (ui/layers.js — the one Esc) close the TOP sheet only.
-//   const s = openSheet({ title, kicker?, body: [nodes] | node, cls?, theme?, label?, onClose?, wide? })  → { el, sheet, body, close() }
+//   const s = openSheet({ title, kicker?, body: [nodes] | node, cls?, theme?, label?, onClose?, wide?, from? })  → { el, sheet, body, close() }
+// ‹ BACK ON EVERY NESTED SHEET (SHELL 2.0 B1 — the owner, Nov 5 9:15 am: ☰'s sheets had only an ×): a sheet opened FROM another — on top of
+// a sheet (automatic) or on a full-screen tool that isn't one (`from: 'CUSTOMIZE'`) — shows ‹ at its top-left (one step back) + its
+// parent's NAME small under the title (unless the caller gives its own kicker) + the × (closes every sheet); a top-level sheet = the × only.
 //   closeAllSheets() — a page going away (its own BACK) closes what it opened
 // Replaces: the old `.modal > .sheet` builders (settings, HOW TO PLAY, CREDITS, a game's options, the chat, BRING YOUR CARD, CALL IN A FAVOR,
 // the radio's sheet) + openPfSheet (profile/sheets.js re-exports this). Its look: components.css "THE SHELL — THE SHEET".
@@ -12,11 +15,13 @@ import { takeLayer, onCloseAll } from './layers.js';
 
 const stack = [];
 
-export function openSheet({ title = '', kicker = '', body = [], cls = '', theme = null, label = null, onClose = null, closeAll: xAll = true } = {}) {
+export function openSheet({ title = '', kicker = '', body = [], cls = '', theme = null, label = null, onClose = null, closeAll: xAll = true, from = null } = {}) {
   let closed = false, release = null;
   const kids = Array.isArray(body) ? body : [body];
   const inner = h('div.sh-body', ...kids.filter(Boolean));
-  const nested = stack.length > 0;
+  const parent = from || (stack.length ? stack[stack.length - 1].title : null);
+  const nested = !!parent;
+  if (nested && !String(kicker).trim()) kicker = parent;
   // (‹ shows only when this sheet sits on another; a first sheet keeps it hidden — the one-step close every caller can reach)
   const back = h('button.sh-back', { type: 'button', 'aria-label': 'Back', hidden: !nested }, h('span', { 'aria-hidden': 'true' }, '‹'));
   const x = h('button.sh-x', { type: 'button', 'aria-label': 'Close' }, h('span', { 'aria-hidden': 'true' }, '×'));
@@ -48,7 +53,7 @@ export function openSheet({ title = '', kicker = '', body = [], cls = '', theme 
     if (dy > 90 || (dy > 24 && v > 0.6)) close();
   };
   head.addEventListener('pointerup', end); head.addEventListener('pointercancel', end);
-  const api = { el, body: inner, close, sheet, head };
+  const api = { el, body: inner, close, sheet, head, title: title || label || '', nested };
   stack.push(api);
   release = takeLayer(el, { close });   // (THE LAYER STACK: the newest pop-up on top + the one Esc closes it)
   document.body.append(el);

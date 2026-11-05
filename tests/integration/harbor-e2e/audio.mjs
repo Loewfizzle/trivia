@@ -1047,24 +1047,18 @@ G('roofcrisp', async () => {
   ok(r.rc.every(x => x.k === 0), `RAIN IN FRONT: the crisp copies yield to the city's own (the drops fall over the sign) — ${r.rc.map(x => `${x.id} ${x.k}`).join(', ')}`);
 });
 
-// PROGRESSION A — THE DOCK's STREAK FLAME + THE PREVIEW LINKS on City 2.0's title (the `audio` job, beside the dock): the badge on YOU
+// PROGRESSION A — THE PREVIEW LINKS on City 2.0's title (the `audio` job, beside the dock) + (SHELL 2.0 B1) NO STREAK on the dock; was: the badge on YOU
 // only with a streak (none → no badge), built at the FULL dpr (3× → a 54 × 66 px canvas for 18 × 22 pt), readable at 390 + 430, a 44 pt
 // YOU still tappable through it; ?preview=moment / card / streak open their screen within ~10 s (THE LINKS RULE), reduced motion = the
 // moment's end, still.
 G('progress', async () => {
-  const N = await open({ slot: 'pgn', qs: NIGHT, view: [390, 844], dpr: 3 });
-  await harborUp(N.page); await sleep(1500);
-  ok(!(await ev(N.page, '!!document.querySelector(".nd-tab-you .pg-dock")')), 'THE DOCK STREAK PILL: no streak → none');
-  await N.ctx.close();
+  // (SHELL 2.0 B1 — the owner, 9:13 am: NO STREAK ON THE DOCK at all — not the flame, not SHELL 2.0 A's number pill; the old
+  //  ?preview=flame link shows nothing on the dock either)
   for (const view of [[390, 844], [430, 932]]) {
     const F = await open({ slot: 'pgf', qs: `${NIGHT}&preview=flame&streak=12`, view, dpr: 3 });
-    await harborUp(F.page);
-    // (SHELL 2.0 A — the owner: the dock's flame goes → the streak NUMBER in a small neon pill on YOU)
-    await waitFor(F.page, '!!document.querySelector(".nd-tab-you .pg-pill b")', 'the streak pill', 10000).catch(() => {});
-    const b = await ev(F.page, `(() => { const d = document.querySelector('.nd-tab-you .pg-pill'); if (!d) return null; const r = d.getBoundingClientRect(), y = document.querySelector('.nd-tab-you').getBoundingClientRect(), n = d.querySelector('b'), cs = getComputedStyle(n);
-      return { flame: !!d.querySelector('canvas'), w: Math.round(r.width), h: Math.round(r.height), n: n.textContent, fs: parseFloat(cs.fontSize), pe: getComputedStyle(d).pointerEvents, inYou: r.left < y.right && r.right > y.left && r.top < y.bottom, youW: Math.round(y.width), youH: Math.round(y.height), lbl: (document.querySelector('.nd-tab-you .rdk-lbl') || {}).textContent }; })()`);
-    ok(b && !b.flame && b.n === '12' && b.fs >= 12 && b.pe === 'none' && b.inYou && b.youW >= 44 && b.youH >= 44 && b.lbl === 'YOU',
-      `THE DOCK's STREAK PILL at ${view.join('×')}: "${b && b.n}" at ${b && b.fs} pt in a ${b && b.w}×${b && b.h} pt neon pill (no flame), on YOU (its label ${b && b.lbl}), taps pass through (${JSON.stringify(b)})`);
+    await harborUp(F.page); await sleep(1500);
+    const b = await ev(F.page, `(() => { const y = document.querySelector('.nd-tab-you'); return { you: !!y, lbl: y && (y.querySelector('.rdk-lbl') || {}).textContent, streak: !!document.querySelector('.nd-actions .pg-dock, .nd-actions .pg-pill, .nd-tab-you canvas') }; })()`);
+    ok(b.you && !b.streak && b.lbl === 'YOU', `NO STREAK ON THE DOCK at ${view.join('×')}: YOU carries only its icon + label (${JSON.stringify(b)})`);
     if (SHOTS) await F.page.screenshot({ path: `${OUT}progress-dock-${view.join('x')}.png` });
     await F.ctx.close();
   }

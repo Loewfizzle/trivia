@@ -392,3 +392,184 @@ body.rd-owner .lobby .chip.player { cursor: pointer; }
 .rd-prf { display: flex; gap: 6px; margin: 2px 0 10px; }
 .rd-prfb { flex: 1 1 0; min-height: 40px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(90, 20, 36, 0.45); background: transparent; color: #5a1424; cursor: pointer; font: 800 11.5px/1 var(--font-ui); letter-spacing: 0.14em; }
 .rd-prfb.is-on { background: #5a1424; color: #fff3dc; border-color: #5a1424; }
+
+/* =====================================================================================================================================
+   SHELL 2.0 B1 — THE RADIO MATCHES THE REST (the owner, Nov 5 9:21 am — over SHELL 2.0 A's "keeps its approved look"): the brass desk →
+   THE SHELL. The panels = DARK GLASS (the sheet's ground), the tabs (DESK · PROGRAM · LEDGER) + every button = NEON TUBES (components.css
+   THE NEON TUBE's recipe: --tc / --tcore / --tg), the labels in the shell's type (the sheet title's spaced display face + the row's UI face).
+   The instruments keep their FUNCTION and read as neon: the VU dial dark with a neon needle + ticks, the knobs dark with a neon pointer, the
+   moment jacks NEON RINGS (lit = on), the intercom's grille a neon-edged speaker, the nixies stay the neon they always were. The cream paper
+   of THE PROGRAM + THE LEDGER → dark glass with light ink. Static glows; only transform + opacity move (as before).
+   ===================================================================================================================================== */
+.rd-btn, .rd-modal, .rd-askcard { --rd-hi: #f2f4ff; --rd-au: #93a6cc; --rd-lo: rgba(255, 255, 255, 0.13); --rd-tx: #e8eaf8; --rd-dim: rgba(214, 220, 244, 0.74);
+  --rd-pk: #ff4fd8; --rd-cy: #5fe3ff; --rd-amb: #ffb84a; --rd-ink: #ffc2ee; --rd-glass: linear-gradient(180deg, rgba(30, 27, 54, 0.92), rgba(18, 16, 36, 0.94)); }
+.rd-btn { color: rgba(236, 240, 255, 0.94); border-color: rgba(255, 255, 255, 0.18); }
+.rd-btn .rd-g-box { fill: rgba(255, 79, 216, 0.16); }
+.rd-btn .rd-g-spk { fill: rgba(95, 227, 255, 0.14); }
+.rd-lockg, .rd-biglock { background: #1a1730; box-shadow: 0 0 0 1.5px #ffc2ee, 0 0 8px rgba(255, 79, 216, 0.5); }
+.rd-lockg::before, .rd-biglock::before { border-color: #ffc2ee; }
+.rd-biglock::after { background: #ffc2ee; }
+
+/* the glass panels */
+.rd-face, .rd-band, .rd-big3 > div, .rd-litrow, .rd-take, .rd-pc, .rd-paper, .rd-card, .rd-askcard {
+  background: var(--rd-glass); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.4); border-radius: 18px; color: var(--rd-tx); }
+.rd-card { border-radius: 28px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 -20px 60px rgba(0, 0, 0, 0.55); }
+.rd-grab { background: rgba(255, 255, 255, 0.3); }
+/* the brass name plates → the sheet's small spaced labels */
+.rd-plate { padding: 0; background: none; box-shadow: none; border-radius: 0; font: 900 10px/1.2 var(--font-display); letter-spacing: 0.28em; color: #ffc2ee; text-shadow: 0 0 10px rgba(255, 79, 216, 0.35); }
+.rd-brand { font-family: var(--font-display); }
+.rd-brand b { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: #ffc2ee; text-shadow: 0 0 12px rgba(255, 79, 216, 0.4); font-weight: 900; }
+.rd-fh em, .rd-hint, .rd-note, .rd-note2, .rd-dormant, .rd-mic .rd-fh em { font-style: normal; color: var(--rd-dim); }
+.rd-dormant b { color: #ffc2ee; }
+.rd-lb { font-family: var(--font-display); color: rgba(226, 230, 250, 0.8); letter-spacing: 0.24em; }
+.rd-lb em { font-style: normal; }
+.rd-card h3, .rd-lockface h3 { color: #ffc2ee; text-shadow: 0 0 12px rgba(255, 79, 216, 0.35); }
+.rd-bub { background: #1c1932; color: var(--rd-tx); border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6); }
+.rd-bub small { color: var(--rd-dim); }
+/* the ×: the sheet's own (a glass circle, a white ×; kept bold — the owner's CC-B "big + bold") */
+.rd-x, .rd-cx { border: 2px solid rgba(255, 255, 255, 0.62); background: rgba(255, 255, 255, 0.04); color: #fff; font-weight: 400; font-size: 26px; box-shadow: none; }
+
+/* NEON TUBES — the band's tabs + every button on the desk, its cards + its paper (THE NEON TUBE's recipe; the second-tap red from .is-armed) */
+.rd-bb, .rd-done, .rd-play, .rd-cancel, .rd-room, .rd-seg button, .rd-dows button, .rd-stop, .rd-prfb, .rd-crm, .rd-pr button.rd-qx, .rd-stepx, .rd-bigstop, .rd-fire, .rd-cbtn, .rd-ptest {
+  --tc: var(--tube-white); --tcore: var(--tube-white-core); --tg: var(--tube-white-glow); --tg2: transparent;
+  border-radius: 999px; background: var(--tube-in); color: #fff; border: 1.5px solid var(--tcore);
+  box-shadow: 0 0 0 1.5px var(--tc), inset 0 0 0 1.5px var(--tc), 0 0 9px 1px var(--tg), 0 0 22px var(--tg2), inset 0 0 12px var(--tg2);
+  font-family: var(--font-display); font-weight: 700; text-shadow: none; transform: none; }
+.rd-bb { color: rgba(236, 240, 255, 0.86); }
+.rd-band { padding: 8px; gap: 8px; }
+.rd-bb.is-on, .rd-done.is-on, .rd-play.is-on, .rd-seg button.is-on, .rd-dows button.is-on, .rd-prfb.is-on, .rd-room.is-on, .rd-fire {
+  --tc: var(--tube-pink); --tcore: var(--tube-pink-core); --tg: var(--tube-pink-glow); --tg2: rgba(255, 79, 216, 0.3); color: #fff; text-shadow: 0 0 10px rgba(255, 120, 225, 0.55); background: var(--tube-in); }
+.rd-bb.is-on { transform: none; }
+.rd-stop, .rd-bigstop.is-stop, .rd-crm, .rd-cbtn, .rd-cancel.is-armed {
+  --tc: var(--tube-red); --tcore: var(--tube-red-core); --tg: var(--tube-red-glow); --tg2: rgba(255, 61, 99, 0.22); color: #fff; }
+.rd-crm.is-armed { background: #c4203f; }
+.rd-bigstop.is-cancel { color: #fff; }
+.rd-fire { font-weight: 900; }
+.rd-fire:active, .rd-bigstop:active, .rd-bb:active, .rd-done:active, .rd-play:active, .rd-cancel:active, .rd-seg button:active, .rd-dows button:active { transform: scale(0.97); }
+.rd-fire:disabled { opacity: 0.55; }
+.rd-room b { color: #fff; }
+.rd-room { border-radius: 18px; }
+.rd-dev, .rd-savepre { color: var(--rd-dim); font-family: var(--font-display); }
+.rd-inp { background: rgba(8, 7, 20, 0.92); border: 1.5px solid rgba(255, 255, 255, 0.22); border-radius: 14px; }
+.rd-inp:focus { border-color: var(--tube-pink); box-shadow: 0 0 0 1.5px var(--tube-pink), 0 0 12px var(--tube-pink-glow); }
+.rd-inp::placeholder { color: rgba(226, 230, 250, 0.3); }
+.rd-sw button::before { box-shadow: 0 0 0 2px #120f26, 0 0 0 3px rgba(255, 255, 255, 0.22); }
+.rd-sw button.is-on::before { box-shadow: 0 0 0 2px #120f26, 0 0 0 4px #fff, 0 0 12px var(--c); }
+
+/* THE VU DIAL (THE SHOWCASE DIAL): a dark dial — neon ticks, the levels in light, a neon needle */
+.rd-tune { background: radial-gradient(130% 150% at 50% 120%, #24204a, #110f26 55%, #08071a 95%); box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.7), 0 0 0 1.5px rgba(95, 227, 255, 0.55), 0 0 12px rgba(95, 227, 255, 0.22); }
+.rd-ticks { background: repeating-linear-gradient(90deg, rgba(95, 227, 255, 0.85) 0 1px, transparent 1px 9px); filter: none; opacity: 0.9; }
+.rd-needle { background: #fff; box-shadow: 0 0 0 1px #ff4fd8, 0 0 8px #ff4fd8, 0 0 16px rgba(255, 79, 216, 0.6); }
+.rd-lv { font-family: var(--font-display); color: rgba(214, 220, 244, 0.6); }
+.rd-lv.is-on { color: #fff; text-shadow: 0 0 8px rgba(95, 227, 255, 0.9); }
+/* THE KNOBS: dark, a ring of light, a neon pointer */
+.rd-knob { background: radial-gradient(circle at 40% 30%, #2c2850, #0c0a1e 70%); box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.2), 0 5px 12px rgba(0, 0, 0, 0.7); }
+.rd-knob::after { background: #fff; box-shadow: 0 0 0 1px #5fe3ff, 0 0 8px #5fe3ff; }
+.rd-kl { font-family: var(--font-display); color: rgba(226, 230, 250, 0.74); }
+.rd-who b { color: #fff; }
+.rd-auds span.is-on { color: #fff; text-decoration-color: var(--tube-pink); }
+
+/* THE MOMENTS — each jack a NEON RING: unlit a quiet glass ring, QUEUED amber (blinking lamp), RUNNING pink (lit) */
+.rd-hole { background: radial-gradient(circle, #05040e 52%, transparent 54%); box-shadow: 0 0 0 2px rgba(214, 222, 255, 0.42), inset 0 0 0 2px rgba(214, 222, 255, 0.18); }
+.rd-jack:not(.is-grey) .rd-hole { box-shadow: 0 0 0 2px #eef2ff, 0 0 0 3.5px rgba(147, 166, 204, 0.9), 0 0 10px rgba(170, 192, 240, 0.35), inset 0 0 0 1.5px rgba(147, 166, 204, 0.8); }
+.rd-jack.is-q .rd-hole { box-shadow: 0 0 0 2px #fff1d6, 0 0 0 3.5px #ffb84a, 0 0 14px rgba(255, 184, 74, 0.7), inset 0 0 0 1.5px #ffb84a; }
+.rd-jack.is-run .rd-hole { box-shadow: 0 0 0 2px #ffe9fb, 0 0 0 3.5px #ff4fd8, 0 0 16px rgba(255, 79, 216, 0.85), inset 0 0 0 1.5px #ff4fd8, inset 0 0 12px rgba(255, 79, 216, 0.6); }
+.rd-jack.is-q .rd-plug, .rd-jack.is-run .rd-plug { inset: 9px; }
+.rd-jack.is-q .rd-plug { background: radial-gradient(circle, #fff1d6, #ffb84a 60%, rgba(255, 184, 74, 0) 75%); box-shadow: none; }
+.rd-jack.is-run .rd-plug { background: radial-gradient(circle, #fff, #ff7ce4 55%, rgba(255, 79, 216, 0) 75%); box-shadow: none; }
+.rd-jl { padding: 0; background: none; box-shadow: none; border-radius: 0; font: 700 9.5px/1.1 var(--font-display); letter-spacing: 0.14em; color: rgba(236, 240, 255, 0.88); }
+.rd-jack.is-run .rd-jl { color: #ffc2ee; text-shadow: 0 0 8px rgba(255, 79, 216, 0.7); }
+.rd-jack.is-q .rd-jl { color: #ffd98a; }
+.rd-jack.is-grey .rd-hole, .rd-jack.is-grey .rd-jl, .rd-jack.is-grey .rd-lamp { opacity: 0.42; }
+.rd-lamp { background: #1c1a34; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16); }
+.rd-jack.is-preset .rd-jl { background: none; color: #a7f2ff; }
+.rd-prow { border-top-color: rgba(255, 255, 255, 0.14); }
+.rd-jack:focus-visible { outline-color: var(--tube-pink); }
+/* the strips (on its way · running) keep their colours, on glass */
+.rd-strip { border-radius: 16px; font-family: var(--font-display); }
+.rd-strip.is-q { background: rgba(38, 28, 12, 0.92); }
+.rd-strip.is-run { background: rgba(40, 12, 40, 0.92); }
+
+/* THE INTERCOM: the speaker grille in neon, the mic a glass strip with a white tube edge, the meter as neon segments */
+.rd-mic-btn { border-radius: 18px; border: 1.5px solid rgba(238, 242, 255, 0.7); background: var(--tube-in); color: #fff; box-shadow: 0 0 0 1.5px rgba(147, 166, 204, 0.7), 0 0 10px rgba(170, 192, 240, 0.18); }
+.rd-mic-grille { border: 1.5px solid #bff4ff; background: radial-gradient(circle, rgba(95, 227, 255, 0.55) 1.1px, transparent 1.6px) 0 0 / 6px 6px, #07061a; background-blend-mode: normal;
+  box-shadow: 0 0 0 1.5px #5fe3ff, 0 0 12px rgba(95, 227, 255, 0.45), inset 0 0 10px rgba(0, 0, 0, 0.8); }
+.rd-mic-l { font-family: var(--font-display); }
+.rd-onair { background: #2a1426; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); }
+.rd-meter i { background: #5fe3ff; opacity: 0.16; border-radius: 3px; }
+.rd-meter i:nth-child(n+11) { background: #ff3d63; }
+.rd-mic-btn.is-on { border-color: #ffe0e7; background: rgba(40, 8, 18, 0.95); box-shadow: 0 0 0 1.5px #ff3d63, 0 0 14px rgba(255, 61, 99, 0.5); }
+.rd-take b { color: #fff; }
+/* THE LEVER → the shell's switch: a dark track, a white knob; ON = a lit pink track */
+.rd-lever { border-radius: 999px; border: 1.5px solid rgba(255, 255, 255, 0.28); background: rgba(8, 7, 20, 0.92); color: var(--rd-dim); font-family: var(--font-display); }
+.rd-lever-arm { background: radial-gradient(circle at 35% 30%, #fff, #c9d2ee 70%); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); }
+.rd-lever.is-on { border-color: #ffe9fb; color: #fff; background: rgba(60, 10, 52, 0.95); box-shadow: 0 0 0 1.5px #ff4fd8, 0 0 12px rgba(255, 79, 216, 0.5); }
+.rd-push .rd-lever { color: var(--rd-dim); border-color: rgba(255, 255, 255, 0.28); background: rgba(8, 7, 20, 0.92); }
+.rd-push .rd-lever.is-on { color: #fff; background: rgba(60, 10, 52, 0.95); }
+/* CLEAR ALL under its cover, in red neon */
+.rd-clear { border-radius: 18px; background: #12060c; border: 1.5px solid rgba(255, 61, 99, 0.7); box-shadow: 0 0 10px rgba(255, 61, 99, 0.25); }
+.rd-cover { background: repeating-linear-gradient(-45deg, #2a0a14 0 8px, #170510 8px 16px); color: #ffc0cc; font-family: var(--font-display); }
+.rd-cover i { border-radius: 999px; background: var(--tube-in); border: 1.5px solid #ffe0e7; box-shadow: 0 0 0 1.5px #ff3d63, 0 0 10px rgba(255, 61, 99, 0.5); }
+.rd-cbtn { font-weight: 900; }
+.rd-step { border-bottom-color: rgba(255, 255, 255, 0.12); }
+.rd-step b { background: #ffc2ee; color: #1a0c22; }
+.rd-stepx { color: #fff; }
+.rd-askcard { border-color: rgba(255, 255, 255, 0.16); }
+.rd-askcard > b { color: #ffc2ee; }
+.rd-asked { color: var(--rd-amb) !important; }
+.rd-prev { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16); border-radius: 16px; }
+
+/* THE PROGRAM + THE LEDGER: the cream paper → dark glass, light ink */
+.rd-paper { padding: 14px 16px; }
+.rd-paper h4 { color: #ffc2ee; border-bottom: 1px solid rgba(255, 79, 216, 0.45); font-family: var(--font-display); text-shadow: 0 0 10px rgba(255, 79, 216, 0.3); }
+.rd-paper h4 em { color: var(--rd-dim); font-style: normal; font-family: var(--font-ui); }
+.rd-pr, .rd-lg { color: var(--rd-tx); border-bottom: 1px solid rgba(255, 255, 255, 0.09); }
+.rd-pr > b { color: #a7f2ff; }
+.rd-pr i.leg { background: #ffc64f; color: #1a1206; }
+.rd-pr i.now, .rd-pr i.rare { background: rgba(255, 79, 216, 0.22); color: #ffc2ee; box-shadow: inset 0 0 0 1px rgba(255, 79, 216, 0.6); }
+.rd-pr button.rd-qx { color: #fff; border-radius: 999px; }
+.rd-prk { color: #ffc2ee; font-family: var(--font-display); }
+.rd-pr.is-now > b { color: #ff8fe0; }
+.rd-pr .rd-in { color: #ffd98a; }
+.rd-early { border-top-color: rgba(255, 255, 255, 0.12); }
+.rd-earbtn { color: var(--rd-dim); }
+.rd-pr.is-past, .rd-pr.is-past > b { color: rgba(214, 220, 244, 0.6); }
+.rd-pr.is-past i, .rd-pr.is-past i.you, .rd-pr.is-past i.leg, .rd-pr.is-past i.rd-tier, .rd-pr.is-past[data-tier="legendary"] i.rd-tier { background: rgba(255, 255, 255, 0.08); color: rgba(214, 220, 244, 0.7); box-shadow: none; }
+/* (the tier palette on dark: the badge in its LIGHT, the name in it — base.css --tier-<id> is "the light on a dark ground") */
+.rd-pr[data-tier="common"] { --tc-ink: var(--tier-common); } .rd-pr[data-tier="uncommon"] { --tc-ink: var(--tier-uncommon); }
+.rd-pr[data-tier="rare"] { --tc-ink: var(--tier-rare); } .rd-pr[data-tier="epic"] { --tc-ink: var(--tier-epic); }
+.rd-pr[data-tier="legendary"] { --tc-ink: var(--tier-legendary); }
+.rd-pr i.rd-tier { background: var(--tc-ink); color: #0c0a1c; }
+.rd-pr[data-tier="common"] > span { color: var(--rd-tx); }
+.rd-pr.is-past[data-tier] > span { color: rgba(214, 220, 244, 0.6); }
+.rd-wk div { background: rgba(255, 255, 255, 0.05); color: var(--rd-dim); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.rd-wk div small { color: #fff; }
+.rd-wk div.party { background: rgba(255, 79, 216, 0.18); color: #ffc2ee; box-shadow: inset 0 0 0 1px rgba(255, 79, 216, 0.6); }
+.rd-big3 small { color: var(--rd-dim); font-family: var(--font-display); }
+.rd-lg b { color: #fff; }
+.rd-lg b.up { color: #4dff9a; }
+.rd-lg b.bad { color: #ff7a93; }
+.rd-lg small { color: var(--rd-dim); font-style: normal; }
+.rd-chart i { background: linear-gradient(180deg, #5fe3ff, #7a5cff); box-shadow: 0 0 8px rgba(95, 227, 255, 0.35); }
+.rd-chart i.g, .rd-key i.g { background: #ff4fd8; }
+.rd-chart span, .rd-key { color: var(--rd-dim); }
+.rd-key i { background: linear-gradient(180deg, #5fe3ff, #7a5cff); }
+.rd-push p { color: var(--rd-tx); }
+.rd-founder .rd-hint, .rd-crew .rd-hint { color: var(--rd-dim); }
+.rd-fsw { border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(38, 34, 64, 0.94); color: #fff; }
+.rd-fsw-state { border-radius: 999px; background: var(--tube-in); box-shadow: 0 0 0 1.5px #4dff9a, inset 0 0 0 1.5px #4dff9a, 0 0 10px rgba(77, 255, 154, 0.45); border: 1.5px solid #dcffe9; }
+.rd-fsw.is-closed .rd-fsw-state { box-shadow: 0 0 0 1.5px var(--tube-white), inset 0 0 0 1.5px var(--tube-white); border-color: var(--tube-white-core); }
+.rd-fsw.is-armed { border-color: #ff3d63; background: rgba(50, 10, 22, 0.95); }
+.rd-fsw.is-armed .rd-fsw-do { color: #ffc0cc; }
+.rd-crow { border-bottom-color: rgba(255, 255, 255, 0.12); }
+.rd-noav { background: rgba(255, 255, 255, 0.08); }
+.rd-crew .rd-inp { background: rgba(8, 7, 20, 0.92); color: #fff; border-color: rgba(255, 255, 255, 0.22); }
+.rd-crew .rd-inp::placeholder { color: rgba(226, 230, 250, 0.3); }
+.rd-crew .rd-done, .rd-ptest { color: #fff; }
+.rd-mic-l { font-size: 12px; letter-spacing: 0.16em; white-space: nowrap; }
+/* (the brass state rules are more specific than the tube group above — each state carries the whole tube recipe so it wins) */
+.rd-bb.is-on, .rd-done.is-on, .rd-play.is-on, .rd-seg button.is-on, .rd-dows button.is-on, .rd-prfb.is-on, .rd-room.is-on, .rd-fire, .rd-fire:active,
+.rd-stop, .rd-bigstop.is-stop, .rd-bigstop.is-cancel, .rd-crm, .rd-cbtn, .rd-cancel.is-armed, .rd-crew .rd-done, .rd-askcard .rd-fire, .rd-askcard .rd-cancel, .rd-two .rd-cancel {
+  border: 1.5px solid var(--tcore); background: var(--tube-in); border-radius: 999px;
+  box-shadow: 0 0 0 1.5px var(--tc), inset 0 0 0 1.5px var(--tc), 0 0 9px 1px var(--tg), 0 0 22px var(--tg2), inset 0 0 12px var(--tg2); }
+.rd-crm.is-armed { background: #c4203f; }

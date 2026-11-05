@@ -19,7 +19,7 @@
 // once) — Part 9 + ATM built on them. Part 6b: the sky messages drift through the same sky (skywriting is drawn after).
 import { rngFrom } from '../../core/rng.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
-import { cloudMix, cloudPlan, driftX, driftSpeed, skyLight, cloudLit, sunOnClouds, haloOf } from '../../core/harbor-clouds.js';
+import { cloudMix, cloudPlan, driftAt, cloudDrift, skyLight, cloudLit, sunOnClouds, haloOf } from '../../core/harbor-clouds.js';
 import { harborSky } from './tones.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -556,6 +556,7 @@ export function createClouds() {
   // (the readout: what the clouds cost a frame — the draw + the background jobs — and how often a cloud is re-lit)
   const perf = { ms: 0, jobMs: 0, n: 0, relit: 0, beamMs: 0, hitMs: 0, renders: 0, patches: 0 };
   let cloudWind = null;
+  const drift = cloudDrift();   // (SHELL 2.0 B1 — THE RACING CLOUDS: the wind's DISTANCE, never speed × the clock)
   const windX = LK => Math.sin(((LK.windDir == null ? 250 : LK.windDir)) * Math.PI / 180);
   const free = arr => { MB.key = ''; for (const d of arr || []) { if (d.cv) d.cv.width = 0; if (d.prev) d.prev.width = 0; if (d.mix) d.mix.cv.width = 0; d.cv = d.prev = d.mix = null; d.F = null; } };
   function plan(LK, seed, motion) {
@@ -574,7 +575,7 @@ export function createClouds() {
       // (SP — the cloudy party's cost: each cloud's first bake is lit where it IS now — it has drifted since the 6-hour block began;
       // baking it at its starting place re-lit every cloud a second time the moment the sky appeared)
       d.res = Math.max(0.4, r); d.lit = ''; d.cv = null; d.prev = null; d.fade = 1;
-      d.xNow = d.kind === 'deck' ? 0 : driftX(d, motion ? e0 : 0, LK.wind || 3, windX(LK), W);
+      d.xNow = d.kind === 'deck' ? 0 : driftAt(d, motion ? drift.dist(e0, (cloudWind != null ? cloudWind : LK.wind) || 3, windX(LK)) : 0, W);
       jobs.push({ d, gen: build(d) });
     }
     born = 0;
@@ -604,10 +605,10 @@ export function createClouds() {
   }
   function drawSet(c, arr, k, tSec, LK, motion, part) {
     // (PERF-B — THE WIND IS ONE STATE: the clouds drift on WF's MEAN speed — never its gusts: a deck's x is speed × the clock's seconds)
-    const wx = windX(LK), wind = (cloudWind != null ? cloudWind : LK.wind) || 3;
+    const wx = windX(LK), wind = (cloudWind != null ? cloudWind : LK.wind) || 3, P = motion ? drift.dist(tSec, wind, wx) : 0;
     for (const d of arr) {
       // (the deck: a seamless tile, wrapping by its own width)
-      const x = d === steer.d && steer.m && steer.c ? steer.m.x - steer.c.x + 0.62 * steer.c.w * Math.sin(tSec * Math.PI * 2 / 70) : d.kind === 'deck' ? (() => { const v = driftSpeed(wind) * wx * d.v * (motion ? tSec : 0); return ((v % d.w) + d.w) % d.w - d.w; })() : driftX(d, motion ? tSec : 0, wind, wx, W);
+      const x = d === steer.d && steer.m && steer.c ? steer.m.x - steer.c.x + 0.62 * steer.c.w * Math.sin(tSec * Math.PI * 2 / 70) : d.kind === 'deck' ? (() => { const v = d.v * P; return ((v % d.w) + d.w) % d.w - d.w; })() : driftAt(d, P, W);
       d.xNow = x;
       if (!d.cv || (part === 'back' ? d.s >= 0.5 : part === 'front' ? d.s < 0.5 : part === 'high' ? !highKind(d) : part === 'low' ? highKind(d) : false)) continue;
       const by = d.y + (extra.base || 0), ty = by - d.h;
@@ -1032,7 +1033,7 @@ export function createClouds() {
       const seed = `${lc ? `${lc.y}-${lc.m}-${lc.d}-${blk}` : 'x'}|${Math.round(cover * 8)}|${lay ? `${Math.round(lay.lo * 4)}${Math.round(lay.mid * 4)}${Math.round(lay.hi * 4)}` : '-'}|${LK.rain > 0.05 || LK.storm ? 'w' : ''}`;
       if (lc) epoch = (((lc.h % 6) * 60 + lc.mi) * 60 + (lc.s || 0));
       windSgn = windX(LK) < 0 ? -1 : 1;
-      if (seed !== planKey) { planKey = seed; t0Clock = fs.now; e0 = epoch; G = null; plan(LK, seed, fs.motion); }
+      if (seed !== planKey) { planKey = seed; t0Clock = fs.now; e0 = epoch; G = null; drift.reset(); plan(LK, seed, fs.motion); }
       if (!list.length && !old) return;
       // (WSP — &force=moon-cloud, the panel's MOON BEHIND A CLOUD: the biggest heap / patch steered back + forth across the moon, its body
       //  at the moon's height — the preview of the moon behind a thick cloud; let go, it returns to its own place)
