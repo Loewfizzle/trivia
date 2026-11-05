@@ -394,7 +394,7 @@ export function exitRoom(reason, kind = 'warn', { keepSeat = false, how = 'close
   dropPresence(code, state.uid);
   saveSession(null);
   setUrlRoom(null);
-  setState({ ...EMPTY_ROOM, view: 'title' });
+  setState({ ...EMPTY_ROOM, view: 'title', invite: '', rejoin: '' });   // (CITY 1.0 OUT — THE STUCK JOIN: no invite / REJOIN offer survives the room it was for)
   release('room');
   if (reason) toast(reason, kind, 3500);
 }

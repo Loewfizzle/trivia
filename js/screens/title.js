@@ -367,8 +367,22 @@ export function createTitle() {
     for (const t of [d.els.youTab, d.els.guestsTab, d.els.gamesTab, d.els.chatTab]) t.classList.toggle('is-lit', lit);
     d.els.host.classList.toggle('is-lit', rl); d.els.joinTab.classList.toggle('is-lit', rl);
   };
+  // (CITY 1.0 OUT — THE STUCK JOIN, the owner Nov 5: City 2.0's title is never unmounted by a room, so a JOIN / HOST that got in left
+  //  `busy` true + the boxes breathing (is-busy) + the old word in the field: after a LEAVE nothing could be typed or joined. The room's
+  //  edges reset the dock's JOIN + HOST to a fresh one — on the way in AND on the way out)
+  let wasInRoom = false;
+  function freshDock() {
+    busy = false;
+    if (!els.code) return;
+    els.code.value = '';
+    els.code.parentElement.classList.remove('is-busy', 'is-shake');
+    els.go && els.go.classList.remove('is-ready');
+    els.host && (els.host.classList.remove('is-busy'), els.host.removeAttribute('aria-busy'));
+    paintCode(); say('');
+  }
   function roomSync(state) {
     const inRoom = !!(createHarbor && state.code && state.meta);
+    if (inRoom !== wasInRoom) { wasInRoom = inRoom; freshDock(); }
     if (inRoom && !roomUi && !roomLoading && scene) {
       roomLoading = true;
       openJoin(false);
@@ -1913,7 +1927,7 @@ export function createTitle() {
     } catch (e) {
       busy = false;
       els.code.parentElement.classList.remove('is-busy');
-      tell(friendly(e, code), 'warn');
+      tell(isRejoin && /No room/i.test(String((e && e.message) || e)) ? `That room has closed (${code}).` : friendly(e, code), 'warn');
       if (isRejoin) setState({ rejoin: '' });
       sfx('invalid');
       shake();

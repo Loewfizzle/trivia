@@ -328,7 +328,8 @@ async function boot() {
     withProfile().then(m => { m.me.watchProfile(); m.me.syncMe(); m.queue.startQueue(); }).catch(e => console.warn('profile', e));
     const saved = loadSession();
     const resumed = await resumeSession();
-    if (resumed === 'gone') setState({ inviteExpired: saved.code, invite: '' });
+    if (resumed === 'ok') setState({ invite: '' });   // (CITY 1.0 OUT — THE STUCK JOIN: a reload in a room left ?room= as an "invite" that filled JOIN after a LEAVE)
+    else if (resumed === 'gone') setState({ inviteExpired: saved.code, invite: '' });
     else if (resumed === 'moved') { setState({ invite: '' }); import('./room.js').then(m => toast(`YOU’RE IN ROOM ${m.movedTo() || ''} ON ANOTHER DEVICE — JOIN TO MOVE HERE`, 'info', 5000)).catch(() => {}); }
     else if (resumed === 'idle') { setState({ invite: '' }); toast('YOUR ROOM CLOSED AFTER AN HOUR WITHOUT A GAME', 'info', 5000); }
     // Couldn't reach the room (weak signal): keep the seat and offer a one-tap REJOIN on the title.

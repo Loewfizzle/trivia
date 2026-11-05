@@ -71,6 +71,19 @@ ok(ban.every(b => b && b.how === 'flown'), `THE WINNER's BANNER PLANE flies in W
 const ring = await wf(p, "document.querySelector('.rdk-play').classList.contains('rdk-rm') && document.querySelector('.rdk-votes').hidden && document.querySelector('.rdk-games').textContent.includes('NEW GAME')", 15000);
 ok(ring, 'THE REMATCH RING (no votes yet: no pill) + NEW GAME in the dock in WebKit');
 await p.screenshot({ path: 'shots-room2/wk-vote-host.png' });
+// THE STUCK JOIN (CITY 1.0 OUT Group 0): the guest (joined by the link) LEAVES → JOIN is fresh (empty, nothing breathing) → a new word typed → in
+{ const C = await phone('wkc'), r = C.p;
+  await r.evaluate(() => document.querySelector('.nd-hostbtn').click());
+  await wf(r, 'window.__arcade.state.code && window.__district.room()');
+  const code2 = await r.evaluate('window.__arcade.state.code');
+  await q.evaluate(() => import('/js/room.js').then(mm => mm.leaveRoom()));
+  await wf(q, "!window.__arcade.state.code && !document.querySelector('.title-screen.is-room')", 10000);
+  const before = await q.evaluate(() => ({ v: document.querySelector('.nd-code-in').value, busy: !!document.querySelector('.nd-codebox.is-busy') }));
+  await q.evaluate(() => document.querySelector('.nd-joinbtn').click());
+  await q.focus('.nd-code-in'); await q.keyboard.type(code2, { delay: 45 });
+  const inn = await wf(q, `window.__arcade.state.code === '${code2}' && !!window.__district.room()`);
+  ok(before.v === '' && !before.busy && inn, `THE STUCK JOIN in WebKit: after a LEAVE the field "${before.v}", breathing ${before.busy}; typed ${code2} → in (${inn})`);
+  await C.ctx.close(); }
 console.log(`checks ${checks.filter(Boolean).length}/${checks.length}`);
 await browser.close();
 process.exit(errors.length ? 1 : 0);

@@ -305,6 +305,61 @@ G('hostleave', async () => {
   for (const X of [H.Q, B.Q]) await X.ctx.close().catch(() => {});
 });
 
+// THE STUCK JOIN (CITY 1.0 OUT Group 0 — the owner, Nov 5 12:31 am, his laptop): after a LEAVE, JOIN was stuck on the left room's hush word
+// (BEAD, the boxes breathing) — nothing could be typed, nothing joined. City 2.0's title is never unmounted by a room: the JOIN that got him
+// in left `busy` + the boxes' is-busy + the word behind (and a reload in the room left ?room= as an "invite"). Every exit → a FRESH JOIN:
+// the field empty + typeable, nothing breathing, no invite / REJOIN offer for the room left. Typed for real (focus + keys), like a person.
+const joinState = p => ev(p, `(() => { const a = document.querySelector('.nd-actions'), i = document.querySelector('.nd-code-in');
+  return { open: !!(a && a.classList.contains('is-join')), v: i ? i.value : null, busy: !!document.querySelector('.nd-codebox.is-busy, .nd-hostbtn.is-busy'),
+    rejoin: !!document.querySelector('.nd-rejoin-btn'), invite: window.__arcade.state.invite || '', room: document.querySelector('.title-screen.is-room') ? 1 : 0 }; })()`);
+async function typeJoin(p, code, label) {
+  await waitFor(p, "!window.__arcade.state.code && !document.querySelector('.title-screen.is-room') && !!document.querySelector('.nd-joinbtn')", `${label}: back on the title`, 10000);
+  const before = await joinState(p);
+  if (!before.open) await ev(p, "document.querySelector('.nd-joinbtn').click()");
+  await waitFor(p, "document.querySelector('.nd-actions').classList.contains('is-join')", `${label}: the JOIN panel`, 4000).catch(() => {});
+  await p.focus('.nd-code-in'); await p.keyboard.type(code, { delay: 45 });
+  const inn = await waitFor(p, `window.__arcade.state.code === '${code}' && !!window.__district.room()`, `${label}: in ${code}`, 20000).then(() => true, () => false);
+  const fresh = !before.open && before.v === '' && !before.busy && !before.rejoin && !before.invite;
+  ok(fresh && inn, `THE STUCK JOIN — ${label}: JOIN fresh after the exit (open already ${before.open}, the field "${before.v}", breathing ${before.busy}, REJOIN ${before.rejoin}, invite "${before.invite}") → typed ${code} → in (${inn})`);
+  return inn;
+}
+const menuLeave = async p => {
+  await ev(p, "document.querySelector('.menu-btn').click()"); await waitFor(p, "!!document.querySelector('.gm-panel .gm-leave')", 'the menu', 5000);
+  await ev(p, "document.querySelector('.gm-panel .gm-leave').click()"); await sleep(150); await ev(p, "document.querySelector('.gm-panel .gm-leave').click()");
+  await waitFor(p, '!window.__arcade.state.code', 'left', 8000);
+};
+const apiLeave = async p => { await ev(p, "(() => { import('/js/room.js').then(m => m.leaveRoom()); return 1; })()"); await waitFor(p, '!window.__arcade.state.code', 'left', 8000); };
+G('stuckjoin', async () => {
+  for (const view of [[402, 874], [1440, 900]]) {
+    const w = view[0], s = `sj${w === 402 ? 'p' : 'd'}`;
+    const H = await hostRoom(`${s}h`, view), K = await hostRoom(`${s}k`, view);
+    const G1 = await joinRoom(`${s}g`, H.code, view);   // (by the invite link, like the owner — JOIN's › on a pre-filled word)
+    // a GUEST leaves (☰ → LEAVE ROOM, twice) → JOIN → a NEW word → in
+    await menuLeave(G1.p);
+    await typeJoin(G1.p, K.code, `${w} — a guest left by ☰ LEAVE ROOM`);
+    if (SHOTS && w === 402) await G1.p.screenshot({ path: `${OUT}stuckjoin-in.png` });
+    if (w === 1440) { for (const X of [H, K, G1]) await X.Q.ctx.close().catch(() => {}); break; }
+    // the HOST leaves (the room hands over to the guest) → JOIN works on the leaver
+    await apiLeave(K.p);
+    await waitFor(G1.p, 'window.__arcade.state.meta && window.__arcade.state.meta.hostId === window.__arcade.state.uid', 'the guest is the host', 8000).catch(() => {});
+    await typeJoin(K.p, H.code, `${w} — the HOST left (handed over)`);
+    // the LAST player leaves (the room closes) → JOIN works
+    await apiLeave(G1.p);
+    const closed = !(await dbGet(`rooms/${K.code}/meta`));
+    ok(closed, `THE STUCK JOIN — the last one out closed the room (${K.code}: meta gone ${closed})`);
+    await typeJoin(G1.p, H.code, `${w} — the last player left (the room closed)`);
+    // a RELOAD in the room (the address carries ?room=) → LEAVE → JOIN is fresh (no stale invite); then a reload AFTER a leave → JOIN works
+    await G1.p.reload(); await harborUp(G1.p);
+    await waitFor(G1.p, `window.__arcade.state.code === '${H.code}' && !!window.__district.room()`, 'resumed', 20000);
+    await apiLeave(G1.p);
+    await typeJoin(G1.p, H.code, `${w} — a reload in the room, then a LEAVE`);
+    await apiLeave(G1.p);
+    await G1.p.reload(); await harborUp(G1.p); await sleep(600);
+    await typeJoin(G1.p, H.code, `${w} — a reload after a LEAVE`);
+    for (const X of [H, K, G1]) await X.Q.ctx.close().catch(() => {});
+  }
+});
+
 // THE FULL CARD PREVIEW LAGS (the owner, Nov 4 8:05 pm — CUSTOMIZE → VIEW FULL on SKY KING: the slim preview's code rain + the grid's
 // animated thumbnails kept running under the dim layer). Measured the same way before + after: 4× CPU, the real compositor, 402×874 @3 —
 // SKY KING's full card over CUSTOMIZE (wearing THE SOURCE, the dev card's code rain) vs the same card with CUSTOMIZE taken away. Then the
