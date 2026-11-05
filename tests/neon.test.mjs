@@ -1,4 +1,4 @@
-// THE NEON COMES ALIVE: the day's plan (district/neon-ramp.js) and the sun's moments it hangs on (sun.js#sunMoments).
+// THE NEON COMES ALIVE: the day's plan (core/neon-ramp.js) and the sun's moments it hangs on (sun.js#sunMoments).
 //   node --test tests/neon.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';

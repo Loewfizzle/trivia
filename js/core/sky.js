@@ -1,6 +1,6 @@
 // LIVING CITY — the sky the title city mirrors, PURE (no DOM): the real sun and moon for the player's local time and an
 // approximate place (from the time zone; never a location prompt), the season, holidays with their build-up, meteor
-// showers, rare aurora nights, rain nights. district/scene.js asks look(ms, tz) every few seconds and blends to it.
+// showers, rare aurora nights, rain nights. The Harbor (screens/harbor/scene.js) asks look(ms, tz) every few seconds and blends to it.
 //
 //   look(ms, tz, { alwaysNight }) → {
 //     local {y, m, d, h, mi, s, dow, doy}, lat, lon, south,
@@ -79,7 +79,7 @@ export function placeOf(tz, offMin = 0) {
 }
 export const deviceZone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } };
 /** NIGHT-A — A TIME ZONE IS CHECKED BEFORE Intl EVER SEES IT (the owner's iPhone, Oct 29: "RangeError: invalid time zone: America/Detroit"
- *  from district/sun.js — the name looked right, so the string carried something invisible: a zero-width space, a no-break space, a
+ *  from harbor/sun.js — the name looked right, so the string carried something invisible: a zero-width space, a no-break space, a
  *  stray quote or bracket from a pasted link, a %-escape left over). The raw value is cleaned (invisible + control characters out, the
  *  compatibility forms folded — a no-break space, a full-width slash — whitespace inside → '_', wrapping quotes / brackets / trailing
  *  punctuation off, a leftover %-escape decoded, a case slip fixed), then tried on Intl; a zone Intl still rejects falls back to the
@@ -528,7 +528,7 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
     wind = 1 + (hash(`wind:${ev.y}-${ev.m}-${ev.d}`) % 25) / 10; windDir = 250;
   }
   const clear = !rain && snow < 0.6 && cloud < 0.7 && fog < 0.4;
-  // a deep freeze (real cold only: −4 °C / 25 °F starts it, full by −12 °C / 10 °F): frost, icicles, rime (district/frost.js)
+  // a deep freeze (real cold only: −4 °C / 25 °F starts it, full by −12 °C / 10 °F): frost, icicles, rime (harbor/frost.js)
   const freeze = live && live.temp != null ? clamp01((-4 - live.temp) / 8) : 0;
   const dark = w.night + w.late;
   const met = meteorsOf(ev.y, ev.m, ev.d);

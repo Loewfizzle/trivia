@@ -1,9 +1,8 @@
 // PARTY NIGHTS: the window, the phases, the beat clock, the palette, the party windows (js/core/party.js).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { partyHour, inPartyWindow, partyPhase, partyEnergy, partyState, partyLateK, finaleDue, breathShape, breathDiv, createBeatClock, advanceBeat, partyPalette, pickPartyWindows, partySeed, FALLBACK_BREATH_S } from '../js/core/party.js';
+import { partyHour, inPartyWindow, partyPhase, partyEnergy, partyState, partyLateK, finaleDue, breathShape, breathDiv, createBeatClock, advanceBeat, partyPalette, partySeed, FALLBACK_BREATH_S } from '../js/core/party.js';
 import { localParts, look } from '../js/core/sky.js';
-import { partyLine, tickerText } from '../js/screens/district/sign-logic.js';
 
 const at = (dow, h, mi = 0, s = 0) => ({ dow, h, mi, s, y: 2026, m: 10, d: 23 });
 
@@ -60,17 +59,6 @@ test('the late-night wind-down waits for the party: lit until 2 am, out over the
   assert.ok(sat3.w.late > 0.9, 'by 3 am Saturday the city has wound down');
 });
 
-test('the ticker: IT\'S FRIDAY NIGHT / IT\'S SATURDAY NIGHT join the rotation on party nights', () => {
-  const L = (dow, h) => ({ partyNight: true, local: { dow, h, mi: 0, y: 2026, m: 10, d: 23 }, holiday: null, nye: null });
-  assert.equal(partyLine(L(5, 22)), "IT'S FRIDAY NIGHT");
-  assert.equal(partyLine(L(6, 1)), "IT'S FRIDAY NIGHT", 'Saturday 1 am is still Friday night');
-  assert.equal(partyLine(L(6, 23)), "IT'S SATURDAY NIGHT");
-  assert.equal(partyLine(L(0, 1)), "IT'S SATURDAY NIGHT");
-  assert.equal(partyLine({ partyNight: false, local: { dow: 5, h: 22 } }), '');
-  assert.equal(tickerText(L(5, 22), ['CIPHER', 'PULSE']), "IT'S FRIDAY NIGHT   ★   NOW PLAYING: CIPHER · PULSE");
-  assert.equal(tickerText({ partyNight: false, local: { dow: 3, h: 22 }, holiday: null, nye: null }, ['CIPHER']), 'NOW PLAYING: CIPHER');
-});
-
 test('the finale is due the moment local midnight passes on a party night, once', () => {
   assert.ok(finaleDue(23.9995, 24.0002));
   assert.ok(!finaleDue(24.0002, 24.001), 'not again');
@@ -109,20 +97,9 @@ test('the beat clock: a slow steady breath with no song, then it eases onto the 
   void lastB;
 });
 
-test('the palette: the city\'s neon, or the holiday\'s; the party windows: ~a quarter, some floors, seeded by the evening', () => {
+test(`the palette: the city's neon, or the holiday's; the party seed: the evening (CITY 1.0 OUT: City 1.0's party windows went)`, () => {
   assert.equal(partyPalette(null), partyPalette('nonsense'));
   assert.notEqual(partyPalette('halloween'), partyPalette(null));
-  const windows = [];
-  for (let b = 0; b < 6; b++) for (let f = 0; f < 10; f++) for (let k = 0; k < 7; k++) windows.push({ x: b * 60 + k * 6, y: 400 - f * 9, w: 3, h: 4 });
-  const a = pickPartyWindows(windows, 'party:2026-10-23', partyPalette(null));
-  const b = pickPartyWindows(windows, 'party:2026-10-23', partyPalette(null));
-  const c = pickPartyWindows(windows, 'party:2026-10-24', partyPalette(null));
-  assert.deepEqual(a, b, 'the same every rebuild tonight');
-  assert.notDeepEqual(a.map(p => p.i), c.map(p => p.i), 'another night, another set');
-  assert.ok(Math.abs(a.length / windows.length - 0.25) < 0.03, `about a quarter (${(a.length / windows.length * 100).toFixed(0)} %)`);
-  assert.ok(a.some(p => p.floor) && a.filter(p => p.floor).length < a.length * 0.5, 'some whole floors, not most');
-  assert.ok(a.some(p => p.extra), 'a few extras for the peak');
-  assert.equal(new Set(a.map(p => p.i)).size, a.length, 'no window twice');
   assert.equal(partySeed({ y: 2026, m: 10, d: 24, h: 1 }), 'party:2026-10-23', 'the small hours belong to the evening before');
   assert.equal(partySeed({ y: 2026, m: 10, d: 23, h: 22 }), 'party:2026-10-23');
 });

@@ -184,7 +184,7 @@ test('WHO STANDS WHERE: the host first by the door; each keeps their line (ln, p
 
 test('THE ROOM IN THE CITY — the wiring: City 2.0 rooms stay on the title (the city never reloads; a refresh waits for the module); the room dock; the tags + the ring; the lying pose; the sounds', () => {
   const app = read('js/app.js');
-  assert.match(app, /if \(isCity2\(\)\) return harborPending\(\) \? 'boot' : 'title';/);
+  assert.match(app, /return harborPending\(\) \? 'boot' : 'title';/);   // (CITY 1.0 OUT: the only route for a room — the old lobby screen is gone)
   const t = read('js/screens/title.js');
   assert.match(t, /import\('\.\/room-city\.js'\)/); assert.match(t, /if \(roomUi\) \{ armIdle\(\); return; \}/, 'the dock stays up in a room');
   const d = read('js/screens/room-dock.js');

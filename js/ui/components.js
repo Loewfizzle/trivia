@@ -174,17 +174,6 @@ export function glitchFlash() {
   setTimeout(() => el.remove(), 450);
 }
 
-// "ACCESS GRANTED" room-join effect.
-export function accessGranted(code) {
-  const el = h('div.access', { 'aria-hidden': 'true' },
-    h('div.access-ring'), h('div.access-ring.r2'), h('div.access-ring.r3'),
-    h('div.access-text', h('small', 'UPLINK ESTABLISHED'), h('strong', 'ACCESS GRANTED'), h('small.mono', `HUSH WORD ${code}`)));
-  document.body.append(el);
-  sfx('join');
-  setTimeout(() => el.classList.add('out'), reducedMotion() ? 600 : 1300);
-  setTimeout(() => el.remove(), reducedMotion() ? 900 : 1800);
-}
-
 // Multi-select chips. values: array of selected values.
 export function chips(options, values, onChange) {
   const sel = new Set(values || []);

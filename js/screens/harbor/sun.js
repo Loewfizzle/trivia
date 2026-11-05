@@ -205,7 +205,7 @@ export function phoneArch(o, u) {
   return { x, y };
 }
 
-/** PURE: the day's moments for THE NEON COMES ALIVE (district/neon-ramp.js), from where the sun is drawn (sunPlace) — never the
+/** PURE: the day's moments for THE NEON COMES ALIVE (core/neon-ramp.js), from where the sun is drawn (sunPlace) — never the
  *  weather. catchAt: the LAST time tonight the disc goes fully behind the rooftops before it sets; clearAt: the first time this
  *  morning it is fully clear of them; startAt: ~10° elevation in the evening. layout: { W, H, HZ, block, buttons, safeTop, roof,
  *  base } (null: the real sunset / sunrise, −0.8°). ms: any time in the local day. */

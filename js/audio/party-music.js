@@ -16,7 +16,7 @@ import { createSyncedSongs, speakerLead } from './synced-songs.js';
 import { musicUrl } from './music-url.js';
 import { getMusicBus, getContext, graphDead, audioUnlocked } from './engine.js';
 import { serverNow } from '../firebase.js';
-import { cityClock, isCity2 } from '../core/city.js';
+import { cityClock } from '../core/city.js';
 import { XF_MS } from '../core/playlist.js';
 import { deckWindow, deckSongAt, deckSpec, EPOCH_ANCHOR } from '../core/party-deck.js';
 import { moodNow, moodData } from './mood.js';
@@ -60,10 +60,9 @@ export function stationOf(mood) {
   return deck ? { tl: { anchor: EPOCH_ANCHOR, seed: `station|${mood}`, kind: 'station', mood }, deck } : null;
 }
 
-/** the timeline now: { tl, deck, cityMs, off (city ms − server ms) } or null (a sped-up preview, no songs yet, City 1.0) — the PARTY's
+/** the timeline now: { tl, deck, cityMs, off (city ms − server ms) } or null (a sped-up preview, no songs yet) — the PARTY's
  *  evening timeline on a party night (from its 8 pm anchor), else the mood's STATION */
 function timeline() {
-  if (!isCity2()) return null;
   const cc = cityClock();
   if (!cc) return null;
   if (cc.speed && cc.speed() !== 1) return null;

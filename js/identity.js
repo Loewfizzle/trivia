@@ -75,7 +75,7 @@ export function setUrlRoom(code) {
   if (useEmulator) p.set('emu', '');
   if (testMode) p.set('test', '1');
   if (params.has('pdperf')) p.set('pdperf', ''); // PRISM DROP's on-screen performance readout
-  if (params.get('city') === '1' || params.get('city') === '2') p.set('city', params.get('city')); // the city flag (City 2.0 is the default; ?city=1 = City 1.0): a refresh / rejoin stays on it; never saved
+  if (params.get('city') === '2') p.set('city', '2'); // (an old ?city=2 link keeps its flag on the address bar — nothing reads it since CITY 1.0 OUT; ?city=1 drops)
   // (LOBBY FIXES: a PREVIEW link's city stays the same city in the room — the date, the place, the weather, a forced moment: the city rebuilt after
   //  a match (THE CITY PAUSE) reads them again; dropping them gave a city on another clock once HOST stopped remounting the title)
   // (THE SPEED PASS — FR6 A7: + lgnow (a forced legendary at once) + labmarks (localhost previews only) — a party night with a legendary in a

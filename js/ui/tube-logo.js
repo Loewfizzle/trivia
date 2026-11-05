@@ -1,6 +1,6 @@
 // EACH GAME'S TUBE LOGO (CITY 2.0, Part 3) — built exactly like the NEON logo (ui/logo.js): every stroke one bent glass tube,
 // drawn as glass → wide glow → near glow → body → white-hot core → a thin highlight, electrode caps at the open ends, mounting
-// clips. The game's mark (district/marks.js) beside its name in the tube alphabet, in the game's colours. Pure markup (no DOM),
+// clips. The game's mark (core/marks.js) beside its name in the tube alphabet, in the game's colours. Pure markup (no DOM),
 // so LOBBY 2.0 can swap the title's sign to the game's logo ("TONIGHT") and any screen can show one.
 //   gameLogoSvg(game, { id, lit, premium })  → an <svg class="nd-logo tube-logo"> using the logo's own class names (.ndl,
 //   .ndl-light, .ndl-glow1 …): the title's CSS lights it the same way (.ndl.on, .is-lit), letter by letter (each tube its group).

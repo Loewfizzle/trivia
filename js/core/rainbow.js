@@ -1,5 +1,5 @@
 // LIVING CITY — RAINBOWS, PURE (no DOM; docs/title.md). After REAL rain only: a daytime rainbow with the sun out, a moonbow
-// under a bright moon, a neon rainbow on PARTY NIGHTS (instead of the moonbow). district/rainbow.js draws them.
+// under a bright moon, a neon rainbow on PARTY NIGHTS (instead of the moonbow). harbor/rainbow.js draws them.
 //   wetAt          when it last really rained (core/weather.js#wetAtOf: Open-Meteo's past quarter hours via /api/sky, or this
 //                  device's memory of it — live-weather.js#lastWetAt). Raining now = now.
 //   bowSchedule    one appearance per rain: a few minutes after it stops, fading in over 1–2 min, holding 10–20 min, fading

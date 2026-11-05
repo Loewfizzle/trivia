@@ -289,12 +289,11 @@ export function neonRaceCrackle({ span = 1, n = 5, level = 1 } = {}) {
 // brings, and fine droplet ticks on the glass and the street. startRain(level) -> stop(fade); stop.level(l) changes it live.
 let brownBuf = null, irBuf = null;
 // RECORDED WEATHER (optional): royalty-free recordings beat any synthesis. Put the files in audio/weather/ and list them here —
-// a thunder file is picked at random per strike (near / far), a rain loop replaces the synthesized bed. Empty = synthesized.
+// a thunder file is picked at random per strike (near / far). Empty = synthesized.
 export const RECORDED = {
   // two close strikes with long rolls (Oct 2026): a distant strike plays the same recordings through a low-pass, quieter
   thunderNear: ['thunderstrike.mp3', 'thunderstrike2.mp3'],
   thunderFar: ['thunderstrike.mp3', 'thunderstrike2.mp3'],
-  rainLoop: null,
 };
 // each file's level, so they sit at the same loudness (thunderstrike2 is ~7 dB louder: RMS −18.7 vs −25.6 dB)
 const REC_GAIN = { 'thunderstrike.mp3': 1, 'thunderstrike2.mp3': 0.45 };
@@ -333,61 +332,8 @@ function space(ctx) {
   return irBuf;
 }
 
-export function startRain(level = 0.6) {
-  if (!isUnlocked()) { const f = () => {}; f.level = () => {}; return f; }
-  const ctx = getContext();
-  const t = ctx.currentTime;
-  const out = ctx.createGain(); out.gain.setValueAtTime(0, t);
-  out.connect(getSfxBus());
-  // the bed: bright, airy rain, breathing slowly so it never sounds like a hiss (or the recorded loop, when there is one)
-  const src = ctx.createBufferSource(); src.buffer = noise(ctx); src.loop = true;
-  if (RECORDED.rainLoop) loadRec(ctx, RECORDED.rainLoop).then(buf => { if (buf && !stopped) { const r = ctx.createBufferSource(); r.buffer = buf; r.loop = true; const rg = ctx.createGain(); rg.gain.value = 40; r.connect(rg).connect(out); r.start(); lg.disconnect(); bed.gain.value = 0; recSrc = r; } });   // the recording replaces the synthesized bed (its breathing too)
-  let recSrc = null;
-  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 700;
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3800;
-  const bed = ctx.createGain(); bed.gain.value = 1;
-  const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07;
-  const lg = ctx.createGain(); lg.gain.value = 0.28;
-  lfo.connect(lg).connect(bed.gain);
-  src.connect(hp).connect(lp).connect(bed).connect(out);
-  // the roar of a downpour: low and wide, only when it pours
-  const roarSrc = ctx.createBufferSource(); roarSrc.buffer = brown(ctx); roarSrc.loop = true;
-  const roarLp = ctx.createBiquadFilter(); roarLp.type = 'lowpass'; roarLp.frequency.value = 520;
-  const roar = ctx.createGain(); roar.gain.value = 0;
-  roarSrc.connect(roarLp).connect(roar).connect(out);
-  src.start(t); lfo.start(t); roarSrc.start(t);
-  let lvl = 0, stopped = false;
-  const BASE = 0.0081;                                     // the bed at a medium rain (felt more than heard)
-  function setLevel(l, ramp = 3) {
-    lvl = Math.max(0.1, Math.min(1.2, l));
-    const n = ctx.currentTime;
-    out.gain.cancelScheduledValues(n); out.gain.setValueAtTime(out.gain.value, n);
-    out.gain.linearRampToValueAtTime(BASE * (0.55 + 0.75 * lvl), n + ramp);
-    roar.gain.cancelScheduledValues(n); roar.gain.setValueAtTime(roar.gain.value, n);
-    roar.gain.linearRampToValueAtTime(Math.max(0, lvl - 0.45) * 1.6, n + ramp);
-  }
-  setLevel(level);
-  // droplet ticks: a few a second on the glass and the street, more as it pours (scheduled a little ahead)
-  let timer = 0;
-  const tickLoop = () => {
-    if (stopped) return;
-    const n = ctx.currentTime, rate = 3 + lvl * 14;
-    for (let tt = 0; tt < 0.25; tt += -Math.log(1 - Math.random()) / rate) droplet(ctx, n + 0.02 + tt, out, 0.5 + Math.random() * 1.1);
-    timer = setTimeout(tickLoop, 250);
-  };
-  tickLoop();
-  const stop = (fade = 0.8) => {
-    if (stopped) return;
-    stopped = true; clearTimeout(timer);
-    const n = ctx.currentTime;
-    out.gain.cancelScheduledValues(n); out.gain.setValueAtTime(out.gain.value, n); out.gain.linearRampToValueAtTime(0, n + fade);
-    for (const x of [src, lfo, roarSrc, recSrc]) if (x) x.stop(n + fade + 0.05);
-    setTimeout(() => out.disconnect(), (fade + 0.2) * 1000);
-  };
-  stop.level = l => { if (!stopped && Math.abs(l - lvl) > 0.05) setLevel(l, 4); };
-  return stop;
-}
-// a single droplet: a tiny, bright, pitched tick
+// (CITY 1.0 OUT: City 1.0's rain bed — startRain — went with it; the Harbor's rain beds are harbor/sounds.js's)
+// a single droplet: a tiny, bright, pitched tick (the thunder's patter)
 function droplet(ctx, at, dest, gain) {
   const s = ctx.createBufferSource(); s.buffer = noise(ctx);
   const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2400 + Math.random() * 5200; f.Q.value = 4 + Math.random() * 6;

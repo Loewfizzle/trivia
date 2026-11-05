@@ -363,13 +363,13 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     heliBreakOn: () => air.breakOn(),
     heliBeam: () => air.beamNow(),
     heliMs: () => air.heliMs(),
-    /** 6b: the shooting stars (district/fx.js's hook: rarer on the Harbor, their own art) */
+    /** 6b: the shooting stars (harbor/fx.js's hook: rarer on the Harbor, their own art) */
     meteors: (c, s) => met.draw(c, s),
-    /** the moon (district/fx.js's hook) */
+    /** the moon (harbor/fx.js's hook) */
     moon: (c, o) => cel.moon(c, o),
     /** SP: the moon's surroundings — the tagline's band (its 22° halo never crosses it), tonight's cirrostratus veil */
     moonSky: o => cel.skyIs(o),
-    /** the aurora (district/fx.js's hook) */
+    /** the aurora (harbor/fx.js's hook) */
     aurora(c, s) {
       const st = s.force.has('aurora') && !aurora.on ? 0.8 : aurora.strength;
       // (6b: City 1.0's smooth curtain re-fitted to the whole sky — its foot on the crowns, the city drawn over it — aurora.js)

@@ -35,7 +35,7 @@ test('the PLAYABLE games export every REQUIRED piece of the contract + a music c
     const ex = exportsOf(read(`js/games/${id}/index.js`));
     for (const k of Object.keys(REQUIRED)) assert.ok(ex.has(k), `${id}: exports ${k}`);
     assert.ok(ex.has('MUSIC') || ex.has('musicFor'), `${id}: MUSIC or musicFor`);
-    assert.ok(MARKS[id], `${id}: its tube mark (district/marks.js) — the game start's sign`);
+    assert.ok(MARKS[id], `${id}: its tube mark (core/marks.js) — the game start's sign`);
     const g = GAMES.find(x => x.id === id); assert.ok(g && g.name && g.theme, `${id}: its GAMES row`);
     assert.ok(ex.has('chatLocked') && ex.has('BANNER_NAME'), `${id}: carries its own chat lock + its banner name (LOBBY 2.0 B)`);
   }

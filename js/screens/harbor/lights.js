@@ -130,7 +130,7 @@ function drawLit(x, cam, it, look, meta, group, idx) {
     // (a coloured room glows a little into the night around its pane: its own soft halo — City 1.0's)
     if (tr.cls === 'neon' && !quiet) { x.fillStyle = rgba(col, a * (group === 'far' ? 0.18 : 0.14)); x.fillRect(wx - 1.2, wy - 1.2, Math.max(0.6, ww) + 2.4, Math.max(0.6, wh) + 2.4); a = Math.min(1, a * 1.15); }
     x.fillStyle = rgba(col, a); x.fillRect(wx, wy, Math.max(0.6, ww), Math.max(0.6, wh));
-    // City 1.0's power-on (district/scene.js): bottom first, with scatter — delay = (1 − height) · 0.82 + rand · 0.16
+    // City 1.0's power-on (its scene — deleted Nov 5 — kept here): bottom first, with scatter — delay = (1 − height) · 0.82 + rand · 0.16
     { const yn = Math.max(0, Math.min(1, (wy - cam.limitY) / Math.max(1, cam.VPY + cam.F * cam.CAMH / 230 - cam.limitY)));
       const w = { x: wx, y: wy, w: Math.max(0.6, ww), h: Math.max(0.6, wh), d: Math.min(1, Math.max(0, (1 - yn) * 0.82 + winHash(b.seed, t, c, r, 16) * 0.16)), s: x.fillStyle, vis: 1 };
       wv.list.push(w); const bi = Math.floor(wx / 8); let bin = wv.bins.get(bi); if (!bin) wv.bins.set(bi, bin = []); bin.push(w); }

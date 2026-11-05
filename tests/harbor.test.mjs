@@ -3325,13 +3325,12 @@ test('WINDOWS — only PRISM DROP + OVERCLOCK playable; the five sign games; eve
   assert.deepEqual(GAMES.filter(g => g.sign).map(g => g.id).sort(), ['golf', 'gridlock', 'overclock', 'prism', 'stakes']);
   for (const g of GAMES) assert.equal(isPlayable(g.id), g.id === 'prism' || g.id === 'overclock', `${g.id}: playable ${isPlayable(g.id)}`);
   assert.equal(isPlayable('nope'), false);
-  // the start paths: host.js#startGame refuses a hidden game before anything is written (rematch goes through it); the lobby,
+  // the start paths: host.js#startGame refuses a hidden game before anything is written (rematch goes through it);
   // HOW TO PLAY and the title's games sheet list only the playable ones; a sign tap on a next-on-deck game says COMING SOON
   const host = readFileSync(new URL('../js/host.js', import.meta.url), 'utf8');
   const sg = host.slice(host.indexOf('async function startGameNow'), host.indexOf('export function rematch'));
   assert.ok(/if \(!isPlayable\(gameId\)\)[^\n]*return false/.test(sg) && sg.indexOf('isPlayable') < sg.indexOf('mod.start('), 'startGame refuses a hidden game first');
   assert.ok(/return startGame\(id, (?:settings|rematchSettingsOf\(mod, settings, state\.game\))(?:, \{ quick: true \})?\)/.test(host.slice(host.indexOf('export function rematch'))), 'a rematch goes through startGame');   // (LOBBY 2.0 B: + the cartridge's rematch settings)   // (LOBBY FIXES: + the quick start)
-  assert.ok(/for \(const g of GAMES\.filter\(x => x\.playable\)\)/.test(readFileSync(new URL('../js/screens/lobby.js', import.meta.url), 'utf8')), 'the lobby lists the playable games only');
   assert.ok(/GAMES\.filter\(x => x\.playable \|\| x\.id === current\)/.test(readFileSync(new URL('../js/ui/help.js', import.meta.url), 'utf8')), 'HOW TO PLAY: the playable tabs (+ the match on screen)');
   const title = readFileSync(new URL('../js/screens/title.js', import.meta.url), 'utf8');
   assert.ok(/const games = GAMES\.filter\(g => g\.playable\);/.test(title) && /!g\.playable\) \{ toast\(`\$\{g\.name\} · COMING SOON`/.test(title), 'the games sheet + the sign tap');

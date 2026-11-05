@@ -1,4 +1,4 @@
-// CITY 2.0 MUSIC (docs/audio.md#city-20-music): the Harbor's own mood rule, the MUSIC MOOD setting in both cities, the City 2.0 decks
+// CITY 2.0 MUSIC (docs/audio.md#city-20-music): the Harbor's own mood rule, the MUSIC MOOD setting, the City 2.0 decks
 // (data/mood-music.json `city2`), shared songs, and the shuffle across moods.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -8,7 +8,7 @@ const mem = new Map();
 globalThis.localStorage = { getItem: k => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)), removeItem: k => mem.delete(k) };
 
 const { cityMoodAt, MOOD_IDS } = await import('../js/core/city-mood.js');
-const { city, setCityClock, isCity2, cityFailed } = await import('../js/core/city.js');
+const { city, setCityClock } = await import('../js/core/city.js');
 const { moodNow, fixedMood, songsFor, setMoodData, nextForDevice, MOODS, MOOD_CHOICES } = await import('../js/audio/mood.js');
 const { settings } = await import('../js/audio/settings.js');
 const { skyClock, look } = await import('../js/core/sky.js');
@@ -22,8 +22,9 @@ const cityAt = when => {
   setCityClock({ now: () => c.now(), tz: () => c.tz, wx: () => c.wx, q: () => null });
   return c;
 };
-const asCity2 = () => { city.two = true; settings.musicMood = 'auto'; };
-const asCity1 = () => { city.two = false; city.clock = null; settings.musicMood = 'auto'; };
+// (CITY 1.0 OUT: one city — asCity2 = AUTO; reset = no Harbor clock registered yet, AUTO)
+const asCity2 = () => { settings.musicMood = 'auto'; };
+const asCity1 = () => { city.clock = null; settings.musicMood = 'auto'; };
 
 test('CITY 2.0 mood rule: dawn → 11 am MORNING · DAY · golden hour → 11 pm EVENING · 11 pm → dawn LATE NIGHT (by the sun)', () => {
   const L = (dow, h, mi = 0) => ({ dow, h, mi, s: 0 });
@@ -90,22 +91,11 @@ test('previews move the music: &speed= runs the Harbor\'s clock, so the mood fol
   asCity1();
 });
 
-test('City 1.0\'s AUTO is unchanged (sunrise / 11 am / sunset / midnight; the Fridays\' 11:45 pm is a party too)', () => {
-  asCity1();
-  const m = s => { const k = skyClock(new URLSearchParams(`when=${s}&tz=America/New_York`)); return moodNow(k, k.now(), k.tz); };
-  assert.equal(m('2026-10-20T03:00'), 'late');
-  assert.equal(m('2026-10-20T08:30'), 'morning');
-  assert.equal(m('2026-10-20T14:00'), 'day');
-  assert.equal(m('2026-10-20T21:00'), 'evening');
-  assert.equal(m('2026-10-23T21:00'), 'party');
-  assert.equal(m('2026-10-24T01:00'), 'party');
-});
-
-test('MUSIC MOOD: a chosen mood wins in both cities; AUTO follows the clock; a preview\'s &mood= wins over the saved setting', () => {
-  for (const two of [false, true]) {
-    if (two) asCity2(); else asCity1();
+test('MUSIC MOOD: a chosen mood wins; AUTO follows the clock; a preview\'s &mood= wins over the saved setting', () => {
+  {
+    asCity2();
     cityAt('2026-10-22T13:00');
-    for (const v of MOOD_CHOICES.filter(x => x !== 'auto')) { settings.musicMood = v; assert.equal(moodNow(), v, `${two ? 'City 2.0' : 'City 1.0'}: ${v}`); assert.equal(fixedMood(), v); }
+    for (const v of MOOD_CHOICES.filter(x => x !== 'auto')) { settings.musicMood = v; assert.equal(moodNow(), v, v); assert.equal(fixedMood(), v); }
     settings.musicMood = 'auto';
     assert.equal(fixedMood(), null);
     settings.musicMood = 'nonsense';
@@ -120,12 +110,6 @@ test('MUSIC MOOD: a chosen mood wins in both cities; AUTO follows the clock; a p
   asCity1();
   assert.deepEqual(MOOD_CHOICES, ['auto', 'morning', 'day', 'evening', 'late', 'party']);
   assert.deepEqual([...MOODS].sort(), [...MOOD_IDS].sort(), 'the audio and the pure rule speak the same moods');
-});
-
-test('a failed Harbor load falls back to City 1.0 (decks and rule)', () => {
-  asCity2(); assert.ok(isCity2());
-  cityFailed(); assert.ok(!isCity2());
-  asCity1();
 });
 
 // ---------------------------------------------------------------- the decks
@@ -187,15 +171,13 @@ test('data: every City 2.0 song says whether its beat grid can be trusted (the u
   for (const id of bad) assert.ok(doc.includes(id), `${id} (grid not trusted) is named in docs/audio.md`);
 });
 
-test('songsFor: City 2.0 plays its own deck, City 1.0 its own; a mood with no City 2.0 deck falls back to City 1.0\'s', () => {
+test('songsFor: City 2.0 plays its own deck; a mood with no City 2.0 deck falls back to the first decks (data.moods)', () => {
   setMoodData(data);
-  asCity1();
-  assert.deepEqual(songsFor('late'), data.moods.late);
   asCity2();
   assert.deepEqual(songsFor('late'), c2.moods.late);
   assert.deepEqual(songsFor('party'), c2.moods.party);
   setMoodData({ ...data, city2: { moods: { ...c2.moods, party: [] } } });
-  assert.deepEqual(songsFor('party'), data.moods.party, 'an empty City 2.0 deck → City 1.0\'s');
+  assert.deepEqual(songsFor('party'), data.moods.party, 'an empty City 2.0 deck → the first decks');
   setMoodData(null);
   assert.deepEqual(songsFor('late'), [], 'no list loaded yet');
   asCity1();

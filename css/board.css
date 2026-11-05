@@ -356,36 +356,8 @@ body.reduced-fx .bd-card.is-cascade .bd-row { animation-duration: 0.01s; animati
 .pf-actions .btn { min-height: 46px; font-size: 11px; letter-spacing: 0.16em; }
 .pf-sec { display: flex; flex-direction: column; gap: 10px; }
 .pf-h { margin: 6px 0 0; font: 900 11px/1 var(--font-display); letter-spacing: 0.3em; color: rgba(255, 236, 220, 0.86); }
-.pf-why { margin: 0; font-size: 13px; line-height: 1.5; color: var(--gl-dim); }
 .pf-link { align-self: flex-start; min-height: 40px; font: 600 13px/1.3 var(--font-ui); color: var(--gl-pink); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(255, 124, 203, 0.4); }
 
-/* the key: a secret password card */
-.pf-key {
-  position: relative; cursor: pointer; border-radius: 18px; padding: 14px 16px 12px; outline: none;
-  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.016) 0 6px, transparent 6px 12px), linear-gradient(180deg, #160d18, #0b0711);
-  border: 1px dashed rgba(242, 200, 105, 0.5);
-  box-shadow: inset 0 0 0 4px #0b0711, inset 0 0 0 5px rgba(242, 200, 105, 0.16), 0 14px 34px rgba(0, 0, 0, 0.45);
-}
-.pf-key:focus-visible { box-shadow: inset 0 0 0 4px #0b0711, inset 0 0 0 5px rgba(242, 200, 105, 0.5), 0 0 0 2px var(--gl-pink); }
-.pf-key-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.pf-key-k { font: 900 10px/1 var(--font-display); letter-spacing: 0.3em; color: #f2c869; }
-.pf-key-s { font: 600 13px/1.2 var(--font-ui); color: rgba(245, 236, 218, 0.78); }   /* (no small italic — the owner's PROGRESSION B review) */
-.pf-key-val { margin: 12px 0 10px; text-align: center; }
-.pf-key-text { display: inline-block; font: 700 clamp(17px, 5.2vw, 21px)/1.2 var(--font-mono); letter-spacing: 0.12em; color: rgba(255, 244, 220, 0.62); transition: color 0.3s, text-shadow 0.3s; }
-.pf-key.is-shown .pf-key-text { color: #fff4dc; text-shadow: 0 0 14px rgba(242, 200, 105, 0.6); user-select: all; -webkit-user-select: all; }
-.pf-key.is-none .pf-key-text { font-size: 13px; letter-spacing: 0.2em; }
-.pf-key-actions { display: flex; align-items: center; gap: 8px; }
-.pf-key-hint { flex: 1; font: 700 9px/1 var(--font-mono); letter-spacing: 0.24em; color: rgba(242, 200, 105, 0.66); }
-.pf-key.is-shown .pf-key-hint { visibility: hidden; }
-.pf-key-copy, .pf-key-new { min-height: 36px; padding: 0 14px; border-radius: 999px; font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.16em; color: #1a1007; background: linear-gradient(180deg, #ffe9b8, #f2c869 55%, #c99234); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6); }
-.pf-key-new { color: rgba(255, 236, 210, 0.86); background: transparent; border: 1px solid rgba(242, 200, 105, 0.35); box-shadow: none; }
-.pf-key-new.is-armed { color: #ffc2cf; border-color: rgba(255, 120, 150, 0.6); font-size: 9.5px; letter-spacing: 0.06em; }
-.pf-key.is-none .pf-key-copy, .pf-key.is-none .pf-key-hint { display: none; }
-/* FR6 FIXES A (C2) — YOUR PREVIOUS KEY: the key this device held before a restore, under the key card (copy · forget) */
-.pf-keys { display: flex; flex-direction: column; gap: 8px; }
-.pf-key-prev { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 4px 8px; padding: 10px 12px; border-radius: 14px; border: 1px dashed rgba(242, 200, 105, 0.32); }
-.pf-key-prev-k { grid-column: 1 / -1; font: 900 9px/1 var(--font-display); letter-spacing: 0.26em; color: rgba(242, 200, 105, 0.9); }
-.pf-key-prev-v { font: 700 13px/1.2 var(--font-mono); letter-spacing: 0.06em; color: rgba(255, 244, 220, 0.82); overflow-wrap: anywhere; user-select: all; -webkit-user-select: all; }
 .pf-restore-box { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 16px; background: var(--gl-bg); border: 1px solid var(--gl-line); }
 /* PERF-A — THE CARD SAYS WHY: a key held on this device, a changed sign-in, an address with nothing saved */
 .pf-why-slot:empty { display: none; }
@@ -443,9 +415,6 @@ body.reduced-fx .bd-card.is-cascade .bd-row { animation-duration: 0.01s; animati
 .pf-pid { min-height: 32px; font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.1em; color: var(--text-faint); }
 
 /* the key reminder sheet */
-.pf-prompt .sheet { display: flex; flex-direction: column; gap: 14px; }
-.pf-prompt-head { display: flex; align-items: center; gap: 14px; }
-.pf-prompt-actions { display: flex; flex-direction: column; gap: 6px; }
 
 /* ==========================================================================
    RESULTS — plaques on the podium, the XP line, the rank-up (js/profile/callouts.js)

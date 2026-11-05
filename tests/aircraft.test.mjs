@@ -1,4 +1,4 @@
-// LIVING CITY air traffic + satellites (js/screens/district/aircraft.js): traffic by the hour, flight paths, nav lights,
+// LIVING CITY air traffic + satellites (js/screens/harbor/aircraft.js — the Harbor's air.js runs on it): traffic by the hour, flight paths, nav lights,
 // the Starlink nights and the twilight window — and the old flying vehicles / satellite train gone.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -52,11 +52,7 @@ test('Starlink trains: about one evening in four or five, the same nights for ev
   assert.equal(satTwilight(-25, 23), null, 'deep night: the satellites are in the earth\'s shadow');
 });
 
-test('the old flying vehicles and the old satellite train are gone; planes draw behind the clouds and the skyline', () => {
-  const scene = readFileSync(new URL('../js/screens/district/scene.js', import.meta.url), 'utf8');
+test('the old satellite train is gone', () => {
   const fx = readFileSync(new URL('../js/screens/harbor/fx.js', import.meta.url), 'utf8');
-  assert.ok(!/vehiclesStep|vehicles\b/.test(scene), 'vehicles removed from scene.js');
   assert.ok(!/\bsats\b|nextSats/.test(fx), 'the old satellite train removed from fx.js');
-  const air = scene.indexOf('air.draw(c, fs)'), clouds = scene.indexOf('wfx.sky(c, fs)'), rows = scene.indexOf('layers.forEach((L, li) =>', air);
-  assert.ok(air > 0 && air < clouds && air < rows, 'planes before the clouds and the skyline rows');
 });

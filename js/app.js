@@ -15,13 +15,11 @@ import { keepAwake } from './wakelock.js';
 import { GAME_MODULES } from './games/registry.js';
 import { createTitle, harborReady, harborPending, harborRemote } from './screens/title.js';
 import { createSetup } from './screens/setup.js';
-import { createLobby } from './screens/lobby.js';
 import { installAudio } from './audio/engine.js';
 import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider, switchNow, nowPlaying, cueMusic } from './audio/music.js';
 import { partyMusicTick, partyCue, partyMusicDebug, partyClaims } from './audio/party-music.js';
 import { cityClock } from './core/city.js';
 import { loadMoodMusic, moodNow, fixedMood, songsFor, nextForDevice } from './audio/mood.js';
-import { isCity2 } from './core/city.js';
 import { lobbyMusicTick, lobbyMusicDebug } from './audio/lobby-music.js';
 import { beatSource } from './audio/beat.js';
 import { sfx } from './audio/sfx.js';
@@ -56,17 +54,16 @@ function routeKey(st) {
   if (!st.code) return st.view === 'setup' ? `setup:${st.setupMode}` : st.view === 'board' ? 'board' : st.view === 'profile' ? 'profile' : 'title';
   // (LOBBY FIXES — THE DESKTOP HOST's FLASH: between HOST and the room's meta arriving (one round trip) this said 'boot' — the title unmounted,
   //  the boot screen faded in, then the title + its whole city came back. In City 2.0 the room IS the city: the title stays while the meta loads)
-  if (!st.meta) return isCity2() && !harborPending() && current && current.key === 'title' ? 'title' : 'boot';
+  if (!st.meta) return !harborPending() && current && current.key === 'title' ? 'title' : 'boot';
   // (LOBBY 2.0 B — THE GAME START: in City 2.0 the city stays up for the walk inside (core/room-show.js, ≤ 2.6 s from the host's tap, the
   //  same on every phone — a refresh / a late joiner past it goes straight to the game); a timer re-routes the moment it ends)
   if (st.meta.status === 'playing' && st.game && GAME_MODULES[st.game.id] && st.quit !== st.game.matchId) {
-    if (isCity2() && !harborPending() && startShow(st.meta, st.game, serverNow()).on) { goTimer(st); return 'title'; }
+    if (!harborPending() && startShow(st.meta, st.game, serverNow()).on) { goTimer(st); return 'title'; }
     return `game:${st.game.id}:${st.game.matchId}`;
   }
-  // LOBBY 2.0 A — THE ROOM IN THE CITY: in City 2.0 a room's waiting part IS the live city — the title screen stays (its city never
-  // reloads) and turns into the room (screens/room-city.js); the profile from YOU opens over it. City 1.0 keeps today's lobby screen.
-  if (isCity2()) return harborPending() ? 'boot' : 'title';   // (a refresh in a room waits for City 2.0's module, like the title does)
-  return `lobby:${st.code}`;
+  // LOBBY 2.0 A — THE ROOM IN THE CITY: a room's waiting part IS the live city — the title screen stays (its city never reloads) and
+  // turns into the room (screens/room-city.js); the profile from YOU opens over it. (CITY 1.0 OUT: the old lobby screen is gone.)
+  return harborPending() ? 'boot' : 'title';   // (a refresh in a room waits for City 2.0's module, like the title does)
 }
 
 let goT = 0, goM = '';
@@ -82,7 +79,6 @@ function makeScreen(key) {
   if (key.startsWith('setup')) return createSetup();
   if (key === 'board') return createBoardScreen();
   if (key === 'profile') return createProfileScreen();
-  if (key.startsWith('lobby')) return createLobby();
   if (key.startsWith('game:')) return GAME_MODULES[key.split(':')[1]].createView();
   return { mount(el) { el.classList.add('boot-screen'); }, update() {} }; // the inline #boot overlay covers this
 }
@@ -96,7 +92,7 @@ loadMoodMusic().then(d => {
   registerTracks(Object.fromEntries(Object.keys(d.songs).map(id => [`m:${id}`, id])));
   setListProvider('mood', prev => {
     // (NIGHT-C — THE PARTY SONG IN SYNC: on the party's timeline this phone's own player starts the song EVERY phone hears, at its place)
-    // (SKY-B — RADIO STATIONS: every City 2.0 mood is a station on the server clock — its song started at its place; partyCue → null in City 1.0)
+    // (SKY-B — RADIO STATIONS: every City 2.0 mood is a station on the server clock — its song started at its place; partyCue on the server clock)
     const m = moodNow(), c = moodOn() && !state.code ? partyCue(prev && prev.replace(/^m:/, '')) : null;
     // (SKY-A: …unless the synced player claims it — loading, it plays in a moment: nothing started here, no wasted download, no AbortError)
     if (c && !state.code && partyClaims()) return null;
@@ -113,7 +109,7 @@ let moodSeen = null, choiceSeen = null;
 function moodWatch() {
   if (!moodOn()) { moodSeen = null; return; }
   const m = moodNow(), c = fixedMood();
-  if (moodSeen !== null && m !== moodSeen && !lobbySynced && !partySynced && (c !== choiceSeen || (m === 'party' && isCity2()))) {
+  if (moodSeen !== null && m !== moodSeen && !lobbySynced && !partySynced && (c !== choiceSeen || m === 'party')) {
     const np = nowPlaying();
     // (APP FIXES — Grok 3.7: never while a STATION's timeline runs — the station's own change (party-music.js) places the song)
     if (!(np && songsFor(m).includes(np.id)) && !partyCue()) switchNow(4);
@@ -127,7 +123,7 @@ setInterval(() => {
   const was = lobbySynced, wasP = partySynced; const lob = inLobby(state) && state.ready; lobbySynced = lobbyMusicTick(state, moodOn() && lob, lob);
   // NIGHT-C — THE PARTY SONG IN SYNC (audio/party-music.js): City 2.0's menus outside a room, the PARTY mood — the party's timeline on the
   // server clock (a legendary's tape stop holds it on this phone's own player: the city clock's musicHold)
-  const cc = isCity2() ? cityClock() : null;
+  const cc = cityClock();
   partySynced = partyMusicTick(!!cc && moodOn() && !state.code, !!(cc && cc.musicHold && cc.musicHold()));   // (SKY-B: every mood a station)
   if (was !== lobbySynced || wasP !== partySynced) render(state);
 }, 250);
@@ -159,11 +155,9 @@ function render(st) {
   document.body.dataset.theme = theme || '';
   keepAwake(!!(st.code && st.meta && st.meta.status === 'playing'));
   renderConnection(st);
-  // the menus (setup, lobby) sit on glass over the lit district, like the title
-  const glass = key.startsWith('setup') || key.startsWith('lobby') || key === 'profile';
+  // the menus (setup, the profile) sit on glass over a still of the city, like the title
+  const glass = key.startsWith('setup') || key === 'profile';
   if (document.body.classList.contains('nd-glass') !== glass) { document.body.classList.toggle('nd-glass', glass); showBackdrop(glass); }
-  // SPLIT CORNERS (7a section 0): the lobby (like the title) puts ☰ top-left and the music top-right (components.css)
-  document.body.classList.toggle('cb-split', key.startsWith('lobby'));
 
   if (current && current.key === key) { current.screen.update && current.screen.update(st); return; }
   const old = current;
@@ -178,7 +172,7 @@ function render(st) {
     old.el.setAttribute('aria-hidden', 'true');
     setTimeout(() => old.el.remove(), 380);
     // (LOBBY 2.0 B: City 2.0's room ↔ a game has its own transitions — the push through the door in, the walk back out — never the glitch)
-    if (old.key !== 'boot' && !(isCity2() && (old.key === 'title' || key === 'title') && st.code)) glitchFlash();
+    if (old.key !== 'boot' && !((old.key === 'title' || key === 'title') && st.code)) glitchFlash();
   }
   requestAnimationFrame(() => el.classList.add('screen-in'));
 }
@@ -187,7 +181,6 @@ subscribe(render);
 // error reports say which screen was up — never the room code or match id
 setErrorContext(() => {
   const k = routeKey(state);
-  if (k.startsWith('lobby')) return 'lobby';
   if (k.startsWith('game:')) return `game:${k.split(':')[1]}${state.game && state.game.phase ? `/${state.game.phase}` : ''}`;
   return k;
 });
@@ -344,7 +337,7 @@ async function boot() {
   dismissBoot();
   startHostLoop();
   // CITY CONTROLS A — THE RADIO: the server says who has one (radio-gate.js) — only then does anything load (City 2.0 only)
-  if (isCity2()) setTimeout(() => import('./screens/harbor/radio-gate.js').then(m => m.startRadioGate({ remote: harborRemote, roomCode: () => state.code || null })).catch(e => console.warn('radio', e)), 2500);
+  setTimeout(() => import('./screens/harbor/radio-gate.js').then(m => m.startRadioGate({ remote: harborRemote, roomCode: () => state.code || null })).catch(e => console.warn('radio', e)), 2500);
   // Installable app: a network-first service worker (never caches Firebase traffic). Not on localhost/dev.
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !/^(localhost|127\.)/.test(location.hostname)) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});

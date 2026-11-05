@@ -1,7 +1,7 @@
 // LIVING CITY — the sky's moving parts and the city's seasonal dress, drawn into the district scene's canvas.
 //   back(c):  behind the skyline — the sun, the moon (real phase), aurora, shooting stars, fireworks, the sleigh
 //   mid(c):   on the near buildings — Christmas string lights, glowing window glyphs, the neon pumpkin / shamrock signs
-//   front(c): over everything — snow, bats (leaves, petals, fireflies: the street's trees, district/furniture.js)
+//   front(c): over everything — snow, bats (leaves, petals, fireflies: the Harbor's trees, harbor/trees.js)
 // Particle counts are capped per quality tier; Reduced effects (motion 0) stops what moves (the palette still applies).
 // Rare moments (bats, the sleigh, single shooting stars) are scheduled with long, random gaps — or forced by the preview.
 
@@ -144,7 +144,7 @@ export function createFx() {
     back(c, s) {
       const { L, P, t, dt, tier, motion } = s;
       const dark = L.w.night + L.w.late;
-      // (the sun: district/sun.js)
+      // (the sun: harbor/sun.js)
       // the moon at its phase, a halo on clear nights
       if (L.moon.el > -2 && P.moonA > 0.05) {
         const r = Math.min(26, Math.max(15, W * 0.035));
@@ -341,7 +341,7 @@ export function createFx() {
         c.globalAlpha = 1;
       }
       // (THE STREET, Oct 2026: the screen-wide tumbling petals and leaves and the street-wide fireflies are gone — leaves and petals
-      // fall only from the street's trees and fireflies stay by them: district/furniture.js. Nothing seasonal crosses the sky.)
+      // fall only from the street's trees and fireflies stay by them (the Harbor's trees: harbor/trees.js). Nothing seasonal crosses the sky.)
       const hol = L.holiday;
       // bats (Halloween): a small flock every few minutes, rim-lit in neon
       if (motion && ((hol && hol.id === 'halloween' && hol.full) || s.force.has('bats'))) {

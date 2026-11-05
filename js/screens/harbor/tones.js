@@ -58,7 +58,7 @@ export function toneWeights(LK) {
   const night = (w.night || 0) + (w.late || 0) + 0.3 * (w.dawn || 0) + (w.blue || 0);
   let gold = (w.golden || 0) + 0.7 * (w.dawn || 0);
   let day = w.day || 0;
-  // (THE SUN'S STAGES — district/sun.js#sunColourAt: with the sun 2–6° up it is golden amber, and so is its light on the city. The
+  // (THE SUN'S STAGES — harbor/sun.js#sunColourAt: with the sun 2–6° up it is golden amber, and so is its light on the city. The
   // evening's weights already are; the morning's went to daylight by ~4°. The day channel only: its share moves to gold so the lit
   // city is all gold to ~5°, half by ~7°, daylight from ~9° — the night's share (the dawn's dusk, the blue hour) never changes.)
   const el = LK && LK.sun ? LK.sun.el : null;
@@ -110,7 +110,7 @@ export function sunLook(LK, P) {
 }
 
 // ------------------------------------------------------------------ THE DAY SKY (THE DAY PASS)
-// The shared palette's day sky (district/palette.js — City 1.0's, untouched) is a soft grey-blue. The Harbor paints its own by day:
+// The shared palette's day sky (core/palette.js — City 1.0's, untouched) is a soft grey-blue. The Harbor paints its own by day:
 // a deep azure overhead fading through clean blues to a pale, luminous horizon — a travel poster's sky — blended in by the day's
 // share (so dawn, golden hour and the night keep the palette's exactly) and greyed by the real cloud cover.
 // (DT2: the horizon a step deeper — the cream stone towers stand out against it instead of dissolving into a pale band)

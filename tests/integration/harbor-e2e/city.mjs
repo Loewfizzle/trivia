@@ -360,6 +360,28 @@ async function neonPass5Panel() {
     await P.ctx.close();
   }
 }
+// CITY 1.0 OUT — THE CITY COULDN'T LOAD: the Harbor's module failed twice (a phone loses signal mid-load) — this used to fall back to City
+// 1.0. Now: the title holds the boot screen through the retry (1.5 s), then a plain card + RELOAD; nothing throws; a reload with the
+// module back is the Harbor again.
+G('citydown', async () => {
+  const Q = await open({ slot: 'cdn', qs: NIGHT, view: [402, 874], wait: false }), p = Q.page;
+  await p.setRequestInterception(true);
+  let blocked = 0, block = true;
+  p.on('request', r => { if (block && /\/js\/screens\/harbor\/scene\.js/.test(r.url())) { blocked++; r.abort(); } else r.continue(); });
+  await p.reload();
+  const card = await waitFor(p, "!!document.querySelector('.nd-down-card')", 'the card', 20000).then(() => true, () => false);
+  const txt = card ? await ev(p, "document.querySelector('.nd-down-card').textContent") : '';
+  const btn = card ? await ev(p, "!!document.querySelector('.nd-down-card .btn-primary')") : false;
+  ok(card && /COULDN.T LOAD/.test(txt) && /RELOAD/.test(txt) && btn && blocked >= 2, `THE CITY COULDN'T LOAD: the card + RELOAD after the retry ("${txt}"; the module asked ${blocked}× — one retry)`);
+  if (SHOTS) { await waitFor(p, "!document.getElementById('boot')", 'the boot screen gone', 8000).catch(() => {}); await sleep(600); await p.screenshot({ path: `${OUT}citydown.png` }); }
+  block = false;
+  await ev(p, "document.querySelector('.nd-down-card .btn-primary').click()");
+  await harborUp(p).catch(() => {});
+  const up = await ev(p, '!!(window.__district && window.__district.harbor && window.__district.harbor() && window.__district.harbor().shown)');
+  ok(up, `… RELOAD with the module back = the Harbor (${up})`);
+  await Q.ctx.close();
+});
+
 G('core', async () => {
   // ================================================================ 1. ?city=2: the Harbor, no errors, every size
   const A = await open({ slot: 'ha', qs: NIGHT });
@@ -432,7 +454,7 @@ G('core', async () => {
   // ================================================================ 2. the flag is never saved; a normal visit is the Harbor (since WINDOWS)
   const stored = await ev(A.page, `JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }) + document.cookie`);
   ok(!/city/i.test(stored), 'NEVER SAVED: ?city=2 leaves nothing in localStorage, sessionStorage or cookies');
-  // (WINDOWS — THE QUIET DEFAULT FLIP, Nov 1: a visit with NO flag is the Harbor now; City 1.0 (?city=1) is untested from here on)
+  // (WINDOWS — THE QUIET DEFAULT FLIP, Nov 1: a visit with NO flag is the Harbor; CITY 1.0 OUT, Nov 5: City 1.0 is deleted)
   { let files = []; A.page.on('request', r => files.push(r.url()));
     await A.page.goto('about:blank'); files = [];
     await A.page.goto(`${BASE}/?emu&slot=ha&${NIGHT}`);
@@ -440,6 +462,12 @@ G('core', async () => {
     await waitFor(A.page, '!!window.__district.harbor() && window.__district.harbor().shown', 'the harbor by default', 25000).catch(() => {});
     const d2 = await ev(A.page, 'window.__district.scene()'), hb = await ev(A.page, 'window.__district.harbor()'), hf = files.filter(u => /\/harbor\//.test(u));
     ok(d2.city === 2 && hb && hb.shown && hf.length > 0, `NO FLAG = CITY 2.0: a plain visit shows the Harbor (city ${d2.city}, harbor ${hb ? 'up' : 'none'}, ${hf.length} harbor files)`); }
+  // (CITY 1.0 OUT, Nov 5: City 1.0 is deleted — an OLD ?city=1 link lands on the Harbor too)
+  { await A.page.goto(`${BASE}/?emu&slot=ha&city=1&${NIGHT}`);
+    await waitFor(A.page, '!!window.__district && window.__district.phase().done', 'an old ?city=1 link');
+    await waitFor(A.page, '!!window.__district.harbor() && window.__district.harbor().shown', 'the harbor from ?city=1', 25000).catch(() => {});
+    const d3 = await ev(A.page, 'window.__district.scene()'), h3 = await ev(A.page, 'window.__district.harbor()');
+    ok(d3.city === 2 && h3 && h3.shown, `AN OLD ?city=1 LINK = THE HARBOR (CITY 1.0 OUT): city ${d3.city}, harbor ${h3 ? 'up' : 'none'}`); }
   await A.ctx.close();
   // ---- FP3a → WIN2: THE DEBUG STRIPS — every strip FOLDED on every load (never remembered open); the column under the TEST pill + the
   // corner buttons, never over them; the readout's title cycles folded → open → EVERY OTHER STRIP HIDDEN (one tap hides them all) → folded;

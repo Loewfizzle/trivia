@@ -9,7 +9,7 @@
   width: var(--cb); height: var(--cb); border-radius: 50%; place-items: center; padding: 0; color: var(--rd-au);
   background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%), rgba(12, 14, 34, 0.62);
   border: 1px solid rgba(226, 184, 103, 0.42); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 5px 15px rgba(0, 0, 0, 0.32); transition: transform 0.12s; cursor: pointer; }
-body.nd-on .rd-btn, body.cb-split .rd-btn { display: grid; }
+body.nd-on .rd-btn { display: grid; }
 body.rd-open .rd-btn, body.rd-open .menu-btn, body.rd-open .music-btn, body.rd-open .nd-corner, body.rd-open .nd-bar, body.rd-open .mh-hint, body.rd-open .hr-bar { visibility: hidden; }   /* (the radio is the whole screen: the title's floating pieces step away — the blur never has to hide them) */
 .rd-btn::after { content: ''; position: absolute; inset: calc((var(--cb) - 44px) / 2 - 1px); }   /* (− the 1 px border: the padding box is 34) */
 .rd-btn:active { transform: scale(0.92); }
@@ -321,7 +321,6 @@ body.rd-owner .lobby .chip.player { cursor: pointer; }
 .rd-crew .rd-done { color: #1a1206; border-color: #8e6a2b; }
 .rd-crew .rd-hint { color: #5a4a30; }
 /* (CC-B: in a LOBBY the page behind is busy text, not the city — a near-solid backdrop so nothing reads through, blur or not) */
-body.cb-split .rd-back { background: radial-gradient(120% 70% at 50% 0%, rgba(40, 22, 70, 0.92), rgba(8, 6, 18, 0.96) 70%); }
 .rd-lobplate { display: flex; align-items: center; }
 .rd-askbtn { font-size: 14px; letter-spacing: 0.22em; padding: 0 12px; }
 

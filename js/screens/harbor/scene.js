@@ -1,6 +1,6 @@
-// CITY 2.0 — THE HARBOR (docs/harbor.md): the title's new city, behind ?city=2 only. createHarbor() has the SAME public API as
-// district/scene.js#createDistrict, so title.js swaps scenes with one flag-gated line; what isn't built yet is a safe stub
-// (listed in docs/harbor.md with the part that builds it).
+// CITY 2.0 — THE HARBOR (docs/harbor.md): the title's city — the only one since CITY 1.0 OUT (Nov 5). createHarbor() kept the public
+// API City 1.0's createDistrict had (title.js drove both); what isn't built yet is a safe stub (listed in docs/harbor.md with the part
+// that builds it).
 //
 //   the sky (the district's sky modules, called as they are) → the far skyline bands + the mid band [baked 'far'] → their lit
 //   windows [baked 'farLit', the light timeline] + glitter → the sun's halo + the golden-hour rays through the sun gaps, swifts →
@@ -366,7 +366,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let cool = 0, nowT = 0, knockAt = -1e9, knocks = 0;
   let safeTopV = 0, safeBotV = 0;
   const S = { wave: 0, lit: 0, bill: 0, logo: 0, logoRect: null, motion: 1 };
-  // the sky modules (district/), the same ones the default city runs
+  // the sky modules City 1.0 shared with the Harbor (harbor/stars, fx, sun, rainbow, fireworks-2d — moved in by CITY 1.0 OUT)
   const stars = createStars();
   const fx = createFx();
   const sun = createSun({ look: 'harbor' });
@@ -2271,7 +2271,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     //  draws both on the canvas, as before)
     const vigOnCanvas = off.has('vig-canvas') || !vigLayer.show(canvas, vignette, 0.45 + 0.45 * vigK);
     if (vigOnCanvas) { vigLayer.hide(); drawForeground(c, W, H, vignette, vigK); }
-    // 9c — THE FROZEN PANE (the owner prefers City 1.0's frost): district/frost.js#pane over the whole screen on a REAL deep freeze (−4 °C →
+    // 9c — THE FROZEN PANE (the owner prefers City 1.0's frost): harbor/frost.js#pane over the whole screen on a REAL deep freeze (−4 °C →
     // full by −12 °C, or FROST forced), forming slowly, kept clear of the NEON sign + SPEAKEASY, the dock's labels + the corner buttons
     // (soft-edged holes: only the lace's finest edge reaches them). 9d: the pane only — no frost on the buttons.
     // (9e: the pane AFTER the vignette — the frost is on the glass, nearest the eye; under the vignette the corners it grows in were darkened away)

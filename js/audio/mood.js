@@ -1,12 +1,10 @@
 // MOOD MUSIC — which mood the menu music is in, and which song plays next (docs/audio.md).
-// Moods follow a LOCAL clock (each player's own outside a room; the host's in a lobby), with the real sunrise / sunset
-// from the LIVING CITY's sky (core/sky.js), so the ?when=&tz= preview switch drives the music too:
-//   late (midnight → sunrise) · morning (sunrise → 11 am) · day (11 am → sunset) · evening (sunset → midnight)
-//   party: Friday and Saturday 8 pm → 2 am (overrides evening and late)
+// Moods follow THE HARBOR's own day (core/city-mood.js — CITY 1.0 OUT took City 1.0's sunrise / 11 am / sunset / midnight rule), on the
+// clock the Harbor runs (the preview's ?when=&tz= + the panel's jumps included), or a given clock (the host's):
 // The songs per mood come from data/mood-music.json (one line per song; keepers are the owner's picks).
 // PURE helpers are exported for tests; the small device state (the per-mood shuffle bag) lives in localStorage.
-import { look, skyClock, sunTimes, localParts } from '../core/sky.js';
-import { isCity2, cityClock } from '../core/city.js';
+import { look, skyClock } from '../core/sky.js';
+import { cityClock } from '../core/city.js';
 import { cityMoodAt } from '../core/city-mood.js';
 import { settings } from './settings.js';
 
@@ -15,17 +13,6 @@ export const MOODS = ['late', 'morning', 'day', 'evening', 'party'];
 export const MOOD_CHOICES = ['auto', 'morning', 'day', 'evening', 'late', 'party'];
 export const MOOD_LABEL = { auto: 'AUTO', morning: 'MORNING', day: 'DAY', evening: 'EVENING', late: 'LATE NIGHT', party: 'PARTY' };
 
-/** PURE: the mood at a local time. p: { dow (0 Sun..6 Sat), h, mi }; rise / set: local hours (fractional). */
-export function moodAt(p, rise = 6.5, set = 19) {
-  const hr = p.h + (p.mi || 0) / 60;
-  const party = (p.dow === 5 && hr >= 20) || (p.dow === 6 && (hr < 2 || hr >= 20)) || (p.dow === 0 && hr < 2);
-  if (party) return 'party';
-  if (hr < rise) return 'late';
-  if (hr < 11) return 'morning';
-  if (hr < set) return 'day';
-  return 'evening';
-}
-
 /** The mood the listener CHOSE, or null for AUTO: the preview panel's / a link's &mood= (City 2.0, a preview — it wins over the
  *  saved setting) or the MUSIC MOOD setting (both cities; saved per device). */
 export function fixedMood() { const f = fixedMoodFrom(); return f ? f.mood : null; }
@@ -33,8 +20,8 @@ export function fixedMood() { const f = fixedMoodFrom(); return f ? f.mood : nul
 export function fixedMoodFrom() {
   let q = null;
   try {
-    const cc = isCity2() ? cityClock() : null;
-    q = cc && cc.q ? cc.q('mood') : typeof location !== 'undefined' && isCity2() ? new URLSearchParams(location.search).get('mood') : null;
+    const cc = cityClock();
+    q = cc && cc.q ? cc.q('mood') : typeof location !== 'undefined' ? new URLSearchParams(location.search).get('mood') : null;
   } catch { q = null; }
   if (q && MOODS.includes(q)) return { mood: q, from: 'panel' };
   return MOODS.includes(settings.musicMood) ? { mood: settings.musicMood, from: 'setting' } : null;
@@ -48,13 +35,13 @@ export function cityMoodNow(ms, tz, wx) {
   return cityMoodAt(L.local, L.sun ? L.sun.el : null);
 }
 
-/** The mood right now for this device's clock (or a given ms / tz, e.g. the host's). MUSIC MOOD (a chosen mood) wins; AUTO is
- *  City 1.0's rule (sunrise / 11 am / sunset / midnight, party Fri + Sat 8 pm → 2 am) or, in City 2.0, the Harbor's (cityMoodNow). */
+/** The mood right now for this device's clock (or a given ms / tz, e.g. the host's). MUSIC MOOD (a chosen mood) wins; AUTO is the
+ *  Harbor's own day (cityMoodNow). */
 export function moodNow(clock, ms, tz) {
   if (globalThis.__moodOverride) return globalThis.__moodOverride;   // test hook
   const ch = fixedMoodFrom(), chosen = ch ? ch.mood : null;
   if (ch && ch.from === 'panel') return chosen;
-  if (isCity2()) {
+  {
     const cc = clock ? null : cityClock();
     // (8b1: a forced party SHOW — the preview panel's PARTY, &force=party / neon-party / finale / fireworks / drones / dance — plays a
     // party song over AUTO, so the show's lights follow a party song's grid; app.js#moodWatch switches to it at once)
@@ -67,22 +54,6 @@ export function moodNow(clock, ms, tz) {
     const c = clock || pageClock || (pageClock = skyClock());
     return cityMoodNow(ms != null ? ms : c.now(), tz || c.tz, c.wx || null);
   }
-  if (chosen) return chosen;
-  return autoMood(clock || skyClock(), ms, tz);
-}
-
-/** City 1.0's AUTO (unchanged): sunrise / 11 am / sunset / midnight, the weekend party */
-function autoMood(clock, ms = clock.now(), tz = clock.tz) {
-  const L = look(ms, tz, {});
-  const p = localParts(ms, tz);
-  let rise = 6.5, set = 19;
-  try {
-    const st = sunTimes(ms, tz, L.lat, L.lon);
-    const toH = t => { const q = localParts(t, tz); return q.h + q.mi / 60; };
-    if (st && st.rise) rise = toH(st.rise);
-    if (st && st.set) set = toH(st.set);
-  } catch { /* defaults */ }
-  return moodAt(p, rise, Math.max(set, 12));
 }
 
 /** PURE: the next song from a shuffle bag. bag: { order: [...ids], i } for this mood; never repeats a song until every song in
@@ -110,11 +81,12 @@ export function loadMoodMusic() {
 export const moodData = () => data;
 /** (tests) the song list without a fetch */
 export function setMoodData(d) { data = d; loading = null; }
-/** the deck for a mood in the city that's showing: City 2.0's own (data `city2.moods`: the owner's songs, some shared between moods) or City 1.0's */
+/** the deck for a mood: City 2.0's own (data `city2.moods`: the owner's songs, some shared between moods); a mood with none there falls back to
+ *  the first decks (`moods`) */
 export const songsFor = mood => {
   const d = data;
   if (!d) return [];
-  if (isCity2() && d.city2 && d.city2.moods && d.city2.moods[mood] && d.city2.moods[mood].length) return deckForNow(d.city2.moods[mood]);
+  if (d.city2 && d.city2.moods && d.city2.moods[mood] && d.city2.moods[mood].length) return deckForNow(d.city2.moods[mood]);
   return (d.moods && d.moods[mood]) || [];
 };
 /** HOOK, not built (the owner's idea): once a City 2.0 deck has HALVES_FROM or more songs, play one half of it each week (core/week.js has
@@ -124,8 +96,8 @@ export const deckForNow = ids => ids;
 export const durOf = id => (data && data.songs[id] ? data.songs[id].dur : 180);
 
 // ---------------------------------------------------------------- this device's bags (outside a room)
-// (a deck per city: City 2.0's bags are their own, so a mood's list changing never confuses the other city's)
-const KEY = m => (isCity2() ? `nd:moodbag:c2:${m}` : `nd:moodbag:${m}`);
+// (City 2.0's bags kept their own keys — :c2: — when City 1.0 went: a device's bag carries on)
+const KEY = m => `nd:moodbag:c2:${m}`;
 export function nextForDevice(mood, last = null) {
   const ids = songsFor(mood);
   if (!ids.length) return null;

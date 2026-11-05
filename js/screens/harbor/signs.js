@@ -4,7 +4,7 @@
 //   border tube, the game's mark, the name — each its own sprite so they buzz on one by one), drawn additively with the power.
 //   Types: vbox (vertical: the name stacked, the mark on top) · box (horizontal) · icon (the game's tube mark on a raceway) ·
 //   script (open tube letters on a raceway; JAZZ used it until NEON PASS 4) · billboard (a painted 1920s board, gooseneck lamps lighting it at night).
-// The games' marks + the tube alphabet are district/marks.js (the same marks as City 1.0's signs and the tube logos).
+// The games' marks + the tube alphabet are core/marks.js (the same marks as City 1.0's signs and the tube logos).
 import { MARKS, LETTERS, markFor, bladeWord, hexRgb } from '../../core/marks.js';
 import { flattenPath, signSpots } from '../../core/harbor-neon.js';
 import { tube, drawLit, drawGlass, sprite, bbox, mix, rgba } from './tubes.js';

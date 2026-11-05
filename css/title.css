@@ -1,5 +1,5 @@
 /* ==========================================================================
-   NEON SPEAKEASY — the title screen (scene: js/screens/district/scene.js, logo: js/ui/logo.js)
+   NEON SPEAKEASY — the title screen (scene: js/screens/harbor/scene.js, logo: js/ui/logo.js)
    The city is a fixed canvas behind #stage; this sheet styles the sign, the menu and the opening sequence.
    Only transform + opacity animate. backdrop-filter is used on two small panels only (the city behind moves).
    ========================================================================== */
@@ -207,9 +207,6 @@ html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3,
 .nd-pv-actions { display: flex; flex-direction: column; gap: 6px; }
 
 /* ---- small sign (lobby header) ---- */
-.nd-mini { display: flex; flex-direction: column; align-items: center; gap: 0; pointer-events: none; }
-.nd-mini .nd-logo-wrap { width: 168px; }
-.nd-mini .nd-word { opacity: 1; transform: none; font-size: 10.5px; letter-spacing: 0.62em; padding-left: 0.62em; margin-top: -4px; text-shadow: 0 0 10px rgba(150, 170, 255, 0.35); color: rgba(236, 240, 255, 0.85); }
 /* a lit sign's rare flicker (lobby.js toggles .off on one letter, like the title does with .on) */
 .nd-logo.is-lit .ndl.off .ndl-light { opacity: 0.08; }
 .nd-logo.is-lit .ndl.off .ndl-glow1, .nd-logo.is-lit .ndl.off .ndl-glow2 { opacity: 0.2; transition: none; }
@@ -272,16 +269,12 @@ body.reduced-fx .nd-gate-txt { animation: none; }
 .nd.is-party .nd-sign.is-steady .nd-logo .ndl-glow2 { opacity: 0.86; }
 /* SPEAKEASY as real neon: a white-hot core in the sign's colour, layered glow; a slow shimmer of light sweeping the letters */
 .nd-word-g { position: relative; display: inline-block; transition: color 4s ease, text-shadow 4s ease, opacity var(--sd-ms, 1.2s) ease; opacity: var(--sd-logo, 1); }
-.nd-word-s { position: absolute; inset: 0; opacity: 0; color: transparent; pointer-events: none; will-change: transform; transform: translateZ(0);
-  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0) 60%) no-repeat;
-  background-size: 240% 100%; background-position: 170% 0; -webkit-background-clip: text; background-clip: text; }
 /* (Oct 24, the owner: "too much pink" — SPEAKEASY stays WHITE neon on party nights; the race, the shimmer and the beat punch keep
    running, in white: --pw the word's own light. The NEON logo + the bloom keep the party colour.) */
 .nd { --pw: #ffffff; --pwb: rgba(255, 255, 255, 0.85); --pwd: rgba(214, 226, 255, 0.55); }
 .nd.is-party .nd-sign.is-steady .nd-word-g { color: #fff;
   text-shadow: 0 0 1px #fff, 0 0 2px var(--pwb), 0 0 5px var(--pw), 0 0 10px var(--pwb), 0 0 18px var(--pwd), 0 0 34px rgba(214, 226, 255, 0.3);
   transition: color 4s ease, text-shadow 4s ease; }   /* (the 2 am wind-down: a slow cross-fade back to the plain glow, never a snap) */
-.nd.is-party .nd-sign.is-steady .nd-word-s { opacity: 1; animation: nd-shimmer 6.5s ease-in-out infinite; }
 /* (City 2.0, NEON PASS 4 — THE HARD BEAT: SPEAKEASY punches on every beat — a second glow layer in the party colour, its opacity
    written per frame on this small element alone: title.js#partyFrame) */
 /* (City 2.0, NEON PASS 5 — THE NEON LOGO PUNCHES TOO: its light alone over the sign — ui/logo.js#logoGlowSvg — faded in on the beat by
@@ -333,10 +326,10 @@ body.reduced-fx .nd-race, body.reduced-fx .nd-word-r { display: none; }
   transition: transform 0.18s var(--ease), --hg1 1.4s ease, --hg2 1.4s ease, --hg3 1.4s ease, --hg4 1.4s ease,
     --hb1 1.4s ease, --hb2 1.4s ease, --hb3 1.4s ease, --hb4 1.4s ease, --hc1 1.4s ease, --hc2 1.4s ease, --hc3 1.4s ease, --hc4 1.4s ease; }
 .nd.is-party .nd-ringbtn.is-lit .nd-hglow { animation: none; will-change: opacity; }   /* (its opacity: title.js#partyFrame, inline) */
-.nd.no-bloom .nd-bloom { display: none; } .nd.no-ringbreath.is-party .nd-ringbtn { --hk: 1; } .nd.no-shimmer .nd-word-s { display: none; }
+.nd.no-bloom .nd-bloom { display: none; } .nd.no-ringbreath.is-party .nd-ringbtn { --hk: 1; }
 /* Reduced effects: the party's colours, calmly — no breathing, no shimmer */
-@media (prefers-reduced-motion: reduce) { .nd-word-s, .nd-word-p { animation: none !important; opacity: 0 !important; } }
-body.reduced-fx .nd-word-s, body.reduced-fx .nd-word-p { animation: none !important; opacity: 0 !important; }
+@media (prefers-reduced-motion: reduce) { .nd-word-p { animation: none !important; opacity: 0 !important; } }
+body.reduced-fx .nd-word-p { animation: none !important; opacity: 0 !important; }
 
 /* SPEAKEASY: framed by Art Deco rules ending in a diamond — the bar's era, in the district's light */
 .nd-word { display: flex; align-items: center; justify-content: center; gap: 0.55em; }
@@ -369,18 +362,12 @@ body.reduced-fx .nd-word-s, body.reduced-fx .nd-word-p { animation: none !import
 .nd-sign.is-day .nd-tag { opacity: 1; color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
 .nd-logo-wrap { position: relative; z-index: 1; }   /* (WIN3: above the SPEAKEASY word's positioned tube letters — the dressing's spiders walk ON the word) */
 .nd-dress { position: absolute; pointer-events: none; }
-.nd-webs { left: -3.5%; top: -12%; width: 27%; }
-.nd-webs svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 0 1.5px rgba(255, 140, 210, 0.7)); }
 /* the spider hangs from the underside of the E's top tube (measured: the E spans 30.7–46.9% of the sign, its top tube's
    centre at 18.8% of the height). The box starts just under the tube and clips the thread there; the thread rides on the
    spider (one element moves), so it always reaches exactly from the tube to the spider. Transforms only. */
-.nd-spider { left: 38.6%; top: 21%; width: 5.4%; height: 64%; overflow: hidden; }
-.nd-spider-b { position: absolute; left: 0; top: 0; width: 100%; transform: translateY(-8%); animation: nd-spider 28s cubic-bezier(0.45, 0, 0.3, 1) infinite; }
-.nd-silk { position: absolute; left: 50%; bottom: 82%; width: 0.7px; height: 900%; margin-left: -0.35px; background: rgba(255, 225, 242, 0.75); }
-.nd-spider-s svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 0 3px rgba(255, 90, 180, 0.65)); animation: nd-sway 3.4s ease-in-out infinite; transform-origin: 50% -40%; }
 @keyframes nd-spider { 0%, 8% { transform: translateY(-8%); } 22%, 62% { transform: translateY(240%); } 30% { transform: translateY(190%); } 38% { transform: translateY(240%); } 78%, 100% { transform: translateY(-8%); } }
 @keyframes nd-sway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
-@media (prefers-reduced-motion: reduce) { .nd-spider-b { animation: none; transform: translateY(150%); } .nd-spider-s svg { animation: none; } }
+
 .nd-hat { left: -1%; top: -9%; width: 27%; transform: rotate(-8deg); filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55)); }
 .nd-hat svg { width: 100%; display: block; }
 /* holiday tubes: each letter's glow / body / core (glass stays) */
@@ -1101,3 +1088,9 @@ body.rc-going *, body.rc-going *::before, body.rc-going *::after { -webkit-backd
    (opacity only, the same timing + easing), back on the same wake tap; untappable while faded (the wake tap only wakes) */
 body.nd-on .rd-btn { transition: transform 0.12s var(--ease), opacity 0.45s ease; }
 body.nd-idle .rd-btn { opacity: 0; pointer-events: none; transition: opacity 1.8s ease; }
+
+/* CITY 1.0 OUT — THE CITY COULDN'T LOAD (title.js#cityDown: the Harbor's module failed twice — it used to fall back to City 1.0) */
+.nd-down-card { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  padding: calc(var(--safe-t) + 24px) 24px calc(var(--safe-b) + 24px); text-align: center; background: var(--bg-0); }
+.nd-down-card .sheet-title { max-width: 320px; }
+.nd-down-card .btn { min-width: 200px; }

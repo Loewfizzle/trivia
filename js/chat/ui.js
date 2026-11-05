@@ -1,4 +1,4 @@
-// Room chat — UI: the lobby strip, the chat sheet (bottom sheet, keyboard-aware), and the in-game chat
+// Room chat — UI: the chat sheet (bottom sheet, keyboard-aware) and the in-game chat
 // button (unread badge; a quiet lock while you're actively playing). All message text is rendered with
 // textContent (never HTML) and links are just text. The list updates incrementally: one element per
 // message, created once, never a full re-render.
@@ -23,42 +23,6 @@ const playerOf = uid => state.players[uid];
 const nameOf = m => (playerOf(m.u) && playerOf(m.u).name) || m.n || 'PLAYER';
 const colorOf = m => colorHex((playerOf(m.u) && playerOf(m.u).color) || 'cyan');
 const typingNames = () => typists(chat.typing, state.uid, serverNow()).map(u => (playerOf(u) && playerOf(u).name) || 'Someone');
-
-// ---------------------------------------------------------------- lobby strip
-/** The lobby's compact chat: the latest two lines + a message field that opens the full chat. */
-export function createChatStrip() {
-  const lines = h('span.cs-lines');
-  const typing = h('span.cs-typing');
-  const badge = h('span.cs-badge');
-  const field = h('span.cs-field', 'Message the room…');
-  const el = h('button.chat-strip', { type: 'button', 'aria-label': 'Open room chat', onclick: () => openChat({ focus: true }) },
-    lines, typing, h('span.cs-row', h('span.cs-icon', { html: ICON.chat }), field, badge, h('span.cs-send', { html: ICON.send })));
-  let sig = '';
-  const paint = () => {
-    const list = chat.msgs.slice(-2);
-    const s = JSON.stringify([list.map(m => m.k), filterOn(), list.map(m => m.u && nameOf(m))]);
-    if (s !== sig) {
-      sig = s;
-      lines.replaceChildren(...(list.length ? list.map(m => (m.s
-        ? h('span.cs-line.is-sys', m.x)
-        : h('span.cs-line', h('b', { style: { color: colorOf(m) } }, nameOf(m)), h('span', shown(m.t)))))
-        : [h('span.cs-line.is-empty', 'Say hi while everyone joins.')]));
-    }
-    const tl = typingLine(typingNames());
-    typing.textContent = tl;
-    el.classList.toggle('is-typing', !!tl);
-    badge.textContent = chat.unread ? String(Math.min(99, chat.unread)) : '';
-    badge.hidden = !chat.unread;
-  };
-  const offChat = onChat(paint);
-  const offStore = subscribe(paint);
-  const tick = setInterval(paint, 1500); // typing entries expire on their own
-  paint();
-  // (a test hook: the lobby strips alive in this tab — e2e-presence.mjs checks a lobby left early leaks none)
-  globalThis.__chatStrips = (globalThis.__chatStrips || 0) + 1;
-  let gone = false;
-  return { el, destroy() { if (gone) return; gone = true; globalThis.__chatStrips--; offChat(); offStore(); clearInterval(tick); } };
-}
 
 // ---------------------------------------------------------------- in-game chat button
 let fab = null;

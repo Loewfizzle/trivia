@@ -315,7 +315,7 @@ function samplePaths(paths, n) {
 }
 /**
  * A drone formation: spec { text } | { shape: DRONE_SHAPES | 'mark:<gameId>' } (+ col: [r,g,b] for text); n: the drones there
- * are; marks: the games' marks (district/marks.js#MARKS) for 'mark:<id>'. → { w, h, pts: [[x, y, r, g, b], …] (≤ n; x right,
+ * are; marks: the games' marks (core/marks.js#MARKS) for 'mark:<id>'. → { w, h, pts: [[x, y, r, g, b], …] (≤ n; x right,
  * y down, in the box's units), kind } or null
  */
 export function droneShape(spec, n = 160, { year = 2026, marks = null } = {}) {

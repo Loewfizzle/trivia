@@ -1,9 +1,8 @@
-// LIVE WEATHER (core/weather.js + core/sky.js#look), the planets, lunar eclipses, the street's clock (district/street.js).
+// LIVE WEATHER (core/weather.js + core/sky.js#look), the planets, lunar eclipses.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fromWmo, normalize, forcedWeather, isFresh, areaOf, WEATHER_TTL_MS } from '../js/core/weather.js';
 import { look, planetsAt, eclipseAt, skyClock } from '../js/core/sky.js';
-import { trafficAt, trainGap } from '../js/screens/district/street.js';
 
 const NY = 'America/New_York';
 const at = (y, m, d, h, mi = 0) => Date.UTC(y, m - 1, d, h + 4, mi);      // EDT (summer / autumn) wall time → UTC
@@ -130,9 +129,3 @@ test('lunar eclipses on their real dates: partial, total, over', () => {
   assert.equal(partial.total, false);
 });
 
-test('the street follows the clock: rush hours, a quiet small hours; trains stop overnight', () => {
-  assert.ok(trafficAt(8.2, 2) > trafficAt(11, 2) && trafficAt(17.6, 2) > trafficAt(14, 2));
-  assert.ok(trafficAt(3.5, 2) < 0.25);
-  assert.equal(trainGap(3), Infinity);
-  assert.ok(trainGap(8) < trainGap(12) && trainGap(12) < trainGap(23));
-});

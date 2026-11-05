@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR: THE CLOUDS (DT2 — a full rework; docs/harbor/passes/dt2.md). One cloud system for every hour, replacing City
-// 1.0's cloud art on the Harbor (district/weather-fx.js still runs the lightning; City 1.0 keeps its own clouds untouched).
+// 1.0's cloud art on the Harbor (harbor/weather-fx.js still runs the lightning; City 1.0 keeps its own clouds untouched).
 // WHAT + WHERE + THE LIGHT are PURE (core/harbor-clouds.js: the real weather's kinds, the perspective layout, the light); this file
 // BAKES each cloud into a shaded sprite and moves it by offset only.
 //   - THE SHAPES are real volumes, shaded per pixel (no outlines, no flat discs): a CUMULUS is a union of 3D lobes (a broad flat-ish
@@ -743,7 +743,7 @@ export function createClouds() {
     const life = 0.5 + 0.5 * Math.sin(t / (480 + h * 600) + h * 9.7), floor = small ? 0.15 : 0.6;
     return { sx, sy, a: floor + (1 - floor) * smooth(0.05, 0.6, life) };
   }
-  /** how much cloud covers a point (0..1, from the baked shapes) — the sun glows through a thin edge (district/sun.js#through) */
+  /** how much cloud covers a point (0..1, from the baked shapes) — the sun glows through a thin edge (harbor/sun.js#through) */
   function coverAt(px, py, thinOnly) {
     let clear = 1;
     for (const d of list) {

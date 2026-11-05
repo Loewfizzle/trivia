@@ -41,7 +41,7 @@ export function drawRays(c, L, sun, k, t, pass, motion = true, tier = 2) {
     let a0 = ang(top), a1 = ang(bot);
     if (Math.abs(a1 - a0) > Math.PI) a1 += a1 < a0 ? Math.PI * 2 : -Math.PI * 2;
     const r0 = Math.hypot(g.sx - sun.x, (topY + floorY) / 2 - sun.y), r1 = r0 + reach;
-    // (the shafts start outside the sun's disc: added over it, they bleached a 6° golden sun to lemon — district/sun.js#sunColourAt)
+    // (the shafts start outside the sun's disc: added over it, they bleached a 6° golden sun to lemon — harbor/sun.js#sunColourAt)
     const rs = Math.max(r0 * 0.92, (sun.r || 0) * 1.4);
     const n = tier === 2 ? 5 : 3;
     // one gradient per corridor (alpha 1), each shaft's strength by globalAlpha

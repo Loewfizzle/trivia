@@ -5,7 +5,7 @@
 // by (building, tier, col, row) and its own dice come from the building's seed + its cell — never from its size or its place
 // on the screen, so a relayout never re-rolls the city's windows.
 //
-// THE LIGHT TIMELINE is City 1.0's exactly (district/scene.js + palette.js + core/sky.js#lateK): each window that can ever
+// THE LIGHT TIMELINE is City 1.0's exactly (City 1.0's scene — deleted Nov 5 — + core/palette.js + core/sky.js#lateK): each window that can ever
 // light has one uniform random ORDER; it is lit when order ≤ the hour's share (palette `P.win`: 1 at night, LATE 0.32 in the
 // small hours, DAWN 0.22, GOLDEN 0.5, DAY 0 — so lights come on in that order at dusk, go out in the reverse order through
 // the night, the same few kitchens light before dawn, and party nights stay lit till 2 am). ALWAYS NIGHT: share 1.

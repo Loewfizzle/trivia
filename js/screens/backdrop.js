@@ -1,9 +1,7 @@
-// The district behind the menus (setup + lobby): a still of the lit city, dimmed, drifting very slowly.
-// The title's living scene is too costly to keep running while people sit in a lobby, so when the title leaves we
-// keep one frame of it; a phone that lands in a lobby straight away (resume, invite) renders the city once, quietly,
-// in a hidden canvas. Either way the menus cost one static image — the drift is a compositor transform.
-import { createDistrict } from './district/scene.js';
-import { GAMES } from '../config.js';
+// The city behind the menus (setup, the profile; THE BOARD's windows): a still of the lit city, dimmed, drifting very slowly.
+// The title's living scene is too costly to keep running behind a menu, so when the title leaves we keep one frame of it — the
+// menus cost one static image (the drift is a compositor transform). (CITY 1.0 OUT: a phone with no still yet used to render
+// City 1.0 once in a hidden canvas; every menu is reached from the title now, so no still = the plain dark backdrop.)
 import { createBeatClock, advanceBeat } from '../core/party.js';
 import { beatSource } from '../audio/beat.js';
 import { settings } from '../audio/settings.js';
@@ -13,7 +11,6 @@ let light = null;     // PARTY NIGHTS: the party's light alone (breathes over th
 let loop = 0;
 const bc = createBeatClock();
 let el = null;        // the fixed backdrop element
-let building = null;
 
 /** Keep the title's current frame (called as the title leaves). */
 export function captureBackdrop(canvas, partyLight = null) {
@@ -27,23 +24,6 @@ export function captureBackdrop(canvas, partyLight = null) {
     light = partyLight || null;
     if (el) paint();
   } catch { /* a still is polish; the menus work without it */ }
-}
-
-function render() {
-  if (building) return building;
-  building = new Promise(resolve => {
-    try {
-      const cv = document.createElement('canvas');
-      cv.setAttribute('aria-hidden', 'true');
-      Object.assign(cv.style, { position: 'fixed', inset: '0', width: '100vw', height: '100dvh', visibility: 'hidden', pointerEvents: 'none', zIndex: '-5' });
-      document.body.append(cv);
-      const scene = createDistrict(cv, { games: GAMES, tier: 1 });
-      scene.set({ wave: 1, lit: 1, bill: 1, logo: 0, motion: 0, caught: scene.look().w.night + scene.look().w.late > 0.5 });
-      // a few frames for the billboards' art to arrive, then keep one
-      setTimeout(() => { captureBackdrop(cv, scene.partyLight()); scene.destroy(); cv.remove(); resolve(); }, 900);
-    } catch { resolve(); }
-  });
-  return building;
 }
 
 function paint() {
@@ -74,7 +54,7 @@ function breathe() {
 /** The still of the lit city the title left behind (a canvas), or null. THE BOARD's windows show it. */
 export const backdropStill = () => snap;
 
-/** Show / hide the backdrop (setup + lobby show it). */
+/** Show / hide the backdrop (setup + the profile show it). */
 export function showBackdrop(on) {
   if (!on) { if (el) { el.classList.remove('is-shown'); cancelAnimationFrame(loop); loop = 0; } return; }
   if (!el) {
@@ -87,6 +67,5 @@ export function showBackdrop(on) {
   }
   el.classList.add('is-shown');
   if (light && !loop) breathe();
-  if (snap) { if (!el.classList.contains('is-on')) paint(); }
-  else render();
+  if (snap && !el.classList.contains('is-on')) paint();
 }

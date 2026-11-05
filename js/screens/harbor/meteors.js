@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, PART 6b: SHOOTING STARS (plan.md "SHOOTING STARS RARER"; docs/harbor/passes/part-6b.md). City 1.0 keeps its own
-// (district/fx.js); the Harbor passes s.meteorArt.
+// (harbor/fx.js); the Harbor passes s.meteorArt.
 //   RARER       a normal clear night ~1 every 38 min · a shower's PEAK night ~1 every 2.5 min · ±1 day ~1 every 9 min (core/sky.js#meteorsOf
 //               names the shower) · a rare bright FIREBALL a few times a year (a big slow green-white streak that breaks up)
 //   THE ART     a TAPERED streak with a hot bright head, a faint tint (green, blue-white, a touch of orange), varied speed, length, angle +

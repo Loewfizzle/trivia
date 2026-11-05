@@ -4,7 +4,7 @@
 // (on the city); a NEW player right after their FIRST counted match (back in the room). Once saved it never shows again; after LATER (or
 // closing it) it does NOT pop up again — a small dot sits on YOU (the title dock + the room dock) until the key is saved. Never over a
 // running game, the end-of-round moment, another sheet, or a legendary in the sky (it waits, then shows). Replaces the old reminder after
-// the 3rd + 10th match (screens/profile.js#promptKey — kept for nothing else).
+// the 3rd + 10th match (screens/profile.js#promptKey — gone with City 1.0's lobby, CITY 1.0 OUT).
 //   keyPopDecide({ key, saved, kp, matches }) → 'show' | 'dot' | 'none'   (PURE)
 //   keyPopState() → the same for this device · maybeKeyPop({ why, busy }) → shows it when it should · onKeyPop(fn) → unsubscribe
 import { loadKey, loadMe } from '../identity.js';

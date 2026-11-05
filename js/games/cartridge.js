@@ -43,7 +43,7 @@ export const DAILY = Object.freeze({ on: 'boolean', create: 'function', resumeKe
 
 const kindOf = v => (Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v);
 
-/** a game module against the contract → a list of problems ([] = it plugs in). o.marks = district/marks.js MARKS (its tube logo for the sign
+/** a game module against the contract → a list of problems ([] = it plugs in). o.marks = core/marks.js MARKS (its tube logo for the sign
  *  at the game start + the city's signs), o.game = its config.js GAMES row */
 export function checkCartridge(id, mod, o = {}) {
   const out = [];
@@ -58,7 +58,7 @@ export function checkCartridge(id, mod, o = {}) {
     if (mod.daily.on === true) out.push(`${id}: daily.on — the daily ships OFF (THE DAILY MODULE switches the dailies on together)`);
   }
   if (Array.isArray(mod.OPTIONS)) for (const op of mod.OPTIONS) if (!op || !op.key || !(op.key in (mod.DEFAULT_SETTINGS || {}))) out.push(`${id}: OPTIONS row "${op && op.key}" has no DEFAULT_SETTINGS value`);
-  if (o.marks && !o.marks[id]) out.push(`${id}: no tube mark in district/marks.js (the sign at the game start + the city's signs)`);
+  if (o.marks && !o.marks[id]) out.push(`${id}: no tube mark in core/marks.js (the sign at the game start + the city's signs)`);
   if (o.game && (!o.game.name || !o.game.theme)) out.push(`${id}: its config.js GAMES row needs a name + a theme`);
   return out;
 }

@@ -1,6 +1,6 @@
 // THE SIGN KIT (THE VAULT 2A — card-founder's sign + card-house's front): the app's OWN neon, baked for a card. The NEON
 // letters are the title sign's (ui/logo.js#LOGO_LETTERS — the same bent tubes, the same pink), SPEAKEASY + any other word the city's tube
-// alphabet (screens/district/marks.js#LETTERS — the games' signs + the speakeasy's blade); every letter flattened (core/tube-path.js) and
+// alphabet (core/marks.js#LETTERS — the games' signs + the speakeasy's blade); every letter flattened (core/tube-path.js) and
 // baked ONCE per size into two sprites — its unlit GLASS and its LIT tube (glow → body → white-hot core → a highlight, the logo's layer
 // stack) — so a frame only STAMPS sprites (no stroke per frame on the GPU path). A letter's light is an alpha: ignite() gives the
 // ignition stutter a sign makes when it's switched on.

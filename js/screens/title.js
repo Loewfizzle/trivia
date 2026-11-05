@@ -1,7 +1,7 @@
 // NEON SPEAKEASY — the front door.
 //
-// A night city (district/scene.js) behind a neon sign and a short menu. The opening sequence:
-//   1. TAP TO ENTER (first visit on this device): the district in near-darkness, rain, a few dim lights.
+// THE HARBOR (City 2.0 — harbor/scene.js; the ONLY city since CITY 1.0 OUT, Nov 5) behind a neon sign and a short menu. The opening sequence:
+//   1. TAP TO ENTER (first visit on this device): the city in near-darkness, a few dim lights.
 //      The tap unlocks audio (iPhone needs a gesture) — the menu music fades in from it.
 //   2. POWER-ON: windows light up in a sweep from the street up, billboards boot, the haze takes the colour.
 //   3. The sign powers on like real neon: a flicker per letter with a hum and crackle, then a steady glow,
@@ -30,7 +30,7 @@ import { firebaseReady } from '../firebase.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
-import { neonPowerOn, neonTick, neonFlicker, neonTwitch, NEON_GAINS, neonDropout, neonCatch, neonHumFade, neonRaceCrackle, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
+import { neonPowerOn, neonTick, neonFlicker, neonTwitch, NEON_GAINS, neonDropout, neonCatch, neonHumFade, neonRaceCrackle, neonPreload, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
 import { beatSource, beatKick, beatWhy, beatCal, beatReport, songInfo, syncLine, clockLine } from '../audio/beat.js';
 import { partyMusicDebug, partyNow } from '../audio/party-music.js';
 // (NIGHT-C: the song's clock = the party's synced song when it sounds — its own buffer voice — else this phone's song element)
@@ -38,23 +38,24 @@ import { partyMusicDebug, partyNow } from '../audio/party-music.js';
 const songClock = () => { const p = partyNow(); return p && !settings.musicOff && !settings.muted && settings.music > 0 ? p.at : musicClock(); };
 import { beatMode } from '../core/harbor-beat.js';
 import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../audio/mood.js';
-import { cityFailed, cityClock, CITY1_URL } from '../core/city.js';
+import { cityClock } from '../core/city.js';
 import { tiredLetters, tiredForced } from '../core/harbor-show.js';
 import { isUnlocked } from '../audio/engine.js';
 import { musicClock } from '../audio/music.js';
-import { createDistrict } from './district/scene.js';
 import { captureBackdrop } from './backdrop.js';
 import { neonPlan, neonState, neonNext, firstTapAnswer, createStartDetector } from '../core/neon-ramp.js';
 import { createDock, dressCorners, ICON } from './title-dock.js';
-// CITY 2.0 — THE HARBOR (docs/harbor.md): THE DEFAULT since WINDOWS (Nov 1); `?city=1` shows City 1.0 instead (never saved anywhere).
-// No top-level await (iOS 14 can't parse one — the whole app would die, every game and City 1.0 too): app.js holds the title on
-// the boot screen until harborReady settles (a failed load falls back to City 1.0). A unit test keeps await out of module tops.
-const HARBOR_URL = !CITY1_URL;
-let createHarbor = null, harborSettled = !HARBOR_URL;
+// CITY 2.0 — THE HARBOR (docs/harbor.md): THE city (CITY 1.0 OUT, Nov 5 — City 1.0 deleted; an old `?city=1` / `?city=2` link lands here).
+// No top-level await (iOS 14 can't parse one — the whole app would die, every game too): app.js holds the title on the boot screen until
+// harborReady settles. A failed load is tried once more after 1.5 s; a second failure → the title shows THE CITY COULDN'T LOAD + RELOAD
+// (cityDown — it was City 1.0 until CITY 1.0 OUT). A unit test keeps await out of module tops.
+let createHarbor = null, harborSettled = false;
 let visitAnswered = false;   // (ATM-A: the sign has answered a song this visit — the first-tap detector is FRESH until then)
-export const harborReady = HARBOR_URL
-  ? import('./harbor/scene.js').then(m => { createHarbor = m.createHarbor; }, e => { console.warn('harbor', e); cityFailed(); }).finally(() => { harborSettled = true; })
-  : Promise.resolve();
+const loadHarbor = () => import('./harbor/scene.js').then(m => { createHarbor = m.createHarbor; });
+export const harborReady = loadHarbor()
+  .catch(e => { console.warn('harbor', e); return new Promise(r => setTimeout(r, 1500)).then(loadHarbor); })
+  .catch(e => { console.warn('harbor (again)', e); })
+  .finally(() => { harborSettled = true; });
 export const harborPending = () => !harborSettled;
 /** CITY 2.0 MUSIC: the &debug=1 readout's lines — the mood, the song, whether its beat grid can be trusted; + what the beat subtracts to
  *  land on the sound as heard (M2: the output latency, the song element's measured lead) */
@@ -110,42 +111,6 @@ const smooth = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a
 // the light wave answers the tap at once and slows as it reaches the rooftops
 const easeOut = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a || 1e-6))); return 1 - Math.pow(1 - t, 2.4); };
 
-// Halloween: a fine orb web in the sign's corner, its dew beads catching the pink neon, and a spider on a silk line that
-// drops from the tube, hangs a while and climbs back (built once, here, as SVG: spokes + a sagging spiral + beads)
-function orbWeb() {
-  const C = [58, 50], spokes = [];
-  const anchors = [[0, 0], [30, 0], [68, 0], [112, 0], [160, 0], [0, 30], [0, 74], [0, 118], [48, 128], [104, 110], [150, 64]];
-  for (const [x, y] of anchors) spokes.push([x, y, Math.atan2(y - C[1], x - C[0])]);
-  spokes.sort((p, q) => p[2] - q[2]);
-  let d = spokes.map(([x, y]) => `M${C[0]} ${C[1]}L${x} ${y}`).join('');
-  const beads = [];
-  for (let k = 1; k <= 9; k++) {
-    const f = k / 10.4;
-    const pts = spokes.map(([x, y]) => [C[0] + (x - C[0]) * f, C[1] + (y - C[1]) * f]);
-    for (let i = 0; i < pts.length; i++) {
-      const p = pts[i], q = pts[(i + 1) % pts.length];
-      if (Math.abs(spokes[i][2] - spokes[(i + 1) % pts.length][2]) > Math.PI * 0.9) continue;
-      const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
-      const cx = mx + (C[0] - mx) * 0.12, cy = my + (C[1] - my) * 0.12 + 1.2;
-      d += `M${p[0].toFixed(1)} ${p[1].toFixed(1)}Q${cx.toFixed(1)} ${cy.toFixed(1)} ${q[0].toFixed(1)} ${q[1].toFixed(1)}`;
-      if ((k * 7 + i * 3) % 5 === 0) beads.push([mx * 0.6 + cx * 0.4, my * 0.6 + cy * 0.4, 0.9 + ((k + i) % 3) * 0.35]);
-    }
-  }
-  return `<svg viewBox="0 0 170 140" aria-hidden="true"><defs><radialGradient id="ndw-b"><stop offset="0" stop-color="#fff"/><stop offset="0.45" stop-color="#ffd2ec"/><stop offset="1" stop-color="#ff5fb4" stop-opacity="0"/></radialGradient>
-<linearGradient id="ndw-s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="1" stop-color="#ffc6e8" stop-opacity="0.25"/></linearGradient></defs>
-<path d="${d}" fill="none" stroke="url(#ndw-s)" stroke-width="0.42" stroke-linecap="round"/>
-${beads.map(([x, y, r]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r * 1.9).toFixed(2)}" fill="url(#ndw-b)" opacity="0.8"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r * 0.45).toFixed(2)}" fill="#fff"/>`).join('')}
-</svg>`;
-}
-const WEBS = orbWeb();
-// the spider: a glossy black body, eight jointed legs, two tiny ember eyes
-const SPIDER = `<svg viewBox="-20 -20 40 44" aria-hidden="true"><defs><radialGradient id="nds-a" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#4a3a5a"/><stop offset="0.35" stop-color="#14101c"/><stop offset="1" stop-color="#050308"/></radialGradient></defs>
-<g fill="none" stroke="#0c0910" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-<path d="M-3 0 L-10 -7 L-16 -2"/><path d="M-3 2 L-12 -2 L-18 5"/><path d="M-3 4 L-11 6 L-16 14"/><path d="M-2 5 L-7 11 L-10 19"/>
-<path d="M3 0 L10 -7 L16 -2"/><path d="M3 2 L12 -2 L18 5"/><path d="M3 4 L11 6 L16 14"/><path d="M2 5 L7 11 L10 19"/></g>
-<ellipse cx="0" cy="11" rx="6.4" ry="8" fill="url(#nds-a)"/><ellipse cx="0" cy="1" rx="4.2" ry="3.8" fill="url(#nds-a)"/>
-<ellipse cx="-1.8" cy="7.6" rx="1.6" ry="2.4" fill="#fff" opacity="0.18"/>
-<circle cx="-1.3" cy="-1.6" r="0.75" fill="#ff7a3a"/><circle cx="1.3" cy="-1.6" r="0.75" fill="#ff7a3a"/></svg>`;
 // Christmas: a velvet Santa hat slung over the first N, its tip flopping over the side; folds in the velvet, a fluffy
 // fur brim and pom-pom built from soft tufts, the pink neon catching its edge, snow resting in the creases
 function santaHat() {
@@ -341,7 +306,6 @@ export function createTitle() {
   isFirstVisit();   // (9g: read before the door is ever walked through on this load)
   const els = {};
   let scene = null;
-  let stopRain = null;
   let tl = null;                 // { plan, t0, raf, kind }
   let remote = null, remoteT = 0;  // CITY 2.0 only: THE PREVIEW PANEL (harbor/remote.js), loaded after the first paint
   let flickerTimer = 0, lastFlick = -1, tiredT = 0, tiredKey = '', tiredPokeAt = 0;
@@ -381,7 +345,7 @@ export function createTitle() {
     paintCode(); say('');
   }
   function roomSync(state) {
-    const inRoom = !!(createHarbor && state.code && state.meta);
+    const inRoom = !!(scene && state.code && state.meta);
     if (inRoom !== wasInRoom) { wasInRoom = inRoom; freshDock(); }
     if (inRoom && !roomUi && !roomLoading && scene) {
       roomLoading = true;
@@ -398,7 +362,7 @@ export function createTitle() {
     if (!inRoom && roomUi) {
       roomUi.destroy(); roomUi = null; els.root.classList.remove('is-room');
       // (LOBBY 2.0 B — THE NIGHT's CHAMPION: leaving after 2+ games — this phone's city flies LAST CALL — <the leader> WINS THE NIGHT)
-      if (createHarbor && scene) import('./room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-call', !!(st && st.code)); }).catch(() => {});
+      if (scene) import('./room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-call', !!(st && st.code)); }).catch(() => {});
     }
     if (roomUi) roomUi.update(state);
     feedRoomRadio(state);
@@ -412,10 +376,21 @@ export function createTitle() {
   }
   const reduced = () => !!settings.reducedFx || reducedMotion();
 
+  // CITY 1.0 OUT — THE CITY COULDN'T LOAD: the Harbor's module failed twice (no signal mid-load, a broken deploy) — this used to fall back to
+  // City 1.0. A plain card on the boot screen's dark: what happened + RELOAD (nothing else here works without the city).
+  function cityDown(el) {
+    el.classList.add('title-screen', 'nd', 'nd-down');
+    els.down = h('div.nd-down-card', { role: 'alert' },
+      h('h2.sheet-title', 'THE CITY COULDN’T LOAD'),
+      h('p.mono.dim', 'Check your connection, then reload.'),
+      h('button.btn.btn-primary', { type: 'button', onclick: () => location.reload() }, h('span', 'RELOAD')));
+    el.append(els.down);
+  }
   function mount(el, state) {
     st = state;
     el.classList.add('title-screen', 'nd');
-    el.classList.toggle('nd-c2', !!createHarbor);          // (DT1: City 2.0's own sign styles — the tagline's dark halo, css/title.css)
+    if (!createHarbor) { cityDown(el); return; }   // (CITY 1.0 OUT: the Harbor's module never came — THE CITY COULDN'T LOAD + RELOAD)
+    el.classList.add('nd-c2');          // (DT1: City 2.0's own sign styles — the tagline's dark halo, css/title.css)
     document.body.classList.add('nd-on');
     dressCorners(true);
     // the city: fixed behind everything, full viewport (the screen column is narrower on desktop)
@@ -424,42 +399,41 @@ export function createTitle() {
     // so Safari's bars settling, the bakes and the fonts never show as a jump: dark → the city fades in, with the NEON sign)
     // (POLISH 5: City 2.0's canvas is the LARGE viewport — 100lvh — so a Safari tab's bars settling or sliding never resize it: the
     // city stays put under them (css/title.css .nd-scene.nd-lvh))
-    if (createHarbor) { els.sceneWrap.classList.add('is-hold', 'nd-lvh'); els.holdT = setTimeout(reveal, 6000); }
+    els.sceneWrap.classList.add('is-hold', 'nd-lvh'); els.holdT = setTimeout(reveal, 6000);
     document.body.prepend(els.sceneWrap);
     // (City 2.0 starts every phone at tier 2 — iOS reports a capped core count, so the old guess put every iPhone at tier 1 while it
     // ran the Harbor in 1–3 ms; the Harbor's own step-down still protects a slow phone: docs/harbor.md#performance)
-    scene = (createHarbor || createDistrict)(els.canvas, { games: GAMES, tier: createHarbor ? 2 : (window.devicePixelRatio || 1) > 2.5 && (navigator.hardwareConcurrency || 8) <= 4 ? 1 : 2 });
+    scene = createHarbor(els.canvas, { games: GAMES, tier: 2 });
     scene.set({ motion: reduced() ? 0 : 1 });
-    if (createHarbor) scene.set({ onReveal: reveal, measure: () => ({ clear: clearZones(), textRects: textRects() }) });
-    // a lightning strike: thunder a few seconds later, the glass of the dock catches the flash
-    // (City 2.0, 9a: the Harbor plays its own thunder — 'thunder-far', delayed by the strike's distance: harbor/sounds.js#thunder)
-    scene.set({ onFlash: e => { if (destroyed) return; if (!createHarbor) thunder(e); flashGlass(e.near); } });
+    scene.set({ onReveal: reveal, measure: () => ({ clear: clearZones(), textRects: textRects() }) });
+    // a lightning strike: the glass of the dock catches the flash (9a: the Harbor plays its own thunder — 'thunder-far', delayed by the
+    // strike's distance: harbor/sounds.js#thunder)
+    scene.set({ onFlash: e => { if (destroyed) return; flashGlass(e.near); } });
     // PARTY NIGHTS: the beat the city breathes to, the finale's distant thumps, and the party's numbers for the CSS (the sign,
     // SPEAKEASY and the rings breathe through custom properties on the root: one style write a frame)
-    scene.set({ beat: beatSource, song: createHarbor ? songInfo : null, kick: createHarbor ? beatKick : null, beatWhy: createHarbor ? beatWhy : null, beatCal: createHarbor ? beatCal : null, beatReport: createHarbor ? beatReport : null, musicLine: createHarbor ? musicLine : null, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
+    scene.set({ beat: beatSource, song: songInfo, kick: beatKick, beatWhy, beatCal, beatReport, musicLine, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
     // CITY 2.0 — THE TIRED TUBE (NEON PASS 5): one or two letters of the NEON logo look tired for ~3 hours (core/harbor-show.js
     // #tiredLetters — any letter, sometimes none, never the same twice running; it was always the O)
     // (and again once the scene has its clock: the first check can come before its look — then nothing showed for 30 s)
-    if (createHarbor) { tiredTick(); setTimeout(tiredTick, 1200); tiredT = setInterval(tiredTick, 30000); }
+    tiredTick(); setTimeout(tiredTick, 1200); tiredT = setInterval(tiredTick, 30000);
     // CITY 2.0 — THE SIGN-DIM HOOK (C1.5; Part 6b's sky messages use it): the scene says how dim the logo and the tagline should be
-    if (createHarbor) scene.set({ onSignDim: applySignDim, onSignFlash: applySignFlash });
+    scene.set({ onSignDim: applySignDim, onSignFlash: applySignFlash });
     // CITY 2.0: THE PREVIEW PANEL (docs/harbor.md) — everyone on ?city=2 follows the owner's city2/live; she gets the TEST pill.
     // Loaded 1.5 s after the city starts (never in the title's first second); the default city never requests it.
     // (SP4: a JUST ME state kept for this tab loads at once — the scene's reveal waits for it, so the preview is in the first picture)
     const remoteSoon = (() => { try { return sessionStorage.getItem('nd:hr-me') ? 0 : 1500; } catch { return 1500; } })();
-    if (createHarbor) remoteT = setTimeout(() => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) { remote = m.createRemote({ scene: () => scene }); liveRemote = remote; roomRadioSig = ''; feedRoomRadio(st); } }).catch(e => console.warn('preview panel', e)); }, remoteSoon);
+    remoteT = setTimeout(() => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) { remote = m.createRemote({ scene: () => scene }); liveRemote = remote; roomRadioSig = ''; feedRoomRadio(st); } }).catch(e => console.warn('preview panel', e)); }, remoteSoon);
 
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },
       h('div.nd-bloom', { 'aria-hidden': 'true' }),   // PARTY NIGHTS: the logo's breath, behind the letters
-      h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME, premium: !!createHarbor }) + (createHarbor ? logoGlowSvg({ id: 'ndtg' }) + logoRaceSvg({ id: 'ndtr' }) : '') + (createHarbor && /[?&]force=[^&]*anchors/.test(location.search) ? anchorsSvg() : '') }),
+      h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME, premium: true }) + logoGlowSvg({ id: 'ndtg' }) + logoRaceSvg({ id: 'ndtr' }) + (/[?&]force=[^&]*anchors/.test(location.search) ? anchorsSvg() : '') }),
       // (City 2.0, SP3: SPEAKEASY in WHITE NEON — each character carries its tube letter; the punch + the race layers the same: ui/word-neon.js)
-      createHarbor ? h('div.nd-word.nd-wn', { html: `<span class="nd-word-g">${wordNeonChars('SPEAKEASY')}<span class="nd-word-p" aria-hidden="true">${wordNeonChars('SPEAKEASY', 'blaze')}</span><span class="nd-word-r" aria-hidden="true">${wordNeonChars('SPEAKEASY', 'blaze', 'i')}</span></span>${wordNeonDefs()}` })
-        : h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'))),
+      h('div.nd-word.nd-wn', { html: `<span class="nd-word-g">${wordNeonChars('SPEAKEASY')}<span class="nd-word-p" aria-hidden="true">${wordNeonChars('SPEAKEASY', 'blaze')}</span><span class="nd-word-r" aria-hidden="true">${wordNeonChars('SPEAKEASY', 'blaze', 'i')}</span></span>${wordNeonDefs()}` }),
       h('div.nd-tag', TAGLINE),
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length >= 4 ? `${GAMES.filter(g => g.playable).length} ` : ''}PARTY GAMES · ONE PHONE EACH`));   // (WINDOWS: "2 PARTY GAMES" undersold it — the count comes back with the games)
     // (11a-1: THE SIGN DECORATION SYSTEM's overlay lives in the logo's wrap — harbor/signdress.js; the scene drives it)
-    if (createHarbor && scene) scene.set({ dressHost: els.sign.querySelector('.nd-logo-wrap'), signLetters: [...els.sign.querySelectorAll('.nd-logo .ndl')] });   // (9c: the snow on each letter glows by its own light)
+    scene.set({ dressHost: els.sign.querySelector('.nd-logo-wrap'), signLetters: [...els.sign.querySelectorAll('.nd-logo .ndl')] });   // (9c: the snow on each letter glows by its own light)
     els.actions = buildActions();
     { const st0 = neonNow(); if (!st0.caught) { els.sign.classList.add('is-day'); if (st0.stage !== 'goodbye') els.actions.classList.add('is-daylit'); } }
     els.gate = h('button.nd-gate', { type: 'button', 'aria-label': 'Tap to enter', onclick: enter },
@@ -542,7 +516,6 @@ export function createTitle() {
     tl = { plan: r ? { ...INSTANT, end: 0.7 } : plan, kind: r ? 'reduced' : kind, t0: performance.now(), done: false, marks: {} };
     const root = els.sign.closest('.nd');
     root.classList.add(`seq-${tl.kind}`);
-    rainSound();
     armTagline();     // (CITY 2.0: the tagline's 10 s count from the moment the title appears, not from the end of its power-on)
     tick();
   }
@@ -623,7 +596,7 @@ export function createTitle() {
     // random each time — it was always the O)
     const base = full ? [0, 70, 150, 220] : [0, 40, 80, 120];
     const pattern = full ? [0, 45, 110, 150, 250, 290, 400] : [0, 40, 90];
-    const crackles = [], slow = createHarbor ? Math.floor(Math.random() * letters.length) : 2;
+    const crackles = [], slow = Math.floor(Math.random() * letters.length);
     letters.forEach((l, i) => {
       const pat = i === slow && full ? [...pattern.slice(0, -1), 470, 520, 600] : pattern;
       pat.forEach((ms, k) => {
@@ -661,7 +634,7 @@ export function createTitle() {
   //   copy, nd:bd), the HAPPY BDAY <NAME> skywrite the first time the city opens that day (+ MANY HAPPY RETURNS, server-checked). A
   //   preview page (&when= / &force= …) never plays the birthday.
   function cityExtras(n = 0) {
-    if (destroyed || !createHarbor) return;
+    if (destroyed) return;
     if (!remote || !remote.localMoments) { if (n < 40) extrasT = setTimeout(() => cityExtras(n + 1), 500); return; }
     Promise.all([import('../core/birthday.js'), import('../progress/extras.js'), import('../firebase.js')]).then(([B, X, F]) => {
       if (destroyed || !remote) return;
@@ -700,7 +673,7 @@ export function createTitle() {
   }
   function sightDemo() {
     const id = new URLSearchParams(location.search).get('sgdemo');
-    if (!id || !createHarbor || !scene || !scene.sightBoxes) return;
+    if (!id || !scene || !scene.sightBoxes) return;
     import('../progress/sighting.js').then(m => m.prewarm()).catch(() => {});
     // (THE VAULT 2B — the owner's ghost-ship check: the demo snapped ~2 s in, the ship still fading in at the edge → it waits until the
     //  legendary is FULLY VISIBLE: faded all the way in (a ≥ 0.85 — the ship's lantern flicker dips a little) + at least 70 % of it on
@@ -746,7 +719,7 @@ export function createTitle() {
   // tagSlot(text, ms) shows a special line there for a while, even at rest (holidays, the countdown, CITY CONTROL).
   // &tagms=N (dev + shots): the tagline alone fades N ms in, as if at rest.
   function armTagline() {
-    if (!createHarbor || destroyed) return;
+    if (destroyed) return;
     const ms = +((location.search.match(/[?&]tagms=(\d+)/) || [])[1] || 0);
     clearTimeout(els.tagTimer);
     if (ms) els.tagTimer = setTimeout(() => { if (destroyed) return; els.sign.classList.add('nd-tag-gone'); scene.set({ tagGone: true }); }, ms);
@@ -754,14 +727,14 @@ export function createTitle() {
   }
   /** City 2.0: the tagline's band is the sky's while the tagline is hidden (at rest, or faded by &tagms) and no message shows */
   function tagState() {
-    if (!createHarbor || destroyed || !scene) return;
+    if (destroyed || !scene) return;
     const tag = els.sign.querySelector('.nd-tag');
     const msg = tag && tag.classList.contains('nd-tag-msg');
     // (FP2: + the dock at rest — the street under it shows, and the implied road's car is seen rolling across it)
     scene.set({ tagGone: !msg && (els.root.classList.contains('is-idle') || els.sign.classList.contains('nd-tag-gone')), dockGone: els.root.classList.contains('is-idle') });
   }
   function tagSlot(text, ms = 6000) {
-    if (destroyed || !createHarbor) return false;
+    if (destroyed) return false;
     const tag = els.sign.querySelector('.nd-tag');
     if (!tag || tag.classList.contains('nd-count')) return false;
     clearTimeout(els.tagSlotTimer);
@@ -793,14 +766,12 @@ export function createTitle() {
     els.root.classList.toggle('nd-noblur', (scene.tier ? scene.tier() : 2) === 0);
     tintGlass();
     snowOnSign();
-    rainSound();
     tagShade();
     els.skyTimer = setTimeout(watchSky, 1000);
   }
   // CITY 2.0 (NEON PASS 2): the sun + the moon may pass behind the tagline — while a bright disc is behind it, a soft shadow behind
   // its letters keeps it readable (no box; only where needed)
   function tagShade() {
-    if (!createHarbor) return;
     const tag = els.sign && els.sign.querySelector('.nd-tag');
     if (!tag) return;
     const r = tag.getBoundingClientRect(), s = scene.sun && scene.sun(), m = scene.moonAt && scene.moonAt();
@@ -812,7 +783,7 @@ export function createTitle() {
   // brief: each is one repaint of the sign)
   let hiKey = '';
   function premiumLogo(L) {
-    if (!createHarbor || !L) return;
+    if (!L) return;
     const svg = els.sign.querySelector('svg.nd-logo');
     if (!svg) return;
     const az = L.sun ? L.sun.az : 180, el = L.sun ? L.sun.el : -10, side = el > -2 ? Math.max(-1, Math.min(1, (((az - 180 + 540) % 360) - 180) / 70)) : -0.6;
@@ -871,7 +842,6 @@ export function createTitle() {
       document.body.style.setProperty('--dk-tint', `rgb(${sky.join(',')})`);   // (the corner buttons live on the body)
       st.setProperty('--dk-day', String(Math.round(day * 100) / 100));
     }
-    els.door.classList.toggle('is-rain', !!L.rain && !L.snow && !createHarbor);   // (City 2.0: the beads on the glass are harbor/glasswx.js's)
   }
   // LIVE WEATHER: snow settles on the sign's tubes while it snows (fades in over a minute, melts slowly after), drawn from the
   // tubes themselves (their top edges: the shape minus itself shifted down); the first snow of the winter starts gently
@@ -894,14 +864,6 @@ export function createTitle() {
       if (store(localStorage, 'nd:firstsnow') !== String(winter)) { store(localStorage, 'nd:firstsnow', String(winter)); scene.set({ firstSnow: performance.now() }); }
     }
   }
-  // the rain sound only while it rains on screen: in over ~3 s when a shower starts, out over 4 s when it stops
-  function rainSound() {
-    if (destroyed || !scene || createHarbor) return;      // (City 2.0, 9a: the Harbor's rain beds are its own — harbor/sounds.js)
-    const L = scene.look(), level = (L.rain || 0) + (L.storm ? 0.25 : 0);
-    if (level > 0 && !stopRain) stopRain = startRain(level);
-    else if (level > 0 && stopRain && stopRain.level) stopRain.level(level);
-    else if (!level && stopRain) { stopRain(4); stopRain = null; }
-  }
   let glassT = 0;
   function flashGlass(near) {
     if (!els.door) return;
@@ -909,7 +871,7 @@ export function createTitle() {
     els.door.classList.add('is-flash'); if (near) els.door.classList.add('is-flash-near');
     clearTimeout(glassT); glassT = setTimeout(() => els.door && els.door.classList.remove('is-flash', 'is-flash-near'), 900);
   }
-  // ------------------------------------------------------------------ THE NEON COMES ALIVE (district/neon-ramp.js, docs/title.md)
+  // ------------------------------------------------------------------ THE NEON COMES ALIVE (core/neon-ramp.js, docs/title.md)
   // The sign follows the day's plan: silent sputters that grow through the golden hour, letters sticking, THE CATCH — the crackle +
   // hum, the only sound — when the sun's disc goes behind the rooftops; the city's signs answer one at a time. At dawn the city
   // signs go first, then the logo falters and dies letter by letter. The sun's computed place only — never the weather.
@@ -921,7 +883,6 @@ export function createTitle() {
   // files are warmed once audio unlocks (checked on every neon update); a hidden page / the goodbye cut a hum still fading.
   let humStop = null, neonWarm = false;
   function humSync(on) {
-    if (!createHarbor) return;
     if (!neonWarm && isUnlocked()) { neonWarm = true; neonPreload(); }
     if ((!on || destroyed || document.visibilityState !== 'visible') && humStop) { humStop(0.6); humStop = null; }
   }
@@ -932,7 +893,7 @@ export function createTitle() {
    *  last one's strike + hum at once (never stacked), and a tap within NEON_SOUND.cool of the last one plays no new strike. */
   let strikeStop = null, strikeAt = -1e9;
   function neonOnSound(level = 1, kind = 'catch') {
-    if (!createHarbor || destroyed || document.visibilityState !== 'visible') return;
+    if (destroyed || document.visibilityState !== 'visible') return;
     const cfg = NEON_SOUND[kind] || NEON_SOUND.catch, now = performance.now();
     if (kind === 'tap' && now - strikeAt < NEON_SOUND.cool) return;
     strikeAt = now;
@@ -950,7 +911,7 @@ export function createTitle() {
   const WARM_SOUND_MS = 30000;
   let warmSoundAt = -1e9, neonWarmSounds = 0;
   function warmFlicker() {
-    if (!createHarbor || !neonPlanV || !scene || reduced() || destroyed || document.visibilityState !== 'visible') return;
+    if (!neonPlanV || !scene || reduced() || destroyed || document.visibilityState !== 'visible') return;
     const left = neonPlanV.catchAt - scene.now();
     if (left <= 0 || left > WARM_SOUND_MS) return;
     const k = 1 - left / WARM_SOUND_MS, now = performance.now();
@@ -1012,7 +973,7 @@ export function createTitle() {
         if (isCatch) {
           // THE CATCH: all four lock on together, the crackle + hum, a soft bloom (City 2.0: the city holds its tier through it)
           if (scene.hold) scene.hold(3000);
-          if (createHarbor) neonOnSound(); else neonPowerOn({ crackles: [0, 0.05, 0.13], dur: 1.6 });   // (City 2.0: the recorded power-on + the hum fading)
+          neonOnSound();   // (the recorded power-on + the hum fading)
           neonSounds++;
           s.classList.add('is-catch');
           setTimeout(() => { if (!destroyed) s.classList.remove('is-catch'); }, 1500);
@@ -1039,8 +1000,8 @@ export function createTitle() {
     // CITY 2.0 — THE RECORDED NEON (NEON PASS 3 + 4, the owner's ears): the golden-hour warm-up is SILENT but for its last 30 s
     // (warmFlicker: the strikes building toward the catch); the dawn's stutters are silent — only the very last tube cutting out
     // at dawn sounds, the dropout, softly (it lands as the plan turns to 'day'). Never on the first paint, never under Reduced effects.
-    if (createHarbor && st.stage === 'ramp' && !opts.quiet && !fade && struck) warmFlicker();
-    if (createHarbor && prev === 'goodbye' && st.stage === 'day' && !opts.quiet && !fade && dropped) neonDropout({ level: 0.55 });
+    if (st.stage === 'ramp' && !opts.quiet && !fade && struck) warmFlicker();
+    if (prev === 'goodbye' && st.stage === 'day' && !opts.quiet && !fade && dropped) neonDropout({ level: 0.55 });
     dockAll(st.stage === 'goodbye');                                          // the dock goes dark with the last letter
     const share = fade ? st.fade : on / 4;
     scene.set({ logo: share > 0 ? 1 : 0, signPow: share, caught: false });
@@ -1072,13 +1033,13 @@ export function createTitle() {
     // decay — through opacity alone: the rings' glow layer, SPEAKEASY's extra glow layer; the big bloom keeps its gentle level)
     // (PART 10: the bloom sits outside the sign's dimmed wrapper — it follows a dim (a sky message, the fireworks, the TR-3B) itself,
     // eased over the dim's own time, so a dark sign never keeps a glow of its own on the fog)
-    { const tn = performance.now(), sd = createHarbor && scene && scene.signDim ? scene.signDim() : null, want = sd ? sd.logo : 1, dtb = Math.min(100, tn - (bloomDimAt || tn));
+    { const tn = performance.now(), sd = scene && scene.signDim ? scene.signDim() : null, want = sd ? sd.logo : 1, dtb = Math.min(100, tn - (bloomDimAt || tn));
       bloomDimAt = tn; bloomDim += (want - bloomDim) * Math.min(1, dtb / Math.max(120, (sd && sd.ms) || 1200) * 2.5); if (Math.abs(want - bloomDim) < 0.01) bloomDim = want; }
-    const bo = Math.round((0.2 * pe + 0.6 * sw) * bloomDim * 50) / 50, hk = Math.round((createHarbor ? 0.78 + 1.2 * (p.punch || 0) + 0.5 * sw : 1 + 0.34 * p.breath * pe + 0.5 * sw) * 50) / 50;
-    if (createHarbor && partyEls.word) { const wp = Math.round(Math.min(1, (p.punch || 0) * 1.45 + 0.6 * sw) * 40) / 40; if (wp !== partyEls.wp) { partyEls.wp = wp; partyEls.word.style.opacity = String(wp); } }
+    const bo = Math.round((0.2 * pe + 0.6 * sw) * bloomDim * 50) / 50, hk = Math.round((0.78 + 1.2 * (p.punch || 0) + 0.5 * sw) * 50) / 50;
+    if (partyEls.word) { const wp = Math.round(Math.min(1, (p.punch || 0) * 1.45 + 0.6 * sw) * 40) / 40; if (wp !== partyEls.wp) { partyEls.wp = wp; partyEls.word.style.opacity = String(wp); } }
     // (NEON PASS 5 — the owner: THE NEON LOGO PULSES TOO, with the city: a clear but gentler punch than the skyline so the word stays
     // readable — its light alone (.nd-logo-glow, opacity only), on the letters that are lit right now)
-    if (createHarbor && partyEls.logo) {
+    if (partyEls.logo) {
       const lk = [...els.sign.querySelectorAll('.nd-logo .ndl')].map(l => (l.classList.contains('on') ? 1 : 0)).join('');
       if (lk !== partyEls.lk) { partyEls.lk = lk; partyEls.logo.querySelectorAll('.ndg').forEach((g, i) => g.classList.toggle('off', lk[i] !== '1')); }
       // (7a, the owner: "close" but not obvious enough on her iPhone — one step stronger: 0.78 → 1.02 × the punch, the cap 0.8 → 0.95)
@@ -1103,7 +1064,7 @@ export function createTitle() {
   // (FP3a, the owner: the day's surge holds its peak + bloom ~300 ms longer — at 2 s with no hold it read as a flash)
   function raceLogo(kind) {
     const cfg = RACE[kind] || RACE.party, day = !!cfg.day;
-    if (!createHarbor || destroyed || raceBusy() || reduced() || !els.sign) return false;
+    if (destroyed || raceBusy() || reduced() || !els.sign) return false;
     if (day ? !els.sign.classList.contains('is-day') : (!els.sign.classList.contains('is-steady') || els.sign.classList.contains('is-day'))) return false;
     const wrap = els.sign.querySelector('.nd-logo-wrap');
     const blaze = wrap ? [...wrap.querySelectorAll('.nd-race-l')] : [], H = wrap && wrap.querySelector('.nd-race-h');
@@ -1150,11 +1111,11 @@ export function createTitle() {
   // (8a — a race whose frames stopped coming — WebKit dropping a pending rAF while the page was in the background — never holds the
   // sign "busy" for good: after a second without a frame it is cleaned up, and the next race / the first tap runs)
   function raceBusy() { if (race && performance.now() - race.seen > 1000) race.end(); return !!race; }
-  if (createHarbor && /[?&]force=([^&]*,)?race(,|&|$)/.test(location.search)) { const iv = setInterval(() => { if (destroyed) { clearInterval(iv); return; } raceLogo('party'); }, 6000); }
+  if (/[?&]force=([^&]*,)?race(,|&|$)/.test(location.search)) { const iv = setInterval(() => { if (destroyed) { clearInterval(iv); return; } raceLogo('party'); }, 6000); }
 
   // ---------------------------------------------------------------- THE MUSIC STARTING (7a section 0 → FP3a, City 2.0 — the owner)
   // No "tap for music" hint: whenever the MUSIC STARTS — the visit's first tap, the music button back ON, a rescue after the
-  // background — the NEON sign answers it, from its REAL state on screen (district/neon-ramp.js#firstTapAnswer, tested): the sign NOT
+  // background — the NEON sign answers it, from its REAL state on screen (core/neon-ramp.js#firstTapAnswer, tested): the sign NOT
   // lit (the morning goodbye, the day, golden hour's early sputters; the DOM's is-day) → a bright surge races through the glass
   // N → E → O → N, holds its peak a moment and fades back to daylight glass (raceLogo 'surge'); lit (is-steady, not is-day) → a
   // quicker, brighter race through the lit tubes ('first'); in the evening WARM-UP WINDOW (the last few minutes before the catch)
@@ -1174,7 +1135,7 @@ export function createTitle() {
   function signSurge(why = 'hook') {
     const now = performance.now();
     const did = (() => {
-      if (!createHarbor || destroyed) return 'skip:off';
+      if (destroyed || !scene) return 'skip:off';
       if (why === 'music' && now - surgeAt < SURGE_COOL) return 'skip:cool';
       if (!els.sign) return 'skip:off';
       // the sign's real state now (the plan's — the DOM catches up first if a timer ran late, e.g. just back from the background)
@@ -1252,8 +1213,8 @@ export function createTitle() {
   // (a tap that should start the music — the music on, not muted, its clock still — arms the fallback; read after the tap's own
   // handlers have run: the music button's toggle first)
   const armTap = () => setTimeout(() => { if (!destroyed && !settings.musicOff && !settings.muted && settings.music > 0 && songClock() < 0) armedAt = performance.now(); }, 0);
-  if (createHarbor) document.addEventListener('pointerup', armTap, true);
-  if (createHarbor) {
+  document.addEventListener('pointerup', armTap, true);
+  {
     // the detector + &force=first-tap — from the URL or THE PREVIEW PANEL (live: the scene's force set): 2.4 s after the intro
     // (shots.mjs's burst starts ~2.6 s after it: --every 120 --count 12 catches it), then every 5 s while it's on
     let surgeOn = false, surgeNext = 0;
@@ -1295,11 +1256,7 @@ export function createTitle() {
     s.querySelectorAll('.nd-dress').forEach(e => e.remove());
     swapO(s.querySelector('svg.nd-logo'), full === 'halloween' || full === 'stpatrick' ? full : null);
     const wrap = s.querySelector('.nd-logo-wrap');
-    // (City 2.0 — 11a-1: the web + the spider are THE SIGN DECORATION SYSTEM's — harbor/signdress.js, a canvas in this wrap; City 1.0 keeps these)
-    if (full === 'halloween' && !hol.c2) {
-      wrap.append(h('div.nd-dress.nd-webs', { 'aria-hidden': 'true', html: WEBS }));
-      wrap.append(h('div.nd-dress.nd-spider', { 'aria-hidden': 'true' }, h('div.nd-spider-b', h('i.nd-silk'), h('div.nd-spider-s', { html: SPIDER }))));
-    }
+    // (11a-1: Halloween's web + spider are THE SIGN DECORATION SYSTEM's — harbor/signdress.js, a canvas in this wrap)
     if (hol && hol.id === 'christmas') { const logo = wrap.querySelector('svg.nd-logo'); if (logo) wrap.append(h('div.nd-dress.nd-xlights', { 'aria-hidden': 'true', html: xmasWrapSvg(logo, hol.full ? 1 : hol.k) })); }
     if (full === 'christmas') wrap.append(h('div.nd-dress.nd-hat', { 'aria-hidden': 'true', html: HAT }));
     const tag = s.querySelector('.nd-tag');
@@ -1319,7 +1276,7 @@ export function createTitle() {
     pgPreviewSoon(600);
     keyPopSoon(2600);
     // (LOBBY 2.0 B — THE NIGHT's CHAMPION: the app closed during a night of 2+ games → LAST NIGHT'S CHAMPION: <them>, the next open within ~12 h, once)
-    if (createHarbor) setTimeout(() => { if (!destroyed && scene && !(st && st.code)) import('./room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-night', !!(st && st.code)); }).catch(() => {}); }, 4200);
+    setTimeout(() => { if (!destroyed && scene && !(st && st.code)) import('./room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-night', !!(st && st.code)); }).catch(() => {}); }, 4200);
   }
   // LOBBY 2.0 A — THE SAVE-YOUR-KEY POP-UP (profile/keypop.js): a RETURNING player whose key isn't saved meets it once, on the city, a moment
   // after the reveal — never over a legendary (it waits); its YOU dot on the docks until the key is saved
@@ -1376,7 +1333,7 @@ export function createTitle() {
   function trackLogo() {
     if (destroyed) return;
     if (document.visibilityState !== 'visible') { els.logoTimer = setTimeout(trackLogo, 5000); return; }
-    scene.set({ logoRect: logoRect(), clear: clearZones(), textRects: textRects(), ...(createHarbor ? { glass: glassShapes(), dockIdle: !!(els.root && els.root.classList.contains('is-idle')) } : {}) });
+    scene.set({ logoRect: logoRect(), clear: clearZones(), textRects: textRects(), glass: glassShapes(), dockIdle: !!(els.root && els.root.classList.contains('is-idle')) });
     sunGlass();
     // (City 2.0, NEON PASS 3: a drone show's formation fills the band under SPEAKEASY — the tagline steps aside while it flies)
     if (scene.holdTag) { const h = !!scene.holdTag(); if (h !== els.sign.classList.contains('nd-tag-hold')) els.sign.classList.toggle('nd-tag-hold', h); }
@@ -1430,10 +1387,10 @@ export function createTitle() {
       let letters = all.filter((_, i) => !buzzing.has(i));
       // (NEON PASS 5, City 2.0 — the owner: any letter, at random, never the same one twice running; sometimes two at once; rarely a
       // whole letter dropping out for a second before it strikes back)
-      if (createHarbor && letters.length > 1) letters = letters.filter(l => all.indexOf(l) !== lastFlick);
+      if (letters.length > 1) letters = letters.filter(l => all.indexOf(l) !== lastFlick);
       if (!letters.length) { scheduleFlicker(); return; }
       const pickL = () => letters.splice(Math.floor(Math.random() * letters.length), 1)[0];
-      const roll = createHarbor ? Math.random() : 1;
+      const roll = Math.random();
       const picks = [pickL()];
       if (roll < 0.22 && letters.length) picks.push(pickL());
       lastFlick = all.indexOf(picks[0]);
@@ -1445,7 +1402,7 @@ export function createTitle() {
       }
       // (City 2.0: the flicker sounds — rare and random, one of four recordings, never the same twice running. Oct 24, the owner: at the
       // TAP's level — what a tapped letter plays at — about one in three a little louder, never a startle: ambience.js#neonTwitch)
-      if (createHarbor && document.visibilityState === 'visible') neonTwitch({ gain: NEON_TAP_LEVEL * NEON_GAINS.dropout, louder: Math.random() < 1 / 3 });
+      if (document.visibilityState === 'visible') neonTwitch({ gain: NEON_TAP_LEVEL * NEON_GAINS.dropout, louder: Math.random() < 1 / 3 });
       neonTick();
       scene.set({ logo: 0.8 }); setTimeout(() => scene && scene.set({ logo: 1 }), 200);
       scheduleFlicker();
@@ -1557,7 +1514,7 @@ export function createTitle() {
     // when it lights; by night: out at once, re-ignites at 1.6 s; by day: sparks on at once, out at 1.85 s)
     // (PART 8a, the owner: the TAP's on / off ~25 % quieter — 0.75 → 0.5625, ≈ −2.5 dB; THE CATCH's power-on + the first-tap surge
     // keep their level: neonOnSound() at 1 elsewhere)
-    const sound = on => { if (!createHarbor || reduced()) return; if (on) neonOnSound(NEON_TAP_LEVEL, 'tap'); else neonDropout({ level: NEON_TAP_LEVEL }); };
+    const sound = on => { if (reduced()) return; if (on) neonOnSound(NEON_TAP_LEVEL, 'tap'); else neonDropout({ level: NEON_TAP_LEVEL }); };
     const set = (on, ms, tick) => setTimeout(() => { if (destroyed) return; l.classList.toggle('on', on); if (tick) { neonTick(); sound(on); } }, ms);
     // [state, at ms]: the stutter, the hold, the restart flicker
     const plan = day
@@ -1974,7 +1931,6 @@ export function createTitle() {
       idleMs: () => IDLE_MS,        // (9g: 10 s on a device's first visit, 5 s after)
       frontBusy: () => (scene && scene.frontBusy ? scene.frontBusy() : null),
       isIdle: () => els.root.classList.contains('is-idle'),
-      rainSound: () => !!stopRain,
       neonAt: t => (neonPlanV ? neonState(neonPlanV, t) : null),
       neonSounds: () => neonSounds,
       neonSoundLog: () => neonSoundLog.slice(),                               // (11a-2: each power-on's kind + its total length, s)
@@ -2012,6 +1968,7 @@ export function createTitle() {
 
   function unmount() {
     destroyed = true;
+    if (els.down) { els.down.remove(); els.down = null; return; }   // (CITY 1.0 OUT: the city never loaded — only the card to take away)
     clearTimeout(keyPopT); if (offKeyPop) { offKeyPop(); offKeyPop = null; }
     if (roomUi) { roomUi.destroy(); roomUi = null; }
     humSync(false);
@@ -2038,7 +1995,6 @@ export function createTitle() {
     clearTimeout(noteT);
     if (els.probe) els.probe.remove();
     if (els.probeB) els.probeB.remove();
-    if (stopRain) stopRain(0.6);
     document.body.classList.remove('nd-on');
     document.body.style.removeProperty('--dk-tint');
     dressCorners(false);

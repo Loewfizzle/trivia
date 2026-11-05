@@ -1,6 +1,6 @@
 // PARTY NIGHTS (PURE): Friday and Saturday nights, 8 pm → 2 am local, the city comes alive on the beat (docs/title.md).
 // The window, the shape of the night (warm-up → peak → after hours), the beat clock that breathes with the music, the party
-// palette, and which windows join in. No DOM, no audio: title.js / district/scene.js draw what this decides.
+// palette, and which windows join in. No DOM, no audio: title.js + the Harbor (screens/harbor/scene-party.js) draw what this decides.
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -146,8 +146,6 @@ export const PARTY_PALETTES = {
 export const partyPalette = holidayId => PARTY_PALETTES[holidayId] || PARTY_PALETTES.default;
 
 // ---------------------------------------------------------------- which windows join in
-function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-function hash(str) { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
 
 /** The seed for tonight's party set: the evening's date (the small hours belong to the night before). */
 export function partySeed(local) {
@@ -157,41 +155,3 @@ export function partySeed(local) {
   return `party:${y}-${m}-${d}`;
 }
 
-/**
- * Picks the party windows of one skyline layer: about a quarter of the lit windows, some as whole floors lit in one colour.
- * windows: [{ x, y, w, h }] (lit ones only), seed: string, palette: [[r,g,b]...]. Returns [{ i, col, floor, extra }] — extra
- * marks the few more that come on at the peak. Deterministic for a seed; the same every time the city is rebuilt tonight.
- */
-export function pickPartyWindows(windows, seed, palette, share = 0.25) {
-  const R = rng(hash(seed));
-  const out = [];
-  const taken = new Set();
-  const colour = () => { const r = R(); return palette[r < 0.3 ? 0 : r < 0.58 ? 1 : r < 0.84 ? 2 : 3]; };
-  // whole floors: windows on one row (the same y, close in x) — a floor at a time, lit in one colour
-  const rows = new Map();
-  windows.forEach((w, i) => { const k = `${Math.round(w.y)}|${Math.round(w.h)}`; if (!rows.has(k)) rows.set(k, []); rows.get(k).push(i); });
-  const floors = [...rows.values()].filter(r => r.length >= 3);
-  const wantFloors = Math.max(1, Math.round(floors.length * 0.09));
-  for (let n = 0; n < wantFloors && floors.length; n++) {
-    const row = floors.splice(Math.floor(R() * floors.length), 1)[0];
-    // a floor is a run of neighbours: split the row where there's a wide gap (another building)
-    row.sort((a, b) => windows[a].x - windows[b].x);
-    let run = [row[0]];
-    const runs = [run];
-    for (let j = 1; j < row.length; j++) { if (windows[row[j]].x - windows[row[j - 1]].x > windows[row[j]].w * 4.5) { run = []; runs.push(run); } run.push(row[j]); }
-    const pick = runs.filter(r => r.length >= 3)[0];
-    if (!pick) continue;
-    const col = colour();
-    for (const i of pick) if (!taken.has(i)) { taken.add(i); out.push({ i, col, floor: true, extra: false }); }
-  }
-  // single windows, up to the share (a few of them the peak's extras)
-  const want = Math.round(windows.length * share);
-  const order = windows.map((_, i) => i).sort(() => R() - 0.5);
-  for (const i of order) {
-    if (out.length >= want) break;
-    if (taken.has(i)) continue;
-    taken.add(i);
-    out.push({ i, col: colour(), floor: false, extra: R() < 0.3 });
-  }
-  return out;
-}

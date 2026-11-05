@@ -1,7 +1,6 @@
 // The profile: a membership card to the speakeasy. Glass card with the avatar, name tag, rank emblem and an XP bar
 // that fills with light; the profile key as a secret password card (tap to reveal, copy, a new key); "Show me on
 // global leaderboards"; and per-game cards (wins, win rate, highlights, records, weekly and all-time ranks).
-// promptKey(): the gentle reminder sheet after a player's first few matches.
 import { h, reducedMotion } from '../ui/dom.js';
 import { onCloseAll } from '../ui/layers.js';
 import { avatar } from '../ui/components.js';
@@ -20,9 +19,8 @@ import { openStreakCard } from '../progress/streak-card.js';
 import { pgSheet } from '../progress/look.js';
 import { BOARD_GAMES } from '../core/boards.js';
 import { boardDef, fmtValue, MIN_WR_GAMES, winRate } from '../core/boards.js';
-import { fetchMe, myRanks, myKey, regenKey, restoreKey, setShown, setNotes, notes, setStyle, keyOffer, keepNewKey, previousKey, forgetPreviousKey } from '../profile/me.js';
+import { fetchMe, myRanks, regenKey, restoreKey, setShown, setNotes, notes, setStyle, keyOffer, keepNewKey } from '../profile/me.js';
 import { GAME_LIGHT } from '../board/view.js';
-import { boardSfx } from '../board/audio.js';
 import { sfx } from '../audio/sfx.js';
 import { settings } from '../audio/settings.js';
 import { memberLabel } from '../core/member.js';
@@ -38,54 +36,6 @@ const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', '
 export function memberCard(pub, local, xp, opts = {}) {
   pgSheet();
   return gildedCard(pub ? { ...pub, x: xp ?? pub.x } : null, local || {}, opts);
-}
-
-/** The secret password card: masked, tap to reveal, copy; a new key on a confirmed second tap. */
-function keyCard({ onNew } = {}) {
-  let shown = false, timer = 0, armed = false;
-  const text = h('span.pf-key-text');
-  const paint = () => {
-    const k = myKey();
-    text.textContent = !k ? 'NO KEY ON THIS DEVICE' : shown ? k : 'NEON-••••-••••-••••';
-    wrap.classList.toggle('is-shown', shown && !!k);
-    wrap.classList.toggle('is-none', !k);
-  };
-  const reveal = () => {
-    if (!myKey()) return;
-    shown = !shown; clearTimeout(timer);
-    if (shown) { timer = setTimeout(() => { shown = false; paint(); }, 20000); sfx('select'); }
-    paint();
-  };
-  const copy = async e => {
-    e.stopPropagation();
-    const k = myKey();
-    if (!k) return;
-    try { await navigator.clipboard.writeText(k); toast('KEY COPIED — KEEP IT SOMEWHERE SAFE', 'ok'); } catch { shown = true; paint(); toast('SELECT AND COPY THE KEY', 'info'); }
-    setNotes({ saved: true });
-  };
-  const newBtn = h('button.pf-key-new', { type: 'button', onclick: async e => {
-    e.stopPropagation();
-    if (!armed) { armed = true; newBtn.textContent = 'TAP AGAIN — THE OLD KEY STOPS WORKING'; newBtn.classList.add('is-armed'); setTimeout(() => { armed = false; newBtn.textContent = 'NEW KEY'; newBtn.classList.remove('is-armed'); }, 4000); return; }
-    armed = false; newBtn.textContent = 'NEW KEY'; newBtn.classList.remove('is-armed');
-    try { await regenKey(); shown = true; paint(); toast('A NEW KEY — THE OLD ONE NO LONGER WORKS', 'ok'); onNew && onNew(); } catch (err) { toast(err.message || 'COULDN’T REACH THE SERVER', 'err'); }
-  } }, 'NEW KEY');
-  const wrap = h('div.pf-key', { role: 'button', tabindex: '0', 'aria-label': 'Your profile key — tap to reveal', onclick: reveal, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); reveal(); } } },
-    h('div.pf-key-head', h('span.pf-key-k', 'YOUR KEY'), h('span.pf-key-s', 'the password at the door')),
-    h('div.pf-key-val', text),
-    h('div.pf-key-actions',
-      h('span.pf-key-hint', 'TAP TO REVEAL'),
-      h('button.pf-key-copy', { type: 'button', onclick: copy }, 'COPY'),
-      newBtn));
-  paint();
-  // FR6 FIXES A (C2): the key this device held before a restore — a way back to that card (it may own a sighting); COPY or FORGET
-  const prev = previousKey();
-  if (!prev) return wrap;
-  const row = h('div.pf-key-prev',
-    h('span.pf-key-prev-k', 'YOUR PREVIOUS KEY'),
-    h('span.pf-key-prev-v', prev),
-    h('button.pf-key-copy', { type: 'button', onclick: async e => { e.stopPropagation(); try { await navigator.clipboard.writeText(prev); toast('PREVIOUS KEY COPIED', 'ok'); } catch { toast('SELECT AND COPY THE KEY', 'info'); } } }, 'COPY'),
-    h('button.pf-key-new.pf-key-forget', { type: 'button', onclick: e => { e.stopPropagation(); forgetPreviousKey(); row.remove(); } }, 'FORGET'));
-  return h('div.pf-keys', wrap, row);
 }
 
 /** The membership card as a full-screen overlay (from a room: the lobby, the menu, the podium), back = close. */
@@ -109,7 +59,6 @@ export function closeCard() {
 
 onCloseAll(() => closeCard());   // (FR6 FIXES A — B1 + B7: the game start + a kick close the profile overlay)
 
-const KEY_WHY = 'ONE CARD, ALL YOUR DEVICES: your key brings this card to another phone, another browser or the iPhone Home Screen app — every device works at once. Never give it to anyone else: whoever has it is you.';
 
 // LOBBY 2.0 A — THE PROFILE POLISH (the owner's 2C review, Nov 3 9:20–9:40 pm). THE HEADER: only ‹ BACK (top left) + the music mute (top
 // right — the corner's own; the ☰ menu + the word MEMBERSHIP are gone: the full card on top says whose page it is). THE PAGE keeps only:
@@ -435,30 +384,4 @@ export function createView({ onBack = null, overlay = false } = {}) {
     update() {},
     unmount() { destroyed = true; if (fullMounted) { fullMounted.destroy(); fullMounted = null; } document.body.classList.remove('pf-on'); closeAllPfSheets(); },
   };
-}
-
-/** The gentle reminder: after a player's first few matches, back in the lobby. */
-export function promptKey() {
-  if (document.querySelector('.pf-prompt')) return;
-  const n = notes();
-  setNotes({ prompted: (n.prompted || 0) + 1 });
-  let sheet;
-  const close = () => { sheet.classList.add('out'); setTimeout(() => sheet.remove(), 260); };
-  const m = loadMe();
-  // (THE VAULT 1A: SHARE — the phone's own sheet → Notes / Mail / Messages / a password manager)
-  const shareRow = typeof navigator.share === 'function' ? h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => import('../profile/bring.js').then(B => B.shareKey()).then(ok => { if (ok) close(); }) }, h('span', 'SHARE IT TO NOTES OR MAIL')) : null;
-  sheet = h('div.modal.pf-prompt', { onclick: e => { if (e.target === sheet) close(); } },
-    h('div.sheet', { role: 'dialog', 'aria-label': 'Save your profile key' },
-      h('div.sheet-grip'),
-      h('div.pf-prompt-head', m && m.profile ? h('span.rk-big', emblem(m.profile.r | 0, 54)) : null,
-        h('div', h('div.sheet-kicker', 'YOUR MEMBERSHIP'), h('h2.sheet-title', 'Save your key somewhere safe'))),
-      h('p.pf-why', h('b', 'Email it to yourself, put it in Notes or a password manager. Lose it and your card can’t come back.')),
-      h('p.pf-why', KEY_WHY),
-      keyCard(),
-      shareRow,
-      h('div.pf-prompt-actions',
-        h('button.btn.btn-primary.btn-block', { type: 'button', onclick: () => { setNotes({ saved: true }); close(); toast('NICE — YOUR RECORD IS SAFE', 'ok'); } }, h('span', 'I’VE SAVED IT')),
-        h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'LATER'))));
-  document.body.append(sheet);
-  if (!reduced()) boardSfx('pb');
 }

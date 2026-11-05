@@ -90,32 +90,7 @@
 }
 .preview-card strong { font-family: var(--font-display); font-size: 20px; letter-spacing: 0.1em; color: var(--c); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ---- LOBBY ---- */
-.lobby-screen { gap: 22px; }
-.lobby-head { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 6px; }
-.lobby-room { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.room-code { display: flex; gap: 8px; }
-.room-code span {
-  display: grid;
-  place-items: center;
-  width: clamp(44px, 13.5vw, 56px);
-  height: clamp(54px, 16vw, 68px);
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(28px, 8.5vw, 40px);
-  color: var(--accent);
-  background: rgba(4, 8, 22, 0.8);
-  border: 1px solid var(--line-2);
-  border-bottom: 3px solid var(--accent);
-  text-shadow: 0 0 16px var(--accent-glow);
-  animation: code-in 0.5s var(--ease-back) both;
-  animation-delay: calc(var(--i) * 0.08s);
-}
-.lobby-screen.greet .room-code span { animation-delay: calc(var(--i) * 0.08s + 0.9s); } /* after ACCESS GRANTED */
-@keyframes code-in { from { opacity: 0; transform: translateY(-16px) rotateX(80deg); } }
-.lobby-actions { display: flex; gap: 10px; }
-.lobby-section { display: flex; flex-direction: column; gap: 10px; }
-.section-head { display: flex; justify-content: space-between; align-items: center; }
+/* ---- the players (CITY 1.0 OUT: the old lobby screen's styles went) ---- */
 .count { font-family: var(--font-mono); font-weight: 700; font-size: 13px; color: var(--accent); }
 .players { display: flex; flex-direction: column; gap: 8px; }
 .player.enter { animation: player-in 0.55s var(--ease-back) both; }
@@ -149,35 +124,8 @@
 }
 .kick:active { transform: scale(0.94); }
 .kick:not(:empty):is(:hover) { color: var(--red); border-color: var(--red); }
-.lobby-hint { font-size: 12px; color: var(--text-dim); letter-spacing: 0.06em; }
-.lobby-idle { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: rgba(255, 210, 61, 0.08); border: 1px solid rgba(255, 210, 61, 0.45); border-left: 3px solid var(--yellow); }
-.lobby-idle[hidden] { display: none; }
-.lobby-idle p { flex: 1; margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; line-height: 1.3; color: var(--text-dim); }
-.lobby-idle b { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.12em; color: var(--yellow); }
-.lobby-idle .btn { flex: none; min-height: 44px; }
 
 .games { display: grid; grid-template-columns: 1fr; gap: 10px; }
-.game-card {
-  --accent: var(--cyan);
-  position: relative;
-  display: grid;
-  grid-template-columns: 56px 1fr auto;
-  align-items: center;
-  gap: 14px;
-  min-height: 92px;
-  padding: 14px;
-  text-align: left;
-  background: linear-gradient(110deg, var(--accent-soft), rgba(10, 15, 38, 0.82) 55%);
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--accent);
-  overflow: hidden;
-  transition: transform 0.15s var(--ease);
-  animation: rise 0.5s var(--ease) both;
-}
-.game-card:nth-child(2) { animation-delay: 0.06s; }
-.game-card:nth-child(3) { animation-delay: 0.12s; }
-.game-card:nth-child(4) { animation-delay: 0.18s; }
-.game-card:active { transform: scale(0.98); }
 .gc-glyph {
   display: grid;
   place-items: center;
@@ -193,94 +141,16 @@
 }
 .gc-tag { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.22em; color: var(--accent); }
 .gc-name { font-family: var(--font-display); font-weight: 900; font-size: min(17px, 4.3vw); letter-spacing: 0.06em; margin: 2px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gc-blurb { font-size: 13px; color: var(--text-dim); line-height: 1.3; }
-.gc-go { font-size: 30px; color: var(--accent); }
-.gc-lock {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  font-family: var(--font-mono);
-  font-weight: 700;
-}
-.gc-lock span { font-size: 10px; letter-spacing: 0.18em; padding: 3px 6px; border: 1px solid var(--text-faint); color: var(--text-dim); }
-.gc-lock small { font-size: 9px; letter-spacing: 0.14em; color: var(--text-faint); }
-.game-card.is-locked { filter: saturate(0.35); opacity: 0.62; }
-.game-card.is-locked::after {   /* hazard stripes */
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(135deg, transparent 0 14px, rgba(255, 255, 255, 0.025) 14px 28px);
-  pointer-events: none;
-}
-.games.is-guest .game-card:not(.is-locked) { opacity: 0.85; }
 
-.game-card[data-theme='rum'] { --accent: #f0c75e; --accent-soft: rgba(240, 199, 94, 0.12); --accent-glow: rgba(240, 199, 94, 0.5); }
-.game-card[data-theme='rum'] .gc-tag { background: linear-gradient(90deg, #ff8fa3, #f0c75e 60%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.game-card[data-theme='stakes'] { --accent: #f2c869; --accent-soft: rgba(242, 200, 105, 0.12); --accent-glow: rgba(242, 200, 105, 0.5); }
-.game-card[data-theme='stakes'] .gc-tag { background: linear-gradient(90deg, #6ff0b4, #f2c869 55%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.game-card[data-theme='cipher'] { --accent: #3dff8b; --accent-soft: rgba(61, 255, 139, 0.12); --accent-glow: rgba(61, 255, 139, 0.5); }
-.game-card[data-theme='signal'] { --accent: #ff3355; --accent-soft: rgba(255, 51, 85, 0.12); --accent-glow: rgba(255, 51, 85, 0.5); }
-.game-card[data-theme='bluff'] { --accent: #e9e4d4; --accent-soft: rgba(215, 38, 46, 0.12); --accent-glow: rgba(215, 38, 46, 0.5); }
-.game-card[data-theme='overclock'] { --accent: #ffb627; --accent-soft: rgba(255, 43, 214, 0.14); --accent-glow: rgba(255, 182, 39, 0.5); }
-.game-card[data-theme='golf'] { --accent: #2ff5d2; --accent-soft: rgba(255, 79, 163, 0.12); --accent-glow: rgba(47, 245, 210, 0.5); }
-.game-card[data-theme='gridlock'] { --accent: #7fb2ff; --accent-soft: rgba(127, 178, 255, 0.12); --accent-glow: rgba(127, 178, 255, 0.5); }
-.game-card[data-theme='gridlock'] .gc-tag { color: #ff9a5c; }
-.game-card[data-theme='slip'] { --accent: #ffc46b; --accent-soft: rgba(255, 196, 107, 0.1); --accent-glow: rgba(255, 170, 90, 0.45); }
-.game-card[data-theme='slip'] .gc-tag { background: linear-gradient(90deg, #ffd27a, #ff8a5c 45%, #8fa6ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.game-card[data-theme='prism'] { --accent: #f4f7ff; --accent-soft: rgba(143, 216, 255, 0.1); --accent-glow: rgba(190, 210, 255, 0.5); }
-.game-card[data-theme='prism'] .gc-tag { background: linear-gradient(90deg, #ff6a95, #ffc14d, #6dffb8, #5fd8ff, #a58bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.game-card[data-theme='agent'] { --accent: #eceff4; --accent-soft: rgba(236, 239, 244, 0.08); --accent-glow: rgba(236, 239, 244, 0.35); }
-.game-card[data-theme='pulse'] { --accent: #a374ff; --accent-soft: rgba(54, 230, 255, 0.12); --accent-glow: rgba(163, 116, 255, 0.55); }
-.game-card[data-theme='bluff'] .gc-glyph { border-color: #d7262e; color: #e9e4d4; background: #d7262e22; }
 
-.lobby-foot { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 6px; }
 
 /* ---- game-night leaderboard (lobby) ---- */
 .night[hidden] { display: none; }
-.night-list { display: flex; flex-direction: column; gap: 6px; }
-.night-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 6px 12px;
-  background: rgba(10, 15, 38, 0.6);
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--c);
-  animation: row-in 0.4s var(--ease) both;
-}
-.night-row.is-leader { border-color: rgba(243, 255, 58, 0.45); border-left-color: var(--c); background: linear-gradient(90deg, rgba(243, 255, 58, 0.08), rgba(10, 15, 38, 0.6) 60%); }
-.night-rank { width: 22px; text-align: center; font-family: var(--font-num); font-weight: 700; font-size: 15px; color: var(--text-dim); }
-.night-row.is-leader .night-rank { color: var(--yellow); font-size: 20px; text-shadow: 0 0 12px rgba(243, 255, 58, 0.6); }
-.night-name { flex: 1; min-width: 0; display: flex; flex-direction: column; font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.night-name small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--text-dim); }
-.night-pts { font-family: var(--font-num); font-weight: 700; font-size: 20px; }
-.night-foot { font-size: 10px; letter-spacing: 0.06em; color: var(--text-faint); }
 
 .form-error { margin-bottom: 10px; padding: 10px 12px; font-size: 14px; line-height: 1.4; color: #ffb3bd; background: rgba(255, 51, 85, 0.1); border-left: 3px solid var(--red); }
 .form-error[hidden] { display: none; }
 
 /* lobby game cards with a "how to play" button beside the card */
-.game-card-wrap { position: relative; }
-.game-card-wrap .game-card { width: 100%; padding-right: 58px; }
-.gc-help {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 36px;
-  height: 36px;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 15px;
-  color: var(--text-dim);
-  border: 1px solid var(--line-2);
-  background: rgba(4, 5, 13, 0.6);
-  transition: color 0.15s, border-color 0.15s, transform 0.1s;
-}
-.gc-help:active { transform: scale(0.92); }
-.game-card-wrap .gc-go { align-self: end; }
-.gc-help { font-family: var(--font-ui); font-size: 18px; font-weight: 700; }
 
 /* PULSE card art + list-style host options (song picker) */
 .gc-glyph.gc-art { padding: 0; overflow: hidden; border-color: var(--accent); background: #07051a; }
@@ -307,18 +177,6 @@
 
 /* lobby: LEAVE ROOM sits top-left, beside the ☰ (tap twice to confirm) — the SPLIT CORNERS put the menu in the screen's top-left
    corner: on a phone (the column touches the edge) LEAVE ROOM steps right of it; on a wide screen the column is far from it */
-.lobby-leave {
-  align-self: flex-start;
-  margin-left: max(0px, calc(var(--cb, 36px) + 4px - max(0px, (100vw - var(--maxw)) / 2)));
-  margin-top: -6px;   /* (level with the ☰: both centred 28 pt under the safe top) */
-  min-height: 42px;
-  margin-bottom: -10px;
-  padding: 0 14px;
-  --accent: #ff3355; --accent-glow: rgba(255, 51, 85, 0.45);
-  color: var(--red);
-  border-color: rgba(255, 51, 85, 0.55);
-}
-.lobby-leave:active { transform: scale(0.96); }
 
 /* mode cards (GRIDLOCK's four modes): a 2-column grid of glass cards with an icon, a line and the player count */
 .opt-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -346,12 +204,6 @@
 .opt-card[aria-checked='true'] .opt-card-meta { color: var(--accent); }
 
 /* the lobby while a game runs without you (QUIT TO LOBBY) */
-.lobby-live { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)), rgba(14, 16, 38, 0.66); border: 1px solid rgba(255, 255, 255, 0.18); }
-.lobby-live[hidden] { display: none; }
-.lobby-live-t { display: flex; flex-direction: column; gap: 3px; }
-.lobby-live-t b { font-family: var(--font-display); font-size: 15px; letter-spacing: 0.12em; color: #fff; }
-.lobby-live p { grid-column: 1; margin: 0; font-size: 13px; color: var(--text-dim); }
-.lobby-live .btn { grid-column: 2; grid-row: 1 / span 2; }
 .games.is-locked { opacity: 0.45; pointer-events: none; }
 
 /* the callsign field and its preview show exactly what was typed (mixed case allowed) */

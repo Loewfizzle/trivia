@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, Part 6a: THE MOON, THE SUN'S HAZE, THE AURORA — the art (the real timing, path and phase are core/sky.js's
-// + the framing district/fx.js#moonPlace with the Harbor's arch: unchanged). docs/harbor/passes/part-6a.md.
+// + the framing harbor/fx.js#moonPlace with the Harbor's arch: unchanged). docs/harbor/passes/part-6a.md.
 //   THE MOON    THE REAL MOON (the owner: "the craters look off"): a PHOTOGRAPHIC map of the near side — assets/moon-near.jpg, an
 //               orthographic disc made from NASA's CGI Moon Kit (LRO LROC WAC colour mosaic, lroc_color_poles_2k; NASA Scientific
 //               Visualization Studio, svs.gsfc.nasa.gov/4720, public domain), 256 px grayscale. The maria (the man in the moon),
@@ -14,7 +14,7 @@
 //               as it climbs; the harvest moon stays amber longer; a supermoon a touch bigger); a wide soft gaussian glow
 //               (wider in haze), a tight corona in clear air and a faint 22° HALO only under a cirrostratus veil, never across
 //               the tagline (SP); a lunar eclipse (the real dates) turns it copper-red
-//   THE SUN     (district/sun.js draws the disc) + the golden hour's haze: the low sun's warm air along the horizon
+//   THE SUN     (harbor/sun.js draws the disc) + the golden hour's haze: the low sun's warm air along the horizon
 //   THE AURORA  slow curtains of rays — a sharp green lower border fading up through teal into violet and red (a storm night:
 //               higher, redder, brighter) — rendered small a few times a second and drawn as one soft image
 import { moonLook } from '../../core/harbor-sky.js';
@@ -268,7 +268,7 @@ export function createCelestial() {
     /** SP: what the moon's light needs from the rest of the sky: the tagline's band ({ y0, y1 } | null), the cirrostratus veil 0..1 */
     skyIs(o) { skyNow = { band: o.band || null, veil: o.veil || 0 }; },
     setTier(t) { tier = t; },
-    /** THE MOON (district/fx.js calls it in place of its own art, at its place): o = { x, y, r, a (its visibility), ec, L, dark }
+    /** THE MOON (harbor/fx.js calls it in place of its own art, at its place): o = { x, y, r, a (its visibility), ec, L, dark }
      *  → the radius drawn (the water's moon path + the tap use it) */
     moon(c, o) {
       const L = o.L, lk = moonLook(L.moon, { local: L.local, south: L.south, cloud: L.cloud, fog: L.fog, rain: L.rain, clear: L.clear, veil: skyNow.veil });
@@ -316,7 +316,7 @@ export function createCelestial() {
       c.globalAlpha = 0.07 * k; c.drawImage(glow([255, 250, 236]), sun.x - W * 0.45, sun.y - sun.r * 0.35, W * 0.9, sun.r * 0.7);
       c.restore();
     },
-    /** THE AURORA (district/fx.js calls it in place of its own on an aurora night): strength 0..1, the area { y0, y1 } */
+    /** THE AURORA (harbor/fx.js calls it in place of its own on an aurora night): strength 0..1, the area { y0, y1 } */
     aurora(c, s, strength, area) {
       const dark = clamp01(s.L.w.night + s.L.w.late);
       if (dark < 0.3 || strength <= 0) return;

@@ -1,4 +1,4 @@
-// CITY 2.0 — PART 9a: THE RAIN (the Harbor's own — City 1.0's district/rain.js is the floor). Only when it really rains (core/harbor-weather.js
+// CITY 2.0 — PART 9a: THE RAIN (the Harbor's own — City 1.0's rain — deleted Nov 5 — was the floor). Only when it really rains (core/harbor-weather.js
 // → the scene's WXS.rain, eased: it starts as a few drops and builds) or a preview forces it.
 //   veils(c, s)  behind the skyline: grey shafts of rain hanging from the cloud base over the far city + the harbor, leaning with the wind
 //   drops(c, s)  over everything: streaks in THREE DEPTHS (far: fine, dim, short · mid · near: long, brighter, soft-edged), slanted by the

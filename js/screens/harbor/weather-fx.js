@@ -1,4 +1,4 @@
-// LIVE WEATHER, drawn: clouds, lightning, fog (district/scene.js calls these; the numbers come from core/sky.js#look:
+// LIVE WEATHER, drawn: clouds, lightning, fog (the Harbor's scene-weather.js calls these; the numbers come from core/sky.js#look:
 // cloud 0..1, storm, fog 0..1, wind m/s + direction — the visitor's real weather, else a few fair-weather clouds).
 //
 // The clouds are volumetric-looking, not blobs: each shape is fractal noise (fbm) inside a soft silhouette (cumulus: a dome on

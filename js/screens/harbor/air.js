@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, Part 6a: THE AIR — the airliners, the satellites, the helicopter (docs/harbor/passes/part-6a.md).
-// The district's behaviour (district/aircraft.js: the traffic by the hour, paths that climb or descend a little, approaches
+// The district's behaviour (harbor/aircraft.js: the traffic by the hour, paths that climb or descend a little, approaches
 // with landing lights, contrails only high + dry + by day, the Starlink evenings + lone satellites at twilight) on the Harbor's
 // SKY LANES (sky-high: over the sign; sky-low: under the tagline, behind the taller towers) — never across the NEON sign or the
 // tagline, never in a lane a sky event holds; and new ARTWORK:
