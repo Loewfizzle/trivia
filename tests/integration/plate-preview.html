@@ -17,6 +17,10 @@
 <body>
 <div id="stage"></div>
 <script type="module">
+import { registerLabText } from '/js/vault/catalog.js';
+import { LAB_TEXT } from '/api/_lib/lab-text.js';
+import '/api/_lib/catalog.js';
+registerLabText(LAB_TEXT);   // (CARD FIXES: the cards' printed names, as the lab + the owner's own cards show them)
 import { fullCardEl, mountFullCard } from '/js/vault/full.js';
 import { stripEl, LOOKS, mountStrips } from '/js/vault/strip.js';
 const q = new URLSearchParams(location.search);

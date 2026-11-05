@@ -223,8 +223,8 @@ export const LAB_V = Object.freeze({
   'card-camo': 2, 'card-sg-tr3b': 2,   // (SHELL 2.0 B2 — THE HERO-SPOT AUDIT + the 1 OF 1's gradient)
   'card-founder': 2, 'full-card-founder': 2, 'full-card-house': 2,
   // (CARD FIXES — the owner's LAB notes + THE CARD LAYOUT RULE: every gift's full card, the strips whose art moved, the dev line)
-  'full-card-gift-playerone': 2, 'full-card-gift-halloffame': 2, 'full-card-gift-enforcer': 2, 'full-card-gift-linebacker': 2, 'full-card-gift-underlights': 2, 'full-card-gift-sunsetstrip': 2, 'full-card-gift-goldenhour': 2, 'full-card-gift-goldenboot': 2, 'full-card-gift-youngbuck': 2, 'full-card-gift-icecold': 2, 'full-card-gift-anarchist': 2,
-  'card-gift-playerone': 2, 'card-gift-halloffame': 2, 'card-gift-sunsetstrip': 2, 'card-gift-youngbuck': 2, 'card-gift-icecold': 2, 'card-gift-anarchist': 2,
+  'full-card-gift-playerone': 2, 'full-card-gift-halloffame': 2, 'full-card-gift-enforcer': 2, 'full-card-gift-linebacker': 2, 'full-card-gift-underlights': 2, 'full-card-gift-sunsetstrip': 2, 'full-card-gift-goldenhour': 2, 'full-card-gift-goldenboot': 2, 'full-card-gift-youngbuck': 3, 'full-card-gift-icecold': 2, 'full-card-gift-anarchist': 2,
+  'card-gift-playerone': 2, 'card-gift-halloffame': 2, 'card-gift-sunsetstrip': 2, 'card-gift-youngbuck': 3, 'card-gift-icecold': 2, 'card-gift-anarchist': 2,
   'card-dev-switchboard': 4, 'card-dev-source': 4, 'full-card-dev-switchboard': 6, 'full-card-dev-source': 6,
 });
 /** an item's current version */

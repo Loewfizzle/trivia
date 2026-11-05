@@ -30,6 +30,10 @@
 //   streaks { box, n, rgb, a }                                                            — speed streaks shimmering
 //   edge    { rgb, a: [lo, hi], period }                                                  — the card's own neon edge pulsing
 //   bar     { box, period, rgb, width, a }                                                — a photocopier's light bar sweeping
+//   scribble { pts: [[x, y]…], rgb, w, dur, delay, a }                                    — a chalk line drawing itself ONCE as the card appears
+//   region mode 'lift' { src, period, amp (rad) }                                          — a piece of the art (the tape's corner) peeling up + settling
+//   rays    … box?                                                                        — the rays clipped to a box (the red wall)
+//   stripArt { art, h, crop, hero, layers }                                               — the card's OWN strip picture (1280 × h) + its layers in its px
 //   glint   { lenses: [[cx, cy, rx, ry]…], period, dur, angle, rgb, width, a, stars: [[x, y]…], size } — a glint across the LENSES only
 //           (clipped to them) + a star twinkling on the rims after it passes (CARD FIXES: the shiba's sunglasses)
 export const GIFT_SPECS = Object.freeze({
@@ -93,13 +97,26 @@ export const GIFT_SPECS = Object.freeze({
     { t: 'twinkle', box: [0, 474, 1280, 64], n: 22, rgb: '200,240,255', size: 12, period: 1.4 },
     { t: 'streaks', box: [480, 200, 300, 220], n: 7, rgb: '255,240,220', a: 0.35 },
   ] },
-  'card-gift-youngbuck': { art: 'youngbuck', hero: [840, 340, 270, 140], heroFull: [770, 80, 470, 570], strip: [50, 52], layers: [   // (the art slid right 130 — CARD FIXES)
-    { t: 'bar', box: [652, 0, 628, 800], period: 7, rgb: '220,255,255', width: 70, a: 0.32 },
-    { t: 'region', src: [728, 548, 548, 100], mode: 'jitter', period: 0.14, amp: 2.2 },
-    { t: 'breathe', at: [1162, 262], r: 180, rgb: '250,255,90', a: [0.0, 0.34], period: 0.8, flicker: 0.9 },
-    { t: 'haze', box: [652, 0, 628, 800], rgb: '255,190,240', a: 0.05, halftone: true },
-    { t: 'sweep', box: [630, 0, 50, 800], period: 5.5, dur: 1.2, angle: 1.5708, rgb: '255,255,255', width: 50, a: 0.7 },
-  ] },
+  // THE TAPE CARD (the owner's ADD-ON, Nov 5 5:52 pm — it REPLACES the young-buck card; the id stays card-gift-youngbuck: THE LAB's marks, the gift lock + the item
+  // rows are keyed by it): his face in black-and-white photocopy on a torn 50/50 split — the left dark, the right a red punk wall — the duct tape
+  // across his mouth (the art's own lettering), a red neon halo round his outline. Its OWN strip picture (eyebrows → chin).
+  'card-gift-youngbuck': { art: 'bruh', hero: [790, 110, 440, 690], heroFull: [790, 110, 440, 690], strip: [50, 50], layers: [
+    { t: 'rays', at: [1000, 430], n: 16, rgb: '255,220,225', a: 0.07, speed: 0.035, box: [640, 0, 640, 800] },
+    { t: 'drips', pts: [[668, 0, 90], [732, 0, 60], [1120, 0, 70], [1262, 0, 110], [1200, 690, 60]], rgb: '150,8,24' },
+    { t: 'breathe', at: [1000, 420], r: 560, rgb: '255,40,70', a: [0.1, 0.26], period: 2.4, flicker: 0.85 },
+    { t: 'breathe', at: [1000, 170], r: 300, rgb: '255,70,90', a: [0.06, 0.2], period: 1.7, flicker: 0.9 },
+    { t: 'scribble', pts: [[668, 640], [704, 612], [690, 668], [738, 630], [722, 690], [770, 650], [752, 712], [796, 676]], rgb: '250,250,245', w: 5, dur: 1.4, delay: 0.9, a: 0.85 },
+    { t: 'region', src: [1062, 578, 42, 46], mode: 'lift', period: 4.8, amp: 0.32 },
+    { t: 'twinkle', pts: [[735, 150], [690, 330], [720, 545], [660, 620], [800, 60], [1110, 50], [1250, 250], [1262, 560], [1185, 700]], rgb: '255,240,245', size: 30, period: 1.9 },
+    { t: 'flash', box: [660, 10, 610, 110], period: 2.3, rgb: '255,255,255' },
+  ], stripArt: { art: 'bruh-strip', h: 256, crop: [50, 50], hero: [880, 30, 230, 220], layers: [
+    { t: 'rays', at: [990, 170], n: 14, rgb: '255,220,225', a: 0.06, speed: 0.035, box: [640, 0, 640, 256] },
+    { t: 'breathe', at: [990, 130], r: 330, rgb: '255,40,70', a: [0.08, 0.22], period: 2.4, flicker: 0.85 },
+    { t: 'drips', pts: [[668, 0, 40], [760, 0, 30], [1190, 0, 45]], rgb: '150,8,24' },
+    { t: 'region', src: [1040, 168, 40, 40], mode: 'lift', period: 4.8, amp: 0.28 },
+    { t: 'twinkle', pts: [[690, 60], [770, 210], [700, 150], [1200, 60], [1250, 200], [820, 28]], rgb: '255,240,245', size: 24, period: 1.9 },
+    { t: 'flash', box: [660, 0, 600, 40], period: 2.3, rgb: '255,255,255' },
+  ] } },
   'card-gift-icecold': { art: 'icecold', hero: [840, 140, 260, 300], heroFull: [840, 70, 300, 460], strip: [50, 32.5], layers: [   // (the art slid right 150 — CARD FIXES)
     { t: 'aurora', box: [580, 30, 700, 280], rgbs: ['110,255,220', '170,130,255'], a: 0.16 },
     { t: 'motes', box: [0, -20, 1280, 840], n: 46, rgb: '255,255,255', size: [1.5, 3.6], dir: 'down', speed: 34, a: 0.85, kind: 'dot', tw: 0.2 },

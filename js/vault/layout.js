@@ -55,8 +55,8 @@ export function layFull(el) {
   if (fd && house) { const t = `${Math.round(bottom(house) + gap)}px`; if (fd.style.top !== t) fd.style.top = t; }
   // 2 · the zone the plate may use: under the top pieces, above the foot
   const zTop = Math.max(bottom(house), bottom(gem), fd ? bottom(box(fd)) : 0) + gap;
-  const feet = [box(el.querySelector('.vl-fc-since')), text(el.querySelector('.vl-fc-card'))].filter(Boolean);
-  const zBot = Math.min(H, ...feet.map(b => b[1])) - gap;
+  const feet = [box(el.querySelector('.vl-fc-since')), text(el.querySelector('.vl-fc-card'))].filter(b => b && b[2] > 0 && b[3] > 0);   // (an empty piece measures nothing)
+  const zBot = Math.min(H, ...feet.map(b => b[1])) - Math.max(gap, H * 0.04);   // (a clear gap above the rank line)
   const plate = el.querySelector('.vl-fc-plate'); if (!plate) return;
   const hero = heroBox(el.dataset.card, W, H);
   // 3 · its width: the hero's left edge is the wall (the name fits smaller first — ui/fit.js; the level line is the floor)
@@ -64,6 +64,7 @@ export function layFull(el) {
   // 4 · its spot: its own place unless that touches the hero or a top / foot piece → the nearest clear spot in the zone
   if (plate.dataset.top0 == null) plate.dataset.top0 = (plate.offsetTop / H).toFixed(4);   // (its CSS place, as a fraction: the card resizes)
   const top0 = +plate.dataset.top0 * H, pw = plate.offsetWidth, ph = plate.offsetHeight, x = plate.offsetLeft;
+  if (plate.dataset.step == null) return;   // (its step not measured yet — vault/strip.js#layStep lays the card again once it is)
   const clear = y => y >= zTop - 0.5 && y + ph <= zBot + 0.5 && !(hero && shape(plate, x, y, pw, ph).some(b => hit(b, hero)));
   let best = top0;
   if (!clear(top0)) {

@@ -61,6 +61,7 @@ G('vault', async () => {
   // THE LAB 2.0 (THE VAULT 2C — the owner: "getting cluttered"): &marks=old = every item APPROVED at version 1 (+ INFERNO's FIX) — the view he
   // meets after a pass: NEEDS YOU by default = the CHANGED rows (a version bump), each with its dated "CHANGED — what" line beside his old mark;
   // (SHELL 2.0 B2: 6 → 12 CHANGED rows — the hero-spot audit's six: camo, the TR-3B, prism, emerald, the UFO, the marquee)
+  // (CARD FIXES: the bar counts every view — + the 11 GIFT rows CHANGED (their full cards v2) → 23 NEED YOU; the CARDS view keeps its 12)
   // the counts; one row per item + the FULL toggle flipping in place (its own mark); a re-mark leaves NEEDS YOU; ALL CAUGHT UP; NEW since his
   // last visit (vl:seen); the top bar's ← THE CITY
   { const { ctx, p } = await page('marks=old');
@@ -69,7 +70,7 @@ G('vault', async () => {
       chg: [...document.querySelectorAll('.vl-item .vl-chg:not([hidden]) b')].length, was: document.querySelectorAll('.vl-mark.is-was').length,
       counts: Object.fromEntries([...document.querySelectorAll('.vl-filter')].map(b => [b.dataset.f, +b.querySelector('.vl-filter-n').textContent])),
       back: (document.querySelector('.vl-back') || {}).getAttribute && document.querySelector('.vl-back').getAttribute('href'), house: ((document.querySelector('.vl-item[data-id="card-house"]') || {}).dataset || {}).face || '' }))()`);
-    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 12 && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.rows.includes('card-camo') && L.chg === 12 && L.was >= 11 && /^12 NEEDS? YOU$/.test(L.need)
+    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 12 && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.rows.includes('card-camo') && L.chg === 12 && L.was >= 11 && /^23 NEEDS? YOU$/.test(L.need)
       && L.counts.needs === 12 && L.counts.changed === 12 && L.counts.all === 50 && L.back === '/' && L.house === 'full',
       `THE LAB 2.0: NEEDS YOU by default — ${L.rows.length} CHANGED rows (${L.rows.join(', ')}), each with its CHANGED line (${L.chg}) beside the old mark (${L.was} lit as "was"); the bar "${L.need}"; counts ${JSON.stringify(L.counts)}; THE HOUSE opens on its FULL face (only it changed); ← THE CITY → ${L.back}`);
     // the FULL toggle flips in place (the strip's surface slot swapped), its own mark; a re-mark drops the row's CHANGED count
@@ -81,7 +82,7 @@ G('vault', async () => {
     await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-mark[data-m="approve"]').click()`);
     await sleep(400);
     const A = await ev(p, `({ need: document.querySelector('.vl-need').textContent, m: window.__lab.marks['full-card-founder'], rows: document.querySelectorAll('.vl-item').length })`);
-    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^11 NEEDS? YOU$/.test(A.need) && A.rows === 12,
+    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^22 NEEDS? YOU$/.test(A.need) && A.rows === 12,
       `THE LAB 2.0: FULL CARD › flips the row in place (${F.face}, one canvas) with the full card's own marks (${F.mk}); a re-mark stores the version seen (v${A.m.v}) — "${A.need}" (the rows stay put until the filter changes: ${A.rows})`);
     await ctx.close(); }
   { const { ctx, p } = await page('marks=none&filter=needs&view=glows');
@@ -96,7 +97,7 @@ G('vault', async () => {
     ok(E.txt === 'All caught up.' && E.need === 'ALL CAUGHT UP', `THE LAB 2.0: nothing left to mark → "${E.txt}" + the bar "${E.need}"`);
     await ctx.close(); }
   // THE VAULT 2C — FOUNDER + THE BADGE SLOT: on every full card with declared moving parts the FOUNDER badge's box never overlaps one, at
-  // 390 / 402 / 430 (the owner: the pill sat on THE SWITCHBOARD's VU needle); the dev cards carry it IN the top line ("NEON SPEAKEASY · FOUNDER")
+  // 390 / 402 / 430 (the owner: the pill sat on THE SWITCHBOARD's VU needle); the dev cards carry it IN the top line ("NEON SPEAKEASY · № 0001 · FOUNDER" — CARD FIXES: his № back on the top line)
   for (const W of [390, 402, 430]) {
     const ids = ['card-dev-switchboard', 'card-dev-source', 'card-founder', 'card-house', 'card-inferno'];   // (a sighting card carries no badge: its scene + title)
     const { ctx, p } = await page(`view=cards&filter=all&face=full&fd=1&only=${ids.join(',')}`, { view: [W, 874], dpr: 2 });
@@ -106,7 +107,7 @@ G('vault', async () => {
         const el = b.slot === 'stamp' ? fc.querySelector('.vl-fc-stamp') : fc.querySelector('.vl-fc-fd'); if (!el) { out.push({ id, miss: true }); continue; }
         const r = el.getBoundingClientRect(), bx = [(r.left - R.left) / R.width, (r.top - R.top) / R.height, r.width / R.width, r.height / R.height];
         const hit = b.moving.filter(m => bx[0] < m[0] + m[2] && m[0] < bx[0] + bx[2] && bx[1] < m[1] + m[3] && m[1] < bx[1] + bx[3]).length;
-        out.push({ id, slot: b.slot, txt: el.textContent, hit, parts: b.moving.length, top: b.slot !== 'top' || /NEON SPEAKEASY · FOUNDER/.test(fc.querySelector('.vl-fc-house').textContent) }); }
+        out.push({ id, slot: b.slot, txt: el.textContent, hit, parts: b.moving.length, top: b.slot !== 'top' || /№ d+ · FOUNDER/.test(fc.querySelector('.vl-fc-house').textContent) }); }
       return out; })()`);
     ok(B.length === 5 && B.every(x => !x.miss && x.hit === 0 && x.top) && B.filter(x => x.slot !== 'stamp').every(x => x.txt === 'FOUNDER') && B.filter(x => x.parts).length >= 4,
       `FOUNDER + THE BADGE SLOT at ${W}: ${B.map(x => `${x.id.replace('card-', '')} ${x.slot}${x.hit ? ` HITS ${x.hit}` : ''}`).join(' · ')} — no badge on a moving part; the dev cards' top line "NEON SPEAKEASY · FOUNDER"`);
@@ -304,7 +305,7 @@ G('vault', async () => {
     await ctx.close(); await gpuB.close();
   }
   // SHELL 2.0 B2 — THE GIFT CARDS' FULL SHOW (the full card plays every layer): the three busiest, alone at 3×, 4× CPU, the GPU path — 60 fps
-  for (const id of ['card-gift-anarchist', 'card-gift-goldenboot', 'card-gift-icecold']) {
+  for (const id of ['card-gift-anarchist', 'card-gift-goldenboot', 'card-gift-icecold', 'card-gift-youngbuck']) {   // (+ CARD FIXES' ADD-ON: the tape card's new show)
     const gpuB = await puppeteer.launch({ executablePath: BROWSER, headless: 'new', realCompositor: true, args: ['--enable-gpu', '--mute-audio', '--no-sandbox'] });
     const ctx = await gpuB.createBrowserContext(), p = await ctx.newPage();
     await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 3, isMobile: true, hasTouch: true });

@@ -17,6 +17,7 @@ import { fitName } from '../ui/fit.js';
 import { isDevCard, isOneOfOne } from '../core/dev-cards.js';
 import { gemEl } from './gems.js';
 import { HERO } from './hero.js';
+import { layFull } from './layout.js';
 
 /** each card's strip: its material (css/vault.css .vl-m-*), its effect (js/fx), the emblem it's shown with in the lab */
 export const LOOKS = Object.freeze({
@@ -84,7 +85,7 @@ export const LOOKS = Object.freeze({
   'card-gift-sunsetstrip': { mat: 'g-sunsetstrip', fx: 'gift:card-gift-sunsetstrip' },
   'card-gift-goldenhour': { mat: 'g-goldenhour', fx: 'gift:card-gift-goldenhour' },
   'card-gift-goldenboot': { mat: 'g-goldenboot', fx: 'gift:card-gift-goldenboot' },
-  'card-gift-youngbuck': { mat: 'g-youngbuck', fx: 'gift:card-gift-youngbuck' },
+  'card-gift-youngbuck': { mat: 'g-bruh', fx: 'gift:card-gift-youngbuck' },   // (Liam's tape card — the id kept)
   'card-gift-icecold': { mat: 'g-icecold', fx: 'gift:card-gift-icecold' },
   'card-gift-anarchist': { mat: 'g-anarchist', fx: 'gift:card-gift-anarchist' },
 });
@@ -163,17 +164,19 @@ function layStep(plate) {
   if (!plate || !plate.isConnected) return;
   const room = heroRoom(plate); if (plate.style.maxWidth !== room) plate.style.maxWidth = room;
   const W = plate.offsetWidth, H = plate.offsetHeight, [nm, lv] = ROWS(plate);
-  const off = () => { plate.style.clipPath = ''; plate.classList.remove('vl-stepped', 'vl-rstep'); plate.dataset.step = ''; const o = plate.querySelector(':scope > .vl-step'); if (o) o.remove(); };
+  const off = () => { const was = plate.dataset.step; plate.style.clipPath = ''; plate.classList.remove('vl-stepped', 'vl-rstep'); plate.dataset.step = ''; const o = plate.querySelector(':scope > .vl-step'); if (o) o.remove(); if (was !== '' && plate.classList.contains('vl-fc-plate')) layFull(plate.closest('.vl-fc')); };
   if (!W || !H || !nm || !lv) return off();
   // (rects in the plate's own px: a card shown scaled — the lab's 72 % viewer, the reveal's flip — divides out)
   const P = plate.getBoundingClientRect(), sc = P.width / W || 1, rg = document.createRange();
   const ext = el => { rg.selectNodeContents(el); const r = rg.getBoundingClientRect(); return { r: (r.right - P.left) / sc, t: (r.top - P.top) / sc, b: (r.bottom - P.top) / sc }; };
-  const N = ext(nm), V = ext(lv), full = plate.classList.contains('vl-fc-plate'), pad = full ? STEP_PAD + 4 : STEP_PAD;
+  const N = ext(nm), V = ext(lv), full = plate.classList.contains('vl-fc-plate'), cs = getComputedStyle(plate), pad = full ? Math.max(6, parseFloat(cs.paddingLeft) || 0) : STEP_PAD;
   const rev = V.r > N.r + STEP_MIN / 2;   // (the second row is the longer: the name row steps in)
+  // (CARD FIXES' 6:04 pm ADD-ON: a FULL card's plate is the NAME + LV n — a clean rounded box; it steps only when the second row is the longer)
+  if (full && !rev) return off();
   const x2 = Math.ceil((rev ? N.r : V.r) + pad), y1 = Math.round((N.b + V.t) / 2 * 2) / 2;
   if (W - x2 < STEP_MIN || y1 <= 4 || y1 >= H - 4) return off();
-  const R0 = parseFloat(getComputedStyle(plate).borderTopRightRadius) || STEP_R;
-  const r = Math.max(2, Math.min(full ? 12 : STEP_R, (H - y1) / 2, (W - x2) / 2, y1 / 2)), m = full ? 28 : STEP_M, f = v => +v.toFixed(2);
+  const R0 = parseFloat(cs.borderTopRightRadius) || STEP_R;
+  const r = Math.max(2, Math.min(full ? R0 : STEP_R, (H - y1) / 2, (W - x2) / 2, y1 / 2)), m = full ? 28 : STEP_M, f = v => +v.toFixed(2);
   const R = Math.max(2, Math.min(R0, y1 / 2, x2 / 2));
   plate.style.clipPath = rev
     ? `path('M ${-m} ${-m} L ${f(x2 - R)} ${-m} L ${f(x2 - R)} 0 A ${f(R)} ${f(R)} 0 0 1 ${x2} ${f(R)} L ${x2} ${f(y1 - r)} A ${f(r)} ${f(r)} 0 0 0 ${f(x2 + r)} ${f(y1)} L ${f(W - r)} ${f(y1)} A ${f(r)} ${f(r)} 0 0 1 ${W} ${f(y1 + r)} L ${f(W + m)} ${f(y1 + r)} L ${f(W + m)} ${f(H + m)} L ${-m} ${f(H + m)} Z')`
@@ -189,6 +192,7 @@ function layStep(plate) {
     ? `M ${f(x2 - R)} ${f(k)} A ${f(R - k)} ${f(R - k)} 0 0 1 ${f(x2 - k)} ${f(R)} L ${f(x2 - k)} ${f(y1 - r)} A ${f(r + k)} ${f(r + k)} 0 0 0 ${f(x2 + r)} ${f(y1 + k)} L ${f(W - r)} ${f(y1 + k)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(W - k)} ${f(y1 + r)}`
     : `M ${f(W - k)} ${f(y1 - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(W - r)} ${f(y1 - k)} L ${f(x2 + r)} ${f(y1 - k)} A ${f(r + k)} ${f(r + k)} 0 0 0 ${f(x2 - k)} ${f(y1 + r)} L ${f(x2 - k)} ${f(H - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(x2 - r)} ${f(H - k)}`);
   path.setAttribute('stroke', L.c); path.setAttribute('stroke-width', L.w); path.setAttribute('fill', 'none');
+  if (full) layFull(plate.closest('.vl-fc'));   // (the full card's placement reads the step's real shape — lay it again now it's known)
 }
 
 /** a list of strips on ONE shared effect surface (the host becomes it) */

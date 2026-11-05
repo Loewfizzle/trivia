@@ -254,7 +254,7 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
 .vl-full-stage { position: relative; width: 100%; }
 .vl-fulls { display: grid; gap: 26px; }
 /* light materials: the house words + MEMBER SINCE in dark ink, embossed (gold on gold didn't read) */
-.vl-fcm-brushed .vl-fc-house, .vl-fcm-brushed .vl-fc-since small, .vl-fcm-brushed .vl-fc-since b, .vl-fcm-brushed .vl-fc-card { color: #2a1804; text-shadow: 0 1px 0 rgba(255, 246, 214, 0.55); }
+.vl-fcm-brushed .vl-fc-house, .vl-fcm-brushed .vl-fc-rank, .vl-fcm-brushed .vl-fc-since small, .vl-fcm-brushed .vl-fc-since b, .vl-fcm-brushed .vl-fc-card { color: #2a1804; text-shadow: 0 1px 0 rgba(255, 246, 214, 0.55); }
 .vl-fc-fd { position: absolute; left: 5.5%; top: 15.5%; z-index: 3; padding: 0.45em 0.8em 0.35em; border-radius: 999px; font: 800 max(10px, 2.6cqi)/1 var(--font-ui); letter-spacing: 0.16em; color: #fff8ee; background: rgba(8, 6, 12, 0.6); box-shadow: inset 0 0 0 1.5px #ff6fc8, 0 0 10px rgba(255, 111, 200, 0.35); }
 
 /* ------------------------------------------------------------------ THE LAUNCH SET, part 1 (THE VAULT 1B Group 4 — what players meet FIRST:
@@ -311,8 +311,8 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
 .vl-fcm-neonglass .vl-fc-top { top: 9%; left: 7%; right: 7%; }
 .vl-fcm-neonglass .vl-fc-foot { bottom: 9.5%; left: 7%; right: 7%; }
 .vl-fcm-neonglass .vl-fc-plate { left: 6.5%; }
-.vl-fcm-chrome .vl-fc-house, .vl-fcm-chrome .vl-fc-since small, .vl-fcm-chrome .vl-fc-since b, .vl-fcm-chrome .vl-fc-card { color: #14171d; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
-.vl-fcm-brass .vl-fc-house, .vl-fcm-brass .vl-fc-since small, .vl-fcm-brass .vl-fc-since b, .vl-fcm-brass .vl-fc-card { color: #2a1804; text-shadow: 0 1px 0 rgba(255, 240, 200, 0.55); }
+.vl-fcm-chrome .vl-fc-house, .vl-fcm-chrome .vl-fc-rank, .vl-fcm-chrome .vl-fc-since small, .vl-fcm-chrome .vl-fc-since b, .vl-fcm-chrome .vl-fc-card { color: #14171d; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
+.vl-fcm-brass .vl-fc-house, .vl-fcm-brass .vl-fc-rank, .vl-fcm-brass .vl-fc-since small, .vl-fcm-brass .vl-fc-since b, .vl-fcm-brass .vl-fc-card { color: #2a1804; text-shadow: 0 1px 0 rgba(255, 240, 200, 0.55); }
 
 /* (refine pass 2, THE VAULT 1B) `card-midnight`: a richer night — denser stars, a violet + teal nebula drifting through the galaxy band, its
    brightest stars with a soft halo; EMERALD's crown clear of the tier tag; CHROME polished (a crisp horizon, a dark ground reflection) */
@@ -487,7 +487,7 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
 .vl-s-platinum .vl-plate { background: rgba(14, 16, 22, 0.84); box-shadow: inset 0 0 0 1px rgba(236, 240, 246, 0.42), 0 2px 8px rgba(10, 12, 18, 0.35); }
 .vl-fc.vl-s-platinum .vl-frame { padding: 5px; }
 .vl-fc.vl-s-platinum .vl-frame::after { inset: 5px; padding: 2px; border-radius: calc(var(--r) - 5px); }
-.vl-fcm-platinum .vl-fc-house, .vl-fcm-platinum .vl-fc-since small, .vl-fcm-platinum .vl-fc-since b, .vl-fcm-platinum .vl-fc-card { color: #14171d; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
+.vl-fcm-platinum .vl-fc-house, .vl-fcm-platinum .vl-fc-rank, .vl-fcm-platinum .vl-fc-since small, .vl-fcm-platinum .vl-fc-since b, .vl-fcm-platinum .vl-fc-card { color: #14171d; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
 
 /* ---- THE VAULT 2A — THE EMBLEM SYSTEM (js/vault/emblem-art.js): AN EMBLEM = A SHAPE + A FINISH. A box of small SVG LAYERS: the still parts
    in one, each MOVING part its own layer animated on the layer itself (transform + opacity → the compositor; nothing repaints — Group 2's
@@ -1019,13 +1019,17 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-fcm-g-anarchist .vl-mat { background-position: 50% 50%; }
 .vl-s-g-goldenboot .vl-mat { background: #07060a url('../assets/vault/gift/goldenboot.webp') 50% 43% / cover no-repeat; }
 .vl-fcm-g-goldenboot .vl-mat { background-position: 50% 50%; }
-.vl-s-g-youngbuck .vl-mat { background: #07060a url('../assets/vault/gift/youngbuck.webp') 50% 52% / cover no-repeat; }
-.vl-fcm-g-youngbuck .vl-mat { background-position: 50% 50%; }
+.vl-s-g-bruh .vl-mat { background: #151214 url('../assets/vault/gift/bruh-strip.webp') 50% 50% / cover no-repeat; }   /* (Liam's tape card — its OWN strip picture; the full card its full one) */
+.vl-fcm-g-bruh .vl-mat { background-image: url('../assets/vault/gift/bruh.webp'); background-position: 50% 50%; }
+/* THE TAPE CARD's PRINTED NAME (the owner's mock-bruh-final2.png): bigger + heavier than the other cards' — ~4 % of the card's width tall, gold, a thin dark
+   edge (paint-order: the stroke under the fill); MEMBER SINCE untouched */
+.vl-fcm-g-bruh .vl-fc-card { font: 900 max(14px, 4.2cqi)/1 var(--font-display); letter-spacing: 0.06em; color: #ffd36a; -webkit-text-stroke: 0.08em #1a0a02; paint-order: stroke fill;
+  text-shadow: 0 1px 0 rgba(26, 10, 2, 0.9), 0 0 10px rgba(0, 0, 0, 0.55); }
 .vl-s-g-icecold .vl-mat { background: #07060a url('../assets/vault/gift/icecold.webp') 50% 32.5% / cover no-repeat; }
 .vl-fcm-g-icecold .vl-mat { background-position: 50% 50%; }
-.vl-fc.vl-gift-fc .vl-fc-plate { top: 47%; }
+.vl-fc.vl-gift-fc .vl-fc-plate { top: 43%; }   /* (CARD FIXES: 47 → 43 % — the rank line now sits above MEMBER SINCE) */
 .vl-s-g-goldenhour .vl-plate, .vl-fcm-g-goldenhour .vl-fc-plate { background: rgba(58, 22, 34, 0.86); }
-.vl-fcm-g-goldenhour .vl-fc-house, .vl-fcm-g-goldenhour .vl-fc-since small, .vl-fcm-g-goldenhour .vl-fc-since b, .vl-fcm-g-goldenhour .vl-fc-card { color: #6e2445; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }   /* (the light page: dark ink) */
+.vl-fcm-g-goldenhour .vl-fc-house, .vl-fcm-g-goldenhour .vl-fc-rank, .vl-fcm-g-goldenhour .vl-fc-since small, .vl-fcm-g-goldenhour .vl-fc-since b, .vl-fcm-g-goldenhour .vl-fc-card { color: #6e2445; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }   /* (the light page: dark ink) */
 .vl-gift-pvrow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; text-align: center; }
 .vl-gift-pvrow small { font: 600 12px/1.35 var(--font-ui); color: var(--text-dim); max-width: 340px; }
 /* CARD FIXES — THE PLATE PLACEMENT RULE on a GIFT card's full card (the owner: "show THE MOST OF THE CARD"): the plate hugs its text a little
@@ -1033,3 +1037,10 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-gift-fc .vl-fc-plate { gap: 2.4cqi; padding: 2cqi 3.6cqi 2cqi 2.2cqi; }
 .vl-gift-fc .vl-fc-emb { width: 10.5cqi; height: 10.5cqi; }
 .vl-gift-fc .vl-fc-lv { letter-spacing: 0.13em; }
+/* CARD FIXES' ADD-ON (the owner, Nov 5 6:04 pm — the ENFORCER before / after): the full card's plate = the NAME + LV n only (a clean rounded box, its
+   padding even both sides — the step, when a longer second row needs one, ends as far past its text); THE RANK moves to the bottom-left block —
+   its own line in the top line's gold + spaced caps, a clear gap above MEMBER SINCE (the dev cards: DEV · <RANK>) */
+.vl-fc-rank { display: block; margin-bottom: 1.1em; font: 700 max(9.5px, 2.6cqi)/1 var(--font-ui); font-style: normal; letter-spacing: 0.28em; color: #e9cf8e;
+  white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6); }
+.vl-fc-plate { padding-right: 2.6cqi; }
+.vl-gift-fc .vl-fc-plate { padding-right: 2.2cqi; }

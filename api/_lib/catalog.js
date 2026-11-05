@@ -77,7 +77,7 @@ export const ITEM_ROWS = [
   C('card-gift-sunsetstrip', 'SUNSET STRIP', 'legendary', '#2a0f3e', '#ffd27a', '#ff6fb5', 'Aviators on, sun going down. One of one.', { gift: true }),
   C('card-gift-goldenhour', 'GOLDEN HOUR', 'legendary', '#3a1e22', '#ffcf7a', '#ff5fa2', 'A polaroid, a heart, the golden hour. One of one.', { gift: true, ink: '#3a1e22' }),
   C('card-gift-goldenboot', 'GOLDEN BOOT', 'legendary', '#120a2a', '#ffd27a', '#7affc0', 'Under the floodlights, the ball at his feet. One of one.', { gift: true }),
-  C('card-gift-youngbuck', 'YOUNG BUCK', 'legendary', '#14060f', '#ff4fd8', '#f6ff4a', 'Cut out, pasted up, punk. One of one.', { gift: true }),
+  C('card-gift-youngbuck', 'BRUH', 'legendary', '#14060f', '#ff4fd8', '#f6ff4a', 'Taped up on a red wall. One of one.', { gift: true }),
   C('card-gift-icecold', 'ICE COLD', 'legendary', '#04102a', '#cfefff', '#7fd8ff', 'Snow, aurora, ice in the veins. One of one.', { gift: true }),
   C('card-gift-anarchist', 'THE ANARCHIST', 'legendary', '#0a0608', '#ff4f8b', '#ffd27a', 'No masters. One of one.', { gift: true }),
   // ---- PROGRESSION B — CITY SIGHTINGS: each legendary's MATCHED PAIR (a LEGENDARY card + its EMBLEM), first tap that the server

@@ -361,6 +361,12 @@ const cardFit = async (p, BASE, w) => {
         const ks = Object.keys(pieces);
         for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) if (ov(pieces[ks[i]], pieces[ks[j]])) bad.push(`${card}: ${ks[i]} × ${ks[j]}`);
         if (G.isGiftCard(card) && pieces.fd) bad.push(`${card}: a FOUNDER pill on a gift`);
+        // (the 6:04 pm ADD-ON: the plate = the NAME + LV n; the RANK in gold above MEMBER SINCE; the card's printed name on every full card)
+        const lvt = (el.querySelector('.vl-fc-lv') || {}).textContent || '';
+        if (!/^LV \d+$/.test(lvt)) bad.push(`${card}: the plate's second row "${lvt}"`);
+        const own = !el.classList.contains('is-sight') && card !== 'card-founder';
+        if (own && !(el.querySelector('.vl-fc-rank') || {}).textContent) bad.push(`${card}: no rank line`);
+        if (own && !(pieces.name && pieces.name.width > 4)) bad.push(`${card}: no printed name`);
         const hero = L.heroBox(card, el.clientWidth, el.clientHeight);
         if (hero && pl && !el.classList.contains('is-sight')) {
           heroed++;

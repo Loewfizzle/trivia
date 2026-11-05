@@ -120,11 +120,16 @@ const files = await p.evaluate(async () => {
   // (CARD FIXES, the owner's LAB notes: ICE COLD "move him over to the right" + YOUNG BUCK "don't cut off the bottom of his face" — the
   //  picture slid right by dx so the face sits right of the full card's plate (the hero-spot rule); the strip of art that opens on the
   //  left is the picture's own left edge MIRRORED — its dark ground, no seam)
-  for (const [id, f, dx = 0] of [['anarchist', 'the-anarchist-v2.png'], ['goldenboot', 'liam-golden-boot.png'], ['youngbuck', 'liam-young-buck.png', 130], ['icecold', 'liam-ice-cold.png', 150]]) {
+  for (const [id, f, dx = 0] of [['anarchist', 'the-anarchist-v2.png'], ['goldenboot', 'liam-golden-boot.png'], ['icecold', 'liam-ice-cold.png', 150]]) {
     const img = await load(f), c = canvas(), x = c.getContext('2d'), k = img.naturalWidth / W;
     x.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, dx, 0, W, H);
     if (dx) { x.save(); x.translate(dx, 0); x.scale(-1, 1); x.drawImage(img, 0, 0, dx * k, img.naturalHeight, 0, 0, dx, H); x.restore(); }
     save(id, c);
+  }
+  // ---- BRUH (the owner's ADD-ON, Nov 5 5:52 pm — it REPLACES YOUNG BUCK; the id card-gift-youngbuck kept): his full picture + its OWN strip
+  //      picture (1280 × 256: just above his eyebrows → his chin with the tape) — both already laid out, converted only
+  for (const [id, f, w, h] of [['bruh', 'liam-bruh-final.png', W, H], ['bruh-strip', 'liam-bruh-strip.png', W, 256]]) {
+    const img = await load(f), c = canvas(w, h); c.getContext('2d').drawImage(img, 0, 0, w, h); save(id, c);
   }
   return out;
 });

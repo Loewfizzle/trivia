@@ -33,9 +33,10 @@ export const HERO = {
 };
 // (the gift cards' boxes: art px → the strip's fractions, exactly as js/fx/gift.js#artMap maps them)
 const AW = 1280, AH = 800, SW = 358, SH = 64;
-for (const [id, S] of Object.entries(GIFT_SPECS)) {
+for (const [id, S0] of Object.entries(GIFT_SPECS)) {
+  const S = S0.stripArt ? { hero: S0.stripArt.hero, strip: S0.stripArt.crop || [50, 50], ah: S0.stripArt.h } : S0, ah = S.ah || AH;   // (the tape card: its own strip picture)
   if (!S.hero) continue;
-  const k = Math.max(SW / AW, SH / AH) * (S.strip[2] || 1), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - AH * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
+  const k = Math.max(SW / AW, SH / ah) * (S.strip[2] || 1), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - ah * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
   const y0 = Math.max(0, (oy + y * k) / SH), y1 = Math.min(1, (oy + (y + h) * k) / SH);
   HERO[id] = Object.freeze([[(ox + x * k) / SW, y0, (w * k) / SW, Math.max(0.05, y1 - y0)]]);
 }

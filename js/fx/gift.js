@@ -14,8 +14,8 @@ export const GIFT_ART = new URL('../../assets/vault/gift/', import.meta.url).hre
 const AW = 1280, AH = 800;
 /** the art → slot mapping (CSS `background: … px% py% / cover`; crop[2] = a zoom out — CARD FIXES: `z·100% auto`, the strip's width-bound
  *  cover × z): { k, ox, oy } */
-export function artMap(w, h, crop) {
-  const k = Math.max(w / AW, h / AH) * (crop[2] || 1), dw = AW * k, dh = AH * k;
+export function artMap(w, h, crop, ah = AH) {
+  const k = Math.max(w / AW, h / ah) * (crop[2] || 1), dw = AW * k, dh = AH * k;
   return { k, ox: (w - dw) * (crop[0] / 100), oy: (h - dh) * (crop[1] / 100) };
 }
 const TAU = Math.PI * 2;
@@ -129,9 +129,23 @@ const DRAW = {
         if (a > 0.01) { stamp(c, sparkle(L.rgb), x, y, L.size * M.k * 3 * (0.7 + 0.3 * a), a); stamp(c, glow(L.rgb, 0.3), x, y, L.size * M.k * 1.6, a * 0.5); } });
     }
   },
+  // THE TAPE CARD (the owner's ADD-ON): a white CHALK SCRIBBLE drawing itself ONCE as the card appears (the slot's own clock), then it stays
+  scribble(c, L, M, t, s, Q, F) {
+    if (s.giftBorn == null || t < s.giftBorn) s.giftBorn = t;
+    const u = F.still ? 1 : Math.min(1, (t - s.giftBorn - (L.delay || 0)) / L.dur); if (u <= 0) return;
+    const pts = L.pts, n = pts.length - 1, upto = u * n;
+    c.save(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = (L.a || 0.9) * (F.full ? 1 : 0.8); c.strokeStyle = `rgb(${L.rgb})`;
+    c.lineWidth = Math.max(1, L.w * M.k); c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath();
+    for (let i = 0; i <= Math.min(n, Math.ceil(upto)); i++) {
+      const f = Math.min(1, upto - (i - 1)), [x0, y0] = P(M, pts[Math.max(0, i - 1)][0], pts[Math.max(0, i - 1)][1]), [x1, y1] = P(M, pts[i][0], pts[i][1]);
+      const x = i ? x0 + (x1 - x0) * f : x1, y = i ? y0 + (y1 - y0) * f : y1; i ? c.lineTo(x, y) : c.moveTo(x, y);
+    }
+    c.stroke(); c.restore();
+  },
   rays(c, L, M, t, s, Q, F) {
     const [x, y] = P(M, L.at[0], L.at[1]), R = 1800 * M.k, rot = (F.still ? 0.2 : t * L.speed);
-    c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = L.a * F.calmA; c.fillStyle = `rgb(${L.rgb})`;
+    c.save(); if (L.box) clipBox(c, s, M.ox + L.box[0] * M.k, M.oy + L.box[1] * M.k, L.box[2] * M.k, L.box[3] * M.k);   // (the tape card: the red wall only)
+    c.globalCompositeOperation = 'lighter'; c.globalAlpha = L.a * F.calmA; c.fillStyle = `rgb(${L.rgb})`;
     for (let i = 0; i < L.n; i++) { const a = rot + i / L.n * TAU, hw = TAU / L.n * 0.22; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a - hw) * R, y + Math.sin(a - hw) * R); c.lineTo(x + Math.cos(a + hw) * R, y + Math.sin(a + hw) * R); c.closePath(); c.fill(); }
     c.restore();
   },
@@ -170,6 +184,10 @@ const DRAW = {
       const a = F.still ? 0.4 : t / L.period * TAU;
       c.beginPath(); c.arc(x + dw / 2, y + dh / 2, dw / 2 - 0.5, 0, TAU); c.clip();
       c.translate(x + dw / 2, y + dh / 2); c.rotate(a); c.drawImage(img, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
+    } else if (L.mode === 'lift') {   // (the tape card: the tape's corner peeling up a little + settling back — hinged at the piece's left edge)
+      const u = F.still ? 0 : fract(t / L.period), a = -Math.sin(smooth(0, 0.35, u) * Math.PI / 2) * (1 - smooth(0.55, 0.8, u)) * L.amp;
+      c.save(); c.globalAlpha = 0.35 * Math.min(1, -a / L.amp * 2); c.fillStyle = 'rgb(0,0,0)'; c.fillRect(x + 1, y + 2, dw, dh); c.restore();
+      c.translate(x, y + dh); c.rotate(a); c.drawImage(img, sx, sy, sw, sh, 0, -dh, dw, dh);
     } else {   // jitter: a punk frame-step wobble (whole steps, never smooth)
       const k = F.still ? 0 : Math.floor(t / L.period), r = rng(k + 1), j = L.amp * M.k * (F.full ? 1 : 0.6);
       c.translate((r() - 0.5) * 2 * j, (r() - 0.5) * 2 * j); c.drawImage(img, sx, sy, sw, sh, x, y, dw, dh);
@@ -275,11 +293,14 @@ export function giftFx(card) {
     draw(c, s, t, Q) {
       if (!S) return;
       const full = !!s.opts.full, still = !!Q.still, calm = s.opts.calm ? 0.75 : 1;
-      const M = artMap(s.w, s.h, full ? (S.full || [50, 50]) : S.strip);
-      s.giftArt = S.art;
+      // (the tape card: a card may have its OWN strip picture — `stripArt` { art, h, crop, hero, layers } in its picture's px; every other card's
+      //  strip = the full picture's middle band)
+      const st = !full && S.stripArt;
+      const M = st ? artMap(s.w, s.h, st.crop || [50, 50], st.h) : artMap(s.w, s.h, full ? (S.full || [50, 50]) : S.strip);
+      s.giftArt = st ? st.art : S.art;
       const F = { full, still, calmA: full ? 1 : 0.85 * calm };
       c.save(); rrect(c, 0, 0, s.w, s.h, s.opts.radius || 12); c.clip();
-      for (const L of S.layers) {
+      for (const L of (st ? st.layers : S.layers)) {
         if (L.on === 'full' && !full) continue;
         c.save(); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
         try { DRAW[L.t](c, L, M, still ? 2.2 + (L.at ? L.at[0] % 3 : 0) : t, s, Q, F); } catch (e) { /* one layer never stops the card */ }
