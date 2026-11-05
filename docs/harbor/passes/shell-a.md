@@ -92,6 +92,17 @@ ROOM). Step 0 = plan.md "OWNER'S NOTES — NOV 5 (morning)" (part 68). SHELL 2.0
   XP box fits at three widths.
 - The older tests followed the new parts (the sheet's ‹ / × / panel, `.sh-msg`, case-insensitive message text, the menu's LEAVE ROOM last).
 
+## The local run (the mini PC, quiet: CPU 2 %, 20 GB free)
+Unit 1152/1152 (incl. rules-live) · rules 64/64 · /api 36/36 · the profile E2E 63/63 · conn 21/21 · presence 12/12 · smoke 6/6 · WebKit room 6/6.
+THE FULL HARBOR SUITE at 4 shards: 1142/1160. Fixed after it, each green alone: the full card's TOP LINE on the two dev cards (the 1-OF-1
+badge's inset margin wasn't in `fitTop`'s room + the badge now scales in a small viewer — roomfix 10/10); `crew` (the owner's tap raced the
+radio's `body.rd-owner`; the test waits for it — and the emulators, worn out by the day's runs, restarted — 17/17); `sgfast` (the fireball's
+photo, green alone 1/1 — load). **The rest are the machine's missing GPU today** — the test browser has NO WebGL2 (checked directly):
+the fireworks engine (WebGL2 false → no shells, no booms), the vault's FULL LOBBY speed checks ("2D at tier 2, 0 draws"), CALM LOAD, THE
+PARTY ROOM / THE FULL ROOM / THE ROOM's OWN COST frame rates, THE FULL CARD over CUSTOMIZE, A2's rebuild (its biggest task 1341 ms vs the
+1.3 s line — the 2D raster on the CPU). The same vault reds on the pre-pass code. The cloud run (its own GPU-less runner, the speed halves
+skipped as designed) is the check for those.
+
 ## Decisions
 - **LEAVE ROOM is the ☰ menu's LAST row** (the approved shell-look.png) — LOBBY 2.0 B's "first row" add-on is superseded by the mock.
 - **The tube's MAIN is pink in every theme** (a game's accent no longer colours the buttons).

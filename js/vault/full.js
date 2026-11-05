@@ -67,7 +67,9 @@ export function fitTop(top) {
     was = true;
     if (!house) return;
     house.style.letterSpacing = ''; house.style.fontSize = '';
-    const room = () => top.clientWidth - (pill ? pill.offsetWidth : 0) - 6;
+    // (SHELL 2.0 A: the gem's own margins count — the 1-OF-1 badge is inset from the corner)
+    const pm = pill ? (cs => (parseFloat(cs.marginLeft) || 0) + (parseFloat(cs.marginRight) || 0))(getComputedStyle(pill)) : 0;
+    const room = () => top.clientWidth - (pill ? pill.offsetWidth + pm : 0) - 6;
     // (the words' REAL extent — a Range over them: the span's own box can be narrower than its bold FOUNDER inside)
     const rg = document.createRange();
     const need = () => { rg.selectNodeContents(house); return Math.ceil(rg.getBoundingClientRect().width); };
@@ -113,7 +115,7 @@ function layCover(plate) {
 // bigger + brighter than the mock (readable on gold), the gem inset so its glow clears the rounded corner.
 function tierBadge(t, dev) {
   return h('span.vl-fc-gem', { class: dev ? 'is-1of1' : null, dataset: { tier: dev ? 'dev' : t } },
-    dev ? h('b.vl-fc-1of1', ONE_OF_ONE) : null, gemEl(dev ? null : t, { dev, size: dev ? 32 : 28 }));
+    dev ? h('b.vl-fc-1of1', ONE_OF_ONE) : null, gemEl(dev ? null : t, { dev }));   // (its size: css/vault.css — 28 / 32 pt, smaller in a small viewer)
 }
 export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const look = LOOKS[card] || LOOKS['card-brushed'], t = tier || tierOf(card), lv = who.lv || 1;

@@ -199,8 +199,9 @@ body.vl-covered *:not(.vl-full, .vl-full *), body.vl-covered *:not(.vl-full, .vl
    to its left in the gem's own light (a spectrum on the letters, a dark edge under them so they read on gold too). Static light; the dev
    gem's own parts move on the compositor (gems.js) */
 .vl-fc-gem { flex: none; display: inline-flex; align-items: center; gap: 0.5em; margin: -2px 1% 0 0; font-size: max(11px, 3.3cqi); }
-.vl-fc-gem .vl-gem { flex: none; }
-.vl-fc-gem.is-1of1 { margin: 3px 3.5% 0 0; font-size: max(12px, 3.6cqi); }   /* (inset: the rainbow halo clears the rounded corner) */
+.vl-fc-gem .vl-gem { flex: none; --gs: clamp(20px, 7.6cqi, 28px); }
+.vl-fc-gem.is-1of1 .vl-gem { --gs: clamp(22px, 8.7cqi, 32px); }
+.vl-fc-gem.is-1of1 { margin: 3px 3.5% 0 0; font-size: clamp(9px, 3.6cqi, 13px); }   /* (inset: the rainbow halo clears the rounded corner) */
 .vl-fc-1of1 { font: 900 1em/1 var(--font-display); letter-spacing: 0.16em; white-space: nowrap;
   background: linear-gradient(90deg, #ff6fa8, #ffd65a 30%, #6dffb0 55%, #6fe8ff 75%, #c58bff); -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.95)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.35)); }

@@ -382,7 +382,9 @@ G('crew', async () => {
   await ev(O.page, `import('/js/room.js').then(m => m.joinRoom('${code}', { name: 'THE OWNER', color: 'yellow', avatar: 'bolt' })).catch(e => e.message)`);
   await waitFor(O.page, `import('/js/store.js').then(s => s.state.code === '${code}' && !!s.state.meta)`, 'the owner in the lobby', 15000);
   await ev(O.page, 'sessionStorage.clear()'); await O.page.reload();
-  await waitFor(O.page, `!!document.querySelector('.rd-btn') && !!document.querySelector('.rc-tag[data-uid="${cuid}"], .chip.player[data-uid="${cuid}"]')`, 'the owner radio + the lobby list', 25000);
+  // (SHELL 2.0 A: + body.rd-owner — the radio marks the owner's phone a moment AFTER its button appears; a tap before it opened a card
+  //  without the CREW row: wait for the condition the row reads, crew-row.js#isOwnerPhone)
+  await waitFor(O.page, `!!document.querySelector('.rd-btn') && document.body.classList.contains('rd-owner') && !!document.querySelector('.rc-tag[data-uid="${cuid}"], .chip.player[data-uid="${cuid}"]')`, 'the owner radio + the lobby list', 25000);
   await ev(O.page, `(() => { const c = document.querySelector('.rc-tag[data-uid="${cuid}"], .chip.player[data-uid="${cuid}"]'), r = c.getBoundingClientRect(), o = { bubbles: true, clientX: r.left + 20, clientY: r.top + 10 }; c.dispatchEvent(new PointerEvent('pointerdown', o)); c.dispatchEvent(new PointerEvent('pointerup', o)); return true; })()`);
   await waitFor(O.page, `(document.querySelector('.cr-row .cr-sw') || {}).getAttribute && document.querySelector('.cr-row .cr-sw').getAttribute('aria-checked') === 'true'`, 'the card says CREW ON', 10000).catch(() => {});
   const on1 = await ev(O.page, `(() => { const l = document.querySelector('.cr-row .cr-sw'); return l ? l.getAttribute('aria-checked') : null; })()`);
