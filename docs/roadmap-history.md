@@ -1958,3 +1958,15 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
   one retry, then THE CITY COULDN'T LOAD + RELOAD.
 - title.js 2,059 → 1,254 (+ title-neon, title-taps, title-dock's work) by scripts/split-closure.mjs. The dead code: City 1.0's plane painter,
   water's wakes, a few dead exports + H12's CSS (H7's three signs.js painters turned out LIVE — kept).
+
+## SHELL 2.0 A — ONE LOOK EVERYWHERE (Nov 5 2026) — docs/harbor/passes/shell-a.md
+- The owner's approved mocks (docs/harbor/refs/shell/): THE NEON TUBE (option 2) for every action button, THE SHEET (solid, ‹ + ×) for every
+  pop-up on ONE layer stack with ONE Esc, THE ROW for menus + lists, THE MESSAGE (one at a time, above the dock, a neon tube by colour).
+- Every screen on them: the ☰ menu (Your card · How to play · Settings · Sound effects · The Lab · Admin · Leave room), Settings, CUSTOMIZE
+  (EDIT USERNAME a row, the colours as neon rings, the tube SAVE + CUSTOMIZE YOUR CARD), the YOU page, GUESTS, the host card, /admin, THE LAB's
+  marks, THE BOARD's report, the round-end CONTINUE; the title dock's labels + the streak number in a neon pill (the dock's flame only went).
+- THE CARDS: the full card's tier gem in the top-right corner + THE 1-OF-1 BADGE (the rainbow gem + "1 OF 1").
+- THE PODIUM's FRAME (the console's: the XP box, the moment, ONE BACK TO THE ROOM under the XP box; a game's `finalScene`) + THE CHAT LOCK hides.
+- The owner's add-on: the results rows as the players' slim cards; the XP box's level line never collides; YOUR CARD on one line.
+- Group 0: CITY 1.0 OUT's two cloud reds fixed at their cause (the boxer's wait that never waited; A6's start before the layouts settled).
+

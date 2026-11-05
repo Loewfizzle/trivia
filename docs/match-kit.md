@@ -23,6 +23,15 @@ DAILY plug-in): `docs/cartridge.md` (LOBBY 2.0 B — js/games/cartridge.js, chec
 Not in the kit (already shared elsewhere): the podium + WINNER reveal (`ui/final.js#createFinal`), room playlists + Call the Winner
 bonus (`core/playlist.js`), synced song playback (`audio/synced-songs.js`), toasts, `h()`, avatars, chips.
 
+## THE PODIUM's FRAME (SHELL 2.0 A — `ui/final.js#createFinal`; review-6.md D8, agreed with the Overclock chat)
+The CONSOLE owns the end-of-match screen's frame: the kicker + the WINNER line, the BODY, the XP box (`profile/callouts.js`) with the end-of-round
+moment + THE CARD REVEAL after it (in their order), then ONE button — **BACK TO THE ROOM**, THE NEON TUBE's main, right under the XP box (in view
+at 390; the host's tap brings the room back, a guest's walks them back alone) — then the results list. No REMATCH / lobby buttons on the podium:
+the rematch vote + NEW GAME live in the room's dock. **A game's own body:** export `finalScene(el, game, state)` from its module (cartridge.js
+OPTIONAL) and draw into `el` (OVERCLOCK's "OVERCLOCKED", a tube-sign name, its podium, award chips, SOLO's NEW PERSONAL BEST); without it the
+console's podium rise. **The results rows** (every `leaderboard()` — the podium + a game's standings) are each player's SLIM CARD
+(`ui/strip-board.js`): the place number beside the strip, the score over its top-right, ONE shared effect surface, every strip calm.
+
 ## The E2E harness (`tests/integration/kit/harness.mjs`)
 ```js
 import { createHarness, REVIEW_SIZES } from './kit/harness.mjs';

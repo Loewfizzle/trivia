@@ -510,3 +510,12 @@ A NEW pop-up that shows a full card goes through `openFullCard` (or calls `fxCov
 resolved kept the fallback face's fit and overflowed once the real face landed (LOBBY FIXES' cloud red: 2 of 42 glowing names). Every fitted
 element now re-fits once more on the FontFaceSet's `loadingdone` (`fit.js#onFontsLoaded` — one listener; an element shown then removed drops
 out). Proof: the vault group's "A FONT THAT ARRIVES LATE" (a fitted name whose face grows wider + `loadingdone` → it fits again).
+
+## THE GEMS ON THE FULL CARD (SHELL 2.0 A, Nov 5 — docs/harbor/passes/shell-a.md; refs/shell/tier-gem-cards.png + oneofone-corner.png)
+The full card's tier pill is gone: `full.js#tierBadge` puts the SAME tier gem the strips wear (`gems.js#gemEl`, 28 pt + its glow) in the card's
+TOP-RIGHT corner, on the top line beside NEON SPEAKEASY (`fitTop` measures it). The tier's NAME shows only where cards are picked (CUSTOMIZE's
+grid, THE LAB) + in the card's screen-reader label. **THE 1-OF-1 BADGE** (the dev cards; the gift cards when they come): the animated rainbow
+DEV GEM (32 pt) with "1 OF 1" to its LEFT in the gem's own light (`.vl-fc-1of1` — a spectrum on the letters + a dark edge under them, so it reads
+on gold), inset so its halo clears the rounded corner; the strips keep the rainbow gem alone (calm). A new card needs nothing: its tier picks
+its gem. **The results rows** wear the strips too (`ui/strip-board.js` — one shared surface a list, calm) — THE PROMINENCE RULE + the cover's
+budget apply as in the guest list.

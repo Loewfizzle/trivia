@@ -761,3 +761,17 @@ The SAVE-YOUR-KEY POP-UP's pink dot sits on YOU (both docks) until the key is sa
   HOST NOW", the rest "AVA IS THE HOST NOW"; a dropped host stays a claim ("HOST SIGNAL LOST — YOU ARE NOW THE HOST", the claimer only).
 - **TWO TABS of one player**: the tab ON SCREEN is the player (its host loop + its music); the other yields (the banner), quiet.
 - **THE START** (LOBBY FIXES' lit sign + walk-in + fade): no backdrop-filter anywhere while `body.rc-going`.
+
+## THE SHELL — ONE LOOK EVERYWHERE (SHELL 2.0 A, Nov 5 — docs/harbor/passes/shell-a.md; the mocks: docs/harbor/refs/shell/)
+Four parts, ONE builder + ONE block of CSS each (components.css "THE SHELL"); a new screen uses them, never a copy (tests/shell.test.mjs):
+- **THE NEON TUBE** — every action button: `tubeButton(label, { kind: 'main' | 'secondary' | 'danger', size: 'sm', block, onClick, confirm })`
+  or the classes `.btn.btn-primary | .btn-ghost | .btn-danger (.btn-sm, .btn-block)`. ONE main (pink) a screen. A second tap to confirm:
+  `confirm: 'TAP AGAIN TO …'` (or `confirmTap(el, text, run)`) — the button itself turns red; never a toast.
+- **THE SHEET** — every pop-up: `openSheet({ title, kicker?, body, cls?, theme?, onClose? })` → `{ el, sheet, body, close }` (ui/sheet.js). It
+  stacks (‹ = one step, × = the stack), takes its layer (ui/layers.js), and the ONE Esc closes the top. A full-screen tool takes
+  `takeLayer(el, { close })` itself; a pop-up never listens for Escape.
+- **THE ROW** — lists + menus: `row({ icon, label, sub?, value?, toggle?, on?, danger?, confirm?, onClick })` (icons: `ICONS` in components.js).
+- **THE MESSAGE** — `toast(text, 'info' | 'ok' | 'warn' | 'err', ms | { ms, sub })`: one at a time, above the dock (in a game under the corner),
+  sentence case — write the text in sentence case with names as typed.
+The title dock's tabs carry labels (BOARD · GAMES · YOU — the room dock's `.rdk-lbl`); the dock's streak is a neon NUMBER pill on YOU
+(`progress/flame.js#streakPill`).

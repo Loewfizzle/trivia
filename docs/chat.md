@@ -44,3 +44,9 @@ Deep-dive for the room chat: data, locks per game, system lines, profanity filte
 - **QUICK-REPLY CHIPS** above the field: `QUICK` = GG · NO WAY · REMATCH? · 🔥 · 😂 · 👏 (one tap sends — the same rules + the one-a-second rate);
   a game adds its own while it runs: `setGameChips(['NICE ROLL', …])` (≤ 4, ≤ 24 characters; `[]` clears) — THE CARTRIDGE PLUG.
 - The room dock's CHAT opens the sheet; its pink dot = `chat.unread`.
+
+## THE CHAT LOCK HIDES (SHELL 2.0 A, Nov 5 — docs/harbor/passes/shell-a.md)
+While a game locks chat (`chatLocked` — its cartridge; OVERCLOCK will lock it for the whole match: too fast-paced), the in-game chat button and
+the ☰ menu's CHAT row are HIDDEN for that stretch — never a greyed button — and no unread dot shows on ☰. The room's chat opens between games.
+The chat sheet itself is THE SHEET (ui/sheet.js) since SHELL 2.0 A: ROOM CHAT small + spaced, the hush word on its line, its keyboard lift on
+the sheet's panel (`.sh.chat-sheet .sh-panel`).

@@ -279,20 +279,27 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   per-game `--accent --accent-2 --accent-ink --accent-soft --accent-glow`, fonts `--font-display` (Orbitron),
   `--font-ui` (Chakra Petch), `--font-mono` (JetBrains Mono), `--font-num` (Chakra Petch — use for all numbers; Orbitron's 0 looks like a block).
 - Game identity: `body[data-theme=<id>]` (set automatically while a game runs) re-maps the accent tokens; the lobby card takes them too.
-- Components (CSS + `js/ui/components.js`): `.btn .btn-primary|.btn-ghost|.btn-text|.btn-danger .btn-xl|.btn-sm .btn-block`,
-  `.panel`, `.chip` (+ `avatar()`), `.tag-host/.tag-you/.tag-lost`, `createTimer({ticks})`, `leaderboard()`, `countUp()`,
-  `segmented()`, `chips()` (multi-select), `.modal > .sheet`, `toast(msg, 'ok'|'warn'|'err'|'info')`, `burst()`,
-  `glitchFlash()`, `createFinal()` (ui/final.js), `.game-head` (game header that leaves room for the gear).
-- **NEON GLASS** (end of components.css): the title's language everywhere — the default for every .btn, .panel, .input, .tag, leaderboard row and podium in every game (no chamfers; the game's accent is the light; no blur in games) — frosted glass, soft white edges, the accent
-  as light. `body.nd-glass` restyles menus; sheets are glass on every screen. Toasts are glass pills; confirm-by-second-tap changes the
-  button itself, never a toast. (ui-shots.mjs drove the old lobby — retired with City 1.0; SHELL 2.0 brings its review back on the room.)
+- **THE SHELL (SHELL 2.0 A — ONE LOOK EVERYWHERE; components.css "THE SHELL"; docs/title.md#the-shell--one-look-everywhere-shell-20-a-nov-5--docsharborpassesshell-amd-the-mocks-docsharborrefsshell): four parts,
+  ONE builder each — a screen never keeps its own copy (tests/shell.test.mjs fails on one):**
+  - **THE NEON TUBE** = every action button (`tubeButton()` / `.btn.btn-primary|-ghost|-danger .btn-sm .btn-block`): a lit tube, ONE pink MAIN a
+    screen, SECONDARY cool white, DANGER red, the second tap to confirm turns the button itself red (`confirm:` / `confirmTap()`), static glow.
+  - **THE SHEET** = every pop-up (`ui/sheet.js#openSheet`): solid, a handle, the small spaced title, ‹ when nested + ×; on THE LAYER STACK — the
+    ONE Esc (`ui/layers.js`) closes the top; a pop-up never listens for Escape (`takeLayer(el, { close, min })` for a full-screen tool).
+  - **THE ROW** = lists + menus (`row()` + `ICONS`): 56 pt glass, a neon line icon, label, value, ›, the pink switch for a toggle.
+  - **THE MESSAGE** = `toast(text, kind, ms | { ms, sub })`: one at a time, above the dock (in a game under the corner), a neon tube by colour,
+    sentence case. Gold is a vault / card accent only (the gems, the frames) — never a button.
+- Other components (`js/ui/components.js`): `.panel`, `.chip` (+ `avatar()`), `.tag-host/.tag-you/.tag-lost`, `createTimer({ticks})`,
+  `leaderboard()` (its rows become the players' SLIM CARDS — ui/strip-board.js), `countUp()`, `segmented()`, `chips()`, `burst()`,
+  `glitchFlash()`, `createFinal()` (ui/final.js — THE PODIUM's FRAME: the console's; a game's body via `finalScene(el, game, state)`), `.game-head`.
+- **NEON GLASS** (components.css): the panels, inputs, tags, leaderboard rows + podium keep the glass language; the buttons, sheets, rows +
+  messages are THE SHELL's. (The frozen games' own `.modal` sheets keep the old base until each comes back.)
 - **Player emblems** (`avatar(id, color, size)`): 12 shapes built like the neon sign; size with `--s`. Preview: `tests/integration/avatars-preview.html`.
-- Game screens fill `.screen` with `overflow: hidden`; in a game the fixed corner holds two buttons top-right: ☰ menu (+10: CHAT with the
-  unread count, HOW TO PLAY, SETTINGS, QUIT TO LOBBY, host END GAME — settings-panel.js#openMenu) and music on/off (+54, music only, effects
+- Game screens fill `.screen` with `overflow: hidden`; in a game the fixed corner holds two buttons top-right: ☰ menu (THE SHEET of rows: CHAT —
+  hidden while the game locks chat — YOUR CARD, HOW TO PLAY, SETTINGS, SOUND EFFECTS, QUIT TO THE ROOM, host END GAME — settings-panel.js#openMenu) and music on/off (+54, music only, effects
   stay); both are 36 pt circles (`--cb`) with an invisible 44 pt tap area (`::after`); headers use `padding-right: 44px`; announcements
   stay clear of it. The title (+ the room, which lives there) SPLITS the corners: ☰ top-LEFT, music top-RIGHT (`body.nd-on`, components.css).
   A full-width game (`.screen.<x>-screen { max-width: none }`) must also pin the column to the screen's edge:
-  `body.<x>-on [data-theme] .music-btn, [data-theme] .menu-btn, .gm-panel { right: calc(var(--safe-r) + 12px) }` (gridlock, slip,
+  `body.<x>-on [data-theme] .music-btn, [data-theme] .menu-btn { right: calc(var(--safe-r) + 12px) }` (gridlock, slip,
   stakes, rum do) — otherwise on desktop the buttons stay at the phone column's edge and land on the game's panels. Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
 
 ## Adding a game (checklist)
