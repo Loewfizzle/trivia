@@ -13,9 +13,11 @@
 //   audit { limit? }               → { log: [...] } newest first
 //   stats { fresh? }               → STATS (js/core/insights.js#summarize): live rooms, games, players, busiest times
 //   errors                         → { errors: [...] } errors from players' phones (api/log.js), newest first
-//   clearErrors { sig? }           → removes one error (sig) or all of them
+//   clearErrors { sig? | sigs? }   → removes one error (sig), a GROUP (sigs — THE SPEED PASS: /admin's grouped logs) or all of them
 //   reports                        → { reports: [...] } 9e: SEND REPORT / hang-watch snapshots from phones (api/log.js), newest first
-//   clearReports { id? }           → removes one report (id) or all of them
+//   clearReports { id? | ids? }    → removes one report (id), a group (ids) or all of them
+//   seenLogs { sigs?, ids? }       → THE SPEED PASS — MARK SEEN: errlog/{sig}/seen = its count now, phonelog/{id}/seen = true (audited) →
+//                                    { errors, reports } — /admin's headers count what came in since ("ERRORS 214 · 3 new")
 //   flags                          → { flags: [...] } BNAME: THE BOARD's REPORT button (api/board.js#flagRow), newest first, with the
 //                                    player's real name + their house nickname (the admin can open the player + HIDE them)
 //   clearFlag { id? }              → dismisses one board report (the row's board id) or all of them
@@ -137,6 +139,13 @@ async function stats(now, fresh = false) {
 
 // Errors from players' phones (api/log.js): newest first; entries quiet for 30 days are pruned on the way.
 const ERR_KEEP_MS = 30 * 86_400_000;
+// (THE SPEED PASS — the grouped logs' ids: a group is ≤ 200 entries, every id checked; a bad list is refused, never "all")
+const SIG_RE = /^e[0-9a-f]{15}$/, REP_RE = /^[-_A-Za-z0-9]{10,40}$/;
+function logIds(list, re) {
+  if (list == null) return null;
+  if (!Array.isArray(list) || !list.length || list.length > 200 || !list.every(x => typeof x === 'string' && re.test(x))) throw new ApiError(400, 'bad_ids');
+  return [...new Set(list)];
+}
 async function errorList(now) {
   const all = (await val('errlog')) || {};
   const stale = Object.keys(all).filter(k => !(all[k].last > now - ERR_KEEP_MS));
@@ -225,18 +234,30 @@ export async function adminAction(uid, body, now = Date.now()) {
     case 'stats': return stats(now, !!body.fresh);
     case 'errors': return { errors: await errorList(now) };
     case 'clearErrors': {
-      const sig = body.sig ? String(body.sig) : null;
-      if (sig && !/^e[0-9a-f]{15}$/.test(sig)) throw new ApiError(400, 'bad_sig');
-      await ref(sig ? `errlog/${sig}` : 'errlog').remove();
-      await audit(me, sig ? 'clearError' : 'clearErrors', null, sig ? { b: sig } : {});
+      const sig = body.sig ? String(body.sig) : null, sigs = logIds(body.sigs, SIG_RE);
+      if (sig && !SIG_RE.test(sig)) throw new ApiError(400, 'bad_sig');
+      if (sigs) await ref('errlog').update(Object.fromEntries(sigs.map(k => [k, null])));
+      else await ref(sig ? `errlog/${sig}` : 'errlog').remove();
+      await audit(me, sig || sigs ? 'clearError' : 'clearErrors', null, sig ? { b: sig } : sigs ? { b: `${sigs.length} in a group` } : {});
       return { errors: await errorList(now) };
+    }
+    case 'seenLogs': {
+      const sigs = logIds(body.sigs, SIG_RE) || [], ids = logIds(body.ids, REP_RE) || [];
+      if (!sigs.length && !ids.length) throw new ApiError(400, 'nothing', 'Nothing to mark.');
+      const [el, pl] = await Promise.all([val('errlog'), val('phonelog')]), patch = {};
+      for (const k of sigs) if (el && el[k]) patch[`errlog/${k}/seen`] = el[k].n || 1;
+      for (const k of ids) if (pl && pl[k]) patch[`phonelog/${k}/seen`] = true;
+      if (Object.keys(patch).length) await ref('/').update(patch);
+      await audit(me, 'seenLogs', null, { b: `${sigs.length} error${sigs.length === 1 ? '' : 's'} · ${ids.length} report${ids.length === 1 ? '' : 's'}` });
+      return { errors: await errorList(now), reports: await reportList() };
     }
     case 'reports': return { reports: await reportList() };
     case 'clearReports': {
-      const id = body.id ? String(body.id) : null;
-      if (id && !/^[-_A-Za-z0-9]{10,40}$/.test(id)) throw new ApiError(400, 'bad_id');
-      await ref(id ? `phonelog/${id}` : 'phonelog').remove();
-      await audit(me, id ? 'clearReport' : 'clearReports', null, {});
+      const id = body.id ? String(body.id) : null, ids = logIds(body.ids, REP_RE);
+      if (id && !REP_RE.test(id)) throw new ApiError(400, 'bad_id');
+      if (ids) await ref('phonelog').update(Object.fromEntries(ids.map(k => [k, null])));
+      else await ref(id ? `phonelog/${id}` : 'phonelog').remove();
+      await audit(me, id || ids ? 'clearReport' : 'clearReports', null, ids ? { b: `${ids.length} in a group` } : {});
       return { reports: await reportList() };
     }
     case 'flags': return { flags: await flagList() };

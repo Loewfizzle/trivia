@@ -530,6 +530,57 @@ test('REMOVE TEST PLAYERS: the ticked go (and only they); the member counter nev
   } finally { process.env.ADMIN_PIDS = ''; await ref('audit').remove(); }
 });
 
+// THE SPEED PASS — TEST PLAYERS, ALL OF THEM: the list from the very first profile (CREATED SINCE), each row's nights + last seen, the
+// "looks like a test" PRE-TICK (two of: 0 nights · a test-ish name · a test burst) — never an admin, TESTER#2599 or a 2-night player;
+// THE GROUPED LOGS: MARK SEEN (errlog/{sig}/seen = its count; phonelog/{id}/seen) + CLEAR a group by its ids — admins only, audited
+test('TEST PLAYERS from the first profile + the pre-tick; the grouped logs: MARK SEEN + CLEAR a group', async () => {
+  const { preTick, testName, nightsOf } = await import('../../api/_lib/testplayers.js');
+  assert.ok(testName('WKA') && testName('rulescheck') && testName('AVA') && !testName('LOEWFIZZLE') && !testName('Regular'));
+  assert.equal(nightsOf({ m: { a: Date.UTC(2026, 10, 3, 23), b: Date.UTC(2026, 10, 4, 1), c: Date.UTC(2026, 10, 5, 23) } }), 2, 'two nights (the streak day turns at 4 am Eastern)');
+  const T = Date.UTC(2026, 10, 4, 16);
+  const rows = preTick([
+    { pid: 'p1', n: 'WKA', t: '1111', at: T, nights: 0 }, { pid: 'p2', n: 'WKB', t: '2222', at: T + 60_000, nights: 0 }, { pid: 'p3', n: 'Mike', t: '3333', at: T + 120_000, nights: 0 },
+    { pid: 'p4', n: 'TESTER', t: '2599', at: T - 9 * DAY, nights: 0 }, { pid: 'p5', n: 'Bro', t: '5555', at: T - 5 * DAY, nights: 3 }, { pid: 'p6', n: 'test1', t: '6666', at: T - 3 * DAY, nights: 2 },
+    { pid: 'p7', n: 'Owner', t: '7777', at: T + 30_000, nights: 0, admin: true }, { pid: 'p8', n: 'Lonely', t: '8888', at: T - 2 * DAY, nights: 1 }]);
+  const pre = Object.fromEntries(rows.map(r => [r.pid, r.pre]));
+  assert.deepEqual(pre, { p1: true, p2: true, p3: true, p4: false, p5: false, p6: false, p7: false, p8: false },
+    `pre-ticked: the burst's 0-night test names + the burst's 0-night "Mike" (two reasons); never TESTER#2599, a 2+ night player, an admin, a one-reason profile (${JSON.stringify(rows.map(r => [r.n, r.why]))})`);
+  // the real list: from the first profile by default, with nights + last seen
+  const old = await ensure('u-tpold', 'Oldtimer');
+  tick(DAY);
+  const owner = await ensure('u-tpown', 'Owner2');
+  const t1 = await ensure('u-tp1', 'WKA'), t2 = await ensure('u-tp2', 'WKB');
+  const room = await seedRoom('slip', ['u-tp1', 'u-tp2'], { dist: 7000 }, { 'u-tp1': 'WKA', 'u-tp2': 'WKB' });
+  await report('u-tp1', room); tick();
+  process.env.ADMIN_PIDS = `${owner.pid}`;
+  try {
+    const list = await adminAction('u-tpown', { action: 'testPlayers' });
+    const ids = list.players.map(p => p.pid);
+    assert.ok(ids.includes(old.pid) && ids.includes(t1.pid), 'CREATED SINCE defaults to the very first profile');
+    assert.ok(list.first && list.first <= (await val(`profiles/${old.pid}/at`)) && list.total >= 4, `the first profile's date + the total (${list.first}, ${list.total})`);
+    const r1 = list.players.find(p => p.pid === t1.pid);
+    assert.ok(r1.nights === 1 && r1.last > 0 && r1.m === 1 && Array.isArray(r1.why), `a row: nights + last seen + its reasons (${JSON.stringify(r1)})`);
+    assert.ok(!list.players.find(p => p.pid === owner.pid).pre, 'the admin is never pre-ticked');
+    const later = await adminAction('u-tpown', { action: 'testPlayers', since: clock - 30 * 60_000 });
+    assert.ok(!later.players.some(p => p.pid === old.pid), 'a CREATED SINCE date leaves the older ones out');
+    // the grouped logs
+    await ref('errlog').set({ e000000000000001: { m: 'Boom 12345', n: 4, first: clock - 5000, last: clock }, e000000000000002: { m: 'Boom 99999', n: 2, first: clock - 4000, last: clock }, e000000000000003: { m: 'Other', n: 1, first: clock, last: clock } });
+    await ref('phonelog').set({ rep0000000001: { at: clock, kind: 'hang', text: 'x' }, rep0000000002: { at: clock, kind: 'tap', text: 'y' } });
+    await rejects(adminAction('u-tp1', { action: 'seenLogs', sigs: ['e000000000000001'] }), 403, 'not_admin');
+    await rejects(adminAction('u-tpown', { action: 'seenLogs', sigs: ['../profiles'] }), 400, 'bad_ids');
+    const seen = await adminAction('u-tpown', { action: 'seenLogs', sigs: ['e000000000000001', 'e000000000000002'], ids: ['rep0000000001'] });
+    assert.equal(await val('errlog/e000000000000001/seen'), 4); assert.equal(await val('errlog/e000000000000002/seen'), 2); assert.equal(await val('errlog/e000000000000003/seen'), null);
+    assert.equal(await val('phonelog/rep0000000001/seen'), true); assert.equal(await val('phonelog/rep0000000002/seen'), null);
+    assert.ok(seen.errors.length === 3 && seen.reports.length === 2, 'MARK SEEN returns the fresh lists');
+    const cl = await adminAction('u-tpown', { action: 'clearErrors', sigs: ['e000000000000001', 'e000000000000002'] });
+    assert.deepEqual(cl.errors.map(e => e.sig), ['e000000000000003'], 'CLEAR a group: only its entries go');
+    const cr = await adminAction('u-tpown', { action: 'clearReports', ids: ['rep0000000002'] });
+    assert.deepEqual(cr.reports.map(r => r.id), ['rep0000000001']);
+    const acts = Object.values((await val('audit')) || {}).map(a => a.act);
+    assert.ok(acts.includes('seenLogs') && acts.includes('clearError') && acts.includes('clearReport'), `audited (${acts.join(', ')})`);
+  } finally { process.env.ADMIN_PIDS = ''; await ref('audit').remove(); await ref('errlog').remove(); await ref('phonelog').remove(); }
+});
+
 // LOBBY FIXES — ONE PROFILE, ONE SEAT + ONE ACCOUNT, ONE ROOM: whatever a client does, the server credits a profile once per match (its
 // WORSE seat) and never for a match that overlaps one it already counted in ANOTHER room
 test('ONE ACCOUNT, ONE ROOM: one profile in two seats is credited once (the worse); two rooms at once — the second never counts', async () => {

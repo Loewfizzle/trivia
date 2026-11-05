@@ -12,7 +12,7 @@ import { houseNick } from '../core/nicknames.js';
 import { levelLabel } from '../core/levels.js';
 import { GAMES } from '../config.js';
 import { GAME_LIGHT } from '../board/view.js';
-import { mountDayChart } from '../daychart/daychart.js';
+import { groupErrors, groupReports, filterGroups, countLine } from './groups.js';
 
 const app = document.getElementById('app');
 const gameName = id => (GAMES.find(g => g.id === id) || { name: id }).name;
@@ -54,52 +54,76 @@ function denied(who) {
     h('a.ad-link', { href: '/' }, '‹ Back to the game')));
 }
 
+// THE SPEED PASS — /ADMIN, TIDIED (the owner, Nov 4 6:07–6:08 pm: "too long, tons of logs"): EVERY CARD COLLAPSIBLE — a header with its
+// count ("Errors from phones  214 · 3 new"), a tap opens / closes it, remembered on this device (localStorage ad:open:<id>), the long cards
+// collapsed by default; a JUMP BAR of the cards at the top; the logs GROUPED (js/admin/groups.js) with a filter box + MARK SEEN / CLEAR per
+// group. THE DAY CHART card is gone (THE RADIO has it, /daychart stays); there is no LEGENDARIES card here (the radio's own).
+const CARDS = [];
+const openKey = id => `ad:open:${id}`;
+function isOpen(id, dflt) { try { const v = localStorage.getItem(openKey(id)); return v == null ? dflt : v === '1'; } catch { return dflt; } }
+function card(id, title, { open: dflt = true, cls = '' } = {}, ...body) {
+  const count = h('span.ad-card-c'), chev = h('i.ad-card-chev', { 'aria-hidden': 'true' }, '›');
+  const head = h('button.ad-card-h', { type: 'button', 'aria-controls': `${id}-b` }, h('h2', title), count, chev);
+  const inner = h('div.ad-card-b', { id: `${id}-b` }, ...body);
+  const el = h('section.ad-card', { id, class: cls }, head, inner);
+  const set = on => { el.classList.toggle('is-shut', !on); head.setAttribute('aria-expanded', String(on)); inner.hidden = !on; try { localStorage.setItem(openKey(id), on ? '1' : '0'); } catch { /* fine */ } };
+  head.addEventListener('click', () => set(el.classList.contains('is-shut')));
+  set(isOpen(id, dflt));
+  const c = { id, title, el, set, count: t => { count.textContent = t == null ? '' : String(t); } };
+  CARDS.push(c);
+  return el;
+}
+const cardOf = id => CARDS.find(c => c.id === id);
+function jumpBar() {
+  return h('nav.ad-jump', { 'aria-label': 'Cards' }, ...CARDS.map(c => h('button.ad-jump-b', { type: 'button', onclick: () => { c.set(true); c.el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } }, c.title)));
+}
+/** a log card's tools: the filter box + Refresh + Clear all */
+function logTools(id, onFilter, onRefresh, clearAll) {
+  return h('div.ad-row.ad-logtools',
+    h('input.input.ad-filter', { type: 'search', placeholder: 'Filter', 'aria-label': 'Filter', autocomplete: 'off', oninput: e => onFilter(e.target.value) }),
+    h('button.ad-btn', { type: 'button', onclick: onRefresh }, 'Refresh'), clearAll);
+}
+
 function shell() {
-  const dayChartRoot = h('div.ad-daychart');
+  CARDS.length = 0;
   const q = h('input.input.ad-q', { type: 'search', placeholder: 'Name, Name#1234 or profile id', autocomplete: 'off', onkeydown: e => { if (e.key === 'Enter') search(q.value); } });
+  const grid = h('div.ad-grid',
+    card('ad-live', 'Live now', { cls: 'ad-live' }, h('div', { id: 'ad-live-b2' }, h('p.ad-dim', 'Loading…'))),
+    card('ad-stats', 'Stats', { cls: 'ad-stats', open: false }, h('div', { id: 'ad-stats-b2' })),
+    card('ad-search', 'Players', { cls: 'ad-search' },
+      h('div.ad-row', q, h('button.ad-btn.is-primary', { type: 'button', onclick: () => search(q.value) }, 'Search')),
+      h('div.ad-results', { id: 'ad-results' }, h('p.ad-dim', 'Search by name to start.'))),
+    card('ad-player', 'Player', { cls: 'ad-player' }, h('div', { id: 'ad-player-b2' }, h('p.ad-dim', 'Pick a player.'))),
+    card('reports', 'Board reports', { cls: 'ad-errors' },
+      h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: flags }, 'Refresh'),
+        confirmBtn('Dismiss all', async () => { renderFlags((await call('clearFlag')).flags); toast('Dismissed'); audit(); }, 'is-danger')),
+      h('p.ad-dim', 'REPORT on THE BOARD (anyone, no sign-in; limited per device + IP). The public sees the player’s username (a rude one as a house nickname) — never an id or key. OPEN the player to hide them from every board.'),
+      h('ol.ad-errs', { id: 'ad-flags' }, h('li.ad-dim', 'Loading…'))),
+    card('ad-errors', 'Errors from phones', { cls: 'ad-errors', open: false },
+      logTools('ad-errors', v => { logs.errQ = v; paintErrors(); }, errors, confirmBtn('Clear all', async () => { renderErrors((await call('clearErrors')).errors); toast('Cleared'); audit(); }, 'is-danger')),
+      h('p.ad-dim', 'Code errors on players’ screens — one row per kind (the message), with its count + first / last seen; tap a row for each place it happened. MARK SEEN resets the “new” count. Quiet for 30 days → removed.'),
+      h('ol.ad-errs', { id: 'ad-errs' }, h('li.ad-dim', 'Loading…'))),
+    card('ad-reports', 'Reports from phones', { cls: 'ad-errors', open: false },
+      logTools('ad-reports', v => { logs.repQ = v; paintReports(); }, reports, confirmBtn('Clear all', async () => { renderReports((await call('clearReports')).reports); toast('Cleared'); audit(); }, 'is-danger')),
+      h('p.ad-dim', 'City 2.0 snapshots, one row per kind: SEND REPORT in the &debug=1 strip (TAP), or sent by the page itself when it froze (HANG — the main thread stopped answering; STALL — no frames), BENCH. Newest 40 kept.'),
+      h('ol.ad-errs', { id: 'ad-reps' }, h('li.ad-dim', 'Loading…'))),
+    // LOBBY FIXES → THE SPEED PASS — TEST PLAYERS, ALL OF THEM: CREATED SINCE (default the very first profile) → review the pre-ticks → PREVIEW → CONFIRM
+    card('ad-tp', 'Test players', { cls: 'ad-tp', open: false },
+      h('div.ad-row.ad-tp-since', h('label.ad-dim', { for: 'ad-tp-date' }, 'Created since'), h('input.input.ad-tp-date', { id: 'ad-tp-date', type: 'date', onchange: () => { tpTicked.clear(); tpSeeded = false; testPlayers(); } }),
+        h('button.ad-btn', { type: 'button', onclick: () => { const d = document.getElementById('ad-tp-date'); d.value = ''; tpTicked.clear(); tpSeeded = false; testPlayers(); } }, 'From the first'),
+        h('button.ad-btn', { type: 'button', onclick: () => testPlayers() }, 'Refresh')),
+      h('p.ad-dim', 'Every profile made since the date (default: the very first). PRE-TICKED = looks like a test (two of: 0 nights played · a test-ish name · made in a test burst) — review them; nothing is ever removed without CONFIRM. Never pre-ticked: an admin, TESTER#2599, anyone who played on 2+ nights. Their card, items, key, tag + board entries go. Member numbers never move and are never re-used: the counter only rolls back when every number above the new top is going.'),
+      h('div.ad-tp-list', { id: 'ad-tp-list' }, h('p.ad-dim', 'Loading…')),
+      h('div.ad-tp-out', { id: 'ad-tp-out' })),
+    // PROGRESSION A — THE OUTAGE BUTTON: a day the site was down breaks nobody's streak (audited; the streak day turns at 4 am Eastern)
+    card('ad-outage', 'Streak outage', { cls: 'ad-outage' },
+      h('p.ad-dim', 'The site was down? Mark the day: nobody’s streak breaks over it (no freeze used, no day added). The streak day turns at 4 am Eastern.'),
+      h('div.ad-row', { id: 'ad-outage-row' }, h('span.ad-dim', 'Loading…'))),
+    card('ad-audit', 'Audit log', { cls: 'ad-audit', open: false }, h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' })));
   app.replaceChildren(
-    h('header.ad-head', h('div', h('div.ad-kicker', 'NEON SPEAKEASY'), h('h1', 'Admin')), h('div', h('a.ad-link', { href: '/lab' }, 'The Card Lab ›'), ' ', h('a.ad-link', { href: '/board' }, 'The Board ›'))),
-    h('div.ad-grid',
-      h('section.ad-card.ad-live', { id: 'ad-live' }, h('p.ad-dim', 'Loading…')),
-      h('section.ad-card.ad-stats', { id: 'ad-stats' }),
-      h('section.ad-card.ad-search',
-        h('h2', 'Players'),
-        h('div.ad-row', q, h('button.ad-btn.is-primary', { type: 'button', onclick: () => search(q.value) }, 'Search')),
-        h('div.ad-results', { id: 'ad-results' }, h('p.ad-dim', 'Search by name to start.'))),
-      h('section.ad-card.ad-player', { id: 'ad-player' }, h('p.ad-dim', 'Pick a player.')),
-      h('section.ad-card.ad-errors', { id: 'reports' },
-        h('div.ad-row.ad-between', h('h2', 'Board reports'),
-          h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: flags }, 'Refresh'),
-            confirmBtn('Dismiss all', async () => { renderFlags((await call('clearFlag')).flags); toast('Dismissed'); audit(); }, 'is-danger'))),
-        h('p.ad-dim', 'REPORT on THE BOARD (anyone, no sign-in; limited per device + IP). The public sees the player’s username (a rude one as a house nickname) — never an id or key. OPEN the player to hide them from every board.'),
-        h('ol.ad-errs', { id: 'ad-flags' }, h('li.ad-dim', 'Loading…'))),
-      h('section.ad-card.ad-errors',
-        h('div.ad-row.ad-between', h('h2', 'Errors from phones'),
-          h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: errors }, 'Refresh'),
-            confirmBtn('Clear all', async () => { renderErrors((await call('clearErrors')).errors); toast('Cleared'); audit(); }, 'is-danger'))),
-        h('p.ad-dim', 'Code errors on players’ screens, grouped: the same error from many phones is one line with a count. Quiet for 30 days → removed.'),
-        h('ol.ad-errs', { id: 'ad-errs' }, h('li.ad-dim', 'Loading…'))),
-      h('section.ad-card.ad-errors',
-        h('div.ad-row.ad-between', h('h2', 'Reports from phones'),
-          h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: reports }, 'Refresh'),
-            confirmBtn('Clear all', async () => { renderReports((await call('clearReports')).reports); toast('Cleared'); audit(); }, 'is-danger'))),
-        h('p.ad-dim', 'City 2.0 snapshots: SEND REPORT in the &debug=1 strip (TAP), or sent by the page itself when it froze (HANG — the main thread stopped answering; STALL — no frames). Newest 40 kept.'),
-        h('ol.ad-errs', { id: 'ad-reps' }, h('li.ad-dim', 'Loading…'))),
-      // LOBBY FIXES — REMOVE TEST PLAYERS (the owner, Nov 4): tick → a dry run → CONFIRM; the server's own key, audited (api/_lib/testplayers.js)
-      h('section.ad-card.ad-tp', { id: 'ad-tp' },
-        h('div.ad-row.ad-between', h('h2', 'Test players'), h('button.ad-btn', { type: 'button', onclick: () => testPlayers() }, 'Refresh')),
-        h('p.ad-dim', 'Every profile made since Nov 4, 10:30 am EST (+ TESTER#2599, your old laptop card). Tick the ones to remove → PREVIEW → CONFIRM. Their card, items, key, tag + board entries go. Member numbers never move and are never re-used: the counter only rolls back when every number above the new top is going.'),
-        h('div.ad-tp-list', { id: 'ad-tp-list' }, h('p.ad-dim', 'Loading…')),
-        h('div.ad-tp-out', { id: 'ad-tp-out' })),
-      // PROGRESSION A — THE OUTAGE BUTTON: a day the site was down breaks nobody's streak (audited; the streak day turns at 4 am Eastern)
-      h('section.ad-card.ad-outage', { id: 'ad-outage' },
-        h('h2', 'Streak outage'),
-        h('p.ad-dim', 'The site was down? Mark the day: nobody’s streak breaks over it (no freeze used, no day added). The streak day turns at 4 am Eastern.'),
-        h('div.ad-row', { id: 'ad-outage-row' }, h('span.ad-dim', 'Loading…'))),
-      // SCHED Group 5 — THE DAY CHART (the same chart as /daychart: the city's day hour by hour + the year view, from the timetable)
-      h('section.ad-card.ad-audit', h('div.ad-row.ad-between', h('h2', 'The day chart'), h('a.ad-link', { href: '/daychart' }, 'Full page ›')), dayChartRoot),
-      h('section.ad-card.ad-audit', h('div.ad-row.ad-between', h('h2', 'Audit log'), h('button.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' }))));
-  mountDayChart(dayChartRoot);
+    h('header.ad-head', h('div', h('div.ad-kicker', 'NEON SPEAKEASY'), h('h1', 'Admin')), h('div.ad-head-links', h('a.ad-link', { href: '/lab' }, 'The Card Lab ›'), ' ', h('a.ad-link', { href: '/board' }, 'The Board ›'))),
+    jumpBar(),
+    grid);
   audit();
   outages();
   errors();
@@ -121,11 +145,12 @@ async function search(text) {
 
 async function open(pid) {
   current = pid;
+  { const c = cardOf('ad-player'); if (c) { c.set(true); c.el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } }
   render(await call('player', { pid }));
 }
 
 function render(v) {
-  const box = document.getElementById('ad-player');
+  const box = document.getElementById('ad-player-b2');
   const p = v.profile;
   const name = h('input.input', { value: p.n, maxLength: 12, 'aria-label': 'New name' });
   const boards = v.boards.slice().sort((a, b) => (a.game + a.b).localeCompare(b.game + b.b));
@@ -160,23 +185,30 @@ function render(v) {
 }
 
 // ---------------------------------------------------------------- LOBBY FIXES — REMOVE TEST PLAYERS
-const TP_TICK = ['wka', 'wkb', 'rulescheck', 'checka', 'checkb'];   // (the five 2B test players — pre-ticked; TESTER is listed, never ticked)
 const TP_ALSO = ['TESTER#2599'];
 const tpTicked = new Set();
+let tpSeeded = false;
+const ymd = ms => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 async function testPlayers() {
-  const box = document.getElementById('ad-tp-list'), out = document.getElementById('ad-tp-out');
+  const box = document.getElementById('ad-tp-list'), out = document.getElementById('ad-tp-out'), dIn = document.getElementById('ad-tp-date');
   if (!box) return;
   out.replaceChildren();
-  const { players, next } = await call('testPlayers', { also: TP_ALSO });
-  if (!tpTicked.size) for (const p of players) if (!p.admin && TP_TICK.includes(String(p.n || '').toLowerCase())) tpTicked.add(p.pid);
+  const since = dIn && dIn.value ? new Date(`${dIn.value}T00:00:00`).getTime() : 0;
+  const { players, next, first, total } = await call('testPlayers', { since, also: TP_ALSO });
+  if (dIn && !dIn.value && first) dIn.value = ymd(first);   // (the default shown: the very first profile's day)
+  // (the server's pre-tick seeds the ticks once per list — the owner reviews + changes them; nothing goes without CONFIRM)
+  if (!tpSeeded) { tpSeeded = true; for (const p of players) if (p.pre && !p.admin) tpTicked.add(p.pid); }
+  { const c = cardOf('ad-tp'); if (c) c.count(`${total ?? players.length} · ${players.filter(p => tpTicked.has(p.pid)).length} ticked`); }
   const row = p => {
-    const cb = h('input.ad-tp-cb', { type: 'checkbox', checked: tpTicked.has(p.pid), disabled: p.admin, 'aria-label': `Remove ${p.n}#${p.t}`, onchange: () => { if (cb.checked) tpTicked.add(p.pid); else tpTicked.delete(p.pid); out.replaceChildren(); } });
-    return h('label.ad-tp-row', { dataset: { pid: p.pid } }, cb,
+    const cb = h('input.ad-tp-cb', { type: 'checkbox', checked: tpTicked.has(p.pid), disabled: p.admin, 'aria-label': `Remove ${p.n}#${p.t}`, onchange: () => { if (cb.checked) tpTicked.add(p.pid); else tpTicked.delete(p.pid); out.replaceChildren(); const c = cardOf('ad-tp'); if (c) c.count(`${total ?? players.length} · ${tpTicked.size} ticked`); } });
+    return h('label.ad-tp-row', { dataset: { pid: p.pid }, class: p.pre ? 'is-pre' : '' }, cb,
       h('span.ad-tp-n', p.n, h('small', fmtTag(p.t))),
       h('span.ad-tp-v', p.mn ? `Nº ${String(p.mn).padStart(4, '0')}` : 'no Nº'),
-      h('span.ad-tp-v', `${(p.xp || 0).toLocaleString()} XP · ${p.m || 0} match${p.m === 1 ? '' : 'es'}`),
-      h('span.ad-tp-v.ad-dim', p.at ? when(p.at) : '—'),
-      p.admin ? h('span.ad-tag', 'ADMIN') : null);
+      h('span.ad-tp-v', `${p.m || 0} match${p.m === 1 ? '' : 'es'} · ${p.nights || 0} night${p.nights === 1 ? '' : 's'}`),
+      h('span.ad-tp-v.ad-dim', `made ${p.at ? when(p.at) : '—'}`),
+      h('span.ad-tp-v.ad-dim', `seen ${p.last ? when(p.last) : '—'}`),
+      p.admin ? h('span.ad-tag', 'ADMIN') : null,
+      ...(p.why || []).map(w => h('span.ad-tag.is-why', w)));
   };
   box.replaceChildren(...(players.length ? players.map(row) : [h('p.ad-dim', 'No profiles since then.')]),
     h('div.ad-row', h('span.ad-dim', `Member counter: next Nº ${next || '—'}`), h('button.ad-btn.is-primary', { type: 'button', onclick: tpPreview }, 'Preview removal')));
@@ -202,6 +234,7 @@ async function audit() {
   const box = document.getElementById('ad-log');
   if (!box) return;
   const { log, names } = await call('audit', { limit: 80 });
+  { const c = cardOf('ad-audit'); if (c) c.count(log.length ? `${log.length} latest` : '0'); }
   box.replaceChildren(...(log.length ? log.map(l => h('li',
     h('span.ad-when', when(l.at)),
     h('b', l.act),
@@ -231,12 +264,12 @@ function big(n, label, sub) {
 }
 
 function renderLive() {
-  const box = document.getElementById('ad-live');
+  const box = document.getElementById('ad-live-b2');
   if (!box || !S) return;
   const L = S.live;
   const inGame = Object.values(L.playing).reduce((a, b) => a + b, 0);
   box.replaceChildren(
-    h('div.ad-row.ad-between', h('h2', h('i.ad-dot', { class: L.online ? 'is-on' : '' }), 'Live now'),
+    h('div.ad-row.ad-between', h('span', h('i.ad-dot', { class: L.online ? 'is-on' : '' }), h('span.ad-dim', L.online ? 'people in rooms' : 'quiet')),
       h('div.ad-row', h('span.ad-dim', `updated ${new Date(S.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`),
         h('button.ad-btn', { type: 'button', onclick: () => loadStats(true) }, 'Refresh'))),
     h('div.ad-bigs', big(L.online, 'players in rooms'), big(L.rooms, 'rooms open'), big(inGame, 'games in progress')),
@@ -322,10 +355,10 @@ function timesBlock() {
 }
 
 function renderStats() {
-  const box = document.getElementById('ad-stats');
+  const box = document.getElementById('ad-stats-b2');
   if (!box || !S) return;
+  { const c = cardOf('ad-stats'); if (c) c.count(`${S.totals.matches.toLocaleString()} matches`); }
   box.replaceChildren(
-    h('div.ad-row.ad-between', h('h2', 'Stats'), h('span.ad-dim', `${S.totals.matches.toLocaleString()} matches counted`)),
     h('div.ad-stats-grid', gamesBlock(), playersBlock(), dailyBlock(), growthBlock(), timesBlock()));
 }
 
@@ -345,54 +378,76 @@ async function outages(r) {
   } catch (e) { row.replaceChildren(h('span.ad-dim', `Couldn’t load (${e.message || e})`)); }
 }
 
+// THE GROUPED LOGS (js/admin/groups.js): one row per kind — its count, "N new" since MARK SEEN, first / last seen; a tap opens its entries
+const logs = { err: [], rep: [], errQ: '', repQ: '', openErr: new Set(), openRep: new Set() };
 async function errors() {
   if (!document.getElementById('ad-errs')) return;
   renderErrors((await call('errors')).errors);
 }
-
 const counts = o => Object.entries(o || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(' · ');
-function renderErrors(list) {
+function renderErrors(list) { logs.err = list || []; paintErrors(); }
+function groupRow({ g, open, onToggle, meta, items, onSeen, onClear }) {
+  const body = h('div.ad-grp-b', { hidden: !open }, ...(open ? items() : []));
+  return h('li.ad-err.ad-grp', { class: g.newN ? 'is-new' : '' },
+    h('div.ad-err-top',
+      h('b.ad-err-n', `×${g.n}`),
+      h('button.ad-err-m', { type: 'button', 'aria-expanded': String(open), onclick: onToggle }, g.title, g.newN ? h('span.ad-new', `${g.newN} new`) : null),
+      g.newN ? h('button.ad-btn.ad-btn-sm', { type: 'button', onclick: onSeen }, 'Mark seen') : null,
+      confirmBtn('Clear', onClear)),
+    h('div.ad-err-meta', ...meta),
+    body);
+}
+function paintErrors() {
   const box = document.getElementById('ad-errs');
   if (!box) return;
-  box.replaceChildren(...(list.length ? list.map(e => {
-    const stack = e.k ? h('pre.ad-stack', e.k) : null;
-    if (stack) stack.hidden = true;
-    return h('li.ad-err',
-      h('div.ad-err-top',
-        h('b.ad-err-n', `×${e.n}`),
-        h('button.ad-err-m', { type: 'button', title: 'Show the stack', onclick: () => { if (stack) stack.hidden = !stack.hidden; } }, e.m),
-        confirmBtn('Clear', async () => { renderErrors((await call('clearErrors', { sig: e.sig })).errors); audit(); })),
-      h('div.ad-err-meta',
-        h('code', `${e.s || '?'}${e.l ? `:${e.l}` : ''}`),
-        e.w ? h('span', e.w) : null,
-        h('span', counts(e.d)),
-        h('span', counts(e.b)),
-        h('span', `last ${when(e.last)}`),
-        e.n > 1 ? h('span', `first ${when(e.first)}`) : null,
-        e.v ? h('span', `build ${e.v}`) : null,
-        e.p === 'board' ? h('span', '/board') : null),
-      stack);
-  }) : [h('li.ad-dim', 'No errors reported. 🎉')]));
+  const all = groupErrors(logs.err), groups = filterGroups(all, logs.errQ);
+  { const c = cardOf('ad-errors'); if (c) c.count(all.length ? countLine(all) : '0'); }
+  box.replaceChildren(...(groups.length ? groups.map(g => groupRow({
+    g, open: logs.openErr.has(g.key),
+    onToggle: () => { if (logs.openErr.has(g.key)) logs.openErr.delete(g.key); else logs.openErr.add(g.key); paintErrors(); },
+    meta: [h('span', `${g.items.length} place${g.items.length === 1 ? '' : 's'}`), h('span', `last ${when(g.last)}`), g.n > 1 ? h('span', `first ${when(g.first)}`) : null, h('span', counts(g.items.reduce((o, e) => { for (const [k, n] of Object.entries(e.d || {})) o[k] = (o[k] || 0) + n; return o; }, {})))],
+    items: () => g.items.map(e => {
+      const stack = e.k ? h('pre.ad-stack', e.k) : null;
+      if (stack) stack.hidden = true;
+      return h('div.ad-inst',
+        h('div.ad-err-meta.ad-inst-meta',
+          h('b', `×${e.n}`),
+          h('button.ad-linkbtn', { type: 'button', title: 'Show the stack', onclick: () => { if (stack) stack.hidden = !stack.hidden; } }, h('code', `${e.s || '?'}${e.l ? `:${e.l}` : ''}`)),
+          e.w ? h('span', e.w) : null, h('span', counts(e.d)), h('span', counts(e.b)), h('span', `last ${when(e.last)}`), e.v ? h('span', `build ${e.v}`) : null, e.p === 'board' ? h('span', '/board') : null),
+        stack);
+    }),
+    onSeen: async () => { const r = await call('seenLogs', { sigs: g.items.map(e => e.sig) }); renderErrors(r.errors); toast('Marked seen'); audit(); },
+    onClear: async () => { renderErrors((await call('clearErrors', { sigs: g.items.map(e => e.sig) })).errors); audit(); },
+  })) : [h('li.ad-dim', logs.err.length ? 'Nothing matches the filter.' : 'No errors reported. 🎉')]));
 }
 
 async function reports() {
   if (!document.getElementById('ad-reps')) return;
   renderReports((await call('reports')).reports);
 }
-function renderReports(list) {
+function renderReports(list) { logs.rep = list || []; paintReports(); }
+function paintReports() {
   const box = document.getElementById('ad-reps');
   if (!box) return;
-  box.replaceChildren(...(list.length ? list.map(r => {
-    const body = h('pre.ad-stack.ad-rep', r.text);
-    body.hidden = list.indexOf(r) > 0;   // (the newest open, the rest folded)
-    return h('li.ad-err',
-      h('div.ad-err-top',
-        h('b.ad-err-n', String(r.kind || 'tap').toUpperCase()),
-        h('button.ad-err-m', { type: 'button', title: 'Show / hide', onclick: () => { body.hidden = !body.hidden; } }, `${when(r.at)} · ${r.d || '?'} ${r.b || ''}`),
-        confirmBtn('Clear', async () => { renderReports((await call('clearReports', { id: r.id })).reports); audit(); })),
-      h('div.ad-err-meta', r.v ? h('span', `build ${r.v}`) : null, h('span', r.ua || '')),
-      body);
-  }) : [h('li.ad-dim', 'No reports yet.')]));
+  const all = groupReports(logs.rep), groups = filterGroups(all, logs.repQ);
+  { const c = cardOf('ad-reports'); if (c) c.count(all.length ? countLine(all) : '0'); }
+  box.replaceChildren(...(groups.length ? groups.map(g => groupRow({
+    g, open: logs.openRep.has(g.key),
+    onToggle: () => { if (logs.openRep.has(g.key)) logs.openRep.delete(g.key); else logs.openRep.add(g.key); paintReports(); },
+    meta: [h('span', `last ${when(g.last)}`), g.n > 1 ? h('span', `first ${when(g.first)}`) : null],
+    items: () => g.items.map((r, i) => {
+      const body = h('pre.ad-stack.ad-rep', r.text);
+      body.hidden = i > 0;   // (the newest open, the rest folded)
+      return h('div.ad-inst',
+        h('div.ad-err-top',
+          h('button.ad-err-m', { type: 'button', title: 'Show / hide', onclick: () => { body.hidden = !body.hidden; } }, `${when(r.at)} · ${r.d || '?'} ${r.b || ''}`, r.seen ? null : h('span.ad-new', 'new')),
+          confirmBtn('Clear', async () => { renderReports((await call('clearReports', { id: r.id })).reports); audit(); })),
+        h('div.ad-err-meta', r.v ? h('span', `build ${r.v}`) : null, h('span', r.ua || '')),
+        body);
+    }),
+    onSeen: async () => { const r = await call('seenLogs', { ids: g.items.map(x => x.id) }); renderReports(r.reports); toast('Marked seen'); audit(); },
+    onClear: async () => { renderReports((await call('clearReports', { ids: g.items.map(x => x.id) })).reports); audit(); },
+  })) : [h('li.ad-dim', logs.rep.length ? 'Nothing matches the filter.' : 'No reports yet.')]));
 }
 
 // BNAME — THE BOARD's REPORT button (api/board.js#flagRow)
@@ -400,11 +455,12 @@ async function flags() {
   if (!document.getElementById('ad-flags')) return;
   renderFlags((await call('flags')).flags);
   // (LOBBY 2.0 A — THE REPORT PUSH opens /admin#reports: the Board reports in view once they're in)
-  if (location.hash === '#reports' && !flags.scrolled) { flags.scrolled = true; const r = document.getElementById('reports'); if (r) r.scrollIntoView({ block: 'start' }); }
+  if (location.hash === '#reports' && !flags.scrolled) { flags.scrolled = true; const c = cardOf('reports'); if (c) { c.set(true); c.el.scrollIntoView({ block: 'start' }); } }
 }
 function renderFlags(list) {
   const box = document.getElementById('ad-flags');
   if (!box) return;
+  { const c = cardOf('reports'); if (c) c.count(list.length ? String(list.length) : '0'); }
   box.replaceChildren(...(list.length ? list.map(f => {
     const p = f.player;
     return h('li.ad-err',

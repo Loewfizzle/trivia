@@ -11,32 +11,60 @@ import { ref, val, adminPids } from './fb.js';
 import { isPid, encodeKey, releaseTag } from './profiles.js';
 import { boardPaths, matchCount, clearBoardCache } from './lb.js';
 import { nameKey } from '../../js/core/names.js';
+import { streakDay } from '../../js/core/streak.js';
 import { ApiError } from './http.js';
 
 /** Nov 4 2026, 10:30 am Eastern (EST, UTC−5) = 15:30 UTC — the first of the 2B test players */
 export const TEST_SINCE = Date.UTC(2026, 10, 4, 15, 30);
-const MAX_LIST = 60;
+const MAX_LIST = 200;
+// THE SPEED PASS — ALL OF THEM (the owner, Nov 4 6:07 pm: 46 profiles, most fakes from test runs that reached the live site before the
+// live-site guard): the card lists from a CREATED SINCE date (default: the very first profile) with each profile's counted matches, NIGHTS
+// (the distinct streak days it played on), last seen, member Nº + created; a "looks like a test" PRE-TICK the owner reviews (never removed
+// automatically) — two of: 0 nights · a test-ish name · made in a test burst (3+ profiles within 10 minutes). NEVER pre-ticked: an admin,
+// the named ones (TESTER#2599 — his old laptop card), anyone who played on 2+ nights (a real person who came back — his brother).
+export const TP_NEVER = ['TESTER#2599'];
+const TEST_NAME = /^(test|tester|qa|e2e|bot|fake|dummy|demo|player|guest|slot|check[a-z0-9]*|rules[a-z0-9]*|wk[a-z]?|fg\d*|ava|ben|cat|dan|p\d+|[a-z]{1,4}\d{1,3}|[a-z]\d*|.*test.*)$/i;
+const BURST_MS = 10 * 60_000;
+/** PURE — does a name look like a test run's? */
+export const testName = n => TEST_NAME.test(String(n || '').trim());
+/** PURE — the distinct nights (streak days, 4 am Eastern) in a stats node's counted matches */
+export function nightsOf(s) { const days = new Set(); for (const at of Object.values((s && s.m) || {})) if (Number(at) > 0) days.add(streakDay(Number(at))); return days.size; }
+/** PURE — the pre-tick for every row (rows: { pid, n, t, at, nights, admin }) → each row + { why: [...], pre } */
+export function preTick(rows, never = TP_NEVER) {
+  const ats = rows.map(r => r.at || 0).filter(Boolean).sort((a, b) => a - b);
+  const near = at => { if (!at) return 0; let c = 0; for (const x of ats) if (Math.abs(x - at) <= BURST_MS) c++; return c; };
+  return rows.map(r => {
+    const why = [];
+    if (!r.nights) why.push('0 nights');
+    if (testName(r.n)) why.push('test name');
+    if (near(r.at) >= 3) why.push('test burst');
+    const keep = r.admin || never.includes(`${r.n}#${r.t}`) || (r.nights || 0) >= 2;
+    return { ...r, why, pre: !keep && why.length >= 2 };
+  });
+}
 
 async function row(pid, p) {
   const s = (await val(`pstats/${pid}`)) || {};
-  return { pid, n: p.n, t: p.t || null, mn: p.mn || null, xp: s.xp || p.x || 0, m: matchCount(s) || p.m || 0, at: p.at || null, admin: adminPids().includes(pid) };
+  const ms = Object.values(s.m || {}).map(Number).filter(x => x > 0);
+  return { pid, n: p.n, t: p.t || null, mn: p.mn || null, xp: s.xp || p.x || 0, m: matchCount(s) || p.m || 0, nights: nightsOf(s), last: Math.max(s.last || 0, ...ms, 0) || null, at: p.at || null, admin: adminPids().includes(pid) };
 }
 
-/** the list for the card: newest first */
-export async function listTestPlayers({ since = TEST_SINCE, also = [] } = {}) {
-  since = Number.isFinite(Number(since)) ? Number(since) : TEST_SINCE;
+/** the list for the card: newest first. `since` = the CREATED SINCE date (ms; default 0 = the very first profile) */
+export async function listTestPlayers({ since = 0, also = [] } = {}) {
+  since = Number.isFinite(Number(since)) ? Number(since) : 0;
   const all = (await val('profiles')) || {};
   const pick = new Map();
-  for (const [pid, p] of Object.entries(all)) if (p && p.n && (p.at || 0) >= since) pick.set(pid, p);
+  let first = null;
+  for (const [pid, p] of Object.entries(all)) { if (p && p.n && p.at && (first == null || p.at < first)) first = p.at; if (p && p.n && (p.at || 0) >= since) pick.set(pid, p); }
   for (const q of (Array.isArray(also) ? also : []).slice(0, 10)) {
     const m = /^(.{1,24})#(\d{4})$/.exec(String(q || '').trim());
     if (!m) continue;
     const pid = await val(`tags/${encodeKey(nameKey(m[1]))}/${m[2]}`);
     if (isPid(pid) && all[pid] && all[pid].n) pick.set(pid, all[pid]);
   }
-  const rows = await Promise.all([...pick].map(([pid, p]) => row(pid, p)));
+  const rows = preTick(await Promise.all([...pick].map(([pid, p]) => row(pid, p))));
   rows.sort((a, b) => (b.at || 0) - (a.at || 0));
-  return { players: rows.slice(0, MAX_LIST), since, next: (await val('members/next')) || null };
+  return { players: rows.slice(0, MAX_LIST), since, first, total: rows.length, next: (await val('members/next')) || null };
 }
 
 /** PURE — the member counter after removing `gone` numbers: { from, to } (to === from: no roll-back) */
