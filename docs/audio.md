@@ -1580,3 +1580,12 @@ does nothing — never throws — before the unlock, muted, or with a file missi
 The sign's own recorded neon (audio/ambience.js): a DROPOUT as NEON powers down at the host's tap, a CATCH as the game's logo lights (~0.47 s) — only
 from the start itself (never a refresh mid-start), never on reduced motion. The game's music starts with the stamp (app.js#musicFor: status 'playing');
 the city's sounds stop with the city (THE CITY PAUSE: the scene's `snd`, the rain, the hum go with the title's unmount). The podium keeps FINAL_MUSIC.
+
+## SHELL 2.0 B2 — THE IDLE CUTOFF + City 1.0's own songs dropped (Nov 5 2026)
+- **THE MUSIC's IDLE CUTOFF** (`js/audio/idle.js` — the owner, Nov 4 7:18 pm): 5 HOURS with no tap / key / scroll / wheel → the music fades out
+  (`settings.js#setPageQuiet(true, 'idle')` — this page only, never saved; the quiet now takes a REASON: the second tab's + the idle one each hold
+  it on their own) + ONE message "Music paused — tap to bring it back" (kept up until the tap); any input brings it back. NEVER during a match in
+  a room. A faked-clock test (tests/shell-b2.test.mjs).
+- **late1.mp3 + late2.mp3 DROPPED** (3.46 + 2.03 MB): City 1.0's two lo-fi keepers, named by nothing but City 1.0's own mood decks in
+  data/mood-music.json (`moods` — City 2.0's `city2.moods` cover all five moods, so those decks are a fallback that never plays); every other song
+  is a City 2.0 deck song or a game's (the ten frozen games keep theirs). The deploy 295.5 → 291.3 MB (audio/music 245.1 → 239.6 MB).

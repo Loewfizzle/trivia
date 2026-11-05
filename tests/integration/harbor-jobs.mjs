@@ -30,7 +30,7 @@ export const SECONDS = {
 // 151–583 s of tests each by the cloud's own seconds (+ ~25 s of setup). PERF-B: windows 446 → ~300 (its pages 3 at a time — 280 s on the
 // mini PC; refresh from this run's log), perf 270 → ~200 (the warnings-only pacing loop skipped on CI)
 export const CI_JOBS = {
-  audio: ['music', 'harbor', 'dock', 'tape', 'roofcrisp', 'progress', 'vault', 'gameflows'],   // (FR6 FIXES A: gameflows — the console's flows B1 B2 B4 B6; room2 was at its cap)   // (THE VAULT 1A: vault — the lab's look page + the 8-legendary fps, beside progress)   // (PROGRESSION A: progress — the dock flame + the preview links, beside the dock)   // (NIGHT-C: roofcrisp — three pages at 3×; flags → perf for the room)   // (9a: tape moved here, legends → wild: room for the weather)
+  audio: ['music', 'harbor', 'dock', 'tape', 'roofcrisp', 'progress', 'gameflows', 'vault'],   // (SHELL 2.0 B2: vault LAST — a serial group)   // (FR6 FIXES A: gameflows — the console's flows B1 B2 B4 B6; room2 was at its cap)   // (THE VAULT 1A: vault — the lab's look page + the 8-legendary fps, beside progress)   // (PROGRESSION A: progress — the dock flame + the preview links, beside the dock)   // (NIGHT-C: roofcrisp — three pages at 3×; flags → perf for the room)   // (9a: tape moved here, legends → wild: room for the weather)
   show: ['neon', 'party', 'sky', 'life', 'quietbuilding', 'billboard'],   // (LOBBY 2.0 A: billboard — the cross-fade, ~60 s)   // (NIGHT-C: quietbuilding — the lightest)
   // (LOBBY 2.0 A: THE ROOM IN THE CITY's own job — two phones, a full room, ~3 min)
   lobby: ['room', 'roomchat', 'keypop', 'roomperf', 'crewsky', 'oldrules'],   // (LOBBY 2.0 B: + crewsky + the serial oldrules, last)
@@ -57,7 +57,7 @@ export const CI_JOBS = {
   holiday: ['holiday', 'thanks', 'panelrows', 'citylife', 'sightings'],   // (PROGRESSION B: sightings — the lightest job)   // (9e: citylife — the lightest job)   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
 };
 
-export const SERIAL = ['panel', 'perf', 'oldrules', 'partyroom'];   // (THE SPEED PASS: partyroom — the party room's fps, measured with nothing beside it)   // (LOBBY 2.0 B: oldrules swaps the shared emulator's rules — nothing beside it)
+export const SERIAL = ['panel', 'perf', 'oldrules', 'partyroom', 'vault'];   // (SHELL 2.0 B2: vault — its GPU lobbies at 4× CPU dropped to 46 fps with three shards beside them in the full local run, 59–63 alone: measured with nothing beside it)   // (THE SPEED PASS: partyroom — the party room's fps, measured with nothing beside it)   // (LOBBY 2.0 B: oldrules swaps the shared emulator's rules — nothing beside it)
 
 /** every registered group in exactly one job, every job's group registered, the serial groups last → a list of problems ([] = fine) */
 export function jobProblems(groups, jobs = CI_JOBS) {

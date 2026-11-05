@@ -38,10 +38,12 @@ console's podium rise. **The results rows** (every `leaderboard()` — the podiu
   moves on anyway, a match where nobody is connected goes after `minMs`. `now` / `since` = the server clock.
 - **The night's memory**: `js/games/kit/night.js` — `markUsed(gameId, keys)` in a step's `$room`, `usedOf(state.meta, gameId)` to read
   (`rooms/{CODE}/meta/used/{gameId}/{key}`: survives rematches + new games, gone with the room).
-- **THE ROOM's LOOK** (`js/games/kit/look.js`): a room of ONE picks AUTO (the real sun) · DAY · NIGHT with the round sun / moon tube above
-  PLAY (room-dock.js — its icon + word always show the state; remembered per device; LOCKED once the match starts). While a solo match is
-  on screen the console sets `body[data-look="day" | "night"]`. A game draws nothing of its own for it: it READS the look
-  (`body[data-look="day"] .xx-…` in its css, `document.body.dataset.look` in a canvas). Nothing is set for a room of 2+.
+- **THE GAME LOOK** (`js/games/kit/look.js` — SHELL 2.0 B2; B1's sun / moon tube above PLAY is gone, the owner: "more confusing than
+  helpful"): ☰ → Settings → **GAME LOOK: AUTO · DAY · NIGHT** (AUTO = the real sun, the default), in the room AND in a game, PER DEVICE (a
+  multiplayer match too — it only changes your own screen), **NO LOCK**: a change mid-game re-themes your screen at once. While ANY match
+  is on screen the console sets `body[data-look="day" | "night"]` (app.js#paintLook — the `ns-look` event + a minute's sun re-read). A game
+  draws NO switch of its own: it READS the look LIVE (`body[data-look="day"] .xx-…` in its css; `document.body.dataset.look` in a canvas,
+  re-read each frame or on the `ns-look` event).
 - **COLOUR-BLIND**: right + close are the shared tokens `--good` (green) and `--close` (gold) from css/base.css — EVERY game reads them,
   never its own greens / golds for right / close. SETTINGS → "Colour-blind colours" (per device + on the profile — `ui/colorblind.js`)
   sets `body[data-cb]`, which swaps them to BLUE + ORANGE. **Right / close are never shown by colour alone**: a shape or a mark too

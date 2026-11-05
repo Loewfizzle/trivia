@@ -1991,3 +1991,17 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
   - THE SOLO LANE (OVERCLOCK alone; the streak + 15 XP × 4 a day, no win / night points; solo boards);
   - THE ROOM's LOOK SWITCH (a sun / moon tube above PLAY in a room of one; remembered; locked for the match; body[data-look]);
   - COLOUR-BLIND (--good / --close + body[data-cb]; OVERCLOCK on the tokens; on the profile).
+
+## SHELL 2.0 B2 — GREEN MEANS GREEN, THE OWNER's B1 FIXES, THE GIFT CARDS, MAKE HOST, THE SMALL FEATURES (Nov 5 2026) — docs/harbor/passes/shell-b2.md
+- Group 0: THE HERO-SPOT AUDIT (js/vault/hero.js + the live plate at 390 / 402 / 430; nine cards moved, CHANGED lines); the 1 OF 1 back in the
+  rainbow gradient (bright stops, a dark edge, every letter ≥ 6 : 1 — 8.9–12.2 measured; a gap after FOUNDER); THE GAME LOOK → ☰ → Settings (per
+  device, any match, NO lock — a mid-game change re-themes in ~50 ms); the airliner weight 2 → 1 + MEDIUM tags (the golden table rewritten on
+  purpose); GREEN MEANS GREEN — CREW (a tap resolved to the nearest figure, swallowed fixed windows, the hourly push budget → 10/10), the preview
+  panel's tap, the profile E2E's second tab (81/81 — the old "63/63" stopped there).
+- Group 1: THE GIFT CARDS — 11 one-of-ones (the nephew's 5, Cambria's 2, Liam's 3 + the owner's own), the art composed by
+  scripts/build-gift-art.mjs, the motion by one engine (js/fx/gift.js + gift-specs.js), THE LAB → GIFTS + PREVIEW, /admin → GIFTS (one profile
+  ever), the reveal; the owner's own card granted on 'me'.
+- Group 2: MAKE HOST (RULES CHANGED: meta/hostId's hand-off + meta/hostBy) + THE CREW SWITCH LIVE (the room stamp → the radio loads / goes at once).
+- Group 3: the 5-hour music idle cutoff, YOUR PREVIOUS KEY, a new og.png (shots.mjs --sizes og), late1 + late2 dropped (295.5 → 291.3 MB).
+- Group 4: the cirrus re-checked on the desktop (cast-flicker.mjs: 0 flickers); the choppy load, the far-right skyline + the resize stall → FR7.
+- The add-ons: THE DISPLAY CHECK (no dummy plug: the real-compositor speed checks skip with their reason on a display-less boot).

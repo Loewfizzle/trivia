@@ -101,6 +101,12 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 - **EMBLEMS + GLOWS MOVE ON THE COMPOSITOR (THE VAULT 2A):** an emblem's every moving part is its own HTML-wrapped layer (`js/vault/emblem-art.js` — never a CSS animation on an SVG element: it repaints every frame), transform + opacity only; THE PROMINENCE RULE is the budget (a legendary card leads: its emblem + name glow hold still).
 - **THE VAULT 2B:** DRESS YOUR CARD is the profile's wardrobe (`js/vault/dress.js`); a MEMBER Nº is `profiles/{pid}/mn` (server-only — the owner Nº 0001; never the tag's digits); the two DEV cards are the owner's only (`js/core/dev-cards.js` — granted + checked by the server); a card that shows THE SPEAKEASY draws the city's own front (`js/fx/speak-front.js`).
 - **A FULL CARD ON TOP HOLDS EVERYTHING BEHIND IT (THE SPEED PASS B):** every full card opens through `vault/full.js#openFullCard` — the fx surfaces behind held (`fx/renderer.js#fxCover`), every CSS animation outside it paused (`body.vl-covered`), the city's frames held; a new pop-up that shows a full card goes through it (docs/vault.md "THE COVER").
+- **THE GIFT CARDS (SHELL 2.0 B2 — docs/vault.md "THE GIFT TIER"):** 1-of-1 cards (`core/gift-cards.js`; `dev-cards.js#isOneOfOne` = dev or gift: the
+  rainbow gem + 1 OF 1), given ONLY by the owner's `/admin → GIFTS` (`api/_lib/gifts.js`: `gifts/{card}` = ONE PROFILE EVER, equipped, a reveal —
+  `profile/gift-reveal.js`); the owner's own one (OWNER_GIFTS) granted on 'me' like the dev cards, never giftable. Their art = the material
+  (`assets/vault/gift/` — `scripts/build-gift-art.mjs`), their motion = ONE engine (`fx/gift.js` + the layers as data in `fx/gift-specs.js`).
+- **THE HERO-SPOT RULE (SHELL 2.0 B2):** a strip's main feature middle → middle-right (its centre ≥ 0.60 across), clear of the plate + the gem —
+  a NEW focal card = its row in `js/vault/hero.js` (checked live at 390 / 402 / 430: harbor `platefit`).
 - **THE VAULT 2C:** the strip's tier mark is THE TIER GEM (`js/vault/gems.js` — no words; the dev cards' DEV GEM); a pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES` (it shows CHANGED in THE LAB 2.0); the 12 sign-up shapes are commons everyone owns (`core/items.js#SIGN_EMBLEMS`) — the shape changes only in CUSTOMIZE; an unknown path gets THE WRONG DOOR (`404.html` — keep vercel.json free of rewrites).
 - **ITEM NAMES ONLY TO OWNERS (THE VAULT 1B):** the catalog (names, lines, achievements, what each level / milestone gives, the lab's names) lives in `api/_lib/catalog.js` + `lab-text.js` (never served); a phone gets display rows only for what it owns (`withShow` → the /api wrapper registers them). A new item = its row there. `tests/vault-names.test.mjs` fails on a leak.
 - **PROGRESSION (docs/progression.md):** XP, levels, the streak, items, achievements, X% counts + FOUNDER are written by the SERVER only (one
@@ -118,6 +124,9 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   A City 2.0 room's waiting part IS the live city — app.js routes it to the title (never reloaded);
   `screens/room-city.js` (+ room-dock / room-guests / game-options) puts the players in TWO LINES OF 4 at the door (`core/harbor-room.js` +
   `room-lines.js` — derived from rooms/{CODE}; each keeps their line: `players/{uid}/ln`); docs/harbor/passes/lobby-2a.md (+ B's hand-off).
+- **MAKE HOST + THE CREW SWITCH LIVE (SHELL 2.0 B2):** the host hands the room on from a player's card (`room.js#makeHost` — in the room, to an
+  ONLINE player; the rule validates `meta/hostId` → a live, online, unkicked player; `meta/hostBy` → both phones say it); the owner's CREW switch on a
+  card stamps `rooms/{CODE}/radioCrew/role/{uid}` → that phone's radio loads / goes at once (`radio-gate.js#fresh` / `drop`).
 - **ONE ACCOUNT, ONE ROOM (LOBBY FIXES):** a profile holds ONE seat in ONE live room (`seats/{pid}` — `js/seat.js`: MOVE HERE · CANCEL on the second device); the SERVER credits a profile once per match (the worse seat) and never for two overlapping matches (`core/progress.js#overlaps`). Your NAME + COLOUR are edited at the top of CUSTOMIZE YOUR CARD only (`js/profile/edit.js`).
 - **NEVER THE LIVE SITE (FR6 FIXES A):** tests + repros run on the emulators — `kit/live-guard.mjs` refuses a non-local page unless `LIVE=1` on purpose (then `&test=1`: no profile, no member Nº, a silent room push); docs/testing.md "THE LIVE-SITE GUARD".
 - **THE RULES-LAG (FR6 FIXES A):** every database write goes through `firebase.js#write` (a refusal is reported to /admin, ids masked — never silent); a pass that changes `database.rules.json` fails `tests/rules-live.test.mjs` until its ack names the change, and its summary's FIRST line says RE-PUBLISH + how (docs/testing.md "THE RULES-LAG"); a feature on a new rule keeps a fallback that works on the old one.
@@ -130,7 +139,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   `tests/cartridge.test.mjs` checks the boot graph, `node scripts/boot-bytes.mjs`); only `start` is async, `step` pure + seeded; `prepare` host-only,
   `preload` every phone ≤ 1.5 MB; the kit in `js/games/kit/` (prefix `gk-`, READY = `kit/ready.js`); the night's memory = `meta/used/{gameId}`
   (`kit/night.js`); `MUSIC: 'mood:<mood>'` = that station in sync; `SOLO: true` → THE SOLO LANE (the streak + a small capped XP, never a win);
-  a solo room's look = `body[data-look]` (`kit/look.js` — games read it, draw nothing of their own).
+  THE GAME LOOK = `body[data-look]` (`kit/look.js` — ☰ → Settings, per device, any match, NO lock: games read it LIVE, draw no switch of their own).
 - **COLOUR-BLIND (SHELL 2.0 B1):** right / close = the shared tokens `--good` / `--close` (css/base.css) — never a game's own greens / golds;
   SETTINGS → "Colour-blind colours" sets `body[data-cb]` (blue / orange; per device + the profile — `ui/colorblind.js`). Right / close are
   NEVER shown by colour alone — a shape / a mark too. The city is not affected.
@@ -174,8 +183,8 @@ js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved sessi
 js/core/  room-logic.js hush.js lobby-song.js party.js rainbow.js marks.js palette.js neon-ramp.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js tube-path.js   PURE: room codes + host election, HUSH WORDS, the lobby song, PARTY NIGHTS, RAINBOWS, the games' neon marks + the tube alphabet, the palette + the light timeline, THE NEON COMES ALIVE's plan, seeded RNG, XOR+base64, game-night standings, room playlists, the real sun / moon / seasons / holidays / eclipses (sky.js), Open-Meteo + NOAA's Kp → the weather, the admin STATS, SVG → neon tubes; harbor-*.js: City 2.0 (below)
           week.js ranks.js names.js nicknames.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, THE HOUSE NICKNAMES (BNAME), keys, board catalog, per-game results
 js/profile/ api.js me.js queue.js public.js callouts.js events.js sheets.js keypop.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques (→ the end-of-round moment), the achievements' events
-js/fx/ renderer.js gl.js kit.js index.js + one file per effect   THE EFFECT LIBRARY (THE VAULT 1A — docs/vault.md): ONE shared renderer (surfaces + slots) drawing through THE GL PAINTER (gl.js — WebGL2, a 2D look-alike: iOS rasterises a 2D canvas on the CPU call by call; 1B) with the 2D canvas as the fallback, the baked sprites, the effects
-js/vault/ catalog.js strip.js emblems.js lab.js lab-views.js approved.js + css/vault.css + lab.html (/lab)   THE VAULT: the slim strips, the test emblems, THE CARD LAB (admins only), only-approved-ships
+js/fx/ renderer.js gl.js kit.js index.js + one file per effect (gift.js + gift-specs.js: the gift cards' one engine + their layers)   THE EFFECT LIBRARY (THE VAULT 1A — docs/vault.md): ONE shared renderer (surfaces + slots) drawing through THE GL PAINTER (gl.js — WebGL2, a 2D look-alike: iOS rasterises a 2D canvas on the CPU call by call; 1B) with the 2D canvas as the fallback, the baked sprites, the effects
+js/vault/ catalog.js strip.js emblems.js lab.js lab-views.js approved.js hero.js + css/vault.css + lab.html (/lab)   THE VAULT: the slim strips, the test emblems, THE CARD LAB (admins only, + its GIFTS), only-approved-ships, THE HERO-SPOT RULE
 js/progress/ moment.js streak-card.js card.js profile.js flame.js look.js preview.js + css/progress.css   PROGRESSION's screens (docs/progression.md; lazy): the end-of-round moment + level-up, the streak card, THE GILDED CARD + the profile's sections, the dock's flame, ?preview=
 js/core/ levels.js streak.js items.js achievements.js daily.js progress.js   PURE (server + client): PROGRESSION — the curve, the streak, the items, the 30 achievements + the award engine, the daily contract, the server's steps · js/daily/contract.js (a daily's /api calls)
 js/board/ scene.js view.js screen.js public.js audio.js  THE BOARD: the bar (Canvas 2D), the board UI, app route, /board entry, its SFX
@@ -280,6 +289,8 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - `playMusic(id, fallback)` is driven by `app.js` from state (mood / menu playlist on title/setup/lobby, `module.MUSIC` in a game, `'victory'` on
   the podium). Same track = no-op. `PLAYLISTS` (menu, victory, spy, gridlock…) play several tracks with crossfades; `setPlaylist(id, ids)`
   for a seeded per-room order; `duckMusic(level, s)` and `filterMusic(hz, s)` for moments. Songs on the server clock: `audio/synced-songs.js`.
+- **THE IDLE CUTOFF (SHELL 2.0 B2):** 5 h with no tap / key / scroll → the music fades + "Music paused — tap to bring it back" (`audio/idle.js`;
+  `setPageQuiet(on, reason)` — each reason holds the quiet on its own); never during a match in a room.
 - `sfx(name)` for the shared synth effects; games with their own palette ship a `createSfx()` in `audio.js` (soft, quiet, felt not heard).
 - Audio must be unlocked by a gesture (iOS); the engine retries resumes on every tap and after app switches.
 
@@ -306,7 +317,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - Game screens fill `.screen` with `overflow: hidden`; in a game the fixed corner holds two buttons top-right: ☰ menu (THE SHEET of rows: CHAT —
   hidden while the game locks chat — YOUR CARD, HOW TO PLAY, SETTINGS, SOUND EFFECTS, QUIT TO THE ROOM, host END GAME — settings-panel.js#openMenu) and music on/off (+54, music only, effects
   stay); both are 36 pt circles (`--cb`) with an invisible 44 pt tap area (`::after`); headers use `padding-right: 44px`; announcements
-  stay clear of it. The title (+ the room, which lives there) SPLITS the corners: ☰ top-LEFT, music top-RIGHT (`body.nd-on`, components.css).
+  stay clear of it. (☰ → Settings holds THE GAME LOOK: AUTO · DAY · NIGHT — SHELL 2.0 B2.) The title (+ the room, which lives there) SPLITS the corners: ☰ top-LEFT, music top-RIGHT (`body.nd-on`, components.css).
   A full-width game (`.screen.<x>-screen { max-width: none }`) must also pin the column to the screen's edge:
   `body.<x>-on [data-theme] .music-btn, [data-theme] .menu-btn { right: calc(var(--safe-r) + 12px) }` (gridlock, slip,
   stakes, rum do) — otherwise on desktop the buttons stay at the phone column's edge and land on the game's panels. Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
@@ -354,6 +365,8 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   (the harbor tag in a commit message — whatever the push touched, docs-only included: no path filter since FR6 FIXES A, `tests/workflows.test.mjs`) or `gh workflow run harbor` (`-f job=street`). **At most TWO cloud runs a pass**;
   never re-run to confirm a flake. A new test group: its `G()` in `tests/integration/harbor-e2e/<job>.mjs` + its name in exactly one job in
   `harbor-jobs.mjs`. Locally (the mini PC): the touched groups (`ONLY=…`) while working, the FULL suite once before the final push. Full text: docs/harbor.md.
+- **THE DISPLAY CHECK (SHELL 2.0 B2 — no dummy HDMI plug):** a REAL-COMPOSITOR speed check asks `kit/puppeteer.mjs#displayAttached()` — no display
+  → SKIPPED with "no display attached (a no-screen boot)", counted apart in the suite's last line (never a fail, never a silent pass); docs/testing.md.
 - **THE BASELINE GUARD:** `ONLY=perf` fails above 2× `tests/integration/perf-baseline.json` (`PERF_GUARD=only` ≈ 1.5 min; `PERF_BASELINE=write`
   only when a pass changes the cost on purpose — say so). A cache keyed per frame must hold its whole working set.
 - `node --test tests/*.test.mjs` — unit + whole-match simulations of all twelve games (the ten hidden ones' quick tests kept), no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).

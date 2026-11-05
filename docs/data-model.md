@@ -5,7 +5,11 @@ Every node in the Realtime Database and every game's `game` shape.
 ## Data model (RTDB)
 ```
 rooms/{CODE}/                                                ← CODE = the room's HUSH WORD (data/hushwords.json); old random codes still open
-  meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, locked?, settings/{gameId}: {...} }
+  meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, hostBy?, locked?, settings/{gameId}: {...} }
+             hostId (SHELL 2.0 B2 — MAKE HOST): the host may hand it to a LIVE, ONLINE, UNKICKED player of the room (the rule's .validate);
+             a claim for yourself + the room's creation as before. hostBy = who handed it over (MAKE HOST — every phone says it once)
+  radioCrew/role/{uid}: { on, at }                           ← SERVER (SHELL 2.0 B2 — THE CREW SWITCH LIVE): the owner flipped this player's
+                                                               CREW on their card → their phone loads / drops its radio at once
              locked: true = LOCK THE DOOR (host): the rules refuse a NEW players/{uid}; existing nodes (refresh, rejoin,
              a dropped phone coming back, leaving) are untouched; kicked stays kicked either way
   players/{uid}:  { name, color, avatar, joinedAt }          ← written by that player only (a new node only while unlocked);
@@ -252,6 +256,13 @@ game: { id:'stakes', matchId, participants, n0, dplan[11], round, rk, phase: int
         bank{i: enc}, qmeta{i: "cat|d"} (public), trivia{n, token, lastFetchAt, fails, seen} }
 rooms/{CODE}/hslock/{m}/{rk}/{uid}: { b?: server time, a?: server time }   ← own, public flags only, only with the hidden value behind them
 hsbet/{CODE}/{m}/{rk}/{uid}: { b: { b, at }, a: { a 0-3, at } }            ← top level; owner reads; the host from 'show' on; once each, in phase
+```
+
+## gifts/ (SHELL 2.0 B2 — server only)
+```
+gifts/{card id}: { pid, at, by }    ← THE GIFT TOOL's lock (api/_lib/gifts.js): a 1-of-1 gift card belongs to ONE profile EVER — taken in a
+                                      transaction before the grant; nothing clears it. Read + written by nobody but the server.
+ppriv/{pid}/gift: { id, at }        ← the reveal waiting ("A gift from the house" on the next open — /api/profile giftCheck / giftSeen)
 ```
 
 ## members/ (THE VAULT 2B — server only)

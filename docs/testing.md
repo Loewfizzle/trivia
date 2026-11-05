@@ -73,6 +73,16 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   "<browser>"`** (WebGL / WebGL2 + the renderer string + chrome://gpu's feature table; exit 1 on no WebGL2 or a software renderer) — run it first
   whenever the speed checks go red together. Proof: `ONLY=perf` 12/12 with the TV off (the calm load tier 2 held, the guard 0.45–0.56×). A dummy
   HDMI plug (a 4K headless display emulator) would make the machine look like it has a display — no longer needed for the tests.
+- **THE DISPLAY CHECK** (SHELL 2.0 B2 — the owner, Nov 5 12:58 pm: NO dummy plug). The two VAULT lobbies measured on the REAL compositor (the
+  frames a screen would show — `launchReal`) are slow with no display attached whatever the page does (DWM presents display-less). They ask
+  `kit/puppeteer.mjs#displayAttached()` first (Windows' present monitors: `Get-PnpDevice -Class Monitor -PresentOnly`; `DISPLAY_ATTACHED=1|0`
+  overrides): attached → they run exactly as before; none → their rule half is checked and the speed half is **SKIPPED with the reason "no display
+  attached (a no-screen boot)"** (`harbor-e2e/kit.mjs#skipNoDisplay`) — never a fail, never a silent pass. The suite's last line counts them apart:
+  `checks N/M passed (of them X ran + passed · K skipped (no display) · J skipped (on CI))`. Pure verdict `displayVerdict` (tests/shell-b2.test.mjs).
+- **A FLICKER, MEASURED** (SHELL 2.0 B2): `shots.mjs --cast <ms>` saves every painted frame; `tests/integration/cast-flicker.mjs "<browser>" <dir>`
+  cuts each frame's sky into a 12 × 4 grid and reports the frame-to-frame jumps + the FLICKERS (a cell that jumps and comes straight back).
+- **THE LINK-PREVIEW IMAGE**: `node tests/integration/shots.mjs "<browser>" --preview --city 2 --scenes og=2026-06-12T22:30 --sizes og --idle` →
+  copy to `assets/og.png` (1200 × 630) + bump its `?v=` in index.html.
 - **THE 20-CYCLE MEMORY CHECK reads the heap WITHOUT V8's compiled code** (ATM-A — `harbor-e2e/kit.mjs#heapNoCode`): heap snapshots at cycle 2 vs 20
   showed +6.2 MB of JIT code (1,098 InstructionStreams — it grows with how long + how fast the page ran: +4.3 MB here, +6.4 in the cloud on the same
   build) against +0.35 MB of JS objects; the check takes a snapshot (a full GC first) and counts every node but `code` — objects, strings, closures,

@@ -519,3 +519,40 @@ DEV GEM (32 pt) with "1 OF 1" to its LEFT in the gem's own light (`.vl-fc-1of1` 
 on gold), inset so its halo clears the rounded corner; the strips keep the rainbow gem alone (calm). A new card needs nothing: its tier picks
 its gem. **The results rows** wear the strips too (`ui/strip-board.js` — one shared surface a list, calm) — THE PROMINENCE RULE + the cover's
 budget apply as in the guest list.
+
+## THE HERO-SPOT RULE (SHELL 2.0 B2 — the audit; docs/harbor/passes/shell-b2.md)
+Every slim strip's MAIN FEATURE sits middle → middle-right — its centre right of a 10-letter name's plate on every phone (≥ 0.60 across; LOEWFIZZLE's
+name row ends at 0.58 at 390), the whole feature clear of the plate's level row + the tier gem; the plate NEVER over a card's art element.
+`js/vault/hero.js#HERO` declares each focal card's box (the effect's own layout numbers; the gift cards' from their spec's `hero`), `heroMisses()`
+the pure half, harbor `platefit` the live plate at 390 / 402 / 430. A NEW card with a focal element = its row. B2 moved: CAMO's reticle, CENTURY's
+sun, the TR-3B, the prism, EMERALD's crown, the UFO, the marquee's arrow, THE SOURCE's NEON, THE SWITCHBOARD's jacks + its full card's ON AIR (up
+in the band under the top line) — each with its CHANGED line.
+
+## THE GIFT TIER + THE GIFT TOOL (SHELL 2.0 B2 — the owner, Nov 4 3:52 pm – Nov 5 12:58 pm)
+- **1-OF-1 cards like the dev cards** (`js/core/gift-cards.js`): the rainbow DEV GEM on the strip, the 1-OF-1 badge on the full card, legendary
+  in every rule (the prominence rule, the laser) — and their art + motion play even on a legendary-led strip (the prominence rule's exception).
+  `core/dev-cards.js#isOneOfOne` = a dev card or a gift card (the gem, the badge, CUSTOMIZE's order); only the dev cards carry THE DEVELOPER · Nº.
+  Never earnable, in no reward table; their art always shows to their one owner (`approved.js` — he gives one only once he's picked it).
+- **THE 11** (names on the server only — api/_lib/catalog.js): the nephew's five, Cambria's two, Liam's three — all GIFTABLE — + the owner's own
+  card (OWNER_GIFTS: granted by the server to ADMIN_PIDS on `/api/profile 'me'` (audited `giftOwner`), never listed in GIFTS, refused to anyone else).
+- **THE ART** = the material: `assets/vault/gift/<art>.webp` (1280 × 800 — `scripts/build-gift-art.mjs` composes the seven from art/gifts/src/
+  (copies of the owner's Downloads\NEON\gifts — never the originals): the subject right, the left dark for the plate, flat Grok backgrounds keyed
+  out + despilled; the four ADD-ON pictures arrive laid out and are only converted). The strip shows the art's middle band at the spec's crop
+  (`gift-specs.js` `strip` = the CSS's `background-position` %, checked equal); the full card's plate sits lower (47 %) to keep the face clear.
+- **THE MOTION** = ONE engine, `js/fx/gift.js` (on the shared surface + the GL painter — never a canvas per card), drawing each card's LAYERS from
+  `js/fx/gift-specs.js` in ART pixels mapped exactly like the CSS crop: motes (dust, embers, snow, sparks), breathing / buzzing / flickering lights,
+  sweeps (gleams, glints, a star flare), rays, CRT scanlines, a synthwave grid, baked words (HIT HARD., PRESS START — a sprite, never GL text),
+  flash-bulb pops, a REGION of the art moved (the ball spins, the ransom letters jitter), a sprite that moves (the polaroid), a pulsing heart,
+  palms, heat haze, paint drips, swaying beams, smoke, aurora, frost, breath, speed streaks, the neon edge, a copier's light bar. The full card the
+  whole show, a strip the calmer cut (fewer motes, softer, no full-only layers); reduced motion = the still frame. 60 fps: 8 gift strips at 4× CPU
+  on the GPU path 63 fps · 0 slow; the three busiest full shows alone the same bar (harbor `vault`).
+- **THE GIFT TOOL** (`/admin → GIFTS`, `api/_lib/gifts.js`): pick a card, type a NAME TAG, GIVE (the second tap confirms) — owner-only (the admin
+  gate), `gifts/{card}` taken in a TRANSACTION first (ONE PROFILE EVER: a second give refused, 409 `taken`), then the card into their items,
+  EQUIPPED (`profiles/{pid}/cd`), a reveal waiting (`ppriv/{pid}/gift`); audited `giftGive`. **THE REVEAL** (`js/profile/gift-reveal.js`): a light
+  `giftCheck` 6 s after the title is up → "A GIFT FROM THE HOUSE · ONE OF ONE · IT'S YOURS" over the full card FLIPPING IN (the stage — card +
+  canvas — turns; transform + opacity; reduced motion: it appears) → IT'S YOURS = `giftSeen` (once). Never over a match.
+- **THE LAB → GIFTS**: the 11 (strip + FULL CARD ›) with **PREVIEW ON MY CARD ›** — the reveal as the owner's own card, nothing granted. The
+  LOBBY TEST has THE GIFTS mix. Proof: tests/shell-b2.test.mjs + server.test.mjs "THE GIFT TOOL" + rules.test.mjs (gifts/ nobody's).
+- **THE 1 OF 1** (B2): back to the RAINBOW GRADIENT (the owner: "the fancy gradient colour, just more VISIBLE"): bright stops only, a touch bigger, a
+  dark drop-shadow edge (a text-shadow would paint over a clipped gradient), the darker backing pill, a 10 pt gap after FOUNDER (6 in the 72 %
+  viewer) — every letter ≥ 6 : 1 over the backing laid on white (8.9–12.2 measured; harbor `roomfix`).

@@ -127,9 +127,10 @@ city chat first (a new rule).
 clock: every phone in the room gets the same song at the same place (`audio/party-music.js#stationCue`), and the menu song plays until the
 decks have loaded. The console already owns the unlock-on-tap + the one mute.
 
-**THE SOLO LANE (D3) + THE LOOK SWITCH.** `SOLO: true` lets ONE player start it (`minPlayersOf` → 1). A room of one plays it end to end and
-it counts for the STREAK + a SMALL, CAPPED XP (docs/profiles.md "THE SOLO LANE"). The room's AUTO / DAY / NIGHT look (`games/kit/look.js`
-+ `body[data-look]`) is the console's: a game draws nothing of its own, it reads the look. Right / close use the shared `--good` /
+**THE SOLO LANE (D3) + THE GAME LOOK.** `SOLO: true` lets ONE player start it (`minPlayersOf` → 1). A room of one plays it end to end and
+it counts for the STREAK + a SMALL, CAPPED XP (docs/profiles.md "THE SOLO LANE"). THE GAME LOOK (SHELL 2.0 B2 — ☰ → Settings → AUTO / DAY /
+NIGHT, per device, any match, no lock: `games/kit/look.js` + `body[data-look]`) is the console's: a game draws NO switch of its own, it
+reads the look LIVE (a change mid-game re-themes the screen at once). Right / close use the shared `--good` /
 `--close` tokens (COLOUR-BLIND swaps them), never colour alone (docs/match-kit.md).
 
 ### What plugs where

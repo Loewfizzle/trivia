@@ -362,3 +362,12 @@ card's frame, CUSTOMIZE YOUR CARD + the level bar; hot pink = the end of round's
   next level whose reward the player does NOT own (`reset.js#nextUnownedLevel`) — the round-end tease names it; a level-up whose reward is
   already owned says "Already yours", never UNLOCKED. RESTORE (type RESTORE) puts a backup's progress back + merges the items (never takes one).
   NEVER run against the live site from a test — the owner presses it himself.
+
+## SHELL 2.0 B2 (Nov 5 2026 — docs/harbor/passes/shell-b2.md)
+- **THE GIFT CARDS** — server grants only: `/admin → GIFTS` (`api/_lib/gifts.js`: owner-only, audited, `gifts/{card}` = one profile ever; the card
+  equipped + a reveal waiting in `ppriv/{pid}/gift`; `/api/profile giftCheck` · `giftSeen`). The owner's own gift card is granted on 'me' to
+  ADMIN_PIDS like the dev cards (audited once), refused on 'style' to anyone else, taken back from anyone else's items. docs/vault.md.
+- **YOUR PREVIOUS KEY** on YOU → ACCOUNT (it only lived in City 1.0's key sheet): a glass row under YOUR KEY when this phone has one
+  (`me.js#previousKey` — the key held before a restore / a new key): tap = COPY; FORGET (a second tap confirms).
+- **MAKE HOST** (the room): the host's row on a player's card (docs/data-model.md — the rule takes a hand-off only to a live online player).
+- **THE CREW SWITCH LIVE**: `radioCrewSet` with the room → `rooms/{CODE}/radioCrew/role/{uid}` → that phone loads / drops its radio at once.
