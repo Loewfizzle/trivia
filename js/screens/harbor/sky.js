@@ -1,7 +1,7 @@
 // CITY 2.0 — THE HARBOR: the sky's own paint — the hour's gradient (palette.js, from the real sky: core/sky.js#look) and the
 // glow low over the harbor, repainted only when the look changes. The real sky ON it (the stars, the sun, the moon, planes,
 // clouds, rain, birds, fireworks, rainbows) is the district's sky modules, called as they are (docs/harbor.md#the-architecture).
-import { css } from '../district/palette.js';
+import { css } from '../../core/palette.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { litK } from '../../core/harbor-dark.js';
 

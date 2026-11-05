@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sunArc, sunTimes, sunPosition, solarEclipse, look } from '../js/core/sky.js';
-import { sunPlace, sunColor, sunShape } from '../js/screens/district/sun.js';
+import { sunPlace, sunColor, sunShape } from '../js/screens/harbor/sun.js';
 
 const CITIES = {
   nyc: { tz: 'America/New_York', lat: 40.71, lon: -74.0 },

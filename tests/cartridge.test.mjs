@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { GAMES } from '../js/config.js';
 import { REQUIRED, OPTIONAL, checkCartridge, minPlayersOf, chipsOf, rematchSettingsOf } from '../js/games/cartridge.js';
-import { MARKS } from '../js/screens/district/marks.js';
+import { MARKS } from '../js/core/marks.js';
 
 const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 /** the names a module exports, from its source (export const / function / let, export { a, b as c } [from …]) */

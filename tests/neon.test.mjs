@@ -2,8 +2,8 @@
 //   node --test tests/neon.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { neonPlan, neonState, neonNext } from '../js/screens/district/neon-ramp.js';
-import { sunMoments, sunPlace, sunShape } from '../js/screens/district/sun.js';
+import { neonPlan, neonState, neonNext } from '../js/core/neon-ramp.js';
+import { sunMoments, sunPlace, sunShape } from '../js/screens/harbor/sun.js';
 import { sunPosition, sunArc } from '../js/core/sky.js';
 
 const MIN = 60000;

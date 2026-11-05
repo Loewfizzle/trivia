@@ -96,7 +96,7 @@ test('the moon crosses the screen from moonrise (0) to moonset (1)', () => {
 });
 
 test('the night sky: real star positions turn with the sky', async () => {
-  const { galToEq, altAz, lst } = await import('../js/screens/district/stars.js');
+  const { galToEq, altAz, lst } = await import('../js/screens/harbor/stars.js');
   const gc = galToEq(0, 0);
   assert.ok(Math.abs(gc.ra - 266.4) < 0.5 && Math.abs(gc.dec + 28.94) < 0.5, `galactic centre at RA ${gc.ra.toFixed(1)} Dec ${gc.dec.toFixed(1)}`);
   // Polaris sits at the observer's latitude, due north, all night

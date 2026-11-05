@@ -14,7 +14,7 @@
 // skyline below it: the drones are in front of the city, over the harbor); drawn after the city and before the water (the mirror
 // doubles them), the ones still low by the barge after the water.
 import { droneShape, droneTimeline, hsv, dotLayout, messagePages, fillText } from '../../core/harbor-sky.js';
-import { MARKS } from '../district/marks.js';
+import { MARKS } from '../../core/marks.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 
 const TAU = Math.PI * 2;

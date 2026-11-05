@@ -2,11 +2,11 @@
 // The title's living scene is too costly to keep running while people sit in a lobby, so when the title leaves we
 // keep one frame of it; a phone that lands in a lobby straight away (resume, invite) renders the city once, quietly,
 // in a hidden canvas. Either way the menus cost one static image — the drift is a compositor transform.
-import { createDistrict } from './scene.js';
-import { GAMES } from '../../config.js';
-import { createBeatClock, advanceBeat } from '../../core/party.js';
-import { beatSource } from '../../audio/beat.js';
-import { settings } from '../../audio/settings.js';
+import { createDistrict } from './district/scene.js';
+import { GAMES } from '../config.js';
+import { createBeatClock, advanceBeat } from '../core/party.js';
+import { beatSource } from '../audio/beat.js';
+import { settings } from '../audio/settings.js';
 
 let snap = null;      // canvas holding the still
 let light = null;     // PARTY NIGHTS: the party's light alone (breathes over the still)

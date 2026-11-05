@@ -15,15 +15,15 @@
 // Quality tiers (DPR 2 / 1.5 / 1, rain, shimmer, ripples) step down when frames run slow; rendering
 // pauses while the tab is hidden; destroy() releases every canvas.
 import { createSigns } from './signs.js';
-import { createStars } from './stars.js';
+import { createStars } from '../harbor/stars.js';
 import { look as skyLook, skyClock } from '../../core/sky.js';
-import { paletteFor, css } from './palette.js';
-import { createFx } from './fx.js';
+import { paletteFor, css } from '../../core/palette.js';
+import { createFx } from '../harbor/fx.js';
 import { createPartyFx } from './party-fx.js';
-import { createFireworks } from './fireworks.js';
+import { createFireworks } from '../harbor/fireworks-2d.js';
 import { partyState, partyHour, finaleDue, createBeatClock, advanceBeat, breathShape, partyPalette, partySeed } from '../../core/party.js';
-import { createSun } from './sun.js';
-import { createRainbow } from './rainbow.js';
+import { createSun } from '../harbor/sun.js';
+import { createRainbow } from '../harbor/rainbow.js';
 import { createFurniture } from './furniture.js';
 import { createPeople } from './people.js';
 import { bowEnvelope, bowWeights, bowSchedule, lastRain } from '../../core/rainbow.js';
@@ -91,7 +91,7 @@ export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [
   const sun = createSun();           // the real sun (sun.js): loaded with the first paint (a morning title shows it at once)
   let safeTopV = 0, safeBotV = 0;
   setTimeout(() => {
-    Promise.all([import('./weather-fx.js'), import('./rain.js'), import('./wildlife.js'), import('./street.js'), import('./live-weather.js'), import('./frost.js'), import('./aircraft.js')]).then(([a, b, c, d, e, f, g]) => {
+    Promise.all([import('../harbor/weather-fx.js'), import('./rain.js'), import('./wildlife.js'), import('./street.js'), import('../harbor/live-weather.js'), import('../harbor/frost.js'), import('../harbor/aircraft.js')]).then(([a, b, c, d, e, f, g]) => {
       if (destroyed) return;
       wfx = a.createWeatherFx({ onFlash: ev => { if (S.onFlash) S.onFlash(ev); } }); rain = b.createRain(); birds = c.createWildlife(); road = d.createStreet(); frost = f.createFrost(); air = g.createAircraft();
       for (const m of [wfx, rain, birds, road, frost, air]) m.resize(W, H, HZ);

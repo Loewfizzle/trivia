@@ -43,8 +43,8 @@ import { tiredLetters, tiredForced } from '../core/harbor-show.js';
 import { isUnlocked } from '../audio/engine.js';
 import { musicClock } from '../audio/music.js';
 import { createDistrict } from './district/scene.js';
-import { captureBackdrop } from './district/backdrop.js';
-import { neonPlan, neonState, neonNext, firstTapAnswer, createStartDetector } from './district/neon-ramp.js';
+import { captureBackdrop } from './backdrop.js';
+import { neonPlan, neonState, neonNext, firstTapAnswer, createStartDetector } from '../core/neon-ramp.js';
 import { createDock, dressCorners, ICON } from './title-dock.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): THE DEFAULT since WINDOWS (Nov 1); `?city=1` shows City 1.0 instead (never saved anywhere).
 // No top-level await (iOS 14 can't parse one — the whole app would die, every game and City 1.0 too): app.js holds the title on

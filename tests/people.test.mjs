@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pedWant, pedKind, PED_KINDS, umbrellaFor, doorGap, visitSlot, hintDue, hailGap, lineLength, holidayStreet } from '../js/core/people.js';
 import { look, skyClock } from '../js/core/sky.js';
-import { paletteFor } from '../js/screens/district/palette.js';
+import { paletteFor } from '../js/core/palette.js';
 
 test('a quiet street: 1–3 people on an evening, a couple more at rush hour and on party nights, almost nobody 2–5 am', () => {
   const ev = pedWant(21, { dow: 3 });

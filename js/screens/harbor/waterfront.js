@@ -12,7 +12,7 @@
 // additively with the city's power.
 import { project, groundY } from '../../core/harbor-layout.js';
 import { tube, drawLit, drawGlass, sprite, free, mix, rgba } from './tubes.js';
-import { LETTERS } from '../district/marks.js';
+import { LETTERS } from '../../core/marks.js';
 import { flattenPath } from '../../core/tube-path.js';
 import { hashString } from '../../core/rng.js';
 import { BAKE_CAP } from '../../ui/canvas-safe.js';

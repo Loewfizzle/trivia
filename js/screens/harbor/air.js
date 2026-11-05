@@ -15,7 +15,7 @@
 //   HELICOPTER  a crafted chopper (glass canopy, a two-tone body, skids, a tail rotor) with a motion-blurred rotor disc; it
 //               comes in, hovers over the harbor and goes; at night a SEARCHLIGHT beam to the water + its pool, a red beacon,
 //               nav lights. fly(route) is the hook for Part 10's party yacht landing.
-import { trafficRate, planPath, navLights, starlinkNight, satTwilight } from '../district/aircraft.js';
+import { trafficRate, planPath, navLights, starlinkNight, satTwilight } from './aircraft.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { knob } from '../../core/harbor-schedule.js';
 import { tierVal } from '../../core/harbor-tiers.js';

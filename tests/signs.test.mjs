@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GAMES } from '../js/config.js';
-import { MARKS, LETTERS, markFor, bladeWord, tubeEnds, scalePath } from '../js/screens/district/marks.js';
+import { MARKS, LETTERS, markFor, bladeWord, tubeEnds, scalePath } from '../js/core/marks.js';
 import { createRotation, rotate, CHANGE_EVERY, tickerText, holidayLine, nightsTo } from '../js/screens/district/sign-logic.js';
 
 test('every game in the registry has its own neon mark and a blade word the tube alphabet can draw', () => {
@@ -74,7 +74,7 @@ test('rotation: a sign only takes the games it can show (the blade: names that f
 
 test('the two blade signs never wear the same colour at once', async () => {
   const { distinctFrom } = await import('../js/screens/district/signs.js');
-  const { hexRgb } = await import('../js/screens/district/marks.js');
+  const { hexRgb } = await import('../js/core/marks.js');
   const d = (a, b) => { const p = hexRgb(a), q = hexRgb(b); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); };
   const COLS = ['#3dff8b', '#f3e3bd', '#ff4466', '#ffb627', '#a374ff', '#eafffb', '#e6e9ef', '#d6f0ff', '#ffc46b', '#7fb2ff', '#ffd86b', '#f0c75e', '#ff4f8a', '#2bff86'];
   for (const a of COLS) for (const b of COLS) assert.ok(d(distinctFrom(a, b), b) >= 120, `${a} next to ${b}`);

@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { trafficRate, planPath, navLights, starlinkNight, satTwilight } from '../js/screens/district/aircraft.js';
+import { trafficRate, planPath, navLights, starlinkNight, satTwilight } from '../js/screens/harbor/aircraft.js';
 
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
@@ -54,7 +54,7 @@ test('Starlink trains: about one evening in four or five, the same nights for ev
 
 test('the old flying vehicles and the old satellite train are gone; planes draw behind the clouds and the skyline', () => {
   const scene = readFileSync(new URL('../js/screens/district/scene.js', import.meta.url), 'utf8');
-  const fx = readFileSync(new URL('../js/screens/district/fx.js', import.meta.url), 'utf8');
+  const fx = readFileSync(new URL('../js/screens/harbor/fx.js', import.meta.url), 'utf8');
   assert.ok(!/vehiclesStep|vehicles\b/.test(scene), 'vehicles removed from scene.js');
   assert.ok(!/\bsats\b|nextSats/.test(fx), 'the old satellite train removed from fx.js');
   const air = scene.indexOf('air.draw(c, fs)'), clouds = scene.indexOf('wfx.sky(c, fs)'), rows = scene.indexOf('layers.forEach((L, li) =>', air);

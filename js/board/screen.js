@@ -3,7 +3,7 @@
 import { createBoardView } from './view.js';
 import { setState } from '../store.js';
 import { loadMe } from '../identity.js';
-import { backdropStill } from '../screens/district/backdrop.js';
+import { backdropStill } from '../screens/backdrop.js';
 
 export function createView() {
   let view = null, unsub = null, lastMe = '';

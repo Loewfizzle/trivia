@@ -17,7 +17,7 @@ import { liveKeyFor } from '../registry.js';
 import { settings } from '../../audio/settings.js';
 import { setPlaylist, duckMusic, filterMusic } from '../../audio/music.js';
 import { rngFrom } from '../../core/rng.js';
-import { showBackdrop } from '../../screens/district/backdrop.js';
+import { showBackdrop } from '../../screens/backdrop.js';
 import { createAnnouncer, createCards, showCall as kitCall, reportPanel, ordinal, createTiers, installTestHook, removeTestHook } from '../kit/index.js';
 import {
   aliveOf, boardOf, isShot, canPlace, validLayout, randomLayout, encodeFleet, decodeFleet, resolveVolley, encodeAim, encodeLock, shotKey,

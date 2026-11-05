@@ -411,7 +411,7 @@ import { flattenPath, tubeLight } from '../js/core/tube-path.js';
 import { scrollColumns } from '../js/core/harbor-windows.js';
 import { lighthouseBoxes } from '../js/core/harbor-layout.js';
 import { GAMES } from '../js/config.js';
-import { MARKS, bladeWord } from '../js/screens/district/marks.js';
+import { MARKS, bladeWord } from '../js/core/marks.js';
 
 // (WINDOWS: the sign MECHANICS are tested on all twelve — a list that grows or shrinks fills more or fewer spots; THE FIVE SIGNS below)
 const GAMES12 = GAMES.map(g => ({ id: g.id, name: g.name, short: signName(g) }));
@@ -1088,8 +1088,8 @@ import { EVENTS, INPUTS, REMOTE_KEYS, SHOW_SCENE_LIST, HOLIDAYS, TIMES, cleanRem
 import { skyClock, holidayOf, sunTimes, localParts } from '../js/core/sky.js';
 
 test('the preview panel: one registry — every &force= preview the Harbor runs is on it, and every row is a real preview', () => {
-  // the modules City 2.0 runs (its own + the district's sky modules it reuses): every id they test with force.has(...)
-  const files = [...readdirSync('js/screens/harbor').map(f => `js/screens/harbor/${f}`), ...['fx', 'sun', 'weather-fx', 'frost'].map(f => `js/screens/district/${f}.js`), 'js/screens/title.js', ...readdirSync('js/core').filter(f => /^harbor-.*\.js$/.test(f)).map(f => `js/core/${f}`)];   // (C4d: + the pure modules — harbor-events.js reads 'demo')
+  // the modules City 2.0 runs (its own — the old district's sky modules moved in with CITY 1.0 OUT): every id they test with force.has(...)
+  const files = [...readdirSync('js/screens/harbor').map(f => `js/screens/harbor/${f}`), 'js/screens/title.js', ...readdirSync('js/core').filter(f => /^harbor-.*\.js$/.test(f)).map(f => `js/core/${f}`)];   // (C4d: + the pure modules — harbor-events.js reads 'demo')
   const src = files.map(f => readFileSync(f, 'utf8')).join('\n');
   const used = new Set([...src.matchAll(/(?:(?:force|f|off|clock\.force)\.has|scene\.forced)\('([a-z0-9-]+)'\)/g)].map(m => m[1]));
   for (const m of src.matchAll(/again\('([a-z0-9-]+)'/g)) used.add(m[1]);
@@ -1671,7 +1671,7 @@ import { layersOf } from '../js/core/weather.js';
 import { DAY_PAINT, dayPaint } from '../js/screens/harbor/signs.js';
 import { lhEdgeBlocks } from '../js/core/harbor-neon.js';
 // (GAMES: imported above)
-import { sunColorHarbor, sunColor, sunColourAt } from '../js/screens/district/sun.js';
+import { sunColorHarbor, sunColor, sunColourAt } from '../js/screens/harbor/sun.js';
 
 test('THE DAY PASS — the sun\'s side by day is continuous (never flat at noon); with the sun down the old sides exactly', () => {
   const at = (az, el) => sunLook({ sun: { az, el }, w: { day: 1 } }, null);
@@ -1907,7 +1907,7 @@ test('THE BLUE-HOUR POWER-UP (DT1): tonight\'s order (seeded by the date: outlin
 
 test('THE BLUE HOUR (DT1): the Harbor\'s look passes through a deep-blue sky between sunset and night (City 1.0\'s palette untouched)', async () => {
   const { blueHour, harborWeights } = await import('../js/screens/harbor/tones.js');
-  const { paletteFor } = await import('../js/screens/district/palette.js');
+  const { paletteFor } = await import('../js/core/palette.js');
   assert.equal(blueHour(2), 0); assert.equal(blueHour(-0.8), 0); assert.equal(blueHour(-5), 1); assert.equal(blueHour(-14), 0);
   const LK = { w: { night: 0.2, late: 0, dawn: 0, day: 0, golden: 0.8 }, sun: { el: -5 }, season: { winter: 0, autumn: 1, spring: 0, summer: 0 }, holiday: null };
   const H = harborWeights(LK), sum = Object.values(H.w).reduce((x, y) => x + y, 0);
@@ -2266,7 +2266,7 @@ test('7a — THE SPEAKEASY on every phone: same size, the edge windows cut at ha
 
 // ------------------------------------------------------------------ 8a — the first tap, the pulse strength (pure)
 test('8a — THE FIRST TAP reads the sign\'s real state: unlit (goodbye / day / golden hour\'s early sputters) → surge, the warm-up window → catch, lit → first; reduced → soft (the catch still catches); the intro / busy skip', async () => {
-  const { neonPlan, neonState, firstTapAnswer, warmAt } = await import('../js/screens/district/neon-ramp.js');
+  const { neonPlan, neonState, firstTapAnswer, warmAt } = await import('../js/core/neon-ramp.js');
   const MIN = 60000, base = Date.UTC(2026, 9, 23, 11, 0);
   const moments = { rise: base, clearAt: base + 8 * MIN, startAt: base + 10 * 3600e3, catchAt: base + 11 * 3600e3 };
   for (const reduced of [false, true]) {
@@ -2300,7 +2300,7 @@ test('8a — THE FIRST TAP reads the sign\'s real state: unlit (goodbye / day / 
 });
 
 test('FP3a — THE MUSIC STARTING: the detector fires once per start (silent ≥ 1 s or since the page came up, then the song\'s clock moving); never for music already playing, a song change, or a short gap', async () => {
-  const { createStartDetector } = await import('../js/screens/district/neon-ramp.js');
+  const { createStartDetector } = await import('../js/core/neon-ramp.js');
   const run = (seq, step = 100) => { const d = createStartDetector({ quietMs: 1000 }); let t = 0; return seq.map(c => { const r = d.feed(c, t); t += step; return r; }); };
   const fires = seq => run(seq).filter(Boolean).length;
   assert.equal(fires([-1, -1, 0, 0.02, 0.1]), 1, 'the visit\'s first song: silent since the page came up (even < 1 s), then moving');

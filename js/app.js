@@ -26,7 +26,7 @@ import { lobbyMusicTick, lobbyMusicDebug } from './audio/lobby-music.js';
 import { beatSource } from './audio/beat.js';
 import { sfx } from './audio/sfx.js';
 import { installSettingsPanel } from './ui/settings-panel.js';
-import { showBackdrop } from './screens/district/backdrop.js';
+import { showBackdrop } from './screens/backdrop.js';
 import { settings, onSettings, PAGE_SILENT, setPageQuiet } from './audio/settings.js';
 import { lazyView } from './games/lazy-view.js';
 import { startShow } from './core/room-show.js';

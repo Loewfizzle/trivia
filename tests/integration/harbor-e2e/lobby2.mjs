@@ -344,7 +344,7 @@ G('afterparty', async () => {
 G('cartridge', async () => {
   const Q = await open({ slot: 'cart', qs: ROOMQ, view: [402, 874] }), p = Q.page;
   const r = await ev(p, `(async () => {
-    const [R, C, M, K] = await Promise.all([import('/js/games/registry.js'), import('/js/games/cartridge.js'), import('/js/screens/district/marks.js'), import('/js/config.js')]);
+    const [R, C, M, K] = await Promise.all([import('/js/games/registry.js'), import('/js/games/cartridge.js'), import('/js/core/marks.js'), import('/js/config.js')]);
     const out = {};
     for (const [id, mod] of Object.entries(R.GAME_MODULES)) {
       const g = K.GAMES.find(x => x.id === id);

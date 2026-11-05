@@ -8,7 +8,7 @@
 // one hangs on alone) → day (glass) → from ~10° elevation (startAt) single silent sputters that slowly grow, letters stick in the
 // last few minutes → THE CATCH (catchAt: the disc fully behind the rooftops) all four lock on → the city signs answer one at a
 // time over the next 10–15 min → night.
-import { rngFrom, shuffle } from '../../core/rng.js';
+import { rngFrom, shuffle } from './rng.js';
 
 const MIN = 60000;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);

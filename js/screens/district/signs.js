@@ -4,7 +4,7 @@
 // one canvas per tube so they can buzz on one by one); a frame only blends those, plus the marquee's bulbs and the
 // ticker's scroll. Signs rotate through the games (sign-logic.js: one change at a time, every game within a minute),
 // switch off by day and buzz back on at dusk, dress for the holidays, and are tappable (→ that game's HOW TO PLAY).
-import { markFor, bladeWord, LETTERS, tubeEnds, mixHex, hexRgb } from './marks.js';
+import { markFor, bladeWord, LETTERS, tubeEnds, mixHex, hexRgb } from '../../core/marks.js';
 import { createRotation, rotate, tickerText } from './sign-logic.js';
 
 const TAU = Math.PI * 2;

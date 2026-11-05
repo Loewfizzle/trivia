@@ -7,7 +7,7 @@
 import { sprite } from './kit.js';
 import { flattenPath } from '../core/tube-path.js';
 import { LOGO_LETTERS } from '../ui/logo.js';
-import { LETTERS } from '../screens/district/marks.js';
+import { LETTERS } from '../core/marks.js';
 
 export const PINK = { glow: '255,46,151', body: '#ff5fb4', core: '#fff1f8', glass: '#40243a' };
 export const CREAM = { glow: '255,190,90', body: '#ffd78a', core: '#fffaf0', glass: '#3a2c1c' };

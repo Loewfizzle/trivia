@@ -14,7 +14,7 @@ import { createWetGround } from './wetground.js';
 import { createGlassWeather } from './glasswx.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
 import { litK } from '../../core/harbor-dark.js';
-import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, weatherSettled, weatherSource, weatherAsk, lastPlace } from '../district/live-weather.js';
+import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, weatherSettled, weatherSource, weatherAsk, lastPlace } from './live-weather.js';
 import { climateWeather } from '../../core/climate.js';
 import { awningSnow } from './snow.js';
 import { galeK } from './galesea.js';
@@ -66,7 +66,7 @@ export function createSceneWeather(C) {
   const extrasT = setTimeout(() => {
     // (Part 6a: the planes + the birds are the Harbor's own now — screens/harbor/skyfx.js; the district's aircraft + wildlife
     // modules are no longer loaded here)
-    Promise.all([import('../district/weather-fx.js'), import('../district/frost.js')]).then(([a, f]) => {
+    Promise.all([import('./weather-fx.js'), import('./frost.js')]).then(([a, f]) => {
       if (C.destroyed) return;
       C.wfx = a.createWeatherFx({ onFlash: ev => { if (C.S.onFlash) C.S.onFlash(ev); } }); C.frost = f.createFrost({ bold: true });
       C.wfx.resize(C.W, C.H, C.HZ);

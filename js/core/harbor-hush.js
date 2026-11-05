@@ -5,7 +5,7 @@
 // they leave. The room's moments keep playing behind it (the silhouettes show between the letters).
 // SIZE (Ben, after the feasibility check: the glass is ~22 pt wide at 390): sized for FOUR letters — today's hush words — as a 2 × 2
 // block as big as the glass allows; five letters (3 + 2) only have to fit (smaller if needed).
-import { LETTERS } from '../screens/district/marks.js';
+import { LETTERS } from './marks.js';
 import { flattenPath } from './tube-path.js';
 
 /** the sign's proportions (× the cap height): a letter's width, the gaps across + between the rows; margin: inside the glass (units);
