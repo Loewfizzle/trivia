@@ -8,6 +8,9 @@
 // what this match proved for this player that only the game can tell (PRISM DROP: quad = a 4-line clear; OVERCLOCK: exact = a Closest
 // Call dead on, comeback = last at the halfway point, then the win). Read from the room's own copy, like everything here.
 import { standings as cipherStandings, MAX_GUESSES } from '../games/cipher/logic.js';
+import * as ocMeta from '../games/overclock/meta.js';
+import * as prismMeta from '../games/prism/meta.js';
+import { boardDef } from './boards.js';
 import { rankings as signalRankings } from '../games/signal/logic.js';
 import { standings as ocStandings, MODES as OC_MODES } from '../games/overclock/logic.js';
 import { standings as bluffStandings } from '../games/bluff/logic.js';
@@ -232,11 +235,16 @@ function rumExtra(game, uid, out, row) {
 const EXTRA = { cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra, stakes: stakesExtra, rum: rumExtra };
 
 /** Is this a finished match we can count? (null = yes, else the reason) */
+// THE SOLO LANE (SHELL 2.0 B1 — D3): the cartridges a room of ONE may count (their meta's SOLO — the same flag the console starts them by)
+export const SOLO_OK = Object.freeze({ overclock: ocMeta.SOLO === true, prism: prismMeta.SOLO === true });
+/** a solo match's records go to the game's SOLO board (`<board>-solo` — core/boards.js), never the multiplayer one; none → dropped */
+export const soloBoard = b => (boardDef(`${b}-solo`) ? `${b}-solo` : null);
 export function unreportable(game) {
   if (!game || typeof game !== 'object') return 'no match';
   if (!STANDINGS[game.id]) return 'unknown game';
   if (game.phase !== 'final') return 'not finished';
-  if (Object.keys(game.participants || {}).length < 2) return 'too few players';
+  const np = Object.keys(game.participants || {}).length;
+  if (np < 1 || (np < 2 && !SOLO_OK[game.id])) return 'too few players';   // (SHELL 2.0 B1 — THE SOLO LANE: one player, a SOLO cartridge)
   return null;
 }
 
@@ -246,13 +254,15 @@ export function extractMatch(game, ctx = {}) {
   const rows = STANDINGS[game.id](game);
   const n = Object.keys(game.participants || {}).length;
   const firsts = rows.filter(r => r.rank === 1).length;
-  const out = { gid: game.id, n, mode: game.mode || (game.settings && game.settings.mode) || null, rows: {}, rejected: [] };
+  const solo = n === 1;   // (THE SOLO LANE: no win, no placing, no night points — the streak + a small capped XP; the records on the solo boards)
+  const out = { gid: game.id, n, solo, mode: game.mode || (game.settings && game.settings.mode) || null, rows: {}, rejected: [] };
   for (const row of rows) {
     if (!game.participants[row.uid]) continue;
     // a win is a first place that isn't shared by the whole table (a total deadlock is nobody's win)
-    const win = row.rank === 1 && firsts < n;
+    const win = !solo && row.rank === 1 && firsts < n;
     const o = { rank: row.rank, win, c: { p: 1, ...(win ? { w: 1 } : {}) }, rec: {}, rejected: out.rejected };
     EXTRA[game.id](game, row.uid, o, row, ctx, win);
+    if (solo) { o.solo = true; const rec = {}; for (const [b, v] of Object.entries(o.rec)) { const sb = soloBoard(b); if (sb) rec[sb] = v; } o.rec = rec; }
     delete o.rejected;
     out.rows[row.uid] = o;
   }

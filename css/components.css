@@ -1193,3 +1193,7 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .lb-over .lb-delta { font-size: 11px; }
 .lb-sub { display: flex; gap: 8px; margin: 4px 2px 0; font: 700 10px/1.2 var(--font-mono); letter-spacing: 0.1em; color: var(--text-dim); }
 .lb-sub .lb-note { margin: 0; }
+
+/* SHELL 2.0 B1 — THE SOLO LANE's podium (ui/final.js: a room of one): SOLO RUN, the player + the score — no place number, no "1" block */
+.final.is-solo .pod-block span { visibility: hidden; }
+.final.is-solo .winner-title { letter-spacing: 0.18em; }

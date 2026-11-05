@@ -16,7 +16,7 @@ import { toast } from './toast.js';
 import { sfx } from '../audio/sfx.js';
 import { rankBadge } from './emblems.js';
 import { pubOf } from '../profile/public.js';
-import { GAME_MODULES } from '../games/registry.js';
+import { metaOf } from '../games/registry.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 
@@ -35,7 +35,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     import('../profile/callouts.js').then(m => { if (gone) return; rc = m.attachCallouts(state.code, g); rcSlot.append(rc.el); }).catch(() => {});
   }
   // THE BODY: the game's own scene (finalScene) — or the console's podium
-  const mod = g && GAME_MODULES[g.id];
+  const mod = g && metaOf(g.id);   // (the cartridge — loaded: its match just ended here)
   let body = null;
   if (mod && typeof mod.finalScene === 'function') {
     body = h('div.final-body', { dataset: { game: g.id } });
@@ -60,7 +60,9 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   });
   const winner = rows[0] && (players[rows[0].uid] || GHOST);
   const tied = rows.filter(r => r.rank === 1).length > 1;
-  const word = tied ? 'DEADLOCK' : 'WINNER';
+  // (SHELL 2.0 B1 — THE SOLO LANE: a room of one — no winner, no placing: SOLO RUN + the score; a game's own finalScene shows its solo body)
+  const solo = !!(g && Object.keys(g.participants || {}).length === 1);
+  const word = solo ? 'SOLO RUN' : tied ? 'DEADLOCK' : 'WINNER';
   // ONE button for everyone: the host's tap brings the whole room back (THE WALK BACK OUT); a guest's walks them back alone (the others
   // stay on the podium — the same as ☰ → QUIT TO THE ROOM)
   const back = h('button.btn.btn-primary.btn-block.final-back', { type: 'button', onclick: () => {
@@ -72,10 +74,10 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   let hostShown = null;
   function refresh() { hostShown = isHost(); back.dataset.host = hostShown ? '1' : '0'; }
   refresh();
-  const el = h('div.panel-full.final',
+  const el = h('div.panel-full.final', solo ? { class: 'is-solo' } : null,
     h('div.sheet-kicker', kicker),
     h('div.winner', h('div.winner-title', { 'data-text': word, class: tied ? 'is-tied' : null }, word),
-      h('div.winner-name', tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),
+      h('div.winner-name', solo ? `${winner ? winner.name : ''}${rows[0] && rows[0].score != null ? ` · ${rows[0].score}` : ''}`.toUpperCase() : tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),
     body || podium,
     rcSlot,
     actions,

@@ -360,12 +360,17 @@ G('cartridge', async () => {
   const r = await ev(p, `(async () => {
     const [R, C, M, K] = await Promise.all([import('/js/games/registry.js'), import('/js/games/cartridge.js'), import('/js/core/marks.js'), import('/js/config.js')]);
     const out = {};
+    // (SHELL 2.0 B1 — THE LAZY LOGIC: nothing but the metas at boot — no cartridge loaded yet; then every one loads by id)
+    out.$boot = { loaded: Object.keys(R.GAME_MODULES).length, metas: Object.keys(R.META).sort().join(',') };
+    await Promise.all(R.GAME_IDS.map(id => R.loadGame(id)));
     for (const [id, mod] of Object.entries(R.GAME_MODULES)) {
       const g = K.GAMES.find(x => x.id === id);
       out[id] = { playable: !!(g && g.playable), problems: C.checkCartridge(id, mod, { marks: M.MARKS, game: g }), warm: !!(mod.createView && mod.createView.warm), lock: typeof mod.chatLocked === 'function' };
     }
     return out;
   })()`);
+  const boot = r.$boot; delete r.$boot;
+  ok(boot.loaded <= 2 && boot.metas === 'overclock,prism', `THE LAZY LOGIC: a fresh room page holds only the playable games' METAS (${boot.metas}) — ${boot.loaded} cartridge(s) loaded before a game`);
   const play = Object.entries(r).filter(([, x]) => x.playable), hidden = Object.entries(r).filter(([, x]) => !x.playable);
   ok(play.length === 2 && play.every(([, x]) => !x.problems.length && x.warm && x.lock), `THE CARTRIDGE PLUG: the playable games meet the contract in a real page (${play.map(([id, x]) => `${id}: ${x.problems.length ? x.problems.join('; ') : 'ok'}`).join(' · ')}) — warmable views, their own chat locks`);
   ok(hidden.length === 10, `the ${hidden.length} hidden games are EXEMPT until each comes back (${hidden.map(([id, x]) => `${id} ${x.problems.length}`).join(', ')} gaps — frozen)`);
@@ -586,4 +591,41 @@ G('oldrules', async () => {
     ok(back === null && out.every(Boolean) && ban.every(h => h === 'flown'), `THE OLD RULES (meta/back refused: ${back === null}): THE WALK BACK OUT (${out}) + THE WINNER's BANNER PLANE (${ban.join(' / ')}) still run on both phones`);
     await A.ctx.close(); await B.ctx.close();
   } finally { await putRules(cur); }
+});
+
+// ---- SHELL 2.0 B1 — THE SOLO LANE's room + THE LOOK SWITCH (the owner via the dailies chat): the host ALONE sees a small round sun / moon
+//      tube right above PLAY, its icon + word always showing the state; one tap cycles AUTO → DAY → NIGHT; remembered on this device (a
+//      reload); gone the moment a second player joins; a SOLO cartridge (OVERCLOCK) starts with ONE player; the match wears the look LOCKED
+//      (body[data-look]) — a change after the start never reaches it
+G('sololook', async () => {
+  const { Q, p, code } = await hostRoom('slk');
+  await waitFor(p, "!!document.querySelector('.rdk-look:not([hidden])')", 'the look switch (a room of one)', 15000).catch(() => {});
+  const read = () => ev(p, `(() => { const b = document.querySelector('.rdk-look'); if (!b || b.hidden) return null; const r = b.getBoundingClientRect(), ring = document.querySelector('.rdk-play').getBoundingClientRect();
+    return { l: b.dataset.l, word: b.querySelector('.rdk-look-l').textContent, svg: !!b.querySelector('.rdk-look-ic svg'), w: Math.round(r.width), h: Math.round(r.height), above: r.bottom <= ring.top + 2 && Math.abs((r.left + r.right) / 2 - (ring.left + ring.right) / 2) < 6, inView: r.top >= 0 && r.right <= innerWidth }; })()`);
+  const seen = [await read()];
+  for (let i = 0; i < 3; i++) { await ev(p, "document.querySelector('.rdk-look').click()"); await sleep(250); seen.push(await read()); }
+  ok(seen.every(Boolean) && seen.map(s => s.word).join(',') === 'AUTO,DAY,NIGHT,AUTO' && seen.every(s => s.svg && s.above && s.inView && s.w >= 44),
+    `THE LOOK SWITCH (alone): above PLAY, its icon + word always shown — one tap cycles ${seen.map(s => s && s.word).join(' → ')} (${JSON.stringify(seen[0])})`);
+  await ev(p, "document.querySelector('.rdk-look').click()"); await sleep(200);   // → DAY
+  await p.reload(); await harborUp(p);
+  await waitFor(p, "window.__arcade.state.code && !!document.querySelector('.rdk-look:not([hidden])')", 'the room again', 20000).catch(() => {});
+  const kept = await read();
+  ok(kept && kept.word === 'DAY', `THE LOOK SWITCH: remembered on this device — a reload shows ${kept && kept.word}`);
+  if (SHOTS) await p.screenshot({ path: `${OUT}sololook-402.png` });
+  // a SOLO cartridge starts with one player; the match wears the look, LOCKED
+  const started = await ev(p, "import('/js/host.js').then(m => m.startGame('overclock', { mode: 'quick' }))");
+  await waitFor(p, "window.__arcade.state.meta.status === 'playing' && document.body.dataset.look", 'the solo match + its look', 20000).catch(() => {});
+  const look1 = await ev(p, 'document.body.dataset.look'), solo = await ev(p, 'Object.keys(window.__arcade.state.game.participants || {}).length');
+  await ev(p, "localStorage.setItem('ns:look', 'night')"); await sleep(1500);
+  const look2 = await ev(p, 'document.body.dataset.look'), hidden = await ev(p, "!document.querySelector('.rdk-look') || document.querySelector('.rdk-look').hidden || !document.querySelector('.rdk-look').offsetParent");
+  ok(started === true && solo === 1 && look1 === 'day' && look2 === 'day' && hidden, `THE SOLO LANE: OVERCLOCK starts with ONE player (${started}, ${solo}); the match wears DAY (${look1}) and keeps it after a change (${look2}); no switch in the match (${hidden})`);
+  await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+  await waitFor(p, "window.__arcade.state.meta.status === 'lobby'", 'back in the room', 20000).catch(() => {});
+  await waitFor(p, "!document.body.dataset.look", 'the look off the body', 8000).catch(() => {});
+  // a second player → no switch (a room of 2+ is not a solo room)
+  const { Q: B } = await joinRoom('slk2', code);
+  await waitFor(p, "Object.keys(window.__arcade.state.players).length === 2", 'two players', 20000).catch(() => {});
+  await sleep(600);
+  ok(!(await read()) && !(await ev(p, 'document.body.dataset.look')), 'THE LOOK SWITCH: gone once a second player joins (a room of 2+); no look on the body outside a solo match');
+  await B.ctx.close(); await Q.ctx.close();
 });

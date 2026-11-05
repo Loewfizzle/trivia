@@ -93,6 +93,7 @@ function open() {
     h('div.sh-sub', 'THIS PHONE'),
     toggle('Haptics', 'haptics'),
     toggle('Reduced effects', 'reducedFx'),
+    toggle('Colour-blind colours', 'colorBlind'),   // (SHELL 2.0 B1 — right in BLUE, close in ORANGE in every game: ui/colorblind.js)
     toggle('Always night', 'alwaysNight'),
     ...(playable('prism') ? [
       h('div.sh-sub', 'PRISM DROP'),

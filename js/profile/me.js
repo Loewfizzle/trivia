@@ -143,6 +143,7 @@ export async function setShown(on) {
 export async function fetchMe() {
   const r = await api('profile', { action: 'me' });
   store(r.pid, r.profile);
+  if (r.priv && typeof r.priv.cb === 'boolean') import('../ui/colorblind.js').then(m => m.adoptProfileCb(r.priv.cb)).catch(() => {});   // (SHELL 2.0 B1)
   return r;
 }
 

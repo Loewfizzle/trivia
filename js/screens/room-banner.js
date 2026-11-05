@@ -22,7 +22,7 @@ const NIGHT_KEY = 'nd:night', CHAMP_MS = 12 * 3600e3;
 
 /** a game's name on the banner: its cartridge's BANNER_NAME (docs/cartridge.md), else the GAMES name */
 export async function bannerName(id) {
-  try { const R = await import('../games/registry.js'); const m = R.GAME_MODULES[id]; if (m && m.BANNER_NAME) return m.BANNER_NAME; } catch { /* the name below */ }
+  try { const R = await import('../games/registry.js'); const m = R.metaOf(id); if (m && m.BANNER_NAME) return m.BANNER_NAME; } catch { /* the name below */ }
   const g = GAMES.find(x => x.id === id);
   return g ? g.name : String(id || '').toUpperCase();
 }

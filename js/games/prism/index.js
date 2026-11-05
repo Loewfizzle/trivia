@@ -1,14 +1,14 @@
 // PRISM DROP module entry (see games/registry.js for the contract).
 import { createGame, nextStep, nightBonus as bonus } from './director.js';
-import { DEFAULT_SETTINGS, MIN_PLAYERS, LEAD_MS, COUNT_MIN_MS, SONGS_PER_MATCH, playlistAt, standings, estimateMinutes as estimate, cleanSettings } from './logic.js';
+import { LEAD_MS, COUNT_MIN_MS, SONGS_PER_MATCH, playlistAt, standings, cleanSettings } from './logic.js';
+// (SHELL 2.0 B1 — THE THIN META: DEFAULT_SETTINGS, MIN_PLAYERS, OPTIONS, estimateMinutes, MUSIC, the banner, the chat's lock — meta.js)
+export * from './meta.js';
 import { loadManifest, loadSong, goBeat } from './songs.js';
 import { state } from '../../store.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 
 export const createView = lazyView(() => import('./view.js'), gameSheets('prism'));
 // the match plays its own songs (synced to the server clock, through a filter for the danger/duel effects)
-export const MUSIC = null;
-export { DEFAULT_SETTINGS, MIN_PLAYERS };
 
 export const livePaths = g => ({ boards: `prism/${g.matchId}`, calls: `prismcall/${g.matchId}` });
 
@@ -59,15 +59,4 @@ export const step = (game, { now, live, online }) => nextStep(game, { now, onlin
 export const finalRanks = game => standings(game).map(r => ({ uid: r.uid, rank: r.rank }));
 export const nightBonus = bonus;
 
-export const OPTIONS = [
-  { key: 'mode', label: 'MODE', type: 'list', choices: [
-    { value: 'battle', label: 'BATTLE', sub: 'Clear lines to send junk — last one standing wins' },
-    { value: 'rush', label: 'SCORE RUSH', sub: 'No attacks — one song, highest score wins' },
-  ] },
-];
-
-export const estimateMinutes = s => estimate(s);
-
-// THE CARTRIDGE PLUG (LOBBY 2.0 B — docs/cartridge.md): the chat's lock, its name on THE WINNER's BANNER PLANE
-export { chatLocked } from './logic.js';
-export const BANNER_NAME = 'PRISM DROP';
+// (THE CARTRIDGE PLUG's chat lock + BANNER_NAME + OPTIONS: meta.js)

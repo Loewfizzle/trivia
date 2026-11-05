@@ -27,6 +27,16 @@ export function progress(xp) {
 }
 
 export const XP = { played: 30, win: 40, winPerExtra: 6, second: 20, secondPerExtra: 3, third: 10, pb: 20, pbMax: 3, newGame: 25, variety: 10 };
+// THE SOLO LANE (SHELL 2.0 B1 — the owner, Nov 5 6:56 am: "solo counts for the streak + a SMALL CAPPED XP — solo never out-earns playing with
+// friends"): a solo match pays SOLO_XP (half a played match — always less than the least a LOST multiplayer match pays, XP.played) for the
+// first SOLO_DAY_XP solo matches of the day (Eastern), then 0 — the streak still counts every one. No win, no placing, no PB / new-game /
+// variety / weekly-goal XP from a solo run (its records are kept on their own solo boards).
+export const SOLO_XP = 15, SOLO_DAY_XP = 4;
+/** k = the solo matches already counted today → the XP of this one */
+export function soloXp(k) {
+  const v = k < SOLO_DAY_XP ? SOLO_XP : 0;
+  return { total: v, parts: [{ k: 'solo', label: v ? 'SOLO RUN' : 'SOLO RUN · TODAY\'S XP DONE', v }] };
+}
 
 /**
  * XP for one match. { rank, win, n (players), pbs (count), firstToday (first match of this game today), gamesToday

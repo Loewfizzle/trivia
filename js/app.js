@@ -12,18 +12,19 @@ import { inviteCode, watchDuplicateTabs, slot, loadSession } from './identity.js
 import { resumeSession, armPresence, roomExists } from './room.js';
 import { startHostLoop } from './host.js';
 import { keepAwake } from './wakelock.js';
-import { GAME_MODULES } from './games/registry.js';
+import { GAME_MODULES, GAME_IDS, loadGame, metaOf } from './games/registry.js';
 import { createTitle, harborReady, harborPending, harborRemote } from './screens/title.js';
 import { createSetup } from './screens/setup.js';
 import { installAudio } from './audio/engine.js';
 import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider, switchNow, nowPlaying, cueMusic } from './audio/music.js';
-import { partyMusicTick, partyCue, partyMusicDebug, partyClaims } from './audio/party-music.js';
+import { partyMusicTick, partyCue, partyMusicDebug, partyClaims, stationCue } from './audio/party-music.js';
 import { cityClock } from './core/city.js';
-import { loadMoodMusic, moodNow, fixedMood, songsFor, nextForDevice } from './audio/mood.js';
+import { loadMoodMusic, moodNow, fixedMood, songsFor, nextForDevice, MOODS } from './audio/mood.js';
 import { lobbyMusicTick, lobbyMusicDebug } from './audio/lobby-music.js';
 import { beatSource } from './audio/beat.js';
 import { sfx } from './audio/sfx.js';
 import { installSettingsPanel } from './ui/settings-panel.js';
+import { installColorBlind } from './ui/colorblind.js';   // (SHELL 2.0 B1 — body[data-cb]: the answer tokens swapped)
 import { showBackdrop } from './screens/backdrop.js';
 import { settings, onSettings, PAGE_SILENT, setPageQuiet } from './audio/settings.js';
 import { lazyView } from './games/lazy-view.js';
@@ -57,6 +58,13 @@ function routeKey(st) {
   if (!st.meta) return !harborPending() && current && current.key === 'title' ? 'title' : 'boot';
   // (LOBBY 2.0 B — THE GAME START: in City 2.0 the city stays up for the walk inside (core/room-show.js, ≤ 2.6 s from the host's tap, the
   //  same on every phone — a refresh / a late joiner past it goes straight to the game); a timer re-routes the moment it ends)
+  // (SHELL 2.0 B1 — THE LAZY LOGIC: a match on, its cartridge not here yet (a refresh / a late joiner — the walk inside loads it on every
+  //  phone): the walk inside goes on, else the screen as it is (or the boot screen) — render() runs again the moment it lands)
+  if (st.meta.status === 'playing' && st.game && st.quit !== st.game.matchId && !GAME_MODULES[st.game.id] && GAME_IDS.includes(st.game.id)) {
+    wantGame(st.game.id);
+    if (!harborPending() && startShow(st.meta, st.game, serverNow()).on) { goTimer(st); return 'title'; }
+    return current && current.key === 'title' ? 'title' : 'boot';
+  }
   if (st.meta.status === 'playing' && st.game && GAME_MODULES[st.game.id] && st.quit !== st.game.matchId) {
     if (!harborPending() && startShow(st.meta, st.game, serverNow()).on) { goTimer(st); return 'title'; }
     return `game:${st.game.id}:${st.game.matchId}`;
@@ -66,6 +74,27 @@ function routeKey(st) {
   return harborPending() ? 'boot' : 'title';   // (a refresh in a room waits for City 2.0's module, like the title does)
 }
 
+// SHELL 2.0 B1 — THE ROOM's LOOK on the body: a match in a room of ONE wears the look its player picked (games/kit/look.js) — AUTO resolved by
+// the real sun at the start, then LOCKED for the match; games READ body[data-look]; nothing for a room of 2+ (or outside a match)
+let lookM = '', lookV = null;
+function paintLook(st) {
+  const g = st.game, on = !!(g && st.meta && st.meta.status === 'playing' && st.quit !== g.matchId && Object.keys(g.participants || {}).length === 1);
+  if (!on) { lookM = ''; lookV = null; if (document.body.dataset.look) delete document.body.dataset.look; return; }
+  if (lookM === g.matchId) { if (lookV && document.body.dataset.look !== lookV) document.body.dataset.look = lookV; return; }
+  lookM = g.matchId;
+  const m = g.matchId;
+  import('./games/kit/look.js').then(async LK => {
+    const choice = LK.savedLook(), v = LK.matchLook(m, choice, choice === 'auto' ? await LK.sunUpNow(serverNow()) : true);
+    if (lookM !== m) return;
+    lookV = v; document.body.dataset.look = v;
+  }).catch(() => {});
+}
+const wanting = new Set();
+function wantGame(id) {
+  if (wanting.has(id)) return;
+  wanting.add(id);
+  loadGame(id).then(() => { wanting.delete(id); render(state); }, e => { wanting.delete(id); console.warn('[app] the game didn’t load', e); });
+}
 let goT = 0, goM = '';
 function goTimer(st) {
   const s = startShow(st.meta, st.game, serverNow());
@@ -98,6 +127,13 @@ loadMoodMusic().then(d => {
     if (c && !state.code && partyClaims()) return null;
     if (c) { cueMusic(`m:${c.id}`, c.at); return `m:${c.id}`; }
     const id = nextForDevice(m, prev && prev.replace(/^m:/, '')); return id ? `m:${id}` : null;
+  });
+  // SHELL 2.0 B1 — MUSIC BY MOOD (THE CONTRACT — docs/cartridge.md): a cartridge's `MUSIC: 'mood:<mood>'` plays THAT mood's STATION on
+  // the server clock (every phone in the room the same song, at its place); the unlock-on-tap + the one mute are the console's as ever
+  for (const md of MOODS) setListProvider(`mood:${md}`, prev => {
+    const c = stationCue(md, prev && prev.replace(/^m:/, ''));
+    if (c) { cueMusic(`m:${c.id}`, c.at); return `m:${c.id}`; }
+    const id = nextForDevice(md, prev && prev.replace(/^m:/, '')); return id ? `m:${id}` : null;
   });
   moodWatch();            // (the baseline reading now, not 2 s later: a mood picked in the first seconds still counts as a change)
   render(state);
@@ -138,13 +174,14 @@ function musicFor(st) {
   if (!st.code && st.view === 'board') return ['menu3', 'menu'];     // THE BOARD's hall: menu3.mp3
   if (!st.code && st.view === 'profile') return ['menu1', 'menu'];   // the membership card: menu.mp3
   if (!st.code || !st.meta || st.meta.status !== 'playing' || !st.game || st.quit === st.game.matchId) return ['menu'];
-  const mod = GAME_MODULES[st.game.id];
+  const mod = metaOf(st.game.id);   // (SHELL 2.0 B1: the meta carries MUSIC; the loaded cartridge its musicFor)
   // MUSIC: null = no music during the match (PULSE: the song is the music; menu music fades out)
   // musicFor(game): a track that changes during the match (NEON PAR: one per zone) -> [track, fallback]
   if (mod && mod.musicFor && st.game.phase !== 'final') return mod.musicFor(st.game);
   const track = mod && mod.musicFor ? mod.musicFor(st.game)[0] : mod && 'MUSIC' in mod ? mod.MUSIC : 'menu';
   // FINAL_MUSIC: a game's own podium music (HIGH STAKES: victory.mp3, never the other fanfares)
-  return st.game.phase === 'final' ? [(mod && mod.FINAL_MUSIC) || 'victory', track] : [track];
+  // (SHELL 2.0 B1: a mood station — 'mood:evening' — falls back to the menu song until the mood decks have loaded)
+  return st.game.phase === 'final' ? [(mod && mod.FINAL_MUSIC) || 'victory', track] : [track, typeof track === 'string' && track.startsWith('mood:') ? 'menu' : undefined].filter(x => x !== undefined);
 }
 
 function render(st) {
@@ -153,6 +190,7 @@ function render(st) {
   // theme follows the active game
   const theme = st.game && st.meta && st.meta.status === 'playing' && st.quit !== st.game.matchId ? (GAMES.find(g => g.id === st.game.id) || {}).theme : '';
   document.body.dataset.theme = theme || '';
+  paintLook(st);
   keepAwake(!!(st.code && st.meta && st.meta.status === 'playing'));
   renderConnection(st);
   // the menus (setup, the profile) sit on glass over a still of the city, like the title
@@ -210,7 +248,7 @@ subscribe(st => {
   const k = routeKey(st), id = k.startsWith('game:') ? k.split(':')[1] : '';
   if (id === chipsFor) return;
   chipsFor = id;
-  import('./games/cartridge.js').then(C => import('./chat/ui.js').then(m => m.setGameChips(C.chipsOf(GAME_MODULES[id])))).catch(() => {});
+  import('./games/cartridge.js').then(C => import('./chat/ui.js').then(m => m.setGameChips(C.chipsOf(metaOf(id))))).catch(() => {});
 });
 // Room chat loads the first time we're in a room (never on the first paint): the in-game chat button.
 let chatInstalled = false;
@@ -262,6 +300,7 @@ async function boot() {
   watchLayers();   // (LOBBY 2.0 B — ONE SHEET STACK: every pop-up opens on top of whatever opened it — ui/layers.js)
   installAudio();
   installSettingsPanel();
+  installColorBlind();
   // &debug=1: THE AUDIO DIAGNOSTIC (docs/audio.md#m3) — what the music is doing, on any screen; FP: or switched on from THE PREVIEW
   // PANEL → TOOLS → AUDIO PANEL on this device (ui/debug-tools.js: remembered, live on / off)
   const syncDiag = () => { if (PAGE_SILENT) return; const on = debugTool('audio'); if (on || diagLoaded) import('./audio/diag.js').then(m => { diagLoaded = true; if (debugTool('audio')) m.mountAudioDiag(); else m.unmountAudioDiag(); }).catch(() => {}); };

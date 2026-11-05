@@ -9,7 +9,7 @@ import {
   limitToLast, limitToFirst, endAt, push, get, goOffline, goOnline,
 } from '../firebase.js';
 import { state, subscribe, isHost } from '../store.js';
-import { liveKeyFor, GAME_MODULES } from '../games/registry.js';
+import { liveKeyFor, GAME_MODULES, metaOf } from '../games/registry.js';
 import { GAMES } from '../config.js';
 import { sfx } from '../audio/sfx.js';
 import { vibrate } from '../ui/dom.js';
@@ -87,7 +87,7 @@ export function locked() {
   const g = state.meta && state.meta.status === 'playing' ? state.game : null;
   if (!g) return false;
   const live = state.liveKey && state.liveKey === liveKeyFor(g) ? state.live : null;
-  const mod = GAME_MODULES[g.id];
+  const mod = metaOf(g.id);   // (SHELL 2.0 B1: the meta carries the lock — before the cartridge lands too)
   return chatLocked(g, state.uid, live, mod && mod.chatLocked);   // (THE CARTRIDGE PLUG: the game's own lock)
 }
 

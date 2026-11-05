@@ -5,7 +5,7 @@ import { sfx } from '../audio/sfx.js';
 import { openHelp } from '../ui/help.js';
 import { neonDropout, knock } from '../audio/ambience.js';
 import { useEmulator, loadMe } from '../identity.js';
-import { GAME_MODULES } from '../games/registry.js';
+import { metaOf } from '../games/registry.js';
 import { gameArtSvg } from '../ui/game-art.js';
 import { h } from '../ui/dom.js';
 import { primaryBoard, fmtValue } from '../core/boards.js';
@@ -183,7 +183,7 @@ export function createTaps(T) {
   }
 
   function meta(g) {
-    const mod = GAME_MODULES[g.id] || {};
+    const mod = metaOf(g.id) || {};
     const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0);
     let mins = null;
     try { mins = mod.estimateMinutes ? mod.estimateMinutes(mod.DEFAULT_SETTINGS || {}) : null; } catch { mins = null; }

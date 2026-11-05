@@ -11,7 +11,7 @@ import { state, isHost, onlineMap } from './store.js';
 import { shouldClaimHost, isOnline, roomIdle } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
-import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES } from './games/registry.js';
+import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, loadGame, metaOf } from './games/registry.js';
 import { toast } from './ui/toast.js';
 
 // SPEED PASS B — THE SECOND TAB's check (tests: e2e speed.mjs twotabs): this tab's own host writes — the beats + the director's steps
@@ -125,7 +125,7 @@ export async function claimHost(oldHost) {
 function direct(now) {
   const game = state.game;
   const mod = GAME_MODULES[game.id];
-  if (!mod) return;
+  if (!mod) { loadGame(game.id).catch(() => {}); return; }   // (SHELL 2.0 B1: a new host / a refresh — the cartridge loads, the next tick directs)
   // Only decide with player data that belongs to the current step.
   if (state.liveKey !== liveKeyFor(game)) return;
   mod.prepare(game, { code: state.code, host: true }); // e.g. word lists / trivia top-ups on a freshly promoted host
@@ -155,13 +155,14 @@ function roomPatch(game, step) {
     const finished = applyPatch(structuredClone(game), gamePatch);
     const p = {};
     const n = {};
+    const solo = Object.keys(finished.participants || {}).length === 1;   // (SHELL 2.0 B1 — THE SOLO LANE: no night points, no banner, no champion)
     for (const r of mod.finalRanks(finished)) {
-      p[r.uid] = NIGHT_POINTS[r.rank] || 0;
+      p[r.uid] = solo ? 0 : NIGHT_POINTS[r.rank] || 0;
       n[r.uid] = (state.players[r.uid] && state.players[r.uid].name) || 'GHOST';
     }
     const entry = { g: game.id, at: serverTimestamp(), p, n };
     // bonus points that aren't a placing (PRISM DROP's Call the Winner): added to the total, never a win
-    const b = mod.nightBonus ? mod.nightBonus(finished) : null;
+    const b = mod.nightBonus && !solo ? mod.nightBonus(finished) : null;
     if (b && Object.keys(b).length) entry.b = b;
     patch[`night/${game.matchId}`] = entry;
   }
@@ -196,7 +197,7 @@ export function startGame(gameId, settings, { quick = false } = {}) {
   return p;
 }
 async function startGameNow(gameId, settings, quick = false) {
-  const mod = GAME_MODULES[gameId];
+  const mod = await loadGame(gameId).catch(() => null);   // (SHELL 2.0 B1 — THE LAZY LOGIC: the cartridge loads on the host's tap)
   if (!mod || !isHost()) return false;
   // (WINDOWS — ONLY TWO GAMES PLAYABLE: a hidden game never starts — not from a rematch, an invite, a stale link or the console)
   if (!isPlayable(gameId)) { toast('COMING SOON', 'info'); return false; }
@@ -237,9 +238,11 @@ export function rematch() {
   const back = state.meta && state.meta.back;
   if (!isHost() || !(state.game || (back && back.g))) return Promise.resolve(false);
   const id = state.game ? state.game.id : back.g;
-  const mod = GAME_MODULES[id];
-  const settings = (state.meta.settings && state.meta.settings[id]) || (state.game && state.game.settings) || (mod && mod.DEFAULT_SETTINGS) || {};
-  return startGame(id, rematchSettingsOf(mod, settings, state.game), { quick: true });   // (THE CARTRIDGE PLUG: a game may adjust its rematch)   // (LOBBY FIXES: the QUICK start)
+  const game = state.game;
+  return loadGame(id).catch(() => null).then(mod => {   // (SHELL 2.0 B1: the cartridge's rematchSettings — loaded, it's in the tab already)
+    const settings = (state.meta.settings && state.meta.settings[id]) || (game && game.settings) || (mod && mod.DEFAULT_SETTINGS) || (metaOf(id) || {}).DEFAULT_SETTINGS || {};
+    return startGame(id, rematchSettingsOf(mod, settings, game), { quick: true });
+  });   // (THE CARTRIDGE PLUG: a game may adjust its rematch)   // (LOBBY FIXES: the QUICK start)
 }
 
 // (LOBBY 2.0 B — the owner's real-phone test: a refused stamp went unseen. Now it's in the phones' error log (/admin) once a session: the

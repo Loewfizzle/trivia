@@ -1,11 +1,11 @@
 // OVERCLOCK — pure scoring / order / standings.
 import { rngFrom, shuffle } from '../../core/rng.js';
 import { TYPES, CATEGORY, partsFor, SORT_FULL, COMPASS_SCRIPT_MS } from './challenges.js';
+// (SHELL 2.0 B1 — THE THIN META: the console's numbers live in meta.js — one source; re-exported here for the rules + the server)
+import { CHALLENGE_MS, READY_MS, STANDINGS_MS, MODES, DEFAULT_SETTINGS, chatLocked } from './meta.js';
+export { CHALLENGE_MS, READY_MS, STANDINGS_MS, MODES, DEFAULT_SETTINGS, chatLocked };
 
-export const CHALLENGE_MS = 30_000;
-export const READY_MS = 3_200;
 export const BRIEF_MS = 7_000;
-export const STANDINGS_MS = 8_000;          // the round's ranking, then the race (ROUND_STAGE_MS before the end it becomes the leaderboard)
 // challenges with a reveal (best words, the right order, the number line) hold the leaderboard a little longer
 export const REVEAL_STANDINGS_MS = 12_000;
 export const OVERALL_STAGE_MS = 4_400;       // the last part of standings: the rows slide into the overall order
@@ -13,8 +13,6 @@ export const REVEALS = new Set(['lexicon', 'timeline', 'closest', 'missinglink',
 export const standingsMs = type => (REVEALS.has(type) ? REVEAL_STANDINGS_MS : STANDINGS_MS);
 export const FINAL_MS = 120_000;
 export const PLAY_GRACE_MS = 700;
-export const MODES = { quick: 6, standard: 12, marathon: 24 };
-export const DEFAULT_SETTINGS = { mode: 'standard' };
 export const SPEED_BONUS = 60;
 
 export const levelOf = (ci, total) => (total <= 1 ? 0 : ci / (total - 1));
@@ -120,9 +118,3 @@ export function standings(game, upto = Infinity) {
   return rows;
 }
 
-/** THE CARTRIDGE PLUG (docs/cartridge.md) — the chat's lock: locked while you're answering this challenge; done (or watching) = chat */
-export function chatLocked(game, uid, live) {
-  if (game.phase !== 'play') return false;
-  const b = live && live.boards ? live.boards[uid] : undefined;
-  return !(b && b.done);
-}

@@ -19,6 +19,10 @@
   --magenta: #ff2bd6;
   --yellow: #f3ff3a;
   --green: #3dff8b;
+  /* SHELL 2.0 B1 — COLOUR-BLIND (the dailies chat, Nov 5 8:35 am): the TWO shared answer tokens EVERY game reads for right / close (never its
+     own greens / golds) — body[data-cb] (SETTINGS → Colour-blind colours) swaps them: right green → BLUE, close gold → ORANGE. A game never
+     shows right / close by colour alone (a shape / a mark too — docs/match-kit.md). The city is not affected. */
+  --good: #3dff8b; --close: #ffd23d;
   --red: #ff3355;
   --orange: #ff8c1a;
   --violet: #a66bff;
@@ -242,3 +246,6 @@ svg { display: block; }
   }
   .bg-grid, .bg-noise { animation: none !important; }
 }
+
+/* SHELL 2.0 B1 — COLOUR-BLIND colours (ui/colorblind.js): right = BLUE, close = ORANGE (deuteranopia / protanopia read them apart) */
+body[data-cb] { --good: #3ea6ff; --close: #ff8f2e; }

@@ -15,7 +15,7 @@ export const GAME_BOARDS = {
   slip: { records: [rec('slip-dist', 'LONGEST RIDE', 'dist', { short: 'DISTANCE' })], career: [] },
   pulse: { records: [], career: [], songs: true },
   prism: { records: [rec('prism-rush', 'SCORE RUSH', 'int', { short: 'BEST SCORE' })], career: [car('prism-ko', 'KNOCKOUTS', { stat: 'ko', short: 'KOs' })] },
-  overclock: { records: [rec('overclock-std', 'STANDARD MATCH', 'int', { short: 'BEST SCORE' })], career: [] },
+  overclock: { records: [rec('overclock-std', 'STANDARD MATCH', 'int', { short: 'BEST SCORE' }), rec('overclock-std-solo', 'STANDARD · SOLO', 'int', { short: 'SOLO BEST' })], career: [] },   // (SHELL 2.0 B1: the solo lane's own board)
   cipher: { records: [rec('cipher-score', 'BEST MATCH', 'int', { short: 'BEST SCORE' }), rec('cipher-fast5', 'FASTEST 5-LETTER SOLVE', 'ms', { dir: -1, short: 'FASTEST' })], career: [] },
   golf: { records: [rec('golf-par9', 'BEST 9 HOLES', 'par', { dir: -1, short: 'TO PAR' })], career: [] },
   gridlock: {

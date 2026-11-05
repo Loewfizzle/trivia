@@ -116,6 +116,19 @@ export function partyCue(prev = null) {
   return { id: s.id, at: Math.max(0, t - s.t0) };
 }
 
+/** SHELL 2.0 B1 — MUSIC BY MOOD (THE CONTRACT): a cartridge's `MUSIC: 'mood:evening'` — the song to start now on THAT mood's STATION
+ *  (the server clock: every phone in the room the same song at the same place) + where in it (s) — { id, at } or null (no songs for the
+ *  mood). `prev`: the song that just ended here — never started again at its very end. */
+export function stationCue(mood, prev = null) {
+  const st = stationOf(mood);
+  if (!st) return null;
+  const t = serverNow() / 1000 + 0.25 + speakerLead();
+  let s = deckSongAt(st.deck, st.tl.anchor, st.tl.seed, t);
+  if (!s) return null;
+  if (s.id === prev || s.t1 - t < 6) s = deckSongAt(st.deck, st.tl.anchor, st.tl.seed, s.t1 + 0.01) || s;
+  return { id: s.id, at: Math.max(0, t - s.t0) };
+}
+
 /** Every tick (app.js, 250 ms) on City 2.0's menu screens with mood music on + the PARTY mood: → true while the synced player plays the
  *  party song here (this phone's own player then rests). hold: a legendary wants the song on this phone's own player (the tape stop). */
 export function partyMusicTick(active, hold = false) {

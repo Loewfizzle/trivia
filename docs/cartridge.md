@@ -75,3 +75,72 @@ The console lights the GAME's OWN sign over the speakeasy door at every start �
 `js/config.js` (the name + the mark — `ui/game-art.js` / `ui/tube-logo.js#markFor`) drawn by `tube-logo.js#gameLogoSvg(g, { tint: NEON_PINK })`.
 Nothing new to export. `start({ now })` still = the moment the match begins: the tap + 5 s (the FULL start) or + 3 s (a same-game REMATCH —
 the console calls `startGame(id, settings, { quick: true })`); a game never times itself from the tap.
+
+## THE CONTRACT (SHELL 2.0 B1, Nov 5 — agreed with the Overclock chat: review-6.md D1 D2 D3 D8 D9 D12)
+The rules every cartridge keeps. The Overclock chat reads this page before each OVERCLOCK pass; THE PASSWORD and COAST CLEAR plug in the same way.
+
+**D1 — THE THIN META + LAZY LOGIC.** A cartridge is TWO files the console sees:
+- `js/games/<id>/meta.js`: what the console reads BEFORE a match. It's PURE and tiny, with NO imports (the test fails on one): `DEFAULT_SETTINGS`,
+  `OPTIONS`, `estimateMinutes`, `MUSIC` / `FINAL_MUSIC`, `MIN_PLAYERS` / `SOLO`, `BANNER_NAME`, `CHAT_CHIPS`, `chatLocked`, `NO_INTERCOM`,
+  `daily: { on }` (`cartridge.js#META_KEYS`). `games/registry.js` imports ONLY the metas at boot (`META`, `metaOf(id)`).
+- `js/games/<id>/index.js` = THE CARTRIDGE: `export * from './meta.js'` plus `start`, `prepare`, `step`, `livePaths`, `finalRanks`, `finalScene`,
+  `sealed`, `rematchSettings`, `daily.create`, `feats`, `createView`. It loads ON DEMAND (`registry.js#loadGame(id)`): the host's tap
+  awaits it, every phone loads it during the walk inside (`room-city.js`, with the view's warm + the preload), and a refresh mid-match
+  waits for it (`app.js` shows the walk inside or the boot screen, then the game; `room.js` watches its live paths once it lands).
+- logic.js / index.js take the meta's values FROM meta.js: one source (the test compares them).
+- PROOF: the title's static graph `node scripts/boot-bytes.mjs` went from 2,067 KB / 160 modules (297 KB of js/games) to 1,770 KB / 109 modules
+  (25 KB: the two metas + the console's own game files). `tests/cartridge.test.mjs` fails on any game's logic in the boot graph.
+  (`core/match-report.js` was never in the PHONE's boot graph: only `/api/report` + the stats import it, server-side.)
+
+**THE PRELOAD BUDGET.** `preload({ settings, host })` runs on EVERY phone during the start's ~5 s (the lit sign + the walk inside; 3 s for a
+same-game rematch). Keep it to ≤ ~1.5 MB (`cartridge.js#PRELOAD_BUDGET`): its sounds, its fonts, its FIRST content pool. The rest loads lazily.
+The start never waits past its 5 s for a preload: the game shows when its own pieces are ready (its view says so itself, never the console).
+
+**D12 — THE RULES.**
+- Only `start` may be ASYNC. `step` is PURE + DETERMINISTIC (seeded RNG `core/rng.js` + the `now` it's given = serverNow). NEVER `Math.random()` /
+  `Date.now()` in a step (host migration replays the same step: the same patch).
+- `prepare` runs on the HOST only (every tick, idempotent); `preload` runs on EVERY phone (the budget above).
+- A view never imports the city. The console PAUSES the city during a match (THE CITY PAUSE — the canvases freed); a game never knows about it.
+- `finalRanks` of a 1-player match returns ONE row (the solo lane — D3).
+- A result may carry per-player FEATS the SERVER replays for unlocks (`maxStreak`, `longShotWin`, `soloScore` …; `core/match-report.js`
+  reads them with bounds). A client never writes an unlock.
+- `finalScene(el, game, state)` = the game's podium BODY (D8: the console owns the FRAME: BACK TO THE ROOM, the XP box, already-yours / next
+  unlock, THE CARD REVEAL).
+- THE DAILY (D2) = a SOLO ROOM fed a server-picked DAY SET (THE DAILY MODULE picks the day's challenges + item ids SERVER-SIDE once a day: a
+  seed + a server secret). It is NEVER computable from the date alone; `daily.on` ships `false`.
+
+**D9 — THE KIT.** The shared match pieces live in `js/games/kit/`, class prefix **`gk-`**:
+- RESERVED for OVERCLOCK pass 1 (it builds them): `numpad.js` (the number pad), `keyboard.js` (the letter keyboard, never the system
+  keyboard), `tach.js` (the tach timer on serverNow), `slam.js` (the title slam + 3-2-1), `answer.js` (THE ANSWER frame). Keys ≥ 54 pt.
+- BUILT here (SHELL 2.0 B1):
+  - `kit/ready.js#readyState`, THE READY HELPER ("everyone tapped"): connected players only, a min time, a dropped player never blocks, an
+    optional max time; pure, so a director calls it.
+  - `kit/night.js`, THE ROOM-NIGHT PATH (below).
+
+**THE ROOM-NIGHT PATH (the game's memory of the night).** The path is `rooms/{CODE}/meta/used/{gameId}/{key}: true`, written by the HOST
+through a step's `$room` side writes (`kit/night.js#markUsed(gameId, keys)`) and read with `usedOf(state.meta, gameId)`. It SURVIVES rematches
++ new games and is GONE when the room closes. GAME-SCOPED: a game writes only under its own id (the shared trivia pool is `trivia`). The
+rules already allow it (a boolean under `meta/used/$game/$id`), so no rules change was needed. Bigger night data (a score, a list) → ask the
+city chat first (a new rule).
+
+**MUSIC BY MOOD.** `MUSIC: 'mood:evening'` (any of `late · morning · day · evening · party`) plays THAT mood's RADIO STATION on the server
+clock: every phone in the room gets the same song at the same place (`audio/party-music.js#stationCue`), and the menu song plays until the
+decks have loaded. The console already owns the unlock-on-tap + the one mute.
+
+**THE SOLO LANE (D3) + THE LOOK SWITCH.** `SOLO: true` lets ONE player start it (`minPlayersOf` → 1). A room of one plays it end to end and
+it counts for the STREAK + a SMALL, CAPPED XP (docs/profiles.md "THE SOLO LANE"). The room's AUTO / DAY / NIGHT look (`games/kit/look.js`
++ `body[data-look]`) is the console's: a game draws nothing of its own, it reads the look. Right / close use the shared `--good` /
+`--close` tokens (COLOUR-BLIND swaps them), never colour alone (docs/match-kit.md).
+
+### What plugs where
+| the game has… | it goes in | the console does |
+| --- | --- | --- |
+| options, defaults, minutes, music, banner name, chat chips, the chat lock, solo / min players | `meta.js` | reads it at boot (the GAMES sheet, the options sheet, the chat, the banner) |
+| the rules, the director, the live paths, the ranks, the podium body, the seal, the rematch, the daily's create, feats | `index.js` (+ logic / director) | loads it on demand (`loadGame`) |
+| its screen + stylesheet | `view.js` + `css/<id>.css` via `createView = lazyView(…)` | warms it during the walk inside, mounts it after |
+| sounds / fonts / the first pool | `preload()` (≤ 1.5 MB) | calls it on every phone at the start, never waits past 5 s |
+| what this room has seen tonight | `$room: markUsed(id, keys)` in a step | writes it with the step (host), clears it with the room |
+| "everyone tapped" | `kit/ready.js#readyState` in the director | — |
+| number pad · keyboard · tach timer · 3-2-1 · the answer frame | `js/games/kit/` (`gk-`), OVERCLOCK pass 1 | — |
+| unlock numbers | the result's FEATS | the SERVER replays + awards |
+| its daily | `daily = { on: false, create, resumeKey }` | THE DAILY MODULE feeds it a server-picked day set (later) |

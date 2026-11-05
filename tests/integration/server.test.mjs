@@ -1335,3 +1335,26 @@ test('the logs are pruned on write — the reports to the newest 40, errors quie
   assert.equal(await pruneLogsIfDue(now + 60_000), null, 'at most once an hour');
   await ref('/').update({ phonelog: null, errlog: null, rl: null });
 });
+
+// SHELL 2.0 B1 — THE SOLO LANE on the server: a room of ONE playing a SOLO cartridge (OVERCLOCK) is counted ONCE — the streak + a SMALL XP
+// (ranks.js#SOLO_XP), never a win, never night points (a host that writes 3 for a solo match is refused); PRISM DROP alone never counts
+test('THE SOLO LANE: a solo OVERCLOCK counts once, small XP, no win; 3 night points for it refused; a solo PRISM DROP never counts', async () => {
+  const { SOLO_XP } = await import('../../js/core/ranks.js');
+  await ensure('u-solo', 'SOLO');
+  const room = await seedRoom('overclock', ['u-solo']);
+  await ref(`rooms/${room.code}/night/${room.matchId}/p/u-solo`).set(0);   // (host.js: a solo match = 0 points)
+  const r = await report('u-solo', room);
+  assert.equal(r.status, 'counted');
+  assert.equal(r.outcome.win, false, 'never a win');
+  assert.equal(r.outcome.xp.gain, SOLO_XP, `a SOLO RUN's XP (${r.outcome.xp.gain})`);
+  assert.equal((await stats('u-solo')).g.overclock.p, 1);
+  assert.equal((await report('u-solo', room, clock + 5000)).status, 'done', 'credited once');
+  tick();
+  const hacked = await seedRoom('overclock', ['u-solo']);   // (seedRoom's night = the placing's 3 points)
+  await rejects(report('u-solo', hacked, clock + 10 * 60e3), 409, 'mismatch');
+  await ensure('u-solo2', 'SOLOTWO');
+  const pr = await seedRoom('prism', ['u-solo2'], {}).catch(e => e);
+  if (pr && pr.code) await rejects(report('u-solo2', pr), 409, 'unverifiable');
+  else assert.match(String(pr && pr.message), /too few players/, 'PRISM DROP alone is not a reportable match');
+  tick();
+});

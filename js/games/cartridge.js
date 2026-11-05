@@ -22,14 +22,14 @@ export const OPTIONAL = Object.freeze({
   musicFor: 'function',         // musicFor(game) → [track, fallback] — a track that changes during the match
   FINAL_MUSIC: 'string',        // its podium music (default: the victory playlist)
   MIN_PLAYERS: 'number',        // more than the app-wide minimum (DOUBLE AGENT: 4)
-  SOLO: 'boolean',              // true = one player may start it (OVERCLOCK's solo, a later pass) — the console's minimum drops to 1
+  SOLO: 'boolean',              // true = one player may start it (THE SOLO LANE — SHELL 2.0 B1) — the console's minimum drops to 1
   nightBonus: 'function',       // nightBonus(game) → { uid: points } — game-night points that aren't a placing (PRISM DROP's Call the Winner)
   sealed: 'function',           // THE SEAL (kit/seal.js): sealed(game) → { name: 'node/{m}/{key}' } — the round's secrets
   chatLocked: 'function',       // chatLocked(game, uid, live) → true while this player is actively playing (no chat) — the chat asks the game
   CHAT_CHIPS: 'array',          // its own quick replies (≤ 4 short strings) on the chat's chips row while it runs
   BANNER_NAME: 'string',        // its name on THE WINNER's BANNER PLANE (default: config.js GAMES name)
   rematchSettings: 'function',  // rematchSettings(settings, lastGame) → the settings a REMATCH uses (default: the same)
-  preload: 'function',          // preload({ settings, host }) — called on EVERY phone at the game start (the 2.6 s walk inside): fetch its
+  preload: 'function',          // preload({ settings, host }) — called on EVERY phone at the game start (the ~5 s start, 3 s for a rematch — THE PRELOAD BUDGET below): fetch its
                                 //   pools / sounds / fonts so the view is ready when the push through the door ends (its view module +
                                 //   stylesheets are warmed by the console itself). Everything a game needs loads ONLY when it is played.
   finalScene: 'function',       // SHELL 2.0 A — finalScene(el, game, state): the game draws its own BODY inside the console's podium frame
@@ -42,6 +42,24 @@ export const OPTIONAL = Object.freeze({
 //                                                                 (a seed from the date), never a party-only part (DUMB LUCK)
 //             resumeKey(date, uid) → string }                     — one try a day: a refresh / an app switch resumes, never restarts
 export const DAILY = Object.freeze({ on: 'boolean', create: 'function', resumeKey: 'function' });
+
+// SHELL 2.0 B1 — THE CONTRACT (agreed with the Overclock chat — review-6.md D1 D2 D3 D8 D9 D12; docs/cartridge.md):
+// D1 THE THIN META + LAZY LOGIC: these keys live in the game's js/games/<id>/meta.js — PURE + tiny (no imports), what the console reads
+//   BEFORE a match (the registry imports only the metas at boot); index.js re-exports them (`export * from './meta.js'`) and everything
+//   else (start, prepare, step, livePaths, finalRanks, finalScene, sealed, rematchSettings, daily.create, feats, createView) loads with the
+//   cartridge (games/registry.js#loadGame — the host's start, every phone's walk inside, a refresh mid-match).
+export const META_KEYS = Object.freeze(['DEFAULT_SETTINGS', 'OPTIONS', 'estimateMinutes', 'MUSIC', 'FINAL_MUSIC', 'MIN_PLAYERS', 'SOLO', 'BANNER_NAME', 'CHAT_CHIPS', 'chatLocked', 'NO_INTERCOM']);
+// THE PRELOAD BUDGET: a game's preload() runs on EVERY phone during the start's ~5 s (the lit sign + the walk inside) — at most ~1.5 MB
+//   (its sounds, its fonts, its FIRST content pool); the rest lazy. The start never waits past its 5 s for it: the game shows when its own
+//   pieces are ready (its view says LOADING itself, never the console).
+export const PRELOAD_BUDGET = 1.5 * 1024 * 1024;
+// FEATS (D3 / the solo lane): a result row may carry the player's FEATS — small numbers the SERVER replays for unlocks (maxStreak,
+//   longShotWin, soloScore…) — core/match-report.js reads them per game, with bounds; a client never writes an unlock.
+// THE KIT (D9): the shared match pieces live in js/games/kit/ — RESERVED for OVERCLOCK pass 1 (it builds them, the class prefix gk-):
+//   numpad.js (the number pad) · keyboard.js (the letter keyboard — never the system keyboard) · tach.js (the tach timer on serverNow) ·
+//   slam.js (the title slam + 3-2-1) · answer.js (THE ANSWER frame); keys ≥ 54 pt. Built HERE (SHELL 2.0 B1): ready.js (THE READY HELPER —
+//   "everyone tapped") + night.js (THE ROOM-NIGHT PATH: rooms/{CODE}/meta/used/{gameId}/{key}).
+export const KIT_PREFIX = 'gk-';
 
 const kindOf = v => (Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v);
 

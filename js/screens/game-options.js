@@ -8,7 +8,7 @@ import { segmented, chips as chipSelect } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
 import { MIN_PLAYERS } from '../config.js';
 import { startGame, onlineCount } from '../host.js';
-import { GAME_MODULES } from '../games/registry.js';
+import { metaOf, loadGame } from '../games/registry.js';
 import { preloadSheets } from '../games/lazy-view.js';
 import { minPlayersOf } from '../games/cartridge.js';
 import { openHelp } from '../ui/help.js';
@@ -38,7 +38,8 @@ export function optionCards(choices, value, onChange) {
 }
 
 export function openGameOptions(g, { meta = null, onClose = null } = {}) {
-  const mod = GAME_MODULES[g.id];
+  const mod = metaOf(g.id);   // (SHELL 2.0 B1 — THE THIN META: the sheet reads it; the cartridge starts loading now, so INITIATE is quick)
+  loadGame(g.id).catch(() => {});
   prefetch(mod.MUSIC);
   preloadSheets(g.id);   // its screen's stylesheets, so the match starts styled at once
   const saved = (meta && meta.settings && meta.settings[g.id]) || {};

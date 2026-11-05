@@ -11,7 +11,7 @@ import { pickLine } from './core/room-lines.js';
 import { hushCandidates, staleHush, claimFirst, missCooldown, recentMisses } from './core/hush.js';
 import { hostSeed } from './audio/lobby-music.js';
 import { toast } from './ui/toast.js';
-import { livePathsFor, liveKeyFor } from './games/registry.js';
+import { livePathsFor, liveKeyFor, onGameLoaded } from './games/registry.js';
 import { closeAll } from './ui/layers.js';
 import { watchRoomProfiles, stopRoomProfiles } from './profile/public.js';
 import { claimSeatFor, takeSeat, freeSeat, watchSeat, seatConflict } from './seat.js';
@@ -296,6 +296,8 @@ function enterRoom(code) {
 // Subscribes to the player-written paths the active game needs right now
 // (e.g. this round's boards). liveKey is only set once every path has loaded,
 // so the director never decides on half-synced data.
+// (SHELL 2.0 B1 — THE LAZY LOGIC: a match's paths come with its cartridge — when it lands mid-match, watch them then)
+onGameLoaded(id => { if (state.code && state.game && state.game.id === id) watchLive(state.code, state.game); });
 function watchLive(code, game) {
   const key = liveKeyFor(game);
   if (key === liveWanted) return;

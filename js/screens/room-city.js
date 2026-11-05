@@ -9,6 +9,7 @@
 //   · the notes above the dock: the room closing soon (host: KEEP OPEN), a match on that this phone stepped out of (WATCH).
 // EACH PHONE KEEPS ITS OWN CITY (its sky, sun, weather, its local-time events); the ROOM's things are the same on every phone — all of
 // them derived from rooms/{CODE} (players, presence, meta, kicked): a refresh / a rejoin / a host change = everyone back in place.
+import * as LK from '../games/kit/look.js';
 import { h } from '../ui/dom.js';
 import { avatar } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
@@ -44,6 +45,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   const code = () => st.code || '';
   const players = () => st.players || {};
   const hostName = () => ((players()[st.meta && st.meta.hostId] || {}).name || 'the host');
+  // THE ROOM's LOOK SWITCH (SHELL 2.0 B1 — games/kit/look.js): a room of ONE — the solo player is the host — before the match only
+  let lookChoice = LK.savedLook();
+  const lookOn = () => Object.keys(players()).length === 1 && isHost() && !(st.meta && st.meta.status === 'playing');
 
   // ---------------------------------------------------------------- the dock
   dock = createRoomDock({
@@ -60,6 +64,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     guests: () => { sfx('select'); openGuests(); },
     games: () => { sfx('select'); ngTapped(); openGames(isHost()); },
     chat: () => { sfx('tap'); import('../chat/ui.js').then(m => m.openChat()); },
+    // (SHELL 2.0 B1 — THE ROOM's LOOK SWITCH: a room of one, before the match — AUTO → DAY → NIGHT, remembered on this device)
+    look: () => { if (!lookOn()) return; sfx('tap'); lookChoice = LK.nextLook(lookChoice); LK.saveLook(lookChoice); paintDock(); },
     note: () => onNote(),
   });
   if (dockHost) dockHost.append(dock.els.door);
@@ -257,13 +263,15 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   import('../chat/chat.js').then(m => { if (destroyed) return; chatMod = m; offChat = m.onChat(() => { paintDock(); paintBubbles(); }); paintDock(); }).catch(() => {});
   function paintDock() {
     if (!dock || destroyed) return;
+    // (the look switch: shown to the ONE player of a room, before the match — locked once it starts: the dock is the match's then)
     const P = players(), me = P[st.uid] || {}, ids = Object.keys(P);
     if (!seen) seen = loadSeen() || new Set(ids);
     const unread = chatMod ? chatMod.chat.unread || 0 : 0;
     const vs = voteNow();
     const rm = vs.on ? { on: true, voted: !!(st.rv && st.rv[st.uid] === vs.m), n: vs.voters.length, total: vs.total, pips: vs.guests.map(u => ({ col: colorHex((P[u] || {}).color), on: vs.voters.includes(u) })) } : null;
     dock.set({ host: isHost(), hostName: hostName(), invitePulse: isHost() && ids.length === 1 && !invited(), newGame: isHost() && vs.on ? (ngSeen() ? 'calm' : 'breathe') : null, guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
-      you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm });
+      you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm,
+      look: { show: lookOn(), choice: lookChoice } });
   }
   function paintBubbles() {
     const ty = chatMod ? chatMod.chat.typing || {} : {}, now = serverNow();
@@ -336,7 +344,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     closeAll();   // (FR6 FIXES A — B1: EVERY sheet + overlay on every phone — the profile, CUSTOMIZE, the full card, ☰, HOW TO PLAY…; never one over the match)
     // (THE CARTRIDGE PLUG — its loading: the walk inside is the console's loading time on EVERY phone — the view module + its sheets warm,
     //  the game's own preload (pools, sounds) runs; the city is still drawing, so nothing heavy is BUILT here — only fetched)
-    import('../games/registry.js').then(R => { const mod = R.GAME_MODULES[ss.g]; if (!mod) return; if (mod.createView && mod.createView.warm) mod.createView.warm(); if (typeof mod.preload === 'function') { try { mod.preload({ settings: (st.meta && st.meta.settings && st.meta.settings[ss.g]) || mod.DEFAULT_SETTINGS || {}, host: isHost() }); } catch (e) { console.warn('preload', e); } } }).catch(() => {});
+    import('../games/registry.js').then(R => R.loadGame(ss.g)).then(mod => { if (!mod) return;   // (SHELL 2.0 B1: every phone LOADS the cartridge here — the walk inside)
+      if (mod.createView && mod.createView.warm) mod.createView.warm(); if (typeof mod.preload === 'function') { try { mod.preload({ settings: (st.meta && st.meta.settings && st.meta.settings[ss.g]) || mod.DEFAULT_SETTINGS || {}, host: isHost() }); } catch (e) { console.warn('preload', e); } } }).catch(() => {});
   }
   const diedSaid = new Set();
   function startDied(m) {

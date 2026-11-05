@@ -479,6 +479,19 @@ G('shell', async () => {
   await ev(p, "(() => { const x = document.querySelector('.gm .sh-x'); if (x) x.click(); })()"); await sleep(450);
   ok(!top0.back && top0.x && nest.every(n => n.back && n.x && n.under && n.backTo && n.kick) && esc.length === 2 && /settings/.test(esc[1] || '') && !xAll.length && card && cardBack,
     `‹ BACK ON EVERY NESTED SHEET: the menu (top level) × only (‹ ${top0.back}); ${nest.map(n => `${n.name}: ‹ ${n.back} "${n.kick}" on the parent ${n.under} → ‹ back ${n.backTo}`).join(' · ')}; Esc on CREDITS → SETTINGS stays (${esc.length} open); × closes all (${xAll.length} left); ☰ → YOUR CARD (${card}) → its ‹ → the menu again (${cardBack})`);
+  // ---- SHELL 2.0 B1 — COLOUR-BLIND (the dailies chat): ☰ → SETTINGS → "Colour-blind colours" → body[data-cb]: --good BLUE + --close ORANGE
+  await ev(p, "document.querySelector('.menu-btn').click()"); await waitFor(p, "!!document.querySelector('.gm.is-in .sh-row')", 'the menu (colour-blind)', 6000);
+  await ev(p, "document.querySelector('.gm .gm-settings').click()"); await waitFor(p, "!!document.querySelector('.sh.settings.is-in')", 'SETTINGS (colour-blind)', 6000); await sleep(350);
+  const tok = () => ev(p, "({ cb: document.body.dataset.cb || '', good: getComputedStyle(document.body).getPropertyValue('--good').trim(), close: getComputedStyle(document.body).getPropertyValue('--close').trim() })");
+  const cb0 = await tok();
+  const hasRow = await ev(p, "(() => { const r = [...document.querySelectorAll('.sh.settings .sh-row')].find(x => /Colour-blind colours/.test(x.textContent)); if (!r) return false; r.click(); return true; })()");
+  await sleep(300);
+  const cb1 = await tok(), kept = await ev(p, "JSON.parse(localStorage.getItem('na:settings') || localStorage.getItem('settings') || '{}').colorBlind ?? null").catch(() => null);
+  await ev(p, "[...document.querySelectorAll('.sh.settings .sh-row')].find(x => /Colour-blind colours/.test(x.textContent)).click()"); await sleep(250);
+  const cb2 = await tok();
+  await ev(p, "[...document.querySelectorAll('.sh:not(.is-out) .sh-x')].pop().click()"); await sleep(450);
+  ok(hasRow && !cb0.cb && cb0.good === '#3dff8b' && cb1.cb === '1' && cb1.good === '#3ea6ff' && cb1.close === '#ff8f2e' && !cb2.cb && cb2.good === '#3dff8b',
+    `COLOUR-BLIND: the SETTINGS row → body[data-cb] — right ${cb0.good} → ${cb1.good}, close ${cb0.close} → ${cb1.close}; off again → ${cb2.good} (saved: ${kept})`);
   // ---- ONE MESSAGE at a time, above the dock, never on the sign
   await ev(p, "import('/js/ui/toast.js').then(m => { m.toast('FIRST', 'info', 5000); m.toast('Host left — you’re the host now', 'warn', { ms: 5000, sub: 'Your friends are still in the room.' }); return 1; })");
   await sleep(500);

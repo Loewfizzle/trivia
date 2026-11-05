@@ -1,6 +1,8 @@
 // OVERCLOCK module entry (see games/registry.js for the contract).
 import { createGame, nextStep, triviaNeeded } from './director.js';
-import { DEFAULT_SETTINGS, MODES, CHALLENGE_MS, READY_MS, STANDINGS_MS, standings as ocStandings } from './logic.js';
+import { DEFAULT_SETTINGS, standings as ocStandings } from './logic.js';
+// (SHELL 2.0 B1 — THE THIN META: the console's pieces — OPTIONS, estimateMinutes, MUSIC, the banner, the chat's lock — from meta.js)
+export * from './meta.js';
 import { initialBank, topUp, fallbackPatch } from '../../trivia/feed.js';
 import { loadFallback } from '../../trivia/bank.js';
 import { state } from '../../store.js';
@@ -12,8 +14,6 @@ import { sealGate, unsealed, mergeSealed } from '../kit/seal.js';
 // the view loads when a match of this game is on screen (keeps first paint light)
 export const createView = lazyView(() => import('./view.js'), gameSheets('overclock'));
 
-export const MUSIC = 'overclock';
-export { DEFAULT_SETTINGS };
 
 export const livePaths = g => ({ boards: `oc/${g.matchId}/${g.ci || 0}` });
 
@@ -55,21 +55,6 @@ export const step = (game, { code, now, live, online }) => {
   return patch;
 };
 
-export const OPTIONS = [
-  { key: 'mode', label: 'MODE', type: 'list', choices: [
-    { value: 'quick', label: `QUICK · ${MODES.quick}`, sub: 'Six different challenges' },
-    { value: 'standard', label: `STANDARD · ${MODES.standard}`, sub: 'Twelve different challenges' },
-    { value: 'marathon', label: `MARATHON · ${MODES.marathon}`, sub: 'All twenty, plus a few repeats' },
-  ] },
-];
-
-export function estimateMinutes(s) {
-  const n = MODES[s.mode] || MODES.standard;
-  return Math.round((n * (CHALLENGE_MS * 0.8 + READY_MS + STANDINGS_MS + 1500)) / 60000);
-}
-
 export const finalRanks = game => ocStandings(game).map(r => ({ uid: r.uid, rank: r.rank }));
 
-// THE CARTRIDGE PLUG (LOBBY 2.0 B — docs/cartridge.md): the chat's lock, its name on THE WINNER's BANNER PLANE
-export { chatLocked } from './logic.js';
-export const BANNER_NAME = 'OVERCLOCK';
+// (THE CARTRIDGE PLUG's chat lock + BANNER_NAME: meta.js)

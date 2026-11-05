@@ -11,14 +11,16 @@ import { MARKS } from '../js/core/marks.js';
 
 const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 /** the names a module exports, from its source (export const / function / let, export { a, b as c } [from …]) */
-function exportsOf(src) {
+function exportsOf(src, dir = null) {
   const out = new Set();
+  // (SHELL 2.0 B1 — THE THIN META: `export * from './meta.js'` — the meta's names count as the cartridge's)
+  if (dir) for (const m of src.matchAll(/^export \* from '\.\/([\w-]+\.js)'/gm)) for (const n of exportsOf(read(`${dir}/${m[1]}`))) out.add(n);
   for (const m of src.matchAll(/^export\s+(?:async\s+)?(?:const|let|var|function\*?|class)\s+([A-Za-z_$][\w$]*)/gm)) out.add(m[1]);
   for (const m of src.matchAll(/^export\s*\{([^}]*)\}/gm)) for (const part of m[1].split(',')) { const n = part.trim().split(/\s+as\s+/).pop().trim(); if (n) out.add(n); }
   return out;
 }
 const REG = read('js/games/registry.js');
-const registered = [...REG.matchAll(/import \* as (\w+) from '\.\/(\w+)\/index\.js'/g)].map(m => m[2]);
+const registered = [...REG.matchAll(/(\w+): \(\) => import\('\.\/(\w+)\/index\.js'\)/g)].map(m => m[2]);   // (SHELL 2.0 B1: the registry's LOADERS)
 const PLAYABLE = GAMES.filter(g => g.playable).map(g => g.id);
 /** THE TEN HIDDEN GAMES — EXEMPT until each comes back (WINDOWS, Nov 1: their code + data + rules FROZEN). A game that returns leaves this
  *  list in the same pass that makes it playable — and then must pass every check below. */
@@ -32,7 +34,7 @@ test('every registered game is either PLAYABLE (and checked) or EXEMPT (hidden, 
 
 test('the PLAYABLE games export every REQUIRED piece of the contract + a music choice; their mark for the sign; their GAMES row', () => {
   for (const id of PLAYABLE) {
-    const ex = exportsOf(read(`js/games/${id}/index.js`));
+    const ex = exportsOf(read(`js/games/${id}/index.js`), `js/games/${id}`);
     for (const k of Object.keys(REQUIRED)) assert.ok(ex.has(k), `${id}: exports ${k}`);
     assert.ok(ex.has('MUSIC') || ex.has('musicFor'), `${id}: MUSIC or musicFor`);
     assert.ok(MARKS[id], `${id}: its tube mark (core/marks.js) — the game start's sign`);
@@ -75,8 +77,32 @@ test('what the console reads through the plug: the minimum (MIN_PLAYERS above th
   assert.match(read('js/host.js'), /minPlayersOf\(mod, MIN_PLAYERS\)/);
   assert.match(read('js/screens/game-options.js'), /minPlayersOf\(mod, MIN_PLAYERS\)/);
   assert.match(read('js/chat/chat.js'), /chatLocked\(g, state\.uid, live, mod && mod\.chatLocked\)/);
-  assert.match(read('js/app.js'), /setGameChips\(C\.chipsOf\(GAME_MODULES\[id\]\)\)/);
+  assert.match(read('js/app.js'), /setGameChips\(C\.chipsOf\(metaOf\(id\)\)\)/);
   assert.match(read('js/screens/room-city.js'), /mod\.createView\.warm\(\)/);
   assert.match(read('js/screens/room-city.js'), /mod\.preload\(\{ settings:/);
   assert.match(read('js/games/lazy-view.js'), /createView\.warm = \(\) =>/);
+});
+
+// ---- SHELL 2.0 B1 — THE THIN META + LAZY LOGIC (D1): the registry imports ONLY the playable games' meta.js at boot; a game's cartridge
+//      loads on demand; the meta is pure (no DOM, no logic) and is what index.js + logic.js export (one source)
+test("THE THIN META: the registry's static imports are the meta files only; every game loads by id; the meta = the cartridge's values", async () => {
+  const statics = [...REG.matchAll(/^import .* from '(\.\/[^']+)'/gm)].map(m => m[1]);
+  assert.deepEqual(statics.filter(s => /\/(index|logic|director|view)\.js$/.test(s)), [], 'no game code imported statically');
+  assert.deepEqual([...REG.matchAll(/^import \* as \w+ from '\.\/(\w+)\/meta\.js'/gm)].map(m => m[1]).sort(), [...PLAYABLE].sort());
+  assert.equal(registered.length, 12);
+  for (const id of PLAYABLE) {
+    const meta = read(`js/games/${id}/meta.js`);
+    assert.doesNotMatch(meta, /^import /m, `${id}/meta.js imports nothing (pure + tiny)`);
+    assert.ok(meta.length < 4000, `${id}/meta.js stays thin (${meta.length} bytes)`);
+    const M = await import(`../js/games/${id}/meta.js`), L = await import(`../js/games/${id}/logic.js`);
+    for (const k of ['DEFAULT_SETTINGS', 'chatLocked']) assert.equal(L[k], M[k], `${id}: logic.js ${k} IS the meta one (one source)`);
+    for (const k of ['OPTIONS', 'estimateMinutes', 'BANNER_NAME', 'chatLocked']) assert.ok(k in M, `${id}: meta carries ${k}`);
+    assert.ok('MUSIC' in M, `${id}: meta carries MUSIC`);
+  }
+});
+test("THE BOOT BYTES: no game's logic in the title's static graph (scripts/boot-bytes.mjs) — was ~297 KB of js/games", async () => {
+  const { bootGraph } = await import('../scripts/boot-bytes.mjs');
+  const g = bootGraph(), games = g.rows.filter(r => r.f.startsWith('js/games/') && !/\/(meta|registry|cartridge|lazy-view)\.js$|\/kit\/|^js\/games\/pulse\/clock\.js$/.test(r.f));   // (pulse/clock.js = the console's shared audio clock — audio/synced-songs.js)
+  assert.deepEqual(games.map(r => r.f), [], "only the metas + the console's own game files at boot");
+  assert.ok(g.games < 30 * 1024, `js/games at boot: ${(g.games / 1024).toFixed(1)} KB`);
 });

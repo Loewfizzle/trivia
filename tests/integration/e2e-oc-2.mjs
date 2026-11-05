@@ -133,7 +133,7 @@ try {
   }
   await host.type('.setup-screen input.input', NAMES[0]);
   await tapReal(host, '.form-cta .btn-primary');
-  await host.waitForSelector('.lobby-screen .room-code', { timeout: 20000 });
+  await host.waitForSelector('.title-screen.is-room .rdk-dock', { timeout: 20000 });   // (SHELL 2.0 B1: the room in the city — the old lobby went with CITY 1.0 OUT)
   const code = await evalIn(host, s => s.code);
   log('room', code);
   for (let i = 1; i < N; i++) {
@@ -144,7 +144,7 @@ try {
     await p.waitForSelector('.input-code');
     await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
     await tapReal(p, '.form-cta .btn-primary');
-    await p.waitForSelector('.lobby-screen', { timeout: 20000 });
+    await p.waitForSelector('.title-screen.is-room', { timeout: 20000 });
   }
   await waitFor(host, (s, n) => Object.keys(s.players).length === n, `${N} players`, 30000, N);
   const uids = [];

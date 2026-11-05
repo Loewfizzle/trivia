@@ -18,7 +18,7 @@ import { ownerCounts, pctOf, bumpOwners } from './_lib/owners.js';
 import { val, ref, adminPids } from './_lib/fb.js';
 import { memberNo } from './_lib/members.js';
 import { DEV_CARDS, isDevCard } from '../js/core/dev-cards.js';
-import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo } from './_lib/profiles.js';
+import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo, setPrefs } from './_lib/profiles.js';
 import { boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
 import { founderOpen } from './_lib/founder.js';
@@ -138,6 +138,8 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
     // PROGRESSION B — CITY SIGHTINGS: a tap on a legendary (server-verified: api/_lib/sightings.js)
     case 'sighting': return claimSighting(await mine(uid), uid, body, { req, placeOf, kpNow, place: req ? undefined : (body.place || null), ipTz: req ? undefined : (body.ipTz || null) }, now);
     case 'show': { const pid = await mine(uid); await setShown(pid, !!body.on); return { priv: await privateInfo(pid) }; }
+    // (SHELL 2.0 B1 — COLOUR-BLIND on the profile: ppriv/{pid}/cb — private, server-written)
+    case 'prefs': { const pid = await mine(uid); await setPrefs(pid, body); return { priv: await privateInfo(pid) }; }
     default: throw new ApiError(400, 'bad_action');
   }
 }

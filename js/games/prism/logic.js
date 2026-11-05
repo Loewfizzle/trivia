@@ -2,10 +2,9 @@
 // the room's shuffled playlist, the song schedule (crossfades), battle speed + sudden death, targeting,
 // the comeback junk delay, Call the Winner bonuses and the standings.
 import { rngFrom, shuffle } from '../../core/rng.js';
-
-export const MODES = ['battle', 'rush'];
-export const DEFAULT_SETTINGS = { mode: 'battle' };
-export const MIN_PLAYERS = 2;
+// (SHELL 2.0 B1 — THE THIN META: the console's pieces live in meta.js — one source; re-exported here for the rules + the server)
+import { MODES, DEFAULT_SETTINGS, MIN_PLAYERS, cleanSettings, estimateMinutes, chatLocked } from './meta.js';
+export { MODES, DEFAULT_SETTINGS, MIN_PLAYERS, cleanSettings, estimateMinutes, chatLocked };
 export const LEAD_MS = 4500;          // match created -> song starts (title card, everyone loads)
 export const COUNT_MIN_MS = 3200;     // at least this much song before GO (the 3-2-1 lands on beats)
 export { XF_MS, CALL_MS, callBonus } from '../../core/playlist.js';
@@ -19,9 +18,6 @@ export const JUNK_DELAY_DANGER_MS = 2500; // comeback breathing room
 export const DANGER_ROWS = 16;        // stack this high (of 20 visible) = "within the top ~4 rows"
 export const SONGS_PER_MATCH = 5;     // a battle can run through this many songs
 
-export function cleanSettings(s = {}) {
-  return { mode: MODES.includes(s.mode) ? s.mode : DEFAULT_SETTINGS.mode };
-}
 
 // ---------------------------------------------------------------- playlist (shared: core/playlist.js)
 export { playlistAt, songStarts, songAt, songsUsed } from '../../core/playlist.js';
@@ -94,9 +90,6 @@ export function standings(game) {
 export const aliveOf = game => Object.keys(game.participants || {}).filter(u => !(game.out && game.out[u]));
 
 /** Rough match length for the lobby. */
-export function estimateMinutes(settings, songMinutes = 3.2) {
-  return cleanSettings(settings).mode === 'rush' ? Math.round(songMinutes + 1) : 5;
-}
 
 /** Names for the big clears (announcements + results). */
 export const CLEAR_NAME = {
@@ -106,9 +99,3 @@ export const CLEAR_NAME = {
 };
 
 /** THE CARTRIDGE PLUG (docs/cartridge.md) — the chat's lock: locked while your board is live; knocked out (battle) = watch and talk */
-export function chatLocked(game, uid, live) {
-  if (game.phase !== 'count' && game.phase !== 'play') return false;
-  if (game.out && game.out[uid]) return false;
-  const n = live && live.boards ? live.boards[uid] : undefined;
-  return !(n && n.st === 'out');
-}

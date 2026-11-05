@@ -28,7 +28,6 @@ import { rankBadge, emblem, RANK_COLORS } from '../ui/emblems.js';
 import { primaryBoard, fmtValue } from '../core/boards.js';
 import { createRoom, joinRoom } from '../room.js';
 import { firebaseReady } from '../firebase.js';
-import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, neonFlicker, neonTwitch, NEON_GAINS, neonDropout, neonCatch, neonHumFade, neonRaceCrackle, neonPreload, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';

@@ -18,7 +18,7 @@ import { cityLoop } from './city-sound.js';
 import { takesOf } from '../core/city-sounds.js';
 import { serverNow } from '../firebase.js';
 import { state as store } from '../store.js';
-import { GAME_MODULES } from '../games/registry.js';
+import { metaOf } from '../games/registry.js';
 import { icDecide, headLines, CHIME_S, GAP_IN, GAP_OUT } from '../core/radio-intercom.js';
 import { knob } from '../core/harbor-schedule.js';
 
@@ -55,7 +55,7 @@ const rank = s => (s === 'desk' ? 3 : s === 'room' ? 2 : 1);
 
 function inGame() { return !!(store.code && store.meta && store.meta.status === 'playing'); }
 function holdGame() {
-  const g = store.game, mod = g && g.id ? GAME_MODULES[g.id] : null, no = mod && mod.NO_INTERCOM;
+  const g = store.game, mod = g && g.id ? metaOf(g.id) : null, no = mod && mod.NO_INTERCOM;
   if (!no || !inGame()) return false;
   try { return typeof no === 'function' ? !!no(g) : true; } catch { return true; }
 }

@@ -82,7 +82,8 @@ export async function processReport(uid, body, now = Date.now()) {
     if (game.id !== night.g) throw new ApiError(409, 'mismatch', 'The match doesn’t match its record.');
     try { ex = extractMatch(game, { pulseCounts: loadPulseCounts() }); } catch (e) { throw new ApiError(409, 'unverifiable', e.message); }
     // the placings the host computed must be the night record's
-    const agree = Object.entries(ex.rows).every(([u, r]) => (NIGHT_POINTS[r.rank] || 0) === ((night.p || {})[u] || 0)) && Object.keys(night.p || {}).every(u => ex.rows[u]);
+    // (SHELL 2.0 B1 — THE SOLO LANE: a room of one earns no night points — the host writes 0)
+    const agree = Object.entries(ex.rows).every(([u, r]) => (ex.solo ? 0 : NIGHT_POINTS[r.rank] || 0) === ((night.p || {})[u] || 0)) && Object.keys(night.p || {}).every(u => ex.rows[u]);
     if (!agree) throw new ApiError(409, 'mismatch', 'The placings don’t match the room.');
     if (game.id === 'cipher' && !cipherAgrees(game, await val(`rooms/${code}/boards/${matchId}`), code)) throw new ApiError(409, 'mismatch', 'The results don’t match the players’ boards.');
   } else if (body.snap && typeof body.snap === 'object' && body.snap.matchId === matchId) {
