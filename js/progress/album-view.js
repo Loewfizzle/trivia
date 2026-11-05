@@ -2,6 +2,7 @@
 // own — no list of what's out there, no ???, no totals). Each legendary they've spotted: THIS DEVICE's polaroid of it (js/profile/album.js
 // — the first one, the discovery) with its date + time in hand, its name, "X% OF PLAYERS HAVE THIS"; on another device (no photo here)
 // the LEGENDARY CARD + the date it was first spotted (the server's grant time). Tap one → it big (+ this device's later prints of it).
+import { takeLayer } from '../ui/layers.js';
 import { h } from '../ui/dom.js';
 import { ITEM } from '../core/items.js';
 import { cardVars, pctFor, pctLine } from './look.js';
@@ -86,11 +87,11 @@ async function openBig(s, T) {
   const el = h('div.sg-big', { role: 'dialog', 'aria-label': s.name },
     h('div.sg-head', { style: { opacity: 1 } }, photos.length ? 'SPOTTED OVER THE HARBOR' : `FIRST SPOTTED ${capOf(s.at).date.toUpperCase()}`), show,
     h('div.sg-big-name', s.name), h('div.sg-al-pct', (T && T.pct.textContent) || ''), h('div.sg-al-pct', s.n > 1 ? `SPOTTED ${s.n} TIMES` : ''), thumbs, x);
-  const close = () => { el.classList.remove('is-in'); setTimeout(() => { if (scene) scene.surface.destroy(); el.remove(); }, 260); document.removeEventListener('keydown', onKey); };
-  const onKey = e => { if (e.key === 'Escape') close(); };
+  let release = null;
+  const close = () => { if (release) { release(); release = null; } el.classList.remove('is-in'); setTimeout(() => { if (scene) scene.surface.destroy(); el.remove(); }, 260); };
   x.addEventListener('click', close);
   el.addEventListener('click', e => { if (e.target === el) close(); });
-  document.addEventListener('keydown', onKey);
+  release = takeLayer(el, { close, min: 9200 });   // (SHELL 2.0 A — H2: on THE LAYER STACK; the one Esc closes it)
   document.body.append(el);
   requestAnimationFrame(() => el.classList.add('is-in'));
 }

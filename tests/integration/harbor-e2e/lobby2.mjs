@@ -36,7 +36,7 @@ export async function fakeGuests(code, n, ago = 30000, pre = 'fg') {
 export const settledRoom = (p, n, ms = 30000) => waitFor(p, `(() => { const r = window.__district.room(); return r && r.people && r.people.length === ${n} && r.people.every(x => x.s && x.s.pose === 'wait'); })()`, `${n} settled`, ms);
 /** which layer is on top at the screen's middle (the newest pop-up must be) */
 export const roomOf = p => ev(p, 'window.__district && window.__district.room ? window.__district.room() : null');
-export const topAt = p => ev(p, `(() => { const e = document.elementFromPoint(innerWidth / 2, innerHeight * 0.45); if (!e) return null; const L = e.closest('.vl-full, .vl-dress, .pfs, .pf-overlay, .pg-moment, .modal'); return L ? (L.classList.contains('pf-overlay') ? 'pf-overlay' : L.classList.contains('pfs') ? 'sheet:' + [...L.classList].filter(c => c !== 'pfs' && c !== 'is-in').join('.') : L.classList[0]) : 'none:' + e.className; })()`);
+export const topAt = p => ev(p, `(() => { const e = document.elementFromPoint(innerWidth / 2, innerHeight * 0.45); if (!e) return null; const L = e.closest('.vl-full, .vl-dress, .sh, .pf-overlay, .pg-moment, .modal'); return L ? (L.classList.contains('pf-overlay') ? 'pf-overlay' : L.classList.contains('sh') ? 'sheet:' + [...L.classList].filter(c => c !== 'sh' && c !== 'is-in' && c !== 'is-nested').join('.') : L.classList[0]) : 'none:' + e.className; })()`);
 
 G('roomfix', async () => {
   // ---- THE TAP AREA: the whole person opens their card (the figure + its ring + the emblem, ≥ 44 pt); the nearest to the finger wins
@@ -52,10 +52,10 @@ G('roomfix', async () => {
     const u = ids.find(x => x !== 'fg0' && /^fg/.test(x)) || ids[1], r = d[u];
     const name = await ev(p, `window.__arcade.state.players['${u}'].name`);
     await tapAt(p, (r.x0 + r.x1) / 2, r.y1 - 10);
-    const got = await waitFor(p, "!!document.querySelector('.rc-card-sheet:not(.is-out), .vl-full')", 'a card', 5000).then(() => ev(p, "(document.querySelector('.rc-card-sheet .pfs-t b') || {}).textContent || 'full'"), () => null);
+    const got = await waitFor(p, "!!document.querySelector('.rc-card-sheet:not(.is-out), .vl-full')", 'a card', 5000).then(() => ev(p, "(document.querySelector('.rc-card-sheet .sh-t b') || {}).textContent || 'full'"), () => null);
     ok(got && got.toUpperCase() === name.toUpperCase(), `THE TAP AREA: a tap on ${name}'s LOWER BODY (${Math.round(r.y1 - 10 - r.y0)} pt under the top of the emblem) opens THEIR card ("${got}")`);
     if (SHOTS) await p.screenshot({ path: `${OUT}room2-tap-card.png` });
-    await ev(p, "(() => { const b = document.querySelector('.rc-card-sheet .pfs-back'); if (b) b.click(); })()"); await sleep(500);
+    await ev(p, "(() => { const b = document.querySelector('.rc-card-sheet .sh-back'); if (b) b.click(); })()"); await sleep(500);
     // overlapping neighbours: a point inside TWO hit boxes goes to the figure whose centre is nearer
     const pair = ids.flatMap(a => ids.map(b => [a, b])).find(([a, b]) => a < b && d[a].x0 < d[b].x1 && d[b].x0 < d[a].x1 && d[a].y0 < d[b].y1 && d[b].y0 < d[a].y1);
     if (pair) {
@@ -325,7 +325,7 @@ G('afterparty', async () => {
   await ev(p, "document.querySelector('.rc-games-sheet .rc-game[data-game=\"prism\"]').click()");
   const pick = await waitFor(p, "!document.querySelector('.rdk-play').classList.contains('rdk-rm') && !Object.keys(window.__arcade.state.rv || {}).length", 'PLAY again', 8000).then(() => true, () => false);
   ok(pick, 'THE HOST PICKS ANOTHER GAME: the ring goes back to PLAY, every vote clears');
-  await ev(p, "(() => { const m = document.querySelector('.modal'); if (m) m.click(); })()");
+  await ev(p, "(() => { const m = document.querySelector('.sh:not(.is-out) .sh-scrim'); if (m) m.click(); })()");
   ok(!(await ev(p, "!!document.querySelector('.lobby-screen')")) && !(await ev(q, "!!document.querySelector('.lobby-screen')")), 'THE OLD LOBBY SCREEN never shows in City 2.0 (from the join to the podium and back)');
   // THE NIGHT's CHAMPION: B leaves after 2 games → B's own city flies LAST CALL — <the night's leader> WINS THE NIGHT
   await ev(q, "import('/js/room.js').then(m => m.leaveRoom())");
@@ -390,22 +390,22 @@ G('leaveroom', async () => {
   const { Q: A, p, code } = await hostRoom('lra');
   const { Q: B, p: q, me: meB } = await joinRoom('lrb', code);
   await settledRoom(p, 2, 40000).catch(() => {});
-  // ☰ → LEAVE ROOM is the first row, red-edged; one tap arms it (SURE?), the second leaves
-  await ev(q, "document.querySelector('.menu-btn').click()"); await waitFor(q, "!!document.querySelector('.gm-panel .gm-item')", 'the menu', 5000);
-  const m = await ev(q, "(() => { const f = document.querySelector('.gm-panel .gm-item'); return { first: f.querySelector('b').textContent, red: f.classList.contains('gm-leave'), edge: getComputedStyle(f).borderTopColor }; })()");
+  // ☰ → LEAVE ROOM (SHELL 2.0 A — the approved menu: the LAST row, red-edged); one tap arms it (TAP AGAIN), the second leaves
+  await ev(q, "document.querySelector('.menu-btn').click()"); await waitFor(q, "!!document.querySelector('.gm .sh-row')", 'the menu', 5000);
+  const m = await ev(q, "(() => { const all = [...document.querySelectorAll('.gm .sh-row')], f = all[all.length - 1]; return { first: f.querySelector('.sh-row-l b').textContent, red: f.classList.contains('gm-leave') && f.classList.contains('is-danger'), edge: getComputedStyle(f).borderTopColor }; })()");
   if (SHOTS) await q.screenshot({ path: `${OUT}room2-menu-leave.png` });
-  await ev(q, "document.querySelector('.gm-panel .gm-leave').click()");
-  const armed = await ev(q, "document.querySelector('.gm-panel .gm-leave b').textContent");
+  await ev(q, "document.querySelector('.gm .gm-leave').click()");
+  const armed = await ev(q, "document.querySelector('.gm .gm-leave .sh-row-l b').textContent");
   const still = await ev(q, '!!window.__arcade.state.code');
-  await ev(q, "document.querySelector('.gm-panel .gm-leave').click()");
+  await ev(q, "document.querySelector('.gm .gm-leave').click()");
   const left = await waitFor(q, '!window.__arcade.state.code', 'B left', 8000).then(() => true, () => false);
   const wave = await waitFor(p, `(() => { const r = window.__district.room(); const x = r && r.people.find(y => y.uid === '${meB}'); return !!(x && x.leaving); })()`, 'the wave on A', 6000).then(() => true, () => false);
-  ok(m.first === 'LEAVE ROOM' && m.red && /SURE/.test(armed) && still && left && wave, `LEAVE ROOM — the TOP of the ☰ menu (${m.first}, red-edged ${m.red}); one tap = "${armed}" (still in: ${still}); the second leaves (${left}) — the other phone sees them wave + walk off (${wave})`);
+  ok(m.first === 'Leave room' && m.red && /TAP AGAIN/.test(armed) && still && left && wave, `LEAVE ROOM — the LAST row of the ☰ menu (${m.first}, red-edged ${m.red}); one tap = "${armed}" (still in: ${still}); the second leaves (${left}) — the other phone sees them wave + walk off (${wave})`);
   // GUESTS → LEAVE ROOM at the foot (B back in first)
   const { Q: C, p: c, me: meC } = await joinRoom('lrc', code);
   await settledRoom(p, 2, 40000).catch(() => {});
   await ev(c, "document.querySelector('.rdk-guests').click()"); await waitFor(c, "!!document.querySelector('.rg-sheet .rg-leave')", 'the guest list', 10000);
-  const pos = await ev(c, "(() => { const b = document.querySelector('.rg-sheet .rg-leave'), body = document.querySelector('.rg-sheet .pfs-body'); return { last: body.lastElementChild === b, txt: b.textContent }; })()");
+  const pos = await ev(c, "(() => { const b = document.querySelector('.rg-sheet .rg-leave'), body = document.querySelector('.rg-sheet .sh-body'); return { last: body.lastElementChild === b, txt: b.textContent }; })()");
   await ev(c, "document.querySelector('.rg-sheet .rg-leave').scrollIntoView({ block: 'center' })"); await sleep(300);
   if (SHOTS) await c.screenshot({ path: `${OUT}room2-guests-leave.png` });
   await ev(c, "document.querySelector('.rg-sheet .rg-leave').click()");
@@ -430,16 +430,16 @@ G('sheetstack', async () => {
   await ev(q, `(() => { const r = [...document.querySelectorAll('.rg-sheet .rg-row')].find(x => x.dataset.uid === '${fakes[0]}') || document.querySelectorAll('.rg-sheet .rg-row')[1]; (r.querySelector('button, .vl-strip') || r).click(); })()`);
   await sleep(700);
   steps.push(['GUESTS → a card', await topAt(q)]);
-  await ev(q, "(() => { const b = [...document.querySelectorAll('.pfs:not(.is-out) .pfs-back')].pop(); if (b) b.click(); else { const x = document.querySelector('.vl-full-x'); if (x) x.click(); } })()"); await sleep(500);
+  await ev(q, "(() => { const b = [...document.querySelectorAll('.sh:not(.is-out) .sh-back')].pop(); if (b) b.click(); else { const x = document.querySelector('.vl-full-x'); if (x) x.click(); } })()"); await sleep(500);
   steps.push(['‹ → GUESTS again', await topAt(q)]);
-  await ev(q, "document.querySelector('.rg-sheet .pfs-back').click()"); await sleep(400);
+  await ev(q, "document.querySelector('.rg-sheet .sh-back').click()"); await sleep(400);
   // GAMES (a guest) → HOW TO PLAY over the games sheet
   await ev(q, "document.querySelector('.rdk-games').click()"); await waitFor(q, "document.querySelectorAll('.rc-games-sheet .rc-game').length >= 2", 'games', 8000);
   await ev(q, "document.querySelector('.rc-games-sheet .rc-game').click()"); await sleep(700);
   steps.push(['GAMES → HOW TO PLAY', await topAt(q)]);
-  await ev(q, "(() => { const m = [...document.querySelectorAll('.modal:not(.out)')].pop(); if (m) m.click(); })()"); await sleep(500);
+  await ev(q, "(() => { const m = [...document.querySelectorAll('.sh:not(.is-out) .sh-back')].pop(); if (m) m.click(); })()"); await sleep(500);
   steps.push(['… closed → GAMES again', await topAt(q)]);
-  await ev(q, "document.querySelector('.rc-games-sheet .pfs-back').click()"); await sleep(400);
+  await ev(q, "document.querySelector('.rc-games-sheet .sh-back').click()"); await sleep(400);
   // YOU → CUSTOMIZE → VIEW FULL (the room's profile overlay)
   await ev(q, "document.querySelector('.rdk-you').click()");
   const czR = await waitFor(q, "!!document.querySelector('.pf-overlay .vl-dp-go')", 'CUSTOMIZE', 15000).then(() => true, () => false);
@@ -451,8 +451,8 @@ G('sheetstack', async () => {
   // a player tap in the room → their card
   const d = await ev(q, 'window.__district.room().hits'), u = Object.keys(d).find(x => x === fakes[1]);
   if (u) { const r = d[u]; await tapAt(q, (r.x0 + r.x1) / 2, r.y1 - 12); await sleep(700); steps.push(['a player tap → their card', await topAt(q)]); }
-  await ev(q, "(() => { const b = [...document.querySelectorAll('.pfs:not(.is-out) .pfs-back')].pop(); if (b) b.click(); })()"); await sleep(400);
-  const want = { 'GUESTS → a card': /sheet:rc-card-sheet|vl-full/, '‹ → GUESTS again': /sheet:rg-sheet/, 'GAMES → HOW TO PLAY': /^modal/, '… closed → GAMES again': /sheet:rc-games-sheet/,
+  await ev(q, "(() => { const b = [...document.querySelectorAll('.sh:not(.is-out) .sh-back')].pop(); if (b) b.click(); })()"); await sleep(400);
+  const want = { 'GUESTS → a card': /sheet:rc-card-sheet|vl-full/, '‹ → GUESTS again': /sheet:rg-sheet/, 'GAMES → HOW TO PLAY': /sheet:help-sheet/, '… closed → GAMES again': /sheet:rc-games-sheet/,
     'YOU → CUSTOMIZE': /^vl-dress$/, '… → VIEW FULL': /^vl-full$/, '… close → CUSTOMIZE': /^vl-dress$/, 'a player tap → their card': /sheet:rc-card-sheet|vl-full/ };
   ok(steps.length === 8 && steps.every(([k, v]) => want[k].test(String(v))), `ONE SHEET STACK (the room dock): the newest on top every step — ${steps.map(([k, v]) => `${k} [${v}]`).join(' · ')}`);
   await A.ctx.close(); await B.ctx.close();
@@ -467,7 +467,7 @@ G('sheetstack', async () => {
     // (LOBBY FIXES — the owner's ADD-ON 3: NAME + COLOUR are rows at CUSTOMIZE's top — its NAME sheet opens ON TOP of CUSTOMIZE, ‹ one step back)
     await ev(t, "document.querySelector('.vl-full-x').click()"); await sleep(400); ts.push(await topAt(t));
     await ev(t, "document.querySelector('.vl-dress .vl-yr-name').click()"); await sleep(700); ts.push(await topAt(t));
-    await ev(t, "[...document.querySelectorAll('.pfs:not(.is-out) .pfs-back')].pop().click()"); await sleep(500); ts.push(await topAt(t));
+    await ev(t, "[...document.querySelectorAll('.sh:not(.is-out) .sh-back')].pop().click()"); await sleep(500); ts.push(await topAt(t));
   }
   ok(ts.length === 5 && ts[0] === 'vl-dress' && ts[1] === 'vl-full' && ts[2] === 'vl-dress' && /^sheet:pf-name-sheet/.test(ts[3]) && ts[4] === 'vl-dress', `ONE SHEET STACK (the title dock): CUSTOMIZE [${ts[0]}] → VIEW FULL [${ts[1]}] → closed [${ts[2]}] → its NAME row → the name sheet ON TOP [${ts[3]}] → ‹ one step back [${ts[4]}]`);
   await T.ctx.close();
@@ -482,7 +482,7 @@ G('sheetstack', async () => {
 //   B2  a start that DIES (the stamp up, nobody preparing it) → the host takes it down, BOTH phones say THE START DIDN'T GO THROUGH, the room
 //       back (lobby, no veil)
 //   B6  BACK TO THE ROOM with OVERCLOCK's done-timer pending → no page error
-const OPEN_NOW = `({ dress: !!document.querySelector('.vl-dress'), overlay: !!document.querySelector('.pf-overlay:not(.screen-out)'), modal: !!document.querySelector('.modal:not(.out)'), menu: !!document.querySelector('.gm:not(.out)'), game: !!document.querySelector('.screen.oc') })`;
+const OPEN_NOW = `({ dress: !!document.querySelector('.vl-dress'), overlay: !!document.querySelector('.pf-overlay:not(.screen-out)'), modal: !!document.querySelector('.help-sheet:not(.is-out)'), menu: !!document.querySelector('.gm:not(.is-out)'), game: !!document.querySelector('.screen.oc') })`;
 G('gameflows', async () => {
   const { Q: A, p, code, me } = await hostRoom('gfa');
   const { Q: B, p: q } = await joinRoom('gfb', code);
@@ -494,7 +494,7 @@ G('gameflows', async () => {
   await ev(q, "(() => { const b = document.querySelector('.pf-overlay .vl-dp-go'); if (b) b.click(); })()");
   await waitFor(q, "!!document.querySelector('.vl-dress.is-in')", 'B: the dress screen', 8000).catch(() => {});
   await ev(q, "import('/js/ui/help.js').then(m => m.openHelp('overclock'))");
-  await waitFor(q, "!!document.querySelector('.modal:not(.out)')", 'B: HOW TO PLAY', 5000).catch(() => {});
+  await waitFor(q, "!!document.querySelector('.help-sheet:not(.is-out)')", 'B: HOW TO PLAY', 5000).catch(() => {});
   await ev(q, "(() => { const b = document.querySelector('.menu-btn'); if (b) b.click(); })()");
   await sleep(300);
   const before = await ev(q, OPEN_NOW);
@@ -528,7 +528,7 @@ G('gameflows', async () => {
   const t0 = Date.now();
   await dbPatch(`rooms/${code}/meta`, { go: { at: { '.sv': 'timestamp' }, m: 'dead01', g: 'overclock' } });
   await waitFor(q, "!!document.querySelector('.rc-veil')", 'B: the veil up', 4000).catch(() => {});
-  const said = await Promise.all([p, q].map(x => waitFor(x, `[...document.querySelectorAll('.toasts > *')].some(t => /START DIDN.T GO THROUGH/.test(t.textContent))`, 'the note', 12000).then(() => Date.now() - t0, () => null)));
+  const said = await Promise.all([p, q].map(x => waitFor(x, `[...document.querySelectorAll('.sh-msgs > *')].some(t => /START DIDN.T GO THROUGH/i.test(t.textContent))`, 'the note', 12000).then(() => Date.now() - t0, () => null)));
   await sleep(600);
   const room = await ev(q, "({ go: window.__arcade.state.meta.go || null, status: window.__arcade.state.meta.status, veil: !!document.querySelector('.rc-veil'), title: !!document.querySelector('.title-screen:not(.screen-out)') })");
   ok(said.every(v => v != null) && !room.go && room.status === 'lobby' && !room.veil && room.title, `B2 — A START THAT DIES SAYS SO: THE START DIDN'T GO THROUGH on both phones (${said.join(' / ')} ms), the stamp down, the room back (${JSON.stringify(room)})`);

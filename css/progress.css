@@ -526,29 +526,8 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 .pf-public { margin: 4px 2px 0; font: 600 13px/1.35 var(--font-ui); color: rgba(240, 236, 250, 0.82); }
 .pf-swatches { margin: 6px 0 14px; }
 
-/* THE POP-UPS (profile/sheets.js): glass sheets sliding up; BACK closes one step; a swipe down on the header */
-.pfs { position: fixed; inset: 0; z-index: 400; display: flex; align-items: flex-end; justify-content: center; }
-.pfs-scrim { position: absolute; inset: 0; background: rgba(4, 3, 10, 0.62); opacity: 0; transition: opacity 0.24s ease; }
-.pfs-sheet { position: relative; width: 100%; max-width: 520px; max-height: calc(100dvh - var(--safe-t, 0px) - 34px); display: flex; flex-direction: column; border-radius: 22px 22px 0 0;
-  background: rgba(14, 12, 22, 0.97); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 -10px 40px rgba(0, 0, 0, 0.5);
-  transform: translateY(100%); transition: transform 0.28s cubic-bezier(.2, .8, .2, 1); color: #fff8ee; }
-.pfs.is-in .pfs-scrim { opacity: 1; }
-.pfs.is-in .pfs-sheet { transform: none; }
-.pfs.is-out .pfs-scrim { opacity: 0; }
-.pfs.is-out .pfs-sheet { transform: translateY(100%); }
-.pfs-head { position: relative; display: flex; align-items: center; gap: 10px; padding: 18px 16px 10px; touch-action: none; }
-.pfs-grip { position: absolute; left: 50%; top: 7px; width: 42px; height: 5px; margin-left: -21px; border-radius: 3px; background: rgba(255, 255, 255, 0.28); }
-.pfs-back { display: inline-flex; align-items: center; gap: 4px; min-width: 44px; min-height: 44px; padding: 0 12px 0 8px; border: 0; border-radius: 999px; cursor: pointer;
-  font: 700 22px/1 var(--font-ui); color: #fff; background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22); }
-.pfs-back span { font: 800 11px/1 var(--font-ui); letter-spacing: 0.18em; }
-.pfs-t { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.pfs-t small { font: 700 10px/1 var(--font-ui); letter-spacing: 0.22em; color: rgba(240, 236, 250, 0.72); }
-.pfs-t b { font: 900 14px/1.1 var(--font-display); letter-spacing: 0.14em; color: #fff; overflow-wrap: anywhere; }
-.pfs-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px 16px calc(var(--safe-b, 0px) + 22px); display: flex; flex-direction: column; gap: 12px; }
-.pfs-note { margin: 0; font: 500 14px/1.4 var(--font-ui); color: rgba(240, 236, 250, 0.84); }
-.pfs-note.is-small { font-size: 12.5px; color: rgba(240, 236, 250, 0.72); }
-.pfs .pf-game { margin: 0; }
-@media (prefers-reduced-motion: reduce) { .pfs-sheet, .pfs-scrim { transition: none; } }
+/* THE POP-UPS: THE SHEET (ui/sheet.js + components.css — SHELL 2.0 A) */
+.sh .pf-game { margin: 0; }
 
 /* LOBBY 2.0 A — THE ROOM's SHEETS (the pop-ups): GAMES / PLAY (the playable games), THE GUEST LIST (the slim strips + kick + lock) */
 .rc-games { display: flex; flex-direction: column; gap: 10px; }

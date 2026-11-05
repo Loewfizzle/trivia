@@ -555,7 +555,7 @@ export function createCitySounds() {
     },
     /** PROM — the takes its START needs are decoded (or nothing could sound anyway: locked, muted, effects off) */
     legendReady(kind, picks = {}) {
-      if (!isUnlocked() || settings.muted || (settings.sfx != null && settings.sfx <= 0.01)) return true;
+      if (!isUnlocked() || settings.muted || settings.sfxOff || (settings.sfx != null && settings.sfx <= 0.01)) return true;
       return legendTakes(kind, picks).slice(0, LEGEND_KEY[kind] || 2).every(([slot, i]) => cityReady(slot, i));
     },
     ducked(slot, { gain = 1, pan = 0, depth = 0.55, hold = 3.5, release = 5, take = null, jitter, rate } = {}) {

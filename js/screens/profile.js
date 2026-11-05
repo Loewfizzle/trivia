@@ -174,9 +174,9 @@ export function createView({ onBack = null, overlay = false } = {}) {
     const go = h('button.btn.btn-primary.btn-block', { type: 'button' }, h('span', 'RESTORE MY PROFILE'));
     go.addEventListener('click', async () => { if (await doRestore(input.value, go)) s.close(); });
     s = openPfSheet({ kicker: 'YOUR ACCOUNT', title: 'RESTORE YOUR ACCOUNT', cls: 'pf-restore-sheet', body: [
-      h('p.pfs-note', 'Paste the key from your other device. This device joins that card — with all its stats; the other device stays signed in.'),
+      h('p.sh-note', 'Paste the key from your other device. This device joins that card — with all its stats; the other device stays signed in.'),
       input, go,
-      h('p.pfs-note.is-small', 'The profile this device has now is replaced (if it never finished a match, it’s removed).')] });
+      h('p.sh-note.is-small', 'The profile this device has now is replaced (if it never finished a match, it’s removed).')] });
     setTimeout(() => input.focus(), 320);
     return s;
   }

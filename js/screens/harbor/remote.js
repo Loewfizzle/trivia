@@ -32,6 +32,8 @@
 // The DOM keeps the old hooks: every section AND every block is a `.hr-sec` whose first `.hr-h` is its name (MUSIC, …); the
 // blocks carry the old category ids in data-cat (sounds, music, lights = PULSE, tools, party, time, weather, holidays + each
 // event block its area); openCats() takes a section id or an old category id.
+import { takeLayer } from '../../ui/layers.js';
+import { row, tubeButton } from '../../ui/components.js';
 import { h } from '../../ui/dom.js';
 import { toast } from '../../ui/toast.js';
 import { serverNow, firebaseReady, onValue, dbRef, want, release } from '../../firebase.js';
@@ -278,10 +280,10 @@ export function createRemote({ scene, api = apiCall }) {
     document.body.append(bar);
     // (THE VAULT 2C — THE LAB in the ☰ menu: admins only — the same server yes (whoami) as the ADMIN row; nobody else gets the row;
     //  registered first: ADMIN stays the menu's last row)
-    setMenuExtra('lab', ({ close: closeMenu }) => (destroyed || !admin ? null : h('button.gm-item.gm-lab', { type: 'button', 'aria-label': 'The Card Lab', onclick: () => { closeMenu(); location.href = '/lab'; } }, h('b', 'THE LAB'), h('span', 'Mark the cards, emblems + glows'))));
+    setMenuExtra('lab', ({ close: closeMenu }) => (destroyed || !admin ? null : row({ icon: 'lab', ic: '#ffc23d', label: 'The Lab', value: labNeed(), cls: 'gm-lab', attrs: { 'aria-label': 'The Card Lab' }, onClick: () => { closeMenu(); location.href = '/lab'; } })));
     // (LOBBY FIXES — the owner, Nov 4 3:01 pm "where is /admin?": an ADMIN row beside THE LAB → /admin — the same server yes; the old
     //  preview-panel row below reads CITY PREVIEW so the two never share a name)
-    setMenuExtra('adminpage', ({ close: closeMenu }) => (destroyed || !admin ? null : h('button.gm-item.gm-admpage', { type: 'button', 'aria-label': 'Admin — players, reports, test players', onclick: () => { closeMenu(); location.href = '/admin'; } }, h('b', 'ADMIN'), h('span', 'Players, reports, test players'))));
+    setMenuExtra('adminpage', ({ close: closeMenu }) => (destroyed || !admin ? null : row({ icon: 'admin', ic: '#ffc23d', label: 'Admin', cls: 'gm-admpage', attrs: { 'aria-label': 'Admin — players, reports, test players' }, onClick: () => { closeMenu(); location.href = '/admin'; } })));
     setMenuExtra('admin', adminRow);
     if (liveNext && !cd) countdown('all', liveNext.startAt, R.describe(liveNext.state));
     paintChip(); paintCd();
@@ -291,14 +293,16 @@ export function createRemote({ scene, api = apiCall }) {
   /** "10/27 22:30" (the state's clock) or what it forces, short */
   const nowWords = st => (st && st.when ? `${+st.when.slice(5, 7)}/${+st.when.slice(8, 10)} ${st.when.slice(11, 16)}` : R.describe(st).slice(0, 30));
   /** 9d — THE ADMIN ROW at the ☰ menu's bottom: ADMIN · what's on; CLEAR beside it while JUST ME is on */
+  const labNeed = () => { try { const n = Number(localStorage.getItem('nd:lab-need')); return n > 0 ? `${n} need you` : null; } catch { return null; } };
   function adminRow({ close: closeMenu }) {
     if (destroyed || !admin) return null;
     // (CITY CONTROLS A — ONE WAY IN: with the radio on this page its DEV · THE WORKSHOP button opens the panel; the ☰ row steps aside)
     if (document.querySelector('.rd-btn')) return null;
     const on = effective(), sub = on === 'me' ? `JUST ME · ${nowWords(mine.state)}` : on === 'all' ? `EVERYONE · ${nowWords(live.state)}` : 'Preview panel';
-    const main = h('button.gm-item', { type: 'button', 'aria-label': `Admin — the preview panel${on ? ` (${sub})` : ''}`, onclick: () => { closeMenu(); open(); } }, h('b', 'CITY PREVIEW'), h('span', sub));
+    // (SHELL 2.0 A: a ROW — CITY PREVIEW + what's on; CLEAR (a small tube) beside it while JUST ME is on)
+    const main = row({ icon: 'settings', ic: on === 'all' ? '#ff7ccb' : '#7dff9c', label: 'City preview', sub, attrs: { 'aria-label': `Admin — the preview panel${on ? ` (${sub})` : ''}` }, onClick: () => { closeMenu(); open(); } });
     return h('div.gm-adm', { dataset: { on } }, main,
-      on === 'me' ? h('button.gm-adm-x', { type: 'button', 'aria-label': 'Clear — back to the real city', onclick: () => { closeMenu(); mode = 'me'; ss.set(MODE_KEY, 'me'); clearAll(); } }, 'CLEAR') : null);
+      on === 'me' ? tubeButton('CLEAR', { kind: 'secondary', size: 'sm', cls: 'gm-adm-x', attrs: { 'aria-label': 'Clear — back to the real city' }, onClick: () => { closeMenu(); mode = 'me'; ss.set(MODE_KEY, 'me'); clearAll(); } }) : null);
   }
   function paintChip() {
     if (!admin) return;
@@ -555,14 +559,17 @@ export function createRemote({ scene, api = apiCall }) {
   }
 
   // ---------------------------------------------------------------- the sheet
+  let hrRelease = null;
   function open() {
     if (sheet) return;
     // (reopening during JUST ME's countdown cancels it — what was queued stays queued: close again to start it)
     if (cd && cd.mode === 'me') stopCd();
     if (mode === 'all' && !draftDirty()) draft = { state: clone(liveBase()), ui: {} };
     if (mode === 'me') ensurePend();
-    sheet = h('div.modal.hr-modal', { onclick: e => { if (e.target === sheet) close(); }, onkeydown: e => { if (e.key === 'Escape' && !(e.target.classList && e.target.classList.contains('hr-q'))) close(); } },
+    // (SHELL 2.0 A: a full-screen TOOL on THE LAYER STACK — ui/layers.js's one Esc closes it; Esc inside the search box stays the box's)
+    sheet = h('div.hr-modal', { onclick: e => { if (e.target === sheet) close(); }, onkeydown: e => { if (e.key === 'Escape' && e.target.classList && e.target.classList.contains('hr-q')) e.preventDefault(); } },
       h('div.sheet.hr-sheet', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Preview panel' }));
+    hrRelease = takeLayer(sheet, { close: () => close() });
     document.body.append(sheet);
     document.body.classList.add('hr-sheet-open');   // (SP4: the debug strips hide while the sheet is open — they covered its controls)
     render();
@@ -571,6 +578,7 @@ export function createRemote({ scene, api = apiCall }) {
   function close(o = {}) {
     if (!sheet) return;
     const s = sheet; sheet = null; musicEl = null; soundsEl = null; clearInterval(musicT); s.classList.add('out'); setTimeout(() => s.remove(), 260);
+    if (hrRelease) { hrRelease(); hrRelease = null; }
     document.body.classList.remove('hr-sheet-open');
     if (mode === 'me') fire();
     else if (!o.sent && draftDirty()) toast('NOT SENT — THE EVERYONE DRAFT IS KEPT', 'warn');
@@ -999,7 +1007,7 @@ export function createRemote({ scene, api = apiCall }) {
       if (unsub) { try { unsub(); } catch { /* fine */ } release('admin'); }
       clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis); window.removeEventListener('nd:me', onMe);
       if (bar) bar.remove();
-      if (sheet) sheet.remove();
+      if (sheet) sheet.remove(); if (hrRelease) { hrRelease(); hrRelease = null; }
       setMenuExtra('admin', null); setMenuExtra('adminpage', null); setMenuExtra('lab', null); setMenuCue(null);
       sheet = bar = cdEl = null;
     },

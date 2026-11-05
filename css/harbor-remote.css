@@ -70,8 +70,10 @@
 .hr-pa-b:active { opacity: 0.7; }
 
 /* ==================== the sheet — FULL SCREEN ==================== */
-.hr-modal { z-index: 80; background: rgba(2, 3, 10, 0.5); align-items: stretch; }
-.modal.hr-modal > .sheet.hr-sheet {
+.hr-modal { position: fixed; inset: 0; z-index: 400; display: flex; justify-content: center; align-items: stretch; background: rgba(2, 3, 10, 0.5); animation: fade-in 0.25s both; }
+.hr-modal.out { opacity: 0; transition: opacity 0.25s; }
+.hr-modal > .sheet.hr-sheet { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }   /* (SHELL 2.0 A: its own scroll — it was the old .modal > .sheet rule's) */
+.hr-modal > .sheet.hr-sheet {
   --hr-pl: calc(var(--safe-l) + var(--gutter));
   --hr-pr: calc(var(--safe-r) + var(--gutter));
   --hr-acc: #7dff9c;                         /* JUST ME: green */
@@ -90,11 +92,11 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 240px), rgba(9, 10, 26, 0.93);
   box-shadow: none;
 }
-.modal.hr-modal > .sheet.hr-sheet[data-mode='all'] { --hr-acc: #ff7ccb; --hr-ink: #1a0614; --hr-soft: rgba(255, 124, 203, 0.14); }
+.hr-modal > .sheet.hr-sheet[data-mode='all'] { --hr-acc: #ff7ccb; --hr-ink: #1a0614; --hr-soft: rgba(255, 124, 203, 0.14); }
 /* (a desktop: a large centred sheet, the city around it) */
 @media (min-width: 760px) and (min-height: 560px) {
   .hr-modal { align-items: center; }
-  .modal.hr-modal > .sheet.hr-sheet { --hr-pl: 28px; --hr-pr: 28px; width: min(820px, calc(100vw - 64px)); height: min(940px, calc(100dvh - 56px)); border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 60px var(--hr-soft); }
+  .hr-modal > .sheet.hr-sheet { --hr-pl: 28px; --hr-pr: 28px; width: min(820px, calc(100vw - 64px)); height: min(940px, calc(100dvh - 56px)); border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 60px var(--hr-soft); }
   .hr-top { border-radius: 23px 23px 0 0; }
 }
 .hr-sheet [hidden], .hr-sheet .hr-nohit { display: none !important; }

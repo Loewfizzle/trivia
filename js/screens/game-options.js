@@ -3,6 +3,7 @@
 // LOBBY 2.0 B replaces the walk inside, not this). An option with when(players) shows (+ applies) only with that many connected players.
 //   openGameOptions(g, { meta, onClose }) → { close }
 import { h } from '../ui/dom.js';
+import { openSheet } from '../ui/sheet.js';
 import { segmented, chips as chipSelect } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
 import { MIN_PLAYERS } from '../config.js';
@@ -48,7 +49,7 @@ export function openGameOptions(g, { meta = null, onClose = null } = {}) {
   const renderEst = () => { est.textContent = `≈ ${mod.estimateMinutes(settings)} MIN`; };
   const startBtn = h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button' }, h('span', 'INITIATE'));
   let sheet = null;
-  const close = () => { if (!sheet) return; sheet.classList.add('out'); const s = sheet; sheet = null; setTimeout(() => s.remove(), 260); if (onClose) onClose(); };
+  const close = () => { if (!sheet) return; const s = sheet; sheet = null; s.close(); };
   startBtn.onclick = async () => {
     const min = minPlayersOf(mod, MIN_PLAYERS);   // (THE CARTRIDGE PLUG)
     if (onlineCount() < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return; }
@@ -59,11 +60,8 @@ export function openGameOptions(g, { meta = null, onClose = null } = {}) {
       else { startBtn.classList.remove('is-busy'); startBtn.firstChild.textContent = 'INITIATE'; }
     } catch (e) { toast(String(e.message || e).toUpperCase(), 'err'); startBtn.classList.remove('is-busy'); startBtn.firstChild.textContent = 'INITIATE'; }
   };
-  sheet = h('div.modal', { dataset: { theme: g.theme }, onclick: e => { if (e.target === sheet) close(); } },
-    h('div.sheet.options',
-      h('div.sheet-grip'),
-      h('div.sheet-kicker', g.tag),
-      h('h2.sheet-title', g.name),
+  // (SHELL 2.0 A: THE SHEET — the game's name is its title, its tag the small line; INITIATE the one tube main)
+  sheet = openSheet({ title: g.name, kicker: g.tag, cls: 'options', theme: g.theme, onClose: () => { sheet = null; if (onClose) onClose(); }, body: [
       h('p.sheet-text', g.blurb),
       h('button.btn.btn-text.help-link', { type: 'button', onclick: () => openHelp(g.id) }, 'HOW TO PLAY ›'),
       shownOptions.map(o => h('div.field',
@@ -77,8 +75,7 @@ export function openGameOptions(g, { meta = null, onClose = null } = {}) {
               : segmented(o.choices, settings[o.key], v => { settings[o.key] = v; renderEst(); }))),
       h('div.options-meta', h('span.mono.dim', 'EST. MATCH LENGTH'), est),
       startBtn,
-      h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'CANCEL')));
+      h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'CANCEL')] });
   renderEst();
-  document.body.append(sheet);
-  return { close, el: sheet };
+  return { close, el: sheet.el };
 }

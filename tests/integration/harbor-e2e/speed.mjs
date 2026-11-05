@@ -7,7 +7,7 @@ import { log, sleep, ok, okT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI,
 import { dbPatch, dbDel, dbGet, ROOMQ, hostRoom, joinRoom, fakeGuests, settledRoom, startOC, onTitle, podium } from './lobby2.mjs';
 
 const people = p => ev(p, 'window.__district.roomPeople ? window.__district.roomPeople() : null');
-const toastsNow = p => ev(p, "[...document.querySelectorAll('.toasts > .toast:not(.out)')].map(t => t.textContent)");
+const toastsNow = p => ev(p, "[...document.querySelectorAll('.sh-msgs > .sh-msg:not(.is-out)')].map(t => t.querySelector('.sh-msg-t').textContent)");   // (SHELL 2.0 A: THE MESSAGE)
 
 G('staleroom', async () => {
   // ---- a disconnect in the lobby: this phone's own node goes (the room keeps two guests) → the title, the figures walk off
@@ -30,7 +30,7 @@ G('staleroom', async () => {
   ok(before && before.length === 3 && last.n === 0 && walked && seen.every(x => x.standing === 0),
     `OUT OF THE ROOM (a disconnect): the room's ${before && before.length} figures walk off the city (walking seen ${walked}; gone after ${last.t} ms; none left standing)`);
   ok(seen.length > 4 && seen[0].n && ringLate === 0, `… as plain passers-by: their rings fade at once (${ringLate} samples with a ring after 0.5 s, of ${seen.length}; the first ${seen[0].ring})`);
-  ok(t1.length === 1 && /DISCONNECTED/.test(t1[0]), `… ONE toast: "${t1.join(' | ')}"`);
+  ok(t1.length === 1 && /DISCONNECTED/i.test(t1[0]), `… ONE toast: "${t1.join(' | ')}"`);
   if (SHOTS) await A.p.screenshot({ path: `${OUT}staleroom-out.png` });
   await A.Q.ctx.close().catch(() => {});
 
@@ -67,13 +67,13 @@ G('staleroom', async () => {
   await sleep(1200);
   await ev(B.p, 'window.__arcade.state.dupTab = false');
   const t2 = await toastsNow(B.p), host = await dbGet(`rooms/${codeB}/meta/hostId`);
-  ok(claim === 1 && t2.length === 1 && /DISCONNECTED/.test(t2[0]) && !t2.some(x => /NOW THE HOST/.test(x)),
+  ok(claim === 1 && t2.length === 1 && /DISCONNECTED/i.test(t2[0]) && !t2.some(x => /NOW THE HOST/i.test(x)),
     `A STALE HOST CLAIM: no "YOU ARE NOW THE HOST" for a room this phone left (toasts: "${t2.join(' | ')}"; the claim ${claim}, host after ${host === B.me ? 'this phone (its node goes with a real disconnect — the others claim)' : host})`);
   // ---- one at a time: a newer toast replaces the older
   await ev(B.p, "import('/js/ui/toast.js').then(m => { m.toast('FIRST', 'info', 4000); m.toast('SECOND', 'warn', 4000); return 1; })");
   await sleep(450);
   const t3 = await toastsNow(B.p);
-  ok(t3.length === 1 && /SECOND/.test(t3[0]), `ONE TOAST AT A TIME: the newer replaces the older ("${t3.join(' | ')}")`);
+  ok(t3.length === 1 && /SECOND/i.test(t3[0]), `ONE TOAST AT A TIME: the newer replaces the older ("${t3.join(' | ')}")`);
   await B.Q.ctx.close().catch(() => {});
   log('staleroom', 'done');
 });
@@ -243,7 +243,7 @@ G('leaver', async () => {
     const tl = await toastsNow(N.p);
     await sleep(12900);
     const sN = await ev(N.p, 'window.__lv') || [], mostWave = Math.max(0, ...sN.map(x => x.waves));
-    ok(!tl.some(x => /DISCONNECTED/.test(x)) && mostWave === 1, `A LEAVE IS A LEAVE (${view[0]}×${view[1]}, the leaver's screen): no "DISCONNECTED" (toasts: "${tl.join(' | ')}"); ONE figure waves goodbye — yours (most waving at once ${mostWave}); the host's figure carries on inside`);
+    ok(!tl.some(x => /DISCONNECTED/i.test(x)) && mostWave === 1, `A LEAVE IS A LEAVE (${view[0]}×${view[1]}, the leaver's screen): no "DISCONNECTED" (toasts: "${tl.join(' | ')}"); ONE figure waves goodbye — yours (most waving at once ${mostWave}); the host's figure carries on inside`);
     for (const [who, P] of [['the leaver\'s own screen', N.p], ['the host\'s screen', H.p]]) {
       const s = await ev(P, 'window.__lv') || [], seed = await ev(P, 'window.__lvSeed'), max = Math.max(0, ...s.map(x => x.n)), two = s.filter(x => x.n > 1);
       ok(seed != null && s.length > 60 && max === 1 && s.some(x => x.n === 1) && !s[s.length - 1].n,
@@ -268,7 +268,7 @@ G('leaver', async () => {
 
 // THE HOST LEAVES ON PURPOSE (the owner, Nov 4 10:21 pm — LEAVE, not a drop): the next player in join order is the host at once; ONE toast on
 // each phone (the heir "YOU'RE THE HOST NOW", the other "<HEIR> IS THE HOST NOW"); the PLAY ring moves to the heir. Three slots.
-const toastLog = async (p, ms) => { await ev(p, `(() => { window.__tl = new Set(); const t0 = performance.now(); const f = () => { for (const t of document.querySelectorAll('.toasts > .toast')) window.__tl.add(t.textContent); if (performance.now() - t0 < ${ms}) setTimeout(f, 100); }; f(); return 1; })()`); };
+const toastLog = async (p, ms) => { await ev(p, `(() => { window.__tl = new Set(); const t0 = performance.now(); const f = () => { for (const t of document.querySelectorAll('.sh-msgs > .sh-msg')) window.__tl.add(t.textContent); if (performance.now() - t0 < ${ms}) setTimeout(f, 100); }; f(); return 1; })()`); };
 const ringWord = p => ev(p, "(() => { const w = document.querySelector('.rdk-w1'); return w ? w.textContent : null; })()");
 G('hostleave', async () => {
   const H = await hostRoom('hlh');
@@ -287,8 +287,8 @@ G('hostleave', async () => {
   const [ta, tb] = [await ev(A.p, '[...window.__tl]'), await ev(B.p, '[...window.__tl]')];
   const host = await dbGet(`rooms/${H.code}/meta/hostId`), gone = !(await dbGet(`rooms/${H.code}/players/${H.me}`));
   ok(host === A.me && gone && dt < 3000, `THE HOST LEAVES ON PURPOSE: the next in join order is the host (${host === A.me ? 'the first guest' : host}) in ${dt} ms; the old host's node gone ${gone}`);
-  ok(ta.length === 1 && /YOU.RE THE HOST NOW/.test(ta[0]), `… ONE toast on the heir's phone: "${ta.join(' | ')}"`);
-  ok(tb.length === 1 && tb[0].includes(`${String(nameA).toUpperCase()} IS THE HOST NOW`), `… ONE toast on the other phone: "${tb.join(' | ')}" (the heir ${nameA})`);
+  ok(ta.length === 1 && /YOU.RE THE HOST NOW/i.test(ta[0]), `… ONE toast on the heir's phone: "${ta.join(' | ')}"`);
+  ok(tb.length === 1 && tb[0].toUpperCase().includes(`${String(nameA).toUpperCase()} IS THE HOST NOW`), `… ONE toast on the other phone: "${tb.join(' | ')}" (the heir ${nameA})`);
   const [ra, rb] = [await ringWord(A.p), await ringWord(B.p)];
   ok(ra === 'PLAY' && rb === 'WAITING', `… the PLAY ring moved to the heir (the heir's ring ${ra}; the other's ${rb})`);
   if (SHOTS) await A.p.screenshot({ path: `${OUT}hostleave-heir.png` });
@@ -301,7 +301,7 @@ G('hostleave', async () => {
   { const end = Date.now() + 30000; while (Date.now() < end && (await dbGet(`rooms/${H.code}/meta/hostId`)) !== B.me) await sleep(300); }
   await sleep(1500);
   const tc = await ev(B.p, '[...window.__tl]'), hostB = await dbGet(`rooms/${H.code}/meta/hostId`);
-  ok(hostB === B.me && tc.length === 1 && /HOST SIGNAL LOST/.test(tc[0]), `… a DROPPED host is still a claim: ONE toast "${tc.join(' | ')}" (host ${hostB === B.me ? 'the claimer' : hostB})`);
+  ok(hostB === B.me && tc.length === 1 && /HOST SIGNAL LOST/i.test(tc[0]), `… a DROPPED host is still a claim: ONE toast "${tc.join(' | ')}" (host ${hostB === B.me ? 'the claimer' : hostB})`);
   for (const X of [H.Q, B.Q]) await X.ctx.close().catch(() => {});
 });
 
@@ -324,8 +324,8 @@ async function typeJoin(p, code, label) {
   return inn;
 }
 const menuLeave = async p => {
-  await ev(p, "document.querySelector('.menu-btn').click()"); await waitFor(p, "!!document.querySelector('.gm-panel .gm-leave')", 'the menu', 5000);
-  await ev(p, "document.querySelector('.gm-panel .gm-leave').click()"); await sleep(150); await ev(p, "document.querySelector('.gm-panel .gm-leave').click()");
+  await ev(p, "document.querySelector('.menu-btn').click()"); await waitFor(p, "!!document.querySelector('.gm .gm-leave')", 'the menu', 5000);
+  await ev(p, "document.querySelector('.gm .gm-leave').click()"); await sleep(150); await ev(p, "document.querySelector('.gm .gm-leave').click()");
   await waitFor(p, '!window.__arcade.state.code', 'left', 8000);
 };
 const apiLeave = async p => { await ev(p, "(() => { import('/js/room.js').then(m => m.leaveRoom()); return 1; })()"); await waitFor(p, '!window.__arcade.state.code', 'left', 8000); };

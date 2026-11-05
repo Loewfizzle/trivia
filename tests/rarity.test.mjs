@@ -68,6 +68,6 @@ test("I'M NEW HERE is gone (THE VAULT 2A — the ✕ closes the sheet)", () => {
   assert.doesNotMatch(src, /'I’M NEW HERE'/);
   assert.doesNotMatch(src, /WELCOME IN — PICK A NAME/);
   assert.doesNotMatch(src, /byc-new/);
-  assert.ok(src.includes("h('button.byc-x', { type: 'button', 'aria-label': 'Close', onclick: close }, '✕')"), 'the ✕ still closes the sheet');
+  assert.ok(src.includes("openSheet({ title: t ? t.textContent : label"), 'THE SHEET (its × closes it — SHELL 2.0 A)');
   assert.doesNotMatch(read('css/bring.css'), /.byc-new/);
 });

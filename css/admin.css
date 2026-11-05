@@ -115,9 +115,6 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-pidbox span { font: 700 10px/1 var(--font-mono); letter-spacing: 0.2em; color: var(--bd-faint); }
 .ad-pidbox code { font-size: 15px; color: #fff3dc; }
 .ad-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--bd-dim); line-height: 1.5; }
-.ad-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; padding: 10px 16px; border-radius: 999px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.1em; color: #1a1007; background: #f2c869; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); transition: opacity 0.3s; }
-.ad-toast.is-err { color: #fff; background: #c2304c; }
-.ad-toast.is-out { opacity: 0; }
 @media (max-width: 420px) { .ad-tab { padding: 0 9px; letter-spacing: 0.03em; } }
 /* LOBBY FIXES — REMOVE TEST PLAYERS */
 .ad-tp-list { display: flex; flex-direction: column; gap: 6px; }

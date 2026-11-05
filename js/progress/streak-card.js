@@ -4,6 +4,7 @@
 // ivory-white with a warm glow + NIGHTS IN A ROW; THIS WEEK as seven small flames (lit / frozen / a dark outline) over M T W T F S S, today
 // in white; SOMETHING NEW (the vague tease — when, never what) with its bar; FREEZE HELD + BEST EVER; WIN IT BACK when it applies; one quiet
 // line. Ivory text everywhere (THE IVORY decision) — no gold text, no serif. Reads only (the server keeps the streak).
+import { takeLayer } from '../ui/layers.js';
 import { h } from '../ui/dom.js';
 import { onCloseAll } from '../ui/layers.js';
 import { streakView, streakDay } from '../core/streak.js';
@@ -21,7 +22,7 @@ export async function openStreakCard(st, { now = Date.now(), outage = null } = {
   if (open) return open;
   await pgSheet();
   const v = streakView(st, streakDay(now), outage);
-  const close = () => { if (!open) return; const o = open; open = null; o.el.classList.add('is-out'); setTimeout(() => o.el.remove(), 260); };
+  const close = () => { if (!open) return; const o = open; open = null; if (o.release) o.release(); o.el.classList.add('is-out'); setTimeout(() => o.el.remove(), 260); };
   const state = v.n ? (v.state === 'frozen' ? 'frozen' : v.state === 'lit' ? 'lit' : 'waiting') : 'out';
   const day = d => d.s === 'played' || d.s === 'won' ? 'lit' : d.s === 'frozen' ? 'frozen' : d.s === 'outage' ? 'waiting' : 'out';
   const week = h('div.pg-sk-week', ...v.week.map(d => h('div.pg-sk-day', { class: `is-${d.s}`, title: d.day }, flameArt(day(d), 26), h('b', DOW[d.wd]))));
@@ -43,8 +44,10 @@ export async function openStreakCard(st, { now = Date.now(), outage = null } = {
         h('div.pg-sk-tile', h('b.pg-sk-ice', `❄ ${v.freezes}`), h('span', v.freezes === 1 ? 'FREEZE HELD' : 'FREEZES HELD')),
         h('div.pg-sk-tile', h('b', String(v.best)), h('span', 'BEST EVER'))),
       h('p.pg-sk-foot', 'Play any match before 4 am to keep it lit')));
+  // (SHELL 2.0 A — review-6.md H2: on THE LAYER STACK, over the moment (min 9000): what opens from it lands on top; the one Esc closes it)
+  const release = takeLayer(el, { close: () => close(), min: 9000 });
   document.body.append(el);
-  open = { el, close, view: v };
+  open = { el, close, view: v, release };
   return open;
 }
 export const closeStreakCard = () => { if (open) open.close(); };

@@ -2,6 +2,7 @@
 // the lobby (game cards + options sheet) and the settings sheet (any screen, mid-game too).
 import { gameArtSvg } from './game-art.js';
 import { h } from './dom.js';
+import { openSheet } from './sheet.js';
 import { GAMES } from '../config.js';
 
 // Each game: a one-line goal, then short scannable sections. Keep them phone-sized.
@@ -384,11 +385,11 @@ export function openHelp(gameId) {
   let current = gameId && RULES[gameId] ? gameId : first;
   const content = h('div.help-body');
   const tabs = h('div.help-tabs', { role: 'tablist' });
-  const name = h('h2.sheet-title');
+  const name = h('small.help-name');
   const show = id => {
     current = id;
     const g = GAMES.find(x => x.id === id);
-    sheet.dataset.theme = g.theme;
+    sheet.el.dataset.theme = g.theme;
     name.textContent = g.name;
     [...tabs.children].forEach(b => b.setAttribute('aria-selected', String(b.dataset.id === id)));
     content.replaceChildren(...body(id));
@@ -397,24 +398,12 @@ export function openHelp(gameId) {
   for (const g of GAMES.filter(x => x.playable || x.id === current)) {
     tabs.append(h('button.help-tab', { type: 'button', role: 'tab', dataset: { id: g.id, theme: g.theme }, onclick: () => show(g.id), 'aria-label': g.name, title: g.name }, gameArtSvg(g.id) || TAB[g.id]));
   }
-  sheet = h('div.modal.help-modal', { onclick: e => { if (e.target === sheet) closeHelp(); } },
-    h('div.sheet.help', { role: 'dialog', 'aria-label': 'How to play' },
-      h('div.sheet-grip'),
-      h('div.set-head', h('div', h('div.sheet-kicker', 'HOW TO PLAY'), name),
-        h('button.icon-btn', { type: 'button', 'aria-label': 'Close', onclick: closeHelp }, '×')),
-      tabs,
-      content,
-      h('button.btn.btn-primary.btn-block', { type: 'button', onclick: closeHelp }, h('span', 'GOT IT'))));
-  document.body.append(sheet);
+  // (SHELL 2.0 A: THE SHEET — ui/sheet.js; the game's name is the sheet's small line under HOW TO PLAY)
+  sheet = openSheet({ title: 'HOW TO PLAY', kicker: ' ', cls: 'help-sheet', label: 'How to play', body: [tabs, content], onClose: () => { sheet = null; document.body.classList.remove('help-open'); } });
+  const kick = sheet.head.querySelector('.sh-t small');
+  name.remove(); if (kick) kick.replaceWith(name);
   document.body.classList.add('help-open');
   show(current);
 }
 
-export function closeHelp() {
-  if (!sheet) return;
-  document.body.classList.remove('help-open');
-  const s = sheet;
-  sheet = null;
-  s.classList.add('out');
-  setTimeout(() => s.remove(), 260);
-}
+export function closeHelp() { if (sheet) sheet.close(); }

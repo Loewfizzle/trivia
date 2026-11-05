@@ -8,6 +8,7 @@
 // Every item at REAL PHONE SIZE (a 390-wide column), moving as in the game; ONE effect surface per section list.
 //   mountLab(root, { marks, onMark }) → { setMarks(m), destroy() }
 import { h } from '../ui/dom.js';
+import { toast as showMessage } from '../ui/toast.js';
 import { LAB, GUESTS, labStatus, changesOf, verOf, NEEDS } from './catalog.js';
 import { mountStrips, stripEl, LOOKS, fxOpts } from './strip.js';
 import { createSurface } from '../fx/renderer.js';
@@ -126,6 +127,7 @@ export function mountLab(root, o = {}) {
   function paintCounts() {
     const n = needCount(marks);
     need.textContent = n ? `${n} NEED${n === 1 ? 'S' : ''} YOU` : 'ALL CAUGHT UP';
+    try { localStorage.setItem('nd:lab-need', String(n)); } catch { /* fine */ }   // (SHELL 2.0 A: the ☰ menu's THE LAB row shows it)
     need.classList.toggle('is-zero', !n);
     for (const b of tabs.children) { const k = b.dataset.v; b.classList.toggle('is-on', k === sec); const c = k === 'lobby' ? '' : String(countOf(k, filter, marks)); b.querySelector('.vl-tab-n').textContent = c; }
     for (const b of filters.children) { const f = b.dataset.f; b.classList.toggle('is-on', f === filter); b.querySelector('.vl-filter-n').textContent = sec === 'lobby' ? '' : String(countOf(sec, f, marks)); }
@@ -350,7 +352,7 @@ export function mountLab(root, o = {}) {
     if (window.__lab) window.__lab.fps = f;
   }, 500);
 
-  function toast(msg, bad) { const t = h('div.vl-toast', { class: bad ? 'is-bad' : '' }, msg); document.body.append(t); setTimeout(() => t.classList.add('is-out'), 2200); setTimeout(() => t.remove(), 2600); }
+  function toast(msg, bad) { showMessage(msg, bad ? 'err' : 'ok'); }   // (SHELL 2.0 A — H12: the lab's own vl-toast → THE MESSAGE)
 
   window.__lab = { marks, view: sec, fps: 0, stats: fxStats, show, mix, diag: {}, filter, setFilter: f => { filter = f; show(sec); } };
   applyDiag();

@@ -30,10 +30,10 @@ G('desktop', async () => {
     const off = await ev(p, "({ hov: document.querySelector('.nd').classList.contains('nd-hovering'), on: document.querySelector('.nd-hover').classList.contains('on') })");
     ok(on.hov && on.on && (!on.mouse || (on.disp === 'block' && on.cur === 'pointer')) && !off.hov && !off.on, `THE HOVER (a mouse): over ${nb.signs[0].id} the hover + the glow ring (${on.on}) — ${on.mouse ? `the pointer (${on.cur}), the ring shown (${on.disp})` : 'this browser reports no fine pointer: the mouse-only CSS not in play here'}; over the open sky neither (${!off.hov && !off.on})`);
     // Esc closes a sheet (the games sheet from the dock)
-    await p.click('.nd-tab-games'); await waitFor(p, "!!document.querySelector('.modal:not(.out)')", 'the games sheet', 5000);
-    const sw = await rectOf(p, '.modal .sheet');
+    await p.click('.nd-tab-games'); await waitFor(p, "!!document.querySelector('.sh:not(.is-out)')", 'the games sheet', 5000);
+    const sw = await rectOf(p, '.sh .sh-panel');
     await p.keyboard.press('Escape');
-    const closed = await waitFor(p, "!document.querySelector('.modal:not(.out)')", 'Esc closes it', 4000).then(() => true, () => false);
+    const closed = await waitFor(p, "!document.querySelector('.sh:not(.is-out)')", 'Esc closes it', 4000).then(() => true, () => false);
     ok(closed && sw && sw.w <= 720 && Math.abs(sw.x + sw.w / 2 - 720) < 6, `Esc CLOSES THE SHEET (the games sheet: ${sw && sw.w.toFixed(0)} pt wide, centred)`);
     if (SHOTS) await p.screenshot({ path: `${OUT}desktop-1440x900.png` });
     // ---- THE RESIZE (the owner: no stretch, no flash, no reload, no freeze): a slow drag smaller, a snap back bigger, a move to a DPR 2 screen

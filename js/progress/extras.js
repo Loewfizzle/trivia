@@ -4,6 +4,7 @@
 //   A FAVOR    only when they hold one (pstats/fv — the 100-night streak's reward): pick ONE of the crew's jacks → PREVIEW · JUST ME plays
 //              it on their own city now (nothing spent); FOR YOUR ROOM spends the token through the server (api/_lib/favors.js) — DORMANT
 //              until LOBBY 2.0 makes the lobby the live city (FAVOR_ROOMS_LIVE)
+import { openSheet } from '../ui/sheet.js';
 import { h } from '../ui/dom.js';
 import { api } from '../profile/api.js';
 import { BDAY_MONTHS, bdayLabel } from '../core/birthday.js';
@@ -90,10 +91,10 @@ export function openFavor(data, o = {}) {
   }));
   const prev = h('button.btn.btn-primary', { type: 'button', disabled: true }, 'PREVIEW · JUST ME');
   const room = h('button.btn.btn-ghost', { type: 'button', disabled: !FAVOR_ROOMS_LIVE }, FAVOR_ROOMS_LIVE ? 'CALL IT IN FOR YOUR ROOM' : 'FOR YOUR ROOM · WHEN LOBBIES OPEN');
-  const close = () => { sheet.remove(); };
-  const sheet = h('div.modal.sg-fv', { role: 'dialog', 'aria-label': 'Call in a favor', onclick: e => { if (e.target === sheet) close(); } },
-    h('div.sheet', h('h3', 'CALL IN A FAVOR'), h('p.sg-bd-note', 'Pick one moment. The preview plays it on your own city — your favor stays yours.'), chips, wordsRow,
-      h('div.sg-fv-go', prev, room, h('button.btn.btn-text', { type: 'button', onclick: close }, 'CLOSE'))));
+  // (SHELL 2.0 A: THE SHEET — PREVIEW the one tube main; the × closes)
+  const sh = openSheet({ title: 'CALL IN A FAVOR', kicker: 'Pick one moment — the preview plays it on your own city; your favor stays yours.', cls: 'sg-fv', label: 'Call in a favor',
+    body: [chips, wordsRow, h('div.sg-fv-go', prev, room)] });
+  const close = () => sh.close(), sheet = sh.el;
   prev.addEventListener('click', () => {
     if (!pick) return;
     // (the city plays it as a JUST ME moment the next time it's on screen — the title reads the handoff: title.js#localMomentHandoff)
@@ -107,6 +108,5 @@ export function openFavor(data, o = {}) {
     try { await api('profile', { action: 'favor', jack: pick.id, room: o.room, text: words.value || null, colour: 'ff6fd0' }); toastOf('FAVOR CALLED IN', 'ok'); close(); }
     catch (e) { room.disabled = false; toastOf(e.body && e.body.message ? e.body.message.toUpperCase() : 'THE RADIO SAID NO — YOUR FAVOR IS STILL YOURS', 'err'); }
   });
-  document.body.append(sheet);
   return sheet;
 }

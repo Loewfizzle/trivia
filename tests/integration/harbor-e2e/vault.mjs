@@ -361,9 +361,9 @@ G('vault', async () => {
   { const { ctx, p } = await anyPage('/tests/integration/title-preview.html?guest=1');
     await waitFor(p, '!!window.__preview', 'the title preview', 40000);
     await ev(p, `import('/js/profile/bring.js').then(B => { B.openBring({ lead: true }); return true; })`);
-    await waitFor(p, `!!document.querySelector('.byc-bring .byc-sheet')`, 'the bring sheet');
+    await waitFor(p, `!!document.querySelector('.byc-bring .sh-panel')`, 'the bring sheet');
     await sleep(700);
-    const s = await ev(p, `(() => { const e = document.querySelector('.byc-bring .byc-sheet'), r = e.getBoundingClientRect(), c = getComputedStyle(e); return { gap: Math.round(innerHeight - r.bottom), rad: parseFloat(c.borderBottomLeftRadius), bw: parseFloat(c.borderBottomWidth) }; })()`);
+    const s = await ev(p, `(() => { const e = document.querySelector('.byc-bring .sh-panel'), r = e.getBoundingClientRect(), c = getComputedStyle(e); return { gap: Math.round(innerHeight - r.bottom), rad: parseFloat(c.borderBottomLeftRadius), bw: parseFloat(c.borderBottomWidth) }; })()`);
     ok(s.gap >= 8 && s.rad >= 16 && s.bw >= 1, `BOTTOM SHEETS: BRING YOUR CARD floats ${s.gap} pt above the bottom, its rounded border whole (radius ${s.rad}, bottom border ${s.bw} px)`);
     await ctx.close(); }
   // THE PROGRAM (the add-on): the full day (a Friday ~180 rows) · RARE + LEGENDARY (only those) · VAULT 1C: EVERY row its tier badge in THE ONE

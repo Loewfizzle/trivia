@@ -198,3 +198,69 @@ export function segmented(options, value, onChange) {
   render(value);
   return el;
 }
+
+// ---------------------------------------------------------------- THE SHELL's parts (SHELL 2.0 A — components.css "THE SHELL")
+// THE NEON TUBE: tubeButton(label, { kind: 'main'|'secondary'|'danger', size: 'sm', block, onClick, confirm, busy, disabled, cls, attrs })
+//   kind main = the pink tube (ONE per screen), secondary = the quiet cool-white tube, danger = the red tube. confirm: 'TAP AGAIN TO …' →
+//   the first tap turns the button itself red-filled with those words; the second within 2.5 s runs onClick (confirmTap).
+const KIND = { main: '.btn-primary', secondary: '.btn-ghost', danger: '.btn-danger' };
+export function tubeButton(label, { kind = 'secondary', size = '', block = false, onClick = null, confirm = null, disabled = false, cls = '', attrs = {} } = {}) {
+  const sel = `button.btn${KIND[kind] || KIND.secondary}${size === 'sm' ? '.btn-sm' : size === 'xl' ? '.btn-xl' : ''}${block ? '.btn-block' : ''}${cls ? `.${cls.split(' ').join('.')}` : ''}`;
+  const b = h(sel, { type: 'button', disabled: disabled || null, ...attrs }, h('span', label));
+  if (confirm) confirmTap(b, confirm, onClick);
+  else if (onClick) b.addEventListener('click', onClick);
+  return b;
+}
+/** CONFIRM-BY-SECOND-TAP on any tube button or row: the first tap arms it (red-filled + `text`), a second within `ms` runs `run`; it
+ *  disarms by itself. The label is the element's first <span> (a row: its .sh-row-l b). Never a toast. → disarm() */
+export function confirmTap(el, text, run, { ms = 2500 } = {}) {
+  const lab = () => el.querySelector('.sh-row-l b') || el.querySelector('span') || el;
+  let at = 0, t = 0, orig = null;
+  const disarm = () => { clearTimeout(t); at = 0; el.classList.remove('is-confirm'); if (orig != null) { lab().textContent = orig; orig = null; } };
+  el.addEventListener('click', e => {
+    if (at && Date.now() - at < ms) { disarm(); if (run) run(e); return; }
+    at = Date.now(); orig = lab().textContent; lab().textContent = text; el.classList.add('is-confirm');
+    clearTimeout(t); t = setTimeout(() => { if (el.isConnected) disarm(); }, ms);
+  });
+  return disarm;
+}
+
+// THE ROW: row({ icon, label, sub, value, chevron = true, toggle, on, danger, onClick, confirm, cls, ic }) — the glass row (56 pt, a neon
+//   line icon, the label, a value on the right, a ›). toggle: a function(next) → the pink switch on the right (no ›), `on` its state.
+export function row({ icon = null, label = '', sub = null, value = null, chevron = true, toggle = null, on = false, danger = false, onClick = null, confirm = null, cls = '', ic = null, attrs = {} } = {}) {
+  const sw = toggle ? h('span.switch', { role: 'switch', 'aria-checked': String(!!on), 'aria-hidden': 'true' }, h('i')) : null;
+  const el = h(`button.sh-row${danger ? '.is-danger' : ''}${cls ? `.${cls.split(' ').join('.')}` : ''}`, { type: 'button', style: ic ? { '--ic': ic } : null, ...(toggle ? { role: 'switch', 'aria-checked': String(!!on) } : {}), ...attrs },
+    icon ? h('span.sh-row-ic', { html: ICONS[icon] || icon, 'aria-hidden': 'true' }) : null,
+    h('span.sh-row-l', h('b', label), sub ? h('small', sub) : null),
+    value != null && value !== '' ? h('span.sh-row-v', String(value)) : null,
+    sw || (chevron ? h('span.sh-row-chev', { 'aria-hidden': 'true' }, '›') : null));
+  if (toggle) {
+    let state = !!on;
+    el.addEventListener('click', () => { state = !state; el.setAttribute('aria-checked', String(state)); sw.setAttribute('aria-checked', String(state)); toggle(state); });
+  } else if (confirm) confirmTap(el, confirm, onClick);
+  else if (onClick) el.addEventListener('click', onClick);
+  return el;
+}
+
+// the rows' neon LINE icons (24 × 24, stroked in the row's --ic colour)
+const svg = d => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+export const ICONS = {
+  card: svg('<path d="M12 3l7 3v5.5c0 4.3-3 7.7-7 9.5-4-1.8-7-5.2-7-9.5V6z"/>'),
+  help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8"/><path d="M12 17.2v.1"/>'),
+  settings: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>'),
+  sound: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>'),
+  lab: svg('<path d="M9.5 3h5M10 3v6.2L4.8 18.4A1.8 1.8 0 0 0 6.4 21h11.2a1.8 1.8 0 0 0 1.6-2.6L14 9.2V3"/><path d="M7.4 15h9.2"/>'),
+  admin: svg('<rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M8 8.5h8M8 12h8M8 15.5h5"/>'),
+  leave: svg('<path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M3.5 12h11M10.5 8l4 4-4 4"/>'),
+  chat: svg('<path d="M4.5 5.5h15a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H10l-4.5 3.5V17h-1a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1z"/>'),
+  board: svg('<path d="M8 4h8v4.5a4 4 0 0 1-8 0z"/><path d="M8 5.5H4.5a3 3 0 0 0 3.6 3.4M16 5.5h3.5a3 3 0 0 1-3.6 3.4"/><path d="M12 12.5v3.5M8.5 20h7l-1-4h-5z"/>'),
+  credits: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>'),
+  quit: svg('<path d="M10 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H10"/><path d="M20.5 12h-11M13.5 8l-4 4 4 4"/>'),
+  end: svg('<circle cx="12" cy="12" r="9"/><rect x="9" y="9" width="6" height="6" rx="1"/>'),
+  music: svg('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>'),
+  key: svg('<circle cx="8" cy="15" r="4"/><path d="M11 12l8.5-8.5M16.5 6.5l2 2M14.5 8.5l1.5 1.5"/>'),
+  user: svg('<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/>'),
+  lock: svg('<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>'),
+  invite: svg('<path d="M4 12.5l16-8-5 16-3.5-6.5z"/><path d="M11.5 14l3-3"/>'),
+  games: svg('<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>'),
+};

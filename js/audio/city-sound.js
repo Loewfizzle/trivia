@@ -22,7 +22,7 @@ const CAP = 0.3;                       // the peak cap's ceiling into the SFX bu
 const ONESHOT_MB = 10;                 // decoded one-shots kept (LRU) — the loops' buffers are kept while they play
 const DECODE_RATE = 32000;
 
-const audible = () => !settings.muted && (settings.sfx == null || settings.sfx > 0.01);
+const audible = () => !settings.muted && !settings.sfxOff && (settings.sfx == null || settings.sfx > 0.01);
 const now = c => c.currentTime;
 /** a param set on a clock that may not be moving (a frozen graph / a fresh context: a ramp would never arrive — M4) */
 function setP(p, v, c, ramp) {

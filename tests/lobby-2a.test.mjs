@@ -94,8 +94,9 @@ test('THE PROFILE POLISH: only ‹ BACK + the music mute; the page order; NOT YE
   assert.match(ed, /export async function openYouEditor/); assert.match(ed, /title: 'EDIT USERNAME'/); assert.match(ed, /pf-swatches/);
   assert.doesNotMatch(sp, /pf-pen|openNameEditor/, 'no ✎ on the card'); assert.doesNotMatch(sp, /pf-er-name|pf-er-colour/, 'no rows in ACCOUNT');
   assert.match(ed, /'This name shows on the public board — don’t use your full real name\.'/);
-  const sh = read('js/profile/sheets.js');
-  assert.match(sh, /back\.addEventListener\('click', close\)/); assert.match(sh, /stack\[stack\.length - 1\]\.close\(\)/, 'Esc closes the TOP sheet only');
+  // (SHELL 2.0 A: the profile's sheets ARE THE SHEET — ui/sheet.js; the one Esc in ui/layers.js closes the TOP layer only)
+  const sh = read('js/ui/sheet.js');
+  assert.match(sh, /back\.addEventListener\('click', close\)/); assert.match(read('js/ui/layers.js'), /const top = open\[open\.length - 1\];/, 'Esc closes the TOP layer only');
   assert.match(sh, /if \(dy > 90 \|\| \(dy > 24 && v > 0\.6\)\) close\(\)/, 'a swipe down closes');
   // the order of the sections + the goal tile + the trophies' LATEST 3 + the trophy case
   const pr = read('js/progress/profile.js');
@@ -108,7 +109,7 @@ test('THE PROFILE POLISH: only ‹ BACK + the music mute; the page order; NOT YE
   const css = read('css/progress.css');
   assert.match(css, /\.pf-goal-t \{[^}]*rgba\(95, 232, 255, 0\.75\)/, 'the goal tile: a neon-cyan edge');
   assert.match(css, /\.pg-bar-tube \.pg-bar-had \{[^}]*#ff4fb8/, 'the level bar: the sign\'s hot pink');
-  assert.match(read('css/bring.css'), /\.byc-btn\.byc-glass \{/, 'COPY / SHARE in glass (no reflective gold)');
+  assert.match(read('js/profile/bring.js'), /h\('button\.btn\.btn-ghost\.btn-sm', \{ type: 'button', 'data-act': 'copy'/, 'COPY / SHARE as quiet tubes (no reflective gold — SHELL 2.0 A)');
 });
 
 test('EVERY WEEKLY GOAL IS POSSIBLE: the playable games only (the server + the phone the same), a variety week → Play 8 with fewer than 5', () => {
@@ -208,7 +209,7 @@ test('TYPING BUBBLES + THE CHAT FIX: the bubble from the chat\'s typing data (no
   assert.match(rc, /const on = uid !== st\.uid && ty\[uid\] && now - ty\[uid\] < 6000;/);
   assert.match(rc, /h\('span\.rc-bubble', \{ 'aria-hidden': 'true' \}, h\('i'\), h\('i'\), h\('i'\)\)/, 'three dots, no text');
   const css = read('css/chat.css');
-  assert.match(css, /height: clamp\(360px, 52dvh, 480px\);/); assert.match(css, /transform: translateY\(calc\(var\(--drag, 0px\) - var\(--lift\)\)\);/);
+  assert.match(css, /height: clamp\(380px, 56dvh, 520px\);/); assert.match(css, /\.sh\.chat-sheet\.is-in \.sh-panel \{ transform: translateY\(calc\(0px - var\(--lift\)\)\);/);   // (SHELL 2.0 A: on THE SHEET's panel)
   assert.doesNotMatch(css, /\.chat-sheet\.has-kb \{ height:/, 'no resize on the keyboard');
   const ui = read('js/chat/ui.js');
   assert.ok(ui.includes("export const QUICK = Object.freeze(['GG', 'NO WAY', 'REMATCH?', '\u{1F525}', '\u{1F602}', '\u{1F44F}']);"), 'the six quick replies');
@@ -225,5 +226,5 @@ test('THE SAVE-YOUR-KEY POP-UP (the ADD-ON): once for a key not saved + a counte
   assert.equal(keyPopDecide({ key: null, saved: false, matches: 5 }), 'none', 'no key on this device');
   const app = read('js/app.js');
   assert.match(app, /k\.maybeKeyPop\(\{ why: 'match' \}\)/); assert.doesNotMatch(app, /shouldPromptKey\(\)/, 'the old 3rd / 10th-match reminder retired');
-  assert.match(read('js/profile/keypop.js'), /'\.pg-moment, \.modal:not\(\.out\), \.pfs:not\(\.is-out\)/, 'never over the moment, a sheet');
+  assert.match(read('js/profile/keypop.js'), /'\.pg-moment, \.modal:not\(\.out\), \.sh:not\(\.is-out\)/, 'never over the moment, a sheet');
 });

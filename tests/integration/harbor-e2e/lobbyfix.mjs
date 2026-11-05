@@ -24,7 +24,7 @@ async function knock(p, act, answer) {
     : `(() => { import('/js/room.js').then(m => m.joinRoom('${act}', JSON.parse(localStorage.getItem('na:' + new URLSearchParams(location.search).get('slot') + ':profile')))).catch(e => { window.__joinErr = e.message; }); return 1; })()`);
   if (!answer) return null;
   await waitFor(p, "!!document.querySelector('.st-sheet:not(.is-out) [data-act]')", 'the seat question', 15000);
-  const q = await ev(p, "({ t: document.querySelector('.st-sheet .pfs-t b').textContent, line: document.querySelector('.st-sheet .st-line').textContent })");
+  const q = await ev(p, "({ t: document.querySelector('.st-sheet .sh-t b').textContent, line: document.querySelector('.st-sheet .st-line').textContent })");
   await ev(p, `document.querySelector('.st-sheet [data-act="${answer}"]').click()`);
   return q;
 }
@@ -80,7 +80,7 @@ const tapPlayer = (p, uid) => ev(p, `(() => { const t = document.querySelector('
 const cardNow = p => ev(p, `(() => { const full = document.querySelector('.vl-full'), sh = document.querySelector('.rc-card-sheet:not(.is-out)'), c = full || sh;
   return { card: !!c, kind: full ? 'full' : sh ? 'sheet' : null, crew: !!(c && c.querySelector('.cr-row')), radio: !!document.querySelector('.rd-modal.is-in, .rd-pcard'),
     stale: /once lobbies are in the city/i.test(document.body.textContent) }; })()`);
-const closeCards = p => ev(p, "(() => { const x = document.querySelector('.vl-full .vl-full-x'); if (x) x.click(); document.querySelectorAll('.pfs:not(.is-out) .pfs-back').forEach(e => e.click()); })()");
+const closeCards = p => ev(p, "(() => { const x = document.querySelector('.vl-full .vl-full-x'); if (x) x.click(); document.querySelectorAll('.sh:not(.is-out) .sh-back').forEach(e => e.click()); })()");
 const pidIn = async (p, slot) => { for (let i = 0; i < 60; i++) { const m = await ev(p, `(() => { try { return JSON.parse(localStorage.getItem('na:${slot}:me') || 'null'); } catch { return null; } })()`); if (m && m.pid) return m.pid; await sleep(400); } return null; };
 
 G('playercard', async () => {
@@ -282,7 +282,7 @@ G('newstart', async () => {
   await waitFor(p, "!!document.querySelector('.rc-games-sheet')", 'the game list', 6000).catch(() => {});
   const calm = await ev(p, "(() => { const t = document.querySelector('.rdk-games'); return { lbl: t.textContent, breathe: t.classList.contains('rdk-breathe') }; })()");
   ok(/NEW GAME/.test(calm.lbl) && !calm.breathe, `…tapped → the game list; NEW GAME stops breathing ("${calm.lbl}")`);
-  await ev(p, "(() => { const b = document.querySelector('.rc-games-sheet .pfs-back'); if (b) b.click(); })()"); await sleep(500);
+  await ev(p, "(() => { const b = document.querySelector('.rc-games-sheet .sh-back'); if (b) b.click(); })()"); await sleep(500);
   // ---- THE QUICK START (a same-game REMATCH): the sign lit at once, the walk-in, the fade — ~3 s
   const t1 = Date.now();
   await ev(p, "document.querySelector('.rdk-play').click()");

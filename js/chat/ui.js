@@ -2,6 +2,7 @@
 // button (unread badge; a quiet lock while you're actively playing). All message text is rendered with
 // textContent (never HTML) and links are just text. The list updates incrementally: one element per
 // message, created once, never a full re-render.
+import { openSheet } from '../ui/sheet.js';
 import { h, vibrate } from '../ui/dom.js';
 import { colorHex } from '../config.js';
 import { state, subscribe, isHost } from '../store.js';
@@ -79,15 +80,11 @@ export function openChat({ focus = false } = {}) {
   // LOBBY 2.0 A — QUICK-REPLY CHIPS above the field (most party chat needs no keyboard): the console's own + a game's (setGameChips)
   const chipRow = h('div.chat-chips', { role: 'group', 'aria-label': 'Quick replies' },
     ...[...QUICK, ...gameChips].map(t => h('button.chat-chip', { type: 'button', dataset: { sfx: 'none' }, onclick: () => { const r = send(t); if (r === 'ok') { sfx('lock'); scrollEnd(true); } else if (r === 'slow') showHint('Slow down — one message a second.'); } }, t)));
-  const head = h('div.chat-head',
-    h('div.sheet-grip'),
-    h('div.chat-title', h('span.sheet-kicker', 'ROOM CHAT'), h('b', state.code), filterOn() ? h('span.chat-flag', 'FILTERED') : null),
-    h('button.icon-btn.chat-close', { type: 'button', 'aria-label': 'Close chat', onclick: () => close() }, '×'));
-  const sheet = h('div.sheet.chat-sheet', { role: 'dialog', 'aria-label': 'Room chat' }, head, h('div.chat-body', list, pill), typing, hint, chipRow, form);
-  const modal = h('div.modal.chat-modal', { onclick: e => { if (e.target === modal) close(); } }, sheet);
-  document.body.append(modal);
-  // once it has slid in, drop the entry animation so a swipe can move the sheet
-  sheet.addEventListener('animationend', () => { sheet.style.animation = 'none'; }, { once: true });
+  // (SHELL 2.0 A: THE SHEET — ui/sheet.js: the handle, ROOM CHAT small + spaced, the hush word + FILTERED on its line, the × — the sheet's
+  //  own swipe closes it; the keyboard's lift (below) moves its panel)
+  const shApi = openSheet({ title: 'ROOM CHAT', kicker: `${state.code}${filterOn() ? ' · FILTERED' : ''}`, cls: 'chat-sheet', label: 'Room chat',
+    body: [h('div.chat-body', list, pill), typing, hint, chipRow, form], onClose: () => close(true) });
+  const sheet = shApi.sheet, head = shApi.head;
   if (focus) input.focus(); // inside the tap's gesture, so the phone keyboard opens
 
   // ---- incremental message list
@@ -190,20 +187,6 @@ export function openChat({ focus = false } = {}) {
   window.__chatLayout = layout; // test hook (fake keyboard)
   layout();
 
-  // ---- swipe down to close
-  let drag = null;
-  head.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; drag = { y: e.clientY, id: e.pointerId }; try { head.setPointerCapture(e.pointerId); } catch { /* */ } });
-  head.addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; const dy = Math.max(0, e.clientY - drag.y); sheet.style.setProperty('--drag', `${dy}px`); });
-  const end = e => {
-    if (!drag || e.pointerId !== drag.id) return;
-    const dy = e.clientY - drag.y;
-    drag = null;
-    sheet.style.setProperty('--drag', '0px');
-    if (dy > 90) close();
-  };
-  head.addEventListener('pointerup', end);
-  head.addEventListener('pointercancel', end);
-
   // ---- wiring
   const offChat = onChat(kind => {
     if (kind === 'msgs' || kind === 'outbox') render();
@@ -221,7 +204,7 @@ export function openChat({ focus = false } = {}) {
   paintTyping();
   scrollEnd(true);
 
-  function close() {
+  function close(fromSheet = false) {
     if (!open) return;
     open = null;
     input.blur();
@@ -231,8 +214,7 @@ export function openChat({ focus = false } = {}) {
     offChat(); offStore(); clearInterval(timer); clearInterval(typingTimer);
     if (v0) { v0.removeEventListener('resize', layout); v0.removeEventListener('scroll', layout); }
     window.removeEventListener('resize', layout);
-    modal.classList.add('out');
-    setTimeout(() => modal.remove(), 260);
+    if (!fromSheet) shApi.close();
   }
   open = { close };
   return open;

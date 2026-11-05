@@ -13,16 +13,16 @@ async function panelSection() {
   await harborUp(O.page);
   await waitFor(O.page, 'window.__district.remote() && window.__district.remote().debug().admin', 'the admin panel ready', 10000);
   await tap(O.page, '.menu-btn');
-  await waitFor(O.page, '!!document.querySelector(".gm-adm .gm-item") && document.querySelector(".gm-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000);
-  const adm = await ev(O.page, `(() => { const a = document.querySelector('.gm-adm'), b = a.querySelector('.gm-item').getBoundingClientRect(); return { last: a === a.parentNode.lastElementChild, h: b.height, txt: a.textContent, pill: !!document.querySelector('.hr-pill'), cue: !document.querySelector('.menu-btn .mb-cue').hidden }; })()`);
-  ok(adm.last && adm.h >= 44 && /CITY PREVIEW/.test(adm.txt) && !adm.pill && !adm.cue, `9d THE ADMIN ROW: the ☰ menu's last row (${Math.round(adm.h)} pt, "${adm.txt}"), no TEST pill on the screen, no cue while nothing is on`);
+  await waitFor(O.page, '!!document.querySelector(".gm-adm .sh-row") && document.querySelector(".gm .sh-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000);
+  const adm = await ev(O.page, `(() => { const a = document.querySelector('.gm-adm'), b = a.querySelector('.sh-row').getBoundingClientRect(); return { last: a === a.parentNode.lastElementChild || !!a.nextElementSibling && a.nextElementSibling.classList.contains('gm-leave'), h: b.height, txt: a.textContent, pill: !!document.querySelector('.hr-pill'), cue: !document.querySelector('.menu-btn .mb-cue').hidden }; })()`);
+  ok(adm.last && adm.h >= 44 && /City preview/i.test(adm.txt) && !adm.pill && !adm.cue, `9d THE ADMIN ROW: the ☰ menu's last row (${Math.round(adm.h)} pt, "${adm.txt}"), no TEST pill on the screen, no cue while nothing is on`);
   // THE VAULT 2C — THE LAB in the ☰ menu (admins only: the same yes as ADMIN) → /lab
   const lab = await ev(O.page, `(() => { const b = document.querySelector('.gm-lab'); return b ? { txt: b.textContent, h: b.getBoundingClientRect().height } : null; })()`);
-  ok(lab && /THE LAB/.test(lab.txt) && lab.h >= 44, `THE VAULT 2C — THE LAB in the ☰ menu for an admin ("${lab && lab.txt}", ${lab ? Math.round(lab.h) : 0} pt)`);
+  ok(lab && /The Lab/i.test(lab.txt) && lab.h >= 44, `THE VAULT 2C — THE LAB in the ☰ menu for an admin ("${lab && lab.txt}", ${lab ? Math.round(lab.h) : 0} pt)`);
   // LOBBY FIXES — THE ADMIN ROW (→ /admin) beside THE LAB, admins only (the same server yes)
   const ap = await ev(O.page, `(() => { const b = document.querySelector('.gm-admpage'), l = document.querySelector('.gm-lab'); return b ? { txt: b.textContent, h: b.getBoundingClientRect().height, next: !!l && Math.abs(b.getBoundingClientRect().top - l.getBoundingClientRect().bottom) < 30 } : null; })()`);
-  ok(ap && /^ADMIN/.test(ap.txt) && ap.h >= 44 && ap.next, `LOBBY FIXES — the ☰ menu's ADMIN row (→ /admin) right under THE LAB ("${ap && ap.txt}")`);
-  await tap(O.page, '.gm-adm .gm-item');
+  ok(ap && /^Admin/i.test(ap.txt) && ap.h >= 44 && ap.next, `LOBBY FIXES — the ☰ menu's ADMIN row (→ /admin) right under THE LAB ("${ap && ap.txt}")`);
+  await tap(O.page, '.gm-adm .sh-row');
   await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000);
   await sleep(450);
   // SP4 (the owner: the readouts drew on top of the open panel): body.hr-sheet-open while the sheet is up — debug-strip.js hides the column
@@ -33,7 +33,7 @@ async function panelSection() {
   const R0 = await import('../../../js/core/harbor-remote.js');
   const sheetUp = async p => { await waitFor(p, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(p, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000); await sleep(300); };
   const closeSheet = async p => { await ev(p, 'window.__district.remote().close()'); await waitFor(p, '!document.querySelector(".hr-modal")', 'the sheet gone', 4000); };
-  const openAdmin = async p => { await tap(p, '.menu-btn'); await waitFor(p, '!!document.querySelector(".gm-adm .gm-item") && document.querySelector(".gm-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000); await tap(p, '.gm-adm .gm-item'); };
+  const openAdmin = async p => { await tap(p, '.menu-btn'); await waitFor(p, '!!document.querySelector(".gm-adm .sh-row") && document.querySelector(".gm .sh-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000); await tap(p, '.gm-adm .sh-row'); };
   const reopen = async p => { await openAdmin(p); await sheetUp(p); };
   await ev(O.page, 'window.__district.remote().delay(0)');
   {
@@ -119,6 +119,7 @@ async function panelSection() {
       if (fb) { await tapAt(O.page, fb.x, fb.y); await waitFor(O.page, `!document.querySelector('.hr-fold[data-fold="${fb.k}"]').classList.contains('is-folded')`, `the ${fb.k} fold opens`, 3000); } }
     const r = await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; }, label);
     if (!r) throw new Error(`no chip ${label}`);
+    if (process.env.DBGCHIP) console.log('CHIP', label, JSON.stringify(r), await O.page.evaluate((x, y) => { const e = document.elementFromPoint(x, y); return e ? e.className + ' / ' + (e.closest('[class]') || {}).className + ' / ' + document.activeElement.className : null; }, r.x, r.y));
     await tapAt(O.page, r.x, r.y); await sleep(200);
   };
   const small = await ev(O.page, `[...document.querySelectorAll('.hr-sheet button')].filter(b => { const r = b.getBoundingClientRect(); return r.width && (r.height < 44 || r.width < 44); }).length`);
@@ -216,8 +217,8 @@ async function panelSection() {
     await reopen(P.page); await tap(P.page, '.hr-clear');
     await waitFor(P.page, '!window.__district.harbor().flags.remote', 'cleared', 5000);
     await sleep(600);
-    const f1 = await flags(P.page), url = await ev(P.page, 'location.search'), q = new URLSearchParams(url), toastT = await ev(P.page, "(() => { const t = [...document.querySelectorAll('.toast')].map(e => e.textContent).join(' | '); return t; })()");
-    ok(night0 && !f1.force.length && !f1.q.when && !f1.q.force && f1.speed === 1 && (!f1.preview || f1.keepLive) && Math.abs(f1.now - Date.now()) < 120e3 && !q.has('when') && !q.has('force') && !q.has('at') && q.get('city') === '2' && q.get('panel') === '1' && q.has('tz') && /REAL CITY/.test(toastT) && /WHEN/.test(toastT) && /FORCE/.test(toastT),
+    const f1 = await flags(P.page), url = await ev(P.page, 'location.search'), q = new URLSearchParams(url), toastT = await ev(P.page, "(() => { const t = [...document.querySelectorAll('.sh-msg')].map(e => e.textContent).join(' | '); return t; })()");
+    ok(night0 && !f1.force.length && !f1.q.when && !f1.q.force && f1.speed === 1 && (!f1.preview || f1.keepLive) && Math.abs(f1.now - Date.now()) < 120e3 && !q.has('when') && !q.has('force') && !q.has('at') && q.get('city') === '2' && q.get('panel') === '1' && q.has('tz') && /REAL CITY/i.test(toastT) && /WHEN/i.test(toastT) && /FORCE/i.test(toastT),
       `CLEAR ALL = THE REAL CITY NOW: from a night link (${new Date(f0.now).toISOString().slice(11, 16)} UTC, forced [${f0.force}]) one tap → force [${f1.force}], the real clock (${Math.round((f1.now - Date.now()) / 1000)} s off now), the live weather back (preview ${f1.preview}, keepLive ${f1.keepLive}), the URL "${url}", the toast "${toastT.slice(0, 90)}"`);
     await P.ctx.close(); }
   // 7a §0 — THE WORD TOWERS from the panel: one word per tower, the one too long for its tower scrolls on it; the readout says so
@@ -268,8 +269,8 @@ async function panelSection() {
   // MODELS — A PREVIEW LINK KEEPS ITS OWN FLAGS while EVERYONE is on (the owner's ~90 s TR-3B link): its &force wins on its page, a toast says so
   { const D = await open({ slot: 'he4', qs: `${NIGHT}&force=aurora` });
     await harborUp(D.page); await waitFor(D.page, '!!window.__district.remote()', 'the listener up', 10000); await sleep(1500);
-    const f = await ev(D.page, 'window.__district.harbor().flags'), toast = await ev(D.page, "[...document.querySelectorAll('.toast, [class*=toast]')].map(e => e.textContent).join(' | ')");
-    ok(!f.remote && f.force.includes('aurora') && !f.force.includes('banner') && /THIS LINK/.test(toast), `A PREVIEW LINK KEEPS ITS OWN &force WHILE EVERYONE IS ON: ${f.force.join(',')} (remote ${f.remote}); the toast "${toast.slice(0, 90)}"`);
+    const f = await ev(D.page, 'window.__district.harbor().flags'), toast = await ev(D.page, "[...document.querySelectorAll('.sh-msg')].map(e => e.textContent).join(' | ')");
+    ok(!f.remote && f.force.includes('aurora') && !f.force.includes('banner') && /THIS LINK/i.test(toast), `A PREVIEW LINK KEEPS ITS OWN &force WHILE EVERYONE IS ON: ${f.force.join(',')} (remote ${f.remote}); the toast "${toast.slice(0, 90)}"`);
     await D.ctx.close(); }
   // C2 — THE DELAY for EVERYONE: a node whose startAt is 3 s ahead — the phones keep what they show until then, then start together
   { const at = Date.now() + 3000;
@@ -311,8 +312,8 @@ async function neonPass5Panel() {
   await ev(L1.page, "window.__district.remote().setMine({ party: 'on', force: ['aurora'], when: '2026-10-27T22:30' })");
   await waitFor(L1.page, "(() => { const c = document.querySelector('.menu-btn .mb-cue'); return !!c && !c.hidden; })()", 'the cue on ☰', 6000);
   await tap(L1.page, '.menu-btn');
-  await waitFor(L1.page, "!!document.querySelector('.gm-adm .gm-adm-x') && document.querySelector('.gm-panel').getAnimations().every(a => a.playState === 'finished')", 'the ADMIN row + CLEAR (the menu settled)', 5000);
-  const chipTxt = await ev(L1.page, "document.querySelector('.gm-adm .gm-item').textContent"), xr = await ev(L1.page, "(() => { const r = document.querySelector('.gm-adm-x').getBoundingClientRect(); return { w: r.width, h: r.height }; })()");
+  await waitFor(L1.page, "!!document.querySelector('.gm-adm .gm-adm-x') && document.querySelector('.gm .sh-panel').getAnimations().every(a => a.playState === 'finished')", 'the ADMIN row + CLEAR (the menu settled)', 5000);
+  const chipTxt = await ev(L1.page, "document.querySelector('.gm-adm .sh-row').textContent"), xr = await ev(L1.page, "(() => { const r = document.querySelector('.gm-adm-x').getBoundingClientRect(); return { w: r.width, h: r.height }; })()");
   await tap(L1.page, '.gm-adm-x');
   await waitFor(L1.page, '!window.__district.harbor().flags.remote', 'cleared by the ADMIN row', 5000);
   ok(/JUST ME · 10\/27 22:30/.test(chipTxt) && xr.w >= 44 && xr.h >= 44, `9d THE ADMIN ROW while JUST ME is on: "${chipTxt}" + a ${Math.round(xr.w)}×${Math.round(xr.h)} pt CLEAR — one tap back to the link`);
@@ -322,7 +323,7 @@ async function neonPass5Panel() {
   const D = await open({ slot: 'hd2', qs: `when=2026-10-22T13:00${GR}&panel=1`, view: [402, 874] });
   await harborUp(D.page);
   await waitFor(D.page, 'window.__district.remote() && window.__district.remote().debug().admin', 'the admin panel ready', 10000);
-  await tap(D.page, '.menu-btn'); await waitFor(D.page, '!!document.querySelector(".gm-adm .gm-item") && document.querySelector(".gm-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000); await tap(D.page, '.gm-adm .gm-item');
+  await tap(D.page, '.menu-btn'); await waitFor(D.page, '!!document.querySelector(".gm-adm .sh-row") && document.querySelector(".gm .sh-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000); await tap(D.page, '.gm-adm .sh-row');
   await waitFor(D.page, "!!document.querySelector('.hr-sheet') && document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 6000);
   // (C2: PARTY ON sits in LIGHTS + MUSIC → PARTY SHOW — the section collapsed at first: a tap on its header opens it; the sheet's
   // close starts it — the delay NOW here)

@@ -200,7 +200,6 @@ html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3,
 .nd-pv-art { width: 132px; height: 132px; margin: 6px auto 14px; border-radius: 22px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 14px 50px color-mix(in srgb, var(--acc) 30%, transparent); }
 .nd-pv-art svg { display: block; width: 100%; height: 100%; }
 .nd-pv-body .gc-tag { color: var(--acc); }
-.nd-pv-name { margin: 6px 0 8px; font-family: var(--font-display); font-weight: 900; font-size: 26px; letter-spacing: 0.08em; color: #fff; }
 .nd-pv-blurb { margin: 0 auto 14px; max-width: 30ch; font-size: 15px; line-height: 1.45; color: var(--text-dim); }
 .nd-pv-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 18px; }
 .nd-pv-meta span { padding: 6px 10px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; color: #eef1ff; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; }
@@ -412,8 +411,6 @@ body.reduced-fx .nd-word-p { animation: none !important; opacity: 0 !important; 
 
 /* the games sheet */
 .nd-games { text-align: center; }
-.nd-games-h h2 { margin: 4px 0 4px; font: 900 20px/1.1 var(--font-display); letter-spacing: 0.16em; color: #fff; }
-.nd-games-h p { margin: 0 0 14px; font: 700 10px/1.4 var(--font-mono); letter-spacing: 0.14em; color: var(--text-dim); }
 .nd-games-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-bottom: 8px; }
 .nd-gtile {
   --acc: #d6f0ff; position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 126px; padding: 10px 6px 9px;

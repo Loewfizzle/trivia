@@ -2,6 +2,7 @@
 // and in a game). ADD A CREDIT: one entry in CREDITS below — { group, title, by, licence, link? } — copy a model's / a recording's line
 // exactly as its credits.txt gives it (e.g. art/models/<name>/credits.txt). Groups show in the order they first appear.
 import { h } from './dom.js';
+import { openSheet } from './sheet.js';
 
 // C4c — the harvest display's 3D model (art/models/harvest/credits.txt). Its licence (Tencent Hunyuan 3D 2.1 Community License) asks
 // AI-generated content shown publicly to be identified as AI-generated, and does not cover the EU, the UK + South Korea.
@@ -124,18 +125,6 @@ export function openCredits() {
   for (const c of CREDITS) { let g = groups.find(x => x.name === c.group); if (!g) groups.push(g = { name: c.group, items: [] }); g.items.push(c); }
   const body = h('div.cr-body', ...groups.map(g => h('section.cr-group', h('h3.cr-head', g.name), ...g.items.map(c =>
     h('div.cr-item', h('b.cr-title', c.link ? h('a', { href: c.link, target: '_blank', rel: 'noopener' }, c.title) : c.title), h('span.cr-by', c.by), h('span.cr-lic', c.licence))))));
-  sheet = h('div.modal.cr-modal', { onclick: e => { if (e.target === sheet) closeCredits(); } },
-    h('div.sheet.cr-sheet', { role: 'dialog', 'aria-label': 'Credits' },
-      h('div.sheet-grip'),
-      h('div.set-head', h('div', h('div.sheet-kicker', 'NEON SPEAKEASY'), h('h2.sheet-title', 'CREDITS')),
-        h('button.icon-btn', { type: 'button', 'aria-label': 'Close', onclick: closeCredits }, '×')),
-      body,
-      h('button.btn.btn-primary.btn-block', { type: 'button', onclick: closeCredits }, h('span', 'CLOSE'))));
-  document.body.append(sheet);
+  sheet = openSheet({ title: 'CREDITS', kicker: 'NEON SPEAKEASY', cls: 'cr-sheet', body, onClose: () => { sheet = null; } });   // (SHELL 2.0 A: THE SHEET)
 }
-export function closeCredits() {
-  if (!sheet) return;
-  const s = sheet; sheet = null;
-  s.classList.add('out');
-  setTimeout(() => s.remove(), 260);
-}
+export function closeCredits() { if (sheet) sheet.close(); }

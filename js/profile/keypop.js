@@ -23,7 +23,7 @@ const emit = () => { for (const f of subs) { try { f(keyPopState()); } catch { /
 if (typeof window !== 'undefined') window.addEventListener('ns:notes', () => emit());
 
 /** every pop-up the save-your-key sheet must never open over (tests/keypop + the harbor keypop group read it) */
-export const KEYPOP_COVERED = '.pg-moment, .modal:not(.out), .pfs:not(.is-out), .final, .vl-dress, .vl-full, .pf-overlay, .gm, .sg-modal, .pg-sc, .sg-big';
+export const KEYPOP_COVERED = '.pg-moment, .modal:not(.out), .sh:not(.is-out), .final, .vl-dress, .vl-full, .pf-overlay, .gm, .sg-modal, .sg-fly, .pg-sc, .pg-pv, .sg-big';
 let open = null, waitT = 0;
 /** busy() → true while something must not be covered (the title passes its scene's legendary) */
 export function maybeKeyPop({ why = '', busy = null } = {}) {
@@ -31,7 +31,8 @@ export function maybeKeyPop({ why = '', busy = null } = {}) {
   if (open || keyPopState() !== 'show') return false;
   const playing = !!(state.code && state.meta && state.meta.status === 'playing' && state.game && state.quit !== state.game.matchId);
   // (FR6 FIXES A — B5 / H1: never over a card the player is looking at — `.sg-shot` + `.vl-full-open` never existed; now CUSTOMIZE, the
-  //  full card, the room's profile overlay, the ☰ menu, the sighting moment, the streak card + the album too)
+  //  full card, the room's profile overlay, the ☰ menu, the sighting moment, the streak card + the album too; SHELL 2.0 A — H1: + the
+  //  sighting's flying photo + the streak preview, and THE SHEET's own class)
   const covered = document.querySelector(KEYPOP_COVERED);
   if (playing || covered || (busy && busy())) { waitT = setTimeout(() => maybeKeyPop({ why, busy }), 2500); return false; }
   show(why);
@@ -52,7 +53,7 @@ async function show(why) {
   open = openPfSheet({ kicker: 'YOUR MEMBERSHIP', title: 'SAVE YOUR KEY', cls: 'kp-sheet',
     body: [h('div.kp-card', memberCard(pub, {}, pub ? pub.x : 0)),
       h('p.kp-line', 'Save your key so you never lose your card.'),
-      h('p.pfs-note', 'Send it to yourself — Notes, Mail or a password manager. It brings this card back on any device; never give it to anyone else.'),
+      h('p.sh-note', 'Send it to yourself — Notes, Mail or a password manager. It brings this card back on any device; never give it to anyone else.'),
       h('div.kp-acts', copy, share), later],
     onClose: () => { open = null; if (!saved) setNotes({ kp: 'later' }); emit(); } });
   open.el.dataset.why = why;

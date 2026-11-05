@@ -2,6 +2,7 @@
 // the app on this browser); every action goes to POST /api/admin, which checks the profile id against ADMIN_PIDS and
 // writes an audit entry. Search players, remove a record, reset a board, rename, hide from the boards, the audit log.
 import { h } from '../ui/dom.js';
+import { toast } from '../ui/toast.js';   // (SHELL 2.0 A: THE MESSAGE — was the page's own .ad-toast)
 import { avatar } from '../ui/components.js';
 import { emblem, installEmblems } from '../ui/emblems.js';
 import { initFirebase, isConfigured } from '../firebase.js';
@@ -18,13 +19,6 @@ const app = document.getElementById('app');
 const gameName = id => (GAMES.find(g => g.id === id) || { name: id }).name;
 const when = at => new Date(at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 let current = null;
-
-function toast(text, kind = 'ok') {
-  const t = h('div.ad-toast', { class: `is-${kind}` }, text);
-  document.body.append(t);
-  setTimeout(() => t.classList.add('is-out'), 2600);
-  setTimeout(() => t.remove(), 3000);
-}
 
 async function call(action, body = {}) {
   try { return await api('admin', { action, ...body }); } catch (e) { toast(e.message || 'Failed', 'err'); throw e; }

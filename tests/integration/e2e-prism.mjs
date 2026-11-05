@@ -165,10 +165,10 @@ try {
   await sleep(500);
   await shotBoth(host, 'pd-00-lobby-card');
   await host.evaluate(() => document.querySelector('.game-card[data-theme="prism"]').click());
-  await host.waitForSelector('.modal .sheet.options', { timeout: 8000 });
+  await host.waitForSelector('.sh.options', { timeout: 8000 });
   await sleep(500);
   await shotBoth(host, 'pd-01-options');
-  await host.evaluate(() => document.querySelector('.modal .btn-text.btn-block').click());
+  await host.evaluate(() => document.querySelector('.sh.options .btn-text.btn-block').click());
   await sleep(400);
 
   // ================================================================ MATCH A — BATTLE

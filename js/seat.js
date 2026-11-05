@@ -70,7 +70,7 @@ export async function askMoveHere(conflict) {
     const cancel = h('button.btn.btn-text.btn-block.st-cancel', { type: 'button', 'data-act': 'cancel', onclick: () => done(false) }, 'CANCEL');
     const s = openPfSheet({ kicker: 'ONE CARD, ONE SEAT', title: conflict.same ? 'ALREADY IN THIS ROOM' : `YOU’RE IN ${conflict.code}`, cls: 'st-sheet',
       body: [h('p.st-line', conflict.same ? 'You’re already in this room on another device.' : `You’re already in room ${conflict.code} on another device.`),
-        h('p.pfs-note', 'MOVE HERE takes your seat on this device — the other one walks out of the room.'), move, cancel],
+        h('p.sh-note', 'MOVE HERE takes your seat on this device — the other one walks out of the room.'), move, cancel],
       onClose: () => resolve(answer) });
   });
 }

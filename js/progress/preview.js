@@ -90,6 +90,7 @@ export async function preview(view, q = new URLSearchParams(), root = null, keep
       await pgSheet();
       const shell = h('div.pg-pv', { role: 'dialog', 'aria-label': 'Membership card preview' }, h('div.pg-veil'), h('div.pg-pv-bar', { 'aria-hidden': 'true' }), h('button.pg-x', { type: 'button', 'aria-label': 'Close', onclick: () => shell.remove() }, '✕'), host);
       host.append(h('div.pg-pv-k', 'PREVIEW · A SAMPLE MEMBER'));
+      import('../ui/layers.js').then(L => L.takeLayer(shell, { min: 9000 })).catch(() => {});   // (SHELL 2.0 A — H2: on THE LAYER STACK)
       document.body.append(shell);
     }
     if (q.get('cards') === '1') {

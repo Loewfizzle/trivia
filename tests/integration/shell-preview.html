@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shell preview</title>
+<!-- SHELL 2.0 A — THE ONE LOOK's four parts on a city-like backdrop, without Firebase (the real builders: ui/components.js, ui/sheet.js,
+     ui/toast.js). ?view=parts (default: every tube kind + size + disabled + confirm, a row list, a message) · menu (THE ☰ MENU sheet, admin
+     rows on) · msg (one message of each colour, the last one shown) · nested (a sheet on a sheet: ‹ + ×) · settings · bright (the parts on a
+     bright day sky) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>
+  html, body { margin: 0; min-height: 100%; color: #fff; }
+  body { background: radial-gradient(120% 60% at 50% 0%, #2a1f55, #120d2a 55%, #07060f); min-height: 100dvh; }
+  body.is-bright { background: linear-gradient(180deg, #2f6fd6, #74aef0 55%, #b8d4f2); }
+  #stage { max-width: 440px; margin: 0 auto; padding: 22px 16px 120px; display: flex; flex-direction: column; gap: 14px; }
+  .lbl { font: 700 10.5px/1 var(--font-display); letter-spacing: 0.24em; color: rgba(255, 210, 240, 0.8); margin-top: 6px; }
+  .rowx { display: flex; gap: 10px; flex-wrap: wrap; }
+  .fake-dock { position: fixed; left: 50%; bottom: calc(var(--safe-b) + 18px); transform: translateX(-50%); width: min(100% - 24px, 420px); height: 92px; border-radius: 46px; background: rgba(10, 9, 22, 0.7); border: 1px solid rgba(255, 255, 255, 0.14); }
+</style>
+</head>
+<body class="nd-on">
+<div id="stage"></div>
+<section class="nd-actions" style="position: fixed; left: 0; right: 0; bottom: 0; height: 120px; pointer-events: none;"><div class="fake-dock"></div></section>
+<script type="module">
+import { h } from '/js/ui/dom.js';
+import { tubeButton, row } from '/js/ui/components.js';
+import { openSheet } from '/js/ui/sheet.js';
+import { toast } from '/js/ui/toast.js';
+const q = new URLSearchParams(location.search), view = q.get('view') || 'parts';
+if (q.has('bright') || view === 'bright') document.body.classList.add('is-bright');
+await document.fonts.ready;
+const stage = document.getElementById('stage');
+const menuRows = () => [
+  row({ icon: 'card', label: 'Your card', value: 'LOEWFIZZLE' }),
+  row({ icon: 'help', ic: '#5fe3ff', label: 'How to play' }),
+  row({ icon: 'settings', ic: '#b48cff', label: 'Settings' }),
+  row({ icon: 'sound', ic: '#4dff9a', label: 'Sound effects', toggle: () => {}, on: true }),
+  row({ icon: 'lab', ic: '#ffc23d', label: 'The Lab', value: '5 need you' }),
+  row({ icon: 'admin', ic: '#ffc23d', label: 'Admin' }),
+  row({ icon: 'leave', label: 'Leave room', danger: true, confirm: 'TAP AGAIN TO LEAVE', onClick: () => {} }),
+];
+if (view === 'parts' || view === 'bright') {
+  stage.append(
+    h('div.lbl', 'MAIN'), tubeButton('BACK TO THE ROOM', { kind: 'main', block: true }),
+    h('div.lbl', 'SECONDARY'), tubeButton('HOW TO PLAY', { block: true }),
+    h('div.lbl', 'DANGER'), tubeButton('LEAVE ROOM', { kind: 'danger', block: true }),
+    h('div.lbl', 'SMALL'), h('div.rowx', tubeButton('SAVE', { kind: 'main', size: 'sm' }), tubeButton('CANCEL', { size: 'sm' }), tubeButton('REMOVE', { kind: 'danger', size: 'sm' })),
+    h('div.lbl', 'DISABLED · CONFIRM'), h('div.rowx', tubeButton('START', { kind: 'main', size: 'sm', disabled: true }), (() => { const b = tubeButton('END GAME', { kind: 'danger', size: 'sm', confirm: 'TAP AGAIN TO END IT' }); b.click(); return b; })()),
+    h('div.lbl', 'ROWS'), h('div.sh-row-list', ...menuRows().slice(2, 5)));
+  toast('Host left — you’re the host now', 'warn', { ms: 600000, sub: 'Your friends are still in the room.' });
+}
+if (view === 'menu') openSheet({ title: 'MENU', cls: 'gm', body: h('div.sh-row-list', ...menuRows()) });
+if (view === 'nested') { openSheet({ title: 'YOUR CARD', body: h('div.sh-row-list', ...menuRows().slice(0, 3)) }); openSheet({ title: 'EDIT USERNAME', kicker: 'CUSTOMIZE', body: [h('input.input', { value: 'LOEWFIZZLE' }), tubeButton('SAVE', { kind: 'main', block: true })] }); }
+if (view === 'msg') {
+  const k = q.get('kind') || 'warn';
+  toast(k === 'err' ? 'Couldn’t start — try again' : k === 'ok' ? 'Key copied' : k === 'info' ? 'Coming soon' : 'Host left — you’re the host now', k, { ms: 600000, sub: k === 'warn' ? 'Your friends are still in the room.' : k === 'ok' ? 'Now paste it somewhere safe.' : null });
+}
+setTimeout(() => { document.body.dataset.ready = '1'; window.__ready = true; }, 500);
+</script>
+</body>
+</html>

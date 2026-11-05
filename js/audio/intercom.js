@@ -112,7 +112,7 @@ function paChain(c) {
   sh.connect(dl); dl.connect(dlp); dlp.connect(fb); fb.connect(dl); dlp.connect(wet); wet.connect(out);
   return { input: pre, output: out, nodes: [pre, hp, lp, pk, sh, out, dl, dlp, fb, wet] };
 }
-const audible = () => !settings.muted && (settings.sfx == null || settings.sfx > 0.01);
+const audible = () => !settings.muted && !settings.sfxOff && (settings.sfx == null || settings.sfx > 0.01);
 
 /**
  * play one announcement; `late` s already gone (a lobby phone a moment late joins the timeline) → a handle { id, stop() }. Also used by

@@ -12,6 +12,7 @@
 // The claim (js/profile/sightings.js) runs from the tap; the server's answer decides SPOTTED / the reveal. A preview (&force= / the panel)
 // plays the reaction, the flash + the print — never SPOTTED, never the album. &sgdemo=<id> (the owner's preview): the first-time sequence
 // on demand, never claimed, never kept. The photo is kept ON THIS DEVICE (js/profile/album.js); the sighting record on the server.
+import { takeLayer } from '../ui/layers.js';
 import { h } from '../ui/dom.js';
 import { claimSighting } from '../profile/sightings.js';
 import { SIGHTING, nth } from '../core/sightings.js';
@@ -264,6 +265,8 @@ async function bigMoment(sg, { pol, chip, first, preview, still }) {
   const modal = h('div.sg-modal', { class: `${first ? 'has-pair' : ''} ${still ? 'sg-still' : ''}`, role: 'dialog', 'aria-label': `${s.what} — spotted` }, stage, h('div.sg-foot', go));
   // the print GROWS BACK from the corner into the middle (the same element — its photo + its developing carry on)
   stage.append(head); modal.insertBefore(pair, modal.lastChild);
+  // (SHELL 2.0 A — H2: on THE LAYER STACK above the moment (min 9060); a sheet opened from it lands on top)
+  const releaseLayer = takeLayer(modal, { close: () => { if (modal.classList.contains('is-done')) close(); }, min: 9060 });
   document.body.append(modal);
   unparkInto(chip, pol, stage, still);
   setPhase('polaroid');
@@ -272,7 +275,7 @@ async function bigMoment(sg, { pol, chip, first, preview, still }) {
   if (preview) pol.append(h('div.sg-tag', 'PREVIEW'));
   let shownAt = performance.now(), closeR;
   const closed = new Promise(r => { closeR = r; });
-  const close = () => { if (modal.classList.contains('is-out')) return; modal.classList.add('is-out'); setPhase('done'); setTimeout(() => { if (scene) scene.surface.destroy(); modal.remove(); closeR(); }, 320); };
+  const close = () => { if (modal.classList.contains('is-out')) return; releaseLayer(); modal.classList.add('is-out'); setPhase('done'); setTimeout(() => { if (scene) scene.surface.destroy(); modal.remove(); closeR(); }, 320); };
   const done = () => { modal.classList.add('is-done'); shownAt = performance.now(); };
   // (THE HOLD: taps in its first second never dismiss it — a skip-tap can't throw it away unread)
   modal.addEventListener('pointerup', e => { if (!modal.classList.contains('is-done') || performance.now() - shownAt < 1000) return; if (e.target.closest('.sg-go')) return; close(); });

@@ -129,7 +129,7 @@ G('room', async () => {
   const gl = await ev(p, "({ rows: document.querySelectorAll('.rg-sheet .rg-row').length, strips: document.querySelectorAll('.rg-sheet .vl-strip').length, dot: !document.querySelector('.rdk-guests .rdk-dot').hidden, host: [...document.querySelectorAll('.rg-sheet .vl-lv')].some(l => /HOST/.test(l.textContent)) })");
   ok(gl.rows === 6 && gl.strips === 6 && !gl.dot && gl.host, `THE GUEST LIST: everyone as their SLIM CARD STRIP (${gl.strips}), the host marked; GUESTS' dot cleared on open (${!gl.dot})`);
   if (SHOTS) await p.screenshot({ path: `${OUT}lobby-guests.png` });
-  await ev(p, "document.querySelector('.rg-sheet .pfs-back').click()"); await sleep(400);
+  await ev(p, "document.querySelector('.rg-sheet .sh-back').click()"); await sleep(400);
   await ev(q, "import('/js/chat/chat.js').then(m => m.send('hello from B'))");
   const cd = await waitFor(p, "!document.querySelector('.rdk-chat .rdk-dot').hidden", 'CHAT dot', 10000).then(() => true, () => false);
   ok(cd, 'CHAT: a message from another phone lights the unread dot');
@@ -143,11 +143,11 @@ G('room', async () => {
   // PLAY (the host — B since the host change): the playable games → one → its options → INITIATE = today's game start
   await ev(q, "document.querySelector('.rdk-play').click()");
   await waitFor(q, "document.querySelectorAll('.rc-games-sheet .rc-game').length >= 2", 'the games', 8000).catch(() => {});
-  const gs = await ev(q, "({ n: document.querySelectorAll('.rc-games-sheet .rc-game').length, t: (document.querySelector('.rc-games-sheet .pfs-t b') || {}).textContent })");
+  const gs = await ev(q, "({ n: document.querySelectorAll('.rc-games-sheet .rc-game').length, t: (document.querySelector('.rc-games-sheet .sh-t b') || {}).textContent })");
   if (SHOTS) await q.screenshot({ path: `${OUT}lobby-games.png` });
   await ev(q, "document.querySelector('.rc-games-sheet .rc-game[data-game=\"overclock\"]').click()");
-  await waitFor(q, "!!document.querySelector('.modal .sheet.options')", 'the options', 8000).catch(() => {});
-  await ev(q, "document.querySelector('.modal .sheet.options .btn-primary').click()");
+  await waitFor(q, "!!document.querySelector('.sh.options')", 'the options', 8000).catch(() => {});
+  await ev(q, "document.querySelector('.sh.options .btn-primary').click()");
   const started = await waitFor(q, "window.__arcade.state.meta && window.__arcade.state.meta.status === 'playing'", 'the game starts', 15000).then(() => true, () => false);
   ok(gs.n === 2 && gs.t === 'PICK A GAME' && started, `PLAY (the host): PICK A GAME (${gs.n} playable) → its options → INITIATE — today's start path (${started ? 'playing' : 'not started'})`);
   await A.ctx.close(); await B.ctx.close();
@@ -204,7 +204,7 @@ G('roomchat', async () => {
   // B opens the chat from the dock + types
   await ev(q, "document.querySelector('.rdk-chat').click()");
   await waitFor(q, "!!document.querySelector('.chat-sheet .chat-input')", 'the chat sheet', 8000);
-  const h0 = await ev(q, "document.querySelector('.chat-sheet').getBoundingClientRect().height");
+  const h0 = await ev(q, "document.querySelector('.chat-sheet .sh-panel').getBoundingClientRect().height");
   await q.focus('.chat-sheet .chat-input'); await q.keyboard.type('on my way', { delay: 40 });
   const bub = await waitFor(p, `document.querySelector('.rc-tag[data-uid="${meB}"]').classList.contains('is-typing')`, 'the bubble', 8000).then(() => true, () => false);
   const bt = await ev(p, `(() => { const t = document.querySelector('.rc-tag[data-uid="${meB}"] .rc-bubble'), r = t.getBoundingClientRect(), dock = document.querySelector('.rdk-dock').getBoundingClientRect(); return { text: t.textContent, w: r.width, h: r.height, bottom: r.bottom, dockTop: dock.top, op: getComputedStyle(t).opacity }; })()`);
@@ -212,7 +212,7 @@ G('roomchat', async () => {
   if (SHOTS) await p.screenshot({ path: `${OUT}lobby-typing-390.png` });
   // THE CHAT FIX: a 336-pt keyboard → the sheet keeps its height, slides up as one piece, the field above the keyboard
   await ev(q, '(() => { window.__fakeVV = { height: 844 - 336, offsetTop: 0 }; window.__chatLayout(); })()'); await sleep(400);
-  const kb = await ev(q, "(() => { const s = document.querySelector('.chat-sheet').getBoundingClientRect(), f = document.querySelector('.chat-form').getBoundingClientRect(), c = document.querySelector('.chat-chips').getBoundingClientRect(); return { h: s.height, top: s.top, form: f.bottom, chips: c.bottom <= f.top + 1 && c.height > 30 }; })()");
+  const kb = await ev(q, "(() => { const s = document.querySelector('.chat-sheet .sh-panel').getBoundingClientRect(), f = document.querySelector('.chat-form').getBoundingClientRect(), c = document.querySelector('.chat-chips').getBoundingClientRect(); return { h: s.height, top: s.top, form: f.bottom, chips: c.bottom <= f.top + 1 && c.height > 30 }; })()");
   ok(Math.abs(kb.h - h0) < 1 && kb.form <= 844 - 336 + 1 && kb.top >= 0 && kb.chips, `THE CHAT KEYBOARD: ONE size (${Math.round(h0)} → ${Math.round(kb.h)} pt) slid up as one piece — the field above the keyboard (bottom ${Math.round(kb.form)} ≤ 508), the top on screen (${Math.round(kb.top)}), the quick replies just above the field`);
   if (SHOTS) await q.screenshot({ path: `${OUT}lobby-chat-kb-390.png` });
   await ev(q, '(() => { delete window.__fakeVV; window.__chatLayout(); })()');

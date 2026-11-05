@@ -12,6 +12,7 @@
 // the sign's colours (always lit); JOIN opens a glass panel with four hush-word boxes (paste, auto-join on the 4th letter, ?room=
 // pre-fills); REJOIN floats above the bar when a saved room couldn't be reached; YOU opens the membership card.
 // Test hook: window.__district.
+import { openSheet } from '../ui/sheet.js';
 import { wordNeonChars, wordNeonDefs } from '../ui/word-neon.js';
 import { h, reducedMotion } from '../ui/dom.js';
 import { levelLabel } from '../core/levels.js';
@@ -669,7 +670,7 @@ export function createTitle() {
     if (!force && !chip && ['when', 'tz', 'force', 'wx', 'at', 'preview', 'sgdemo'].some(k => q.get(k))) return;
     import('../profile/bring.js').then(B => {
       if (destroyed || (!force && !chip && !B.shouldOffer())) return;
-      if (force || (!chip && B.standalone())) { bycT = setTimeout(() => { if (!destroyed && !document.querySelector('.modal')) B.openBring({ lead: true }); }, 900); return; }
+      if (force || (!chip && B.standalone())) { bycT = setTimeout(() => { if (!destroyed && !document.querySelector('.sh, .modal')) B.openBring({ lead: true }); }, 900); return; }
       if (els.actions && !els.actions.querySelector('.byc-chip')) B.offerChip(els.actions);
     }).catch(e => console.warn('[bring]', e));
   }
@@ -1061,18 +1062,13 @@ export function createTitle() {
   function openGames() {
     sfx('select');
     const games = GAMES.filter(g => g.playable);
-    let sheet;
-    const close = () => { sheet.classList.add('out'); setTimeout(() => sheet.remove(), 260); };
-    sheet = h('div.modal', { onclick: e => { if (e.target === sheet) close(); } },
-      h('div.sheet.nd-games', { role: 'dialog', 'aria-label': 'The games' },
-        h('div.sheet-grip'),
-        h('div.nd-games-h', h('h2', 'THE GAMES'), h('p', `${games.length} party games · ${MIN_PLAYERS}–${MAX_PLAYERS} players · one phone each`)),
+    // (SHELL 2.0 A: THE SHEET)
+    const sheet = openSheet({ title: 'THE GAMES', kicker: `${games.length} party games · ${MIN_PLAYERS}–${MAX_PLAYERS} players · one phone each`, cls: 'nd-games-sheet', label: 'The games', body: [
+      h('div.nd-games',
         h('div.nd-games-grid', ...games.map(g => h('button.nd-gtile', {
           type: 'button', dataset: { id: g.id, theme: g.theme }, style: { '--acc': ACC[g.id] || '#d6f0ff' },
-          onclick: () => { close(); tap.preview(g); },
-        }, gameArt(g.id) || h('div.gc-glyph'), h('span.nd-gtile-n', g.name), h('span.nd-gtile-t', g.tag)))),
-        h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'CLOSE')));
-    document.body.append(sheet);
+          onclick: () => { sheet.close(); tap.preview(g); },
+        }, gameArt(g.id) || h('div.gc-glyph'), h('span.nd-gtile-n', g.name), h('span.nd-gtile-t', g.tag)))))] });
   }
   // (title-taps.js: moved out by scripts/split-closure.mjs — T carries the names it shares with this closure, live)
   const tap = createTaps({

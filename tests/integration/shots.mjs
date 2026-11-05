@@ -263,7 +263,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     await sleep(700);
     if (o.scroll) { await p.evaluate(k => { const s = document.querySelector('.hr-sheet'); s.scrollTop = (s.scrollHeight - s.clientHeight) * k; }, o.scroll); await sleep(200); }
   }
-  if (o.act === 'menu') { await p.click('.menu-btn'); await p.waitForSelector('.gm-panel'); await sleep(400); }
+  if (o.act === 'menu') { await p.click('.menu-btn'); await p.waitForSelector('.gm .sh-panel'); await sleep(500); }
   if (o.act === 'sun') { await p.evaluate(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }); await sleep(300); }
   // (POL4: --js "<expression>": run in the page before the shot — e.g. "__district.harbor().speakeasy.power(0)")
   if (opt('js', '')) { await p.evaluate(String(opt('js'))); await sleep(400); }

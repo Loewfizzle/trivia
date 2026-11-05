@@ -157,7 +157,7 @@ try {
     await check(`help-${k}`);
   }
   await host.keyboard.press('Escape');
-  await host.evaluate(() => { const c = document.querySelector('.modal .sheet-close, .modal [aria-label="Close"]'); if (c) c.click(); });
+  await host.evaluate(() => { const c = document.querySelector('.sh:not(.is-out) .sh-x'); if (c) c.click(); });
   await sleep(500);
 
   // ---- WINDOWS — ONLY TWO GAMES PLAYABLE: a hidden game can never start (host.js#startGame refuses it — a rematch, an invite or a
@@ -170,7 +170,7 @@ try {
     ok(ids.length === 10 && res.every(r => r === false) && g === null, `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
     // (LOBBY 2.0 A: in City 2.0 the room is the live city — its GAMES sheet lists the games; City 1.0's lobby keeps its cards)
     let cards = await host.$$eval('.lobby-screen .game-card', els => els.map(e => e.dataset.theme));
-    if (!cards.length && await host.$('.rdk-games')) { await host.evaluate(() => document.querySelector('.rdk-games').click()); await host.waitForSelector('.rc-games-sheet .rc-game', { timeout: 8000 }); cards = await host.$$eval('.rc-games-sheet .rc-game', els => els.map(e => e.dataset.game)); await host.evaluate(() => document.querySelector('.rc-games-sheet .pfs-back').click()); await sleep(400); }
+    if (!cards.length && await host.$('.rdk-games')) { await host.evaluate(() => document.querySelector('.rdk-games').click()); await host.waitForSelector('.rc-games-sheet .rc-game', { timeout: 8000 }); cards = await host.$$eval('.rc-games-sheet .rc-game', els => els.map(e => e.dataset.game)); await host.evaluate(() => document.querySelector('.rc-games-sheet .sh-back').click()); await sleep(400); }
     ok(cards.length === 2 && cards.includes('prism') && cards.includes('overclock'), `THE LOBBY: only the two playable games (${cards.join(', ')})`); }
 
   // ---- each game: start, watch its opening screens on both phones, back to the lobby
@@ -180,7 +180,7 @@ try {
     await waitFor(guest, (s, g) => s.game && s.game.id === g, `${id} on the guest`, 20000, id);
     await watch(id, WATCH_MS);
     await guest.screenshot({ path: `${OUT}smoke-${id}${SFX}.png` });
-    if (process.env.MENU === '1') { await guest.click('.menu-btn'); await guest.waitForSelector('.gm-panel'); await sleep(350); await guest.screenshot({ path: `${OUT}smoke-${id}${SFX}-menu.png` }); await guest.click('.menu-btn'); await sleep(300); }
+    if (process.env.MENU === '1') { await guest.click('.menu-btn'); await guest.waitForSelector('.gm .sh-panel'); await sleep(350); await guest.screenshot({ path: `${OUT}smoke-${id}${SFX}-menu.png` }); await guest.click('.menu-btn'); await sleep(300); }
     const phase = await evalIn(guest, s => s.game && s.game.phase);
     ok(true, `${id}: watched to phase "${phase}" with no stray text`);
     await backToLobbyNow(id);

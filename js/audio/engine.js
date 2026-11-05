@@ -143,7 +143,7 @@ function applyVolumes(instant) {
   if (!ctx) return;
   const t = ctx.currentTime;
   const m = settings.muted || settings.musicOff ? 0 : curve(settings.music);
-  const s = settings.muted ? 0 : curve(settings.sfx);
+  const s = settings.muted || settings.sfxOff ? 0 : curve(settings.sfx);   // (SHELL 2.0 A: the ☰ menu's SOUND EFFECTS toggle)
   // (a ramp on a clock that isn't moving never arrives: set it straight — M4)
   if (instant || frozen || t === 0) { musicBus.gain.value = m; sfxBus.gain.value = s; return; }
   musicBus.gain.setTargetAtTime(m, t, 0.08);

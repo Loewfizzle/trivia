@@ -1,30 +1,15 @@
 /* BRING YOUR CARD (THE VAULT 1A Group 0 — js/profile/bring.js): ONE CARD ON ALL YOUR DEVICES, SAVE YOUR KEY. The ivory Gilded style —
    black lacquer, brass borders, IVORY text (no small italic, pink only big). Text ≥ 4.5 : 1: ivory #f5ecda ≈ 16 : 1, ivory 78 % ≈ 10 : 1,
    gold #d8b46a ≈ 9.6 : 1 on #0b0a0d. Loaded on first use. Only transform + opacity move. */
-.byc-modal .byc-sheet { position: relative; max-width: 440px; padding: 22px 18px 18px; text-align: left; border-radius: 22px;
-  background: linear-gradient(180deg, #141217, #0b0a0d 60%); border: 1px solid rgba(216, 180, 106, 0.55);   /* (VAULT 1B: the whole border, above the toolbar) */
-  box-shadow: inset 0 1px 0 rgba(246, 227, 168, 0.25), 0 -18px 50px rgba(0, 0, 0, 0.6); color: #f5ecda; }
-.byc-x { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer;
-  background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.5); color: #f5ecda; font: 600 20px/1 var(--font-ui); }
-.byc-k { font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.3em; color: #d8b46a; padding-right: 50px; }
-.byc-h { margin: 6px 0 8px; padding-right: 50px; font: 800 22px/1.15 var(--font-ui); letter-spacing: 0.06em; color: #f5ecda; }
 .byc-p { margin: 0 0 14px; font: 500 15px/1.45 var(--font-ui); color: rgba(245, 236, 218, 0.82); }
 .byc-sheet .byc-in, .byc-in { width: 100%; min-height: 50px; font: 600 18px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; text-align: center;
   background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(216, 180, 106, 0.55); color: #f5ecda; border-radius: 12px; }
 .byc-in::placeholder { color: rgba(245, 236, 218, 0.4); }
 .byc-err { margin: 8px 0 0; font: 600 14px/1.35 var(--font-ui); color: #ff9a9a; }
-.byc-btn { min-height: 46px; padding: 0 16px; border-radius: 12px; border: 0; cursor: pointer; font: 800 14px/1 var(--font-ui); letter-spacing: 0.2em;
-  background: linear-gradient(180deg, #fbf0c8 0%, #e2c27a 38%, #a9823c 52%, #e8cd8a 70%, #fff3cf 100%); color: #1d1405;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -2px 0 rgba(90, 60, 10, 0.45), 0 6px 16px rgba(0, 0, 0, 0.45); }
-.byc-btn:active { transform: translateY(1px) scale(0.99); }
-.byc-btn.byc-ghost { background: rgba(255, 255, 255, 0.04); color: #f5ecda; box-shadow: inset 0 0 0 1.5px rgba(216, 180, 106, 0.6); }
-.byc-btn.byc-ghost.is-on { color: #9ff0c0; box-shadow: inset 0 0 0 1.5px rgba(120, 230, 170, 0.6); }
-.byc-btn.is-busy { opacity: 0.7; pointer-events: none; }
-.byc-go { display: block; width: 100%; margin-top: 12px; min-height: 52px; font-size: 15px; letter-spacing: 0.26em; }
 .byc-help { margin: 14px 0 0; font: 500 14px/1.45 var(--font-ui); color: rgba(245, 236, 218, 0.78); }
 .byc-help b, .byc-steps b, .byc-note b { color: #f5ecda; font-weight: 700; }
 .byc-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.byc-acts .byc-btn { flex: 1 1 0; min-width: 0; padding: 0 10px; letter-spacing: 0.14em; }
+.byc-acts .btn { flex: 1 1 0; min-width: 0; padding: 0 10px; }
 /* the key big */
 .byc-key { margin: 4px 0 2px; padding: 16px 10px; border-radius: 12px; text-align: center; user-select: all; -webkit-user-select: all;
   font: 700 clamp(19px, 5.6vw, 24px)/1 var(--font-mono); letter-spacing: 0.06em; color: #fff8ee; word-break: break-all;
@@ -33,6 +18,10 @@
 .byc-steps li { display: list-item; }
 .byc-steps li::marker { color: #d8b46a; font-weight: 800; }
 .byc-note { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(216, 180, 106, 0.08); font: 500 14px/1.45 var(--font-ui); color: rgba(245, 236, 218, 0.82); }
+
+/* SHELL 2.0 A: the sheet = THE SHEET (components.css), the buttons = THE NEON TUBE; SAVED ✓ = a green tube */
+.btn.byc-saved.is-on { --tc: #2fd27a; --tcore: #dcffe9; --tg: rgba(47, 210, 122, 0.35); color: #c9ffdf; }
+.byc-go { margin-top: 12px; }
 
 /* THE MEMBERSHIP CARD: SAVE YOUR KEY SOMEWHERE SAFE (bold; quiet once saved) */
 .byc-save { margin: 0 0 12px; padding: 14px 14px 12px; border-radius: 14px; border: 1.5px solid #ff6fc8; background: rgba(40, 8, 30, 0.55);
@@ -62,6 +51,3 @@ body.reduced-fx .byc-chip { animation: none; }
 .setup-byc-go { border-radius: 999px; padding: 0 18px; box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.6); background: rgba(12, 9, 18, 0.6); }
 /* THE KEY's line under COPY · SHARE (THE VAULT 1B): who to send it to — upright, ivory, ≥ 14 pt (no small italic) */
 .byc-self { margin: 9px 0 0; font: 600 14px/1.4 var(--font-ui); color: rgba(245, 236, 218, 0.86); }
-/* LOBBY 2.0 A - ONE BUTTON SYSTEM (the owner 2C review): COPY / SHARE / I SAVED IT are NEON GLASS - no reflective gold beside a primary */
-.byc-btn.byc-glass { background: rgba(12, 11, 20, 0.78); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 14px rgba(0, 0, 0, 0.35); }
-.byc-btn.byc-glass.is-on { color: #9ff0c0; box-shadow: inset 0 0 0 1px rgba(120, 230, 170, 0.6); }

@@ -53,7 +53,7 @@ export async function openYouEditor(onDone) {
     h('label.field', h('span.label', 'USERNAME'), input),
     h('p.pf-public', 'This name shows on the public board — don’t use your full real name.'),
     h('div.field', h('span.label', 'COLOUR'), sw),
-    h('p.pfs-note', 'Your colour lights your emblem, your ring in the line and your name in the room.'),
+    h('p.sh-note', 'Your colour lights your emblem, your ring in the line and your name in the room.'),
     h('button.btn.btn-primary.btn-block.pf-save', { type: 'button', onclick: go }, h('span', 'SAVE'))] });
   setTimeout(() => input.focus(), 320);
   return s;

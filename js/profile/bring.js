@@ -8,6 +8,7 @@
 //   saveBox()            the membership card's BOLD "SAVE YOUR KEY SOMEWHERE SAFE" + COPY · SHARE · I SAVED IT (quiets the reminder)
 //   openElsewhere()      "USE THIS CARD ON ANOTHER DEVICE": the key big + COPY + SHARE + the steps (Add to Home Screen included)
 // Profiles are polish: everything here works with /api down except the restore itself (which says so).
+import { openSheet } from '../ui/sheet.js';
 import { h } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { loadKey, loadMe, loadNotes, saveNotes } from '../identity.js';
@@ -53,14 +54,14 @@ export async function shareKey(k = loadKey()) {
 }
 
 function keyActions(k, sel, { onSaved } = {}) {
-  const saved = h('button.byc-btn.byc-ghost.byc-glass', { type: 'button', 'data-act': 'saved', onclick: () => { markSaved(); paintSaved(); toast('NICE — YOUR CARD IS SAFE', 'ok'); onSaved && onSaved(); } }, 'I SAVED IT');
+  const saved = h('button.btn.btn-ghost.btn-sm.byc-saved', { type: 'button', 'data-act': 'saved', onclick: () => { markSaved(); paintSaved(); toast('NICE — YOUR CARD IS SAFE', 'ok'); onSaved && onSaved(); } }, 'I SAVED IT');
   const paintSaved = () => { if (notesSaved()) { saved.textContent = 'SAVED ✓'; saved.classList.add('is-on'); } };
   paintSaved();
   // (THE VAULT 1B — the owner asked why SHARE: it opens the phone's share sheet → Notes · Mail · Messages · a password manager in two taps;
   //  the line under the buttons says who it's for)
   return h('div.byc-keyacts', h('div.byc-acts',
-    h('button.byc-btn.byc-glass', { type: 'button', 'data-act': 'copy', onclick: async () => { await copyKey(k, sel); paintSaved(); onSaved && notesSaved() && onSaved(); } }, 'COPY'),
-    canShare() ? h('button.byc-btn.byc-glass', { type: 'button', 'data-act': 'share', onclick: async () => { await shareKey(k); paintSaved(); onSaved && notesSaved() && onSaved(); } }, 'SHARE') : null,
+    h('button.btn.btn-ghost.btn-sm', { type: 'button', 'data-act': 'copy', onclick: async () => { await copyKey(k, sel); paintSaved(); onSaved && notesSaved() && onSaved(); } }, 'COPY'),
+    canShare() ? h('button.btn.btn-ghost.btn-sm', { type: 'button', 'data-act': 'share', onclick: async () => { await shareKey(k); paintSaved(); onSaved && notesSaved() && onSaved(); } }, 'SHARE') : null,
     saved),
     h('p.byc-self', 'Send it to yourself — anyone with your key can use your card.'));
 }
@@ -82,14 +83,11 @@ export function saveBox() {
   return box;
 }
 
+// (SHELL 2.0 A: THE SHEET — ui/sheet.js: the kicker line + the heading become the sheet's own title; the rest is its body; the × closes)
 function sheetOf(cls, label, ...kids) {
-  let sheet;
-  const close = () => { if (!sheet.isConnected) return; sheet.classList.add('out'); setTimeout(() => sheet.remove(), 260); };
-  const x = h('button.byc-x', { type: 'button', 'aria-label': 'Close', onclick: close }, '✕');
-  sheet = h(`div.modal.byc-modal.${cls}`, { onclick: e => { if (e.target === sheet) close(); } },
-    h('div.sheet.byc-sheet', { role: 'dialog', 'aria-label': label }, x, ...kids));
-  document.body.append(sheet);
-  return { sheet, close };
+  const [k, t, ...rest] = kids;
+  const sh = openSheet({ title: t ? t.textContent : label, kicker: k ? k.textContent : '', cls: `byc-modal ${cls}`, label, body: rest });
+  return { sheet: sh.el, close: sh.close };
 }
 
 /** "USE THIS CARD ON ANOTHER DEVICE" — the key big + COPY + SHARE + the steps; this device stays signed in */
@@ -119,7 +117,7 @@ export async function openBring({ lead = false, onDone = null } = {}) {
   last.opened = Date.now();
   const input = h('input.input.byc-in', { type: 'text', placeholder: 'NEON-XXXX-XXXX-XXXX', autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off', spellcheck: false, 'aria-label': 'Your key', maxLength: 24 });
   const err = h('p.byc-err', { role: 'alert', hidden: true });
-  const go = h('button.byc-btn.byc-go', { type: 'button', 'data-act': 'bring' }, 'BRING MY CARD');
+  const go = h('button.btn.btn-primary.btn-block.byc-go', { type: 'button', 'data-act': 'bring' }, 'BRING MY CARD');
   const app = standalone();
   const { sheet, close } = sheetOf('byc-bring', 'Already a member? Bring your card',
     h('div.byc-k', 'ALREADY A MEMBER?'),

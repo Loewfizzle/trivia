@@ -1,3 +1,4 @@
+import { openSheet } from '../ui/sheet.js';
 import { GAMES, MIN_PLAYERS, MAX_PLAYERS } from '../config.js';
 import { toast } from '../ui/toast.js';
 import { sfx } from '../audio/sfx.js';
@@ -64,7 +65,7 @@ export function createTaps(T) {
   }
   function onCityTap(e) {
     if (T.destroyed || !T.scene || !T.tl || !T.tl.done || swallowed) return;
-    if (e.target.closest('button, input, label, a, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .gm-panel, .sg-fly, .sg-modal')) return;
+    if (e.target.closest('button, input, label, a, .sh, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .sg-fly, .sg-modal')) return;
     const x = e.clientX, y = e.clientY;
     // (WIN — the spider on the sign is asked BEFORE the letters: a tap on it bolts it down its thread; the letter taps keep the rest of the rect)
     if (T.scene.spiderHit && T.scene.spiderHit(x, y)) return;
@@ -124,7 +125,7 @@ export function createTaps(T) {
   function goIdle() {
     if (T.destroyed || !T.tl || !T.tl.done) return;
     if (T.roomUi) { armIdle(); return; }   // (LOBBY 2.0 A: in a room the dock stays up — it's the room's controls)
-    const busyNow = T.busy || document.querySelector('.modal, .sheet, .gm') || document.activeElement === T.els.code || T.els.actions.classList.contains('is-join');
+    const busyNow = T.busy || document.querySelector('.sh, .modal, .sheet') || document.activeElement === T.els.code || T.els.actions.classList.contains('is-join');
     if (busyNow) { armIdle(); return; }
     T.els.root.classList.add('is-idle');
     document.body.classList.add('nd-idle');
@@ -140,13 +141,13 @@ export function createTaps(T) {
     if (T.destroyed) return;
     const wasIdle = T.els.root.classList.contains('is-idle');
     if (wasIdle && e.type === 'pointerdown' && autoIdle && T.scene && T.scene.frontBusy && T.scene.frontBusy()) {
-      if (!(e.target && e.target.closest && e.target.closest('.gm, .modal'))) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
+      if (!(e.target && e.target.closest && e.target.closest('.sh, .modal'))) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
       wake(); quickIdle = true; clearTimeout(idleTimer); idleTimer = setTimeout(goIdle, QUICK_MS); return;
     }
     quickIdle = false;
     // the touch that wakes the screen only wakes it (it doesn't press whatever was under it)
     // (9b: never a tap inside the ☰ menu or a sheet — the owner's CREDITS tap on the iPhone was swallowed this way)
-    if (T.els.root.classList.contains('is-idle') && e.type === 'pointerdown' && !(e.target && e.target.closest && e.target.closest('.gm, .modal'))) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
+    if (T.els.root.classList.contains('is-idle') && e.type === 'pointerdown' && !(e.target && e.target.closest && e.target.closest('.sh, .modal'))) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
     wake();
     armIdle();
   }
@@ -155,7 +156,7 @@ export function createTaps(T) {
   // MOUSE asks the scene what a click would answer (scene.hover: no side effects), once a frame — the cursor turns to a pointer, a game
   // sign / the door gets a soft glow ring (opacity only; its place set at once); a touch never does any of it
   let hoverRaf = 0, hoverAt = null, hoverOn = false;
-  const HOVER_UI = 'button, input, label, a, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .gm-panel, .nd-corner';
+  const HOVER_UI = 'button, input, label, a, .sh, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .nd-corner';
   function hoverNow() {
     hoverRaf = 0;
     const p = hoverAt; if (!p || T.destroyed || !T.els.root) return;
@@ -192,23 +193,19 @@ export function createTaps(T) {
   function preview(g) {
     sfx('select');
     const m = meta(g);
-    let sheet;
-    const close = () => { sheet.classList.add('out'); setTimeout(() => sheet.remove(), 260); };
+    let sheet = null;
+    const close = () => { if (sheet) sheet.close(); };
     const art = gameArtSvg(g.id);
-    sheet = h('div.modal', { onclick: e => { if (e.target === sheet) close(); } },
-      h('div.sheet.nd-preview', { role: 'dialog', 'aria-label': g.name, dataset: { theme: g.theme }, style: { '--acc': T.ACC[g.id] || '#d6f0ff' } },
-        h('div.sheet-grip'),
+    // (SHELL 2.0 A: THE SHEET — the game's name its title, its tag the small line; HOW TO PLAY the one tube)
+    sheet = openSheet({ title: g.name, kicker: g.tag, cls: 'nd-preview-sheet', theme: g.theme, label: g.name, body: [
+      h('div.nd-preview', { style: { '--acc': T.ACC[g.id] || '#d6f0ff' } },
         h('div.nd-pv-art', art),
         h('div.nd-pv-body',
-          h('div.gc-tag', g.tag),
-          h('h2.nd-pv-name', g.name),
           h('p.nd-pv-blurb', g.blurb),
           h('div.nd-pv-meta', h('span', m.players), m.mins ? h('span', m.mins) : null, h('span', 'ONE PHONE EACH')),
           topThree(g, () => close())),
         h('div.nd-pv-actions',
-          h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); openHelp(g.id); } }, h('span', 'HOW TO PLAY')),
-          h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'CLOSE'))));
-    document.body.append(sheet);
+          h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); openHelp(g.id); } }, h('span', 'HOW TO PLAY'))))] });
   }
 
   // the game's top three on THE BOARD (its first record, else its wins) and your own rank there

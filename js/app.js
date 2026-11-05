@@ -2,7 +2,7 @@
 import { setErrorContext } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
 import { h, $ } from './ui/dom.js';
 import './ui/vv.js';   // (THE VAULT 1B: --vv-ob — every bottom sheet above Safari's toolbar)
-import { watchLayers, isTopLayer } from './ui/layers.js';
+import { watchLayers } from './ui/layers.js';
 import { glitchFlash } from './ui/components.js';
 import { toast } from './ui/toast.js';
 import { APP_NAME, GAMES } from './config.js';
@@ -279,12 +279,7 @@ async function boot() {
   }, { capture: true, passive: true });
   // Music is lazy: tracks download only after the first tap unlocks audio (see audio/music.js).
   window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, partyMusicDebug, beat: beatSource, mood: () => moodNow(), state, serverNow, line: lineInfo };
-  // Escape closes the top-most sheet (its backdrop click handler does the closing).
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    const modal = [...document.querySelectorAll('.modal:not(.out)')].pop();
-    if (modal && isTopLayer(modal)) modal.dispatchEvent(new MouseEvent('click', { bubbles: true }));   // (ONE SHEET STACK: only when it's the top layer)
-  });
+  // (SHELL 2.0 A — ONE Esc: ui/layers.js owns the only Escape listener — it closes the top layer)
   // iOS: block pinch-zoom gestures (viewport meta alone is ignored by Safari).
   document.addEventListener('gesturestart', e => e.preventDefault());
   // THE SECOND TAB (PERF-A): never "add ?slot=2" (an empty login on a phone) — a banner that stays while the other tab is the player,

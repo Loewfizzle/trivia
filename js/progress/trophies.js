@@ -81,7 +81,7 @@ export async function openTrophyCase(data, o = {}) {
   const { openPfSheet } = await import('../profile/sheets.js');
   const s = data.stats || {}, now = o.now || Date.now(), held = heldNewest(s.ac);
   const list = h('div.pg-trs.pf-case', ...held.map(a => trophyRow(a, data, o, now)));
-  const sh = openPfSheet({ kicker: `${held.length} EARNED · NEWEST FIRST`, title: 'THE TROPHY CASE', body: [h('p.pfs-note', 'Tap a reward to equip it.'), list], cls: 'pf-case-sheet' });
+  const sh = openPfSheet({ kicker: `${held.length} EARNED · NEWEST FIRST`, title: 'THE TROPHY CASE', body: [h('p.sh-note', 'Tap a reward to equip it.'), list], cls: 'pf-case-sheet' });
   import('./look.js').then(L => L.pctFor().then(P => { list.querySelectorAll('.pg-pct').forEach(x => { x.textContent = L.pctLine(P.a[x.dataset.a]); }); })).catch(() => {});
   return sh;
 }

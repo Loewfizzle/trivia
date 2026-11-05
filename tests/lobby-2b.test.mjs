@@ -79,9 +79,10 @@ test('THE GAME START\'s look: every part an animation at a negative delay (the s
 });
 
 test('THE LAYER STACK: the profile\'s sheets, CUSTOMIZE + the full card take the next layer (the newest on top) and Esc closes the top one only', () => {
-  for (const f of ['js/profile/sheets.js', 'js/vault/dress.js', 'js/vault/full.js']) { const s = read(f); assert.match(s, /takeLayer\(/, f); assert.match(s, /isTopLayer\(/, f); }
+  // (SHELL 2.0 A: each takes its layer WITH its close — the one Esc in ui/layers.js closes the top; no pop-up listens for Escape itself)
+  for (const f of ['js/ui/sheet.js', 'js/vault/dress.js', 'js/vault/full.js']) { const s = read(f); assert.match(s, /takeLayer\([^)]*close/, f); assert.doesNotMatch(s, /'Escape'/, f); }
   const c = read('css/components.css');
-  assert.match(c, /\.toasts \{\n  position: fixed;\n  z-index: 8500;/);
+  assert.match(c, /\.sh-msgs \{ position: fixed; z-index: 8500;/);
 });
 
 test('the owner\'s 2A review: the dev pill reads just "1 OF 1"; RESTORE in neon cyan + a key; THE TAP AREA ≥ 44 pt, the nearest wins', async () => {
@@ -137,8 +138,9 @@ test('THE BANNER PLANE obeys the sky: scene.roomBanner refuses during a legendar
 
 test('THE ADD-ON: LEAVE ROOM up front (the ☰ menu\'s first row in a room — red-edged, a second tap; the foot of GUESTS); the crew\'s LOBBY ONLY moments PLAY on the room\'s phones; ONE SHEET STACK for every pop-up', () => {
   const sp = read('js/ui/settings-panel.js');
-  assert.match(sp, /if \(inRoom && !inGame\) rows\.push\(armed\('LEAVE ROOM', 'SURE\? TAP AGAIN'/);
-  assert.ok(sp.indexOf("armed('LEAVE ROOM'") < sp.indexOf("item('YOUR CARD'"), 'the first row');
+  // (SHELL 2.0 A — the approved ☰ menu: LEAVE ROOM is the LAST row, red-edged, a second tap confirms)
+  assert.match(sp, /row\(\{ icon: 'leave', label: 'Leave room', danger: true, cls: 'gm-leave', confirm: 'TAP AGAIN TO LEAVE'/);
+  assert.ok(sp.indexOf("label: 'Leave room'") > sp.indexOf("label: 'Your card'"), 'after YOUR CARD');
   const rg = read('js/screens/room-guests.js');
   assert.match(rg, /body: \[h\('div\.rg-h', count\), list, lockRow, night, leave\]/);
   // the cause of "the Blackbird didn't fly": rooms/{CODE}/radio's sky moments were never handed to the city — now they are
@@ -149,9 +151,9 @@ test('THE ADD-ON: LEAVE ROOM up front (the ☰ menu\'s first row in a room — r
   assert.doesNotMatch(read('js/screens/harbor/radio.js'), /play once lobbies are in the city|play once the lobby is the live city/);
   // ONE SHEET STACK: every pop-up on <body> takes the next layer (the older .modal sheets too); the app's Esc closes a modal only when on top
   const L = read('js/ui/layers.js');
-  assert.match(L, /const POPUPS = '\.modal, \.pfs, \.vl-dress, \.vl-full'/);
+  assert.match(L, /const POPUPS = '\.modal, \.sh, \.vl-dress, \.vl-full'/);
   assert.match(read('js/app.js'), /watchLayers\(\);/);
-  assert.match(read('js/app.js'), /if \(modal && isTopLayer\(modal\)\)/);
+  assert.doesNotMatch(read('js/app.js'), /'Escape'/, 'the app keeps no Esc of its own (ui/layers.js owns it)');
 });
 
 test('THE STAMPS NEVER DEPEND ON A RULES RE-PUBLISH (the owner\'s real-phone test, Nov 4 10:37 am): the start from game.go, the end from activeAt + the night\'s entry; a refused stamp is reported', async () => {

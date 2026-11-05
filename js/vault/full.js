@@ -26,7 +26,7 @@ import { applyGlow } from './glows.js';
 import { prominence } from './emblems.js';
 import { embTier } from './strip.js';
 import { isDevCard, ONE_OF_ONE } from '../core/dev-cards.js';
-import { takeLayer, isTopLayer, onCloseAll } from '../ui/layers.js';
+import { takeLayer, onCloseAll } from '../ui/layers.js';
 
 /** the full card's id in THE CARD LAB (its own mark: a strip can be approved before its full card) */
 export const fullId = card => `full-${card}`;
@@ -198,21 +198,19 @@ export async function openFullCard(id, who = {}) {
     card = fullCardEl({ card: id, who, spotted: who.spotted || null });
   } else card = gildedCard({ ...(who.pub || {}), n: who.name, a: who.avatar, c: who.color, cd: id }, {}, { card: id });
   let release = null, uncover = null;
-  const close = () => { if (surface) surface.destroy(); el.remove(); document.removeEventListener('keydown', onKey); open = null; if (release) release(); if (uncover) { uncover(); uncover = null; } };
-  const onKey = e => { if (e.key === 'Escape' && isTopLayer(el)) close(); };
+  const close = () => { if (surface) surface.destroy(); el.remove(); open = null; if (release) release(); if (uncover) { uncover(); uncover = null; } };
   const stage = h('div.vl-full-stage', card);
   // (LOBBY FIXES: `who.foot` — a row under the card, e.g. the owner's CREW switch on a room player's card)
   box.append(stage, who.foot || '', h('button.vl-full-x', { type: 'button', 'aria-label': 'Close', onclick: close }, 'CLOSE'));
   // (THE VAULT 2B: a backdrop click in its first 350 ms is the finger that opened it lifting — a long-press — never a close)
   const born = performance.now();
   const el = h('div.vl-full', { role: 'dialog', 'aria-modal': 'true', 'aria-label': nameOf(id), onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);
-  release = takeLayer(el);   // (THE LAYER STACK: on top of whatever opened it — a sheet, CUSTOMIZE, the room's profile)
+  release = takeLayer(el, { close: () => close() });   // (SHELL 2.0 A: the one Esc — ui/layers.js — closes it when it's on top)   // (THE LAYER STACK: on top of whatever opened it — a sheet, CUSTOMIZE, the room's profile)
   // (SPEED PASS B — the owner's 8:05 pm lag: EVERYTHING behind the full card holds still while it's up — the fx slots on their current
   //  frame (renderer.js#fxCover), every CSS animation paused (body.vl-covered), the city's frames held — resumed on CLOSE)
   uncover = coverBehind(el);
   document.body.append(el);
   if (ok) { surface = createSurface(stage, { label: 'full' }); mountFull(surface, card, id); }
-  document.addEventListener('keydown', onKey);
   open = { close };
   return open;
 }

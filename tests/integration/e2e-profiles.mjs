@@ -279,7 +279,7 @@ await H.run(async () => {
     const el = await p7.evaluate(() => { const s = document.querySelector('.byc-else'); return s ? { key: s.querySelector('.byc-key').textContent, text: s.textContent, steps: s.querySelectorAll('.byc-steps li').length } : null; });
     ok(el && el.key === JSON.parse(key0) && el.steps === 3 && /stays signed in/.test(el.text) && /NEW KEY/.test(el.text) && /Home Screen/.test(el.text), 'USE THIS CARD ON ANOTHER DEVICE: the key big + COPY + SHARE + the 3 steps (Home Screen too), "this device stays signed in", no NEW KEY needed');
     await shotAll(p7, 'pf-06e-use-elsewhere', REVIEW_SIZES.slice(0, 2));
-    await p7.click('.byc-else .byc-x').catch(() => {});
+    await p7.click('.byc-else .sh-x').catch(() => {});
     await p7.close(); }
 
   // ---- 7. a new key: the old one stops working
