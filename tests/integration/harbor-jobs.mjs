@@ -38,8 +38,8 @@ export const CI_JOBS = {
   room2: ['roomfix', 'gamestart', 'citypause', 'afterparty', 'cartridge', 'leaveroom', 'sheetstack'],
   // (LOBBY FIXES: its own job — the owner's real-phone test of the room, Nov 4)
   lobbyfix: ['oneseat', 'playercard', 'leavewave', 'bannerfull', 'hostcard', 'newstart'],
-  speed: ['staleroom', 'youcard', 'guestring', 'bannersky', 'leaver', 'hostleave', 'fullcard', 'twotabs', 'partyroom'],   // (THE SPEED PASS: its own job — the owner's LOBBY FIXES notes, Nov 4 evening)
-  lobbyfix2: ['platefit', 'youpage', 'corners', 'arrivals', 'radiorest'],   // (the cards, the YOU page + the owner's three add-ons)
+  speed: ['staleroom', 'youcard', 'guestring', 'bannersky', 'fullcard', 'partyroom'],   // (THE SPEED PASS: its own job — the owner's LOBBY FIXES notes, Nov 4 evening)
+  lobbyfix2: ['platefit', 'youpage', 'corners', 'arrivals', 'radiorest', 'leaver', 'hostleave', 'twotabs'],   // (the cards, the YOU page + the owner's three add-ons; SPEED PASS B: + the leaver, the host's leave, two tabs — speed was at its cap)
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'light', 'streetparty', 'panel'],   // (NIGHT-B: streetparty)   // (NIGHT-A: light — the lightest job)
   // (HOTFIX Oct 29: THE BASELINE GUARD put perf at ~140 s — every job was within ~25 s of its cap: perf + tower got their own job)
   perf: ['tower', 'partysync', 'flags', 'perf'],   // (SKY-B: heli → legend: its circle page)   // (NIGHT-C: partysync + heli + flags — before the serial perf)
