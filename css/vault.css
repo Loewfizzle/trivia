@@ -1062,3 +1062,28 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
    in the middle, so the stone reads on the red) */
 .vl-s-oc-redline > .vl-gem::before { inset: -78%; background: radial-gradient(closest-side, rgba(255, 210, 110, 0.42), rgba(8, 5, 5, 0.95) 34%, rgba(8, 5, 5, 0.9) 56%, rgba(8, 5, 5, 0.55) 78%, rgba(8, 5, 5, 0) 100%); }
 
+/* THE CARD TEXT STANDARD (Nov 6 — the gift-card pass) (the owner, Nov 6 8:42 am: the top-left line + the bottom-right printed name "really hard to see
+   and read" on busy art — gold on yellow, gold on gold, small): ONE rule for EVERY full card (normal, gift, dev, legendary). The three text spots —
+   the top line (NEON SPEAKEASY · № …), the bottom-left block (the rank, MEMBER SINCE, the date) + the printed card name — get
+   (1) a MINIMUM SIZE (the top line 10.5 px — 10 when it must squeeze, the name 13 px, the block's small lines 10 px — at 390 unzoomed), (2) a SOFT DARK GLASS wash behind each
+   (a rounded wash with a feathered edge — box-shadow spread, never a hard box, never a backdrop filter over the moving art; a ::before, so it
+   moves nothing the layout measures), (3) a dark edge on the letters. The light materials (brushed, chrome, brass, platinum, the shiba's scrapbook page)
+   keep their dark ink — their wash is LIGHT glass. More gap between the rank + MEMBER SINCE (THE SOURCE's LAB note). the tape card's big gold name keeps
+   its own size (its approved exception) + gets the wash; ON AIR unchanged. Static (no animation). */
+.vl-fc { --vl-tw: 8, 5, 14; --vl-ta: 0.6; }
+.vl-fc.vl-fcm-brushed, .vl-fc.vl-fcm-chrome, .vl-fc.vl-fcm-brass, .vl-fc.vl-fcm-platinum, .vl-fc.vl-fcm-g-goldenhour { --vl-tw: 255, 248, 232; --vl-ta: 0.62; }
+.vl-fc-house, .vl-fc-since, .vl-fc-card { position: relative; }
+.vl-fc-house::before, .vl-fc-since::before, .vl-fc-card::before { content: ''; position: absolute; inset: -0.2em -0.45em; z-index: -1; pointer-events: none;
+  border-radius: 0.9em; background: rgba(var(--vl-tw), var(--vl-ta)); box-shadow: 0 0 0.9em 0.55em rgba(var(--vl-tw), var(--vl-ta)); }
+.vl-fc-since::before { inset: -0.35em -0.55em; border-radius: 1.1em; }
+.vl-fc-house { font-size: max(10.5px, 2.9cqi); font-weight: 800; }   /* (11 px pushed every 1-of-1 line to its short "№ n" form at 402 — 10.5 keeps NEON SPEAKEASY beside the badge; fitTop never goes under 10) */
+.vl-fc-card { font-size: max(13px, 3.6cqi); font-weight: 800; letter-spacing: 0.14em; text-wrap: balance; }
+.vl-fc-since small { font-size: max(10px, 2.6cqi); }
+.vl-fc-rank { font-size: max(10px, 2.7cqi); margin-bottom: 1.6em; }
+.vl-fc-house, .vl-fc-card, .vl-fc-rank, .vl-fc-since small, .vl-fc-since b { text-shadow: 0 0 1px rgba(0, 0, 0, 1), 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 7px rgba(0, 0, 0, 0.7); }
+.vl-fc.vl-fcm-brushed :is(.vl-fc-house, .vl-fc-card, .vl-fc-rank, .vl-fc-since small, .vl-fc-since b),
+.vl-fc.vl-fcm-chrome :is(.vl-fc-house, .vl-fc-card, .vl-fc-rank, .vl-fc-since small, .vl-fc-since b),
+.vl-fc.vl-fcm-brass :is(.vl-fc-house, .vl-fc-card, .vl-fc-rank, .vl-fc-since small, .vl-fc-since b),
+.vl-fc.vl-fcm-platinum :is(.vl-fc-house, .vl-fc-card, .vl-fc-rank, .vl-fc-since small, .vl-fc-since b),
+.vl-fc.vl-fcm-g-goldenhour :is(.vl-fc-house, .vl-fc-card, .vl-fc-rank, .vl-fc-since small, .vl-fc-since b) { text-shadow: 0 0 1px rgba(255, 255, 255, 0.9), 0 1px 0 rgba(255, 255, 255, 0.6); }
+.vl-fcm-g-bruh .vl-fc-card { font-size: max(14px, 4.2cqi); letter-spacing: 0.06em; }   /* (the tape card's approved big name keeps its size) */

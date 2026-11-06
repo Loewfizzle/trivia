@@ -57,7 +57,7 @@ export const badgeOf = card => BADGE[card] || { slot: 'pill', moving: [] };
 /** the element: material + plate + words + frame (the effect is a slot: mountFull) */
 // LOBBY 2.0 B — THE TOP LINE NEVER CLIPS (the owner, Nov 4 7:12 am: on THE SWITCHBOARD "1 OF 1 · DEV" cut off FOUNDER): the line's words
 // (NEON SPEAKEASY · FOUNDER / · № n) + the tier pill must sit side by side, whole, at every width — the letter-spacing tightens FIRST (0.34em
-// → 0.08em), only then the size (never below 8 px). Measured when the fonts are in + when the line's width changes (a ResizeObserver —
+// → 0.08em), only then the size (never below 10 px — THE CARD TEXT STANDARD, Nov 6; the "№ n" short form fits first). Measured when the fonts are in + when the line's width changes (a ResizeObserver —
 // never a frame loop). The pill keeps its size: it's the card's tier, the words are the house's.
 const TOP_LS = [0.34, 0.28, 0.22, 0.17, 0.13, 0.1, 0.08];
 export function fitTop(top) {
@@ -83,7 +83,7 @@ export function fitTop(top) {
     if (house.dataset.short && house.firstChild && house.firstChild.nodeType === 3) { house.dataset.long = house.firstChild.nodeValue; house.firstChild.nodeValue = house.dataset.short; house.style.letterSpacing = ''; if (need() <= room()) { top.dataset.fit = 'short'; return; } }
     for (const ls of TOP_LS.slice(4)) { house.style.letterSpacing = `${ls}em`; if (need() <= room()) { top.dataset.fit = `ls${ls}`; return; } }
     const base = parseFloat(getComputedStyle(house).fontSize) || 10;
-    const size = Math.max(8, Math.floor(base * (room() / need()) * 10) / 10 - 0.1);
+    const size = Math.max(10, Math.floor(base * (room() / need()) * 10) / 10 - 0.1);
     house.style.fontSize = `${size}px`; top.dataset.fit = `px${size}`;
   };
   let w = -1;
