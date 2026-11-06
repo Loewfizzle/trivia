@@ -88,6 +88,9 @@ export const LOOKS = Object.freeze({
   'card-gift-youngbuck': { mat: 'g-bruh', fx: 'gift:card-gift-youngbuck' },   // (Liam's tape card — the id kept)
   'card-gift-icecold': { mat: 'g-icecold', fx: 'gift:card-gift-icecold' },
   'card-gift-anarchist': { mat: 'g-anarchist', fx: 'gift:card-gift-anarchist' },
+  // OVERCLOCK CARDS (Nov 5 night): Grok's art = the material (css/vault.css .vl-s-oc-*), the game's layers = js/fx/oc-cards.js
+  'card-redline': { mat: 'oc-redline', fx: 'ocRedline' },
+  'card-photofinish': { mat: 'oc-photofinish', fx: 'ocPhoto' },
 });
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });

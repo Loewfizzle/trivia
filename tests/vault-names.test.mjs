@@ -1,5 +1,5 @@
 // THE VAULT 1B — ITEM NAMES ONLY TO OWNERS (the owner: "keep them guessing"): the site's code can't list what exists. The catalog (every
-// item's name + line + look, the 30 achievements, what each level + milestone gives, the lab's names) lives in api/_lib/ (never served by
+// item's name + line + look, the 32 achievements, what each level + milestone gives, the lab's names) lives in api/_lib/ (never served by
 // Vercel); a phone gets display rows only for what its player owns (withShow). This test reads every file the site SHIPS (js/, css/, the
 // root pages) and proves none carries the catalog; then that withShow describes exactly the ids a response holds — no more.
 import test from 'node:test';

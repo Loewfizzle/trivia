@@ -1044,3 +1044,18 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
   white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6); }
 .vl-fc-plate { padding-right: 2.6cqi; }
 .vl-gift-fc .vl-fc-plate { padding-right: 2.2cqi; }
+
+/* OVERCLOCK CARDS (Nov 5 night — the owner's approved mock overclock-cards-mock.png): Grok's art is the MATERIAL (assets/vault/oc/<art>.webp,
+   1280 × 720 — scripts/build-oc-cards.mjs); the strip shows its band at the spec's crop (js/fx/oc-specs.js `strip` — the SAME numbers), the
+   full card nearly all of it; what moves is js/fx/oc-cards.js on the shared surface. REDLINE legendary (the laser), PHOTO FINISH rare (an
+   effect + GLOWING EDGES — OVERCLOCK's electric blue). */
+.vl-s-oc-redline .vl-mat { background: #050507 url('../assets/vault/oc/redline.webp') 50% 47% / cover no-repeat; }
+.vl-fcm-oc-redline .vl-mat { background-position: 50% 50%; }
+.vl-s-oc-photofinish { --ge: 46, 168, 255; }
+.vl-s-oc-photofinish .vl-frame { box-shadow: inset 0 0 0 1px rgba(var(--ge), 0.7), inset 0 0 12px rgba(var(--ge), 0.32), 0 0 12px rgba(var(--ge), 0.28), 0 2px 8px rgba(0, 0, 0, 0.45); }
+.vl-s-oc-photofinish .vl-mat { background: #060608 url('../assets/vault/oc/photofinish.webp') 50% 49% / cover no-repeat; }
+.vl-fcm-oc-photofinish .vl-mat { background-position: 50% 50%; }
+.vl-s-oc-redline .vl-plate, .vl-s-oc-photofinish .vl-plate { background: rgba(6, 6, 9, 0.84); }
+/* (the owner's flag on the mock: REDLINE's strip gem sat on the gauge's hot red edge — a dark backing under the gem, its gold light kept small
+   in the middle, so the stone reads on the red) */
+.vl-s-oc-redline > .vl-gem::before { inset: -78%; background: radial-gradient(closest-side, rgba(255, 210, 110, 0.42), rgba(8, 5, 5, 0.95) 34%, rgba(8, 5, 5, 0.9) 56%, rgba(8, 5, 5, 0.55) 78%, rgba(8, 5, 5, 0) 100%); }

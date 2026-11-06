@@ -65,7 +65,7 @@ test('THE REST OF THE SET: every 2B emblem / glow / tube style a real item at th
   const art = read('js/vault/emblem-art.js'), glows = read('js/vault/glows.js');
   const sightEmb = new Set(Object.values(SIGHTING).map(s => s.emblem));
   const earned = id => LEVEL_REWARD_ROWS.some(r => r.item === id) || ACH_ROWS.some(a => a.item === id) || Object.values(MILESTONE_ITEMS).flat().includes(id) || Object.values(SEASONAL_ITEMS).includes(id) || sightEmb.has(id);
-  const items = NEW2B.filter(x => !x.dev && !x.gift);   // (SHELL 2.0 B2: the gift cards are given, never earned — tests/shell-b2.test.mjs)
+  const items = NEW2B.filter(x => !x.dev && !x.gift && x.kind !== 'full');   // (SHELL 2.0 B2: the gift cards are given, never earned — tests/shell-b2.test.mjs; OVERCLOCK CARDS: a FULL card's lab row is its card's art, not an item)
   assert.ok(items.length >= 40, `${items.length} new lab rows`);
   for (const x of items) {
     assert.ok(ROW[x.id], `${x.id}: an item`); assert.equal(ROW[x.id].tier, x.tier, `${x.id}: the item's tier = the lab's`);

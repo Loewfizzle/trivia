@@ -35,6 +35,9 @@ export const fxStats = { fps: 0, tier: 2, ms: 0, slots: 0, mp: 0, frames: 0, fms
  *  phone. fx = the whole effect canvas · laser = THE BORDER LASER · sprites = the UFO's baked model + ports · scrollPause = hold the
  *  frame while a finger scrolls (on by default — the shipped behaviour). (CSS glows + emblems are the lab's classes on the page.) */
 export const fxDiag = { fx: true, laser: true, sprites: true, scrollPause: true, gpu: true };
+/** an image an effect draws just arrived (sg-kit.js#image): every surface draws again — a STILL frame (reduced motion) drawn before it came
+ *  would otherwise stay without it (OVERCLOCK CARDS: REDLINE's needle + cap were missing from the still frame) */
+export function fxAssetIn() { for (const S of surfaces) S.dirty = true; kick(); }
 export function setFxDiag(k, v) {
   if (!(k in fxDiag)) return;
   const was = fxDiag[k]; fxDiag[k] = !!v;

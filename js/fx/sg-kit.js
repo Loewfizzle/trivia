@@ -4,6 +4,7 @@
 // size (a sky gradient, a glow, stars, the harbor skyline with lit windows, the water), the strip / full-card layout numbers.
 // Every scene: a pure function of t + its seed (the same frame on every phone; the still frame for free), particles scaled by Q.q.
 import { sprite, rng } from './kit.js';
+import { fxAssetIn } from './renderer.js';
 
 /** a city module, imported on first use: city('legends') → the module or null (still loading / failed) */
 const mods = new Map();
@@ -19,7 +20,7 @@ export function image(url) {
   if (!m) {
     m = { v: null }; imgs.set(url, m);
     const i = new Image(); i.decoding = 'async';
-    i.onload = () => { (i.decode ? i.decode().catch(() => {}) : Promise.resolve()).then(() => { m.v = i; }); };
+    i.onload = () => { (i.decode ? i.decode().catch(() => {}) : Promise.resolve()).then(() => { m.v = i; fxAssetIn(); }); };
     i.src = url;
   }
   return m.v;

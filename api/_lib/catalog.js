@@ -1,5 +1,5 @@
 // THE CATALOG — SERVER ONLY (THE VAULT 1B — ITEM NAMES ONLY TO OWNERS; the owner: "keep them guessing"). Every item's name, line + look,
-// the 30 achievements (names, lines, checks, items), WHAT each level + streak milestone gives — moved here out of the site's code: Vercel
+// the 32 achievements (names, lines, checks, items), WHAT each level + streak milestone gives — moved here out of the site's code: Vercel
 // never serves a file under /api (an /api/_lib module is only ever imported by the functions), so a code reader can't list what exists.
 // Importing this module REGISTERS it all into the shared registries (core/items.js · achievements.js · levels.js · streak.js) — every
 // /api function that grants, wears or describes an item imports it first. A phone gets display rows only for what its player OWNS
@@ -62,6 +62,9 @@ export const ITEM_ROWS = [
   C('card-penthouse', 'PENTHOUSE', 'epic', '#0a0a10', '#f6e3b0', '#ffd27a', 'Top one percent. The view from up here.'),
   C('card-confetti', 'CONFETTI', 'rare', '#140a1c', '#ffd6f0', '#ff6fd0', 'Many happy returns.'),
   C('card-circuit', 'CIRCUIT', 'rare', '#04100c', '#7affc0', '#3dffa0', 'Overclocked.'),
+  // OVERCLOCK CARDS (Nov 5 night — the owner's two OVERCLOCK cards; the art Grok's, the motion js/fx/oc-cards.js): unlocked by the achievements below
+  C('card-redline', 'REDLINE', 'legendary', '#050507', '#ffb27a', '#ff6a1a', 'Six for six. Pinned in the red.'),
+  C('card-photofinish', 'PHOTO FINISH', 'rare', '#060608', '#9fd8ff', '#2ea8ff', 'Won by a nose. One point.'),
   C('card-founder', 'FOUNDING MEMBER', 'legendary', '#0a0806', '#ffdca0', '#ff4fb8', 'Here before the doors opened.'),
   // ---- THE VAULT 2B — THE TWO DEVELOPER CARDS (ONE OF ONE · DEV — js/core/dev-cards.js): the owner's only, granted by /api/profile 'me' to
   // ADMIN_PIDS, never earnable (in no reward table); legendary in every rule, a tier above it in look
@@ -199,6 +202,10 @@ export const ACH_ROWS = [
   A('four-on-the-floor', 'FOUR ON THE FLOOR', 'prism', 'emb-prism', 'Four lines at once.', (s, p) => !!(p.gf && p.gf['prism.quad']), { game: 'prism' }),
   A('dead-on', 'DEAD ON', 'overclock', 'emb-bullseye', 'A Closest Call, dead on.', (s, p) => !!(p.gf && p.gf['overclock.exact']), { game: 'overclock' }),
   A('overclocked', 'OVERCLOCKED', 'overclock', 'card-circuit', 'Ten OVERCLOCK wins.', (s) => ((s.g && s.g.overclock && s.g.overclock.w) || 0) >= 10, { game: 'overclock' }),
+  // OVERCLOCK CARDS (Nov 5 night): the flags come from the room's OWN record of the match (core/match-report.js#overclockExtra — never a number
+  // a phone sends): `sweep` = alone on top of every challenge of a QUICK match (≥ 2 players) · `photo` = the win alone by exactly one point
+  A('redline', 'REDLINE', 'overclock', 'card-redline', 'Every challenge of a Quick match.', (s, p) => !!(p.gf && p.gf['overclock.sweep']), { game: 'overclock' }),
+  A('photo-finish', 'PHOTO FINISH', 'overclock', 'card-photofinish', 'Won by a single point.', (s, p) => !!(p.gf && p.gf['overclock.photo']), { game: 'overclock' }),
 ];
 
 export const LEVEL_REWARD_ROWS = [

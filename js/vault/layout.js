@@ -13,6 +13,7 @@
 // Proof: tests/integration/harbor-e2e/vault.mjs 'cardfit' (every card at 390 / 402 / 430 — founder or not, short + long names, HOST).
 import { GIFT_SPECS } from '../fx/gift-specs.js';
 import { artMap } from '../fx/gift.js';
+import { OC_SPECS, ocMap } from '../fx/oc-specs.js';
 
 /** any other card's full-card hero, as fractions of the card [x, y, w, h] (none declared yet — a NEW focal full card adds its row) */
 export const FULL_HERO = Object.freeze({});
@@ -20,6 +21,8 @@ export const FULL_HERO = Object.freeze({});
 export function heroBox(card, w, h) {
   const S = GIFT_SPECS[card];
   if (S && (S.heroFull || S.hero)) { const M = artMap(w, h, S.full || [50, 50]), [x, y, bw, bh] = S.heroFull || S.hero; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
+  const O = OC_SPECS[card];   // (OVERCLOCK CARDS — their 1280 × 720 art)
+  if (O) { const M = ocMap(w, h, O.full), [x, y, bw, bh] = O.heroFull; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
   const f = FULL_HERO[card]; return f ? [f[0] * w, f[1] * h, f[2] * w, f[3] * h] : null;
 }
 /** the plate's real shape at (x, y): its two rows when stepped (vault/strip.js#layStep says where: data-step, -x2, -y1), else its box */

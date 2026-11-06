@@ -1,0 +1,67 @@
+NEON SPEAKEASY - OVERCLOCK player cards: REDLINE + PHOTO FINISH (Nov 5, 2026)
+Brief: Downloads\Grok\overclock-cards-brief.md
+
+TOOL: Grok Imagine (xAI), free tier, via Grok Bot. Nothing paid, no trial, no payment details.
+All images 1280x720 PNG (16:9). Generated as JPEG, saved to PNG.
+
+USAGE TERMS (as xAI states them, checked Nov 5, 2026):
+- xAI Consumer Terms of Service, s.4 "User Content" (https://x.ai/legal/terms-of-service):
+  Input + Output = "User Content"; "as between you and [xAI], you retain your ownership rights to the
+  User Content." You are responsible for it. "When using Output ... you are required to ... attribute your
+  generation of the Output to the Service, as detailed in our Brand Guidelines." xAI also gets a broad,
+  perpetual, royalty-free licence to use what you submit or generate.
+- xAI Brand Guidelines, "Content Attribution" (https://x.ai/legal/brand-guidelines): wherever
+  Grok-generated images are published or distributed, show "Created with Grok" (or "Written with Grok")
+  in a legible, noticeable way. Don't use the Grok/xAI marks to imply endorsement.
+- The Acceptable Use Policy (summarised by third-party sites, not quoted here) bars removing or altering
+  watermarks or provenance signals. No visible watermark appeared on these outputs, and we didn't remove anything.
+  -> Suggest putting "Card art created with Grok" in the game's credits/about screen.
+
+POSITIONS (x% across, y% down of 1280x720)
+redline-master.png
+  - Tachometer straight-on, black dial, thick chrome bezel, bold white ticks only (no numbers/letters/logos). NO needle.
+  - Chrome centre cap (needle pivot) centre at 70.2%, 47.2% (approx. 898,340 px; cap about 125 px wide). Inside slim band.
+  - Bezel outer edge spans x 46.6%-93.7%, y 6.8%-85.7% (about 301 px radius). The right edge sits just inside the 6% trim margin.
+  - Red zone (glowing red-orange ticks + glow): about 2 o'clock -> 4:30 on the dial (roughly +27 deg to -48 deg from
+    horizontal right). That is lower than the brief's 1->3 o'clock; aim the needle's "redline" sweep there.
+  - Thin electric-blue rim on the bezel's left edge and the whole rim. Dark carbon-fibre dash elsewhere; left 45% mean luminance ~6/255.
+  - EDIT: Grok placed the dial at 63.9% across. I shifted the whole image 80 px right and refilled the left 80 px with
+    the carbon weave (80 px = the weave's repeat, so the seam is invisible). No content invented.
+redline-fx-sparks.png  Pure #000. Spark shower from about (47%,76%) fanning up and right to the right edge. Fills about the right 55%.
+redline-fx-heat.png    Pure #000. Big orange->red glowing curved arc (S/crescent sweep), spanning about x 16-86%, y 8-85%, with
+                       3 horizontal flare streaks. It's an S-curve rather than a pure quarter-arc, so scale/mask it over the red zone.
+photofinish-master.png (as generated)
+  - Two generic neon cars, L->R, wet asphalt, horizontal light streaks, no text/logos/laser/flash.
+  - FLAW: NOT dead even. Orange (near) nose at ~60%, 58%; blue (far) nose at ~88.5%, 56%. Cars occupy y ~37-64%.
+    The white line is a long lane line (y ~60-68%), not a finish line.
+photofinish-master-backup.png  (backup made because of the flaw above. RECOMMENDED over the main)
+  - Orange nose at ~71.3%, 50.7%. Blue nose at ~81.6%, 49% (far car tucked behind, still about 10% of the width ahead).
+    Cars occupy y ~28-64%. Faint white finish line runs diagonally under the noses (about 50%->80% across, y 60-75%).
+  - Left side brighter than the main: the orange car's body/blur runs to ~14% across (left 45% mean ~30/255), so the name tag may
+    need a dark scrim. Top-right has soft blue/white streaks (mean ~37/255).
+  - Neither take is perfectly level. If dead-even matters, put the game's laser line at ~72% (orange nose) or mask the blue car.
+photofinish-fx-flash.png   Pure #000. White-hot starburst centred at ~50%,50%, about 36% wide, plus 4-5 faint flare orbs.
+photofinish-fx-sparks.png  Pure #000. Orange sparks/arcs on the left, blue on the right, meeting at a white-hot point ~50%,50%.
+                           Spans about x 8-92%, y 15-80%.
+
+FX CLEANUP: Grok's black wasn't exactly 0 (JPEG/grain noise). Each plate was multiplied by a soft ramp on max channel
+(sparks/flash: 6->16; heat: 10->22) so the background is exact #000 (70-90% of pixels are 0; borders 0). Light untouched.
+
+USAGE: 7 Grok Imagine generations (6 + 1 backup master). No FX backups.
+
+==== v2 REMASTER (Nov 5, 2026, ~10:25 PM ET) - photofinish-master-v2.png ====
+Brief: Downloads\Grok\photofinish-remaster.md. Grok Imagine free tier, ONE generation. FX plates unchanged.
+Top-down drone shot: two generic neon cars pointing right on wet black asphalt. TOP = orange, BOTTOM = blue.
+Vertical white finish line, glowing light trails behind each car, no text/logos/laser/flash. 1280x720 PNG.
+POSITIONS (x% across, y% down):
+  - Finish line: vertical, full height, x 71.6-72.7% (px 916-930), centre 72.1%.
+  - Orange nose: 73.05% x (px 935), 41.7% y. Car body/rim 32.1-48.9% down.
+  - Blue nose:   73.05% x (px 935), 58.7% y. Car body/rim 50.4-66.4% down.
+  - Noses DEAD EVEN (same pixel column), both just touching/overlapping the line's right edge.
+  - Gap between the cars ~1.5% (~11 px). Cars span ~43-73% across.
+  - LEFT 45%: mean luminance ~13/255. The light trails start fading in around 32% and are faint (<30/255 mean)
+    by ~38%. Their bright part begins ~42-45%, so the very tips of the trails touch the inner edge of the name-tag zone.
+    Add a dark scrim there if needed. Corners: top-right mean ~3/255, bottom zones ~8-11/255.
+EDIT: as generated, the orange car sat at 27.4-44.2% down (above the 32% band). I moved the top part of the image
+  (orange car + its trails, x ~23-77%) down 34 px with feathered edges over plain asphalt, so it now sits at 32.1-48.9%.
+  Nothing invented. Noses and finish line unchanged.

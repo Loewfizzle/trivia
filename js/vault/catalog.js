@@ -209,6 +209,14 @@ LAB.push(
   { id: 'full-card-gift-icecold', kind: 'full', of: 'card-gift-icecold', tier: 'legendary', n: 180, gift: true },
   { id: 'full-card-gift-anarchist', kind: 'full', of: 'card-gift-anarchist', tier: 'legendary', n: 181, gift: true },
 );
+// OVERCLOCK CARDS (Nov 5 night) — OVERCLOCK's two player cards (unlocked by the server from the room's own record of the match: REDLINE = every
+// challenge of a QUICK match · PHOTO FINISH = a win by exactly one point) — strips, then their full cards
+LAB.push(
+  { id: 'card-redline', kind: 'card', tier: 'legendary', n: 182 },
+  { id: 'card-photofinish', kind: 'card', tier: 'rare', n: 183 },
+  { id: 'full-card-redline', kind: 'full', of: 'card-redline', tier: 'legendary', n: 184 },
+  { id: 'full-card-photofinish', kind: 'full', of: 'card-photofinish', tier: 'rare', n: 185 },
+);
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 // THE VAULT 1B — NAMES ONLY TO OWNERS: the lab's NAMES + what each one does are the SERVER's (api/_lib/lab-text.js) — handed to the lab with
 // the marks (admins only: /api/admin labMarks → { marks, text }); the look previews (never deployed) import them off the local server.
