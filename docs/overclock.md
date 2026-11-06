@@ -420,3 +420,74 @@ Missing Link typed to its auto-lock, both demos, Closest Call's scale.
 - Missing Link's joins all read CLUE → LINK; the bank doesn't record which side the link goes (CAKE → CHEESE for "cheesecake").
 - No E2E plays Unscramble through the UI (as before — e2e-oc-2 / e2e-oc-new cover the other four); its tiles are checked on the preview.
 - OC3B next: Spellcheck, Higher or Lower, Timeline, Sort It (their older panels still sit in THE ANSWER's frame).
+
+### OC3B — THE CARD + LIST CHALLENGES (Nov 6, 2026)
+**What shipped**
+- **Group 0 — carried from OC3:** MISSING LINK's joins are NEUTRAL — each clue and the link word joined by a short LIT TUBE (`shared.js#joinTube`:
+  dark glass ends, a white-hot core, a static glow that flickers on — opacity only), no arrow, in THE ANSWER and in its demo, so FIRE + WORK can
+  never read "WORK → FIRE". UNSCRAMBLE end to end with REAL TAPS (e2e-oc-new, challenge 5): CDP finger taps fill the slots, a tap on a filled slot
+  takes its letter back, CLEAR empties them, SHUFFLE moves the tiles (the letters + the filled slot kept); BOB submits a wrong word (a red shake,
+  then empty, nothing scored) then the right one (full + speed); CHARLIE only a wrong word (0); THE ANSWER on both phones (BOB: the word
+  white-hot + YOU · CHARLIE: his word struck under it).
+- **Group 1 — SPELLCHECK + HIGHER OR LOWER** (`ui/spellcheck.js` · `ui/higherlower.js`): SPELLCHECK = "WHICH ONE IS RIGHT?", its own slanted
+  5-segment bar, four style-C tiles with the spellings in the plain UPRIGHT face, letter-spaced, sized to the word (15 letters fit at 390); THE
+  ANSWER = each right spelling white-hot with the letters people usually get wrong on a --good bar (`spell.js#trickyLetters` — an LCS against
+  the bank's most common misspelling), YOUR PICK struck with ITS wrong letters marked (a ✕ over them + a red zigzag; a red caret where a letter
+  is missing). HIGHER OR LOWER = the stat chip, a 10-segment streak bar, two stacked glass cards (the known one blue-edged with its number, the
+  hidden one hot-edged with a "?"), the orange VS slamming in between, HIGHER / LOWER as the big style-C buttons (years: LATER / EARLIER under
+  them); right = the number FLIPS in + a segment lights; a miss = the number SLAMS in, the card cracks red, the BAR CRACKS — the run is over. THE
+  ANSWER = YOUR STREAK as the hero (its bar, cracked where it ended), YOUR RUN as chips, THE ONE THAT ENDED IT with both numbers (or WHERE THE
+  TIME RAN OUT), the room's longest run. Its ~3 s DEMO in the rules card (`demos.js#hlDemo`): BIG BEN 96 m · VS · EIFFEL TOWER ?, a finger taps
+  HIGHER, 330 m flips in, the card goes green, the first segment lights.
+- **Group 2 — TIMELINE + SORT IT** (`ui/timeline.js` · `ui/sortit.js`): TIMELINE = the set's chip, the question, the direction on a rail
+  (1 = EARLIEST ━ 4 = LATEST), four slanted glass rows — a tap turns one HOT ORANGE with its order badge, a tap again takes it back — and LOCK IT
+  IN (the kit's GO key) once all four are numbered; locked rows rest ✓ / ✕ with their values (a wrong one shows where it belongs). THE ANSWER =
+  the rows SLIDE from your order into the right one beside the VALUE RAIL (the values light as they land), your number + ✓ / ✕ on each.
+  SORT IT = the two sides on slanted glass plates (BLUE left · ORANGE right) + their edges down the table, ONE BIG TILTING GLASS CARD (a sheen,
+  the item sized to its length), the card's shrinking window as THE TACH under it; drag = the card tilts + that side's edge and plate glow;
+  right = it flies into its side and the edge flashes (the burst + the sparks); wrong = it BOUNCES BACK off the side with a red edge flash + the
+  cracks, then drops out; too slow = it sinks. THE ANSWER = two columns under the plates, every card where it BELONGS, ✓ / ✕ / SLOW — a miss
+  SLIDES IN from the side you put it on. The old panels (`reveals.js` — only COMPASS's is left) + every old style of the four screens removed.
+- **Group 3 — THE LOOK REVIEW:** `overclock-preview.html` — `type=spellcheck|higherlower|timeline|sortit&at=play|right|wrong|answer`,
+  higherlower `&run=miss|time|perfect`, `&at=brief&still=1&type=higherlower` (the demo), `__preview.tap(k, right)` / `__preview.swipe(right)`;
+  three rounds at 390 × 844 + 412 × 915 + 1440 × 900.
+
+**Decisions (OC3B)**
+- **THE NEUTRAL JOIN** (Missing Link): a lit tube between each clue and the link, never an arrow (the bank doesn't record the side). OC7 records
+  the side per puzzle and shows the whole compound word.
+- **UNSCRAMBLE's real-tap E2E** lives in e2e-oc-new (challenge 5, after Rewire): real CDP touches, not dispatched events.
+- **HIGHER OR LOWER is asked as "is the hidden one HIGHER or LOWER than the known one"** (the approved mockup): the same pairs, the same
+  winner, the same strict rule — HIGHER is right exactly when the hidden value is the bigger one (`hlFair` never deals equal values), so the
+  answer check, the scoring and the record the server reads are unchanged (`tests/overclock-oc3b.test.mjs` proves it on 3,000 dealt pairs).
+  The rules card + HOW TO PLAY lines were reworded to say it.
+- **A challenge with its own bar** (`.oc-ownbar` — Spellcheck's 5 words, Higher or Lower's streak) hides the frame's slim pips; the ×2 FINAL
+  tag stays.
+- **SPELLCHECK's tricky letters** come from the bank's own most-common misspelling (`spell.js`): the letters the misspelling lacks or changes, the
+  letter before one it adds, a doubled letter as its pair (acco[mm]odate, h[ie]rarchy, basic[all]y); every row of the bank reads (the test).
+- **SORT IT's card window** runs THE TACH on this phone's own clock (`performance.now`) — the card's window always was this phone's own pacing (a
+  local timer), never the room's; the challenge's 30 s stays on the server clock.
+- **No timing changed:** Spellcheck 480 / 1100 ms, Higher or Lower 1250 ms to the next pair (1200 / 1700 to the done screen), Timeline 2200 ms,
+  Sort It's windows (2.6 → 1.2 s), its 230 ms to the next card + 300 ms to the first — pinned from the screens' own source by
+  `tests/overclock-oc3b.test.mjs` (and OC1's timing test passes unchanged).
+- **Never name a state `.is-hidden`:** components.css hides `.screen .is-hidden` (the hidden Higher or Lower card vanished) — `is-unknown`.
+- **The players' strip never scrolls sideways** (the guard found it: 8 players + a lit combo meter at 390 made the strip scroll) — the emblem
+  chips shrink and the strip says `overflow-x: hidden`.
+
+**The local run before the final push (the mini PC, nothing else busy):** unit **1228 / 1228** · rules **66 / 66** (database.rules.json
+unchanged — nothing to re-publish) · `/api` server.test **38 / 38** · smoke **6 / 6** · e2e-oc-2 **26 / 26** (8 phones — Spellcheck's upright
+tiles, Higher or Lower's buttons + its demo, Sort It's touch swipes + its answer columns) · e2e-oc-new **65 / 65** (8 phones — Timeline's rows +
+LOCK IT IN + its answer, Unscramble's real taps) · the no-sideways guard **177 / 177** (59 screens × 390 / 402 / 430) · 60 fps at 390 × 844
+(dpr 3) with fast Higher or Lower taps, fast Sort It swipes, fast Spellcheck taps, the demo and the three moving answers — also at 4× CPU
+(16.7 ms p50 / ≤ 16.8 ms p95; one frame over 25 ms in the Spellcheck run). No City 2.0 or console file changed (`js/ui/help.js` = one HOW TO PLAY
+line) → the ci tag; the harbor suite was not run.
+
+**THE MOTION PROOF:** `Downloads/neon/overclock/shots/oc3b-proof-*` — 8-frame strips + recordings: a Higher or Lower miss, a Sort It swipe
+right + wrong, the Higher or Lower demo, Timeline's answer sliding into order.
+
+**Known issues / held back**
+- SPELLCHECK's underlined letters come from the bank's ONE most-common misspelling — a few read a little wide (succ[eed] vs "succede"); OC7's
+  bigger bank can record the tricky letters per word.
+- HIGHER OR LOWER now shows the known card's number (the approved mockup) — the call is the same question, but the number is on screen.
+- COMPASS's old panel is the last one inside THE ANSWER (OC4 rebuilds it).
+- `tests/integration/e2e-stage2.mjs` (a retired suite, not in any run) still taps the pre-OC3 screens.
+

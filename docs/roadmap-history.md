@@ -2027,6 +2027,17 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 4: the cirrus re-checked on the desktop (cast-flicker.mjs: 0 flickers); the choppy load, the far-right skyline + the resize stall → FR7.
 - The add-ons: THE DISPLAY CHECK (no dummy plug: the real-compositor speed checks skip with their reason on a display-less boot).
 
+## OVERCLOCK PASS 3B — THE CARD + LIST CHALLENGES (Nov 6 2026) — docs/overclock.md "OC3B"
+- Group 0: Missing Link's joins neutral (a lit tube, no arrow — the bank doesn't record the side) in THE ANSWER + the demo; Unscramble end to
+  end with real finger taps in e2e-oc-new (tiles, a filled slot back, CLEAR, SHUFFLE, a wrong word then the right one, THE ANSWER on two phones).
+- Group 1: Spellcheck (upright spellings on style-C tiles, its 5-segment bar; THE ANSWER's tricky letters + your wrong ones) + Higher or Lower
+  (the stat chip, stacked glass cards, the VS slam, HIGHER / LOWER, the 10-segment streak that cracks; THE ANSWER's run + the pair that ended
+  it; its ~3 s demo); the players' strip never scrolls sideways at 8.
+- Group 2: Timeline (slanted glass rows with order badges, LOCK IT IN; THE ANSWER's rows sliding into order beside the value rail) + Sort It
+  (the tilting glass card, the sides' plates + edges, the window as THE TACH, fly / bounce / sink; THE ANSWER's two columns, misses sliding
+  home); the old panels + styles removed.
+- Group 3: the look review (three rounds at 390 / 412 / 1440), 60 fps with fast taps + swipes incl. 4× CPU, the motion proof.
+
 ## OVERCLOCK PASS 3 — THE TYPING CHALLENGES (Nov 6 2026) — docs/overclock.md "OC3"
 - Group 0: the victory screen slid sideways on the owner's iPhone (the podium frame scrolls down, so it scrolled sideways too; the rays spilled
   past the edges) → the rays in a clip of their own, every panel overflow-x hidden, the chips shrink; `e2e-oc-sideways.mjs` on every screen.

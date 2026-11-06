@@ -143,7 +143,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   header band (never over the play area, never a tap taken); MAKE 24 cut (18 types). OC3: NO SIDEWAYS SCROLL, EVER — every Overclock panel
   `overflow-x: hidden`, anything that moves past the edges in a clip of its own (guard: `tests/integration/e2e-oc-sideways.mjs`, 390 / 402 /
   430); the typing challenges on the kit's pads — NO input element, never the system keyboard (a computer's keyboard still types into them);
-  Pattern Lock's first sequence in a match is easy (its own seeded stream); the hard ones' demos ride the rules card (`kit/slam.js` `demo`).
+  Pattern Lock's first sequence in a match is easy (its own seeded stream); the hard ones' demos ride the rules card (`kit/slam.js` `demo`). OC3B: Spellcheck, Higher or Lower, Timeline, Sort It rebuilt (no rule or timing change — HIGHER OR LOWER is asked as "is the hidden one higher or lower", the same winner; the screens' step times pinned by `tests/overclock-oc3b.test.mjs`); Missing Link's joins are a neutral lit tube (never an arrow); never name a state `.is-hidden` (components.css hides it).
 - **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists).
 - **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
   music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:

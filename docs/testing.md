@@ -307,6 +307,13 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     `typeKeys('WORD')` / `typeTiles('word')` / `lock()` for a camera's `--js`. Unit: `tests/overclock-oc3.test.mjs` (Pattern Lock's easy opener vs
     a frozen copy of the old generator, the rule lines, the pads' reducers). The E2Es tap the pads: e2e-oc-2 (Missing Link: no input element,
     the keyboard on screen, a wrong GO, a COMPUTER keyboard's typing, SKIP), e2e-oc-new (Closest Call's number pad).
+  - OC3B — THE CARD + LIST CHALLENGES on the preview: `type=spellcheck|higherlower|timeline|sortit&at=play|right|wrong|answer` (higherlower
+    `&run=miss|time|perfect`), `&at=brief&still=1&type=higherlower` = its DEMO; `__preview.tap(k, right)` (a spelling, a call, a whole Timeline
+    order + LOCK IT IN, a Sort It side tap) · `__preview.swipe(right)` (a real drag on the Sort It card — a camera's `--js`). Unit:
+    `tests/overclock-oc3b.test.mjs` (Spellcheck's tricky / wrong letters on the whole bank, Higher or Lower's call = the same winner on 3,000
+    dealt pairs, the four screens' step times pinned). The E2Es: e2e-oc-2 (Spellcheck's upright tiles, Higher or Lower's buttons + its demo,
+    Sort It's touch swipes + its answer columns), e2e-oc-new (Timeline's rows + badges + LOCK IT IN + its answer; UNSCRAMBLE with REAL finger
+    taps — tiles, a filled slot back, CLEAR, SHUFFLE, a wrong word then the right one, THE ANSWER on two phones).
   - Stage 3 E2E: `node e2e-8p.mjs "<browser path>" ./shots` — 8 players in 8 separate browser contexts play a full game of
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
