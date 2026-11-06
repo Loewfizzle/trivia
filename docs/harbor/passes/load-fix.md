@@ -110,6 +110,9 @@ SCREEN` (the boot screen → the city, nothing between). Before the fix: 15/19 �
   - `lobbyfix` — newstart's "the lines walk in UNDER the lit sign (the host at 2.3 s: wait)" (red in the local 4-shard run too, green
     alone). Measured: the host's first step at ~1.45 s on the pre-fix build AND now (two runs each, :5174 vs :5173) — not this pass; a
     FIXED-TIME sample on a slow runner. Now a condition (green means green): the host walks (or is in) before the fade, the sign lit then.
+- **Cloud run 2** (a642b45 — the last of the two): tests ✅; harbor **14 / 15** — `city` + `lobbyfix` green now; the one red is `holiday`'s
+  Halloween spiders again (THE CLIMB HOME, THE DANGLE, THE SPIDER'S TAP — red in OC1's + SHELL 2.0 B2's runs before this pass: an open
+  issue of its own, not the load). Vercel built a642b45 (live).
 - **The rules:** NOT changed — nothing to re-publish.
 - **Not started (FRIENDS' list, as the pass said):** THE TIER GEM's one shape, THE RADIO's schedule order, the victory sounds, YOUR CARD's
   row + the whole XP box, the console's game accent, the intercom in sync.
