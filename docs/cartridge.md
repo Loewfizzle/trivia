@@ -10,7 +10,7 @@ game" checklist. This page is what it must EXPORT and what it GETS.
 ## What a game exports (`js/games/<id>/index.js`)
 | export | | what the console does with it |
 | --- | --- | --- |
-| `start({ code, matchId, settings, participants, now })` | required | builds the match. **`now` is the moment the MATCH BEGINS** — the room's walk inside (2.6 s, `core/room-show.js#START_MS`) runs before it on every phone: time the first phase from `now`, never from `Date.now()` |
+| `start({ code, matchId, settings, participants, now, used })` | required | builds the match. **`now` is the moment the MATCH BEGINS** — the room's walk inside (2.6 s, `core/room-show.js#START_MS`) runs before it on every phone: time the first phase from `now`, never from `Date.now()`. **`used`** (OC1) = THE ROOM-NIGHT PATH as it is at the start (`rooms/{CODE}/meta/used` — `{ gameId: { key: true } }`): deal around `usedOf({ used }, yourId)`, never reach into the store for it (`cartridge.js#START_ARGS`, host.js passes every one — tests/cartridge + overclock-oc1) |
 | `prepare(game, { code, host })` | required | every host tick (≈ 250 ms): top-ups, private host duties — idempotent |
 | `step(game, { code, now, live, online })` | required | the PURE director: a patch, `{ lobby: true }` or `null` (+ `$room` side writes) |
 | `livePaths(game)` | required | the player-written paths the room mirrors into `state.live` (check `liveKey` before trusting it) |
@@ -28,6 +28,7 @@ game" checklist. This page is what it must EXPORT and what it GETS.
 | `rematchSettings(settings, lastGame)` | optional | the settings a REMATCH starts with (default: the same) |
 | `preload({ settings, host })` | optional | called on EVERY phone at the game start (the walk inside): FETCH its pools / sounds / fonts so the view is ready when the push through the door ends. Fetch, don't build — the city is still drawing |
 | `daily` | optional | THE DAILY PLUG-IN — below |
+| `LOOKS` | optional (meta) | OC1 — the looks it has: `['day', 'night']` (the default: it follows THE GAME LOOK setting) or ONE (`['night']` — OVERCLOCK's OVERDRIVE): the console then paints that look whatever the phone's setting says (`app.js#paintLook`) and ☰ → Settings → GAME LOOK shows `NIGHT · LOCKED` + "OVERCLOCK plays at night" while it's on screen (never hidden). `cartridge.js#looksOf / lookLockOf`. A DAY skin later = both looks, and the setting comes back by itself |
 
 Also, outside index.js: its row in `config.js` GAMES (`name`, `theme`, `playable` — THE ONE SWITCH), its **tube mark** in
 `js/core/marks.js` (the game start's sign — `ui/tube-logo.js#gameLogoSvg` — + the city's game signs), its theme in
@@ -82,7 +83,7 @@ The rules every cartridge keeps. The Overclock chat reads this page before each 
 **D1 — THE THIN META + LAZY LOGIC.** A cartridge is TWO files the console sees:
 - `js/games/<id>/meta.js`: what the console reads BEFORE a match. It's PURE and tiny, with NO imports (the test fails on one): `DEFAULT_SETTINGS`,
   `OPTIONS`, `estimateMinutes`, `MUSIC` / `FINAL_MUSIC`, `MIN_PLAYERS` / `SOLO`, `BANNER_NAME`, `CHAT_CHIPS`, `chatLocked`, `NO_INTERCOM`,
-  `daily: { on }` (`cartridge.js#META_KEYS`). `games/registry.js` imports ONLY the metas at boot (`META`, `metaOf(id)`).
+  `LOOKS` (OC1), `daily: { on }` (`cartridge.js#META_KEYS`). `games/registry.js` imports ONLY the metas at boot (`META`, `metaOf(id)`).
 - `js/games/<id>/index.js` = THE CARTRIDGE: `export * from './meta.js'` plus `start`, `prepare`, `step`, `livePaths`, `finalRanks`, `finalScene`,
   `sealed`, `rematchSettings`, `daily.create`, `feats`, `createView`. It loads ON DEMAND (`registry.js#loadGame(id)`): the host's tap
   awaits it, every phone loads it during the walk inside (`room-city.js`, with the view's warm + the preload), and a refresh mid-match
@@ -118,7 +119,9 @@ The start never waits past its 5 s for a preload: the game shows when its own pi
   - `kit/night.js`, THE ROOM-NIGHT PATH (below).
 
 **THE ROOM-NIGHT PATH (the game's memory of the night).** The path is `rooms/{CODE}/meta/used/{gameId}/{key}: true`, written by the HOST
-through a step's `$room` side writes (`kit/night.js#markUsed(gameId, keys)`) and read with `usedOf(state.meta, gameId)`. It SURVIVES rematches
+through a step's `$room` side writes (`kit/night.js#markUsed(gameId, keys)`) and read with `usedOf(meta, gameId)` — at the start through
+`start({ used })` (OC1: OVERCLOCK deals its whole match there, so every phone builds the same challenges from the stored deal, and each
+challenge marks its keys as it opens — `js/games/overclock/deal.js`). It SURVIVES rematches
 + new games and is GONE when the room closes. GAME-SCOPED: a game writes only under its own id (the shared trivia pool is `trivia`). The
 rules already allow it (a boolean under `meta/used/$game/$id`), so no rules change was needed. Bigger night data (a score, a list) → ask the
 city chat first (a new rule).

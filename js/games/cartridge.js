@@ -6,8 +6,10 @@
 // A cartridge = js/games/<id>/ (logic + director + index + view — docs/match-kit.md), registered in games/registry.js + config.js GAMES
 // (`playable` = the one switch). Its index.js exports:
 export const REQUIRED = Object.freeze({
-  start: 'function',            // start({ code, matchId, settings, participants, now }) → Promise<game | null> — `now` = the moment the MATCH
-                                //   begins (the room's walk inside runs before it on every phone — core/room-show.js#START_MS)
+  start: 'function',            // start({ code, matchId, settings, participants, now, used }) → Promise<game | null> — `now` = the moment the MATCH
+                                //   begins (the room's walk inside runs before it on every phone — core/room-show.js#START_MS); `used` (OC1,
+                                //   optional to read) = the room's NIGHT MEMORY, rooms/{CODE}/meta/used ({ gameId: { key: true } }) as it is at
+                                //   the start — a game deals around usedOf({ used }, itsId) and marks what it deals in its steps' $room
   prepare: 'function',          // prepare(game, { code, host }) — idempotent, every host tick (asset / question top-ups, private host duties)
   step: 'function',             // step(game, { code, now, live, online }) → patch | { lobby: true } | null — the PURE director
   livePaths: 'function',        // livePaths(game) → { name: 'path/under/room' } — the player-written data to mirror into state.live
@@ -35,7 +37,13 @@ export const OPTIONAL = Object.freeze({
   finalScene: 'function',       // SHELL 2.0 A — finalScene(el, game, state): the game draws its own BODY inside the console's podium frame
                                 //   (ui/final.js — the console keeps the XP box, the moment + the card reveal, BACK TO THE ROOM)
   daily: 'object',              // THE DAILY PLUG-IN (ships OFF — THE DAILY MODULE switches the dailies on): see DAILY below
+  LOOKS: 'array',               // OC1 — the looks it HAS: ['day', 'night'] (the default — it follows THE GAME LOOK setting) or ONE (['night']:
+                                //   OVERCLOCK's OVERDRIVE) — the console then paints that look whatever the setting says + shows the setting
+                                //   LOCKED while it's on screen (looksOf / lookLockOf below; app.js#paintLook, ui/settings-panel.js)
 });
+/** the arguments the console passes to start() — one list (tests/cartridge.test.mjs checks host.js passes every one) */
+export const START_ARGS = Object.freeze(['code', 'matchId', 'settings', 'participants', 'now', 'used']);
+export const LOOK_VALUES = Object.freeze(['day', 'night']);
 // THE DAILY PLUG-IN's shape (OVERCLOCK + the WORDLE-type + COAST CLEAR offer it; THE DAILY MODULE seeds, unlocks, streaks + ranks it):
 //   daily = { on: false,                                        — the game never switches itself on
 //             create({ date: 'YYYY-MM-DD', uid, now }) → game     — today's puzzle for ONE player: the same content for everyone that day
@@ -48,7 +56,7 @@ export const DAILY = Object.freeze({ on: 'boolean', create: 'function', resumeKe
 //   BEFORE a match (the registry imports only the metas at boot); index.js re-exports them (`export * from './meta.js'`) and everything
 //   else (start, prepare, step, livePaths, finalRanks, finalScene, sealed, rematchSettings, daily.create, feats, createView) loads with the
 //   cartridge (games/registry.js#loadGame — the host's start, every phone's walk inside, a refresh mid-match).
-export const META_KEYS = Object.freeze(['DEFAULT_SETTINGS', 'OPTIONS', 'estimateMinutes', 'MUSIC', 'FINAL_MUSIC', 'MIN_PLAYERS', 'SOLO', 'BANNER_NAME', 'CHAT_CHIPS', 'chatLocked', 'NO_INTERCOM']);
+export const META_KEYS = Object.freeze(['DEFAULT_SETTINGS', 'OPTIONS', 'estimateMinutes', 'MUSIC', 'FINAL_MUSIC', 'MIN_PLAYERS', 'SOLO', 'BANNER_NAME', 'CHAT_CHIPS', 'chatLocked', 'NO_INTERCOM', 'LOOKS']);
 // THE PRELOAD BUDGET: a game's preload() runs on EVERY phone during the start's ~5 s (the lit sign + the walk inside) — at most ~1.5 MB
 //   (its sounds, its fonts, its FIRST content pool); the rest lazy. The start never waits past its 5 s for it: the game shows when its own
 //   pieces are ready (its view says LOADING itself, never the console).
@@ -78,6 +86,7 @@ export function checkCartridge(id, mod, o = {}) {
     if (mod.daily.on === true) out.push(`${id}: daily.on — the daily ships OFF (THE DAILY MODULE switches the dailies on together)`);
   }
   if (Array.isArray(mod.OPTIONS)) for (const op of mod.OPTIONS) if (!op || !op.key || !(op.key in (mod.DEFAULT_SETTINGS || {}))) out.push(`${id}: OPTIONS row "${op && op.key}" has no DEFAULT_SETTINGS value`);
+  if (mod.LOOKS != null && (!Array.isArray(mod.LOOKS) || !mod.LOOKS.length || mod.LOOKS.some(l => !LOOK_VALUES.includes(l)) || new Set(mod.LOOKS).size !== mod.LOOKS.length)) out.push(`${id}: LOOKS — one or both of 'day' / 'night', each once`);
   if (o.marks && !o.marks[id]) out.push(`${id}: no tube mark in core/marks.js (the sign at the game start + the city's signs)`);
   if (o.game && (!o.game.name || !o.game.theme)) out.push(`${id}: its config.js GAMES row needs a name + a theme`);
   return out;
@@ -88,5 +97,9 @@ export function checkCartridge(id, mod, o = {}) {
 export const minPlayersOf = (mod, appMin) => (mod && mod.SOLO === true ? 1 : Math.max(appMin, (mod && mod.MIN_PLAYERS) || 0));
 /** its quick replies while it runs */
 export const chipsOf = mod => (mod && Array.isArray(mod.CHAT_CHIPS) ? mod.CHAT_CHIPS.slice(0, 4) : []);
+/** the looks a game has (missing = both: it follows THE GAME LOOK setting) */
+export const looksOf = mod => (mod && Array.isArray(mod.LOOKS) && mod.LOOKS.length ? mod.LOOKS.filter(l => LOOK_VALUES.includes(l)) : [...LOOK_VALUES]);
+/** a game with ONE look ALWAYS plays in it: that look, else null (the setting decides) */
+export const lookLockOf = mod => { const l = looksOf(mod); return l.length === 1 ? l[0] : null; };
 /** the settings a REMATCH starts with */
 export const rematchSettingsOf = (mod, settings, last) => (mod && typeof mod.rematchSettings === 'function' ? mod.rematchSettings(settings, last) || settings : settings);

@@ -9,11 +9,37 @@ export const BRIEF_MS = 7_000;
 // challenges with a reveal (best words, the right order, the number line) hold the leaderboard a little longer
 export const REVEAL_STANDINGS_MS = 12_000;
 export const OVERALL_STAGE_MS = 4_400;       // the last part of standings: the rows slide into the overall order
-export const REVEALS = new Set(['lexicon', 'timeline', 'closest', 'missinglink', 'spellcheck', 'make24', 'compass', 'sortit', 'higherlower']);
+export const REVEALS = new Set(['timeline', 'closest', 'missinglink', 'spellcheck', 'make24', 'compass', 'sortit', 'higherlower']);
 export const standingsMs = type => (REVEALS.has(type) ? REVEAL_STANDINGS_MS : STANDINGS_MS);
 export const FINAL_MS = 120_000;
 export const PLAY_GRACE_MS = 700;
 export const SPEED_BONUS = 60;
+// THE AFTER-CHALLENGE SKIP (OC1 — the owner, Nov 4): the screen after a challenge keeps its max (standingsMs) but ends once EVERY connected
+// player has tapped — never before this, so the answer always lands first (kit/ready.js#readyState; solo: your own tap)
+export const SKIP_MIN_MS = 3_000;
+
+// THE COMBO (OC1 — docs/overclock.md "OVERDRIVE card"): right answers in a row across the match. A player's per-answer MARKS for a challenge
+// (rooms/{CODE}/ocm/{match}/{ci}/{uid}/s — '1' right · '0' wrong · 'h' half · '-' neither) fold into game/combo/{uid} = { c: now, m: best }
+// when the challenge closes. One wrong answer resets it; a half (Quick Count's off-by-one…) and the no-right-or-wrong challenges (SIGNAL LOCK's
+// reflex taps — COMBO_NEUTRAL) neither add nor break it. maxStreak (m) = the feat OC2 reports for the OVERDRIVE card (x10).
+export const COMBO_NEUTRAL = new Set(['reflex']);
+export const COMBO_MARKS = /^[01h-]{0,24}$/;
+export function comboFold(prev, marks) {
+  let c = (prev && prev.c) || 0, m = (prev && prev.m) || 0;
+  for (const ch of String(marks || '')) {
+    if (ch === '1') { c += 1; if (c > m) m = c; } else if (ch === '0') c = 0;
+  }
+  return { c, m };
+}
+/** this challenge's marks for a player: their own (validated), else — the rules refused them (an older rules publish) — from the board */
+export function marksFor(type, mk, board, parts) {
+  if (COMBO_NEUTRAL.has(type)) return '';
+  if (mk && typeof mk.s === 'string' && COMBO_MARKS.test(mk.s)) return mk.s.slice(0, parts);
+  const b = board || {};
+  const p = Math.min(parts, Math.max(0, Number(b.p) || 0)), ok = Number(b.ok) || 0;
+  if (!p) return '';
+  return ok >= parts ? '1'.repeat(parts) : '0';
+}
 
 export const levelOf = (ci, total) => (total <= 1 ? 0 : ci / (total - 1));
 
@@ -22,8 +48,12 @@ export const levelOf = (ci, total) => (total <= 1 ? 0 : ci / (total - 1));
 //  - longer (Marathon 24): every type once plus a few repeats — a type at most twice, its two turns at least a
 //    third of the match apart (so never back to back);
 //  - categories (words, numbers, memory, visual, knowledge, reflex — challenges.js#CATEGORY) are spread out: two
-//    challenges of the same category are never next to each other unless there is no other way.
-export function buildOrder(seed, total) {
+//    challenges of the same category are never next to each other unless there is no other way;
+//  - THE ROOM's NIGHT MEMORY (OC1 — deal.js): `played` = the types this room already played tonight — a shorter match
+//    FAVOURS the others (FRESH_TYPE_WEIGHT to 1), so back-to-back matches feel different; once every type has had its
+//    turn, all count the same again. No `played` = exactly the old draw.
+export const FRESH_TYPE_WEIGHT = 12;
+export function buildOrder(seed, total, played = []) {
   const rand = rngFrom(`${seed}:order`);
   const n = TYPES.length;
   // up to one of each: types are drawn on the fly from all of them (so a short match can still avoid a clash);
@@ -31,6 +61,10 @@ export function buildOrder(seed, total) {
   const long = total > n;
   const pool = long ? [...TYPES, ...shuffle(rand, TYPES).slice(0, total - n)] : TYPES;
   const minGap = long ? Math.floor(total / 3) : 1;
+  const was = new Set(played || []);
+  const stale = TYPES.every(t => was.has(t)) ? new Set() : was;
+  const fresh = t => (stale.has(t) ? 1 : FRESH_TYPE_WEIGHT);
+  const freshW = stale.size > 0;
   let best = null;
   for (let attempt = 0; attempt < 400; attempt++) {
     const left = shuffle(rand, pool);
@@ -47,7 +81,7 @@ export function buildOrder(seed, total) {
       // that still has both copies to place goes early (so its two turns end up far apart)
       const catLeft = {};
       for (const t of left) catLeft[CATEGORY[t]] = (catLeft[CATEGORY[t]] || 0) + 1;
-      const w = long ? cands.map(i => catLeft[CATEGORY[left[i]]] + (left.filter(t => t === left[i]).length > 1 ? 3 : 0)) : cands.map(() => 1);
+      const w = long ? cands.map(i => catLeft[CATEGORY[left[i]]] + (left.filter(t => t === left[i]).length > 1 ? 3 : 0)) : cands.map(i => (freshW ? fresh(left[i]) : 1));
       let r = rand() * w.reduce((x, y) => x + y, 0);
       let k = 0;
       while (k < cands.length - 1 && (r -= w[k]) >= 0) k++;

@@ -27,8 +27,13 @@ rooms/{CODE}/                                                ← CODE = the room
                                   itself is in THE SEAL (below); the old { c, at } still accepted this pass
   targets/{matchId}/{uid}:        uid of another participant    ← SIGNAL, own, never in the final or once out (public: "N LOCKED ON YOU")
   oc/{matchId}/{ci}/{uid}:        { p, ok, n, done, at, doneAt } ← OVERCLOCK, own, during 'play', locked once done — the answers
-                                  (w Lexicon best word, o Timeline order '2031', g Closest Call guess, rw Rewire turns) are in THE SEAL;
-                                  the host publishes them for the reveal as game/rv/{ci}/{uid}
+                                  (o Timeline order '2031', g Closest Call guess, rw Rewire turns; w was LEXICON's word, cut in OC1 —
+                                  the rule still takes it) are in THE SEAL; the host publishes them for the reveal as game/rv/{ci}/{uid}
+  ocm/{matchId}/{ci}/{uid}:       { s, at }                     ← OVERCLOCK (OC1), own, during 'play': THE COMBO's marks, one char an
+                                  answer ('1' right · '0' wrong · 'h' half · '-' no right or wrong; ≤ 24) — a write of its OWN beside the
+                                  board, so older rules refuse it alone (the board falls back: logic.js#marksFor)
+  ocnext/{matchId}/{ci}/{uid}:    { at }                        ← OVERCLOCK (OC1), own, during 'standings': "TAP WHEN READY" — everyone
+                                  connected tapped (≥ 3 s in) = THE AFTER-CHALLENGE SKIP (director.js, kit/ready.js#readyState)
   lies/{matchId}/{round}/{uid}:   { done: true, at }            ← BLUFF, own, during 'write' — the text in THE SEAL (old { t, at } accepted)
   votes/{matchId}/{round}/{uid}:  { done: true, at }            ← BLUFF, own, during 'vote' — { k, like? } in THE SEAL (old shape accepted)
   night/{matchId}:   { g: gameId, p: { uid: 3|2|1|0 }, n: { uid: name }, at }  ← host; game-night scoreboard (at = the server's
@@ -97,21 +102,25 @@ Resolution writes **absolute** hp/sh computed from the pre-question state, so a 
 Damage: strike = round((30 − 20·elapsed/15 s) × mult), burn = round(10 × mult), mult = 1 + 0.25·floor(q/5). Cap 35 questions.
 
 OVERCLOCK `game`: `{ id:'overclock', matchId, settings{mode}, seed, total, order[], participants, ci, ck, brief,
-phase: ready|play|standings|final, phaseStartAt, phaseEndsAt, playStartAt, seen{type}, tq{ci:bankIndex}, tUsed, results{ci:{uid:{pts,ok,parts}}}, bank, trivia }`.
-Every client regenerates challenge `ci` with `generate(order[ci], {seed, ci, level})`; no challenge content is stored.
+phase: ready|play|standings|final, phaseStartAt, phaseEndsAt, playStartAt, seen{type}, tq{ci:bankIndex}, tUsed, results{ci:{uid:{pts,ok,parts}}}, bank, trivia,
+deal{ci:[int]}, dk{ci:'key key …'}, combo{uid:{c,m}} }` (OC1: `deal` = THE ROOM's NIGHT MEMORY's deal — the bank rows / facts / words each
+challenge shows, picked at start() around rooms/{CODE}/meta/used/overclock; `dk` = their keys, marked used by the step that opens the
+challenge, with its type's `t-<type>` (docs/overclock.md, js/games/overclock/deal.js); `combo` = right answers in a row now + the match's best
+— the OVERDRIVE feat).
+Every client regenerates challenge `ci` with `generate(order[ci], {seed, ci, level, deal: deal[ci]})`; no challenge content is stored.
 Score = round(100·ok/parts) + (perfect ? up to 60 speed bonus); ×2 on the final challenge. `ok` may be fractional
 (Quick Count: off by one = 0.5; Signal Lock: per-round reaction credit 0.1–1, scored as round(160·ok/parts) with no
-separate speed bonus). **Order (`logic.js#buildOrder`, seeded): no type repeats** — up to 20 challenges are all different
-(Quick = 6, Standard = 12 of the 20 — `MODES` in logic.js, picked from a list in the options sheet); Marathon (24) has every type once plus 4 repeats, never back to back, repeats ≥ 8 apart.
+separate speed bonus). **Order (`logic.js#buildOrder`, seeded): no type repeats** — up to 19 challenges are all different
+(Quick = 6 — THE DEFAULT since OC1, Standard = 12 of the 19 — `MODES` in meta.js, picked from a list in the options sheet); Marathon (24) has every type once plus 5 repeats, never back to back, repeats ≥ 8 apart.
+A rematch FAVOURS the types the room hasn't played tonight (`buildOrder(seed, total, played)`, ×12 weight — OC1).
 **Category spread:** every type has a `CATEGORY` (words, numbers, memory, visual, knowledge, reflex); the order never puts two
 of the same category next to each other unless impossible (`categoryClashes(order)` is 0 for every generated match — tested
 over thousands of seeds). Short matches draw types on the fly so they can avoid clashes too.
-Newer types: **lexicon** (6 parts; ok = 6 − (max − best length), only the longest word counts, speed bonus only at max),
-**timeline** (4 parts, one per item in the right place), **closest** (1 part, credit = smooth curve: ≤ 5 % off = 1, ≥ 60 % = 0;
+Newer types (LEXICON was cut in OC1): **timeline** (4 parts, one per item in the right place), **closest** (1 part, credit = smooth curve: ≤ 5 % off = 1, ≥ 60 % = 0;
 no speed bonus — the closest player(s) get +60 instead, decided in `computeResults` from `ok`), **rewire** (2 parts; ok = solved +
 0.6·reach for the unsolved one; `genRewire` builds a solved path then scrambles, always solvable). Bank-backed types pick
-`bankIndex(seed, type, occ)` from a shuffled per-match deck so a repeat in Marathon never deals the same entry. Standings
-last 10 s for lexicon/timeline/closest (`standingsMs`) to fit the reveal panel. Unscramble also gets a reveal (the word,
+the night's deal (`deal[ci]`), or — no deal (a bank that didn't load at the start) — `bankIndex(seed, type, occ)` from a shuffled
+per-match deck so a repeat in Marathon never deals the same entry. Standings last 12 s for timeline/closest (`standingsMs`) to fit the reveal panel. Unscramble also gets a reveal (the word,
 the scrambled letters, how many cracked it) within the normal 6 s.
 Update 2 types (all reveal for 10 s): **missinglink** (2 parts, 50 each; typed answer via an invisible input over letter boxes,
 `linkAccepts`: case/spaces ignored, plurals + listed variants accepted; the exact answer locks in as typed; SKIP on puzzle 1;
@@ -124,8 +133,8 @@ time past it; the reveal animates every round's turns on mini compasses), **sort
 round(100·min(1, ok/10)), speed bonus only for 12/12 — `ok` reaches `parts` only then), **higherlower** (10 pairs, ok = streak,
 a miss ends the run with p = streak + 1; pairs only within one stat, ≥ 1.2× apart or ≥ 10 years; first 3 pairs ≥ 2× / 40 years,
 from pair 7 on the closer ones). No new DB fields: everything fits `p/ok/n ≤ 12`.
-Types: unscramble, memory, oddone, math, pattern, trivia, stroop (Color Clash), reflex (Signal Lock), count (Quick Count),
-lexicon, timeline, closest (Closest Call), rewire, missinglink, spellcheck, make24, compass, sortit, higherlower, truefalse (True or False — `TF_FACTS` pairs must stay unambiguous; math statements are verified by a unit test).
+Types (19): unscramble, memory, oddone, math, pattern, trivia, stroop (Color Clash), reflex (Signal Lock), count (Quick Count),
+timeline, closest (Closest Call), rewire, missinglink, spellcheck, make24, compass, sortit, higherlower, truefalse (True or False — `TF_FACTS` pairs must stay unambiguous; math statements are verified by a unit test).
 Signal Lock times taps from the pointerdown event against the frame the flash painted (performance.now clock, local only).
 
 BLUFF `game`: `{ id:'bluff', matchId, settings{mode}, rounds, participants, round, rk, phase: intro|write|vote|reveal|standings|final,

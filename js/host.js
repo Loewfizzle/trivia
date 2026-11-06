@@ -215,7 +215,10 @@ async function startGameNow(gameId, settings, quick = false) {
   //  every vote. A start that fails takes the stamp back down.)
   const tGo = serverNow();
   await update(dbRef(`rooms/${state.code}`), { 'meta/go': { at: serverTimestamp(), m: matchId, g: gameId }, 'meta/back': null, rv: null }).catch(e => stampRefused('go', e));
-  const created = await mod.start({ code: state.code, matchId, settings, participants, now: tGo + startOf(matchId).len + 150 }).catch(e => { console.warn('start', e); return null; });
+  // (OC1 — THE CONTRACT's `used`: the room's night memory, rooms/{CODE}/meta/used, read once here — a cartridge deals around it, never
+  //  reaching into the store for it — docs/cartridge.md "THE ROOM-NIGHT PATH")
+  const used = (state.meta && state.meta.used) || {};
+  const created = await mod.start({ code: state.code, matchId, settings, participants, now: tGo + startOf(matchId).len + 150, used }).catch(e => { console.warn('start', e); return null; });
   if (!created) { update(dbRef(`rooms/${state.code}/meta`), { go: null }).catch(() => {}); toast('COULD NOT START — TRY AGAIN', 'err'); return false; }
   const { $room, ...game } = created;
   inflight = { sig: '', at: 0 };

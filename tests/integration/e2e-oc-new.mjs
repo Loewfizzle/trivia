@@ -1,6 +1,7 @@
-// OVERCLOCK's newer challenges end to end: LEXICON, TIMELINE, CLOSEST CALL, REWIRE with N players (default 8).
+// OVERCLOCK's newer challenges end to end: TRUE OR FALSE (OC1's look + the combo + the after-challenge skip), TIMELINE, CLOSEST CALL, REWIRE
+// with N players (default 8). (LEXICON was cut in OC1.)
 //   node e2e-oc-new.mjs "<browser path>" ./shots
-// The host's match order is set to open with the four new types (then the usual mix). Covers: rules cards,
+// The host's match order is set to open with those four (then the usual mix). Covers: rules cards,
 // identical puzzles on every phone, real UI play (taps on tiles / items / keypad / circuit tiles), scoring math
 // against what the host wrote, a refresh mid-Rewire (turns + solved circuits restored), the host's phone dying
 // mid-Timeline (migration), and every new screen + reveal at 390×844 and 412×915.
@@ -55,6 +56,7 @@ async function waitFor(page, fn, what, timeout = 30000, arg) {
 const OC = (page, expr) => page.evaluate(`(() => { const O = window.__oc; return O ? (${expr}) : null; })()`);
 const tapReal = async (page, sel) => { const el = await page.waitForSelector(sel, { timeout: 15000 }); await el.tap(); };
 const alive = () => pages.map((p, i) => i).filter(i => pages[i] && !dead.has(i));
+const all = (idx, fn) => Promise.all(idx.map(fn));
 const hostPage = async () => {
   for (const i of alive()) { try { if (await evalIn(pages[i], s => s.meta && s.meta.hostId === s.uid)) return pages[i]; } catch { /* */ } }
   return pages[alive()[0]];
@@ -103,59 +105,61 @@ try {
   const uids = [];
   for (let i = 0; i < N; i++) uids[i] = await evalIn(pages[i], s => s.uid);
 
-  // ---------------- start: the four new types first, then the usual mix (12 different)
+  // ---------------- start: the four first, then the usual mix (12 different)
   await host.evaluate(() => import('/js/host.js').then(m => m.startGame('overclock', { mode: 'standard' })));
   await waitFor(host, s => s.game && s.game.id === 'overclock', 'overclock started', 20000);
   await host.evaluate(() => {
     const s = window.__arcade.state;
-    const first = ['lexicon', 'timeline', 'closest', 'rewire'];
+    const first = ['truefalse', 'timeline', 'closest', 'rewire'];
     const order = [...first, ...s.game.order.filter(t => !first.includes(t))].slice(0, s.game.total);
-    return import('/js/firebase.js').then(m => m.update(m.dbRef(`rooms/${s.code}/game`), { order, seen: { lexicon: true }, tq: {}, tUsed: 0 }));
+    return import('/js/firebase.js').then(m => m.update(m.dbRef(`rooms/${s.code}/game`), { order, seen: { truefalse: true }, tq: {}, tUsed: 0 }));
   });
-  await waitFor(pages[1], s => s.game.order[0] === 'lexicon', 'forced order', 10000);
+  await waitFor(pages[1], s => s.game.order[0] === 'truefalse', 'forced order', 10000);
   const order = await evalIn(host, s => s.game.order);
   ok(new Set(order).size === order.length, `no repeated types in the match (${order.length} different)`);
   log('order', order.join(' '));
 
-  // ---------------- 1. LEXICON
+  // ---------------- 1. TRUE OR FALSE (OC1 — LEXICON cut; the OVERDRIVE look) + THE COMBO + THE AFTER-CHALLENGE SKIP
   await pages[1].waitForSelector('.oc-ready', { timeout: 15000 });
   await sleep(700);
-  await shotBoth(pages[1], 'o-01-lexicon-rules');
-  await waitPhase(host, 'play', 0, 'lexicon play');
-  for (const i of alive()) await waitSpec(pages[i], 'lexicon');
-  const lexSpecs = await Promise.all(alive().map(i => OC(pages[i], '({ max: O.spec().max, best: O.spec().best, letters: [...O.spec().letters].sort().join("") })')));
-  ok(lexSpecs.every(x => JSON.stringify(x) === JSON.stringify(lexSpecs[0])), 'LEXICON: the same letters on every phone');
-  ok(lexSpecs[0].max >= 7, `LEXICON: a ${lexSpecs[0].max}-letter word is possible`);
-  const words = await OC(pages[1], 'O.spec().words');
-  // BOB types a 5-letter word through the tiles, then a 4-letter one
-  async function typeWord(page, w) {
-    for (const ch of w) {
-      const n = await page.evaluate(c => [...document.querySelectorAll('.lx-tile')].findIndex(b => !b.disabled && b.textContent.toLowerCase() === c), ch);
-      await press(page, '.lx-tile', n);
-      await sleep(40);
-    }
-    await click(page, '.lx-go');
-    await sleep(250);
+  await shotBoth(pages[1], 'o-01-truefalse-rules');
+  await waitPhase(host, 'play', 0, 'true or false play');
+  for (const i of alive()) await waitSpec(pages[i], 'truefalse');
+  const tfSpecs = await Promise.all(alive().map(i => OC(pages[i], 'JSON.stringify(O.spec())')));
+  ok(tfSpecs.every(x => x === tfSpecs[0]), 'TRUE OR FALSE: the same statements on every phone');
+  ok(await evalIn(host, s => !!(s.game.deal && s.game.deal[0] && s.game.deal[0].length === 4)), 'THE NIGHT MEMORY: the host dealt the four facts');
+  // ALICE answers all 8 right; BOB misses the 4th (a 4-in-a-row, then 4 more); everyone else misses one somewhere
+  async function answerTF(page, wrongAt) {
+    await page.evaluate(async miss => {
+      const sp = window.__oc.spec();
+      for (let k = 0; k < sp.items.length; k++) {
+        for (let w = 0; w < 40 && !document.querySelector('.tf-btn:not([disabled])'); w++) await new Promise(r => setTimeout(r, 40));
+        const truth = sp.items[k].truth, pickTrue = k === miss ? !truth : truth;
+        const b = document.querySelector(pickTrue ? '.tf-true' : '.tf-false');
+        b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+        await new Promise(r => setTimeout(r, k === miss ? 900 : 360));
+      }
+    }, wrongAt);
   }
-  const five = words.find(w => w.length === 5), four = words.find(w => w.length === 4);
-  await typeWord(pages[1], five);
-  await typeWord(pages[1], four);
-  await sleep(300);
-  await shotBoth(pages[1], 'o-02-lexicon-play');
-  ok((await OC(pages[1], 'O.state().extra.w')) === five, 'LEXICON: only the longest word counts (5 beats 4)');
-  // ALICE finds a longest word → done early with the speed bonus; others land somewhere in between
-  await typeWord(pages[0], lexSpecs[0].best[0]);
-  await waitFor(pages[0], () => window.__oc.state().done, 'ALICE done on the longest word', 6000);
-  for (const i of alive().filter(i => i > 1)) {
-    const w = words.find(x => x.length === 3 + (i % 4)) || words[words.length - 1];
-    await typeWord(pages[i], w);
-  }
-  await waitPhase(host, 'standings', 0, 'lexicon standings', 45000);
-  await sleep(1600);
-  await shotBoth(pages[1], 'o-03-lexicon-reveal');
+  await answerTF(pages[0], -1);
+  await sleep(200);
+  await shotBoth(pages[0], 'o-02-truefalse-done');
+  await all(alive().filter(i => i > 0), i => answerTF(pages[i], i === 1 ? 3 : i % 8));
+  await waitPhase(host, 'standings', 0, 'true or false standings', 45000);
+  await sleep(1200);
+  await shotBoth(pages[1], 'o-03-truefalse-answer');
   const r0 = await evalIn(host, s => s.game.results[0]);
-  ok(r0[uids[0]].ok === 6 && r0[uids[0]].pts > 100, `LEXICON: the longest word scores full + speed (${r0[uids[0]].pts})`);
-  ok(r0[uids[1]].ok === Math.max(0, 6 - (lexSpecs[0].max - 5)) && r0[uids[1]].pts === Math.round(100 * r0[uids[1]].ok / 6), `LEXICON: BOB's 5-letter word = ${r0[uids[1]].pts} pts, no speed bonus`);
+  ok(r0[uids[0]].ok === 8 && r0[uids[0]].pts > 100, `TRUE OR FALSE: ALICE 8/8 = full + speed (${r0[uids[0]].pts})`);
+  ok(r0[uids[1]].ok === 7, `TRUE OR FALSE: BOB 7/8 (${r0[uids[1]].ok})`);
+  const combo = await evalIn(host, s => s.game.combo || {});
+  ok(combo[uids[0]] && combo[uids[0]].c === 8 && combo[uids[0]].m === 8, `THE COMBO: ALICE 8 in a row (${JSON.stringify(combo[uids[0]])})`);
+  ok(combo[uids[1]] && combo[uids[1]].c === 4 && combo[uids[1]].m === 4, `THE COMBO: BOB's miss reset it — 3, then 4 (${JSON.stringify(combo[uids[1]])})`);
+  // THE AFTER-CHALLENGE SKIP: everyone taps READY → the next challenge comes long before the 8 s are up (never before 3 s)
+  const sk = await evalIn(host, s => ({ at: s.game.phaseStartAt, ends: s.game.phaseEndsAt }));
+  await all(alive(), i => pages[i].waitForSelector('.oc-next-btn', { timeout: 8000 }).then(() => pages[i].evaluate(() => document.querySelector('.oc-next-btn').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })))));
+  await waitPhase(host, 'ready', 1, 'the skip', 12000);
+  const skAt = await evalIn(host, s => s.game.phaseStartAt);
+  ok(skAt - sk.at >= 3000 && skAt < sk.ends - 1500, `THE SKIP: on after ${((skAt - sk.at) / 1000).toFixed(1)} s (max ${((sk.ends - sk.at) / 1000).toFixed(0)} s, never before 3 s)`);
 
   // ---------------- 2. TIMELINE (+ the host's phone dies mid-challenge)
   await waitPhase(pages[1], 'ready', 1, 'timeline ready');

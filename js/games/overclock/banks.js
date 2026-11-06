@@ -1,8 +1,7 @@
-// OVERCLOCK content banks (LEXICON letter sets, TIMELINE sets, CLOSEST CALL questions, MISSING LINK puzzles,
+// OVERCLOCK content banks (TIMELINE sets, CLOSEST CALL questions, MISSING LINK puzzles,
 // SPELLCHECK words, MAKE 24 tile sets, SORT IT category pairs, HIGHER OR LOWER stats), fetched once —
 // only when a match's order actually includes that challenge.
 const FILES = {
-  lexicon: ['lexicon.json', 'sets'],
   timeline: ['timeline.json', 'sets'],
   closest: ['closest.json', 'questions'],
   missinglink: ['missinglink.json', 'puzzles'],

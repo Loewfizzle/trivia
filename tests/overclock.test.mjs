@@ -13,7 +13,6 @@ import { setFallbackRows } from '../js/trivia/bank.js';
 for (const n of [5, 6, 7]) setLists(n, JSON.parse(readFileSync(`data/words/answers-${n}.json`, 'utf8')), JSON.parse(readFileSync(`data/words/valid-${n}.json`, 'utf8')));
 setFallbackRows(JSON.parse(readFileSync('data/trivia/fallback.json', 'utf8')).questions);
 const BANKS = {
-  lexicon: JSON.parse(readFileSync('data/oc/lexicon.json', 'utf8')).sets,
   timeline: JSON.parse(readFileSync('data/oc/timeline.json', 'utf8')).sets,
   closest: JSON.parse(readFileSync('data/oc/closest.json', 'utf8')).questions,
   missinglink: JSON.parse(readFileSync('data/oc/missinglink.json', 'utf8')).puzzles,
@@ -73,9 +72,9 @@ test('unscramble accepts the word or another valid anagram, nothing else', () =>
   assert.ok(!unscrambleAccepts('aelst', 'stale', isValidGuess), 'not a word');
 });
 
-test('order: no repeats — all different types up to 20; Marathon at most twice each, never back to back, spread out', () => {
-  assert.equal(TYPES.length, 20);
-  for (const total of [3, 6, 12, 14, 20]) {
+test('order: no repeats — all different types up to 19; Marathon at most twice each, never back to back, spread out', () => {
+  assert.equal(TYPES.length, 19, 'twenty minus LEXICON (OC1) — DUMB LUCK comes in OC5');
+  for (const total of [3, 6, 12, 14, 19]) {
     for (let s = 0; s < 300; s++) {
       const o = buildOrder(`seed${s}:${total}`, total);
       assert.equal(o.length, total);
@@ -92,7 +91,7 @@ test('order: no repeats — all different types up to 20; Marathon at most twice
     const count = {};
     o.forEach(t => { count[t] = (count[t] || 0) + 1; });
     assert.ok(Object.values(count).every(n => n <= 2), 'at most twice');
-    assert.equal(Object.keys(count).length, 20, 'every type shows up in a Marathon');
+    assert.equal(Object.keys(count).length, 19, 'every type shows up in a Marathon');
     for (let i = 1; i < o.length; i++) assert.notEqual(o[i], o[i - 1], 'never back to back');
     for (const t of Object.keys(count)) {
       const at = o.map((x, k) => (x === t ? k : -1)).filter(k => k >= 0);
@@ -101,7 +100,7 @@ test('order: no repeats — all different types up to 20; Marathon at most twice
     assert.ok(count.trivia <= 2, 'trivia is just another type now');
   }
   assert.ok(seenFirst.size >= 12, 'the opener varies');
-  // standard: 12 different types of 20, trivia at most once
+  // standard: 12 different types of 19, trivia at most once
   for (let s = 0; s < 300; s++) assert.ok(buildOrder(`std${s}`, MODES.standard).filter(t => t === 'trivia').length <= 1);
 });
 

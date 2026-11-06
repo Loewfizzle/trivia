@@ -534,6 +534,9 @@ body.bd-on .help-btn, body.help-open .help-btn { display: none; }
 .set-mood .set-mood-seg { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; justify-self: stretch; }
 .set-mood .set-mood-seg .seg-btn { min-height: 44px; padding: 0 4px; font-size: 14px; letter-spacing: 0.04em; white-space: nowrap; }
 .set-hint { font-size: 11px; letter-spacing: 0.08em; color: var(--text-faint); }
+/* THE GAME LOOK while a one-look game is on screen (OC1 — cartridge.js#lookLockOf): the look it plays in, LOCKED, + the line why */
+.set-look.is-locked .set-look-lock { font-family: var(--font-ui); font-size: 14px; letter-spacing: 0.12em; color: var(--text-dim); }
+.set-look.is-locked .set-look-note { grid-column: 1 / -1; margin-top: -6px; }
 .set-val { font-family: var(--font-num); font-weight: 700; font-size: 16px; color: var(--accent); font-variant-numeric: tabular-nums; }
 .set-toggle { grid-template-columns: 1fr auto; min-height: 44px; }
 .set-room { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 0; border-top: 1px solid var(--line); }

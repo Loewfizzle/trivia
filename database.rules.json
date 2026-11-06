@@ -287,6 +287,43 @@
             }
           }
         },
+        "ocm": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
+          "$match": {
+            "$c": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'overclock' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/ck').val() === $c && root.child('rooms/' + $code + '/game/phase').val() === 'play' && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists()",
+                ".validate": "newData.hasChildren(['s', 'at'])",
+                "s": {
+                  ".validate": "newData.isString() && newData.val().matches(/^[01h-]{0,24}$/)"
+                },
+                "at": {
+                  ".validate": "newData.isNumber() && newData.val() === now"
+                },
+                "$other": {
+                  ".validate": false
+                }
+              }
+            }
+          }
+        },
+        "ocnext": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
+          "$match": {
+            "$c": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'overclock' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/ck').val() === $c && root.child('rooms/' + $code + '/game/phase').val() === 'standings' && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists()",
+                ".validate": "newData.hasChildren(['at'])",
+                "at": {
+                  ".validate": "newData.isNumber() && newData.val() === now"
+                },
+                "$other": {
+                  ".validate": false
+                }
+              }
+            }
+          }
+        },
         "lies": {
           ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
           "$match": {

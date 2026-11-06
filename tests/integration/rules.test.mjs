@@ -573,6 +573,31 @@ test('overclock progress: own board during play, consistent counts, locked once 
   await assertSucceeds(update(ref(db('host'), R), { oc: null }));
 });
 
+test('overclock OC1: the combo marks during play + the READY tap after a challenge — your own, this challenge, its phase only', async () => {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.status = 'playing';
+  r.rooms[CODE].game = { id: 'overclock', matchId: 'm3', ci: 2, ck: '2', phase: 'play', participants: { host: true, p2: true } };
+  await seed(r);
+  const mk = s => ({ s, at: serverTimestamp() });
+  await assertSucceeds(set(ref(db('p2'), `${R}/ocm/m3/2/p2`), mk('110h-')), 'marks: 1 0 h -');
+  await assertSucceeds(set(ref(db('p2'), `${R}/ocm/m3/2/p2`), mk('1101')), 'rewritten as the challenge goes');
+  await assertFails(set(ref(db('p2'), `${R}/ocm/m3/2/p2`), mk('12')), 'only 1 0 h -');
+  await assertFails(set(ref(db('p2'), `${R}/ocm/m3/2/p2`), mk('1'.repeat(25))), '24 at most');
+  await assertFails(set(ref(db('p2'), `${R}/ocm/m3/2/p2`), { s: '1', at: 5 }), 'the server\'s now');
+  await assertFails(set(ref(db('p2'), `${R}/ocm/m3/2/p2`), { ...mk('1'), x: 1 }), 'nothing else');
+  await assertFails(set(ref(db('p2'), `${R}/ocm/m3/2/host`), mk('1')), 'not someone else\'s');
+  await assertFails(set(ref(db('p2'), `${R}/ocm/m3/1/p2`), mk('1')), 'not an old challenge');
+  await assertFails(set(ref(db('p2'), `${R}/ocnext/m3/2/p2`), { at: serverTimestamp() }), 'READY only after the challenge');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'standings'));
+  await assertFails(set(ref(db('p2'), `${R}/ocm/m3/2/p2`), mk('1')), 'marks close with the challenge');
+  await assertSucceeds(set(ref(db('p2'), `${R}/ocnext/m3/2/p2`), { at: serverTimestamp() }), 'READY');
+  await assertFails(set(ref(db('p2'), `${R}/ocnext/m3/2/host`), { at: serverTimestamp() }), 'not for someone else');
+  await assertFails(set(ref(db('p2'), `${R}/ocnext/m3/2/p2`), { at: serverTimestamp(), x: 1 }), 'nothing else');
+  await assertFails(set(ref(db('p2'), `${R}/ocnext/m3/1/p2`), { at: serverTimestamp() }), 'not an old screen');
+  await assertFails(update(ref(db('p2'), R), { ocnext: null }), 'a guest never clears it');
+  await assertSucceeds(update(ref(db('host'), R), { ocm: null, ocnext: null }), 'the host clears both');
+});
+
 // ---------- Stage 3: NEURAL BLUFF + game night ----------
 function bluffRoom(phase) {
   const r = lobbyRoom();

@@ -82,7 +82,7 @@ function revealHL(spec, game, boards, uids, ctx) {
 
 const REVEAL = { missinglink: revealLink, spellcheck: revealSpell, make24: revealM24, compass: revealCompass, sortit: revealSort, higherlower: revealHL };
 /** Challenge types that show a reveal panel above the leaderboard. */
-export const hasReveal = type => !!REVEAL[type] || ['lexicon', 'timeline', 'closest', 'unscramble'].includes(type);
+export const hasReveal = type => !!REVEAL[type] || ['timeline', 'closest', 'unscramble'].includes(type);
 
 /**
  * The reveal above the leaderboard: the answers, best words, the right order, the number line…
@@ -100,16 +100,6 @@ export function buildReveal(game, spec, ctx) {
       h('div.rv-kicker', 'THE WORD WAS',
         h('div.rv-best', h('b', spec.word.toUpperCase()), h('small', `FROM ${spec.letters.join('').toUpperCase()}`))),
       h('div.rv-us-count', h('b', `${solved}/${uids.length}`), solved === 1 ? ' PLAYER CRACKED IT' : ' PLAYERS CRACKED IT'));
-  }
-  if (type === 'lexicon') {
-    const rows = uids.map(uid => ({ uid, w: (boards[uid] && boards[uid].w) || '' })).sort((a, b) => b.w.length - a.w.length);
-    return h('section.rv.rv-lex',
-      h('div.rv-kicker', 'LONGEST POSSIBLE', h('div.rv-best', spec.best.map(w => h('b', w.toUpperCase())), h('small', `${spec.max} LETTERS`))),
-      h('div.rv-words', rows.map((r, k) => {
-        const p = player(r.uid);
-        return h('div.rv-word', { class: r.w.length === spec.max ? 'is-max' : null, style: { '--c': colorHex(p.color), animationDelay: `${300 + k * 90}ms` } },
-          h('span.rv-name', p.name), h('span.rv-w', r.w ? r.w.toUpperCase() : '—'), h('small', r.w ? String(r.w.length) : ''));
-      })));
   }
   if (type === 'timeline') {
     return h('section.rv.rv-tl',

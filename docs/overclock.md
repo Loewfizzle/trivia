@@ -1,7 +1,6 @@
 # OVERCLOCK — the game's doc (the OVERDRIVE rebuild)
 
-The approved design plan from the Overclock chat (copied in at OC1's Step 0, Nov 5 2026 — `Downloads
-eon\overclock\OVERCLOCK-PLAN.md`).
+The approved design plan from the Overclock chat (copied in at OC1's Step 0, Nov 5 2026 — `Downloads/neon/overclock/OVERCLOCK-PLAN.md`).
 Each pass appends its decisions + its pass log at the bottom (## Pass log). Code: `js/games/overclock/` (meta.js = the thin meta,
 index.js = the cartridge, logic.js + director.js = the pure rules, challenges.js = the deterministic generators, view.js + ui/*.js =
 the screens, reveals.js = the panels after a challenge); the shared pieces in `js/games/kit/` (docs/cartridge.md). The rebuild runs in

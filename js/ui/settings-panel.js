@@ -15,6 +15,8 @@ import { openSheet } from './sheet.js';
 import { loadProfile } from '../identity.js';
 import { MOOD_CHOICES, MOOD_LABEL, moodNow } from '../audio/mood.js';
 import { musicNeedsRescue } from '../audio/music.js';
+import { metaOf } from '../games/registry.js';
+import { lookLockOf } from '../games/cartridge.js';
 
 const GEAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 
@@ -79,6 +81,16 @@ function chatHostRows() {
 // word, CREDITS last. The menu's rows (LEAVE ROOM, QUIT, END GAME, HOW TO PLAY) live in the ☰ menu only.
 /** THE GAME LOOK (games/kit/look.js — lazy: the row fills in once the tiny module is in; AUTO until then) */
 function gameLookRow() {
+  // (OC1 — THE LOOKS: a game with ONE look plays in it whatever this says — while it's on screen the row says LOCKED + why, never hidden)
+  const g = state.game, on = !!(g && state.meta && state.meta.status === 'playing' && state.quit !== g.matchId);
+  const lock = on ? lookLockOf(metaOf(g.id)) : null;
+  if (lock) {
+    const name = (GAMES.find(x => x.id === g.id) || {}).name || 'THIS GAME';
+    return h('div.set-row.set-seg.set-look.is-locked',
+      h('span.label', 'GAME LOOK'),
+      h('span.set-val.set-look-lock', `${lock.toUpperCase()} · LOCKED`),
+      h('span.set-hint.set-look-note', `${name} plays at ${lock}`));
+  }
   const el = h('div.set-row.set-seg.set-look', h('span.label', 'GAME LOOK'));
   import('../games/kit/look.js').then(LK => {
     el.append(segmented(LK.LOOKS.map(v => ({ value: v, label: LK.LOOK_LABEL[v] })), LK.currentLook(), v => LK.saveLook(v)));

@@ -122,7 +122,6 @@ const RULES = {
         'SIGNAL LOCK — wait for the flash, then tap as fast as you can. Too early is a miss.',
         'QUICK COUNT — shapes flash, then vanish. How many of one kind? Off by one earns half.',
         'TRUE OR FALSE — rapid math and facts. Wrong answers cost points.',
-        'LEXICON — nine letters: build words. Only your longest one counts.',
         'TIMELINE — tap four items into order (oldest → newest, smallest → biggest…).',
         'CLOSEST CALL — estimate a number. Closer = more points; the closest player gets +60.',
         'REWIRE — rotate tiles to route power from the source to the core. Two circuits.',

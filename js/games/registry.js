@@ -68,4 +68,4 @@ export function liveKeyFor(game) {
 }
 
 // Every player-writable node any game uses; wiped when a match starts or ends.
-export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes', 'pulse', 'golf', 'agclue', 'agready', 'agpin', 'agvote', 'agguess', 'prism', 'prismq', 'prismcall', 'slip', 'slipcall', 'glready', 'glshot', 'glres', 'glcall', 'hslock', 'rrpub'];
+export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'ocm', 'ocnext', 'lies', 'votes', 'pulse', 'golf', 'agclue', 'agready', 'agpin', 'agvote', 'agguess', 'prism', 'prismq', 'prismcall', 'slip', 'slipcall', 'glready', 'glshot', 'glres', 'glcall', 'hslock', 'rrpub'];

@@ -318,17 +318,6 @@ async function solve(page, spec, { mistakes = false } = {}) {
       await clickSel(page, `.qc-opt[data-v="${v}"]`);
       await sleep(1000);
     }
-  } else if (t === 'lexicon') {
-    // (mistakes: settle for a shorter word)
-    const word = mistakes ? spec.words.filter(w => w.length < spec.max).sort((a, b) => b.length - a.length)[0] : spec.best[0];
-    await page.waitForSelector('.lx-tile', { timeout: 5000 });
-    await page.evaluate(w => {
-      for (const ch of w) {
-        const b = [...document.querySelectorAll('.lx-tile')].find(x => !x.disabled && x.textContent.toLowerCase() === ch);
-        b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
-      }
-      document.querySelector('.lx-go').click();
-    }, word);
   } else if (t === 'timeline') {
     await page.waitForSelector('.tm-item', { timeout: 5000 });
     const order = [0, 1, 2, 3].map(pos => spec.shown.indexOf(pos));

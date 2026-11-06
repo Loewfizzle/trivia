@@ -13,6 +13,7 @@ import { resumeSession, armPresence, roomExists } from './room.js';
 import { startHostLoop } from './host.js';
 import { keepAwake } from './wakelock.js';
 import { GAME_MODULES, GAME_IDS, loadGame, metaOf } from './games/registry.js';
+import { lookLockOf } from './games/cartridge.js';
 import { createTitle, harborReady, harborPending, harborRemote } from './screens/title.js';
 import { createSetup } from './screens/setup.js';
 import { installAudio } from './audio/engine.js';
@@ -32,7 +33,7 @@ import { startShow } from './core/room-show.js';
 import { debugTool, onDebugTools } from './ui/debug-tools.js';
 // (SHELL 2.0 B1: declared before anything can render — routeKey / paintLook run from the first render on; B2: + paintLook's + paintCrew's)
 const wanting = new Set();
-let lookMod = null, lookSun = null, lookSunAt = -1e9, lookOnNow = false, lookHooked = false;
+let lookMod = null, lookSun = null, lookSunAt = -1e9, lookOnNow = false, lookHooked = false, lookLock = null;
 let radioGate = null, crewSeen;
 
 // THE BOARD and the profile load only when opened (they're behind the title's buttons)
@@ -81,18 +82,22 @@ function routeKey(st) {
 // THE GAME LOOK on the body (SHELL 2.0 B2 — games/kit/look.js): EVERY match on screen (solo or not — it only changes this screen) wears this
 // device's choice from ☰ → Settings, resolved LIVE: a change mid-game re-themes at once ('ns-look'); AUTO follows the real sun (re-read each
 // minute). Games READ body[data-look]; nothing outside a match.
+// (OC1 — THE LOOKS: a game with ONE look — cartridge.js#lookLockOf, its meta's LOOKS — ALWAYS plays in it, whatever the setting says)
 function paintLook(st) {
   const g = st.game;
   lookOnNow = !!(g && st.meta && st.meta.status === 'playing' && st.quit !== g.matchId);
-  if (!lookOnNow) { if (document.body.dataset.look) delete document.body.dataset.look; return; }
+  if (!lookOnNow) { lookLock = null; if (document.body.dataset.look) delete document.body.dataset.look; return; }
+  lookLock = lookLockOf(metaOf(g.id));
+  if (lookLock) { if (document.body.dataset.look !== lookLock) document.body.dataset.look = lookLock; return; }
   applyLook();
 }
 async function applyLook() {
   if (!lookMod) { try { lookMod = await import('./games/kit/look.js'); } catch { return; } }
   if (!lookHooked) { lookHooked = true; window.addEventListener(lookMod.LOOK_EVENT, () => { if (lookOnNow) applyLook(); }); setInterval(() => { if (lookOnNow) applyLook(); }, 60000); }
+  if (lookLock) return;
   const choice = lookMod.currentLook();
   if (choice === 'auto' && performance.now() - lookSunAt > 55000) { lookSunAt = performance.now(); lookSun = await lookMod.sunUpNow(serverNow()); }
-  if (!lookOnNow) return;
+  if (!lookOnNow || lookLock) return;
   const v = lookMod.resolveLook(choice, lookSun !== false);
   if (document.body.dataset.look !== v) document.body.dataset.look = v;
 }

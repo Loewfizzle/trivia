@@ -43,7 +43,8 @@ console's podium rise. **The results rows** (every `leaderboard()` — the podiu
   multiplayer match too — it only changes your own screen), **NO LOCK**: a change mid-game re-themes your screen at once. While ANY match
   is on screen the console sets `body[data-look="day" | "night"]` (app.js#paintLook — the `ns-look` event + a minute's sun re-read). A game
   draws NO switch of its own: it READS the look LIVE (`body[data-look="day"] .xx-…` in its css; `document.body.dataset.look` in a canvas,
-  re-read each frame or on the `ns-look` event).
+  re-read each frame or on the `ns-look` event). **A ONE-LOOK GAME** (OC1 — its meta's `LOOKS: ['night']`, OVERCLOCK) is painted in that
+  look whatever the setting says, and the setting row says `NIGHT · LOCKED` while it's on screen (docs/cartridge.md `LOOKS`).
 - **COLOUR-BLIND**: right + close are the shared tokens `--good` (green) and `--close` (gold) from css/base.css — EVERY game reads them,
   never its own greens / golds for right / close. SETTINGS → "Colour-blind colours" (per device + on the profile — `ui/colorblind.js`)
   sets `body[data-cb]`, which swaps them to BLUE + ORANGE. **Right / close are never shown by colour alone**: a shape or a mark too

@@ -229,15 +229,11 @@ async function playOverclock(pages) {
   for (let ci = 0; ci < total; ci++) {
     await waitFor(host, (s, m, want) => s.game && s.game.ci === want && s.game.phase === 'play', `oc ${ci} play`, 40000, ci);
     await sleep(300);
-    const spec = await evalIn(host, async (s, m) => {
-      await m.words.loadLengths([5, 6, 7]);
-      const g = s.game; const type = g.order[g.ci];
-      const deps = { answersFor: m.words.answersFor };
-      if (type === 'trivia') deps.triviaItems = [0, 1, 2].map(i => m.feed.decodeQuestion(g, s.code, g.tq[g.ci] + i));
-      return m.ch.generate(type, { seed: g.seed, ci: g.ci, level: m.ocl.levelOf(g.ci, g.total) }, deps);
-    });
+    // (OC1: the challenge each phone actually built — its test hook, ?emu — never a copy of generate() here: the banks, the night's deal
+    //  and the word lists all feed it, and a second copy went stale once already)
+    const specOf = p => p.waitForFunction(() => window.__oc && window.__oc.spec(), { timeout: 15000 }).then(() => p.evaluate(() => window.__oc.spec()));
     if (ci === 0) { const f = await sampleFps(host); perf.overclock = { ...(perf.overclock || {}), ...f }; }
-    await all(pages, (p, i) => (i === 7 && ci % 2 ? Promise.resolve() : solveOC(p, spec)));
+    await all(pages, (p, i) => (i === 7 && ci % 2 ? Promise.resolve() : specOf(p).then(spec => solveOC(p, spec))));
     await waitFor(host, (s, m, want) => !(s.game.ci === want && s.game.phase === 'play'), `oc ${ci} closes`, 45000, ci);
   }
   await waitFor(host, s => s.game.phase === 'final', 'oc final', 30000);

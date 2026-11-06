@@ -1,20 +1,28 @@
 // OVERCLOCK — authority state machine (pure).
 // Phases: ready (rules card the first time a type appears) -> play (30 s) -> standings -> ready … -> final
-import { READY_MS, BRIEF_MS, CHALLENGE_MS, FINAL_MS, PLAY_GRACE_MS, MODES, buildOrder, computeResults, standingsMs } from './logic.js';
+import { READY_MS, BRIEF_MS, CHALLENGE_MS, FINAL_MS, PLAY_GRACE_MS, SKIP_MIN_MS, MODES, buildOrder, computeResults, standingsMs, comboFold, marksFor } from './logic.js';
+import { partsFor } from './challenges.js';
+import { keysAt } from './deal.js';
+import { markUsed } from '../kit/night.js';
+import { readyState } from '../kit/ready.js';
 
 const TRIVIA_WAIT_MS = 2500;
 
-export function createGame({ matchId, settings, participants, now, seed, bank, trivia }) {
-  const total = MODES[settings.mode] || MODES.standard;
-  const order = buildOrder(seed, total);
-  const first = order[0];
+/**
+ * order: the match's challenges (default: buildOrder from the seed + `played`, the types this room played tonight);
+ * deal / dk: THE ROOM's NIGHT MEMORY's deal (deal.js#dealMatch — the items each challenge shows + their keys).
+ */
+export function createGame({ matchId, settings, participants, now, seed, bank, trivia, order = null, played = [], deal = null, dk = null }) {
+  const total = MODES[settings.mode] || MODES.quick;
+  const ord = Array.isArray(order) && order.length === total ? order : buildOrder(seed, total, played);
+  const first = ord[0];
   const game = {
     id: 'overclock',
     matchId,
     settings,
     seed,
     total,
-    order,
+    order: ord,
     participants,
     ci: 0,
     ck: '0',
@@ -28,13 +36,27 @@ export function createGame({ matchId, settings, participants, now, seed, bank, t
     bank,
     trivia,
   };
+  if (deal && Object.keys(deal).length) game.deal = deal;
+  if (dk && Object.keys(dk).length) game.dk = dk;
   if (first === 'trivia') { game.tq = { 0: 0 }; game.tUsed = 3; }
   return game;
 }
 
 export const triviaNeeded = game => game.order.filter(t => t === 'trivia').length * 3;
 
-/** ctx: { now, boards, online, fallback(n) -> patch|null } */
+/** the combo after challenge ci closes, for every participant ({ uid: { c, m } }) */
+export function comboAfter(game, ctx) {
+  const type = game.order[game.ci];
+  const parts = partsFor(type, game.total <= 1 ? 0 : game.ci / (game.total - 1));
+  const out = {};
+  for (const uid of Object.keys(game.participants || {})) {
+    const prev = (game.combo && game.combo[uid]) || { c: 0, m: 0 };
+    out[uid] = comboFold(prev, marksFor(type, ctx.marks && ctx.marks[uid], ctx.boards && ctx.boards[uid], parts));
+  }
+  return out;
+}
+
+/** ctx: { now, boards, online, marks?, next?, fallback(n) -> patch|null } — marks = this challenge's combo marks, next = the after-challenge taps */
 export function nextStep(game, ctx) {
   if (!game || game.id !== 'overclock') return null;
   const { now } = ctx;
@@ -44,14 +66,15 @@ export function nextStep(game, ctx) {
   switch (game.phase) {
     case 'ready': {
       if (now < ends) return null;
-      const play = { phase: 'play', phaseStartAt: now, playStartAt: now, phaseEndsAt: now + CHALLENGE_MS };
+      // THE ROOM's NIGHT MEMORY: the challenge going live marks its type + its dealt items for the rest of the night (kit/night.js)
+      const play = { phase: 'play', phaseStartAt: now, playStartAt: now, phaseEndsAt: now + CHALLENGE_MS, $room: markUsed('overclock', keysAt(game, game.ci)) };
       if (type === 'trivia') {
         const need = (game.tq && game.tq[game.ci]) + 3;
         const have = (game.trivia && game.trivia.n) || 0;
         if (have < need) {
           if (now < ends + TRIVIA_WAIT_MS) return null;
           const patch = ctx.fallback(need - have);
-          return patch ? { ...patch, ...play } : null;
+          return patch ? { ...patch, ...play, $room: { ...(patch.$room || {}), ...play.$room } } : null;
         }
       }
       return play;
@@ -62,15 +85,21 @@ export function nextStep(game, ctx) {
       const allDone = active.length > 0 && active.every(u => ctx.boards && ctx.boards[u] && ctx.boards[u].done);
       if (!allDone && now < ends + PLAY_GRACE_MS) return null;
       const last = game.ci >= game.total - 1;
-      return {
+      const patch = {
         phase: last ? 'final' : 'standings',
         phaseStartAt: now,
         phaseEndsAt: now + (last ? FINAL_MS : standingsMs(type)),
         [`results/${game.ci}`]: computeResults(game, ctx.boards || {}),
       };
+      for (const [uid, v] of Object.entries(comboAfter(game, ctx))) patch[`combo/${uid}`] = v;
+      return patch;
     }
     case 'standings': {
-      if (now < ends) return null;
+      // THE AFTER-CHALLENGE SKIP: the full time, or — once SKIP_MIN_MS has shown the answer — every CONNECTED participant has tapped
+      if (now < ends) {
+        const r = readyState({ taps: ctx.next || {}, players: game.participants || {}, online: ctx.online || {}, since: game.phaseStartAt || 0, now, minMs: SKIP_MIN_MS });
+        if (!(r.ready && r.why === 'all')) return null;
+      }
       const ci = game.ci + 1;
       const next = game.order[ci];
       const brief = !(game.seen && game.seen[next]);

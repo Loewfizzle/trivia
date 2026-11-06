@@ -24,7 +24,6 @@ import uiStroop from './ui/stroop.js';
 import uiReflex from './ui/reflex.js';
 import uiCount from './ui/count.js';
 import uiTrueFalse from './ui/truefalse.js';
-import uiLexicon from './ui/lexicon.js';
 import uiTimeline from './ui/timeline.js';
 import uiClosest from './ui/closest.js';
 import uiRewire from './ui/rewire.js';
@@ -35,7 +34,7 @@ import uiCompass from './ui/compass.js';
 import uiSortIt from './ui/sortit.js';
 import uiHigherLower from './ui/higherlower.js';
 import { bankFor, loadBank, preloadFor, BANK_TYPES } from './banks.js';
-import { CHALLENGE_MS, OVERALL_STAGE_MS, levelOf, totals, standings } from './logic.js';
+import { CHALLENGE_MS, OVERALL_STAGE_MS, SKIP_MIN_MS, COMBO_NEUTRAL, levelOf, totals, standings } from './logic.js';
 
 
 
@@ -44,7 +43,7 @@ const GHOST = { name: 'GHOST', color: 'yellow', avatar: 'ghost' };
 const SCREENS = {
   unscramble: uiUnscramble, memory: uiMemory, oddone: uiOddOne, math: uiNumeric, pattern: uiNumeric, trivia: uiTrivia,
   stroop: uiStroop, reflex: uiReflex, count: uiCount, truefalse: uiTrueFalse,
-  lexicon: uiLexicon, timeline: uiTimeline, closest: uiClosest, rewire: uiRewire,
+  timeline: uiTimeline, closest: uiClosest, rewire: uiRewire,
   missinglink: uiMissingLink, spellcheck: uiSpellcheck, make24: uiMake24, compass: uiCompass, sortit: uiSortIt, higherlower: uiHigherLower,
 };
 
@@ -227,7 +226,9 @@ export function createView() {
       if (!deps[type]) { loadBank(type).then(() => { if (st) update(st); }).catch(() => {}); return null; }
     }
     const occ = game.order.slice(0, game.ci).filter(t => t === type).length;
-    return generate(type, { seed: game.seed, ci: game.ci, level: levelOf(game.ci, game.total), occ }, deps);
+    // THE ROOM's NIGHT MEMORY (deal.js): the host dealt this challenge's items at the start — every phone builds the same one from it
+    const deal = (game.deal && game.deal[game.ci]) || null;
+    return generate(type, { seed: game.seed, ci: game.ci, level: levelOf(game.ci, game.total), occ, deal }, deps);
   }
 
   // Progress API shared by all challenge UIs. result: true / false, or partial credit 0..1
@@ -265,6 +266,17 @@ export function createView() {
     const w = { [`rooms/${st.code}/${path}`]: data };
     if (chal.extra && Object.keys(chal.extra).length) w[`seal/${st.code}/${path}`] = { ...chal.extra, at: serverTimestamp() };
     dbUpdate(dbRef(), w).catch(() => toast('TOO LATE — CHALLENGE CLOSED', 'err'));
+    // THE COMBO's marks (logic.js#comboFold) — its OWN write: on rules older than OC1 it's refused alone, the board above still lands
+    const s = marksString();
+    if (s) dbUpdate(dbRef(`rooms/${st.code}/ocm/${game.matchId}/${game.ci}/${me()}`), { s, at: serverTimestamp() }).catch(() => {});
+  }
+  /** this challenge's answers so far as combo marks: '1' right · '0' wrong · 'h' half · '-' a challenge with no right or wrong */
+  function marksString() {
+    if (!chal || !chal.p) return '';
+    if (COMBO_NEUTRAL.has(chal.spec.type)) return '-'.repeat(Math.min(24, chal.p));
+    let s = '';
+    for (let i = 0; i < Math.min(24, chal.p); i++) s += chal.marks[i] === 'ok' ? '1' : chal.marks[i] === 'half' ? 'h' : '0';
+    return s;
   }
 
   function showDone() {
@@ -287,13 +299,12 @@ export function createView() {
       if (perfect) sfx('solve');
       return;
     }
-    if (t === 'closest' || t === 'lexicon' || t === 'timeline' || t === 'rewire') {
+    if (t === 'closest' || t === 'timeline' || t === 'rewire') {
       // (Closest Call never shows how close you were until the reveal)
       const line = t === 'closest' ? [h('b', fmtVal(chal.extra.g ?? 0)), ` ${chal.spec.unit}`]
-        : t === 'lexicon' ? [h('b', (chal.extra.w || '—').toUpperCase()), ` · ${(chal.extra.w || '').length} letters`]
-          : t === 'timeline' ? [h('b', fmtOk(chal.ok)), ' / 4 in place']
+        : t === 'timeline' ? [h('b', fmtOk(chal.ok)), ' / 4 in place']
             : [h('b', String(Math.floor(chal.ok))), ' / 2 circuits'];
-      const top = t === 'closest' ? 'LOCKED IN' : perfect ? 'PERFECT' : t === 'lexicon' ? 'BEST WORD' : 'LOCKED IN';
+      const top = t === 'closest' ? 'LOCKED IN' : perfect ? 'PERFECT' : 'LOCKED IN';
       els.stage.append(h('div.oc-done', { class: perfect && t !== 'closest' ? 'is-perfect' : null },
         h('div.oc-done-mark', top), h('div.oc-done-score', ...line), h('div.oc-done-wait', 'WAITING FOR THE OTHERS…')));
       if (perfect && t !== 'closest') sfx('solve');
@@ -426,8 +437,40 @@ export function createView() {
     const panel = h('div.panel-full.oc-standings',
       reveal(game),
       roundBoard(game, rows),
-      next ? h('div.next-up', 'NEXT: ', h('b', INFO[next].name), game.ci + 1 === game.total - 1 ? ' · ×2 POINTS' : '') : null);
+      next ? h('div.next-up', 'NEXT: ', h('b', INFO[next].name), game.ci + 1 === game.total - 1 ? ' · ×2 POINTS' : '') : null,
+      participant(game) ? readyTap(game) : null);
     els.overlay.append(panel);
+  }
+
+  // THE AFTER-CHALLENGE SKIP (OC1 — director.js 'standings'): NEXT IN n + TAP WHEN READY. Everyone connected tapped (≥ SKIP_MIN_MS in) →
+  // the host moves on early; otherwise the full time runs. The tap is its own node (ocnext): refused on older rules = just no skip.
+  function readyTap(game) {
+    const m = game.matchId, ci = game.ci;
+    const left = h('b.oc-next-n', '');
+    const btn = h('button.oc-next-btn', { type: 'button', dataset: { sfx: 'none' } }, h('span.oc-next-l', 'TAP WHEN READY'), h('span.oc-next-c', 'NEXT IN ', left));
+    let sent = false;
+    const send = () => {
+      if (sent || !st.code) return;
+      sent = true;
+      btn.classList.add('is-sent');
+      btn.querySelector('.oc-next-l').textContent = 'READY ✓';
+      sfx('tick');
+      dbUpdate(dbRef(`rooms/${st.code}/ocnext/${m}/${ci}/${me()}`), { at: serverTimestamp() }).catch(() => {});
+    };
+    btn.addEventListener('pointerdown', e => { e.preventDefault(); send(); });
+    btn.addEventListener('click', e => { if (e.detail === 0) send(); });
+    const mine = st.live && st.live.next && st.live.next[me()];
+    if (mine) { sent = true; btn.classList.add('is-sent'); btn.querySelector('.oc-next-l').textContent = 'READY ✓'; }
+    let last = '';
+    const tick = () => {
+      if (!btn.isConnected) return;
+      const sec = String(Math.max(0, Math.ceil((game.phaseEndsAt - serverNow()) / 1000)));
+      if (sec !== last) { last = sec; left.textContent = sec; }
+      revealTimers.push(setTimeout(tick, 250));
+    };
+    tick();
+    btn.dataset.min = String(SKIP_MIN_MS);
+    return h('div.oc-next', btn);
   }
 
   // The round, then the race: one list of rows ranked by this challenge's points (bars, a crown on the round's winner),
@@ -514,7 +557,6 @@ export function createView() {
     const type = game.order[game.ci];
     b = b || {};
     if (type === 'reflex') return `REFLEX ${Math.round((100 * r.ok) / r.parts)}%`;
-    if (type === 'lexicon') return b.w ? `BEST: ${b.w.toUpperCase()}` : 'NO WORD';
     if (type === 'timeline') return `${fmtOk(r.ok)}/4 IN PLACE`;
     if (type === 'rewire') return `${Math.floor(r.ok)}/2 CIRCUITS`;
     if (type === 'missinglink') return `${fmtOk(r.ok)}/2 LINKED`;

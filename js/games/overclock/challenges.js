@@ -3,12 +3,12 @@
 // the challenge order needs to be stored in the room.
 import { rngFrom, randInt, pick, shuffle } from '../../core/rng.js';
 
-export const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'lexicon', 'timeline', 'closest', 'rewire',
+export const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'timeline', 'closest', 'rewire',
   'missinglink', 'spellcheck', 'make24', 'compass', 'sortit', 'higherlower'];
 
 // What kind of brain each challenge works — the match order spreads these out (logic.js#buildOrder).
 export const CATEGORY = {
-  unscramble: 'words', lexicon: 'words', missinglink: 'words', spellcheck: 'words',
+  unscramble: 'words', missinglink: 'words', spellcheck: 'words',
   math: 'numbers', pattern: 'numbers', rewire: 'numbers', make24: 'numbers',
   memory: 'memory', compass: 'memory',
   oddone: 'visual', count: 'visual',
@@ -27,7 +27,6 @@ export const INFO = {
   reflex: { name: 'SIGNAL LOCK', glyph: '◎', rules: ['Wait for the screen to flash.', 'Then tap as fast as you can. Too early counts as a miss.'] },
   count: { name: 'QUICK COUNT', glyph: '#', rules: ['Shapes flash for a moment, then vanish.', 'Count the one we ask for. Off by one earns half.'] },
   truefalse: { name: 'TRUE OR FALSE', glyph: '✓', rules: ['Rapid-fire statements: math and facts.', 'True or false? Wrong answers cost points.'] },
-  lexicon: { name: 'LEXICON', glyph: '⌗', rules: ['Nine letters. Tap them in order to build words, then submit.', 'Only your LONGEST word counts — the longest possible earns the speed bonus.'] },
   timeline: { name: 'TIMELINE', glyph: '↧', rules: ['Four items. Tap them in order, 1 to 4 — tap again to undo.', 'Points for every item in the right place. Submit when you’re sure.'] },
   closest: { name: 'CLOSEST CALL', glyph: '≈', rules: ['One question, one number. Type your best estimate.', 'The closer you are, the more you score. Closest in the room gets the bonus.'] },
   rewire: { name: 'REWIRE', glyph: '↯', rules: ['Tap tiles to rotate them and route power to the core.', 'Two circuits: a 3×3 warm-up, then a 4×4.'] },
@@ -44,7 +43,7 @@ export const memoryLength = level => 4 + Math.round(level * 4);
 // How many scorable parts a challenge has (host needs this without building it).
 export function partsFor(type, level) {
   return { unscramble: 1, memory: memoryLength(level), oddone: 3, math: 4, pattern: 2, trivia: 3, stroop: 8, reflex: 5, count: 4, truefalse: 8,
-    lexicon: LEXICON_PARTS, timeline: 4, closest: 1, rewire: 2,
+    timeline: 4, closest: 1, rewire: 2,
     missinglink: 2, spellcheck: 5, make24: 2, compass: 5, sortit: SORT_CARDS, higherlower: HL_PAIRS }[type] || 1;
 }
 
@@ -54,11 +53,12 @@ export const challengeRng = (seed, ci, type) => rngFrom(`${seed}:${ci}:${type}`)
 export function unscrambleLength(level) {
   return level < 0.34 ? 5 : level < 0.67 ? 6 : 7;
 }
-export function genUnscramble(rand, level, answersFor) {
+export function genUnscramble(rand, level, answersFor, deal) {
   const len = unscrambleLength(level);
   const words = answersFor(len);
   if (!words || !words.length) return null;
-  const word = pick(rand, words);
+  const drawn = pick(rand, words);
+  const word = dealt(deal, 0, words.length) ? words[deal[0]] : drawn;
   let letters = shuffle(rand, [...word]);
   for (let i = 0; i < 8 && letters.join('') === word; i++) letters = shuffle(rand, [...word]);
   return { type: 'unscramble', parts: 1, word, letters };
@@ -228,39 +228,33 @@ const TF_MATH = [
   (r, want) => { const a = randInt(r, 7, 15); return `${a}² = ${want ? a * a : a * a + pick(r, [-a, a, -1, 1])}`; },
   (r, want) => { const p = pick(r, [10, 20, 25, 50, 75]); const n = 20 * randInt(r, 2, 20); const v = (p * n) / 100; return `${p}% of ${n} = ${want ? v : v + pick(r, [-5, 5, -10, 10])}`; },
 ];
-export function genTrueFalse(rand) {
-  const facts = shuffle(rand, TF_FACTS.map((_, i) => i));
+export const TF_FACT_SLOTS = 4;   // statements 2, 4, 6, 8 are facts (the others math — generated, never repeat-checked)
+export function genTrueFalse(rand, deal) {
+  const shuffled = shuffle(rand, TF_FACTS.map((_, i) => i));
+  const facts = i => (dealt(deal, (i - 1) / 2, TF_FACTS.length) ? deal[(i - 1) / 2] : shuffled[i]);
   const items = [];
   for (let i = 0; i < 8; i++) {
     const truth = rand() < 0.5;
     if (i % 2 === 0) items.push({ text: pick(rand, TF_MATH)(rand, truth), truth });
-    else { const pair = TF_FACTS[facts[i]]; items.push({ text: truth ? pair[0] : pair[1], truth }); }
+    else { const pair = TF_FACTS[facts(i)]; items.push({ text: truth ? pair[0] : pair[1], truth }); }
   }
   return { type: 'truefalse', parts: 8, items };
 }
 
 // ---------- banks: a per-match shuffled deck per type, so a type that comes twice never repeats an entry ----------
+/** THE ROOM's NIGHT MEMORY (deal.js): a dealt index k of this challenge's deal, when it's there + in range */
+export const dealt = (deal, k, size) => Array.isArray(deal) && Number.isInteger(deal[k]) && deal[k] >= 0 && deal[k] < size;
+const bankAt = (deal, k, seed, type, occ, size) => (dealt(deal, k, size) ? deal[k] : bankIndex(seed, type, occ, size));
 export function bankIndex(seed, type, occ, size) {
   const deck = shuffle(rngFrom(`${seed}:${type}:deck`), Array.from({ length: size }, (_, i) => i));
   return deck[occ % size];
 }
 
-// ---------- lexicon ----------
-// Score: 6 parts. The longest possible word = 6/6; each letter shorter costs one part.
-export const LEXICON_PARTS = 6;
-export const lexiconOk = (best, max) => Math.max(0, Math.min(LEXICON_PARTS, LEXICON_PARTS - (max - best)));
-/** bank: data/oc/lexicon.json sets ([letters, max, "longest", "all words"]) */
-export function genLexicon(rand, level, bank, occ, seed) {
-  if (!bank || !bank.length) return null;
-  const [letters, max, best, all] = bank[bankIndex(seed, 'lexicon', occ, bank.length)];
-  return { type: 'lexicon', parts: LEXICON_PARTS, letters: shuffle(rand, [...letters]), max, best: best.split(' '), words: all.split(' ') };
-}
-
 // ---------- timeline ----------
 /** bank: data/oc/timeline.json sets ([title, ask, direction, [[item, shown] × 4 in order]]) */
-export function genTimeline(rand, level, bank, occ, seed) {
+export function genTimeline(rand, level, bank, occ, seed, deal) {
   if (!bank || !bank.length) return null;
-  const [title, ask, dir, items] = bank[bankIndex(seed, 'timeline', occ, bank.length)];
+  const [title, ask, dir, items] = bank[bankAt(deal, 0, seed, 'timeline', occ, bank.length)];
   let order = shuffle(rand, [0, 1, 2, 3]);
   for (let k = 0; k < 8 && order.every((v, i) => v === i); k++) order = shuffle(rand, [0, 1, 2, 3]); // never pre-solved
   // shown[i] = the correct position of the i-th item on screen
@@ -271,9 +265,9 @@ export const timelineCorrect = (spec, picks) => picks.reduce((n, shownIdx, pos) 
 
 // ---------- closest call ----------
 /** bank: data/oc/closest.json questions ([category, question, answer, unit]) */
-export function genClosest(rand, level, bank, occ, seed) {
+export function genClosest(rand, level, bank, occ, seed, deal) {
   if (!bank || !bank.length) return null;
-  const [cat, q, answer, unit] = bank[bankIndex(seed, 'closest', occ, bank.length)];
+  const [cat, q, answer, unit] = bank[bankAt(deal, 0, seed, 'closest', occ, bank.length)];
   return { type: 'closest', parts: 1, cat, q, answer, unit };
 }
 /** 0..1 from the relative error: within 5% = full marks, sliding smoothly (cosine) to 0 at 60% off. */
@@ -374,10 +368,10 @@ export const rewireOk = (solvedCount, reach) => Math.round((solvedCount + (solve
 
 // ---------- missing link ----------
 /** bank: data/oc/missinglink.json puzzles ([word, word, word, ANSWER, "OTHER|SPELLINGS" or ""]) */
-export function genMissingLink(rand, bank, occ, seed) {
+export function genMissingLink(rand, bank, occ, seed, deal) {
   if (!bank || !bank.length) return null;
   const puzzles = [0, 1].map(k => {
-    const [a, b, c, answer, alt] = bank[bankIndex(seed, 'missinglink', occ * 2 + k, bank.length)];
+    const [a, b, c, answer, alt] = bank[bankAt(deal, k, seed, 'missinglink', occ * 2 + k, bank.length)];
     return { words: shuffle(rand, [a, b, c]), answer, alt: alt ? alt.split('|') : [] };
   });
   return { type: 'missinglink', parts: 2, puzzles };
@@ -398,10 +392,10 @@ export function linkAccepts(guess, pz) {
 
 // ---------- spellcheck ----------
 /** bank: data/oc/spellcheck.json words ([correct, most common misspelling, wrong, wrong]) */
-export function genSpellcheck(rand, bank, occ, seed) {
+export function genSpellcheck(rand, bank, occ, seed, deal) {
   if (!bank || !bank.length) return null;
   const items = Array.from({ length: 5 }, (_, k) => {
-    const row = bank[bankIndex(seed, 'spellcheck', occ * 5 + k, bank.length)];
+    const row = bank[bankAt(deal, k, seed, 'spellcheck', occ * 5 + k, bank.length)];
     const order = shuffle(rand, [0, 1, 2, 3]);
     return { options: order.map(i => row[i]), ans: order.indexOf(0), word: row[0], common: row[1] };
   });
@@ -459,10 +453,11 @@ export function solve24(nums, target = 24) {
   return { count, intCount, expr: intExpr || expr };
 }
 /** bank: data/oc/make24.json { easy: [["1238", "solution"], …], hard: [...] } — every set verified by scripts/build-make24.mjs */
-export function genMake24(rand, bank) {
+export function genMake24(rand, bank, deal) {
   if (!bank || !bank.easy || !bank.hard) return null;
-  const one = list => { const [d, sol] = pick(rand, list); return { nums: shuffle(rand, [...d].map(Number)), sol }; };
-  return { type: 'make24', parts: 2, puzzles: [one(bank.easy), one(bank.hard)] };
+  // deal = [easy index, hard index] (the room's night memory); the rand stream is the same either way
+  const one = (list, k) => { const drawn = pick(rand, list); const [d, sol] = dealt(deal, k, list.length) ? list[deal[k]] : drawn; return { nums: shuffle(rand, [...d].map(Number)), sol }; };
+  return { type: 'make24', parts: 2, puzzles: [one(bank.easy, 0), one(bank.hard, 1)] };
 }
 
 // ---------- compass ----------
@@ -499,9 +494,9 @@ export const SORT_FULL = 10; // net correct sorts (right − ½ × wrong) that a
 export const sortWindowMs = i => Math.round(2600 - (1400 * Math.min(i, SORT_CARDS - 1)) / (SORT_CARDS - 1));
 export const sortOk = (right, wrong) => Math.max(0, Math.round((right - 0.5 * wrong) * 100) / 100);
 /** bank: data/oc/sortit.json sets ([left label, right label, [left items], [right items]]) */
-export function genSortIt(rand, bank, occ, seed) {
+export function genSortIt(rand, bank, occ, seed, deal) {
   if (!bank || !bank.length) return null;
-  const [left, right, L, R] = bank[bankIndex(seed, 'sortit', occ, bank.length)];
+  const [left, right, L, R] = bank[bankAt(deal, 0, seed, 'sortit', occ, bank.length)];
   const nl = randInt(rand, 5, 7);
   const pickCards = () => shuffle(rand, [
     ...shuffle(rand, L).slice(0, nl).map(t => ({ t, s: 0 })),
@@ -523,31 +518,48 @@ const hlClear = (unit, a, b) => (unit === 'year' ? Math.abs(a - b) >= 40 : Math.
  * bank: data/oc/higherlower.json stats ([stat, question, unit, 'max'|'min', [[item, value, "shown"?], …]]).
  * Ten pairs, each from one stat; the first few are clear-cut, later ones closer. ans = index of the winner.
  */
-export function genHigherLower(rand, bank) {
-  if (!bank || !bank.length) return null;
+export function hlPick(rand, bank, avoid = null) {
   const used = new Set();
-  const pairs = [];
+  const out = [];
   let last = -1;
   for (let k = 0; k < HL_PAIRS; k++) {
     let pair = null;
     for (let tries = 0; tries < 400 && !pair; tries++) {
       const si = randInt(rand, 0, bank.length - 1);
       if (si === last && tries < 300) continue;
-      const [stat, ask, unit, win, items] = bank[si];
+      const [, , unit, , items] = bank[si];
       const i = randInt(rand, 0, items.length - 1), j = randInt(rand, 0, items.length - 1);
       if (i === j || used.has(`${si}:${i}`) || used.has(`${si}:${j}`)) continue;
+      // THE ROOM's NIGHT MEMORY: an item this room saw tonight only once nothing fresh fits (a long night reshuffles, never stalls)
+      if (avoid && tries < 360 && (avoid(si, i) || avoid(si, j))) continue;
       const a = items[i][1], b = items[j][1];
       if (!hlFair(unit, a, b)) continue;
       const clear = hlClear(unit, a, b);
       if (tries < 300 && (k < 3 ? !clear : k >= 6 && clear)) continue;
       used.add(`${si}:${i}`); used.add(`${si}:${j}`);
       last = si;
-      const side = x => ({ name: x[0], v: x[1], shown: x[2] || null });
-      const ans = (win === 'max') === (a > b) ? 0 : 1;
-      pair = { stat, ask, unit, a: side(items[i]), b: side(items[j]), ans };
+      pair = [si, i, j];
     }
-    pairs.push(pair);
+    out.push(pair);
   }
+  return out;
+}
+/** [si, i, j] → the pair the screen shows (ans = index of the winner) */
+export function hlPair(bank, t) {
+  if (!t || !bank[t[0]]) return null;
+  const [stat, ask, unit, win, items] = bank[t[0]];
+  const A = items[t[1]], B = items[t[2]];
+  if (!A || !B) return null;
+  const side = x => ({ name: x[0], v: x[1], shown: x[2] || null });
+  return { stat, ask, unit, a: side(A), b: side(B), ans: (win === 'max') === (A[1] > B[1]) ? 0 : 1 };
+}
+export function genHigherLower(rand, bank, deal) {
+  if (!bank || !bank.length) return null;
+  // deal = the night's 10 pairs, flat [si, i, j, si, i, j, …] (deal.js); without one the challenge's own seeded draw
+  const flat = Array.isArray(deal) && deal.length === HL_PAIRS * 3 ? deal : null;
+  const triples = flat ? Array.from({ length: HL_PAIRS }, (_, k) => flat.slice(k * 3, k * 3 + 3)) : hlPick(rand, bank);
+  const pairs = triples.map(t => (t ? hlPair(bank, t) : null));
+  if (flat && pairs.some(p => !p)) return genHigherLower(rand, bank);   // a stale deal (the bank changed): the seeded draw
   return { type: 'higherlower', parts: HL_PAIRS, pairs };
 }
 
@@ -555,20 +567,20 @@ export function genHigherLower(rand, bank) {
 // deps: { answersFor(len) -> string[] | null, triviaItems: [3 decoded questions] | null }
 // Returns null if a dependency (word list / questions) isn't ready yet.
 // occ = how many times this type already came earlier in the match (bank challenges never repeat an entry).
-export function generate(type, { seed, ci, level, occ = 0 }, deps = {}) {
+// deal = this challenge's dealt items (game.deal[ci] — THE ROOM's NIGHT MEMORY, deal.js); absent = the seeded per-match deck (as before)
+export function generate(type, { seed, ci, level, occ = 0, deal = null }, deps = {}) {
   const rand = challengeRng(seed, ci, type);
   switch (type) {
-    case 'lexicon': return genLexicon(rand, level, deps.lexicon, occ, seed);
-    case 'timeline': return genTimeline(rand, level, deps.timeline, occ, seed);
-    case 'closest': return genClosest(rand, level, deps.closest, occ, seed);
+    case 'timeline': return genTimeline(rand, level, deps.timeline, occ, seed, deal);
+    case 'closest': return genClosest(rand, level, deps.closest, occ, seed, deal);
     case 'rewire': return genRewire(rand);
-    case 'missinglink': return genMissingLink(rand, deps.missinglink, occ, seed);
-    case 'spellcheck': return genSpellcheck(rand, deps.spellcheck, occ, seed);
-    case 'make24': return genMake24(rand, deps.make24);
+    case 'missinglink': return genMissingLink(rand, deps.missinglink, occ, seed, deal);
+    case 'spellcheck': return genSpellcheck(rand, deps.spellcheck, occ, seed, deal);
+    case 'make24': return genMake24(rand, deps.make24, deal);
     case 'compass': return genCompass(rand);
-    case 'sortit': return genSortIt(rand, deps.sortit, occ, seed);
-    case 'higherlower': return genHigherLower(rand, deps.higherlower);
-    case 'unscramble': return genUnscramble(rand, level, deps.answersFor || (() => null));
+    case 'sortit': return genSortIt(rand, deps.sortit, occ, seed, deal);
+    case 'higherlower': return genHigherLower(rand, deps.higherlower, deal);
+    case 'unscramble': return genUnscramble(rand, level, deps.answersFor || (() => null), deal);
     case 'memory': return genMemory(rand, level);
     case 'oddone': return genOddOne(rand, level);
     case 'math': return genMath(rand, level);
@@ -576,7 +588,7 @@ export function generate(type, { seed, ci, level, occ = 0 }, deps = {}) {
     case 'stroop': return genStroop(rand, level);
     case 'reflex': return genReflex(rand);
     case 'count': return genCount(rand, level);
-    case 'truefalse': return genTrueFalse(rand);
+    case 'truefalse': return genTrueFalse(rand, deal);
     case 'trivia': return deps.triviaItems && deps.triviaItems.length === 3 && deps.triviaItems.every(Boolean)
       ? { type: 'trivia', parts: 3, questions: deps.triviaItems } : null;
     default: return null;
