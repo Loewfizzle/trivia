@@ -118,6 +118,8 @@ export const ITEM_ROWS = [
   E('emb-bitcoin', '₿', 'epic', '₿', 'Twenty-one nights in a row. HODL.'),
   E('emb-prism', 'FOUR ON THE FLOOR', 'rare', '◆', 'Four lines at once.'),
   E('emb-bullseye', 'BULLSEYE', 'uncommon', '◎', 'Dead on.'),
+  // OC5 — THE HORSESHOE (OVERCLOCK's DUMB LUCK): its ART is THE LAB's (the city chat — not drawn yet: the placeholder glyph until then; no LAB row)
+  E('emb-horseshoe', 'HORSESHOE', 'uncommon', '∩', 'You backed the winning horse.'),
   E('emb-torch', 'THE FLAME', 'epic', '♨', 'Fifty nights in a row.'),
   E('emb-diamond', 'DIAMOND', 'common', '◇', 'Level 13.'),
   E('emb-crescent', 'CRESCENT', 'uncommon', '☾', 'Level 37.'),
@@ -207,6 +209,8 @@ export const ACH_ROWS = [
   // a phone sends): `sweep` = alone on top of every challenge of a QUICK match (≥ 2 players) · `photo` = the win alone by exactly one point
   A('redline', 'REDLINE', 'overclock', 'card-redline', 'Every challenge of a Quick match.', (s, p) => !!(p.gf && p.gf['overclock-sweep']), { game: 'overclock' }),
   A('photo-finish', 'PHOTO FINISH', 'overclock', 'card-photofinish', 'Won by a single point.', (s, p) => !!(p.gf && p.gf['overclock-photo']), { game: 'overclock' }),
+  // OC5 — `horseshoe` = backed the winner of a DUMB LUCK race (2+ players — the server replays the race from the room's record)
+  A('horseshoe', 'HORSESHOE', 'overclock', 'emb-horseshoe', 'Backed the winning horse.', (s, p) => !!(p.gf && p.gf['overclock-horseshoe']), { game: 'overclock' }),
 ];
 
 export const LEVEL_REWARD_ROWS = [

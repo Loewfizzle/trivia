@@ -211,6 +211,52 @@ test('unfinished, unknown or solo matches are not reportable; a total deadlock i
   assert.equal(T0 % 1000, 0);
 });
 
+// OC5 — THE HORSESHOE: `overclock-horseshoe` = backed the winning horse in a DUMB LUCK race (2+ players), the server REPLAYS the race from the
+// room's own record (game/dl/{ci}: the locked picks + the lock's ms → the draw; every result its payout) — never a client claim
+test('OVERCLOCK — THE HORSESHOE: a backed winner ✓ · a losing ticket ✗ · no ticket ✗ · a tampered record ✗ · solo never', async () => {
+  const L = await import('../js/games/overclock/luck.js');
+  const seed = 'hs-seed', ci = 2;
+  const field = L.dlField(seed, ci);
+  const race = (uids, pk, lk = 1_762_000_123_456) => {
+    const g = finalGame('overclock', uids, { mode: 'quick' });
+    g.seed = seed;
+    g.order = ['math', 'memory', 'dumbluck', 'stroop', 'count', 'trivia'];
+    g.dl = { [ci]: { pk, lk, w: L.dlDraw(seed, ci, field, pk, lk) } };
+    g.results[ci] = L.dlResults(g, ci, g.dl[ci]);
+    return g;
+  };
+  const flag = (ex, u) => !!(ex.rows[u] && ex.rows[u].f && ex.rows[u].f.horseshoe);
+  // ua + uc back lane 0, ub lane 1, ud has no ticket — a lock ms where lane 0 comes in (the draw is the stored record's, as a host makes it)
+  const pick = { ua: 0, ub: 1, uc: 0 };
+  let lk = 1_762_000_000_000;
+  while (L.dlDraw(seed, ci, field, pick, lk) !== 0) lk++;
+  const g = race(U, pick, lk);
+  const win = g.dl[ci].w, pk = g.dl[ci].pk;
+  let ex = extractMatch(g);
+  assert.deepEqual(ex.rejected, []);
+  for (const u of U) assert.equal(flag(ex, u), pk[u] === win, `${u}: ${pk[u] === win ? 'backed the winner' : 'no winning ticket'}`);
+  assert.ok(U.some(u => pk[u] === win) && U.some(u => u in pk && pk[u] !== win) && U.some(u => !(u in pk)), 'hit + miss + no ticket all covered');
+  // a TAMPERED record: the stored winner moved to ub's horse (the draw no longer replays) → nobody's flag
+  const t1 = structuredClone(g); t1.dl[ci].w = pk.ub; t1.results[ci] = L.dlResults(t1, ci, t1.dl[ci]);
+  ex = extractMatch(t1);
+  for (const u of U) assert.ok(!flag(ex, u), `${u}: a draw that doesn't replay unlocks nothing`);
+  // a padded payout (the result isn't the ticket's) → no flag either
+  const t2 = structuredClone(g); const someWinner = U.find(u => pk[u] === win); t2.results[ci][someWinner].pts += 20;
+  assert.ok(!flag(extractMatch(t2), someWinner));
+  // SOLO never (Dumb Luck is never dealt alone — and a record that claims one still unlocks nothing)
+  let slk = 1_762_000_000_000;
+  while (L.dlDraw(seed, ci, field, { ua: 3 }, slk) !== 3) slk++;
+  ex = extractMatch(race(['ua'], { ua: 3 }, slk));
+  assert.ok(ex.solo && !flag(ex, 'ua'), 'solo: no horseshoe');
+  // the flag's key is database-safe + the achievement awards THE HORSESHOE emblem (the art is THE LAB's — pending: the glyph until then)
+  const { ACH_ROWS, ITEM_ROWS } = await import('../api/_lib/catalog.js');
+  const a = ACH_ROWS.find(x => x.id === 'horseshoe');
+  assert.equal(a.item, 'emb-horseshoe');
+  assert.equal(a.game, 'overclock');
+  assert.ok(a.check({}, { gf: { 'overclock-horseshoe': 1 } }) && !a.check({}, { gf: {} }));
+  assert.ok(ITEM_ROWS.find(x => x.id === 'emb-horseshoe' && x.kind === 'emblem' && x.glyph));
+});
+
 
 test('progression: tiers inside ranks, the nightly streak, the weekly goal, per-game mastery', async () => {
   const R = await import('../js/core/ranks.js');

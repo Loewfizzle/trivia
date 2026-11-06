@@ -53,7 +53,7 @@ test('the achievements award the cards (server catalog), the ids unique; ONE unl
   assert.equal(ACH.redline.item, 'card-redline'); assert.equal(ACH['photo-finish'].item, 'card-photofinish');
   assert.equal(ITEM['card-redline'].tier, 'legendary'); assert.equal(ITEM['card-photofinish'].tier, 'rare');
   assert.equal(ITEM['card-redline'].line, 'Six for six. Pinned in the red.'); assert.equal(ITEM['card-photofinish'].line, 'Won by a nose. One point.');
-  assert.deepEqual(GAME_ACHIEVEMENTS.overclock, ['dead-on', 'overclocked', 'redline', 'photo-finish']);
+  assert.deepEqual(GAME_ACHIEVEMENTS.overclock, ['dead-on', 'overclocked', 'redline', 'photo-finish', 'horseshoe']);   // (+ OC5's HORSESHOE)
   const g = oc('quick', six(ci => (ci ? { a: 150, b: 130 } : { a: 131, b: 130 })));   // (a sweep AND a photo? no — a is far ahead: sweep only)
   const row = extractMatch(g).rows.a;
   const r1 = matchStep(null, { key: `ROOM_${g.matchId}`, gid: 'overclock', row, n: 2, now: T0 });

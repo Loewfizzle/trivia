@@ -13,6 +13,7 @@ import * as prismMeta from '../games/prism/meta.js';
 import { boardDef } from './boards.js';
 import { rankings as signalRankings } from '../games/signal/logic.js';
 import { standings as ocStandings, MODES as OC_MODES, roundWin as ocRoundWin } from '../games/overclock/logic.js';
+import { LUCK as OC_LUCK, dlVerify as ocLuckVerify } from '../games/overclock/luck.js';
 import { standings as bluffStandings } from '../games/bluff/logic.js';
 import { standings as pulseStandings, multiplier } from '../games/pulse/logic.js';
 import { totals as golfTotals, standings as golfStandings, CAP as GOLF_CAP } from '../games/golf/logic.js';
@@ -117,6 +118,10 @@ function overclockExtra(game, uid, out, row, ctx, win) {
     if (quick && Object.values(res).every(rr => { const r = ocRoundWin(rr, uids); return r.kind === 'win' && r.uid === uid; })) (out.f ||= {}).sweep = 1;
     // PHOTO FINISH — photo: the win, ALONE in first, by exactly one point over second (any mode)
     if (win && row.rank === 1) { const me = tot(uid), next = Math.max(...uids.filter(u => u !== uid).map(tot)); if (me - next === 1) (out.f ||= {}).photo = 1; }
+    // THE HORSESHOE (OC5) — horseshoe: this player BACKED THE WINNER of a DUMB LUCK race — the server REPLAYS the race from the room's record
+    // (game/dl/{ci}: the locked picks + the lock's ms → the draw must be the stored winner, every result its payout); a record that doesn't
+    // replay = no flag
+    if (order.some((t, ci) => t === OC_LUCK && res[ci] && (() => { const v = ocLuckVerify(game, ci); return v.ok && v.winners.includes(uid); })())) (out.f ||= {}).horseshoe = 1;
   }
   const mode = game.settings && game.settings.mode;
   if (mode !== 'standard' || num(game.total) !== OC_MODES.standard) return;

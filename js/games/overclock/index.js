@@ -30,7 +30,8 @@ export async function start({ code, matchId, settings, participants, now, used }
   const seed = `${matchId}:${Math.random().toString(36).slice(2, 10)}`;
   const mine = usedOf({ used: night }, 'overclock');
   const total = MODES[s.mode] || MODES.quick;
-  const order = buildOrder(seed, total, playedTypes(mine));
+  // (OC5 — DUMB LUCK joins the deal with 2+ players only: never in SOLO)
+  const order = buildOrder(seed, total, playedTypes(mine), { luck: Object.keys(participants || {}).length >= 2 });
   // the deal needs the banks this order uses (+ Unscramble's word lists) — fetched in parallel with the trivia bank, never past ~3 s
   const need = BANK_TYPES.filter(t => order.includes(t) && DEALT.includes(t));
   const [trivia, banks, words] = await Promise.all([

@@ -72,7 +72,7 @@ test('unscramble accepts the word or another valid anagram, nothing else', () =>
 });
 
 test('order: no repeats — all different types up to 18; Marathon at most twice each, never back to back, spread out', () => {
-  assert.equal(TYPES.length, 18, 'twenty minus LEXICON (OC1) and MAKE 24 (OC2) — DUMB LUCK comes in OC5');
+  assert.equal(TYPES.length, 19, 'twenty minus LEXICON (OC1) and MAKE 24 (OC2), plus DUMB LUCK (OC5)');
   for (const total of [3, 6, 12, 14, 18]) {
     for (let s = 0; s < 300; s++) {
       const o = buildOrder(`seed${s}:${total}`, total);
@@ -90,7 +90,8 @@ test('order: no repeats — all different types up to 18; Marathon at most twice
     const count = {};
     o.forEach(t => { count[t] = (count[t] || 0) + 1; });
     assert.ok(Object.values(count).every(n => n <= 2), 'at most twice');
-    assert.equal(Object.keys(count).length, 18, 'every type shows up in a Marathon');
+    assert.equal(Object.keys(count).length, 19, 'every type shows up in a Marathon');
+    assert.equal(count.dumbluck, 1, 'DUMB LUCK once — never a repeat');
     for (let i = 1; i < o.length; i++) assert.notEqual(o[i], o[i - 1], 'never back to back');
     for (const t of Object.keys(count)) {
       const at = o.map((x, k) => (x === t ? k : -1)).filter(k => k >= 0);

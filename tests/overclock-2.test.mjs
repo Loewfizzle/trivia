@@ -207,9 +207,9 @@ test('the six new challenges are identical on every phone (Math.random is never 
 
 // ---------- the order ----------
 test('order over many matches: no repeats, Marathon ≤ 2 and spread, categories never back to back', () => {
-  assert.equal(TYPES.length, 18);
+  assert.equal(TYPES.length, 19, '18 skill challenges + DUMB LUCK (OC5)');
   const cats = new Set(Object.values(CATEGORY));
-  assert.deepEqual([...cats].sort(), ['knowledge', 'memory', 'numbers', 'reflex', 'visual', 'words']);
+  assert.deepEqual([...cats].sort(), ['knowledge', 'luck', 'memory', 'numbers', 'reflex', 'visual', 'words']);
   for (const t of TYPES) assert.ok(CATEGORY[t], `${t} has a category`);
   const firsts = new Set();
   for (let s = 0; s < 1500; s++) {
@@ -220,9 +220,10 @@ test('order over many matches: no repeats, Marathon ≤ 2 and spread, categories
       assert.equal(categoryClashes(o), 0, `${total}: ${o.join(' ')}`);
       const count = {};
       o.forEach(t => { count[t] = (count[t] || 0) + 1; });
-      if (total <= 18) assert.equal(new Set(o).size, total, 'all different');
+      assert.ok((count.dumbluck || 0) <= 1 && o[total - 1] !== 'dumbluck', 'DUMB LUCK: at most once, never last');
+      if (total <= 19) assert.equal(new Set(o).size, total, 'all different');
       else {
-        assert.equal(Object.keys(count).length, 18, 'every type in a Marathon');
+        assert.equal(Object.keys(count).length, 19, 'every type in a Marathon');
         assert.ok(Object.values(count).every(n => n <= 2));
         for (const t of Object.keys(count)) {
           const at = o.map((x, k) => (x === t ? k : -1)).filter(k => k >= 0);
@@ -232,7 +233,7 @@ test('order over many matches: no repeats, Marathon ≤ 2 and spread, categories
     }
     firsts.add(buildOrder(`m${s}`, 12)[0]);
   }
-  assert.ok(firsts.size >= 18, 'any type can open');
+  assert.ok(firsts.size >= 19, 'any type can open (DUMB LUCK too)');
   // the new six actually come up in Standard games
   const seen = {};
   for (let s = 0; s < 500; s++) for (const t of buildOrder(`q${s}`, 12)) seen[t] = (seen[t] || 0) + 1;
@@ -327,7 +328,7 @@ test('QUICK mode: 6 different challenges, categories spread, the 6th is the ×2 
   let now = 0;
   // (a seed whose six have no TRIVIA LIGHTNING: this run has no question bank — the lightning wait is overclock.test.mjs's)
   let seedQ = 'quick-run';
-  for (let k = 1; buildOrder(seedQ, 6).includes('trivia'); k++) seedQ = `quick-run-${k}`;
+  for (let k = 1; buildOrder(seedQ, 6, [], { luck: false }).includes('trivia'); k++) seedQ = `quick-run-${k}`;   // (one player: no DUMB LUCK)
   const game = createGame({ matchId: 'qq', settings: { mode: 'quick' }, participants: { a: true }, now, seed: seedQ, bank: {}, trivia: { n: 0 } });
   for (let ci = 0; ci < 6; ci++) {
     now = game.phaseEndsAt;

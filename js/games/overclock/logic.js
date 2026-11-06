@@ -1,6 +1,7 @@
 // OVERCLOCK — pure scoring / order / standings.
 import { rngFrom, shuffle } from '../../core/rng.js';
-import { TYPES, CATEGORY, partsFor, SORT_FULL, COMPASS_SCRIPT_MS } from './challenges.js';
+import { TYPES, SKILL_TYPES, CATEGORY, partsFor, SORT_FULL, COMPASS_SCRIPT_MS } from './challenges.js';
+import { LUCK, dlOf, dlResults, dlTickets, DL_MAX, LONG_SHOT } from './luck.js';
 // (SHELL 2.0 B1 — THE THIN META: the console's numbers live in meta.js — one source; re-exported here for the rules + the server)
 import { CHALLENGE_MS, READY_MS, STANDINGS_MS, MODES, DEFAULT_SETTINGS, chatLocked } from './meta.js';
 export { CHALLENGE_MS, READY_MS, STANDINGS_MS, MODES, DEFAULT_SETTINGS, chatLocked };
@@ -32,7 +33,7 @@ export function nextInSec(game, now) {
 // (rooms/{CODE}/ocm/{match}/{ci}/{uid}/s — '1' right · '0' wrong · 'h' half · '-' neither) fold into game/combo/{uid} = { c: now, m: best }
 // when the challenge closes. One wrong answer resets it; a half (Quick Count's off-by-one…) and the no-right-or-wrong challenges (SIGNAL LOCK's
 // reflex taps — COMBO_NEUTRAL) neither add nor break it. maxStreak (m) = the feat OC2 reports for the OVERDRIVE card (x10).
-export const COMBO_NEUTRAL = new Set(['reflex']);
+export const COMBO_NEUTRAL = new Set(['reflex', LUCK]);   // (OC5: DUMB LUCK is chance — it neither adds to nor breaks a streak)
 export const COMBO_MARKS = /^[01h-]{0,24}$/;
 export function comboFold(prev, marks) {
   let c = (prev && prev.c) || 0, m = (prev && prev.m) || 0;
@@ -51,6 +52,7 @@ export function marksFor(type, mk, board, parts) {
   return ok >= parts ? '1'.repeat(parts) : '0';
 }
 
+const TYPES_ALL = TYPES;
 export const levelOf = (ci, total) => (total <= 1 ? 0 : ci / (total - 1));
 
 // The challenge order (seeded, identical on every phone).
@@ -62,14 +64,17 @@ export const levelOf = (ci, total) => (total <= 1 ? 0 : ci / (total - 1));
 //  - THE ROOM's NIGHT MEMORY (OC1 — deal.js): `played` = the types this room already played tonight — a shorter match
 //    FAVOURS the others (FRESH_TYPE_WEIGHT to 1), so back-to-back matches feel different; once every type has had its
 //    turn, all count the same again. No `played` = exactly the old draw.
+//  - DUMB LUCK (OC5 — luck.js): only with `luck` (2+ players — never SOLO, never the daily): at most ONCE (a long match's repeats are
+//    skill challenges only) and NEVER the last challenge (the ×2 final is a skill one). Without `luck` the draw is exactly OC4's.
 export const FRESH_TYPE_WEIGHT = 12;
-export function buildOrder(seed, total, played = []) {
+export function buildOrder(seed, total, played = [], { luck = true } = {}) {
   const rand = rngFrom(`${seed}:order`);
+  const TYPES = luck ? TYPES_ALL : SKILL_TYPES;
   const n = TYPES.length;
   // up to one of each: types are drawn on the fly from all of them (so a short match can still avoid a clash);
   // longer: the exact multiset (every type once + repeats) is laid out
   const long = total > n;
-  const pool = long ? [...TYPES, ...shuffle(rand, TYPES).slice(0, total - n)] : TYPES;
+  const pool = long ? [...TYPES, ...shuffle(rand, SKILL_TYPES).slice(0, total - n)] : TYPES;
   const minGap = long ? Math.floor(total / 3) : 1;
   const was = new Set(played || []);
   const stale = TYPES.every(t => was.has(t)) ? new Set() : was;
@@ -83,7 +88,8 @@ export function buildOrder(seed, total, played = []) {
     let clashes = 0;
     while (out.length < total && left.length) {
       const prev = out[out.length - 1];
-      const free = i => lastAt[left[i]] == null || out.length - lastAt[left[i]] >= minGap;
+      // (DUMB LUCK never takes the last slot)
+      const free = i => (lastAt[left[i]] == null || out.length - lastAt[left[i]] >= minGap) && !(left[i] === LUCK && out.length === total - 1);
       let cands = left.map((_, i) => i).filter(i => free(i) && CATEGORY[left[i]] !== CATEGORY[prev]);
       if (!cands.length) { cands = left.map((_, i) => i).filter(free); clashes++; }
       if (!cands.length) break;
@@ -129,6 +135,8 @@ export function challengeScore({ parts, ok, doneAt, startAt, final, type, closes
 
 export function computeResults(game, boards) {
   const type = game.order[game.ci];
+  // DUMB LUCK: the winning tickets get their horse's payout (the stored draw — game/dl/{ci}), everyone else 0
+  if (type === LUCK) return dlResults(game, game.ci, dlOf(game, game.ci));
   const parts = partsFor(type, levelOf(game.ci, game.total));
   const final = game.ci === game.total - 1;
   const out = {};
@@ -249,10 +257,12 @@ export function comboReachAt(prev, marks) {
 //    when they never finished — over the right answers in it), at least FASTEST_MIN_RIGHT right answers; the challenges whose clock isn't the
 //    player's own don't count (FASTEST_SKIP: COMPASS's script, MEMORY's playback, SORT IT's card windows, SIGNAL LOCK's random waits, QUICK
 //    COUNT's flash); a tie → the one who reached it earlier (their last counted challenge), then the uid.
-//  - A chip that doesn't apply is skipped (LONG SHOT comes with DUMB LUCK in OC5).
+//  - LONG SHOT (OC5) = a winning DUMB LUCK ticket at 8-1 or longer (the longest odds, then the uid). It leads: the chips are the first TWO of
+//    LONG SHOT · BEST STREAK · FASTEST that apply.
+//  - A chip that doesn't apply is skipped.
 export const STREAK_CHIP_MIN = 3;
 export const FASTEST_MIN_RIGHT = 3;
-export const FASTEST_SKIP = new Set(['compass', 'memory', 'sortit', 'reflex', 'count']);
+export const FASTEST_SKIP = new Set(['compass', 'memory', 'sortit', 'reflex', 'count', LUCK]);
 export function fastestOf(game) {
   const out = {};
   const tm = (game && game.tm) || null;
@@ -273,9 +283,22 @@ export function fastestOf(game) {
   }
   return out;
 }
+/** every winning long-shot ticket of the match → [{ uid, n, ci }] */
+export function longShots(game) {
+  const out = [];
+  for (const ci of Object.keys((game && game.results) || {}).map(Number).sort((a, b) => a - b)) {
+    if (!game.order || game.order[ci] !== LUCK) continue;
+    const t = dlTickets(game, ci);
+    if (t && t.long) for (const uid of t.uids) out.push({ uid, n: t.n, ci });
+  }
+  return out;
+}
+export const AWARD_CHIPS_MAX = 2;
 export function awardChips(game) {
   const chips = [];
   const uids = Object.keys((game && game.participants) || {}).sort();
+  const ls = longShots(game).filter(x => uids.includes(x.uid)).sort((a, b) => b.n - a.n || a.ci - b.ci || (a.uid < b.uid ? -1 : 1))[0];
+  if (ls) chips.push({ k: 'longshot', uid: ls.uid, v: ls.n });
   const reach = u => { const v = game.cr && Number(game.cr[u]); return Number.isFinite(v) ? v : Infinity; };
   const streak = uids.map(u => ({ uid: u, m: (game.combo && game.combo[u] && Number(game.combo[u].m)) || 0 }))
     .filter(x => x.m >= STREAK_CHIP_MIN)
@@ -285,11 +308,16 @@ export function awardChips(game) {
   const fast = Object.entries(f).map(([uid, x]) => ({ uid, ...x }))
     .sort((a, b) => a.avg - b.avg || a.last - b.last || (a.uid < b.uid ? -1 : 1))[0];
   if (fast) chips.push({ k: 'fastest', uid: fast.uid, v: fast.avg, n: fast.right });
-  return chips;
+  return chips.slice(0, AWARD_CHIPS_MAX);
 }
 
 /** the most a challenge can score (the solo yardstick for YOUR BEST / WORST): 160, ×2 on the last */
 export const maxPts = (game, ci) => (100 + SPEED_BONUS) * (Number(ci) === (game.total || 0) - 1 ? 2 : 1);
+/** THE SCORING TABLE's ceiling for one challenge of a type (the server's plausibility bound — OC5's QUICK solo board): every skill challenge
+ *  100 + the 60 speed / closest bonus, ×2 on the last; DUMB LUCK its longest odds' payout (never last) */
+export const challengeMax = (type, final) => (type === LUCK ? DL_MAX : (100 + SPEED_BONUS) * (final ? 2 : 1));
+/** the most a whole match of this order can score */
+export const matchMax = order => (order || []).reduce((s, t, i) => s + challengeMax(t, i === order.length - 1), 0);
 /** YOUR BEST / YOUR WORST challenge of the match: your points in each vs the room's best in it (alone: vs the most it could score).
  *  → { best: { ci, type, pts, rel }, worst: { … } | null } — worst is null with one challenge, or when it would be the best one. null when no results. */
 export function bestWorst(game, uid) {

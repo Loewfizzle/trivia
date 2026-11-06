@@ -12,6 +12,7 @@ import {
 } from '../js/games/overclock/logic.js';
 import { COMPASS_STEP_MS, COMPASS_GAP_MS, COMPASS_START_MS, COMPASS_FLASH_MS, REFLEX_TIMEOUT_MS, sortWindowMs } from '../js/games/overclock/challenges.js';
 import { createGame, nextStep } from '../js/games/overclock/director.js';
+import { DL_PICK_MS, DL_RACE_MS, DL_FINISH_MS } from '../js/games/overclock/luck.js';
 import { dealMatch, keysAt, playedTypes, typeKey, pickFresh, hash36, DEALT } from '../js/games/overclock/deal.js';
 import { usedOf } from '../js/games/kit/night.js';
 import { rngFrom } from '../js/core/rng.js';
@@ -51,6 +52,16 @@ function startMatch({ matchId, mode = 'quick', participants, now = 0, seed, used
   const order = buildOrder(seed, total, playedTypes(mine));
   const { deal, dk } = dealMatch({ seed, order, total, banks: BANKS, words: answersFor, used: mine });
   return createGame({ matchId, settings: { mode }, participants, now, seed, bank: {}, trivia: { n: 99 }, order, deal, dk });
+}
+/** DUMB LUCK (OC5) in a simulated match: the odds board locks (the draw), then the race + the finish run out — the step that ends 'play' */
+function luckPlay(game, ctx) {
+  if (game.phase !== 'play' || game.order[game.ci] !== 'dumbluck') return nextStep(game, ctx);
+  if (!(game.dl && game.dl[game.ci])) {
+    const lock = nextStep(game, { ...ctx, now: Math.max(ctx.now, game.playStartAt + DL_PICK_MS) });
+    assert.ok(lock && lock[`dl/${game.ci}`] && !lock.phase, 'the lock = the draw, still playing');
+    applyPatch(game, lock);
+  }
+  return nextStep(game, { ...ctx, now: Math.max(ctx.now, game.dl[game.ci].lk + DL_RACE_MS + DL_FINISH_MS) });
 }
 const specOf = game => {
   const type = game.order[game.ci];
@@ -122,7 +133,7 @@ test('QUICK is the default; the options read the new lineup; the evening station
 
 test('LEXICON is cut cleanly: no type, category, rules, parts, generator, screen, bank, data file, help line or build script', () => {
   assert.ok(!TYPES.includes('lexicon'));
-  assert.equal(TYPES.length, 18, '19 after the Lexicon cut, 18 after Make 24 (OC2)');
+  assert.equal(TYPES.length, 19, '19 after the Lexicon cut, 18 after Make 24 (OC2), 19 with DUMB LUCK (OC5)');
   assert.ok(!('lexicon' in CATEGORY) && !('lexicon' in INFO));
   assert.equal(partsFor('lexicon', 0), 1, 'unknown → 1');
   assert.equal(generate('lexicon', { seed: 's', ci: 0, level: 0 }, {}), null);
@@ -147,13 +158,19 @@ test('MAKE 24 is cut cleanly (OC2 — the owner: "I don\'t like that challenge")
   assert.ok(g.order.every(t => TYPES.includes(t)) && g.total === 6);
 });
 
-test('MARATHON: every one of the 18 once + 6 repeats (the multiset after the Lexicon + Make 24 cuts), its spacing + the category spread kept', () => {
+test('MARATHON: every one of the 19 once + 5 repeats (OC5: DUMB LUCK once, never a repeat; SOLO = the 18 once + 6), its spacing + the category spread kept', () => {
   for (let s = 0; s < 200; s++) {
     const o = buildOrder(`mx${s}`, 24);
     const count = {};
     o.forEach(t => { count[t] = (count[t] || 0) + 1; });
-    assert.equal(Object.keys(count).length, 18);
-    assert.equal(Object.values(count).filter(n => n === 2).length, 6);
+    assert.equal(Object.keys(count).length, 19);
+    assert.equal(count.dumbluck, 1);
+    assert.equal(Object.values(count).filter(n => n === 2).length, 5);
+    const solo = buildOrder(`mx${s}`, 24, [], { luck: false }), sc = {};
+    solo.forEach(t => { sc[t] = (sc[t] || 0) + 1; });
+    assert.equal(Object.keys(sc).length, 18);
+    assert.ok(!solo.includes('dumbluck'));
+    assert.equal(Object.values(sc).filter(n => n === 2).length, 6);
     assert.ok(Object.values(count).every(n => n <= 2));
     for (const t of Object.keys(count)) { const at = o.map((x, k) => (x === t ? k : -1)).filter(k => k >= 0); if (at.length === 2) assert.ok(at[1] - at[0] >= 8); }
     assert.equal(categoryClashes(o), 0);
@@ -253,14 +270,22 @@ test('a game night: 6 Quick matches in one room — no item dealt twice, the typ
       const parts = partsFor(game.order[ci], levelOf(ci, game.total));
       now += 4000;
       const done = { p: parts, ok: parts, n: parts, done: true, doneAt: now };
-      applyPatch(game, nextStep(game, { now, boards: { a: done, b: done }, online: { a: true, b: true }, fallback: () => null }));
+      applyPatch(game, luckPlay(game, { now, boards: { a: done, b: done }, online: { a: true, b: true }, fallback: () => null }));
       if (game.phase === 'standings') { now = game.phaseEndsAt; applyPatch(game, nextStep(game, { now, boards: {}, online: { a: true, b: true }, fallback: () => null })); }
     }
     assert.equal(game.phase, 'final');
   }
   // the rematch FAVOURS the types this room hasn't played: matches 1 + 2 + 3 together cover 18 of 19 types (with no memory ~13)
+  // (OC5: 19 types — one night is a draw: 15+ here, and over many nights three matches average 16+ of 18 slots; with no memory ~13)
   const first3 = new Set(typesByMatch.slice(0, 3).flat());
-  assert.ok(first3.size >= 16, `three matches cover ${first3.size} types`);
+  assert.ok(first3.size >= 15, `three matches cover ${first3.size} types`);
+  let cover = 0;
+  for (let n = 0; n < 300; n++) {
+    const played = new Set();
+    for (let m = 0; m < 3; m++) for (const t of buildOrder(`cover${n}-${m}`, 6, [...played])) played.add(t);
+    cover += played.size;
+  }
+  assert.ok(cover / 300 >= 16, `three matches cover ${(cover / 300).toFixed(1)} types on average`);
   const overlap = typesByMatch[1].filter(t => typesByMatch[0].includes(t)).length;
   assert.ok(overlap <= 1, `match 2 repeats ${overlap} of match 1's types`);
   assert.ok(seenItems.size > 40);
@@ -367,9 +392,10 @@ test('8 players, a whole Standard match: the deal, the marks, the skip, a host c
     });
     now += 9000;
     // a NEW HOST picks up mid-match: the step is the same from the same state (it holds no private state)
-    const s1 = nextStep(structuredClone(game), { now, boards, online: P, marks, fallback: () => null });
-    const s2 = nextStep(structuredClone(game), { now, boards, online: P, marks, fallback: () => null });
+    const s1 = luckPlay(structuredClone(game), { now, boards, online: P, marks, fallback: () => null });
+    const s2 = luckPlay(structuredClone(game), { now, boards, online: P, marks, fallback: () => null });
     assert.deepEqual(s1, s2);
+    if (game.order[ci] === 'dumbluck') luckPlay(game, { now, boards, online: P, marks, fallback: () => null });   // (the lock lands on the real game too)
     applyPatch(game, s1);
     if (game.phase === 'standings') {
       // everyone but h taps; h drops at ci 4 → the skip goes on without them

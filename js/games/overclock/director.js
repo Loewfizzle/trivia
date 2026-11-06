@@ -5,6 +5,7 @@ import { partsFor } from './challenges.js';
 import { keysAt } from './deal.js';
 import { markUsed } from '../kit/night.js';
 import { readyState } from '../kit/ready.js';
+import { LUCK, DL_MS, DL_PICK_MS, DL_RACE_MS, DL_FINISH_MS, dlLock, dlOf } from './luck.js';
 
 const TRIVIA_WAIT_MS = 2500;
 
@@ -14,7 +15,8 @@ const TRIVIA_WAIT_MS = 2500;
  */
 export function createGame({ matchId, settings, participants, now, seed, bank, trivia, order = null, played = [], deal = null, dk = null }) {
   const total = MODES[settings.mode] || MODES.quick;
-  const ord = Array.isArray(order) && order.length === total ? order : buildOrder(seed, total, played);
+  // (DUMB LUCK only with 2+ players — never in SOLO: logic.js#buildOrder)
+  const ord = Array.isArray(order) && order.length === total ? order : buildOrder(seed, total, played, { luck: Object.keys(participants || {}).length >= 2 });
   const first = ord[0];
   const game = {
     id: 'overclock',
@@ -78,7 +80,8 @@ export function nextStep(game, ctx) {
     case 'ready': {
       if (now < ends) return null;
       // THE ROOM's NIGHT MEMORY: the challenge going live marks its type + its dealt items for the rest of the night (kit/night.js)
-      const play = { phase: 'play', phaseStartAt: now, playStartAt: now, phaseEndsAt: now + CHALLENGE_MS, $room: markUsed('overclock', keysAt(game, game.ci)) };
+      // (DUMB LUCK's slot: the odds board + the race + the finish — DL_MS, inside CHALLENGE_MS; it never ends early)
+      const play = { phase: 'play', phaseStartAt: now, playStartAt: now, phaseEndsAt: now + (type === LUCK ? DL_MS : CHALLENGE_MS), $room: markUsed('overclock', keysAt(game, game.ci)) };
       if (type === 'trivia') {
         const need = (game.tq && game.tq[game.ci]) + 3;
         const have = (game.trivia && game.trivia.n) || 0;
@@ -92,9 +95,17 @@ export function nextStep(game, ctx) {
     }
     case 'play': {
       const uids = Object.keys(game.participants || {});
-      const active = uids.filter(u => ctx.online[u]);
-      const allDone = active.length > 0 && active.every(u => ctx.boards && ctx.boards[u] && ctx.boards[u].done);
-      if (!allDone && now < ends + PLAY_GRACE_MS) return null;
+      if (type === LUCK) {
+        // DUMB LUCK: the odds board closes → THE LOCK + THE DRAW (once — a new host reads the stored race, never re-draws); the race + the
+        // finish play out from the lock; then the shared flow (the results below)
+        const dl = dlOf(game, game.ci);
+        if (!dl) return now >= (game.playStartAt || 0) + DL_PICK_MS ? { [`dl/${game.ci}`]: dlLock(game, game.ci, ctx.boards || {}, now) } : null;
+        if (now < dl.lk + DL_RACE_MS + DL_FINISH_MS) return null;
+      } else {
+        const active = uids.filter(u => ctx.online[u]);
+        const allDone = active.length > 0 && active.every(u => ctx.boards && ctx.boards[u] && ctx.boards[u].done);
+        if (!allDone && now < ends + PLAY_GRACE_MS) return null;
+      }
       const last = game.ci >= game.total - 1;
       const res = computeResults(game, ctx.boards || {});
       const patch = {

@@ -3,9 +3,12 @@
 // the challenge order needs to be stored in the room.
 import { rngFrom, randInt, pick, shuffle } from '../../core/rng.js';
 import { ODD_SIZES, oddFamilies, oddPool, oddGrid, oddCatalogSize } from './odd.js';
+import { LUCK, HORSES, dlField, payout } from './luck.js';
 
 export const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'timeline', 'closest', 'rewire',
-  'missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower'];
+  'missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower', 'dumbluck'];
+// OC5 — DUMB LUCK (luck.js): a game of chance — at most once a match, never the last challenge, never in SOLO or the daily (logic.js#buildOrder)
+export const SKILL_TYPES = Object.freeze(TYPES.filter(t => t !== LUCK));
 
 // What kind of brain each challenge works — the match order spreads these out (logic.js#buildOrder).
 export const CATEGORY = {
@@ -15,6 +18,7 @@ export const CATEGORY = {
   oddone: 'visual', count: 'visual',
   trivia: 'knowledge', truefalse: 'knowledge', timeline: 'knowledge', closest: 'knowledge', higherlower: 'knowledge',
   stroop: 'reflex', reflex: 'reflex', sortit: 'reflex',
+  dumbluck: 'luck',
 };
 
 export const INFO = {
@@ -36,6 +40,7 @@ export const INFO = {
   compass: { name: 'COMPASS', glyph: '✣', rules: ['Note where you face, then follow the turns in your head.', 'When they vanish, tap the way you face now. Five rounds, each longer.'] },
   sortit: { name: 'SORT IT', glyph: '⇆', rules: ['Swipe each card left or right — or tap that side of the screen.', 'Wrong sorts cost a little. The cards come faster and faster.'] },
   higherlower: { name: 'HIGHER OR LOWER', glyph: '⇅', rules: ['Two things, one stat — one number shown. Is the hidden one HIGHER or LOWER?', 'Build a streak of 10. One wrong answer ends your run.'] },
+  dumbluck: { name: 'DUMB LUCK', glyph: '♞', rules: ['Six horses, six odds. Pick one before the gate closes.', 'Back the winner and get paid — the longer the odds, the bigger the payout.'] },
 };
 
 export const memoryLength = level => 4 + Math.round(level * 4);
@@ -44,7 +49,7 @@ export const memoryLength = level => 4 + Math.round(level * 4);
 export function partsFor(type, level) {
   return { unscramble: 1, memory: memoryLength(level), oddone: 3, math: 4, pattern: 2, trivia: 3, stroop: 8, reflex: 5, count: 4, truefalse: 8,
     timeline: 4, closest: 1, rewire: 2,
-    missinglink: 2, spellcheck: 5, compass: 5, sortit: SORT_CARDS, higherlower: HL_PAIRS }[type] || 1;
+    missinglink: 2, spellcheck: 5, compass: 5, sortit: SORT_CARDS, higherlower: HL_PAIRS, dumbluck: 1 }[type] || 1;
 }
 
 export const challengeRng = (seed, ci, type) => rngFrom(`${seed}:${ci}:${type}`);
@@ -558,10 +563,18 @@ export function generate(type, { seed, ci, level, occ = 0, deal = null }, deps =
     case 'reflex': return genReflex(rand);
     case 'count': return genCount(rand, level);
     case 'truefalse': return genTrueFalse(rand, deal);
+    case 'dumbluck': return genDumbLuck(seed, ci);
     case 'trivia': return deps.triviaItems && deps.triviaItems.length === 3 && deps.triviaItems.every(Boolean)
       ? { type: 'trivia', parts: 3, questions: deps.triviaItems } : null;
     default: return null;
   }
+}
+
+// ---------- dumb luck (OC5 — luck.js) ----------
+/** the race's field for the screen: each lane's colour + odds + payout (the draw happens later, on the host, after the picks lock) */
+export function genDumbLuck(seed, ci) {
+  const odds = dlField(seed, ci);
+  return { type: LUCK, parts: 1, field: HORSES.map((h, i) => ({ ...h, lane: i, n: odds[i], pay: payout(odds[i]) })) };
 }
 
 // Unscramble accepts the target word or any other dictionary word using exactly the same letters.
