@@ -631,29 +631,37 @@ G('sololook', async () => {
   const kept = await ev(p, "document.querySelector('.set-look .seg-btn.is-on').dataset.v");
   await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(150); await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(300);
   ok(kept === 'day', `THE GAME LOOK: remembered on this device — a reload shows ${kept}`);
-  // a SOLO cartridge starts with one player; the match wears DAY — then NIGHT mid-game, AT ONCE (no lock)
+  // a SOLO cartridge starts with one player. OC1 — THE LOOKS: OVERCLOCK has ONE look (meta LOOKS ['night']) → the match wears NIGHT though this
+  // phone picked DAY, and ☰ → Settings → GAME LOOK says NIGHT · LOCKED + why (never hidden)
   const started = await ev(p, "import('/js/host.js').then(m => m.startGame('overclock', { mode: 'quick' }))");
   await waitFor(p, "window.__arcade.state.meta.status === 'playing' && document.body.dataset.look", 'the solo match + its look', 20000).catch(() => {});
   const look1 = await ev(p, 'document.body.dataset.look'), solo = await ev(p, 'Object.keys(window.__arcade.state.game.participants || {}).length');
   await waitFor(p, "!!document.querySelector('.menu-btn') && !document.querySelector('.rc-walk, .rs-go')", 'the game screen', 15000).catch(() => {});
-  const r2 = await pickLook(p, 'night');
-  const t0 = Date.now(); await waitFor(p, "document.body.dataset.look === 'night'", 'the live re-theme', 3000).catch(() => {});
-  const look2 = await ev(p, 'document.body.dataset.look'), ms = Date.now() - t0;
-  ok(started === true && solo === 1 && look1 === 'day' && r2.on === 'night' && look2 === 'night', `THE GAME LOOK in a GAME: OVERCLOCK alone (${started}, ${solo}) wears DAY (${look1}); ☰ → Settings → NIGHT mid-game re-themes AT ONCE (${look2}, ${ms} ms — no lock)`);
+  await tap(p, '.menu-btn'); await waitFor(p, "!!document.querySelector('.gm-settings')", 'the ☰ menu', 8000);
+  await ev(p, "document.querySelector('.gm-settings').click()"); await waitFor(p, "!!document.querySelector('.set-look')", 'the GAME LOOK row', 8000);
+  const lk = await ev(p, "(() => { const r = document.querySelector('.set-look'); return { locked: r.classList.contains('is-locked'), txt: r.textContent, segs: r.querySelectorAll('.seg-btn').length }; })()");
+  await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(150); await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(250);
+  ok(started === true && solo === 1 && look1 === 'night' && lk.locked && /NIGHT · LOCKED/.test(lk.txt) && /plays at night/i.test(lk.txt) && lk.segs === 0, `THE GAME LOOK in a GAME: OVERCLOCK alone (${started}, ${solo}) wears NIGHT on a DAY phone (${look1}) — its one look; Settings: "${lk.txt}" (locked ${lk.locked}, ${lk.segs} buttons)`);
   await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
   await waitFor(p, "window.__arcade.state.meta.status === 'lobby'", 'back in the room', 20000).catch(() => {});
   await waitFor(p, "!document.body.dataset.look", 'the look off the body', 8000).catch(() => {});
   const off = await ev(p, '!document.body.dataset.look');
-  // MULTIPLAYER: each phone its own look (the host NIGHT, the guest DAY)
+  // MULTIPLAYER on a game that FOLLOWS the setting (PRISM DROP — both looks): each phone its own look (the host NIGHT, the guest DAY), and a
+  // change mid-game re-themes that screen AT ONCE (no lock)
   const { Q: B } = await joinRoom('slk2', code);
   await waitFor(p, "Object.keys(window.__arcade.state.players).length === 2", 'two players', 20000).catch(() => {});
   await sleep(600);
+  await pickLook(p, 'night');
   await pickLook(B.page, 'day');
-  await ev(p, "import('/js/host.js').then(m => m.startGame('overclock', { mode: 'quick' }))");
+  await ev(p, "import('/js/host.js').then(m => m.startGame('prism', {}))");
   await waitFor(p, "window.__arcade.state.meta.status === 'playing' && document.body.dataset.look", 'the 2-player match', 20000).catch(() => {});
   await waitFor(B.page, "window.__arcade.state.meta.status === 'playing' && document.body.dataset.look", 'the guest in the match', 20000).catch(() => {});
   const two = [await ev(p, 'document.body.dataset.look'), await ev(B.page, 'document.body.dataset.look')];
-  ok(off && two[0] === 'night' && two[1] === 'day', `THE GAME LOOK per device in MULTIPLAYER: the host's screen ${two[0]}, the guest's ${two[1]}; none on the body outside a match (${off})`);
+  await waitFor(B.page, "!!document.querySelector('.menu-btn') && !document.querySelector('.rc-walk, .rs-go')", 'the guest game screen', 15000).catch(() => {});
+  const r2 = await pickLook(B.page, 'night');
+  const t0 = Date.now(); await waitFor(B.page, "document.body.dataset.look === 'night'", 'the live re-theme', 3000).catch(() => {});
+  const look2 = await ev(B.page, 'document.body.dataset.look'), ms = Date.now() - t0;
+  ok(off && two[0] === 'night' && two[1] === 'day' && r2.on === 'night' && look2 === 'night', `THE GAME LOOK per device in MULTIPLAYER (PRISM DROP): the host's screen ${two[0]}, the guest's ${two[1]}; the guest → NIGHT mid-game re-themes AT ONCE (${look2}, ${ms} ms — no lock); none on the body outside a match (${off})`);
   await ev(p, "import('/js/host.js').then(m => m.backToLobby())").catch(() => {});
   await ev(p, "localStorage.removeItem('ns:look')").catch(() => {});
   await B.ctx.close(); await Q.ctx.close();

@@ -69,8 +69,15 @@ test('THE ANSWER: right ✓ / close ≈ / wrong ✕ — a shape every time, neve
   assert.equal(answerMark('close').sym, '≈');
   assert.equal(answerMark('weird').cls, 'is-none');
   const css = readFileSync('css/kit.css', 'utf8');
-  assert.match(css, /\.gk-answer-mark \{[^}]*var\(--good\)/);
-  assert.match(css, /\.gk-pick-tile\.is-close \.gk-pick-mark \{[^}]*var\(--close\)/);
+  assert.match(css, /\.gk-sock\.is-check \{ --sock-c: var\(--good\)/);
+  assert.match(css, /\.gk-sock\.is-approx \{ --sock-c: var\(--close\)/);
+  // ADD-ONs 3 + 4: a neon tube in a dark-glass socket — never a filled circle; the glow a static path (never an animated shadow)
+  assert.doesNotMatch(css, /gk-answer-mark|gk-pick-mark/);
+  assert.match(css, /\.gk-sock \{[^}]*skewX\(var\(--gk-slant/);
+  const src = readFileSync('js/games/kit/answer.js', 'utf8');
+  assert.match(src, /gk-tube-glow/);
+  assert.match(src, /h\('span\.gk-you'/, 'the YOU tag when it was your pick');
+  assert.match(css, /\.gk-answers \{[^}]*gap: (1[6-9]|[2-9]\d)px/, 'each question group has ≥ 16 pt after it');
 });
 
 test('THE KIT\'s rules: gk- classes only; no input element (never the system keyboard); no animated shadow / filter; a server clock passed in', () => {

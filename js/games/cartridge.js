@@ -7,9 +7,7 @@
 // (`playable` = the one switch). Its index.js exports:
 export const REQUIRED = Object.freeze({
   start: 'function',            // start({ code, matchId, settings, participants, now, used }) → Promise<game | null> — `now` = the moment the MATCH
-                                //   begins (the room's walk inside runs before it on every phone — core/room-show.js#START_MS); `used` (OC1,
-                                //   optional to read) = the room's NIGHT MEMORY, rooms/{CODE}/meta/used ({ gameId: { key: true } }) as it is at
-                                //   the start — a game deals around usedOf({ used }, itsId) and marks what it deals in its steps' $room
+                                //   begins (after the walk inside — core/room-show.js#START_MS); `used` = rooms/{CODE}/meta/used (OC1 — docs/cartridge.md)
   prepare: 'function',          // prepare(game, { code, host }) — idempotent, every host tick (asset / question top-ups, private host duties)
   step: 'function',             // step(game, { code, now, live, online }) → patch | { lobby: true } | null — the PURE director
   livePaths: 'function',        // livePaths(game) → { name: 'path/under/room' } — the player-written data to mirror into state.live
@@ -37,11 +35,9 @@ export const OPTIONAL = Object.freeze({
   finalScene: 'function',       // SHELL 2.0 A — finalScene(el, game, state): the game draws its own BODY inside the console's podium frame
                                 //   (ui/final.js — the console keeps the XP box, the moment + the card reveal, BACK TO THE ROOM)
   daily: 'object',              // THE DAILY PLUG-IN (ships OFF — THE DAILY MODULE switches the dailies on): see DAILY below
-  LOOKS: 'array',               // OC1 — the looks it HAS: ['day', 'night'] (the default — it follows THE GAME LOOK setting) or ONE (['night']:
-                                //   OVERCLOCK's OVERDRIVE) — the console then paints that look whatever the setting says + shows the setting
-                                //   LOCKED while it's on screen (looksOf / lookLockOf below; app.js#paintLook, ui/settings-panel.js)
+  LOOKS: 'array',               // OC1 — its looks (default both); ONE = always that look, the setting shows LOCKED (lookLockOf; docs/cartridge.md)
 });
-/** the arguments the console passes to start() — one list (tests/cartridge.test.mjs checks host.js passes every one) */
+/** what host.js passes to start() (tested) */
 export const START_ARGS = Object.freeze(['code', 'matchId', 'settings', 'participants', 'now', 'used']);
 export const LOOK_VALUES = Object.freeze(['day', 'night']);
 // THE DAILY PLUG-IN's shape (OVERCLOCK + the WORDLE-type + COAST CLEAR offer it; THE DAILY MODULE seeds, unlocks, streaks + ranks it):
@@ -63,9 +59,7 @@ export const META_KEYS = Object.freeze(['DEFAULT_SETTINGS', 'OPTIONS', 'estimate
 export const PRELOAD_BUDGET = 1.5 * 1024 * 1024;
 // FEATS (D3 / the solo lane): a result row may carry the player's FEATS — small numbers the SERVER replays for unlocks (maxStreak,
 //   longShotWin, soloScore…) — core/match-report.js reads them per game, with bounds; a client never writes an unlock.
-// THE KIT (D9): the shared match pieces live in js/games/kit/ — BUILT by OVERCLOCK pass 1 (OC1, the class prefix gk-; a neutral base
-//   skinned through --gk-* — css/kit.css "THE KIT PIECES"): numpad.js (the number pad) · keyboard.js (the letter keyboard — never the system
-//   keyboard) · tach.js (the tach timer on serverNow) · slam.js (the title slam + 3-2-1) · answer.js (THE ANSWER frame); keys ≥ 54 pt. Built HERE (SHELL 2.0 B1): ready.js (THE READY HELPER —
+// THE KIT (D9): js/games/kit/ — OC1's numpad · keyboard · tach · slam · answer (gk-, skinned by --gk-*; docs/cartridge.md). Built HERE (SHELL 2.0 B1): ready.js (THE READY HELPER —
 //   "everyone tapped") + night.js (THE ROOM-NIGHT PATH: rooms/{CODE}/meta/used/{gameId}/{key}).
 export const KIT_PREFIX = 'gk-';
 
@@ -97,9 +91,9 @@ export function checkCartridge(id, mod, o = {}) {
 export const minPlayersOf = (mod, appMin) => (mod && mod.SOLO === true ? 1 : Math.max(appMin, (mod && mod.MIN_PLAYERS) || 0));
 /** its quick replies while it runs */
 export const chipsOf = mod => (mod && Array.isArray(mod.CHAT_CHIPS) ? mod.CHAT_CHIPS.slice(0, 4) : []);
-/** the looks a game has (missing = both: it follows THE GAME LOOK setting) */
+/** its looks (missing = both) */
 export const looksOf = mod => (mod && Array.isArray(mod.LOOKS) && mod.LOOKS.length ? mod.LOOKS.filter(l => LOOK_VALUES.includes(l)) : [...LOOK_VALUES]);
-/** a game with ONE look ALWAYS plays in it: that look, else null (the setting decides) */
+/** ONE look → that look (always), else null */
 export const lookLockOf = mod => { const l = looksOf(mod); return l.length === 1 ? l[0] : null; };
 /** the settings a REMATCH starts with */
 export const rematchSettingsOf = (mod, settings, last) => (mod && typeof mod.rematchSettings === 'function' ? mod.rematchSettings(settings, last) || settings : settings);

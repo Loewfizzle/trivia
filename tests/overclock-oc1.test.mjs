@@ -457,3 +457,13 @@ test('ADD-ON: the after-challenge screen — the answer + board scroll in their 
   assert.doesNotMatch(css, /\.oc-next \{[^}]*position: sticky/, 'never a sticky bar over the rows');
   assert.match(readFileSync('docs/overclock.md', 'utf8'), /LIGHT slanted rows/);
 });
+
+test('THE RULES-LAG: the nodes newer than the published rules (ocm, ocnext) are never inside the atomic start / return — cleared in a write of their own', async () => {
+  const { ALL_PLAYER_NODES, NEW_PLAYER_NODES } = await import('../js/games/registry.js');
+  const live = JSON.parse(readFileSync('tests/fixtures/rules-live.json', 'utf8')).rules.rooms.$code;
+  for (const n of NEW_PLAYER_NODES) assert.ok(!ALL_PLAYER_NODES.includes(n), `${n} stays out of the atomic clear`);
+  for (const n of ALL_PLAYER_NODES) assert.ok(n in live, `${n} is in the rules as published (a delete of an unknown path would refuse the whole start)`);
+  const host = readFileSync('js/host.js', 'utf8');
+  assert.ok(host.includes('const clearNewNodes = code =>') && /clearNewNodes = code =>.*\.catch\(\(\) => \{\}\)/.test(host), 'best effort');
+  assert.equal((host.match(/clearNewNodes\((state\.)?code\)/g) || []).length, 2, 'at the start + the return');
+});

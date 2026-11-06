@@ -67,5 +67,10 @@ export function liveKeyFor(game) {
   return p ? `${game.id}|${JSON.stringify(p)}` : null;
 }
 
+// THE RULES-LAG (FR6 FIXES A — CLAUDE.md): player nodes NEWER than the rules as published (tests/fixtures/rules-live.json) — cleared in a write
+// of their OWN, best effort: on the old rules a delete of a path they don't know is refused, and inside the atomic start / return it would
+// take the whole write down (OC1: OVERCLOCK's combo marks + READY taps). They're keyed by the match, so a leftover never leaks into the next.
+// Once the owner has re-published, a later pass may move them into ALL_PLAYER_NODES.
+export const NEW_PLAYER_NODES = ['ocm', 'ocnext'];
 // Every player-writable node any game uses; wiped when a match starts or ends.
-export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'ocm', 'ocnext', 'lies', 'votes', 'pulse', 'golf', 'agclue', 'agready', 'agpin', 'agvote', 'agguess', 'prism', 'prismq', 'prismcall', 'slip', 'slipcall', 'glready', 'glshot', 'glres', 'glcall', 'hslock', 'rrpub'];
+export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes', 'pulse', 'golf', 'agclue', 'agready', 'agpin', 'agvote', 'agguess', 'prism', 'prismq', 'prismcall', 'slip', 'slipcall', 'glready', 'glshot', 'glres', 'glcall', 'hslock', 'rrpub'];

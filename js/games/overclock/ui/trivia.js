@@ -5,6 +5,7 @@
 // A challenge screen: (spec, api) → { el, destroy? }. api: chal, part(), progress(), step(), finish(), key, game(), fx(), pick(), sfx() — view.js.
 import { h, pulseClass } from '../../../ui/dom.js';
 import { CATEGORY_LABEL } from '../../../trivia/categories.js';
+import { tubeMark } from '../../kit/answer.js';
 
 const LETTERS = 'ABCD';
 const catLabel = c => (c && (CATEGORY_LABEL[c] || String(c).replace(/_/g, ' ').toUpperCase().slice(0, 18))) || 'TRIVIA';
@@ -38,8 +39,8 @@ export default function uiTrivia(s, api) {
     opts.forEach(o => o.classList.add('is-locked'));
     opts[i].classList.add('is-picked');
     opts[q.c].classList.add('is-right');
-    opts[q.c].querySelector('.oc-tile-mark').textContent = '✓';
-    if (!right) { opts[i].classList.add('is-wrong'); opts[i].querySelector('.oc-tile-mark').textContent = '✕'; }
+    opts[q.c].querySelector('.oc-tile-mark').replaceChildren(tubeMark('check', 'Right answer'));
+    if (!right) { opts[i].classList.add('is-wrong'); opts[i].querySelector('.oc-tile-mark').replaceChildren(tubeMark('cross', 'Wrong')); }
     api.pick(k, i);
     api.fx(opts[i], right);
     api.part(right);

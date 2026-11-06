@@ -241,9 +241,11 @@
 @keyframes gk-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
 /* ---------------- THE ANSWER frame */
-.gk-answers { display: flex; flex-direction: column; gap: 18px; width: 100%; }
+/* each question + its answer is ONE group with clear space after it (ADD-ON 3: the laser never runs into the next question) */
+.gk-answers { display: flex; flex-direction: column; gap: 26px; width: 100%; }
 .gk-answers-title { font: 800 12px / 1 var(--gk-font-ui, var(--font-ui)); letter-spacing: 0.24em; color: var(--gk-kicker-ink, var(--text-dim, #c4cbef)); }
-.gk-answer { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.gk-answer { display: flex; flex-direction: column; gap: 16px; width: 100%; padding-bottom: 4px; }
+.gk-answer > .gk-answer-q + .gk-answer-tile { margin-top: -6px; }
 .gk-answer-q { margin: 0; font: 700 var(--gk-q-size, 19px) / 1.28 var(--gk-font-ui, var(--font-ui)); color: #fff; animation: gk-rise 0.35s var(--d, 0ms) ease-out both; }
 .gk-answer-tile, .gk-pick-tile { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 12px; padding: 10px 18px 12px; transform: skewX(var(--gk-slant, 0deg)); border-radius: var(--gk-radius, 8px); }
 .gk-answer-tile { color: var(--gk-answer-ink, #1a0d05); background: var(--gk-answer-bg, linear-gradient(180deg, #ffffff, #fff1e4)); animation: gk-rise 0.38s calc(var(--d, 0ms) + 80ms) ease-out both; }
@@ -253,16 +255,25 @@
 .gk-answer-tile .gk-answer-label { color: var(--gk-answer-label, #6a3a14); }
 .gk-answer-text, .gk-pick-text { position: relative; font: 800 var(--gk-answer-size, 21px) / 1.2 var(--gk-font-ui, var(--font-ui)); overflow-wrap: anywhere; }
 .gk-answer.is-upright .gk-answer-tile, .gk-answer.is-upright .gk-pick-tile { transform: none; }
-.gk-answer-mark, .gk-pick-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font: 900 17px / 1 var(--font-ui); font-style: normal; }
-.gk-answer-mark { color: #04130a; background: var(--good); }
+/* THE MARKS (ADD-ONs 3 + 4): a neon-tube stroke in a slanted DARK-GLASS SOCKET — never a filled circle. The glow is a static wide path under
+   the tube (the pre-rendered layer); the socket fades in with its tile (opacity) */
+.gk-answer-end { grid-column: 2; grid-row: 2; display: flex; align-items: center; gap: 8px; }
+.gk-sock { position: relative; flex: none; display: grid; place-items: center; width: 38px; height: 32px; border-radius: var(--gk-sock-radius, 3px); transform: skewX(var(--gk-slant, 0deg)); background: linear-gradient(180deg, #2e3441 0%, #151820 55%, #0b0d12 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1px 0 rgba(0, 0, 0, 0.6), 0 2px 5px rgba(0, 0, 0, 0.35); }
+.gk-sock svg { width: 24px; height: 24px; overflow: visible; transform: skewX(calc(-1 * var(--gk-slant, 0deg))); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.gk-sock .gk-tube-glow { stroke: var(--sock-c); stroke-width: 8; opacity: 0.32; }
+.gk-sock .gk-tube { stroke: var(--sock-c); stroke-width: 3.2; }
+.gk-sock .gk-tube-core { stroke: #fff; stroke-width: 1.1; opacity: 0.7; }
+.gk-sock.is-check { --sock-c: var(--good); }
+.gk-sock.is-cross { --sock-c: var(--gk-wrong, #ff3b4e); }
+.gk-sock.is-approx { --sock-c: var(--close); }
+.gk-sock.is-cross svg, .gk-sock.is-approx svg { width: 20px; height: 20px; }
+.gk-you { display: inline-block; padding: 5px 8px 4px; font: italic 900 14px / 1 var(--gk-font-title, var(--font-display)); letter-spacing: 0.05em; color: var(--gk-hot-ink, #1d0900); background: var(--gk-hot, #ff6a1a); transform: skewX(var(--gk-slant, 0deg)); }
 .gk-laser { position: absolute; left: 12px; right: 12px; bottom: -7px; height: 4px; border-radius: 2px; background: var(--gk-laser, linear-gradient(90deg, var(--gk-hot, #ff6a1a), var(--gk-cool, #2e8bff))); box-shadow: 0 0 10px var(--gk-hot-glow, rgba(255, 120, 60, 0.7)); transform-origin: 0 50%; transform: scaleX(0); animation: gk-laser 0.55s calc(var(--d, 0ms) + 320ms) cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
 @keyframes gk-laser { to { transform: scaleX(1); } }
 .gk-pick-tile { color: var(--gk-pick-ink, #d9deef); background: var(--gk-pick-bg, rgba(255, 255, 255, 0.06)); border: 1px solid var(--gk-key-line, rgba(255, 255, 255, 0.16)); animation: gk-rise 0.36s calc(var(--d, 0ms) + 420ms) ease-out both; }
 .gk-pick-tile .gk-answer-label { color: var(--gk-pick-label, #aeb6d6); }
-.gk-pick-tile.is-wrong .gk-pick-mark { color: #fff; background: var(--gk-wrong, #ff3b4e); }
-.gk-pick-tile.is-close .gk-pick-mark { color: #1c1300; background: var(--close); }
 .gk-pick-tile.is-none .gk-pick-text { font-size: 16px; color: var(--gk-pick-label, #aeb6d6); }
-.gk-strike { position: absolute; left: 12px; right: 56px; top: calc(50% + 7px); height: 3px; border-radius: 2px; background: var(--gk-wrong, #ff3b4e); box-shadow: 0 0 8px var(--gk-wrong, #ff3b4e); transform-origin: 0 50%; transform: scaleX(0); animation: gk-laser 0.4s calc(var(--d, 0ms) + 700ms) ease-out forwards; }
+.gk-strike { position: absolute; left: 12px; right: 66px; top: calc(50% + 7px); height: 3px; border-radius: 2px; background: var(--gk-wrong, #ff3b4e); box-shadow: 0 0 8px var(--gk-wrong, #ff3b4e); transform-origin: 0 50%; transform: scaleX(0); animation: gk-laser 0.4s calc(var(--d, 0ms) + 700ms) ease-out forwards; }
 .gk-answer-slot { margin-top: 4px; }
 
 @media (prefers-reduced-motion: reduce) {

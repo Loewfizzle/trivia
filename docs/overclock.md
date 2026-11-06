@@ -251,6 +251,15 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
   8 players at 390 / 412 / 1440); "NEXT IN 599" fixed at the source (`logic.js#nextInSec`: the screen's own max on the server clock, 0–12,
   tested); the light rows (below).
 
+- **THE OWNER's ADD-ONs 3 + 4:** the filled-circle ✓ / ✕ badges are gone everywhere — a NEON-TUBE ✓ (`--good`) in a small slanted
+  DARK-GLASS SOCKET at the tile's right end (`kit/answer.js#tubeMark`: the letter badge's slant, a static glow path under the tube), + an orange
+  YOU tag beside it when it was your pick; a wrong YOUR PICK wears a thin red tube ✕ in the same socket beside the red strike; the playing tiles
+  use the same marks. Each question + its answer is one group with ≥ 16 pt after it (the laser never runs into the next question); the answer
+  stack slightly tighter so the board starts sooner.
+- **THE RULES-LAG, caught by the harbor's `oldrules` group:** the start + the return clear every player node in ONE atomic write — on the rules
+  as published a delete of `ocm` / `ocnext` (paths they don't know) refused the whole write, so OVERCLOCK would not have started until the
+  re-publish. Those two now live in `registry.js#NEW_PLAYER_NODES`, cleared in a write of their own (best effort); a test pins it.
+
 **Decisions (OC1)**
 - **Mid-game standings use LIGHT slanted rows on purpose, NOT the console's slim player cards** (the owner, Nov 5): 8 animated cards every
   round would be heavy + busy. Each light row shows the player's OWN EMBLEM (30 pt) + their name, so they're recognisably the same person as on

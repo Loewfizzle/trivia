@@ -11,7 +11,7 @@ import { state, isHost, onlineMap } from './store.js';
 import { shouldClaimHost, isOnline, roomIdle } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
-import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, loadGame, metaOf } from './games/registry.js';
+import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, loadGame, metaOf } from './games/registry.js';
 import { toast } from './ui/toast.js';
 
 // SPEED PASS B — THE SECOND TAB's check (tests: e2e speed.mjs twotabs): this tab's own host writes — the beats + the director's steps
@@ -232,6 +232,7 @@ async function startGameNow(gameId, settings, quick = false) {
     'meta/hostBeat': serverTimestamp(),
     [`meta/settings/${gameId}`]: settings,
   });
+  clearNewNodes(state.code);
   withChat(m => m.announceStart(gameId, matchId));
   return true;
 }
@@ -259,6 +260,8 @@ function stampRefused(kind, e) {
   import('./errlog.js').then(m => m.reportError(new Error(`ROOM STAMP REFUSED (${kind}) — the live database rules are older than the code: re-publish database.rules.json (meta/go, meta/back, rv)`), 'rules')).catch(() => {});
 }
 const clearPlayerNodes = () => Object.fromEntries(ALL_PLAYER_NODES.map(n => [n, null]));
+// (OC1 — THE RULES-LAG: the nodes newer than the published rules, in a write of their own — a refusal here never stops a start or a return)
+const clearNewNodes = code => { if (code) update(dbRef(`rooms/${code}`), Object.fromEntries(NEW_PLAYER_NODES.map(n => [n, null]))).catch(() => {}); };
 // THE SEAL's envelopes (seal/{CODE}, outside the room) go with the player nodes at a match's start + end
 const wipeSeal = code => { if (code) remove(dbRef(`seal/${code}`)).catch(() => {}); };
 
@@ -275,6 +278,7 @@ export async function backToLobby() {
   const stamp = { 'meta/go': null, 'meta/back': g && g.matchId ? { at: serverTimestamp(), m: g.matchId, g: g.id, rm: isPlayable(g.id) } : null, rv: null };
   const back = { game: null, ...clearPlayerNodes(), 'meta/status': 'lobby', 'meta/activeAt': serverTimestamp() };
   backWrites.n++;
+  clearNewNodes(code);
   try { await update(dbRef(`rooms/${code}`), { ...stamp, ...back }); return; } catch (e) { backWrites.fallback++; stampRefused('back', e); }
   await update(dbRef(`rooms/${code}`), stamp).catch(() => {});
   await update(dbRef(`rooms/${code}`), back).catch(e => console.warn('lobby', e));
