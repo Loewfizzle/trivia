@@ -11,6 +11,7 @@
 // Keys come from the item's TEXT (a short hash), not its index, so a bank that grows (OC6 / OC7) keeps the night's memory.
 import { rngFrom, shuffle } from '../../core/rng.js';
 import { TF_FACTS, TF_FACT_SLOTS, unscrambleLength, hlPick } from './challenges.js';
+import { oddPool, oddKey } from './odd.js';
 
 /** FNV-1a (32-bit) → base 36: a short, stable, database-safe key for an item's text */
 export function hash36(text) {
@@ -36,7 +37,7 @@ export const tfKey = pair => `tf-${hash36(pair[0])}`;
 export const hlKey = (stat, item) => `hl-${hash36(`${stat[0]}|${item[0]}`)}`;
 export const unKey = word => `un-${word}`;
 /** the types whose items the night remembers (the rest are generated fresh every time — math, memory, rewire …) */
-export const DEALT = Object.freeze([...Object.keys(ROWS), 'higherlower', 'truefalse', 'unscramble']);
+export const DEALT = Object.freeze([...Object.keys(ROWS), 'higherlower', 'truefalse', 'unscramble', 'oddone']);
 
 /**
  * n distinct indices of 0..size-1 in the seeded order — the fresh ones first (not in `taken`), then (a used-up pool) the rest.
@@ -81,6 +82,17 @@ export function dealMatch({ seed, order, total, banks = {}, words = () => null, 
     } else if (type === 'truefalse') {
       const idx = pickFresh(rand, TF_FACTS.length, TF_FACT_SLOTS, i => seen.has(tfKey(TF_FACTS[i])));
       put(ci, idx, idx.map(i => tfKey(TF_FACTS[i])));
+    } else if (type === 'oddone') {
+      // OC4 — ODD ONE OUT's FAMILIES: three of the four (a different one per grid), each grid's item fresh tonight (a used-up family reshuffles)
+      const fams = shuffle(rand, [0, 1, 2, 3]).slice(0, 3);
+      const flat = [], keys = [];
+      fams.forEach((fam, g) => {
+        const pool = oddPool(fam, level(ci), g);
+        const [k] = pickFresh(rand, pool.length, 1, j => seen.has(oddKey(fam, pool[j])));
+        flat.push(fam, pool[k]);
+        keys.push(oddKey(fam, pool[k]));
+      });
+      put(ci, flat, keys);
     } else if (type === 'unscramble') {
       const list = words(unscrambleLength(level(ci)));
       if (!Array.isArray(list) || !list.length) return;

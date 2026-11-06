@@ -2,6 +2,7 @@
 // same challenge from (seed, challenge index, level), so nothing but the seed and
 // the challenge order needs to be stored in the room.
 import { rngFrom, randInt, pick, shuffle } from '../../core/rng.js';
+import { ODD_SIZES, oddFamilies, oddPool, oddGrid, oddCatalogSize } from './odd.js';
 
 export const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'timeline', 'closest', 'rewire',
   'missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower'];
@@ -75,18 +76,17 @@ export function genMemory(rand, level) {
 }
 
 // ---------- odd one out ----------
-// Glyph pairs from easy to hard (rendered in JetBrains Mono).
-const ODD_TIERS = [
-  [['O', 'Q'], ['E', 'F'], ['P', 'R'], ['C', 'G'], ['V', 'Y'], ['M', 'N'], ['T', 'Y']],
-  [['b', 'd'], ['p', 'q'], ['6', '9'], ['u', 'v'], ['m', 'n'], ['h', 'n'], ['K', 'X'], ['3', '8']],
-  [['O', '0'], ['l', '1'], ['I', 'l'], ['5', 'S'], ['8', 'B'], ['Z', '2'], ['e', 'c'], ['G', '6']],
-];
-export function genOddOne(rand, level) {
-  const grids = [4, 5, 6].map((size, g) => {
-    const tier = Math.min(2, Math.floor(level * 1.6 + g * 0.6));
-    const pair = pick(rand, ODD_TIERS[tier]);
-    const flip = rand() < 0.5;
-    return { size, base: flip ? pair[1] : pair[0], odd: flip ? pair[0] : pair[1], idx: randInt(rand, 0, size * size - 1) };
+// OC4 — FOUR FAMILIES (odd.js): letters / numbers · rotation · mirror · neon shapes; each of the three grids (4×4 · 5×5 · 6×6) from a DIFFERENT
+// one. deal = THE ROOM's NIGHT MEMORY (deal.js): [fam, item, fam, item, fam, item] — absent (or stale) = the challenge's own seeded draw. The
+// seeded stream is spent the same way with or without a deal (the cells + angles never depend on whether the night dealt it).
+const oddDealt = (deal, g) => Array.isArray(deal) && deal.length === 6 && Number.isInteger(deal[g * 2]) && deal[g * 2] >= 0 && deal[g * 2] < 4
+  && Number.isInteger(deal[g * 2 + 1]) && deal[g * 2 + 1] >= 0 && deal[g * 2 + 1] < oddCatalogSize(deal[g * 2]);
+export function genOddOne(rand, level, deal = null) {
+  const fams = oddFamilies(rand);
+  const ok = [0, 1, 2].every(g => oddDealt(deal, g)) && new Set([deal[0], deal[2], deal[4]]).size === 3;
+  const grids = ODD_SIZES.map((size, g) => {
+    const drawn = pick(rand, oddPool(fams[g], level, g));
+    return ok ? oddGrid(rand, deal[g * 2], deal[g * 2 + 1], size, level, g) : oddGrid(rand, fams[g], drawn, size, level, g);
   });
   return { type: 'oddone', parts: 3, grids };
 }
@@ -549,7 +549,7 @@ export function generate(type, { seed, ci, level, occ = 0, deal = null }, deps =
     case 'higherlower': return genHigherLower(rand, deps.higherlower, deal);
     case 'unscramble': return genUnscramble(rand, level, deps.answersFor || (() => null), deal);
     case 'memory': return genMemory(rand, level);
-    case 'oddone': return genOddOne(rand, level);
+    case 'oddone': return genOddOne(rand, level, deal);
     case 'math': return genMath(rand, level);
     case 'pattern': return genPattern(rand, level, { first: occ === 0, seed, ci });
     case 'stroop': return genStroop(rand, level);

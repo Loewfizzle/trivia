@@ -6,6 +6,12 @@ import assert from 'node:assert/strict';
 import { readFileSync, statSync, readdirSync } from 'node:fs';
 import { impactPoint, crackPlan, CRACK_MS, REVEAL_MS, CRACK_RAYS } from '../js/games/overclock/crack.js';
 import { CREDITS } from '../js/ui/credits.js';
+import { generate, genOddOne, challengeRng, partsFor } from '../js/games/overclock/challenges.js';
+import { ODD_FAMS, ODD_SIZES, GLYPH_PAIRS, ROT_SHAPES, MIRROR_SHAPES, NEON_ODD, ROT_TURNS, ODD_MIN_TURN, oddPool, oddKey, oddGrid, oddToken, oddWhy, oddCatalogSize } from '../js/games/overclock/odd.js';
+import { dealMatch, DEALT, keysAt } from '../js/games/overclock/deal.js';
+import { createGame, nextStep } from '../js/games/overclock/director.js';
+import { levelOf, CHALLENGE_MS } from '../js/games/overclock/logic.js';
+import { rngFrom } from '../js/core/rng.js';
 
 const CREDIT_LINE = 'RadialCracksB by Keith333 (https://opengameart.org/users/keith333), licensed under CC-BY 3.0';
 
@@ -78,4 +84,152 @@ test('THE CRACK: every wrong feedback goes through it — no hand-drawn hairline
   const css = readFileSync('css/overclock.css', 'utf8');
   assert.ok(!/\.oc-crack[\s{,]/.test(css), 'the old crack styles are gone');
   assert.match(css, /\.oc-gc \{/);
+});
+
+// ---------------------------------------------------------------------------------------------- ODD ONE OUT's FOUR FAMILIES (Group 1 — rules first)
+test('ODD ONE OUT: the catalogs — ~60 fair look-alike pairs (no duplicates, three tiers), the shapes, NO colour family', () => {
+  assert.ok(GLYPH_PAIRS.length >= 55 && GLYPH_PAIRS.length <= 70, `${GLYPH_PAIRS.length} pairs`);
+  const seen = new Set();
+  for (const [a, b, t] of GLYPH_PAIRS) {
+    assert.notEqual(a, b);
+    const k = [a, b].sort().join('|');
+    assert.ok(!seen.has(k), `a duplicate pair ${k}`); seen.add(k);
+    assert.ok([0, 1, 2].includes(t));
+    assert.ok(a.length <= 2 && b.length <= 2, 'a glyph fits a cell');
+  }
+  for (const t of [0, 1, 2]) assert.ok(GLYPH_PAIRS.filter(p => p[2] === t).length >= 15, `tier ${t} has enough pairs for a long night`);
+  assert.deepEqual(ODD_FAMS, ['glyph', 'rot', 'mirror', 'shape'], 'four families — none about colour');
+  assert.ok(ROT_SHAPES.length >= 4 && MIRROR_SHAPES.length >= 4 && NEON_ODD.length >= 3);
+  // every item has its own night key
+  const keys = new Set();
+  for (let f = 0; f < 4; f++) for (let i = 0; i < oddCatalogSize(f); i++) { const k = oddKey(f, i); assert.match(k, /^od-[grms][a-z0-9]+$/); assert.ok(!keys.has(k), k); keys.add(k); }
+});
+
+test('ODD ONE OUT: every challenge = three grids (4×4 · 5×5 · 6×6) from THREE DIFFERENT families; seeded + deterministic', () => {
+  const famsSeen = new Map();
+  for (let s = 0; s < 600; s++) {
+    for (const level of [0, 0.5, 1]) {
+      const args = { seed: `odd${s}`, ci: s % 12, level };
+      const o = generate('oddone', args);
+      assert.deepEqual(o, generate('oddone', args), 'every phone builds the same grids');
+      assert.equal(o.parts, 3); assert.equal(o.parts, partsFor('oddone', level));
+      assert.deepEqual(o.grids.map(g => g.size), ODD_SIZES);
+      assert.equal(new Set(o.grids.map(g => g.fam)).size, 3, 'a different family per grid');
+      for (const g of o.grids) {
+        assert.notEqual(g.base, g.odd);
+        assert.ok(Number.isInteger(g.idx) && g.idx >= 0 && g.idx < g.size * g.size);
+        famsSeen.set(g.fam, (famsSeen.get(g.fam) || 0) + 1);
+      }
+    }
+  }
+  for (const f of ODD_FAMS) assert.ok(famsSeen.get(f) > 600, `${f} comes up (${famsSeen.get(f)})`);
+});
+
+test('ODD ONE OUT: each family\'s difference is real + phone-fair (a clear angle ≥ 20°, a flip, a missing point / pip / a moved gap)', () => {
+  for (let s = 0; s < 400; s++) {
+    for (let f = 0; f < 4; f++) {
+      for (const level of [0, 0.5, 0.9]) {
+        const pool = oddPool(f, level, s % 3);
+        assert.ok(pool.length > 0);
+        const g = oddGrid(rngFrom(`f${f}:${s}`), f, pool[s % pool.length], 6, level, s % 3);
+        if (f === 0) { const p = GLYPH_PAIRS[pool[s % pool.length]]; assert.deepEqual([g.base, g.odd].sort(), [p[0], p[1]].sort()); continue; }
+        const b = oddToken(g.base), o = oddToken(g.odd);
+        assert.ok(b && o, `${g.base} / ${g.odd} parse`);
+        assert.equal(b.shape.replace(/\d$/, ''), o.shape.replace(/\d$/, ''), 'the same shape — only the one difference');
+        if (f === 1) {
+          const d = Math.abs(((o.a - b.a + 540) % 360) - 180);
+          assert.ok(d >= ODD_MIN_TURN && d >= 25 && d <= 45, `turned ${d}°`);
+          assert.equal(d, Math.abs(g.turn));
+          assert.equal(b.m, false); assert.equal(o.m, false);
+        }
+        if (f === 2) { assert.notEqual(b.m, o.m, 'exactly one is mirrored'); assert.equal(b.a, o.a, 'the same way up'); }
+        if (f === 3 && b.shape === 'gap') { const d = Math.abs(((o.a - b.a + 540) % 360) - 180); assert.ok(d >= 90, `the gap moved ${d}° — never a near miss`); }
+      }
+    }
+  }
+  assert.ok(ROT_TURNS.flat().every(t => t >= ODD_MIN_TURN && t <= 45));
+  assert.ok(Math.min(...ROT_TURNS[0]) > Math.min(...ROT_TURNS[2]), 'early challenges turn further (easier)');
+});
+
+test('ODD ONE OUT: THE ANSWER\'s one short line says what made it odd', () => {
+  assert.equal(oddWhy({ fam: 'rot', base: 'arrow@0', odd: 'arrow@30', turn: 30 }), 'the arrow turned 30°');
+  assert.equal(oddWhy({ fam: 'rot', base: 'key@345', odd: 'key@15', turn: 30 }), 'the key turned 30°');
+  assert.equal(oddWhy({ fam: 'mirror', base: 'flag@0', odd: 'flag~@0' }), 'the flag flipped — a mirror image');
+  assert.equal(oddWhy({ fam: 'shape', base: 'die6', odd: 'die5' }), 'a 5 among 6s');
+  assert.equal(oddWhy({ fam: 'shape', base: 'star5', odd: 'star4' }), 'a star missing a point');
+  assert.equal(oddWhy({ fam: 'shape', base: 'gap@0', odd: 'gap@180' }), 'its gap in a different spot');
+  assert.equal(oddWhy({ fam: 'glyph', base: 'O', odd: '0' }), 'the 0 among the Os');
+  for (let s = 0; s < 200; s++) for (const g of generate('oddone', { seed: `w${s}`, ci: 1, level: s / 200 }).grids) assert.ok(oddWhy(g).length > 6 && oddWhy(g).length <= 40, oddWhy(g));
+});
+
+test('ODD ONE OUT + THE NIGHT\'s MEMORY: the host deals each grid\'s family + item, marks them, a rematch gets fresh ones; a stale deal falls back', () => {
+  assert.ok(DEALT.includes('oddone'));
+  const order = ['oddone', 'math', 'stroop', 'count', 'oddone', 'truefalse'];
+  const used = {};
+  const all = [];
+  for (let m = 0; m < 4; m++) {
+    const { deal, dk } = dealMatch({ seed: `night-${m}`, order, total: 6, used });
+    for (const ci of [0, 4]) {
+      const d = deal[ci];
+      assert.equal(d.length, 6);
+      assert.equal(new Set([d[0], d[2], d[4]]).size, 3, 'three different families');
+      const spec = generate('oddone', { seed: `night-${m}`, ci, level: levelOf(ci, 6), deal: d });
+      assert.deepEqual(spec.grids.map(g => g.fam), [d[0], d[2], d[4]].map(f => ODD_FAMS[f]), 'the screen builds what the host dealt');
+      const keys = dk[ci].split(' ');
+      assert.equal(keys.length, 3);
+      for (const k of keys) { assert.ok(!all.includes(k) || m >= 2, `${k} again on the same night`); all.push(k); used[k] = true; }
+      assert.deepEqual(keysAt({ order, dk }, ci).slice(1), keys, 'the opening step marks exactly these');
+    }
+  }
+  // a stale / broken deal → the seeded draw (never a crash)
+  for (const bad of [[0, 999, 1, 0, 2, 0], [0, 0, 0, 1, 2, 0], [9, 0, 1, 0, 2, 0], 'x', [1, 2]]) {
+    const a = generate('oddone', { seed: 'st', ci: 1, level: 0.3, deal: bad });
+    assert.deepEqual(a, generate('oddone', { seed: 'st', ci: 1, level: 0.3 }));
+  }
+});
+
+function applyPatch(obj, patch) {
+  for (const [k, v] of Object.entries(patch || {})) {
+    if (k === '$room') continue;
+    const parts = k.split('/');
+    let o = obj;
+    for (const p of parts.slice(0, -1)) o = o[p] ??= {};
+    if (v === null) delete o[parts.at(-1)]; else o[parts.at(-1)] = structuredClone(v);
+  }
+}
+test('a WHOLE simulated match with two ODD ONE OUTs (2 + 8 players): dealt by the host, marked as each opens, scored + ended as before; a replayed step = the same patch', () => {
+  const order = ['oddone', 'math', 'reflex', 'count', 'oddone', 'stroop'];
+  for (const n of [2, 8]) {
+    const uids = Array.from({ length: n }, (_, i) => `p${i}`);
+    let now = 2_000_000;
+    const { deal, dk } = dealMatch({ seed: `oc4-sim-${n}`, order, total: 6, used: {} });
+    const game = createGame({ matchId: 'oc4', settings: { mode: 'quick' }, participants: Object.fromEntries(uids.map(u => [u, true])), now, seed: `oc4-sim-${n}`, bank: {}, trivia: { n: 99 }, order, deal, dk });
+    const online = Object.fromEntries(uids.map(u => [u, true]));
+    const marked = {};
+    while (game.phase !== 'final') {
+      now = game.phaseEndsAt;
+      const open = nextStep(game, { now, boards: {}, online, fallback: () => null });
+      Object.assign(marked, open.$room || {});
+      applyPatch(game, open);
+      const type = game.order[game.ci];
+      if (type === 'oddone') {
+        const spec = generate('oddone', { seed: game.seed, ci: game.ci, level: levelOf(game.ci, game.total), deal: game.deal[game.ci] });
+        assert.equal(new Set(spec.grids.map(g => g.fam)).size, 3);
+        for (const k of game.dk[game.ci].split(' ')) assert.ok(Object.keys(marked).some(p => p.endsWith(`/${k}`)), `${k} marked as it opened`);
+      }
+      const parts = partsFor(type, levelOf(game.ci, game.total));
+      const boards = Object.fromEntries(uids.map((u, i) => [u, { p: parts, ok: Math.max(0, parts - (i % 3)), n: parts, done: true, doneAt: game.playStartAt + 5000 + i * 600 }]));
+      now = game.playStartAt + CHALLENGE_MS + 1000;
+      const ctx = { now, boards, online, marks: {}, fallback: () => null };
+      const patch = nextStep(game, ctx);
+      assert.deepEqual(nextStep(structuredClone(game), { ...structuredClone({ ...ctx, fallback: null }), fallback: () => null }), patch, 'a new host replaying the close writes the same patch');
+      applyPatch(game, patch);
+      if (game.phase === 'standings') { now = game.phaseEndsAt; applyPatch(game, nextStep(game, { now, boards: {}, online, fallback: () => null })); }
+    }
+    assert.equal(Object.keys(game.results).length, 6, 'six results — the record the server reads');
+    assert.ok(uids.every(u => typeof game.results[0][u].pts === 'number' && typeof game.results[4][u].pts === 'number'));
+    assert.ok(game.results[0][uids[0]].pts > game.results[0][uids[1]].pts, 'more right = more points (scoring unchanged)');
+    assert.equal(game.settings.mode, 'quick');
+  }
+  assert.ok(typeof genOddOne === 'function' && typeof challengeRng === 'function');
 });
