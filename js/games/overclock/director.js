@@ -1,6 +1,6 @@
 // OVERCLOCK — authority state machine (pure).
 // Phases: ready (rules card the first time a type appears) -> play (30 s) -> standings -> ready … -> final
-import { READY_MS, BRIEF_MS, CHALLENGE_MS, FINAL_MS, PLAY_GRACE_MS, SKIP_MIN_MS, MODES, buildOrder, computeResults, standingsMs, comboFold, marksFor } from './logic.js';
+import { READY_MS, BRIEF_MS, CHALLENGE_MS, FINAL_MS, PLAY_GRACE_MS, SKIP_MIN_MS, MODES, buildOrder, computeResults, standingsMs, comboFold, marksFor, roundWin, packRoundWin, comboReachAt, levelOf } from './logic.js';
 import { partsFor } from './challenges.js';
 import { keysAt } from './deal.js';
 import { markUsed } from '../kit/night.js';
@@ -56,6 +56,17 @@ export function comboAfter(game, ctx) {
   return out;
 }
 
+/** each participant's time on challenge ci (ms from playStartAt to their doneAt, 0 … CHALLENGE_MS; not finished = CHALLENGE_MS) — PURE */
+export function timesOf(game, boards) {
+  const out = {};
+  for (const uid of Object.keys(game.participants || {})) {
+    const b = boards && boards[uid];
+    const t = b && b.done && typeof b.doneAt === 'number' ? b.doneAt - (game.playStartAt || 0) : CHALLENGE_MS;
+    out[uid] = Math.round(Math.max(0, Math.min(CHALLENGE_MS, t)));
+  }
+  return out;
+}
+
 /** ctx: { now, boards, online, marks?, next?, fallback(n) -> patch|null } — marks = this challenge's combo marks, next = the after-challenge taps */
 export function nextStep(game, ctx) {
   if (!game || game.id !== 'overclock') return null;
@@ -85,13 +96,26 @@ export function nextStep(game, ctx) {
       const allDone = active.length > 0 && active.every(u => ctx.boards && ctx.boards[u] && ctx.boards[u].done);
       if (!allDone && now < ends + PLAY_GRACE_MS) return null;
       const last = game.ci >= game.total - 1;
+      const res = computeResults(game, ctx.boards || {});
       const patch = {
         phase: last ? 'final' : 'standings',
         phaseStartAt: now,
         phaseEndsAt: now + (last ? FINAL_MS : standingsMs(type)),
-        [`results/${game.ci}`]: computeResults(game, ctx.boards || {}),
+        [`results/${game.ci}`]: res,
+        // OC2 — THE ROUND WIN (logic.js#roundWin — the server's REDLINE rule) stored once, so every phone + a new host read the same
+        [`rw/${game.ci}`]: packRoundWin(roundWin(res, uids)),
+        // OC2 — FASTEST's clock: each player's ms from the challenge's start to their finish (the whole 30 s when they never finished)
+        [`tm/${game.ci}`]: timesOf(game, ctx.boards || {}),
       };
-      for (const [uid, v] of Object.entries(comboAfter(game, ctx))) patch[`combo/${uid}`] = v;
+      for (const [uid, v] of Object.entries(comboAfter(game, ctx))) {
+        patch[`combo/${uid}`] = v;
+        // BEST STREAK's tie-break: when this best was reached (ci × 100 + the mark's index) — game.combo itself keeps its { c, m }
+        const prev = (game.combo && game.combo[uid]) || { c: 0, m: 0 };
+        if (v.m > (prev.m || 0)) {
+          const at = comboReachAt(prev, marksFor(type, ctx.marks && ctx.marks[uid], ctx.boards && ctx.boards[uid], partsFor(type, levelOf(game.ci, game.total))));
+          patch[`cr/${uid}`] = game.ci * 100 + Math.max(0, at);
+        }
+      }
       return patch;
     }
     case 'standings': {

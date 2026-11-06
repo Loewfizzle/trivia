@@ -12,7 +12,7 @@ import * as ocMeta from '../games/overclock/meta.js';
 import * as prismMeta from '../games/prism/meta.js';
 import { boardDef } from './boards.js';
 import { rankings as signalRankings } from '../games/signal/logic.js';
-import { standings as ocStandings, MODES as OC_MODES } from '../games/overclock/logic.js';
+import { standings as ocStandings, MODES as OC_MODES, roundWin as ocRoundWin } from '../games/overclock/logic.js';
 import { standings as bluffStandings } from '../games/bluff/logic.js';
 import { standings as pulseStandings, multiplier } from '../games/pulse/logic.js';
 import { totals as golfTotals, standings as golfStandings, CAP as GOLF_CAP } from '../games/golf/logic.js';
@@ -113,7 +113,8 @@ function overclockExtra(game, uid, out, row, ctx, win) {
   if (uids.length >= 2) {
     // REDLINE — sweep: a QUICK match, every challenge played (all 6 results), this player ALONE on top of every one (strictly the most, > 0)
     const quick = game.settings && game.settings.mode === 'quick' && num(game.total) === OC_MODES.quick && Object.keys(res).length === OC_MODES.quick;
-    if (quick && Object.values(res).every(rr => { const me = num(rr && rr[uid] && rr[uid].pts); return me > 0 && uids.every(u => u === uid || num(rr && rr[u] && rr[u].pts) < me); })) (out.f ||= {}).sweep = 1;
+    // (OC2: THE ROUND WIN is ONE rule — overclock/logic.js#roundWin, the same the game's ROUND WINNER banner + ROUND WINS use)
+    if (quick && Object.values(res).every(rr => { const r = ocRoundWin(rr, uids); return r.kind === 'win' && r.uid === uid; })) (out.f ||= {}).sweep = 1;
     // PHOTO FINISH — photo: the win, ALONE in first, by exactly one point over second (any mode)
     if (win && row.rank === 1) { const me = tot(uid), next = Math.max(...uids.filter(u => u !== uid).map(tot)); if (me - next === 1) (out.f ||= {}).photo = 1; }
   }
