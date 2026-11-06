@@ -233,3 +233,52 @@ test('a WHOLE simulated match with two ODD ONE OUTs (2 + 8 players): dealt by th
   }
   assert.ok(typeof genOddOne === 'function' && typeof challengeRng === 'function');
 });
+
+// ---------------------------------------------------------------------------------------------- Group 3 — the timings + THE EXACT FLASH
+const ui = f => readFileSync(`js/games/overclock/ui/${f}.js`, 'utf8');
+test('QUICK COUNT — THE EXACT FLASH: 1800 − level × 600 ms, the shapes INSTANT at full brightness, the clock starting only once they have painted', async () => {
+  const { generate: gen } = await import('../js/games/overclock/challenges.js');
+  for (const level of [0, 0.25, 0.5, 0.75, 1]) for (const it of gen('count', { seed: `qc${level}`, ci: 1, level }).items) assert.equal(it.flashMs, Math.round(1800 - level * 600));
+  const src = ui('count');
+  // the timer to the question is set INSIDE afterPaint (two animation frames after the grid is in the page) — never before
+  const show = src.slice(src.indexOf('const show = () => {'), src.indexOf('const ask = it =>'));
+  assert.match(show, /stopPaint = afterPaint\(\(\) => \{[\s\S]*timer = setTimeout\(\(\) => ask\(it\), it\.flashMs\);[\s\S]*\}\);/);
+  assert.ok(show.indexOf('afterPaint(') < show.indexOf('setTimeout(() => ask(it), it.flashMs)'));
+  assert.match(src, /export const afterPaint = fn => \{ let a = requestAnimationFrame\(\(\) => \{ a = requestAnimationFrame\(fn\); \}\);/);
+  // nothing on the flash's grid animates or fades in (CSS): the grid, its cells + the shapes have no animation / transition / starting opacity
+  const css = readFileSync('css/overclock.css', 'utf8');
+  for (const m of css.matchAll(/^\.oc-qc-(grid|cell|shape)[^{]*\{([^}]*)\}/gm)) assert.doesNotMatch(m[2], /animation|transition|opacity/, `.oc-qc-${m[1]}: ${m[2]}`);
+  assert.doesNotMatch(show, /q-in|pulseClass/, 'no entrance animation on the flash');
+});
+
+test('NO TIMING CHANGED (the owner): the seven screens\' own step times + the challenge constants', async () => {
+  const C = await import('../js/games/overclock/challenges.js');
+  assert.equal(C.REFLEX_TIMEOUT_MS, 1200);
+  for (const level of [0, 0.5, 1]) assert.equal(C.genMemory(rngFrom(`m${level}`), level).stepMs, Math.round(620 - level * 180));
+  assert.deepEqual([C.COMPASS_STEP_MS, C.COMPASS_GAP_MS, C.COMPASS_START_MS, C.COMPASS_FLASH_MS], [[760, 700, 640, 590, 550], 80, [1000, 500, 500, 500, 500], 450]);
+  const mem = ui('memory');
+  assert.match(mem, /MEM_START_MS = 700/); assert.match(mem, /MEM_TURN_MS = 150/);
+  assert.match(mem, /glow\(n, s\.stepMs \* 0\.75\)/); assert.match(mem, /MEM_START_MS \+ k \* s\.stepMs/); assert.match(mem, /MEM_START_MS \+ N \* s\.stepMs \+ MEM_TURN_MS/); assert.match(mem, /glow\(i, 260\)/);
+  assert.match(ui('stroop'), /right \? 220 : 650/);
+  assert.match(ui('oddone'), /right \? 350 : 750/);
+  assert.match(ui('count'), /credit === 1 \? 420 : 900/);
+  const rx = ui('reflex');
+  assert.match(rx, /RX_FIRST_MS = 900, RX_NEXT_MS = 950/); assert.match(rx, /later\(go, s\.delays\[chal\.p\]\)/); assert.match(rx, /REFLEX_TIMEOUT_MS\);/);
+  const rw = ui('rewire');
+  assert.match(rw, /\}, 400\);/); assert.match(rw, /build\(\); \}, 1100\);/); assert.match(rw, /api\.progress\(2, 2, \{ rw: '' \}, true, 1300\)/);
+  const cp = ui('compass');
+  assert.match(cp, /later\(round, 350\)/); assert.match(cp, /later\(round, COMPASS_FLASH_MS\)/); assert.match(cp, /t \+= COMPASS_STEP_MS\[r\]/); assert.match(cp, /t \+= COMPASS_GAP_MS/);
+  // the surge + the reveals' animations fit inside the existing times
+  const { surgeStep, RW_SURGE_MAX } = await import('../js/games/overclock/ui/rewire.js');
+  for (let far = 0; far <= 15; far++) assert.ok((far + 1) * surgeStep(far) <= RW_SURGE_MAX && RW_SURGE_MAX + 300 <= 1100, `the surge reaches the core in time (a path ${far + 1} long)`);
+});
+
+test('THE SCORING + THE RECORD are unchanged: Color Clash keeps its four colours only; the record the server reads', async () => {
+  const C = await import('../js/games/overclock/challenges.js');
+  for (let s = 0; s < 300; s++) for (const level of [0, 0.6, 1]) for (const it of C.generate('stroop', { seed: `cc${s}`, ci: 2, level }).items) {
+    for (const c of [it.ink, it.word, ...it.order]) assert.ok(C.CLASH_COLORS.includes(c), c);
+    assert.equal(new Set(it.order).size, 4);
+  }
+  assert.deepEqual([...C.CLASH_COLORS].sort(), ['blue', 'green', 'red', 'yellow']);
+  assert.equal(C.reflexCredit(230), 1); assert.equal(C.reflexCredit(530), 0.5); assert.equal(C.rewireOk(1, 0.5), 1.3);
+});

@@ -11,7 +11,9 @@ import { sfx } from '../../../audio/sfx.js';
 import { rewirePower, rewireOk, REWIRE_SHAPES } from '../challenges.js';
 import { fastButton } from '../shared.js';
 
-export const RW_SURGE_STEP = 55;   // ms per step of the surge (source → core), inside the 1100 ms before the next circuit
+export const RW_SURGE_STEP = 55;   // ms per step of the surge (source → core) …
+export const RW_SURGE_MAX = 760;   // … the core reached by then whatever the path's length (the next circuit comes at 1100 ms — unchanged)
+export const surgeStep = far => Math.min(RW_SURGE_STEP, Math.floor(RW_SURGE_MAX / (far + 1)));
 /** the tube's path for a shape in its base orientation (the tile turns it): I = straight N–S; L = N → E BENT like real neon (a quarter arc
  *  round the tile's corner — it leaves each edge square, so it meets the next tile's tube); T = straight N–S + an arm east from a joint */
 export const tubePath = shape => (shape === 'I' ? 'M50 -2V102' : shape === 'L' ? 'M50 -2V0A50 50 0 0 0 100 50H102' : 'M50 -2V102M50 50H102');
@@ -126,8 +128,10 @@ export default function uiRewire(s, api) {
   // HTML layers, transform + opacity)
   const surge = pw => {
     let far = 0;
-    for (const i of pw.lit) { const d = pw.depth.get(i); far = Math.max(far, d); tiles[i].style.setProperty('--sd', `${d * RW_SURGE_STEP}ms`); }
-    core.style.setProperty('--sd', `${(far + 1) * RW_SURGE_STEP}ms`);
+    for (const i of pw.lit) far = Math.max(far, pw.depth.get(i));
+    const step = surgeStep(far);
+    for (const i of pw.lit) tiles[i].style.setProperty('--sd', `${pw.depth.get(i) * step}ms`);
+    core.style.setProperty('--sd', `${(far + 1) * step}ms`);
     board.classList.add('is-surge');
   };
   build();

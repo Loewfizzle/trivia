@@ -226,12 +226,12 @@ try {
       if (i === 1 && r === 0) await pages[1].screenshot({ path: `${OUT}q-17-compass-ask-390.png` });
       const R = cp.rounds[r];
       const right = i === 1 || r < (i % 5) + 1;
-      await press(pages[i], `.cp-${'nesw'[right ? R.ans : (R.ans + 2) % 4]}`);
+      await press(pages[i], `.oc-cp-${'nesw'[right ? R.ans : (R.ans + 2) % 4]}`);
       if (i === 1 && r === 0) { await sleep(120); await pages[1].screenshot({ path: `${OUT}q-18-compass-right-390.png` }); }
     }
   };
   const turnShot = (async () => {
-    await pages[2].waitForFunction(() => window.__oc.state().p === 1 && document.querySelector('.cp-card.is-turn'), { timeout: 20000, polling: 30 });
+    await pages[2].waitForFunction(() => window.__oc.state().p === 1 && document.querySelector('.oc-cp-card.is-turn'), { timeout: 20000, polling: 30 });
     await pages[2].screenshot({ path: `${OUT}q-16-compass-turn-390.png` });
   })().catch(() => {});
   await Promise.all([...alive().map(compassBot), turnShot]);

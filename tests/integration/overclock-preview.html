@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="/css/screens.css">
 <link rel="stylesheet" href="/css/kit.css">
 <link rel="stylesheet" href="/css/overclock.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"><!-- (the site's own: index.html loads it — ODD ONE OUT's letters) -->
 <script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
 <style>html, body { margin: 0; height: 100%; overflow: hidden; background: #05060a; } #stage { position: fixed; inset: 0; } .screen { position: absolute; inset: 0; }</style>
 </head>
@@ -68,6 +69,8 @@ if (final) { order[5] = type; order[1] = type === 'truefalse' ? 'trivia' : 'true
 const now = Date.now();
 const game = createGame({ matchId: 'pv', settings: { mode: 'quick' }, participants: Object.fromEntries(uids.map(u => [u, true])), now, seed: 'preview-seed', bank, trivia: { n: patch['trivia/n'] }, order });
 Object.assign(game, { ci, ck: String(ci), tq: { [ci]: 0 }, seen: { [type]: at !== 'brief' } });
+// OC4 — ODD ONE OUT's families on demand: &fams=0,1,3 (0 letters · 1 rotation · 2 mirror · 3 neon shapes) &item=n (each family's n-th item)
+if (type === 'oddone' && q.get('fams')) game.deal = { [ci]: q.get('fams').split(',').map(Number).flatMap(f => [f, Number(q.get('item') || 0)]) };
 game.results = { 0: Object.fromEntries(uids.map((u, i) => [u, { pts: [148, 120, 96, 60, 40, 30, 20, 10][i], ok: 4, parts: 4 }])) };
 game.combo = Object.fromEntries(uids.map(u => [u, { c: 0, m: 2 }]));
 if (at === 'combo4') game.combo[me] = { c: 3, m: 3 };
@@ -117,7 +120,32 @@ function tap(k, right = true) {
   // OC4 — the visual / reflex challenges
   else if (s.type === 'rewire') return wire(right ? Infinity : 2, k);
   else if (s.type === 'memory') return mem(right ? s.seq.length : 3);
+  else if (s.type === 'count') return countTap(k, right);
+  else if (s.type === 'reflex') return rxTap(right);
+  else if (s.type === 'compass') return cpTap(k, right);
+  else if (s.type === 'oddone') { const g = s.grids[k]; press(document.querySelectorAll('.oc-odd-cell')[right ? g.idx : (g.idx + 3) % (g.size * g.size)]); }
   else if (s.type === 'stroop') { const it = s.items[k]; press(document.querySelector(`.oc-cc-opt[data-c="${right ? it.ink : it.order.find(c => c !== it.ink)}"]`)); }
+}
+// SIGNAL LOCK: right = wait for GO then a finger ~240 ms later; wrong = a tap during the wait (EARLY)
+async function rxTap(right = true) {
+  for (let w = 0; w < 200 && !/wait|go/.test(document.querySelector('.oc-rx')?.dataset.mode || ''); w++) await wait(20);
+  if (!right) { await wait(300); press(document.querySelector('.oc-rx-pad')); return; }
+  for (let w = 0; w < 300 && document.querySelector('.oc-rx')?.dataset.mode !== 'go'; w++) await wait(10);
+  await wait(240); press(document.querySelector('.oc-rx-flash'));
+}
+// COMPASS: wait for "WHICH WAY NOW?", then the heading (wrong = the opposite one)
+async function cpTap(k, right = true) {
+  const s = spec(); if (!s) return;
+  for (let w = 0; w < 600 && !document.querySelector('.oc-cp.is-asking'); w++) await wait(20);
+  const R = s.rounds[k];
+  press(document.querySelector(`.oc-cp-${'nesw'[right ? R.ans : (R.ans + 2) % 4]}`));
+}
+// QUICK COUNT: wait for the question, then the right count (or two off — 'close' = one off)
+async function countTap(k, right = true) {
+  const s = spec(); if (!s) return;
+  for (let w = 0; w < 120 && !document.querySelector('.oc-qc-opt'); w++) await wait(30);
+  const it = s.items[k], v = right === 'close' ? it.options.find(o => Math.abs(o - it.ans) === 1) : right ? it.ans : it.options.find(o => Math.abs(o - it.ans) >= 2) ?? it.options.find(o => o !== it.ans);
+  press(document.querySelector(`.oc-qc-opt[data-v="${v}"]`));
 }
 // MEMORY: wait for your turn, repeat the sequence (slipAt < its length → a wrong node at that step), a finger ~220 ms apart
 async function mem(slipAt = 99) {
@@ -195,9 +223,9 @@ const hold = q.get('hold') === '1' ? new Promise(r => { window.__go = r; }) : nu
   if (at === 'kit') { await kitPage(); return ready(); }
   await wait(250);
   if (hold && /^(right|wrong|combo4|combo10)$/.test(at)) { ready(); await hold; }
-  if (at === 'right' || at === 'wrong' || at === 'typing') for (let w = 0; w < 60 && !spec(); w++) await wait(100);
+  if (at === 'right' || at === 'wrong' || at === 'close' || at === 'typing') for (let w = 0; w < 60 && !spec(); w++) await wait(100);
   if (at === 'typing') { typing(); return ready(); }
-  if (at === 'right' || at === 'wrong') { await tap(0, at === 'right'); return ready(); }
+  if (at === 'right' || at === 'wrong' || at === 'close') { await tap(0, at === 'close' ? 'close' : at === 'right'); return ready(); }
   if (at === 'combo4' || at === 'combo10') {
     // the cue + a tap on the NEXT question while it still runs (the cues never block play)
     tap(0, true);
@@ -230,6 +258,7 @@ async function answerOther(s) {
     count: () => s.items.map((it, i) => (i === 1 ? it.ans + 1 : i === 2 ? it.ans + 2 : it.ans)),
     stroop: () => s.items.map((it, i) => (i === 2 ? it.order.find(c => c !== it.ink) : it.ink)),
     reflex: () => [287, 312, null, 255, 301],
+    compass: () => s.rounds.map((R, i) => (i === 2 ? (R.ans + 1) % 4 : R.ans)),
     closest: () => [Math.round(s.answer * 0.86)],
     missinglink: () => [s.puzzles[0].answer, 'STONE'],
     unscramble: () => [[...s.word].reverse().join('')],

@@ -11,6 +11,7 @@
 import { h, reducedMotion } from '../../ui/dom.js';
 import { joinTube } from './shared.js';
 import { tubeLayers, rwSource, rwCore } from './ui/rewire.js';
+import { compassDial } from './ui/compass.js';
 
 export const DEMO_MS = 3000;
 const HIDE = { opacity: 0, transform: 'translateY(10px)' }, SHOW = { opacity: 1, transform: 'none' };
@@ -135,11 +136,31 @@ export function wireDemo() {
   });
 }
 
+/** COMPASS (OC4): "FACING N" → TURN RIGHT → TURN RIGHT — the arrow sweeps a quarter each time, then S lights */
+export function compassDemo() {
+  const dial = compassDial('.oc-demo-dial');
+  const card = (small, big) => h('span.oc-demo-cp-card', small ? h('small', small) : null, h('b', big));
+  const cards = [card('YOU’RE FACING', 'NORTH'), card('', 'TURN RIGHT'), card('', 'TURN RIGHT'), card('', 'WHICH WAY NOW?')];
+  const dirs = ['N', 'E', 'S', 'W'].map(d => h(`span.oc-demo-cp-dir.is-${d.toLowerCase()}`, h('b', d)));
+  const lit = h('span.oc-demo-cp-lit'), tap = h('span.oc-demo-tap');
+  dirs[2].append(lit, tap);
+  const grid = h('div.oc-demo-cp-grid', dirs[0], dirs[3], dial.el, dirs[1], dirs[2]);
+  return demoBox('oc-demo-cp', [h('div.oc-demo-cp-cards', cards), grid], anims => {
+    const HOLD = { opacity: 1, transform: 'none' }, OFF = { opacity: 0, transform: 'translateY(6px)' };
+    const slot = (el, a, b) => loop(el, [[0, OFF], [a, OFF], [a + 120, HOLD], [b, HOLD], [b + 100, { opacity: 0, transform: 'translateY(-6px)' }]], anims);
+    slot(cards[0], 60, 800); slot(cards[1], 900, 1420); slot(cards[2], 1520, 2040); slot(cards[3], 2140, 2860);
+    loop(dial.arrow, [[0, { transform: 'rotate(0deg)' }], [960, { transform: 'rotate(0deg)' }], [1260, { transform: 'rotate(90deg)' }], [1580, { transform: 'rotate(90deg)' }], [1880, { transform: 'rotate(180deg)' }], [2860, { transform: 'rotate(180deg)' }]], anims);
+    loop(tap, [[0, { opacity: 0, transform: 'scale(0.4)' }], [2230, { opacity: 0, transform: 'scale(0.4)' }], [2290, { opacity: 0.95, transform: 'scale(0.75)' }], [2650, { opacity: 0, transform: 'scale(1.6)' }]], anims);
+    loop(lit, [[0, { opacity: 0 }], [2270, { opacity: 0 }], [2350, { opacity: 1 }], [2700, { opacity: 1 }], [2860, { opacity: 0 }]], anims);
+  });
+}
+
 /** the demo for a type (null = none) */
 export function demoFor(type) {
   if (type === 'pattern') return patternDemo();
   if (type === 'missinglink') return linkDemo();
   if (type === 'higherlower') return hlDemo();
   if (type === 'rewire') return wireDemo();
+  if (type === 'compass') return compassDemo();
   return null;
 }

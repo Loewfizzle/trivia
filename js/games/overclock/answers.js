@@ -20,12 +20,16 @@ import { h, reducedMotion } from '../../ui/dom.js';
 import { answerFrame, answerPanel, tubeMark } from '../kit/answer.js';
 import { trickyLetters, wrongLetters, spellRuns } from './spell.js';
 import { hlRightDir, statEl, DIR_WORD } from './ui/higherlower.js';
-import { STROOP_COLORS, closestCredit, linkAccepts, normWord } from './challenges.js';
+import { STROOP_COLORS, COMPASS_DIRS, COMPASS_TURN, closestCredit, linkAccepts, normWord } from './challenges.js';
 import { colorHex } from '../../config.js';
 import { buildReveal } from './reveals.js';
 import { fmtVal, joinTube } from './shared.js';
 import { tubeLayers, rwSource } from './ui/rewire.js';
 import { memNode } from './ui/memory.js';
+import { oddFace } from './ui/oddone.js';
+import { oddWhy } from './odd.js';
+import { shapeEl } from './ui/count.js';
+import { compassDial } from './ui/compass.js';
 
 const key = (m, ci) => `oc:pk:${m}:${ci}`;
 export function savePicks(m, ci, picks) { try { sessionStorage.setItem(key(m, ci), JSON.stringify(picks)); } catch { /* private mode: this screen only */ } }
@@ -352,7 +356,7 @@ function memory(spec, picks, ctx) {
     tubeMark(slip ? 'cross' : 'check'));
   return box(answerPanel({ sub: `THE SEQUENCE · ${N} STEPS`, slot: h('div.oc-mem-ans', board, steps, line), delay: 80 }));
 }
-// ODD ONE OUT: the odd one + why (one short line)
+// ODD ONE OUT's letters family: the odd glyph's own line where one is written ("0 is narrow — a zero"), else odd.js#oddWhy's general one
 const ODD_WHY = {
   'O|Q': ['no tail', 'the tail'], 'E|F': ['the bottom bar', 'no bottom bar'], 'P|R': ['no leg', 'the leg'], 'C|G': ['no crossbar', 'the crossbar'],
   'V|Y': ['no stem', 'the stem'], 'M|N': ['two peaks', 'one diagonal'], 'T|Y': ['a flat top', 'a split top'], 'b|d': ['its bowl on the right', 'its bowl on the left'],
@@ -361,36 +365,56 @@ const ODD_WHY = {
   'O|0': ['round', 'narrow — a zero'], 'l|1': ['no flag', 'the flag'], 'I|l': ['bars top + bottom', 'no bars'], '5|S': ['a flat top', 'curves only'],
   '8|B': ['round on both sides', 'the flat back'], 'Z|2': ['a flat top', 'a curved top'], 'e|c': ['the bar', 'no bar'], 'G|6': ['open at the top', 'a closed loop'],
 };
-export function oddWhy(odd, base) {
+export function glyphWhy(odd, base) {
   const a = ODD_WHY[`${odd}|${base}`], b = ODD_WHY[`${base}|${odd}`];
   const why = a ? a[0] : b ? b[1] : '';
-  return why ? `${odd} has ${why}`.replace(/has (round|narrow|open)/, 'is $1') : `${odd} among the ${base}s`;
+  return why ? `the ${odd} has ${why}`.replace(/has (round|narrow|open)/, 'is $1') : '';
 }
+// ODD ONE OUT (OC4 — its dressing): each grid small, THE ODD ONE RINGED white-hot (your wrong cell red + the crack's color), the odd one big
+// beside it + WHAT MADE IT ODD in one short line (odd.js#oddWhy — "the arrow turned 30°", "a 5 among 6s", "the 0 among the Os"); ✓ / ✕ for
+// your pick of that grid
 function oddone(spec, picks) {
-  return box(spec.grids.map((g, i) => {
-    const p = picks[i], n = g.size;
-    const rc = k => `ROW ${Math.floor(k / n) + 1} · COL ${(k % n) + 1}`;
+  const rows = spec.grids.map((g, k) => {
+    const p = picks[k];
     const state = p == null ? 'none' : p === g.idx ? 'right' : 'wrong';
-    return answerFrame({
-      q: `GRID ${i + 1} · ${n}×${n} OF “${g.base}”`,
-      answer: h('span.oc-ans-odd', h('b.oc-ans-glyph', g.odd), h('span', h('small', rc(g.idx)), oddWhy(g.odd, g.base))),
-      pick: state === 'wrong' ? h('span.oc-ans-odd', h('b.oc-ans-glyph', g.base), h('span', h('small', rc(p)), 'one of the ordinary ones')) : null,
-      state, note: p == null ? 'NO ANSWER' : '', delay: 120 + i * 240,
-    });
-  }));
+    const mini = h('div.oc-odd-mini', { class: `is-${g.fam}`, style: { '--n': g.size }, 'aria-hidden': 'true' },
+      Array.from({ length: g.size * g.size }, (_, i) => h('i.oc-odd-mc', { class: i === g.idx ? 'is-odd' : i === p ? 'is-bad' : null }, oddFace(i === g.idx ? g.odd : g.base, g.fam))));
+    return h('div.oc-odd-arow', { class: `is-${state}`, style: { '--k': k } },
+      mini,
+      h('div.oc-odd-why',
+        h('small', `GRID ${k + 1} · ${g.size}×${g.size}`),
+        h('span.oc-odd-big', { class: `is-${g.fam}` }, oddFace(g.odd, g.fam)),
+        h('b', oddWhy(g, glyphWhy)),
+        h('span.oc-odd-you', state === 'none' ? 'NO ANSWER' : state === 'right' ? 'YOU FOUND IT' : 'YOU MISSED IT', state === 'none' ? null : tubeMark(state === 'right' ? 'check' : 'cross'))));
+  });
+  return box(answerPanel({ sub: 'THE ODD ONES', slot: h('div.oc-odd-ans', rows), delay: 80 }));
 }
-// QUICK COUNT: the real count — off by one = CLOSE (half credit): --close + the ≈ shape
-const SHAPE_NAME = { tri: 'triangle', dot: 'circle', sq: 'square', dia: 'diamond' };
-const shapeEl = id => h('i.oc-ans-shape', { dataset: { s: id }, role: 'img', 'aria-label': SHAPE_NAME[id] });
-function count(spec, picks) {
+// QUICK COUNT (OC4 — its dressing): THE GRID AGAIN with the asked shape LIT and COUNTED — 1, 2, 3 … ticking on cell by cell (a timer
+// each, inside the answer beat), the rest dim; THE ANSWER = the real count, YOUR PICK under it (off by one = --close + ≈ + HALF — never
+// color alone)
+function count(spec, picks, ctx = {}) {
   const res = spec.items.map((it, i) => { const p = picks[i]; return p == null ? 'none' : p === it.ans ? 'right' : Math.abs(p - it.ans) === 1 ? 'close' : 'wrong'; });
   const { show, label } = missesFirst(res);
+  const still = reducedMotion() || !ctx.timers;
   return box(sumRow(res, label), show.map((i, k) => {
     const it = spec.items[i], p = picks[i];
+    let n = 0;
+    const ticks = [];
+    const grid = h('div.oc-qc-agrid', { style: { '--n': it.size }, 'aria-hidden': 'true' }, it.cells.map(c => {
+      if (!c) return h('span.oc-qc-cell');
+      if (c !== it.target) return h('span.oc-qc-cell', shapeEl(c));
+      const t = h('b.oc-qc-tick', String(++n));
+      ticks.push(t);
+      return h('span.oc-qc-cell.is-t', shapeEl(c), t);
+    }));
+    const t0 = 380 + k * 300, step = Math.min(170, Math.floor(1500 / Math.max(1, ticks.length)));
+    if (still) ticks.forEach(t => t.classList.add('is-on'));
+    else ticks.forEach((t, j) => ctx.timers.push(setTimeout(() => t.classList.add('is-on'), t0 + j * step)));
     return answerFrame({
-      q: h('span.oc-ans-count', `${i + 1} · HOW MANY `, shapeEl(it.target), ' ?'),
+      q: h('span.oc-ans-count', `${i + 1} · HOW MANY `, shapeEl(it.target, '.oc-ans-shape'), ' ?'),
       answer: h('span.oc-ans-num', String(it.ans)), pick: p == null || p === it.ans ? null : h('span.oc-ans-num', String(p), res[i] === 'close' ? h('small', ' OFF BY ONE · HALF') : null),
       state: res[i], note: p == null ? 'NO ANSWER' : '', delay: 200 + k * 300,
+      slot: h('div.oc-qc-ans', grid),
     });
   }));
 }
@@ -409,7 +433,7 @@ function stroop(spec, picks) {
     });
   }));
 }
-// SIGNAL LOCK: your time vs the room's best. Your own taps are on this device (exact); the room's are their reaction credit
+// SIGNAL LOCK (OC4: your rounds as chips, your BEST lit): your time vs the room's best. Your own taps are on this device (exact); the room's are their reaction credit
 // (challenges.js#reflexCredit — 230 ms = full, −1 per 6 ms) turned back into ms: an EFFECTIVE time, shown with ≈ (a miss counts slow)
 const credMs = (ok, parts) => Math.round(230 + 600 * (1 - Math.max(0, Math.min(1, (Number(ok) || 0) / Math.max(1, parts)))));
 function reflex(spec, picks, ctx) {
@@ -422,6 +446,7 @@ function reflex(spec, picks, ctx) {
   const myMs = hits.length ? Math.round(hits.reduce((a, b) => a + b, 0) / hits.length) : meRes ? credMs(meRes.ok, spec.parts) : null;
   const exact = hits.length > 0;
   const iWon = best && best.u === ctx.me;
+  const bestMs = hits.length ? Math.min(...hits) : null;   // (OC4: your best round lit)
   return box(answerFrame({
     q: room.length > 1 ? 'THE ROOM\'S FASTEST' : 'YOUR REACTION',
     answer: room.length > 1 && best ? h('span.oc-ans-rx', h('b', `≈ ${best.ms} ms`), h('small', ctx.player(best.u).name)) : h('span.oc-ans-rx', h('b', myMs == null ? '—' : `${exact ? '' : '≈ '}${myMs} ms`), h('small', 'AVERAGE')),
@@ -429,7 +454,7 @@ function reflex(spec, picks, ctx) {
     pickLabel: 'YOUR TIME',
     state: room.length < 2 ? (myMs == null ? 'none' : 'right') : iWon ? 'right' : myMs == null ? 'none' : 'close',
     note: myMs == null ? 'NO TAPS' : '',
-    slot: mine.length ? h('div.oc-ans-rx-log', mine.map(v => h('span', { class: typeof v === 'number' ? 'is-hit' : 'is-miss' }, typeof v === 'number' ? `${v}` : '✕'))) : null,
+    slot: mine.length ? h('div.oc-ans-rx-log', mine.map(v => h('span', { class: typeof v === 'number' ? (v === bestMs ? 'is-hit is-best' : 'is-hit') : 'is-miss', 'aria-label': typeof v === 'number' ? `${v} ms${v === bestMs ? ' — your best' : ''}` : 'a miss' }, typeof v === 'number' ? `${v}` : '✕'))) : null,
     delay: 120,
   }));
 }
@@ -467,9 +492,38 @@ function rewire(spec, picks, ctx) {
   }));
 }
 
-export const ANSWERS = { trivia, truefalse, math, pattern, closest, missinglink, unscramble, spellcheck, higherlower, timeline, sortit, memory, oddone, count, stroop, reflex, rewire };
+// COMPASS (OC4 — its dressing; the last old panel is gone): per round, where you STARTED, the turns replayed on a small ring — the arrow sweeps
+// turn by turn to the right heading while each turn's chip lights (a timer each, inside the 12-s screen's answer beat) — the heading, and
+// YOUR PICK (✓ green · ✕ red + struck — this phone's own)
+const TURN_CHIP = { L: 'LEFT', R: 'RIGHT', A: '180°' };
+function compass(spec, picks, ctx = {}) {
+  const still = reducedMotion() || !ctx.timers;
+  const rows = spec.rounds.map((R, k) => {
+    const dial = compassDial('.is-mini');
+    dial.set(R.start * 90);
+    const chips = [...R.turns].map(t => h('span.oc-cpa-turn', TURN_CHIP[t]));
+    const out = h('b.oc-cpa-out', COMPASS_DIRS[R.ans]);
+    const p = picks[k];
+    const state = p == null ? 'none' : p === R.ans ? 'right' : 'wrong';
+    const you = h('span.oc-cpa-you', { class: `is-${state}` }, state === 'none' ? '–' : COMPASS_DIRS[p], state === 'none' ? null : tubeMark(state === 'right' ? 'check' : 'cross', state === 'right' ? 'You got it' : 'Your pick'));
+    const row = h('div.oc-cpa-row', { style: { '--k': k } }, h('span.oc-cpa-start', h('small', 'START'), h('b', COMPASS_DIRS[R.start])), dial.el, h('div.oc-cpa-turns', chips), out, you);
+    let deg = R.start * 90;
+    const steps = [...R.turns].map(t => { deg += COMPASS_TURN[t] === 3 ? -90 : COMPASS_TURN[t] * 90; return deg; });
+    if (still) { dial.set(steps[steps.length - 1]); chips.forEach(c => c.classList.add('is-on')); out.classList.add('is-on'); }
+    else {
+      const t0 = 650 + k * 260, step = 330;
+      steps.forEach((d, j) => ctx.timers.push(setTimeout(() => { if (!row.isConnected) return; dial.set(d); chips[j].classList.add('is-on'); }, t0 + j * step)));
+      ctx.timers.push(setTimeout(() => { if (row.isConnected) out.classList.add('is-on'); }, t0 + steps.length * step + 80));
+    }
+    return row;
+  });
+  const right = spec.rounds.filter((R, k) => picks[k] === R.ans).length;
+  return box(answerPanel({ sub: 'THE TURNS, PLAYED OUT', slot: h('div.oc-cpa', h('div.oc-cpa-k', h('span', 'YOU STARTED FACING · THE TURNS · WHERE YOU END'), picks.length ? h('span', h('b', `${right}/${spec.rounds.length}`), ' RIGHT') : null), rows), delay: 80 }));
+}
+
+export const ANSWERS = { trivia, truefalse, math, pattern, closest, missinglink, unscramble, spellcheck, higherlower, timeline, sortit, memory, oddone, count, stroop, reflex, rewire, compass };
 /** the older reveals still in THE ANSWER's panel as they are (their own kicker stays inside the slot) until each one's rebuild */
-export const PANELS = new Set(['compass']);
+export const PANELS = new Set();   // (OC4: every challenge has its own dressed answer now — COMPASS was the last old panel)
 export const hasAnswer = type => !!ANSWERS[type] || PANELS.has(type);
 /**
  * THE ANSWER for a closed challenge. ctx: { game, me, uids, player(uid), boards (this challenge's boards + the unsealed answers), timers,

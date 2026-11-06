@@ -132,7 +132,7 @@ test('COLOUR-BLIND: --good / --close in :root, swapped under body[data-cb]; OVER
   assert.match(base, /--good: #3dff8b; --close: #ffd23d;/);
   assert.match(base, /body\[data-cb\] \{ --good: #3ea6ff; --close: #ff8f2e; \}/);
   for (const l of oc.split('\n').filter(l => /is-right|is-correct|is-ok\b/.test(l))) assert.doesNotMatch(l, /var\(--green\)|61, 255, 139/, `still its own green: ${l.slice(0, 80)}`);
-  assert.match(oc, /\.qc-opt\.is-close \{ border-color: var\(--close\)/);
+  assert.match(oc, /\.oc-qc-close \{[^}]*border: 2px solid var\(--close\)/);   // (OC4: QUICK COUNT's off-by-one tile)
   assert.match(read('js/ui/settings-panel.js'), /toggle\('Colour-blind colours', 'colorBlind'\)/);
   assert.match(read('js/audio/settings.js'), /colorBlind: false/);
   assert.match(read('js/ui/colorblind.js'), /document\.body\.dataset\.cb = '1'/);
