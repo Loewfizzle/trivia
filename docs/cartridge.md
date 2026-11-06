@@ -122,7 +122,8 @@ The start never waits past its 5 s for a preload: the game shows when its own pi
   - `tach.js` — THE TACH TIMER: slanted segments that fill toward the red line on the clock the game passes (`now: serverNow` — required);
     the last 3 s white-hot (an opacity layer) + `tach.edge` (the screen's edges tint); `onTick('tick' | 'urgent' | 'up')` for its sounds.
   - `slam.js` — THE TITLE SLAM + 3-2-1: the name slams in on a slanted card with a motion-blur swipe, the rules under it, then 3 · 2 · 1 · GO —
-    timed INSIDE the phase it's given (a late mount = settled, the right number).
+    timed INSIDE the phase it's given (a late mount = settled, the right number). OC3: an optional `demo` (an element, or `{ el, destroy }`) — the
+    game's own short looping rules DEMO under the rules (OVERCLOCK's PATTERN LOCK + MISSING LINK — `overclock/demos.js`); the card's time unchanged.
   - `answer.js` — THE ANSWER frame: the question bold white, the right answer a white-hot tile + a laser underline, YOUR PICK struck through
     in red when wrong; ✓ / ≈ / ✕ shapes on `--good` / `--close` (never colour alone); a slot for a challenge's own content.
 - BUILT here (SHELL 2.0 B1):

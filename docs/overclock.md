@@ -350,3 +350,73 @@ full harbor suite was not run.
 - The console's victory jingle (`sfx('victory')`, ui/final.js) still plays at 2.5 s beside the sign's fanfare; the victory music starts with
   the final phase (the console's), i.e. during the last round's answer.
 - No /api on the look-review page: the XP box's height under the victory body was checked only on the E2E's room (no /api there either).
+
+### OC3 — THE TYPING CHALLENGES (Nov 6, 2026)
+**What shipped**
+- **Group 0 — the owner's phone (OC2's victory slid sideways):** the console's podium frame scrolls DOWN (`overflow-y: auto`), which made it a
+  SIDEWAYS scroller too, and the victory's turning rays (640 px) spilled past the phone's edges. The rays now turn inside a clip of their own
+  (`.oc-vic-rays-clip` — exactly the panel's width, out through its side padding, up over the kicker), every Overclock panel says
+  `overflow-x: hidden`, the award chips can shrink (`minmax(min(140px, 100%), 1fr)`, names ellipsis), Signal Lock's answer row no longer leans
+  2 px past the column. **THE GUARD:** `tests/integration/e2e-oc-sideways.mjs` — every challenge playing + its answer, the typing states, both
+  demos, the round winner (+ a dead heat), the standings at 8, the final standings, the victory at 2 / 8 / co-winners / solo, at 390 / 402 / 430:
+  the document's scrollWidth ≤ the viewport, no scroll box wider inside than out, and a real sideways swipe (Chromium's touch gesture + a
+  sideways wheel) moves nothing.
+- **Group 1 — THE RULES (tests first, `tests/overclock-oc3.test.mjs`):** PATTERN LOCK's first sequence in a match is an EASY one — a plain +n / −n
+  step (n 2–9; −n only up to 6), numbers 1–65 — drawn from its OWN seeded stream (`seed:ci:pattern:easy`) so the second sequence and every later
+  Pattern Lock are exactly the old generator's (the test keeps a frozen copy and compares 400 seeds × 5 positions). Every sequence carries its
+  RULE in one short line (`say` — `patternSay`: "+3 each time", "×2 each time", "add the two before" …). Whole simulated matches with two
+  Pattern Locks at 2 + 8 players; a replayed step = the same patch; the record the server reads unchanged.
+- **Group 2 — THE NUMBER CHALLENGES on the kit's NUMBER PAD** (`ui/numeric.js` · `ui/closest.js`): no input element anywhere; the kit pad's glass
+  keys (56 pt, 52 on a phone under 800 pt tall), a big orange LOCK IT IN, the slanted orange-edged answer field + its cursor (the cursor blinks
+  at the START of the placeholder, never on it), dressed with OC2's resting tiles (`dressField`: right = the --good edge + ✓ + the burst and
+  the sparks; wrong = dark glass + a red edge + ✕ + the cracks + a shake, your number struck → the right one white-hot). QUICK MATH: a HUGE
+  one-line sum (its font follows its length — container units), "= ?" hot, the "−" key. PATTERN LOCK: big slanted number chips (two rows of
+  three for 4-digit numbers), the missing slot glowing orange "?" (a pre-rendered glow, its opacity breathing); a right answer DROPS into it.
+  CLOSEST CALL: the category chip + the UNIT chip, the bold question, the unit inside the field once you type, the "." key. A computer's
+  keyboard types into the pads (digits, "-", ".", Backspace, Enter). THE ANSWER: the sum = the answer; the whole sequence with the number
+  dropped into its slot + the rule; CLOSEST CALL's answer + YOUR GUESS + a slanted scale between them (how far off: "−305 km/h · 14 % OFF",
+  DEAD ON at full credit) + the room's closest named (ties together). PATTERN LOCK's DEMO in the rules card (`demos.js` → the kit's new `demo`
+  slot in `kit/slam.js`): 3 · 6 · 9 come in with "+3" between them, 12 drops into the glowing slot, a green flash — a 3 s loop.
+- **Group 3 — THE WORD CHALLENGES:** MISSING LINK on the kit's LETTER KEYBOARD (`ui/missinglink.js`): three big clue cards, the glowing orange
+  answer slot (a dash a letter, your letters hot orange, a white caret), QWERTY glass keys + GO (+ SKIP on the first puzzle, as before); the old
+  hidden `<input>` + the view's iOS-keyboard tracking are GONE. The exact answer still locks in by itself; after a wrong GO the next letter starts
+  a fresh word (⌫ edits the one you had). Its DEMO: SUN · CORN · WALL, FLOWER types itself into the slot, the three joins (→ FLOWER) slide in +
+  light. UNSCRAMBLE (`ui/unscramble.js`, its tiles — no keyboard): dashed slots fill with hot-orange letters, big glass tiles fade out when used
+  (tap a filled slot to take it back), CLEAR + SHUFFLE glass keys; a full word = white-hot + ✓, a wrong one = a red shake, then empty. THE
+  ANSWER: Missing Link's clues each JOINED to the link (CLUE → LINK) + the link white-hot, your last guess struck; Unscramble's scrambled tiles
+  FLY into the word (each from its scrambled place). The old panels (reveals.js — the number line, the links, the word) + every old style of the
+  five screens (the purple keypad, `.ml-*`, `.us-*`, `.nl-*`, `kb-open`) removed.
+- **Group 4 — THE LOOK REVIEW:** `overclock-preview.html` — `type=math|pattern|closest|missinglink|unscramble` `&at=play|typing|right|wrong|answer`,
+  `&at=brief&still=1` (the demos), `__preview.typePad / typeKeys / typeTiles / lock`; three rounds at 390 × 844 + 412 × 915 + 1440 × 900.
+
+**Decisions (OC3)**
+- **NO SIDEWAYS SCROLL, EVER:** a box that scrolls down scrolls sideways too unless it says otherwise — every Overclock panel says
+  `overflow-x: hidden`; anything that moves past the edges (the rays) lives in a clip of its own. The guard (`e2e-oc-sideways.mjs`) reads every
+  screen at 390 / 402 / 430 — run it after touching any Overclock screen.
+- **PATTERN LOCK's EASY OPENER:** only the match's FIRST Pattern Lock, only its first sequence; its own seeded stream (nothing else moves).
+- **THE PADS REPLACE THE SYSTEM KEYBOARD** in all five: no input element anywhere (the E2Es check it); a computer's keyboard still types into
+  the pads. Unscramble keeps its tiles (the plan).
+- **CLOSEST CALL's "." key is on every question** — showing it only when the answer has a decimal would be a hint.
+- **PATTERN LOCK's pad has the "−" key too** (like Quick Math): a 3 × 4 pad with no gap, and a sequence may step down.
+- **MISSING LINK's joins read CLUE → LINK** for all three (the bank doesn't say which side the link goes; the arrow is the join, not the order).
+- **The demos** run on the Web Animations API — every piece its own keyframes on ONE shared 3 s loop (transform + opacity; reduced motion = the
+  finished picture, still); BRIEF_MS 7 s unchanged.
+- **No timing changed:** CHALLENGE_MS 30 s, every per-challenge time (the next part 380 ms after a right answer / 900 ms after a wrong one,
+  Missing Link 950 / 1300 ms, Unscramble 420 ms, Closest Call's 350 ms) — `tests/overclock-oc1.test.mjs` passes unchanged.
+- **Every rule on a kit piece is prefixed `.oc-od`:** in the real app `css/kit.css` can load AFTER `css/overclock.css`, so an equal-weight rule
+  loses (the real-app E2E caught Missing Link's SKIP key squeezed to the kit's 10 % width — the preview loads the sheets the other way round).
+
+**The local run before the final push (the mini PC, nothing else busy):** unit **1223 / 1223** · rules **66 / 66** (database.rules.json
+unchanged — nothing to re-publish) · `/api` server.test **38 / 38** · smoke **6 / 6** · e2e-oc-2 **23 / 23** (8 phones; again with 4 after the
+selector fix) · e2e-oc-new **47 / 47** (8 phones — Closest Call's "no input element" is checked on every phone) · the no-sideways guard **144 / 144**
+(48 screens × 390 / 402 / 430) · 60 fps at 390 × 844 (dpr 3) on all five pads with a key every 60 ms, both demos, Closest Call's answer —
+also at 4× CPU (16.7 ms p50 / ≤ 16.8 ms p95, 0 long frames). No City 2.0 or console file changed (`kit/slam.js` is used by Overclock only) →
+the ci tag; the harbor suite was not run.
+
+**THE MOTION PROOF:** `Downloads/neon/overclock/shots/oc3-proof-*` — 8-frame strips + recordings: a key press + LOCK IT IN (right), a wrong lock,
+Missing Link typed to its auto-lock, both demos, Closest Call's scale.
+
+**Known issues / held back**
+- Missing Link's joins all read CLUE → LINK; the bank doesn't record which side the link goes (CAKE → CHEESE for "cheesecake").
+- No E2E plays Unscramble through the UI (as before — e2e-oc-2 / e2e-oc-new cover the other four); its tiles are checked on the preview.
+- OC3B next: Spellcheck, Higher or Lower, Timeline, Sort It (their older panels still sit in THE ANSWER's frame).

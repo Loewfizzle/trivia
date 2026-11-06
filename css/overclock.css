@@ -1363,13 +1363,14 @@
 .oc-ml-hint { min-height: 14px; text-align: center; font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.18em; color: var(--oc-label); }
 .oc-ml-hint.is-good { color: var(--good); }
 .oc-ml-hint.is-warn { color: #ff8095; }
-/* THE LETTER KEYBOARD in OVERDRIVE (kit/keyboard.js): graphite glass keys, the press sinks + flashes hot, GO molten orange, SKIP ghost */
+/* THE LETTER KEYBOARD in OVERDRIVE (kit/keyboard.js): graphite glass keys, the press sinks + flashes hot, GO molten orange, SKIP ghost.
+   (every rule on a kit piece is prefixed .oc-od — in the real app kit.css may load AFTER this sheet, so an equal-weight rule would lose) */
 .oc-od .gk-kb-key { --gk-key-h: 54px; font: 700 22px / 1 var(--oc-font-ui); }
 .oc-od .gk-kb-key.is-back { color: var(--oc-hot-2); font-size: 24px; }
 .oc-od .gk-kb-r3 { gap: 6px; padding: 0 2px; }
 .oc-od .gk-kb-r3 .gk-go { flex: 1 1 0; --gk-go-h: 56px; color: var(--oc-hot-ink); font: italic 900 26px / 1 var(--oc-font-title); letter-spacing: 0.08em; }
-.oc-ml-skip { flex: 0 0 32%; color: #fff; font: italic 900 20px / 1 var(--oc-font-title) !important; letter-spacing: 0.06em; }
-.oc-ml-skip[hidden] { display: none; }
+.oc-od .gk-kb-r3 .oc-ml-skip { flex: 0 0 32%; color: #fff; font: italic 900 20px / 1 var(--oc-font-title) !important; letter-spacing: 0.06em; }
+.oc-od .oc-ml-skip[hidden] { display: none; }
 .oc-ml-skip .gk-key-face { background: linear-gradient(180deg, #232733, #171a22); border-color: rgba(255, 255, 255, 0.2); }
 @media (max-height: 800px) { .oc-ml-word { height: 44px; } .oc-od .gk-kb-key { --gk-key-h: 50px; } .oc-ml-cell { height: 44px; } }
 
@@ -1406,8 +1407,8 @@
 .oc-us-tile:active .oc-us-face { transform: skewX(var(--oc-slant)) translateY(2px) scale(0.96); }
 .oc-us-tile.is-used { opacity: 0.1; transform: scale(0.9); pointer-events: none; }
 .oc-us-keys { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.oc-us-key { --gk-key-h: 54px; font: italic 900 22px / 1 var(--oc-font-title); letter-spacing: 0.08em; color: #fff; }
-.oc-us-key.is-shuffle { color: #8fc0ff; }
+.oc-od .oc-us-key { --gk-key-h: 54px; font: italic 900 22px / 1 var(--oc-font-title); letter-spacing: 0.08em; color: #fff; }
+.oc-od .oc-us-key.is-shuffle { color: #8fc0ff; }
 
 /* ---------------- OC3 — THE ANSWER for the word challenges */
 .oc-ans-ml { display: flex; flex-direction: column; gap: 5px; }

@@ -140,7 +140,10 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 - **OVERCLOCK (OC1 — docs/overclock.md):** QUICK default; THE ROOM's NIGHT MEMORY = the host deals the whole match at `start({ used })` (`overclock/deal.js`), each challenge marks its keys as it opens; the after-challenge skip (`ocnext`, ≥ 3 s, everyone connected); the combo (`ocm` → `game/combo`); NIGHT only (`LOOKS`); its timings are the owner's — pinned by `tests/overclock-oc1.test.mjs`; mid-game standings = LIGHT rows, never the slim cards. OC2: THE ROUND WIN is ONE rule (`logic.js#roundWin` —
   the highest + not shared; the server's REDLINE calls it; stored as `game/rw`); the after-challenge screen + the final run in BEATS inside the
   owner's times (`resultBeats` / `finalBeats`, from the phase start); the victory BODY = `victory.js#finalScene`; the combo cues stay in the
-  header band (never over the play area, never a tap taken); MAKE 24 cut (18 types).
+  header band (never over the play area, never a tap taken); MAKE 24 cut (18 types). OC3: NO SIDEWAYS SCROLL, EVER — every Overclock panel
+  `overflow-x: hidden`, anything that moves past the edges in a clip of its own (guard: `tests/integration/e2e-oc-sideways.mjs`, 390 / 402 /
+  430); the typing challenges on the kit's pads — NO input element, never the system keyboard (a computer's keyboard still types into them);
+  Pattern Lock's first sequence in a match is easy (its own seeded stream); the hard ones' demos ride the rules card (`kit/slam.js` `demo`).
 - **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists).
 - **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
   music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:

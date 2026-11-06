@@ -2027,6 +2027,17 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 4: the cirrus re-checked on the desktop (cast-flicker.mjs: 0 flickers); the choppy load, the far-right skyline + the resize stall → FR7.
 - The add-ons: THE DISPLAY CHECK (no dummy plug: the real-compositor speed checks skip with their reason on a display-less boot).
 
+## OVERCLOCK PASS 3 — THE TYPING CHALLENGES (Nov 6 2026) — docs/overclock.md "OC3"
+- Group 0: the victory screen slid sideways on the owner's iPhone (the podium frame scrolls down, so it scrolled sideways too; the rays spilled
+  past the edges) → the rays in a clip of their own, every panel overflow-x hidden, the chips shrink; `e2e-oc-sideways.mjs` on every screen.
+- Group 1: Pattern Lock's first sequence in a match is a plain ±n step, small numbers (its own seeded stream — the rest unchanged); `say` = the
+  rule in one line.
+- Group 2: Quick Math, Pattern Lock, Closest Call on the kit's number pad + their answers (the sum = the answer, the number dropped into the
+  sequence + its rule, Closest Call's how-far-off scale + the room's closest); Pattern Lock's demo (the kit's rules card got a demo slot).
+- Group 3: Missing Link on the kit's letter keyboard (the hidden input + the iOS-keyboard code gone), Unscramble's tiles, their answers (the
+  joins, the tiles flying into the word); Missing Link's demo; the old screens' CSS + panels removed.
+- Group 4: the look review (three rounds at 390 / 412 / 1440), 60 fps with fast typing incl. 4× CPU, the motion proof.
+
 ## OVERCLOCK PASS 2 — THE RESULTS FLOW (Nov 6 2026) — docs/overclock.md "OC2"
 - Group 0: the owner's carried fixes (the wrong tile never flat red, the right tile's rest, the meter from ×2, the orange progress bar, no gap
   under the header, the background's depth, the desktop line); THE COMBO CUES NEVER BLOCK PLAY (the meter ignites in the header + an edge
