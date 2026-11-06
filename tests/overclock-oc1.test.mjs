@@ -464,9 +464,11 @@ test('ADD-ON: "NEXT IN n" = the whole seconds left of THIS screen on the server 
   assert.doesNotMatch(view, /phaseEndsAt - serverNow\(\)\) \/ 1000/);
 });
 
-test('ADD-ON: the after-challenge screen — the answer + board scroll in their own box, NEXT + the countdown in a footer of their own; light rows with the emblem', () => {
+test('ADD-ON: the after-challenge screen — the answer scrolls in its own box, the beats above, NEXT + the countdown in a footer of their own; light rows with the emblem', () => {
   const view = readFileSync('js/games/overclock/view.js', 'utf8');
-  assert.match(view, /h\('div\.oc-st-scroll', reveal\(game\), roundBoard\(game, rows\)\),\s*h\('footer\.oc-st-foot'/);
+  // (OC2: the beats — the answer, the round winner, the standings — stack in .oc-st-body ABOVE the footer; the answer still scrolls in its box)
+  assert.match(view, /h\('div\.panel-full\.oc-standings', body\.el,\s*h\('footer\.oc-st-foot'/);
+  assert.match(view, /h\('div\.oc-st-scroll', reveal\(game\)\)/);
   assert.match(view, /avatar\(p\.avatar, p\.color, 30\)/, 'the emblem ≥ 28 pt');
   const css = readFileSync('css/overclock.css', 'utf8');
   assert.match(css, /\.oc-st-scroll \{[^}]*overflow-y: auto/);

@@ -23,6 +23,12 @@ export const OC_SOUNDS = Object.freeze({
   intro: ['08-challenge-intro', 0.42, 0.28, 0, 600],
   tap: ['09-tap', 0.55, 0, 0, 50],
   submit: ['11-submit', 0.5, 0, 0, 120],
+  // OC2 — THE RESULTS FLOW: the round winner's stamp, the standings' re-sort, a climb, THE WINNER's sign powering up (17 — the owner's main
+  // fanfare, never the rejected -b)
+  stamp: ['18-bonus', 0.45, 0, 0, 300],
+  swoosh: ['15-standings-swoosh', 0.42, 0, 0, 400],
+  rankUp: ['16-rank-up', 0.4, 0, 0, 600],
+  fanfare: ['17-winner-fanfare', 0.5, 0, 0, 3000],
 });
 /** the files this pass plays (the rest of the set waits for its pass — OC2 … OC5) */
 export const OC1_FILES = [...new Set(Object.values(OC_SOUNDS).map(s => s[0]))];

@@ -215,3 +215,26 @@ test('a whole 8-player QUICK match: round wins add up, the chips + best / worst 
   for (const u of uids) assert.deepEqual(bestWorst(one.game, u), bestWorst(two.game, u));
   assert.ok(awardChips(one.game).every(c => uids.includes(c.uid)));
 });
+
+// ---------------------------------------------------------------------------------------------- THE BEATS (inside the owner's timings)
+test('THE BEATS fit INSIDE the after-challenge screen\'s own time: the answer ≥ the 3 s skip floor, then the banner, then the standings', async () => {
+  const { resultBeats, finalBeats, beatAt, beatStart, standingsMs, SKIP_MIN_MS, FINAL_MS, FINAL_STANDINGS_MS } = await import('../js/games/overclock/logic.js');
+  const { TYPES } = await import('../js/games/overclock/challenges.js');
+  for (const t of TYPES) {
+    const b = resultBeats(t), L = standingsMs(t);
+    assert.equal(b.end, L, 'the screen keeps its max');
+    assert.ok(b.banner >= SKIP_MIN_MS, `${t}: the answer holds ≥ 3 s (${b.banner})`);
+    assert.ok(b.stand > b.banner && L - b.stand >= 3_500, `${t}: the standings get their time`);
+    assert.deepEqual([0, b.banner, b.stand].map(ms => beatAt(b, ms)), ['answer', 'banner', 'stand']);
+    assert.equal(beatAt(b, L + 5000), 'stand');
+    const s = resultBeats(t, true);
+    assert.equal(s.banner, null, 'solo: no banner');
+    assert.equal(beatAt(s, b.banner + 10), 'answer');
+    const f = finalBeats(t);
+    assert.equal(beatAt(f, L), 'final');
+    assert.equal(beatAt(f, L + FINAL_STANDINGS_MS), 'victory');
+    assert.ok(f.victory < FINAL_MS - 60_000, 'the victory has a minute+ on screen');
+    assert.equal(beatAt(finalBeats(t, true), L), 'victory', 'solo: no final standings');
+    assert.equal(beatStart(f, 'victory'), f.victory);
+  }
+});

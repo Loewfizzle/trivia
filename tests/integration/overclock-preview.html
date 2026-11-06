@@ -26,7 +26,7 @@
 import { createView } from '/js/games/overclock/view.js';
 import { createGame } from '/js/games/overclock/director.js';
 import { partsFor } from '/js/games/overclock/challenges.js';
-import { levelOf, CHALLENGE_MS, READY_MS, BRIEF_MS, standingsMs, computeResults } from '/js/games/overclock/logic.js';
+import { levelOf, CHALLENGE_MS, READY_MS, BRIEF_MS, FINAL_MS, standingsMs, computeResults, resultBeats, finalBeats, beatStart, roundWin, packRoundWin } from '/js/games/overclock/logic.js';
 import { appendPatch } from '/js/trivia/bankdata.js';
 import { liveKeyFor, loadGame } from '/js/games/registry.js';
 import { setState } from '/js/store.js';
@@ -63,7 +63,11 @@ if (at === 'answer') game.combo[me] = { c: 2, m: 4 };
 const parts = partsFor(type, levelOf(ci, total));
 const boards = Object.fromEntries(uids.slice(1).map((u, i) => [u, { p: Math.min(parts, i + 1), ok: Math.min(parts, i + 1), n: parts, done: false }]));
 const state = { uid: me, code: 'PVW1', players, presence, game, live: { boards, marks: {}, next: {}, my_boards: {} }, liveKey: null, meta: { status: 'playing' } };
-const setPhase = (phase, len) => { const t = Date.now(); Object.assign(game, { phase, phaseStartAt: t, phaseEndsAt: t + len, ...(phase === 'play' ? { playStartAt: t } : {}) }); };
+// &beat=answer|banner|stand|final|victory (OC2): the after-challenge screen opened at that beat (its start moved back on the clock — exactly
+// what a phone rejoining then sees); &still=1 freezes it there
+const BEAT = q.get('beat') || '';
+const beatOff = phase => { if (!BEAT || (phase !== 'standings' && phase !== 'final')) return 0; const solo = n === 1; const b = phase === 'final' ? finalBeats(type, solo) : resultBeats(type, solo); const at = beatStart(b, BEAT); return at == null ? 0 : at + 250; };
+const setPhase = (phase, len) => { const t = Date.now() - beatOff(phase); const hold = q.get('still') === '1' && (phase === 'standings' || phase === 'final') ? 600000 : 0; Object.assign(game, { phase, phaseStartAt: t, phaseEndsAt: t + (hold || len), ...(phase === 'play' ? { playStartAt: t } : {}) }); };
 if (at === 'brief') { game.brief = true; setPhase('ready', q.get('still') === '1' ? 600000 : BRIEF_MS); }
 else if (at === 'ready') { game.brief = false; setPhase('ready', q.get('still') === '1' ? 600000 : READY_MS); }
 else setPhase('play', at === 'play' ? CHALLENGE_MS : 600000);
@@ -116,9 +120,8 @@ const hold = q.get('hold') === '1' ? new Promise(r => { window.__go = r; }) : nu
   for (let k = 0; k < N; k++) { tap(k, s.type === 'trivia' ? k !== 1 : k !== 2 && k !== 5); await wait(s.type === 'trivia' ? 1000 : 900); }
   await wait(600);
   const live = { ...boards, [me]: { p: N, ok: s.type === 'trivia' ? 2 : 6, n: N, done: true, doneAt: Date.now() } };
-  const res = computeResults(game, live);
-  setPhase('standings', standingsMs(type));   // (its real length — the screen counts down from it; the preview never moves on by itself)
-  step({ results: { ...game.results, [ci]: res }, combo: { ...game.combo, [me]: { c: 1, m: 4 } } });
+  const res = shapeWin(computeResults(game, live));
+  closeRound(res, { combo: { ...game.combo, [me]: { c: 1, m: 4 } } });   // (its real length — the screen counts down from it)
   ready();
 })();
 
@@ -144,10 +147,22 @@ async function answerOther(s) {
   if (s.type === 'closest') game.rv = { [ci]: Object.fromEntries(uids.map((u, i) => [u, { g: Math.round(s.answer * [0.86, 1.04, 1.3, 0.7, 1.12, 0.5, 1.6, 0.95][i]) }])) };
   if (s.type === 'higherlower') uids.forEach((u, i) => { live[u].p = Math.min(n, Math.floor(live[u].ok) + (i % 2)); });
   game.playStartAt = Date.now() - 20000;
-  const res = computeResults(game, live);
+  const res = shapeWin(computeResults(game, live));
   const tm = Object.fromEntries(uids.map((u, i) => [u, 9000 + i * 2300]));
-  setPhase('standings', standingsMs(type));
-  step({ results: { ...game.results, [ci]: res }, tm: { [ci]: tm } });
+  closeRound(res, { tm: { [ci]: tm } });
+}
+/** &win=tie → you + MAYA level on top (a DEAD HEAT) · &win=none → nobody scored; then the round closes like the director closes it */
+function shapeWin(res) {
+  const w = q.get('win');
+  if (w === 'tie' && uids.length > 1) { const top = Math.max(...Object.values(res).map(r => r.pts)); res[uids[0]].pts = top; res[uids[1]].pts = top; }
+  if (w === 'none') for (const r of Object.values(res)) r.pts = 0;
+  return res;
+}
+function closeRound(res, extra = {}) {
+  const last = ci === total - 1;
+  setPhase(last ? 'final' : 'standings', last ? FINAL_MS : standingsMs(type));
+  if (q.get('ready') === '1') state.live.next = Object.fromEntries(uids.filter((u, i) => i % 3 !== 2).map(u => [u, { at: Date.now() }]));
+  step({ results: { ...game.results, [ci]: res }, rw: { ...(game.rw || {}), [ci]: packRoundWin(roundWin(res, uids)) }, ...extra });
 }
 
 // the kit's pieces in the OVERDRIVE skin, on the frame's background

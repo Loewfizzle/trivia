@@ -188,7 +188,13 @@ try {
   ok(combo[uids[1]] && combo[uids[1]].c === 4 && combo[uids[1]].m === 4, `THE COMBO: BOB's miss reset it — 3, then 4 (${JSON.stringify(combo[uids[1]])})`);
   // THE AFTER-CHALLENGE SKIP: everyone taps READY → the next challenge comes long before the 8 s are up (never before 3 s)
   const sk = await evalIn(host, s => ({ at: s.game.phaseStartAt, ends: s.game.phaseEndsAt }));
-  await all(alive(), i => pages[i].waitForSelector('.oc-next-btn', { timeout: 8000 }).then(() => pages[i].evaluate(() => document.querySelector('.oc-next-btn').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })))));
+  // (OC2) THE ANSWER is the first beat; ALICE's READY lights her row on BOB's phone (the room sees who it's waiting on)
+  ok(await pages[1].evaluate(() => !!document.querySelector('.oc-beat-answer.is-on .gk-answer') && document.querySelector('.oc-st-body').dataset.beat === 'answer'), 'THE ANSWER: the after-challenge screen opens on it');
+  const tapNext = i => pages[i].waitForSelector('.oc-next-btn', { timeout: 8000 }).then(() => pages[i].evaluate(() => document.querySelector('.oc-next-btn').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))));
+  await tapNext(0);
+  await pages[1].waitForFunction(u => { const r = document.querySelector(`.oc-sb-row[data-uid="${u}"]`); return r && r.classList.contains('is-ready'); }, { timeout: 4000 }, uids[0]).then(() => ok(true, 'TAP WHEN READY: ALICE\'s row shows her lit READY mark on BOB\'s phone'), () => ok(false, 'TAP WHEN READY: ALICE\'s READY mark on BOB\'s phone'));
+  ok(await pages[1].evaluate(u => !document.querySelector(`.oc-sb-row[data-uid="${u}"]`).classList.contains('is-ready'), uids[1]), 'TAP WHEN READY: BOB (not tapped yet) is unlit');
+  await all(alive().filter(i => i > 0), tapNext);
   await waitPhase(host, 'ready', 1, 'the skip', 12000);
   const skAt = await evalIn(host, s => s.game.phaseStartAt);
   ok(skAt - sk.at >= 3000 && skAt < sk.ends - 1500, `THE SKIP: on after ${((skAt - sk.at) / 1000).toFixed(1)} s (max ${((sk.ends - sk.at) / 1000).toFixed(0)} s, never before 3 s)`);
@@ -232,6 +238,18 @@ try {
   await waitPhase(pages[1], 'standings', 1, 'timeline standings', 60000);
   await sleep(2000);
   await shotBoth(pages[1], 'o-07-timeline-reveal');
+  // (OC2) a phone refreshed mid-results lands on the same beat as everyone else (timed from the phase's start on the server clock)
+  {
+    const rj = alive().find(i => i > 1);
+    await pages[rj].reload();
+    await pages[rj].waitForSelector('.oc-st-body', { timeout: 30000 });
+    const [a, b] = await Promise.all([pages[1], pages[rj]].map(p => p.evaluate(() => document.querySelector('.oc-st-body').dataset.beat)));
+    const stage = await evalIn(pages[1], () => window.__arcade.state.game.phase);
+    ok(stage !== 'standings' || a === b, `REJOIN: a refreshed phone lands on the same beat (${a} / ${b})`);
+    await waitFor(pages[1], () => document.querySelector('.oc-st-body') && document.querySelector('.oc-st-body').dataset.beat === 'stand', 'the standings beat', 14000);
+    const fit = await pages[1].evaluate(() => { const rows = [...document.querySelectorAll('.oc-sb-row')].map(r => r.getBoundingClientRect()); const foot = document.querySelector('.oc-st-foot').getBoundingClientRect(); return { n: rows.length, bottom: Math.max(...rows.map(r => r.bottom)), foot: foot.top, h: innerHeight }; });
+    ok(fit.n === N && fit.bottom <= fit.foot, `THE STANDINGS: all ${fit.n} rows above the NEXT / READY footer at 390 × 844 (rows end ${Math.round(fit.bottom)}, footer ${Math.round(fit.foot)})`);
+  }
   const r1 = await evalIn(pages[1], s => s.game.results[1]);
   ok(r1[uids[1]].ok === 4 && r1[uids[1]].pts > 100, `TIMELINE: perfect order = full + speed (${r1[uids[1]].pts})`);
   const rev = alive().find(i => i > 1 && i % 2);

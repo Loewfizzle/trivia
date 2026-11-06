@@ -36,7 +36,7 @@ import uiCompass from './ui/compass.js';
 import uiSortIt from './ui/sortit.js';
 import uiHigherLower from './ui/higherlower.js';
 import { bankFor, loadBank, preloadFor, BANK_TYPES } from './banks.js';
-import { CHALLENGE_MS, OVERALL_STAGE_MS, SKIP_MIN_MS, COMBO_NEUTRAL, levelOf, totals, standings, comboFold, nextInSec, standingsMs } from './logic.js';
+import { CHALLENGE_MS, SKIP_MIN_MS, COMBO_NEUTRAL, levelOf, totals, standings, comboFold, nextInSec, standingsMs, roundWinOf, resultBeats, finalBeats, beatAt, beatStart, roundWins, awardChips, bestWorst } from './logic.js';
 import { createTach } from '../kit/tach.js';
 import { createSlam } from '../kit/slam.js';
 import { ocSfx } from './sfx.js';
@@ -164,8 +164,9 @@ export function createView() {
     renderStage(game);
 
     const pk = `${ckey(game)}|${game.phase}`;
-    if (pk !== phaseKey) { phaseKey = pk; buildOverlay(game); }
+    if (pk !== phaseKey) { phaseKey = pk; els.rows = null; buildOverlay(game); }
     else if (game.phase === 'final' && final) final.refresh();
+    if (game.phase === 'standings') paintReady();
   }
 
   // ---------- players progress strip ----------
@@ -460,28 +461,136 @@ export function createView() {
     if (isFinal) root.classList.add('is-final');
   }
 
+  // ---------- THE AFTER-CHALLENGE SCREEN (OC2 — THE RESULTS FLOW) ----------
+  // Three BEATS inside the screen's own time (logic.js#resultBeats — the owner's timings unchanged): THE ANSWER → the ROUND WINNER banner →
+  // the OVERALL standings (rows re-sort, ▲ blue / ▼ steel, the totals roll up, your row outlined orange, a lit READY mark on every row that
+  // tapped). NEXT + the countdown + TAP WHEN READY keep their own footer (reserved — no row under them, 8 players at 390 × 844). Each beat is
+  // timed from phaseStartAt on the server clock: a refresh / a rejoin / a new host lands on the right one, already settled.
   function buildStandings(game) {
+    const res = (game.results && game.results[game.ci]) || {};
+    const mine = res[me()];
+    if (mine) sfx(mine.ok >= mine.parts ? 'correct' : 'roundEnd');
+    const next = game.order[game.ci + 1];
+    const nextUp = next ? h('div.next-up', 'NEXT: ', h('b', INFO[next].name), game.ci + 1 === game.total - 1 ? ' · ×2 POINTS' : '') : null;
+    const body = resultsBody(game, resultBeats(game.order[game.ci], soloOf(game)));
+    const panel = h('div.panel-full.oc-standings', body.el,
+      h('footer.oc-st-foot', participant(game) ? readyTap(game, nextUp) : h('div.oc-next', nextUp, h('div.oc-next-watch', 'NEXT IN ', countdown(game, h('b.oc-next-n', ''))))));
+    els.overlay.append(panel);
+  }
+  const soloOf = game => Object.keys(game.participants || {}).length === 1;
+
+  /** the beats' layers + their timers. beats = resultBeats / finalBeats; extra = { final: el, victory: el } for the last challenge */
+  function resultsBody(game, beats, extra = {}) {
+    const mk = (cls, child) => { const l = h(cls, child); l.oc = child && child.oc; return l; };
+    const layers = {
+      answer: mk('div.oc-beat.oc-beat-answer', h('div.oc-st-scroll', reveal(game))),
+      banner: beats.banner != null ? mk('div.oc-beat.oc-beat-banner', roundBanner(game)) : null,
+      stand: mk('div.oc-beat.oc-beat-stand', overallBoard(game)),
+      final: extra.final ? mk('div.oc-beat.oc-beat-final', extra.final) : null,
+      victory: extra.victory ? mk('div.oc-beat.oc-beat-victory', extra.victory) : null,
+    };
+    const el = h('div.oc-st-body', Object.values(layers).filter(Boolean));
+    let cur = '';
+    const enter = (beat, animate) => {
+      if (beat === cur || !layers[beat]) return;
+      cur = beat;
+      for (const [k, l] of Object.entries(layers)) if (l) l.classList.toggle('is-on', k === beat);
+      el.dataset.beat = beat;
+      const l = layers[beat];
+      l.classList.toggle('is-instant', !animate);
+      if (l.oc && l.oc.enter) l.oc.enter(animate);
+      if (extra.onBeat) extra.onBeat(beat, animate);
+    };
+    // the beat now (settled — no replayed animation), then a timer for each one still to come
+    const since = serverNow() - (game.phaseStartAt || 0);
+    enter(beatAt(beats, since), since < 400);
+    for (const beat of ['banner', 'stand', 'final', 'victory']) {
+      const at = beatStart(beats, beat);
+      if (at == null || !layers[beat]) continue;
+      const wait = (game.phaseStartAt || 0) + at - serverNow();
+      if (wait > 0) revealTimers.push(setTimeout(() => { if (el.isConnected) enter(beat, true); }, wait));
+    }
+    return { el, enter, get beat() { return cur; } };
+  }
+
+  // THE ROUND WINNER: a slanted orange stamp + the winner's emblem + name as the hero (DEAD HEAT + the tied names · NO WINNER) — one rule:
+  // logic.js#roundWin (the server's REDLINE rule), stored in game/rw
+  function roundBanner(game) {
+    const r = roundWinOf(game, game.ci);
+    const type = game.order[game.ci];
+    const tags = [];
+    if (game.ci === game.total - 1) tags.push('×2 POINTS');
+    if (type === 'closest' && r.kind === 'win') tags.push('CLOSEST GUESS BONUS');
+    const who = (uid, size) => { const p = player(uid); return h('div.oc-rw-who', { class: uid === me() ? 'is-me' : null, style: { '--c': colorHex(p.color) } }, avatar(p.avatar, p.color, size), h('b.oc-rw-name', p.name), uid === me() ? h('span.oc-rw-you', 'YOU') : null); };
+    const box = h('div.oc-rw', { class: `is-${r.kind}` },
+      h('div.oc-rw-stamp', h('span.oc-rw-stamp-glow', { 'aria-hidden': 'true' }), h('b', r.kind === 'win' ? 'ROUND WINNER' : r.kind === 'tie' ? 'DEAD HEAT' : 'NO WINNER')),
+      r.kind === 'win' ? h('div.oc-rw-hero', who(r.uid, 76), h('div.oc-rw-pts', `+${fmtNum(r.pts)}`))
+        : r.kind === 'tie' ? h('div.oc-rw-tie', h('div.oc-rw-tied', r.uids.slice(0, 4).map(u => who(u, 40)), r.uids.length > 4 ? h('span.oc-rw-more', `+${r.uids.length - 4}`) : null), h('div.oc-rw-pts', `+${fmtNum(r.pts)} EACH · NOBODY TAKES IT`))
+          : h('div.oc-rw-none', 'NOBODY SCORED THIS ROUND'),
+      tags.length ? h('div.oc-rw-tags', tags.map(t => h('span.oc-rw-tag', t))) : null,
+      h('div.oc-rw-k', `CHALLENGE ${String(game.ci + 1).padStart(2, '0')} · ${INFO[type].name}`));
+    const layer = h('div.oc-rw-wrap', box);
+    layer.oc = { enter: animate => { if (animate) { ocSfx('stamp'); if (r.kind === 'win' && r.uid === me()) setTimeout(() => ocSfx('rankUp'), 180); } } };
+    return layer;
+  }
+
+  // THE OVERALL STANDINGS: the light slanted rows (OC1 — never the console's slim cards mid-game), in the order BEFORE this round, sliding
+  // into the new one as the beat starts; ▲ n (blue) / ▼ n (dim steel); the round's points + the total rolling up; a lit mark when READY
+  const ROW = 54;
+  function overallBoard(game) {
     const now = standings(game, game.ci);
     const prev = standings(game, game.ci - 1);
     const prevMap = Object.fromEntries(prev.map(r => [r.uid, r]));
     const res = (game.results && game.results[game.ci]) || {};
-    const rows = now.map(r => ({
-      ...r,
-      prevScore: prevMap[r.uid] ? prevMap[r.uid].score : 0,
-      prevRank: game.ci > 0 && prevMap[r.uid] ? prevMap[r.uid].rank : null,
-      delta: res[r.uid] ? res[r.uid].pts : 0,
-      note: noteFor(game, res[r.uid], revealBoards(game)[r.uid]),
-    }));
-    const next = game.order[game.ci + 1];
-    const mine = res[me()];
-    if (mine) sfx(mine.ok >= mine.parts ? 'correct' : 'roundEnd');
-    const nextUp = next ? h('div.next-up', 'NEXT: ', h('b', INFO[next].name), game.ci + 1 === game.total - 1 ? ' · ×2 POINTS' : '') : null;
-    // (OC1 ADD-ON — the owner: "NEXT: … overlaps the 4th row"): the answer + the board SCROLL in their own box; NEXT + the countdown live
-    // in a footer of their own BELOW it — reserved space, so no row (8 players on a 390 × 844 phone) ever sits under them
-    const panel = h('div.panel-full.oc-standings',
-      h('div.oc-st-scroll', reveal(game), roundBoard(game, rows)),
-      h('footer.oc-st-foot', participant(game) ? readyTap(game, nextUp) : h('div.oc-next', nextUp, h('div.oc-next-watch', 'NEXT IN ', countdown(game, h('b.oc-next-n', ''))))));
-    els.overlay.append(panel);
+    const rb = revealBoards(game);
+    const prevPos = Object.fromEntries((game.ci > 0 ? prev : now).map((r, i) => [r.uid, i]));
+    els.rows = {};
+    const list = h('div.oc-sb-list', { style: { height: `${now.length * ROW}px` } });
+    const items = now.map((r, i) => {
+      const p = st.players[r.uid] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
+      const pr = prevMap[r.uid];
+      const moved = game.ci > 0 && pr ? pr.rank - r.rank : 0;
+      const off = st.presence[r.uid] && st.presence[r.uid].online === false;
+      const rank = h('span.lb-rank', String(pr && game.ci > 0 ? pr.rank : r.rank));
+      const score = h('span.oc-sb-score', fmtNum(pr ? pr.score : 0));
+      const mv = h('span.oc-sb-move', { class: moved > 0 ? 'is-up' : moved < 0 ? 'is-down' : 'is-same', 'aria-label': moved > 0 ? `up ${moved}` : moved < 0 ? `down ${-moved}` : 'no change' }, moved > 0 ? `▲${moved}` : moved < 0 ? `▼${-moved}` : '');
+      const note = noteFor(game, res[r.uid], rb[r.uid]);
+      const el = h('div.oc-lr.oc-sb-row', { class: [r.uid === me() ? 'is-me' : '', off ? 'is-off' : ''].join(' '), style: { '--c': colorHex(p.color), transform: `translateY(${prevPos[r.uid] * ROW}px)` }, dataset: { uid: r.uid } },
+        rank, avatar(p.avatar, p.color, 30),
+        h('span.lb-name', h('span.oc-sb-nm', p.name), note ? h('small.lb-note', note) : null),
+        h('i.oc-sb-ready', { 'aria-label': 'ready', title: 'READY' }),
+        mv, h('span.oc-sb-delta', `+${fmtNum(res[r.uid] ? res[r.uid].pts : 0)}`), score);
+      els.rows[r.uid] = el;
+      return { r, pr, el, rank, score, i, moved };
+    });
+    list.append(...items.map(x => x.el));
+    const box = h('div.oc-sb', h('div.oc-sb-k', h('span', `LEADERBOARD // AFTER ${String(game.ci + 1).padStart(2, '0')}`), h('span.oc-sb-of', `${game.ci + 1} OF ${game.total}`)), list);
+    paintReady();
+    const settle = animate => {
+      box.classList.add('is-sorted');
+      for (const x of items) {
+        x.el.style.transform = `translateY(${x.i * ROW}px)`;
+        x.rank.textContent = String(x.r.rank);
+        x.el.classList.toggle('is-first', x.r.rank === 1);
+        if (animate && !reducedMotion()) countUp(x.score, x.pr ? x.pr.score : 0, x.r.score, 900);
+        else x.score.textContent = fmtNum(x.r.score);
+      }
+    };
+    box.oc = {
+      enter(animate) {
+        if (!animate) { box.classList.add('is-instant'); settle(false); return; }
+        revealTimers.push(setTimeout(() => { if (!box.isConnected) return; settle(true); ocSfx('swoosh'); const meUp = items.find(x => x.r.uid === me() && x.moved > 0); if (meUp) setTimeout(() => ocSfx('rankUp'), 380); }, 260));
+      },
+    };
+    const wrap = h('div.oc-sb-wrap', box);
+    wrap.oc = box.oc;
+    return wrap;
+  }
+  /** the READY marks on the standings rows (live: ocnext) */
+  function paintReady() {
+    if (!els.rows) return;
+    const taps = (st.live && st.live.next) || {};
+    for (const [uid, el] of Object.entries(els.rows)) el.classList.toggle('is-ready', !!taps[uid]);
   }
 
   // THE AFTER-CHALLENGE SKIP (OC1 — director.js 'standings'): NEXT IN n + TAP WHEN READY. Everyone connected tapped (≥ SKIP_MIN_MS in) →
@@ -519,75 +628,6 @@ export function createView() {
     };
     tick();
     return el;
-  }
-
-  // The round, then the race: one list of rows ranked by this challenge's points (bars, a crown on the round's winner),
-  // then — OVERALL_STAGE_MS before the end — the same rows slide into the overall order while the totals count up.
-  // Timed from phaseStartAt / phaseEndsAt (server time), so a refresh mid-way lands on the right stage.
-  function roundBoard(game, rows) {
-    const type = game.order[game.ci];
-    const final = game.ci === game.total - 1;
-    const res = (game.results && game.results[game.ci]) || {};
-    const pts = u => (res[u] ? res[u].pts : 0);
-    const byRound = rows.slice().sort((a, b) => pts(b.uid) - pts(a.uid) || a.rank - b.rank);
-    const top = Math.max(0, ...rows.map(r => pts(r.uid)));
-    const winners = top > 0 ? byRound.filter(r => pts(r.uid) === top) : [];
-    const roundPos = Object.fromEntries(byRound.map((r, i) => [r.uid, i]));
-    const totalPos = Object.fromEntries(rows.map((r, i) => [r.uid, i]));
-    const roundRank = {};
-    byRound.forEach((r, i) => { roundRank[r.uid] = i > 0 && pts(r.uid) === pts(byRound[i - 1].uid) ? roundRank[byRound[i - 1].uid] : i + 1; });
-    // THE LIGHT ROWS (OC1 ADD-ON — docs/overclock.md): mid-game standings are LIGHT slanted rows on purpose, not the console's slim player
-    // cards (8 animated cards every round = heavy + busy; the final podium uses the real cards — D8). Each row: the player's own EMBLEM (30 pt)
-    // + their name, so they're the same person as on their card.
-    const ROW = 56;
-    const list = h('div.oc-rb-list', { style: { height: `${rows.length * ROW}px` } });
-    const items = rows.map(r => {
-      const p = st.players[r.uid] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
-      const off = st.presence[r.uid] && st.presence[r.uid].online === false;
-      const crown = winners.some(w => w.uid === r.uid);
-      const rank = h('span.lb-rank', String(roundRank[r.uid]));
-      const score = h('span.lb-score.oc-rb-score', `+${fmtNum(pts(r.uid))}`);
-      const bar = h('i.oc-rb-bar', { style: { transform: `scaleX(${top > 0 ? Math.max(0.02, pts(r.uid) / top) : 0.02})` } });
-      const el = h('div.lb-row.oc-rb-row.oc-lr', { class: [r.uid === me() ? 'is-me' : '', crown ? 'is-crown' : '', off ? 'is-off' : ''].join(' '), style: { '--c': colorHex(p.color), transform: `translateY(${roundPos[r.uid] * ROW}px)` } },
-        bar, rank, avatar(p.avatar, p.color, 30),
-        h('span.lb-name', p.name, crown ? h('i.oc-rb-crown', { 'aria-label': 'won the round' }, '♛') : null, r.note ? h('small.lb-note', r.note) : null),
-        h('span.oc-rb-delta', `+${fmtNum(pts(r.uid))}`),
-        score);
-      return { r, el, rank, score };
-    });
-    list.append(...items.map(x => x.el));
-    const n2 = String(game.ci + 1).padStart(2, '0');
-    const kicker = h('div.sheet-kicker.oc-rb-kicker', `CHALLENGE ${n2} // THIS ROUND`);
-    const tags = [];
-    if (final) tags.push('×2 POINTS');
-    if (type === 'closest' && winners.length) tags.push('CLOSEST GUESS BONUS');
-    const head = winners.length
-      ? h('div.oc-rb-head',
-        h('span.oc-rb-head-k', winners.length > 1 ? 'SHARED ROUND' : 'ROUND WINNER'),
-        h('b', winners.map(w => (st.players[w.uid] || {}).name || '—').join(' · ')),
-        h('span.oc-rb-head-pts', `+${fmtNum(top)}`),
-        ...tags.map(t => h('span.oc-rb-tag', t)))
-      : h('div.oc-rb-head.is-none', h('b', 'NOBODY CRACKED IT'), ...tags.map(t => h('span.oc-rb-tag', t)));
-    const box = h('div.oc-rb', head, kicker, list);
-    const toOverall = (animate) => {
-      box.classList.add('is-overall');
-      if (!animate) box.classList.add('is-instant');
-      kicker.textContent = `LEADERBOARD // AFTER ${n2}`;
-      for (const x of items) {
-        x.el.style.transform = `translateY(${totalPos[x.r.uid] * ROW}px)`;
-        x.rank.textContent = String(x.r.rank);
-        x.el.classList.toggle('is-first', x.r.rank === 1);
-        x.el.classList.toggle(x.r.prevRank && x.r.prevRank > x.r.rank ? 'move-up' : 'x', true);
-        if (animate && !reducedMotion()) countUp(x.score, x.r.prevScore || 0, x.r.score, 900);
-        else x.score.textContent = fmtNum(x.r.score);
-      }
-      if (animate) sfx('shimmer');
-    };
-    const at = Math.max(game.phaseStartAt + 1500, game.phaseEndsAt - OVERALL_STAGE_MS);
-    const wait = at - serverNow();
-    if (wait <= 0) toOverall(false);
-    else revealTimers.push(setTimeout(() => { if (box.isConnected) toOverall(true); }, wait));
-    return box;
   }
 
   // THE ANSWER (OC2 — every challenge; answers.js): built only once the challenge has CLOSED (standings / final — THE SEAL)

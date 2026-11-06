@@ -163,6 +163,33 @@ export function standings(game, upto = Infinity) {
 }
 
 // =========================================================================================================== OC2 — THE RESULTS FLOW (PURE)
+// THE BEATS of the after-challenge screen — INSIDE its own max (standingsMs: 8 s, 12 s with a reveal — the owner's timings, never changed):
+// THE ANSWER first (≥ SKIP_MIN_MS, so the skip never comes before it), then the ROUND WINNER banner, then the OVERALL standings for the last
+// STANDINGS_BEAT_MS. SOLO has no banner (the answer holds until the standings). The LAST challenge has no 'standings' phase: its beats run at
+// the start of 'final' (FINAL_MS — 120 s), followed by THE FINAL STANDINGS (FINAL_STANDINGS_MS; not in solo) and THE VICTORY.
+// Every beat is timed from the phase's own start on the server clock, so a refresh / a rejoin / a new host lands on the right one.
+export const BANNER_BEAT_MS = 1_300;
+export const STANDINGS_BEAT_MS = 3_700;
+export const FINAL_STANDINGS_MS = 9_000;
+export function resultBeats(type, solo = false) {
+  const L = standingsMs(type);
+  const stand = L - STANDINGS_BEAT_MS;
+  return { answer: 0, banner: solo ? null : stand - BANNER_BEAT_MS, stand, end: L };
+}
+export function finalBeats(type, solo = false) {
+  const b = resultBeats(type, solo);
+  return { ...b, final: solo ? null : b.end, victory: b.end + (solo ? 0 : FINAL_STANDINGS_MS) };
+}
+/** the beat at `ms` since the phase began (resultBeats or finalBeats) */
+export function beatAt(b, ms) {
+  if (b.victory != null && ms >= b.victory) return 'victory';
+  if (b.final != null && ms >= b.final) return 'final';
+  if (ms >= b.stand) return 'stand';
+  if (b.banner != null && ms >= b.banner) return 'banner';
+  return 'answer';
+}
+/** the ms (since the phase began) a beat starts at */
+export const beatStart = (b, beat) => ({ answer: 0, banner: b.banner, stand: b.stand, final: b.final, victory: b.victory })[beat];
 // THE ROUND WIN — ONE rule, used everywhere (the ROUND WINNER banner, the final standings' ROUND WINS, and the SERVER's REDLINE —
 // core/match-report.js#overclockExtra calls this same function): a player wins a challenge when their points in it are the HIGHEST and NOT
 // SHARED. A tie for the top = nobody wins it (the banner's DEAD HEAT); nobody above 0 = no winner. `uids` = the participants (a missing result
