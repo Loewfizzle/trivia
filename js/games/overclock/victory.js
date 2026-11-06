@@ -76,7 +76,9 @@ export function finalScene(el, game, state) {
   const winners = top.slice(0, 2);
   const score = h('b.oc-vic-score-n', still ? fmtNum(rows[0] ? rows[0].score : 0) : '0');
   const kids = [
-    h('div.oc-vic-rays', { 'aria-hidden': 'true' }),
+    // (OC3 Group 0 — the owner's phone: the turning rays poked past the screen's edges and the page slid SIDEWAYS) the rays turn inside a
+    // CLIP of their own, exactly the panel's width — nothing outside it can ever widen the screen
+    h('div.oc-vic-rays-clip', { 'aria-hidden': 'true' }, h('div.oc-vic-rays')),
     h('div.oc-vic-title', { 'data-text': 'OVERCLOCKED' }, 'OVERCLOCKED'),
   ];
   if (solo) {

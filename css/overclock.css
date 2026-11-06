@@ -1058,7 +1058,7 @@
 .oc-ans-rx, .oc-ans-rw { display: inline-flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .oc-ans-rx b, .oc-ans-rw b { font: italic 900 clamp(28px, 8vw, 34px) / 0.95 var(--oc-font-title); font-variant-numeric: tabular-nums; }
 .oc-ans-rx small, .oc-ans-rw small { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.16em; }
-.oc-ans-rx-log { display: flex; gap: 6px; }
+.oc-ans-rx-log { display: flex; gap: 6px; padding: 0 4px; }   /* (OC3 G0: the slanted chips lean 2–3 px — kept inside the column) */
 .oc-ans-rx-log span { flex: 1; display: grid; place-items: center; height: 30px; font: italic 900 17px / 1 var(--oc-font-title); color: #fff; background: rgba(255, 255, 255, 0.08); transform: skewX(var(--oc-slant)); }
 .oc-ans-rx-log span.is-miss { color: #ff8095; }
 /* the older reveals in THE ANSWER's panel: their own kicker stays, the frame's plate above it */
@@ -1154,7 +1154,7 @@
 /* ---------------- THE AFTER-CHALLENGE SCREEN (OC1 ADD-ON): the answer + the board scroll in their own box; NEXT + the countdown have a
    footer of their own below it (reserved — no row ever sits under them, 8 players on a 390 × 844 phone included) */
 .oc-od .panel-full.oc-standings { display: flex; flex-direction: column; gap: 0; overflow: hidden; padding-bottom: calc(var(--safe-b) + 10px); }
-.oc-st-scroll { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding-bottom: 14px; -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); }
+.oc-st-scroll { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 16px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding-bottom: 14px; -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); }
 .oc-st-scroll::-webkit-scrollbar { display: none; }
 .oc-st-foot { flex: none; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
 .oc-od .oc-st-foot .oc-next { position: static; padding: 0; background: none; }
@@ -1282,8 +1282,14 @@
 .oc-od .final:has(> .final-body[data-game='overclock']) > .winner { display: none; }
 .oc-od .final:has(> .final-body[data-game='overclock'])::before { display: none; }
 .oc-vic { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 2px; isolation: isolate; }
+/* NO SIDEWAYS SCROLL, EVER (OC3 Group 0 — the owner's iPhone: the victory slid left, the BEST STREAK chip + the XP box cut off). A box that
+   scrolls DOWN (overflow-y: auto) scrolls SIDEWAYS too unless it says otherwise — every Overclock panel says so; the turning rays (640 px,
+   wider than any phone) live in a clip of their own that spans exactly the panel (out through its side padding, up over the kicker — an
+   overflow upward never scrolls); tests/integration/e2e-oc-sideways.mjs reads every screen at 390 / 402 / 430 */
+.oc-od .panel-full { overflow-x: hidden; }
+.oc-vic-rays-clip { position: absolute; z-index: -1; top: -180px; height: 560px; left: calc(-1 * (var(--safe-l) + var(--gutter))); right: calc(-1 * (var(--safe-r) + var(--gutter))); overflow: hidden; pointer-events: none; }
 /* the rays: ONE pre-rendered layer turning slowly (transform only), masked to a soft disc behind the sign */
-.oc-vic-rays { position: absolute; left: 50%; top: 92px; width: 640px; height: 640px; margin: -320px 0 0 -320px; z-index: -1; pointer-events: none;
+.oc-vic-rays { position: absolute; left: 50%; top: 272px; width: 640px; height: 640px; margin: -320px 0 0 -320px; pointer-events: none;
   background: repeating-conic-gradient(from 0deg, rgba(255, 140, 60, 0.2) 0deg 5deg, rgba(255, 140, 60, 0) 5deg 15deg);
   -webkit-mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.55) 26%, transparent 58%); mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.55) 26%, transparent 58%);
   opacity: 0; animation: oc-rays-in 1.2s ease-out 0.2s forwards, oc-rays 46s linear infinite; will-change: transform; }
@@ -1337,8 +1343,9 @@
 .oc-vic:not(.is-still) .oc-vic-step { animation: oc-slam-up 0.5s cubic-bezier(0.2, 1.25, 0.35, 1) both; animation-delay: calc(1.7s + var(--k) * 0.22s); }
 @keyframes oc-slam-up { from { opacity: 0; transform: translateY(46px) scale(0.94); } to { opacity: 1; transform: none; } }
 /* THE AWARD CHIPS */
-.oc-vic-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; width: 100%; }
-.oc-vic-chip { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 7px 12px 8px; }
+.oc-vic-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap: 10px; width: 100%; min-width: 0; }
+.oc-vic-chip { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 7px 12px 8px; }
+.oc-vic-chip-who > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .oc-vic-chip::before { content: ''; position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #262b37, #171a22); border: 1px solid rgba(46, 139, 255, 0.55); }
 .oc-vic-chip.is-me::before { border-color: var(--oc-hot); }
 .oc-vic-chip > * { position: relative; }
