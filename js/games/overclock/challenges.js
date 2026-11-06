@@ -105,23 +105,50 @@ export function genMath(rand, level) {
 }
 
 // ---------- pattern lock ----------
+// Each rule draws its numbers (in the SAME order as ever — the sequences never change) and returns the next-term function + its numbers
+// for the RULE line (patternSay — "+3 each time", "×2 each time"; OC3: THE ANSWER + the rules card's demo show it).
 const SEQ_RULES = {
-  arith: (r, d) => { const a = randInt(r, 3, 40); const k = randInt(r, 3, 12 + Math.round(10 * d)); return i => a + k * i; },
-  geo: r => { const a = randInt(r, 2, 6); const k = pick(r, [2, 3]); return i => a * k ** i; },
-  incDiff: r => { const a = randInt(r, 1, 20); const k = randInt(r, 1, 4); return i => a + k * i + (i * (i - 1)) / 2; },
-  squares: r => { const o = randInt(r, -3, 10); const s = randInt(r, 1, 6); return i => (s + i) ** 2 + o; },
-  fib: r => { const a = randInt(r, 1, 5); const b = randInt(r, a + 1, a + 6); const memo = [a, b]; return i => { while (memo.length <= i) memo.push(memo[memo.length - 1] + memo[memo.length - 2]); return memo[i]; }; },
-  alt: r => { const a = randInt(r, 10, 40); const p = randInt(r, 5, 12); const m = randInt(r, 2, 6); return i => a + Math.ceil(i / 2) * p - Math.floor(i / 2) * m; },
-  doublePlus: r => { const a = randInt(r, 1, 6); const c = randInt(r, 1, 4); return i => { let t = a; for (let j = 0; j < i; j++) t = 2 * t + c; return t; }; },
+  arith: (r, d) => { const a = randInt(r, 3, 40); const k = randInt(r, 3, 12 + Math.round(10 * d)); return [i => a + k * i, { k }]; },
+  geo: r => { const a = randInt(r, 2, 6); const k = pick(r, [2, 3]); return [i => a * k ** i, { k }]; },
+  incDiff: r => { const a = randInt(r, 1, 20); const k = randInt(r, 1, 4); return [i => a + k * i + (i * (i - 1)) / 2, { k }]; },
+  squares: r => { const o = randInt(r, -3, 10); const s = randInt(r, 1, 6); return [i => (s + i) ** 2 + o, { s, o }]; },
+  fib: r => { const a = randInt(r, 1, 5); const b = randInt(r, a + 1, a + 6); const memo = [a, b]; return [i => { while (memo.length <= i) memo.push(memo[memo.length - 1] + memo[memo.length - 2]); return memo[i]; }, {}]; },
+  alt: r => { const a = randInt(r, 10, 40); const p = randInt(r, 5, 12); const m = randInt(r, 2, 6); return [i => a + Math.ceil(i / 2) * p - Math.floor(i / 2) * m, { p, m }]; },
+  doublePlus: r => { const a = randInt(r, 1, 6); const c = randInt(r, 1, 4); return [i => { let t = a; for (let j = 0; j < i; j++) t = 2 * t + c; return t; }, { c }]; },
 };
 const EASY_RULES = ['arith', 'geo', 'alt', 'incDiff'];
-export function genPattern(rand, level) {
+const MINUS = '−';
+/** a sequence's rule in one short line (PURE) */
+export function patternSay(rule, v = {}) {
+  switch (rule) {
+    case 'easy': return `${v.k > 0 ? '+' : MINUS}${Math.abs(v.k)} each time`;
+    case 'arith': return `+${v.k} each time`;
+    case 'geo': return `×${v.k} each time`;
+    case 'incDiff': return `+${v.k}, +${v.k + 1}, +${v.k + 2}… one more each time`;
+    case 'squares': return v.o ? `square numbers ${v.o > 0 ? '+' : MINUS} ${Math.abs(v.o)}` : `square numbers: ${v.s}², ${v.s + 1}², ${v.s + 2}²…`;
+    case 'fib': return 'add the two before';
+    case 'alt': return `+${v.p}, ${MINUS}${v.m}, +${v.p}, ${MINUS}${v.m}…`;
+    case 'doublePlus': return `×2, then +${v.c}`;
+    default: return '';
+  }
+}
+/** PATTERN LOCK's EASY OPENER (OC3 — the owner): the match's FIRST sequence is a plain +n / −n step with small numbers (1–65), drawn from its
+ *  OWN seeded stream so the second sequence (and every later Pattern Lock) stays exactly what it always was */
+export function easySeq(rand) {
+  const k = randInt(rand, 2, 9);
+  const down = rand() < 0.3 && k <= 6;
+  const a = down ? 5 * k + randInt(rand, 1, 15) : randInt(rand, 1, 20);
+  const step = down ? -k : k;
+  const f = i => a + step * i;
+  return { rule: 'easy', shown: [0, 1, 2, 3, 4].map(f), ans: f(5), say: patternSay('easy', { k: step }) };
+}
+/** first = this is the match's first Pattern Lock (generate: occ 0) → its first sequence is the easy opener (seed + ci = its own stream) */
+export function genPattern(rand, level, { first = false, seed = '', ci = 0 } = {}) {
   const pool = level < 0.3 ? EASY_RULES : Object.keys(SEQ_RULES);
   const rules = shuffle(rand, pool).slice(0, 2);
-  return {
-    type: 'pattern', parts: 2,
-    seqs: rules.map(name => { const f = SEQ_RULES[name](rand, level); return { rule: name, shown: [0, 1, 2, 3, 4].map(f), ans: f(5) }; }),
-  };
+  const seqs = rules.map(name => { const [f, v] = SEQ_RULES[name](rand, level); return { rule: name, shown: [0, 1, 2, 3, 4].map(f), ans: f(5), say: patternSay(name, v) }; });
+  if (first) seqs[0] = easySeq(rngFrom(`${seed}:${ci}:pattern:easy`));
+  return { type: 'pattern', parts: 2, seqs };
 }
 
 // ---------- color clash (Stroop) ----------
@@ -524,7 +551,7 @@ export function generate(type, { seed, ci, level, occ = 0, deal = null }, deps =
     case 'memory': return genMemory(rand, level);
     case 'oddone': return genOddOne(rand, level);
     case 'math': return genMath(rand, level);
-    case 'pattern': return genPattern(rand, level);
+    case 'pattern': return genPattern(rand, level, { first: occ === 0, seed, ci });
     case 'stroop': return genStroop(rand, level);
     case 'reflex': return genReflex(rand);
     case 'count': return genCount(rand, level);
