@@ -54,6 +54,18 @@ export function answerFrame({ q = '', answer = '', pick = null, state = 'none', 
     slot ? h('div.gk-answer-slot', slot) : null);
 }
 
+/** THE ANSWER as a PANEL (OC2): the white-hot slanted THE ANSWER plate + its laser, then a challenge's own content in the slot — for the
+ *  reveals that show more than one answer (a number line, an order, both sides of a sort). `sub` = one short line on the plate. */
+export function answerPanel({ label = ANSWER_LABEL, sub = '', slot = null, delay = 0 } = {}) {
+  return h('section.gk-answer.is-panel', { style: { '--d': `${delay}ms` } },
+    h('div.gk-answer-tile.gk-answer-plate',
+      h('span.gk-answer-glow', { 'aria-hidden': 'true' }),
+      h('span.gk-answer-label', label),
+      sub ? h('b.gk-answer-text', sub) : null,
+      h('span.gk-laser', { 'aria-hidden': 'true' })),
+    slot ? h('div.gk-answer-slot', slot) : null);
+}
+
 /** a short stack of frames under one title (each delayed a little after the one before) */
 export function answerList(frames, { title = '', step = 260, start = 120 } = {}) {
   return h('div.gk-answers',

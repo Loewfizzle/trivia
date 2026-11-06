@@ -275,6 +275,10 @@
 .gk-pick-tile.is-none .gk-pick-text { font-size: 16px; color: var(--gk-pick-label, #aeb6d6); }
 .gk-strike { position: absolute; left: 12px; right: 66px; top: calc(50% + 7px); height: 3px; border-radius: 2px; background: var(--gk-wrong, #ff3b4e); box-shadow: 0 0 8px var(--gk-wrong, #ff3b4e); transform-origin: 0 50%; transform: scaleX(0); animation: gk-laser 0.4s calc(var(--d, 0ms) + 700ms) ease-out forwards; }
 .gk-answer-slot { margin-top: 4px; }
+/* THE ANSWER as a PANEL (OC2 — answer.js#answerPanel): the white-hot plate (THE ANSWER + an optional line) + its laser, the content under it */
+.gk-answer.is-panel { gap: 14px; }
+.gk-answer-plate { grid-template-columns: 1fr; align-self: flex-start; min-width: 52%; padding: 8px 18px 9px; }
+.gk-answer-plate .gk-answer-label { grid-column: 1; }
 
 @media (prefers-reduced-motion: reduce) {
   .gk-slam .gk-slam-card, .gk-slam .gk-slam-swipe, .gk-slam .gk-slam-rules li, .gk-stamp, .gk-answer-q, .gk-answer-tile, .gk-pick-tile, .gk-answer-glow, .gk-key.is-hit .gk-key-glow, .gk-tach.is-hot .gk-tach-hot, .gk-edge.is-on, .gk-np-caret { animation: none !important; }

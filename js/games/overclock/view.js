@@ -18,7 +18,6 @@ import { decodeQuestion } from '../../trivia/feed.js';
 import { loadLengths, answersFor } from '../cipher/words.js';
 import { INFO, generate, partsFor, SORT_CARDS } from './challenges.js';
 import { fmtOk, fmtVal, sortSplit } from './shared.js';
-import { buildReveal, hasReveal } from './reveals.js';
 import uiUnscramble from './ui/unscramble.js';
 import uiMemory from './ui/memory.js';
 import uiOddOne from './ui/oddone.js';
@@ -591,22 +590,21 @@ export function createView() {
     return box;
   }
 
+  // THE ANSWER (OC2 — every challenge; answers.js): built only once the challenge has CLOSED (standings / final — THE SEAL)
   function reveal(game) {
     const type = game.order[game.ci];
-    if (hasAnswer(type) && participant(game)) {
-      const spec = chal && chal.key === ckey(game) ? chal.spec : buildSpec(game);
-      if (spec) return h('section.rv.oc-rv-answer', buildAnswer(type, spec, (chal && chal.key === ckey(game) && chal.local.picks) || loadPicks(game.matchId, game.ci)));
-    }
-    if (!hasReveal(type)) return null;
-    const spec = buildSpec(game);
+    if (!hasAnswer(type)) return null;
+    const mine = chal && chal.key === ckey(game);
+    const spec = mine ? chal.spec : buildSpec(game);
     if (!spec) return null;
-    return buildReveal(game, spec, {
+    const picks = participant(game) ? ((mine && chal.local.picks) || loadPicks(game.matchId, game.ci)) : [];
+    return h('section.rv.oc-rv-answer', buildAnswer(type, spec, picks, {
+      game, me: me(), player,
       boards: revealBoards(game),
       uids: Object.keys(game.participants || {}),
-      player,
       timers: revealTimers,
-      sortLog: chal && chal.key === ckey(game) && chal.local.sort ? chal.local.sort.log : null,
-    });
+      sortLog: mine && chal.local.sort ? chal.local.sort.log : null,
+    }));
   }
 
   function noteFor(game, r, b) {

@@ -109,6 +109,8 @@ const hold = q.get('hold') === '1' ? new Promise(r => { window.__go = r; }) : nu
     return ready();
   }
   if (at !== 'answer') return ready();
+  for (let w = 0; w < 60 && !spec(); w++) await wait(100);   // (a bank-backed challenge waits for its bank)
+  if (type !== 'trivia' && type !== 'truefalse') { await answerOther(spec()); return ready(); }
   // THE ANSWER: play the round (trivia: right, wrong, right · true or false: a miss on the 3rd + the 6th), then the round closes
   const s = spec(), N = s.type === 'trivia' ? 3 : s.type === 'truefalse' ? 8 : 0;
   for (let k = 0; k < N; k++) { tap(k, s.type === 'trivia' ? k !== 1 : k !== 2 && k !== 5); await wait(s.type === 'trivia' ? 1000 : 900); }
@@ -119,6 +121,34 @@ const hold = q.get('hold') === '1' ? new Promise(r => { window.__go = r; }) : nu
   step({ results: { ...game.results, [ci]: res }, combo: { ...game.combo, [me]: { c: 1, m: 4 } } });
   ready();
 })();
+
+// OC2 — THE ANSWER for the other sixteen: this phone's picks (a mix of right + wrong, as the screen would have saved them), the room's
+// boards (+ the unsealed guesses for CLOSEST CALL), the results + times, then the round closes
+async function answerOther(s) {
+  const { savePicks } = await import('/js/games/overclock/answers.js');
+  const P = {
+    math: () => s.problems.map((p, i) => (i === 1 ? p.ans + 12 : p.ans)),
+    pattern: () => s.seqs.map((x, i) => (i ? x.ans - 3 : x.ans)),
+    memory: () => [{ at: Math.min(3, s.seq.length - 1), n: (s.seq[Math.min(3, s.seq.length - 1)] + 4) % 9 }],
+    oddone: () => s.grids.map((g, i) => (i === 1 ? (g.idx + 2) % (g.size * g.size) : g.idx)),
+    count: () => s.items.map((it, i) => (i === 1 ? it.ans + 1 : i === 2 ? it.ans + 2 : it.ans)),
+    stroop: () => s.items.map((it, i) => (i === 2 ? it.order.find(c => c !== it.ink) : it.ink)),
+    reflex: () => [287, 312, null, 255, 301],
+  };
+  const picks = (P[s.type] || (() => []))();
+  if (picks.length) savePicks(game.matchId, ci, picks);
+  const n = s.parts || parts;
+  const okMe = { memory: 3, rewire: 1.42, reflex: 3.4, closest: 0.86, higherlower: 6 }[s.type] ?? Math.max(0, n - 1);
+  const live = { [me]: { p: n, ok: okMe, n, done: true, doneAt: Date.now() - 4000 } };
+  uids.slice(1).forEach((u, i) => { live[u] = { p: n, ok: Math.max(0, n - (i % 3)) - (s.type === 'reflex' ? 0.3 * i : 0), n, done: true, doneAt: Date.now() - 2000 - i * 900 }; });
+  if (s.type === 'closest') game.rv = { [ci]: Object.fromEntries(uids.map((u, i) => [u, { g: Math.round(s.answer * [0.86, 1.04, 1.3, 0.7, 1.12, 0.5, 1.6, 0.95][i]) }])) };
+  if (s.type === 'higherlower') uids.forEach((u, i) => { live[u].p = Math.min(n, Math.floor(live[u].ok) + (i % 2)); });
+  game.playStartAt = Date.now() - 20000;
+  const res = computeResults(game, live);
+  const tm = Object.fromEntries(uids.map((u, i) => [u, 9000 + i * 2300]));
+  setPhase('standings', standingsMs(type));
+  step({ results: { ...game.results, [ci]: res }, tm: { [ci]: tm } });
+}
 
 // the kit's pieces in the OVERDRIVE skin, on the frame's background
 async function kitPage() {

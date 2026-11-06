@@ -29,6 +29,7 @@ export default function uiCount(s, api) {
     if (locked || chal.done) return;
     locked = true;
     const credit = v === it.ans ? 1 : Math.abs(v - it.ans) === 1 ? 0.5 : 0;
+    if (api.pick) api.pick(chal.p, v);   // (OC2 — THE ANSWER)
     opts.find(b => Number(b.dataset.v) === it.ans).classList.add('is-correct');
     if (credit < 1) opts.find(b => Number(b.dataset.v) === v).classList.add(credit ? 'is-close' : 'is-wrong');
     api.part(credit);

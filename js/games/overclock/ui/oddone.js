@@ -21,6 +21,7 @@ export default function uiOddOne(s, api) {
     if (locked) return;
     locked = true;
     const right = i === gspec.idx;
+    if (api.pick) api.pick(chal.p, i);   // (OC2 — THE ANSWER)
     grid.children[gspec.idx].classList.add('is-odd');
     if (!right) grid.children[i].classList.add('is-miss');
     api.part(right);

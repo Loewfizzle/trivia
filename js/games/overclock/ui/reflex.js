@@ -43,6 +43,7 @@ export default function uiReflex(s, api) {
     timers = [];
     const i = chal.p;
     chal.times[i] = ms;
+    if (api.pick) api.pick(i, ms == null ? null : Math.round(ms));   // (OC2 — THE ANSWER: your times survive a refresh)
     pad.className = `rx-pad ${ms == null ? 'is-miss' : 'is-hit'}`;
     label.textContent = ms == null ? why : `${Math.round(ms)} ms`;
     const chip = log.children[i];

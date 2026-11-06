@@ -22,6 +22,7 @@ export default function uiStroop(s, api) {
     locked = true;
     const it = s.items[chal.p];
     const right = id === it.ink;
+    if (api.pick) api.pick(chal.p, id);   // (OC2 — THE ANSWER)
     btns.find(b => b.dataset.c === it.ink).classList.add('is-correct');
     if (!right) btns.find(b => b.dataset.c === id).classList.add('is-wrong');
     api.part(right);

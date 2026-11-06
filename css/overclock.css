@@ -1040,6 +1040,53 @@
 .oc-tf-pips i.is-right { color: #04130a; background: var(--good); }
 .oc-tf-pips i.is-wrong { color: #fff; background: var(--oc-wrong); }
 .oc-tf-sum-n { font: italic 900 24px / 1 var(--oc-font-title); color: #fff; }
+.oc-tf-pips i.is-close { color: #1a1000; background: var(--close); }
+
+/* ---------------- THE ANSWER for every challenge (OC2 — answers.js): the pieces inside the kit's tiles. The answer tile is WHITE-HOT with
+   dark ink; the pick tile dark glass — every piece reads currentColor so it sits on either. */
+.oc-ans-num { font: italic 900 clamp(30px, 8.6vw, 36px) / 0.95 var(--oc-font-title); letter-spacing: 0.01em; font-variant-numeric: tabular-nums; }
+.oc-ans-num small { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.14em; color: var(--close); }
+.oc-ans-seq { display: flex; flex-wrap: wrap; gap: 6px 8px; font: italic 900 clamp(24px, 7vw, 28px) / 1 var(--oc-font-title); font-variant-numeric: tabular-nums; }
+.oc-ans-seq span::after { content: ','; color: var(--oc-label); }
+.oc-ans-seq span.is-q { color: var(--oc-hot); }
+.oc-ans-seq span.is-q::after, .oc-ans-seq span:last-child::after { content: none; }
+/* MEMORY: the steps as numbered mini nodes (3 × 3, the step's node lit) */
+.oc-ans-mem { display: flex; flex-wrap: wrap; gap: 8px 7px; padding-top: 2px; }
+.oc-mg-step { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.oc-mg-step > b { font: italic 900 14px / 1 var(--oc-font-title); }
+.oc-mg { display: grid; grid-template-columns: repeat(3, 8px); gap: 2px; padding: 3px; background: rgba(0, 0, 0, 0.82); transform: skewX(var(--oc-slant)); }
+.oc-mg i { width: 8px; height: 8px; background: rgba(255, 255, 255, 0.14); }
+.oc-mg i.is-on { background: var(--oc-hot); box-shadow: 0 0 5px rgba(255, 106, 26, 0.8); }
+.gk-pick-tile .oc-mg { background: rgba(255, 255, 255, 0.1); }
+.gk-pick-tile .oc-mg i { background: rgba(255, 255, 255, 0.2); }
+.oc-mg.is-bad i.is-on { background: var(--oc-wrong); box-shadow: 0 0 5px rgba(255, 51, 85, 0.8); }
+.oc-mg-step.is-slip .oc-mg { outline: 2px solid var(--oc-wrong); outline-offset: 1px; }
+.oc-ans-mem-pick { display: inline-flex; align-items: center; gap: 12px; }
+/* ODD ONE OUT: the odd glyph big (the challenge's mono face) + where + why */
+.oc-ans-odd { display: inline-flex; align-items: center; gap: 14px; }
+.oc-ans-odd > span { display: flex; flex-direction: column; gap: 3px; font: 700 15px / 1.2 var(--oc-font-ui); }
+.oc-ans-odd small { font: 700 10px / 1 var(--oc-font-ui); letter-spacing: 0.16em; opacity: 0.75; }
+.oc-ans-glyph { flex: none; display: grid; place-items: center; min-width: 44px; height: 44px; padding: 0 6px; font: 700 32px / 1 var(--font-mono); color: #fff; background: #12151c; transform: skewX(var(--oc-slant)); }
+.gk-pick-tile .oc-ans-glyph { background: #2a2f3b; }
+.oc-ans-count { display: inline-flex; align-items: center; gap: 8px; }
+.oc-ans-shape { display: inline-block; width: 24px; aspect-ratio: 1; background: currentColor; }
+.oc-ans-shape[data-s='tri'] { color: #ff4fb4; clip-path: polygon(50% 6%, 96% 92%, 4% 92%); }
+.oc-ans-shape[data-s='dot'] { color: #3fe0ff; border-radius: 50%; transform: scale(0.9); }
+.oc-ans-shape[data-s='sq'] { color: #ffe23a; transform: scale(0.84); }
+.oc-ans-shape[data-s='dia'] { color: #3dff8b; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+/* COLOR CLASH: the color named + its swatch (the name says it — never the colour alone) */
+.oc-ans-color { display: inline-flex; align-items: center; gap: 10px; }
+.oc-ans-color i { flex: none; width: 26px; height: 22px; background: var(--sw); border: 2px solid rgba(0, 0, 0, 0.55); transform: skewX(var(--oc-slant)); }
+.oc-ans-cc b { font-weight: 900; letter-spacing: 0.04em; padding: 0 4px; background: #0b0d12; }
+/* SIGNAL LOCK + REWIRE: a big number + its small label */
+.oc-ans-rx, .oc-ans-rw { display: inline-flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.oc-ans-rx b, .oc-ans-rw b { font: italic 900 clamp(28px, 8vw, 34px) / 0.95 var(--oc-font-title); font-variant-numeric: tabular-nums; }
+.oc-ans-rx small, .oc-ans-rw small { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.16em; }
+.oc-ans-rx-log { display: flex; gap: 6px; }
+.oc-ans-rx-log span { flex: 1; display: grid; place-items: center; height: 30px; font: italic 900 17px / 1 var(--oc-font-title); color: #fff; background: rgba(255, 255, 255, 0.08); transform: skewX(var(--oc-slant)); }
+.oc-ans-rx-log span.is-miss { color: #ff8095; }
+/* the older reveals in THE ANSWER's panel: their own kicker stays, the frame's plate above it */
+.oc-od .gk-answer.is-panel .rv { padding-top: 0; }
 .oc-next { padding: 0; }
 .oc-next-btn { position: relative; display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 58px; padding: 0 20px; border: 0; color: #fff; background: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .oc-next-btn::before { content: ''; position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #2b303c, #1a1e27); border: 1px solid rgba(255, 255, 255, 0.16); }

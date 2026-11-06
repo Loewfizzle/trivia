@@ -27,6 +27,7 @@ export default function uiMemory(s, api) {
     pos++;
     paintCount();
     if (!right) {
+      if (api.pick) api.pick(0, { at: pos - 1, n: i });   // (OC2 — THE ANSWER: the step you slipped on + the node you tapped)
       pulseClass(nodes[i], 'miss', 500);
       pulseClass(nodes[s.seq[pos - 1]], 'hint', 700);
       chal.p = pos;

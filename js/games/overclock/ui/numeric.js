@@ -31,6 +31,7 @@ export default function uiNumeric(s, api) {
     if (k === '>') {
       if (!value) return;
       const right = Number(value) === items[chal.p].ans;
+      if (api.pick) api.pick(chal.p, Number(value));   // (OC2 — THE ANSWER shows your pick when it was wrong)
       locked = true;
       display.classList.add(right ? 'is-right' : 'is-wrong');
       if (!right) display.textContent = `${value} → ${items[chal.p].ans}`;
