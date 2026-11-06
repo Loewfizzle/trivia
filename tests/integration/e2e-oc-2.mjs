@@ -146,37 +146,36 @@ try {
   const [a1, a2] = ml.puzzles.map(p => p.answer);
   await sleep(300);
   await shotBoth(pages[1], 'q-02-link-play');
-  // BOB: a wrong guess (shakes, stays on puzzle 1), then the answer in lower case; then a plural on puzzle 2
-  await pages[1].tap('.ml-input');
-  await pages[1].type('.ml-input', 'zzzz');
-  await pages[1].keyboard.press('Enter');
+  // (OC3) THE LETTER KEYBOARD — a finger on each glass key; no input element anywhere (the system keyboard never opens)
+  const kbType = async (pg, word) => { for (const ch of String(word).toUpperCase()) await press(pg, `.gk-kb-key[data-k="${ch}"]`); };
+  const kbGo = pg => press(pg, '.gk-keyboard .gk-go');
+  ok(await pages[1].evaluate(() => !document.querySelector('.screen.oc input, .screen.oc textarea')), 'MISSING LINK: no input element — never the system keyboard');
+  const fits = await pages[1].evaluate(() => { const g = document.querySelector('.gk-keyboard .gk-go').getBoundingClientRect(), w = document.querySelector('.oc-ml-word').getBoundingClientRect(), sl = document.querySelector('.oc-ml-slot').getBoundingClientRect(); return g.bottom <= innerHeight + 1 && w.top >= 0 && sl.bottom <= document.querySelector('.gk-keyboard').getBoundingClientRect().top + 1; });
+  ok(fits, 'MISSING LINK: the clues, the slot and the whole keyboard (GO included) on screen at once');
+  // BOB: a wrong guess (shakes, stays on puzzle 1), then the answer typed on a COMPUTER keyboard in lower case (keydown → the kit keyboard;
+  // after a wrong GO the next letter starts a fresh word); then a plural on puzzle 2 on the glass keys
+  await kbType(pages[1], 'zzzz');
+  await kbGo(pages[1]);
   await sleep(250);
-  ok((await OC(pages[1], 'O.state().p')) === 0 && (await pages[1].$eval('.ml-hint', e => e.textContent)).includes('NOT IT'), 'MISSING LINK: a wrong guess just shakes');
+  ok((await OC(pages[1], 'O.state().p')) === 0 && (await pages[1].$eval('.oc-ml-hint', e => e.textContent)).includes('NOT IT'), 'MISSING LINK: a wrong guess just shakes');
   await shotBoth(pages[1], 'q-03-link-wrong');
-  await pages[1].evaluate(() => { const i = document.querySelector('.ml-input'); i.value = ''; i.dispatchEvent(new Event('input')); });
-  await pages[1].type('.ml-input', a1.toLowerCase());
+  await pages[1].keyboard.type(a1.toLowerCase());
   await waitFor(pages[1], () => window.__oc.state().ok === 1, 'BOB linked puzzle 1', 5000);
-  ok(true, 'MISSING LINK: the exact answer locks in as it is typed (any case)');
+  ok(true, 'MISSING LINK: the exact answer locks in as it is typed (any case, a computer keyboard too; a fresh word after a miss)');
   await sleep(1100);
-  // keyboard up: the layout keeps words, boxes and buttons visible
-  await pages[1].evaluate(() => { const r = document.querySelector('.screen.oc'); r.style.setProperty('--kb', '330px'); r.classList.add('kb-open'); });
-  await sleep(200);
-  const kbOk = await pages[1].evaluate(() => { const b = document.querySelector('.ml-go').getBoundingClientRect(); return b.bottom <= innerHeight - 330 + 2 && document.querySelector('.ml-word').getBoundingClientRect().top >= 0; });
-  ok(kbOk, 'MISSING LINK: with the keyboard up, the words and ENTER stay above it');
-  await shotBoth(pages[1], 'q-04-link-keyboard');
-  await pages[1].evaluate(() => { const r = document.querySelector('.screen.oc'); r.style.removeProperty('--kb'); r.classList.remove('kb-open'); });
-  await pages[1].type('.ml-input', `${a2}s`);
-  await pages[1].keyboard.press('Enter');
+  await shotBoth(pages[1], 'q-04-link-puzzle2');
+  await kbType(pages[1], `${a2}s`);
+  await kbGo(pages[1]);
   await waitFor(pages[1], () => window.__oc.state().done, 'BOB linked both', 5000);
-  ok(true, 'MISSING LINK: a plural is accepted with ENTER');
+  ok(true, 'MISSING LINK: a plural is accepted with GO');
   // ALICE solves one and skips the other; the rest: even → solve both, odd → skip then solve
   for (const i of alive().filter(i => i !== 1)) {
     const pg = pages[i];
     if (i % 2 === 1 || i === 0) {
-      await press(pg, '.ml-skip');
+      await press(pg, '.oc-ml-skip');
       await sleep(1450);
-    } else { await pg.type('.ml-input', a1); await sleep(1100); }
-    await pg.type('.ml-input', a2);
+    } else { await kbType(pg, a1); await sleep(1100); }
+    await kbType(pg, a2);
   }
   await waitPhase(host, 'standings', 0, 'link standings', 45000);
   await sleep(1300);

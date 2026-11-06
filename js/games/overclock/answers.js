@@ -6,13 +6,16 @@
 //    QUICK MATH (the sum = the answer), PATTERN LOCK (the sequence + the next number), MEMORY (the sequence replayed as numbered nodes),
 //    ODD ONE OUT (the odd one + why, one line), QUICK COUNT (the real count — off by one = --close + the half shape), COLOR CLASH (the word +
 //    its color named), SIGNAL LOCK (your time vs the room's best), REWIRE (solved or not + the time).
-//  - The eight that HAD a reveal (MISSING LINK, SPELLCHECK, COMPASS, SORT IT, HIGHER OR LOWER, TIMELINE, CLOSEST CALL, UNSCRAMBLE) move
-//    INTO THE ANSWER frame as they are (reveals.js — their content in its slot; not redesigned here).
+//  - The ones that HAD a reveal (SPELLCHECK, COMPASS, SORT IT, HIGHER OR LOWER, TIMELINE) sit INTO THE ANSWER frame as they are (reveals.js —
+//    their content in its slot) until each one's rebuild (OC3B / OC4).
+//  - OC3 — THE TYPING CHALLENGES' own dressing: QUICK MATH (the sum = the answer), PATTERN LOCK (the number dropped into the sequence + its
+//    rule), CLOSEST CALL (how far off on a slanted scale + the room's closest), MISSING LINK (each clue joined to the link), UNSCRAMBLE (the
+//    scrambled tiles fly into the word).
 // YOUR PICKS are yours alone: kept on this device (sessionStorage — a refresh still shows them; never in the database). No "flag this
 // question" button anywhere.
 import { h } from '../../ui/dom.js';
 import { answerFrame, answerPanel } from '../kit/answer.js';
-import { STROOP_COLORS, closestCredit } from './challenges.js';
+import { STROOP_COLORS, closestCredit, linkAccepts, normWord } from './challenges.js';
 import { colorHex } from '../../config.js';
 import { buildReveal } from './reveals.js';
 import { fmtVal } from './shared.js';
@@ -136,6 +139,48 @@ function closest(spec, picks, ctx) {
     delay: 120,
   }));
 }
+// MISSING LINK (OC3 — its own answer): per puzzle, the three clues each JOINED to the link (CLUE → LINK), the link WHITE-HOT on THE ANSWER
+// tile, YOUR PICK (your last guess) struck through when you never got it; the room's count under them
+function missinglink(spec, picks, ctx) {
+  const res = ((ctx.game && ctx.game.results && ctx.game.results[ctx.game.ci]) || {})[ctx.me];
+  const both = (ctx.uids || []).filter(u => { const r = ((ctx.game && ctx.game.results && ctx.game.results[ctx.game.ci]) || {})[u]; return r && r.ok >= 2; }).length;
+  const frames = spec.puzzles.map((pz, k) => {
+    const link = normWord(pz.answer), p = picks[k];
+    const right = p != null ? linkAccepts(p, pz) : !!(res && res.ok >= 2);
+    const state = right ? 'right' : p != null ? 'wrong' : 'none';
+    const d = 120 + k * 380;
+    return answerFrame({
+      q: h('span.oc-ans-ml', pz.words.map((w, i) => h('span.oc-ans-ml-join', { style: { '--j': `${d + 520 + i * 110}ms` } }, h('b', w), h('i', '→'), h('em', link)))),
+      answer: h('span.oc-ans-link', link),
+      pick: state === 'wrong' ? h('span.oc-ans-link.is-pick', p) : null,
+      state, note: state === 'none' ? (k === 0 && res && res.p >= 1 && !right ? 'SKIPPED' : 'NO ANSWER') : '',
+      delay: d,
+    });
+  });
+  const count = (ctx.uids || []).length > 1 ? h('div.oc-ans-count', h('b', `${both}/${(ctx.uids || []).length}`), ' LINKED BOTH') : null;
+  return box(...frames, count);
+}
+// UNSCRAMBLE (OC3 — its own answer): the SCRAMBLED tiles FLY into the right word on THE ANSWER tile (each from its scrambled place — a
+// transform each), YOUR PICK (your last full guess) struck through when you never cracked it; the room's count
+function unscramble(spec, picks, ctx) {
+  const results = (ctx.game && ctx.game.results && ctx.game.results[ctx.game.ci]) || {};
+  const mine = results[ctx.me];
+  const solved = !!(mine && mine.ok >= 1);
+  const p = picks[0];
+  const state = solved ? 'right' : p ? 'wrong' : 'none';
+  // each letter of the word ← the scrambled place it came from (repeats take the first one left)
+  const left = spec.letters.map((ch, i) => ({ ch, i }));
+  const from = [...spec.word].map(ch => { const k = left.findIndex(x => x && x.ch === ch); const at = left[k].i; left[k] = null; return at; });
+  const word = h('span.oc-ans-us', [...spec.word].map((ch, i) => h('i.oc-ans-us-t', { style: { '--dx': from[i] - i, '--i': i } }, ch.toUpperCase())));
+  const cracked = (ctx.uids || []).filter(u => results[u] && results[u].ok >= 1).length;
+  return box(answerFrame({
+    q: h('span.oc-ans-us-from', 'FROM ', spec.letters.map(ch => h('i', ch.toUpperCase()))),
+    answer: word,
+    pick: state === 'wrong' ? h('span.oc-ans-link.is-pick', String(p).toUpperCase()) : null,
+    state, note: state === 'none' ? 'NO WORD' : '', delay: 120,
+    slot: (ctx.uids || []).length > 1 ? h('div.oc-ans-count', h('b', `${cracked}/${(ctx.uids || []).length}`), cracked === 1 ? ' PLAYER CRACKED IT' : ' PLAYERS CRACKED IT') : null,
+  }));
+}
 // MEMORY: the sequence replayed as numbered nodes (a mini 3 × 3 each, the step's node lit + its number); your slip marked
 const miniGrid = (n, cls = '') => h(`span.oc-mg${cls}`, { 'aria-hidden': 'true' }, Array.from({ length: 9 }, (_, i) => h('i', { class: i === n ? 'is-on' : null })));
 function memory(spec, picks) {
@@ -249,9 +294,9 @@ function rewire(spec, picks, ctx) {
   }));
 }
 
-export const ANSWERS = { trivia, truefalse, math, pattern, closest, memory, oddone, count, stroop, reflex, rewire };
+export const ANSWERS = { trivia, truefalse, math, pattern, closest, missinglink, unscramble, memory, oddone, count, stroop, reflex, rewire };
 /** the eight older reveals — into THE ANSWER's panel as they are (their own kicker stays inside the slot) */
-export const PANELS = new Set(['missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower', 'timeline', 'unscramble']);
+export const PANELS = new Set(['spellcheck', 'compass', 'sortit', 'higherlower', 'timeline']);
 export const hasAnswer = type => !!ANSWERS[type] || PANELS.has(type);
 /**
  * THE ANSWER for a closed challenge. ctx: { game, me, uids, player(uid), boards (this challenge's boards + the unsealed answers), timers,

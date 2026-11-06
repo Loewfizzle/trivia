@@ -1,19 +1,9 @@
-// OVERCLOCK — the reveal panels shown above the leaderboard after a challenge.
+// OVERCLOCK — the older reveal panels, inside THE ANSWER's frame (answers.js#answerPanel) until each challenge's rebuild: SPELLCHECK,
+// COMPASS, SORT IT, HIGHER OR LOWER, TIMELINE. (OC3 moved MISSING LINK, CLOSEST CALL + UNSCRAMBLE into answers.js — their own dressing.)
 import { h } from '../../ui/dom.js';
-import { sfx } from '../../audio/sfx.js';
-import { colorHex } from '../../config.js';
-import { normWord, COMPASS_DIRS, COMPASS_TURN } from './challenges.js';
-import { fmtVal, fmtStat } from './shared.js';
+import { COMPASS_DIRS, COMPASS_TURN } from './challenges.js';
+import { fmtStat } from './shared.js';
 
-const solvedBoth = (game, uids) => { const res = (game.results && game.results[game.ci]) || {}; return uids.filter(u => res[u] && res[u].ok >= 2).length; };
-function revealLink(spec, game, boards, uids) {
-  const both = solvedBoth(game, uids);
-  return h('section.rv.rv-ml',
-    h('div.rv-kicker', 'THE MISSING LINKS', h('span.rv-ask', 'Each word joins the answer, before or after.')),
-    spec.puzzles.map((p, k) => h('div.rv-ml-row', { style: { animationDelay: `${250 + k * 350}ms` } },
-      h('span.rv-ml-words', p.words.join(' · ')), h('i', '→'), h('b', normWord(p.answer)))),
-    h('div.rv-us-count', h('b', `${both}/${uids.length}`), ' LINKED BOTH'));
-}
 function revealSpell(spec) {
   return h('section.rv.rv-sp',
     h('div.rv-kicker', 'THE RIGHT SPELLINGS', h('span.rv-ask', 'Next to the usual mistake, crossed out.')),
@@ -70,9 +60,9 @@ function revealHL(spec, game, boards, uids, ctx) {
       : best >= spec.pairs.length ? h('div.rv-hl-sub', 'A PERFECT 10 — NOBODY SLIPPED') : null);
 }
 
-const REVEAL = { missinglink: revealLink, spellcheck: revealSpell, compass: revealCompass, sortit: revealSort, higherlower: revealHL };
+const REVEAL = { spellcheck: revealSpell, compass: revealCompass, sortit: revealSort, higherlower: revealHL };
 /** Challenge types that show a reveal panel above the leaderboard. */
-export const hasReveal = type => !!REVEAL[type] || ['timeline', 'closest', 'unscramble'].includes(type);
+export const hasReveal = type => !!REVEAL[type] || ['timeline'].includes(type);
 
 /**
  * The reveal above the leaderboard: the answers, best words, the right order, the number line…
@@ -83,55 +73,11 @@ export function buildReveal(game, spec, ctx) {
   const type = game.order[game.ci];
   const { boards, uids, player } = ctx;
   if (REVEAL[type]) return REVEAL[type](spec, game, boards, uids, ctx);
-  if (type === 'unscramble') {
-    const res = (game.results && game.results[game.ci]) || {};
-    const solved = uids.filter(u => res[u] && res[u].ok >= 1).length;
-    return h('section.rv.rv-us',
-      h('div.rv-kicker', 'THE WORD WAS',
-        h('div.rv-best', h('b', spec.word.toUpperCase()), h('small', `FROM ${spec.letters.join('').toUpperCase()}`))),
-      h('div.rv-us-count', h('b', `${solved}/${uids.length}`), solved === 1 ? ' PLAYER CRACKED IT' : ' PLAYERS CRACKED IT'));
-  }
   if (type === 'timeline') {
     return h('section.rv.rv-tl',
       h('div.rv-kicker', `${spec.title} · ${spec.dir}`, h('span.rv-ask', spec.ask)),
       h('ol.rv-order', spec.items.map((it, k) => h('li', { style: { animationDelay: `${250 + k * 220}ms` } },
         h('span.rv-pos', String(k + 1)), h('span.rv-label', it.label), h('b.rv-val', it.value)))));
   }
-  return numberLine(spec, boards, uids, player);
-}
-
-function numberLine(spec, boards, uids, player) {
-  const entries = uids.filter(u => boards[u] && typeof boards[u].g === 'number').map(u => ({ uid: u, g: boards[u].g, err: Math.abs(boards[u].g - spec.answer) / spec.answer }));
-  const vals = [...entries.map(e => e.g), spec.answer];
-  let lo = Math.min(...vals), hi = Math.max(...vals);
-  const log = lo > 0 && hi / lo > 30;
-  const f = v => (log ? Math.log10(Math.max(v, lo)) : v);
-  let a = f(lo), b = f(hi);
-  if (b - a < 1e-9) { a -= 1; b += 1; }
-  const pad = (b - a) * 0.08;
-  a -= pad; b += pad;
-  const pos = v => Math.max(0, Math.min(1, (f(v) - a) / (b - a)));
-  const best = entries.length ? Math.min(...entries.map(e => e.err)) : null;
-  // labels alternate above / below the line, nudged apart when crowded
-  const sorted = [...entries].sort((x, y) => x.g - y.g);
-  const lanes = [-Infinity, -Infinity, -Infinity, -Infinity];
-  const markers = sorted.map((e, k) => {
-    const x = pos(e.g);
-    let lane = k % 2;
-    if (x - lanes[lane] < 0.18) lane += 2;
-    if (lane > 3) lane = k % 4;
-    lanes[lane] = x;
-    const p = player(e.uid);
-    return h('div.nl-mark', {
-      class: [`lane-${lane}`, e.err === best ? 'is-closest' : ''].join(' '),
-      style: { '--x': x, '--c': colorHex(p.color), animationDelay: `${200 + k * 120}ms` },
-    }, h('i'), h('span.nl-tag', h('b', p.name), h('small', fmtVal(e.g))));
-  });
-  const answer = h('div.nl-answer', { style: { '--x': pos(spec.answer) } }, h('i'), h('span', h('small', 'ANSWER'), h('b', `${fmtVal(spec.answer)} ${spec.unit}`)));
-  const winner = entries.filter(e => e.err === best).map(e => player(e.uid).name);
-  sfx('shimmer');
-  return h('section.rv.rv-cc',
-    h('div.rv-kicker', spec.q),
-    h('div.nl', h('div.nl-track'), h('div.nl-lo', fmtVal(Math.round(log ? 10 ** (a + pad) : lo))), h('div.nl-hi', fmtVal(Math.round(log ? 10 ** (b - pad) : hi))), markers, answer),
-    winner.length ? h('div.nl-win', { style: { animationDelay: '2.3s' } }, 'CLOSEST: ', h('b', winner.join(' & ')), ' · +60') : h('div.nl-win', 'NO GUESSES'));
+  return null;
 }

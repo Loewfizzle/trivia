@@ -2,7 +2,8 @@
 // (kit/slam.js's `demo` slot) the first time a type comes up — BRIEF_MS 7 s unchanged: the demo just loops while the card is up.
 //   PATTERN LOCK: a short sequence fills itself in chip by chip, the step shows between them (+3), then the next number DROPS into the
 //                 glowing slot.
-//   (MISSING LINK's — OC3 Group 3.)
+//   MISSING LINK: three clue words come in, the link TYPES ITSELF into the slot letter by letter, then the three JOINS light up one by one
+//                 (SUN → FLOWER · CORN → FLOWER · WALL → FLOWER).
 // Each piece runs its OWN keyframes on ONE shared 3-s loop (the Web Animations API — transform + opacity only, on the compositor), so every
 // piece's timing is exact whatever the others do. Reduced motion: the finished picture, still.
 import { h, reducedMotion } from '../../ui/dom.js';
@@ -49,8 +50,31 @@ export function patternDemo() {
   });
 }
 
+/** MISSING LINK: SUN · CORN · WALL — FLOWER types itself into the slot, then each clue's join (→ FLOWER) slides in + lights */
+export function linkDemo() {
+  const WORDS = ['SUN', 'CORN', 'WALL'], LINK = 'FLOWER';
+  const lines = WORDS.map(w => {
+    const lit = h('i.oc-demo-join-lit');
+    const tail = h('span.oc-demo-tail', h('i', '→'), h('em', LINK));
+    return { el: h('span.oc-demo-join', lit, h('b', w), tail), lit, tail };
+  });
+  const letters = [...LINK].map(ch => h('b', ch));
+  const slot = h('div.oc-ml-slot.oc-demo-slot', { style: { '--n': LINK.length } }, h('span.oc-ml-glow'), ...letters.map(b => h('span.oc-ml-cell', b)));
+  return demoBox('oc-demo-link', [slot, h('div.oc-demo-joins', lines.map(l => l.el))], anims => {
+    lines.forEach((l, i) => appear(l.el, 100 + i * 170, anims));
+    appear(slot, 560, anims);
+    letters.forEach((c, i) => loop(c, [[0, { opacity: 0, transform: 'translateY(-8px) scale(1.3)' }], [800 + i * 120, { opacity: 0, transform: 'translateY(-8px) scale(1.3)' }], [880 + i * 120, { opacity: 1, transform: 'none' }], [2620, { opacity: 1, transform: 'none' }], [2860, { opacity: 0, transform: 'none' }]], anims));
+    lines.forEach((l, i) => {
+      const at = 1640 + i * 200;
+      loop(l.tail, [[0, { opacity: 0, transform: 'translateX(-12px)' }], [at, { opacity: 0, transform: 'translateX(-12px)' }], [at + 160, { opacity: 1, transform: 'none' }], [2620, { opacity: 1, transform: 'none' }], [2860, { opacity: 0, transform: 'none' }]], anims);
+      loop(l.lit, [[0, { opacity: 0 }], [at + 80, { opacity: 0 }], [at + 160, { opacity: 1 }], [at + 520, { opacity: 0.6 }], [2620, { opacity: 0.6 }], [2860, { opacity: 0 }]], anims);
+    });
+  });
+}
+
 /** the demo for a type (null = none) */
 export function demoFor(type) {
   if (type === 'pattern') return patternDemo();
+  if (type === 'missinglink') return linkDemo();
   return null;
 }

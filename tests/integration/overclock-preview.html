@@ -169,6 +169,8 @@ async function answerOther(s) {
     stroop: () => s.items.map((it, i) => (i === 2 ? it.order.find(c => c !== it.ink) : it.ink)),
     reflex: () => [287, 312, null, 255, 301],
     closest: () => [Math.round(s.answer * 0.86)],
+    missinglink: () => [s.puzzles[0].answer, 'STONE'],
+    unscramble: () => [[...s.word].reverse().join('')],
   };
   const picks = (P[s.type] || (() => []))();
   if (picks.length) savePicks(game.matchId, ci, picks);

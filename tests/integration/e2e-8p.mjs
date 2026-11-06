@@ -200,7 +200,7 @@ async function solveOC(page, spec) {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     const t = spec.type;
     if (t === 'unscramble') {
-      for (const ch of spec.word) { const tile = [...document.querySelectorAll('.us-tile:not(.is-used)')].find(b => b.textContent === ch); tile && tile.click(); }
+      for (const ch of spec.word) { const tile = [...document.querySelectorAll('.oc-us-tile:not(.is-used)')].find(b => b.dataset.ch === ch); tile && tile.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })); }
     } else if (t === 'memory') {
       for (let i = 0; i < 80 && !document.querySelector('.mem-grid.is-input'); i++) await sleep(150);
       for (const n of spec.seq) { document.querySelector(`.mem-node:nth-child(${n + 1})`).click(); await sleep(40); }

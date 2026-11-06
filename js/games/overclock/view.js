@@ -65,7 +65,6 @@ export function createView() {
   let final = null;
   let lastScore = 0;
   let wordsReady = false;
-  let vvHandler = null;
   let revealTimers = [];
 
   const g = () => st.game;
@@ -104,17 +103,7 @@ export function createView() {
     els.stage = h('section.oc-stage');
     els.overlay = h('div.oc-overlay');
     root.append(els.bg, els.head, els.timer, els.row, els.stage, els.overlay, fx.el, tach.edge);
-    // iOS keyboard (Missing Link): keep the answer above it
-    if (window.visualViewport) {
-      vvHandler = () => {
-        const vv = window.visualViewport;
-        const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-        root.style.setProperty('--kb', `${Math.round(kb)}px`);
-        root.classList.toggle('kb-open', kb > 80);
-      };
-      window.visualViewport.addEventListener('resize', vvHandler);
-      window.visualViewport.addEventListener('scroll', vvHandler);
-    }
+    // (OC3: no challenge ever opens the phone's system keyboard — the kit's pads — so no keyboard tracking here any more)
     loadLengths([5, 6, 7]).then(() => { wordsReady = true; if (st) update(st); }).catch(() => {});
     if (state.game && state.game.order) preloadFor(state.game.order).then(() => { if (st) update(st); });
     // test hook (emulator runs only): the E2E compares puzzles across phones and reads progress
@@ -138,10 +127,6 @@ export function createView() {
     if (final) final.destroy();
     window.removeEventListener('keydown', onKey);
     revealTimers.forEach(clearTimeout);
-    if (vvHandler && window.visualViewport) {
-      window.visualViewport.removeEventListener('resize', vvHandler);
-      window.visualViewport.removeEventListener('scroll', vvHandler);
-    }
   }
 
   function update(state) {
