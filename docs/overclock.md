@@ -275,6 +275,11 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
 - The challenge's name moved to the header; the stage keeps a slim row of the parts' marks (✓ / half / ✕ colours).
 - `nextInSec` counts to `phaseStartAt + standingsMs(type)` — never to whatever end the state carries.
 
+**The local run before the final push (the mini PC, nothing else busy):** unit 1198/1198 · rules 66/66 · /api 38/38 · smoke 6/6 ·
+e2e-oc-2 29/29 · e2e-oc-new 21/21 (8 players) · the full e2e-harbor 1196/1200 — its four misses are city timing / look checks that passed in the
+pass's first full run and pass alone (windows, stations, rebuild — 1127 ms worst vs 1069 on the pre-OC1 build) except `roomperf`'s guest-list
+cost at 4× CPU, which fails the same way on the pre-OC1 build on this machine (not OC1's).
+
 **Known issues / held back**
 - On a desktop a 1-px compositing seam can show along the column's right edge over the background (dark grey on near-black; no element draws it).
 - Missing Link still uses the system keyboard and the old keypad screens remain until OC3 rebuilds them on the kit's pad + keyboard.
