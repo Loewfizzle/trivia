@@ -2073,3 +2073,12 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 3: the after-challenge BEATS — the answer, the ROUND WINNER banner, the overall standings with READY marks.
 - Group 4: FINAL STANDINGS + THE VICTORY body (finalScene) + per-phone SKIP; e2e-oc-new plays to the end (39 checks).
 - Group 5: the look review (three rounds, 390 / 412 / 1440; 60 fps incl. 4× CPU).
+
+## BUZZED LIGHTYEAR — A 1-OF-1 GIFT CARD + THE CARD TEXT STANDARD (Nov 6 2026, afternoon) — docs/harbor/passes/buzzed-lightyear.md
+- The owner's friend's gift card (B · SEEING STARS; the notes' BAD DECISION, renamed — a name pun only): the flat picture taken apart by
+  scripts/build-buzzed-art.py (the spiral fitted as a formula, him + the HIC! cut out, the light, the halftone) so the spiral TURNS behind
+  him; five stars orbit his cap (behind him on the far side), the HIC! pops, the dots shimmer; its strip composed eyebrows → chin (the
+  owner, mid-pass). Five new engine layers (spiral, dots, cutout, orbit, pop). 59.7 fps at 3×, 4× CPU.
+- THE CARD TEXT STANDARD: every full card's top line, bottom-left block + printed name — a minimum size, a soft glass wash, a dark edge; more
+  gap under the rank. cardfit green over all 64 full cards.
+- The gift strip mapping fix (FRIENDS' "BRUH's strip effects slightly mis-positioned"): a card's own strip picture mapped by its own height.

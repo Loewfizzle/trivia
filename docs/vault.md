@@ -600,3 +600,23 @@ NORMAL unlockable cards (not 1-of-1): the server's achievements `redline` / `pho
 - **THE AFTER-MATCH TILES** (the owner's ADD-ON): the end-of-round moment's achievement + unlock rows show the REAL item (`progress/moment.js#itemSwatch`) —
   one square tile: the vault's own emblem, a glow on your name, your shape in a tube style, the flame; a card = a mini of its real art (approved art
   only — else its palette) in a card-shaped tile.
+
+## THE CARD TEXT STANDARD (Nov 6 — docs/harbor/passes/buzzed-lightyear.md; css/vault.css "THE CARD TEXT STANDARD")
+ONE rule for EVERY full card (normal, gift, dev, legendary — the owner, Nov 6 8:42 am: the top line + the printed name "really hard to see and
+read" on busy art). The three text spots — the top line (NEON SPEAKEASY · № …), the bottom-left block (the rank, MEMBER SINCE, the date), the
+printed card name — get (1) a MINIMUM SIZE: the top line 10.5 px (fitTop never under 10 — the "№ n" short form first), the name 13 px / 3.6cqi
+at 800, the block's small lines 10 px; (2) a SOFT GLASS WASH behind each — a ::before with a feathered box-shadow spread (never a hard box, no
+backdrop filter over the moving art, nothing the layout measures), dark (`--vl-tw` / `--vl-ta` on `.vl-fc`), LIGHT on the light materials
+(brushed, chrome, brass, platinum, the shiba's scrapbook page) which keep their dark ink; (3) a dark edge on the letters (a light rim on the light
+materials); more gap under the rank (1.6 em). BRUH's big gold name keeps its size + gets the wash; ON AIR unchanged. A NEW card gets it for free
+— never a card's own text treatment unless the owner approves it (BRUH). Proof: harbor `cardfit` (every full card at 390 / 402 / 430).
+
+## BUZZED LIGHTYEAR — THE GIFT CARD TAKEN APART (Nov 6 — docs/harbor/passes/buzzed-lightyear.md)
+`card-gift-buzzed` (the 12th gift, the 11th giftable): a flat pop-art picture whose SPIRAL TURNS BEHIND HIM — `scripts/build-buzzed-art.py`
+splits it (the spiral FITTED to the art as a formula, him + the HIC! cut out, the light as a black + alpha map, the halftone lattice) and the
+engine draws it back in five new layer kinds (js/fx/gift.js): `spiral` (redrawn from the formula, turning), `dots` (the halftone + a shimmer
+wave), `cutout` (a baked RGBA piece in place — the light, him), `orbit` (stars round a ring: the far half before him, the near half after),
+`pop` (a hiccup swell + wobble). They fade in over the still art on the slot's own clock; `still` skips them (the approved picture IS the
+reduced-motion frame). Its strip picture is COMPOSED from the full one (eyebrows → chin, the owner) with the same fit, so the strip's motion
+uses the same numbers mapped. **A gift's OWN strip picture is mapped by ITS height** (`artMap(w, h, crop, ah)` — `dh = ah * k`; it was the
+full picture's 800, which threw BRUH's strip layers up off their spots — fixed here, BRUH's strip v4).

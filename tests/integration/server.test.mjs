@@ -1369,7 +1369,7 @@ test('THE GIFT TOOL: owner-only, one profile ever, equipped + revealed once; the
   process.env.ADMIN_PIDS = `${owner.pid}`;
   try {
     const list0 = (await adminAction('u-gift-owner', { action: 'giftList' })).gifts;
-    assert.equal(list0.length, 10, 'ten giftable cards (the owner\'s own never listed)');
+    assert.equal(list0.length, 11, 'eleven giftable cards (the owner\'s own never listed; + the seeing-stars card, Nov 6)');
     assert.ok(!list0.some(g => g.id === 'card-gift-anarchist') && list0.every(g => !g.given && g.name && g.name !== g.id));
     await rejects(adminAction('u-gift-owner', { action: 'giftGive', card: 'card-gift-anarchist', tag: tagOf(kid) }), 403, 'not_giftable');
     await rejects(adminAction('u-gift-owner', { action: 'giftGive', card: 'card-gilded', tag: tagOf(kid) }), 400, 'bad_card');
