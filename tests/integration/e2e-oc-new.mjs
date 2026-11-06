@@ -112,7 +112,7 @@ try {
     const s = window.__arcade.state;
     const first = ['truefalse', 'timeline', 'closest', 'rewire'];
     const order = [...first, ...s.game.order.filter(t => !first.includes(t))].slice(0, s.game.total);
-    return import('/js/firebase.js').then(m => m.update(m.dbRef(`rooms/${s.code}/game`), { order, seen: { truefalse: true }, tq: {}, tUsed: 0 }));
+    return import('/js/firebase.js').then(m => m.update(m.dbRef(`rooms/${s.code}/game`), { order, seen: { truefalse: true }, tq: {}, tUsed: 0, deal: null, dk: null }));
   });
   await waitFor(pages[1], s => s.game.order[0] === 'truefalse', 'forced order', 10000);
   const order = await evalIn(host, s => s.game.order);
@@ -127,7 +127,8 @@ try {
   for (const i of alive()) await waitSpec(pages[i], 'truefalse');
   const tfSpecs = await Promise.all(alive().map(i => OC(pages[i], 'JSON.stringify(O.spec())')));
   ok(tfSpecs.every(x => x === tfSpecs[0]), 'TRUE OR FALSE: the same statements on every phone');
-  ok(await evalIn(host, s => !!(s.game.deal && s.game.deal[0] && s.game.deal[0].length === 4)), 'THE NIGHT MEMORY: the host dealt the four facts');
+  // (the order was forced after the start, so its deal went with it — the deal itself is tests/overclock-oc1.test.mjs's)
+  ok(await evalIn(host, s => !!(s.meta.used && s.meta.used.overclock && s.meta.used.overclock['t-truefalse'])), 'THE NIGHT MEMORY: the room remembers TRUE OR FALSE from the moment it opened (meta/used/overclock/t-truefalse)');
   // ALICE answers all 8 right; BOB misses the 4th (a 4-in-a-row, then 4 more); everyone else misses one somewhere
   async function answerTF(page, wrongAt) {
     await page.evaluate(async miss => {

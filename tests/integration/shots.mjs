@@ -205,6 +205,15 @@ if (PAGE) {
     await p.waitForFunction(() => document.body && document.body.dataset.ready, { timeout: 60000 }).catch(() => {});
     await sleep(opt('wait', 0) ? WAIT : 300);
     if (opt('js', '')) { await p.evaluate(String(opt('js', ''))).catch(e => console.log('JS', e.message)); await sleep(400); }
+    // (OC1 — --fps <ms> on a --page: the page's own frame pacing for that long (rAF intervals; --cpu N throttles first) → p50 / p95 / fps /
+    //  long frames printed — a game screen's 60 fps check; --js can start the motion being judged)
+    if (opt('fps', 0)) {
+      const cdp = await p.target().createCDPSession();
+      if (Number(opt('cpu', 0)) > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(opt('cpu', 0)) });
+      const f = await p.evaluate(ms => new Promise(res => { const d = []; let t0 = performance.now(), last = t0; const tick = t => { d.push(t - last); last = t; if (t - t0 < ms) requestAnimationFrame(tick); else { d.sort((a, b) => a - b); const q = k => +d[Math.min(d.length - 1, Math.floor(d.length * k))].toFixed(1); res({ n: d.length, p50: q(0.5), p95: q(0.95), fps: +(1000 * d.length / (t - t0)).toFixed(1), long: d.filter(x => x > 25).length }); } }; requestAnimationFrame(tick); }), Number(opt('fps', 0)));
+      console.log(`FPS ${opt('name', 'page')} ${w}x${h}${Number(opt('cpu', 0)) > 1 ? ` cpu ${opt('cpu')}x` : ''}: ${f.fps} fps · p50 ${f.p50} ms · p95 ${f.p95} ms · ${f.long} frames > 25 ms (${f.n})`);
+      if (Number(opt('cpu', 0)) > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    }
     // (--crop XxYxWxH in pt + --every ms --count n on a --page: a close-up burst — THE VAULT 1A's strips judged moving)
     const pc = CROPS.map(c2 => c2.split('x').map(Number)).filter(v => v.length === 4 && v.every(Number.isFinite));
     // (--el <css selector> (THE VAULT 2B): scroll that element into the middle of the viewport + crop to it (a pad of 8 pt) — a slot on the

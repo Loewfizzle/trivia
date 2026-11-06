@@ -942,6 +942,8 @@
 .screen.oc.oc-od::before { display: none; }
 
 /* ---------------- the carbon background (fills the whole window; the column stays phone-wide on a desktop) */
+/* (the old `.oc > *` makes every child relative — the full-screen layers stay fixed) */
+.oc-od > .gk-edge, .oc-od > .oc-fx { position: fixed; }
 .oc-od > .oc-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: radial-gradient(130% 70% at 50% -10%, #171b25 0%, #0c0e14 55%, #07080c 100%); }
 .oc-bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px); background-size: 30px 30px; background-position: center top; -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.35) 55%, rgba(0, 0, 0, 0.12) 100%); mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.35) 55%, rgba(0, 0, 0, 0.12) 100%); }
 .oc-bg-haze { position: absolute; width: 95vmin; height: 95vmin; border-radius: 50%; will-change: transform; }
@@ -1053,6 +1055,8 @@
 .oc-od .kp-go { color: var(--oc-hot-ink); background: var(--oc-hot); }
 .oc-od .rv.oc-rv-answer { padding: 4px 0 14px; background: none; border: 0; }
 .oc-answers { gap: 16px; }
+/* the top rows stay clear of the corner's ☰ + music buttons (like the older panels' .rv-kicker) */
+.oc-od .oc-tf-sum, .oc-od .oc-answers > .gk-answer:first-child > .gk-answer-q { padding-right: 52px; }
 .oc-ans-opt { display: inline-flex; align-items: center; gap: 10px; }
 .oc-badge { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; font: italic 900 17px / 1 var(--oc-font-title); font-style: italic; color: #fff; background: var(--oc-cool); transform: skewX(var(--oc-slant)); }
 .oc-ans-tf { display: inline-flex; align-items: center; gap: 10px; }
