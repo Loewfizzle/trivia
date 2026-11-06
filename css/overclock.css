@@ -1377,9 +1377,9 @@
    to take it out), big glass tiles below fade out once used, CLEAR + SHUFFLE */
 .oc-od .oc-us { flex: 1 1 auto; min-height: 0; gap: 14px; margin: 4px 0 0; }
 .oc-us .oc-qhead .oc-unit { margin-left: auto; }
-.oc-us-play { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 30px; }
-.oc-us-slots { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 50px)); justify-content: center; gap: 7px; }
-.oc-us-slot { position: relative; height: 60px; padding: 0; border: 0; background: none; color: var(--oc-hot-2); touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.oc-us-play { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 40px; }
+.oc-us-slots { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 56px)); justify-content: center; gap: 7px; }
+.oc-us-slot { position: relative; height: 66px; padding: 0; border: 0; background: none; color: var(--oc-hot-2); touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .oc-us-sface { position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: rgba(10, 12, 17, 0.6); border: 2px dashed rgba(255, 154, 77, 0.45); }
 .oc-us-slot > b { position: relative; font: italic 900 clamp(30px, 8.4vw, 36px) / 1 var(--oc-font-title); text-shadow: 0 0 14px rgba(255, 106, 26, 0.75); }
 .oc-us-slot.is-next .oc-us-sface { border-color: rgba(255, 190, 140, 0.85); background: rgba(255, 106, 26, 0.08); }
@@ -1396,13 +1396,13 @@
 .oc-us-slots .oc-ring { inset: -6px; border-radius: 0; transform: skewX(var(--oc-slant)); }
 .oc-us-mark { position: absolute; right: -4px; top: -20px; }
 .oc-us-mark:empty { display: none; }
-.oc-us-tiles { display: grid; grid-template-columns: repeat(var(--per), minmax(0, 76px)); justify-content: center; gap: 10px; }
-.oc-us-tile { position: relative; aspect-ratio: 1 / 1.04; padding: 0; border: 0; background: none; color: #fff; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; cursor: pointer; transition: opacity 0.18s ease-out, transform 0.18s ease-out; }
+.oc-us-tiles { display: grid; grid-template-columns: repeat(var(--per), minmax(0, 84px)); justify-content: center; gap: 12px 10px; }
+.oc-us-tile { position: relative; aspect-ratio: 1 / 1.18; padding: 0; border: 0; background: none; color: #fff; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; cursor: pointer; transition: opacity 0.18s ease-out, transform 0.18s ease-out; }
 .oc-us-face, .oc-us-glow { position: absolute; inset: 0; transform: skewX(var(--oc-slant)); pointer-events: none; }
 .oc-us-face { background: linear-gradient(180deg, #333844 0%, #22262f 52%, #191c23 100%); border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -3px 0 rgba(0, 0, 0, 0.35), 0 6px 14px rgba(0, 0, 0, 0.45); transition: transform 0.08s ease-out; }
 .oc-us-glow { background: rgba(255, 106, 26, 0.24); box-shadow: 0 0 18px var(--oc-hot-glow), inset 0 0 0 2px var(--oc-hot); opacity: 0; }
 .oc-us-tile.is-hit .oc-us-glow { animation: gk-flash 0.34s ease-out; }
-.oc-us-tile > b { position: relative; font: italic 900 clamp(34px, 10vw, 42px) / 1 var(--oc-font-title); }
+.oc-us-tile > b { position: relative; font: italic 900 clamp(38px, 11vw, 46px) / 1 var(--oc-font-title); }
 .oc-us-tile:active .oc-us-face { transform: skewX(var(--oc-slant)) translateY(2px) scale(0.96); }
 .oc-us-tile.is-used { opacity: 0.1; transform: scale(0.9); pointer-events: none; }
 .oc-us-keys { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -1410,7 +1410,7 @@
 .oc-us-key.is-shuffle { color: #8fc0ff; }
 
 /* ---------------- OC3 — THE ANSWER for the word challenges */
-.oc-ans-ml { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.oc-ans-ml { display: flex; flex-direction: column; gap: 5px; }
 .oc-ans-ml-join { display: inline-flex; align-items: baseline; gap: 6px; font: italic 900 18px / 1.1 var(--oc-font-title); letter-spacing: 0.04em; animation: oc-rise 0.3s var(--j, 0ms) ease-out both; }
 .oc-ans-ml-join i { font: 700 15px / 1 var(--oc-font-ui); font-style: normal; color: var(--oc-label); }
 .oc-ans-ml-join em { font-style: italic; color: var(--oc-hot-2); }

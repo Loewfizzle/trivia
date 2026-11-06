@@ -17,7 +17,11 @@
          &beat=answer|banner|stand         the after-challenge screen opened at that beat (a rejoin's view)   &win=tie|none   DEAD HEAT · NO WINNER
          &ready=1                          READY marks on most rows       &n=1…8   the players (1 = SOLO)
          &final=1 &beat=final|victory      the LAST challenge: FINAL STANDINGS · THE VICTORY (the console's frame + finalScene)   &cowin=1 CO-WINNERS
-         &hold=1 (+ __go())                a right / wrong / combo4 / combo10 tap waits for the camera (shots.mjs --cast … --js "__go()") -->
+         &hold=1 (+ __go())                a right / wrong / combo4 / combo10 tap waits for the camera (shots.mjs --cast … --js "__go()")
+     OC3 — THE TYPING CHALLENGES (type=math | pattern | closest | missinglink | unscramble), on the kit's pads (pressed like a finger):
+         at=play · typing (a part-typed answer) · right · wrong (typed + LOCK IT IN / GO / the last tile) · answer (THE ANSWER, its dressing)
+         at=brief&still=1 &type=pattern | missinglink   the rules card + its ~3 s DEMO (loops)
+         window.__preview.typePad('123') · typeKeys('WORD') · typeTiles('word')   (a camera's --js can type on the pads) -->
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/screens.css">
@@ -120,7 +124,7 @@ function typing() {
   else if (s.type === 'missinglink') typeKeys(s.puzzles[0].answer.slice(0, 3));
   else if (s.type === 'unscramble') typeTiles(s.word.slice(0, 2));
 }
-window.__preview = { game, state, step, tap, push };
+window.__preview = { game, state, step, tap, push, typePad: v => typePad(v), typeKeys: w => typeKeys(w), typeTiles: w => typeTiles(w), lock: () => press(document.querySelector('.gk-np .gk-go')) };
 // (the view's test hook needs ?emu in the address — the preview adds it for itself)
 if (!/[?&]emu\b/.test(location.search)) history.replaceState(null, '', `${location.pathname}${location.search}${location.search ? '&' : '?'}emu=1`);
 push();
