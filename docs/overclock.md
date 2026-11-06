@@ -221,3 +221,52 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
 - LOOK: the room's AUTO / DAY / NIGHT (kit/look.js, body[data-look]) is the console's — games draw no switch. OVERCLOCK is NIGHT-ONLY for now → DECIDED (Ben, Nov 5): it always shows the night look, AND the console hides/disables the AUTO / DAY / NIGHT button while OVERCLOCK is the chosen game. OC1 adds a meta flag LOOKS: ['night'] to OVERCLOCK's cartridge; the CONSOLE (city chat) reads it and hides the switch for any game whose LOOKS has one entry. When a DAY skin is added later, the flag becomes ['day','night'] and the button comes back by itself.
 - COLOUR-BLIND: right / close use the shared --good (green→blue) / --close (gold→orange) tokens, never colour alone (✓ / ✕ / half shapes) — Overclock's right/wrong + Quick Count's "off by one" use them.
 - Flag for the city chat: docs/cartridge.md line ~53 still says the daily is "a seed from the date" — contradicts its own D2 section (server-picked day set).
+
+## Pass log
+
+### OC1 — FOUNDATION + THE KIT (Nov 5, 2026)
+**What shipped**
+- **Step 0:** this plan in the repo (docs/overclock.md), linked from CLAUDE.md; the OVERCLOCK REBUILD line in ROADMAP.md.
+- **THE RULES (Group 1):** QUICK (6) is the default (`meta.js`); LEXICON cut cleanly (type, category, rules card, parts, generator, screen,
+  reveal, bank + `data/oc/lexicon.json`, `scripts/build-lexicon.mjs`, its tests; Marathon = the 19 once + 5 repeats, its spacing kept).
+  **THE ROOM's NIGHT MEMORY** (`js/games/overclock/deal.js`): the host deals the WHOLE match at `start()` around the room's
+  `meta/used/overclock` (read once there — the contract's new optional `start({ used })`, docs/cartridge.md); every phone rebuilds the same
+  challenge from `game.deal[ci]`; the step that opens challenge ci writes its type key `t-<type>` + its items' keys (`game.dk[ci]`) with
+  `markUsed('overclock', …)` in its `$room`; a rematch favours the types the room hasn't played tonight (`buildOrder(seed, total, played)`,
+  ×12); a used-up pool reshuffles. Keys hash the item's TEXT (a growing bank keeps the night's memory). The trivia pool keeps its own
+  `meta/used/trivia`. **THE AFTER-CHALLENGE SKIP**: the screen after a challenge ends once every CONNECTED participant tapped READY
+  (`rooms/{CODE}/ocnext`, `kit/ready.js#readyState`), never before 3 s, its max unchanged. **THE COMBO** in the game: each answer's mark
+  (`rooms/{CODE}/ocm` — '1' '0' 'h' '-') folds into `game/combo/{uid} = { c, m }` as a challenge closes (`m` = maxStreak, OC2's feat).
+  **No chat** the whole match (until the podium). **MUSIC** `mood:evening`. **LOOKS ['night']** + the console's lock (app.js paints night,
+  ☰ → Settings → GAME LOOK shows `NIGHT · LOCKED` + "OVERCLOCK plays at night"). e2e-8p reads each phone's own spec (its stale `generate()`
+  copy is gone). The owner's timings are pinned by `tests/overclock-oc1.test.mjs`.
+- **THE KIT (Group 2):** `js/games/kit/` numpad · keyboard · tach · slam · answer — a neutral base skinned through `--gk-*` (docs/cartridge.md D9).
+- **THE OVERDRIVE SKIN (Group 3):** the self-hosted fonts (+ OFL), the palette as `oc-` tokens, the frame (the carbon background, the header +
+  rolling score, THE TACH, the combo meter + the progress strip), the feedback (`fx.js`), the slam + 3-2-1, the sounds (`sfx.js`,
+  `scripts/build-oc-sfx.py` → `audio/sfx/overclock/`), `preload()` (~480 KB of the 1.5 MB budget).
+- **TRIVIA LIGHTNING + TRUE OR FALSE (Group 4)** fully in the new look, each with THE ANSWER after the round (`answers.js`).
+- **THE LOOK REVIEW (Group 5):** `tests/integration/overclock-preview.html` (+ `kit-preview.html`), three rounds at 390 / 412 / 1440, the real
+  app's shots from e2e-oc-new; `shots.mjs --fps` — every scene 60 fps at 390 × 844 (dpr 3), also at 4× CPU.
+- **THE OWNER's ADD-ON (Group 6):** the after-challenge screen's NEXT line + countdown in a footer of its own (no row ever under it — 2, 4 and
+  8 players at 390 / 412 / 1440); "NEXT IN 599" fixed at the source (`logic.js#nextInSec`: the screen's own max on the server clock, 0–12,
+  tested); the light rows (below).
+
+**Decisions (OC1)**
+- **Mid-game standings use LIGHT slanted rows on purpose, NOT the console's slim player cards** (the owner, Nov 5): 8 animated cards every
+  round would be heavy + busy. Each light row shows the player's OWN EMBLEM (30 pt) + their name, so they're recognisably the same person as on
+  their card. The FINAL podium uses the console's real slim cards (contract D8).
+- The deal happens ONCE at the start (not per challenge): the used set is frozen for the match, so a host change mid-match replays the same
+  steps; a challenge marks its items when it OPENS (an END GAME leaves the unplayed ones fresh).
+- The combo's marks are a write of their own (`ocm`) beside the board — on rules older than OC1 it's refused alone and the board falls back
+  (a perfect challenge adds all its parts, anything less resets). A half (Quick Count's off-by-one) and SIGNAL LOCK hold the combo.
+- YOUR PICK lives on your device only (sessionStorage): nobody else needs it, and no rules change for it.
+- The 3-2-1 sound is the Grok file SLICED: its beeps are 0.35 s apart, the stamps 1 s — each number plays the beep, GO plays the hit.
+- The OVERDRIVE frame applies to every challenge; the ones OC3 / OC4 haven't rebuilt keep their own screens inside it (their keypads take the
+  graphite palette). Their old purple / magenta details stay until then.
+- The challenge's name moved to the header; the stage keeps a slim row of the parts' marks (✓ / half / ✕ colours).
+- `nextInSec` counts to `phaseStartAt + standingsMs(type)` — never to whatever end the state carries.
+
+**Known issues / held back**
+- On a desktop a 1-px compositing seam can show along the column's right edge over the background (dark grey on near-black; no element draws it).
+- Missing Link still uses the system keyboard and the old keypad screens remain until OC3 rebuilds them on the kit's pad + keyboard.
+- The round board's slide into the overall order + the round winner keep OC1's light restyle only — OC2 rebuilds the results flow.

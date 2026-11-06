@@ -26,7 +26,7 @@
 import { createView } from '/js/games/overclock/view.js';
 import { createGame } from '/js/games/overclock/director.js';
 import { partsFor } from '/js/games/overclock/challenges.js';
-import { levelOf, CHALLENGE_MS, READY_MS, BRIEF_MS, STANDINGS_MS, computeResults } from '/js/games/overclock/logic.js';
+import { levelOf, CHALLENGE_MS, READY_MS, BRIEF_MS, standingsMs, computeResults } from '/js/games/overclock/logic.js';
 import { appendPatch } from '/js/trivia/bankdata.js';
 import { liveKeyFor, loadGame } from '/js/games/registry.js';
 import { setState } from '/js/store.js';
@@ -106,7 +106,7 @@ const ready = () => { document.body.dataset.ready = '1'; };
   await wait(600);
   const live = { ...boards, [me]: { p: N, ok: s.type === 'trivia' ? 2 : 6, n: N, done: true, doneAt: Date.now() } };
   const res = computeResults(game, live);
-  setPhase('standings', 600000);
+  setPhase('standings', standingsMs(type));   // (its real length — the screen counts down from it; the preview never moves on by itself)
   step({ results: { ...game.results, [ci]: res }, combo: { ...game.combo, [me]: { c: 1, m: 4 } } });
   ready();
 })();

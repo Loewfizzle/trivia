@@ -1068,7 +1068,7 @@
 .oc-tf-pips i.is-right { color: #04130a; background: var(--good); }
 .oc-tf-pips i.is-wrong { color: #fff; background: var(--oc-wrong); }
 .oc-tf-sum-n { font: italic 900 24px / 1 var(--oc-font-title); color: #fff; }
-.oc-next { position: sticky; bottom: 0; padding: 12px 0 calc(var(--safe-b) + 4px); background: linear-gradient(180deg, rgba(6, 7, 10, 0), rgba(6, 7, 10, 0.96) 35%); }
+.oc-next { padding: 0; }
 .oc-next-btn { position: relative; display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 58px; padding: 0 20px; border: 0; color: #fff; background: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .oc-next-btn::before { content: ''; position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #2b303c, #1a1e27); border: 1px solid rgba(255, 255, 255, 0.16); }
 .oc-next-btn > span { position: relative; }
@@ -1136,6 +1136,39 @@
 .oc-tf-btn.is-right:not(.is-picked) .oc-tile-face { border: 2px solid var(--good); }
 .oc-tf-btn.is-dim { opacity: 0.45; }
 .oc-tf-warn { margin: 0; text-align: center; font: 700 13px / 1 var(--oc-font-ui); letter-spacing: 0.2em; color: var(--oc-label); }
+
+/* ---------------- THE AFTER-CHALLENGE SCREEN (OC1 ADD-ON): the answer + the board scroll in their own box; NEXT + the countdown have a
+   footer of their own below it (reserved — no row ever sits under them, 8 players on a 390 × 844 phone included) */
+.oc-od .panel-full.oc-standings { display: flex; flex-direction: column; gap: 0; overflow: hidden; padding-bottom: calc(var(--safe-b) + 10px); }
+.oc-st-scroll { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding-bottom: 14px; -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); }
+.oc-st-scroll::-webkit-scrollbar { display: none; }
+.oc-st-foot { flex: none; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.oc-od .oc-st-foot .oc-next { position: static; padding: 0; background: none; }
+.oc-next-watch { margin-top: 4px; text-align: center; font: 700 13px / 1 var(--oc-font-ui); letter-spacing: 0.16em; color: var(--oc-label); }
+.oc-next-watch b { font: italic 900 22px / 1 var(--oc-font-title); color: #fff; }
+
+/* THE LIGHT ROWS (OC1 ADD-ON — docs/overclock.md): slanted graphite rows, the player's own emblem + name — never the console's slim cards
+   mid-game (8 animated cards every round = heavy + busy); YOUR row outlined orange; the others' round bars a calm blue */
+.oc-od .oc-rb-head { border-radius: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #262b37, #171a22); border: 1px solid rgba(255, 106, 26, 0.55); }
+.oc-od .oc-rb-head > * { transform: skewX(calc(-1 * var(--oc-slant))); }
+.oc-od .oc-rb-head-k { color: var(--oc-hot); font-family: var(--oc-font-ui); }
+.oc-od .oc-rb-head b { font: italic 900 30px / 1 var(--oc-font-title); text-shadow: none; }
+.oc-od .oc-rb-head-pts, .oc-od .oc-rb-score { font: italic 900 24px / 1 var(--oc-font-title); color: var(--oc-hot); }
+.oc-od .oc-rb-kicker { font-family: var(--oc-font-ui); color: var(--oc-label); }
+.oc-od .oc-lr { height: 48px; min-height: 0; padding: 0 16px 0 12px; gap: 10px; border: 0; border-radius: 0; background: none; box-shadow: none; animation: none; }
+.oc-od .oc-lr::before { content: ''; position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #232733, #171a22); border: 1px solid rgba(255, 255, 255, 0.1); }
+.oc-od .oc-lr.is-me::before { border: 2px solid var(--oc-hot); background: linear-gradient(180deg, #2b2620, #1b1712); }
+.oc-od .oc-lr.is-off { opacity: 0.5; }
+.oc-od .oc-lr .oc-rb-bar { left: 4px; top: auto; bottom: 0; height: 3px; width: calc(100% - 8px); transform-origin: left center; background: rgba(46, 139, 255, 0.85); }
+.oc-od .oc-lr.is-me .oc-rb-bar { background: var(--oc-hot); }
+.oc-od .oc-lr .lb-rank { width: 2ch; font: italic 900 20px / 1 var(--oc-font-title); color: var(--oc-label); }
+.oc-od .oc-lr .lb-name { font: 700 16px / 1.1 var(--oc-font-ui); letter-spacing: 0.02em; color: #fff; }
+.oc-od .oc-lr .lb-note { font: 700 10px / 1 var(--oc-font-ui); letter-spacing: 0.12em; color: var(--oc-label); }
+.oc-od .oc-lr .oc-rb-crown { color: var(--oc-hot); text-shadow: none; }
+.oc-od .oc-lr.is-crown::before { border-color: rgba(255, 106, 26, 0.6); }
+.oc-od .oc-rb.is-overall .oc-lr .oc-rb-score { color: #fff; }
+.oc-od .oc-lr .oc-rb-delta { color: #04130a; background: var(--good); border-radius: 0; transform: skewX(var(--oc-slant)); }
+.oc-od .oc-lr .avatar { flex: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .oc-bg-haze, .oc-combo.is-pop, .oc-combo.is-od .oc-combo-glow, .oc-score-n.oc-bump, .oc-fx-banner.is-on, .oc-ring, .oc-crack, .oc-tile.oc-burst, .oc-tf-btn.oc-burst, .oc-tile.oc-shake, .oc-tf-btn.oc-shake { animation: none !important; }

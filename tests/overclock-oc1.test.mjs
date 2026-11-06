@@ -414,3 +414,46 @@ test('OVERDRIVE rules: Overclock\'s own classes (oc- + the kit\'s gk-), no anima
     assert.doesNotMatch(src, /Date\.now\(\)/, `${f}: never Date.now`);
   }
 });
+
+// ---------------------------------------------------------------------------------------------- the ADD-ON (the owner's review)
+test('ADD-ON: "NEXT IN n" = the whole seconds left of THIS screen on the server clock — always 0 … its max (≤ 12), never a stored end\'s 599', async () => {
+  const { nextInSec } = await import('../js/games/overclock/logic.js');
+  for (const type of TYPES) {
+    const max = standingsMs(type) / 1000;
+    assert.ok(max <= 12);
+    for (const ends of [standingsMs(type), 600_000, 3_000, NaN]) {      // the real end, a stale / bogus one, an early skip, none
+      const g = { order: [type], ci: 0, phase: 'standings', phaseStartAt: 50_000, phaseEndsAt: 50_000 + ends };
+      let prev = Infinity;
+      for (let t = 49_000; t <= 50_000 + 20_000; t += 137) {
+        const n = nextInSec(g, t);
+        assert.ok(Number.isInteger(n) && n >= 0 && n <= max, `${type} ends +${ends}: ${n} at ${t}`);
+        if (t >= 50_000) { assert.ok(n <= prev, 'counts down'); prev = n; }
+      }
+      assert.equal(nextInSec(g, 50_000 + standingsMs(type)), 0);
+    }
+  }
+  // through the director: the screen it opens shows its max at the start and 0 at its end, then the next challenge
+  const P = { a: true, b: true };
+  const g = createGame({ matchId: 'nx', settings: { mode: 'quick' }, participants: P, now: 0, seed: 'next-in', bank: {}, trivia: { n: 99 }, order: ['closest', 'math', 'memory', 'oddone', 'stroop', 'count'] });
+  applyPatch(g, nextStep(g, { now: g.phaseEndsAt, boards: {}, online: P, fallback: () => null }));
+  applyPatch(g, nextStep(g, { now: g.playStartAt + CHALLENGE_MS + 800, boards: {}, online: P, fallback: () => null }));
+  assert.equal(g.phase, 'standings');
+  assert.equal(nextInSec(g, g.phaseStartAt), 12);
+  assert.equal(nextInSec(g, g.phaseStartAt + 11_999), 1);
+  assert.equal(nextInSec(g, g.phaseEndsAt), 0);
+  // the view counts with it (never phaseEndsAt itself)
+  const view = readFileSync('js/games/overclock/view.js', 'utf8');
+  assert.match(view, /nextInSec\(game, serverNow\(\)\)/);
+  assert.doesNotMatch(view, /phaseEndsAt - serverNow\(\)\) \/ 1000/);
+});
+
+test('ADD-ON: the after-challenge screen — the answer + board scroll in their own box, NEXT + the countdown in a footer of their own; light rows with the emblem', () => {
+  const view = readFileSync('js/games/overclock/view.js', 'utf8');
+  assert.match(view, /h\('div\.oc-st-scroll', reveal\(game\), roundBoard\(game, rows\)\),\s*h\('footer\.oc-st-foot'/);
+  assert.match(view, /avatar\(p\.avatar, p\.color, 30\)/, 'the emblem ≥ 28 pt');
+  const css = readFileSync('css/overclock.css', 'utf8');
+  assert.match(css, /\.oc-st-scroll \{[^}]*overflow-y: auto/);
+  assert.match(css, /\.oc-st-foot \{[^}]*flex: none/);
+  assert.doesNotMatch(css, /\.oc-next \{[^}]*position: sticky/, 'never a sticky bar over the rows');
+  assert.match(readFileSync('docs/overclock.md', 'utf8'), /LIGHT slanted rows/);
+});

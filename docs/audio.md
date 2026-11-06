@@ -31,6 +31,14 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   unmasking); a track change resets it.
 
 
+## OVERCLOCK's SOUNDS (OC1, Nov 5 2026) — `js/games/overclock/sfx.js`, `scripts/build-oc-sfx.py`, `audio/sfx/overclock/`
+The owner's Grok set (33 files + `credits.txt`, all CC0 / Sonniss GDC — no credit required, kept anyway) compressed to mono 96 kbps (955 → 478 KB),
+NOT re-normalised (Grok's four loudness tiers stay); `17-winner-fanfare-b.mp3` left out (the owner picked the main 17). `ocSfx(name)` plays
+through the console's SFX bus (the slider + the one mute apply; the console owns the unlock); the bytes are fetched by the cartridge's
+`preload()` and decoded on first use. OC1 plays: correct, wrong, combo x2 / x3 / x5, tick, tick-urgent, time's up, intro, tap, submit and
+the 3-2-1 — a SLICE of `07-321-go.mp3` (its beeps are 0.35 s apart, the slam's stamps 1 s: each number plays the beep, GO the hit at 1.03 s).
+The rest (memory tones, standings, rank-up, the fanfare, Dumb Luck's set) wait for OC2 – OC5. Music: `MUSIC: 'mood:evening'`.
+
 ## THE MUSIC CACHE + THE QUIET TAB (THE SPEED PASS B, Nov 4 2026) — `audio/synced-songs.js`, `audio/settings.js` — docs/harbor/passes/speed-b.md
 - **One decode per song** on a page (`synced-songs.js#acquire / release`): every synced player (the stations, the party deck, the lobby song,
   PRISM DROP / SLIPSTREAM) shares the fetch + `decodeAudioData` of a song URL (refs); a song no player wants stays decoded `KEEP_N` = 1 for

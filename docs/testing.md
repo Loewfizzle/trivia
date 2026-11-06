@@ -267,6 +267,11 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     A stall under bots: `N=2 SECS=150 MODE=arcade node gl-arcade-probe.mjs "<browser>" ./shots-probe` prints the phase, the lock-ins,
     the resolutions and every bot's plan every few seconds (this is how a fizzled torpedo's `undefined` cell was found).
     Look preview without Firebase: `gridlock-preview.html?at=place|aim|reticle|locked|show|sunk|elim|spec|end&n=2..8&still=1`
+  - OVERCLOCK (OC1): `overclock-preview.html?type=<any challenge>&at=brief|ready|play|right|wrong|answer|combo4|combo10|kit&n=1..8&final=1&piece=numpad|keyboard|tach|answer`
+    (the real view in its OVERDRIVE skin, no Firebase; `body[data-ready]` marks the moment for `shots.mjs --page`); the kit's pieces unskinned:
+    `kit-preview.html?piece=numpad|keyboard|tach|slam|answer`. Frame pacing of any page: `shots.mjs … --page <p> --fps 3000 [--cpu 4] [--js …]`.
+    Unit: `tests/overclock-oc1.test.mjs` (the night memory, the skip, the combo, the timings pinned, the countdown 0–12, the assets + budget),
+    `tests/kit-oc1.test.mjs` (the kit's pure parts).
     mounts the real view through an import map that swaps `js/firebase.js` for `tests/integration/fake-firebase.js`
     (no-op writes, empty reads) — the pattern for any game's preview; `window.__preview.volley({…})` plays more volleys.
   - Lobby header look: `SHOTS=1 node lobby-shot.mjs "<browser path>" ./shots-lobby` (creates a room, screens at the three sizes).

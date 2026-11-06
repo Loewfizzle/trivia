@@ -38,7 +38,7 @@ import uiCompass from './ui/compass.js';
 import uiSortIt from './ui/sortit.js';
 import uiHigherLower from './ui/higherlower.js';
 import { bankFor, loadBank, preloadFor, BANK_TYPES } from './banks.js';
-import { CHALLENGE_MS, OVERALL_STAGE_MS, SKIP_MIN_MS, COMBO_NEUTRAL, levelOf, totals, standings, comboFold } from './logic.js';
+import { CHALLENGE_MS, OVERALL_STAGE_MS, SKIP_MIN_MS, COMBO_NEUTRAL, levelOf, totals, standings, comboFold, nextInSec, standingsMs } from './logic.js';
 import { createTach } from '../kit/tach.js';
 import { createSlam } from '../kit/slam.js';
 import { ocSfx } from './sfx.js';
@@ -476,10 +476,11 @@ export function createView() {
     const mine = res[me()];
     if (mine) sfx(mine.ok >= mine.parts ? 'correct' : 'roundEnd');
     const nextUp = next ? h('div.next-up', 'NEXT: ', h('b', INFO[next].name), game.ci + 1 === game.total - 1 ? ' · ×2 POINTS' : '') : null;
+    // (OC1 ADD-ON — the owner: "NEXT: … overlaps the 4th row"): the answer + the board SCROLL in their own box; NEXT + the countdown live
+    // in a footer of their own BELOW it — reserved space, so no row (8 players on a 390 × 844 phone) ever sits under them
     const panel = h('div.panel-full.oc-standings',
-      reveal(game),
-      roundBoard(game, rows),
-      participant(game) ? readyTap(game, nextUp) : nextUp);
+      h('div.oc-st-scroll', reveal(game), roundBoard(game, rows)),
+      h('footer.oc-st-foot', participant(game) ? readyTap(game, nextUp) : h('div.oc-next', nextUp, h('div.oc-next-watch', 'NEXT IN ', countdown(game, h('b.oc-next-n', ''))))));
     els.overlay.append(panel);
   }
 
@@ -502,17 +503,22 @@ export function createView() {
     btn.addEventListener('click', e => { if (e.detail === 0) send(); });
     const mine = st.live && st.live.next && st.live.next[me()];
     if (mine) { sent = true; btn.classList.add('is-sent'); btn.querySelector('.oc-next-l').textContent = 'READY ✓'; }
+    countdown(game, left);
+    btn.dataset.min = String(SKIP_MIN_MS);
+    return h('div.oc-next', nextUp, btn);
+  }
+  /** "NEXT IN n" — logic.js#nextInSec on the server clock (0 … this screen's max), re-read 4× a second while the number is on screen */
+  function countdown(game, el) {
     let last = '', first = true;
     const tick = () => {
-      if (!first && !btn.isConnected) return;
+      if (!first && !el.isConnected) return;
       first = false;
-      const sec = String(Math.max(0, Math.ceil((game.phaseEndsAt - serverNow()) / 1000)));
-      if (sec !== last) { last = sec; left.textContent = sec; }
+      const sec = String(nextInSec(game, serverNow()));
+      if (sec !== last) { last = sec; el.textContent = sec; }
       revealTimers.push(setTimeout(tick, 250));
     };
     tick();
-    btn.dataset.min = String(SKIP_MIN_MS);
-    return h('div.oc-next', nextUp, btn);
+    return el;
   }
 
   // The round, then the race: one list of rows ranked by this challenge's points (bars, a crown on the round's winner),
@@ -530,7 +536,10 @@ export function createView() {
     const totalPos = Object.fromEntries(rows.map((r, i) => [r.uid, i]));
     const roundRank = {};
     byRound.forEach((r, i) => { roundRank[r.uid] = i > 0 && pts(r.uid) === pts(byRound[i - 1].uid) ? roundRank[byRound[i - 1].uid] : i + 1; });
-    const ROW = 58;
+    // THE LIGHT ROWS (OC1 ADD-ON — docs/overclock.md): mid-game standings are LIGHT slanted rows on purpose, not the console's slim player
+    // cards (8 animated cards every round = heavy + busy; the final podium uses the real cards — D8). Each row: the player's own EMBLEM (30 pt)
+    // + their name, so they're the same person as on their card.
+    const ROW = 56;
     const list = h('div.oc-rb-list', { style: { height: `${rows.length * ROW}px` } });
     const items = rows.map(r => {
       const p = st.players[r.uid] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
@@ -539,8 +548,8 @@ export function createView() {
       const rank = h('span.lb-rank', String(roundRank[r.uid]));
       const score = h('span.lb-score.oc-rb-score', `+${fmtNum(pts(r.uid))}`);
       const bar = h('i.oc-rb-bar', { style: { transform: `scaleX(${top > 0 ? Math.max(0.02, pts(r.uid) / top) : 0.02})` } });
-      const el = h('div.lb-row.oc-rb-row', { class: [r.uid === me() ? 'is-me' : '', crown ? 'is-crown' : '', off ? 'is-off' : ''].join(' '), style: { '--c': colorHex(p.color), transform: `translateY(${roundPos[r.uid] * ROW}px)` } },
-        bar, rank, avatar(p.avatar, p.color, 28),
+      const el = h('div.lb-row.oc-rb-row.oc-lr', { class: [r.uid === me() ? 'is-me' : '', crown ? 'is-crown' : '', off ? 'is-off' : ''].join(' '), style: { '--c': colorHex(p.color), transform: `translateY(${roundPos[r.uid] * ROW}px)` } },
+        bar, rank, avatar(p.avatar, p.color, 30),
         h('span.lb-name', p.name, crown ? h('i.oc-rb-crown', { 'aria-label': 'won the round' }, '♛') : null, r.note ? h('small.lb-note', r.note) : null),
         h('span.oc-rb-delta', `+${fmtNum(pts(r.uid))}`),
         score);

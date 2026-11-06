@@ -17,6 +17,16 @@ export const SPEED_BONUS = 60;
 // THE AFTER-CHALLENGE SKIP (OC1 — the owner, Nov 4): the screen after a challenge keeps its max (standingsMs) but ends once EVERY connected
 // player has tapped — never before this, so the answer always lands first (kit/ready.js#readyState; solo: your own tap)
 export const SKIP_MIN_MS = 3_000;
+/** THE AFTER-CHALLENGE SCREEN's "NEXT IN n" (OC1 ADD-ON — the owner saw "NEXT IN 599"): the whole seconds left of THIS screen on the server
+ *  clock, counted to its OWN max (phaseStartAt + standingsMs — 8 or 12 s today), never to a stored end that says more; 0 … max/1000.
+ *  When everyone has tapped the phase itself moves on (the director) — the screen goes with it. */
+export function nextInSec(game, now) {
+  const type = game && game.order && game.order[game.ci];
+  const max = standingsMs(type);
+  const start = Number(game && game.phaseStartAt) || 0;
+  const end = Math.min(Number(game && game.phaseEndsAt) || start + max, start + max);
+  return Math.max(0, Math.min(max / 1000, Math.ceil((end - now) / 1000)));
+}
 
 // THE COMBO (OC1 — docs/overclock.md "OVERDRIVE card"): right answers in a row across the match. A player's per-answer MARKS for a challenge
 // (rooms/{CODE}/ocm/{match}/{ci}/{uid}/s — '1' right · '0' wrong · 'h' half · '-' neither) fold into game/combo/{uid} = { c: now, m: best }
