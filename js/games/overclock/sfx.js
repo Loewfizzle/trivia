@@ -29,6 +29,10 @@ export const OC_SOUNDS = Object.freeze({
   swoosh: ['15-standings-swoosh', 0.42, 0, 0, 400],
   rankUp: ['16-rank-up', 0.4, 0, 0, 600],
   fanfare: ['17-winner-fanfare', 0.5, 0, 0, 3000],
+  // OC4 — THE VISUAL / REFLEX CHALLENGES: MEMORY's nine node tones (one per node — mem0 … mem8), SIGNAL LOCK's GO flash, REWIRE's turn
+  ...Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`mem${i}`, [`14-memory-tone-${i + 1}`, 0.42, 0, 0, 0]])),
+  flash: ['13-reflex-flash', 0.5, 0, 0, 200],
+  place: ['10-tile-place', 0.32, 0, 0, 40],
 });
 /** the files this pass plays (the rest of the set waits for its pass — OC2 … OC5) */
 export const OC1_FILES = [...new Set(Object.values(OC_SOUNDS).map(s => s[0]))];

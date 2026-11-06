@@ -160,10 +160,12 @@ export const STROOP_COLORS = {
   purple: { name: 'PURPLE', hex: '#b46bff' },
   orange: { name: 'ORANGE', hex: '#ff8a2a' },
 };
+// OC4 — the four colours ONLY (red · blue · green · yellow at full saturation — as far apart in hue as four can be): Color Clash is the one
+// challenge ABOUT colour, so it never swaps in purple / orange any more (too close to blue / red for many eyes). Later challenges still
+// reshuffle the tiles' order every word.
+export const CLASH_COLORS = Object.freeze(['red', 'blue', 'green', 'yellow']);
 export function genStroop(rand, level) {
-  const ids = Object.keys(STROOP_COLORS);
-  // the classic four first; later challenges swap in purple/orange
-  const palette = level < 0.4 ? ids.slice(0, 4) : shuffle(rand, ids).slice(0, 4);
+  const palette = CLASH_COLORS.slice();
   const items = [];
   for (let i = 0; i < 8; i++) {
     const ink = pick(rand, palette);

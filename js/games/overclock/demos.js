@@ -10,6 +10,7 @@
 // piece's timing is exact whatever the others do. Reduced motion: the finished picture, still.
 import { h, reducedMotion } from '../../ui/dom.js';
 import { joinTube } from './shared.js';
+import { tubeLayers, rwSource, rwCore } from './ui/rewire.js';
 
 export const DEMO_MS = 3000;
 const HIDE = { opacity: 0, transform: 'translateY(10px)' }, SHOW = { opacity: 1, transform: 'none' };
@@ -106,10 +107,39 @@ export function hlDemo() {
   });
 }
 
+/** REWIRE (OC4): SOURCE → three tube tiles → CORE: a finger turns the first (the tube lights through the second), then the third — the
+ *  surge races to the core and it blazes */
+export function wireDemo() {
+  const tiles = ['I', 'I', 'I'].map(s => { const rot = tubeLayers(s); return { rot, el: h('i.oc-wire-tile', h('i.oc-wire-glass'), rot) }; });
+  const taps = [0, 2].map(() => h('span.oc-demo-tap'));
+  tiles[0].el.append(taps[0]); tiles[2].el.append(taps[1]);
+  const core = rwCore(0, 3);
+  const board = h('div.oc-wire-board.oc-demo-wire', { style: { '--n': 3 } }, rwSource(0, 3), h('div.oc-wire-grid', { style: { '--n': 3 } }, tiles.map(t => t.el)), core);
+  return demoBox('oc-demo-rw', [board, h('div.oc-demo-cap', 'TAP TO TURN → ', h('b', 'POWER THE CORE'))], anims => {
+    const HOLD = { opacity: 1, transform: 'none' };
+    appear(board, 60, anims);
+    const R = (deg, t0) => [[0, { transform: `rotate(${deg}deg)` }], [t0, { transform: `rotate(${deg}deg)` }], [t0 + 150, { transform: 'rotate(90deg)' }], [2860, { transform: 'rotate(90deg)' }]];
+    loop(tiles[0].rot, R(0, 640), anims);
+    loop(tiles[1].rot, [[0, { transform: 'rotate(90deg)' }]], anims);
+    loop(tiles[2].rot, R(0, 1300), anims);
+    const lit = (el, t) => loop(el, [[0, { opacity: 0 }], [t, { opacity: 0 }], [t + 90, { opacity: 1 }], [2620, { opacity: 1 }], [2860, { opacity: 0 }]], anims);
+    const q = sel => tiles.map(t => t.rot.querySelector(sel));
+    const L = q('.oc-wire-lit'), S = q('.oc-wire-surge');
+    lit(L[0], 760); lit(L[1], 820); lit(L[2], 1420);
+    S.forEach((s, i) => loop(s, [[0, { opacity: 0 }], [1560 + i * 70, { opacity: 0 }], [1640 + i * 70, { opacity: 1 }], [1900 + i * 70, { opacity: 0.08 }], [2620, { opacity: 0 }]], anims));
+    lit(core.querySelector('.oc-wire-lead'), 1760);
+    lit(core.querySelector('.oc-wire-ring-glow'), 1780);
+    loop(core.querySelector('.oc-wire-ring-hot'), [[0, { opacity: 0, transform: 'scale(0.4)' }], [1780, { opacity: 0, transform: 'scale(0.4)' }], [1900, { opacity: 1, transform: 'scale(1.3)' }], [2300, { opacity: 0.35, transform: 'scale(1.05)' }], [2620, { opacity: 0.35, transform: 'scale(1.05)' }], [2860, { opacity: 0, transform: 'scale(1)' }]], anims);
+    taps.forEach((t, i) => { const at = i ? 1240 : 580; loop(t, [[0, { opacity: 0, transform: 'scale(0.4)' }], [at, { opacity: 0, transform: 'scale(0.4)' }], [at + 60, { opacity: 0.95, transform: 'scale(0.75)' }], [at + 420, { opacity: 0, transform: 'scale(1.6)' }]], anims); });
+    void HOLD;
+  });
+}
+
 /** the demo for a type (null = none) */
 export function demoFor(type) {
   if (type === 'pattern') return patternDemo();
   if (type === 'missinglink') return linkDemo();
   if (type === 'higherlower') return hlDemo();
+  if (type === 'rewire') return wireDemo();
   return null;
 }

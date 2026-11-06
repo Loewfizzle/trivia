@@ -16,7 +16,7 @@
 //    scrambled tiles fly into the word).
 // YOUR PICKS are yours alone: kept on this device (sessionStorage — a refresh still shows them; never in the database). No "flag this
 // question" button anywhere.
-import { h } from '../../ui/dom.js';
+import { h, reducedMotion } from '../../ui/dom.js';
 import { answerFrame, answerPanel, tubeMark } from '../kit/answer.js';
 import { trickyLetters, wrongLetters, spellRuns } from './spell.js';
 import { hlRightDir, statEl, DIR_WORD } from './ui/higherlower.js';
@@ -24,6 +24,8 @@ import { STROOP_COLORS, closestCredit, linkAccepts, normWord } from './challenge
 import { colorHex } from '../../config.js';
 import { buildReveal } from './reveals.js';
 import { fmtVal, joinTube } from './shared.js';
+import { tubeLayers, rwSource } from './ui/rewire.js';
+import { memNode } from './ui/memory.js';
 
 const key = (m, ci) => `oc:pk:${m}:${ci}`;
 export function savePicks(m, ci, picks) { try { sessionStorage.setItem(key(m, ci), JSON.stringify(picks)); } catch { /* private mode: this screen only */ } }
@@ -314,18 +316,41 @@ function sortit(spec, picks, ctx) {
   }));
 }
 
-// MEMORY: the sequence replayed as numbered nodes (a mini 3 × 3 each, the step's node lit + its number); your slip marked
-const miniGrid = (n, cls = '') => h(`span.oc-mg${cls}`, { 'aria-hidden': 'true' }, Array.from({ length: 9 }, (_, i) => h('i', { class: i === n ? 'is-on' : null })));
-function memory(spec, picks) {
+// MEMORY (OC4 — its dressing): THE SEQUENCE REPLAYED on a small board of the same round glass nodes — each step's node blazes in turn
+// with its number on it (a timer each — the view clears them; reduced motion: the board at rest) — then the steps as numbered mini grids under
+// it, where you slipped marked ✕ (your wrong node lit red on that step); YOU GOT n / N on the plate's line
+const miniGrid = (n, cls = '', bad = -1) => h(`span.oc-mg${cls}`, { 'aria-hidden': 'true' }, Array.from({ length: 9 }, (_, i) => h('i', { class: i === n ? 'is-on' : i === bad ? 'is-bad' : null })));
+function memory(spec, picks, ctx) {
   const slip = picks[0] && typeof picks[0] === 'object' ? picks[0] : null;
-  const seq = h('span.oc-ans-mem', spec.seq.map((n, k) => h('span.oc-mg-step', { class: slip && slip.at === k ? 'is-slip' : null, style: { '--k': k } }, h('b', String(k + 1)), miniGrid(n))));
-  return box(answerFrame({
-    q: `THE SEQUENCE · ${spec.seq.length} STEPS`,
-    answer: seq,
-    pick: slip ? h('span.oc-ans-mem-pick', `STEP ${slip.at + 1}`, miniGrid(slip.n, '.is-bad')) : null,
-    state: slip ? 'wrong' : 'right',
-    delay: 120,
-  }));
+  const N = spec.seq.length;
+  const res = ctx.game && ctx.game.results && ctx.game.results[ctx.game.ci] && ctx.game.results[ctx.game.ci][ctx.me];
+  const got = slip ? slip.at : res ? Math.min(N, Math.floor(res.ok || 0)) : N;
+  const nodes = Array.from({ length: 9 }, () => memNode('i'));
+  const nums = nodes.map(n => { const b = h('b.oc-mem-num'); n.append(b); return b; });
+  const board = h('div.oc-mem-replay', { 'aria-hidden': 'true' }, nodes);
+  const T0 = 350, STEP = Math.min(330, Math.floor(2100 / Math.max(1, N)));   // (inside the answer beat: 3 s on the 8-s screen — the owner's timing)
+  const still = reducedMotion();
+  const mark = () => {
+    if (!slip) return;
+    // (no ✓ / ✕ on the nodes — the owner: green + red; your node carries the crack)
+    nodes[slip.n].classList.add('is-wrong', 'is-cracked'); nodes[slip.n].setAttribute('aria-label', 'Your tap');
+    nodes[spec.seq[slip.at]].classList.add('is-right'); nodes[spec.seq[slip.at]].setAttribute('aria-label', 'The right node');
+  };
+  if (still || !ctx.timers) mark();
+  else {
+    spec.seq.forEach((n, k) => {
+      ctx.timers.push(setTimeout(() => { if (!board.isConnected) return; nums[n].textContent = String(k + 1); nodes[n].classList.add('is-lit', 'is-num'); }, T0 + k * STEP));
+      ctx.timers.push(setTimeout(() => { nodes[n].classList.remove('is-lit'); }, T0 + k * STEP + 250));
+      ctx.timers.push(setTimeout(() => { nodes[n].classList.remove('is-num'); }, T0 + (k + 1) * STEP - 10));
+    });
+    ctx.timers.push(setTimeout(() => { if (board.isConnected) mark(); }, T0 + N * STEP + 120));
+  }
+  const steps = h('div.oc-ans-mem', spec.seq.map((n, k) => h('span.oc-mg-step', { class: slip && slip.at === k ? 'is-slip' : k < got ? 'is-done' : null, style: { '--k': k } },
+    h('b', String(k + 1)), miniGrid(n, '', slip && slip.at === k ? slip.n : -1), slip && slip.at === k ? tubeMark('cross', `You slipped on step ${k + 1}`) : null)));
+  const line = h('div.oc-mem-got', { class: slip ? 'is-slip' : 'is-clean' },
+    h('span', 'YOU GOT '), h('b', String(got)), h('span', ` / ${N}`), slip ? h('em', ` · SLIPPED ON STEP ${slip.at + 1}`) : got >= N ? h('em', ' · CLEAN') : null,
+    tubeMark(slip ? 'cross' : 'check'));
+  return box(answerPanel({ sub: `THE SEQUENCE · ${N} STEPS`, slot: h('div.oc-mem-ans', board, steps, line), delay: 80 }));
 }
 // ODD ONE OUT: the odd one + why (one short line)
 const ODD_WHY = {
@@ -369,7 +394,8 @@ function count(spec, picks) {
     });
   }));
 }
-// COLOR CLASH: the word (as it was shown) + its color named
+// COLOR CLASH (OC4 — its dressing): the word as it was shown (big, in its text color), the TEXT COLOR on THE ANSWER tile as a solid chip +
+// its NAME (the name says it — never the color alone), your pick's chip + name struck through
 const swatch = id => h('span.oc-ans-color', h('i', { style: { '--sw': STROOP_COLORS[id].hex } }), STROOP_COLORS[id].name);
 function stroop(spec, picks) {
   const res = spec.items.map((it, i) => st(picks[i], it.ink));
@@ -377,7 +403,7 @@ function stroop(spec, picks) {
   return box(sumRow(res, label), show.map((i, k) => {
     const it = spec.items[i], p = picks[i];
     return answerFrame({
-      q: h('span.oc-ans-cc', 'THE WORD ', h('b', { style: { color: STROOP_COLORS[it.ink].hex } }, STROOP_COLORS[it.word].name), ' WAS IN'),
+      q: h('span.oc-ans-cc', h('b', { style: { color: STROOP_COLORS[it.ink].hex } }, STROOP_COLORS[it.word].name), h('small', 'THE TEXT WAS')),
       answer: swatch(it.ink), pick: p == null || p === it.ink ? null : swatch(p),
       state: res[i], note: p == null ? 'NO ANSWER' : '', delay: 200 + k * 300,
     });
@@ -407,7 +433,19 @@ function reflex(spec, picks, ctx) {
     delay: 120,
   }));
 }
-// REWIRE: solved or not + the time (game.tm — the ms to the finish, OC2)
+// REWIRE (OC4 — its dressing): BOTH CIRCUITS SOLVED + LIT on two small boards (stage 1 orange · stage 2 blue — the solution's turns, the path
+// lit, the core blazing), your time on THE ANSWER tile; or WHERE YOU GOT TO (n / 2 live + how far the power reached on the one left)
+const solvedBoard = (pz, k) => {
+  const path = new Set(pz.path);
+  return h('div.oc-wire-board.oc-wire-mini', { class: k ? 'is-blue' : 'is-orange', style: { '--n': pz.n }, 'aria-hidden': 'true' },
+    rwSource(pz.src, pz.n),
+    h('div.oc-wire-grid', { style: { '--n': pz.n } }, pz.tiles.map((shape, i) => {
+      const rot = tubeLayers(shape);
+      rot.style.transform = `rotate(${pz.solution[i] * 90}deg)`;
+      return h('i.oc-wire-tile', { class: path.has(i) ? 'is-lit' : null }, h('i.oc-wire-glass'), rot);
+    })),
+    h('i.oc-wire-core.is-on', { style: { '--r': pz.core, '--n': pz.n } }, h('i.oc-wire-lead'), h('i.oc-wire-ring', h('i.oc-wire-ring-glow'), h('i.oc-wire-ring-hot'))));
+};
 function rewire(spec, picks, ctx) {
   const r = ((ctx.game.results && ctx.game.results[ctx.game.ci]) || {})[ctx.me];
   const t = ctx.game.tm && ctx.game.tm[ctx.game.ci] && ctx.game.tm[ctx.game.ci][ctx.me];
@@ -416,10 +454,12 @@ function rewire(spec, picks, ctx) {
   const secs = typeof t === 'number' ? `${(t / 1000).toFixed(1)} s` : '';
   // the tile states the GOAL (both circuits live — + your time when you made it); where you got to is YOUR PICK
   const power = r ? Math.round(Math.min(1, Math.max(0, r.ok - solved) / 0.6) * 100) : 0;
+  const boards = spec.puzzles.every(Boolean) ? h('div.oc-wire-ans', spec.puzzles.map((pz, k) => h('div.oc-wire-ans-one', { style: { '--k': k } }, solvedBoard(pz, k), h('small', `CIRCUIT ${k + 1} · ${pz.n}×${pz.n}`)))) : null;
   return box(answerFrame({
     q: `${spec.puzzles.length} CIRCUITS · POWER TO THE CORE`,
     answer: h('span.oc-ans-rw', h('b', 'BOTH CIRCUITS LIVE'), all && secs ? h('small', `IN ${secs}`) : null),
-    pick: !r || all ? null : h('span.oc-ans-rw', h('b', `${solved}/${spec.puzzles.length} LIVE`), h('small', `${power}% POWER ON THE ONE LEFT`)),
+    slot: boards,
+    pick: !r || all ? null : h('span.oc-ans-rw', h('b', solved ? `${solved}/${spec.puzzles.length} LIVE` : 'NOT SOLVED'), h('small', `${power}% POWER ON ${solved ? 'THE ONE LEFT' : 'CIRCUIT 1'}`)),
     pickLabel: 'WHERE YOU GOT TO',
     state: !r ? 'none' : all ? 'right' : solved ? 'close' : 'wrong',
     note: r ? '' : 'NOT PLAYED',

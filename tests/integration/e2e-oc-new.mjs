@@ -315,7 +315,7 @@ try {
   async function solve(page, pz, from) {
     for (let i = 0; i < pz.n * pz.n; i++) {
       const turns = ((pz.solution[i] - from[i]) % 4 + 4) % 4;
-      for (let k = 0; k < turns; k++) { await press(page, '.rw-tile', i); await sleep(30); }
+      for (let k = 0; k < turns; k++) { await press(page, '.oc-wire-tile', i); await sleep(30); }
     }
   }
   await sleep(400);
@@ -323,16 +323,16 @@ try {
   await solve(pages[1], rSpec.puzzles[0], rSpec.puzzles[0].start);
   await sleep(500);
   await shotBoth(pages[1], 'o-14-rewire-solved');
-  await waitFor(pages[1], () => document.querySelectorAll('.rw-tile').length === 16, '4×4 circuit up', 6000);
+  await waitFor(pages[1], () => document.querySelectorAll('.oc-wire-tile').length === 16, '4×4 circuit up', 6000);
   // two turns into the 4×4, then a refresh: progress and turns come back
-  await press(pages[1], '.rw-tile', 0); await press(pages[1], '.rw-tile', 5);
+  await press(pages[1], '.oc-wire-tile', 0); await press(pages[1], '.oc-wire-tile', 5);
   await sleep(900);
   const before = await OC(pages[1], 'JSON.stringify(O.state().extra.rw)');
   await pages[1].reload();
-  await pages[1].waitForSelector('.rw-tile', { timeout: 30000 });
+  await pages[1].waitForSelector('.oc-wire-tile', { timeout: 30000 });
   await sleep(500);
   const after = await OC(pages[1], 'JSON.stringify(O.state().extra.rw)');
-  ok(before === after && (await pages[1].evaluate(() => document.querySelectorAll('.rw-tile').length)) === 16, 'REWIRE: a refresh keeps the solved circuit and the turns');
+  ok(before === after && (await pages[1].evaluate(() => document.querySelectorAll('.oc-wire-tile').length)) === 16, 'REWIRE: a refresh keeps the solved circuit and the turns');
   const cur = JSON.parse(after).split('').map(Number);
   await solve(pages[1], rSpec.puzzles[1], cur);
   await waitFor(pages[1], () => window.__oc.state().done, 'BOB solved both', 8000);

@@ -114,6 +114,34 @@ function tap(k, right = true) {
   else if (s.type === 'higherlower') { const P = s.pairs[k], up = P.b.v > P.a.v; press(document.querySelector((right ? up : !up) ? '.oc-hl-btn.is-up' : '.oc-hl-btn.is-down')); }
   else if (s.type === 'timeline') { tlOrder(right).forEach(i => press(document.querySelectorAll('.oc-tl-row')[i])); press(document.querySelector('.oc-tl-lock')); }
   else if (s.type === 'sortit') return sortTap(k, right);
+  // OC4 — the visual / reflex challenges
+  else if (s.type === 'rewire') return wire(right ? Infinity : 2, k);
+  else if (s.type === 'memory') return mem(right ? s.seq.length : 3);
+  else if (s.type === 'stroop') { const it = s.items[k]; press(document.querySelector(`.oc-cc-opt[data-c="${right ? it.ink : it.order.find(c => c !== it.ink)}"]`)); }
+}
+// MEMORY: wait for your turn, repeat the sequence (slipAt < its length → a wrong node at that step), a finger ~220 ms apart
+async function mem(slipAt = 99) {
+  const s = spec(); if (!s) return;
+  for (let w = 0; w < 200 && !document.querySelector('.oc-mem-grid.is-input'); w++) await wait(40);
+  const nodes = () => document.querySelectorAll('.oc-mem-node');
+  for (let k = 0; k < s.seq.length; k++) {
+    press(nodes()[k === slipAt ? (s.seq[k] + 4) % 9 : s.seq[k]]);
+    if (k === slipAt) return;
+    await wait(220);
+  }
+}
+// REWIRE: turn the first m tiles of circuit k's path into place (Infinity = solve it), a finger press each turn, ~70 ms apart
+const wired = {};
+async function wire(m = Infinity, k = null) {
+  const s = spec(); if (!s) return;
+  const c = k ?? Math.min(1, Math.floor(window.__oc.state().p)), pz = s.puzzles[c];
+  for (let w = 0; w < 60 && document.querySelectorAll('.oc-wire-tile').length !== pz.n * pz.n; w++) await wait(50);
+  const cur = wired[c] ||= pz.start.slice();
+  for (const i of pz.path.slice(0, m)) {
+    while (cur[i] !== pz.solution[i] && !(window.__oc.state().p > c)) {
+      press(document.querySelectorAll('.oc-wire-tile')[i]); cur[i] = (cur[i] + 1) % 4; await wait(70);
+    }
+  }
 }
 // TIMELINE: the screen indexes in the right order (wrong = the middle two swapped)
 const tlOrder = (right = true) => { const s = spec(), o = [0, 1, 2, 3].map(pos => s.shown.indexOf(pos)); if (!right) [o[1], o[2]] = [o[2], o[1]]; return o; };
@@ -153,7 +181,7 @@ function typing() {
   else if (s.type === 'missinglink') typeKeys(s.puzzles[0].answer.slice(0, 3));
   else if (s.type === 'unscramble') typeTiles(s.word.slice(0, 2));
 }
-window.__preview = { game, state, step, tap, push, swipe: (r, k) => swipe(r, k), typePad: v => typePad(v), typeKeys: w => typeKeys(w), typeTiles: w => typeTiles(w), lock: () => press(document.querySelector('.gk-np .gk-go')) };
+window.__preview = { game, state, step, tap, push, wire: (m, k) => wire(m, k), mem: n => mem(n), swipe: (r, k) => swipe(r, k), typePad: v => typePad(v), typeKeys: w => typeKeys(w), typeTiles: w => typeTiles(w), lock: () => press(document.querySelector('.gk-np .gk-go')) };
 // (the view's test hook needs ?emu in the address — the preview adds it for itself)
 if (!/[?&]emu\b/.test(location.search)) history.replaceState(null, '', `${location.pathname}${location.search}${location.search ? '&' : '?'}emu=1`);
 push();
