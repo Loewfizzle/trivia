@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OVERCLOCK preview</title>
+<!-- OC1 — the real OVERCLOCK view in its OVERDRIVE skin, no Firebase (an import map swaps js/firebase.js for fake-firebase.js):
+     ?type=trivia|truefalse|<any type>  (the challenge on screen)   &n=4 (players)   &final=1 (the ×2 last challenge)
+     &at=brief      the title slam + the rules card (BRIEF_MS 7 s)        ready   the slam + 3-2-1 (READY_MS 3.2 s)
+         play       answering                                             right / wrong   one answer, its feedback frozen mid-way
+         answer     THE ANSWER after the round (your picks: right · wrong · none)
+         combo4     the 4th right in a row → the OVERDRIVE banner         combo10   the 10th → the quick flash
+         kit        the kit's pieces in the OVERDRIVE skin (the number pad, the keyboard, the tach in its last 3 s, THE ANSWER)
+     &still=1 holds the slam on its card (no countdown)   window.__preview = { game, state, step, tap(i) } -->
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/kit.css">
+<link rel="stylesheet" href="/css/overclock.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #05060a; } #stage { position: fixed; inset: 0; } .screen { position: absolute; inset: 0; }</style>
+</head>
+<body data-theme="overclock" data-look="night">
+<div id="stage"><div class="screen screen-in" id="screen"></div></div>
+<script type="module">
+import { createView } from '/js/games/overclock/view.js';
+import { createGame } from '/js/games/overclock/director.js';
+import { partsFor } from '/js/games/overclock/challenges.js';
+import { levelOf, CHALLENGE_MS, READY_MS, BRIEF_MS, STANDINGS_MS, computeResults } from '/js/games/overclock/logic.js';
+import { appendPatch } from '/js/trivia/bankdata.js';
+import { liveKeyFor, loadGame } from '/js/games/registry.js';
+import { setState } from '/js/store.js';
+
+const q = new URLSearchParams(location.search);
+const type = q.get('type') || 'trivia';
+const at = q.get('at') || 'play';
+const n = Math.max(1, Math.min(8, Number(q.get('n') || 4)));
+const final = q.get('final') === '1';
+const COLORS = ['orange', 'cyan', 'magenta', 'yellow', 'green', 'violet', 'red', 'blue'];
+const NAMES = ['YOU', 'MAYA', 'LEO', 'DANA', 'EVE', 'FINN', 'GRACE', 'HAL'];
+const AV = ['crown', 'bolt', 'diamond', 'star', 'skull', 'heart', 'eye', 'ghost'];
+const uids = Array.from({ length: n }, (_, i) => `u${i}`), me = uids[0];
+const players = Object.fromEntries(uids.map((u, i) => [u, { name: NAMES[i], color: COLORS[i], avatar: AV[i], joinedAt: i }]));
+const presence = Object.fromEntries(uids.map(u => [u, { online: true, lastSeen: Date.now() }]));
+const QS = [
+  { q: 'Which planet has the shortest day in our solar system?', a: ['Jupiter', 'Mercury', 'Saturn', 'Neptune'], c: 0 },
+  { q: 'What is the hardest natural substance on Earth?', a: ['Quartz', 'Titanium', 'Diamond', 'Graphene'], c: 2 },
+  { q: 'In which city did the first Olympic Games of the modern era take place?', a: ['Paris', 'Athens', 'London', 'Rome'], c: 1 },
+].map(x => ({ ...x, cat: 'general', d: 'medium' }));
+const { patch } = appendPatch({ matchId: 'pv', trivia: { n: 0, seen: {} } }, 'PVW1', QS);
+const bank = {}; for (const [k, v] of Object.entries(patch)) if (k.startsWith('bank/')) bank[k.slice(5)] = v;
+const total = 6, ci = final ? 5 : 1;
+const order = [type === 'truefalse' ? 'math' : 'truefalse', type, 'memory', 'oddone', 'stroop', type === 'closest' ? 'timeline' : 'closest'];
+if (final) { order[5] = type; order[1] = type === 'truefalse' ? 'trivia' : 'truefalse'; }
+const now = Date.now();
+const game = createGame({ matchId: 'pv', settings: { mode: 'quick' }, participants: Object.fromEntries(uids.map(u => [u, true])), now, seed: 'preview-seed', bank, trivia: { n: patch['trivia/n'] }, order });
+Object.assign(game, { ci, ck: String(ci), tq: { [ci]: 0 }, seen: { [type]: at !== 'brief' } });
+game.results = { 0: Object.fromEntries(uids.map((u, i) => [u, { pts: [148, 120, 96, 60, 40, 30, 20, 10][i], ok: 4, parts: 4 }])) };
+game.combo = Object.fromEntries(uids.map(u => [u, { c: 0, m: 2 }]));
+if (at === 'combo4') game.combo[me] = { c: 3, m: 3 };
+if (at === 'combo10') game.combo[me] = { c: 9, m: 9 };
+if (at === 'answer') game.combo[me] = { c: 2, m: 4 };
+const parts = partsFor(type, levelOf(ci, total));
+const boards = Object.fromEntries(uids.slice(1).map((u, i) => [u, { p: Math.min(parts, i + 1), ok: Math.min(parts, i + 1), n: parts, done: false }]));
+const state = { uid: me, code: 'PVW1', players, presence, game, live: { boards, marks: {}, next: {}, my_boards: {} }, liveKey: null, meta: { status: 'playing' } };
+const setPhase = (phase, len) => { const t = Date.now(); Object.assign(game, { phase, phaseStartAt: t, phaseEndsAt: t + len, ...(phase === 'play' ? { playStartAt: t } : {}) }); };
+if (at === 'brief') { game.brief = true; setPhase('ready', q.get('still') === '1' ? 600000 : BRIEF_MS); }
+else if (at === 'ready') { game.brief = false; setPhase('ready', q.get('still') === '1' ? 600000 : READY_MS); }
+else setPhase('play', at === 'play' ? CHALLENGE_MS : 600000);
+await loadGame('overclock');   // (the registry knows a game's live paths once its cartridge is in)
+setState({ code: 'PVW1', uid: me });
+state.liveKey = liveKeyFor(game);
+
+const view = createView();
+const screen = document.getElementById('screen');
+let mounted = false;
+const push = () => { if (!mounted) { view.mount(screen, state); mounted = true; } else view.update({ ...state, game: { ...game } }); };
+const step = p => { Object.assign(game, p); push(); };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const tiles = () => [...document.querySelectorAll('.oc-tile, .tf-btn')];
+const press = el => el && el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch' }));
+const spec = () => window.__oc && window.__oc.spec();
+/** answer the challenge's part k: right or not */
+function tap(k, right = true) {
+  const s = spec();
+  if (!s) return;
+  if (s.type === 'trivia') { const c = s.questions[k].c; press(document.querySelectorAll('.oc-tile')[right ? c : (c + 1) % 4]); }
+  else if (s.type === 'truefalse') { const t = s.items[k].truth; press(document.querySelector((right ? t : !t) ? '.tf-true' : '.tf-false')); }
+}
+window.__preview = { game, state, step, tap, push };
+// (the view's test hook needs ?emu in the address — the preview adds it for itself)
+if (!/[?&]emu\b/.test(location.search)) history.replaceState(null, '', `${location.pathname}${location.search}${location.search ? '&' : '?'}emu=1`);
+push();
+
+// body[data-ready] = the scenario reached its moment (shots.mjs --page shoots then, + its --wait for a settle / a mid-animation frame)
+const ready = () => { document.body.dataset.ready = '1'; };
+(async () => {
+  if (at === 'kit') { await kitPage(); return ready(); }
+  await wait(250);
+  if (at === 'right' || at === 'wrong') { tap(0, at === 'right'); return ready(); }
+  if (at === 'combo4' || at === 'combo10') { tap(0, true); return ready(); }
+  if (at !== 'answer') return ready();
+  // THE ANSWER: play the round (trivia: right, wrong, right · true or false: a miss on the 3rd + the 6th), then the round closes
+  const s = spec(), N = s.type === 'trivia' ? 3 : s.type === 'truefalse' ? 8 : 0;
+  for (let k = 0; k < N; k++) { tap(k, s.type === 'trivia' ? k !== 1 : k !== 2 && k !== 5); await wait(s.type === 'trivia' ? 1000 : 900); }
+  await wait(600);
+  const live = { ...boards, [me]: { p: N, ok: s.type === 'trivia' ? 2 : 6, n: N, done: true, doneAt: Date.now() } };
+  const res = computeResults(game, live);
+  setPhase('standings', 600000);
+  step({ results: { ...game.results, [ci]: res }, combo: { ...game.combo, [me]: { c: 1, m: 4 } } });
+  ready();
+})();
+
+// the kit's pieces in the OVERDRIVE skin, on the frame's background
+async function kitPage() {
+  const [{ createNumpad }, { createKeyboard }, { createTach }, { answerFrame }, { h }] = await Promise.all([
+    import('/js/games/kit/numpad.js'), import('/js/games/kit/keyboard.js'), import('/js/games/kit/tach.js'), import('/js/games/kit/answer.js'), import('/js/ui/dom.js')]);
+  const piece = q.get('piece') || 'numpad';
+  const stage = document.querySelector('.oc-stage');
+  view.unmount();
+  stage.replaceChildren();
+  document.querySelector('.oc-overlay').replaceChildren();
+  const box = h('div.ch.pv-kit', { style: { marginTop: 'auto' } });
+  stage.append(box);
+  if (piece === 'numpad') { const p = createNumpad({ extra: '−', confirm: 'LOCK IT IN', placeholder: 'YOUR ANSWER' }); p.set('−1,284'.replace(',', '')); box.append(h('p.oc-q', 'What is 37 × 12 − 1,728?'), p.el); }
+  if (piece === 'keyboard') { const k = createKeyboard({ go: 'GO' }); box.append(h('p.oc-q', 'COTTAGE · SWISS · CAKE'), h('div.oc-kb-ans', 'CHEE'), k.el); }
+  if (piece === 'tach') { const t = createTach({ now: () => Date.now() }); t.set(Date.now() + 2600, 30000); document.querySelector('.oc-tach').replaceChildren(t.el); document.querySelector('.oc-tach').classList.add('is-live'); screen.append(t.edge); box.append(h('p.oc-q', 'The last 3 seconds: white-hot, the edges tint.')); }
+  if (piece === 'answer') box.append(answerFrame({ q: 'Which planet has the shortest day in our solar system?', answer: 'Jupiter', pick: 'Mercury', state: 'wrong' }));
+}
+</script>
+</body>
+</html>
