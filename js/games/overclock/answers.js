@@ -18,7 +18,7 @@ import { answerFrame, answerPanel } from '../kit/answer.js';
 import { STROOP_COLORS, closestCredit, linkAccepts, normWord } from './challenges.js';
 import { colorHex } from '../../config.js';
 import { buildReveal } from './reveals.js';
-import { fmtVal } from './shared.js';
+import { fmtVal, joinTube } from './shared.js';
 
 const key = (m, ci) => `oc:pk:${m}:${ci}`;
 export function savePicks(m, ci, picks) { try { sessionStorage.setItem(key(m, ci), JSON.stringify(picks)); } catch { /* private mode: this screen only */ } }
@@ -139,8 +139,9 @@ function closest(spec, picks, ctx) {
     delay: 120,
   }));
 }
-// MISSING LINK (OC3 — its own answer): per puzzle, the three clues each JOINED to the link (CLUE → LINK), the link WHITE-HOT on THE ANSWER
-// tile, YOUR PICK (your last guess) struck through when you never got it; the room's count under them
+// MISSING LINK (OC3 — its own answer): per puzzle, the three clues each JOINED to the link, the link WHITE-HOT on THE ANSWER tile, YOUR PICK
+// (your last guess) struck through when you never got it; the room's count under them. OC3B — THE NEUTRAL JOIN: each clue + the link are
+// joined by a short lit tube (shared.js#joinTube), never an arrow — the bank doesn't say which side the link goes, so it can't read backwards
 function missinglink(spec, picks, ctx) {
   const res = ((ctx.game && ctx.game.results && ctx.game.results[ctx.game.ci]) || {})[ctx.me];
   const both = (ctx.uids || []).filter(u => { const r = ((ctx.game && ctx.game.results && ctx.game.results[ctx.game.ci]) || {})[u]; return r && r.ok >= 2; }).length;
@@ -150,7 +151,7 @@ function missinglink(spec, picks, ctx) {
     const state = right ? 'right' : p != null ? 'wrong' : 'none';
     const d = 120 + k * 380;
     return answerFrame({
-      q: h('span.oc-ans-ml', pz.words.map((w, i) => h('span.oc-ans-ml-join', { style: { '--j': `${d + 520 + i * 110}ms` } }, h('b', w), h('i', '→'), h('em', link)))),
+      q: h('span.oc-ans-ml', pz.words.map((w, i) => h('span.oc-ans-ml-join', { 'aria-label': `${w} and ${link}`, style: { '--j': `${d + 520 + i * 110}ms` } }, h('b', w), joinTube(), h('em', link)))),
       answer: h('span.oc-ans-link', link),
       pick: state === 'wrong' ? h('span.oc-ans-link.is-pick', p) : null,
       state, note: state === 'none' ? (k === 0 && res && res.p >= 1 && !right ? 'SKIPPED' : 'NO ANSWER') : '',

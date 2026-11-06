@@ -1412,8 +1412,15 @@
 
 /* ---------------- OC3 — THE ANSWER for the word challenges */
 .oc-ans-ml { display: flex; flex-direction: column; gap: 5px; }
-.oc-ans-ml-join { display: inline-flex; align-items: baseline; gap: 6px; font: italic 900 18px / 1.1 var(--oc-font-title); letter-spacing: 0.04em; animation: oc-rise 0.3s var(--j, 0ms) ease-out both; }
-.oc-ans-ml-join i { font: 700 15px / 1 var(--oc-font-ui); font-style: normal; color: var(--oc-label); }
+.oc-ans-ml-join { display: inline-flex; align-items: center; gap: 7px; font: italic 900 18px / 1.1 var(--oc-font-title); letter-spacing: 0.04em; animation: oc-rise 0.3s var(--j, 0ms) ease-out both; }
+/* THE NEUTRAL JOIN (OC3B — shared.js#joinTube): a short lit glass tube between the clue and the link — no arrow, no direction. Its dark glass
+   ends (the electrodes), a white-hot core, a static orange glow under it; it FLICKERS ON just after its row rises (opacity only) */
+.oc-join { position: relative; flex: none; display: inline-block; width: 24px; height: 7px; }
+.oc-join-glow, .oc-join-core { position: absolute; display: block; pointer-events: none; }
+.oc-join-glow { inset: -7px -6px; border-radius: 10px; background: radial-gradient(closest-side, rgba(255, 120, 40, 0.8), rgba(255, 106, 26, 0.28) 60%, rgba(255, 106, 26, 0) 100%); }
+.oc-join-core { inset: 0; border-radius: 4px; background: linear-gradient(90deg, #5a1f05 0 3px, transparent 3px calc(100% - 3px), #5a1f05 calc(100% - 3px)), linear-gradient(180deg, #ffe3c8 0%, #fff8f1 38%, #ffb06a 70%, #ff7a2a 100%); box-shadow: inset 0 0 0 1px rgba(255, 140, 60, 0.9); }
+.oc-ans-ml-join .oc-join-glow, .oc-ans-ml-join .oc-join-core { animation: oc-join-on 0.42s calc(var(--j, 0ms) + 160ms) linear both; }
+@keyframes oc-join-on { 0% { opacity: 0.15; } 30% { opacity: 1; } 42% { opacity: 0.35; } 60% { opacity: 1; } 100% { opacity: 1; } }
 .oc-ans-ml-join em { font-style: italic; color: var(--oc-hot-2); }
 .oc-ans-link { font: italic 900 clamp(30px, 8.6vw, 36px) / 1 var(--oc-font-title); letter-spacing: 0.05em; }
 .oc-ans-count { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.16em; color: var(--oc-label); }
@@ -1431,11 +1438,10 @@
 .oc-demo-slot .oc-ml-cell > b { font-size: 26px; }
 .oc-demo-slot .oc-ml-cell::after { background: var(--oc-hot); }
 .oc-demo-joins { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.oc-demo-join { position: relative; display: inline-flex; align-items: baseline; gap: 8px; padding: 5px 14px 4px; font: italic 900 20px / 1 var(--oc-font-title); letter-spacing: 0.05em; color: #fff; }
+.oc-demo-join { position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px 4px; font: italic 900 20px / 1 var(--oc-font-title); letter-spacing: 0.05em; color: #fff; }
 .oc-demo-join > * { position: relative; }
 .oc-demo-join-lit { position: absolute !important; inset: 0; transform: skewX(var(--oc-slant)); border: 1px solid var(--oc-hot); background: rgba(255, 106, 26, 0.12); box-shadow: 0 0 14px rgba(255, 106, 26, 0.45); opacity: 0; }
-.oc-demo-tail { display: inline-flex; align-items: baseline; gap: 8px; }
-.oc-demo-tail i { font: 700 16px / 1 var(--oc-font-ui); font-style: normal; color: var(--oc-label); }
+.oc-demo-tail { display: inline-flex; align-items: center; gap: 8px; }
 .oc-demo-tail em { font-style: italic; color: var(--oc-hot-2); }
 .oc-demo-link.is-still .oc-demo-join-lit { opacity: 0.6; }
 
@@ -1446,6 +1452,6 @@
   .oc-rw-stamp, .oc-rw-stamp-glow, .oc-rw-hero, .oc-rw-tie, .oc-rw-none { animation: none !important; }
   .oc-vic *, .oc-fs-row { animation: none !important; }
   .oc-vic .oc-sign-on, .oc-vic-rays { opacity: 1 !important; }
-  .oc-seq-glow, .oc-seq-chip.is-slot.is-filled > b, .oc-ans-seq-c.is-drop, .oc-cl-scale, .oc-cl-span, .oc-cl-mk, .oc-cl-gap, .oc-cl-room, .oc-np-fix b, .oc-np-field.oc-burst, .oc-np-field.oc-shake, .oc-np-field .oc-tile-bad, .oc-num-q.q-in > *, .oc-ml-glow, .oc-ml-cell > b, .oc-ml-words.q-in .oc-ml-word, .oc-ml-slot.oc-shake, .oc-link.is-wrong .oc-ml-slot::before, .oc-us-slot > b, .oc-us-slot, .oc-us-slots.oc-shake, .oc-us-tile.is-hit .oc-us-glow, .oc-ans-ml-join, .oc-ans-us-t { animation: none !important; }
+  .oc-seq-glow, .oc-seq-chip.is-slot.is-filled > b, .oc-ans-seq-c.is-drop, .oc-cl-scale, .oc-cl-span, .oc-cl-mk, .oc-cl-gap, .oc-cl-room, .oc-np-fix b, .oc-np-field.oc-burst, .oc-np-field.oc-shake, .oc-np-field .oc-tile-bad, .oc-num-q.q-in > *, .oc-ml-glow, .oc-ml-cell > b, .oc-ml-words.q-in .oc-ml-word, .oc-ml-slot.oc-shake, .oc-link.is-wrong .oc-ml-slot::before, .oc-us-slot > b, .oc-us-slot, .oc-us-slots.oc-shake, .oc-us-tile.is-hit .oc-us-glow, .oc-ans-ml-join, .oc-ans-ml-join .oc-join-glow, .oc-ans-ml-join .oc-join-core, .oc-ans-us-t { animation: none !important; }
   .oc-us-tile { transition: none; }
 }

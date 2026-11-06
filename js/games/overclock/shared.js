@@ -37,6 +37,11 @@ export const TURN_SVG = {
   A: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 40V20a10 10 0 0 1 20 0v14"/><path d="M26 28l8 8 8-8"/></svg>',
 };
 
+// THE NEUTRAL JOIN (OC3B — MISSING LINK): a clue and the link word joined by a short lit TUBE — no arrow, no direction (the bank doesn't
+// record which side the link goes: FIRE + WORK must never read "WORK → FIRE"). Glass ends, a white-hot core, a static glow under it (its
+// opacity is what animates). OC7 records the side per puzzle and shows the whole compound word.
+export const joinTube = () => h('i.oc-join', { 'aria-hidden': 'true' }, h('i.oc-join-glow'), h('i.oc-join-core'));
+
 // Buttons that react on touch-down (a click waits for the finger to lift — too slow for these).
 export const fastButton = (sel, attrs, onPress, ...kids) => h(sel, {
   type: 'button', dataset: { sfx: 'none', ...(attrs.dataset || {}) }, ...attrs,

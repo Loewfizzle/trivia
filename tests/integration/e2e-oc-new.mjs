@@ -1,5 +1,6 @@
-// OVERCLOCK's newer challenges end to end: TRUE OR FALSE (OC1's look + the combo + the after-challenge skip), TIMELINE, CLOSEST CALL, REWIRE
-// with N players (default 8). (LEXICON was cut in OC1.)
+// OVERCLOCK's newer challenges end to end: TRUE OR FALSE (OC1's look + the combo + the after-challenge skip), TIMELINE, CLOSEST CALL, REWIRE,
+// UNSCRAMBLE (OC3B — real finger taps on its tiles, slots, CLEAR + SHUFFLE; a wrong word + the right one) with N players (default 8).
+// (LEXICON was cut in OC1.)
 //   node e2e-oc-new.mjs "<browser path>" ./shots
 // The host's match order is set to open with those four (then the usual mix). Covers: rules cards,
 // identical puzzles on every phone, real UI play (taps on tiles / items / keypad / circuit tiles), scoring math
@@ -112,7 +113,7 @@ try {
   const EVE = N > 4 ? await evalIn(pages[4], s => s.uid) : null;
   await host.evaluate(eve => {
     const s = window.__arcade.state;
-    const first = ['truefalse', 'timeline', 'closest', 'rewire'];
+    const first = ['truefalse', 'timeline', 'closest', 'rewire', 'unscramble'];
     const order = [...first, ...s.game.order.filter(t => !first.includes(t))].slice(0, s.game.total);
     return import('/js/firebase.js').then(m => m.update(m.dbRef(`rooms/${s.code}/game`), { order, seen: { truefalse: true }, tq: {}, tUsed: 0, deal: null, dk: null, ...(eve ? { [`combo/${eve}`]: { c: 6, m: 6 } } : {}) }));
   }, EVE);
@@ -335,6 +336,87 @@ try {
   ok(Object.entries(r3).filter(([u]) => u !== uids[1]).every(([, r]) => r.ok < 1 && r.pts === Math.round(50 * r.ok)), 'REWIRE: partial credit for how far the power got');
   await sleep(800);
   await shotBoth(pages[1], 'o-15-standings');
+
+  // ---------------- 4b. UNSCRAMBLE with REAL TAPS (OC3B — OC3 checked its tiles on the preview only): a finger on the tiles fills the slots, a
+  // tap on a filled slot takes its letter back, CLEAR empties them, SHUFFLE moves the tiles (the letters kept); BOB submits a WRONG word (a red
+  // shake, then empty — nothing scored), then the RIGHT one (full + speed); CHARLIE only ever submits a wrong word; THE ANSWER says both
+  await waitPhase(pages[1], 'play', 4, 'unscramble play', 60000);
+  for (const i of alive()) await waitSpec(pages[i], 'unscramble');
+  const usAll = await Promise.all(alive().map(i => OC(pages[i], 'JSON.stringify(O.spec())')));
+  ok(usAll.every(x => x === usAll[0]), 'UNSCRAMBLE: the same letters on every phone');
+  const uSpec = JSON.parse(usAll[0]);
+  const W = uSpec.word;
+  // a wrong word: the same letters in an order the game refuses (not the word, not another real word)
+  const wrongW = await pages[1].evaluate(async word => {
+    const [{ unscrambleAccepts }, { isValidGuess }] = await Promise.all([import('/js/games/overclock/challenges.js'), import('/js/games/cipher/words.js')]);
+    const a = [...word], tries = [a.slice().reverse().join('')];
+    for (let k = 1; k < a.length; k++) tries.push(word.slice(k) + word.slice(0, k));
+    for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) { const b = a.slice(); [b[i], b[j]] = [b[j], b[i]]; tries.push(b.join('')); }
+    return tries.find(t => !unscrambleAccepts(t, word, isValidGuess)) || null;
+  }, W);
+  ok(!!wrongW, `UNSCRAMBLE: a wrong arrangement to submit (${W} → ${wrongW})`);
+  // a real finger (CDP touch) on the n-th match of a selector; on the first free tile of a letter
+  const tapNth = async (page, sel, nth = 0) => { const els = await page.$$(sel); if (!els[nth]) fail(`no ${sel}[${nth}]`); await els[nth].tap(); };
+  const tapLetter = async (page, ch) => {
+    const idx = await page.evaluate(c => [...document.querySelectorAll('.oc-us-tile')].findIndex(b => b.dataset.ch === c && !b.classList.contains('is-used')), ch);
+    if (idx < 0) fail(`UNSCRAMBLE: no free tile "${ch}"`);
+    await tapNth(page, '.oc-us-tile', idx);
+  };
+  const usState = page => page.evaluate(() => ({
+    filled: [...document.querySelectorAll('.oc-us-slot')].map(s => s.textContent).join(''),
+    used: document.querySelectorAll('.oc-us-tile.is-used').length,
+    tiles: [...document.querySelectorAll('.oc-us-tile')].map(b => b.dataset.ch).join(''),
+    bad: !!document.querySelector('.oc-us-slots.is-bad'),
+  }));
+  const UP = s => String(s).toUpperCase();
+  const sorted = s => [...s].sort().join('');
+  ok(await pages[1].evaluate(() => !document.querySelector('.screen.oc input, .screen.oc textarea')), 'UNSCRAMBLE: no input element (its own tiles — never the system keyboard)');
+  await tapLetter(pages[1], W[0]);
+  await tapLetter(pages[1], W[1]);
+  let u = await usState(pages[1]);
+  ok(u.filled === UP(W.slice(0, 2)) && u.used === 2, `UNSCRAMBLE: two tile taps fill the first two slots (${u.filled}, ${u.used} tiles used)`);
+  await sleep(150);
+  await shotBoth(pages[1], 'o-15b-unscramble-play');
+  await tapNth(pages[1], '.oc-us-slot', 0);
+  u = await usState(pages[1]);
+  ok(u.filled === UP(W[1]) && u.used === 1, `UNSCRAMBLE: a tap on a filled slot takes its letter back (${u.filled}, ${u.used} used)`);
+  await tapNth(pages[1], '.oc-us-key.is-clear');
+  u = await usState(pages[1]);
+  ok(u.filled === '' && u.used === 0, 'UNSCRAMBLE: CLEAR empties every slot + brings every tile back');
+  await tapLetter(pages[1], W[0]);
+  const tilesBefore = (await usState(pages[1])).tiles;
+  let tilesAfter = tilesBefore;
+  for (let k = 0; k < 6 && tilesAfter === tilesBefore; k++) { await tapNth(pages[1], '.oc-us-key.is-shuffle'); tilesAfter = (await usState(pages[1])).tiles; }
+  u = await usState(pages[1]);
+  ok(tilesAfter !== tilesBefore && sorted(tilesAfter) === sorted(tilesBefore) && u.filled === UP(W[0]) && u.used === 1, `UNSCRAMBLE: SHUFFLE moves the tiles, keeps the letters + the slot you filled (${tilesBefore} → ${tilesAfter})`);
+  await tapNth(pages[1], '.oc-us-key.is-clear');
+  // the wrong word: a red shake, then the slots empty — nothing scored
+  for (const ch of wrongW) await tapLetter(pages[1], ch);
+  ok((await usState(pages[1])).bad, 'UNSCRAMBLE: a wrong word shakes red');
+  await pages[1].waitForFunction(() => !document.querySelector('.oc-us-slots.is-bad') && ![...document.querySelectorAll('.oc-us-slot')].some(s => s.textContent), { timeout: 3000, polling: 30 });
+  ok((await OC(pages[1], 'O.state().ok')) === 0 && !(await OC(pages[1], 'O.state().done')), 'UNSCRAMBLE: the wrong word empties the slots, nothing scored');
+  // the right word
+  for (const ch of W) await tapLetter(pages[1], ch);
+  await waitFor(pages[1], () => window.__oc.state().done && window.__oc.state().ok === 1, 'BOB unscrambled it', 5000);
+  ok(true, 'UNSCRAMBLE: the right word, tapped tile by tile, solves it');
+  // CHARLIE: a wrong word only (his last guess = YOUR PICK); everyone else types the word on a COMPUTER keyboard
+  const CH = N > 2 ? 2 : -1;
+  if (CH > 0) for (const ch of wrongW) await tapLetter(pages[CH], ch);
+  for (const i of alive().filter(i => i !== 1 && i !== CH)) await pages[i].keyboard.type(W);
+  await waitPhase(pages[1], 'standings', 4, 'unscramble standings', 45000);
+  const ansOf = (page, word) => page.waitForFunction(w => {
+    const a = document.querySelector('.oc-beat-answer.is-on .gk-answer');
+    if (!a) return null;
+    const pick = a.querySelector('.gk-pick-text');
+    return JSON.stringify({ right: a.classList.contains('is-right'), wrong: a.classList.contains('is-wrong'), word: (a.querySelector('.oc-ans-us') || {}).textContent, pick: pick && pick.textContent, you: !!a.querySelector('.gk-you') });
+  }, { timeout: 4000, polling: 50 }, word).then(h => h.jsonValue()).then(JSON.parse).catch(() => null);
+  const [aBob, aCh] = await Promise.all([ansOf(pages[1]), CH > 0 ? ansOf(pages[CH]) : null]);
+  ok(aBob && aBob.right && aBob.you && aBob.word === UP(W), `UNSCRAMBLE — THE ANSWER on BOB's phone: ${UP(W)} white-hot + YOU (${JSON.stringify(aBob)})`);
+  if (CH > 0) ok(aCh && aCh.wrong && aCh.word === UP(W) && aCh.pick === UP(wrongW), `UNSCRAMBLE — THE ANSWER on CHARLIE's phone: his ${UP(wrongW)} struck under ${UP(W)} (${JSON.stringify(aCh)})`);
+  await shotBoth(pages[CH > 0 ? CH : 1], 'o-15c-unscramble-answer');
+  const r4 = await evalIn(pages[1], s => s.game.results[4]);
+  ok(r4[uids[1]].ok === 1 && r4[uids[1]].pts > 100, `UNSCRAMBLE: BOB's right word = full + speed (${r4[uids[1]].pts}), the wrong one cost nothing`);
+  if (CH > 0) ok(r4[uids[CH]].ok === 0 && r4[uids[CH]].pts === 0, `UNSCRAMBLE: CHARLIE's wrong word only = 0 (${r4[uids[CH]].pts})`);
 
   // ---------------- 5. THE END OF THE MATCH (OC2): the host jumps the match to its LAST challenge (a TRUE OR FALSE), everyone plays it, then
   // the final's beats — the last round's answer → its round winner → the standings → FINAL STANDINGS → THE VICTORY (the console's frame +

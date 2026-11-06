@@ -3,10 +3,11 @@
 //   PATTERN LOCK: a short sequence fills itself in chip by chip, the step shows between them (+3), then the next number DROPS into the
 //                 glowing slot.
 //   MISSING LINK: three clue words come in, the link TYPES ITSELF into the slot letter by letter, then the three JOINS light up one by one
-//                 (SUN → FLOWER · CORN → FLOWER · WALL → FLOWER).
+//                 (SUN ═ FLOWER · CORN ═ FLOWER · WALL ═ FLOWER — OC3B: a lit tube joins them, never an arrow: it can't read backwards).
 // Each piece runs its OWN keyframes on ONE shared 3-s loop (the Web Animations API — transform + opacity only, on the compositor), so every
 // piece's timing is exact whatever the others do. Reduced motion: the finished picture, still.
 import { h, reducedMotion } from '../../ui/dom.js';
+import { joinTube } from './shared.js';
 
 export const DEMO_MS = 3000;
 const HIDE = { opacity: 0, transform: 'translateY(10px)' }, SHOW = { opacity: 1, transform: 'none' };
@@ -50,12 +51,12 @@ export function patternDemo() {
   });
 }
 
-/** MISSING LINK: SUN · CORN · WALL — FLOWER types itself into the slot, then each clue's join (→ FLOWER) slides in + lights */
+/** MISSING LINK: SUN · CORN · WALL — FLOWER types itself into the slot, then each clue's join (a lit tube + FLOWER) slides in + lights */
 export function linkDemo() {
   const WORDS = ['SUN', 'CORN', 'WALL'], LINK = 'FLOWER';
   const lines = WORDS.map(w => {
     const lit = h('i.oc-demo-join-lit');
-    const tail = h('span.oc-demo-tail', h('i', '→'), h('em', LINK));
+    const tail = h('span.oc-demo-tail', joinTube(), h('em', LINK));
     return { el: h('span.oc-demo-join', lit, h('b', w), tail), lit, tail };
   });
   const letters = [...LINK].map(ch => h('b', ch));
