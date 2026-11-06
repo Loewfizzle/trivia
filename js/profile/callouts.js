@@ -96,7 +96,7 @@ export function attachCallouts(code, game) {
   function openTheMoment(o) {
     const night = (state.night && Object.keys(state.night).length) || 1;
     const me = loadMe();
-    import('../progress/moment.js').then(m => { if (!destroyed) return m.openMoment(o, { game: game.id, match: night, name: (me && me.profile && me.profile.n) || '' }).then(x => { moment = x; }); }).catch(() => {});
+    import('../progress/moment.js').then(m => { if (!destroyed) return m.openMoment(o, { game: game.id, match: night, name: (me && me.profile && me.profile.n) || '', avatar: me && me.profile && me.profile.a, color: me && me.profile && me.profile.c }).then(x => { moment = x; }); }).catch(() => {});
   }
 
   function plaque(p) {

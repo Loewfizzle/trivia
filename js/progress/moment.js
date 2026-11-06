@@ -21,23 +21,41 @@ const ordinal = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'TH' : ['TH', 'ST',
 
 /** What a placing reads as. */
 export function placeLine(o) {
+  // (OVERCLOCK CARDS' ADD-ON — the owner's iPhone, Nov 5 10:54 pm: a SOLO run read "DEADLOCK · One players · nobody blinked")
+  if (o.solo || o.n === 1) return { place: 'SOLO RUN', sub: o.score != null ? `Just you · ${num(o.score)} points` : 'Just you' };
   const n = o.n || 2, r = o.rank || n;
   const place = o.win ? '1ST PLACE' : r === 1 ? 'DEADLOCK' : PLACE[r] || `${ordinal(r)} PLACE`;
-  const who = `${WORDS[n] || n} players`;
+  const who = `${WORDS[n] || n} ${n === 1 ? 'player' : 'players'}`;
   const sub = o.win ? 'the room is yours' : r === 1 ? 'nobody blinked' : r === 2 ? 'one step off the top' : r === n ? 'there’s always the next round' : 'in the mix';
   return { place, sub: `${who} · ${sub}` };
 }
 
-/** A small picture of an item (a card's palette, a glow on a name, an emblem's glyph, a tube, the flame). */
-export function itemSwatch(id, name = 'YOU') {
+/** A picture of an item — THE REAL THING (OVERCLOCK CARDS' ADD-ON, the owner: HOUSE WARMING's key "looks really bad" as a boxed glyph): one
+ *  square tile for every kind — an emblem = the vault's own emblem (its shape + finish), a card = a mini of the card's real art (its material;
+ *  approved art only — else its palette), a glow = letters of your name in it, a tube style = your shape in that tube, the flame. The vault's
+ *  pieces load on demand (the tile shows at once; its picture lands a beat later). who = { avatar, color } for the shape a tube style shows. */
+export function itemSwatch(id, name = 'YOU', who = {}) {
   const it = ITEM[id];
   if (!it) return h('span.pg-sw');
-  if (it.kind === 'card') return h('span.pg-sw.is-card', { style: cardVars(id) }, h('i'));
-  if (it.kind === 'glow') return h('span.pg-sw.is-glow', h('b', { class: glowClass(id) }, name.slice(0, 3)));
-  if (it.kind === 'emblem') return h('span.pg-sw.is-emb', h('b', it.glyph || '◆'));
-  if (it.kind === 'flame') return h('span.pg-sw.is-flame', flameIcon('lit', 22));
-  if (it.kind === 'tube') return h('span.pg-sw.is-tube', h('i'));
-  return h('span.pg-sw.is-favor', h('b', '✦'));
+  const tile = h('span.pg-sw', { class: `is-${it.kind}`, dataset: { item: id } });
+  const fill = (load, make, fallback) => { if (fallback) tile.append(fallback); load().then(m => { const el = make(m); if (el) tile.replaceChildren(el); }).catch(() => { /* the fallback stays */ }); };
+  const sheet = () => import('../vault/sheet.js').then(S => S.vaultSheet());
+  const avatar = who.avatar || 'diamond', color = who.color || 'magenta';
+  if (it.kind === 'card') {
+    // (the palette first; the art once it's known to be approved — the same rule as every other place a card shows)
+    fill(() => Promise.all([import('../vault/strip.js'), import('../vault/approved.js').then(A => A.approvedIds()), sheet()]),
+      ([S, ok]) => { const look = S.LOOKS[id]; return look && ok.has(id) ? h('span.pg-sw-card.is-art', { class: `vl-s-${look.mat} vl-fcm-${look.mat}` }, h('i.vl-mat')) : null; },
+      h('span.pg-sw-card', { style: cardVars(id) }, h('i')));
+  } else if (it.kind === 'emblem') {
+    fill(() => Promise.all([import('../vault/emblem-art.js'), sheet()]), ([E]) => (E.hasArt(id) ? E.emblemEl({ id, avatar, color, mode: 'lead', size: 42 }) : null), h('b.pg-sw-glyph', it.glyph || '◆'));
+  } else if (it.kind === 'glow') {
+    const b = h('b', { class: glowClass(id) }, name.slice(0, 3));
+    fill(() => Promise.all([import('../vault/glows.js'), sheet()]), ([G]) => G.applyGlow(h('b', name.slice(0, 3)), id), b);
+  } else if (it.kind === 'tube') {
+    fill(() => Promise.all([import('../vault/emblem-art.js'), sheet()]), ([E]) => E.emblemEl({ avatar, color, tube: id, mode: 'lead', size: 42 }), h('i'));
+  } else if (it.kind === 'flame') tile.append(flameIcon('lit', 30));
+  else tile.append(h('b', '✦'));
+  return tile;
 }
 
 let open = null;
@@ -91,11 +109,11 @@ export async function openMoment(o, ctx = {}) {
   //  THE VAULT 1B's rule, tests/vault-names.test.mjs — so the line alone)
   const teaseRow = tease ? h('div.pg-box.pg-tease', h('b', `NEXT UNLOCK AT LEVEL ${tease}`)) : null;
   const achRows = ach.map(a => h('div.pg-box.pg-ach', { dataset: { id: a.id } },
-    itemSwatch(a.item, ctx.name),
+    itemSwatch(a.item, ctx.name, ctx),
     h('div', h('small', 'ACHIEVEMENT'), h('b', a.name), h('span', a.line), h('em.pg-pct', { dataset: { a: a.id } }))));
   // what the match unlocked besides an achievement's own item (the level's rewards — also shown big in the level-up —, the streak's milestones)
   const unlockRows = (o.items || []).filter(id => !ach.some(a => a.item === id) && ITEM[id] && id !== 'card-gilded').slice(0, 2)
-    .map(id => h('div.pg-box.pg-unl', itemSwatch(id, ctx.name), h('div', h('small', `UNLOCKED · ${TIER_NAMES[ITEM[id].tier]}`), h('b', ITEM[id].name), h('span', ITEM[id].line), h('em.pg-pct', { dataset: { i: id } }))));
+    .map(id => h('div.pg-box.pg-unl', itemSwatch(id, ctx.name, ctx), h('div', h('small', `UNLOCKED · ${TIER_NAMES[ITEM[id].tier]}`), h('b', ITEM[id].name), h('span', ITEM[id].line), h('em.pg-pct', { dataset: { i: id } }))));
   // (the owner's PROGRESSION A review: the whole moment FITS ONE SCREEN — the first unlock / achievement shows, the rest fold into
   //  "+N MORE" (a tap opens them in place); CONTINUE sits in the flow at the bottom, never pinned)
   const folded = [...unlockRows, ...achRows].slice(1);

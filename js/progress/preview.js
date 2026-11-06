@@ -39,14 +39,16 @@ export function sampleProfile(q = new URLSearchParams()) {
 }
 /** the outcome a match gives (the server's shape): 2nd of 4, a level-up 24 → 25 (its reward: `card-champagne`), the streak, TOP SHELF (+ BRUSHED GOLD) */
 export function sampleOutcome(q = new URLSearchParams()) {
-  const up = q.get('up') !== '0';
+  // (OVERCLOCK CARDS' ADD-ON: &solo=1 = a SOLO run (n 1, rank 1, no win) · &ach=house-warming,redline · &items=glow-ice,tube-gold — what the
+  //  after-match screen shows, scripted)
+  const up = q.get('up') !== '0', solo = q.get('solo') === '1', list = k => (q.get(k) ? q.get(k).split(',').filter(Boolean) : null);
   const from = up ? XP_AT[25] - 140 : XP_AT[23] + 200, gain = 175;
   return {
-    gid: 'prism', rank: 2, win: false, n: 4,
+    gid: solo ? 'overclock' : 'prism', rank: solo ? 1 : 2, win: false, n: solo ? 1 : 4, ...(solo ? { solo: true } : {}),
     xp: { gain, from, to: from + gain, parts: [{ k: 'played', label: 'MATCH PLAYED', v: 50 }, { k: 'place', label: '2ND PLACE', v: 60 }, { k: 'pb', label: 'PERSONAL BEST', v: 40 }, { k: 'new', label: 'NEW GAME TONIGHT', v: 25 }] },
     lv: { from: up ? 24 : 23, to: up ? 25 : 23 },
-    items: up ? ['card-champagne', 'card-brushed'] : ['card-brushed'],
-    ach: ['top-shelf'],
+    items: list('items') || (up ? ['card-champagne', 'card-brushed'] : ['card-brushed']),
+    ach: list('ach') || ['top-shelf'],
     st: sampleStreak(Number(q.get('streak') || 7), 'lit'),
     sev: { first: true, frozen: [], milestones: [] },
   };

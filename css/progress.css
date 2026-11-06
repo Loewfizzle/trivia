@@ -35,13 +35,22 @@
 .pg-flame.is-ignite svg { animation: pg-ignite 0.7s ease-out both; }
 @keyframes pg-ignite { 0% { transform: scale(0.6); opacity: 0.2; } 45% { transform: scale(1.18); opacity: 1; } 70% { transform: scale(0.94); } 100% { transform: scale(1); } }
 
-.pg-sw { flex: none; display: grid; place-items: center; width: 54px; height: 36px; border-radius: 6px; border: 1px solid rgba(216, 180, 106, 0.55); background: rgba(255, 255, 255, 0.03); color: var(--pg-cream); }
-.pg-sw.is-card { background: linear-gradient(135deg, var(--lac) 0%, var(--lac) 46%, color-mix(in srgb, var(--foil) 40%, var(--lac)) 100%); border-color: var(--foil); }
-.pg-sw.is-card i { width: 70%; height: 3px; border-radius: 2px; background: var(--foil); opacity: 0.85; box-shadow: 0 0 6px var(--acc); }
-.pg-sw.is-glow b { font: 800 15px/1 var(--font-ui); letter-spacing: 0.06em; }
-.pg-sw.is-emb b { font: 400 22px/1 system-ui, sans-serif; color: #ffe9f6; text-shadow: 0 0 6px var(--pg-pink), 0 0 14px rgba(255, 79, 184, 0.6); }
-.pg-sw.is-tube i { width: 70%; height: 4px; border-radius: 3px; background: linear-gradient(90deg, #ff4fb8, #4fe3ff); box-shadow: 0 0 8px #ff4fb8; }
-.pg-sw.is-favor b { color: var(--pg-brass-hi); font-size: 20px; }
+.pg-sw { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 10px; border: 1px solid rgba(216, 180, 106, 0.45);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 70%), #0b0912; color: var(--pg-cream); overflow: hidden; }
+/* (OVERCLOCK CARDS' ADD-ON — the REAL item in one square tile: the vault's emblem (42 pt), a mini of the card's art, your name in the glow, your
+   shape in the tube style, the flame) */
+.pg-sw .ve { width: 42px; height: 42px; }
+.pg-sw.is-card { width: 86px; }   /* (a card's tile takes the card's own shape: its mini readable on the phone) */
+.pg-sw-card { position: relative; display: grid; place-items: center; width: 78px; aspect-ratio: 1.586; border-radius: 6px; overflow: hidden;
+  background: linear-gradient(135deg, var(--lac) 0%, var(--lac) 46%, color-mix(in srgb, var(--foil) 40%, var(--lac)) 100%); box-shadow: 0 0 0 1px var(--foil, rgba(216, 180, 106, 0.6)), 0 2px 6px rgba(0, 0, 0, 0.6); }
+.pg-sw-card > i:not(.vl-mat) { width: 70%; height: 3px; border-radius: 2px; background: var(--foil); opacity: 0.85; box-shadow: 0 0 6px var(--acc); }
+.pg-sw-card.is-art { box-shadow: 0 0 0 1px rgba(216, 180, 106, 0.7), 0 2px 6px rgba(0, 0, 0, 0.6); }
+.pg-sw-card.is-art > .vl-mat { border-radius: 5px; }
+.pg-sw.is-glow { display: flex; align-items: center; justify-content: center; }
+.pg-sw.is-glow b { display: block; font: 800 17px/1 var(--font-ui); letter-spacing: 0.04em; margin: 0; }
+.pg-sw-glyph { font: 400 26px/1 system-ui, sans-serif; color: #ffe9f6; text-shadow: 0 0 6px var(--pg-pink), 0 0 14px rgba(255, 79, 184, 0.6); }
+.pg-sw.is-tube > i { width: 70%; height: 4px; border-radius: 3px; background: linear-gradient(90deg, #ff4fb8, #4fe3ff); box-shadow: 0 0 8px #ff4fb8; }
+.pg-sw.is-favor b { color: var(--pg-brass-hi); font-size: 22px; }
 
 .pg-btn { margin-top: 12px; }   /* (SHELL 2.0 A: CONTINUE is THE NEON TUBE's main — the gold foil left the button; the card keeps its gold) */
 
