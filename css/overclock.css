@@ -1240,9 +1240,118 @@
 .oc-sb-row.is-me .oc-sb-score { color: var(--oc-hot); }
 .oc-sb-row.is-first .lb-rank { color: var(--oc-hot); }
 
+/* ---------------- THE END OF THE MATCH (OC2): the last round's beats + FINAL STANDINGS (view.js#buildFinal) — a SKIP › footer for this phone */
+.oc-fin-arrow { font-style: normal; color: var(--oc-hot-2); }
+.oc-fin .oc-next-l, .oc-fin .oc-fin-l { font: italic 900 20px / 1 var(--oc-font-title); letter-spacing: 0.03em; }
+.oc-fs { flex: 1; display: flex; flex-direction: column; gap: 10px; padding-top: 2px; }
+.oc-fs-k { display: flex; justify-content: space-between; align-items: baseline; padding-right: 52px; font: italic 900 26px / 1 var(--oc-font-title); letter-spacing: 0.03em; color: #fff; }
+.oc-fs-k .oc-sb-of { font: 700 11px / 1 var(--oc-font-ui); letter-spacing: 0.2em; color: var(--oc-label); }
+.oc-fs-list { display: flex; flex-direction: column; gap: 6px; }
+.oc-fs-row { position: relative; display: flex; align-items: center; height: 46px; }
+.oc-fs-row > * { position: relative; }
+.oc-fs.is-racing .oc-fs-row { animation: oc-race-in 0.42s cubic-bezier(0.2, 0.9, 0.3, 1) both; animation-delay: calc(var(--i) * 90ms); }
+@keyframes oc-race-in { from { opacity: 0; transform: translateX(-70px); } to { opacity: 1; transform: none; } }
+/* the top three: the OVERDRIVE edges — gold-orange, steel, bronze (a slanted edge + a lit rank, no medals) */
+.oc-od .oc-fs-row.is-p1::before { border: 2px solid #ffb347; background: linear-gradient(180deg, #3a2a14, #22180c); box-shadow: inset 0 0 18px rgba(255, 170, 60, 0.22); }
+.oc-od .oc-fs-row.is-p2::before { border: 2px solid #c3cad8; background: linear-gradient(180deg, #2b303b, #1b1e26); }
+.oc-od .oc-fs-row.is-p3::before { border: 2px solid #cd8a52; background: linear-gradient(180deg, #2e2219, #1d1610); }
+.oc-od .oc-fs-row.is-me::before { border-color: var(--oc-hot); }
+.oc-fs-row.is-p1 .lb-rank { color: #ffb347; } .oc-fs-row.is-p2 .lb-rank { color: #d9dfea; } .oc-fs-row.is-p3 .lb-rank { color: #e39a62; }
+.oc-fs-wins { flex: none; display: flex; flex-direction: column; align-items: center; min-width: 54px; gap: 2px; }
+.oc-fs-wins b { font: italic 900 20px / 1 var(--oc-font-title); color: #fff; }
+.oc-fs-wins small { font: 700 8px / 1 var(--oc-font-ui); letter-spacing: 0.14em; color: var(--oc-label); }
+.oc-fs-total { flex: none; min-width: 64px; text-align: right; font: italic 900 24px / 1 var(--oc-font-title); color: #fff; font-variant-numeric: tabular-nums; }
+.oc-fs-row.is-me .oc-fs-total { color: var(--oc-hot); }
+.oc-fs-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.oc-fs-bw { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 9px 12px 10px; }
+.oc-fs-bw::before { content: ''; position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #232733, #171a22); border: 1px solid rgba(255, 255, 255, 0.12); }
+.oc-fs-bw.is-best::before { border-color: rgba(46, 139, 255, 0.7); }
+.oc-fs-bw > * { position: relative; }
+.oc-fs-bw-k { font: 700 10px / 1 var(--oc-font-ui); letter-spacing: 0.2em; color: var(--oc-label); }
+.oc-fs-bw.is-best .oc-fs-bw-k { color: #8fc0ff; }
+.oc-fs-bw b { font: italic 900 18px / 1.05 var(--oc-font-title); color: #fff; }
+.oc-fs-bw-v { font: italic 900 16px / 1 var(--oc-font-title); color: var(--oc-hot-2); }
+.oc-fs-bw-v small { font: 700 9px / 1 var(--oc-font-ui); letter-spacing: 0.1em; color: var(--oc-label); font-style: normal; }
+
+/* ---------------- THE VICTORY BODY (OC2 — victory.js#finalScene, inside the console's podium frame) */
+/* the frame's own WINNER line is drawn by our body (the stamp + the sign) — the duplicate stays hidden */
+.oc-od .final:has(> .final-body[data-game='overclock']) > .winner { display: none; }
+.oc-od .final:has(> .final-body[data-game='overclock'])::before { display: none; }
+.oc-vic { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 4px; isolation: isolate; }
+/* the rays: ONE pre-rendered layer turning slowly (transform only), masked to a soft disc behind the sign */
+.oc-vic-rays { position: absolute; left: 50%; top: 92px; width: 640px; height: 640px; margin: -320px 0 0 -320px; z-index: -1; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 140, 60, 0.2) 0deg 5deg, rgba(255, 140, 60, 0) 5deg 15deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.55) 26%, transparent 58%); mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.55) 26%, transparent 58%);
+  opacity: 0; animation: oc-rays-in 1.2s ease-out 0.2s forwards, oc-rays 46s linear infinite; will-change: transform; }
+@keyframes oc-rays-in { to { opacity: 1; } }
+@keyframes oc-rays { to { transform: rotate(360deg); } }
+.oc-vic-title { position: relative; font: italic 900 clamp(38px, 11.5vw, 50px) / 0.9 var(--oc-font-title); letter-spacing: 0.02em; color: #fff; background: linear-gradient(180deg, #fff 30%, #ffc79c 60%, #ff8a3d); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.oc-vic-stamp { position: relative; padding: 6px 20px 5px; transform: skewX(var(--oc-slant)) rotate(-3deg); background: linear-gradient(180deg, #ff8a3d, #ff6a1a 55%, #e2560c); border: 2px solid rgba(255, 226, 200, 0.75); }
+.oc-vic-stamp b { position: relative; display: block; font: italic 900 24px / 1 var(--oc-font-title); letter-spacing: 0.06em; color: var(--oc-hot-ink); white-space: nowrap; }
+.oc-vic-stamp-glow { position: absolute; inset: -8px; box-shadow: 0 0 26px 4px rgba(255, 106, 26, 0.55); opacity: 0.6; pointer-events: none; }
+.oc-vic-stamp.is-solo:not(.is-pb) { background: linear-gradient(180deg, #2c313d, #1a1e27); border-color: rgba(255, 255, 255, 0.3); }
+.oc-vic-stamp.is-solo:not(.is-pb) b { color: #fff; }
+.oc-vic-stamp.is-solo:not(.is-pb) .oc-vic-stamp-glow { opacity: 0; }
+.oc-vic:not(.is-still) .oc-vic-stamp { animation: oc-stamp 0.42s cubic-bezier(0.2, 1.3, 0.35, 1) 0.15s both; }
+.oc-vic:not(.is-still) .oc-vic-title { animation: oc-rise 0.4s ease-out both; }
+/* THE SIGN: each letter's unlit glass always there; its lit tube a layer that FLICKERS ON in sequence (opacity only), then holds */
+.oc-sign { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; padding: 6px 0 2px; }
+.oc-sign-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.oc-sign-line { --h: min(66px, calc((100vw - 56px) * 14 / var(--n)), calc((min(100vw, 520px) - 56px) * 14 / var(--n))); display: flex; align-items: flex-end; gap: calc(var(--h) * 2 / 14); height: var(--h); }
+.oc-sign-ch { position: relative; width: calc(var(--h) * 10 / 14); height: var(--h); }
+.oc-sign-gap { width: calc(var(--h) * 5 / 14); }
+.oc-sign-off, .oc-sign-on { position: absolute; inset: calc(var(--h) * -2.2 / 14) calc(var(--h) * -2.2 / 14); }
+.oc-sign-off svg, .oc-sign-on svg { display: block; width: 100%; height: 100%; overflow: visible; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.oc-tube-glass { stroke: rgba(255, 255, 255, 0.07); stroke-width: 2.4; }
+.oc-tube-dead { stroke: rgba(210, 220, 240, 0.22); stroke-width: 1.15; }
+.oc-tube-glow { stroke: var(--tube); stroke-width: 3.6; opacity: 0.75; }
+.oc-tube-body { stroke: var(--tube); stroke-width: 1.5; }
+.oc-tube-core { stroke: #fff; stroke-width: 0.6; opacity: 0.88; }
+.oc-sign-on { opacity: 1; will-change: opacity; }
+.oc-vic:not(.is-still) .oc-sign-on { opacity: 0; animation: oc-tube-on 0.6s linear calc(var(--d0, 500ms) + var(--i) * var(--st, 85ms)) forwards; }
+@keyframes oc-tube-on { 0% { opacity: 0; } 9% { opacity: 0.85; } 15% { opacity: 0.08; } 26% { opacity: 1; } 33% { opacity: 0.25; } 44% { opacity: 1; } 52% { opacity: 0.7; } 60%, 100% { opacity: 1; } }
+.oc-vic-score { display: flex; align-items: baseline; gap: 8px; }
+.oc-vic-score-n { font: italic 900 clamp(34px, 10vw, 42px) / 0.9 var(--oc-font-title); color: var(--oc-hot); font-variant-numeric: tabular-nums; }
+.oc-vic-score span { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.22em; color: var(--oc-label); }
+/* SOLO: the score is the hero */
+.oc-vic-solo { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 0 6px; }
+.oc-vic-solo-n { font: italic 900 clamp(72px, 22vw, 96px) / 0.85 var(--oc-font-title); color: var(--oc-hot); font-variant-numeric: tabular-nums; }
+.oc-vic-solo-k { font: 700 13px / 1 var(--oc-font-ui); letter-spacing: 0.3em; color: var(--oc-label); }
+.oc-vic-best { min-height: 14px; font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.2em; color: var(--oc-label); }
+/* THE PODIUM 2-1-3 on the slim cards: the top step full width (gold-orange), 2nd lower LEFT (steel), 3rd lower RIGHT (bronze) — they slam up
+   3rd → 2nd → 1st; a tie at the top shares the top step */
+.oc-vic-podium { width: 100%; }
+.oc-vic-pod-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.oc-vic-pod-list .oc-vic-step { position: relative; animation: none; }
+.oc-vic-step.is-p1 { width: 100%; }
+.oc-vic-step.is-p2 { width: 88%; align-self: flex-start; }
+.oc-vic-step.is-p3 { width: 88%; align-self: flex-end; }
+.oc-vic-step .lb-rank { display: grid; place-items: center; min-width: 30px; height: 36px; font: italic 900 22px / 1 var(--oc-font-title) !important; color: var(--oc-hot-ink) !important; transform: skewX(var(--oc-slant)); }
+.oc-vic-step.is-p1 .lb-rank { background: linear-gradient(180deg, #ffd18a, #ffb347 55%, #e08a1c); box-shadow: 0 0 14px rgba(255, 170, 60, 0.45); }
+.oc-vic-step.is-p2 .lb-rank { background: linear-gradient(180deg, #f2f5fa, #c3cad8 55%, #98a1b3); }
+.oc-vic-step.is-p3 .lb-rank { background: linear-gradient(180deg, #f0b98d, #cd8a52 55%, #9e5f2c); }
+.oc-vic:not(.is-still) .oc-vic-step { animation: oc-slam-up 0.5s cubic-bezier(0.2, 1.25, 0.35, 1) both; animation-delay: calc(1.7s + var(--k) * 0.22s); }
+@keyframes oc-slam-up { from { opacity: 0; transform: translateY(46px) scale(0.94); } to { opacity: 1; transform: none; } }
+/* THE AWARD CHIPS */
+.oc-vic-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; width: 100%; }
+.oc-vic-chip { position: relative; display: flex; flex-direction: column; gap: 5px; padding: 9px 12px 10px; }
+.oc-vic-chip::before { content: ''; position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #262b37, #171a22); border: 1px solid rgba(46, 139, 255, 0.55); }
+.oc-vic-chip.is-me::before { border-color: var(--oc-hot); }
+.oc-vic-chip > * { position: relative; }
+.oc-vic-chip-k { font: 700 10px / 1 var(--oc-font-ui); letter-spacing: 0.22em; color: #8fc0ff; }
+.oc-vic-chip.is-me .oc-vic-chip-k { color: var(--oc-hot-2); }
+.oc-vic-chip-v { font: italic 900 24px / 1 var(--oc-font-title); color: #fff; }
+.oc-vic-chip-v small { font: 700 9px / 1 var(--oc-font-ui); letter-spacing: 0.12em; color: var(--oc-label); font-style: normal; }
+.oc-vic-chip-who { display: flex; align-items: center; gap: 7px; font: 700 13px / 1 var(--oc-font-ui); color: #fff; }
+.oc-vic:not(.is-still) .oc-vic-chips { animation: oc-rise 0.4s ease-out 2.6s both; }
+.oc-vic:not(.is-still) .oc-vic-score, .oc-vic:not(.is-still) .oc-vic-solo { animation: oc-rise 0.4s ease-out 0.9s both; }
+.oc-vic.is-still .oc-vic-rays { opacity: 1; animation: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .oc-bg-haze, .oc-combo.is-pop, .oc-combo.is-in, .oc-combo.is-ignite, .oc-combo-flare, .oc-score-n.oc-bump, .oc-fx-streak, .oc-fx-streak i, .oc-ring, .oc-crack, .oc-tile.oc-burst, .oc-tf-btn.oc-burst, .oc-tile.oc-shake, .oc-tf-btn.oc-shake, .oc-tile-bad { animation: none !important; }
   .oc-crack { opacity: 0.62; }
   .oc-beat, .oc-sb-row, .oc-sb-move { transition: none !important; }
   .oc-rw-stamp, .oc-rw-stamp-glow, .oc-rw-hero, .oc-rw-tie, .oc-rw-none { animation: none !important; }
+  .oc-vic *, .oc-fs-row { animation: none !important; }
+  .oc-vic .oc-sign-on, .oc-vic-rays { opacity: 1 !important; }
 }

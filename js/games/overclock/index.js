@@ -92,4 +92,8 @@ export const step = (game, { code, now, live, online }) => {
 
 export const finalRanks = game => ocStandings(game).map(r => ({ uid: r.uid, rank: r.rank }));
 
+// THE VICTORY BODY (OC2 — contract D8): the console's podium frame (ui/final.js) draws this inside itself — OVERCLOCKED, the neon-tube winner,
+// the podium on the slim cards, the award chips; SOLO's score. victory.js
+export { finalScene } from './victory.js';
+
 // (THE CARTRIDGE PLUG's chat lock + BANNER_NAME + LOOKS: meta.js)

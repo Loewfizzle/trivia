@@ -334,6 +334,59 @@ try {
   await sleep(800);
   await shotBoth(pages[1], 'o-15-standings');
 
+  // ---------------- 5. THE END OF THE MATCH (OC2): the host jumps the match to its LAST challenge (a TRUE OR FALSE), everyone plays it, then
+  // the final's beats — the last round's answer → its round winner → the standings → FINAL STANDINGS → THE VICTORY (the console's frame +
+  // OUR body); one phone SKIPs ahead alone; a refresh lands on the right beat; the host dies during the final standings
+  {
+    const hp = await hostPage();
+    await hp.evaluate(() => {
+      const s = window.__arcade.state, g = s.game, last = g.total - 1;
+      const order = [...g.order]; order[last] = 'truefalse';
+      return import('/js/firebase.js').then(m => m.update(m.dbRef(`rooms/${s.code}/game`), { order, ci: last - 1, ck: String(last - 1), phase: 'standings', phaseEndsAt: m.serverNow(), [`deal/${last}`]: null, [`dk/${last}`]: null, [`seen/truefalse`]: true }));
+    });
+    const last = await evalIn(pages[1], s => s.game.total - 1);
+    await waitPhase(pages[1], 'play', last, 'the last challenge', 30000);
+    for (const i of alive()) await waitSpec(pages[i], 'truefalse');
+    await all(alive(), i => answerTF(pages[i], i === 0 ? -1 : (i % 8)));
+    await waitPhase(pages[1], 'final', last, 'the final', 45000);
+    await pages[1].waitForSelector('.oc-fin .oc-st-body', { timeout: 10000 });
+    ok(await pages[1].evaluate(() => document.querySelector('.oc-st-body').dataset.beat === 'answer' && !!document.querySelector('.oc-beat-answer.is-on .gk-answer')), 'THE END: the last round opens on THE ANSWER, as every round');
+    // SKIP › on DANA's phone: hers moves on, nobody else's does
+    const dn = alive().find(i => i >= 3);
+    await pages[dn].evaluate(() => document.querySelector('.oc-fin-skip').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })));
+    await sleep(300);
+    const [b1, bd] = await Promise.all([pages[1], pages[dn]].map(p => p.evaluate(() => document.querySelector('.oc-st-body').dataset.beat)));
+    ok(b1 === 'answer' && bd !== 'answer', `SKIP › moves only that phone on (BOB ${b1} · ${NAMES[dn]} ${bd})`);
+    await waitFor(pages[1], () => document.querySelector('.oc-st-body').dataset.beat === 'banner', 'the round winner beat', 12000);
+    ok(await pages[1].evaluate(() => !!document.querySelector('.oc-beat-banner.is-on .oc-rw-stamp')), 'THE END: the last round\'s ROUND WINNER banner');
+    await shotBoth(pages[1], 'o-16-final-round-winner');
+    await waitFor(pages[1], () => document.querySelector('.oc-st-body').dataset.beat === 'final', 'the final standings beat', 15000);
+    await sleep(1600);
+    await shotBoth(pages[1], 'o-17-final-standings');
+    const fs = await pages[1].evaluate(() => ({ n: document.querySelectorAll('.oc-fs-row').length, bottom: Math.max(...[...document.querySelectorAll('.oc-fs-row, .oc-fs-strip')].map(e => e.getBoundingClientRect().bottom)), foot: document.querySelector('.oc-st-foot').getBoundingClientRect().top, wins: [...document.querySelectorAll('.oc-fs-wins b')].map(b => +b.textContent) }));
+    const rw = await evalIn(pages[1], s => { const g = s.game, n = {}; for (const r of Object.values(g.rw || {})) if (r.w) n[r.w] = (n[r.w] || 0) + 1; return Object.values(n).reduce((a, b) => a + b, 0); });
+    ok(fs.n === N && fs.bottom <= fs.foot, `FINAL STANDINGS: all ${fs.n} rows + YOUR BEST / WORST above the footer at 390 × 844 (${Math.round(fs.bottom)} ≤ ${Math.round(fs.foot)})`);
+    ok(fs.wins.reduce((a, b) => a + b, 0) === rw, `FINAL STANDINGS: the ROUND WINS add up to the stored round wins (${rw})`);
+    // a refresh during the final standings lands on them; the host dies here too
+    const rj = alive().find(i => i > 1 && i !== dn);
+    await pages[rj].reload();
+    await pages[rj].waitForSelector('.oc-st-body, .oc-vic', { timeout: 30000 });
+    ok(await pages[rj].evaluate(() => { const b = document.querySelector('.oc-st-body'); return b ? b.dataset.beat === 'final' : !!document.querySelector('.oc-vic'); }), 'REJOIN: a refresh during the final standings lands on them');
+    const hi = pages.indexOf(await hostPage());
+    const oldHost = uids[hi];
+    dead.add(hi); await pages[hi].close();
+    log(`killed the host (${NAMES[hi]}) during the final standings`);
+    const ob = pages[alive().find(i => i !== dn)];   // (a phone still on the shared clock — not the one that skipped)
+    await ob.waitForSelector('.oc-vic .oc-sign', { timeout: 20000 });
+    await sleep(3200);
+    await shotBoth(ob, 'o-18-victory');
+    const v = await ob.evaluate(() => ({ sign: document.querySelectorAll('.oc-vic .oc-sign-ch').length, podium: document.querySelectorAll('.oc-vic-step').length, chips: document.querySelectorAll('.oc-vic-chip').length, back: !!document.querySelector('.final-back'), rematch: [...document.querySelectorAll('.final button')].filter(b => /REMATCH|LOBBY/i.test(b.textContent)).length, title: (document.querySelector('.oc-vic-title') || {}).textContent }));
+    ok(v.title === 'OVERCLOCKED' && v.sign > 0 && v.podium === Math.min(3, N) && v.back && !v.rematch, `THE VICTORY: OVERCLOCKED, the neon sign (${v.sign} tubes), the podium on the slim cards (${v.podium}), the console's BACK TO THE ROOM, no rematch / lobby buttons`);
+    ok(v.chips >= 1, `THE VICTORY: the award chips (${v.chips})`);
+    await waitFor(ob, (s, old) => s.meta.hostId !== old, 'host migrated at the end', 45000, oldHost);
+    ok(true, 'host migrated during the end of the match');
+  }
+
   log('checks', `${checks.filter(c => c.ok).length}/${checks.length} passed`);
   log('errors', errors.length ? errors : 'none');
   if (errors.length) process.exitCode = 1;

@@ -78,7 +78,8 @@ state.liveKey = liveKeyFor(game);
 const view = createView();
 const screen = document.getElementById('screen');
 let mounted = false;
-const push = () => { if (!mounted) { view.mount(screen, state); mounted = true; } else view.update({ ...state, game: { ...game } }); };
+// (the console's podium frame reads the STORE's game to find the cartridge's finalScene — the preview keeps the store in step)
+const push = () => { setState({ game: { ...game }, players, presence }); if (!mounted) { view.mount(screen, state); mounted = true; } else view.update({ ...state, game: { ...game } }); };
 const step = p => { Object.assign(game, p); push(); };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const tiles = () => [...document.querySelectorAll('.oc-tile, .tf-btn')];
@@ -160,6 +161,12 @@ function shapeWin(res) {
 }
 function closeRound(res, extra = {}) {
   const last = ci === total - 1;
+  if (last) {
+    // THE END: the award chips need streaks + times; &cowin=1 → you + MAYA level at the top (CO-WINNERS)
+    extra.combo = Object.fromEntries(uids.map((u, i) => [u, { c: 0, m: [6, 9, 4, 3, 2, 5, 7, 1][i] }]));
+    extra.tm = { ...(extra.tm || {}), 0: Object.fromEntries(uids.map((u, i) => [u, 6000 + i * 1500])) };
+    if (q.get('cowin') === '1' && uids.length > 1) { res[uids[0]].pts = res[uids[1]].pts = Math.max(...Object.values(res).map(r => r.pts)); game.results[0][uids[0]].pts = game.results[0][uids[1]].pts = 148; }
+  }
   setPhase(last ? 'final' : 'standings', last ? FINAL_MS : standingsMs(type));
   if (q.get('ready') === '1') state.live.next = Object.fromEntries(uids.filter((u, i) => i % 3 !== 2).map(u => [u, { at: Date.now() }]));
   step({ results: { ...game.results, [ci]: res }, rw: { ...(game.rw || {}), [ci]: packRoundWin(roundWin(res, uids)) }, ...extra });

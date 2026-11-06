@@ -491,8 +491,10 @@ export function createView() {
     };
     const el = h('div.oc-st-body', Object.values(layers).filter(Boolean));
     let cur = '';
+    const RANK = { answer: 0, banner: 1, stand: 2, final: 3, victory: 4 };
     const enter = (beat, animate) => {
-      if (beat === cur || !layers[beat]) return;
+      // (never backwards: a phone that skipped ahead ignores the timers of the beats it passed)
+      if (beat === cur || !layers[beat] || (cur && RANK[beat] < RANK[cur])) return;
       cur = beat;
       for (const [k, l] of Object.entries(layers)) if (l) l.classList.toggle('is-on', k === beat);
       el.dataset.beat = beat;
@@ -664,13 +666,102 @@ export function createView() {
     return `${fmtOk(r.ok)}/${r.parts} CORRECT`;
   }
 
+  // ---------- THE END OF THE MATCH (OC2 — inside 'final', FINAL_MS: no timing changed) ----------
+  // logic.js#finalBeats: the LAST round's results (THE ANSWER → the ROUND WINNER → the standings, as every round) → THE FINAL STANDINGS →
+  // THE VICTORY (the console's podium frame — ui/final.js#createFinal — with OUR body: victory.js#finalScene). Timed from the phase's start on
+  // the server clock: a refresh / a rejoin / a host change lands on the right beat. SKIP › moves THIS phone on (nobody else — the phase is the
+  // host's); it's remembered for the match on this device, so a refresh never goes back.
+  const skipKey = m => `oc:skip:${m}`;
+  const ORDER = ['answer', 'banner', 'stand', 'final', 'victory'];
+  const loadSkip = m => { try { return sessionStorage.getItem(skipKey(m)) || ''; } catch { return ''; } };
+  const saveSkip = (m, b) => { try { sessionStorage.setItem(skipKey(m), b); } catch { /* this screen only */ } };
   function buildFinal(game) {
+    if (final) { final.destroy(); final = null; }
+    const solo = soloOf(game);
+    const beats = finalBeats(game.order[game.ci], solo);
+    const since = serverNow() - (game.phaseStartAt || 0);
+    const skipped = loadSkip(game.matchId);
+    const atNow = ORDER.indexOf(beatAt(beats, since)) >= ORDER.indexOf(skipped) ? beatAt(beats, since) : skipped;
+    if (atNow === 'victory') { mountVictory(game); return; }
+    const res = (game.results && game.results[game.ci]) || {};
+    if (res[me()] && since < 1500) sfx(res[me()].ok >= res[me()].parts ? 'correct' : 'roundEnd');
+    let body = null;
+    const nextOf = beat => {
+      const live = ORDER.filter(b => beatStart(beats, b) != null);
+      return live[live.indexOf(beat) + 1] || 'victory';
+    };
+    const label = h('span.oc-fin-l', '');
+    const left = h('b.oc-next-n', '');
+    const skip = h('button.oc-next-btn.oc-fin-skip', { type: 'button', dataset: { sfx: 'none' } }, label, h('span.oc-next-c', 'IN ', left, h('i.oc-fin-arrow', ' · SKIP ›')));
+    const goTo = (beat, animate = true) => {
+      if (beat === 'victory') { saveSkip(game.matchId, 'victory'); mountVictory(game, animate); return; }
+      if (body) body.enter(beat, animate);
+    };
+    const onPress = () => { if (!body) return; const nb = nextOf(body.beat); saveSkip(game.matchId, nb); ocSfx('tap'); goTo(nb); };
+    skip.addEventListener('pointerdown', e => { e.preventDefault(); onPress(); });
+    skip.addEventListener('click', e => { if (e.detail === 0) onPress(); });
+    // the footer counts to the next beat on the server clock (a skipped one reads its own next)
+    const tick = () => {
+      if (!skip.isConnected || !body) return;
+      const nb = nextOf(body.beat);
+      label.textContent = nb === 'final' ? 'FINAL STANDINGS' : nb === 'victory' ? 'THE WINNER' : nb === 'stand' ? 'THE STANDINGS' : 'THE ROUND WINNER';
+      const at = (game.phaseStartAt || 0) + (beatStart(beats, nb) ?? beats.victory);
+      left.textContent = String(Math.max(0, Math.ceil((at - serverNow()) / 1000)));
+      revealTimers.push(setTimeout(tick, 250));
+    };
+    body = resultsBody(game, beats, {
+      final: solo ? null : finalStandings(game),
+      victory: h('div.oc-fin-hold'),
+      onBeat: beat => { if (beat === 'victory') goTo('victory', true); },
+    });
+    if (atNow !== beatAt(beats, since)) body.enter(atNow, false);
+    const panel = h('div.panel-full.oc-standings.oc-fin', body.el, h('footer.oc-st-foot', h('div.oc-next', h('div.next-up', 'THE LAST CHALLENGE · ', h('b', 'THE RESULTS')), skip)));
+    els.overlay.append(panel);
+    tick();
+  }
+  /** THE VICTORY: the console's podium frame + our body (finalScene — victory.js) */
+  function mountVictory(game) {
+    if (final) return;
+    const old = els.overlay.querySelector('.oc-fin');
+    if (old) old.remove();
     final = createFinal({
       rows: standings(game), players: st.players, me: me(), presence: st.presence, scoreLabel: 'PTS',
-      kicker: 'GAUNTLET COMPLETE',
+      kicker: `OVERCLOCK · ${String(game.total)} CHALLENGES`,
       winnerLine: nm => `${nm} RAN THE HOTTEST`,
     });
     els.overlay.append(final.el);
+  }
+
+  // THE FINAL STANDINGS: every player (2–8), the top three on the OVERDRIVE edges (gold-orange · steel · bronze — no clip-art medals), each
+  // row: rank · emblem · name · ROUND WINS · the total counting up as the rows race in; YOUR BEST / YOUR WORST under it (your challenges)
+  function finalStandings(game) {
+    const rows = standings(game);
+    const wins = roundWins(game);
+    const list = h('div.oc-fs-list', rows.map((r, i) => {
+      const p = player(r.uid);
+      const n = h('b.oc-fs-total', '0');
+      const row = h('div.oc-lr.oc-fs-row', { class: [r.uid === me() ? 'is-me' : '', r.rank <= 3 ? `is-p${r.rank}` : ''].join(' '), style: { '--c': colorHex(p.color), '--i': i } },
+        h('span.lb-rank', String(r.rank)), avatar(p.avatar, p.color, 30),
+        h('span.lb-name', h('span.oc-sb-nm', p.name)),
+        h('span.oc-fs-wins', h('b', String(wins[r.uid] || 0)), h('small', wins[r.uid] === 1 ? 'ROUND WON' : 'ROUNDS WON')),
+        n);
+      row.oc = { n, score: r.score };
+      return row;
+    }));
+    const bw = bestWorst(game, me());
+    const tile = (k, x) => h('div.oc-fs-bw', { class: `is-${k}` }, h('span.oc-fs-bw-k', k === 'best' ? 'YOUR BEST' : 'YOUR WORST'), h('b', INFO[x.type] ? INFO[x.type].name : '—'), h('span.oc-fs-bw-v', `+${fmtNum(x.pts)}`, h('small', x.rel >= 1 ? ' · TOP OF THE ROOM' : ` · ${Math.round(x.rel * 100)}% OF THE BEST`)));
+    const strip = bw && participant(game) ? h('div.oc-fs-strip', tile('best', bw.best), bw.worst ? tile('worst', bw.worst) : null) : null;
+    const box = h('div.oc-fs', h('div.oc-fs-k', h('span', 'FINAL STANDINGS'), h('span.oc-sb-of', `${game.total} CHALLENGES`)), list, strip);
+    box.oc = {
+      enter(animate) {
+        const rowsEl = [...list.children];
+        if (!animate || reducedMotion()) { box.classList.add('is-instant'); rowsEl.forEach(r => { r.oc.n.textContent = fmtNum(r.oc.score); }); return; }
+        box.classList.add('is-racing');
+        ocSfx('swoosh');
+        rowsEl.forEach((r, i) => revealTimers.push(setTimeout(() => { if (box.isConnected) countUp(r.oc.n, 0, r.oc.score, 1100); }, 260 + i * 90)));
+      },
+    };
+    return box;
   }
 
   return { mount, update, unmount };
