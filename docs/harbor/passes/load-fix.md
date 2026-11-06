@@ -101,6 +101,15 @@ SCREEN` (the boot screen → the city, nothing between). Before the fix: 15/19 �
   shards. The four reds, each re-run alone: `radio` (THE DESK's scroll through two refreshes), `newstart` ("the lines walk in under the lit
   sign", a 2.3-s sample) and `panel` (THE WORD TOWERS' readout) — **99 / 99 alone** (the 4-shard run's load); `roomperf`'s OWN COST at 4×
   CPU — the KNOWN red (THE SPEED PASS / B: red on this machine at the pre-pass commits too; skipped on the runner) — 39.3 → 47.6 ms again.
+- **Cloud run 1** (148b1f7): tests ✅; harbor 12 / 15 jobs green. `holiday` — THE CLIMB HOME + ITS NERVES (the Halloween spiders): red in
+  the last two harbor runs too (OC1, SHELL 2.0 B2) — not this pass, left as they were. Two NEW reds, both fixed for run 2:
+  - `city` — LOAD WEATHER (kept on this device): a `bake crossfade · neon` right after a 1.8 s reveal. A race older than this pass, opened by
+    TODAY's date (the page clock is pinned to 10 am; today's timetable shows a billboard HINT then): a neon re-layout rebuilds the roof board
+    with its GAME and the hint came back ≤ 500 ms later (`boardSync`'s throttle) — a reveal inside that window showed the swap + its
+    re-bake. Before the reveal the board is now checked EVERY frame (`scene.js#boardSync`), so the hint is in the bake the reveal waits for.
+  - `lobbyfix` — newstart's "the lines walk in UNDER the lit sign (the host at 2.3 s: wait)" (red in the local 4-shard run too, green
+    alone). Measured: the host's first step at ~1.45 s on the pre-fix build AND now (two runs each, :5174 vs :5173) — not this pass; a
+    FIXED-TIME sample on a slow runner. Now a condition (green means green): the host walks (or is in) before the fade, the sign lit then.
 - **The rules:** NOT changed — nothing to re-publish.
 - **Not started (FRIENDS' list, as the pass said):** THE TIER GEM's one shape, THE RADIO's schedule order, the victory sounds, YOUR CARD's
   row + the whole XP box, the console's game accent, the intercom in sync.

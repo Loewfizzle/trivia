@@ -1061,7 +1061,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function boardSync(tr) {
     lampFaultNow = tr.lampFault || null;
     const now = performance.now();
-    if (now - boardCheck > 500 && now > boardHeld) {
+    // (THE LOAD FIX — the cloud's LOAD WEATHER red: a neon re-layout rebuilds the board with its GAME and the day's HINT came back ≤ 500 ms
+    //  later — a reveal inside that window showed the swap + its re-bake crossfading. Before the reveal it is checked every frame: the hint
+    //  is back in the bake the reveal waits for)
+    if ((shownAt < 0 || now - boardCheck > 500) && now > boardHeld) {
       boardCheck = now;
       const want = boardGameOf(tr.board.key), dead = tr.boardLampDead == null ? null : tr.boardLampDead;
       // SCHED Group 4 — THE BOARD's HINTS (core/harbor-billboard.js — the timetable's billboard.* queue): a hint takes the WHOLE board for its

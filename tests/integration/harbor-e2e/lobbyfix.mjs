@@ -258,12 +258,16 @@ G('newstart', async () => {
   const at = async ms => { await waitFor(p, `window.__arcade.state.meta.go && window.__arcade.serverNow() - window.__arcade.state.meta.go.at >= ${ms}`, `the start at ${ms}`, 7000).catch(() => {}); return { ...(await signState(p)), age: await ageOf(p) }; };
   const s1 = await at(420), s2 = await at(2300);
   if (SHOTS) await p.screenshot({ path: `${OUT}newstart-full-2300.png` });
-  const walk = await ev(p, `(() => { const r = window.__district.room(); const h = r && r.people.find(x => x.uid === '${me}'); return h ? { pose: h.s && h.s.pose, inside: h.inside } : null; })()`);
+  // (THE LOAD FIX — green means green: this was a FIXED-TIME sample at 2.3 s; the cloud's slow runner read 'wait' there once while the walk
+  //  starts at ~1.45 s on the mini PC before + after the pass. Now a CONDITION: the host walks (or is in) before the fade, the sign lit then)
+  const walkP = `(() => { const r = window.__district.room(); const h = r && r.people.find(x => x.uid === '${me}'); const g = window.__arcade.state.meta.go; return h && g && (h.inside || (h.s && h.s.pose === 'walk')) && window.__arcade.serverNow() - g.at < 4300; })()`;
+  const walked = await waitFor(p, walkP, 'the host walking in', 4000).then(() => true, () => false);
+  const walk = walked ? { ...(await ev(p, `(() => { const r = window.__district.room(); const h = r && r.people.find(x => x.uid === '${me}'); return h ? { pose: h.s && h.s.pose, inside: h.inside } : null; })()`)), age: await ageOf(p), lit: (await signState(p)).lit } : null;
   const s3 = await at(4000);
   ok(s1.go && s1.full && s1.lit === 0, `THE FULL START: NEON powers down first — the game's sign not lit yet at ${s1.age} ms (${s1.lit} tubes lit)`);
   ok(s2.tubes >= 6 && s2.lit === s2.tubes && s2.pink && s2.shown > 0.95, `…THE GAME's OWN SIGN lit for real — every tube (${s2.lit}/${s2.tubes}) in the NEON pink by ${s2.age} ms`);
   ok(s3.lit === s3.tubes && s3.shown > 0.95, `…and it HOLDS (still all lit at ${s3.age} ms — readable ~3 s)`);
-  ok(walk && (walk.pose === 'walk' || walk.inside), `…the lines walk in UNDER the lit sign (the host at 2.3 s: ${walk && (walk.inside ? 'inside' : walk.pose)})`);
+  ok(walk && (walk.pose === 'walk' || walk.inside) && walk.lit > 0, `…the lines walk in UNDER the lit sign (the host ${walk ? `${walk.inside ? 'inside' : walk.pose} at ${walk.age} ms, ${walk.lit} tubes lit` : 'never walked before the fade'})`);
   ok(![s1, s2, s3].some(x => x.scaled), 'NO CAMERA PUSH: the city + the screen never scale');
   const routed = await Promise.all([p, q].map(x => waitFor(x, `!(${onTitle})`, 'the game', 8000).then(() => Date.now() - t0, () => null)));
   ok(routed.every(v => v != null && v >= 4300 && v <= 6200), `…a clean fade into the game on both phones (${routed.join(' / ')} ms after the tap — the full start is 5 s)`);
