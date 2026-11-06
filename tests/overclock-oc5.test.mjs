@@ -14,6 +14,9 @@ import { createGame, nextStep } from '../js/games/overclock/director.js';
 import { keysAt, typeKey, playedTypes } from '../js/games/overclock/deal.js';
 import { extractMatch } from '../js/core/match-report.js';
 import { rngFrom } from '../js/core/rng.js';
+import { daily, create as dCreate, resumeKey, result as dResult, replay as dReplay, daySetProblems, dailyMatchId, rankOf, DAILY_N } from '../js/games/overclock/daily.js';
+import { checkCartridge, DAILY } from '../js/games/cartridge.js';
+import { readFileSync } from 'node:fs';
 
 function applyPatch(obj, patch) {
   for (const [k, v] of Object.entries(patch || {})) {
@@ -429,4 +432,121 @@ test('REDLINE still needs a SOLE top score in all six — Dumb Luck included (a 
     }
   }
   assert.ok(swept && shared && lost, `swept ${swept} · shared ${shared} · lost ${lost}`);
+});
+
+// ------------------------------------------------------------------------------------------------ THE DAILY PLUG-IN (ships OFF)
+const TRIV = [{ q: 'Which planet is closest to the sun?', a: ['Venus', 'Mercury', 'Mars', 'Earth'], c: 1, cat: 'general', d: 'easy' },
+  { q: 'How many sides does a hexagon have?', a: ['5', '6', '7', '8'], c: 1, cat: 'general', d: 'easy' },
+  { q: 'What gas do plants take in?', a: ['Oxygen', 'Nitrogen', 'Carbon dioxide', 'Helium'], c: 2, cat: 'general', d: 'easy' }];
+/** a day set as THE DAILY MODULE would hand it over (its seed from a server secret — opaque here) */
+const DAY = (o = {}) => ({ v: 1, day: '2026-11-07', seed: 'k3J9xQ0-sealed-by-the-module', order: ['unscramble', 'math', 'memory', 'oddone', 'trivia', 'stroop'], trivia: TRIV, ...o });
+
+test('THE DAILY PLUG-IN: on: false; the contract shape; checkCartridge passes; never switches itself on', () => {
+  assert.equal(daily.on, false);
+  for (const [k, t] of Object.entries(DAILY)) assert.equal(typeof daily[k], t, `daily.${k}`);
+  const stub = { start() {}, prepare() {}, step() {}, livePaths() {}, createView() {}, DEFAULT_SETTINGS: { mode: 'quick' }, OPTIONS: [], estimateMinutes() {}, finalRanks() {}, MUSIC: null, daily };
+  assert.ok(!checkCartridge('overclock', stub).some(x => /daily/.test(x)), checkCartridge('overclock', stub).join());
+  assert.match(readFileSync('js/games/overclock/index.js', 'utf8'), /export \{ daily \} from '\.\/daily\.js'/);
+});
+
+test('THE DAY SET: six skill challenges, one per brain category (a knowledge one), NEVER DUMB LUCK, an opaque seed (never the date), own-bank trivia', () => {
+  assert.deepEqual(daySetProblems(DAY()), []);
+  const bad = [
+    [DAY({ order: ['unscramble', 'math', 'memory', 'oddone', 'dumbluck', 'stroop'] }), /never DUMB LUCK/],
+    [DAY({ order: ['unscramble', 'missinglink', 'memory', 'oddone', 'trivia', 'stroop'] }), /same brain category/],
+    [DAY({ order: ['unscramble', 'math', 'memory', 'oddone', 'reflex', 'stroop'] }), /same brain category|knowledge/],
+    [DAY({ order: ['unscramble', 'math', 'memory', 'oddone', 'trivia'] }), /exactly 6/],
+    [DAY({ seed: 'daily-2026-11-07-x' }), /date/],
+    [DAY({ seed: 'short' }), /seed/],
+    [DAY({ trivia: [] }), /three questions/],
+    [DAY({ v: 2 }), /v must be/],
+  ];
+  for (const [ds, re] of bad) assert.match(daySetProblems(ds).join(' · '), re);
+  assert.throws(() => dCreate({ date: '2026-11-07', uid: 'a', now: 0, daySet: DAY({ order: ['dumbluck'] }) }), /DUMB LUCK|exactly/);
+  assert.throws(() => dCreate({ date: '2026-11-08', uid: 'a', now: 0, daySet: DAY() }), /another day/);
+});
+
+test('THE SAME DAY SET → THE SAME RUN on two phones; fully deterministic (no Math.random, no clock but now, no network)', () => {
+  const real = Math.random;
+  Math.random = () => { throw new Error('Math.random in a daily'); };
+  let a, b;
+  try {
+    a = dCreate({ date: '2026-11-07', uid: 'phoneA', now: 1000, daySet: DAY() });
+    b = dCreate({ date: '2026-11-07', uid: 'phoneB', now: 1000, daySet: DAY() });
+  } finally { Math.random = real; }
+  assert.equal(a.matchId, b.matchId);
+  assert.equal(a.matchId, dailyMatchId(DAY()));
+  assert.deepEqual(a.order, DAY().order);
+  assert.ok(!a.order.includes('dumbluck'));
+  assert.equal(a.total, DAILY_N);
+  assert.deepEqual({ ...a, participants: null }, { ...b, participants: null }, 'the two phones build the same match');
+  assert.deepEqual(Object.keys(a.participants), ['phoneA']);
+  // every challenge's content is the same on both (the generators run from the day set's seed + its deal)
+  for (let ci = 0; ci < DAILY_N; ci++) {
+    const t = a.order[ci];
+    if (t === 'trivia' || t === 'unscramble') continue;   // (trivia = the day set's own questions; unscramble = the word lists + the deal)
+    assert.deepEqual(generate(t, { seed: a.seed, ci, level: ci / 5 }), generate(t, { seed: b.seed, ci, level: ci / 5 }), t);
+  }
+  // the own-bank questions are IN the match (encoded like any room's bank) — no top-up from the live Trivia API is ever needed
+  assert.equal(a.trivia.n, 3);
+  assert.equal(Object.keys(a.bank).length, 3);
+  // another day's set → another run
+  const c = dCreate({ date: '2026-11-08', uid: 'phoneA', now: 1000, daySet: DAY({ day: '2026-11-08', seed: 'another-sealed-seed-x7' }) });
+  assert.notEqual(c.matchId, a.matchId);
+});
+
+/** play a daily through the director (solo): ok(ci, parts) right answers, finished at t(ci) ms; stopAt = stop once this many have closed */
+function playDaily(g, uid, { ok = (ci, p) => p, t = ci => 4000 + ci * 1100, stopAt = DAILY_N } = {}) {
+  let now = g.phaseStartAt;
+  for (let guard = 0; guard < 60 && g.phase !== 'final'; guard++) {
+    if (g.phase === 'ready') { now = g.phaseEndsAt; applyPatch(g, nextStep(g, { now, boards: {}, online: { [uid]: true }, fallback: () => null })); continue; }
+    if (g.phase === 'play') {
+      const parts = partsFor(g.order[g.ci], g.ci / (g.total - 1));
+      now = g.playStartAt + t(g.ci);
+      applyPatch(g, nextStep(g, { now, boards: { [uid]: { p: parts, ok: ok(g.ci, parts), n: parts, done: true, doneAt: now } }, online: { [uid]: true }, fallback: () => null }));
+      continue;
+    }
+    if (g.phase === 'standings') { if (g.ci + 1 >= stopAt) break; now = g.phaseEndsAt; applyPatch(g, nextStep(g, { now, boards: {}, online: { [uid]: true }, fallback: () => null })); }
+  }
+  return g;
+}
+
+test('ONE TRY, RESUMED: a lock / a refresh mid-run picks up from the stored run (resumeKey) — the same result as a run never interrupted', () => {
+  assert.equal(resumeKey('2026-11-07', 'pid9'), 'overclock:daily:2026-11-07:pid9');
+  assert.notEqual(resumeKey('2026-11-07', 'pid9'), resumeKey('2026-11-08', 'pid9'));
+  const ok = (ci, p) => Math.max(0, p - (ci % 3 === 1 ? 1 : 0));
+  const straight = playDaily(dCreate({ date: '2026-11-07', uid: 'me', now: 5000, daySet: DAY() }), 'me', { ok });
+  assert.equal(straight.phase, 'final');
+  // the same run, the phone locked after challenge 3: the module stored the game under resumeKey; the refresh reads it back + the director goes on
+  const stored = JSON.stringify(playDaily(dCreate({ date: '2026-11-07', uid: 'me', now: 5000, daySet: DAY() }), 'me', { ok, stopAt: 3 }));
+  assert.equal(JSON.parse(stored).phase, 'standings');
+  const resumed = playDaily(JSON.parse(stored), 'me', { ok });
+  assert.equal(resumed.phase, 'final');
+  assert.deepEqual(resumed.results, straight.results);
+  assert.deepEqual(dResult(resumed, 'me'), dResult(straight, 'me'));
+  // a second create() for the day is the SAME match (never a fresh deal) — the module keeps the stored one
+  assert.equal(dCreate({ date: '2026-11-07', uid: 'me', now: 99999, daySet: DAY() }).matchId, straight.matchId);
+});
+
+test('ONE COMPARABLE SCORE: the normal Overclock points (incl. the speed bonus) + a tie-break (the total answer time, lower wins); the server replay', () => {
+  const fast = playDaily(dCreate({ date: '2026-11-07', uid: 'me', now: 0, daySet: DAY() }), 'me', { t: ci => 3000 + ci * 500 });
+  const slow = playDaily(dCreate({ date: '2026-11-07', uid: 'me', now: 0, daySet: DAY() }), 'me', { t: ci => 9000 + ci * 500 });
+  const rf = dResult(fast, 'me'), rs = dResult(slow, 'me');
+  assert.equal(rf.score, Object.values(fast.results).reduce((s, r) => s + r.me.pts, 0), 'the normal Overclock score');
+  assert.ok(rf.score > rs.score, 'the speed bonus counts');
+  assert.ok(rf.time < rs.time);
+  assert.equal(rf.time, Object.values(fast.tm).reduce((s, x) => s + x.me, 0));
+  // the tie-break: the same points, the faster run ranks higher; more points always beat a faster run
+  assert.ok(rankOf(500, 40_000) > rankOf(500, 41_000));
+  assert.ok(rankOf(501, 179_000) > rankOf(500, 0));
+  // THE SERVER's REPLAY: the record re-scored from the scoring table = the same result; a padded / impossible record = null
+  const rec = { results: fast.results, tm: fast.tm };
+  assert.deepEqual(dReplay(DAY(), rec, 'me'), rf);
+  const padded = structuredClone(rec); padded.results[2].me.pts += 10;
+  assert.equal(dReplay(DAY(), padded, 'me'), null);
+  const tooMany = structuredClone(rec); tooMany.results[0].me.ok = tooMany.results[0].me.parts + 1;
+  assert.equal(dReplay(DAY(), tooMany, 'me'), null);
+  const late = structuredClone(rec); late.tm[1].me = 31_000;
+  assert.equal(dReplay(DAY(), late, 'me'), null);
+  assert.equal(dReplay(DAY({ order: ['dumbluck', 'math', 'memory', 'oddone', 'trivia', 'stroop'] }), rec, 'me'), null, 'never a Dumb Luck day');
 });

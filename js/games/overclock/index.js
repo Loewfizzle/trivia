@@ -96,6 +96,10 @@ export const step = (game, { code, now, live, online }) => {
 
 export const finalRanks = game => ocStandings(game).map(r => ({ uid: r.uid, rank: r.rank }));
 
+// THE DAILY PLUG-IN (OC5 — SHIPS OFF; docs/cartridge.md D2): the server-picked, sealed DAY SET in → today's six (a solo QUICK run, fully
+// deterministic, never DUMB LUCK) · one try a day (resumeKey) · ONE comparable score out (result + the server's replay) — daily.js
+export { daily } from './daily.js';
+
 // THE VICTORY BODY (OC2 — contract D8): the console's podium frame (ui/final.js) draws this inside itself — OVERCLOCKED, the neon-tube winner,
 // the podium on the slim cards, the award chips; SOLO's score. victory.js
 export { finalScene } from './victory.js';

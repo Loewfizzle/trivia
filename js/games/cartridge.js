@@ -42,8 +42,9 @@ export const START_ARGS = Object.freeze(['code', 'matchId', 'settings', 'partici
 export const LOOK_VALUES = Object.freeze(['day', 'night']);
 // THE DAILY PLUG-IN's shape (OVERCLOCK + the WORDLE-type + COAST CLEAR offer it; THE DAILY MODULE seeds, unlocks, streaks + ranks it):
 //   daily = { on: false,                                        — the game never switches itself on
-//             create({ date: 'YYYY-MM-DD', uid, now }) → game     — today's puzzle for ONE player: the same content for everyone that day
-//                                                                 (a seed from the date), never a party-only part (DUMB LUCK)
+//             create({ date: 'YYYY-MM-DD', uid, now, daySet }) → game — today's puzzle for ONE player: the same content for everyone that
+//                                                                 day — daySet = THE SERVER-PICKED, SEALED day set (a server secret, never
+//                                                                 computable from the date — OC5 added the slot), never a party-only part (DUMB LUCK)
 //             resumeKey(date, uid) → string }                     — one try a day: a refresh / an app switch resumes, never restarts
 export const DAILY = Object.freeze({ on: 'boolean', create: 'function', resumeKey: 'function' });
 

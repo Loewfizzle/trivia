@@ -50,9 +50,14 @@ Also, outside index.js: its row in `config.js` GAMES (`name`, `theme`, `playable
 
 ## THE DAILY PLUG-IN (ships OFF)
 A game that offers a daily (OVERCLOCK's QUICK solo run, the WORDLE-type, COAST CLEAR) exports
-`daily = { on: false, create({ date: 'YYYY-MM-DD', uid, now }) → game, resumeKey(date, uid) → string }`:
-**today's date in → today's puzzle** (the same content for everyone that day, a seed from the date; never a party-only part — DUMB LUCK),
-**one try**, **resume** (a refresh / an app switch resumes from `resumeKey`, never restarts). `on` stays `false` — THE DAILY MODULE (a later
+`daily = { on: false, create({ date: 'YYYY-MM-DD', uid, now, daySet, code? }) → game, resumeKey(date, uid) → string }`:
+**THE DAY SET in → today's puzzle** (the same content for everyone that day — `daySet` = THE SERVER-PICKED, SEALED day set the daily module
+makes from a SERVER SECRET once a day, NEVER computable from the date: the repo is public; never a party-only part — DUMB LUCK),
+**one try**, **resume** (a refresh / an app switch resumes from `resumeKey`, never restarts). OC5 (OVERCLOCK, `js/games/overclock/daily.js`)
+added the `daySet` slot (+ `code`, the solo room's code its trivia bank is encoded with) and two more pieces the module calls:
+`result(game, uid) → { score, time, rank }` (ONE comparable number: the points, then the faster run) and `replay(daySet, record, uid)` (the
+server re-scores a finished run's record → the same result, or null). OVERCLOCK's day set: `{ v: 1, day, seed, order: [six skill challenges,
+one per brain category], deal?, trivia?: [three own-bank questions] }` (`daily.problems(daySet)` says what's wrong with one). `on` stays `false` — THE DAILY MODULE (a later
 pass) seeds it, unlocks it, feeds the streak, owns the daily results + percentiles and switches all three dailies on together; a game never
 builds its own daily screen, rankings or streak hooks. `checkCartridge` fails a daily that switches itself on.
 
@@ -109,7 +114,7 @@ The start never waits past its 5 s for a preload: the game shows when its own pi
   unlock, THE CARD REVEAL). BUILT by OVERCLOCK (OC2 — `js/games/overclock/victory.js`: the neon-tube winner, the 2-1-3 podium on the slim
   cards via `leaderboard()`, the award chips, SOLO's score); a game whose body says WINNER hides the frame's own `.winner` line in its css.
 - THE DAILY (D2) = a SOLO ROOM fed a server-picked DAY SET (THE DAILY MODULE picks the day's challenges + item ids SERVER-SIDE once a day: a
-  seed + a server secret). It is NEVER computable from the date alone; `daily.on` ships `false`.
+  seed + a server secret) — passed to `daily.create({ …, daySet })` (OC5). It is NEVER computable from the date alone; `daily.on` ships `false`.
 
 **D9 — THE KIT.** The shared match pieces live in `js/games/kit/`, class prefix **`gk-`**:
 - BUILT by OVERCLOCK pass 1 (OC1, Nov 5) — a NEUTRAL BASE a game skins through `--gk-*` custom properties (css/kit.css "THE KIT PIECES";
