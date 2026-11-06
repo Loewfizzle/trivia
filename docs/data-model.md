@@ -103,10 +103,13 @@ Damage: strike = round((30 − 20·elapsed/15 s) × mult), burn = round(10 × mu
 
 OVERCLOCK `game`: `{ id:'overclock', matchId, settings{mode}, seed, total, order[], participants, ci, ck, brief,
 phase: ready|play|standings|final, phaseStartAt, phaseEndsAt, playStartAt, seen{type}, tq{ci:bankIndex}, tUsed, results{ci:{uid:{pts,ok,parts}}}, bank, trivia,
-deal{ci:[int]}, dk{ci:'key key …'}, combo{uid:{c,m}} }` (OC1: `deal` = THE ROOM's NIGHT MEMORY's deal — the bank rows / facts / words each
+deal{ci:[int]}, dk{ci:'key key …'}, combo{uid:{c,m}}, rw{ci:{w,p}|{t:{uid:true},p}|{n:true}}, tm{ci:{uid:ms}}, cr{uid:int} }` (OC1: `deal` = THE ROOM's NIGHT MEMORY's deal — the bank rows / facts / words each
 challenge shows, picked at start() around rooms/{CODE}/meta/used/overclock; `dk` = their keys, marked used by the step that opens the
 challenge, with its type's `t-<type>` (docs/overclock.md, js/games/overclock/deal.js); `combo` = right answers in a row now + the match's best
-— the OVERDRIVE feat).
+— the OVERDRIVE feat). OC2: `rw` = THE ROUND WIN stored as challenge ci closes (logic.js#roundWin — the highest + not
+shared; a tie = nobody; the server's REDLINE calls the same function), `tm` = each player's ms from the challenge's start to their finish
+(FASTEST's clock; 30 000 if they never finished), `cr` = when a player's best streak was set (ci × 100 + the mark — BEST STREAK's tie-break).
+All host-written in the same patch as `results`; `results` itself is unchanged.
 Every client regenerates challenge `ci` with `generate(order[ci], {seed, ci, level, deal: deal[ci]})`; no challenge content is stored.
 Score = round(100·ok/parts) + (perfect ? up to 60 speed bonus); ×2 on the final challenge. `ok` may be fractional
 (Quick Count: off by one = 0.5; Signal Lock: per-round reaction credit 0.1–1, scored as round(160·ok/parts) with no

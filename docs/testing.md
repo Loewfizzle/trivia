@@ -290,9 +290,14 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     player, deal, reveal styles, refresh mid-clues, keyboard layout, blocked clue, timeout + offline skips, pins, debate
     chat, host killed mid-debate, tie = escape, agent leaves → void + re-deal, last-chance steal, final, game night) and a
     SAME ROOM match with 2 agents (agent vs innocent card measured identical: size, colour, luma, animation, sound, haptic).
-  - Overclock new challenges: `node e2e-oc-new.mjs "<browser path>" ./shots` (N=8) — Lexicon/Timeline/Closest Call/Rewire played
+  - Overclock new challenges: `node e2e-oc-new.mjs "<browser path>" ./shots` (N=8, ≈ 3 min) — True or False/Timeline/Closest Call/Rewire played
     through the UI, identical puzzles on every phone, scoring vs the host's results, host killed mid-Timeline, refresh
-    mid-Rewire, every new screen + reveal at 390×844 and 412×915.
+    mid-Rewire, every new screen + reveal at 390×844 and 412×915. OC2: a tap lands DURING the ×4 + ×10 combo cues (nothing over the play
+    area), THE ANSWER first, a READY mark on another phone, a refreshed phone on the same beat, 8 standings rows above the footer; then the
+    host jumps the match to its last challenge → every final beat, one phone's SKIP ›, a refresh on the final standings, the host killed
+    there, THE VICTORY body in the console's frame (39 checks).
+  - THE MOTION PROOF (OC2): `shots.mjs --page "tests/integration/overclock-preview.html?type=trivia&at=wrong&hold=1" --cast 1000 --strip 8 --webm --js "__go()"`
+    — a CDP screencast started before `--js`; `--strip N` = N frames evenly in time on one row, `--webm` = the frames at their real times.
   - Stage 3 E2E: `node e2e-8p.mjs "<browser path>" ./shots` — 8 players in 8 separate browser contexts play a full game of
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).

@@ -49,7 +49,8 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
 - Challenge clock: each challenge has a 30 s MAX (CHALLENGE_MS) and ends early once everyone has finished.
 - CUT: LEXICON only (slowest, wordiest; Unscramble covers letter play).
 - KEEP: PATTERN LOCK (Ben: different from Quick Math, "refreshing"). Give it a crystal-clear ~3 s rules demo and make the first sequence in a match an easy one. Uses the custom number pad.
-- ADD: DUMB LUCK (see below). → 20 challenge types (19 kept + Dumb Luck).
+- ADD: DUMB LUCK (see below). → 19 challenge types (18 kept + Dumb Luck).
+- CUT: MAKE 24 (the owner, Nov 5 after OC1: "I don't like that challenge") — cut cleanly in OC2 (Marathon = the 18 once + 6 repeats).
   - Lexicon removal must be clean: TYPES, CATEGORY, INFO, partsFor, generator, ui file, reveal, data/oc/lexicon.json, tests, docs/content.md, and Marathon's "every type once + repeats" multiset.
 - The ROOM NIGHT MEMORY also covers challenge TYPES: on a rematch the deal favours types this room hasn't played yet tonight, so back-to-back matches feel different.
 - No kids/family changes and no difficulty tagging for kids (Ben: "don't change anything for them").
@@ -132,7 +133,6 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
 - MEMORY: 3×3 glass nodes, played one blazes orange with its own tone, slanted step bar.
 - COLOR CLASH: huge word, 4 solid color tiles; text says "TAP THE COLOR OF THE TEXT" (never "ink").
 - SORT IT: big tilting card; target side glows (blue left / orange right).
-- MAKE 24: big orange 24, graphite number tiles, round glass operators, merged number glows blue.
 - HIGHER OR LOWER: stat chip, two stacked cards, orange VS slam, 10-segment streak bar.
 - TIMELINE: four slanted rows, tapped rows orange with order badge, LOCK IT IN.
 - MISSING LINK: three big words, glowing orange answer slot, custom letter keyboard.
@@ -147,7 +147,7 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
 
 ## After every challenge — REQUIRED
 1. THE ANSWER (v2): question bold white; right answer as a white-hot slanted tile labelled "THE ANSWER" with an orange→blue laser underline; your wrong pick below as a dim graphite tile struck through in red, "YOUR PICK". Every challenge gets one (challenge-specific shapes).
-   - Have a reveal today: Missing Link, Spellcheck, Make 24, Compass, Sort It, Higher/Lower, Timeline, Closest Call, Unscramble.
+   - Have a reveal today: Missing Link, Spellcheck, Compass, Sort It, Higher/Lower, Timeline, Closest Call, Unscramble.
    - MISSING: Trivia Lightning, True or False, Quick Math, Pattern Lock, Memory, Odd One Out, Quick Count, Color Clash, Signal Lock, Rewire.
    - NO "flag this question" button.
 2. ROUND WINNER banner (Dumb Luck: WINNING TICKETS / THE HOUSE WINS).
@@ -166,7 +166,7 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
 - No shortened rules card. The new look's animations must FIT INSIDE the existing times — never stretch or shrink them.
 - ONE ADDITION (Ben, Nov 4): the after-challenge screen (answer → round winner → overall standings) keeps its CURRENT max (12 s, REVEAL_STANDINGS_MS — every challenge has a reveal after the redesign) but SKIPS AHEAD once EVERY connected player has tapped, never before a 3 s minimum (so the answer always lands first). Solo: your own tap skips (after 3 s). Host-authoritative + server time like every phase; a dropped player doesn't block the skip.
 - Only change to pacing: QUICK (6 challenges) becomes the default match length.
-- Hard challenges (Rewire, Make 24, Compass, Missing Link, Higher/Lower, Pattern Lock) get a ~3 s looping animated demo.
+- Hard challenges (Rewire, Compass, Missing Link, Higher/Lower, Pattern Lock) get a ~3 s looping animated demo.
 
 ## No repeats + content — decided
 - CHANGED Nov 4 (Ben, via city chat): NO per-player "never seen" memory — nothing saved to profiles, no merging every player's history at match start.
@@ -176,7 +176,7 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
 - (4) Per-player cross-night memory = a LATER option only if cross-night repeats bother real players once there's traffic — not now.
 - Why: a few repeats a week apart are normal in trivia; the annoying repeat is the same group the same night — the room memory fixes that for a fraction of the work.
 - We BUILD OUR OWN pools; content growth = its own pass(es). Every row: automated checks + independent reviewer agent. Pools split per challenge, loaded lazily.
-- Targets: TRUE OR FALSE 32 → 2,000+ (data file) · TRIVIA own bank 333 → 4,000+ · CLOSEST ~1,000 · MISSING LINK ~1,000 · SPELLCHECK ~1,500 · TIMELINE / HIGHER-LOWER / SORT IT → big item pools dealt as fresh combos · MAKE 24 → every solvable set via solver · ODD ONE OUT → 4 families.
+- Targets: TRUE OR FALSE 32 → 2,000+ (data file) · TRIVIA own bank 333 → 4,000+ · CLOSEST ~1,000 · MISSING LINK ~1,000 · SPELLCHECK ~1,500 · TIMELINE / HIGHER-LOWER / SORT IT → big item pools dealt as fresh combos · ODD ONE OUT → 4 families.
 - The Trivia API: extra source while non-commercial; swap if a paid shop ever comes. Open Trivia DB: credit (share-alike). Never depend on either.
 
 ## Housekeeping for pass 1
@@ -199,9 +199,9 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
 - OC1 FOUNDATION + THE KIT: Step 0 (docs/overclock.md + ROADMAP line); fix stale tests; cut Lexicon; Quick = default (ALL timings unchanged); room night memory (rules first + sim tests); LOBBY 2.0 cartridge + city pause/memory guard; sounds imported (compressed) + audio unlock + mute; evening-music rotation; THE OVERDRIVE KIT (fonts self-hosted, palette tokens, style-C tiles, tach timer, combo meter x2→x4 OVERDRIVE→x10, right/wrong feedback, title-card slam + 3-2-1, custom number pad + letter keyboard) + no-Firebase preview page; kit proven on TRIVIA LIGHTNING + TRUE OR FALSE.
 - OC2 THE RESULTS FLOW: answer reveal frame (v2) + reveals for every challenge that lacks one; round winner; overall standings (▲ blue / ▼ grey) + skip-when-everyone-taps (min 3 s, max unchanged); FINAL STANDINGS; VICTORY body via finalScene (neon-tube winner name, podium, award chips; console owns button/XP/card reveal); OVERDRIVE x10 tracking may be reported as a feat (it unlocks nothing — the OVERDRIVE card was dropped, Nov 5).
 - OC3 CHALLENGES A (answer + keypad): Quick Math, Pattern Lock, Closest Call, Missing Link, Unscramble, Spellcheck, Higher or Lower, Timeline, Sort It.
-- OC4 CHALLENGES B (visual / reflex): Rewire (neon tubes + surge), Memory, Color Clash, Odd One Out (4 families), Quick Count, Signal Lock, Compass, Make 24 + the ~3 s animated rules demos.
+- OC4 CHALLENGES B (visual / reflex): Rewire (neon tubes + surge), Memory, Color Clash, Odd One Out (4 families), Quick Count, Signal Lock, Compass + the ~3 s animated rules demos (MAKE 24 cut in OC2).
 - OC5 DUMB LUCK + SOLO + DAILY PLUG-IN: Dumb Luck rules first (odds, payouts, seal, sim tests) then the look (neon sign, odds board, track, finish); SOLO mode; daily mode plug-in (OFF); the HORSESHOE emblem → server catalog + THE LAB (the only new collectible left for OC5 — the cards are built: REDLINE + PHOTO FINISH, OVERCLOCK CARDS; LONG SHOT / SOLO / OVERDRIVE dropped).
-- OC6 CONTENT A (structured / generated): True or False → 2,000+; Timeline / Higher-Lower / Sort It item pools; Make 24 solver sets; per-challenge lazy split.
+- OC6 CONTENT A (structured / generated): True or False → 2,000+; Timeline / Higher-Lower / Sort It item pools; per-challenge lazy split.
 - OC7 CONTENT B (written + fact-checked): own trivia bank → 4,000+; Closest Call ~1,000; Missing Link ~1,000; Spellcheck ~1,500.
 - Assets before OC5: the Muybridge "Horse in Motion" frames (public domain) — Grok prompt before that pass.
 
@@ -280,3 +280,73 @@ cost at 4× CPU, which fails the same way on the pre-OC1 build on this machine (
 - On a desktop a 1-px compositing seam can show along the column's right edge over the background (dark grey on near-black; no element draws it).
 - Missing Link still uses the system keyboard and the old keypad screens remain until OC3 rebuilds them on the kit's pad + keyboard.
 - The round board's slide into the overall order + the round winner keep OC1's light restyle only — OC2 rebuilds the results flow.
+
+### OC2 — THE RESULTS FLOW (Nov 6, 2026)
+**What shipped**
+- **Group 0 — the owner's carried fixes (ADD-ON 5 + his notes after playing OC1):** the WRONG tile is never flat red (dark glass + a red
+  edge flash + glowing hairline cracks under the text + a shake → it rests dark with a red edge / tint + the ✕ in its socket; `.oc-tile-bad`);
+  the RIGHT tile rests with the `--good` edge + a soft inner glow + the ✓ (`.oc-tile-ok`; the press still flashes orange on the way); the combo
+  meter hidden at ×0 / ×1 (it slams in at ×2); the progress bar under the emblems ORANGE (your progress — right / wrong is the tiles'); no dead
+  gap under the header (the rebuilt screens start under the progress row); the background's grid (a fine + a coarse one), the haze + the
+  vignette deeper; the desktop's 1-px line = base.css's column frame (`#stage::before/::after`) — gone while OVERCLOCK is on.
+  **THE COMBO CUES NEVER BLOCK PLAY:** x4 OVERDRIVE + x10 live in the header band only — the meter IGNITES (slams up a size, OVERDRIVE inside
+  it, a white-hot flare) while a hot light streak runs along the screen's top + side edges; pointer-events none, 0.76 s, never stacked, then
+  the meter stays lit (a steady glow). **MAKE 24 CUT** cleanly (type, category, rules, parts, generator, screen, reveal, bank, solver, data,
+  build script, help, docs, the E2Es, the tests; Marathon = the 18 once + 6 repeats; the deal + buildOrder unchanged otherwise).
+- **Group 1 — THE RULES (tests first, `tests/overclock-oc2.test.mjs`):** THE ROUND WIN (`logic.js#roundWin`) stored per challenge as it
+  closes (`game/rw/{ci}` — `{ w, p }` · `{ t: {uid}, p }` · `{ n }`); the server's REDLINE (`core/match-report.js` sweep) calls the SAME
+  function. FASTEST's clock (`game/tm/{ci}/{uid}` — ms to the finish) + BEST STREAK's tie-break (`game/cr/{uid}` — when the best was set);
+  `game.combo` and the record the server reads (results' pts, total, mode) unchanged. THE AWARD CHIPS (`awardChips`) + YOUR BEST / WORST
+  (`bestWorst`). Whole simulated QUICK matches through the director → `extractMatch`: sweep 6/6 ✓, 5/6 ✗, a tied round ✗, a blank round ✗, solo
+  never; photo by 1 ✓, by 2 ✗, a tie at the top ✗; the helper = the original server rule over 3,000 random matches.
+- **Group 2 — THE ANSWER for every challenge (`answers.js`):** the eight with no reveal get one in the kit's frame (QUICK MATH, PATTERN LOCK,
+  MEMORY as numbered mini nodes, ODD ONE OUT + why, QUICK COUNT with off-by-one = close, COLOR CLASH, SIGNAL LOCK vs the room's best, REWIRE);
+  the eight older reveals move into THE ANSWER's panel as they are (`kit/answer.js#answerPanel`). The screens save YOUR PICK on the device.
+- **Group 3 — THE ROUND WINNER + THE OVERALL STANDINGS:** the after-challenge screen = three BEATS inside its own time
+  (`logic.js#resultBeats`): THE ANSWER (≥ 3 s), the ROUND WINNER banner (the slanted orange stamp + the winner's emblem on a halo in their color
+  + name; DEAD HEAT · NO WINNER), the OVERALL standings (the light rows slide from the old order to the new, ▲ blue / ▼ dim steel with the places,
+  the totals rolling up, your row orange) with a lit READY mark on each row that tapped. Timed from the phase start on the server clock.
+- **Group 4 — THE END:** inside the final phase (`finalBeats`): the last round's beats → FINAL STANDINGS (every player, the top three on
+  gold-orange / steel / bronze edges, ROUND WINS, the totals counting up as the rows race in, YOUR BEST / WORST) → THE VICTORY: the console's
+  frame (`ui/final.js` — untouched) + `finalScene` (`victory.js`): OVERCLOCKED, the WINNER stamp, the winner's name as a NEON TUBE SIGN that
+  powers up letter by letter (the city's tube alphabet + digits; each letter's lit tube an HTML-wrapped layer, opacity only), rotating rays,
+  the score, the 2-1-3 PODIUM on the real slim cards (`leaderboard()` → `strip-board.js`, one shared surface), the award chips; CO-WINNERS
+  share the sign + the top step; SOLO = the score as the hero (NEW PERSONAL BEST only from the server's outcome). The fanfare (17) as the sign
+  powers up. SKIP › moves only your phone on (remembered for the match).
+- **Group 5 — THE LOOK REVIEW:** `overclock-preview.html` covers every new screen (`&beat=`, `&win=`, `&ready=1`, `&final=1`, `&cowin=1`,
+  `&n=1…8`, `&hold=1`); three rounds at 390 / 412 / 1440; 60 fps at 390 × 844 (dpr 3), also at 4× CPU. `shots.mjs`: `--cast` on a `--page` +
+  `--strip N` + `--webm` (THE MOTION PROOF — `Downloads/neon/overclock/shots/`).
+
+**Decisions (OC2)**
+- **THE ROUND WIN** (one rule everywhere — the banner, ROUND WINS, the server's REDLINE): a player wins a challenge when their points in it
+  are the HIGHEST and NOT SHARED. A tie for the top = nobody wins it (the banner's DEAD HEAT); nobody above 0 = NO WINNER. Stored in the game
+  state as the challenge closes (a new host + every phone read the same).
+- **THE AWARD CHIPS:** BEST STREAK = the highest maxStreak, at least ×3 (ties → the one who reached it first). FASTEST = the lowest average
+  time per RIGHT answer (the time from the challenge's start to your finish — the whole 30 s if you never finished — over your right answers
+  in it), at least 3 right answers; COMPASS, MEMORY, SORT IT, SIGNAL LOCK + QUICK COUNT don't count (their clock isn't the player's); ties → the
+  one who reached it first. A chip that doesn't apply is skipped (LONG SHOT comes with DUMB LUCK).
+- **YOUR BEST / WORST:** your points in each challenge vs the room's best in it (alone: vs the most it could score).
+- **MAKE 24 cut** (the owner, Nov 5).
+- **THE COMBO CUES:** header band + the screen's edges only, never a tap taken, ≤ 0.8 s, one at a time; the meter then stays lit.
+- **The beats** live inside the existing times: 8-s screen = answer 0–3 s · winner 3–4.3 s · standings 4.3–8 s; 12-s = 0–7 · 7–8.3 · 8.3–12.
+  The final: + FINAL STANDINGS 9 s, then the victory (FINAL_MS 120 s unchanged). No `standings` phase exists for the last challenge, so the
+  final's beats can't take the room-wide READY skip — a per-phone SKIP › instead (no rules change).
+- **The podium 2-1-3 on slim cards:** three strips side by side don't fit a phone, so the top step is full width and 2nd / 3rd sit lower
+  left / lower right (88 % wide) — 2-1-3 reading left → right, nothing overlapping; they slam up 3rd → 2nd → 1st.
+- **The console's own WINNER line** (`.winner`) is hidden inside Overclock's frame — the body's stamp + sign say it (no console file changed).
+- **SIGNAL LOCK's room best** is an EFFECTIVE time (its reaction credit turned back into ms, shown with ≈); your own taps are exact.
+- **SOLO's personal best:** the server keeps only a STANDARD solo board, so a QUICK solo run shows YOUR SCORE.
+
+**The local run before the final push (the mini PC, nothing else busy):** unit **1216 / 1216** · rules **66 / 66** (database.rules.json
+unchanged — nothing to re-publish) · `/api` server.test **38 / 38** · smoke **6 / 6** · e2e-oc-2 **22 / 22** (8 phones; Make 24's seven checks
+went with it) · e2e-oc-new **39 / 39** (8 phones, to the end of the match) · the profile E2E **91 / 91** (REDLINE + PHOTO FINISH still unlock
+through the server's shared round-win rule) · the harbor's `room2` job **52 / 52** (cartridge, city pause, the solo look …). No City 2.0 or
+console file changed (ui/final.js untouched; match-report.js = the server's report, proven equal over 3,000 random matches) → the ci tag; the
+full harbor suite was not run.
+
+**Known issues / held back**
+- The eight older reveals sit in THE ANSWER's panel in their pre-OVERDRIVE look (their dressing is OC3 / OC4's, as decided).
+- The challenges OC3 / OC4 haven't rebuilt keep their old screens (and their old layout spacing).
+- The console's victory jingle (`sfx('victory')`, ui/final.js) still plays at 2.5 s beside the sign's fanfare; the victory music starts with
+  the final phase (the console's), i.e. during the last round's answer.
+- No /api on the look-review page: the XP box's height under the victory body was checked only on the E2E's room (no /api there either).

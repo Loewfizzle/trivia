@@ -106,7 +106,8 @@ The start never waits past its 5 s for a preload: the game shows when its own pi
 - A result may carry per-player FEATS the SERVER replays for unlocks (`maxStreak`, `longShotWin`, `soloScore` …; `core/match-report.js`
   reads them with bounds). A client never writes an unlock.
 - `finalScene(el, game, state)` = the game's podium BODY (D8: the console owns the FRAME: BACK TO THE ROOM, the XP box, already-yours / next
-  unlock, THE CARD REVEAL).
+  unlock, THE CARD REVEAL). BUILT by OVERCLOCK (OC2 — `js/games/overclock/victory.js`: the neon-tube winner, the 2-1-3 podium on the slim
+  cards via `leaderboard()`, the award chips, SOLO's score); a game whose body says WINNER hides the frame's own `.winner` line in its css.
 - THE DAILY (D2) = a SOLO ROOM fed a server-picked DAY SET (THE DAILY MODULE picks the day's challenges + item ids SERVER-SIDE once a day: a
   seed + a server secret). It is NEVER computable from the date alone; `daily.on` ships `false`.
 

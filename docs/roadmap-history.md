@@ -2026,3 +2026,13 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 3: the 5-hour music idle cutoff, YOUR PREVIOUS KEY, a new og.png (shots.mjs --sizes og), late1 + late2 dropped (295.5 → 291.3 MB).
 - Group 4: the cirrus re-checked on the desktop (cast-flicker.mjs: 0 flickers); the choppy load, the far-right skyline + the resize stall → FR7.
 - The add-ons: THE DISPLAY CHECK (no dummy plug: the real-compositor speed checks skip with their reason on a display-less boot).
+
+## OVERCLOCK PASS 2 — THE RESULTS FLOW (Nov 6 2026) — docs/overclock.md "OC2"
+- Group 0: the owner's carried fixes (the wrong tile never flat red, the right tile's rest, the meter from ×2, the orange progress bar, no gap
+  under the header, the background's depth, the desktop line); THE COMBO CUES NEVER BLOCK PLAY (the meter ignites in the header + an edge
+  streak, 0.76 s); MAKE 24 cut; shots.mjs --cast on a page + --strip + --webm.
+- Group 1: THE ROUND WIN (one rule, stored as game/rw; the server's REDLINE calls it), game/tm + game/cr, the award chips, your best / worst.
+- Group 2: THE ANSWER for every challenge (eight new, eight older reveals in its panel).
+- Group 3: the after-challenge BEATS — the answer, the ROUND WINNER banner, the overall standings with READY marks.
+- Group 4: FINAL STANDINGS + THE VICTORY body (finalScene) + per-phone SKIP; e2e-oc-new plays to the end (39 checks).
+- Group 5: the look review (three rounds, 390 / 412 / 1440; 60 fps incl. 4× CPU).
