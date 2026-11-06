@@ -212,15 +212,19 @@ try {
   const tSpec = JSON.parse(tl[0]);
   const correct = [0, 1, 2, 3].map(pos => tSpec.shown.indexOf(pos));
   // BOB taps two, undoes one, finishes perfectly
-  await press(pages[1], '.tm-item', correct[0]);
-  await press(pages[1], '.tm-item', correct[2]);
-  await press(pages[1], '.tm-item', correct[2]); // undo
-  await press(pages[1], '.tm-item', correct[1]);
+  // (OC3B) the four slanted glass rows: a tap turns one orange with its order badge, a tap again takes it back
+  await press(pages[1], '.oc-tl-row', correct[0]);
+  await press(pages[1], '.oc-tl-row', correct[2]);
+  ok(await pages[1].evaluate(i => { const r = document.querySelectorAll('.oc-tl-row')[i]; return r.classList.contains('is-picked') && r.querySelector('.oc-tl-badge').textContent === '2' && document.querySelector('.oc-tl-lock').disabled; }, correct[2]), 'TIMELINE: a tapped row turns orange with its order badge (2); LOCK IT IN waits for all four');
+  await press(pages[1], '.oc-tl-row', correct[2]); // undo
+  ok(await pages[1].evaluate(i => !document.querySelectorAll('.oc-tl-row')[i].classList.contains('is-picked'), correct[2]), 'TIMELINE: a tap again takes it back');
+  await press(pages[1], '.oc-tl-row', correct[1]);
   await sleep(250);
   await shotBoth(pages[1], 'o-05-timeline-play');
-  await press(pages[1], '.tm-item', correct[2]);
-  await press(pages[1], '.tm-item', correct[3]);
-  await click(pages[1], '.tl-submit');
+  await press(pages[1], '.oc-tl-row', correct[2]);
+  await press(pages[1], '.oc-tl-row', correct[3]);
+  ok(await pages[1].evaluate(() => !document.querySelector('.oc-tl-lock').disabled), 'TIMELINE: LOCK IT IN lights once all four are numbered');
+  await click(pages[1], '.oc-tl-lock');
   await sleep(500);
   await shotBoth(pages[1], 'o-06-timeline-result');
   // kill the host while the others are still ordering
@@ -231,14 +235,18 @@ try {
   log(`killed the host (${NAMES[hostIdx]}) mid-Timeline`);
   for (const i of alive().filter(i => i !== 1)) {
     const picks = i % 2 ? [...correct].reverse() : correct;
-    for (const n of picks) await press(pages[i], '.tm-item', n);
-    await click(pages[i], '.tl-submit');
+    for (const n of picks) await press(pages[i], '.oc-tl-row', n);
+    await click(pages[i], '.oc-tl-lock');
   }
   await waitFor(pages[1], (s, old) => s.meta.hostId !== old, 'host migrated', 45000, oldHost);
   ok(true, 'host migrated mid-challenge');
   await waitPhase(pages[1], 'standings', 1, 'timeline standings', 60000);
   await sleep(2000);
   await shotBoth(pages[1], 'o-07-timeline-reveal');
+  {
+    const tla = await pages[1].evaluate(() => ({ rows: document.querySelectorAll('.oc-beat-answer .oc-tla-row').length, right: document.querySelectorAll('.oc-beat-answer .oc-tla-row.is-right').length, vals: document.querySelectorAll('.oc-beat-answer .oc-tla-val').length }));
+    ok(tla.rows === 4 && tla.right === 4 && tla.vals === 4, `TIMELINE — THE ANSWER: four rows in the right order beside the value rail, BOB's all ✓ (${JSON.stringify(tla)})`);
+  }
   // (OC2) a phone refreshed mid-results lands on the same beat as everyone else (timed from the phase's start on the server clock)
   {
     const rj = alive().find(i => i > 1);

@@ -110,6 +110,27 @@ function tap(k, right = true) {
   // OC3B — the card + list challenges, pressed like a finger
   else if (s.type === 'spellcheck') { const a = s.items[k].ans; press(document.querySelectorAll('.oc-sp-opt')[right ? a : (a + 1) % 4]); }
   else if (s.type === 'higherlower') { const P = s.pairs[k], up = P.b.v > P.a.v; press(document.querySelector((right ? up : !up) ? '.oc-hl-btn.is-up' : '.oc-hl-btn.is-down')); }
+  else if (s.type === 'timeline') { tlOrder(right).forEach(i => press(document.querySelectorAll('.oc-tl-row')[i])); press(document.querySelector('.oc-tl-lock')); }
+  else if (s.type === 'sortit') return sortTap(k, right);
+}
+// TIMELINE: the screen indexes in the right order (wrong = the middle two swapped)
+const tlOrder = (right = true) => { const s = spec(), o = [0, 1, 2, 3].map(pos => s.shown.indexOf(pos)); if (!right) [o[1], o[2]] = [o[2], o[1]]; return o; };
+// SORT IT: wait for card k on the table, then a finger: a quick TAP on a side (or __preview.swipe — a real drag, for the motion proof)
+const liveCard = async () => { for (let w = 0; w < 80 && !document.querySelector('.oc-st-card.is-live'); w++) await wait(25); return document.querySelector('.oc-st-card.is-live'); };
+const ptr = (type, x, y) => document.querySelector('.oc-st').dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, pointerType: 'touch', clientX: x, clientY: y }));
+async function sortTap(k, right = true) {
+  const card = await liveCard(); if (!card) return;
+  const s = spec(), side = right ? s.cards[k].s : 1 - s.cards[k].s, r = document.querySelector('.oc-st').getBoundingClientRect();
+  const x = r.left + r.width * (side ? 0.82 : 0.18), y = r.top + r.height * 0.5;
+  ptr('pointerdown', x, y); ptr('pointerup', x, y);
+}
+async function swipe(right = true, k = null) {
+  const card = await liveCard(); if (!card) return;
+  const s = spec(), i = k ?? window.__oc.state().p, side = right ? s.cards[i].s : 1 - s.cards[i].s, r = card.getBoundingClientRect();
+  const x0 = r.left + r.width / 2, y = r.top + r.height / 2, dir = side ? 1 : -1;
+  ptr('pointerdown', x0, y);
+  for (let f = 1; f <= 9; f++) { await new Promise(requestAnimationFrame); ptr('pointermove', x0 + dir * f * 13, y + f); }
+  ptr('pointerup', x0 + dir * 117, y + 9);
 }
 // OC3 — the kit's pads, pressed like a finger (pointerdown on each key)
 const padAnswer = (s, k, right = true) => {
@@ -130,7 +151,7 @@ function typing() {
   else if (s.type === 'missinglink') typeKeys(s.puzzles[0].answer.slice(0, 3));
   else if (s.type === 'unscramble') typeTiles(s.word.slice(0, 2));
 }
-window.__preview = { game, state, step, tap, push, typePad: v => typePad(v), typeKeys: w => typeKeys(w), typeTiles: w => typeTiles(w), lock: () => press(document.querySelector('.gk-np .gk-go')) };
+window.__preview = { game, state, step, tap, push, swipe: (r, k) => swipe(r, k), typePad: v => typePad(v), typeKeys: w => typeKeys(w), typeTiles: w => typeTiles(w), lock: () => press(document.querySelector('.gk-np .gk-go')) };
 // (the view's test hook needs ?emu in the address — the preview adds it for itself)
 if (!/[?&]emu\b/.test(location.search)) history.replaceState(null, '', `${location.pathname}${location.search}${location.search ? '&' : '?'}emu=1`);
 push();
@@ -146,7 +167,7 @@ const hold = q.get('hold') === '1' ? new Promise(r => { window.__go = r; }) : nu
   if (hold && /^(right|wrong|combo4|combo10)$/.test(at)) { ready(); await hold; }
   if (at === 'right' || at === 'wrong' || at === 'typing') for (let w = 0; w < 60 && !spec(); w++) await wait(100);
   if (at === 'typing') { typing(); return ready(); }
-  if (at === 'right' || at === 'wrong') { tap(0, at === 'right'); return ready(); }
+  if (at === 'right' || at === 'wrong') { await tap(0, at === 'right'); return ready(); }
   if (at === 'combo4' || at === 'combo10') {
     // the cue + a tap on the NEXT question while it still runs (the cues never block play)
     tap(0, true);
@@ -183,12 +204,14 @@ async function answerOther(s) {
     missinglink: () => [s.puzzles[0].answer, 'STONE'],
     unscramble: () => [[...s.word].reverse().join('')],
     spellcheck: () => s.items.map((it, i) => (i === 1 ? (it.ans + 1) % 4 : i === 3 ? (it.ans + 2) % 4 : it.ans)),
+    timeline: () => [tlOrder(false)],
+    sortit: () => s.cards.map((c, i) => (i === 2 || i === 7 ? 1 - c.s : i === 10 ? -1 : c.s)),
     higherlower: () => s.pairs.map((P, i) => { const r = P.b.v > P.a.v ? 'up' : 'down'; return i < hlRun ? r : i === hlRun && hlMode === 'miss' ? (r === 'up' ? 'down' : 'up') : null; }).filter((v, i) => v != null || i < hlRun),
   };
   const picks = (P[s.type] || (() => []))();
   if (picks.length) savePicks(game.matchId, ci, picks);
   const n = s.parts || parts;
-  const okMe = { memory: 3, rewire: 1.42, reflex: 3.4, closest: 0.86, higherlower: hlRun }[s.type] ?? Math.max(0, n - 1);
+  const okMe = { memory: 3, rewire: 1.42, reflex: 3.4, closest: 0.86, higherlower: hlRun, timeline: 2, sortit: 8 }[s.type] ?? Math.max(0, n - 1);
   const live = { [me]: { p: n, ok: okMe, n, done: true, doneAt: Date.now() - 4000 } };
   uids.slice(1).forEach((u, i) => { live[u] = { p: n, ok: Math.max(0, n - (i % 3)) - (s.type === 'reflex' ? 0.3 * i : 0), n, done: true, doneAt: Date.now() - 2000 - i * 900 }; });
   if (s.type === 'closest') game.rv = { [ci]: Object.fromEntries(uids.map((u, i) => [u, { g: Math.round(s.answer * [0.86, 1.04, 1.3, 0.7, 1.12, 0.5, 1.6, 0.95][i]) }])) };

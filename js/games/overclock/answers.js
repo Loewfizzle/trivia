@@ -6,8 +6,11 @@
 //    QUICK MATH (the sum = the answer), PATTERN LOCK (the sequence + the next number), MEMORY (the sequence replayed as numbered nodes),
 //    ODD ONE OUT (the odd one + why, one line), QUICK COUNT (the real count — off by one = --close + the half shape), COLOR CLASH (the word +
 //    its color named), SIGNAL LOCK (your time vs the room's best), REWIRE (solved or not + the time).
-//  - The ones that HAD a reveal (SPELLCHECK, COMPASS, SORT IT, HIGHER OR LOWER, TIMELINE) sit INTO THE ANSWER frame as they are (reveals.js —
-//    their content in its slot) until each one's rebuild (OC3B / OC4).
+//  - The ones that HAD a reveal sat INTO THE ANSWER frame as they were (reveals.js — their content in its slot) until each one's rebuild:
+//    COMPASS still does (OC4).
+//  - OC3B — THE CARD + LIST CHALLENGES' own dressing: SPELLCHECK (the tricky letters underlined, your wrong ones marked), HIGHER OR LOWER (your
+//    streak as the hero, your run, the pair that ended it with both numbers), TIMELINE (the rows slide into the right order beside the value
+//    rail, ✓ / ✕ each), SORT IT (two columns under the sides, every card where it belongs, a miss slides in from the side you put it on).
 //  - OC3 — THE TYPING CHALLENGES' own dressing: QUICK MATH (the sum = the answer), PATTERN LOCK (the number dropped into the sequence + its
 //    rule), CLOSEST CALL (how far off on a slanted scale + the room's closest), MISSING LINK (each clue joined to the link), UNSCRAMBLE (the
 //    scrambled tiles fly into the word).
@@ -250,6 +253,67 @@ function higherlower(spec, picks, ctx) {
   return box(hero, run, frame, roomLine);
 }
 
+// TIMELINE: THE ANSWER plate (the direction), then the four rows in YOUR order SLIDE into the right one (a transform each), their VALUES on a
+// rail beside them (they light as the rows land); each row carries your number + ✓ (in place — the --good edge) or ✕ (red edge) — never color
+// alone. Your order = this phone's own (api.pick); a spectator / no lock-in sees the rows slide from the screen's order
+function timeline(spec, picks) {
+  const order = Array.isArray(picks[0]) && picks[0].length === 4 ? picks[0] : null;   // screen indexes in the order you tapped them
+  let inPlace = 0;
+  const rows = spec.items.map((it, k) => {
+    const idx = spec.shown.indexOf(k);
+    const mine = order ? order.indexOf(idx) : -1;
+    const ok = mine === k;
+    if (ok) inPlace++;
+    return h('div.oc-tla-row', { class: order ? (ok ? 'is-right' : 'is-wrong') : 'is-none', style: { '--from': order ? mine : idx, '--to': k, '--k': k } },
+      h('span.oc-tla-glass', { 'aria-hidden': 'true' }), h('span.oc-tla-edge', { 'aria-hidden': 'true' }),
+      order ? h('span.oc-tla-you', { 'aria-label': `you put it ${mine + 1}${ok ? ', in place' : `, it belongs ${k + 1}`}` }, h('small', 'YOU'), h('b', String(mine + 1))) : null,
+      h('span.oc-tla-t', it.label),
+      order ? tubeMark(ok ? 'check' : 'cross') : null);
+  });
+  const rail = h('div.oc-tla-rail', { 'aria-label': 'the values in order' }, h('i.oc-tla-line', { 'aria-hidden': 'true' }),
+    spec.items.map((it, k) => h('span.oc-tla-val', { class: String(it.value).length > 7 ? 'is-long' : null, style: { '--k': k } }, h('i', String(k + 1)), h('b', it.value))));
+  return box(answerPanel({
+    sub: spec.dir,
+    slot: h('div.oc-tla',
+      h('p.oc-tla-ask', spec.ask),
+      h('div.oc-tla-k', h('span', 'THE RIGHT ORDER'), order ? h('span', h('b', `${inPlace}/4`), ' IN PLACE') : h('span', 'NO ORDER LOCKED IN')),
+      h('div.oc-tla-board', rail, h('div.oc-tla-rows', rows))),
+    delay: 80,
+  }));
+}
+// SORT IT: the two sides' plates (blue left · orange right) over two columns — every card under the side it BELONGS to; yours ✓ (--good edge)
+// or ✕ (red edge): a miss SLIDES IN from the side you put it on (it shows where it belonged), too slow = SLOW, never reached = –. Your sorts =
+// this phone's own (api.pick, or the screen's log); a spectator sees the columns plain
+function sortit(spec, picks, ctx) {
+  const log = spec.cards.map((c, i) => {
+    const p = picks[i];
+    if (p === 0 || p === 1 || p === -1) return p;
+    const L = ctx.sortLog;
+    return L && i in L ? (L[i] == null ? -1 : L[i]) : null;
+  });
+  const played = log.some(v => v != null);
+  let right = 0, wrong = 0;
+  const col = side => h(`div.oc-sa-col.is-${side ? 'r' : 'l'}`,
+    h('div.oc-sa-label', h('span.oc-sa-glass', { 'aria-hidden': 'true' }), h('b', side ? spec.right : spec.left)),
+    spec.cards.map((c, i) => ({ c, i })).filter(x => x.c.s === side).map(({ c, i }, j) => {
+      const v = log[i];
+      const state = !played ? 'plain' : v == null ? 'none' : v === -1 ? 'slow' : v === side ? 'right' : 'wrong';
+      if (state === 'right') right++; else if (state === 'wrong' || state === 'slow') wrong++;
+      return h('div.oc-sa-card', { class: `is-${state}`, style: { '--j': j, '--from': side ? -1 : 1 } },
+        h('span.oc-sa-glass', { 'aria-hidden': 'true' }), h('span.oc-sa-t', c.t),
+        state === 'right' ? tubeMark('check', 'Sorted right') : state === 'wrong' ? tubeMark('cross', 'You sorted it the other way') : state === 'slow' ? h('small.oc-sa-tag', 'SLOW') : state === 'none' ? h('small.oc-sa-tag', '–') : null);
+    }));
+  const cols = h('div.oc-sa-cols', col(0), col(1));
+  return box(answerPanel({
+    sub: 'WHERE THEY BELONG',
+    slot: h('div.oc-sa',
+      played ? h('div.oc-sa-k', h('span', h('b.is-ok', `✓ ${right}`), ' SORTED RIGHT'), h('span', h('b.is-bad', `✕ ${wrong}`), ' MISSED')) : null,
+      cols,
+      played && wrong ? h('div.oc-sa-note', '✕ SLIDES IN FROM THE SIDE YOU PUT IT ON') : null),
+    delay: 80,
+  }));
+}
+
 // MEMORY: the sequence replayed as numbered nodes (a mini 3 × 3 each, the step's node lit + its number); your slip marked
 const miniGrid = (n, cls = '') => h(`span.oc-mg${cls}`, { 'aria-hidden': 'true' }, Array.from({ length: 9 }, (_, i) => h('i', { class: i === n ? 'is-on' : null })));
 function memory(spec, picks) {
@@ -363,9 +427,9 @@ function rewire(spec, picks, ctx) {
   }));
 }
 
-export const ANSWERS = { trivia, truefalse, math, pattern, closest, missinglink, unscramble, spellcheck, higherlower, memory, oddone, count, stroop, reflex, rewire };
+export const ANSWERS = { trivia, truefalse, math, pattern, closest, missinglink, unscramble, spellcheck, higherlower, timeline, sortit, memory, oddone, count, stroop, reflex, rewire };
 /** the older reveals still in THE ANSWER's panel as they are (their own kicker stays inside the slot) until each one's rebuild */
-export const PANELS = new Set(['compass', 'sortit', 'timeline']);
+export const PANELS = new Set(['compass']);
 export const hasAnswer = type => !!ANSWERS[type] || PANELS.has(type);
 /**
  * THE ANSWER for a closed challenge. ctx: { game, me, uids, player(uid), boards (this challenge's boards + the unsealed answers), timers,

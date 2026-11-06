@@ -257,11 +257,11 @@ try {
   // the play screen at both sizes comes from a spectating bot's phone (CHARLIE), BOB plays meanwhile
   const shot = (async () => { await sleep(400); await shotBoth(pages[2], 'q-21-sort-play'); })();
   // BOB: real touch — swipes for most cards, a half-screen tap now and then, one deliberate mistake
-  const box = await pages[1].$eval('.ch-sort', e => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
+  const box = await pages[1].$eval('.oc-st', e => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
   const midY = box.y + box.h * 0.55;
   const bob = (async () => {
     for (;;) {
-      await pages[1].waitForFunction(() => window.__oc.state().done || document.querySelector('.st-card.is-in:not(.is-out)'), { timeout: 6000, polling: 30 });
+      await pages[1].waitForFunction(() => window.__oc.state().done || document.querySelector('.oc-st-card.is-live'), { timeout: 6000, polling: 30 });
       const c = await OC(pages[1], 'O.state().done ? -1 : O.state().p');
       if (c < 0) break;
       const want = c === 5 ? 1 - so.cards[c].s : so.cards[c].s;
@@ -279,7 +279,7 @@ try {
   // the others: arrow keys, player i gets the first i % 4 cards wrong
   const kb = alive().filter(i => i !== 1 && i !== 2).map(async i => {
     for (;;) {
-      const c = await pages[i].waitForFunction(() => (window.__oc.state().done ? -1 : document.querySelector('.st-card.is-in:not(.is-out)') ? window.__oc.state().p : null), { timeout: 8000, polling: 30 }).then(h => h.jsonValue());
+      const c = await pages[i].waitForFunction(() => (window.__oc.state().done ? -1 : document.querySelector('.oc-st-card.is-live') ? window.__oc.state().p : null), { timeout: 8000, polling: 30 }).then(h => h.jsonValue());
       if (c < 0) break;
       const side = c < i % 4 ? 1 - so.cards[c].s : so.cards[c].s;
       await pages[i].keyboard.press(side ? 'ArrowRight' : 'ArrowLeft');
@@ -295,6 +295,10 @@ try {
   await waitPhase(pages[1], 'standings', 3, 'sortit standings', 60000);
   await sleep(1600);
   await shotBoth(pages[1], 'q-23-sort-reveal');
+  {
+    const sa = await pages[1].evaluate(() => ({ cards: document.querySelectorAll('.oc-beat-answer .oc-sa-card').length, right: document.querySelectorAll('.oc-beat-answer .oc-sa-card.is-right').length, wrong: document.querySelectorAll('.oc-beat-answer .oc-sa-card.is-wrong').length }));
+    ok(sa.cards === 12 && sa.right === 11 && sa.wrong === 1, `SORT IT — THE ANSWER: all 12 under the side they belong to, BOB's 11 ✓ + his 1 miss ✕ (${JSON.stringify(sa)})`);
+  }
   const r4 = await checkScores(pages[1], 3, 'sortit', alive().map(i => uids[i]));
   ok(r4[uids[1]].ok === 10.5 && r4[uids[1]].pts === 100, 'SORT IT: 11 right + 1 wrong = 10.5 net = 100, no speed bonus');
   const back = await openPlayer(hostIdx);
