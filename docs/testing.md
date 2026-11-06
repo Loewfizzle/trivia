@@ -4,11 +4,11 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
 
 **WINDOWS (Nov 1) — THE TRIMMED SUITES.** Only PRISM DROP + OVERCLOCK are playable (the owner): the smoke test starts those two (+ checks that
 none of the ten hidden games can start — host.js#startGame refuses them) — ≈ 30 s locally (was ≈ 2 min); `e2e-presence` + `e2e-conn` (the cloud's
-tests job) play OVERCLOCK (were LAST SIGNAL / CIPHER); the ten hidden games' long E2Es (`e2e-cipher`… `e2e-rum`, `e2e-8p`) don't run until a game
+tests job) play OVERCLOCK (were LAST SIGNAL / CIPHER); the ten hidden games' long E2Es (`e2e-cipher`… `e2e-rum`) don't run until a game
 comes back; their quick unit tests stay in `node --test tests/*.test.mjs`. **CITY 1.0 OUT (Nov 5): City 1.0 is DELETED** — its
 suites went with it (`e2e-title`, `e2e-sky`, `e2e-street`, `e2e-rainbow`, `e2e-people`, `e2e-party`, `e2e-chat` (the old lobby's chat strip), `lobby-shot`,
 `ui-shots` (the old lobby's menus), `brand.html` + `render-assets.mjs` (the icons + og.png from City 1.0's scene — the images stay in `assets/`));
-`e2e-stage2` stays retired with the hidden games. The Harbor suite's `core` group checks an old `?city=1` link lands on the Harbor; `citydown`
+`e2e-stage2` + `e2e-8p` were DELETED in OC5 (Nov 6 — they tapped the pre-OC3 / pre-OC4 screens; `e2e-oc-2` + `e2e-oc-new` play OVERCLOCK on 8 phones, git history keeps the old files). The Harbor suite's `core` group checks an old `?city=1` link lands on the Harbor; `citydown`
 (the `city` job) blocks the Harbor's module: THE CITY COULDN'T LOAD + RELOAD after the one retry; `stuckjoin` (the `lobbyfix` job) — THE STUCK
 JOIN: a guest / the host / the last one leaves, a reload in the room, a reload after → JOIN is fresh + a typed word gets in (402 + 1440;
 `wk-room.mjs` checks it in WebKit). **pixdiff** gained `room` / `room-day` (title-preview's `&act=room`: four players at the door over the real
@@ -221,10 +221,6 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     page errors or console errors. Native `append()`/`replaceChildren()` print a `null` argument as text — `h()` skips it.
   - E2E (3 headless tabs play a full match incl. host loss + refresh + kick): `node e2e.mjs "<path to chrome/edge>" ./shots`
   - Same E2E against production (real Firebase): `E2E_BASE=https://neonspeakeasy.com node e2e.mjs "<browser path>" ./shots`
-  - Stage 2 E2E: `node e2e-stage2.mjs "<browser path>" ./shots [signal|overclock|all]` (env `OC_FIRST=memory,stroop,…` puts
-    those Overclock types first — its bots play all 20). Covers Last Signal (targeting,
-    eliminations, host killed mid-battle, audio unlock / background pause / crossfades / victory track) and Overclock (every
-    challenge UI, identical challenges on all clients, refresh mid-challenge), and writes every new screen at 390×844 and 412×915.
   - PULSE E2E: `node e2e-pulse.mjs "<browser path>" ./shots` (env `N=8 COUNT=2 SONG=pulse3 DIFF=hard ECHO=on`) — calibration
     (bot taps 40 ms late → ~+55 ms), synced start, bots with different timing (judgment checks), chords, refresh mid-song,
     backgrounding, quality-tier fallback under 12× CPU, 4× CPU frame pacing (`PROFILE=1` prints a CPU profile), Echo, podium.
@@ -325,9 +321,6 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     step times pinned from its source). The E2Es: e2e-oc-2 (Compass's N / E / S / W), e2e-oc-new (REWIRE + ODD ONE OUT with REAL finger taps — the
     blue stage 2, a refresh mid-circuit, the found cell white-hot, a wrong cell's real crack at the finger + the odd one green, THE ANSWER's rows).
     The no-sideways guard has an `oc4` group (right / wrong / close on nine challenges, the four families, both demos, Signal Lock's GO).
-  - Stage 3 E2E: `node e2e-8p.mjs "<browser path>" ./shots` — 8 players in 8 separate browser contexts play a full game of
-    all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
-    every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).
   - The E2E harness uses `puppeteer-core` with a locally installed Chrome/Edge (no browser download).
   - THE PEOPLE E2E: `ONLY=door,line,peds,rain,hail,bus,holidays,reduced,perf node e2e-people.mjs "<browser path>" ./shots-people`
     (env `SHOTS=0 CPU=4`; ~8 min) — the door's visits, the hint, the party line + its thinning, the people by the hour, umbrellas,
