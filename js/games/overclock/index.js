@@ -47,11 +47,14 @@ export async function start({ code, matchId, settings, participants, now, used }
 // (~110 KB), the OVERDRIVE fonts (~67 KB — css/overclock.css's @font-face finds them in the cache) and the content pools — ALL of them, they
 // are small (the banks ~125 KB + Unscramble's word lists ~260 KB): a phone doesn't know the order before the host's start() lands.
 export const OC_FONT_FILES = ['barlow-condensed-900i', 'barlow-condensed-800i', 'chakra-petch-700', 'chakra-petch-500'];
+// OC4 — THE REAL-GLASS CRACK's two textures (~100 KB: assets/overclock/ — crack.js; the view decodes them at mount)
+export const OC_CRACK_FILES = ['crack.webp', 'crack-glow.webp'];
 export function preload() {
   const fonts = OC_FONT_FILES.map(f => fetch(new URL(`../../../assets/fonts/overclock/${f}.woff2`, import.meta.url)).then(r => r.arrayBuffer()).catch(() => null));
   return Promise.all([
     import('./sfx.js').then(m => m.ocSfxBytes()).catch(() => null),
     ...fonts,
+    ...OC_CRACK_FILES.map(f => fetch(new URL(`../../../assets/overclock/${f}`, import.meta.url)).then(r => r.arrayBuffer()).catch(() => null)),
     ...BANK_TYPES.map(t => loadBank(t).catch(() => null)),
     loadLengths([5, 6, 7]).catch(() => null),
   ]).then(() => true, () => false);

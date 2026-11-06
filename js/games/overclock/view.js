@@ -386,7 +386,7 @@ export function createView() {
     set key(fn) { keyHandler = fn; },
     game: () => g(),
     /** OVERDRIVE feedback on the tile the player tapped (call it before part()): right → burst + sparks into the score; wrong → crack + shake */
-    fx(tile, right) { if (!chal) return; chal.fxDone = !right; if (right) fx.right(tile, els.score); else fx.wrong(tile); },
+    fx(tile, right, opts = {}) { if (!chal) return; chal.fxDone = !right; if (right) fx.right(tile, els.score); else fx.wrong(tile, { seed: `${chal.key}:${chal.p}:${opts.k ?? ''}`, ...opts }); },
     /** your pick for part i (THE ANSWER shows it after the round — this device only) */
     pick(i, v) { const game = g(); if (!chal || !game) return; (chal.local.picks ||= loadPicks(game.matchId, game.ci))[i] = v; savePicks(game.matchId, game.ci, chal.local.picks); },
     sfx: name => ocSfx(name),

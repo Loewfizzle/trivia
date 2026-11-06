@@ -10,6 +10,7 @@ import { isValidGuess } from '../../cipher/words.js';
 import { unscrambleAccepts } from '../challenges.js';
 import { flash } from '../../kit/numpad.js';
 import { tubeMark } from '../../kit/answer.js';
+import { clearCrack } from '../crack.js';
 
 const press = (el, fn) => {
   el.addEventListener('pointerdown', e => { e.preventDefault(); fn(); });
@@ -73,7 +74,7 @@ export default function uiUnscramble(s, api) {
       api.sfx('wrong');
       slots.classList.add('is-bad');
       api.fx(slots, false);
-      timer = setTimeout(() => { busy = false; slots.classList.remove('is-bad'); slots.querySelectorAll('.oc-crack').forEach(c => c.remove()); picked = []; render(); }, 420);
+      timer = setTimeout(() => { busy = false; slots.classList.remove('is-bad'); clearCrack(slots); picked = []; render(); }, 420);
     }
   };
   const key = (label, fn, cls) => { const b = h(`button.gk-key.oc-us-key${cls}`, { type: 'button', dataset: { sfx: 'none' } }, h('span.gk-key-face'), h('span.gk-key-glow'), h('span.gk-key-label', label)); return press(b, () => { flash(b); fn(); }); };

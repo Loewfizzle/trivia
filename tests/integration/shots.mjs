@@ -208,6 +208,12 @@ if (PAGE) {
     //  can start the motion being filmed); --strip N = N frames evenly spaced in time, one labelled row (<name>-<w>x<h>-strip.png);
     //  --webm = the frames encoded at their real times into <name>-<w>x<h>.webm (MediaRecorder in the browser — no ffmpeg needed))
     const PCAST = Number(opt('cast', 0)) || 0;
+    let castClip = null;
+    if (PCAST && opt('cast-el', '')) {
+      const pad = Number(opt('cast-pad', 14));
+      castClip = await p.evaluate((sel, pad, W, H) => { const e = document.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); const x = Math.max(0, r.left - pad), y = Math.max(0, r.top - pad); return { x, y, width: Math.min(W - x, r.width + 2 * pad), height: Math.min(H - y, r.height + 2 * pad) }; }, String(opt('cast-el')), pad, w, h).catch(() => null);
+      if (!castClip) console.log('cast-el: no element for', opt('cast-el'));
+    }
     if (PCAST) {
       const frames = [], cdp = await p.target().createCDPSession(), t0 = Date.now();
       cdp.on('Page.screencastFrame', f => { frames.push({ t: Date.now() - t0, data: f.data }); cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {}); });
@@ -218,11 +224,19 @@ if (PAGE) {
       console.log(`${opt('name', 'page')} ${w}x${h}: ${frames.length} frames in ${PCAST} ms`);
       const q = await browser.newPage();
       const STRIP = Number(opt('strip', 0)) || 0;
+      // (OC4 — --cast-el <selector> [--cast-pad pt]: the strip CROPPED to that element (its rect when the cast started, + the pad) at REAL
+      //  size (1 pt = 1 px of the strip, × --dsf) — a crack on a 56-pt tile judged the way the phone shows it; --cast-from ms: the strip's
+      //  frames from then on (the motion, not the wait before it))
       if (STRIP && frames.length) {
-        const pickAt = i => { const t = (PCAST * i) / Math.max(1, STRIP - 1); return frames.reduce((b, f) => (Math.abs(f.t - t) < Math.abs(b.t - t) ? f : b)); };
-        const sel = Array.from({ length: STRIP }, (_, i) => pickAt(i)), k = Math.min(1, 2400 / (STRIP * w));
-        await q.setViewport({ width: Math.ceil(STRIP * (w * k + 6)), height: Math.ceil(h * k + 24), deviceScaleFactor: 1 });
-        await q.setContent(`<body style="margin:0;background:#111;display:flex;font:13px monospace;color:#ccc">${sel.map(f => `<div style="margin:0 3px"><div style="height:20px">${f.t} ms</div><img src="data:image/jpeg;base64,${f.data}" style="display:block;width:${w * k}px;height:${h * k}px"></div>`).join('')}</body>`);
+        const FROM = Number(opt('cast-from', 0)) || 0, SPAN = PCAST - FROM;
+        const pickAt = i => { const t = FROM + (SPAN * i) / Math.max(1, STRIP - 1); return frames.reduce((b, f) => (Math.abs(f.t - t) < Math.abs(b.t - t) ? f : b)); };
+        const sel = Array.from({ length: STRIP }, (_, i) => pickAt(i));
+        const D = DSF || 1;
+        const cr = castClip ? castClip : { x: 0, y: 0, width: w, height: h };
+        const k = castClip ? D : Math.min(1, 2400 / (STRIP * w)) * 1;
+        const fw = cr.width * k, fh = cr.height * k;
+        await q.setViewport({ width: Math.ceil(STRIP * (fw + 6)), height: Math.ceil(fh + 24), deviceScaleFactor: 1 });
+        await q.setContent(`<body style="margin:0;background:#111;display:flex;font:13px monospace;color:#ccc">${sel.map(f => `<div style="margin:0 3px"><div style="height:20px">${f.t} ms</div><div style="width:${fw}px;height:${fh}px;overflow:hidden;position:relative"><img src="data:image/jpeg;base64,${f.data}" style="position:absolute;left:${-cr.x * k}px;top:${-cr.y * k}px;display:block;width:${w * k}px;height:${h * k}px"></div></div>`).join('')}</body>`);
         await q.waitForFunction(() => [...document.images].every(i => i.complete));
         await q.screenshot({ path: `${base}-strip.png` });
       }

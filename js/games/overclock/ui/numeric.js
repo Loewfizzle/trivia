@@ -11,6 +11,7 @@ import { h, pulseClass } from '../../../ui/dom.js';
 import { createNumpad } from '../../kit/numpad.js';
 import { tubeMark } from '../../kit/answer.js';
 import { fmtVal } from '../shared.js';
+import { clearCrack } from '../crack.js';
 
 const MINUS = '−';
 const shown = v => (v < 0 ? `${MINUS}${fmtVal(-v)}` : fmtVal(v));
@@ -27,7 +28,7 @@ export function dressField(field) {
   return {
     right() { field.classList.remove('is-wrong'); field.classList.add('is-right'); mark.replaceChildren(tubeMark('check', 'Right')); },
     wrong(answer) { field.classList.remove('is-right'); field.classList.add('is-wrong'); mark.replaceChildren(tubeMark('cross', 'Wrong')); fix.replaceChildren(h('i', '→'), h('b', answer)); },
-    reset() { field.classList.remove('is-right', 'is-wrong'); mark.replaceChildren(); fix.replaceChildren(); field.querySelectorAll('.oc-crack, .oc-ring').forEach(n => n.remove()); },
+    reset() { field.classList.remove('is-right', 'is-wrong'); mark.replaceChildren(); fix.replaceChildren(); field.querySelectorAll('.oc-ring').forEach(n => n.remove()); clearCrack(field); },
   };
 }
 

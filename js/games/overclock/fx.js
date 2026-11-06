@@ -1,8 +1,9 @@
 // OVERCLOCK — THE OVERDRIVE FEEDBACK + THE COMBO METER (OC1 — docs/overclock.md "Look"). Visual + sound only (no vibration on iPhone web).
 //   RIGHT: the tile bursts (a pre-rendered ring scales out) + sparks stream into the score (each spark one transform animation); the tile then
 //          RESTS with the --good edge + a soft inner glow + the ✓ in its socket (css .oc-tile-ok — a static layer, its opacity eases in).
-//   WRONG: never flat red (OC2 — the owner's ADD-ON 5): the tile stays DARK GLASS + a red EDGE FLASH + glowing hairline CRACKS + a shake, then
-//          RESTS dark with a red edge / tint + the ✕ in its dark-glass socket (css .oc-tile-bad); the screen's red edge + a small KICK.
+//   WRONG: never flat red (OC2 — the owner's ADD-ON 5): the tile stays DARK GLASS + a red EDGE FLASH, then RESTS dark with a red edge / tint
+//          + the ✕ in its dark-glass socket (css .oc-tile-bad); OC4 — THE REAL-GLASS CRACK (crack.js: a real photo of a fracture centred on the
+//          tap, the red emissive glow, the shards, the refraction, one knockback) + the screen's red edge.
 //   THE COMBO: right answers in a row across the match (logic.js#comboFold — the game's combo/{uid} + this challenge's marks). The meter is
 //   HIDDEN at ×0 / ×1 and appears from ×2 (OC2). THE CUES NEVER BLOCK PLAY (OC2 — the owner, after playing OC1: the old OVERDRIVE banner
 //   covered the answers + lingered): x4 OVERDRIVE + x10 live ONLY in the header band + on the screen's very edges — THE METER ITSELF IGNITES
@@ -13,6 +14,7 @@
 // never a frame loop). Reduced motion: no sparks, no shake, no kick, no slam, no streak — the colors, marks and the lit meter still say it.
 import { h, reducedMotion } from '../../ui/dom.js';
 import { ocSfx } from './sfx.js';
+import { crackAt, warmCrack } from './crack.js';
 
 export const OD_AT = 4;      // OVERDRIVE: the meter ignites
 export const X10_AT = 10;    // the white-hot flare (gameplay polish — it unlocks nothing)
@@ -73,10 +75,6 @@ export function comboSound(n) {
   if (n >= 4) ocSfx('combo5'); else if (n === 3) ocSfx('combo3'); else if (n === 2) ocSfx('combo2');
 }
 
-// hairline cracks: a soft red glow stroke (the pre-rendered glow) under a thin white-hot core — drawn once, only their opacity animates
-const CRACK_D = 'M52 0 L47 11 L56 17 L44 27 L50 40 M47 11 L33 7 L24 12 M56 17 L71 13 L82 20 L90 17 M44 27 L29 31 M71 13 L74 4';
-const CRACK = `<svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><path class="oc-crack-glow" d="${CRACK_D}"/><path class="oc-crack-core" d="${CRACK_D}"/></svg>`;
-
 /** the full-screen feedback layer (the view appends `el` once; everything inside is pointer-events: none) */
 export function createFx(root) {
   const red = h('i.oc-fx-red');
@@ -85,6 +83,12 @@ export function createFx(root) {
   const streak = h('div.oc-fx-streak', h('i.oc-fx-st-top'), h('i.oc-fx-st-l'), h('i.oc-fx-st-r'));
   const el = h('div.oc-fx', { 'aria-hidden': 'true' }, red, streak);
   let streakT = 0;
+  // THE TAP POINT (OC4 — the crack starts where the finger landed): the last pointerdown on the screen, read once per tap (capture phase —
+  // a screen's own handler runs after it); a key / a timeout has none → the crack's left third
+  let lastPtr = null;
+  const onPtr = e => { lastPtr = { clientX: e.clientX, clientY: e.clientY, t: performance.now() }; };
+  if (root) root.addEventListener('pointerdown', onPtr, true);
+  warmCrack();
   return {
     el,
     /** a right answer on this tile: the burst + the sparks into `target` (the score) */
@@ -106,17 +110,16 @@ export function createFx(root) {
       }
       setTimeout(() => { if (target.isConnected) replay(target, 'oc-bump'); }, 520);
     },
-    /** a wrong answer on this tile (or none): the cracks (under the text) + the shake, the screen's red edge, the kick */
-    wrong(tile) {
-      if (tile) {
-        const c = h('i.oc-crack');
-        c.innerHTML = CRACK;
-        const under = tile.querySelector('.oc-tile-bad') || tile.querySelector('.oc-tile-face');
-        if (under) under.after(c); else tile.append(c);
-        if (!reducedMotion()) replay(tile, 'oc-shake');
-      }
+    /** a wrong answer on this tile (or none): THE REAL-GLASS CRACK at the tap point (crack.js — the flash, the cracks running out, the red
+     *  glow, the shards, the refraction, ONE knockback) + the screen's red edge. opts: { seed, kick } (no tile: the edge + one small kick) */
+    wrong(tile, opts = {}) {
       replay(red, 'is-on');
-      if (!reducedMotion() && root) root.animate([{ transform: 'translate(0, 0)' }, { transform: 'translate(-5px, 2px)' }, { transform: 'translate(4px, -2px)' }, { transform: 'translate(-2px, 1px)' }, { transform: 'translate(0, 0)' }], { duration: 260, easing: 'ease-out' });
+      if (tile) {
+        const p = lastPtr && performance.now() - lastPtr.t < 900 ? lastPtr : null;
+        crackAt(tile, p, { seed: opts.seed, kick: opts.kick !== false, layer: el });
+        return;
+      }
+      if (!reducedMotion() && root) root.animate([{ transform: 'translate(0, 0)' }, { transform: 'translate(-3px, 2px)', offset: 0.18 }, { transform: 'translate(0, 0)' }], { duration: 240, easing: 'ease-out' });
     },
     /** x4 / x10: the edge streak (the meter's own ignition is combo.ignite) — ≤ CUE_MS, one at a time */
     streak(kind = 'od') {
@@ -128,6 +131,6 @@ export function createFx(root) {
       if (kind === 'x10') streak.classList.add('is-10');
       streakT = setTimeout(() => streak.classList.remove('is-on', 'is-10'), CUE_MS);
     },
-    destroy() { clearTimeout(streakT); el.remove(); },
+    destroy() { clearTimeout(streakT); if (root) root.removeEventListener('pointerdown', onPtr, true); el.remove(); },
   };
 }

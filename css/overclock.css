@@ -609,12 +609,24 @@
 @keyframes oc-streak-y { to { transform: translateY(310%); } }
 .oc-spark { position: fixed; left: 0; top: 0; width: 13px; height: 13px; margin: -6.5px; border-radius: 50%; background: radial-gradient(circle, #fff 0 30%, var(--oc-hot) 55%, rgba(255, 106, 26, 0) 72%); }
 .oc-ring { position: absolute; inset: -3px; border: 3px solid var(--good); border-radius: inherit; opacity: 0; pointer-events: none; animation: oc-ring 0.55s ease-out forwards; }
-/* the hairline cracks: under the tile's text, a red glow stroke under a thin white-hot core; they flare in, then settle a little dimmer */
-.oc-crack { position: absolute; inset: 2px 10px; pointer-events: none; transform: skewX(var(--oc-slant)); animation: oc-crack 0.62s ease-out both; }
-.oc-crack svg { width: 100%; height: 100%; fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
-.oc-crack-glow { stroke: rgba(255, 51, 85, 0.55); stroke-width: 4.5; vector-effect: non-scaling-stroke; }
-.oc-crack-core { stroke: rgba(255, 228, 232, 0.9); stroke-width: 1.1; vector-effect: non-scaling-stroke; }
-@keyframes oc-crack { 0% { opacity: 0; transform: skewX(var(--oc-slant)) scale(0.86); } 18% { opacity: 1; transform: skewX(var(--oc-slant)); } 100% { opacity: 0.62; transform: skewX(var(--oc-slant)); } }
+/* THE REAL-GLASS CRACK (OC4 — crack.js): a real photo of a fracture (assets/overclock/crack.webp — Keith333, CC-BY 3.0) centred on the tap,
+   clipped to the host's own shape (--oc-gc-skew: the tile's slant · --oc-gc-r: a round node), above the glass + its red edge, under the
+   badge + the ✕ socket. Every moving piece is its own layer: the round reveal window (+ the texture counter-scaled inside it), the red glow,
+   the white flash, the sweep (a bar seen through the cracks — the texture as its mask), the label's three wedges; transform + opacity only */
+.oc-gc { position: absolute !important; inset: 0; z-index: 1; display: block; overflow: hidden; pointer-events: none; border-radius: var(--oc-gc-r, 0); transform: skewX(var(--oc-gc-skew, var(--oc-slant))); contain: paint; }
+.oc-gc-in { position: absolute; inset: 0; display: block; transform: skewX(calc(-1 * var(--oc-gc-skew, var(--oc-slant)))); }
+.oc-gc-rev { position: absolute; display: block; border-radius: 50%; -webkit-mask-image: radial-gradient(circle closest-side, #000 80%, transparent 100%); mask-image: radial-gradient(circle closest-side, #000 80%, transparent 100%); }
+.oc-gc-ctr { position: absolute; left: 50%; top: 50%; display: block; width: 0; height: 0; }
+.oc-gc-tex, .oc-gc-glow, .oc-gc-sweep { position: absolute; left: 0; top: 0; display: block; background: center / 100% 100% no-repeat; }
+.oc-gc-sweep { overflow: hidden; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+.oc-gc-bar { position: absolute; top: 0; bottom: 0; left: 39%; width: 22%; display: block; opacity: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5) 38%, #fff 50%, rgba(255, 255, 255, 0.5) 62%, transparent); }
+.oc-gc-flash { position: absolute; display: block; width: 50px; height: 50px; border-radius: 50%; opacity: 0; transform: translate(-50%, -50%); background: radial-gradient(circle, #fff 0 16%, rgba(255, 246, 240, 0.9) 28%, rgba(255, 150, 160, 0.4) 52%, rgba(255, 51, 85, 0) 72%); }
+.oc-gc-pc { position: absolute; display: block; pointer-events: none; }
+.oc-gc-pc > .oc-gc-copy { position: static !important; width: 100% !important; height: 100%; margin: 0 !important; visibility: visible; text-shadow: 0 0 4px rgba(10, 2, 5, 0.95), 0 0 2px rgba(10, 2, 5, 0.95), 0 1px 2px rgba(10, 2, 5, 0.8); }
+.oc-gc-split { visibility: hidden; }
+.oc-tile > .oc-badge, .oc-tile-mark, .oc-tf-mark, .oc-np-mark { z-index: 2; }
+/* the shards (the fx layer): thin bright slivers with a glint, a few pt */
+.oc-shard { position: absolute; left: 0; top: 0; display: block; margin: -5px 0 0 -1px; border-radius: 1px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.15), #fff 30%, #fff2f4 52%, rgba(255, 120, 140, 0.55)); box-shadow: 0 0 6px 1px rgba(255, 235, 240, 0.85); }
 
 /* ---------------- the title slam (kit/slam.js) + the after-challenge screen */
 .oc-od .ov-ready { background: radial-gradient(90% 60% at 50% 45%, rgba(20, 23, 31, 0.94), rgba(6, 7, 10, 0.97)); }
@@ -1206,7 +1218,7 @@
 .oc-us-slots.is-bad .oc-us-sface { border-style: solid; border-color: var(--oc-wrong); background: linear-gradient(180deg, rgba(255, 51, 85, 0.18), rgba(40, 6, 14, 0.92)); }
 .oc-us-slots.is-bad .oc-us-slot > b { color: #f4d6db; text-shadow: none; }
 .oc-us-slots.oc-shake { animation: oc-shake 0.36s ease-out; }
-.oc-us-slots > .oc-crack { inset: 0 6px; }
+.oc-us-slots { --oc-gc-skew: 0deg; }
 .oc-us-slots .oc-ring { inset: -6px; border-radius: 0; transform: skewX(var(--oc-slant)); }
 .oc-us-mark { position: absolute; right: -4px; top: -20px; }
 .oc-us-mark:empty { display: none; }
@@ -1259,8 +1271,7 @@
 .oc-demo-link.is-still .oc-demo-join-lit { opacity: 0.6; }
 
 @media (prefers-reduced-motion: reduce) {
-  .oc-bg-haze, .oc-combo.is-pop, .oc-combo.is-in, .oc-combo.is-ignite, .oc-combo-flare, .oc-score-n.oc-bump, .oc-fx-streak, .oc-fx-streak i, .oc-ring, .oc-crack, .oc-tile.oc-burst, .oc-tf-btn.oc-burst, .oc-tile.oc-shake, .oc-tf-btn.oc-shake, .oc-tile-bad { animation: none !important; }
-  .oc-crack { opacity: 0.62; }
+  .oc-bg-haze, .oc-combo.is-pop, .oc-combo.is-in, .oc-combo.is-ignite, .oc-combo-flare, .oc-score-n.oc-bump, .oc-fx-streak, .oc-fx-streak i, .oc-ring, .oc-tile.oc-burst, .oc-tf-btn.oc-burst, .oc-tile.oc-shake, .oc-tf-btn.oc-shake, .oc-tile-bad { animation: none !important; }
   .oc-beat, .oc-sb-row, .oc-sb-move { transition: none !important; }
   .oc-rw-stamp, .oc-rw-stamp-glow, .oc-rw-hero, .oc-rw-tie, .oc-rw-none { animation: none !important; }
   .oc-vic *, .oc-fs-row { animation: none !important; }
@@ -1332,7 +1343,7 @@
 .oc-hl-play { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
 .oc-hl-cards { display: flex; flex-direction: column; }
 .oc-hl-card { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 8px; min-height: 120px; padding: 14px 28px 16px 26px; }
-.oc-hl-card > :not(.oc-hl-glass):not(.oc-tile-ok):not(.oc-tile-bad):not(.oc-crack):not(.oc-ring) { position: relative; }
+.oc-hl-card > :not(.oc-hl-glass):not(.oc-tile-ok):not(.oc-tile-bad):not(.oc-gc):not(.oc-ring) { position: relative; }
 .oc-hl-glass { position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(160deg, rgba(255, 255, 255, 0.075), rgba(29, 33, 43, 0.95) 38%, rgba(16, 19, 26, 0.97)); border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.17), inset 0 -3px 0 rgba(0, 0, 0, 0.35), 0 8px 20px rgba(0, 0, 0, 0.45); }
 .oc-hl-card.is-known .oc-hl-glass { border: 2px solid rgba(46, 139, 255, 0.72); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.17), inset 0 0 22px rgba(46, 139, 255, 0.12), 0 0 18px rgba(46, 139, 255, 0.22), 0 8px 20px rgba(0, 0, 0, 0.45); }
 .oc-hl-card.is-unknown .oc-hl-glass { border: 2px solid rgba(255, 140, 60, 0.7); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.17), inset 0 0 22px rgba(255, 106, 26, 0.12), 0 0 18px rgba(255, 106, 26, 0.2), 0 8px 20px rgba(0, 0, 0, 0.45); }
@@ -1355,7 +1366,6 @@
 .oc-hl-card.is-wrong .oc-tile-bad { opacity: 0.72; animation: oc-bad-edge 0.62s ease-out both; }
 .oc-hl-card.is-wrong .oc-hl-num b { color: #ffdbe1; text-shadow: 0 0 16px rgba(255, 51, 85, 0.6); }
 .oc-hl-card.oc-shake { animation: oc-shake 0.36s ease-out; }
-.oc-hl-card > .oc-crack { inset: 8px 22px; }
 .oc-hl-sock { position: absolute !important; right: 22px; top: 12px; opacity: 0; }
 .oc-hl-card.is-right .oc-hl-sock, .oc-hl-card.is-wrong .oc-hl-sock { opacity: 1; }
 /* THE VS SLAM: a hot slanted plate between the cards (overlapping both), a pre-rendered glow behind it that flashes as it slams in */
@@ -1579,7 +1589,6 @@
 .oc-st-face.oc-burst { animation: oc-burst 0.34s cubic-bezier(0.2, 1.5, 0.4, 1); }
 .oc-st-face.oc-shake { animation: oc-shake 0.36s ease-out; }
 .oc-st-face .oc-ring { inset: -4px; border-radius: 0; transform: skewX(var(--oc-slant)); }
-.oc-st-face > .oc-crack { inset: 20px 26px; }
 .oc-st-card.is-in { animation: oc-st-in 0.2s ease-out both; }
 @keyframes oc-st-in { from { opacity: 0.3; transform: translateY(12px) scale(0.93); } }
 .oc-st-card.is-drag { transition: none; }
