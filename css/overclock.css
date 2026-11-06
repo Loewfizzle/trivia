@@ -1559,7 +1559,7 @@
 .oc-st-edge.is-land .oc-st-edge-land, .oc-st-edge.is-bad .oc-st-edge-bad { animation: oc-st-edge-flash 0.5s ease-out both; }
 @keyframes oc-st-edge-flash { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
 /* THE CARD: big tilting glass, the item huge; leaning lights its own edge in that side's color (an opacity from --lean-*) */
-.oc-st-deck { position: relative; width: 76%; height: 196px; }
+.oc-st-deck { position: relative; width: 78%; height: clamp(176px, 26dvh, 250px); }   /* (the look review: a taller phone gets a bigger card) */
 .oc-st-card { position: absolute; inset: 0; z-index: 2; transform-origin: 50% 120%; will-change: transform; }
 .oc-st-card.is-back { z-index: 1; transform: translateY(10px) scale(0.93); opacity: 0.55; }
 .oc-st-card.is-out { z-index: 3; pointer-events: none; }
@@ -1597,6 +1597,7 @@
 .oc-st-hint { min-height: 14px; text-align: center; font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.18em; color: var(--oc-label); }
 .oc-st-hint.is-warn { color: #ff8095; }
 @media (max-height: 780px) { .oc-st-deck { height: 168px; } .oc-st-table { min-height: 180px; } }
+@media (min-height: 880px) { .oc-st-t { font-size: clamp(30px, calc(560px / var(--len, 12)), 52px); } }
 
 /* THE ANSWER — two columns under the sides' plates, every card where it BELONGS; a miss slides in from the side you put it on */
 .oc-sa { display: flex; flex-direction: column; gap: 10px; }
