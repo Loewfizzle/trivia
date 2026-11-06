@@ -14,7 +14,7 @@ import { startHostLoop } from './host.js';
 import { keepAwake } from './wakelock.js';
 import { GAME_MODULES, GAME_IDS, loadGame, metaOf } from './games/registry.js';
 import { lookLockOf } from './games/cartridge.js';
-import { createTitle, harborReady, harborPending, harborRemote } from './screens/title.js';
+import { createTitle, harborReady, harborPending, harborRemote, cityShown } from './screens/title.js';
 import { createSetup } from './screens/setup.js';
 import { installAudio } from './audio/engine.js';
 import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider, switchNow, nowPlaying, cueMusic } from './audio/music.js';
@@ -313,9 +313,20 @@ async function dismissBoot() {
   try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, resuming ? 1500 : 700))]); } catch { /* old browser */ }
   // (FP3a — THE LOAD GATE: on ?city=2 the boot screen — the dark sky + the unlit sign — stays until the Harbor's module is in, so a
   // slow network never shows the bare shell between it and the title; ≤ 8 s, then the shell's own boot route covers the rest)
-  if (harborPending()) await Promise.race([harborReady, new Promise(r => setTimeout(r, 8000))]);
-  el.classList.add('out');
-  setTimeout(() => el.remove(), 500);
+  // (THE LOAD FIX: ≤ 30 s — past 8 s the bare shell's grid used to show between it and the title: THE STRAY SCREEN on a slow network)
+  if (harborPending()) await Promise.race([harborReady, new Promise(r => setTimeout(r, 30000))]);
+  // THE LOAD FIX (Nov 6 — the owner's chunks + the whole different screen): on the title the boot screen stays until THE CITY's reveal
+  // (title.js#cityShown — under it the city comes in at once), then ONE fade: the boot screen → the whole title + its city. Never THE
+  // DARK TITLE (the sign + the dock over the black canvas) between them. The caller goes on at once (Firebase starts when it always did).
+  if (current && current.key === 'title') { holdBoot(el); return; }
+  bootOut(el);
+}
+function bootOut(el) { el.classList.add('out'); setTimeout(() => el.remove(), 500); }
+function holdBoot(el) {
+  if (el.dataset.hold) return;
+  el.dataset.hold = '1';
+  // (≤ 9 s: past the title's own safety reveal; two frames so the city's first full frame is painted before the boot screen lifts)
+  Promise.race([cityShown(), new Promise(r => setTimeout(r, 9000))]).then(() => requestAnimationFrame(() => requestAnimationFrame(() => bootOut(el))));
 }
 
 async function boot() {

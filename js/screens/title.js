@@ -59,6 +59,16 @@ export const harborReady = loadHarbor()
   .catch(e => { console.warn('harbor (again)', e); })
   .finally(() => { harborSettled = true; });
 export const harborPending = () => !harborSettled;
+// THE LOAD FIX (Nov 6 — the owner's "pops in in chunks" + "a whole different screen flashes"): the boot screen (index.html #boot) stays over
+// the title until THE CITY's reveal — app.js#dismissBoot waits on cityShown() — so the lit sign, the dock + the corners never stand over
+// the black canvas first (THE DARK TITLE); under it the city reveals at once (no fade of its own), and the boot screen's fade is the ONE
+// fade: the boot screen → the whole title + its city. A title with no city (THE CITY COULDN'T LOAD) or one going away lets it go too.
+let cityIn = false;
+const cityWaits = [];
+const cityDone = () => { cityIn = true; while (cityWaits.length) cityWaits.shift()(); };
+export const cityShown = () => (cityIn ? Promise.resolve() : new Promise(r => cityWaits.push(r)));
+/** the boot screen still covering the page (not yet fading) */
+const bootCovers = () => { const b = typeof document !== 'undefined' && document.getElementById('boot'); return !!b && !b.classList.contains('out'); };
 /** CITY 2.0 MUSIC: the &debug=1 readout's lines — the mood, the song, whether its beat grid can be trusted; + what the beat subtracts to
  *  land on the sound as heard (M2: the output latency, the song element's measured lead) */
 function musicLine() {
@@ -381,6 +391,7 @@ export function createTitle() {
   // CITY 1.0 OUT — THE CITY COULDN'T LOAD: the Harbor's module failed twice (no signal mid-load, a broken deploy) — this used to fall back to
   // City 1.0. A plain card on the boot screen's dark: what happened + RELOAD (nothing else here works without the city).
   function cityDown(el) {
+    cityDone();   // (THE LOAD FIX: no city to wait for — the boot screen lets this card show)
     el.classList.add('title-screen', 'nd', 'nd-down');
     els.down = h('div.nd-down-card', { role: 'alert' },
       h('h2.sheet-title', 'THE CITY COULDN’T LOAD'),
@@ -401,13 +412,13 @@ export function createTitle() {
     // so Safari's bars settling, the bakes and the fonts never show as a jump: dark → the city fades in, with the NEON sign)
     // (POLISH 5: City 2.0's canvas is the LARGE viewport — 100lvh — so a Safari tab's bars settling or sliding never resize it: the
     // city stays put under them (css/title.css .nd-scene.nd-lvh))
-    els.sceneWrap.classList.add('is-hold', 'nd-lvh'); els.holdT = setTimeout(reveal, 6000);
+    els.sceneWrap.classList.add('is-hold', 'nd-lvh'); els.holdT = setTimeout(reveal, 7500);   // (THE LOAD FIX: past the scene's own latest — REVEAL_MAX + its wait for one camera)
     document.body.prepend(els.sceneWrap);
     // (City 2.0 starts every phone at tier 2 — iOS reports a capped core count, so the old guess put every iPhone at tier 1 while it
     // ran the Harbor in 1–3 ms; the Harbor's own step-down still protects a slow phone: docs/harbor.md#performance)
     scene = createHarbor(els.canvas, { games: GAMES, tier: 2 });
     scene.set({ motion: reduced() ? 0 : 1 });
-    scene.set({ onReveal: reveal, measure: () => ({ clear: clearZones(), textRects: textRects() }) });
+    scene.set({ onReveal: reveal, measure: () => ({ clear: clearZones(), textRects: textRects() }), revealInstant: bootCovers });   // (THE LOAD FIX: under the boot screen the city comes in at once — the boot's fade is the one fade)
     // a lightning strike: the glass of the dock catches the flash (9a: the Harbor plays its own thunder — 'thunder-far', delayed by the
     // strike's distance: harbor/sounds.js#thunder)
     scene.set({ onFlash: e => { if (destroyed) return; flashGlass(e.near); } });
@@ -919,8 +930,9 @@ export function createTitle() {
   function reveal() {
     clearTimeout(els.holdT);
     if (destroyed || !els.sceneWrap || !els.sceneWrap.classList.contains('is-hold')) return;
-    els.sceneWrap.classList.add('is-reveal');
+    els.sceneWrap.classList.add(bootCovers() ? 'is-now' : 'is-reveal');   // (THE LOAD FIX: under the boot screen — no fade of its own: css/title.css .is-now)
     els.sceneWrap.classList.remove('is-hold');
+    cityDone();
     pgPreviewSoon(600);
     keyPopSoon(2600);
     // (LOBBY 2.0 B — THE NIGHT's CHAMPION: the app closed during a night of 2+ games → LAST NIGHT'S CHAMPION: <them>, the next open within ~12 h, once)
@@ -1242,6 +1254,7 @@ export function createTitle() {
     wrap.classList.add('is-out');
     setTimeout(() => { sc && sc.destroy(); wrap.remove(); }, 420);
     if (window.__district) delete window.__district;
+    cityDone();   // (THE LOAD FIX: a title going away never keeps the boot screen up)
   }
 
   return { mount, update, unmount };

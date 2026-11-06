@@ -37,21 +37,26 @@
     /* the boot screen is the district before the lights come on: night sky, the unlit sign, the street */
     html, body { background: #03040b; }
     #boot { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0;
-      padding-top: calc(env(safe-area-inset-top, 0px) + 12px + clamp(40px, 8.5vh, 96px)); /* = the title's sign */
+      padding-top: calc(env(safe-area-inset-top, 0px) + 12px + clamp(16px, calc(8.5vh - 24px), 72px)); /* = the title's sign (css/title.css .nd-sign — THE LOAD FIX: on its spot to the point, the boot screen dissolves straight into the lit sign) */
       background: radial-gradient(90% 40% at 50% 66%, rgba(70, 40, 120, .22), transparent 70%), linear-gradient(180deg, #03040b 0%, #05061a 40%, #0b0b26 56%, #141236 66.5%, #0c0b22 66.6%, #030309 100%);
       color: #8f97c8; font: 700 10px/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .32em; transition: opacity .5s ease; }
     #boot { pointer-events: none; } /* nothing to tap here: an early tap reaches the title's TAP TO ENTER */
     #boot.out { opacity: 0; }
     html:not(.css-ready) body > *:not(#boot):not(#ns-turn):not(script) { visibility: hidden !important; }
+    /* THE LOAD FIX — the #net pill (SIGNAL LOST) hidden from the FIRST frame: its own sheet fades it 1 → 0 when it lands (a transition),
+       so it starts at 0 here and transitions only once every core sheet is in; it shows only for a real lost signal (.is-on) */
+    .net { opacity: 0; }
+    html:not(.css-ready) .net { transition: none !important; }
     #boot .boot-logo { width: min(82vw, 330px); height: auto; overflow: visible; opacity: .9; }
-    #boot .boot-name { margin-top: -2px; padding-left: .66em; font: 700 clamp(13px, 3.9vw, 17px)/1.2 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: .66em; color: rgba(236, 240, 255, .32); }
+    #boot .boot-name { margin-top: -2px; padding-left: .66em; font: 700 clamp(14px, 4.29vw, 18.7px)/1.2 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: .66em; color: rgba(236, 240, 255, .32); }   /* (the width of the title's SPEAKEASY) */
     #boot .boot-name { display: flex; align-items: center; justify-content: center; gap: .55em; }
     #boot .boot-name::before, #boot .boot-name::after { content: ''; width: 2.7em; height: .6em; opacity: .4; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 10'%3E%3Cpath d='M0 5H48' stroke='%23edf0ff' stroke-opacity='.55' stroke-width='1.2'/%3E%3Cpath d='M55 1l4 4-4 4-4-4z' fill='%23edf0ff'/%3E%3C/svg%3E") center / contain no-repeat; }
     #boot .boot-name::after { transform: scaleX(-1); margin-left: -.66em; }
     #boot .boot-status { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 26vh); text-align: center; padding-left: .32em; animation: boot-breathe 2.4s ease-in-out infinite; }
     @keyframes boot-breathe { 0%, 100% { opacity: .35; } 50% { opacity: .85; } }
     @media (max-height: 720px) { #boot { padding-top: calc(env(safe-area-inset-top, 0px) + 38px); } #boot .boot-logo { width: min(70vw, 270px); } }
-    @media (min-width: 900px) and (min-height: 640px) { #boot { padding-top: calc(12px + clamp(56px, 11vh, 120px)); background: radial-gradient(90% 40% at 50% 74%, rgba(70, 40, 120, .22), transparent 70%), linear-gradient(180deg, #03040b 0%, #05061a 45%, #0b0b26 62%, #141236 74%, #0c0b22 74.1%, #030309 100%); } #boot .boot-logo { width: min(40vw, 470px); } #boot .boot-name { font-size: 21px; } }
+    @media (max-height: 720px) and (orientation: portrait) { #boot { padding-top: calc(env(safe-area-inset-top, 0px) + 24px); } }
+    @media (min-width: 900px) and (min-height: 640px) { #boot { padding-top: calc(12px + clamp(56px, 11vh, 120px)); background: radial-gradient(90% 40% at 50% 74%, rgba(70, 40, 120, .22), transparent 70%), linear-gradient(180deg, #03040b 0%, #05061a 45%, #0b0b26 62%, #141236 74%, #0c0b22 74.1%, #030309 100%); } #boot .boot-logo { width: min(44vw, 66vh, 640px); } #boot .boot-name { font-size: 26.3px; } }
     @media (prefers-reduced-motion: reduce) { #boot .boot-status { animation: none; } }
     /* SCHED — A PHONE HELD SIDEWAYS (the owner, Nov 2: the short strip read as an empty brick plane): a neon TURN YOUR PHONE UPRIGHT card over
        the city (title, lobby, games), gone the moment it turns back; the city keeps running behind it. PHONES ONLY — a coarse pointer + a short

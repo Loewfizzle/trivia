@@ -48,3 +48,48 @@ screen, the one fading out under it, whether the lit windows are at this camera)
 bar before the reveal + 2.8 s after it, Safari's 100lvh): `THE LOAD FIX — 1 THE DOUBLED LETTERING` (one camera on screen in every frame),
 `— 2 THE CHUNKS` (nothing of the title ahead of the city: ONE fade), `— 3 THE #net PILL` (never seen without a lost signal), `— 4 THE STRAY
 SCREEN` (the boot screen → the city, nothing between). Before the fix: 15/19 — all four red.
+
+## Group 2 — FIXED (at the causes)
+
+1. **THE DOUBLED LETTERING** — two causes, both fixed:
+   - **The bars no longer re-lay the city** (`scene.js#maybeRelayout`): a bar move keeps the city for ALL the title's rects — the dock AND
+     the tagline's foot (`cam.tagBase`, the baseline the next check compares with) — so the check after the 2 s window finds nothing new;
+     and a viewport size the resize handler hasn't seen yet (a timer can read the moved dock before WebKit's `resize` event) counts as the
+     bars moving. With Safari's 100lvh the canvas never changes under the bars, so the city simply stays put: the dock + the sign are
+     glass over it. (The repro: `the title's rects moved … layout` at 7.45 s → gone; only `the dock moved with the bars: the city kept`.)
+   - **ONE CAMERA ON SCREEN** for every other camera change after the reveal (a rotation, a desktop resize, a late font):
+     `scene.js#holdStart` holds the last frame AS SEEN over the city (`holdShoot`: every canvas of the layer composed in its stacking
+     order, the crisp lettering + any framed layer mapped the way the resize pin shows the city — one consistent picture even mid-resize),
+     the new camera bakes underneath (no crossfade under it, the first-bake slices), and `holdTick` CUTS to it in the frame that draws it
+     (≤ `HOLD_MAX` 4 s). No dissolve: the first try faded the held picture out over 600 ms and the frames showed it — a dissolve between
+     two cameras IS two copies. A ResizeObserver on the city's layer pins a box change before it paints (WebKit changed the box a frame
+     before the window's `resize`: the canvas CSS-fitted, the crisp lettering not — the second copy 74 pt lower). The crisp layer itself
+     already redraws on every geometry / dpr change (its `geo` key) and drops the old copy; it was the BAKE that kept the old camera.
+   - **The ghost NEON** (the owner's "a ghost under SPEAKEASY", a grey day): the city paints THE SIGN's DARK HALO on the sky under the
+     page's NEON + SPEAKEASY (DT1) — on an overcast sky a clear grey copy of the sign. Any time the city's picture is shifted under the
+     still sign (the resize pin) it showed beside the real one: it is now drawn through the pin (`pinT`, the sign measured at the pin).
+     And the boot screen's unlit sign sat 24 pt below the title's (14 on a short phone; smaller on desktop) — now on its spot to the point
+     at 375 / 390 / 402 / 430 / 1440 (index.html `#boot` padding = title.css `.nd-sign`'s margin; SPEAKEASY at the title word's width).
+   - A late reveal (`REVEAL_MAX`) waits ≤ 2 s more while the bake on hand stands at another camera (a slow phone's first picture would be
+     doubled from its first frame); the title's own safety reveal 6 → 7.5 s (past it).
+2. **THE CHUNKS** + 4. **THE STRAY SCREEN** (the same window): the boot screen now HOLDS until THE CITY's reveal (`app.js#dismissBoot` →
+   `holdBoot` waits on `title.js#cityShown`, ≤ 9 s; the caller goes on at once — Firebase starts when it always did); under it the city
+   reveals AT ONCE (`.nd-scene.is-now` + the scene's `revealInstant`: its own 0.6 s + 900 ms fades skipped) and the boot screen's 0.5 s
+   fade is the ONE fade: boot screen → the whole title + its city. A title with no city (THE CITY COULDN'T LOAD) or one going away lets it
+   go at once. The Harbor's module wait 8 → 30 s (past 8 s the bare shell's grid used to show on a slow network — another stray screen).
+3. **THE #net PILL**: inline in index.html — `.net { opacity: 0 }` (the same specificity as its sheet: `.net.is-on` still wins) +
+   `html:not(.css-ready) .net { transition: none !important }`: it starts at 0, so its sheet's arrival changes nothing to transition.
+
+**The proof after the fix** (`after-the-load-sheet.png`, `before-after-1-doubled.png`, `after-first-visit-tap-to-enter.png`):
+- `wk-load.mjs` — **32 / 32 loads clean** in WebKit 402×874 @3: day / grey / night × the bar before the reveal, as it fades in, 1 s
+  after, 2.8 s after — with Safari's 100lvh (`--safari`) AND with the whole viewport changing (every re-layout then goes through the held
+  picture: held 470–690 ms, then the cut); + warm loads (4), 390×844 + 430×932, a FIRST visit (`--fresh`: TAP TO ENTER over the city,
+  day + night). Every load: boot screen → the whole title + its city in one fade; 0 doubled frames, 0 chunks, the #net pill never seen,
+  nothing between. (The burst's first one or two frames are white in every run before and after: the page before its HTML has parsed —
+  Playwright's, not the site's: the inline `html { background }` paints with the first parse.)
+- The harbor `load` group: **19 / 19** (15 / 19 before — the four THE LOAD FIX checks now green; the older load checks unchanged).
+- **No look change after the reveal:** `pixdiff.mjs --scenes night,party,noon,golden,dusk` against the pre-fix commit (4840553 on :5174):
+  golden 0 px; the rest 35–757 px beyond the noise, all in the promenade band (the walkers — the usual residue).
+- **The speed gate:** `title-perf.mjs --city 2 --ab` (np-night, np-party): **same** at t2 / t1 / t0 (the absolute numbers are this
+  display-less machine's software compositing — warnings only). **The load timing:** the city is seen when it always was (the reveal
+  ~2.6–3.0 s in headless WebKit, as before); the title's sign + dock now come WITH it instead of ~1.5 s ahead of it over black.

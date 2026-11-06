@@ -12,7 +12,7 @@
 // takes a screenshot burst (WebKit headless on Windows ≈ 10 fps) from the first paint to 5 s after the reveal.
 //
 //   node tests/integration/wk-load.mjs [--scene day|grey|night|all] [--bars pre|fade|after|late|none|all] [--safari] [--warm] [--shots DIR]
-//                                      [--size 402x874] [--runs n] [--json out.json]
+//                                      [--size 402x874] [--runs n] [--json out.json] [--fresh] [--fonts-delay ms] [--sky-delay ms] [--live] [--log] [--frames]
 // Exit 1 when any of the four was seen. On the emulators + scripts/serve.mjs --emu (the boot signs in like a phone's).
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
@@ -26,6 +26,7 @@ const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : (ar
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const [VW, VH] = String(opt('size', '402x874')).split('x').map(Number);
 const FONTS_MS = Number(opt('fonts-delay', 0)) || 0, SKY_MS = Number(opt('sky-delay', 0)) || 0, LIVE = !!opt('live', false);
+const FRESH = !!opt('fresh', false);   // (--fresh: a first visit — no nd:entered: TAP TO ENTER over the city)
 const SAFARI = !!opt('safari', false), WARM = !!opt('warm', false), SHOTS = opt('shots', '') || '', RUNS = Number(opt('runs', 1)) || 1;
 const SCENES = { day: 'when=2026-11-06T13:00&wx=clear', grey: 'when=2026-11-06T13:02&wx=overcast', night: 'when=2026-11-06T21:30&wx=clear' };
 const sceneArg = String(opt('scene', 'grey')), barsArg = String(opt('bars', 'all'));
@@ -40,11 +41,11 @@ const results = [];
 
 async function run(scene, bars, tag) {
   const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
-  await ctx.addInitScript(([lvh]) => {
-    try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('na:wl:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
+  await ctx.addInitScript(([lvh, fresh]) => {
+    try { if (!fresh) localStorage.setItem('nd:entered', '1'); localStorage.setItem('na:wl:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
     // (--safari: the LARGE viewport stays put while the window's height changes — iOS Safari's 100lvh under its bars)
     if (lvh) document.addEventListener('DOMContentLoaded', () => { const s = document.createElement('style'); s.textContent = `.nd-scene.nd-lvh { height: ${lvh}px !important; }`; document.head.append(s); });
-  }, [SAFARI ? VH : 0]);
+  }, [SAFARI ? VH : 0, FRESH]);
   await ctx.addInitScript(PROBE);
   // (--fonts-delay / --sky-delay: a slow phone network — Google's fonts / the live weather answering late)
   if (FONTS_MS) await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => setTimeout(() => r.continue().catch(() => {}), FONTS_MS));
@@ -77,18 +78,18 @@ async function run(scene, bars, tag) {
     await sleep(5200);
     shooting = false; await shooter;
     const P = await page.evaluate('window.__lp ? window.__lp.dump() : null').catch(() => null);
-    const LG = await page.evaluate('(() => { const h = window.__district && window.__district.harbor && window.__district.harbor(); return h && h.loadLog ? h.loadLog.rows.filter(r => /layout|bake|lit|reveal|resize|dock|fonts|wx|canvas/.test(r.kind)).map(r => `${Math.round(r.t || r.ms || 0)} ${r.kind} ${r.msg}`) : []; })()').catch(() => []);
+    const LG = await page.evaluate('(() => { const h = window.__district && window.__district.harbor && window.__district.harbor(); return h && h.loadLog ? h.loadLog.rows.filter(r => /layout|bake|lit|reveal|resize|dock|fonts|wx|canvas|hold|note/.test(r.kind)).map(r => `${Math.round(r.t || r.ms || 0)} ${r.kind} ${r.msg}`) : []; })()').catch(() => []);
     return { ok, revealAt, shots, P, LG };
   };
   if (WARM) await once(false);
   const r = await once(!!SHOTS);
   const J = judge(r.P);
-  const name = `${scene}-${bars}${SAFARI ? '-safari' : ''}${WARM ? '-warm' : ''}${FONTS_MS ? `-f${FONTS_MS}` : ''}${SKY_MS ? `-s${SKY_MS}` : ''}${LIVE ? '-live' : ''}${tag}`;
+  const name = `${scene}-${bars}${SAFARI ? '-safari' : ''}${WARM ? '-warm' : ''}${FONTS_MS ? `-f${FONTS_MS}` : ''}${SKY_MS ? `-s${SKY_MS}` : ''}${LIVE ? '-live' : ''}${FRESH ? '-fresh' : ''}${tag}`;
   if (SHOTS) {
     const dir = join(SHOTS, name); mkdirSync(dir, { recursive: true });
     for (const s of r.shots) writeFileSync(join(dir, `${String(s.k).padStart(3, '0')}-${String(s.ms).padStart(5, '0')}ms.png`), s.buf);
   }
-  results.push({ name, revealed: r.ok, revealAt: r.revealAt, ...J, errs, log: r.LG });
+  results.push({ name, revealed: r.ok, revealAt: r.revealAt, ...J, errs, log: r.LG, ...(opt('frames', false) ? { frames: r.P && r.P.frames } : {}) });
   if (opt('log', false)) for (const l of r.LG || []) console.log('    ' + l);
   const line = (k, v) => `${k} ${v.n ? `✗ ${v.n} frames — ${v.what}` : '✓'}`;
   console.log(`${name.padEnd(28)} reveal ${r.ok ? `${r.P ? r.P.revealMs : '?'} ms` : 'NEVER'} · ${line('DOUBLED', J.doubled)} · ${line('CHUNKS', J.chunks)} · ${line('NET', J.net)} · ${line('STRAY', J.stray)}${errs.length ? ` · errors ${errs.length}: ${errs[0]}` : ''}`);

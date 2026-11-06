@@ -13,6 +13,8 @@
 /* POLISH 5 — City 2.0: the LARGE viewport (Safari's bars retracted), anchored at the top — the bars never resize the canvas */
 .nd-scene.nd-lvh { bottom: auto; height: 100vh; height: 100lvh; }
 .nd-scene.is-reveal { transition: opacity 0.6s ease; }
+/* THE LOAD FIX — revealed under the boot screen: at once (the boot screen's own fade is the ONE fade; js/screens/title.js#reveal) */
+.nd-scene.is-now { transition: none; }
 /* DESKTOP — THE FAR EDGES (the owner's desktop question 2): the city is composed up to 2.2 : 1 (core/harbor-layout.js#DESK.wMax); on a wider
    screen a soft fade to dark covers what lies beyond the composition frame — never repeats, never an empty edge. Its width is 0 at 2.2 : 1
    or narrower (every phone, upright or sideways, every iPad): nothing drawn there. */

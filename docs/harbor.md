@@ -393,6 +393,20 @@ at 8, squeeze 0.66, people ~33 pt.)
   is ready and revealed with ONE fade; Safari's bar changes in the load window are coalesced into one build; a baked layer is never
   stretched; no tier step during load. The detail: FP3a §5 below; tested by the `load` group (the `city` job). POLISH 5: THE LOAD LOG
   (&debug=1) + the causes that still moved the picture after the reveal fixed — docs/harbor/passes/polish-5.md §0.
+  **THE LOAD FIX (Nov 6 — the owner's iPhone: doubled lettering, chunks, the top-centre "toggle", a stray screen; passes/load-fix.md):**
+  (1) **THE BOOT SCREEN HOLDS UNTIL THE CITY's REVEAL** (`app.js#dismissBoot` → `title.js#cityShown`, ≤ 9 s; the Harbor's module ≤ 30 s): under
+  it the city reveals AT ONCE (`.nd-scene.is-now`, the scene's `revealInstant` — no fade of its own) and the boot screen's 0.5 s fade is
+  the ONE fade — never THE DARK TITLE (the sign + the dock over black) between them; the boot screen's unlit sign + SPEAKEASY sit EXACTLY
+  on the title's (index.html `#boot` = css/title.css `.nd-sign` — keep the two in step: a cross-fade ghosts the sign otherwise).
+  (2) **ONE CAMERA ON SCREEN** (`scene.js#holdStart` / `holdTick`): any camera change after the reveal holds the last frame AS SEEN (every
+  canvas of the layer, the crisp lettering mapped the way the pin shows it — `holdShoot`) over the city until the new camera is baked
+  (the city + the lit windows, no crossfade under it, the bigger slices), then CUTS to it in one frame (≤ 4 s) — never the old bake under
+  the new live layers + crisp lettering; never a dissolve between two cameras (that IS two copies). A bar move keeps the city for ALL
+  the title's rects (the dock AND the tagline — `cam.tagBase`), and a viewport size the resize handler hasn't seen yet counts as the bars
+  moving. A ResizeObserver on the layer pins a box change before it paints; the sign's halo is drawn through the pin (`pinT`).
+  (3) **THE #net PILL** hidden from the first frame (index.html: `.net { opacity: 0 }` + no transition before css-ready) — it shows only
+  for a real lost signal. (4) A late reveal waits ≤ 2 s more while its bake stands at another camera. Proof: the harbor `load` group's
+  four THE LOAD FIX checks (kit/load-probe.mjs) + `tests/integration/wk-load.mjs` (THE BOOT IN WEBKIT, `--safari` = the bars).
 - **Baseline: today's city** (`title-perf.mjs`, 390×844 at DPR 3 capped to the tier, Chrome, 4× CPU, Oct 20 2026), the scene's own
   draw cost per frame (mean / p50 / p95): **party peak** t2 8.9 / 8.8 / 10.7 ms · t1 10.3 / 10.2 / 12.7 · t0 6.4 / 6.2 / 8.0;
   night t2 6.6 · t1 6.0 · t0 5.4; day t2 4.4 · t1 5.7 · t0 5.4. Frames held 16.7 ms everywhere.
@@ -583,6 +597,11 @@ one room), the banner's colour + passes, the words in the windows for a time win
 ## KNOWN ISSUES — OPEN (C4d, Oct 29 2026: one list; each pass's own section in its log keeps the history)
 
 **Open**
+- **THE LOAD FIX** (passes/load-fix.md): a camera change after the reveal (a desktop window drag, an iPad turned, a late font) now HOLDS the
+  last picture still (the motion pauses) until the new camera is baked — ~0.5–0.7 s in headless WebKit — then CUTS to it (no dissolve: a
+  dissolve between two cameras is two copies). Safari's bars never cause one any more (the canvas is 100lvh, the bar moves are kept).
+  Proven in Playwright's WebKit with the bars EMULATED (the window's height + a pinned 100lvh) — the real Safari bar is the owner's
+  iPhone's to confirm. No rules change.
 - **FR6 FIXES A** (passes/fx6a.md): room2's FIRST cloud run — the file-in's "host walking at 0.9 s" sample red on the runner (a fixed-time
   sample — B makes it a condition); the sighting capture's `< 12 ms` line (a test bug — FR6 FIXES B drops it); the sighting moment / album /
   preview don't close at a game start yet (H2's roots — SHELL 2.0 Group 0). No rules change.

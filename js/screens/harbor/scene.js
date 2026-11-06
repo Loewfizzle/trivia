@@ -338,6 +338,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let drawn = 0, fastUntil = 0, fastWhy = '';      // BATTERY: the frames actually drawn; what keeps the city at 60 fps right now
   let shownClock = null;                   // (9c: the city's clock at THE REVEAL — a preview forced at the load starts here, not under the curtain)
   let shownAt = -1;                         // THE REVEAL (FP3a): when the city was let in — its first bake ready, the viewport settled
+  let fadeT0 = -1;                          // (THE LOAD FIX: the city's own 900 ms fade-in starts here — 900 ms early when the boot screen covers the reveal)
   // POLISH 5 — THE LOAD LOG (core/harbor-loadlog.js; &debug=1 → the 'load' strip; harbor().loadLog): every change to the picture from
   // the first frame to 15 s after the reveal, each with its cause (a resize's sizes before → after, a re-layout, a bake, a tier step,
   // the weather landing, the clouds, the sky, the fonts, the dock's rects)
@@ -359,6 +360,72 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // and the fonts are in (or 1.2 s passed) — S.onReveal tells the title (which holds the canvas dark until then) — never later
   // than REVEAL_MAX; before the reveal a re-bake swaps in without a crossfade; no tier step until TIER_GRACE after the reveal.
   const LOAD_WIN = 2500, REVEAL_MAX = 4500;
+  // THE LOAD FIX (Nov 6 — the owner's DOUBLED LETTERING): ONE CAMERA ON SCREEN. A re-layout after the reveal used to draw the live layers +
+  // THE CRISP LAYER (every sign's lettering) at the new camera at once while the baked city stayed on the old one until its re-bake landed +
+  // crossfaded (bake.js: a re-plan keeps drawing the old band) — every sign twice, the copy a little lower, for the whole re-bake. Now the
+  // last full frame AS SEEN (every canvas of the city's layer, the crisp lettering included) is HELD over the city while the new camera bakes
+  // underneath (no crossfade there, the bigger bake slices), then goes in the frame that draws the new camera — the old picture → the new
+  // one in ONE frame (the desktop re-fit's own cut: any dissolve between two cameras is two copies). A HOLD_MAX safety lets go regardless. Before the reveal nothing shows, nothing is held.
+  const HOLD_MAX = 4000;
+  let holdCv = null, holdOn = false, holdAt = -1, holdShot = null, holdN = 0;
+  let pinT = null;                         // (THE LOAD FIX: a resize pin's transform — { x, y, s } — while the city's frame is pinned)
+  /** the city's layer NOW as ONE picture → a canvas the size of the layer's box (at the city's dpr): the main canvas as CSS shows it (pinned:
+   *  its own box; else its cover-fit from the bottom middle); every layer placed in the city's frame (the crisp lettering, a sky overlay —
+   *  inline px) mapped the SAME way, so a box that changed a moment before the pin never splits them; a full-box layer by its own fit */
+  function holdShoot() {
+    const host = canvas.parentElement; if (!host || !canvas.width || !W || !H) return null;
+    const hw = host.clientWidth, hh = host.clientHeight, k = canvas.width / W;
+    if (!(hw > 0 && hh > 0)) return null;
+    const out = document.createElement('canvas'); out.width = Math.round(hw * k); out.height = Math.round(hh * k);
+    const x = safeCtx(out, { alpha: false }); if (!x) return null;
+    x.fillStyle = '#03040b'; x.fillRect(0, 0, out.width, out.height);
+    const fit = (r, iw, ih) => { const sc = Math.max(r.width / iw, r.height / ih), dw = iw * sc, dh = ih * sc; return { x: r.left + (r.width - dw) / 2, y: r.top + (r.height - dh), w: dw, h: dh }; };
+    const hr = host.getBoundingClientRect(), cr = canvas.getBoundingClientRect();
+    const M = canvas.style.width ? { x: cr.left, y: cr.top, w: cr.width, h: cr.height } : fit(cr, W, H);   // (the city's frame W×H → the screen)
+    const sx = M.w / W, sy = M.h / H;
+    const layers = [];
+    [...host.querySelectorAll('canvas')].forEach((cv, i) => { if (cv === holdCv || !cv.width || !cv.height) return; const cs = getComputedStyle(cv); if (cs.display === 'none' || cs.visibility === 'hidden') return; const op = +cs.opacity; if (!(op > 0.01)) return; const z = parseInt(cs.zIndex, 10); layers.push({ cv, op, z: Number.isFinite(z) ? z : 0, i, framed: cv !== canvas && /px$/.test(cv.style.width || '') }); });
+    layers.sort((a, b) => (a.z - b.z) || (a.i - b.i));
+    for (const Ly of layers) {
+      let d;
+      if (Ly.cv === canvas) d = M;
+      else if (Ly.framed) { const l = parseFloat(Ly.cv.style.left) || 0, t = parseFloat(Ly.cv.style.top) || 0; d = { x: M.x + l * sx, y: M.y + t * sy, w: parseFloat(Ly.cv.style.width) * sx, h: parseFloat(Ly.cv.style.height) * sy }; }
+      else { const r = Ly.cv.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue; d = fit(r, Ly.cv.width, Ly.cv.height); }
+      x.globalAlpha = Ly.op;
+      try { x.drawImage(Ly.cv, (d.x - hr.left) * k, (d.y - hr.top) * k, d.w * k, d.h * k); } catch { /* a lost context: the rest still make the picture */ }
+    }
+    x.globalAlpha = 1;
+    return out;
+  }
+  /** a camera change after the reveal: the picture on screen held over the city until the new camera is baked */
+  function holdStart(why, shot) {
+    const host = canvas.parentElement; if (!host) return;
+    if (holdOn) { holdAt = performance.now(); if (shot) shot.width = shot.height = 0; LOADLOG.add('hold', `still held (${why})`); return; }   // (a second change inside a hold: the first picture stays)
+    const pic = shot || holdShoot(); if (!pic) return;
+    unpinResize();   // (the held picture covers the layer: CSS's own cover-fit shows the canvas the way the pin did)
+    if (!holdCv) { holdCv = document.createElement('canvas'); holdCv.className = 'hc-hold'; holdCv.setAttribute('aria-hidden', 'true'); Object.assign(holdCv.style, { position: 'absolute', left: '0px', top: '0px', pointerEvents: 'none', zIndex: '6' }); }
+    holdCv.width = pic.width; holdCv.height = pic.height;
+    const x = safeCtx(holdCv, { alpha: false }); if (x) { x.globalCompositeOperation = 'copy'; x.drawImage(pic, 0, 0); x.globalCompositeOperation = 'source-over'; }
+    pic.width = pic.height = 0;
+    Object.assign(holdCv.style, { opacity: '1', display: '' });
+    if (holdCv.parentElement !== host) host.append(holdCv);
+    holdOn = true; holdAt = performance.now(); holdN++;
+    // (under the held picture nothing crossfades: the stale bake + a running crossfade settle at once, the new one swaps straight in)
+    if (fadeFrom >= 0) { fadeFrom = -1; if (!baker.pending) baker.settle(); }
+    if (litFadeFrom >= 0) { litFadeFrom = -1; if (!litBaker.pending) litBaker.settle(); }
+    LOADLOG.add('hold', `the picture held over the new camera (${why})`);
+  }
+  /** per frame (before the layers draw): the new camera baked (the city + its lit windows) + the size settled → the held picture goes in
+   *  THIS frame, the one that draws the new camera — a CUT, the desktop re-fit's own (any dissolve between two cameras IS two copies) */
+  function holdTick(now) {
+    if (!holdOn) return;
+    const ready = !baker.pending && !wantBake && !wantBuild && !resizeT && now - lastResizeAt > 400 && bakeCamShown === camSig && !litBaker.pending && !!L && lightKey() === litBaker.key && fadeFrom < 0 && litFadeFrom < 0;
+    if (!ready && now - holdAt < HOLD_MAX) return;
+    holdOn = false;
+    if (holdCv) { holdCv.style.display = 'none'; holdCv.width = holdCv.height = 0; }
+    LOADLOG.add('hold', `let go after ${Math.round(now - holdAt)} ms${ready ? '' : ' (the safety)'} · the new camera in one frame`);
+  }
+
   let lastResizeAt = -1e9, wantBuild = false, wantStep = null, revealWhy = '';
   const stepWhy = [];
   let fadeFrom = -1;                        // the crossfade of a re-bake
@@ -531,6 +598,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return { tag, dock, neon: tr && tr.neon ? tr.neon : null, word: tr && tr.word ? tr.word : null, corner, cornerL };
   }
   function build(why = 'the start') {
+    holdShot = shownAt >= 0 && !holdOn ? holdShoot() : null;   // (THE LOAD FIX: the picture as seen, before the resize clears it)
     unpinResize();   // (DESKTOP: a held resize frame lets go here, the same frame the new layout draws)
     const r = canvas.getBoundingClientRect(), was = W ? `${Math.round(W)}×${Math.round(H)}@${dpr}` : '';
     W = Math.max(320, r.width); H = Math.max(320, r.height);
@@ -544,6 +612,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     cam = cameraFor(W, H, rr, { top: safeTopV, bottom: safeBotV });
     cam.tagGone = !!S.tagGone;                    // (a re-layout keeps the faded tagline: its band stays sky-low's)
     camSig = [W, H, Math.round(cam.dock.y), Math.round(cam.limitY), tier].join('|');
+    { const geo = g => g.split('|').slice(0, 4).join('|'), shot = holdShot; holdShot = null;   // (THE LOAD FIX: ONE CAMERA ON SCREEN — the tier alone moves nothing)
+      if (shownAt >= 0 && sig0 && geo(sig0) !== geo(camSig)) holdStart(why, shot); else if (shot) shot.width = shot.height = 0; }
     LOADLOG.add('layout', `${why}${sig0 ? (sig0 !== camSig ? ` · camera ${sig0} → ${camSig}` : ' · the camera unchanged') : ''}`);
     L = harborLayout(cam, seed, { tower: (TWS = towerNow()) });
     L.towerKey = towerKey(TWS);
@@ -1364,7 +1434,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const T = lookTones(), parts = bakeParts(), bk = Object.values(parts).join('|');
     { const d = partsDiff(bakeParts0, parts), slow = shownAt >= 0 && wxRecent() && /tones|sun|road/.test(d);
       fadeMs = slow ? WX_BLEND : 1200;
-      LOADLOG.add('bake', `${shownAt >= 0 ? `crossfade ${fadeMs} ms` : 'swap (dark)'} · ${d}${slow ? ' (the weather: slow)' : ''}`, { fade: shownAt >= 0 && !slow }); bakeParts0 = parts; }
+      LOADLOG.add('bake', `${holdOn ? 'swap (under the held picture)' : shownAt >= 0 ? `crossfade ${fadeMs} ms` : 'swap (dark)'} · ${d}${slow ? ' (the weather: slow)' : ''}`, { fade: shownAt >= 0 && !slow && !holdOn }); bakeParts0 = parts; }
     revOfBake.set(bk, neon.rev); if (revOfBake.size > 8) revOfBake.delete(revOfBake.keys().next().value);   // (8b1: the board swap's overlay)
     camOfBake.set(bk, camSig); if (camOfBake.size > 8) camOfBake.delete(camOfBake.keys().next().value);   // (THE LOAD FIX: the camera each bake was laid out for — the doubled-lettering probe)
     // 9b — THE SNOW (snow.js): the caps on every layer's tops, the ground after the paving (+ the day's shadows again over it), the
@@ -1417,7 +1487,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       //  holiday step inside the post-reveal grace (TIER_GRACE) rides the slow blend too, like a weather change)
       const slow = fade && (wxRecent() || performance.now() - shownAt < TIER_GRACE) && /^(share|bias|warm|night|hol)(, (share|bias|warm|night|hol))*$/.test(d);
       litFadeMs = slow ? WX_BLEND : 1200;
-      LOADLOG.add('lit', `${fade ? `crossfade ${litFadeMs} ms` : 'swap (dark)'} · ${d}${slow ? ' (the weather: slow)' : ''}`, { fade: fade && !slow }); }
+      LOADLOG.add('lit', `${holdOn ? 'swap (under the held picture)' : fade ? `crossfade ${litFadeMs} ms` : 'swap (dark)'} · ${d}${slow ? ' (the weather: slow)' : ''}`, { fade: fade && !slow && !holdOn }); }
     litLook = { share: Math.round(winShare() * 60) / 60, bias: winBias(), warm: P.winWarm || 0, night: DK, party: partyLit(), hol: holLit() };
     const mf = newMeta(), mn = newMeta();
     litMeta = { far: mf, near: mn };
@@ -1674,8 +1744,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the first bake: nothing but the sky draws yet, so it may take a bigger slice of the frame — the city and its windows are
     // ready early in the title's power-on wave)
     mk9('bakes');
-    if (baker.pump(shownAt < 0 ? TIERS[tier].bakeMs * 3 + 2 : TIERS[tier].bakeMs)) {
-      if (shownAt < 0) baker.settle(); else fadeFrom = now;   // (before the reveal nothing shows: a bake swaps in at once, no crossfade)
+    if (baker.pump(shownAt < 0 || holdOn ? TIERS[tier].bakeMs * 3 + 2 : TIERS[tier].bakeMs)) {
+      if (shownAt < 0 || holdOn) baker.settle(); else fadeFrom = now;   // (before the reveal nothing shows: a bake swaps in at once, no crossfade; THE LOAD FIX: nor under a held picture)
       bakeCamPrev = bakeCamShown; bakeCamShown = camOfBake.get(baker.key) || null;   // (THE LOAD FIX: the camera on screen — the probe)
       liveTones = bakeTones;
       if (DEBUG) console.info('[harbor] baked', baker.key, `${baker.busyMs.toFixed(1)} ms in total`, baker.mem());
@@ -1683,11 +1753,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the lit windows bake behind it (never in the same frame as a facade step: the frame's budget is shared); a new light key
     // (the timeline's next step, a re-layout) starts at once, never during the lit layer's own crossfade
     if (L && !litBaker.pending && litFadeFrom < 0 && lightKey() !== litBaker.key && !waitRects()) rebakeLights();
-    if ((!baker.pending || litBaker.bakes === 0) && litBaker.pump(TIERS[tier].bakeMs * (litBaker.bakes === 0 ? 2 : 1))) {
-      if (litBaker.bakes > 1 && shownAt >= 0) litFadeFrom = now; else litBaker.settle();
+    if ((!baker.pending || litBaker.bakes === 0) && litBaker.pump(TIERS[tier].bakeMs * (litBaker.bakes === 0 || holdOn ? 2 : 1))) {
+      if (litBaker.bakes > 1 && shownAt >= 0 && !holdOn) litFadeFrom = now; else litBaker.settle();
       lights.swap(litMeta.far, litMeta.near);
     }
     darkPump(TIERS[tier].bakeMs);
+    holdTick(now);   // (THE LOAD FIX: a held picture lets go once the new camera is in)
     // the neon's sprites build a few a frame (behind the facades' bake: never in the same frame as its first bake)
     if (!baker.pending || shownAt >= 0) neon.pump(baker.pending ? 1 : TIERS[tier].bakeMs);
     const lit = S.lit, night = DK;
@@ -1828,7 +1899,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function drawCity(F, t, dt, now) {
     const { c, deadCity, deadFar, dk0, fs, lit, off } = F;
     // ---- the city: the baked layers, far → near, with the moving things between them
-    const fadeIn = shownAt < 0 ? 0 : smooth(0, 900, now - shownAt);
+    const fadeIn = fadeT0 < 0 ? 0 : smooth(0, 900, now - fadeT0);
     mk9('the skyline');
     const crispOn = crisp.begin(c, tier, !off.has('no-crisp') && fadeIn > 0 && !!L && !!bakeTones && !!baker.key);   // (9c: the crisp layer this frame)
     const xf = fadeFrom < 0 ? 1 : smooth(0, fadeMs, now - fadeFrom);
@@ -2549,7 +2620,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // &force=no-halo: off (the comparison)
   let haloSp = null, haloKey = '';
   function signHalo(c) {
-    const tr = S.textRects, nr = tr && tr.neon, wr = tr && (tr.glyphs || tr.word);
+    // (THE LOAD FIX — the ghost NEON: while a resize pins the city's frame (scaled + shifted, the sign is not) the halo is drawn where the
+    //  pinned frame puts it UNDER the real sign — the page's rects through the pin's inverse)
+    const un = r => (r && pinT ? { x: (r.x - pinT.x) / pinT.s, y: (r.y - pinT.y) / pinT.s, w: r.w / pinT.s, h: r.h / pinT.s } : r);
+    const tr = S.textRects, nr = un(tr && tr.neon), wr = un(tr && (tr.glyphs || tr.word));
     if (typeof document !== 'undefined') document.documentElement.classList.toggle('nd-nohalo', clock.force.has('no-halo'));
     if (!nr || !wr || clock.force.has('no-halo')) return;
     const key = [nr.x, nr.y, nr.w, nr.h, wr.x, wr.y, wr.w, wr.h].map(v => Math.round(v)).join(',');
@@ -2730,14 +2804,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // the panes) scaled uniformly to cover the new window, anchored at the bottom middle (the ground + the dock) — one transform, no
   // re-draw; the debounced re-fit below lays the city out again + clears it (build → unpinResize) in the frame it draws
   const pinResize = () => {
-    const host = canvas.parentElement; if (!host || !W || shownAt < 0) return;
+    const host = canvas.parentElement; if (!host || !W || shownAt < 0 || holdOn) return;   // (THE LOAD FIX: a held picture covers it — CSS's own cover-fit under it)
     const nw = host.clientWidth, nh = host.clientHeight;   // (the layout size — untransformed, unlike a bounding rect)
     if (Math.abs(nw - W) < 0.5 && Math.abs(nh - H) < 0.5) { unpinResize(); return; }
     const s = Math.max(nw / W, nh / H);
     canvas.style.width = `${W}px`; canvas.style.height = `${H}px`;
     host.style.transformOrigin = '0 0'; host.style.transform = `translate(${((nw - s * W) / 2).toFixed(1)}px, ${(nh - s * H).toFixed(1)}px) scale(${s.toFixed(4)})`;
+    pinT = { x: (nw - s * W) / 2, y: nh - s * H, s }; measure();   // (THE LOAD FIX: the sign's halo is drawn through its inverse at the sign's rects NOW — it stays under the real sign)
   };
-  function unpinResize() { if (canvas.style.width) { canvas.style.width = ''; canvas.style.height = ''; } const host = canvas.parentElement; if (host && host.style.transform) host.style.transform = ''; }
+  function unpinResize() { pinT = null; if (canvas.style.width) { canvas.style.width = ''; canvas.style.height = ''; } const host = canvas.parentElement; if (host && host.style.transform) host.style.transform = ''; }
   const onResize = () => {
     pinResize();
     const now = performance.now(), hostR = canvas.parentElement, r0 = hostR && canvas.style.width ? { width: hostR.clientWidth, height: hostR.clientHeight } : canvas.getBoundingClientRect();
@@ -2778,7 +2853,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (NIGHT-C: the party's SONGS — the dance breaks are planned on them (core/party-deck.js): in before the reveal, so a break never shifts
     // after it; a failed load gives up at REVEAL_MAX like everything else — the stand-in song clock then)
     const songs = !!partyDeckNow() || now - t0 > REVEAL_MAX - 500;
-    const late = now - t0 > REVEAL_MAX;
+    // (THE LOAD FIX: a late reveal still waits — ≤ 2 s more — while the bake on hand stands at another camera than the city's now: a
+    //  slow phone's first picture would be THE DOUBLED LETTERING from its first frame)
+    const late = now - t0 > REVEAL_MAX && !(baker.bakes >= 1 && bakeCamShown !== camSig && now - t0 < REVEAL_MAX + 2000);
     // (SPEED PASS B — A2 (1): the people's first plan warmed one block a task in the dark — the city shown WITH them, never a pop-in)
     const folk = (clock.force && clock.force.has && clock.force.has('no-people')) || !people.ready || people.ready() || now - t0 > REVEAL_MAX - 500;
     if (!(ready && fonts && wx && sky && panel && songs && folk) && !late) return;
@@ -2790,6 +2867,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // moved: the title only reports them again after its power-on, which used to land AFTER the reveal: a re-layout + a crossfade)
     if (!late && L && S.measure) { const mv = rectsMoved(); if (mv) { LOADLOG.add('dock', `measured before the reveal: ${mv}`); layout('measured before the reveal'); return; } }
     shownAt = now; shownClock = clock.now() / 1000; revealWhy = ready && fonts && wx && sky && panel ? 'ready' : 'late';
+    { let inst = false; try { inst = !!(S.revealInstant && S.revealInstant()); } catch { /* the title's */ } fadeT0 = inst ? now - 900 : now; if (inst) LOADLOG.add('note', 'revealed under the boot screen: at once (its fade is the one fade)'); }
     clouds.settle();                              // (the clouds baked in the dark show at once with the city — no fade of their own)
     const waits = [!folk && 'the people', !ready && 'the bake', !fonts && 'the fonts', !wx && 'the weather', !sky && 'the clouds', !panel && "the panel's stored state", !songs && 'the party songs'].filter(Boolean);
     wxRevealed = true; wxHeld = wxNow() || wxHeld;
@@ -2825,6 +2903,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   window.addEventListener('pageshow', onShow); window.addEventListener('focus', onFocus);
   window.addEventListener('pointerdown', onTapWake, { capture: true, passive: true });
   window.addEventListener('resize', onResize);
+  // (THE LOAD FIX — the box can change a frame before the window's 'resize' (WebKit: the viewport first, the event later): the city's
+  //  canvas then showed CSS-fitted while the crisp lettering stayed put — two copies. Its box observed: a change the city wasn't built
+  //  for pins the frame at once (an RO callback runs after layout, before paint))
+  let boxRO = null;
+  try { if (typeof ResizeObserver !== 'undefined' && canvas.parentElement) { boxRO = new ResizeObserver(es => { const e = es[es.length - 1]; if (!e || destroyed || !W || shownAt < 0) return; const cw = e.contentRect.width, ch = e.contentRect.height; if (Math.abs(cw - W) >= 0.5 || Math.abs(ch - H) >= 0.5) onResize(); }); boxRO.observe(canvas.parentElement); } } catch { boxRO = null; }
   // (DESKTOP Group 4 — THE RESIZE: a window dragged to a monitor with another pixel ratio may fire no 'resize' at all — the ratio itself is
   //  watched: its media query changes → the same debounced re-fit (re-armed for the new ratio each time); while the window changes, the
   //  last frame scales uniformly (css/title.css .nd-scene canvas: object-fit cover) — never stretched, never a flash, no reload)
@@ -2844,10 +2927,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function maybeRelayout() {
     if (!cam) return;
     const rr = rects();
-    const moved = (rr.dock && Math.abs(rr.dock.y - cam.dock.y) > 2) || (rr.tag && Math.abs(rr.tag.y + rr.tag.h + 10 - cam.limitY) > 2);   // (FP3a: > 2 pt)
+    const tagBase = cam.tagBase != null ? cam.tagBase : cam.limitY;   // (THE LOAD FIX: the tag foot the city last KEPT — a bar move's, else its own)
+    const moved = (rr.dock && Math.abs(rr.dock.y - cam.dock.y) > 2) || (rr.tag && Math.abs(rr.tag.y + rr.tag.h + 10 - tagBase) > 2);   // (FP3a: > 2 pt)
     // (POLISH 5: after the reveal a move that came with Safari's bars — a resize in the last 2 s, the canvas itself unchanged (it is
     // 100lvh: the bars never resize it) — keeps the city where it is: the dock is glass over it, the city never jumps under it)
-    if (moved && shownAt >= 0 && performance.now() - lastResizeAt < 2000) { LOADLOG.add('dock', `the dock moved with the bars (${Math.round(cam.dock.y)} → ${rr.dock ? Math.round(rr.dock.y) : '—'}): the city kept`); cam.dock = rr.dock || cam.dock; return; }
+    // (THE LOAD FIX: + a size the resize handler hasn't seen yet — the bars mid-move: a timer can read the moved dock before the 'resize' event)
+    if (moved && shownAt >= 0 && (performance.now() - lastResizeAt < 2000 || vpSize() !== vpLast)) { LOADLOG.add('dock', `the dock moved with the bars (${Math.round(cam.dock.y)} → ${rr.dock ? Math.round(rr.dock.y) : '—'}): the city kept`); cam.dock = rr.dock || cam.dock; if (rr.tag) cam.tagBase = rr.tag.y + rr.tag.h + 10; return; }   // (THE LOAD FIX: the TAGLINE's move with the bars is kept too — it used to wait out the 2 s and re-lay the city: THE DOUBLED LETTERING)
     if (moved) { LOADLOG.add('dock', `the title's rects moved: dock ${Math.round(cam.dock.y)} → ${rr.dock ? Math.round(rr.dock.y) : '—'}, tag foot ${Math.round(cam.limitY)} → ${rr.tag ? Math.round(rr.tag.y + rr.tag.h + 10) : '—'}`); clearTimeout(relayT); relayT = setTimeout(() => { if (!destroyed) layout('the title\'s rects moved'); }, 60); return; }
     // the sign or the corner buttons moved, the city didn't: only the lanes follow (no bake)
     const sig = r => (r ? `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.w)},${Math.round(r.h)}` : '-');
@@ -3045,7 +3130,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
     // (THE LOAD FIX: the per-frame read of tests/integration/kit/load-probe.mjs — cheap: harbor() builds the whole readout)
-    loadProbe: () => ({ shown: shownAt >= 0, W, H, cams: { now: camSig, baked: bakeCamShown, prev: fadeFrom >= 0 ? bakeCamPrev : null, lit: litBaker.key ? litBaker.key.includes(`|${camSig}|`) : null } }),
+    loadProbe: () => ({ shown: shownAt >= 0, W, H, hold: holdOn ? 1 : 0, holds: holdN, cams: { now: camSig, baked: bakeCamShown, prev: fadeFrom >= 0 ? bakeCamPrev : null, lit: litBaker.key ? litBaker.key.includes(`|${camSig}|`) : null } }),
     harbor: () => (L ? { fireworks: () => { const nowS = clock.now() / 1000; let tonight = []; try { tonight = LK.local ? fwNightOf(nowS).map(sh => ({ kind: sh.kind, t0: sh.t0, t1: sh.t1, inS: Math.round(sh.t0 - nowS) })) : []; } catch { /* fine */ } return { ...fwx.debug(), on: fwState.on, why: fwState.why, dim: fwState.dim, show: fwState.show ? { id: fwState.show.id, kind: fwState.show.kind, t0: fwState.show.t0, t1: fwState.show.t1, s: +(nowS - fwState.show.t0).toFixed(2) } : null, tonight, lights: fwx.lights().length, ly: fwx.lights().map(l => Math.round(l.y)), synced: !!(fwState.show && fwPlan(fwState.show.kind, fwState.show.seed, fwState.show.t0).synced), under: (() => { const cv = document.querySelector('.hb-fw'); return cv ? { parent: cv.parentElement ? cv.parentElement.className : '', afterCity: (() => { const k = [...cv.parentElement.children], i = k.indexOf(cv), crisp = k.findIndex(e => e.classList && e.classList.contains('hc-crisp')); return i > k.indexOf(canvas) && (crisp < 0 || i < crisp); })(), z: cv.style.zIndex } : null; })(), mb: fwx.mem(), crowd: (() => { try { return fwCrowd(); } catch (e) { return String(e); } })() }; }, tower: { st: TWS ? { stage: TWS.stage, k: TWS.k, s: TWS.s, crane: TWS.crane, announce: TWS.announce, design: TWS.design ? TWS.design.name : null } : null, key: L.towerKey, fx: towerFx.debug() }, holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone, zFront: cam.zFront, cx0: cam.cx0 || 0, dpr }, squeeze: L.squeeze, medallion: L.medallion ? { x: L.medallion.x, z: L.medallion.z, ring: L.medallion.ring } : null, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(), chimneys: chimneys.debug(), xmas: { ...XP, tree: treeHeld, xlK: +xlK.toFixed(2) }, parade: parade ? { ...parade.debug(), units: paraUnits ? paraUnits.length : 0 } : null,
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
@@ -3127,7 +3212,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('pageshow', onShow); window.removeEventListener('focus', onFocus); window.removeEventListener('pointerdown', onTapWake, { capture: true }); clearInterval(watchdog);
       window.removeEventListener('vl-cover', onCover);
-      window.removeEventListener('resize', onResize); try { if (dprMq) dprMq.removeEventListener('change', onDpr); } catch { /* fine */ }
+      window.removeEventListener('resize', onResize); if (boxRO) { try { boxRO.disconnect(); } catch { /* fine */ } } try { if (dprMq) dprMq.removeEventListener('change', onDpr); } catch { /* fine */ }
       if (window.visualViewport) window.visualViewport.removeEventListener('resize', onVV);
       if (document.fonts && document.fonts.removeEventListener) document.fonts.removeEventListener('loadingdone', onFonts);
       baker.destroy(); litBaker.destroy(); wild.destroy(); for (const d of Object.values(dark.g)) d.cv.width = d.cv.height = 0; freeFront(); sky.destroy(); if (legends) legends.destroy(); snd.destroy(); roadLight.destroy(); leaves.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); speak.destroy(); centre.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();

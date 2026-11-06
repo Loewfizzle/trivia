@@ -63,6 +63,7 @@ export function PROBE() {
       sign: piece('.nd-sign'), dock: piece('.nd-actions'), corner: Math.max(piece('.menu-btn'), piece('.music-btn')), gate: piece('.nd-gate'),
       screens, net: r2(netOp), netOn: !!(net && net.classList.contains('is-on')), netState: window.__arcade && window.__arcade.state ? window.__arcade.state.net : null,
       glitch: !!document.querySelector('.glitch-flash'), bg: r2(bgOp), show: r2(show),
+      hold: hb && hb.hold ? hb.hold : 0, holdOp: (() => { const hc = wrap && wrap.querySelector('canvas.hc-hold'); return hc ? r2(eff(hc)) : 0; })(),
       stale: !!(cams && shown && ((cams.baked && cams.baked !== cams.now) || (cams.prev && cams.prev !== cams.now) || cams.lit === false)), cams: cams ? `${cams.prev ? `${cams.prev} + ` : ''}${cams.baked}→${cams.now}${cams.lit === false ? ' lit-old' : ''}` : '',
       mis, pinned, crispN, vh: innerHeight,
     });
@@ -80,8 +81,10 @@ export function judge(D) {
   for (const f of D.frames) {
     const cityShown = f.scene * f.show;   // (the city as the eye gets it)
     // 1. DOUBLED: the city on screen (past the first 2 % of its fade) with two cameras in it
-    if (cityShown > 0.02 && f.stale) add('doubled', f, `the bake at another camera (${f.cams})`);
-    else if (cityShown > 0.02 && f.mis > 1 && f.crispN) add('doubled', f, `the city canvas CSS-scaled, the crisp layer not (${f.mis} pt apart)`);
+    // (THE LOAD FIX: a picture HELD over the city — scene.js#holdStart — hides what is under it while it is fully opaque)
+    const covered = f.holdOp >= 0.995;
+    if (cityShown > 0.02 && f.stale && !covered) add('doubled', f, `the bake at another camera (${f.cams}${f.holdOp ? `, the held picture at ${Math.round(f.holdOp * 100)} %` : ''})`);
+    else if (cityShown > 0.02 && f.mis > 1 && f.crispN && !covered) add('doubled', f, `the city canvas CSS-scaled, the crisp layer not (${f.mis} pt apart)`);
     // 2. CHUNKS: the city on its way in (2–98 %), a piece of the title more than a step ahead of it (ONE fade: everything together)
     const ahead = Math.max(f.sign, f.dock, f.corner) * f.show - cityShown;
     if (cityShown > 0.02 && ahead > 0.15) add('chunks', f, `${['sign', 'dock', 'corner'].filter(k => f[k] * f.show - cityShown > 0.15).join(' + ')} seen at ${Math.round(Math.max(f.sign, f.dock, f.corner) * f.show * 100)} % over a city at ${Math.round(cityShown * 100)} %`);
