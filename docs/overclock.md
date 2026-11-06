@@ -566,3 +566,26 @@ right + wrong, the Higher or Lower demo, Timeline's answer sliding into order.
 - **No timing changed** (pinned in `tests/overclock-oc4.test.mjs` from the screens' own source): Memory 700 ms / stepMs / +150 ms, 260 ms taps;
   Color Clash 220 / 650; Odd One Out 350 / 750; Quick Count flashMs + 420 / 900; Signal Lock 900 / the seeded waits / 1200 / 950; Rewire 400 /
   1100 / 1300; Compass's constants. The answers' animations fit inside the existing beats (Memory's replay inside the 8-s screen's 3 s).
+
+**The local run before the final push (the mini PC, nothing else busy):** unit **1242 / 1242** · rules **66 / 66** (database.rules.json
+unchanged — nothing to re-publish) · `/api` server.test **38 / 38** · smoke **6 / 6** · e2e-oc-2 **27 / 27** (8 phones — Compass's N / E / S / W
++ its new answer) · e2e-oc-new **75 / 75** (8 phones — REWIRE + ODD ONE OUT with REAL finger taps: the blue stage 2, a refresh mid-circuit, the
+found cell white-hot, a wrong cell's real crack at the finger + the odd one green, THE ANSWER's rows + why) · the no-sideways guard **258 / 258**
+(86 screens × 390 / 402 / 430) · 60 fps at 390 × 844 (dpr 3) on Rewire's flow + surge, Quick Count's flash, Signal Lock's GO, five cracks in a row,
+Odd One Out's misses, Memory's playback — also at 4× CPU (16.7 ms p50 / ≤ 16.8 ms p95; 1 frame over 25 ms in Rewire, 2 in Odd One Out as a new
+36-cell grid is built) · the harbor's `shell` group **8 / 8** (☰ → SETTINGS → CREDITS — the one console file touched is `js/ui/credits.js`, a
+credit line of data) → the ci tag; the full harbor suite was not run (no City 2.0 file changed).
+
+**THE MOTION PROOF:** `Downloads/neon/overclock/shots/` — `oc4-crack-*` (the crack's refine strips at real size: a tile, True or False + a
+recording) and `oc4-proof-*` (8-frame strips + recordings): the crack on a tile, on a cell (Odd One Out), Rewire's surge, Memory's playback,
+Signal Lock's GO, the Rewire + Compass demos.
+
+**Known issues / held back**
+- COLOR CLASH keeps its small ✓ / ✕ sockets on the tiles (its tiles are colours — a green glow can't show on a green tile); the owner may want
+  another cue there.
+- The crack's refraction splits the tile's LABEL only; a big number on a Higher or Lower card or a pad's field splits too, but a badge / an icon
+  never does. Odd One Out's cells + Memory's nodes have no label (the crack + the red glow carry it).
+- At 4× CPU a new 6 × 6 Odd One Out grid (36 cells of SVG) can cost a frame or two as it's built (between grids, never during a tap).
+- `shots.mjs --until` doesn't apply to a `--page` cast (the cast films from the page's ready) — a moment that comes by itself is filmed with a
+  wider cast window + `--cast-from`.
+- `tests/integration/e2e-stage2.mjs` + `e2e-8p.mjs` (retired suites, not in any run) still tap the pre-OC3 / pre-OC4 screens.

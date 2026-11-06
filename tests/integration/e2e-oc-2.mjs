@@ -222,7 +222,7 @@ try {
   // every phone answers as soon as ITS question shows (BOB always right; player i wrong from round i % 5 + 1)
   const compassBot = async i => {
     for (let r = 0; r < 5; r++) {
-      await pages[i].waitForFunction(n => window.__oc.state().p === n && document.querySelector('.ch-compass.is-asking'), { timeout: 15000, polling: 30 }, r);
+      await pages[i].waitForFunction(n => window.__oc.state().p === n && document.querySelector('.oc-cp.is-asking'), { timeout: 15000, polling: 30 }, r);
       if (i === 1 && r === 0) await pages[1].screenshot({ path: `${OUT}q-17-compass-ask-390.png` });
       const R = cp.rounds[r];
       const right = i === 1 || r < (i % 5) + 1;
@@ -238,6 +238,9 @@ try {
   await waitPhase(pages[1], 'standings', 2, 'compass standings', 45000);
   await sleep(4200);
   await shotBoth(pages[1], 'q-19-compass-reveal');
+  // (OC4) COMPASS's dressed answer replaced the last old panel: five rounds replayed on small rings, BOB's picks all ✓
+  const cpa = await pages[1].evaluate(() => ({ rows: document.querySelectorAll('.oc-beat-answer .oc-cpa-row').length, rings: document.querySelectorAll('.oc-beat-answer .oc-cpa-row .oc-cp-dial.is-mini').length, right: document.querySelectorAll('.oc-beat-answer .oc-cpa-you.is-right').length, old: !!document.querySelector('.rv-cp-row') }));
+  ok(cpa.rows === 5 && cpa.rings === 5 && cpa.right === 5 && !cpa.old, `COMPASS — THE ANSWER: five rounds on small rings, BOB's five picks right, no old panel (${JSON.stringify(cpa)})`);
   const r3 = await checkScores(pages[1], 2, 'compass', alive().map(i => uids[i]));
   log('compass ask times', JSON.stringify(await OC(pages[1], 'O.state().local.askAt')), 'BOB board', JSON.stringify(await evalIn(pages[1], (s, u) => ({ b: s.live.boards[u], start: s.game.playStartAt, r: s.game.results[2][u] }), uids[1])));
   ok(r3[uids[1]].ok === 5 && r3[uids[1]].pts > 100, `COMPASS: all five right earns the answer-speed bonus (${r3[uids[1]].pts})`);

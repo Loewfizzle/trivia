@@ -69,7 +69,7 @@ const press = (page, sel, nth = 0) => page.evaluate(([s, n]) => {
   el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch' }));
 }, [sel, nth]);
 // (OC4) a REAL finger: a CDP touch on the n-th match of a selector (its centre)
-const finger = async (page, sel, nth = 0) => { const els = await page.$(sel); if (!els[nth]) fail(`no ${sel}[${nth}]`); await els[nth].tap(); };
+const finger = async (page, sel, nth = 0) => { const els = await page.$$(sel); if (!els[nth]) fail(`no ${sel}[${nth}]`); await els[nth].tap(); };
 const click = (page, sel) => page.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no ' + s); el.click(); }, sel);
 
 async function waitPhase(page, phase, ci, what, timeout = 60000) {
@@ -314,8 +314,10 @@ try {
   ok(rw.every(x => x === rw[0]), 'REWIRE: the same circuits on every phone');
   const rSpec = JSON.parse(rw[0]);
   ok(rSpec.puzzles.map(p => p.n).join() === '3,4', 'REWIRE: a 3×3 warm-up, then a 4×4');
+  // (OC4: real finger taps are slower than the old dispatched events — only the PATH's tiles are turned, like a player, so the taps end
+  //  well before the next circuit replaces the board 1100 ms after the surge)
   async function solve(page, pz, from) {
-    for (let i = 0; i < pz.n * pz.n; i++) {
+    for (const i of pz.path) {
       const turns = ((pz.solution[i] - from[i]) % 4 + 4) % 4;
       for (let k = 0; k < turns; k++) { await finger(page, '.oc-wire-tile', i); await sleep(20); }   // (OC4: real finger taps)
     }
