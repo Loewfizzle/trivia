@@ -26,6 +26,15 @@ const SCEN = [
   ...['spellcheck', 'higherlower', 'timeline', 'sortit'].flatMap(t => ['right', 'wrong'].map(a => ({ g: 'cards', name: `${a}-${t}`, qs: `type=${t}&at=${a}` }))),
   { g: 'cards', name: 'answer-higherlower-time', qs: 'type=higherlower&at=answer&beat=answer&still=1&n=4&run=time' },
   { g: 'cards', name: 'answer-higherlower-perfect', qs: 'type=higherlower&at=answer&beat=answer&still=1&n=8&run=perfect' },
+  // OC4 — the visual / reflex challenges: the crack on a tile / a card / a node / a cell (its shards fly in the fx layer), right / wrong / close,
+  // Odd One Out's four families, the two demos, Signal Lock's GO (the full-screen flash) + EARLY
+  ...['memory', 'stroop', 'oddone', 'count', 'reflex', 'compass', 'rewire', 'trivia', 'truefalse'].flatMap(t => ['right', 'wrong'].map(a => ({ g: 'oc4', name: `${a}-${t}`, qs: `type=${t}&at=${a}&tx=0.92` }))),
+  { g: 'oc4', name: 'close-count', qs: 'type=count&at=close' },
+  ...['0,1,2', '1,2,3', '2,3,0', '3,0,1'].map((f, i) => ({ g: 'oc4', name: `odd-fams-${i}`, qs: `type=oddone&at=play&fams=${f}&item=${i}` })),
+  { g: 'oc4', name: 'answer-oddone-fams', qs: 'type=oddone&at=answer&beat=answer&still=1&n=4&fams=1,2,3' },
+  { g: 'demo', name: 'demo-rewire', qs: 'type=rewire&at=brief&still=1' },
+  { g: 'demo', name: 'demo-compass', qs: 'type=compass&at=brief&still=1' },
+  { g: 'oc4', name: 'go-reflex', qs: 'type=reflex&at=play', until: "document.querySelector('.oc-rx[data-mode=go]')" },
   { g: 'results', name: 'banner-8', qs: 'type=trivia&at=answer&beat=banner&still=1&n=8' },
   { g: 'results', name: 'banner-tie', qs: 'type=trivia&at=answer&beat=banner&still=1&n=8&win=tie' },
   { g: 'results', name: 'stand-8', qs: 'type=trivia&at=answer&beat=stand&still=1&n=8&ready=1' },
@@ -71,7 +80,9 @@ for (const [w, h] of SIZES) {
     errs.length = 0;
     await p.goto(`${BASE}/tests/integration/overclock-preview.html?${s.qs}`);
     await p.waitForFunction(() => document.body && document.body.dataset.ready, { timeout: 30000 }).catch(() => {});
-    await sleep(s.g === 'victory' ? 2600 : s.g === 'answer' || s.g === 'results' ? 1200 : 500);
+    // (OC4: a moment that comes by itself — Signal Lock's GO — is waited for, then read at once)
+    if (s.until) await p.waitForFunction(s.until, { timeout: 8000, polling: 10 }).catch(() => console.log(`    (${s.name}: never reached)`));
+    else await sleep(s.g === 'victory' ? 2600 : s.g === 'answer' || s.g === 'results' ? 1200 : s.g === 'oc4' ? 250 : 500);
     const a = await p.evaluate(PROBE);
     await sleep(700);
     const b = await p.evaluate(PROBE);

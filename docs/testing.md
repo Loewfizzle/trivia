@@ -314,6 +314,17 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     dealt pairs, the four screens' step times pinned). The E2Es: e2e-oc-2 (Spellcheck's upright tiles, Higher or Lower's buttons + its demo,
     Sort It's touch swipes + its answer columns), e2e-oc-new (Timeline's rows + badges + LOCK IT IN + its answer; UNSCRAMBLE with REAL finger
     taps — tiles, a filled slot back, CLEAR, SHUFFLE, a wrong word then the right one, THE ANSWER on two phones).
+  - OC4 — THE VISUAL / REFLEX CHALLENGES on the preview: `type=rewire|memory|stroop|oddone|count|reflex|compass&at=play|right|wrong|answer`
+    (+ `type=count&at=close` — off by one), `type=oddone&fams=0,1,3&item=n` (0 letters · 1 rotation · 2 mirror · 3 neon shapes), `&at=brief&still=1
+    &type=rewire|compass` = their DEMOS; `&tx=0..1&ty=0..1` = where the finger lands on a pressed element (the crack's impact); `__preview.wire(m)`
+    (turn the first m tiles of a circuit's path into place — Infinity solves it), `mem(n)` (repeat the sequence, slipping at step n), `tap(k, right)`.
+    THE CRACK's motion: `shots.mjs --page "…?type=trivia&at=wrong&hold=1&tx=0.3" --cast 560 --strip 8 --cast-el ".oc-tiles .oc-tile:nth-child(2)"
+    --js "__go()"` — `--cast-el <selector>` (+ `--cast-pad`) crops the strip to that element at REAL size, `--cast-from <ms>` starts the strip's
+    frames later (the motion, not the wait). Unit: `tests/overclock-oc4.test.mjs` (the crack's texture size + credit + preload budget + tap point +
+    seeded plan; Odd One Out's families, the deal + the night keys, whole matches at 2 + 8 players; QUICK COUNT's exact flash; every screen's
+    step times pinned from its source). The E2Es: e2e-oc-2 (Compass's N / E / S / W), e2e-oc-new (REWIRE + ODD ONE OUT with REAL finger taps — the
+    blue stage 2, a refresh mid-circuit, the found cell white-hot, a wrong cell's real crack at the finger + the odd one green, THE ANSWER's rows).
+    The no-sideways guard has an `oc4` group (right / wrong / close on nine challenges, the four families, both demos, Signal Lock's GO).
   - Stage 3 E2E: `node e2e-8p.mjs "<browser path>" ./shots` — 8 players in 8 separate browser contexts play a full game of
     all four games, plus a late joiner, a rematch, the night scoreboard, an expired invite, the reconnect banner,
     every Neural Bluff screen at 390×844 and 412×915, and frame-pacing / long-task sampling (`shots/perf.json`).

@@ -68,6 +68,8 @@ const press = (page, sel, nth = 0) => page.evaluate(([s, n]) => {
   if (!el) throw new Error(`no ${s}[${n}]`);
   el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch' }));
 }, [sel, nth]);
+// (OC4) a REAL finger: a CDP touch on the n-th match of a selector (its centre)
+const finger = async (page, sel, nth = 0) => { const els = await page.$(sel); if (!els[nth]) fail(`no ${sel}[${nth}]`); await els[nth].tap(); };
 const click = (page, sel) => page.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no ' + s); el.click(); }, sel);
 
 async function waitPhase(page, phase, ci, what, timeout = 60000) {
@@ -113,7 +115,7 @@ try {
   const EVE = N > 4 ? await evalIn(pages[4], s => s.uid) : null;
   await host.evaluate(eve => {
     const s = window.__arcade.state;
-    const first = ['truefalse', 'timeline', 'closest', 'rewire', 'unscramble'];
+    const first = ['truefalse', 'timeline', 'closest', 'rewire', 'unscramble', 'oddone'];
     const order = [...first, ...s.game.order.filter(t => !first.includes(t))].slice(0, s.game.total);
     return import('/js/firebase.js').then(m => m.update(m.dbRef(`rooms/${s.code}/game`), { order, seen: { truefalse: true }, tq: {}, tUsed: 0, deal: null, dk: null, ...(eve ? { [`combo/${eve}`]: { c: 6, m: 6 } } : {}) }));
   }, EVE);
@@ -315,7 +317,7 @@ try {
   async function solve(page, pz, from) {
     for (let i = 0; i < pz.n * pz.n; i++) {
       const turns = ((pz.solution[i] - from[i]) % 4 + 4) % 4;
-      for (let k = 0; k < turns; k++) { await press(page, '.oc-wire-tile', i); await sleep(30); }
+      for (let k = 0; k < turns; k++) { await finger(page, '.oc-wire-tile', i); await sleep(20); }   // (OC4: real finger taps)
     }
   }
   await sleep(400);
@@ -325,7 +327,8 @@ try {
   await shotBoth(pages[1], 'o-14-rewire-solved');
   await waitFor(pages[1], () => document.querySelectorAll('.oc-wire-tile').length === 16, '4×4 circuit up', 6000);
   // two turns into the 4×4, then a refresh: progress and turns come back
-  await press(pages[1], '.oc-wire-tile', 0); await press(pages[1], '.oc-wire-tile', 5);
+  await finger(pages[1], '.oc-wire-tile', 0); await finger(pages[1], '.oc-wire-tile', 5);
+  ok(await pages[1].evaluate(() => document.querySelectorAll('.oc-wire-tile .oc-wire-rot').length === 16 && !!document.querySelector('.oc-wire-board.is-blue')), 'REWIRE: the 4×4 is stage 2 — BLUE tubes');
   await sleep(900);
   const before = await OC(pages[1], 'JSON.stringify(O.state().extra.rw)');
   await pages[1].reload();
@@ -335,8 +338,9 @@ try {
   ok(before === after && (await pages[1].evaluate(() => document.querySelectorAll('.oc-wire-tile').length)) === 16, 'REWIRE: a refresh keeps the solved circuit and the turns');
   const cur = JSON.parse(after).split('').map(Number);
   await solve(pages[1], rSpec.puzzles[1], cur);
-  await waitFor(pages[1], () => window.__oc.state().done, 'BOB solved both', 8000);
-  ok(true, 'REWIRE: both circuits solved through the UI');
+  await waitFor(pages[1], () => window.__oc.state().done, 'BOB solved both', 12000);
+  ok(await pages[1].evaluate(() => !!document.querySelector('.oc-wire-board.is-surge .oc-wire-core.is-on') || !!document.querySelector('.oc-done')), 'REWIRE: the surge reaches the core (it blazes) — or the done card already took over');
+  ok(true, 'REWIRE: both circuits solved with real finger taps');
   await pages[1].evaluate(() => new Promise(r => setTimeout(r, 200)));
   await waitPhase(pages[1], 'standings', 3, 'rewire standings', 45000);
   const r3 = await evalIn(pages[1], s => s.game.results[3]);
@@ -425,6 +429,47 @@ try {
   const r4 = await evalIn(pages[1], s => s.game.results[4]);
   ok(r4[uids[1]].ok === 1 && r4[uids[1]].pts > 100, `UNSCRAMBLE: BOB's right word = full + speed (${r4[uids[1]].pts}), the wrong one cost nothing`);
   if (CH > 0) ok(r4[uids[CH]].ok === 0 && r4[uids[CH]].pts === 0, `UNSCRAMBLE: CHARLIE's wrong word only = 0 (${r4[uids[CH]].pts})`);
+
+  // ---------------- 4c. ODD ONE OUT with REAL TAPS (OC4): three grids from three DIFFERENT families on every phone; BOB finds all three (the
+  // cell blazes white-hot, the rest dim); CHARLIE taps a wrong cell on the first grid (the real-glass crack on it, the odd one shows green —
+  // no ✓ / ✕ on the cells), then finds the other two; THE ANSWER rings each odd one + says why
+  await waitPhase(pages[1], 'play', 5, 'odd one out play', 60000);
+  for (const i of alive()) await waitSpec(pages[i], 'oddone');
+  const odAll = await Promise.all(alive().map(i => OC(pages[i], 'JSON.stringify(O.spec())')));
+  ok(odAll.every(x => x === odAll[0]), 'ODD ONE OUT: the same grids on every phone');
+  const oSpec = JSON.parse(odAll[0]);
+  ok(new Set(oSpec.grids.map(g => g.fam)).size === 3 && oSpec.grids.map(g => g.size).join() === '4,5,6', `ODD ONE OUT: 4×4 · 5×5 · 6×6 from three different families (${oSpec.grids.map(g => g.fam).join(', ')})`);
+  const oddGrid = (page, k) => page.waitForFunction(n => document.querySelectorAll('.oc-odd-cell').length === n && !document.querySelector('.oc-odd-grid.is-done'), { timeout: 4000, polling: 30 }, oSpec.grids[k].size ** 2);
+  for (let k = 0; k < 3; k++) {
+    await oddGrid(pages[1], k);
+    await finger(pages[1], '.oc-odd-cell', oSpec.grids[k].idx);
+    if (k === 0) {
+      ok(await pages[1].evaluate(() => !!document.querySelector('.oc-odd-cell.is-found .oc-odd-hot') && document.querySelectorAll('.oc-odd-grid.is-done .oc-odd-cell').length > 1), 'ODD ONE OUT: the found cell blazes white-hot, the rest dim');
+      await sleep(120); await shotBoth(pages[1], 'o-15d-oddone-found');
+    }
+    await sleep(420);
+  }
+  await waitFor(pages[1], () => window.__oc.state().done && window.__oc.state().ok === 3, 'BOB found all three', 5000);
+  ok(true, 'ODD ONE OUT: BOB found all three with real finger taps');
+  if (CH > 0) {
+    const g0 = oSpec.grids[0], wrongCell = (g0.idx + 5) % (g0.size * g0.size);
+    await oddGrid(pages[CH], 0);
+    await finger(pages[CH], '.oc-odd-cell', wrongCell);
+    const cr = await pages[CH].evaluate(w => { const c = document.querySelectorAll('.oc-odd-cell')[w]; const gc = c.querySelector('.oc-gc'); return { wrong: c.classList.contains('is-wrong'), crack: !!c.querySelector('.oc-gc .oc-gc-tex'), tap: gc ? gc.dataset.tap : null, right: !!document.querySelector('.oc-odd-cell.is-right'), marks: document.querySelectorAll('.oc-odd-cell .gk-sock').length }; }, wrongCell);
+    ok(cr.wrong && cr.crack && cr.tap === '1' && cr.right && cr.marks === 0, `ODD ONE OUT: CHARLIE's wrong cell cracks (the real glass, at the finger) + the odd one shows green — no ✓ / ✕ (${JSON.stringify(cr)})`);
+    await sleep(150); await shotBoth(pages[CH], 'o-15e-oddone-crack');
+    for (let k = 1; k < 3; k++) { await oddGrid(pages[CH], k); await finger(pages[CH], '.oc-odd-cell', oSpec.grids[k].idx); await sleep(420); }
+  }
+  for (const i of alive().filter(i => i !== 1 && i !== CH)) {
+    for (let k = 0; k < 3; k++) { await oddGrid(pages[i], k).catch(() => {}); await press(pages[i], '.oc-odd-cell', oSpec.grids[k].idx).catch(() => {}); await sleep(400); }
+  }
+  await waitPhase(pages[1], 'standings', 5, 'odd one out standings', 45000);
+  const oa = await pages[1].waitForFunction(() => { const r = document.querySelectorAll('.oc-beat-answer.is-on .oc-odd-arow'); return r.length === 3 && JSON.stringify({ rows: r.length, found: document.querySelectorAll('.oc-odd-arow.is-right').length, ringed: document.querySelectorAll('.oc-odd-mc.is-odd').length, why: [...document.querySelectorAll('.oc-odd-why > b')].map(b => b.textContent) }); }, { timeout: 4000, polling: 50 }).then(h => h.jsonValue()).then(JSON.parse).catch(() => null);
+  ok(oa && oa.rows === 3 && oa.found === 3 && oa.ringed === 3 && oa.why.every(w => w.length > 6), `ODD ONE OUT — THE ANSWER: each grid with its odd one ringed + why (${JSON.stringify(oa)})`);
+  await shotBoth(pages[1], 'o-15f-oddone-answer');
+  const r5 = await evalIn(pages[1], s => s.game.results[5]);
+  ok(r5[uids[1]].ok === 3 && r5[uids[1]].pts > 100, `ODD ONE OUT: BOB's three = full + speed (${r5[uids[1]].pts})`);
+  if (CH > 0) ok(r5[uids[CH]].ok === 2 && r5[uids[CH]].pts < r5[uids[1]].pts, `ODD ONE OUT: CHARLIE's miss costs him the first grid (${r5[uids[CH]].ok}/3)`);
 
   // ---------------- 5. THE END OF THE MATCH (OC2): the host jumps the match to its LAST challenge (a TRUE OR FALSE), everyone plays it, then
   // the final's beats — the last round's answer → its round winner → the standings → FINAL STANDINGS → THE VICTORY (the console's frame +

@@ -143,7 +143,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   header band (never over the play area, never a tap taken); MAKE 24 cut (18 types). OC3: NO SIDEWAYS SCROLL, EVER — every Overclock panel
   `overflow-x: hidden`, anything that moves past the edges in a clip of its own (guard: `tests/integration/e2e-oc-sideways.mjs`, 390 / 402 /
   430); the typing challenges on the kit's pads — NO input element, never the system keyboard (a computer's keyboard still types into them);
-  Pattern Lock's first sequence in a match is easy (its own seeded stream); the hard ones' demos ride the rules card (`kit/slam.js` `demo`). OC3B: Spellcheck, Higher or Lower, Timeline, Sort It rebuilt (no rule or timing change — HIGHER OR LOWER is asked as "is the hidden one higher or lower", the same winner; the screens' step times pinned by `tests/overclock-oc3b.test.mjs`); Missing Link's joins are a neutral lit tube (never an arrow); never name a state `.is-hidden` (components.css hides it).
+  Pattern Lock's first sequence in a match is easy (its own seeded stream); the hard ones' demos ride the rules card (`kit/slam.js` `demo`). OC3B: Spellcheck, Higher or Lower, Timeline, Sort It rebuilt (no rule or timing change — HIGHER OR LOWER is asked as "is the hidden one higher or lower", the same winner; the screens' step times pinned by `tests/overclock-oc3b.test.mjs`); Missing Link's joins are a neutral lit tube (never an arrow); never name a state `.is-hidden` (components.css hides it). OC4: THE REAL-GLASS CRACK (`crack.js` — a real CC-BY 3.0 photo, credited in ☰ → CREDITS +
+  `assets/overclock/CREDITS.md`; every wrong answer, at the tap point) + Rewire, Memory, Color Clash, Odd One Out (FOUR FAMILIES — `odd.js`, dealt
+  around the night memory), Quick Count, Signal Lock, Compass rebuilt; QUICK COUNT's EXACT FLASH (the clock starts once the shapes have painted —
+  `count.js#afterPaint`, pinned by `tests/overclock-oc4.test.mjs`); on the new buttons right = green, wrong = red + cracked, NO ✓ / ✕ (the owner);
+  Rewire's prefix is `oc-wire-` (`oc-rw-` = the round winner).
 - **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists).
 - **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
   music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:

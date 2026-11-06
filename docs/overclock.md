@@ -491,3 +491,78 @@ right + wrong, the Higher or Lower demo, Timeline's answer sliding into order.
 - COMPASS's old panel is the last one inside THE ANSWER (OC4 rebuilds it).
 - `tests/integration/e2e-stage2.mjs` (a retired suite, not in any run) still taps the pre-OC3 screens.
 
+### OC4 — THE REAL-GLASS CRACK + THE VISUAL / REFLEX CHALLENGES (Nov 6, 2026)
+**What shipped**
+- **Group 0 — THE REAL-GLASS CRACK** (`crack.js`, everywhere the kit's wrong feedback is used — fx.js#wrong: a tile, a True-or-False button,
+  the number pad's field, a Higher or Lower card, Sort It's card, a Timeline row, Unscramble's slots, and OC4's nodes / cells / buttons). The
+  owner after OC3: the drawn hairlines were "too cheap… basic". The fracture is a REAL PHOTO — **"RadialCracksB by Keith333
+  (https://opengameart.org/users/keith333), licensed under CC-BY 3.0"** — shipped as `assets/overclock/crack.webp` (1024 px, ~95 KB: the
+  seamless photo rolled so the impact is centred, brightness → alpha with a HIGH-PASS so the long thin cracks survive the dark glass's haze, the
+  crushed centre held at 60 % so a word under it stays readable, faded out toward a circle) + `crack-glow.webp` (192 px, the same blurred ONCE,
+  tinted red — the emissive layer); built by `scripts/build-oc-crack.py`; credited on the site (☰ → CREDITS, `js/ui/credits.js`, ART) and in
+  `assets/overclock/CREDITS.md`; in the preload (still inside the 1.5 MB budget). PER TAP: centred on the TAP POINT (fx.js reads the last
+  pointerdown in the capture phase; a key / a timeout → the left third, never dead centre), a seeded rotation + a slight scale (the challenge
+  key + part = the seed), clipped to the host's own shape (`--oc-gc-skew` = the tile's slant, `--oc-gc-r` for round nodes). LIGHT, NOT LINES:
+  the photo's bright crack edges; the red emissive layer (only its opacity moves); a thin highlight SWEEP seen only THROUGH the cracks (the
+  texture is its mask). REFRACTION: the label splits along three of the photo's main crack lines from the impact — three clipped copies, each
+  1–2 px out of line. MOTION (≤ 0.45 s, transform + opacity, pointer-events none): a crushed white flash, the cracks running out in 120 ms (a
+  round window scaling up while the texture inside it counter-scales — it never zooms), the glow flaring then settling faint, 3–5 GENERATED
+  shards (thin slivers + a glint) spinning off, ONE knockback (2–3 px back + a hair of rotation). At rest: dim, a faint red glow, the red edge.
+  Reduced motion: the finished fracture just appears. Three refine rounds on 8-frame strips at real phone size (`shots.mjs --cast-el` crops a
+  strip to an element); 60 fps at 390 × 844 dpr 3, also at 4× CPU with five wrong taps in a row.
+- **Group 1 — ODD ONE OUT's FOUR FAMILIES (rules first — `odd.js`, `tests/overclock-oc4.test.mjs`):** LETTERS / NUMBERS (60 fair look-alike
+  pairs in the monospace "coding" face, three tiers by the level as before — O/0, l/1, rn/m, vv/w, 8/B, ;/: …), ROTATION (an arrow / chevron /
+  key / bracket / pin turned 25–45°; bigger turns early in a match), MIRROR (a flag / note / boot / bolt flipped), NEON SHAPES (a ring's gap
+  moved ≥ 90°, a star missing a point, a die's 5 among 6s / 4 among 5s). Each of the three grids from a DIFFERENT family (seeded); the host
+  DEALS them around THE ROOM's NIGHT MEMORY (`deal.js` — `[fam, item] × 3`, keys `od-g… / od-r… / od-m… / od-s…`); a stale deal falls back to the
+  seeded draw; the seeded stream is spent the same either way. Whole simulated matches with two Odd One Outs at 2 + 8 players (dealt, marked as
+  each opens, a replayed step = the same patch, the record unchanged).
+- **Group 2 — REWIRE · MEMORY · COLOR CLASH.** REWIRE (`ui/rewire.js`): dark glass tiles (≈ 72–75 pt at 4×4) holding GLASS NEON TUBE — bent
+  like real neon (an L is a quarter arc round the tile's corner), unlit until connected; a tap turns it (a snappy transform); a connected tube
+  lights in the stage's colour (1 ORANGE · 2 BLUE) with a LIVE FLOW (each tube's flow layer pulses, delayed by its distance from the source — a
+  wave along the circuit, restarted in step on every turn); on completion THE SURGE (every lit tube white-hot in order from the source, its
+  step shortened on a long path so the core always blazes by 0.76 s — inside the unchanged 1100 ms) and THE CORE BLAZES. Its answer: both
+  circuits solved + lit on two small boards, your time / NOT SOLVED + how far the power got. Its ~3 s DEMO: two tiles turn, the tube lights,
+  the surge reaches the core. MEMORY (`ui/memory.js`): a 3 × 3 of round glass nodes; the played node BLAZES orange (a pre-rendered blaze + a
+  white-hot core) with its OWN TONE (Grok's nine memory tones, mem0…mem8 — already in audio/sfx/overclock/; the synth tone if they can't play);
+  a slanted step bar. **The owner, mid-pass:** no ✓ / ✕ on the nodes — the right node glows GREEN, the wrong one RED and CRACKED. Its answer:
+  the sequence replayed on a node board (each step's node blazes with its number, inside the 8-s screen's answer beat), the steps as numbered
+  mini grids, the slip marked. COLOR CLASH (`ui/stroop.js`): one huge word (Barlow 900 italic) in a different colour, "TAP THE COLOR OF THE
+  TEXT", four big SOLID colour tiles (no names on them); its answer: the word in its colour, the text colour named on a solid chip.
+- **Group 3 — ODD ONE OUT · QUICK COUNT · SIGNAL LOCK · COMPASS.** ODD ONE OUT (`ui/oddone.js` + `ui/oddart.js` — the tube icons, one static SVG
+  per token): glass cells, three slanted pips, a family line ("ONE IS TURNED"); the found cell blazes white-hot + pops, the rest dim; a miss
+  cracks red, the odd one shows green. Its answer: each grid small with the odd one ringed + its one-line why (`odd.js#oddWhy` — "the arrow
+  turned 30°", "a 5 among 6s", "the O is round"). QUICK COUNT (`ui/count.js`): each shape its own neon tube in its own colour (triangle PINK ·
+  circle CYAN · square YELLOW · diamond GREEN), a blue bar drains during the flash, "HOW MANY [the shape, big] ?", four big slanted number tiles,
+  OFF BY ONE STILL EARNS HALF (the close tile --close + ½). Its answer: the grid again with the asked shape lit + counted 1, 2, 3 … SIGNAL LOCK
+  (`ui/reflex.js`): the dim tense wait (the pad's rim pulsing), on GO the WHOLE SCREEN white-hot orange with a giant TAP! (a tap anywhere on it
+  counts), the red EARLY stamp (a miss, as before), the rounds as slanted chips with your best lit. COMPASS (`ui/compass.js`): the glass ring, N /
+  E / S / W round it, the glowing orange arrow, the heading card; its dressed answer (the turns replayed on a small ring, the arrow sweeping to the
+  heading, your pick) replaces the LAST old panel (`reveals.js` is empty now); its ~3 s DEMO (FACING N → TURN RIGHT → TURN RIGHT, the arrow sweeps,
+  S lights).
+- **Group 4 — THE LOOK REVIEW:** `overclock-preview.html` — the seven at `at=play|right|wrong|answer` (+ `count&at=close`), `type=oddone&fams=0,1,3
+  &item=n` (any families), `at=brief&still=1&type=rewire|compass` (the demos), `__preview.wire(m)` / `mem(n)` / `tap(k, right)`, `&tx= &ty=` (where
+  the finger lands — the crack's impact); the JetBrains Mono face loaded like the site does. Three rounds at 390 / 412 / 1440.
+
+**Decisions (OC4)**
+- **THE REAL-GLASS CRACK** is a real photo (CC-BY 3.0, credited) — never hand-drawn lines; never `crack.png` (a contained CG ball) or the Pexels
+  shards (outside the CC0 / CC BY rule). The shards are GENERATED. The split label rides ON the cracks (readable through the fracture).
+- **GREEN + RED, NO MARKS on the new buttons** (the owner, Nov 6, looking at Memory): Memory's nodes, Odd One Out's cells, Quick Count's numbers,
+  Compass's N / E / S / W show right = green, wrong = red + the real-glass crack (the crack is the shape that tells them apart without colour);
+  Quick Count's half = --close + ½. COLOR CLASH keeps its small ✓ / ✕ sockets: its tiles ARE colours, a green glow can't show on a green tile.
+  THE ANSWER keeps its ✓ / ✕ marks (the kit's frame).
+- **ODD ONE OUT's FAMILIES:** a different family per grid; no colour family (colour-blind players); every difference a thick stroke or a clear
+  angle at the 6 × 6 grid's ~54-pt cells on a 390-pt phone (the turn ≥ 25°, the gap moved ≥ 90°, the tube 7.5 % of the cell).
+- **QUICK COUNT's EXACT FLASH:** the shapes are on screen at full brightness the moment they're shown (nothing on the grid animates or fades in)
+  and the flash clock (1800 − level × 600 ms, unchanged) starts only once they've PAINTED (two animation frames — `count.js#afterPaint`); the
+  look time can only run a frame long, never short (pinned by the test).
+- **COLOR CLASH = the four colours only** (red · blue · green · yellow, full saturation — the prompt's "as today"): the generator no longer swaps
+  in purple / orange at higher levels (too close to blue / red for many eyes). Scoring + answer checks unchanged.
+- **SIGNAL LOCK's GO** covers the whole screen, so a tap anywhere on it counts (the pad under it can't be reached); the time is still measured
+  from the frame the flash paints; an early tap is still a miss.
+- **COMPASS** keeps its memory load: the start heading shows only on the start card ("YOU'RE FACING …"), as before; "YOU STARTED FACING" heads
+  the answer's replay.
+- **REWIRE's class prefix is `oc-wire-`** — `oc-rw-` is the ROUND WINNER banner's.
+- **No timing changed** (pinned in `tests/overclock-oc4.test.mjs` from the screens' own source): Memory 700 ms / stepMs / +150 ms, 260 ms taps;
+  Color Clash 220 / 650; Odd One Out 350 / 750; Quick Count flashMs + 420 / 900; Signal Lock 900 / the seeded waits / 1200 / 950; Rewire 400 /
+  1100 / 1300; Compass's constants. The answers' animations fit inside the existing beats (Memory's replay inside the 8-s screen's 3 s).

@@ -1393,7 +1393,7 @@
 .oc-wire-ans { display: flex; justify-content: center; align-items: flex-end; gap: 14px; padding: 4px 0 2px; }
 .oc-wire-ans-one { display: flex; flex-direction: column; align-items: center; gap: 6px; animation: oc-rise 0.3s calc(380ms + var(--k) * 160ms) ease-out both; }
 .oc-wire-ans-one > small { font: 700 10px / 1 var(--oc-font-ui); letter-spacing: 0.16em; color: var(--oc-label); }
-.oc-wire-mini { --wire-l: 12px; --wire-r: 26px; --wire-gap: 2px; --cs: calc(min(118px, 30cqw) / var(--n)); container-type: normal; }
+.oc-wire-mini { --wire-l: 12px; --wire-r: 26px; --wire-gap: 2px; --cs: calc(min(146px, 35cqw) / var(--n)); container-type: normal; }
 .oc-answers { container-type: inline-size; }
 .oc-wire-mini .oc-wire-glass { border-radius: 3px; }
 .oc-wire-mini .oc-wire-plug { width: 7px; height: 16px; top: -8px; border-radius: 2px; }
@@ -1430,7 +1430,7 @@
 @media (prefers-reduced-motion: reduce) { .oc-mem-blaze, .oc-mem-core { transition-duration: 0.01s; } }
 /* MEMORY's answer: the sequence REPLAYED on a small node board (each step's node blazes with its number), the steps as numbered mini grids */
 .oc-mem-ans { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 4px; }
-.oc-mem-replay { --ns: 54px; display: grid; grid-template-columns: repeat(3, var(--ns)); gap: 12px; }
+.oc-mem-replay { --ns: 64px; display: grid; grid-template-columns: repeat(3, var(--ns)); gap: 12px; }
 .oc-mem-replay .oc-mem-node { cursor: default; }
 .oc-mem-replay .oc-mem-glass { border-width: 1.5px; }
 .oc-mem-num { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; font: italic 900 26px / 1 var(--oc-font-title); color: var(--oc-hot-ink); opacity: 0; transform: scale(0.6); transition: opacity 0.12s ease-out, transform 0.16s cubic-bezier(0.2, 1.5, 0.4, 1); }
@@ -1593,7 +1593,7 @@
 .oc-rx[data-mode='hit'] .oc-rx-label { color: var(--oc-white-hot); text-shadow: 0 0 24px rgba(255, 140, 60, 0.6); }
 .oc-rx[data-mode='slow'] .oc-rx-label, .oc-rx[data-mode='early'] .oc-rx-label { color: #ff8095; font-size: clamp(40px, 12vw, 54px); }
 /* EARLY: the red slanted stamp */
-.oc-rx-stamp { position: absolute; left: 50%; top: 36%; padding: 8px 22px 7px; background: linear-gradient(180deg, #ff5570, var(--oc-wrong) 55%, #c8102e); border: 2px solid rgba(255, 210, 218, 0.7); transform: translateX(-50%) skewX(var(--oc-slant)) rotate(-4deg); opacity: 0; pointer-events: none; box-shadow: 0 0 26px rgba(255, 51, 85, 0.6); }
+.oc-rx-stamp { position: absolute; left: 50%; top: 27%; padding: 8px 22px 7px; background: linear-gradient(180deg, #ff5570, var(--oc-wrong) 55%, #c8102e); border: 2px solid rgba(255, 210, 218, 0.7); transform: translateX(-50%) skewX(var(--oc-slant)) rotate(-4deg); opacity: 0; pointer-events: none; box-shadow: 0 0 26px rgba(255, 51, 85, 0.6); }
 .oc-rx-stamp b { font: italic 900 clamp(30px, 9vw, 40px) / 1 var(--oc-font-title); letter-spacing: 0.04em; color: #fff; }
 .oc-rx[data-mode='early'] .oc-rx-stamp { opacity: 1; animation: oc-rx-stamp 0.34s cubic-bezier(0.2, 1.3, 0.35, 1) both; }
 @keyframes oc-rx-stamp { 0% { opacity: 0; transform: translateX(-50%) skewX(var(--oc-slant)) rotate(-4deg) scale(1.9); } 100% { opacity: 1; transform: translateX(-50%) skewX(var(--oc-slant)) rotate(-4deg); } }

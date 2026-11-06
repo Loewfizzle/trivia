@@ -29,6 +29,12 @@ How to add questions, puzzles and words to every bank, and how the word lists ar
 - **Overclock HIGHER OR LOWER:** add `[item, value]` (or `[item, value, "shown"]` for things like "c. 2560 BC") to a stat in
   `data/oc/higherlower.json`, or a new stat `[STAT, "QUESTION?", unit ('year' for years), 'max'|'min', items]`. Rounded, stable
   values only (no fast-changing records); the 1.2× / 10-year pairing rule absorbs small source differences.
+- **Overclock ODD ONE OUT (OC4 — four families, `js/games/overclock/odd.js`):** a LETTERS / NUMBERS pair = `['one', 'other', tier]` in
+  `GLYPH_PAIRS` (tier 0 easy · 1 medium · 2 hard; FAIR in the monospace face at a ~54-pt cell — one or two characters, no duplicates; either
+  may be the odd one); a ROTATION / MIRROR shape = a name in `ROT_SHAPES` / `MIRROR_SHAPES` + its neon path (100 × 100) in
+  `ui/oddart.js#PATHS` (a rotation shape must have no turn that maps it onto itself; a mirror shape must look FLIPPED, not turned); a NEON
+  SHAPE = an id in `NEON_ODD` + its two tokens in `odd.js#oddGrid` + its art + its why line in `oddWhy`. Never a colour difference (colour-blind
+  players). `tests/overclock-oc4.test.mjs` checks the catalogs, the night keys and the phone rule (turns ≥ 25°, a gap moved ≥ 90°).
 - **Overclock — THE ROOM's NIGHT MEMORY (OC1):** every row a bank deals is remembered by its TEXT (a short hash — `js/games/overclock/deal.js`),
   so new rows can go anywhere in a file; a row's key changes only if its own words change. (LEXICON was cut in OC1 with its bank + builder.)
 - **Cipher Breach / Unscramble words:** edit the blocklist or sizes in `scripts/build-words.mjs` and rebuild (below).

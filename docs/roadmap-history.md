@@ -2027,6 +2027,21 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 4: the cirrus re-checked on the desktop (cast-flicker.mjs: 0 flickers); the choppy load, the far-right skyline + the resize stall → FR7.
 - The add-ons: THE DISPLAY CHECK (no dummy plug: the real-compositor speed checks skip with their reason on a display-less boot).
 
+## OVERCLOCK PASS 4 — THE REAL-GLASS CRACK + THE VISUAL / REFLEX CHALLENGES (Nov 6 2026) — docs/overclock.md "OC4"
+- Group 0: THE REAL-GLASS CRACK (crack.js): a real photo of a fracture (RadialCracksB by Keith333, CC-BY 3.0 — credited on the site + in the
+  repo; assets/overclock/, scripts/build-oc-crack.py) at the tap point, seeded, clipped to the host's slant; the red emissive glow, the flash,
+  the cracks running out in 120 ms, the sweep through the cracks, the label split 1–2 px along the crack lines, generated shards, one knockback;
+  every wrong feedback goes through it. shots.mjs --cast-el / --cast-from (a strip cropped to an element at real size).
+- Group 1: ODD ONE OUT's four families (odd.js — letters / numbers · rotation · mirror · neon shapes; a different one per grid; dealt around the
+  room's night memory); unit tests + whole-match sims at 2 + 8 players.
+- Group 2: REWIRE (bent glass neon tubes, the flow, the surge, the core; its answer + demo), MEMORY (glass nodes, Grok's nine tones; green + red
+  cracked — the owner's mid-pass note; its replayed answer), COLOR CLASH (the huge word, four solid colour tiles — the four colours only).
+- Group 3: ODD ONE OUT (glass cells, the neon icons, the white-hot find; its answer + why), QUICK COUNT (neon shapes, the draining bar, THE
+  EXACT FLASH; the counted answer), SIGNAL LOCK (the tense wait, the white-hot GO over the screen, EARLY, the chips), COMPASS (the ring, the arrow;
+  its dressed answer replaced the last old panel; its demo); every timing pinned from the screens' source.
+- Group 4: the look review (three rounds at 390 / 412 / 1440), 60 fps incl. 4× CPU, the motion proof, the no-sideways guard on every new screen;
+  e2e-oc-new plays Rewire + Odd One Out with real finger taps.
+
 ## OVERCLOCK PASS 3B — THE CARD + LIST CHALLENGES (Nov 6 2026) — docs/overclock.md "OC3B"
 - Group 0: Missing Link's joins neutral (a lit tube, no arrow — the bank doesn't record the side) in THE ANSWER + the demo; Unscramble end to
   end with real finger taps in e2e-oc-new (tiles, a filled slot back, CLEAR, SHUFFLE, a wrong word then the right one, THE ANSWER on two phones).
