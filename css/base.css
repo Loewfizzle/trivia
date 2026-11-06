@@ -78,9 +78,9 @@
   --accent: #e9e4d4; --accent-2: #d7262e; --accent-ink: #120f0c;
   --accent-soft: rgba(233, 228, 212, 0.1); --accent-glow: rgba(215, 38, 46, 0.45);
 }
-[data-theme='overclock'] {
-  --accent: #ffb627; --accent-2: #ff2bd6; --accent-ink: #1c1000;
-  --accent-soft: rgba(255, 182, 39, 0.12); --accent-glow: rgba(255, 182, 39, 0.5);
+[data-theme='overclock'] { /* OVERDRIVE (OC1): molten orange = your actions, electric blue = the badges + the others — css/overclock.css */
+  --accent: #ff6a1a; --accent-2: #2e8bff; --accent-ink: #1d0900;
+  --accent-soft: rgba(255, 106, 26, 0.12); --accent-glow: rgba(255, 106, 26, 0.5);
 }
 [data-theme='pulse'] {
   --accent: #a374ff; --accent-2: #36e6ff; --accent-ink: #0d0420;

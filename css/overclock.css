@@ -1,5 +1,6 @@
 /* ==========================================================================
-   OVERCLOCK — amber / magenta, high energy
+   OVERCLOCK — the challenges' own screens (the ones OC3 / OC4 haven't rebuilt keep this older look inside the OVERDRIVE
+   frame — its skin is at the END of this file and wins by order)
    ========================================================================== */
 .screen.oc {
   overflow: hidden;
@@ -193,26 +194,6 @@
 .kp-go:active { background: #ffd36e; }
 .kp-del { font-size: 20px; color: var(--text-dim); }
 
-/* trivia lightning */
-.ch-trivia { gap: 12px; }
-.tl-q { font-weight: 700; font-size: clamp(17px, 4.8vw, 20px); line-height: 1.28; text-align: left; min-height: 3.6em; }
-.tl-opts { display: flex; flex-direction: column; gap: 7px; }
-.tl-opt {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 52px;
-  padding: 8px 12px 8px 8px;
-  text-align: left;
-  font-weight: 600;
-  font-size: 16px;
-  background: rgba(16, 12, 34, 0.86);
-  border: 1px solid rgba(255, 43, 214, 0.25);
-}
-.tl-key { flex: none; display: grid; place-items: center; width: 32px; height: 32px; font-family: var(--font-mono); font-weight: 700; color: var(--magenta); border: 1px solid rgba(255, 43, 214, 0.5); }
-.tl-opt.is-correct { border-color: var(--good); background: color-mix(in srgb, var(--good) 15%, transparent); }
-.tl-opt.is-wrong { border-color: var(--red); background: rgba(255, 51, 85, 0.15); }
-
 /* overlays */
 .oc-overlay { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
 .oc-overlay:empty { display: none; }
@@ -255,8 +236,8 @@
 .ch.ch-memory, .ch.ch-odd { margin: auto 0; }
 
 /* ---- shared: buttons that flash right / wrong ---- */
-.cc-opt.is-correct, .qc-opt.is-correct, .tf-btn.is-correct { border-color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
-.cc-opt.is-wrong, .qc-opt.is-wrong, .tf-btn.is-wrong { border-color: var(--red); background: rgba(255, 51, 85, 0.16); animation: shake 0.4s; }
+.cc-opt.is-correct, .qc-opt.is-correct { border-color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
+.cc-opt.is-wrong, .qc-opt.is-wrong { border-color: var(--red); background: rgba(255, 51, 85, 0.16); animation: shake 0.4s; }
 .qc-opt.is-close { border-color: var(--close); background: color-mix(in srgb, var(--close) 14%, transparent); }
 
 /* color clash */
@@ -358,39 +339,10 @@
 }
 .qc-opt:active { transform: scale(0.94); }
 
-/* true or false */
-.ch-tf { gap: 18px; }
-.tf-q {
-  display: grid;
-  place-items: center;
-  min-height: 6.2em;
-  padding: 16px;
-  text-align: center;
-  font-weight: 700;
-  font-size: clamp(22px, 6.4vw, 28px);
-  line-height: 1.25;
-  font-variant-numeric: tabular-nums;
-  background: rgba(16, 12, 34, 0.7);
-  border: 1px solid rgba(255, 182, 39, 0.25);
-}
-.tf-q.q-in { animation: q-in 0.3s var(--ease) both; }
-.tf-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.tf-btn {
-  min-height: 84px;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 22px;
-  letter-spacing: 0.12em;
-  border: 2px solid;
-  touch-action: manipulation;
-  user-select: none;
-}
-.tf-true { color: var(--green); border-color: rgba(61, 255, 139, 0.55); background: rgba(61, 255, 139, 0.06); }
-.tf-false { color: var(--red); border-color: rgba(255, 51, 85, 0.55); background: rgba(255, 51, 85, 0.06); }
-.tf-btn:active { transform: scale(0.96); }
+/* (OC1: TRUE OR FALSE's + TRIVIA LIGHTNING's old screens are gone — their OVERDRIVE look is at the end of this file) */
 .ch-pips i.half { background: var(--yellow); }
 @media (prefers-reduced-motion: reduce) {
-  .cc-word.q-in, .tf-q.q-in, .cc-opt.is-wrong, .qc-opt.is-wrong, .tf-btn.is-wrong { animation: none; }
+  .cc-word.q-in, .cc-opt.is-wrong, .qc-opt.is-wrong { animation: none; }
 }
 /* quick count: CSS-drawn shapes, identical size whatever the font (glyph dots render much smaller than triangles) */
 .qc-shape { display: block; width: 52%; aspect-ratio: 1; font-size: 0; background: currentColor; }
@@ -939,3 +891,249 @@
 .oc-rb.is-overall .oc-rb-score { color: var(--text); }
 .oc-rb.is-instant .oc-rb-row, .oc-rb.is-instant .oc-rb-bar { transition: none; }
 @media (prefers-reduced-motion: reduce) { .oc-rb-row, .oc-rb-bar { transition: none; } }
+
+/* =========================================================================================================================
+   OVERDRIVE — OVERCLOCK's skin (OC1 — docs/overclock.md "Look"). Molten orange = YOUR actions (your pick, your score, your timer),
+   electric blue = letter badges + the other players, on deep carbon (never flat black) with a faint grid, a slow orange / blue haze and a
+   vignette. Barlow Condensed Black Italic for titles / numbers / the score, Chakra Petch for answers + questions (self-hosted, SIL OFL —
+   assets/fonts/overclock/, loaded only with this sheet). NIGHT only (meta.js LOOKS). The kit's pieces (js/games/kit/, gk-) take the skin
+   through --gk-*. 60 fps: transform + opacity only; every glow a static layer whose opacity / scale animates.
+   ========================================================================================================================= */
+@font-face { font-family: 'OD Barlow'; font-style: italic; font-weight: 900; font-display: swap; src: url('../assets/fonts/overclock/barlow-condensed-900i.woff2') format('woff2'); }
+@font-face { font-family: 'OD Barlow'; font-style: italic; font-weight: 800; font-display: swap; src: url('../assets/fonts/overclock/barlow-condensed-800i.woff2') format('woff2'); }
+@font-face { font-family: 'OD Chakra'; font-style: normal; font-weight: 700; font-display: swap; src: url('../assets/fonts/overclock/chakra-petch-700.woff2') format('woff2'); }
+@font-face { font-family: 'OD Chakra'; font-style: normal; font-weight: 500; font-display: swap; src: url('../assets/fonts/overclock/chakra-petch-500.woff2') format('woff2'); }
+
+.oc-od {
+  --oc-hot: #ff6a1a;
+  --oc-hot-2: #ff9a4d;
+  --oc-hot-ink: #1d0900;
+  --oc-hot-glow: rgba(255, 106, 26, 0.55);
+  --oc-cool: #2e8bff;
+  --oc-cool-glow: rgba(46, 139, 255, 0.5);
+  --oc-carbon: #0a0c11;
+  --oc-graphite: #1a1e27;
+  --oc-graphite-2: #262b36;
+  --oc-line: rgba(255, 255, 255, 0.12);
+  --oc-label: #aab1c4;                 /* tiny labels only (≥ 4.5:1 on carbon) */
+  --oc-white-hot: #fff6ee;
+  --oc-wrong: #ff3355;
+  --oc-slant: -9deg;
+  --oc-font-title: 'OD Barlow', 'Barlow Condensed', var(--font-display);
+  --oc-font-ui: 'OD Chakra', 'Chakra Petch', var(--font-ui);
+  /* the kit's skin */
+  --gk-hot: var(--oc-hot); --gk-hot-ink: var(--oc-hot-ink); --gk-hot-glow: var(--oc-hot-glow); --gk-hot-soft: rgba(255, 106, 26, 0.24);
+  --gk-cool: var(--oc-cool); --gk-slant: var(--oc-slant); --gk-radius: 4px; --gk-wrong: var(--oc-wrong);
+  --gk-key-bg: linear-gradient(180deg, #2b303c, #1a1e27 70%); --gk-key-line: rgba(255, 255, 255, 0.13);
+  --gk-font-title: var(--oc-font-title); --gk-font-ui: var(--oc-font-ui); --gk-font-num: var(--oc-font-title);
+  --gk-key-size: 30px; --gk-go-size: 24px;
+  --gk-laser: linear-gradient(90deg, var(--oc-hot), #ffb36b 40%, var(--oc-cool));
+  --gk-tach-color: var(--oc-hot); --gk-tach-red: #ff3355; --gk-tach-off: rgba(255, 255, 255, 0.08); --gk-tach-h: 13px;
+  --gk-edge-color: rgba(255, 86, 26, 0.55);
+  --gk-slam-bg: linear-gradient(180deg, #262b37, #12151c); --gk-slam-line: var(--oc-hot); --gk-slam-size: clamp(42px, 13vw, 60px);
+  --gk-stamp-size: 112px; --gk-kicker-ink: var(--oc-label);
+  --gk-answer-bg: linear-gradient(180deg, #fffaf5, #ffe2c7); --gk-answer-ink: #1d0b02; --gk-answer-label: #8a3a08;
+  --gk-pick-bg: rgba(26, 30, 39, 0.9); --gk-pick-ink: #c9cfdf; --gk-pick-label: var(--oc-label);
+  --gk-q-size: clamp(19px, 5.4vw, 23px); --gk-answer-size: clamp(19px, 5.2vw, 22px);
+  --accent: var(--oc-hot); --accent-2: var(--oc-cool); --accent-ink: var(--oc-hot-ink); --accent-glow: var(--oc-hot-glow); --accent-soft: rgba(255, 106, 26, 0.12);
+  color: #fff;
+}
+.screen.oc.oc-od { background: transparent; }
+.screen.oc.oc-od::before { display: none; }
+
+/* ---------------- the carbon background (fills the whole window; the column stays phone-wide on a desktop) */
+.oc-od > .oc-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: radial-gradient(130% 70% at 50% -10%, #171b25 0%, #0c0e14 55%, #07080c 100%); }
+.oc-bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px); background-size: 30px 30px; background-position: center top; -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.35) 55%, rgba(0, 0, 0, 0.12) 100%); mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.35) 55%, rgba(0, 0, 0, 0.12) 100%); }
+.oc-bg-haze { position: absolute; width: 95vmin; height: 95vmin; border-radius: 50%; will-change: transform; }
+.oc-bg-haze-a { left: -38vmin; top: 6vh; background: radial-gradient(circle, rgba(255, 106, 26, 0.2), rgba(255, 106, 26, 0.06) 45%, transparent 70%); animation: oc-drift-a 27s ease-in-out infinite alternate; }
+.oc-bg-haze-b { right: -40vmin; bottom: 4vh; background: radial-gradient(circle, rgba(46, 139, 255, 0.2), rgba(46, 139, 255, 0.05) 45%, transparent 70%); animation: oc-drift-b 33s ease-in-out infinite alternate; }
+@keyframes oc-drift-a { to { transform: translate(26vmin, 22vh); } }
+@keyframes oc-drift-b { to { transform: translate(-24vmin, -26vh); } }
+.oc-bg-vig { position: absolute; inset: 0; background: radial-gradient(ellipse 85% 75% at 50% 45%, transparent 50%, rgba(0, 0, 0, 0.62) 100%); }
+
+/* ---------------- the header: the challenge + the score */
+.oc-od .oc-head { align-items: flex-end; min-height: 54px; gap: 12px; }
+.oc-mark { font: italic 900 14px / 1 var(--oc-font-title); letter-spacing: 0.16em; color: #fff; }
+.oc-mark b { color: var(--oc-hot); font-weight: 900; }
+.oc-od .oc-sub { display: flex; align-items: center; gap: 8px; margin-top: 5px; min-width: 0; font: italic 900 clamp(21px, 6vw, 25px) / 1 var(--oc-font-title); letter-spacing: 0.01em; color: #fff; white-space: nowrap; }
+.oc-head-num { flex: none; padding: 3px 7px 2px; font: italic 800 14px / 1 var(--oc-font-title); letter-spacing: 0.04em; color: #fff; background: var(--oc-graphite-2); border: 1px solid var(--oc-line); transform: skewX(var(--oc-slant)); }
+.oc-head-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.oc-head-x2 { flex: none; color: var(--oc-hot); }
+.oc-head-x2[hidden] { display: none; }
+.oc-od .oc-score { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.oc-score-k { font: 700 10px / 1 var(--oc-font-ui); letter-spacing: 0.26em; color: var(--oc-label); }
+.oc-score-n { display: block; font: italic 900 clamp(38px, 11vw, 46px) / 0.86 var(--oc-font-title); color: var(--oc-hot); font-variant-numeric: tabular-nums; text-shadow: 0 0 22px rgba(255, 106, 26, 0.45); }
+.oc-score-n.oc-bump { animation: oc-bump 0.34s cubic-bezier(0.2, 1.4, 0.4, 1); }
+@keyframes oc-bump { 40% { transform: scale(1.14); } }
+
+/* ---------------- THE TACH (kit/tach.js) — clear of the music button under ☰ */
+.oc-od .oc-tach { flex: none; padding-right: 44px; opacity: 0.55; transition: opacity 0.3s; }
+.oc-od .oc-tach.is-live { opacity: 1; }
+.oc-od .gk-tach-num { font-size: 24px; min-width: 1.6ch; }
+.oc-od .gk-tach.is-done .gk-tach-num { color: var(--oc-wrong); }
+
+/* ---------------- the row: THE COMBO meter + the players' progress */
+.oc-row { flex: none; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.oc-od .oc-strip { flex: 1; min-width: 0; gap: 5px; padding: 3px 2px; }
+.oc-combo { position: relative; flex: none; display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; align-items: center; column-gap: 7px; row-gap: 3px; min-width: 96px; padding: 6px 12px 6px 10px; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #232733, #161920); border: 1px solid var(--oc-line); }
+.oc-combo-glow { position: absolute; inset: -1px; border: 1px solid var(--oc-hot); box-shadow: 0 0 18px var(--oc-hot-glow), inset 0 0 14px rgba(255, 106, 26, 0.28); opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.oc-combo-k, .oc-combo-od { grid-column: 1; grid-row: 1; font: 700 9px / 1 var(--oc-font-ui); letter-spacing: 0.22em; color: var(--oc-label); }
+.oc-combo-od { display: none; color: var(--oc-hot); }
+.oc-combo-n { grid-column: 2; grid-row: 1 / span 2; font: italic 900 30px / 0.9 var(--oc-font-title); color: #7d8498; font-variant-numeric: tabular-nums; }
+.oc-combo-pips { grid-column: 1; grid-row: 2; display: flex; gap: 3px; }
+.oc-combo-pips i { width: 11px; height: 5px; background: rgba(255, 255, 255, 0.12); transform: skewX(-20deg); }
+.oc-combo-pips i.is-on { background: var(--oc-hot); }
+.oc-combo.is-live .oc-combo-n { color: #fff; }
+.oc-combo.is-od .oc-combo-k { display: none; }
+.oc-combo.is-od .oc-combo-od { display: block; }
+.oc-combo.is-od .oc-combo-n { color: var(--oc-hot); }
+.oc-combo.is-od .oc-combo-glow { opacity: 1; animation: oc-breathe 1.1s ease-in-out infinite alternate; }
+.oc-combo.is-pop { animation: oc-combo-pop 0.32s cubic-bezier(0.2, 1.5, 0.4, 1); }
+@keyframes oc-combo-pop { 45% { transform: skewX(var(--oc-slant)) scale(1.14); } }
+@keyframes oc-breathe { from { opacity: 0.55; } to { opacity: 1; } }
+.oc-od .oc-pchip { flex: 1 0 36px; max-width: 58px; padding: 5px 3px 4px; background: rgba(26, 30, 39, 0.92); border: 1px solid rgba(46, 139, 255, 0.32); transform: skewX(var(--oc-slant)); }
+.oc-od .oc-pchip.is-me { border-color: var(--oc-hot); }
+.oc-od .oc-pfill { background: var(--oc-cool); }
+.oc-od .oc-pchip.is-me .oc-pfill { background: var(--oc-hot); }
+.oc-od .oc-pchip.is-done { border-color: var(--good); }
+.oc-od .oc-pchip.is-done .oc-pfill { background: var(--good); }
+
+/* ---------------- the stage: a slim progress row (the name is in the header) */
+.oc-od .oc-stage { gap: 14px; }
+.oc-od .ch-hero { display: flex; align-items: center; gap: 10px; padding: 0; background: none; border: 0; animation: none; }
+.oc-od .ch-hero-glyph, .oc-od .ch-hero-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.oc-od .ch-hero.is-final::before { content: '×2 FINAL'; flex: none; padding: 3px 8px 2px; font: italic 900 14px / 1 var(--oc-font-title); letter-spacing: 0.06em; color: var(--oc-hot-ink); background: var(--oc-hot); transform: skewX(var(--oc-slant)); }
+.oc-od .ch-pips { flex: 1; gap: 4px; }
+.oc-od .ch-pips i { max-width: none; height: 6px; background: rgba(255, 255, 255, 0.1); transform: skewX(-24deg); }
+.oc-od .ch-pips i.ok { background: var(--good); box-shadow: none; }
+.oc-od .ch-pips i.half { background: var(--close); }
+.oc-od .ch-pips i.miss { background: var(--oc-wrong); }
+.oc-od .ch-prompt { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.24em; color: var(--oc-label); }
+.oc-od .oc-done-mark { font: italic 900 46px / 1 var(--oc-font-title); letter-spacing: 0.02em; }
+.oc-od .oc-done.is-perfect .oc-done-mark { color: var(--oc-hot); text-shadow: 0 0 26px var(--oc-hot-glow); }
+.oc-od .oc-done-score { font-family: var(--oc-font-ui); color: var(--oc-label); }
+.oc-od .oc-done-score b { font: italic 900 44px / 1 var(--oc-font-title); color: #fff; }
+.oc-od .oc-done-wait { font: 700 12px / 1 var(--oc-font-ui); color: var(--oc-label); }
+
+/* ---------------- the feedback layer (fx.js) */
+.oc-fx { position: fixed; inset: 0; z-index: 45; pointer-events: none; overflow: hidden; }
+.oc-fx-red { position: absolute; inset: 0; box-shadow: inset 0 0 90px 22px rgba(255, 40, 70, 0.6); opacity: 0; }
+.oc-fx-red.is-on { animation: oc-flash 0.5s ease-out; }
+@keyframes oc-flash { from { opacity: 1; } to { opacity: 0; } }
+.oc-fx-white { position: absolute; inset: 0; background: radial-gradient(70% 55% at 50% 42%, rgba(255, 252, 245, 0.85), rgba(255, 160, 80, 0.35) 45%, rgba(46, 139, 255, 0.12) 75%, transparent 100%); opacity: 0; }
+.oc-fx-white.is-on { animation: oc-x10 1.25s ease-out; }
+@keyframes oc-x10 { 0% { opacity: 0; } 12% { opacity: 1; } 30% { opacity: 0.35; } 42% { opacity: 0.85; } 100% { opacity: 0; } }
+.oc-fx-banner { position: absolute; left: -8%; right: -8%; top: 40%; height: 92px; display: grid; place-items: center; opacity: 0; transform: translateX(-120%); }
+.oc-fx-banner-plate { position: absolute; inset: 0; transform: skewX(-14deg); background: linear-gradient(90deg, rgba(255, 106, 26, 0) 0%, #ff6a1a 18%, #ff9a4d 50%, #ff6a1a 82%, rgba(255, 106, 26, 0) 100%); box-shadow: 0 0 40px rgba(255, 106, 26, 0.6); }
+.oc-fx-banner b { position: relative; font: italic 900 64px / 1 var(--oc-font-title); letter-spacing: 0.04em; color: #fff; text-shadow: 0 2px 0 #b03a00, 0 0 24px rgba(255, 255, 255, 0.5); }
+.oc-fx-banner.is-on { animation: oc-banner 1.35s cubic-bezier(0.2, 0.9, 0.2, 1); }
+@keyframes oc-banner { 0% { opacity: 1; transform: translateX(-120%); } 22% { transform: translateX(0); } 72% { opacity: 1; transform: translateX(2%); } 100% { opacity: 0; transform: translateX(120%); } }
+.oc-spark { position: fixed; left: 0; top: 0; width: 13px; height: 13px; margin: -6.5px; border-radius: 50%; background: radial-gradient(circle, #fff 0 30%, var(--oc-hot) 55%, rgba(255, 106, 26, 0) 72%); }
+.oc-ring { position: absolute; inset: -3px; border: 3px solid var(--good); border-radius: inherit; opacity: 0; pointer-events: none; animation: oc-ring 0.55s ease-out forwards; }
+.oc-crack { position: absolute; inset: 0; pointer-events: none; animation: oc-crack 0.3s ease-out both; }
+.oc-crack svg { width: 100%; height: 100%; fill: none; stroke: rgba(255, 255, 255, 0.85); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+@keyframes oc-crack { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: none; } }
+
+/* ---------------- the title slam (kit/slam.js) + the after-challenge screen */
+.oc-od .ov-ready { background: radial-gradient(90% 60% at 50% 45%, rgba(20, 23, 31, 0.94), rgba(6, 7, 10, 0.97)); }
+.oc-od .oc-ready { width: 100%; display: grid; place-items: center; }
+.oc-od .gk-slam-kicker { font-size: 13px; }
+.oc-od .gk-slam-name { text-shadow: 0 0 26px rgba(255, 106, 26, 0.35); }
+.oc-od .gk-slam.is-final { --gk-slam-line: #fff; }
+.oc-od .gk-slam.is-final .gk-slam-sub { color: var(--oc-hot); }
+.oc-od .gk-slam-rules li { font-size: clamp(17px, 4.8vw, 19px); }
+.oc-od .gk-stamp { text-shadow: 0 0 30px rgba(255, 106, 26, 0.55); }
+.oc-od .ov-standings, .oc-od .ov-final { background: rgba(6, 7, 10, 0.94); }
+.oc-od .panel-full.oc-standings { background: linear-gradient(180deg, rgba(10, 12, 17, 0.97), rgba(6, 7, 10, 0.98)); justify-content: flex-start; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.oc-od .oc-next .next-up { margin: 0 0 8px; text-align: center; font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.18em; color: var(--oc-label); }
+.oc-od .oc-next .next-up b { color: #fff; }
+/* (the challenges OC3 / OC4 haven't rebuilt keep their screens — only their keys take the carbon + graphite palette) */
+.oc-od .kp { color: #fff; background: linear-gradient(180deg, #2b303c, #1a1e27 70%); border: 1px solid rgba(255, 255, 255, 0.13); }
+.oc-od .kp:active { background: #343a48; }
+.oc-od .kp-go { color: var(--oc-hot-ink); background: var(--oc-hot); }
+.oc-od .rv.oc-rv-answer { padding: 4px 0 14px; background: none; border: 0; }
+.oc-answers { gap: 16px; }
+.oc-ans-opt { display: inline-flex; align-items: center; gap: 10px; }
+.oc-badge { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; font: italic 900 17px / 1 var(--oc-font-title); font-style: italic; color: #fff; background: var(--oc-cool); transform: skewX(var(--oc-slant)); }
+.oc-ans-tf { display: inline-flex; align-items: center; gap: 10px; }
+.oc-ans-tf i { font-style: normal; font-weight: 900; }
+.oc-tf-sum { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px 12px; }
+.oc-tf-sum-k { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.22em; color: var(--oc-label); }
+.oc-tf-pips { grid-column: 1 / -1; grid-row: 2; display: flex; gap: 5px; }
+.oc-tf-pips i { flex: 1; display: grid; place-items: center; max-width: 40px; height: 24px; font: 900 12px / 1 var(--font-ui); font-style: normal; color: var(--oc-label); background: rgba(255, 255, 255, 0.08); transform: skewX(var(--oc-slant)); }
+.oc-tf-pips i.is-right { color: #04130a; background: var(--good); }
+.oc-tf-pips i.is-wrong { color: #fff; background: var(--oc-wrong); }
+.oc-tf-sum-n { font: italic 900 24px / 1 var(--oc-font-title); color: #fff; }
+.oc-next { position: sticky; bottom: 0; padding: 12px 0 calc(var(--safe-b) + 4px); background: linear-gradient(180deg, rgba(6, 7, 10, 0), rgba(6, 7, 10, 0.96) 35%); }
+.oc-next-btn { position: relative; display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 58px; padding: 0 20px; border: 0; color: #fff; background: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.oc-next-btn::before { content: ''; position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #2b303c, #1a1e27); border: 1px solid rgba(255, 255, 255, 0.16); }
+.oc-next-btn > span { position: relative; }
+.oc-next-l { font: italic 900 22px / 1 var(--oc-font-title); letter-spacing: 0.03em; }
+.oc-next-c { font: 700 13px / 1 var(--oc-font-ui); letter-spacing: 0.16em; color: var(--oc-label); }
+.oc-next-c b { font: italic 900 22px / 1 var(--oc-font-title); color: #fff; }
+.oc-next-btn:active::before { transform: skewX(var(--oc-slant)) translateY(2px) scale(0.98); }
+.oc-next-btn.is-sent::before { background: var(--oc-hot); border-color: transparent; }
+.oc-next-btn.is-sent .oc-next-l { color: var(--oc-hot-ink); }
+.oc-next-btn.is-sent .oc-next-c, .oc-next-btn.is-sent .oc-next-c b { color: var(--oc-hot-ink); }
+
+/* ---------------- OVERDRIVE challenge pieces (OC1: TRIVIA LIGHTNING + TRUE OR FALSE; OC3 / OC4 move the rest onto them) */
+.oc-od .oc-q { margin: 0; font: 700 var(--gk-q-size) / 1.26 var(--oc-font-ui); color: #fff; text-align: left; text-wrap: pretty; }
+.oc-qhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.oc-chip { padding: 5px 10px 4px; font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.16em; color: #fff; background: rgba(46, 139, 255, 0.16); border: 1px solid rgba(46, 139, 255, 0.55); transform: skewX(var(--oc-slant)); }
+.oc-qn { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.12em; color: var(--oc-label); }
+.oc-qn b { font: italic 900 20px / 1 var(--oc-font-title); color: #fff; }
+.oc-od .ch-trivia { gap: 16px; margin: auto 0; }
+.oc-od .tl-q { min-height: 3.78em; }
+
+/* style C: slanted solid graphite glass tiles, blue letter badges; the tapped one turns hot orange; the press sinks + flashes */
+.oc-tiles { display: flex; flex-direction: column; gap: 9px; }
+.oc-tile, .oc-tf-btn { position: relative; display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 8px 18px 8px 16px; border: 0; color: #fff; background: none; text-align: left; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; cursor: pointer; }
+.oc-tile-face, .oc-tile-glow { position: absolute; inset: 0; transform: skewX(var(--oc-slant)); pointer-events: none; }
+.oc-tile-face { background: linear-gradient(180deg, #2c313d 0%, #1d212b 55%, #171a22 100%); border: 1px solid rgba(255, 255, 255, 0.13); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 0 rgba(0, 0, 0, 0.35), 0 5px 14px rgba(0, 0, 0, 0.4); transition: transform 0.08s ease-out; }
+.oc-tile-glow { background: rgba(255, 106, 26, 0.14); box-shadow: 0 0 20px var(--oc-hot-glow), inset 0 0 0 2px var(--oc-hot); opacity: 0; }
+.oc-tile > .oc-badge, .oc-tile-t, .oc-tile-mark, .oc-tf-mark, .oc-tf-word { position: relative; }
+.oc-tile .oc-badge { width: 32px; height: 32px; font-size: 19px; }
+.oc-tile-t { flex: 1; min-width: 0; font: 700 clamp(17px, 4.8vw, 19px) / 1.2 var(--oc-font-ui); overflow-wrap: anywhere; }
+.oc-tile-mark { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font: 900 15px / 1 var(--font-ui); font-style: normal; opacity: 0; }
+.oc-tile:active .oc-tile-face, .oc-tf-btn:active .oc-tile-face { transform: skewX(var(--oc-slant)) translateY(2px) scale(0.985); }
+.oc-tile.is-picked .oc-tile-face, .oc-tf-btn.is-picked .oc-tile-face { background: linear-gradient(180deg, #ff8a3d, #ff6a1a 55%, #e2560c); border-color: rgba(255, 220, 190, 0.6); }
+.oc-tile.is-picked, .oc-tf-btn.is-picked { color: var(--oc-hot-ink); }
+.oc-tile.is-picked .oc-badge { color: #fff; background: #1d0900; }
+.oc-tile.is-picked .oc-tile-glow, .oc-tf-btn.is-picked .oc-tile-glow { animation: gk-flash 0.4s ease-out; }
+.oc-tile.is-locked, .oc-tf-btn.is-locked { pointer-events: none; }
+/* right ✓ (--good + a mark) · wrong ✕ (red + the crack + a mark) — never colour alone */
+.oc-tile.is-right .oc-tile-mark { opacity: 1; color: #04130a; background: var(--good); }
+.oc-tile.is-right:not(.is-picked) .oc-tile-face { border: 2px solid var(--good); }
+.oc-tile.is-wrong .oc-tile-mark { opacity: 1; color: #fff; background: var(--oc-wrong); }
+.oc-tile.is-wrong .oc-tile-face, .oc-tf-btn.is-wrong .oc-tile-face { background: linear-gradient(180deg, #ff5b6f, #e0283f 60%, #b81a30); border-color: rgba(255, 200, 210, 0.5); }
+.oc-tile.is-wrong, .oc-tf-btn.is-wrong { color: #fff; }
+.oc-tile.oc-burst, .oc-tf-btn.oc-burst { animation: oc-burst 0.34s cubic-bezier(0.2, 1.5, 0.4, 1); }
+@keyframes oc-burst { 40% { transform: scale(1.035); } }
+.oc-tile.oc-shake, .oc-tf-btn.oc-shake { animation: oc-shake 0.36s ease-out; }
+@keyframes oc-shake { 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(2px); } }
+.oc-tile .oc-ring, .oc-tf-btn .oc-ring { transform-origin: 50% 50%; border-radius: 0; inset: -4px; transform: skewX(var(--oc-slant)); }
+@keyframes oc-ring { from { opacity: 1; transform: skewX(var(--oc-slant)) scale(0.97); } to { opacity: 0; transform: skewX(var(--oc-slant)) scale(1.07, 1.35); } }
+
+/* TRUE OR FALSE: the statement card (blue-edged glass) + two huge buttons */
+.oc-od .ch-tf { gap: 18px; margin: auto 0; }
+.oc-tf-card { position: relative; display: flex; flex-direction: column; gap: 12px; min-height: 168px; padding: 18px 22px 22px; justify-content: center; }
+.oc-tf-card-glass { position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(160deg, rgba(46, 139, 255, 0.16), rgba(20, 24, 33, 0.92) 45%, rgba(14, 16, 22, 0.95)); border: 2px solid rgba(46, 139, 255, 0.75); box-shadow: 0 0 24px rgba(46, 139, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14); }
+.oc-tf-card > :not(.oc-tf-card-glass) { position: relative; }
+.oc-tf-n { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.12em; color: var(--oc-label); }
+.oc-tf-n b { font: italic 900 20px / 1 var(--oc-font-title); color: #fff; }
+.oc-od .oc-tf-q { margin: 0; font: 700 clamp(25px, 7.2vw, 30px) / 1.2 var(--oc-font-ui); color: #fff; text-align: left; min-height: 0; }
+.oc-tf-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.oc-tf-btn { flex-direction: column; justify-content: center; gap: 4px; min-height: 112px; padding: 0; text-align: center; }
+.oc-tf-mark { font: 900 36px / 1 var(--font-ui); font-style: normal; }
+.oc-tf-word { font: italic 900 clamp(32px, 9vw, 38px) / 0.95 var(--oc-font-title); letter-spacing: 0.03em; }
+.oc-tf-btn.tf-true .oc-tf-mark { color: var(--good); }
+.oc-tf-btn.tf-false .oc-tf-mark { color: #ff6b80; }
+.oc-tf-btn.is-picked .oc-tf-mark, .oc-tf-btn.is-wrong .oc-tf-mark { color: inherit; }
+.oc-tf-btn.is-right:not(.is-picked) .oc-tile-face { border: 2px solid var(--good); }
+.oc-tf-btn.is-dim { opacity: 0.45; }
+.oc-tf-warn { margin: 0; text-align: center; font: 700 13px / 1 var(--oc-font-ui); letter-spacing: 0.2em; color: var(--oc-label); }
+
+@media (prefers-reduced-motion: reduce) {
+  .oc-bg-haze, .oc-combo.is-pop, .oc-combo.is-od .oc-combo-glow, .oc-score-n.oc-bump, .oc-fx-banner.is-on, .oc-ring, .oc-crack, .oc-tile.oc-burst, .oc-tf-btn.oc-burst, .oc-tile.oc-shake, .oc-tf-btn.oc-shake { animation: none !important; }
+  .oc-fx-white.is-on { animation-duration: 0.6s; }
+}

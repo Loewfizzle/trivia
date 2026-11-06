@@ -373,3 +373,44 @@ test('8 players, a whole Standard match: the deal, the marks, the skip, a host c
   assert.ok(played.includes('trivia') && played.includes('math'));
   assert.ok(game.order.filter(t => t === 'trivia' || t === 'math').length <= 1, 'the two the room already played tonight mostly stay out');
 });
+
+// ---------------------------------------------------------------------------------------------- THE OVERDRIVE SKIN's assets (Group 3)
+test('OVERDRIVE assets: the fonts + their OFL licences, every sound the game names, credits kept, the preload inside its 1.5 MB budget', async () => {
+  const { statSync, readdirSync } = await import('node:fs');
+  const { PRELOAD_BUDGET } = await import('../js/games/cartridge.js');
+  const { OC_SOUNDS, OC1_FILES } = await import('../js/games/overclock/sfx.js');
+  const idx = readFileSync('js/games/overclock/index.js', 'utf8');
+  const fonts = [...idx.matchAll(/'((?:barlow|chakra)[\w-]+)'/g)].map(m => m[1]);
+  assert.equal(fonts.length, 4);
+  for (const f of fonts) assert.ok(statSync(`assets/fonts/overclock/${f}.woff2`).size > 4000, f);
+  for (const l of ['OFL-BarlowCondensed.txt', 'OFL-ChakraPetch.txt']) assert.match(readFileSync(`assets/fonts/overclock/${l}`, 'utf8'), /SIL Open Font License/);
+  const css = readFileSync('css/overclock.css', 'utf8');
+  for (const f of fonts) assert.ok(css.includes(`assets/fonts/overclock/${f}.woff2`), `@font-face for ${f}`);
+  const files = readdirSync('audio/sfx/overclock');
+  assert.ok(files.includes('credits.txt'));
+  assert.ok(!files.includes('17-winner-fanfare-b.mp3'), 'the rejected fanfare stays out (the owner picked the main 17)');
+  assert.equal(files.filter(f => f.endsWith('.mp3')).length, 33);
+  for (const [name, [file]] of Object.entries(OC_SOUNDS)) assert.ok(files.includes(`${file}.mp3`), `${name} → ${file}.mp3`);
+  for (const f of files.filter(x => x.endsWith('.mp3'))) assert.ok(statSync(`audio/sfx/overclock/${f}`).size < 80 * 1024, `${f}: compressed`);
+  // the preload: the sounds this pass plays + the fonts + every bank + the Unscramble word lists
+  const banks = readdirSync('data/oc').map(f => statSync(`data/oc/${f}`).size).reduce((a, b) => a + b, 0);
+  const words = [5, 6, 7].flatMap(n => [`answers-${n}`, `valid-${n}`]).map(f => statSync(`data/words/${f}.json`).size).reduce((a, b) => a + b, 0);
+  const snd = OC1_FILES.map(f => statSync(`audio/sfx/overclock/${f}.mp3`).size).reduce((a, b) => a + b, 0);
+  const fnt = fonts.map(f => statSync(`assets/fonts/overclock/${f}.woff2`).size).reduce((a, b) => a + b, 0);
+  const total = banks + words + snd + fnt;
+  assert.ok(total <= PRELOAD_BUDGET, `the preload: ${Math.round(total / 1024)} KB of ${PRELOAD_BUDGET / 1024}`);
+  console.log(`[oc1] preload ${Math.round(total / 1024)} KB (sounds ${Math.round(snd / 1024)} · fonts ${Math.round(fnt / 1024)} · banks ${Math.round(banks / 1024)} · words ${Math.round(words / 1024)})`);
+});
+
+test('OVERDRIVE rules: Overclock\'s own classes (oc- + the kit\'s gk-), no animated shadow / filter in its keyframes, American spelling, reduced motion', () => {
+  const css = readFileSync('css/overclock.css', 'utf8');
+  const od = css.slice(css.indexOf('OVERDRIVE — OVERCLOCK\'s skin'));
+  for (const kf of od.matchAll(/@keyframes ([\w-]+) \{([^@]*?)\}\s*\}/g)) assert.doesNotMatch(kf[2], /box-shadow|filter|text-shadow|width:|height:|left:|top:/, `@keyframes ${kf[1]}: transform + opacity only`);
+  assert.match(od, /prefers-reduced-motion/);
+  for (const f of ['fx.js', 'answers.js', 'sfx.js', 'ui/trivia.js', 'ui/truefalse.js']) {
+    const src = readFileSync(`js/games/overclock/${f}`, 'utf8');
+    for (const m of src.matchAll(/h\(['`]([a-z0-9]+)((?:\.[\w-]+)+)['`]/g)) for (const c of m[2].split('.').filter(Boolean)) assert.match(c, /^(oc-|gk-|is-|tl-|tf-|ch-|ch$)/, `${f}: .${c}`);
+    assert.doesNotMatch(src, /colour/i, `${f}: American spelling ("color")`);
+    assert.doesNotMatch(src, /Date\.now\(\)/, `${f}: never Date.now`);
+  }
+});

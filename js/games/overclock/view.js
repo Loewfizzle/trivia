@@ -1,9 +1,13 @@
 // OVERCLOCK — player view: header, progress strip, rules cards, standings and the final podium.
+// OC1 — THE OVERDRIVE FRAME (docs/overclock.md): the carbon background (a grid + a slow orange / blue haze + a vignette), the header (the
+// name of the challenge, the score as a big rolling slanted number), THE TACH (kit/tach.js), THE COMBO meter (fx.js), the title SLAM +
+// 3-2-1 (kit/slam.js), the right / wrong feedback (fx.js), THE ANSWER after TRIVIA + TRUE OR FALSE (answers.js), the sounds (sfx.js).
+// Every challenge sits inside this frame — the ones not rebuilt yet (OC3 / OC4) keep their old screens in it.
 // Challenges are generated locally from the room seed; each challenge's screen lives in ui/<type>.js and the reveal
 // panels in reveals.js. Progress (parts done / correct) is written to oc/{match}/{ci}/{uid} after every step so a
 // refresh resumes mid-challenge.
 import { h, clear, pulseClass, vibrate, reducedMotion } from '../../ui/dom.js';
-import { avatar, createTimer, countUp, leaderboard, fmtNum } from '../../ui/components.js';
+import { avatar, countUp, leaderboard, fmtNum } from '../../ui/components.js';
 import { createFinal } from '../../ui/final.js';
 import { toast } from '../../ui/toast.js';
 import { dbRef, update as dbUpdate, serverTimestamp, serverNow } from '../../firebase.js';
@@ -34,7 +38,12 @@ import uiCompass from './ui/compass.js';
 import uiSortIt from './ui/sortit.js';
 import uiHigherLower from './ui/higherlower.js';
 import { bankFor, loadBank, preloadFor, BANK_TYPES } from './banks.js';
-import { CHALLENGE_MS, OVERALL_STAGE_MS, SKIP_MIN_MS, COMBO_NEUTRAL, levelOf, totals, standings } from './logic.js';
+import { CHALLENGE_MS, OVERALL_STAGE_MS, SKIP_MIN_MS, COMBO_NEUTRAL, levelOf, totals, standings, comboFold } from './logic.js';
+import { createTach } from '../kit/tach.js';
+import { createSlam } from '../kit/slam.js';
+import { ocSfx } from './sfx.js';
+import { createCombo, createFx, comboSound } from './fx.js';
+import { buildAnswer, hasAnswer, loadPicks, savePicks } from './answers.js';
 
 
 
@@ -50,7 +59,7 @@ const SCREENS = {
 export function createView() {
   let root, st;
   const els = {};
-  let timer;
+  let tach, combo, fx, slam = null;
   let phaseKey = '';
   let chal = null;      // { key, spec, ui, p, ok, done, parts }
   let introRaf = 0;
@@ -77,18 +86,25 @@ export function createView() {
   function mount(el, state) {
     root = el;
     st = state;
-    root.classList.add('oc');
-    timer = createTimer({ warnAt: 8_000, ticks: true });
-    els.sub = h('div.oc-sub');
-    els.score = h('div.oc-score', '0');
-    els.head = h('header.game-head',
-      h('div.oc-head-l', h('div.oc-title', 'OVER', h('b', 'CLOCK')), els.sub),
-      h('div.oc-score-wrap', h('small', 'SCORE'), els.score));
-    els.timer = h('div.oc-timer', timer.el);
+    root.classList.add('oc', 'oc-od');
+    tach = createTach({ now: serverNow, onTick: k => ocSfx(k === 'up' ? 'timesUp' : k === 'urgent' ? 'tickUrgent' : 'tick') });
+    combo = createCombo();
+    fx = createFx(root);
+    els.bg = h('div.oc-bg', { 'aria-hidden': 'true' }, h('i.oc-bg-grid'), h('i.oc-bg-haze.oc-bg-haze-a'), h('i.oc-bg-haze.oc-bg-haze-b'), h('i.oc-bg-vig'));
+    els.num = h('span.oc-head-num');
+    els.name = h('span.oc-head-name');
+    els.x2 = h('span.oc-head-x2', '×2');
+    els.sub = h('div.oc-sub', els.num, els.name, els.x2);
+    els.score = h('b.oc-score-n', '0');
+    els.head = h('header.game-head.oc-head',
+      h('div.oc-head-l', h('div.oc-mark', 'OVER', h('b', 'CLOCK')), els.sub),
+      h('div.oc-score', h('span.oc-score-k', 'SCORE'), els.score));
+    els.timer = h('div.oc-tach', tach.el);
     els.strip = h('div.oc-strip');
+    els.row = h('div.oc-row', combo.el, els.strip);
     els.stage = h('section.oc-stage');
     els.overlay = h('div.oc-overlay');
-    root.append(els.head, els.timer, els.strip, els.stage, els.overlay);
+    root.append(els.bg, els.head, els.timer, els.row, els.stage, els.overlay, fx.el, tach.edge);
     // iOS keyboard (Missing Link): keep the answer above it
     if (window.visualViewport) {
       vvHandler = () => {
@@ -113,7 +129,9 @@ export function createView() {
   }
 
   function unmount() {
-    timer && timer.stop();
+    if (tach) tach.destroy();
+    if (slam) slam.destroy();
+    if (fx) fx.destroy();
     cancelAnimationFrame(introRaf);
     if (chal && chal.ui && chal.ui.destroy) chal.ui.destroy();
     if (final) final.destroy();
@@ -132,11 +150,15 @@ export function createView() {
     const type = game.order[game.ci];
     const isFinal = game.ci === game.total - 1;
     root.dataset.phase = game.phase;
-    els.sub.textContent = `C${String(game.ci + 1).padStart(2, '0')}/${game.total} · ${INFO[type].name}${isFinal ? ' · ×2' : ''}`;
-    timer.set(game.phaseEndsAt, game.phase === 'play' ? CHALLENGE_MS : Math.max(1, game.phaseEndsAt - game.phaseStartAt));
+    els.num.textContent = `${String(game.ci + 1).padStart(2, '0')}/${String(game.total).padStart(2, '0')}`;
+    els.name.textContent = INFO[type].name;
+    els.x2.hidden = !isFinal;
+    // THE TACH runs the challenge's 30 s only (the slam + the answer screens have their own clocks)
+    if (game.phase === 'play') tach.set(game.phaseEndsAt, CHALLENGE_MS); else tach.stop();
     els.timer.classList.toggle('is-live', game.phase === 'play');
     const total = totals(game)[me()] || 0;
     if (total !== lastScore) { countUp(els.score, lastScore, total, 900); lastScore = total; }
+    refreshCombo();
 
     renderStrip(game);
     renderStage(game);
@@ -241,11 +263,29 @@ export function createView() {
     chal.ok = Math.round((chal.ok + credit) * 100) / 100;
     paintPips();
     if (!quiet) {
-      sfx(credit >= 0.5 ? 'ocCorrect' : 'ocWrong');
+      ocSfx(credit >= 0.5 ? 'correct' : 'wrong');
       vibrate(credit >= 0.5 ? 12 : [20, 30, 20]);
+      // a challenge that didn't hand its own tile to api.fx still gets the frame's wrong-answer edge + kick
+      if (credit < 0.5 && !chal.fxDone) fx.wrong(null);
     }
+    chal.fxDone = false;
     if (chal.p >= chal.parts) finish();
     else write(false);
+    refreshCombo();
+  }
+
+  // THE COMBO meter: the game's combo/{me} (every closed challenge, the host's fold) + this challenge's marks so far
+  let comboSeen = false;
+  function refreshCombo() {
+    const game = g();
+    if (!game || !combo) return;
+    const base = (game.combo && game.combo[me()]) || { c: 0, m: 0 };
+    const live = game.phase === 'play' && chal && chal.key === ckey(game) ? comboFold(base, marksString()).c : base.c;
+    const ev = combo.set(live);
+    if (!comboSeen) { comboSeen = true; return; }
+    if (ev.up) comboSound(live);
+    if (ev.hitOD) fx.overdrive();
+    if (ev.hit10) fx.x10();
   }
 
   function finish() {
@@ -326,7 +366,7 @@ export function createView() {
     const info = INFO[s.type];
     const isFinal = game.ci === game.total - 1;
     els.pips = h('div.ch-pips', Array.from({ length: s.parts }, () => h('i')));
-    els.stage.append(h('div.ch-hero', { class: isFinal ? 'is-final' : null },
+    els.stage.append(h('div.ch-hero', { class: isFinal ? 'is-final' : null, 'aria-label': info.name },
       h('span.ch-hero-glyph', info.glyph),
       h('div.ch-hero-text', h('b', info.name), h('small', isFinal ? 'FINAL · DOUBLE POINTS' : `CHALLENGE ${game.ci + 1} OF ${game.total}`)),
       els.pips));
@@ -358,6 +398,11 @@ export function createView() {
     finish: () => finish(),
     set key(fn) { keyHandler = fn; },
     game: () => g(),
+    /** OVERDRIVE feedback on the tile the player tapped (call it before part()): right → burst + sparks into the score; wrong → crack + shake */
+    fx(tile, right) { if (!chal) return; chal.fxDone = !right; if (right) fx.right(tile, els.score); else fx.wrong(tile); },
+    /** your pick for part i (THE ANSWER shows it after the round — this device only) */
+    pick(i, v) { const game = g(); if (!chal || !game) return; (chal.local.picks ||= loadPicks(game.matchId, game.ci))[i] = v; savePicks(game.matchId, game.ci, chal.local.picks); },
+    sfx: name => ocSfx(name),
   };
 
   // Shared by the newer challenges: set progress directly (ok/p/extra) and publish; `done` locks it in.
@@ -370,6 +415,7 @@ export function createView() {
     paintPips();
     if (done) { chal.done = true; write(true); setTimeout(showDone, doneDelay); }
     else write(false);
+    refreshCombo();
   }
 
   // Newer challenges that grade each step themselves: set ok/p, colour this step's pip, publish.
@@ -381,11 +427,13 @@ export function createView() {
     paintPips();
     if (done || chal.p >= chal.parts) { chal.done = true; write(true); setTimeout(showDone, doneDelay); }
     else write(false);
+    refreshCombo();
   }
 
   // ---------- overlays ----------
   function buildOverlay(game) {
     cancelAnimationFrame(introRaf);
+    if (slam) { slam.destroy(); slam = null; }
     revealTimers.forEach(clearTimeout);
     revealTimers = [];
     clear(els.overlay);
@@ -395,28 +443,21 @@ export function createView() {
     else if (game.phase === 'final') buildFinal(game);
   }
 
+  // THE TITLE SLAM + 3-2-1 (kit/slam.js) inside the director's own ready time (READY_MS, or BRIEF_MS with the rules — never stretched)
   function buildReady(game) {
     const type = game.order[game.ci];
     const info = INFO[type];
     const isFinal = game.ci === game.total - 1;
-    const num = h('div.oc-count');
-    const card = h('div.oc-ready', { class: game.brief ? 'is-brief' : null },
-      h('div.oc-ready-kicker', isFinal ? 'FINAL CHALLENGE · DOUBLE POINTS' : `CHALLENGE ${String(game.ci + 1).padStart(2, '0')} / ${game.total}`),
-      h('div.oc-glyph', info.glyph),
-      h('div.oc-ready-name', { 'data-text': info.name }, info.name),
-      game.brief ? h('ul.oc-rules', info.rules.map(r => h('li', r))) : null,
-      num);
-    els.overlay.append(card);
+    slam = createSlam({
+      now: serverNow, startAt: game.phaseStartAt, endsAt: game.phaseEndsAt,
+      kicker: isFinal ? 'FINAL CHALLENGE' : `CHALLENGE ${String(game.ci + 1).padStart(2, '0')} / ${String(game.total).padStart(2, '0')}`,
+      name: info.name, sub: isFinal ? 'DOUBLE POINTS' : '',
+      rules: game.brief ? info.rules : [], tone: isFinal ? 'final' : 'hot',
+      onIntro: () => ocSfx('intro'),
+      onCount: c => ocSfx(c === 'GO' ? 'go' : 'count'),
+    });
+    els.overlay.append(h('div.oc-ready', { class: game.brief ? 'is-brief' : null }, slam.el));
     if (isFinal) root.classList.add('is-final');
-    sfx(game.brief ? 'join' : 'tick');
-    let last = '';
-    const tick = () => {
-      const left = game.phaseEndsAt - serverNow();
-      const t = left > 0 && left <= 3000 ? String(Math.ceil(left / 1000)) : left > 3000 ? '' : 'GO';
-      if (t !== last) { last = t; num.textContent = t; if (t) { pulseClass(num, 'tick'); if (t !== 'GO') sfx('tick'); } }
-      if (left > -300) introRaf = requestAnimationFrame(tick);
-    };
-    tick();
   }
 
   function buildStandings(game) {
@@ -434,17 +475,17 @@ export function createView() {
     const next = game.order[game.ci + 1];
     const mine = res[me()];
     if (mine) sfx(mine.ok >= mine.parts ? 'correct' : 'roundEnd');
+    const nextUp = next ? h('div.next-up', 'NEXT: ', h('b', INFO[next].name), game.ci + 1 === game.total - 1 ? ' · ×2 POINTS' : '') : null;
     const panel = h('div.panel-full.oc-standings',
       reveal(game),
       roundBoard(game, rows),
-      next ? h('div.next-up', 'NEXT: ', h('b', INFO[next].name), game.ci + 1 === game.total - 1 ? ' · ×2 POINTS' : '') : null,
-      participant(game) ? readyTap(game) : null);
+      participant(game) ? readyTap(game, nextUp) : nextUp);
     els.overlay.append(panel);
   }
 
   // THE AFTER-CHALLENGE SKIP (OC1 — director.js 'standings'): NEXT IN n + TAP WHEN READY. Everyone connected tapped (≥ SKIP_MIN_MS in) →
   // the host moves on early; otherwise the full time runs. The tap is its own node (ocnext): refused on older rules = just no skip.
-  function readyTap(game) {
+  function readyTap(game, nextUp = null) {
     const m = game.matchId, ci = game.ci;
     const left = h('b.oc-next-n', '');
     const btn = h('button.oc-next-btn', { type: 'button', dataset: { sfx: 'none' } }, h('span.oc-next-l', 'TAP WHEN READY'), h('span.oc-next-c', 'NEXT IN ', left));
@@ -454,23 +495,24 @@ export function createView() {
       sent = true;
       btn.classList.add('is-sent');
       btn.querySelector('.oc-next-l').textContent = 'READY ✓';
-      sfx('tick');
+      ocSfx('tap');
       dbUpdate(dbRef(`rooms/${st.code}/ocnext/${m}/${ci}/${me()}`), { at: serverTimestamp() }).catch(() => {});
     };
     btn.addEventListener('pointerdown', e => { e.preventDefault(); send(); });
     btn.addEventListener('click', e => { if (e.detail === 0) send(); });
     const mine = st.live && st.live.next && st.live.next[me()];
     if (mine) { sent = true; btn.classList.add('is-sent'); btn.querySelector('.oc-next-l').textContent = 'READY ✓'; }
-    let last = '';
+    let last = '', first = true;
     const tick = () => {
-      if (!btn.isConnected) return;
+      if (!first && !btn.isConnected) return;
+      first = false;
       const sec = String(Math.max(0, Math.ceil((game.phaseEndsAt - serverNow()) / 1000)));
       if (sec !== last) { last = sec; left.textContent = sec; }
       revealTimers.push(setTimeout(tick, 250));
     };
     tick();
     btn.dataset.min = String(SKIP_MIN_MS);
-    return h('div.oc-next', btn);
+    return h('div.oc-next', nextUp, btn);
   }
 
   // The round, then the race: one list of rows ranked by this challenge's points (bars, a crown on the round's winner),
@@ -540,7 +582,12 @@ export function createView() {
   }
 
   function reveal(game) {
-    if (!hasReveal(game.order[game.ci])) return null;
+    const type = game.order[game.ci];
+    if (hasAnswer(type) && participant(game)) {
+      const spec = chal && chal.key === ckey(game) ? chal.spec : buildSpec(game);
+      if (spec) return h('section.rv.oc-rv-answer', buildAnswer(type, spec, (chal && chal.key === ckey(game) && chal.local.picks) || loadPicks(game.matchId, game.ci)));
+    }
+    if (!hasReveal(type)) return null;
     const spec = buildSpec(game);
     if (!spec) return null;
     return buildReveal(game, spec, {

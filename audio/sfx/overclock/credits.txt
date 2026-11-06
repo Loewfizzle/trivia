@@ -1,0 +1,239 @@
+OVERCLOCK - sound effects credits (Neon Speakeasy, neonspeakeasy.com)
+
+Attribution required: NONE. Every source is CC0 1.0 or the Sonniss GDC bundle licence; neither requires credit.
+Credit is still listed voluntarily below. Sonniss sources were taken from archive.org mirrors of the free official bundles (https://sonniss.com/gameaudiogdc).
+
+01-correct.mp3
+  source:  https://freesound.org/people/bwg2020/sounds/456162/
+  author:  bwg2020 ("Correct-2.wav", Freesound #456162)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed 0-1.2 s, 150 ms fade, mono, levelled
+
+02-wrong.mp3
+  source:  https://freesound.org/people/Beetlemuse/sounds/528956/
+  author:  Beetlemuse ("Wrong Answer / Incorrect / Error", Freesound #528956)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed 0-0.65 s, mono, levelled
+
+03-combo-x2.mp3
+  source:  https://freesound.org/people/Joao_Janz/sounds/478337/
+  author:  Joao_Janz ("Bouncing Power Up 1_2", Freesound #478337)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed 0-0.45 s, 80 ms fade, mono, pitch 0 st
+
+03-combo-x3.mp3
+  source:  https://freesound.org/people/Joao_Janz/sounds/478337/
+  author:  Joao_Janz ("Bouncing Power Up 1_2", Freesound #478337)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: as x2, pitch-shifted +3 st (rubberband, length kept)
+
+03-combo-x5.mp3
+  source:  https://freesound.org/people/Joao_Janz/sounds/478337/
+  author:  Joao_Janz ("Bouncing Power Up 1_2", Freesound #478337)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: as x2, pitch-shifted +7 st (rubberband, length kept)
+
+04-tick.mp3
+  source:  https://kenney.nl/assets/interface-sounds
+  author:  Kenney ("tick_001", Interface Sounds pack)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: onset-trimmed, mono, quiet level
+
+05-tick-urgent.mp3
+  source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/The%20Chris%20Alan%20-%20Analog%20Synthesized%20UI%20%26%20SFX/Analog%20Synthesized%20UI%20-%20Button%20Click%20Tone%201.wav
+  author:  The Chris Alan ("Analog Synthesized UI - Button Click Tone 1", Sonniss GDC 2019 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: trimmed to 82 ms, mono, levelled
+
+06-times-up.mp3
+  source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/The%20Chris%20Alan%20-%20Analog%20Synthesized%20UI%20%26%20SFX/Analog%20Synthesized%20UI%20-%20Bend%20Cancel%20Disengage.wav
+  author:  The Chris Alan ("Analog Synthesized UI - Bend Cancel Disengage", Sonniss GDC 2019 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: trimmed 0.25-1.08 s, 150 ms fade, mono
+
+07-321-go.mp3
+  source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/The%20Chris%20Alan%20-%20Analog%20Synthesized%20UI%20%26%20SFX/Analog%20Synthesized%20UI%20-%20Button%20Click%20Tone%201.wav
+  author:  The Chris Alan ("Analog Synthesized UI - Button Click Tone 1", Sonniss GDC 2019 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/PMSFX%20-%20Forgotten%20Neons/PM_FN_Fight_Hits_1.wav
+  author:  PMSFX ("PM_FN_Fight_Hits_1", Forgotten Neons, Sonniss GDC 2019 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: layered: beep x3 at 0/0.35/0.70 s + hit at 1.05 s, mono
+
+08-challenge-intro.mp3
+  source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Federico%20Soler%20Fern%C3%A1ndez%20-%20Effective%20Trailer%20Whooshes/Justice%20B.wav
+  author:  Federico Soler Fernández (Sonniss GDC 2019 bundle) "Justice B" - Effective Trailer Whooshes
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Federico%20Soler%20Fern%C3%A1ndez%20-%20Effective%20Trailer%20Hits%20%26%20Impacts/Smash%20B.wav
+  author:  Federico Soler Fernández (Sonniss GDC 2019 bundle) "Smash B" - Effective Trailer Hits & Impacts
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: layered: whoosh 0.4-1.05 s + Smash B hit on the whoosh peak, 400 ms fade, stereo
+
+09-tap.mp3
+  source:  https://kenney.nl/assets/interface-sounds
+  author:  Kenney ("select_002", Interface Sounds pack)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: mono, quiet level
+
+10-tile-place.mp3
+  source:  https://kenney.nl/assets/interface-sounds
+  author:  Kenney ("drop_002", Interface Sounds pack)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: 30 ms fade, mono, quietest UI level (non-fatiguing)
+
+11-submit.mp3
+  source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/The%20Chris%20Alan%20-%20Analog%20Synthesized%20UI%20%26%20SFX/Analog%20Synthesized%20UI%20-%20Lock%20On%20Engage.wav
+  author:  The Chris Alan ("Analog Synthesized UI - Lock On Engage", Sonniss GDC 2019 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: onset-trimmed, 50 ms fade, mono
+
+12-card-swipe.mp3
+  source:  https://freesound.org/people/qubodup/sounds/60007/
+  author:  qubodup ("Swipe Whoosh", Freesound #60007)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: onset-trimmed, 40 ms fade, mono
+
+13-reflex-flash.mp3
+  source:  https://archive.org/download/sonniss-gdc-2026-game-audio-bundle-normalized/Cinematic%20Sound%20Design%20-%20Interface%20%26%20Infographics/Interface%20Pop%20High%20Short.wav
+  author:  Cinematic Sound Design ("Interface Pop High Short", Sonniss GDC 2026 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: trimmed to 0.29 s, mono
+
+14-memory-tone-1.mp3
+  source:  https://freesound.org/people/bigheinze/sounds/806082/
+  author:  bigheinze ("DX10SDP5 (C)", Freesound #806082)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed to 0.80 s, 300 ms fade, pitch-shifted +0 st (rubberband), loudness-matched, mono
+
+14-memory-tone-2.mp3
+  source:  https://freesound.org/people/bigheinze/sounds/806082/
+  author:  bigheinze ("DX10SDP5 (C)", Freesound #806082)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed to 0.80 s, 300 ms fade, pitch-shifted +2 st (rubberband), loudness-matched, mono
+
+14-memory-tone-3.mp3
+  source:  https://freesound.org/people/bigheinze/sounds/806082/
+  author:  bigheinze ("DX10SDP5 (C)", Freesound #806082)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed to 0.80 s, 300 ms fade, pitch-shifted +4 st (rubberband), loudness-matched, mono
+
+14-memory-tone-4.mp3
+  source:  https://freesound.org/people/bigheinze/sounds/806082/
+  author:  bigheinze ("DX10SDP5 (C)", Freesound #806082)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed to 0.80 s, 300 ms fade, pitch-shifted +7 st (rubberband), loudness-matched, mono
+
+14-memory-tone-5.mp3
+  source:  https://freesound.org/people/bigheinze/sounds/806082/
+  author:  bigheinze ("DX10SDP5 (C)", Freesound #806082)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed to 0.80 s, 300 ms fade, pitch-shifted +9 st (rubberband), loudness-matched, mono
+
+14-memory-tone-6.mp3
+  source:  https://freesound.org/people/bigheinze/sounds/806082/
+  author:  bigheinze ("DX10SDP5 (C)", Freesound #806082)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed to 0.80 s, 300 ms fade, pitch-shifted +12 st (rubberband), loudness-matched, mono
+
+14-memory-tone-7.mp3
+  source:  https://freesound.org/people/bigheinze/sounds/806082/
+  author:  bigheinze ("DX10SDP5 (C)", Freesound #806082)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed to 0.80 s, 300 ms fade, pitch-shifted +14 st (rubberband), loudness-matched, mono
+
+14-memory-tone-8.mp3
+  source:  https://freesound.org/people/bigheinze/sounds/806082/
+  author:  bigheinze ("DX10SDP5 (C)", Freesound #806082)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed to 0.80 s, 300 ms fade, pitch-shifted +16 st (rubberband), loudness-matched, mono
+
+14-memory-tone-9.mp3
+  source:  https://freesound.org/people/bigheinze/sounds/806082/
+  author:  bigheinze ("DX10SDP5 (C)", Freesound #806082)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed to 0.80 s, 300 ms fade, pitch-shifted +19 st (rubberband), loudness-matched, mono
+
+15-standings-swoosh.mp3
+  source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Federico%20Soler%20Fern%C3%A1ndez%20-%20Effective%20Trailer%20Whooshes/Action%20B.wav
+  author:  Federico Soler Fernández (Sonniss GDC 2019 bundle) "Action B" - Effective Trailer Whooshes
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: trimmed 0.5-2.3 s, 300 ms fade, stereo
+
+16-rank-up.mp3
+  source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/PMSFX%20-%20Forgotten%20Neons/PM_FN_Events_LvlUps_PowerUps_25.wav
+  author:  PMSFX ("PM_FN_Events_LvlUps_PowerUps_25", Forgotten Neons, Sonniss GDC 2019 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: trimmed 0-1.9 s, 600 ms fade, mono
+
+17-winner-fanfare.mp3
+  source:  https://archive.org/download/sonniss-gdc-2026-game-audio-bundle-normalized/Cinematic%20Sound%20Design%20-%20Ultra%20Transitions%20%26%20Impacts/Impact%20Hit%20Rapid%20Chord%20Reverb.wav
+  author:  Cinematic Sound Design ("Impact Hit Rapid Chord Reverb", Ultra Transitions & Impacts, Sonniss GDC 2026 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  source:  https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/BluezoneCorp%20-%20Modern%20Cinematic%20Impact/Bluezone_BC0294_modern_cinematic_impact_boom_003.flac
+  author:  BluezoneCorp ("modern_cinematic_impact_boom_003", Modern Cinematic Impact, Sonniss GDC 2024 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  source:  https://archive.org/download/sonniss-gdc-2026-game-audio-bundle-normalized/Epic%20Stock%20Media%20-%20Anime%20Game/DSGNStngr_Power%20Up%20Bright%20Positive%20Successful%20Light%20Saturation%20Crash%20Shimmer%2005_ESM_AG.wav
+  author:  Epic Stock Media ("Power Up Bright Positive Successful Light Saturation Crash Shimmer 05", Anime Game, Sonniss GDC 2026 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  source:  https://archive.org/download/sonniss-gdc-2020-game-audio-bundle-normalized/Bluezone%20-%20Heaven%20-%20Ethereal%20Ambient%20Samples/Bluezone_BC0270_heaven_synth_pad_atmosphere_009.flac
+  author:  Bluezone ("heaven_synth_pad_atmosphere_009", Heaven - Ethereal Ambient Samples, Sonniss GDC 2020 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: layered in B major: chord-swell+hit (from 0.17 s; hit at 0.69 s) + boom on the hit (low-passed 900 Hz, 1.4 s) + ESM crash-shimmer leading into the hit + pad 2.0-6.0 s stacked at 0/+4/+12/+16 st (Bmaj chord, 4 ms attack, 1.1 s decay) + shimmer (pad +12/+19/+24 st, high-passed 2.5 kHz) through synthetic 2.4 s reverb; 4.3 s, 1.3 s fade, stereo
+
+17-winner-fanfare-b.mp3  (BACKUP / alternative take for 17)
+  source:  https://archive.org/download/sonniss-gdc-2026-game-audio-bundle-normalized/Cinematic%20Sound%20Design%20-%20Ultra%20Transitions%20%26%20Impacts/Impact%20Hit%20Rapid%20Chord%20Reverb.wav
+  author:  Cinematic Sound Design ("Impact Hit Rapid Chord Reverb", Ultra Transitions & Impacts, Sonniss GDC 2026 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: single file, trimmed from 0.17 s (swell start), 1.0 s fade, stereo, levelled (about 1.4 dB peak limiting on the hit)
+
+18-bonus.mp3
+  source:  https://freesound.org/people/Mr._Fritz_/sounds/545238/
+  author:  Mr._Fritz_ ("Item Sparkle", Freesound #545238)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: trimmed 0-0.5 s, 100 ms fade, mono
+
+19-starting-bell.mp3
+  source:  https://freesound.org/people/dnewtonjr/sounds/189782/
+  author:  dnewtonjr ("Bell, Factory, Break", Freesound #189782)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: onset-trimmed, ~1.94 s, 300 ms fade, mono
+
+20-hooves-loop.mp3
+  source:  https://freesound.org/people/bruno.auzet/sounds/527430/
+  author:  bruno.auzet ("6 horses gallop.wav", Freesound #527430)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: 2.5 s seamless loop from 6.75-9.25 s, 250 ms crossfade, gain-riding, seam rotated to a quiet point, stereo
+
+21-crowd-roar.mp3
+  source:  https://freesound.org/people/itmightgetloud/sounds/829453/
+  author:  itmightgetloud ("Millerntor Stadium Crowd Reaction Excited", Freesound #829453)
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  processing: build section 48.6-54.5 s, 600 ms fade, stereo
+
+22-photo-finish.mp3
+  source:  https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/SmartSoundFX%20-%20Mavic%20Travel%20Filmmaker/CAMERA%20Minolta%20505%20Shutter.wav
+  author:  SmartSoundFX ("CAMERA Minolta 505 Shutter", Mavic Travel Filmmaker, Sonniss GDC 2020 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: onset-trimmed, mono
+
+23-longshot-win.mp3
+  source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Federico%20Soler%20Fern%C3%A1ndez%20-%20Effective%20Trailer%20Hits%20%26%20Impacts/Smash%20B.wav
+  author:  Federico Soler Fernández (Sonniss GDC 2019 bundle) "Smash B" - Effective Trailer Hits & Impacts
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  source:  https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Soundrangers%20-%20Audience%20Reactions/audience_cheers_13.wav
+  author:  Soundrangers ("audience_cheers_13", Audience Reactions, Sonniss GDC 2018 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  source:  https://archive.org/download/sonniss-gdc-2026-game-audio-bundle-normalized/Cinematic%20Sound%20Design%20-%20User%20Interface/Button%20Arp%20Twinkle.wav
+  author:  Cinematic Sound Design ("Button Arp Twinkle", Sonniss GDC 2026 bundle)
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, no attribution required) - https://sonniss.com/gdc-bundle-license/
+  processing: layered: Smash B hit + cheer (0.2-3.0 s) at 0.1 s + arp twinkle (-10 dB), 300 ms fade, stereo
+
+README-notes
+- All files: MP3, 44.1 kHz, 192 kbps CBR. UI sounds are mono; 08, 15, 17 (and 17-b), 20, 21, 23 are stereo. Leading silence is trimmed to under 5 ms, true peak is at or below -1.4 dBTP, and nothing clips.
+- Loudness tiers (max momentary LUFS): headline about -11 to -12 (17, 17-b, 21, 23); feedback about -13 to -15 (01, 02, 03, 06, 07, 08, 16, 18); secondary about -16 to -19 (11, 12, 13, 14, 15, 19, 20, 22); UI ticks -21 to -29 (04, 05, 09, 10). Mix music under these and do not normalise again.
+- 03 combo: one source at 0 / +3 / +7 semitones (x2 / x3 / x5), all the same length (~0.44 s).
+- 14 memory tones: one supersaw pluck (root C5, about 523 Hz) shifted 0,+2,+4,+7,+9,+12,+14,+16,+19 st = C5 D5 E5 G5 A5 C6 D6 E6 G6 (C-major pentatonic, so any order sounds consonant). Each is 0.80 s and loudness-matched. Tone 1 is the lowest.
+- 20 hooves: exactly 2.500 s (110250 samples at 44.1 kHz), built to loop seamlessly with no fades at the ends. Use Web Audio: src.loop = true. For gapless looping on every browser, set src.loopStart = (index of the first non-zero sample) / sampleRate and src.loopEnd = loopStart + 2.5, which skips any MP3 encoder padding a decoder leaves in. An <audio loop> element will gap on Safari.
+- iOS Safari: audio stays locked until a user gesture. Create or resume the AudioContext inside the first tap or click handler (ctx.resume()), then decodeAudioData every file once into AudioBuffers and play them with AudioBufferSourceNode for low latency. Avoid <audio> elements for SFX. Note: the iPhone silent switch mutes Web Audio by default, so include an in-game mute toggle.
+- 07 321-go is one 1.68 s file (beeps at 0 / 0.35 / 0.70 s, GO at 1.05 s). If the UI counts down slower, play 05-tick-urgent per count instead and use 07 only for the quick version.
+- Tile-place (10) and tick (04) are deliberately quiet and short because they repeat a lot. For rapid repeats, add slight random pitch (playbackRate 0.97-1.03).

@@ -43,6 +43,20 @@ export async function start({ code, matchId, settings, participants, now, used }
   return { ...createGame({ matchId, settings: s, participants, now, seed, bank, trivia: tv, order, deal, dk }), $room };
 }
 
+// THE PRELOAD (docs/cartridge.md — every phone, during the walk inside; ≤ PRELOAD_BUDGET 1.5 MB, never blocks the start): OC1's sounds
+// (~110 KB), the OVERDRIVE fonts (~67 KB — css/overclock.css's @font-face finds them in the cache) and the content pools — ALL of them, they
+// are small (the banks ~125 KB + Unscramble's word lists ~260 KB): a phone doesn't know the order before the host's start() lands.
+export const OC_FONT_FILES = ['barlow-condensed-900i', 'barlow-condensed-800i', 'chakra-petch-700', 'chakra-petch-500'];
+export function preload() {
+  const fonts = OC_FONT_FILES.map(f => fetch(new URL(`../../../assets/fonts/overclock/${f}.woff2`, import.meta.url)).then(r => r.arrayBuffer()).catch(() => null));
+  return Promise.all([
+    import('./sfx.js').then(m => m.ocSfxBytes()).catch(() => null),
+    ...fonts,
+    ...BANK_TYPES.map(t => loadBank(t).catch(() => null)),
+    loadLengths([5, 6, 7]).catch(() => null),
+  ]).then(() => true, () => false);
+}
+
 export function prepare(game, { code, host }) {
   if (!host) return;
   loadFallback().catch(() => {});
