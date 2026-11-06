@@ -93,6 +93,9 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
     moment plays ONCE (scene-radio.js), never the preview panel's loop; only a server yes loads the radio (radio-gate.js). CC-B: THE INTERCOM
     (the owner's voice: audio/intercom.js — the clip an hour via /api, held in a game) + THE CREW (granted by the owner; ONE RADIO PER LOBBY —
     core/harbor-radio.js#radioHolder; their sky moments dormant until LOBBY 2.0) + PRESETS + the room push (api/_lib/push.js, VAPID env vars).
+  - THE LOAD (THE LOAD FIX, Nov 6 — docs/harbor.md#performance): the boot screen holds until THE CITY's reveal (ONE fade; its unlit sign =
+    the title's spot — keep index.html #boot + title.css .nd-sign in step); ONE CAMERA ON SCREEN (scene.js#holdStart: a re-layout after the
+    reveal holds the picture, then cuts — never the old bake under the new signs, never a dissolve); proof: wk-load.mjs + the `load` group.
   - Debug + preview flags: `&debug=1` (strips at the TOP), `&dpr=3` (look only), `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary
     from a link waits for the reveal + a tap; `&lgnow=1` at once) — docs/harbor.md.
 - **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import

@@ -93,3 +93,20 @@ SCREEN` (the boot screen → the city, nothing between). Before the fix: 15/19 �
 - **The speed gate:** `title-perf.mjs --city 2 --ab` (np-night, np-party): **same** at t2 / t1 / t0 (the absolute numbers are this
   display-less machine's software compositing — warnings only). **The load timing:** the city is seen when it always was (the reveal
   ~2.6–3.0 s in headless WebKit, as before); the title's sign + dock now come WITH it instead of ~1.5 s ahead of it over black.
+
+## Group 3 — the end
+
+- **Locally (the mini PC; THE BUSY-PC CHECK first — nothing running but the emulators):** the unit suite 1242 / 1242 · the smoke test 6 / 6 ·
+  CONN (`e2e-conn.mjs` — the boot was touched) green: 0 sockets parked, 1 in a room · the FULL `e2e-harbor` suite **1202 / 1206** at 4
+  shards. The four reds, each re-run alone: `radio` (THE DESK's scroll through two refreshes), `newstart` ("the lines walk in under the lit
+  sign", a 2.3-s sample) and `panel` (THE WORD TOWERS' readout) — **99 / 99 alone** (the 4-shard run's load); `roomperf`'s OWN COST at 4×
+  CPU — the KNOWN red (THE SPEED PASS / B: red on this machine at the pre-pass commits too; skipped on the runner) — 39.3 → 47.6 ms again.
+- **The rules:** NOT changed — nothing to re-publish.
+- **Not started (FRIENDS' list, as the pass said):** THE TIER GEM's one shape, THE RADIO's schedule order, the victory sounds, YOUR CARD's
+  row + the whole XP box, the console's game accent, the intercom in sync.
+
+**Known issues** (also docs/harbor.md KNOWN ISSUES):
+- A camera change after the reveal (a desktop window drag, an iPad turned, a late font) holds the picture still — the motion pauses
+  ~0.5–0.7 s in headless WebKit — then cuts to the new camera. Safari's bar never causes one now.
+- The bars are EMULATED (the window's height + a pinned 100lvh) in Playwright's WebKit; the real Safari bar is the owner's iPhone's to confirm.
+- `roomperf`'s 4× own cost (the known red above). THE TV IS OFF (no display): the speed numbers are software compositing — the A/B said "same".

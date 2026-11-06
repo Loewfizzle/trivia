@@ -486,3 +486,10 @@ load problem, not a flake to patch.
   in the background when the second opens, so the visible one plays). e2e-conn: E3's `/api/time` count. Unit: `tests/speed-b.test.mjs`.
 - `harbor-jobs.mjs`: the speed rows' seconds were inside a comment (so the cap check never saw them) — out now; the job split to stay < 10 min.
 - `tests/integration/bytes-probe.mjs` — a fresh visit's bytes (music / the rest) in its first 25 s.
+
+- **THE LOAD FIX (Nov 6) — THE BOOT IN WEBKIT:** `node tests/integration/wk-load.mjs [--scene day|grey|night|all] [--bars pre|fade|after|late|none|all]
+  [--safari] [--warm] [--fresh] [--size WxH] [--shots DIR] [--log] [--frames --json out.json] [--fonts-delay ms] [--sky-delay ms] [--live]` — the
+  real boot in Playwright's WebKit as an iPhone (402×874 @3), Safari's bar = the window's height 874 → 800 → 874 at a moment of the load
+  (`--safari` keeps the city's 100lvh at the large viewport, as Safari does); exit 1 on any of the four (THE DOUBLED LETTERING · THE CHUNKS ·
+  THE #net PILL · THE STRAY SCREEN). The probe + judge are ONE file, `tests/integration/kit/load-probe.mjs` (also the harbor `load` group's
+  four THE LOAD FIX checks); the scene's cheap per-frame read for it: `window.__district.loadProbe()`. On the emulators + serve.mjs --emu.

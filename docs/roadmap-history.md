@@ -2082,3 +2082,13 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - THE CARD TEXT STANDARD: every full card's top line, bottom-left block + printed name — a minimum size, a soft glass wash, a dark edge; more
   gap under the rank. cardfit green over all 64 full cards.
 - The gift strip mapping fix (FRIENDS' "BRUH's strip effects slightly mis-positioned"): a card's own strip picture mapped by its own height.
+
+## THE LOAD FIX — THE CITY COMES IN ONCE (Nov 6 2026, afternoon) — docs/harbor/passes/load-fix.md
+- The owner's four on his iPhone (Safari, random loads), reproduced first in WebKit 402×874 @3 (`tests/integration/wk-load.mjs` — the real
+  boot, Safari's bar as the window's height with 100lvh kept; one probe + judge in `kit/load-probe.mjs`) and turned into four failing checks
+  in the harbor `load` group, then fixed: THE DOUBLED LETTERING (the tagline's move with the bar was never "kept" — the check after 2 s
+  re-laid the camera and the old bake showed under the new signs; now the bar moves keep the city, and any other re-layout holds the
+  picture until the new camera is baked, then cuts); THE CHUNKS + THE STRAY SCREEN (the dark title — the sign + the dock over black for
+  ~1.5 s; now the boot screen holds until the city's reveal: ONE fade; its sign on the title's spot); THE TOGGLE (the #net pill's own
+  fade-out as its sheet landed; now hidden inline from the first frame); the sign's halo drawn through the resize pin. 32 / 32 WebKit
+  loads clean, `load` 19 / 19, no look change (pixdiff), the speed gate the same. No rules change.
