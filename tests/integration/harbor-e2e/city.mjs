@@ -716,7 +716,39 @@ G('load', async () => {
     okT(vis.length === 0, `LOAD WEATHER — a stored JUST ME jump into a holiday night: 0 changes after the reveal (${vis.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
   { const r = await wxLoad('intro', { delay: 300, cached: false, intro: true });
     ok(r.log.visible.length === 0, `LOAD — THE FULL POWER-ON (&intro=1: the screen's entrance, the fonts, the dock easing in): 0 changes after the reveal (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
+  await loadFixChecks();
 });
+// THE LOAD FIX (Nov 6 — the owner's iPhone, Safari, random loads): the four load problems as frames (kit/load-probe.mjs — the same probe +
+// judge as tests/integration/wk-load.mjs, the WebKit proof). The REAL boot, 402×874 @3, cold; Safari's bar played the way Safari plays it:
+// the window's height changes, the city's 100lvh box does NOT (pinned at the large viewport) — the dock + the sign move, the canvas stays.
+// The bar shrinks before the reveal (300 → 800 ms), then again 2.8 s after it and back 2.6 s later (past the 2 s the dock's move is forgiven).
+async function loadFixChecks() {
+  const { PROBE, judge } = await import('../kit/load-probe.mjs');
+  const ctx = await (await launch()).createBrowserContext();
+  const p = await ctx.newPage();
+  p.on('pageerror', e => { errors.push(`loadfix pageerror: ${e.message}`); log('load', 'PAGEERROR', e.message); });
+  const VP = h => p.setViewport({ width: 402, height: h, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+  await VP(874);
+  await p.evaluateOnNewDocument(() => {
+    try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('na:lf:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
+    document.addEventListener('DOMContentLoaded', () => { const s = document.createElement('style'); s.textContent = '.nd-scene.nd-lvh { height: 874px !important; }'; document.head.append(s); });
+  });
+  await p.evaluateOnNewDocument(PROBE);
+  const t1 = Date.now();
+  const nav = p.goto(`${BASE}/?emu&slot=lf&when=2026-11-06T13:02&wx=overcast${GR}&city=2`);
+  await sleep(300); await VP(800); await sleep(Math.max(0, 800 - (Date.now() - t1))); await VP(874);
+  await nav;
+  await waitFor(p, '!!window.__district && !!window.__district.loadProbe && window.__district.loadProbe().shown', 'the reveal', 20000);
+  await sleep(2800); await VP(800); await sleep(2600); await VP(874);
+  await waitFor(p, '!!window.__lp && window.__lp.frames.length > 0 && performance.now() > 0 && (() => { const f = window.__lp.frames; return f[f.length - 1].t - f.find(x => x.shown).t > 6400; })()', 'the probe done', 15000).catch(() => {});
+  const J = judge(await ev(p, 'window.__lp.dump()'));
+  const say = v => (v.n ? `${v.n} frames — ${v.what}` : 'none');
+  ok(!J.doubled.n, `THE LOAD FIX — 1 THE DOUBLED LETTERING: one camera on screen in every frame after Safari's bar moves (the baked city, the lit windows, the live layers + the crisp lettering together; frames with two: ${say(J.doubled)})`);
+  ok(!J.chunks.n, `THE LOAD FIX — 2 THE CHUNKS: nothing of the title ahead of the city — ONE fade (${say(J.chunks)})`);
+  ok(!J.net.n, `THE LOAD FIX — 3 THE #net PILL: never seen without a lost signal, from the first frame (${say(J.net)})`);
+  ok(!J.stray.n, `THE LOAD FIX — 4 THE STRAY SCREEN: the boot screen → the city, nothing between (no dark title, no other screen, no glitch, no bare shell; ${say(J.stray)})`);
+  await ctx.close();
+}
 // ---- PART 8a: THE PROMENADE — the layout the owner approved, the season by the real date (+ forced), the lamps' pools baked into
 // the setts at night, the implied road (a car's headlights; off by the owner's flag)
 G('promenade', async () => {
