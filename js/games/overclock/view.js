@@ -42,6 +42,7 @@ import { createSlam } from '../kit/slam.js';
 import { ocSfx } from './sfx.js';
 import { createCombo, createFx, comboSound } from './fx.js';
 import { buildAnswer, hasAnswer, loadPicks, savePicks } from './answers.js';
+import { demoFor } from './demos.js';
 
 
 
@@ -454,6 +455,7 @@ export function createView() {
       kicker: isFinal ? 'FINAL CHALLENGE' : `CHALLENGE ${String(game.ci + 1).padStart(2, '0')} / ${String(game.total).padStart(2, '0')}`,
       name: info.name, sub: isFinal ? 'DOUBLE POINTS' : '',
       rules: game.brief ? info.rules : [], tone: isFinal ? 'final' : 'hot',
+      demo: game.brief ? demoFor(type) : null,   // (OC3 — the hard ones' ~3 s demo, looping inside the rules card's own time)
       onIntro: () => ocSfx('intro'),
       onCount: c => ocSfx(c === 'GO' ? 'go' : 'count'),
     });

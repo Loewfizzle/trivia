@@ -12,7 +12,8 @@
 // question" button anywhere.
 import { h } from '../../ui/dom.js';
 import { answerFrame, answerPanel } from '../kit/answer.js';
-import { STROOP_COLORS } from './challenges.js';
+import { STROOP_COLORS, closestCredit } from './challenges.js';
+import { colorHex } from '../../config.js';
 import { buildReveal } from './reveals.js';
 import { fmtVal } from './shared.js';
 
@@ -68,24 +69,71 @@ function truefalse(spec, picks) {
 }
 
 // ---------------------------------------------------------------------------------------------- OC2 — the eight with no reveal before
-// QUICK MATH: the sum, = the answer
+// QUICK MATH (OC3 — its dressing): the sum = THE ANSWER on the white-hot tile ("104 ÷ 8 + 46 = 59"), YOUR PICK struck through when wrong
+const MINUS = '−';
+const signed = v => (typeof v === 'number' && v < 0 ? `${MINUS}${fmtVal(-v)}` : fmtVal(v));
 function math(spec, picks) {
   const res = spec.problems.map((pr, i) => st(picks[i], pr.ans));
   const { show, label } = missesFirst(res);
   return box(sumRow(res, label), show.map((i, k) => {
     const pr = spec.problems[i], p = picks[i];
-    return answerFrame({ q: `${pr.text} = ?`, answer: h('span.oc-ans-num', fmtVal(pr.ans)), pick: p == null || p === pr.ans ? null : h('span.oc-ans-num', fmtVal(p)), state: res[i], note: p == null ? 'NO ANSWER' : '', delay: 200 + k * 300 });
+    return answerFrame({
+      answer: h('span.oc-ans-sum', h('span.oc-ans-sum-q', String(pr.text).replace(/-/g, MINUS)), h('i', '='), h('b', signed(pr.ans))),
+      pick: p == null || p === pr.ans ? null : h('span.oc-ans-num', signed(p)), state: res[i], note: p == null ? 'NO ANSWER' : '', delay: 200 + k * 300,
+    });
   }));
 }
-// PATTERN LOCK: the sequence + the next number
+// PATTERN LOCK (OC3 — its dressing): the whole sequence with the right number DROPPED into the slot, + the RULE in one short line
 function pattern(spec, picks) {
   return box(spec.seqs.map((sq, i) => {
-    const p = picks[i];
+    const p = picks[i], d = 120 + i * 320;
     return answerFrame({
-      q: h('span.oc-ans-seq', sq.shown.map(v => h('span', fmtVal(v))), h('span.is-q', '?')),
-      answer: h('span.oc-ans-num', fmtVal(sq.ans)), pick: p == null || p === sq.ans ? null : h('span.oc-ans-num', fmtVal(p)),
-      state: st(p, sq.ans), note: p == null ? 'NO ANSWER' : '', delay: 120 + i * 300,
+      q: h('span.oc-ans-seq', sq.shown.map(v => h('span.oc-ans-seq-c', signed(v))), h('span.oc-ans-seq-c.is-drop', { style: { '--dd': `${d + 520}ms` } }, signed(sq.ans))),
+      answer: h('span.oc-ans-pat', h('b', signed(sq.ans)), sq.say ? h('small', sq.say) : null),
+      pick: p == null || p === sq.ans ? null : h('span.oc-ans-num', signed(p)),
+      state: st(p, sq.ans), note: p == null ? 'NO ANSWER' : '', delay: d,
     });
+  }));
+}
+// CLOSEST CALL (OC3 — its own answer, no longer the old panel): THE ANSWER + YOUR GUESS, a short slanted SCALE between them that shows how
+// far off you were ("+120 km · 12% OFF"; DEAD ON = full credit, within 5 % — the server's own rule for the achievement), and the room's
+// closest guess named (ties together — the same "closest" the director's bonus reads)
+function closest(spec, picks, ctx) {
+  const unit = spec.unit ? ` ${spec.unit}` : '';
+  const boards = ctx.boards || {};
+  const guess = u => (boards[u] && typeof boards[u].g === 'number' ? boards[u].g : null);
+  const g = guess(ctx.me);
+  const credit = g == null ? 0 : closestCredit(g, spec.answer);
+  const state = g == null ? 'none' : credit >= 1 ? 'right' : credit > 0 ? 'close' : 'wrong';
+  const err = g == null ? 0 : Math.abs(g - spec.answer) / Math.max(1e-9, Math.abs(spec.answer));
+  const delta = g == null ? 0 : Math.round((g - spec.answer) * 100) / 100;
+  const room = (ctx.uids || []).map(u => ({ u, g: guess(u) })).filter(x => x.g != null).map(x => ({ ...x, e: Math.abs(x.g - spec.answer) }));
+  const best = room.length ? Math.min(...room.map(x => x.e)) : null;
+  const tops = room.filter(x => x.e === best);
+  const nm = u => (u === ctx.me ? 'YOU' : ctx.player(u).name);
+  let scale = null;
+  if (g != null) {
+    const side = Math.sign(delta) || 1;
+    const reach = state === 'right' ? 0 : 0.17 + 0.27 * Math.min(1, err / 0.6);   // the guess's distance from the centre (0.17 … 0.44 of the bar — the two labels never meet)
+    const y = 0.5 + side * reach;
+    scale = h('div.oc-cl-scale', { class: `is-${state}${side < 0 ? ' is-under' : ''}`, style: { '--y': y, '--lo': Math.min(0.5, y), '--hi': Math.max(0.5, y) } },
+      h('i.oc-cl-track'), h('i.oc-cl-span'),
+      h('span.oc-cl-mk.is-answer', h('i'), h('small', 'ANSWER')),
+      state === 'right' ? null : h('span.oc-cl-mk.is-you', h('i'), h('small', 'YOU')),
+      h('b.oc-cl-gap', state === 'right' ? 'DEAD ON' : `${delta > 0 ? '+' : MINUS}${fmtVal(Math.abs(delta))}${unit}`, state === 'right' ? null : h('small', ` · ${Math.round(err * 100)}% OFF`)));
+  }
+  const roomLine = room.length > 1 || (room.length === 1 && room[0].u !== ctx.me)
+    ? h('div.oc-cl-room', h('span.oc-cl-room-k', tops.length > 1 ? 'CLOSEST IN THE ROOM · A TIE' : 'CLOSEST IN THE ROOM'),
+      h('span.oc-cl-room-v', tops.slice(0, 3).map((x, i) => [i ? h('i', ' & ') : null, h('b', { style: { '--c': colorHex(ctx.player(x.u).color) } }, nm(x.u))]), h('span', ` · ${fmtVal(tops[0].g)}${unit}`)))
+    : null;
+  return box(answerFrame({
+    q: spec.q,
+    answer: h('span.oc-ans-num', fmtVal(spec.answer), h('small.oc-ans-unit', unit)),
+    pick: g == null ? null : h('span.oc-ans-num', fmtVal(g), h('small.oc-ans-unit', unit)),
+    pickLabel: 'YOUR GUESS',
+    state, note: g == null ? 'NO GUESS' : '',
+    slot: scale || roomLine ? h('div.oc-cl-slot', scale, roomLine) : null,
+    delay: 120,
   }));
 }
 // MEMORY: the sequence replayed as numbered nodes (a mini 3 × 3 each, the step's node lit + its number); your slip marked
@@ -201,9 +249,9 @@ function rewire(spec, picks, ctx) {
   }));
 }
 
-export const ANSWERS = { trivia, truefalse, math, pattern, memory, oddone, count, stroop, reflex, rewire };
+export const ANSWERS = { trivia, truefalse, math, pattern, closest, memory, oddone, count, stroop, reflex, rewire };
 /** the eight older reveals — into THE ANSWER's panel as they are (their own kicker stays inside the slot) */
-export const PANELS = new Set(['missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower', 'timeline', 'closest', 'unscramble']);
+export const PANELS = new Set(['missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower', 'timeline', 'unscramble']);
 export const hasAnswer = type => !!ANSWERS[type] || PANELS.has(type);
 /**
  * THE ANSWER for a closed challenge. ctx: { game, me, uids, player(uid), boards (this challenge's boards + the unsealed answers), timers,

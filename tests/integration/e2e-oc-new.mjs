@@ -269,8 +269,10 @@ try {
   ok(cc.every(x => x === cc[0]), 'CLOSEST CALL: the same question on every phone');
   const cSpec = JSON.parse(cc[0]);
   const factors = [1.02, 0.7, 1.35, 0.9, 1.8, 1.12, 0.5, 1.25];
+  // (OC3) the kit's NUMBER PAD — a finger on each key (no input anywhere: the system keyboard never opens)
   async function keyIn(page, value) {
-    for (const ch of String(value)) await press(page, '.cl-pad .kp', ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '<'].indexOf(ch));
+    ok(await page.evaluate(() => !document.querySelector('.screen.oc input, .screen.oc textarea')), 'CLOSEST CALL: no input element (never the system keyboard)');
+    for (const ch of String(value)) await press(page, `.gk-np-key[data-k="${ch}"]`);
   }
   const guesses = {};
   for (const i of alive()) {
@@ -278,7 +280,7 @@ try {
     guesses[uids[i]] = g;
     await keyIn(pages[i], g);
     if (i === 1) { await sleep(200); await shotBoth(pages[1], 'o-09-closest-play'); }
-    await click(pages[i], '.cl-lock');
+    await press(pages[i], '.gk-np .gk-go');
   }
   await waitPhase(pages[1], 'standings', 2, 'closest standings', 45000);
   await sleep(1000);

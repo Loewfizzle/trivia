@@ -208,7 +208,7 @@ async function solveOC(page, spec) {
       for (const g of spec.grids) { for (let i = 0; i < 20 && !document.querySelector('.odd-grid'); i++) await sleep(60); document.querySelector(`.odd-cell:nth-child(${g.idx + 1})`).click(); await sleep(420); }
     } else if (t === 'math' || t === 'pattern') {
       const answers = t === 'math' ? spec.problems.map(p => p.ans) : spec.seqs.map(s => s.ans);
-      for (const v of answers) { const keys = [...document.querySelectorAll('.kp')]; for (const d of String(v)) keys.find(k => k.textContent === d).click(); keys.find(k => k.classList.contains('kp-go')).click(); await sleep(450); }
+      for (const v of answers) { const tap = el => el && el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })); for (const d of String(v)) tap(document.querySelector(`.gk-np-key[data-k="${d}"]`)); tap(document.querySelector('.gk-np .gk-go')); await sleep(450); }
     } else if (t === 'trivia') {
       for (const q of spec.questions) { for (let i = 0; i < 20 && !document.querySelector('.tl-opt'); i++) await sleep(60); document.querySelector(`.tl-opt:nth-child(${q.c + 1})`).click(); await sleep(520); }
     } else if (t === 'stroop') {

@@ -3,7 +3,9 @@
 // the phase the director already gives it (OVERCLOCK: READY_MS 3.2 s, or BRIEF_MS 7 s with the rules — the owner's timings, never
 // stretched). Timed from the phase's server-time start + end: a refresh mid-way lands on the right number, and the slam itself only plays
 // when the card is seen from its start (a late mount shows it settled). Transform + opacity only; reduced motion = no slam, no swipe.
-//   createSlam({ now, startAt, endsAt, kicker, name, sub, rules: [], tone: 'hot' | 'final', onIntro(), onCount('3'|'2'|'1'|'GO') })
+//   createSlam({ now, startAt, endsAt, kicker, name, sub, rules: [], demo, tone: 'hot' | 'final', onIntro(), onCount('3'|'2'|'1'|'GO') })
+//   demo (OC3): an element of the game's own — a short looping rules DEMO shown under the rules (the card's time is unchanged); it rises in
+//   after the rules and is dropped with the card (its destroy() is called if it has one)
 //     → { el, destroy() }     (`now` REQUIRED — firebase.js#serverNow)
 //   slamPhase(now, startAt, endsAt) → { slam, count } (PURE)
 import { h, reducedMotion } from '../../ui/dom.js';
@@ -18,7 +20,7 @@ export function slamPhase(now, startAt, endsAt) {
   return { slam: t < SLAM_LATE_MS, count, t, left };
 }
 
-export function createSlam({ now, startAt, endsAt, kicker = '', name = '', sub = '', rules = [], tone = 'hot', onIntro = null, onCount = null } = {}) {
+export function createSlam({ now, startAt, endsAt, kicker = '', name = '', sub = '', rules = [], demo = null, tone = 'hot', onIntro = null, onCount = null } = {}) {
   if (typeof now !== 'function') throw new Error('createSlam: pass now (firebase.js#serverNow)');
   const p0 = slamPhase(now(), startAt, endsAt);
   const quiet = reducedMotion();
@@ -32,6 +34,7 @@ export function createSlam({ now, startAt, endsAt, kicker = '', name = '', sub =
     kicker ? h('div.gk-slam-kicker', kicker) : null,
     card,
     rules && rules.length ? h('ol.gk-slam-rules', rules.map((r, i) => h('li', { style: { '--i': i } }, r))) : null,
+    demo ? h('div.gk-slam-demo', { style: { '--i': rules ? rules.length : 0 } }, demo.el || demo) : null,
     count);
   if (p0.slam && onIntro) onIntro();
   let raf = 0, last = null, gone = false;
@@ -49,5 +52,5 @@ export function createSlam({ now, startAt, endsAt, kicker = '', name = '', sub =
     if (p.left > -GO_HOLD_MS - 100) raf = requestAnimationFrame(tick);
   };
   tick();
-  return { el, destroy() { gone = true; cancelAnimationFrame(raf); } };
+  return { el, destroy() { gone = true; cancelAnimationFrame(raf); if (demo && demo.destroy) demo.destroy(); } };
 }

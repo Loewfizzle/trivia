@@ -1358,6 +1358,156 @@
 .oc-vic:not(.is-still) .oc-vic-score, .oc-vic:not(.is-still) .oc-vic-solo { animation: oc-rise 0.4s ease-out 0.9s both; }
 .oc-vic.is-still .oc-vic-rays { opacity: 1; animation: none; }
 
+/* =========================================================================================================================
+   OC3 — THE TYPING CHALLENGES on the kit's pads (ui/numeric.js · closest.js — docs/overclock.md "Challenge looks"). NO system keyboard:
+   the kit's NUMBER PAD (3 × 4 glass keys, LOCK IT IN) in the thumb zone, the question above it never covered. The answer field = the kit's
+   slanted orange-edged field + its cursor, dressed with OC2's resting tiles (right: --good edge + ✓ · wrong: dark glass + red edge + ✕).
+   60 fps: transform + opacity only; every glow a static layer (its opacity may breathe).
+   ========================================================================================================================= */
+.oc-od .oc-num { flex: 1 1 auto; min-height: 0; gap: 12px; margin: 4px 0 0; }
+.oc-num-q { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; container-type: inline-size; }
+.oc-num-q.q-in > * { animation: q-in 0.3s var(--ease) both; }
+.oc-unit { flex: none; max-width: 56%; padding: 5px 10px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.12em; color: var(--oc-hot-2); background: rgba(255, 106, 26, 0.1); border: 1px solid rgba(255, 106, 26, 0.55); transform: skewX(var(--oc-slant)); text-transform: uppercase; }
+
+/* QUICK MATH: the HUGE sum on one line (sized to its own length), "= ?" with a hot "?"; a static laser hairline under it */
+.oc-sum { position: relative; display: flex; align-items: baseline; justify-content: center; gap: 0.18em; padding: 0 4px 14px; white-space: nowrap; font: italic 900 min(72px, calc(100cqw / (var(--len) * 0.5))) / 1 var(--oc-font-title); letter-spacing: 0.01em; color: #fff; font-variant-numeric: tabular-nums; }
+.oc-sum::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: 0; height: 3px; transform: skewX(var(--oc-slant)); background: linear-gradient(90deg, transparent, var(--oc-hot) 30%, #ffb36b 55%, var(--oc-cool) 85%, transparent); opacity: 0.8; }
+.oc-sum-eq { color: var(--oc-label); }
+.oc-sum-eq b { color: var(--oc-hot); text-shadow: 0 0 18px rgba(255, 106, 26, 0.7); }
+
+/* PATTERN LOCK: the sequence as big slanted chips; the missing slot glows orange */
+.oc-seq { --cols: 6; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 10px 7px; width: 100%; }
+.oc-seq.is-two { --cols: 3; }
+.oc-seq-chip { position: relative; display: grid; place-items: center; height: 66px; font: italic 900 min(40px, calc((100cqw - (var(--cols) - 1) * 7px) / var(--cols) / (var(--dg, 2) * 0.5 + 0.42))) / 1 var(--oc-font-title); color: #fff; font-variant-numeric: tabular-nums; }
+.oc-seq-chip::before { content: ''; position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #2c313d 0%, #1d212b 55%, #171a22 100%); border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 5px 12px rgba(0, 0, 0, 0.4); }
+.oc-seq-chip > b { position: relative; font: inherit; }
+.oc-seq-chip.is-slot::before { background: linear-gradient(180deg, rgba(255, 106, 26, 0.2), rgba(40, 18, 6, 0.85)); border: 2px solid var(--oc-hot); }
+.oc-seq-glow { position: absolute; inset: -2px; transform: skewX(var(--oc-slant)); box-shadow: 0 0 22px 2px rgba(255, 106, 26, 0.6), inset 0 0 16px rgba(255, 106, 26, 0.45); pointer-events: none; animation: oc-breathe 1.6s ease-in-out infinite alternate; }
+@keyframes oc-breathe { from { opacity: 0.45; } to { opacity: 1; } }
+.oc-seq-chip.is-slot > b { color: var(--oc-hot); text-shadow: 0 0 16px rgba(255, 106, 26, 0.8); }
+.oc-seq-chip.is-slot.is-filled > b { color: #fff; text-shadow: 0 0 14px rgba(255, 200, 160, 0.8); animation: oc-drop 0.36s cubic-bezier(0.2, 1.3, 0.35, 1) both; }
+.oc-seq-chip.is-slot.is-right::before { border-color: var(--good); background: linear-gradient(180deg, color-mix(in srgb, var(--good) 22%, transparent), rgba(10, 20, 14, 0.85)); }
+.oc-seq-chip.is-slot.is-filled .oc-seq-glow { animation: none; opacity: 0.35; }
+/* a miss: the slot shows THE ANSWER white-hot (it's the reveal, not your orange) */
+.oc-seq-chip.is-slot.is-wrong::before { border-color: rgba(255, 255, 255, 0.85); background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(20, 20, 24, 0.9)); }
+.oc-seq-chip.is-slot.is-wrong .oc-seq-glow { box-shadow: 0 0 18px rgba(255, 255, 255, 0.45); }
+@keyframes oc-drop { from { opacity: 0; transform: translateY(-26px) scale(1.25); } 70% { opacity: 1; transform: translateY(2px) scale(0.97); } to { opacity: 1; transform: none; } }
+
+/* THE ANSWER FIELD (the kit's field, dressed): dark glass, a 2 px hot edge, a static inner glow, the orange cursor */
+.oc-od .gk-numpad { gap: 10px; }
+.oc-od .gk-np-field { min-height: 64px; font: italic 900 clamp(36px, 10.5vw, 44px) / 1 var(--oc-font-title); }
+.oc-od .gk-np-field::before { background: linear-gradient(180deg, #1d1410 0%, #12100f 60%, #0d0c0d 100%); border: 2px solid var(--oc-hot); box-shadow: inset 0 0 18px rgba(255, 106, 26, 0.22), 0 0 18px rgba(255, 106, 26, 0.18); }
+.oc-od .gk-np-ph { font: 700 14px / 1 var(--oc-font-ui); letter-spacing: 0.2em; color: var(--oc-label); }
+/* empty: the cursor blinks at the START of the placeholder (never on top of it) */
+.oc-od .gk-np-field.is-empty .gk-np-ph { position: relative; z-index: 1; margin-left: 12px; }
+.oc-od .gk-np-caret { width: 4px; background: var(--oc-hot); box-shadow: 0 0 8px rgba(255, 106, 26, 0.9); transform: skewX(var(--oc-slant)); }
+.oc-np-field > .oc-tile-ok, .oc-np-field > .oc-tile-bad { z-index: 0; }
+.oc-np-field > .gk-np-val, .oc-np-field > .oc-np-fix { z-index: 1; }
+.oc-np-mark { position: absolute; z-index: 1; right: 14px; top: 50%; margin-top: -16px; display: grid; place-items: center; min-width: 38px; height: 32px; }
+.oc-np-mark:empty { display: none; }
+.oc-np-fix { position: relative; display: inline-flex; align-items: baseline; gap: 10px; margin-left: 12px; }
+.oc-np-fix:empty { display: none; }
+.oc-np-fix i { font: 700 24px / 1 var(--oc-font-ui); font-style: normal; color: var(--oc-label); }
+.oc-np-fix b { padding: 4px 10px 3px; font: italic 900 0.86em / 1 var(--oc-font-title); color: var(--gk-answer-ink); background: var(--gk-answer-bg); transform: skewX(var(--oc-slant)); box-shadow: 0 0 16px rgba(255, 255, 255, 0.45); animation: oc-rise 0.3s ease-out both; }
+.oc-np-field.is-right::before, .oc-np-field.is-wrong::before { border-color: transparent; box-shadow: none; }
+.oc-np-field.is-right .oc-tile-ok { opacity: 1; transition: opacity 0.2s ease-out; }
+.oc-np-field.is-wrong .oc-tile-bad { opacity: 0.72; animation: oc-bad-edge 0.62s ease-out both; }
+.oc-np-field.is-wrong::before { background: linear-gradient(180deg, #1c1a20 0%, #141217 60%, #0f0d11 100%); }
+.oc-np-field.is-wrong .gk-np-text { color: #f4d6db; text-decoration: line-through; text-decoration-color: rgba(255, 51, 85, 0.9); text-decoration-thickness: 3px; }
+.oc-np-field.is-right .gk-np-caret, .oc-np-field.is-wrong .gk-np-caret, .oc-np-field.is-sent .gk-np-caret { display: none; }
+.oc-np-field.oc-burst { animation: oc-burst 0.34s cubic-bezier(0.2, 1.5, 0.4, 1); }
+.oc-np-field.oc-shake { animation: oc-shake 0.36s ease-out; }
+.oc-np-field .oc-ring { inset: -4px; border-radius: 0; transform: skewX(var(--oc-slant)); }
+
+/* THE PAD in OVERDRIVE: graphite glass keys (a top highlight, a dark lip), the press sinks + flashes hot; LOCK IT IN molten orange */
+.oc-od .gk-np-grid { gap: 7px; }
+.oc-od .gk-np-key { --gk-key-h: 56px; }
+.oc-od .gk-key-face { background: linear-gradient(180deg, #30353f 0%, #20242d 52%, #181b22 100%); border-color: rgba(255, 255, 255, 0.12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -3px 0 rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.45); }
+.oc-od .gk-np-key.is-back, .oc-od .gk-np-key.is-extra { color: var(--oc-hot-2); }
+.oc-od .gk-np-key.is-extra { font-size: 40px; }   /* the − and . glyphs are small in the face — sized up to read as keys */
+.oc-od .gk-go { --gk-go-h: 60px; color: var(--oc-hot-ink); font: italic 900 26px / 1 var(--oc-font-title); letter-spacing: 0.05em; }
+.oc-od .gk-go .gk-key-face { background: linear-gradient(180deg, #ff8f45 0%, #ff6a1a 55%, #e2560c 100%); box-shadow: inset 0 1px 0 rgba(255, 230, 210, 0.7), inset 0 -3px 0 rgba(120, 30, 0, 0.35), 0 0 22px rgba(255, 106, 26, 0.35), 0 6px 14px rgba(0, 0, 0, 0.45); }
+.oc-od .is-locked .gk-go .gk-key-face { opacity: 0.55; }
+/* shorter phones: the keys give a little first (never under 52 — the tap stays big), the question keeps its room */
+@media (max-height: 800px) { .oc-od .gk-np-key { --gk-key-h: 52px; } .oc-od .gk-go { --gk-go-h: 56px; } .oc-od .gk-np-field { min-height: 58px; } .oc-seq-chip { height: 58px; } }
+
+/* CLOSEST CALL: the category + the unit chip, the question bold, the unit in the field once you type; LOCK IT IN turns it hot (no hint) */
+.oc-cl-q { align-content: center; }
+.oc-od .oc-q.oc-cl-text { font-size: clamp(22px, 6.2vw, 26px); line-height: 1.24; }
+.oc-cl-unit { position: absolute; z-index: 1; right: 16px; top: 50%; transform: translateY(-50%) skewX(var(--oc-slant)); max-width: 42%; }
+.oc-cl-field.is-empty .oc-cl-unit { display: none; }
+.oc-np-field.is-sent::before { background: linear-gradient(180deg, #ff8a3d, #ff6a1a 55%, #e2560c); border-color: rgba(255, 220, 190, 0.7); }
+.oc-np-field.is-sent { color: var(--oc-hot-ink); }
+.oc-np-field.is-sent .oc-cl-unit { color: var(--oc-hot-ink); background: rgba(0, 0, 0, 0.14); border-color: rgba(29, 9, 0, 0.5); }
+
+/* THE ANSWER — QUICK MATH: the sum = the answer on the white-hot tile */
+.oc-ans-sum { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; font: italic 900 clamp(26px, 7.6vw, 32px) / 1 var(--oc-font-title); font-variant-numeric: tabular-nums; }
+.oc-ans-sum-q { color: #6a3a14; }
+.oc-ans-sum i { font-style: normal; color: #8a3a08; }
+.oc-ans-sum b { font-size: 1.25em; }
+/* PATTERN LOCK: the sequence (the answer drops into its slot) + the number + its rule */
+.oc-ans-seq-c { position: relative; isolation: isolate; display: inline-grid; place-items: center; min-width: 34px; padding: 4px 7px 3px; font-size: clamp(20px, 5.9vw, 24px); }
+.oc-answers .oc-ans-seq { gap: 6px 5px; }
+.oc-ans-seq-c::before { content: ''; position: absolute; z-index: -1; inset: 0; transform: skewX(var(--oc-slant)); background: #20242d; border: 1px solid rgba(255, 255, 255, 0.14); }
+.oc-ans-seq .oc-ans-seq-c::after { content: none; }
+.oc-ans-seq-c.is-drop { color: var(--gk-answer-ink); animation: oc-drop 0.4s var(--dd, 600ms) cubic-bezier(0.2, 1.3, 0.35, 1) both; }
+.oc-ans-seq-c.is-drop::before { background: var(--gk-answer-bg); border: 0; box-shadow: 0 0 16px rgba(255, 255, 255, 0.5), 0 0 26px rgba(255, 106, 26, 0.4); }
+.oc-ans-pat { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; }
+.oc-ans-pat b { font: italic 900 clamp(32px, 9vw, 38px) / 0.95 var(--oc-font-title); font-variant-numeric: tabular-nums; }
+.oc-ans-pat small { font: 700 14px / 1.2 var(--oc-font-ui); letter-spacing: 0.06em; color: #8a3a08; text-transform: uppercase; }
+/* CLOSEST CALL: THE ANSWER + your guess, the slanted scale between them (how far off), the room's closest */
+.oc-ans-unit { margin-left: 6px; font: 700 14px / 1 var(--oc-font-ui) !important; letter-spacing: 0.08em !important; color: inherit !important; opacity: 0.75; font-style: normal; }
+.oc-cl-slot { display: flex; flex-direction: column; gap: 14px; }
+.oc-cl-scale { position: relative; height: 76px; margin: 0 6px; animation: oc-rise 0.4s calc(var(--d, 0ms) + 560ms) ease-out both; }
+.oc-cl-track { position: absolute; left: 0; right: 0; top: 34px; height: 8px; transform: skewX(-24deg); background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 2px, transparent 2px 10%), rgba(255, 255, 255, 0.07); }
+.oc-cl-span { position: absolute; top: 34px; height: 8px; left: calc(var(--lo) * 100%); width: calc((var(--hi) - var(--lo)) * 100%); transform: skewX(-24deg); transform-origin: 0 50%; background: linear-gradient(90deg, var(--oc-hot), #ffb36b); box-shadow: 0 0 10px rgba(255, 106, 26, 0.6); animation: oc-span 0.5s calc(var(--d, 0ms) + 760ms) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.oc-cl-scale.is-under .oc-cl-span { transform-origin: 100% 50%; background: linear-gradient(90deg, #ffb36b, var(--oc-hot)); }
+.oc-cl-scale.is-close .oc-cl-span { background: linear-gradient(90deg, var(--close), color-mix(in srgb, var(--close) 60%, #fff)); box-shadow: 0 0 10px color-mix(in srgb, var(--close) 60%, transparent); }
+.oc-cl-scale.is-wrong .oc-cl-span { background: linear-gradient(90deg, var(--oc-wrong), #ff8095); box-shadow: 0 0 10px rgba(255, 51, 85, 0.55); }
+@keyframes oc-span { from { transform: skewX(-24deg) scaleX(0); } to { transform: skewX(-24deg) scaleX(1); } }
+.oc-cl-mk { position: absolute; top: 22px; left: 50%; display: flex; flex-direction: column; align-items: center; gap: 6px; transform: translateX(-50%); }
+.oc-cl-mk i { width: 4px; height: 32px; transform: skewX(-12deg); background: #fff; box-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
+.oc-cl-mk small { font: 700 10px / 1 var(--oc-font-ui); letter-spacing: 0.2em; color: #fff; }
+.oc-cl-mk.is-you { left: calc(var(--y) * 100%); animation: oc-rise 0.3s calc(var(--d, 0ms) + 1000ms) ease-out both; }
+.oc-cl-mk.is-you i { background: var(--oc-hot); box-shadow: 0 0 10px rgba(255, 106, 26, 0.9); }
+.oc-cl-mk.is-you small { color: var(--oc-hot-2); }
+.oc-cl-scale.is-wrong .oc-cl-mk.is-you i { background: var(--oc-wrong); box-shadow: 0 0 10px rgba(255, 51, 85, 0.8); }
+.oc-cl-gap { position: absolute; top: 0; left: calc((var(--lo) + var(--hi)) * 50%); transform: translateX(-50%); white-space: nowrap; font: italic 900 20px / 1 var(--oc-font-title); color: #fff; animation: oc-rise 0.3s calc(var(--d, 0ms) + 1120ms) ease-out both; }
+.oc-cl-gap small { font: 700 11px / 1 var(--oc-font-ui); letter-spacing: 0.14em; color: var(--oc-label); }
+.oc-cl-scale.is-right .oc-cl-gap { left: 50%; color: var(--good); letter-spacing: 0.06em; }
+.oc-cl-scale.is-right .oc-cl-mk.is-answer i { background: var(--good); box-shadow: 0 0 12px var(--good); }
+/* the gap's label stays inside the scale near either end */
+.oc-cl-scale:not(.is-right) .oc-cl-gap { left: clamp(70px, calc((var(--lo) + var(--hi)) * 50%), calc(100% - 70px)); }
+.oc-cl-room { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 9px 14px 10px; animation: oc-rise 0.35s calc(var(--d, 0ms) + 1350ms) ease-out both; }
+.oc-cl-room::before { content: ''; position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #232733, #171a22); border: 1px solid rgba(46, 139, 255, 0.55); }
+.oc-cl-room > * { position: relative; }
+.oc-cl-room-k { font: 700 10px / 1 var(--oc-font-ui); letter-spacing: 0.22em; color: #8fc0ff; }
+.oc-cl-room-v { font: 700 15px / 1.2 var(--oc-font-ui); color: var(--oc-label); }
+.oc-cl-room-v b { font: italic 900 20px / 1 var(--oc-font-title); color: color-mix(in srgb, var(--c, #fff) 55%, #fff); letter-spacing: 0.02em; }
+.oc-cl-room-v i { font-style: normal; }
+
+/* THE RULES DEMOS (demos.js — inside the rules card, ~3 s loops on the Web Animations API: transform + opacity only) */
+.oc-demo { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 22px 12px 14px; }
+.oc-demo::before { content: ''; position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, rgba(35, 39, 51, 0.92), rgba(18, 21, 28, 0.94)); border: 1px solid rgba(46, 139, 255, 0.45); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.oc-demo > * { position: relative; }
+.oc-demo-tag { position: absolute; left: 10px; top: -9px; padding: 4px 8px 3px; font: italic 900 13px / 1 var(--oc-font-title); letter-spacing: 0.12em; color: #fff; background: var(--oc-cool); transform: skewX(var(--oc-slant)); }
+.oc-demo-seq { display: flex; align-items: center; justify-content: center; gap: 3px; width: auto; }
+.oc-demo-seq { gap: 5px; }
+.oc-demo-seq .oc-seq-chip { width: 50px; height: 52px; font-size: 29px; }
+.oc-demo-step { min-width: 27px; text-align: center; font: italic 900 19px / 1 var(--oc-font-title); color: var(--oc-hot-2); text-shadow: 0 0 10px rgba(255, 106, 26, 0.5); }
+.oc-demo-seq .oc-seq-chip.is-slot > b { position: absolute; inset: 0; display: grid; place-items: center; }
+.oc-demo-ans { color: #fff !important; text-shadow: 0 0 14px rgba(255, 200, 160, 0.9) !important; }
+.oc-demo-hit { position: absolute; inset: -6px; transform: skewX(var(--oc-slant)); border: 2px solid var(--good); box-shadow: 0 0 14px var(--good); opacity: 0; pointer-events: none; }
+.oc-demo-cap { font: 700 12px / 1.3 var(--oc-font-ui); letter-spacing: 0.12em; color: var(--oc-label); text-align: center; }
+.oc-demo-cap b { color: #fff; }
+.oc-demo.is-still .oc-demo-q { opacity: 0; }
+.oc-demo.is-still .oc-demo-ans { opacity: 1; }
+.oc-demo:not(.is-still) .oc-demo-ans { opacity: 0; }
+/* the rules card with a demo: a little tighter so the card + the demo + 3-2-1 sit on a 390 × 844 screen */
+.oc-od .gk-slam:has(.gk-slam-demo) { gap: 14px; }
+.oc-od .gk-slam-demo { box-sizing: border-box; padding: 0 12px; margin-top: 8px; }
+.oc-od .gk-slam:has(.gk-slam-demo) .gk-slam-count { height: 84px; }
+
 @media (prefers-reduced-motion: reduce) {
   .oc-bg-haze, .oc-combo.is-pop, .oc-combo.is-in, .oc-combo.is-ignite, .oc-combo-flare, .oc-score-n.oc-bump, .oc-fx-streak, .oc-fx-streak i, .oc-ring, .oc-crack, .oc-tile.oc-burst, .oc-tf-btn.oc-burst, .oc-tile.oc-shake, .oc-tf-btn.oc-shake, .oc-tile-bad { animation: none !important; }
   .oc-crack { opacity: 0.62; }
@@ -1365,4 +1515,5 @@
   .oc-rw-stamp, .oc-rw-stamp-glow, .oc-rw-hero, .oc-rw-tie, .oc-rw-none { animation: none !important; }
   .oc-vic *, .oc-fs-row { animation: none !important; }
   .oc-vic .oc-sign-on, .oc-vic-rays { opacity: 1 !important; }
+  .oc-seq-glow, .oc-seq-chip.is-slot.is-filled > b, .oc-ans-seq-c.is-drop, .oc-cl-scale, .oc-cl-span, .oc-cl-mk, .oc-cl-gap, .oc-cl-room, .oc-np-fix b, .oc-np-field.oc-burst, .oc-np-field.oc-shake, .oc-np-field .oc-tile-bad, .oc-num-q.q-in > * { animation: none !important; }
 }

@@ -97,6 +97,28 @@ function tap(k, right = true) {
   if (!s) return;
   if (s.type === 'trivia') { const c = s.questions[k].c; press(document.querySelectorAll('.oc-tile')[right ? c : (c + 1) % 4]); }
   else if (s.type === 'truefalse') { const t = s.items[k].truth; press(document.querySelector((right ? t : !t) ? '.tf-true' : '.tf-false')); }
+  else if (padAnswer(s, k) != null) { typePad(padAnswer(s, k, right)); press(document.querySelector('.gk-np .gk-go')); }
+  else if (s.type === 'missinglink') { typeKeys(right ? s.puzzles[k].answer : 'STONE'); if (!right) press(document.querySelector('.gk-keyboard .gk-go')); }
+  else if (s.type === 'unscramble') { const w = right ? s.word : [...s.word].reverse().join(''); typeTiles(w); }
+}
+// OC3 — the kit's pads, pressed like a finger (pointerdown on each key)
+const padAnswer = (s, k, right = true) => {
+  const v = s.type === 'math' ? s.problems[k].ans : s.type === 'pattern' ? s.seqs[k].ans : s.type === 'closest' ? Math.round(s.answer * 1.12) : null;
+  return v == null ? null : right || s.type === 'closest' ? v : v + 7;
+};
+function typePad(v) {
+  for (const ch of String(v).replace('-', '−')) press([...document.querySelectorAll('.gk-np-key')].find(b => b.dataset.k === ch));
+}
+function typeKeys(word) { for (const ch of String(word).toUpperCase()) press([...document.querySelectorAll('.gk-kb-key')].find(b => b.dataset.k === ch)); }
+function typeTiles(word) { for (const ch of String(word)) press([...document.querySelectorAll('.oc-us-tile:not(.is-used)')].find(b => b.dataset.ch === ch)); }
+/** at=typing: a part-typed answer (the pad's first digits, two letters on the keyboard, two tiles) */
+function typing() {
+  const s = spec();
+  if (!s) return;
+  const p = padAnswer(s, 0);
+  if (p != null) typePad(String(p).slice(0, Math.max(1, String(p).length - 1)));
+  else if (s.type === 'missinglink') typeKeys(s.puzzles[0].answer.slice(0, 3));
+  else if (s.type === 'unscramble') typeTiles(s.word.slice(0, 2));
 }
 window.__preview = { game, state, step, tap, push };
 // (the view's test hook needs ?emu in the address — the preview adds it for itself)
@@ -112,6 +134,8 @@ const hold = q.get('hold') === '1' ? new Promise(r => { window.__go = r; }) : nu
   if (at === 'kit') { await kitPage(); return ready(); }
   await wait(250);
   if (hold && /^(right|wrong|combo4|combo10)$/.test(at)) { ready(); await hold; }
+  if (at === 'right' || at === 'wrong' || at === 'typing') for (let w = 0; w < 60 && !spec(); w++) await wait(100);
+  if (at === 'typing') { typing(); return ready(); }
   if (at === 'right' || at === 'wrong') { tap(0, at === 'right'); return ready(); }
   if (at === 'combo4' || at === 'combo10') {
     // the cue + a tap on the NEXT question while it still runs (the cues never block play)
@@ -144,6 +168,7 @@ async function answerOther(s) {
     count: () => s.items.map((it, i) => (i === 1 ? it.ans + 1 : i === 2 ? it.ans + 2 : it.ans)),
     stroop: () => s.items.map((it, i) => (i === 2 ? it.order.find(c => c !== it.ink) : it.ink)),
     reflex: () => [287, 312, null, 255, 301],
+    closest: () => [Math.round(s.answer * 0.86)],
   };
   const picks = (P[s.type] || (() => []))();
   if (picks.length) savePicks(game.matchId, ci, picks);
