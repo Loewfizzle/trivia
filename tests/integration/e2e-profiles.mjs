@@ -454,6 +454,32 @@ await H.run(async () => {
     ok((await val(`pstats/${me0.pid}/pa/ho`)) === ho0, `a SOLO run never counts as hosting (ho ${ho0} → ${await val(`pstats/${me0.pid}/pa/ho`)})`);
     ok(!!(await val(`pstats/${me0.pid}/ac/house-warming`)), 'HOUSE WARMING stays with who has it');
     ok(!!(await val(`pstats/${me0.pid}/it/card-redline`)), 'REDLINE is still hers');
+    // OC5 — THE QUICK SOLO PERSONAL BEST: that SOLO QUICK run is on the server's own board (overclock-quick-solo, its total); the victory body
+    // says NEW PERSONAL BEST; a lower run afterwards says YOUR SCORE + YOUR BEST (the outcome's bests)
+    const qs = await val(`pstats/${me0.pid}/b/overclock-quick-solo`);
+    ok(qs && qs.a === 120 * 5 + 120, `THE QUICK SOLO BOARD: the server counted the run (${JSON.stringify(qs)})`);
+    const v1 = await p0.evaluate(() => ({ stamp: (document.querySelector('.oc-vic-stamp b') || {}).textContent, best: (document.querySelector('.oc-vic-best') || {}).textContent }));
+    ok(v1.stamp === 'NEW PERSONAL BEST', `THE SOLO VICTORY: "${v1.stamp}" (${v1.best})`);
+    await playOc(ocFinal(Array.from({ length: 6 }, () => ({ [uids[0]]: 40 })), [uids[0]]), { [uids[0]]: 'ALICE' }, 'solo-lower');
+    await sleep(800);
+    const v2 = await p0.evaluate(() => ({ stamp: (document.querySelector('.oc-vic-stamp b') || {}).textContent, best: (document.querySelector('.oc-vic-best') || {}).textContent }));
+    ok(v2.stamp === 'YOUR SCORE' && /YOUR BEST · 720/.test(v2.best || ''), `THE SOLO VICTORY, not a best: "${v2.stamp}" + "${v2.best}"`);
+    ok((await val(`pstats/${me0.pid}/b/overclock-quick-solo`)).a === 720, 'the board keeps the best');
+    // OC5 — THE HORSESHOE: ALICE backed the winning horse of a DUMB LUCK race (the server replays the draw from the room's record), BOB didn't
+    const L = await import('../../js/games/overclock/luck.js');
+    const hs = ocFinal(Array.from({ length: 6 }, (_, ci) => ({ [uids[0]]: 90 + ci, [uids[1]]: 100 })));
+    hs.order = ['math', 'memory', 'dumbluck', 'stroop', 'count', 'trivia'];
+    hs.seed = 'e2e-horseshoe';
+    const fld = L.dlField(hs.seed, 2), pk = { [uids[0]]: 4, [uids[1]]: 1 };
+    let lk = Date.now();
+    while (L.dlDraw(hs.seed, 2, fld, pk, lk) !== 4) lk++;
+    hs.dl = { 2: { pk, lk, w: 4 } };
+    hs.results[2] = L.dlResults(hs, 2, hs.dl[2]);
+    const h1 = await playOc(hs, names, 'horseshoe');
+    const hr = h1.ach.find(x => x.id === 'horseshoe');
+    ok(!!hr && hr.name === 'HORSESHOE', `THE HORSESHOE: unlocked from the replayed race + revealed (${h1.ach.map(x => x.name).join(', ')} — its art is THE LAB's: the placeholder tile)`);
+    ok(!!(await val(`pstats/${me0.pid}/it/emb-horseshoe`)) && !(await val(`pstats/${me1.pid}/it/emb-horseshoe`)), 'the server granted THE HORSESHOE to ALICE only (BOB backed a loser)');
+    ok(!!(await val(`pstats/${me0.pid}/pa/gf/overclock-horseshoe`)), 'the flag is kept with a DASH (overclock-horseshoe)');
     await H.backToLobby(p0).catch(() => {});
   }
 });

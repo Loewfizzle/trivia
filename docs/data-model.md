@@ -110,6 +110,12 @@ challenge, with its type's `t-<type>` (docs/overclock.md, js/games/overclock/dea
 shared; a tie = nobody; the server's REDLINE calls the same function), `tm` = each player's ms from the challenge's start to their finish
 (FASTEST's clock; 30 000 if they never finished), `cr` = when a player's best streak was set (ci × 100 + the mark — BEST STREAK's tie-break).
 All host-written in the same patch as `results`; `results` itself is unchanged.
+OC5 — DUMB LUCK: `dl{ci:{pk{uid:lane}, lk, w}}` = the race, stored ONCE by the host when the odds board closes (`pk` = every locked pick — no
+pick = no ticket, `lk` = the lock's server ms, `w` = the drawn winning lane = luck.js#dlDraw(seed, ci, the field, pk, lk)); every phone races
+the same script from it (luck.js#raceScript) on the server clock, a new host reads it and never re-draws, the server replays it (the
+HORSESHOE). A PICK rides the board's EXISTING fields — `oc/{match}/{ci}/{uid}` `{ p: lane + 1, n: 6, ok: 0, done: false }`, changeable until the
+lock (NO rules change); `results[ci]` = the payouts (20 × (odds + 1) for a winning ticket, else 0), in the same shape as every challenge's.
+The daily plug-in (OC5, off) adds `daily{day, v}` to a daily's game (js/games/overclock/daily.js).
 Every client regenerates challenge `ci` with `generate(order[ci], {seed, ci, level, deal: deal[ci]})`; no challenge content is stored.
 Score = round(100·ok/parts) + (perfect ? up to 60 speed bonus); ×2 on the final challenge. `ok` may be fractional
 (Quick Count: off by one = 0.5; Signal Lock: per-round reaction credit 0.1–1, scored as round(160·ok/parts) with no

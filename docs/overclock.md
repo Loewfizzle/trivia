@@ -194,7 +194,7 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
   2. **PHOTO FINISH** — RARE card (`card-photofinish`) — achievement `photo-finish`: the win ALONE in first by exactly ONE point over second (any mode), ≥ 2 players. Flag `overclock-photo`. **BUILT** — Grok's top-down finish + the game's laser, flash + sparks.
   3. **The neon HORSESHOE emblem** — STAYS — any Dumb Luck win (OC5 builds it).
   - **DROPPED** (the owner, Nov 5 10:18 pm): the LONG SHOT card, the OVERDRIVE card, the SOLO card. OVERDRIVE stays the look's + the x4 banner's name; the max-streak feat may still be reported — it unlocks nothing. NO daily card in the Overclock passes (THE DAILY MODULE's).
-- Keep or drop the "YOU" tag on Dumb Luck after seeing it in play.
+- Keep or drop the "YOU" tag on Dumb Luck after seeing it in play. (OC5 built it as a white pill in your lane — still on trial.)
 ## PASS PLAN — proposed Nov 4 (awaiting Ben). Starts only after LOBBY 2.0. One pass at a time on the beelink; Opus 5.5 high; /clear first; ~3–4 h each.
 - OC1 FOUNDATION + THE KIT: Step 0 (docs/overclock.md + ROADMAP line); fix stale tests; cut Lexicon; Quick = default (ALL timings unchanged); room night memory (rules first + sim tests); LOBBY 2.0 cartridge + city pause/memory guard; sounds imported (compressed) + audio unlock + mute; evening-music rotation; THE OVERDRIVE KIT (fonts self-hosted, palette tokens, style-C tiles, tach timer, combo meter x2→x4 OVERDRIVE→x10, right/wrong feedback, title-card slam + 3-2-1, custom number pad + letter keyboard) + no-Firebase preview page; kit proven on TRIVIA LIGHTNING + TRUE OR FALSE.
 - OC2 THE RESULTS FLOW: answer reveal frame (v2) + reveals for every challenge that lacks one; round winner; overall standings (▲ blue / ▼ grey) + skip-when-everyone-taps (min 3 s, max unchanged); FINAL STANDINGS; VICTORY body via finalScene (neon-tube winner name, podium, award chips; console owns button/XP/card reveal); OVERDRIVE x10 tracking may be reported as a feat (it unlocks nothing — the OVERDRIVE card was dropped, Nov 5).
@@ -587,3 +587,80 @@ Signal Lock's GO, the Rewire + Compass demos.
 - `shots.mjs --until` doesn't apply to a `--page` cast (the cast films from the page's ready) — a moment that comes by itself is filmed with a
   wider cast window + `--cast-from`.
 - `tests/integration/e2e-stage2.mjs` + `e2e-8p.mjs` (retired suites, not in any run) still tap the pre-OC3 / pre-OC4 screens.
+
+### OC5 — DUMB LUCK + SOLO + THE DAILY PLUG-IN (Nov 6, 2026)
+**What shipped**
+- **Group 0 — housekeeping:** `tests/integration/e2e-8p.mjs` + `e2e-stage2.mjs` (retired, in no run, tapping the pre-OC3 / pre-OC4 screens)
+  DELETED — `e2e-oc-2` + `e2e-oc-new` already play OVERCLOCK on 8 phones (+ OC5's `e2e-oc-luck`); docs/testing.md updated.
+- **Group 1 — DUMB LUCK's RULES (no pixels; `luck.js`, `tests/overclock-oc5.test.mjs`):** the fixed field of SIX (PINK · GREEN · CYAN · YELLOW
+  · PURPLE · ICE WHITE — no orange), the odds 2-1 3-1 4-1 5-1 8-1 12-1 shuffled across the colours per race (seeded). HONEST ODDS: the implied
+  chances 1/(n+1) normalised to 1 = the real win chances; PAYOUTS 20 × (n+1) = 60 · 80 · 100 · 120 · 180 · 260 — every pick EXACTLY the same
+  expected value (≈ 17.6), proven on a 200,000-race simulation. THE DRAW after the lock (the seed + the challenge + every locked pick + the
+  lock's ms), stored ONCE (`game/dl/{ci}: { pk, lk, w }`) — a new host never re-draws. THE RACE SCRIPT (pure: the winner + the seed → every
+  horse's position, 10,000 scripts: the winner first, nobody teleports or runs backwards, a lead change in > 90 %, ~20–25 % photo finishes, the
+  early leader fades). PLACEMENT in `buildOrder(…, { luck })`: at most once, never last, never solo (one participant) or the daily; Quick /
+  Standard / Marathon like any type (Marathon = the 19 once + 5 skill repeats; solo = the 18 + 6). The combo + FASTEST ignore it; LONG SHOT =
+  the victory's first award chip. THE HORSESHOE: `core/match-report.js#overclockExtra` → `horseshoe` (→ `overclock-horseshoe`) when this player
+  backed the winner of a race the server REPLAYS from the record (`luck.js#dlVerify`: the draw + every payout), 2+ players; its achievement +
+  its emblem `emb-horseshoe` in `api/_lib/catalog.js` (33 achievements).
+- **Group 2 — DUMB LUCK's SCREENS (`ui/dumbluck.js`, `dlsign.js`, `horse-frames.js`):** THE SIGN — DUMB (pink) over LUCK (amber) in the city's
+  tube alphabet on the title slam (the kit's slam took an optional `nameEl`), each letter its own stutter, the unlit glass first, a synthesized
+  neon HUM (`sfx.js#ocHum`). THE ODDS BOARD — six slanted cards in the horses' own colours: the lane, the name, the odds BIG, PAYS n, a small
+  neon horse (the same traced frame), name tags ("ALICE +3"); your card FILLS with its colour + breathes; the gate's countdown + bar. THE HORSES —
+  `scripts/build-dl-horses.py` traces Muybridge's 1878 photos (public domain): a threshold, an opening that wipes the grid + the numerals, the
+  ground cut, the horse's own component, its outline + the gaps between crossed legs, simplified → 12 frames (11 the gallop, 1 standing) in one
+  shared box (27 KB). At 60 pt a leg's outline is narrower than the tube, so it draws as ONE thick bright tube. Each frame pre-rendered ONCE per
+  colour (a sprite sheet: the glass fill, the soft glow, the tube, a white-hot core) + a breathing halo for yours + a white one for the winner.
+  THE RACE — Canvas 2D, the camera on the leader (the track ≈ 10 screens long, its posts scrolling), six lanes ~58–62 pt, the frame flips with the
+  distance run, the gate stalls at the start, the checkered neon finish line; your horse pulses, your lane breathes in its colour, your number
+  wears a white ring, the YOU tag (on trial); the RUNNING ORDER strip + the callouts (AND THEY'RE OFF! · PINK LEADS · THE FINAL STRETCH). THE
+  FINISH — the freeze, the white flash, PHOTO FINISH, the winner's colour over the whole screen, LONG SHOT! + the rays for an 8-1 / 12-1, the
+  result under the track (in a reserved slot — nothing jumps): WINS · the odds, the payouts (yours in your horse's colour), YOUR TICKET PAYS / YOUR
+  HORSE · 4TH. The shared flow: THE ANSWER (the winner, YOUR HORSE struck when it lost, the finishing order with who backed each), WINNING
+  TICKETS: YOU · LEO / THE HOUSE WINS, the standings (HAD PINK / NO TICKET; a long shot's rank jump slower + bigger). Spectators watch the race.
+  The sounds 19–23 (lazy, `DL_FILES`; the hooves a gapless buffer loop, the crowd swelling down the stretch). HOW TO PLAY's lines.
+- **Group 3 — SOLO:** THE QUICK SOLO PERSONAL BEST — the new board `overclock-quick-solo` (`core/boards.js`), computed by the server from the
+  room's record (`match-report.js`): a solo QUICK run, all six, six real skill challenges, every result ≤ THE SCORING TABLE's ceiling for its
+  ok / parts (`logic.js#ptsCeiling`, ×2 on the last) — else refused. STANDARD's solo board unchanged. The report's outcome now carries `bests`
+  (`api/_lib/stats.js`) → the solo victory: NEW PERSONAL BEST (beaten) · YOUR SCORE + YOUR BEST (not) · just the score (/api down).
+- **Group 4 — THE DAILY PLUG-IN, OFF (`daily.js`):** `daily = { on: false, create, resumeKey, result, replay, problems }`. `create({ date, uid,
+  now, daySet, code })` — the NEW `daySet` slot (docs/cartridge.md): `{ v: 1, day, seed (opaque — the module's secret, never the date), order (six
+  skill challenges, ONE PER BRAIN CATEGORY — a knowledge one, never DUMB LUCK), deal?, trivia? (three own-bank questions) }` → a solo QUICK match,
+  fully deterministic (no Math.random, no live Trivia API). `resumeKey` = one try a day; a lock / a refresh resumes the stored run. `result` =
+  the points + the total answer time (lower wins) + ONE comparable rank number; `replay` = the server re-scores a finished record.
+- **Group 5 — THE LOOK REVIEW:** `overclock-preview.html` (`type=dumbluck` · `at=brief|play|race|finish|answer` · `&picks=none|mine|crowd` ·
+  `&t=` · `&win=long|house|you` · `&photo=1` · `&freeze=1` (the fake server clock held) · the solo victory's `&pb=new|best`); three rounds at
+  390 / 412 / 1440; the no-sideways guard's `luck` group; the motion proof.
+
+**Decisions (OC5)**
+- **HONEST ODDS + THE PAYOUTS:** payout = 20 × (n + 1) — the only whole-point table with EXACTLY equal EV; in challenge units (100) 0.6 · 0.8 · 1
+  · 1.2 · 1.8 · 2.6 (the plan's 0.5 / 2.5 ends can't be honest). They don't change with the match's length — like every challenge's points,
+  so Dumb Luck weighs one challenge in any mode. The card shows **PAYS 260** (points — what the finish + the standings show) where the plan's
+  mock said "PAYS n×" (a multiplier of nothing a player sees).
+- **THE DRAW** = a hash of the match seed + the challenge + every locked pick + the lock's server ms (the host's tick after the 7-s board):
+  nothing a phone sees before the lock fixes it (the test: over every ms a lock could land on, each horse comes up at its odds; one ms later
+  is a fresh draw). Stored once; the server replays it. (A hacked HOST could re-roll inside its own tick — the same trust as every result
+  a host writes; the plausibility bounds stay.)
+- **A PICK RIDES THE BOARD's EXISTING FIELDS** (`p = lane + 1, n = 6, ok 0, done false`) — no rules change, nothing to re-publish, works on the
+  published rules. The board is public (the name tags need it); the race's result lives in the game only after the lock.
+- **THE SLOT:** the odds board 7 s → the race 16 s (from the lock) → THE FINISH 4 s = 27 s, `phaseEndsAt = start + DL_MS` (inside CHALLENGE_MS;
+  it never ends early); then the shared 8-s after-screen (THE ANSWER → WINNING TICKETS → the standings). No existing timing changed.
+- **PLACEMENT:** at most once (a long match's repeats are skill challenges), never last (the ×2 final stays skill), never with one player, never
+  the daily. Its night key `t-dumbluck` joins the rematch preference.
+- **THE HAND-OFF:** WINNING TICKETS for one or many (the OVERDRIVE stamp); the ROUND WIN rule is unchanged — a shared ticket is a tie (no
+  sole round win; REDLINE counts it the same), nobody = THE HOUSE WINS.
+- **THE HORSESHOE's ART is THE LAB's (the city chat):** the emblem ships as a catalog item with a placeholder glyph (∩) and NO lab row —
+  `tests/vault-2b.test.mjs#PENDING_ART` names it; Grok's `04-horseshoe.jpg` is in `Downloads/grok/overclock-cards/` for that pass.
+- **THE QUICK SOLO BOARD's BOUND** = the scoring table per result (not a flat 560): a solo QUICK record no real run makes is refused.
+- **THE DAILY's SCORE** = the points, the tie-break = the total answer time (a challenge never finished = its 30 s); `rankOf(score, time)` = ONE
+  number for the module's percentiles. `replay` re-scores from ok / parts / time (what every match's server bound trusts: the per-part answers
+  stay the module's to seal).
+- **The horses:** traced from the PHOTOS (never the tiny reversed silhouettes); outlines, not a skeleton — at 60 pt a thin part's outline IS a
+  thick tube. Lanes in a FIXED colour order (lane 1 PINK … 6 ICE WHITE) so the room can yell colours + lane numbers.
+- **The YOU tag** in the lane = a white pill ("YOU" / "YOU +2") — still ON TRIAL (the owner judges it in play).
+
+**Known issues / held back**
+- At 4× CPU THE FINISH's own instant (the freeze + the result's DOM) costs one frame over 25 ms; the race itself 0.
+- THE HORSESHOE emblem shows its placeholder glyph until THE LAB draws + approves its art.
+- No CHEER button (optional in the plan, not this pass); no marquee bulbs (by design).
+- The daily's `replay` re-scores from the per-challenge record (ok / parts / time) — answer-level replay is the daily module's (it seals them).

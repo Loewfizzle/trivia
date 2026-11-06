@@ -2092,3 +2092,17 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
   ~1.5 s; now the boot screen holds until the city's reveal: ONE fade; its sign on the title's spot); THE TOGGLE (the #net pill's own
   fade-out as its sheet landed; now hidden inline from the first frame); the sign's halo drawn through the resize pin. 32 / 32 WebKit
   loads clean, `load` 19 / 19, no look change (pixdiff), the speed gate the same. No rules change.
+
+## OVERCLOCK OC5 — DUMB LUCK + SOLO + THE DAILY PLUG-IN (Nov 6, 2026)
+- Group 0: the retired e2e-8p + e2e-stage2 deleted (e2e-oc-2 / e2e-oc-new already play 8 phones).
+- Group 1: DUMB LUCK's rules first (luck.js): the six horses, honest odds + equal-EV payouts 20 × (n+1) (a 200,000-race sim), the draw after the
+  lock stored once in game/dl, the race script (10,000 scripts), once / never last / never solo; THE HORSESHOE flag (overclock-horseshoe) replayed
+  by the server + its achievement (33) — the emblem's art pending in THE LAB.
+- Group 2: the screens — the neon sign + hum, the odds board, the race (Muybridge's gallop traced into neon tubes, pre-rendered per colour), THE
+  FINISH (photo finish, LONG SHOT!), THE ANSWER, WINNING TICKETS / THE HOUSE WINS, a long shot's rank jump, the five sounds (lazy).
+- Group 3: THE QUICK SOLO PERSONAL BEST (overclock-quick-solo, bounded by the scoring table); NEW PERSONAL BEST / YOUR BEST on the solo victory.
+- Group 4: THE DAILY PLUG-IN (OFF): the server-picked daySet in (create's new slot — docs/cartridge.md), one try (resumeKey), one comparable score
+  out + the server's replay.
+- Group 5: the look review at 390 / 412 / 1440, the no-sideways guard's luck group, the motion proof (Downloads/neon/overclock/shots/oc5-proof-*).
+- No rules change (a pick rides the board's existing fields). Docs: docs/overclock.md (OC5), cartridge, data-model, profiles, progression, testing.
+

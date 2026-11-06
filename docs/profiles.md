@@ -238,7 +238,9 @@ for the stack) with Clear / Clear all; entries quiet for 30 days are pruned.
   the least a LOST multiplayer match pays (`XP.played` 30). Only the first `SOLO_DAY_XP` = 4 solo matches of the (Eastern) day pay it, then 0
   (the streak still counts). There is NO win, NO placing, NO PB / new-game / variety / weekly-goal XP, and the achievements see rank 0 + no win.
 - **Records**: kept, on the game's SOLO board (`<board>-solo` in core/boards.js — OVERCLOCK's `overclock-std-solo`, with the same bounds
-  as the multiplayer one); never the multiplayer board.
+  as the multiplayer one; OC5: `overclock-quick-solo` = a SOLO QUICK run — no multiplayer QUICK board — bounded by THE SCORING TABLE:
+  every result ≤ `overclock/logic.js#ptsCeiling(type, ok, parts, last)`, six real skill challenges); never the multiplayer board. The report's
+  outcome carries `bests` (the all-time best of each record the match counted for) — OVERCLOCK's solo victory shows YOUR BEST from it.
 - **The room**: the host writes the night entry with **0 points** (host.js), so there's no WINNER's BANNER, no night's champion and no
   night bonus. /api/report expects the 0 (a host writing 3 for a solo match is refused: mismatch). There's no rematch vote either (no one
   else to vote). The podium says **SOLO RUN** + the player + the score (`ui/final.js` — a game's own `finalScene` draws its solo body).

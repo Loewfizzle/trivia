@@ -294,6 +294,12 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     there, THE VICTORY body in the console's frame (39 checks).
   - THE MOTION PROOF (OC2): `shots.mjs --page "tests/integration/overclock-preview.html?type=trivia&at=wrong&hold=1" --cast 1000 --strip 8 --webm --js "__go()"`
     — a CDP screencast started before `--js`; `--strip N` = N frames evenly in time on one row, `--webm` = the frames at their real times.
+  - DUMB LUCK (OC5): `node tests/integration/e2e-oc-luck.mjs "<browser path>" ./shots-oc-luck` (N=8, ≈ 1.5 min, the emulators) — a QUICK
+    match with DUMB LUCK first: the neon sign, the same field on every phone, real taps (several on one horse, the 12-1, a changed pick, a
+    phone with no pick), THE LOCK + THE DRAW replayed, a REFRESH mid-race, THE HOST killed mid-race (nothing re-drawn), THE FINISH, the
+    payouts, THE ANSWER, WINNING TICKETS / THE HOUSE WINS, the shared round-win rule. The rules: `tests/overclock-oc5.test.mjs` (the
+    200,000-race simulation, the draw's unpredictability, 10,000 race scripts, the placement, whole matches, the daily plug-in); the HORSESHOE +
+    THE QUICK SOLO BOARD in `tests/profiles.test.mjs` + the profile E2E (§10). The guard's `luck` group = every Dumb Luck screen.
   - NO SIDEWAYS SCROLL (OC3 — the owner's phone: the victory slid left): `node tests/integration/e2e-oc-sideways.mjs "<browser>"` (needs only
     `scripts/serve.mjs`; ≈ 11 min for all 48 screens × 390 / 402 / 430 — `ONLY=victory,answer,…` (a group or part of a name) · `SIZES=390x844`) —
     every Overclock screen on the preview: the document + every scroll box no wider inside than out (read twice), and a sideways swipe (the
