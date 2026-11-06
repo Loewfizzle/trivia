@@ -30,6 +30,7 @@ import { oddFace } from './ui/oddone.js';
 import { oddWhy } from './odd.js';
 import { shapeEl } from './ui/count.js';
 import { compassDial } from './ui/compass.js';
+import { dlOf, raceScript } from './luck.js';
 
 const key = (m, ci) => `oc:pk:${m}:${ci}`;
 export function savePicks(m, ci, picks) { try { sessionStorage.setItem(key(m, ci), JSON.stringify(picks)); } catch { /* private mode: this screen only */ } }
@@ -521,7 +522,35 @@ function compass(spec, picks, ctx = {}) {
   return box(answerPanel({ sub: 'THE TURNS, PLAYED OUT', slot: h('div.oc-cpa', h('div.oc-cpa-k', h('span', 'YOU STARTED FACING · THE TURNS · WHERE YOU END'), picks.length ? h('span', h('b', `${right}/${spec.rounds.length}`), ' RIGHT') : null), rows), delay: 80 }));
 }
 
-export const ANSWERS = { trivia, truefalse, math, pattern, closest, missinglink, unscramble, spellcheck, higherlower, timeline, sortit, memory, oddone, count, stroop, reflex, rewire, compass };
+// DUMB LUCK (OC5 — its THE FINISH was the race's own answer; this is the after-screen's first beat): THE WINNER on the white-hot tile (its
+// color + its odds), YOUR HORSE struck when it lost (none = NO TICKET — from the room's record, so another device shows it too), the whole
+// field's FINISHING ORDER in its colors, and who got PAID
+const horseChip = (x, cls = '') => h(`span.oc-ans-horse${cls}`, { style: { '--hc': x.c } }, h('i', { 'aria-hidden': 'true' }), h('b', x.name), h('small', `${x.n}-1`));
+function dumbluck(spec, picks, ctx) {
+  const g = ctx.game, d = g && dlOf(g, g.ci);
+  if (!d) return box(answerFrame({ q: 'WHO WON THE RACE?', answer: '—', delay: 120 }));
+  const f = spec.field[d.w];
+  const mine = d.pk[ctx.me];
+  const state = mine == null ? 'none' : mine === d.w ? 'right' : 'wrong';
+  const order = raceScript(g.seed, g.ci, d.w).order;
+  const paid = (ctx.uids || []).filter(u => d.pk[u] === d.w);
+  return box(answerFrame({
+    q: 'WHO WON THE RACE?', answer: horseChip(f), pick: mine != null ? horseChip(spec.field[mine]) : null, pickLabel: 'YOUR HORSE',
+    state, note: 'NO TICKET',
+    slot: h('div.oc-ans-dl',
+      h('div.oc-ans-dl-k', 'THE FINISH'),
+      h('ol.oc-ans-dl-order', order.map((lane, i) => {
+        const x = spec.field[lane];
+        const who = (ctx.uids || []).filter(u => d.pk[u] === lane).map(u => (u === ctx.me ? 'YOU' : ctx.player(u).name));
+        return h('li', { class: [lane === mine ? 'is-mine' : '', i === 0 ? 'is-win' : ''].join(' '), style: { '--hc': x.c, '--i': i } },
+          h('span.oc-ans-dl-pl', String(i + 1)), h('i.oc-ans-dl-dot', { 'aria-hidden': 'true' }), h('b.oc-ans-dl-name', x.name), h('span.oc-ans-dl-odds', `${x.n}-1`),
+          h('span.oc-ans-dl-who', i === 0 && who.length ? `+${x.pay} · ${who.join(' · ')}` : who.join(' · ')));
+      })),
+      paid.length ? null : h('div.oc-ans-dl-house', 'THE HOUSE KEEPS IT — NOBODY BACKED THE WINNER')),
+    delay: 120,
+  }));
+}
+export const ANSWERS = { trivia, truefalse, math, pattern, closest, missinglink, unscramble, spellcheck, higherlower, timeline, sortit, memory, oddone, count, stroop, reflex, rewire, compass, dumbluck };
 /** the older reveals still in THE ANSWER's panel as they are (their own kicker stays inside the slot) until each one's rebuild */
 export const PANELS = new Set();   // (OC4: every challenge has its own dressed answer now — COMPASS was the last old panel)
 export const hasAnswer = type => !!ANSWERS[type] || PANELS.has(type);

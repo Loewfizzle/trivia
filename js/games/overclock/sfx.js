@@ -33,9 +33,18 @@ export const OC_SOUNDS = Object.freeze({
   ...Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`mem${i}`, [`14-memory-tone-${i + 1}`, 0.42, 0, 0, 0]])),
   flash: ['13-reflex-flash', 0.5, 0, 0, 200],
   place: ['10-tile-place', 0.32, 0, 0, 40],
+  // OC5 — DUMB LUCK (its own five — fetched only when a match deals it: DL_FILES, view.js): the bell at the off, the hooves under the race
+  // (a gapless loop — ocLoop), the crowd swelling down the stretch, the photo-finish freeze, LONG SHOT!
+  bell: ['19-starting-bell', 0.42, 0, 0, 2000],
+  hooves: ['20-hooves-loop', 0.2, 0, 0, 0],
+  roar: ['21-crowd-roar', 0.32, 0, 0, 0],
+  photo: ['22-photo-finish', 0.5, 0, 0, 1500],
+  longshot: ['23-longshot-win', 0.5, 0, 0, 3000],
 });
-/** the files this pass plays (the rest of the set waits for its pass — OC2 … OC5) */
-export const OC1_FILES = [...new Set(Object.values(OC_SOUNDS).map(s => s[0]))];
+/** DUMB LUCK's files (lazy: only a match that deals it fetches them) */
+export const DL_FILES = ['19-starting-bell', '20-hooves-loop', '21-crowd-roar', '22-photo-finish', '23-longshot-win'];
+/** the files every match preloads (index.js#preload — DUMB LUCK's wait for a match that deals it) */
+export const OC1_FILES = [...new Set(Object.values(OC_SOUNDS).map(s => s[0]))].filter(f => !DL_FILES.includes(f));
 
 const bytes = new Map();    // file → Promise<ArrayBuffer | null>
 const bufs = new Map();     // file → AudioBuffer | Promise | null (per context)
@@ -58,6 +67,57 @@ function buffer(file) {
     .then(b => { bufs.set(file, b); return b; }, () => { bufs.set(file, null); return null; });
   bufs.set(file, p);
   return p;
+}
+
+/** a LOOP (the hooves): a buffer source with loop = true (Web Audio's own seamless loop — never <audio loop>), faded in; → { stop(ms), gain(g, ms) }
+ *  (a no-op handle when audio is locked / missing — never throws) */
+export function ocLoop(name, { gain = 1, fadeMs = 400 } = {}) {
+  const none = { stop() {}, gain() {} };
+  try {
+    const def = OC_SOUNDS[name];
+    if (!def || !isUnlocked()) return none;
+    const ctx = getContext(), bus = getSfxBus();
+    if (!ctx) return none;
+    const g = ctx.createGain();
+    g.gain.value = 0;
+    g.connect(bus || ctx.destination);
+    let src = null, dead = false, want = def[1] * gain;
+    const b = buffer(def[0]);
+    const start = buf => {
+      if (dead || !buf || ctx.state !== 'running') return;
+      src = ctx.createBufferSource();
+      src.buffer = buf; src.loop = true; src.loopStart = 0; src.loopEnd = buf.duration;
+      src.connect(g);
+      src.start();
+      g.gain.setTargetAtTime(want, ctx.currentTime, fadeMs / 3000);
+    };
+    if (b && typeof b.then === 'function') b.then(start); else start(b);
+    return {
+      stop(ms = 500) { dead = true; try { g.gain.setTargetAtTime(0, ctx.currentTime, ms / 3000); if (src) src.stop(ctx.currentTime + ms / 1000 + 0.1); } catch { /* gone */ } },
+      gain(v, ms = 600) { want = def[1] * v; try { g.gain.setTargetAtTime(want, ctx.currentTime, ms / 3000); } catch { /* gone */ } },
+    };
+  } catch { return none; }
+}
+/** A NEON HUM (DUMB LUCK's sign powering up): a quiet 120 Hz buzz synthesized on the spot (a saw through a low-pass + a fast flutter while the
+ *  tubes flicker), ~1.4 s — no file. Felt more than heard. */
+export function ocHum({ gain = 1, ms = 1400 } = {}) {
+  try {
+    if (!isUnlocked()) return false;
+    const ctx = getContext(), bus = getSfxBus();
+    if (!ctx || ctx.state !== 'running') return false;
+    const t = ctx.currentTime, o = ctx.createOscillator(), o2 = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.value = 120; o2.type = 'square'; o2.frequency.value = 240;
+    f.type = 'lowpass'; f.frequency.value = 620; f.Q.value = 0.7;
+    const top = 0.05 * gain;
+    g.gain.setValueAtTime(0, t);
+    // the flicker: the buzz stutters on with the tubes, then settles
+    [[0.02, 1], [0.07, 0.15], [0.12, 0.9], [0.16, 0.2], [0.22, 1]].forEach(([d, k]) => g.gain.setValueAtTime(top * k, t + d));
+    g.gain.setTargetAtTime(top * 0.55, t + 0.3, 0.2);
+    g.gain.setTargetAtTime(0, t + ms / 1000 - 0.3, 0.12);
+    o.connect(f); o2.connect(f); f.connect(g); g.connect(bus || ctx.destination);
+    o.start(t); o2.start(t); o.stop(t + ms / 1000 + 0.2); o2.stop(t + ms / 1000 + 0.2);
+    return true;
+  } catch { return false; }
 }
 
 /** play one (never throws) */

@@ -1704,3 +1704,183 @@
 .oc-demo-cp-lit { position: absolute; inset: 0; transform: skewX(var(--oc-slant)); border: 2px solid var(--good); box-shadow: 0 0 14px color-mix(in srgb, var(--good) 60%, transparent), inset 0 0 12px color-mix(in srgb, var(--good) 35%, transparent); opacity: 0; }
 .oc-demo.is-still .oc-demo-cp-card:last-child, .oc-demo.is-still .oc-demo-cp-lit { opacity: 1; }
 .oc-demo.is-still .oc-cp-arrow { transform: rotate(180deg); }
+
+/* ===================================================================================================== OC5 — DUMB LUCK (ui/dumbluck.js)
+   The horses keep THEIR OWN colours (--hc, the same on every phone — never the OVERDRIVE orange): the odds board, the race (Canvas 2D —
+   every glow pre-rendered), THE FINISH. Transform + opacity only; reduced motion = everything at rest. */
+.oc-od .oc-stage.is-luck { justify-content: flex-start; gap: 0; padding-bottom: 6px; }
+.oc-od .oc-stage.is-luck > .ch-hero { display: none; }
+.oc-dl { position: relative; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.oc-dl[data-stage="pick"] .oc-dl-race, .oc-dl:not([data-stage]) .oc-dl-race { display: none; }
+.oc-dl[data-stage]:not([data-stage="pick"]) .oc-dl-board { display: none; }
+/* ---- THE ODDS BOARD */
+.oc-dl-board { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; gap: 10px; padding-top: 4px; }
+.oc-dl-bhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 2px; }
+.oc-dl-btitle { font: italic 900 clamp(22px, 7vw, 28px) / 1 var(--oc-font-title); letter-spacing: 0.02em; color: #fff; }
+.oc-dl-gate { font: 700 11px / 1 var(--oc-font-ui); letter-spacing: 0.16em; color: var(--oc-label); white-space: nowrap; }
+.oc-dl-gate-n { display: inline-block; min-width: 1ch; margin-left: 4px; font: italic 900 26px / 1 var(--oc-font-title); color: #fff; }
+.oc-dl-gate.is-hot .oc-dl-gate-n { color: var(--oc-white-hot); text-shadow: 0 0 12px var(--oc-hot-glow); }
+.oc-dl-gatebar { position: relative; height: 6px; overflow: hidden; transform: skewX(var(--oc-slant)); background: rgba(255, 255, 255, 0.08); }
+.oc-dl-gate-fill { position: absolute; inset: 0; transform-origin: 0 50%; background: linear-gradient(90deg, var(--oc-hot), #ffb072); will-change: transform; }
+.oc-dl-cards { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(0, 1fr); gap: 10px 12px; flex: 1 1 auto; min-height: 0; max-height: 470px; padding: 0 14px 0 12px; }
+.oc-dl-card { position: relative; display: block; min-height: 104px; padding: 0; border: 0; color: #fff; text-align: left; background: none; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; transform: skewX(var(--oc-slant)); }
+.oc-dl-card::before { content: ''; position: absolute; inset: 0; border-radius: 4px; background: linear-gradient(160deg, color-mix(in srgb, var(--hc) 14%, #161a22), #0c0f15 70%); border: 2px solid var(--hc); box-shadow: 0 0 16px -4px var(--hc), inset 0 0 18px -8px var(--hc); }
+.oc-dl-card-glow { position: absolute; inset: -3px; border-radius: 6px; box-shadow: 0 0 26px 4px var(--hc); opacity: 0; pointer-events: none; }
+.oc-dl-card-in { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; height: 100%; padding: 9px 12px 9px 14px; transform: skewX(calc(-1 * var(--oc-slant))); }
+.oc-dl-card-top { display: flex; align-items: center; gap: 7px; }
+.oc-dl-card-mid { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; }
+.oc-dl-card-bot { display: flex; align-items: flex-end; justify-content: space-between; gap: 4px; min-height: 30px; }
+.oc-dl-card-horse { flex: none; width: clamp(52px, 15.5vw, 66px); aspect-ratio: 132 / 94.8; margin: 0 -2px -3px 0; pointer-events: none; }
+.oc-dl-card-horse svg { display: block; width: 100%; height: 100%; overflow: visible; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.oc-dlh-fill { fill: color-mix(in srgb, var(--hc) 14%, transparent); fill-rule: evenodd; stroke: none; }
+.oc-dlh-glow { stroke: var(--hc); stroke-width: 6; opacity: 0.55; }
+.oc-dlh-tube { stroke: var(--hc); stroke-width: 2.6; }
+.oc-dlh-core { stroke: #fff; stroke-width: 0.9; opacity: 0.85; }
+.oc-dl-card.is-mine .oc-dlh-fill { fill: rgba(10, 12, 17, 0.12); }
+.oc-dl-card.is-mine .oc-dlh-glow { stroke: #0a0c11; opacity: 0.18; }
+.oc-dl-card.is-mine .oc-dlh-tube { stroke: #0a0c11; }
+.oc-dl-card.is-mine .oc-dlh-core { stroke: rgba(255, 255, 255, 0.5); }
+.oc-dl-lane { display: grid; place-items: center; width: 20px; height: 20px; font: 700 12px / 1 var(--oc-font-ui); color: #0a0c11; background: var(--hc); border-radius: 3px; }
+.oc-dl-cname { font: 700 15px / 1 var(--oc-font-ui); letter-spacing: 0.12em; color: var(--hc); }
+.oc-dl-odds { font: italic 900 clamp(38px, 11.6vw, 52px) / 0.88 var(--oc-font-title); letter-spacing: 0.01em; color: var(--hc); text-shadow: 0 0 16px color-mix(in srgb, var(--hc) 55%, transparent); }
+.oc-dl-card .oc-dl-pays { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; padding-bottom: 2px; }
+.oc-dl-card .oc-dl-pays small { font: 700 10px / 1 var(--oc-font-ui); letter-spacing: 0.16em; color: #dfe4ef; }
+.oc-dl-card .oc-dl-pays b { font: italic 900 clamp(19px, 5.6vw, 24px) / 1 var(--oc-font-title); letter-spacing: 0.02em; color: #fff; }
+.oc-dl-tags { display: flex; flex-wrap: wrap; align-content: flex-end; gap: 4px; min-width: 0; min-height: 18px; }
+.oc-dl-tag { display: inline-flex; align-items: baseline; max-width: 100%; padding: 3px 6px 2px; overflow: hidden; font: 700 11px / 1.05 var(--oc-font-ui); letter-spacing: 0.06em; white-space: nowrap; text-overflow: ellipsis; color: #fff; background: rgba(10, 12, 17, 0.72); border: 1px solid color-mix(in srgb, var(--hc) 70%, transparent); border-radius: 3px; }
+.oc-dl-tag small { font: inherit; opacity: 0.85; }
+.oc-dl-tag.is-you { color: #0a0c11; background: #fff; border-color: #fff; }
+/* your card FILLS with its horse's colour (+ a breathing pre-rendered glow — its opacity only) */
+.oc-dl-card.is-mine::before { background: var(--hc); box-shadow: 0 0 22px 2px color-mix(in srgb, var(--hc) 70%, transparent); }
+.oc-dl-card.is-mine .oc-dl-card-glow { animation: oc-dl-breathe 1.6s ease-in-out infinite; }
+.oc-dl-card.is-mine .oc-dl-cname, .oc-dl-card.is-mine .oc-dl-odds, .oc-dl-card.is-mine .oc-dl-pays small, .oc-dl-card.is-mine .oc-dl-pays b { color: #0a0c11; text-shadow: none; }
+.oc-dl-card.is-mine .oc-dl-lane { color: var(--hc); background: #0a0c11; }
+.oc-dl-card.is-mine .oc-dl-tag:not(.is-you) { background: rgba(10, 12, 17, 0.85); border-color: rgba(10, 12, 17, 0.9); }
+.oc-dl-card.is-mine .oc-dl-tag.is-you { background: #0a0c11; color: #fff; border-color: #0a0c11; }
+.oc-dl-card:active .oc-dl-card-in { transform: skewX(calc(-1 * var(--oc-slant))) scale(0.97); }
+.oc-dl-card:disabled { cursor: default; }
+.oc-dl-card:disabled:not(.is-mine) { opacity: 0.62; }
+@keyframes oc-dl-breathe { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.95; } }
+.oc-dl-ticket { display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: 0 6px; min-height: 22px; padding: 2px 6px 4px; font: 700 13px / 1.3 var(--oc-font-ui); letter-spacing: 0.06em; color: var(--oc-label); text-align: center; }
+.oc-dl-ticket.has-pick { color: #fff; }
+.oc-dl-ticket b { font: italic 900 20px / 1 var(--oc-font-title); letter-spacing: 0.04em; }
+.oc-dl-ticket-k { font-size: 11px; letter-spacing: 0.18em; color: var(--oc-label); }
+/* ---- THE RACE */
+.oc-dl-race { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; flex: 1 1 auto; min-height: 0; gap: 6px; }
+.oc-dl-call { display: flex; align-items: center; justify-content: center; height: 40px; flex: none; overflow: hidden; }
+.oc-dl-call-in { display: inline-flex; align-items: baseline; gap: 6px; font: italic 900 clamp(24px, 7.4vw, 30px) / 1 var(--oc-font-title); letter-spacing: 0.03em; color: #fff; white-space: nowrap; }
+.oc-dl-call-in b { font: inherit; }
+.oc-dl-call-in span { color: #dfe4ef; }
+.oc-dl-call-in.is-in { animation: oc-dl-call 0.36s cubic-bezier(0.2, 1.3, 0.35, 1) both; }
+@keyframes oc-dl-call { 0% { opacity: 0; transform: translateX(28px) skewX(-14deg); } 100% { opacity: 1; transform: none; } }
+.oc-dl-track { position: relative; flex: 1 1 auto; min-height: calc(6 * 52px + 24px); max-height: calc(6 * 62px + 40px); overflow: hidden; border-radius: 4px; background: #05080a; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
+.oc-dl-cv { position: absolute; left: 0; top: 0; display: block; }
+.oc-dl-lanes { position: absolute; left: 3px; top: var(--top, 12px); display: flex; flex-direction: column; pointer-events: none; }
+.oc-dl-lnum { position: relative; z-index: 0; display: flex; align-items: center; justify-content: center; width: 22px; height: var(--lane, 58px); font: italic 900 15px / 1 var(--oc-font-title); color: var(--hc); text-shadow: 0 0 8px color-mix(in srgb, var(--hc) 70%, transparent); }
+.oc-dl-lnum.is-mine { color: #0a0c11; text-shadow: none; }
+.oc-dl-lnum.is-mine::after { content: ''; position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; background: var(--hc); box-shadow: 0 0 0 2px #fff, 0 0 10px 2px rgba(255, 255, 255, 0.55); z-index: -1; }
+.oc-dl-mine { display: flex; align-items: baseline; justify-content: center; gap: 6px; flex: none; min-height: 26px; font: 700 13px / 1.2 var(--oc-font-ui); letter-spacing: 0.06em; color: #dfe4ef; text-align: center; }
+.oc-dl-mine b { font: italic 900 22px / 1 var(--oc-font-title); letter-spacing: 0.04em; color: var(--hc); }
+.oc-dl-mine-k { font-size: 11px; letter-spacing: 0.18em; color: var(--oc-label); }
+/* ---- THE FINISH (over the frozen track) */
+.oc-dl-fin { position: absolute; inset: 0; display: none; pointer-events: none; }
+.oc-dl-fin.is-on { display: block; }
+.oc-dl-flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+.oc-dl-blast { position: absolute; inset: 0; z-index: 2; display: none; pointer-events: none; background: radial-gradient(ellipse 80% 60% at 60% 46%, color-mix(in srgb, var(--wc) 60%, transparent) 0%, color-mix(in srgb, var(--wc) 26%, transparent) 38%, transparent 72%); opacity: 0.38; }
+.oc-dl-blast.is-on { display: block; }
+.oc-dl-rays-clip { position: absolute; inset: 0; overflow: hidden; }
+.oc-dl-rays { position: absolute; left: 50%; top: 50%; width: 760px; height: 760px; margin: -380px 0 0 -380px; background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--wc) 30%, transparent) 0deg 7deg, transparent 7deg 22deg); opacity: 0.5; will-change: transform; }
+.oc-dl-photo { position: absolute; left: 50%; top: 14px; transform: translateX(-50%) skewX(var(--oc-slant)); padding: 6px 12px 5px; background: #fff; box-shadow: 0 0 18px rgba(255, 255, 255, 0.6); }
+.oc-dl-photo b { display: block; font: italic 900 18px / 1 var(--oc-font-title); letter-spacing: 0.08em; color: #0a0c11; white-space: nowrap; }
+.oc-dl-long { position: absolute; left: 0; right: 0; top: 50%; margin-top: -0.5em; font: italic 900 clamp(46px, 15vw, 64px) / 1 var(--oc-font-title); letter-spacing: 0.02em; text-align: center; color: var(--wc); text-shadow: 0 0 6px rgba(0, 0, 0, 0.9), 0 0 26px color-mix(in srgb, var(--wc) 80%, transparent); -webkit-text-stroke: 1px rgba(255, 255, 255, 0.55); transform: skewX(var(--oc-slant)); }
+.oc-dl-result { position: relative; z-index: 3; display: none; flex-direction: column; align-items: center; gap: 7px; padding: 10px 10px 12px; text-align: center; background: linear-gradient(180deg, rgba(5, 7, 10, 0.92), rgba(5, 7, 10, 0.82)); border: 2px solid var(--wc); border-radius: 6px; box-shadow: 0 0 30px -6px var(--wc); }
+.oc-dl-result.is-on { display: flex; }
+.oc-dl.is-finished .oc-dl-mine { display: none; }
+.oc-dl-wname { font: italic 900 clamp(32px, 10vw, 42px) / 1 var(--oc-font-title); letter-spacing: 0.03em; color: #fff; }
+.oc-dl-wname b { color: var(--wc); text-shadow: 0 0 18px color-mix(in srgb, var(--wc) 60%, transparent); }
+.oc-dl-wname em { font: italic 900 0.62em / 1 var(--oc-font-title); color: #dfe4ef; }
+.oc-dl-result .oc-dl-pays { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.oc-dl-pay { display: inline-flex; flex-direction: row; align-items: center; gap: 5px; padding: 3px 9px 3px 4px; font: 700 13px / 1 var(--oc-font-ui); letter-spacing: 0.05em; white-space: nowrap; color: #fff; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 4px; }
+.oc-dl-pay > b { font: inherit; }
+.oc-dl-pay em { font: italic 900 17px / 1 var(--oc-font-title); color: var(--wc); }
+.oc-dl-pay.is-you { color: #0a0c11; background: var(--hc); border-color: var(--hc); box-shadow: 0 0 16px -2px var(--hc); }
+.oc-dl-pay.is-you em { color: #0a0c11; }
+.oc-dl-nopay, .oc-dl-more { font: 700 13px / 1.2 var(--oc-font-ui); letter-spacing: 0.1em; color: var(--oc-label); }
+.oc-dl-you { font: italic 900 20px / 1.1 var(--oc-font-title); letter-spacing: 0.03em; color: color-mix(in srgb, var(--hc) 75%, #fff); }
+.oc-dl-you.is-won { color: var(--hc); text-shadow: 0 0 14px color-mix(in srgb, var(--hc) 60%, transparent); }
+/* THE RUNNING ORDER over the track: the six horses' places right now (each chip slides to its place — transform only) */
+.oc-dl-order { position: relative; display: block; height: 22px; width: min(100%, 300px); margin: 0 auto 2px; flex: none; }
+.oc-dl-ord { position: absolute; left: 0; top: 0; display: grid; place-items: center; width: calc(100% / 6); height: 22px; transition: transform 0.28s cubic-bezier(0.3, 1.2, 0.4, 1); will-change: transform; }
+.oc-dl-ord::before { content: ''; position: absolute; inset: 0 3px; transform: skewX(var(--oc-slant)); background: color-mix(in srgb, var(--hc) 22%, #0c0f15); border-bottom: 3px solid var(--hc); }
+.oc-dl-ord.is-first::before { background: var(--hc); box-shadow: 0 0 12px -2px var(--hc); }
+.oc-dl-ord b { position: relative; font: italic 900 14px / 1 var(--oc-font-title); color: #fff; }
+.oc-dl-ord.is-first b { color: #0a0c11; }
+.oc-dl[data-stage="off"] .oc-dl-order { opacity: 0.4; }
+/* the finish in motion (a live freeze only — a refresh into it lands at rest) */
+.oc-dl-fin.is-on:not(.is-instant) .oc-dl-flash { animation: oc-dl-flash 0.42s ease-out both; }
+.oc-dl-blast.is-on:not(.is-instant) { animation: oc-dl-blast 1.6s ease-out 0.12s both; }
+.oc-dl-fin.is-on:not(.is-instant) .oc-dl-rays { animation: oc-dl-rays 9s linear infinite, oc-dl-fade 0.8s ease-out 0.4s both; }
+.oc-dl-fin.is-on.is-instant .oc-dl-rays { animation: oc-dl-rays 9s linear infinite; }
+.oc-dl-fin.is-on:not(.is-instant) .oc-dl-photo { animation: oc-dl-stamp 0.34s cubic-bezier(0.2, 1.4, 0.35, 1) 0.05s both; }
+.oc-dl-result.is-on:not(.is-instant) { animation: oc-dl-win 0.44s cubic-bezier(0.2, 1.25, 0.35, 1) 0.9s both; }
+.oc-dl-fin.is-on:not(.is-instant) .oc-dl-long { animation: oc-dl-long 0.5s cubic-bezier(0.2, 1.5, 0.35, 1) 0.45s both, oc-dl-longbeat 0.9s ease-in-out 1s 3; }
+.oc-dl-result.is-on:not(.is-instant) .oc-dl-pay { animation: oc-dl-pay 0.3s ease-out both; animation-delay: calc(1.2s + var(--k, 0) * 80ms); }
+@keyframes oc-dl-flash { 0% { opacity: 0.95; } 100% { opacity: 0; } }
+@keyframes oc-dl-blast { 0% { opacity: 0; transform: scale(0.7); } 22% { opacity: 1; transform: scale(1); } 100% { opacity: 0.38; transform: scale(1.04); } }
+@keyframes oc-dl-rays { to { transform: rotate(360deg); } }
+@keyframes oc-dl-fade { from { opacity: 0; } to { opacity: 0.55; } }
+@keyframes oc-dl-stamp { 0% { opacity: 0; transform: translateX(-50%) skewX(var(--oc-slant)) scale(1.8); } 100% { opacity: 1; transform: translateX(-50%) skewX(var(--oc-slant)) scale(1); } }
+@keyframes oc-dl-win { 0% { opacity: 0; transform: translateY(26px) scale(0.9); } 100% { opacity: 1; transform: none; } }
+@keyframes oc-dl-long { 0% { opacity: 0; transform: skewX(var(--oc-slant)) scale(2.2); } 100% { opacity: 1; transform: skewX(var(--oc-slant)) scale(1); } }
+@keyframes oc-dl-longbeat { 0%, 100% { transform: skewX(var(--oc-slant)) scale(1); } 50% { transform: skewX(var(--oc-slant)) scale(1.07); } }
+@keyframes oc-dl-pay { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: none; } }
+/* ---- THE SIGN (the title slam's name — dlsign.js): each letter flickers on in its own stutter */
+.gk-slam.has-own-name .gk-slam-card { padding: 14px 22px 16px; }
+.gk-slam-name.is-own { text-shadow: none; }
+.oc-dlsign { display: block; }
+.oc-dlsign .oc-sign { gap: 6px; padding: 0; }
+.oc-dlsign .oc-sign-line { --h: clamp(40px, 12.5vw, 54px); }
+.oc-dlsign .oc-tube-body { stroke-width: 1.7; }
+.oc-dlsign .oc-tube-glow { stroke-width: 4.2; opacity: 0.85; }
+.oc-dlsign:not(.is-lit) .oc-sign-on { opacity: 0; animation: oc-dl-fl0 0.95s linear calc(var(--d0, 160ms) + var(--i) * var(--st, 70ms)) forwards; }
+.oc-dlsign:not(.is-lit) .oc-sign-ch.is-fl1 .oc-sign-on { animation-name: oc-dl-fl1; animation-duration: 1.2s; }
+.oc-dlsign:not(.is-lit) .oc-sign-ch.is-fl2 .oc-sign-on { animation-name: oc-dl-fl2; }
+.oc-dlsign:not(.is-lit) .oc-sign-ch.is-fl3 .oc-sign-on { animation-name: oc-dl-fl3; animation-duration: 1.35s; }
+@keyframes oc-dl-fl0 { 0% { opacity: 0; } 8% { opacity: 0.9; } 14% { opacity: 0.1; } 24% { opacity: 1; } 31% { opacity: 0.35; } 40%, 100% { opacity: 1; } }
+@keyframes oc-dl-fl1 { 0% { opacity: 0; } 20% { opacity: 0; } 24% { opacity: 0.75; } 28% { opacity: 0; } 45% { opacity: 0; } 49% { opacity: 1; } 56% { opacity: 0.2; } 63% { opacity: 1; } 71% { opacity: 0.55; } 78%, 100% { opacity: 1; } }
+@keyframes oc-dl-fl2 { 0% { opacity: 0; } 12% { opacity: 1; } 18% { opacity: 0.45; } 22%, 100% { opacity: 1; } }
+@keyframes oc-dl-fl3 { 0% { opacity: 0; } 30% { opacity: 0.12; } 34% { opacity: 0.8; } 36% { opacity: 0.1; } 50% { opacity: 0.2; } 54% { opacity: 1; } 60% { opacity: 0.4; } 66%, 100% { opacity: 1; } }
+/* ---- the shared flow: WINNING TICKETS / THE HOUSE WINS, the horse's tag, a LONG SHOT's slower + bigger rank jump */
+.oc-rw-dl.is-multi .oc-rw-tied .oc-rw-name { display: none; }
+.oc-rw-dl.is-multi .oc-rw-pts { color: var(--oc-hot); }
+.oc-rw-dl-names { font: italic 900 clamp(24px, 7.6vw, 32px) / 1.05 var(--oc-font-title); letter-spacing: 0.03em; color: #fff; text-align: center; }
+.oc-rw-horse { display: inline-flex; align-items: center; gap: 6px; }
+.oc-rw-horse i { width: 10px; height: 10px; border-radius: 50%; background: var(--hc); box-shadow: 0 0 8px var(--hc); }
+.oc-sb.is-longshot .oc-sb-row { transition-duration: 1.25s; }
+.oc-sb.is-longshot.is-sorted .oc-sb-move.is-up { font-size: 1.25em; text-shadow: 0 0 12px var(--oc-cool-glow); }
+/* ---- THE ANSWER (the winner, your horse, the finishing order, who got paid) */
+.oc-ans-horse { display: inline-flex; align-items: baseline; gap: 8px; }
+.oc-ans-horse i { align-self: center; width: 14px; height: 14px; border-radius: 50%; background: var(--hc); box-shadow: 0 0 10px var(--hc); }
+.oc-ans-horse b { font: inherit; color: var(--hc); }
+.gk-answer-tile .oc-ans-horse b { color: inherit; }
+.oc-ans-horse small { font: italic 900 0.8em / 1 var(--oc-font-title); opacity: 0.85; }
+.oc-ans-dl { display: flex; flex-direction: column; gap: 8px; }
+.oc-ans-dl-k { font: 700 10px / 1 var(--oc-font-ui); letter-spacing: 0.18em; color: var(--oc-label); }
+.oc-ans-dl-order { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.oc-ans-dl-order li { display: grid; grid-template-columns: 22px 12px minmax(0, auto) auto 1fr; align-items: center; gap: 8px; min-height: 30px; padding: 3px 10px 3px 8px; background: color-mix(in srgb, var(--hc) 9%, #10131a); border-left: 3px solid var(--hc); transform: skewX(var(--oc-slant)); }
+.oc-ans-dl-order li > * { transform: skewX(calc(-1 * var(--oc-slant))); }
+.oc-ans-dl-order li.is-win { background: color-mix(in srgb, var(--hc) 24%, #10131a); }
+.oc-ans-dl-order li.is-mine { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.85); }
+.oc-ans-dl-pl { font: italic 900 20px / 1 var(--oc-font-title); color: #fff; text-align: center; }
+.oc-ans-dl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--hc); box-shadow: 0 0 8px var(--hc); }
+.oc-ans-dl-name { font: 700 14px / 1 var(--oc-font-ui); letter-spacing: 0.08em; color: var(--hc); white-space: nowrap; }
+.oc-ans-dl-odds { font: italic 900 16px / 1 var(--oc-font-title); color: #dfe4ef; }
+.oc-ans-dl-who { min-width: 0; overflow: hidden; font: 700 12px / 1.1 var(--oc-font-ui); letter-spacing: 0.04em; color: #fff; text-align: right; white-space: nowrap; text-overflow: ellipsis; }
+.oc-ans-dl-order li.is-win .oc-ans-dl-who { color: var(--hc); }
+.oc-ans-dl-house { font: 700 12px / 1.3 var(--oc-font-ui); letter-spacing: 0.1em; color: var(--oc-label); text-align: center; }
+@media (prefers-reduced-motion: reduce) {
+  .oc-dl-card.is-mine .oc-dl-card-glow { animation: none; opacity: 0.6; }
+  .oc-dl-call-in.is-in, .oc-dl-fin .oc-dl-flash, .oc-dl-blast, .oc-dl-fin .oc-dl-rays, .oc-dl-fin .oc-dl-photo, .oc-dl-result, .oc-dl-fin .oc-dl-long, .oc-dl-result .oc-dl-pay { animation: none !important; }
+  .oc-dlsign .oc-sign-on { animation: none !important; opacity: 1 !important; }
+  .oc-sb.is-longshot .oc-sb-row, .oc-dl-ord { transition: none; }
+}

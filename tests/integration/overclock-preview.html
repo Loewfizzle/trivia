@@ -24,7 +24,14 @@
          window.__preview.typePad('123') · typeKeys('WORD') · typeTiles('word')   (a camera's --js can type on the pads)
      OC3B — THE CARD + LIST CHALLENGES (type=spellcheck | higherlower | timeline | sortit): at=play · right · wrong · answer (THE ANSWER, its
          dressing; higherlower: &run=miss (default) | time | perfect) · at=brief&still=1&type=higherlower = its DEMO in the rules card
-         window.__preview.tap(k, right) answers part k (a Higher or Lower call, a spelling, a sort, a whole Timeline order) -->
+         window.__preview.tap(k, right) answers part k (a Higher or Lower call, a spelling, a sort, a whole Timeline order)
+     OC5 — DUMB LUCK (type=dumbluck — always 2+ players):
+         at=brief&still=1   the title slam with the crafted NEON SIGN (powering up)
+         at=play            THE ODDS BOARD   &picks=none | mine (yours + a few) | crowd (several on one horse)   &t=ms into it (default 2200)
+         at=race &t=ms      THE RACE at that moment (default 8000; &t=200 = the off)   at=finish &t=ms   THE FINISH (default 1600)
+             &win=long (an 8-1 / 12-1 winner — LONG SHOT!) · house (nobody backed it) · you (yours wins) · photo=1 (a photo finish)
+         at=answer          the after-screen (&beat=answer | banner | stand) — WINNING TICKETS · THE HOUSE WINS (&win=house)
+         &freeze=1          the server clock held still (window.__clock) — a moving moment as a still -->
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/screens.css">
@@ -79,6 +86,30 @@ if (at === 'answer') game.combo[me] = { c: 2, m: 4 };
 const parts = partsFor(type, levelOf(ci, total));
 const boards = Object.fromEntries(uids.slice(1).map((u, i) => [u, { p: Math.min(parts, i + 1), ok: Math.min(parts, i + 1), n: parts, done: false }]));
 const state = { uid: me, code: 'PVW1', players, presence, game, live: { boards, marks: {}, next: {}, my_boards: {} }, liveKey: null, meta: { status: 'playing' } };
+// OC5 — DUMB LUCK: the field, the picks, the drawn winner (a seed found for the asked moment: a long shot, a photo finish), the race's clock
+const DL = type === 'dumbluck' ? await import('/js/games/overclock/luck.js') : null;
+let dlRace = null;
+if (DL) {
+  const want = q.get('win') || '', photo = q.get('photo') === '1';
+  const picks = q.get('picks') || (at === 'play' ? 'none' : 'mine');
+  let seed = 'preview-seed', w = 0;
+  for (let k = 0; k < 4000; k++) {
+    const sd = `preview-dl-${k}`, f = DL.dlField(sd, ci);
+    const lane = want === 'long' ? f.indexOf(12) : want === 'you' ? 2 : want === 'house' ? f.indexOf(5) : f.indexOf([3, 4, 2][k % 3]);
+    const S = DL.raceScript(sd, ci, lane);
+    if (S.photo === photo) { seed = sd; w = lane; break; }
+  }
+  game.seed = seed;
+  const field = DL.dlField(seed, ci);
+  const others = uids.slice(1);
+  const pk = {};
+  if (picks === 'mine' || picks === 'crowd') pk[me] = want === 'you' ? w : want === 'house' ? (w + 2) % 6 : (w + 1) % 6;
+  others.forEach((u, i) => { pk[u] = picks === 'crowd' ? (i < 3 ? 4 : i % 6) : want === 'house' ? (w + 1 + (i % 4)) % 6 : (i % 3 === 0 ? w : (w + 2 + i) % 6); });
+  if (picks === 'none') for (const u of Object.keys(pk)) delete pk[u];
+  if (at === 'play' && picks === 'none') { /* nobody yet */ } else for (const [u, h] of Object.entries(pk)) if (u !== me || at === 'play') boards[u] = DL.pickBoard(h);
+  if (at === 'play' && picks !== 'none' && pk[me] != null) boards[me] = DL.pickBoard(pk[me]);
+  dlRace = { pk, w, field };
+}
 // &beat=answer|banner|stand|final|victory (OC2): the after-challenge screen opened at that beat (its start moved back on the clock — exactly
 // what a phone rejoining then sees); &still=1 freezes it there
 const BEAT = q.get('beat') || '';
@@ -87,6 +118,17 @@ const setPhase = (phase, len) => { const t = Date.now() - beatOff(phase); const 
 if (at === 'brief') { game.brief = true; setPhase('ready', q.get('still') === '1' ? 600000 : BRIEF_MS); }
 else if (at === 'ready') { game.brief = false; setPhase('ready', q.get('still') === '1' ? 600000 : READY_MS); }
 else setPhase('play', at === 'play' ? CHALLENGE_MS : 600000);
+if (DL) {
+  const T = Number(q.get('t') ?? (at === 'race' ? 8000 : at === 'finish' ? 1600 : 2200));
+  const now0 = Date.now();
+  if (q.get('freeze') === '1') window.__clock = () => now0;
+  const lockAt = at === 'race' ? now0 - T : at === 'finish' ? now0 - DL.DL_RACE_MS - T : now0 - DL.DL_RACE_MS - DL.DL_FINISH_MS - 200;
+  if (at === 'play') Object.assign(game, { phaseStartAt: now0 - T, playStartAt: now0 - T, phaseEndsAt: now0 - T + DL.DL_MS });
+  else if (at === 'race' || at === 'finish' || at === 'answer') {
+    Object.assign(game, { playStartAt: lockAt - DL.DL_PICK_MS - 120, phaseStartAt: lockAt - DL.DL_PICK_MS - 120, phaseEndsAt: lockAt - 120 + DL.DL_MS });
+    game.dl = { [ci]: { pk: dlRace.pk, lk: lockAt, w: dlRace.w } };
+  }
+}
 await loadGame('overclock');   // (the registry knows a game's live paths once its cartridge is in)
 setState({ code: 'PVW1', uid: me });
 state.liveKey = liveKeyFor(game);
@@ -234,6 +276,7 @@ const hold = q.get('hold') === '1' ? new Promise(r => { window.__go = r; }) : nu
   }
   if (at !== 'answer') return ready();
   for (let w = 0; w < 60 && !spec(); w++) await wait(100);   // (a bank-backed challenge waits for its bank)
+  if (DL) { closeRound(DL.dlResults(game, ci, game.dl[ci])); return ready(); }
   if (type !== 'trivia' && type !== 'truefalse') { await answerOther(spec()); return ready(); }
   // THE ANSWER: play the round (trivia: right, wrong, right · true or false: a miss on the 3rd + the 6th), then the round closes
   const s = spec(), N = s.type === 'trivia' ? 3 : s.type === 'truefalse' ? 8 : 0;

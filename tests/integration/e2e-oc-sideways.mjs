@@ -13,7 +13,7 @@ const BROWSER = process.argv[2];
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const SIZES = (process.env.SIZES || '390x844,402x874,430x932').split(',').map(s => s.split('x').map(Number));
 const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'timeline', 'closest', 'rewire',
-  'missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower'];
+  'missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower', 'dumbluck'];
 const SCEN = [
   ...TYPES.map(t => ({ g: 'play', name: `play-${t}`, qs: `type=${t}&at=play` })),
   ...TYPES.map(t => ({ g: 'answer', name: `answer-${t}`, qs: `type=${t}&at=answer&beat=answer&still=1&n=4` })),
@@ -43,6 +43,18 @@ const SCEN = [
   { g: 'victory', name: 'victory-8', qs: 'type=trivia&at=answer&final=1&beat=victory&still=1&n=8' },
   { g: 'victory', name: 'victory-cowin', qs: 'type=trivia&at=answer&final=1&beat=victory&still=1&n=8&cowin=1' },
   { g: 'victory', name: 'victory-solo', qs: 'type=trivia&at=answer&final=1&beat=victory&still=1&n=1' },
+  // OC5 — DUMB LUCK: the sign, the odds board (no pick · yours · a crowd on one horse), the race (the off · mid-race · the stretch), THE FINISH
+  // (a win · LONG SHOT! · THE HOUSE WINS · a photo finish), THE ANSWER, WINNING TICKETS · THE HOUSE WINS, a long shot's standings, the victory's
+  // LONG SHOT chip
+  { g: 'luck', name: 'dl-sign', qs: 'type=dumbluck&at=brief&still=1&n=4' },
+  ...['none', 'mine', 'crowd'].map(p => ({ g: 'luck', name: `dl-board-${p}`, qs: `type=dumbluck&at=play&picks=${p}&n=8&freeze=1` })),
+  ...[300, 8000, 14500].map(t => ({ g: 'luck', name: `dl-race-${t}`, qs: `type=dumbluck&at=race&t=${t}&n=8&freeze=1` })),
+  ...['', 'long', 'house', 'you'].map(w => ({ g: 'luck', name: `dl-finish-${w || 'win'}`, qs: `type=dumbluck&at=finish&t=2500&n=8&freeze=1${w ? `&win=${w}` : ''}` })),
+  { g: 'luck', name: 'dl-finish-photo', qs: 'type=dumbluck&at=finish&t=2500&n=8&freeze=1&photo=1' },
+  { g: 'luck', name: 'dl-answer', qs: 'type=dumbluck&at=answer&beat=answer&still=1&n=8' },
+  { g: 'luck', name: 'dl-banner', qs: 'type=dumbluck&at=answer&beat=banner&still=1&n=8' },
+  { g: 'luck', name: 'dl-banner-house', qs: 'type=dumbluck&at=answer&beat=banner&still=1&n=8&win=house' },
+  { g: 'luck', name: 'dl-stand-long', qs: 'type=dumbluck&at=answer&beat=stand&still=1&n=8&win=long' },
 ];
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
 const list = ONLY.length ? SCEN.filter(s => ONLY.some(o => s.g === o || s.name.includes(o))) : SCEN;

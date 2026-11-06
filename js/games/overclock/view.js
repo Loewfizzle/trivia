@@ -35,11 +35,14 @@ import uiSpellcheck from './ui/spellcheck.js';
 import uiCompass from './ui/compass.js';
 import uiSortIt from './ui/sortit.js';
 import uiHigherLower from './ui/higherlower.js';
+import uiDumbLuck from './ui/dumbluck.js';
+import { dumbLuckSign } from './dlsign.js';
+import { LUCK, dlTickets, pickOf, pickBoard, HORSES } from './luck.js';
 import { bankFor, loadBank, preloadFor, BANK_TYPES } from './banks.js';
 import { CHALLENGE_MS, SKIP_MIN_MS, COMBO_NEUTRAL, levelOf, totals, standings, comboFold, nextInSec, standingsMs, roundWinOf, resultBeats, finalBeats, beatAt, beatStart, roundWins, awardChips, bestWorst } from './logic.js';
 import { createTach } from '../kit/tach.js';
 import { createSlam } from '../kit/slam.js';
-import { ocSfx } from './sfx.js';
+import { ocSfx, ocSfxBytes, ocHum, DL_FILES } from './sfx.js';
 import { createCombo, createFx, comboSound } from './fx.js';
 import { buildAnswer, hasAnswer, loadPicks, savePicks } from './answers.js';
 import { demoFor } from './demos.js';
@@ -53,6 +56,7 @@ const SCREENS = {
   stroop: uiStroop, reflex: uiReflex, count: uiCount, truefalse: uiTrueFalse,
   timeline: uiTimeline, closest: uiClosest, rewire: uiRewire,
   missinglink: uiMissingLink, spellcheck: uiSpellcheck, compass: uiCompass, sortit: uiSortIt, higherlower: uiHigherLower,
+  dumbluck: uiDumbLuck,
 };
 
 export function createView() {
@@ -106,6 +110,8 @@ export function createView() {
     // (OC3: no challenge ever opens the phone's system keyboard — the kit's pads — so no keyboard tracking here any more)
     loadLengths([5, 6, 7]).then(() => { wordsReady = true; if (st) update(st); }).catch(() => {});
     if (state.game && state.game.order) preloadFor(state.game.order).then(() => { if (st) update(st); });
+    // (OC5 — DUMB LUCK's own sounds: fetched only by a match that deals it)
+    if (state.game && state.game.order && state.game.order.includes(LUCK)) ocSfxBytes(DL_FILES).catch(() => {});
     // test hook (emulator runs only): the E2E compares puzzles across phones and reads progress
     if (/[?&]emu\b/.test(location.search)) {
       window.__oc = {
@@ -140,8 +146,11 @@ export function createView() {
     els.name.textContent = INFO[type].name;
     els.x2.hidden = !isFinal;
     // THE TACH runs the challenge's 30 s only (the slam + the answer screens have their own clocks)
-    if (game.phase === 'play') tach.set(game.phaseEndsAt, CHALLENGE_MS); else tach.stop();
-    els.timer.classList.toggle('is-live', game.phase === 'play');
+    // (DUMB LUCK has no answer clock — its gate + its race keep their own time)
+    const luck = type === LUCK;
+    if (game.phase === 'play' && !luck) tach.set(game.phaseEndsAt, CHALLENGE_MS); else tach.stop();
+    els.timer.classList.toggle('is-live', game.phase === 'play' && !luck);
+    root.classList.toggle('is-luck', luck && game.phase === 'play');
     const total = totals(game)[me()] || 0;
     if (total !== lastScore) { countUp(els.score, lastScore, total, 900); lastScore = total; }
     refreshCombo();
@@ -177,7 +186,8 @@ export function createView() {
     for (const uid of uids) {
       const b = boards[uid] || {};
       const s = els.stripMap[uid];
-      const frac = game.phase === 'play' ? Math.min(1, (b.p || 0) / parts) : 0;
+      // (DUMB LUCK: a chip fills once its player has picked a horse)
+      const frac = game.phase !== 'play' ? 0 : game.order[game.ci] === LUCK ? (pickOf(b) >= 0 ? 1 : 0) : Math.min(1, (b.p || 0) / parts);
       s.fill.style.transform = `scaleX(${frac})`;
       s.el.classList.toggle('is-done', game.phase === 'play' && !!b.done);
       s.el.classList.toggle('is-lost', !(st.presence[uid] && st.presence[uid].online));
@@ -195,7 +205,8 @@ export function createView() {
       }
       return;
     }
-    if (!participant(game)) {
+    // (DUMB LUCK: a spectator watches the race too — no ticket)
+    if (!participant(game) && game.order[game.ci] !== LUCK) {
       if (!els.stage.querySelector('.oc-spectate')) { clear(els.stage); els.stage.append(h('div.oc-spectate', h('b', 'SPECTATING'), h('span', 'You join the next match.'))); }
       return;
     }
@@ -216,6 +227,8 @@ export function createView() {
       else mountChallenge(game);
       if (!mine.p) sfx('challenge');
     }
+    // (a screen that follows the room live — DUMB LUCK's picks + its lock)
+    if (chal && chal.ui && chal.ui.sync) chal.ui.sync(st);
   }
 
   function buildSpec(game) {
@@ -352,6 +365,7 @@ export function createView() {
     const s = chal.spec;
     const info = INFO[s.type];
     const isFinal = game.ci === game.total - 1;
+    els.stage.classList.toggle('is-luck', s.type === LUCK);
     els.pips = h('div.ch-pips', Array.from({ length: s.parts }, () => h('i')));
     els.stage.append(h('div.ch-hero', { class: isFinal ? 'is-final' : null, 'aria-label': info.name },
       h('span.ch-hero-glyph', info.glyph),
@@ -390,7 +404,21 @@ export function createView() {
     /** your pick for part i (THE ANSWER shows it after the round — this device only) */
     pick(i, v) { const game = g(); if (!chal || !game) return; (chal.local.picks ||= loadPicks(game.matchId, game.ci))[i] = v; savePicks(game.matchId, game.ci, chal.local.picks); },
     sfx: name => ocSfx(name),
+    // (OC5 — DUMB LUCK: the room as it is — who's playing, their picks, the server clock — + the pick's own write)
+    me: () => me(),
+    isPlayer: () => participant(g()),
+    player: uid => player(uid),
+    uids: () => playerOrder(st.players).filter(u => g() && g().participants && g().participants[u]).concat(Object.keys((g() && g().participants) || {}).filter(u => !st.players[u])),
+    boards: () => boardsNow(g()),
+    now: () => serverNow(),
+    pickHorse: lane => pickHorse(lane),
   };
+  /** DUMB LUCK: a pick = the board's EXISTING fields (p = lane + 1 · n = 6 · ok 0 · not done) — changeable until the gate closes; no rules change */
+  function pickHorse(lane) {
+    const game = g();
+    if (!game || !st.code || !participant(game) || lane < 0 || lane >= HORSES.length) return;
+    dbUpdate(dbRef(`rooms/${st.code}/oc/${game.matchId}/${game.ci}/${me()}`), { ...pickBoard(lane), at: serverTimestamp() }).catch(() => toast('THE GATE IS CLOSED', 'err'));
+  }
 
   // Shared by the newer challenges: set progress directly (ok/p/extra) and publish; `done` locks it in.
   function progress(ok, p, extra, done = false, doneDelay = 450) {
@@ -405,7 +433,7 @@ export function createView() {
     refreshCombo();
   }
 
-  // Newer challenges that grade each step themselves: set ok/p, colour this step's pip, publish.
+  // Newer challenges that grade each step themselves: set ok/p, color this step's pip, publish.
   function step(ok, p, mark, done = false, doneDelay = 450) {
     if (!chal || chal.done) return;
     if (mark) chal.marks[chal.p] = mark;
@@ -439,9 +467,11 @@ export function createView() {
       now: serverNow, startAt: game.phaseStartAt, endsAt: game.phaseEndsAt,
       kicker: isFinal ? 'FINAL CHALLENGE' : `CHALLENGE ${String(game.ci + 1).padStart(2, '0')} / ${String(game.total).padStart(2, '0')}`,
       name: info.name, sub: isFinal ? 'DOUBLE POINTS' : '',
+      // (OC5 — DUMB LUCK's name is a crafted NEON SIGN, powering up with its hum)
+      nameEl: type === LUCK ? dumbLuckSign({ lit: serverNow() - game.phaseStartAt > 1500 }) : null,
       rules: game.brief ? info.rules : [], tone: isFinal ? 'final' : 'hot',
       demo: game.brief ? demoFor(type) : null,   // (OC3 — the hard ones' ~3 s demo, looping inside the rules card's own time)
-      onIntro: () => ocSfx('intro'),
+      onIntro: () => { ocSfx('intro'); if (type === LUCK) setTimeout(() => ocHum(), 120); },
       onCount: c => ocSfx(c === 'GO' ? 'go' : 'count'),
     });
     els.overlay.append(h('div.oc-ready', { class: game.brief ? 'is-brief' : null }, slam.el));
@@ -505,8 +535,9 @@ export function createView() {
   // THE ROUND WINNER: a slanted orange stamp + the winner's emblem + name as the hero (DEAD HEAT + the tied names · NO WINNER) — one rule:
   // logic.js#roundWin (the server's REDLINE rule), stored in game/rw
   function roundBanner(game) {
-    const r = roundWinOf(game, game.ci);
     const type = game.order[game.ci];
+    if (type === LUCK) return ticketsBanner(game);
+    const r = roundWinOf(game, game.ci);
     const tags = [];
     if (game.ci === game.total - 1) tags.push('×2 POINTS');
     if (type === 'closest' && r.kind === 'win') tags.push('CLOSEST GUESS BONUS');
@@ -520,6 +551,27 @@ export function createView() {
       h('div.oc-rw-k', `CHALLENGE ${String(game.ci + 1).padStart(2, '0')} · ${INFO[type].name}`));
     const layer = h('div.oc-rw-wrap', box);
     layer.oc = { enter: animate => { if (animate) { ocSfx('stamp'); if (r.kind === 'win' && r.uid === me()) setTimeout(() => ocSfx('rankUp'), 180); } } };
+    return layer;
+  }
+
+  // DUMB LUCK's hand-off (OC5): the ROUND WINNER banner becomes WINNING TICKETS: YOU · LEO (several can win together) — or THE HOUSE WINS
+  // when nobody backed the winner. (The round-win RULE is unchanged: a shared ticket is no sole round win — the server's REDLINE counts it so.)
+  function ticketsBanner(game) {
+    const t = dlTickets(game, game.ci);
+    const f = t ? HORSES[t.w] : null;
+    const won = !!(t && t.uids.length);
+    const names = won ? t.uids.slice(0, 4).map(u => (u === me() ? 'YOU' : player(u).name)) : [];
+    if (won && t.uids.includes(me())) names.sort((a, b) => (a === 'YOU' ? -1 : b === 'YOU' ? 1 : 0));
+    const who = uid => { const p = player(uid); return h('div.oc-rw-who', { class: uid === me() ? 'is-me' : null, style: { '--c': colorHex(p.color) } }, avatar(p.avatar, p.color, t.uids.length > 1 ? 58 : 96), h('b.oc-rw-name', p.name), uid === me() ? h('span.oc-rw-you', 'YOU') : null); };
+    const box = h('div.oc-rw.oc-rw-dl', { class: won ? (t.uids.length > 1 ? 'is-win is-multi' : 'is-win') : 'is-none', style: f ? { '--hc': f.c } : null },
+      h('div.oc-rw-stamp', h('span.oc-rw-stamp-glow', { 'aria-hidden': 'true' }), h('b', won ? 'WINNING TICKETS' : 'THE HOUSE WINS')),
+      won && t.uids.length > 1 ? h('div.oc-rw-dl-names', names.join(' · '), t.uids.length > 4 ? ` +${t.uids.length - 4}` : '') : null,
+      won ? (t.uids.length > 1 ? h('div.oc-rw-tie', h('div.oc-rw-tied', t.uids.slice(0, 4).map(u => who(u))), h('div.oc-rw-pts', `+${fmtNum(t.pay)} EACH`)) : h('div.oc-rw-hero', who(t.uids[0]), h('div.oc-rw-pts', `+${fmtNum(t.pay)}`)))
+        : h('div.oc-rw-none', f ? `NOBODY BACKED ${f.name}` : 'NOBODY BACKED THE WINNER'),
+      f ? h('div.oc-rw-tags', h('span.oc-rw-tag.oc-rw-horse', h('i', { 'aria-hidden': 'true' }), `${f.name} · ${t.n}-1`), t.long ? h('span.oc-rw-tag', 'LONG SHOT') : null) : null,
+      h('div.oc-rw-k', `CHALLENGE ${String(game.ci + 1).padStart(2, '0')} · DUMB LUCK`));
+    const layer = h('div.oc-rw-wrap', box);
+    layer.oc = { enter: animate => { if (animate) { ocSfx('stamp'); if (won && t.uids.includes(me())) setTimeout(() => ocSfx('rankUp'), 180); } } };
     return layer;
   }
 
@@ -543,7 +595,7 @@ export function createView() {
       const rank = h('span.lb-rank', String(pr && game.ci > 0 ? pr.rank : r.rank));
       const score = h('span.oc-sb-score', fmtNum(pr ? pr.score : 0));
       const mv = h('span.oc-sb-move', { class: moved > 0 ? 'is-up' : moved < 0 ? 'is-down' : 'is-same', 'aria-label': moved > 0 ? `up ${moved}` : moved < 0 ? `down ${-moved}` : 'no change' }, moved > 0 ? `▲${moved}` : moved < 0 ? `▼${-moved}` : '');
-      const note = noteFor(game, res[r.uid], rb[r.uid]);
+      const note = noteFor(game, res[r.uid], rb[r.uid], r.uid);
       const el = h('div.oc-lr.oc-sb-row', { class: [r.uid === me() ? 'is-me' : '', off ? 'is-off' : ''].join(' '), style: { '--c': colorHex(p.color), transform: `translateY(${prevPos[r.uid] * ROW}px)` }, dataset: { uid: r.uid } },
         rank, avatar(p.avatar, p.color, 30),
         h('span.lb-name', h('span.oc-sb-nm', p.name), note ? h('small.lb-note', note) : null),
@@ -553,7 +605,9 @@ export function createView() {
       return { r, pr, el, rank, score, i, moved };
     });
     list.append(...items.map(x => x.el));
-    const box = h('div.oc-sb', h('div.oc-sb-k', h('span', `LEADERBOARD // AFTER ${String(game.ci + 1).padStart(2, '0')}`), h('span.oc-sb-of', `${game.ci + 1} OF ${game.total}`)), list);
+    // (OC5 — after a LONG SHOT the rank jump plays a little slower + bigger)
+    const tk = game.order[game.ci] === LUCK ? dlTickets(game, game.ci) : null;
+    const box = h('div.oc-sb', { class: tk && tk.long && tk.uids.length ? 'is-longshot' : null }, h('div.oc-sb-k', h('span', `LEADERBOARD // AFTER ${String(game.ci + 1).padStart(2, '0')}`), h('span.oc-sb-of', `${game.ci + 1} OF ${game.total}`)), list);
     paintReady();
     const settle = animate => {
       box.classList.add('is-sorted');
@@ -636,10 +690,14 @@ export function createView() {
     }));
   }
 
-  function noteFor(game, r, b) {
+  function noteFor(game, r, b, uid = null) {
     if (!r) return '';
     const type = game.order[game.ci];
     b = b || {};
+    if (type === LUCK) {
+      const d = game.dl && game.dl[game.ci], hh = d && d.pk && uid ? d.pk[uid] : null;
+      return Number.isInteger(hh) && HORSES[hh] ? `HAD ${HORSES[hh].name}` : 'NO TICKET';
+    }
     if (type === 'reflex') return `REFLEX ${Math.round((100 * r.ok) / r.parts)}%`;
     if (type === 'timeline') return `${fmtOk(r.ok)}/4 IN PLACE`;
     if (type === 'rewire') return `${Math.floor(r.ok)}/2 CIRCUITS`;

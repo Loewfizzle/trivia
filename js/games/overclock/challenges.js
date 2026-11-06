@@ -165,8 +165,8 @@ export const STROOP_COLORS = {
   purple: { name: 'PURPLE', hex: '#b46bff' },
   orange: { name: 'ORANGE', hex: '#ff8a2a' },
 };
-// OC4 — the four colours ONLY (red · blue · green · yellow at full saturation — as far apart in hue as four can be): Color Clash is the one
-// challenge ABOUT colour, so it never swaps in purple / orange any more (too close to blue / red for many eyes). Later challenges still
+// OC4 — the four colors ONLY (red · blue · green · yellow at full saturation — as far apart in hue as four can be): Color Clash is the one
+// challenge ABOUT color, so it never swaps in purple / orange any more (too close to blue / red for many eyes). Later challenges still
 // reshuffle the tiles' order every word.
 export const CLASH_COLORS = Object.freeze(['red', 'blue', 'green', 'yellow']);
 export function genStroop(rand, level) {
@@ -571,7 +571,7 @@ export function generate(type, { seed, ci, level, occ = 0, deal = null }, deps =
 }
 
 // ---------- dumb luck (OC5 — luck.js) ----------
-/** the race's field for the screen: each lane's colour + odds + payout (the draw happens later, on the host, after the picks lock) */
+/** the race's field for the screen: each lane's color + odds + payout (the draw happens later, on the host, after the picks lock) */
 export function genDumbLuck(seed, ci) {
   const odds = dlField(seed, ci);
   return { type: LUCK, parts: 1, field: HORSES.map((h, i) => ({ ...h, lane: i, n: odds[i], pay: payout(odds[i]) })) };

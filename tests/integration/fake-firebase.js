@@ -24,7 +24,8 @@ export const firebaseReady = Promise.resolve();
 export async function initFirebase() { return null; }
 export const getDb = () => null;
 export const dbRef = path => ({ path });
-export const serverNow = () => Date.now();
+// (OC5: a preview may FREEZE the server clock — window.__clock() — to hold a moving moment still for a screenshot)
+export const serverNow = () => (typeof window !== 'undefined' && typeof window.__clock === 'function' ? window.__clock() : Date.now());
 export const idToken = () => Promise.reject(new Error('preview: no sign-in'));
 // (9f: CONN's parked-database API — the previews never open a socket: wanting / releasing the line does nothing; the title-preview
 // page threw "does not provide an export named 'release'" from CONN on, so every look preview + title-perf.mjs were down)

@@ -130,6 +130,7 @@ const RULES = {
         'COMPASS — follow the turns in your head, then tap the way you face. Five rounds, each longer.',
         'SORT IT — swipe each card to the side it belongs on. They come faster and faster.',
         'HIGHER OR LOWER — one number is shown: is the hidden one HIGHER or LOWER? One wrong call ends your streak.',
+        'DUMB LUCK — a horse race: pick one of six horses before the gate closes. Back the winner and get paid — 2-1 pays 60, 12-1 pays 260. Two or more players only.',
       ]],
       ['SCORING', [
         'Up to 100 points for accuracy (partial credit counts).',
@@ -138,6 +139,7 @@ const RULES = {
         'Sort It: wrong sorts cost half a point; 10 net right already makes 100.',
         'Compass: the speed bonus only counts your answering time, not the turns playing out.',
         'Get everything right and earn up to +60 for speed.',
+        'Dumb Luck is pure chance with honest odds: every horse pays the same on average — the long shots just pay more, less often.',
         'The final challenge is worth DOUBLE.',
       ]],
       ['GOOD TO KNOW', [

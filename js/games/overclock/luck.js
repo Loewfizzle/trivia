@@ -1,8 +1,8 @@
 // OVERCLOCK — DUMB LUCK (OC5): the 19th challenge, a neon horse race you bet on. PURE (no imports but the seeded RNG) — the director, every
 // phone's race and the SERVER's replay (core/match-report.js#overclockExtra) all use these same functions. docs/overclock.md "OC5".
 //
-//  - A FIXED FIELD OF 6 HORSES every race, any player count, each in its own lane + colour (the same on every phone — a room yells colours;
-//    NO orange horse). The six ODDS are shuffled across the colours per race (seeded from the match seed + the challenge index).
+//  - A FIXED FIELD OF 6 HORSES every race, any player count, each in its own lane + color (the same on every phone — a room yells colors;
+//    NO orange horse). The six ODDS are shuffled across the colors per race (seeded from the match seed + the challenge index).
 //  - HONEST ODDS: a horse's posted odds n-1 imply a chance 1 / (n + 1); the six are NORMALISED to sum to 1 (their ratios kept) — that IS each
 //    horse's real win chance. The PAYOUT is set so every pick has the SAME expected value: payout ∝ 1 / chance ∝ (n + 1) → 20 × (n + 1) points
 //    (2-1 → 60 · 3-1 → 80 · 4-1 → 100 · 5-1 → 120 · 8-1 → 180 · 12-1 → 260 — in units of one normal challenge's 100: 0.6 · 0.8 · 1 · 1.2 ·
@@ -18,10 +18,10 @@ export const LUCK = 'dumbluck';
 // THE TIMES (≈ 27 s — one challenge slot, inside CHALLENGE_MS 30 s; it can't end early: everyone watches)
 export const DL_PICK_MS = 7_000;      // THE ODDS BOARD: pick (changeable) until it locks
 export const DL_RACE_MS = 16_000;     // THE RACE: from the lock (game/dl/{ci}/lk) to the winner's nose on the line
-export const DL_FINISH_MS = 4_000;    // THE FINISH: the photo-finish freeze, the winner's colour, LONG SHOT!, the payouts
+export const DL_FINISH_MS = 4_000;    // THE FINISH: the photo-finish freeze, the winner's color, LONG SHOT!, the payouts
 export const DL_MS = DL_PICK_MS + DL_RACE_MS + DL_FINISH_MS;
 
-// THE FIELD — lane order = this order (lane 1 PINK … lane 6 ICE WHITE). The colours are the race's own (never the OVERDRIVE orange).
+// THE FIELD — lane order = this order (lane 1 PINK … lane 6 ICE WHITE). The colors are the race's own (never the OVERDRIVE orange).
 export const HORSES = Object.freeze([
   { k: 'pink', name: 'PINK', c: '#ff3fa4' },
   { k: 'green', name: 'GREEN', c: '#39ff7a' },
