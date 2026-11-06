@@ -87,15 +87,21 @@ export function finalScene(el, game, state) {
     const best = h('div.oc-vic-best');
     kids.push(stamp, h('div.oc-vic-solo', h('b.oc-vic-solo-n', still ? fmtNum(mine.score) : '0'), h('span.oc-vic-solo-k', 'POINTS')), best);
     if (!still) setTimeout(() => { const n = el.querySelector('.oc-vic-solo-n'); if (n && n.isConnected) countUp(n, 0, mine.score, 1400); }, 700);
-    // NEW PERSONAL BEST — only from the server's own answer (a STANDARD solo run has a board; /api down = just the score)
+    // NEW PERSONAL BEST — only from the server's own answer (OC5: QUICK + STANDARD solo runs each have a board; /api down = just the score)
     import('../../profile/queue.js').then(Q => {
       const k = state && state.code ? Q.matchKey(state.code, game.matchId) : null;
+      // (OC5: QUICK runs have their own board now — overclock-quick-solo; a run that didn't beat it shows YOUR BEST from the outcome's bests)
       const show = o => {
-        const pb = o && (o.pbs || []).find(x => /^overclock-/.test(String(x.b)));
-        if (!pb || !best.isConnected) return;
-        stamp.querySelector('b').textContent = 'NEW PERSONAL BEST';
-        stamp.classList.add('is-pb');
-        best.textContent = pb.prev != null ? `WAS ${fmtNum(pb.prev)}` : 'YOUR FIRST ON THE BOARD';
+        if (!o || !best.isConnected) return;
+        const pb = (o.pbs || []).find(x => /^overclock-/.test(String(x.b)));
+        if (pb) {
+          stamp.querySelector('b').textContent = 'NEW PERSONAL BEST';
+          stamp.classList.add('is-pb');
+          best.textContent = pb.prev != null ? `WAS ${fmtNum(pb.prev)}` : 'YOUR FIRST ON THE BOARD';
+          return;
+        }
+        const b = Object.entries(o.bests || {}).find(([k]) => /^overclock-.*-solo$/.test(k));
+        if (b) best.textContent = `YOUR BEST · ${fmtNum(b[1])}`;
       };
       if (!k) return;
       show(Q.outcomeFor(k));
@@ -139,7 +145,8 @@ function podium(game, rows, players, me) {
   return box;
 }
 
-const CHIP = { streak: ['BEST STREAK', c => `×${c.v}`], fastest: ['FASTEST', c => `${fmtSecs(c.v)}`] };
+// (OC5 — LONG SHOT: a winning DUMB LUCK ticket at 8-1 or longer)
+const CHIP = { streak: ['BEST STREAK', c => `×${c.v}`], fastest: ['FASTEST', c => `${fmtSecs(c.v)}`], longshot: ['LONG SHOT', c => `${c.v}-1`] };
 function chip(c, p, me) {
   const [k, v] = CHIP[c.k];
   const who = p(c.uid);

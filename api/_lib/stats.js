@@ -89,6 +89,8 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
       gid: ex.gid, rank: row.rank, win: row.win, n: ex.n,
       xp: { gain: res.xp.total, parts: res.xp.parts, from: res.from, to: stats.xp },
       rk: { from: r0, to: r1 }, lv: res.lv, items: res.items, ach: res.ach, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1, st: stats.st || null, sev: res.streak.ev,
+      // (OC5 — the all-time best of each record this match counted for: a SOLO run that didn't beat it still shows "YOUR BEST" — victory.js)
+      bests: Object.fromEntries(Object.keys(row.rec || {}).map(b => [b, stats.b && stats.b[b] ? stats.b[b].a : null]).filter(([, v]) => v != null)),
       // (THE SPEED PASS — after THE PROGRESS RESET a player re-climbs levels whose rewards they already own: the round-end card's "NEXT UNLOCK"
       //  names the next level with a reward they DON'T own — WHEN, never WHAT; null = nothing left to unlock by level)
       nx: nextUnownedLevel(LEVEL_REWARDS, levelOf(stats.xp || 0), stats.it || {}),

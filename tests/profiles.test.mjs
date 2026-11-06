@@ -309,3 +309,65 @@ test('THE VAULT: unlocks by rank step; what you wear is always something you hav
   // every step from REGULAR I on unlocks something (no dry stretch)
   for (let k = 2; k <= 12; k++) assert.ok([...R.FINISHES, ...R.GLOWS].some(x => x.at === k) || k === 4, `step ${k} (${R.stepNameAt(k)}) unlocks something`);
 });
+
+// OC5 — THE QUICK SOLO PERSONAL BEST: board overclock-quick-solo, computed by the SERVER from the room's record (a solo QUICK run, all six,
+// every result inside THE SCORING TABLE — logic.js#ptsCeiling — the order six real skill challenges); STANDARD's solo board unchanged
+test('OVERCLOCK — THE QUICK SOLO BOARD: a real solo QUICK run counts; a score no QUICK run can reach is refused; multiplayer + STANDARD unchanged', async () => {
+  const { createGame, nextStep } = await import('../js/games/overclock/director.js');
+  const { partsFor } = await import('../js/games/overclock/challenges.js');
+  const { matchMax, ptsCeiling, levelOf } = await import('../js/games/overclock/logic.js');
+  const apply = (g, p) => { for (const [k, v] of Object.entries(p || {})) { if (k === '$room') continue; const ks = k.split('/'); let o = g; for (const x of ks.slice(0, -1)) o = o[x] ??= {}; o[ks.at(-1)] = structuredClone(v); } };
+  /** a whole solo match through the director: `ok(ci, parts)` = the player's right answers in each challenge */
+  const solo = (mode, seed, ok = (ci, p) => p) => {
+    const g = createGame({ matchId: `s-${seed}`, settings: { mode }, participants: { ua: true }, now: 0, seed, bank: {}, trivia: { n: 99 } });
+    let now = 0;
+    for (let ci = 0; ci < g.total; ci++) {
+      now = g.phaseEndsAt; apply(g, nextStep(g, { now, boards: {}, online: { ua: true }, fallback: () => null }));
+      const parts = partsFor(g.order[ci], levelOf(ci, g.total));
+      now = g.playStartAt + 6000;
+      apply(g, nextStep(g, { now, boards: { ua: { p: parts, ok: ok(ci, parts), n: parts, done: true, doneAt: now } }, online: { ua: true }, fallback: () => null }));
+      if (g.phase === 'standings') { now = g.phaseEndsAt; apply(g, nextStep(g, { now, boards: {}, online: { ua: true }, fallback: () => null })); }
+    }
+    assert.equal(g.phase, 'final');
+    return g;
+  };
+  // a perfect run + a sloppy one: both on the board, at their real totals
+  for (const [seed, okf] of [['qs-1', (ci, p) => p], ['qs-2', (ci, p) => Math.max(0, p - 1 - (ci % 2))]]) {
+    const g = solo('quick', seed, okf);
+    assert.ok(!g.order.includes('dumbluck'), 'solo never deals DUMB LUCK');
+    const ex = extractMatch(g);
+    assert.ok(ex.solo);
+    const total = Object.values(g.results).reduce((s, r) => s + r.ua.pts, 0);
+    assert.equal(ex.rows.ua.rec['overclock-quick-solo'], total, `${seed}: the QUICK solo board = the run's total (${total})`);
+    assert.equal(ex.rows.ua.rec['overclock-std-solo'], undefined);
+    assert.deepEqual(ex.rejected, []);
+    assert.ok(total <= matchMax(g.order));
+  }
+  // the bound: one result over its scoring-table ceiling (ok 2 of 4 can never score 160) → refused, the match still counts
+  const g = solo('quick', 'qs-3', (ci, p) => (ci === 2 ? Math.floor(p / 2) : p));
+  const t1 = structuredClone(g); t1.results[2].ua.pts = ptsCeiling(t1.order[2], t1.results[2].ua.ok, t1.results[2].ua.parts, false) + 1;
+  let ex = extractMatch(t1);
+  assert.equal(ex.rows.ua.rec['overclock-quick-solo'], undefined);
+  assert.ok(ex.rejected.some(r => r.uid === 'ua' && r.board === 'overclock-quick-solo'));
+  assert.equal(ex.rows.ua.c.p, 1, 'still played');
+  // the ceiling itself is fine (a run AT the table's max)
+  const t2 = structuredClone(g); t2.results[2].ua.pts = ptsCeiling(t2.order[2], t2.results[2].ua.ok, t2.results[2].ua.parts, false);
+  assert.ok(extractMatch(t2).rows.ua.rec['overclock-quick-solo'] > 0);
+  // a solo "QUICK" with DUMB LUCK in it / a missing challenge / a fake 9999 / a non-integer → refused
+  const t3 = structuredClone(g); t3.order[1] = 'dumbluck';
+  assert.equal(extractMatch(t3).rows.ua.rec['overclock-quick-solo'], undefined);
+  const t4 = structuredClone(g); delete t4.results[5];
+  assert.equal(extractMatch(t4).rows.ua.rec['overclock-quick-solo'], undefined, 'not all six played: no record (nothing to refuse)');
+  const t5 = structuredClone(g); t5.results[0].ua.pts = 9999;
+  assert.ok(extractMatch(t5).rejected.some(r => r.board === 'overclock-quick-solo'));
+  const t6 = structuredClone(g); t6.results[0].ua.pts += 0.5;
+  assert.ok(extractMatch(t6).rejected.some(r => r.board === 'overclock-quick-solo'));
+  // the board exists (+ its label); MULTIPLAYER QUICK writes no solo record; STANDARD solo is unchanged
+  assert.equal(boardDef('overclock-quick-solo').label, 'QUICK · SOLO');
+  assert.equal(boardDef('overclock-quick'), null, 'no multiplayer QUICK board');
+  ex = extractMatch(finalGame('overclock', U, { mode: 'quick' }));
+  for (const u of U) assert.equal(ex.rows[u].rec['overclock-quick-solo'], undefined);
+  const std = solo('standard', 'ss-1');
+  ex = extractMatch(std);
+  assert.ok(ex.rows.ua.rec['overclock-std-solo'] > 0 && ex.rows.ua.rec['overclock-quick-solo'] === undefined, 'STANDARD solo → its own board, as before');
+});

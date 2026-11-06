@@ -12,7 +12,8 @@ import * as ocMeta from '../games/overclock/meta.js';
 import * as prismMeta from '../games/prism/meta.js';
 import { boardDef } from './boards.js';
 import { rankings as signalRankings } from '../games/signal/logic.js';
-import { standings as ocStandings, MODES as OC_MODES, roundWin as ocRoundWin } from '../games/overclock/logic.js';
+import { standings as ocStandings, MODES as OC_MODES, roundWin as ocRoundWin, ptsCeiling as ocPtsCeiling, matchMax as ocMatchMax } from '../games/overclock/logic.js';
+import { SKILL_TYPES as OC_SKILL_TYPES } from '../games/overclock/challenges.js';
 import { LUCK as OC_LUCK, dlVerify as ocLuckVerify } from '../games/overclock/luck.js';
 import { standings as bluffStandings } from '../games/bluff/logic.js';
 import { standings as pulseStandings, multiplier } from '../games/pulse/logic.js';
@@ -124,6 +125,23 @@ function overclockExtra(game, uid, out, row, ctx, win) {
     if (order.some((t, ci) => t === OC_LUCK && res[ci] && (() => { const v = ocLuckVerify(game, ci); return v.ok && v.winners.includes(uid); })())) (out.f ||= {}).horseshoe = 1;
   }
   const mode = game.settings && game.settings.mode;
+  // THE QUICK SOLO PERSONAL BEST (OC5 — board overclock-quick-solo): a SOLO QUICK run, all six played, each result inside THE SCORING TABLE
+  // (logic.js#ptsCeiling — the most its ok / parts could score, ×2 on the last) + the order six real skill challenges (never DUMB LUCK alone)
+  // → rec 'overclock-quick' (the solo lane maps it to overclock-quick-solo); anything a real QUICK run can't reach is refused
+  if (uids.length === 1 && mode === 'quick' && num(game.total) === OC_MODES.quick && Object.keys(res).length === OC_MODES.quick) {
+    const ord = Array.isArray(order) ? order : Object.values(order || {});
+    let bad = ord.length !== OC_MODES.quick || !ord.every(t => OC_SKILL_TYPES.includes(t));
+    let total = 0;
+    for (let ci = 0; ci < OC_MODES.quick && !bad; ci++) {
+      const x = res[ci] && res[ci][uid];
+      const p = num(x && x.pts);
+      if (!x || p < 0 || !Number.isInteger(p) || p > ocPtsCeiling(ord[ci], num(x.ok), num(x.parts), ci === OC_MODES.quick - 1)) bad = true;
+      total += p;
+    }
+    if (!bad && total > ocMatchMax(ord)) bad = true;
+    if (bad) out.rejected.push({ uid, board: 'overclock-quick-solo', v: row.score });
+    else out.rec['overclock-quick'] = row.score;
+  }
   if (mode !== 'standard' || num(game.total) !== OC_MODES.standard) return;
   let bad = false;
   for (const ci of Object.keys(game.results || {})) {

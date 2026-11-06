@@ -316,6 +316,19 @@ export const maxPts = (game, ci) => (100 + SPEED_BONUS) * (Number(ci) === (game.
 /** THE SCORING TABLE's ceiling for one challenge of a type (the server's plausibility bound — OC5's QUICK solo board): every skill challenge
  *  100 + the 60 speed / closest bonus, ×2 on the last; DUMB LUCK its longest odds' payout (never last) */
 export const challengeMax = (type, final) => (type === LUCK ? DL_MAX : (100 + SPEED_BONUS) * (final ? 2 : 1));
+/** THE SCORING TABLE's ceiling for ONE result (the server's QUICK solo bound — OC5): the most `pts` a player with `ok` of `parts` could have
+ *  scored in a challenge of this type (challengeScore's own rules: no speed bonus unless every part is right, CLOSEST CALL's +60 for the
+ *  closest, SORT IT's net sorts, ×2 on the last) — a result above it is no real run */
+export function ptsCeiling(type, ok, parts, final) {
+  const f = final ? 2 : 1;
+  if (type === LUCK) return DL_MAX;
+  const P = Math.max(0, Number(parts) || 0), K = Math.max(0, Math.min(P, Number(ok) || 0));
+  const acc = P > 0 ? K / P : 0;
+  if (type === 'reflex') return Math.round((100 + SPEED_BONUS) * acc) * f;
+  if (type === 'closest') return (Math.round(100 * acc) + SPEED_BONUS) * f;
+  const base = type === 'sortit' ? Math.round(100 * Math.min(1, K / SORT_FULL)) : Math.round(100 * acc);
+  return (base + (K >= P && P > 0 ? SPEED_BONUS : 0)) * f;
+}
 /** the most a whole match of this order can score */
 export const matchMax = order => (order || []).reduce((s, t, i) => s + challengeMax(t, i === order.length - 1), 0);
 /** YOUR BEST / YOUR WORST challenge of the match: your points in each vs the room's best in it (alone: vs the most it could score).
