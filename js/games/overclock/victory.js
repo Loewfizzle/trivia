@@ -130,6 +130,7 @@ function podium(game, rows, players, me) {
     const place = r.rank === 1 ? 'is-p1' : i === firsts.length ? 'is-p2' : 'is-p3';
     row.classList.add('oc-vic-step', place);
     row.style.setProperty('--k', String(place === 'is-p1' ? 2 + i : place === 'is-p2' ? 1 : 0));
+    row.style.animationDelay = '';   // (leaderboard() staggers its rows inline — the podium times its own slam: 3rd → 2nd → 1st)
   });
   const box = h('div.oc-vic-podium', { class: firsts.length > 1 ? 'is-shared' : null }, list);
   // (leaderboard() upgrades its own rows to the slim cards — ui/strip-board.js, lazy; the plain rows show until then / if it can't)

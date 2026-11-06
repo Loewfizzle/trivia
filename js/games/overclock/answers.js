@@ -188,10 +188,12 @@ function rewire(spec, picks, ctx) {
   const solved = r ? Math.floor(r.ok) : 0;
   const all = solved >= spec.puzzles.length;
   const secs = typeof t === 'number' ? `${(t / 1000).toFixed(1)} s` : '';
+  // the tile states the GOAL (both circuits live — + your time when you made it); where you got to is YOUR PICK
+  const power = r ? Math.round(Math.min(1, Math.max(0, r.ok - solved) / 0.6) * 100) : 0;
   return box(answerFrame({
     q: `${spec.puzzles.length} CIRCUITS · POWER TO THE CORE`,
-    answer: h('span.oc-ans-rw', h('b', all ? 'BOTH LIVE' : `${solved}/${spec.puzzles.length} LIVE`), all && secs ? h('small', `IN ${secs}`) : null),
-    pick: !r || all ? null : h('span.oc-ans-rw', h('b', `${Math.round(Math.min(1, Math.max(0, r.ok - solved) / 0.6) * 100)}% POWER`), h('small', 'ON THE ONE LEFT')),
+    answer: h('span.oc-ans-rw', h('b', 'BOTH CIRCUITS LIVE'), all && secs ? h('small', `IN ${secs}`) : null),
+    pick: !r || all ? null : h('span.oc-ans-rw', h('b', `${solved}/${spec.puzzles.length} LIVE`), h('small', `${power}% POWER ON THE ONE LEFT`)),
     pickLabel: 'WHERE YOU GOT TO',
     state: !r ? 'none' : all ? 'right' : solved ? 'close' : 'wrong',
     note: r ? '' : 'NOT PLAYED',

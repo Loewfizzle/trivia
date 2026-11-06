@@ -526,8 +526,8 @@ export function createView() {
     const who = (uid, size) => { const p = player(uid); return h('div.oc-rw-who', { class: uid === me() ? 'is-me' : null, style: { '--c': colorHex(p.color) } }, avatar(p.avatar, p.color, size), h('b.oc-rw-name', p.name), uid === me() ? h('span.oc-rw-you', 'YOU') : null); };
     const box = h('div.oc-rw', { class: `is-${r.kind}` },
       h('div.oc-rw-stamp', h('span.oc-rw-stamp-glow', { 'aria-hidden': 'true' }), h('b', r.kind === 'win' ? 'ROUND WINNER' : r.kind === 'tie' ? 'DEAD HEAT' : 'NO WINNER')),
-      r.kind === 'win' ? h('div.oc-rw-hero', who(r.uid, 76), h('div.oc-rw-pts', `+${fmtNum(r.pts)}`))
-        : r.kind === 'tie' ? h('div.oc-rw-tie', h('div.oc-rw-tied', r.uids.slice(0, 4).map(u => who(u, 40)), r.uids.length > 4 ? h('span.oc-rw-more', `+${r.uids.length - 4}`) : null), h('div.oc-rw-pts', `+${fmtNum(r.pts)} EACH · NOBODY TAKES IT`))
+      r.kind === 'win' ? h('div.oc-rw-hero', who(r.uid, 96), h('div.oc-rw-pts', `+${fmtNum(r.pts)}`))
+        : r.kind === 'tie' ? h('div.oc-rw-tie', h('div.oc-rw-tied', r.uids.slice(0, 4).map(u => who(u, 58)), r.uids.length > 4 ? h('span.oc-rw-more', `+${r.uids.length - 4}`) : null), h('div.oc-rw-pts', `+${fmtNum(r.pts)} EACH · NOBODY TAKES IT`))
           : h('div.oc-rw-none', 'NOBODY SCORED THIS ROUND'),
       tags.length ? h('div.oc-rw-tags', tags.map(t => h('span.oc-rw-tag', t))) : null,
       h('div.oc-rw-k', `CHALLENGE ${String(game.ci + 1).padStart(2, '0')} · ${INFO[type].name}`));

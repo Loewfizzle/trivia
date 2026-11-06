@@ -11,7 +11,13 @@
          answer     THE ANSWER after the round (your picks: right · wrong · none)
          combo4     the 4th right in a row → the OVERDRIVE banner         combo10   the 10th → the quick flash
          kit        the kit's pieces in the OVERDRIVE skin (the number pad, the keyboard, the tach in its last 3 s, THE ANSWER)
-     &still=1 holds the slam on its card (no countdown)   window.__preview = { game, state, step, tap(i) } -->
+     &still=1 holds the slam on its card (no countdown)   window.__preview = { game, state, step, tap(i) }
+     OC2 — THE RESULTS FLOW (the after-challenge screen + the end of the match):
+         at=answer &type=<any of the 18>   THE ANSWER (this phone's picks: a mix of right + wrong)
+         &beat=answer|banner|stand         the after-challenge screen opened at that beat (a rejoin's view)   &win=tie|none   DEAD HEAT · NO WINNER
+         &ready=1                          READY marks on most rows       &n=1…8   the players (1 = SOLO)
+         &final=1 &beat=final|victory      the LAST challenge: FINAL STANDINGS · THE VICTORY (the console's frame + finalScene)   &cowin=1 CO-WINNERS
+         &hold=1 (+ __go())                a right / wrong / combo4 / combo10 tap waits for the camera (shots.mjs --cast … --js "__go()") -->
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/screens.css">
