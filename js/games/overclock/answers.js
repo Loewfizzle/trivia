@@ -14,7 +14,9 @@
 // YOUR PICKS are yours alone: kept on this device (sessionStorage — a refresh still shows them; never in the database). No "flag this
 // question" button anywhere.
 import { h } from '../../ui/dom.js';
-import { answerFrame, answerPanel } from '../kit/answer.js';
+import { answerFrame, answerPanel, tubeMark } from '../kit/answer.js';
+import { trickyLetters, wrongLetters, spellRuns } from './spell.js';
+import { hlRightDir, statEl, DIR_WORD } from './ui/higherlower.js';
 import { STROOP_COLORS, closestCredit, linkAccepts, normWord } from './challenges.js';
 import { colorHex } from '../../config.js';
 import { buildReveal } from './reveals.js';
@@ -182,6 +184,72 @@ function unscramble(spec, picks, ctx) {
     slot: (ctx.uids || []).length > 1 ? h('div.oc-ans-count', h('b', `${cracked}/${(ctx.uids || []).length}`), cracked === 1 ? ' PLAYER CRACKED IT' : ' PLAYERS CRACKED IT') : null,
   }));
 }
+// ---------------------------------------------------------------------------------------------- OC3B — THE CARD + LIST CHALLENGES
+// SPELLCHECK: each word's RIGHT SPELLING white-hot on THE ANSWER tile in the plain upright face, the letters people usually get wrong
+// UNDERLINED in --good (spell.js#trickyLetters — vs the bank's most common misspelling); YOUR PICK under it struck through with ITS wrong
+// letters marked — a ✕ over them + a red zigzag underline, a red caret where a letter is missing (never color alone). The marks row on top.
+function spellWord(word, marks, miss = null, kind = 'good') {
+  return h('span.oc-sp-ans', { style: { '--len': String(word).length } }, spellRuns(word, marks, miss).map(r => (r.gap
+    ? h('i.oc-sp-gap', { role: 'img', 'aria-label': 'a letter missing here' })
+    : r.mark ? h(`u.oc-sp-m.is-${kind}`, { 'aria-label': kind === 'good' ? `${r.t} — the tricky part` : `${r.t} — wrong` }, r.t) : r.t)));
+}
+function spellcheck(spec, picks) {
+  const res = spec.items.map((it, i) => st(picks[i], it.ans));
+  const b = box(sumRow(res, 'YOUR FIVE WORDS'), spec.items.map((it, i) => {
+    const p = picks[i];
+    const mine = p == null || p === it.ans ? null : it.options[p];
+    const wl = mine ? wrongLetters(mine, it.word) : null;
+    return answerFrame({
+      answer: spellWord(it.word, trickyLetters(it.word, it.common)),
+      pick: mine ? spellWord(mine, wl.bad, wl.miss, 'bad') : null,
+      state: res[i], note: p == null ? 'NO ANSWER' : '', upright: true,
+      delay: 160 + i * 170,
+    });
+  }));
+  b.classList.add('oc-sp-answers');
+  return b;
+}
+// HIGHER OR LOWER: YOUR STREAK as the hero number (its 10-segment bar, cracked where the run ended), YOUR RUN — the pairs you got through as
+// chips (your call ▲ / ▼ + the hidden one + ✓), then THE ONE THAT ENDED IT with BOTH numbers (the known one in the question, the hidden one
+// white-hot + the right call; your call struck) — or the one you were on when the time ran out; the room's longest run under it
+const arrow = dir => h('i.oc-hl-dir', { class: `is-${dir}`, 'aria-hidden': 'true' });
+function higherlower(spec, picks, ctx) {
+  const results = (ctx.game && ctx.game.results && ctx.game.results[ctx.game.ci]) || {};
+  const boards = ctx.boards || {};
+  const N = spec.pairs.length;
+  const mine = results[ctx.me];
+  const room = (ctx.uids || []).map(u => ({ u, s: results[u] ? Math.floor(results[u].ok || 0) : 0 }));
+  const best = Math.max(0, ...room.map(x => x.s));
+  const leaders = room.filter(x => best > 0 && x.s === best);
+  const nm = u => (u === ctx.me ? 'YOU' : ctx.player(u).name);
+  const roomLine = room.length > 1 ? h('div.oc-ans-count.oc-hl-room', best ? [h('span', 'LONGEST RUN IN THE ROOM · '), h('b', String(best)), h('span', ` · ${leaders.slice(0, 3).map(x => nm(x.u)).join(' & ')}`)] : 'NOBODY GOT ONE RIGHT') : null;
+  if (!mine) return box(h('div.oc-hl-hero', h('span.oc-hl-hero-k', 'THE ROOM\'S LONGEST RUN'), h('b.oc-hl-hero-n', String(best)), h('span.oc-hl-hero-of', `/ ${N}`)), roomLine);
+  const s = Math.floor(mine.ok || 0);
+  const P = s < N ? spec.pairs[s] : null;
+  const right = P ? hlRightDir(P) : null;
+  const missed = !!P && ((picks[s] != null && picks[s] !== right) || ((boards[ctx.me] || {}).p || 0) > s);
+  const segs = Array.from({ length: N }, (_, i) => h('i', { class: i < s ? 'is-on' : i === s && missed ? 'is-crack' : null, style: { '--i': i } }));
+  const hero = h('div.oc-hl-hero', { class: s >= N ? 'is-perfect' : null },
+    h('span.oc-hl-hero-k', s >= N ? 'A PERFECT RUN' : 'YOUR STREAK'),
+    h('div.oc-hl-hero-row', h('b.oc-hl-hero-n', String(s)), h('span.oc-hl-hero-of', `/ ${N}`)),
+    h('div.oc-segbar.oc-hl-bar.is-big', { class: missed ? 'is-cracked' : null, style: { '--at': s }, 'aria-hidden': 'true' }, segs, missed ? h('span.oc-hl-crack') : null));
+  const run = s ? h('div.oc-hl-run', h('div.oc-hl-run-k', 'YOUR RUN'), h('div.oc-hl-run-list', spec.pairs.slice(0, s).map((Q, i) => {
+    const d = picks[i] || hlRightDir(Q);
+    return h('span.oc-hl-chip', { style: { '--i': i }, 'aria-label': `${Q.b.name}: ${DIR_WORD[d]} than ${Q.a.name} — right` }, arrow(d), h('span.oc-hl-chip-t', Q.b.name), tubeMark('check'));
+  }))) : null;
+  const known = P ? h('span.oc-ans-hl-q', h('span.oc-ans-hl-stat', P.stat), h('span', P.a.name), statEl(P, P.a, '.is-known')) : null;
+  const frame = P ? answerFrame({
+    q: known,
+    label: missed ? 'THE ONE THAT ENDED IT' : 'WHERE THE TIME RAN OUT',
+    answer: h('span.oc-ans-hl', h('span.oc-ans-hl-name', P.b.name), statEl(P, P.b), h('em.oc-ans-hl-call', arrow(right), DIR_WORD[right])),
+    pick: missed ? h('span.oc-ans-hl-call.is-pick', arrow(right === 'up' ? 'down' : 'up'), DIR_WORD[right === 'up' ? 'down' : 'up']) : null,
+    pickLabel: 'YOUR CALL',
+    state: missed ? 'wrong' : 'none', note: missed ? '' : 'OUT OF TIME',
+    delay: 520,
+  }) : null;
+  return box(hero, run, frame, roomLine);
+}
+
 // MEMORY: the sequence replayed as numbered nodes (a mini 3 × 3 each, the step's node lit + its number); your slip marked
 const miniGrid = (n, cls = '') => h(`span.oc-mg${cls}`, { 'aria-hidden': 'true' }, Array.from({ length: 9 }, (_, i) => h('i', { class: i === n ? 'is-on' : null })));
 function memory(spec, picks) {
@@ -295,9 +363,9 @@ function rewire(spec, picks, ctx) {
   }));
 }
 
-export const ANSWERS = { trivia, truefalse, math, pattern, closest, missinglink, unscramble, memory, oddone, count, stroop, reflex, rewire };
-/** the eight older reveals — into THE ANSWER's panel as they are (their own kicker stays inside the slot) */
-export const PANELS = new Set(['spellcheck', 'compass', 'sortit', 'higherlower', 'timeline']);
+export const ANSWERS = { trivia, truefalse, math, pattern, closest, missinglink, unscramble, spellcheck, higherlower, memory, oddone, count, stroop, reflex, rewire };
+/** the older reveals still in THE ANSWER's panel as they are (their own kicker stays inside the slot) until each one's rebuild */
+export const PANELS = new Set(['compass', 'sortit', 'timeline']);
 export const hasAnswer = type => !!ANSWERS[type] || PANELS.has(type);
 /**
  * THE ANSWER for a closed challenge. ctx: { game, me, uids, player(uid), boards (this challenge's boards + the unsealed answers), timers,

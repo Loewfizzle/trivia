@@ -21,6 +21,11 @@ const SCEN = [
   { g: 'typing', name: 'typing-missinglink', qs: 'type=missinglink&at=typing' },
   { g: 'demo', name: 'demo-pattern', qs: 'type=pattern&at=brief&still=1' },
   { g: 'demo', name: 'demo-missinglink', qs: 'type=missinglink&at=brief&still=1' },
+  // OC3B — the card + list challenges: the demo, the right / wrong moments, THE ANSWER's variants
+  { g: 'demo', name: 'demo-higherlower', qs: 'type=higherlower&at=brief&still=1' },
+  ...['spellcheck', 'higherlower', 'timeline', 'sortit'].flatMap(t => ['right', 'wrong'].map(a => ({ g: 'cards', name: `${a}-${t}`, qs: `type=${t}&at=${a}` }))),
+  { g: 'cards', name: 'answer-higherlower-time', qs: 'type=higherlower&at=answer&beat=answer&still=1&n=4&run=time' },
+  { g: 'cards', name: 'answer-higherlower-perfect', qs: 'type=higherlower&at=answer&beat=answer&still=1&n=8&run=perfect' },
   { g: 'results', name: 'banner-8', qs: 'type=trivia&at=answer&beat=banner&still=1&n=8' },
   { g: 'results', name: 'banner-tie', qs: 'type=trivia&at=answer&beat=banner&still=1&n=8&win=tie' },
   { g: 'results', name: 'stand-8', qs: 'type=trivia&at=answer&beat=stand&still=1&n=8&ready=1' },

@@ -129,7 +129,7 @@ const RULES = {
         'SPELLCHECK — four spellings, one is right. Five words, one tap each.',
         'COMPASS — follow the turns in your head, then tap the way you face. Five rounds, each longer.',
         'SORT IT — swipe each card to the side it belongs on. They come faster and faster.',
-        'HIGHER OR LOWER — pick the winner of each pair. One wrong pick ends your streak.',
+        'HIGHER OR LOWER — one number is shown: is the hidden one HIGHER or LOWER? One wrong call ends your streak.',
       ]],
       ['SCORING', [
         'Up to 100 points for accuracy (partial credit counts).',

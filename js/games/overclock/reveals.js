@@ -1,15 +1,8 @@
-// OVERCLOCK — the older reveal panels, inside THE ANSWER's frame (answers.js#answerPanel) until each challenge's rebuild: SPELLCHECK,
-// COMPASS, SORT IT, HIGHER OR LOWER, TIMELINE. (OC3 moved MISSING LINK, CLOSEST CALL + UNSCRAMBLE into answers.js — their own dressing.)
+// OVERCLOCK — the older reveal panels, inside THE ANSWER's frame (answers.js#answerPanel) until each challenge's rebuild: COMPASS, SORT IT,
+// TIMELINE. (OC3 moved MISSING LINK, CLOSEST CALL + UNSCRAMBLE into answers.js — their own dressing; OC3B SPELLCHECK + HIGHER OR LOWER.)
 import { h } from '../../ui/dom.js';
 import { COMPASS_DIRS, COMPASS_TURN } from './challenges.js';
-import { fmtStat } from './shared.js';
 
-function revealSpell(spec) {
-  return h('section.rv.rv-sp',
-    h('div.rv-kicker', 'THE RIGHT SPELLINGS', h('span.rv-ask', 'Next to the usual mistake, crossed out.')),
-    h('ol.rv-sp-list', spec.items.map((it, k) => h('li', { style: { animationDelay: `${200 + k * 150}ms` } },
-      h('b', it.word), h('s', it.common)))));
-}
 function revealCompass(spec, game, boards, uids, ctx) {
   const TURN_CHIP = { L: 'L', R: 'R', A: '180°' };
   const rows = spec.rounds.map((R, k) => {
@@ -42,25 +35,7 @@ function revealSort(spec, game, boards, uids, ctx) {
     h('div.rv-st-cols', col(0), col(1)),
     mine && mine.some((v, i) => v !== spec.cards[i].s) ? h('div.rv-st-note', 'RED = YOU SORTED IT THE OTHER WAY') : null);
 }
-function revealHL(spec, game, boards, uids, ctx) {
-  const res = (game.results && game.results[game.ci]) || {};
-  const runs = uids.map(u => ({ u, s: Math.floor((res[u] && res[u].ok) || 0), p: (boards[u] && boards[u].p) || 0 }));
-  const best = Math.max(0, ...runs.map(x => x.s));
-  const leaders = runs.filter(x => best > 0 && x.s === best).map(x => ctx.player(x.u).name);
-  // the pair that ended the most runs (a run that ended on a miss has p = streak + 1)
-  const ends = {};
-  for (const x of runs) if (x.p > x.s) ends[x.s] = (ends[x.s] || 0) + 1;
-  const worst = Object.entries(ends).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
-  const pair = P => h('div.rv-hl-pair',
-    h('div.rv-hl-ask', P.ask),
-    [P.a, P.b].map((x, i) => h('div.rv-hl-item', { class: i === P.ans ? 'is-win' : null }, h('span', x.name), h('b', fmtStat(P.unit, x.v, x.shown)))));
-  return h('section.rv.rv-hl',
-    h('div.rv-kicker', best ? `LONGEST STREAK · ${best}` : 'NO STREAKS THIS TIME', leaders.length ? h('span.rv-ask', leaders.join(' & ')) : null),
-    worst ? [h('div.rv-hl-sub', `THE ONE THAT TRIPPED UP ${worst[1]} ${worst[1] === 1 ? 'PLAYER' : 'PLAYERS'}`), pair(spec.pairs[Number(worst[0])])]
-      : best >= spec.pairs.length ? h('div.rv-hl-sub', 'A PERFECT 10 — NOBODY SLIPPED') : null);
-}
-
-const REVEAL = { spellcheck: revealSpell, compass: revealCompass, sortit: revealSort, higherlower: revealHL };
+const REVEAL = { compass: revealCompass, sortit: revealSort };
 /** Challenge types that show a reveal panel above the leaderboard. */
 export const hasReveal = type => !!REVEAL[type] || ['timeline'].includes(type);
 

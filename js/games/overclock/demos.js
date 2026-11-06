@@ -4,6 +4,8 @@
 //                 glowing slot.
 //   MISSING LINK: three clue words come in, the link TYPES ITSELF into the slot letter by letter, then the three JOINS light up one by one
 //                 (SUN ═ FLOWER · CORN ═ FLOWER · WALL ═ FLOWER — OC3B: a lit tube joins them, never an arrow: it can't read backwards).
+//   HIGHER OR LOWER (OC3B): BIG BEN 96 m over EIFFEL TOWER ? with the VS slamming in between, a finger taps HIGHER (it turns hot), 330 m
+//                 FLIPS in, the card lights --good, the first streak segment lights.
 // Each piece runs its OWN keyframes on ONE shared 3-s loop (the Web Animations API — transform + opacity only, on the compositor), so every
 // piece's timing is exact whatever the others do. Reduced motion: the finished picture, still.
 import { h, reducedMotion } from '../../ui/dom.js';
@@ -73,9 +75,41 @@ export function linkDemo() {
   });
 }
 
+/** HIGHER OR LOWER: BIG BEN 96 m · VS · EIFFEL TOWER ? — a tap on HIGHER, 330 m flips in, the first streak segment lights */
+export function hlDemo() {
+  const card = (name, val, unit, hidden) => {
+    const ok = h('span.oc-tile-ok');
+    const q = hidden ? h('b.oc-hl-q', '?') : null;
+    const num = h('span.oc-hl-num', h('b', val), h('small', unit));
+    return { el: h(`div.oc-hl-card.oc-demo-hl-card.${hidden ? 'is-unknown' : 'is-known'}`, h('span.oc-hl-glass'), ok, h('span.oc-hl-name', name), h('span.oc-hl-val', q, num)), ok, q, num };
+  };
+  const A = card('BIG BEN', '96', 'm', false), B = card('EIFFEL TOWER', '330', 'm', true);
+  const vs = h('div.oc-hl-vs', h('span.oc-hl-vs-glow'), h('b', 'VS'));
+  const hot = h('span.oc-demo-hl-hot', h('i.oc-hl-arrow'), h('b', 'HIGHER')), tap = h('span.oc-demo-tap');
+  const up = h('div.oc-demo-hl-btn.is-up', hot, h('i.oc-hl-arrow'), h('b', 'HIGHER'), tap);
+  const down = h('div.oc-demo-hl-btn.is-down', h('i.oc-hl-arrow'), h('b', 'LOWER'));
+  const lit = h('span.oc-demo-hl-lit');
+  const bar = h('div.oc-segbar.oc-demo-hl-bar', Array.from({ length: 10 }, () => h('i')), lit);
+  return demoBox('oc-demo-hl', [bar, h('div.oc-demo-hl-cards', A.el, vs, B.el), h('div.oc-demo-hl-btns', up, down)], anims => {
+    const HOLD = { opacity: 1, transform: 'none' }, END = { opacity: 0, transform: 'none' };
+    appear(A.el, 80, anims);
+    appear(B.el, 200, anims);
+    loop(vs, [[0, { opacity: 0, transform: 'scale(2.3) rotate(-8deg)' }], [360, { opacity: 0, transform: 'scale(2.3) rotate(-8deg)' }], [500, { opacity: 1, transform: 'scale(0.9)' }], [580, HOLD], [2620, HOLD], [2860, END]], anims);
+    appear(up, 520, anims);
+    appear(down, 580, anims);
+    loop(tap, [[0, { opacity: 0, transform: 'scale(0.4)' }], [1000, { opacity: 0, transform: 'scale(0.4)' }], [1060, { opacity: 0.95, transform: 'scale(0.75)' }], [1420, { opacity: 0, transform: 'scale(1.6)' }]], anims);
+    loop(hot, [[0, { opacity: 0 }], [1040, { opacity: 0 }], [1100, { opacity: 1 }], [2620, { opacity: 1 }], [2860, { opacity: 0 }]], anims);
+    loop(B.q, [[0, HOLD], [1180, HOLD], [1300, { opacity: 0, transform: 'scaleY(0.05)' }], [2860, { opacity: 0, transform: 'scaleY(0.05)' }], [2861, HOLD]], anims);
+    loop(B.num, [[0, { opacity: 0, transform: 'scaleY(0.05)' }], [1290, { opacity: 0, transform: 'scaleY(0.05)' }], [1430, { opacity: 1, transform: 'scaleY(1.14)' }], [1520, HOLD], [2620, HOLD], [2860, END]], anims);
+    loop(B.ok, [[0, { opacity: 0 }], [1500, { opacity: 0 }], [1620, { opacity: 1 }], [2620, { opacity: 1 }], [2860, { opacity: 0 }]], anims);
+    loop(lit, [[0, { opacity: 0, transform: 'scaleY(0.3)' }], [1660, { opacity: 0, transform: 'scaleY(0.3)' }], [1780, { opacity: 1, transform: 'scaleY(1.45)' }], [1900, HOLD], [2620, HOLD], [2860, END]], anims);
+  });
+}
+
 /** the demo for a type (null = none) */
 export function demoFor(type) {
   if (type === 'pattern') return patternDemo();
   if (type === 'missinglink') return linkDemo();
+  if (type === 'higherlower') return hlDemo();
   return null;
 }

@@ -34,7 +34,7 @@ export const INFO = {
   spellcheck: { name: 'SPELLCHECK', glyph: '✎', rules: ['Four spellings. Exactly one is right.', 'Five words, one tap each — no second chances.'] },
   compass: { name: 'COMPASS', glyph: '✣', rules: ['Note where you face, then follow the turns in your head.', 'When they vanish, tap the way you face now. Five rounds, each longer.'] },
   sortit: { name: 'SORT IT', glyph: '⇆', rules: ['Swipe each card left or right — or tap that side of the screen.', 'Wrong sorts cost a little. The cards come faster and faster.'] },
-  higherlower: { name: 'HIGHER OR LOWER', glyph: '⇅', rules: ['Two things, one stat. Tap the winner — read the question!', 'Build a streak of 10. One wrong answer ends your run.'] },
+  higherlower: { name: 'HIGHER OR LOWER', glyph: '⇅', rules: ['Two things, one stat — one number shown. Is the hidden one HIGHER or LOWER?', 'Build a streak of 10. One wrong answer ends your run.'] },
 };
 
 export const memoryLength = level => 4 + Math.round(level * 4);

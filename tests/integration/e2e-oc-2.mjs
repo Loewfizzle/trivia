@@ -193,12 +193,14 @@ try {
   ok(!!sp && sp.items.length === 5, 'SPELLCHECK: the same five words on every phone');
   await sleep(300);
   await shotBoth(pages[1], 'q-07-spell-play');
+  // (OC3B) the spellings in the plain UPRIGHT face — never slanted (letters must be easy to compare)
+  ok(await pages[1].evaluate(() => [...document.querySelectorAll('.oc-sp-word')].every(e => { const cs = getComputedStyle(e); return cs.fontStyle === 'normal' && (cs.transform === 'none' || cs.transform === ''); }) && document.querySelectorAll('.oc-sp-opt').length === 4), 'SPELLCHECK: four style-C tiles, the spellings upright');
   // player i gets the first (i % 6) right, then wrong
   for (let k = 0; k < 5; k++) {
     for (const i of alive()) {
       const right = i === 1 || k < i % 6;
       const it = sp.items[k];
-      await press(pages[i], '.sp-opt', right ? it.ans : (it.ans + 1) % 4);
+      await press(pages[i], '.oc-sp-opt', right ? it.ans : (it.ans + 1) % 4);
     }
     if (k === 0) { await sleep(150); await shotBoth(pages[2], 'q-08-spell-answer'); }
     await sleep(1250);
@@ -303,6 +305,7 @@ try {
   await waitPhase(pages[1], 'ready', 4, 'higherlower ready');
   await sleep(800);
   await shotBoth(pages[1], 'q-24-hl-rules');
+  ok(await pages[1].evaluate(() => !!document.querySelector('.gk-slam .oc-demo-hl .oc-hl-card') && document.querySelectorAll('.gk-slam .oc-demo-hl .oc-hl-card').length === 2), 'HIGHER OR LOWER: its ~3 s DEMO plays in the rules card (two cards, the buttons)');
   await waitPhase(pages[1], 'play', 4, 'higherlower play');
   for (const i of alive()) await waitSpec(pages[i], 'higherlower');
   const hl = await sameSpecs('higherlower');
@@ -314,7 +317,9 @@ try {
     for (const i of alive()) {
       if (k > stopAt(i)) continue;
       const P = hl.pairs[k];
-      await press(pages[i], '.hl-opt', k === stopAt(i) ? 1 - P.ans : P.ans).catch(() => {});
+      // (OC3B) the hidden card's value vs the known one: HIGHER is right when it's the bigger (the winner rule unchanged)
+      const up = P.b.v > P.a.v, right = k !== stopAt(i);
+      await press(pages[i], `.oc-hl-btn.is-${(right ? up : !up) ? 'up' : 'down'}`).catch(() => {});
     }
     if (k === 0) { await sleep(200); await shotBoth(pages[1], 'q-26-hl-values'); }
     await sleep(1350);

@@ -21,7 +21,10 @@
      OC3 — THE TYPING CHALLENGES (type=math | pattern | closest | missinglink | unscramble), on the kit's pads (pressed like a finger):
          at=play · typing (a part-typed answer) · right · wrong (typed + LOCK IT IN / GO / the last tile) · answer (THE ANSWER, its dressing)
          at=brief&still=1 &type=pattern | missinglink   the rules card + its ~3 s DEMO (loops)
-         window.__preview.typePad('123') · typeKeys('WORD') · typeTiles('word')   (a camera's --js can type on the pads) -->
+         window.__preview.typePad('123') · typeKeys('WORD') · typeTiles('word')   (a camera's --js can type on the pads)
+     OC3B — THE CARD + LIST CHALLENGES (type=spellcheck | higherlower | timeline | sortit): at=play · right · wrong · answer (THE ANSWER, its
+         dressing; higherlower: &run=miss (default) | time | perfect) · at=brief&still=1&type=higherlower = its DEMO in the rules card
+         window.__preview.tap(k, right) answers part k (a Higher or Lower call, a spelling, a sort, a whole Timeline order) -->
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/screens.css">
@@ -104,6 +107,9 @@ function tap(k, right = true) {
   else if (padAnswer(s, k) != null) { typePad(padAnswer(s, k, right)); press(document.querySelector('.gk-np .gk-go')); }
   else if (s.type === 'missinglink') { typeKeys(right ? s.puzzles[k].answer : 'STONE'); if (!right) press(document.querySelector('.gk-keyboard .gk-go')); }
   else if (s.type === 'unscramble') { const w = right ? s.word : [...s.word].reverse().join(''); typeTiles(w); }
+  // OC3B — the card + list challenges, pressed like a finger
+  else if (s.type === 'spellcheck') { const a = s.items[k].ans; press(document.querySelectorAll('.oc-sp-opt')[right ? a : (a + 1) % 4]); }
+  else if (s.type === 'higherlower') { const P = s.pairs[k], up = P.b.v > P.a.v; press(document.querySelector((right ? up : !up) ? '.oc-hl-btn.is-up' : '.oc-hl-btn.is-down')); }
 }
 // OC3 — the kit's pads, pressed like a finger (pointerdown on each key)
 const padAnswer = (s, k, right = true) => {
@@ -164,6 +170,7 @@ const hold = q.get('hold') === '1' ? new Promise(r => { window.__go = r; }) : nu
 // boards (+ the unsealed guesses for CLOSEST CALL), the results + times, then the round closes
 async function answerOther(s) {
   const { savePicks } = await import('/js/games/overclock/answers.js');
+  const hlMode = q.get('run') || 'miss', hlRun = hlMode === 'perfect' ? (s.parts || parts) : 6;   // (OC3B: higherlower's run)
   const P = {
     math: () => s.problems.map((p, i) => (i === 1 ? p.ans + 12 : p.ans)),
     pattern: () => s.seqs.map((x, i) => (i ? x.ans - 3 : x.ans)),
@@ -175,15 +182,17 @@ async function answerOther(s) {
     closest: () => [Math.round(s.answer * 0.86)],
     missinglink: () => [s.puzzles[0].answer, 'STONE'],
     unscramble: () => [[...s.word].reverse().join('')],
+    spellcheck: () => s.items.map((it, i) => (i === 1 ? (it.ans + 1) % 4 : i === 3 ? (it.ans + 2) % 4 : it.ans)),
+    higherlower: () => s.pairs.map((P, i) => { const r = P.b.v > P.a.v ? 'up' : 'down'; return i < hlRun ? r : i === hlRun && hlMode === 'miss' ? (r === 'up' ? 'down' : 'up') : null; }).filter((v, i) => v != null || i < hlRun),
   };
   const picks = (P[s.type] || (() => []))();
   if (picks.length) savePicks(game.matchId, ci, picks);
   const n = s.parts || parts;
-  const okMe = { memory: 3, rewire: 1.42, reflex: 3.4, closest: 0.86, higherlower: 6 }[s.type] ?? Math.max(0, n - 1);
+  const okMe = { memory: 3, rewire: 1.42, reflex: 3.4, closest: 0.86, higherlower: hlRun }[s.type] ?? Math.max(0, n - 1);
   const live = { [me]: { p: n, ok: okMe, n, done: true, doneAt: Date.now() - 4000 } };
   uids.slice(1).forEach((u, i) => { live[u] = { p: n, ok: Math.max(0, n - (i % 3)) - (s.type === 'reflex' ? 0.3 * i : 0), n, done: true, doneAt: Date.now() - 2000 - i * 900 }; });
   if (s.type === 'closest') game.rv = { [ci]: Object.fromEntries(uids.map((u, i) => [u, { g: Math.round(s.answer * [0.86, 1.04, 1.3, 0.7, 1.12, 0.5, 1.6, 0.95][i]) }])) };
-  if (s.type === 'higherlower') uids.forEach((u, i) => { live[u].p = Math.min(n, Math.floor(live[u].ok) + (i % 2)); });
+  if (s.type === 'higherlower') { uids.forEach((u, i) => { live[u].p = Math.min(n, Math.floor(live[u].ok) + (i % 2)); }); live[me].p = Math.min(n, hlRun + (hlMode === 'miss' ? 1 : 0)); }
   game.playStartAt = Date.now() - 20000;
   const res = shapeWin(computeResults(game, live));
   const tm = Object.fromEntries(uids.map((u, i) => [u, 9000 + i * 2300]));
