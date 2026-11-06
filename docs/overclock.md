@@ -659,6 +659,20 @@ Signal Lock's GO, the Rewire + Compass demos.
   thick tube. Lanes in a FIXED colour order (lane 1 PINK … 6 ICE WHITE) so the room can yell colours + lane numbers.
 - **The YOU tag** in the lane = a white pill ("YOU" / "YOU +2") — still ON TRIAL (the owner judges it in play).
 
+**The local run before the final push (the mini PC, one suite at a time):** unit **1261 / 1261** · rules **66 / 66** (database.rules.json
+unchanged — nothing to re-publish) · `/api` server.test **38 / 38** · smoke **6 / 6** · e2e-oc-2 **27 / 27** (8 phones) · e2e-oc-new **75 / 75**
+(8 phones) · e2e-oc-luck **20 / 20** (8 phones — a whole race, a refresh + the host killed mid-race) · the profile E2E **98 / 98** (REDLINE +
+PHOTO FINISH still unlock; THE HORSESHOE granted to the backer only; THE QUICK SOLO BOARD + NEW PERSONAL BEST / YOUR BEST) · the no-sideways
+guard **312 / 312** (104 screens × 390 / 402 / 430 — 18 of them Dumb Luck's) · 60 fps at 390 × 844 (dpr 3): the race 0 long frames at 1× and 4×
+CPU, the odds board 0 at 4× · the FULL e2e-harbor suite **1203 / 1204**: `roomperf`'s guest-list cost at 4× CPU (40 → 44 ms alone — the same
+red OC1 logged on this machine before any Overclock change; no room / city file changed in OC5) + the `motion` group timed out under the
+four shards' load ("the circle formed") and passes alone (7 / 7). Console-side files changed (core/boards.js — THE BOARD's new QUICK · SOLO
+board, api/_lib/stats.js's `bests`, kit/slam.js's `nameEl`, the contract's comment, HOW TO PLAY, the shared fake-firebase's clock hook) → the
+harbor tag.
+
+**THE MOTION PROOF:** `Downloads/neon/overclock/shots/oc5-proof-*` — 8-frame strips + recordings: the sign powering up, a full race (19.5 s, 60
+fps cast), a photo finish, a LONG SHOT!.
+
 **Known issues / held back**
 - At 4× CPU THE FINISH's own instant (the freeze + the result's DOM) costs one frame over 25 ms; the race itself 0.
 - THE HORSESHOE emblem shows its placeholder glyph until THE LAB draws + approves its art.
