@@ -575,3 +575,28 @@ the card's second one in `HERO`: checked only clear of the gem).
 - **THE 1 OF 1** (B2): back to the RAINBOW GRADIENT (the owner: "the fancy gradient colour, just more VISIBLE"): bright stops only, a touch bigger, a
   dark drop-shadow edge (a text-shadow would paint over a clipped gradient), the darker backing pill, a 10 pt gap after FOUNDER (6 in the 72 %
   viewer) — every letter ≥ 6 : 1 over the backing laid on white (8.9–12.2 measured; harbor `roomfix`).
+
+## OVERCLOCK CARDS — REDLINE + PHOTO FINISH (Nov 5 night — docs/harbor/passes/overclock-cards.md)
+OVERCLOCK's two player cards, made by the city chat from Grok's art (the owner's approved mock: Downloads\NEON\gifts\overclock\overclock-cards-mock.png).
+NORMAL unlockable cards (not 1-of-1): the server's achievements `redline` / `photo-finish` grant them from the room's own record (docs/progression.md).
+- **THE ART = the material** (`assets/vault/oc/<art>.webp`, 1280 × 720 — `scripts/build-oc-cards.mjs` from copies in `art/oc-cards/src/`): Grok's masters
+  converted; the FX plates (light on PURE black) turned into **light with alpha** (alpha = the brightest channel, the colour divided out) so they draw
+  `'lighter'` over the art with no black box; cropped to their light + halved. Baked once: REDLINE's heat (Grok's S-curve → its right crescent fitted —
+  a circle at 863, 295, r 154 — scaled onto the dial, MASKED to the red zone's ring sector) + its chrome CAP cut out as a feathered disc (the needle
+  pivots under it). The crop: `js/fx/oc-specs.js` (`strip` = the CSS's background-position — checked equal; `ocMap` = the CSS cover exactly —
+  NOT `gift.js#artMap`, which keeps the gift art's 800-px height in its drawn height).
+- **THE MOTION** = `js/fx/oc-cards.js` (ONE file, the shared surface + the GL painter): **REDLINE** (legendary) — THE NEEDLE (a baked tapered blade:
+  white-hot core, orange-red glow) sweeps up from rest (7:30) when the card appears (the slot's own clock), SLAMS past the peg, bounces back into the
+  red (≈ 3:30) + SHAKES — a hard stepped judder settling into a fine tremble that never stops, a rev every 6.4 s (`needleAt` — pure, tested); THE HEAT
+  pulses with the shake; THE SPARKS (two staggered copies) pour off the tip up + right; THE BORDER LASER in molten orange. **PHOTO FINISH** (rare —
+  its GLOWING EDGES in electric blue, `--ge`) — THE LASER: a red line on the finish line + a point scanning top → bottom + back (2.8 s a pass); as it
+  passes between the noses THE FLASH pops (~250 ms) + THE SPARKS crackle; the light trails' SHEEN slides back. Reduced motion = the mock's frame.
+- **THE HERO BOXES**: REDLINE's strip = the cap + the pegged needle (its tip clear of the gem's corner); its full card = the cap + the needle's sweep +
+  the red zone (the plate may cover the dial's cold left rim, as in the mock). PHOTO FINISH = the noses on the line (strip) / the cars' fronts + the line (full).
+- **REDLINE's strip gem** sat on the gauge's hot red edge → a dark disc behind it (`.vl-s-oc-redline > .vl-gem::before`), its gold light kept small.
+- **A STILL FRAME WAITS FOR ITS IMAGES** (found here): `sg-kit.js#image` calls `renderer.js#fxAssetIn()` when a picture lands — a reduced-motion
+  frame drawn before it came is drawn again (REDLINE's still frame had no needle; the gift cards' still frames had the same gap).
+- THE LAB: `card-redline` · `card-photofinish` (n 182 · 183) + their full cards (184 · 185), with their motion lines; the credit "Card art created with Grok".
+- **THE AFTER-MATCH TILES** (the owner's ADD-ON): the end-of-round moment's achievement + unlock rows show the REAL item (`progress/moment.js#itemSwatch`) —
+  one square tile: the vault's own emblem, a glow on your name, your shape in a tube style, the flame; a card = a mini of its real art (approved art
+  only — else its palette) in a card-shaped tile.

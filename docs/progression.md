@@ -12,7 +12,7 @@ The passes: `docs/harbor/passes/progression-a.md` · `docs/harbor/passes/progres
 | `js/core/levels.js` | PURE — the curve (`XP_AT`, `levelOf`, `levelInfo`), the BANDS, THE LEVEL REWARDS table, the vague tease (`nextRewardLevel`) |
 | `js/core/streak.js` | PURE — the 4 am day, `streakPlay` (freezes, the break, WIN IT BACK, the outage, the milestones), `streakView` (what the screens show) |
 | `js/core/items.js` | PURE — every collectible (cards · emblem shapes · tube styles · name glows · flame · favor): id, name, tier, placeholder palette |
-| `js/core/achievements.js` | PURE — THE 30 ACHIEVEMENTS (checks + their item), the counters (`noteMatch`, `noteEvent`), THE AWARD ENGINE (`awardAll` + FOUNDER) |
+| `js/core/achievements.js` | PURE — THE 32 ACHIEVEMENTS (checks + their item), the counters (`noteMatch`, `noteEvent`), THE AWARD ENGINE (`awardAll` + FOUNDER) |
 | `js/core/daily.js` | PURE — THE DAILY CONTRACT: a cartridge's shape, `registerDaily`, the standing (percentile + bands), YOUR TABLE's TODAY |
 | `js/core/progress.js` | PURE — the steps the server runs inside ONE transaction: `matchStep` (a counted match), `dailyStep`, `eventStep`, `carryOver` |
 | `api/_lib/stats.js` | a verified match → `matchStep` per player (+ the facts only the server knows: the host, the room, the hour, the holiday, the friends) |
@@ -85,11 +85,11 @@ with a counted match / daily) + `pcount/i/{item}` + `pcount/a/{ach}` (`ServerVal
 `{action:'style', card?, glow?, tube?, shape?}` — only what you own (the server checks `pstats/it`; GILDED is everyone's) →
 `profiles/{pid}/cd · g · tb · es`. **COLLECTIONS SHOW ONLY WHAT YOU OWN** — no ???, no silhouettes, no locked slots, no totals, no list of what's left.
 
-## THE 30 ACHIEVEMENTS (shown only once earned + X%)
+## THE 32 ACHIEVEMENTS (shown only once earned + X%)
 | group | achievement — how | unlocks |
 | --- | --- | --- |
 | PLAYING | FIRST ROUND — your first match | glow EMBER |
-| | HOUSE WARMING — your first room hosted (a counted match as its host) | emblem THE KEY |
+| | HOUSE WARMING — your first room hosted (a counted match as its host, 2+ players — a SOLO run never counts as hosting: OVERCLOCK CARDS' add-on) | emblem THE KEY |
 | | FULL HOUSE — an 8-player match | card ZEBRA |
 | | THE REGULAR — 10 different nights | card CAMO |
 | | TOP SHELF · MADE MAN · KINGPIN — 10 · 50 · 250 wins | BRUSHED GOLD · MARBLE & GOLD · THE MARQUEE GOLD BULBS (epic) |
@@ -105,10 +105,10 @@ with a counted match / daily) + `pcount/i/{item}` + `pcount/a/{ach}` (`ServerVal
 | SIGHTINGS *(dormant — PROGRESSION B's tap)* | STARGAZER (3 different) · FREQUENT FLYER (25) · THE WITNESS (every legend in `LEGENDARIES`) | STARLIGHT · WINGS · THE WITNESS (legendary) |
 | DAILIES *(dormant — the first daily)* | DAILY BREAD (7 different days) · THE TRIPLE (all 3 in a day) · EARLY BIRD (before 8 am) · PENTHOUSE SUITE (top 1 %, ≥ 50 finishers) | CANDLELIGHT · THREE STARS · SUNRISE · PENTHOUSE (epic) |
 | SPECIALS | HODL — a 21-night streak · MANY HAPPY RETURNS — your birthday *(dormant — B)* · SEASON'S GREETINGS — 3 holidays (`core/sky.js#holidayOf`) | emblem ₿ · CONFETTI · glow TINSEL |
-| GAMES | FOUR ON THE FLOOR (PRISM DROP: a 4-line clear) · DEAD ON (OVERCLOCK: a Closest Call exact) · OVERCLOCKED (10 OVERCLOCK wins) | PRISM · BULLSEYE · CIRCUIT |
+| GAMES | FOUR ON THE FLOOR (PRISM DROP: a 4-line clear) · DEAD ON (OVERCLOCK: a Closest Call exact) · OVERCLOCKED (10 OVERCLOCK wins) · REDLINE (OVERCLOCK: alone on top of every challenge of a QUICK match, 2+ players — `overclock-sweep`) · PHOTO FINISH (OVERCLOCK: the win by exactly one point, 2+ players — `overclock-photo`) | PRISM · BULLSEYE · CIRCUIT · card REDLINE (legendary) · card PHOTO FINISH (rare) |
 
 **THE GAME CONTRACT:** a game's rework adds its 2–3 achievements to `ACHIEVEMENTS` (`game: '<id>'`) + sets the flags in its match report
-(`core/match-report.js` → a row's `f: { flag: 1 }`, read from the room's own copy) — the counters key them `<game>.<flag>`.
+(`core/match-report.js` → a row's `f: { flag: 1 }`, read from the room's own copy) — the counters key them `<game>-<flag>` (a DASH — a dot in a database key fails the whole transaction: OVERCLOCK CARDS found every flagged match uncounted).
 **The dormant ones are built + tested with a fake trigger** (`tests/achievements.test.mjs`: `eventStep({k:'sighting', id})`, `{k:'birthday'}`,
 `dailyStep`); PROGRESSION B wires the sighting tap + the birthday (server-verified), the dailies' passes wire the dailies.
 
@@ -256,7 +256,7 @@ radio once a day, birthdays private + once a year + the day + the room's copy, a
 legendary → its reaction, a forced one never claims; THE SEQUENCE + the capture's frame cost; reduced motion) + `radio` (THE WHEN).
 
 ## THE VAULT 1B (Nov 3) — NAMES ONLY TO OWNERS + the new rewards
-The items, the 30 achievements and WHAT each level / streak milestone gives moved to the server (`api/_lib/catalog.js`; the shared `core/` modules keep the engine + registries the server fills at import; `REWARD_LEVELS` keeps WHEN). A phone gets display rows only for what it owns or just earned (`withShow` on every /api answer — a level reward's row carries its `lv`, the end of round sorts by it). New level rewards: SMOKE ROOM 12 · FROSTBITE 16 · PRISM 22 · INFERNO 42 (existing players get them on their next match — the carry-over). docs/vault.md "NAMES ONLY TO OWNERS".
+The items, the 32 achievements and WHAT each level / streak milestone gives moved to the server (`api/_lib/catalog.js`; the shared `core/` modules keep the engine + registries the server fills at import; `REWARD_LEVELS` keeps WHEN). A phone gets display rows only for what it owns or just earned (`withShow` on every /api answer — a level reward's row carries its `lv`, the end of round sorts by it). New level rewards: SMOKE ROOM 12 · FROSTBITE 16 · PRISM 22 · INFERNO 42 (existing players get them on their next match — the carry-over). docs/vault.md "NAMES ONLY TO OWNERS".
 
 ## ACHIEVEMENTS AS TROPHIES (THE VAULT 2C — `js/progress/trophies.js`; the owner's approved mock profile-rearranged.png)
 Each achievement the player HOLDS, as a trophy: a round neon **MEDAL** (the reward's own emblem when it has art, else the achievement's group as a

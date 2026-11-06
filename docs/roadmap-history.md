@@ -1992,6 +1992,18 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
   - THE ROOM's LOOK SWITCH (a sun / moon tube above PLAY in a room of one; remembered; locked for the match; body[data-look]);
   - COLOUR-BLIND (--good / --close + body[data-cb]; OVERCLOCK on the tokens; on the profile).
 
+## OVERCLOCK CARDS — REDLINE + PHOTO FINISH (Nov 5 2026, night) — docs/harbor/passes/overclock-cards.md
+- Step 0: plan.md — the owner's notes, part 72 (BRUH, the rank line, the intercom in sync, the podium sounds → FRIENDS, DROP THE STEP, THE
+  DISPATCHER on Sunday, the Overclock cards final) + decisions.md.
+- Group 1: THE ART + THE LAYERS — Grok's masters as the material (scripts/build-oc-cards.mjs: the FX plates turned into light with alpha, the heat
+  masked to the red zone's arc, the cap cut out); js/fx/oc-cards.js: REDLINE's needle (sweep → slam → a shake that never stops), the heat, the sparks,
+  the laser; PHOTO FINISH's laser line + scanning point, the flash + sparks at the noses, the trails' sheen; the REDLINE strip gem's dark backing;
+  a still frame redraws when its images land (fx/renderer.js#fxAssetIn).
+- Group 2: THE UNLOCKS — `overclock-sweep` (alone on top of all 6 challenges of a QUICK match, 2+ players) → REDLINE, `overclock-photo` (the win
+  by exactly one point, 2+ players) → PHOTO FINISH; 32 achievements; tests/overclock-cards.test.mjs + the profile E2E's scripted matches.
+- ADD-ON (the owner's iPhone, 10:54 pm): the after-match tiles show the REAL item (the vault's emblem, a mini of the card's art, the glow, the tube
+  in your shape); SOLO RUN · Just you (+ "One player"); a SOLO run never counts as hosting (HOUSE WARMING / THE HOST).
+
 ## CARD FIXES — THE GIFT CARDS READY TO GIVE TONIGHT (Nov 5 2026, evening) — docs/harbor/passes/card-fixes.md
 - Group 1: the owner's 5 LAB FIX notes (the two face strips whole; the shiba's glint on the lenses only + a twinkle; YOUNG BUCK + ICE COLD slid
   right of the plate) + THE ANARCHIST v2 (his approved art, the effects moved) — each CHANGED in THE LAB.
