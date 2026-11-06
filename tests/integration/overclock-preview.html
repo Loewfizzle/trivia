@@ -31,7 +31,8 @@
          at=race &t=ms      THE RACE at that moment (default 8000; &t=200 = the off)   at=finish &t=ms   THE FINISH (default 1600)
              &win=long (an 8-1 / 12-1 winner — LONG SHOT!) · house (nobody backed it) · you (yours wins) · photo=1 (a photo finish)
          at=answer          the after-screen (&beat=answer | banner | stand) — WINNING TICKETS · THE HOUSE WINS (&win=house)
-         &freeze=1          the server clock held still (window.__clock) — a moving moment as a still -->
+         &freeze=1          the server clock held still (window.__clock) — a moving moment as a still
+         SOLO's victory (&n=1&final=1&beat=victory&at=answer): &pb=new (NEW PERSONAL BEST) · &pb=best (YOUR SCORE + YOUR BEST) · none = /api down -->
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/screens.css">
@@ -129,6 +130,8 @@ if (DL) {
     game.dl = { [ci]: { pk: dlRace.pk, lk: lockAt, w: dlRace.w } };
   }
 }
+// OC5 — the SOLO victory's server answer (&n=1&final=1&beat=victory): &pb=new → NEW PERSONAL BEST (was 940) · &pb=best → YOUR SCORE + YOUR BEST
+if (q.get('pb')) { try { sessionStorage.setItem('rc:PVW1_pv', JSON.stringify(q.get('pb') === 'new' ? { pbs: [{ b: 'overclock-quick-solo', v: 1180, prev: 940 }], bests: { 'overclock-quick-solo': 1180 } } : { pbs: [], bests: { 'overclock-quick-solo': 1320 } })); } catch { /* */ } }
 await loadGame('overclock');   // (the registry knows a game's live paths once its cartridge is in)
 setState({ code: 'PVW1', uid: me });
 state.liveKey = liveKeyFor(game);

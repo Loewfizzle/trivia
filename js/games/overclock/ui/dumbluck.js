@@ -141,7 +141,8 @@ export default function uiDumbLuck(spec, api) {
   const blast = h('i.oc-dl-blast', { 'aria-hidden': 'true' });
   const finish = h('div.oc-dl-fin', { 'aria-live': 'polite' });
   const track = h('div.oc-dl-track', h('div.oc-dl-rail', { 'aria-hidden': 'true' }), canvas, lanesEl, finish);
-  const race = h('div.oc-dl-race', callout, order, track, mine, result);
+  // (the result's place is RESERVED under the track — nothing jumps when THE FINISH lands)
+  const race = h('div.oc-dl-race', callout, order, track, h('div.oc-dl-foot', mine, result));
   const el = h('div.oc-dl', { class: spectator ? 'is-spectator' : null }, board, race, blast);
 
   const ctx = ctx2d(canvas, { alpha: false });
@@ -160,7 +161,8 @@ export default function uiDumbLuck(spec, api) {
     track.style.setProperty('--lane', `${laneH}px`);
     track.style.setProperty('--top', `${topY()}px`);
     sheets = field.map(f => horseSheet(f.c, L, dpr));
-    halo = null; winHalo = null; bg = null; tags = null;
+    // (the winner's white glow at the line, pre-rendered NOW — never at the finish's own moment)
+    halo = null; bg = null; tags = null; winHalo = horseSheet('#ffffff', L, dpr, true);
     draw();
   }
   const topY = () => Math.round((H - laneH * HORSES.length) / 2);
@@ -317,7 +319,6 @@ export default function uiDumbLuck(spec, api) {
     if (bg) c.drawImage(bg, 0, 0, W, H); else { c.fillStyle = '#06080a'; c.fillRect(0, 0, W, H); }
     const ms = st.stage === 'race' ? st.ms : st.stage === 'finish' || st.stage === 'done' ? DL_RACE_MS : 0;
     const finished = st.stage === 'finish' || st.stage === 'done';
-    if (finished && d && !winHalo) winHalo = horseSheet('#ffffff', L, dpr, true);
     const atGate = !script || (st.stage !== 'race' && st.stage !== 'finish' && st.stage !== 'done');
     const sp = S(), t0 = topY();
     const { cam, anchor } = script && !atGate ? camOf(ms) : { cam: 0, anchor: W * 0.64 };
