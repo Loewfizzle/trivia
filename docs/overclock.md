@@ -528,7 +528,7 @@ right + wrong, the Higher or Lower demo, Timeline's answer sliding into order.
   a slanted step bar. **The owner, mid-pass:** no ✓ / ✕ on the nodes — the right node glows GREEN, the wrong one RED and CRACKED. Its answer:
   the sequence replayed on a node board (each step's node blazes with its number, inside the 8-s screen's answer beat), the steps as numbered
   mini grids, the slip marked. COLOR CLASH (`ui/stroop.js`): one huge word (Barlow 900 italic) in a different colour, "TAP THE COLOR OF THE
-  TEXT", four big SOLID colour tiles (no names on them); its answer: the word in its colour, the text colour named on a solid chip.
+  TEXT", four big SOLID colour tiles (no names, no ✓ / ✕ on them — right = a green outline, wrong = cracked + a red edge); its answer: the word in its colour, the text colour named on a solid chip.
 - **Group 3 — ODD ONE OUT · QUICK COUNT · SIGNAL LOCK · COMPASS.** ODD ONE OUT (`ui/oddone.js` + `ui/oddart.js` — the tube icons, one static SVG
   per token): glass cells, three slanted pips, a family line ("ONE IS TURNED"); the found cell blazes white-hot + pops, the rest dim; a miss
   cracks red, the odd one shows green. Its answer: each grid small with the odd one ringed + its one-line why (`odd.js#oddWhy` — "the arrow
@@ -549,8 +549,8 @@ right + wrong, the Higher or Lower demo, Timeline's answer sliding into order.
   shards (outside the CC0 / CC BY rule). The shards are GENERATED. The split label rides ON the cracks (readable through the fracture).
 - **GREEN + RED, NO MARKS on the new buttons** (the owner, Nov 6, looking at Memory): Memory's nodes, Odd One Out's cells, Quick Count's numbers,
   Compass's N / E / S / W show right = green, wrong = red + the real-glass crack (the crack is the shape that tells them apart without colour);
-  Quick Count's half = --close + ½. COLOR CLASH keeps its small ✓ / ✕ sockets: its tiles ARE colours, a green glow can't show on a green tile.
-  THE ANSWER keeps its ✓ / ✕ marks (the kit's frame).
+  Quick Count's half = --close + ½. COLOR CLASH too (the owner, after the pass: "drop them"): its right tile wears a green OUTLINE (its face is
+  its colour), a wrong one the crack + a red edge. THE ANSWER keeps its ✓ / ✕ marks (the kit's frame).
 - **ODD ONE OUT's FAMILIES:** a different family per grid; no colour family (colour-blind players); every difference a thick stroke or a clear
   angle at the 6 × 6 grid's ~54-pt cells on a 390-pt phone (the turn ≥ 25°, the gap moved ≥ 90°, the tube 7.5 % of the cell).
 - **QUICK COUNT's EXACT FLASH:** the shapes are on screen at full brightness the moment they're shown (nothing on the grid animates or fades in)
@@ -581,8 +581,6 @@ recording) and `oc4-proof-*` (8-frame strips + recordings): the crack on a tile,
 Signal Lock's GO, the Rewire + Compass demos.
 
 **Known issues / held back**
-- COLOR CLASH keeps its small ✓ / ✕ sockets on the tiles (its tiles are colours — a green glow can't show on a green tile); the owner may want
-  another cue there.
 - The crack's refraction splits the tile's LABEL only; a big number on a Higher or Lower card or a pad's field splits too, but a badge / an icon
   never does. Odd One Out's cells + Memory's nodes have no label (the crack + the red glow carry it).
 - At 4× CPU a new 6 × 6 Odd One Out grid (36 cells of SVG) can cost a frame or two as it's built (between grids, never during a tap).

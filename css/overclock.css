@@ -1470,7 +1470,6 @@
   background: linear-gradient(180deg, color-mix(in srgb, var(--sw) 72%, #fff) 0%, var(--sw) 26%, var(--sw) 70%, color-mix(in srgb, var(--sw) 78%, #000) 100%);
   border: 1px solid color-mix(in srgb, var(--sw) 60%, #fff); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -3px 0 rgba(0, 0, 0, 0.22), 0 6px 16px rgba(0, 0, 0, 0.45); }
 .oc-cc-sheen { position: absolute; inset: 0; transform: skewX(var(--oc-slant)); pointer-events: none; background: linear-gradient(118deg, rgba(255, 255, 255, 0.3) 0, rgba(255, 255, 255, 0.06) 34%, rgba(255, 255, 255, 0) 52%); }
-.oc-od .oc-cc-opt .oc-tile-mark { position: absolute; right: 10px; top: 8px; min-width: 0; }
 .oc-od .oc-cc-opt.is-wrong .oc-tile-face { filter: none; }
 .oc-od .oc-cc-opt.is-wrong .oc-tile-bad { background: linear-gradient(180deg, rgba(10, 2, 5, 0.45), rgba(10, 2, 5, 0.62)); }
 .oc-od .oc-cc-opt.is-right .oc-tile-ok { border-width: 3px; background: none; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), 0 0 18px color-mix(in srgb, var(--good) 55%, transparent); }
