@@ -63,9 +63,9 @@ export const META_KEYS = Object.freeze(['DEFAULT_SETTINGS', 'OPTIONS', 'estimate
 export const PRELOAD_BUDGET = 1.5 * 1024 * 1024;
 // FEATS (D3 / the solo lane): a result row may carry the player's FEATS — small numbers the SERVER replays for unlocks (maxStreak,
 //   longShotWin, soloScore…) — core/match-report.js reads them per game, with bounds; a client never writes an unlock.
-// THE KIT (D9): the shared match pieces live in js/games/kit/ — RESERVED for OVERCLOCK pass 1 (it builds them, the class prefix gk-):
-//   numpad.js (the number pad) · keyboard.js (the letter keyboard — never the system keyboard) · tach.js (the tach timer on serverNow) ·
-//   slam.js (the title slam + 3-2-1) · answer.js (THE ANSWER frame); keys ≥ 54 pt. Built HERE (SHELL 2.0 B1): ready.js (THE READY HELPER —
+// THE KIT (D9): the shared match pieces live in js/games/kit/ — BUILT by OVERCLOCK pass 1 (OC1, the class prefix gk-; a neutral base
+//   skinned through --gk-* — css/kit.css "THE KIT PIECES"): numpad.js (the number pad) · keyboard.js (the letter keyboard — never the system
+//   keyboard) · tach.js (the tach timer on serverNow) · slam.js (the title slam + 3-2-1) · answer.js (THE ANSWER frame); keys ≥ 54 pt. Built HERE (SHELL 2.0 B1): ready.js (THE READY HELPER —
 //   "everyone tapped") + night.js (THE ROOM-NIGHT PATH: rooms/{CODE}/meta/used/{gameId}/{key}).
 export const KIT_PREFIX = 'gk-';
 

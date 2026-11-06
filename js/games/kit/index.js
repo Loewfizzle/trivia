@@ -4,9 +4,15 @@
 //   results  the report table under the podium + the calls list, ordinal()
 //   tiers    quality tiers from frame pacing
 //   hook     window.__<game> test hooks
+//   (OC1 — the `gk-` pieces, docs/cartridge.md D9: numpad · keyboard · tach · slam · answer — a neutral base a game skins with --gk-*)
 // The podium itself is ui/final.js#createFinal; playlists/songs are core/playlist.js + audio/synced-songs.js.
 export { createAnnouncer, createCards } from './moments.js';
 export { showCall } from './call.js';
 export { reportPanel, callsList, ordinal } from './results.js';
 export { createTiers } from './tiers.js';
 export { installTestHook, removeTestHook, testMode } from './hook.js';
+export { createNumpad, numpadReduce, numpadNumber } from './numpad.js';
+export { createKeyboard, keyboardReduce } from './keyboard.js';
+export { createTach, tachState } from './tach.js';
+export { createSlam, slamPhase } from './slam.js';
+export { answerFrame, answerList, answerMark } from './answer.js';

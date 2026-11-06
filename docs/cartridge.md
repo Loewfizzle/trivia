@@ -111,8 +111,19 @@ The start never waits past its 5 s for a preload: the game shows when its own pi
   seed + a server secret). It is NEVER computable from the date alone; `daily.on` ships `false`.
 
 **D9 — THE KIT.** The shared match pieces live in `js/games/kit/`, class prefix **`gk-`**:
-- RESERVED for OVERCLOCK pass 1 (it builds them): `numpad.js` (the number pad), `keyboard.js` (the letter keyboard, never the system
-  keyboard), `tach.js` (the tach timer on serverNow), `slam.js` (the title slam + 3-2-1), `answer.js` (THE ANSWER frame). Keys ≥ 54 pt.
+- BUILT by OVERCLOCK pass 1 (OC1, Nov 5) — a NEUTRAL BASE a game skins through `--gk-*` custom properties (css/kit.css "THE KIT PIECES";
+  OVERCLOCK's OVERDRIVE skin in css/overclock.css), its pure parts tested (tests/kit-oc1.test.mjs), the look at
+  `tests/integration/kit-preview.html` (neutral) + `overclock-preview.html` (skinned):
+  - `numpad.js` — THE NUMBER PAD: 3×4 glass keys ≥ 54 pt (1–9, ⌫, 0 + an optional `.` or `−`), a big confirm key (its label is the game's:
+    LOCK IT IN / ENTER), the answer field with a cursor. NO input element anywhere — the system keyboard never opens. `numpadReduce` is pure.
+  - `keyboard.js` — THE LETTER KEYBOARD: QWERTY 10 · 9 · 7 + ⌫, then GO; keys 54 pt tall, each key's hit area its whole cell (ten across a
+    phone is ~36 pt wide — no dead gaps between keys).
+  - `tach.js` — THE TACH TIMER: slanted segments that fill toward the red line on the clock the game passes (`now: serverNow` — required);
+    the last 3 s white-hot (an opacity layer) + `tach.edge` (the screen's edges tint); `onTick('tick' | 'urgent' | 'up')` for its sounds.
+  - `slam.js` — THE TITLE SLAM + 3-2-1: the name slams in on a slanted card with a motion-blur swipe, the rules under it, then 3 · 2 · 1 · GO —
+    timed INSIDE the phase it's given (a late mount = settled, the right number).
+  - `answer.js` — THE ANSWER frame: the question bold white, the right answer a white-hot tile + a laser underline, YOUR PICK struck through
+    in red when wrong; ✓ / ≈ / ✕ shapes on `--good` / `--close` (never colour alone); a slot for a challenge's own content.
 - BUILT here (SHELL 2.0 B1):
   - `kit/ready.js#readyState`, THE READY HELPER ("everyone tapped"): connected players only, a min time, a dropped player never blocks, an
     optional max time; pure, so a director calls it.
@@ -145,6 +156,6 @@ reads the look LIVE (a change mid-game re-themes the screen at once). Right / cl
 | sounds / fonts / the first pool | `preload()` (≤ 1.5 MB) | calls it on every phone at the start, never waits past 5 s |
 | what this room has seen tonight | `$room: markUsed(id, keys)` in a step | writes it with the step (host), clears it with the room |
 | "everyone tapped" | `kit/ready.js#readyState` in the director | — |
-| number pad · keyboard · tach timer · 3-2-1 · the answer frame | `js/games/kit/` (`gk-`), OVERCLOCK pass 1 | — |
+| number pad · keyboard · tach timer · 3-2-1 · the answer frame | `js/games/kit/` (`gk-`, built in OC1) + a skin of `--gk-*` | — |
 | unlock numbers | the result's FEATS | the SERVER replays + awards |
 | its daily | `daily = { on: false, create, resumeKey }` | THE DAILY MODULE feeds it a server-picked day set (later) |

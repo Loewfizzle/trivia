@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kit pieces preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/kit.css">
+<style>
+  html, body { margin: 0; background: #070914; color: #fff; }
+  .kp { display: flex; flex-direction: column; gap: 22px; max-width: 430px; margin: 0 auto; padding: 16px; box-sizing: border-box; }
+  .kp h2 { margin: 6px 0 0; font: 800 12px/1 var(--font-ui); letter-spacing: .24em; color: var(--text-dim); }
+</style>
+</head>
+<body>
+<main class="kp" id="kp"></main>
+<script type="module">
+  // THE KIT PIECES (OC1 — js/games/kit/) in their NEUTRAL base (no game skin). ?piece=numpad|keyboard|tach|slam|answer (default: all).
+  // No Firebase: the pieces take their clock as `now` (here a local one — a game passes serverNow).
+  import { h } from '/js/ui/dom.js';
+  import { createNumpad } from '/js/games/kit/numpad.js';
+  import { createKeyboard } from '/js/games/kit/keyboard.js';
+  import { createTach } from '/js/games/kit/tach.js';
+  import { createSlam } from '/js/games/kit/slam.js';
+  import { answerFrame } from '/js/games/kit/answer.js';
+  const q = new URLSearchParams(location.search), piece = q.get('piece') || 'all', now = () => Date.now();
+  const root = document.getElementById('kp');
+  const want = p => piece === 'all' || piece === p;
+  if (want('tach')) {
+    const t = createTach({ now, onTick: k => console.log('tick', k) });
+    const left = Number(q.get('left') || 9000);
+    t.set(now() + left, 30000);
+    root.append(h('h2', 'THE TACH'), t.el, t.edge);
+  }
+  if (want('numpad')) {
+    const pad = createNumpad({ extra: q.get('extra') || '−', placeholder: 'TYPE YOUR ANSWER', onSubmit: v => console.log('submit', v) });
+    pad.set(q.get('val') || '42');
+    root.append(h('h2', 'THE NUMBER PAD'), pad.el);
+  }
+  if (want('keyboard')) {
+    const kb = createKeyboard({ go: 'GO' });
+    root.append(h('h2', 'THE LETTER KEYBOARD'), kb.el);
+  }
+  if (want('slam')) {
+    const s = createSlam({ now, startAt: now(), endsAt: now() + 7000, kicker: 'CHALLENGE 03 / 06', name: 'TRUE OR FALSE', rules: ['Rapid-fire statements: math and facts.', 'True or false? Wrong answers cost points.'] });
+    root.append(h('h2', 'THE SLAM + 3-2-1'), s.el);
+  }
+  if (want('answer')) {
+    root.append(h('h2', 'THE ANSWER'),
+      answerFrame({ q: 'Which planet is known as the Red Planet?', answer: 'Mars', pick: 'Venus', state: 'wrong' }),
+      answerFrame({ q: 'How many legs does a spider have?', answer: '8', state: 'right' }));
+  }
+</script>
+</body>
+</html>
