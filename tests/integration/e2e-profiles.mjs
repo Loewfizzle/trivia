@@ -142,6 +142,7 @@ await H.run(async () => {
   await shotAll(p0, 'pf-05-key-prompt', REVIEW_SIZES.slice(0, 2));
   await p0.evaluate(() => document.querySelector('.kp-sheet .kp-later').click());
 
+
   // ---- 6. a new device: the key restores the profile, stats and all
   const key0 = await p0.evaluate(s => localStorage.getItem(`na:${s}:pkey`), slotOf(0));
   const p3 = await openPlayer(3);
@@ -401,4 +402,58 @@ await H.run(async () => {
   ok(pubText.includes(nowName) && !pubText.includes(String(me0.pid).toUpperCase()) && !pubText.includes(String(me1.pid).toUpperCase()), `the public page: ${nowName}'s USERNAME on it — never a profile id (${pubText.slice(0, 80)})`);
   await shotAll(pub, 'pf-08-public');
   await ctx.close();
+
+  // ---- 10. OVERCLOCK CARDS (Nov 5 night — LAST, so the checks above keep their one-match ALICE) + the owner's ADD-ON: the cards unlock from the room's OWN record of an OVERCLOCK match (the server's
+  //  replay — core/match-report.js#overclockExtra), the podium's end-of-round moment reveals them (the achievement row: the REAL item's tile +
+  //  "X% of players have this"); a SOLO run reads SOLO RUN · Just you and never counts as hosting a room
+  {
+    const ocFinal = (pts, parts = Object.keys(pts[0])) => ({ id: 'overclock', matchId: `e2eoc${Date.now().toString(36).slice(-6)}`, phase: 'final', phaseStartAt: Date.now(), phaseEndsAt: Date.now() + 60_000,
+      participants: Object.fromEntries(parts.map(u => [u, true])), settings: { mode: 'quick' }, total: 6, ci: 5, order: ['trivia', 'truefalse', 'math', 'pattern', 'count', 'trivia'],
+      results: Object.fromEntries(pts.map((r, ci) => [ci, Object.fromEntries(Object.entries(r).map(([u, v]) => [u, { pts: v, ok: v > 0 ? 1 : 0, parts: 1 }]))])) });
+    const playOc = async (g, names, label) => {
+      await sleep(2500);   // (BOB's own report of the last match lands first — a reset under a running transaction aborts it)
+      for (const pid of [me0.pid, me1.pid]) await ref(`pstats/${pid}/last`).set(null);   // (the server's 45-s gap between counted matches)
+      await H.backToLobby(p0).catch(() => {}); await sleep(800);
+      const solo = Object.keys(g.participants).length === 1;   // (a SOLO run's night points are 0 — the host writes them so; the server checks)
+      const pl = Object.fromEntries(Object.keys(g.participants).map((u, i) => [u, solo ? 0 : 3 - i]));
+      await p0.evaluate(async (c, gm, nm, p) => { const fb = await import('/js/firebase.js'); await fb.update(fb.dbRef(`rooms/${c}`), { game: gm, 'meta/status': 'playing', [`night/${gm.matchId}`]: { g: gm.id, at: fb.serverTimestamp(), p, n: nm } }); }, H.code, g, names, pl);
+      await p0.waitForSelector('.final', { timeout: 20000 });
+      await p0.waitForSelector('.pg-moment', { timeout: 20000 });
+      await p0.evaluate(() => document.querySelector('.pg-moment').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+      await sleep(1200);
+      for (let i = 0; i < 3 && await p0.$('.pg-up.is-on'); i++) { await p0.evaluate(() => document.querySelector('.pg-moment').dispatchEvent(new PointerEvent('pointerup', { bubbles: true }))); await sleep(900); }
+      await p0.waitForSelector('.pg-moment.is-end', { timeout: 6000 });
+      await p0.evaluate(() => { const m = document.querySelector('.pg-more'); if (m) m.click(); });
+      await sleep(1500);   // (the tiles' pictures land a beat after the row: the vault's emblem / the card's art)
+      const st = await p0.evaluate(() => ({ place: document.querySelector('.pg-place').textContent, sub: document.querySelector('.pg-sub').textContent,
+        ach: [...document.querySelectorAll('.pg-ach')].map(r => ({ id: r.dataset.id, name: r.querySelector('div > b').textContent, tile: (r.querySelector('.pg-sw') || {}).className || '', real: !!r.querySelector('.pg-sw .ve, .pg-sw .pg-sw-card') })) }));
+      await H.shot(p0, `pf-oc-${label}-390x844`);
+      await p0.click('.pg-moment .pg-btn');
+      await p0.waitForFunction(() => !document.querySelector('.pg-moment'), { timeout: 4000 });
+      return st;
+    };
+    const names = { [uids[0]]: 'ALICE', [uids[1]]: 'BOB' };
+    // REDLINE: ALICE alone on top of all six (2 players, QUICK)
+    const a = await playOc(ocFinal(Array.from({ length: 6 }, () => ({ [uids[0]]: 150, [uids[1]]: 130 }))), names, 'redline');
+    const rl = a.ach.find(x => x.id === 'redline');
+    ok(!!rl && rl.name === 'REDLINE' && /is-card/.test(rl.tile) && rl.real, `REDLINE: unlocked from the room's own record + revealed on the podium — its card's tile (${a.place} · ${a.ach.map(x => x.name).join(', ')})`);
+    ok(!!(await val(`pstats/${me0.pid}/it/card-redline`)) && !(await val(`pstats/${me1.pid}/it/card-redline`)), 'the server granted REDLINE to ALICE only');
+    ok(/Two players/.test(a.sub), `a 2-player match reads "${a.sub}"`);
+    // PHOTO FINISH: ALICE by exactly one point (BOB takes a challenge: no sweep)
+    const b = await playOc(ocFinal(Array.from({ length: 6 }, (_, ci) => (ci === 0 ? { [uids[0]]: 61, [uids[1]]: 100 } : ci === 1 ? { [uids[0]]: 100, [uids[1]]: 60 } : { [uids[0]]: 50, [uids[1]]: 50 }))), names, 'photofinish');
+    ok(b.ach.some(x => x.id === 'photo-finish' && x.real) && !b.ach.some(x => x.id === 'redline'), `PHOTO FINISH: won by one point → revealed (${b.ach.map(x => x.name).join(', ')})`);
+    ok(!!(await val(`pstats/${me0.pid}/it/card-photofinish`)), 'the server granted PHOTO FINISH');
+    // the same match reported again: nothing new
+    await p0.evaluate(() => import('/js/profile/queue.js').then(m => { for (const k of Object.keys(localStorage)) if (/:rdone$/.test(k)) localStorage.removeItem(k); return m.queueReport(window.__arcade.state.code, window.__arcade.state.game); }));
+    await sleep(2500);
+    ok((await val(`pstats/${me0.pid}/g/overclock/p`)) === 2, 'a re-sent report is still counted once (2 OVERCLOCK matches)');
+    // THE ADD-ON: a SOLO run → SOLO RUN · Just you; hosting untouched; HOUSE WARMING (from her first hosted room) kept
+    const ho0 = await val(`pstats/${me0.pid}/pa/ho`);
+    const s = await playOc(ocFinal(Array.from({ length: 6 }, () => ({ [uids[0]]: 120 })), [uids[0]]), { [uids[0]]: 'ALICE' }, 'solo');
+    ok(s.place === 'SOLO RUN' && /^Just you/.test(s.sub) && !/players/.test(s.sub), `a SOLO run reads "${s.place} · ${s.sub}"`);
+    ok((await val(`pstats/${me0.pid}/pa/ho`)) === ho0, `a SOLO run never counts as hosting (ho ${ho0} → ${await val(`pstats/${me0.pid}/pa/ho`)})`);
+    ok(!!(await val(`pstats/${me0.pid}/ac/house-warming`)), 'HOUSE WARMING stays with who has it');
+    ok(!!(await val(`pstats/${me0.pid}/it/card-redline`)), 'REDLINE is still hers');
+    await H.backToLobby(p0).catch(() => {});
+  }
 });

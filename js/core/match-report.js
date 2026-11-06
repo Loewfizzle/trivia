@@ -108,6 +108,15 @@ function overclockExtra(game, uid, out, row, ctx, win) {
     const mine = at(uid);
     if (uids.every(u => u === uid || at(u) > mine)) (out.f ||= {}).comeback = 1;
   }
+  // OVERCLOCK CARDS (Nov 5 night) — the two cards' flags, from the room's own record (2+ players: alone, "every challenge" is automatic)
+  const tot = u => { let s = 0; for (const rr of vals(res)) s += num(rr && rr[u] && rr[u].pts); return s; };
+  if (uids.length >= 2) {
+    // REDLINE — sweep: a QUICK match, every challenge played (all 6 results), this player ALONE on top of every one (strictly the most, > 0)
+    const quick = game.settings && game.settings.mode === 'quick' && num(game.total) === OC_MODES.quick && Object.keys(res).length === OC_MODES.quick;
+    if (quick && Object.values(res).every(rr => { const me = num(rr && rr[uid] && rr[uid].pts); return me > 0 && uids.every(u => u === uid || num(rr && rr[u] && rr[u].pts) < me); })) (out.f ||= {}).sweep = 1;
+    // PHOTO FINISH — photo: the win, ALONE in first, by exactly one point over second (any mode)
+    if (win && row.rank === 1) { const me = tot(uid), next = Math.max(...uids.filter(u => u !== uid).map(tot)); if (me - next === 1) (out.f ||= {}).photo = 1; }
+  }
   const mode = game.settings && game.settings.mode;
   if (mode !== 'standard' || num(game.total) !== OC_MODES.standard) return;
   let bad = false;

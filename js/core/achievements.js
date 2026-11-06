@@ -1,4 +1,4 @@
-// THE 30 ACHIEVEMENTS + THE AWARD ENGINE (PROGRESSION A), PURE — shared by /api (the only writer) and the screens (names + lines of the
+// THE 32 ACHIEVEMENTS + THE AWARD ENGINE (PROGRESSION A), PURE — shared by /api (the only writer) and the screens (names + lines of the
 // ones you OWN). The owner's list (plan.md "THE ACHIEVEMENTS — DRAFT", Nov 2): shown ONLY once earned, each with "X% OF PLAYERS HAVE THIS";
 // no list of what's left, no totals, no ??? anywhere. Each one unlocks an ITEM (core/items.js).
 //
@@ -19,7 +19,7 @@ export const LEGENDARIES = ['ufo', 'tr3b', 'blackbird', 'f22', 'ghostship', 'aur
 const sum = (g, k) => Object.values(g || {}).reduce((a, x) => a + ((x && x[k]) || 0), 0);
 const A = (id, name, group, item, line, check, x = {}) => ({ id, name, group, item, line, check, ...x });
 
-// THE VAULT 1B — NAMES ONLY TO OWNERS: the 30 achievements (names, lines, checks, items) live on the SERVER (api/_lib/catalog.js); this
+// THE VAULT 1B — NAMES ONLY TO OWNERS: the 32 achievements (names, lines, checks, items) live on the SERVER (api/_lib/catalog.js); this
 // module keeps the ENGINE + a registry the server fills at import (a phone gets display rows only for the ones its player holds).
 export const ACHIEVEMENTS = [];
 export const ACH = {};
@@ -40,13 +40,16 @@ export const heldOf = ac => Object.keys(ac || {}).filter(id => ACH[id]).sort((a,
 const MAX_FRIENDS = 30;
 /**
  * A counted match into the counters. x = { gid, rank, win, n, night (the streak day), hosted, roomKey, party (a party night), hourET,
- * holiday (an id | null), friends [pids], flags { name: 1 } (the game's — match-report's row.f) } → a new pa.
+ * holiday (an id | null), friends [pids], flags { name: 1 } (the game's — match-report's row.f; kept as gf['<game>-<flag>']) } → a new pa.
  */
 export function noteMatch(pa0, x) {
   const p = { ...(pa0 || {}) };
   if (p.nd !== x.night) { p.nt = (p.nt || 0) + 1; p.nd = x.night; }
-  if (x.hosted && x.roomKey && p.hk !== x.roomKey) { p.ho = (p.ho || 0) + 1; p.hk = x.roomKey; }
-  if (x.hosted && x.roomKey && x.n >= 4 && p.h4k !== x.roomKey) { p.h4 = (p.h4 || 0) + 1; p.h4k = x.roomKey; }
+  // (OVERCLOCK CARDS' ADD-ON — the owner, Nov 5 10:54 pm: a SOLO run counted as hosting a room → HOUSE WARMING. A room of ONE is never
+  //  "hosted": only a match with 2+ players moves ho / h4; what anyone already holds stays theirs)
+  const hosts = x.hosted && x.roomKey && x.n >= 2;
+  if (hosts && p.hk !== x.roomKey) { p.ho = (p.ho || 0) + 1; p.hk = x.roomKey; }
+  if (hosts && x.n >= 4 && p.h4k !== x.roomKey) { p.h4 = (p.h4 || 0) + 1; p.h4k = x.roomKey; }
   if (x.n >= 2 && x.rank === x.n && !x.win) p.lc = (p.lc || 0) + 1;
   if (x.party) p.pn = p.pn && p.pn.d === x.night ? { d: x.night, n: p.pn.n + 1 } : { d: x.night, n: 1 };
   if (x.n >= 8) p.m8 = 1;
@@ -60,7 +63,10 @@ export function noteMatch(pa0, x) {
     p.fr = fr;
   }
   for (const [k, v] of Object.entries(x.flags || {})) if (v) {
-    p.gf = { ...(p.gf || {}), [`${x.gid}.${k}`]: 1 };
+    // (OVERCLOCK CARDS — found by the profile E2E: the key was `${gid}.${k}` — a DOT, which the database refuses: the server's whole
+    //  transaction failed, so a match that raised ANY game flag (DEAD ON's exact Closest Call, PRISM DROP's 4-line clear) was never counted.
+    //  A dash, like the board ids)
+    p.gf = { ...(p.gf || {}), [`${x.gid}-${k}`]: 1 };
     if (k === 'comeback') p.gf.comeback = 1;
   }
   return p;

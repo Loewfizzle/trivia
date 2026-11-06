@@ -199,13 +199,13 @@ export const ACH_ROWS = [
   A('many-happy-returns', 'MANY HAPPY RETURNS', 'specials', 'card-confetti', 'You played on your birthday.', (s, p) => !!p.bd, { dormant: 'birthday' }),
   A('seasons-greetings', 'SEASON’S GREETINGS', 'specials', 'glow-tinsel', 'Three holidays at the bar.', (s, p) => Object.keys(p.hol || {}).length >= 3),
   // GAME-SPECIFIC (placeholders — each game's rework sets 2–3 of its own: GAME_ACHIEVEMENTS + a flag from its match report)
-  A('four-on-the-floor', 'FOUR ON THE FLOOR', 'prism', 'emb-prism', 'Four lines at once.', (s, p) => !!(p.gf && p.gf['prism.quad']), { game: 'prism' }),
-  A('dead-on', 'DEAD ON', 'overclock', 'emb-bullseye', 'A Closest Call, dead on.', (s, p) => !!(p.gf && p.gf['overclock.exact']), { game: 'overclock' }),
+  A('four-on-the-floor', 'FOUR ON THE FLOOR', 'prism', 'emb-prism', 'Four lines at once.', (s, p) => !!(p.gf && p.gf['prism-quad']), { game: 'prism' }),
+  A('dead-on', 'DEAD ON', 'overclock', 'emb-bullseye', 'A Closest Call, dead on.', (s, p) => !!(p.gf && p.gf['overclock-exact']), { game: 'overclock' }),
   A('overclocked', 'OVERCLOCKED', 'overclock', 'card-circuit', 'Ten OVERCLOCK wins.', (s) => ((s.g && s.g.overclock && s.g.overclock.w) || 0) >= 10, { game: 'overclock' }),
   // OVERCLOCK CARDS (Nov 5 night): the flags come from the room's OWN record of the match (core/match-report.js#overclockExtra — never a number
   // a phone sends): `sweep` = alone on top of every challenge of a QUICK match (≥ 2 players) · `photo` = the win alone by exactly one point
-  A('redline', 'REDLINE', 'overclock', 'card-redline', 'Every challenge of a Quick match.', (s, p) => !!(p.gf && p.gf['overclock.sweep']), { game: 'overclock' }),
-  A('photo-finish', 'PHOTO FINISH', 'overclock', 'card-photofinish', 'Won by a single point.', (s, p) => !!(p.gf && p.gf['overclock.photo']), { game: 'overclock' }),
+  A('redline', 'REDLINE', 'overclock', 'card-redline', 'Every challenge of a Quick match.', (s, p) => !!(p.gf && p.gf['overclock-sweep']), { game: 'overclock' }),
+  A('photo-finish', 'PHOTO FINISH', 'overclock', 'card-photofinish', 'Won by a single point.', (s, p) => !!(p.gf && p.gf['overclock-photo']), { game: 'overclock' }),
 ];
 
 export const LEVEL_REWARD_ROWS = [
