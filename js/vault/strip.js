@@ -88,6 +88,7 @@ export const LOOKS = Object.freeze({
   'card-gift-youngbuck': { mat: 'g-bruh', fx: 'gift:card-gift-youngbuck' },   // (Liam's tape card — the id kept)
   'card-gift-icecold': { mat: 'g-icecold', fx: 'gift:card-gift-icecold' },
   'card-gift-anarchist': { mat: 'g-anarchist', fx: 'gift:card-gift-anarchist' },
+  'card-gift-buzzed': { mat: 'g-buzzed', fx: 'gift:card-gift-buzzed' },   // (THE SEEING-STARS CARD, Nov 6 — its own strip picture)
   // OVERCLOCK CARDS (Nov 5 night): Grok's art = the material (css/vault.css .vl-s-oc-*), the game's layers = js/fx/oc-cards.js
   'card-redline': { mat: 'oc-redline', fx: 'ocRedline' },
   'card-photofinish': { mat: 'oc-photofinish', fx: 'ocPhoto' },

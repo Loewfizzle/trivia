@@ -1025,6 +1025,8 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
    edge (paint-order: the stroke under the fill); MEMBER SINCE untouched */
 .vl-fcm-g-bruh .vl-fc-card { font: 900 max(14px, 4.2cqi)/1 var(--font-display); letter-spacing: 0.06em; color: #ffd36a; -webkit-text-stroke: 0.08em #1a0a02; paint-order: stroke fill;
   text-shadow: 0 1px 0 rgba(26, 10, 2, 0.9), 0 0 10px rgba(0, 0, 0, 0.55); }
+.vl-s-g-buzzed .vl-mat { background: #2a0a20 url('../assets/vault/gift/buzzed-strip.webp') 50% 50% / cover no-repeat; }   /* (THE SEEING-STARS CARD, Nov 6 — its OWN strip picture, eyes → mouth; the spiral turns in js/fx/gift.js) */
+.vl-fcm-g-buzzed .vl-mat { background-image: url('../assets/vault/gift/buzzed.webp'); background-position: 50% 50%; }
 .vl-s-g-icecold .vl-mat { background: #07060a url('../assets/vault/gift/icecold.webp') 50% 32.5% / cover no-repeat; }
 .vl-fcm-g-icecold .vl-mat { background-position: 50% 50%; }
 .vl-fc.vl-gift-fc .vl-fc-plate { top: 43%; }   /* (CARD FIXES: 47 → 43 % — the rank line now sits above MEMBER SINCE) */
@@ -1059,3 +1061,4 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 /* (the owner's flag on the mock: REDLINE's strip gem sat on the gauge's hot red edge — a dark backing under the gem, its gold light kept small
    in the middle, so the stone reads on the red) */
 .vl-s-oc-redline > .vl-gem::before { inset: -78%; background: radial-gradient(closest-side, rgba(255, 210, 110, 0.42), rgba(8, 5, 5, 0.95) 34%, rgba(8, 5, 5, 0.9) 56%, rgba(8, 5, 5, 0.55) 78%, rgba(8, 5, 5, 0) 100%); }
+

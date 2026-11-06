@@ -83,6 +83,7 @@ export const ITEM_ROWS = [
   C('card-gift-youngbuck', 'BRUH', 'legendary', '#14060f', '#ff4fd8', '#f6ff4a', 'Taped up on a red wall. One of one.', { gift: true }),
   C('card-gift-icecold', 'ICE COLD', 'legendary', '#04102a', '#cfefff', '#7fd8ff', 'Snow, aurora, ice in the veins. One of one.', { gift: true }),
   C('card-gift-anarchist', 'THE ANARCHIST', 'legendary', '#0a0608', '#ff4f8b', '#ffd27a', 'No masters. One of one.', { gift: true }),
+  C('card-gift-buzzed', 'BUZZED LIGHTYEAR', 'legendary', '#2a0a20', '#ff4fae', '#ffe04a', 'Seeing stars since noon.', { gift: true }),   // (Nov 6 — a name pun only)
   // ---- PROGRESSION B — CITY SIGHTINGS: each legendary's MATCHED PAIR (a LEGENDARY card + its EMBLEM), first tap that the server
   // believes (core/sightings.js — the ids final, the art THE VAULT's: the city's own baked models on the cards)
   C('card-sg-ufo', 'I WANT TO BELIEVE', 'legendary', '#04100a', '#9dffc4', '#5dff9a', 'The saucer over the harbor. You saw it.', { sg: 'ufo' }),

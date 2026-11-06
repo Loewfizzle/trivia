@@ -16,3 +16,7 @@ cambria/ (2 candidates)
 
 Gift EMBLEMS were dropped (gift-emblems.png in this folder is NOT used) — gifted players use the regular emblems.
 Credits: "Player art generated with Grok Imagine (xAI), from a family photo." (Grok's notes: Downloads\grok\nephew + cambria\grok-notes.txt)
+
+bad-decision/ → BUZZED LIGHTYEAR (Nov 6): bad-b-stars.png = B · SEEING STARS, the approved full-card picture (1280 x 800). Taken apart by
+  scripts/build-buzzed-art.py (the man cut out, the HIC!, the light, the spiral fitted); the STRIP picture is COMPOSED from it (eyebrows → chin,
+  the owner 12:40 pm) — the approved bad-b-strip.png (eyes → mouth) is no longer used. A name pun only: nothing else from any film.

@@ -288,7 +288,7 @@ G('vault', async () => {
   // THE GPU PATH at the FULL tier: 8 legendaries, then the 8 samples, 4× CPU, the real compositor, 3× — every frame on time
   // (its own browser: the real compositor + the GPU for WebGL — headless Chromium's default GL is a software one, which a phone never runs)
   // (THE VAULT 1C: + THE 8 SIGHTINGS + THE NEW 21's lobby mix — every new card at the same bar)
-  for (const mix of ['samples', 'legend', 'sightings', 'held', 'gifts', 'gifts2']) {   // (SHELL 2.0 B2: + THE GIFT CARDS — the 11 in two lobbies of 8)
+  for (const mix of ['samples', 'legend', 'sightings', 'held', 'gifts', 'gifts2']) {   // (SHELL 2.0 B2: + THE GIFT CARDS — the 12 in two lobbies of 8: 0–7 + 4–11)
     const gpuB = await puppeteer.launch({ executablePath: BROWSER, headless: 'new', realCompositor: true, args: ['--enable-gpu', '--mute-audio', '--no-sandbox'] });   // (a fresh one per mix, like THE VAULT BENCH)
     const ctx = await gpuB.createBrowserContext(), p = await ctx.newPage();
     await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
@@ -305,7 +305,7 @@ G('vault', async () => {
     await ctx.close(); await gpuB.close();
   }
   // SHELL 2.0 B2 — THE GIFT CARDS' FULL SHOW (the full card plays every layer): the three busiest, alone at 3×, 4× CPU, the GPU path — 60 fps
-  for (const id of ['card-gift-anarchist', 'card-gift-goldenboot', 'card-gift-icecold', 'card-gift-youngbuck']) {   // (+ CARD FIXES' ADD-ON: the tape card's new show)
+  for (const id of ['card-gift-anarchist', 'card-gift-goldenboot', 'card-gift-icecold', 'card-gift-youngbuck', 'card-gift-buzzed']) {   // (+ CARD FIXES' ADD-ON: the tape card's new show; + Nov 6: the seeing-stars card — the turning spiral, the cut-out, the orbit)
     const gpuB = await puppeteer.launch({ executablePath: BROWSER, headless: 'new', realCompositor: true, args: ['--enable-gpu', '--mute-audio', '--no-sandbox'] });
     const ctx = await gpuB.createBrowserContext(), p = await ctx.newPage();
     await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 3, isMobile: true, hasTouch: true });

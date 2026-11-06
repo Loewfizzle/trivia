@@ -12,6 +12,8 @@ export const GIFT_CARDS = Object.freeze([
   'card-gift-sunsetstrip', 'card-gift-goldenhour',
   // the ADD-ON (Nov 5 12:51 pm): Liam's three + the owner's own
   'card-gift-goldenboot', 'card-gift-youngbuck', 'card-gift-icecold', 'card-gift-anarchist',
+  // BUZZED LIGHTYEAR (Nov 6 — the owner's friend; the owner GIVES it in /admin → GIFTS)
+  'card-gift-buzzed',
 ]);
 export const OWNER_GIFTS = Object.freeze(['card-gift-anarchist']);
 export const GIFTABLE = Object.freeze(GIFT_CARDS.filter(id => !OWNER_GIFTS.includes(id)));

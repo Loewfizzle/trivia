@@ -217,6 +217,11 @@ LAB.push(
   { id: 'full-card-redline', kind: 'full', of: 'card-redline', tier: 'legendary', n: 184 },
   { id: 'full-card-photofinish', kind: 'full', of: 'card-photofinish', tier: 'rare', n: 185 },
 );
+// THE SEEING-STARS CARD (Nov 6) — a 1-OF-1 GIFT (the owner gives it in /admin → GIFTS): its strip, then its full card
+LAB.push(
+  { id: 'card-gift-buzzed', kind: 'card', tier: 'legendary', n: 186, gift: true },
+  { id: 'full-card-gift-buzzed', kind: 'full', of: 'card-gift-buzzed', tier: 'legendary', n: 187, gift: true },
+);
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 // THE VAULT 1B — NAMES ONLY TO OWNERS: the lab's NAMES + what each one does are the SERVER's (api/_lib/lab-text.js) — handed to the lab with
 // the marks (admins only: /api/admin labMarks → { marks, text }); the look previews (never deployed) import them off the local server.
@@ -232,7 +237,7 @@ export const LAB_V = Object.freeze({
   'card-founder': 2, 'full-card-founder': 2, 'full-card-house': 2,
   // (CARD FIXES — the owner's LAB notes + THE CARD LAYOUT RULE: every gift's full card, the strips whose art moved, the dev line)
   'full-card-gift-playerone': 2, 'full-card-gift-halloffame': 2, 'full-card-gift-enforcer': 2, 'full-card-gift-linebacker': 2, 'full-card-gift-underlights': 2, 'full-card-gift-sunsetstrip': 2, 'full-card-gift-goldenhour': 2, 'full-card-gift-goldenboot': 2, 'full-card-gift-youngbuck': 3, 'full-card-gift-icecold': 2, 'full-card-gift-anarchist': 2,
-  'card-gift-playerone': 2, 'card-gift-halloffame': 2, 'card-gift-sunsetstrip': 2, 'card-gift-youngbuck': 3, 'card-gift-icecold': 2, 'card-gift-anarchist': 2,
+  'card-gift-playerone': 2, 'card-gift-halloffame': 2, 'card-gift-sunsetstrip': 2, 'card-gift-youngbuck': 4, 'card-gift-icecold': 2, 'card-gift-anarchist': 2,   // (Nov 6: the tape card's strip v4 — its effects back on their spots)
   'card-dev-switchboard': 4, 'card-dev-source': 4, 'full-card-dev-switchboard': 6, 'full-card-dev-source': 6,
 });
 /** an item's current version */

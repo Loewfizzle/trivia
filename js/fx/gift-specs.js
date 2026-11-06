@@ -117,6 +117,34 @@ export const GIFT_SPECS = Object.freeze({
     { t: 'twinkle', pts: [[690, 60], [770, 210], [700, 150], [1200, 60], [1250, 200], [820, 28]], rgb: '255,240,245', size: 24, period: 1.9 },
     { t: 'flash', box: [660, 0, 600, 40], period: 2.3, rgb: '255,255,255' },
   ] } },
+  // THE SEEING-STARS CARD (the owner, Nov 6 — B · SEEING STARS; its name a pun ONLY — nothing else from any film; the name is the server's): pop art — the pink + yellow dizzy
+  // spiral, the halftone, him in four flat inks, the ring of stars round his cap, the HIC! burst. The flat picture is taken APART
+  // (scripts/build-buzzed-art.py — its numbers below): the spiral TURNS behind him (`spiral` — its formula fitted to the art), the dots +
+  // the picture's light laid back over it (`dots` shimmering, the `shade`), HIM cut out (`cutout`), the stars ORBITING (`orbit` — the far
+  // half behind him, smaller + dimmer; the near half in front, twinkling), the HIC! popping (`pop`). Its OWN strip picture (eyes → mouth).
+  //   spiral  { key, sp: { cx, cy, k, c, e, rot, phase, d, N } (the fit), R (art px the bake covers), size (its px), rgb: [pink, yellow], speed (rad/s) }
+  //   dots    { per, x0, y0 (the lattice), r, a (how dark), shimmer (0..1), period }
+  //   cutout  { art, box: [x, y, w, h] }                                                — a baked RGBA piece (him, the light) drawn in place
+  //   orbit   { side: 'back'|'front', ring: { cx, cy, rx, ry, rot }, n, a0, size, period, fill }
+  //   pop     { art, box, period }                                                      — the HIC! hiccup: a swell, a squash, a dying wobble
+  'card-gift-buzzed': { art: 'buzzed', hero: [745, 225, 380, 440], heroFull: [690, 90, 520, 610], strip: [50, 50], layers: [
+    { t: 'spiral', key: 'buzzed', sp: { cx: 859.38, cy: 564.67, k: 0.0059146, c: -0.95747, e: 0.075075, rot: -0.181911, phase: -0.720564, d: -0.004715, N: 3 }, R: 1087, size: 1536, rgb: ['232,61,157', '242,213,65'], speed: 0.16 },
+    { t: 'dots', per: 31.5, x0: 9.0, y0: 8.94, r: 5.6, a: 0.19, shimmer: 0.75, period: 5.5 },
+    { t: 'cutout', art: 'buzzed-shade', box: [0, 0, 1280, 800] },
+    { t: 'twinkle', pts: [[150, 120], [430, 60], [300, 470], [560, 720], [610, 380], [1250, 330], [1240, 690], [80, 660]], rgb: '255,250,215', size: 26, period: 2.3 },
+    { t: 'orbit', side: 'back', ring: { cx: 925, cy: 74, rx: 196, ry: 52, rot: -0.12 }, n: 5, a0: 0.6, size: 62, period: 7, fill: '#fff6b0' },
+    { t: 'cutout', art: 'buzzed-man', box: [658, 89, 554, 665] },
+    { t: 'orbit', side: 'front', ring: { cx: 925, cy: 74, rx: 196, ry: 52, rot: -0.12 }, n: 5, a0: 0.6, size: 62, period: 7, fill: '#fff6b0' },
+    { t: 'pop', art: 'buzzed-hic', box: [585, 186, 134, 108], period: 3.6 },
+  ], stripArt: { art: 'buzzed-strip', h: 256, crop: [50, 50], hero: [790, 0, 300, 256], layers: [   // (the owner, Nov 6 12:40 pm: "eyebrows to chin" — the strip
+    // picture is COMPOSED from the full one: art y 240 → 655 scaled x 0.6169 into 256 px, his face at 72 % across — every number below is
+    // the full card's own, mapped the same way: build-buzzed-art.py's `strip`)
+    { t: 'spiral', key: 'buzzed-strip2', sp: { cx: 881.12, cy: 200.28, k: 0.0095881, c: -2.51618, e: 0.075075, rot: -0.181911, phase: -0.720564, d: -0.004715, N: 3 }, R: 935, size: 1024, rgb: ['232,61,157', '242,213,65'], speed: 0.12 },
+    { t: 'dots', per: 19.431, x0: 6.783, y0: 12.915, r: 3.454, a: 0.19, shimmer: 0.5, period: 6.5 },
+    { t: 'cutout', art: 'buzzed-strip-shade', box: [0, 0, 1280, 256] },
+    { t: 'cutout', art: 'buzzed-strip-man', box: [769, 0, 329, 256] },
+    { t: 'twinkle', pts: [[1180, 50], [1235, 196], [640, 40]], rgb: '255,250,215', size: 22, period: 2.6 },
+  ] } },
   'card-gift-icecold': { art: 'icecold', hero: [840, 140, 260, 300], heroFull: [840, 70, 300, 460], strip: [50, 32.5], layers: [   // (the art slid right 150 — CARD FIXES)
     { t: 'aurora', box: [580, 30, 700, 280], rgbs: ['110,255,220', '170,130,255'], a: 0.16 },
     { t: 'motes', box: [0, -20, 1280, 840], n: 46, rgb: '255,255,255', size: [1.5, 3.6], dir: 'down', speed: 34, a: 0.85, kind: 'dot', tw: 0.2 },

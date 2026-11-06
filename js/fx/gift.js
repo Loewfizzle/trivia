@@ -15,7 +15,8 @@ const AW = 1280, AH = 800;
 /** the art → slot mapping (CSS `background: … px% py% / cover`; crop[2] = a zoom out — CARD FIXES: `z·100% auto`, the strip's width-bound
  *  cover × z): { k, ox, oy } */
 export function artMap(w, h, crop, ah = AH) {
-  const k = Math.max(w / AW, h / ah) * (crop[2] || 1), dw = AW * k, dh = AH * k;
+  const k = Math.max(w / AW, h / ah) * (crop[2] || 1), dw = AW * k, dh = ah * k;   // (Nov 6: dh from the picture's OWN height — it was AH, which threw
+  //  every layer on a card's own strip picture (the tape card's) up off its spot: FRIENDS' "the tape card's strip effects slightly mis-positioned")
   return { k, ox: (w - dw) * (crop[0] / 100), oy: (h - dh) * (crop[1] / 100) };
 }
 const TAU = Math.PI * 2;
@@ -57,6 +58,50 @@ const frostEdge = rgb => sprite(`gift-frost:${rgb}`, 256, 160, (c, w, h) => {
   const g = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, w * 0.62); g.addColorStop(0, `rgba(${rgb},0)`); g.addColorStop(1, `rgba(${rgb},0.55)`); c.fillStyle = g; c.fillRect(0, 0, w, h);
 });
 
+// ---- THE SEEING-STARS CARD (Nov 6) — the flat picture taken APART (scripts/build-buzzed-art.py) so the spiral turns BEHIND him: the spiral itself
+// (drawn from its fitted formula — never a photo), the halftone dots + the picture's light laid back over it, then HIM (a cut-out), the ring of
+// stars round his cap (the far half behind him, the near half in front), the HIC! popping. These layers fade in over the still art on the slot's
+// own clock (the art is the first frame + the reduced-motion frame); `still` skips them — the approved picture shows as it is.
+const born = (s, t) => { if (s.giftBorn == null || t < s.giftBorn) s.giftBorn = t; return smooth(0, 0.7, t - s.giftBorn); };
+/** the spiral (pink arms on yellow) in its own round frame: SZ px across = 2R art px; pink where cos(2pi(N th + k r + c r^2) + phase) > d */
+const spiralSprite = (L, SZ) => sprite(`gift-spiral:${L.key}:${SZ}`, SZ, SZ, (c, w) => {
+  const P = L.sp, R = L.R, px = w / (2 * R), h = Math.acos(Math.max(-1, Math.min(1, P.d))) / TAU, ph = P.phase / TAU;
+  c.fillStyle = `rgb(${L.rgb[1]})`; c.fillRect(0, 0, w, w);
+  c.fillStyle = `rgb(${L.rgb[0]})`;
+  const th = (m, r) => TAU * (m - P.k * r - P.c * r * r * 1e-6 - ph) / P.N;
+  for (let m = 0; m < P.N; m++) {
+    c.beginPath();
+    for (let r = 0; r <= R; r += 3) { const a = th(m - h, r); c.lineTo(w / 2 + Math.cos(a) * r * px, w / 2 + Math.sin(a) * r * px); }
+    for (let r = R; r >= 0; r -= 3) { const a = th(m + h, r); c.lineTo(w / 2 + Math.cos(a) * r * px, w / 2 + Math.sin(a) * r * px); }
+    c.closePath(); c.fill();
+  }
+});
+/** the halftone: a 63-art-px tile (two lattice periods) of soft dark dots, baked at 2x */
+const dotTile = L => sprite(`gift-dots:${L.r}:${L.per}`, Math.round(L.per * 4), Math.round(L.per * 4), (c, w) => {
+  const q = w / (L.per * 2), st = L.per / 2;
+  for (let a = -1; a <= 4; a++) for (let b = -1; b <= 4; b++) {
+    if ((a + b) % 2) continue;
+    const g = c.createRadialGradient(a * st * q, b * st * q, 0, a * st * q, b * st * q, L.r * q);
+    g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.75, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(a * st * q, b * st * q, L.r * q, 0, TAU); c.fill();
+  }
+});
+/** a 5-point star: lemon, a black comic outline (the art's own) */
+const starSprite = (fill, n = 96) => sprite(`gift-star:${fill}:${n}`, n, n, (c, w) => {
+  c.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = (i % 2 ? 0.2 : 0.44) * w; c.lineTo(w / 2 + Math.cos(a) * r, w / 2 + 2 + Math.sin(a) * r); }
+  c.closePath(); c.lineJoin = 'round'; c.lineWidth = w * 0.05; c.strokeStyle = '#120a14'; c.fillStyle = fill; c.fill(); c.stroke();
+});
+/** the ring: a white neon line in a pink glow — the far half or the near half (the ellipse's own frame, baked) */
+const ringSprite = (L, half) => sprite(`gift-ring:${L.rx}:${L.ry}:${half}`, 512, 256, (c, w, h) => {
+  const sx = w / (L.rx * 2.5), sy = h / (L.ry * 2.5);
+  c.save(); c.beginPath(); c.rect(0, half === 'back' ? 0 : h / 2, w, h / 2); c.clip();
+  c.translate(w / 2, h / 2); c.scale(sx, sy);
+  for (const [lw, a, col] of [[14, 0.16, '255,120,210'], [8, 0.3, '255,160,225'], [3.2, 0.95, '255,250,255']]) {
+    c.lineWidth = lw; c.strokeStyle = `rgba(${col},${a})`; c.beginPath(); c.ellipse(0, 0, L.rx, L.ry, 0, 0, TAU); c.stroke();
+  }
+  c.restore();
+});
 // ---- the layers: (c, L, M, t, s, Q, F) — M the art map, F = { full, calm (0..1), still }
 const P = (M, x, y) => [M.ox + x * M.k, M.oy + y * M.k];
 /** a box clip inside the card's rounded one — clamped to the slot; a box covering the whole slot keeps the card's own (rounded) clip */
@@ -282,6 +327,65 @@ const DRAW = {
     const u = F.still ? 0.4 : (t % L.period) / 1.6; if (u > 1) return;
     const bx = M.ox + L.box[0] * M.k, bw = L.box[2] * M.k, x = bx + bw * u, wd = L.width * M.k * 2;
     c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = L.a * Math.sin(u * Math.PI) * F.calmA; c.drawImage(tinted(L.rgb, 'h'), x - wd / 2, 0, wd, s.h); c.restore();
+  },
+  // THE SEEING-STARS CARD's pieces (the helpers above)
+  spiral(c, L, M, t, s, Q, F) {
+    if (F.still) return; const a = born(s, t); if (a <= 0) return;
+    const spr = spiralSprite(L, L.size || 1024), P = L.sp, beta = -t * L.speed;
+    c.save(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = a;
+    const [x, y] = [M.ox + P.cx * M.k, M.oy + P.cy * M.k];
+    c.translate(x, y); c.scale(M.k, M.k); c.rotate(P.rot); c.scale(1, 1 / Math.exp(P.e)); c.rotate(beta);
+    c.drawImage(spr, -L.R, -L.R, L.R * 2, L.R * 2);
+    c.restore();
+  },
+  dots(c, L, M, t, s, Q, F) {
+    if (F.still) return; const a = born(s, t); if (a <= 0) return;
+    const spr = dotTile(L), tw = L.per * 2 * M.k, x0 = M.ox + (L.x0 % (L.per * 2) - L.per * 2) * M.k, y0 = M.oy + (L.y0 % (L.per * 2) - L.per * 2) * M.k;
+    const cyc = (t % L.period) / L.period, dx = s.w + s.h;   // (the shimmer: a soft diagonal wave thins the dots as it passes, every period)
+    c.save(); c.globalCompositeOperation = 'source-over';
+    for (let y = y0; y < s.h; y += tw) for (let x = x0; x < s.w; x += tw) {
+      const d = (x + y + tw) / dx - (cyc * 1.6 - 0.3), wave = Math.exp(-d * d / 0.012);
+      c.globalAlpha = a * L.a * (1 - L.shimmer * wave * F.calmA);
+      c.drawImage(spr, x, y, tw, tw);
+    }
+    c.restore();
+  },
+  cutout(c, L, M, t, s, Q, F) {
+    if (F.still) return; const a = born(s, t); if (a <= 0) return;
+    const img = image(`${GIFT_ART}${L.art}.webp`); if (!img) return;
+    const [bx, by, bw, bh] = L.box, [x, y] = P(M, bx, by);
+    c.save(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.drawImage(img, x, y, bw * M.k, bh * M.k); c.restore();
+  },
+  orbit(c, L, M, t, s, Q, F) {
+    if (F.still) return; const a = born(s, t); if (a <= 0) return;
+    const R = L.ring, [x, y] = P(M, R.cx, R.cy), back = L.side === 'back';
+    c.save(); c.translate(x, y); c.rotate(R.rot);
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = a * (back ? 0.8 : 1);
+    const rw = R.rx * 2.5 * M.k, rh = R.ry * 2.5 * M.k; c.drawImage(ringSprite(R, L.side), -rw / 2, -rh / 2, rw, rh);
+    const spin = t * TAU / L.period, star = starSprite(L.fill);
+    for (let i = 0; i < L.n; i++) {
+      const ang = L.a0 + i * TAU / L.n + spin, sn = Math.sin(ang);
+      if (back ? sn >= 0 : sn < 0) continue;   // (the far half: up the ring, behind him; the near half: down it, in front)
+      const depth = 0.5 + 0.5 * sn, sc = 0.66 + 0.34 * depth, tw = 1 + 0.1 * Math.sin(t * 5.3 + i * 2.1);
+      const sx = Math.cos(ang) * R.rx * M.k, sy = sn * R.ry * M.k, d = L.size * M.k * sc * tw;
+      c.save(); c.translate(sx, sy); c.rotate(-R.rot + Math.sin(t * 2 + i) * 0.25);
+      c.globalAlpha = a * (0.55 + 0.45 * depth); c.drawImage(star, -d / 2, -d / 2, d, d); c.restore();
+      const u = fract(t / 1.7 + i * 0.37);   // (a sparkle popping off each star in turn)
+      if (u < 0.22 && !back) { c.globalCompositeOperation = 'lighter'; stamp(c, sparkle('255,255,230'), sx + d * 0.36, sy - d * 0.3, d * 1.1 * Math.sin(u / 0.22 * Math.PI), a * F.calmA); c.globalCompositeOperation = 'source-over'; }
+    }
+    c.restore();
+  },
+  pop(c, L, M, t, s, Q, F) {
+    if (F.still) return; const a = born(s, t); if (a <= 0) return;
+    const img = image(`${GIFT_ART}${L.art}.webp`); if (!img) return;
+    const [bx, by, bw, bh] = L.box, [x, y] = P(M, bx + bw / 2, by + bh / 2), u = (t % L.period) / L.period * L.period;   // (seconds into this period)
+    // the hiccup: a quick swell (0.12 s) → a squash back past 1 → a wobble that dies out; between, a faint breathing
+    const swell = u < 0.12 ? smooth(0, 0.12, u) : Math.max(0, 1 - (u - 0.12) / 0.5);
+    const sc = 1 + 0.26 * swell * (u < 0.12 ? 1 : Math.cos((u - 0.12) * 18)) + 0.02 * Math.sin(t * 2.4);
+    const rot = (u < 1.4 ? Math.sin(u * 14) * 0.16 * Math.exp(-u * 2.6) : 0) + Math.sin(t * 1.1) * 0.02;
+    c.save(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.translate(x, y); c.rotate(rot); c.scale(sc, sc);
+    c.drawImage(img, -bw * M.k / 2, -bh * M.k / 2, bw * M.k, bh * M.k); c.restore();
+    if (u < 0.3) { c.globalCompositeOperation = 'lighter'; stamp(c, sparkle('255,255,255'), x + bw * M.k * 0.42, y - bh * M.k * 0.4, bw * M.k * 0.9 * Math.sin(u / 0.3 * Math.PI), a * F.calmA); }
   },
 };
 
