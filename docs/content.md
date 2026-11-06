@@ -23,7 +23,6 @@ How to add questions, puzzles and words to every bank, and how the word lists ar
 - **Overclock SPELLCHECK:** append `["correct", "common misspelling", "wrong", "wrong"]` (lowercase, American spelling) to
   `data/oc/spellcheck.json`. Skip words with two accepted spellings, and make sure no "wrong" option is a real word or variant
   (e.g. *calender*, *florescent* and *publically* are in dictionaries). Check new rows against ENABLE + Hunspell en_US/en_GB.
-- **Overclock MAKE 24:** `node scripts/build-make24.mjs` (tweak the easy/hard rules at its top).
 - **Overclock SORT IT:** add a pair `["LEFT", "RIGHT", [left items], [right items]]` (≥ 25 items, ≥ 7 per side) or items to a pair in
   `data/oc/sortit.json`. Only items nobody argues about (no tomato-is-a-fruit; watch ownership changes like Fox → Disney). The
   number/word pairs (PRIME, MULTIPLE OF 7, roman MORE THAN 50, MORE THAN ½, PALINDROME, LETTERS IN A–Z ORDER) are recomputed by the test.

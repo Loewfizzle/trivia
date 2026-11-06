@@ -15,9 +15,6 @@ export function fmtStat(unit, v, shown) {
 }
 // Sort It only stores the net score (right − ½ wrong) and how many cards were sorted; this recovers right/wrong.
 export const sortSplit = (ok, p) => { const wrong = Math.max(0, Math.round((p - ok) / 1.5)); return { right: p - wrong, wrong }; };
-// Make 24 tiles: whole numbers, or an exact fraction drawn stacked
-export const fmtSigned = n => (n < 0 ? `−${-n}` : String(n));
-export const fracEl = v => (v[1] === 1 ? h('span.m24-int', fmtSigned(v[0])) : h('span.m24-frac', h('b', fmtSigned(v[0])), h('i'), h('b', String(v[1]))));
 // Compass rose (static) and needle (turned with a CSS transform)
 export const ROSE_SVG = (() => {
   const p = (r, a) => { const t = (a * Math.PI) / 180; return [(100 + r * Math.sin(t)).toFixed(1), (100 - r * Math.cos(t)).toFixed(1)]; };

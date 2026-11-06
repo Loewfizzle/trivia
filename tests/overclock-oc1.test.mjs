@@ -23,7 +23,7 @@ for (const n of [5, 6, 7]) setLists(n, JSON.parse(readFileSync(`data/words/answe
 const J = f => JSON.parse(readFileSync(`data/oc/${f}`, 'utf8'));
 const BANKS = {
   timeline: J('timeline.json').sets, closest: J('closest.json').questions, missinglink: J('missinglink.json').puzzles,
-  spellcheck: J('spellcheck.json').words, make24: J('make24.json'), sortit: J('sortit.json').sets, higherlower: J('higherlower.json').stats,
+  spellcheck: J('spellcheck.json').words, sortit: J('sortit.json').sets, higherlower: J('higherlower.json').stats,
 };
 const TRIVIA = [{ q: 'a?', a: ['1', '2', '3', '4'], c: 0 }, { q: 'b?', a: ['1', '2', '3', '4'], c: 1 }, { q: 'c?', a: ['1', '2', '3', '4'], c: 2 }];
 const deps = { ...BANKS, answersFor, triviaItems: TRIVIA };
@@ -65,7 +65,6 @@ function itemsOf(spec) {
     case 'missinglink': return spec.puzzles.map(p => `ml:${p.answer}:${[...p.words].sort().join('|')}`);
     case 'spellcheck': return spec.items.map(i => `sp:${i.word}`);
     case 'sortit': return [`so:${spec.left}|${spec.right}`];
-    case 'make24': return spec.puzzles.map(p => `m24:${[...p.nums].sort().join('')}`);
     case 'higherlower': return spec.pairs.flatMap(p => [`hl:${p.stat}|${p.a.name}`, `hl:${p.stat}|${p.b.name}`]);
     case 'truefalse': return spec.items.filter((_, i) => i % 2).map(i => `tf:${i.text}`);
     case 'unscramble': return [`un:${spec.word}`];
@@ -123,7 +122,7 @@ test('QUICK is the default; the options read the new lineup; the evening station
 
 test('LEXICON is cut cleanly: no type, category, rules, parts, generator, screen, bank, data file, help line or build script', () => {
   assert.ok(!TYPES.includes('lexicon'));
-  assert.equal(TYPES.length, 19);
+  assert.equal(TYPES.length, 18, '19 after the Lexicon cut, 18 after Make 24 (OC2)');
   assert.ok(!('lexicon' in CATEGORY) && !('lexicon' in INFO));
   assert.equal(partsFor('lexicon', 0), 1, 'unknown → 1');
   assert.equal(generate('lexicon', { seed: 's', ci: 0, level: 0 }, {}), null);
@@ -131,13 +130,31 @@ test('LEXICON is cut cleanly: no type, category, rules, parts, generator, screen
   for (const f of ['js/games/overclock/challenges.js', 'js/games/overclock/view.js', 'js/games/overclock/banks.js', 'js/games/overclock/reveals.js', 'js/games/overclock/logic.js', 'js/ui/help.js', 'css/overclock.css']) {
     assert.doesNotMatch(readFileSync(f, 'utf8'), /lexicon|\.lx-/i, f);
   }
-  // Marathon: every one of the 19 once + 5 repeats, its spacing kept
+});
+
+test('MAKE 24 is cut cleanly (OC2 — the owner: "I don\'t like that challenge"): type, category, rules, parts, generator, screen, reveal, bank, solver, data, build script, help line', () => {
+  assert.ok(!TYPES.includes('make24'));
+  assert.ok(!('make24' in CATEGORY) && !('make24' in INFO));
+  assert.equal(partsFor('make24', 0), 1, 'unknown → 1');
+  assert.equal(generate('make24', { seed: 's', ci: 0, level: 0 }, {}), null);
+  assert.ok(!DEALT.includes('make24'), 'the night memory deals no Make 24');
+  for (const f of ['js/games/overclock/ui/make24.js', 'data/oc/make24.json', 'scripts/build-make24.mjs']) assert.ok(!existsSync(f), `${f} gone`);
+  for (const f of ['js/games/overclock/challenges.js', 'js/games/overclock/view.js', 'js/games/overclock/banks.js', 'js/games/overclock/reveals.js', 'js/games/overclock/logic.js', 'js/games/overclock/deal.js', 'js/games/overclock/shared.js', 'js/ui/help.js', 'css/overclock.css']) {
+    assert.doesNotMatch(readFileSync(f, 'utf8'), /make ?24|\bm24|solve24|fracEl/i, f);
+  }
+  // the room-night deal + buildOrder keep working without it (every type still dealt / ordered)
+  const g = startMatch({ matchId: 'm24', participants: { a: true, b: true }, seed: 'no24' });
+  assert.ok(g.order.every(t => TYPES.includes(t)) && g.total === 6);
+});
+
+test('MARATHON: every one of the 18 once + 6 repeats (the multiset after the Lexicon + Make 24 cuts), its spacing + the category spread kept', () => {
   for (let s = 0; s < 200; s++) {
     const o = buildOrder(`mx${s}`, 24);
     const count = {};
     o.forEach(t => { count[t] = (count[t] || 0) + 1; });
-    assert.equal(Object.keys(count).length, 19);
-    assert.equal(Object.values(count).filter(n => n === 2).length, 5);
+    assert.equal(Object.keys(count).length, 18);
+    assert.equal(Object.values(count).filter(n => n === 2).length, 6);
+    assert.ok(Object.values(count).every(n => n <= 2));
     for (const t of Object.keys(count)) { const at = o.map((x, k) => (x === t ? k : -1)).filter(k => k >= 0); if (at.length === 2) assert.ok(at[1] - at[0] >= 8); }
     assert.equal(categoryClashes(o), 0);
   }

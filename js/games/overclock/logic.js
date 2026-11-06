@@ -9,7 +9,7 @@ export const BRIEF_MS = 7_000;
 // challenges with a reveal (best words, the right order, the number line) hold the leaderboard a little longer
 export const REVEAL_STANDINGS_MS = 12_000;
 export const OVERALL_STAGE_MS = 4_400;       // the last part of standings: the rows slide into the overall order
-export const REVEALS = new Set(['timeline', 'closest', 'missinglink', 'spellcheck', 'make24', 'compass', 'sortit', 'higherlower']);
+export const REVEALS = new Set(['timeline', 'closest', 'missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower']);
 export const standingsMs = type => (REVEALS.has(type) ? REVEAL_STANDINGS_MS : STANDINGS_MS);
 export const FINAL_MS = 120_000;
 export const PLAY_GRACE_MS = 700;

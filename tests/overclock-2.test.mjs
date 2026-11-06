@@ -1,11 +1,11 @@
-// OVERCLOCK update 2 — MISSING LINK, SPELLCHECK, MAKE 24, COMPASS, SORT IT, HIGHER OR LOWER:
-// bank sanity, seeded identical puzzles, Make 24 always solvable, scoring math, the category-spread order,
+// OVERCLOCK update 2 — MISSING LINK, SPELLCHECK, COMPASS, SORT IT, HIGHER OR LOWER (MAKE 24 was cut in OC2):
+// bank sanity, seeded identical puzzles, scoring math, the category-spread order,
 // and 8-player director runs (rejoin mid-challenge, a new host replaying a transition).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  TYPES, CATEGORY, generate, partsFor, linkAccepts, normWord, solve24, applyOp, frac, compassFace, COMPASS_LENGTHS, COMPASS_SCRIPT_MS,
+  TYPES, CATEGORY, generate, partsFor, linkAccepts, normWord, compassFace, COMPASS_LENGTHS, COMPASS_SCRIPT_MS,
   SORT_CARDS, SORT_FULL, sortOk, sortWindowMs, HL_PAIRS, hlFair, bankIndex,
 } from '../js/games/overclock/challenges.js';
 import { buildOrder, categoryClashes, challengeScore, computeResults, standings, MODES, CHALLENGE_MS, standingsMs, REVEAL_STANDINGS_MS } from '../js/games/overclock/logic.js';
@@ -14,11 +14,10 @@ import { createGame, nextStep } from '../js/games/overclock/director.js';
 const read = f => JSON.parse(readFileSync(f, 'utf8'));
 const ML = read('data/oc/missinglink.json').puzzles;
 const SP = read('data/oc/spellcheck.json').words;
-const M24 = read('data/oc/make24.json');
 const ST = read('data/oc/sortit.json').sets;
 const HL = read('data/oc/higherlower.json').stats;
-const deps = { missinglink: ML, spellcheck: SP, make24: M24, sortit: ST, higherlower: HL };
-const NEW = ['missinglink', 'spellcheck', 'make24', 'compass', 'sortit', 'higherlower'];
+const deps = { missinglink: ML, spellcheck: SP, sortit: ST, higherlower: HL };
+const NEW = ['missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower'];
 
 // ---------- banks ----------
 test('MISSING LINK bank: 200+ puzzles, one answer each, answers unique and never one of the clues', () => {
@@ -61,47 +60,6 @@ test('SPELLCHECK bank: 200+ words, four different lowercase spellings, the corre
     for (const w of row) assert.ok(!TWO_WAYS.includes(w), `two accepted spellings: ${w}`);
     assert.ok(!seen.has(row[0]), `duplicate word ${row[0]}`);
     seen.add(row[0]);
-  }
-});
-
-// exact evaluation of a solution string like "8 ÷ (3 − 8 ÷ 3)"
-function evalExpr(src) {
-  const toks = src.replace(/\s+/g, '').match(/\d+|[+−×÷()]/g);
-  let i = 0;
-  const OPS = { '+': '+', '−': '-', '×': '*', '÷': '/' };
-  const atom = () => { const t = toks[i++]; if (t === '(') { const v = sum(); i++; return v; } return { v: [Number(t), 1], n: [Number(t)] }; };
-  const fold = (next, ops) => { let a = next(); while (ops.includes(toks[i])) { const op = OPS[toks[i++]]; const b = next(); a = { v: applyOp(a.v, op, b.v), n: [...a.n, ...b.n] }; } return a; };
-  const prod = () => fold(atom, ['×', '÷']);
-  const sum = () => fold(prod, ['+', '−']);
-  const out = sum();
-  assert.equal(i, toks.length, `unparsed: ${src}`);
-  return out;
-}
-
-test('MAKE 24: every set in both pools is solvable, and its shown solution really makes 24 with exactly those tiles', () => {
-  assert.ok(M24.easy.length >= 100 && M24.hard.length >= 40, `${M24.easy.length} easy, ${M24.hard.length} hard`);
-  for (const [pool, rows] of [['easy', M24.easy], ['hard', M24.hard]]) {
-    for (const [digits, sol] of rows) {
-      const nums = [...digits].map(Number);
-      assert.ok(nums.every(n => n >= 1 && n <= 9), digits);
-      const r = solve24(nums);
-      assert.ok(r.count > 0, `${pool} ${digits} unsolvable`);
-      if (pool === 'easy') assert.ok(r.intCount > 0, `${digits}: easy sets never need a fraction`);
-      const e = evalExpr(sol);
-      assert.deepEqual(e.v, [24, 1], `${digits}: ${sol}`);
-      assert.deepEqual([...e.n].sort(), [...nums].sort(), `${digits}: ${sol} uses the four tiles`);
-    }
-  }
-  assert.equal(solve24([1, 1, 1, 1]).count, 0, 'no fake solutions');
-  assert.ok(solve24([3, 3, 8, 8]).count > 0 && solve24([3, 3, 8, 8]).intCount === 0, '3 3 8 8 needs a fraction');
-  assert.deepEqual(applyOp([8, 1], '/', [1, 3]), [24, 1]);
-  assert.equal(applyOp([1, 1], '/', [0, 1]), null, 'no dividing by zero');
-  assert.deepEqual(frac(6, -4), [-3, 2]);
-  for (let s = 0; s < 400; s++) {
-    const g = generate('make24', { seed: `m${s}`, ci: s % 12, level: 0.5 }, deps);
-    assert.equal(g.puzzles.length, 2);
-    assert.ok(M24.easy.some(([d]) => d === [...g.puzzles[0].nums].sort().join('')), 'puzzle 1 is easy');
-    assert.ok(M24.hard.some(([d]) => d === [...g.puzzles[1].nums].sort().join('')), 'puzzle 2 is hard');
   }
 });
 
@@ -249,22 +207,22 @@ test('the six new challenges are identical on every phone (Math.random is never 
 
 // ---------- the order ----------
 test('order over many matches: no repeats, Marathon ≤ 2 and spread, categories never back to back', () => {
-  assert.equal(TYPES.length, 19);
+  assert.equal(TYPES.length, 18);
   const cats = new Set(Object.values(CATEGORY));
   assert.deepEqual([...cats].sort(), ['knowledge', 'memory', 'numbers', 'reflex', 'visual', 'words']);
   for (const t of TYPES) assert.ok(CATEGORY[t], `${t} has a category`);
   const firsts = new Set();
   for (let s = 0; s < 1500; s++) {
-    for (const total of [3, 6, MODES.standard, 19, MODES.marathon]) {
+    for (const total of [3, 6, MODES.standard, 18, MODES.marathon]) {
       const o = buildOrder(`m${s}`, total);
       assert.equal(o.length, total);
       assert.deepEqual(buildOrder(`m${s}`, total), o, 'seeded');
       assert.equal(categoryClashes(o), 0, `${total}: ${o.join(' ')}`);
       const count = {};
       o.forEach(t => { count[t] = (count[t] || 0) + 1; });
-      if (total <= 19) assert.equal(new Set(o).size, total, 'all different');
+      if (total <= 18) assert.equal(new Set(o).size, total, 'all different');
       else {
-        assert.equal(Object.keys(count).length, 19, 'every type in a Marathon');
+        assert.equal(Object.keys(count).length, 18, 'every type in a Marathon');
         assert.ok(Object.values(count).every(n => n <= 2));
         for (const t of Object.keys(count)) {
           const at = o.map((x, k) => (x === t ? k : -1)).filter(k => k >= 0);
@@ -282,11 +240,11 @@ test('order over many matches: no repeats, Marathon ≤ 2 and spread, categories
 });
 
 // ---------- scoring ----------
-test('scoring: 50 a link / 24, 20 a spelling or heading, 10 a streak pick; speed bonus only when perfect; final ×2', () => {
+test('scoring: 50 a link, 20 a spelling or heading, 10 a streak pick; speed bonus only when perfect; final ×2', () => {
   const base = { startAt: 0, doneAt: 15_000 };
   assert.equal(challengeScore({ ...base, type: 'missinglink', parts: 2, ok: 1 }), 50);
   assert.equal(challengeScore({ ...base, type: 'missinglink', parts: 2, ok: 2 }), 130);
-  assert.equal(challengeScore({ ...base, type: 'make24', parts: 2, ok: 2, final: true }), 260);
+  assert.equal(challengeScore({ ...base, type: 'missinglink', parts: 2, ok: 2, final: true }), 260);
   assert.equal(challengeScore({ ...base, type: 'spellcheck', parts: 5, ok: 3 }), 60);
   assert.equal(challengeScore({ ...base, type: 'spellcheck', parts: 5, ok: 5 }), 130);
   assert.equal(challengeScore({ ...base, type: 'higherlower', parts: 10, ok: 7 }), 70);
@@ -306,7 +264,7 @@ function applyPatch(obj, patch) {
   }
 }
 
-test('8 players play all six new challenges through the director; a rejoin and a new host change nothing', () => {
+test('8 players play all five newer challenges through the director; a rejoin and a new host change nothing', () => {
   let now = 1_000_000;
   const game = createGame({ matchId: 'm8', settings: { mode: 'standard' }, participants: P8, now, seed: 'eight', bank: {}, trivia: { n: 0 } });
   game.order = [...NEW, ...game.order.filter(t => !NEW.includes(t))].slice(0, game.total);

@@ -33,11 +33,10 @@ const ROWS = {
   sortit: { n: 1, key: r => `so-${hash36(`${r[0]}|${r[1]}`)}` },
 };
 export const tfKey = pair => `tf-${hash36(pair[0])}`;
-export const m24Key = row => `m24-${row[0]}`;
 export const hlKey = (stat, item) => `hl-${hash36(`${stat[0]}|${item[0]}`)}`;
 export const unKey = word => `un-${word}`;
 /** the types whose items the night remembers (the rest are generated fresh every time — math, memory, rewire …) */
-export const DEALT = Object.freeze([...Object.keys(ROWS), 'make24', 'higherlower', 'truefalse', 'unscramble']);
+export const DEALT = Object.freeze([...Object.keys(ROWS), 'higherlower', 'truefalse', 'unscramble']);
 
 /**
  * n distinct indices of 0..size-1 in the seeded order — the fresh ones first (not in `taken`), then (a used-up pool) the rest.
@@ -52,7 +51,7 @@ export function pickFresh(rand, size, n, taken) {
 }
 
 /**
- * The whole match's deal. banks: { timeline, closest, missinglink, spellcheck, sortit, make24: { easy, hard }, higherlower } (any may be
+ * The whole match's deal. banks: { timeline, closest, missinglink, spellcheck, sortit, higherlower } (any may be
  * missing — that challenge then falls back to the seeded per-match deck, as before); words(len) → the Unscramble answers of that length
  * (or null); used: the room's { key: true } for 'overclock' tonight.
  * → { deal: { [ci]: [int] }, dk: { [ci]: 'key key …' } } — only for the challenges it could deal.
@@ -71,13 +70,6 @@ export function dealMatch({ seed, order, total, banks = {}, words = () => null, 
       const idx = pickFresh(rand, bank.length, R.n, i => seen.has(R.key(bank[i])));
       if (idx.length < R.n) return;
       put(ci, idx, idx.map(i => R.key(bank[i])));
-    } else if (type === 'make24') {
-      const b = banks.make24;
-      if (!b || !Array.isArray(b.easy) || !Array.isArray(b.hard) || !b.easy.length || !b.hard.length) return;
-      const e = pickFresh(rand, b.easy.length, 1, i => seen.has(m24Key(b.easy[i])))[0];
-      const keysE = m24Key(b.easy[e]);
-      const hd = pickFresh(rand, b.hard.length, 1, i => seen.has(m24Key(b.hard[i])) || m24Key(b.hard[i]) === keysE)[0];
-      put(ci, [e, hd], [keysE, m24Key(b.hard[hd])]);
     } else if (type === 'higherlower') {
       const b = banks.higherlower;
       if (!Array.isArray(b) || !b.length) return;

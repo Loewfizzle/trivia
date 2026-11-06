@@ -1,8 +1,8 @@
-// OVERCLOCK update 2 end to end: MISSING LINK, SPELLCHECK, MAKE 24, COMPASS, SORT IT, HIGHER OR LOWER with N players (default 8).
+// OVERCLOCK update 2 end to end: MISSING LINK, SPELLCHECK, COMPASS, SORT IT, HIGHER OR LOWER with N players (default 8). (MAKE 24 was cut in OC2.)
 //   node e2e-oc-2.mjs "<browser path>" ./shots
-// The host's match order is set to open with the six new types. Covers: rules cards, identical puzzles on every phone,
-// real UI play (typing into Missing Link, taps on spellings / tiles / operators / compass points, real touch swipes and
-// half-screen taps in Sort It), scoring checked against what the host wrote, a refresh mid-Make 24 (solved puzzle kept),
+// The host's match order is set to open with the five newer types. Covers: rules cards, identical puzzles on every phone,
+// real UI play (typing into Missing Link, taps on spellings / compass points, real touch swipes and
+// half-screen taps in Sort It), scoring checked against what the host wrote,
 // the host's phone dying mid-Sort It (migration), and every new screen + reveal at 390×844 and 412×915.
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -14,7 +14,7 @@ const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const N = Number(process.env.N || 8);
 const SHOTS = process.env.SHOTS !== '0';
 const NAMES = ['ALICE', 'BOB', 'CHARLIE', 'DANA', 'EVE', 'FINN', 'GRACE', 'HAL'];
-const NEW = ['missinglink', 'spellcheck', 'make24', 'compass', 'sortit', 'higherlower'];
+const NEW = ['missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower'];
 const t0 = Date.now();
 const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -93,34 +93,6 @@ async function checkScores(page, ci, type, uids) {
   for (const u of uids) if (res[u] && res[u].pts === expectPts(type, res[u], boards[u], startAt)) good++;
   ok(good === uids.length, `${type}: every player's points match the scoring rule (${good}/${uids.length})`);
   return res;
-}
-
-// Make 24 bot: finds merges [a, op, b] in the same tile layout the UI uses (result replaces b, a disappears)
-function planMerges(nums) {
-  const F = (n, d = 1) => { if (d < 0) { n = -n; d = -d; } const g = (x, y) => (y ? g(y, x % y) : Math.abs(x) || 1); const k = g(n, d); return [n / k, d / k]; };
-  const ap = (a, o, b) => (o === '+' ? F(a[0] * b[1] + b[0] * a[1], a[1] * b[1]) : o === '-' ? F(a[0] * b[1] - b[0] * a[1], a[1] * b[1]) : o === '*' ? F(a[0] * b[0], a[1] * b[1]) : b[0] === 0 ? null : F(a[0] * b[1], a[1] * b[0]));
-  const rec = tiles => {
-    if (tiles.length === 1) return tiles[0][0] === 24 && tiles[0][1] === 1 ? [] : null;
-    for (let i = 0; i < tiles.length; i++) for (let j = 0; j < tiles.length; j++) {
-      if (i === j) continue;
-      for (const o of ['+', '-', '*', '/']) {
-        const v = ap(tiles[i], o, tiles[j]);
-        if (!v) continue;
-        const next = tiles.flatMap((t, k) => (k === i ? [] : k === j ? [v] : [t]));
-        const rest = rec(next);
-        if (rest) return [[i, o, j], ...rest];
-      }
-    }
-    return null;
-  };
-  return rec(nums.map(n => [n, 1]));
-}
-async function playMake24(page, nums) {
-  for (const [i, o, j] of planMerges(nums)) {
-    if (!(await page.$$eval('.m24-tile',(t, k) => t[k].classList.contains('is-sel'), i))) { await press(page, '.m24-tile', i); await sleep(60); }
-    await press(page, `.m24-op[data-op="${o}"]`); await sleep(60);
-    await press(page, '.m24-tile', j); await sleep(120);
-  }
 }
 
 try {
@@ -238,53 +210,11 @@ try {
   const r1 = await checkScores(pages[1], 1, 'spellcheck', alive().map(i => uids[i]));
   ok(r1[uids[1]].ok === 5 && r1[uids[1]].pts > 100 && r1[uids[2]].pts === 40, 'SPELLCHECK: 20 a word, perfect 5 earns speed');
 
-  // ---------------- 3. MAKE 24 (+ a refresh between the puzzles)
-  await waitPhase(pages[1], 'ready', 2, 'make24 ready');
-  await sleep(800);
-  await shotBoth(pages[1], 'q-10-m24-rules');
-  await waitPhase(pages[1], 'play', 2, 'make24 play');
-  for (const i of alive()) await waitSpec(pages[i], 'make24');
-  const m24 = await sameSpecs('make24');
-  ok(!!m24, 'MAKE 24: the same tiles on every phone');
-  ok(m24.puzzles.every(p => planMerges(p.nums)), 'MAKE 24: both puzzles solvable');
-  // everyone else plays at the same time (player i: puzzle 1, evens also the hard one)
-  const othersM24 = Promise.all(alive().filter(i => i !== 1).map(async i => {
-    await sleep(500 * i);
-    await playMake24(pages[i], m24.puzzles[0].nums);
-    if (i % 2 === 0) { await sleep(1200); await playMake24(pages[i], m24.puzzles[1].nums); }
-  }));
-  await sleep(300);
-  await shotBoth(pages[1], 'q-11-m24-play');
-  // BOB: one merge, undo it, then solve puzzle 1
-  await press(pages[1], '.m24-tile', 0); await press(pages[1], '.m24-op[data-op="+"]'); await press(pages[1], '.m24-tile', 1);
-  await sleep(200);
-  await shotBoth(pages[1], 'q-12-m24-merged');
-  ok((await pages[1].$$eval('.m24-tile', t => t.length)) === 3, 'MAKE 24: two tiles merge into one');
-  await pages[1].evaluate(() => [...document.querySelectorAll('.m24-actions .btn')].find(b => b.textContent.includes('UNDO')).dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
-  await sleep(150);
-  ok((await pages[1].$$eval('.m24-tile', t => t.length)) === 4, 'MAKE 24: UNDO puts the tiles back');
-  await playMake24(pages[1], m24.puzzles[0].nums);
-  await waitFor(pages[1], () => window.__oc.state().ok === 1, 'BOB solved puzzle 1', 5000);
-  await sleep(1300);
-  await pages[1].reload();
-  await pages[1].waitForSelector('.m24-tile', { timeout: 30000 });
-  await sleep(400);
-  ok((await pages[1].$eval('.ch-m24 .ch-prompt', e => e.textContent)).includes('2/2') && (await OC(pages[1], 'O.state().ok')) === 1, 'MAKE 24: a refresh keeps the solved puzzle and opens the hard one');
-  await shotBoth(pages[1], 'q-13-m24-hard');
-  await playMake24(pages[1], m24.puzzles[1].nums);
-  await waitFor(pages[1], () => window.__oc.state().done, 'BOB solved both', 5000);
-  await othersM24;
-  await waitPhase(pages[1], 'standings', 2, 'make24 standings', 45000);
-  await sleep(1300);
-  await shotBoth(pages[1], 'q-14-m24-reveal');
-  const r2 = await checkScores(pages[1], 2, 'make24', alive().map(i => uids[i]));
-  ok(r2[uids[1]].ok === 2 && r2[uids[3]].ok === 1 && r2[uids[3]].pts === 50, 'MAKE 24: 50 a puzzle');
-
-  // ---------------- 4. COMPASS
-  await waitPhase(pages[1], 'ready', 3, 'compass ready');
+  // ---------------- 3. COMPASS
+  await waitPhase(pages[1], 'ready', 2, 'compass ready');
   await sleep(800);
   await shotBoth(pages[1], 'q-15-compass-rules');
-  await waitPhase(pages[1], 'play', 3, 'compass play');
+  await waitPhase(pages[1], 'play', 2, 'compass play');
   for (const i of alive()) await waitSpec(pages[i], 'compass');
   const cp = await sameSpecs('compass');
   ok(!!cp && cp.rounds.map(r => r.turns.length).join() === '3,4,5,6,7', 'COMPASS: the same five rounds (3 → 7 turns) on every phone');
@@ -304,18 +234,18 @@ try {
     await pages[2].screenshot({ path: `${OUT}q-16-compass-turn-390.png` });
   })().catch(() => {});
   await Promise.all([...alive().map(compassBot), turnShot]);
-  await waitPhase(pages[1], 'standings', 3, 'compass standings', 45000);
+  await waitPhase(pages[1], 'standings', 2, 'compass standings', 45000);
   await sleep(4200);
   await shotBoth(pages[1], 'q-19-compass-reveal');
-  const r3 = await checkScores(pages[1], 3, 'compass', alive().map(i => uids[i]));
-  log('compass ask times', JSON.stringify(await OC(pages[1], 'O.state().local.askAt')), 'BOB board', JSON.stringify(await evalIn(pages[1], (s, u) => ({ b: s.live.boards[u], start: s.game.playStartAt, r: s.game.results[3][u] }), uids[1])));
+  const r3 = await checkScores(pages[1], 2, 'compass', alive().map(i => uids[i]));
+  log('compass ask times', JSON.stringify(await OC(pages[1], 'O.state().local.askAt')), 'BOB board', JSON.stringify(await evalIn(pages[1], (s, u) => ({ b: s.live.boards[u], start: s.game.playStartAt, r: s.game.results[2][u] }), uids[1])));
   ok(r3[uids[1]].ok === 5 && r3[uids[1]].pts > 100, `COMPASS: all five right earns the answer-speed bonus (${r3[uids[1]].pts})`);
 
-  // ---------------- 5. SORT IT (+ the host's phone dies)
-  await waitPhase(pages[1], 'ready', 4, 'sortit ready');
+  // ---------------- 4. SORT IT (+ the host's phone dies)
+  await waitPhase(pages[1], 'ready', 3, 'sortit ready');
   await sleep(800);
   await shotBoth(pages[1], 'q-20-sort-rules');
-  await waitPhase(pages[1], 'play', 4, 'sortit play');
+  await waitPhase(pages[1], 'play', 3, 'sortit play');
   for (const i of alive()) await waitSpec(pages[i], 'sortit');
   const so = await sameSpecs('sortit');
   ok(!!so && so.cards.length === 12, 'SORT IT: the same 12 cards on every phone');
@@ -361,20 +291,20 @@ try {
   ok(bobSort.right === 11 && bobSort.wrong === 1, `SORT IT: touch swipes and side taps sort the cards (${bobSort.right} right, ${bobSort.wrong} wrong; ${JSON.stringify(bobSort.log)} vs ${JSON.stringify(so.cards.map(c => c.s))})`);
   await waitFor(pages[1], (s, old) => s.meta.hostId !== old, 'host migrated', 45000, uids[hostIdx]);
   ok(true, 'SORT IT: the host migrated mid-challenge');
-  await waitPhase(pages[1], 'standings', 4, 'sortit standings', 60000);
+  await waitPhase(pages[1], 'standings', 3, 'sortit standings', 60000);
   await sleep(1600);
   await shotBoth(pages[1], 'q-23-sort-reveal');
-  const r4 = await checkScores(pages[1], 4, 'sortit', alive().map(i => uids[i]));
+  const r4 = await checkScores(pages[1], 3, 'sortit', alive().map(i => uids[i]));
   ok(r4[uids[1]].ok === 10.5 && r4[uids[1]].pts === 100, 'SORT IT: 11 right + 1 wrong = 10.5 net = 100, no speed bonus');
   const back = await openPlayer(hostIdx);
   dead.delete(hostIdx);
   await back.waitForSelector('.screen.oc', { timeout: 30000 });
 
-  // ---------------- 6. HIGHER OR LOWER
-  await waitPhase(pages[1], 'ready', 5, 'higherlower ready');
+  // ---------------- 5. HIGHER OR LOWER
+  await waitPhase(pages[1], 'ready', 4, 'higherlower ready');
   await sleep(800);
   await shotBoth(pages[1], 'q-24-hl-rules');
-  await waitPhase(pages[1], 'play', 5, 'higherlower play');
+  await waitPhase(pages[1], 'play', 4, 'higherlower play');
   for (const i of alive()) await waitSpec(pages[i], 'higherlower');
   const hl = await sameSpecs('higherlower');
   ok(!!hl && hl.pairs.length === 10, 'HIGHER OR LOWER: the same ten pairs on every phone');
@@ -390,10 +320,10 @@ try {
     if (k === 0) { await sleep(200); await shotBoth(pages[1], 'q-26-hl-values'); }
     await sleep(1350);
   }
-  await waitPhase(pages[1], 'standings', 5, 'hl standings', 45000);
+  await waitPhase(pages[1], 'standings', 4, 'hl standings', 45000);
   await sleep(1400);
   await shotBoth(pages[1], 'q-27-hl-reveal');
-  const r5 = await checkScores(pages[1], 5, 'higherlower', alive().map(i => uids[i]));
+  const r5 = await checkScores(pages[1], 4, 'higherlower', alive().map(i => uids[i]));
   ok(r5[uids[1]].ok === 10 && r5[uids[1]].pts > 100 && r5[uids[0]].ok === 3 && r5[uids[0]].pts === 30, 'HIGHER OR LOWER: 10 a pick, the streak ends on the first miss');
   await sleep(1000);
   await shotBoth(pages[1], 'q-28-standings');

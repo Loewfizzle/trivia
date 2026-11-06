@@ -4,6 +4,7 @@
 // (api.pick). Timings unchanged (260 / 800 ms between statements).
 // A challenge screen: (spec, api) → { el, destroy? }. api: chal, part(), progress(), step(), finish(), key, game(), fx(), pick(), sfx() — view.js.
 import { h, pulseClass } from '../../../ui/dom.js';
+import { tubeMark } from '../../kit/answer.js';
 
 export default function uiTrueFalse(s, api) {
   const { chal } = api;
@@ -12,7 +13,8 @@ export default function uiTrueFalse(s, api) {
   let yes, no;
   const btn = (v, cls, mark, word) => {
     const b = h(`button.oc-tf-btn.tf-btn.${cls}`, { type: 'button', dataset: { sfx: 'none' }, 'aria-label': word },
-      h('span.oc-tile-face'), h('span.oc-tile-glow'), h('i.oc-tf-mark', mark), h('b.oc-tf-word', word));
+      h('span.oc-tile-face'), h('span.oc-tile-ok'), h('span.oc-tile-bad'), h('span.oc-tile-glow'), h('i.oc-tf-mark', mark), h('b.oc-tf-word', word),
+      h('i.oc-tile-mark.oc-tf-sock', { 'aria-hidden': 'true' }));
     b.addEventListener('pointerdown', e => { e.preventDefault(); choose(v); });
     b.addEventListener('click', e => { if (e.detail === 0) choose(v); });
     return b;
@@ -35,8 +37,10 @@ export default function uiTrueFalse(s, api) {
     const mine = v ? yes : no, other = v ? no : yes;
     mine.classList.add('is-picked');
     yes.classList.add('is-locked'); no.classList.add('is-locked');
-    (it.truth ? yes : no).classList.add('is-right');
-    if (!right) mine.classList.add('is-wrong');
+    const truthBtn = it.truth ? yes : no;
+    truthBtn.classList.add('is-right');
+    truthBtn.querySelector('.oc-tf-sock').replaceChildren(tubeMark('check', 'Right answer'));
+    if (!right) { mine.classList.add('is-wrong'); mine.querySelector('.oc-tf-sock').replaceChildren(tubeMark('cross', 'Wrong')); }
     else other.classList.add('is-dim');
     api.pick(k, v);
     api.fx(mine, right);

@@ -1,12 +1,11 @@
 // OVERCLOCK content banks (TIMELINE sets, CLOSEST CALL questions, MISSING LINK puzzles,
-// SPELLCHECK words, MAKE 24 tile sets, SORT IT category pairs, HIGHER OR LOWER stats), fetched once —
+// SPELLCHECK words, SORT IT category pairs, HIGHER OR LOWER stats), fetched once —
 // only when a match's order actually includes that challenge.
 const FILES = {
   timeline: ['timeline.json', 'sets'],
   closest: ['closest.json', 'questions'],
   missinglink: ['missinglink.json', 'puzzles'],
   spellcheck: ['spellcheck.json', 'words'],
-  make24: ['make24.json', null], // { easy, hard }
   sortit: ['sortit.json', 'sets'],
   higherlower: ['higherlower.json', 'stats'],
 };

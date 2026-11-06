@@ -127,7 +127,6 @@ const RULES = {
         'REWIRE — rotate tiles to route power from the source to the core. Two circuits.',
         'MISSING LINK — three words share one hidden word (COTTAGE · SWISS · CAKE → CHEESE). Two puzzles.',
         'SPELLCHECK — four spellings, one is right. Five words, one tap each.',
-        'MAKE 24 — merge four number tiles with + − × ÷ until one tile says 24. Easy, then hard.',
         'COMPASS — follow the turns in your head, then tap the way you face. Five rounds, each longer.',
         'SORT IT — swipe each card to the side it belongs on. They come faster and faster.',
         'HIGHER OR LOWER — pick the winner of each pair. One wrong pick ends your streak.',

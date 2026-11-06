@@ -4,12 +4,12 @@
 import { rngFrom, randInt, pick, shuffle } from '../../core/rng.js';
 
 export const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'timeline', 'closest', 'rewire',
-  'missinglink', 'spellcheck', 'make24', 'compass', 'sortit', 'higherlower'];
+  'missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower'];
 
 // What kind of brain each challenge works — the match order spreads these out (logic.js#buildOrder).
 export const CATEGORY = {
   unscramble: 'words', missinglink: 'words', spellcheck: 'words',
-  math: 'numbers', pattern: 'numbers', rewire: 'numbers', make24: 'numbers',
+  math: 'numbers', pattern: 'numbers', rewire: 'numbers',
   memory: 'memory', compass: 'memory',
   oddone: 'visual', count: 'visual',
   trivia: 'knowledge', truefalse: 'knowledge', timeline: 'knowledge', closest: 'knowledge', higherlower: 'knowledge',
@@ -32,7 +32,6 @@ export const INFO = {
   rewire: { name: 'REWIRE', glyph: '↯', rules: ['Tap tiles to rotate them and route power to the core.', 'Two circuits: a 3×3 warm-up, then a 4×4.'] },
   missinglink: { name: 'MISSING LINK', glyph: '⊸', rules: ['Three words share one hidden word, before or after each.', 'COTTAGE · SWISS · CAKE → CHEESE. Two puzzles — guess as often as you like.'] },
   spellcheck: { name: 'SPELLCHECK', glyph: '✎', rules: ['Four spellings. Exactly one is right.', 'Five words, one tap each — no second chances.'] },
-  make24: { name: 'MAKE 24', glyph: '⁂', rules: ['Tap a number, an operator, then another number to merge them.', 'Use all four tiles to make exactly 24. Two puzzles: easy, then hard.'] },
   compass: { name: 'COMPASS', glyph: '✣', rules: ['Note where you face, then follow the turns in your head.', 'When they vanish, tap the way you face now. Five rounds, each longer.'] },
   sortit: { name: 'SORT IT', glyph: '⇆', rules: ['Swipe each card left or right — or tap that side of the screen.', 'Wrong sorts cost a little. The cards come faster and faster.'] },
   higherlower: { name: 'HIGHER OR LOWER', glyph: '⇅', rules: ['Two things, one stat. Tap the winner — read the question!', 'Build a streak of 10. One wrong answer ends your run.'] },
@@ -44,7 +43,7 @@ export const memoryLength = level => 4 + Math.round(level * 4);
 export function partsFor(type, level) {
   return { unscramble: 1, memory: memoryLength(level), oddone: 3, math: 4, pattern: 2, trivia: 3, stroop: 8, reflex: 5, count: 4, truefalse: 8,
     timeline: 4, closest: 1, rewire: 2,
-    missinglink: 2, spellcheck: 5, make24: 2, compass: 5, sortit: SORT_CARDS, higherlower: HL_PAIRS }[type] || 1;
+    missinglink: 2, spellcheck: 5, compass: 5, sortit: SORT_CARDS, higherlower: HL_PAIRS }[type] || 1;
 }
 
 export const challengeRng = (seed, ci, type) => rngFrom(`${seed}:${ci}:${type}`);
@@ -402,64 +401,6 @@ export function genSpellcheck(rand, bank, occ, seed, deal) {
   return { type: 'spellcheck', parts: 5, items };
 }
 
-// ---------- make 24 ----------
-// Exact fractions [numerator, denominator] (denominator > 0, lowest terms), so 8 ÷ 3 stays exact.
-const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a || 1; };
-export const frac = (n, d = 1) => { if (d < 0) { n = -n; d = -d; } const g = gcd(n, d); return [n / g, d / g]; };
-export function applyOp(a, op, b) {
-  if (op === '+') return frac(a[0] * b[1] + b[0] * a[1], a[1] * b[1]);
-  if (op === '-') return frac(a[0] * b[1] - b[0] * a[1], a[1] * b[1]);
-  if (op === '*') return frac(a[0] * b[0], a[1] * b[1]);
-  if (op === '/') return b[0] === 0 ? null : frac(a[0] * b[1], a[1] * b[0]);
-  return null;
-}
-export const OP_SIGN = { '+': '+', '-': '−', '*': '×', '/': '÷' };
-const PREC = { '+': 1, '-': 1, '*': 2, '/': 2 };
-/**
- * Every way to combine the numbers pairwise with + − × ÷ (exact fractions).
- * Returns { count: solutions found, intCount: solutions that never leave the whole numbers ≥ 0, expr: one solution }.
- * `expr` prefers an all-whole-number solution and uses as few brackets as it can.
- */
-export function solve24(nums, target = 24) {
-  let count = 0, intCount = 0, expr = null, intExpr = null;
-  const wrap = (x, need) => (need ? `(${x.e})` : x.e);
-  const rec = items => {
-    if (items.length === 1) {
-      const [x] = items;
-      if (x.v[1] === 1 && x.v[0] === target) {
-        count++;
-        if (!expr) expr = x.e;
-        if (x.int) { intCount++; if (!intExpr) intExpr = x.e; }
-      }
-      return;
-    }
-    for (let i = 0; i < items.length; i++) {
-      for (let j = 0; j < items.length; j++) {
-        if (i === j) continue;
-        const rest = items.filter((_, k) => k !== i && k !== j);
-        const a = items[i], b = items[j];
-        for (const op of ['+', '-', '*', '/']) {
-          if ((op === '+' || op === '*') && i > j) continue; // commutative: once is enough
-          const v = applyOp(a.v, op, b.v);
-          if (!v) continue;
-          const p = PREC[op];
-          const e = `${wrap(a, a.p < p)} ${OP_SIGN[op]} ${wrap(b, b.p < p || (b.p === p && (op === '-' || op === '/')))}`;
-          rec([...rest, { v, e, p, int: a.int && b.int && v[1] === 1 && v[0] >= 0 }]);
-        }
-      }
-    }
-  };
-  rec(nums.map(n => ({ v: [n, 1], e: String(n), p: 3, int: true })));
-  return { count, intCount, expr: intExpr || expr };
-}
-/** bank: data/oc/make24.json { easy: [["1238", "solution"], …], hard: [...] } — every set verified by scripts/build-make24.mjs */
-export function genMake24(rand, bank, deal) {
-  if (!bank || !bank.easy || !bank.hard) return null;
-  // deal = [easy index, hard index] (the room's night memory); the rand stream is the same either way
-  const one = (list, k) => { const drawn = pick(rand, list); const [d, sol] = dealt(deal, k, list.length) ? list[deal[k]] : drawn; return { nums: shuffle(rand, [...d].map(Number)), sol }; };
-  return { type: 'make24', parts: 2, puzzles: [one(bank.easy, 0), one(bank.hard, 1)] };
-}
-
 // ---------- compass ----------
 export const COMPASS_DIRS = ['N', 'E', 'S', 'W'];
 export const COMPASS_TURN = { R: 1, L: 3, A: 2 };
@@ -576,7 +517,6 @@ export function generate(type, { seed, ci, level, occ = 0, deal = null }, deps =
     case 'rewire': return genRewire(rand);
     case 'missinglink': return genMissingLink(rand, deps.missinglink, occ, seed, deal);
     case 'spellcheck': return genSpellcheck(rand, deps.spellcheck, occ, seed, deal);
-    case 'make24': return genMake24(rand, deps.make24, deal);
     case 'compass': return genCompass(rand);
     case 'sortit': return genSortIt(rand, deps.sortit, occ, seed, deal);
     case 'higherlower': return genHigherLower(rand, deps.higherlower, deal);

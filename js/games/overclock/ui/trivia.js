@@ -20,7 +20,7 @@ export default function uiTrivia(s, api) {
     const k = chal.p;
     const opts = q.a.map((a, i) => {
       const b = h('button.oc-tile.tl-opt', { type: 'button', dataset: { sfx: 'none', i: String(i) }, 'aria-label': `${LETTERS[i]}: ${a}` },
-        h('span.oc-tile-face'), h('span.oc-tile-glow'),
+        h('span.oc-tile-face'), h('span.oc-tile-ok'), h('span.oc-tile-bad'), h('span.oc-tile-glow'),
         h('i.oc-badge', LETTERS[i]), h('span.oc-tile-t', a), h('i.oc-tile-mark', { 'aria-hidden': 'true' }));
       b.addEventListener('pointerdown', e => { e.preventDefault(); choose(i, q, opts, k); });
       b.addEventListener('click', e => { if (e.detail === 0) choose(i, q, opts, k); });

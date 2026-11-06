@@ -94,11 +94,20 @@ push();
 
 // body[data-ready] = the scenario reached its moment (shots.mjs --page shoots then, + its --wait for a settle / a mid-animation frame)
 const ready = () => { document.body.dataset.ready = '1'; };
+// &hold=1 (OC2 — THE MOTION PROOF): the scenario waits for window.__go() before its tap, so a camera (shots.mjs --cast … --js "__go()") films
+// it from the first frame
+const hold = q.get('hold') === '1' ? new Promise(r => { window.__go = r; }) : null;
 (async () => {
   if (at === 'kit') { await kitPage(); return ready(); }
   await wait(250);
+  if (hold && /^(right|wrong|combo4|combo10)$/.test(at)) { ready(); await hold; }
   if (at === 'right' || at === 'wrong') { tap(0, at === 'right'); return ready(); }
-  if (at === 'combo4' || at === 'combo10') { tap(0, true); return ready(); }
+  if (at === 'combo4' || at === 'combo10') {
+    // the cue + a tap on the NEXT question while it still runs (the cues never block play)
+    tap(0, true);
+    if (hold) { await wait(470); tap(1, true); }
+    return ready();
+  }
   if (at !== 'answer') return ready();
   // THE ANSWER: play the round (trivia: right, wrong, right · true or false: a miss on the 3rd + the 6th), then the round closes
   const s = spec(), N = s.type === 'trivia' ? 3 : s.type === 'truefalse' ? 8 : 0;

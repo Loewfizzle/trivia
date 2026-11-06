@@ -35,7 +35,7 @@ test('ONE SHEET: no screen builds its own .modal / .sheet pop-up — every sheet
 });
 
 test('ONE Esc: ui/layers.js owns the only Escape listener (a pop-up never listens for it; inputs keep their own field-level keys)', () => {
-  const allow = new Set(['js/ui/layers.js', 'js/screens/title-dock.js', 'js/screens/harbor/remote.js', 'js/games/overclock/ui/make24.js']);
+  const allow = new Set(['js/ui/layers.js', 'js/screens/title-dock.js', 'js/screens/harbor/remote.js']);
   const bad = JS.filter(f => !allow.has(f) && /['"]Escape['"]/.test(read(f)));
   assert.deepEqual(bad, [], `own Esc handlers: ${bad.join(', ')}`);
   const L = read('js/ui/layers.js');

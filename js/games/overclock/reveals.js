@@ -20,16 +20,6 @@ function revealSpell(spec) {
     h('ol.rv-sp-list', spec.items.map((it, k) => h('li', { style: { animationDelay: `${200 + k * 150}ms` } },
       h('b', it.word), h('s', it.common)))));
 }
-function revealM24(spec, game, boards, uids) {
-  const both = solvedBoth(game, uids);
-  return h('section.rv.rv-m24',
-    h('div.rv-kicker', 'ONE WAY TO MAKE 24', h('span.rv-ask', 'There’s often more than one.')),
-    spec.puzzles.map((p, k) => h('div.rv-m24-row', { style: { animationDelay: `${250 + k * 350}ms` } },
-      h('span.rv-m24-tiles', [...p.nums].sort((a, b) => a - b).map(n => h('i', String(n)))),
-      h('b.rv-m24-sol', `${p.sol} = 24`),
-      h('small', k ? 'HARD' : 'EASY'))),
-    h('div.rv-us-count', h('b', `${both}/${uids.length}`), ' SOLVED BOTH'));
-}
 function revealCompass(spec, game, boards, uids, ctx) {
   const TURN_CHIP = { L: 'L', R: 'R', A: '180°' };
   const rows = spec.rounds.map((R, k) => {
@@ -80,7 +70,7 @@ function revealHL(spec, game, boards, uids, ctx) {
       : best >= spec.pairs.length ? h('div.rv-hl-sub', 'A PERFECT 10 — NOBODY SLIPPED') : null);
 }
 
-const REVEAL = { missinglink: revealLink, spellcheck: revealSpell, make24: revealM24, compass: revealCompass, sortit: revealSort, higherlower: revealHL };
+const REVEAL = { missinglink: revealLink, spellcheck: revealSpell, compass: revealCompass, sortit: revealSort, higherlower: revealHL };
 /** Challenge types that show a reveal panel above the leaderboard. */
 export const hasReveal = type => !!REVEAL[type] || ['timeline', 'closest', 'unscramble'].includes(type);
 

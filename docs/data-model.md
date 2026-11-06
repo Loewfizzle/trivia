@@ -125,16 +125,15 @@ the scrambled letters, how many cracked it) within the normal 6 s.
 Update 2 types (all reveal for 10 s): **missinglink** (2 parts, 50 each; typed answer via an invisible input over letter boxes,
 `linkAccepts`: case/spaces ignored, plurals + listed variants accepted; the exact answer locks in as typed; SKIP on puzzle 1;
 `.oc.kb-open` + `--kb` from visualViewport keep it above the iOS keyboard), **spellcheck** (5 parts, one tap each),
-**make24** (2 parts: an easy then a hard set from data/oc/make24.json; tiles merge with exact fractions `[n,d]` via `applyOp`,
-UNDO/RESET, SKIP on puzzle 1; the reveal shows the stored solution), **compass** (5 rounds of 3→7 turns, generated; instructions
+(**make24** was CUT in OC2 — the owner, Nov 5: its type, bank, solver, screen + reveal are gone), **compass** (5 rounds of 3→7 turns, generated; instructions
 at 760→550 ms each so 25 turns fit in 30 s — `COMPASS_SCRIPT_MS` ≈ 22.5 s is the scripted time, and the speed bonus only counts
 time past it; the reveal animates every round's turns on mini compasses), **sortit** (12 cards, 5–7 per side, card window
 2.6 s → 1.2 s; swipe (pointer events, velocity or 70 px) or tap a screen half or ←/→; ok = right − ½·wrong ≥ 0, scored
 round(100·min(1, ok/10)), speed bonus only for 12/12 — `ok` reaches `parts` only then), **higherlower** (10 pairs, ok = streak,
 a miss ends the run with p = streak + 1; pairs only within one stat, ≥ 1.2× apart or ≥ 10 years; first 3 pairs ≥ 2× / 40 years,
 from pair 7 on the closer ones). No new DB fields: everything fits `p/ok/n ≤ 12`.
-Types (19): unscramble, memory, oddone, math, pattern, trivia, stroop (Color Clash), reflex (Signal Lock), count (Quick Count),
-timeline, closest (Closest Call), rewire, missinglink, spellcheck, make24, compass, sortit, higherlower, truefalse (True or False — `TF_FACTS` pairs must stay unambiguous; math statements are verified by a unit test).
+Types (18 — LEXICON cut in OC1, MAKE 24 in OC2): unscramble, memory, oddone, math, pattern, trivia, stroop (Color Clash), reflex (Signal Lock), count (Quick Count),
+timeline, closest (Closest Call), rewire, missinglink, spellcheck, compass, sortit, higherlower, truefalse (True or False — `TF_FACTS` pairs must stay unambiguous; math statements are verified by a unit test).
 Signal Lock times taps from the pointerdown event against the frame the flash painted (performance.now clock, local only).
 
 BLUFF `game`: `{ id:'bluff', matchId, settings{mode}, rounds, participants, round, rk, phase: intro|write|vote|reveal|standings|final,

@@ -359,18 +359,6 @@ async function solve(page, spec, { mistakes = false } = {}) {
       await press(page, '.sp-opt', mistakes && i === 0 ? (it.ans + 1) % 4 : it.ans);
       await sleep(mistakes && i === 0 ? 1200 : 600);
     }
-  } else if (t === 'make24') {
-    for (let k = 0; k < 2; k++) {
-      await page.waitForFunction(n => (document.querySelector('.ch-m24 .ch-prompt') || {}).textContent?.includes(`${n}/2`), { timeout: 6000 }, k + 1);
-      if (mistakes && k === 0) { await press(page, '.m24-actions .btn', 2); await sleep(2000); continue; } // SKIP
-      for (const [i, o, j] of planMerges(spec.puzzles[k].nums)) {
-        if (!(await page.$$eval('.m24-tile', (tl, n) => !!(tl[n] && tl[n].classList.contains('is-sel')), i))) await press(page, '.m24-tile', i);
-        await press(page, `.m24-op[data-op="${o}"]`);
-        await press(page, '.m24-tile', j);
-        await sleep(80);
-      }
-      await sleep(1200);
-    }
   } else if (t === 'compass') {
     for (let r = 0; r < spec.rounds.length; r++) {
       await page.waitForFunction(() => document.querySelector('.ch-compass.is-asking'), { timeout: 12000, polling: 50 });
@@ -409,26 +397,6 @@ const press = (page, sel, nth = 0) => page.evaluate(([s, n]) => {
   const el = document.querySelectorAll(s)[n];
   if (el) el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch' }));
 }, [sel, nth]);
-// Make 24 bot: merges [a, op, b] in the UI's tile layout (the result replaces b, a disappears)
-function planMerges(nums) {
-  const F = (n, d = 1) => { if (d < 0) { n = -n; d = -d; } const g = (x, y) => (y ? g(y, x % y) : Math.abs(x) || 1); const k = g(n, d); return [n / k, d / k]; };
-  const ap = (a, o, b) => (o === '+' ? F(a[0] * b[1] + b[0] * a[1], a[1] * b[1]) : o === '-' ? F(a[0] * b[1] - b[0] * a[1], a[1] * b[1]) : o === '*' ? F(a[0] * b[0], a[1] * b[1]) : b[0] === 0 ? null : F(a[0] * b[1], a[1] * b[0]));
-  const rec = tiles => {
-    if (tiles.length === 1) return tiles[0][0] === 24 && tiles[0][1] === 1 ? [] : null;
-    for (let i = 0; i < tiles.length; i++) for (let j = 0; j < tiles.length; j++) {
-      if (i === j) continue;
-      for (const o of ['+', '-', '*', '/']) {
-        const v = ap(tiles[i], o, tiles[j]);
-        if (!v) continue;
-        const rest = rec(tiles.flatMap((t, k) => (k === i ? [] : k === j ? [v] : [t])));
-        if (rest) return [[i, o, j], ...rest];
-      }
-    }
-    return null;
-  };
-  return rec(nums.map(n => [n, 1]));
-}
-
 const specOf = page => evalIn(page, async (s, m) => {
   await m.words.loadLengths([5, 6, 7]);
   const g = s.game;

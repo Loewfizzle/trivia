@@ -108,12 +108,14 @@ try {
   // ---------------- start: the four first, then the usual mix (12 different)
   await host.evaluate(() => import('/js/host.js').then(m => m.startGame('overclock', { mode: 'standard' })));
   await waitFor(host, s => s.game && s.game.id === 'overclock', 'overclock started', 20000);
-  await host.evaluate(() => {
+  // (OC2 — THE CUES NEVER BLOCK PLAY: EVE starts on a ×6 combo, so her 4th right TRUE OR FALSE answer is her ×10 — ALICE's 4th is her ×4)
+  const EVE = N > 4 ? await evalIn(pages[4], s => s.uid) : null;
+  await host.evaluate(eve => {
     const s = window.__arcade.state;
     const first = ['truefalse', 'timeline', 'closest', 'rewire'];
     const order = [...first, ...s.game.order.filter(t => !first.includes(t))].slice(0, s.game.total);
-    return import('/js/firebase.js').then(m => m.update(m.dbRef(`rooms/${s.code}/game`), { order, seen: { truefalse: true }, tq: {}, tUsed: 0, deal: null, dk: null }));
-  });
+    return import('/js/firebase.js').then(m => m.update(m.dbRef(`rooms/${s.code}/game`), { order, seen: { truefalse: true }, tq: {}, tUsed: 0, deal: null, dk: null, ...(eve ? { [`combo/${eve}`]: { c: 6, m: 6 } } : {}) }));
+  }, EVE);
   await waitFor(pages[1], s => s.game.order[0] === 'truefalse', 'forced order', 10000);
   const order = await evalIn(host, s => s.game.order);
   ok(new Set(order).size === order.length, `no repeated types in the match (${order.length} different)`);
@@ -130,22 +132,51 @@ try {
   // (the order was forced after the start, so its deal went with it — the deal itself is tests/overclock-oc1.test.mjs's)
   ok(await evalIn(host, s => !!(s.meta.used && s.meta.used.overclock && s.meta.used.overclock['t-truefalse'])), 'THE NIGHT MEMORY: the room remembers TRUE OR FALSE from the moment it opened (meta/used/overclock/t-truefalse)');
   // ALICE answers all 8 right; BOB misses the 4th (a 4-in-a-row, then 4 more); everyone else misses one somewhere
-  async function answerTF(page, wrongAt) {
-    await page.evaluate(async miss => {
+  // probeAt = the answer that crosses a combo milestone: right after it, the cue must be running in the HEADER band only (nothing of it over
+  // the statement card or the buttons — rects at 390 × 844) and the NEXT statement's button must take a tap while the cue still runs
+  async function answerTF(page, wrongAt, probeAt = -1) {
+    return page.evaluate(async (miss, probe) => {
       const sp = window.__oc.spec();
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      let out = null;
       for (let k = 0; k < sp.items.length; k++) {
-        for (let w = 0; w < 40 && !document.querySelector('.tf-btn:not([disabled])'); w++) await new Promise(r => setTimeout(r, 40));
+        for (let w = 0; w < 40 && !document.querySelector('.tf-btn:not(.is-locked)'); w++) await wait(25);
         const truth = sp.items[k].truth, pickTrue = k === miss ? !truth : truth;
-        const b = document.querySelector(pickTrue ? '.tf-true' : '.tf-false');
-        b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
-        await new Promise(r => setTimeout(r, k === miss ? 900 : 360));
+        const b = document.querySelector(pickTrue ? '.tf-true:not(.is-locked)' : '.tf-false:not(.is-locked)');
+        if (k === probe + 1 && out) {
+          const r = b.getBoundingClientRect(), at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          out.cueAtNextTap = window.__oc.combo().cueing;
+          out.nextTapReachesButton = !!(at && b.contains(at));
+          out.nextShownMs = Math.round(performance.now() - out.t0);
+          const p0 = window.__oc.state().p;
+          b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+          out.nextTapLanded = window.__oc.state().p === p0 + 1;
+          delete out.t0;
+        } else b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+        if (k === probe) {
+          await wait(60);
+          const C = window.__oc.combo();
+          const cue = [...document.querySelectorAll('.oc-combo, .oc-fx-streak.is-on i')].map(e => e.getBoundingClientRect());
+          const play = [...document.querySelectorAll('.oc-tf-card, .tf-btn, .oc-tf-warn')].map(e => e.getBoundingClientRect());
+          out = { t0: performance.now() - 60, n: C.n, cueing: C.cueing, overlaps: cue.some(c => play.some(p => hit(c, p))), cueBottom: Math.round(Math.max(...cue.slice(0, 1).map(c => c.bottom))), playTop: Math.round(Math.min(...play.map(p => p.top))) };
+        }
+        await wait(k === miss ? 900 : 360);
       }
-    }, wrongAt);
+      return out;
+    }, wrongAt, probeAt);
   }
-  await answerTF(pages[0], -1);
+  const cueOD = await answerTF(pages[0], -1, 3);
+  ok(cueOD && cueOD.n === 4 && cueOD.cueing && !cueOD.overlaps && cueOD.cueBottom < cueOD.playTop, `THE CUES NEVER BLOCK PLAY: ×4 OVERDRIVE ignites in the header band only (meter bottom ${cueOD && cueOD.cueBottom} < play top ${cueOD && cueOD.playTop}, no overlap)`);
+  ok(cueOD && cueOD.cueAtNextTap && cueOD.nextTapReachesButton && cueOD.nextTapLanded, `THE CUES NEVER BLOCK PLAY: a tap on the next statement lands DURING the ×4 cue (${cueOD && cueOD.nextShownMs} ms in)`);
   await sleep(200);
   await shotBoth(pages[0], 'o-02-truefalse-done');
-  await all(alive().filter(i => i > 0), i => answerTF(pages[i], i === 1 ? 3 : i % 8));
+  const tfOthers = await Promise.all(alive().filter(i => i > 0).map(i => answerTF(pages[i], i === 1 ? 3 : i % 8, i === 4 ? 3 : -1).then(r => [i, r])));
+  const cue10 = (tfOthers.find(([i]) => i === 4) || [])[1];
+  if (EVE) {
+    ok(cue10 && cue10.n === 10 && cue10.cueing && !cue10.overlaps && cue10.cueBottom < cue10.playTop, `THE CUES NEVER BLOCK PLAY: ×10 flares in the header band only (${JSON.stringify(cue10 && { n: cue10.n, bottom: cue10.cueBottom, top: cue10.playTop })})`);
+    ok(cue10 && cue10.cueAtNextTap && cue10.nextTapReachesButton && cue10.nextTapLanded, `THE CUES NEVER BLOCK PLAY: a tap lands DURING the ×10 cue (${cue10 && cue10.nextShownMs} ms in)`);
+  }
   await waitPhase(host, 'standings', 0, 'true or false standings', 45000);
   await sleep(1200);
   await shotBoth(pages[1], 'o-03-truefalse-answer');

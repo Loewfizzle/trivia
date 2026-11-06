@@ -493,11 +493,11 @@
 }
 
 /* =========================================================================
-   MISSING LINK / SPELLCHECK / MAKE 24 / COMPASS / SORT IT / HIGHER OR LOWER
+   MISSING LINK / SPELLCHECK / COMPASS / SORT IT / HIGHER OR LOWER
    ========================================================================= */
 /* missing link */
 .ch-link { gap: 12px; margin: auto 0; }
-.ch-link [hidden], .ch-m24 [hidden] { display: none !important; }
+.ch-link [hidden] { display: none !important; }
 .ml-words { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
 .ml-word {
   border-radius: 12px;
@@ -590,59 +590,6 @@
 .sp-opt.is-wrong { border-color: var(--red); background: rgba(255, 51, 85, 0.15); animation: shake 0.4s; }
 .sp-opt.is-wrong .sp-word { text-decoration: line-through; text-decoration-color: var(--red); }
 .sp-opt.is-dim { opacity: 0.35; }
-
-/* make 24 */
-.ch-m24 { gap: 12px; }
-.m24-target { display: flex; align-items: baseline; justify-content: center; gap: 10px; }
-.m24-target small { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.24em; color: var(--text-dim); }
-.m24-target b { font-family: var(--font-num); font-weight: 700; font-size: 44px; line-height: 1; color: var(--accent); text-shadow: 0 0 22px var(--accent-glow); }
-.m24-tiles { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 92px)); justify-content: center; gap: 10px; min-height: 96px; }
-.m24-tiles.q-in { animation: q-in 0.35s var(--ease) both; }
-.m24-tiles.shake, .m24-tiles.nudge { animation: shake 0.42s; }
-.m24-tile {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-  font-family: var(--font-num);
-  font-weight: 700;
-  font-size: clamp(30px, 9vw, 40px);
-  color: #fff;
-  background: linear-gradient(160deg, #2c1d4f, #170f2e);
-  border: 2px solid rgba(255, 43, 214, 0.4);
-  border-radius: 10px;
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
-  transition: transform 0.14s var(--ease), border-color 0.15s, background-color 0.15s;
-}
-.m24-tile:active { transform: scale(0.94); }
-.m24-tile.is-sel { border-color: var(--accent); background: linear-gradient(160deg, #4a3210, #24160a); transform: translateY(-4px); }
-.m24-tile.is-new { animation: pop 0.24s var(--ease-back); }
-.m24-int { line-height: 1; }
-.m24-frac { display: inline-grid; justify-items: center; gap: 3px; line-height: 1; font-size: 0.62em; }
-.m24-frac i { width: 100%; min-width: 1.2em; height: 2px; background: currentColor; }
-.m24-ops { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.m24-op {
-  min-height: 56px;
-  font-family: var(--font-num);
-  font-weight: 700;
-  font-size: 28px;
-  color: var(--accent);
-  background: #21173c;
-  border: 1px solid rgba(255, 182, 39, 0.3);
-  border-radius: 6px;
-  touch-action: manipulation;
-  transition: opacity 0.15s, background-color 0.15s;
-}
-.m24-op:active { transform: scale(0.94); }
-.m24-op.is-on { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
-.ch-m24:not(.has-sel) .m24-op { opacity: 0.55; }
-.m24-status { min-height: 18px; text-align: center; font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: var(--text-dim); }
-.m24-status.is-good { color: var(--green); }
-.m24-status.is-warn { color: #ff8095; }
-.m24-actions .btn { min-height: 44px; }
-.m24-actions .btn:disabled { opacity: 0.4; }
-.ch-m24.is-solved .m24-tile { border-color: var(--green); background: rgba(61, 255, 139, 0.18); color: var(--green); animation: win 0.6s var(--ease-back) both; }
 
 /* compass */
 .ch-compass { gap: 10px; margin: auto 0; }
@@ -824,11 +771,6 @@
 .rv-sp-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 5px 10px; background: rgba(255, 255, 255, 0.04); border-left: 2px solid var(--green); animation: q-in 0.3s var(--ease) both; }
 .rv-sp-list b { font-family: var(--font-mono); font-size: 16px; color: var(--green); }
 .rv-sp-list s { font-family: var(--font-mono); font-size: 13px; color: var(--text-faint); text-decoration-color: rgba(255, 51, 85, 0.8); }
-.rv-m24-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(255, 255, 255, 0.04); border-left: 2px solid var(--accent); animation: q-in 0.35s var(--ease) both; }
-.rv-m24-tiles { display: flex; gap: 3px; }
-.rv-m24-tiles i { display: grid; place-items: center; width: 22px; height: 24px; font-style: normal; font-family: var(--font-num); font-weight: 700; font-size: 14px; color: #fff; background: #2a1c4a; border-radius: 4px; }
-.rv-m24-sol { font-family: var(--font-num); font-size: 16px; color: #fff; }
-.rv-m24-row small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; color: var(--text-faint); }
 .rv-cp-list { display: flex; flex-direction: column; gap: 5px; }
 .rv-cp-row { display: grid; grid-template-columns: 20px 34px 1fr 26px; align-items: center; gap: 10px; padding: 4px 10px; background: rgba(255, 255, 255, 0.04); animation: q-in 0.3s var(--ease) both; }
 .rv-cp-start { font-family: var(--font-display); font-weight: 900; font-size: 15px; color: var(--accent); text-align: center; }
@@ -859,13 +801,12 @@
   .ml-word {
   border-radius: 12px; min-height: 40px; }
   .sp-opt { min-height: 54px; }
-  .m24-tiles { min-height: 80px; }
   .cp-card { min-height: 66px; }
   .hl-opt { min-height: 84px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ml-word, .ml-cell, .sp-opt.is-wrong, .m24-tile, .m24-tiles, .cp-card.tick, .cp-dir.is-wrong, .st-card.is-in, .hl-opt.is-wrong,
-  .hl-opt.is-shown .hl-val, .rv-ml-row, .rv-sp-list li, .rv-m24-row, .rv-cp-row, .rv-st-chip, .rv-hl-pair, .rv-cp-out.on { animation: none !important; }
+  .ml-word, .ml-cell, .sp-opt.is-wrong, .cp-card.tick, .cp-dir.is-wrong, .st-card.is-in, .hl-opt.is-wrong,
+  .hl-opt.is-shown .hl-val, .rv-ml-row, .rv-sp-list li, .rv-cp-row, .rv-st-chip, .rv-hl-pair, .rv-cp-out.on { animation: none !important; }
   .cp-needle, .rv-cp-needle, .st-card { transition-duration: 0.01s !important; }
 }
 
@@ -940,15 +881,19 @@
 }
 .screen.oc.oc-od { background: transparent; }
 .screen.oc.oc-od::before { display: none; }
+/* (OC2 — the owner: "the faint 1-px line along the column's right edge" on a desktop) it was base.css's desktop column frame (#stage::before
+   / ::after — a 1-px line each side of the phone column); OVERDRIVE's background fills the whole window, so the frame goes while it's on */
+#stage:has(> .screen.oc-od)::before, #stage:has(> .screen.oc-od)::after { display: none; }
 
 /* ---------------- the carbon background (fills the whole window; the column stays phone-wide on a desktop) */
 /* (the old `.oc > *` makes every child relative — the full-screen layers stay fixed) */
 .oc-od > .gk-edge, .oc-od > .oc-fx { position: fixed; }
 .oc-od > .oc-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: radial-gradient(130% 70% at 50% -10%, #171b25 0%, #0c0e14 55%, #07080c 100%); }
-.oc-bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px); background-size: 30px 30px; background-position: center top; -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.35) 55%, rgba(0, 0, 0, 0.12) 100%); mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.35) 55%, rgba(0, 0, 0, 0.12) 100%); }
+/* (OC2 — the owner: depth, never flat) the grid reads all the way down (a fine one + a coarse one), the haze drifts brighter, the vignette */
+.oc-bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, 0.075) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.075) 1px, transparent 1px), linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px); background-size: 120px 120px, 120px 120px, 30px 30px, 30px 30px; background-position: center top; -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.6) 50%, rgba(0, 0, 0, 0.32) 100%); mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.6) 50%, rgba(0, 0, 0, 0.32) 100%); }
 .oc-bg-haze { position: absolute; width: 95vmin; height: 95vmin; border-radius: 50%; will-change: transform; }
-.oc-bg-haze-a { left: -38vmin; top: 6vh; background: radial-gradient(circle, rgba(255, 106, 26, 0.2), rgba(255, 106, 26, 0.06) 45%, transparent 70%); animation: oc-drift-a 27s ease-in-out infinite alternate; }
-.oc-bg-haze-b { right: -40vmin; bottom: 4vh; background: radial-gradient(circle, rgba(46, 139, 255, 0.2), rgba(46, 139, 255, 0.05) 45%, transparent 70%); animation: oc-drift-b 33s ease-in-out infinite alternate; }
+.oc-bg-haze-a { left: -38vmin; top: 6vh; background: radial-gradient(circle, rgba(255, 106, 26, 0.27), rgba(255, 106, 26, 0.08) 45%, transparent 70%); animation: oc-drift-a 27s ease-in-out infinite alternate; }
+.oc-bg-haze-b { right: -40vmin; bottom: 4vh; background: radial-gradient(circle, rgba(46, 139, 255, 0.26), rgba(46, 139, 255, 0.07) 45%, transparent 70%); animation: oc-drift-b 33s ease-in-out infinite alternate; }
 @keyframes oc-drift-a { to { transform: translate(26vmin, 22vh); } }
 @keyframes oc-drift-b { to { transform: translate(-24vmin, -26vh); } }
 .oc-bg-vig { position: absolute; inset: 0; background: radial-gradient(ellipse 85% 75% at 50% 45%, transparent 50%, rgba(0, 0, 0, 0.62) 100%); }
@@ -978,7 +923,19 @@
 .oc-row { flex: none; display: flex; align-items: center; gap: 10px; min-width: 0; }
 .oc-od .oc-strip { flex: 1; min-width: 0; gap: 5px; padding: 3px 2px; }
 .oc-combo { position: relative; flex: none; display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; align-items: center; column-gap: 7px; row-gap: 3px; min-width: 96px; padding: 6px 12px 6px 10px; transform: skewX(var(--oc-slant)); background: linear-gradient(180deg, #232733, #161920); border: 1px solid var(--oc-line); }
+/* (OC2) hidden at ×0 / ×1 — the players' strip has the row; it slams in from ×2 */
+.oc-combo:not(.is-live) { display: none; }
+.oc-combo { pointer-events: none; transform-origin: 30% 50%; }
+.oc-combo.is-in { animation: oc-combo-in 0.34s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes oc-combo-in { from { opacity: 0; transform: skewX(var(--oc-slant)) scale(0.6); } to { opacity: 1; transform: skewX(var(--oc-slant)); } }
 .oc-combo-glow { position: absolute; inset: -1px; border: 1px solid var(--oc-hot); box-shadow: 0 0 18px var(--oc-hot-glow), inset 0 0 14px rgba(255, 106, 26, 0.28); opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+/* THE IGNITION (x4 / x10): the flare = a pre-rendered white-hot bloom whose opacity flashes; the meter slams up a size and settles */
+.oc-combo-flare { position: absolute; inset: -6px -10px; pointer-events: none; opacity: 0; background: radial-gradient(60% 70% at 50% 50%, rgba(255, 246, 236, 0.95), rgba(255, 140, 60, 0.6) 45%, rgba(255, 106, 26, 0) 75%); }
+.oc-combo.is-ignite { animation: oc-ignite 0.62s cubic-bezier(0.2, 1.3, 0.35, 1) both; z-index: 3; }
+.oc-combo.is-ignite .oc-combo-flare { animation: oc-flare 0.76s ease-out both; }
+.oc-combo.is-ignite-10 .oc-combo-flare { background: radial-gradient(60% 70% at 50% 50%, #fff, rgba(255, 214, 170, 0.75) 40%, rgba(46, 139, 255, 0.25) 70%, transparent 80%); }
+@keyframes oc-ignite { 0% { transform: skewX(var(--oc-slant)) scale(1); } 22% { transform: skewX(var(--oc-slant)) scale(1.32); } 48% { transform: skewX(var(--oc-slant)) scale(1.18); } 100% { transform: skewX(var(--oc-slant)) scale(1); } }
+@keyframes oc-flare { 0% { opacity: 0; } 14% { opacity: 1; } 40% { opacity: 0.7; } 100% { opacity: 0; } }
 .oc-combo-k, .oc-combo-od { grid-column: 1; grid-row: 1; font: 700 9px / 1 var(--oc-font-ui); letter-spacing: 0.22em; color: var(--oc-label); }
 .oc-combo-od { display: none; color: var(--oc-hot); }
 .oc-combo-n { grid-column: 2; grid-row: 1 / span 2; font: italic 900 30px / 0.9 var(--oc-font-title); color: #7d8498; font-variant-numeric: tabular-nums; }
@@ -989,10 +946,11 @@
 .oc-combo.is-od .oc-combo-k { display: none; }
 .oc-combo.is-od .oc-combo-od { display: block; }
 .oc-combo.is-od .oc-combo-n { color: var(--oc-hot); }
-.oc-combo.is-od .oc-combo-glow { opacity: 1; animation: oc-breathe 1.1s ease-in-out infinite alternate; }
+.oc-combo.is-od .oc-combo-glow { opacity: 1; }   /* (OC2) a STEADY hot glow while the streak lasts — no breathing */
+.oc-combo.is-od { background: linear-gradient(180deg, #3a2516, #22150c); border-color: rgba(255, 106, 26, 0.7); }
+.oc-combo.is-x10 .oc-combo-n { color: #fff3e6; text-shadow: 0 0 12px rgba(255, 140, 60, 0.8); }
 .oc-combo.is-pop { animation: oc-combo-pop 0.32s cubic-bezier(0.2, 1.5, 0.4, 1); }
 @keyframes oc-combo-pop { 45% { transform: skewX(var(--oc-slant)) scale(1.14); } }
-@keyframes oc-breathe { from { opacity: 0.55; } to { opacity: 1; } }
 .oc-od .oc-pchip { flex: 1 0 36px; max-width: 58px; padding: 5px 3px 4px; background: rgba(26, 30, 39, 0.92); border: 1px solid rgba(46, 139, 255, 0.32); transform: skewX(var(--oc-slant)); }
 .oc-od .oc-pchip.is-me { border-color: var(--oc-hot); }
 .oc-od .oc-pfill { background: var(--oc-cool); }
@@ -1007,9 +965,9 @@
 .oc-od .ch-hero.is-final::before { content: '×2 FINAL'; flex: none; padding: 3px 8px 2px; font: italic 900 14px / 1 var(--oc-font-title); letter-spacing: 0.06em; color: var(--oc-hot-ink); background: var(--oc-hot); transform: skewX(var(--oc-slant)); }
 .oc-od .ch-pips { flex: 1; gap: 4px; }
 .oc-od .ch-pips i { max-width: none; height: 6px; background: rgba(255, 255, 255, 0.1); transform: skewX(-24deg); }
-.oc-od .ch-pips i.ok { background: var(--good); box-shadow: none; }
-.oc-od .ch-pips i.half { background: var(--close); }
-.oc-od .ch-pips i.miss { background: var(--oc-wrong); }
+/* (OC2 — the owner) the progress bar under the emblems is YOUR progress: ORANGE for every part answered, never red (right / wrong is the
+   tiles' — with their marks) */
+.oc-od .ch-pips i.ok, .oc-od .ch-pips i.half, .oc-od .ch-pips i.miss { background: var(--oc-hot); box-shadow: none; }
 .oc-od .ch-prompt { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.24em; color: var(--oc-label); }
 .oc-od .oc-done-mark { font: italic 900 46px / 1 var(--oc-font-title); letter-spacing: 0.02em; }
 .oc-od .oc-done.is-perfect .oc-done-mark { color: var(--oc-hot); text-shadow: 0 0 26px var(--oc-hot-glow); }
@@ -1022,19 +980,30 @@
 .oc-fx-red { position: absolute; inset: 0; box-shadow: inset 0 0 90px 22px rgba(255, 40, 70, 0.6); opacity: 0; }
 .oc-fx-red.is-on { animation: oc-flash 0.5s ease-out; }
 @keyframes oc-flash { from { opacity: 1; } to { opacity: 0; } }
-.oc-fx-white { position: absolute; inset: 0; background: radial-gradient(70% 55% at 50% 42%, rgba(255, 252, 245, 0.85), rgba(255, 160, 80, 0.35) 45%, rgba(46, 139, 255, 0.12) 75%, transparent 100%); opacity: 0; }
-.oc-fx-white.is-on { animation: oc-x10 1.25s ease-out; }
-@keyframes oc-x10 { 0% { opacity: 0; } 12% { opacity: 1; } 30% { opacity: 0.35; } 42% { opacity: 0.85; } 100% { opacity: 0; } }
-.oc-fx-banner { position: absolute; left: -8%; right: -8%; top: 40%; height: 92px; display: grid; place-items: center; opacity: 0; transform: translateX(-120%); }
-.oc-fx-banner-plate { position: absolute; inset: 0; transform: skewX(-14deg); background: linear-gradient(90deg, rgba(255, 106, 26, 0) 0%, #ff6a1a 18%, #ff9a4d 50%, #ff6a1a 82%, rgba(255, 106, 26, 0) 100%); box-shadow: 0 0 40px rgba(255, 106, 26, 0.6); }
-.oc-fx-banner b { position: relative; font: italic 900 64px / 1 var(--oc-font-title); letter-spacing: 0.04em; color: #fff; text-shadow: 0 2px 0 #b03a00, 0 0 24px rgba(255, 255, 255, 0.5); }
-.oc-fx-banner.is-on { animation: oc-banner 1.35s cubic-bezier(0.2, 0.9, 0.2, 1); }
-@keyframes oc-banner { 0% { opacity: 1; transform: translateX(-120%); } 22% { transform: translateX(0); } 72% { opacity: 1; transform: translateX(2%); } 100% { opacity: 0; transform: translateX(120%); } }
+/* THE STREAK (x4 / x10 — OC2: the cues never block play): a hot light running along the screen's very edges — the top edge left → right,
+   both sides top → bottom — thin pre-rendered bars, one transform each, ≤ 0.76 s (fx.js#CUE_MS); never over the question or a tile */
+.oc-fx-streak { position: absolute; inset: 0; opacity: 0; }
+.oc-fx-streak i { position: absolute; display: block; }
+.oc-fx-st-top { left: 0; top: 0; width: 46%; height: 3px; background: linear-gradient(90deg, transparent, var(--oc-hot) 35%, #fff2e4 70%, transparent); box-shadow: 0 0 14px 3px rgba(255, 106, 26, 0.55); transform: translateX(-110%); }
+.oc-fx-st-l, .oc-fx-st-r { top: 0; width: 3px; height: 34%; background: linear-gradient(180deg, transparent, var(--oc-hot) 35%, #fff2e4 70%, transparent); box-shadow: 0 0 14px 3px rgba(255, 106, 26, 0.5); transform: translateY(-110%); }
+.oc-fx-st-l { left: 0; }
+.oc-fx-st-r { right: 0; }
+.oc-fx-streak.is-on { animation: oc-streak-vis 0.76s linear both; }
+.oc-fx-streak.is-on .oc-fx-st-top { animation: oc-streak-x 0.5s cubic-bezier(0.3, 0.6, 0.3, 1) both; }
+.oc-fx-streak.is-on .oc-fx-st-l, .oc-fx-streak.is-on .oc-fx-st-r { animation: oc-streak-y 0.66s cubic-bezier(0.3, 0.5, 0.4, 1) 0.1s both; }
+.oc-fx-streak.is-10 .oc-fx-st-top { background: linear-gradient(90deg, transparent, #ffd7b0 30%, #fff 60%, var(--oc-cool) 90%, transparent); }
+.oc-fx-streak.is-10 .oc-fx-st-l, .oc-fx-streak.is-10 .oc-fx-st-r { background: linear-gradient(180deg, transparent, #ffd7b0 30%, #fff 60%, var(--oc-cool) 90%, transparent); }
+@keyframes oc-streak-vis { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes oc-streak-x { to { transform: translateX(240%); } }
+@keyframes oc-streak-y { to { transform: translateY(310%); } }
 .oc-spark { position: fixed; left: 0; top: 0; width: 13px; height: 13px; margin: -6.5px; border-radius: 50%; background: radial-gradient(circle, #fff 0 30%, var(--oc-hot) 55%, rgba(255, 106, 26, 0) 72%); }
 .oc-ring { position: absolute; inset: -3px; border: 3px solid var(--good); border-radius: inherit; opacity: 0; pointer-events: none; animation: oc-ring 0.55s ease-out forwards; }
-.oc-crack { position: absolute; inset: 0; pointer-events: none; animation: oc-crack 0.3s ease-out both; }
-.oc-crack svg { width: 100%; height: 100%; fill: none; stroke: rgba(255, 255, 255, 0.85); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
-@keyframes oc-crack { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: none; } }
+/* the hairline cracks: under the tile's text, a red glow stroke under a thin white-hot core; they flare in, then settle a little dimmer */
+.oc-crack { position: absolute; inset: 2px 10px; pointer-events: none; transform: skewX(var(--oc-slant)); animation: oc-crack 0.62s ease-out both; }
+.oc-crack svg { width: 100%; height: 100%; fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.oc-crack-glow { stroke: rgba(255, 51, 85, 0.55); stroke-width: 4.5; vector-effect: non-scaling-stroke; }
+.oc-crack-core { stroke: rgba(255, 228, 232, 0.9); stroke-width: 1.1; vector-effect: non-scaling-stroke; }
+@keyframes oc-crack { 0% { opacity: 0; transform: skewX(var(--oc-slant)) scale(0.86); } 18% { opacity: 1; transform: skewX(var(--oc-slant)); } 100% { opacity: 0.62; transform: skewX(var(--oc-slant)); } }
 
 /* ---------------- the title slam (kit/slam.js) + the after-challenge screen */
 .oc-od .ov-ready { background: radial-gradient(90% 60% at 50% 45%, rgba(20, 23, 31, 0.94), rgba(6, 7, 10, 0.97)); }
@@ -1089,7 +1058,9 @@
 .oc-chip { padding: 5px 10px 4px; font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.16em; color: #fff; background: rgba(46, 139, 255, 0.16); border: 1px solid rgba(46, 139, 255, 0.55); transform: skewX(var(--oc-slant)); }
 .oc-qn { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.12em; color: var(--oc-label); }
 .oc-qn b { font: italic 900 20px / 1 var(--oc-font-title); color: #fff; }
-.oc-od .ch-trivia { gap: 16px; margin: auto 0; }
+/* (OC2 — the owner: no dead gap between the header and the question) the rebuilt screens start right under the progress row */
+.oc-od .ch-trivia { gap: 16px; margin: 6px 0 auto; }
+@media (min-height: 780px) { .oc-od .ch-trivia .oc-tiles { gap: 11px; } .oc-od .ch-trivia .oc-tile { min-height: 64px; } }
 .oc-od .tl-q { min-height: 3.78em; }
 
 /* style C: slanted solid graphite glass tiles, blue letter badges; the tapped one turns hot orange; the press sinks + flashes */
@@ -1108,12 +1079,29 @@
 .oc-tile.is-picked .oc-badge { color: #fff; background: #1d0900; }
 .oc-tile.is-picked .oc-tile-glow, .oc-tf-btn.is-picked .oc-tile-glow { animation: gk-flash 0.4s ease-out; }
 .oc-tile.is-locked, .oc-tf-btn.is-locked { pointer-events: none; }
-/* right ✓ (--good + a mark) · wrong ✕ (red + the crack + a mark) — never colour alone */
-.oc-tile.is-right .oc-tile-mark { opacity: 1; }
-.oc-tile.is-right:not(.is-picked) .oc-tile-face { border: 2px solid var(--good); }
-.oc-tile.is-wrong .oc-tile-mark { opacity: 1; }
-.oc-tile.is-wrong .oc-tile-face, .oc-tf-btn.is-wrong .oc-tile-face { background: linear-gradient(180deg, #ff5b6f, #e0283f 60%, #b81a30); border-color: rgba(255, 200, 210, 0.5); }
-.oc-tile.is-wrong, .oc-tf-btn.is-wrong { color: #fff; }
+/* right ✓ (--good + a mark) · wrong ✕ (red edge + the cracks + a mark) — never colour alone. OC2 (the owner's ADD-ON 5): a tile is NEVER
+   flat solid red. THE RIGHT TILE rests in its graphite glass with the --good edge + a soft inner glow (.oc-tile-ok, a static layer) + the ✓
+   in its socket; the press still flashes hot orange (the glow layer) on the way. THE WRONG TILE stays DARK GLASS: a red EDGE FLASH
+   (.oc-tile-bad — bright, then it settles), glowing hairline cracks, a shake, then it RESTS dark with a red edge + tint + the ✕ in its
+   dark-glass socket. Only the layers' opacity animates. */
+.oc-tile-ok, .oc-tile-bad { position: absolute; inset: 0; transform: skewX(var(--oc-slant)); pointer-events: none; opacity: 0; }
+.oc-tile-ok { border: 2px solid var(--good); box-shadow: inset 0 0 22px color-mix(in srgb, var(--good) 30%, transparent), 0 0 16px color-mix(in srgb, var(--good) 28%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--good) 13%, transparent), color-mix(in srgb, var(--good) 4%, transparent)); }
+.oc-tile-bad { border: 2px solid var(--oc-wrong); box-shadow: inset 0 0 26px rgba(255, 51, 85, 0.34), 0 0 18px rgba(255, 51, 85, 0.45); background: linear-gradient(180deg, rgba(255, 51, 85, 0.16), rgba(70, 8, 20, 0.28)); }
+.oc-tile.is-right .oc-tile-mark, .oc-tf-btn.is-right .oc-tile-mark { opacity: 1; }
+.oc-tile.is-right .oc-tile-ok, .oc-tf-btn.is-right .oc-tile-ok { opacity: 1; transition: opacity 0.22s ease-out; }
+.oc-tile.is-right.is-picked .oc-tile-face, .oc-tf-btn.is-right.is-picked .oc-tile-face { background: linear-gradient(180deg, #2c313d 0%, #1d212b 55%, #171a22 100%); border-color: transparent; }
+.oc-tile.is-right.is-picked, .oc-tf-btn.is-right.is-picked { color: #fff; }
+.oc-tile.is-right.is-picked .oc-badge { color: #fff; background: var(--oc-cool); }
+.oc-tile.is-wrong .oc-tile-mark, .oc-tf-btn.is-wrong .oc-tile-mark { opacity: 1; }
+.oc-tile.is-wrong .oc-tile-face, .oc-tf-btn.is-wrong .oc-tile-face { background: linear-gradient(180deg, #1c1a20 0%, #141217 60%, #0f0d11 100%); border-color: transparent; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 5px 14px rgba(0, 0, 0, 0.45); }
+.oc-tile.is-wrong .oc-tile-bad, .oc-tf-btn.is-wrong .oc-tile-bad { opacity: 0.72; animation: oc-bad-edge 0.62s ease-out both; }
+@keyframes oc-bad-edge { 0% { opacity: 0; } 12% { opacity: 1; } 30% { opacity: 0.55; } 46% { opacity: 1; } 100% { opacity: 0.72; } }
+.oc-tile.is-wrong, .oc-tf-btn.is-wrong { color: #f4d6db; }
+.oc-tile.is-wrong .oc-tile-glow, .oc-tf-btn.is-wrong .oc-tile-glow { animation: none; opacity: 0; }
+.oc-tile.is-wrong .oc-badge { color: #ffd7dd; background: #3a121b; }
+.oc-tile.is-wrong .oc-tile-t { text-decoration: line-through; text-decoration-color: rgba(255, 51, 85, 0.8); text-decoration-thickness: 2px; }
+/* TRUE OR FALSE's buttons: the socket sits in the top-right corner */
+.oc-tf-sock { position: absolute; top: 8px; right: 12px; min-width: 0; height: auto; }
 .oc-tile.oc-burst, .oc-tf-btn.oc-burst { animation: oc-burst 0.34s cubic-bezier(0.2, 1.5, 0.4, 1); }
 @keyframes oc-burst { 40% { transform: scale(1.035); } }
 .oc-tile.oc-shake, .oc-tf-btn.oc-shake { animation: oc-shake 0.36s ease-out; }
@@ -1122,7 +1110,7 @@
 @keyframes oc-ring { from { opacity: 1; transform: skewX(var(--oc-slant)) scale(0.97); } to { opacity: 0; transform: skewX(var(--oc-slant)) scale(1.07, 1.35); } }
 
 /* TRUE OR FALSE: the statement card (blue-edged glass) + two huge buttons */
-.oc-od .ch-tf { gap: 18px; margin: auto 0; }
+.oc-od .ch-tf { gap: 18px; margin: 6px 0 auto; }
 .oc-tf-card { position: relative; display: flex; flex-direction: column; gap: 12px; min-height: 168px; padding: 18px 22px 22px; justify-content: center; }
 .oc-tf-card-glass { position: absolute; inset: 0; transform: skewX(var(--oc-slant)); background: linear-gradient(160deg, rgba(46, 139, 255, 0.16), rgba(20, 24, 33, 0.92) 45%, rgba(14, 16, 22, 0.95)); border: 2px solid rgba(46, 139, 255, 0.75); box-shadow: 0 0 24px rgba(46, 139, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14); }
 .oc-tf-card > :not(.oc-tf-card-glass) { position: relative; }
@@ -1174,6 +1162,6 @@
 .oc-od .oc-lr .avatar { flex: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .oc-bg-haze, .oc-combo.is-pop, .oc-combo.is-od .oc-combo-glow, .oc-score-n.oc-bump, .oc-fx-banner.is-on, .oc-ring, .oc-crack, .oc-tile.oc-burst, .oc-tf-btn.oc-burst, .oc-tile.oc-shake, .oc-tf-btn.oc-shake { animation: none !important; }
-  .oc-fx-white.is-on { animation-duration: 0.6s; }
+  .oc-bg-haze, .oc-combo.is-pop, .oc-combo.is-in, .oc-combo.is-ignite, .oc-combo-flare, .oc-score-n.oc-bump, .oc-fx-streak, .oc-fx-streak i, .oc-ring, .oc-crack, .oc-tile.oc-burst, .oc-tf-btn.oc-burst, .oc-tile.oc-shake, .oc-tf-btn.oc-shake, .oc-tile-bad { animation: none !important; }
+  .oc-crack { opacity: 0.62; }
 }

@@ -33,7 +33,6 @@ import uiClosest from './ui/closest.js';
 import uiRewire from './ui/rewire.js';
 import uiMissingLink from './ui/missinglink.js';
 import uiSpellcheck from './ui/spellcheck.js';
-import uiMake24 from './ui/make24.js';
 import uiCompass from './ui/compass.js';
 import uiSortIt from './ui/sortit.js';
 import uiHigherLower from './ui/higherlower.js';
@@ -53,7 +52,7 @@ const SCREENS = {
   unscramble: uiUnscramble, memory: uiMemory, oddone: uiOddOne, math: uiNumeric, pattern: uiNumeric, trivia: uiTrivia,
   stroop: uiStroop, reflex: uiReflex, count: uiCount, truefalse: uiTrueFalse,
   timeline: uiTimeline, closest: uiClosest, rewire: uiRewire,
-  missinglink: uiMissingLink, spellcheck: uiSpellcheck, make24: uiMake24, compass: uiCompass, sortit: uiSortIt, higherlower: uiHigherLower,
+  missinglink: uiMissingLink, spellcheck: uiSpellcheck, compass: uiCompass, sortit: uiSortIt, higherlower: uiHigherLower,
 };
 
 export function createView() {
@@ -123,6 +122,7 @@ export function createView() {
       window.__oc = {
         spec: () => chal && chal.spec,
         state: () => chal && { type: chal.spec.type, ok: chal.ok, p: chal.p, done: chal.done, extra: chal.extra, local: chal.local },
+        combo: () => combo && { n: combo.value, cueing: combo.cueing },
       };
     }
     update(state);
@@ -130,6 +130,7 @@ export function createView() {
 
   function unmount() {
     if (tach) tach.destroy();
+    if (combo) combo.destroy();
     if (slam) slam.destroy();
     if (fx) fx.destroy();
     cancelAnimationFrame(introRaf);
@@ -284,8 +285,9 @@ export function createView() {
     const ev = combo.set(live);
     if (!comboSeen) { comboSeen = true; return; }
     if (ev.up) comboSound(live);
-    if (ev.hitOD) fx.overdrive();
-    if (ev.hit10) fx.x10();
+    // THE CUES (OC2 — never over the play area, never take a tap, ≤ 0.8 s): the meter ignites + the edge streak; x10 wins over x4
+    const cue = ev.hit10 ? 'x10' : ev.hitOD ? 'od' : '';
+    if (cue) { combo.ignite(cue); fx.streak(cue); }
   }
 
   function finish() {
@@ -329,7 +331,6 @@ export function createView() {
     const t = chal.spec.type;
     const NEW_DONE = {
       missinglink: () => [h('b', fmtOk(chal.ok)), ' / 2 linked'],
-      make24: () => [h('b', fmtOk(chal.ok)), ' / 2 solved'],
       sortit: () => [h('b', String(sortSplit(chal.ok, chal.p).right)), ` / ${SORT_CARDS} sorted right`],
       higherlower: () => ['STREAK ', h('b', String(Math.floor(chal.ok)))],
     };
@@ -616,7 +617,6 @@ export function createView() {
     if (type === 'timeline') return `${fmtOk(r.ok)}/4 IN PLACE`;
     if (type === 'rewire') return `${Math.floor(r.ok)}/2 CIRCUITS`;
     if (type === 'missinglink') return `${fmtOk(r.ok)}/2 LINKED`;
-    if (type === 'make24') return `${fmtOk(r.ok)}/2 SOLVED`;
     if (type === 'higherlower') return `STREAK ${Math.floor(r.ok)}`;
     if (type === 'sortit') return b.p ? `${sortSplit(r.ok, b.p).right}/${SORT_CARDS} SORTED RIGHT` : 'NO SORTS';
     if (type === 'closest') {

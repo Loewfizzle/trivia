@@ -241,7 +241,7 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     offline send, fake-keyboard layout, kick (access lost), late joiner + refresh history, system lines, lock/unlock in
     all six games (badge counts, no sound/toast), golf frame pacing while the room chats, host clear (40 checks).
   - Overclock update 2: `node e2e-oc-2.mjs "<browser path>" ./shots` (N=8 — SHELL 2.0 B1: on the room in the city, 29/29; it needs 3+ phones) — Missing Link typed (wrong guess shakes, plural, keyboard
-    layout), Spellcheck, Make 24 (merges, UNDO, refresh between puzzles), Compass, Sort It with real touch swipes + side taps (host
+    layout), Spellcheck, Compass (MAKE 24 cut in OC2), Sort It with real touch swipes + side taps (host
     killed mid-challenge), Higher or Lower; identical puzzles everywhere, every player's points vs the scoring rule, all screens at both sizes.
   - PRISM DROP E2E: `node e2e-prism.mjs "<browser path>" ./shots-prism` (SHELL 2.0 B1: on THE ROOM IN THE CITY — GAMES → PRISM DROP → its options; **`FAST=1`** = 2 phones, the gestures, one battle to its end, back to the room, ≈ 40 s; the flick check = OFF by default, ON with SWIPE-DOWN SLAM) (env N=8, RUSH=0, CPU=4; `PERF_ONLY=1 GPU=1 N=2`
     = frame pacing only) — 8 players: same song/world/7-bag on every phone, real CDP touch gestures (drag 3 cells, taps,

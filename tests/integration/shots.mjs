@@ -204,6 +204,48 @@ if (PAGE) {
     await p.goto(`${BASE}/${String(PAGE).replace(/^\/+/, '')}`);
     await p.waitForFunction(() => document.body && document.body.dataset.ready, { timeout: 60000 }).catch(() => {});
     await sleep(opt('wait', 0) ? WAIT : 300);
+    // (OC2 — THE MOTION PROOF: --cast <ms> on a --page = a CDP screencast of every painted frame for that long, STARTED BEFORE --js (so --js
+    //  can start the motion being filmed); --strip N = N frames evenly spaced in time, one labelled row (<name>-<w>x<h>-strip.png);
+    //  --webm = the frames encoded at their real times into <name>-<w>x<h>.webm (MediaRecorder in the browser — no ffmpeg needed))
+    const PCAST = Number(opt('cast', 0)) || 0;
+    if (PCAST) {
+      const frames = [], cdp = await p.target().createCDPSession(), t0 = Date.now();
+      cdp.on('Page.screencastFrame', f => { frames.push({ t: Date.now() - t0, data: f.data }); cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {}); });
+      await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 88, everyNthFrame: 1, maxWidth: w * (DSF || 1), maxHeight: h * (DSF || 1) });
+      if (opt('js', '')) await p.evaluate(String(opt('js', ''))).catch(e => console.log('JS', e.message));
+      await sleep(PCAST); await cdp.send('Page.stopScreencast');
+      const base = `${OUT}${opt('name', 'page')}-${w}x${h}`;
+      console.log(`${opt('name', 'page')} ${w}x${h}: ${frames.length} frames in ${PCAST} ms`);
+      const q = await browser.newPage();
+      const STRIP = Number(opt('strip', 0)) || 0;
+      if (STRIP && frames.length) {
+        const pickAt = i => { const t = (PCAST * i) / Math.max(1, STRIP - 1); return frames.reduce((b, f) => (Math.abs(f.t - t) < Math.abs(b.t - t) ? f : b)); };
+        const sel = Array.from({ length: STRIP }, (_, i) => pickAt(i)), k = Math.min(1, 2400 / (STRIP * w));
+        await q.setViewport({ width: Math.ceil(STRIP * (w * k + 6)), height: Math.ceil(h * k + 24), deviceScaleFactor: 1 });
+        await q.setContent(`<body style="margin:0;background:#111;display:flex;font:13px monospace;color:#ccc">${sel.map(f => `<div style="margin:0 3px"><div style="height:20px">${f.t} ms</div><img src="data:image/jpeg;base64,${f.data}" style="display:block;width:${w * k}px;height:${h * k}px"></div>`).join('')}</body>`);
+        await q.waitForFunction(() => [...document.images].every(i => i.complete));
+        await q.screenshot({ path: `${base}-strip.png` });
+      }
+      if (opt('webm', false) && frames.length) {
+        await q.goto('about:blank');
+        const b64 = await q.evaluate(async (fr, W, H) => {
+          const c = document.createElement('canvas'); c.width = W; c.height = H; document.body.append(c); const g = c.getContext('2d');
+          const imgs = await Promise.all(fr.map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = `data:image/jpeg;base64,${f.data}`; })));
+          const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
+          const rec = new MediaRecorder(c.captureStream(60), { mimeType: mime, videoBitsPerSecond: 8e6 }), parts = [];
+          rec.ondataavailable = e => parts.push(e.data);
+          g.drawImage(imgs[0], 0, 0, W, H); rec.start();
+          const t0 = performance.now(), end = fr[fr.length - 1].t + 400;
+          await new Promise(res => { let k = 0; const tick = () => { const t = performance.now() - t0; while (k < fr.length - 1 && fr[k + 1].t <= t) k++; g.drawImage(imgs[k], 0, 0, W, H); if (t < end) requestAnimationFrame(tick); else res(); }; tick(); });
+          rec.stop(); await new Promise(r => { rec.onstop = r; });
+          const buf = new Uint8Array(await new Blob(parts, { type: 'video/webm' }).arrayBuffer());
+          let s = ''; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+          return btoa(s);
+        }, frames, w * (DSF || 1), h * (DSF || 1));
+        writeFileSync(`${base}.webm`, Buffer.from(b64, 'base64'));
+      }
+      await q.close(); await p.close(); continue;
+    }
     if (opt('js', '')) { await p.evaluate(String(opt('js', ''))).catch(e => console.log('JS', e.message)); await sleep(400); }
     // (OC1 — --fps <ms> on a --page: the page's own frame pacing for that long (rAF intervals; --cpu N throttles first) → p50 / p95 / fps /
     //  long frames printed — a game screen's 60 fps check; --js can start the motion being judged)
