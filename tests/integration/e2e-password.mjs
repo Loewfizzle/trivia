@@ -41,6 +41,19 @@ const enter = page => page.click('.gk-kb-r3 .gk-go');
 const settle = page => page.waitForFunction(() => window.__password && !window.__password.busy() && !window.__password.state().reveal, { timeout: 20000 });
 const marksOf = (page, row) => page.$$eval(`.pw-row:nth-child(${row + 1}) .pw-tile`, ts => ts.map(t => (t.className.match(/is-(hit|near|miss)/) || [])[1] || '-'));
 const doorsOf = page => page.$$eval('.pw-dr', ds => ds.map(d => `${d.dataset.st}:${d.querySelector('.pw-dr-sub').textContent}`));
+// THE LOOK FLIP (CC2 Group 0 — the flake: a fixed 450 ms sleep read the colours mid-crossfade on a busy machine): flip, then wait on the REAL state —
+// body[data-look] set, the painted layer for that look fully in (::after opacity 1 by day / 0 by night) and NO CSS transition still running inside
+// the screen (the crossfade's end) — then read the settled values. Never a fixed sleep, never a timing window.
+// (the BASELINE too: the tiles' own 0.3 s colour-in after a refresh's re-render was the flake — run 2 / 6 / 8 of 10 read the night colours mid-way)
+const settled = page => page.waitForFunction(() => {
+  const scr = document.querySelector('.pw-screen');
+  return !!scr && !document.getAnimations().some(a => a.constructor.name === 'CSSTransition' && a.playState === 'running' && (!a.effect || !a.effect.target || scr.contains(a.effect.target)));
+}, { timeout: 5000, polling: 'raf' });
+const flipLook = async (page, look) => {
+  await page.evaluate(l => { document.body.dataset.look = l; }, look);
+  await page.waitForFunction(l => document.body.dataset.look === l && getComputedStyle(document.querySelector('.pw-screen'), '::after').opacity === (l === 'day' ? '1' : '0'), { timeout: 5000, polling: 'raf' }, look);
+  await settled(page);
+};
 const endOf = page => page.evaluate(() => ({
   on: !!document.querySelector('.pw-endscr.is-in'), playGone: !!document.querySelector('.pw-play[hidden]') && !document.querySelector('.pw-play:not([hidden]) .gk-keyboard'),
   t: document.querySelector('.pw-end-t').textContent, n: (document.querySelector('.pw-end-n') || {}).textContent, time: (document.querySelector('.pw-end-time') || {}).textContent, line: (document.querySelector('.pw-end-line') || {}).textContent,
@@ -82,14 +95,13 @@ await H.run(async () => {
 
   // ---- THE LOOK FLIP mid-guess (PW2 — the console sets body[data-look]; the game re-themes live): the typed letters stay, the tiles change colour
   await typeWord(p, 'AB');
+  await settled(p);
   const night = await p.$eval('.pw-tile', t => getComputedStyle(t).backgroundColor + '|' + getComputedStyle(t).color);
-  await p.evaluate(() => { document.body.dataset.look = 'day'; });
-  await sleep(450);
+  await flipLook(p, 'day');
   const dayLook = await p.evaluate(() => ({ tile: getComputedStyle(document.querySelector('.pw-tile')).backgroundColor + '|' + getComputedStyle(document.querySelector('.pw-tile')).color, sign: document.querySelector('.pw-sign').textContent, after: getComputedStyle(document.querySelector('.pw-screen'), '::after').opacity }));
   ok((await S(p)).typed === 'AB' && dayLook.tile !== night && dayLook.after === '1' && /the password\./i.test(dayLook.sign), `LOOK FLIP mid-guess → DAY: the letters stay (AB), the tiles re-theme, the sky layer in, the sign "the password." (${dayLook.tile})`);
   await shotAll(p, 'pw-02-day', [[390, 844]]);
-  await p.evaluate(() => { document.body.dataset.look = 'night'; });
-  const backNight = await p.waitForFunction(n => getComputedStyle(document.querySelector('.pw-tile')).backgroundColor + '|' + getComputedStyle(document.querySelector('.pw-tile')).color === n, { timeout: 3000 }, night).then(() => true, () => false);
+  const backNight = await flipLook(p, 'night').then(() => p.$eval('.pw-tile', t => getComputedStyle(t).backgroundColor + '|' + getComputedStyle(t).color)).then(v => v === night, () => false);
   ok(backNight && (await S(p)).typed === 'AB', 'and back to NIGHT (the ~0.3 s crossfade settled), the letters still there');
   for (let i = 0; i < 2; i++) await tap(p, '⌫');
 
@@ -127,10 +139,10 @@ await H.run(async () => {
   ok((await val(`dly/password/${day}/r/${pid}`)) === 4, 'the server scored it from ITS record: 4 (2 + 2 guesses)');
   ok((await doorsOf(p)).join('|') === 'open:2 GUESSES|open:2 GUESSES', 'both drawn doors open');
   await shotAll(p, 'pw-05-crack');
-  await p.evaluate(() => { document.body.dataset.look = 'day'; }); await sleep(450);
+  await flipLook(p, 'day');
   ok(!!(await p.$('.pw-endscr.is-in')) && (await endOf(p)).n.trim() === '4GUESSES', 'a look flip ON the end screen: the screen stands');
   await shotAll(p, 'pw-05-crack-day', [[390, 844]]);
-  await p.evaluate(() => { document.body.dataset.look = 'night'; });
+  await flipLook(p, 'night');
   await H.cleanText(p, 'the result', '.pw-screen');
 
   // ---- ONE TRY: a reload lands on the end screen; a guess is refused
