@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { GAMES } from '../js/config.js';
+import { GAMES, DAILIES, gameRow } from '../js/config.js';
 import { REQUIRED, OPTIONAL, checkCartridge, minPlayersOf, chipsOf, rematchSettingsOf } from '../js/games/cartridge.js';
 import { MARKS } from '../js/core/marks.js';
 
@@ -25,20 +25,25 @@ const PLAYABLE = GAMES.filter(g => g.playable).map(g => g.id);
 /** THE TEN HIDDEN GAMES — EXEMPT until each comes back (WINDOWS, Nov 1: their code + data + rules FROZEN). A game that returns leaves this
  *  list in the same pass that makes it playable — and then must pass every check below. */
 export const EXEMPT = Object.freeze(['cipher', 'signal', 'bluff', 'pulse', 'golf', 'agent', 'slip', 'gridlock', 'stakes', 'rum']);
+/** PW1 — THE DAILY-ONLY cartridges: never playable in a room (GAMES `daily: true`, playable false — no lobby row, no sign), NOT exempt: they
+ *  meet the whole contract like a playable game (THE DAILY MODULE opens them once a day, later) */
+export const DAILY_ONLY = Object.freeze(['password']);
+const CHECKED = [...PLAYABLE, ...DAILY_ONLY];
 
-test('every registered game is either PLAYABLE (and checked) or EXEMPT (hidden, frozen) — never neither', () => {
+test('every registered game is PLAYABLE (and checked), DAILY-ONLY (checked, never in a room) or EXEMPT (hidden, frozen) — never neither', () => {
   assert.deepEqual([...PLAYABLE].sort(), ['overclock', 'prism']);
-  for (const id of registered) assert.ok(PLAYABLE.includes(id) !== EXEMPT.includes(id), `${id}: playable XOR exempt`);
+  for (const id of registered) assert.equal([PLAYABLE, DAILY_ONLY, EXEMPT].filter(l => l.includes(id)).length, 1, `${id}: exactly one of playable / daily-only / exempt`);
   for (const id of EXEMPT) assert.ok(!PLAYABLE.includes(id), `${id} is exempt — it isn't playable`);
+  for (const id of DAILY_ONLY) { const g = DAILIES.find(x => x.id === id); assert.ok(g && g.daily === true && g.playable === false && !g.sign && !GAMES.some(x => x.id === id), `${id}: a DAILIES row (daily: true, never playable, no sign) — never a GAMES row`); assert.equal(gameRow(id), g); }
 });
 
-test('the PLAYABLE games export every REQUIRED piece of the contract + a music choice; their mark for the sign; their GAMES row', () => {
-  for (const id of PLAYABLE) {
+test('the PLAYABLE (+ DAILY-ONLY) games export every REQUIRED piece of the contract + a music choice; their mark for the sign; their GAMES row', () => {
+  for (const id of CHECKED) {
     const ex = exportsOf(read(`js/games/${id}/index.js`), `js/games/${id}`);
     for (const k of Object.keys(REQUIRED)) assert.ok(ex.has(k), `${id}: exports ${k}`);
     assert.ok(ex.has('MUSIC') || ex.has('musicFor'), `${id}: MUSIC or musicFor`);
     assert.ok(MARKS[id], `${id}: its tube mark (core/marks.js) — the game start's sign`);
-    const g = GAMES.find(x => x.id === id); assert.ok(g && g.name && g.theme, `${id}: its GAMES row`);
+    const g = gameRow(id); assert.ok(g && g.name && g.theme, `${id}: its GAMES / DAILIES row`);
     assert.ok(ex.has('chatLocked') && ex.has('BANNER_NAME'), `${id}: carries its own chat lock + its banner name (LOBBY 2.0 B)`);
   }
 });
@@ -89,8 +94,8 @@ test("THE THIN META: the registry's static imports are the meta files only; ever
   const statics = [...REG.matchAll(/^import .* from '(\.\/[^']+)'/gm)].map(m => m[1]);
   assert.deepEqual(statics.filter(s => /\/(index|logic|director|view)\.js$/.test(s)), [], 'no game code imported statically');
   assert.deepEqual([...REG.matchAll(/^import \* as \w+ from '\.\/(\w+)\/meta\.js'/gm)].map(m => m[1]).sort(), [...PLAYABLE].sort());
-  assert.equal(registered.length, 12);
-  for (const id of PLAYABLE) {
+  assert.equal(registered.length, 13);
+  for (const id of CHECKED) {
     const meta = read(`js/games/${id}/meta.js`);
     assert.doesNotMatch(meta, /^import /m, `${id}/meta.js imports nothing (pure + tiny)`);
     assert.ok(meta.length < 4000, `${id}/meta.js stays thin (${meta.length} bytes)`);

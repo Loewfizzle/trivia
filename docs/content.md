@@ -152,6 +152,14 @@ nothing (`--check` only checks). `tests/hush.test.mjs` runs the same checks on t
   Why not ~1,500: after the homophones, the rude/gloomy readings and the tricky spellings, about 800 common words are left —
   plenty with the 24-hour rest (`docs/data-model.md` → hush/).
 
+## THE PASSWORD's answer list (PW1 — `scripts/pw-words/`, docs/password.md "The list build")
+SERVER-ONLY (`api/_data/pw/answers.json` — never served, never imported by a page; `tests/password-list.test.mjs`), NOT data/words/answers-5.json.
+`node scripts/pw-words/build.mjs <count_1w.txt> --candidates` → `candidates.json` (ENABLE ∩ the Hunspell en_US base words, ranked by Norvig, five
+letters, minus inflections + the house blocklist + THE KID-SAFE LIST in `blocklist.mjs`) → THE REVIEWER (a separate agent over the whole list; when in
+doubt, out) writes `cuts.json` (+ `cuts-tail.json` for a widened pool) → `node scripts/pw-words/build.mjs <count_1w.txt>` writes the list (+ the
+server's copy of valid-5.json). The build fails without the cuts files; every answer must be in valid-5 (typeable). Nov 7: 2,807 candidates → 1,449.
+To change the list: edit the blocklist or a cuts file (never answers.json by hand), rebuild, run `tests/password-list.test.mjs`.
+
 ## Word lists
 Built by `scripts/build-words.mjs` from ENABLE (public domain), the SCOWL-derived Hunspell en_US
 dictionary (filters to real, non-proper-noun base words) and Peter Norvig's word-frequency counts (MIT).

@@ -55,6 +55,12 @@ export const MARKS = {
     { d: 'M66 51 L97 51', col: '#6dff9e' },
     { d: 'M64 56 L97 64', col: '#6aa8ff' },
   ] },
+  // THE PASSWORD (PW1): a keyhole — the round eye and the slot below it, a key's tip at the door
+  password: { blade: 'PASSWORD', tubes: [
+    { d: 'M50 18 A17 17 0 1 1 49.9 18 Z', col: '#ff5ec4' },
+    { d: 'M42 48 L36 84 H64 L58 48', col: '#ff5ec4' },
+    { d: 'M14 66 H30 M22 60 V72', col: '#8ff0ff' },
+  ] },
   // SLIPSTREAM: a gold-and-blue swoosh
   slip: { blade: 'SLIPSTREAM', tubes: [
     { d: 'M8 70 C32 70 46 28 92 24', col: '#ffc46b' },

@@ -236,6 +236,9 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     sends, grouping, typing indicators, unread + sound, profanity toggle, throttle hint, rules-rejected send → retry,
     offline send, fake-keyboard layout, kick (access lost), late joiner + refresh history, system lines, lock/unlock in
     all six games (badge counts, no sound/toast), golf frame pacing while the room chats, host clear (40 checks).
+  - THE PASSWORD (PW1 — docs/password.md): `DAILY_TEST=1 node scripts/serve.mjs <port> --emu` + `E2E_BASE=http://localhost:<port> node e2e-password.mjs
+    "<browser>" ./shots-password` (≈ 40 s; its own page password-daily.html — the real view + the real /api judge; a second phone fails door 1); `/api`:
+    `node --test password.test.mjs` (in tests/integration, the emulators); the look: password-preview.html (a fake judge, fixed test words — docs/password.md).
   - Overclock update 2: `node e2e-oc-2.mjs "<browser path>" ./shots` (N=8 — SHELL 2.0 B1: on the room in the city; it needs 4+ phones — N=4 SHOTS=0 ≈ 3 min) — Missing Link on the kit's letter keyboard (wrong guess shakes, a computer
     keyboard, plural, everything on screen at once — OC3), Spellcheck, Compass (MAKE 24 cut in OC2), Sort It with real touch swipes + side taps (host
     killed mid-challenge), Higher or Lower; identical puzzles everywhere, every player's points vs the scoring rule, all screens at both sizes.

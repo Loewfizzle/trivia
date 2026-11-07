@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { numpadReduce, numpadNumber, NP_KEYS, NP_BACK } from '../js/games/kit/numpad.js';
-import { keyboardReduce, KB_ROWS, KB_BACK } from '../js/games/kit/keyboard.js';
+import { keyboardReduce, KB_ROWS, KB_BACK, KEY_STATES } from '../js/games/kit/keyboard.js';
 import { tachState } from '../js/games/kit/tach.js';
 import { slamPhase, SLAM_LATE_MS } from '../js/games/kit/slam.js';
 import { answerMark } from '../js/games/kit/answer.js';
@@ -94,4 +94,22 @@ test('THE KIT\'s rules: gk- classes only; no input element (never the system key
   assert.match(kit, /--gk-key-h, 56px/);
   assert.match(kit, /\.gk-kb-key \{[^}]*--gk-key-h, 54px/);
   assert.match(kit, /prefers-reduced-motion/);
+});
+
+// PW1 — THE KEYBOARD HOOK (THE PASSWORD): setKeyStates's three states; the delete key a DRAWN icon (no ⌫ glyph reaches the screen — KB_BACK stays
+// the key's code); the keys' marks from the shared --good / --close tokens (the colour-blind swap rides them), never a hard-coded green / gold
+test('THE LETTER KEYBOARD (PW1): per-key states, a drawn delete icon, the marks on the shared tokens', () => {
+  assert.deepEqual([...KEY_STATES], ['hit', 'near', 'miss']);
+  const src = readFileSync('js/games/kit/keyboard.js', 'utf8');
+  assert.match(src, /setKeyStates\(map/);
+  assert.match(src, /key\(KB_BACK, backIcon\(\), '\.is-back'\)/, 'the delete key takes the drawn icon as its label');
+  assert.match(src, /createElementNS\('http:\/\/www\.w3\.org\/2000\/svg', 'svg'\)/);
+  assert.match(src, /'stroke', 'currentColor'/);
+  const css = readFileSync('css/kit.css', 'utf8');
+  const marks = css.slice(css.indexOf("THE KEYS' MARKS"), css.indexOf('THE TACH TIMER'));
+  assert.match(marks, /\[data-st="hit"\] \.gk-key-face \{ background: var\(--good/);
+  assert.match(marks, /\[data-st="near"\] \.gk-key-face \{[^}]*var\(--close/);
+  assert.match(marks, /\[data-st="miss"\]/);
+  assert.doesNotMatch(marks.replace(/var\(--good, #3dff8b\)|var\(--close, #ffd23d\)/g, ''), /#3dff8b|#ffd23d|#00ff|green|gold/i, 'no green / gold of its own');
+  assert.match(marks, /::after/, 'the bar / the dot are shapes, not colour alone');
 });

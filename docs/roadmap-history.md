@@ -2149,3 +2149,16 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 6: the owner's ADD-ON — the corner buttons split on every screen (components.css "SPLIT ON EVERY SCREEN", `--cb-room`, OVERCLOCK's name
   shrinks to fit, PRISM DROP, setup, THE BOARD, the podium's kicker).
 - No rules change. Docs: docs/overclock.md (OC8), content, testing, CLAUDE.md (the corner paragraph), ROADMAP.
+
+## THE PASSWORD — PW1: THE GAME (Nov 7, 2026 — daily, ships OFF; docs/password.md, the decisions in docs/games/plan.md)
+- Group 1: the pure rules (judge with Wordle's duplicate rule, the run, the server's step + the phone's fold-in, the resume view, the score, the replay).
+- Group 2: the server-only answer list (ENABLE ∩ Hunspell en_US base words by Norvig's rank, the house + kid-safe blocklists, two REVIEWER agents:
+  2,807 candidates → 1,449) + THE SECRET SCHEDULE (api/_lib/pw-day.js — an HMAC-keyed shuffle per cycle from the pepper, two words a day, no repeat).
+- Group 3: /api/daily for a JUDGED cartridge — start returns the run (no seed), the `guess` action inside a transaction (a non-word costs nothing), finish
+  from the server's record; registered only under DAILY_TEST=1 (production refuses it). No rules change.
+- Group 4: the kit keyboard hook — setKeyStates (hit / near / miss on --good / --close with a bar / a dot / a dim face), `go` = ENTER, the delete key a
+  drawn icon for everyone (OVERCLOCK otherwise pixel-identical).
+- Group 5: the game — a DAILY-ONLY cartridge in config.js#DAILIES (not GAMES), the night look (every colour a token), the flips / shake / glow, the hand-off
+  + end placeholders, suspend / resume from the server's record; 60.3 fps at 4× CPU.
+- Group 6: password-preview.html (a fake judge, fixed test words, the state flags) + e2e-password.mjs (the real judge on the emulators).
+- The owner's add-on (OVERCLOCK): Higher or Lower's end card — the streak bar whole at 390 / 402 / 430 + WebKit; the header row.

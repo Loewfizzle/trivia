@@ -28,6 +28,7 @@ const LOADERS = {
   bluff: () => import('./bluff/index.js'), pulse: () => import('./pulse/index.js'), golf: () => import('./golf/index.js'),
   agent: () => import('./agent/index.js'), prism: () => import('./prism/index.js'), slip: () => import('./slip/index.js'),
   gridlock: () => import('./gridlock/index.js'), stakes: () => import('./stakes/index.js'), rum: () => import('./rum/index.js'),
+  password: () => import('./password/index.js'),   // (PW1 — DAILY-ONLY: never playable in a room; no meta at boot — the console never offers it)
 };
 export const GAME_IDS = Object.freeze(Object.keys(LOADERS));
 export const META = Object.freeze({ overclock: overclockMeta, prism: prismMeta });

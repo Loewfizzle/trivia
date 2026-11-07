@@ -79,5 +79,13 @@ export const GAMES = [ // lobby order
   { id: 'bluff', name: 'NEURAL BLUFF', theme: 'bluff', tag: 'BLUFF TRIVIA', blurb: 'Fake the truth. Spot the truth. The Ministry is watching.', playable: false },
 ];
 
+// PW1 — THE DAILIES: the DAILY-ONLY cartridges (docs/password.md). NOT in GAMES on purpose: GAMES is the lobby's list — it drives the city's
+// game signs, HOW TO PLAY, THE BOARD's catalog + the match reports, and a daily is none of that (never playable in a room, no sign). THE DAILY
+// MODULE opens these once a day, later; until then THE PASSWORD is reachable only through its preview + its E2E. `gameRow(id)` = either list.
+export const DAILIES = [
+  { id: 'password', name: 'THE PASSWORD', theme: 'password', tag: 'DAILY · TWO DOORS', blurb: 'Two five-letter words stand between you and the back room. Six guesses each. Once a day.', playable: false, daily: true },
+];
+export const gameRow = id => GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || null;
+
 /** WINDOWS: can a match of this game start? (the one switch: GAMES[].playable) */
 export const isPlayable = id => !!GAMES.find(g => g.id === id && g.playable);

@@ -61,6 +61,17 @@ one per brain category], deal?, trivia?: [three own-bank questions] }` (`daily.p
 pass) seeds it, unlocks it, feeds the streak, owns the daily results + percentiles and switches all three dailies on together; a game never
 builds its own daily screen, rankings or streak hooks. `checkCartridge` fails a daily that switches itself on.
 
+**THE PASSWORD (PW1, Nov 7 — docs/password.md): THE FIRST REAL DAILY, SERVER-JUDGED.** Its day set carries NO words (`{ v: 1, day }`): the
+answers live only in api/_data/pw/ and reach a phone as MARKS through a new `/api/daily` action — `guess { game, word }` — a door's word only once
+that door closes; `start` hands a judged cartridge (`api/_lib/pw.js`: `judged: true`) the run so far instead of a seed, and `finish` scores from THE
+SERVER's record, never the phone's claim. Its plug-in: `daily = { on: false, create, resumeKey, result, replay, problems }` — `create()` builds an
+empty run shell the view fills from the server. The server registers it only under `DAILY_TEST=1` until THE SWITCH-OVER (the repo private first).
+**A DAILY-ONLY cartridge is NOT a GAMES row:** `config.js#DAILIES` (`gameRow(id)` reads either list) — GAMES is the lobby's list (the city's signs,
+HOW TO PLAY, THE BOARD's catalog, the match reports), and a daily is none of that; it is still a full cartridge (tests/cartridge.test.mjs
+`DAILY_ONLY`, the harbor `cartridge` group) with its tube mark, its theme and a loader in the registry — no meta at boot (the console never offers it).
+The kit grew a hook for it: `kit/keyboard.js#setKeyStates` (per-key hit / near / miss marks on the shared tokens), `go` as the label (ENTER), the
+delete key a DRAWN icon for every game.
+
 **OVERCLOCK's DAILY RESERVE (OC6 + OC7 — for THE DAILY MODULE).** ~20% of every built pool is SERVER-ONLY, so a daily's answers can't be
 looked up in the site's files:
 - **Where:** `api/_data/oc-reserve/` — EIGHT files, the SAME shapes as the party files in `data/oc/` (docs/content.md "THE POOL BUILD"):

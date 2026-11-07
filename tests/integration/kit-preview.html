@@ -42,6 +42,11 @@
   if (want('keyboard')) {
     const kb = createKeyboard({ go: 'GO' });
     root.append(h('h2', 'THE LETTER KEYBOARD'), kb.el);
+    // PW1 — the keys' marks (setKeyStates) + a game's own GO label (ENTER): THE PASSWORD's keyboard
+    const kb2 = createKeyboard({ go: 'ENTER', maxLen: 5 });
+    kb2.setKeyStates({ C: 'hit', R: 'hit', A: 'near', N: 'near', E: 'miss', T: 'miss', S: 'miss', L: 'miss' });
+    root.append(h('h2', 'THE LETTER KEYBOARD — WITH MARKS (PW1)'), kb2.el);
+    window.__kb2 = kb2;
   }
   if (want('slam')) {
     const s = createSlam({ now, startAt: now(), endsAt: now() + 7000, kicker: 'CHALLENGE 03 / 06', name: 'TRUE OR FALSE', rules: ['Rapid-fire statements: math and facts.', 'True or false? Wrong answers cost points.'] });
