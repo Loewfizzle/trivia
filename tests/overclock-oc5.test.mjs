@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  LUCK, HORSES, ODDS, PAY_UNIT, payout, chanceOf, DL_EV, DL_MAX, LONG_SHOT, DL_PICK_MS, DL_RACE_MS, DL_FINISH_MS, DL_MS,
+  LUCK, HORSES, ODDS, PAY_UNIT, payout, chanceOf, DL_EV, DL_MAX, LONG_SHOT, DL_PICK_MS, DL_RACE_MS, DL_FINISH_MS, DL_MS, DL_LOCK_GRACE_MS, DL_LOCK_MS,
   dlField, pickOf, pickBoard, lockPicks, dlDraw, dlLock, dlResults, dlOf, dlVerify, dlTickets, dlStage,
   raceScript, posAt, leaderAt, leadChanges, RACE_SAMPLES, SAMPLE_MS, PHOTO_GAP,
 } from '../js/games/overclock/luck.js';
@@ -191,14 +191,15 @@ test('THE LOCK: the director locks + draws ONCE when the odds board closes; a re
   now = game.phaseEndsAt;
   const open = nextStep(game, { now, boards: {}, online: on, fallback: () => null });
   assert.equal(open.phase, 'play');
-  assert.equal(open.phaseEndsAt - open.playStartAt, DL_MS, 'the race\'s slot: 27 s');
+  assert.equal(open.phaseEndsAt - open.playStartAt, DL_MS, 'the race\'s slot: 27.7 s (OC8: + the lock grace)');
   assert.ok(open.$room[`meta/used/overclock/${typeKey(LUCK)}`], 'the night remembers it was played');
   applyPatch(game, open);
   const boards = { a: pickBoard(0), b: pickBoard(5), c: pickBoard(5) };     // d never picks
   // the odds board is open: nothing happens, even with everyone "done" — it can't end early
-  for (const t of [0, 3000, DL_PICK_MS - 1]) assert.equal(nextStep(game, { now: game.playStartAt + t, boards: { ...boards, d: { p: 1, ok: 1, n: 1, done: true } }, online: on, fallback: () => null }), null);
+  // (OC8 — A3: the phones close at DL_PICK_MS, the HOST locks only after THE LOCK GRACE)
+  for (const t of [0, 3000, DL_PICK_MS - 1, DL_PICK_MS, DL_LOCK_MS - 1]) assert.equal(nextStep(game, { now: game.playStartAt + t, boards: { ...boards, d: { p: 1, ok: 1, n: 1, done: true } }, online: on, fallback: () => null }), null);
   // the lock: the picks + the lock's ms + the draw, in ONE patch, still 'play'
-  const at = game.playStartAt + DL_PICK_MS + 137;
+  const at = game.playStartAt + DL_LOCK_MS + 137;
   const lock = nextStep(game, { now: at, boards, online: on, fallback: () => null });
   assert.deepEqual(Object.keys(lock), [`dl/${game.ci}`]);
   const dl = lock[`dl/${game.ci}`];
@@ -218,18 +219,43 @@ test('THE LOCK: the director locks + draws ONCE when the odds board closes; a re
   assert.deepEqual(end[`results/${game.ci}`], want);
   assert.equal(end[`results/${game.ci}`].d.pts, 0);
   // still inside CHALLENGE_MS
-  assert.ok(DL_PICK_MS + DL_RACE_MS + DL_FINISH_MS <= CHALLENGE_MS && dl.lk + DL_RACE_MS + DL_FINISH_MS - game.playStartAt < CHALLENGE_MS);
+  assert.ok(DL_LOCK_MS + DL_RACE_MS + DL_FINISH_MS <= CHALLENGE_MS && dl.lk + DL_RACE_MS + DL_FINISH_MS - game.playStartAt < CHALLENGE_MS);
 });
 
-test('THE TIMES: odds board 7 s → race 16 s → finish 4 s = 27 s, inside the 30-s CHALLENGE_MS; the after-screen is the shared 8 s', () => {
-  assert.equal(DL_PICK_MS, 7000); assert.equal(DL_RACE_MS, 16000); assert.equal(DL_FINISH_MS, 4000); assert.equal(DL_MS, 27000);
+// OC8 — A3 (THE FABLE REVIEW): THE LOCK GRACE — a last-moment pick in flight lands; a pick after the lock never counts
+test('THE LOCK GRACE: a tap at 6.9 s from a phone with 300 ms of latency gets its ticket; a pick after the lock does not', () => {
+  assert.equal(DL_LOCK_GRACE_MS, 700);
+  assert.equal(DL_LOCK_MS, DL_PICK_MS + DL_LOCK_GRACE_MS);
+  const game = createGame({ matchId: 'grace', settings: { mode: 'quick' }, participants: { a: true, b: true }, now: 0, seed: 'grace', order: ['math', LUCK, 'memory', 'oddone', 'stroop', 'closest'] });
+  Object.assign(game, { ci: 1, ck: '1', phase: 'play', phaseStartAt: 10_000, playStartAt: 10_000, phaseEndsAt: 10_000 + DL_MS });
+  const on = { a: true, b: true };
+  // the phone: the cards close at 7.0 s on its own clock (dlStage 'off' — choose() refuses)
+  assert.equal(dlStage(game, 1, 10_000 + 6_900).stage, 'pick', '6.9 s: still open on the phone');
+  assert.equal(dlStage(game, 1, 10_000 + DL_PICK_MS).stage, 'off', '7.0 s: the phone closes the cards');
+  // a's tap at 6.9 s reaches the room 300 ms later (7.2 s): the host's ticks at 7.0 / 7.25 / 7.5 s do NOT lock yet
+  for (const t of [7_000, 7_250, 7_500]) assert.equal(nextStep(game, { now: 10_000 + t, boards: { a: pickBoard(2) }, online: on, fallback: () => null }), null, `${t} ms: inside the grace`);
+  // the host's first tick past the grace (a 250-ms tick → 7.75 s): a's ticket is in the lock
+  const lock = nextStep(game, { now: 10_000 + 7_750, boards: { a: pickBoard(2) }, online: on, fallback: () => null })[`dl/1`];
+  assert.deepEqual(lock.pk, { a: 2 }, 'the 6.9-s pick counts');
+  applyPatch(game, { 'dl/1': lock });
+  // b's pick written after the lock (8 s) never joins
+  assert.deepEqual(dlOf(game, 1).pk, { a: 2 });
+  const end = nextStep(game, { now: lock.lk + DL_RACE_MS + DL_FINISH_MS, boards: { a: pickBoard(2), b: pickBoard(lock.w) }, online: on, fallback: () => null });
+  assert.equal(end[`results/1`].b.pts, 0, 'a pick after the lock = no ticket');
+  // the slot still ends inside the 30-s challenge
+  assert.ok(lock.lk + DL_RACE_MS + DL_FINISH_MS - game.playStartAt <= DL_MS + 250 && DL_MS < CHALLENGE_MS);
+});
+
+test('THE TIMES: odds board 7 s (+ the 0.7-s lock grace) → race 16 s → finish 4 s = 27.7 s, inside the 30-s CHALLENGE_MS; the after-screen is the shared 8 s', () => {
+  assert.equal(DL_PICK_MS, 7000); assert.equal(DL_RACE_MS, 16000); assert.equal(DL_FINISH_MS, 4000); assert.equal(DL_MS, 27700);
   assert.ok(DL_MS < CHALLENGE_MS);
   assert.equal(standingsMs(LUCK), STANDINGS_MS);
   // the stage a refresh lands on: pick → (the off: waiting for the host's lock) → race → finish → done
   const game = { seed: 'st', playStartAt: 1000, dl: {} };
   assert.equal(dlStage(game, 0, 1000 + 3000).stage, 'pick');
   assert.equal(dlStage(game, 0, 1000 + DL_PICK_MS + 50).stage, 'off');
-  game.dl[0] = { pk: {}, lk: 1000 + DL_PICK_MS + 120, w: 2 };
+  assert.equal(dlStage(game, 0, 1000 + DL_LOCK_MS + 50).stage, 'off', 'the grace: still waiting for the host');
+  game.dl[0] = { pk: {}, lk: 1000 + DL_LOCK_MS + 120, w: 2 };
   assert.deepEqual(dlStage(game, 0, game.dl[0].lk + 5000), { stage: 'race', ms: 5000 });
   assert.deepEqual(dlStage(game, 0, game.dl[0].lk + DL_RACE_MS + 900), { stage: 'finish', ms: 900 });
   assert.equal(dlStage(game, 0, game.dl[0].lk + DL_RACE_MS + DL_FINISH_MS + 1).stage, 'done');
@@ -365,7 +391,7 @@ function playMatch({ n, mode = 'quick', seed, pick, perfect = () => true, hostSw
     const type = game.order[ci];
     if (type === LUCK) {
       const boards = Object.fromEntries(uidsOf(n).map((u, i) => [u, pick(u, i)]).filter(([, h]) => h >= 0).map(([u, h]) => [u, pickBoard(h)]));
-      applyPatch(game, nextStep(game, { now: game.playStartAt + DL_PICK_MS + 40, boards, online: on, fallback: () => null }));
+      applyPatch(game, nextStep(game, { now: game.playStartAt + DL_LOCK_MS + 40, boards, online: on, fallback: () => null }));
       const dl = dlOf(game, ci);
       assert.ok(dl);
       // the race is running: a refresh / a new host from a COPY of the state lands on the same race, never re-draws

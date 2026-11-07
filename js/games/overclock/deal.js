@@ -16,6 +16,9 @@
 import { rngFrom, shuffle } from '../../core/rng.js';
 import { TF_FACT_SLOTS, unscrambleLength, hlPick, hlPairId, tlDeal } from './challenges.js';
 import { oddPool, oddKey } from './odd.js';
+import { buildOrder, MODES } from './logic.js';
+// (the pool challenges — banks.js#BANK_TYPES, without its fetch)
+const POOL_TYPES = ['trivia', 'truefalse', 'timeline', 'closest', 'missinglink', 'spellcheck', 'sortit', 'higherlower'];
 
 /** FNV-1a (32-bit) → base 36: a short, stable, database-safe key for an item's text */
 export function hash36(text) {
@@ -168,4 +171,18 @@ export function keysAt(game, ci) {
   if (!type) return [];
   const dk = game.dk && game.dk[ci];
   return [typeKey(type), ...(typeof dk === 'string' && dk ? dk.split(' ') : [])];
+}
+
+// ============================================================================================================== THE ORDER, PREDICTABLE
+// OC8 — A6 (index.js#start + #firstPool): the match's ORDER from a seed made of the match id (meta/go carries it to every phone at the tap)
+export const orderSeed = matchId => `${matchId}:order`;
+export function orderFor({ matchId, mode, used, n }) {
+  const total = MODES[mode] || MODES.quick;
+  // (OC5 — DUMB LUCK joins the deal with 2+ players only: never in SOLO)
+  let order = buildOrder(orderSeed(matchId), total, playedTypes(((used || {}).overclock || {})), { luck: n >= 2 });
+  let first = null;
+  try { first = /[?&]emu\b/.test(globalThis.location ? globalThis.location.search : '') ? globalThis.__ocFirst : null; } catch { /* */ }
+  if (first && first !== 'dumbluck' && order.includes(first)) order = [first, ...order.filter(t => t !== first)];
+  else if (first && first !== 'dumbluck' && POOL_TYPES.includes(first)) order = [first, ...order.slice(1)];
+  return order;
 }

@@ -19,7 +19,12 @@ export const LUCK = 'dumbluck';
 export const DL_PICK_MS = 7_000;      // THE ODDS BOARD: pick (changeable) until it locks
 export const DL_RACE_MS = 16_000;     // THE RACE: from the lock (game/dl/{ci}/lk) to the winner's nose on the line
 export const DL_FINISH_MS = 4_000;    // THE FINISH: the photo-finish freeze, the winner's color, LONG SHOT!, the payouts
-export const DL_MS = DL_PICK_MS + DL_RACE_MS + DL_FINISH_MS;
+// THE LOCK GRACE (OC8 — A3, THE FABLE REVIEW: a tap at 6.9 s on a phone with 300 ms of latency reached the room after the host's lock → NO
+// TICKET while the player watched their card fill): the PHONE closes the cards at DL_PICK_MS; the HOST locks DL_LOCK_GRACE_MS later (like
+// PLAY_GRACE_MS) — a last-moment pick in flight still lands. The race runs from the STORED lock (dlStage), so nothing else moves.
+export const DL_LOCK_GRACE_MS = 700;
+export const DL_LOCK_MS = DL_PICK_MS + DL_LOCK_GRACE_MS;   // the host's lock, from the challenge's start
+export const DL_MS = DL_LOCK_MS + DL_RACE_MS + DL_FINISH_MS;   // 27.7 s — inside the 30-s challenge
 
 // THE FIELD — lane order = this order (lane 1 PINK … lane 6 ICE WHITE). The colors are the race's own (never the OVERDRIVE orange).
 export const HORSES = Object.freeze([

@@ -370,4 +370,17 @@ test('OVERCLOCK — THE QUICK SOLO BOARD: a real solo QUICK run counts; a score 
   const std = solo('standard', 'ss-1');
   ex = extractMatch(std);
   assert.ok(ex.rows.ua.rec['overclock-std-solo'] > 0 && ex.rows.ua.rec['overclock-quick-solo'] === undefined, 'STANDARD solo → its own board, as before');
+  // OC8 — B1 (THE FABLE REVIEW: an AFK solo run wrote a 0 + "NEW PERSONAL BEST"): a run with nothing answered is never a record — QUICK or
+  // STANDARD — and never a cheat (nothing refused); the match itself still reaches the server (the console's streak / XP rule is its own)
+  for (const mode of ['quick', 'standard']) {
+    const afk = solo(mode, `afk-${mode}`, () => 0);
+    assert.equal(Object.values(afk.results).reduce((s, r) => s + r.ua.pts, 0), 0, `${mode}: the AFK run scored 0`);
+    const e0 = extractMatch(afk);
+    assert.equal(e0.rows.ua.rec['overclock-quick-solo'], undefined, `${mode}: no 0 on the QUICK · SOLO board`);
+    assert.equal(e0.rows.ua.rec['overclock-std-solo'], undefined, `${mode}: no 0 on the STANDARD solo board`);
+    assert.deepEqual(e0.rejected, [], `${mode}: an AFK run is not a cheat`);
+  }
+  // one right answer is enough to count (the smallest real run)
+  const one = solo('quick', 'afk-one', ci => (ci === 0 ? 1 : 0));
+  assert.ok(extractMatch(one).rows.ua.rec['overclock-quick-solo'] > 0, 'one answered part → on the board');
 });

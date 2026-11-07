@@ -12,7 +12,7 @@ import {
 } from '../js/games/overclock/logic.js';
 import { COMPASS_STEP_MS, COMPASS_GAP_MS, COMPASS_START_MS, COMPASS_FLASH_MS, REFLEX_TIMEOUT_MS, sortWindowMs } from '../js/games/overclock/challenges.js';
 import { createGame, nextStep } from '../js/games/overclock/director.js';
-import { DL_PICK_MS, DL_RACE_MS, DL_FINISH_MS } from '../js/games/overclock/luck.js';
+import { DL_LOCK_MS, DL_RACE_MS, DL_FINISH_MS } from '../js/games/overclock/luck.js';
 import { dealMatch, keysAt, playedTypes, typeKey, pickFresh, tlKey, DEALT } from '../js/games/overclock/deal.js';
 import { usedOf } from '../js/games/kit/night.js';
 import { rngFrom } from '../js/core/rng.js';
@@ -53,7 +53,7 @@ function startMatch({ matchId, mode = 'quick', participants, now = 0, seed, used
 function luckPlay(game, ctx) {
   if (game.phase !== 'play' || game.order[game.ci] !== 'dumbluck') return nextStep(game, ctx);
   if (!(game.dl && game.dl[game.ci])) {
-    const lock = nextStep(game, { ...ctx, now: Math.max(ctx.now, game.playStartAt + DL_PICK_MS) });
+    const lock = nextStep(game, { ...ctx, now: Math.max(ctx.now, game.playStartAt + DL_LOCK_MS) });   // (OC8: the host's lock = after the grace)
     assert.ok(lock && lock[`dl/${game.ci}`] && !lock.phase, 'the lock = the draw, still playing');
     applyPatch(game, lock);
   }

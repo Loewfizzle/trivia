@@ -9,6 +9,9 @@
 //   SOLO: no podium — the score is the hero; NEW PERSONAL BEST only when the SERVER's outcome says one was set (/api — profile/queue.js),
 //   otherwise YOUR SCORE. With /api down: just the score.
 //   The winner's sound (17-winner-fanfare — the owner's main one) as the sign powers up; everything works silently.
+//   NOBODY SCORED (OC8 — A2, THE FABLE REVIEW: a 0–0 match was crowned CO-WINNERS with the fanfare): the top score 0 → no neon sign, no
+//   WINNER stamp, no fanfare, no podium, no co-winners — a graphite NOBODY SCORED stamp + "0 POINTS". A solo run with 0 → no personal-best line
+//   (the server never records it either — core/match-report.js#overclockExtra).
 // 60 fps: transform + opacity only; every glow is a static layer. Reduced motion / a late rejoin: the sign lit at rest, no rays turning.
 import { h, reducedMotion } from '../../ui/dom.js';
 import { avatar, leaderboard, countUp, fmtNum } from '../../ui/components.js';
@@ -71,7 +74,9 @@ export function finalScene(el, game, state) {
   const still = late || reducedMotion();
   el.classList.add('oc-vic');
   if (still) el.classList.add('is-still');
-  const chips = awardChips(game);
+  if (!rows.length || !(rows[0].score > 0)) el.classList.add('is-zero');   // (A2: no rays when nobody scored)
+  const zero = !rows.length || !(rows[0].score > 0);   // (A2: nobody scored — every total 0)
+  const chips = zero ? [] : awardChips(game);
   const top = rows.filter(r => r.rank === 1);
   const winners = top.slice(0, 2);
   const score = h('b.oc-vic-score-n', still ? fmtNum(rows[0] ? rows[0].score : 0) : '0');
@@ -86,9 +91,10 @@ export function finalScene(el, game, state) {
     const stamp = h('div.oc-vic-stamp.is-solo', h('span.oc-vic-stamp-glow', { 'aria-hidden': 'true' }), h('b', 'YOUR SCORE'));
     const best = h('div.oc-vic-best');
     kids.push(stamp, h('div.oc-vic-solo', h('b.oc-vic-solo-n', still ? fmtNum(mine.score) : '0'), h('span.oc-vic-solo-k', 'POINTS')), best);
-    if (!still) setTimeout(() => { const n = el.querySelector('.oc-vic-solo-n'); if (n && n.isConnected) countUp(n, 0, mine.score, 1400); }, 700);
+    if (!still && !zero) setTimeout(() => { const n = el.querySelector('.oc-vic-solo-n'); if (n && n.isConnected) countUp(n, 0, mine.score, 1400); }, 700);
+    // (A2: a 0 run never shows a personal-best line — the server keeps no board row for it)
     // NEW PERSONAL BEST — only from the server's own answer (OC5: QUICK + STANDARD solo runs each have a board; /api down = just the score)
-    import('../../profile/queue.js').then(Q => {
+    if (!zero) import('../../profile/queue.js').then(Q => {
       const k = state && state.code ? Q.matchKey(state.code, game.matchId) : null;
       // (OC5: QUICK runs have their own board now — overclock-quick-solo; a run that didn't beat it shows YOUR BEST from the outcome's bests)
       const show = o => {
@@ -108,6 +114,11 @@ export function finalScene(el, game, state) {
       const off = Q.onOutcome((kk, o) => { if (kk === k) show(o); });
       const iv = setInterval(() => { if (!el.isConnected) { clearInterval(iv); off(); } }, 3000);
     }).catch(() => {});
+  } else if (zero) {
+    // NOBODY SCORED (A2): the graphite stamp + the zero — no sign, no fanfare, no podium (nobody earned a step)
+    kids.push(
+      h('div.oc-vic-stamp.is-none', h('span.oc-vic-stamp-glow', { 'aria-hidden': 'true' }), h('b', 'NOBODY SCORED')),
+      h('div.oc-vic-solo.is-none', h('b.oc-vic-solo-n', '0'), h('span.oc-vic-solo-k', 'POINTS')));
   } else {
     const names = winners.map(r => ({ text: p(r.uid).name, color: colorHex(p(r.uid).color) }));
     kids.push(

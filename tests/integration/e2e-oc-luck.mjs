@@ -3,6 +3,8 @@
 // one changing her pick, one never picking); THE LOCK + THE DRAW (the stored winner = the draw of the stored picks + the lock); THE RACE on every
 // phone; a REFRESH mid-race; THE HOST killed mid-race (a new host, nothing re-drawn); THE FINISH; the scoring; THE ANSWER; WINNING TICKETS /
 // THE HOUSE WINS; the shared round-win rule; the standings — the screens at 390 × 844 + 412 × 915.
+// OC8 — A3 THE LOCK GRACE: FINN picks at 6.9 s on the server clock from a phone whose every WebSocket send is held 300 ms (the transport
+// itself delayed, order kept) — the pick reaches the room after 7.0 s and still gets its ticket.
 //   node tests/integration/e2e-oc-luck.mjs "<browser path>" ./shots-oc-luck
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -154,10 +156,24 @@ try {
   const LONG = lane(12), FAV = lane(2), MID = lane(4), OTHER = lane(5);
   // BOB the long shot · CHARLIE + DANA + EVE + ALICE on the favourite (EVE changes her mind first) · FINN 5-1 · GRACE 4-1 · HAL never picks
   const want = { 0: FAV, 1: LONG, 2: FAV, 3: FAV, 4: FAV, 5: OTHER, 6: MID };
+  // (OC8 — A3: FINN is the LAST-MOMENT pick — 6.9 s, through a 300-ms-late transport; started now, it runs beside the shots below)
+  const LATE = N > 5 ? 5 : -1;
+  const lateTap = LATE < 0 ? Promise.resolve(null) : pages[LATE].evaluate(async ([lane, at]) => {
+    const { serverNow } = await import('/js/firebase.js');
+    const send = WebSocket.prototype.send;
+    WebSocket.prototype.send = function (...a) { setTimeout(() => send.apply(this, a), 300); };   // every frame out 300 ms late, in order
+    const start = window.__arcade.state.game.playStartAt;
+    while (serverNow() < start + at) await new Promise(r => setTimeout(r, 4));
+    const stage = document.querySelector('.oc-dl').dataset.stage;
+    document.querySelectorAll('.oc-dl-card')[lane].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch' }));
+    const tapped = serverNow() - start;
+    setTimeout(() => { WebSocket.prototype.send = send; }, 1500);
+    return { stage, tapped };
+  }, [OTHER, 6900]);
   await press(pages[4], '.oc-dl-card', MID);
   await sleep(500);
-  for (const [i, l] of Object.entries(want)) if (Number(i) < N) await press(pages[i], '.oc-dl-card', l);
-  await waitFor(pages[1], (s, a) => { const b = s.live.boards || {}; return a.every(([u, l]) => b[u] && b[u].p === l + 1 && b[u].n === 6); }, 'the picks reached the room', 10000, Object.entries(want).filter(([i]) => Number(i) < N).map(([i, l]) => [uids[i], l]));
+  for (const [i, l] of Object.entries(want)) if (Number(i) < N && Number(i) !== LATE) await press(pages[i], '.oc-dl-card', l);
+  await waitFor(pages[1], (s, a) => { const b = s.live.boards || {}; return a.every(([u, l]) => b[u] && b[u].p === l + 1 && b[u].n === 6); }, 'the picks reached the room', 10000, Object.entries(want).filter(([i]) => Number(i) < N && Number(i) !== LATE).map(([i, l]) => [uids[i], l]));
   await sleep(400);
   const board = await pages[1].evaluate(l => ({ mine: document.querySelectorAll('.oc-dl-card.is-mine').length, mineLane: [...document.querySelectorAll('.oc-dl-card')].findIndex(c => c.classList.contains('is-mine')), tags: [...document.querySelectorAll('.oc-dl-card')].map(c => c.querySelector('.oc-dl-tags').textContent) }), LONG);
   ok(board.mine === 1 && board.mineLane === LONG, `THE ODDS BOARD: BOB's card fills (the long shot, lane ${LONG + 1})`);
@@ -165,13 +181,19 @@ try {
   await shotBoth(pages[1], 'l-02-odds-board');
   await shotBoth(pages[2], 'l-03-odds-board-crowd');
 
-  // ---------------- THE LOCK + THE DRAW (the host, once — after the gate)
+  // ---------------- THE LOCK + THE DRAW (the host, once — after the gate + THE LOCK GRACE)
+  const late = await lateTap;
+  if (late) ok(late.stage === 'pick' && late.tapped >= 6850 && late.tapped < 7000, `THE LOCK GRACE: FINN tapped at ${late.tapped} ms, the cards still open on the phone`);
   await waitFor(pages[1], s => !!(s.game.dl && s.game.dl[0] && Number.isInteger(s.game.dl[0].w)), 'the lock', 15000);
   const dl = await evalIn(pages[1], s => s.game.dl[0]);
+  if (late) {
+    const arrived = await evalIn(pages[1], (s, u) => { const b = s.live.boards && s.live.boards[u]; return b ? b.at : null; }, uids[LATE]);
+    ok(dl.pk[uids[LATE]] === OTHER, `THE LOCK GRACE: the 6.9-s pick through a 300-ms-late phone has its ticket (written at ${arrived && arrived - (await evalIn(pages[1], s => s.game.playStartAt))} ms, locked at ${dl.lk - (await evalIn(pages[1], s => s.game.playStartAt))} ms)`);
+  }
   const expectPk = Object.fromEntries(Object.entries(want).filter(([i]) => Number(i) < N).map(([i, l]) => [uids[i], l]));
   ok(JSON.stringify(Object.fromEntries(Object.entries(dl.pk).sort())) === JSON.stringify(Object.fromEntries(Object.entries(expectPk).sort())), `THE LOCK: every pick as tapped last (EVE changed hers), HAL no ticket (${JSON.stringify(dl.pk)})`);
   const playStartAt = await evalIn(pages[1], s => s.game.playStartAt);
-  ok(dl.lk - playStartAt >= 7000 && dl.lk - playStartAt < 9000, `THE LOCK: after the 7-s odds board (${dl.lk - playStartAt} ms)`);
+  ok(dl.lk - playStartAt >= 7700 && dl.lk - playStartAt < 9000, `THE LOCK: after the 7-s odds board + the 0.7-s grace (${dl.lk - playStartAt} ms)`);
   const draw = await pages[1].evaluate(a => import('/js/games/overclock/luck.js').then(L => L.dlDraw(window.__arcade.state.game.seed, 0, L.dlField(window.__arcade.state.game.seed, 0), a.pk, a.lk)), dl);
   ok(draw === dl.w, `THE DRAW: the stored winner = the draw of the stored picks + the lock (${field[dl.w].name} ${field[dl.w].n}-1)`);
   for (const i of alive()) await pages[i].waitForSelector('.oc-dl[data-stage="race"]', { timeout: 10000 });

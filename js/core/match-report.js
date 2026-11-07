@@ -140,7 +140,9 @@ function overclockExtra(game, uid, out, row, ctx, win) {
     }
     if (!bad && total > ocMatchMax(ord)) bad = true;
     if (bad) out.rejected.push({ uid, board: 'overclock-quick-solo', v: row.score });
-    else out.rec['overclock-quick'] = row.score;
+    // (OC8 — B1, THE FABLE REVIEW: a phone left on the table wrote a 0 to the board + "NEW PERSONAL BEST") a run that scored nothing — no
+    // answered part, a total of 0 — is never a record (not a cheat either: just nothing to keep)
+    else if (total > 0 && Object.values(res).some(rr => num(rr && rr[uid] && rr[uid].ok) > 0)) out.rec['overclock-quick'] = row.score;
   }
   if (mode !== 'standard' || num(game.total) !== OC_MODES.standard) return;
   let bad = false;
@@ -150,7 +152,7 @@ function overclockExtra(game, uid, out, row, ctx, win) {
   }
   if (Object.keys(game.results || {}).length !== OC_MODES.standard) return; // not every challenge played
   if (bad) out.rejected.push({ uid, board: 'overclock-std', v: row.score });
-  else out.rec['overclock-std'] = row.score;
+  else if (uids.length > 1 || num(row.score) > 0) out.rec['overclock-std'] = row.score;   // (B1: a SOLO run of 0 is never a record)
 }
 
 function bluffExtra(game, uid, out) {

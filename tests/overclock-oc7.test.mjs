@@ -141,7 +141,11 @@ test('NO LIVE TRIVIA SERVICE IN OVERCLOCK: nothing in js/games/overclock/ import
     assert.doesNotMatch(src, /the-trivia-api|opentdb\.com|fetchTriviaApi|fetchOtdb|initialBank|topUp\(|fallbackPatch|decodeQuestion/, `${f} touches the live trivia service`);
   }
   const idx = readFileSync('js/games/overclock/index.js', 'utf8');
-  assert.match(idx, /export function prepare\(\) \{\}/);
+  // (OC8 — A6: prepare() is THE LATE DEAL now — a pool that missed start() dealt from OVERCLOCK's OWN banks (banks.js), never a live service)
+  assert.match(idx, /export function prepare\(game, \{ code \} = \{\}\) \{/);
+  const prep = idx.slice(idx.indexOf('export function prepare('), idx.indexOf('export const sealed'));
+  assert.match(prep, /bankFor\(t\)/);
+  assert.doesNotMatch(prep, /trivia\/|topUp|fetchTrivia|appendPatch/);
   assert.ok(BANK_TYPES.includes('trivia'));
   // the director never waits for questions: a lightning round opens on time
   const g = createGame({ matchId: 'm', settings: { mode: 'quick' }, participants: { a: true }, now: 0, seed: 's', order: ['trivia', 'math', 'memory', 'oddone', 'count', 'stroop'] });

@@ -469,8 +469,10 @@ export default function uiDumbLuck(spec, api) {
       const n = String(Math.ceil(left / 1000));
       if (gateN.textContent !== n) { gateN.textContent = n; gateN.parentElement.classList.toggle('is-hot', left <= 3000); }
       gateBar.style.transform = `scaleX(${(left / DL_PICK_MS).toFixed(4)})`;
-    } else draw();
-    if (st.stage !== 'done') raf = requestAnimationFrame(tick);
+    } else if (st.stage === 'off' || st.stage === 'race') draw();
+    // (OC8 — A7, THE FABLE REVIEW: THE FINISH ran at ~45 fps at 4× CPU — the race kept repainting the whole 3×-dpr lane canvas under the blast)
+    // once the race is over the frozen frame was drawn ONCE (enter → finish); the loop STOPS — the blast, the rays + the card are the only motion
+    if (st.stage === 'pick' || st.stage === 'off' || st.stage === 'race') raf = requestAnimationFrame(tick);
   }
   function enter(next, st) {
     const was = stage;

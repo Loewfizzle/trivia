@@ -5,7 +5,7 @@ import { partsFor } from './challenges.js';
 import { keysAt } from './deal.js';
 import { markUsed } from '../kit/night.js';
 import { readyState } from '../kit/ready.js';
-import { LUCK, DL_MS, DL_PICK_MS, DL_RACE_MS, DL_FINISH_MS, dlLock, dlOf } from './luck.js';
+import { LUCK, DL_MS, DL_LOCK_MS, DL_RACE_MS, DL_FINISH_MS, dlLock, dlOf } from './luck.js';
 
 /**
  * order: the match's challenges (default: buildOrder from the seed + `played`, the types this room played tonight);
@@ -82,7 +82,8 @@ export function nextStep(game, ctx) {
         // DUMB LUCK: the odds board closes → THE LOCK + THE DRAW (once — a new host reads the stored race, never re-draws); the race + the
         // finish play out from the lock; then the shared flow (the results below)
         const dl = dlOf(game, game.ci);
-        if (!dl) return now >= (game.playStartAt || 0) + DL_PICK_MS ? { [`dl/${game.ci}`]: dlLock(game, game.ci, ctx.boards || {}, now) } : null;
+        // (OC8 — A3: the phones close the cards at DL_PICK_MS; the host locks after THE LOCK GRACE, so a last-moment pick in flight counts)
+        if (!dl) return now >= (game.playStartAt || 0) + DL_LOCK_MS ? { [`dl/${game.ci}`]: dlLock(game, game.ci, ctx.boards || {}, now) } : null;
         if (now < dl.lk + DL_RACE_MS + DL_FINISH_MS) return null;
       } else {
         const active = uids.filter(u => ctx.online[u]);

@@ -64,6 +64,8 @@ export const levelOf = (ci, total) => (total <= 1 ? 0 : ci / (total - 1));
 //  - THE ROOM's NIGHT MEMORY (OC1 — deal.js): `played` = the types this room already played tonight — a shorter match
 //    FAVOURS the others (FRESH_TYPE_WEIGHT to 1), so back-to-back matches feel different; once every type has had its
 //    turn, all count the same again. No `played` = exactly the old draw.
+//    OC8 (A5): while at least `total` fresh types remain, a short match draws from the FRESH ones only (stale weight 0) — the rematch never
+//    repeats a type the room just played, its ×2 final included; fewer fresh left → the weight, as before.
 //  - DUMB LUCK (OC5 — luck.js): only with `luck` (2+ players — never SOLO, never the daily): at most ONCE (a long match's repeats are
 //    skill challenges only) and NEVER the last challenge (the ×2 final is a skill one). Without `luck` the draw is exactly OC4's.
 export const FRESH_TYPE_WEIGHT = 12;
@@ -80,6 +82,10 @@ export function buildOrder(seed, total, played = [], { luck = true } = {}) {
   const stale = TYPES.every(t => was.has(t)) ? new Set() : was;
   const fresh = t => (stale.has(t) ? 1 : FRESH_TYPE_WEIGHT);
   const freshW = stale.size > 0;
+  // (OC8 — A5, THE FABLE REVIEW: the first rematch dealt the type the room had just played — as its ×2 final) while at least a whole match's
+  // worth of FRESH types remain, a short match deals ONLY fresh ones (a stale type's weight is 0); fewer left → the weight above, as before
+  const freshOnly = !long && freshW && TYPES.filter(t => !stale.has(t)).length >= total;
+  const allowed = t => !freshOnly || !stale.has(t);
   let best = null;
   for (let attempt = 0; attempt < 400; attempt++) {
     const left = shuffle(rand, pool);
@@ -90,8 +96,8 @@ export function buildOrder(seed, total, played = [], { luck = true } = {}) {
       const prev = out[out.length - 1];
       // (DUMB LUCK never takes the last slot)
       const free = i => (lastAt[left[i]] == null || out.length - lastAt[left[i]] >= minGap) && !(left[i] === LUCK && out.length === total - 1);
-      let cands = left.map((_, i) => i).filter(i => free(i) && CATEGORY[left[i]] !== CATEGORY[prev]);
-      if (!cands.length) { cands = left.map((_, i) => i).filter(free); clashes++; }
+      let cands = left.map((_, i) => i).filter(i => free(i) && allowed(left[i]) && CATEGORY[left[i]] !== CATEGORY[prev]);
+      if (!cands.length) { cands = left.map((_, i) => i).filter(i => free(i) && allowed(left[i])); clashes++; }
       if (!cands.length) break;
       // weights: a category with more challenges left goes sooner (so the rest can still be spread), and a type
       // that still has both copies to place goes early (so its two turns end up far apart)
