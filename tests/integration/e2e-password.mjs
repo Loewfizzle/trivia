@@ -43,7 +43,8 @@ const marksOf = (page, row) => page.$$eval(`.pw-row:nth-child(${row + 1}) .pw-ti
 const doorsOf = page => page.$$eval('.pw-dr', ds => ds.map(d => `${d.dataset.st}:${d.querySelector('.pw-dr-sub').textContent}`));
 const endOf = page => page.evaluate(() => ({
   on: !!document.querySelector('.pw-endscr.is-in'), playGone: !!document.querySelector('.pw-play[hidden]') && !document.querySelector('.pw-play:not([hidden]) .gk-keyboard'),
-  t: document.querySelector('.pw-end-t').textContent, n: document.querySelector('.pw-end-n').textContent.trim(), time: document.querySelector('.pw-end-time').textContent,
+  t: document.querySelector('.pw-end-t').textContent, n: (document.querySelector('.pw-end-n') || {}).textContent, time: (document.querySelector('.pw-end-time') || {}).textContent, line: (document.querySelector('.pw-end-line') || {}).textContent,
+  top: document.querySelector('.pw-end-t').getBoundingClientRect().top - document.querySelector('.pw-doors').getBoundingClientRect().bottom,
   grids: [...document.querySelectorAll('.pw-mini')].map(g => g.querySelectorAll('.pw-mini-row').length), letters: /[A-Z]/.test([...document.querySelectorAll('.pw-mini')].map(g => g.textContent).join('')),
   words: [...document.querySelectorAll('.pw-end-word')].map(b => b.textContent), share: !!document.querySelector('.btn.pw-share.btn-primary'),
   next: document.querySelector('.pw-end-next').textContent, rec: document.querySelector('.pw-end-rec').textContent, glyph: /[⌫✓✕]|\p{Extended_Pictographic}/u.test(document.querySelector('.pw-screen').innerText),
@@ -52,7 +53,7 @@ const endOf = page => page.evaluate(() => ({
 await H.run(async () => {
   await ref(`dly/password/${day}`).remove();   // a fresh day on the emulator
   const p = await openPhone('pw0', 'ALICE');
-  ok((await S(p)).guesses.join() === '0,0' && (await doorsOf(p)).join('|') === 'on:6 OF 6 LEFT|locked:LOCKED' && !(await p.$('.pw-line')), 'START: an empty board, THE FRONT DOOR lit (6 OF 6 LEFT), THE BACK ROOM a dim outline — no status line, no pills');
+  ok((await S(p)).guesses.join() === '0,0' && (await doorsOf(p)).join('|') === 'on:6 OF 6 LEFT|locked:' && !(await p.$('.pw-line')), 'START: an empty board, THE FRONT DOOR lit (6 OF 6 LEFT), THE BACK ROOM a dim outline with NO label — no status line, no pills');
   const names = await p.$$eval('.pw-dr-name', ns => ns.map(n => n.textContent));
   ok(names.join('|') === 'THE FRONT DOOR|THE BACK ROOM' && !/THE DOOR\b/.test(await p.$eval('.pw-screen', e => e.innerText)), 'THE RENAME: THE FRONT DOOR → THE BACK ROOM (never "THE DOOR")');
   const kbx = await p.evaluate(() => ({ back: !!document.querySelector('.gk-kb-key.is-back svg'), go: document.querySelector('.gk-kb-r3 .gk-go').textContent.trim(), glyph: /[⌫✓✕]/.test(document.querySelector('.pw-screen').innerText), pill: [...document.querySelectorAll('.pw-screen *')].some(e => parseFloat(getComputedStyle(e).borderRadius) >= 100) }));
@@ -117,16 +118,17 @@ await H.run(async () => {
   // ---- THE BACK ROOM cracked → the short reveal → THE END SCREEN, the server's score
   await typeWord(p, W2); await enter(p);
   await p.waitForFunction(() => document.querySelector('.pw-endscr.is-in'), { timeout: 12000 });
-  await p.waitForFunction(() => /RECORDED/.test(document.querySelector('.pw-end-rec').textContent), { timeout: 10000 });
+  await p.waitForFunction(() => window.__password.finished() === 'RECORDED', { timeout: 10000 });
   const end = await endOf(p);
   ok(end.on && end.playGone, 'THE END SCREEN: the board + the keyboard are GONE');
-  ok(end.t === 'YOU\'RE IN' && end.n === '4GUESSES' && /^\d+:\d\d$/.test(end.time) && end.grids.join() === '2,2' && !end.letters && end.words.join() === `${W1},${W2}`, `YOU'RE IN · 4 GUESSES · the time · two mini grids (no letters) · both words (${end.words.join(' · ')})`);
+  ok(end.t === 'WELCOME IN' && end.n.trim() === '4GUESSES' && /^\d+:\d\d$/.test(end.time) && end.grids.join() === '2,2' && !end.letters && end.words.join() === `${W1},${W2}`, `WELCOME IN · 4 GUESSES · the time · two mini grids (no letters) · both words (${end.words.join(' · ')})`);
+  ok(end.top > 8 && end.top < 60 && end.rec === '', `the result block sits just under the door row (${Math.round(end.top)} pt), no status text`);
   ok(end.share && /^NEXT PASSWORD IN \d+:\d\d:\d\d$/.test(end.next) && !end.glyph, `SHARE is the one pink tube; the countdown ticks (${end.next}); no glyph icons`);
-  ok(end.rec === 'RECORDED' && (await val(`dly/password/${day}/r/${pid}`)) === 4, 'the server scored it from ITS record: 4 (2 + 2 guesses)');
+  ok((await val(`dly/password/${day}/r/${pid}`)) === 4, 'the server scored it from ITS record: 4 (2 + 2 guesses)');
   ok((await doorsOf(p)).join('|') === 'open:2 GUESSES|open:2 GUESSES', 'both drawn doors open');
   await shotAll(p, 'pw-05-crack');
   await p.evaluate(() => { document.body.dataset.look = 'day'; }); await sleep(450);
-  ok(!!(await p.$('.pw-endscr.is-in')) && (await endOf(p)).n === '4GUESSES', 'a look flip ON the end screen: the screen stands');
+  ok(!!(await p.$('.pw-endscr.is-in')) && (await endOf(p)).n.trim() === '4GUESSES', 'a look flip ON the end screen: the screen stands');
   await shotAll(p, 'pw-05-crack-day', [[390, 844]]);
   await p.evaluate(() => { document.body.dataset.look = 'night'; });
   await H.cleanText(p, 'the result', '.pw-screen');
@@ -145,14 +147,15 @@ await H.run(async () => {
   for (let i = 0; i < 5; i++) { await typeWord(p2, MISS); await enter(p2); await settle(p2); }
   await typeWord(p2, MISS); await enter(p2);
   await p2.waitForFunction(() => document.querySelector('.pw-dr[data-door="0"]').dataset.st === 'held' && !document.querySelector('.pw-reveal').hidden, { timeout: 8000 });
-  ok(/HELD · THE WORD WAS/.test(await p2.$eval('.pw-reveal', e => e.textContent)) && (await p2.$eval('.pw-reveal b', e => e.textContent)) === W1, 'BOB: THE FRONT DOOR HELD — the door dims red, its word shown under the grid');
+  ok(/HELD · THE WORD WAS/.test(await p2.$eval('.pw-reveal', e => e.textContent)) && (await p2.$eval('.pw-reveal b', e => e.textContent)) === W1 && (await doorsOf(p2))[0] === 'held:LOCKED OUT', 'BOB: THE FRONT DOOR held — the door dims red, LOCKED OUT under it, its word shown under the grid');
   await shotAll(p2, 'pw-06-held', [[390, 844]]);
-  await p2.waitForFunction(() => document.querySelector('.pw-endscr.is-in') && /RECORDED/.test(document.querySelector('.pw-end-rec').textContent), { timeout: 12000 });
+  await p2.waitForFunction(() => document.querySelector('.pw-endscr.is-in') && window.__password.finished() === 'RECORDED', { timeout: 12000 });
   const end2 = await endOf(p2);
-  ok(end2.t === 'THE FRONT DOOR HELD' && end2.n === '6GUESSES' && end2.grids.join() === '6' && end2.words.join() === W1 && (await doorsOf(p2)).join('|') === 'held:HELD|locked:LOCKED', 'THE END SCREEN: THE FRONT DOOR HELD · 6 GUESSES · ONE mini grid + its word · THE BACK ROOM locked (never its word)');
+  ok(end2.t === 'LOCKED OUT' && end2.n == null && /^6 GUESSES · \d+:\d\d$/.test(end2.line) && end2.grids.join() === '6' && end2.words.join() === W1 && (await doorsOf(p2)).join('|') === 'held:LOCKED OUT|locked:', 'THE END SCREEN: LOCKED OUT (no big number — one small line: 6 GUESSES · the time) · ONE mini grid + its word · THE FRONT DOOR reads LOCKED OUT, THE BACK ROOM dim with no label');
+  ok(!/HELD|RECORD/.test(await p2.$eval('.pw-endscr', e => e.textContent)), 'no HELD, no status text anywhere on the end screen');
   ok((await val(`dly/password/${day}/r/${await p2.evaluate(() => window.__daily.pid)}`)) === 206 && leaks.length === 0, 'the server: 206; THE BACK ROOM\'s word was in NO response to BOB');
-  const fit = await p2.$eval('.pw-end-t', e => e.scrollWidth <= e.clientWidth + 1);
-  ok(fit, 'the headline fits its line at 390 (never clipped)');
+  const fit = await p2.evaluate(() => { const e = document.querySelector('.pw-end-t'); return { fits: e.scrollWidth <= e.clientWidth + 1, size: getComputedStyle(e).fontSize }; });
+  ok(fit.fits && fit.size === (await p.$eval('.pw-end-t', e => getComputedStyle(e).fontSize)), `LOCKED OUT fits its line at the same size + weight as WELCOME IN (${fit.size})`);
   await shotAll(p2, 'pw-07-fail1');
   await H.cleanText(p2, 'the door held', '.pw-screen');
 });

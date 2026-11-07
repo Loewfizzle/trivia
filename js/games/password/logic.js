@@ -174,10 +174,10 @@ export function statusLine(run) {
   if (run.done) return headline(run);
   return `DOOR ${run.door + 1} · ${DOOR_NAMES[run.door]} · ${guessesLeft(run)} OF ${GUESSES} LEFT`;
 }
-/** THE END SCREEN's headline (PW2): YOU'RE IN · THE BACK ROOM HELD · THE FRONT DOOR HELD */
+/** THE END SCREEN's headline (PW2 — the owner's ADD-ON): WELCOME IN · LOCKED OUT (either door — the door row says which) */
+export const HEAD_IN = 'WELCOME IN', HEAD_OUT = 'LOCKED OUT';
 export function headline(run) {
-  const s = scoreOf(run);
-  return s.doors === DOORS ? "YOU'RE IN" : `${DOOR_NAMES[s.doors]} HELD`;
+  return scoreOf(run).doors === DOORS ? HEAD_IN : HEAD_OUT;
 }
 /** a door's state for THE DRAWN DOORS (PW2): 'locked' | 'on' (in play) | 'open' | 'held' */
 export function doorState(run, i) {
@@ -187,13 +187,16 @@ export function doorState(run, i) {
   if (d.state === 'failed') return 'held';
   return !run.done && i === run.door ? 'on' : 'locked';
 }
-/** the one line under a drawn door: opened → "4 GUESSES" · current → "4 OF 6 LEFT" · held → "HELD" · locked → "LOCKED" */
+/** the one line under a drawn door: opened → "4 GUESSES" · current → "4 OF 6 LEFT" · the door that stopped you → "LOCKED OUT" · a door never
+ *  reached → NO label (the owner's ADD-ON) */
 export function doorLine(run, i) {
   const st = doorState(run, i), d = run.doors[i];
   if (st === 'open') return `${d.guesses.length} ${d.guesses.length === 1 ? 'GUESS' : 'GUESSES'}`;
   if (st === 'on') return `${GUESSES - d.guesses.length} OF ${GUESSES} LEFT`;
-  return st === 'held' ? 'HELD' : 'LOCKED';
+  return st === 'held' ? HEAD_OUT : '';
 }
+/** "6 GUESSES · 2:15" — a locked-out run's one small line (the ADD-ON: no big number on a fail) */
+export const failLine = run => `${guessesLine(run)} · ${fmtTime(scoreOf(run).time)}`;
 /** "7 GUESSES" — THE END SCREEN's one number */
 export const guessesLine = run => { const n = scoreOf(run).guesses; return `${n} ${n === 1 ? 'GUESS' : 'GUESSES'}`; };
 /** m:ss */
@@ -214,7 +217,7 @@ export function msToTurn({ h, mi, s }, subMs = 0, turnH = 4) {
 /** THE SHARE LINE (PW2): "THE PASSWORD #12 · 7 guesses · neonspeakeasy.com" — a held run names the door; no emoji anywhere */
 export function shareLine(run, dayKey, site = 'neonspeakeasy.com') {
   const s = scoreOf(run);
-  const mid = s.doors === DOORS ? `${s.guesses} ${s.guesses === 1 ? 'guess' : 'guesses'}` : `${DOOR_NAMES[s.doors].toLowerCase()} held`;
+  const mid = s.doors === DOORS ? `${s.guesses} ${s.guesses === 1 ? 'guess' : 'guesses'}` : `locked out at ${DOOR_NAMES[s.doors].toLowerCase()}`;
   return `THE PASSWORD #${dayNumber(dayKey)} · ${mid} · ${site}`;
 }
 

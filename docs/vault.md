@@ -620,3 +620,17 @@ wave), `cutout` (a baked RGBA piece in place — the light, him), `orbit` (stars
 reduced-motion frame). Its strip picture is COMPOSED from the full one (eyebrows → chin, the owner) with the same fit, so the strip's motion
 uses the same numbers mapped. **A gift's OWN strip picture is mapped by ITS height** (`artMap(w, h, crop, ah)` — `dh = ah * k`; it was the
 full picture's 800, which threw BRUH's strip layers up off their spots — fixed here, BRUH's strip v4).
+
+## THE PASSWORD's REWARDS — SAFECRACKER + KEYHOLE (PW2, Nov 7 — docs/password.md "THE REWARDS' art")
+THE PASSWORD's two collectibles, awarded by the SERVER from its own record of the run (`api/_lib/pw.js#flags` → the award engine; never a phone's claim):
+- **SAFECRACKER** (`card-safecracker`, rare — both doors in ≤ 6 guesses combined): the owner's APPROVED Grok art (Downloads\grok\dailies-cards-v2\card-safecracker.png,
+  a copy in `art/pw-cards/src/`) → `assets/vault/pw/safecracker.webp` (1280 × 720, converted only — `scripts/build-pw-cards.mjs`) = **the material**
+  (`css/vault.css .vl-s-pw-safecracker`; the plate on the dark vault wall). **The motion** = `js/fx/pw-cards.js#pwSafe` on the shared surface through THE GL
+  PAINTER, in art px mapped like the CSS crop (`js/fx/pw-specs.js#pwMap`): GOLD DUST pouring out of the vault to the right (two staggered drifts,
+  flickering, winking out past the edge), the blaze inside the doorway BREATHING, a glint running round the wheel's rim every ~5.6 s; reduced motion = a
+  still frame. **THE HERO** (the wheel + the open door's gold) sits at ≈ 0.62 across the strip — THE HERO-SPOT RULE (`vault/hero.js` reads `PW_SPECS` like
+  `OC_SPECS`); the full card's `heroFull` keeps the plate on the wall (`vault/layout.js`). THE LAB: n 188 (the strip) · 189 (the full card).
+- **KEYHOLE** (`emb-keyhole`, uncommon — any full crack): NEON TUBES like the other emblems (`emblem-art.js` shape `keyhole`: the round eye + the slot in amber,
+  a pink key's tip at the eye; a warm light glowing through the hole as its own `ve-keyglow` layer — opacity only). The keyhole picture in dailies-cards-v2
+  was a shape reference only. THE LAB: n 190.
+- Their names + lines live on the server (`api/_lib/catalog.js`, `lab-text.js`); the lab's APPROVE · FIX · CUT gates the art like every card.

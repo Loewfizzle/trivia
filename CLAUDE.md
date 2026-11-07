@@ -172,7 +172,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 - **THE PASSWORD (PW1 — docs/password.md):** a DAILY-ONLY cartridge lives in `config.js#DAILIES` (never GAMES — GAMES is the lobby's list: the city's signs, HOW TO PLAY,
   THE BOARD, the reports); THE SERVER JUDGES EVERY GUESS (`api/_lib/pw.js` + `pw-day.js`: the answers in `api/_data/pw/` — never served, a door's word only
   once it closes; the schedule from the pepper, never the date); the list is BUILT + REVIEWED (`scripts/pw-words/`, never edited by hand); no ✓ / ✕ / ⌫
-  glyphs as icons in the game (drawn SVG); every colour a `--pw-*` token (DAY = PW2). THE PASSWORD answers `/api/daily` only under `DAILY_TEST=1` until THE SWITCH-OVER.
+  glyphs as icons in the game (drawn SVG); every colour a `--pw-*` token. THE PASSWORD answers `/api/daily` only under `DAILY_TEST=1` until THE SWITCH-OVER.
+  PW2 (Nov 7): THE FRONT DOOR → THE BACK ROOM (never "THE DOOR"); NO PILLS on the dailies (drawn objects or plain type; a button's radius modest); THE DRAWN DOORS
+  (`password/doors.js`), THE DOOR REVEAL, THE END SCREEN (WELCOME IN · LOCKED OUT — the owner's ADD-ON; the block under the doors, the space at the foot), BOTH LOOKS as
+  tokens (`body[data-look="day"]` retokens; the music follows the look — `index.js#musicFor`, app.js re-renders on a look change), the sounds (`sfx.js`), THE SHARE CARD
+  (`share.js`, marks only), THE REWARDS awarded by the SERVER from its record (`pw.js#flags` → `dailyStep({ flags })` → KEYHOLE · the ≤ 6 card; `scripts/sim-password.mjs`).
 - **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
   music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:
   `tests/cartridge.test.mjs` checks the boot graph, `node scripts/boot-bytes.mjs`); only `start` is async, `step` pure + seeded; `prepare` host-only,

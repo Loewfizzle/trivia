@@ -1,10 +1,10 @@
 // THE PASSWORD — THE SHARE CARD (PW2 — docs/password.md "THE SHARE"): SHARE renders an IMAGE on a canvas (1080 × 1350, in the look on
 // screen — night neon or the day sky): the sign, the two drawn doors, the result line ("7 GUESSES · 2:54" or the held line), both doors'
-// MINI GRIDS (marks only — NO letters, NO words), neonspeakeasy.com. Sent through the phone's share sheet (navigator.share with the file)
+// MINI GRIDS (marks only — NO letters, NO words), neonspeakeasy.com. The headline: WELCOME IN · LOCKED OUT (the owner's ADD-ON). Sent through the phone's share sheet (navigator.share with the file)
 // + ONE plain line (logic.js#shareLine: "THE PASSWORD #<n> · 7 guesses · neonspeakeasy.com" — #n = days since meta.js#PW_EPOCH). No file
 // sharing → the line is shared (or copied) and the image is saved. No emoji anywhere. Lazy: the view imports this on the first tap.
 //   renderShare({ run, look }) → <canvas>      shareRun({ run, line, look }) → 'shared' | 'saved' | 'copied' | 'none'
-import { scoreOf, fmtTime, doorState, DOOR_NAMES, DOORS, HIT, NEAR } from './logic.js';
+import { scoreOf, fmtTime, doorState, HEAD_IN, HEAD_OUT, DOOR_NAMES, DOORS, HIT, NEAR } from './logic.js';
 
 export const SHARE_W = 1080, SHARE_H = 1350;
 export const SITE = 'neonspeakeasy.com';
@@ -87,8 +87,8 @@ export function renderShare({ run, look = 'night', dayNo = null } = {}) {
   c.textAlign = 'center';
   // the result line
   const s = scoreOf(run), crack = s.doors === DOORS;
-  const head = crack ? 'YOU\'RE IN' : `${DOOR_NAMES[s.doors]} HELD`;
-  c.font = `900 ${crack ? 96 : 66}px ${L.font}`;
+  const head = crack ? HEAD_IN : HEAD_OUT;
+  c.font = `900 96px ${L.font}`;
   c.save(); c.letterSpacing = '8px';
   const hc = crack ? (look === 'day' ? '#1f7a45' : L.good) : L.red;
   glowText(c, head, W / 2 + 4, 500, hc, look === 'day' ? 'rgba(0,0,0,0)' : hc, look === 'day' ? 0 : 36);

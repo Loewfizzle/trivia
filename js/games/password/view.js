@@ -14,7 +14,7 @@ import { createKeyboard } from '../kit/keyboard.js';
 import { createApiJudge } from './judge.js';
 import { createDoors } from './doors.js';
 import { pwSfx, pwSfxBytes } from './sfx.js';
-import { createRun, applyGuess, canGuess, keyStates, scoreOf, doorOf, headline, guessesLine, fmtTime, fmtClock, msToTurn, shareLine, DOOR_NAMES, DOORS, GUESSES, WORD_LEN, HIT, NEAR } from './logic.js';
+import { createRun, applyGuess, canGuess, keyStates, scoreOf, doorOf, headline, failLine, fmtTime, fmtClock, msToTurn, shareLine, DOOR_NAMES, DOORS, GUESSES, WORD_LEN, HIT, NEAR } from './logic.js';
 import { easternParts } from '../../core/week.js';
 import { streakDay } from '../../core/streak.js';
 
@@ -204,17 +204,20 @@ export function createView() {
     els.end.classList.toggle('is-crack', crack);
     els.end.classList.toggle('is-fail', !crack);
     const title = h('h2.pw-end-t', headline(run));
-    const rec = h('div.pw-end-rec', { 'aria-live': 'polite' }, 'RECORDING…');
+    // (the owner's ADD-ON: no status text on the end screen — the record's state lives in the hook + a quiet NO SIGNAL line only when it failed)
+    const rec = h('div.pw-end-rec', { 'aria-live': 'polite' });
     const next = h('div.pw-end-next');
     const played = run.doors.filter(d => d.guesses.length);
     els.end.append(
-      title,
-      h('div.pw-end-n', h('b', String(s.guesses)), h('span', s.guesses === 1 ? 'GUESS' : 'GUESSES')),
-      h('div.pw-end-time', fmtTime(s.time)),
-      h('div.pw-end-grids', played.map((d, i) => h('div.pw-end-door', miniGrid(d), h('b.pw-end-word', { class: d.state === 'solved' ? 'is-open' : 'is-shut' }, d.word || '')))),
-      tubeButton('SHARE', { kind: 'main', block: true, cls: 'pw-share', onClick: () => share() }),
-      next, rec);
-    void played.length;
+      h('div.pw-end-result',
+        title,
+        // WELCOME IN: ONE big number + the time small under it · LOCKED OUT: one small line "6 GUESSES · 2:15" (no big number)
+        crack ? h('div.pw-end-n', h('b', String(s.guesses)), h('span', s.guesses === 1 ? 'GUESS' : 'GUESSES')) : null,
+        crack ? h('div.pw-end-time', fmtTime(s.time)) : h('div.pw-end-line', failLine(run)),
+        h('div.pw-end-grids', played.map(d => h('div.pw-end-door', miniGrid(d), h('b.pw-end-word', { class: d.state === 'solved' ? 'is-open' : 'is-shut' }, d.word || ''))))),
+      h('div.pw-end-actions',
+        tubeButton('SHARE', { kind: 'main', block: true, cls: 'pw-share', onClick: () => share() }),
+        next, rec));
     // the board + the keys leave, the end screen comes in
     els.play.classList.add('is-out');
     doors.set(run);
@@ -227,13 +230,11 @@ export function createView() {
     if (crack && !finished) pwSfx('win');
     fitTitle(title);
     tickClock(next);
-    if (finished) { rec.textContent = finished; rec.classList.add('is-ok'); return; }
+    if (finished) return;
     try {
-      const f = await judge.finish();
-      finished = f && f.again ? 'RECORDED' : 'RECORDED';
-      rec.classList.add('is-ok');
-    } catch (e) { finished = null; rec.textContent = 'NOT RECORDED · NO SIGNAL'; }
-    if (!gone) rec.textContent = finished || rec.textContent;
+      await judge.finish();
+      finished = 'RECORDED';
+    } catch (e) { finished = null; if (!gone) rec.textContent = 'NOT RECORDED · NO SIGNAL'; }
   }
   /** the headline shrinks to its line (never wraps, never clips — THE FRONT DOOR HELD at 390) */
   function fitTitle(el) {

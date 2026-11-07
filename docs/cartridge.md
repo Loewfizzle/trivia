@@ -70,7 +70,9 @@ empty run shell the view fills from the server. The server registers it only und
 HOW TO PLAY, THE BOARD's catalog, the match reports), and a daily is none of that; it is still a full cartridge (tests/cartridge.test.mjs
 `DAILY_ONLY`, the harbor `cartridge` group) with its tube mark, its theme and a loader in the registry — no meta at boot (the console never offers it).
 The kit grew a hook for it: `kit/keyboard.js#setKeyStates` (per-key hit / near / miss marks on the shared tokens), `go` as the label (ENTER), the
-delete key a DRAWN icon for every game.
+delete key a DRAWN icon for every game. **PW2** added the first `flags` on a judged daily (`pw.js#flags` — the server's record → `dailyStep({ flags })` →
+`pa.gf['password-<flag>']` → the award engine: KEYHOLE · SAFECRACKER) and the first cartridge whose `musicFor` follows THE GAME LOOK (`app.js#applyLook`
+re-renders on a look change, so a game's station is re-read + crossfaded).
 
 **OVERCLOCK's DAILY RESERVE (OC6 + OC7 — for THE DAILY MODULE).** ~20% of every built pool is SERVER-ONLY, so a daily's answers can't be
 looked up in the site's files:

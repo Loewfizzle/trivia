@@ -82,7 +82,7 @@ test('the score: doors opened first, then guesses — (2 − doors) × 100 + gue
   assert.ok(rankOf(2, 60000) < rankOf(2, 61000)); assert.ok(rankOf(2, 1e7) < rankOf(3, 0));
   assert.equal(resultOf(createRun()), null);
   assert.equal(resultOf(crack).rank, rankOf(2, 60000));
-  assert.equal(statusLine(crack), "YOU'RE IN"); assert.equal(statusLine(fail2), 'THE BACK ROOM HELD'); assert.equal(statusLine(fail1), 'THE FRONT DOOR HELD');
+  assert.equal(statusLine(crack), 'WELCOME IN'); assert.equal(statusLine(fail2), 'LOCKED OUT'); assert.equal(statusLine(fail1), 'LOCKED OUT');
 });
 
 test('the phone follows the server: applyGuess folds each answer in → the same run; out of step is refused; the keys\' marks', () => {
@@ -126,6 +126,27 @@ test('the resume view: the stored record (words only) → the run — closed doo
   const vD = runView(recD, ANS, { startedAt: 1000 });
   assert.equal(vD.done, true); assert.equal(vD.finishedAt, 4000); assert.deepEqual(scoreOf(vD), scoreOf(done));
   assert.equal(runView(null, ANS).door, 0);
+});
+
+test('A SOLVED DOOR ENDS AT ONCE (the owner\'s bug check, Nov 7): no record can carry a guess after its door is solved — the server refuses it, the replay refuses it, the resume view drops it', () => {
+  // the front door: solved on the 2nd guess → the next guess goes to THE BACK ROOM (never a 3rd row on the front door)
+  let run = play(['TRAIN', 'CRANE'], createRun({ startedAt: 1000 }), 2000).run;
+  assert.equal(run.doors[0].state, 'solved'); assert.equal(run.door, 1);
+  assert.deepEqual(serverGuess(run, 'STORM', ANS, 3000).resp.door, 1);
+  // the back room: solved → the run is DONE; any further guess throws (the server answers 409 finished)
+  run = play(['STORM', 'LIGHT'], run, 4000).run;
+  assert.equal(run.doors[1].state, 'solved'); assert.equal(run.done, true);
+  assert.throws(() => serverGuess(run, 'CHAIR', ANS, 5000), /over/);
+  // a corrupt record (a word after each door's solve): the replay refuses it, the view skips the extra word
+  assert.equal(replay({ g: { 0: ['TRAIN', 'CRANE', 'ABOUT'], 1: ['LIGHT'] }, e: 5000 }, ANS), null);
+  assert.equal(replay({ g: { 0: ['CRANE'], 1: ['LIGHT', 'ABOUT'] }, e: 5000 }, ANS), null);
+  const v = runView({ g: { 0: ['TRAIN', 'CRANE', 'ABOUT'], 1: ['LIGHT', 'ABOUT'] }, e: 5000 }, ANS);
+  assert.deepEqual(v.doors.map(d => d.guesses.length), [2, 1]);
+  // a run whose back room took every guess: four hits + a miss is NOT a solve — the door stays open until the sixth
+  const near = play(['CRANE', 'STORM', 'PLUMB', 'STORK', 'MOUND', 'FIGHT'], createRun({ startedAt: 1000 }), 2000).run;
+  assert.deepEqual(near.doors[1].marks[4], [MISS, HIT, HIT, HIT, HIT]); assert.equal(near.doors[1].state, 'open'); assert.equal(near.door, 1);
+  const held = play(['CHAIR'], near, 3000).run;
+  assert.equal(held.doors[1].state, 'failed'); assert.equal(held.done, true); assert.equal(scoreOf(held).score, 107);   // (1 + 6 guesses, one door)
 });
 
 test('THE SERVER\'s REPLAY: a finished record re-scores to the same result; a record no run makes is refused', () => {

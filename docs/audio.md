@@ -554,6 +554,16 @@ low-pass 3.4 kHz, +5 dB at 1.8 kHz, a tanh drive ×2.4, a 110 ms dark slap echo 
 music back up. A lobby's phones start it TOGETHER on the server clock (a phone a moment late joins the timeline); never over a legendary's
 own audio (it waits). PLAY BACK on the owner's review card plays the take through the same chain, on his phone only.
 
+## THE PASSWORD's SOUNDS (PW2, Nov 7 2026) — `js/games/password/sfx.js`, `audio/sfx/password/`, `scripts/build-pw-sfx.py`
+The dailies chat's Grok set (Downloads\grok\dailies-sfx, files 01–11; its review's picks are final — the owner): key tap · delete · submit · tile hit /
+near / miss (one per flipping tile, as its mark lands) · not-a-word (the shake) · door unlock + door open (THE DOOR REVEAL) · win sting (WELCOME IN) ·
+fail (a held door). The MAIN file for each but 08 door-unlock = the -b (its clunk keeps its level on a phone speaker); 06 tile-miss trimmed −2 dB at
+import (never boosted — the steps must read hit > near > miss). Imported COMPRESSED (mono, 96 kbps, 44.1 kHz, no metadata — 11 files, 83 KB; the
+unpicked -b files not imported; the credits entries of the 11 kept beside them + ☰ → CREDITS). Through the console's engine (the SFX bus: the SFX
+slider + THE ONE MUTE apply; the unlock-on-tap is the console's); the bytes fetched at mount, decoded on first use; nothing plays, nothing throws
+before the unlock / muted / a missing file. Quiet-leaning — OK in bed. The music: a station that follows the look (`index.js#musicFor` — DAY `mood:day`,
+NIGHT `mood:evening`; `app.js#applyLook` re-renders on a look change so music.js crossfades to the new deck). docs/password.md.
+
 ## THE RADIO DESK's SOUNDS (CITY CONTROLS A, Nov 2 2026) — `screens/harbor/radio-sound.js`, the `radio-*` slots
 Grok's picks (`art/city-sfx/radio/claude-notes.txt` — the originals git-ignored, copies of `~/Downloads/Grok/city-sfx/radio/`) imported by
 `scripts/add-city-sfx.py --src art/city-sfx/radio` into 8 slots: radio-jack-in (5 takes), radio-jack-out (3), radio-fire (3 — the deep latch
