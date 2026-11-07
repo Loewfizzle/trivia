@@ -4,7 +4,9 @@
 export const WORD_LEN = 5;
 export const DOORS = 2;
 export const GUESSES = 6;
-export const DOOR_NAMES = ['THE DOOR', 'THE BACK ROOM'];
+export const DOOR_NAMES = ['THE FRONT DOOR', 'THE BACK ROOM'];   // (PW2: the first door is THE FRONT DOOR — was "THE DOOR")
+/** THE SHARE LINE's day number: THE PASSWORD #n = days since this epoch + 1 (PW2 — set it at THE SWITCH-OVER to the first live day; a streak-day key) */
+export const PW_EPOCH = 'd20261101';
 
 export const DEFAULT_SETTINGS = {};
 export const OPTIONS = [];

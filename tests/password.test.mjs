@@ -40,7 +40,7 @@ test('the judge: hits, nears, misses — the standard duplicate-letter rule', ()
 test('the run: two doors, 6 guesses each; THE BACK ROOM opens on a solved DOOR; a miss on door 1 ends the run; nothing after the end', () => {
   let run = createRun({ day: 'd20261107', uid: 'u1', startedAt: 1000 });
   assert.equal(run.door, 0); assert.equal(canGuess(run), null); assert.equal(guessesLeft(run), GUESSES);
-  assert.equal(statusLine(run), 'DOOR 1 · THE DOOR · 6 OF 6 LEFT');
+  assert.equal(statusLine(run), 'DOOR 1 · THE FRONT DOOR · 6 OF 6 LEFT');
   // five misses then the crack
   const r1 = play(['PLUMB', 'STORK', 'TRAIN', 'CRATE', 'CRANK'], run);
   assert.equal(r1.run.doors[0].guesses.length, 5); assert.equal(guessesLeft(r1.run), 1);
@@ -82,7 +82,7 @@ test('the score: doors opened first, then guesses — (2 − doors) × 100 + gue
   assert.ok(rankOf(2, 60000) < rankOf(2, 61000)); assert.ok(rankOf(2, 1e7) < rankOf(3, 0));
   assert.equal(resultOf(createRun()), null);
   assert.equal(resultOf(crack).rank, rankOf(2, 60000));
-  assert.equal(statusLine(crack), 'BOTH DOORS OPEN'); assert.equal(statusLine(fail2), 'THE BACK ROOM HELD'); assert.equal(statusLine(fail1), 'THE DOOR HELD');
+  assert.equal(statusLine(crack), "YOU'RE IN"); assert.equal(statusLine(fail2), 'THE BACK ROOM HELD'); assert.equal(statusLine(fail1), 'THE FRONT DOOR HELD');
 });
 
 test('the phone follows the server: applyGuess folds each answer in → the same run; out of step is refused; the keys\' marks', () => {
@@ -149,7 +149,7 @@ test('THE SERVER\'s REPLAY: a finished record re-scores to the same result; a re
 
 test('THE THIN META: pure, the one source for the rules\' constants; a solo daily, the chat never locked', () => {
   assert.equal(META.WORD_LEN, 5); assert.equal(META.DOORS, 2); assert.equal(META.GUESSES, 6);
-  assert.deepEqual(META.DOOR_NAMES, ['THE DOOR', 'THE BACK ROOM']);
+  assert.deepEqual(META.DOOR_NAMES, ['THE FRONT DOOR', 'THE BACK ROOM']);
   assert.equal(META.SOLO, true); assert.equal(META.MIN_PLAYERS, 1); assert.equal(META.BANNER_NAME, 'THE PASSWORD');
   assert.equal(META.chatLocked({ phase: 'play' }, 'u', {}), false);
   assert.equal(META.estimateMinutes({}), 4);

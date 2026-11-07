@@ -92,6 +92,8 @@ export const LOOKS = Object.freeze({
   // OVERCLOCK CARDS (Nov 5 night): Grok's art = the material (css/vault.css .vl-s-oc-*), the game's layers = js/fx/oc-cards.js
   'card-redline': { mat: 'oc-redline', fx: 'ocRedline' },
   'card-photofinish': { mat: 'oc-photofinish', fx: 'ocPhoto' },
+  // PW2 — THE PASSWORD's card: Grok's art = the material (css/vault.css .vl-s-pw-*), the game's layers = js/fx/pw-cards.js
+  'card-safecracker': { mat: 'pw-safecracker', fx: 'pwSafe' },
 });
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });

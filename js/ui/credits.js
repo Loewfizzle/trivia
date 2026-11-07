@@ -69,6 +69,8 @@ export const CREDITS = [
   // SHELL 2.0 B2 — THE GIFT CARDS' ART (art/gifts/src/README.txt): the player art generated with Grok Imagine (xAI) from family photos; the four
   // later cards are the owner's own photos, edited (no outside credit needed)
   { group: 'ART', title: 'The gift cards — player art', by: 'Art generated with Grok Imagine (xAI), from a family photo', licence: 'AI-generated — xAI terms of service', link: 'https://grok.com/imagine' },
+  // THE PASSWORD's sounds (PW2 — audio/sfx/password/credits.txt: the dailies chat's Grok set; every source CC0 / Sonniss — no credit required, listed as a courtesy)
+  { group: 'SOUND EFFECTS', title: 'THE PASSWORD’s sounds', by: '344 Audio, SculpTunes, Soundopolis + others (the Sonniss GDC Game Audio Bundles); bwg2020 + other Freesound contributors (CC0)', licence: 'CC0 · Sonniss GDC Game Audio Bundle licence (no attribution required) — cut, levelled + re-encoded (audio/sfx/password/credits.txt)' },
   // OVERCLOCK — THE REAL-GLASS CRACK (OC4: assets/overclock/crack.webp + crack-glow.webp, scripts/build-oc-crack.py — a downscaled, recoloured
   // copy of the photo; Downloads/grok/overclock-crack/credits.txt): CC-BY 3.0 — its credit line EXACTLY as the author asks
   { group: 'ART', title: 'RadialCracksB (the cracked glass in OVERCLOCK)', by: 'RadialCracksB by Keith333 (https://opengameart.org/users/keith333), licensed under CC-BY 3.0', licence: 'CC-BY 3.0 (https://creativecommons.org/licenses/by/3.0/) — downscaled + recoloured (cracks to transparency)', link: 'https://opengameart.org/content/broken-glass-batch-of-7-seamless-textures-with-normalmaps' },

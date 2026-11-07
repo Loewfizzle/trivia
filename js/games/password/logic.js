@@ -10,8 +10,8 @@
 //   runView(record, answers) → run                               the server's stored record (the words guessed) → the run a phone may see
 //   scoreOf(run) → { doors, guesses, score, time }               score = (2 − doors) × 100 + guesses (2…12 a clean crack; lower is better)
 //   replay(record, answers) → result | null                      THE SERVER's CHECK: re-scores a finished record, refuses one no run makes
-import { WORD_LEN, DOORS, GUESSES, DOOR_NAMES, DEFAULT_SETTINGS, chatLocked } from './meta.js';
-export { WORD_LEN, DOORS, GUESSES, DOOR_NAMES, DEFAULT_SETTINGS, chatLocked };
+import { WORD_LEN, DOORS, GUESSES, DOOR_NAMES, DEFAULT_SETTINGS, PW_EPOCH, chatLocked } from './meta.js';
+export { WORD_LEN, DOORS, GUESSES, DOOR_NAMES, DEFAULT_SETTINGS, PW_EPOCH, chatLocked };
 
 export const HIT = 'hit', NEAR = 'near', MISS = 'miss';
 export const MARKS = Object.freeze([HIT, NEAR, MISS]);
@@ -168,11 +168,54 @@ export function replay(record, answers, { startedAt = 0 } = {}) {
   return resultOf(run);
 }
 
-/** "DOOR 2 · THE BACK ROOM · 4 OF 6 LEFT" — the line over the grid */
+/** "DOOR 2 · THE BACK ROOM · 4 OF 6 LEFT" — the run in one line (PW2: no longer on screen — the drawn doors say it; the hook + the share keep it) */
 export function statusLine(run) {
   if (!run) return '';
-  if (run.done) { const s = scoreOf(run); return s.doors === DOORS ? 'BOTH DOORS OPEN' : s.doors ? 'THE BACK ROOM HELD' : 'THE DOOR HELD'; }
+  if (run.done) return headline(run);
   return `DOOR ${run.door + 1} · ${DOOR_NAMES[run.door]} · ${guessesLeft(run)} OF ${GUESSES} LEFT`;
+}
+/** THE END SCREEN's headline (PW2): YOU'RE IN · THE BACK ROOM HELD · THE FRONT DOOR HELD */
+export function headline(run) {
+  const s = scoreOf(run);
+  return s.doors === DOORS ? "YOU'RE IN" : `${DOOR_NAMES[s.doors]} HELD`;
+}
+/** a door's state for THE DRAWN DOORS (PW2): 'locked' | 'on' (in play) | 'open' | 'held' */
+export function doorState(run, i) {
+  const d = run && run.doors[i];
+  if (!d) return 'locked';
+  if (d.state === 'solved') return 'open';
+  if (d.state === 'failed') return 'held';
+  return !run.done && i === run.door ? 'on' : 'locked';
+}
+/** the one line under a drawn door: opened → "4 GUESSES" · current → "4 OF 6 LEFT" · held → "HELD" · locked → "LOCKED" */
+export function doorLine(run, i) {
+  const st = doorState(run, i), d = run.doors[i];
+  if (st === 'open') return `${d.guesses.length} ${d.guesses.length === 1 ? 'GUESS' : 'GUESSES'}`;
+  if (st === 'on') return `${GUESSES - d.guesses.length} OF ${GUESSES} LEFT`;
+  return st === 'held' ? 'HELD' : 'LOCKED';
+}
+/** "7 GUESSES" — THE END SCREEN's one number */
+export const guessesLine = run => { const n = scoreOf(run).guesses; return `${n} ${n === 1 ? 'GUESS' : 'GUESSES'}`; };
+/** m:ss */
+export const fmtTime = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+/** h:mm:ss (the countdown to the next password) */
+export const fmtClock = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+/** THE PASSWORD #n — the share line's number for a streak-day key ('d20261107'): days since PW_EPOCH + 1 (meta.js — set at THE SWITCH-OVER) */
+export function dayNumber(dayKey, epoch = PW_EPOCH) {
+  const num = k => { const s = String(k); return Math.round(Date.UTC(+s.slice(1, 5), +s.slice(5, 7) - 1, +s.slice(7, 9)) / 864e5); };
+  return num(dayKey) - num(epoch) + 1;
+}
+/** ms until the next 4 am Eastern (THE PASSWORD's day turns with the streak's — core/streak.js#DAY_TURN_H) given the Eastern clock now
+ *  ({ h, mi, s } — core/week.js#easternParts) and the ms within this second. PURE (a DST night is at most an hour out — once a year). */
+export function msToTurn({ h, mi, s }, subMs = 0, turnH = 4) {
+  const secs = h * 3600 + mi * 60 + s, left = (turnH * 3600 - secs + 86400) % 86400 || 86400;
+  return left * 1000 - subMs;
+}
+/** THE SHARE LINE (PW2): "THE PASSWORD #12 · 7 guesses · neonspeakeasy.com" — a held run names the door; no emoji anywhere */
+export function shareLine(run, dayKey, site = 'neonspeakeasy.com') {
+  const s = scoreOf(run);
+  const mid = s.doors === DOORS ? `${s.guesses} ${s.guesses === 1 ? 'guess' : 'guesses'}` : `${DOOR_NAMES[s.doors].toLowerCase()} held`;
+  return `THE PASSWORD #${dayNumber(dayKey)} · ${mid} · ${site}`;
 }
 
 /** the keyboard's marks from every guess so far on the open door (+ the closed ones): the best mark a letter earned — hit > near > miss */

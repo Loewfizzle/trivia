@@ -99,7 +99,10 @@ async function applyLook() {
   if (choice === 'auto' && performance.now() - lookSunAt > 55000) { lookSunAt = performance.now(); lookSun = await lookMod.sunUpNow(serverNow()); }
   if (!lookOnNow || lookLock) return;
   const v = lookMod.resolveLook(choice, lookSun !== false);
-  if (document.body.dataset.look !== v) document.body.dataset.look = v;
+  if (document.body.dataset.look !== v) {
+    document.body.dataset.look = v;
+    render(state);   // (PW2 — a game whose music follows the look (THE PASSWORD's musicFor) gets its station re-read + crossfaded)
+  }
 }
 // SHELL 2.0 B2 — THE CREW SWITCH LIVE: the owner flips this player's CREW on their card → the server stamps rooms/{CODE}/radioCrew/role/{uid}
 // → this phone loads (ON) or drops (OFF) its radio at once — no reload, no rejoin. The stamp already there when the room opens is history.

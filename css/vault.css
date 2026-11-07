@@ -1058,6 +1058,10 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-s-oc-photofinish .vl-mat { background: #060608 url('../assets/vault/oc/photofinish.webp') 50% 49% / cover no-repeat; }
 .vl-fcm-oc-photofinish .vl-mat { background-position: 50% 50%; }
 .vl-s-oc-redline .vl-plate, .vl-s-oc-photofinish .vl-plate { background: rgba(6, 6, 9, 0.84); }
+/* PW2 — THE PASSWORD's card: Grok's vault door (1280 × 720 — js/fx/pw-specs.js holds the same crop) = the material; the plate on the dark wall */
+.vl-s-pw-safecracker .vl-mat { background: #070a1c url('../assets/vault/pw/safecracker.webp') 50% 50% / cover no-repeat; }
+.vl-fcm-pw-safecracker .vl-mat { background-position: 50% 50%; }
+.vl-s-pw-safecracker .vl-plate { background: rgba(6, 8, 20, 0.82); }
 /* (the owner's flag on the mock: REDLINE's strip gem sat on the gauge's hot red edge — a dark backing under the gem, its gold light kept small
    in the middle, so the stone reads on the red) */
 .vl-s-oc-redline > .vl-gem::before { inset: -78%; background: radial-gradient(closest-side, rgba(255, 210, 110, 0.42), rgba(8, 5, 5, 0.95) 34%, rgba(8, 5, 5, 0.9) 56%, rgba(8, 5, 5, 0.55) 78%, rgba(8, 5, 5, 0) 100%); }

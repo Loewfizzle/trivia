@@ -1,68 +1,66 @@
-// THE PASSWORD — THE SCREEN (PW1 — docs/password.md). Renders purely from the RUN the server hands back (judge.start → the record so far;
-// every guess's answer folded in with logic.js#applyGuess): the sign, the two door chips, the status line, the 6 × 5 grid, the kit's letter
+// THE PASSWORD — THE SCREEN (PW1 + PW2 — docs/password.md). Renders purely from the RUN the server hands back (judge.start → the record so
+// far; every guess's answer folded in with logic.js#applyGuess): the sign, THE DRAWN DOORS (doors.js), the 6 × 5 grid, the kit's letter
 // keyboard (ENTER, the drawn delete key, the keys' marks). Letters typed but not sent live only here — a tear-down (an app switch, the room
 // starting a game) clears them and a re-mount resumes from the server's record on the same door / next guess (nothing lost, nothing counted).
-// NIGHT = neon (css/password.css — every colour a token; DAY drops in in PW2). The game draws NO look switch: body[data-look] is the console's.
+// PW2: THE DOOR REVEAL between the doors (the row glows, the drawn door swings open, warm light floods the screen, the board clears, THE BACK
+// ROOM's empty board slides in — skippable by a tap; the state is already advanced, so a suspend mid-reveal resumes on the right board),
+// THE END SCREEN (the board + keyboard leave; the headline, ONE number, the mini grids, SHARE, the countdown to 4 am Eastern), THE DAY LOOK
+// (css/password.css retokens under body[data-look] — the game draws no switch, it re-themes live), the sounds (sfx.js).
 //   createView() → { mount(el, state), update(state), unmount() }   state.game = the run shell (daily.create / start) · state.judge = a judge
 //   (the preview's fake; default THE API JUDGE — judge.js) · window.__password = the test hook (the preview + the E2E)
 import { h, clear, reducedMotion } from '../../ui/dom.js';
+import { tubeButton } from '../../ui/components.js';
 import { createKeyboard } from '../kit/keyboard.js';
 import { createApiJudge } from './judge.js';
-import { createRun, applyGuess, canGuess, keyStates, statusLine, scoreOf, doorOf, DOOR_NAMES, DOORS, GUESSES, WORD_LEN, HIT } from './logic.js';
+import { createDoors } from './doors.js';
+import { pwSfx, pwSfxBytes } from './sfx.js';
+import { createRun, applyGuess, canGuess, keyStates, scoreOf, doorOf, headline, guessesLine, fmtTime, fmtClock, msToTurn, shareLine, DOOR_NAMES, DOORS, GUESSES, WORD_LEN, HIT, NEAR } from './logic.js';
+import { easternParts } from '../../core/week.js';
+import { streakDay } from '../../core/streak.js';
 
 export const FLIP_STEP_MS = 250;      // the tiles flip one by one, this far apart (the owner: ~0.25 s)
 export const FLIP_MS = 500;
-export const HANDOFF_MS = 1800;       // door 1 opens → THE BACK ROOM loads (a placeholder — the real door reveal is PW2)
-export const END_DELAY_MS = 900;
-
-const svgNS = 'http://www.w3.org/2000/svg';
-const mark = (d, cls) => { const s = document.createElementNS(svgNS, 'svg'); s.setAttribute('viewBox', '0 0 20 20'); s.setAttribute('aria-hidden', 'true'); s.setAttribute('class', cls); const p = document.createElementNS(svgNS, 'path'); p.setAttribute('d', d); s.append(p); return s; };
-const CHECK = 'M4 10.5l4 4 8-9', CROSS = 'M5 5l10 10M15 5L5 15';
-const fmtTime = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+// PW2 — THE DOOR REVEAL's beats (from the last tile's landing): the row's glow → the swing + the flood → the board clears → the next board in
+export const REVEAL = Object.freeze({ glow: 320, swing: 950, clear: 380, slide: 420, floodHold: 520, short: 0.7 });
+export const HELD_MS = 1100;          // a held door: the thud, the door dims, then the end screen
+export const LEAVE_MS = 400;          // the board + keyboard animate out before the end screen comes in
 
 export function createView() {
   let root = null, st = null, judge = null, gone = false;
-  let run = null, typed = '', busy = false, startedAt = 0, doneScore = null, finished = null;
-  let kb = null, timers = [];
+  let run = null, typed = '', busy = false, startedAt = 0, doneScore = null, finished = null, revealing = false, ending = false;
+  let kb = null, doors = null, timers = [], clockT = 0, skipReveal = null;
   const els = {};
   const later = (fn, ms) => { const t = setTimeout(() => { timers = timers.filter(x => x !== t); if (!gone) fn(); }, ms); timers.push(t); return t; };
+  const wait = ms => new Promise(res => later(res, ms));
   const onKeyDown = e => { if (!kb || busy || e.metaKey || e.ctrlKey || e.altKey) return; kb.key(e); };
+  const onTap = () => { if (skipReveal) skipReveal(); };
 
   function build() {
-    els.sign = h('h1.pw-sign', 'THE PASSWORD');
-    els.doors = h('div.pw-doors', DOOR_NAMES.map((n, i) => h('div.pw-door', { dataset: { door: i } }, h('span.pw-door-t', n), h('span.pw-door-x'))));
-    els.line = h('div.pw-line', { 'aria-live': 'polite' });
+    els.sign = h('h1.pw-sign', h('span.pw-sign-t', 'THE PASSWORD'), h('span.pw-sign-dot', { 'aria-hidden': 'true' }, '.'));
+    doors = createDoors(DOOR_NAMES);
     els.grid = h('div.pw-grid', { role: 'grid', 'aria-label': 'your guesses' }, Array.from({ length: GUESSES }, () => h('div.pw-row', { role: 'row' }, Array.from({ length: WORD_LEN }, () => h('div.pw-tile', { role: 'gridcell' })))));
     els.reveal = h('div.pw-reveal', { hidden: true });
-    els.handoff = h('div.pw-card.pw-handoff', { role: 'status' }, h('div.pw-card-k', 'THE DOOR OPENS'), h('h2.pw-card-t', 'THE BACK ROOM'));
-    els.end = h('div.pw-card.pw-end', { role: 'dialog', 'aria-label': 'the result' });
-    els.board = h('div.pw-board', els.grid, els.reveal, els.handoff, els.end);
+    els.board = h('div.pw-board', els.grid, els.reveal);
     els.note = h('div.pw-note', { role: 'status', 'aria-live': 'assertive' });
-    kb = createKeyboard({ go: 'ENTER', maxLen: WORD_LEN, onChange: v => { typed = v; paintTyped(); }, onGo: () => submit() });
+    kb = createKeyboard({ go: 'ENTER', maxLen: WORD_LEN, onChange: v => { typed = v; paintTyped(); }, onGo: () => submit(), onKey: (k, changed) => { if (changed) pwSfx(k === '⌫' ? 'back' : 'tap'); } });
     els.kb = h('div.pw-kb', kb.el);
+    els.flood = h('div.pw-flood', { 'aria-hidden': 'true' });
+    els.end = h('div.pw-endscr', { role: 'dialog', 'aria-label': 'the result', hidden: true });
+    els.play = h('div.pw-play', els.board, els.note, els.kb);
     root.classList.add('pw-screen');
-    root.append(h('header.pw-head', els.sign), els.doors, els.line, els.board, els.note, els.kb);
+    root.append(h('header.pw-head', els.sign), doors.el, els.play, els.end, els.flood);
+    root.addEventListener('pointerdown', onTap);
   }
   const rows = () => [...els.grid.children];
   const tiles = r => [...rows()[r].children];
+  const markName = m => (m === HIT ? 'right' : m === NEAR ? 'close' : 'miss');
 
   /** the whole board from the run (no motion — a mount, a resume, a re-render) */
   function render() {
     if (!run) return;
     const d = doorOf(run) || run.doors[DOORS - 1];
     const di = run.doors.indexOf(d);
-    els.doors.querySelectorAll('.pw-door').forEach((chip, i) => {
-      const door = run.doors[i];
-      chip.classList.toggle('is-on', !run.done && i === run.door);
-      chip.classList.toggle('is-open', door.state === 'solved');
-      chip.classList.toggle('is-shut', door.state === 'failed');
-      const x = chip.querySelector('.pw-door-x');
-      clear(x);
-      if (door.state === 'solved') x.append(mark(CHECK, 'pw-door-mark'), h('span.pw-door-n', String(door.guesses.length)));
-      else if (door.state === 'failed') x.append(mark(CROSS, 'pw-door-mark'));
-      chip.setAttribute('aria-label', `${DOOR_NAMES[i]}: ${door.state === 'solved' ? `opened in ${door.guesses.length}` : door.state === 'failed' ? 'held' : i === run.door ? 'in play' : 'locked'}`);
-    });
-    els.line.textContent = statusLine(run);
+    doors.set(run);
     els.grid.dataset.door = String(di);
     rows().forEach((row, r) => {
       row.className = 'pw-row';
@@ -71,15 +69,15 @@ export function createView() {
         t.className = 'pw-tile';
         t.textContent = g ? g[c] : '';
         if (m) t.classList.add(`is-${m[c]}`);
-        t.setAttribute('aria-label', g ? `${g[c]} ${m[c] === HIT ? 'right' : m[c] === 'near' ? 'close' : 'miss'}` : 'empty');
+        t.setAttribute('aria-label', g ? `${g[c]} ${markName(m[c])}` : 'empty');
       });
       if (g && m && m.every(x => x === HIT)) row.classList.add('is-won');
     });
     paintTyped();
     kb.setKeyStates(keyStates(run));
-    const closed = d.state !== 'open' && d.word;
-    els.reveal.hidden = !(closed && d.state === 'failed');
-    if (closed && d.state === 'failed') { clear(els.reveal); els.reveal.append(`${DOOR_NAMES[di]} HELD · THE WORD WAS`, h('b', d.word)); }
+    const shut = d.state === 'failed' && d.word;
+    els.reveal.hidden = !shut;
+    if (shut) { clear(els.reveal); els.reveal.append(`${DOOR_NAMES[di]} HELD · THE WORD WAS`, h('b', d.word)); }
     kb.lock(busy || !!canGuess(run));
   }
   function paintTyped() {
@@ -106,35 +104,43 @@ export function createView() {
     const d = doorOf(run);
     const row = d ? rows()[d.guesses.length] : null;
     if (row) { row.classList.remove('is-shake'); void row.offsetWidth; row.classList.add('is-shake'); }
+    pwSfx('refuse');
     note(text, true);
   }
 
   /** the tiles of row r flip one by one; the marks land at each flip's midpoint; resolves after the last */
-  function reveal(r, marks) {
+  function flip(r, marks) {
     const ts = tiles(r);
-    if (reducedMotion()) { ts.forEach((t, c) => { t.classList.remove('is-typed'); t.classList.add(`is-${marks[c]}`); }); return new Promise(res => later(res, 120)); }
-    ts.forEach((t, c) => { t.style.setProperty('--d', `${c * FLIP_STEP_MS}ms`); t.classList.add('is-flip'); later(() => { t.classList.remove('is-typed'); t.classList.add(`is-${marks[c]}`); }, c * FLIP_STEP_MS + FLIP_MS / 2); });
+    if (reducedMotion()) { ts.forEach((t, c) => { t.classList.remove('is-typed'); t.classList.add(`is-${marks[c]}`); }); return wait(120); }
+    ts.forEach((t, c) => { t.style.setProperty('--d', `${c * FLIP_STEP_MS}ms`); t.classList.add('is-flip'); later(() => { t.classList.remove('is-typed'); t.classList.add(`is-${marks[c]}`); pwSfx(marks[c]); }, c * FLIP_STEP_MS + FLIP_MS / 2); });
     return new Promise(res => later(() => { ts.forEach(t => t.classList.remove('is-flip')); res(); }, (WORD_LEN - 1) * FLIP_STEP_MS + FLIP_MS));
   }
 
   async function submit() {
-    if (!run || busy) return;
+    if (!run || busy || revealing) return;
     if (canGuess(run)) return;
     if (typed.length < WORD_LEN) { shake('NOT ENOUGH LETTERS'); return; }
     if (!judge.canType(typed)) { shake('NOT IN THE LIST'); return; }
     busy = true; kb.lock(true);
     const word = typed;
+    pwSfx('submit');
     try {
       const resp = await judge.guess(word);
       if (gone) return;
       const r = doorOf(run).guesses.length;
+      const was = run;
       run = applyGuess(run, resp, word);
       typed = ''; kb.clear();
-      await reveal(r, resp.marks);
+      await flip(r, resp.marks);
       if (gone) return;
-      render();
-      if (resp.next != null) await handoff();
-      if (resp.done) later(() => end(), END_DELAY_MS);
+      const row = rows()[r];
+      if (row && resp.solved) row.classList.add('is-won');
+      kb.setKeyStates(keyStates(run));
+      if (resp.solved) await reveal(resp.door, resp.next != null);          // THE DOOR REVEAL (the next board slides in, or the end follows)
+      else if (resp.failed) await held(resp.door);
+      else render();
+      void was;
+      if (resp.done) end();
     } catch (e) {
       if (gone) return;
       const code = e && e.code;
@@ -143,43 +149,117 @@ export function createView() {
       else note('NO SIGNAL · TRY AGAIN', true);
     } finally {
       busy = false;
-      if (!gone) { kb.lock(!!canGuess(run)); paintTyped(); }
+      if (!gone && !ending) { kb.lock(!!canGuess(run)); paintTyped(); }
     }
   }
-  /** THE HAND-OFF: door 1's chip lights, THE BACK ROOM loads (PW2 draws the real door) */
-  function handoff() {
+
+  /**
+   * THE DOOR REVEAL (PW2): the solved row glows → the drawn door swings open + warm light floods the screen → the board clears → the next
+   * door's empty board slides in (door `di` + 1 goes current). Shorter for THE BACK ROOM (the end screen follows). A tap skips to the end
+   * state. The run is ALREADY advanced (applyGuess) — a suspend here resumes on the right board.
+   */
+  function reveal(di, next) {
+    const k = next ? 1 : REVEAL.short;
+    if (reducedMotion()) { pwSfx('unlock'); render(); return wait(300); }
+    revealing = true;
+    pwSfx('unlock');
+    root.classList.add('is-reveal');
     return new Promise(res => {
-      els.handoff.classList.add('is-in'); els.board.classList.add('is-covered');
-      later(() => { els.handoff.classList.remove('is-in'); els.board.classList.remove('is-covered'); render(); res(); }, HANDOFF_MS);
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true; revealing = false; skipReveal = null;
+        root.classList.remove('is-reveal', 'is-flood');
+        els.grid.classList.remove('is-out');
+        render();
+        if (next) { els.grid.classList.add('is-in'); later(() => els.grid.classList.remove('is-in'), REVEAL.slide + 50); }
+        res();
+      };
+      skipReveal = finish;
+      later(() => { if (done) return; doors.set(run); root.classList.add('is-flood'); pwSfx('open'); }, REVEAL.glow * k);   // the swing + the light
+      later(() => { if (done) return; root.classList.remove('is-flood'); }, (REVEAL.glow + REVEAL.floodHold) * k);
+      later(() => { if (done) return; els.grid.classList.add('is-out'); }, (REVEAL.glow + REVEAL.swing) * k);           // the board clears
+      later(finish, (REVEAL.glow + REVEAL.swing + REVEAL.clear) * k);
     });
   }
-  /** THE END: a simple result — doors, guesses, time, the words (the real result + the share are PW2); the server records the score */
+  /** a HELD door: no swing — the door dims red (a low thud — sfx), then the end screen */
+  function held() {
+    doors.set(run);
+    render();
+    pwSfx('fail');
+    return wait(reducedMotion() ? 300 : HELD_MS);
+  }
+
+  // ---------------------------------------------------------------- THE END SCREEN (PW2)
+  const miniGrid = d => h('div.pw-mini', { role: 'img', 'aria-label': `${d.guesses.length} guesses` },
+    d.marks.map(m => h('div.pw-mini-row', m.map(x => h('i.pw-mini-c', { class: `is-${x}` })))));
+  /** the board + keyboard leave (~0.4 s), one clean screen comes in; the server records the score */
   async function end() {
-    if (!run || !run.done) return;
+    if (!run || !run.done || ending) return;
+    ending = true;
+    kb.lock(true);
     const s = scoreOf(run);
     const crack = s.doors === DOORS;
     clear(els.end);
     els.end.classList.toggle('is-crack', crack);
     els.end.classList.toggle('is-fail', !crack);
-    const noteEl = h('div.pw-end-note', 'RECORDING…');
+    const title = h('h2.pw-end-t', headline(run));
+    const rec = h('div.pw-end-rec', { 'aria-live': 'polite' }, 'RECORDING…');
+    const next = h('div.pw-end-next');
+    const played = run.doors.filter(d => d.guesses.length);
     els.end.append(
-      h('div.pw-card-k', 'TONIGHT\'S PASSWORD'),
-      h('h2.pw-card-t', crack ? 'YOU\'RE IN' : s.doors ? 'THE BACK ROOM HELD' : 'THE DOOR HELD'),
-      h('div.pw-end-rows',
-        h('div.pw-end-row', h('small', 'DOORS'), h('b', `${s.doors}/${DOORS}`)),
-        h('div.pw-end-row', h('small', 'GUESSES'), h('b', String(s.guesses))),
-        h('div.pw-end-row', h('small', 'TIME'), h('b', fmtTime(s.time)))),
-      h('div.pw-end-words', run.doors.map((d, i) => h('div.pw-end-word', { class: d.state === 'solved' ? 'is-open' : d.state === 'failed' ? 'is-shut' : 'is-never' }, h('span', DOOR_NAMES[i]), h('b', d.word || 'NEVER OPENED')))),
-      noteEl);
-    els.end.classList.add('is-in'); els.board.classList.add('is-covered');
-    if (finished) { noteEl.textContent = finished; noteEl.classList.add('is-ok'); return; }
+      title,
+      h('div.pw-end-n', h('b', String(s.guesses)), h('span', s.guesses === 1 ? 'GUESS' : 'GUESSES')),
+      h('div.pw-end-time', fmtTime(s.time)),
+      h('div.pw-end-grids', played.map((d, i) => h('div.pw-end-door', miniGrid(d), h('b.pw-end-word', { class: d.state === 'solved' ? 'is-open' : 'is-shut' }, d.word || '')))),
+      tubeButton('SHARE', { kind: 'main', block: true, cls: 'pw-share', onClick: () => share() }),
+      next, rec);
+    void played.length;
+    // the board + the keys leave, the end screen comes in
+    els.play.classList.add('is-out');
+    doors.set(run);
+    await wait(reducedMotion() ? 0 : LEAVE_MS);
+    if (gone) return;
+    els.play.hidden = true;
+    els.end.hidden = false;
+    void els.end.offsetWidth;
+    els.end.classList.add('is-in');
+    if (crack && !finished) pwSfx('win');
+    fitTitle(title);
+    tickClock(next);
+    if (finished) { rec.textContent = finished; rec.classList.add('is-ok'); return; }
     try {
       const f = await judge.finish();
-      finished = f && f.again ? 'ALREADY RECORDED' : `RECORDED · SCORE ${f && f.score != null ? f.score : s.score}`;
-      noteEl.classList.add('is-ok');
-    } catch (e) { finished = null; noteEl.textContent = 'NOT RECORDED · NO SIGNAL'; }
-    if (!gone) noteEl.textContent = finished || noteEl.textContent;
+      finished = f && f.again ? 'RECORDED' : 'RECORDED';
+      rec.classList.add('is-ok');
+    } catch (e) { finished = null; rec.textContent = 'NOT RECORDED · NO SIGNAL'; }
+    if (!gone) rec.textContent = finished || rec.textContent;
   }
+  /** the headline shrinks to its line (never wraps, never clips — THE FRONT DOOR HELD at 390) */
+  function fitTitle(el) {
+    const max = parseFloat(getComputedStyle(el).fontSize) || 40;
+    let size = max;
+    el.style.fontSize = '';
+    for (let i = 0; i < 12 && el.scrollWidth > el.clientWidth + 1 && size > 18; i++) { size -= 2; el.style.fontSize = `${size}px`; }
+  }
+  /** "NEXT PASSWORD IN 13:39:21" — to the next 4 am Eastern, ticking */
+  function tickClock(el) {
+    clearInterval(clockT);
+    const paint = () => { const now = Date.now(); el.textContent = `NEXT PASSWORD IN ${fmtClock(msToTurn(easternParts(now), now % 1000))}`; };
+    paint();
+    clockT = setInterval(() => { if (gone) clearInterval(clockT); else paint(); }, 1000);
+  }
+  /** SHARE (PW2 — the share card is Group 6: the line now; the image lands with share.js) */
+  async function share() {
+    const line = shareLine(run, streakDay(startedAt || Date.now()));
+    try {
+      const S = await import('./share.js');
+      await S.shareRun({ run, line, look: document.body.dataset.look || 'night', root });
+    } catch (e) {
+      try { if (navigator.share) await navigator.share({ text: line }); else await navigator.clipboard.writeText(line); } catch { /* the user closed it */ }
+    }
+  }
+
   /** the run from the server (a mount, a resume, a re-sync after an out-of-step answer) */
   async function resync() {
     let r;
@@ -190,7 +270,7 @@ export function createView() {
     startedAt = r.startedAt || startedAt;
     doneScore = r.done != null ? r.done : null;
     run = r.run ? { ...r.run, startedAt: r.run.startedAt || startedAt } : createRun({ day: r.day, uid: st && st.uid, startedAt });
-    if (doneScore != null) finished = `RECORDED · SCORE ${doneScore}`;
+    if (doneScore != null) finished = 'RECORDED';
     typed = ''; kb.clear();
     render();
     if (run.done) end();
@@ -207,13 +287,15 @@ export function createView() {
       build();
       render();
       window.addEventListener('keydown', onKeyDown);
+      pwSfxBytes();   // (the sounds' bytes now; they decode on first use — never a wait, never a throw)
       resync();
       window.__password = {
         run: () => run, typed: () => typed, busy: () => busy, finished: () => finished,
         type: w => { for (const ch of String(w).toUpperCase()) kb.key({ key: ch, preventDefault() {} }); },
         enter: () => submit(), back: () => kb.key({ key: 'Backspace', preventDefault() {} }),
-        state: () => ({ door: run && run.door, done: !!(run && run.done), guesses: run ? run.doors.map(d => d.guesses.length) : [], typed, busy, handoff: els.handoff.classList.contains('is-in'), end: els.end.classList.contains('is-in') }),
-        resync,
+        state: () => ({ door: run && run.door, done: !!(run && run.done), guesses: run ? run.doors.map(d => d.guesses.length) : [], typed, busy, reveal: revealing, handoff: revealing, end: !els.end.hidden && els.end.classList.contains('is-in'), ending, doors: doors ? [doors.state(0), doors.state(1)] : [] }),
+        skip: () => { if (skipReveal) skipReveal(); },
+        resync, share,
       };
     },
     update(state) { st = state; },
@@ -221,12 +303,14 @@ export function createView() {
       gone = true;
       for (const t of timers) clearTimeout(t);
       timers = [];
+      clearInterval(clockT);
       window.removeEventListener('keydown', onKeyDown);
       typed = '';   // (letters typed but not sent are gone with the screen)
       if (kb) kb.destroy();
-      if (root) { clear(root); root.classList.remove('pw-screen'); }
+      if (doors) doors.destroy();
+      if (root) { root.removeEventListener('pointerdown', onTap); clear(root); root.classList.remove('pw-screen', 'is-reveal', 'is-flood'); }
       delete window.__password;
-      root = null; kb = null;
+      root = null; kb = null; doors = null; revealing = false; ending = false; skipReveal = null;
     },
   };
   return api;

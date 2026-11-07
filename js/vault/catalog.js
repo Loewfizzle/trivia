@@ -222,6 +222,13 @@ LAB.push(
   { id: 'card-gift-buzzed', kind: 'card', tier: 'legendary', n: 186, gift: true },
   { id: 'full-card-gift-buzzed', kind: 'full', of: 'card-gift-buzzed', tier: 'legendary', n: 187, gift: true },
 );
+// PW2 — THE PASSWORD's rewards (unlocked by the server from its own record of the run: the card = both doors in six guesses or fewer, the
+// emblem = any full crack): the strip, its full card, the neon emblem
+LAB.push(
+  { id: 'card-safecracker', kind: 'card', tier: 'rare', n: 188 },
+  { id: 'full-card-safecracker', kind: 'full', of: 'card-safecracker', tier: 'rare', n: 189 },
+  { id: 'emb-keyhole', kind: 'emblem', tier: 'uncommon', n: 190, fin: 'neon' },
+);
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 // THE VAULT 1B — NAMES ONLY TO OWNERS: the lab's NAMES + what each one does are the SERVER's (api/_lib/lab-text.js) — handed to the lab with
 // the marks (admins only: /api/admin labMarks → { marks, text }); the look previews (never deployed) import them off the local server.

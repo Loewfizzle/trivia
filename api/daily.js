@@ -87,7 +87,9 @@ export async function dailyAction(uid, body, now = Date.now()) {
       const outage = await outageDays().catch(() => ({}));
       const fOpen = await founderOpen(now).catch(() => false);
       let res = null;
-      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, n: stand.n, hourET: easternParts(now).h, outage, founderOpen: fOpen }); return res.skip ? undefined : res.next; });
+      // (PW2 — a judged daily's FLAGS come from the server's own record, never the phone: THE PASSWORD's crack / safe → KEYHOLE / SAFECRACKER)
+      const flags = cart.judged && cart.flags ? cart.flags({ record, day, startedAt }) : null;
+      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, n: stand.n, hourET: easternParts(now).h, outage, founderOpen: fOpen, flags }); return res.skip ? undefined : res.next; });
       if (res && !res.skip) {
         const st = res.next.st;
         await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d });

@@ -44,6 +44,7 @@ import deco from './deco.js';
 import { giftFx } from './gift.js';
 import { GIFT_SPECS } from './gift-specs.js';
 import { ocRedline, ocPhoto } from './oc-cards.js';
+import { pwSafe } from './pw-cards.js';
 
 /** COMBO (THE VAULT 1C — an EPIC's two effects together on ONE slot): parts = [[effect, opts the part overrides]…], drawn in order */
 export function combo(id, tier, ...parts) {
@@ -70,4 +71,6 @@ export const FX = Object.freeze({ deco, ufo, laser, smoke, frost, flames, prism,
   // OVERCLOCK CARDS (Nov 5 night) — REDLINE (the needle slams + shakes, the heat, the sparks, the laser) + PHOTO FINISH (the laser on the line,
   // the flash + sparks at the noses, the trails' sheen): Grok's art as the material, the game's layers here (oc-cards.js)
   ocRedline, ocPhoto,
+  // PW2 — THE PASSWORD's card (the gold dust pouring out of the vault, the blaze breathing, the glint on the wheel): Grok's art as the material, the layers in pw-cards.js
+  pwSafe,
   platinum: combo('platinum', 'epic', [sheen, { tint: '214,228,255', gain: 2.4 }], [bevel, null]) });

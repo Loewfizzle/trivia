@@ -1,0 +1,101 @@
+THE PASSWORD + COAST CLEAR (Neon Speakeasy dailies) - sound effects credits
+
+Attribution required: NONE. Every source is CC0 1.0 or the Sonniss GDC bundle licence; neither requires credit.
+Credit is still listed voluntarily below. No CC BY, NC, Mixkit, Pixabay, BBC, YouTube, AI-generated or music sources are used.
+Sonniss sources were taken from archive.org mirrors of the free official GDC bundles (https://sonniss.com/gameaudiogdc); a few came from the "-normalized" archive.org mirrors (same recordings, loudness-normalized), as marked.
+
+01-key-tap.mp3
+  description: THE PASSWORD key tap: short dry wooden tick
+  source:  "Castling Movements 08.wav"  [0.32-0.45 s]
+  author:  344 Audio - Ultimate Chess SFX (Sonniss GDC 2023 bundle)
+  url:     https://archive.org/download/game-audio-gdcpart-7/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/344%20Audio%20-%20Ultimate%20Chess%20SFX/Castling%20Movements%2008.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   cut 0.32-0.45 s, onset-trimmed, 50 ms fade, high-pass 180 Hz, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+02-key-delete.mp3
+  description: THE PASSWORD delete: lower, softer sibling of the key tap
+  source:  "Castling Movements 08.wav"  [1.60-1.74 s]
+  author:  344 Audio - Ultimate Chess SFX (Sonniss GDC 2023 bundle)
+  url:     https://archive.org/download/game-audio-gdcpart-7/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/344%20Audio%20-%20Ultimate%20Chess%20SFX/Castling%20Movements%2008.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   cut 1.60-1.74 s, pitched -2 semitones (rubberband), max 0.11 s, high-pass 150 Hz, low-pass 4.5 kHz, 50 ms fade, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+03-guess-submit.mp3
+  description: THE PASSWORD submit: firm key-turn tumbler double click
+  source:  "HHDoors  Armored Door - Metal and wood Fron door - Unlock and Lock by the Key.wav"  [6.975-7.25 s]
+  author:  SculpTunes - HHDoors Household Doors and Furnitures (Sonniss GDC 2020 bundle) [archive.org "-normalized" mirror of the official bundle: loudness-normalized re-upload of the same file]
+  url:     https://archive.org/download/sonniss-gdc-2020-game-audio-bundle-normalized/SculpTunes%20-%20HHDoors%20-%20Household%20Doors%20and%20furnitures/HHDoors%20%20Armored%20Door%20-%20Metal%20and%20wood%20Fron%20door%20-%20Unlock%20and%20Lock%20by%20the%20Key.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   cut 6.975-7.25 s, onset-trimmed, 80 ms fade, high-pass 200 Hz, low-pass 9 kHz, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+04-tile-hit.mp3
+  description: THE PASSWORD tile hit (correct place): bright soft bell ping
+  source:  "Correct-2.wav" (Freesound #456162)  [0-0.55 s]
+  author:  bwg2020
+  url:     https://freesound.org/people/bwg2020/sounds/456162/
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  edits:   onset-trimmed, cut to 0.55 s, 300 ms fade, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+05-tile-near.mp3
+  description: THE PASSWORD tile near (wrong place): same bell, lower and duller
+  source:  "Correct-2.wav" (Freesound #456162)  [0-0.40 s]
+  author:  bwg2020
+  url:     https://freesound.org/people/bwg2020/sounds/456162/
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  edits:   pitched -5 semitones (rubberband), onset-trimmed, cut to 0.40 s, low-pass 6 kHz, 250 ms fade, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+06-tile-miss.mp3
+  description: THE PASSWORD tile miss: muted low "bup", same family
+  source:  "Correct-2.wav" (Freesound #456162)  [0-0.14 s]
+  author:  bwg2020
+  url:     https://freesound.org/people/bwg2020/sounds/456162/
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  edits:   pitched -12 semitones, onset-trimmed, cut to 0.14 s, low-pass 1.4 kHz, 30 ms exponential decay, 60 ms fade, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+07-not-a-word.mp3
+  description: THE PASSWORD not-a-word: short metal lock rattle (locked, try again)
+  source:  "LOCK_Metal_shake_rattle_short_medium.wav"  [4.27-4.60 s]
+  author:  Antisample - Shakes and Rattles (Sonniss GDC 2017 bundle)
+  url:     https://archive.org/download/game-audio-gdcpart-3/Sonniss.com%20-%20GDC%202017%20-%20Game%20Audio%20Bundle/Antisample%20-%20Shakes%20and%20Rattles/LOCK_Metal_shake_rattle_short_medium.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   cut 4.27-4.60 s, onset-trimmed, 80 ms fade, high-pass 250 Hz, low-pass 5.5 kHz, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+08-door-unlock-b.mp3
+  description: BACKUP door unlock: hotel metal deadbolt
+  source:  "hotel_door_metal_deadbolt_unlock_02.wav"  [0.38-0.99 s]
+  author:  The Library by Empty Sea - Gateway Part 1 (Sonniss GDC 2015 bundle)
+  url:     https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/TheLibrarybyEmptySea%20-%20Gateway%20Part1/hotel_door_metal_deadbolt_unlock_02.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   cut 0.38-0.99 s, onset-trimmed, 150 ms fade, low-pass 9 kHz, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+09-door-open.mp3
+  description: THE PASSWORD door open: latch release, then warm speakeasy room tone swells in (1.5 s)
+  source:  "Door_Basement_04_02.wav"  [0.03-0.62 s]
+  author:  SoundBits - Open & Close (Sonniss GDC 2017 bundle) [archive.org "-normalized" mirror of the official bundle: loudness-normalized re-upload of the same file]
+  url:     https://archive.org/download/sonniss-gdc-2017-game-audio-bundle-normalized/SoundBits%20-%20Open%20%26%20Close/Door_Basement_04_02.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  source:  "AMBIENT - Small Cafe Interior - 01.wav"  [93.0-94.7 s, room-tone swell]
+  author:  Timothy McHugh - Cafe Ambiances (Sonniss GDC 2015 bundle)
+  url:     https://ftpmirror.your.org/pub/misc/sonniss/individual/Timothy%20McHugh%20-%20Cafe%20Ambiances/AMBIENT%20-%20Small%20Cafe%20Interior%20-%2001.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   latch cut 0.03-0.62 s, low-pass 8 kHz; cafe ambience 93.0-94.7 s band-passed 120 Hz-6 kHz with a 0.45 s swell-in / fade-out envelope placed at +0.08 s at 0.55 gain; cut to 1.5 s, 80 ms end fade, stereo; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+10-win-sting.mp3
+  description: THE PASSWORD win: warm soft major-chord puzzle-solved sting (1.5 s)
+  source:  "Success 2a.wav"  [0-1.5 s]
+  author:  Chris Logsdon - Ambient Puzzle SFX Pack (Sonniss GDC 2019 bundle)
+  url:     https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Chris%20Logsdon%20-%20Ambient%20Puzzle%20SFX%20Pack/Success%202a.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   onset-trimmed, cut to 1.5 s, 550 ms fade, stereo; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+11-fail.mp3
+  description: THE PASSWORD fail: soft low "still locked" thud
+  source:  "Dungeon Door Open, Close, Locked.wav"  [5.07-5.85 s ("locked" rattle-thud)]
+  author:  344 Audio - Practical Doors (Sonniss GDC 2020 bundle)
+  url:     https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/344%20Audio%20-%20Practical%20Doors/Dungeon%20Door%20Open%2C%20Close%2C%20Locked.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  source:  "impactSoft_heavy_001.ogg"  [0-0.55 s, layered]
+  author:  Kenney - Impact Sounds pack
+  url:     https://kenney.nl/assets/impact-sounds
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  edits:   door cut 5.07-5.85 s, low-pass 3.5 kHz; Kenney soft heavy impact at the peak at 0.6 gain; cut to 0.75 s, 200 ms fade, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz

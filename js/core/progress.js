@@ -157,11 +157,12 @@ export function eventStep(s0, ev, now, { founderOpen = false } = {}) {
 
 /**
  * One finished DAILY (the daily contract — core/daily.js): it keeps THE STREAK like a match + the dailies' counters (the achievements read
- * them). Idempotent by its key (m/daily_<game>_<day>). { game, day (the streak day), now, top (% from the top), n (finishers), hourET } →
+ * them). Idempotent by its key (m/daily_<game>_<day>). { game, day (the streak day), now, top (% from the top), n (finishers), hourET,
+ * flags (PW2 — the game's flags from the SERVER's record, keyed `<game>-<flag>` in pa.gf like a match's: THE PASSWORD's crack / safe) } →
  * { skip } | { next, items, streak: { n, ev }, dl }
  *   dl = { n (different days with a daily), last (day), day: { k, g: { game: 1 } }, early (dailies before 8 am), ph (PENTHOUSE finishes) }
  */
-export function dailyStep(s0, { game, day, now, top = 100, n = 0, hourET = 12, outage = null, founderOpen = false }) {
+export function dailyStep(s0, { game, day, now, top = 100, n = 0, hourET = 12, outage = null, founderOpen = false, flags = null }) {
   const s = s0 || {};
   const key = `daily_${game}_${day}`;
   if (s.m && s.m[key]) return { skip: 'counted' };
@@ -173,6 +174,8 @@ export function dailyStep(s0, { game, day, now, top = 100, n = 0, hourET = 12, o
   if (hourET >= 4 && hourET < 8) dl.early += 1;
   if (n >= 50 && top <= 1) dl.ph += 1;
   next.dl = dl;
+  const gf = Object.entries(flags || {}).filter(([, v]) => v).map(([k]) => `${game}-${k}`);   // (a DASH — never a dot in a database key)
+  if (gf.length) next.pa = { ...(s.pa || {}), gf: { ...((s.pa && s.pa.gf) || {}), ...Object.fromEntries(gf.map(k => [k, 1])) } };
   const streak = playDay(next, now, outage);
   const aw = awardAll(next, now, { founderOpen });
   return { next, items: [...streak.items, ...aw.items], ach: aw.ach, streak: { n: next.st.n, ev: streak.ev }, dl };

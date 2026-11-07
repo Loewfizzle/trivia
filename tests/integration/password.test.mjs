@@ -84,6 +84,11 @@ test('a clean crack: start → guesses judged by the server → THE BACK ROOM �
   const f = await F('pw-ann', NOW + 62e3, { score: 2, lies: true });
   assert.equal(f.score, 3, '(2 − 2) × 100 + 3 guesses');
   assert.equal(f.stand.n, 1); assert.equal(f.outcome.streak.n, 1);
+  // PW2 — THE REWARDS from the SERVER's record: a crack in 3 → KEYHOLE (the emblem) + SAFECRACKER (the card, ≤ 6); once
+  assert.deepEqual(f.outcome.ach.map(a => a.id || a).sort(), ['keyhole', 'safecracker']);
+  assert.ok(f.outcome.items.map(i => i.id || i).includes('emb-keyhole') && f.outcome.items.map(i => i.id || i).includes('card-safecracker'), JSON.stringify(f.outcome.items));
+  const ps = await val(`pstats/${await val('uids/pw-ann')}`);
+  assert.ok(ps.it['emb-keyhole'] && ps.it['card-safecracker'] && ps.ac.keyhole && ps.ac.safecracker && ps.pa.gf['password-crack'] === 1 && ps.pa.gf['password-safe'] === 1);
   const again = await F('pw-ann', NOW + 63e3, { score: 1 });
   assert.equal(again.score, 3); assert.equal(again.again, true); assert.equal(again.outcome, null);
   assert.equal(await val(`dly/password/${day}/n`), 1);
@@ -130,8 +135,25 @@ test('THE BACK ROOM held: door 1 in two, six misses on door 2 → 100 + 8; the s
   assert.equal(last.failed, true); assert.equal(last.word, W2); assert.equal(last.done, true);
   const f = await F('pw-cat', NOW + 20e3);
   assert.equal(f.score, 108);
+  assert.deepEqual((f.outcome.ach || []).map(a => a.id || a).filter(a => a === 'keyhole' || a === 'safecracker'), [], 'a held door: no KEYHOLE, no SAFECRACKER');
   // three finishers: Ann 3 · Cat 108 · Bob 206 → Cat beat Bob, not Ann
   assert.equal(f.stand.n, 3); assert.equal(f.stand.pct, 50);
+});
+
+test('PW2 — a crack in SEVEN: KEYHOLE but not SAFECRACKER (the threshold is six, from the record — never a phone\'s claim)', async () => {
+  await ensure('pw-dan', 'Dan');
+  const day = streakDay(NOW);
+  const [W1, W2] = wordsFor(day);
+  const miss = blank([W1, W2]);
+  await S('pw-dan', NOW);
+  for (let i = 0; i < 5; i++) await G('pw-dan', miss, NOW + (i + 1) * 1e3);
+  assert.equal((await G('pw-dan', W1, NOW + 7e3)).next, 1);
+  assert.equal((await G('pw-dan', W2, NOW + 8e3)).done, true);
+  const f = await F('pw-dan', NOW + 9e3, { flags: { safe: 1 }, guesses: 2 });
+  assert.equal(f.score, 7);
+  assert.deepEqual(f.outcome.ach.map(a => a.id || a).filter(a => a === 'keyhole' || a === 'safecracker'), ['keyhole']);
+  const ps = await val(`pstats/${await val('uids/pw-dan')}`);
+  assert.ok(ps.it['emb-keyhole'] && !ps.it['card-safecracker'] && ps.pa.gf['password-crack'] === 1 && !ps.pa.gf['password-safe']);
 });
 
 test('the day turns at 4 am Eastern: tomorrow is a new try with new words; the streak follows', async () => {

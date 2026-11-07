@@ -29,3 +29,6 @@ export const finalRanks = game => Object.keys((game && game.participants) || {})
 export const feats = game => { const s = scoreOf(game); return { pwScore: s.score, pwDoors: s.doors, pwGuesses: s.guesses }; };
 /** the result of a finished run (the daily module's one number) */
 export const resultFor = game => resultOf(game);
+/** PW2 — THE MUSIC FOLLOWS THE LOOK: a quiet station for the look on screen — DAY = the day deck (lo-fi), NIGHT = the evening deck (synth);
+ *  the console re-reads it when the look changes (app.js#applyLook → render) and crossfades (music.js); the menu song until the decks load */
+export const musicFor = () => [typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];

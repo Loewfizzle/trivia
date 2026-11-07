@@ -16,13 +16,13 @@ let K = 0;
 const play = (s, { at = T0, gid = 'prism', rank = 2, n = 4, f, ctx = {} } = {}) => { const r = matchStep(s, { key: `R_${K++}`, gid, row: row(rank, n, f), n, now: at, ctx }); assert.ok(!r.skip, r.skip); return { s: r.next, r }; };
 const has = (s, id) => !!(s.ac && s.ac[id]);
 
-test('thirty-two of them (OVERCLOCK CARDS added REDLINE + PHOTO FINISH), the owner\'s names, every one unlocking a real item, ids unique', () => {
-  assert.equal(ACHIEVEMENTS.length, 33, '32 + the HORSESHOE (OC5)');
-  assert.equal(new Set(ACHIEVEMENTS.map(a => a.id)).size, 33);
+test('thirty-two of them (OVERCLOCK CARDS added REDLINE + PHOTO FINISH; PW2 KEYHOLE + SAFECRACKER), the owner\'s names, every one unlocking a real item, ids unique', () => {
+  assert.equal(ACHIEVEMENTS.length, 35, '32 + the HORSESHOE (OC5) + KEYHOLE + SAFECRACKER (PW2)');
+  assert.equal(new Set(ACHIEVEMENTS.map(a => a.id)).size, 35);
   for (const a of ACHIEVEMENTS) { assert.ok(ITEM[a.item], `${a.id} → ${a.item}`); assert.ok(a.name && a.line); }
   assert.deepEqual(ACHIEVEMENTS.slice(0, 13).map(a => a.name), ['FIRST ROUND', 'HOUSE WARMING', 'FULL HOUSE', 'THE REGULAR', 'TOP SHELF', 'MADE MAN', 'KINGPIN', 'THE HOST', 'COMEBACK KID', 'LAST CALL', 'PARTY ANIMAL', 'NIGHT OWL', 'THE CREW']);
   assert.equal(ACH['kingpin'].item, 'card-marquee-gold'); assert.equal(ACH['the-host'].item, 'card-marquee');
-  assert.deepEqual(GAME_ACHIEVEMENTS, { prism: ['four-on-the-floor'], overclock: ['dead-on', 'overclocked', 'redline', 'photo-finish', 'horseshoe'] });
+  assert.deepEqual(GAME_ACHIEVEMENTS, { prism: ['four-on-the-floor'], overclock: ['dead-on', 'overclocked', 'redline', 'photo-finish', 'horseshoe'], password: ['keyhole', 'safecracker'] });
 });
 
 test('PLAYING: first round, hosting, full house, the regular, the wins, last call, party animal, night owl, the crew', () => {
@@ -84,6 +84,24 @@ test('DAILIES (dormant until the first daily) — the contract\'s step: daily br
   let t = null; for (const g of ['a', 'b', 'c']) { const r = dailyStep(t, { game: g, day: 'd20261110', now: T0 }); t = r.next; if (g === 'c') assert.ok(r.ach.includes('the-triple')); }
   assert.ok(dailyStep(null, { game: 'a', day: 'd20261110', now: T0, top: 1, n: 60 }).ach.includes('penthouse-suite'));
   assert.ok(!dailyStep(null, { game: 'a', day: 'd20261110', now: T0, top: 1, n: 49 }).ach.includes('penthouse-suite'));
+});
+
+test('PW2 — THE PASSWORD\'s rewards through the daily step: KEYHOLE on any crack, SAFECRACKER at the threshold (the flags from the SERVER\'s record), never twice, nothing without a flag', () => {
+  // a crack in 7: KEYHOLE only (the emblem granted); the card not
+  let r = dailyStep(null, { game: 'password', day: 'd20261110', now: T0, flags: { crack: 1 } });
+  assert.deepEqual(r.ach, ['keyhole']); assert.ok(r.items.includes('emb-keyhole') && !r.items.includes('card-safecracker'));
+  assert.equal(r.next.pa.gf['password-crack'], 1);
+  // the next night, both in 6: SAFECRACKER (the card) — KEYHOLE held already, not again
+  r = dailyStep(r.next, { game: 'password', day: 'd20261111', now: T0 + DAY, flags: { crack: 1, safe: 1 } });
+  assert.deepEqual(r.ach, ['safecracker']); assert.ok(r.items.includes('card-safecracker') && !r.items.includes('emb-keyhole'));
+  // a third crack in 6: nothing new (idempotent); a replay of the same day: skipped
+  const r3 = dailyStep(r.next, { game: 'password', day: 'd20261112', now: T0 + 2 * DAY, flags: { crack: 1, safe: 1 } });
+  assert.deepEqual(r3.ach, []); assert.ok(!r3.items.includes('card-safecracker'));
+  assert.equal(dailyStep(r3.next, { game: 'password', day: 'd20261112', now: T0 + 2 * DAY + 1, flags: { crack: 1, safe: 1 } }).skip, 'counted');
+  // a held door (no flags) → nothing; another game's 'crack' flag is not THE PASSWORD's
+  assert.deepEqual(dailyStep(null, { game: 'password', day: 'd20261110', now: T0, flags: null }).ach, []);
+  assert.deepEqual(dailyStep(null, { game: 'test', day: 'd20261110', now: T0, flags: { crack: 1, safe: 1 } }).ach, []);
+  assert.ok(Object.keys(dailyStep(null, { game: 'password', day: 'd20261110', now: T0, flags: { crack: 1 } }).next.pa.gf).every(k => !k.includes('.')), 'no dot in a database key');
 });
 
 test('SPECIALS: many happy returns (a fake birthday trigger — PROGRESSION B), season\'s greetings (3 holidays)', () => {

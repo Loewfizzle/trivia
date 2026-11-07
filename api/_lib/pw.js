@@ -58,4 +58,14 @@ export const PW_DAILY = {
     const r = replay(record, wordsFor(day), { startedAt });
     return r ? r.score : null;
   },
+  /** PW2 — THE FLAGS a finished run earns, from the RECORD (the award engine keys them `password-<flag>`): `crack` = both doors opened
+   *  (KEYHOLE) · `safe` = both doors in SAFE_GUESSES or fewer combined (SAFECRACKER — ≈ the best ~10 % of runs: scripts/sim-password.mjs) */
+  flags({ record, day, startedAt } = {}) {
+    if (!record || !day) return null;
+    return runFlags(replay(record, wordsFor(day), { startedAt }));
+  },
 };
+/** the threshold SAFECRACKER asks for: both doors in this many guesses or fewer (the owner, PW2 — the simulation checks ≈ 10 %) */
+export const SAFE_GUESSES = 6;
+/** a finished result → its flags (PURE): { crack: 1, safe?: 1 } | null */
+export const runFlags = r => (r && r.doors === 2 ? { crack: 1, ...(r.guesses <= SAFE_GUESSES ? { safe: 1 } : {}) } : null);

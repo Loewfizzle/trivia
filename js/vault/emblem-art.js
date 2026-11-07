@@ -109,6 +109,7 @@ export const EMBLEM_ART = Object.freeze({
   'emb-crescent': { shape: 'crescent', finish: 'neon' },
   'emb-butterfly': { shape: 'butterfly', finish: 'neon' },
   'emb-peephole': { shape: 'door', finish: 'neon' },
+  'emb-keyhole': { shape: 'keyhole', finish: 'neon' },
   'emb-stars': { shape: 'stars3', finish: 'neon' },
   'emb-wings': { shape: 'wings', finish: 'metal' },
   'emb-bitcoin': { shape: 'coin', finish: 'coin' },
@@ -398,6 +399,10 @@ Object.assign(SH, {
   // emb-peephole — the speakeasy's arched door (amber), its peephole SLIDING OPEN: light behind, two eyes, it shuts again
   door: { tubes: [{ d: 'M13.5 42 V18.5 A10.5 10.5 0 0 1 34.5 18.5 V42 Z M10 42.5 H38', col: '#ff9a3a' }, { d: `M19 19.5 H29 V24.8 H19 Z ${circ(30.6, 31.5, 1.2)}`, col: '#ffd27a', thin: true }],
     fx(C) { const L = C.layer('ve-peek'); L.g.append(el('rect', { x: 19.6, y: 20.1, width: 8.8, height: 4.1, fill: '#ffb84d' }), el('circle', { cx: 22, cy: 22.2, r: 0.95, fill: '#1a0a00' }), el('circle', { cx: 26, cy: 22.2, r: 0.95, fill: '#1a0a00' }), el('rect', { x: 17, y: 18, width: 14, height: 8, fill: '#ffb84d', opacity: 0.22 })); } },
+  // emb-keyhole (PW2 — THE PASSWORD: any full crack) — a keyhole in amber: the round eye + the slot below it; a pink key's tip at the eye;
+  // a warm light GLOWING through the hole (one layer, opacity — the room behind the door)
+  keyhole: { tubes: [{ d: 'M24 11 A7.5 7.5 0 1 1 23.99 11 Z', col: '#ffb43a' }, { d: 'M20.2 24.5 L15.5 41 H32.5 L27.8 24.5', col: '#ffb43a' }, { d: 'M34 13.5 L40 7.5 M37.5 10 L40.5 13', col: '#ff5fb4', thin: true }],
+    fx(C) { const L = C.layer('ve-keyglow'); L.g.append(el('circle', { cx: 24, cy: 18.5, r: 5.2, fill: '#ffd27a', opacity: 0.85 }), el('path', { d: 'M21.2 24.5 L17.8 38.5 H30.2 L26.8 24.5 Z', fill: '#ffd27a', opacity: 0.7 })); } },
   // emb-stars — three stars (gold, pink, cyan); the light HOPPING star to star
   stars3: { tubes: [{ d: star5(24, 13.5, 8), col: '#ffcf5a' }, { d: star5(13.5, 31.5, 7), col: '#ff5fb4' }, { d: star5(34.5, 31.5, 7), col: '#5fd7ff' }],
     fx(C) { [[24, 13.5, 8], [13.5, 31.5, 7], [34.5, 31.5, 7]].forEach(([x, y, R], i) => { const L = C.layer('ve-starlit', `--i:${i};transform-origin:${pct(x)} ${pct(y)}`); L.g.append(el('path', { d: star5(x, y, R * 0.62), fill: '#fff', opacity: 0.85 }), el('circle', { cx: x, cy: y, r: R * 1.2, fill: '#fff', opacity: 0.16 })); }); } },
