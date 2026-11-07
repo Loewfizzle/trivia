@@ -67,6 +67,8 @@ export const ITEM_ROWS = [
   C('card-photofinish', 'PHOTO FINISH', 'rare', '#060608', '#9fd8ff', '#2ea8ff', 'Won by a nose. One point.'),
   // PW2 — THE PASSWORD's card (Grok's vault door — the art assets/vault/pw/, the motion js/fx/pw-cards.js): both doors in six guesses or fewer
   C('card-safecracker', 'SAFECRACKER', 'rare', '#070a1c', '#ffd27a', '#ff4fd8', 'Both doors in six. The vault was never locked to you.'),
+  // CC2 — COAST CLEAR's card (Grok's speedboat — the art assets/vault/cc/, the motion js/fx/cc-cards.js): a clear with zero spots at or under GHOST_S
+  C('card-ghost-run', 'GHOST RUN', 'rare', '#07081c', '#5fe1ff', '#ff6fd8', 'Not one light found you. Across in under fifty seconds.'),
   C('card-founder', 'FOUNDING MEMBER', 'legendary', '#0a0806', '#ffdca0', '#ff4fb8', 'Here before the doors opened.'),
   // ---- THE VAULT 2B — THE TWO DEVELOPER CARDS (ONE OF ONE · DEV — js/core/dev-cards.js): the owner's only, granted by /api/profile 'me' to
   // ADMIN_PIDS, never earnable (in no reward table); legendary in every rule, a tier above it in look
@@ -124,6 +126,8 @@ export const ITEM_ROWS = [
   E('emb-horseshoe', 'HORSESHOE', 'uncommon', '∩', 'You backed the winning horse.'),
   // PW2 — THE PASSWORD's emblem: any full crack (neon tubes — js/vault/emblem-art.js `keyhole`)
   E('emb-keyhole', 'KEYHOLE', 'uncommon', '◘', 'Both doors of THE PASSWORD, one night.'),
+  // CC2 — COAST CLEAR's emblem: any clear (neon tubes — js/vault/emblem-art.js `lighthouse`)
+  E('emb-lighthouse', 'LIGHTHOUSE', 'uncommon', '⌂', 'Across the harbor and home. COAST CLEAR, cleared.'),
   E('emb-torch', 'THE FLAME', 'epic', '♨', 'Fifty nights in a row.'),
   E('emb-diamond', 'DIAMOND', 'common', '◇', 'Level 13.'),
   E('emb-crescent', 'CRESCENT', 'uncommon', '☾', 'Level 37.'),
@@ -219,6 +223,10 @@ export const ACH_ROWS = [
   // both in six guesses or fewer combined (≈ the best ~10 % of runs — scripts/sim-password.mjs). Dormant until THE SWITCH-OVER (no cartridge in production).
   A('keyhole', 'KEYHOLE', 'password', 'emb-keyhole', 'Both doors of THE PASSWORD, one night.', (s, p) => !!(p.gf && p.gf['password-crack']), { game: 'password', dormant: 'dailies' }),
   A('safecracker', 'SAFECRACKER', 'password', 'card-safecracker', 'Both doors in six guesses or fewer.', (s, p) => !!(p.gf && p.gf['password-safe']), { game: 'password', dormant: 'dailies' }),
+  // CC2 — COAST CLEAR (a daily — its flags from the SERVER's record on finish, api/_lib/cc.js#flags): `clear` = any clear · `ghost` = a clear with
+  // ZERO spots at or under GHOST_S (50 s on the score's clock ≈ the best ~10 % of clean runs — scripts/sim-coastclear.mjs). Dormant until THE SWITCH-OVER.
+  A('lighthouse', 'LIGHTHOUSE', 'coastclear', 'emb-lighthouse', 'Across the harbor: a COAST CLEAR run cleared.', (s, p) => !!(p.gf && p.gf['coastclear-clear']), { game: 'coastclear', dormant: 'dailies' }),
+  A('ghost-run', 'GHOST RUN', 'coastclear', 'card-ghost-run', 'COAST CLEAR with no light finding you, in 50 seconds or less.', (s, p) => !!(p.gf && p.gf['coastclear-ghost']), { game: 'coastclear', dormant: 'dailies' }),
 ];
 
 export const LEVEL_REWARD_ROWS = [

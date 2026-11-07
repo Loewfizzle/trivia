@@ -9,6 +9,7 @@
 import { GIFT_SPECS } from '../fx/gift-specs.js';
 import { OC_SPECS, OC_AH } from '../fx/oc-specs.js';
 import { PW_SPECS, PW_AH } from '../fx/pw-specs.js';
+import { CC_SPECS, CC_AH } from '../fx/cc-specs.js';
 export const HERO_BAND = Object.freeze([0.6, 0.84]);           // (where a hero's centre may sit, across the strip: right of a 10-letter name's
                                                                //  plate on every phone — LOEWFIZZLE's name row ends at 0.58 at 390)
 export const GEM_BOX = Object.freeze([0.88, 0.5, 0.12, 0.5]);  // (the tier gem's corner + its glow — css/vault.css .vl-strip .vl-gem)
@@ -51,6 +52,12 @@ for (const [id, S] of Object.entries(OC_SPECS)) {
 // (PW2 — THE PASSWORD's card: the wheel + the open door's gold — its art 1280 × 720 too)
 for (const [id, S] of Object.entries(PW_SPECS)) {
   const k = Math.max(SW / AW, SH / PW_AH), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - PW_AH * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
+  const y0 = Math.max(0, (oy + y * k) / SH), y1 = Math.min(1, (oy + (y + h) * k) / SH);
+  HERO[id] = Object.freeze([[(ox + x * k) / SW, y0, (w * k) / SW, Math.max(0.05, y1 - y0)]]);
+}
+// (CC2 — COAST CLEAR's card: the boat — its art 1280 × 720 too; its strip crop ~10 % lower than centre)
+for (const [id, S] of Object.entries(CC_SPECS)) {
+  const k = Math.max(SW / AW, SH / CC_AH), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - CC_AH * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
   const y0 = Math.max(0, (oy + y * k) / SH), y1 = Math.min(1, (oy + (y + h) * k) / SH);
   HERO[id] = Object.freeze([[(ox + x * k) / SW, y0, (w * k) / SW, Math.max(0.05, y1 - y0)]]);
 }

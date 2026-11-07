@@ -61,6 +61,7 @@ export function solve(board, counts = countsOf(board), opening = flood(board, co
       if (unk.length) cons.push({ cells: unk, need: n - kl, at: i });
     }
     const safe = new Set(), lit = new Set();
+    let kind = 'single';   // (the trace: which rule found this round — CC2's GHOST RUN simulation paces a human by it)
     // 1. single cells
     for (const c of cons) {
       if (c.need === 0) c.cells.forEach(j => safe.add(j));
@@ -71,11 +72,13 @@ export function solve(board, counts = countsOf(board), opening = flood(board, co
     for (let i = 0; i < N; i++) if (!open.has(i) && !light.has(i)) unknown.push(i);
     const left = total - light.size;
     if (!safe.size && !lit.size) {
+      kind = 'count';
       if (left === 0) unknown.forEach(j => safe.add(j));
       else if (left === unknown.length) unknown.forEach(j => lit.add(j));
     }
     // 2. pairs (+ 3b. each number against the whole rest of the board — the count as one more constraint)
     if (!safe.size && !lit.size) {
+      kind = 'pair';
       const all = [...cons, { cells: unknown, need: left, at: -1 }];
       const sets = all.map(c => new Set(c.cells));
       const byCell = new Map();
@@ -109,7 +112,7 @@ export function solve(board, counts = countsOf(board), opening = flood(board, co
     if (!safe.size && !lit.size) return { solved: false, rounds, digs, opened: open.size, safeLeft: safeTotal - open.size, log };
     for (const j of lit) { if (counts[j] >= 0) throw new Error('solver: a safe cell called a light'); light.add(j); }
     for (const j of safe) { if (counts[j] < 0) throw new Error('solver: a light called safe'); openCell(j); }
-    if (log) log.push({ safe: [...safe], lit: [...lit] });
+    if (log) log.push({ safe: [...safe], lit: [...lit], kind });
   }
   return { solved: true, rounds, digs, opened: open.size, safeLeft: 0, log };
 }

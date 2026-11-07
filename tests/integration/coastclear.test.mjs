@@ -184,6 +184,83 @@ test('A CLEAN CLEAR with a PAUSE: the clock stops while paused (+15 s), a dig re
   void counts;
 });
 
+// ---- CC2 — THE REVEAL + THE REWARDS (GHOST RUN + LIGHTHOUSE from the server's own record on finish; never the phone's claim)
+/** play a clean clear for uid: every safe cell dug ~0.5 s apart, the move that FINISHES it made at exactly NOW + endS seconds → the last answer */
+async function cleanClear(uid, endS) {
+  await A(uid, 'start', NOW);
+  const board = await ccBoard(day), counts = countsOf(board), L = new Set(board.lights);
+  const open = new Set(board.open), safeN = safeCount(board);
+  let t = NOW + 500, last = null;
+  for (let i = 0; i < 108 && open.size < safeN; i++) {
+    if (L.has(i) || open.has(i)) continue;
+    const ends = open.size + flood(board, counts, i, open).length >= safeN;
+    last = await A(uid, 'dig', ends ? NOW + endS * 1000 : t, { cell: i });
+    for (const [c] of last.cells) open.add(c);
+    assert.ok(!last.reveal || last.done, 'the lights are revealed only once the run is over');
+    t += 500;
+  }
+  return { last, board };
+}
+const awards = f => (f.outcome && f.outcome.ach ? f.outcome.ach.map(x => x.id || x) : []).filter(x => x === 'lighthouse' || x === 'ghost-run').sort();
+
+test('THE REVEAL: the answer that ENDS a run + a start after it carry every light; no answer before the end ever does', async () => {
+  await ensure('cc-ivy', 'Ivy');
+  await A('cc-ivy', 'start', NOW);
+  const board = await ccBoard(day), l = board.lights;
+  const a1 = await A('cc-ivy', 'dig', NOW + 1e3, { cell: l[0] });
+  const a2 = await A('cc-ivy', 'dig', NOW + 2e3, { cell: l[1] });
+  assert.equal(a1.reveal, undefined); assert.equal(a2.reveal, undefined);
+  assert.equal((await A('cc-ivy', 'start', NOW + 2500)).run.reveal, undefined, 'a resume mid-run: no reveal');
+  const a3 = await A('cc-ivy', 'dig', NOW + 3e3, { cell: l[2] });
+  assert.equal(a3.done, true);
+  assert.deepEqual(a3.reveal.slice().sort((x, y) => x - y), l.slice().sort((x, y) => x - y), 'the end: every light');
+  assert.deepEqual((await A('cc-ivy', 'start', NOW + 4e3)).run.reveal.slice().sort((x, y) => x - y), l.slice().sort((x, y) => x - y));
+  const f = await A('cc-ivy', 'finish', NOW + 5e3);
+  assert.deepEqual(awards(f), [], 'CAUGHT: no LIGHTHOUSE, no GHOST RUN');
+});
+
+test('THE REWARDS: a zero-spot clear AT the GHOST RUN time (50 s) → GHOST RUN + LIGHTHOUSE, once; one second over → LIGHTHOUSE only, a phone\'s faked claim ignored', async () => {
+  const { GHOST_S } = await import('../../api/_lib/cc.js');
+  assert.equal(GHOST_S, 50);
+  // AT the threshold: the finishing dig at exactly NOW + 50 s → score 50
+  await ensure('cc-fay', 'Fay');
+  const { last } = await cleanClear('cc-fay', GHOST_S);
+  assert.equal(last.out, 'clear');
+  const f = await A('cc-fay', 'finish', NOW + 60e3);
+  assert.equal(f.score, GHOST_S);
+  assert.deepEqual(awards(f), ['ghost-run', 'lighthouse'], JSON.stringify(f.outcome && f.outcome.ach));
+  const items = (f.outcome.items || []).map(i => i.id || i);
+  assert.ok(items.includes('card-ghost-run') && items.includes('emb-lighthouse'), JSON.stringify(items));
+  const pid = await pidOf('cc-fay'), ps = await val(`pstats/${pid}`);
+  assert.ok(ps.it['card-ghost-run'] && ps.it['emb-lighthouse'] && ps.ac['ghost-run'] && ps.ac.lighthouse && ps.pa.gf['coastclear-clear'] === 1 && ps.pa.gf['coastclear-ghost'] === 1);
+  // NEVER TWICE: the finish again → the stored score back, nothing awarded again
+  const f2 = await A('cc-fay', 'finish', NOW + 61e3);
+  assert.equal(f2.again, true); assert.deepEqual(awards(f2), [], 'never twice');
+  // ONE SECOND OVER: score 51 → LIGHTHOUSE only — and a faked claim of a fast run (the phone's result) changes nothing
+  await ensure('cc-gus', 'Gus');
+  await cleanClear('cc-gus', GHOST_S + 1);
+  const g = await A('cc-gus', 'finish', NOW + 70e3, { result: { score: 10, spots: 0 } });
+  assert.equal(g.score, GHOST_S + 1, 'scored from the record — the claim ignored');
+  assert.deepEqual(awards(g), ['lighthouse']);
+  const psg = await val(`pstats/${await pidOf('cc-gus')}`);
+  assert.ok(psg.it['emb-lighthouse'] && !psg.it['card-ghost-run'] && !psg.pa.gf['coastclear-ghost']);
+});
+
+test('THE REWARDS: a FAST clear with ONE spot → LIGHTHOUSE only (GHOST RUN needs zero); a finish before the run is over → refused, nothing awarded', async () => {
+  await ensure('cc-hal', 'Hal');
+  await A('cc-hal', 'start', NOW);
+  const board = await ccBoard(day);
+  await A('cc-hal', 'dig', NOW + 500, { cell: board.lights[0] });
+  await rejects(A('cc-hal', 'finish', NOW + 600, { result: { score: 5 } }), 409, 'not_done');
+  assert.equal(await val(`pstats/${await pidOf('cc-hal')}/it/emb-lighthouse`), null, 'a faked finish: nothing awarded');
+  const counts = countsOf(board), L = new Set(board.lights), open = new Set(board.open), safeN = safeCount(board);
+  let t = NOW + 700;
+  for (let i = 0; i < 108 && open.size < safeN; i++) { if (L.has(i) || open.has(i)) continue; const r = await A('cc-hal', 'dig', t, { cell: i }); for (const [c] of r.cells) open.add(c); t += 200; }
+  const f = await A('cc-hal', 'finish', t + 100);
+  assert.ok(f.score < 50 + 30 + 10, `fast (${f.score} with the +30)`);
+  assert.deepEqual(awards(f), ['lighthouse'], 'one spot: never GHOST RUN');
+});
+
 test('production (no DAILY_TEST) refuses coastclear: no cartridge, 404 no_daily', async () => {
   unregisterDaily('coastclear');
   const was = process.env.DAILY_TEST;

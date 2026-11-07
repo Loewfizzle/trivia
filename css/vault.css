@@ -711,6 +711,10 @@ body.reduced-fx .vg > i, .vl-still .vg > i, .vg.vg-still > i { animation: none !
 .ve .ve-flap { animation: ve-flap calc(3.2s * var(--sp)) ease-in-out infinite; }
 @keyframes ve-flap { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.7); } }
 .ve .ve-peek { opacity: 0; animation: ve-peek calc(6s * var(--sp)) ease-in-out infinite; }
+/* CC2 — emb-lighthouse: the beam swinging on the lamp (scaleX through 0 = the lens turning round), the lamp's glow breathing */
+.ve .ve-lhbeam { animation: ve-lhbeam calc(4.4s * var(--sp)) ease-in-out infinite; }
+@keyframes ve-lhbeam { 0% { transform: scaleX(1); opacity: 1; } 45% { transform: scaleX(0.08); opacity: 0.35; } 50% { transform: scaleX(-0.08); opacity: 0.35; } 95% { transform: scaleX(-1); opacity: 1; } 100% { transform: scaleX(-1); opacity: 1; } }
+.ve .ve-lhglow { animation: ve-breathe-g calc(2.8s * var(--sp)) ease-in-out infinite; }
 @keyframes ve-peek { 0%, 52% { opacity: 0; } 58%, 70% { opacity: 1; } 72% { opacity: 0.25; } 74%, 84% { opacity: 1; } 90%, 100% { opacity: 0; } }
 .ve .ve-starlit { opacity: 0; animation: ve-starlit calc(2.7s * var(--sp)) ease-in-out infinite; animation-delay: calc((var(--i) * 0.9s - 2.7s) * var(--sp)); }
 @keyframes ve-starlit { 0%, 100% { opacity: 0; transform: scale(0.8); } 18% { opacity: 1; transform: scale(1.08); } 40% { opacity: 0; transform: scale(1); } }
@@ -1062,6 +1066,13 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-s-pw-safecracker .vl-mat { background: #070a1c url('../assets/vault/pw/safecracker.webp') 50% 50% / cover no-repeat; }
 .vl-fcm-pw-safecracker .vl-mat { background-position: 50% 50%; }
 .vl-s-pw-safecracker .vl-plate { background: rgba(6, 8, 20, 0.82); }
+/* CC2 — COAST CLEAR's card: Grok's speedboat (1280 × 720 — js/fx/cc-specs.js holds the same crop) = the material. THE STRIP sits ~10 % lower than
+   centre (the boat sits low — the owner, CC2: a per-card value), the boat right of centre leaves the left clear for a long name; the gem corner dark */
+.vl-s-cc-ghost-run .vl-mat { background: #07081c url('../assets/vault/cc/ghost-run.webp') 50% 64% / cover no-repeat; }
+.vl-fcm-cc-ghost-run .vl-mat { background-position: 50% 56%; }
+.vl-s-cc-ghost-run .vl-plate { background: rgba(6, 8, 22, 0.82); }
+/* (the bow's tip + its cyan trim run on to ~92 % across, under the strip's gem — a dark backing under the stone, as REDLINE's, so it reads) */
+.vl-s-cc-ghost-run > .vl-gem::before { inset: -78%; background: radial-gradient(closest-side, rgba(150, 230, 255, 0.3), rgba(4, 6, 18, 0.95) 34%, rgba(4, 6, 18, 0.88) 56%, rgba(4, 6, 18, 0.5) 78%, rgba(4, 6, 18, 0) 100%); }
 /* (the owner's flag on the mock: REDLINE's strip gem sat on the gauge's hot red edge — a dark backing under the gem, its gold light kept small
    in the middle, so the stone reads on the red) */
 .vl-s-oc-redline > .vl-gem::before { inset: -78%; background: radial-gradient(closest-side, rgba(255, 210, 110, 0.42), rgba(8, 5, 5, 0.95) 34%, rgba(8, 5, 5, 0.9) 56%, rgba(8, 5, 5, 0.55) 78%, rgba(8, 5, 5, 0) 100%); }

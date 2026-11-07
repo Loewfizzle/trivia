@@ -94,6 +94,8 @@ export const LOOKS = Object.freeze({
   'card-photofinish': { mat: 'oc-photofinish', fx: 'ocPhoto' },
   // PW2 — THE PASSWORD's card: Grok's art = the material (css/vault.css .vl-s-pw-*), the game's layers = js/fx/pw-cards.js
   'card-safecracker': { mat: 'pw-safecracker', fx: 'pwSafe' },
+  // CC2 — COAST CLEAR's card: Grok's art = the material (css/vault.css .vl-s-cc-*), the game's layers = js/fx/cc-cards.js
+  'card-ghost-run': { mat: 'cc-ghost-run', fx: 'ccGhost' },
 });
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });

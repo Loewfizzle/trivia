@@ -34,6 +34,14 @@ export const CC_DAILY = {
     const r = replay(record, data, { startedAt });
     return r ? r.score : null;
   },
-  /** CC2 brings the rewards (LIGHTHOUSE · GHOST RUN) — no flags yet */
-  flags: () => null,
+  /** CC2 — THE FLAGS a finished run earns, from the RECORD (the award engine keys them `coastclear-<flag>`): `clear` = any clear (LIGHTHOUSE) ·
+   *  `ghost` = a clear with ZERO spots at or under GHOST_S on the score's clock (GHOST RUN — ≈ the best ~10 % of clean runs: scripts/sim-coastclear.mjs) */
+  flags({ record, startedAt, data } = {}) {
+    if (!record || !data) return null;
+    return runFlags(replay(record, data, { startedAt }));
+  },
 };
+/** the time GHOST RUN asks for, in the score's seconds (the clock, the pauses stopped, + 15 s a pause) — set by THE SIMULATION (scripts/sim-coastclear.mjs) */
+export const GHOST_S = 50;
+/** a finished result → its flags (PURE): { clear: 1, ghost?: 1 } | null (a caught run earns nothing) */
+export const runFlags = r => (r && r.out === 'clear' ? { clear: 1, ...(r.spots === 0 && r.score <= GHOST_S ? { ghost: 1 } : {}) } : null);
