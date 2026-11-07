@@ -65,3 +65,15 @@
   game reads the Settings look and must re-theme live (CC2 builds the live swap).
 - Rewards (CC2): LIGHTHOUSE emblem (any clear), GHOST RUN card (zero spots under a time set by simulation).
 - The daily stays `on: false` until THE SWITCH-OVER.
+
+## CC2 — COAST CLEAR: THE POLISH (Nov 7 2026 — daily, still ships OFF)
+- COAST CLEAR's switch reads DIG / BUOY (kept).
+- END SCREENS: the board + the DIG / BUOY switch leave. WIN = "COAST CLEAR" big green neon with the lighthouse beam sweeping behind it (the small
+  top sign steps aside — the name never shows twice) · one big time ("2:41") · a small line ("0 SPOTTED" or "1 SPOTTED · +30 s"). CAUGHT (3rd
+  spot) = "CAUGHT" big red neon · NO big time — one small line ("3 SPOTTED · 1:58"). Both: the finished harbor shrunk down (numbers, buoys, every
+  searchlight revealed) · SHARE · "NEXT HARBOR IN 13:06:44" (to the next 4 am Eastern). No pills, never top-heavy.
+- SHARE shows NO BOARD (everyone gets the same harbor — a picture would give the searchlights away): the headline, the time (or the caught line),
+  three small drawn searchlight icons (lit per spot), neonspeakeasy.com + one plain line "COAST CLEAR #<n> · 2:41 · 0 spotted · neonspeakeasy.com"
+  (#n from the same epoch as THE PASSWORD).
+- GHOST RUN card = a clear with ZERO spots under a time set by simulation so ≈ the best ~10% of clean runs earn it. LIGHTHOUSE emblem = any clear.
+  Both awarded by the SERVER from its record.
