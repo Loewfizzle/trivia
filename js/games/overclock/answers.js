@@ -23,7 +23,7 @@ import { hlRightDir, statEl, DIR_WORD } from './ui/higherlower.js';
 import { STROOP_COLORS, COMPASS_DIRS, COMPASS_TURN, closestCredit, linkAccepts, normWord } from './challenges.js';
 import { colorHex } from '../../config.js';
 import { buildReveal } from './reveals.js';
-import { fmtVal, joinTube } from './shared.js';
+import { fmtVal, joinedWord, joinedText } from './shared.js';
 import { tubeLayers, rwSource } from './ui/rewire.js';
 import { memNode } from './ui/memory.js';
 import { oddFace } from './ui/oddone.js';
@@ -153,7 +153,8 @@ function closest(spec, picks, ctx) {
 }
 // MISSING LINK (OC3 — its own answer): per puzzle, the three clues each JOINED to the link, the link WHITE-HOT on THE ANSWER tile, YOUR PICK
 // (your last guess) struck through when you never got it; the room's count under them. OC3B — THE NEUTRAL JOIN: each clue + the link are
-// joined by a short lit tube (shared.js#joinTube), never an arrow — the bank doesn't say which side the link goes, so it can't read backwards
+// joined by a short lit tube (shared.js#joinTube), never an arrow. OC7 — the bank records each clue's SIDE: every clue shows its WHOLE word /
+// phrase with the link part lit (shared.js#joinedWord: SUN|FLOWER · FIRE|WORK · ICE CREAM); the tube only where a row has no side (none do)
 function missinglink(spec, picks, ctx) {
   const res = ((ctx.game && ctx.game.results && ctx.game.results[ctx.game.ci]) || {})[ctx.me];
   const both = (ctx.uids || []).filter(u => { const r = ((ctx.game && ctx.game.results && ctx.game.results[ctx.game.ci]) || {})[u]; return r && r.ok >= 2; }).length;
@@ -163,7 +164,11 @@ function missinglink(spec, picks, ctx) {
     const state = right ? 'right' : p != null ? 'wrong' : 'none';
     const d = 120 + k * 380;
     return answerFrame({
-      q: h('span.oc-ans-ml', pz.words.map((w, i) => h('span.oc-ans-ml-join', { 'aria-label': `${w} and ${link}`, style: { '--j': `${d + 520 + i * 110}ms` } }, h('b', w), joinTube(), h('em', link)))),
+      // OC7 — each clue as the WHOLE word / phrase it makes with the link, the link part lit (SUN|FLOWER · FIRE|WORK · ICE CREAM)
+      q: h('span.oc-ans-ml', pz.words.map((w, i) => {
+        const j = pz.joins && pz.joins[i];
+        return h(`span.oc-ans-ml-join${j ? '.is-whole' : ''}`, { 'aria-label': joinedText(w, link, j), style: { '--j': `${d + 520 + i * 110}ms` } }, ...joinedWord(w, link, j));
+      })),
       answer: h('span.oc-ans-link', link),
       pick: state === 'wrong' ? h('span.oc-ans-link.is-pick', p) : null,
       state, note: state === 'none' ? (k === 0 && res && res.p >= 1 && !right ? 'SKIPPED' : 'NO ANSWER') : '',
@@ -203,6 +208,9 @@ function spellWord(word, marks, miss = null, kind = 'good') {
     ? h('i.oc-sp-gap', { role: 'img', 'aria-label': 'a letter missing here' })
     : r.mark ? h(`u.oc-sp-m.is-${kind}`, { 'aria-label': kind === 'good' ? `${r.t} — the tricky part` : `${r.t} — wrong` }, r.t) : r.t)));
 }
+// OC7 — THE HARD LETTERS, exactly: the bank's `hard` indexes (the letters its most common misspelling gets wrong); an older deal without them →
+// the OC3B alignment
+export const hardMarks = it => (Array.isArray(it.hard) && it.hard.length ? [...String(it.word)].map((_, i) => it.hard.includes(i)) : trickyLetters(it.word, it.common));
 function spellcheck(spec, picks) {
   const res = spec.items.map((it, i) => st(picks[i], it.ans));
   const b = box(sumRow(res, 'YOUR FIVE WORDS'), spec.items.map((it, i) => {
@@ -210,7 +218,7 @@ function spellcheck(spec, picks) {
     const mine = p == null || p === it.ans ? null : it.options[p];
     const wl = mine ? wrongLetters(mine, it.word) : null;
     return answerFrame({
-      answer: spellWord(it.word, trickyLetters(it.word, it.common)),
+      answer: spellWord(it.word, hardMarks(it)),
       pick: mine ? spellWord(mine, wl.bad, wl.miss, 'bad') : null,
       state: res[i], note: p == null ? 'NO ANSWER' : '', upright: true,
       delay: 160 + i * 170,

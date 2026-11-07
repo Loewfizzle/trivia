@@ -40,6 +40,16 @@ export const TURN_SVG = {
 // record which side the link goes: FIRE + WORK must never read "WORK → FIRE"). Glass ends, a white-hot core, a static glow under it (its
 // opacity is what animates). OC7 records the side per puzzle and shows the whole compound word.
 export const joinTube = () => h('i.oc-join', { 'aria-hidden': 'true' }, h('i.oc-join-glow'), h('i.oc-join-core'));
+// OC7 — THE WHOLE WORD: a clue + the link as the word / phrase they make, the link part LIT — SUN|FLOWER · FIRE|WORK (the link first) · ICE CREAM
+// (a phrase keeps its space). join = { side: 'after' | 'before', sep: '' | ' ' } (challenges.js#genMissingLink); without one (an old deal, a row
+// with no side — the bank has none: tests/overclock-oc7.test.mjs) the clue + the neutral tube + the link, as OC3B drew it.
+export function joinedWord(clue, link, join) {
+  if (!join || (join.side !== 'after' && join.side !== 'before')) return [h('b', clue), joinTube(), h('em', link)];
+  const lit = h('em.oc-ml-lit', link), plain = h('b', clue);
+  const gap = join.sep === ' ' ? h('i.oc-ml-gap', { 'aria-hidden': 'true' }) : null;
+  return join.side === 'after' ? [plain, gap, lit] : [lit, gap, plain];
+}
+export const joinedText = (clue, link, join) => (!join ? `${clue} and ${link}` : join.side === 'before' ? `${link}${join.sep}${clue}` : `${clue}${join.sep}${link}`);
 
 // Buttons that react on touch-down (a click waits for the finger to lift — too slow for these).
 export const fastButton = (sel, attrs, onPress, ...kids) => h(sel, {

@@ -9,7 +9,7 @@
 // Each piece runs its OWN keyframes on ONE shared 3-s loop (the Web Animations API — transform + opacity only, on the compositor), so every
 // piece's timing is exact whatever the others do. Reduced motion: the finished picture, still.
 import { h, reducedMotion } from '../../ui/dom.js';
-import { joinTube } from './shared.js';
+import { joinedWord } from './shared.js';
 import { tubeLayers, rwSource, rwCore } from './ui/rewire.js';
 import { compassDial } from './ui/compass.js';
 
@@ -55,13 +55,15 @@ export function patternDemo() {
   });
 }
 
-/** MISSING LINK: SUN · CORN · WALL — FLOWER types itself into the slot, then each clue's join (a lit tube + FLOWER) slides in + lights */
+/** MISSING LINK: SUN · CORN · WALL — FLOWER types itself into the slot, then each clue becomes its WHOLE word (OC7: SUN|FLOWER, the link part
+ *  lit — the same join THE ANSWER draws: shared.js#joinedWord) */
 export function linkDemo() {
   const WORDS = ['SUN', 'CORN', 'WALL'], LINK = 'FLOWER';
   const lines = WORDS.map(w => {
     const lit = h('i.oc-demo-join-lit');
-    const tail = h('span.oc-demo-tail', joinTube(), h('em', LINK));
-    return { el: h('span.oc-demo-join', lit, h('b', w), tail), lit, tail };
+    const [word, , link] = joinedWord(w, LINK, { side: 'after', sep: '' });
+    const tail = h('span.oc-demo-tail', link);
+    return { el: h('span.oc-demo-join.is-whole', lit, word, tail), lit, tail };
   });
   const letters = [...LINK].map(ch => h('b', ch));
   const slot = h('div.oc-ml-slot.oc-demo-slot', { style: { '--n': LINK.length } }, h('span.oc-ml-glow'), ...letters.map(b => h('span.oc-ml-cell', b)));
