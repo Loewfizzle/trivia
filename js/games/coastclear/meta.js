@@ -8,20 +8,20 @@ export const LIGHTS = 18;           // the hidden searchlights
 export const SPOT_S = 30;           // SPOTTED: +30 s on the clock, the run goes on
 export const PAUSE_S = 15;          // a pause (the room started a game mid-run): the clock stops + a flat 15 s
 export const MAX_SPOTS = 3;         // the 3rd spot ends the run (CAUGHT)
-/** the share line's day number (CC2): COAST CLEAR #n = days since this epoch + 1 — set it at THE SWITCH-OVER (a streak-day key) */
+/** the share line's day number (CC2): COAST CLEAR #n = days since this epoch + 1 — THE PASSWORD's epoch (PW_EPOCH); both move together at THE SWITCH-OVER */
 export const CC_EPOCH = 'd20261101';
 
 export const DEFAULT_SETTINGS = {};
 export const OPTIONS = [];
 export const estimateMinutes = () => 3;
 
-// a quiet solo run on the EVENING station, like THE PASSWORD's night (CC2: the day deck in the day look)
+// a quiet solo run on the EVENING station, like THE PASSWORD's night (CC2: the music follows the look — index.js#musicFor: the day deck by day)
 export const MUSIC = 'mood:evening';
 export const SOLO = true;
 export const MIN_PLAYERS = 1;
 export const BANNER_NAME = 'COAST CLEAR';
-/** CC1 = the NIGHT harbor only (the console paints night + shows NIGHT · LOCKED); CC2 adds the day harbor → ['day', 'night'] */
-export const LOOKS = ['night'];
+/** CC2 — BOTH LOOKS: the night harbor (neon) + the sunny harbor (THE PASSWORD's C1 clear morning sky); the Settings look switches it LIVE */
+export const LOOKS = ['day', 'night'];
 
 /** a solo daily: the chat is never locked */
 export function chatLocked() {

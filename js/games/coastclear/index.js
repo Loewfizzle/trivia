@@ -30,3 +30,6 @@ export const finalRanks = game => Object.keys((game && game.participants) || {})
 /** FEATS the server may read (docs/cartridge.md D3): the run's score + spots (bounded on the server; CC2's rewards read the server's record) */
 export const feats = game => { const r = result(game); const v = game && game.run; return { ccScore: r ? r.score : null, ccSpots: v ? v.spots : 0, ccClear: !!(v && v.out === 'clear') }; };
 export const resultFor = game => result(game);
+/** CC2 — THE MUSIC FOLLOWS THE LOOK (like THE PASSWORD): DAY = the day deck, NIGHT = the evening deck; the console re-reads it when the look
+ *  changes (app.js#applyLook → render) and crossfades (music.js); the menu song until the decks load */
+export const musicFor = () => [typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];

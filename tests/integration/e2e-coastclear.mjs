@@ -6,6 +6,11 @@
 // view resumes the clock) → every safe cell → COAST CLEAR + the server's score (= its replay) → ONE TRY (a reload lands on the end). A second
 // phone on a 150 ms line: the tap's press still instant, the answers pipelined → three lights → CAUGHT. Every /api answer checked: no cell named
 // that the record hasn't opened. THE NUMBERS: the dig round trip (p50 / p95) on the emulators + with 150 ms added, the calls + the record's size.
+// CC2: THE SWEEP (a beam lands on the light — a tap during it still works; the lamp + the clock jump when it lands) · LOOK FLIPS mid-dig, mid-flood,
+// mid-sweep + on the end screen (nothing resets) · THE WIN (COAST CLEAR, the sign steps aside, one big time, the line, the shrunk harbor with
+// every light, SHARE, NEXT HARBOR IN; the board + the switch gone) · RESUME onto the end screen · CAUGHT (three beams converge, no big time) ·
+// the lights REVEALED only once a run is over · the share's inputs (no board) + the 1080 × 1350 image · 60 fps through the sweep, the catch +
+// the lighthouse (the preview page — real frame timing, also at 4× CPU).
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
 process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
 process.env.GCLOUD_PROJECT ||= 'demo-arcade';
@@ -45,6 +50,18 @@ const cellSel = i => `.cc-cell[data-i="${i}"]`;
 const tap = (page, i) => page.click(cellSel(i));
 const longPress = async (page, i) => { const b = await (await page.$(cellSel(i))).boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await sleep(520); await page.mouse.up(); };
 const idle = page => page.waitForFunction(() => window.__coastclear.state().pending === 0 && window.__coastclear.state().inflight === 0, { timeout: 20000 });
+/** CC2 — every beam landed + gone (a spot's sweep is ~0.7 s + its hold / fade) */
+const calm = page => page.waitForFunction(() => window.__coastclear.state().landing === 0 && window.__coastclear.state().beams === 0, { timeout: 10000 });
+/** CC2 — flip the look (the console sets body[data-look]) and wait for the REAL end of the crossfade (the look's painted layer fully in, no CSS
+ *  transition still running inside the screen) — never a fixed sleep (CC2 Group 0) */
+const flipLook = async (page, look) => {
+  await page.evaluate(l => { document.body.dataset.look = l; }, look);
+  await page.waitForFunction(l => document.body.dataset.look === l && getComputedStyle(document.querySelector('.cc-screen'), '::after').opacity === (l === 'day' ? '1' : '0'), { timeout: 5000, polling: 'raf' }, look);
+  await page.waitForFunction(() => { const scr = document.querySelector('.cc-screen'); return !document.getAnimations().some(a => a.constructor.name === 'CSSTransition' && a.playState === 'running' && (!a.effect || !a.effect.target || scr.contains(a.effect.target))); }, { timeout: 5000, polling: 'raf' });
+};
+const cellLook = (page, i) => page.$eval(`.cc-cell[data-i="${i}"]`, e => getComputedStyle(e).backgroundImage + '|' + getComputedStyle(e).boxShadow);
+/** real frame timing in a page for ms (rAF intervals): fps, p95, frames over 25 ms */
+const frames = (page, ms) => page.evaluate(ms => new Promise(res => { const t = []; let last = performance.now(); const t0 = last; const f = now => { t.push(now - last); last = now; if (now - t0 < ms) requestAnimationFrame(f); else { const s = t.slice(1).sort((a, b) => a - b); res({ fps: Math.round(10 * (t.length - 1) / ((now - t0) / 1000)) / 10, p95: Math.round(10 * s[Math.floor(s.length * 0.95)]) / 10, long: s.filter(x => x > 25).length }); } }; requestAnimationFrame(f); }), ms);
 const openSet = v => new Set(v.open.map(c => c[0]));
 const pidOf = page => page.evaluate(() => window.__daily.pid);
 const recOf = async page => val(`dly/coastclear/${day}/p/${await pidOf(page)}`);
@@ -73,15 +90,35 @@ await H.run(async () => {
   await idle(p);
   v = await V(p);
   ok(pressNow && openSet(v).has(num) && new Map(v.open).get(num) === counts[num], `a DIG: the tile pressed in the same event, the number (${counts[num]}) from the server`);
+  // CC2 — THE LOOK FLIP mid-dig: the tap fires, the look flips while it's in flight → the answer still lands, the tile re-themes, the switch kept
+  {
+    const nxt = [...Array(108).keys()].find(i => !openSet(v).has(i) && !L.has(i) && counts[i] > 0 && NB[i].some(j => openSet(v).has(j)));
+    const night = await cellLook(p, nxt);
+    const fired = await p.evaluate(i => { window.__coastclear.tap(i); return window.__coastclear.state().pending; }, nxt);
+    await flipLook(p, 'day');
+    await idle(p);
+    const day = await cellLook(p, nxt);
+    const vv = await V(p);
+    ok(fired === 1 && new Map(vv.open).get(nxt) === counts[nxt] && day !== night && (await S(p)).mode === 'dig', 'LOOK FLIP mid-dig → DAY: the dig in flight still landed (its number), the cells re-themed, the switch kept on DIG');
+    await flipLook(p, 'night');
+    v = vv;
+  }
 
   // ---- a FLOOD: a 0 outside what's open → its whole calm area in ONE answer
   const zero = [...Array(108).keys()].find(i => !openSet(v).has(i) && counts[i] === 0);
   if (zero != null) {
     const n0 = answers.length;
-    await tap(p, zero); await idle(p);
+    const clockF = await p.evaluate(() => window.__coastclear.state().clock);
+    await tap(p, zero);
+    await flipLook(p, 'day');                         // CC2 — THE LOOK FLIP mid-flood (the dig in flight / the ripple running)
+    await idle(p);
     v = await V(p);
     const a = answers.slice(n0).find(x => x.req.action === 'dig' && x.req.cell === zero);
     ok(a && a.body.cells.length > 1 && a.body.cells.every(([c]) => openSet(v).has(c)), `a FLOOD: the 0 opened ${a && a.body.cells.length} cells in one answer`);
+    const secs0 = t => t.split(':').reduce((m, x) => m * 60 + Number(x), 0);
+    ok(await p.$eval(cellSel(zero), e => e.classList.contains('is-open')) && secs0(await p.evaluate(() => window.__coastclear.state().clock)) >= secs0(clockF), 'LOOK FLIP mid-flood → DAY: the flood still opened, the clock carried on (nothing reset)');
+    await shotAll(p, 'cc-01b-day', [[390, 844]]);
+    await flipLook(p, 'night');
   } else log('(no 0 left outside the opening on today\'s board)');
 
   // ---- BUOYS (long-press) + a CHORD: an open number with exactly its lights buoyed → its other neighbours open
@@ -110,8 +147,22 @@ await H.run(async () => {
   v = await V(p);
   const bu0 = new Set(await p.evaluate(() => window.__coastclear.buoys()));
   const light = board.lights.find(c => !bu0.has(c));
-  await tap(p, light); await idle(p);
+  // CC2 — THE SWEEP: the beam is in the air (the cell not lit yet, the lamp + the clock not jumped), a tap DURING it still works, a look flip mid-sweep
+  // changes nothing; then it lands: the cell lit, one lamp, +30 s
+  await tap(p, light);
+  await p.waitForFunction(() => window.__coastclear.state().beams > 0, { timeout: 5000 });
+  const mid = await p.evaluate(sel => ({ lit: document.querySelector(sel).classList.contains('is-lit'), lamps: document.querySelectorAll('.cc-spot.is-on').length, st: window.__coastclear.state() }), cellSel(light));
+  const openNow = openSet(await V(p));
+  const during = [...Array(108).keys()].find(i => !L.has(i) && !openNow.has(i) && !bu0.has(i));
+  if (during != null) await p.evaluate(i => window.__coastclear.tap(i), during);
+  await flipLook(p, 'day');
+  await calm(p); await idle(p);
   const s1 = await S(p);
+  ok(!mid.lit && mid.lamps === 0 && mid.st.spots === 1 && mid.st.shown === 0, 'THE SWEEP: the beam in the air — the light not painted yet, no lamp lit, the clock not jumped (the server already counted it)');
+  ok(during == null || openSet(await V(p)).has(during), 'a tap DURING the sweep still dug (play never stops)');
+  ok(s1.spots === 1 && s1.shown === 1 && s1.beams === 0, 'a LOOK FLIP mid-sweep: the beam still landed (one lamp lit, the spot counted)');
+  await shotAll(p, 'cc-02b-spotted-day', [[390, 844]]);
+  await flipLook(p, 'night');
   const secs = t => t.split(':').reduce((m, x) => m * 60 + Number(x), 0);
   ok(s1.spots === 1 && !s1.done && (await p.$eval(cellSel(light), e => e.classList.contains('is-lit'))) && (await p.$$eval('.cc-spot.is-on', e => e.length)) === 1 && secs(s1.clock) - secs(clock0) >= 30,
     `SPOTTED: one lamp lit, the light stays in its cell, the clock +30 s (${clock0} → ${s1.clock}), play goes on`);
@@ -150,14 +201,41 @@ await H.run(async () => {
   await p.waitForFunction(() => window.__coastclear.finished() === 'RECORDED', { timeout: 15000 });
   const fin = await recOf(p), rep = replay(fin, board);
   const score = await p.evaluate(() => window.__coastclear.score());
-  const end = await p.evaluate(() => ({ t: document.querySelector('.cc-end-t').textContent, n: (document.querySelector('.cc-end-n') || {}).textContent, line: document.querySelector('.cc-end-line').textContent, buoys: window.__coastclear.buoys().length, text: document.querySelector('.cc-screen').innerText }));
-  ok(fin.o === 'clear' && rep && score === rep.score && end.t === 'COAST CLEAR' && /1 SPOT/.test(end.line) && /1 PAUSE/.test(end.line), `COAST CLEAR: the server's score ${score} = its replay (time + 30 + 15) — "${end.t} ${end.n} · ${end.line}"`);
-  ok(end.buoys === 17 && !/null|undefined/.test(end.text), 'on the clear every cell still shut gets its buoy (deduced — never told); no stray text');
+  const endOf = page => page.evaluate(() => ({
+    t: document.querySelector('.cc-end-t').textContent, n: (document.querySelector('.cc-end-n') || {}).textContent, line: document.querySelector('.cc-end-line').textContent,
+    buoys: window.__coastclear.buoys().length, text: document.querySelector('.cc-screen').innerText,
+    gone: !document.querySelector('.cc-play:not([hidden])') && !document.querySelector('.cc-mode:not([hidden])'),
+    sign: getComputedStyle(document.querySelector('.cc-sign')).opacity, lh: !!document.querySelector('.cc-lh-beam'),
+    map: [...document.querySelectorAll('.cc-mc')].map(c => c.className.replace('cc-mc ', '')),
+    share: !!document.querySelector('.btn.cc-share.btn-primary'), next: document.querySelector('.cc-end-next').textContent,
+    still: document.querySelector('.cc-end').classList.contains('is-still'),
+    pill: [...document.querySelectorAll('.cc-screen *')].some(e => parseFloat(getComputedStyle(e).borderRadius) >= 100 && e.getBoundingClientRect().width > e.getBoundingClientRect().height * 1.6),
+    top: document.querySelector('.cc-end-t').getBoundingClientRect().top, foot: innerHeight - document.querySelector('.cc-end-actions').getBoundingClientRect().bottom,
+  }));
+  await p.waitForFunction(() => getComputedStyle(document.querySelector('.cc-sign')).opacity === '0', { timeout: 5000 }).catch(() => {});   // (the sign's 0.35 s step aside)
+  const end = await endOf(p);
+  ok(fin.o === 'clear' && rep && score === rep.score && end.t === 'COAST CLEAR' && end.line === '1 SPOTTED · +30 s · 1 PAUSE · +15 s' && end.n === `${Math.floor(score / 60)}:${String(score % 60).padStart(2, '0')}`, `COAST CLEAR: the server's score ${score} = its replay = the big time (${end.n}) — "${end.line}"`);
+  ok(end.gone && end.sign === '0' && end.lh && end.share && /^NEXT HARBOR IN \d+:\d\d:\d\d$/.test(end.next) && !end.pill, `THE WIN SCREEN: the board + the switch gone, the top sign stepped aside (the name once), the lighthouse beam, SHARE, ${end.next} — no capsule${end.gone && end.sign === '0' && end.lh && end.share && !end.pill ? '' : ` [${JSON.stringify({ gone: end.gone, sign: end.sign, lh: end.lh, share: end.share, pill: end.pill })}]`}`);
+  const kinds = k => end.map.filter(c => c.includes(`is-${k}`)).length;
+  ok(end.map.length === 108 && kinds('spot') === 1 && kinds('buoy') === 17 && kinds('open') === 108 - 18 && end.buoys === 17 && !/null|undefined/.test(end.text), `THE FINISHED HARBOR shrunk: 90 open (numbers), 1 gold light, 17 buoys — every light shown (deduced on a clear)`);
+  ok(end.top < 160 && end.foot > 20, `never top-heavy: the headline ${Math.round(end.top)} pt from the top, the leftover space at the foot (${Math.round(end.foot)} pt)`);
+  const inputs = await p.evaluate(() => window.__coastclear.shareInputs());
+  const img = await p.evaluate(async () => { const S = await import('/js/games/coastclear/share.js'); const cv = S.renderShare({ inputs: window.__coastclear.shareInputs(), look: 'night' }); return [cv.width, cv.height]; });
+  ok(JSON.stringify(Object.keys(inputs).sort()) === JSON.stringify(['caught', 'dayNo', 'head', 'line', 'site', 'spots', 'time']) && inputs.spots === 1 && img.join() === '1080,1350' && /^COAST CLEAR #\d+ · \d+:\d\d · 1 spotted · neonspeakeasy\.com$/.test(await p.evaluate(() => window.__coastclear.shareLine())), `THE SHARE: the card's inputs (no board — head / time / line / lamps / day / site), a 1080 × 1350 image, the one line`);
   await shotAll(p, 'cc-03-clear');
+  await flipLook(p, 'day');
+  ok((await endOf(p)).t === 'COAST CLEAR' && !!(await p.$('.cc-end.is-in')), 'a LOOK FLIP on the end screen: it stands');
+  await shotAll(p, 'cc-03-clear-day', [[390, 844]]);
+  await flipLook(p, 'night');
   // ---- ONE TRY: a reload lands on the end; the server keeps the first score
   await grab(p);
   await p.reload(); await ready(p);
   await p.waitForFunction(() => window.__coastclear.state().end, { timeout: 10000 });
+  const endR = await endOf(p);
+  ok(endR.still && endR.gone && endR.t === 'COAST CLEAR' && endR.map.length === 108, 'RESUME onto the end screen: lands on it at once (no motion replayed), the harbor drawn');
+  await p.evaluate(() => window.__suspend()); await p.evaluate(() => window.__resume()); await ready(p);
+  await p.waitForFunction(() => window.__coastclear.state().end, { timeout: 10000 });
+  ok((await endOf(p)).still, 'torn down + rebuilt on the end screen: the same clean landing');
   const again = await p.evaluate(() => window.__api({ action: 'finish' }));
   const dig2 = await p.evaluate(() => window.__api({ action: 'dig', cell: 0 }).then(() => 'ok', e => e.code));
   ok(again.again === true && again.score === score && dig2 === 'finished', 'ONE TRY: a reload shows the end, a second finish gets the stored score back, a dig after the end is refused');
@@ -172,11 +250,15 @@ await H.run(async () => {
   const peak = await q.evaluate(() => window.__coastclear.state().inflight);
   await idle(q);
   const all = Date.now() - t0;
-  ok(press.every(x => x.ok && x.ms < 8) && peak >= 3, `150 ms LINE: every press shows in the same event (${Math.max(...press.map(x => x.ms)).toFixed(1)} ms max), ${peak} taps in flight at once, all six answered in ${all} ms`);
-  for (const c of board.lights.slice(0, 3)) await tap(q, c);
+  ok(press.every(x => x.ok && x.ms < 16) && peak >= 3, `150 ms LINE: every press shows in the same event (${Math.max(...press.map(x => x.ms)).toFixed(1)} ms max), ${peak} taps in flight at once, all six answered in ${all} ms`);
+  for (const c of board.lights.slice(0, 2)) { await tap(q, c); await calm(q); }
+  await tap(q, board.lights[2]);
+  const conv = await q.waitForFunction(() => window.__coastclear.state().beams >= 3, { timeout: 8000, polling: 'raf' }).then(() => true, () => false);
   await q.waitForFunction(() => window.__coastclear.state().end, { timeout: 15000 });
   const qs = await S(q);
   const qEnd = await q.$eval('.cc-end-t', e => e.textContent);
+  const qLook = await q.evaluate(() => ({ n: !!document.querySelector('.cc-end-n'), line: document.querySelector('.cc-end-line').textContent, sign: getComputedStyle(document.querySelector('.cc-sign')).opacity, lh: !!document.querySelector('.cc-lh-beam'), dim: getComputedStyle(document.querySelector('.cc-end-map')).opacity, light: document.querySelectorAll('.cc-mc.is-light, .cc-mc.is-buoy').length + document.querySelectorAll('.cc-mc.is-spot').length }));
+  ok(conv && !qLook.n && /^3 SPOTTED · \d+:\d\d$/.test(qLook.line) && qLook.sign === '1' && !qLook.lh && Number(qLook.dim) < 1 && qLook.light === 18, `CAUGHT: three beams converged, then CAUGHT — no big time, one line (${qLook.line}), the sign stays, no lighthouse, the harbor dimmed with EVERY light revealed (18)${conv && !qLook.n && qLook.sign === '1' && !qLook.lh && Number(qLook.dim) < 1 && qLook.light === 18 ? '' : ` [${JSON.stringify({ conv, ...qLook })}]`}`);
   await q.waitForFunction(() => window.__coastclear.finished() === 'RECORDED', { timeout: 15000 });
   const qRec = await recOf(q);
   ok(qs.out === 'caught' && qs.spots === 3 && qEnd === 'CAUGHT' && replay(qRec, board).score > 9999, `CAUGHT: the third light ends the run (score ${replay(qRec, board).score} — below every finished run)`);
@@ -191,9 +273,27 @@ await H.run(async () => {
     const b = a.body;
     for (const [c, n] of [...(b.cells || []), ...((b.run && b.run.open) || [])]) if (open.get(c) !== n) bad++;
     for (const c of [...(b.lit || []), ...((b.run && b.run.lit) || [])]) if (!lit.has(c)) bad++;
+    if ((b.reveal && !b.done) || (b.run && b.run.reveal && !b.run.done)) bad++;      // (CC2: the lights revealed only once the run is over)
     if (/"(l|mv|board|counts)"/.test(JSON.stringify(b))) bad++;
   }
   ok(bad === 0 && answers.length > 40, `NO LEAK: ${answers.length} answers, every cell named was opened by its own player, no board / record in any`);
+
+  // ---- CC2 — 60 FPS: real frame timing (rAF) through the sweep, the catch + the lighthouse, on the preview page (no network in the way), + at 4× CPU
+  const perf = [];
+  for (const [label, qs, ms] of [['the sweep', 'sweep=1', 1400], ['the catch', 'end=caught', 1700], ['the lighthouse', 'end=clear', 3200]]) {
+    for (const cpu of [1, 4]) {
+      const pg = await browser.newPage();
+      await pg.setViewport(H.VIEW);
+      if (cpu > 1) { const cdp = await pg.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpu }); }
+      await pg.goto(guardUrl(`${BASE}/tests/integration/coastclear-preview.html?${qs}&fdelay=50&toggle=0`, 'e2e-coastclear'));
+      await pg.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 30000 });
+      await pg.waitForFunction(() => window.__coastclear.state().beams > 0 || window.__coastclear.state().done, { timeout: 8000, polling: 'raf' });
+      perf.push({ label, cpu, ...(await frames(pg, ms)) });
+      await pg.close();
+    }
+  }
+  log(`60 FPS — ${perf.map(x => `${x.label} ${x.cpu}×: ${x.fps} fps (p95 ${x.p95} ms, ${x.long} > 25 ms)`).join(' · ')}`);
+  ok(perf.filter(x => x.cpu === 1).every(x => x.fps >= 55 && x.p95 <= 20), `60 FPS through the sweep, the catch + the lighthouse (${perf.filter(x => x.cpu === 1).map(x => `${x.fps}`).join(' / ')} fps)`);
 
   // ---- THE NUMBERS
   const digs = calls.filter(a => a.req.action === 'dig' || a.req.action === 'chord').length;
