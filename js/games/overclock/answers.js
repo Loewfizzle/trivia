@@ -41,6 +41,7 @@ const tfWord = v => (v ? 'TRUE' : 'FALSE');
 const box = (...kids) => h('div.gk-answers.oc-answers', ...kids);
 /** the row of every part's mark (✓ · ≈ · ✕ · –) + n / N: a challenge with many parts shows your misses as frames and the rest here */
 function sumRow(res, label) {
+  if (LOST) return null;   // (A8: the picks are gone — a row of dashes would read 0/N)
   const right = res.filter(r => r === 'right').length;
   return h('div.oc-tf-sum',
     h('span.oc-tf-sum-k', label),
@@ -53,6 +54,11 @@ function missesFirst(res) {
   return { show: misses.length ? misses : [res.length - 1], label: misses.length ? (misses.length > 1 ? 'YOUR MISSES' : 'YOUR MISS') : res.every(r => r === 'right') ? 'CLEAN SWEEP' : 'THE LAST ONE' };
 }
 const st = (p, ans) => (p == null ? 'none' : p === ans ? 'right' : 'wrong');
+// (OC8 — A8, THE FABLE REVIEW: YOUR PICK lives in this tab's sessionStorage only — a killed browser, a second device or a new tab mid-match said
+// NO ANSWER on every part while the score said 3/3) the view passes ctx.lost when this phone's picks are gone but the room's board says it
+// answered: every "NO ANSWER" reads ANSWERED, and the per-part row (unknown here) is left out
+let LOST = false;
+const NONE = () => (LOST ? 'ANSWERED' : 'NO ANSWER');
 
 // ---------------------------------------------------------------------------------------------- OC1
 function trivia(spec, picks) {
@@ -63,7 +69,7 @@ function trivia(spec, picks) {
       q: q.q,
       answer: h('span.oc-ans-opt', h('i.oc-badge', LETTER[q.c]), q.a[q.c]),
       pick: p == null || p === q.c ? null : h('span.oc-ans-opt', h('i.oc-badge', LETTER[p]), q.a[p]),
-      state, note: p == null ? 'NO ANSWER' : '',
+      state, note: p == null ? NONE() : '',
       delay: 120 + i * 260,
     });
   }));
@@ -77,7 +83,7 @@ function truefalse(spec, picks) {
       q: it.text,
       answer: h('span.oc-ans-tf', h('i', it.truth ? '✓' : '✕'), tfWord(it.truth)),
       pick: p == null || p === it.truth ? null : h('span.oc-ans-tf', h('i', p ? '✓' : '✕'), tfWord(p)),
-      state: res[i], note: p == null ? 'NO ANSWER' : '',
+      state: res[i], note: p == null ? NONE() : '',
       delay: 200 + k * 300,
     });
   }));
@@ -94,7 +100,7 @@ function math(spec, picks) {
     const pr = spec.problems[i], p = picks[i];
     return answerFrame({
       answer: h('span.oc-ans-sum', h('span.oc-ans-sum-q', String(pr.text).replace(/-/g, MINUS)), h('i', '='), h('b', signed(pr.ans))),
-      pick: p == null || p === pr.ans ? null : h('span.oc-ans-num', signed(p)), state: res[i], note: p == null ? 'NO ANSWER' : '', delay: 200 + k * 300,
+      pick: p == null || p === pr.ans ? null : h('span.oc-ans-num', signed(p)), state: res[i], note: p == null ? NONE() : '', delay: 200 + k * 300,
     });
   }));
 }
@@ -106,7 +112,7 @@ function pattern(spec, picks) {
       q: h('span.oc-ans-seq', sq.shown.map(v => h('span.oc-ans-seq-c', signed(v))), h('span.oc-ans-seq-c.is-drop', { style: { '--dd': `${d + 520}ms` } }, signed(sq.ans))),
       answer: h('span.oc-ans-pat', h('b', signed(sq.ans)), sq.say ? h('small', sq.say) : null),
       pick: p == null || p === sq.ans ? null : h('span.oc-ans-num', signed(p)),
-      state: st(p, sq.ans), note: p == null ? 'NO ANSWER' : '', delay: d,
+      state: st(p, sq.ans), note: p == null ? NONE() : '', delay: d,
     });
   }));
 }
@@ -171,7 +177,7 @@ function missinglink(spec, picks, ctx) {
       })),
       answer: h('span.oc-ans-link', link),
       pick: state === 'wrong' ? h('span.oc-ans-link.is-pick', p) : null,
-      state, note: state === 'none' ? (k === 0 && res && res.p >= 1 && !right ? 'SKIPPED' : 'NO ANSWER') : '',
+      state, note: state === 'none' ? (k === 0 && res && res.p >= 1 && !right && !LOST ? 'SKIPPED' : NONE()) : '',
       delay: d,
     });
   });
@@ -220,7 +226,7 @@ function spellcheck(spec, picks) {
     return answerFrame({
       answer: spellWord(it.word, hardMarks(it)),
       pick: mine ? spellWord(mine, wl.bad, wl.miss, 'bad') : null,
-      state: res[i], note: p == null ? 'NO ANSWER' : '', upright: true,
+      state: res[i], note: p == null ? NONE() : '', upright: true,
       delay: 160 + i * 170,
     });
   }));
@@ -253,7 +259,7 @@ function higherlower(spec, picks, ctx) {
     h('div.oc-segbar.oc-hl-bar.is-big', { class: missed ? 'is-cracked' : null, style: { '--at': s }, 'aria-hidden': 'true' }, segs, missed ? h('span.oc-hl-crack') : null));
   const run = s ? h('div.oc-hl-run', h('div.oc-hl-run-k', 'YOUR RUN'), h('div.oc-hl-run-list', spec.pairs.slice(0, s).map((Q, i) => {
     const d = picks[i] || hlRightDir(Q);
-    return h('span.oc-hl-chip', { style: { '--i': i }, 'aria-label': `${Q.b.name}: ${DIR_WORD[d]} than ${Q.a.name} — right` }, arrow(d), h('span.oc-hl-chip-t', Q.b.name), tubeMark('check'));
+    return h('span.oc-hl-chip', { class: String(Q.b.name).length > 12 ? 'is-long' : null, style: { '--i': i }, 'aria-label': `${Q.b.name}: ${DIR_WORD[d]} than ${Q.a.name} — right` }, arrow(d), h('span.oc-hl-chip-t', Q.b.name), tubeMark('check'));
   }))) : null;
   const known = P ? h('span.oc-ans-hl-q', h('span.oc-ans-hl-stat', P.stat), h('span', P.a.name), statEl(P, P.a, '.is-known')) : null;
   const frame = P ? answerFrame({
@@ -394,7 +400,7 @@ function oddone(spec, picks) {
         h('small', `GRID ${k + 1} · ${g.size}×${g.size}`),
         h('span.oc-odd-big', { class: `is-${g.fam}` }, oddFace(g.odd, g.fam)),
         h('b', oddWhy(g, glyphWhy)),
-        h('span.oc-odd-you', state === 'none' ? 'NO ANSWER' : state === 'right' ? 'YOU FOUND IT' : 'YOU MISSED IT', state === 'none' ? null : tubeMark(state === 'right' ? 'check' : 'cross'))));
+        h('span.oc-odd-you', state === 'none' ? NONE() : state === 'right' ? 'YOU FOUND IT' : 'YOU MISSED IT', state === 'none' ? null : tubeMark(state === 'right' ? 'check' : 'cross'))));
   });
   return box(answerPanel({ sub: 'THE ODD ONES', slot: h('div.oc-odd-ans', rows), delay: 80 }));
 }
@@ -422,7 +428,7 @@ function count(spec, picks, ctx = {}) {
     return answerFrame({
       q: h('span.oc-ans-count', `${i + 1} · HOW MANY `, shapeEl(it.target, '.oc-ans-shape'), ' ?'),
       answer: h('span.oc-ans-num', String(it.ans)), pick: p == null || p === it.ans ? null : h('span.oc-ans-num', String(p), res[i] === 'close' ? h('small', ' OFF BY ONE · HALF') : null),
-      state: res[i], note: p == null ? 'NO ANSWER' : '', delay: 200 + k * 300,
+      state: res[i], note: p == null ? NONE() : '', delay: 200 + k * 300,
       slot: h('div.oc-qc-ans', grid),
     });
   }));
@@ -438,7 +444,7 @@ function stroop(spec, picks) {
     return answerFrame({
       q: h('span.oc-ans-cc', h('b', { style: { color: STROOP_COLORS[it.ink].hex } }, STROOP_COLORS[it.word].name), h('small', 'THE TEXT WAS')),
       answer: swatch(it.ink), pick: p == null || p === it.ink ? null : swatch(p),
-      state: res[i], note: p == null ? 'NO ANSWER' : '', delay: 200 + k * 300,
+      state: res[i], note: p == null ? NONE() : '', delay: 200 + k * 300,
     });
   }));
 }
@@ -567,7 +573,8 @@ export const hasAnswer = type => !!ANSWERS[type] || PANELS.has(type);
  * sortLog } — the reveals' old ctx + who's looking.
  */
 export function buildAnswer(type, spec, picks, ctx = {}) {
-  if (ANSWERS[type]) return ANSWERS[type](spec, picks || [], ctx);
+  LOST = !!ctx.lost && !(picks && picks.length);
+  try { if (ANSWERS[type]) return ANSWERS[type](spec, picks || [], ctx); } finally { LOST = false; }
   if (PANELS.has(type) && ctx.game) return box(answerPanel({ slot: buildReveal(ctx.game, spec, ctx), delay: 80 }));
   return null;
 }

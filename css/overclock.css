@@ -1129,6 +1129,11 @@
 .oc-hl-chip > * { position: relative; }
 .oc-hl-chip-t { flex: 1; min-width: 0; font: 700 14px / 1 var(--oc-font-ui); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .oc-hl-chip .gk-sock { width: 30px; height: 26px; }
+/* (OC8 — A18, THE FABLE REVIEW: "Scrabble boa…", "Pride and Pre…" at 390) a name never truncates: up to two lines, a smaller face past 12
+   letters; the chip grows to fit (its socket stays centred) */
+.oc-hl-chip { height: auto; min-height: 34px; padding-top: 4px; padding-bottom: 4px; }
+.oc-hl-chip-t { white-space: normal; line-height: 1.12; overflow-wrap: break-word; text-overflow: clip; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+.oc-hl-chip.is-long .oc-hl-chip-t { font-size: 12.5px; letter-spacing: -0.005em; }
 .oc-hl-chip .gk-sock svg { width: 19px; height: 19px; }
 .oc-hl-dir { flex: none; display: inline-block; width: 13px; height: 9px; background: var(--oc-hot-2); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .oc-hl-dir.is-down { transform: rotate(180deg); }

@@ -4,7 +4,7 @@
 // No right / wrong here — how close you were is THE ANSWER's (the seal holds it until the round closes): LOCK IT IN turns the field hot
 // orange + LOCKED, then the done card (350 ms, as before). The score is the same closestCredit; DEAD ON (the server's: credit 1) unchanged.
 // A challenge screen: (spec, api) → { el, destroy? }. api: chal, part(), progress(), step(), finish(), key, game(), fx(), pick(), sfx() — view.js.
-import { h, vibrate } from '../../../ui/dom.js';
+import { h } from '../../../ui/dom.js';
 import { createNumpad } from '../../kit/numpad.js';
 import { closestCredit } from '../challenges.js';
 import { dressField } from './numeric.js';
@@ -25,8 +25,7 @@ export default function uiClosest(s, api) {
     sent = true;
     pad.lock(true);
     pad.field.classList.add('is-sent');
-    api.sfx('submit');
-    vibrate(14);
+    api.sfx('submit');   // (OC8 — A15: no vibrate)
     api.progress(closestCredit(g, s.answer), 1, { g }, true, 350);
   };
   api.key = e => { if (!sent) pad.key(e); };

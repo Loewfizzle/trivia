@@ -7,13 +7,12 @@
 //   Timings unchanged: the playback starts 700 ms in, a step every stepMs (each lit 0.75 of it), your turn 150 ms after the last; a tap
 //   blazes 260 ms; a slip 500 ms (the right node's hint 700 ms).
 // A challenge screen: (spec, api) → { el, destroy? }. api: chal, part(), progress(), step(), finish(), key, game(), fx(), pick(), sfx() — view.js.
-import { h, pulseClass, vibrate } from '../../../ui/dom.js';
-import { sfx } from '../../../audio/sfx.js';
+import { h, pulseClass } from '../../../ui/dom.js';
 
 export const MEM_START_MS = 700;   // the playback's first step (unchanged)
 export const MEM_TURN_MS = 150;    // your turn after the last step (unchanged)
-/** a node's tone: its own recorded tone, else the shared synth one */
-export const nodeTone = (api, i) => { if (!(api && api.sfx && api.sfx(`mem${i}`))) sfx('node', { i }); };
+/** a node's tone: its own recorded tone (OC8 — A9: never the console's synth beside it; audio is polish — silent when it can't play) */
+export const nodeTone = (api, i) => { if (api && api.sfx) api.sfx(`mem${i}`); };
 /** one round glass node (shared with THE ANSWER's replay board) */
 export const memNode = (tag = 'i') => h(`${tag}.oc-mem-node`, h('i.oc-mem-glass'), h('i.oc-mem-blaze'), h('i.oc-mem-core'), h('i.oc-mem-mark'));
 
@@ -74,8 +73,7 @@ export default function uiMemory(s, api) {
       paint();
       nodes.forEach(b => { b.disabled = true; });
       if (api.fx) api.fx(nodes[i], false, { k: i });
-      sfx('ocWrong');
-      vibrate([20, 30, 20]);
+      if (api.sfx) api.sfx('wrong');   // (OC8 — A9: the slip = 02-wrong, the Overclock set · A15: no vibrate)
       api.finish();
       return;
     }

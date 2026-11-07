@@ -149,10 +149,13 @@ export function computeResults(game, boards) {
   const okOf = uid => Math.min(parts, Math.max(0, Number(((boards && boards[uid]) || {}).ok) || 0));
   // Closest Call: the closest guess (highest credit — credit falls with the relative error) earns the bonus; ties share it
   const top = type === 'closest' ? Math.max(0, ...Object.keys(game.participants || {}).map(okOf)) : 0;
+  // (OC8 — A12, THE FABLE REVIEW: alone, you were always "the closest in the room" → +60 on every solo run) SOLO: the bonus only for a DEAD ON
+  // guess — full credit, within 5 % (challenges.js#closestCredit — the same rule the achievement reads)
+  const solo = Object.keys(game.participants || {}).length === 1;
   for (const uid of Object.keys(game.participants || {})) {
     const b = (boards && boards[uid]) || {};
     const ok = okOf(uid);
-    const closest = type === 'closest' && top > 0 && ok === top;
+    const closest = type === 'closest' && top > 0 && ok === top && (!solo || ok >= parts);
     out[uid] = { pts: challengeScore({ parts, ok, doneAt: b.done ? b.doneAt : undefined, startAt: game.playStartAt, final, type, closest }), ok, parts };
   }
   return out;
@@ -347,10 +350,14 @@ export function bestWorst(game, uid) {
     const res = game.results[ci];
     const mine = ptsOf(res, uid);
     const yard = uids.length > 1 ? Math.max(...uids.map(u => ptsOf(res, u))) : maxPts(game, ci);
-    return { ci, type: game.order && game.order[ci], pts: mine, rel: yard > 0 ? mine / yard : 0 };
+    return { ci, type: game.order && game.order[ci], pts: mine, rel: yard > 0 ? mine / yard : 0, yard };
   });
-  const best = rows.slice().sort((a, b) => b.rel - a.rel || b.pts - a.pts || a.ci - b.ci)[0];
-  const worst = rows.slice().sort((a, b) => a.rel - b.rel || a.pts - b.pts || a.ci - b.ci)[0];
-  return { best, worst: rows.length > 1 && worst.ci !== best.ci ? worst : null };
+  // (OC8 — A10, THE FABLE REVIEW: "YOUR WORST · +0 · 0% OF THE BEST" when nobody scored it, "YOUR WORST · +134 · TOP OF THE ROOM") a challenge
+  // NOBODY scored is nobody's worst; a worst that still topped the room isn't one — no WORST tile then; nothing scored at all → no tiles
+  const scored = rows.filter(r => r.yard > 0);
+  if (!scored.length || !rows.some(r => r.pts > 0)) return null;
+  const best = scored.slice().sort((a, b) => b.rel - a.rel || b.pts - a.pts || a.ci - b.ci)[0];
+  const worst = scored.slice().sort((a, b) => a.rel - b.rel || a.pts - b.pts || a.ci - b.ci)[0];
+  return { best, worst: worst.ci !== best.ci && worst.rel < 1 ? worst : null };
 }
 

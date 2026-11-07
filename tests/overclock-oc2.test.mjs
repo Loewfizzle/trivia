@@ -192,7 +192,7 @@ test('YOUR BEST / YOUR WORST: your points vs the room\'s best in each challenge 
   const game = G({ results: { 0: R({ a: 100, b: 50, c: 0 }), 1: R({ a: 40, b: 160, c: 0 }), 2: R({ a: 0, b: 0, c: 0 }), 3: R({ a: 80, b: 80, c: 10 }) } });
   const bw = bestWorst(game, 'a');
   assert.equal(bw.best.ci, 0, 'first + alone on top (100 %) beats a shared 100 % with fewer points');
-  assert.equal(bw.worst.ci, 2, 'a challenge nobody scored is 0 %');
+  assert.equal(bw.worst.ci, 1, 'OC8 — A10: a challenge nobody scored (ci 2) is nobody’s worst — the worst = 40 of 160');
   assert.equal(bestWorst(game, 'b').best.ci, 1);
   assert.equal(bestWorst(game, 'b').best.type, 'pattern');
   assert.equal(bestWorst(G({ results: { 0: R({ a: 5, b: 9 }) } }), 'a').worst, null, 'one challenge: no worst');
@@ -203,6 +203,10 @@ test('YOUR BEST / YOUR WORST: your points vs the room\'s best in each challenge 
   const s = bestWorst(solo, 'a');
   assert.equal(s.best.ci, 0, 'a perfect 160 / 160');
   assert.equal(s.worst.ci, 5, 'the last (×2): 160 of 320');
+  // OC8 — A10: a WORST that still topped the room → no WORST tile; nobody scored anything → no tiles at all
+  assert.equal(bestWorst(G({ results: { 0: R({ a: 100, b: 50 }), 1: R({ a: 134, b: 90 }) } }), 'a').worst, null, 'top of the room in both: no worst');
+  assert.equal(bestWorst(G({ results: { 0: R({ a: 0, b: 0 }), 1: R({ a: 0, b: 0 }) } }), 'a'), null, 'nobody scored: no tiles');
+  assert.equal(bestWorst(G({ results: { 0: R({ a: 0, b: 30 }), 1: R({ a: 0, b: 0 }) } }), 'a'), null, 'you scored nothing: no tiles');
 });
 
 test('a whole 8-player QUICK match: round wins add up, the chips + best / worst are the same on every phone (pure, deterministic)', () => {

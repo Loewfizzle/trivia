@@ -374,7 +374,13 @@ export default function uiDumbLuck(spec, api) {
         if (f < 0) f += LOOP;
       }
       const tg = tags && tags[i];
-      if (tg) c.drawImage(tg.cv, Math.max(28, Math.round(nx - L * 1.04 - tg.w)), Math.round(t0 + i * laneH + laneH * 0.5 - tg.h * 0.2), tg.w, tg.h);
+      if (tg) {
+        // the tag rides BEHIND its horse; (OC8 — A16, THE FABLE REVIEW: near the left edge it was pinned there and sat ON the horse — "DANA" over
+        // the cyan one) no room behind → ABOVE it: over its back, straddling the lane's top rail — never on the body
+        const behind = Math.round(nx - L * 1.04 - tg.w);
+        if (behind >= 28) c.drawImage(tg.cv, behind, Math.round(t0 + i * laneH + laneH * 0.5 - tg.h * 0.2), tg.w, tg.h);
+        else c.drawImage(tg.cv, Math.max(28, Math.min(W - tg.w - 4, Math.round(nx - L * 0.62 - tg.w / 2))), Math.round(t0 + i * laneH - tg.h * 0.45), tg.w, tg.h);
+      }
       if (i === pk && halo) drawHorse(c, halo, f, nx, gy, quiet ? 0.55 : 0.4 + 0.45 * (0.5 + 0.5 * Math.sin(tw * 4.2)));
       if (finished && d && i === d.w && winHalo) drawHorse(c, winHalo, f, nx, gy, 0.9);
       drawHorse(c, sheets && sheets[i], f, nx, gy);

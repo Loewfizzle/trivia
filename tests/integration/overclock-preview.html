@@ -38,6 +38,7 @@
          &beat=victory lands AT REST (the podium's slim cards up, the award chips in — a rejoin's view); &anim=1 = the live power-up instead
          at=right / wrong / close: the screen HOLDS the answer's feedback (its advance waits; &mid=ms into the feedback, default 320) —
          the shot lands AFTER the tap, never on the next question; __preview.release() lets it go on
+         &lost=1 (at=answer, not trivia / true or false) = this device lost its saved picks — THE ANSWER says ANSWERED (A8)
          &zero=1 (the last challenge) = nobody scored (every result 0 — the NOBODY SCORED body) -->
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
@@ -342,7 +343,7 @@ async function answerOther(s) {
     higherlower: () => s.pairs.map((P, i) => { const r = P.b.v > P.a.v ? 'up' : 'down'; return i < hlRun ? r : i === hlRun && hlMode === 'miss' ? (r === 'up' ? 'down' : 'up') : null; }).filter((v, i) => v != null || i < hlRun),
   };
   const picks = (P[s.type] || (() => []))();
-  if (picks.length) savePicks(game.matchId, ci, picks);
+  if (picks.length && q.get('lost') !== '1') savePicks(game.matchId, ci, picks);   // (OC8 — A8: &lost=1 = this device lost its picks)
   const n = s.parts || parts;
   const okMe = { memory: 3, rewire: 1.42, reflex: 3.4, closest: 0.86, higherlower: hlRun, timeline: 2, sortit: 8 }[s.type] ?? Math.max(0, n - 1);
   const live = { [me]: { p: n, ok: okMe, n, done: true, doneAt: Date.now() - 4000 } };

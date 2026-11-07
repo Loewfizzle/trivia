@@ -6,8 +6,7 @@
 //   in order) and THE CORE BLAZES. Rules + timings unchanged (the saves 400 ms after a turn, the next circuit 1100 ms after the first, the
 //   done screen 1300 ms after the last; rewirePower / rewireOk are the scoring's).
 // A challenge screen: (spec, api) → { el, destroy? }. api: chal, part(), progress(), step(), finish(), key, game(), fx(), pick(), sfx() — view.js.
-import { h, pulseClass, vibrate } from '../../../ui/dom.js';
-import { sfx } from '../../../audio/sfx.js';
+import { h, pulseClass } from '../../../ui/dom.js';
 import { rewirePower, rewireOk, REWIRE_SHAPES } from '../challenges.js';
 import { fastButton } from '../shared.js';
 
@@ -107,16 +106,14 @@ export default function uiRewire(s, api) {
     vis[i] += 1;
     turns[i] = (turns[i] + 1) % 4;
     rots[i].style.transform = `rotate(${vis[i] * 90}deg)`;
-    sfx('key');
-    vibrate(5);
+    api.sfx('place');   // (OC8 — A9: a turn = the Overclock set's tile place · A15: no vibrate)
     const pw = rewirePower(pz, turns);
     flow(pw);
     if (pw.solved) {
       busy = true;
       solvedCount += 1;
       clearTimeout(pending);
-      sfx(solvedCount >= 2 ? 'solve' : 'ocCorrect');
-      vibrate([20, 40, 30]);
+      api.sfx('correct');   // (A9: one sound a circuit — the Overclock set)
       surge(pw);
       paintBar();
       if (solvedCount >= 2) { api.progress(2, 2, { rw: '' }, true, 1300); return; }

@@ -6,7 +6,6 @@
 //   Your time is measured from the frame the flash paints (as before).
 // A challenge screen: (spec, api) → { el, destroy? }. api: chal, part(), progress(), step(), finish(), key, game(), fx(), pick(), sfx() — view.js.
 import { h } from '../../../ui/dom.js';
-import { sfx } from '../../../audio/sfx.js';
 import { REFLEX_TIMEOUT_MS, reflexCredit } from '../challenges.js';
 import { fastButton } from '../shared.js';
 
@@ -44,7 +43,7 @@ export default function uiReflex(s, api) {
     setMode('go');
     goAt = performance.now();
     label.textContent = 'TAP!';
-    if (!(api.sfx && api.sfx('flash'))) sfx('select');
+    if (api.sfx) api.sfx('flash');   // (OC8 — A9: never the console's synth beside the Overclock set)
     // time from the frame the flash actually paints
     requestAnimationFrame(() => { if (mode === 'go') goAt = performance.now(); });
     later(() => { if (mode === 'go') record(null, 'TOO SLOW'); }, REFLEX_TIMEOUT_MS);

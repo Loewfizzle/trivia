@@ -39,7 +39,7 @@ export const INFO = {
   missinglink: { name: 'MISSING LINK', glyph: '⊸', rules: ['Three words share one hidden word, before or after each.', 'COTTAGE · SWISS · CAKE → CHEESE. Two puzzles — guess as often as you like.'] },
   spellcheck: { name: 'SPELLCHECK', glyph: '✎', rules: ['Four spellings. Exactly one is right.', 'Five words, one tap each — no second chances.'] },
   compass: { name: 'COMPASS', glyph: '✣', rules: ['Note where you face, then follow the turns in your head.', 'When they vanish, tap the way you face now. Five rounds, each longer.'] },
-  sortit: { name: 'SORT IT', glyph: '⇆', rules: ['Swipe each card left or right — or tap that side of the screen.', 'Wrong sorts cost a little. The cards come faster and faster.'] },
+  sortit: { name: 'SORT IT', glyph: '⇆', rules: ['Swipe each card left or right — or tap that side of the screen.', 'A wrong or missed card costs a little. The cards come faster and faster.'] },
   higherlower: { name: 'HIGHER OR LOWER', glyph: '⇅', rules: ['Two things, one stat — one number shown. Is the hidden one HIGHER or LOWER?', 'Build a streak of 10. One wrong answer ends your run.'] },
   dumbluck: { name: 'DUMB LUCK', glyph: '♞', rules: ['Six horses, six odds. Pick one before the gate closes.', 'Back the winner and get paid — the longer the odds, the bigger the payout.'] },
 };

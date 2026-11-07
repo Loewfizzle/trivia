@@ -136,7 +136,7 @@ const RULES = {
         'Up to 100 points for accuracy (partial credit counts).',
         'Signal Lock is pure speed: faster reactions score more.',
         'Closest Call has no speed bonus — the +60 goes to whoever guessed closest.',
-        'Sort It: wrong sorts cost half a point; 10 net right already makes 100.',
+        'Sort It: a wrong or missed card costs half a point; 10 net right already makes 100.',
         'Compass: the speed bonus only counts your answering time, not the turns playing out.',
         'Get everything right and earn up to +60 for speed.',
         'Dumb Luck is pure chance with honest odds: every horse pays the same on average — the long shots just pay more, less often.',

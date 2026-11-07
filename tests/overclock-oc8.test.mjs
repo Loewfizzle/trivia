@@ -68,3 +68,16 @@ test('A6: the match ORDER comes from the match id (every phone predicts the firs
   const total = snd + fnt + words + crack + biggest;
   assert.ok(total <= PRELOAD_BUDGET, `the preload with the biggest first pool: ${Math.round(total / 1024)} KB of ${PRELOAD_BUDGET / 1024}`);
 });
+
+// A12 — solo Closest Call always paid the closest-in-the-room +60
+test('A12: SOLO Closest Call pays the +60 only for a DEAD ON guess (within 5 %); with 2+ the closest in the room still gets it', async () => {
+  const { computeResults, SPEED_BONUS } = await import('../js/games/overclock/logic.js');
+  const game = (n, ci = 1) => ({ order: ['math', 'closest', 'memory', 'oddone', 'stroop', 'count'], ci, total: 6, playStartAt: 0, participants: Object.fromEntries(['a', 'b'].slice(0, n).map(u => [u, true])) });
+  const off = computeResults(game(1), { a: { ok: 0.86, done: true, doneAt: 9000 } }).a;
+  assert.equal(off.pts, 86, 'alone, 14 % off: the accuracy only — no "closest in the room"');
+  const dead = computeResults(game(1), { a: { ok: 1, done: true, doneAt: 9000 } }).a;
+  assert.equal(dead.pts, 100 + SPEED_BONUS, 'alone, DEAD ON: the bonus');
+  const two = computeResults(game(2), { a: { ok: 0.86, done: true, doneAt: 9000 }, b: { ok: 0.5, done: true, doneAt: 9000 } });
+  assert.equal(two.a.pts, 86 + SPEED_BONUS, 'two players: the closest still gets it, unchanged');
+  assert.equal(two.b.pts, 50);
+});

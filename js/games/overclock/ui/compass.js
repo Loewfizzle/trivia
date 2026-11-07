@@ -5,7 +5,6 @@
 //   kept for THE ANSWER (api.pick). Rules + timings unchanged (COMPASS_START_MS · COMPASS_STEP_MS · COMPASS_GAP_MS · COMPASS_FLASH_MS).
 // A challenge screen: (spec, api) → { el, destroy? }. api: chal, part(), progress(), step(), finish(), key, game(), fx(), pick(), sfx() — view.js.
 import { h, pulseClass } from '../../../ui/dom.js';
-import { sfx } from '../../../audio/sfx.js';
 import { serverNow } from '../../../firebase.js';
 import { COMPASS_DIRS, COMPASS_STEP_MS, COMPASS_GAP_MS, COMPASS_START_MS, COMPASS_FLASH_MS } from '../challenges.js';
 import { DIR_NAME, TURN_TEXT, TURN_SVG, fastButton } from '../shared.js';
@@ -69,7 +68,7 @@ export default function uiCompass(s, api) {
     pulseClass(card, 'is-tick');
     dots.replaceChildren(...[...R.turns].map(() => h('i')));
     paintBar();
-    sfx('select');
+    api.sfx('place');   // (OC8 — A9: the Overclock set — a round's card lands)
     let t = COMPASS_START_MS[r];
     [...R.turns].forEach((turn, k) => {
       later(() => {
@@ -79,7 +78,7 @@ export default function uiCompass(s, api) {
         card.replaceChildren(h('span.oc-cp-ico', { html: TURN_SVG[turn] }), h('b', TURN_TEXT[turn]));
         pulseClass(card, 'is-tick');
         dots.children[k] && dots.children[k].classList.add('is-on');
-        sfx('node', { i: k % 9 });
+        api.sfx(`mem${k % 9}`);   // (A9: each turn a tone from the Overclock set)
       }, t);
       t += COMPASS_STEP_MS[r];
       later(() => { card.className = 'oc-cp-card is-gap'; }, t);

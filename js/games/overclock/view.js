@@ -6,14 +6,13 @@
 // Challenges are generated locally from the room seed; each challenge's screen lives in ui/<type>.js and the reveal
 // panels in reveals.js. Progress (parts done / correct) is written to oc/{match}/{ci}/{uid} after every step so a
 // refresh resumes mid-challenge.
-import { h, clear, pulseClass, vibrate, reducedMotion } from '../../ui/dom.js';
+import { h, clear, pulseClass, reducedMotion } from '../../ui/dom.js';
 import { avatar, countUp, leaderboard, fmtNum } from '../../ui/components.js';
 import { createFinal } from '../../ui/final.js';
 import { toast } from '../../ui/toast.js';
 import { dbRef, update as dbUpdate, serverTimestamp, serverNow } from '../../firebase.js';
 import { colorHex } from '../../config.js';
 import { playerOrder } from '../../core/room-logic.js';
-import { sfx } from '../../audio/sfx.js';
 import { loadLengths, answersFor } from '../cipher/words.js';
 import { INFO, generate, partsFor, SORT_CARDS } from './challenges.js';
 import { fmtOk, fmtVal, sortSplit } from './shared.js';
@@ -103,7 +102,8 @@ export function createView() {
     els.timer = h('div.oc-tach', tach.el);
     els.strip = h('div.oc-strip');
     els.row = h('div.oc-row', combo.el, els.strip);
-    els.stage = h('section.oc-stage');
+    // (OC8 — A9: ONE sound palette — the console's synth tap on every button press stays out of the challenges; each plays its own)
+    els.stage = h('section.oc-stage', { dataset: { sfx: 'none' } });
     els.overlay = h('div.oc-overlay');
     root.append(els.bg, els.head, els.timer, els.row, els.stage, els.overlay, fx.el, tach.edge);
     // (OC3: no challenge ever opens the phone's system keyboard — the kit's pads — so no keyboard tracking here any more)
@@ -224,7 +224,6 @@ export function createView() {
       clear(els.stage);
       if (chal.done) showDone();
       else mountChallenge(game);
-      if (!mine.p) sfx('challenge');
     }
     // (a screen that follows the room live — DUMB LUCK's picks + its lock)
     if (chal && chal.ui && chal.ui.sync) chal.ui.sync(st);
@@ -258,8 +257,7 @@ export function createView() {
     chal.ok = Math.round((chal.ok + credit) * 100) / 100;
     paintPips();
     if (!quiet) {
-      ocSfx(credit >= 0.5 ? 'correct' : 'wrong');
-      vibrate(credit >= 0.5 ? 12 : [20, 30, 20]);
+      ocSfx(credit >= 0.5 ? 'correct' : 'wrong');   // (OC8 — A15: no vibrate() — the plan: visual + sound only)
       // a challenge that didn't hand its own tile to api.fx still gets the frame's wrong-answer edge + kick
       if (credit < 0.5 && !chal.fxDone) fx.wrong(null);
     }
@@ -331,8 +329,7 @@ export function createView() {
     if (NEW_DONE[t]) {
       els.stage.append(h('div.oc-done', { class: perfect ? 'is-perfect' : null },
         h('div.oc-done-mark', perfect ? 'PERFECT' : t === 'higherlower' ? 'RUN OVER' : 'LOCKED IN'), h('div.oc-done-score', ...NEW_DONE[t]()), h('div.oc-done-wait', 'WAITING FOR THE OTHERS…')));
-      if (perfect) sfx('solve');
-      return;
+      return;   // (OC8 — A9: a perfect finish plays ONE sound — its last part's)
     }
     if (t === 'closest' || t === 'timeline' || t === 'rewire') {
       // (Closest Call never shows how close you were until the reveal)
@@ -342,7 +339,6 @@ export function createView() {
       const top = t === 'closest' ? 'LOCKED IN' : perfect ? 'PERFECT' : 'LOCKED IN';
       els.stage.append(h('div.oc-done', { class: perfect && t !== 'closest' ? 'is-perfect' : null },
         h('div.oc-done-mark', top), h('div.oc-done-score', ...line), h('div.oc-done-wait', 'WAITING FOR THE OTHERS…')));
-      if (perfect && t !== 'closest') sfx('solve');
       return;
     }
     const hits = chal.times.filter(t => t != null);
@@ -353,7 +349,6 @@ export function createView() {
       h('div.oc-done-mark', perfect ? 'PERFECT' : 'LOCKED IN'),
       h('div.oc-done-score', ...score),
       h('div.oc-done-wait', 'WAITING FOR THE OTHERS…')));
-    if (perfect) sfx('solve');
   }
 
   function mountChallenge(game) {
@@ -481,7 +476,6 @@ export function createView() {
   function buildStandings(game) {
     const res = (game.results && game.results[game.ci]) || {};
     const mine = res[me()];
-    if (mine) sfx(mine.ok >= mine.parts ? 'correct' : 'roundEnd');
     const next = game.order[game.ci + 1];
     const nextUp = next ? h('div.next-up', 'NEXT: ', h('b', INFO[next].name), game.ci + 1 === game.total - 1 ? ' · ×2 POINTS' : '') : null;
     const body = resultsBody(game, resultBeats(game.order[game.ci], soloOf(game)));
@@ -676,8 +670,11 @@ export function createView() {
     const spec = mine ? chal.spec : buildSpec(game);
     if (!spec) return null;
     const picks = participant(game) ? ((mine && chal.local.picks) || loadPicks(game.matchId, game.ci)) : [];
+    // (OC8 — A8: no picks on THIS device, but the room's record says I answered → ANSWERED, never NO ANSWER)
+    const myRes = game.results && game.results[game.ci] && game.results[game.ci][me()], myB = boardsNow(game)[me()];
+    const lost = participant(game) && !picks.length && ((myRes && Number(myRes.ok) > 0) || (myB && Number(myB.p) > 0));
     return h('section.rv.oc-rv-answer', buildAnswer(type, spec, picks, {
-      game, me: me(), player,
+      game, me: me(), player, lost,
       boards: revealBoards(game),
       uids: Object.keys(game.participants || {}),
       timers: revealTimers,
@@ -724,7 +721,6 @@ export function createView() {
     const atNow = ORDER.indexOf(beatAt(beats, since)) >= ORDER.indexOf(skipped) ? beatAt(beats, since) : skipped;
     if (atNow === 'victory') { mountVictory(game); return; }
     const res = (game.results && game.results[game.ci]) || {};
-    if (res[me()] && since < 1500) sfx(res[me()].ok >= res[me()].parts ? 'correct' : 'roundEnd');
     let body = null;
     const nextOf = beat => {
       const live = ORDER.filter(b => beatStart(beats, b) != null);
