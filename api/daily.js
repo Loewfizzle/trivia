@@ -5,6 +5,8 @@
 //                                 far from the SERVER's record (a resume), and NO seed (a seed a phone holds must say nothing about the answers)
 //   guess  { game, word }      → { door, n, marks, solved?, failed?, word? (that door just closed), next?, done? }   a judged daily only: the server
 //                                 judges every guess inside a transaction on its record; a word that isn't one is refused with NO cost (422 not_a_word)
+//   dig / chord / pause / resume { game, … }  (CC1 — COAST CLEAR, _lib/cc.js: a judged cartridge's `moves`) → the cartridge's answer, ONE transaction
+//                                 on its record each (a repeat is free: nothing written); every judged answer carries the server's `now` (the phone's clock)
 //   finish { game, result }    → { day, score, stand: { n, pct, top, band }, outcome: { streak, items } }   checked + stored server-side
 //                                 (a judged daily scores from ITS record — the phone's result is ignored; an unfinished run → 409 not_done)
 //   today  { pids? }           → { day, mine: { game: score }, friends: { pid: { game: { done } | { score } } } }   (YOUR TABLE's TODAY)
@@ -41,8 +43,8 @@ export async function dailyAction(uid, body, now = Date.now()) {
       const startedAt = tx.snapshot.val();
       const done = await val(`${base}/r/${pid}`);
       if (cart.judged) {
-        const record = await val(`${base}/p/${pid}`);
-        return { day, startedAt, done: done ?? null, run: cart.resume({ record, day, startedAt }) };
+        const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day) : null]);
+        return { day, startedAt, done: done ?? null, run: cart.resume({ record, day, startedAt, data }), now };
       }
       return { day, seed: dailySeed(cart.id, day), startedAt, done: done ?? null };
     }
@@ -65,6 +67,30 @@ export async function dailyAction(uid, body, now = Date.now()) {
       if (!tx.committed || !out) throw new ApiError(409, refused === 'done' ? 'finished' : refused === 'closed' ? 'closed' : 'refused', refused === 'done' ? 'Today’s run is done.' : 'That door is closed.');
       return { day, ...out };
     }
+    case 'dig': case 'chord': case 'pause': case 'resume': {
+      // CC1 — a judged cartridge's MOVES (COAST CLEAR): the day's data (its board) + the start in parallel, then ONE transaction on the record
+      const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
+      if (!cart.judged || typeof cart.act !== 'function' || !(cart.moves || []).includes(body.action)) throw new ApiError(400, 'bad_action', 'This daily has no such move.');
+      const [startedAt, data] = await Promise.all([val(`${base}/s/${pid}`), cart.load ? cart.load(day) : null]);
+      if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
+      let out = null, refused = null, status = 409;
+      await ref(`${base}/p/${pid}`).transaction(cur => {
+        out = null; refused = null;
+        const r = cart.act({ action: body.action, body, record: cur, day, startedAt, now, data });
+        if (r.refused) { refused = r.refused; status = r.status || 409; }
+        else out = r.resp;
+        // a transaction's FIRST call may see null (nothing cached here): never abort on it — write what the move made (or the fresh record), so
+        // the server checks it against the stored one and retries with the real record
+        if (cur == null) return r.record || { st: startedAt };
+        return r.record || undefined;                              // nothing changed (a repeat, a refusal) → nothing written
+      });
+      if (refused) {
+        const code = refused === 'done' ? 'finished' : refused;
+        throw new ApiError(status, code, code === 'finished' ? 'Today’s run is done.' : 'That move doesn’t work there.');
+      }
+      if (!out) throw new ApiError(409, 'refused', 'Try that again.');
+      return { day, ...out, now };
+    }
     case 'finish': {
       const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
       const startedAt = await val(`${base}/s/${pid}`);
@@ -72,7 +98,8 @@ export async function dailyAction(uid, body, now = Date.now()) {
       // a JUDGED daily scores from the server's own record — the phone's result is never read (an unfinished run: come back when it's done)
       const record = cart.judged ? await val(`${base}/p/${pid}`) : null;
       if (cart.judged && !(record && record.e)) throw new ApiError(409, 'not_done', 'Finish the run first.');
-      const score = cart.verify(dailySeed(cart.id, day), cart.judged ? null : body.result, { startedAt, now, record, day });
+      const data = cart.judged && cart.load ? await cart.load(day) : null;
+      const score = cart.verify(dailySeed(cart.id, day), cart.judged ? null : body.result, { startedAt, now, record, day, data });
       if (typeof score !== 'number' || !Number.isFinite(score)) throw new ApiError(422, 'refused', 'That result doesn’t check out.');
       // ONE official try: the first finish is the score (a retry gets the stored one back)
       const claim = await ref(`${base}/r/${pid}`).transaction(cur => (cur != null ? undefined : score));
@@ -88,7 +115,7 @@ export async function dailyAction(uid, body, now = Date.now()) {
       const fOpen = await founderOpen(now).catch(() => false);
       let res = null;
       // (PW2 — a judged daily's FLAGS come from the server's own record, never the phone: THE PASSWORD's crack / safe → KEYHOLE / SAFECRACKER)
-      const flags = cart.judged && cart.flags ? cart.flags({ record, day, startedAt }) : null;
+      const flags = cart.judged && cart.flags ? cart.flags({ record, day, startedAt, data }) : null;
       await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, n: stand.n, hourET: easternParts(now).h, outage, founderOpen: fOpen, flags }); return res.skip ? undefined : res.next; });
       if (res && !res.skip) {
         const st = res.next.st;
