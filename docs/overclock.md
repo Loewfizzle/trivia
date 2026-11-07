@@ -744,3 +744,22 @@ US-FIRST (metric data, US units on screen) · POP CULTURE YES, LASTING ONLY · A
   local server now does the same (404). The repo is PUBLIC until the launch, so GitHub shows the reserve: the site never serves it, and before
   the dailies go on the repo goes private (the owner's plan) or the module keeps the reserve elsewhere.
 - **ALL AGES in Sort It:** COFFEE DRINK / COCKTAIL (alcohol), CHESS / POKER (gambling) and WON BEST PICTURE (R-rated films) left the pool.
+
+**The local run before the final push (the mini PC, one suite at a time):** unit **1276 / 1276** (incl. the new `overclock-content` +
+`overclock-reserve`) · rules **66 / 66** (database.rules.json unchanged — nothing to re-publish) · `/api` server.test **38 / 38** · smoke
+**6 / 6** · e2e-oc-2 **27 / 27** (8 phones) · e2e-oc-new **75 / 75** (8 phones) · the no-sideways guard **57 / 57** (TRUE OR FALSE, HIGHER OR
+LOWER, TIMELINE, SORT IT × 390 / 402 / 430) · the offline rebuild byte-identical (8 / 8 files). No City 2.0 / console file changed (Overclock's
+own files, the pool scripts + data, the dev server's /api rule, tests, docs) → the harbor suite not needed; the ci tag.
+
+**Known issues / held back**
+- THE RESERVE is in the PUBLIC repo until the launch (the site never serves it; GitHub shows it) — the repo goes private before the dailies go
+  on, or the daily module keeps it elsewhere (docs/cartridge.md D2).
+- The answer-less daily path (the phone gets `show`, the server judges each item with `key`) is THE DAILY MODULE's to wire: today's challenge
+  screens still judge on the phone, as every party match does.
+- 26 written statements didn't pass their source check and are out (`node scripts/oc-pools/build.mjs --offline --failed` lists them) — some
+  are true but the article words them differently; a later pass may re-word their proofs.
+- Wikidata's moons sit under sub-classes the query doesn't reach → the "X is a moon of Y" template is empty; iron + gold are missing from the
+  temperature stats (their values disagree across sources → arguable → out).
+- A few data-built items are better known abroad than in the U.S. (a stadium, a bridge, a cartoon); the fame filter keeps the best-known — the
+  spot-check sheet is the place to flag any.
+- One small look change, kept to what Group 4 asked for: a SORT IT card sizes its text to fit the longest WORD too (never a mid-word break).
