@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>COAST CLEAR — the daily on the emulators</title>
+<!-- CC1 — THE E2E's PAGE (e2e-coastclear.mjs; built like THE PASSWORD's): the REAL view with THE API JUDGE against the REAL /api/daily on the emulators (node
+     scripts/serve.mjs <port> \-\-emu with DAILY_TEST=1): the real Firebase SDK signs this slot in anonymously (?emu&slot=…), a profile is
+     ensured, then the view mounts as THE DAILY MODULE will mount it (state.game = daily.create's run shell, the default judge = judge.js).
+     Not a look preview (coastclear-preview.html is — no Firebase there). Never the live site (kit/live-guard.mjs).
+       window.__suspend() / window.__resume()   tear the screen down mid-run and build it again (the room starting a game, an app switch)
+       window.__api(body)                      a raw /api/daily call (the E2E's pause — THE DAILY MODULE's job later) -->
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/kit.css">
+<link rel="stylesheet" href="/css/coastclear.css">
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #02050f; } #stage { position: fixed; inset: 0; } .screen { position: absolute; inset: 0; }</style>
+</head>
+<body data-theme="coastclear" data-look="night">
+<div id="stage"><div class="screen screen-in" id="screen"></div></div>
+<script type="module">
+import { initFirebase } from '/js/firebase.js';
+import { api } from '/js/profile/api.js';
+import { createView } from '/js/games/coastclear/view.js';
+import { create } from '/js/games/coastclear/daily.js';
+
+const q = new URLSearchParams(location.search);
+const uid = await initFirebase(() => {});
+const me = await api('profile', { action: 'ensure', name: q.get('name') || 'ALICE', avatar: 'bolt', color: 'cyan' });
+const d = new Date(), day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const state = { uid, game: create({ date: day, uid, now: Date.now(), daySet: { v: 1, day } }), players: { [uid]: { name: me.profile ? me.profile.n : 'ALICE', color: 'cyan', avatar: 'bolt' } }, meta: { status: 'playing' } };
+let view = createView();
+const screen = document.getElementById('screen');
+view.mount(screen, state);
+window.__suspend = () => { view.unmount(); };
+window.__resume = () => { view = createView(); view.mount(screen, state); };
+window.__daily = { uid, pid: me.pid, state };
+window.__api = body => api('daily', { game: 'coastclear', ...body });
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>COAST CLEAR preview</title>
+<!-- CC1 — the REAL view (js/games/coastclear/view.js) against a LOCAL FAKE SERVER with a FIXED TEST BOARD (never the real day): no Firebase (the
+     import map swaps js/firebase.js for fake-firebase.js), no /api. The fake answers with the same pure rules the server runs (logic.js#serverAct),
+     on a no-guess board the real maker makes from a fixed test seed (api/_lib/cc-solve.js through the dev server's /__dev/api-lib/ door).
+       &state=opening | mid | spotted1 | spotted2 | caught | clear     the run played forward by the SOLVER's own deductions (no cell made up):
+                              opening = nothing yet · mid = about half the harbor + buoys on the lights found · spotted1 / 2 = mid + one / two lights dug ·
+                              caught = three · clear = every safe cell (one spot on the way)
+       &flood=1               once ready, a far 0 is dug so the biggest calm area RIPPLES open (film it: shots.mjs --cast)
+       &lat=40                the fake's answer time in ms (default 40; &lat=190 = a slow phone line)   &drop=1  answers lost for 3 s (RECONNECTING)
+       &mode=buoy             the switch on BUOY   &paused=1   the run is paused when the screen mounts (the view resumes it)   &t=95   seconds on the clock
+       &seed=preview          the test board's seed   &look=night   (CC1 is night only)   &corner=0   hides the console's corner buttons
+       window.__coastclear = the view's hook · window.__preview = { judge, board, counts, play } -->
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/kit.css">
+<link rel="stylesheet" href="/css/coastclear.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #02050f; } #stage { position: fixed; inset: 0; } .screen { position: absolute; inset: 0; }</style>
+</head>
+<body data-theme="coastclear" data-look="night">
+<div id="stage"><div class="screen screen-in" id="screen"></div></div>
+<button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" id="pv-menu"><span class="mb-bars"><i></i><i></i><i></i></span></button>
+<button class="music-btn" type="button" aria-label="Music on — tap to turn it off" aria-pressed="true" id="pv-music"><svg viewBox="0 0 24 24" aria-hidden="true"><g class="nt"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></g><path class="slash-bg" d="M4 4l16 16"/><path class="slash" d="M4 4l16 16"/></svg></button>
+<script type="module">
+import { createView } from '/js/games/coastclear/view.js';
+import { create } from '/js/games/coastclear/daily.js';
+import { serverAct, runView, newRecord, countsOf, flood, safeCount } from '/js/games/coastclear/logic.js';
+import { makeBoard, solve } from '/__dev/api-lib/cc-solve.js';
+import { rngFrom } from '/js/core/rng.js';
+
+const q = new URLSearchParams(location.search);
+if (q.get('corner') === '0') for (const id of ['pv-menu', 'pv-music']) document.getElementById(id).remove();
+const DAY = '2026-11-07', UID = 'me';
+
+// THE TEST BOARD: the real maker on a fixed seed (no-guess, proven by the solver) — the first seed whose biggest calm area outside the opening is a
+// good big flood (so &flood=1 has something to show)
+const base = q.get('seed') || 'preview';
+let board = null;
+for (let k = 0; k < 60 && !board; k++) {
+  const b = makeBoard(a => rngFrom(`${base}:${k}:${a}`)).board;
+  const c = countsOf(b), open = new Set(b.open);
+  let big = 0;
+  for (let i = 0; i < b.w * b.h; i++) if (!open.has(i) && c[i] === 0) big = Math.max(big, flood(b, c, i, open).length);
+  if (big >= 18 || k === 59) board = b;
+}
+const counts = countsOf(board), L = new Set(board.lights);
+const lat = Number(q.get('lat') || 40);
+const T0 = Date.now() - 1000 * Number(q.get('t') || (q.get('state') && q.get('state') !== 'opening' ? 95 : 0));
+let dropUntil = q.get('drop') === '1' ? Infinity : 0;
+const tick = () => new Promise(r => setTimeout(r, lat * (0.8 + Math.random() * 0.4)));
+const fail = (status, code) => Object.assign(new Error(code), { status, code });
+
+// THE FAKE SERVER: a local record, the same pure rules (api/_lib/cc.js → logic.js#serverAct)
+const judge = {
+  kind: 'fake', record: newRecord(T0), board, score: null, calls: 0,
+  async start() { await tick(); return { startedAt: T0, done: this.score, run: runView(this.record, board, { startedAt: T0 }), day: DAY, now: Date.now() }; },
+  async act(action, args) {
+    this.calls++;
+    await tick();
+    if (Date.now() < dropUntil) throw fail(0, 'offline');
+    const r = serverAct(board, this.record, action, args, Date.now());
+    if (r.refused) throw fail(r.status, r.refused === 'done' ? 'finished' : r.refused);
+    if (r.record) this.record = r.record;
+    return { ...r.resp, now: Date.now() };
+  },
+  dig(cell) { return this.act('dig', { cell }); },
+  chord(cell, buoys) { return this.act('chord', { cell, buoys }); },
+  pause() { return this.act('pause', {}); },
+  resume() { return this.act('resume', {}); },
+  async finish() { await tick(); const v = runView(this.record, board); if (!v.done) throw fail(409, 'not_done'); const again = this.score != null; const { replay } = await import('/js/games/coastclear/logic.js'); this.score = replay(this.record, board).score; return { score: this.score, again }; },
+};
+window.__judge = judge;
+
+// the scripted state: the SOLVER's deductions played as digs (the real rules — no cell made up), the lights it found as buoys
+const sol = solve(board, counts, flood(board, counts, board.start), { trace: true });
+const want = q.get('state') || 'opening';
+const buoys = new Set();
+const at = () => Date.now() - 2000;
+const dig = c => { const r = serverAct(board, judge.record, 'dig', { cell: c }, at()); if (r.record) judge.record = r.record; return r; };
+if (want === 'clear') dig(board.lights[0]);   // (the clear run's one spot, early)
+if (want !== 'opening') {
+  const goal = want === 'clear' ? safeCount(board) : Math.floor(safeCount(board) * 0.55);
+  for (const step of sol.log) {
+    if (runView(judge.record, board).open.length >= goal) break;
+    for (const c of step.lit) buoys.add(c);
+    for (const c of step.safe) dig(c);
+  }
+  // spots: lights the solver has NOT found yet (a player's slip), dug — the clear run takes one on the way
+  const spots = { spotted1: 1, spotted2: 2, caught: 3 }[want] || 0;
+  const unfound = board.lights.filter(c => !buoys.has(c));
+  const pool = unfound.length >= spots ? unfound : board.lights;
+  for (let k = 0; k < spots; k++) { buoys.delete(pool[k]); dig(pool[k]); }
+  if (want === 'clear') { for (let i = 0; i < board.w * board.h; i++) if (!L.has(i)) dig(i); }
+}
+if (q.get('paused') === '1') judge.record = { ...judge.record, p: { n: 1, ms: 0, at: Date.now() - 20000 } };
+try { localStorage.setItem(`cc:buoys:${DAY}:${UID}`, [...buoys].join(',')); } catch { /* fine */ }
+
+// mount the real view, as the console would (state.game = the daily's run shell, state.judge = the fake)
+const game = create({ date: DAY, uid: UID, now: T0, daySet: { v: 1, day: DAY } });
+const state = { uid: UID, game, judge, players: { [UID]: { name: 'YOU', color: 'cyan', avatar: 'bolt' } }, meta: { status: 'playing' } };
+const view = createView();
+view.mount(document.getElementById('screen'), state);
+await new Promise(r => { const t = setInterval(() => { if (window.__coastclear && window.__coastclear.ready()) { clearInterval(t); r(); } }, 20); });
+if (q.get('mode') === 'buoy') window.__coastclear.setMode('buoy');
+/** the biggest calm area left (for &flood=1 and the E2E-ish checks) */
+const bigZero = () => { const v = window.__coastclear.view(), open = new Set(v.open.map(c => c[0])); let best = null, n = 0; for (let i = 0; i < board.w * board.h; i++) if (!open.has(i) && counts[i] === 0) { const f = flood(board, counts, i, open).length; if (f > n) { n = f; best = i; } } return { cell: best, size: n }; };
+const play = { bigZero, dig: c => window.__coastclear.tap(c), drop: ms => { dropUntil = Date.now() + ms; } };
+if (q.get('drop') === '1') setTimeout(() => { dropUntil = Date.now() + 3200; }, 0);
+window.__preview = { judge, board, counts, play, sol };
+if (q.get('flood') === '1') { await new Promise(r => setTimeout(r, Number(q.get('fdelay') || 600))); const z = bigZero(); if (z.cell != null) window.__coastclear.tap(z.cell); }
+document.body.dataset.ready = '1';   // (shots.mjs --page waits for this)
+</script>
+</body>
+</html>
