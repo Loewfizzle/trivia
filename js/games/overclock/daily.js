@@ -9,7 +9,8 @@
 //              order: [six SKILL types],                               one from each brain category (words · numbers · memory · visual ·
 //                                                                       knowledge · reflex): a good spread, a knowledge one included,
 //                                                                       NEVER DUMB LUCK
-//              deal: { ci: [ints] } (optional),                         the dealt items (deal.js#dealMatch's shape — indices into the banks)
+//              deal: { ci: [ints | ids] } (optional),                   the dealt items (deal.js#dealMatch's shape — OC6: STABLE IDS for the four
+//                                                                       pools (truefalse · higherlower · timeline · sortit), indexes for the rest)
 //              trivia: [three questions] (when the order has TRIVIA)    from OVERCLOCK's OWN bank — never the live Trivia API
 //            }
 // create({ date, uid, now, daySet, code }) → the game (a SOLO QUICK match of exactly those six) — FULLY deterministic from the day set: no
@@ -27,6 +28,8 @@ import { appendPatch } from '../../trivia/bankdata.js';
 export const DAILY_V = 1;
 export const DAILY_N = MODES.quick;                 // the SMALLEST OVERCLOCK = a QUICK six
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+// a dealt id (OC6): a pool item's id, or a HIGHER OR LOWER pair "statId|itemId|itemId"
+const DEAL_ID = /^[A-Za-z0-9_-]{1,64}(\|[A-Za-z0-9_-]{1,64}){0,2}$/;
 const fnv = s => { let x = 0x811c9dc5; for (let i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 0x01000193) >>> 0; } return x.toString(36); };
 
 /** is this a day set Overclock can play? → [] (yes) or the problems */
@@ -47,7 +50,7 @@ export function daySetProblems(ds) {
     if (!o.some(t => CATEGORY[t] === 'knowledge')) out.push('order: at least one knowledge challenge');
     if (o.includes('trivia') && !(Array.isArray(ds.trivia) && ds.trivia.length === 3 && ds.trivia.every(q => q && typeof q.q === 'string' && Array.isArray(q.a) && Number.isInteger(q.c)))) out.push('trivia: three questions from the own bank');
   }
-  if (ds.deal != null && (typeof ds.deal !== 'object' || Object.entries(ds.deal).some(([k, v]) => !(Number(k) >= 0 && Number(k) < DAILY_N) || !Array.isArray(v) || !v.every(Number.isInteger)))) out.push('deal: { ci: [ints] }');
+  if (ds.deal != null && (typeof ds.deal !== 'object' || Object.entries(ds.deal).some(([k, v]) => !(Number(k) >= 0 && Number(k) < DAILY_N) || !Array.isArray(v) || !v.every(x => Number.isInteger(x) || (typeof x === 'string' && DEAL_ID.test(x)))))) out.push('deal: { ci: [ints | ids] }');
   return out;
 }
 

@@ -50,3 +50,6 @@ art/city-sfx/radio/*.flac
 
 # CC-B: the owner's VAPID keys before they go into Vercel (never committed)
 *.local.txt
+
+# OC6: the Wikipedia articles the source check reads (re-fetched on a rebuild; the verdicts are committed in scripts/oc-pools/cache/checks.json)
+scripts/oc-pools/cache/wp-raw/

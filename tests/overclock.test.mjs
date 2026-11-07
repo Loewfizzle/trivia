@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { TYPES, generate, partsFor, unscrambleAccepts, memoryLength, STROOP_COLORS, reflexCredit, TF_FACTS } from '../js/games/overclock/challenges.js';
+import { TYPES, generate, partsFor, unscrambleAccepts, memoryLength, STROOP_COLORS, reflexCredit } from '../js/games/overclock/challenges.js';
 import { buildOrder, challengeScore, computeResults, standings, levelOf, CHALLENGE_MS, MODES, BRIEF_MS, READY_MS, STANDINGS_MS } from '../js/games/overclock/logic.js';
 import { createGame, nextStep, triviaNeeded } from '../js/games/overclock/director.js';
 import { setLists, answersFor, isValidGuess } from '../js/games/cipher/words.js';
@@ -12,14 +12,7 @@ import { setFallbackRows } from '../js/trivia/bank.js';
 
 for (const n of [5, 6, 7]) setLists(n, JSON.parse(readFileSync(`data/words/answers-${n}.json`, 'utf8')), JSON.parse(readFileSync(`data/words/valid-${n}.json`, 'utf8')));
 setFallbackRows(JSON.parse(readFileSync('data/trivia/fallback.json', 'utf8')).questions);
-const BANKS = {
-  timeline: JSON.parse(readFileSync('data/oc/timeline.json', 'utf8')).sets,
-  closest: JSON.parse(readFileSync('data/oc/closest.json', 'utf8')).questions,
-  missinglink: JSON.parse(readFileSync('data/oc/missinglink.json', 'utf8')).puzzles,
-  spellcheck: JSON.parse(readFileSync('data/oc/spellcheck.json', 'utf8')).words,
-  sortit: JSON.parse(readFileSync('data/oc/sortit.json', 'utf8')).sets,
-  higherlower: JSON.parse(readFileSync('data/oc/higherlower.json', 'utf8')).stats,
-};
+import { BANKS } from './fixtures/oc-banks.mjs';
 
 test('every challenge type is identical for every client given the same seed (Math.random is never used)', () => {
   const trivia = [{ q: 'a?', a: ['1', '2', '3', '4'], c: 0 }, { q: 'b?', a: ['1', '2', '3', '4'], c: 1 }, { q: 'c?', a: ['1', '2', '3', '4'], c: 2 }];
@@ -266,7 +259,7 @@ test('new challenges: color clash, signal lock, quick count, true or false are w
       assert.equal(it.options.length, 4);
       assert.ok(it.options.includes(it.ans) && new Set(it.options).size === 4 && it.options.every(v => v > 0));
     }
-    const tf = generate('truefalse', args);
+    const tf = generate('truefalse', args, BANKS);
     assert.equal(tf.items.length, 8);
     for (const it of tf.items.filter((_, i) => i % 2 === 0)) {
       // math statements: evaluate them and check the label
@@ -274,7 +267,7 @@ test('new challenges: color clash, signal lock, quick count, true or false are w
       assert.equal(Function(`return (${m})`)(), it.truth, it.text);
     }
   }
-  assert.ok(TF_FACTS.every(([t, f]) => t && f && t !== f));
+  assert.ok(BANKS.truefalse.every(({ t, f }) => t && f && t !== f));
 });
 
 test('signal lock: reaction-time credit and scoring on the same 160-point scale', () => {

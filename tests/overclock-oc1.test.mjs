@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import * as META from '../js/games/overclock/meta.js';
-import { TYPES, CATEGORY, INFO, partsFor, generate, TF_FACTS } from '../js/games/overclock/challenges.js';
+import { TYPES, CATEGORY, INFO, partsFor, generate, tlDeal, tlFair } from '../js/games/overclock/challenges.js';
 import {
   buildOrder, categoryClashes, MODES, CHALLENGE_MS, READY_MS, BRIEF_MS, STANDINGS_MS, REVEAL_STANDINGS_MS, OVERALL_STAGE_MS, FINAL_MS,
   PLAY_GRACE_MS, SKIP_MIN_MS, standingsMs, comboFold, marksFor, levelOf, FRESH_TYPE_WEIGHT,
@@ -13,7 +13,7 @@ import {
 import { COMPASS_STEP_MS, COMPASS_GAP_MS, COMPASS_START_MS, COMPASS_FLASH_MS, REFLEX_TIMEOUT_MS, sortWindowMs } from '../js/games/overclock/challenges.js';
 import { createGame, nextStep } from '../js/games/overclock/director.js';
 import { DL_PICK_MS, DL_RACE_MS, DL_FINISH_MS } from '../js/games/overclock/luck.js';
-import { dealMatch, keysAt, playedTypes, typeKey, pickFresh, hash36, DEALT } from '../js/games/overclock/deal.js';
+import { dealMatch, keysAt, playedTypes, typeKey, pickFresh, tlKey, DEALT } from '../js/games/overclock/deal.js';
 import { usedOf } from '../js/games/kit/night.js';
 import { rngFrom } from '../js/core/rng.js';
 import { setLists, answersFor } from '../js/games/cipher/words.js';
@@ -21,11 +21,7 @@ import { lookLockOf, looksOf, checkCartridge, META_KEYS, START_ARGS } from '../j
 import * as PRISM_META from '../js/games/prism/meta.js';
 
 for (const n of [5, 6, 7]) setLists(n, JSON.parse(readFileSync(`data/words/answers-${n}.json`, 'utf8')), JSON.parse(readFileSync(`data/words/valid-${n}.json`, 'utf8')));
-const J = f => JSON.parse(readFileSync(`data/oc/${f}`, 'utf8'));
-const BANKS = {
-  timeline: J('timeline.json').sets, closest: J('closest.json').questions, missinglink: J('missinglink.json').puzzles,
-  spellcheck: J('spellcheck.json').words, sortit: J('sortit.json').sets, higherlower: J('higherlower.json').stats,
-};
+import { BANKS } from './fixtures/oc-banks.mjs';
 const TRIVIA = [{ q: 'a?', a: ['1', '2', '3', '4'], c: 0 }, { q: 'b?', a: ['1', '2', '3', '4'], c: 1 }, { q: 'c?', a: ['1', '2', '3', '4'], c: 2 }];
 const deps = { ...BANKS, answersFor, triviaItems: TRIVIA };
 
@@ -71,18 +67,17 @@ const specOf = game => {
 /** the items a spec shows, as comparable strings (what a player would call "we just had this one") */
 function itemsOf(spec) {
   switch (spec.type) {
-    case 'timeline': return [`tl:${spec.items.map(i => i.label).sort().join("|")}`];
+    case 'timeline': return spec.items.map(i => `tl:${spec.title}|${i.label}`);
     case 'closest': return [`cc:${spec.q}`];
     case 'missinglink': return spec.puzzles.map(p => `ml:${p.answer}:${[...p.words].sort().join('|')}`);
     case 'spellcheck': return spec.items.map(i => `sp:${i.word}`);
     case 'sortit': return [`so:${spec.left}|${spec.right}`];
     case 'higherlower': return spec.pairs.flatMap(p => [`hl:${p.stat}|${p.a.name}`, `hl:${p.stat}|${p.b.name}`]);
-    case 'truefalse': return spec.items.filter((_, i) => i % 2).map(i => `tf:${i.text}`);
+    case 'truefalse': return spec.items.filter((_, i) => i % 2).map(i => `tf:${i.id}`);
     case 'unscramble': return [`un:${spec.word}`];
     default: return [];
   }
 }
-const truefalseFact = text => TF_FACTS.findIndex(p => p.includes(text));
 
 // ---------------------------------------------------------------------------------------------- THE OWNER's TIMINGS (Nov 4: never change them)
 test('THE TIMINGS are unchanged (the owner: "I was barely keeping up as it was") — a later pass that shortens one fails here', () => {
@@ -223,21 +218,25 @@ test('the deal: every phone builds the same challenge from it; it avoids what th
     const all = [];
     for (let ci = 0; ci < g.total; ci++) all.push(...itemsOf(specOf({ ...g, ci })));
     assert.equal(new Set(all).size, all.length, `no repeats inside a match: ${all.filter((x, i) => all.indexOf(x) !== i)}`);
-    // the keys it marks are stable text hashes (never an index)
-    assert.ok(Object.values(g.dk).every(k => /^[a-z0-9]+-[a-zA-Z0-9]+( [a-z0-9]+-[a-zA-Z0-9]+)*$/.test(k)), 'database-safe keys');
+    // the keys it marks are stable ids / text hashes (never an index)
+    assert.ok(Object.values(g.dk).every(k => /^[a-z0-9]+-[A-Za-z0-9_-]+( [a-z0-9]+-[A-Za-z0-9_-]+)*$/.test(k)), 'database-safe keys');
   }
-  // the deal never deals a used key while a fresh one exists …
-  const tlKey = r => `tl-${hash36(r[3].map(x => x[0]).join("|"))}`;
-  const keys = [...new Set(BANKS.timeline.map(tlKey))];
-  assert.equal(keys.length, BANKS.timeline.length, 'every TIMELINE set has its own key');
-  const used = Object.fromEntries(keys.slice(0, -1).map(k => [k, true]));
+  // the deal never deals a used item while a fresh fair four exists … (OC6: TIMELINE remembers ITEMS by id)
+  const T = BANKS.timeline[0];
+  const four = tlDeal(rngFrom('four'), T).map(i => T.items[i][3]);
+  const used = {};
+  for (const t of BANKS.timeline) for (const it of t.items) if (t !== T || !four.includes(it[3])) used[tlKey(t, it)] = true;
   const order = ['timeline'];
   const d = dealMatch({ seed: 'x', order, total: 1, banks: BANKS, used });
-  assert.equal(tlKey(BANKS.timeline[d.deal[0][0]]), keys.at(-1), 'the one fresh set');
-  // … and a pool the night used up reshuffles (still deals, never stalls)
-  const all = {}; BANKS.timeline.forEach(r => { all[`tl-${hash36(`${r[0]}|${r[1]}`)}`] = true; });
+  assert.equal(d.deal[0][0], T.id, 'the one theme with a fresh four');
+  assert.deepEqual(d.deal[0].slice(1).sort(), four.slice().sort(), 'the four fresh items');
+  // … and a pool the night used up reshuffles (still deals four fair items, never stalls)
+  const all = {}; for (const t of BANKS.timeline) for (const it of t.items) all[tlKey(t, it)] = true;
   const d2 = dealMatch({ seed: 'x', order, total: 1, banks: BANKS, used: all });
-  assert.ok(Number.isInteger(d2.deal[0][0]));
+  assert.equal(d2.deal[0].length, 5);
+  const T2 = BANKS.timeline.find(t => t.id === d2.deal[0][0]);
+  const vals = d2.deal[0].slice(1).map(id => T2.items.find(it => it[3] === id)[1]);
+  assert.ok(vals.every((a, i) => vals.every((b, j) => i === j || tlFair(T2.unit || 'year', a, b))), 'fair');
   assert.deepEqual(pickFresh(rngFrom('p'), 3, 5, () => true).sort(), [0, 1, 2], 'never more than the pool, never fewer');
   // a bank that didn't load → no deal for it (the old per-match deck)
   assert.equal(dealMatch({ seed: 'x', order, total: 1, banks: {}, used: {} }).deal[0], undefined);

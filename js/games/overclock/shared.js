@@ -1,17 +1,16 @@
 // OVERCLOCK — helpers shared by the view, the challenge screens (ui/*.js) and the reveals.
 import { h } from '../../ui/dom.js';
+import { showUS } from './units.js';
 
 // 3, 2.5, 3.47 → '3', '2.5', '3.5' (partial credit)
 export const fmtOk = n => (Number.isInteger(n) ? String(n) : (Math.round(n * 10) / 10).toString());
 // 1234.5 → '1,234.5' (Closest Call)
 export const fmtVal = v => { const [i, d] = String(v).split('.'); return Number(i).toLocaleString('en-US') + (d != null ? `.${d}` : ''); };
-// Higher or Lower values: 39 million, 1.44 billion, 0.49 km², 1876, c. 2560 BC
+// Higher or Lower values (OC6 — the pools store METRIC, the screen shows US units: units.js): 2,717 ft · 39.5 million · 6.6 million sq mi ·
+// 1876 · c. 2560 BC (a written-out value)
 export function fmtStat(unit, v, shown) {
   if (shown) return shown;
-  if (unit === 'year') return String(v);
-  if (unit === 'million' && v >= 1000) return `${(v / 1000).toFixed(2).replace(/0$/, '')} billion`;
-  if (unit === 'million' && v < 1) return `${Math.round(v * 1000)} thousand`;
-  return unit ? `${fmtVal(v)} ${unit}` : fmtVal(v);
+  return showUS(unit, v);
 }
 // Sort It only stores the net score (right − ½ wrong) and how many cards were sorted; this recovers right/wrong.
 export const sortSplit = (ok, p) => { const wrong = Math.max(0, Math.round((p - ok) / 1.5)); return { right: p - wrong, wrong }; };

@@ -8,24 +8,27 @@ import {
 } from '../js/games/overclock/challenges.js';
 import { challengeScore, computeResults, buildOrder, standingsMs, REVEAL_STANDINGS_MS, STANDINGS_MS } from '../js/games/overclock/logic.js';
 
-const TL = JSON.parse(readFileSync('data/oc/timeline.json', 'utf8')).sets;
+const TL = JSON.parse(readFileSync('data/oc/timeline.json', 'utf8')).themes;
 const CC = JSON.parse(readFileSync('data/oc/closest.json', 'utf8')).questions;
 const deps = { timeline: TL, closest: CC };
 
-test('TIMELINE: 150+ fair sets; never shown pre-sorted; partial credit per position', () => {
-  assert.ok(TL.length >= 150, `${TL.length} sets`);
-  for (const [title, ask, dir, items] of TL) {
-    assert.ok(title && ask && /→/.test(dir));
-    assert.equal(items.length, 4);
-    assert.equal(new Set(items.map(i => i[0])).size, 4);
-    assert.ok(items.every(([label, shown]) => label && shown));
+test('TIMELINE (OC6 — theme pools): every deal is four distinct, fair items; never shown pre-sorted; partial credit per position', () => {
+  for (const { theme, ask, dir, items } of TL) {
+    assert.ok(theme && ask && /→/.test(dir));
+    assert.ok(items.every(([label, v, , id]) => label && typeof v === 'number' && id));
   }
+  const deals = new Set();
   for (let ci = 0; ci < 200; ci++) {
     const t = generate('timeline', { seed: `t${ci}`, ci, level: 0.5 }, deps);
+    assert.equal(t.items.length, 4);
+    assert.equal(new Set(t.items.map(i => i.label)).size, 4);
+    assert.ok(t.items.every(i => i.label && i.value));
+    deals.add(t.items.map(i => i.label).join('|'));
     assert.notDeepEqual(t.shown, [0, 1, 2, 3], 'never already in order');
     const perfect = [0, 1, 2, 3].map(pos => t.shown.indexOf(pos));
     assert.equal(timelineCorrect(t, perfect), 4);
   }
+  assert.ok(deals.size >= 190, `${deals.size} different deals in 200 rounds`);
   const t = { shown: [2, 0, 3, 1] };
   assert.equal(timelineCorrect(t, [1, 3, 0, 2]), 4);
   assert.equal(timelineCorrect(t, [3, 1, 0, 2]), 2);

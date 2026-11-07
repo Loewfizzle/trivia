@@ -8,9 +8,12 @@
 // rebuilds exactly the same challenge from game.deal[ci] (indices into the banks) and the step that opens challenge ci marks game.dk[ci]
 // (its keys, space-joined) + the type's own key. A replayed step (host migration) writes the same patch. A pool a night has used up
 // RESHUFFLES (the used rows again, in the match's seeded order) rather than stall.
-// Keys come from the item's TEXT (a short hash), not its index, so a bank that grows (OC6 / OC7) keeps the night's memory.
+// OC6 — STABLE IDS: the four pools this pass built (TRUE OR FALSE, HIGHER OR LOWER, TIMELINE, SORT IT) deal + remember by each item's STABLE
+// id (a Wikidata Q-id, or the id the build script gave a written item — scripts/oc-pools/build.mjs), never an array index: a rebuild that adds,
+// drops or reorders rows keeps every deal + the night's memory (an old night's keys simply stop matching). The OC7 banks (closest · missing
+// link · spellcheck) still deal indexes + remember a hash of the row's text until their own pass.
 import { rngFrom, shuffle } from '../../core/rng.js';
-import { TF_FACTS, TF_FACT_SLOTS, unscrambleLength, hlPick } from './challenges.js';
+import { TF_FACT_SLOTS, unscrambleLength, hlPick, hlPairId, tlDeal } from './challenges.js';
 import { oddPool, oddKey } from './odd.js';
 
 /** FNV-1a (32-bit) → base 36: a short, stable, database-safe key for an item's text */
@@ -27,17 +30,18 @@ export const playedTypes = used => Object.keys(used || {}).filter(k => k.startsW
 
 // per dealt type: how many rows one challenge takes + the key of a row
 const ROWS = {
-  timeline: { n: 1, key: r => `tl-${hash36(r[3].map(x => x[0]).join('|'))}` },
   closest: { n: 1, key: r => `cc-${hash36(r[1])}` },
   missinglink: { n: 2, key: r => `ml-${hash36(r.slice(0, 4).join('|'))}` },
   spellcheck: { n: 5, key: r => `sp-${hash36(r[0])}` },
-  sortit: { n: 1, key: r => `so-${hash36(`${r[0]}|${r[1]}`)}` },
 };
-export const tfKey = pair => `tf-${hash36(pair[0])}`;
-export const hlKey = (stat, item) => `hl-${hash36(`${stat[0]}|${item[0]}`)}`;
+// (OC6 — by id: database-safe by construction, ids are [A-Za-z0-9_-] — tests/overclock-content.test.mjs)
+export const tfKey = row => `tf-${row.id}`;
+export const hlKey = (stat, item) => `hl-${stat.id}-${item[3]}`;
+export const tlKey = (theme, item) => `tl-${theme.id}-${item[3]}`;
+export const soKey = set => `so-${set.id}`;
 export const unKey = word => `un-${word}`;
 /** the types whose items the night remembers (the rest are generated fresh every time — math, memory, rewire …) */
-export const DEALT = Object.freeze([...Object.keys(ROWS), 'higherlower', 'truefalse', 'unscramble', 'oddone']);
+export const DEALT = Object.freeze([...Object.keys(ROWS), 'timeline', 'sortit', 'higherlower', 'truefalse', 'unscramble', 'oddone']);
 
 /**
  * n distinct indices of 0..size-1 in the seeded order — the fresh ones first (not in `taken`), then (a used-up pool) the rest.
@@ -52,10 +56,11 @@ export function pickFresh(rand, size, n, taken) {
 }
 
 /**
- * The whole match's deal. banks: { timeline, closest, missinglink, spellcheck, sortit, higherlower } (any may be
+ * The whole match's deal. banks: { truefalse, timeline, closest, missinglink, spellcheck, sortit, higherlower } (any may be
  * missing — that challenge then falls back to the seeded per-match deck, as before); words(len) → the Unscramble answers of that length
  * (or null); used: the room's { key: true } for 'overclock' tonight.
- * → { deal: { [ci]: [int] }, dk: { [ci]: 'key key …' } } — only for the challenges it could deal.
+ * → { deal: { [ci]: [int | id] }, dk: { [ci]: 'key key …' } } — only for the challenges it could deal (ids for the OC6 pools:
+ *   truefalse [4 fact ids] · higherlower ["statId|itemId|itemId" × 10] · timeline [theme id, item id × 4] · sortit [set id]).
  */
 export function dealMatch({ seed, order, total, banks = {}, words = () => null, used = {} }) {
   const rand = rngFrom(`${seed}:deal`);
@@ -74,14 +79,36 @@ export function dealMatch({ seed, order, total, banks = {}, words = () => null, 
     } else if (type === 'higherlower') {
       const b = banks.higherlower;
       if (!Array.isArray(b) || !b.length) return;
-      const triples = hlPick(rand, b, (si, i) => seen.has(hlKey(b[si], b[si][4][i])));
+      const triples = hlPick(rand, b, (si, i) => seen.has(hlKey(b[si], b[si].items[i])));
       if (triples.some(t => !t)) return;
       const keys = [];
-      for (const [si, i, j] of triples) keys.push(hlKey(b[si], b[si][4][i]), hlKey(b[si], b[si][4][j]));
-      put(ci, triples.flat(), keys);
+      for (const [si, i, j] of triples) keys.push(hlKey(b[si], b[si].items[i]), hlKey(b[si], b[si].items[j]));
+      put(ci, triples.map(t => hlPairId(b, t)), keys);
     } else if (type === 'truefalse') {
-      const idx = pickFresh(rand, TF_FACTS.length, TF_FACT_SLOTS, i => seen.has(tfKey(TF_FACTS[i])));
-      put(ci, idx, idx.map(i => tfKey(TF_FACTS[i])));
+      const b = banks.truefalse;
+      if (!Array.isArray(b) || b.length < 8) return;
+      const idx = pickFresh(rand, b.length, TF_FACT_SLOTS, i => seen.has(tfKey(b[i])));
+      put(ci, idx.map(i => b[i].id), idx.map(i => tfKey(b[i])));
+    } else if (type === 'timeline') {
+      // a theme with four fresh, pairwise-fair items tonight (the themes in the match's seeded order); a used-up night = any fair four
+      const b = banks.timeline;
+      if (!Array.isArray(b) || !b.length) return;
+      const themes = shuffle(rand, b.map((_, i) => i));
+      let got = null;
+      for (const pass of [0, 1]) for (const ti of themes) {
+        if (got) break;
+        const t = b[ti];
+        const idx = tlDeal(rand, t, i => seen.has(tlKey(t, t.items[i])));
+        if (idx && (pass === 1 || idx.every(i => !seen.has(tlKey(t, t.items[i]))))) got = [t, idx];
+      }
+      if (!got) return;
+      const [t, idx] = got;
+      put(ci, [t.id, ...idx.map(i => t.items[i][3])], idx.map(i => tlKey(t, t.items[i])));
+    } else if (type === 'sortit') {
+      const b = banks.sortit;
+      if (!Array.isArray(b) || !b.length) return;
+      const [i] = pickFresh(rand, b.length, 1, k => seen.has(soKey(b[k])));
+      put(ci, [b[i].id], [soKey(b[i])]);
     } else if (type === 'oddone') {
       // OC4 — ODD ONE OUT's FAMILIES: three of the four (a different one per grid), each grid's item fresh tonight (a used-up family reshuffles)
       const fams = shuffle(rand, [0, 1, 2, 3]).slice(0, 3);

@@ -4,6 +4,7 @@
 import { rngFrom, randInt, pick, shuffle } from '../../core/rng.js';
 import { ODD_SIZES, oddFamilies, oddPool, oddGrid, oddCatalogSize } from './odd.js';
 import { LUCK, HORSES, dlField, payout } from './luck.js';
+import { showUS, yearText } from './units.js';
 
 export const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'timeline', 'closest', 'rewire',
   'missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower', 'dumbluck'];
@@ -214,45 +215,10 @@ export function genCount(rand, level) {
 }
 
 // ---------- true or false ----------
-// [true statement, false twin]. Keep these unambiguous and checkable.
-export const TF_FACTS = [
-  ['A week has 168 hours', 'A week has 148 hours'],
-  ['A spider has 8 legs', 'A spider has 6 legs'],
-  ['Water boils at 100 °C at sea level', 'Water boils at 90 °C at sea level'],
-  ['A hexagon has 6 sides', 'A hexagon has 7 sides'],
-  ['The Pacific is the largest ocean', 'The Atlantic is the largest ocean'],
-  ['A standard deck of cards has 4 suits', 'A standard deck of cards has 5 suits'],
-  ['A leap year has 366 days', 'A leap year has 365 days'],
-  ['Light travels faster than sound', 'Sound travels faster than light'],
-  ['The chemical symbol for gold is Au', 'The chemical symbol for gold is Ag'],
-  ['An octopus has three hearts', 'An octopus has two hearts'],
-  ['Bats are mammals', 'Bats are birds'],
-  ['A decade is 10 years', 'A decade is 100 years'],
-  ['The Moon orbits the Earth', 'The Earth orbits the Moon'],
-  ['Venus is the hottest planet', 'Mercury is the hottest planet'],
-  ['The English alphabet has 26 letters', 'The English alphabet has 24 letters'],
-  ['An adult human has 206 bones', 'An adult human has 306 bones'],
-  ['Tokyo is the capital of Japan', 'Kyoto is the capital of Japan'],
-  ['Canberra is the capital of Australia', 'Sydney is the capital of Australia'],
-  ['Ottawa is the capital of Canada', 'Toronto is the capital of Canada'],
-  ['A triangle’s angles add up to 180°', 'A triangle’s angles add up to 360°'],
-  ['Diamonds are made of carbon', 'Diamonds are made of silicon'],
-  ['The human heart has four chambers', 'The human heart has three chambers'],
-  ['Shakespeare wrote Romeo and Juliet', 'Dickens wrote Romeo and Juliet'],
-  ['Jupiter is the largest planet', 'Saturn is the largest planet'],
-  ['A baker’s dozen is 13', 'A baker’s dozen is 12'],
-  ['Sharks are fish', 'Dolphins are fish'],
-  ['Pi is about 3.14', 'Pi is about 3.41'],
-  ['A kilometre is 1,000 metres', 'A kilometre is 10,000 metres'],
-  ['Brazil’s official language is Portuguese', 'Brazil’s official language is Spanish'],
-  ['Mars is called the Red Planet', 'Venus is called the Red Planet'],
-  ['The Nile is in Africa', 'The Amazon is in Africa'],
-  ['A century is 100 years', 'A century is 1,000 years'],
-  ['Penguins can’t fly', 'Ostriches can fly'],
-  ['Mount Everest is the tallest mountain above sea level', 'K2 is the tallest mountain above sea level'],
-  ['The Mona Lisa was painted by Leonardo da Vinci', 'The Mona Lisa was painted by Michelangelo'],
-  ['Spiders are not insects', 'Spiders are insects'],
-];
+// OC6 — THE FACT POOL: the facts live in data/oc/truefalse.json ({ id, t: the true text, f: its false twin, src, cat } — banks.js, built by
+// scripts/oc-pools/build.mjs); statements 2, 4, 6, 8 are facts (the others math — generated, never repeat-checked). The pair-based truth flip
+// as ever: each fact slot shows its true text or its false twin (rand). deal = THE ROOM's NIGHT MEMORY: the four fact IDS (deal.js) — an id the
+// pool no longer has falls back to the seeded draw.
 const TF_MATH = [
   // each builds a statement that is true when `want` is true
   (r, want) => { const a = randInt(r, 6, 19); const b = randInt(r, 3, 9); const p = a * b; const c = p + pick(r, [-3, -2, -1, 1, 2, 3]); const op = (p > c) === want ? '>' : '<'; return `${a} × ${b} ${op} ${c}`; },
@@ -261,15 +227,24 @@ const TF_MATH = [
   (r, want) => { const a = randInt(r, 7, 15); return `${a}² = ${want ? a * a : a * a + pick(r, [-a, a, -1, 1])}`; },
   (r, want) => { const p = pick(r, [10, 20, 25, 50, 75]); const n = 20 * randInt(r, 2, 20); const v = (p * n) / 100; return `${p}% of ${n} = ${want ? v : v + pick(r, [-5, 5, -10, 10])}`; },
 ];
-export const TF_FACT_SLOTS = 4;   // statements 2, 4, 6, 8 are facts (the others math — generated, never repeat-checked)
-export function genTrueFalse(rand, deal) {
-  const shuffled = shuffle(rand, TF_FACTS.map((_, i) => i));
-  const facts = i => (dealt(deal, (i - 1) / 2, TF_FACTS.length) ? deal[(i - 1) / 2] : shuffled[i]);
+export const TF_FACT_SLOTS = 4;
+/** a pool's id → index map (built once per loaded pool) */
+const idMaps = new WeakMap();
+export function idIndex(list, idOf = x => x.id) {
+  let m = idMaps.get(list);
+  if (!m) { m = new Map(); list.forEach((x, i) => m.set(idOf(x), i)); idMaps.set(list, m); }
+  return m;
+}
+export function genTrueFalse(rand, bank, deal) {
+  if (!Array.isArray(bank) || bank.length < 8) return null;
+  const shuffled = shuffle(rand, bank.map((_, i) => i));
+  const ids = idIndex(bank);
+  const fact = i => { const id = Array.isArray(deal) ? deal[(i - 1) / 2] : null; const k = typeof id === 'string' ? ids.get(id) : undefined; return bank[k ?? shuffled[i]]; };
   const items = [];
   for (let i = 0; i < 8; i++) {
     const truth = rand() < 0.5;
     if (i % 2 === 0) items.push({ text: pick(rand, TF_MATH)(rand, truth), truth });
-    else { const pair = TF_FACTS[facts(i)]; items.push({ text: truth ? pair[0] : pair[1], truth }); }
+    else { const row = fact(i); items.push({ text: truth ? row.t : row.f, truth, id: row.id }); }
   }
   return { type: 'truefalse', parts: 8, items };
 }
@@ -284,14 +259,53 @@ export function bankIndex(seed, type, occ, size) {
 }
 
 // ---------- timeline ----------
-/** bank: data/oc/timeline.json sets ([title, ask, direction, [[item, shown] × 4 in order]]) */
+// OC6 — THEME POOLS (data/oc/timeline.json: [{ id, theme, ask, dir, unit?, items: [[label, value, shown|null, id], …] }]): a challenge deals
+// FOUR items of one theme, every pair at least TL_GAP_YEARS apart (a unit theme: TL_GAP_RATIO×) — seeded, so a few hundred items give
+// thousands of different rounds. The screen + the scoring exactly as OC3B built them (the spec's shape unchanged).
+export const TL_GAP_YEARS = 10;
+export const TL_GAP_RATIO = 1.3;
+export const tlFair = (unit, a, b) => (unit && unit !== 'year' ? Math.min(a, b) > 0 && Math.max(a, b) / Math.min(a, b) >= TL_GAP_RATIO : Math.abs(a - b) >= TL_GAP_YEARS);
+/** four item indexes of a theme, pairwise fair — the fresh ones first (avoid(i) = seen tonight), then any; null when none fits */
+export function tlDeal(rand, theme, avoid = null) {
+  const items = theme.items;
+  const unit = theme.unit || 'year';
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const deck = shuffle(rand, items.map((_, i) => i));
+    const out = [];
+    const fits = i => out.every(j => tlFair(unit, items[i][1], items[j][1]));
+    for (const pass of [0, 1]) for (const i of deck) {
+      if (out.length >= 4) break;
+      if (out.includes(i) || (pass === 0 && avoid && avoid(i))) continue;
+      if (fits(i)) out.push(i);
+    }
+    if (out.length === 4) return out;
+  }
+  return null;
+}
+/** an item's value as the reveal prints it: its own text, a US-unit value, or the year */
+export const tlShown = (theme, it) => (it[2] ? it[2] : theme.unit && theme.unit !== 'year' ? showUS(theme.unit, it[1]) : yearText(it[1]));
 export function genTimeline(rand, level, bank, occ, seed, deal) {
-  if (!bank || !bank.length) return null;
-  const [title, ask, dir, items] = bank[bankAt(deal, 0, seed, 'timeline', occ, bank.length)];
+  if (!Array.isArray(bank) || !bank.length) return null;
   let order = shuffle(rand, [0, 1, 2, 3]);
   for (let k = 0; k < 8 && order.every((v, i) => v === i); k++) order = shuffle(rand, [0, 1, 2, 3]); // never pre-solved
+  // deal = [theme id, item id × 4] (deal.js) — a stale one (the pool changed) = the seeded draw
+  let theme = null, idx = null;
+  if (Array.isArray(deal) && deal.length === 5) {
+    const t = bank[idIndex(bank).get(deal[0])];
+    if (t) {
+      const ids = idIndex(t.items, x => x[3]);
+      const got = deal.slice(1).map(id => ids.get(id));
+      const unit = t.unit || 'year';
+      if (got.every(i => i != null) && new Set(got).size === 4 && got.every((i, a) => got.every((j, b) => a === b || tlFair(unit, t.items[i][1], t.items[j][1])))) { theme = t; idx = got; }
+    }
+  }
+  if (!theme) {
+    for (let k = 0; k < bank.length && !idx; k++) { theme = bank[bankIndex(seed, 'timeline', occ + k, bank.length)]; idx = tlDeal(rand, theme); }
+    if (!idx) return null;
+  }
+  const items = idx.map(i => theme.items[i]).sort((a, b) => a[1] - b[1]);
   // shown[i] = the correct position of the i-th item on screen
-  return { type: 'timeline', parts: 4, title, ask, dir, items: items.map(([label, value]) => ({ label, value })), shown: order };
+  return { type: 'timeline', parts: 4, title: theme.theme, ask: theme.ask, dir: theme.dir, items: items.map(it => ({ label: it[0], value: tlShown(theme, it) })), shown: order };
 }
 /** How many positions are right: picks = on-screen indexes in the order the player tapped them. */
 export const timelineCorrect = (spec, picks) => picks.reduce((n, shownIdx, pos) => n + (spec.shown[shownIdx] === pos ? 1 : 0), 0);
@@ -468,10 +482,11 @@ export const SORT_FULL = 10; // net correct sorts (right − ½ × wrong) that a
 /** How long card i stays up before it counts as a miss: 2.6 s at first, down to 1.2 s. */
 export const sortWindowMs = i => Math.round(2600 - (1400 * Math.min(i, SORT_CARDS - 1)) / (SORT_CARDS - 1));
 export const sortOk = (right, wrong) => Math.max(0, Math.round((right - 0.5 * wrong) * 100) / 100);
-/** bank: data/oc/sortit.json sets ([left label, right label, [left items], [right items]]) */
+/** bank: data/oc/sortit.json sets ([{ id, left, right, L: [left items], R: [right items], src }]) — deal = [set id] (deal.js) */
 export function genSortIt(rand, bank, occ, seed, deal) {
-  if (!bank || !bank.length) return null;
-  const [left, right, L, R] = bank[bankAt(deal, 0, seed, 'sortit', occ, bank.length)];
+  if (!Array.isArray(bank) || !bank.length) return null;
+  const k = Array.isArray(deal) && typeof deal[0] === 'string' ? idIndex(bank).get(deal[0]) : undefined;
+  const { left, right, L, R } = bank[k ?? bankIndex(seed, 'sortit', occ, bank.length)];
   const nl = randInt(rand, 5, 7);
   const pickCards = () => shuffle(rand, [
     ...shuffle(rand, L).slice(0, nl).map(t => ({ t, s: 0 })),
@@ -480,18 +495,19 @@ export function genSortIt(rand, bank, occ, seed, deal) {
   let cards = pickCards();
   // no long runs on one side (it would feel rigged)
   const runs = cs => cs.some((c, i) => i >= 3 && cs.slice(i - 3, i + 1).every(x => x.s === c.s));
-  for (let k = 0; k < 12 && runs(cards); k++) cards = shuffle(rand, cards);
+  for (let n = 0; n < 12 && runs(cards); n++) cards = shuffle(rand, cards);
   return { type: 'sortit', parts: SORT_CARDS, left, right, cards };
 }
 
 // ---------- higher or lower ----------
 export const HL_PAIRS = 10;
-/** Fair pairs only: years at least 10 apart, anything else at least 1.2× apart. */
-export const hlFair = (unit, a, b) => (unit === 'year' ? Math.abs(a - b) >= 10 : Math.min(a, b) > 0 && Math.max(a, b) / Math.min(a, b) >= 1.2);
+/** Fair pairs only: years at least 10 apart, anything else at least 1.2× apart (a stat may ask for more: its `gap`). */
+export const hlFair = (unit, a, b, gap = 1.2) => (unit === 'year' ? Math.abs(a - b) >= 10 : Math.min(a, b) > 0 && Math.max(a, b) / Math.min(a, b) >= gap);
 const hlClear = (unit, a, b) => (unit === 'year' ? Math.abs(a - b) >= 40 : Math.max(a, b) / Math.min(a, b) >= 2);
 /**
- * bank: data/oc/higherlower.json stats ([stat, question, unit, 'max'|'min', [[item, value, "shown"?], …]]).
- * Ten pairs, each from one stat; the first few are clear-cut, later ones closer. ans = index of the winner.
+ * bank: data/oc/higherlower.json stats ([{ id, stat, ask, unit, win: 'max'|'min', gap?, items: [[label, value, shown|null, id], …] }] — values
+ * METRIC, shown in US units: units.js). Ten pairs, each from one stat; the first few are clear-cut, later ones closer. → [si, i, j] × 10
+ * (indexes — deal.js turns them into ids).
  */
 export function hlPick(rand, bank, avoid = null) {
   const used = new Set();
@@ -502,13 +518,13 @@ export function hlPick(rand, bank, avoid = null) {
     for (let tries = 0; tries < 400 && !pair; tries++) {
       const si = randInt(rand, 0, bank.length - 1);
       if (si === last && tries < 300) continue;
-      const [, , unit, , items] = bank[si];
+      const { unit, items, gap } = bank[si];
       const i = randInt(rand, 0, items.length - 1), j = randInt(rand, 0, items.length - 1);
       if (i === j || used.has(`${si}:${i}`) || used.has(`${si}:${j}`)) continue;
       // THE ROOM's NIGHT MEMORY: an item this room saw tonight only once nothing fresh fits (a long night reshuffles, never stalls)
       if (avoid && tries < 360 && (avoid(si, i) || avoid(si, j))) continue;
       const a = items[i][1], b = items[j][1];
-      if (!hlFair(unit, a, b)) continue;
+      if (!hlFair(unit, a, b, gap)) continue;
       const clear = hlClear(unit, a, b);
       if (tries < 300 && (k < 3 ? !clear : k >= 6 && clear)) continue;
       used.add(`${si}:${i}`); used.add(`${si}:${j}`);
@@ -519,22 +535,34 @@ export function hlPick(rand, bank, avoid = null) {
   }
   return out;
 }
+/** a pair's id in a deal: "statId|itemId|itemId" */
+export const hlPairId = (bank, [si, i, j]) => `${bank[si].id}|${bank[si].items[i][3]}|${bank[si].items[j][3]}`;
+/** "statId|itemId|itemId" → [si, i, j] (null when the pool no longer has it) */
+export function hlFromId(bank, pid) {
+  if (typeof pid !== 'string') return null;
+  const [sid, a, b] = pid.split('|');
+  const si = idIndex(bank).get(sid);
+  if (si == null) return null;
+  const ids = idIndex(bank[si].items, x => x[3]);
+  const i = ids.get(a), j = ids.get(b);
+  return i == null || j == null || i === j ? null : [si, i, j];
+}
 /** [si, i, j] → the pair the screen shows (ans = index of the winner) */
 export function hlPair(bank, t) {
   if (!t || !bank[t[0]]) return null;
-  const [stat, ask, unit, win, items] = bank[t[0]];
+  const { stat, ask, unit, win, items } = bank[t[0]];
   const A = items[t[1]], B = items[t[2]];
   if (!A || !B) return null;
   const side = x => ({ name: x[0], v: x[1], shown: x[2] || null });
   return { stat, ask, unit, a: side(A), b: side(B), ans: (win === 'max') === (A[1] > B[1]) ? 0 : 1 };
 }
 export function genHigherLower(rand, bank, deal) {
-  if (!bank || !bank.length) return null;
-  // deal = the night's 10 pairs, flat [si, i, j, si, i, j, …] (deal.js); without one the challenge's own seeded draw
-  const flat = Array.isArray(deal) && deal.length === HL_PAIRS * 3 ? deal : null;
-  const triples = flat ? Array.from({ length: HL_PAIRS }, (_, k) => flat.slice(k * 3, k * 3 + 3)) : hlPick(rand, bank);
+  if (!Array.isArray(bank) || !bank.length) return null;
+  // deal = the night's 10 pairs as ids ["statId|itemId|itemId" × 10] (deal.js); without one the challenge's own seeded draw
+  const dealtPairs = Array.isArray(deal) && deal.length === HL_PAIRS ? deal.map(pid => hlFromId(bank, pid)) : null;
+  if (dealtPairs && dealtPairs.some(t => !t)) return genHigherLower(rand, bank);   // a stale deal (the pool changed): the seeded draw
+  const triples = dealtPairs || hlPick(rand, bank);
   const pairs = triples.map(t => (t ? hlPair(bank, t) : null));
-  if (flat && pairs.some(p => !p)) return genHigherLower(rand, bank);   // a stale deal (the bank changed): the seeded draw
   return { type: 'higherlower', parts: HL_PAIRS, pairs };
 }
 
@@ -562,7 +590,7 @@ export function generate(type, { seed, ci, level, occ = 0, deal = null }, deps =
     case 'stroop': return genStroop(rand, level);
     case 'reflex': return genReflex(rand);
     case 'count': return genCount(rand, level);
-    case 'truefalse': return genTrueFalse(rand, deal);
+    case 'truefalse': return genTrueFalse(rand, deps.truefalse, deal);
     case 'dumbluck': return genDumbLuck(seed, ci);
     case 'trivia': return deps.triviaItems && deps.triviaItems.length === 3 && deps.triviaItems.every(Boolean)
       ? { type: 'trivia', parts: 3, questions: deps.triviaItems } : null;

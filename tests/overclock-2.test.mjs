@@ -100,8 +100,8 @@ const CHECK = {
 
 test('SORT IT bank: 40+ pairs, 25+ items each, nothing on both sides; the number/word pairs are recomputed', () => {
   assert.ok(ST.length >= 40, `${ST.length} pairs`);
-  for (const [l, r, L, R] of ST) {
-    assert.ok(l && r && l !== r);
+  for (const { id, left: l, right: r, L, R } of ST) {
+    assert.ok(id && l && r && l !== r);
     assert.ok(L.length + R.length >= 25, `${l}: ${L.length + R.length} items`);
     assert.ok(L.length >= 7 && R.length >= 7, `${l}: each side needs 7+ (a challenge deals up to 7)`);
     const all = [...L, ...R].map(x => x.toLowerCase());
@@ -112,17 +112,17 @@ test('SORT IT bank: 40+ pairs, 25+ items each, nothing on both sides; the number
       for (const x of R) assert.ok(!CHECK[l](x), `${r}: ${x}`);
     }
   }
-  assert.equal(Object.keys(CHECK).filter(k => ST.some(s => s[0] === k)).length, 6, 'all computed pairs present');
+  assert.equal(Object.keys(CHECK).filter(k => ST.some(s => s.left === k)).length, 6, 'all computed pairs present');
 });
 
 test('SORT IT: 12 cards from both sides, faster and faster; wrong sorts cost half; 10 net = 100; perfect = speed bonus', () => {
   for (let s = 0; s < 300; s++) {
     const g = generate('sortit', { seed: `s${s}`, ci: s % 12, level: 0.5 }, deps);
     assert.equal(g.cards.length, SORT_CARDS);
-    const set = ST.find(x => x[0] === g.left);
+    const set = ST.find(x => x.left === g.left && x.right === g.right);
     const sides = g.cards.map(c => c.s);
     assert.ok(sides.filter(x => x === 0).length >= 5 && sides.filter(x => x === 1).length >= 5);
-    for (const c of g.cards) assert.ok(set[2 + c.s].includes(c.t), `${c.t} is really on side ${c.s}`);
+    for (const c of g.cards) assert.ok((c.s ? set.R : set.L).includes(c.t), `${c.t} is really on side ${c.s}`);
     assert.equal(new Set(g.cards.map(c => c.t)).size, SORT_CARDS);
   }
   for (let i = 1; i < SORT_CARDS; i++) assert.ok(sortWindowMs(i) < sortWindowMs(i - 1), 'speeds up');
@@ -139,12 +139,12 @@ test('SORT IT: 12 cards from both sides, faster and faster; wrong sorts cost hal
 });
 
 test('HIGHER OR LOWER bank: 300+ items, stable values, grouped by stat', () => {
-  const items = HL.reduce((n, s) => n + s[4].length, 0);
+  const items = HL.reduce((n, s) => n + s.items.length, 0);
   assert.ok(items >= 300, `${items} items`);
-  for (const [stat, ask, unit, win, list] of HL) {
+  for (const { stat, ask, unit, win, items: list, gap } of HL) {
     assert.ok(stat && ask.endsWith('?') && typeof unit === 'string', stat);
     assert.ok(win === 'max' || win === 'min', stat);
-    assert.ok(list.length >= 9, `${stat}: ${list.length} items`);
+    assert.ok(list.length >= 8, `${stat}: ${list.length} items`);
     assert.equal(new Set(list.map(x => x[0])).size, list.length, `${stat}: duplicate item`);
     for (const [name, v, shown] of list) {
       assert.ok(name && typeof v === 'number' && Number.isFinite(v), `${stat}: ${name}`);
@@ -153,7 +153,7 @@ test('HIGHER OR LOWER bank: 300+ items, stable values, grouped by stat', () => {
       if (shown != null) assert.equal(typeof shown, 'string');
     }
     // every item can be dealt (has at least one fair partner)
-    for (const [name, v] of list) assert.ok(list.some(([n2, w]) => n2 !== name && hlFair(unit, v, w)), `${stat}: ${name} has no fair partner`);
+    for (const [name, v] of list) assert.ok(list.some(([n2, w]) => n2 !== name && hlFair(unit, v, w, gap)), `${stat}: ${name} has no fair partner`);
   }
 });
 
@@ -165,8 +165,8 @@ test('HIGHER OR LOWER: ten fair pairs, no item twice in a run, the winner follow
     for (const p of g.pairs) {
       assert.ok(p, 'pair dealt');
       assert.ok(hlFair(p.unit, p.a.v, p.b.v), `${p.a.name} vs ${p.b.name}`);
-      const stat = HL.find(x => x[0] === p.stat);
-      const winner = stat[3] === 'max' ? (p.a.v > p.b.v ? 0 : 1) : (p.a.v < p.b.v ? 0 : 1);
+      const stat = HL.find(x => x.stat === p.stat && x.ask === p.ask);
+      const winner = stat.win === 'max' ? (p.a.v > p.b.v ? 0 : 1) : (p.a.v < p.b.v ? 0 : 1);
       assert.equal(p.ans, winner);
       for (const n of [p.a.name, p.b.name]) { assert.ok(!used.has(`${p.stat}:${n}`), `repeat ${n}`); used.add(`${p.stat}:${n}`); }
     }

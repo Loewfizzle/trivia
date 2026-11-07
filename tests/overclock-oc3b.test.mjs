@@ -14,7 +14,7 @@ import { hlPick, hlPair, HL_PAIRS, sortWindowMs, SORT_CARDS, challengeRng } from
 
 const marked = (w, m) => [...w].filter((_, i) => m[i]).join('');
 const SPELL = JSON.parse(readFileSync('data/oc/spellcheck.json', 'utf8')).words;
-const HL = JSON.parse(readFileSync('data/oc/higherlower.json', 'utf8')).stats;
+const HL = JSON.parse(readFileSync('data/oc/higherlower.json', 'utf8')).stats;   // (OC6: { id, stat, ask, unit, win, items })
 
 test('SPELLCHECK: the tricky letters of the right spelling', () => {
   assert.equal(marked('accommodate', trickyLetters('accommodate', 'accomodate')), 'mm', 'a doubled letter reads as its pair');
@@ -63,7 +63,7 @@ test('HIGHER OR LOWER: one right call for every pair the deal can make — the b
     for (const t of hlPick(rand, HL)) {
       const P = hlPair(HL, t);
       assert.ok(P && P.a.v !== P.b.v, 'never equal — exactly one call is right');
-      const win = HL[t[0]][3];
+      const win = HL[t[0]].win;
       // the winner (spec ans) is unchanged: B wins on a 'max' stat when it's bigger, on a 'min' stat when it's smaller
       assert.equal(P.ans === 1, win === 'max' ? P.b.v > P.a.v : P.b.v < P.a.v);
       assert.equal(hlRightDir(P), P.b.v > P.a.v ? 'up' : 'down');
@@ -71,11 +71,13 @@ test('HIGHER OR LOWER: one right call for every pair the deal can make — the b
     }
   }
   assert.equal(n, 300 * HL_PAIRS);
-  assert.deepEqual(statParts({ unit: 'm' }, { v: 828 }), ['828', 'm']);
-  assert.deepEqual(statParts({ unit: 'million' }, { v: 1440 }), ['1.44', 'billion']);
+  // (OC6 — US units on screen: the pools store metric — units.js)
+  assert.deepEqual(statParts({ unit: 'm' }, { v: 828 }), ['2,717', 'ft']);
+  assert.deepEqual(statParts({ unit: 'people' }, { v: 1.44e9 }), ['1.44', 'billion']);
   assert.deepEqual(statParts({ unit: 'year' }, { v: 1876 }), ['1876', '']);
   assert.deepEqual(statParts({ unit: 'year' }, { v: -2560, shown: 'c. 2560 BC' }), ['c. 2560 BC', '']);
-  assert.deepEqual(statParts({ unit: 'km²' }, { v: 17100000 }), ['17,100,000', 'km²']);
+  assert.deepEqual(statParts({ unit: 'km2' }, { v: 17100000 }), ['6.6', 'million sq mi']);
+  assert.deepEqual(statParts({ unit: 'km' }, { v: 6650 }), ['4,132', 'mi']);
 });
 
 test('THE SCREENS\' OWN STEP TIMES are the old ones (the owner: no timing changes)', () => {
