@@ -74,6 +74,12 @@ delete key a DRAWN icon for every game. **PW2** added the first `flags` on a jud
 `pa.gf['password-<flag>']` → the award engine: KEYHOLE · SAFECRACKER) and the first cartridge whose `musicFor` follows THE GAME LOOK (`app.js#applyLook`
 re-renders on a look change, so a game's station is re-read + crossfaded).
 
+**COAST CLEAR (CC1, Nov 7 — docs/coastclear.md): THE SECOND JUDGED DAILY, its board only on the server.** A judged cartridge may now list `moves`
+(`['dig', 'chord', 'pause', 'resume']`) + `act` + `load`: `api/daily.js` answers each move through ONE generic path — the day's data (`load(day)` — its
+board) + the start read in parallel, then ONE transaction on the record (`act` → `{ record | null, resp }` or a refusal; a repeat writes nothing; a
+transaction's first null never aborts it) — and every judged answer (start + moves) carries the server's `now` (the phone's clock). Its day set carries no
+board (`{ v: 1, day }`); `daily = { on: false, create, resumeKey, result, replay, problems }`; a DAILIES row, `LOOKS: ['night']` until CC2.
+
 **OVERCLOCK's DAILY RESERVE (OC6 + OC7 — for THE DAILY MODULE).** ~20% of every built pool is SERVER-ONLY, so a daily's answers can't be
 looked up in the site's files:
 - **Where:** `api/_data/oc-reserve/` — EIGHT files, the SAME shapes as the party files in `data/oc/` (docs/content.md "THE POOL BUILD"):

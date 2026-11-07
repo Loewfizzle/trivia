@@ -239,6 +239,9 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   - THE PASSWORD (PW1 — docs/password.md): `DAILY_TEST=1 node scripts/serve.mjs <port> --emu` + `E2E_BASE=http://localhost:<port> node e2e-password.mjs
     "<browser>" ./shots-password` (≈ 40 s; its own page password-daily.html — the real view + the real /api judge; a second phone fails door 1); `/api`:
     `node --test password.test.mjs` (in tests/integration, the emulators); the look: password-preview.html (a fake judge, fixed test words — docs/password.md).
+  - COAST CLEAR (CC1 — docs/coastclear.md): the same server + `E2E_BASE=http://localhost:<port> node e2e-coastclear.mjs "<browser>" ./shots-coastclear` (≈ 20 s,
+    18 checks; its page coastclear-daily.html); `/api`: `node --test coastclear.test.mjs` (ALONE — it wipes the nodes password.test.mjs uses); the look:
+    coastclear-preview.html (a fake server, a fixed no-guess test board, `&state=` — docs/coastclear.md).
   - Overclock update 2: `node e2e-oc-2.mjs "<browser path>" ./shots` (N=8 — SHELL 2.0 B1: on the room in the city; it needs 4+ phones — N=4 SHOTS=0 ≈ 3 min) — Missing Link on the kit's letter keyboard (wrong guess shakes, a computer
     keyboard, plural, everything on screen at once — OC3), Spellcheck, Compass (MAKE 24 cut in OC2), Sort It with real touch swipes + side taps (host
     killed mid-challenge), Higher or Lower; identical puzzles everywhere, every player's points vs the scoring rule, all screens at both sizes.

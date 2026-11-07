@@ -29,6 +29,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | `docs/content.md` | adding questions / puzzles / words to any bank; rebuilding word lists |
 | `docs/profiles.md` | profiles, name tags + keys, `/api`, result reporting, THE BOARD, XP ranks + steps, streaks, the weekly goal, mastery, THE VAULT (card finishes, name glows), emblems, `/board`, `/admin`, the Vercel setup |
 | `docs/overclock.md` | **OVERCLOCK** — the OVERDRIVE rebuild's plan (7 passes, the owner's decisions) + each pass's decisions + log; read it before an Overclock pass |
+| `docs/coastclear.md` | **COAST CLEAR** (CC1 — a DAILY-ONLY, SERVER-JUDGED Minesweeper-type, ships OFF: the no-guess maker + solver `api/_lib/cc-board.js` + `cc-solve.js`; the board only on the server, `/api/daily` dig / chord / pause / resume; the instant feel) |
 | `docs/password.md` | **THE PASSWORD** (PW1 — a DAILY-ONLY, SERVER-JUDGED Wordle-type, ships OFF: `config.js#DAILIES`, never GAMES; `/api/daily` `guess`; the list build + THE REVIEWER; the kit keyboard's `setKeyStates`) · the owner's game decisions: `docs/games/plan.md` |
 | `docs/pulse.md` `docs/golf.md` `docs/prism.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that game |
 
@@ -177,6 +178,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   (`password/doors.js`), THE DOOR REVEAL, THE END SCREEN (WELCOME IN · LOCKED OUT — the owner's ADD-ON; the block under the doors, the space at the foot), BOTH LOOKS as
   tokens (`body[data-look="day"]` retokens; the music follows the look — `index.js#musicFor`, app.js re-renders on a look change), the sounds (`sfx.js`), THE SHARE CARD
   (`share.js`, marks only), THE REWARDS awarded by the SERVER from its record (`pw.js#flags` → `dailyStep({ flags })` → KEYHOLE · the ≤ 6 card; `scripts/sim-password.mjs`).
+- **COAST CLEAR (CC1 — docs/coastclear.md):** the second DAILY-ONLY cartridge (`config.js#DAILIES`); THE SERVER KEEPS THE BOARD (`dly/coastclear/{day}/b`, built
+  once a day from the pepper, NO-GUESS — `api/_lib/cc-solve.js` proves every board; never served) and answers every move — a judged cartridge's `moves` go
+  through `api/daily.js`'s generic path (ONE transaction each, never aborting on a transaction's first null; a repeat writes nothing); a phone gets only
+  the cells it opened; buoys are the phone's alone; the clock = server time (+30 s a spot, +15 s a pause — THE DAILY MODULE calls pause); NO PILLS,
+  drawn searchlights + buoy, every colour a `--cc-*` token; `LOOKS: ['night']` until CC2 builds the day harbor.
 - **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
   music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:
   `tests/cartridge.test.mjs` checks the boot graph, `node scripts/boot-bytes.mjs`); only `start` is async, `step` pure + seeded; `prepare` host-only,
