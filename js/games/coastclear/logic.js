@@ -9,11 +9,12 @@
 //   'd<cell>' = a DIG · 'c<cell>:<buoys>' = a CHORD with the phone's buoys around it · only a move that CHANGED the run is recorded
 //   p = the pauses: n of them, ms stopped in all, at = paused since (THE DAILY MODULE calls pause / resume — the room started a game mid-run)
 // THE PHONE's VIEW (runView): { w, h, lights, open: [[cell, n]…], lit: [cell…], spots, done, out, startedAt, finishedAt, paused, pausedMs, pauses }
-//   — opened cells + spotted lights only.
+//   — opened cells + spotted lights only. CC2: a FINISHED run's view also carries `reveal` (every light's cell — THE END SCREEN's harbor shows
+//   them all; the run is over, one try a day, so the board may be shown to its own player — like THE PASSWORD's word once its door closes).
 // SCORE (lower = better, whole seconds): time on the clock (server time, the pauses stopped) + 30 per spot + 15 per pause; a CAUGHT run (3 spots)
 //   = CAUGHT + the safe cells it left — below every finished run (the more of the harbor crossed, the better among them).
 export * from './meta.js';
-import { W, H, LIGHTS, SPOT_S, PAUSE_S, MAX_SPOTS } from './meta.js';
+import { W, H, LIGHTS, SPOT_S, PAUSE_S, MAX_SPOTS, CC_EPOCH } from './meta.js';
 
 export const CAUGHT = 10000;              // a caught run's score floor (a finished run is capped just under it)
 export const SCORE_MAX_CLEAR = CAUGHT - 1;
@@ -149,6 +150,7 @@ export function runView(record, board, { startedAt = 0 } = {}) {
     open: [...st.open.entries()], lit: st.lit.slice(), spots: Math.min(MAX_SPOTS, st.lit.length),
     done: st.done, out: st.out, startedAt: (record && record.st) || startedAt, finishedAt: (record && record.e) || null,
     paused: p.at != null, pausedAt: p.at, pausedMs: p.ms, pauses: p.n,
+    ...(st.done ? { reveal: board.lights.slice() } : {}),
   };
 }
 
@@ -196,7 +198,7 @@ export function serverAct(board, record, action, args = {}, now = 0) {
   if (mv.kind === 'chord') mv.buoys = mv.buoys.filter(b => nbOf(board.w, board.h)[cell].includes(b));
   rec.mv.push(moveText(mv));
   if (r.st.done) { rec.e = now; rec.o = r.st.out; }
-  return { record: rec, resp: { ...base, ...(r.st.done ? { out: r.st.out, finishedAt: now } : {}), ...(resumed ? { resumed: true } : {}) } };
+  return { record: rec, resp: { ...base, ...(r.st.done ? { out: r.st.out, finishedAt: now, reveal: board.lights.slice() } : {}), ...(resumed ? { resumed: true } : {}) } };
 }
 
 // ---- the score ------------------------------------------------------------------------------------------------------------------------
@@ -248,6 +250,7 @@ export function foldAnswer(view, resp) {
     ...view, open: [...open.entries()], lit, spots: Math.max(view.spots, resp.spots ?? 0, Math.min(MAX_SPOTS, lit.length)), done,
     out: view.out || resp.out || null, finishedAt: view.finishedAt || resp.finishedAt || null,
     ...(resp.resumed ? { paused: false } : {}),
+    ...(view.reveal || resp.reveal ? { reveal: (view.reveal || resp.reveal).slice() } : {}),
   };
 }
 /** the clock on screen, in ms (server time): from the start, the pauses stopped, + 30 s a spot + 15 s a pause */
@@ -271,4 +274,71 @@ export function chordTargets(view, cell, buoySet) {
   if (known !== n) return null;
   const t = nb.filter(j => !open.has(j) && !lit.has(j) && !buoySet.has(j));
   return t.length ? t : null;
+}
+
+// ---- CC2: THE END SCREEN + THE SHARE (pure) ---------------------------------------------------------------------------------------------
+
+export const HEAD_CLEAR = 'COAST CLEAR', HEAD_CAUGHT = 'CAUGHT';
+/** the end screen's headline */
+export const headline = view => (view && view.out === 'caught' ? HEAD_CAUGHT : HEAD_CLEAR);
+/** a finished run's time in ms as the SCORE counts it (whole seconds: the clock, the pauses stopped, + 30 s a spot + 15 s a pause) */
+export function finalMs(view) {
+  if (!view || !view.finishedAt || !view.startedAt) return 0;
+  const ms = Math.max(0, view.finishedAt - view.startedAt - (view.pausedMs || 0));
+  return 1000 * (Math.round(ms / 1000) + SPOT_S * Math.min(MAX_SPOTS, view.spots || 0) + PAUSE_S * (view.pauses || 0));
+}
+const spottedText = n => `${n} SPOTTED`;
+/** the one small line under the headline: a clear "0 SPOTTED" · "1 SPOTTED · +30 s" (+ " · 1 PAUSE · +15 s") · caught "3 SPOTTED · 1:58" */
+export function endLine(view) {
+  if (!view) return '';
+  const spots = Math.min(MAX_SPOTS, view.spots || 0);
+  if (view.out === 'caught') return `${spottedText(spots)} · ${fmtClock(finalMs(view))}`;
+  const bits = [spots ? `${spottedText(spots)} · +${SPOT_S * spots} s` : spottedText(0)];
+  if (view.pauses) bits.push(`${view.pauses} ${view.pauses === 1 ? 'PAUSE' : 'PAUSES'} · +${PAUSE_S * view.pauses} s`);
+  return bits.join(' · ');
+}
+/** ms until the next 4 am Eastern (the daily's turn — core/streak.js) from the Eastern clock now ({ h, mi, s } — core/week.js#easternParts) */
+export function msToTurn({ h, mi, s }, subMs = 0, turnH = 4) {
+  const secs = h * 3600 + mi * 60 + s, left = (turnH * 3600 - secs + 86400) % 86400 || 86400;
+  return left * 1000 - subMs;
+}
+/** h:mm:ss (the countdown to the next harbor) */
+export const fmtCountdown = ms => { const t = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(t / 3600)}:${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+/** COAST CLEAR #n — days since CC_EPOCH (the same epoch as THE PASSWORD's) + 1, for a streak-day key ('d20261107') */
+export function dayNumber(dayKey, epoch = CC_EPOCH) {
+  const num = k => { const t = String(k).replace(/[^0-9]/g, ''); return Math.round(Date.UTC(+t.slice(0, 4), +t.slice(4, 6) - 1, +t.slice(6, 8)) / 864e5); };
+  return num(dayKey) - num(epoch) + 1;
+}
+export const SITE = 'neonspeakeasy.com';
+/** THE SHARE LINE: "COAST CLEAR #12 · 2:41 · 0 spotted · neonspeakeasy.com" · caught: "COAST CLEAR #12 · caught · 3 spotted · 1:58 · neonspeakeasy.com" */
+export function shareLine(view, dayKey, site = SITE) {
+  const spots = Math.min(MAX_SPOTS, (view && view.spots) || 0), t = fmtClock(finalMs(view));
+  const mid = view && view.out === 'caught' ? `caught · ${spots} spotted · ${t}` : `${t} · ${spots} spotted`;
+  return `COAST CLEAR #${dayNumber(dayKey)} · ${mid} · ${site}`;
+}
+/**
+ * THE SHARE CARD's inputs — NOTHING about the board (everyone gets the same harbor: a picture would give the searchlights away): the headline,
+ * the big time (a clear) or the one line, how many of the three lamps are lit, the day number, the site. share.js draws ONLY these.
+ */
+export function shareInputs(view, dayKey) {
+  const caught = !!view && view.out === 'caught';
+  return { head: headline(view), caught, time: caught ? null : fmtClock(finalMs(view)), line: endLine(view), spots: Math.min(MAX_SPOTS, (view && view.spots) || 0), dayNo: dayKey ? dayNumber(dayKey) : null, site: SITE };
+}
+/**
+ * THE FINISHED HARBOR (the end screen's shrunk board), per cell: { k: 'open', n } · 'spot' (a light that found you) · 'light' (a light revealed
+ * at the end, unbuoyed) · 'buoy' (a light you buoyed) · 'shut' (safe water never opened — a caught run) · 'miss' (a buoy on safe water)
+ *   view (done, with reveal) · buoys: the phone's buoy cells
+ */
+export function endMap(view, buoys = []) {
+  const w = view.w || W, h = view.h || H, n = w * h;
+  const open = new Map(view.open || []), lit = new Set(view.lit || []), bu = new Set(buoys);
+  const lights = new Set(view.reveal || []);
+  const out = new Array(n);
+  for (let i = 0; i < n; i++) {
+    if (open.has(i)) out[i] = { k: 'open', n: open.get(i) };
+    else if (lit.has(i)) out[i] = { k: 'spot' };
+    else if (lights.has(i) || (view.out === 'clear' && !view.reveal)) out[i] = { k: bu.has(i) || view.out === 'clear' ? 'buoy' : 'light' };
+    else out[i] = { k: bu.has(i) ? 'miss' : 'shut' };
+  }
+  return out;
 }

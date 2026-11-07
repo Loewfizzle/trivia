@@ -1,26 +1,37 @@
-// COAST CLEAR — THE SCREEN (CC1 — docs/coastclear.md "The screen"). Renders purely from the RUN the server hands back (judge.start → the
+// COAST CLEAR — THE SCREEN (CC1 + CC2 — docs/coastclear.md "The screen"). Renders purely from the RUN the server hands back (judge.start → the
 // opening + the record so far; every dig / chord answer folded in with logic.js#foldAnswer): the sign, the status row (the TIME in plain neon
 // type, THREE drawn searchlights — lit = spotted —, a drawn buoy + the buoys left), the 9 × 12 harbor, the DIG / BUOY switch in the thumb zone.
 // THE INSTANT FEEL: a tap presses the tile down AT ONCE (+ a soft pending shimmer) and its request fires at once — taps never wait for each
 // other (pipelined; the answers fold in in any order); the number pops in the moment its answer lands; a flood ripples outward from the
 // tapped cell; buoys are the phone's own (instant, kept per device for the day). A dropped connection → the answers retry; a quiet
 // RECONNECTING line only past ~2 s. The clock = SERVER time (the start's + every answer's `now`), the pauses stopped, + 30 s a spot.
+// CC2: GETTING SPOTTED (a white searchlight BEAM sweeps in from off-screen and lands on the cell — the gold burst, the siren blip, "+30 s"
+// floating up, a status lamp lights; play never stops) · CAUGHT (three beams converge on the last cell, one red pulse, the firmer siren) ·
+// THE END SCREENS (the board + the switch leave: COAST CLEAR with the lighthouse sweep · CAUGHT in red; the finished harbor shrunk; SHARE;
+// NEXT HARBOR IN) · THE DAY LOOK (css/coastclear.css retokens under body[data-look] — the game draws no switch, it re-themes live) · the sounds.
 //   createView() → { mount(el, state), update(state), unmount() }   state.game = the run shell (daily.create / start) · state.judge = a judge
 //   (the preview's fake; default THE API JUDGE — judge.js) · window.__coastclear = the test hook (the preview + the E2E)
 import { h, clear, reducedMotion } from '../../ui/dom.js';
-import { foldAnswer, emptyView, clockMs, fmtClock, buoysLeft, chordTargets, nbOf, MAX_SPOTS, W, H, LIGHTS, SPOT_S } from './logic.js';
+import { tubeButton } from '../../ui/components.js';
+import { foldAnswer, emptyView, clockMs, fmtClock, buoysLeft, chordTargets, nbOf, headline, endLine, finalMs, endMap, msToTurn, fmtCountdown, shareLine, shareInputs, MAX_SPOTS, W, H, LIGHTS, SPOT_S } from './logic.js';
 import { createApiJudge } from './judge.js';
+import { ccSfx, ccSfxBytes } from './sfx.js';
+import { easternParts } from '../../core/week.js';
+import { streakDay } from '../../core/streak.js';
 
 export const LONG_MS = 380;           // a long-press = a buoy (in DIG mode)
 export const RIPPLE_MS = 30;          // the flood: one ring outward every 30 ms
 export const SLOW_MS = 2000;          // an answer this late → the quiet RECONNECTING line
+// CC2 — GETTING SPOTTED's beats: the beam's sweep in (it lands on the cell), its hold on the cell, its fade; CAUGHT's converge + pulse
+export const SWEEP = Object.freeze({ travel: 700, hold: 280, fade: 420, stagger: 90, pulse: 620, caughtEnd: 1500 });
+export const LEAVE_MS = 320;          // the board + the switch animate out before the end screen comes in
 const MOVE_PX = 12;                   // a finger that slides this far is not a tap
 
 const SVGNS = 'http://www.w3.org/2000/svg';
 const svg = (vb, cls, inner) => { const s = document.createElementNS(SVGNS, 'svg'); s.setAttribute('viewBox', vb); s.setAttribute('aria-hidden', 'true'); s.setAttribute('class', cls); s.innerHTML = inner; return s; };
-/** THE BUOY (drawn): a round orange float with a white band, a little lamp on top + its halo (a faint wide circle — no filter) */
+/** THE BUOY (drawn): a round float with a white band (+ a second band by day: red-and-white stripes), a little lamp on top + its halo */
 const BUOY = '<circle class="cc-bu-halo" cx="12" cy="7" r="5.5"/><path class="cc-bu-mast" d="M12 3.5V9"/><circle class="cc-bu-lamp" cx="12" cy="4.6" r="1.7"/>'
-  + '<path class="cc-bu-body" d="M4.5 17.2 C5 11.4 8.4 9 12 9 C15.6 9 19 11.4 19.5 17.2 Z"/><path class="cc-bu-band" d="M6.1 13.4 H17.9"/><path class="cc-bu-wl" d="M3 19.6 Q7.5 18 12 19.6 T21 19.6"/>';
+  + '<path class="cc-bu-body" d="M4.5 17.2 C5 11.4 8.4 9 12 9 C15.6 9 19 11.4 19.5 17.2 Z"/><path class="cc-bu-band" d="M6.1 13.4 H17.9"/><path class="cc-bu-band2" d="M8.4 10.6 H15.6 M4.9 16.1 H19.1"/><path class="cc-bu-wl" d="M3 19.6 Q7.5 18 12 19.6 T21 19.6"/>';
 /** THE SEARCHLIGHT (drawn): a lamp on a short stand, its beam a cone to the upper right */
 const LAMP = '<path class="cc-sl-beam" d="M13.5 9.5 L31 1.5 L31 14.5 L14.5 13.5 Z"/><circle class="cc-sl-head" cx="10" cy="11.5" r="4.6"/><circle class="cc-sl-lens" cx="11.4" cy="11.2" r="2"/><path class="cc-sl-stand" d="M10 16 V21 M6.5 21.5 H13.5"/>';
 /** the spotted cell's light: a gold lamp face + its rays */
@@ -32,7 +43,9 @@ export function createView() {
   let root = null, st = null, judge = null, gone = false;
   let view = emptyView(), om = new Map(), ls = new Set(), ready = false, mode = 'dig', day = null, doneScore = null, finished = null, ended = false;
   let buoys = new Set(), pending = new Set(), inflight = new Map(), seq = 0, offset = 0, bestRtt = Infinity, net = false;
-  let timers = [], tickT = 0, netT = 0, press = null;
+  let timers = [], tickT = 0, netT = 0, clockT = 0, press = null;
+  const landing = new Set();      // CC2: lights the server has named whose beam is still on its way (painted lit when it lands)
+  let beams = 0;                  // beams in flight (the hook + the E2E)
   const rtts = [];
   const els = {}, cells = [];
   const later = (fn, ms) => { const t = setTimeout(() => { timers = timers.filter(x => x !== t); if (!gone) fn(); }, ms); timers.push(t); return t; };
@@ -40,15 +53,17 @@ export function createView() {
   const serverNow = () => Date.now() + offset;
   /** the view + its two lookups (the opened cells, the spotted lights) — always replaced together, never mutated */
   const setView = v => { view = v; om = new Map(v.open); ls = new Set(v.lit); };
+  /** the spots the screen SHOWS (a light whose beam hasn't landed yet isn't counted on screen — the clock + the lamps jump when it lands) */
+  const shownSpots = () => Math.max(0, view.spots - [...landing].filter(c => ls.has(c)).length);
 
   function build() {
-    els.sign = h('h1.cc-sign', 'COAST CLEAR');
+    els.sign = h('h1.cc-sign', h('span.cc-sign-t', 'COAST CLEAR'), h('span.cc-sign-dot', { 'aria-hidden': 'true' }, '.'));
+    els.head = h('header.cc-head', els.sign);
     els.time = h('span.cc-time', '0:00');
-    els.plus = h('span.cc-plus', { 'aria-hidden': 'true' }, `+${SPOT_S}`);
     els.spots = Array.from({ length: MAX_SPOTS }, () => svg('0 0 32 24', 'cc-spot', LAMP));
     els.left = h('span.cc-left', String(LIGHTS));
     els.status = h('div.cc-status', { role: 'status' },
-      h('div.cc-st-time', els.time, els.plus),
+      h('div.cc-st-time', els.time),
       h('div.cc-st-spots', { 'aria-label': 'spotted' }, ...els.spots),
       h('div.cc-st-buoys', svg('0 0 24 24', 'cc-st-buoy', BUOY), els.left));
     els.board = h('div.cc-board', { role: 'grid', 'aria-label': 'the harbor' });
@@ -60,13 +75,17 @@ export function createView() {
       cells.push(c); els.board.append(c);
     }
     els.note = h('div.cc-note', { role: 'status', 'aria-live': 'polite' });
-    els.dig = h('button.cc-mode-b', { type: 'button', 'data-m': 'dig', onclick: () => setMode('dig') }, svg('0 0 24 24', 'cc-mode-i cc-mode-dig', RIPPLE), h('span', 'DIG'));
-    els.buoy = h('button.cc-mode-b', { type: 'button', 'data-m': 'buoy', onclick: () => setMode('buoy') }, svg('0 0 24 24', 'cc-mode-i cc-mode-buoy', BUOY), h('span', 'BUOY'));
+    els.dig = h('button.cc-mode-b', { type: 'button', 'data-m': 'dig', onclick: () => pickMode('dig') }, svg('0 0 24 24', 'cc-mode-i cc-mode-dig', RIPPLE), h('span', 'DIG'));
+    els.buoy = h('button.cc-mode-b', { type: 'button', 'data-m': 'buoy', onclick: () => pickMode('buoy') }, svg('0 0 24 24', 'cc-mode-i cc-mode-buoy', BUOY), h('span', 'BUOY'));
     els.mode = h('div.cc-mode', { role: 'radiogroup', 'aria-label': 'what a tap does' }, els.dig, els.buoy);
-    els.end = h('div.cc-end', { hidden: true });
+    els.end = h('div.cc-end', { role: 'dialog', 'aria-label': 'the result', hidden: true });
     els.play = h('div.cc-play', els.status, els.board);
+    // the light show's own layer over everything (the beams, the pools, the "+30 s", the red pulse) — never takes a tap
+    els.fx = h('div.cc-fx', { 'aria-hidden': 'true' });
+    els.red = h('i.cc-red');
+    els.fx.append(els.red);
     root.classList.add('cc-screen');
-    root.append(h('header.cc-head', els.sign), els.play, els.note, els.mode, els.end);
+    root.append(els.head, els.play, els.note, els.mode, els.end, els.fx);
     els.board.addEventListener('pointerdown', onDown);
     els.board.addEventListener('pointermove', onMove);
     els.board.addEventListener('pointerup', onUp);
@@ -80,12 +99,13 @@ export function createView() {
   function paintCell(i, { pop = false, delay = 0, burst = false } = {}) {
     const c = cells[i];
     if (!c) return;
-    const n = om.get(i), lit = ls.has(i), b = buoys.has(i) && n == null && !lit;
+    const n = om.get(i), coming = landing.has(i), lit = ls.has(i) && !coming, b = buoys.has(i) && n == null && !ls.has(i);
+    const waiting = (pending.has(i) && n == null && !ls.has(i)) || coming;
     c.classList.toggle('is-open', n != null);
     c.classList.toggle('is-lit', lit);
     c.classList.toggle('is-buoy', b);
-    c.classList.toggle('is-wait', pending.has(i) && n == null && !lit);
-    if (!(pending.has(i) && n == null && !lit) && press?.i !== i) c.classList.remove('is-press');
+    c.classList.toggle('is-wait', waiting);
+    if (!waiting && press?.i !== i) c.classList.remove('is-press');
     c.dataset.n = n != null ? String(n) : '';
     const num = c.firstChild;
     num.textContent = n > 0 ? String(n) : '';
@@ -104,21 +124,81 @@ export function createView() {
   }
   function paintAll() { for (let i = 0; i < cells.length; i++) paintCell(i); paintStatus(); }
   function paintStatus() {
-    els.spots.forEach((s, k) => s.classList.toggle('is-on', k < view.spots));
+    const shown = shownSpots();
+    els.spots.forEach((s, k) => s.classList.toggle('is-on', k < shown));
     els.left.textContent = String(Math.max(0, buoysLeft(view, [...buoys].filter(i => !om.has(i) && !ls.has(i)).length)));
     paintTime();
   }
-  function paintTime() { els.time.textContent = fmtClock(ready ? clockMs(view, serverNow()) : 0); }
+  function paintTime() { els.time.textContent = fmtClock(ready ? clockMs({ ...view, spots: shownSpots() }, serverNow()) : 0); }
   function setMode(m) {
     mode = m === 'buoy' ? 'buoy' : 'dig';
     for (const b of [els.dig, els.buoy]) { const on = b.dataset.m === mode; b.classList.toggle('is-on', on); b.setAttribute('aria-checked', String(on)); b.setAttribute('role', 'radio'); }
     if (root) root.dataset.mode = mode;
   }
-  function plus() {
-    if (reducedMotion()) return;
-    els.plus.classList.remove('is-on'); void els.plus.offsetWidth; els.plus.classList.add('is-on');
-  }
+  /** the player flips the switch (the click: a sound) */
+  function pickMode(m) { if (m !== mode) ccSfx('mode'); setMode(m); }
   const ring = (a, b) => Math.max(Math.abs((a % view.w) - (b % view.w)), Math.abs(Math.floor(a / view.w) - Math.floor(b / view.w)));
+
+  // ---- CC2: GETTING SPOTTED — the beam sweeps in from off-screen and lands on the cell ---------------------------------------------
+  /** where a cell's centre is, in the screen's own px (read ONCE per beam — never in a frame loop) */
+  function spotGeo(i) {
+    const r = root.getBoundingClientRect(), c = cells[i].getBoundingClientRect();
+    return { W: r.width, H: r.height, x: c.left - r.left + c.width / 2, y: c.top - r.top + c.height / 2, s: c.width };
+  }
+  /**
+   * ONE BEAM: a long soft cone pivoting on an off-screen lamp at `from` ({ x, y } in screen px) that sweeps in (`swing` degrees short of the
+   * cell) and lands on the cell's centre, holds, fades. transform + opacity only (WAAPI on the compositor); resolves when it LANDS.
+   */
+  function beam(g, from, { delay = 0, swing = 38, travel = SWEEP.travel } = {}) {
+    const dx = g.x - from.x, dy = g.y - from.y;
+    const len = Math.hypot(dx, dy) + g.s * 0.9, ang = Math.atan2(dy, dx) * 180 / Math.PI;
+    const spread = g.s * 3.2;
+    const start = ang + (from.x > g.W / 2 ? swing : -swing) * (from.y > g.H ? -1 : 1);
+    const el = h('i.cc-beam', { style: { left: `${from.x}px`, top: `${from.y - spread / 2}px`, width: `${len}px`, height: `${spread}px` } }, h('i.cc-beam-l', h('i.cc-beam-h')));
+    els.fx.append(el);
+    beams++;
+    const light = el.firstChild;
+    el.animate([{ transform: `rotate(${start}deg)` }, { transform: `rotate(${ang}deg)` }], { duration: travel, delay, easing: 'cubic-bezier(0.33, 0.05, 0.22, 1)', fill: 'both' });
+    light.animate([{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 1 }], { duration: travel, delay, easing: 'linear', fill: 'both' });
+    return new Promise(res => later(() => {
+      light.animate([{ opacity: 1 }, { opacity: 0 }], { duration: SWEEP.fade, delay: SWEEP.hold, easing: 'ease-out', fill: 'both' });
+      later(() => { el.remove(); beams--; }, SWEEP.hold + SWEEP.fade + 40);
+      res();
+    }, delay + travel));
+  }
+  /** the pool of light on the cell + "+30 s" floating up from it (when the beam lands) */
+  function landFx(g, caught) {
+    const pool = h('i.cc-pool', { style: { left: `${g.x}px`, top: `${g.y}px`, width: `${g.s * 2.6}px`, height: `${g.s * 2.6}px` } });
+    els.fx.append(pool);
+    pool.animate([{ opacity: 0, transform: 'translate(-50%, -50%) scale(0.4)' }, { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.35 }, { opacity: 0, transform: 'translate(-50%, -50%) scale(1.15)' }], { duration: SWEEP.hold + SWEEP.fade + 200, easing: 'ease-out', fill: 'both' });
+    later(() => pool.remove(), SWEEP.hold + SWEEP.fade + 260);
+    if (caught) return;
+    const f = h('i.cc-float', { style: { left: `${g.x}px`, top: `${g.y - g.s * 0.55}px` } }, `+${SPOT_S} s`);
+    els.fx.append(f);
+    f.animate([{ opacity: 0, transform: 'translate(-50%, 6px)' }, { opacity: 1, transform: 'translate(-50%, -6px)', offset: 0.18 }, { opacity: 1, transform: 'translate(-50%, -22px)', offset: 0.7 }, { opacity: 0, transform: 'translate(-50%, -34px)' }], { duration: 1250, easing: 'ease-out', fill: 'both' });
+    later(() => f.remove(), 1300);
+  }
+  /** a light found you: the sweep (one beam — three on the CAUGHT spot), then the cell lights; play never stops meanwhile */
+  async function spotted(i, caught) {
+    if (reducedMotion() || !root) { landing.delete(i); paintCell(i); paintStatus(); ccSfx(caught ? 'caught' : 'spotted'); return; }
+    const g = spotGeo(i);
+    landing.add(i); paintCell(i); paintStatus();
+    ccSfx(caught ? 'caught' : 'spotted');
+    const left = { x: -0.2 * g.W, y: -0.08 * g.H }, right = { x: 1.2 * g.W, y: -0.08 * g.H }, low = { x: 0.5 * g.W + (g.x < g.W / 2 ? 0.45 : -0.45) * g.W, y: 1.1 * g.H };
+    if (caught) {
+      // THE CATCH: three beams converge on the last cell (left, right, from below), one red pulse over the screen
+      await Promise.all([beam(g, left), beam(g, right, { delay: SWEEP.stagger }), beam(g, low, { delay: SWEEP.stagger * 2, swing: 30 })]);
+      if (gone) return;
+      els.red.animate([{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0 }], { duration: SWEEP.pulse, easing: 'ease-out' });
+    } else {
+      await beam(g, g.x < g.W / 2 ? right : left);   // (from the far side, so it sweeps in ACROSS the harbor)
+      if (gone) return;
+    }
+    landing.delete(i);
+    paintCell(i, { burst: true });
+    landFx(g, caught);
+    paintStatus();
+  }
 
   // ---- the network: every move fires AT ONCE; a lost answer retries (a repeat is free on the server) ----------------------------------
   function sample(resp, d0, d1) {
@@ -155,26 +235,28 @@ export function createView() {
       }
     }
   }
-  /** an answer lands: the opened cells pop in (a ripple outward from the tapped cell), a light bursts + the +30 flash */
+  /** an answer lands: the opened cells pop in (a ripple outward from the tapped cell), a light → THE SWEEP (CC2) */
   function land(resp, origin, cellsOf) {
     const before = om, litBefore = ls;
     const wasDone = view.done;
     setView(foldAnswer(view, resp));
     for (const c of cellsOf) pending.delete(c);
-    let far = 0;
-    for (const [c] of resp.cells || []) {
+    let far = 0, fresh = 0, calm = false;
+    for (const [c, n] of resp.cells || []) {
       if (before.has(c)) { paintCell(c); continue; }
       buoys.delete(c);
+      fresh++; if (n === 0) calm = true;
       const d = reducedMotion() ? 0 : Math.min(14, ring(c, origin)) * RIPPLE_MS;
       far = Math.max(far, d);
       paintCell(c, { pop: true, delay: d });
     }
-    let spotted = false;
-    for (const c of resp.lit || []) if (!litBefore.has(c)) { buoys.delete(c); paintCell(c, { burst: true }); spotted = true; }
+    const caughtNow = view.done && !wasDone && view.out === 'caught';
+    const lights = (resp.lit || []).filter(c => !litBefore.has(c));
+    lights.forEach((c, k) => { buoys.delete(c); spotted(c, caughtNow && k === lights.length - 1); });
+    if (fresh && !lights.length) ccSfx(calm && fresh > 1 ? 'flood' : 'dig');
     for (const c of cellsOf) paintCell(c);
-    if (spotted) plus();
     paintStatus(); saveBuoys();
-    if (view.done && !wasDone) later(() => end(false), far + (spotted ? 700 : 450));
+    if (view.done && !wasDone) later(() => end(false), caughtNow && !reducedMotion() ? SWEEP.caughtEnd : far + (lights.length ? SWEEP.travel + 500 : 450));
   }
 
   // ---- the moves ---------------------------------------------------------------------------------------------------------------------
@@ -198,7 +280,9 @@ export function createView() {
   function toggleBuoy(i) {
     if (!ready || view.done || ended) return;
     if (om.has(i) || ls.has(i) || pending.has(i)) return;
-    if (buoys.has(i)) buoys.delete(i); else buoys.add(i);
+    const on = !buoys.has(i);
+    if (on) buoys.add(i); else buoys.delete(i);
+    ccSfx(on ? 'buoy' : 'unbuoy');
     paintCell(i);
     const bu = cells[i].querySelector('.cc-buoy');
     if (bu && !reducedMotion()) { bu.classList.remove('is-new'); void bu.offsetWidth; bu.classList.add('is-new'); }
@@ -269,6 +353,7 @@ export function createView() {
     doneScore = r.done != null ? r.done : null;
     if (doneScore != null) finished = 'RECORDED';
     setView({ ...emptyView(), ...r.run, startedAt: (r.run && r.run.startedAt) || r.startedAt });
+    landing.clear();
     if (first) loadBuoys();
     for (const i of [...buoys]) if (om.has(i) || ls.has(i)) buoys.delete(i);
     pending = new Set([...pending].filter(i => !om.has(i) && !ls.has(i)));
@@ -288,40 +373,86 @@ export function createView() {
     return true;
   }
 
-  // ---- THE END (CC1: a simple placeholder — the lighthouse win, the caught screen + the share are CC2) -----------------------------
+  // ---- CC2: THE END SCREENS — the board + the switch leave; COAST CLEAR (the lighthouse sweep) or CAUGHT; the finished harbor; SHARE ------
+  const dayKey = () => (/^d\d{8}$/.test(String(day || '')) ? day : streakDay(view.startedAt || Date.now()));
+  /** the finished harbor, shrunk: numbers, buoys, every searchlight (the server reveals them once the run is over) — animated in by rows */
+  function endHarbor() {
+    const map = endMap(view, [...buoys]);
+    const el = h('div.cc-end-map', { role: 'img', 'aria-label': 'the harbor you crossed', style: { '--cc-cols': String(view.w || W) } });
+    map.forEach((m, i) => {
+      const c = h('i.cc-mc', { class: `is-${m.k}`, style: { '--r': String(Math.floor(i / (view.w || W))) } });
+      if (m.k === 'open') { c.dataset.n = String(m.n); if (m.n > 0) c.textContent = String(m.n); }
+      el.append(c);
+    });
+    return el;
+  }
   function end(still) {
-    if (ended) { paintEnd(); return; }
+    if (ended) { paintEnd(still); return; }
     ended = true;
-    root.classList.add('is-end');
+    landing.clear();
     // a CLEAR: every cell still shut must be a light — the phone buoys them all (deduced, never told)
-    if (view.out === 'clear') { for (let i = 0; i < cells.length; i++) if (!om.has(i) && !ls.has(i)) buoys.add(i); paintAll(); saveBuoys(); }
-    paintEnd();
-    els.end.hidden = false;
-    if (still || reducedMotion()) els.end.classList.add('is-in');
-    else requestAnimationFrame(() => requestAnimationFrame(() => els.end.classList.add('is-in')));
+    if (view.out === 'clear') { for (let i = 0; i < cells.length; i++) if (!om.has(i) && !ls.has(i)) buoys.add(i); saveBuoys(); }
+    paintAll();
+    root.classList.add('is-end');
+    root.dataset.out = view.out || '';
+    const show = () => {
+      if (gone) return;
+      els.play.hidden = true; els.mode.hidden = true;
+      paintEnd(still);
+      els.end.hidden = false;
+      if (still || reducedMotion()) els.end.classList.add('is-in', 'is-still');
+      else { void els.end.offsetWidth; els.end.classList.add('is-in'); }
+      if (!still && view.out === 'clear') ccSfx('win');
+    };
+    if (still || reducedMotion()) show();
+    else { root.classList.add('is-leaving'); later(show, LEAVE_MS); }
     if (doneScore == null) record();
   }
   function paintEnd() {
     clear(els.end);
     const clean = view.out === 'clear';
-    const ms = clockMs(view, serverNow());
-    const bits = [`${view.spots} ${view.spots === 1 ? 'SPOT' : 'SPOTS'}`];
-    if (view.pauses) bits.push(`${view.pauses} ${view.pauses === 1 ? 'PAUSE' : 'PAUSES'}`);
     els.end.dataset.out = view.out || '';
-    const parts = [h('div.cc-end-t', clean ? 'COAST CLEAR' : 'CAUGHT')];
-    if (clean) parts.push(h('div.cc-end-n', fmtClock(ms)));
-    parts.push(h('div.cc-end-line', clean ? bits.join(' · ') : `${fmtClock(ms)} · THE THIRD LIGHT FOUND YOU`));
-    if (finished === 'FAILED') parts.push(h('div.cc-end-rec', 'NOT RECORDED · NO SIGNAL'));
-    els.end.append(...parts);
+    const title = h('h2.cc-end-t', headline(view));
+    const stage = h('div.cc-end-stage', clean ? h('div.cc-lh', { 'aria-hidden': 'true' }, h('i.cc-lh-glow'), h('i.cc-lh-beam', h('i.cc-lh-core'))) : null, title);
+    const next = h('div.cc-end-next');
+    els.rec = h('div.cc-end-rec', { 'aria-live': 'polite' }, finished === 'FAILED' ? 'NOT RECORDED · NO SIGNAL' : '');
+    els.end.append(
+      h('div.cc-end-result',
+        stage,
+        clean ? h('div.cc-end-n', fmtClock(finalMs(view))) : null,
+        h('div.cc-end-line', endLine(view)),
+        endHarbor()),
+      h('div.cc-end-actions',
+        tubeButton('SHARE', { kind: 'main', block: true, cls: 'cc-share', onClick: () => share() }),
+        next, els.rec));
+    tickClock(next);
+  }
+  /** "NEXT HARBOR IN 13:06:44" — to the next 4 am Eastern, ticking */
+  function tickClock(el) {
+    clearInterval(clockT);
+    const paint = () => { const now = Date.now(); el.textContent = `NEXT HARBOR IN ${fmtCountdown(msToTurn(easternParts(now), now % 1000))}`; };
+    paint();
+    clockT = setInterval(() => { if (gone) clearInterval(clockT); else paint(); }, 1000);
   }
   async function record() {
     for (let tries = 0; tries < 4 && !gone; tries++) {
-      try { const f = await judge.finish(); if (gone) return; doneScore = f.score; finished = 'RECORDED'; paintEnd(); return; } catch (e) {
+      try { const f = await judge.finish(); if (gone) return; doneScore = f.score; finished = 'RECORDED'; return; } catch (e) {
         if (!retryable(e)) break;
         await wait(800 * (tries + 1));
       }
     }
-    if (!gone && doneScore == null) { finished = 'FAILED'; paintEnd(); }
+    if (!gone && doneScore == null) { finished = 'FAILED'; if (els.rec) els.rec.textContent = 'NOT RECORDED · NO SIGNAL'; }
+  }
+  /** SHARE (CC2 — share.js, lazy): an image with NO BOARD + the one line, through the share sheet */
+  async function share() {
+    const line = shareLine(view, dayKey());
+    try {
+      const S = await import('./share.js');
+      return await S.shareRun({ inputs: shareInputs(view, dayKey()), line, look: document.body.dataset.look || 'night' });
+    } catch (e) {
+      try { if (navigator.share) await navigator.share({ text: line }); else await navigator.clipboard.writeText(line); } catch { /* the user closed it */ }
+      return 'line';
+    }
   }
 
   const api = {
@@ -332,12 +463,14 @@ export function createView() {
       if (g && g.run) setView({ ...emptyView(), ...g.run });
       build();
       paintAll();
-      tickT = setInterval(() => { if (gone) clearInterval(tickT); else if (ready) paintTime(); }, 250);
+      ccSfxBytes();   // (the sounds' bytes now; they decode once the audio is unlocked — never a wait, never a throw)
+      tickT = setInterval(() => { if (gone) clearInterval(tickT); else if (ready && !ended) paintTime(); }, 250);
       resync();
       window.__coastclear = {
         view: () => view, buoys: () => [...buoys], pending: () => [...pending], mode: () => mode, ready: () => ready, finished: () => finished, score: () => doneScore,
-        setMode, tap, long: i => toggleBuoy(i), resync, rtts: () => rtts.slice(), offset: () => offset, inflight: () => inflight.size,
-        state: () => ({ ready, done: view.done, out: view.out, spots: view.spots, open: view.open.length, lit: view.lit.length, buoys: buoys.size, pending: pending.size, inflight: inflight.size, mode, note: els.note.textContent, end: ended && els.end.classList.contains('is-in'), clock: els.time.textContent, paused: !!view.paused, pauses: view.pauses }),
+        setMode, tap, long: i => toggleBuoy(i), resync, share, rtts: () => rtts.slice(), offset: () => offset, inflight: () => inflight.size, beams: () => beams,
+        shareInputs: () => shareInputs(view, dayKey()), shareLine: () => shareLine(view, dayKey()),
+        state: () => ({ ready, done: view.done, out: view.out, spots: view.spots, shown: shownSpots(), open: view.open.length, lit: view.lit.length, buoys: buoys.size, pending: pending.size, inflight: inflight.size, beams, landing: landing.size, mode, note: els.note.textContent, end: ended && els.end.classList.contains('is-in'), clock: els.time.textContent, paused: !!view.paused, pauses: view.pauses }),
       };
     },
     update(state) { st = state; },
@@ -345,11 +478,11 @@ export function createView() {
       gone = true;
       for (const t of timers) clearTimeout(t);
       timers = [];
-      clearInterval(tickT); clearInterval(netT);
+      clearInterval(tickT); clearInterval(netT); clearInterval(clockT);
       if (press) clearTimeout(press.t);
-      if (root) { clear(root); root.classList.remove('cc-screen', 'is-end'); delete root.dataset.ready; delete root.dataset.mode; }
+      if (root) { clear(root); root.classList.remove('cc-screen', 'is-end', 'is-leaving'); delete root.dataset.ready; delete root.dataset.mode; delete root.dataset.out; }
       delete window.__coastclear;
-      root = null; cells.length = 0; press = null; pending = new Set(); inflight = new Map();
+      root = null; cells.length = 0; press = null; pending = new Set(); inflight = new Map(); landing.clear(); beams = 0;
     },
   };
   return api;

@@ -13,7 +13,14 @@
        &flood=1               once ready, a far 0 is dug so the biggest calm area RIPPLES open (film it: shots.mjs --cast)
        &lat=40                the fake's answer time in ms (default 40; &lat=190 = a slow phone line)   &drop=1  answers lost for 3 s (RECONNECTING)
        &mode=buoy             the switch on BUOY   &paused=1   the run is paused when the screen mounts (the view resumes it)   &t=95   seconds on the clock
-       &seed=preview          the test board's seed   &look=night   (CC1 is night only)   &corner=0   hides the console's corner buttons
+       &seed=preview          the test board's seed   &corner=0   hides the console's corner buttons
+     CC2:
+       &look=day|night        the start look + a tiny DAY / NIGHT toggle at the foot (the preview's own — the console sets body[data-look]; &toggle=0 hides it)
+       &end=clear|caught      played to ONE move before the end, then that move is made once ready → the REAL end (the lighthouse sweep / the
+                              three beams converging) · + &still=1 = the end already reached (a resume: lands on the end screen, no motion)
+       &sweep=1               mid-run, once ready a light is dug → THE SWEEP (the beam lands, the gold burst, "+30 s") · &sweep=3 = the CAUGHT converge
+       &share=1               the rendered share image (NO BOARD) over the screen, once the run has ended (with &end=…)
+       the audio: the console's unlock-on-tap is installed here (audio/engine.js#installAudio) — tap once and the sounds play (an iPhone too)
        window.__coastclear = the view's hook · window.__preview = { judge, board, counts, play } -->
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
@@ -23,7 +30,7 @@
 <script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
 <style>html, body { margin: 0; height: 100%; overflow: hidden; background: #02050f; } #stage { position: fixed; inset: 0; } .screen { position: absolute; inset: 0; }</style>
 </head>
-<body data-theme="coastclear" data-look="night">
+<body data-theme="coastclear">
 <div id="stage"><div class="screen screen-in" id="screen"></div></div>
 <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" id="pv-menu"><span class="mb-bars"><i></i><i></i><i></i></span></button>
 <button class="music-btn" type="button" aria-label="Music on — tap to turn it off" aria-pressed="true" id="pv-music"><svg viewBox="0 0 24 24" aria-hidden="true"><g class="nt"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></g><path class="slash-bg" d="M4 4l16 16"/><path class="slash" d="M4 4l16 16"/></svg></button>
@@ -33,8 +40,15 @@ import { create } from '/js/games/coastclear/daily.js';
 import { serverAct, runView, newRecord, countsOf, flood, safeCount } from '/js/games/coastclear/logic.js';
 import { makeBoard, solve } from '/__dev/api-lib/cc-solve.js';
 import { rngFrom } from '/js/core/rng.js';
+import { installAudio } from '/js/audio/engine.js';
 
 const q = new URLSearchParams(location.search);
+installAudio();   // (CC2 — the first tap unlocks the audio, exactly as the console does: the sounds play in the preview too)
+document.body.dataset.look = q.get('look') === 'day' ? 'day' : 'night';
+// CC2 — THE LIVE TOGGLE (the preview's own, never the game's: the console sets body[data-look]); &look=day|night = the start
+{ const b = document.createElement('button'); b.id = 'pv-look'; b.type = 'button'; b.textContent = document.body.dataset.look.toUpperCase(); b.style.cssText = 'position:fixed;left:50%;bottom:4px;transform:translateX(-50%);z-index:99;font:700 10px/1 monospace;letter-spacing:.14em;padding:5px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.45);color:#fff;opacity:.55';
+  b.onclick = () => { document.body.dataset.look = document.body.dataset.look === 'day' ? 'night' : 'day'; b.textContent = document.body.dataset.look.toUpperCase(); };
+  if (q.get('toggle') !== '0') document.body.append(b); }
 if (q.get('corner') === '0') for (const id of ['pv-menu', 'pv-music']) document.getElementById(id).remove();
 const DAY = '2026-11-07', UID = 'me';
 
@@ -51,7 +65,7 @@ for (let k = 0; k < 60 && !board; k++) {
 }
 const counts = countsOf(board), L = new Set(board.lights);
 const lat = Number(q.get('lat') || 40);
-const T0 = Date.now() - 1000 * Number(q.get('t') || (q.get('state') && q.get('state') !== 'opening' ? 95 : 0));
+const T0 = Date.now() - 1000 * Number(q.get('t') || ((q.get('state') && q.get('state') !== 'opening') || q.get('end') || q.get('sweep') ? 95 : 0));
 let dropUntil = q.get('drop') === '1' ? Infinity : 0;
 const tick = () => new Promise(r => setTimeout(r, lat * (0.8 + Math.random() * 0.4)));
 const fail = (status, code) => Object.assign(new Error(code), { status, code });
@@ -79,13 +93,14 @@ window.__judge = judge;
 
 // the scripted state: the SOLVER's deductions played as digs (the real rules — no cell made up), the lights it found as buoys
 const sol = solve(board, counts, flood(board, counts, board.start), { trace: true });
-const want = q.get('state') || 'opening';
+const END = q.get('end'), SWEEP = q.get('sweep'), STILL = q.get('still') === '1';
+const want = END === 'caught' ? (STILL ? 'caught' : 'spotted2') : END === 'clear' ? (STILL ? 'clear' : 'nearclear') : SWEEP === '3' ? 'spotted2' : SWEEP ? (q.get('state') || 'mid') : (q.get('state') || 'opening');
 const buoys = new Set();
 const at = () => Date.now() - 2000;
 const dig = c => { const r = serverAct(board, judge.record, 'dig', { cell: c }, at()); if (r.record) judge.record = r.record; return r; };
-if (want === 'clear') dig(board.lights[0]);   // (the clear run's one spot, early)
+if (want === 'clear' || want === 'nearclear') dig(board.lights[0]);   // (the clear run's one spot, early)
 if (want !== 'opening') {
-  const goal = want === 'clear' ? safeCount(board) : Math.floor(safeCount(board) * 0.55);
+  const goal = want === 'clear' || want === 'nearclear' ? safeCount(board) : Math.floor(safeCount(board) * 0.55);
   for (const step of sol.log) {
     if (runView(judge.record, board).open.length >= goal) break;
     for (const c of step.lit) buoys.add(c);
@@ -96,7 +111,21 @@ if (want !== 'opening') {
   const unfound = board.lights.filter(c => !buoys.has(c));
   const pool = unfound.length >= spots ? unfound : board.lights;
   for (let k = 0; k < spots; k++) { buoys.delete(pool[k]); dig(pool[k]); }
-  if (want === 'clear') { for (let i = 0; i < board.w * board.h; i++) if (!L.has(i)) dig(i); }
+  if (want === 'clear' || want === 'nearclear') {
+    for (let i = 0; i < board.w * board.h; i++) if (!L.has(i)) dig(i);
+    if (want === 'nearclear') {
+      // ONE move before the end: the record without its last dig (the last safe cell — a lone number, never a flood — is left for the live tap)
+      const mv = judge.record.mv.slice();
+      let k = mv.length - 1;
+      while (k > 0 && !(/^d[0-9]+$/.test(mv[k]) && counts[Number(mv[k].slice(1))] > 0)) k--;
+      const last = Number(mv[k].slice(1));
+      mv.splice(k, 1);
+      judge.record = { st: judge.record.st, mv, ...(judge.record.p ? { p: judge.record.p } : {}) };
+      window.__last = last;
+      for (const c of board.lights) buoys.add(c);
+      buoys.delete(board.lights[0]);
+    }
+  }
 }
 if (q.get('paused') === '1') judge.record = { ...judge.record, p: { n: 1, ms: 0, at: Date.now() - 20000 } };
 try { localStorage.setItem(`cc:buoys:${DAY}:${UID}`, [...buoys].join(',')); } catch { /* fine */ }
@@ -113,6 +142,21 @@ const bigZero = () => { const v = window.__coastclear.view(), open = new Set(v.o
 const play = { bigZero, dig: c => window.__coastclear.tap(c), drop: ms => { dropUntil = Date.now() + ms; } };
 if (q.get('drop') === '1') setTimeout(() => { dropUntil = Date.now() + 3200; }, 0);
 window.__preview = { judge, board, counts, play, sol };
+// CC2 — the live end / the sweep: the one move made once ready (the real path — the answer lands, the motion plays)
+const unfound = () => { const v = window.__coastclear.view(), lit = new Set(v.lit), bu = new Set(window.__coastclear.buoys()); return board.lights.find(c => !lit.has(c) && !bu.has(c)) ?? board.lights.find(c => !lit.has(c)); };
+const go = async () => {
+  await new Promise(r => setTimeout(r, Number(q.get('fdelay') || 500)));
+  if (END === 'clear' && !STILL) window.__coastclear.tap(window.__last);
+  else if ((END === 'caught' && !STILL) || SWEEP) { window.__coastclear.setMode('dig'); window.__coastclear.tap(unfound()); }
+};
+if ((END && !STILL) || SWEEP) go();
+// &share=1 — the rendered share image over the screen once the run has ended (the look on screen; no board in it)
+if (q.get('share') === '1') {
+  await new Promise(r => { const t = setInterval(() => { if (window.__coastclear && window.__coastclear.view().done) { clearInterval(t); r(); } }, 50); });
+  const S = await import('/js/games/coastclear/share.js');
+  const cv = S.renderShare({ inputs: window.__coastclear.shareInputs(), look: document.body.dataset.look });
+  cv.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);height:min(96vh, 1350px);width:auto;max-width:96vw;object-fit:contain;z-index:98;box-shadow:0 20px 60px rgba(0,0,0,.6);border-radius:8px'; cv.id = 'pv-share'; document.body.append(cv);
+}
 if (q.get('flood') === '1') { await new Promise(r => setTimeout(r, Number(q.get('fdelay') || 600))); const z = bigZero(); if (z.cell != null) window.__coastclear.tap(z.cell); }
 document.body.dataset.ready = '1';   // (shots.mjs --page waits for this)
 </script>

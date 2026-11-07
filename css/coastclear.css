@@ -2,10 +2,22 @@
    COAST CLEAR (CC1 — docs/coastclear.md): a daily solo Minesweeper-type on the night harbor — the sign, the status row (the TIME in plain neon
    type, three DRAWN searchlights, a drawn buoy + the buoys left), the 9 × 12 water, the DIG / BUOY switch in the thumb zone. NO PILLS, NO
    EMOJI, no dev text (the owner's standing rules for the dailies): drawn objects + plain neon type; the switch has modest corners.
-   EVERY COLOUR IS A TOKEN on .cc-screen (--cc-*, NIGHT = the neon harbor — this pass; CC2 retokens it under body[data-look="day"]).
+   EVERY COLOUR IS A TOKEN on .cc-screen (--cc-*, NIGHT = the neon harbor); CC2: body[data-look="day"] RETOKENS it (THE SUNNY HARBOR — the
+   PASSWORD's "C1 clear morning sky") and a change re-themes LIVE: the gradient tokens are registered (@property) so they transition ~0.3 s,
+   the two backgrounds are painted layers (::before night, ::after day) crossfading on opacity — never a blank, nothing resets.
+   CC2 also: GETTING SPOTTED (.cc-fx — the beams, the pool, "+30 s", the red pulse; transform + opacity only, WAAPI), THE END SCREENS
+   (.cc-end — the lighthouse sweep, the finished harbor shrunk), the share's tube.
    THE NUMBERS carry the meaning in the DIGIT itself (each count its own colour too — never colour alone). 60 fps: transform + opacity only;
    the glows are static shadows; the water's shimmer is ONE layer under the cells, sliding on transform.
    ========================================================================== */
+/* the tokens a GRADIENT reads (a gradient can't transition — a registered colour can): the look's crossfade on the cells, the open water, the lit face */
+@property --cc-water { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --cc-water-hi { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --cc-water-line { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --cc-open { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --cc-open-line { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --cc-light-face { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --cc-sea { syntax: '<color>'; inherits: true; initial-value: transparent; }
 .screen.cc-screen {
   /* THE NIGHT TOKENS */
   --cc-bg-0: #02050f; --cc-bg-1: #061226;
@@ -21,7 +33,15 @@
   --cc-lamp-off: rgba(255, 255, 255, 0.30);
   --cc-mode-line: rgba(255, 255, 255, 0.16); --cc-mode-bg: rgba(255, 255, 255, 0.04); --cc-mode-ink: rgba(234, 246, 255, 0.62);
   --cc-mode-on: var(--cc-sign); --cc-mode-on-bg: rgba(95, 214, 255, 0.13); --cc-mode-on-glow: rgba(95, 214, 255, 0.5);
-  --cc-mode-buoy: var(--cc-buoy); --cc-mode-buoy-bg: rgba(255, 138, 42, 0.13); --cc-mode-buoy-glow: rgba(255, 138, 42, 0.5);
+  --cc-mode-buoy: var(--cc-buoy); --cc-mode-buoy-bg: rgba(255, 138, 42, 0.13); --cc-mode-buoy-glow: rgba(255, 138, 42, 0.5); --cc-mode-buoy-ink: #ffe6cf;
+  --cc-accent: var(--cc-sign); --cc-buoy-band2: transparent; --cc-left-ink: #ffe6cf; --cc-sea: transparent; --cc-cell-shadow: 0 0 0 transparent;
+  --cc-n-glow: 6px; --cc-n-edge: transparent;
+  /* CC2 — the searchlights' beams (white at night, pale gold by day), the pool on the cell, the catch's red pulse, the lighthouse */
+  --cc-beam-0: rgba(255, 255, 255, 0.04); --cc-beam-1: rgba(225, 240, 255, 0.20); --cc-beam-2: rgba(240, 248, 255, 0.42); --cc-beam-core: rgba(255, 255, 255, 0.55);
+  --cc-pool: rgba(255, 246, 220, 0.75); --cc-red: rgba(255, 40, 70, 0.55);
+  --cc-lh-beam: rgba(255, 246, 214, 0.55); --cc-lh-beam-mid: rgba(255, 236, 180, 0.16); --cc-lh-glow: rgba(255, 228, 160, 0.30);
+  --cc-win: var(--good); --cc-win-glow: color-mix(in srgb, var(--good) 60%, transparent); --cc-lose: #ff3d5e; --cc-lose-glow: rgba(255, 51, 85, 0.5);
+  --cc-end-ink: var(--cc-sign-core); --cc-end-dim: var(--text-dim);
   /* the cell: ~38 pt on a 390 phone (9 across, 2 pt gaps, the 16 pt gutters), up to 44; the height keeps the switch in reach */
   --cc-gap: 2px;
   --cc-cell: clamp(28px, min(calc((min(100vw, var(--maxw)) - 2 * var(--gutter) - 8 * var(--cc-gap)) / 9), calc((100dvh - var(--safe-t) - var(--safe-b) - 236px) / 12)), 46px);
@@ -34,16 +54,57 @@
   color: var(--cc-ink);
   -webkit-user-select: none; user-select: none;
   -webkit-touch-callout: none;
+  transition: --cc-water 0.3s, --cc-water-hi 0.3s, --cc-water-line 0.3s, --cc-open 0.3s, --cc-open-line 0.3s, --cc-light-face 0.3s, --cc-sea 0.3s, color 0.3s, background-color 0.3s;
 }
-/* the night harbor behind it all: a deep blue fall-off, a faint moon glow top-right, the far shore's lights as one soft band */
+/* THE TWO BACKGROUNDS (both painted; the look crossfades them on opacity). NIGHT: a deep blue fall-off, a faint moon glow top-right, the far
+   shore's lights as one soft band */
+.cc-screen::before, .cc-screen::after { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none; transition: opacity 0.3s ease-out; }
+.cc-screen::after {
+  /* DAY — THE SUNNY HARBOR: THE PASSWORD's C1 clear morning sky (the pale blue gradient, the sun glow top-left, a couple of soft clouds at the top) */
+  background:
+    radial-gradient(28% 16% at 14% 7%, rgba(255, 250, 230, 0.95), rgba(255, 244, 200, 0.5) 40%, transparent 72%),
+    radial-gradient(22% 6% at 72% 9%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.5) 50%, transparent 100%),
+    radial-gradient(15% 4.5% at 61% 7.5%, rgba(255, 255, 255, 0.9), transparent 100%),
+    radial-gradient(26% 5.5% at 34% 15%, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.3) 55%, transparent 100%),
+    linear-gradient(180deg, #8ec6ff 0%, #b8dcff 34%, #e3f1ff 68%, #f7fbff 100%);
+  opacity: 0;
+}
 .cc-screen::before {
-  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
     radial-gradient(40% 22% at 86% 2%, rgba(200, 225, 255, 0.10), transparent 70%),
     radial-gradient(80% 9% at 50% 12%, rgba(95, 214, 255, 0.07), transparent 80%),
     linear-gradient(180deg, var(--cc-bg-1), var(--cc-bg-0) 60%);
 }
 .cc-screen > * { position: relative; z-index: 1; }
+.cc-screen > .cc-fx { position: absolute; z-index: 5; }
+
+/* ---------------- THE DAY TOKENS (CC2 — THE SUNNY HARBOR): frosted sea-blue glass, bright white open water, bold saturated numbers readable
+   outdoors, red-and-white buoys, a warm gold spot, pale-gold beams, the blue accent (#2f86ff) for the active half of the switch */
+body[data-look="day"] .screen.cc-screen {
+  --cc-bg-0: #cfe6ff; --cc-bg-1: #e9f4ff;
+  --cc-sign: #16305c; --cc-sign-glow: transparent; --cc-sign-core: #16305c; --cc-accent: #2f86ff;
+  --cc-ink: #14284a; --cc-ink-dim: #3a5582;
+  --cc-water: rgba(112, 178, 232, 0.62); --cc-water-line: rgba(255, 255, 255, 0.78); --cc-water-hi: rgba(255, 255, 255, 0.62);
+  --cc-shimmer: rgba(255, 255, 255, 0.22); --cc-sea: rgba(64, 140, 214, 0.22); --cc-cell-shadow: 0 2px 5px rgba(40, 96, 160, 0.16);
+  --cc-open: rgba(255, 255, 255, 0.86); --cc-open-line: rgba(90, 140, 200, 0.22);
+  --cc-press: rgba(255, 255, 255, 0.5);
+  --cc-n1: #1f5fe0; --cc-n2: #0f8a3c; --cc-n3: #d3203c; --cc-n4: #5a24c8; --cc-n5: #c2410c; --cc-n6: #08808e; --cc-n7: #1b2236; --cc-n8: #66708a;
+  --cc-n-glow: 0px; --cc-n-edge: rgba(255, 255, 255, 0.8);
+  --cc-buoy: #e3343f; --cc-buoy-band: #ffffff; --cc-buoy-band2: #ffffff; --cc-buoy-lamp: #ffd56b; --cc-buoy-halo: rgba(255, 196, 90, 0.35);
+  --cc-light: #f0a51c; --cc-light-core: #fff6dc; --cc-light-face: rgba(255, 196, 70, 0.42); --cc-light-glow: rgba(255, 176, 40, 0.55);
+  --cc-lamp-off: rgba(22, 48, 92, 0.34);
+  --cc-mode-line: rgba(80, 120, 180, 0.28); --cc-mode-bg: rgba(255, 255, 255, 0.6); --cc-mode-ink: rgba(20, 40, 74, 0.62);
+  --cc-mode-on: #2f86ff; --cc-mode-on-bg: rgba(47, 134, 255, 0.14); --cc-mode-on-glow: transparent;
+  --cc-mode-buoy: #2f86ff; --cc-mode-buoy-bg: rgba(47, 134, 255, 0.14); --cc-mode-buoy-glow: transparent; --cc-mode-buoy-ink: #2f86ff;
+  --cc-left-ink: #14284a;
+  --cc-beam-0: rgba(255, 236, 170, 0.06); --cc-beam-1: rgba(255, 226, 140, 0.26); --cc-beam-2: rgba(255, 214, 110, 0.48); --cc-beam-core: rgba(255, 238, 180, 0.6);
+  --cc-pool: rgba(255, 210, 100, 0.7); --cc-red: rgba(220, 30, 60, 0.42);
+  --cc-lh-beam: rgba(255, 222, 130, 0.62); --cc-lh-beam-mid: rgba(255, 226, 150, 0.2); --cc-lh-glow: rgba(255, 220, 130, 0.42);
+  --cc-win: color-mix(in srgb, var(--good) 55%, #0a3a1c); --cc-win-glow: transparent; --cc-lose: #c0304a; --cc-lose-glow: transparent;
+  --cc-end-ink: #14284a; --cc-end-dim: #3a5582;
+}
+body[data-look="day"] .cc-screen::before { opacity: 0; }
+body[data-look="day"] .cc-screen::after { opacity: 1; }
 
 /* ---------------- the sign (a static text glow) — clear of ☰ (left) + the music (right) */
 .cc-head { display: flex; align-items: center; justify-content: center; flex: none; align-self: stretch; min-height: 40px; padding: 0 calc(var(--cb-room) - 16px); }
@@ -54,7 +115,14 @@
   color: var(--cc-sign-core);
   text-shadow: 0 0 2px #fff, 0 0 8px var(--cc-sign), 0 0 18px var(--cc-sign-glow), 0 0 34px var(--cc-sign-glow);
   white-space: nowrap;
+  transition: color 0.3s, text-shadow 0.3s, opacity 0.35s ease-out, transform 0.35s ease-out;
 }
+.cc-sign-dot { display: none; }
+/* DAY: "coast clear." — lowercase in a rounded bold sans (the phone's own ui-rounded — no new font file), the blue dot (like "the password.") */
+body[data-look="day"] .cc-sign { font: 800 clamp(22px, 6.4vw, 27px) / 1 ui-rounded, 'SF Pro Rounded', 'Nunito', 'Varela Round', var(--font-ui); letter-spacing: 0.01em; text-indent: 0; text-transform: lowercase; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
+body[data-look="day"] .cc-sign-dot { display: inline; color: var(--cc-accent); }
+/* the WIN: the small top sign steps aside (the name never shows twice — the headline says it) */
+.cc-screen.is-end[data-out="clear"] .cc-sign { opacity: 0; transform: translateY(-10px); }
 
 /* ---------------- THE STATUS ROW: plain neon type + drawn objects — never a capsule, never a box */
 .cc-status {
@@ -62,12 +130,10 @@
   width: calc(9 * var(--cc-cell) + 8 * var(--cc-gap)); min-height: 30px;
 }
 .cc-st-time { display: flex; align-items: baseline; gap: 6px; justify-self: start; }
-.cc-time { font: 700 22px / 1 var(--font-num); letter-spacing: 0.04em; color: var(--cc-sign-core); text-shadow: 0 0 8px var(--cc-sign-glow); font-variant-numeric: tabular-nums; min-width: 3.2em; }
-.cc-plus { font: 700 13px / 1 var(--font-num); color: var(--cc-light); text-shadow: 0 0 8px var(--cc-light-glow); opacity: 0; transform: translateY(4px); }
-.cc-plus.is-on { animation: cc-plus 1.3s ease-out both; }
-@keyframes cc-plus { 0% { opacity: 0; transform: translateY(6px); } 15% { opacity: 1; transform: none; } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+.cc-time { font: 700 22px / 1 var(--font-num); letter-spacing: 0.04em; color: var(--cc-sign-core); text-shadow: 0 0 8px var(--cc-sign-glow); font-variant-numeric: tabular-nums; min-width: 3.2em; transition: color 0.3s, text-shadow 0.3s; }
 .cc-st-spots { display: flex; gap: 6px; justify-self: center; }
 .cc-spot { width: 30px; height: 23px; overflow: visible; }
+.cc-spot * { transition: fill 0.3s, stroke 0.3s, opacity 0.3s; }
 .cc-spot .cc-sl-beam { fill: none; stroke: var(--cc-lamp-off); stroke-width: 1; stroke-dasharray: 2 2.5; opacity: 0.5; }
 .cc-spot .cc-sl-head { fill: none; stroke: var(--cc-lamp-off); stroke-width: 1.6; }
 .cc-spot .cc-sl-lens { fill: var(--cc-lamp-off); opacity: 0.5; }
@@ -78,7 +144,7 @@
 .cc-spot.is-on .cc-sl-stand { stroke: var(--cc-light); }
 .cc-st-buoys { display: flex; align-items: center; gap: 4px; justify-self: end; }
 .cc-st-buoy { width: 22px; height: 22px; }
-.cc-left { font: 700 20px / 1 var(--font-num); color: #ffe6cf; text-shadow: 0 0 8px var(--cc-buoy-halo); min-width: 1.4em; text-align: right; font-variant-numeric: tabular-nums; }
+.cc-left { font: 700 20px / 1 var(--font-num); color: var(--cc-left-ink); transition: color 0.3s; text-shadow: 0 0 8px var(--cc-buoy-halo); min-width: 1.4em; text-align: right; font-variant-numeric: tabular-nums; }
 
 /* ---------------- THE HARBOR: 9 × 12 glass water cells over ONE shimmer layer */
 .cc-play { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
@@ -88,7 +154,7 @@
   padding: 0; border-radius: 8px; overflow: hidden; isolation: isolate;
   touch-action: none;
 }
-.cc-water { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.cc-water { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: var(--cc-sea); }
 .cc-water::before {
   content: ''; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 220%;
   background: repeating-linear-gradient(115deg, transparent 0 34px, var(--cc-shimmer) 52px, transparent 74px 120px);
@@ -100,8 +166,8 @@
   display: grid; place-items: center;
   border-radius: 5px;
   background: linear-gradient(160deg, var(--cc-water-hi), var(--cc-water) 55%);
-  box-shadow: inset 0 0 0 1px var(--cc-water-line);
-  transition: transform 70ms ease-out;
+  box-shadow: inset 0 0 0 1px var(--cc-water-line), var(--cc-cell-shadow);
+  transition: transform 70ms ease-out, box-shadow 0.3s;
   cursor: pointer;
 }
 /* the opened face: a dark still surface (its own layer on opacity — the ripple fades it in) */
@@ -112,15 +178,15 @@
 .cc-cell.is-press::after, .cc-cell.is-wait::after { content: ''; position: absolute; inset: 0; border-radius: 5px; background: var(--cc-press); opacity: 0.8; }
 .cc-cell.is-wait::after { animation: cc-wait 0.9s ease-in-out infinite alternate; }
 @keyframes cc-wait { from { opacity: 0.35; } to { opacity: 0.9; } }
-.cc-n { position: relative; z-index: 2; font: 800 calc(var(--cc-cell) * 0.56) / 1 var(--font-num); color: var(--cc-ink); }
-.cc-cell[data-n="1"] .cc-n { color: var(--cc-n1); text-shadow: 0 0 6px var(--cc-n1); }
-.cc-cell[data-n="2"] .cc-n { color: var(--cc-n2); text-shadow: 0 0 6px var(--cc-n2); }
-.cc-cell[data-n="3"] .cc-n { color: var(--cc-n3); text-shadow: 0 0 6px var(--cc-n3); }
-.cc-cell[data-n="4"] .cc-n { color: var(--cc-n4); text-shadow: 0 0 6px var(--cc-n4); }
-.cc-cell[data-n="5"] .cc-n { color: var(--cc-n5); text-shadow: 0 0 6px var(--cc-n5); }
-.cc-cell[data-n="6"] .cc-n { color: var(--cc-n6); text-shadow: 0 0 6px var(--cc-n6); }
-.cc-cell[data-n="7"] .cc-n { color: var(--cc-n7); text-shadow: 0 0 6px var(--cc-n7); }
-.cc-cell[data-n="8"] .cc-n { color: var(--cc-n8); text-shadow: 0 0 6px var(--cc-n8); }
+.cc-n { position: relative; z-index: 2; font: 800 calc(var(--cc-cell) * 0.56) / 1 var(--font-num); color: var(--cc-ink); transition: color 0.3s, text-shadow 0.3s; }
+.cc-cell[data-n="1"] .cc-n { color: var(--cc-n1); text-shadow: 0 0 var(--cc-n-glow) var(--cc-n1), 0 1px 0 var(--cc-n-edge); }
+.cc-cell[data-n="2"] .cc-n { color: var(--cc-n2); text-shadow: 0 0 var(--cc-n-glow) var(--cc-n2), 0 1px 0 var(--cc-n-edge); }
+.cc-cell[data-n="3"] .cc-n { color: var(--cc-n3); text-shadow: 0 0 var(--cc-n-glow) var(--cc-n3), 0 1px 0 var(--cc-n-edge); }
+.cc-cell[data-n="4"] .cc-n { color: var(--cc-n4); text-shadow: 0 0 var(--cc-n-glow) var(--cc-n4), 0 1px 0 var(--cc-n-edge); }
+.cc-cell[data-n="5"] .cc-n { color: var(--cc-n5); text-shadow: 0 0 var(--cc-n-glow) var(--cc-n5), 0 1px 0 var(--cc-n-edge); }
+.cc-cell[data-n="6"] .cc-n { color: var(--cc-n6); text-shadow: 0 0 var(--cc-n-glow) var(--cc-n6), 0 1px 0 var(--cc-n-edge); }
+.cc-cell[data-n="7"] .cc-n { color: var(--cc-n7); text-shadow: 0 0 var(--cc-n-glow) var(--cc-n7), 0 1px 0 var(--cc-n-edge); }
+.cc-cell[data-n="8"] .cc-n { color: var(--cc-n8); text-shadow: 0 0 var(--cc-n-glow) var(--cc-n8), 0 1px 0 var(--cc-n-edge); }
 /* THE POP: the face fades in, the digit springs up — both delayed by the ripple's ring (--d) */
 .cc-cell.is-pop::before { animation: cc-face 0.24s ease-out var(--d, 0ms) both; }
 .cc-cell.is-pop .cc-n { animation: cc-pop 0.32s cubic-bezier(0.2, 1.5, 0.4, 1) var(--d, 0ms) both; }
@@ -139,6 +205,8 @@
 .cc-bu-lamp { fill: var(--cc-buoy-lamp); }
 .cc-bu-body { fill: var(--cc-buoy); }
 .cc-bu-band { stroke: var(--cc-buoy-band); stroke-width: 2.1; stroke-linecap: round; }
+.cc-bu-band2 { stroke: var(--cc-buoy-band2); stroke-width: 1.7; stroke-linecap: round; fill: none; }
+.cc-bu-halo, .cc-bu-lamp, .cc-bu-body, .cc-bu-band, .cc-bu-band2 { transition: fill 0.3s, stroke 0.3s; }
 .cc-bu-wl { fill: none; stroke: rgba(170, 225, 255, 0.55); stroke-width: 1.3; stroke-linecap: round; }
 
 /* SPOTTED: a gold searchlight that stays lit in its cell */
@@ -165,32 +233,112 @@
   min-height: 44px; border: 0; margin: 0; padding: 0; border-radius: 0; background: transparent;
   font: 800 16px / 1 var(--font-display); letter-spacing: 0.18em; color: var(--cc-mode-ink);
   -webkit-tap-highlight-color: transparent; cursor: pointer;
+  transition: color 0.3s, background-color 0.3s, box-shadow 0.3s;
 }
 .cc-mode-b + .cc-mode-b { box-shadow: inset 1px 0 0 var(--cc-mode-line); }
 .cc-mode-i { width: 26px; height: 26px; flex: none; }
 .cc-mode-dig circle { fill: currentColor; }
 .cc-mode-dig path { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .cc-mode-b[data-m="dig"].is-on { color: var(--cc-mode-on); background: var(--cc-mode-on-bg); box-shadow: inset 0 0 0 1.5px var(--cc-mode-on), inset 0 0 18px var(--cc-mode-on-bg); text-shadow: 0 0 10px var(--cc-mode-on-glow); }
-.cc-mode-b[data-m="buoy"].is-on { color: #ffe6cf; background: var(--cc-mode-buoy-bg); box-shadow: inset 0 0 0 1.5px var(--cc-mode-buoy), inset 0 0 18px var(--cc-mode-buoy-bg); text-shadow: 0 0 10px var(--cc-mode-buoy-glow); }
+.cc-mode-b[data-m="buoy"].is-on { color: var(--cc-mode-buoy-ink); background: var(--cc-mode-buoy-bg); box-shadow: inset 0 0 0 1.5px var(--cc-mode-buoy), inset 0 0 18px var(--cc-mode-buoy-bg); text-shadow: 0 0 10px var(--cc-mode-buoy-glow); }
 .cc-mode-b:not(.is-on) .cc-mode-buoy { opacity: 0.6; }
 .cc-mode-b:focus-visible { outline: 2px solid var(--cc-mode-on); outline-offset: -4px; }
 
-/* ---------------- THE END (CC1 placeholder — CC2 builds the lighthouse win, the caught screen + the share): it takes the switch's place */
-.cc-screen.is-end .cc-mode { display: none; }
-.cc-screen.is-end .cc-board { opacity: 0.55; transition: opacity 0.5s; }
+/* ---------------- CC2 — GETTING SPOTTED: the light show's own layer (never takes a tap): the beams, the pool on the cell, "+30 s", the red pulse */
+.cc-fx { inset: 0; pointer-events: none; overflow: hidden; }
+.cc-beam { position: absolute; display: block; transform-origin: 0 50%; will-change: transform; }
+/* the beam = three soft layers (a wide faint halo, the cone, a bright core) — its far end fades out past the cell, so where beams meet there is
+   a pool of light, never a hard square */
+.cc-beam-l { position: absolute; inset: 0; display: block; opacity: 0; will-change: opacity; }
+.cc-beam-l::before { content: ''; position: absolute; inset: 0; clip-path: polygon(0 47%, 100% 4%, 100% 96%, 0 53%);
+  background: linear-gradient(90deg, var(--cc-beam-0), var(--cc-beam-1) 50%, var(--cc-beam-2) 82%, transparent); }
+.cc-beam-l::after { content: ''; position: absolute; inset: 0; clip-path: polygon(0 49.3%, 100% 32%, 100% 68%, 0 50.7%); background: linear-gradient(90deg, transparent 10%, var(--cc-beam-core) 80%, transparent); }
+.cc-beam-h { position: absolute; left: 0; right: 0; top: -35%; bottom: -35%; display: block; clip-path: polygon(0 46%, 100% 0, 100% 100%, 0 54%);
+  background: linear-gradient(90deg, transparent, var(--cc-beam-0) 40%, var(--cc-beam-0) 80%, transparent); }
+.cc-pool { position: absolute; display: block; border-radius: 50%; background: radial-gradient(closest-side, var(--cc-pool), transparent); opacity: 0; transform: translate(-50%, -50%); will-change: transform, opacity; }
+.cc-float { position: absolute; display: block; font: 800 15px / 1 var(--font-num); font-style: normal; letter-spacing: 0.02em; color: var(--cc-light); text-shadow: 0 0 8px var(--cc-light-glow), 0 1px 0 var(--cc-n-edge); white-space: nowrap; opacity: 0; transform: translate(-50%, 0); will-change: transform, opacity; }
+.cc-red { position: absolute; inset: 0; display: block; opacity: 0; background: radial-gradient(120% 90% at 50% 50%, transparent 30%, var(--cc-red) 100%); will-change: opacity; }
+
+/* ---------------- CC2 — THE END SCREENS: the board + the switch leave (0.4 s), one clean screen under the sign: COAST CLEAR (big green neon, the
+   lighthouse beam sweeping behind it) + ONE big time + a small line · CAUGHT (big red neon, one small line, a dimmed harbor) · the finished harbor
+   shrunk · SHARE + NEXT HARBOR IN together under it; the leftover space at the FOOT (never top-heavy). No pills: the tube has a modest radius. */
+.cc-play, .cc-mode { transition: opacity 0.4s var(--ease), transform 0.4s var(--ease); }
+.cc-screen.is-leaving .cc-play, .cc-screen.is-leaving .cc-mode { opacity: 0; transform: translateY(14px); pointer-events: none; }
+.cc-play[hidden], .cc-mode[hidden] { display: none; }
 .cc-end {
-  flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 58px;
-  opacity: 0; transform: translateY(10px); transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+  flex: 1 1 auto; min-height: 0; align-self: stretch;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  padding: 0 16px calc(var(--safe-b) + 8px); text-align: center;
+  --cc-mini: clamp(15px, min(calc((100dvh - var(--safe-t) - var(--safe-b) - 470px) / 12), calc((min(100vw, var(--maxw)) - 48px) / 9)), 24px);
 }
 .cc-end[hidden] { display: none; }
-.cc-end.is-in { opacity: 1; transform: none; }
-.cc-end-t { font: 900 24px / 1 var(--font-display); letter-spacing: 0.16em; text-indent: 0.16em; color: var(--good); text-shadow: 0 0 10px var(--good), 0 0 24px rgba(109, 255, 158, 0.4); }
-.cc-end[data-out="caught"] .cc-end-t { color: #ffd36b; text-shadow: 0 0 10px #ffb84a, 0 0 24px rgba(255, 184, 74, 0.4); }
-.cc-end-n { font: 700 34px / 1 var(--font-num); color: var(--cc-sign-core); text-shadow: 0 0 10px var(--cc-sign-glow); }
-.cc-end-line { font: 700 12px / 1.3 var(--font-mono); letter-spacing: 0.14em; color: var(--cc-ink-dim); text-align: center; }
-.cc-end-rec { font: 700 11px / 1 var(--font-mono); letter-spacing: 0.14em; color: var(--text-faint); }
+.cc-end-result, .cc-end-actions { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.cc-end-stage { position: relative; display: flex; justify-content: center; width: 100%; padding: 14px 0 4px; }
+.cc-end-t {
+  position: relative; z-index: 1; margin: 0; width: 100%;
+  font: 900 clamp(30px, 10.4vw, 44px) / 1.05 var(--font-display); letter-spacing: 0.1em; text-indent: 0.1em; white-space: nowrap;
+  color: var(--cc-win); text-shadow: 0 0 2px #fff, 0 0 12px var(--cc-win-glow), 0 0 30px var(--cc-win-glow);
+  transition: color 0.3s, text-shadow 0.3s;
+}
+.cc-end[data-out="caught"] .cc-end-t { color: var(--cc-lose); text-shadow: 0 0 2px rgba(255, 220, 225, 0.9), 0 0 12px var(--cc-lose-glow), 0 0 30px var(--cc-lose-glow); }
+body[data-look="day"] .cc-end .cc-end-t { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
+.cc-end-n { margin-top: 10px; font: 700 clamp(56px, 18vw, 72px) / 1 var(--font-num); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: var(--cc-end-ink); text-shadow: 0 0 14px var(--cc-sign-glow); transition: color 0.3s, text-shadow 0.3s; }
+.cc-end-line { margin-top: 12px; font: 700 14px / 1 var(--font-ui); letter-spacing: 0.2em; color: var(--cc-end-dim); font-variant-numeric: tabular-nums; transition: color 0.3s; }
+.cc-end-actions { margin-top: 22px; }
+.cc-screen .btn.cc-share { width: min(100%, 300px); margin-top: 0; border-radius: 10px; }
+.cc-screen .btn.cc-share::before, .cc-screen .btn.cc-share::after { border-radius: 10px; }
+body[data-look="day"] .cc-screen .btn.cc-share { --tc: #2f86ff; --tcore: #2f86ff; --tg: rgba(47, 134, 255, 0.5); --tg2: rgba(47, 134, 255, 0.22); --tube-in: rgba(255, 255, 255, 0.86); color: #14284a; text-shadow: none; }
+.cc-end-next { margin-top: 14px; font: 700 12px / 1 var(--font-mono); letter-spacing: 0.16em; color: var(--cc-end-dim); font-variant-numeric: tabular-nums; }
+.cc-end-rec { margin-top: 8px; font: 700 10px / 1.4 var(--font-ui); letter-spacing: 0.18em; color: var(--red); }
+.cc-end-rec:empty { display: none; }
+/* the way in: the headline, then the time + the line, then the harbor row by row (--r), then the actions */
+.cc-end.is-in .cc-end-t { animation: cc-end-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.cc-end.is-in .cc-end-n { animation: cc-end-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.16s both; }
+.cc-end.is-in .cc-end-line { animation: cc-end-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.26s both; }
+.cc-end.is-in .cc-mc { animation: cc-mc-in 0.34s ease-out calc(0.5s + var(--r, 0) * 32ms) both; }
+.cc-end.is-in .cc-end-actions { animation: cc-end-up 0.45s ease-out 0.95s both; }
+.cc-end.is-still * { animation: none !important; }
+@keyframes cc-end-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes cc-mc-in { from { opacity: 0; transform: scale(0.55); } to { opacity: 1; transform: none; } }
+
+/* THE LIGHTHOUSE (the win): a long soft beam pivoting behind the headline sweeps slowly across the sky (once — 3.2 s), then a calm glow breathes */
+.cc-lh { position: absolute; left: 50%; top: 55%; width: 0; height: 0; z-index: 0; pointer-events: none; }
+.cc-lh-beam { position: absolute; left: 0; top: -420px; width: 1300px; height: 840px; display: block; transform-origin: 0 50%; opacity: 0; will-change: transform, opacity;
+  clip-path: polygon(0 49%, 100% 0, 100% 100%, 0 51%);
+  background: linear-gradient(90deg, var(--cc-lh-beam), var(--cc-lh-beam-mid) 22%, transparent 62%);
+  animation: cc-lh-sweep 3.2s cubic-bezier(0.45, 0.05, 0.4, 1) 0.3s both; }
+.cc-lh-core { position: absolute; inset: 0; display: block; clip-path: polygon(0 49.6%, 100% 34%, 100% 66%, 0 50.4%); background: linear-gradient(90deg, var(--cc-lh-beam), transparent 45%); }
+@keyframes cc-lh-sweep { 0% { transform: rotate(-178deg); opacity: 0; } 12% { opacity: 1; } 86% { opacity: 1; } 100% { transform: rotate(-2deg); opacity: 0; } }
+.cc-lh-glow { position: absolute; left: -190px; top: -78px; width: 380px; height: 156px; display: block; opacity: 0; animation: cc-lh-in 1.4s ease-out 2.6s both; }
+.cc-lh-glow::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(closest-side, var(--cc-lh-glow), transparent); animation: cc-lh-breathe 4.8s ease-in-out 4s infinite alternate; }
+@keyframes cc-lh-in { to { opacity: 1; } }
+@keyframes cc-lh-breathe { from { opacity: 1; } to { opacity: 0.5; } }
+.cc-end.is-still .cc-lh-beam { opacity: 0; }
+.cc-end.is-still .cc-lh-glow { opacity: 1; }
+
+/* THE FINISHED HARBOR, shrunk (~ 9 × 12 at 15–24 pt): the numbers (in their colours), the buoys, EVERY searchlight (the server reveals them once
+   the run is over) — gold = the ones that found you, a pale lamp = one never found; a caught run: the water you never crossed stays shut + dimmed */
+.cc-end-map { display: grid; grid-template-columns: repeat(var(--cc-cols, 9), var(--cc-mini)); grid-auto-rows: var(--cc-mini); gap: 2px; margin-top: 20px; padding: 3px; border-radius: 6px; background: var(--cc-sea); transition: opacity 0.4s; }
+.cc-end[data-out="caught"] .cc-end-map { opacity: 0.62; }
+.cc-mc { position: relative; display: grid; place-items: center; border-radius: 3px; font: 800 calc(var(--cc-mini) * 0.62) / 1 var(--font-num); font-style: normal;
+  background: linear-gradient(160deg, var(--cc-water-hi), var(--cc-water) 55%); box-shadow: inset 0 0 0 1px var(--cc-water-line); }
+.cc-mc.is-open, .cc-mc.is-light, .cc-mc.is-spot { background: var(--cc-open); box-shadow: inset 0 0 0 1px var(--cc-open-line); }
+.cc-mc[data-n="1"] { color: var(--cc-n1); } .cc-mc[data-n="2"] { color: var(--cc-n2); } .cc-mc[data-n="3"] { color: var(--cc-n3); } .cc-mc[data-n="4"] { color: var(--cc-n4); }
+.cc-mc[data-n="5"] { color: var(--cc-n5); } .cc-mc[data-n="6"] { color: var(--cc-n6); } .cc-mc[data-n="7"] { color: var(--cc-n7); } .cc-mc[data-n="8"] { color: var(--cc-n8); }
+.cc-mc::after { content: ''; position: absolute; }
+/* a light that found you: a gold lamp with its glow */
+.cc-mc.is-spot { background: radial-gradient(circle, var(--cc-light-face), transparent 75%), var(--cc-open); box-shadow: inset 0 0 0 1px var(--cc-light); }
+.cc-mc.is-spot::after { inset: 26%; border-radius: 50%; background: var(--cc-light-core); box-shadow: 0 0 0 1.5px var(--cc-light), 0 0 6px var(--cc-light-glow); }
+/* a light never found (revealed at the end): a pale lamp ring */
+.cc-mc.is-light::after { inset: 27%; border-radius: 50%; border: 1.5px solid var(--cc-lamp-off); background: radial-gradient(circle, var(--cc-lamp-off) 30%, transparent 34%); }
+/* a buoy (a light you marked): the float's colour + its band (by day red-and-white stripes) */
+.cc-mc.is-buoy::after, .cc-mc.is-miss::after { left: 20%; right: 20%; top: 22%; bottom: 18%; border-radius: 50% 50% 22% 22%;
+  background: linear-gradient(180deg, var(--cc-buoy) 0 34%, var(--cc-buoy-band) 34% 50%, var(--cc-buoy) 50% 70%, var(--cc-buoy-band2) 70% 82%, var(--cc-buoy) 82%); }
+.cc-mc.is-miss::after { opacity: 0.45; }
 
 @media (prefers-reduced-motion: reduce) {
-  .cc-water::before, .cc-cell.is-wait::after { animation: none; }
-  .cc-cell { transition: none; }
+  .cc-water::before, .cc-cell.is-wait::after, .cc-end.is-in *, .cc-lh-glow::before { animation: none !important; }
+  .cc-cell, .cc-play, .cc-mode, .cc-screen::before, .cc-screen::after { transition: none; }
+  .cc-lh-beam { display: none; }
+  .cc-lh-glow { opacity: 1; }
 }
