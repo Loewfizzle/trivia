@@ -189,7 +189,7 @@ const O7 = {
 const A7 = Object.fromEntries(Object.entries(O7).map(([k, v]) => [k, [...v.party, ...v.res]]));
 const SRC7 = s => typeof s === 'string' && (URL_RE.test(s) || QIDS.test(s) || /^[a-z-]+ Q\d+( Q\d+)+$/.test(s) || /^wiktionary:[a-z ,'_-]+$/.test(s));
 
-test('OC7 POOL SIZES: TRIVIA 4,000+ (written 2,000+ · data 2,000+, ≈ 40/40/20) · CLOSEST CALL ~1,000 · SPELLCHECK ~1,500 · MISSING LINK 600+', () => {
+test('OC7 POOL SIZES (OC8 floors): TRIVIA 3,600+ (written 2,000+ · data 1,500+, ≈ 40/40/20) · CLOSEST CALL 900+ · SPELLCHECK ~1,500 · MISSING LINK 950+', () => {
   const tv = A7.tv, d = { easy: 0, medium: 0, hard: 0 };
   for (const r of tv) d[r.d]++;
   const pc = k => Math.round((d[k] / tv.length) * 100);
@@ -201,7 +201,7 @@ test('OC7 POOL SIZES: TRIVIA 4,000+ (written 2,000+ · data 2,000+, ≈ 40/40/20
   assert.ok(pc('easy') >= 30 && pc('easy') <= 50 && pc('medium') >= 30 && pc('medium') <= 50 && pc('hard') >= 12 && pc('hard') <= 28, `mix ${pc('easy')}/${pc('medium')}/${pc('hard')}`);
   assert.ok(A7.cc.length >= 900, `CLOSEST ${A7.cc.length}`);
   assert.ok(A7.sp.length >= 1400, `SPELLCHECK ${A7.sp.length}`);
-  assert.ok(A7.ml.length >= 600, `MISSING LINK ${A7.ml.length} (the ~1,000 target is a known gap — docs/overclock.md OC7)`);
+  assert.ok(A7.ml.length >= 950, `MISSING LINK ${A7.ml.length} (OC8's top-up: 650 → ~975)`);
 });
 
 test('OC7: every item has a stable, database-safe, prefixed id + a SOURCE; ids unique within + across the four pools', () => {
@@ -266,8 +266,9 @@ test('OC7 TRIVIA: a known category + level, three distinct wrongs, none an ALIAS
   assert.ok(aliasOf('Washington', 'George Washington') && aliasOf('The Nile', 'Nile') && !aliasOf('1,860', '1,860,000') && !aliasOf('-10 degrees', '10 degrees'));
 });
 
-test('OC7 MISSING LINK: three clues, EVERY side recorded (no neutral join in the bank), every join a real word (en_US / ENABLE) or phrase (Wiktionary)', async () => {
+test('OC7 MISSING LINK: three clues, EVERY side recorded (no neutral join in the bank), every join a real word (en_US / ENABLE) or phrase (Wiktionary), every clue a word', async () => {
   const { joinOk } = await import('../scripts/oc-pools/phrases.mjs');
+  const { isWord } = (await import('../scripts/oc-pools/dict.mjs')).dictionaries();
   const { ML_SIDES } = await import('../js/games/overclock/challenges.js');
   for (const r of A7.ml) {
     assert.match(r.answer, /^[A-Z]+$/, r.id);
@@ -279,6 +280,8 @@ test('OC7 MISSING LINK: three clues, EVERY side recorded (no neutral join in the
       assert.notEqual(w, r.answer, r.id);
       assert.ok(ML_SIDES.includes(side) && (sep === '' || sep === ' '), `${r.id}: ${w} has no side (${side}/${JSON.stringify(sep)})`);
       assert.ok(joinOk(w, r.answer, side, sep), `${r.id}: ${side === 'before' ? r.answer + sep + w : w + sep + r.answer} is not on record`);
+      // (OC8 — THE FABLE REVIEW's "MENT" lesson: a clue card is a WORD on its own, never a piece of one — BASEMENT's "MENT")
+      assert.ok(isWord(w.toLowerCase()), `${r.id}: the clue ${w} is not a word on its own`);
     }
   }
 });

@@ -141,7 +141,9 @@ for (const r of uniq(ctx.cc, 'cc', r => r.q)) {
 const WORD = /^[A-Z]+$/;
 const ml = [];
 const mlAnswers = new Set();
-for (const r of uniq(ctx.ml, 'ml', r => r.answer)) {
+// (OC8: a duplicate is decided AFTER the rules — a legacy row that dies on a rule (BLOODY NOSE: all-ages) used to claim its id first and block
+//  every later puzzle with that answer; now the first row that PASSES keeps the answer, the rest are 'answer used')
+for (const r of ctx.ml.filter(r => (ID.test(String(r.id)) ? true : (drop('ml', 'id', `${r.id} ${r.answer}`), false)))) {
   const ok = Array.isArray(r.clues) && r.clues.length === 3 && r.clues.every(c => Array.isArray(c) && WORD.test(c[0]) && c[0].length <= ML_WORD_MAX && ML_SIDES.includes(c[1]) && ['', ' '].includes(c[2] || ''));
   if (!ok || !WORD.test(r.answer || '') || r.answer.length > ML_WORD_MAX) { drop('ml', 'shape', JSON.stringify(r)); continue; }
   if (new Set(r.clues.map(c => c[0])).size !== 3 || r.clues.some(c => c[0] === r.answer)) { drop('ml', 'clues repeat', r.answer); continue; }
