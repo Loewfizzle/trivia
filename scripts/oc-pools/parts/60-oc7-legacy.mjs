@@ -11,6 +11,7 @@ import { HERE, readJSON, hash36 } from '../lib.mjs';
 import { dictionaries } from '../dict.mjs';
 import { hardLetters } from '../spell-rules.mjs';
 import { joinKind } from '../phrases.mjs';
+import { rudeIn } from '../spell-gen.mjs';
 
 export default async function legacy(ctx) {
   const { isWord, anyWord } = dictionaries();
@@ -21,6 +22,7 @@ export default async function legacy(ctx) {
     if (!isWord(right)) { ctx.drop('sp', 'legacy: not in the American dictionary', right); continue; }
     const bad = wrong.filter(w => anyWord(w));
     if (bad.length) { ctx.drop('sp', 'legacy: a wrong option is a word', `${right} (${bad.join(', ')})`); continue; }
+    if (wrong.some(w => rudeIn(w, right))) { ctx.drop('sp', 'legacy: a rude wrong option', right); continue; }
     ctx.sp.push({ id: `s-${right}`, right, wrong, hard: hardLetters(right, wrong[0]), src: `https://en.wiktionary.org/wiki/${right}` });
     spKept++;
   }

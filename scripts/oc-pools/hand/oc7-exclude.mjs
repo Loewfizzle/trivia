@@ -12,7 +12,8 @@ export const CC_EXCLUDE_LABELS = {
     'Broad Peak', 'Shishapangma', 'Nanda Devi', 'Mount Kailash', 'Mount Cameroon', 'Mount Roraima', 'Mount Nyiragongo', 'Aoraki / Mount Cook',
     'Damavand', 'Mount Kinabalu', 'Zugspitze'],
   // OBSCURE towers + skyscrapers outside the U.S. few Americans know (+ "The Center" — a name that reads as no name)
-  tall: ['Mirante do Vale', 'Abeno Harukas', 'Edifício Itália', 'Mercury City Tower', 'Shun Hing Square', 'Almas Tower', 'Tuntex Sky Tower',
+  // (the Empire State Building: 1,250 ft to the roof, 1,454 ft to the tip — Wikidata's 457 m fits neither: ARGUABLE)
+  tall: ['Empire State Building', 'Mirante do Vale', 'Abeno Harukas', 'Edifício Itália', 'Mercury City Tower', 'Shun Hing Square', 'Almas Tower', 'Tuntex Sky Tower',
     'Al Hamra Tower', 'Central Plaza', '23 Marina', 'Rose Tower', 'Princess Tower', 'Emirates Office Tower', 'Cayan Tower', 'Torre Moeve',
     'Triumph Palace', 'Bitexco Financial Tower', 'Edifício Copan', 'Avaz Twist Tower', 'Grand Lisboa', 'Shimao International Plaza', 'Kingkey 100',
     'Tour First', 'Baku TV Tower', 'Riga Radio and TV Tower', 'Shukhov Tower', 'Mode Gakuen Cocoon Tower', 'Edifício Altino Arantes', 'CITIC Plaza',
@@ -44,7 +45,8 @@ export const CC_EXCLUDE_LABELS = {
     'palladium', 'tellurium', 'hafnium', 'tantalum', 'astatine', 'zirconium', 'vanadium', 'barium', 'polonium', 'niobium', 'osmium', 'molybdenum',
     'yttrium', 'technetium', 'selenium'],
   // OBSCURE bridges · ARGUABLE (the Crimean Bridge — a war's front line)
-  span: ['Crimean Bridge', 'Vizcaya Bridge', 'Széchenyi Chain Bridge', 'Rio-Antirrio bridge', 'Fatih Sultan Mehmet Bridge', 'Yavuz Sultan Selim Bridge',
+  // (Tower Bridge: 200 ft between the towers or 270 ft — which span is "main" is ARGUABLE)
+  span: ['Tower Bridge', 'Crimean Bridge', 'Vizcaya Bridge', 'Széchenyi Chain Bridge', 'Rio-Antirrio bridge', 'Fatih Sultan Mehmet Bridge', 'Yavuz Sultan Selim Bridge',
     'Galata Bridge', 'Menai Suspension Bridge', "Ponte Sant'Angelo", 'Bridge of the Americas', 'Pont de Normandie', 'Danube Bridge', 'Hangzhou Bay Bridge',
     'Öland Bridge', 'Si-o-se Pol', 'Iron Bridge', 'Southwark Bridge', "pont de l'Alma", 'Rainbow Bridge', 'Pelješac Bridge', 'Huajiang Canyon Bridge',
     'Oberbaum Bridge', 'Vasco da Gama Bridge', 'Qingdao Jiaozhou Bay Bridge', '25 de Abril Bridge', 'Rio–Niterói Bridge', 'Albert Bridge',
@@ -67,7 +69,16 @@ export const LIVED_EXCLUDE = ['Abraham Lincoln', 'John F. Kennedy', 'Martin Luth
   'Buddy Holly', 'Ritchie Valens', 'Amelia Earhart', 'Yuri Gagarin', 'Christa McAuliffe', 'Matthew Perry', 'Mac Miller', 'Juice Wrld', 'XXXTentacion',
   'Brittany Murphy', 'River Phoenix', 'John Belushi', 'Chris Farley', 'Cameron Boyce', 'Lisa Lopes', 'Aaliyah', 'Lil Peep', 'Brandon Lee',
   // WRONG in Wikidata (alive — a death date on file anyway) · UNSURE (a recent death the build can't confirm) · clerics (OC6's rule)
-  'Dolly Parton', 'Brigitte Bardot', 'Alain Delon', 'John Paul I', 'Swami Vivekananda', 'Mother Teresa',
+  'Dolly Parton', 'Brigitte Bardot', 'Alain Delon', 'John Paul I', 'Swami Vivekananda', 'Mother Teresa', 'Chuck Norris', 'Leo XIII',
+  // politics (OC6's rule) · views a party game shouldn't spotlight
+  'Liu Xiaobo', 'Friedrich Hayek', 'Ezra Pound',
+  // OBSCURE in the U.S. — the OC7 look review (Group 3)
+  'Sigrid Undset', 'Wisława Szymborska', 'Jean Cocteau', 'John Galsworthy', 'André-Marie Ampère', 'Heinrich Böll', 'Max Born', 'Jean Racine',
+  'Mikhail Bulgakov', 'François Mauriac', 'Vladimir Vysotsky', 'Hendrik Lorentz', 'Chandrasekhara Venkata Raman', 'John Ruskin',
+  'Franz Beckenbauer', 'Novalis', 'Isaac Bashevis Singer', 'Giacomo Leopardi', 'Elias Canetti', 'Antoine Henri Becquerel', 'John Dewey',
+  'V. S. Naipaul', 'Jean-Paul Belmondo', 'Karel Čapek', 'Thomas Henry Huxley', 'Thomas Carlyle', 'Georg Cantor', 'Pierre de Fermat',
+  'Max Planck', 'Erwin Schrödinger', 'James Clerk Maxwell', 'Edvard Grieg', 'Robert Schumann', 'Felix Mendelssohn', 'Percy Bysshe Shelley',
+  'John Dalton', 'Linus Pauling', 'Heinrich Hertz', 'Srinivasa Ramanujan', 'Samuel Beckett', 'Thomas Hardy', 'Saul Bellow', 'Sinclair Lewis',
   // OBSCURE in the U.S. (writers, thinkers + stars a casual American player has never heard of) · Knut Hamsun (a Nazi sympathizer)
   'Hebe Camargo', 'Octave Mirbeau', 'Sully Prudhomme', 'Frédéric Mistral', 'Gerhart Hauptmann', 'Henryk Sienkiewicz', 'Taras Shevchenko',
   'Adam Mickiewicz', 'Lu Xun', 'Ivan Bunin', 'Selma Lagerlöf', 'Romain Rolland', 'Anatole France', 'Maurice Maeterlinck', 'Knut Hamsun',
@@ -86,6 +97,8 @@ export const LIVED_EXCLUDE = ['Abraham Lincoln', 'John F. Kennedy', 'Martin Luth
 export const TV_EXCLUDE = [];
 // TRIVIA's data half: a RIGHT ANSWER (by its label) that's out — read by hand after each build
 export const TV_EXCLUDE_LABELS = [];
+// OC7 TRIVIA rows dropped by a Wikidata id (the spot-check read, Group 4): Efteling (a Dutch theme park — obscure in the U.S.)
+export const TV_EXCLUDE_IDS = ['Q733234'];
 // US-FIRST: the title an American knows (Wikidata keeps the original / British one)
 export const TITLE_FIX = {
   "Harry Potter and the Philosopher's Stone": "Harry Potter and the Sorcerer's Stone",

@@ -172,3 +172,159 @@ test('SORT IT: two clear sides, disjoint, 7+ cards a side, 25+ a set; every comp
   }
   assert.ok(computed >= 20, `${computed} computed sets`);
 });
+
+// ============================================================================================ OC7 — TRIVIA · CLOSEST CALL · MISSING LINK · SPELLCHECK
+// The four OC7 pools (party + reserve) against the pass's rules: an id + a source, no duplicates within + across the pools, the phone limits,
+// fair trivia wrongs (never an alias of the right one), MISSING LINK's sides recorded + every join a real word / phrase (the committed verdicts —
+// no download needed), SPELLCHECK's dictionary checks (SCOWL Hunspell en_US / en_GB + ENABLE — scripts/oc-pools/dict/), the all-ages words,
+// US units that read naturally, the ~20% reserve.
+const O7 = {
+  tv: { party: J('data/oc/trivia.json').items, res: (R('trivia.json') || { items: [] }).items },
+  cc: { party: J('data/oc/closest.json').questions, res: (R('closest.json') || { questions: [] }).questions },
+  ml: { party: J('data/oc/missinglink.json').puzzles, res: (R('missinglink.json') || { puzzles: [] }).puzzles },
+  sp: { party: J('data/oc/spellcheck.json').words, res: (R('spellcheck.json') || { words: [] }).words },
+};
+const A7 = Object.fromEntries(Object.entries(O7).map(([k, v]) => [k, [...v.party, ...v.res]]));
+const SRC7 = s => typeof s === 'string' && (URL_RE.test(s) || QIDS.test(s) || /^[a-z-]+ Q\d+( Q\d+)+$/.test(s) || /^wiktionary:[a-z ,'_-]+$/.test(s));
+
+test('OC7 POOL SIZES: TRIVIA 4,000+ (written 2,000+ · data 2,000+, ≈ 40/40/20) · CLOSEST CALL ~1,000 · SPELLCHECK ~1,500 · MISSING LINK 600+', () => {
+  const tv = A7.tv, d = { easy: 0, medium: 0, hard: 0 };
+  for (const r of tv) d[r.d]++;
+  const pc = k => Math.round((d[k] / tv.length) * 100);
+  const written = tv.filter(r => r.id.startsWith('w')).length;
+  console.log(`[oc7] TRIVIA ${tv.length} (party ${O7.tv.party.length}; written ${written} · data ${tv.length - written}; ${pc('easy')}% easy · ${pc('medium')}% medium · ${pc('hard')}% hard) · CLOSEST ${A7.cc.length} (party ${O7.cc.party.length}) · MISSING LINK ${A7.ml.length} (party ${O7.ml.party.length}) · SPELLCHECK ${A7.sp.length} (party ${O7.sp.party.length})`);
+  assert.ok(tv.length >= 4000, `TRIVIA ${tv.length}`);
+  assert.ok(written >= 2000 && tv.length - written >= 2000, `written ${written} · data ${tv.length - written}`);
+  assert.ok(pc('easy') >= 30 && pc('easy') <= 50 && pc('medium') >= 30 && pc('medium') <= 50 && pc('hard') >= 12 && pc('hard') <= 28, `mix ${pc('easy')}/${pc('medium')}/${pc('hard')}`);
+  assert.ok(A7.cc.length >= 900, `CLOSEST ${A7.cc.length}`);
+  assert.ok(A7.sp.length >= 1400, `SPELLCHECK ${A7.sp.length}`);
+  assert.ok(A7.ml.length >= 600, `MISSING LINK ${A7.ml.length} (the ~1,000 target is a known gap — docs/overclock.md OC7)`);
+});
+
+test('OC7: every item has a stable, database-safe, prefixed id + a SOURCE; ids unique within + across the four pools', () => {
+  const seen = new Map();
+  const PREFIX = { tv: /^(t-|w)/, cc: /^c/, ml: /^m-/, sp: /^s-/ };
+  for (const [k, rows] of Object.entries(A7)) for (const r of rows) {
+    assert.match(r.id, ID, `${k}: id ${r.id}`);
+    assert.match(r.id, PREFIX[k], `${k}: prefix ${r.id}`);
+    assert.ok(!seen.has(r.id), `${r.id} twice (${seen.get(r.id)} · ${k})`); seen.set(r.id, k);
+    assert.ok(SRC7(r.src), `${k} ${r.id}: source ${r.src}`);
+  }
+});
+
+test('OC7: the party pools and the reserve never share an item; the reserve is ~20% of each pool + agrees with the build\'s split', async () => {
+  const { isReserve } = await import('../scripts/oc-pools/lib.mjs');
+  for (const [k, { party, res }] of Object.entries(O7)) {
+    const p = new Set(party.map(r => r.id));
+    for (const r of res) assert.ok(!p.has(r.id), `${k}: ${r.id} in both`);
+    const share = res.length / (party.length + res.length);
+    assert.ok(share >= 0.14 && share <= 0.26, `${k}: reserve ${Math.round(share * 100)}%`);
+    for (const r of party) assert.ok(!isReserve(`${k}:${r.id}`), `${k}: ${r.id} belongs in the reserve`);
+    for (const r of res) assert.ok(isReserve(`${k}:${r.id}`), `${k}: ${r.id} belongs in the party pool`);
+  }
+});
+
+test('OC7 NO DUPLICATES: a question once across TRIVIA + CLOSEST CALL (+ never a TRUE OR FALSE statement) · a MISSING LINK answer + a SPELLCHECK word once', () => {
+  const q = new Map();
+  // (a WHICH OF THESE … question shares its wording — its four choices make it: keyed by the question + its answer, as the build claims it)
+  for (const r of [...A7.tv, ...A7.cc]) { const k = /^Which of these /.test(r.q) ? `${norm(r.q)} :: ${norm(r.a)}` : norm(r.q); assert.ok(!q.has(k), `"${r.q}" twice (${q.get(k)} · ${r.id})`); q.set(k, r.id); }
+  for (const r of ALL.tf) for (const t of [r.t, r.f]) assert.ok(!q.has(norm(t)), `T/F "${t}" is also a question`);
+  const ml = new Set();
+  for (const r of A7.ml) { assert.ok(!ml.has(r.answer), `MISSING LINK ${r.answer} twice`); ml.add(r.answer); }
+  const sp = new Set(A7.sp.map(r => r.right));
+  assert.equal(sp.size, A7.sp.length, 'a SPELLCHECK word twice');
+  for (const r of A7.sp) for (const w of r.wrong) assert.ok(!sp.has(w), `${w} is a right word too`);
+});
+
+test('OC7 READABLE ON THE PHONE: questions ≤ 110, answers ≤ 28; clues ≤ 10, joins ≤ 20; spellings ≤ 16', async () => {
+  const { Q_MAX, A_MAX, ML_WORD_MAX, ML_JOIN_MAX, SP_MAX } = await import('../scripts/oc-pools/lib.mjs');
+  for (const r of A7.tv) {
+    assert.ok(r.q.length <= Q_MAX && /\?['"’”]?$/.test(r.q), `${r.id}: "${r.q}"`);
+    for (const a of [r.a, ...r.w]) assert.ok(a.length >= 1 && a.length <= A_MAX, `${r.id}: answer "${a}"`);
+  }
+  for (const r of A7.cc) assert.ok(r.q.length <= Q_MAX && /\?$/.test(r.q), `${r.id}: "${r.q}"`);
+  for (const r of A7.ml) {
+    assert.ok(r.answer.length <= ML_WORD_MAX, r.id);
+    for (const [w, , sep] of r.clues) assert.ok(w.length <= ML_WORD_MAX && w.length + sep.length + r.answer.length <= ML_JOIN_MAX, `${r.id}: ${w}`);
+  }
+  for (const r of A7.sp) for (const w of [r.right, ...r.wrong]) assert.ok(w.length <= SP_MAX, `${r.id}: ${w}`);
+});
+
+test('OC7 TRIVIA: a known category + level, three distinct wrongs, none an ALIAS of the right answer (or of each other)', async () => {
+  const { aliasOf } = await import('../scripts/oc-pools/lib.mjs');
+  const { TRIVIA_CATS, TRIVIA_LEVELS } = await import('../js/games/overclock/challenges.js');
+  for (const r of A7.tv) {
+    assert.ok(TRIVIA_CATS[r.cat], `${r.id}: category ${r.cat}`);
+    assert.ok(TRIVIA_LEVELS.includes(r.d), `${r.id}: level ${r.d}`);
+    assert.equal(r.w.length, 3, r.id);
+    const all = [r.a, ...r.w];
+    for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) assert.ok(!aliasOf(all[i], all[j]), `${r.id}: "${all[i]}" ~ "${all[j]}"`);
+  }
+  assert.ok(aliasOf('Washington', 'George Washington') && aliasOf('The Nile', 'Nile') && !aliasOf('1,860', '1,860,000') && !aliasOf('-10 degrees', '10 degrees'));
+});
+
+test('OC7 MISSING LINK: three clues, EVERY side recorded (no neutral join in the bank), every join a real word (en_US / ENABLE) or phrase (Wiktionary)', async () => {
+  const { joinOk } = await import('../scripts/oc-pools/phrases.mjs');
+  const { ML_SIDES } = await import('../js/games/overclock/challenges.js');
+  for (const r of A7.ml) {
+    assert.match(r.answer, /^[A-Z]+$/, r.id);
+    assert.equal(r.clues.length, 3, r.id);
+    assert.equal(new Set(r.clues.map(c => c[0])).size, 3, `${r.id}: a clue twice`);
+    assert.ok(Array.isArray(r.accept) && !r.accept.includes(r.answer), `${r.id}: accept`);
+    for (const [w, side, sep] of r.clues) {
+      assert.match(w, /^[A-Z]+$/, `${r.id}: ${w}`);
+      assert.notEqual(w, r.answer, r.id);
+      assert.ok(ML_SIDES.includes(side) && (sep === '' || sep === ' '), `${r.id}: ${w} has no side (${side}/${JSON.stringify(sep)})`);
+      assert.ok(joinOk(w, r.answer, side, sep), `${r.id}: ${side === 'before' ? r.answer + sep + w : w + sep + r.answer} is not on record`);
+    }
+  }
+});
+
+test('OC7 SPELLCHECK (American): the right one is in Hunspell en_US (SCOWL), no wrong one is a word in en_US / en_GB / ENABLE, hard = the common slip', async () => {
+  const { dictionaries } = await import('../scripts/oc-pools/dict.mjs');
+  const { hardLetters } = await import('../scripts/oc-pools/spell-rules.mjs');
+  const { rudeIn } = await import('../scripts/oc-pools/spell-gen.mjs');
+  const { isWord, anyWord } = dictionaries();
+  for (const r of A7.sp) {
+    assert.match(r.right, /^[a-z]+$/, r.id);
+    assert.ok(isWord(r.right), `${r.right}: not in en_US`);
+    assert.equal(r.wrong.length, 3, r.id);
+    assert.equal(new Set([r.right, ...r.wrong]).size, 4, `${r.id}: a spelling twice`);
+    for (const w of r.wrong) {
+      assert.match(w, /^[a-z]+$/, `${r.id}: ${w}`);
+      assert.ok(!anyWord(w), `${r.id}: "${w}" is a word`);
+      assert.ok(!rudeIn(w, r.right), `${r.id}: "${w}" rude`);
+    }
+    assert.ok(Array.isArray(r.hard) && r.hard.length >= 1 && r.hard.every(i => Number.isInteger(i) && i >= 0 && i < r.right.length), `${r.id}: hard ${r.hard}`);
+    assert.deepEqual(r.hard, hardLetters(r.right, r.wrong[0]), `${r.id}: hard ≠ the common misspelling's letters`);
+  }
+});
+
+test('OC7 THE ALL-AGES RULE: no banned word in any question, answer, clue, join or spelling', () => {
+  const hits = [];
+  const check = (where, t) => { const b = bannedIn(t); if (b.length) hits.push(`${where}: "${t}" (${b.join(', ')})`); };
+  for (const r of A7.tv) for (const t of [r.q, r.a, ...r.w]) check(r.id, t);
+  for (const r of A7.cc) check(r.id, r.q);
+  for (const r of A7.ml) { check(r.id, r.answer); for (const [w, side, sep] of r.clues) check(r.id, side === 'before' ? `${r.answer}${sep}${w}` : `${w}${sep}${r.answer}`); }
+  for (const r of A7.sp) for (const t of [r.right, ...r.wrong]) check(r.id, t);
+  assert.deepEqual(hits, []);
+});
+
+test('OC7 CLOSEST CALL in US units: the question names its unit, the answer is a clean US number (whole; one decimal under 10)', async () => {
+  const { closestAnswer } = await import('../js/games/overclock/challenges.js');
+  const { US_UNITS } = await import('../js/games/overclock/units.js');
+  const NAMES = { m: /in feet\?$/, km: /in miles\?$/, km2: /in square miles\?$/, people: /^How many people/, years: /^How old /, minutes: /minutes/, episodes: /episodes/ };
+  for (const r of A7.cc) {
+    assert.ok(['m', 'km', 'km2', 'people', 'years', 'minutes', 'episodes', ''].includes(r.unit), `${r.id}: unit ${r.unit}`);
+    assert.ok(typeof r.value === 'number' && Number.isFinite(r.value) && r.value > 0, `${r.id}: value ${r.value}`);
+    if (NAMES[r.unit]) assert.match(r.q, NAMES[r.unit], `${r.id}: "${r.q}" doesn't name its unit`);
+    const { answer, unit } = closestAnswer(r.unit, r.value);
+    if (US_UNITS[r.unit]) assert.equal(unit, US_UNITS[r.unit][0], r.id);
+    assert.ok(Number.isFinite(answer) && answer > 0 && String(answer).replace('.', '').length <= 9, `${r.id}: → ${answer}`);
+    if (answer >= 10) assert.ok(Number.isInteger(answer), `${r.id}: → ${answer}`);
+    else assert.equal(Math.round(answer * 10) / 10, answer, `${r.id}: → ${answer}`);
+  }
+  assert.deepEqual(closestAnswer('m', 8848.86), { answer: 29032, unit: 'ft' });
+  assert.deepEqual(closestAnswer('km2', 342000), { answer: 132047, unit: 'sq mi' });
+  assert.deepEqual(closestAnswer('years', 67), { answer: 67, unit: 'years' });
+});

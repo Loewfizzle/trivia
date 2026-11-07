@@ -10,7 +10,7 @@ import { wd as wdRaw } from '../wikidata.mjs';
 import { HERE } from '../lib.mjs';
 import { seeded, shuffled, hash36, norm, aliasOf, Q_MAX, A_MAX } from '../lib.mjs';
 import { TF_EXCLUDE, STAT_EXCLUDE, PEOPLE_EXCLUDE } from '../hand/wd-exclude.mjs';
-import { TV_EXCLUDE_LABELS, TITLE_FIX, NAME_FIX, DISSOLVED, TRANSCONTINENTAL, US_AMBIGUOUS, COMPOSERS, EVERYDAY_ELEMENTS, CC_EXCLUDE_LABELS,
+import { TV_EXCLUDE_LABELS, TV_EXCLUDE_IDS, TITLE_FIX, NAME_FIX, DISSOLVED, TRANSCONTINENTAL, US_AMBIGUOUS, COMPOSERS, EVERYDAY_ELEMENTS, CC_EXCLUDE_LABELS,
   INVENTIONS_OK, STORIES_OK, SITES_OK, ISLANDS_OK, ATHLETES_OUT } from '../hand/oc7-exclude.mjs';
 
 const both = q => [q, q.replace('WHERE {', 'WHERE { hint:Query hint:optimizer "None" .')];
@@ -52,7 +52,7 @@ export default async function wikidataTrivia(ctx) {
     if (!q || q.length > Q_MAX || !okLabel(a) || wrong.length !== 3 || !wrong.every(okLabel)) return false;
     const all = [a, ...wrong];
     if (all.some((x, i) => all.some((y, j) => j > i && aliasOf(x, y)))) return false;
-    if (ids.some(x => TF_EXCLUDE.includes(x)) || TV_EXCLUDE_LABELS.includes(a)) return false;
+    if (ids.some(x => TF_EXCLUDE.includes(x) || TV_EXCLUDE_IDS.includes(x)) || TV_EXCLUDE_LABELS.includes(a)) return false;
     if (!out.has(tpl)) out.set(tpl, []);
     out.get(tpl).push({ id: `t-${tpl}-${ids.join('-')}`, cat, q, a, w: wrong, src: ids.join(' '), sl: sl || 0, ...extra });
     return true;
@@ -266,8 +266,10 @@ export default async function wikidataTrivia(ctx) {
     const no = new Set(((exKey && CC_EXCLUDE_LABELS[exKey]) || []).map(s => s.toLowerCase()));
     const items = (W[stat] || []).filter(x => x.v > 0 && !no.has(x.label.toLowerCase()) && !DISSOLVED.includes(x.label)).map(x => ({ ...x, label: LFIX[x.label] || x.label }))
       .filter(x => okLabel(fixLabel(x.label))).sort((a, b) => b.sl - a.sl).slice(0, 80);
+    // each set's WINNER once per stat (the same question with the same answer twice is a duplicate — the build drops it: OC7 Group 4)
     let made = 0;
-    for (let tries = 0; tries < n * 6 && made < n; tries++) {
+    const won = new Set();
+    for (let tries = 0; tries < n * 30 && made < n; tries++) {
       const four = [];
       for (const x of shuffled(rand, items)) {
         if (four.length === 4) break;
@@ -275,15 +277,16 @@ export default async function wikidataTrivia(ctx) {
       }
       if (four.length < 4) break;
       const best = four.reduce((m, x) => (x.v > m.v ? x : m));
+      if (won.has(best.q)) continue;
       const ids = four.map(x => x.q).sort();
       const key = `t-compare-${stat}-${ids.join('-')}`;
       if ((out.get('compare') || []).some(r => r.id === key)) continue;
-      if (add('compare', cat, [stat, ...ids], ask, fixLabel(best.label), four.filter(x => x !== best).map(x => fixLabel(x.label)), Math.min(...four.map(x => x.sl)), { same: true })) made++;
+      if (add('compare', cat, [stat, ...ids], ask, fixLabel(best.label), four.filter(x => x !== best).map(x => fixLabel(x.label)), Math.min(...four.map(x => x.sl)), { same: true })) { made++; won.add(best.q); }
     }
     void what;
   };
   compare('mountain-height', 'peak', 'Which of these mountains is the highest?', 'geography', 18, x => x, 'peak');
-  compare('country-area', 'country', 'Which of these countries is the largest by area?', 'geography', 30, The, 'country-area');
+  compare('country-area', 'country', 'Which of these countries is the largest by area?', 'geography', 40, The, 'country-area');
   compare('island-area', 'island', 'Which of these islands is the largest?', 'geography', 12, x => x, 'island-area');
   compare('skyscraper-height', 'building', 'Which of these skyscrapers is the tallest?', 'world', 10, x => x, 'tall');
   compare('state-area', 'state', 'Which of these U.S. states is the largest by area?', 'geography', 32);
