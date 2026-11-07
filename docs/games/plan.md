@@ -77,3 +77,5 @@
   (#n from the same epoch as THE PASSWORD).
 - GHOST RUN card = a clear with ZERO spots under a time set by simulation so ≈ the best ~10% of clean runs earn it. LIGHTHOUSE emblem = any clear.
   Both awarded by the SERVER from its record.
+- COAST CLEAR: a CAUGHT run reveals every searchlight on its end screen (KEPT, Ben Nov 7 — a winner knows them all anyway; one try a day).
+- FABLE REVIEW #1 (THE PASSWORD + COAST CLEAR) run read-only; its report: docs/games/review-dailies-1.md.
