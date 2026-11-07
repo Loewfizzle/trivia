@@ -24,13 +24,15 @@ const URL_RE = /^https:\/\/[^\s]+$/;
 const QIDS = /^Q\d+( Q\d+)*$/;
 const groupItems = groups => groups.flatMap(g => g.items.map(it => ({ g, it })));
 
-test('POOL SIZES (OC6 targets): T/F 2,000+ · H/L 40+ stats + 1,500+ items · TIMELINE 30+ themes + 900+ items · SORT IT 150+ sets', () => {
+// (OC8 — THE FABLE REVIEW's fame filter cut the obscure on purpose: H/L 1,727 → ~1,150 items, TIMELINE 32 → 21 themes; the floors follow —
+//  docs/overclock.md OC8 has every cut)
+test('POOL SIZES (OC8 floors): T/F 2,000+ · H/L 40+ stats + 1,100+ items · TIMELINE 20+ themes + 500+ items · SORT IT 150+ sets', () => {
   const n = gs => gs.reduce((a, g) => a + g.items.length, 0);
   const statIds = new Set(ALL.hl.map(s => s.id)), themeIds = new Set(ALL.tl.map(t => t.id)), setIds = new Set(ALL.so.map(s => s.id));
   console.log(`[oc6] T/F ${ALL.tf.length} (party ${P.tf.length}) · H/L ${statIds.size} stats ${n(ALL.hl)} items (party ${n(P.hl)}) · TIMELINE ${themeIds.size} themes ${n(ALL.tl)} items (party ${n(P.tl)}) · SORT IT ${setIds.size} sets (party ${P.so.length})`);
   assert.ok(ALL.tf.length >= 2000, `T/F ${ALL.tf.length}`);
-  assert.ok(statIds.size >= 40 && n(ALL.hl) >= 1500, `H/L ${statIds.size} / ${n(ALL.hl)}`);
-  assert.ok(themeIds.size >= 30 && n(ALL.tl) >= 900, `TIMELINE ${themeIds.size} / ${n(ALL.tl)}`);
+  assert.ok(statIds.size >= 40 && n(ALL.hl) >= 1100, `H/L ${statIds.size} / ${n(ALL.hl)}`);
+  assert.ok(themeIds.size >= 20 && n(ALL.tl) >= 500, `TIMELINE ${themeIds.size} / ${n(ALL.tl)}`);
   assert.ok(setIds.size >= 150, `SORT IT ${setIds.size}`);
 });
 
@@ -107,7 +109,7 @@ test('NO TEMPLATE OVER ~8%: the data-built statements spread over many templates
   const by = new Map();
   for (const r of data) { const t = /^d-(.+?)-Q\d/.exec(r.id)[1]; by.set(t, (by.get(t) || 0) + 1); }
   console.log(`[oc6] data T/F ${data.length} from ${by.size} templates · written ${ALL.tf.length - data.length}`);
-  assert.ok(data.length >= 1000, `${data.length} data-built pairs`);
+  assert.ok(data.length >= 850, `${data.length} data-built pairs`);   // (OC8: the fame filter — was 1,000)
   assert.ok(ALL.tf.length - data.length >= 1000, `${ALL.tf.length - data.length} written pairs`);
   for (const [t, n] of by) assert.ok(n / data.length <= 0.085, `template ${t}: ${n} of ${data.length} (${Math.round((n / data.length) * 100)}%)`);
 });
@@ -193,8 +195,9 @@ test('OC7 POOL SIZES: TRIVIA 4,000+ (written 2,000+ · data 2,000+, ≈ 40/40/20
   const pc = k => Math.round((d[k] / tv.length) * 100);
   const written = tv.filter(r => r.id.startsWith('w')).length;
   console.log(`[oc7] TRIVIA ${tv.length} (party ${O7.tv.party.length}; written ${written} · data ${tv.length - written}; ${pc('easy')}% easy · ${pc('medium')}% medium · ${pc('hard')}% hard) · CLOSEST ${A7.cc.length} (party ${O7.cc.party.length}) · MISSING LINK ${A7.ml.length} (party ${O7.ml.party.length}) · SPELLCHECK ${A7.sp.length} (party ${O7.sp.party.length})`);
-  assert.ok(tv.length >= 4000, `TRIVIA ${tv.length}`);
-  assert.ok(written >= 2000 && tv.length - written >= 2000, `written ${written} · data ${tv.length - written}`);
+  // (OC8: the broken templates cut + the fame filter for places + people — 4,184 → ~3,770; the data half ~1,590)
+  assert.ok(tv.length >= 3600, `TRIVIA ${tv.length}`);
+  assert.ok(written >= 2000 && tv.length - written >= 1500, `written ${written} · data ${tv.length - written}`);
   assert.ok(pc('easy') >= 30 && pc('easy') <= 50 && pc('medium') >= 30 && pc('medium') <= 50 && pc('hard') >= 12 && pc('hard') <= 28, `mix ${pc('easy')}/${pc('medium')}/${pc('hard')}`);
   assert.ok(A7.cc.length >= 900, `CLOSEST ${A7.cc.length}`);
   assert.ok(A7.sp.length >= 1400, `SPELLCHECK ${A7.sp.length}`);

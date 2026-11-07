@@ -12,6 +12,10 @@ import { seeded, shuffled, hash36, norm, aliasOf, Q_MAX, A_MAX } from '../lib.mj
 import { TF_EXCLUDE, STAT_EXCLUDE, PEOPLE_EXCLUDE } from '../hand/wd-exclude.mjs';
 import { TV_EXCLUDE_LABELS, TV_EXCLUDE_IDS, TITLE_FIX, NAME_FIX, DISSOLVED, TRANSCONTINENTAL, US_AMBIGUOUS, COMPOSERS, EVERYDAY_ELEMENTS, CC_EXCLUDE_LABELS,
   INVENTIONS_OK, STORIES_OK, SITES_OK, ISLANDS_OK, ATHLETES_OUT } from '../hand/oc7-exclude.mjs';
+import { SPORT_PLAYER, ATHLETE_ALSO, DIRECTOR_FAME, INVENTOR_FAME, OC8_TV_IDS, CUP_SINCE, INSTRUMENT_CUT, INVENTION_OUT, NO_THE, FAMOUS_COUNTRIES } from '../hand/oc8-exclude.mjs';
+// (OC8 — the fame filter for places: a capital / continent / language question ASKS about a country Americans know by name; the wrong answers
+// may still be any of its neighbours)
+const KNOWN_COUNTRY = new Set(FAMOUS_COUNTRIES.map(s => s.toLowerCase()));
 
 const both = q => [q, q.replace('WHERE {', 'WHERE { hint:Query hint:optimizer "None" .')];
 /** an answer OC6 asked + cached (parts/20 + 30 run first) — read from its file, never asked again under OC6's name */
@@ -52,7 +56,7 @@ export default async function wikidataTrivia(ctx) {
     if (!q || q.length > Q_MAX || !okLabel(a) || wrong.length !== 3 || !wrong.every(okLabel)) return false;
     const all = [a, ...wrong];
     if (all.some((x, i) => all.some((y, j) => j > i && aliasOf(x, y)))) return false;
-    if (ids.some(x => TF_EXCLUDE.includes(x) || TV_EXCLUDE_IDS.includes(x)) || TV_EXCLUDE_LABELS.includes(a)) return false;
+    if (ids.some(x => TF_EXCLUDE.includes(x) || TV_EXCLUDE_IDS.includes(x) || OC8_TV_IDS.includes(x)) || TV_EXCLUDE_LABELS.includes(a)) return false;
     if (!out.has(tpl)) out.set(tpl, []);
     out.get(tpl).push({ id: `t-${tpl}-${ids.join('-')}`, cat, q, a, w: wrong, src: ids.join(' '), sl: sl || 0, ...extra });
     return true;
@@ -82,6 +86,7 @@ export default async function wikidataTrivia(ctx) {
     countries.push({ q, label: c.label, cap: c.cap, capl: c.capl, sl: c.sl, cont: contOf.get(q) });
   }
   for (const c of countries) {
+    if (!KNOWN_COUNTRY.has(String(c.label).toLowerCase()) && !KNOWN_COUNTRY.has(fixName(c.label).toLowerCase())) continue;
     const same = countries.filter(x => x.cont === c.cont);
     if (oneWay(c.q)) {
       const w = near(same.map(x => ({ q: x.q, label: x.capl, sl: x.sl })), { q: c.q, label: c.capl, sl: c.sl });
@@ -96,6 +101,7 @@ export default async function wikidataTrivia(ctx) {
   for (const [q, rs] of groupBy(conts, 'item')) {
     const r = single(rs, 'c');
     if (!r || !CONT[r.c] || CONT[r.c] === 'Oceania' || r.sl < 120 || DISSOLVED.includes(r.label) || TRANSCONTINENTAL.includes(r.label)) continue;
+    if (!KNOWN_COUNTRY.has(String(r.label).toLowerCase()) && !KNOWN_COUNTRY.has(fixName(r.label).toLowerCase())) continue;
     const a = CONT[r.c];
     add('continent', 'geography', [q], `On which continent is ${the(r.label)}?`, a, pick(CONTS.filter(x => x !== a), 3), r.sl);
   }
@@ -168,11 +174,20 @@ export default async function wikidataTrivia(ctx) {
       wikibase:sitelinks ?sl . FILTER(?sl >= ${def.minSl}) ${def.where || ''} ?item wdt:${def.prop} ?by . ${def.human === false ? '' : '?by wdt:P31 wd:Q5 .'}
       OPTIONAL { ?item wdt:${def.date} ?d . } BIND(YEAR(?d) AS ?y) ${lab('item', 'label')} ${lab('by', 'byl')} }`));
     const ex = [...(def.exclude || []), ...PEOPLE_EXCLUDE];
+    // (OC8 — THE FABLE REVIEW: "Who directed Octopussy? → John Glen" — unguessable) def.fame: the maker's OWN Wikipedia count ≥ def.minFame, for
+    // the right answer AND the three wrong ones (a director people know, among directors people know)
+    let fameOf = null;
+    if (def.fame) {
+      const ids = [...new Set(rows.map(r => r.by))].sort();
+      const fr = ids.length ? await wd(def.fame, `SELECT ?by ?sl WHERE { VALUES ?by { ${ids.map(q => `wd:${q}`).join(' ')} } ?by wikibase:sitelinks ?sl . }`) : [];
+      fameOf = new Map(fr.map(r => [r.by, r.sl]));
+    }
+    const known = by => !fameOf || (fameOf.get(by) || 0) >= def.minFame;
     const RELIGIOUS = /\b(Gospel|Bible|Quran|Qur'an|Epistle|Book of|Psalm|Torah|Talmud|Veda|Sutra|Upanishad|Madonna|Annunciation|Crucifixion|Christ|Saint|Virgin|Nativity|Adoration)\b/;
     const works = [];
     for (const [q, rs] of groupBy(rows, 'item')) {
       const r = single(rs, 'by');
-      if (!r || ex.includes(r.label) || ex.includes(r.byl) || norm(r.label).includes(norm(r.byl)) || norm(r.byl).includes(norm(r.label)) || / [–—-] /.test(r.label) || (def.generic && def.generic.test(r.label)) || RELIGIOUS.test(r.label) || (def.only && !def.only.includes(r.byl)) || r.sl < (def.atLeast || 0)) continue;
+      if (!r || !known(r.by) || ex.includes(r.label) || ex.includes(r.byl) || norm(r.label).includes(norm(r.byl)) || norm(r.byl).includes(norm(r.label)) || / [–—-] /.test(r.label) || (def.generic && def.generic.test(r.label)) || RELIGIOUS.test(r.label) || (def.only && !def.only.includes(r.byl)) || r.sl < (def.atLeast || 0)) continue;
       const ys = rs.map(x => x.y).filter(Number.isFinite);
       works.push({ q, label: title(r.label), by: r.by, byl: name(r.byl), y: ys.length ? Math.min(...ys) : null, sl: r.sl });
     }
@@ -189,7 +204,7 @@ export default async function wikidataTrivia(ctx) {
   await makers('author', 'books', 'tv-authors', { cls: ['Q7725634', 'Q8261', 'Q47461344', 'Q571'], prop: 'P50', date: 'P577', minSl: 45, keep: 170,
     exclude: STAT_EXCLUDE['novel-year'], since: 1600, famous: 70 }, w => `Who wrote ${w.label}?`, 60);
   await makers('director', 'screen', 'tv-directors', { cls: ['Q11424', 'Q202866'], prop: 'P57', date: 'P577', minSl: 55, where: FILM_OK, keep: 220,
-    exclude: STAT_EXCLUDE['film-year'], famous: 90 }, w => `Who directed the movie ${w.label}${w.y ? ` (${w.y})` : ''}?`, 20);
+    exclude: STAT_EXCLUDE['film-year'], famous: 90, fame: 'tv-director-fame', minFame: DIRECTOR_FAME }, w => `Who directed the movie ${w.label}${w.y ? ` (${w.y})` : ''}?`, 20);
   await makers('painter', 'art', 'tv-painters', { cls: ['Q3305213'], prop: 'P170', date: 'P571', minSl: 35, keep: 90, exclude: STAT_EXCLUDE['painting-year'], atLeast: 38 },
     w => `Who painted ${w.label}?`, 120);
   await makers('composer', 'music', 'tv-composers2', { cls: ['Q105543609', 'Q1344'], prop: 'P86', date: 'P577', minSl: 30, keep: 90, only: COMPOSERS,
@@ -236,6 +251,7 @@ export default async function wikidataTrivia(ctx) {
   const cupBy = [...groupBy(cups, 'item')].map(([q, rs]) => ({ q, y: rs[0].y, hosts: [...new Set(rs.map(r => r.hostl).filter(Boolean))], wins: [...new Set(rs.map(r => r.winl).filter(Boolean))] }));
   const hostPool = [...new Set(cupBy.flatMap(c => c.hosts.map(h => (h === 'United Kingdom' ? 'England' : h))))], winPool = [...new Set(cupBy.flatMap(c => c.wins))];
   for (const c of cupBy) {
+    if (c.y < CUP_SINCE) continue;   // (OC8: the 1930s–'60s World Cups — history few players know)
     c.hosts = c.hosts.map(h => (h === 'United Kingdom' ? 'England' : h));
     if (c.hosts.length === 1) add('cup-host', 'sports', [c.q], `Which country hosted the ${c.y} FIFA World Cup?`, The(c.hosts[0]), pick(hostPool.filter(h => h !== c.hosts[0]), 3).map(The), 150 - Math.abs(2000 - c.y));
     const wn = c.wins.map(w => w.replace(/ national (association )?football team$/, '').replace(/ men's$/, ''));
@@ -304,7 +320,7 @@ export default async function wikidataTrivia(ctx) {
     const r = single(rs, 'l');
     if (!r || ['Q30', 'Q145', 'Q408', 'Q664', 'Q16'].includes(q)) continue;
     const a = r.ll.replace(/ language$/, '');
-    if (!okLabel(a) || !BIG.includes(a)) continue;
+    if (!okLabel(a) || !BIG.includes(a) || !KNOWN_COUNTRY.has(String(r.label).toLowerCase())) continue;
     add('language', 'world', [q, r.l], `What is the official language of ${the(r.label)}?`, a, pick(BIG.filter(x => x !== a), 3), r.sl);
   }
 
@@ -396,12 +412,18 @@ export default async function wikidataTrivia(ctx) {
   // ---------------------------------------------------------------- INVENTIONS: who invented it (one inventor on record — read by hand)
   const inv = await wd('tv-inventions', both(`SELECT ?item ?label ?by ?byl ?sl WHERE { ?item wdt:P61 ?by ; wikibase:sitelinks ?sl . FILTER(?sl >= 70) ?by wdt:P31 wd:Q5 .
     MINUS { ?item wdt:P31 wd:Q11344 . } MINUS { ?item wdt:P31 wd:Q523 . } MINUS { ?item wdt:P31 wd:Q3863 . } ${lab('item', 'label')} ${lab('by', 'byl')} }`));
-  const inventors = [...new Map(inv.map(r => [r.by, { q: r.by, label: r.byl, sl: r.sl }])).values()];
+  // (OC8 — THE FABLE REVIEW: wrong answers like Spurius Carvilius Ruga, Anton Köllisch, Pua Khein-Seng) FAMOUS inventors only — their OWN
+  // Wikipedia count, for the right answer and the three wrong ones; fame = theirs (not their invention's)
+  const invIds = [...new Set(inv.map(r => r.by))].sort();
+  const invFame = new Map((invIds.length ? await wd('tv-inventor-fame', `SELECT ?by ?sl WHERE { VALUES ?by { ${invIds.map(x => `wd:${x}`).join(' ')} } ?by wikibase:sitelinks ?sl . }`) : []).map(r => [r.by, r.sl]));
+  const isInvention = label => INVENTIONS_OK.includes(label) && !INVENTION_OUT.includes(label) && !TV_EXCLUDE_LABELS.includes(label);
+  // (the wrong answers: other INVENTORS of the listed inventions — never an explorer or a painter credited with a "discovery")
+  const inventors = [...new Map(inv.filter(r => isInvention(r.label)).map(r => [r.by, { q: r.by, label: r.byl, sl: invFame.get(r.by) || 0 }])).values()].filter(p => p.sl >= INVENTOR_FAME);
   for (const [q, rs] of groupBy(inv, 'item')) {
     const r = single(rs, 'by');
-    if (!r || !INVENTIONS_OK.includes(r.label) || TV_EXCLUDE_LABELS.includes(r.label)) continue;
-    const wr = near(inventors, { q: r.by, label: r.byl, sl: r.sl });
-    if (wr) add('inventor', 'inventions', [q, r.by], `Who is credited with inventing the ${r.label}?`, r.byl, wr, r.sl);
+    if (!r || !isInvention(r.label) || !((invFame.get(r.by) || 0) >= INVENTOR_FAME)) continue;
+    const wr = near(inventors, { q: r.by, label: r.byl, sl: invFame.get(r.by) });
+    if (wr) add('inventor', 'inventions', [q, r.by], `Who is credited with inventing ${NO_THE.includes(r.label) ? '' : 'the '}${r.label}?`, r.byl, wr, r.sl);
   }
 
   // ---------------------------------------------------------------- PEOPLE: a famous athlete's sport · a famous musician's instrument
@@ -410,9 +432,20 @@ export default async function wikidataTrivia(ctx) {
   const ath = await wd('tv-athletes', both(`SELECT ?item ?label ?s ?sl WHERE { VALUES ?s { ${Object.keys(SPORT).map(s => `wd:${s}`).join(' ')} } ?item wdt:P641 ?s ;
     wdt:P31 wd:Q5 ; wikibase:sitelinks ?sl . FILTER(?sl >= 110) ${lab('item', 'label')} }`));
   const allAth = [...groupBy(ath, 'item')];
+  // (OC8 — THE FABLE REVIEW: "Which sport is George W. Bush famous for? → Cricket") ATHLETES ONLY: the person's own occupation must be that
+  // sport's player, and nobody who is also an actor, a politician, a royal, a writer … (hand/oc8-exclude.mjs)
+  const occOf = async (name, ids) => {
+    const rows = ids.length ? await wd(name, `SELECT ?item ?ol WHERE { VALUES ?item { ${ids.map(x => `wd:${x}`).join(' ')} } ?item wdt:P106 ?o . ${lab('o', 'ol')} }`) : [];
+    const m = new Map();
+    for (const r of rows) { if (!m.has(r.item)) m.set(r.item, new Set()); m.get(r.item).add(String(r.ol).toLowerCase()); }
+    return m;
+  };
+  const athOcc = await occOf('tv-athlete-occ', allAth.map(([q]) => q).sort());
   for (const [q, rs] of allAth) {
     const r = single(rs, 's');
     if (!r || ATHLETES_OUT.includes(r.label) || PEOPLE_EXCLUDE.includes(r.label)) continue;
+    const occ = athOcc.get(q) || new Set();
+    if (!(SPORT_PLAYER[SPORT[r.s]] || []).some(o => occ.has(o)) || ATHLETE_ALSO.some(o => occ.has(o))) continue;
     const a = SPORT[r.s];
     const pool = Object.values(SPORT).filter(x => x !== a);
     add('athlete', 'sports', [q], `Which sport is ${r.label} famous for?`, a, pick(pool, 3), r.sl);
@@ -422,7 +455,9 @@ export default async function wikidataTrivia(ctx) {
     wdt:P31 wd:Q5 ; wikibase:sitelinks ?sl . FILTER(?sl >= 90) ${lab('item', 'label')} }`));
   const allInstr = await wd('tv-instruments-all', both(`SELECT ?item (COUNT(DISTINCT ?i) AS ?n) WHERE { ?item wdt:P1303 ?i ; wdt:P31 wd:Q5 ; wikibase:sitelinks ?sl . FILTER(?sl >= 90) } GROUP BY ?item`));
   const nInstr = new Map(allInstr.map(r => [r.item, Number(r.n)]));
-  for (const [q, rs] of groupBy(mus, 'item')) {
+  // (OC8 — THE INSTRUMENT TEMPLATE is CUT: "Which instrument is Thomas Jefferson famous for playing? → Violin"; with musicians only, it found
+  // nobody but composers — hand/oc8-exclude.mjs#INSTRUMENT_CUT)
+  for (const [q, rs] of INSTRUMENT_CUT ? [] : groupBy(mus, 'item')) {
     const r = single(rs, 'i');
     if (!r || nInstr.get(q) !== 1 || PEOPLE_EXCLUDE.includes(r.label)) continue;
     const a = INSTR[r.i];

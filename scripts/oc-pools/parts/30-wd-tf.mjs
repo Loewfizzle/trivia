@@ -6,8 +6,11 @@
 import { wd as wdRaw } from '../wikidata.mjs';
 import { seeded, shuffled, TF_MAX } from '../lib.mjs';
 import { TF_EXCLUDE, STAT_EXCLUDE, PEOPLE_EXCLUDE } from '../hand/wd-exclude.mjs';
+import { CC_EXCLUDE_LABELS } from '../hand/oc7-exclude.mjs';
+import { DIRECTOR_FAME, TF_MOUNTAIN_FAME, MAKER_FIX } from '../hand/oc8-exclude.mjs';
 
-export const TEMPLATE_CAP = 85;
+// (OC8: 85 → 74 — the fame filter took the data half from ~1,240 to ~940 pairs; no template over ~8.5 % of it, as ever)
+export const TEMPLATE_CAP = 74;
 const CONT = { Q46: 'Europe', Q48: 'Asia', Q15: 'Africa', Q49: 'North America', Q18: 'South America', Q55643: 'Oceania', Q538: 'Oceania' };
 // a believable wrong continent for each (never a coin flip between two a country really touches — those countries are out)
 const WRONG_CONT = { Europe: 'Asia', Asia: 'Europe', Africa: 'Asia', 'North America': 'South America', 'South America': 'North America', Oceania: 'Asia' };
@@ -26,7 +29,9 @@ const THE = new Set(['United States', 'United Kingdom', 'Netherlands', 'Philippi
   'Republic of the Congo', 'Democratic Republic of the Congo', 'Vatican City', 'Ivory Coast']);
 const the = (name, start = false) => (THE.has(name) && !/^The /.test(name) ? `${start ? 'The' : 'the'} ${name}` : name);
 const decade = y => `${Math.floor(y / 10) * 10}s`;
-const century = y => `${Math.floor(y / 100) * 100}s`;
+// (OC8 — THE FABLE REVIEW: "born in the 1900s" read as the DECADE — John Lennon, 1940, marked FALSE by most players) the century by its NAME:
+// "the 20th century"
+const century = y => { const c = Math.floor(y / 100) + 1; const s = c % 100 >= 11 && c % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[c % 10] || 'th'); return `${c}${s} century`; };
 
 export default async function wikidataTF(ctx) {
   // a question the endpoint can't answer skips its template (logged), never the build
@@ -103,12 +108,22 @@ export default async function wikidataTF(ctx) {
       rows = await wd(name, both(`SELECT ?item ?label ?by ?byl ?y ?sl WHERE { VALUES ?cls { ${cls.map(c => `wd:${c}`).join(' ')} } ?item wdt:P31 ?cls . ?item wikibase:sitelinks ?sl .
       FILTER(?sl >= ${minSl}) ${where} ?item wdt:${prop} ?by . ?item wdt:${dateProp} ?d . BIND(YEAR(?d) AS ?y) ${lab('item', 'label')} ${lab('by', 'byl')} }`));
     }
+    // (OC8 — the directors people KNOW: the director's own Wikipedia count — never Robert Stromberg for Maleficent; the true one + the false twin)
+    let fameOf = null;
+    if (tpl === 'director') {
+      const ids = [...new Set(rows.map(r => r.by))].sort();
+      const fr = ids.length ? await wd('tf-director-fame', `SELECT ?by ?sl WHERE { VALUES ?by { ${ids.map(q => `wd:${q}`).join(' ')} } ?by wikibase:sitelinks ?sl . }`) : [];
+      fameOf = new Map(fr.map(r => [r.by, r.sl]));
+    }
     const works = [];
     for (const [q, rs] of groupBy(rows, 'item')) {
       const r = single(rs, 'by');
       // (a title that names its maker — "…Music by Queen" — or carries a subtitle gives the answer away)
       if (!r || out.includes(r.label) || out.includes(r.byl) || r.label.includes(r.byl) || / [–—-] /.test(r.label)) continue;
-      works.push({ q, label: r.label, by: r.by, byl: r.byl, y: Math.min(...rs.map(x => x.y)), sl: r.sl });
+      if (fameOf && !((fameOf.get(r.by) || 0) >= DIRECTOR_FAME)) continue;
+      // (OC8: the maker as people say it — "made by Sony", never "Sony Interactive Entertainment")
+      const byl = tpl === 'maker' ? (MAKER_FIX[r.byl] || r.byl) : r.byl;
+      works.push({ q, label: r.label, by: r.by, byl, y: Math.min(...rs.map(x => x.y)), sl: r.sl });
     }
     works.sort((a, b) => b.sl - a.sl);
     const n = new Map();
@@ -160,7 +175,8 @@ export default async function wikidataTF(ctx) {
   k = 0;
   for (const [q, rows] of groupBy(mts, 'item')) {
     const r = single(rows, 'c');
-    if (!r) continue;
+    // (OC8 — a famous mountain only: Jebel Shams out — its own fame + OC7's by-hand OBSCURE peaks)
+    if (!r || !(r.sl >= TF_MOUNTAIN_FAME) || CC_EXCLUDE_LABELS.peak.includes(r.label)) continue;
     const ns = (nb.get(r.c) || []).map(x => x.bl).filter(x => x !== r.cl).sort();
     if (!ns.length) continue;
     const no = ns[Math.floor(rand() * ns.length)];

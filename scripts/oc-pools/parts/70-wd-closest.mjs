@@ -9,6 +9,7 @@ import { wd as wdRaw } from '../wikidata.mjs';
 import { numeric } from '../wdq.mjs';
 import { STAT_EXCLUDE, PEOPLE_EXCLUDE } from '../hand/wd-exclude.mjs';
 import { CC_EXCLUDE, CC_EXCLUDE_LABELS, LIVED_EXCLUDE, DIST_US, DIST_WORLD } from '../hand/oc7-exclude.mjs';
+import { OC8_SPAN_OUT, OC8_SPAN_KEEP } from '../hand/oc8-exclude.mjs';
 
 const THE = new Set(['United States', 'United Kingdom', 'Netherlands', 'Philippines', 'Bahamas', 'Gambia', 'Dominican Republic', 'Czech Republic',
   'Central African Republic', 'Maldives', 'Marshall Islands', 'Solomon Islands', 'United Arab Emirates', 'Comoros', 'Seychelles',
@@ -81,7 +82,8 @@ export default async function closestWikidata(ctx) {
 
   // ---------------------------------------------------------------- BRIDGES — the MAIN SPAN (one measured number), never the total length
   const spans = await numeric('cc-bridge-span', { cls: BRIDGES, prop: 'P2787', minSl: 18, not: ['wdt:P576'] });
-  for (const x of keep('span', top(spans, 50))) add('span', 'LANDMARKS', [x.q], `How long is the main span of ${theThing(x.label)}, in feet?`, x.v, 'm');
+  // (OC8: the London Bridge — which one? — and the Rialto out; the famous spans only)
+  for (const x of keep('span', top(spans.filter(s => !OC8_SPAN_OUT.includes(s.label)), OC8_SPAN_KEEP))) add('span', 'LANDMARKS', [x.q], `How long is the main span of ${theThing(x.label)}, in feet?`, x.v, 'm');
 
   // ---------------------------------------------------------------- HOW LONG THEY LIVED — famous people, both dates to the day, a natural death
   // (no politicians, rulers, soldiers, clerics — OC6's rule; no violent death; born 1600+ so both calendars agree)
@@ -115,14 +117,16 @@ export default async function closestWikidata(ctx) {
   for (const r of fy) yearOf.set(r.item, Math.min(yearOf.get(r.item) ?? 9999, r.y));
   for (const x of top(films.filter(ex('film-year')), 110)) if (yearOf.get(x.q) < 2026) add('runtime', 'MOVIES', [x.q], `How long is the movie ${x.label} (${yearOf.get(x.q)}), in minutes?`, x.v / 60, 'minutes');
 
-  // ---------------------------------------------------------------- FINISHED TV SHOWS — how many episodes (an end date: nothing still running)
+  // ---------------------------------------------------------------- FINISHED TV SHOWS — CUT (OC8 — THE FABLE REVIEW: an episode count is
+  // ARGUABLE wherever a show was rebooted or counts half-episodes — Steven Universe 108 vs 160, Teletubbies, The Office); the query stays cached
+  const EPISODES_CUT = true;
   const shows = await wd('cc-tv-episodes', both(`SELECT ?item ?label ?v ?sl WHERE { VALUES ?cls { wd:Q5398426 wd:Q581714 wd:Q117467246 }
     ?item wdt:P31 ?cls ; wikibase:sitelinks ?sl . FILTER(?sl >= 55) ?item wdt:P582 ?end . FILTER(YEAR(?end) <= 2022)
     ?item p:P1113 ?st . ?st a wikibase:BestRank ; ps:P1113 ?v . ${lab('item', 'label')} }`));
   const eps = new Map();
   for (const r of shows) { const e = eps.get(r.item) || { q: r.item, label: r.label, sl: r.sl, vs: new Set() }; e.vs.add(r.v); eps.set(r.item, e); }
   for (const s of top(keep('episodes', [...eps.values()].filter(s => s.vs.size === 1).map(s => ({ ...s, v: [...s.vs][0] }))), 80)) {
-    if (s.v >= 6) add('episodes', 'TV', [s.q], `How many episodes of ${s.label} were made?`, s.v, 'episodes');
+    if (!EPISODES_CUT && s.v >= 6) add('episodes', 'TV', [s.q], `How many episodes of ${s.label} were made?`, s.v, 'episodes');
   }
 
   // ---------------------------------------------------------------- AS THE CROW FLIES — two famous cities, the straight-line distance

@@ -6,6 +6,23 @@ import { numeric, plain, yearOf, top, labelled } from '../wdq.mjs';
 import { wd } from '../wikidata.mjs';
 import { STAT_EXCLUDE, cleanLabel, PEOPLE_EXCLUDE } from '../hand/wd-exclude.mjs';
 import { hash36 } from '../lib.mjs';
+import { CC_EXCLUDE_LABELS } from '../hand/oc7-exclude.mjs';
+import { OC8_CUT, OC8_ONLY, OC8_OUT, OC8_KEEP, FAMOUS_COUNTRIES } from '../hand/oc8-exclude.mjs';
+
+// OC8 (THE FABLE REVIEW) — THE FAME FILTER, TIGHTENED (hand/oc8-exclude.mjs): OC7's by-hand OBSCURE lists (read for CLOSEST CALL) now apply to
+// the same stats here too; the stats sitelinks can't rank keep ONLY the items Americans know; the rest keep a smaller top-n; the country stats
+// only the countries a player knows by name; coasters + airplanes are cut
+const OBSCURE_CC = { 'mountain-height': CC_EXCLUDE_LABELS.peak, 'skyscraper-height': CC_EXCLUDE_LABELS.tall, 'skyscraper-year': CC_EXCLUDE_LABELS.tall,
+  'island-area': CC_EXCLUDE_LABELS['island-area'], 'lake-area': CC_EXCLUDE_LABELS['lake-area'], 'lake-depth': CC_EXCLUDE_LABELS['lake-depth'] };
+const lc = s => String(s || '').toLowerCase();
+function famous(id, items) {
+  const label = x => [lc(x.label), lc(cleanLabel(id, x.label))];
+  const out = new Set([...(OBSCURE_CC[id] || []), ...(OC8_OUT[id] || [])].map(lc));
+  let list = items.filter(x => !label(x).some(l => out.has(l)));
+  if (OC8_ONLY[id]) { const only = new Set(OC8_ONLY[id].map(lc)); list = list.filter(x => label(x).some(l => only.has(l))); }
+  if (/^country-/.test(id)) { const ok = new Set(FAMOUS_COUNTRIES.map(lc)); list = list.filter(x => label(x).some(l => ok.has(l))); }
+  return list;
+}
 
 // THE YEAR STATS FEED TWO CHALLENGES (OC6): each item goes to ONE of them — HIGHER OR LOWER or that subject's TIMELINE theme (a stable hash
 // of its Q-id) — so a night never shows "Jaws" in both. [theme, ask] per year stat (the timeline's direction: EARLIEST → LATEST).
@@ -183,11 +200,16 @@ export default async function wikidataHL(ctx) {
   // …and the everyday ones only (by atomic number): a kid knows iron + gold, not holmium
   const EVERYDAY = new Set([1, 2, 3, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 26, 27, 28, 29, 30, 35, 47, 50, 53, 74, 78, 79, 80, 82, 92]);
   for (const m of made) if (m[0] === 'element-melt' || m[0] === 'element-boil') m[5] = m[5].filter(x => z.has(x.q) && EVERYDAY.has(z.get(x.q)));
-  for (const [id, stat, ask, unit, win, raw, keep, gap] of made) {
+  for (const [id, stat, ask, unit, win, raw, keep0, gap] of made) {
+    if (OC8_CUT.includes(id)) { ctx.log.push(`  OC8: stat ${id} CUT (obscure as a class)`); continue; }
     const ex = STAT_EXCLUDE[id] || [];
     let items = raw.filter(x => !ex.includes(x.q) && !ex.includes(x.label) && !PEOPLE_EXCLUDE.includes(x.label));
     if (id === 'president-start') items = items.filter(x => x.v < 1990);
+    const was = labelled(top(labelled(items, l => cleanLabel(id, l)), keep0)).length;
+    items = famous(id, items);
+    const keep = OC8_KEEP[id] ?? keep0;
     items = labelled(top(labelled(items, l => cleanLabel(id, l)), keep));
+    if (items.length !== was) ctx.log.push(`  OC8: ${id} ${was} → ${items.length} (the fame filter)`);
     (ctx.wd ||= {})[id] = items;      // (the data-built TRUE OR FALSE + SORT IT read these — parts/30, 40)
     // a year stat big enough feeds TIMELINE too — each item to ONE of the two
     const tl = TIMELINE[id] && items.length >= 30 ? TIMELINE[id] : null;
