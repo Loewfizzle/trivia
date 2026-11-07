@@ -2106,3 +2106,16 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 5: the look review at 390 / 412 / 1440, the no-sideways guard's luck group, the motion proof (Downloads/neon/overclock/shots/oc5-proof-*).
 - No rules change (a pick rides the board's existing fields). Docs: docs/overclock.md (OC5), cartridge, data-model, profiles, progression, testing.
 
+
+## OVERCLOCK OC6 — CONTENT A: TRUE OR FALSE + THE FACT POOLS (Nov 6, 2026)
+- Group 0: `scripts/oc-pools/` — the reproducible build (Wikidata CC0 through the public SPARQL endpoint, every answer cached + committed; the
+  Wikipedia source check for written rows); TRUE OR FALSE out of challenges.js into data/oc/truefalse.json; TIMELINE as THEME POOLS (four dealt,
+  10+ years apart); STABLE IDS for every deal + the night memory; US units on screen from metric data (units.js).
+- Group 1: the Wikidata pools — HIGHER OR LOWER's stats, TIMELINE's year + size themes (each item to ONE of the two), TRUE OR FALSE's data half
+  from natural templates (a cap per template).
+- Group 2: TRUE OR FALSE's written half (each row confirmed by its Wikipedia article or dropped), SORT IT's computed + data + written sets.
+- Group 3: THE DAILY RESERVE — ~20% of every pool server-only in api/_data/oc-reserve/ (404 over HTTP, no page imports it, never dealt in a
+  party); daily.js#dayContent (the texts for the phone, the answers for the server).
+- Group 4: tests/overclock-content.test.mjs + overclock-reserve.test.mjs; the spot-check sheet; the preview's `&seed=`; the look at 390.
+- The owner's add-on: the fame filter in every Wikidata query + a fame-first second form — the timed-out stats re-run.
+- No rules change. Docs: docs/overclock.md (OC6), content (THE POOL BUILD), cartridge (D2 — the reserve), data-model, testing, CLAUDE.md.

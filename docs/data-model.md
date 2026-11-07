@@ -103,9 +103,11 @@ Damage: strike = round((30 − 20·elapsed/15 s) × mult), burn = round(10 × mu
 
 OVERCLOCK `game`: `{ id:'overclock', matchId, settings{mode}, seed, total, order[], participants, ci, ck, brief,
 phase: ready|play|standings|final, phaseStartAt, phaseEndsAt, playStartAt, seen{type}, tq{ci:bankIndex}, tUsed, results{ci:{uid:{pts,ok,parts}}}, bank, trivia,
-deal{ci:[int]}, dk{ci:'key key …'}, combo{uid:{c,m}}, rw{ci:{w,p}|{t:{uid:true},p}|{n:true}}, tm{ci:{uid:ms}}, cr{uid:int} }` (OC1: `deal` = THE ROOM's NIGHT MEMORY's deal — the bank rows / facts / words each
+deal{ci:[int|id]}, dk{ci:'key key …'}, combo{uid:{c,m}}, rw{ci:{w,p}|{t:{uid:true},p}|{n:true}}, tm{ci:{uid:ms}}, cr{uid:int} }` (OC1: `deal` = THE ROOM's NIGHT MEMORY's deal — the bank rows / facts / words each
 challenge shows, picked at start() around rooms/{CODE}/meta/used/overclock; `dk` = their keys, marked used by the step that opens the
-challenge, with its type's `t-<type>` (docs/overclock.md, js/games/overclock/deal.js); `combo` = right answers in a row now + the match's best
+challenge, with its type's `t-<type>` (docs/overclock.md, js/games/overclock/deal.js) — OC6: the four BUILT pools deal STABLE IDS, never an index
+(truefalse `[4 fact ids]` · higherlower `["statId|itemId|itemId" × 10]` · timeline `[themeId, itemId × 4]` · sortit `[setId]`; keys `tf-<id>` ·
+`hl-<stat>-<item>` · `tl-<theme>-<item>` · `so-<set>`), so a rebuilt pool keeps every deal + the night's memory; `combo` = right answers in a row now + the match's best
 — the OVERDRIVE feat). OC2: `rw` = THE ROUND WIN stored as challenge ci closes (logic.js#roundWin — the highest + not
 shared; a tie = nobody; the server's REDLINE calls the same function), `tm` = each player's ms from the challenge's start to their finish
 (FASTEST's clock; 30 000 if they never finished), `cr` = when a player's best streak was set (ci × 100 + the mark — BEST STREAK's tie-break).
@@ -125,7 +127,8 @@ A rematch FAVOURS the types the room hasn't played tonight (`buildOrder(seed, to
 **Category spread:** every type has a `CATEGORY` (words, numbers, memory, visual, knowledge, reflex); the order never puts two
 of the same category next to each other unless impossible (`categoryClashes(order)` is 0 for every generated match — tested
 over thousands of seeds). Short matches draw types on the fly so they can avoid clashes too.
-Newer types (LEXICON was cut in OC1): **timeline** (4 parts, one per item in the right place), **closest** (1 part, credit = smooth curve: ≤ 5 % off = 1, ≥ 60 % = 0;
+Newer types (LEXICON was cut in OC1): **timeline** (4 parts, one per item in the right place; OC6: THEME POOLS — four items of one theme dealt
+per round, every pair 10+ years apart, `tlDeal`), **closest** (1 part, credit = smooth curve: ≤ 5 % off = 1, ≥ 60 % = 0;
 no speed bonus — the closest player(s) get +60 instead, decided in `computeResults` from `ok`), **rewire** (2 parts; ok = solved +
 0.6·reach for the unsolved one; `genRewire` builds a solved path then scrambles, always solvable). Bank-backed types pick
 the night's deal (`deal[ci]`), or — no deal (a bank that didn't load at the start) — `bankIndex(seed, type, occ)` from a shuffled

@@ -300,6 +300,12 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     payouts, THE ANSWER, WINNING TICKETS / THE HOUSE WINS, the shared round-win rule. The rules: `tests/overclock-oc5.test.mjs` (the
     200,000-race simulation, the draw's unpredictability, 10,000 race scripts, the placement, whole matches, the daily plug-in); the HORSESHOE +
     THE QUICK SOLO BOARD in `tests/profiles.test.mjs` + the profile E2E (§10). The guard's `luck` group = every Dumb Luck screen.
+  - THE CONTENT (OC6 — the four BUILT pools, docs/content.md "THE POOL BUILD"): `tests/overclock-content.test.mjs` (seconds — every item of the
+    party pools + THE DAILY RESERVE: an id + a source, no duplicates, the phone limits, fair pairs, solvable timelines on 25 seeds a theme, Sort
+    It's disjoint sides + the computed sets re-computed card by card (`scripts/oc-pools/sortcheck.mjs`), the all-ages words, no template over
+    ~8%, US units that read naturally, the pool sizes) + `tests/overclock-reserve.test.mjs` (THE DAILY RESERVE: ~20% of each pool; the local
+    server answers 404 for `api/_data/oc-reserve/*` + `api/_lib/*` — upper case + encoded too; no shipped file names it; `daily.js#dayContent` =
+    texts for the phone + answers for the server). Rebuild the pools: `node scripts/oc-pools/build.mjs --offline` (the committed caches).
   - NO SIDEWAYS SCROLL (OC3 — the owner's phone: the victory slid left): `node tests/integration/e2e-oc-sideways.mjs "<browser>"` (needs only
     `scripts/serve.mjs`; ≈ 11 min for all 48 screens × 390 / 402 / 430 — `ONLY=victory,answer,…` (a group or part of a name) · `SIZES=390x844`) —
     every Overclock screen on the preview: the document + every scroll box no wider inside than out (read twice), and a sideways swipe (the

@@ -34,7 +34,7 @@ export default function uiSortIt(s, api) {
   const hint = h('div.oc-st-hint', 'SWIPE THE CARD — OR TAP A SIDE');
   const paintCount = () => { nIdx.textContent = String(Math.min(i + 1, s.cards.length)); nOk.textContent = String(loc.right); nBad.textContent = String(loc.wrong); };
   const makeCard = t => h('div.oc-st-card', h('div.oc-st-face',
-    h('span.oc-st-glass'), h('span.oc-st-lean.is-l'), h('span.oc-st-lean.is-r'), h('span.oc-tile-ok'), h('span.oc-tile-bad'), h('span.oc-st-t', { style: { '--len': String(t).length } }, t)));
+    h('span.oc-st-glass'), h('span.oc-st-lean.is-l'), h('span.oc-st-lean.is-r'), h('span.oc-tile-ok'), h('span.oc-tile-bad'), h('span.oc-st-t', { style: { '--len': String(t).length, '--word': Math.max(...String(t).split(/\s+/).map(w => w.length)) } }, t)));
   const lean = (dx = 0) => {
     const l = Math.max(0, Math.min(1, -dx / 90)), r = Math.max(0, Math.min(1, dx / 90));
     wrap.style.setProperty('--lean-l', l.toFixed(2));

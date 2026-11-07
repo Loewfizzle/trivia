@@ -1273,7 +1273,8 @@
 .oc-st-lean.is-r { border-right: 4px solid #ffb06a; box-shadow: inset -22px 0 26px -16px rgba(255, 106, 26, 0.85); opacity: 0; }
 .oc-st-card.is-live .oc-st-lean.is-l { opacity: var(--lean-l); }
 .oc-st-card.is-live .oc-st-lean.is-r { opacity: var(--lean-r); }
-.oc-st-t { position: relative; max-width: 100%; text-align: center; font: 700 clamp(27px, calc(520px / var(--len, 12)), 46px) / 1.12 var(--oc-font-ui); color: #fff; overflow-wrap: anywhere; text-wrap: balance; }
+/* (OC6 — the bigger pools bring longer single words: the size also fits the LONGEST WORD on one line, so a card never breaks mid-word) */
+.oc-st-t { position: relative; max-width: 100%; text-align: center; font: 700 clamp(20px, min(calc(520px / var(--len, 12)), calc(400px / var(--word, 8))), 46px) / 1.12 var(--oc-font-ui); color: #fff; overflow-wrap: anywhere; text-wrap: balance; }
 .oc-st-face > .oc-tile-ok, .oc-st-face > .oc-tile-bad { z-index: 0; }
 .oc-st-face.is-right .oc-tile-ok { opacity: 1; }
 .oc-st-face.is-wrong .oc-tile-bad { opacity: 0.85; animation: oc-bad-edge 0.5s ease-out both; }

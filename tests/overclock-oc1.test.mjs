@@ -435,7 +435,9 @@ test('OVERDRIVE assets: the fonts + their OFL licences, every sound the game nam
   for (const [name, [file]] of Object.entries(OC_SOUNDS)) assert.ok(files.includes(`${file}.mp3`), `${name} → ${file}.mp3`);
   for (const f of files.filter(x => x.endsWith('.mp3'))) assert.ok(statSync(`audio/sfx/overclock/${f}`).size < 80 * 1024, `${f}: compressed`);
   // the preload: the sounds this pass plays + the fonts + every bank + the Unscramble word lists
-  const banks = readdirSync('data/oc').map(f => statSync(`data/oc/${f}`).size).reduce((a, b) => a + b, 0);
+  // (OC6: the four big pools load only for a match that deals them — index.js#OC_LAZY_POOLS; the preload = the small banks)
+  const { OC_PRELOAD_BANKS } = await import('../js/games/overclock/index.js').catch(() => ({ OC_PRELOAD_BANKS: ['closest', 'missinglink', 'spellcheck'] }));
+  const banks = OC_PRELOAD_BANKS.map(t => statSync(`data/oc/${t}.json`).size).reduce((a, b) => a + b, 0);
   const words = [5, 6, 7].flatMap(n => [`answers-${n}`, `valid-${n}`]).map(f => statSync(`data/words/${f}.json`).size).reduce((a, b) => a + b, 0);
   const snd = OC1_FILES.map(f => statSync(`audio/sfx/overclock/${f}.mp3`).size).reduce((a, b) => a + b, 0);
   const fnt = fonts.map(f => statSync(`assets/fonts/overclock/${f}.woff2`).size).reduce((a, b) => a + b, 0);

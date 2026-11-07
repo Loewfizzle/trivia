@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OVERCLOCK preview</title>
 <!-- OC1 — the real OVERCLOCK view in its OVERDRIVE skin, no Firebase (an import map swaps js/firebase.js for fake-firebase.js):
-     ?type=trivia|truefalse|<any type>  (the challenge on screen)   &n=4 (players)   &final=1 (the ×2 last challenge)
+     ?type=trivia|truefalse|<any type>  (the challenge on screen)   &n=4 (players)   &final=1 (the ×2 last challenge)   &seed=… (OC6: another deal)
      &at=brief      the title slam + the rules card (BRIEF_MS 7 s)        ready   the slam + 3-2-1 (READY_MS 3.2 s)
          play       answering                                             right / wrong   one answer, its feedback frozen mid-way
          answer     THE ANSWER after the round (your picks: right · wrong · none)
@@ -75,7 +75,7 @@ const total = 6, ci = final ? 5 : 1;
 const order = [type === 'truefalse' ? 'math' : 'truefalse', type, 'memory', 'oddone', 'stroop', type === 'closest' ? 'timeline' : 'closest'];
 if (final) { order[5] = type; order[1] = type === 'truefalse' ? 'trivia' : 'truefalse'; }
 const now = Date.now();
-const game = createGame({ matchId: 'pv', settings: { mode: 'quick' }, participants: Object.fromEntries(uids.map(u => [u, true])), now, seed: 'preview-seed', bank, trivia: { n: patch['trivia/n'] }, order });
+const game = createGame({ matchId: 'pv', settings: { mode: 'quick' }, participants: Object.fromEntries(uids.map(u => [u, true])), now, seed: q.get('seed') || 'preview-seed', bank, trivia: { n: patch['trivia/n'] }, order });
 Object.assign(game, { ci, ck: String(ci), tq: { [ci]: 0 }, seen: { [type]: at !== 'brief' } });
 // OC4 — ODD ONE OUT's families on demand: &fams=0,1,3 (0 letters · 1 rotation · 2 mirror · 3 neon shapes) &item=n (each family's n-th item)
 if (type === 'oddone' && q.get('fams')) game.deal = { [ci]: q.get('fams').split(',').map(Number).flatMap(f => [f, Number(q.get('item') || 0)]) };

@@ -678,3 +678,69 @@ fps cast), a photo finish, a LONG SHOT!.
 - THE HORSESHOE emblem shows its placeholder glyph until THE LAB draws + approves its art.
 - No CHEER button (optional in the plan, not this pass); no marquee bulbs (by design).
 - The daily's `replay` re-scores from the per-challenge record (ok / parts / time) — answer-level replay is the daily module's (it seals them).
+
+### OC6 — CONTENT A: TRUE OR FALSE + THE FACT POOLS (Nov 6, 2026)
+**What shipped**
+- **Group 0 — THE BUILD SCRIPT + THE SHAPES:** `scripts/oc-pools/` (docs/content.md "THE POOL BUILD") — `build.mjs` + its parts, WIKIDATA through the
+  public SPARQL endpoint with a polite User-Agent and every answer CACHED (`cache/wd/` — a rebuild works offline, the output byte-identical), THE
+  SOURCE CHECK for written rows (`sources.mjs` — the proof must be in the named Wikipedia article; verdicts in `cache/checks.json`). TRUE OR FALSE
+  left `challenges.js` for `data/oc/truefalse.json` (`{ id, t, f, src, cat }`; `genTrueFalse` keeps its 4 fact + 4 math slots and the pair-based
+  truth flip). TIMELINE became THEME POOLS (`{ theme, ask, dir, unit?, items: [[label, value, shown?, id]] }` — `tlDeal` deals four, pairwise
+  10+ years apart (a size theme 1.3×), seeded; the screen + scoring as OC3B built them). HIGHER OR LOWER + SORT IT became objects with ids.
+  STABLE IDS everywhere a deal or the night memory points (`deal.js`: `tf-<id>` · `hl-<stat>-<item>` · `tl-<theme>-<item>` · `so-<set>`; an old
+  night's keys simply stop matching); the daily's day set takes ids. US UNITS on screen from metric data (`units.js`). `scripts/build-timeline.mjs`
+  retired.
+- **Group 1 — THE DATA-BUILT POOLS (Wikidata, CC0):** HIGHER OR LOWER's stats (heights, lengths, areas, depths, the 2020 census, temperatures,
+  years; the FAME FILTER in every query — the owner's add-on); the YEAR stats feed TIMELINE too (each item to ONE of the two, a hash of its Q-id)
+  + SIZE themes (a third of a quantity stat's items order by size); TRUE OR FALSE's data half from natural templates (capitals, continents,
+  element symbols, who painted / wrote / directed / recorded it, moons, places, decades, centuries, comparisons — several phrasings each, a cap per
+  template).
+- **Group 2 — THE WRITTEN POOLS (sourced):** TRUE OR FALSE's written half in 13 batches (`written/tf-<cat>.json`), every row checked against its
+  Wikipedia article; SORT IT's computed sets (`sortcheck.mjs`), data sets (Wikidata with a margin round every cut-off) and written sets.
+- **Group 3 — THE DAILY RESERVE:** ~20% of every pool SERVER-ONLY in `api/_data/oc-reserve/` (docs/cartridge.md D2); `daily.js#dayContent`
+  (show = the texts, key = the answers); the local server answers 404 for every non-function `/api/` path, as Vercel does.
+- **Group 4 — THE CHECKS:** `tests/overclock-content.test.mjs` + `tests/overclock-reserve.test.mjs`; the spot-check sheet
+  (`Downloads/neon/overclock/oc6-spotcheck.md`); five deals of each challenge looked at on the preview at 390 (`&seed=`); the no-sideways guard.
+- **Group 5 — THE OWNER's ADD-ON (Nov 6, during the pass):** the Wikidata timeouts → THE FAME FILTER inside every query (sitelinks ~30+ for
+  creative works, ~15+ for places, tuned per stat) + a fame-first second form of each query (`hint:Query hint:optimizer "None"`) that the
+  million-item classes need; the skipped stats re-run (albums, novels, paintings, companies came back).
+
+**THE POOLS (before → after; the party files + THE DAILY RESERVE)**
+| | before OC6 | after OC6 | shipped (party) | reserve |
+|---|---|---|---|---|
+| TRUE OR FALSE | 36 pairs | **2,398** (1,229 data-built from 27 templates · 1,169 written) | 1,907 | 491 |
+| HIGHER OR LOWER | 18 stats · 597 items | **46 stats · 1,727 items** | 1,403 items | 324 items |
+| TIMELINE | 190 fixed sets of 4 | **32 theme pools · 917 items** (four dealt per round) | 726 items | 191 items |
+| SORT IT | 48 sets | **178 sets** (36 computed — 6 of them OC1–OC5's · 18 data · 85 written · 39 more kept from OC1–OC5) | 146 | 32 |
+
+THE WRITTEN STATEMENTS: 1,207 written → **1,181 confirmed** by their source → **26 dropped** (the proof not in the article — never kept on trust);
+the all-ages filter dropped 7 more, 11 were duplicates of another statement. The hand items kept from OC1–OC5: 86 of 99 confirmed.
+SIZES: the shipped pools ≈ 480 KB raw (TRUE OR FALSE 317 KB, ≈ 75 KB gzipped) — NOT in `preload()` any more: each loads only for a match that
+deals it; the preload is 605 KB of its 1.5 MB. The reserve 123 KB. The committed caches ≈ 1 MB (`cache/wd` 0.9 MB + `checks.json`).
+
+**Decisions (OC6)** — the owner's four (Nov 6): DATA FIRST (Wikidata CC0; written rows each checked against a source, unconfirmed = dropped) ·
+US-FIRST (metric data, US units on screen) · POP CULTURE YES, LASTING ONLY · ALL AGES. Plus THE DAILY RESERVE (~20% server-only).
+- **"Checked against its source" = automated + honest:** each written row names its Wikipedia article and the words that article must contain (the
+  proof — `"eight legs"`, `"canberra&capital"`); the build fetches the article's text and DROPS a row whose proof isn't there. A proof may be
+  re-worded when the article says the same fact in other words; the fact itself is never forced through. (It confirms the TRUE statement; each
+  false twin is written as an exclusive swap of it — eight legs → six — so it can't also be true.)
+- **Wikidata's values come NORMALIZED to SI** (metres, square metres, kelvin) — stored as m / km / km² / °C; an item whose best-ranked values
+  disagree by more than 3% (years: more than 3 apart) or whose date is less precise than a year is ARGUABLE → out.
+- **THE FAME FILTER (the owner's add-on):** sitelinks in every query, tuned per stat; each query in two forms (the planner, then fame-first with the
+  planner OFF) — the cache keeps whichever answered. Kept: one query at a time, 3 s apart, a 429 waits as long as the server asks.
+- **What the data forced out (read by hand, `hand/wd-exclude.mjs`):** Wikidata's occupations are broad (a "scientist" who was a prime minister, a
+  "writer" who ruled a country) → the six people lists became ONE (BIRTHDAYS / WHO WAS BORN FIRST?) and anyone also listed as a politician,
+  ruler, soldier, revolutionary or cleric is out; the songs class holds anthems + chants of hate → no songs; nude paintings, adult cartoons,
+  explicit bands, a death-themed ride, Holocaust sites (the museums stat — dropped), a fictional president, a film called "2012", future launches;
+  stats whose numbers proved arguable or obscure: waterfalls, deserts, dams, lighthouses, statues, universities' founding years, capital-city
+  populations (city limits counted differently), the planets + moons diameter (only catalogue numbers came through). Films + games only with a
+  family rating (G / PG / PG-13 · E / E10+ / T).
+- **THE YEAR STATS FEED TWO CHALLENGES** — each item to ONE (a stable hash of its Q-id): HIGHER OR LOWER never shows what a TIMELINE showed.
+  TIMELINE also orders SIZES (as OC1–OC5's pools did): a third of a quantity stat's items, by height / length / area / population.
+- **THE TEMPLATE CAP:** 85 statements a template (< 8.5% of the data half) — a template's several phrasings rotate.
+- **THE BIG POOLS LOAD WHEN DEALT:** `preload()` no longer fetches TRUE OR FALSE / HIGHER OR LOWER / TIMELINE / SORT IT (≈ 500 KB) — the host's
+  `start()` and every phone's view at mount load exactly the pools the match's order deals, during the rules card + the 3-2-1.
+- **THE RESERVE's PLACE:** `api/_data/` — Vercel serves `api/` as functions only (the repo's precedent: the item catalog in `api/_lib/`); the
+  local server now does the same (404). The repo is PUBLIC until the launch, so GitHub shows the reserve: the site never serves it, and before
+  the dailies go on the repo goes private (the owner's plan) or the module keeps the reserve elsewhere.
+- **ALL AGES in Sort It:** COFFEE DRINK / COCKTAIL (alcohol), CHESS / POKER (gambling) and WON BEST PICTURE (R-rated films) left the pool.

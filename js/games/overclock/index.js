@@ -45,8 +45,12 @@ export async function start({ code, matchId, settings, participants, now, used }
 }
 
 // THE PRELOAD (docs/cartridge.md — every phone, during the walk inside; ≤ PRELOAD_BUDGET 1.5 MB, never blocks the start): OC1's sounds
-// (~110 KB), the OVERDRIVE fonts (~67 KB — css/overclock.css's @font-face finds them in the cache) and the content pools — ALL of them, they
-// are small (the banks ~125 KB + Unscramble's word lists ~260 KB): a phone doesn't know the order before the host's start() lands.
+// (~110 KB), the OVERDRIVE fonts (~67 KB — css/overclock.css's @font-face finds them in the cache), the SMALL banks + Unscramble's word lists
+// (a phone doesn't know the order before the host's start() lands). OC6 — THE BIG POOLS (TRUE OR FALSE, HIGHER OR LOWER, TIMELINE, SORT IT:
+// ~500 KB together) are NOT preloaded: each loads only for a match that DEALS it — the host's start() (above) + every phone's view at mount
+// (view.js#preloadFor(order)), during the rules card + the 3-2-1, long before its challenge opens.
+export const OC_LAZY_POOLS = Object.freeze(['truefalse', 'higherlower', 'timeline', 'sortit']);
+export const OC_PRELOAD_BANKS = Object.freeze(BANK_TYPES.filter(t => !OC_LAZY_POOLS.includes(t)));
 export const OC_FONT_FILES = ['barlow-condensed-900i', 'barlow-condensed-800i', 'chakra-petch-700', 'chakra-petch-500'];
 // OC4 — THE REAL-GLASS CRACK's two textures (~100 KB: assets/overclock/ — crack.js; the view decodes them at mount)
 export const OC_CRACK_FILES = ['crack.webp', 'crack-glow.webp'];
@@ -56,7 +60,7 @@ export function preload() {
     import('./sfx.js').then(m => m.ocSfxBytes()).catch(() => null),
     ...fonts,
     ...OC_CRACK_FILES.map(f => fetch(new URL(`../../../assets/overclock/${f}`, import.meta.url)).then(r => r.arrayBuffer()).catch(() => null)),
-    ...BANK_TYPES.map(t => loadBank(t).catch(() => null)),
+    ...OC_PRELOAD_BANKS.map(t => loadBank(t).catch(() => null)),
     loadLengths([5, 6, 7]).catch(() => null),
   ]).then(() => true, () => false);
 }

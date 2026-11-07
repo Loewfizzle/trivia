@@ -37,7 +37,8 @@ test('THE CRACK: the preload stays inside its 1.5 MB budget with the textures in
   const fonts = OC_FONT_FILES || ['barlow-condensed-900i', 'barlow-condensed-800i', 'chakra-petch-700', 'chakra-petch-500'];
   const crack = OC_CRACK_FILES || ['crack.webp', 'crack-glow.webp'];
   const size = f => statSync(f).size;
-  const total = readdirSync('data/oc').map(f => size(`data/oc/${f}`)).reduce((a, b) => a + b, 0)
+  const { OC_PRELOAD_BANKS } = await import('../js/games/overclock/index.js').catch(() => ({ OC_PRELOAD_BANKS: ['closest', 'missinglink', 'spellcheck'] }));
+  const total = OC_PRELOAD_BANKS.map(t => size(`data/oc/${t}.json`)).reduce((a, b) => a + b, 0)
     + [5, 6, 7].flatMap(n => [`answers-${n}`, `valid-${n}`]).map(f => size(`data/words/${f}.json`)).reduce((a, b) => a + b, 0)
     + OC1_FILES.map(f => size(`audio/sfx/overclock/${f}.mp3`)).reduce((a, b) => a + b, 0)
     + fonts.map(f => size(`assets/fonts/overclock/${f}.woff2`)).reduce((a, b) => a + b, 0)
