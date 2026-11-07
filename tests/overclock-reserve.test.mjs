@@ -43,6 +43,9 @@ test('NEVER SERVED: the local server (Vercel\'s rules) answers 404 for the reser
       assert.equal(await get(`/data/oc/${f}`), 200, `the party pool ${f}`);
     }
     assert.equal(await get('/api/_lib/catalog.js'), 404, 'api/_lib too');
+    // (OC8: the look pages' local-only door — /__dev/api-lib/<name>.js — opens api/_lib's plain .js files, never the reserve)
+    assert.equal(await get('/__dev/api-lib/catalog.js'), 200, 'the look pages door');
+    for (const f of ['_data/oc-reserve/truefalse.json', '..%2F_data%2Foc-reserve%2Ftruefalse.json', 'oc-reserve.json']) assert.equal(await get(`/__dev/api-lib/${f}`), 404, `the door never opens ${f}`);
   } finally { srv.kill(); }
 });
 

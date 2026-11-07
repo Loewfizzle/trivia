@@ -950,7 +950,18 @@ The reserve re-split (~20 % of each, server-only). Offline rebuild byte-identica
 
 **The local run before the final push (the mini PC, one suite at a time):** unit 1298 / 1298 · rules 66 / 66 · /api 38 / 38 · smoke 6 / 6 · e2e-oc-2 27 / 27 · e2e-oc-new 75 / 75 · e2e-oc-luck (8 phones) 22 / 22 · e2e-oc-slow 10 / 10 (+ LATE=1 10 / 10) · NO SIDEWAYS SCROLL 312 / 312 · e2e-profiles **98 / 98** · the FULL e2e-harbor suite 1201 / 1206 on its first run — four of the five reds were THE STALE LOCAL /api (the `serve.mjs --emu` process had run since Nov 6, 1:24 pm — before OC5's quick solo board — and keeps each /api handler as first loaded: e2e-profiles' QUICK SOLO BOARD read null on it the same way): `radio`, `crew`, `panel`, `rebuild` rerun on a fresh server (:5175) → all green (108 / 109); the fifth, `roomperf`'s own cost at 4× CPU (40 → 45 ms with the guest list), is the same red OC5–OC7 carried (skipped in the cloud — no GPU path).
 
+**Cloud run 1 (4a8e4ab):** tests GREEN; harbor 11 / 15 — `vault`, `platefit`, `cardfit`, `fullcard` timed out on their look pages: since OC6
+the local server answers 404 for every non-function /api/ path (THE DAILY RESERVE), and five look pages (vault / plate / profile / progress
+preview + card-review) still imported `/api/_lib/*.js` — OC6 + OC7 shipped on the ci tag, so the harbor suite first met it here (the mini PC's
+stale server still served the old way). FIXED: THE LOOK PAGES' DOOR (`scripts/serve.mjs` — `/__dev/api-lib/<name>.js`, a plain .js name in
+api/_lib only, local only; the reserve test proves the door never opens api/_data); the four groups 81 / 81 locally. The fifth red, `load`'s
+LOAD WEATHER (cached overcast on the first frame), passed on the mini PC in both full runs — a cloud-only timing; not changed.
+The full e2e-harbor suite again on the fixed server: **1203 / 1206** — `roomperf` (the known red), THE DESK through two refreshes + THE WORD
+TOWERS (both red in the first full run too, green when their groups run alone + in cloud run 1: the 4-shard load on the mini PC).
+
 **Known issues / held back**
+- THE LOCAL /api IS CACHED: `scripts/serve.mjs --emu` imports each /api handler once — restart it after a pass that touches `api/` or anything
+  it imports (`js/core/match-report.js`, the games' logic) before e2e-profiles / the harbor suite, or they test the old server.
 - On Fast 3G a phone that isn't the host mounts the match screen ~7 s after the walk's end (the cartridge's view + its ~40 modules load in a
   waterfall at ~560 ms a round trip; unthrottled it mounts at the walk's end) — the first challenge's rules card is shortened there. The pool is
   never the wait (e2e-oc-slow.mjs). A bundle / modulepreload is the console's.

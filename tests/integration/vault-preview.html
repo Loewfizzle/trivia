@@ -19,8 +19,8 @@
 <script type="module">
 import { mountLab } from '/js/vault/lab-views.js';
 import { registerLabText, registerLabChanges, verOf } from '/js/vault/catalog.js';
-import { LAB_TEXT, LAB_CHANGES } from '/api/_lib/lab-text.js';   // (the server's names — this page runs on the local server only)
-import '/api/_lib/catalog.js';                         // (the item catalog, ditto)
+import { LAB_TEXT, LAB_CHANGES } from '/__dev/api-lib/lab-text.js';   // (the server's names — this page runs on the local server only)
+import '/__dev/api-lib/catalog.js';                         // (the item catalog, ditto)
 registerLabText(LAB_TEXT); registerLabChanges(LAB_CHANGES);
 import { setFxReduced, setFxTier } from '/js/fx/renderer.js';
 const q = new URLSearchParams(location.search);

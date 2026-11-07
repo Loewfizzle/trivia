@@ -316,7 +316,8 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     build's split) + `tests/overclock-oc7.test.mjs` (the OC7 shapes + deals by id; no js/trivia import in Overclock; js/trivia + its fallback
     bank hash-pinned for the other three games) + `tests/overclock-reserve.test.mjs` (THE DAILY RESERVE: ~20% of each pool; the local
     server answers 404 for `api/_data/oc-reserve/*` + `api/_lib/*` — upper case + encoded too; no shipped file names it; `daily.js#dayContent` =
-    texts for the phone + answers for the server). Rebuild the pools: `node scripts/oc-pools/build.mjs --offline` (the committed caches).
+    texts for the phone + answers for the server; OC8: the LOOK PAGES' DOOR — the `*-preview.html` + card-review pages import the server-only
+    names as `/__dev/api-lib/<name>.js`, the local server only, never api/_data). Rebuild the pools: `node scripts/oc-pools/build.mjs --offline` (the committed caches).
   - NO SIDEWAYS SCROLL (OC3 — the owner's phone: the victory slid left): `node tests/integration/e2e-oc-sideways.mjs "<browser>"` (needs only
     `scripts/serve.mjs`; ≈ 11 min for all 48 screens × 390 / 402 / 430 — `ONLY=victory,answer,…` (a group or part of a name) · `SIZES=390x844`) —
     every Overclock screen on the preview: the document + every scroll box no wider inside than out (read twice), and a sideways swipe (the

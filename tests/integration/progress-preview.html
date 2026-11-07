@@ -22,7 +22,7 @@
 <body>
 <div id="stage"></div>
 <script type="module">
-import '/api/_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog — this look page runs on the local server only)
+import '/__dev/api-lib/catalog.js';   // (THE VAULT 1B: the server-only catalog — this look page runs on the local server only)
 import { preview } from '/js/progress/preview.js';
 const q = new URLSearchParams(location.search);
 preview(q.get('view') || 'moment', q, document.getElementById('stage')).then(() => { document.body.dataset.ready = '1'; });

@@ -20,8 +20,8 @@
 <main class="cr fx-host" id="cr"></main>
 <script type="module">
 import { registerLabText, LAB, GUESTS } from '/js/vault/catalog.js';
-import { LAB_TEXT } from '/api/_lib/lab-text.js';
-import '/api/_lib/catalog.js';
+import { LAB_TEXT } from '/__dev/api-lib/lab-text.js';
+import '/__dev/api-lib/catalog.js';
 registerLabText(LAB_TEXT);
 import { h } from '/js/ui/dom.js';
 import { createSurface, setFxReduced, setFxTier } from '/js/fx/renderer.js';

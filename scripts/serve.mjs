@@ -39,8 +39,13 @@ createServer(async (req, res) => {
   let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   const api = /^\/api\/([^/]+)$/.exec(path);
   if (api) { await runApi(api[1], req, res); return; }
+  // THE LOOK PAGES' DOOR (local only — OC8: the 404 below had cut the preview pages off from the server-only names since OC6): a
+  // tests/integration/*-preview.html imports api/_lib/<name>.js as /__dev/api-lib/<name>.js — a plain .js name, never a sub-folder, never
+  // api/_data (THE DAILY RESERVE stays 404). Vercel has no such path (THE WRONG DOOR), and nothing the site ships names it.
+  const dev = /^\/__dev\/api-lib\/([a-z0-9-]+\.js)$/.exec(path);
+  if (dev) path = `/api/_lib/${dev[1]}`;
   // like Vercel: api/ is functions only — its helpers + server-only data (api/_lib, THE DAILY RESERVE in api/_data — OC6) are never a file
-  if (/^\/api(\/|$)/i.test(path)) { res.writeHead(404).end('not found'); return; }
+  if (!dev && /^\/api(\/|$)/i.test(path)) { res.writeHead(404).end('not found'); return; }
   if (path === '/board' || path === '/admin' || path === '/lab' || path === '/daychart') path += '.html';
   const file = normalize(join(root, path.endsWith('/') ? `${path}index.html` : path));
   if (!file.startsWith(root)) { res.writeHead(403).end(); return; }
