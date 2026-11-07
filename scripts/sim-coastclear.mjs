@@ -15,7 +15,7 @@
 import { makeBoard, solve } from '../api/_lib/cc-solve.js';
 import { countsOf, flood, nbOf } from '../js/games/coastclear/logic.js';
 import { rngFrom } from '../js/core/rng.js';
-import { GHOST_S } from '../api/_lib/cc.js';
+import { GHOST_S } from '../js/games/coastclear/logic.js';
 
 const RUNS = Number(process.argv[2] || 3000), SEED = process.argv[3] || 'ghost';
 const rnd = rngFrom(`sim:${SEED}`);
@@ -76,4 +76,4 @@ const pick = [Math.floor(p10 / 5) * 5, Math.ceil(p10 / 5) * 5].sort((a, b) => Ma
 console.log(`COAST CLEAR — THE GHOST RUN SIMULATION: ${RUNS} human-paced zero-spot clears on ${made} real no-guess boards (seed ${SEED})`);
 console.log(`  times: best ${fmt(times[0])} · p10 ${fmt(p10)} · p25 ${fmt(pct(0.25))} · median ${fmt(pct(0.5))} · p75 ${fmt(pct(0.75))} · p90 ${fmt(pct(0.9))} · slowest ${fmt(times[times.length - 1])}`);
 console.log(`  the best ~10 %: under ${fmt(p10)} → on a 5-second step: ${pick} s (${fmt(pick)}) — ${share(pick)} % of clean runs earn it`);
-console.log(`  the shipped GHOST_S (api/_lib/cc.js): ${GHOST_S} s (${fmt(GHOST_S)}) — ${share(GHOST_S)} % of clean runs at or under it`);
+console.log(`  the shipped GHOST_S (logic.js — api/_lib/cc.js applies it): ${GHOST_S} s (${fmt(GHOST_S)}) — ${share(GHOST_S)} % of clean runs at or under it`);

@@ -342,3 +342,9 @@ export function endMap(view, buoys = []) {
   }
   return out;
 }
+
+// ---- CC2: THE REWARDS' RULE (pure — api/_lib/cc.js#flags applies it to the SERVER's replay of its record; the unit tests + the simulation read it here)
+/** the time GHOST RUN asks for, in the score's seconds (the clock, the pauses stopped, + 15 s a pause) — set by THE SIMULATION (scripts/sim-coastclear.mjs) */
+export const GHOST_S = 50;
+/** a finished result (replay) → its flags: { clear: 1 (LIGHTHOUSE), ghost?: 1 (GHOST RUN — zero spots, score ≤ GHOST_S) } | null (a caught run earns nothing) */
+export const runFlags = r => (r && r.out === 'clear' ? { clear: 1, ...(r.spots === 0 && r.score <= GHOST_S ? { ghost: 1 } : {}) } : null);

@@ -98,7 +98,9 @@ test('the day number shares THE PASSWORD\'s epoch; the countdown to 4 am Eastern
 
 // ---- THE REWARDS (Group 6): GHOST RUN + LIGHTHOUSE from the SERVER's record (api/_lib/cc.js#flags → core/progress.js#dailyStep → the award engine)
 test('THE REWARDS\' FLAGS from a replayed record: LIGHTHOUSE = any clear · GHOST RUN = zero spots AT the threshold (not a second over) · a caught run = nothing', async () => {
-  const { runFlags, GHOST_S, CC_DAILY } = await import('../api/_lib/cc.js');
+  // (the pure rule — api/_lib/cc.js#flags = runFlags(replay(the server's record)); the unit job has no firebase-admin, so the server module is the /api tests')
+  const { runFlags, GHOST_S, replay } = await import('../js/games/coastclear/logic.js');
+  const CC_DAILY = { flags: ({ record, startedAt, data }) => (record && data ? runFlags(replay(record, data, { startedAt })) : null) };
   assert.equal(GHOST_S, 50, 'the simulation\'s time (scripts/sim-coastclear.mjs: ≈ the best ~9 % of clean runs)');
   assert.deepEqual(runFlags({ out: 'clear', spots: 0, score: GHOST_S }), { clear: 1, ghost: 1 }, 'exactly at the threshold: earned');
   assert.deepEqual(runFlags({ out: 'clear', spots: 0, score: GHOST_S + 1 }), { clear: 1 }, 'one second over: LIGHTHOUSE only');

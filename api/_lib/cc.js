@@ -11,7 +11,8 @@
 // Registered by dailies.js — until THE SWITCH-OVER only under DAILY_TEST=1 (production answers 'no_daily').
 import { fb, ref, val } from './fb.js';
 import { boardFor } from './cc-board.js';
-import { runView, serverAct, newRecord, replay, bucketOf, BUCKETS } from '../../js/games/coastclear/logic.js';
+import { runView, serverAct, newRecord, replay, bucketOf, BUCKETS, GHOST_S, runFlags } from '../../js/games/coastclear/logic.js';
+export { GHOST_S, runFlags };   // (CC2 — the rule lives in the pure logic.js: the unit tests + the simulation read it without firebase-admin)
 
 /** THE DAY's BOARD (server-only): memory → the stored copy → built + stored once */
 export const ccBoard = day => boardFor(day, { ref, val, pepper: fb().pepper });
@@ -41,7 +42,4 @@ export const CC_DAILY = {
     return runFlags(replay(record, data, { startedAt }));
   },
 };
-/** the time GHOST RUN asks for, in the score's seconds (the clock, the pauses stopped, + 15 s a pause) — set by THE SIMULATION (scripts/sim-coastclear.mjs) */
-export const GHOST_S = 50;
-/** a finished result → its flags (PURE): { clear: 1, ghost?: 1 } | null (a caught run earns nothing) */
-export const runFlags = r => (r && r.out === 'clear' ? { clear: 1, ...(r.spots === 0 && r.score <= GHOST_S ? { ghost: 1 } : {}) } : null);
+
