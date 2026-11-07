@@ -20,6 +20,8 @@ export const MUSIC = 'mood:evening';
 export const SOLO = true;
 export const MIN_PLAYERS = 1;
 export const BANNER_NAME = 'COAST CLEAR';
+/** CC1 = the NIGHT harbor only (the console paints night + shows NIGHT · LOCKED); CC2 adds the day harbor → ['day', 'night'] */
+export const LOOKS = ['night'];
 
 /** a solo daily: the chat is never locked */
 export function chatLocked() {

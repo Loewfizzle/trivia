@@ -1,0 +1,196 @@
+/* ==========================================================================
+   COAST CLEAR (CC1 — docs/coastclear.md): a daily solo Minesweeper-type on the night harbor — the sign, the status row (the TIME in plain neon
+   type, three DRAWN searchlights, a drawn buoy + the buoys left), the 9 × 12 water, the DIG / BUOY switch in the thumb zone. NO PILLS, NO
+   EMOJI, no dev text (the owner's standing rules for the dailies): drawn objects + plain neon type; the switch has modest corners.
+   EVERY COLOUR IS A TOKEN on .cc-screen (--cc-*, NIGHT = the neon harbor — this pass; CC2 retokens it under body[data-look="day"]).
+   THE NUMBERS carry the meaning in the DIGIT itself (each count its own colour too — never colour alone). 60 fps: transform + opacity only;
+   the glows are static shadows; the water's shimmer is ONE layer under the cells, sliding on transform.
+   ========================================================================== */
+.screen.cc-screen {
+  /* THE NIGHT TOKENS */
+  --cc-bg-0: #02050f; --cc-bg-1: #061226;
+  --cc-sign: #7fe8ff; --cc-sign-glow: rgba(95, 214, 255, 0.55); --cc-sign-core: #effcff;
+  --cc-ink: #eaf6ff; --cc-ink-dim: var(--text-dim);
+  --cc-water: rgba(70, 140, 235, 0.13); --cc-water-line: rgba(150, 212, 255, 0.28); --cc-water-hi: rgba(160, 220, 255, 0.24);
+  --cc-shimmer: rgba(150, 220, 255, 0.11);
+  --cc-open: #02060e; --cc-open-line: rgba(140, 205, 255, 0.06);
+  --cc-press: rgba(160, 225, 255, 0.22);
+  --cc-n1: #5fd4ff; --cc-n2: #6dff9e; --cc-n3: #ff6fb5; --cc-n4: #ffd84d; --cc-n5: #ff9a4d; --cc-n6: #c49bff; --cc-n7: #ff6464; --cc-n8: #ffffff;
+  --cc-buoy: #ff8a2a; --cc-buoy-band: #fff4e8; --cc-buoy-lamp: #ffe0a3; --cc-buoy-halo: rgba(255, 168, 80, 0.32);
+  --cc-light: #ffd36b; --cc-light-core: #fff6dc; --cc-light-face: rgba(255, 196, 80, 0.30); --cc-light-glow: rgba(255, 200, 90, 0.5);
+  --cc-lamp-off: rgba(255, 255, 255, 0.30);
+  --cc-mode-line: rgba(255, 255, 255, 0.16); --cc-mode-bg: rgba(255, 255, 255, 0.04); --cc-mode-ink: rgba(234, 246, 255, 0.62);
+  --cc-mode-on: var(--cc-sign); --cc-mode-on-bg: rgba(95, 214, 255, 0.13); --cc-mode-on-glow: rgba(95, 214, 255, 0.5);
+  --cc-mode-buoy: var(--cc-buoy); --cc-mode-buoy-bg: rgba(255, 138, 42, 0.13); --cc-mode-buoy-glow: rgba(255, 138, 42, 0.5);
+  /* the cell: ~38 pt on a 390 phone (9 across, 2 pt gaps, the 16 pt gutters), up to 44; the height keeps the switch in reach */
+  --cc-gap: 2px;
+  --cc-cell: clamp(28px, min(calc((min(100vw, var(--maxw)) - 2 * var(--gutter) - 8 * var(--cc-gap)) / 9), calc((100dvh - var(--safe-t) - var(--safe-b) - 236px) / 12)), 46px);
+  gap: 8px;
+  align-items: center;
+  padding-top: calc(var(--safe-t) + 8px);
+  padding-bottom: calc(var(--safe-b) + 10px);
+  overflow: hidden;
+  background: var(--cc-bg-0);
+  color: var(--cc-ink);
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+}
+/* the night harbor behind it all: a deep blue fall-off, a faint moon glow top-right, the far shore's lights as one soft band */
+.cc-screen::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(40% 22% at 86% 2%, rgba(200, 225, 255, 0.10), transparent 70%),
+    radial-gradient(80% 9% at 50% 12%, rgba(95, 214, 255, 0.07), transparent 80%),
+    linear-gradient(180deg, var(--cc-bg-1), var(--cc-bg-0) 60%);
+}
+.cc-screen > * { position: relative; z-index: 1; }
+
+/* ---------------- the sign (a static text glow) — clear of ☰ (left) + the music (right) */
+.cc-head { display: flex; align-items: center; justify-content: center; flex: none; align-self: stretch; min-height: 40px; padding: 0 calc(var(--cb-room) - 16px); }
+.cc-sign {
+  margin: 0;
+  font: 900 clamp(17px, 5.2vw, 22px) / 1 var(--font-display);
+  letter-spacing: 0.24em; text-indent: 0.24em;
+  color: var(--cc-sign-core);
+  text-shadow: 0 0 2px #fff, 0 0 8px var(--cc-sign), 0 0 18px var(--cc-sign-glow), 0 0 34px var(--cc-sign-glow);
+  white-space: nowrap;
+}
+
+/* ---------------- THE STATUS ROW: plain neon type + drawn objects — never a capsule, never a box */
+.cc-status {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; flex: none;
+  width: calc(9 * var(--cc-cell) + 8 * var(--cc-gap)); min-height: 30px;
+}
+.cc-st-time { display: flex; align-items: baseline; gap: 6px; justify-self: start; }
+.cc-time { font: 700 22px / 1 var(--font-num); letter-spacing: 0.04em; color: var(--cc-sign-core); text-shadow: 0 0 8px var(--cc-sign-glow); font-variant-numeric: tabular-nums; min-width: 3.2em; }
+.cc-plus { font: 700 13px / 1 var(--font-num); color: var(--cc-light); text-shadow: 0 0 8px var(--cc-light-glow); opacity: 0; transform: translateY(4px); }
+.cc-plus.is-on { animation: cc-plus 1.3s ease-out both; }
+@keyframes cc-plus { 0% { opacity: 0; transform: translateY(6px); } 15% { opacity: 1; transform: none; } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+.cc-st-spots { display: flex; gap: 6px; justify-self: center; }
+.cc-spot { width: 30px; height: 23px; overflow: visible; }
+.cc-spot .cc-sl-beam { fill: none; stroke: var(--cc-lamp-off); stroke-width: 1; stroke-dasharray: 2 2.5; opacity: 0.5; }
+.cc-spot .cc-sl-head { fill: none; stroke: var(--cc-lamp-off); stroke-width: 1.6; }
+.cc-spot .cc-sl-lens { fill: var(--cc-lamp-off); opacity: 0.5; }
+.cc-spot .cc-sl-stand { fill: none; stroke: var(--cc-lamp-off); stroke-width: 1.6; stroke-linecap: round; }
+.cc-spot.is-on .cc-sl-beam { fill: var(--cc-light-face); stroke: var(--cc-light); stroke-dasharray: none; opacity: 1; }
+.cc-spot.is-on .cc-sl-head { fill: var(--cc-light); stroke: var(--cc-light-core); }
+.cc-spot.is-on .cc-sl-lens { fill: var(--cc-light-core); opacity: 1; }
+.cc-spot.is-on .cc-sl-stand { stroke: var(--cc-light); }
+.cc-st-buoys { display: flex; align-items: center; gap: 4px; justify-self: end; }
+.cc-st-buoy { width: 22px; height: 22px; }
+.cc-left { font: 700 20px / 1 var(--font-num); color: #ffe6cf; text-shadow: 0 0 8px var(--cc-buoy-halo); min-width: 1.4em; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------------- THE HARBOR: 9 × 12 glass water cells over ONE shimmer layer */
+.cc-play { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+.cc-board {
+  position: relative;
+  display: grid; grid-template-columns: repeat(var(--cc-cols, 9), var(--cc-cell)); grid-auto-rows: var(--cc-cell); gap: var(--cc-gap);
+  padding: 0; border-radius: 8px; overflow: hidden; isolation: isolate;
+  touch-action: none;
+}
+.cc-water { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.cc-water::before {
+  content: ''; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 220%;
+  background: repeating-linear-gradient(115deg, transparent 0 34px, var(--cc-shimmer) 52px, transparent 74px 120px);
+  animation: cc-shimmer 14s linear infinite;
+}
+@keyframes cc-shimmer { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(37.5%, 0, 0); } }
+.cc-cell {
+  position: relative; z-index: 1;
+  display: grid; place-items: center;
+  border-radius: 5px;
+  background: linear-gradient(160deg, var(--cc-water-hi), var(--cc-water) 55%);
+  box-shadow: inset 0 0 0 1px var(--cc-water-line);
+  transition: transform 70ms ease-out;
+  cursor: pointer;
+}
+/* the opened face: a dark still surface (its own layer on opacity — the ripple fades it in) */
+.cc-cell::before { content: ''; position: absolute; inset: 0; border-radius: 5px; background: var(--cc-open); box-shadow: inset 0 0 0 1px var(--cc-open-line); opacity: 0; }
+.cc-cell.is-open::before { opacity: 1; }
+.cc-cell.is-open { cursor: default; }
+.cc-cell.is-press { transform: scale(0.88); }
+.cc-cell.is-press::after, .cc-cell.is-wait::after { content: ''; position: absolute; inset: 0; border-radius: 5px; background: var(--cc-press); opacity: 0.8; }
+.cc-cell.is-wait::after { animation: cc-wait 0.9s ease-in-out infinite alternate; }
+@keyframes cc-wait { from { opacity: 0.35; } to { opacity: 0.9; } }
+.cc-n { position: relative; z-index: 2; font: 800 calc(var(--cc-cell) * 0.56) / 1 var(--font-num); color: var(--cc-ink); }
+.cc-cell[data-n="1"] .cc-n { color: var(--cc-n1); text-shadow: 0 0 6px var(--cc-n1); }
+.cc-cell[data-n="2"] .cc-n { color: var(--cc-n2); text-shadow: 0 0 6px var(--cc-n2); }
+.cc-cell[data-n="3"] .cc-n { color: var(--cc-n3); text-shadow: 0 0 6px var(--cc-n3); }
+.cc-cell[data-n="4"] .cc-n { color: var(--cc-n4); text-shadow: 0 0 6px var(--cc-n4); }
+.cc-cell[data-n="5"] .cc-n { color: var(--cc-n5); text-shadow: 0 0 6px var(--cc-n5); }
+.cc-cell[data-n="6"] .cc-n { color: var(--cc-n6); text-shadow: 0 0 6px var(--cc-n6); }
+.cc-cell[data-n="7"] .cc-n { color: var(--cc-n7); text-shadow: 0 0 6px var(--cc-n7); }
+.cc-cell[data-n="8"] .cc-n { color: var(--cc-n8); text-shadow: 0 0 6px var(--cc-n8); }
+/* THE POP: the face fades in, the digit springs up — both delayed by the ripple's ring (--d) */
+.cc-cell.is-pop::before { animation: cc-face 0.24s ease-out var(--d, 0ms) both; }
+.cc-cell.is-pop .cc-n { animation: cc-pop 0.32s cubic-bezier(0.2, 1.5, 0.4, 1) var(--d, 0ms) both; }
+@keyframes cc-face { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cc-pop { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
+.cc-cell.is-nudge { animation: cc-nudge 0.32s ease-in-out; }
+@keyframes cc-nudge { 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+
+/* THE BUOY (drawn): an orange float, a white band, a lamp + its halo */
+.cc-buoy, .cc-st-buoy, .cc-mode-buoy { overflow: visible; }
+.cc-buoy { position: absolute; inset: 12%; width: 76%; height: 76%; z-index: 2; pointer-events: none; }
+.cc-buoy.is-new { animation: cc-bob 0.3s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+@keyframes cc-bob { from { transform: scale(0.3) translateY(30%); opacity: 0; } to { transform: none; opacity: 1; } }
+.cc-bu-halo { fill: var(--cc-buoy-halo); }
+.cc-bu-mast { stroke: var(--cc-buoy-band); stroke-width: 1.4; stroke-linecap: round; }
+.cc-bu-lamp { fill: var(--cc-buoy-lamp); }
+.cc-bu-body { fill: var(--cc-buoy); }
+.cc-bu-band { stroke: var(--cc-buoy-band); stroke-width: 2.1; stroke-linecap: round; }
+.cc-bu-wl { fill: none; stroke: rgba(170, 225, 255, 0.55); stroke-width: 1.3; stroke-linecap: round; }
+
+/* SPOTTED: a gold searchlight that stays lit in its cell */
+.cc-cell.is-lit { background: radial-gradient(circle at 50% 50%, var(--cc-light-face), transparent 72%), var(--cc-open); box-shadow: inset 0 0 0 1px var(--cc-light); }
+.cc-light { position: absolute; inset: 8%; width: 84%; height: 84%; z-index: 2; pointer-events: none; overflow: visible; }
+.cc-lt-rays path { stroke: var(--cc-light); stroke-width: 1.7; stroke-linecap: round; }
+.cc-lt-glow { fill: var(--cc-light-glow); opacity: 0.6; }
+.cc-lt-core { fill: var(--cc-light-core); stroke: var(--cc-light); stroke-width: 1.4; }
+.cc-ring { position: absolute; inset: -40%; z-index: 3; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(255, 220, 140, 0.75), rgba(255, 200, 90, 0.25) 45%, transparent 70%); animation: cc-ring 0.8s ease-out both; }
+@keyframes cc-ring { from { opacity: 1; transform: scale(0.3); } to { opacity: 0; transform: scale(1.6); } }
+
+/* ---------------- the quiet line (RECONNECTING only — never dev text) */
+.cc-note { flex: none; min-height: 14px; font: 700 11px / 14px var(--font-mono); letter-spacing: 0.16em; color: var(--cc-ink-dim); opacity: 0; transition: opacity 0.25s; }
+.cc-note.is-on { opacity: 1; }
+
+/* ---------------- THE DIG / BUOY SWITCH: two big halves in the thumb zone, modest corners (not a capsule); the active half glows */
+.cc-mode {
+  display: grid; grid-template-columns: 1fr 1fr; flex: none;
+  width: calc(9 * var(--cc-cell) + 8 * var(--cc-gap)); height: 58px;
+  border-radius: 12px; box-shadow: inset 0 0 0 1px var(--cc-mode-line); background: var(--cc-mode-bg); overflow: hidden;
+}
+.cc-mode-b {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 44px; border: 0; margin: 0; padding: 0; border-radius: 0; background: transparent;
+  font: 800 16px / 1 var(--font-display); letter-spacing: 0.18em; color: var(--cc-mode-ink);
+  -webkit-tap-highlight-color: transparent; cursor: pointer;
+}
+.cc-mode-b + .cc-mode-b { box-shadow: inset 1px 0 0 var(--cc-mode-line); }
+.cc-mode-i { width: 26px; height: 26px; flex: none; }
+.cc-mode-dig circle { fill: currentColor; }
+.cc-mode-dig path { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.cc-mode-b[data-m="dig"].is-on { color: var(--cc-mode-on); background: var(--cc-mode-on-bg); box-shadow: inset 0 0 0 1.5px var(--cc-mode-on), inset 0 0 18px var(--cc-mode-on-bg); text-shadow: 0 0 10px var(--cc-mode-on-glow); }
+.cc-mode-b[data-m="buoy"].is-on { color: #ffe6cf; background: var(--cc-mode-buoy-bg); box-shadow: inset 0 0 0 1.5px var(--cc-mode-buoy), inset 0 0 18px var(--cc-mode-buoy-bg); text-shadow: 0 0 10px var(--cc-mode-buoy-glow); }
+.cc-mode-b:not(.is-on) .cc-mode-buoy { opacity: 0.6; }
+.cc-mode-b:focus-visible { outline: 2px solid var(--cc-mode-on); outline-offset: -4px; }
+
+/* ---------------- THE END (CC1 placeholder — CC2 builds the lighthouse win, the caught screen + the share): it takes the switch's place */
+.cc-screen.is-end .cc-mode { display: none; }
+.cc-screen.is-end .cc-board { opacity: 0.55; transition: opacity 0.5s; }
+.cc-end {
+  flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 58px;
+  opacity: 0; transform: translateY(10px); transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+}
+.cc-end[hidden] { display: none; }
+.cc-end.is-in { opacity: 1; transform: none; }
+.cc-end-t { font: 900 24px / 1 var(--font-display); letter-spacing: 0.16em; text-indent: 0.16em; color: var(--good); text-shadow: 0 0 10px var(--good), 0 0 24px rgba(109, 255, 158, 0.4); }
+.cc-end[data-out="caught"] .cc-end-t { color: #ffd36b; text-shadow: 0 0 10px #ffb84a, 0 0 24px rgba(255, 184, 74, 0.4); }
+.cc-end-n { font: 700 34px / 1 var(--font-num); color: var(--cc-sign-core); text-shadow: 0 0 10px var(--cc-sign-glow); }
+.cc-end-line { font: 700 12px / 1.3 var(--font-mono); letter-spacing: 0.14em; color: var(--cc-ink-dim); text-align: center; }
+.cc-end-rec { font: 700 11px / 1 var(--font-mono); letter-spacing: 0.14em; color: var(--text-faint); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-water::before, .cc-cell.is-wait::after { animation: none; }
+  .cc-cell { transition: none; }
+}

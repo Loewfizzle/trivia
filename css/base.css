@@ -94,6 +94,10 @@
   --accent: #ff5ec4; --accent-2: #8ff0ff; --accent-ink: #1a0712;
   --accent-soft: rgba(255, 94, 196, 0.12); --accent-glow: rgba(255, 94, 196, 0.45);
 }
+[data-theme='coastclear'] { /* COAST CLEAR (CC1): the night harbor's ice-cyan sign, the searchlights' gold; right / close = the shared --good / --close */
+  --accent: #7fe8ff; --accent-2: #ffd36b; --accent-ink: #021018;
+  --accent-soft: rgba(127, 232, 255, 0.12); --accent-glow: rgba(95, 214, 255, 0.45);
+}
 [data-theme='prism'] { /* PRISM DROP: clean white light with spectral edges */
   --accent: #f4f7ff; --accent-2: #8fd8ff; --accent-ink: #070912;
   --accent-soft: rgba(244, 247, 255, 0.08); --accent-glow: rgba(190, 210, 255, 0.4);

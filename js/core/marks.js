@@ -61,6 +61,13 @@ export const MARKS = {
     { d: 'M42 48 L36 84 H64 L58 48', col: '#ff5ec4' },
     { d: 'M14 66 H30 M22 60 V72', col: '#8ff0ff' },
   ] },
+  // COAST CLEAR (CC1): a searchlight's beam sweeping over a small boat on the water
+  coastclear: { blade: 'COAST CLEAR', tubes: [
+    { d: 'M20 30 L84 12 M20 30 L88 40', col: '#ffd36b' },
+    { d: 'M14 34 A6 6 0 1 1 26 34 A6 6 0 1 1 14 34', col: '#ffd36b' },
+    { d: 'M30 66 H72 L64 76 H38 Z M50 66 V52 L62 62', col: '#7fe8ff' },
+    { d: 'M12 86 Q24 80 36 86 T60 86 T88 86', col: '#5fa8ff' },
+  ] },
   // SLIPSTREAM: a gold-and-blue swoosh
   slip: { blade: 'SLIPSTREAM', tubes: [
     { d: 'M8 70 C32 70 46 28 92 24', col: '#ffc46b' },

@@ -84,6 +84,7 @@ export const GAMES = [ // lobby order
 // MODULE opens these once a day, later; until then THE PASSWORD is reachable only through its preview + its E2E. `gameRow(id)` = either list.
 export const DAILIES = [
   { id: 'password', name: 'THE PASSWORD', theme: 'password', tag: 'DAILY · TWO DOORS', blurb: 'Two five-letter words stand between you and the back room. Six guesses each. Once a day.', playable: false, daily: true },
+  { id: 'coastclear', name: 'COAST CLEAR', theme: 'coastclear', tag: 'DAILY · THE NIGHT HARBOR', blurb: 'Slip your boat across the harbor past the hidden searchlights. Buoy the ones you find. Once a day.', playable: false, daily: true },
 ];
 export const gameRow = id => GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || null;
 

@@ -6,7 +6,7 @@ import { reportError } from '../errlog.js';
 
 // The cascade order the sheets always had in index.html: a lazily loaded sheet is inserted at its old place among the
 // sheets already on the page, so which rule wins a tie never depends on which game was played first.
-const ORDER = ['cipher', 'signal', 'overclock', 'bluff', 'pulse', 'golf', 'agent', 'kit', 'prism', 'password', 'slip', 'gridlock', 'chat', 'board', 'card', 'stakes', 'rum'];
+const ORDER = ['cipher', 'signal', 'overclock', 'bluff', 'pulse', 'golf', 'agent', 'kit', 'prism', 'password', 'coastclear', 'slip', 'gridlock', 'chat', 'board', 'card', 'stakes', 'rum'];
 const CSS_DIR = new URL('../../css/', import.meta.url);
 const nameOf = href => { const m = /\/css\/([\w-]+)\.css(?:$|\?)/.exec(href || ''); return m ? m[1] : null; };
 

@@ -377,7 +377,7 @@ G('cartridge', async () => {
   ok(boot.loaded <= 2 && boot.metas === 'overclock,prism', `THE LAZY LOGIC: a fresh room page holds only the playable games' METAS (${boot.metas}) — ${boot.loaded} cartridge(s) loaded before a game`);
   // (PW1: a DAILY-ONLY cartridge — GAMES daily: true, never playable — is checked like a playable one, never counted as hidden)
   const play = Object.entries(r).filter(([, x]) => x.playable || x.daily), hidden = Object.entries(r).filter(([, x]) => !x.playable && !x.daily);
-  ok(play.length === 3 && play.every(([, x]) => !x.problems.length && x.warm && x.lock), `THE CARTRIDGE PLUG: the playable + the daily-only games meet the contract in a real page (${play.map(([id, x]) => `${id}: ${x.problems.length ? x.problems.join('; ') : 'ok'}`).join(' · ')}) — warmable views, their own chat locks`);
+  ok(play.length === 4 && play.every(([, x]) => !x.problems.length && x.warm && x.lock), `THE CARTRIDGE PLUG: the playable + the daily-only games meet the contract in a real page (${play.map(([id, x]) => `${id}: ${x.problems.length ? x.problems.join('; ') : 'ok'}`).join(' · ')}) — warmable views, their own chat locks`);
   ok(hidden.length === 10, `the ${hidden.length} hidden games are EXEMPT until each comes back (${hidden.map(([id, x]) => `${id} ${x.problems.length}`).join(', ')} gaps — frozen)`);
   await Q.ctx.close();
 });

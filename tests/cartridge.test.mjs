@@ -27,7 +27,7 @@ const PLAYABLE = GAMES.filter(g => g.playable).map(g => g.id);
 export const EXEMPT = Object.freeze(['cipher', 'signal', 'bluff', 'pulse', 'golf', 'agent', 'slip', 'gridlock', 'stakes', 'rum']);
 /** PW1 — THE DAILY-ONLY cartridges: never playable in a room (GAMES `daily: true`, playable false — no lobby row, no sign), NOT exempt: they
  *  meet the whole contract like a playable game (THE DAILY MODULE opens them once a day, later) */
-export const DAILY_ONLY = Object.freeze(['password']);
+export const DAILY_ONLY = Object.freeze(['password', 'coastclear']);
 const CHECKED = [...PLAYABLE, ...DAILY_ONLY];
 
 test('every registered game is PLAYABLE (and checked), DAILY-ONLY (checked, never in a room) or EXEMPT (hidden, frozen) — never neither', () => {
@@ -94,7 +94,7 @@ test("THE THIN META: the registry's static imports are the meta files only; ever
   const statics = [...REG.matchAll(/^import .* from '(\.\/[^']+)'/gm)].map(m => m[1]);
   assert.deepEqual(statics.filter(s => /\/(index|logic|director|view)\.js$/.test(s)), [], 'no game code imported statically');
   assert.deepEqual([...REG.matchAll(/^import \* as \w+ from '\.\/(\w+)\/meta\.js'/gm)].map(m => m[1]).sort(), [...PLAYABLE].sort());
-  assert.equal(registered.length, 13);
+  assert.equal(registered.length, 14);
   for (const id of CHECKED) {
     const meta = read(`js/games/${id}/meta.js`);
     assert.doesNotMatch(meta, /^import /m, `${id}/meta.js imports nothing (pure + tiny)`);
