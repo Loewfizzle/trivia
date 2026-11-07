@@ -1,7 +1,7 @@
 // OVERCLOCK content banks (TRUE OR FALSE facts, TIMELINE theme pools, CLOSEST CALL questions, MISSING LINK puzzles,
 // SPELLCHECK words, SORT IT category pairs, HIGHER OR LOWER stats), fetched once — only when a match's order actually
-// includes that challenge (OC6: the big pools are built by scripts/oc-pools/build.mjs — docs/content.md; the DAILY RESERVE is
-// never here: api/_data/oc-reserve/, server-only).
+// includes that challenge (OC6: the big pools are built by scripts/oc-pools/build.mjs — docs/content.md; THE DAILY RESERVE is
+// server-only and never loaded here — docs/cartridge.md D2).
 const FILES = {
   truefalse: ['truefalse.json', 'items'],
   timeline: ['timeline.json', 'themes'],

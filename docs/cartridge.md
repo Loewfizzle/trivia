@@ -61,6 +61,24 @@ one per brain category], deal?, trivia?: [three own-bank questions] }` (`daily.p
 pass) seeds it, unlocks it, feeds the streak, owns the daily results + percentiles and switches all three dailies on together; a game never
 builds its own daily screen, rankings or streak hooks. `checkCartridge` fails a daily that switches itself on.
 
+**OVERCLOCK's DAILY RESERVE (OC6 — for THE DAILY MODULE).** ~20% of every OC6 pool is SERVER-ONLY, so a daily's answers can't be looked up in
+the site's files:
+- **Where:** `api/_data/oc-reserve/truefalse.json` · `higherlower.json` · `timeline.json` · `sortit.json` — the SAME shapes as the party files in
+  `data/oc/` (`{ items }` · `{ stats }` · `{ themes }` · `{ sets }` — docs/content.md "THE POOL BUILD"). Built by `scripts/oc-pools/build.mjs`
+  (a stable hash of each item's id decides its side). Never served (Vercel serves `api/` as functions only; `scripts/serve.mjs` the same — a 404),
+  never imported by a page, never dealt in a party (`tests/overclock-reserve.test.mjs`). A function that reads it: `readFileSync` +
+  `vercel.json#functions.<fn>.includeFiles: "api/_data/oc-reserve/*.json"` (or a static `import … with { type: 'json' }`, which the bundler traces).
+- **Ids:** every item has a STABLE id (a Wikidata Q-id, `h-…`, `w…`, `d-…`; a set's / a theme's / a stat's own id). A day set's `deal` points at
+  items BY ID (the reserve's or the party's): truefalse `[4 fact ids]` · higherlower `["statId|itemId|itemId" × 10]` · timeline `[themeId, itemId ×
+  4]` · sortit `[setId]` (`daily.problems` accepts ints + ids). Pick the day's items from THE RESERVE.
+- **The answers stay on the server:** the module's server merges party + reserve into the pools (`{ truefalse, higherlower, timeline, sortit }`)
+  and calls `dayContent(daySet, pools)` (`js/games/overclock/daily.js`, PURE) → `{ show, key }` per pooled challenge: `show` = what a phone may
+  get (the statements / names / labels / cards — no truth, no hidden value, no side, no order), `key` = the answers it keeps to judge each item as
+  it CLOSES (`publicOf` / `answersOf` per type). The phone renders from `show`; the module answers each tap. (Overclock's challenge screens judge
+  locally today — taking their verdict from the module's answer per item is the module's pass, with this split ready for it.)
+- **The repo is public until the launch:** the reserve sits in the repo (GitHub shows it) — the SITE never serves it. Before the dailies go on,
+  either the repo goes private (the owner's plan) or the module keeps the reserve in its own storage.
+
 ## A new game — the checklist (on top of CLAUDE.md's "Adding a game")
 1. Rules first (pure logic + director + whole-match simulations), then the view on the match kit.
 2. index.js exports every REQUIRED piece; `start()` times its first phase from `now`.

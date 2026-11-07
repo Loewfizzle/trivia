@@ -39,6 +39,8 @@ createServer(async (req, res) => {
   let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   const api = /^\/api\/([^/]+)$/.exec(path);
   if (api) { await runApi(api[1], req, res); return; }
+  // like Vercel: api/ is functions only — its helpers + server-only data (api/_lib, THE DAILY RESERVE in api/_data — OC6) are never a file
+  if (/^\/api(\/|$)/i.test(path)) { res.writeHead(404).end('not found'); return; }
   if (path === '/board' || path === '/admin' || path === '/lab' || path === '/daychart') path += '.html';
   const file = normalize(join(root, path.endsWith('/') ? `${path}index.html` : path));
   if (!file.startsWith(root)) { res.writeHead(403).end(); return; }

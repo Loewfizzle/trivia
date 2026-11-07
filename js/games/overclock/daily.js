@@ -20,7 +20,7 @@
 //   time, ms — lower wins a tie), rank (ONE number that orders both: higher = better) }. replay(daySet, record, uid) = THE SERVER's CHECK: the
 //   record's per-challenge results re-scored from the scoring table (logic.js#challengeScore) → the same result, or null (a record no run makes).
 import { CHALLENGE_MS, MODES, computeResults, totals } from './logic.js';
-import { SKILL_TYPES, CATEGORY, partsFor } from './challenges.js';
+import { SKILL_TYPES, CATEGORY, partsFor, generate } from './challenges.js';
 import { LUCK } from './luck.js';
 import { createGame } from './director.js';
 import { appendPatch } from '../../trivia/bankdata.js';
@@ -122,3 +122,50 @@ export function replay(daySet, record, uid) {
 
 /** THE PLUG-IN (docs/cartridge.md D2): on: false — the game never switches itself on */
 export const daily = Object.freeze({ on: false, create, resumeKey, result, replay, problems: daySetProblems });
+
+// ---------------------------------------------------------------------------------------------- THE DAILY RESERVE (OC6 — docs/cartridge.md D2)
+// ~20% of every OC6 pool (TRUE OR FALSE, HIGHER OR LOWER, TIMELINE, SORT IT) is kept SERVER-ONLY in api/_data/oc-reserve/<pool>.json (the same
+// shapes as data/oc/<pool>.json — never served, never imported by a page, never dealt in a party), so a daily's answers can't be looked up in
+// the site's files. A day set's deal may point into the reserve by id. THE DAILY MODULE's server (later) loads party + reserve, picks the day,
+// and calls dayContent: the phone gets SHOW only (every item's text — never which is right) and the server keeps KEY to judge each item as it
+// closes. PURE (no fs, no Firebase): the server passes the pools in.
+export const POOLED = Object.freeze(['truefalse', 'higherlower', 'timeline', 'sortit']);
+/** what a phone may see of a challenge — the texts, never the answers */
+export function publicOf(spec) {
+  if (!spec) return null;
+  switch (spec.type) {
+    case 'truefalse': return { type: spec.type, parts: spec.parts, items: spec.items.map(it => ({ text: it.text })) };
+    case 'higherlower': return { type: spec.type, parts: spec.parts, pairs: spec.pairs.map(p => ({ stat: p.stat, ask: p.ask, unit: p.unit, a: { name: p.a.name, v: p.a.v, shown: p.a.shown }, b: { name: p.b.name } })) };
+    case 'timeline': return { type: spec.type, parts: spec.parts, title: spec.title, ask: spec.ask, dir: spec.dir, labels: spec.shown.map(pos => spec.items[pos].label) };
+    case 'sortit': return { type: spec.type, parts: spec.parts, left: spec.left, right: spec.right, cards: spec.cards.map(c => c.t) };
+    default: return null;
+  }
+}
+/** the answers the server keeps for a challenge (judged item by item as each closes) */
+export function answersOf(spec) {
+  if (!spec) return null;
+  switch (spec.type) {
+    case 'truefalse': return spec.items.map(it => it.truth);
+    case 'higherlower': return spec.pairs.map(p => ({ up: p.b.v > p.a.v, v: p.b.v, shown: p.b.shown }));
+    case 'timeline': return { shown: spec.shown, values: spec.items.map(it => it.value) };
+    case 'sortit': return spec.cards.map(c => c.s);
+    default: return null;
+  }
+}
+/**
+ * SERVER ONLY: the day's pooled challenges from the pools (party + reserve merged: { truefalse, higherlower, timeline, sortit } — the shapes
+ * banks.js loads). → { show: { ci: public spec }, key: { ci: answers } } for every pooled challenge of the day (the rest stay as create() builds
+ * them). Deterministic from the day set — the same on every call.
+ */
+export function dayContent(daySet, pools, generateFn = generate) {
+  const bad = daySetProblems(daySet);
+  if (bad.length) throw new Error(`overclock daily: ${bad.join(' · ')}`);
+  const show = {}, key = {};
+  daySet.order.forEach((type, ci) => {
+    if (!POOLED.includes(type)) return;
+    const spec = generateFn(type, { seed: daySet.seed, ci, level: ci / (DAILY_N - 1), occ: 0, deal: (daySet.deal && daySet.deal[ci]) || null }, pools);
+    show[ci] = publicOf(spec);
+    key[ci] = answersOf(spec);
+  });
+  return { show, key };
+}
