@@ -348,13 +348,19 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - **NEON GLASS** (components.css): the panels, inputs, tags, leaderboard rows + podium keep the glass language; the buttons, sheets, rows +
   messages are THE SHELL's. (The frozen games' own `.modal` sheets keep the old base until each comes back.)
 - **Player emblems** (`avatar(id, color, size)`): 12 shapes built like the neon sign; size with `--s`. Preview: `tests/integration/avatars-preview.html`.
-- Game screens fill `.screen` with `overflow: hidden`; in a game the fixed corner holds two buttons top-right: ☰ menu (THE SHEET of rows: CHAT —
-  hidden while the game locks chat — YOUR CARD, HOW TO PLAY, SETTINGS, SOUND EFFECTS, QUIT TO THE ROOM, host END GAME — settings-panel.js#openMenu) and music on/off (+54, music only, effects
-  stay); both are 36 pt circles (`--cb`) with an invisible 44 pt tap area (`::after`); headers use `padding-right: 44px`; announcements
-  stay clear of it. (☰ → Settings holds THE GAME LOOK: AUTO · DAY · NIGHT — SHELL 2.0 B2.) The title (+ the room, which lives there) SPLITS the corners: ☰ top-LEFT, music top-RIGHT (`body.nd-on`, components.css).
-  A full-width game (`.screen.<x>-screen { max-width: none }`) must also pin the column to the screen's edge:
-  `body.<x>-on [data-theme] .music-btn, [data-theme] .menu-btn { right: calc(var(--safe-r) + 12px) }` (gridlock, slip,
-  stakes, rum do) — otherwise on desktop the buttons stay at the phone column's edge and land on the game's panels. Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
+- Game screens fill `.screen` with `overflow: hidden`. **THE CORNER BUTTONS ARE SPLIT ON EVERY SCREEN** (OC8 — the owner's ADD-ON, Nov 7: "every
+  screen = the main page"): ☰ menu TOP-LEFT (THE SHEET of rows: CHAT — hidden while the game locks chat — YOUR CARD, HOW TO PLAY, SETTINGS, SOUND
+  EFFECTS, QUIT TO THE ROOM, host END GAME — settings-panel.js#openMenu), music on/off TOP-RIGHT (music only, effects stay), level — never stacked;
+  ONE shared rule in components.css ("SPLIT ON EVERY SCREEN"); both are 36 pt circles (`--cb`) with an invisible 44 pt tap area (`::after`) +
+  safe-area insets. Every header makes room on BOTH sides: `var(--cb-room)` (the button + its 12 pt inset + 8 pt of air) — the left for ☰ (a title /
+  a back button never under it: `.bar`, `.game-head`, OVERCLOCK's header, PRISM DROP's top line, THE BOARD's back + emblem, the podium's kicker),
+  the right for the music; announcements stay clear of both. A long title SHRINKS to fit (OVERCLOCK: view.js#fitName — never wraps, never clips).
+  The profile keeps its own rule (no ☰ — BACK takes the top-left corner). On a desktop the games' buttons sit at the phone column's corners; the
+  title + the room (`body.nd-on`), setup (`nd-glass`) + THE BOARD (`bd-on`) pin them to the SCREEN's corners. (☰ → Settings holds THE GAME LOOK:
+  AUTO · DAY · NIGHT — SHELL 2.0 B2.) A full-width game (`.screen.<x>-screen { max-width: none }`) must pin BOTH corners to the screen's edges
+  (`.menu-btn { left: calc(var(--safe-l) + 12px) }` + `.music-btn { right: calc(var(--safe-r) + 12px) }`) — the frozen gridlock / slip / stakes / rum
+  files still pin the old stacked pair (fix each when it comes back) — otherwise on desktop the buttons stay at the phone column's edge and land on
+  the game's panels. Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
 
 ## Adding a game (checklist)
 1. **Rules:** `js/games/<id>/logic.js` + `director.js` (pure) → `createGame()` and `nextStep(game, ctx)`; a `tests/<id>.test.mjs` with

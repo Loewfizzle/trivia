@@ -96,6 +96,7 @@ export function createView() {
     els.x2 = h('span.oc-head-x2', '×2');
     els.sub = h('div.oc-sub', els.num, els.name, els.x2);
     els.score = h('b.oc-score-n', '0');
+    if (typeof ResizeObserver === 'function') { nameRO = new ResizeObserver(() => fitName()); }
     els.head = h('header.game-head.oc-head',
       h('div.oc-head-l', h('div.oc-mark', 'OVER', h('b', 'CLOCK')), els.sub),
       h('div.oc-score', h('span.oc-score-k', 'SCORE'), els.score));
@@ -106,6 +107,9 @@ export function createView() {
     els.stage = h('section.oc-stage', { dataset: { sfx: 'none' } });
     els.overlay = h('div.oc-overlay');
     root.append(els.bg, els.head, els.timer, els.row, els.stage, els.overlay, fx.el, tach.edge);
+    if (nameRO) nameRO.observe(els.sub);
+    // (the display font arrives after the first paint — its widths differ: fit again once it's in)
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitName()).catch(() => {});
     // (OC3: no challenge ever opens the phone's system keyboard — the kit's pads — so no keyboard tracking here any more)
     loadLengths([5, 6, 7]).then(() => { wordsReady = true; if (st) update(st); }).catch(() => {});
     if (state.game && state.game.order) preloadFor(state.game.order).then(() => { if (st) update(st); });
@@ -122,7 +126,26 @@ export function createView() {
     update(state);
   }
 
+  // (OC8 — the owner's ADD-ON: the header starts right of ☰ now — a long challenge name SHRINKS to fit at 390, never wraps, never clips. Read
+  //  only when the name changes or the header resizes (a ResizeObserver) — never in a frame loop)
+  let lastName = '', nameRO = null;
+  function fitName() {
+    if (!els.name || !els.name.isConnected || !els.sub.clientWidth) return;
+    // the name at its natural width (no shrink) against the room the row leaves it (the row − 01/06 − ×2 − the gaps), 4 % spare for the
+    // italic face's overhang (Chrome ellipses on the ink, not the box)
+    els.name.style.fontSize = '';
+    els.name.style.flex = 'none';
+    const gap = parseFloat(getComputedStyle(els.sub).columnGap) || 8;
+    const used = els.num.offsetWidth + (els.x2.hidden ? 0 : els.x2.offsetWidth + gap) + gap;
+    const room = els.sub.clientWidth - used, natural = els.name.offsetWidth;
+    if (natural > room * 0.96 && room > 0) {
+      const base = parseFloat(getComputedStyle(els.name).fontSize) || 24;
+      els.name.style.fontSize = `${Math.max(12, Math.floor(base * ((room * 0.96) / natural) * 10) / 10)}px`;
+    }
+    els.name.style.flex = '';
+  }
   function unmount() {
+    if (nameRO) { nameRO.disconnect(); nameRO = null; }
     if (tach) tach.destroy();
     if (combo) combo.destroy();
     if (slam) slam.destroy();
@@ -142,8 +165,8 @@ export function createView() {
     const isFinal = game.ci === game.total - 1;
     root.dataset.phase = game.phase;
     els.num.textContent = `${String(game.ci + 1).padStart(2, '0')}/${String(game.total).padStart(2, '0')}`;
-    els.name.textContent = INFO[type].name;
-    els.x2.hidden = !isFinal;
+    const nameNow = `${INFO[type].name}|${isFinal}`;
+    if (nameNow !== lastName) { lastName = nameNow; els.name.textContent = INFO[type].name; els.x2.hidden = !isFinal; fitName(); }
     // THE TACH runs the challenge's 30 s only (the slam + the answer screens have their own clocks)
     // (DUMB LUCK has no answer clock — its gate + its race keep their own time)
     const luck = type === LUCK;

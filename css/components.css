@@ -266,6 +266,8 @@
   letter-spacing: 0.28em;
   color: var(--accent);
 }
+/* (OC8 — split corners: the podium frame's top line sits between ☰ and the music, never under either) */
+.panel-full.final > .sheet-kicker { padding-left: calc(var(--cb-room) - 16px); padding-right: calc(var(--cb-room) - 16px); }
 .sheet-title {
   font-family: var(--font-display);
   font-weight: 900;
@@ -467,7 +469,7 @@
 
 
 /* ---- game header (leaves room for the fixed gear button) ---- */
-.game-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex: none; min-height: 44px; padding-right: 44px; }   /* (clear of the 36 pt corner buttons: 12 + 36 + 12 − the 16 pt gutter) */
+.game-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex: none; min-height: 44px; padding-right: 44px; padding-left: calc(var(--cb-room) - 16px); }   /* (OC8: room on the LEFT for ☰ — the screen's own 16 pt side padding counted) */   /* (clear of the 36 pt corner buttons: 12 + 36 + 12 − the 16 pt gutter) */
 .lb-note { display: block; font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--text-dim); margin-top: 2px; }
 
 /* ---- settings: gear + sheet ---- */
@@ -815,7 +817,7 @@ body.nd-glass .gc-name { color: #fff; }
 /* settings: the pinned title row is part of the sheet's top, not a second layer */
 .sheet.settings { padding-top: 0; }
 .sheet.settings > .set-head { top: 0; margin: 0 calc(-1 * var(--gutter)); padding: 16px var(--gutter) 12px; border-radius: 26px 26px 0 0; background: linear-gradient(180deg, rgba(30, 31, 54, 0.98), rgba(14, 15, 36, 0.98)); box-shadow: 0 1px 0 var(--gl-line); }
-body.nd-glass .bar { padding-right: 112px; }
+body.nd-glass .bar { padding-right: 44px; }   /* (OC8 — split corners: only the music on the right now; ☰ is on the left) */
 .sheet.settings { padding-top: 10px; }
 .sheet.settings > .set-head { border-radius: 0; background: rgba(13, 14, 34, 0.97); box-shadow: 0 1px 0 var(--gl-line), 0 10px 14px -10px rgba(0, 0, 0, 0.6); }
 .sheet.settings { background: rgba(13, 14, 34, 0.97); }
@@ -930,14 +932,20 @@ body.nd-glass .bar { padding-right: 112px; }
 .mb-cue { position: absolute; bottom: 3px; left: 3px; width: 8px; height: 8px; border-radius: 50%; background: #7dff9c; box-shadow: 0 0 6px rgba(125, 255, 156, 0.9); pointer-events: none; }
 .mb-cue[data-k='all'] { background: #ff7ccb; box-shadow: 0 0 6px rgba(255, 124, 203, 0.9); }
 .mb-cue[hidden] { display: none; }
-/* every screen: ☰ on top, music under it (the gear and the chat button live inside the menu) */
-.menu-btn { display: grid; top: calc(var(--safe-t) + 10px); right: max(calc(var(--safe-r) + 12px), calc((100vw - var(--maxw)) / 2 + 12px)); }
+/* SPLIT ON EVERY SCREEN (OC8 — the owner's ADD-ON, Nov 7: "the corner buttons on every screen = the main page"): ☰ in the TOP-LEFT corner,
+   the music / mute in the TOP-RIGHT, level — never stacked on the right. ONE rule for every screen that shows them (the games, setup, the
+   board's in-app view …): the phone column's corners (on a phone the column IS the screen; a desktop pins them to the column's edges); the
+   title + the room (body.nd-on) and THE BOARD (body.bd-on) pin them to the SCREEN's corners (below). A screen's header makes room on the LEFT
+   for ☰ and on the RIGHT for the music: var(--cb-room) = the button + its 12 pt inset + 8 pt of air. (The gear and the chat button live
+   inside the menu.) */
+:root { --cb-room: calc(var(--cb) + 20px); }
+.menu-btn { display: grid; top: calc(var(--safe-t) + 10px); left: max(calc(var(--safe-l) + 12px), calc((100vw - var(--maxw)) / 2 + 12px)); right: auto; }
 .gear, .chat-fab, .help-btn { display: none !important; }
-.music-btn, body .music-btn, body[data-theme] .music-btn, body[data-theme]:not([data-theme='']) .music-btn, body[data-theme]:not([data-theme='']):not(.chat-fab-on) .music-btn, body.nd-glass .music-btn, body.nd-on .music-btn, body.bd-on .music-btn { top: calc(var(--safe-t) + 10px + var(--cb) + var(--cb-gap)); right: max(calc(var(--safe-r) + 12px), calc((100vw - var(--maxw)) / 2 + 12px)); }
-body.nd-glass .menu-btn, body.nd-on .menu-btn, body.bd-on .menu-btn { right: calc(var(--safe-r) + 12px); }
+.music-btn, body .music-btn, body[data-theme] .music-btn, body[data-theme]:not([data-theme='']) .music-btn, body[data-theme]:not([data-theme='']):not(.chat-fab-on) .music-btn, body.nd-glass .music-btn, body.nd-on .music-btn, body.bd-on .music-btn { top: calc(var(--safe-t) + 10px); right: max(calc(var(--safe-r) + 12px), calc((100vw - var(--maxw)) / 2 + 12px)); }
+body.nd-glass .menu-btn, body.nd-on .menu-btn, body.bd-on .menu-btn { left: calc(var(--safe-l) + 12px); right: auto; }
 body.nd-glass .music-btn, body.nd-on .music-btn, body.bd-on .music-btn { right: calc(var(--safe-r) + 12px); }
-/* SPLIT CORNERS (7a section 0, the owner): on the title (body.nd-on — the room lives there too) the menu sits in the
-   TOP-LEFT corner and the music in the TOP-RIGHT, framing the sign; the games keep both on the right */
+/* SPLIT CORNERS (7a section 0, the owner — the first screens split): on the title (body.nd-on — the room lives there too) the menu sits in
+   the TOP-LEFT corner and the music in the TOP-RIGHT, framing the sign — OC8 made it every screen's rule (above) */
 body.nd-on .menu-btn { left: calc(var(--safe-l) + 12px); right: auto; }
 body.nd-on .music-btn { top: calc(var(--safe-t) + 10px); }
 /* (LOBBY FIXES — the owner's ADD-ON, desktop 1440 × 900: the music button sat mid-screen by the moon — a game's theme on the body (the walk
@@ -1006,6 +1014,8 @@ body.nd-on .music-btn, body.nd-on[data-theme] .music-btn { right: calc(var(--saf
 .nd-hover.on { opacity: 1; }
 /* LOBBY 2.0 A - THE PROFILE header (the owner 2C review): only BACK + the music mute; the menu button leaves the corner on the profile */
 body.pf-on .menu-btn { display: none !important; }
+/* (OC8 — split corners: with no ☰ on the profile, BACK takes the top-left corner itself) */
+body.pf-on .bar { padding-left: 0; }
 
 /* LOBBY FIXES — THE PLAYER CARD's CREW row (the owner's phone only — screens/crew-row.js): under the card, before CLOSE */
 .cr-row { display: flex; align-items: center; gap: 14px; width: min(100%, 360px); margin: 10px auto 0; padding: 10px 12px 10px 16px; border-radius: 14px;

@@ -3,7 +3,7 @@
    ========================================================================== */
 
 /* ---- shared header bar ---- */
-.bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-right: 44px; }
+.bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-right: 44px; padding-left: calc(var(--cb-room) - 16px); }   /* (OC8: the back button + title right of ☰) */
 .bar-title {
   font-family: var(--font-display);
   font-weight: 700;
@@ -11,6 +11,8 @@
   letter-spacing: 0.2em;
   color: var(--accent);
 }
+/* (OC8 — split corners: the title shares the row with ☰ + the back button — one line at 390, a touch smaller + tighter on a phone) */
+@media (max-width: 440px) { .bar-title { font-size: 12.5px; letter-spacing: 0.14em; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; } }
 
 @keyframes glitch-a {
   0%, 86%, 100% { opacity: 0; transform: none; }

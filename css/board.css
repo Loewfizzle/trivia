@@ -275,6 +275,10 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 }
 /* phones: the corner buttons (music, settings) own the top row, the title sits under it */
 @media (max-width: 899px) {
+  /* (OC8 — split on every screen: ☰ owns the top-LEFT corner now — BACK + your emblem start right of it) */
+  .bd-head { grid-template-columns: calc(44px + var(--cb-room) - 16px) 1fr; }
+  .bd-back { margin-left: calc(var(--cb-room) - 16px); }
+  .bd-mebtn { left: calc(52px + var(--cb-room) - 16px); }
   .bd-head { grid-template-rows: 44px auto; }
   .bd-title { grid-row: 2; padding-top: 0; }
   .bd-kicker { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 44px; display: flex; align-items: center; margin: 0; font-size: 8.5px; letter-spacing: 0.42em; white-space: nowrap; opacity: 0; }

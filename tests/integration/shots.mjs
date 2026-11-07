@@ -186,6 +186,8 @@ if (PAGE && process.argv.includes('--wk')) {
     await p.goto(`${BASE}/${String(PAGE).replace(/^\/+/, '')}`);
     await p.waitForFunction(() => document.body && document.body.dataset.ready, null, { timeout: 60000 }).catch(() => {});
     await sleep(opt('wait', 0) ? WAIT : 1200);
+    // (OC8: --js on a WebKit --page too — open an app screen (setup, the profile, THE BOARD) before the shot, as the Chromium --page does)
+    if (opt('js', '')) { await p.evaluate(String(opt('js'))).catch(e => console.log('JS', e.message)); await sleep(Number(opt('js-wait', 1500))); }
     for (let k = 0; k < (EVERY ? COUNT : 1); k++) {
       await p.screenshot({ path: `${OUT}${opt('name', 'page')}-wk-${w}x${h}${EVERY ? `-${String(k).padStart(2, '0')}` : ''}.png`, fullPage: !EVERY });
       if (EVERY && k < COUNT - 1) await sleep(EVERY);
@@ -260,7 +262,7 @@ if (PAGE) {
       }
       await q.close(); await p.close(); continue;
     }
-    if (opt('js', '')) { await p.evaluate(String(opt('js', ''))).catch(e => console.log('JS', e.message)); await sleep(400); }
+    if (opt('js', '')) { await p.evaluate(String(opt('js', ''))).catch(e => console.log('JS', e.message)); await sleep(Number(opt('js-wait', 400))); }
     // (OC1 — --fps <ms> on a --page: the page's own frame pacing for that long (rAF intervals; --cpu N throttles first) → p50 / p95 / fps /
     //  long frames printed — a game screen's 60 fps check; --js can start the motion being judged)
     if (opt('fps', 0)) {

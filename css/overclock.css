@@ -223,6 +223,9 @@
 
 /* ---------------- the header: the challenge + the score */
 .oc-od .oc-head { align-items: flex-end; min-height: 54px; gap: 12px; }
+/* (OC8 — the owner's ADD-ON: ☰ top-LEFT, music top-RIGHT) the wordmark, 01/06 + the challenge name and the progress dashes start right of ☰;
+   SCORE keeps clear of the music button; the name SHRINKS to fit (view.js#fitName — never wraps, never clips) */
+.oc-od .oc-head { padding-left: calc(var(--cb-room) - 16px); padding-right: calc(var(--cb-room) - 16px); }
 .oc-mark { font: italic 900 14px / 1 var(--oc-font-title); letter-spacing: 0.16em; color: #fff; }
 .oc-mark b { color: var(--oc-hot); font-weight: 900; }
 .oc-od .oc-sub { display: flex; align-items: center; gap: 8px; margin-top: 5px; min-width: 0; font: italic 900 clamp(21px, 6vw, 25px) / 1 var(--oc-font-title); letter-spacing: 0.01em; color: #fff; white-space: nowrap; }
@@ -236,8 +239,8 @@
 .oc-score-n.oc-bump { animation: oc-bump 0.34s cubic-bezier(0.2, 1.4, 0.4, 1); }
 @keyframes oc-bump { 40% { transform: scale(1.14); } }
 
-/* ---------------- THE TACH (kit/tach.js) — clear of the music button under ☰ */
-.oc-od .oc-tach { flex: none; padding-right: 44px; opacity: 0.55; transition: opacity 0.3s; }
+/* ---------------- THE TACH (kit/tach.js) — (OC8: the corner buttons share the header's row now — the tach's own row is clear of them) */
+.oc-od .oc-tach { flex: none; padding-right: 0; opacity: 0.55; transition: opacity 0.3s; }
 .oc-od .oc-tach.is-live { opacity: 1; }
 .oc-od .gk-tach-num { font-size: 24px; min-width: 1.6ch; }
 .oc-od .gk-tach.is-done .gk-tach-num { color: var(--oc-wrong); }
@@ -488,8 +491,9 @@
    footer of their own below it (reserved — no row ever sits under them, 8 players on a 390 × 844 phone included) */
 .oc-od .panel-full.oc-standings { display: flex; flex-direction: column; gap: 0; overflow: hidden; padding-bottom: calc(var(--safe-b) + 10px); }
 /* (OC8 — A1, THE FABLE REVIEW: the music button sat ON THE ANSWER's ✓ socket, "7/8" + WHO WON THE RACE? ran under ☰) every beat starts BELOW
-   the corner's two buttons: their top (10) + ☰ (--cb) + the gap + music (--cb) + 10 pt of air — the same numbers components.css places them by */
-.oc-od .panel-full.oc-standings { padding-top: calc(var(--safe-t) + 20px + 2 * var(--cb) + var(--cb-gap)); }
+   the corner buttons: their top (10) + the button (--cb) + 10 pt of air — the owner's ADD-ON split them across the top row (☰ left, music
+   right), so ONE row now; the same numbers components.css places them by */
+.oc-od .panel-full.oc-standings { padding-top: calc(var(--safe-t) + 20px + var(--cb)); }
 .oc-st-scroll { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 16px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding-bottom: 14px; -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); }
 .oc-st-scroll::-webkit-scrollbar { display: none; }
 .oc-st-foot { flex: none; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
