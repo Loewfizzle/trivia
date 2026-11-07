@@ -846,3 +846,118 @@ word, `hard` drives the underlines.
   typed word, never show one.
 - A few data-built questions are better known abroad (a European city, a park) — the spot-check sheet is the place to flag any; the read so far
   dropped 37.
+
+### OC8 — THE FIX PASS (THE FABLE REVIEW) + THE MISSING LINK TOP-UP + THE OWNER's ADD-ON (Nov 7, 2026)
+THE FABLE REVIEW (`Downloads/neon/overclock/FABLE-REVIEW.md`, Nov 7) found OVERCLOCK "close to the bar, not at it": 0 game-breaking, 10 serious,
+22 polish, 4 broken content templates. OC8 fixed PART A (the game) + the CONTENT section, topped MISSING LINK up, and did the owner's mid-pass
+ADD-ON (the corner buttons split on every screen). PART B (console / cards / board / profile) stays the city chat's — except B1's Overclock half.
+
+**What shipped**
+- **Group 0 — THE PREVIEW TELLS THE TRUTH (A21):** `overclock-preview.html` gained the real app's two corner buttons (the console's markup,
+  placed by components.css; `&corner=0` hides them), `&beat=victory` lands AT REST (the podium's slim cards + the award chips in place; `&anim=1`
+  = the live power-up), `at=right|wrong|close` HOLD the feedback (the screen's ≥ 400-ms timers wait, the motion pauses mid-way — the shot lands
+  after the tap; `__preview.release()`), `&zero=1` (nobody scored), `&lost=1` (this device lost its picks).
+- **Group 1 — SERIOUS:** A1 the after-challenge screen starts below the corner buttons · A4 THE ANSWER centred in its box (auto margins — the
+  long ones still scroll from the top) · A2 NOBODY SCORED (no sign, no stamp, no fanfare, no podium, no rays; a solo 0 = no personal-best line) ·
+  B1 (Overclock's half) a solo run with nothing answered / a total of 0 is never a record (and never a cheat) · A3 Dumb Luck's LOCK GRACE (the
+  phone closes the cards at 7.0 s, the host locks at 7.7 s — `DL_LOCK_MS`; `DL_MS` 27.7 s) · A5 the rematch deals ONLY fresh types while a whole
+  match of them remains · A6 the ORDER from the match id (`deal.js#orderFor` — every phone predicts the first challenge from meta/go and its
+  `preload()` fetches that pool in the walk), `start()` waits for each bank on its own up to the walk, THE LATE DEAL (`prepare()`) deals a pool
+  that missed `start()` before its challenge opens · A7 THE FINISH draws its frozen frame once and stops the race's loop.
+- **Group 2 — POLISH:** A8 ANSWERED (never NO ANSWER) when this device lost its picks · A9 one sound palette (no console synth inside Overclock;
+  the stage opts out of the console's button tap; a perfect finish plays one sound) · A10 YOUR WORST never a challenge nobody scored / a worst that
+  topped the room · A12 solo Closest Call's +60 only for a DEAD ON guess · A13 Sort It "a wrong or missed card" · A15 no `vibrate()` · A16 a lane
+  tag with no room behind its horse rides above it · A18 Higher or Lower's chips wrap (two lines, a smaller face past 12 letters).
+- **Group 3 — CONTENT (the template, not the row; rebuilt through scripts/oc-pools/):** athletes by occupation, the instrument template cut,
+  "the 20th century", episodes cut, THE FAME FILTER tightened (hand/oc8-exclude.mjs), directors + inventors by their own fame, the review's items by
+  id, the four awkward written rows reworded — docs/content.md "OC8".
+- **Group 4 — MISSING LINK 650 → 977:** 344 hand-written (hand/missinglink-written-6…10.json) → 323 kept; the build decides a duplicate AFTER the
+  rules (+4 older puzzles freed); 13 older clues that weren't words replaced; every clue must be a word on its own (the content test).
+- **Group 5 — THE LOOK CHECK:** three rounds on the fixed preview WITH the corner buttons — every after-challenge beat of all 19 at 390 + 412,
+  1440 once, NOBODY SCORED, the Dumb Luck finish (60 fps at 4×), the lane tags, the Higher or Lower chips; what it caught went back into the
+  content (skyscrapers + mountains by hand, everyday elements, "Go board").
+- **Group 6 — THE OWNER's ADD-ON (Nov 7, 8:29 am):** the corner buttons SPLIT ON EVERY SCREEN — ☰ top-left, music top-right (components.css
+  "SPLIT ON EVERY SCREEN"); every header makes room on both sides (`--cb-room`); OVERCLOCK's challenge name shrinks to fit (`view.js#fitName`);
+  PRISM DROP's top line, setup, THE BOARD, the podium's kicker; the profile keeps its own rule (no ☰). Proof: `Downloads/neon/overclock/shots/oc8-addon/`.
+
+**Decisions (OC8)**
+- **THE LOCK GRACE is OC5's own timing, not an owner timing** (the prompt): `DL_PICK_MS` stays 7 s (what the phone shows), `DL_LOCK_GRACE_MS`
+  700 (like `PLAY_GRACE_MS`), `DL_MS` 27.7 s; the pinned OC1 / OC3 / OC3B / OC4 timing tests pass unchanged (OC1's whole-match helper locks at
+  `DL_LOCK_MS` now; OC5's slot test reads 27.7 s).
+- **A11 — the Dumb Luck winner is readable at the lock:** `game/dl/{ci}.w` is written when the odds board closes — every phone needs it to run
+  the race script — so a signed-in phone could read the winner ~16 s before the finish. NOT exploitable: the picks are locked in the same write
+  and the payouts use them (`d.pk`); nobody can change a ticket after it. A true seal would need the script to run from a value revealed only at
+  the finish (a bigger change than a fix pass; the plan's "seal-protected" means the PICKS).
+- **A17 — THE YOU TAG is KEPT** (the review: the white pill is the only thing that finds your horse at a glance — the halo is subtle at 60 pt):
+  no longer "on trial".
+- **A6 — the order is predictable from the match id** (the deal + the race keep their own random seed): nothing a player gains — the order is
+  public the moment the match is written, ~5 s later; a phone that guesses wrong (the night memory or the mode changed in the same second) only
+  fetched a pool for nothing. `?emu` + `window.__ocFirst` puts a type first (the slow-network E2E). On Fast 3G the bank arrives in the walk on
+  every phone (the host ~3.7 s, a joiner ~6.5 s; the challenge opens at ~12.3 s).
+- **B1's line:** OVERCLOCK never writes a 0 or an unanswered solo run to a board; the solo XP + streak minimum is the console's (the city chat).
+- **A9 — the mount sound:** the slam's GO is the challenge's opening sound (the console's synth `challenge` beside it is gone, not replaced).
+- **A10:** a challenge nobody scored is nobody's worst; no tiles at all when you scored nothing.
+- **The fame filter (content):** sitelinks can't rank a class Americans don't know (coasters, warplanes, Soviet probes, foreign zoos, obscure
+  consoles) — those stats keep ONLY a by-hand list or are cut; the country questions ask only about the ~100 countries a player knows.
+- **Not changed (owner decisions, as the prompt says):** A14 Compass's scripted time · A19 the answer tiles' height · A20 (no fix needed).
+- **The ADD-ON's limits:** the frozen games (gridlock / slip / stakes / rum) still pin the old stacked pair in their own CSS — fix each when it
+  comes back (CLAUDE.md says so); THE LAB (`/lab`) has no corner buttons.
+
+**THE FABLE REVIEW → OC8, finding by finding**
+| finding | | what OC8 did |
+|---|---|---|
+| A1 the after-screen under the corner | FIXED | every beat starts below the corner buttons (one row after the ADD-ON) |
+| A2 a 0–0 match celebrated | FIXED | NOBODY SCORED body; solo 0 = no PB line (+ B1 server half) |
+| A3 a last-second pick after the lock | FIXED | THE LOCK GRACE (+700 ms); E2E: a 6.9-s tap through a 300-ms-late phone gets its ticket |
+| A4 the void under THE ANSWER | FIXED | centred (auto margins), long ones scroll |
+| A5 the rematch repeated a type as its ×2 final | FIXED | fresh types only while a whole match of them remains |
+| A6 a first pool on a slow line | FIXED | the predictable order + the walk's preload + per-bank waits + THE LATE DEAL; e2e-oc-slow.mjs |
+| A7 THE FINISH ~45 fps at 4× | FIXED | the frozen frame drawn once — 60.1 / 60.2 / 60.2 fps, 0 long frames |
+| A8 NO ANSWER after a lost tab | FIXED | ANSWERED |
+| A9 two sound palettes | FIXED | one palette; a perfect finish plays one sound |
+| A10 YOUR WORST "+0 · 0%" / "TOP OF THE ROOM" | FIXED | hidden in both cases |
+| A11 the winner readable at the lock | DOCUMENTED | not exploitable (payouts use the locked picks) — above |
+| A12 solo Closest Call's +60 | FIXED | only for DEAD ON |
+| A13 Sort It's help line | FIXED | "a wrong or missed card" (HOW TO PLAY + the rules card) |
+| A14 Compass's scripted time | NOT CHANGED | the owner's rule |
+| A15 vibrate() | FIXED | gone |
+| A16 a lane tag on its horse | FIXED | above it when there's no room behind |
+| A17 the YOU tag on trial | KEPT | no longer on trial |
+| A18 Higher or Lower chips truncated | FIXED | two lines / a smaller face |
+| A19 the tiles sit high | NOT CHANGED | the owner's call |
+| A20 a late rejoin's rules card | NOT CHANGED | no fix needed (the review) |
+| A21 the preview's gaps | FIXED | corner buttons, the podium + chips at rest, the held feedback |
+| B1 (Overclock's half) | FIXED | no 0 / unanswered solo record |
+| C t-athlete (~17 of 39 wrong) | FIXED | athletes only, by occupation: 52 → 18 |
+| C t-instrument | CUT | with musicians only it found nobody but composers |
+| C d-century "the 1900s" | FIXED | "the 20th century" |
+| C c-episodes | CUT | arguable counts |
+| C the fame filter (places + people) | FIXED | hand lists + smaller top-n + known countries; directors + inventors by their own fame |
+| C the flagged items by id | FIXED | every one gone or reworded (London Bridge + Rialto spans, Fleetwood Mac, m-base, m-fox, Imagine, Nils, The Castle, the 1938 Cup, Jebel Shams, White Nile vs Gambia, Robert Stromberg, Eswatini vs Togo, Nauru, Tuvalu, Gamla bron, Hiiumaa, Lake Neuchâtel, Alpenexpress Enzian, Kazbek, Baekdu, Donghai, the inventor wrongs, "made by Sony", the Four Corners, Roblox, the earthquake + watercolor wrongs) |
+
+**THE POOLS (OC7 → OC8; party + reserve)**
+| | OC7 | OC8 | what moved it |
+|---|---|---|---|
+| TRUE OR FALSE | 2,398 | **1,998** | century reworded (kept), director 85 → 29, mountain-in 85 → 17, maker 24 → 7, the comparisons on the tighter stats, the template cap 85 → 70 |
+| HIGHER OR LOWER | 46 stats · 1,727 | **43 · 1,124** | coasters ×2 + airplanes cut; hand lists for 14 stats; smaller top-n; known countries |
+| TIMELINE | 32 themes · 917 | **18 · 496** | the same stats feed it — a theme needs 30 (years) / 40 (sizes) items |
+| SORT IT | 178 | **176** | the Beatles set without Imagine; one set too small after the fame filter |
+| TRIVIA | 4,184 | **3,759** | athlete 52 → 18, instrument 36 → 0, director 183 → 38, inventor 29 → 14, cup-host 21 → 14, capital + capital-of 159 → 74, continent 144 → 73, language 66 → 35 |
+| CLOSEST CALL | 989 | **889** | episodes 43 → 0, spans 20 → 12, peaks / towers / lakes / islands / atomic on the tighter lists |
+| MISSING LINK | 650 | **977** | +323 hand-written, +4 freed |
+| SPELLCHECK | 1,557 | 1,557 | — |
+The reserve re-split (~20 % of each, server-only). Offline rebuild byte-identical.
+
+**The local run before the final push (the mini PC, one suite at a time):** unit 1298 / 1298 · rules 66 / 66 · /api 38 / 38 · smoke 6 / 6 · e2e-oc-2 27 / 27 · e2e-oc-new 75 / 75 · e2e-oc-luck (8 phones) 22 / 22 · e2e-oc-slow 10 / 10 (+ LATE=1 10 / 10) · NO SIDEWAYS SCROLL 312 / 312 · e2e-profiles **98 / 98** · the FULL e2e-harbor suite 1201 / 1206 on its first run — four of the five reds were THE STALE LOCAL /api (the `serve.mjs --emu` process had run since Nov 6, 1:24 pm — before OC5's quick solo board — and keeps each /api handler as first loaded: e2e-profiles' QUICK SOLO BOARD read null on it the same way): `radio`, `crew`, `panel`, `rebuild` rerun on a fresh server (:5175) → all green (108 / 109); the fifth, `roomperf`'s own cost at 4× CPU (40 → 45 ms with the guest list), is the same red OC5–OC7 carried (skipped in the cloud — no GPU path).
+
+**Known issues / held back**
+- On Fast 3G a phone that isn't the host mounts the match screen ~7 s after the walk's end (the cartridge's view + its ~40 modules load in a
+  waterfall at ~560 ms a round trip; unthrottled it mounts at the walk's end) — the first challenge's rules card is shortened there. The pool is
+  never the wait (e2e-oc-slow.mjs). A bundle / modulepreload is the console's.
+- THE RACE at 4× CPU: 52–54 fps (the same before OC8 — measured on the untouched code); THE FINISH 60.
+- Every Wikidata stat still trusts sitelinks first; a stat without a hand list may still deal an item a casual player doesn't know — the spot
+  check is the place to flag them.
+- MISSING LINK's auto-accepted second answers can be generic for a phrase family (TAKE also accepts CAST, PLAY, RUN …; KNOCK, WRITE) — they only
+  ever ACCEPT a typed word, never show one.
+- The old `serve.mjs --emu` + the emulators from Nov 6 were still running on this machine; stopping them was refused by this session's
+  permission check — the suites ran against them (they serve the files on disk; the emulators were idle).

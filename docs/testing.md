@@ -300,6 +300,13 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     payouts, THE ANSWER, WINNING TICKETS / THE HOUSE WINS, the shared round-win rule. The rules: `tests/overclock-oc5.test.mjs` (the
     200,000-race simulation, the draw's unpredictability, 10,000 race scripts, the placement, whole matches, the daily plug-in); the HORSESHOE +
     THE QUICK SOLO BOARD in `tests/profiles.test.mjs` + the profile E2E (§10). The guard's `luck` group = every Dumb Luck screen.
+    OC8: the luck E2E also proves THE LOCK GRACE — FINN taps at 6.9 s through a transport that holds every WebSocket send 300 ms, and the pick
+    still has its ticket.
+  - A POOL CHALLENGE FIRST ON A SLOW LINE (OC8 — A6): `node tests/integration/e2e-oc-slow.mjs "<browser path>" ./shots-oc-slow` (2 phones,
+    ≈ 40 s, the emulators) — every phone on Chrome's Fast 3G profile, TRIVIA forced first (`?emu` + `window.__ocFirst`): the pool's fetch begins
+    in the walk inside on every phone, the deal carries the night memory, the questions are on screen the moment the challenge can open (the
+    screen's own mount time is logged — a 3G joiner mounts late: the cartridge's module waterfall). `NET=0 LATE=1` = THE LATE DEAL's proof (the
+    host's trivia request held `HOLD` ms → `prepare()` deals it during the rules card).
   - THE CONTENT (OC6 + OC7 — the eight BUILT pools, docs/content.md "THE POOL BUILD"): `tests/overclock-content.test.mjs` (seconds — every item of
     the party pools + THE DAILY RESERVE: an id + a source, no duplicates (within + across the pools), the phone limits, fair pairs, solvable
     timelines on 25 seeds a theme, Sort It's disjoint sides + the computed sets re-computed card by card (`scripts/oc-pools/sortcheck.mjs`), the

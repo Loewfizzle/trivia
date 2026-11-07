@@ -114,6 +114,28 @@ doesn't confirm is DROPPED, never kept on trust — fix the fact (or the proof, 
   OC7: `t-<template>-<Q-ids>` (data trivia) · `w<hash of the question>` (written trivia) · `c-<stat>-<Q-ids>` (closest call) · `m-<answer>` ·
   `s-<right word>`.
 
+**OC8 — THE FABLE REVIEW's content fixes (fix the TEMPLATE, never the row) + MISSING LINK's top-up** (docs/overclock.md OC8 has every count):
+- `hand/oc8-exclude.mjs` = THE FAME FILTER, TIGHTENED — only ever REMOVES an item: `OC8_ONLY` (the stats sitelinks can't rank — rivers, bridges,
+  islands, lakes, skyscrapers, mountains, towers, consoles, zoos, theme parks, board games, cars, probes — keep ONLY the items an American player
+  knows, by the English label raw or cleaned), `OC8_OUT` (more out of a stat), `OC8_KEEP` (a smaller top-n), `OC8_CUT` (coasters ×2 + airplanes),
+  `FAMOUS_COUNTRIES` (the country stats + their comparisons + the capital / continent / language questions ASK only about these). OC7's by-hand
+  OBSCURE lists (read for CLOSEST CALL) now apply to HIGHER OR LOWER / TIMELINE / TRUE OR FALSE's same stats too (`parts/20-wd-hl.mjs#famous`). The
+  atomic numbers keep the everyday elements (+ krypton, plutonium).
+- THE PEOPLE TEMPLATES: "Which sport is X famous for?" = ATHLETES ONLY — the person's own occupation is that sport's player (`SPORT_PLAYER`, by
+  the occupation's English label, Wikidata `P106` — cache `tv-athlete-occ`) and nobody also a film actor / politician / royal / novelist …
+  (`ATHLETE_ALSO`; a plain actor / writer / model is fine — a cameo, a memoir). The instrument template is CUT (`INSTRUMENT_CUT`). Directors +
+  inventors by their OWN Wikipedia count (`DIRECTOR_FAME` 60 · `INVENTOR_FAME` 55 — caches `tv-director-fame`, `tf-director-fame`,
+  `tv-inventor-fame`): the right answer AND the wrong ones; an inventor's wrong answers come from the other inventors of the listed inventions, and
+  the non-inventions (judo, aikido, a blood type, a unit …) are out (`INVENTION_OUT`). World Cups from 1966 (`CUP_SINCE`).
+- TRUE OR FALSE: "born in the 20th century" (the century by its name — "the 1900s" read as the decade); a famous mountain only (`TF_MOUNTAIN_FAME`
+  70); the makers as people say them (`MAKER_FIX` — "made by Sony"); the template cap 85 → 70 (the data half shrank — still ≤ 8.5 % a template).
+- CLOSEST CALL: the episode counts CUT (arguable — reboots, half-episodes); the main spans without the London Bridge + the Rialto (`OC8_SPAN_OUT`).
+- MISSING LINK: `hand/missinglink-written-6…10.json` (OC8's 344 hand-written → 323 kept). EVERY CLUE A WORD ON ITS OWN (the "MENT" lesson —
+  `tests/overclock-content.test.mjs`); 13 older clues replaced. THE BUILD decides a duplicate answer AFTER the rules (a legacy row that died on a
+  rule used to claim its id first and block every later puzzle with that answer).
+- Written rows reworded: the Four Corners ("Where do Arizona, Utah, Colorado and New Mexico all meet?"), Roblox, the earthquake + watercolor wrongs.
+- The content test's floors follow the deliberate cuts (each line says why).
+
 ## HUSH WORDS (room codes)
 The room code is a common 4-letter word, the HUSH WORD. Source: `scripts/hushwords/words.txt` (one block per letter);
 `node scripts/build-hushwords.mjs` checks it and writes `data/hushwords.json` (sorted), or lists every problem and writes

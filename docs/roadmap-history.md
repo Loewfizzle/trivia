@@ -2135,3 +2135,17 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 4: tests/overclock-content.test.mjs's OC7 checks; the spot-check sheet (Downloads/neon/overclock/oc7-spotcheck.md) + the fixes its read
   turned up.
 - No rules change. Docs: docs/overclock.md (OC7), content (THE POOL BUILD), cartridge (D2), data-model, testing, CLAUDE.md.
+## OVERCLOCK OC8 — THE FIX PASS (THE FABLE REVIEW) + THE MISSING LINK TOP-UP + THE CORNER BUTTONS SPLIT (Nov 7, 2026)
+- Group 0: the preview tells the truth — the real corner buttons, the victory at rest, the feedback held after the tap (A21).
+- Group 1: A1 the after-screen below the corner · A4 THE ANSWER centred · A2 NOBODY SCORED · B1 no 0 / unanswered solo record · A3 Dumb Luck's
+  lock grace (+700 ms; E2E with a 300-ms-late phone) · A5 fresh-only rematches · A6 the order from the match id + the walk's preload + per-bank
+  waits + THE LATE DEAL (e2e-oc-slow.mjs) · A7 THE FINISH's frozen frame drawn once (60 fps at 4×).
+- Group 2: A8 ANSWERED · A9 one sound palette · A10 YOUR WORST · A12 solo Closest Call · A13 Sort It's help · A15 no vibrate · A16 lane tags ·
+  A18 Higher or Lower chips; A11 documented, A17 kept.
+- Group 3: content — the templates fixed through scripts/oc-pools/ (athletes by occupation, instrument + episodes cut, the 20th century, the fame
+  filter tightened by hand — hand/oc8-exclude.mjs; directors + inventors by their own fame; the review's items by id).
+- Group 4: MISSING LINK 650 → 977 (344 hand-written → 323 kept; every clue a word; the build dedupes after the rules).
+- Group 5: the look check, three rounds, with the corner buttons.
+- Group 6: the owner's ADD-ON — the corner buttons split on every screen (components.css "SPLIT ON EVERY SCREEN", `--cb-room`, OVERCLOCK's name
+  shrinks to fit, PRISM DROP, setup, THE BOARD, the podium's kicker).
+- No rules change. Docs: docs/overclock.md (OC8), content, testing, CLAUDE.md (the corner paragraph), ROADMAP.
