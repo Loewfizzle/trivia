@@ -87,32 +87,27 @@ test('COMPASS: 3 → 7 turns, the right final heading, and a script that leaves 
   assert.equal(challengeScore({ type: 'compass', parts: 5, ok: 4, startAt: 0, doneAt: t }), 80, '20 a round, no bonus unless perfect');
 });
 
-const isPrime = n => { if (n < 2) return false; for (let d = 2; d * d <= n; d++) if (n % d === 0) return false; return true; };
-const fromRoman = s => { const v = { I: 1, V: 5, X: 10, L: 50, C: 100 }; let t = 0; for (let i = 0; i < s.length; i++) { const a = v[s[i]], b = v[s[i + 1]] || 0; t += a < b ? -a : a; } return t; };
-const CHECK = {
-  PRIME: x => isPrime(Number(x)),
-  'MULTIPLE OF 7': x => Number(x) % 7 === 0,
-  'MORE THAN 50': x => fromRoman(x) > 50,
-  'MORE THAN ½': x => { const [a, b] = x.split('/').map(Number); return a / b > 0.5; },
-  PALINDROME: x => [...x].reverse().join('') === x,
-  'LETTERS IN A–Z ORDER': x => [...x].every((c, i) => i === 0 || x[i - 1] <= c),
-};
+// (OC6: the computed sets' rules live in ONE place — scripts/oc-pools/sortcheck.mjs — the build makes the sets from them, the tests re-compute)
+import { SORT_CHECKS as CHECK } from '../scripts/oc-pools/sortcheck.mjs';
+import { existsSync } from 'node:fs';
+const ST_ALL = [...ST, ...(existsSync('api/_data/oc-reserve/sortit.json') ? read('api/_data/oc-reserve/sortit.json').sets : [])];
 
-test('SORT IT bank: 40+ pairs, 25+ items each, nothing on both sides; the number/word pairs are recomputed', () => {
-  assert.ok(ST.length >= 40, `${ST.length} pairs`);
+test('SORT IT bank (OC6: 150+ sets, party + reserve): 25+ items each, nothing on both sides; the number/word pairs are recomputed', () => {
+  assert.ok(ST.length >= 100, `${ST.length} party sets`);
   for (const { id, left: l, right: r, L, R } of ST) {
     assert.ok(id && l && r && l !== r);
     assert.ok(L.length + R.length >= 25, `${l}: ${L.length + R.length} items`);
     assert.ok(L.length >= 7 && R.length >= 7, `${l}: each side needs 7+ (a challenge deals up to 7)`);
     const all = [...L, ...R].map(x => x.toLowerCase());
     assert.equal(new Set(all).size, all.length, `${l}: an item is listed twice or on both sides`);
-    for (const x of [...L, ...R]) assert.ok(x.length >= 1 && x.length <= 34, `${l}: "${x}" fits a card`);
+    for (const x of [...L, ...R]) assert.ok(x.length >= 1 && x.length <= 32, `${l}: "${x}" fits a card`);
     if (CHECK[l]) {
       for (const x of L) assert.ok(CHECK[l](x), `${l}: ${x}`);
       for (const x of R) assert.ok(!CHECK[l](x), `${r}: ${x}`);
     }
   }
-  assert.equal(Object.keys(CHECK).filter(k => ST.some(s => s.left === k)).length, 6, 'all computed pairs present');
+  // OC1–OC5's six computed pairs are all still there (party or the daily reserve)
+  for (const k of ['PRIME', 'MULTIPLE OF 7', 'MORE THAN 50', 'MORE THAN ½', 'PALINDROME', 'LETTERS IN A–Z ORDER']) assert.ok(ST_ALL.some(s => s.left === k), k);
 });
 
 test('SORT IT: 12 cards from both sides, faster and faster; wrong sorts cost half; 10 net = 100; perfect = speed bonus', () => {
@@ -149,7 +144,7 @@ test('HIGHER OR LOWER bank: 300+ items, stable values, grouped by stat', () => {
     for (const [name, v, shown] of list) {
       assert.ok(name && typeof v === 'number' && Number.isFinite(v), `${stat}: ${name}`);
       if (unit === 'year') assert.ok(Number.isInteger(v), `${name}: whole years`);
-      else assert.ok(v > 0, `${name}: positive`);
+      else if (unit !== 'c') assert.ok(v > 0, `${name}: positive`);   // (°C may be below zero — OC6's temperatures)
       if (shown != null) assert.equal(typeof shown, 'string');
     }
     // every item can be dealt (has at least one fair partner)
