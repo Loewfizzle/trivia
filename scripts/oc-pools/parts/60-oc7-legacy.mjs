@@ -46,4 +46,4 @@ export default async function legacy(ctx) {
   }
   ctx.log.push(`LEGACY (OC1–OC5): SPELLCHECK ${spKept} of ${spAll} kept · MISSING LINK ${mlKept} of ${mlAll} kept`);
 }
-const INTERIM = true;
+const INTERIM = false;   // (OC7 Group 2: off — the checked rows replaced them)
