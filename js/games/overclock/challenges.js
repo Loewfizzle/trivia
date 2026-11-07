@@ -501,9 +501,11 @@ export function genSortIt(rand, bank, occ, seed, deal) {
 
 // ---------- higher or lower ----------
 export const HL_PAIRS = 10;
-/** Fair pairs only: years at least 10 apart, anything else at least 1.2× apart (a stat may ask for more: its `gap`). */
-export const hlFair = (unit, a, b, gap = 1.2) => (unit === 'year' ? Math.abs(a - b) >= 10 : Math.min(a, b) > 0 && Math.max(a, b) / Math.min(a, b) >= gap);
-const hlClear = (unit, a, b) => (unit === 'year' ? Math.abs(a - b) >= 40 : Math.max(a, b) / Math.min(a, b) >= 2);
+/** Fair pairs only: years at least 10 apart, temperatures (°C, unit 'c') 100° apart, anything else at least 1.2× apart (a stat may ask for
+ *  more: its `gap`). */
+export const hlFair = (unit, a, b, gap = 1.2) => (unit === 'year' ? Math.abs(a - b) >= 10 : unit === 'c' ? Math.abs(a - b) >= 100
+  : Math.min(a, b) > 0 && Math.max(a, b) / Math.min(a, b) >= gap);
+const hlClear = (unit, a, b) => (unit === 'year' ? Math.abs(a - b) >= 40 : unit === 'c' ? Math.abs(a - b) >= 500 : Math.max(a, b) / Math.min(a, b) >= 2);
 /**
  * bank: data/oc/higherlower.json stats ([{ id, stat, ask, unit, win: 'max'|'min', gap?, items: [[label, value, shown|null, id], …] }] — values
  * METRIC, shown in US units: units.js). Ten pairs, each from one stat; the first few are clear-cut, later ones closer. → [si, i, j] × 10

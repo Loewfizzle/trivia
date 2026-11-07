@@ -45,7 +45,7 @@ export function usValue(unit, v) {
 export function showUS(unit, v) {
   if (unit === 'year') return yearText(v);
   const { n, u } = usValue(unit, v);
-  if (unit === 'c') return `${n < 0 ? '−' : ''}${Math.abs(n)} ${u}`;
+  if (unit === 'c') return `${n < 0 ? '−' : ''}${Math.abs(n).toLocaleString('en-US')} ${u}`;
   const t = niceNumber(n);
   return u ? `${t} ${u}` : t;
 }

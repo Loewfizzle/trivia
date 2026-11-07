@@ -12,7 +12,7 @@
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { HERE, ROOT, writeRows, norm, bannedIn, isReserve, TF_MAX, LABEL_MAX } from './lib.mjs';
+import { HERE, ROOT, writeRows, norm, bannedIn, isReserve, hash36, TF_MAX, LABEL_MAX } from './lib.mjs';
 import { stats as wdStats } from './wikidata.mjs';
 import { hlFair, tlFair } from '../../js/games/overclock/challenges.js';
 
@@ -21,7 +21,8 @@ const ctx = { tf: [], hl: [], tl: [], so: [], log: [], dropped: {} };
 const drop = (pool, why, what) => { (ctx.dropped[pool] ||= {})[why] = ((ctx.dropped[pool] || {})[why] || 0) + 1; if (process.argv.includes('--verbose')) console.log(`  drop ${pool} ${why}: ${what}`); };
 ctx.drop = drop;
 
-const parts = readdirSync(join(HERE, 'parts')).filter(f => f.endsWith('.mjs')).sort();
+const skip = ((process.argv.find(a => a.startsWith('--skip=')) || '').slice(7)).split(',').filter(Boolean);   // --skip=40-sortit,…
+const parts = readdirSync(join(HERE, 'parts')).filter(f => f.endsWith('.mjs') && !skip.some(k => f.startsWith(k))).sort();
 for (const f of parts) {
   const m = await import(pathToFileURL(join(HERE, 'parts', f)).href);
   const before = { tf: ctx.tf.length, hl: ctx.hl.length, tl: ctx.tl.length, so: ctx.so.length };
@@ -84,7 +85,8 @@ for (const t of ctx.tl) {
   // solvable: four pairwise-fair items exist (greedy from the smallest picks the most spread set)
   let n = 0, lastV = null;
   for (const it of items) if (lastV == null || tlFair(t.unit || 'year', it[1], lastV)) { n++; lastV = it[1]; }
-  if (items.length < 12 || n < 6) { drop('tl', 'theme too small', `${t.id} (${items.length}, ${n} spread)`); continue; }
+  // (12+ items, and 5+ of them pairwise fair — four to deal + a spare)
+  if (items.length < 12 || n < 5) { drop('tl', 'theme too small', `${t.id} (${items.length}, ${n} spread)`); continue; }
   tl.push({ ...t, items });
 }
 const so = [];
@@ -98,17 +100,34 @@ for (const s of ctx.so) {
 }
 
 // ---------------------------------------------------------------- THE DAILY RESERVE (~20% of every pool — server-only)
-const RESERVE_ON = false;   // (switched on by OC6 Group 3)
+const RESERVE_ON = !process.env.OC6_NO_RESERVE;    // THE DAILY RESERVE (OC6 Group 3; OC6_NO_RESERVE=1 builds without it)
 const split = (list, keyOf) => (RESERVE_ON ? [list.filter(x => !isReserve(keyOf(x))), list.filter(x => isReserve(keyOf(x)))] : [list, []]);
 const [tfP, tfR] = split(tf, r => r.id);
+// a stat / a theme splits only when BOTH sides can still be dealt (a stat: 8+ items with fair partners; a theme: 12+ items, 5 of them pairwise
+// fair) — otherwise the whole set stays on the party side
+const dealable = (kind, p, items) => {
+  if (kind === 'hl') return items.length >= 8 && items.every(a => items.some(b => b !== a && hlFair(p.unit, a[1], b[1], p.gap || 1.2)));
+  const v = items.map(it => it[1]).sort((x, y) => x - y);
+  let n = 0, last = null;
+  for (const x of v) if (last == null || tlFair(p.unit || 'year', x, last)) { n++; last = x; }
+  return items.length >= 12 && n >= 5;
+};
 const splitItems = (pools, kind) => {
-  const party = [], reserve = [];
+  if (!RESERVE_ON) return [pools, []];
+  const party = [], reserve = [], whole = [];
   for (const p of pools) {
     const [a, b] = split(p.items, it => `${p.id}:${it[3]}`);
-    party.push({ ...p, items: a });
-    if (b.length) reserve.push({ ...p, items: b });
+    if (b.length && dealable(kind, p, a) && dealable(kind, p, b)) { party.push({ ...p, items: a }); reserve.push({ ...p, items: b }); }
+    else whole.push(p);
   }
-  return [party, reserve];
+  // THE BALANCE: sets too small to split go WHOLE — to the reserve, in a stable order (a hash of the id), until it holds ~20% of the items
+  const count = list => list.reduce((n, g) => n + g.items.length, 0);
+  const total = count(pools);
+  for (const p of whole.slice().sort((x, y) => hash36(`oc6-bal:${x.id}`).localeCompare(hash36(`oc6-bal:${y.id}`)))) {
+    if (count(reserve) < total * 0.18) reserve.push(p); else party.push(p);
+  }
+  const order = new Map(pools.map((p, i) => [p.id, i]));
+  return [party.sort((a, b) => order.get(a.id) - order.get(b.id)), reserve.sort((a, b) => order.get(a.id) - order.get(b.id))];
 };
 const [hlP, hlR] = splitItems(hl, 'hl');
 const [tlP, tlR] = splitItems(tl, 'tl');

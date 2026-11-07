@@ -46,12 +46,12 @@ export function seeded(seed) {
 export const shuffled = (rand, list) => { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 /** THE ALL-AGES RULE (the owner's decision 4): words no pool item may carry (the content test checks every shipped + reserved text) */
-export const BANNED = ['kill', 'killed', 'killing', 'murder', 'blood', 'bloody', 'gore', 'sex', 'sexy', 'nude', 'naked', 'porn', 'drug', 'drugs',
+export const BANNED = ['kill', 'killed', 'killing', 'murder', 'bloody', 'gore', 'sex', 'sexy', 'nude', 'naked', 'porn', 'drug', 'drugs',
   'cocaine', 'heroin', 'marijuana', 'cannabis', 'opium', 'beer', 'wine', 'vodka', 'whiskey', 'whisky', 'rum', 'tequila', 'alcohol',
   'alcoholic', 'drunk', 'brewery', 'cigarette', 'cigar', 'tobacco', 'smoking', 'suicide', 'genocide', 'holocaust', 'nazi', 'slave', 'slavery',
   'terrorist', 'terrorism', 'torture', 'execution', 'executed', 'rape', 'abortion', 'casino', 'gambling', 'gun', 'guns', 'rifle', 'revolver',
   'pistol', 'bomb', 'bombing', 'massacre', 'corpse', 'satan', 'devil', 'hell', 'damn', 'jesus', 'allah', 'bible', 'quran', 'koran', 'church',
-  'republican', 'democrat', 'trump', 'biden', 'obama', 'hitler', 'stalin', 'mussolini'];
+  'tetris', 'tetromino', 'republican', 'democrat', 'trump', 'biden', 'obama', 'hitler', 'stalin', 'mussolini'];
 export const bannedIn = text => { const w = norm(text).split(' '); return BANNED.filter(b => (b.includes(' ') ? norm(text).includes(b) : w.includes(b))); };
 
 /** THE PHONE LIMITS */

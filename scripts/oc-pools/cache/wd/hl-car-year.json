@@ -1,0 +1,15 @@
+{"name":"hl-car-year","q":"1jazk2k","n":13,"rows":[
+{"item":"Q182323","label":"Ford Model T","v":1908,"sl":65},
+{"item":"Q207341","label":"Audi A8","v":1994,"sl":39},
+{"item":"Q223696","label":"Škoda Octavia","v":1996,"sl":42},
+{"item":"Q210893","label":"Tesla Roadster","v":2006,"sl":43},
+{"item":"Q326248","label":"Benz Patent-Motorwagen","v":1886,"sl":43},
+{"item":"Q275747","label":"Ford Mondeo","v":1992,"sl":38},
+{"item":"Q276396","label":"Ferrari 458","v":2009,"sl":39},
+{"item":"Q1634161","label":"Tesla Model X","v":2012,"sl":39},
+{"item":"Q494465","label":"Kia morning","v":2003,"sl":35},
+{"item":"Q668565","label":"Dacia Logan","v":2004,"sl":38},
+{"item":"Q36024","label":"Mini","v":1959,"sl":44},
+{"item":"Q152917","label":"Lamborghini Gallardo","v":2003,"sl":43},
+{"item":"Q66311587","label":"Tesla Cybertruck","v":2019,"sl":50}
+]}
