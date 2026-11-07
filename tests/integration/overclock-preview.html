@@ -23,7 +23,7 @@
          at=brief&still=1 &type=pattern | missinglink   the rules card + its ~3 s DEMO (loops)
          window.__preview.typePad('123') · typeKeys('WORD') · typeTiles('word')   (a camera's --js can type on the pads)
      OC3B — THE CARD + LIST CHALLENGES (type=spellcheck | higherlower | timeline | sortit): at=play · right · wrong · answer (THE ANSWER, its
-         dressing; higherlower: &run=miss (default) | time | perfect) · at=brief&still=1&type=higherlower = its DEMO in the rules card
+         dressing; higherlower: &run=miss (default) | time | perfect, &streak=0…9 the run's length before the miss) · at=brief&still=1&type=higherlower = its DEMO in the rules card
          window.__preview.tap(k, right) answers part k (a Higher or Lower call, a spelling, a sort, a whole Timeline order)
      OC5 — DUMB LUCK (type=dumbluck — always 2+ players):
          at=brief&still=1   the title slam with the crafted NEON SIGN (powering up)
@@ -324,7 +324,7 @@ const hold = q.get('hold') === '1' ? new Promise(r => { window.__go = r; }) : nu
 // boards (+ the unsealed guesses for CLOSEST CALL), the results + times, then the round closes
 async function answerOther(s) {
   const { savePicks } = await import('/js/games/overclock/answers.js');
-  const hlMode = q.get('run') || 'miss', hlRun = hlMode === 'perfect' ? (s.parts || parts) : 6;   // (OC3B: higherlower's run)
+  const hlMode = q.get('run') || 'miss', hlRun = hlMode === 'perfect' ? (s.parts || parts) : q.get('streak') != null ? Math.max(0, Math.min(9, Number(q.get('streak')))) : 6;   // (OC3B: higherlower's run; PW1 add-on: &streak=0…9 = where a miss ended it)
   const P = {
     math: () => s.problems.map((p, i) => (i === 1 ? p.ans + 12 : p.ans)),
     pattern: () => s.seqs.map((x, i) => (i ? x.ans - 3 : x.ans)),

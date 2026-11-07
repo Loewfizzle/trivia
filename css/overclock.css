@@ -1114,13 +1114,15 @@
 @media (max-height: 780px) { .oc-hl-card { min-height: 104px; padding-top: 11px; padding-bottom: 12px; gap: 5px; } .oc-od .oc-hl-btn { min-height: 86px; } }
 
 /* THE ANSWER — YOUR STREAK as the hero (the 10-segment bar, cracked where the run ended), YOUR RUN as chips, THE ONE THAT ENDED IT */
-.oc-hl-hero { display: grid; justify-items: center; gap: 4px; padding: 0 52px 0 0; }
+.oc-hl-hero { display: grid; justify-items: center; gap: 4px; padding: 0; }   /* (PW1 add-on: no right inset — since OC8 A1 the screen starts below the corner buttons; a padded hero pushed the number off-centre + its bar out of the box) */
 .oc-hl-hero-k { font: 700 12px / 1 var(--oc-font-ui); letter-spacing: 0.26em; color: var(--oc-label); }
 .oc-hl-hero-row { display: flex; align-items: baseline; gap: 8px; }
 .oc-hl-hero-n { font: italic 900 96px / 0.86 var(--oc-font-title); color: #fff; text-shadow: 0 0 34px rgba(255, 106, 26, 0.55); animation: oc-pop-in 0.5s 0.15s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
 .oc-hl-hero-of { font: italic 900 28px / 1 var(--oc-font-title); color: var(--oc-label); }
 .oc-hl-hero.is-perfect .oc-hl-hero-n { color: #ffd2ad; text-shadow: 0 0 34px rgba(255, 106, 26, 0.9); }
-.oc-hl-bar.is-big { width: calc(100% + 52px); height: 16px; margin-top: 8px; }
+/* (PW1 — the owner's add-on, Nov 7: the bar was 52 pt WIDER than its centred grid cell, so the box overflowed both sides and the no-sideways clip
+   (oc-st-scroll) cut the first box to a sliver at 390 / 402 / 430 — the bar is the box's full width now, all 10 boxes whole) */
+.oc-hl-bar.is-big { width: 100%; justify-self: stretch; height: 16px; margin-top: 8px; }
 .oc-hl-bar.is-big > i.is-on { animation: oc-seg-in 0.28s calc(240ms + var(--i) * 55ms) ease-out both; }
 .oc-hl-bar.is-big > i.is-crack { animation: oc-seg-in 0.28s calc(300ms + var(--i) * 55ms) ease-out both; }
 .oc-hl-bar.is-big.is-cracked .oc-hl-crack { animation-delay: calc(360ms + var(--at) * 55ms); }

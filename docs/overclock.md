@@ -972,3 +972,14 @@ TOWERS (both red in the first full run too, green when their groups run alone + 
   ever ACCEPT a typed word, never show one.
 - The old `serve.mjs --emu` + the emulators from Nov 6 were still running on this machine; stopping them was refused by this session's
   permission check — the suites ran against them (they serve the files on disk; the emulators were idle).
+
+## THE OWNER's ADD-ON (Nov 7, 12:40 — carried by PW1): HIGHER OR LOWER's end card
+1. The 10-box streak bar's FIRST box was cut to a sliver at the left edge (390 / 402 / 430 + WebKit): `.oc-hl-bar.is-big` was 52 pt WIDER than its
+   centred grid cell (`calc(100% + 52px)` under a hero padded 52 pt on the right — OC3B's room for the corner button), so the box overflowed BOTH
+   sides and the no-sideways clip (`.oc-st-scroll { overflow-x: hidden }`) took the left 26 pt. Since OC8 A1 the whole after-screen starts BELOW the
+   corner buttons, so the inset is gone: the hero has no padding, the bar is the box's full width — all 10 boxes whole in every state (0 / 10,
+   mid-streak, 10 / 10), the hero number centred. Proof: Downloads/neon/password/shots/addon-before + addon-after (Chromium 390 / 402 / 430, WebKit 390).
+2. The header row (OVERCLOCK · 01/06 + the challenge name) is NOT on the after-challenge screen ON PURPOSE: that screen is a full overlay
+   (`.panel-full.oc-standings`, OC1's add-on — THE ANSWER · the banner · the standings in their own box, the NEXT footer) painted over the whole
+   screen, the header underneath it; OC8's add-on only moved its top below the corner buttons (A1), it lost nothing (`git show 922d9d3 --
+   css/overclock.css`: the one changed line is that padding-top). Left as it is.
