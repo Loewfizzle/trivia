@@ -184,7 +184,8 @@ try {
   await pages[gi].reload();
   await pages[gi].waitForSelector('.oc-dl[data-stage="race"], .oc-dl[data-stage="finish"]', { timeout: 30000 });
   const atRace = await pages[gi].evaluate(() => import('/js/firebase.js').then(m => m.serverNow())).then(now => now - dl.lk);
-  ok(atRace > 4000 && atRace < 16000, `REFRESH mid-race: ${NAMES[gi]} is back in the same race, ${Math.round(atRace / 1000)} s in`);
+  // (the floor = the 2.5 s waited above before the reload — OC7's lighter preload brings a phone back in well under a second more)
+  ok(atRace >= 2500 && atRace < 16000, `REFRESH mid-race: ${NAMES[gi]} is back in the same race, ${Math.round(atRace / 1000)} s in`);
   ok(await pages[gi].evaluate(() => { const c = document.querySelector('.oc-dl-cv'); return !!c && c.width > 300 && c.height > 300; }), 'REFRESH mid-race: the track redrawn (the canvas sized)');
 
   // ---------------- THE HOST DIES mid-race: a new host takes over, nothing re-draws

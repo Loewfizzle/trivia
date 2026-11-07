@@ -161,6 +161,12 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   values METRIC in the data, US units on screen (`units.js`); STABLE IDS (deals + the night memory key on them, never an index); TIMELINE = theme
   pools (four dealt, 10+ years apart); THE DAILY RESERVE (~20% of each, SERVER-ONLY in `api/_data/oc-reserve/` — never served, never dealt in a
   party; `daily.js#dayContent` = what a phone sees + the server's answers; docs/cartridge.md D2); `tests/overclock-content.test.mjs` checks it all.
+  OC7: TRIVIA LIGHTNING · CLOSEST CALL · MISSING LINK · SPELLCHECK are BUILT pools too (never edit `data/oc/{trivia,closest,missinglink,spellcheck}.json`
+  by hand) — OVERCLOCK's OWN TRIVIA BANK (no live trivia service, no question bank in the room; `js/trivia/` + `data/trivia/fallback.json` stay
+  UNCHANGED for LAST SIGNAL · HIGH STAKES · BLUFF — hash-pinned by `tests/overclock-oc7.test.mjs`); every deal + the night memory by id (`tv-` `cc-`
+  `ml-` `sp-`); MISSING LINK records each clue's SIDE (the answer screen + the demo show the WHOLE word, the link lit) and every join is a real word
+  (Hunspell en_US / ENABLE) or a Wiktionary phrase; SPELLCHECK is American (the right word in Hunspell en_US — SCOWL; no wrong one a word in
+  en_US / en_GB / ENABLE; `hard` = the common slip, the answer's underlines).
 - **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists).
 - **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
   music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:
@@ -220,7 +226,7 @@ js/admin/admin.js                                        the /admin page
 js/ui/    dom.js components.js final.js logo.js tube-logo.js game-art.js settings-panel.js help.js credits.js toast.js emblems.js debug-tools.js debug-strip.js word-neon.js   h(), the design system, the podium, the sign + City 2.0's SPEAKEASY tubes, game logos + lobby art, gear + settings, HOW TO PLAY, CREDITS (ADD A CREDIT = one entry in credits.js#CREDITS), toasts, emblems, the &debug=1 strips
 js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood.js lobby-music.js party-music.js beat.js diag.js tape-stop.js   prefs, the AudioContext + buses, music + playlists, SFX, ambience, songs on the server clock, MOOD MUSIC, the lobby's + City 2.0's PARTY song in sync (core/party-deck.js), the beat, the AUDIO panel, THE TAPE STOP (a decoded slice on a buffer source — the song element's playbackRate is NEVER changed: iOS stalls it). Session 'playback' with the music on, 'ambient' off; a dead graph hands the song to a plain <audio> (THE DIRECT PATH) — docs/audio.md
 js/core/mp3-slice.js tape-math.js                        PURE: an MP3's frames → a byte slice in song time; the tape's rate schedule + its exact integral (docs/audio.md#the-tape-stop-in-web-audio)
-js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
+js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / High Stakes / Bluff — never Overclock since OC7)
 js/screens/ title.js title-neon.js title-taps.js title-dock.js setup.js profile.js backdrop.js   the front door in four files (the mount + the sequence · THE NEON COMES ALIVE + the race + the music's answer · the living city's taps · THE FLANK + its work — docs/title.md), name/avatar, the membership card, the menus' still of the city
 js/screens/ room-city.js room-dock.js room-guests.js game-options.js room-banner.js   LOBBY 2.0 A + B — THE ROOM IN THE CITY (the roster → the city, the tags, the room dock, the guest list, the game's options, the game start, the banner + the champion; core/harbor-room.js + room-lines.js + room-show.js PURE)
 js/games/cartridge.js  js/ui/layers.js                   THE CARTRIDGE PLUG (the contract + checkCartridge — docs/cartridge.md) · ONE SHEET STACK (every pop-up takes the next layer)

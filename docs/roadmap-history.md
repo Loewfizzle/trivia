@@ -2119,3 +2119,19 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 4: tests/overclock-content.test.mjs + overclock-reserve.test.mjs; the spot-check sheet; the preview's `&seed=`; the look at 390.
 - The owner's add-on: the fame filter in every Wikidata query + a fame-first second form — the timed-out stats re-run.
 - No rules change. Docs: docs/overclock.md (OC6), content (THE POOL BUILD), cartridge (D2 — the reserve), data-model, testing, CLAUDE.md.
+
+
+## OVERCLOCK OC7 — CONTENT B: THE OWN TRIVIA BANK + CLOSEST CALL, MISSING LINK, SPELLCHECK (Nov 7, 2026)
+- Group 0: the shapes + the ids — TRIVIA LIGHTNING off the live trivia service (its own bank data/oc/trivia.json, dealt by id; no question bank
+  in the room, prepare() empty; js/trivia/ + data/trivia/fallback.json unchanged for LAST SIGNAL, HIGH STAKES, BLUFF — hash-pinned); the four OC7
+  shapes; every deal + the night memory by id; the daily's trivia = three ids; the dictionaries (SCOWL Hunspell en_US + en_GB, ENABLE) + the join
+  check (a dictionary word or a Wiktionary entry).
+- Group 1: the Wikidata pools — CLOSEST CALL from 17 stats; TRIVIA's data half from 26 templates (wrong answers from the same class at a similar
+  fame, never an alias).
+- Group 2: the written pools — TRIVIA's written half (2,293 written → 2,225 confirmed by their Wikipedia article, 68 dropped); SPELLCHECK (a
+  candidate generator + a read by hand + the dictionary checks); MISSING LINK written by hand (every join on record, THE ONE-ANSWER RULE).
+- Group 3: the reserve covers all eight pools (docs/cartridge.md D2); MISSING LINK's answer screen + rules-card demo show the WHOLE word with the
+  link lit; SPELLCHECK's underlines from `hard`; five deals of each of the four challenges looked at on the preview at 390; the no-sideways guard.
+- Group 4: tests/overclock-content.test.mjs's OC7 checks; the spot-check sheet (Downloads/neon/overclock/oc7-spotcheck.md) + the fixes its read
+  turned up.
+- No rules change. Docs: docs/overclock.md (OC7), content (THE POOL BUILD), cartridge (D2), data-model, testing, CLAUDE.md.

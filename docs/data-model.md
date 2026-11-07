@@ -102,12 +102,15 @@ Resolution writes **absolute** hp/sh computed from the pre-question state, so a 
 Damage: strike = round((30 − 20·elapsed/15 s) × mult), burn = round(10 × mult), mult = 1 + 0.25·floor(q/5). Cap 35 questions.
 
 OVERCLOCK `game`: `{ id:'overclock', matchId, settings{mode}, seed, total, order[], participants, ci, ck, brief,
-phase: ready|play|standings|final, phaseStartAt, phaseEndsAt, playStartAt, seen{type}, tq{ci:bankIndex}, tUsed, results{ci:{uid:{pts,ok,parts}}}, bank, trivia,
+phase: ready|play|standings|final, phaseStartAt, phaseEndsAt, playStartAt, seen{type}, results{ci:{uid:{pts,ok,parts}}},
 deal{ci:[int|id]}, dk{ci:'key key …'}, combo{uid:{c,m}}, rw{ci:{w,p}|{t:{uid:true},p}|{n:true}}, tm{ci:{uid:ms}}, cr{uid:int} }` (OC1: `deal` = THE ROOM's NIGHT MEMORY's deal — the bank rows / facts / words each
 challenge shows, picked at start() around rooms/{CODE}/meta/used/overclock; `dk` = their keys, marked used by the step that opens the
 challenge, with its type's `t-<type>` (docs/overclock.md, js/games/overclock/deal.js) — OC6: the four BUILT pools deal STABLE IDS, never an index
 (truefalse `[4 fact ids]` · higherlower `["statId|itemId|itemId" × 10]` · timeline `[themeId, itemId × 4]` · sortit `[setId]`; keys `tf-<id>` ·
-`hl-<stat>-<item>` · `tl-<theme>-<item>` · `so-<set>`), so a rebuilt pool keeps every deal + the night's memory; `combo` = right answers in a row now + the match's best
+`hl-<stat>-<item>` · `tl-<theme>-<item>` · `so-<set>`), so a rebuilt pool keeps every deal + the night's memory; OC7: TRIVIA LIGHTNING, CLOSEST
+CALL, MISSING LINK + SPELLCHECK the same (trivia `[3 question ids]` · closest `[id]` · missinglink `[2 ids]` · spellcheck `[5 ids]`; keys `tv-` ·
+`cc-` · `ml-` · `sp-<id>`) — Overclock keeps NO question bank in the room any more (`bank`, `trivia`, `tq`, `tUsed` gone: its own built bank,
+never the live trivia service); `combo` = right answers in a row now + the match's best
 — the OVERDRIVE feat). OC2: `rw` = THE ROUND WIN stored as challenge ci closes (logic.js#roundWin — the highest + not
 shared; a tie = nobody; the server's REDLINE calls the same function), `tm` = each player's ms from the challenge's start to their finish
 (FASTEST's clock; 30 000 if they never finished), `cr` = when a player's best streak was set (ci × 100 + the mark — BEST STREAK's tie-break).
@@ -164,8 +167,8 @@ or grammar (a reported exploit). Never render raw option/answer text; `tests/blu
 Open Trivia DB (never its sports category — club nicknames and stats even at medium), then the bundled bank (medium
 rows first). Every API question passes `sources.js#tooSpecific`: no all-years / all-big-number answer sets, no dated
 results ("who won the 2016…"), no sports seasons / scores / drafts / stat records. Tests hold real examples of both.
-**Trivia bank:** questions are appended to `game/bank/{i}` (obfuscated with key `code:matchId:q{i}`). Signal question
-`q` = `bank[q]`; Overclock lightning challenge `ci` uses `bank[tq[ci]]..+2`. The host keeps it topped up (Open Trivia DB
+**Trivia bank (LAST SIGNAL — OVERCLOCK left it in OC7 for its own built bank, `data/oc/trivia.json`):** questions are appended to
+`game/bank/{i}` (obfuscated with key `code:matchId:q{i}`). Signal question `q` = `bank[q]`. The host keeps it topped up (Open Trivia DB
 batches of 20, ≥ 5.2 s apart, session token in `game.trivia.token`); if the API is slow the director waits ~2.5 s, then
 appends from the fallback bank synchronously.
 **No repeats across a night:** every question a match banks is also recorded in `meta/used/trivia/{qHash}` (the opening bank

@@ -202,7 +202,8 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
 - OC4 CHALLENGES B (visual / reflex): Rewire (neon tubes + surge), Memory, Color Clash, Odd One Out (4 families), Quick Count, Signal Lock, Compass + the ~3 s animated rules demos (MAKE 24 cut in OC2).
 - OC5 DUMB LUCK + SOLO + DAILY PLUG-IN: Dumb Luck rules first (odds, payouts, seal, sim tests) then the look (neon sign, odds board, track, finish); SOLO mode; daily mode plug-in (OFF); the HORSESHOE emblem → server catalog + THE LAB (the only new collectible left for OC5 — the cards are built: REDLINE + PHOTO FINISH, OVERCLOCK CARDS; LONG SHOT / SOLO / OVERDRIVE dropped).
 - OC6 CONTENT A (structured / generated): True or False → 2,000+; Timeline / Higher-Lower / Sort It item pools; per-challenge lazy split.
-- OC7 CONTENT B (written + fact-checked): own trivia bank → 4,000+; Closest Call ~1,000; Missing Link ~1,000; Spellcheck ~1,500.
+- OC7 CONTENT B (written + fact-checked): own trivia bank → 4,000+; Closest Call ~1,000; Missing Link ~1,000; Spellcheck ~1,500. (SHIPPED Nov 7:
+  4,184 · 989 · 650 · 1,557 — the pass log below.)
 - Assets before OC5: the Muybridge "Horse in Motion" frames (public domain) — Grok prompt before that pass.
 
 ## SHELL 2.0 contract — Overclock chat's answers (Nov 5)
@@ -454,7 +455,7 @@ Missing Link typed to its auto-lock, both demos, Closest Call's scale.
 
 **Decisions (OC3B)**
 - **THE NEUTRAL JOIN** (Missing Link): a lit tube between each clue and the link, never an arrow (the bank doesn't record the side). OC7 records
-  the side per puzzle and shows the whole compound word.
+  the side per puzzle and shows the whole compound word (DONE in OC7 — `shared.js#joinedWord`; the tube stays only for a row with no side).
 - **UNSCRAMBLE's real-tap E2E** lives in e2e-oc-new (challenge 5, after Rewire): real CDP touches, not dispatched events.
 - **HIGHER OR LOWER is asked as "is the hidden one HIGHER or LOWER than the known one"** (the approved mockup): the same pairs, the same
   winner, the same strict rule — HIGHER is right exactly when the hidden value is the bigger one (`hlFair` never deals equal values), so the
@@ -486,7 +487,7 @@ right + wrong, the Higher or Lower demo, Timeline's answer sliding into order.
 
 **Known issues / held back**
 - SPELLCHECK's underlined letters come from the bank's ONE most-common misspelling — a few read a little wide (succ[eed] vs "succede"); OC7's
-  bigger bank can record the tricky letters per word.
+  bigger bank can record the tricky letters per word (DONE in OC7 — each row's `hard`).
 - HIGHER OR LOWER now shows the known card's number (the approved mockup) — the call is the same question, but the number is on screen.
 - COMPASS's old panel is the last one inside THE ANSWER (OC4 rebuilds it).
 - `tests/integration/e2e-stage2.mjs` (a retired suite, not in any run) still taps the pre-OC3 screens.
@@ -763,3 +764,85 @@ own files, the pool scripts + data, the dev server's /api rule, tests, docs) →
 - A few data-built items are better known abroad than in the U.S. (a stadium, a bridge, a cartoon); the fame filter keeps the best-known — the
   spot-check sheet is the place to flag any.
 - One small look change, kept to what Group 4 asked for: a SORT IT card sizes its text to fit the longest WORD too (never a mid-word break).
+
+
+### OC7 — CONTENT B: THE OWN TRIVIA BANK + CLOSEST CALL, MISSING LINK, SPELLCHECK (Nov 7, 2026)
+**What shipped**
+- **Group 0 — THE SHAPES + THE IDS:** TRIVIA LIGHTNING left the live trivia service — its OWN bank (`data/oc/trivia.json`), dealt by id like
+  every pool: no question bank in the room (`game.bank` / `trivia` / `tq` / `tUsed` gone), no top-up, `prepare()` empty, the director's
+  wait-for-trivia fallback gone. `js/trivia/` + `data/trivia/fallback.json` UNCHANGED for LAST SIGNAL, HIGH STAKES, BLUFF (hash-pinned by
+  `tests/overclock-oc7.test.mjs`). The four OC7 shapes (docs/content.md "THE POOL BUILD"); the deal + THE NIGHT MEMORY by id (`tv-` `cc-` `ml-`
+  `sp-`); TRIVIA's three questions = an easy, a medium and a medium-or-hard over three categories, fresh ones first (`deal.js#tvPick`); the
+  daily's trivia = three ids in the day set; every pool lazy. The build gained the OC7 rules + reserve split, the dictionaries (SCOWL Hunspell
+  en_US + en_GB, ENABLE — `scripts/oc-pools/dict/`), the join check (`phrases.mjs`), the hard letters (`spell-rules.mjs`).
+- **Group 1 — THE DATA-BUILT POOLS (Wikidata, CC0, the fame filter inside every query):** CLOSEST CALL from 17 stats; TRIVIA's data half from 26
+  templates — wrong answers from the SAME CLASS at a similar fame, never an alias of the right one, one-value facts only; by-hand exclusions in
+  `hand/oc7-exclude.mjs` (obscure, arguable, not all-ages, ambiguous names; whitelists for the noisy templates).
+- **Group 2 — THE WRITTEN POOLS (sourced + checked, dropped when unconfirmed):** TRIVIA's written half in 20 files (`written/tv-<cat>.json`), each
+  row checked against the Wikipedia article it names; SPELLCHECK from a candidate generator (`spell-gen.mjs` — everyday words with a real trap,
+  believable misspellings; Wikipedia's list of common misspellings ranks them) read by hand + the dictionary checks; MISSING LINK written by
+  hand (+ the best of `ml-gen.mjs`), every join checked, each clue's side recorded, THE ONE-ANSWER RULE.
+- **Group 3 — THE RESERVE + THE ANSWER SCREENS:** the reserve covers all eight pools (docs/cartridge.md D2 — the eight files, the id shapes,
+  what a phone may see per challenge); MISSING LINK's answer + its rules-card demo show the WHOLE word or phrase with the link LIT
+  (`shared.js#joinedWord` — SUN|FLOWER · FIRE|WORK · DINNER BELL; the neutral tube only for a row with no side, and the bank has none);
+  SPELLCHECK's underlines from the row's `hard` (`answers.js#hardMarks`). The look: five deals of each of the four challenges (play + answer) at
+  390 on the preview (`Downloads/neon/overclock/shots/oc7/` — the contact sheets); the read dropped 35 lifespan questions (obscure writers +
+  thinkers, a living actor with a death date on file, a pope, political figures).
+- **Group 4 — THE CHECKS:** `tests/overclock-content.test.mjs` + 10 OC7 checks (sizes + the mix; ids, prefixes + sources; the reserve's
+  ~20% agreeing with the build's split; no duplicates within + across the pools; the phone limits; trivia wrongs never an alias; every MISSING
+  LINK side recorded + every join real; SPELLCHECK's dictionary checks + `hard`; all-ages; US units); the spot-check sheet
+  (`Downloads/neon/overclock/oc7-spotcheck.md` — 60 items) + what its read turned up (the Empire State Building's height + Tower Bridge's
+  "main span" = arguable → out; HAPPY HOUR → LUNCH HOUR / HAPPY CAMPER; Efteling out). The checks also caught: 8 legacy Spellcheck rows with
+  a rude run of letters (passtime, assend …) → the legacy part now runs that check too; the WHICH OF THESE IS THE LARGEST template repeating
+  its winner (dropped as duplicates) → each set's winner once per stat. The preload test's fallback still listed OC6's small banks → none.
+
+**THE POOLS (before → after; the party files + THE DAILY RESERVE)**
+| | before OC7 | after OC7 | shipped (party) | reserve |
+|---|---|---|---|---|
+| TRIVIA LIGHTNING | the live service + a 333-row bundled bank | **4,184** own (2,001 data-built from 26 templates · 2,183 written; 41% easy · 40% medium · 19% hard) | 3,362 | 822 |
+| CLOSEST CALL | 175 | **989** (17 Wikidata stats) | 806 | 183 |
+| MISSING LINK | 283 | **650** (245 kept from OC1–OC5 · 405 new) | 539 | 111 |
+| SPELLCHECK | 434 | **1,557** (426 kept from OC1–OC5 · 1,131 new) | 1,263 | 294 |
+
+WRITTEN vs KEPT: TRIVIA 2,293 written → **2,225 confirmed** by their Wikipedia article (64 the proof not there · 4 no such article) → 2,183 after
+the build's rules (duplicates of a data row + the all-ages filter). MISSING LINK 606 written → **491** with every join on record (115 dropped:
+a join with no dictionary word / Wiktionary entry) → 405 new after the duplicates of a kept legacy answer; the OC1–OC5 rows 283 → 245 (38 a join
+not on record). SPELLCHECK 1,150 picked → **1,132** (18 excluded by the read); the OC1–OC5 rows 434 → 426 (8 a rude run of letters).
+SIZES: the party files trivia 668 KB (150 KB gzipped) · closest 116 KB · missinglink 92 KB · spellcheck 184 KB — all LAZY (each loads only for a
+match that deals it); `preload()` = 560 KB of its 1.5 MB (sounds 305 · fonts 65 · words 190 · no bank) + the crack textures. The reserve
+≈ 380 KB (all eight files).
+
+**Decisions (OC7)** — the owner's three (Nov 6): the live trivia service OUT of Overclock ONLY · MISSING LINK = compound words AND two-word
+phrases, each side recorded, the WHOLE word on the answer · SPELLCHECK = American, every right one in a dictionary list, every wrong one NOT a
+word, `hard` drives the underlines.
+- **The dictionary lists (SPELLCHECK + MISSING LINK):** Hunspell en_US (the RIGHT spelling — American) + en_GB from SCOWL (`dictionary-en`
+  4.0.0 / `dictionary-en-gb` 3.0.0, MIT-like licence committed), expanded with their .aff rules; ENABLE (public domain). A wrong spelling may be
+  a word in NONE of the three; a right one with a second accepted American spelling (judgment / judgement) is out.
+- **A MISSING LINK join is real when:** a one-word join is in en_US or ENABLE; a two-word join has its own Wiktionary entry (the titles dump —
+  31 MB, uncommitted — re-downloaded on a rebuild; every verdict committed in `cache/phrases.json`, so the tests need no download).
+- **THE ONE-ANSWER RULE:** another word that fits all three clues as one-word compounds is ACCEPTED (`accept`) — never a wrong answer for a
+  right idea.
+- **THE HARD LETTERS:** the letters the row's MOST COMMON misspelling gets wrong (an edit script against the right word) — the first wrong
+  option is that misspelling.
+- **TRIVIA's mix:** ≈ 40 / 40 / 20 easy / medium / hard; a match deals one easy, one medium, one medium-or-hard (60% hard), three categories.
+- **ONE FACT ONCE:** a written trivia row that only repeats a data template (a capital, a city's country) was left to the data half; no question
+  twice across TRIVIA + CLOSEST CALL, never a TRUE OR FALSE statement as a question.
+- **The lifespans (CLOSEST CALL):** both dates to the day, a natural death, no politicians / clerics, no one a casual American wouldn't know
+  (the read's list in `hand/oc7-exclude.mjs#LIVED_EXCLUDE`); Wikidata's death dates on living people are caught by hand (Dolly Parton, Chuck
+  Norris).
+
+**The local run before the final push (the mini PC, one suite at a time):** unit **1294 / 1294** (incl. the 10 new OC7 content checks + `overclock-oc7`; HIGH STAKES · LAST SIGNAL · BLUFF · the shared trivia **49 / 49**) · rules **66 / 66** (database.rules.json unchanged — nothing to re-publish) · `/api` server.test **38 / 38** · smoke **6 / 6** · e2e-oc-2 **27 / 27** · e2e-oc-new **75 / 75** · e2e-oc-luck **20 / 20** (8 phones each; its REFRESH check's floor was 4 s into the race — the test waits 2.5 s, and OC7's lighter preload brings the phone back at 3 s: the floor = the wait now) · the no-sideways guard **312 / 312** (every Overclock screen × 390 / 402 / 430) · the offline rebuild byte-identical. HIGH STAKES' E2E can't start its match (the game is hidden since WINDOWS — the console refuses it, as designed); SIGNAL + BLUFF have no E2E since WINDOWS — their code + `js/trivia/` + `data/trivia/fallback.json` are untouched and hash-pinned. Nothing outside Overclock's own files, the pool scripts + data, tests and docs changed (+ .gitignore) → the harbor suite not needed; the ci tag.
+
+**Known issues / held back**
+- MISSING LINK is **650**, short of the ~1,000 target: every puzzle must have three real joins + one answer, and the generator's phrases were
+  poor (web jargon, rude words), so the pool is hand-written; the next ~350 are a writing job for a later pass (the format + the checks are ready).
+- THE RESERVE is still in the PUBLIC repo (as OC6): the site never serves it; the repo goes private before the dailies go on, or the daily module
+  keeps it elsewhere. **For the city chat:** the daily module's server reads all EIGHT files now and calls `dayContent` — trivia arrives as three
+  ids in the day set (no question text), and missing link's `show` holds only the three clues (the answer's length is the module's to send if
+  its screen wants the "N LETTERS" hint).
+- 68 written trivia rows didn't pass their source check (`node scripts/oc-pools/build.mjs --offline --failed`) — some are true but worded
+  differently from their article.
+- MISSING LINK's `accept` lists come from the dictionary and include a few odd forms (TIDE + EST, PROOF + PROOFED) — they only ever ACCEPT a
+  typed word, never show one.
+- A few data-built questions are better known abroad (a European city, a park) — the spot-check sheet is the place to flag any; the read so far
+  dropped 37.

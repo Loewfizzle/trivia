@@ -10,40 +10,36 @@ How to add questions, puzzles and words to every bank, and how the word lists ar
   closeness check would treat as the truth). Never put "an" right before the blank (it hints that the answer starts
   with a vowel); put the article in the answer instead — it is stripped for display. Categories: brands, inventions, history, science, animals, food, geography,
   laws, words, pop, sports, misc (labels in `bluff/view.js#CAT`).
-- **Fallback trivia (Last Signal / Overclock):** append `[category, "medium"|"hard", question, correct, wrong1, wrong2, wrong3]`
-  to `data/trivia/fallback.json`; categories must match `js/trivia/categories.js`. `tests/trivia.test.mjs` validates it.
-- **Overclock CLOSEST CALL:** append `[category, "Question that names the unit?", answer, "unit"]` to `data/oc/closest.json`.
-  Only stable, well-documented numbers (no populations/records that drift); the unit must be in the question.
-  `tests/overclock-new.test.mjs` checks the shape and count.
-- **Overclock TIMELINE / HIGHER OR LOWER / SORT IT / TRUE OR FALSE:** BUILT — never edit `data/oc/{truefalse,higherlower,timeline,sortit}.json`
-  by hand; see **THE POOL BUILD (OC6)** below.
-- **Overclock MISSING LINK:** append `["WORD", "WORD", "WORD", "ANSWER", ""]` to `data/oc/missinglink.json` (put other accepted
-  spellings in the last field as `"GREY|GRAY"`; plurals are automatic). The answer must join all three clues (before or after) and
-  NO other word may fit all three — try "fire / stone / paper": WALL works, but so does WORK, so it was changed. Answers are unique.
-- **Overclock SPELLCHECK:** append `["correct", "common misspelling", "wrong", "wrong"]` (lowercase, American spelling) to
-  `data/oc/spellcheck.json`. Skip words with two accepted spellings, and make sure no "wrong" option is a real word or variant
-  (e.g. *calender*, *florescent* and *publically* are in dictionaries). Check new rows against ENABLE + Hunspell en_US/en_GB.
+- **Fallback trivia (LAST SIGNAL / HIGH STAKES / BLUFF — the shared `js/trivia/`):** append `[category, "medium"|"hard", question, correct, wrong1,
+  wrong2, wrong3]` to `data/trivia/fallback.json`; categories must match `js/trivia/categories.js`. `tests/trivia.test.mjs` validates it.
+  OVERCLOCK no longer reads it (OC7: its own bank, below).
+- **Overclock — EVERY BIG POOL IS BUILT (OC6 + OC7):** TRUE OR FALSE, HIGHER OR LOWER, TIMELINE, SORT IT, TRIVIA LIGHTNING, CLOSEST CALL, MISSING
+  LINK, SPELLCHECK — never edit `data/oc/{truefalse,higherlower,timeline,sortit,trivia,closest,missinglink,spellcheck}.json` by hand; add to the
+  build's inputs (a written file, a hand file, a Wikidata template) and rebuild — see **THE POOL BUILD** below.
 - **Overclock ODD ONE OUT (OC4 — four families, `js/games/overclock/odd.js`):** a LETTERS / NUMBERS pair = `['one', 'other', tier]` in
   `GLYPH_PAIRS` (tier 0 easy · 1 medium · 2 hard; FAIR in the monospace face at a ~54-pt cell — one or two characters, no duplicates; either
   may be the odd one); a ROTATION / MIRROR shape = a name in `ROT_SHAPES` / `MIRROR_SHAPES` + its neon path (100 × 100) in
   `ui/oddart.js#PATHS` (a rotation shape must have no turn that maps it onto itself; a mirror shape must look FLIPPED, not turned); a NEON
   SHAPE = an id in `NEON_ODD` + its two tokens in `odd.js#oddGrid` + its art + its why line in `oddWhy`. Never a colour difference (colour-blind
   players). `tests/overclock-oc4.test.mjs` checks the catalogs, the night keys and the phone rule (turns ≥ 25°, a gap moved ≥ 90°).
-- **Overclock — THE ROOM's NIGHT MEMORY (OC1 → OC6):** the four OC6 pools are remembered by each item's STABLE ID (a Wikidata Q-id, or the id the
-  build gave a written item) — `deal.js`: `tf-<id>`, `hl-<stat>-<item>`, `tl-<theme>-<item>`, `so-<set>`; the OC7 banks (closest, missing link,
-  spellcheck) still by a hash of the row's TEXT. A rebuild that adds, drops or reorders rows keeps the night's memory.
+- **Overclock — THE ROOM's NIGHT MEMORY (OC1 → OC7):** every built pool is remembered by each item's STABLE ID (a Wikidata Q-id, or the id the
+  build gave a written item) — `deal.js`: `tf-<id>`, `hl-<stat>-<item>`, `tl-<theme>-<item>`, `so-<set>`, `tv-<id>`, `cc-<id>`, `ml-<id>`,
+  `sp-<id>`. A rebuild that adds, drops or reorders rows keeps the night's memory.
 - **Cipher Breach / Unscramble words:** edit the blocklist or sizes in `scripts/build-words.mjs` and rebuild (below).
 
 
-## THE POOL BUILD (OC6 — `scripts/oc-pools/`)
-`node scripts/oc-pools/build.mjs` builds OVERCLOCK's four big pools + THE DAILY RESERVE (`--offline` = the caches only; `--refresh` = ask Wikidata
+## THE POOL BUILD (OC6 + OC7 — `scripts/oc-pools/`)
+`node scripts/oc-pools/build.mjs` builds OVERCLOCK's eight big pools + THE DAILY RESERVE (`--offline` = the caches only; `--refresh` = ask Wikidata
 again; `--skip=40-sortit,…` leaves parts out; `--failed` lists the written rows their source didn't confirm; `--verbose` every drop). Deterministic:
 the same caches → byte-identical files. Its parts (`parts/*.mjs`, run in name order) add rows; the builder then applies THE RULES (below), drops +
 counts what breaks one, splits off the reserve and writes:
 - `data/oc/truefalse.json` `{ items: [{ id, t, f, src, cat }] }` · `higherlower.json` `{ stats: [{ id, stat, ask, unit, win, gap?, src?, items: [[label,
   value, shown|null, id, src?]] }] }` · `timeline.json` `{ themes: [{ id, theme, ask, dir, unit?, items: [[label, value, shown|null, id, src?]] }] }` ·
-  `sortit.json` `{ sets: [{ id, left, right, L, R, src }] }` — THE PARTY POOLS (lazy-loaded by banks.js, only for a match that deals them).
-- `api/_data/oc-reserve/<the same four>.json` — THE DAILY RESERVE: ~20% of every pool (`lib.mjs#isReserve`: a stable hash of the id), SERVER-ONLY
+  `sortit.json` `{ sets: [{ id, left, right, L, R, src }] }` · OC7's `trivia.json` `{ v: 1, items: [{ id, cat, d: easy|medium|hard, q, a, w: [3],
+  src }] }` · `closest.json` `{ v: 3, questions: [{ id, cat, q, value (metric), unit, src }] }` · `missinglink.json` `{ v: 2, puzzles: [{ id,
+  clues: [[WORD, 'after'|'before', ''|' '] × 3], answer, accept: [], src }] }` · `spellcheck.json` `{ v: 2, words: [{ id, right, wrong: [3], hard:
+  [letter indexes], src }] }` — THE PARTY POOLS (lazy-loaded by banks.js, only for a match that deals them).
+- `api/_data/oc-reserve/<the same eight>.json` — THE DAILY RESERVE: ~20% of every pool (`lib.mjs#isReserve`: a stable hash of the id), SERVER-ONLY
   (never served — Vercel serves api/ as functions only, `scripts/serve.mjs` the same; never imported by a page; never dealt in a party) for THE
   DAILY MODULE (docs/cartridge.md D2). `tests/overclock-reserve.test.mjs` proves it.
 
@@ -58,6 +54,34 @@ counts what breaks one, splits off the reserve and writes:
 - `40-sortit` — SORT IT: the COMPUTED sets (`sortcheck.mjs` — the rule is code; the tests re-compute every card), the DATA sets (Wikidata, with a
   margin around every cut-off), the WRITTEN sets (`hand/sortit-written.json`).
 - `50-written` — TRUE OR FALSE's written half (`written/tf-<cat>.json`).
+- `60-oc7-legacy` — the OC1–OC5 SPELLCHECK + MISSING LINK rows kept (`hand/legacy-*.json`), through the same checks as the new rows (a missing
+  link's sides found by `phrases.mjs#joinKind`).
+- `70-wd-closest` — CLOSEST CALL from WIKIDATA: 17 stats (peaks, towers, bridges' MAIN SPAN, country / state / island / lake / park areas, lake
+  depths, atomic numbers, the 2020 census, how old a famous person was at death — both dates to the day, a natural death, `hand/oc7-exclude.mjs#
+  LIVED_EXCLUDE` for the obscure + the wrong, a film's running time with its year, a finished show's episodes, straight-line miles between famous
+  cities from the curated `DIST_US` / `DIST_WORLD` pairs). The question NAMES its unit; the screen converts (`challenges.js#closestAnswer`).
+- `75-wd-trivia` — TRIVIA's data half: 26 templates (capitals both ways, continents, U.S. state capitals with the big-city trap, city / peak /
+  island → country, park / city → state, who wrote / directed / painted / composed / released it, element symbols, a team's sport, World Cup hosts,
+  WHICH OF THESE IS THE LARGEST — each set's winner once per stat, official languages, the decade, a band's country, characters, inventors, an
+  athlete's sport, a musician's instrument, presidents). Wrong answers from the SAME CLASS at a similar fame (`near()`), never an alias of the right
+  one (`lib.mjs#aliasOf`); the difficulty = the fame rank inside a template; `TV_TEMPLATE_CAP` 220. By-hand lists in `hand/oc7-exclude.mjs`.
+- `80-written-trivia` — TRIVIA's written half (`written/tv-<cat>.json`: `{ cat, rows: [[question, answer, "wrong|wrong|wrong", e|m|h, Wikipedia
+  article, proof]] }`) — the same source check as TRUE OR FALSE; id `w<hash of the question>`. (`written/cc-*.json` = written CLOSEST CALL rows,
+  `[question, value, unit, article, proof]` — none yet.)
+- `85-missinglink` — MISSING LINK, written by hand (`hand/missinglink-written-<n>.json`: `["ANSWER", "CLUE+ CLUE- CLUE+_"]` — `+` the clue comes
+  FIRST (SUN+ → SUNFLOWER), `-` the answer first (GLASS- → HOURGLASS), `_` a space (a two-word phrase: RUSH+_ → RUSH HOUR)). Every JOIN must be
+  real: a one-word join in Hunspell en_US or ENABLE (`dict.mjs`), a two-word join with its own WIKTIONARY entry (`phrases.mjs` — the titles dump,
+  31 MB, is UNCOMMITTED in `cache/wikt-raw/` and re-downloaded on a rebuild; every verdict is kept in `cache/phrases.json`, committed, so an
+  offline rebuild + the tests need no dump). THE ONE-ANSWER RULE: a second word that fits all three as one-word compounds goes in `accept`.
+  `ml-gen.mjs` = a candidate helper for the author (never run by the build); `hand/ml-exclude.mjs` = what was read and rejected.
+- `90-spellcheck` — SPELLCHECK (`hand/spellcheck-picked.json`: `[right, wrong, wrong, wrong]`, the FIRST wrong = the most common misspelling):
+  the right word in Hunspell en_US (SCOWL — American), no wrong one a word in en_US / en_GB / ENABLE, no rude run of letters (`spell-gen.mjs#rudeIn`),
+  no second accepted American spelling (`VARIANTS`); `hard` = the letters the common misspelling gets wrong (`spell-rules.mjs#hardLetters` — the
+  answer screen underlines them). `spell-gen.mjs` proposes candidates from Peter Norvig's word counts + Wikipedia's list of common misspellings
+  (`node scripts/oc-pools/spell-gen.mjs <count_1w.txt> <misspellings.txt>` — neither committed); a person reads them (`hand/spell-exclude.mjs`).
+
+**The dictionaries** (`scripts/oc-pools/dict/`, committed gzipped): Hunspell en_US + en_GB from SCOWL (the `dictionary-en` 4.0.0 /
+`dictionary-en-gb` 3.0.0 packages — SCOWL's MIT-like licence in `LICENSE-SCOWL.txt`), expanded with the .aff rules; ENABLE (public domain).
 
 **Wikidata** (`wikidata.mjs` + `wdq.mjs`): the public SPARQL endpoint, a User-Agent naming the site, one query at a time (3 s apart; a 429 waits as
 long as the server asks), every answer CACHED in `cache/wd/<name>.json` (committed — a rebuild works offline). THE FAME FILTER is in every query
@@ -78,12 +102,17 @@ doesn't confirm is DROPPED, never kept on trust — fix the fact (or the proof, 
 - STABLE NUMBERS: populations rounded + dated (the 2020 census), HIGHER OR LOWER never pairs two within 1.2× (a drifting count: 1.3× / 1.5×; years
   10+; °C 100°+), TIMELINE never deals two within 10 years (a size: 1.3×).
 - FAIR FALSES: a believable mistake (the wrong neighbour, a swapped number, the next decade) — never a trick or a double negative.
-- READABLE: a statement ≤ 90 characters (a full sentence), a label / a card ≤ 32; plain words.
+- READABLE: a statement ≤ 90 characters (a full sentence), a label / a card ≤ 32; plain words. OC7: a question ≤ 110, an answer ≤ 28, a clue ≤ 10,
+  a join ≤ 20, a spelling ≤ 16 (`lib.mjs`).
+- ONE FACT ONCE: no question twice across TRIVIA + CLOSEST CALL, never a TRUE OR FALSE statement as a question; a written trivia row that only
+  repeats a data template (a capital, a city's country) is left to the data half.
 - ALL AGES: `lib.mjs#BANNED` (+ films / games only with a family rating: G · PG · PG-13 / E · E10+ · T).
 - US-FIRST: American wording; values METRIC in the data, US units on screen (`js/games/overclock/units.js`: ft, mi, sq mi, lb, mph, °F — whole
   numbers to 100,000, three significant figures above, "million" / "billion").
 - LASTING: no "current", "latest", "this year", no living person's age or net worth, no record that keeps changing.
 - STABLE IDS: a Q-id, `h-<slug>` (hand), `w<hash of the true text>` (written), `d-<template>-<Q-ids>` (data) — [A-Za-z0-9_-] (database keys).
+  OC7: `t-<template>-<Q-ids>` (data trivia) · `w<hash of the question>` (written trivia) · `c-<stat>-<Q-ids>` (closest call) · `m-<answer>` ·
+  `s-<right word>`.
 
 ## HUSH WORDS (room codes)
 The room code is a common 4-letter word, the HUSH WORD. Source: `scripts/hushwords/words.txt` (one block per letter);
