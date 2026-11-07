@@ -21,11 +21,11 @@ function tokens(look) {
 }
 const glowText = (c, text, x, y, color, glow, blur) => { c.save(); c.shadowColor = glow; c.shadowBlur = blur; c.fillStyle = color; c.fillText(text, x, y); if (blur) c.fillText(text, x, y); c.restore(); };
 /** a drawn searchlight (the status row's icon, in canvas): a lamp on a stand, its cone to the upper right; lit = gold */
-function lamp(c, x, y, S, lit, L) {
+function lamp(c, x, y, S, lit, L, look) {
   c.save(); c.translate(x, y); c.scale(S, S); c.lineCap = 'round'; c.lineJoin = 'round';
   const col = lit ? L.lamp : L.lampOff;
   c.beginPath(); c.moveTo(13.5, 9.5); c.lineTo(31, 1.5); c.lineTo(31, 14.5); c.lineTo(14.5, 13.5); c.closePath();
-  if (lit) { c.fillStyle = 'rgba(255,196,80,0.32)'; c.fill(); c.strokeStyle = col; c.lineWidth = 1; c.stroke(); }
+  if (lit) { c.fillStyle = look === 'day' ? 'rgba(255,196,80,0.4)' : 'rgba(255,220,130,0.6)'; c.fill(); c.strokeStyle = col; c.lineWidth = 1; c.stroke(); }
   else { c.setLineDash([2, 2.5]); c.strokeStyle = col; c.lineWidth = 1; c.stroke(); c.setLineDash([]); }
   c.beginPath(); c.arc(10, 11.5, 4.6, 0, Math.PI * 2);
   if (lit) { c.shadowColor = L.lamp; c.shadowBlur = 6; c.fillStyle = col; c.fill(); c.shadowBlur = 0; c.strokeStyle = L.lampCore; c.lineWidth = 1.6; c.stroke(); }
@@ -51,14 +51,18 @@ export function renderShare({ inputs, look = 'night' } = {}) {
   }
   c.textAlign = 'center'; c.textBaseline = 'middle';
   // the sign (the name once; the headline below is the result)
-  if (look === 'day') { c.font = `800 70px ${L.font}`; c.fillStyle = L.sign; c.fillText('coast clear', W / 2 - 12, 140); c.fillStyle = L.site; c.fillText('.', W / 2 + 196, 140); }
+  if (look === 'day') { c.font = `800 70px ${L.font}`; const tw = c.measureText('coast clear').width, dw = c.measureText('.').width; c.textAlign = 'left'; c.fillStyle = L.sign; c.fillText('coast clear', (W - tw - dw) / 2, 140); c.fillStyle = L.site; c.fillText('.', (W - tw - dw) / 2 + tw, 140); c.textAlign = 'center'; }
   else { c.font = `900 54px ${L.font}`; c.save(); c.letterSpacing = '13px'; glowText(c, 'COAST CLEAR', W / 2 + 6, 140, L.signCore, L.sign, 36); c.restore(); }
   // the headline, with a soft lighthouse beam behind a clear
-  const hy = 440;
+  const hy = I.caught ? 540 : 440;   // (a caught card has no big time: its block sits lower, centred)
   if (!I.caught) {
-    c.save(); c.translate(W / 2, hy + 10); c.rotate(-0.42);
-    const bm = c.createLinearGradient(0, 0, 900, 0); bm.addColorStop(0, L.beam); bm.addColorStop(1, 'rgba(255,240,200,0)');
-    c.fillStyle = bm; c.beginPath(); c.moveTo(0, -8); c.lineTo(900, -150); c.lineTo(900, 150); c.lineTo(0, 8); c.closePath(); c.fill(); c.restore();
+    // the lighthouse: a broad soft cone from low on the left, sweeping up behind the headline (a halo cone + the beam)
+    c.save(); c.translate(W * 0.12, hy + 120); c.rotate(-0.36);
+    for (const [spread, a] of [[340, 0.45], [170, 1]]) {
+      const bm = c.createLinearGradient(0, 0, 1150, 0); bm.addColorStop(0, L.beam); bm.addColorStop(0.55, 'rgba(255,236,190,0.08)'); bm.addColorStop(1, 'rgba(255,240,200,0)');
+      c.globalAlpha = a; c.fillStyle = bm; c.beginPath(); c.moveTo(0, -6); c.lineTo(1150, -spread); c.lineTo(1150, spread); c.lineTo(0, 6); c.closePath(); c.fill();
+    }
+    c.restore();
   }
   const hc = I.caught ? L.lose : L.win;
   c.font = `900 ${I.caught ? 118 : 104}px ${L.font}`;
@@ -70,9 +74,10 @@ export function renderShare({ inputs, look = 'night' } = {}) {
   if (!I.caught && I.time) { c.font = '700 190px "Chakra Petch", system-ui, sans-serif'; c.fillStyle = L.ink; c.fillText(String(I.time), W / 2, y + 30); y += 190; }
   c.font = '700 44px "Chakra Petch", system-ui, sans-serif'; c.fillStyle = I.caught ? L.ink : L.dim; c.save(); c.letterSpacing = '6px';
   c.fillText(String(I.line || ''), W / 2 + 3, y); c.restore();
-  // THREE drawn searchlights, lit per spot
+  // THREE drawn searchlights, lit per spot (under the result — never a hole above them)
+  const lampY = y + 120;
   const S = 5.4, lw = 32 * S, gap = 46, x0 = (W - (3 * lw + 2 * gap)) / 2;
-  for (let k = 0; k < 3; k++) lamp(c, x0 + k * (lw + gap), 940, S, k < (Number(I.spots) || 0), L);
+  for (let k = 0; k < 3; k++) lamp(c, x0 + k * (lw + gap), lampY, S, k < (Number(I.spots) || 0), L, look);
   // the day number + the site
   c.font = '700 30px "Chakra Petch", system-ui, sans-serif'; c.fillStyle = L.dim; c.save(); c.letterSpacing = '6px';
   c.fillText(I.dayNo != null ? `COAST CLEAR #${I.dayNo}` : 'COAST CLEAR', W / 2 + 3, 1190);
