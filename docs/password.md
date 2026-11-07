@@ -153,6 +153,9 @@ no list ships unreviewed; every answer must be in data/words/valid-5.json (a wor
   WebKit). Shots: `Downloads/neon/password/shots/` — `pw2-before` / `pw2-g0` (Group 0, both games, Chromium + WebKit), `pw2-g1` (the doors, the end
   screens, the reveal strips), `pw2-g4` (the day look), `pw2-addon-before` / `pw2-addon-after` (the end screen's ADD-ON), `pw2-share`, `pw2-card`, `pw2-e2e`.
 
+**The local run before the push (PW2, Nov 7):** unit 1316 · rules 66 + /api 38 (+ password 6, the rewards on finish) · smoke GAMES=overclock 5/5 ·
+e2e-password 32/32 · the no-sideways guard 312/312 · the reveal filmed at 390 (`--cast`), the end screens at 390 / 402 / 430 in both looks + WebKit.
+
 ## Real vs placeholder (PW2)
 REAL: the rules, the server judging + the record + the schedule + the list, the kit hook, BOTH looks + the live switch, the drawn doors, the door
 reveal, the end screen, the sounds, the share card, the rewards (server-awarded; their art in THE LAB waiting for the owner's marks — only approved
