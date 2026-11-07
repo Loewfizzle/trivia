@@ -1,0 +1,101 @@
+THE PASSWORD + COAST CLEAR (Neon Speakeasy dailies) - sound effects credits
+
+Attribution required: NONE. Every source is CC0 1.0 or the Sonniss GDC bundle licence; neither requires credit.
+Credit is still listed voluntarily below. No CC BY, NC, Mixkit, Pixabay, BBC, YouTube, AI-generated or music sources are used.
+Sonniss sources were taken from archive.org mirrors of the free official GDC bundles (https://sonniss.com/gameaudiogdc); a few came from the "-normalized" archive.org mirrors (same recordings, loudness-normalized), as marked.
+
+12-dig.mp3
+  description: COAST CLEAR dig: soft water plop with a tiny splash tail
+  source:  "Scatter Plops 04.wav"  [0-0.13 s]
+  author:  L.A. Sounds - Game & UI Interface 001 (Sonniss GDC 2019 bundle)
+  url:     https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/L.A.%20Sounds%20-%20Game%20%26%20UI%20Interface%20001/Scatter%20Plops%2004.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  source:  "LIQUID HIT Lake, Branch, Splash, Lake, Seaweed in Water, Small, CU 04.wav"  [0.02-0.45 s, layered]
+  author:  Articulated Sounds - Magic Elements vol.2 (Sonniss GDC 2020 bundle)
+  url:     https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/Articulated%20Sounds%20-%20Magic%20Elements%20vol.2/LIQUID%20HIT%20Lake%2C%20Branch%2C%20Splash%2C%20Lake%2C%20Seaweed%20in%20Water%2C%20Small%2C%20CU%2004.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   plop cut 0-0.13 s; splash low-pass 6 kHz at 0.22 gain; cut to 0.42 s, 150 ms fade, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+13-open-area.mp3
+  description: COAST CLEAR open area: plop then a watery whoosh spreading out
+  source:  "Scatter Plops 04.wav"  [0.24-0.37 s]
+  author:  L.A. Sounds - Game & UI Interface 001 (Sonniss GDC 2019 bundle)
+  url:     https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/L.A.%20Sounds%20-%20Game%20%26%20UI%20Interface%20001/Scatter%20Plops%2004.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  source:  "Whoosh,Sound Design,Watery,Strong,Fast,Abrupt.wav"  [0.16-1.0 s]
+  author:  Airborne Sound - Eclectic Whooshes 3 (Sonniss GDC 2019 bundle)
+  url:     https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Airborne%20Sound%20-%20Eclectic%20Whooshes%203/Whoosh%2CSound%20Design%2CWatery%2CStrong%2CFast%2CAbrupt.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  source:  "JW4-WS_Water-Swirled_M_012.wav"  [0.40-1.10 s]
+  author:  SoundBits - Just Whoosh 4: Whoosh Sweeteners (Sonniss GDC 2020 bundle) [archive.org "-normalized" mirror of the official bundle: loudness-normalized re-upload of the same file]
+  url:     https://archive.org/download/sonniss-gdc-2020-game-audio-bundle-normalized/SoundBits%20-%20Just%20Whoosh%204%20-%20Whoosh%20Sweeteners/JW4-WS_Water-Swirled_M_012.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   plop pitched -3 semitones; watery whoosh low-pass 7 kHz at 0.75 gain from +0.02 s; water-swirl sweetener low-pass 8 kHz at 0.3 gain from +0.10 s; cut to 0.95 s, 200 ms fade, stereo; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+14-buoy-place.mp3
+  description: COAST CLEAR buoy place: wooden game piece set down on the board
+  source:  "GAMEBoard_Chess, Contact, King Takes_UberDuo_Game.wav"  [1.98-2.16 s]
+  author:  UberDuo - Game Night Audio Props (Sonniss GDC 2024 bundle) [archive.org "-normalized" mirror of the official bundle: loudness-normalized re-upload of the same file]
+  url:     https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/UberDuo%20-%20Game%20Night%20Audio%20Props/GAMEBoard_Chess%2C%20Contact%2C%20King%20Takes_UberDuo_Game.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   cut 1.98-2.16 s, onset-trimmed, 60 ms fade, high-pass 150 Hz, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+15-buoy-remove.mp3
+  description: COAST CLEAR buoy remove: lighter, softer lift of the same piece
+  source:  "GAMEBoard_Chess, Contact, King Takes_UberDuo_Game.wav"  [1.98-2.16 s]
+  author:  UberDuo - Game Night Audio Props (Sonniss GDC 2024 bundle) [archive.org "-normalized" mirror of the official bundle: loudness-normalized re-upload of the same file]
+  url:     https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/UberDuo%20-%20Game%20Night%20Audio%20Props/GAMEBoard_Chess%2C%20Contact%2C%20King%20Takes_UberDuo_Game.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   pitched +3 semitones, onset-trimmed, band-passed 200 Hz-3.2 kHz, cut to 0.14 s, 60 ms fade, 4 dB quieter than buoy-place, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+16-mode-toggle.mp3
+  description: COAST CLEAR mode toggle: small precise switch click
+  source:  "button_on_off_064.wav"  [0.05-0.25 s]
+  author:  3maze - Buttons and Switches (Sonniss GDC 2016 bundle)
+  url:     https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/3maze%20-%20%20Buttons%20and%20Switches/button_on_off_064.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   cut 0.05-0.25 s, onset-trimmed, 80 ms fade, low-pass 7.5 kHz, mono; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+17-spotted.mp3
+  description: COAST CLEAR spotted: quick whoom with a distant siren blip (~1 s)
+  source:  "EFX SD Sliding Whoosh By 21.wav"  [0.42-1.10 s]
+  author:  Coll Anderson - Sliding Whoosh By (Sonniss GDC 2015 bundle)
+  url:     https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/Coll%20Anderson%20-%20Sliding%20Whoosh%20By/EFX%20SD%20Sliding%20Whoosh%20By%2021.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  source:  "EFX EXT Emergency Siren Distant 18 B.wav"  [0-0.65 s]
+  author:  Coll Anderson - Traditional Sirens (Sonniss GDC 2015 bundle)
+  url:     https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/Coll%20Anderson%20-%20Traditional%20Sirens/EFX%20EXT%20Emergency%20Siren%20Distant%2018%20B.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   whoosh low-pass 6 kHz, 20 ms fade-in; distant siren band-passed 300 Hz-5 kHz at 0.6 gain from +0.22 s; cut to 1.0 s, 150 ms fade, stereo; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+18-caught.mp3
+  description: COAST CLEAR caught: siren wail over a soft low hit (~1.5 s)
+  source:  "EFX EXT Emergency Siren 10 B.wav"  [0-1.45 s]
+  author:  Coll Anderson - Traditional Sirens (Sonniss GDC 2015 bundle)
+  url:     https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/Coll%20Anderson%20-%20Traditional%20Sirens/EFX%20EXT%20Emergency%20Siren%2010%20B.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  source:  "impactSoft_heavy_001.ogg"  [0-0.55 s]
+  author:  Kenney - Impact Sounds pack
+  url:     https://kenney.nl/assets/impact-sounds
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  source:  "Bluezone_BC0294_modern_cinematic_impact_boom_003.flac"  [0-0.9 s]
+  author:  BluezoneCorp - Modern Cinematic Impact (Sonniss GDC 2024 bundle) [archive.org "-normalized" mirror of the official bundle: loudness-normalized re-upload of the same file]
+  url:     https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/BluezoneCorp%20-%20Modern%20Cinematic%20Impact/Bluezone_BC0294_modern_cinematic_impact_boom_003.flac
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   siren band-passed 250 Hz-5 kHz at 0.55 gain; Kenney soft heavy impact at 0.9; cinematic boom low-pass 1.8 kHz at 0.35; cut to 1.45 s, 300 ms fade, stereo; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz
+
+19-coast-clear-win.mp3
+  description: COAST CLEAR win: lighthouse-sweep whoosh, distant foghorn, warm chord sting (2 s)
+  source:  "EFX SD Sliding Whoosh By 21.wav"  [0.40-1.30 s]
+  author:  Coll Anderson - Sliding Whoosh By (Sonniss GDC 2015 bundle)
+  url:     https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/Coll%20Anderson%20-%20Sliding%20Whoosh%20By/EFX%20SD%20Sliding%20Whoosh%20By%2021.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  source:  "Ship Horn.wav" (Freesound #208714)  [3.30-4.55 s]
+  author:  monotraum
+  url:     https://freesound.org/s/208714/
+  licence: CC0 1.0 Universal (Public Domain Dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  source:  "Success 2a.wav"  [0-1.35 s]
+  author:  Chris Logsdon - Ambient Puzzle SFX Pack (Sonniss GDC 2019 bundle)
+  url:     https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Chris%20Logsdon%20-%20Ambient%20Puzzle%20SFX%20Pack/Success%202a.wav
+  licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; raw files may not be redistributed or used for AI training) - https://sonniss.com/gdc-bundle-license/
+  edits:   whoosh pitched -3 semitones, low-pass 5 kHz at 0.6; ship horn band-passed 90 Hz-3 kHz at 0.55 from +0.10 s; Success 2a pitched -5 semitones at 0.85 from +0.62 s (same chord family as 10-win-sting); cut to 2.0 s, 300 ms fade, stereo; levelled (K-weighted momentary-max loudness target), true-peak limited to -1.5 dBTP, MP3 192k 44.1 kHz

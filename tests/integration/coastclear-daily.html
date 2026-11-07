@@ -24,6 +24,8 @@ import { initFirebase } from '/js/firebase.js';
 import { api } from '/js/profile/api.js';
 import { createView } from '/js/games/coastclear/view.js';
 import { create } from '/js/games/coastclear/daily.js';
+import { installAudio } from '/js/audio/engine.js';
+installAudio();   // (CC2 — the console's unlock-on-tap, as the real game has it: the E2E proves the sounds start)
 
 const q = new URLSearchParams(location.search);
 const uid = await initFirebase(() => {});

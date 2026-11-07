@@ -17,8 +17,8 @@ export const CC_SOUNDS = Object.freeze({
   buoy: ['14-buoy-place', 0.45, 40],
   unbuoy: ['15-buoy-remove', 0.42, 40],
   mode: ['16-mode-toggle', 0.5, 60],
-  spotted: ['17-spotted', 0.5, 300],
-  caught: ['18-caught', 0.5, 1500],
+  spotted: ['17-spotted', 0.42, 300],          // (a short siren blip)
+  caught: ['18-caught', 0.62, 1500],           // (firmer — still ~5 LU under the win: build-cc-sfx.py measured −26.3 vs −20 LUFS)
   win: ['19-coast-clear-win', 0.55, 2000],
 });
 export const CC_FILES = [...new Set(Object.values(CC_SOUNDS).map(s => s[0]))];
@@ -65,18 +65,25 @@ function start(name, gain) {
   const b = buffer(file);
   if (b && typeof b.then === 'function') b.then(play); else play(b);
 }
-/** THE FIRST-TAP CATCH: the context exists + was unlocked by a tap but isn't running YET → hold this one sound, play it when it runs */
-function hold(name, gain) {
+/**
+ * THE FIRST-TAP CATCH: the audio isn't running YET — iOS sends a tap's pointerup BEFORE the touchend that unlocks it (audio/engine.js), and the
+ * context's resume() is async after that — so hold this ONE sound ≤ CATCH_MS and play it the moment the context runs. No tap at all = it
+ * simply expires (a sound never plays without a gesture behind it).
+ */
+function go() {
   const ctx = getContext();
-  if (!ctx || !audioUnlocked() || ctx.state === 'closed') return false;
-  held = { name, gain, at: performance.now() };
-  const go = () => {
-    if (!held || ctx.state !== 'running') return;
-    const h0 = held; held = null;
-    if (performance.now() - h0.at <= CATCH_MS) start(h0.name, h0.gain);
-  };
-  try { ctx.addEventListener('statechange', go, { once: true }); } catch { /* old Safari */ }
-  setTimeout(go, 60); setTimeout(go, 200); setTimeout(() => { go(); held = null; }, CATCH_MS);
+  if (!held || !ctx || ctx.state !== 'running' || !audioUnlocked()) return;
+  const h0 = held; held = null;
+  if (performance.now() - h0.at <= CATCH_MS) start(h0.name, h0.gain);
+}
+let unlockHooked = false;
+function hold(name, gain) {
+  const at = performance.now();
+  held = { name, gain, at };
+  if (!unlockHooked) { unlockHooked = true; try { onUnlock(() => setTimeout(go, 0)); } catch { /* no engine */ } }
+  try { const ctx = getContext(); if (ctx) ctx.addEventListener('statechange', go, { once: true }); } catch { /* old Safari */ }
+  for (const ms of [40, 120, 220, 320]) setTimeout(go, ms);
+  setTimeout(() => { go(); if (held && held.at === at) held = null; }, CATCH_MS);
   return true;
 }
 

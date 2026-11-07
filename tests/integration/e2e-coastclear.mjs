@@ -64,6 +64,8 @@ const cellLook = (page, i) => page.$eval(`.cc-cell[data-i="${i}"]`, e => getComp
 const frames = (page, ms) => page.evaluate(ms => new Promise(res => { const t = []; let last = performance.now(); const t0 = last; const f = now => { t.push(now - last); last = now; if (now - t0 < ms) requestAnimationFrame(f); else { const s = t.slice(1).sort((a, b) => a - b); res({ fps: Math.round(10 * (t.length - 1) / ((now - t0) / 1000)) / 10, p95: Math.round(10 * s[Math.floor(s.length * 0.95)]) / 10, long: s.filter(x => x > 25).length }); } }; requestAnimationFrame(f); }), ms);
 const openSet = v => new Set(v.open.map(c => c[0]));
 const pidOf = page => page.evaluate(() => window.__daily.pid);
+/** CC2 — the sounds that actually STARTED on the audio context (js/games/coastclear/sfx.js#ccSfxPlayed — after the console's unlock-on-tap) */
+const played = page => page.evaluate(() => import('/js/games/coastclear/sfx.js').then(m => m.ccSfxPlayed().map(x => x.name)));
 const recOf = async page => val(`dly/coastclear/${day}/p/${await pidOf(page)}`);
 
 await H.run(async () => {
@@ -141,6 +143,8 @@ await H.run(async () => {
     break;
   }
   ok(chorded, 'a chordable number was found on today\'s board');
+  // CC2 — the switch's click (trusted taps on the two halves)
+  await p.click('.cc-mode-b[data-m="buoy"]'); await p.click('.cc-mode-b[data-m="dig"]');
 
   // ---- a SPOT: dig a light → +30 s, the lamp lit, the light stays, play goes on
   const clock0 = await p.evaluate(() => window.__coastclear.state().clock);
@@ -162,6 +166,8 @@ await H.run(async () => {
   ok(during == null || openSet(await V(p)).has(during), 'a tap DURING the sweep still dug (play never stops)');
   ok(s1.spots === 1 && s1.shown === 1 && s1.beams === 0, 'a LOOK FLIP mid-sweep: the beam still landed (one lamp lit, the spot counted)');
   await shotAll(p, 'cc-02b-spotted-day', [[390, 844]]);
+  const snd = await played(p);
+  ok(['dig', 'flood', 'buoy', 'mode', 'spotted'].every(n => snd.includes(n)), `THE SOUNDS start on the audio context after the first tap's unlock: ${[...new Set(snd)].join(' · ')}`);
   await flipLook(p, 'night');
   const secs = t => t.split(':').reduce((m, x) => m * 60 + Number(x), 0);
   ok(s1.spots === 1 && !s1.done && (await p.$eval(cellSel(light), e => e.classList.contains('is-lit'))) && (await p.$$eval('.cc-spot.is-on', e => e.length)) === 1 && secs(s1.clock) - secs(clock0) >= 30,
@@ -223,6 +229,7 @@ await H.run(async () => {
   const img = await p.evaluate(async () => { const S = await import('/js/games/coastclear/share.js'); const cv = S.renderShare({ inputs: window.__coastclear.shareInputs(), look: 'night' }); return [cv.width, cv.height]; });
   ok(JSON.stringify(Object.keys(inputs).sort()) === JSON.stringify(['caught', 'dayNo', 'head', 'line', 'site', 'spots', 'time']) && inputs.spots === 1 && img.join() === '1080,1350' && /^COAST CLEAR #\d+ · \d+:\d\d · 1 spotted · neonspeakeasy\.com$/.test(await p.evaluate(() => window.__coastclear.shareLine())), `THE SHARE: the card's inputs (no board — head / time / line / lamps / day / site), a 1080 × 1350 image, the one line`);
   await shotAll(p, 'cc-03-clear');
+  ok((await played(p)).includes('win'), 'the WIN sound with the lighthouse sweep');
   await flipLook(p, 'day');
   ok((await endOf(p)).t === 'COAST CLEAR' && !!(await p.$('.cc-end.is-in')), 'a LOOK FLIP on the end screen: it stands');
   await shotAll(p, 'cc-03-clear-day', [[390, 844]]);
@@ -258,6 +265,7 @@ await H.run(async () => {
   const qs = await S(q);
   const qEnd = await q.$eval('.cc-end-t', e => e.textContent);
   const qLook = await q.evaluate(() => ({ n: !!document.querySelector('.cc-end-n'), line: document.querySelector('.cc-end-line').textContent, sign: getComputedStyle(document.querySelector('.cc-sign')).opacity, lh: !!document.querySelector('.cc-lh-beam'), dim: getComputedStyle(document.querySelector('.cc-end-map')).opacity, light: document.querySelectorAll('.cc-mc.is-light, .cc-mc.is-buoy').length + document.querySelectorAll('.cc-mc.is-spot').length }));
+  ok((await played(q)).includes('caught') && !(await played(q)).includes('win'), 'the CAUGHT sound with the converging beams (no win sound)');
   ok(conv && !qLook.n && /^3 SPOTTED · \d+:\d\d$/.test(qLook.line) && qLook.sign === '1' && !qLook.lh && Number(qLook.dim) < 1 && qLook.light === 18, `CAUGHT: three beams converged, then CAUGHT — no big time, one line (${qLook.line}), the sign stays, no lighthouse, the harbor dimmed with EVERY light revealed (18)${conv && !qLook.n && qLook.sign === '1' && !qLook.lh && Number(qLook.dim) < 1 && qLook.light === 18 ? '' : ` [${JSON.stringify({ conv, ...qLook })}]`}`);
   await q.waitForFunction(() => window.__coastclear.finished() === 'RECORDED', { timeout: 15000 });
   const qRec = await recOf(q);
@@ -294,6 +302,33 @@ await H.run(async () => {
   }
   log(`60 FPS — ${perf.map(x => `${x.label} ${x.cpu}×: ${x.fps} fps (p95 ${x.p95} ms, ${x.long} > 25 ms)`).join(' · ')}`);
   ok(perf.filter(x => x.cpu === 1).every(x => x.fps >= 55 && x.p95 <= 20), `60 FPS through the sweep, the catch + the lighthouse (${perf.filter(x => x.cpu === 1).map(x => `${x.fps}`).join(' / ')} fps)`);
+
+  // ---- CC2 — THE FIRST-TAP CATCH (iOS: a tap's pointerup comes BEFORE the touchend that unlocks the audio): a buoy's sound asked for with NO
+  // gesture yet, then a real tap 120 ms later unlocks it → the held sound still plays; asked for with no tap at all → it never plays
+  {
+    const pg = await browser.newPage();
+    await pg.setViewport(H.VIEW);
+    await pg.goto(guardUrl(`${BASE}/tests/integration/coastclear-preview.html?state=opening&toggle=0`, 'e2e-coastclear'));
+    await pg.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 30000 });
+    const free = await pg.evaluate(() => { const v = window.__coastclear.view(), open = new Set(v.open.map(c => c[0])); return [...Array(108).keys()].filter(i => !open.has(i)).slice(0, 2); });
+    await pg.evaluate(i => { window.__coastclear.long(i); }, free[0]);          // (no gesture: the sound is held)
+    await sleep(120);
+    await pg.mouse.click(4, 400);                                               // a real tap on the screen → the console's unlock
+    await pg.waitForFunction(() => import('/js/games/coastclear/sfx.js').then(m => m.ccSfxPlayed().some(x => x.name === 'buoy')), { timeout: 3000, polling: 100 }).catch(() => {});
+    const got = await played(pg);
+    await pg.evaluate(i => { window.__coastclear.long(i); }, free[1]);          // unlocked now: plays at once
+    await sleep(150);
+    const got2 = await played(pg);
+    ok(got.includes('buoy') && got2.filter(n => n === 'unbuoy' || n === 'buoy').length >= 2, `THE FIRST-TAP CATCH: a sound asked for before the unlock plays once the tap unlocks the audio (${got2.join(' · ')})`);
+    await pg.close();
+    const pg2 = await browser.newPage();
+    await pg2.goto(guardUrl(`${BASE}/tests/integration/coastclear-preview.html?state=opening&toggle=0`, 'e2e-coastclear'));
+    await pg2.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 30000 });
+    await pg2.evaluate(() => { const v = window.__coastclear.view(), open = new Set(v.open.map(c => c[0])); window.__coastclear.long([...Array(108).keys()].find(i => !open.has(i))); });
+    await sleep(700);
+    ok((await played(pg2)).length === 0, 'with no tap at all, nothing plays (never a sound without a gesture)');
+    await pg2.close();
+  }
 
   // ---- THE NUMBERS
   const digs = calls.filter(a => a.req.action === 'dig' || a.req.action === 'chord').length;
