@@ -2,7 +2,7 @@
 // A group never sees the same item twice in one game night: every bank row / fact / word / puzzle OVERCLOCK deals in a room is remembered at
 // rooms/{CODE}/meta/used/overclock/{key} (kit/night.js — written by the host in a step's $room as each challenge goes live) and never dealt
 // again that night — across rematches, new games and the challenges of one match. The shared trivia pool keeps its own memory under 'trivia'
-// (trivia/feed.js). No per-player memory, nothing on profiles; the room's close wipes it.
+// (trivia/feed.js — OVERCLOCK no longer uses it: OC7). No per-player memory, nothing on profiles; the room's close wipes it.
 //
 // HOW: the HOST deals the WHOLE match at start() — the room's used keys are read ONCE there (start({ used }) — the contract), so every phone
 // rebuilds exactly the same challenge from game.deal[ci] (indices into the banks) and the step that opens challenge ci marks game.dk[ci]
@@ -10,8 +10,9 @@
 // RESHUFFLES (the used rows again, in the match's seeded order) rather than stall.
 // OC6 — STABLE IDS: the four pools this pass built (TRUE OR FALSE, HIGHER OR LOWER, TIMELINE, SORT IT) deal + remember by each item's STABLE
 // id (a Wikidata Q-id, or the id the build script gave a written item — scripts/oc-pools/build.mjs), never an array index: a rebuild that adds,
-// drops or reorders rows keeps every deal + the night's memory (an old night's keys simply stop matching). The OC7 banks (closest · missing
-// link · spellcheck) still deal indexes + remember a hash of the row's text until their own pass.
+// drops or reorders rows keeps every deal + the night's memory (an old night's keys simply stop matching). OC7: the last four banks too —
+// TRIVIA LIGHTNING (OVERCLOCK's own bank: `tv-<id>`, no live Trivia API any more), CLOSEST CALL `cc-<id>`, MISSING LINK `ml-<id>`, SPELLCHECK
+// `sp-<id>` — every dealt item in OVERCLOCK is now an id.
 import { rngFrom, shuffle } from '../../core/rng.js';
 import { TF_FACT_SLOTS, unscrambleLength, hlPick, hlPairId, tlDeal } from './challenges.js';
 import { oddPool, oddKey } from './odd.js';
@@ -28,12 +29,36 @@ export const typeKey = type => `${TYPE_KEY}${type}`;
 /** the types this room has played tonight (from usedOf(meta, 'overclock')) */
 export const playedTypes = used => Object.keys(used || {}).filter(k => k.startsWith(TYPE_KEY)).map(k => k.slice(TYPE_KEY.length));
 
-// per dealt type: how many rows one challenge takes + the key of a row
+// OC7 — the four content banks deal + remember by STABLE ID too: how many rows one challenge takes + the key of a row
 const ROWS = {
-  closest: { n: 1, key: r => `cc-${hash36(r[1])}` },
-  missinglink: { n: 2, key: r => `ml-${hash36(r.slice(0, 4).join('|'))}` },
-  spellcheck: { n: 5, key: r => `sp-${hash36(r[0])}` },
+  closest: { n: 1, key: r => `cc-${r.id}` },
+  missinglink: { n: 2, key: r => `ml-${r.id}` },
+  spellcheck: { n: 5, key: r => `sp-${r.id}` },
 };
+export const tvKey = row => `tv-${row.id}`;
+// TRIVIA LIGHTNING's three: an EASY one, a MEDIUM one, then medium or (60%) HARD — the bank's ~40/40/20 mix — three different categories
+// where the night allows, each fresh tonight (a used-up difficulty takes the next one, then any; a used-up bank reshuffles)
+const TV_STEPS = { easy: ['easy', 'medium', 'hard'], medium: ['medium', 'easy', 'hard'], hard: ['hard', 'medium', 'easy'] };
+export function tvPick(rand, bank, taken) {
+  const want = ['easy', 'medium', rand() < 0.6 ? 'hard' : 'medium'];
+  const deck = shuffle(rand, bank.map((_, i) => i));
+  const out = [], cats = new Set();
+  for (const d of want) {
+    let got = null;
+    for (const pass of [0, 1, 2]) {
+      for (const dd of TV_STEPS[d]) {
+        got = deck.find(i => !out.includes(i) && bank[i].d === dd && (pass > 1 || !taken(i)) && (pass > 0 || !cats.has(bank[i].cat)));
+        if (got != null) break;
+      }
+      if (got != null) break;
+    }
+    if (got == null) got = deck.find(i => !out.includes(i));
+    if (got == null) return null;
+    out.push(got);
+    cats.add(bank[got].cat);
+  }
+  return out;
+}
 // (OC6 — by id: database-safe by construction, ids are [A-Za-z0-9_-] — tests/overclock-content.test.mjs)
 export const tfKey = row => `tf-${row.id}`;
 export const hlKey = (stat, item) => `hl-${stat.id}-${item[3]}`;
@@ -41,7 +66,7 @@ export const tlKey = (theme, item) => `tl-${theme.id}-${item[3]}`;
 export const soKey = set => `so-${set.id}`;
 export const unKey = word => `un-${word}`;
 /** the types whose items the night remembers (the rest are generated fresh every time — math, memory, rewire …) */
-export const DEALT = Object.freeze([...Object.keys(ROWS), 'timeline', 'sortit', 'higherlower', 'truefalse', 'unscramble', 'oddone']);
+export const DEALT = Object.freeze([...Object.keys(ROWS), 'trivia', 'timeline', 'sortit', 'higherlower', 'truefalse', 'unscramble', 'oddone']);
 
 /**
  * n distinct indices of 0..size-1 in the seeded order — the fresh ones first (not in `taken`), then (a used-up pool) the rest.
@@ -59,8 +84,9 @@ export function pickFresh(rand, size, n, taken) {
  * The whole match's deal. banks: { truefalse, timeline, closest, missinglink, spellcheck, sortit, higherlower } (any may be
  * missing — that challenge then falls back to the seeded per-match deck, as before); words(len) → the Unscramble answers of that length
  * (or null); used: the room's { key: true } for 'overclock' tonight.
- * → { deal: { [ci]: [int | id] }, dk: { [ci]: 'key key …' } } — only for the challenges it could deal (ids for the OC6 pools:
- *   truefalse [4 fact ids] · higherlower ["statId|itemId|itemId" × 10] · timeline [theme id, item id × 4] · sortit [set id]).
+ * → { deal: { [ci]: [int | id] }, dk: { [ci]: 'key key …' } } — only for the challenges it could deal (ids for every pool:
+ *   truefalse [4 fact ids] · higherlower ["statId|itemId|itemId" × 10] · timeline [theme id, item id × 4] · sortit [set id] ·
+ *   trivia [3 question ids] · closest [1 id] · missinglink [2 ids] · spellcheck [5 ids]; ints only for Unscramble + Odd One Out).
  */
 export function dealMatch({ seed, order, total, banks = {}, words = () => null, used = {} }) {
   const rand = rngFrom(`${seed}:deal`);
@@ -75,7 +101,13 @@ export function dealMatch({ seed, order, total, banks = {}, words = () => null, 
       if (!Array.isArray(bank) || !bank.length) return;
       const idx = pickFresh(rand, bank.length, R.n, i => seen.has(R.key(bank[i])));
       if (idx.length < R.n) return;
-      put(ci, idx, idx.map(i => R.key(bank[i])));
+      put(ci, idx.map(i => bank[i].id), idx.map(i => R.key(bank[i])));
+    } else if (type === 'trivia') {
+      const b = banks.trivia;
+      if (!Array.isArray(b) || b.length < 3) return;
+      const idx = tvPick(rand, b, i => seen.has(tvKey(b[i])));
+      if (!idx) return;
+      put(ci, idx.map(i => b[i].id), idx.map(i => tvKey(b[i])));
     } else if (type === 'higherlower') {
       const b = banks.higherlower;
       if (!Array.isArray(b) || !b.length) return;

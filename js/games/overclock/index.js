@@ -1,19 +1,16 @@
 // OVERCLOCK module entry (see games/registry.js for the contract).
-import { createGame, nextStep, triviaNeeded } from './director.js';
+import { createGame, nextStep } from './director.js';
 import { DEFAULT_SETTINGS, MODES, buildOrder, standings as ocStandings } from './logic.js';
 // (SHELL 2.0 B1 — THE THIN META: the console's pieces — OPTIONS, estimateMinutes, MUSIC, the banner, the chat's lock, LOOKS — from meta.js)
 export * from './meta.js';
-import { initialBank, topUp, fallbackPatch } from '../../trivia/feed.js';
-import { loadFallback } from '../../trivia/bank.js';
+// OC7 — NO LIVE TRIVIA SERVICE: TRIVIA LIGHTNING deals from OVERCLOCK's OWN bank (data/oc/trivia.json — banks.js), like every other pool.
+// js/trivia/ (the shared feed: The Trivia API → Open Trivia DB → the bundled bank) stays exactly as it is for HIGH STAKES, LAST SIGNAL, BLUFF …
+// — OVERCLOCK imports nothing from it (tests/overclock-oc7.test.mjs).
 import { state } from '../../store.js';
 import { usedOf } from '../kit/night.js';
 import { dealMatch, playedTypes, DEALT } from './deal.js';
 import { loadBank, BANK_TYPES } from './banks.js';
 import { loadLengths, answersFor } from '../cipher/words.js';
-
-// THE ROOM's NIGHT MEMORY (deal.js): what this room has seen tonight. start() gets it through the contract (start({ used }) —
-// docs/cartridge.md); the host's later top-ups (prepare, every tick) read the room as it is now.
-const roomSeen = () => usedOf(state.meta, 'trivia');
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { sealGate, unsealed, mergeSealed } from '../kit/seal.js';
 // the view loads when a match of this game is on screen (keeps first paint light)
@@ -32,24 +29,23 @@ export async function start({ code, matchId, settings, participants, now, used }
   const total = MODES[s.mode] || MODES.quick;
   // (OC5 — DUMB LUCK joins the deal with 2+ players only: never in SOLO)
   const order = buildOrder(seed, total, playedTypes(mine), { luck: Object.keys(participants || {}).length >= 2 });
-  // the deal needs the banks this order uses (+ Unscramble's word lists) — fetched in parallel with the trivia bank, never past ~3 s
+  // the deal needs the banks this order uses (+ Unscramble's word lists) — fetched in parallel, never past ~3 s (a bank that didn't make it =
+  // that challenge's seeded per-match deck, as ever)
   const need = BANK_TYPES.filter(t => order.includes(t) && DEALT.includes(t));
-  const [trivia, banks, words] = await Promise.all([
-    initialBank({ code, matchId, cats: [], now, min: 12, roomSeen: usedOf({ used: night }, 'trivia') }),
+  const [banks, words] = await Promise.all([
     settle(Promise.all(need.map(t => loadBank(t).then(b => [t, b], () => [t, null]))).then(Object.fromEntries), 3000),
     order.includes('unscramble') ? settle(loadLengths([5, 6, 7]).then(() => true), 3000) : Promise.resolve(false),
   ]);
   const { deal, dk } = dealMatch({ seed, order, total, banks: banks || {}, words: words ? answersFor : () => null, used: mine });
-  const { bank, trivia: tv, $room } = trivia;
-  return { ...createGame({ matchId, settings: s, participants, now, seed, bank, trivia: tv, order, deal, dk }), $room };
+  return createGame({ matchId, settings: s, participants, now, seed, order, deal, dk });
 }
 
 // THE PRELOAD (docs/cartridge.md — every phone, during the walk inside; ≤ PRELOAD_BUDGET 1.5 MB, never blocks the start): OC1's sounds
-// (~110 KB), the OVERDRIVE fonts (~67 KB — css/overclock.css's @font-face finds them in the cache), the SMALL banks + Unscramble's word lists
-// (a phone doesn't know the order before the host's start() lands). OC6 — THE BIG POOLS (TRUE OR FALSE, HIGHER OR LOWER, TIMELINE, SORT IT:
-// ~500 KB together) are NOT preloaded: each loads only for a match that DEALS it — the host's start() (above) + every phone's view at mount
-// (view.js#preloadFor(order)), during the rules card + the 3-2-1, long before its challenge opens.
-export const OC_LAZY_POOLS = Object.freeze(['truefalse', 'higherlower', 'timeline', 'sortit']);
+// (~110 KB), the OVERDRIVE fonts (~67 KB — css/overclock.css's @font-face finds them in the cache), the crack textures + Unscramble's word
+// lists (a phone doesn't know the order before the host's start() lands). THE POOLS are NOT preloaded (OC6: the four fact pools; OC7: every
+// bank — TRIVIA, CLOSEST CALL, MISSING LINK, SPELLCHECK grew ~10×): each loads only for a match that DEALS it — the host's start() (above) +
+// every phone's view at mount (view.js#preloadFor(order)), during the rules card + the 3-2-1, long before its challenge opens.
+export const OC_LAZY_POOLS = Object.freeze([...BANK_TYPES]);
 export const OC_PRELOAD_BANKS = Object.freeze(BANK_TYPES.filter(t => !OC_LAZY_POOLS.includes(t)));
 export const OC_FONT_FILES = ['barlow-condensed-900i', 'barlow-condensed-800i', 'chakra-petch-700', 'chakra-petch-500'];
 // OC4 — THE REAL-GLASS CRACK's two textures (~100 KB: assets/overclock/ — crack.js; the view decodes them at mount)
@@ -65,11 +61,8 @@ export function preload() {
   ]).then(() => true, () => false);
 }
 
-export function prepare(game, { code, host }) {
-  if (!host) return;
-  loadFallback().catch(() => {});
-  topUp(() => state.game, code, triviaNeeded(game), roomSeen);
-}
+// (OC7: nothing to top up — the host holds no question supply; every challenge is in the deal)
+export function prepare() {}
 
 // THE SEAL (kit/seal.js): a challenge's ANSWERS (o: an order · g: a guess · rw: the rewiring) live in seal/{CODE}/… —
 // the room shows the progress (p · ok · n · done); at the end of 'play' the host unseals them and publishes them for the reveal
@@ -84,7 +77,6 @@ export const step = (game, { code, now, live, online }) => {
     boards: mergeSealed(live.boards, live.seal_boards),
     marks: live.marks || {},
     next: live.next || {},
-    fallback: n => fallbackPatch(game, code, n, roomSeen()),
   }), { node: 'oc', key: ck, phase: 'play' });
   if (patch && game.phase === 'play' && patch.phase && patch.phase !== 'play' && unsealed(game, 'oc', ck)) {
     const rv = {};

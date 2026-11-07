@@ -57,3 +57,19 @@ export const bannedIn = text => { const w = norm(text).split(' '); return BANNED
 /** THE PHONE LIMITS */
 export const TF_MAX = 90;
 export const LABEL_MAX = 32;
+// OC7 — TRIVIA + CLOSEST CALL (a question ≤ ~110 characters, an answer ≤ ~28), MISSING LINK (a word ≤ 10 letters, a joined phrase ≤ 20),
+// SPELLCHECK (a word ≤ 16 letters — four of them on one phone screen in the upright face)
+export const Q_MAX = 110;
+export const A_MAX = 28;
+export const ML_WORD_MAX = 10;
+export const ML_JOIN_MAX = 20;
+export const SP_MAX = 16;
+
+/** two answers that would read as the same one: equal, or one is the other's whole words inside it ("Washington" · "George Washington") */
+export function aliasOf(a, b) {
+  const x = norm(a).replace(/^(the|a|an) /, ''), y = norm(b).replace(/^(the|a|an) /, '');
+  if (!x || !y) return true;
+  if (x === y) return true;
+  const [s, l] = x.length <= y.length ? [x, y] : [y, x];
+  return ` ${l} `.includes(` ${s} `);
+}

@@ -29,7 +29,7 @@ function applyPatch(obj, patch) {
 }
 const uidsOf = n => 'abcdefgh'.slice(0, n).split('');
 const P = n => Object.fromEntries(uidsOf(n).map(u => [u, true]));
-/** a seed whose QUICK order (2+ players) has DUMB LUCK at challenge `at` and no TRIVIA LIGHTNING (this run has no question bank) */
+/** a seed whose QUICK order (2+ players) has DUMB LUCK at challenge `at` and no TRIVIA LIGHTNING (kept from OC5 — the draw the tests were written on) */
 function seedWithLuck(at, total = 6, tag = 'dl') {
   for (let k = 0; k < 20_000; k++) {
     const o = buildOrder(`${tag}${k}`, total);
@@ -435,11 +435,10 @@ test('REDLINE still needs a SOLE top score in all six — Dumb Luck included (a 
 });
 
 // ------------------------------------------------------------------------------------------------ THE DAILY PLUG-IN (ships OFF)
-const TRIV = [{ q: 'Which planet is closest to the sun?', a: ['Venus', 'Mercury', 'Mars', 'Earth'], c: 1, cat: 'general', d: 'easy' },
-  { q: 'How many sides does a hexagon have?', a: ['5', '6', '7', '8'], c: 1, cat: 'general', d: 'easy' },
-  { q: 'What gas do plants take in?', a: ['Oxygen', 'Nitrogen', 'Carbon dioxide', 'Helium'], c: 2, cat: 'general', d: 'easy' }];
+// (OC7 — TRIVIA LIGHTNING's three are IDS of OVERCLOCK's own bank, in the day set's deal like every pool — never question texts)
+const TRIV = ['w-sun-closest', 'w-hexagon-sides', 'w-plants-gas'];
 /** a day set as THE DAILY MODULE would hand it over (its seed from a server secret — opaque here) */
-const DAY = (o = {}) => ({ v: 1, day: '2026-11-07', seed: 'k3J9xQ0-sealed-by-the-module', order: ['unscramble', 'math', 'memory', 'oddone', 'trivia', 'stroop'], trivia: TRIV, ...o });
+const DAY = (o = {}) => ({ v: 1, day: '2026-11-07', seed: 'k3J9xQ0-sealed-by-the-module', order: ['unscramble', 'math', 'memory', 'oddone', 'trivia', 'stroop'], deal: { 4: TRIV }, ...o });
 
 test('THE DAILY PLUG-IN: on: false; the contract shape; checkCartridge passes; never switches itself on', () => {
   assert.equal(daily.on, false);
@@ -458,7 +457,9 @@ test('THE DAY SET: six skill challenges, one per brain category (a knowledge one
     [DAY({ order: ['unscramble', 'math', 'memory', 'oddone', 'trivia'] }), /exactly 6/],
     [DAY({ seed: 'daily-2026-11-07-x' }), /date/],
     [DAY({ seed: 'short' }), /seed/],
-    [DAY({ trivia: [] }), /three questions/],
+    [DAY({ deal: {} }), /three question ids/],
+    [DAY({ deal: { 4: ['a', 'a', 'b'] } }), /three question ids/],
+    [DAY({ deal: { 4: [{ q: 'a question text?' }] } }), /three question ids|deal/],
     [DAY({ v: 2 }), /v must be/],
   ];
   for (const [ds, re] of bad) assert.match(daySetProblems(ds).join(' · '), re);
@@ -484,12 +485,13 @@ test('THE SAME DAY SET → THE SAME RUN on two phones; fully deterministic (no M
   // every challenge's content is the same on both (the generators run from the day set's seed + its deal)
   for (let ci = 0; ci < DAILY_N; ci++) {
     const t = a.order[ci];
-    if (t === 'trivia' || t === 'unscramble') continue;   // (trivia = the day set's own questions; unscramble = the word lists + the deal)
+    if (t === 'unscramble') continue;   // (unscramble = the word lists + the deal)
     assert.deepEqual(generate(t, { seed: a.seed, ci, level: ci / 5 }), generate(t, { seed: b.seed, ci, level: ci / 5 }), t);
   }
-  // the own-bank questions are IN the match (encoded like any room's bank) — no top-up from the live Trivia API is ever needed
-  assert.equal(a.trivia.n, 3);
-  assert.equal(Object.keys(a.bank).length, 3);
+  // the own-bank questions are in the match's DEAL by id (OC7) — no question bank in the room, no top-up from any live Trivia API
+  assert.deepEqual(a.deal[4], TRIV);
+  assert.equal(a.bank, undefined);
+  assert.equal(a.trivia, undefined);
   // another day's set → another run
   const c = dCreate({ date: '2026-11-08', uid: 'phoneA', now: 1000, daySet: DAY({ day: '2026-11-08', seed: 'another-sealed-seed-x7' }) });
   assert.notEqual(c.matchId, a.matchId);

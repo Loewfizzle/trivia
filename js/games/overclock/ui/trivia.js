@@ -4,11 +4,12 @@
 // the right one lights ✓. Your pick is kept for THE ANSWER after the round (api.pick — this device only). Timings unchanged (450 / 900 ms).
 // A challenge screen: (spec, api) → { el, destroy? }. api: chal, part(), progress(), step(), finish(), key, game(), fx(), pick(), sfx() — view.js.
 import { h, pulseClass } from '../../../ui/dom.js';
-import { CATEGORY_LABEL } from '../../../trivia/categories.js';
 import { tubeMark } from '../../kit/answer.js';
+import { TRIVIA_CATS } from '../challenges.js';
 
 const LETTERS = 'ABCD';
-const catLabel = c => (c && (CATEGORY_LABEL[c] || String(c).replace(/_/g, ' ').toUpperCase().slice(0, 18))) || 'TRIVIA';
+// (OC7 — OVERCLOCK's own bank's categories, challenges.js#TRIVIA_CATS)
+const catLabel = c => (c && (TRIVIA_CATS[c] || String(c).replace(/_/g, ' ').toUpperCase().slice(0, 18))) || 'TRIVIA';
 
 export default function uiTrivia(s, api) {
   const { chal } = api;

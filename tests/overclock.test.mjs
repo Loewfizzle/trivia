@@ -1,30 +1,27 @@
 // OVERCLOCK: seeded generation identical across clients, order/scoring rules,
-// director flow, trivia fallback, and resuming mid-challenge.
+// director flow, TRIVIA LIGHTNING from OVERCLOCK's own bank (OC7 — no live feed, no fallback), and resuming mid-challenge.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { TYPES, generate, partsFor, unscrambleAccepts, memoryLength, STROOP_COLORS, reflexCredit } from '../js/games/overclock/challenges.js';
 import { buildOrder, challengeScore, computeResults, standings, levelOf, CHALLENGE_MS, MODES, BRIEF_MS, READY_MS, STANDINGS_MS } from '../js/games/overclock/logic.js';
-import { createGame, nextStep, triviaNeeded } from '../js/games/overclock/director.js';
+import { createGame, nextStep } from '../js/games/overclock/director.js';
 import { setLists, answersFor, isValidGuess } from '../js/games/cipher/words.js';
-import { appendPatch, decodeQuestion, fallbackPatch } from '../js/trivia/bankdata.js';
-import { setFallbackRows } from '../js/trivia/bank.js';
+import { BANKS } from './fixtures/oc-banks.mjs';
+import { dealMatch } from '../js/games/overclock/deal.js';
 
 for (const n of [5, 6, 7]) setLists(n, JSON.parse(readFileSync(`data/words/answers-${n}.json`, 'utf8')), JSON.parse(readFileSync(`data/words/valid-${n}.json`, 'utf8')));
-setFallbackRows(JSON.parse(readFileSync('data/trivia/fallback.json', 'utf8')).questions);
-import { BANKS } from './fixtures/oc-banks.mjs';
 
 test('every challenge type is identical for every client given the same seed (Math.random is never used)', () => {
-  const trivia = [{ q: 'a?', a: ['1', '2', '3', '4'], c: 0 }, { q: 'b?', a: ['1', '2', '3', '4'], c: 1 }, { q: 'c?', a: ['1', '2', '3', '4'], c: 2 }];
   const realRandom = Math.random;
   try {
     for (const type of TYPES) {
       for (let ci = 0; ci < 24; ci++) {
         const args = { seed: 'room-seed-42', ci, level: ci / 23 };
         Math.random = () => 0.123;
-        const clientA = JSON.stringify(generate(type, args, { answersFor, triviaItems: trivia, ...BANKS }));
+        const clientA = JSON.stringify(generate(type, args, { answersFor, ...BANKS }));
         Math.random = () => 0.987;
-        const clientB = JSON.stringify(generate(type, args, { answersFor, triviaItems: trivia, ...BANKS }));
+        const clientB = JSON.stringify(generate(type, args, { answersFor, ...BANKS }));
         assert.equal(clientA, clientB, `${type} #${ci}`);
         assert.notEqual(clientA, 'null', `${type} generated`);
       }
@@ -51,7 +48,7 @@ test('generated challenges are well-formed', () => {
     q.problems.forEach(p => assert.ok(Number.isInteger(p.ans) && p.ans > 0, p.text));
     const p = generate('pattern', args);
     p.seqs.forEach(s => assert.ok(Number.isInteger(s.ans) && s.shown.length === 5));
-    for (const t of TYPES) if (t !== 'trivia') assert.equal(generate(t, args, { answersFor, ...BANKS }).parts, partsFor(t, level));
+    for (const t of TYPES) assert.equal(generate(t, args, { answersFor, ...BANKS }).parts, partsFor(t, level));
   }
   assert.equal(generate('trivia', { seed: 's', ci: 0, level: 0 }, { triviaItems: [null, null, null] }), null, 'waits for questions');
   assert.equal(generate('unscramble', { seed: 's', ci: 0, level: 0 }, { answersFor: () => null }), null, 'waits for word lists');
@@ -117,26 +114,22 @@ function applyPatch(obj, patch) {
     if (v === null) delete o[parts.at(-1)]; else o[parts.at(-1)] = structuredClone(v);
   }
 }
-function bankOf(n) {
-  const items = Array.from({ length: n }, (_, i) => ({ q: `Lightning question ${i}?`, a: ['a', 'b', 'c', 'd'], c: i % 4, cat: 'general', d: 'hard' }));
-  const { patch } = appendPatch({ matchId: 'mo', trivia: { n: 0, seen: {} } }, CODE, items);
-  const bank = {}; const seen = {};
-  for (const [k, v] of Object.entries(patch)) {
-    if (k.startsWith('bank/')) bank[k.slice(5)] = v;
-    if (k.startsWith('trivia/seen/')) seen[k.slice(12)] = true;
-  }
-  return { bank, trivia: { n: patch['trivia/n'], seen, cats: [] } };
+// (OC7 — TRIVIA LIGHTNING deals from OVERCLOCK's own bank by id: no question bank in the room, nothing for the director to wait for)
+void CODE;
+const ctx = (game, now, boards, online) => ({ now, boards, online });
+/** a match as start() makes it (minus the network): the order + the deal from the real pools */
+function matchOf({ mode = 'standard', participants, seed, now = 0 }) {
+  const g = createGame({ matchId: 'mo', settings: { mode }, participants, now, seed });
+  const { deal, dk } = dealMatch({ seed, order: g.order, total: g.total, banks: BANKS });
+  return createGame({ matchId: 'mo', settings: { mode }, participants, now, seed, order: g.order, deal, dk });
 }
-const ctx = (game, now, boards, online) => ({ now, boards, online, fallback: n => fallbackPatch(game, CODE, n) });
 
 test('full standard gauntlet: rules card on first appearance, standings between, final doubles, back to lobby', () => {
-  const { bank, trivia } = bankOf(12);
   const participants = { a: true, b: true };
   let now = 0;
-  const game = createGame({ matchId: 'mo', settings: { mode: 'standard' }, participants, now, seed: 'sim-seed', bank, trivia });
+  const game = matchOf({ participants, seed: 'sim-seed' });
   assert.equal(game.total, 12);
-  assert.equal(triviaNeeded(game), game.order.filter(t => t === 'trivia').length * 3);
-  assert.ok(triviaNeeded(game) <= 3, 'Trivia Lightning at most once in Standard');
+  assert.ok(game.order.filter(t => t === 'trivia').length <= 1, 'Trivia Lightning at most once in Standard');
   const briefs = [];
   for (let ci = 0; ci < game.total; ci++) {
     assert.equal(game.phase, 'ready');
@@ -147,8 +140,9 @@ test('full standard gauntlet: rules card on first appearance, standings between,
     const type = game.order[ci];
     const parts = partsFor(type, levelOf(ci, game.total));
     if (type === 'trivia') {
-      const start = game.tq[ci];
-      for (let i = 0; i < 3; i++) assert.ok(decodeQuestion(game, CODE, start + i), 'lightning questions present');
+      const spec = generate('trivia', { seed: game.seed, ci, level: levelOf(ci, game.total), deal: game.deal[ci] }, { trivia: BANKS.trivia });
+      assert.equal(spec.questions.length, 3, 'three lightning questions');
+      assert.deepEqual(spec.questions.map(q => q.id), game.deal[ci], 'the dealt ids');
     }
     // a: perfect & fast. b: half right, done late.
     const boards = {
@@ -176,8 +170,7 @@ test('full standard gauntlet: rules card on first appearance, standings between,
 });
 
 test('challenge ends early when every connected player is done; times out otherwise', () => {
-  const { bank, trivia } = bankOf(12);
-  const game = createGame({ matchId: 'mo', settings: { mode: 'standard' }, participants: { a: true, b: true, c: true }, now: 0, seed: 's2', bank, trivia });
+  const game = createGame({ matchId: 'mo', settings: { mode: 'standard' }, participants: { a: true, b: true, c: true }, now: 0, seed: 's2' });
   applyPatch(game, nextStep(game, ctx(game, BRIEF_MS, {}, {})));
   const t0 = game.playStartAt;
   const boards = { a: { p: 1, ok: 1, n: 1, done: true, doneAt: t0 + 1000 } };
@@ -189,8 +182,7 @@ test('challenge ends early when every connected player is done; times out otherw
 });
 
 test('rejoin mid-challenge: stored progress is all that matters for scoring', () => {
-  const { bank, trivia } = bankOf(12);
-  const game = createGame({ matchId: 'mo', settings: { mode: 'standard' }, participants: { a: true }, now: 0, seed: 's3', bank, trivia });
+  const game = createGame({ matchId: 'mo', settings: { mode: 'standard' }, participants: { a: true }, now: 0, seed: 's3' });
   // force a 4-part math challenge
   game.order[0] = 'math';
   applyPatch(game, nextStep(game, ctx(game, BRIEF_MS, {}, {})));
@@ -205,21 +197,22 @@ test('rejoin mid-challenge: stored progress is all that matters for scoring', ()
   assert.ok(step['results/0'].a.pts > 100);
 });
 
-test('a lightning round with an empty bank waits, then uses the fallback bank', () => {
-  const game = createGame({ matchId: 'mo', settings: { mode: 'standard' }, participants: { a: true }, now: 0, seed: 's4', bank: {}, trivia: { n: 0, seen: {}, cats: [] } });
+test('OC7: a lightning round NEVER waits for questions — it opens on time; the room holds no question bank; a stale deal = the seeded deck', () => {
+  const game = createGame({ matchId: 'mo', settings: { mode: 'standard' }, participants: { a: true }, now: 0, seed: 's4' });
   game.order[0] = 'trivia';
-  game.tq = { 0: 0 };
-  game.tUsed = 3;
-  assert.equal(nextStep(game, ctx(game, BRIEF_MS, {}, {})), null);
-  const step = nextStep(game, ctx(game, BRIEF_MS + 2600, {}, {}));
-  assert.equal(step.phase, 'play');
-  applyPatch(game, step);
-  for (let i = 0; i < 3; i++) assert.ok(decodeQuestion(game, CODE, i));
+  assert.equal(nextStep(game, ctx(game, BRIEF_MS - 1, {}, {})), null);
+  const step = nextStep(game, ctx(game, BRIEF_MS, {}, {}));
+  assert.equal(step.phase, 'play', 'on time, no wait');
+  for (const k of ['bank', 'trivia', 'tq', 'tUsed']) assert.equal(game[k], undefined, `no ${k} in the game`);
+  assert.ok(!Object.keys(step).some(k => /^(bank|trivia|tq|tUsed)\b/.test(k)));
+  const spec = generate('trivia', { seed: 's4', ci: 0, level: 0, deal: ['not-an-id', 'nor-this', 'x'] }, { trivia: BANKS.trivia });
+  assert.equal(spec.questions.length, 3);
+  assert.equal(new Set(spec.questions.map(q => q.id)).size, 3, 'three different questions');
+  for (const q of spec.questions) { assert.equal(q.a.length, 4); assert.ok(Number.isInteger(q.c) && q.c >= 0 && q.c < 4); }
 });
 
-test('standings → ready assigns lightning question indices and timing', () => {
-  const { bank, trivia } = bankOf(30);
-  const game = createGame({ matchId: 'mo', settings: { mode: 'marathon' }, participants: { a: true }, now: 0, seed: 's5', bank, trivia });
+test('standings → ready: the rules card / ready timing; a type that comes twice in a Marathon gets new lightning questions', () => {
+  const game = matchOf({ mode: 'marathon', participants: { a: true }, seed: 's5' });
   let now = 0;
   const starts = [];
   for (let ci = 0; ci < game.total - 1; ci++) {
@@ -230,10 +223,10 @@ test('standings → ready assigns lightning question indices and timing', () => 
     applyPatch(game, nextStep(game, ctx(game, now, {}, {})));
     assert.equal(game.phase, 'ready');
     assert.equal(game.phaseEndsAt - now, game.brief ? BRIEF_MS : READY_MS);
-    if (game.order[game.ci] === 'trivia') starts.push(game.tq[game.ci]);
+    if (game.order[game.ci] === 'trivia') starts.push(...game.deal[game.ci]);
   }
-  const all = (game.order[0] === 'trivia' ? [0] : []).concat(starts);
-  assert.deepEqual(all, all.map((_, i) => i * 3), 'consecutive, non-overlapping question blocks');
+  const all = (game.order[0] === 'trivia' ? game.deal[0] : []).concat(starts);
+  assert.equal(new Set(all).size, all.length, 'never the same question twice in a match');
   assert.ok(STANDINGS_MS > 0);
 });
 

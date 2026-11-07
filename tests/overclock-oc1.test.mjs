@@ -22,8 +22,8 @@ import * as PRISM_META from '../js/games/prism/meta.js';
 
 for (const n of [5, 6, 7]) setLists(n, JSON.parse(readFileSync(`data/words/answers-${n}.json`, 'utf8')), JSON.parse(readFileSync(`data/words/valid-${n}.json`, 'utf8')));
 import { BANKS } from './fixtures/oc-banks.mjs';
-const TRIVIA = [{ q: 'a?', a: ['1', '2', '3', '4'], c: 0 }, { q: 'b?', a: ['1', '2', '3', '4'], c: 1 }, { q: 'c?', a: ['1', '2', '3', '4'], c: 2 }];
-const deps = { ...BANKS, answersFor, triviaItems: TRIVIA };
+// (OC7 — TRIVIA LIGHTNING is a bank like the rest: OVERCLOCK's own data/oc/trivia.json, dealt by id)
+const deps = { ...BANKS, answersFor };
 
 function applyPatch(obj, patch) {
   for (const [k, v] of Object.entries(patch || {})) {
@@ -47,7 +47,7 @@ function startMatch({ matchId, mode = 'quick', participants, now = 0, seed, used
   const total = MODES[mode];
   const order = buildOrder(seed, total, playedTypes(mine));
   const { deal, dk } = dealMatch({ seed, order, total, banks: BANKS, words: answersFor, used: mine });
-  return createGame({ matchId, settings: { mode }, participants, now, seed, bank: {}, trivia: { n: 99 }, order, deal, dk });
+  return createGame({ matchId, settings: { mode }, participants, now, seed, order, deal, dk });
 }
 /** DUMB LUCK (OC5) in a simulated match: the odds board locks (the draw), then the race + the finish run out — the step that ends 'play' */
 function luckPlay(game, ctx) {
@@ -74,6 +74,7 @@ function itemsOf(spec) {
     case 'sortit': return [`so:${spec.left}|${spec.right}`];
     case 'higherlower': return spec.pairs.flatMap(p => [`hl:${p.stat}|${p.a.name}`, `hl:${p.stat}|${p.b.name}`]);
     case 'truefalse': return spec.items.filter((_, i) => i % 2).map(i => `tf:${i.id}`);
+    case 'trivia': return spec.questions.map(q => `tv:${q.id}`);
     case 'unscramble': return [`un:${spec.word}`];
     default: return [];
   }
@@ -203,7 +204,7 @@ test('the deal: every phone builds the same challenge from it; it avoids what th
   for (let s = 0; s < 40; s++) {
     const g = startMatch({ matchId: `m${s}`, mode: 'marathon', participants: { a: true }, seed: `deal${s}` });
     // every dealt type got a deal, and each is in range
-    g.order.forEach((t, ci) => { if (DEALT.includes(t) && t !== 'trivia') assert.ok(g.deal[ci] && g.dk[ci], `${t} at ${ci} dealt`); });
+    g.order.forEach((t, ci) => { if (DEALT.includes(t)) assert.ok(g.deal[ci] && g.dk[ci], `${t} at ${ci} dealt`); });
     const realRandom = Math.random;
     try {
       for (let ci = 0; ci < g.total; ci++) {
@@ -253,13 +254,13 @@ test('a game night: 6 Quick matches in one room — no item dealt twice, the typ
     let now = 0;
     for (let ci = 0; ci < game.total; ci++) {
       now = game.phaseEndsAt;
-      const open = nextStep(game, { now, boards: {}, online: { a: true, b: true }, fallback: () => null });
+      const open = nextStep(game, { now, boards: {}, online: { a: true, b: true } });
       // the step that opens it marks its type + items (THE ROOM-NIGHT PATH: meta/used/overclock/<key>)
       const want = keysAt(game, ci).map(k => `meta/used/overclock/${k}`).sort();
       assert.deepEqual(Object.keys(open.$room).sort(), want);
       assert.ok(want.includes(`meta/used/overclock/${typeKey(game.order[ci])}`));
       // a replayed step (host migration) = the same patch
-      assert.deepEqual(nextStep(game, { now, boards: {}, online: { a: true, b: true }, fallback: () => null }), open);
+      assert.deepEqual(nextStep(game, { now, boards: {}, online: { a: true, b: true } }), open);
       applyRoom(meta, open);
       applyPatch(game, open);
       for (const it of itemsOf(specOf(game))) {
@@ -269,8 +270,8 @@ test('a game night: 6 Quick matches in one room — no item dealt twice, the typ
       const parts = partsFor(game.order[ci], levelOf(ci, game.total));
       now += 4000;
       const done = { p: parts, ok: parts, n: parts, done: true, doneAt: now };
-      applyPatch(game, luckPlay(game, { now, boards: { a: done, b: done }, online: { a: true, b: true }, fallback: () => null }));
-      if (game.phase === 'standings') { now = game.phaseEndsAt; applyPatch(game, nextStep(game, { now, boards: {}, online: { a: true, b: true }, fallback: () => null })); }
+      applyPatch(game, luckPlay(game, { now, boards: { a: done, b: done }, online: { a: true, b: true } }));
+      if (game.phase === 'standings') { now = game.phaseEndsAt; applyPatch(game, nextStep(game, { now, boards: {}, online: { a: true, b: true } })); }
     }
     assert.equal(game.phase, 'final');
   }
@@ -310,10 +311,10 @@ test('THE AFTER-CHALLENGE SKIP: everyone connected tapped → on (never before 3
   const P = { a: true, b: true, c: true };
   const toStandings = () => {
     const g = createGame({ matchId: 'sk', settings: { mode: 'quick' }, participants: P, now: 0, seed: 'skip', bank: {}, trivia: { n: 99 } });
-    applyPatch(g, nextStep(g, { now: g.phaseEndsAt, boards: {}, online: P, fallback: () => null }));
+    applyPatch(g, nextStep(g, { now: g.phaseEndsAt, boards: {}, online: P }));
     const parts = partsFor(g.order[0], 0), t = g.playStartAt + 2000;
     const b = { p: parts, ok: parts, n: parts, done: true, doneAt: t };
-    applyPatch(g, nextStep(g, { now: t, boards: { a: b, b, c: b }, online: P, fallback: () => null }));
+    applyPatch(g, nextStep(g, { now: t, boards: { a: b, b, c: b }, online: P }));
     assert.equal(g.phase, 'standings');
     return g;
   };
@@ -332,9 +333,9 @@ test('THE AFTER-CHALLENGE SKIP: everyone connected tapped → on (never before 3
   assert.equal(g.phaseEndsAt - t0, standingsMs(g.order[0]));
   // solo: your own tap
   const s = createGame({ matchId: 'so', settings: { mode: 'quick' }, participants: { a: true }, now: 0, seed: 'solo', bank: {}, trivia: { n: 99 } });
-  applyPatch(s, nextStep(s, { now: s.phaseEndsAt, boards: {}, online: { a: true }, fallback: () => null }));
+  applyPatch(s, nextStep(s, { now: s.phaseEndsAt, boards: {}, online: { a: true } }));
   const ps = partsFor(s.order[0], 0);
-  applyPatch(s, nextStep(s, { now: s.playStartAt + 1000, boards: { a: { p: ps, ok: 0, n: ps, done: true, doneAt: 1 } }, online: { a: true }, fallback: () => null }));
+  applyPatch(s, nextStep(s, { now: s.playStartAt + 1000, boards: { a: { p: ps, ok: 0, n: ps, done: true, doneAt: 1 } }, online: { a: true } }));
   assert.equal(nextStep(s, { now: s.phaseStartAt + 3100, boards: {}, online: { a: true }, next: { a: s.phaseStartAt + 50 } }).phase, 'ready');
 });
 
@@ -352,11 +353,11 @@ test('THE COMBO: right answers in a row across challenges; a wrong one resets; h
   const P = { a: true, b: true };
   const g = createGame({ matchId: 'cb', settings: { mode: 'quick' }, participants: P, now: 0, seed: 'combo', bank: {}, trivia: { n: 99 }, order: ['truefalse', 'math', 'reflex', 'count', 'oddone', 'memory'] });
   const run = (marksA, marksB, okA, okB) => {
-    applyPatch(g, nextStep(g, { now: g.phaseEndsAt, boards: {}, online: P, fallback: () => null }));
+    applyPatch(g, nextStep(g, { now: g.phaseEndsAt, boards: {}, online: P }));
     const parts = partsFor(g.order[g.ci], levelOf(g.ci, g.total)), t = g.playStartAt + 3000;
     const bd = ok => ({ p: parts, ok, n: parts, done: true, doneAt: t });
-    applyPatch(g, nextStep(g, { now: t, boards: { a: bd(okA), b: bd(okB) }, online: P, marks: { a: { s: marksA }, b: { s: marksB } }, fallback: () => null }));
-    if (g.phase === 'standings') applyPatch(g, nextStep(g, { now: g.phaseEndsAt, boards: {}, online: P, fallback: () => null }));
+    applyPatch(g, nextStep(g, { now: t, boards: { a: bd(okA), b: bd(okB) }, online: P, marks: { a: { s: marksA }, b: { s: marksB } } }));
+    if (g.phase === 'standings') applyPatch(g, nextStep(g, { now: g.phaseEndsAt, boards: {}, online: P }));
   };
   run('01111111', '11110111', 7, 7);     // true or false: a ends on 7, b on 3 (best 4)
   assert.deepEqual(g.combo.a, { c: 7, m: 7 });
@@ -380,7 +381,7 @@ test('8 players, a whole Standard match: the deal, the marks, the skip, a host c
   let now = 0, skipped = 0;
   for (let ci = 0; ci < game.total; ci++) {
     now = game.phaseEndsAt;
-    const open = nextStep(game, { now, boards: {}, online: P, fallback: () => null });
+    const open = nextStep(game, { now, boards: {}, online: P });
     applyRoom(meta, open); applyPatch(game, open);
     const parts = partsFor(game.order[ci], levelOf(ci, game.total));
     const boards = {}, marks = {};
@@ -391,18 +392,18 @@ test('8 players, a whole Standard match: the deal, the marks, the skip, a host c
     });
     now += 9000;
     // a NEW HOST picks up mid-match: the step is the same from the same state (it holds no private state)
-    const s1 = luckPlay(structuredClone(game), { now, boards, online: P, marks, fallback: () => null });
-    const s2 = luckPlay(structuredClone(game), { now, boards, online: P, marks, fallback: () => null });
+    const s1 = luckPlay(structuredClone(game), { now, boards, online: P, marks });
+    const s2 = luckPlay(structuredClone(game), { now, boards, online: P, marks });
     assert.deepEqual(s1, s2);
-    if (game.order[ci] === 'dumbluck') luckPlay(game, { now, boards, online: P, marks, fallback: () => null });   // (the lock lands on the real game too)
+    if (game.order[ci] === 'dumbluck') luckPlay(game, { now, boards, online: P, marks });   // (the lock lands on the real game too)
     applyPatch(game, s1);
     if (game.phase === 'standings') {
       // everyone but h taps; h drops at ci 4 → the skip goes on without them
       const t0 = game.phaseStartAt;
       const next = Object.fromEntries(Object.keys(P).filter(u => u !== 'h').map(u => [u, t0 + 500]));
       const online = ci === 4 ? { ...P, h: false } : P;
-      const st = nextStep(game, { now: t0 + 3200, boards: {}, online, next, fallback: () => null });
-      if (st) { skipped++; applyPatch(game, st); } else { now = game.phaseEndsAt; applyPatch(game, nextStep(game, { now, boards: {}, online, fallback: () => null })); }
+      const st = nextStep(game, { now: t0 + 3200, boards: {}, online, next });
+      if (st) { skipped++; applyPatch(game, st); } else { now = game.phaseEndsAt; applyPatch(game, nextStep(game, { now, boards: {}, online })); }
     }
   }
   assert.equal(game.phase, 'final');
@@ -479,8 +480,8 @@ test('ADD-ON: "NEXT IN n" = the whole seconds left of THIS screen on the server 
   // through the director: the screen it opens shows its max at the start and 0 at its end, then the next challenge
   const P = { a: true, b: true };
   const g = createGame({ matchId: 'nx', settings: { mode: 'quick' }, participants: P, now: 0, seed: 'next-in', bank: {}, trivia: { n: 99 }, order: ['closest', 'math', 'memory', 'oddone', 'stroop', 'count'] });
-  applyPatch(g, nextStep(g, { now: g.phaseEndsAt, boards: {}, online: P, fallback: () => null }));
-  applyPatch(g, nextStep(g, { now: g.playStartAt + CHALLENGE_MS + 800, boards: {}, online: P, fallback: () => null }));
+  applyPatch(g, nextStep(g, { now: g.phaseEndsAt, boards: {}, online: P }));
+  applyPatch(g, nextStep(g, { now: g.playStartAt + CHALLENGE_MS + 800, boards: {}, online: P }));
   assert.equal(g.phase, 'standings');
   assert.equal(nextInSec(g, g.phaseStartAt), 12);
   assert.equal(nextInSec(g, g.phaseStartAt + 11_999), 1);

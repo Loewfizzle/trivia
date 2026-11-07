@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const J = f => JSON.parse(readFileSync(`data/oc/${f}`, 'utf8'));
 export const BANKS = Object.freeze({
+  trivia: J('trivia.json').items,
   truefalse: J('truefalse.json').items,
   timeline: J('timeline.json').themes,
   closest: J('closest.json').questions,

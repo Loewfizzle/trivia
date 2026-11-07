@@ -35,12 +35,12 @@ test('TIMELINE (OC6 — theme pools): every deal is four distinct, fair items; n
   assert.equal(challengeScore({ parts: 4, ok: 3, doneAt: 1000, startAt: 0 }), 75, 'no speed bonus unless perfect');
 });
 
-test('CLOSEST CALL: 150+ clean questions; smooth relative-error curve; the closest guess takes the bonus', () => {
-  assert.ok(CC.length >= 150, `${CC.length} questions`);
+test('CLOSEST CALL: 120+ clean questions (OC7: { id, cat, q, value (metric), unit, src }); smooth relative-error curve; the closest guess takes the bonus', () => {
+  assert.ok(CC.length >= 120, `${CC.length} questions`);
   const seen = new Set();
-  for (const [cat, q, answer, unit] of CC) {
+  for (const { cat, q, value, unit } of CC) {
     assert.ok(cat && unit && q.endsWith('?'), q);
-    assert.ok(typeof answer === 'number' && answer > 0, q);
+    assert.ok(typeof value === 'number' && value > 0, q);
     assert.ok(!seen.has(q), `duplicate: ${q}`);
     seen.add(q);
   }

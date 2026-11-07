@@ -13,7 +13,8 @@ import { spellAlign, trickyLetters, wrongLetters, spellRuns } from '../js/games/
 import { hlPick, hlPair, HL_PAIRS, sortWindowMs, SORT_CARDS, challengeRng } from '../js/games/overclock/challenges.js';
 
 const marked = (w, m) => [...w].filter((_, i) => m[i]).join('');
-const SPELL = JSON.parse(readFileSync('data/oc/spellcheck.json', 'utf8')).words;
+// (OC7: { id, right, wrong, hard, src } → the old [right, the common misspelling, wrong, wrong] row these checks read)
+const SPELL = JSON.parse(readFileSync('data/oc/spellcheck.json', 'utf8')).words.map(r => [r.right, ...r.wrong]);
 const HL = JSON.parse(readFileSync('data/oc/higherlower.json', 'utf8')).stats;   // (OC6: { id, stat, ask, unit, win, items })
 
 test('SPELLCHECK: the tricky letters of the right spelling', () => {

@@ -53,3 +53,5 @@ art/city-sfx/radio/*.flac
 
 # OC6: the Wikipedia articles the source check reads (re-fetched on a rebuild; the verdicts are committed in scripts/oc-pools/cache/checks.json)
 scripts/oc-pools/cache/wp-raw/
+# OC7: Wiktionary's entry titles (31 MB — MISSING LINK's phrase check reads it; the verdicts are committed in scripts/oc-pools/cache/phrases.json)
+scripts/oc-pools/cache/wikt-raw/

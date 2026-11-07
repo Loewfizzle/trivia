@@ -1,8 +1,9 @@
-// OVERCLOCK content banks (TRUE OR FALSE facts, TIMELINE theme pools, CLOSEST CALL questions, MISSING LINK puzzles,
-// SPELLCHECK words, SORT IT category pairs, HIGHER OR LOWER stats), fetched once — only when a match's order actually
-// includes that challenge (OC6: the big pools are built by scripts/oc-pools/build.mjs — docs/content.md; THE DAILY RESERVE is
-// server-only and never loaded here — docs/cartridge.md D2).
+// OVERCLOCK content banks — every pool is BUILT by scripts/oc-pools/build.mjs (docs/content.md "THE POOL BUILD") and fetched once, only when
+// a match's order actually includes that challenge (the host's start() + every phone's view at mount — never preload()). OC6: TRUE OR FALSE,
+// TIMELINE, SORT IT, HIGHER OR LOWER. OC7: TRIVIA LIGHTNING's OWN bank (data/oc/trivia.json — no live Trivia API for OVERCLOCK), CLOSEST CALL,
+// MISSING LINK, SPELLCHECK. THE DAILY RESERVE is server-only and never loaded here (docs/cartridge.md D2).
 const FILES = {
+  trivia: ['trivia.json', 'items'],
   truefalse: ['truefalse.json', 'items'],
   timeline: ['timeline.json', 'themes'],
   closest: ['closest.json', 'questions'],
@@ -12,6 +13,7 @@ const FILES = {
   higherlower: ['higherlower.json', 'stats'],
 };
 export const BANK_TYPES = Object.keys(FILES);
+export const BANK_FILES = Object.freeze(Object.fromEntries(Object.entries(FILES).map(([t, [f, k]]) => [t, { file: f, key: k }])));
 const cache = {};
 const pending = {};
 

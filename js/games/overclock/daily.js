@@ -9,9 +9,11 @@
 //              order: [six SKILL types],                               one from each brain category (words · numbers · memory · visual ·
 //                                                                       knowledge · reflex): a good spread, a knowledge one included,
 //                                                                       NEVER DUMB LUCK
-//              deal: { ci: [ints | ids] } (optional),                   the dealt items (deal.js#dealMatch's shape — OC6: STABLE IDS for the four
-//                                                                       pools (truefalse · higherlower · timeline · sortit), indexes for the rest)
-//              trivia: [three questions] (when the order has TRIVIA)    from OVERCLOCK's OWN bank — never the live Trivia API
+//              deal: { ci: [ints | ids] },                              the dealt items (deal.js#dealMatch's shape — STABLE IDS for every pool:
+//                                                                       OC6 truefalse · higherlower · timeline · sortit, OC7 trivia · closest ·
+//                                                                       missinglink · spellcheck; indexes for Unscramble + Odd One Out). TRIVIA
+//                                                                       LIGHTNING's three = three ids of OVERCLOCK's OWN bank (data/oc/trivia.json
+//                                                                       or the reserve) — REQUIRED when the order has it; never the live Trivia API
 //            }
 // create({ date, uid, now, daySet, code }) → the game (a SOLO QUICK match of exactly those six) — FULLY deterministic from the day set: no
 //   Math.random, no clock but `now`, no network; the same day set → the same run on every phone. THE SEAL keeps the answers as in any match.
@@ -23,7 +25,6 @@ import { CHALLENGE_MS, MODES, computeResults, totals } from './logic.js';
 import { SKILL_TYPES, CATEGORY, partsFor, generate } from './challenges.js';
 import { LUCK } from './luck.js';
 import { createGame } from './director.js';
-import { appendPatch } from '../../trivia/bankdata.js';
 
 export const DAILY_V = 1;
 export const DAILY_N = MODES.quick;                 // the SMALLEST OVERCLOCK = a QUICK six
@@ -48,7 +49,10 @@ export function daySetProblems(ds) {
     if (new Set(o).size !== o.length) out.push('order: six different challenges');
     if (new Set(o.map(t => CATEGORY[t])).size !== o.length) out.push('order: no two from the same brain category');
     if (!o.some(t => CATEGORY[t] === 'knowledge')) out.push('order: at least one knowledge challenge');
-    if (o.includes('trivia') && !(Array.isArray(ds.trivia) && ds.trivia.length === 3 && ds.trivia.every(q => q && typeof q.q === 'string' && Array.isArray(q.a) && Number.isInteger(q.c)))) out.push('trivia: three questions from the own bank');
+    // (OC7 — TRIVIA LIGHTNING's three questions BY ID, from OVERCLOCK's own bank or its reserve — the module never sends question texts)
+    const ti = o.indexOf('trivia');
+    const td = ti >= 0 && ds.deal && typeof ds.deal === 'object' ? ds.deal[ti] : null;
+    if (ti >= 0 && !(Array.isArray(td) && td.length === 3 && td.every(x => typeof x === 'string' && DEAL_ID.test(x)) && new Set(td).size === 3)) out.push('trivia: deal[ci] = three question ids from the own bank');
   }
   if (ds.deal != null && (typeof ds.deal !== 'object' || Object.entries(ds.deal).some(([k, v]) => !(Number(k) >= 0 && Number(k) < DAILY_N) || !Array.isArray(v) || !v.every(x => Number.isInteger(x) || (typeof x === 'string' && DEAL_ID.test(x)))))) out.push('deal: { ci: [ints | ids] }');
   return out;
@@ -66,17 +70,9 @@ export function create({ date, uid, now, daySet, code = 'DAILY' } = {}) {
   if (date && date !== daySet.day) throw new Error('overclock daily: the day set is for another day');
   if (!uid || typeof now !== 'number') throw new Error('overclock daily: uid + now (the server clock) are required');
   const matchId = dailyMatchId(daySet);
-  // the own-bank questions, encoded into the match exactly as a room's bank is (trivia/bankdata.js) — no live Trivia API, no top-up
-  let bank = {}, trivia = { n: 0, seen: {} };
-  if (daySet.order.includes('trivia')) {
-    const { patch } = appendPatch({ matchId, trivia }, code, daySet.trivia);
-    bank = {}; trivia = { n: patch['trivia/n'], seen: {} };
-    for (const [k, v] of Object.entries(patch)) {
-      if (k.startsWith('bank/')) bank[k.slice(5)] = v;
-      else if (k.startsWith('trivia/seen/')) trivia.seen[k.slice(12)] = true;
-    }
-  }
-  const game = createGame({ matchId, settings: { mode: 'quick' }, participants: { [uid]: true }, now, seed: daySet.seed, bank, trivia,
+  // (OC7: TRIVIA LIGHTNING is in the deal by id like every pool — no question bank in the match, no live Trivia API, no top-up; `code` is
+  // kept in the signature for the module's calls, nothing is encoded with it any more)
+  const game = createGame({ matchId, settings: { mode: 'quick' }, participants: { [uid]: true }, now, seed: daySet.seed,
     order: daySet.order.slice(), deal: daySet.deal || null });
   game.daily = { day: daySet.day, v: DAILY_V };
   return game;
@@ -124,12 +120,12 @@ export function replay(daySet, record, uid) {
 export const daily = Object.freeze({ on: false, create, resumeKey, result, replay, problems: daySetProblems });
 
 // ---------------------------------------------------------------------------------------------- THE DAILY RESERVE (OC6 — docs/cartridge.md D2)
-// ~20% of every OC6 pool (TRUE OR FALSE, HIGHER OR LOWER, TIMELINE, SORT IT) is kept SERVER-ONLY in api/_data/oc-reserve/<pool>.json (the same
+// ~20% of every pool (OC6: TRUE OR FALSE, HIGHER OR LOWER, TIMELINE, SORT IT · OC7: TRIVIA, CLOSEST CALL, MISSING LINK, SPELLCHECK) is kept SERVER-ONLY in api/_data/oc-reserve/<pool>.json (the same
 // shapes as data/oc/<pool>.json — never served, never imported by a page, never dealt in a party), so a daily's answers can't be looked up in
 // the site's files. A day set's deal may point into the reserve by id. THE DAILY MODULE's server (later) loads party + reserve, picks the day,
 // and calls dayContent: the phone gets SHOW only (every item's text — never which is right) and the server keeps KEY to judge each item as it
 // closes. PURE (no fs, no Firebase): the server passes the pools in.
-export const POOLED = Object.freeze(['truefalse', 'higherlower', 'timeline', 'sortit']);
+export const POOLED = Object.freeze(['truefalse', 'higherlower', 'timeline', 'sortit', 'trivia', 'closest', 'missinglink', 'spellcheck']);
 /** what a phone may see of a challenge — the texts, never the answers */
 export function publicOf(spec) {
   if (!spec) return null;
@@ -138,6 +134,10 @@ export function publicOf(spec) {
     case 'higherlower': return { type: spec.type, parts: spec.parts, pairs: spec.pairs.map(p => ({ stat: p.stat, ask: p.ask, unit: p.unit, a: { name: p.a.name, v: p.a.v, shown: p.a.shown }, b: { name: p.b.name } })) };
     case 'timeline': return { type: spec.type, parts: spec.parts, title: spec.title, ask: spec.ask, dir: spec.dir, labels: spec.shown.map(pos => spec.items[pos].label) };
     case 'sortit': return { type: spec.type, parts: spec.parts, left: spec.left, right: spec.right, cards: spec.cards.map(c => c.t) };
+    case 'trivia': return { type: spec.type, parts: spec.parts, questions: spec.questions.map(q => ({ q: q.q, a: q.a, cat: q.cat })) };
+    case 'closest': return { type: spec.type, parts: spec.parts, cat: spec.cat, q: spec.q, unit: spec.unit };
+    case 'missinglink': return { type: spec.type, parts: spec.parts, puzzles: spec.puzzles.map(p => ({ words: p.words })) };
+    case 'spellcheck': return { type: spec.type, parts: spec.parts, items: spec.items.map(it => ({ options: it.options })) };
     default: return null;
   }
 }
@@ -149,11 +149,16 @@ export function answersOf(spec) {
     case 'higherlower': return spec.pairs.map(p => ({ up: p.b.v > p.a.v, v: p.b.v, shown: p.b.shown }));
     case 'timeline': return { shown: spec.shown, values: spec.items.map(it => it.value) };
     case 'sortit': return spec.cards.map(c => c.s);
+    case 'trivia': return spec.questions.map(q => q.c);
+    case 'closest': return { answer: spec.answer, unit: spec.unit };
+    case 'missinglink': return spec.puzzles.map(p => ({ answer: p.answer, alt: p.alt, joins: p.joins }));
+    case 'spellcheck': return spec.items.map(it => ({ ans: it.ans, word: it.word, hard: it.hard }));
     default: return null;
   }
 }
 /**
- * SERVER ONLY: the day's pooled challenges from the pools (party + reserve merged: { truefalse, higherlower, timeline, sortit } — the shapes
+ * SERVER ONLY: the day's pooled challenges from the pools (party + reserve merged: { truefalse, higherlower, timeline, sortit, trivia, closest,
+ * missinglink, spellcheck } — the shapes
  * banks.js loads). → { show: { ci: public spec }, key: { ci: answers } } for every pooled challenge of the day (the rest stay as create() builds
  * them). Deterministic from the day set — the same on every call.
  */

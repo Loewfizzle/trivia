@@ -3,6 +3,11 @@
 //   HIGHER OR LOWER data/oc/higherlower.json  { stats: [{ id, stat, ask, unit, win, gap?, src?, items: [[label, value, shown|null, id, src?]] }] }
 //   TIMELINE        data/oc/timeline.json     { themes: [{ id, theme, ask, dir, unit?, src?, items: [[label, value, shown|null, id, src?]] }] }
 //   SORT IT         data/oc/sortit.json       { sets: [{ id, left, right, L, R, src }] }
+// OC7 — and the last four (docs/overclock.md OC7):
+//   TRIVIA          data/oc/trivia.json       { items: [{ id, cat, d, q, a, w: [3], src }] }        OVERCLOCK's OWN bank (no live Trivia API)
+//   CLOSEST CALL    data/oc/closest.json      { questions: [{ id, cat, q, value (metric), unit, src }] }
+//   MISSING LINK    data/oc/missinglink.json  { puzzles: [{ id, clues: [[WORD, side, sep] × 3], answer, accept, src }] }
+//   SPELLCHECK      data/oc/spellcheck.json   { words: [{ id, right, wrong: [3], hard: [letter indexes], src }] }
 // …and THE DAILY RESERVE (~20% of every pool, SERVER-ONLY — api/_data/oc-reserve/, never served, never dealt in a party) from:
 //   parts/*.mjs — each adds rows to the pools: the hand content kept from OC1–OC5, the WIKIDATA pools (CC0, cached — wikidata.mjs), the
 //   WRITTEN statements (each checked against its source — sources.mjs; unconfirmed = DROPPED).
@@ -12,22 +17,24 @@
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { HERE, ROOT, writeRows, norm, bannedIn, isReserve, hash36, TF_MAX, LABEL_MAX } from './lib.mjs';
+import { HERE, ROOT, writeRows, norm, bannedIn, isReserve, hash36, TF_MAX, LABEL_MAX, Q_MAX, A_MAX, ML_WORD_MAX, ML_JOIN_MAX, SP_MAX, aliasOf } from './lib.mjs';
 import { stats as wdStats } from './wikidata.mjs';
-import { hlFair, tlFair } from '../../js/games/overclock/challenges.js';
+import { hlFair, tlFair, TRIVIA_CATS, TRIVIA_LEVELS, ML_SIDES, mlJoined, closestAnswer } from '../../js/games/overclock/challenges.js';
+import { US_UNITS } from '../../js/games/overclock/units.js';
 
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
-const ctx = { tf: [], hl: [], tl: [], so: [], log: [], dropped: {} };
+const ctx = { tf: [], hl: [], tl: [], so: [], tv: [], cc: [], ml: [], sp: [], log: [], dropped: {} };
 const drop = (pool, why, what) => { (ctx.dropped[pool] ||= {})[why] = ((ctx.dropped[pool] || {})[why] || 0) + 1; if (process.argv.includes('--verbose')) console.log(`  drop ${pool} ${why}: ${what}`); };
 ctx.drop = drop;
 
+const POOLS = ['tf', 'hl', 'tl', 'so', 'tv', 'cc', 'ml', 'sp'];
 const skip = ((process.argv.find(a => a.startsWith('--skip=')) || '').slice(7)).split(',').filter(Boolean);   // --skip=40-sortit,…
 const parts = readdirSync(join(HERE, 'parts')).filter(f => f.endsWith('.mjs') && !skip.some(k => f.startsWith(k))).sort();
 for (const f of parts) {
   const m = await import(pathToFileURL(join(HERE, 'parts', f)).href);
-  const before = { tf: ctx.tf.length, hl: ctx.hl.length, tl: ctx.tl.length, so: ctx.so.length };
+  const before = Object.fromEntries(POOLS.map(k => [k, ctx[k].length]));
   await m.default(ctx);
-  console.log(`${f}: +${ctx.tf.length - before.tf} T/F · +${ctx.hl.length - before.hl} stats · +${ctx.tl.length - before.tl} themes · +${ctx.so.length - before.so} sets`);
+  console.log(`${f}: ${POOLS.filter(k => ctx[k].length > before[k]).map(k => `+${ctx[k].length - before[k]} ${k}`).join(' · ') || 'nothing'}`);
 }
 
 // ---------------------------------------------------------------- THE RULES (a row that breaks one is dropped + counted — the test checks again)
@@ -99,6 +106,65 @@ for (const s of ctx.so) {
   so.push({ ...s, L: L2, R: R2 });
 }
 
+// ---------------------------------------------------------------- OC7 — TRIVIA · CLOSEST CALL · MISSING LINK · SPELLCHECK
+// (each row's own checks — its source, its dictionary words — happen in its part; here THE RULES every item of these pools must pass)
+const uniq = (list, pool, what) => { const ids = new Set(); return list.filter(r => { if (!ID.test(String(r.id)) || ids.has(r.id)) { drop(pool, 'id', `${r.id} ${what(r)}`); return false; } ids.add(r.id); return true; }); };
+const tv = [];
+for (const r of uniq(ctx.tv, 'tv', r => r.q)) {
+  const all = [r.a, ...(r.w || [])];
+  if (!TRIVIA_CATS[r.cat]) { drop('tv', 'category', `${r.cat}: ${r.q}`); continue; }
+  if (!TRIVIA_LEVELS.includes(r.d)) { drop('tv', 'difficulty', r.q); continue; }
+  if (!r.q || r.q.length > Q_MAX) { drop('tv', 'question too long', r.q); continue; }
+  if (!Array.isArray(r.w) || r.w.length !== 3 || all.some(x => typeof x !== 'string' || !x.trim() || x.length > A_MAX)) { drop('tv', 'answers', r.q); continue; }
+  if (all.some((x, i) => all.some((y, j) => j > i && aliasOf(x, y)))) { drop('tv', 'answers alike', `${r.q} [${all.join(' / ')}]`); continue; }
+  if (![r.q, ...all].every(clean)) { drop('tv', 'all-ages', r.q); continue; }
+  if (!r.src) { drop('tv', 'no source', r.q); continue; }
+  if (!claim(r.same ? `${r.q} :: ${r.a}` : r.q, `tv:${r.id}`, 'tv')) continue;
+  tv.push({ id: r.id, cat: r.cat, d: r.d, q: r.q, a: r.a, w: r.w, src: r.src });
+}
+// the question names the US unit the screen + the scoring use (closestAnswer): "…, in feet?"
+const UNIT_WORDS = { m: /\bfeet\b/, km: /\bmiles\b/, km2: /\bsquare miles\b/, kg: /\bpounds\b/, kmh: /\b(miles per hour|mph)\b/, c: /°F|\bdegrees Fahrenheit\b/ };
+const namesUnit = (q, unit) => (US_UNITS[unit] ? UNIT_WORDS[unit].test(q) : !unit || q.toLowerCase().includes(unit.split(' ')[0].toLowerCase().replace(/s$/, '')));
+const cc = [];
+for (const r of uniq(ctx.cc, 'cc', r => r.q)) {
+  if (!r.q || r.q.length > Q_MAX) { drop('cc', 'question too long', r.q); continue; }
+  if (typeof r.value !== 'number' || !Number.isFinite(r.value) || r.value <= 0) { drop('cc', 'value', r.q); continue; }
+  if (typeof r.unit !== 'string' || !namesUnit(r.q, r.unit)) { drop('cc', 'the question must name its unit', `${r.q} (${r.unit})`); continue; }
+  const { answer } = closestAnswer(r.unit, r.value);
+  if (!(answer > 0) || String(Math.round(answer)).length > 9) { drop('cc', 'answer out of the pad', `${r.q} = ${answer}`); continue; }
+  if (!clean(r.q)) { drop('cc', 'all-ages', r.q); continue; }
+  if (!r.src) { drop('cc', 'no source', r.q); continue; }
+  if (!claim(r.q, `cc:${r.id}`, 'cc')) continue;
+  cc.push({ id: r.id, cat: r.cat, q: r.q, value: r.value, unit: r.unit, src: r.src });
+}
+const WORD = /^[A-Z]+$/;
+const ml = [];
+const mlAnswers = new Set();
+for (const r of uniq(ctx.ml, 'ml', r => r.answer)) {
+  const ok = Array.isArray(r.clues) && r.clues.length === 3 && r.clues.every(c => Array.isArray(c) && WORD.test(c[0]) && c[0].length <= ML_WORD_MAX && ML_SIDES.includes(c[1]) && ['', ' '].includes(c[2] || ''));
+  if (!ok || !WORD.test(r.answer || '') || r.answer.length > ML_WORD_MAX) { drop('ml', 'shape', JSON.stringify(r)); continue; }
+  if (new Set(r.clues.map(c => c[0])).size !== 3 || r.clues.some(c => c[0] === r.answer)) { drop('ml', 'clues repeat', r.answer); continue; }
+  if (r.clues.some(c => mlJoined(c[0], r.answer, c[1], c[2] || '').length > ML_JOIN_MAX)) { drop('ml', 'join too long', r.answer); continue; }
+  if (![r.answer, ...r.clues.map(c => c[0])].every(clean)) { drop('ml', 'all-ages', r.answer); continue; }
+  if (mlAnswers.has(r.answer)) { drop('ml', 'answer used', r.answer); continue; }
+  if (!r.src) { drop('ml', 'no source', r.answer); continue; }
+  mlAnswers.add(r.answer);
+  ml.push({ id: r.id, clues: r.clues.map(c => [c[0], c[1], c[2] || '']), answer: r.answer, accept: (r.accept || []).filter(x => WORD.test(x)), src: r.src });
+}
+const LOWER = /^[a-z]+$/;
+const sp = [];
+const spWords = new Set();
+for (const r of uniq(ctx.sp, 'sp', r => r.right)) {
+  const all = [r.right, ...(r.wrong || [])];
+  if (!Array.isArray(r.wrong) || r.wrong.length !== 3 || !all.every(x => LOWER.test(x) && x.length <= SP_MAX) || new Set(all).size !== 4) { drop('sp', 'shape', r.right); continue; }
+  if (!Array.isArray(r.hard) || !r.hard.length || !r.hard.every(i => Number.isInteger(i) && i >= 0 && i < r.right.length)) { drop('sp', 'hard letters', r.right); continue; }
+  if (!all.every(clean)) { drop('sp', 'all-ages', r.right); continue; }
+  if (spWords.has(r.right)) { drop('sp', 'duplicate', r.right); continue; }
+  if (!r.src) { drop('sp', 'no source', r.right); continue; }
+  spWords.add(r.right);
+  sp.push({ id: r.id, right: r.right, wrong: r.wrong, hard: [...new Set(r.hard)].sort((a, b) => a - b), src: r.src });
+}
+
 // ---------------------------------------------------------------- THE DAILY RESERVE (~20% of every pool — server-only)
 const RESERVE_ON = !process.env.OC6_NO_RESERVE;    // THE DAILY RESERVE (OC6 Group 3; OC6_NO_RESERVE=1 builds without it)
 const split = (list, keyOf) => (RESERVE_ON ? [list.filter(x => !isReserve(keyOf(x))), list.filter(x => isReserve(keyOf(x)))] : [list, []]);
@@ -132,6 +198,10 @@ const splitItems = (pools, kind) => {
 const [hlP, hlR] = splitItems(hl, 'hl');
 const [tlP, tlR] = splitItems(tl, 'tl');
 const [soP, soR] = split(so, s => s.id);
+const [tvP, tvR] = split(tv, r => `tv:${r.id}`);
+const [ccP, ccR] = split(cc, r => `cc:${r.id}`);
+const [mlP, mlR] = split(ml, r => `ml:${r.id}`);
+const [spP, spR] = split(sp, r => `sp:${r.id}`);
 
 const OUT = join(ROOT, 'data', 'oc');
 const RES = join(ROOT, 'api', '_data', 'oc-reserve');
@@ -146,12 +216,21 @@ writeRows(join(OUT, 'truefalse.json'), { ...head('TRUE OR FALSE: { id, t (true),
 writeGroups(join(OUT, 'higherlower.json'), { ...head('HIGHER OR LOWER: [{ id, stat, ask, unit (metric: m km km2 kg kmh c people year …), win, gap?, items: [[label, value, shown|null, id, src?]] }]'), v: 2 }, 'stats', hlP);
 writeGroups(join(OUT, 'timeline.json'), { ...head('TIMELINE theme pools: [{ id, theme, ask, dir, unit?, items: [[label, value, shown|null, id, src?]] }] — four dealt per round'), v: 2 }, 'themes', tlP);
 writeRows(join(OUT, 'sortit.json'), { ...head('SORT IT: [{ id, left, right, L, R, src }]'), v: 2 }, 'sets', soP);
+const head7 = what => ({ note: `OVERCLOCK ${what} — BUILT by scripts/oc-pools/build.mjs (OC7): do not edit by hand; edit its sources and rebuild (docs/content.md).` });
+writeRows(join(OUT, 'trivia.json'), { ...head7("TRIVIA LIGHTNING — OVERCLOCK's own bank: { id, cat, d (easy|medium|hard), q, a (right), w (three wrong), src }"), v: 1 }, 'items', tvP);
+writeRows(join(OUT, 'closest.json'), { ...head7('CLOSEST CALL: { id, cat, q (names the US unit), value (METRIC), unit (m km km2 kg kmh, or a plain count word), src }'), v: 3 }, 'questions', ccP);
+writeRows(join(OUT, 'missinglink.json'), { ...head7("MISSING LINK: { id, clues: [[WORD, side (where the ANSWER goes: before|after), sep ('' one word | ' ' a phrase)] × 3], answer, accept, src }"), v: 2 }, 'puzzles', mlP);
+writeRows(join(OUT, 'spellcheck.json'), { ...head7('SPELLCHECK (American spelling): { id, right, wrong: [the most common misspelling, wrong, wrong], hard: [letter indexes people get wrong], src }'), v: 2 }, 'words', spP);
 if (RESERVE_ON) {
 const rhead = what => ({ note: `OVERCLOCK DAILY RESERVE — ${what}. SERVER-ONLY (OC6): never served, never imported by a page, never dealt in a party. Built by scripts/oc-pools/build.mjs.` });
 writeRows(join(RES, 'truefalse.json'), { ...rhead('TRUE OR FALSE'), v: 2 }, 'items', tfR);
 writeGroups(join(RES, 'higherlower.json'), { ...rhead('HIGHER OR LOWER'), v: 2 }, 'stats', hlR);
 writeGroups(join(RES, 'timeline.json'), { ...rhead('TIMELINE'), v: 2 }, 'themes', tlR);
 writeRows(join(RES, 'sortit.json'), { ...rhead('SORT IT'), v: 2 }, 'sets', soR);
+writeRows(join(RES, 'trivia.json'), { ...rhead('TRIVIA LIGHTNING'), v: 1 }, 'items', tvR);
+writeRows(join(RES, 'closest.json'), { ...rhead('CLOSEST CALL'), v: 3 }, 'questions', ccR);
+writeRows(join(RES, 'missinglink.json'), { ...rhead('MISSING LINK'), v: 2 }, 'puzzles', mlR);
+writeRows(join(RES, 'spellcheck.json'), { ...rhead('SPELLCHECK'), v: 2 }, 'words', spR);
 }
 
 const n = groups => groups.reduce((a, g) => a + g.items.length, 0);
@@ -159,6 +238,11 @@ console.log(`\nTRUE OR FALSE   ${tf.length} pairs (party ${tfP.length} · reserv
 console.log(`HIGHER OR LOWER ${hl.length} stats · ${n(hl)} items (party ${n(hlP)} · reserve ${n(hlR)})`);
 console.log(`TIMELINE        ${tl.length} themes · ${n(tl)} items (party ${n(tlP)} · reserve ${n(tlR)})`);
 console.log(`SORT IT         ${so.length} sets (party ${soP.length} · reserve ${soR.length})`);
+const lv = list => TRIVIA_LEVELS.map(d => `${d} ${list.filter(r => r.d === d).length}`).join(' · ');
+console.log(`TRIVIA          ${tv.length} questions (party ${tvP.length} · reserve ${tvR.length}) — ${lv(tv)}`);
+console.log(`CLOSEST CALL    ${cc.length} questions (party ${ccP.length} · reserve ${ccR.length})`);
+console.log(`MISSING LINK    ${ml.length} puzzles (party ${mlP.length} · reserve ${mlR.length})`);
+console.log(`SPELLCHECK      ${sp.length} words (party ${spP.length} · reserve ${spR.length})`);
 console.log(`wikidata: ${wdStats.cached} cached · ${wdStats.fetched} fetched`);
 for (const [pool, d] of Object.entries(ctx.dropped)) console.log(`dropped ${pool}: ${Object.entries(d).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
 for (const l of ctx.log) console.log(l);

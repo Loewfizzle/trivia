@@ -4,7 +4,7 @@
 import { rngFrom, randInt, pick, shuffle } from '../../core/rng.js';
 import { ODD_SIZES, oddFamilies, oddPool, oddGrid, oddCatalogSize } from './odd.js';
 import { LUCK, HORSES, dlField, payout } from './luck.js';
-import { showUS, yearText } from './units.js';
+import { showUS, yearText, usValue } from './units.js';
 
 export const TYPES = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'timeline', 'closest', 'rewire',
   'missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower', 'dumbluck'];
@@ -252,7 +252,6 @@ export function genTrueFalse(rand, bank, deal) {
 // ---------- banks: a per-match shuffled deck per type, so a type that comes twice never repeats an entry ----------
 /** THE ROOM's NIGHT MEMORY (deal.js): a dealt index k of this challenge's deal, when it's there + in range */
 export const dealt = (deal, k, size) => Array.isArray(deal) && Number.isInteger(deal[k]) && deal[k] >= 0 && deal[k] < size;
-const bankAt = (deal, k, seed, type, occ, size) => (dealt(deal, k, size) ? deal[k] : bankIndex(seed, type, occ, size));
 export function bankIndex(seed, type, occ, size) {
   const deck = shuffle(rngFrom(`${seed}:${type}:deck`), Array.from({ length: size }, (_, i) => i));
   return deck[occ % size];
@@ -310,12 +309,52 @@ export function genTimeline(rand, level, bank, occ, seed, deal) {
 /** How many positions are right: picks = on-screen indexes in the order the player tapped them. */
 export const timelineCorrect = (spec, picks) => picks.reduce((n, shownIdx, pos) => n + (spec.shown[shownIdx] === pos ? 1 : 0), 0);
 
+// ---------- the OC7 banks: by STABLE ID (deal.js) ----------
+/** row k of a dealt challenge: the dealt id (OC7), else the seeded per-match deck (a stale id = the deck too) */
+function rowAt(bank, deal, k, seed, type, occIdx) {
+  const id = Array.isArray(deal) ? deal[k] : null;
+  const i = typeof id === 'string' ? idIndex(bank).get(id) : undefined;
+  return bank[i ?? bankIndex(seed, type, occIdx, bank.length)];
+}
+
+// ---------- trivia lightning (OC7 — OVERCLOCK's OWN bank) ----------
+// data/oc/trivia.json: [{ id, cat, d: 'easy'|'medium'|'hard', q, a: the right answer, w: [three wrong], src }] — built by
+// scripts/oc-pools/build.mjs (Wikidata + written rows each checked against their source). deal = [three ids] (deal.js#tvPick); the four
+// answers are shuffled per match (seeded) → { q, a: [4], c: the right one's index, cat, d } — the shape the screen + THE ANSWER read.
+/** the bank's categories → the chip on the question (OVERCLOCK's own — no longer the shared feed's) */
+export const TRIVIA_CATS = Object.freeze({
+  science: 'SCIENCE', space: 'SPACE', body: 'THE BODY', nature: 'NATURE', animals: 'ANIMALS', geography: 'GEOGRAPHY', world: 'AROUND THE WORLD',
+  history: 'HISTORY', us: 'U.S. HISTORY', sports: 'SPORTS', screen: 'FILM & TV', music: 'MUSIC', games: 'GAMES', books: 'BOOKS', art: 'ART',
+  food: 'FOOD', words: 'WORDS', inventions: 'INVENTIONS',
+});
+export const TRIVIA_LEVELS = Object.freeze(['easy', 'medium', 'hard']);
+export function genTrivia(rand, bank, occ, seed, deal) {
+  if (!Array.isArray(bank) || bank.length < 3) return null;
+  const used = new Set();
+  const questions = [0, 1, 2].map(k => {
+    let row = rowAt(bank, deal, k, seed, 'trivia', occ * 3 + k);
+    for (let j = 1; used.has(row.id) && j < bank.length; j++) row = bank[bankIndex(seed, 'trivia', occ * 3 + k + j * 7, bank.length)];
+    used.add(row.id);
+    const a = shuffle(rand, [row.a, ...row.w]);
+    return { q: row.q, a, c: a.indexOf(row.a), cat: row.cat, d: row.d, id: row.id };
+  });
+  return { type: 'trivia', parts: 3, questions };
+}
+
 // ---------- closest call ----------
-/** bank: data/oc/closest.json questions ([category, question, answer, unit]) */
+// OC7 — data/oc/closest.json: [{ id, cat, q (names the unit in US terms: "…, in feet?"), value (METRIC: m · km · km2 · kg · kmh, or a plain
+// count), unit, src }]. The screen + the scoring work in the US unit the question names (units.js): the answer = the value converted, rounded
+// as people would say it (whole numbers; one decimal under 10).
+export function closestAnswer(unit, value) {
+  const { n, u } = usValue(unit, value);
+  const r = Math.abs(n) >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
+  return { answer: r, unit: u || unit };
+}
 export function genClosest(rand, level, bank, occ, seed, deal) {
-  if (!bank || !bank.length) return null;
-  const [cat, q, answer, unit] = bank[bankAt(deal, 0, seed, 'closest', occ, bank.length)];
-  return { type: 'closest', parts: 1, cat, q, answer, unit };
+  if (!Array.isArray(bank) || !bank.length) return null;
+  const row = rowAt(bank, deal, 0, seed, 'closest', occ);
+  const { answer, unit } = closestAnswer(row.unit, row.value);
+  return { type: 'closest', parts: 1, cat: row.cat, q: row.q, answer, unit, id: row.id };
 }
 /** 0..1 from the relative error: within 5% = full marks, sliding smoothly (cosine) to 0 at 60% off. */
 export function closestCredit(guess, answer) {
@@ -414,12 +453,19 @@ export function genRewire(rand) {
 export const rewireOk = (solvedCount, reach) => Math.round((solvedCount + (solvedCount >= 2 ? 0 : 0.6 * reach)) * 100) / 100;
 
 // ---------- missing link ----------
-/** bank: data/oc/missinglink.json puzzles ([word, word, word, ANSWER, "OTHER|SPELLINGS" or ""]) */
+// OC7 — data/oc/missinglink.json: [{ id, clues: [[WORD, side, sep] × 3], answer, accept: [other spellings], src }] — side = where the ANSWER
+// goes against the clue (SUN + FLOWER → 'after': SUNFLOWER; WORK + FIRE → 'before': FIREWORK), sep = '' (one word) or ' ' (a two-word phrase:
+// ICE CREAM). The screen shuffles the clues; joins[i] = the side + sep of words[i] (THE ANSWER prints each whole word / phrase).
+export const ML_SIDES = Object.freeze(['before', 'after']);
+/** the clue + the link as one word / phrase: SUNFLOWER · FIREWORK · ICE CREAM */
+export const mlJoined = (word, answer, side, sep = '') => (side === 'before' ? `${answer}${sep}${word}` : `${word}${sep}${answer}`);
 export function genMissingLink(rand, bank, occ, seed, deal) {
-  if (!bank || !bank.length) return null;
+  if (!Array.isArray(bank) || !bank.length) return null;
   const puzzles = [0, 1].map(k => {
-    const [a, b, c, answer, alt] = bank[bankAt(deal, k, seed, 'missinglink', occ * 2 + k, bank.length)];
-    return { words: shuffle(rand, [a, b, c]), answer, alt: alt ? alt.split('|') : [] };
+    const row = rowAt(bank, deal, k, seed, 'missinglink', occ * 2 + k);
+    const order = shuffle(rand, [0, 1, 2]);
+    const cl = order.map(i => row.clues[i]);
+    return { words: cl.map(c => c[0]), joins: cl.map(c => ({ side: c[1], sep: c[2] || '' })), answer: row.answer, alt: row.accept || [], id: row.id };
   });
   return { type: 'missinglink', parts: 2, puzzles };
 }
@@ -438,13 +484,15 @@ export function linkAccepts(guess, pz) {
 }
 
 // ---------- spellcheck ----------
-/** bank: data/oc/spellcheck.json words ([correct, most common misspelling, wrong, wrong]) */
+// OC7 — data/oc/spellcheck.json: [{ id, right, wrong: [the most common misspelling, wrong, wrong], hard: [the letter indexes people get
+// wrong], src }] (American spelling; right in the dictionary, every wrong NOT a word — scripts/oc-pools). `hard` drives THE ANSWER's underlines.
 export function genSpellcheck(rand, bank, occ, seed, deal) {
-  if (!bank || !bank.length) return null;
+  if (!Array.isArray(bank) || !bank.length) return null;
   const items = Array.from({ length: 5 }, (_, k) => {
-    const row = bank[bankAt(deal, k, seed, 'spellcheck', occ * 5 + k, bank.length)];
+    const row = rowAt(bank, deal, k, seed, 'spellcheck', occ * 5 + k);
+    const all = [row.right, ...row.wrong];
     const order = shuffle(rand, [0, 1, 2, 3]);
-    return { options: order.map(i => row[i]), ans: order.indexOf(0), word: row[0], common: row[1] };
+    return { options: order.map(i => all[i]), ans: order.indexOf(0), word: row.right, common: row.wrong[0], hard: row.hard || [], id: row.id };
   });
   return { type: 'spellcheck', parts: 5, items };
 }
@@ -569,7 +617,7 @@ export function genHigherLower(rand, bank, deal) {
 }
 
 // ---------- build ----------
-// deps: { answersFor(len) -> string[] | null, triviaItems: [3 decoded questions] | null }
+// deps: { answersFor(len) -> string[] | null, <bank type>: its loaded pool (banks.js) | null }
 // Returns null if a dependency (word list / questions) isn't ready yet.
 // occ = how many times this type already came earlier in the match (bank challenges never repeat an entry).
 // deal = this challenge's dealt items (game.deal[ci] — THE ROOM's NIGHT MEMORY, deal.js); absent = the seeded per-match deck (as before)
@@ -594,8 +642,7 @@ export function generate(type, { seed, ci, level, occ = 0, deal = null }, deps =
     case 'count': return genCount(rand, level);
     case 'truefalse': return genTrueFalse(rand, deps.truefalse, deal);
     case 'dumbluck': return genDumbLuck(seed, ci);
-    case 'trivia': return deps.triviaItems && deps.triviaItems.length === 3 && deps.triviaItems.every(Boolean)
-      ? { type: 'trivia', parts: 3, questions: deps.triviaItems } : null;
+    case 'trivia': return genTrivia(rand, deps.trivia, occ, seed, deal);
     default: return null;
   }
 }

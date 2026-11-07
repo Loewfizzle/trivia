@@ -14,7 +14,6 @@ import { dbRef, update as dbUpdate, serverTimestamp, serverNow } from '../../fir
 import { colorHex } from '../../config.js';
 import { playerOrder } from '../../core/room-logic.js';
 import { sfx } from '../../audio/sfx.js';
-import { decodeQuestion } from '../../trivia/feed.js';
 import { loadLengths, answersFor } from '../cipher/words.js';
 import { INFO, generate, partsFor, SORT_CARDS } from './challenges.js';
 import { fmtOk, fmtVal, sortSplit } from './shared.js';
@@ -238,11 +237,7 @@ export function createView() {
       if (!wordsReady) return null;
       deps.answersFor = answersFor;
     }
-    if (type === 'trivia') {
-      const start = game.tq && game.tq[game.ci];
-      if (start == null) return null;
-      deps.triviaItems = [0, 1, 2].map(i => decodeQuestion(game, st.code, start + i));
-    }
+    // (OC7 — TRIVIA LIGHTNING is a bank like the rest: its three question ids are in the deal)
     if (BANK_TYPES.includes(type)) {
       deps[type] = bankFor(type);
       if (!deps[type]) { loadBank(type).then(() => { if (st) update(st); }).catch(() => {}); return null; }

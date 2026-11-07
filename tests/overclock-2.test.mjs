@@ -20,19 +20,19 @@ const deps = { missinglink: ML, spellcheck: SP, sortit: ST, higherlower: HL };
 const NEW = ['missinglink', 'spellcheck', 'compass', 'sortit', 'higherlower'];
 
 // ---------- banks ----------
-test('MISSING LINK bank: 200+ puzzles, one answer each, answers unique and never one of the clues', () => {
-  assert.ok(ML.length >= 200, `${ML.length} puzzles`);
+// (OC7 — the bank's shape: { id, clues: [[WORD, side, sep] × 3], answer, accept, src }; every check in tests/overclock-content.test.mjs)
+test('MISSING LINK bank: 150+ puzzles, one answer each, answers unique and never one of the clues, every clue with its side', () => {
+  assert.ok(ML.length >= 150, `${ML.length} puzzles`);
   const answers = new Set();
   for (const row of ML) {
-    assert.equal(row.length, 5, JSON.stringify(row));
-    const [a, b, c, ans, alt] = row;
-    for (const w of [a, b, c]) assert.match(w, /^[A-Z][A-Z'-]*$/, `clue ${w}`);
-    assert.match(ans, /^[A-Z]{2,10}$/, ans);
-    assert.equal(typeof alt, 'string');
-    assert.equal(new Set([a, b, c]).size, 3, `repeated clue: ${row}`);
-    assert.ok(![a, b, c].includes(ans), `answer is a clue: ${row}`);
-    assert.ok(!answers.has(ans), `answer used twice: ${ans}`);
-    answers.add(ans);
+    const words = row.clues.map(c => c[0]);
+    for (const [w, side, sep] of row.clues) { assert.match(w, /^[A-Z]+$/, `clue ${w}`); assert.ok(['before', 'after'].includes(side), row.id); assert.ok(['', ' '].includes(sep), row.id); }
+    assert.match(row.answer, /^[A-Z]{2,10}$/, row.answer);
+    assert.ok(Array.isArray(row.accept));
+    assert.equal(new Set(words).size, 3, `repeated clue: ${row.id}`);
+    assert.ok(!words.includes(row.answer), `answer is a clue: ${row.id}`);
+    assert.ok(!answers.has(row.answer), `answer used twice: ${row.answer}`);
+    answers.add(row.answer);
   }
 });
 
@@ -46,15 +46,16 @@ test('MISSING LINK: case, spaces and plurals are accepted; near misses are not',
   assert.equal(normWord("crow's-nest"), 'CROWSNEST');
 });
 
-test('SPELLCHECK bank: 200+ words, four different lowercase spellings, the correct one first', () => {
+test('SPELLCHECK bank: 200+ words, four different lowercase spellings, the right one + three wrong (OC7: { id, right, wrong, hard, src })', () => {
   assert.ok(SP.length >= 200, `${SP.length} words`);
   const seen = new Set();
   // words that have two accepted spellings must never be in this bank (as the answer or as a "wrong" option)
   const TWO_WAYS = ['judgment', 'judgement', 'theater', 'theatre', 'gray', 'grey', 'canceled', 'cancelled', 'traveled', 'travelled', 'catalog',
     'catalogue', 'fulfill', 'fulfil', 'acknowledgment', 'acknowledgement', 'barbecue', 'barbeque', 'supersede', 'supercede', 'minuscule', 'miniscule',
     'liquefy', 'liquify', 'memento', 'momento', 'jewelry', 'jewellery', 'aging', 'ageing', 'likable', 'likeable', 'calender', 'florescent', 'publically'];
-  for (const row of SP) {
-    assert.equal(row.length, 4, JSON.stringify(row));
+  for (const r of SP) {
+    const row = [r.right, ...r.wrong];
+    assert.equal(row.length, 4, JSON.stringify(r));
     assert.equal(new Set(row).size, 4, `repeated option: ${row}`);
     for (const w of row) assert.match(w, /^[a-z]+$/, w);
     for (const w of row) assert.ok(!TWO_WAYS.includes(w), `two accepted spellings: ${w}`);

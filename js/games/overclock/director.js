@@ -7,13 +7,13 @@ import { markUsed } from '../kit/night.js';
 import { readyState } from '../kit/ready.js';
 import { LUCK, DL_MS, DL_PICK_MS, DL_RACE_MS, DL_FINISH_MS, dlLock, dlOf } from './luck.js';
 
-const TRIVIA_WAIT_MS = 2500;
-
 /**
  * order: the match's challenges (default: buildOrder from the seed + `played`, the types this room played tonight);
  * deal / dk: THE ROOM's NIGHT MEMORY's deal (deal.js#dealMatch — the items each challenge shows + their keys).
+ * OC7 — TRIVIA LIGHTNING deals from OVERCLOCK's OWN bank (data/oc/trivia.json) like every other pool: its three question IDS are in the deal —
+ * no question bank in the room, no live Trivia API, no top-up, nothing to wait for (a `bank` / `trivia` argument is ignored).
  */
-export function createGame({ matchId, settings, participants, now, seed, bank, trivia, order = null, played = [], deal = null, dk = null }) {
+export function createGame({ matchId, settings, participants, now, seed, order = null, played = [], deal = null, dk = null }) {
   const total = MODES[settings.mode] || MODES.quick;
   // (DUMB LUCK only with 2+ players — never in SOLO: logic.js#buildOrder)
   const ord = Array.isArray(order) && order.length === total ? order : buildOrder(seed, total, played, { luck: Object.keys(participants || {}).length >= 2 });
@@ -33,18 +33,11 @@ export function createGame({ matchId, settings, participants, now, seed, bank, t
     phaseStartAt: now,
     phaseEndsAt: now + BRIEF_MS,
     seen: { [first]: true },
-    tq: {},
-    tUsed: 0,
-    bank,
-    trivia,
   };
   if (deal && Object.keys(deal).length) game.deal = deal;
   if (dk && Object.keys(dk).length) game.dk = dk;
-  if (first === 'trivia') { game.tq = { 0: 0 }; game.tUsed = 3; }
   return game;
 }
-
-export const triviaNeeded = game => game.order.filter(t => t === 'trivia').length * 3;
 
 /** the combo after challenge ci closes, for every participant ({ uid: { c, m } }) */
 export function comboAfter(game, ctx) {
@@ -69,7 +62,7 @@ export function timesOf(game, boards) {
   return out;
 }
 
-/** ctx: { now, boards, online, marks?, next?, fallback(n) -> patch|null } — marks = this challenge's combo marks, next = the after-challenge taps */
+/** ctx: { now, boards, online, marks?, next? } — marks = this challenge's combo marks, next = the after-challenge taps */
 export function nextStep(game, ctx) {
   if (!game || game.id !== 'overclock') return null;
   const { now } = ctx;
@@ -81,17 +74,7 @@ export function nextStep(game, ctx) {
       if (now < ends) return null;
       // THE ROOM's NIGHT MEMORY: the challenge going live marks its type + its dealt items for the rest of the night (kit/night.js)
       // (DUMB LUCK's slot: the odds board + the race + the finish — DL_MS, inside CHALLENGE_MS; it never ends early)
-      const play = { phase: 'play', phaseStartAt: now, playStartAt: now, phaseEndsAt: now + (type === LUCK ? DL_MS : CHALLENGE_MS), $room: markUsed('overclock', keysAt(game, game.ci)) };
-      if (type === 'trivia') {
-        const need = (game.tq && game.tq[game.ci]) + 3;
-        const have = (game.trivia && game.trivia.n) || 0;
-        if (have < need) {
-          if (now < ends + TRIVIA_WAIT_MS) return null;
-          const patch = ctx.fallback(need - have);
-          return patch ? { ...patch, ...play, $room: { ...(patch.$room || {}), ...play.$room } } : null;
-        }
-      }
-      return play;
+      return { phase: 'play', phaseStartAt: now, playStartAt: now, phaseEndsAt: now + (type === LUCK ? DL_MS : CHALLENGE_MS), $room: markUsed('overclock', keysAt(game, game.ci)) };
     }
     case 'play': {
       const uids = Object.keys(game.participants || {});
@@ -143,7 +126,6 @@ export function nextStep(game, ctx) {
         phaseStartAt: now, phaseEndsAt: now + (brief ? BRIEF_MS : READY_MS),
         [`seen/${next}`]: true,
       };
-      if (next === 'trivia') { patch[`tq/${ci}`] = game.tUsed || 0; patch.tUsed = (game.tUsed || 0) + 3; }
       return patch;
     }
     case 'final':
