@@ -199,13 +199,18 @@
 .gk-kb-row { display: flex; justify-content: center; }
 .gk-kb-key { flex: 0 0 10%; min-height: var(--gk-key-h, 54px); --gk-key-inset: 3px 2px; font: 700 var(--gk-kb-size, 20px) / 1 var(--gk-font-ui, var(--font-ui)); }
 .gk-kb-key.is-back { flex-basis: 15%; font-size: 22px; }
-/* PW1 — the delete key's DRAWN icon (keyboard.js#backIcon — currentColor, sized like the old glyph: 1.1em wide) */
-.gk-kb-backsvg { display: block; width: 1.25em; height: 0.9em; }
+/* PW1 — the delete key's DRAWN icon (keyboard.js#backIcon — currentColor). PW2 (the owner's iPhone review, Nov 7): the label span is
+   inline and the svg was a block inside it — the icon sat against the key's LEFT edge and spilled toward M. The label is a flex box now:
+   the icon CENTRED in the key on both axes, about the letters' cap height (0.7em tall), fully inside the face. OVERCLOCK's keyboard the same. */
+.gk-kb-key.is-back .gk-key-label { display: inline-flex; align-items: center; justify-content: center; }
+.gk-kb-backsvg { display: block; width: 1em; height: 0.7em; }
 .gk-kb-r3 { margin-top: 4px; }
 .gk-kb-r3 .gk-go { flex: 0 0 64%; min-height: var(--gk-go-h, 56px); }
 /* PW1 — THE KEYS' MARKS (keyboard.js#setKeyStates — THE PASSWORD): the same marks as its tiles, smaller, from the shared --good / --close tokens
    (SHELL 2.0 B1 — the colour-blind swap rides them). HIT: a solid --good face + a thick bright bar along the bottom · NEAR: an outlined --close
-   face, dark centre, a small solid dot top-right · MISS: flat + dim. Never colour alone (the bar / the dot / the dim face are the shape). */
+   face, dark centre, a small solid dot top-right · MISS: flat + dim. Never colour alone (the bar / the dot / the dim face are the shape).
+   PW2 (the owner's iPhone review): MISS is UNMISTAKABLE — a clearly darker, sunken face + a clearly dimmer letter (the brightness step does the
+   work; unused keys stay bright); the NEAR dot sits in the face's top-right corner with a dark ring of clear space, the letter nudged off it. */
 .gk-kb-key[data-st] .gk-key-face { transition: background 0.25s, border-color 0.25s, opacity 0.25s; }
 .gk-kb-key[data-st] .gk-key-face::after { content: ''; position: absolute; pointer-events: none; }
 .gk-kb-key[data-st="hit"] { color: var(--gk-hit-ink, #06130b); }
@@ -213,9 +218,10 @@
 .gk-kb-key[data-st="hit"] .gk-key-face::after { left: 4px; right: 4px; bottom: 3px; height: 4px; border-radius: 2px; background: #fff; box-shadow: 0 0 6px rgba(255, 255, 255, 0.8); }
 .gk-kb-key[data-st="near"] .gk-key-face { background: var(--gk-near-bg, rgba(0, 0, 0, 0.42)); border: 2px solid var(--close, #ffd23d); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35); }
 .gk-kb-key[data-st="near"] { color: var(--close, #ffd23d); }
-.gk-kb-key[data-st="near"] .gk-key-face::after { top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--close, #ffd23d); box-shadow: 0 0 6px var(--close, #ffd23d); }
-.gk-kb-key[data-st="miss"] { color: var(--gk-miss-ink, rgba(255, 255, 255, 0.38)); }
-.gk-kb-key[data-st="miss"] .gk-key-face { background: var(--gk-miss-bg, rgba(255, 255, 255, 0.04)); border-color: rgba(255, 255, 255, 0.08); box-shadow: none; }
+.gk-kb-key[data-st="near"] .gk-key-face::after { top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--close, #ffd23d); box-shadow: 0 0 0 2px var(--gk-near-ring, rgba(4, 3, 10, 0.92)), 0 0 7px var(--close, #ffd23d); }
+.gk-kb-key[data-st="near"] .gk-key-label { transform: translate(-1px, 1px); }
+.gk-kb-key[data-st="miss"] { color: var(--gk-miss-ink, rgba(255, 255, 255, 0.3)); }
+.gk-kb-key[data-st="miss"] .gk-key-face { background: var(--gk-miss-bg, rgba(0, 0, 0, 0.4)); border-color: var(--gk-miss-line, rgba(255, 255, 255, 0.05)); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.45); }
 
 /* ---------------- THE TACH TIMER */
 .gk-tach { display: flex; align-items: center; gap: 10px; width: 100%; }
