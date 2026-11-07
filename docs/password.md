@@ -85,6 +85,9 @@ no list ships unreviewed; every answer must be in data/words/valid-5.json (a wor
   `&look=day` (PW2), `&corner=0`; shots via `shots.mjs --page … --sizes 390x844,402x874,430x932`; the fps: `--js "__password.type('CRANE');__password.enter()" --fps 2400 --cpu 4`.
   Shots: `Downloads/neon/password/shots/r1` (the preview states), `e2e` (the real run), `kb-before` / `kb-after` (OVERCLOCK's keyboard unchanged but the drawn delete key).
 
+**The local run before the push (Nov 7):** unit 1314 · rules 66 · /api 38 + progression 10 + password 5 + sightings 4 · smoke GAMES=overclock 5/5 ·
+e2e-password 23/23 · e2e-oc-sideways green · the flip at 60.3 fps on 4× CPU.
+
 ## Real vs placeholder (PW1)
 REAL: the rules, the server judging + the record + the schedule + the list, the kit hook, the night look, the resume / suspend, the E2E. PLACEHOLDER:
 the hand-off card (PW2: the door reveal), the end card (PW2: the real result + the share), the DAY look (PW2 — the tokens are ready), the rewards
