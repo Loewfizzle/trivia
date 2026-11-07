@@ -124,7 +124,8 @@ for (const r of uniq(ctx.tv, 'tv', r => r.q)) {
 }
 // the question names the US unit the screen + the scoring use (closestAnswer): "…, in feet?"
 const UNIT_WORDS = { m: /\bfeet\b/, km: /\bmiles\b/, km2: /\bsquare miles\b/, kg: /\bpounds\b/, kmh: /\b(miles per hour|mph)\b/, c: /°F|\bdegrees Fahrenheit\b/ };
-const namesUnit = (q, unit) => (US_UNITS[unit] ? UNIT_WORDS[unit].test(q) : !unit || q.toLowerCase().includes(unit.split(' ')[0].toLowerCase().replace(/s$/, '')));
+// ("How old was … when …?" names years by itself)
+const namesUnit = (q, unit) => (US_UNITS[unit] ? UNIT_WORDS[unit].test(q) : !unit || (unit === 'years' && /^How old /.test(q)) || q.toLowerCase().includes(unit.split(' ')[0].toLowerCase().replace(/s$/, '')));
 const cc = [];
 for (const r of uniq(ctx.cc, 'cc', r => r.q)) {
   if (!r.q || r.q.length > Q_MAX) { drop('cc', 'question too long', r.q); continue; }

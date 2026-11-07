@@ -39,7 +39,7 @@ test('CLOSEST CALL: 120+ clean questions (OC7: { id, cat, q, value (metric), uni
   assert.ok(CC.length >= 120, `${CC.length} questions`);
   const seen = new Set();
   for (const { cat, q, value, unit } of CC) {
-    assert.ok(cat && unit && q.endsWith('?'), q);
+    assert.ok(cat && typeof unit === 'string' && q.endsWith('?'), q);   // (unit '' = a plain count: an atomic number)
     assert.ok(typeof value === 'number' && value > 0, q);
     assert.ok(!seen.has(q), `duplicate: ${q}`);
     seen.add(q);

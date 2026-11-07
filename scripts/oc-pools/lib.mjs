@@ -67,7 +67,10 @@ export const SP_MAX = 16;
 
 /** two answers that would read as the same one: equal, or one is the other's whole words inside it ("Washington" · "George Washington") */
 export function aliasOf(a, b) {
-  const x = norm(a).replace(/^(the|a|an) /, ''), y = norm(b).replace(/^(the|a|an) /, '');
+  // numbers are the same answer only when they are the same number ("1,860" is not "1,860,000"; "-10 degrees" is not "10 degrees")
+  if (/\d/.test(a) && /\d/.test(b)) return String(a).toLowerCase().replace(/\s+/g, ' ').trim() === String(b).toLowerCase().replace(/\s+/g, ' ').trim();
+  // (only "the" is dropped — "A negative" is a blood type, not "negative")
+  const x = norm(a).replace(/^the /, ''), y = norm(b).replace(/^the /, '');
   if (!x || !y) return true;
   if (x === y) return true;
   const [s, l] = x.length <= y.length ? [x, y] : [y, x];
