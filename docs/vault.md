@@ -634,3 +634,19 @@ THE PASSWORD's two collectibles, awarded by the SERVER from its own record of th
   a pink key's tip at the eye; a warm light glowing through the hole as its own `ve-keyglow` layer — opacity only). The keyhole picture in dailies-cards-v2
   was a shape reference only. THE LAB: n 190.
 - Their names + lines live on the server (`api/_lib/catalog.js`, `lab-text.js`); the lab's APPROVE · FIX · CUT gates the art like every card.
+
+## COAST CLEAR's REWARDS — GHOST RUN + LIGHTHOUSE (CC2, Nov 7 — docs/coastclear.md "THE REWARDS")
+COAST CLEAR's two collectibles, awarded by the SERVER from its own record of the run (`api/_lib/cc.js#flags` → the award engine; never a phone's claim):
+- **GHOST RUN** (`card-ghost-run`, rare — a clear with ZERO spots at or under 50 s on the score's clock, ≈ the best ~9 % of clean runs by THE SIMULATION):
+  the owner's APPROVED Grok art (Downloads\grok\dailies-cards-v2\card-ghost-run.png, a copy in `art/cc-cards/src/`) → `assets/vault/cc/ghost-run.webp`
+  (1280 × 720, converted only — `scripts/build-cc-cards.mjs`) = **the material** (`css/vault.css .vl-s-cc-ghost-run`). **THE STRIP sits ~10 % lower than
+  centre** (`background-position: 50% 64%` — a per-card value: the boat sits low; the full card 50% 56%); the boat right of centre (THE HERO ≈ 0.66 across —
+  `vault/hero.js` reads `CC_SPECS` like `PW_SPECS`) leaves the left clear for a long name; the bow's tip runs on under the gem, so the gem gets a dark
+  backing (REDLINE's precedent). **The motion** = `js/fx/cc-cards.js#ccGhost` on the shared surface through THE GL PAINTER (art px mapped like the CSS
+  crop — `js/fx/cc-specs.js#ccMap`): the SPRAY thrown back off the bow (droplets arcing, flickering out), the lighthouse's lamp BREATHING + a short beam
+  sweeping round every ~4.8 s, a soft shimmer where the searchlights cross, a light running along the hull's cyan trim every ~6.2 s; reduced motion = a
+  still frame. The full card's `heroFull` keeps the plate on the dark left (`vault/layout.js`). THE LAB: n 191 (the strip) · 192 (the full card).
+- **LIGHTHOUSE** (`emb-lighthouse`, uncommon — any clear): NEON TUBES (`emblem-art.js` shape `lighthouse`: the white tapered tower + its stripe, the gold
+  lamp room + cap, a cyan wave at its foot); its BEAM swinging on the lamp (`ve-lhbeam` — one HTML-wrapped layer, scaleX through 0 = the lens turning) +
+  the lamp's glow breathing (`ve-lhglow`). The lighthouse picture in dailies-cards-v2 was a shape reference only. THE LAB: n 193.
+- Their names + lines live on the server (`api/_lib/catalog.js`, `lab-text.js`); the lab's APPROVE · FIX · CUT gates the art like every card.

@@ -1,6 +1,6 @@
-# COAST CLEAR — a daily, server-judged Minesweeper-type (CC1, Nov 7 2026 — ships OFF)
+# COAST CLEAR — a daily, server-judged Minesweeper-type (CC1 + CC2, Nov 7 2026 — ships OFF)
 
-The owner's decisions: `docs/games/plan.md` (CC1). The contract it plugs into: `docs/cartridge.md` (THE DAILY PLUG-IN, D2). The pattern it follows:
+The owner's decisions: `docs/games/plan.md` (CC1, CC2). The contract it plugs into: `docs/cartridge.md` (THE DAILY PLUG-IN, D2). The pattern it follows:
 THE PASSWORD (`docs/password.md`). THE DAILY MODULE (a later pass) opens it once a day, owns the banner, the pause + the RESUME chip, the rankings and
 the streak hooks; until THE SWITCH-OVER `daily.on` is `false`, the server answers it only under `DAILY_TEST=1`, and the game is reachable only through
 its preview + its E2E. **Slip a small boat across the night harbor past 18 hidden patrol SEARCHLIGHTS on a 9 × 12 board; buoys mark the lights you've
@@ -9,18 +9,22 @@ worked out.** Digging a light = SPOTTED (+30 s, play goes on); the 3rd spot ends
 
 | file | what |
 | --- | --- |
-| `js/games/coastclear/meta.js` | THE THIN META (pure, no imports): 9 × 12 · 18 lights · +30 s a spot · +15 s a pause · 3 spots ends it, SOLO, BANNER_NAME, `chatLocked` → false, `LOOKS: ['night']` (CC2 adds the day harbor), `CC_EPOCH` (the share line's day 1 — CC2 / THE SWITCH-OVER) |
-| `js/games/coastclear/logic.js` | THE RULES, pure — the server imports it: neighbours + counts, `flood` (BFS from the tap), `applyMove` (dig / chord), `serverAct` (the server's one action on a record: dig · chord · pause · resume), `runView` (the phone's view: opened cells + spotted lights only), `scoreOf` + `bucketOf` (300 buckets), `replay` (the server's check), the phone's `foldAnswer` (answers in any order) + `clockMs` + `chordTargets` |
+| `js/games/coastclear/meta.js` | THE THIN META (pure, no imports): 9 × 12 · 18 lights · +30 s a spot · +15 s a pause · 3 spots ends it, SOLO, BANNER_NAME, `chatLocked` → false, `LOOKS: ['day', 'night']` (CC2), `CC_EPOCH` (the share line's day 1 = THE PASSWORD's `PW_EPOCH` — both move at THE SWITCH-OVER) |
+| `js/games/coastclear/logic.js` | THE RULES, pure — the server imports it: neighbours + counts, `flood` (BFS from the tap), `applyMove` (dig / chord), `serverAct` (the server's one action on a record: dig · chord · pause · resume), `runView` (the phone's view: opened cells + spotted lights only — CC2: + `reveal` once the run is over), `scoreOf` + `bucketOf` (300 buckets), `replay` (the server's check), the phone's `foldAnswer` (answers in any order) + `clockMs` + `chordTargets`; CC2: `headline`, `finalMs`, `endLine`, `endMap` (the finished harbor), `msToTurn` + `fmtCountdown`, `dayNumber`, `shareLine`, `shareInputs` (no board) |
 | `js/games/coastclear/daily.js` | THE DAILY PLUG-IN: `daily = { on: false, create, resumeKey, result, replay, problems }` — a day set carries NO board (`{ v: 1, day }`) |
-| `js/games/coastclear/index.js` | THE CARTRIDGE (every REQUIRED piece; a DAILIES row — a room never starts it) |
+| `js/games/coastclear/index.js` | THE CARTRIDGE (every REQUIRED piece; a DAILIES row — a room never starts it); CC2: `musicFor` — the station follows the look (DAY `mood:day`, NIGHT `mood:evening`) |
 | `js/games/coastclear/judge.js` | THE JUDGE on the phone: start / dig / chord / pause / resume / finish through `/api/daily` (js/profile/api.js — no socket) |
-| `js/games/coastclear/view.js` + `css/coastclear.css` | THE SCREEN (below); every colour a `--cc-*` token; `window.__coastclear` = the test hook |
-| `api/_lib/cc.js` | THE SERVER's cartridge (`core/daily.js#registerDaily`, `judged: true`, `moves`, `load` = the day's board, `act`, `verify` from the record) |
+| `js/games/coastclear/view.js` + `css/coastclear.css` | THE SCREEN (below); every colour a `--cc-*` token (BOTH LOOKS — `body[data-look="day"]` retokens); CC2: GETTING SPOTTED (the beams), THE END SCREENS; `window.__coastclear` = the test hook |
+| `js/games/coastclear/sfx.js` + `audio/sfx/coastclear/` + `scripts/build-cc-sfx.py` | THE SOUNDS (CC2): 8 files, mono 96 kbps (78 KB), on the console's SFX bus + THE FIRST-TAP CATCH; the import from the dailies chat's Grok set (12–19) |
+| `js/games/coastclear/share.js` | THE SHARE CARD (CC2): a 1080 × 1350 canvas with NO BOARD + the one line, through the share sheet; the fallbacks |
+| `js/fx/cc-cards.js` + `cc-specs.js` · `assets/vault/cc/` · `scripts/build-cc-cards.mjs` · `art/cc-cards/src/` | GHOST RUN's motion + its data · the art (1280 × 720 webp) · the build · Grok's master (a copy) |
+| `scripts/sim-coastclear.mjs` | THE GHOST RUN SIMULATION (CC2): a human-paced solver bot over thousands of real boards → the time |
+| `api/_lib/cc.js` | THE SERVER's cartridge (`core/daily.js#registerDaily`, `judged: true`, `moves`, `load` = the day's board, `act`, `verify` from the record); CC2: `flags` (clear / ghost from the record → the award engine), `GHOST_S` 50 |
 | `api/_lib/cc-board.js` | THE DAY's BOARD: the seed from THE PEPPER (the `dailySeed('coastclear', day)` form; `…:<day>:<attempt>` for a retry), built once + stored at `dly/coastclear/{day}/b`, kept warm in memory |
 | `api/_lib/cc-solve.js` | THE NO-GUESS MAKER + THE SOLVER (pure — the preview imports it through the dev server's `/__dev/api-lib/` door for its fixed test board) |
-| `tests/coastclear.test.mjs` · `tests/cc-board.test.mjs` | the rules (11) · the maker + solver over 1,200 days (4) |
-| `tests/integration/coastclear.test.mjs` | `/api/daily` for COAST CLEAR on the emulators (6) |
-| `tests/integration/coastclear-preview.html` · `coastclear-daily.html` · `e2e-coastclear.mjs` | the look preview (a local fake server, a fixed test board) · the E2E's page (the real judge on the emulators) · the E2E (18) |
+| `tests/coastclear.test.mjs` · `tests/cc-board.test.mjs` · `tests/coastclear-cc2.test.mjs` | the rules (11) · the maker + solver over 1,200 days (4) · CC2: the end lines, the reveal, the finished harbor, the share (no board), the countdown, THE REWARDS' flags + the daily step + the wiring (8) |
+| `tests/integration/coastclear.test.mjs` | `/api/daily` for COAST CLEAR on the emulators (9 — CC2: the reveal, the rewards at the threshold) |
+| `tests/integration/coastclear-preview.html` · `coastclear-daily.html` · `e2e-coastclear.mjs` | the look preview (a local fake server, a fixed test board) · the E2E's page (the real judge on the emulators) · the E2E (36) |
 
 ## The game (what the phone does)
 The view holds ONE thing: **the run view** — `{ w, h, lights, open: [[cell, n]…], lit: [cell…], spots, done, out, startedAt, finishedAt, paused,
@@ -45,10 +49,63 @@ DRAWN SEARCHLIGHTS (a lamp + its beam; lit gold = spotted), a DRAWN BUOY + the b
 up to 46; 2 pt gaps): dark glass tiles over ONE shimmer layer sliding on transform, opened water darker + still, the numbers in bright neon (1 cyan · 2
 green · 3 pink · 4 yellow · 5 orange · 6 violet · 7 red · 8 white — the digit itself carries the meaning), buoys = drawn orange floats with a lamp, a
 spotted cell = a gold searchlight that stays lit (a one-time burst ring) · the DIG / BUOY switch in the thumb zone (two big halves, 12 pt corners — not
-a capsule; the active half glows cyan / orange). Status + board sit together, centred between the sign and the switch. **The end (a PLACEHOLDER):**
-the switch's place takes COAST CLEAR + the time + "1 SPOT · 1 PAUSE", or CAUGHT + "2:41 · THE THIRD LIGHT FOUND YOU"; the board dims. `judge.finish()`
-once (a retry gets the stored score back); only a failed finish shows a quiet NOT RECORDED · NO SIGNAL. CC2 builds the lighthouse win, the caught
-screen, the share, the DAY harbor + the live swap, the sounds and the rewards (LIGHTHOUSE · GHOST RUN).
+a capsule; the active half glows cyan / orange). Status + board sit together, centred between the sign and the switch. `judge.finish()` once (a retry
+gets the stored score back); only a failed finish shows a quiet NOT RECORDED · NO SIGNAL.
+
+**GETTING SPOTTED (CC2 — `view.js#spotted`, `SWEEP` = the beats):** the server names the light → a white searchlight BEAM sweeps in from off-screen (from
+the far side, so it crosses the harbor) and LANDS on the cell in 0.7 s — WAAPI on its own layer (`.cc-fx`, never a tap taken), transform + opacity
+only; three soft layers (a wide faint halo, the cone, a bright core) whose far end fades out past the cell. While it travels the cell shimmers like a
+pending dig and the screen does NOT count it yet (`shownSpots` — the lamp + the clock wait); it lands: the gold burst stays, a pool of light, "+30 s"
+floats up from the cell and fades, one of the three status lamps lights, the clock jumps 30 s; the spotted sound plays with the sweep. **Play never
+stops** — taps during the sweep dig as usual. **CAUGHT** (the 3rd light): THREE beams converge on that cell (left, right, from below — staggered 90 ms),
+one red pulse over the screen (`.cc-red`, opacity), the firmer caught sound, then the end (1.5 s). Reduced motion: no beams, the light at once. A
+tear-down mid-sweep resumes with the light simply lit. **60 fps measured** (the E2E, the preview page, rAF timing): the sweep 59.8 · the catch 59.3 ·
+the lighthouse 60 fps (p95 16.7 ms); at 4× CPU 56 / 56.6 / 54.2.
+
+**THE END SCREENS (CC2 — `view.js#end`, on PW2's pattern):** the board + the switch leave (0.32 s) and one clean screen comes in under the sign. **WIN** =
+**COAST CLEAR** big green neon with **the lighthouse beam** sweeping slowly behind it (a long soft cone pivoting behind the headline, 3.2 s once, then a
+calm glow breathing — `.cc-lh`) — the small top sign steps aside (the name never shows twice) · ONE big time (`finalMs` — the score's seconds: the
+clock, the pauses stopped, + 30 s a spot + 15 s a pause) · a small line (`endLine`: "0 SPOTTED" · "1 SPOTTED · +30 s" · "+ 1 PAUSE · +15 s") + the win
+sound. **CAUGHT** = big red neon, NO big time — one small line ("3 SPOTTED · 1:58"), the sign stays, the harbor dimmed. **Both:** THE FINISHED HARBOR
+shrunk (`endMap` — 9 × 12 at 15–24 pt: the numbers in their colours, gold where a light found you, buoys, every other light as a pale lamp — the
+server REVEALS the lights once the run is over; on a clear the phone buoys every shut cell) animated in row by row after the headline · SHARE (the one
+main tube, a modest radius) · "NEXT HARBOR IN 13:06:44" (to the next 4 am Eastern, ticking). The leftover space at the FOOT (never top-heavy). A resume /
+a re-mount onto a finished run lands on the end screen STILL (`is-still` — no motion replayed).
+
+**THE TWO LOOKS (CC2):** every colour a `--cc-*` token; `body[data-look="day"]` RETOKENS it — THE SUNNY HARBOR, THE PASSWORD's "C1 clear morning sky"
+(the pale-blue gradient, the sun glow top-left, a couple of soft clouds at the top): hidden water = frosted sea-blue glass (light blue, a soft white
+rim, a gentle shine), opened water = bright translucent white, the numbers bold + saturated (each its own strong colour, an edge for outdoors), buoys
+red-and-white striped (a second band — `.cc-bu-band2`), the spot a warm gold, the beams pale gold, the blue accent #2f86ff on the active half of the
+switch + the sign's dot ("coast clear." lowercase, the phone's rounded sans). **The game draws no switch** — the console sets `body[data-look]` and the
+screen re-themes LIVE: the gradient tokens are REGISTERED (`@property` — a registered colour transitions where a gradient can't) so the cells crossfade
+~0.3 s, the two backgrounds are painted layers (`::before` night, `::after` day) crossfading on opacity; nothing resets (the E2E flips mid-dig,
+mid-flood, mid-sweep + on the end screen: the dig lands, the flood opens, the beam lands, the clock carries on). **The music follows the look**
+(`index.js#musicFor` like THE PASSWORD — the console's crossfade).
+
+**THE SOUNDS (CC2 — `sfx.js`):** dig (a single cell, when its answer lands) · open-area (a calm area) · buoy place / remove · the DIG / BUOY switch · spotted
+(with the sweep) · caught (with the converging beams) · the win (with the lighthouse). The MAIN file each of the Grok set's 12–19 (no -b); trims at import
+(`scripts/build-cc-sfx.py`): 16 mode-toggle +4 dB; 18 caught −5 dB + a 120 Hz low cut (measured −26.3 LUFS vs the win's −20 — never louder than winning).
+Mono 96 kbps, 78 KB; credits.txt beside them + ☰ → CREDITS. On the console's SFX bus (the slider + THE ONE MUTE); silent when locked / muted / missing.
+**THE FIRST-TAP CATCH (iPhone):** iOS sends a tap's pointerup BEFORE the touchend that unlocks the audio, and `resume()` is async after that — a sound asked
+for before the audio runs is held ≤ 400 ms and played the moment the context runs (one held at a time; with no tap at all it expires — never a sound
+without a gesture); every buffer is decoded at the unlock. The preview + the E2E's page install the console's unlock (`installAudio`) like the real game;
+the E2E proves every sound STARTS on the context + the catch.
+
+**THE SHARE CARD (CC2 — `share.js`):** SHARE renders a 1080 × 1350 canvas in the look on screen with **NO BOARD** (everyone gets the same harbor — a picture
+would give the searchlights away): the sign, the headline (a soft lighthouse cone behind COAST CLEAR), the big time or the caught line, THREE drawn
+searchlights lit per spot, COAST CLEAR #n, neonspeakeasy.com — drawn ONLY from `logic.js#shareInputs` (`SHARE_KEYS`: head · caught · time · line · spots ·
+dayNo · site); a test proves the same result on a DIFFERENT harbor gives identical inputs. Through the share sheet with ONE plain line: `COAST CLEAR #<n> ·
+2:41 · 0 spotted · neonspeakeasy.com` (caught: `… · caught · 3 spotted · 1:58 · …`; #n from THE PASSWORD's epoch). No file sharing → the line shared (or
+copied) + the image saved.
+
+**THE REWARDS (CC2 — server-awarded):** `api/_lib/cc.js#flags` reads the SERVER's record (`replay` — never the phone's claim) → `{ clear: 1, ghost?: 1 }`
+→ `core/progress.js#dailyStep` keys them `pa.gf['coastclear-clear']` / `['coastclear-ghost']` → the award engine grants **LIGHTHOUSE** (`emb-lighthouse`,
+uncommon — any clear) / **GHOST RUN** (`card-ghost-run`, rare — a clear with ZERO spots at or under `GHOST_S` = 50 s on the score's clock) once, inside the
+one transaction; "X% of players have this" through `bumpOwners`. Nothing in production while the daily is off (no cartridge → 404 `no_daily`). **THE
+SIMULATION** (`node scripts/sim-coastclear.mjs [runs] [seed]`): a HUMAN-PACED solver bot — the solver's own deductions round by round (its trace now says
+which rule found each round), a person's think time per rule (a lone number ≈ 1.4 s, a pair ≈ 4.2 s, the light count ≈ 7.5 s, log-normal), ≈ 0.6 s a tap,
+chords, ~60 % of found lights buoyed, hesitation (12 % of rounds +2–8 s, 3 % a long stare), a per-run pace ± 25 % — never a perfect instant player. **8,000
+real no-guess boards: median 1:20, p10 0:52 → GHOST_S = 50 s = 8.6 % of clean runs** (55 s would be 12.7 %). The art: docs/vault.md "COAST CLEAR's REWARDS".
 
 **Resume / suspend:** an unmount (the room starting a game, an app switch) drops nothing the server doesn't have (only the in-flight answers — the
 re-mount's `start` brings them back); the re-mount resumes from the server's record. A run PAUSED by THE DAILY MODULE resumes itself when the screen
@@ -69,6 +126,9 @@ copy) and stored as `{ v, w, h, l: 'cell,…', s: start, a: attempts }` (~95 byt
 ## The server flow (`POST /api/daily` — api/daily.js + api/_lib/cc.js)
 - **THE BOARD STAYS ON THE SERVER.** `start { game: 'coastclear' }` → `{ day, startedAt, done?, run, now }` — the run from the stored record (the
   opening even before the first move) and **NO seed**. A refresh = the same try, the same run.
+- **THE REVEAL (CC2):** the answer that ENDS a run (and any start after it) carries `reveal` — every light's cell — for the end screen's harbor; no
+  answer before the end ever does (the E2E's NO LEAK + /api tests check it). One try a day, so the board goes only to a player whose run is over
+  (like THE PASSWORD's word once its door closes).
 - **The moves** (CC1 added a generic path for a judged cartridge's `moves` — `dig` · `chord` · `pause` · `resume`, no new function): the day's board +
   the start read in parallel, then ONE transaction on the record (`dly/coastclear/{day}/p/{pid} = { st, mv: ['d45', 'c30:21,22' …], p?: { n, ms, at? },
   e?, o? }` — the moves, never a cell's content). A repeat (a dig on an open cell — its own number back; a spotted light; a chord with nothing left) =
@@ -80,16 +140,20 @@ copy) and stored as `{ v, w, h, l: 'cell,…', s: start, a: attempts }` (~95 byt
   - `pause` / `resume` → `{ paused, pauses, pausedMs }` — the clock stopped from `at` to the resume, +15 s a pause; a second pause = free; a move resumes
 - `finish` → scores from THE SERVER's record (`logic.js#replay` — the phone's `result` is ignored; unfinished → 409 `not_done`), then the existing
   streak / standing code (`better: 'low'`, 300 buckets: 0…239 = 5-second steps to 20 min · 240 = longer · 241…299 = caught, by the safe cells left).
-  No flags yet (CC2's rewards).
+  CC2: `flags` from the same record → LIGHTHOUSE · GHOST RUN (above).
 - Registered by `api/_lib/dailies.js#loadDailies` **only under `DAILY_TEST=1`**: production answers 404 `no_daily`. No rules change (`dly/` is the
   rules' default deny — server-only).
 
 ## The preview (no Firebase — `tests/integration/coastclear-preview.html`)
 The real view against a LOCAL FAKE SERVER (`logic.js#serverAct` on a local record) on a FIXED no-guess test board (the real maker on a fixed seed —
-never the real day; the first seed with a big second calm area). `&state=opening | mid | spotted1 | spotted2 | caught | clear` (played forward by the
+never the real day; the first seed with a big second calm area). CC2: `&look=day|night` + a tiny DAY / NIGHT toggle at the foot (`&toggle=0`), `&end=clear|caught`
+(played to ONE move before the end, then that move made once ready → the REAL end: the lighthouse / the three beams; `&still=1` = the end already
+reached), `&sweep=1` (a light dug mid-run → THE SWEEP; `&sweep=3` = the catch), `&share=1` (the share image over the screen), the console's audio
+unlock (tap once: the sounds play). `&state=opening | mid | spotted1 | spotted2 | caught | clear` (played forward by the
 SOLVER's own deductions — no cell made up; the buoys on the lights it found) · `&flood=1` (the biggest calm area dug once ready — film it: `shots.mjs
 --cast 1100 --strip 8 --js "__coastclear.tap(__preview.play.bigZero().cell)"`) · `&lat=40` (the fake's answer time; 190 = a slow line) · `&drop=1` (answers
-lost for 3 s → RECONNECTING) · `&mode=buoy` · `&paused=1` · `&t=95` · `&seed=` · `&corner=0`. Shots: `Downloads/NEON/coastclear/shots/` — `cc1-g4a` (every
+lost for 3 s → RECONNECTING) · `&mode=buoy` · `&paused=1` · `&t=95` · `&seed=` · `&corner=0`. Shots: `Downloads/NEON/coastclear/shots/` — CC2: `cc2-g1` (the sweep, the catch, the win filmed), `cc2-g3` (the day look), `cc2-share`, `cc2-card` (GHOST
+RUN + LIGHTHOUSE), `cc2-final` (390 / 402 / 430 both looks: opening, mid, the sweep strip, win, caught; desktop), `cc2-e2e`; CC1: `cc1-g4a` (every
 state at 390 / 402 / 430, desktop, the flood strip), `cc1-e2e` (the E2E's).
 
 ## The numbers (CC1, measured on the Beelink)
@@ -112,8 +176,17 @@ state at 390 / 402 / 430, desktop, the flood strip), `cc1-e2e` (the E2E's).
   the same nodes) — start (the opening, no seed, the board stored once), digs (one cell, a whole flood, a repeat writes nothing), the chord right /
   wrong / short, three spots → caught + nothing after, a clean clear with a pause (the clock stopped, +15), one finish, every answer honest, production
   refuses it.
-- The E2E (the emulators + `DAILY_TEST=1 node scripts/serve.mjs <port> --emu`): `E2E_BASE=http://localhost:<port> node e2e-coastclear.mjs "<browser>"
-  ./shots-coastclear` (≈ 20 s, 18 checks).
+- The E2E (the emulators + `DAILY_TEST=1 node scripts/serve.mjs <port> --emu` — restart the server after changing logic.js: it keeps the modules it
+  loaded): `E2E_BASE=http://localhost:<port> node e2e-coastclear.mjs "<browser>" ./shots-coastclear` (≈ 35 s, 36 checks — CC2: the sweep, look flips
+  mid-dig / mid-flood / mid-sweep / on the end, the win screen + the harbor + the share inputs / image, resume onto the end, CAUGHT, the sounds start
+  + the first-tap catch, 60 fps on the preview).
+
+## Real vs placeholder (CC2)
+REAL: everything of CC1 + GETTING SPOTTED (the sweep, the catch), THE END SCREENS (the lighthouse, CAUGHT, the finished harbor, the countdown), BOTH LOOKS
++ the live switch, the sounds (+ the first-tap catch), the share card (no board), THE REWARDS (server-awarded; GHOST RUN's approved art + LIGHTHOUSE's
+neon in THE LAB waiting for the owner's marks — only approved art ships). NOT CHECKED HERE: a real iPhone's audio (no WebKit on this machine — the
+catch is proven in Chromium with the iOS order simulated); the share sheet itself (headless has none — the image + the line are proven). NOT BUILT
+(THE DAILY MODULE): the way in, the banner, the pause call + the RESUME chip, the rankings, the streak hooks, the switch-over.
 
 ## Real vs placeholder (CC1)
 REAL: the rules, the no-guess maker + solver, the server keeping the board + answering every move, the record + the replay + the score, the pause /

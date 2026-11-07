@@ -1607,3 +1607,13 @@ the city's sounds stop with the city (THE CITY PAUSE: the scene's `snd`, the rai
 - **late1.mp3 + late2.mp3 DROPPED** (3.46 + 2.03 MB): City 1.0's two lo-fi keepers, named by nothing but City 1.0's own mood decks in
   data/mood-music.json (`moods` — City 2.0's `city2.moods` cover all five moods, so those decks are a fallback that never plays); every other song
   is a City 2.0 deck song or a game's (the ten frozen games keep theirs). The deploy 295.5 → 291.3 MB (audio/music 245.1 → 239.6 MB).
+
+## COAST CLEAR's SOUNDS (CC2, Nov 7 2026) — `js/games/coastclear/sfx.js`, `audio/sfx/coastclear/`, `scripts/build-cc-sfx.py`
+The dailies chat's Grok set (Downloads\grok\dailies-sfx, files 12–19 — the MAIN file each, no -b; the owner): 12 dig (a single cell, as its answer lands) ·
+13 open-area (a calm area) · 14 buoy place · 15 buoy remove · 16 the DIG / BUOY switch · 17 spotted (with the sweep) · 18 caught (with the converging
+beams) · 19 the win (with the lighthouse). Trims at import: 16 +4 dB; 18 −5 dB + a 120 Hz low cut (measured −26.3 LUFS vs the win's −20 — losing never
+louder than winning). Mono 96 kbps, 78 KB; credits.txt beside them + ☰ → CREDITS. On the console's SFX bus (the slider + THE ONE MUTE); nothing plays,
+nothing throws before the unlock / muted / a missing file. **THE FIRST-TAP CATCH** (a new pattern — worth reusing): iOS sends a tap's pointerup BEFORE the
+touchend that unlocks the audio (`engine.js#unlock`), and `resume()` is async after it — so a sound asked for while the audio isn't running is held
+≤ 400 ms (one at a time) and played the moment the context runs (`onUnlock` + the context's statechange + short retries); with no gesture at all it
+expires. Every buffer is decoded at the unlock. The music follows the look like THE PASSWORD's (`index.js#musicFor`). docs/coastclear.md.

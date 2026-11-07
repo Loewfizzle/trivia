@@ -78,7 +78,9 @@ re-renders on a look change, so a game's station is re-read + crossfaded).
 (`['dig', 'chord', 'pause', 'resume']`) + `act` + `load`: `api/daily.js` answers each move through ONE generic path — the day's data (`load(day)` — its
 board) + the start read in parallel, then ONE transaction on the record (`act` → `{ record | null, resp }` or a refusal; a repeat writes nothing; a
 transaction's first null never aborts it) — and every judged answer (start + moves) carries the server's `now` (the phone's clock). Its day set carries no
-board (`{ v: 1, day }`); `daily = { on: false, create, resumeKey, result, replay, problems }`; a DAILIES row, `LOOKS: ['night']` until CC2.
+board (`{ v: 1, day }`); `daily = { on: false, create, resumeKey, result, replay, problems }`; a DAILIES row. **CC2:** `LOOKS: ['day', 'night']` + `musicFor`
+(the music follows the look); the answer that ENDS a judged run may carry what the run hid (`reveal` — every light, for the end screen); `flags` from the
+record (`cc.js#flags` → `coastclear-clear` / `-ghost` → LIGHTHOUSE · GHOST RUN — the same path as THE PASSWORD's).
 
 **OVERCLOCK's DAILY RESERVE (OC6 + OC7 — for THE DAILY MODULE).** ~20% of every built pool is SERVER-ONLY, so a daily's answers can't be
 looked up in the site's files:
