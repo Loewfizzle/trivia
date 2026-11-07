@@ -35,7 +35,7 @@ export const OC8_ONLY = {
     'Bali Island', 'Bali', 'Isle of Wight', 'North Island', 'South Island', 'Baffin Island', 'Capri', 'Santorini', 'Okinawa', 'Long Island', 'Vancouver Island',
     'Oahu', 'Greenland', 'Madagascar', 'Sicily', 'Sardinia', 'Cuba', 'Iceland', 'Jamaica', 'Puerto Rico', 'Honshu', 'Hokkaido', 'Tasmania', 'Sri Lanka',
     'Java', 'Sumatra', 'Manhattan', 'Maui', 'Hawaii', 'Hawaiʻi', 'Kauai', "Martha's Vineyard", 'Nantucket', 'Kodiak Island', 'Corsica', 'Cyprus', 'Malta',
-    'Bermuda', 'Victoria Island'],
+    'Bermuda'],
   'lake-area': ['Lake Baikal', 'Lake Victoria', 'Lake Tanganyika', 'Titicaca', 'Lake Titicaca', 'Lake Superior', 'Lake Ontario', 'Lake Michigan',
     'Lake Erie', 'Lake Huron', 'Lake Malawi', 'Loch Ness', 'Lake Nicaragua', 'Lake Winnipeg', 'Great Bear Lake', 'Great Slave Lake', 'Great Salt Lake',
     'Lake Tahoe', 'Crater Lake', 'Lake Geneva', 'Lake Como', 'Lake Garda', 'Lake Okeechobee', 'Lake Champlain', 'Lake Mead', 'Lake Powell', 'Loch Lomond'],
@@ -56,6 +56,16 @@ export const OC8_ONLY = {
   'tower-height': ['Eiffel Tower', 'CN Tower', 'Tokyo Skytree', 'Tokyo Tower', 'Space Needle', 'Fernsehturm Berlin', 'Canton Tower', 'Sky Tower',
     'Ostankino Tower', 'Stratosphere', 'Namsan Seoul Tower', 'Reunion Tower', 'Tower of the Americas', 'Blackpool Tower', 'Leaning Tower of Pisa', 'Big Ben'],
 };
+// (round 2 of the look check: the top-n alone still let Marina 101, China Zun, Dykh-Tau, Mount Wutai through — these two get a list too)
+OC8_ONLY['skyscraper-height'] = ['Burj Khalifa', 'Willis Tower', 'Petronas Towers', 'Taipei 101', 'One World Trade Center', 'The Shard', 'Shanghai Tower',
+  'Chrysler Building', 'Woolworth Building', 'Transamerica Pyramid', '30 Rockefeller Plaza', '432 Park Avenue', '30 St Mary Axe', 'New York Times Building',
+  'MetLife Building', 'Citigroup Center', 'Flatiron Building', 'Vehicle Assembly Building', 'John Hancock Center', 'Burj Al Arab', 'Salesforce Tower',
+  'Wrigley Building', 'Tribune Tower', 'Bank of America Tower', '4 Times Square', 'Aon Center', 'Space Needle', 'Seagram Building', '40 Wall Street'];
+OC8_ONLY['skyscraper-year'] = OC8_ONLY['skyscraper-height'];
+OC8_ONLY['mountain-height'] = ['Mount Everest', 'K2', 'Mount Vesuvius', 'Mont Blanc', 'Mount Elbrus', 'Kanchenjunga', 'Matterhorn', 'Mount Kenya', 'Mount Kilimanjaro',
+  'Kilimanjaro', 'Denali', 'Mount Rainier', 'Mount Whitney', 'Mount Fuji', 'Mount Ararat', 'Mount Kosciuszko', 'Aconcagua', 'Mount St. Helens', 'Pikes Peak',
+  'Mount Hood', 'Mount Olympus', 'Ben Nevis', 'Table Mountain', 'Devils Tower', 'Mount Logan', 'Cotopaxi', 'Cotopaxi volcano', 'Mount Etna', 'Mount Shasta',
+  'Mount Washington', 'Stone Mountain', 'Half Dome', 'Mount Rushmore', 'Mount Kilauea', 'Kīlauea', 'Mauna Kea', 'Mauna Loa', 'Mount Sinai', 'Mount McKinley'];
 OC8_ONLY['lake-depth'] = OC8_ONLY['lake-area'];
 OC8_ONLY['bridge-year'] = OC8_ONLY['bridge-length'];
 

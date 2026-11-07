@@ -51,7 +51,7 @@
 ["Black Panther",3,null,"h-black-panther","Black Panther (film)","three academy awards|3 academy awards|three oscars"],
 ["Citizen Kane",1,null,"h-citizen-kane","Citizen Kane","one academy award|academy award for best original screenplay"]]},
 {"id":"board-spaces","stat":"BOARD SPACES","ask":"WHICH HAS MORE SPACES?","unit":"spaces","win":"max","items":[
-["Go board (points)",361,null,"h-go-board-points","Go (game)","19×19|19x19|361"],
+["Go board",361,null,"h-go-board-points","Go (game)","19×19|19x19|361"],
 ["Scrabble board",225,null,"h-scrabble-board","Scrabble","15×15|15x15|225"],
 ["Chinese checkers board",121,null,"h-chinese-checkers-board-holes","Chinese checkers","121"],
 ["Battleship grid",100,null,"h-battleship-grid-one-player","Battleship (game)","10×10|10x10"],

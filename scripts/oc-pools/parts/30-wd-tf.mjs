@@ -9,8 +9,8 @@ import { TF_EXCLUDE, STAT_EXCLUDE, PEOPLE_EXCLUDE } from '../hand/wd-exclude.mjs
 import { CC_EXCLUDE_LABELS } from '../hand/oc7-exclude.mjs';
 import { DIRECTOR_FAME, TF_MOUNTAIN_FAME, MAKER_FIX } from '../hand/oc8-exclude.mjs';
 
-// (OC8: 85 → 74 — the fame filter took the data half from ~1,240 to ~940 pairs; no template over ~8.5 % of it, as ever)
-export const TEMPLATE_CAP = 74;
+// (OC8: 85 → 70 — the fame filter took the data half from ~1,240 to ~830 pairs; no template over ~8.5 % of it, as ever)
+export const TEMPLATE_CAP = 70;
 const CONT = { Q46: 'Europe', Q48: 'Asia', Q15: 'Africa', Q49: 'North America', Q18: 'South America', Q55643: 'Oceania', Q538: 'Oceania' };
 // a believable wrong continent for each (never a coin flip between two a country really touches — those countries are out)
 const WRONG_CONT = { Europe: 'Asia', Asia: 'Europe', Africa: 'Asia', 'North America': 'South America', 'South America': 'North America', Oceania: 'Asia' };

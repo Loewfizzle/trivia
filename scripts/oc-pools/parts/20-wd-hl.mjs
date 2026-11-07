@@ -200,6 +200,8 @@ export default async function wikidataHL(ctx) {
   // …and the everyday ones only (by atomic number): a kid knows iron + gold, not holmium
   const EVERYDAY = new Set([1, 2, 3, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 26, 27, 28, 29, 30, 35, 47, 50, 53, 74, 78, 79, 80, 82, 92]);
   for (const m of made) if (m[0] === 'element-melt' || m[0] === 'element-boil') m[5] = m[5].filter(x => z.has(x.q) && EVERYDAY.has(z.get(x.q)));
+  // (OC8 — the look check dealt Hassium: the atomic numbers keep the everyday elements too, + krypton + plutonium — names every kid knows)
+  for (const m of made) if (m[0] === 'element-number') m[5] = m[5].filter(x => EVERYDAY.has(x.v) || x.v === 36 || x.v === 94);
   for (const [id, stat, ask, unit, win, raw, keep0, gap] of made) {
     if (OC8_CUT.includes(id)) { ctx.log.push(`  OC8: stat ${id} CUT (obscure as a class)`); continue; }
     const ex = STAT_EXCLUDE[id] || [];
