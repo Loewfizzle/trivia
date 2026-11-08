@@ -601,7 +601,8 @@ one room), the banner's colour + passes, the words in the windows for a time win
   31.7 → 38.9 ms, measured with a display): a real cost, a design question (hold / slow the city behind the sheet, or lighten the strips) — the
   check stays red until then. THE BLACK HELICOPTER over the brightest towers at night is a dark silhouette: it reads at full size (the rim, the
   lights, the beam) — the owner's iPhone to judge. The Halloween spiders, RETURN (rAF dropped), LOAD WEATHER, the display-less speed checks, the
-  radio desk's scroll + THE WORD TOWERS in the 4-shard run — fixed (the log has each cause).
+  radio desk's scroll + THE WORD TOWERS in the 4-shard run — fixed (the log has each cause). LOAD WEATHER is still red in the CLOUD only (run 2's
+  "answered in 1.2 s": a board re-bake after the reveal by another way than the traces' race fixed) — green locally.
 - **THE LOAD FIX** (passes/load-fix.md): a camera change after the reveal (a desktop window drag, an iPad turned, a late font) now HOLDS the
   last picture still (the motion pauses) until the new camera is baked — ~0.5–0.7 s in headless WebKit — then CUTS to it (no dissolve: a
   dissolve between two cameras is two copies). Safari's bars never cause one any more (the canvas is 100lvh, the bar moves are kept).

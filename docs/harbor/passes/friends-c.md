@@ -142,7 +142,9 @@ DAILY MODULE after); decisions.md (FRIENDS C building, THE BLACK HELICOPTER, A S
   LEGENDARY filter repainted with `paint()[0]` (tonight was the first section) and would have swapped tonight for a copy of YOUR QUEUE → tonight
   is found by its mark now (`data-paper="tonight"`); `vault` **58 / 58** after.
 - **Cloud run 1** (c9a5429): tests ✅; harbor **14 / 15** — `holiday`'s spiders (the trip scared off — above), fixed for run 2.
-- **Cloud run 2**: see the summary.
+- **Cloud run 2** (dd20d71 — the last of the two): tests ✅; harbor **14 / 15** — `holiday` GREEN now; the one red is `city`'s LOAD WEATHER
+  ("answered in 1.2 s": a `bake crossfade · neon` right after the reveal — the board still swaps after the reveal on the runner by another way
+  than the one fixed in (c); green locally) → KNOWN ISSUES. Vercel built dd20d71 (live).
 
 ## Decisions taken in the pass (for the owner)
 - THE BLACK HELICOPTER = the medium tier's night helicopter pass (the same times — the golden table unchanged), not a new medium kind;
@@ -150,6 +152,8 @@ DAILY MODULE after); decisions.md (FRIENDS C building, THE BLACK HELICOPTER, A S
 - EVERYONE's intercom now waits ~50 s after SEND on every phone, the owner's own too (every phone together — the owner hears it with the city).
 
 ## Known issues (left)
+- LOAD WEATHER (`city`, the cloud only): a roof-board re-bake after the reveal still happens on the 2-core runner (run 2's "answered in
+  1.2 s" case) — (c) closed the traces' race; the next look: which board change it is (the hint's spell edge, the lamp fault, the billposter).
 - THE RADIO's test window saw the roof board re-bake twice in 3 s ("bake crossfade · neon") after the radio's own billboard messages + a
   fired Blackbird — the city keeps drawing (counted from the loop now), but the board's swaps under an open radio are worth a look.
 - (e) THE ROOM's OWN COST: the guest list's 8 strips +7.2 ms at 4× CPU (budget 4).
