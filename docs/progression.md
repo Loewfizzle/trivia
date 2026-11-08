@@ -151,7 +151,7 @@ chip, the host's "N players are mid-daily", the "counts from tomorrow" line, PEN
 | `api/_lib/daily-room.js` | THE ROOM WINS (`roomStarted`) + `midDaily` |
 | `api/daily.js` | the call budget, the picker on the day's first start, THE THROWAWAY GATE at finish, the XP on the public profile, `today`'s `dailies` + `gated`, `room` |
 | `js/daily/` | THE SHARED KIT (the phone): `clock.js` (the 4 am countdown, the run's own day) · `judge.js` (`createDailyJudge`) · `end.js` (`recordFinish`, `tickTurn`, `endActions`, `fitTitle`, `shareOrLine`, `lookMusic`) · `share.js` (the card's frame, foot + sender) · `sfx.js` · `run-day.js` · `contract.js` |
-| `scripts/dailies-reseed.mjs` | THE RESEED command (`npm run dailies:reseed`) |
+| `scripts/dailies-reseed.mjs` | THE RESEED command (`npm run dailies:reseed`) — the emulators + tests only since DM2's ADD-ON (live: /admin → THE DAILIES → RESEED) |
 
 - **PLUG-AND-PLAY:** no fixed count anywhere — THE SWEEP, the XP cap, THE 4 AM PICKER and `today` (its `dailies` rows for DM2's picker / TODAY rows /
   SCORES tabs) all read `todaysDailies()`. **Adding a daily** = its cartridge (docs/cartridge.md D2 — the client half + its server half in
@@ -193,10 +193,56 @@ chip, the host's "N players are mid-daily", the "counts from tomorrow" line, PEN
 ### THE SWITCH-OVER (the changed plan — Ben, Nov 8: ON while the repo is public; private + fresh later)
 1. **Now (the repo public, Ben + a few friends):** /admin → `dailySwitch { on: true }` (or off again) — any time. Check one real day: a start, a
    finish, `today`. (DM2 brings the way in on the phone; set `PW_EPOCH` / `CC_EPOCH` in the two meta.js files to the first live day for the share #.)
-2. **When Ben tells people:** make the repo PRIVATE → `node scripts/dailies-reseed.mjs --dry-run`, then without the flag (a fresh daily secret from
+2. **When Ben tells people:** make the repo PRIVATE → **/admin → THE DAILIES → RESEED · PREVIEW**, then **RESEED NOW** (a second tap — DM2 ADD-ON: it runs on the
+   SERVER, so no service-account key ever goes on a PC; was `node scripts/dailies-reseed.mjs`) (a fresh daily secret from
    the next 4 am — every day anyone could have worked out from the public code is gone; today + the past untouched) → check the next day. (The
    OVERCLOCK reserve only matters if Overclock's daily ever comes back — DROPPED, Nov 8.)
 3. Never needed for a reseed: a new pepper (the keys + board ids depend on it), a database rules change, a deploy.
+
+## THE DAILY MODULE — DM2: THE SCREENS (Nov 8 2026; the owner's decisions: docs/games/plan.md DM2 + its ADD-ON)
+Every daily still OFF — the owner's switch (/admin → THE DAILIES) turns them on; until then the phone shows none of this (no DAILY button).
+
+| file | what |
+| --- | --- |
+| `js/screens/title-dock.js` | THE FLANK's **DAILY** button (left-most; `setDaily`), the **RESUME YOUR DAILY** chip above the dock, the ☰ menu's THE DAILIES row (`setMenuExtra`) |
+| `js/screens/daily.js` + `css/daily.css` | THE DAILY SCREEN + a daily's RUN — OVERLAYS over the city driven by `state.daily` (`app.js#paintDaily` → `syncDaily`); THE ROOM WINS' banner |
+| `js/daily/today.js` | ONE `today` answer shared (~20 s; re-read after a finish) + THE HELD RUN (`daily:held` — the RESUME chip) |
+| `js/daily/today-logic.js` | PURE: `dockState` · `rowState` · `sweepState` · `tableFor` (YOUR TABLE's places, ties shared) · `everyoneLine` · `midLine` · `shareTodayLine` |
+| `js/daily/share-today.js` | SHARE TODAY — one card for all of today's dailies (each game's `scoreLine` + THE SWEEP; 1–6 rows) + one plain line |
+| `js/screens/room-dock.js` + `room-city.js` | the host's **N PLAYERS ARE MID-DAILY** above PLAY (`room` every 20 s while the room waits) |
+| `js/games/<daily>/meta.js#scoreLine` | a daily's spoiler-free line for a score (THE PASSWORD: `7 GUESSES` / `LOCKED OUT`; COAST CLEAR: `2:41` / `CAUGHT`) |
+| `js/games/coastclear/lesson.js` | THE PRACTICE HARBOR (a daily's first-time LESSON — its row's `lesson` + `createLesson` from its cartridge) |
+| `js/fx/ph-dial.js` + `ph-specs.js` · `js/fx/dm-cards.js` + `dm-specs.js` | PENTHOUSE's card THE DIAL (drawn in code) · PERFECT WEEK's motion (docs/vault.md) |
+| `api/daily.js` | `today` answered with NO profile (the list only) + `better` · `hook` · `started` · `stand` (≥ 50) · `lessons` · `countsFrom`; `lesson { game }` |
+| `api/admin.js` + `js/admin/admin.js` | /admin → **THE DAILIES**: THE GO-LIVE SWITCH (a second tap) + **RESEED** (`dailyReseed` — PREVIEW = the dry run, RESEED NOW on a second tap, audited) |
+
+- **THE DOCK BUTTON:** `[ JOIN ] [ DAILY · BOARD · GAMES · YOU ] [ HOST ]` (4 icons — the most this dock holds; each cell 6 px narrower so it keeps a gutter at
+  390). WAITING (any of today's live dailies unplayed) = lit day + night, a soft pink pool breathing behind it (opacity + scale) + the count left; ALL DONE = the
+  dock's own style + a small drawn check (`--good`); no live daily (the switch off, /api down) = hidden — the pill exactly as before. It answers the sign's LAST N
+  (letter 3, with the corner buttons): BOARD · GAMES · YOU keep N · E · O. BOARD 2.0 later moves THE BOARD inside DAILY → SCORES → ALL TIME (FRIENDS takes its slot).
+- **THE DAILY SCREEN (TODAY):** the sign THE DAILIES · TODAY / SCORES (plain type + a drawn underline) · THE SWEEP meter (one segment per live daily — 1–6) · one
+  TICKET per daily (a notched ticket, a perforated stub with its drawn art, the name + a one-line hook): WAITING → PLAY · IN PROGRESS → RESUME · DONE → the result
+  (`scoreLine`) + YOUR TABLE's place ("2ND OF 5 AT YOUR TABLE"), else the everyone line, else DONE FOR TODAY + a drawn check · SHARE TODAY (once one is done) ·
+  "NEW DAILIES IN 13:39:21" (the 4 am Eastern turn). A same-day profile's result reads **YOUR SCORE COUNTS FROM TOMORROW** (quiet, small — never ranked).
+  THE SWEEP moment: the last daily finished → back on TODAY the meter's last segment fills + a short neon flourish (once; never replayed by a fresh `today`).
+- **SCORES:** TODAY only (ALL TIME hidden until BOARD 2.0 — Step 0): per daily YOUR TABLE (you + ≤ 12 friends the server picks — never a non-friend; a friend's
+  score only once you've played — PLAYED before; WAITING for one who hasn't; places share ties) + **TOP 12% OF EVERYONE** once the day has 50 counting finishers.
+- **A RUN:** the cartridge's own view mounted solo in the overlay (`daily.create`'s shell; its API judge wrapped — the start = IN PROGRESS, the finish = the score
+  in at once + THE SWEEP + the counts-from-tomorrow line); ‹ BACK → TODAY. The overlays wear THE GAME LOOK (night neon / day = the dailies' clear morning sky —
+  live from Settings; app.js#paintLook) and a run's music follows the look. The city under them is HELD (frames paused) — never reloaded.
+- **THE ROOM WINS on screen:** the host starts a game while a phone is mid-daily → the game start's closeAll (at the `go` stamp) → **GAME STARTING · YOUR DAILY
+  IS SAVED** (its own strip over the walk inside, `.dy-banner`) → the run HELD on this device (+ COAST CLEAR's `pause(room)` — the server checks the room) → the
+  player is dealt in like everyone → back in the room **RESUME YOUR DAILY** above the dock → the run exactly where it was (THE PASSWORD: the same door, unsent
+  letters gone; COAST CLEAR: resumed, +15 s a pause, the 3 / 20-min caps). The host sees **N PLAYERS ARE MID-DAILY** above PLAY (uids only — never a run).
+  The room's way in to a daily: the ☰ menu's THE DAILIES row (outside a match).
+- **THE REWARDS (the server's, counted results only):** THE SWEEP + **+10 XP** (`SWEEP_XP`, once a day — `dailyStep`); **PERFECT WEEK** = THE SWEEP on 7 daily-days
+  IN A ROW (`dl.sr = { d, n }`, the best `dl.sb` — any 7 consecutive, never a weekday; the card `card-perfect-week`); **PENTHOUSE** = rank ≤ max(1, ⌊n × 1 %⌋) AND
+  n ≥ 50 (`core/daily.js#isPenthouse` — dormant below 50; `dailyStep({ rank })`, the rank = 1 + the finishers strictly better) → PENTHOUSE SUITE + `card-penthouse`.
+- **THE PRACTICE HARBOR** (docs/coastclear.md): the first COAST CLEAR open; seen once per player (`pstats/{pid}/ls/{game}` — every device).
+- **Previews:** `tests/integration/daily-preview.html?state=waiting|one|mixed|swept|progress|gated|fake3 &tab=scores &sweep=1 &look=day · ?view=lesson&step=0..3 ·
+  ?view=banner`; the dock + the chip + the host line on the real title: `title-preview.html?daily=waiting|done|off&of=2&left=1&held=1&act=room`.
+- **Tests:** `tests/daily-screens.test.mjs` (PURE) · `tests/daily.test.mjs` (the bonus, PERFECT WEEK, PENTHOUSE's edges) · `daily-module.test.mjs` (today's fields,
+  `lesson`, the admin RESEED) · `e2e-daily.mjs` (36 checks — the dock, TODAY → PLAY → DONE + the table rank, THE PRACTICE HARBOR once, THE ROOM WINS' loop, THE SWEEP).
 
 ## THE SCREENS (the owner's mockups, THE ORIGINAL GILDED — black lacquer, brass foil, the fan crown, one hot-pink neon accent)
 - **THE END-OF-ROUND MOMENT** (`progress/moment.js`) — right after the podium (the crown + the board's plaques), once THIS phone's outcome is

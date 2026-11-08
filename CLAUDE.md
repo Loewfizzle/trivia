@@ -217,8 +217,18 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   THE DAILY SECRET live ONLY in the database (`dsched/`, `dly/…/b`, `dsecret/` — never a committed file: `tests/daily-secrets.test.mjs`); every day comes from
   THE DAILY SECRET, NEVER the pepper. THE THROWAWAY GATE (a result counts only for a profile made before that day's 4 am Eastern — `counted`), 20 new profiles
   a day per IP, 400 daily calls / 10 min. THE ROOM WINS (a pause only for a room that really started a game). The phone side on the kit (`js/daily/` — never a
-  copy in a game). THE GO-LIVE SWITCH = /admin `dailySwitch` (owner-only, ANY time — OFF). **THE RESEED: `node scripts/dailies-reseed.mjs`** (`--dry-run`,
-  `--force`; npm run dailies:reseed) — a fresh daily secret from the NEXT 4 am: today + the past untouched (run it when the repo goes private).
+  copy in a game). THE GO-LIVE SWITCH = /admin → THE DAILIES (owner-only, ANY time — OFF). **THE RESEED: /admin → THE DAILIES → RESEED** (DM2 ADD-ON — SERVER-SIDE:
+  no service-account key on the owner's PC; PREVIEW = the dry run, RESEED NOW on a second tap; `api/admin.js` `dailyReseed`, audited) — a fresh daily secret from
+  the NEXT 4 am: today + the past untouched (run it when the repo goes private). `scripts/dailies-reseed.mjs` = the emulators + tests only.
+- **THE DAILY MODULE — DM2: THE SCREENS (docs/progression.md "DM2"):** THE FLANK's DAILY (left-most — `[ JOIN ] [ DAILY · BOARD · GAMES · YOU ] [ HOST ]`, 4 icons =
+  the max; hidden while no daily is live; WAITING + the count / ALL DONE + a check; answers the sign's last N); THE DAILY SCREEN + a daily's RUN are OVERLAYS over
+  the city driven by `state.daily` (`js/screens/daily.js` + `css/daily.css`, prefix `dy-`; app.js#paintDaily — the city held through the counted `ui/city-hold.js`):
+  TODAY (THE SWEEP meter, ticket rows, SHARE TODAY, the 4 am countdown) · SCORES (YOUR TABLE + the everyone line from 50; ALL TIME hidden until BOARD 2.0); ONE
+  `today` answer shared (`js/daily/today.js`; the rules PURE in `today-logic.js`); a daily's thin meta gives `scoreLine(score)` (spoiler-free). THE ROOM WINS on
+  screen: the game start's closeAll = the banner (`.dy-banner`, never a toast) + the run HELD (+ COAST CLEAR paused) → RESUME YOUR DAILY above the dock; the host's
+  "N PLAYERS ARE MID-DAILY" above PLAY. A daily's first-time LESSON = its row's `lesson` + `createLesson` (COAST CLEAR's PRACTICE HARBOR — `coastclear/lesson.js`;
+  seen once per player: `pstats/{pid}/ls`). The rewards: the +10 SWEEP bonus, PERFECT WEEK = 7 sweeps IN A ROW (`dl.sr`), PENTHOUSE = rank ≤ max(1, ⌊n/100⌋) from
+  50 counting finishers (`core/daily.js#isPenthouse`) — its card THE DIAL is DRAWN IN CODE (`fx/ph-dial.js` + pure `ph-specs.js`). Proof: `e2e-daily.mjs`.
 - **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
   music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:
   `tests/cartridge.test.mjs` checks the boot graph, `node scripts/boot-bytes.mjs`); only `start` is async, `step` pure + seeded; `prepare` host-only,

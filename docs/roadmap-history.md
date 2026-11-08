@@ -2218,3 +2218,16 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - THE HORSESHOE's real neon art. THE SLIM-CARD LONG-NAME STANDARD: every strip with a hero caps its plate there, nine strips moved right,
   harbor `stripfit` (NAME_MAX); a Safari bug that let a long name run over a gift card's face fixed. No rules change.
 
+
+## THE DAILY MODULE — DM2: THE SCREENS (Nov 8, 2026) — docs/progression.md "THE DAILY MODULE — DM2"
+- Step 0: the owner's decisions in docs/games/plan.md (PERFECT WEEK 7 in a row, the +10 sweep bonus, PENTHOUSE's rule + THE DIAL, ALL TIME hidden,
+  counts-from-tomorrow, THE PRACTICE HARBOR, the DAILY dock button) + the ADD-ON (THE RESEED server-side).
+- Group 1: THE FLANK's DAILY (left-most, a drawn ticket; hidden off; WAITING + count / ALL DONE + check; 4 icons fit at 390).
+- Group 2: THE DAILY SCREEN (overlays driven by state.daily; TODAY + SCORES; a run = the cartridge's own view, its judge wrapped); `today` answered
+  without a profile + better · hook · started · stand · lessons · countsFrom; the friends card's YOUR TABLE; both looks; previews.
+- Group 3: the +10 SWEEP bonus, PERFECT WEEK (dl.sr — 7 in a row; card-perfect-week, Grok's fan + js/fx/dm-cards.js), PENTHOUSE's exact rule
+  (isPenthouse) + its new face THE DIAL (drawn in code — js/fx/ph-dial.js; card-penthouse v2 in THE LAB).
+- Group 4: THE ROOM WINS on screen (the banner, the held run + COAST CLEAR paused, RESUME YOUR DAILY, the host's MID-DAILY line, the ☰ row).
+- Group 5: COAST CLEAR's PRACTICE HARBOR (5 × 5, three steps, YOU'RE READY, SKIP; seen once per player — pstats/{pid}/ls).
+- ADD-ON: /admin → THE DAILIES (THE GO-LIVE SWITCH button + RESEED · PREVIEW → RESEED NOW — api/admin.js dailyReseed, audited).
+- Proof: tests/daily-screens.test.mjs, daily.test.mjs (the rewards), daily-module.test.mjs (+ the admin reseed + today's fields), e2e-daily.mjs (36).

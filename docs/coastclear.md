@@ -155,6 +155,14 @@ copy) and stored as `{ v, w, h, l: 'cell,…', s: start, a: attempts }` (~95 byt
 - Registered by `api/_lib/dailies.js#loadDailies` **only under `DAILY_TEST=1`**: production answers 404 `no_daily`. No rules change (`dly/` is the
   rules' default deny — server-only).
 
+## THE PRACTICE HARBOR (DM2, Nov 8 — the owner's Step 0; `js/games/coastclear/lesson.js`, css/coastclear.css "THE PRACTICE HARBOR")
+The FIRST time a player opens COAST CLEAR (from THE DAILY SCREEN): a fixed 5 × 5 harbor (one searchlight top-right, its three neighbours 1) in the game's own
+tokens, both looks — three short steps, ONE line each + a soft ring on the cell to tap: (1) tap the glowing water to dig (the calm water floods open) · (2) a 1
+means one searchlight hides next to it · (3) switch to BUOY, tap where the light hides — then **YOU'RE READY** → TODAY'S HARBOR (today's real run; its clock
+starts only then). **SKIP THE LESSON** from the first step. Never scored, never the day's board — nothing sent but "seen" (`/api/daily lesson` →
+`pstats/{pid}/ls/coastclear`, so a new device never repeats it; a held / in-flight run never shows it). Any daily declares one: its row's `lesson: true` +
+`createLesson({ onDone })` from its cartridge (`js/screens/daily.js#openRun`). Preview: `daily-preview.html?view=lesson&step=0..3&look=day`.
+
 ## The preview (no Firebase — `tests/integration/coastclear-preview.html`)
 The real view against a LOCAL FAKE SERVER (`logic.js#serverAct` on a local record) on a FIXED no-guess test board (the real maker on a fixed seed —
 never the real day; the first seed with a big second calm area). CC2: `&look=day|night` + a tiny DAY / NIGHT toggle at the foot (`&toggle=0`), `&end=clear|caught`

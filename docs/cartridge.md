@@ -51,6 +51,10 @@ Also, outside index.js: its row in `config.js` GAMES (`name`, `theme`, `playable
   `rematchSettings`, everyone in).
 
 ## THE DAILY PLUG-IN (ships OFF)
+**DM2 — what THE DAILY SCREEN reads from a daily (docs/progression.md "DM2"):** its thin meta's `scoreLine(score)` (TODAY's DONE row, YOUR TABLE,
+SHARE TODAY — spoiler-free), its cartridge's `createApiJudge()` (the run host wraps it to hear the start + the finish) + `daily.create`, and — for a
+first-time lesson (its row's `lesson: true`) — `createLesson({ onDone }) → { mount, unmount }` (COAST CLEAR's PRACTICE HARBOR).
+
 A game that offers a daily (OVERCLOCK's QUICK solo run, the WORDLE-type, COAST CLEAR) exports
 `daily = { on: false, create({ date: 'YYYY-MM-DD', uid, now, daySet, code? }) → game, resumeKey(date, uid) → string }`:
 **THE DAY SET in → today's run** (the same content for everyone that day — `daySet` = THE SERVER-PICKED, SEALED day set the daily module

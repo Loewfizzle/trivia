@@ -227,7 +227,9 @@ profiles/{pid}:   { n, nk (name key), t (tag "4821"), mn (THE VAULT 2B — the M
                     3-match floor) }   read: signed-in, ONE pid at a time (never the list — BNAME, Oct 28)
 uids/{uid}:       pid                                     read: that uid. The device ↔ profile link
 pstats/{pid}:     { xp, g{game:{p,w,…counters}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records), day{k, g{}},
-                    last, m{matchKey: at} (matches already counted) }                               read: the profile's owner
+                    last, m{matchKey: at} (matches already counted),
+                    dl{n, last, day{k, g, x, sw}, early, ph, sw, sr{d, n} (DM2 — swept days IN A ROW: PERFECT WEEK), sb (the best run)},
+                    ls{game: 1} (DM2 — a daily's first-time lesson seen: THE PRACTICE HARBOR) }       read: the profile's owner (written by /api only)
 ppriv/{pid}:      { kh (key HMAC), keyAt, at, nameAt, opt? (opted out), ban? (admin), uids{uid: at} }  server only
 pkeys/{keyHmac}:  pid          tags/{nameKey}/{tag}: pid          rl/{bucket}: { n, t } (restore attempts)   server only
 lb/{board}/{period}/{pid}: sort value (higher is better; period 'all' | 'w20261012')                 server only (read via /api/board)

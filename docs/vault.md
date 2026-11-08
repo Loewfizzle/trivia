@@ -683,3 +683,15 @@ COAST CLEAR's two collectibles, awarded by the SERVER from its own record of the
 - **DROP THE STEP** (both kinds): every plate is ONE clean rounded box as wide as its longest row — `strip.js#layStep` now only keeps a strip's plate
   capped before its hero (THE SLIM-CARD LONG-NAME STANDARD) and sets `data-step=''` so `vault/layout.js` lays a full card. The slim dev line reads
   **DEV** (the full card's stays DEV · <RANK>).
+
+## THE DAILY MODULE's CARDS — PERFECT WEEK + PENTHOUSE · THE DIAL (DM2, Nov 8 — docs/progression.md "DM2")
+- **PERFECT WEEK** (`card-perfect-week`, epic — THE SWEEP 7 daily-days in a row, server-awarded): the owner's pick (Grok's `card-perfect-week-backup.png` →
+  `art/dm-cards/src/` → `assets/vault/dm/perfect-week.webp` by `scripts/build-dm-cards.mjs`) + `js/fx/dm-cards.js` (data in `dm-specs.js`): a light runs along
+  the fan one ticket a beat, then the whole fan flares + settles; the burst breathes, sparks drift. The strip zoomed out + set right (the fan 0.78 across).
+- **PENTHOUSE** (`card-penthouse` — v2 in THE LAB, its CHANGED line): design "A · THE DIAL", **DRAWN IN CODE** (`js/fx/ph-dial.js`; the geometry PURE in
+  `ph-specs.js` for hero.js + layout.js): an Art Deco floor dial 1 → 9 → PH (PH set apart) in gold on black lacquer + sunburst rays, over gold elevator doors
+  with chevrons between fluted pilasters. The static scene is baked ONCE per slot size at the phone's ratio (one sprite — crisp at 3×); live: the needle (a
+  baked sprite, rotated), the floors lighting as it passes, PH's blaze + bloom, the doors' line of light, a glint round the arch (an 8-s loop; reduced motion =
+  the landed frame). The full card covers the 1000 × 630 scene (the pivot 74 % across, the left 42 % dark for the name); the SLIM strip has its OWN band (20–52 %
+  down — the upper floors, the arch + PH) at the strip's height, the pivot ~0.80 across, PH clear of the gem. The old window-over-the-city effect
+  (`js/fx/penthouse.js`) stays registered, unused.
