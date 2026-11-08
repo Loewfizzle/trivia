@@ -17,6 +17,8 @@ export const MUSIC = 'mood:evening';
 export const SOLO = true;
 export const MIN_PLAYERS = 1;
 export const BANNER_NAME = 'THE PASSWORD';
+/** DM2 — THE DAILY SCREEN's line for a score (TODAY's DONE row, YOUR TABLE, SHARE TODAY — spoiler-free): a crack = the guesses, a held door = LOCKED OUT */
+export const scoreLine = s => (s < 100 ? `${s} ${s === 1 ? 'GUESS' : 'GUESSES'}` : 'LOCKED OUT');
 
 /** a solo daily: the chat is never locked (there is nobody to chat with mid-run; the console hides it in a room of one anyway) */
 export function chatLocked() {

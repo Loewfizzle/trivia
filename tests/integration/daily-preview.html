@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>THE DAILIES — preview</title>
+<link rel="icon" href="data:,">
+<!-- DM2 — THE DAILY SCREENS without Firebase or /api (the REAL js/screens/daily.js through an import map: fake-firebase + fake-daily-api).
+       ?state=waiting | one | mixed | swept | progress | gated | fake3      TODAY's states (&tab=scores = SCORES) · &sweep=1 plays THE SWEEP moment
+       ?view=lesson                                                       COAST CLEAR's PRACTICE HARBOR (&step=0..3)
+       ?view=banner                                                       THE ROOM WINS' banner ("GAME STARTING · YOUR DAILY IS SAVED")
+       &look=day | night                                                  the look (THE GAME LOOK — Settings in the app)
+     The dock button + the RESUME chip + the host's line live on the real title: title-preview.html?daily=waiting|done|off&held=1&act=room&mid=2 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/kit.css">
+<link rel="stylesheet" href="/css/daily.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js", "/js/profile/api.js": "/tests/integration/fake-daily-api.js" } }</script>
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #04050f; } #stage { position: fixed; inset: 0; background: linear-gradient(#0a0618, #1c0f2a); }</style>
+</head>
+<body>
+<div id="stage"></div>
+<script type="module">
+const q = new URLSearchParams(location.search);
+if (!q.get('slot')) { q.set('slot', 'pv'); history.replaceState(null, '', `?${q}`); }
+document.body.dataset.look = q.get('look') === 'day' ? 'day' : 'night';
+try {
+  localStorage.setItem('na:pv:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' }));
+  localStorage.setItem('na:pv:me', JSON.stringify({ uid: 'pv', pid: 'P_ava', profile: { n: 'AVA', t: '0042', l: 12 } }));
+  localStorage.removeItem('ns:fr:v1');
+} catch { /* fine */ }
+const D = [
+  { id: 'password', name: 'THE PASSWORD', order: 1, ticket: 'password', lesson: false, better: 'low', hook: 'Two doors. Six guesses each.' },
+  { id: 'coastclear', name: 'COAST CLEAR', order: 2, ticket: 'coastclear', lesson: true, better: 'low', hook: 'Slip past the searchlights.' },
+];
+window.__dyFriends = [{ pid: 'P_ben', n: 'BEN' }, { pid: 'P_kim', n: 'KIM' }, { pid: 'P_max', n: 'MAXIMILIANOS' }, { pid: 'P_lou', n: 'LOU' }];
+const table = ['P_ben', 'P_kim', 'P_max', 'P_lou'];
+const S = {
+  waiting: { mine: {}, friends: { P_ben: { password: { done: true } }, P_kim: {}, P_max: { coastclear: { done: true } }, P_lou: {} } },
+  one: { mine: { password: 6 }, friends: { P_ben: { password: { score: 4 } }, P_kim: { password: { score: 8 } }, P_max: { coastclear: { done: true }, password: { score: 6 } }, P_lou: {} } },
+  mixed: { mine: { password: 6 }, started: { coastclear: true }, friends: { P_ben: { password: { score: 4 } }, P_kim: { password: { score: 8 } }, P_max: { password: { score: 104 } }, P_lou: {} } },
+  swept: { mine: { password: 5, coastclear: 132 }, stand: { password: { n: 212, top: 11.4, pct: 88 } }, friends: { P_ben: { password: { score: 4 }, coastclear: { score: 158 } }, P_kim: { password: { score: 8 }, coastclear: { score: 10004 } }, P_max: { password: { score: 6 } }, P_lou: {} } },
+  progress: { mine: {}, started: { coastclear: true }, friends: {} },
+  gated: { mine: { password: 5 }, gated: { password: true }, countsFrom: Date.now() + 6 * 3600e3, friends: { P_ben: { password: { score: 4 } } } },
+  fake3: { mine: { password: 7 }, extra: true, friends: { P_ben: { password: { score: 4 } } } },
+};
+const pick = S[q.get('state') || 'waiting'] || S.waiting;
+const dailies = pick.extra ? [...D, { id: 'nightcap', name: 'THE NIGHTCAP', order: 3, ticket: 'star', lesson: false, better: 'high', hook: 'A third daily, plugged in by one row.' }] : D;
+window.__dyToday = { day: 'd20261108', dailies, mine: pick.mine, gated: pick.gated || {}, started: pick.started || {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table, ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
+
+const { state, setState, subscribe } = await import('/js/store.js');
+state.uid = 'pv';
+const T = await import('/js/daily/today.js');
+T.setToday(window.__dyToday);
+const view = q.get('view') || 'screen';
+if (view === 'screen') {
+  const M = await import('/js/screens/daily.js');
+  subscribe(st => M.syncDaily(st));
+  if (q.get('sweep') === '1') window.__daily2.setSweepNext(true);
+  setState({ daily: { v: 'screen', tab: q.get('tab') === 'scores' ? 'scores' : 'today' } });
+} else if (view === 'lesson') {
+  await import('/js/screens/daily.js').then(m => m.dailySheet());
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/css/coastclear.css'; document.head.append(l);
+  const { createLesson } = await import('/js/games/coastclear/lesson.js');
+  const el = document.createElement('section'); el.className = 'screen screen-in'; el.style.cssText = 'position:fixed;inset:0';
+  document.getElementById('stage').append(el);
+  const L = createLesson({ onDone: () => { el.dataset.done = '1'; } });
+  L.mount(el);
+  window.__lesson = L;
+  const step = Number(q.get('step') || 0);
+  for (let i = 0; i < step; i++) L.next && L.next();
+} else if (view === 'banner') {
+  const { toast } = await import('/js/ui/toast.js');
+  const { ROOM_BANNER } = await import('/js/daily/today-logic.js');
+  toast(ROOM_BANNER, 'info', { ms: 600000 });
+}
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

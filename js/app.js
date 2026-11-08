@@ -85,6 +85,8 @@ function routeKey(st) {
 function paintLook(st) {
   const g = st.game;
   lookOnNow = !!(g && st.meta && st.meta.status === 'playing' && st.quit !== g.matchId);
+  // (DM2 — THE DAILY SCREEN + a daily run wear THE GAME LOOK too (night = neon, day = the dailies' clear morning sky), live from Settings)
+  if (!lookOnNow && dailyOn(st)) { lookOnNow = true; lookLock = null; applyLook(); return; }
   if (!lookOnNow) { lookLock = null; if (document.body.dataset.look) delete document.body.dataset.look; return; }
   lookLock = lookLockOf(metaOf(g.id));
   if (lookLock) { if (document.body.dataset.look !== lookLock) document.body.dataset.look = lookLock; return; }
@@ -187,8 +189,20 @@ setInterval(() => {
   if (was !== lobbySynced || wasP !== partySynced) render(state);
 }, 250);
 
+// DM2 — THE DAILY SCREENS (screens/daily.js — overlays over the city, driven by state.daily): loaded on the first ask
+const roomGameOn = st => !!(st.code && st.meta && st.meta.status === 'playing' && st.game && st.quit !== st.game.matchId);
+const dailyOn = st => !!(st.daily && !roomGameOn(st));
+let dailyMod = null;
+function paintDaily(st) {
+  if (dailyMod) { dailyMod.syncDaily(st); return; }
+  if (!st.daily) return;
+  import('./screens/daily.js').then(m => { dailyMod = m; m.syncDaily(state); }).catch(e => console.warn('[app] the dailies didn’t load', e));
+}
+
 // Which music track a state should hear. [track, fallbackIfMissing]
 function musicFor(st) {
+  // (DM2 — a daily RUN: THE MUSIC FOLLOWS THE LOOK, as on its own (daily/end.js#lookMusic) — the day deck by day, the evening deck by night)
+  if (dailyOn(st) && st.daily.v === 'run') return [document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
   if (moodOn() && !(st.code && st.meta && st.meta.status === 'playing' && st.game && st.quit !== st.game.matchId)) {
     if (lobbySynced && inLobby(st)) return [null];          // the room's synced song is playing (lobby-music.js)
     if (partySynced && !st.code) return [null];             // (NIGHT-C) the party's synced song is playing (party-music.js)
@@ -215,8 +229,9 @@ function render(st) {
   if (st.ready || !st.code) { const [track, fallback] = musicFor(st); playMusic(track, fallback); }
   // theme follows the active game
   const theme = st.game && st.meta && st.meta.status === 'playing' && st.quit !== st.game.matchId ? (GAMES.find(g => g.id === st.game.id) || {}).theme : '';
-  document.body.dataset.theme = theme || '';
+  document.body.dataset.theme = theme || (dailyOn(st) && st.daily.v === 'run' ? st.daily.id : '') || '';   // (DM2: a daily run wears its game's theme)
   paintLook(st);
+  paintDaily(st);
   paintCrew(st);
   keepAwake(!!(st.code && st.meta && st.meta.status === 'playing'));
   renderConnection(st);

@@ -8,7 +8,8 @@
 <!-- The REAL title screen (the city, the sign, THE FLANK, the corner buttons) without Firebase or emulators: tweak its look and
      reload in a second. All the title's own preview switches work: ?when=2026-10-19T22:30&tz=America/Detroit&at=42.96,-85.67
      &wx=rain&force=lightning&speed=60&intro=1. Plus: &guest=1 (no profile), &act=join|rejoin|sun|room (the JOIN panel open, a REJOIN
-     pill, the sun behind the music button, a ROOM of &n=4 at the door), &rejoin=MINT. HOST / JOIN do nothing here (no rooms) — use the app for flows.
+     pill, the sun behind the music button, a ROOM of &n=4 at the door), &rejoin=MINT. DM2: &daily=waiting|done|off (&of=2 &left=1) the
+     DAILY button · &held=1 the RESUME chip · &act=room&mid=2 the host's MID-DAILY line. HOST / JOIN do nothing here (no rooms) — use the app for flows.
      Shots: node shots.mjs "<browser>" --preview --scenes night,day -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="/css/base.css">
@@ -37,6 +38,15 @@ installAudio();   // (a tap unlocks it, as in the app: the ambience, the sign's 
 const { state } = await import('/js/store.js');
 installSettingsPanel();
 const st = { ...state, view: 'title', uid: 'pv', ready: true, rejoin: q.get('rejoin') || '', invite: '' };
+// DM2 — THE DAILY BUTTON's states (&daily=waiting|done|off, &left=n of &of=n dailies) + THE ROOM WINS' RESUME chip (&held=1)
+if (q.get('daily')) {
+  const T = await import('/js/daily/today.js');
+  const of = Math.max(1, Number(q.get('of') || 2)), ids = ['password', 'coastclear', 'nightcap', 'four', 'five', 'six'].slice(0, of);
+  const left = q.get('daily') === 'done' ? 0 : Math.min(of, Number(q.get('left') || of));
+  const mine = Object.fromEntries(ids.slice(0, of - left).map(id => [id, 7]));
+  T.setToday(q.get('daily') === 'off' ? { dailies: [] } : { day: 'd20261108', dailies: ids.map((id, i) => ({ id, name: id.toUpperCase(), order: i + 1, ticket: id, better: 'low' })), mine, started: q.get('held') ? { [ids[ids.length - 1]]: true } : {}, friends: {}, table: [] });
+  if (q.get('held')) T.holdRun(ids[ids.length - 1], 'd20261108');
+}
 const title = createTitle();
 title.mount(document.getElementById('screen'), st);
 window.__preview = { title, state: st };

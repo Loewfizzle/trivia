@@ -83,9 +83,9 @@ export function friendsSection(o = {}) {
   const body = h('div.fr-body', h('p.fr-hint', 'Loading your friends…'));
   const count = h('span.fr-count');
   const el = h('section.pf-sec.fr-sec', { 'aria-label': 'Friends' }, h('h3.pf-h.fr-h', h('span', 'FRIENDS'), count), body, pushRow(),
-    // (YOUR TABLE — the server's data exists (api/daily.js `today`: your friends' daily scores, a tick until you've played it); THE DAILY MODULE +
-    //  BOARD 2.0 draw the real table — until the dailies switch on, a quiet placeholder)
-    h('div.fr-table', { 'aria-label': 'Your table' }, h('b', 'YOUR TABLE'), h('span', 'Your friends’ daily scores sit here — the dailies arrive soon.')), ...(o.extra || []));
+    // (DM2 — YOUR TABLE: today's table in short — one line per live daily (your place at the table, or WAITING) + SEE SCORES › (the DAILY
+    //  screen's SCORES tab). Nothing at all while no daily is live (THE GO-LIVE SWITCH off / /api down))
+    tableCard(), ...(o.extra || []));
   const paint = S => {
     if (!S) { count.textContent = ''; body.replaceChildren(h('p.fr-hint', 'Your friends show here when the membership office is open.')); return; }
     count.textContent = S.friends.length ? `${S.friends.length}` : '';
@@ -230,4 +230,34 @@ export function pushRow() {
     catch { paint(false, say); }
   })();
   return slot;
+}
+
+// ------------------------------------------------------------------------------------------------ DM2 — YOUR TABLE (today, in short)
+function tableCard() {
+  const el = h('div.fr-table', { 'aria-label': 'Your table', hidden: true });
+  Promise.all([import('../daily/today.js'), import('../daily/today-logic.js'), import('./me.js')]).then(([T, L, M]) => {
+    const metas = {};
+    const paint = async t => {
+      if (!el.isConnected && el.dataset.on) { off(); return; }
+      const ds = (t && t.dailies) || [];
+      if (!ds.length) { el.hidden = true; return; }
+      await Promise.all(ds.map(async d => { if (!(d.id in metas)) metas[d.id] = await import(`../games/${d.id}/meta.js`).catch(() => ({})); }));
+      const S = friendsNow(), names = Object.fromEntries(((S && S.friends) || []).map(c => [c.pid, String(c.n || 'FRIEND').toUpperCase()]));
+      const me = { pid: M.myPid(), name: 'YOU' };
+      const lines = ds.map(d => {
+        const tb = L.tableFor(t, d.id, { names, me, better: d.better }), mine = t.mine && t.mine[d.id] != null;
+        const m = metas[d.id] || {}, score = mine ? (typeof m.scoreLine === 'function' ? m.scoreLine(t.mine[d.id]) : String(t.mine[d.id])) : '';
+        const right = !mine ? 'NOT PLAYED YET' : tb.place && tb.of > 1 ? `${L.ordinal(tb.place)} OF ${tb.of}` : score;
+        return h('div.fr-tl', h('span.fr-tn', d.name), h('span.fr-tv', right));
+      });
+      el.dataset.on = '1';
+      el.replaceChildren(h('b.fr-th', 'YOUR TABLE · TODAY'), h('div.fr-tls', ...lines),
+        tubeButton('SEE SCORES', { kind: 'secondary', size: 'sm', cls: 'fr-tgo', onClick: () => import('../store.js').then(st => st.setState({ daily: { v: 'screen', tab: 'scores' } })) }));
+      el.hidden = false;
+    };
+    const off = T.onToday(paint);
+    if (T.todayNow()) paint(T.todayNow());
+    T.loadToday();
+  }).catch(() => {});
+  return el;
 }

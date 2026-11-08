@@ -5,6 +5,7 @@ export * from './meta.js';
 import { createRun, resultOf, scoreOf } from './logic.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 export { daily } from './daily.js';
+export { createApiJudge } from './judge.js';   // (DM2 — THE DAILY SCREEN's run host wraps it: it hears the start + the finish)
 
 export const createView = lazyView(() => import('./view.js'), gameSheets('password'));
 

@@ -1,4 +1,4 @@
-// THE FLANK — the title's dock (docs/title.md): [ JOIN ring ] [ glass pill: BOARD · GAMES · YOU ] [ HOST ring ], the JOIN panel
+// THE FLANK — the title's dock (docs/title.md): [ JOIN ring ] [ glass pill: (DAILY ·) BOARD · GAMES · YOU ] [ HOST ring ], the JOIN panel
 // above it, REJOIN / notes, and the title's two corner buttons dressed as tubes of the sign. This module owns the markup, the
 // rings and the lighting; title.js owns the behaviour (what JOIN, HOST, BOARD… do) and passes it in as handlers.
 import { h } from '../ui/dom.js';
@@ -13,6 +13,8 @@ export const ICON = {
   join: tube('<path d="M5.4 21.2V4.7c0-.8.6-1.4 1.4-1.4h10.4c.8 0 1.4.6 1.4 1.4v16.5"/><path d="M5.4 3.6l8 1.5v15.3l-8 .8"/><path d="M3.2 21.2h17.6"/><circle cx="11.5" cy="12.9" r=".55"/>'),
   board: tube('<path d="M7.6 3.8h8.8v4.4a4.4 4.4 0 0 1-8.8 0z"/><path d="M7.6 5.4H5.3v.9a3 3 0 0 0 2.8 3M16.4 5.4h2.3v.9a3 3 0 0 1-2.8 3"/><path d="M12 12.6v3.5"/><path d="M8.6 20.4h6.8M9.7 20.4l.7-4.3h3.2l.7 4.3"/>'),
   games: tube('<rect x="4" y="4" width="6.8" height="6.8" rx="1.9"/><rect x="13.2" y="4" width="6.8" height="6.8" rx="1.9"/><rect x="4" y="13.2" width="6.8" height="6.8" rx="1.9"/><rect x="13.2" y="13.2" width="6.8" height="6.8" rx="1.9"/>'),
+  // DM2 — DAILY: a drawn ticket (no emoji): the stub notched on both sides, its perforation a row of short tube dashes
+  daily: tube('<path d="M3.6 6.6h16.8v3a2.4 2.4 0 0 0 0 4.8v3H3.6v-3a2.4 2.4 0 0 0 0-4.8z"/><path d="M15.2 7.9v1.3M15.2 11.35v1.3M15.2 14.8v1.3"/><path d="M7 10.2h4.6M7 13.8h3.2"/>'),
   guest: tube('<path d="M12 2.7l7.9 4.55v9.5L12 21.3l-7.9-4.55v-9.5z"/><circle cx="12" cy="10.1" r="2.5"/><path d="M7.7 16.4c1-2.2 2.5-3.3 4.3-3.3s3.3 1.1 4.3 3.3"/>'),
   go: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5l6.5 6.5-6.5 6.5"/></svg>',
   // the title's corner buttons, as white tubes of the same sign: ☰ (three bars; an X while the menu is open) and the music note
@@ -66,6 +68,12 @@ export function createDock(on) {
   //  the room dock's .rdk-tab + .rdk-lbl)
   const tab = (cls, aria, icon, label, onclick) => h(`button.nd-tab.rdk-tab.${cls}`, { type: 'button', 'aria-label': aria, onclick },
     h('span.nd-tab-ic', { html: icon }), h('span.rdk-lbl', { 'aria-hidden': 'true' }, label));
+  // DM2 — DAILY (the left-most icon): hidden until today's answer says a daily is live (THE GO-LIVE SWITCH off → the pill's 3 old icons, as
+  // before); WAITING = bright + a gentle pulse + a count badge; ALL DONE = the dock's own style + a small drawn check (setDaily)
+  els.dailyTab = tab('nd-tab-daily', 'Today’s dailies', ICON.daily, 'DAILY', on.daily);
+  els.dailyTab.hidden = true;
+  els.dailyTab.append(h('span.nd-dy-pulse', { 'aria-hidden': 'true' }), h('span.nd-dy-n', { 'aria-hidden': 'true' }),
+    h('span.nd-dy-ok', { 'aria-hidden': 'true', html: '<svg viewBox="0 0 12 12"><path d="M2.6 6.3l2.2 2.2 4.6-4.9"/></svg>' }));
   els.boardTab = tab('nd-tab-board', 'The Board', ICON.board, 'BOARD', on.board);
   els.gamesTab = tab('nd-tab-games.nd-link-games', 'The games', ICON.games, 'GAMES', on.games);
   els.youTab = tab('nd-tab-you.nd-me', 'Your membership card', ICON.guest, 'YOU', on.you);
@@ -89,7 +97,7 @@ export function createDock(on) {
   els.pill = h('div.nd-pill',
     h('span.nd-bar-shadow', { 'aria-hidden': 'true' }),
     h('span.nd-bar-glass', { 'aria-hidden': 'true' }, h('span.nd-drops'), h('span.nd-strike')),
-    els.boardTab, els.gamesTab, els.youTab);
+    els.dailyTab, els.boardTab, els.gamesTab, els.youTab);
   els.door = h('nav.nd-bar.nd-flank', { 'aria-label': 'Main menu' }, els.joinSlot, els.pill, els.hostSlot);
   // the JOIN panel: one real input under four boxes (native keyboard, autocapitalise, paste, iOS autofill all just work)
   els.code = h('input.nd-code-in', {
@@ -135,11 +143,22 @@ export function createDock(on) {
   // the pill's icons and the title's two corner buttons are tubes of the same sign: each answers a letter (BOARD·N, GAMES·E,
   // YOU·O, ☰ + music·N) — on with the power-on and at the catch, off when the logo's last letter dies at dawn, catching the
   // sign's rare flicker; dark glass by day. Driven explicitly, so how the sign is driven can change freely.
+  // DM2: DAILY answers the sign's LAST N (letter 3) with the corner buttons — the three old icons keep N · E · O exactly as before
   const tabs = () => [els.boardTab, els.gamesTab, els.youTab];
   const corners = () => [...document.querySelectorAll('.menu-btn, .music-btn')];
   function light(i, lit) {
     if (destroyed) return;
-    if (i < 3) { const t = tabs()[i]; if (t) t.classList.toggle('is-lit', !!lit); } else corners().forEach(b => b.classList.toggle('nd-cl-lit', !!lit));
+    if (i < 3) { const t = tabs()[i]; if (t) t.classList.toggle('is-lit', !!lit); } else { corners().forEach(b => b.classList.toggle('nd-cl-lit', !!lit)); els.dailyTab.classList.toggle('is-lit', !!lit); }
+  }
+  /** DM2 — the DAILY button from today's answer (js/daily/today-logic.js#dockState): { show, state, left } */
+  function setDaily(d) {
+    if (destroyed) return;
+    const show = !!(d && d.show);
+    els.dailyTab.hidden = !show;
+    els.pill.classList.toggle('is-four', show);
+    els.dailyTab.dataset.state = show ? d.state : '';
+    els.dailyTab.querySelector('.nd-dy-n').textContent = show && d.state === 'waiting' ? String(d.left) : '';
+    els.dailyTab.setAttribute('aria-label', !show ? 'Today’s dailies' : d.state === 'waiting' ? `Today’s dailies — ${d.left} left` : 'Today’s dailies — all done');
   }
   const all = lit => { for (let i = 0; i < 4; i++) light(i, lit); };
   // the rings' light: off (glass) until the power-on, then always lit — they flicker on with the sign's letters, together
@@ -153,7 +172,7 @@ export function createDock(on) {
   }
 
   return {
-    el, els, ringColors, light, all, ringOn, ringSet,
+    el, els, ringColors, light, all, ringOn, ringSet, setDaily,
     ringLit: () => lit,
     resetRing: () => { lit = false; },
     tabs, corners,
@@ -179,6 +198,7 @@ export function createDockWork(T) {
   function buildActions() {
     dock = createDock({
       join: () => { sfx('select'); openJoin(!T.els.actions.classList.contains('is-join'), true); },
+      daily: () => { sfx('select'); openJoin(false); setState({ daily: { v: 'screen' } }); },
       board: () => { sfx('select'); setState({ view: 'board' }); },
       games: () => { openJoin(false); T.openGames(); },
       you: () => { sfx('select'); const p = loadProfile(); setState(p && p.name ? { view: 'profile' } : { view: 'setup', setupMode: 'edit' }); },
@@ -192,7 +212,27 @@ export function createDockWork(T) {
       note: () => note(''),
     });
     Object.assign(T.els, dock.els);
+    const kill = dock.destroy;
+    dock.destroy = () => { kill(); dailyDead = true; if (dailyOff) dailyOff(); dailyOff = null; };
+    watchDaily();
     return dock.el;
+  }
+  // DM2 — THE DAILY BUTTON: today's answer (js/daily/today.js — /api, no socket) → hidden / WAITING (+ the count) / ALL DONE; re-read when the
+  // page comes back (a finish elsewhere, the 4 am turn). /api down or the switch off → hidden (the pill as it always was)
+  let dailyOff = null, dailyDead = false;
+  function watchDaily() {
+    import('../daily/today.js').then(async T2 => {
+      const L = await import('../daily/today-logic.js');
+      if (!dock || dailyDead) return;
+      const paint = t => dock && dock.setDaily(L.dockState(t));
+      if (dailyOff) dailyOff();
+      const off1 = T2.onToday(paint);
+      const vis = () => { if (document.visibilityState === 'visible') T2.loadToday(); };
+      document.addEventListener('visibilitychange', vis);
+      dailyOff = () => { off1(); document.removeEventListener('visibilitychange', vis); };
+      if (T2.todayNow()) paint(T2.todayNow());
+      T2.loadToday();
+    }).catch(() => {});
   }
   const ringColors = (force = false) => dock && dock.ringColors(T.els.sign, force);
   const dockLight = (i, on) => dock && dock.light(i, on);

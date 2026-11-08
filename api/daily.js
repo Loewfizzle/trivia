@@ -13,8 +13,10 @@
 //                                 DM1 — THE THROWAWAY GATE: counted = the profile existed before that day's 4 am Eastern start (ppriv/{pid}/at — server-written
 //                                 at creation). A non-counting result is kept (one try, the player's own score, the streak + the XP as usual) but is NOT in
 //                                 the histogram / the band, YOUR TABLE, THE BOARD or any reward; `countsFrom` = when this profile's dailies start counting
-//   today  { pids? }           → { day, dailies: [row…], mine: { game: score }, gated: { game: true }, friends: { pid: { game: { done } | { score } } }, table: [pid] }
+//   today  { pids? }           → { day, dailies: [row…], mine: { game: score }, gated: { game: true }, started: { game: true } (in flight), stand: { game:
+//                                 { n, top, pct } } (a counted score's place once ≥ BAND_MIN), lessons: { game: 1 }, countsFrom? (a same-day profile), friends: { pid: { game: { done } | { score } } }, table: [pid] }
 //                                 (YOUR TABLE's TODAY — FRIENDS A: only YOUR FRIENDS (pfr/{pid}/f), ≤ 12; a friend's NON-COUNTING result is left out)
+//   lesson { game }            → { ok }   DM2 — a daily's first-time lesson seen (pstats/{pid}/ls/{game} — once per player, every device)
 //   room   { room }            → { mid: [uid…] }   DM1 — which players of YOUR room have a daily in flight (uids only — nothing about a run; DM2's host line)
 //
 //   dly/{game}/{day}/s/{pid}: startedAt · r/{pid}: score · x/{pid}: 1 (DM1 — a non-counting result) · h/{bucket}: count · n: finishers · p/{pid}: a judged
@@ -29,7 +31,7 @@ import { outageDays } from './_lib/stats.js';
 import { take } from './_lib/limit.js';
 import { dailySeed, openDailies, pickDay } from './_lib/dailies.js';
 import { roomStarted, midDaily } from './_lib/daily-room.js';
-import { dailyOf, bucketOf, standing, todayView, todaysDailies, dailyRow } from '../js/core/daily.js';
+import { dailyOf, bucketOf, standing, todayView, todaysDailies, dailyRow, BAND_MIN } from '../js/core/daily.js';
 import { streakDay, dayNum, dayOf, dayStartAt } from '../js/core/streak.js';
 import { dailyStep } from '../js/core/progress.js';
 import { levelOf, emblemRank } from '../js/core/levels.js';
@@ -183,7 +185,7 @@ export async function dailyAction(uid, body, now = Date.now()) {
       // (PW2 — a judged daily's FLAGS come from the server's own record, never the phone: THE PASSWORD's crack / safe → KEYHOLE / SAFECRACKER)
       const flags = counts && cart.judged && cart.flags ? cart.flags({ record, day, startedAt, data }) : null;
       const live = todaysDailies();
-      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts }); return res.skip ? undefined : res.next; });
+      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, rank: stand.better + 1, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts }); return res.skip ? undefined : res.next; });
       if (res && !res.skip) {
         const st = res.next.st, xp = res.next.xp || 0;
         await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d, [`profiles/${pid}/x`]: xp, [`profiles/${pid}/l`]: levelOf(xp), [`profiles/${pid}/r`]: emblemRank(xp) });
@@ -192,18 +194,28 @@ export async function dailyAction(uid, body, now = Date.now()) {
       }
       return { day, score: kept, again: !claim.committed, counted: counts, ...(counts ? {} : { countsFrom: dayStartAt(dayOf(dayNum(streakDay(Number(createdAt) || now)) + 1)) }),
         stand: { n: stand.n, pct: stand.pct, top: Math.round(stand.top * 10) / 10, band: stand.band ? stand.band.name : null },
-        outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach, xp: res.xp, lv: res.lv, swept: res.swept } : null };
+        outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach, xp: res.xp, lv: res.lv, swept: res.swept, run: res.swept && res.dl.sr ? res.dl.sr.n : 0 } : null };
     }
     case 'today': {
       const day = today;
-      const pid = await mine(uid);
       const games = todaysDailies();
-      const mineScores = {}, gated = {};
+      // the list for the DAILY screen (DM2 — TODAY's rows, the SCORES sections, the dock badge): the LIVE dailies, in order — answered WITHOUT a
+      // profile too (a new phone still sees the dock button; THE GO-LIVE SWITCH off → an empty list → no button)
+      const dailies = games.map(id => { const r = dailyRow(id) || {}, c = dailyOf(id) || {}; return { id, name: r.name || c.name, order: r.order ?? 99, ticket: r.ticket || id, lesson: !!r.lesson, better: c.better || 'high', hook: r.hook || r.tag || '' }; });
+      const pid = await pidOf(uid);
+      if (!pid) return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true };
+      const mineScores = {}, gated = {}, started = {}, stand = {};
+      const [ls, createdAt] = await Promise.all([val(`pstats/${pid}/ls`), createdAtOf(pid)]);
       await Promise.all(games.map(async g => {
-        const v = await val(`dly/${g}/${day}/r/${pid}`);
+        const base = `dly/${g}/${day}`;
+        const [v, s0] = await Promise.all([val(`${base}/r/${pid}`), val(`${base}/s/${pid}`)]);
+        if (s0 && v == null) started[g] = true;                   // (IN PROGRESS → RESUME)
         if (v == null) return;
         mineScores[g] = v;
-        if (await val(`dly/${g}/${day}/x/${pid}`)) gated[g] = true;
+        if (await val(`${base}/x/${pid}`)) { gated[g] = true; return; }
+        // THE EVERYONE LINE (DM2): where a COUNTED score stands — only once the day has BAND_MIN counting finishers (never a stranger's data)
+        const [hist, n] = await Promise.all([val(`${base}/h`), val(`${base}/n`)]);
+        if ((n || 0) >= BAND_MIN) { const st = standing(dailyOf(g), hist || {}, n, v); stand[g] = { n, top: Math.round(st.top * 10) / 10, pct: st.pct }; }
       }));
       const friends = {};
       // (FRIENDS A — YOUR TABLE reads YOUR FRIENDS LIST on the server: a stranger's daily is never readable by naming their id; ≤ 12 —
@@ -220,9 +232,16 @@ export async function dailyAction(uid, body, now = Date.now()) {
         }));
         friends[p] = todayView(mineScores, theirs);
       }));
-      // the list for DM2's picker / TODAY rows / SCORES tabs: the LIVE dailies, in order (name, ticket art, a first-time lesson)
-      const dailies = games.map(id => { const r = dailyRow(id) || {}; return { id, name: r.name || dailyOf(id).name, order: r.order ?? 99, ticket: r.ticket || id, lesson: !!r.lesson }; });
-      return { day, dailies, mine: mineScores, gated, friends, table: pids };
+      return { day, dailies, mine: mineScores, gated, started, stand, lessons: ls || {}, friends, table: pids,
+        ...(countsOn(createdAt, day) ? {} : { countsFrom: dayStartAt(dayOf(dayNum(day) + 1)) }) };
+    }
+    case 'lesson': {
+      // DM2 — THE PRACTICE HARBOR (any daily's first-time lesson): seen once per PLAYER — remembered on the profile (pstats/{pid}/ls/{game}), so a
+      // new device never repeats it. Never scored, never the day's board — only the flag.
+      const pid = await mine(uid), row = dailyRow(body.game);
+      if (!row || !row.lesson) throw new ApiError(400, 'no_lesson');
+      await ref(`pstats/${pid}/ls/${row.id}`).set(1);
+      return { ok: true };
     }
     case 'room': {
       const mid = await midDaily({ uid, code: body.room, games: todaysDailies(), now });

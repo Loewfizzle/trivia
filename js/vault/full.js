@@ -10,6 +10,7 @@
 //   fullCardEl({ card, tier, who: { name, lv, avatar, color, at }, spotted }) → element (no motion yet)
 //   mountFull(host, el, card, o) → slot (host: a surface from js/fx/renderer.js#createSurface)
 //   openFullCard(id, who) → { close() }   (a sheet over the page; its own surface)
+import { holdCity } from '../ui/city-hold.js';
 import { h } from '../ui/dom.js';
 import { gildedCard, sinceOf } from '../progress/card.js';
 import { pgSheet } from '../progress/look.js';
@@ -205,9 +206,10 @@ onCloseAll(() => { if (open) open.close(); });   // (FR6 FIXES A — B1)
 let coverN = 0;
 function coverBehind(el) {
   const fx = fxCover(el);
-  if (!coverN++) { document.body.classList.add('vl-covered'); window.dispatchEvent(new CustomEvent('vl-cover', { detail: true })); }
+  const city = holdCity();   // (DM2: the city's hold is shared + counted — ui/city-hold.js — a daily overlay may hold it too)
+  if (!coverN++) document.body.classList.add('vl-covered');
   let done = false;
-  return () => { if (done) return; done = true; fx(); if (!--coverN) { document.body.classList.remove('vl-covered'); window.dispatchEvent(new CustomEvent('vl-cover', { detail: false })); } };
+  return () => { if (done) return; done = true; fx(); city(); if (!--coverN) document.body.classList.remove('vl-covered'); };
 }
 /** a sheet with the full card (approved art — else the Gilded card in its palette) */
 export async function openFullCard(id, who = {}) {

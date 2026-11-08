@@ -10,9 +10,10 @@ import { matchXp, soloXp, weeklyGoal, goalProgress, GOAL_XP } from './ranks.js';
 import { levelOf, rewardsBetween, rewardsUpTo } from './levels.js';
 import { SIGN_EMBLEMS } from './items.js';
 import { weekKey, dayKey } from './week.js';
-import { streakDay, streakPlay, dayNum } from './streak.js';
+import { streakDay, streakPlay, dayNum, dayOf } from './streak.js';
 import { noteMatch, noteEvent, awardAll } from './achievements.js';
-import { todaysDailies, sweptDay, dailyXp } from './daily.js';
+import { todaysDailies, sweptDay, dailyXp, isPenthouse, SWEEP_XP } from './daily.js';
+const prevDayKey = d => dayOf(dayNum(d) - 1);
 
 export const KEEP_KEYS = 60;
 export const DEFAULT_GAP_MS = 45_000;
@@ -165,13 +166,15 @@ export function eventStep(s0, ev, now, { founderOpen = false } = {}) {
  * flags (PW2 — the game's flags from the SERVER's record, keyed `<game>-<flag>` in pa.gf like a match's: THE PASSWORD's crack / safe) } →
  * { skip } | { next, items, streak: { n, ev }, dl, xp, lv: { from, to }, swept, counts }
  *   dl = { n (different days with a counted daily), last (day), day: { k, g: { game: 1 } (COUNTED finishes), x (XP credits that day), sw? (swept) },
- *          early (dailies before 8 am), ph (PENTHOUSE finishes), sw (days swept — THE SWEEP), pw: { k (week), n (days swept that week — PERFECT WEEK) } }
+ *          early (dailies before 8 am), ph (PENTHOUSE finishes), sw (days swept — THE SWEEP), sr: { d (the last swept day), n (swept days IN A ROW —
+ *          PERFECT WEEK at 7) }, sb (the best run) }
+ * DM2: rank = the place among the day's COUNTING finishers (PENTHOUSE — isPenthouse); a sweep adds SWEEP_XP (+10, once a day, counted only).
  * DM1: today = the LIVE dailies (core/daily.js#todaysDailies — the list, never a fixed count): THE SWEEP = all of them finished on one day; the
  * DAILY XP (core/daily.js#dailyXp, capped at one credit per daily on the list) + the level rewards it crosses. counts = THE THROWAWAY GATE
  * (api/daily.js — the profile existed before that day's 4 am Eastern start): false → the STREAK + the XP as usual, but NO counters, NO flags,
  * NO award (no achievement, no FOUNDER, no sweep) — the rewards are for counted results only.
  */
-export function dailyStep(s0, { game, day, now, top = 100, n = 0, hourET = 12, outage = null, founderOpen = false, flags = null, today = todaysDailies(), counts = true }) {
+export function dailyStep(s0, { game, day, now, top = 100, rank = null, n = 0, hourET = 12, outage = null, founderOpen = false, flags = null, today = todaysDailies(), counts = true }) {
   const s = s0 || {};
   const key = `daily_${game}_${day}`;
   if (s.m && s.m[key]) return { skip: 'counted' };
@@ -182,24 +185,29 @@ export function dailyStep(s0, { game, day, now, top = 100, n = 0, hourET = 12, o
   const xp = dailyXp(dl.day.x, today);
   dl.day.x = (dl.day.x || 0) + 1;
   const from = s.xp || 0;
-  next.xp = from + xp.total;
-  const lv = { from: levelOf(from), to: levelOf(next.xp) };
-  const items = lv.to > lv.from ? grant(next, rewardsBetween(lv.from, lv.to), now) : [];
   let swept = false, ach = [];
   if (counts) {
     if (dl.last !== day) { dl.n += 1; dl.last = day; }
     dl.day.g[game] = 1;
     if (hourET >= 4 && hourET < 8) dl.early += 1;
-    if (n >= 50 && top <= 1) dl.ph += 1;
-    // THE SWEEP: the day's last daily on the list — once a day (dl.day.sw); PERFECT WEEK's counter = the days swept in that Eastern week
+    // DM2 — PENTHOUSE: the top 1 % of the day's COUNTING finishers by PLACE — rank ≤ max(1, floor(n × 1 %)) — and only from BAND_MIN (50)
+    if (isPenthouse(rank ?? Math.round((top * n) / 100), n)) dl.ph += 1;
+    // THE SWEEP: the day's last daily on the list — once a day (dl.day.sw) — + DM2's SWEEP BONUS (+10 XP) + PERFECT WEEK's run (dl.sr = the
+    // swept days IN A ROW: { d: the last swept day, n }; any 7 consecutive daily-days — never a weekday rule)
     if (!dl.day.sw && sweptDay(dl.day.g, today)) {
       swept = true; dl.day.sw = 1; dl.sw = (dl.sw || 0) + 1;
-      const wk = weekKey(dayNum(day) * 864e5 + 16 * 3600e3);   // (noon-ish Eastern on the run's day)
-      dl.pw = dl.pw && dl.pw.k === wk ? { k: wk, n: (dl.pw.n || 0) + 1 } : { k: wk, n: 1 };
+      dl.sr = dl.sr && dl.sr.d === prevDayKey(day) ? { d: day, n: (dl.sr.n || 0) + 1 } : dl.sr && dl.sr.d === day ? dl.sr : { d: day, n: 1 };
+      dl.sb = Math.max(dl.sb || 0, dl.sr.n);
+      delete dl.pw;                                              // (DM1's week counter — replaced by the run)
+      xp.total += SWEEP_XP;
+      xp.parts = [...xp.parts, { k: 'sweep', label: 'THE SWEEP', v: SWEEP_XP }];
     }
     const gf = Object.entries(flags || {}).filter(([, v]) => v).map(([k]) => `${game}-${k}`);   // (a DASH — never a dot in a database key)
     if (gf.length) next.pa = { ...(s.pa || {}), gf: { ...((s.pa && s.pa.gf) || {}), ...Object.fromEntries(gf.map(k => [k, 1])) } };
   }
+  next.xp = from + xp.total;
+  const lv = { from: levelOf(from), to: levelOf(next.xp) };
+  const items = lv.to > lv.from ? grant(next, rewardsBetween(lv.from, lv.to), now) : [];
   next.dl = dl;
   const streak = playDay(next, now, outage, day);   // (DFIX1: the RUN's day — a run that crossed 4 am keeps its streak day)
   items.push(...streak.items);

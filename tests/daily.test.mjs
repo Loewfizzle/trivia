@@ -3,7 +3,7 @@
 import '../api/_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog — names, rewards, achievements)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { registerDaily, unregisterDaily, dailyOf, standing, bandFor, todayView, BAND_MIN, dailyRows, dailyRow, listedDailies, todaysDailies, addDailyRow, removeDailyRow, sweptDay, dailyXp, DAILY_XP } from '../js/core/daily.js';
+import { SWEEP_XP, isPenthouse, penthouseCut, registerDaily, unregisterDaily, dailyOf, standing, bandFor, todayView, BAND_MIN, dailyRows, dailyRow, listedDailies, todaysDailies, addDailyRow, removeDailyRow, sweptDay, dailyXp, DAILY_XP } from '../js/core/daily.js';
 import { dailyStep } from '../js/core/progress.js';
 
 const FAKE = { id: 'fake', name: 'FAKE', buckets: 101, bucket: s => s / 10, verify: (seed, r) => (Number.isInteger(r && r.guess) ? 1000 - Math.abs(r.guess - (seed % 1000)) : null) };
@@ -72,9 +72,9 @@ test('DM1 — PLUG-AND-PLAY: a FAKE 3rd + 4th daily appear in the list, the live
       r = dailyStep(s, { game: g, day, now }); s = r.next; xp += r.xp.total;
       assert.equal(r.swept, g === 'fake4', `${g}: the sweep only on the last of FOUR`);
     }
-    assert.equal(xp, 4 * DAILY_XP, 'the XP cap = one credit per daily on the list (4)');
+    assert.equal(xp, 4 * DAILY_XP + SWEEP_XP, 'the XP cap = one credit per daily on the list (4) + the DM2 sweep bonus');
     assert.equal(r.xp.cap, 4); assert.equal(s.dl.sw, 1); assert.ok(r.ach.includes('the-triple'), 'THE SWEEP');
-    assert.equal(s.dl.pw.n, 1, 'PERFECT WEEK\'s counter: one swept day this week');
+    assert.equal(s.dl.sr.n, 1, 'PERFECT WEEK’s run: one swept day in a row (DM2)');
     // remove one → the sweep needs one fewer (three)
     unregisterDaily('fake4'); removeDailyRow('fake4');
     assert.deepEqual(ids(), ['password', 'coastclear', 'fake3']);
@@ -103,4 +103,52 @@ test('DM1 — THE THROWAWAY GATE in the step: a non-counting result keeps the st
   // the same run, counted: every reward
   const c = dailyStep(null, { game: 'password', day, now, top: 1, n: 80, hourET: 7, flags: { crack: 1, safe: 1 }, today: ['password'] });
   assert.ok(['keyhole', 'safecracker', 'early-bird', 'penthouse-suite', 'the-triple'].every(a => c.ach.includes(a)), c.ach.join());
+});
+
+// ---------------------------------------------------------------- DM2 — THE REWARDS (the owner's Step 0)
+test('DM2 — THE SWEEP BONUS: +10 XP once on the day every daily is finished, counted only', () => {
+  const day = 'd20261110', now = Date.UTC(2026, 10, 10, 20), today = ['a', 'b'];
+  let r = dailyStep(null, { game: 'a', day, now, today });
+  assert.equal(r.xp.total, DAILY_XP, 'the first daily: no bonus');
+  r = dailyStep(r.next, { game: 'b', day, now, today });
+  assert.equal(r.swept, true); assert.equal(r.xp.total, DAILY_XP + SWEEP_XP, 'the last daily: DAILY_XP + the sweep bonus');
+  assert.ok(r.xp.parts.some(p => p.k === 'sweep' && p.v === SWEEP_XP), 'the moment’s line: THE SWEEP +10');
+  assert.equal(r.next.xp, 2 * DAILY_XP + SWEEP_XP);
+  // a same-day profile (THE THROWAWAY GATE): no sweep, no bonus
+  let g = dailyStep(null, { game: 'a', day, now, today, counts: false });
+  g = dailyStep(g.next, { game: 'b', day, now, today, counts: false });
+  assert.equal(g.swept, false); assert.equal(g.next.xp, 2 * DAILY_XP, 'no bonus for a non-counting profile');
+});
+
+test('DM2 — PERFECT WEEK = THE SWEEP on 7 daily-days IN A ROW (any 7 — never a weekday), once; a gap starts the run again', () => {
+  const today = ['a'], t0 = Date.UTC(2026, 10, 12, 20);   // a Thursday — not a week's start
+  const day = i => `d202611${String(12 + i).padStart(2, '0')}`;
+  let s = null, r = null;
+  for (let i = 0; i < 6; i++) { r = dailyStep(s, { game: 'a', day: day(i), now: t0 + i * 864e5, today }); s = r.next; }
+  assert.equal(s.dl.sr.n, 6); assert.ok(!r.ach.includes('perfect-week') && !(s.it && s.it['card-perfect-week']), 'six in a row: not yet');
+  r = dailyStep(s, { game: 'a', day: day(6), now: t0 + 6 * 864e5, today }); s = r.next;
+  assert.equal(s.dl.sr.n, 7); assert.ok(r.ach.includes('perfect-week') && r.items.includes('card-perfect-week'), 'the 7th in a row: PERFECT WEEK + its card');
+  r = dailyStep(s, { game: 'a', day: day(7), now: t0 + 7 * 864e5, today }); s = r.next;
+  assert.ok(!r.ach.includes('perfect-week'), 'once only');
+  // a gap: the run starts again (a missed day) — six after a gap is not seven
+  let u = null;
+  for (const i of [0, 1, 2, 4, 5, 6, 7, 8]) { r = dailyStep(u, { game: 'a', day: day(i), now: t0 + i * 864e5, today }); u = r.next; }
+  assert.equal(u.dl.sr.n, 5, 'the run after the gap'); assert.ok(!(u.it && u.it['card-perfect-week']), 'a gap: no PERFECT WEEK');
+  // a non-counting profile never builds the run
+  let x = null;
+  for (let i = 0; i < 8; i++) { r = dailyStep(x, { game: 'a', day: day(i), now: t0 + i * 864e5, today, counts: false }); x = r.next; }
+  assert.ok(!x.dl.sr && !(x.it && x.it['card-perfect-week']), 'never for a same-day profile');
+});
+
+test('DM2 — PENTHOUSE: rank ≤ max(1, floor(n × 1 %)) AND n ≥ 50 — exact at the edges, dormant below 50', () => {
+  assert.equal(penthouseCut(50), 1); assert.equal(penthouseCut(199), 1); assert.equal(penthouseCut(200), 2); assert.equal(penthouseCut(1000), 10);
+  assert.equal(isPenthouse(1, 49), false, 'below 50: dormant'); assert.equal(isPenthouse(1, 50), true, 'the top one at 50');
+  assert.equal(isPenthouse(2, 199), false); assert.equal(isPenthouse(2, 200), true); assert.equal(isPenthouse(3, 200), false);
+  assert.equal(isPenthouse(10, 1000), true); assert.equal(isPenthouse(11, 1000), false); assert.equal(isPenthouse(0, 100), false);
+  const day = 'd20261110', now = Date.UTC(2026, 10, 10, 20);
+  const ph = (rank, n, counts = true) => dailyStep(null, { game: 'a', day, now, rank, n, today: ['a', 'b'], counts });
+  assert.equal(ph(1, 50).dl.ph, 1); assert.ok(ph(1, 50).ach.includes('penthouse-suite') && ph(1, 50).items.includes('card-penthouse'));
+  assert.equal(ph(1, 49).dl.ph, 0, 'the 49th finisher’s day: dormant');
+  assert.equal(ph(2, 150).dl.ph, 0, '2nd of 150: not the penthouse (floor(1.5) = 1)');
+  assert.equal(ph(1, 80, false).dl.ph, 0); assert.deepEqual(ph(1, 80, false).ach, [], 'never for a same-day profile');
 });

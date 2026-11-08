@@ -83,12 +83,12 @@ export const GAMES = [ // lobby order
 // game signs, HOW TO PLAY, THE BOARD's catalog + the match reports, and a daily is none of that (never playable in a room, no sign). THE DAILY
 // MODULE opens these once a day, later; until then THE PASSWORD is reachable only through its preview + its E2E. `gameRow(id)` = either list.
 export const DAILIES = [
-  { id: 'password', name: 'THE PASSWORD', theme: 'password', tag: 'DAILY · TWO DOORS', blurb: 'Two five-letter words stand between you and the back room. Six guesses each. Once a day.', playable: false, daily: true, order: 1, ticket: 'password', lesson: false, on: true },
-  { id: 'coastclear', name: 'COAST CLEAR', theme: 'coastclear', tag: 'DAILY · THE NIGHT HARBOR', blurb: 'Slip your boat across the harbor past the hidden searchlights. Buoy the ones you find. Once a day.', playable: false, daily: true, order: 2, ticket: 'coastclear', lesson: true, on: true },
+  { id: 'password', name: 'THE PASSWORD', theme: 'password', tag: 'DAILY · TWO DOORS', blurb: 'Two five-letter words stand between you and the back room. Six guesses each. Once a day.', hook: 'Two doors. Six guesses each.', playable: false, daily: true, order: 1, ticket: 'password', lesson: false, on: true },
+  { id: 'coastclear', name: 'COAST CLEAR', theme: 'coastclear', tag: 'DAILY · THE NIGHT HARBOR', blurb: 'Slip your boat across the harbor past the hidden searchlights. Buoy the ones you find. Once a day.', hook: 'Slip past the searchlights.', playable: false, daily: true, order: 2, ticket: 'coastclear', lesson: true, on: true },
   // (a THIRD daily — TBD, DM1: its cartridge (docs/cartridge.md D2) + ONE row here; nothing else counts the dailies)
 ];
 // DM1 — PLUG-AND-PLAY: every row's `order` (the picker's order), `ticket` (its ticket art key — DM2), `lesson` (a first-time lesson — DM2's
-// practice harbor), `on` (in the set). The server opens a row only while THE GO-LIVE SWITCH is on (api/_lib/dailies.js) — `on` alone opens nothing.
+// practice harbor), `on` (in the set). DM2: `hook` = the TODAY row's one line (else `tag`). The server opens a row only while THE GO-LIVE SWITCH is on (api/_lib/dailies.js) — `on` alone opens nothing.
 export const gameRow = id => GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || null;
 
 /** WINDOWS: can a match of this game start? (the one switch: GAMES[].playable) */

@@ -66,10 +66,14 @@
 .fr-wait-acts { display: flex; gap: 10px; }
 .fr-wait-acts .btn { flex: 1; }
 
-/* YOUR TABLE — a placeholder until THE DAILY MODULE + BOARD 2.0 draw it */
-.fr-table { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: rgba(20, 18, 40, 0.72); border: 1px dashed rgba(255, 255, 255, 0.22); }
-.fr-table b { flex: none; white-space: nowrap; font: 800 11px/1.2 var(--font-display); letter-spacing: 0.22em; color: rgba(255, 236, 220, 0.9); }
-.fr-table span { font: 500 13.5px/1.35 var(--font-ui); color: rgba(226, 232, 255, 0.82); }
+/* DM2 — YOUR TABLE (today, in short): one line per live daily + SEE SCORES › (the DAILY screen's SCORES); hidden while no daily is live */
+.fr-table { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 16px; background: rgba(20, 18, 40, 0.72); border: 1px solid rgba(255, 111, 200, 0.32); }
+.fr-table[hidden] { display: none; }
+.fr-th { font: 800 11px/1.2 var(--font-display); letter-spacing: 0.22em; color: rgba(255, 236, 220, 0.9); }
+.fr-tls { display: flex; flex-direction: column; gap: 6px; }
+.fr-tl { display: flex; justify-content: space-between; gap: 10px; font: 700 13.5px/1.3 var(--font-ui); color: rgba(226, 232, 255, 0.86); }
+.fr-tv { font-family: var(--font-num); letter-spacing: 0.08em; color: #fff; white-space: nowrap; }
+.fr-tgo { align-self: flex-start; }
 
 @media (min-width: 900px) { .fr-wait { bottom: calc(var(--safe-b) + 128px); } }   /* (the desktop dock sits higher) */
 @media (prefers-reduced-motion: reduce) { .fr-wait { transition: none; } }

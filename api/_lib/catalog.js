@@ -58,7 +58,7 @@ export const ITEM_ROWS = [
   C('card-neoncamo', 'NEON CAMO', 'rare', '#0c0f14', '#7affd8', '#ff4fe0', 'Camo, but it glows.'),
   C('card-carbon', 'CARBON', 'rare', '#0e0f11', '#c8cdd4', '#5ad1ff', 'Woven carbon. You waited for this.'),
   C('card-witness', 'THE WITNESS', 'legendary', '#04060a', '#cfe8ff', '#7affc8', 'Every legend over the harbor, seen.'),
-  C('card-penthouse', 'PENTHOUSE', 'epic', '#0a0a10', '#f6e3b0', '#ffd27a', 'Top one percent. The view from up here.'),
+  C('card-penthouse', 'PENTHOUSE', 'epic', '#0a0a10', '#f6e3b0', '#ffd27a', 'Top one percent. The car stops at PH.'),
   C('card-confetti', 'CONFETTI', 'rare', '#140a1c', '#ffd6f0', '#ff6fd0', 'Many happy returns.'),
   C('card-circuit', 'CIRCUIT', 'rare', '#04100c', '#7affc0', '#3dffa0', 'Overclocked.'),
   // OVERCLOCK CARDS (Nov 5 night — the owner's two OVERCLOCK cards; the art Grok's, the motion js/fx/oc-cards.js): unlocked by the achievements below
@@ -68,6 +68,7 @@ export const ITEM_ROWS = [
   C('card-safecracker', 'SAFECRACKER', 'rare', '#070a1c', '#ffd27a', '#ff4fd8', 'Both doors in six. The vault was never locked to you.'),
   // CC2 — COAST CLEAR's card (Grok's speedboat — the art assets/vault/cc/, the motion js/fx/cc-cards.js): a clear with zero spots at or under GHOST_S
   C('card-ghost-run', 'GHOST RUN', 'rare', '#07081c', '#5fe1ff', '#ff6fd8', 'Not one light found you. Across in under fifty seconds.'),
+  C('card-perfect-week', 'PERFECT WEEK', 'epic', '#07051a', '#ffe9ff', '#ff5fd2', 'Seven days. Every daily. Not one missed.'),
   C('card-founder', 'FOUNDING MEMBER', 'legendary', '#0a0806', '#ffdca0', '#ff4fb8', 'Here before the doors opened.'),
   // ---- THE VAULT 2B — THE TWO DEVELOPER CARDS (ONE OF ONE · DEV — js/core/dev-cards.js): the owner's only, granted by /api/profile 'me' to
   // ADMIN_PIDS, never earnable (in no reward table); legendary in every rule, a tier above it in look
@@ -214,6 +215,8 @@ export const ACH_ROWS = [
   A('the-triple', 'THE SWEEP', 'dailies', 'emb-stars', 'Every daily in one day.', (s) => !!s.dl && (s.dl.sw || 0) >= 1, { dormant: 'dailies' }),
   A('early-bird', 'EARLY BIRD', 'dailies', 'emb-sunrise', 'A daily before 8 am.', (s) => !!s.dl && s.dl.early >= 1, { dormant: 'dailies' }),
   A('penthouse-suite', 'PENTHOUSE SUITE', 'dailies', 'card-penthouse', 'Top one percent of a daily.', (s) => !!s.dl && s.dl.ph >= 1, { dormant: 'dailies' }),
+  // (DM2 — PERFECT WEEK: THE SWEEP on 7 daily-days IN A ROW — progress.js#dailyStep's run dl.sr (any 7 consecutive days, never a weekday rule); counted only)
+  A('perfect-week', 'PERFECT WEEK', 'dailies', 'card-perfect-week', 'Every daily, seven days in a row.', (s) => !!s.dl && Math.max((s.dl.sr && s.dl.sr.n) || 0, s.dl.sb || 0) >= 7, { dormant: 'dailies' }),
   // SPECIALS
   A('hodl', 'HODL', 'specials', 'emb-bitcoin', 'Twenty-one nights in a row.', (s) => !!s.st && Math.max(s.st.n || 0, s.st.b || 0) >= 21),
   A('many-happy-returns', 'MANY HAPPY RETURNS', 'specials', 'card-confetti', 'You played on your birthday.', (s, p) => !!p.bd, { dormant: 'birthday' }),

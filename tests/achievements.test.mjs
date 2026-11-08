@@ -17,8 +17,8 @@ const play = (s, { at = T0, gid = 'prism', rank = 2, n = 4, f, ctx = {} } = {}) 
 const has = (s, id) => !!(s.ac && s.ac[id]);
 
 test('thirty-two of them (OVERCLOCK CARDS added REDLINE + PHOTO FINISH; PW2 KEYHOLE + SAFECRACKER), the owner\'s names, every one unlocking a real item, ids unique', () => {
-  assert.equal(ACHIEVEMENTS.length, 37, '32 + the HORSESHOE (OC5) + KEYHOLE + SAFECRACKER (PW2) + LIGHTHOUSE + GHOST RUN (CC2)');
-  assert.equal(new Set(ACHIEVEMENTS.map(a => a.id)).size, 37);
+  assert.equal(ACHIEVEMENTS.length, 38, '32 + the HORSESHOE (OC5) + KEYHOLE + SAFECRACKER (PW2) + LIGHTHOUSE + GHOST RUN (CC2) + PERFECT WEEK (DM2)');
+  assert.equal(new Set(ACHIEVEMENTS.map(a => a.id)).size, 38);
   for (const a of ACHIEVEMENTS) { assert.ok(ITEM[a.item], `${a.id} → ${a.item}`); assert.ok(a.name && a.line); }
   assert.deepEqual(ACHIEVEMENTS.slice(0, 13).map(a => a.name), ['FIRST ROUND', 'HOUSE WARMING', 'FULL HOUSE', 'THE REGULAR', 'TOP SHELF', 'MADE MAN', 'KINGPIN', 'THE HOST', 'COMEBACK KID', 'LAST CALL', 'PARTY ANIMAL', 'NIGHT OWL', 'THE CREW']);
   assert.equal(ACH['kingpin'].item, 'card-marquee-gold'); assert.equal(ACH['the-host'].item, 'card-marquee');

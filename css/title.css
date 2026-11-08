@@ -603,6 +603,29 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 .nd-tab-you { --ic: #c9cfee; }
 .nd-tab-you .avatar { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--c) 55%, transparent)); }
 .nd-tab-you.is-guest .nd-tab-ic svg { opacity: 0.9; }
+/* DM2 — DAILY (the left-most icon — hidden while no daily is live): the house's one hot-pink tube. FOUR icons = each cell 6 px narrower, so
+   [ JOIN ] [ DAILY · BOARD · GAMES · YOU ] [ HOST ] keeps its 10 px gaps + a gutter at 390 (366 wide); 4 is the most this dock holds.
+   WAITING: lit day + night (whatever the sign says), a soft pool of pink breathing behind it (opacity + scale only) + the count; ALL DONE: the
+   dock's own style + a small drawn check (the colour-blind --good + a shape). */
+.nd-tab-daily { --ic: #ff6fc8; }
+.nd-tab-daily[hidden] { display: none; }
+.nd-pill.is-four .nd-tab { width: calc(var(--cell) - 6px); }
+.nd-dy-pulse { position: absolute; left: 50%; top: 40%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle, rgba(255, 111, 200, 0.5), rgba(255, 111, 200, 0.14) 46%, transparent 70%); will-change: transform, opacity; }
+.nd-tab-daily[data-state="waiting"] .nd-dy-pulse { animation: nd-dy-breathe 2.4s ease-in-out infinite; }
+@keyframes nd-dy-breathe { 0%, 100% { opacity: 0.35; transform: scale(0.82); } 50% { opacity: 0.95; transform: scale(1.08); } }
+.nd-tab-daily[data-state="waiting"] .nd-tab-ic .t { stroke: #ff7fd0; }
+.nd-tab-daily[data-state="waiting"] .nd-tab-ic .c { stroke: #fff4fb; opacity: 1; }
+.nd-tab-daily[data-state="waiting"] .nd-tab-ic svg { filter: drop-shadow(0 0 2.4px rgba(255, 111, 200, 0.95)) drop-shadow(0 0 9px rgba(255, 111, 200, 0.6)); }
+.nd-tab-daily[data-state="waiting"] .rdk-lbl { color: #ffe3f4; }
+.nd-dy-n { position: absolute; top: 4px; right: 3px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; display: none; place-items: center;
+  font: 800 10.5px/1 var(--font-num); color: #2a0619; background: #ff8fd6; box-shadow: 0 0 0 1.5px rgba(8, 6, 16, 0.9), 0 0 8px rgba(255, 111, 200, 0.85); pointer-events: none; }
+.nd-tab-daily[data-state="waiting"] .nd-dy-n:not(:empty) { display: grid; }
+.nd-dy-ok { position: absolute; top: 5px; right: 4px; width: 14px; height: 14px; border-radius: 50%; display: none; place-items: center; pointer-events: none;
+  background: rgba(8, 6, 16, 0.92); box-shadow: inset 0 0 0 1.2px var(--good); }
+.nd-dy-ok svg { width: 10px; height: 10px; fill: none; stroke: var(--good); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nd-tab-daily[data-state="done"] .nd-dy-ok { display: grid; }
+@media (prefers-reduced-motion: reduce) { .nd-tab-daily[data-state="waiting"] .nd-dy-pulse { animation: none; opacity: 0.7; transform: none; } }
 
 /* ---- the rings: a dark glass disc, the neon tube ring, the word inside; always lit, never sputter ---- */
 .nd-ringbtn {

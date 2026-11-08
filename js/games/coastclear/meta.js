@@ -20,6 +20,8 @@ export const MUSIC = 'mood:evening';
 export const SOLO = true;
 export const MIN_PLAYERS = 1;
 export const BANNER_NAME = 'COAST CLEAR';
+/** DM2 — THE DAILY SCREEN's line for a score (spoiler-free — nothing about the board): a clear = its time (m:ss, spots + pauses in), CAUGHT */
+export const scoreLine = s => (s >= 10000 ? 'CAUGHT' : `${Math.floor(s / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`);
 /** CC2 — BOTH LOOKS: the night harbor (neon) + the sunny harbor (THE PASSWORD's C1 clear morning sky); the Settings look switches it LIVE */
 export const LOOKS = ['day', 'night'];
 

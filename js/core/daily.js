@@ -42,6 +42,15 @@ export const dailyRows = () => [...DAILIES, ...EXTRA.values()].sort((a, b) => or
 export const dailyRow = id => dailyRows().find(r => r.id === String(id)) || null;
 export const listedDailies = () => dailyRows().filter(r => r.on !== false).map(r => r.id);
 
+/** DM2 — PENTHOUSE (the owner, Step 0): the top 1 % of a daily's COUNTING finishers that day by PLACE — rank ≤ max(1, floor(n × 1 %)) — and
+ *  only once the day has BAND_MIN (50) counting finishers (dormant below). rank = 1-based (1 + the finishers strictly better). */
+export const penthouseCut = n => Math.max(1, Math.floor(n / 100));
+export const isPenthouse = (rank, n) => n >= BAND_MIN && rank >= 1 && rank <= penthouseCut(n);
+/** DM2 — THE SWEEP BONUS: +10 XP on the day every daily is finished (on top of DAILY_XP each), once a day, counted results only */
+export const SWEEP_XP = 10;
+/** DM2 — PERFECT WEEK: THE SWEEP on this many daily-days IN A ROW (any 7 consecutive — never a weekday rule) */
+export const PERFECT_RUN = 7;
+
 /** THE SWEEP: every one of today's dailies finished (dayG = { game: 1 } — the day's COUNTED finishes); an empty list never sweeps */
 export const sweptDay = (dayG, today) => Array.isArray(today) && today.length > 0 && today.every(id => !!(dayG && dayG[id]));
 /** THE DAILY XP (DM1): a small XP per finished daily — the solo lane's size (ranks.js#SOLO_XP = 15: never more than a match played) — capped at
