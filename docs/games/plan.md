@@ -148,3 +148,10 @@
   5. RESEED: the day cache is keyed by the day and cleared on reseed (the one-line clear in pickDay).
 - Nov 8 — SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS (Ben: "they look so good, we need to start using them"). The dailies' SCORES → YOUR TABLE uses them from DFIX2 on.
 - BEFORE PUBLIC (not now): repo private + RESEED; no reveal for a non-counting run; batch COAST CLEAR's digs before ~350 players a day (Hobby's 1M invocations); dly/ cleanup before ~500 players a day.
+
+## DFIX3 — THE DAILIES' FIRST-PLAY FIXES (Nov 8 2026 — the dailies LIVE; Ben's iPhone notes + two /admin fixes)
+- Nov 8 — THE DAILIES WENT LIVE (Ben: rules re-published, switch ON). First real plays: THE PASSWORD fine; COAST CLEAR good but the DIG LAGS; the practice harbor glitched → CUT.
+- Nov 8 — COAST CLEAR's lesson → a ONE-TIME HINT: one line under the board on a player's FIRST COAST CLEAR only ("EACH NUMBER = SEARCHLIGHTS TOUCHING THAT SQUARE"), once per player across devices.
+- Nov 8 — THE PREMIUM TICKET: the DAILY screen's tickets become real admission tickets — paper grain (ambientCG Paper001, CC0), a punched stub, a serial "Nº MMDD", an ADMITTED stamp instead of the check circle, a lift shadow; night: neon edge + foil sheen. SHARE TODAY's image is rebuilt from the same ticket (date + streak flame), no spoilers.
+- Nov 8 — /admin → THE DAILIES gets a stats block (started / finished per daily, today + 7 days) + TODAY'S PLAYERS with ADD FRIEND (the normal friend request); the admin page gets "‹ BACK TO THE CITY".
+- Nov 8 — Card motion pausing while scrolling = SCROLL-PAUSE (VAULT 1B), kept on purpose.
