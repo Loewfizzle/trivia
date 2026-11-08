@@ -236,6 +236,23 @@ LAB.push(
   { id: 'full-card-ghost-run', kind: 'full', of: 'card-ghost-run', tier: 'rare', n: 192 },
   { id: 'emb-lighthouse', kind: 'emblem', tier: 'uncommon', n: 193, fin: 'neon' },
 );
+// THE CARD PASS (Nov 7) — seven 1-OF-1 GIFTS (the owner gives them in /admin → GIFTS): their strips, then their full cards
+LAB.push(
+  { id: 'card-gift-dispatcher', kind: 'card', tier: 'legendary', n: 194, gift: true },
+  { id: 'card-gift-outoforder', kind: 'card', tier: 'legendary', n: 195, gift: true },
+  { id: 'card-gift-notguilty', kind: 'card', tier: 'legendary', n: 196, gift: true },
+  { id: 'card-gift-wastelander', kind: 'card', tier: 'legendary', n: 197, gift: true },
+  { id: 'card-gift-survivor', kind: 'card', tier: 'legendary', n: 198, gift: true },
+  { id: 'card-gift-zadomovinu', kind: 'card', tier: 'legendary', n: 199, gift: true },
+  { id: 'card-gift-starimost', kind: 'card', tier: 'legendary', n: 200, gift: true },
+  { id: 'full-card-gift-dispatcher', kind: 'full', of: 'card-gift-dispatcher', tier: 'legendary', n: 201, gift: true },
+  { id: 'full-card-gift-outoforder', kind: 'full', of: 'card-gift-outoforder', tier: 'legendary', n: 202, gift: true },
+  { id: 'full-card-gift-notguilty', kind: 'full', of: 'card-gift-notguilty', tier: 'legendary', n: 203, gift: true },
+  { id: 'full-card-gift-wastelander', kind: 'full', of: 'card-gift-wastelander', tier: 'legendary', n: 204, gift: true },
+  { id: 'full-card-gift-survivor', kind: 'full', of: 'card-gift-survivor', tier: 'legendary', n: 205, gift: true },
+  { id: 'full-card-gift-zadomovinu', kind: 'full', of: 'card-gift-zadomovinu', tier: 'legendary', n: 206, gift: true },
+  { id: 'full-card-gift-starimost', kind: 'full', of: 'card-gift-starimost', tier: 'legendary', n: 207, gift: true },
+);
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 // THE VAULT 1B — NAMES ONLY TO OWNERS: the lab's NAMES + what each one does are the SERVER's (api/_lib/lab-text.js) — handed to the lab with
 // the marks (admins only: /api/admin labMarks → { marks, text }); the look previews (never deployed) import them off the local server.

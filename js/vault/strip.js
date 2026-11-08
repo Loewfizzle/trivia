@@ -89,6 +89,14 @@ export const LOOKS = Object.freeze({
   'card-gift-icecold': { mat: 'g-icecold', fx: 'gift:card-gift-icecold' },
   'card-gift-anarchist': { mat: 'g-anarchist', fx: 'gift:card-gift-anarchist' },
   'card-gift-buzzed': { mat: 'g-buzzed', fx: 'gift:card-gift-buzzed' },   // (THE SEEING-STARS CARD, Nov 6 — its own strip picture)
+  // THE CARD PASS (Nov 7) — the seven gifts, each with its own strip picture (the hero far right — THE SLIM-CARD LONG-NAME STANDARD)
+  'card-gift-dispatcher': { mat: 'g-dispatcher', fx: 'gift:card-gift-dispatcher' },
+  'card-gift-outoforder': { mat: 'g-outoforder', fx: 'gift:card-gift-outoforder' },
+  'card-gift-notguilty': { mat: 'g-notguilty', fx: 'gift:card-gift-notguilty' },
+  'card-gift-wastelander': { mat: 'g-wastelander', fx: 'gift:card-gift-wastelander' },
+  'card-gift-survivor': { mat: 'g-survivor', fx: 'gift:card-gift-survivor' },
+  'card-gift-zadomovinu': { mat: 'g-zadomovinu', fx: 'gift:card-gift-zadomovinu' },
+  'card-gift-starimost': { mat: 'g-starimost', fx: 'gift:card-gift-starimost' },
   // OVERCLOCK CARDS (Nov 5 night): Grok's art = the material (css/vault.css .vl-s-oc-*), the game's layers = js/fx/oc-cards.js
   'card-redline': { mat: 'oc-redline', fx: 'ocRedline' },
   'card-photofinish': { mat: 'oc-photofinish', fx: 'ocPhoto' },
@@ -170,7 +178,9 @@ function heroRoom(plate) {
 }
 function layStep(plate) {
   if (!plate || !plate.isConnected) return;
-  const room = heroRoom(plate); if (plate.style.maxWidth !== room) plate.style.maxWidth = room;
+  // (THE CARD PASS: a STRIP's plate only — a full card's plate has its own cap from vault/layout.js#layFull; writing '' here wiped it, the two
+  //  then fought through the ResizeObserver + Safari ended UNCAPPED: a 12-letter name ran over a gift card's face)
+  if (!plate.classList.contains('vl-fc-plate')) { const room = heroRoom(plate); if (plate.style.maxWidth !== room) plate.style.maxWidth = room; }
   const W = plate.offsetWidth, H = plate.offsetHeight, [nm, lv] = ROWS(plate);
   const off = () => { const was = plate.dataset.step; plate.style.clipPath = ''; plate.classList.remove('vl-stepped', 'vl-rstep'); plate.dataset.step = ''; const o = plate.querySelector(':scope > .vl-step'); if (o) o.remove(); if (was !== '' && plate.classList.contains('vl-fc-plate')) layFull(plate.closest('.vl-fc')); };
   if (!W || !H || !nm || !lv) return off();

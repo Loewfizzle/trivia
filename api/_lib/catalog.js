@@ -88,6 +88,14 @@ export const ITEM_ROWS = [
   C('card-gift-icecold', 'ICE COLD', 'legendary', '#04102a', '#cfefff', '#7fd8ff', 'Snow, aurora, ice in the veins. One of one.', { gift: true }),
   C('card-gift-anarchist', 'THE ANARCHIST', 'legendary', '#0a0608', '#ff4f8b', '#ffd27a', 'No masters. One of one.', { gift: true }),
   C('card-gift-buzzed', 'BUZZED LIGHTYEAR', 'legendary', '#2a0a20', '#ff4fae', '#ffe04a', 'Seeing stars since noon.', { gift: true }),   // (Nov 6 — a name pun only)
+  // THE CARD PASS (Nov 7) — seven more 1-of-1 gifts (the owner gives each in /admin → GIFTS)
+  C('card-gift-dispatcher', 'THE DISPATCHER', 'legendary', '#0a0809', '#ff3b3b', '#e8e8e8', 'Nine-one-one. What is your emergency?', { gift: true }),
+  C('card-gift-outoforder', 'OUT OF ORDER', 'legendary', '#151214', '#ff4fd8', '#c8f03c', 'The court is out of order. One of one.', { gift: true }),
+  C('card-gift-notguilty', 'NOT GUILTY', 'legendary', '#ece8e0', '#e8405a', '#1a1a1a', 'Case dismissed. One of one.', { gift: true, ink: '#1a1416' }),
+  C('card-gift-wastelander', 'WASTELANDER', 'legendary', '#050806', '#5cff7a', '#c8ffd0', 'The terminal still works. One of one.', { gift: true }),
+  C('card-gift-survivor', 'SOLE SURVIVOR', 'legendary', '#120c06', '#ffb347', '#ffd23a', 'Last one standing at sundown. One of one.', { gift: true }),
+  C('card-gift-zadomovinu', 'ZA DOMOVINU', 'legendary', '#0b2a8f', '#ffcf1a', '#ffffff', 'Blue, gold + the chequered flag. One of one.', { gift: true }),
+  C('card-gift-starimost', 'STARI MOST', 'legendary', '#1a1020', '#ffb35a', '#ff3b3b', 'Golden hour on the Old Bridge. One of one.', { gift: true }),
   // ---- PROGRESSION B — CITY SIGHTINGS: each legendary's MATCHED PAIR (a LEGENDARY card + its EMBLEM), first tap that the server
   // believes (core/sightings.js — the ids final, the art THE VAULT's: the city's own baked models on the cards)
   C('card-sg-ufo', 'I WANT TO BELIEVE', 'legendary', '#04100a', '#9dffc4', '#5dff9a', 'The saucer over the harbor. You saw it.', { sg: 'ufo' }),

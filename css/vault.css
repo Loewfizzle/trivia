@@ -1036,6 +1036,33 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-fcm-g-buzzed .vl-mat { background-image: url('../assets/vault/gift/buzzed.webp'); background-position: 50% 50%; }
 .vl-s-g-icecold .vl-mat { background: #07060a url('../assets/vault/gift/icecold.webp') 50% 32.5% / cover no-repeat; }
 .vl-fcm-g-icecold .vl-mat { background-position: 50% 50%; }
+/* THE CARD PASS (Nov 7) — SEVEN 1-OF-1 GIFTS: each strip its OWN picture (assets/vault/gift/<art>-strip.webp — the hero far right: THE SLIM-CARD
+   LONG-NAME STANDARD), the full card its full picture; the motion = js/fx/gift.js (gift-specs.js). the flag card + the Old Bridge card share THE FLAG STRIP. */
+.vl-s-g-dispatcher .vl-mat { background: #08080a url('../assets/vault/gift/dispatcher-strip.webp') 50% 50% / cover no-repeat; }
+.vl-fcm-g-dispatcher .vl-mat { background-image: url('../assets/vault/gift/dispatcher.webp'); background-position: 50% 50%; }
+.vl-s-g-outoforder .vl-mat { background: #151214 url('../assets/vault/gift/outoforder-strip.webp') 50% 50% / cover no-repeat; }
+.vl-fcm-g-outoforder .vl-mat { background-image: url('../assets/vault/gift/outoforder.webp'); background-position: 50% 50%; }
+.vl-s-g-notguilty .vl-mat { background: #e9e5dc url('../assets/vault/gift/notguilty-strip.webp') 50% 50% / cover no-repeat; }
+.vl-fcm-g-notguilty .vl-mat { background-image: url('../assets/vault/gift/notguilty.webp'); background-position: 50% 50%; }
+.vl-s-g-wastelander .vl-mat { background: #020302 url('../assets/vault/gift/wastelander-strip.webp') 50% 50% / cover no-repeat; }
+.vl-fcm-g-wastelander .vl-mat { background-image: url('../assets/vault/gift/wastelander.webp'); background-position: 50% 50%; }
+.vl-s-g-survivor .vl-mat { background: #120c06 url('../assets/vault/gift/survivor-strip.webp') 50% 50% / cover no-repeat; }
+.vl-fcm-g-survivor .vl-mat { background-image: url('../assets/vault/gift/survivor.webp'); background-position: 50% 50%; }
+.vl-s-g-zadomovinu .vl-mat { background: #0a2a8f url('../assets/vault/gift/mostar-strip.webp') 50% 50% / cover no-repeat; }
+.vl-s-g-starimost .vl-mat { background: #0a2a8f url('../assets/vault/gift/mostar-strip.webp') 50% 50% / cover no-repeat; }
+.vl-fcm-g-zadomovinu .vl-mat { background-image: url('../assets/vault/gift/zadomovinu.webp'); background-position: 50% 50%; }
+.vl-fcm-g-starimost .vl-mat { background-image: url('../assets/vault/gift/starimost.webp'); background-position: 50% 50%; }
+/* the gig-poster card is a LIGHT card (the poster's white paper): THE CARD TEXT STANDARD's light rule — dark ink on a light glass wash, the plate a
+   dark glass box as on every card (its name in light) */
+.vl-fc.vl-fcm-g-notguilty { --vl-tw: 250, 247, 240; --vl-ta: 0.7; }
+.vl-fcm-g-notguilty .vl-fc-house, .vl-fcm-g-notguilty .vl-fc-rank, .vl-fcm-g-notguilty .vl-fc-since small, .vl-fcm-g-notguilty .vl-fc-since b, .vl-fcm-g-notguilty .vl-fc-card { color: #1a1416; }
+.vl-fc.vl-fcm-g-notguilty :is(.vl-fc-house, .vl-fc-card, .vl-fc-rank, .vl-fc-since small, .vl-fc-since b) { text-shadow: 0 0 1px rgba(255, 255, 255, 0.9), 0 1px 0 rgba(255, 255, 255, 0.6); }
+.vl-fcm-g-notguilty .vl-fc-rank { color: #8a1e2e; }
+/* the dispatcher card's printed name in RED NEON (the owner's approved mock-dispatcher-final.png) — on the standard's dark wash + dark edge; it
+   flickers now + then (opacity only — the compositor; reduced motion: steady) */
+.vl-fcm-g-dispatcher .vl-fc-card { color: #ff6464; text-shadow: 0 0 1px rgba(0, 0, 0, 1), 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 6px rgba(255, 40, 40, 0.95), 0 0 14px rgba(255, 0, 0, 0.6); animation: vl-disp-neon 7.3s linear infinite; }
+@keyframes vl-disp-neon { 0%, 88%, 90.5%, 92%, 100% { opacity: 1; } 89% { opacity: 0.45; } 91% { opacity: 0.7; } 91.5% { opacity: 0.4; } }
+@media (prefers-reduced-motion: reduce) { .vl-fcm-g-dispatcher .vl-fc-card { animation: none; } }
 .vl-fc.vl-gift-fc .vl-fc-plate { top: 43%; }   /* (CARD FIXES: 47 → 43 % — the rank line now sits above MEMBER SINCE) */
 .vl-s-g-goldenhour .vl-plate, .vl-fcm-g-goldenhour .vl-fc-plate { background: rgba(58, 22, 34, 0.86); }
 .vl-fcm-g-goldenhour .vl-fc-house, .vl-fcm-g-goldenhour .vl-fc-rank, .vl-fcm-g-goldenhour .vl-fc-since small, .vl-fcm-g-goldenhour .vl-fc-since b, .vl-fcm-g-goldenhour .vl-fc-card { color: #6e2445; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }   /* (the light page: dark ink) */

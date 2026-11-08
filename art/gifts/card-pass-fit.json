@@ -1,0 +1,42 @@
+{
+ "wastelander-glow": [
+  291,
+  198,
+  638,
+  482
+ ],
+ "wastelander-sparks": [
+  373,
+  229,
+  487,
+  403
+ ],
+ "survivor-haze": [
+  312,
+  163,
+  522,
+  490
+ ],
+ "survivor-embers": [
+  0,
+  0,
+  1280,
+  800
+ ],
+ "survivor-sign": [
+  1024,
+  376
+ ],
+ "mostar-sun": [
+  463,
+  36,
+  778,
+  633
+ ],
+ "mostar-sparks": [
+  700,
+  640,
+  600,
+  310
+ ]
+}

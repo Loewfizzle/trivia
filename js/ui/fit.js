@@ -6,6 +6,9 @@
 // card, the strips + the podium (the profile E2E). The name must be the element's FIRST child (a text node); a badge after it stays.
 // Works on any element whose parent gives it its width (a flex child needs min-width: 0).
 const fitted = new WeakMap();
+const fits = new WeakMap();   // (THE CARD PASS: each fitted element's fit — refit(el) runs it again when its box was capped from outside)
+/** fit an already-fitted element again now (its container's width changed by a script — e.g. a full card's plate capped off the hero) */
+export function refit(el) { const f = el && fits.get(el); if (f) f(); }
 // THE SPEED PASS — A FONT THAT ARRIVES LATE (LOBBY FIXES' cloud red: 2 of 42 glowing names overflowing in the lab's GLOWS — "a font-timing
 // flake"): `document.fonts.ready` only waits for the fonts ALREADY loading; a name whose face starts loading after it resolved was fitted on
 // the fallback face, and nothing fitted it again when the real one landed (the box's width doesn't change → no ResizeObserver). Every fitted
@@ -61,6 +64,7 @@ export function fitName(el, o = {}) {
     }
     el.style.whiteSpace = '';
   };
+  fits.set(el, fit);
   const prev = fitted.get(el); if (prev) prev.disconnect();
   if (typeof ResizeObserver !== 'undefined') { let w = -1; const ro = new ResizeObserver(es => { const nw = Math.round(es[0].contentRect.width); if (nw !== w) { w = nw; fit(); } }); ro.observe(el); fitted.set(el, ro); }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit); else fit();

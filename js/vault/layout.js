@@ -12,6 +12,7 @@
 // ONE shared ResizeObserver (the card + its plate), never a layout read in a frame loop. Sightings + FOUNDING MEMBER keep their own layouts.
 // Proof: tests/integration/harbor-e2e/vault.mjs 'cardfit' (every card at 390 / 402 / 430 — founder or not, short + long names, HOST).
 import { GIFT_SPECS } from '../fx/gift-specs.js';
+import { refit } from '../ui/fit.js';
 import { artMap } from '../fx/gift.js';
 import { OC_SPECS, ocMap } from '../fx/oc-specs.js';
 import { PW_SPECS, pwMap } from '../fx/pw-specs.js';
@@ -69,7 +70,7 @@ export function layFull(el) {
   const plate = el.querySelector('.vl-fc-plate'); if (!plate) return;
   const hero = heroBox(el.dataset.card, W, H);
   // 3 · its width: the hero's left edge is the wall (the name fits smaller first — ui/fit.js; the level line is the floor)
-  if (hero) { const mw = `${Math.max(W * 0.34, Math.floor(hero[0] - plate.offsetLeft - gap))}px`; if (plate.style.maxWidth !== mw) plate.style.maxWidth = mw; }
+  if (hero) { const mw = `${Math.max(W * 0.34, Math.floor(hero[0] - plate.offsetLeft - gap))}px`; if (plate.style.maxWidth !== mw) { plate.style.maxWidth = mw; refit(plate.querySelector('.vl-fc-name')); } }   // (THE CARD PASS: the name fits itself again in the capped plate — never past it)
   // 4 · its spot: its own place unless that touches the hero or a top / foot piece → the nearest clear spot in the zone
   if (plate.dataset.top0 == null) plate.dataset.top0 = (plate.offsetTop / H).toFixed(4);   // (its CSS place, as a fraction: the card resizes)
   const top0 = +plate.dataset.top0 * H, pw = plate.offsetWidth, ph = plate.offsetHeight, x = plate.offsetLeft;

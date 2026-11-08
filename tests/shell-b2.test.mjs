@@ -95,14 +95,14 @@ test('GREEN MEANS GREEN: the panel taps until its sheet is up; the second-tab st
 });
 
 // ---- GROUP 1 — THE GIFT CARDS + THE GIFT TOOL (the server half: tests/integration/server.test.mjs "THE GIFT TOOL")
-test('THE GIFT CARDS: 12 one-of-ones (11 giftable + the owner\'s own), real items, never earnable, in THE LAB\'s GIFTS, each with its art + motion', async () => {
+test('THE GIFT CARDS: 19 one-of-ones (18 giftable + the owner\'s own — + THE CARD PASS\'s seven), real items, never earnable, in THE LAB\'s GIFTS, each with its art + motion', async () => {
   const G = await import('../js/core/gift-cards.js'), D = await import('../js/core/dev-cards.js');
   const { ITEM_ROWS, LEVEL_REWARD_ROWS, ACH_ROWS, MILESTONE_ITEMS, SEASONAL_ITEMS } = await import('../api/_lib/catalog.js');
   const { LAB } = await import('../js/vault/catalog.js'), { LAB_TEXT } = await import('../api/_lib/lab-text.js');
   const { GIFT_SPECS } = await import('../js/fx/gift-specs.js');
-  assert.equal(G.GIFT_CARDS.length, 12);
+  assert.equal(G.GIFT_CARDS.length, 19);
   assert.deepEqual([...G.OWNER_GIFTS], ['card-gift-anarchist']);
-  assert.equal(G.GIFTABLE.length, 11); assert.ok(!G.isGiftable('card-gift-anarchist') && G.isGiftable('card-gift-enforcer'));
+  assert.equal(G.GIFTABLE.length, 18); assert.ok(!G.isGiftable('card-gift-anarchist') && G.isGiftable('card-gift-enforcer'));
   const strip = read('js/vault/strip.js'), index = read('js/fx/index.js'), css = read('css/vault.css');
   for (const id of G.GIFT_CARDS) {
     assert.ok(D.isOneOfOne(id) && !D.isDevCard(id), `${id}: a 1 of 1 (not a dev card)`);

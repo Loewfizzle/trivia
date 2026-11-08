@@ -112,7 +112,7 @@ function clipBox(c, s, bx, by, bw, bh) {
 }
 const DRAW = {
   breathe(c, L, M, t, s, Q, F) {
-    const [x, y] = P(M, L.at[0], L.at[1]), r = L.r * M.k * 2, u = 0.5 + 0.5 * Math.sin(t * TAU / L.period);
+    const [x, y] = P(M, L.at[0], L.at[1]), r = L.r * M.k * 2, u = 0.5 + 0.5 * Math.sin(t * TAU / L.period + (L.phase || 0));
     let a = L.a[0] + (L.a[1] - L.a[0]) * u;
     if (L.flicker && !F.still) { const ph = Math.floor(t * 9), n = fract(Math.sin(ph * 12.9898 + L.at[0]) * 43758.5453); if (n < L.flicker * 0.18) a *= 0.25 + n; }
     c.globalCompositeOperation = 'lighter'; stamp(c, glow(L.rgb, 0.12), x, y, r, a * F.calmA);
@@ -233,6 +233,35 @@ const DRAW = {
       const u = F.still ? 0 : fract(t / L.period), a = -Math.sin(smooth(0, 0.35, u) * Math.PI / 2) * (1 - smooth(0.55, 0.8, u)) * L.amp;
       c.save(); c.globalAlpha = 0.35 * Math.min(1, -a / L.amp * 2); c.fillStyle = 'rgb(0,0,0)'; c.fillRect(x + 1, y + 2, dw, dh); c.restore();
       c.translate(x, y + dh); c.rotate(a); c.drawImage(img, sx, sy, sw, sh, 0, -dh, dw, dh);
+    } else if (L.mode === 'ripple') {   // (THE CARD PASS: the chequered flag + the torn paper's edge — thin slices of the piece, each shifted a few px
+      //  on a travelling wave; axis 'y' = columns moving up / down (the flag), 'x' = rows moving side to side (a torn edge fluttering))
+      const n = L.slices || 24, amp = L.amp * M.k * (F.full ? 1 : 0.6), ph = F.still ? 0 : t * (L.speed || 3);
+      for (let i = 0; i < n; i++) {
+        const f0 = i / n, f1 = (i + 1) / n, w = Math.sin(ph - f0 * (L.k || 6)) * amp;
+        if (L.axis === 'x') c.drawImage(img, sx, sy + sh * f0, sw, sh * (f1 - f0) + 0.5, x + w, y + dh * f0, dw, dh * (f1 - f0) + 0.6);
+        else c.drawImage(img, sx + sw * f0, sy, sw * (f1 - f0) + 0.5, sh, x + dw * f0, y + w, dw * (f1 - f0) + 0.6, dh);
+      }
+      if (L.shade && !F.still) {   // (a soft light band rolling along it — the cloth's fold catching the light)
+        const u = fract(t / (L.shadePeriod || 2.6)), bx2 = x - dw * 0.3 + u * dw * 1.6;
+        c.globalCompositeOperation = 'lighter'; c.globalAlpha = L.shade * F.calmA; c.drawImage(tinted('255,255,255', 'h'), bx2 - dw * 0.15, y, dw * 0.3, dh);
+      }
+    } else if (L.mode === 'jiggle') {   // (THE CARD PASS: the ransom letters, one by one — a pop + a wobble round the piece's centre, scaled up
+      //  enough to cover its own spot: no ghost of it shows)
+      const u = F.still ? 99 : (t - (L.i || 0) * (L.step || 0.35)) % L.period;
+      if (!(u >= 0 && u < 0.9)) { c.restore(); return; }
+      const e = Math.exp(-u * 4.5), a = Math.sin(u * 22) * L.amp * e, sc = 1.06 + 0.08 * e;
+      c.translate(x + dw / 2, y + dh / 2); c.rotate(a); c.scale(sc, sc); c.drawImage(img, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
+    } else if (L.mode === 'flutter') {   // (THE CARD PASS: the tape strips + the stars — a small sway round a pivot, the piece cut with its own
+      //  margin (paper) so the move covers its spot)
+      const u = F.still ? 0 : t, a = (Math.sin(u * TAU / L.period) * 0.7 + Math.sin(u * TAU / L.period * 2.3 + 1) * 0.3) * L.amp;
+      const [pxv, pyv] = L.piv ? P(M, L.piv[0], L.piv[1]) : [x + dw / 2, y + dh / 2];
+      c.translate(pxv, pyv); c.rotate(a); c.scale(1.02, 1.02 + Math.abs(a) * 0.5); c.drawImage(img, sx, sy, sw, sh, x - pxv, y - pyv, dw, dh);
+    } else if (L.mode === 'creak') {   // (THE CARD PASS: the radiation sign — a hair of a creak round its foot, clipped to its own shape)
+      const u = F.still ? 0 : t, a = (Math.sin(u * TAU / L.period) * 0.75 + Math.sin(u * TAU / (L.period * 0.43)) * 0.25) * L.amp;
+      const [pxv, pyv] = P(M, L.piv[0], L.piv[1]);
+      c.translate(pxv, pyv); c.rotate(a); c.translate(-pxv, -pyv);
+      if (L.poly) { c.beginPath(); L.poly.forEach(([qx, qy], i) => { const [vx, vy] = P(M, qx, qy); i ? c.lineTo(vx, vy) : c.moveTo(vx, vy); }); c.closePath(); c.clip(); }
+      c.drawImage(img, sx, sy, sw, sh, x, y, dw, dh);
     } else {   // jitter: a punk frame-step wobble (whole steps, never smooth)
       const k = F.still ? 0 : Math.floor(t / L.period), r = rng(k + 1), j = L.amp * M.k * (F.full ? 1 : 0.6);
       c.translate((r() - 0.5) * 2 * j, (r() - 0.5) * 2 * j); c.drawImage(img, sx, sy, sw, sh, x, y, dw, dh);
@@ -386,6 +415,138 @@ const DRAW = {
     c.save(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.translate(x, y); c.rotate(rot); c.scale(sc, sc);
     c.drawImage(img, -bw * M.k / 2, -bh * M.k / 2, bw * M.k, bh * M.k); c.restore();
     if (u < 0.3) { c.globalCompositeOperation = 'lighter'; stamp(c, sparkle('255,255,255'), x + bw * M.k * 0.42, y - bh * M.k * 0.4, bw * M.k * 0.9 * Math.sin(u / 0.3 * Math.PI), a * F.calmA); }
+  },
+  // ---- THE CARD PASS (Nov 7) — the seven gifts' pieces. FX PLATES (Grok's light on pure black, cut to their light: build-card-pass-art.py)
+  //      are drawn 'lighter' — black adds nothing, so no box can show (the OVERCLOCK cards' method)
+  //   plate { art, box, mode: 'breathe'|'flicker'|'burst'|'rise', a: [lo, hi], period, pts ('burst': the centres it crackles at, in turn), speed ('rise': art px/s) }
+  plate(c, L, M, t, s, Q, F) {
+    const img = image(`${GIFT_ART}${L.art}.webp`); if (!img) return;
+    const [bx, by, bw, bh] = L.box, lo = L.a[0], hi = L.a[1];
+    c.globalCompositeOperation = 'lighter';
+    if (L.mode === 'rise') {   // (the embers: the plate scrolls UP, two copies wrapping, a slow sway)
+      const off = F.still ? 0 : (t * L.speed) % bh, sw = F.still ? 0 : Math.sin(t * 0.37) * 10;
+      c.globalAlpha = hi * F.calmA;
+      for (const k of [0, 1]) { const [x, y] = P(M, bx + sw, by - off + k * bh); c.drawImage(img, x, y, bw * M.k, bh * M.k); }
+      return;
+    }
+    if (L.mode === 'burst') {   // (the sparks: a crackle every period at the next point — a fast flicker fading over ~0.5 s)
+      if (F.still) return;
+      const k = Math.floor(t / L.period), u = t - k * L.period, D = L.dur || 0.55; if (u > D) return;
+      const pts = L.pts || [[bx + bw / 2, by + bh / 2]], [cx, cy] = pts[k % pts.length], fl = 0.55 + 0.45 * Math.sin(u * 140) * Math.sin(u * 61);
+      const sc = (L.scale || 1) * (0.9 + 0.2 * rng(k + 9)()), w = bw * sc, h = bh * sc, [x, y] = P(M, cx - w / 2, cy - h / 2);
+      c.globalAlpha = hi * (1 - u / D) * fl * F.calmA; c.drawImage(img, x, y, w * M.k, h * M.k); return;
+    }
+    let a;
+    if (L.mode === 'flicker') {   // (a CRT's glow: steady, a quick dip now + then, a slow roll)
+      a = hi * (0.92 + 0.08 * Math.sin(t * 2.3));
+      if (!F.still) { const ph = Math.floor(t * 14), n = fract(Math.sin(ph * 12.9898 + bx) * 43758.5453); if (n < 0.06) a = lo + (hi - lo) * n * 8; }
+    } else a = lo + (hi - lo) * (F.still ? 0.5 : 0.5 + 0.5 * Math.sin(t * TAU / L.period + (L.phase || 0)));
+    const [x, y] = P(M, bx, by); c.globalAlpha = a * F.calmA; c.drawImage(img, x, y, bw * M.k, bh * M.k);
+  },
+  //   blinds { box, angle, gap, width, a, speed, sweep: { period, dur, rgb, a, w } } — the venetian blinds' shadows drifting (dark bands
+  //   sliding slowly across the slats' own lines) + now + then a car's headlights sweeping through the slats (bright bands in a moving window)
+  blinds(c, L, M, t, s, Q, F) {
+    const [bx, by, bw, bh] = L.box, [x0, y0] = P(M, bx, by), w = bw * M.k, h = bh * M.k, cx = x0 + w / 2, cy = y0 + h / 2, R = Math.hypot(w, h) / 2 + 4;
+    const gap = L.gap * M.k, bandW = L.width * M.k, off = F.still ? 0 : ((t * L.speed) % L.gap) * M.k;
+    c.save(); clipBox(c, s, x0, y0, w, h); c.translate(cx, cy); c.rotate(L.angle);
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = L.a * (F.full ? 1 : 0.8) * (0.85 + 0.15 * Math.sin(t * 0.5)); c.fillStyle = 'rgb(0,0,0)';
+    for (let y = -R - gap + off; y < R; y += gap) c.fillRect(-R, y, R * 2, bandW);
+    const S = L.sweep;
+    if (S && !F.still) {
+      const u = (t % S.period) / S.dur;
+      if (u >= 0 && u <= 1) {
+        const ww = S.w * M.k, wx = -R - ww + u * (R * 2 + ww * 2), a = Math.sin(u * Math.PI) * S.a * F.calmA;
+        c.globalCompositeOperation = 'lighter'; c.globalAlpha = a;
+        for (let y = -R - gap + off + bandW; y < R; y += gap) c.drawImage(tinted(S.rgb, 'h'), wx - ww, y, ww * 2, gap - bandW);
+      }
+    }
+    c.restore();
+  },
+  //   siren { pts: [[x, y, rgb]…], r, a, period } — a squad car's lights outside: each colour double-flashes in its own share of the period
+  siren(c, L, M, t, s, Q, F) {
+    const u = F.still ? 0.1 : fract(t / L.period);
+    c.globalCompositeOperation = 'lighter';
+    L.pts.forEach(([px, py, rgb], i) => {
+      const v = fract(u - i / L.pts.length) * L.pts.length; if (v > 1) return;
+      const f = Math.max(0, Math.sin(v * Math.PI * 2)) ** 1.5;   // (two flashes in its share)
+      const [x, y] = P(M, px, py); stamp(c, glow(rgb, 0.1), x, y, L.r * M.k * 2, f * L.a * F.calmA);
+    });
+  },
+  //   grain { a } — film grain: a baked noise tile stepping to a new offset 12 times a second
+  grain(c, L, M, t, s, Q, F) {
+    const tile = sprite('gift-grain', 192, 192, (g, w, h) => { const r = rng(31); for (let i = 0; i < 2600; i++) { const v = r() < 0.5 ? 0 : 255; g.fillStyle = `rgba(${v},${v},${v},${(0.25 + r() * 0.75).toFixed(2)})`; g.fillRect(r() * w, r() * h, 1 + r(), 1 + r()); } });
+    const k = F.still ? 0 : Math.floor(t * 12), r = rng(k + 3), ox = -r() * 192, oy = -r() * 192;
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = L.a * (F.full ? 1 : 0.7);
+    for (let y = oy; y < s.h; y += 192) for (let x = ox; x < s.w; x += 192) c.drawImage(tile, x, y, 192, 192);
+  },
+  //   terminal { screen: [x, y], lines, size, lh, ink, cps, gap, hold } — the game TYPES on the blank CRT, line by line (each line baked once
+  //   as a sprite — never text in the GL frame — and revealed a character at a time by a clip), the block cursor blinking after the last letter
+  terminal(c, L, M, t, s, Q, F) {
+    const [sx, sy] = L.screen, n = L.lines.length, per = [];
+    let T = 0; for (const ln of L.lines) { per.push([T, Math.max(0.05, ln.length / L.cps)]); T += ln.length / L.cps + L.gap; }
+    const cycle = T + L.hold, u = F.still ? T + 1 : t % cycle;
+    const PX = 64, cw = PX * 0.6, scale = L.size / PX;   // (the bake: 64 px a line, monospace → 0.6 em a character)
+    c.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < n; i++) {
+      const [t0, d] = per[i]; if (u < t0) break;
+      const ln = L.lines[i], typing = u - t0 < d, shown = typing ? Math.floor((u - t0) / d * ln.length) : ln.length;
+      const spr = sprite(`gift-term:${ln}:${L.ink}`, Math.ceil(cw * ln.length + 24), PX + 24, (g, w, h) => {
+        g.font = `800 ${PX}px "JetBrains Mono", Consolas, monospace`; g.textBaseline = 'middle'; g.fillStyle = L.ink;
+        g.shadowColor = L.ink; g.shadowBlur = 5; g.fillText(ln, 12, h / 2);
+      });
+      const [x, y] = P(M, sx, sy + i * L.lh), ww = spr.width * scale * M.k, hh = spr.height * scale * M.k;
+      if (shown > 0) { c.save(); c.beginPath(); c.rect(x, y, (12 + cw * shown) * scale * M.k, hh); c.clip(); c.globalAlpha = 0.94; c.drawImage(spr, x, y, ww, hh); c.restore(); }
+      const next = per[i + 1], cursorHere = typing || (i === n - 1) || (next && u < next[0]);
+      if (cursorHere && (F.still || fract(t * 1.6) < 0.55)) {   // (the cursor: a block after the last character)
+        c.globalAlpha = 0.85; c.fillStyle = L.ink;
+        const ch = PX * 0.74 * scale * M.k, cx2 = x + (12 + cw * shown) * scale * M.k + 1.5 * M.k;
+        c.fillRect(cx2, y + hh / 2 - ch / 2, cw * 0.8 * scale * M.k, ch);
+      }
+      if (typing) break;
+    }
+  },
+  //   rush { at, ang: [a0, a1], r: [r0, r1], n, rgb, a, len, speed } — speed lines: bright dashes racing out along the rays from a focus
+  rush(c, L, M, t, s, Q, F) {
+    const r = rng(41), [fx, fy] = P(M, L.at[0], L.at[1]); c.globalCompositeOperation = 'lighter';
+    const n = Math.round(L.n * (F.full ? 1 : 0.6));
+    for (let i = 0; i < n; i++) {
+      const ang = L.ang[0] + r() * (L.ang[1] - L.ang[0]), sp = 0.6 + r() * 0.8, ph = r(), lr = 0.6 + 0.8 * r();
+      const u = F.still ? ph : fract(ph + t * L.speed * sp), d = (L.r[0] + u * (L.r[1] - L.r[0])) * M.k, len = L.len * M.k * lr;
+      const a = Math.sin(u * Math.PI) * L.a * F.calmA;
+      c.save(); c.translate(fx + Math.cos(ang) * d, fy + Math.sin(ang) * d); c.rotate(ang); c.globalAlpha = a; c.drawImage(tinted(L.rgb, 'h'), 0, -3.2 * M.k, len, 6.4 * M.k); c.restore();
+    }
+  },
+  //   shimmer { box, n, rgb, a, len } — the river: short horizontal glints flickering in and out (the sun on the water)
+  shimmer(c, L, M, t, s, Q, F) {
+    const r = rng(53), n = Math.round(L.n * (F.full ? 1 : 0.6)); c.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < n; i++) {
+      const x = L.box[0] + r() * L.box[2], y = L.box[1] + r() * L.box[3], ph = r(), per = 1.2 + r() * 1.8, len = L.len * (0.5 + r());
+      const u = F.still ? ph : fract(ph + t / per), a = Math.sin(u * Math.PI) ** 2 * L.a * F.calmA; if (a < 0.02) continue;
+      const [px, py] = P(M, x + (F.still ? 0 : Math.sin(t * 0.6 + i) * 6), y);
+      c.globalAlpha = a; c.drawImage(tinted(L.rgb, 'h'), px - len * M.k / 2, py - 1.4 * M.k, len * M.k, 2.8 * M.k);
+    }
+  },
+  //   trace { ell: [cx, cy, rx, ry, rot], from, to (rad), rgb, w, dur, hold, period } — a red marker going round the circle: a fresh-ink line
+  //   drawing itself on (the circle under it is the art's own), holding, then fading — first as the card appears
+  trace(c, L, M, t, s, Q, F) {
+    const u = F.still ? L.dur + 0.1 : t % L.period; if (u > L.dur + L.hold + 0.8) return;
+    const p = smooth(0, L.dur, u), fade = u > L.dur + L.hold ? 1 - (u - L.dur - L.hold) / 0.8 : 1;
+    if (p <= 0 || fade <= 0) return;
+    const [cx, cy, rx, ry, rot] = L.ell, end = L.from + (L.to - L.from) * p, N = Math.max(8, Math.ceil(64 * p));
+    const at = a => { const ex = rx * Math.cos(a), ey = ry * Math.sin(a); return P(M, cx + ex * Math.cos(rot) - ey * Math.sin(rot), cy + ex * Math.sin(rot) + ey * Math.cos(rot)); };
+    c.save(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 0.9 * fade * (F.full ? 1 : 0.8); c.strokeStyle = `rgb(${L.rgb})`;
+    c.lineWidth = L.w * M.k; c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath();
+    for (let i = 0; i <= N; i++) { const [x, y] = at(L.from + (end - L.from) * i / N); i ? c.lineTo(x, y) : c.moveTo(x, y); }
+    c.stroke();
+    if (p < 1) { const [x, y] = at(end); c.globalCompositeOperation = 'lighter'; stamp(c, glow('255,140,150', 0.3), x, y, L.w * M.k * 9, 0.7 * fade); }   // (the nib)
+    c.restore();
+  },
+  //   flicker { period, rgb, a, box? } — the photocopier: now + then two quick frames of light across the print
+  flicker(c, L, M, t, s, Q, F) {
+    if (F.still) return; const u = t % L.period; if (u > 0.22) return;
+    if (!((u < 0.05) || (u > 0.11 && u < 0.16))) return;
+    const [bx, by, bw, bh] = L.box || [0, 0, 1280, 800], [x, y] = P(M, bx, by);
+    c.globalCompositeOperation = 'lighter'; c.globalAlpha = L.a * F.calmA; c.fillStyle = `rgb(${L.rgb})`; c.fillRect(x, y, bw * M.k, bh * M.k);
   },
 };
 

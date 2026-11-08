@@ -152,4 +152,110 @@ export const GIFT_SPECS = Object.freeze({
     { t: 'puff', at: [878, 412], rgb: '235,248,255', period: 3.6, dir: -1 },
     { t: 'sweep', box: [840, 60, 440, 740], period: 6.5, dur: 1.4, angle: -1.2, rgb: '210,245,255', width: 34, a: 0.45 },
   ] },
+  // ---- THE CARD PASS (Nov 7) — SEVEN 1-OF-1 GIFTS (the owner gives them in /admin → GIFTS; their names are the server's). Every one has its
+  // OWN strip picture (scripts/build-card-pass-art.py) with the hero far RIGHT — THE SLIM-CARD LONG-NAME STANDARD (centre ≈ 0.76–0.82 across,
+  // the left free for a 12-letter name's plate). FX plates (Grok's light on black) are drawn 'lighter' (`plate`).
+  //   plate   { art, box, mode: 'breathe'|'flicker'|'burst'|'rise', a: [lo, hi], period, pts, speed }
+  //   blinds  { box, angle, gap, width, a, speed, sweep: { period, dur, rgb, a, w } }  — the venetian blinds' shadows drifting + a car's lights
+  //   siren   { pts: [[x, y, rgb]…], r, a, period }      grain { a }      flicker { period, rgb, a, box }
+  //   terminal { screen: [x, y], lines, size, lh, ink, cps, gap, hold }               — the game TYPES on the CRT
+  //   rush    { at, ang, r, n, rgb, a, len, speed }       shimmer { box, n, rgb, a, len }
+  //   trace   { ell: [cx, cy, rx, ry, rot], from, to, rgb, w, dur, hold, period }      — the marker going round the circle
+  //   region modes 'ripple' { axis, slices, amp, k, speed, shade } · 'jiggle' { i, step, period, amp } · 'flutter' { piv, amp, period } ·
+  //          'creak' { piv, amp, period, poly }
+  // the noir dispatcher card — noir: the blinds' shadows drift, a car's lights sweep through the slats, the squad car's red + blue outside, smoke, grain
+  'card-gift-dispatcher': { art: 'dispatcher', hero: [705, 200, 490, 500], heroFull: [705, 200, 490, 500], strip: [50, 50], layers: [
+    { t: 'blinds', box: [380, 0, 900, 800], angle: -0.42, gap: 50, width: 16, a: 0.16, speed: 3, sweep: { period: 9, dur: 2.2, rgb: '255,236,205', a: 0.22, w: 220 } },
+    { t: 'breathe', at: [1240, 420], r: 260, rgb: '255,40,50', a: [0.06, 0.18], period: 3.1 },
+    { t: 'siren', pts: [[1225, 470, '255,40,50'], [700, 430, '60,110,255']], r: 320, a: 0.45, period: 1.6 },
+    { t: 'smoke', box: [420, 380, 860, 420], n: 6, rgb: '200,200,210', a: 0.06 },
+    { t: 'grain', a: 0.07 },
+  ], stripArt: { art: 'dispatcher-strip', h: 256, crop: [50, 50], hero: [843, 0, 273, 252], layers: [   // (the full picture × 0.58 at x 425, from art y 245)
+    { t: 'blinds', box: [700, 0, 580, 256], angle: -0.42, gap: 29, width: 9, a: 0.14, speed: 1.8, sweep: { period: 9.5, dur: 2.2, rgb: '255,236,205', a: 0.2, w: 140 } },
+    { t: 'siren', pts: [[1135, 130, '255,40,50'], [831, 107, '60,110,255']], r: 180, a: 0.38, period: 1.6 },
+    { t: 'grain', a: 0.05 },
+  ] } },
+  // the punk stencil card — the punk stencil: the halo breathes, the torn edges flutter, the drips run, the pin + sparkles glint, the photocopier flickers
+  'card-gift-outoforder': { art: 'outoforder', hero: [730, 140, 300, 350], heroFull: [725, 130, 320, 370], strip: [50, 50], layers: [
+    { t: 'breathe', at: [880, 300], r: 420, rgb: '255,60,200', a: [0.06, 0.2], period: 4.2 },
+    { t: 'region', src: [505, 30, 70, 560], mode: 'ripple', axis: 'x', slices: 28, amp: 3, k: 7, speed: 2.2 },
+    { t: 'region', src: [1035, 360, 245, 80], mode: 'ripple', axis: 'y', slices: 20, amp: 2.5, k: 5, speed: 2.6 },
+    { t: 'drips', pts: [[722, 222, 46], [760, 226, 30], [1092, 214, 50], [1160, 212, 34], [935, 120, 30]], rgb: '30,14,28' },
+    { t: 'drips', pts: [[772, 528, 40], [1186, 562, 52]], rgb: '200,240,60' },
+    { t: 'twinkle', pts: [[590, 92], [700, 58], [648, 296], [668, 326], [582, 240], [1218, 62], [1255, 146], [1076, 322], [982, 160], [1118, 432], [573, 540], [742, 546]], rgb: '255,250,255', size: 26, period: 2 },
+    { t: 'sweep', box: [1092, 448, 112, 50], period: 4.6, dur: 0.6, angle: 0, rgb: '255,255,255', width: 40, a: 0.95, star: true },
+    { t: 'bar', box: [690, 100, 590, 700], period: 11, rgb: '235,255,200', width: 60, a: 0.16 },
+    { t: 'flicker', period: 8.5, rgb: '255,255,255', a: 0.08, box: [690, 120, 590, 680] },
+    { t: 'grain', a: 0.05 },
+  ], stripArt: { art: 'outoforder-strip', h: 256, crop: [50, 50], hero: [962, 40, 133, 195], layers: [   // (the owner's strip, moved 45 px left)
+    { t: 'breathe', at: [1030, 120], r: 230, rgb: '255,60,200', a: [0.05, 0.18], period: 4.2 },
+    { t: 'twinkle', pts: [[615, 42], [602, 76], [775, 80], [622, 180], [1135, 40]], rgb: '255,250,255', size: 22, period: 2.2 },
+    { t: 'sweep', box: [1045, 192, 155, 44], period: 4.6, dur: 0.6, angle: 0, rgb: '255,255,255', width: 34, a: 0.9, star: true },
+  ] } },
+  // the gig-poster card — the gig poster (a LIGHT card): the ransom letters jiggle one by one, the red marker goes round the circle, the tape flutters,
+  // the stars wobble
+  // (its picture slid 80 px down — the letters clear of the 1 OF 1 badge + the top line: build-card-pass-art.py NG_DY; every number below is in those px)
+  'card-gift-notguilty': { art: 'notguilty', hero: [745, 210, 330, 360], heroFull: [745, 210, 330, 360], strip: [50, 50], layers: [
+    ...[[560, 142, 60, 62], [627, 140, 50, 58], [677, 140, 60, 65], [567, 212, 50, 55], [617, 207, 55, 60], [672, 212, 52, 60], [725, 210, 50, 58], [772, 215, 52, 52], [825, 210, 55, 62]]
+      .map((src, i) => ({ t: 'region', src, mode: 'jiggle', i, step: 0.32, period: 6, amp: 0.16 })),
+    { t: 'trace', ell: [940, 400, 190, 230, 0.06], from: 3.38, to: 8.94, rgb: '232,64,84', w: 5, dur: 1.3, hold: 2.2, period: 9 },
+    { t: 'region', src: [726, 102, 130, 76], mode: 'flutter', piv: [740, 165], amp: 0.03, period: 3.4 },
+    { t: 'region', src: [1022, 632, 156, 96], mode: 'flutter', piv: [1030, 660], amp: 0.035, period: 3.9 },
+    { t: 'region', src: [1144, 284, 70, 70], mode: 'flutter', amp: 0.12, period: 2.4 },
+    { t: 'region', src: [636, 676, 68, 64], mode: 'flutter', amp: 0.12, period: 2.9 },
+  ], stripArt: { art: 'notguilty-strip', h: 256, crop: [50, 50], hero: [935, 48, 150, 205], layers: [   // (the owner's strip, moved 40 px left)
+    { t: 'trace', ell: [1040, 140, 120, 150, 0.04], from: 3.6, to: 8.9, rgb: '232,64,84', w: 4, dur: 1.4, hold: 2.4, period: 10 },
+  ] } },
+  // the terminal card — Grok's bunker terminal (Card art generated with Grok Imagine): the game TYPES the survivor file on the blank screen, the
+  // cursor blinks, the CRT's glow flickers, sparks crackle at the screen's edge. NOTHING of any game's trademarks.
+  'card-gift-wastelander': { art: 'wastelander', hero: [742, 236, 292, 236], heroFull: [700, 170, 410, 480], strip: [50, 50], layers: [
+    { t: 'breathe', at: [888, 354], r: 380, rgb: '90,255,120', a: [0.04, 0.1], period: 3.7, flicker: 0.5 },
+    { t: 'plate', art: 'wastelander-glow', box: [693, 207, 390, 295], mode: 'flicker', a: [0.12, 0.38] },
+    { t: 'terminal', screen: [764, 252], lines: ['> SURVIVOR FILE', '> RADS ...... 0', '> CAPS .. 1,024', '> STATUS LEGEND', '> _'], size: 30, lh: 39, ink: '#0a3a12', cps: 16, gap: 0.35, hold: 6 },
+    { t: 'plate', art: 'wastelander-sparks', box: [0, 0, 200, 166], mode: 'burst', pts: [[1036, 240], [744, 468], [1040, 470]], period: 4.3, dur: 0.5, a: [0, 0.9] },
+    { t: 'motes', box: [500, 40, 780, 760], n: 18, rgb: '170,255,170', size: [1, 2.5], dir: 'drift', speed: 5, a: 0.35, kind: 'dot', tw: 0.4 },
+  ], stripArt: { art: 'wastelander-strip', h: 256, crop: [50, 50], hero: [865, 36, 228, 184], layers: [   // (the full picture × 0.78 at x 286, from art y 190)
+    { t: 'breathe', at: [979, 128], r: 300, rgb: '90,255,120', a: [0.04, 0.1], period: 3.7, flicker: 0.5 },
+    { t: 'plate', art: 'wastelander-glow', box: [827, 13, 304, 230], mode: 'flicker', a: [0.1, 0.32] },
+    { t: 'terminal', screen: [882, 49], lines: ['> SURVIVOR FILE', '> RADS ...... 0', '> CAPS .. 1,024', '> STATUS LEGEND', '> _'], size: 23.4, lh: 30.4, ink: '#0a3a12', cps: 16, gap: 0.35, hold: 6 },
+    { t: 'plate', art: 'wastelander-sparks', box: [0, 0, 156, 130], mode: 'burst', pts: [[1094, 39], [866, 217]], period: 5.2, dur: 0.5, a: [0, 0.8] },
+  ] } },
+  // the sunset card — Grok's radioactive sunset (Card art generated with Grok Imagine): embers drift up, the haze breathes on the sun, the sign
+  // creaks a hair. NOTHING of any game's trademarks.
+  'card-gift-survivor': { art: 'survivor', hero: [858, 218, 343, 330], heroFull: [850, 205, 360, 410], strip: [50, 50], layers: [
+    { t: 'breathe', at: [815, 268], r: 300, rgb: '255,150,60', a: [0.05, 0.14], period: 5.5 },
+    { t: 'plate', art: 'survivor-haze', box: [605, 75, 420, 394], mode: 'breathe', period: 5.5, a: [0.25, 0.6] },
+    { t: 'haze', box: [560, 250, 720, 130], rgb: '255,200,140', a: 0.05 },
+    { t: 'region', src: [850, 210, 360, 400], mode: 'creak', piv: [1030, 600], amp: 0.007, period: 4.2, poly: [[1030, 212], [1208, 382], [1030, 553], [852, 382]] },
+    { t: 'plate', art: 'survivor-embers', box: [0, 0, 1280, 800], mode: 'rise', speed: 22, a: [0, 0.75] },
+    { t: 'motes', box: [500, 300, 780, 500], n: 16, rgb: '255,150,60', size: [1.5, 3.5], dir: 'up', speed: 18, a: 0.7, kind: 'spark', tw: 0.7 },
+  ], stripArt: { art: 'survivor-strip', h: 256, crop: [50, 50], hero: [878, 11, 247, 244], layers: [   // (the full picture × 0.74 at x 242, from art y 203)
+    { t: 'plate', art: 'survivor-haze', box: [690, -95, 311, 292], mode: 'breathe', period: 5.5, a: [0.2, 0.5] },
+    { t: 'region', src: [866, 3, 276, 253], mode: 'creak', piv: [1004, 294], amp: 0.007, period: 4.2, poly: [[1004, 11], [1136, 132], [1004, 259], [872, 132]] },
+    { t: 'motes', box: [560, 0, 720, 256], n: 14, rgb: '255,150,60', size: [1.2, 3], dir: 'up', speed: 14, a: 0.7, kind: 'spark', tw: 0.7 },
+  ] } },
+  // the flag card — Bosnia's flag: the chequered flag ripples, the stars twinkle in turn, the speed lines rush. Its strip = THE FLAG STRIP (shared
+  // with the Old Bridge card): the stars twinkle, a sparkle or two
+  'card-gift-zadomovinu': { art: 'zadomovinu', hero: [870, 130, 270, 330], heroFull: [870, 130, 270, 330], strip: [50, 50], layers: [
+    { t: 'rush', at: [1150, 330], ang: [2.72, 3.48], r: [380, 1250], n: 26, rgb: '220,235,255', a: 0.55, len: 160, speed: 0.55 },
+    { t: 'region', src: [740, 700, 540, 100], mode: 'ripple', axis: 'y', slices: 30, amp: 5, k: 7, speed: 3, shade: 0.12 },
+    { t: 'twinkle', pts: [[600, 17], [695, 113], [789, 207], [1263, 681]], rgb: '255,255,255', size: 34, period: 2.2 },
+    { t: 'twinkle', pts: [[740, 60], [1210, 110], [1240, 450], [1000, 40]], rgb: '255,250,210', size: 22, period: 2.7 },
+  ], stripArt: { art: 'mostar-strip', h: 256, crop: [50, 50], hero: [958, 15, 135, 190], layers: [   // (the owner's flag strip, moved 100 px left)
+    { t: 'twinkle', pts: [[612, 32], [652, 76], [695, 116], [737, 160], [778, 200], [822, 242]], rgb: '255,255,255', size: 22, period: 2.4 },
+    { t: 'twinkle', pts: [[520, 66], [725, 30], [905, 82], [1138, 80], [1048, 165]], rgb: '255,255,235', size: 18, period: 2.8 },
+  ] } },
+  // the Old Bridge card — Grok's golden-hour Mostar + him (Background art generated with Grok Imagine): the sun's flare breathes behind his head, sparks
+  // spray off the race car, the river shimmers. Its strip = THE FLAG STRIP
+  'card-gift-starimost': { art: 'starimost', hero: [875, 135, 265, 320], heroFull: [875, 135, 265, 320], strip: [50, 50], layers: [
+    { t: 'breathe', at: [852, 352], r: 260, rgb: '255,170,80', a: [0.06, 0.16], period: 4.6 },
+    { t: 'plate', art: 'mostar-sun', box: [560, 115, 584, 475], mode: 'breathe', period: 4.6, a: [0.22, 0.5] },
+    { t: 'shimmer', box: [380, 505, 480, 135], n: 34, rgb: '255,214,150', a: 0.6, len: 26 },
+    { t: 'plate', art: 'mostar-sparks', box: [690, 560, 600, 310], mode: 'breathe', period: 0.9, a: [0.3, 0.8] },
+    { t: 'streaks', box: [700, 640, 520, 100], n: 10, rgb: '255,200,120', a: 0.45 },
+    { t: 'motes', box: [700, 630, 500, 120], n: 18, rgb: '255,190,90', size: [1.5, 3.5], dir: 'up', speed: 30, a: 0.85, kind: 'spark', tw: 0.8 },
+  ], stripArt: { art: 'mostar-strip', h: 256, crop: [50, 50], hero: [958, 15, 135, 190], layers: [
+    { t: 'twinkle', pts: [[612, 32], [652, 76], [695, 116], [737, 160], [778, 200], [822, 242]], rgb: '255,255,255', size: 22, period: 2.4 },
+    { t: 'twinkle', pts: [[520, 66], [725, 30], [905, 82], [1138, 80], [1048, 165]], rgb: '255,255,235', size: 18, period: 2.8 },
+  ] } },
 });

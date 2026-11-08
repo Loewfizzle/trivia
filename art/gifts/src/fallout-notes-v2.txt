@@ -1,0 +1,20 @@
+FALLOUT-STYLE CARDS - notes v2 (Nov 7 2026, 2:58 PM EST). This file replaces notes.txt; the original notes.txt is kept unchanged.
+
+TOOL: Grok Imagine (Grok Bot's built-in GenerateImage), free tier. Nothing paid, no trial, no payment details.
+USAGE TERMS (checked live on Nov 7 2026 at https://x.ai/legal/terms-of-service, "Terms of Service - Consumer", last updated Oct 27 2026, SpaceX Super Intelligence LLC):
+ - Sec. 4: "as between you and SpaceXSI, you retain your ownership rights to the User Content" (Input + Output).
+ - "When using Output or SpaceXSI's name, logos, trademarks, or other brand elements, you are required to obtain our permission and attribute your generation of the Output to the Service, as detailed in our Brand Guidelines." Suggested credit: "Card art generated with Grok Imagine."
+ - The terms also say an AI-generated disclosure may be required or applied, that outputs may not be unique, and that you are responsible for how you use the outputs.
+Everything here is original AI art: no Fallout/Bethesda property, text, logos, people, weapons or mushroom clouds.
+All images are 1280x720 PNG (generated at 16:9 and upscaled with Lanczos). On the FX plates, values <=10 were set to 0, so the backgrounds are pure #000 and the corners are exactly 0.
+
+USE THESE 9:
+ CARD 1  survivor-master.png: sun at ~70% across, 33% down (higher than the 50% asked for). Radiation sign (plain symbol, no words) at ~82%, 47%, which makes the sign the hero of the slim strip. Some faint towers at 15-35% across.
+         I made one backup (with the sun on the horizon) and REJECTED it: the sun landed at 55% and the whole left sky was bright orange. It was not delivered.
+         survivor-fx-embers.png, survivor-fx-haze.png (bloom centred ~50%, 52%).
+ CARD 2  terminal-master-backup.png  <- USE THIS (the original screen sat at 62%, 42%). Blank screen centred ~69% across, 39% down, and it is the brightest thing in the image. Left half near-black. Cable at ~73%, 80-100% down.
+         terminal-fx-glow.png (rounded-rectangle glow, centred), terminal-fx-sparks.png (centred burst).
+ CARD 3  atomic-master-backup.png  <- USE THIS (in the original, the sign cut into the top-right gem zone). Diner at 52-96% across, 25-68% down. Blank pink/cyan sign frame at 45-54% across, 25-63% down; it touches the 45% line. Top-right is plain sky. Bottle caps at 50-80% across, 68-82% down.
+         atomic-fx-neon-v2.png  <- USE THIS (the original was an arrow and two ovals). Pink rounded-top sign panel at ~19%, a cyan boomerang at ~48%, a cyan starburst at ~81%, all across the middle. No letters.
+         atomic-fx-stars.png.
+Superseded originals are kept unchanged: terminal-master.png, atomic-master.png, atomic-fx-neon.png.

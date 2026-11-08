@@ -14,6 +14,9 @@ export const GIFT_CARDS = Object.freeze([
   'card-gift-goldenboot', 'card-gift-youngbuck', 'card-gift-icecold', 'card-gift-anarchist',
   // BUZZED LIGHTYEAR (Nov 6 — the owner's friend; the owner GIVES it in /admin → GIFTS)
   'card-gift-buzzed',
+  // THE CARD PASS (Nov 7) — seven more: the noir dispatcher card; the lawyer's two (the punk stencil card, the gig-poster card); the buddy's two wasteland cards
+  // (the terminal card, the sunset card); the Mostar friend's two (the flag card, the Old Bridge card) — the owner GIVES each in /admin → GIFTS
+  'card-gift-dispatcher', 'card-gift-outoforder', 'card-gift-notguilty', 'card-gift-wastelander', 'card-gift-survivor', 'card-gift-zadomovinu', 'card-gift-starimost',
 ]);
 export const OWNER_GIFTS = Object.freeze(['card-gift-anarchist']);
 export const GIFTABLE = Object.freeze(GIFT_CARDS.filter(id => !OWNER_GIFTS.includes(id)));
