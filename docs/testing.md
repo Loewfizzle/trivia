@@ -520,3 +520,11 @@ load problem, not a flake to patch.
   (`--safari` keeps the city's 100lvh at the large viewport, as Safari does); exit 1 on any of the four (THE DOUBLED LETTERING · THE CHUNKS ·
   THE #net PILL · THE STRAY SCREEN). The probe + judge are ONE file, `tests/integration/kit/load-probe.mjs` (also the harbor `load` group's
   four THE LOAD FIX checks); the scene's cheap per-frame read for it: `window.__district.loadProbe()`. On the emulators + serve.mjs --emu.
+
+## PASSKEYS (FRIENDS B)
+- `/api`: `node --test --test-name-pattern=PASSKEYS server.test.mjs` (in tests/integration) — `kit/soft-authenticator.mjs` makes real WebAuthn answers in
+  Node (a P-256 key, CBOR, signatures; `uv: false` / `origin` / `counter` overrides for the bad cases). Rules: `rules.test.mjs` PASSKEYS.
+- Browser: `e2e-profiles.mjs` step 6p adds Chromium's VIRTUAL AUTHENTICATOR over CDP (`WebAuthn.enable` + `addVirtualAuthenticator` — ctap2, internal,
+  resident key, UV) → ADD → `Storage.clearDataForOrigin` (a new anonymous sign-in) → BRING YOUR CARD → SIGN IN → the same card → REMOVE. The RP ID is
+  `localhost` — run the page on `http://localhost:5173` (never 127.0.0.1: an IP can't be an RP ID). WebKit: `wk-keychain.mjs` (Playwright's Windows
+  WebKit has no `navigator.credentials` — an inert stand-in draws the buttons; the real Face ID = an iPhone).

@@ -2163,6 +2163,16 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 6: password-preview.html (a fake judge, fixed test words, the state flags) + e2e-password.mjs (the real judge on the emulators).
 - The owner's add-on (OVERCLOCK): Higher or Lower's end card — the streak bar whole at 390 / 402 / 430 + WebKit; the header row.
 
+## FRIENDS B — FACE ID / PASSKEY SIGN-IN + THE PODIUM, PROFILE + SHELL FIXES (Nov 8, 2026)
+- FACE ID / PASSKEYS: ADD FACE ID SIGN-IN on ACCOUNT; SIGN IN WITH FACE ID on BRING YOUR CARD + RESTORE YOUR ACCOUNT → the card, like a restore key
+  (WebAuthn on api/profile.js through one server-side library; server-only nodes; user verification required; one-time challenges; the counter;
+  the restore key's limit; several passkeys, each removable). The restore key unchanged.
+- THE PODIUM: Grok's podium sounds + the xylophone winner sting (credits, a cache bust); OWN_VICTORY_SOUND (OVERCLOCK — one winner sound); the
+  victory music only once the podium frame is up; ACCENT (OVERCLOCK's orange frame); the XP box one button (reasons wrap); the score under each slim
+  card; the results list from 4th.
+- THE CARDS + THE SHELL: THE TIER GEM = ONE SHAPE; no step on any plate (the slim dev line DEV); a 150 ms screen fade instead of the glitch; the dock
+  lit by day; og.png 1 MB → og.jpg 268 KB; NIGHT · LOCKED without the Always-night switch; game toasts under the header; cartridge.md's daily line.
+
 ## FRIENDS A — THE FRIENDS LIST, INVITES THAT WAIT, THE CREW INTERCOM, THE KEY IN THE PHONE'S PASSWORDS (Nov 8, 2026)
 - THE FRIENDS CORE: pfr/{pid} (server-written, owner-read — a rules change), one pure step for add / accept / decline / cancel / remove / block /
   unblock, the caps (100 friends, 20 out, 50 in) + rate limits, RECENTLY PLAYED WITH from verified matches.

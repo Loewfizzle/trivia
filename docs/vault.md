@@ -674,3 +674,12 @@ COAST CLEAR's two collectibles, awarded by the SERVER from its own record of the
   gift card's face); `ui/fit.js#refit` re-fits a name whose box was capped from outside.
 - **THE HORSESHOE** (`emb-horseshoe`): its real neon art (shape `shoe`) — no emblem waits on a placeholder glyph now.
 
+## FRIENDS B — THE TIER GEM = ONE SHAPE + THE STEP DROPPED (Nov 8 — docs/harbor/passes/friends-b.md)
+- **THE TIER GEM = ONE SHAPE** (`js/vault/gems.js`, the owner Nov 6): the faceted BRILLIANT for every tier at ONE size (18 px on a strip; the full
+  card's own clamp); the tier = colour + shine only — COMMON silver-grey (still, softly lit) · UNCOMMON green (still, softly lit — the emerald-cut
+  octagon RETIRED, as is the common's river stone) · RARE blue, facets lit · EPIC purple + its sparkle · LEGENDARY gold + glint + tiny star · DEV /
+  1-of-1 keep the bigger rainbow DEV GEM. Everywhere `gemEl` draws (strips, full cards, THE LAB, CUSTOMIZE, the after-match rows). The before /
+  after sheet: `docs/harbor/passes/friends-b/gems-before.jpg` · `gems-after.jpg` (`tests/integration/gems-preview.html`).
+- **DROP THE STEP** (both kinds): every plate is ONE clean rounded box as wide as its longest row — `strip.js#layStep` now only keeps a strip's plate
+  capped before its hero (THE SLIM-CARD LONG-NAME STANDARD) and sets `data-step=''` so `vault/layout.js` lays a full card. The slim dev line reads
+  **DEV** (the full card's stays DEV · <RANK>).

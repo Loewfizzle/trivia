@@ -112,8 +112,8 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   `profile/gift-reveal.js`); the owner's own one (OWNER_GIFTS) granted on 'me' like the dev cards, never giftable. THE GIFT QUEUE (THE CARD PASS): gifts wait in a LINE (`ppriv/{pid}/gq` — server-only), the reveal plays one card at a time ("GIFT n OF m"). Their art = the material
   (`assets/vault/gift/` — `scripts/build-gift-art.mjs`), their motion = ONE engine (`fx/gift.js` + the layers as data in `fx/gift-specs.js`).
 - **THE CARD LAYOUT RULE (CARD FIXES — docs/vault.md):** a full card's pieces never overlap + its plate keeps off the card's HERO (`js/vault/layout.js` — one
-  ResizeObserver; a gift's `heroFull` in gift-specs.js, any other card's in `FULL_HERO`); the plate hugs its text, THE REVERSE STEP when the second row is
-  the longer (`strip.js#stepPlate`, both plates); NO FOUNDER pill on a gift card; a full card's plate = NAME + LV n (THE RANK = a gold line above MEMBER SINCE; DEV · <RANK>); the strip's dev line DEV · №. **THE CARD TEXT STANDARD** (Nov 6 — docs/vault.md): every full card's top line, bottom-left block + printed name = a minimum size + a soft glass wash (a ::before) + a dark edge — never a card's own text treatment unless the owner approves one (BRUH).
+  ResizeObserver; a gift's `heroFull` in gift-specs.js, any other card's in `FULL_HERO`); the plate hugs its text — ONE clean rounded box, NO step
+  (FRIENDS B dropped both kinds — `strip.js#layStep` keeps only the hero cap); NO FOUNDER pill on a gift card; a full card's plate = NAME + LV n (THE RANK = a gold line above MEMBER SINCE; DEV · <RANK>); the strip's dev line reads DEV. **THE CARD TEXT STANDARD** (Nov 6 — docs/vault.md): every full card's top line, bottom-left block + printed name = a minimum size + a soft glass wash (a ::before) + a dark edge — never a card's own text treatment unless the owner approves one (BRUH).
 - **THE SLIM-CARD LONG-NAME STANDARD (THE CARD PASS, Nov 7 — docs/vault.md):** the longest name = `NAME_MAX` (12); a NEW strip's hero centred 0.75–0.85 across
   (move a strip right by zooming its crop out: `strip: [100, py, z]`); every strip with a hero caps its plate there (`strip.js#heroRoom`); harbor `stripfit` checks
   every strip with `'W'.repeat(NAME_MAX)` + MAXIMILIANOS at 390. FX plates (light on black) ship as LIGHT WITH ALPHA — the effect canvas is transparent.
@@ -179,6 +179,14 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   the badge on YOU, ADD FRIEND on name tags, the INVITE sheet); INVITES THAT WAIT (a push + the card — `profile/invites.js`, one /api call, never a
   socket); YOUR TABLE = `today` reads the friends list (≤ 12); THE CREW INTERCOM behind the owner's switch (`radio/crewIc`, default OFF); SAVE TO
   PASSWORDS (`profile/keychain.js` — a real credential form; the key goes nowhere new).
+- **FRIENDS B (docs/harbor/passes/friends-b.md):** FACE ID / PASSKEY SIGN-IN (`api/_lib/passkeys.js` — actions on api/profile.js, still 8 functions;
+  `@simplewebauthn/server` 13.3.3 for /api ONLY; RP ID neonspeakeasy.com + localhost off production; `pkc` / `pkx` / `pkch` server-only by the
+  root deny — no rule names them; user verification REQUIRED, one live challenge per device per kind, used once; sign-ins share the restore key's
+  limit + `linkDevice`; the RESTORE KEY STAYS the fallback; the phone side hand-written in `js/profile/passkey.js` — docs/profiles.md "PASSKEYS").
+  THE PODIUM: Grok's podium sounds (`pg-*.mp3`, `PG_REV` busts the cache) + the console's winner sting; a cartridge's `OWN_VICTORY_SOUND` skips it;
+  the podium music waits for the FRAME (`state.podium`); `ACCENT` colours the frame; the results list from 4th; the score under each slim card;
+  the whole XP box opens your card. THE TIER GEM = ONE SHAPE (`vault/gems.js`); the screen change = a 150 ms fade (no glitch); the dock lit by day;
+  the link preview `assets/og.jpg` (JPEG ≤ 300 KB — og.png gone); game toasts under the header (`toast.js#gameTop`, `[data-msg-under]`).
 - **THE PASSWORD (PW1 — docs/password.md):** a DAILY-ONLY cartridge lives in `config.js#DAILIES` (never GAMES — GAMES is the lobby's list: the city's signs, HOW TO PLAY,
   THE BOARD, the reports); THE SERVER JUDGES EVERY GUESS (`api/_lib/pw.js` + `pw-day.js`: the answers in `api/_data/pw/` — never served, a door's word only
   once it closes; the schedule from the pepper, never the date); the list is BUILT + REVIEWED (`scripts/pw-words/`, never edited by hand); no ✓ / ✕ / ⌫
@@ -245,7 +253,7 @@ js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, color
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
 js/core/  room-logic.js hush.js lobby-song.js party.js rainbow.js marks.js palette.js neon-ramp.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js tube-path.js   PURE: room codes + host election, HUSH WORDS, the lobby song, PARTY NIGHTS, RAINBOWS, the games' neon marks + the tube alphabet, the palette + the light timeline, THE NEON COMES ALIVE's plan, seeded RNG, XOR+base64, game-night standings, room playlists, the real sun / moon / seasons / holidays / eclipses (sky.js), Open-Meteo + NOAA's Kp → the weather, the admin STATS, SVG → neon tubes; harbor-*.js: City 2.0 (below)
           week.js ranks.js names.js nicknames.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, THE HOUSE NICKNAMES (BNAME), keys, board catalog, per-game results
-js/profile/ api.js me.js queue.js public.js callouts.js events.js sheets.js keypop.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques (→ the end-of-round moment), the achievements' events
+js/profile/ api.js me.js queue.js public.js callouts.js events.js sheets.js keypop.js passkey.js passkey-ui.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques (→ the end-of-round moment), the achievements' events
 js/fx/ renderer.js gl.js kit.js index.js + one file per effect (gift.js + gift-specs.js: the gift cards' one engine + their layers)   THE EFFECT LIBRARY (THE VAULT 1A — docs/vault.md): ONE shared renderer (surfaces + slots) drawing through THE GL PAINTER (gl.js — WebGL2, a 2D look-alike: iOS rasterises a 2D canvas on the CPU call by call; 1B) with the 2D canvas as the fallback, the baked sprites, the effects
 js/vault/ catalog.js strip.js emblems.js lab.js lab-views.js approved.js hero.js + css/vault.css + lab.html (/lab)   THE VAULT: the slim strips, the test emblems, THE CARD LAB (admins only, + its GIFTS), only-approved-ships, THE HERO-SPOT RULE
 js/progress/ moment.js streak-card.js card.js profile.js flame.js look.js preview.js + css/progress.css   PROGRESSION's screens (docs/progression.md; lazy): the end-of-round moment + level-up, the streak card, THE GILDED CARD + the profile's sections, the dock's flame, ?preview=
@@ -409,6 +417,9 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
    counts, and write `docs/<id>.md`.
 
 ## Testing (the short version; every suite and flag: `docs/testing.md`)
+- **YOUR OWN SERVERS (the owner, FRIENDS B):** every pass starts its OWN fresh local servers (the emulators + `scripts/serve.mjs --emu`) — a server
+  left from an earlier pass is stopped first (FRIENDS A's emulators were still up at FRIENDS B's start: "port taken") — and STOPS every server it
+  started as its LAST step (the emulators' Java + node, serve.mjs, any preview); the summary says so.
 - **THE BUILD MACHINE IS THE MINI PC** (the owner, Oct 30: "do more tests, do things locally"): a Beelink SER8, Windows 11, **32 GB**, Java (Temurin 21)
   → the emulators run HERE. Before EVERY final push run LOCALLY: the unit suite, the rules + `/api` tests, the smoke test (`GAMES=…` for a shared
   file) AND the FULL `e2e-harbor` suite (a City 2.0 pass) — the cloud run then CONFIRMS instead of discovers. Measured on it: unit ≈ 30 s (PERF-A's split), rules ≈ 27 s,

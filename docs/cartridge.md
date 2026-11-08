@@ -18,7 +18,9 @@ game" checklist. This page is what it must EXPORT and what it GETS.
 | `DEFAULT_SETTINGS`, `OPTIONS`, `estimateMinutes(s)` | required | the options sheet under PLAY / GAMES (every OPTIONS key has a default) |
 | `finalRanks(game)` | required | GAME NIGHT's 3 / 2 / 1 points (`night/{matchId}`) → THE WINNER's BANNER (3 points = first; a tie = everyone with 3) + THE NIGHT's CHAMPION |
 | `MUSIC` or `musicFor(game)` | required (one) | its music (`null` = none — the song is the music) |
-| `FINAL_MUSIC` | optional | its podium music (default the victory playlist) |
+| `FINAL_MUSIC` | optional | its podium music (default the victory playlist) — it starts when the podium FRAME is on screen (`ui/final.js` sets `state.podium` → `app.js#musicFor`), never during a last round's answer screen inside `final` (FRIENDS B — B2) |
+| `OWN_VICTORY_SOUND` | optional (meta) | FRIENDS B (B2) — `true` = its body plays its OWN winner sound, so the console's podium sting (`pgSfx('victory')`) is skipped — never two winner sounds. OVERCLOCK sets it (its fanfare) |
+| `ACCENT` | optional (meta) | FRIENDS B — the END SCREEN's colour: a `#rrggbb` that re-lights the console frame's main tube (BACK TO THE ROOM — `.final.has-accent`, `--fin`); missing = THE NEON TUBE's pink. OVERCLOCK `#ff6a1a` (OVERDRIVE orange). `checkCartridge` refuses a bad colour |
 | `MIN_PLAYERS` / `SOLO` | optional | more players than the app's minimum (DOUBLE AGENT 4) / `SOLO: true` lets ONE player start it (OVERCLOCK's solo) |
 | `nightBonus(game)` | optional | game-night points that aren't a placing |
 | `sealed(game)` | optional | THE SEAL — the round's secrets (`kit/seal.js`, docs/data-model.md) |
@@ -51,8 +53,11 @@ Also, outside index.js: its row in `config.js` GAMES (`name`, `theme`, `playable
 ## THE DAILY PLUG-IN (ships OFF)
 A game that offers a daily (OVERCLOCK's QUICK solo run, the WORDLE-type, COAST CLEAR) exports
 `daily = { on: false, create({ date: 'YYYY-MM-DD', uid, now, daySet, code? }) → game, resumeKey(date, uid) → string }`:
-**THE DAY SET in → today's puzzle** (the same content for everyone that day — `daySet` = THE SERVER-PICKED, SEALED day set the daily module
-makes from a SERVER SECRET once a day, NEVER computable from the date: the repo is public; never a party-only part — DUMB LUCK),
+**THE DAY SET in → today's run** (the same content for everyone that day — `daySet` = THE SERVER-PICKED, SEALED day set the daily module
+makes from a SERVER SECRET once a day, NEVER computable from the date: the repo is public; `date` only names the day — it never seeds anything;
+never a party-only part — DUMB LUCK). Two kinds (FRIENDS B fixed this line to match the code): a **client-built** daily (OVERCLOCK —
+`overclock/daily.js`, `code` its room tag) builds the whole puzzle from `daySet`; a **SERVER-JUDGED** daily (THE PASSWORD, COAST CLEAR —
+`password/daily.js`, `coastclear/daily.js`) returns an EMPTY run shell — its puzzle never leaves the server (`api/_lib/pw.js`, `cc-board.js`),
 **one try**, **resume** (a refresh / an app switch resumes from `resumeKey`, never restarts). **A RUN KEEPS ITS OWN DAY (DFIX1):** a judged daily's
 every call after `start` names the day that start returned (`js/daily/run-day.js`; `api/daily.js#dayOfCall` takes today's or yesterday's with a start
 there) — "one try" = a run may be finished until 4 am the day after it began, never started twice. THE DAILY MODULE (not built yet) brings: the shared
@@ -217,3 +222,10 @@ reads the look LIVE (a change mid-game re-themes the screen at once). Right / cl
 | number pad · keyboard · tach timer · 3-2-1 · the answer frame | `js/games/kit/` (`gk-`, built in OC1) + a skin of `--gk-*` | — |
 | unlock numbers | the result's FEATS | the SERVER replays + awards |
 | its daily | `daily = { on: false, create, resumeKey }` | THE DAILY MODULE feeds it a server-picked day set (later) |
+
+## THE PODIUM FRAME's rules for a body (FRIENDS B, Nov 8)
+- **The list from 4th (B4):** the frame's results list starts at 4th — the body (a `finalScene` or the console's own podium) already shows 1st–3rd. A
+  body that shows NO podium says so with `el.dataset.podium = 'none'` (OVERCLOCK's NOBODY SCORED) → the whole list.
+- **The score is in the line under each slim card** (`ui/strip-board.js`): the game's `note` on the left ("3 KO · 2 SENT · 1 BADGES"), the score at
+  the right end in the number font — never over the card.
+- **The music** waits for the frame; **the sound** — `OWN_VICTORY_SOUND`; **the colour** — `ACCENT` (the table above).

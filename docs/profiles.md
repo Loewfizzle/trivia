@@ -411,3 +411,30 @@ card's frame, CUSTOMIZE YOUR CARD + the level bar; hot pink = the end of round's
   `radio/limits/{room}/{night}/ic`; the clip gone after the hour); OFF → not shown + refused (`crew_ic_off`).
 - Proof: `tests/friends.test.mjs`, `tests/integration/friends.test.mjs` (+ rules.test FRIENDS A, progression.test YOUR TABLE), `e2e-friends.mjs`,
   `wk-keychain.mjs`, harbor `crew`.
+
+## PASSKEYS — FACE ID SIGN-IN (FRIENDS B, Nov 8 2026 — docs/harbor/passes/friends-b.md)
+A second way to bring your card to a device, beside the restore key (which stays, unchanged — the fallback).
+- **The player:** YOU → ACCOUNT → **ADD FACE ID SIGN-IN** (TOUCH ID on a Mac, PASSKEY elsewhere — `profile/passkey.js#pkWord`) → the phone asks
+  "Save a passkey for neonspeakeasy.com?" → Face ID → listed ("iPhone · added Nov 8 · REMOVE"). On a new device / after clearing site data:
+  **BRING YOUR CARD** or **RESTORE YOUR ACCOUNT** → **SIGN IN WITH FACE ID** → the card comes back exactly as a key restore does. Apple devices share
+  the passkey through iCloud Keychain; a Windows / Android device picks "use a phone" in the browser's dialog and scans its QR code with the iPhone
+  (Bluetooth nearby), then may ADD its own. The device then holds NO key (ACCOUNT says "not on this device" + offers NEW KEY); the saved key works.
+- **The server** (`api/_lib/passkeys.js`, actions on `api/profile.js` — still 8 functions): `pkRegOptions` · `pkRegister` · `pkAuthOptions` · `pkAuth` ·
+  `pkRemove`; `me` adds `pk` (label + added + last used — never key material). ONE library, `@simplewebauthn/server` **13.3.3** (pinned; root
+  package.json — /api only, never shipped to phones). RP ID **neonspeakeasy.com** (+ `localhost` when `VERCEL_ENV` isn't production) picked from the
+  request's Origin; discoverable credentials, **user verification REQUIRED**, attestation none, ES256 + RS256.
+  - `pkch/{uid}/{r|a}` — the ONE live challenge a device holds per kind, 5 min, taken ONCE in a transaction (a replay, another device's challenge,
+    an expired one → `pk_stale`); the origin + RP ID inside the signed answer checked by the library (a phishing origin → `pk_bad`).
+  - `pkc/{pid}/{h}` = `{ id, pk, c, rp, n, at, u?, tr?, bk? }` (h = sha256(credential id) · 32 hex) + `pkx/{h}` = pid (the sign-in's lookup) + the
+    opaque user handle `ppriv/{pid}/wh` (never the pid). Up to 10 a profile. The SIGNATURE COUNTER: a lower count → refused (a cloned key).
+  - Sign-ins count in the restore key's buckets (`profiles.js#signInLimit`: 10 an hour a device, 40 an IP); both join through `linkDevice`.
+  - REMOVE drops `pkc` + `pkx`; the answer carries what the browser's Signal API needs (`signalAllAcceptedCredentials`) to drop it from the phone's
+    list too (Chrome does — the virtual authenticator proved it); without it the phone still offers it and the server answers `pk_unknown`.
+  - **No rule names these nodes** — the root's `.read/.write: false` keeps every phone out (rules.test "PASSKEYS"). A blank profile deleted on a
+    restore takes its passkeys with it.
+- **The phone** (`js/profile/passkey.js` — hand-written JSON ↔ ArrayBuffer, no library; `passkey-ui.js` — the ACCOUNT block + the sign-in button,
+  css/board.css `pk-`): nothing stored beyond what the browser keeps; a cancel = "Cancelled — nothing changed"; /api down = the button answers with
+  the usual readable message; a browser without WebAuthn draws no button (the key still works).
+- Proof: `server.test.mjs` PASSKEYS (`kit/soft-authenticator.mjs` — a real P-256 key, real CBOR, real signatures), `rules.test.mjs` PASSKEYS,
+  `e2e-profiles.mjs` 6p (Chromium's CDP virtual authenticator: add → clear site data → sign in → the same card → remove), `wk-keychain.mjs` (WebKit
+  402×874 @3 draws the buttons — Playwright's Windows WebKit lacks `navigator.credentials`, so an inert stand-in; the real Face ID = the owner's iPhone).

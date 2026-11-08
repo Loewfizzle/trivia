@@ -1617,3 +1617,25 @@ nothing throws before the unlock / muted / a missing file. **THE FIRST-TAP CATCH
 touchend that unlocks the audio (`engine.js#unlock`), and `resume()` is async after it — so a sound asked for while the audio isn't running is held
 ≤ 400 ms (one at a time) and played the moment the context runs (`onUnlock` + the context's statechange + short retries); with no gesture at all it
 expires. Every buffer is decoded at the unlock. The music follows the look like THE PASSWORD's (`index.js#musicFor`). docs/coastclear.md.
+
+## THE PODIUM SOUNDS (FRIENDS B, Nov 8 2026 — replaced THE PROGRESSION SOUNDS' files)
+Grok's new set (`Downloads\grok\podium-sfx\`, notes.txt — warm jazzy-neon, no hiss, no whoosh; Sonniss #GameAudioGDC v2.0 + Kenney CC0, no
+attribution required) copied AS-IS (he cut + levelled them: MP3 192 kbps, true peak ≤ −2.5 dBTP, ~−23 LUFS, the tick −26, level-up −20) →
+`audio/sfx/pg-<name>.mp3`; `scripts/build-progression-sfx.py`'s set retired. `js/audio/progress-sfx.js` fetches them with `?v=PG_REV` (2) — bump it
+on a new set (vercel.json caches /audio a week).
+
+| sound | his pick | where |
+| --- | --- | --- |
+| xp-tick | marimba bead tick (3maze) | each XP line |
+| xp-total | kalimba pluck up a fifth (CB Sounddesign) | the total |
+| level-up | bell-guitar gliss (The Chris Alan) | the level-up |
+| medal-flip | two poker-chip clacks + a tiny tink (McHugh + Kenney) | the coin flip |
+| flame-on | a felted bell thump + a harp shimmer (Kenney + Sounds Visual) — NO hiss | the streak flame |
+| flash | a low-passed cork pop + a glass tink (Soundopolis + Kenney) | the sightings' flashbulb |
+| polaroid | a small camera whirr + click (CB Sounddesign) | the polaroid |
+| card-reveal | a card flip-and-place + a soft sparkle arp (Kenney + Cinematic Sound Design) | THE CARD REVEAL |
+| achievement | a two-note vibes chime (aXLsound) | an achievement / an unlock |
+| **victory** | his level-up BACKUP — the xylophone rising flourish (The Chris Alan) | THE PODIUM's winner sting (`ui/final.js`, 2.5 s in) — replaced the synth arpeggio (`sfx('victory')`, still in sfx.js, unused); a cartridge with `OWN_VICTORY_SOUND` skips it |
+
+CREDITS: `js/ui/credits.js` → PODIUM SOUNDS (14 rows, the notes' sources word for word). THE VICTORY MUSIC starts with the podium frame (`state.podium` —
+docs/cartridge.md), never during OVERCLOCK's last answer screen.
