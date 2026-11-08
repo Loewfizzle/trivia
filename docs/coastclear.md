@@ -45,7 +45,7 @@ counts differently) re-syncs from `start`. The clock is SERVER time (the offset 
 + 30 s a spot + 15 s a pause — a spot flashes `+30` beside it.
 
 **The screen (CC1, NIGHT):** the sign COAST CLEAR (a static text glow, clear of ☰ + the music) · the status row — the TIME in plain neon type, THREE
-DRAWN SEARCHLIGHTS (a lamp + its beam; lit gold = spotted), a DRAWN BUOY + the buoys left — no pills, no boxes · the 9 × 12 water (~38 pt cells at 390,
+DRAWN SEARCHLIGHTS (a lamp + its beam; lit gold = spotted; unlit a little brighter since DFIX1 so the count reads at a glance), a DRAWN BUOY + the buoys left — no pills, no boxes · the 9 × 12 water (~38 pt cells at 390,
 up to 46; 2 pt gaps): dark glass tiles over ONE shimmer layer sliding on transform, opened water darker + still, the numbers in bright neon (1 cyan · 2
 green · 3 pink · 4 yellow · 5 orange · 6 violet · 7 red · 8 white — the digit itself carries the meaning), buoys = drawn orange floats with a lamp, a
 spotted cell = a gold searchlight that stays lit (a one-time burst ring) · the DIG / BUOY switch in the thumb zone (two big halves, 12 pt corners — not
@@ -69,7 +69,8 @@ clock, the pauses stopped, + 30 s a spot + 15 s a pause) · a small line (`endLi
 sound. **CAUGHT** = big red neon, NO big time — one small line ("3 SPOTTED · 1:58"), the sign stays, the harbor dimmed. **Both:** THE FINISHED HARBOR
 shrunk (`endMap` — 9 × 12 at 15–24 pt: the numbers in their colours, gold where a light found you, buoys, every other light as a pale lamp — the
 server REVEALS the lights once the run is over; on a clear the phone buoys every shut cell) animated in row by row after the headline · SHARE (the one
-main tube, a modest radius) · "NEXT HARBOR IN 13:06:44" (to the next 4 am Eastern, ticking). The leftover space at the FOOT (never top-heavy). A resume /
+main tube, a modest radius) · "NEXT HARBOR IN 13:06:44" (to the next 4 am Eastern, ticking on the SERVER's clock — DFIX1; a run that crossed the turn reads
+"TODAY'S HARBOR IS OPEN"). The leftover space at the FOOT (never top-heavy). A resume /
 a re-mount onto a finished run lands on the end screen STILL (`is-still` — no motion replayed).
 
 **THE TWO LOOKS (CC2):** every colour a `--cc-*` token; `body[data-look="day"]` RETOKENS it — THE SUNNY HARBOR, THE PASSWORD's "C1 clear morning sky"
@@ -82,7 +83,7 @@ screen re-themes LIVE: the gradient tokens are REGISTERED (`@property` — a reg
 mid-flood, mid-sweep + on the end screen: the dig lands, the flood opens, the beam lands, the clock carries on). **The music follows the look**
 (`index.js#musicFor` like THE PASSWORD — the console's crossfade).
 
-**THE SOUNDS (CC2 — `sfx.js`):** dig (a single cell, when its answer lands) · open-area (a calm area) · buoy place / remove · the DIG / BUOY switch · spotted
+**THE SOUNDS (CC2 — `sfx.js`; DFIX1: the engine moved to `js/daily/sfx.js`, shared with THE PASSWORD — this file is the table):** dig (a single cell, when its answer lands) · open-area (a calm area) · buoy place / remove · the DIG / BUOY switch · spotted
 (with the sweep) · caught (with the converging beams) · the win (with the lighthouse). The MAIN file each of the Grok set's 12–19 (no -b); trims at import
 (`scripts/build-cc-sfx.py`): 16 mode-toggle +4 dB; 18 caught −5 dB + a 120 Hz low cut (measured −26.3 LUFS vs the win's −20 — never louder than winning).
 Mono 96 kbps, 78 KB; credits.txt beside them + ☰ → CREDITS. On the console's SFX bus (the slider + THE ONE MUTE); silent when locked / muted / missing.
@@ -132,12 +133,21 @@ copy) and stored as `{ v, w, h, l: 'cell,…', s: start, a: attempts }` (~95 byt
 - **The moves** (CC1 added a generic path for a judged cartridge's `moves` — `dig` · `chord` · `pause` · `resume`, no new function): the day's board +
   the start read in parallel, then ONE transaction on the record (`dly/coastclear/{day}/p/{pid} = { st, mv: ['d45', 'c30:21,22' …], p?: { n, ms, at? },
   e?, o? }` — the moves, never a cell's content). A repeat (a dig on an open cell — its own number back; a spotted light; a chord with nothing left) =
-  `already: true` and **nothing written**. A transaction's first call may see null (nothing cached in the function): it never aborts on that — it writes
+  `already: true` and **nothing written** (one exception: a REFUSED move by a player with no record yet writes `{ st }` — the transaction's first-null write;
+  harmless, FABLE REVIEW #1, 12). A transaction's first call may see null (nothing cached in the function): it never aborts on that — it writes
   the move's record so the server checks it against the stored one and retries with the real value. Every answer carries the server's `now`.
   - `dig { cell }` → `{ cells: [[cell, n]…], lit: [cell…], spots, done, out?, finishedAt?, resumed? }` · a bad cell 422 `bad_cell` · after the end 409 `finished`
   - `chord { cell, buoys }` → the same shape: the phone's buoys (only those around the number count) + the spotted lights must equal it (else 422
     `chord_count`, no cost); every other unopened neighbour is dug — the light a WRONG buoy left unmarked = SPOTTED
-  - `pause` / `resume` → `{ paused, pauses, pausedMs }` — the clock stopped from `at` to the resume, +15 s a pause; a second pause = free; a move resumes
+  - `pause` / `resume` → `{ paused, pauses, pausedMs }` — the clock stopped from `at` to the resume, +15 s a pause; a second pause = free; a move resumes.
+    **THE PAUSE CAPS (DFIX1, the owner):** at most 3 accepted pauses a run AND at most 20 minutes stopped in all (`logic.js#MAX_PAUSES` / `PAUSE_CAP_MS`);
+    past either a pause → 409 `pause_limit` with the clock running (nothing written); an open pause stops counting at the 20-minute total — the next call
+    closes it AT THE CAP (a pause call writes that close + is refused; a dig / resume closes it as usual), the time past the cap ran on the clock; the
+    phone's clock (`clockMs`) caps the same; the replay refuses a record past either cap. (THE DAILY MODULE will also check the room really started a game.)
+  - **THE RUN'S DAY (DFIX1 — MUST FIX 1):** every move / finish carries the `day` its start returned (`js/daily/run-day.js` in the judge); the server takes
+    today's or yesterday's with a start there (409 `not_started` otherwise; made up / two back / tomorrow → 400 `bad_day`) and loads THAT day's board, so a
+    run (or a pause) that straddles 4 am Eastern finishes on its own harbor + its own streak day. A refresh across the turn resumes it (`start { day }`);
+    once scored, the next start opens today's. A move COAST CLEAR doesn't own (`guess`) → 400 `bad_action` (was a 500).
 - `finish` → scores from THE SERVER's record (`logic.js#replay` — the phone's `result` is ignored; unfinished → 409 `not_done`), then the existing
   streak / standing code (`better: 'low'`, 300 buckets: 0…239 = 5-second steps to 20 min · 240 = longer · 241…299 = caught, by the safe cells left).
   CC2: `flags` from the same record → LIGHTHOUSE · GHOST RUN (above).
@@ -175,7 +185,9 @@ state at 390 / 402 / 430, desktop, the flood strip), `cc1-e2e` (the E2E's).
 - `/api` on the emulators: `cd tests/integration && node --test coastclear.test.mjs` (DAILY_TEST=1 inside; run it ALONE — it and password.test.mjs wipe
   the same nodes) — start (the opening, no seed, the board stored once), digs (one cell, a whole flood, a repeat writes nothing), the chord right /
   wrong / short, three spots → caught + nothing after, a clean clear with a pause (the clock stopped, +15), one finish, every answer honest, production
-  refuses it.
+  refuses it. DFIX1: THE 4 AM TURN (start 3:58, a pause at 3:59 → resume at 4:00:20, digs after 4:00 on the OLD board, the finish on the start's day + its
+  streak day + LIGHTHOUSE; a refresh across the turn resumes the paused run), THE PAUSE CAPS (the 4th pause refused with the clock running; an open pause
+  past 20 minutes closed at the cap; a dig 45 minutes into a pause counts 25 of them), the clean 400s (a stray guess, a bad day).
 - The E2E (the emulators + `DAILY_TEST=1 node scripts/serve.mjs <port> --emu` — restart the server after changing logic.js: it keeps the modules it
   loaded): `E2E_BASE=http://localhost:<port> node e2e-coastclear.mjs "<browser>" ./shots-coastclear` (≈ 35 s, 36 checks — CC2: the sweep, look flips
   mid-dig / mid-flood / mid-sweep / on the end, the win screen + the harbor + the share inputs / image, resume onto the end, CAUGHT, the sounds start

@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   neighbours, countsOf, flood, openingOf, freshState, applyMove, serverAct, runView, replay, scoreOf, bucketOf, foldAnswer, clockMs, fmtClock,
-  chordTargets, emptyView, stateOf, parseMove, moveText, safeCount, CAUGHT, BUCKETS, W, H, LIGHTS, SPOT_S, PAUSE_S, MAX_SPOTS, DEFAULT_SETTINGS, chatLocked,
+  chordTargets, emptyView, stateOf, parseMove, moveText, safeCount, MAX_PAUSES, PAUSE_CAP_MS, CAUGHT, BUCKETS, W, H, LIGHTS, SPOT_S, PAUSE_S, MAX_SPOTS, DEFAULT_SETTINGS, chatLocked,
 } from '../js/games/coastclear/logic.js';
 import * as M from '../js/games/coastclear/meta.js';
 
@@ -178,6 +178,49 @@ test('THE REPLAY: re-scores a finished record (clean · spots · pauses · caugh
   assert.equal(replay(null, B), null);
   // Firebase may hand an array back as an object with number keys
   assert.equal(replay({ ...rec, mv: Object.fromEntries(rec.mv.map((m, i) => [i, m])) }, B).score, r.score);
+});
+
+test('DFIX1 — THE PAUSE CAPS: 3 accepted pauses a run, 20 min stopped in all; past either a pause is refused + the clock runs; an open pause stops at the cap', () => {
+  assert.equal(MAX_PAUSES, 3); assert.equal(PAUSE_CAP_MS, 20 * 60_000);
+  const T = 7_000_000, MIN = 60_000;
+  // the count: three pauses of a minute each are accepted, the 4th refused (409 pause_limit) — nothing written, the clock running
+  let rec = { st: T, mv: [] };
+  for (let k = 0; k < 3; k++) {
+    const p = serverAct(B, rec, 'pause', {}, T + (2 * k + 1) * MIN); assert.equal(p.resp.pauses, k + 1); rec = p.record;
+    rec = serverAct(B, rec, 'resume', {}, T + (2 * k + 2) * MIN).record;
+  }
+  const fourth = serverAct(B, rec, 'pause', {}, T + 7 * MIN);
+  assert.equal(fourth.refused, 'pause_limit'); assert.equal(fourth.status, 409); assert.equal(fourth.record, undefined, 'a refused pause writes nothing');
+  assert.equal(rec.p.at, undefined, 'the clock is running'); assert.equal(rec.p.n, 3); assert.equal(rec.p.ms, 3 * MIN);
+  // the total: one long pause is counted up to 20 minutes — a resume 25 minutes later stops 20, the 5 past the cap run on the clock
+  let r2 = serverAct(B, { st: T, mv: [] }, 'pause', {}, T + MIN).record;
+  r2 = serverAct(B, r2, 'resume', {}, T + 26 * MIN).record;
+  assert.equal(r2.p.ms, PAUSE_CAP_MS); assert.equal(r2.p.n, 1);
+  assert.equal(serverAct(B, r2, 'pause', {}, T + 27 * MIN).refused, 'pause_limit', 'the 20 minutes used up: no more pauses');
+  // the total across pauses: 15 + then a second pause that runs past the 20 → stopped exactly 20 in all
+  let r3 = serverAct(B, { st: T, mv: [] }, 'pause', {}, T).record;
+  r3 = serverAct(B, r3, 'resume', {}, T + 15 * MIN).record;
+  r3 = serverAct(B, r3, 'pause', {}, T + 16 * MIN).record;
+  // the open pause past the cap: a pause call closes it at the cap (WRITTEN) and is refused — the clock running again
+  const late = serverAct(B, r3, 'pause', {}, T + 30 * MIN);
+  assert.equal(late.refused, 'pause_limit'); assert.ok(late.record, 'the auto-resume is written');
+  assert.equal(late.record.p.at, undefined); assert.equal(late.record.p.ms, PAUSE_CAP_MS); assert.equal(late.record.p.n, 2);
+  // a pause still under the cap while paused = free, as before
+  assert.equal(serverAct(B, r3, 'pause', {}, T + 18 * MIN).resp.already, true);
+  // a DIG after a long pause resumes at the cap; the replay scores the 10 minutes past it + 15 s a pause
+  let r4 = serverAct(B, { st: T, mv: [] }, 'pause', {}, T).record;
+  const d = serverAct(B, r4, 'dig', { cell: 3 }, T + 30 * MIN); r4 = d.record;
+  assert.equal(d.resp.resumed, true); assert.equal(r4.p.ms, PAUSE_CAP_MS);
+  for (const c of [4, 9, 13, 16, 17, 19]) r4 = serverAct(B, r4, 'dig', { cell: c }, T + 30 * MIN).record;
+  const rp = replay(r4, B);
+  assert.equal(rp.out, 'clear'); assert.equal(rp.ms, 10 * MIN); assert.equal(rp.score, 600 + 15);
+  // THE PHONE's clock: an open pause stops it only up to the cap
+  const v = { ...emptyView(), startedAt: T, paused: true, pausedAt: T + MIN, pausedMs: 0, pauses: 1 };
+  assert.equal(clockMs(v, T + 11 * MIN), MIN + 15_000, 'ten minutes paused: the clock stopped at 1:00 (+15 s)');
+  assert.equal(clockMs(v, T + 31 * MIN), 11 * MIN + 15_000, 'thirty minutes paused: 20 stopped, the 10 past the cap on the clock');
+  // THE REPLAY refuses a record past either cap (a forged one)
+  assert.equal(replay({ ...r4, p: { n: 4, ms: 0 } }, B), null);
+  assert.equal(replay({ ...r4, p: { n: 1, ms: PAUSE_CAP_MS + 1 } }, B), null);
 });
 
 test('the moves on the wire: parse + print, buoys sorted + unique', () => {

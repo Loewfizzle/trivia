@@ -8,6 +8,7 @@
 // Everything goes through js/profile/api.js (fetch + the ID token — no database socket: THE PARKED DATABASE never wakes for a daily).
 import { api } from '../../profile/api.js';
 import { cleanWord } from './logic.js';
+import { runDay } from '../../daily/run-day.js';
 
 export const GAME_ID = 'password';
 let validP = null;
@@ -18,11 +19,17 @@ export function loadValid() {
 export function createApiJudge() {
   let valid = null;
   loadValid().then(v => { valid = v; });
+  const rd = runDay(GAME_ID);   // (DFIX1 — every call names the run's own day: a run that crosses 4 am Eastern finishes on its day)
   return {
     kind: 'api',
-    async start() { const r = await api('daily', { action: 'start', game: GAME_ID }); return { startedAt: r.startedAt, done: r.done, run: r.run, day: r.day }; },
-    async guess(word) { return api('daily', { action: 'guess', game: GAME_ID, word: cleanWord(word) }); },
-    async finish() { return api('daily', { action: 'finish', game: GAME_ID, result: null }); },
+    async start() {
+      const asked = rd.asked();
+      const r = await api('daily', { action: 'start', game: GAME_ID, ...(asked ? { day: asked } : {}) });
+      rd.started(r);
+      return { startedAt: r.startedAt, done: r.done, run: r.run, day: r.day, now: r.now };
+    },
+    async guess(word) { return api('daily', rd.with({ action: 'guess', game: GAME_ID, word: cleanWord(word) })); },
+    async finish() { const r = await api('daily', rd.with({ action: 'finish', game: GAME_ID, result: null })); rd.scored(); return r; },
     canType(w) { const c = cleanWord(w); return !!c && (!valid || valid.has(c)); },
   };
 }

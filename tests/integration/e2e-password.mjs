@@ -5,7 +5,9 @@
 // REVEAL (the drawn door swings open) → the screen torn down MID-REVEAL + rebuilt (THE BACK ROOM's board, the front door opened) → letters typed,
 // torn down + rebuilt again (the row cleared) → THE BACK ROOM cracked → THE END SCREEN (the board + keyboard gone; YOU'RE IN · 4 GUESSES · both
 // mini grids + words · SHARE · the countdown) + the server's score → ONE TRY (a reload lands on the end screen). A second phone: six misses →
-// THE FRONT DOOR HELD (the door dims, the word shown, one mini grid), 206, THE BACK ROOM's word in no response.
+// LOCKED OUT (the door dims, no line under the grid, one mini grid + its word on the end screen), 206, THE BACK ROOM's word in no response.
+// DFIX1: THE SOUNDS start on the audio context after a trusted tap (the page installs the console's unlock), THE FIRST-TAP CATCH (a key's sound
+// asked for before any gesture + a real tap within 400 ms → it still plays; no tap → nothing), the finish retried (no status line meanwhile).
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
 process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
 process.env.GCLOUD_PROJECT ||= 'demo-arcade';
@@ -38,6 +40,8 @@ const S = page => page.evaluate(() => window.__password.state());
 const tap = async (page, k) => { await page.click(`.gk-kb-key[data-k="${k}"]`); await sleep(40); };
 const typeWord = async (page, w) => { for (const ch of w) await tap(page, ch); };
 const enter = page => page.click('.gk-kb-r3 .gk-go');
+/** DFIX1 — the sounds that actually STARTED on the audio context (js/games/password/sfx.js#pwSfxPlayed — after the console's unlock-on-tap) */
+const played = page => page.evaluate(() => import('/js/games/password/sfx.js').then(m => m.pwSfxPlayed().map(x => x.name)));
 const settle = page => page.waitForFunction(() => window.__password && !window.__password.busy() && !window.__password.state().reveal, { timeout: 20000 });
 const marksOf = (page, row) => page.$$eval(`.pw-row:nth-child(${row + 1}) .pw-tile`, ts => ts.map(t => (t.className.match(/is-(hit|near|miss)/) || [])[1] || '-'));
 const doorsOf = page => page.$$eval('.pw-dr', ds => ds.map(d => `${d.dataset.st}:${d.querySelector('.pw-dr-sub').textContent}`));
@@ -71,6 +75,14 @@ await H.run(async () => {
   ok(names.join('|') === 'THE FRONT DOOR|THE BACK ROOM' && !/THE DOOR\b/.test(await p.$eval('.pw-screen', e => e.innerText)), 'THE RENAME: THE FRONT DOOR → THE BACK ROOM (never "THE DOOR")');
   const kbx = await p.evaluate(() => ({ back: !!document.querySelector('.gk-kb-key.is-back svg'), go: document.querySelector('.gk-kb-r3 .gk-go').textContent.trim(), glyph: /[⌫✓✕]/.test(document.querySelector('.pw-screen').innerText), pill: [...document.querySelectorAll('.pw-screen *')].some(e => parseFloat(getComputedStyle(e).borderRadius) >= 100) }));
   ok(kbx.back && kbx.go === 'ENTER' && !kbx.glyph && !kbx.pill, 'the kit keyboard: ENTER + a DRAWN delete key (no glyph icons, no capsule anywhere on the screen)');
+  // DFIX1 — the door row's sublines: at least 11 px, ONE line, at 390 / 402 / 430 (the house floor — they were 9.5)
+  for (const [w, hgt] of [[390, 844], [402, 874], [430, 932]]) {
+    await p.setViewport({ ...H.VIEW, width: w, height: hgt });
+    const sub = await p.$$eval('.pw-dr-sub, .pw-dr-name', es => es.filter(e => e.textContent).map(e => ({ px: parseFloat(getComputedStyle(e).fontSize), one: e.getBoundingClientRect().height < parseFloat(getComputedStyle(e).fontSize) * 1.6, fits: e.scrollWidth <= e.clientWidth + 1, sub: e.classList.contains('pw-dr-sub') })));
+    const row = await p.$eval('.pw-doors', e => e.scrollWidth <= e.clientWidth + 1);
+    ok(sub.filter(x => x.sub).every(x => x.px >= 11) && sub.every(x => x.one && x.fits) && row, `${w} wide: the door sublines ${sub.filter(x => x.sub).map(x => x.px).join(' / ')} px, every door label on one line, the row fits`);
+  }
+  await p.setViewport(H.VIEW);
   await shotAll(p, 'pw-01-empty');
 
   // ---- a word that isn't one: refused on the phone's pre-check, NOTHING written; a non-word past the pre-check is refused by the server the same way
@@ -84,6 +96,8 @@ await H.run(async () => {
   // ---- a miss, judged by the server: five sunken tiles, the keys dimmed
   await typeWord(p, MISS); await enter(p); await settle(p);
   ok((await S(p)).guesses.join() === '1,0' && (await marksOf(p, 0)).every(m => m === 'miss'), `a miss judged on the server: ${MISS} → five MISS tiles`);
+  const snd1 = await played(p);
+  ok(['tap', 'back', 'refuse', 'submit', 'miss'].every(n => snd1.includes(n)), `THE SOUNDS start on the audio context after the first trusted tap's unlock: ${[...new Set(snd1)].join(' · ')}`);
   ok((await p.$$eval('.gk-kb-key[data-st="miss"]', ks => ks.length)) === 5 && (await doorsOf(p))[0] === 'on:5 OF 6 LEFT', 'the five keys dimmed; the door says 5 OF 6 LEFT');
   const pid = await p.evaluate(() => window.__daily.pid);
   const rec1 = await val(`dly/password/${day}/p/${pid}`);
@@ -138,6 +152,8 @@ await H.run(async () => {
   ok(end.share && /^NEXT PASSWORD IN \d+:\d\d:\d\d$/.test(end.next) && !end.glyph, `SHARE is the one pink tube; the countdown ticks (${end.next}); no glyph icons`);
   ok((await val(`dly/password/${day}/r/${pid}`)) === 4, 'the server scored it from ITS record: 4 (2 + 2 guesses)');
   ok((await doorsOf(p)).join('|') === 'open:2 GUESSES|open:2 GUESSES', 'both drawn doors open');
+  const snd2 = await played(p);
+  ok(['hit', 'unlock', 'open', 'win'].every(n => snd2.includes(n)), `the crack's sounds: the tiles, the door unlocking + swinging, WELCOME IN (${['hit', 'near', 'unlock', 'open', 'win'].filter(n => snd2.includes(n)).join(' · ')})`);
   await shotAll(p, 'pw-05-crack');
   await flipLook(p, 'day');
   ok(!!(await p.$('.pw-endscr.is-in')) && (await endOf(p)).n.trim() === '4GUESSES', 'a look flip ON the end screen: the screen stands');
@@ -158,8 +174,9 @@ await H.run(async () => {
   p2.on('response', async r => { if (r.url().includes('/api/daily')) { try { const t = await r.text(); if (t.includes(`"${W2}"`)) leaks.push(t.slice(0, 80)); } catch { /* */ } } });
   for (let i = 0; i < 5; i++) { await typeWord(p2, MISS); await enter(p2); await settle(p2); }
   await typeWord(p2, MISS); await enter(p2);
-  await p2.waitForFunction(() => document.querySelector('.pw-dr[data-door="0"]').dataset.st === 'held' && !document.querySelector('.pw-reveal').hidden, { timeout: 8000 });
-  ok(/HELD · THE WORD WAS/.test(await p2.$eval('.pw-reveal', e => e.textContent)) && (await p2.$eval('.pw-reveal b', e => e.textContent)) === W1 && (await doorsOf(p2))[0] === 'held:LOCKED OUT', 'BOB: THE FRONT DOOR held — the door dims red, LOCKED OUT under it, its word shown under the grid');
+  await p2.waitForFunction(() => document.querySelector('.pw-dr[data-door="0"]').dataset.st === 'held', { timeout: 8000 });
+  const heldBeat = await p2.evaluate(() => ({ line: !!document.querySelector('.pw-reveal'), held: /HELD/.test(document.querySelector('.pw-screen').innerText), end: !!document.querySelector('.pw-endscr.is-in') }));
+  ok(!heldBeat.line && !heldBeat.held && !heldBeat.end && (await doorsOf(p2))[0] === 'held:LOCKED OUT', 'BOB: THE FRONT DOOR locked — the door dims red, LOCKED OUT under it; NO line under the grid, no "HELD" anywhere (DFIX1)');
   await shotAll(p2, 'pw-06-held', [[390, 844]]);
   await p2.waitForFunction(() => document.querySelector('.pw-endscr.is-in') && window.__password.finished() === 'RECORDED', { timeout: 12000 });
   const end2 = await endOf(p2);
@@ -170,4 +187,31 @@ await H.run(async () => {
   ok(fit.fits && fit.size === (await p.$eval('.pw-end-t', e => getComputedStyle(e).fontSize)), `LOCKED OUT fits its line at the same size + weight as WELCOME IN (${fit.size})`);
   await shotAll(p2, 'pw-07-fail1');
   await H.cleanText(p2, 'the door held', '.pw-screen');
+  ok((await played(p2)).includes('fail'), 'the LOCKED OUT sound');
+
+  // ---- DFIX1 — THE FIRST-TAP CATCH (iOS: the keys fire on pointerdown, the audio unlocks on the later touchend): a key's sound asked for with NO
+  // gesture yet, then a real tap 120 ms later unlocks it → the held sound still plays; asked for with no tap at all → it never plays
+  {
+    const pg = await browser.newPage();
+    await pg.setViewport(H.VIEW);
+    await pg.goto(guardUrl(`${BASE}/tests/integration/password-preview.html?toggle=0`, 'e2e-password'));
+    await pg.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 30000 });
+    await pg.evaluate(() => window.__password.type('A'));                      // (no gesture: the key's sound is held)
+    await sleep(120);
+    await pg.mouse.click(4, 400);                                               // a real tap on the screen → the console's unlock
+    await pg.waitForFunction(() => import('/js/games/password/sfx.js').then(m => m.pwSfxPlayed().some(x => x.name === 'tap')), { timeout: 3000, polling: 100 }).catch(() => {});
+    const got = await played(pg);
+    await pg.evaluate(() => window.__password.back());                          // unlocked now: plays at once
+    await pg.waitForFunction(() => import('/js/games/password/sfx.js').then(m => m.pwSfxPlayed().some(x => x.name === 'back')), { timeout: 3000, polling: 100 }).catch(() => {});
+    const got2 = await played(pg);
+    ok(got.includes('tap') && got2.includes('back'), `THE FIRST-TAP CATCH: a key's sound asked for before the unlock plays once the tap unlocks the audio (${got2.join(' · ')})`);
+    await pg.close();
+    const pg2 = await browser.newPage();
+    await pg2.goto(guardUrl(`${BASE}/tests/integration/password-preview.html?toggle=0`, 'e2e-password'));
+    await pg2.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 30000 });
+    await pg2.evaluate(() => window.__password.type('A'));
+    await sleep(700);   // (a timed thing: past the 400 ms catch window)
+    ok((await played(pg2)).length === 0, 'with no tap at all, nothing plays (never a sound without a gesture)');
+    await pg2.close();
+  }
 });

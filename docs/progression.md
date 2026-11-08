@@ -121,7 +121,7 @@ and no card gets it now) — so "everyone who played before the launch" is exact
 
 ## THE DAILY CONTRACT (`POST /api/daily`)
 - **A CARTRIDGE** (`core/daily.js#registerDaily`): `{ id, name, better: 'high'|'low', buckets, bucket(score), verify(seed, result, {startedAt, now}) → score | null }`.
-  The server lists its cartridges in `api/_lib/dailies.js` (none real yet; `DAILY_TEST=1` adds THE FAKE DAILY — guess 0–999, 1000 − the miss).
+  The server lists its cartridges in `api/_lib/dailies.js` (THE PASSWORD + COAST CLEAR — both behind `DAILY_TEST=1` until THE SWITCH-OVER; `DAILY_TEST=1` adds THE FAKE DAILY — guess 0–999, 1000 − the miss).
 - **THE DAY** = the streak's day. **THE SEED** = HMAC(the pepper, `daily:<id>:<day>`) — secret, the same for everyone, never early.
 - **ONE OFFICIAL TRY:** `start` records `dly/{game}/{day}/s/{pid}` (a refresh = the same try, its clock running); `finish` → the cartridge's
   `verify` replays the result against the seed → the first score is kept (`r/{pid}`, a transaction) → the histogram `h/{bucket}` + `n`.

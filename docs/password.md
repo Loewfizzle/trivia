@@ -35,9 +35,15 @@ and `applyGuess` folds the answer into the phone's copy (logic.js keeps the two 
 Letters typed but not sent live in the view alone: a tear-down (the room starting a game, an app switch — `unmount`) drops them and the next
 `mount` resumes from the server's record on the same door / next guess. Nothing is counted, no clock runs on the phone.
 
+**A RUN KEEPS ITS OWN DAY (DFIX1 — FABLE REVIEW #1's MUST FIX 1):** the judge remembers the `day` its `start` returned (`js/daily/run-day.js` — in
+memory + per device while the run is in flight) and sends it on EVERY guess / finish; the server accepts today's or YESTERDAY's (with a start there —
+`api/daily.js#dayOfCall`), so a run that crosses 4 am Eastern finishes on ITS day: the old words, its score, its streak day, its rewards. A refresh
+across the turn asks `start` for that day and gets the old run back; once it is scored the next start opens today's (one try still holds: a start
+never opens yesterday afresh, a scored run never reopens). A run that crossed the turn ends with "TODAY'S PASSWORD IS OPEN" where the countdown sits.
+
 **The screen (PW2):** the sign THE PASSWORD (a static text glow) · **THE DRAWN DOORS** (`doors.js` — NO PILLS, the owner's standing rule for the dailies:
 two 34 × 44 inline-SVG neon doors joined by a short line, the name in small neon type beside each + one line under it — opened "4 GUESSES",
-current "4 OF 6 LEFT", the door that stopped you "LOCKED OUT", a door never reached has no label; `locked` = a dim outline · `on` = lit pink, a
+current "4 OF 6 LEFT", the door that stopped you "LOCKED OUT", a door never reached has no label (the line 11 px — DFIX1, was 9.5; one line at 390 / 402 / 430, both looks); `locked` = a dim outline · `on` = lit pink, a
 gentle 2.6 s pulse on opacity · `open` = the leaf swung ajar toward you (its own HTML layer: Safari ignores 3D on SVG children), warm light in the
 doorway + spilling out, a green frame · `held` = closed, dim, a red tint; the "glow" is a second wide faint stroke — no filter) · the grid · a
 one-line note slot (NOT IN THE LIST · NOT ENOUGH LETTERS · NO SIGNAL) · the keyboard. **The marks never by colour alone:** RIGHT = a solid `--good`
@@ -51,16 +57,18 @@ only. No ✓ / ✕ / ⌫ glyphs anywhere: every icon is drawn. The tile shrinks 
 (0.95 s) while warm light FLOODS down the screen from the doors (`.pw-flood`, opacity only) → the board clears (translate + fade) → THE BACK ROOM's
 empty board slides in, its door goes current (~1.7 s in all). The run is ALREADY advanced before the motion starts (`applyGuess`), so a suspend
 mid-reveal resumes on THE BACK ROOM's board with the front door open; a tap skips to the end state (`window.__password.skip()`). THE BACK ROOM's
-crack plays the same, shorter (× 0.7), into the end screen. A held door: no swing — the door dims red (a low thud), then the end screen.
+crack plays the same, shorter (× 0.7), into the end screen. A held door: no swing — the door dims red (a low thud), then the end screen — NO line under the grid (DFIX1: the old "… HELD · THE WORD WAS" line is gone; the
+door row says LOCKED OUT, the end screen shows the word).
 
 **THE END SCREEN** (`view.js#end` — the owner's ADD-ON, Nov 7): the board + keyboard leave (0.4 s), one clean screen comes in under the door row:
 **WELCOME IN** (big green neon) or **LOCKED OUT** (big red neon, the same size + weight for both fail cases — the door row says which door) ·
 WELCOME IN: ONE big number ("5 GUESSES") with the time small under it; LOCKED OUT: one small line ("6 GUESSES · 2:15") · both doors' MINI GRIDS side by
 side (22-pt cells, the three marks, no letters) with each door's word under its grid (only doors attempted — never the unplayed door's word, the
 server's rule) · **SHARE** (the one pink NEON TUBE, a modest radius — NO PILLS) + **NEXT PASSWORD IN 13:39:21** (to the next 4 am Eastern,
-`logic.js#msToTurn` on `core/week.js#easternParts`, ticking) together under it; the leftover space falls at the FOOT (never top-heavy; on a desktop
+`logic.js#msToTurn` on `core/week.js#easternParts`, ticking on the SERVER's clock — the start's `now`) together under it; the leftover space falls at the FOOT (never top-heavy; on a desktop
 the block is centred). No status text: the finish's state lives in the hook (`finished()`); only a failed finish shows a quiet NOT RECORDED · NO
-SIGNAL. `end()` calls `judge.finish()` once (a retry gets the stored score back).
+SIGNAL. DFIX1: `end()` → `record()`, like COAST CLEAR's — a lost signal (status 0 / 5xx) is retried 4× backed off (0.8 · 1.6 · 2.4 s), a retry is free (the
+server keeps the first finish); nothing on screen while it waits, the quiet NOT RECORDED line only once every try failed.
 
 **THE TWO LOOKS (PW2 — Group 4):** every colour is a `--pw-*` token on `.pw-screen` (NIGHT = neon); **`body[data-look="day"]` RETOKENS it** — "C1 clear
 morning sky": a pale blue sky (light blue at the top → near white at the foot), a soft sun top-left, a few soft white clouds (static radial blurs),
@@ -78,6 +86,12 @@ mark lands) · not-a-word (the shake) · door unlock + door open (the reveal) ·
 except 08 door-unlock = the -b (its clunk keeps its level on a phone speaker); 06 tile-miss trimmed −2 dB at import (never boosted). Imported by
 `scripts/build-pw-sfx.py` (mono, 96 kbps, 44.1 kHz, no metadata; the unpicked -b files not imported; the credits entries of the 11 kept beside
 them + ☰ → CREDITS). Quiet-leaning; the SFX slider + THE ONE MUTE apply (the console's bus); the game works silently.
+**DFIX1 — ONE SOUND ENGINE + THE FIRST-TAP CATCH:** both dailies play through `js/daily/sfx.js` (was COAST CLEAR's; `sfx.js` here is the table): the kit
+keys fire on pointerdown and iOS unlocks on the later touchend, so a sound asked for before the audio runs is held ≤ 400 ms and played the moment the
+context runs (none without a gesture behind it); every buffer decodes at the unlock (ONE module-level unlock hook for both games). The preview + the E2E's
+page now install the console's unlock (`installAudio`) — before DFIX1 they were silent by construction (why the preview made no sound on the owner's
+iPhone); the E2E proves the sounds start on the context after a trusted tap + the catch (`pwSfxPlayed()`). **Music off + the ring / silent switch on =
+no effects on an iPhone** (the audio session is 'ambient' with the music off — engine.js; by design).
 
 **THE SHARE CARD (Group 6 — `share.js`):** SHARE renders a 1080 × 1350 canvas in the look on screen — the sign, the two drawn doors with their
 names, the headline + "5 GUESSES · 2:15", both mini grids (marks only — NO letters, NO words), THE PASSWORD #n, neonspeakeasy.com — and sends it
@@ -102,6 +116,13 @@ shared (or copied) and the image is saved. No emoji anywhere.
   `no_daily` before any finish.
 - The cartridge is registered by `api/_lib/dailies.js#loadDailies` **only under `DAILY_TEST=1`** (the emulator tests, `serve.mjs --emu`): production
   answers 404 `no_daily` until THE SWITCH-OVER. No rules change (`dly/` is the rules' default deny — server-only).
+- **THE RUN'S DAY (DFIX1):** every call after `start` carries `day`; today's, or yesterday's when the player has a start there (else 409 `not_started`);
+  anything else (made up, two back, tomorrow) → 400 `bad_day`; no day = today (an old phone). `start { day }` resumes yesterday's run only while it has
+  no score; otherwise today's. The finish's streak step uses the RUN's day (`progress.js#playDay(…, day)`); the early-bird hour is the start's for a run
+  that crossed the turn. A move THE PASSWORD doesn't own (`dig` / `chord` / `pause` / `resume`), a null or non-object body → 400 `bad_action` (never a 500).
+- **The cost (the free plans):** ≈ 10–15 `/api/daily` calls a run (start + ≤ 12 guesses + the resumes + finish), each 2–4 database round trips. At 100
+  players × both dailies × 30 days ≈ 200 k invocations a month (Vercel Hobby: 1 M) and ≈ 200 MB of database traffic (Spark: 10 GB); `dly/` is never pruned
+  and there is no per-player call budget yet — both THE DAILY MODULE's (FABLE REVIEW #1, 14).
 
 ## THE REWARDS' art (THE VAULT — docs/vault.md)
 - **SAFECRACKER** (rare — the owner's APPROVED Grok art, `card-safecracker.png` → `assets/vault/pw/safecracker.webp`, 1280 × 720, converted only by
@@ -120,8 +141,11 @@ shared (or copied) and the image is saved. No emoji anywhere.
 ## The schedule (`api/_lib/pw-day.js`)
 The list is shuffled once per cycle with an HMAC-SHA256 stream keyed by THE PEPPER + the cycle number (`pw-order:<cycle>` — never the 32-bit
 `dailySeed`, never the date alone: the repo is public), and day k of the cycle takes words 2k and 2k + 1 of that order: two words a day, always
-different, no word repeats until the list is used up (a cycle = ⌊n / 2⌋ days — ~725 days on today's 1,449), then a fresh order. Day 0 = Nov 1 2026
+different, no word repeats until the list is used up (a cycle = ⌊n / 2⌋ days — **701 days on today's 1,402**, DFIX1), then a fresh order. Day 0 = Nov 1 2026
 (`SCHEDULE_EPOCH`); the emulators' pepper is `emulator-pepper` (fb.js), so a local run's words are NOT the live schedule's.
+**Before go-live (THE DAILY MODULE — not built yet):** freeze the schedule — any edit to the list after launch reorders the whole current cycle (FABLE
+REVIEW #1, 13): put a list version in the HMAC label (`pw-order:<listVersion>:<cycle>`) with a test that fails on an edit without a bump, or store each
+cycle's order once server-side. The list is free to change until then.
 
 ## The list build (`scripts/pw-words/build.mjs`)
 `node scripts/pw-words/build.mjs <count_1w.txt> [--candidates]` — Norvig's unigram counts (MIT, norvig.com/ngrams) rank the words; the words
@@ -131,7 +155,9 @@ gzipped in `scripts/oc-pools/dict/`. Five letters, minus plurals (`KEEP_S` keeps
 KID-SAFE LIST (`blocklist.mjs`). The sources hold only ~2,800 such words; the first 2,400 went to **THE REVIEWER** (a separate agent that hadn't seen
 the filtering, over the whole list: cut anything obscure, awkward, rude, adult, alcohol / drugs / violence / death, dark second meanings,
 inflections, names, Britishisms — when in doubt, out) → 1,012 cut; the remaining 407 to a second → 346 cut. **1,449 answers** (the target was
-~2,000: the sources + a strict kid-safe read don't yield more — widening it means loosening the read). The build fails without the cuts files, so
+~2,000: the sources + a strict kid-safe read don't yield more — widening it means loosening the read). **DFIX1 (Nov 7): 47 ADULT-VOCABULARY words cut**
+(FABLE REVIEW #1's list — banal, trite, pithy, terse, fjord, segue, …: `blocklist.mjs#ADULT_VOCAB`, applied by the build WITH the reviewer's cuts — after the
+pick, so a rebuild gives the same list; the MEAN + GLOOMY words the review named stay, the owner's call) → **1,402 answers**. The build fails without the cuts files, so
 no list ships unreviewed; every answer must be in data/words/valid-5.json (a word a phone can't type is never an answer). The list is alphabetical
 (its order says nothing). A re-run is byte-identical for the same inputs.
 
@@ -139,13 +165,17 @@ no list ships unreviewed; every answer must be in data/words/valid-5.json (a wor
 - Pure: `node --test tests/password.test.mjs tests/pw-day.test.mjs tests/password-list.test.mjs tests/kit-oc1.test.mjs tests/cartridge.test.mjs tests/achievements.test.mjs`.
 - `/api` on the emulators: `cd tests/integration && node --test password.test.mjs` (DAILY_TEST=1 is set inside) — the answer never early, an unplayed
   door never, a non-word costs nothing, the cap, a second start = the same try, one finish, production refuses it; PW2: a crack in 3 → KEYHOLE +
-  SAFECRACKER, a crack in 7 → KEYHOLE only, a held door → neither, never twice.
+  SAFECRACKER, a crack in 7 → KEYHOLE only, a held door → neither, never twice. DFIX1: THE 4 AM TURN (start 3:58 → guesses across 4:00 → finish
+  4:00:30 records on the start's day + its streak day + KEYHOLE / SAFECRACKER; a refresh across the turn resumes; the review's crack-at-3:58:40 case),
+  the abuse checks (made up · two back · tomorrow · no start there → refused; a start never opens yesterday afresh; one try holds), the clean 400s.
 - The E2E (the emulators + `DAILY_TEST=1 node scripts/serve.mjs <port> --emu`): `E2E_BASE=http://localhost:<port> node e2e-password.mjs "<browser>"
   ./shots-password` — start (the drawn doors, no status line, no capsule) → a refused non-word → a miss → a refresh mid-door resumes → a LOOK FLIP
   mid-guess (the letters stay, the tiles re-theme) and back → THE FRONT DOOR cracked + THE DOOR REVEAL → torn down MID-REVEAL + rebuilt on THE BACK
   ROOM's board → letters typed, torn down + rebuilt (the row cleared) → THE BACK ROOM cracked → THE END SCREEN (the board + keys gone; WELCOME IN · 4
   GUESSES · the mini grids · SHARE · the countdown; a look flip on it) + the server's score → one try; a second phone: six misses → LOCKED OUT
-  (the door dims, the word shown, one mini grid, the same headline size), 206, no leak. 30 checks.
+  (the door dims, no line under the grid, one mini grid + its word on the end screen, the same headline size), 206, no leak. DFIX1: the door
+  sublines ≥ 11 px on one line at 390 / 402 / 430, the sounds START on the context after the first trusted tap, the LOCKED OUT sound, THE FIRST-TAP
+  CATCH on the preview (+ nothing without a tap). 40 checks.
 - The look: `tests/integration/password-preview.html` (no Firebase; the fake judge's test words CRANE · LIGHT) — `?d1=TRAIN,CRANE&d2=STORM,FIGHT&typed=LI`
   (mid door 2, all three marks), `?d1=TRAIN&refuse=1`, `?end=crack | fail1 | fail2&still=1` (the end screens), `?d1=TRAIN&reveal=1` (THE DOOR REVEAL runs —
   `shots.mjs --cast 4400 --strip 12 --cast-from 1200` films it), `&look=day` + the tiny DAY / NIGHT toggle at the foot (`&toggle=0` hides it),
@@ -155,6 +185,8 @@ no list ships unreviewed; every answer must be in data/words/valid-5.json (a wor
 
 **The local run before the push (PW2, Nov 7):** unit 1316 · rules 66 + /api 38 (+ password 6, the rewards on finish) · smoke GAMES=overclock 5/5 ·
 e2e-password 32/32 · the no-sideways guard 312/312 · the reveal filmed at 390 (`--cast`), the end screens at 390 / 402 / 430 in both looks + WebKit.
+
+**The local run before the push (DFIX1, Nov 7):** see docs/games/review-dailies-1.md "DFIX1 — the fix pass".
 
 ## Real vs placeholder (PW2)
 REAL: the rules, the server judging + the record + the schedule + the list, the kit hook, BOTH looks + the live switch, the drawn doors, the door

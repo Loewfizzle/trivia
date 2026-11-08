@@ -188,3 +188,86 @@ test('the cartridge: LOW is better, one bucket per score 2…206; the list is in
   await dailyAction('pw-bob', { action: 'start', game: 'test' }, NOW);
   await rejects(dailyAction('pw-bob', { action: 'guess', game: 'test', word: 'ABOUT' }, NOW), 400, 'bad_action');
 });
+
+// ---- DFIX1 — A RUN KEEPS ITS OWN DAY: the 4 am Eastern turn never loses a run in flight (FABLE REVIEW #1 finding 1 — its probe is this test)
+const TURN = Date.UTC(2026, 11, 2, 9, 0, 0);   // Wed Dec 2 2026, 4:00 am Eastern (EST)
+const GD = (uid, word, at, day) => dailyAction(uid, { action: 'guess', game: 'password', word, day }, at);
+const FD = (uid, at, day) => dailyAction(uid, { action: 'finish', game: 'password', result: null, day }, at);
+const SD = (uid, at, day) => dailyAction(uid, { action: 'start', game: 'password', day }, at);
+
+test('DFIX1 — the 4 am turn: start 3:58 → guesses across 4:00 → finish 4:00:30 records on the START\'s day, its streak day + its rewards', async () => {
+  await ensure('pw-tom', 'Tom', TURN - 3 * DAY);
+  const d0 = streakDay(TURN - 120e3), d1 = streakDay(TURN + 30e3);
+  assert.equal(d0, 'd20261201'); assert.equal(d1, 'd20261202');
+  const [W1, W2] = wordsFor(d0);
+  const s = await S('pw-tom', TURN - 120e3);
+  assert.equal(s.day, d0);
+  const miss = blank([W1, W2, ...wordsFor(d1)]);
+  await GD('pw-tom', miss, TURN - 100e3, d0);
+  // past the turn: the run's own day goes on — the old words, the same record
+  const g2 = await GD('pw-tom', W1, TURN + 10e3, d0);
+  assert.equal(g2.day, d0); assert.equal(g2.solved, true); assert.equal(g2.word, W1);
+  // an OLD phone (no day) is out of step after the turn — today has no start for it
+  await rejects(G('pw-tom', W2, TURN + 15e3), 409, 'not_started');
+  // a refresh across the turn (the phone asks for its run's day) resumes the old run: door 2, the same start
+  const back = await SD('pw-tom', TURN + 18e3, d0);
+  assert.equal(back.day, d0); assert.equal(back.startedAt, s.startedAt); assert.equal(back.run.door, 1); assert.deepEqual(back.run.doors[0].guesses, [miss, W1]);
+  assert.equal(await val(`dly/password/${d1}/s/${await val('uids/pw-tom')}`), null, 'the resume opened nothing on the new day');
+  assert.equal((await GD('pw-tom', W2, TURN + 20e3, d0)).done, true);
+  const f = await FD('pw-tom', TURN + 30e3, d0);
+  assert.equal(f.day, d0); assert.equal(f.score, 3);
+  assert.deepEqual(f.outcome.ach.map(a => a.id || a).sort(), ['keyhole', 'safecracker']);
+  const pid = await val('uids/pw-tom');
+  assert.equal(await val(`dly/password/${d0}/r/${pid}`), 3, 'recorded on the start\'s day');
+  assert.equal(await val(`dly/password/${d1}/r/${pid}`), null);
+  const ps = await val(`pstats/${pid}`);
+  assert.equal(ps.st.d, d0, 'the streak day is the run\'s'); assert.equal(ps.st.n, 1);
+  assert.ok(ps.m[`daily_password_${d0}`]);
+  // ONE TRY still holds: the finished run is never reopened — a start asking for it gets TODAY's fresh run, a guess on it is refused
+  const s1 = await SD('pw-tom', TURN + 40e3, d0);
+  assert.equal(s1.day, d1); assert.equal(s1.done, null); assert.equal(s1.run.door, 0); assert.equal(s1.run.doors[0].guesses.length, 0);
+  await rejects(GD('pw-tom', miss, TURN + 41e3, d0), 409, 'finished');
+  // and today's run counts as today (the streak goes on to 2)
+  const [V1, V2] = wordsFor(d1);
+  await GD('pw-tom', V1, TURN + 50e3, d1); await GD('pw-tom', V2, TURN + 60e3, d1);
+  const f1 = await FD('pw-tom', TURN + 70e3, d1);
+  assert.equal(f1.day, d1); assert.equal(f1.outcome.streak.n, 2);
+});
+
+test('DFIX1 — the review\'s case: both doors cracked at 3:58:40, the finish lands at 4:00:30 → recorded (never 409 not_started)', async () => {
+  await ensure('pw-uma', 'Uma', TURN - 3 * DAY);
+  const d0 = streakDay(TURN - 120e3);
+  const [W1, W2] = wordsFor(d0);
+  await S('pw-uma', TURN - 120e3);
+  await GD('pw-uma', W1, TURN - 90e3, d0);
+  assert.equal((await GD('pw-uma', W2, TURN - 80e3, d0)).done, true);
+  const f = await FD('pw-uma', TURN + 30e3, d0);
+  assert.equal(f.score, 2); assert.equal(f.day, d0); assert.ok(f.outcome && f.outcome.streak.n === 1);
+});
+
+test('DFIX1 — the abuse checks: a made-up day, two days back, tomorrow, a day with no start → refused; a start never opens yesterday afresh', async () => {
+  await ensure('pw-wes', 'Wes', TURN - 3 * DAY);
+  const d1 = streakDay(TURN + 60e3), d0 = 'd20261201';
+  const s = await SD('pw-wes', TURN + 60e3, d0);   // no start on d0: the start is today's, nothing written on d0
+  assert.equal(s.day, d1);
+  const pid = await val('uids/pw-wes');
+  assert.equal(await val(`dly/password/${d0}/s/${pid}`), null, 'never a start on yesterday\'s day');
+  const [W1] = wordsFor(d1);
+  await rejects(GD('pw-wes', W1, TURN + 61e3, d0), 409, 'not_started');            // yesterday, but no start there
+  await rejects(GD('pw-wes', W1, TURN + 61e3, 'd20261130'), 400, 'bad_day');        // two back
+  await rejects(GD('pw-wes', W1, TURN + 61e3, 'd20261203'), 400, 'bad_day');        // tomorrow
+  await rejects(GD('pw-wes', W1, TURN + 61e3, 'd99999999'), 400, 'bad_day');        // made up
+  await rejects(GD('pw-wes', W1, TURN + 61e3, 'yesterday'), 400, 'bad_day');
+  await rejects(GD('pw-wes', W1, TURN + 61e3, { k: d0 }), 400, 'bad_day');
+  await rejects(FD('pw-wes', TURN + 61e3, 'd20261130'), 400, 'bad_day');
+  assert.equal((await SD('pw-wes', TURN + 62e3, 'd20261130')).day, d1, 'a start asking two days back: today\'s (the same try)');
+  // a day of a run that was never on this profile's books → the guess goes nowhere; today's run is untouched
+  assert.equal(await val(`dly/password/${d1}/p/${pid}`), null);
+  // the clean errors (DFIX1 Group 3): a move THE PASSWORD doesn't own, a null body, a non-object
+  await rejects(dailyAction('pw-wes', { action: 'dig', game: 'password', cell: 3 }, TURN + 63e3), 400, 'bad_action');
+  await rejects(dailyAction('pw-wes', { action: 'pause', game: 'password' }, TURN + 63e3), 400, 'bad_action');
+  await rejects(dailyAction('pw-wes', null, TURN + 63e3), 400, 'bad_action');
+  await rejects(dailyAction('pw-wes', 'guess', TURN + 63e3), 400, 'bad_action');
+  await rejects(dailyAction('pw-wes', { action: 'guess', game: 'password', word: { w: 'ABOUT' } }, TURN + 63e3), 422, 'not_a_word');
+  await rejects(dailyAction('pw-wes', { action: 'guess', game: { id: 'password' } }, TURN + 63e3), 404, 'no_daily');
+});

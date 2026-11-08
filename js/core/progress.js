@@ -120,8 +120,8 @@ export function dedupePids(rows, pids) {
 }
 
 /** THE STREAK's day for a play (a match / a daily): the run, its milestones' items (+ a FAVOR token) — into next. */
-export function playDay(next, now, outage) {
-  const { st, ev } = streakPlay(next.st, streakDay(now), outage);
+export function playDay(next, now, outage, day = streakDay(now)) {
+  const { st, ev } = streakPlay(next.st, day, outage);
   next.st = st;
   const items = grant(next, ev.milestones.flatMap(m => m.items), now);
   const fav = ev.milestones.reduce((a, m) => a + (m.favor || 0), 0);
@@ -176,7 +176,7 @@ export function dailyStep(s0, { game, day, now, top = 100, n = 0, hourET = 12, o
   next.dl = dl;
   const gf = Object.entries(flags || {}).filter(([, v]) => v).map(([k]) => `${game}-${k}`);   // (a DASH — never a dot in a database key)
   if (gf.length) next.pa = { ...(s.pa || {}), gf: { ...((s.pa && s.pa.gf) || {}), ...Object.fromEntries(gf.map(k => [k, 1])) } };
-  const streak = playDay(next, now, outage);
+  const streak = playDay(next, now, outage, day);   // (DFIX1: the RUN's day — a run that crossed 4 am keeps its streak day)
   const aw = awardAll(next, now, { founderOpen });
   return { next, items: [...streak.items, ...aw.items], ach: aw.ach, streak: { n: next.st.n, ev: streak.ev }, dl };
 }

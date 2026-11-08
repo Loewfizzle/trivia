@@ -159,6 +159,10 @@ letters, minus inflections + the house blocklist + THE KID-SAFE LIST in `blockli
 doubt, out) writes `cuts.json` (+ `cuts-tail.json` for a widened pool) → `node scripts/pw-words/build.mjs <count_1w.txt>` writes the list (+ the
 server's copy of valid-5.json). The build fails without the cuts files; every answer must be in valid-5 (typeable). Nov 7: 2,807 candidates → 1,449.
 To change the list: edit the blocklist or a cuts file (never answers.json by hand), rebuild, run `tests/password-list.test.mjs`.
+DFIX1 (Nov 7): 47 adult-vocabulary words cut (`blocklist.mjs#ADULT_VOCAB` — applied WITH the reviewer's cuts, after the pick, so the pick never reaches past
+the reviewed candidates) → **1,402** (a 701-day cycle). `count_1w.txt` is not committed: with no copy on the machine the pass applied the build's own final
+step to the built list — the same output a rebuild gives, since only cuts were added. After THE SWITCH-OVER a list edit needs the schedule freeze first
+(docs/password.md "The schedule").
 
 ## Word lists
 Built by `scripts/build-words.mjs` from ENABLE (public domain), the SCOWL-derived Hunspell en_US

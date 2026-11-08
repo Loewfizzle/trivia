@@ -20,7 +20,7 @@ import { bumpOwners } from './_lib/owners.js';
 import { outageDays } from './_lib/stats.js';
 import { dailySeed, loadDailies } from './_lib/dailies.js';
 import { dailyOf, bucketOf, standing, todayView, dailyIds } from '../js/core/daily.js';
-import { streakDay } from '../js/core/streak.js';
+import { streakDay, dayNum, dayOf } from '../js/core/streak.js';
 import { dailyStep } from '../js/core/progress.js';
 import { easternParts } from '../js/core/week.js';
 import { founderOpen } from './_lib/founder.js';
@@ -32,15 +32,42 @@ async function mine(uid) {
   return pid;
 }
 const cartOf = id => { const c = dailyOf(id); if (!c) throw new ApiError(404, 'no_daily'); return c; };
+const DAY_KEY = /^d\d{8}$/;
+/** the streak day before `dk` */
+export const prevDay = dk => dayOf(dayNum(dk) - 1);
+/**
+ * DFIX1 — A RUN KEEPS ITS OWN DAY: every call after `start` names the day its start returned (`body.day`). Today's, or YESTERDAY's (a run
+ * that crossed 4 am Eastern finishes on its own day — the caller then checks the player has a start there, else 409 not_started); no day =
+ * today (an old phone). Anything else (a made-up day, two back, tomorrow) → 400 bad_day. The server never re-reads the clock for a run in flight.
+ */
+export function dayOfCall(body, now) {
+  const today = streakDay(now);
+  const d = body && body.day;
+  if (d == null || d === today) return today;
+  if (typeof d === 'string' && DAY_KEY.test(d) && d === prevDay(today)) return d;
+  throw new ApiError(400, 'bad_day', 'That day isn’t open.');
+}
 
 export async function dailyAction(uid, body, now = Date.now()) {
   loadDailies();
-  const day = streakDay(now);
+  body = body && typeof body === 'object' ? body : {};
+  const today = streakDay(now);
   switch (body.action) {
     case 'start': {
-      const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
-      const tx = await ref(`${base}/s/${pid}`).transaction(cur => (cur ? undefined : now));
-      const startedAt = tx.snapshot.val();
+      const pid = await mine(uid), cart = cartOf(body.game);
+      // a run in flight on YESTERDAY's day (the phone remembers its day) resumes there until it is finished — never a start on yesterday's day,
+      // never a second try: with no start there, or its score already in, the start is today's
+      let day = today, startedAt = null;
+      const asked = body.day;
+      if (typeof asked === 'string' && DAY_KEY.test(asked) && asked === prevDay(today)) {
+        const [s0, r0] = await Promise.all([val(`dly/${cart.id}/${asked}/s/${pid}`), val(`dly/${cart.id}/${asked}/r/${pid}`)]);
+        if (s0 && r0 == null) { day = asked; startedAt = s0; }
+      }
+      const base = `dly/${cart.id}/${day}`;
+      if (startedAt == null) {
+        const tx = await ref(`${base}/s/${pid}`).transaction(cur => (cur ? undefined : now));
+        startedAt = tx.snapshot.val();
+      }
       const done = await val(`${base}/r/${pid}`);
       if (cart.judged) {
         const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day) : null]);
@@ -49,8 +76,9 @@ export async function dailyAction(uid, body, now = Date.now()) {
       return { day, seed: dailySeed(cart.id, day), startedAt, done: done ?? null };
     }
     case 'guess': {
+      const day = dayOfCall(body, now);
       const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
-      if (!cart.judged) throw new ApiError(400, 'bad_action', 'This daily judges itself.');
+      if (!cart.judged || typeof cart.judge !== 'function') throw new ApiError(400, 'bad_action', 'This daily has no such move.');
       const startedAt = await val(`${base}/s/${pid}`);
       if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
       if ((await val(`${base}/r/${pid}`)) != null) throw new ApiError(409, 'finished', 'Today’s run is done.');
@@ -69,6 +97,7 @@ export async function dailyAction(uid, body, now = Date.now()) {
     }
     case 'dig': case 'chord': case 'pause': case 'resume': {
       // CC1 — a judged cartridge's MOVES (COAST CLEAR): the day's data (its board) + the start in parallel, then ONE transaction on the record
+      const day = dayOfCall(body, now);
       const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
       if (!cart.judged || typeof cart.act !== 'function' || !(cart.moves || []).includes(body.action)) throw new ApiError(400, 'bad_action', 'This daily has no such move.');
       const [startedAt, data] = await Promise.all([val(`${base}/s/${pid}`), cart.load ? cart.load(day) : null]);
@@ -86,12 +115,13 @@ export async function dailyAction(uid, body, now = Date.now()) {
       });
       if (refused) {
         const code = refused === 'done' ? 'finished' : refused;
-        throw new ApiError(status, code, code === 'finished' ? 'Today’s run is done.' : 'That move doesn’t work there.');
+        throw new ApiError(status, code, code === 'finished' ? 'Today’s run is done.' : code === 'pause_limit' ? 'No more pauses this run — the clock is running.' : 'That move doesn’t work there.');
       }
       if (!out) throw new ApiError(409, 'refused', 'Try that again.');
       return { day, ...out, now };
     }
     case 'finish': {
+      const day = dayOfCall(body, now);
       const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
       const startedAt = await val(`${base}/s/${pid}`);
       if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
@@ -116,7 +146,7 @@ export async function dailyAction(uid, body, now = Date.now()) {
       let res = null;
       // (PW2 — a judged daily's FLAGS come from the server's own record, never the phone: THE PASSWORD's crack / safe → KEYHOLE / SAFECRACKER)
       const flags = cart.judged && cart.flags ? cart.flags({ record, day, startedAt, data }) : null;
-      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, n: stand.n, hourET: easternParts(now).h, outage, founderOpen: fOpen, flags }); return res.skip ? undefined : res.next; });
+      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags }); return res.skip ? undefined : res.next; });
       if (res && !res.skip) {
         const st = res.next.st;
         await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d });
@@ -127,6 +157,7 @@ export async function dailyAction(uid, body, now = Date.now()) {
         outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach } : null };
     }
     case 'today': {
+      const day = today;
       const pid = await mine(uid);
       const games = dailyIds();
       const mineScores = {};

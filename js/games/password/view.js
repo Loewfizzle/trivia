@@ -28,6 +28,7 @@ export const LEAVE_MS = 400;          // the board + keyboard animate out before
 export function createView() {
   let root = null, st = null, judge = null, gone = false;
   let run = null, typed = '', busy = false, startedAt = 0, doneScore = null, finished = null, revealing = false, ending = false;
+  let day = null, offset = 0;   // (DFIX1: the run's OWN day — from its start; the server clock's offset for the countdown)
   let kb = null, doors = null, timers = [], clockT = 0, skipReveal = null;
   const els = {};
   const later = (fn, ms) => { const t = setTimeout(() => { timers = timers.filter(x => x !== t); if (!gone) fn(); }, ms); timers.push(t); return t; };
@@ -39,8 +40,7 @@ export function createView() {
     els.sign = h('h1.pw-sign', h('span.pw-sign-t', 'THE PASSWORD'), h('span.pw-sign-dot', { 'aria-hidden': 'true' }, '.'));
     doors = createDoors(DOOR_NAMES);
     els.grid = h('div.pw-grid', { role: 'grid', 'aria-label': 'your guesses' }, Array.from({ length: GUESSES }, () => h('div.pw-row', { role: 'row' }, Array.from({ length: WORD_LEN }, () => h('div.pw-tile', { role: 'gridcell' })))));
-    els.reveal = h('div.pw-reveal', { hidden: true });
-    els.board = h('div.pw-board', els.grid, els.reveal);
+    els.board = h('div.pw-board', els.grid);
     els.note = h('div.pw-note', { role: 'status', 'aria-live': 'assertive' });
     kb = createKeyboard({ go: 'ENTER', maxLen: WORD_LEN, onChange: v => { typed = v; paintTyped(); }, onGo: () => submit(), onKey: (k, changed) => { if (changed) pwSfx(k === '⌫' ? 'back' : 'tap'); } });
     els.kb = h('div.pw-kb', kb.el);
@@ -75,9 +75,7 @@ export function createView() {
     });
     paintTyped();
     kb.setKeyStates(keyStates(run));
-    const shut = d.state === 'failed' && d.word;
-    els.reveal.hidden = !shut;
-    if (shut) { clear(els.reveal); els.reveal.append(`${DOOR_NAMES[di]} HELD · THE WORD WAS`, h('b', d.word)); }
+    // (DFIX1: no line under the grid on a lost door — the door row says LOCKED OUT, the end screen shows its word)
     kb.lock(busy || !!canGuess(run));
   }
   function paintTyped() {
@@ -231,28 +229,42 @@ export function createView() {
     fitTitle(title);
     tickClock(next);
     if (finished) return;
-    try {
-      await judge.finish();
-      finished = 'RECORDED';
-    } catch (e) { finished = null; if (!gone) rec.textContent = 'NOT RECORDED · NO SIGNAL'; }
+    els.rec = rec;
+    record();
   }
-  /** the headline shrinks to its line (never wraps, never clips — THE FRONT DOOR HELD at 390) */
+  /** the score to the server (DFIX1 — like COAST CLEAR's): a lost signal is retried, backed off; a retry is free (the server keeps the first
+   *  finish); nothing on screen while it waits — a quiet NOT RECORDED line only once every try failed */
+  const retryable = e => !e || e.status === 0 || e.status >= 500 || e.code === 'offline' || e.code === 'http';
+  async function record() {
+    for (let tries = 0; tries < 4 && !gone; tries++) {
+      try { const f = await judge.finish(); if (gone) return; doneScore = f && f.score != null ? f.score : doneScore; finished = 'RECORDED'; return; } catch (e) {
+        if (!retryable(e)) break;
+        await wait(800 * (tries + 1));
+      }
+    }
+    if (!gone && finished !== 'RECORDED') { finished = 'FAILED'; if (els.rec) els.rec.textContent = 'NOT RECORDED · NO SIGNAL'; }
+  }
+  /** the headline shrinks to its line (never wraps, never clips) */
   function fitTitle(el) {
     const max = parseFloat(getComputedStyle(el).fontSize) || 40;
     let size = max;
     el.style.fontSize = '';
     for (let i = 0; i < 12 && el.scrollWidth > el.clientWidth + 1 && size > 18; i++) { size -= 2; el.style.fontSize = `${size}px`; }
   }
-  /** "NEXT PASSWORD IN 13:39:21" — to the next 4 am Eastern, ticking */
+  /** "NEXT PASSWORD IN 13:39:21" — to the next 4 am Eastern, ticking (the server's clock); a run that crossed the turn: today's is open */
+  const runDayKey = () => (/^d\d{8}$/.test(String(day || '')) ? day : streakDay(startedAt || Date.now() + offset));
   function tickClock(el) {
     clearInterval(clockT);
-    const paint = () => { const now = Date.now(); el.textContent = `NEXT PASSWORD IN ${fmtClock(msToTurn(easternParts(now), now % 1000))}`; };
+    const paint = () => {
+      const now = Date.now() + offset;
+      el.textContent = runDayKey() < streakDay(now) ? 'TODAY’S PASSWORD IS OPEN' : `NEXT PASSWORD IN ${fmtClock(msToTurn(easternParts(now), now % 1000))}`;
+    };
     paint();
     clockT = setInterval(() => { if (gone) clearInterval(clockT); else paint(); }, 1000);
   }
   /** SHARE (PW2 — the share card is Group 6: the line now; the image lands with share.js) */
   async function share() {
-    const line = shareLine(run, streakDay(startedAt || Date.now()));
+    const line = shareLine(run, runDayKey());
     try {
       const S = await import('./share.js');
       await S.shareRun({ run, line, look: document.body.dataset.look || 'night', root });
@@ -269,6 +281,8 @@ export function createView() {
     busy = false;
     if (gone) return false;
     startedAt = r.startedAt || startedAt;
+    day = r.day || day;
+    if (Number.isFinite(r.now)) offset = r.now - Date.now();
     doneScore = r.done != null ? r.done : null;
     run = r.run ? { ...r.run, startedAt: r.run.startedAt || startedAt } : createRun({ day: r.day, uid: st && st.uid, startedAt });
     if (doneScore != null) finished = 'RECORDED';

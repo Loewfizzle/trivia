@@ -38,6 +38,11 @@ export const COMPARE_STEMS = ['wide', 'nice', 'safe', 'late', 'low', 'old', 'new
   'pale', 'rude', 'tame', 'vast', 'bold', 'firm', 'grim', 'keen', 'lean', 'meek', 'neat', 'numb', 'pink', 'posh', 'rash', 'ripe', 'sick', 'slim', 'snug',
   'soft', 'tidy', 'vile', 'weak', 'cheap', 'brief', 'bland', 'blunt', 'close', 'cross', 'dense', 'fresh', 'grand', 'great', 'green', 'quick', 'quiet',
   'short', 'small', 'smart', 'stiff', 'sweet', 'tight', 'tough', 'young'];
+// DFIX1 — THE ADULT-VOCABULARY CUT (FABLE REVIEW #1, the owner's call Nov 7: "everyday words" — a kid who plays with the family wouldn't know
+// them). Applied by build.mjs AFTER the pick, with the reviewer's cuts (never in reject(): a word rejected there would pull an unreviewed
+// candidate in at the tail), so a rebuild gives exactly this list. The MEAN words (taunt, snide, sneer …) + the GLOOMY ones (gaunt, eerie, dingy) STAY.
+export const ADULT_VOCAB = `banal trite pithy terse tepid stoic acrid adage chide croon drawl elude ensue feign feint flout foray frond gaffe gamut gauzy gavel heady leery levee lurch mosey moxie parch plait preen primp qualm segue shirk shuck sidle skimp skulk splay spurn strew taupe tinge trope wield fjord`.split(/\s+/).filter(Boolean);
+
 // words the plural rule would wrongly cut (an -s that isn't a plural)
 export const KEEP_S = ['chaos', 'atlas', 'ethos', 'kudos', 'bonus', 'focus', 'virus', 'lotus', 'minus', 'genus', 'opus', 'basis', 'oasis', 'crisis',
   'tennis', 'canvas', 'chess', 'dress', 'press', 'cross', 'glass', 'grass', 'brass', 'class', 'bliss', 'floss', 'gloss', 'moss', 'guess', 'bless',

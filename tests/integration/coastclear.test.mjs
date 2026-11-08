@@ -25,6 +25,7 @@ import { streakDay } from '../../js/core/streak.js';
 import { countsOf, flood, nbOf, runView, CAUGHT, safeCount } from '../../js/games/coastclear/logic.js';
 
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
+const DAY_MS = 86_400_000;
 const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress'];
 before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); forgetBoards(); });
 after(async () => { await deleteApp(fb().app); });
@@ -272,4 +273,103 @@ test('production (no DAILY_TEST) refuses coastclear: no cartridge, 404 no_daily'
   process.env.DAILY_TEST = was;
   loadDailies();
   assert.ok(dailyOf('coastclear'));
+});
+
+// ---- DFIX1 — A RUN KEEPS ITS OWN DAY (the 4 am turn) + THE PAUSE CAPS + THE CLEAN ERRORS
+const TURN = Date.UTC(2026, 11, 2, 9, 0, 0);   // Wed Dec 2 2026, 4:00 am Eastern (EST)
+const AD = (uid, action, at, d, extra = {}) => dailyAction(uid, { action, game: 'coastclear', day: d, ...extra }, at);
+/** dig every safe cell left (on `d`'s board), `step` ms apart from t → { last, t } */
+async function digAll(uid, d, t, step = 500) {
+  const board = await ccBoard(d), counts = countsOf(board), L = new Set(board.lights), safeN = safeCount(board);
+  const rec = await val(`dly/coastclear/${d}/p/${await pidOf(uid)}`);
+  const open = new Set([...board.open, ...new Map(runView(rec, board).open).keys()]);
+  let last = null;
+  for (let i = 0; i < 108 && open.size < safeN; i++) {
+    if (L.has(i) || open.has(i)) continue;
+    last = await AD(uid, 'dig', t, d, { cell: i });
+    for (const [c] of last.cells) open.add(c);
+    t += step;
+  }
+  void counts;
+  return { last, t };
+}
+
+test('DFIX1 — the 4 am turn: start 3:58, a dig, a PAUSE at 3:59 → RESUME at 4:00:20, digs after 4:00 on the OLD board, finish → the start\'s day', async () => {
+  await ensure('cc-tom', 'Tom', TURN - 3 * DAY_MS);
+  const d0 = streakDay(TURN - 120e3), d1 = streakDay(TURN + 30e3);
+  assert.equal(d0, 'd20261201'); assert.equal(d1, 'd20261202');
+  const s = await A('cc-tom', 'start', TURN - 120e3);
+  assert.equal(s.day, d0);
+  const b0 = await ccBoard(d0), b1 = await ccBoard(d1);
+  assert.notDeepEqual(b0.lights, b1.lights, 'the two days are different harbors');
+  const L = new Set(b0.lights), opening = new Set(b0.open);
+  const first = [...Array(108).keys()].find(i => !L.has(i) && !opening.has(i));
+  await AD('cc-tom', 'dig', TURN - 110e3, d0, { cell: first });
+  assert.equal((await AD('cc-tom', 'pause', TURN - 60e3, d0)).paused, true);
+  // an old phone (no day) after the turn is out of step — today has no start for it
+  await rejects(A('cc-tom', 'dig', TURN + 10e3, { cell: first }), 409, 'not_started');
+  // a refresh across the turn resumes the old run (the paused one), nothing opened on the new day
+  const back = await AD('cc-tom', 'start', TURN + 15e3, d0);
+  assert.equal(back.day, d0); assert.equal(back.startedAt, TURN - 120e3); assert.equal(back.run.paused, true);
+  assert.equal(await val(`dly/coastclear/${d1}/s/${await pidOf('cc-tom')}`), null);
+  const r = await AD('cc-tom', 'resume', TURN + 20e3, d0);
+  assert.equal(r.paused, false); assert.equal(r.pausedMs, 80e3); assert.equal(r.day, d0);
+  const { last, t } = await digAll('cc-tom', d0, TURN + 25e3);
+  assert.equal(last.done, true); assert.equal(last.out, 'clear'); assert.equal(last.day, d0);
+  const rec = await val(`dly/coastclear/${d0}/p/${await pidOf('cc-tom')}`);
+  const f = await AD('cc-tom', 'finish', t + 1000, d0);
+  assert.equal(f.day, d0);
+  assert.equal(f.score, Math.round((rec.e - (TURN - 120e3) - 80e3) / 1000) + 15, 'the clock + the pause (+15 s), from the record');
+  assert.deepEqual(awards(f), ['lighthouse']);
+  const pid = await pidOf('cc-tom'), ps = await val(`pstats/${pid}`);
+  assert.equal(await val(`dly/coastclear/${d0}/r/${pid}`), f.score, 'recorded on the start\'s day');
+  assert.equal(ps.st.d, d0); assert.ok(ps.it['emb-lighthouse']);
+  // one try: a start asking for the scored run gets TODAY's fresh harbor; a move on the old day is refused
+  const s1 = await AD('cc-tom', 'start', t + 2000, d0);
+  assert.equal(s1.day, d1); assert.equal(s1.done, null); assert.equal(s1.run.done, false); assert.equal(s1.run.spots, 0);
+  await rejects(AD('cc-tom', 'dig', t + 3000, d0, { cell: first }), 409, 'finished');
+  await rejects(AD('cc-tom', 'dig', t + 3000, 'd20261130', { cell: first }), 400, 'bad_day');
+  await rejects(AD('cc-tom', 'pause', t + 3000, 'd20261203'), 400, 'bad_day');
+});
+
+test('DFIX1 — THE PAUSE CAPS on the server: 3 pauses a run, then 409 pause_limit with the clock running; 20 minutes in all; an open pause past it closed at the cap', async () => {
+  const MIN = 60_000;
+  // the count
+  await ensure('cc-pam', 'Pam');
+  await A('cc-pam', 'start', NOW);
+  for (let k = 0; k < 3; k++) {
+    assert.equal((await A('cc-pam', 'pause', NOW + (2 * k + 1) * MIN)).pauses, k + 1);
+    await A('cc-pam', 'resume', NOW + (2 * k + 2) * MIN);
+  }
+  const e = await rejects(A('cc-pam', 'pause', NOW + 7 * MIN), 409, 'pause_limit');
+  assert.match(e.message, /clock is running/);
+  const P = `dly/coastclear/${day}/p/${await pidOf('cc-pam')}`;
+  let rec = await val(P);
+  assert.equal(rec.p.n, 3); assert.equal(rec.p.ms, 3 * MIN); assert.equal(rec.p.at ?? null, null, 'a refused pause never stops the clock');
+  // the total: an open pause past 20 minutes — the next call (a pause) closes it AT THE CAP and is refused
+  await ensure('cc-ron', 'Ron');
+  await A('cc-ron', 'start', NOW);
+  await A('cc-ron', 'pause', NOW + MIN);
+  await rejects(A('cc-ron', 'pause', NOW + 30 * MIN), 409, 'pause_limit');
+  rec = await val(`dly/coastclear/${day}/p/${await pidOf('cc-ron')}`);
+  assert.equal(rec.p.ms, 20 * MIN); assert.equal(rec.p.at ?? null, null, 'auto-resumed: the clock runs from the cap');
+  await rejects(A('cc-ron', 'pause', NOW + 31 * MIN), 409, 'pause_limit');
+  // a DIG after a long pause resumes at the cap; the finish counts the time past it
+  await ensure('cc-sal', 'Sal');
+  await A('cc-sal', 'start', NOW);
+  await A('cc-sal', 'pause', NOW + 1000);
+  const { last, t } = await digAll('cc-sal', day, NOW + 1000 + 45 * MIN);
+  assert.equal(last.done, true);
+  rec = await val(`dly/coastclear/${day}/p/${await pidOf('cc-sal')}`);
+  assert.equal(rec.p.ms, 20 * MIN);
+  const f = await A('cc-sal', 'finish', t + 1000);
+  assert.equal(f.score, Math.round((rec.e - NOW - 20 * MIN) / 1000) + 15);
+  assert.ok(f.score > 25 * 60, `the 25 minutes past the cap ran on the clock (${f.score})`);
+});
+
+test('DFIX1 — clean errors: a GUESS sent to COAST CLEAR (it owns no guess) → 400 bad_action, never a 500', async () => {
+  await rejects(A('cc-ann', 'guess', NOW, { word: 'CRANE' }), 400, 'bad_action');
+  await rejects(A('cc-ann', 'shoot', NOW), 400, 'bad_action');
+  await rejects(A('cc-ann', 'dig', NOW, { day: 12345, cell: 3 }), 400, 'bad_day');
+  await rejects(A('cc-ann', 'dig', NOW, { cell: { x: 1 } }), 422);
 });

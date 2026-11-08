@@ -281,6 +281,15 @@ rooms/{CODE}/hslock/{m}/{rk}/{uid}: { b?: server time, a?: server time }   ← o
 hsbet/{CODE}/{m}/{rk}/{uid}: { b: { b, at }, a: { a 0-3, at } }            ← top level; owner reads; the host from 'show' on; once each, in phase
 ```
 
+## dly/ — THE DAILIES (server only — the rules' default deny; docs/progression.md "THE DAILY CONTRACT", docs/password.md, docs/coastclear.md)
+```
+dly/{game}/{day}/s/{pid}: startedAt    ← ONE OFFICIAL TRY (a refresh = the same try); day = the streak-day key (4 am Eastern)
+dly/{game}/{day}/r/{pid}: score        ← the first finish (a transaction); h/{bucket}: count · n: finishers (THE STANDING)
+dly/{game}/{day}/p/{pid}: record       ← a JUDGED daily's record: THE PASSWORD { g: { 0: [words], 1: [words] }, e? } · COAST CLEAR { st, mv, p?, e?, o? }
+dly/coastclear/{day}/b: board          ← the day's board, built once from the pepper (never served)
+```
+A run's calls name its own day (DFIX1): today's or yesterday's with a start there. Never pruned yet (THE DAILY MODULE's).
+
 ## gifts/ (SHELL 2.0 B2 — server only)
 ```
 gifts/{card id}: { pid, at, by }    ← THE GIFT TOOL's lock (api/_lib/gifts.js): a 1-of-1 gift card belongs to ONE profile EVER — taken in a

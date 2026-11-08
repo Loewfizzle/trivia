@@ -30,7 +30,7 @@
   --cc-n1: #5fd4ff; --cc-n2: #6dff9e; --cc-n3: #ff6fb5; --cc-n4: #ffd84d; --cc-n5: #ff9a4d; --cc-n6: #c49bff; --cc-n7: #ff6464; --cc-n8: #ffffff;
   --cc-buoy: #ff8a2a; --cc-buoy-band: #fff4e8; --cc-buoy-lamp: #ffe0a3; --cc-buoy-halo: rgba(255, 168, 80, 0.32);
   --cc-light: #ffd36b; --cc-light-core: #fff6dc; --cc-light-face: rgba(255, 196, 80, 0.30); --cc-light-glow: rgba(255, 200, 90, 0.5);
-  --cc-lamp-off: rgba(255, 255, 255, 0.30);
+  --cc-lamp-off: rgba(255, 255, 255, 0.46);   /* (DFIX1: a touch brighter — the count reads at a glance; lit = gold stays obvious) */
   --cc-mode-line: rgba(255, 255, 255, 0.16); --cc-mode-bg: rgba(255, 255, 255, 0.04); --cc-mode-ink: rgba(234, 246, 255, 0.62);
   --cc-mode-on: var(--cc-sign); --cc-mode-on-bg: rgba(95, 214, 255, 0.13); --cc-mode-on-glow: rgba(95, 214, 255, 0.5);
   --cc-mode-buoy: var(--cc-buoy); --cc-mode-buoy-bg: rgba(255, 138, 42, 0.13); --cc-mode-buoy-glow: rgba(255, 138, 42, 0.5); --cc-mode-buoy-ink: #ffe6cf;
@@ -92,7 +92,7 @@ body[data-look="day"] .screen.cc-screen {
   --cc-n-glow: 0px; --cc-n-edge: rgba(255, 255, 255, 0.8);
   --cc-buoy: #e3343f; --cc-buoy-band: #ffffff; --cc-buoy-band2: #ffffff; --cc-buoy-lamp: #ffd56b; --cc-buoy-halo: rgba(255, 196, 90, 0.35);
   --cc-light: #f0a51c; --cc-light-core: #fff6dc; --cc-light-face: rgba(255, 196, 70, 0.42); --cc-light-glow: rgba(255, 176, 40, 0.55);
-  --cc-lamp-off: rgba(22, 48, 92, 0.34);
+  --cc-lamp-off: rgba(22, 48, 92, 0.48);
   --cc-mode-line: rgba(80, 120, 180, 0.28); --cc-mode-bg: rgba(255, 255, 255, 0.6); --cc-mode-ink: rgba(20, 40, 74, 0.62);
   --cc-mode-on: #2f86ff; --cc-mode-on-bg: rgba(47, 134, 255, 0.14); --cc-mode-on-glow: transparent;
   --cc-mode-buoy: #2f86ff; --cc-mode-buoy-bg: rgba(47, 134, 255, 0.14); --cc-mode-buoy-glow: transparent; --cc-mode-buoy-ink: #2f86ff;

@@ -8,17 +8,24 @@
 //   judge.finish()              → { score, stand, outcome }       (the server scores from ITS record; a retry gets the stored score back)
 // Everything goes through js/profile/api.js (fetch + the ID token — no database socket: THE PARKED DATABASE never wakes for a daily).
 import { api } from '../../profile/api.js';
+import { runDay } from '../../daily/run-day.js';
 
 export const GAME_ID = 'coastclear';
 export function createApiJudge() {
-  const call = (action, extra) => api('daily', { action, game: GAME_ID, ...extra });
+  const rd = runDay(GAME_ID);   // (DFIX1 — every call names the run's own day: a run that crosses 4 am Eastern finishes on its day)
+  const call = (action, extra) => api('daily', rd.with({ action, game: GAME_ID, ...extra }));
   return {
     kind: 'api',
-    async start() { const r = await call('start'); return { startedAt: r.startedAt, done: r.done, run: r.run, day: r.day, now: r.now }; },
+    async start() {
+      const asked = rd.asked();
+      const r = await api('daily', { action: 'start', game: GAME_ID, ...(asked ? { day: asked } : {}) });
+      rd.started(r);
+      return { startedAt: r.startedAt, done: r.done, run: r.run, day: r.day, now: r.now };
+    },
     dig: cell => call('dig', { cell }),
     chord: (cell, buoys) => call('chord', { cell, buoys }),
     pause: () => call('pause'),
     resume: () => call('resume'),
-    finish: () => call('finish', { result: null }),
+    finish: async () => { const r = await call('finish', { result: null }); rd.scored(); return r; },
   };
 }

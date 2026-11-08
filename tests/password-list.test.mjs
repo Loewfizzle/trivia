@@ -7,7 +7,9 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { spawn } from 'node:child_process';
-import { BLOCK_SUB, BLOCK_WORD, KIDSAFE } from '../scripts/pw-words/blocklist.mjs';
+import { BLOCK_SUB, BLOCK_WORD, KIDSAFE, ADULT_VOCAB } from '../scripts/pw-words/blocklist.mjs';
+import { dayWords, slotOf, SCHEDULE_EPOCH } from '../api/_lib/pw-day.js';
+import { dayOf } from '../js/core/streak.js';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const J = p => JSON.parse(readFileSync(join(ROOT, p), 'utf8'));
@@ -28,6 +30,27 @@ test('every answer is a word a phone can type (data/words/valid-5.json), and the
   assert.equal(srv, pub);
   const valid = new Set(JSON.parse(pub).match(/.{5}/g));
   assert.deepEqual(LIST.words.filter(w => !valid.has(w)), []);
+});
+
+test('DFIX1 — the ADULT-VOCABULARY cut is out (and in the build\'s list, so a rebuild keeps it out); the MEAN + GLOOMY words the owner kept stay', () => {
+  assert.equal(ADULT_VOCAB.length, 47);
+  assert.deepEqual(LIST.words.filter(w => ADULT_VOCAB.includes(w)), []);
+  for (const w of ['banal', 'trite', 'pithy', 'terse', 'fjord', 'segue']) assert.ok(!LIST.words.includes(w), w);
+  for (const w of ['taunt', 'snide', 'sneer', 'spite', 'catty', 'dorky', 'inane', 'vapid', 'gaunt', 'eerie', 'dingy']) assert.ok(LIST.words.includes(w), `${w} stays (the owner's call)`);
+  assert.match(readFileSync(join(ROOT, 'scripts/pw-words/build.mjs'), 'utf8'), /\.\.\.ADULT_VOCAB\]/, 'the build applies the cut with the reviewer\'s');
+});
+
+test('DFIX1 — THE SCHEDULE on the REAL list: two different words every day, no word twice in a whole cycle (701 days)', () => {
+  const list = LIST.words, per = Math.floor(list.length / 2);
+  assert.equal(per, slotOf(dayOf(SCHEDULE_EPOCH), list.length).per);
+  const seen = new Set();
+  for (let k = 0; k < per; k++) {
+    const [a, b] = dayWords(dayOf(SCHEDULE_EPOCH + k), list, 'a-test-pepper');
+    assert.notEqual(a, b);
+    assert.ok(!seen.has(a) && !seen.has(b), `day ${k}: a word repeated in the cycle`);
+    seen.add(a); seen.add(b);
+  }
+  assert.equal(seen.size, 2 * per);
 });
 
 test('kid-safe + Wordle-shaped: nothing on the blocklists, no obvious plural / past tense, every reviewer cut gone, NOT the old answers-5 list', () => {

@@ -427,10 +427,13 @@ export function createView() {
         next, els.rec));
     tickClock(next);
   }
-  /** "NEXT HARBOR IN 13:06:44" — to the next 4 am Eastern, ticking */
+  /** "NEXT HARBOR IN 13:06:44" — to the next 4 am Eastern, ticking (the server's clock); a run that crossed the turn (DFIX1): today's is open */
   function tickClock(el) {
     clearInterval(clockT);
-    const paint = () => { const now = Date.now(); el.textContent = `NEXT HARBOR IN ${fmtCountdown(msToTurn(easternParts(now), now % 1000))}`; };
+    const paint = () => {
+      const now = serverNow();
+      el.textContent = dayKey() < streakDay(now) ? 'TODAY’S HARBOR IS OPEN' : `NEXT HARBOR IN ${fmtCountdown(msToTurn(easternParts(now), now % 1000))}`;
+    };
     paint();
     clockT = setInterval(() => { if (gone) clearInterval(clockT); else paint(); }, 1000);
   }

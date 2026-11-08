@@ -53,7 +53,12 @@ A game that offers a daily (OVERCLOCK's QUICK solo run, the WORDLE-type, COAST C
 `daily = { on: false, create({ date: 'YYYY-MM-DD', uid, now, daySet, code? }) → game, resumeKey(date, uid) → string }`:
 **THE DAY SET in → today's puzzle** (the same content for everyone that day — `daySet` = THE SERVER-PICKED, SEALED day set the daily module
 makes from a SERVER SECRET once a day, NEVER computable from the date: the repo is public; never a party-only part — DUMB LUCK),
-**one try**, **resume** (a refresh / an app switch resumes from `resumeKey`, never restarts). OC5 (OVERCLOCK, `js/games/overclock/daily.js`)
+**one try**, **resume** (a refresh / an app switch resumes from `resumeKey`, never restarts). **A RUN KEEPS ITS OWN DAY (DFIX1):** a judged daily's
+every call after `start` names the day that start returned (`js/daily/run-day.js`; `api/daily.js#dayOfCall` takes today's or yesterday's with a start
+there) — "one try" = a run may be finished until 4 am the day after it began, never started twice. THE DAILY MODULE (not built yet) brings: the shared
+`js/daily/` kit (the clock + countdown, the share canvas, the judge factory, the end scaffold — FABLE REVIEW #1, 10; `js/daily/sfx.js` + `run-day.js`
+are its first two pieces), THE THROWAWAY GATE (a daily COUNTS — standing, THE BOARD, rewards — only for a profile that existed before that day's 4 am
+start, + a per-IP limit on new profiles: docs/games/plan.md DFIX1), freezing THE PASSWORD's schedule before go-live, a per-player `/api/daily` budget. OC5 (OVERCLOCK, `js/games/overclock/daily.js`)
 added the `daySet` slot (+ `code`, the solo room's code its trivia bank is encoded with) and two more pieces the module calls:
 `result(game, uid) → { score, time, rank }` (ONE comparable number: the points, then the faster run) and `replay(daySet, record, uid)` (the
 server re-scores a finished run's record → the same result, or null). OVERCLOCK's day set: `{ v: 1, day, seed, order: [six skill challenges,

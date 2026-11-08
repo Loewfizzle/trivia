@@ -17,7 +17,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BLOCK_SUB, BLOCK_WORD, KIDSAFE, COMPARE_STEMS, KEEP_S } from './blocklist.mjs';
+import { BLOCK_SUB, BLOCK_WORD, KIDSAFE, COMPARE_STEMS, KEEP_S, ADULT_VOCAB } from './blocklist.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const HERE = fileURLToPath(new URL('./', import.meta.url));
@@ -74,7 +74,7 @@ if (onlyCandidates) {
 // without them, so no list ships unreviewed
 const cutFiles = ['cuts.json', 'cuts-tail.json'].map(f => join(HERE, f));
 for (const f of cutFiles) if (!existsSync(f)) { console.error(`${f} is missing — run --candidates, have THE REVIEWER cut the list, then build`); process.exit(1); }
-const cuts = new Set(cutFiles.flatMap(f => JSON.parse(readFileSync(f, 'utf8')).cut.map(w => String(w).toLowerCase())));
+const cuts = new Set([...cutFiles.flatMap(f => JSON.parse(readFileSync(f, 'utf8')).cut.map(w => String(w).toLowerCase())), ...ADULT_VOCAB]);   // (+ DFIX1's adult-vocabulary cut)
 const words = picked.filter(w => !cuts.has(w)).sort();
 const valid = JSON.parse(readFileSync(join(ROOT, 'data/words/valid-5.json'), 'utf8'));
 const validSet = new Set(valid.match(/.{5}/g));
