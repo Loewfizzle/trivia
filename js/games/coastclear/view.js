@@ -12,12 +12,11 @@
 //   createView() → { mount(el, state), update(state), unmount() }   state.game = the run shell (daily.create / start) · state.judge = a judge
 //   (the preview's fake; default THE API JUDGE — judge.js) · window.__coastclear = the test hook (the preview + the E2E)
 import { h, clear, reducedMotion } from '../../ui/dom.js';
-import { tubeButton } from '../../ui/components.js';
-import { foldAnswer, emptyView, clockMs, fmtClock, buoysLeft, chordTargets, nbOf, headline, endLine, finalMs, endMap, msToTurn, fmtCountdown, shareLine, shareInputs, MAX_SPOTS, W, H, LIGHTS, SPOT_S } from './logic.js';
+import { foldAnswer, emptyView, clockMs, fmtClock, buoysLeft, chordTargets, nbOf, headline, endLine, finalMs, endMap, shareLine, shareInputs, MAX_SPOTS, W, H, LIGHTS, SPOT_S } from './logic.js';
+import { retryable, recordFinish, tickTurn, endActions, shareOrLine, NOT_RECORDED } from '../../daily/end.js';
+import { runDayKey } from '../../daily/clock.js';
 import { createApiJudge } from './judge.js';
 import { ccSfx, ccSfxBytes } from './sfx.js';
-import { easternParts } from '../../core/week.js';
-import { streakDay } from '../../core/streak.js';
 
 export const LONG_MS = 380;           // a long-press = a buoy (in DIG mode)
 export const RIPPLE_MS = 30;          // the flood: one ring outward every 30 ms
@@ -212,7 +211,6 @@ export function createView() {
     clearInterval(netT);
     if (inflight.size) netT = setInterval(() => { if (gone) clearInterval(netT); else watchNet(); }, 400);
   }
-  const retryable = e => !e || e.status === 0 || e.status >= 500 || e.code === 'offline' || e.code === 'http';
   async function send(fn, cellsOf, origin) {
     const id = ++seq;
     inflight.set(id, Date.now()); watchNet();
@@ -374,7 +372,7 @@ export function createView() {
   }
 
   // ---- CC2: THE END SCREENS — the board + the switch leave; COAST CLEAR (the lighthouse sweep) or CAUGHT; the finished harbor; SHARE ------
-  const dayKey = () => (/^d\d{8}$/.test(String(day || '')) ? day : streakDay(view.startedAt || Date.now()));
+  const dayKey = () => runDayKey(day, view.startedAt, Date.now());   // (DFIX1 — the run's own day; DM1 — THE DAILY KIT)
   /** the finished harbor, shrunk: numbers, buoys, every searchlight (the server reveals them once the run is over) — animated in by rows */
   function endHarbor() {
     const map = endMap(view, [...buoys]);
@@ -414,48 +412,33 @@ export function createView() {
     els.end.dataset.out = view.out || '';
     const title = h('h2.cc-end-t', headline(view));
     const stage = h('div.cc-end-stage', clean ? h('div.cc-lh', { 'aria-hidden': 'true' }, h('i.cc-lh-glow'), h('i.cc-lh-beam', h('i.cc-lh-core'))) : null, title);
-    const next = h('div.cc-end-next');
-    els.rec = h('div.cc-end-rec', { 'aria-live': 'polite' }, finished === 'FAILED' ? 'NOT RECORDED · NO SIGNAL' : '');
+    const acts = endActions('cc', { onShare: () => share(), rec: finished === 'FAILED' ? NOT_RECORDED : '' });   // (DM1 — THE DAILY KIT)
+    const next = acts.next;
+    els.rec = acts.rec;
     els.end.append(
       h('div.cc-end-result',
         stage,
         clean ? h('div.cc-end-n', fmtClock(finalMs(view))) : null,
         h('div.cc-end-line', endLine(view)),
         endHarbor()),
-      h('div.cc-end-actions',
-        tubeButton('SHARE', { kind: 'main', block: true, cls: 'cc-share', onClick: () => share() }),
-        next, els.rec));
+      acts.el);
     tickClock(next);
   }
   /** "NEXT HARBOR IN 13:06:44" — to the next 4 am Eastern, ticking (the server's clock); a run that crossed the turn (DFIX1): today's is open */
   function tickClock(el) {
     clearInterval(clockT);
-    const paint = () => {
-      const now = serverNow();
-      el.textContent = dayKey() < streakDay(now) ? 'TODAY’S HARBOR IS OPEN' : `NEXT HARBOR IN ${fmtCountdown(msToTurn(easternParts(now), now % 1000))}`;
-    };
-    paint();
-    clockT = setInterval(() => { if (gone) clearInterval(clockT); else paint(); }, 1000);
+    clockT = tickTurn(el, { now: serverNow, day: dayKey, open: 'TODAY’S HARBOR IS OPEN', next: 'NEXT HARBOR IN', alive: () => !gone });
   }
   async function record() {
-    for (let tries = 0; tries < 4 && !gone; tries++) {
-      try { const f = await judge.finish(); if (gone) return; doneScore = f.score; finished = 'RECORDED'; return; } catch (e) {
-        if (!retryable(e)) break;
-        await wait(800 * (tries + 1));
-      }
-    }
-    if (!gone && doneScore == null) { finished = 'FAILED'; if (els.rec) els.rec.textContent = 'NOT RECORDED · NO SIGNAL'; }
+    const r = await recordFinish(() => judge.finish(), { wait, alive: () => !gone });   // (DM1 — THE DAILY KIT: retried, backed off)
+    if (gone) return;
+    if (r.ok) { doneScore = r.resp.score; finished = 'RECORDED'; return; }
+    if (doneScore == null) { finished = 'FAILED'; if (els.rec) els.rec.textContent = NOT_RECORDED; }
   }
   /** SHARE (CC2 — share.js, lazy): an image with NO BOARD + the one line, through the share sheet */
   async function share() {
     const line = shareLine(view, dayKey());
-    try {
-      const S = await import('./share.js');
-      return await S.shareRun({ inputs: shareInputs(view, dayKey()), line, look: document.body.dataset.look || 'night' });
-    } catch (e) {
-      try { if (navigator.share) await navigator.share({ text: line }); else await navigator.clipboard.writeText(line); } catch { /* the user closed it */ }
-      return 'line';
-    }
+    return shareOrLine(async () => (await import('./share.js')).shareRun({ inputs: shareInputs(view, dayKey()), line, look: document.body.dataset.look || 'night' }), line);
   }
 
   const api = {

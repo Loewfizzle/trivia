@@ -308,12 +308,9 @@ export function endLine(view) {
   return bits.join(' · ');
 }
 /** ms until the next 4 am Eastern (the daily's turn — core/streak.js) from the Eastern clock now ({ h, mi, s } — core/week.js#easternParts) */
-export function msToTurn({ h, mi, s }, subMs = 0, turnH = 4) {
-  const secs = h * 3600 + mi * 60 + s, left = (turnH * 3600 - secs + 86400) % 86400 || 86400;
-  return left * 1000 - subMs;
-}
+export { msToTurn } from '../../daily/clock.js';   // (DM1 — THE DAILY KIT's clock)
 /** h:mm:ss (the countdown to the next harbor) */
-export const fmtCountdown = ms => { const t = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(t / 3600)}:${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+export { fmtCountdown } from '../../daily/clock.js';
 /** COAST CLEAR #n — days since CC_EPOCH (the same epoch as THE PASSWORD's) + 1, for a streak-day key ('d20261107') */
 export function dayNumber(dayKey, epoch = CC_EPOCH) {
   const num = k => { const t = String(k).replace(/[^0-9]/g, ''); return Math.round(Date.UTC(+t.slice(0, 4), +t.slice(4, 6) - 1, +t.slice(6, 8)) / 864e5); };

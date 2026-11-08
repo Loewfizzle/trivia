@@ -7,25 +7,15 @@
 //   judge.pause() / resume()    → { paused, pauses, pausedMs }   (THE DAILY MODULE calls pause — the room started a game mid-run)
 //   judge.finish()              → { score, stand, outcome }       (the server scores from ITS record; a retry gets the stored score back)
 // Everything goes through js/profile/api.js (fetch + the ID token — no database socket: THE PARKED DATABASE never wakes for a daily).
-import { api } from '../../profile/api.js';
-import { runDay } from '../../daily/run-day.js';
+import { createDailyJudge } from '../../daily/judge.js';
 
 export const GAME_ID = 'coastclear';
+/** (DM1: on THE DAILY KIT's judge — js/daily/judge.js; `pause(room)` names the room that started a game — THE ROOM WINS, checked on the server) */
 export function createApiJudge() {
-  const rd = runDay(GAME_ID);   // (DFIX1 — every call names the run's own day: a run that crosses 4 am Eastern finishes on its day)
-  const call = (action, extra) => api('daily', rd.with({ action, game: GAME_ID, ...extra }));
-  return {
-    kind: 'api',
-    async start() {
-      const asked = rd.asked();
-      const r = await api('daily', { action: 'start', game: GAME_ID, ...(asked ? { day: asked } : {}) });
-      rd.started(r);
-      return { startedAt: r.startedAt, done: r.done, run: r.run, day: r.day, now: r.now };
-    },
-    dig: cell => call('dig', { cell }),
-    chord: (cell, buoys) => call('chord', { cell, buoys }),
-    pause: () => call('pause'),
-    resume: () => call('resume'),
-    finish: async () => { const r = await call('finish', { result: null }); rd.scored(); return r; },
-  };
+  return createDailyJudge(GAME_ID, { moves: {
+    dig: cell => ({ cell }),
+    chord: (cell, buoys) => ({ cell, buoys }),
+    pause: room => (room ? { room } : {}),
+    resume: () => ({}),
+  } });
 }

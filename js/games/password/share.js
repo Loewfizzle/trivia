@@ -5,9 +5,8 @@
 // sharing → the line is shared (or copied) and the image is saved. No emoji anywhere. Lazy: the view imports this on the first tap.
 //   renderShare({ run, look }) → <canvas>      shareRun({ run, line, look }) → 'shared' | 'saved' | 'copied' | 'none'
 import { scoreOf, fmtTime, doorState, HEAD_IN, HEAD_OUT, DOOR_NAMES, DOORS, HIT, NEAR } from './logic.js';
-
-export const SHARE_W = 1080, SHARE_H = 1350;
-export const SITE = 'neonspeakeasy.com';
+import { SHARE_W, SHARE_H, SITE, shareFrame, shareFoot, sendShare } from '../../daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
+export { SHARE_W, SHARE_H, SITE };
 const LOOK = {
   night: { bg0: '#0d0a1c', bg1: '#05040c', sign: '#ff5ec4', signCore: '#fff2fa', ink: '#f4f6ff', dim: 'rgba(244,246,255,0.62)', faint: 'rgba(244,246,255,0.4)', good: '#3dff8b', close: '#ffd23d', red: '#ff3355', tile: 'rgba(255,255,255,0.05)', tileLine: 'rgba(255,255,255,0.16)', miss: 'rgba(0,0,0,0.42)', near: 'rgba(0,0,0,0.45)', hitInk: '#06130b', doorOn: '#ff5ec4', doorLock: 'rgba(255,255,255,0.28)', doorHeld: 'rgba(255,92,120,0.8)', room: '#ffc266', font: '"Orbitron", "Chakra Petch", system-ui, sans-serif' },
   day: { bg0: '#8ec6ff', bg1: '#f7fbff', sign: '#16305c', signCore: '#16305c', ink: '#14284a', dim: '#3a5582', faint: '#5a7196', good: '#3dff8b', close: '#ffd23d', red: '#c0304a', tile: 'rgba(255,255,255,0.78)', tileLine: 'rgba(80,120,180,0.25)', miss: 'rgba(160,176,198,0.6)', near: 'rgba(255,255,255,0.9)', hitInk: '#06220f', doorOn: '#2f86ff', doorLock: 'rgba(22,48,92,0.32)', doorHeld: 'rgba(196,60,80,0.75)', room: '#ffd27a', font: 'ui-rounded, "SF Pro Rounded", "Chakra Petch", system-ui, sans-serif' },
@@ -57,13 +56,9 @@ function grid(c, marks, x, y, cell, gap, L) {
 
 /** the share image (a canvas, 1080 × 1350) */
 export function renderShare({ run, look = 'night', dayNo = null } = {}) {
-  const L = tokens(look), W = SHARE_W, H = SHARE_H;
-  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-  const c = cv.getContext('2d');
-  // the ground
-  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, L.bg0); g.addColorStop(1, L.bg1); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  const L = tokens(look);
+  const { cv, c, W, H } = shareFrame(L, look);   // (the ground + the day's sun — the kit)
   if (look === 'day') {
-    const sun = c.createRadialGradient(150, 120, 0, 150, 120, 320); sun.addColorStop(0, 'rgba(255,250,230,0.95)'); sun.addColorStop(0.4, 'rgba(255,244,200,0.45)'); sun.addColorStop(1, 'rgba(255,244,200,0)'); c.fillStyle = sun; c.fillRect(0, 0, W, H);
     for (const [x, y, w] of [[780, 300, 170], [320, 470, 190], [880, 640, 150]]) { const cl = c.createRadialGradient(x, y, 0, x, y, w); cl.addColorStop(0, 'rgba(255,255,255,0.85)'); cl.addColorStop(0.5, 'rgba(255,255,255,0.4)'); cl.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = cl; c.save(); c.scale(1, 0.34); c.fillRect(0, 0, W, H / 0.34); c.restore(); }
   } else {
     const hz = c.createRadialGradient(W / 2, -80, 0, W / 2, -80, 700); hz.addColorStop(0, 'rgba(255,94,196,0.18)'); hz.addColorStop(1, 'rgba(255,94,196,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, H);
@@ -103,33 +98,12 @@ export function renderShare({ run, look = 'night', dayNo = null } = {}) {
   let x0 = (W - total) / 2;
   const top = 690;
   for (const d of played) { grid(c, d.marks, x0, top, cell, gap, L); x0 += gw + gapX; }
-  // the site (+ the day number)
-  c.font = `700 30px "Chakra Petch", system-ui, sans-serif`; c.fillStyle = L.dim; c.save(); c.letterSpacing = '6px';
-  c.fillText(dayNo != null ? `THE PASSWORD #${dayNo}` : 'THE PASSWORD', W / 2 + 3, 1190);
-  c.fillStyle = look === 'day' ? L.doorOn : L.sign;
-  c.fillText(SITE.toUpperCase(), W / 2 + 3, 1250);
-  c.restore();
+  // the site (+ the day number) — the kit's foot
+  shareFoot(c, { name: 'THE PASSWORD', dayNo, dim: L.dim, color: look === 'day' ? L.doorOn : L.sign, W });
   return cv;
 }
 
-const blobOf = cv => new Promise(res => cv.toBlob(b => res(b), 'image/png'));
-/** SHARE: the image through the share sheet with the line; no file sharing → the line shared (or copied) + the image saved */
+/** SHARE: the image through the share sheet with the line; no file sharing → the line shared (or copied) + the image saved (THE DAILY KIT's sender) */
 export async function shareRun({ run, line, look = 'night', dayNo = null } = {}) {
-  const cv = renderShare({ run, look, dayNo });
-  const blob = await blobOf(cv);
-  const file = blob ? new File([blob], 'the-password.png', { type: 'image/png' }) : null;
-  if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], text: line }); return 'shared'; } catch (e) { if (e && e.name === 'AbortError') return 'none'; }
-  }
-  // the fallback: the line, then the image saved
-  let how = 'none';
-  try { if (navigator.share) { await navigator.share({ text: line }); how = 'shared'; } else { await navigator.clipboard.writeText(line); how = 'copied'; } } catch { /* closed */ }
-  if (blob) {
-    try {
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'the-password.png'; a.rel = 'noopener';
-      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      how = how === 'none' ? 'saved' : how;
-    } catch { /* no download */ }
-  }
-  return how;
+  return sendShare(renderShare({ run, look, dayNo }), { file: 'the-password.png', line });
 }

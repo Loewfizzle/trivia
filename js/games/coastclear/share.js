@@ -6,7 +6,8 @@
 // phone's share sheet (navigator.share with the file) + ONE plain line ("COAST CLEAR #<n> · 2:41 · 0 spotted · neonspeakeasy.com"). No file
 // sharing → the line is shared (or copied) and the image is saved. No emoji anywhere. Lazy: the view imports this on the first tap.
 //   renderShare({ inputs, look }) → <canvas>      shareRun({ inputs, line, look }) → 'shared' | 'saved' | 'copied' | 'none'
-export const SHARE_W = 1080, SHARE_H = 1350;
+import { SHARE_W, SHARE_H, shareFrame, shareFoot, sendShare } from '../../daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
+export { SHARE_W, SHARE_H };
 /** the only keys the card may read (tests/coastclear-share.test.mjs holds the line) */
 export const SHARE_KEYS = Object.freeze(['head', 'caught', 'time', 'line', 'spots', 'dayNo', 'site']);
 const LOOK = {
@@ -39,12 +40,9 @@ function lamp(c, x, y, S, lit, L, look) {
 export function renderShare({ inputs, look = 'night' } = {}) {
   const I = {};
   for (const k of SHARE_KEYS) I[k] = inputs ? inputs[k] : undefined;
-  const L = tokens(look), W = SHARE_W, H = SHARE_H;
-  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-  const c = cv.getContext('2d');
-  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, L.bg0); g.addColorStop(1, L.bg1); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  const L = tokens(look);
+  const { cv, c, W, H } = shareFrame(L, look);   // (the ground + the day's sun — the kit)
   if (look === 'day') {
-    const sun = c.createRadialGradient(150, 120, 0, 150, 120, 320); sun.addColorStop(0, 'rgba(255,250,230,0.95)'); sun.addColorStop(0.4, 'rgba(255,244,200,0.45)'); sun.addColorStop(1, 'rgba(255,244,200,0)'); c.fillStyle = sun; c.fillRect(0, 0, W, H);
     for (const [x, y, w] of [[780, 120, 170], [380, 210, 190]]) { const cl = c.createRadialGradient(x, y / 0.34, 0, x, y / 0.34, w); cl.addColorStop(0, 'rgba(255,255,255,0.85)'); cl.addColorStop(0.5, 'rgba(255,255,255,0.4)'); cl.addColorStop(1, 'rgba(255,255,255,0)'); c.save(); c.scale(1, 0.34); c.fillStyle = cl; c.fillRect(0, 0, W, H / 0.34); c.restore(); }
   } else {
     const moon = c.createRadialGradient(W * 0.86, 30, 0, W * 0.86, 30, 420); moon.addColorStop(0, 'rgba(200,225,255,0.14)'); moon.addColorStop(1, 'rgba(200,225,255,0)'); c.fillStyle = moon; c.fillRect(0, 0, W, H);
@@ -79,31 +77,11 @@ export function renderShare({ inputs, look = 'night' } = {}) {
   const S = 5.4, lw = 32 * S, gap = 46, x0 = (W - (3 * lw + 2 * gap)) / 2;
   for (let k = 0; k < 3; k++) lamp(c, x0 + k * (lw + gap), lampY, S, k < (Number(I.spots) || 0), L, look);
   // the day number + the site
-  c.font = '700 30px "Chakra Petch", system-ui, sans-serif'; c.fillStyle = L.dim; c.save(); c.letterSpacing = '6px';
-  c.fillText(I.dayNo != null ? `COAST CLEAR #${I.dayNo}` : 'COAST CLEAR', W / 2 + 3, 1190);
-  c.fillStyle = L.site;
-  c.fillText(String(I.site || 'neonspeakeasy.com').toUpperCase(), W / 2 + 3, 1250);
-  c.restore();
+  shareFoot(c, { name: 'COAST CLEAR', dayNo: I.dayNo, dim: L.dim, color: L.site, site: I.site, W });   // (the kit's foot)
   return cv;
 }
 
-const blobOf = cv => new Promise(res => cv.toBlob(b => res(b), 'image/png'));
-/** SHARE: the image through the share sheet with the line; no file sharing → the line shared (or copied) + the image saved */
+/** SHARE: the image through the share sheet with the line; no file sharing → the line shared (or copied) + the image saved (THE DAILY KIT's sender) */
 export async function shareRun({ inputs, line, look = 'night' } = {}) {
-  const cv = renderShare({ inputs, look });
-  const blob = await blobOf(cv);
-  const file = blob ? new File([blob], 'coast-clear.png', { type: 'image/png' }) : null;
-  if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], text: line }); return 'shared'; } catch (e) { if (e && e.name === 'AbortError') return 'none'; }
-  }
-  let how = 'none';
-  try { if (navigator.share) { await navigator.share({ text: line }); how = 'shared'; } else { await navigator.clipboard.writeText(line); how = 'copied'; } } catch { /* closed */ }
-  if (blob) {
-    try {
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'coast-clear.png'; a.rel = 'noopener';
-      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      how = how === 'none' ? 'saved' : how;
-    } catch { /* no download */ }
-  }
-  return how;
+  return sendShare(renderShare({ inputs, look }), { file: 'coast-clear.png', line });
 }

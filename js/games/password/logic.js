@@ -202,7 +202,7 @@ export const guessesLine = run => { const n = scoreOf(run).guesses; return `${n}
 /** m:ss */
 export const fmtTime = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 /** h:mm:ss (the countdown to the next password) */
-export const fmtClock = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+export { fmtCountdown as fmtClock } from '../../daily/clock.js';   // (DM1 — THE DAILY KIT's countdown, h:mm:ss)
 /** THE PASSWORD #n — the share line's number for a streak-day key ('d20261107'): days since PW_EPOCH + 1 (meta.js — set at THE SWITCH-OVER) */
 export function dayNumber(dayKey, epoch = PW_EPOCH) {
   const num = k => { const s = String(k); return Math.round(Date.UTC(+s.slice(1, 5), +s.slice(5, 7) - 1, +s.slice(7, 9)) / 864e5); };
@@ -210,10 +210,7 @@ export function dayNumber(dayKey, epoch = PW_EPOCH) {
 }
 /** ms until the next 4 am Eastern (THE PASSWORD's day turns with the streak's — core/streak.js#DAY_TURN_H) given the Eastern clock now
  *  ({ h, mi, s } — core/week.js#easternParts) and the ms within this second. PURE (a DST night is at most an hour out — once a year). */
-export function msToTurn({ h, mi, s }, subMs = 0, turnH = 4) {
-  const secs = h * 3600 + mi * 60 + s, left = (turnH * 3600 - secs + 86400) % 86400 || 86400;
-  return left * 1000 - subMs;
-}
+export { msToTurn } from '../../daily/clock.js';   // (DM1 — THE DAILY KIT's clock)
 /** THE SHARE LINE (PW2): "THE PASSWORD #12 · 7 guesses · neonspeakeasy.com" — a held run names the door; no emoji anywhere */
 export function shareLine(run, dayKey, site = 'neonspeakeasy.com') {
   const s = scoreOf(run);

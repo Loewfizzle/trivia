@@ -8,9 +8,9 @@
 //   dig / chord / pause / resume { game, … }  (CC1 — COAST CLEAR, _lib/cc.js: a judged cartridge's `moves`) → the cartridge's answer, ONE transaction
 //                                 on its record each (a repeat is free: nothing written); every judged answer carries the server's `now` (the phone's clock)
 //                                 DM1 — THE ROOM WINS: `pause { room? }` only while the player's room has really started a game (_lib/daily-room.js) — else 409 no_room_game
-//   finish { game, result }    → { day, score, counts, stand: { n, pct, top, band }, outcome: { streak, items, ach, xp, lv, swept } }   checked + stored
+//   finish { game, result }    → { day, score, counted, stand: { n, pct, top, band }, outcome: { streak, items, ach, xp, lv, swept } }   checked + stored
 //                                 server-side (a judged daily scores from ITS record — the phone's result is ignored; an unfinished run → 409 not_done)
-//                                 DM1 — THE THROWAWAY GATE: counts = the profile existed before that day's 4 am Eastern start (ppriv/{pid}/at — server-written
+//                                 DM1 — THE THROWAWAY GATE: counted = the profile existed before that day's 4 am Eastern start (ppriv/{pid}/at — server-written
 //                                 at creation). A non-counting result is kept (one try, the player's own score, the streak + the XP as usual) but is NOT in
 //                                 the histogram / the band, YOUR TABLE, THE BOARD or any reward; `countsFrom` = when this profile's dailies start counting
 //   today  { pids? }           → { day, dailies: [row…], mine: { game: score }, gated: { game: true }, friends: { pid: { game: { done } | { score } } }, table: [pid] }
@@ -190,7 +190,7 @@ export async function dailyAction(uid, body, now = Date.now()) {
         await bumpOwners(res.items, !(res.next.g && Object.keys(res.next.g).length) && res.dl.n === 1, res.ach).catch(() => {});
         if (res.next.fd) await ref(`profiles/${pid}/fd`).set(true);
       }
-      return { day, score: kept, again: !claim.committed, counts, ...(counts ? {} : { countsFrom: dayStartAt(dayOf(dayNum(streakDay(Number(createdAt) || now)) + 1)) }),
+      return { day, score: kept, again: !claim.committed, counted: counts, ...(counts ? {} : { countsFrom: dayStartAt(dayOf(dayNum(streakDay(Number(createdAt) || now)) + 1)) }),
         stand: { n: stand.n, pct: stand.pct, top: Math.round(stand.top * 10) / 10, band: stand.band ? stand.band.name : null },
         outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach, xp: res.xp, lv: res.lv, swept: res.swept } : null };
     }

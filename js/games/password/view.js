@@ -9,14 +9,13 @@
 //   createView() → { mount(el, state), update(state), unmount() }   state.game = the run shell (daily.create / start) · state.judge = a judge
 //   (the preview's fake; default THE API JUDGE — judge.js) · window.__password = the test hook (the preview + the E2E)
 import { h, clear, reducedMotion } from '../../ui/dom.js';
-import { tubeButton } from '../../ui/components.js';
+import { recordFinish, tickTurn, endActions, fitTitle, shareOrLine, NOT_RECORDED } from '../../daily/end.js';
+import { runDayKey as dayKeyOf } from '../../daily/clock.js';
 import { createKeyboard } from '../kit/keyboard.js';
 import { createApiJudge } from './judge.js';
 import { createDoors } from './doors.js';
 import { pwSfx, pwSfxBytes } from './sfx.js';
-import { createRun, applyGuess, canGuess, keyStates, scoreOf, doorOf, headline, failLine, fmtTime, fmtClock, msToTurn, shareLine, DOOR_NAMES, DOORS, GUESSES, WORD_LEN, HIT, NEAR } from './logic.js';
-import { easternParts } from '../../core/week.js';
-import { streakDay } from '../../core/streak.js';
+import { createRun, applyGuess, canGuess, keyStates, scoreOf, doorOf, headline, failLine, fmtTime, shareLine, DOOR_NAMES, DOORS, GUESSES, WORD_LEN, HIT, NEAR } from './logic.js';
 
 export const FLIP_STEP_MS = 250;      // the tiles flip one by one, this far apart (the owner: ~0.25 s)
 export const FLIP_MS = 500;
@@ -203,8 +202,8 @@ export function createView() {
     els.end.classList.toggle('is-fail', !crack);
     const title = h('h2.pw-end-t', headline(run));
     // (the owner's ADD-ON: no status text on the end screen — the record's state lives in the hook + a quiet NO SIGNAL line only when it failed)
-    const rec = h('div.pw-end-rec', { 'aria-live': 'polite' });
-    const next = h('div.pw-end-next');
+    const acts = endActions('pw', { onShare: () => share() });   // (DM1 — THE DAILY KIT: SHARE + the countdown + the record line)
+    const rec = acts.rec, next = acts.next;
     const played = run.doors.filter(d => d.guesses.length);
     els.end.append(
       h('div.pw-end-result',
@@ -213,9 +212,7 @@ export function createView() {
         crack ? h('div.pw-end-n', h('b', String(s.guesses)), h('span', s.guesses === 1 ? 'GUESS' : 'GUESSES')) : null,
         crack ? h('div.pw-end-time', fmtTime(s.time)) : h('div.pw-end-line', failLine(run)),
         h('div.pw-end-grids', played.map(d => h('div.pw-end-door', miniGrid(d), h('b.pw-end-word', { class: d.state === 'solved' ? 'is-open' : 'is-shut' }, d.word || ''))))),
-      h('div.pw-end-actions',
-        tubeButton('SHARE', { kind: 'main', block: true, cls: 'pw-share', onClick: () => share() }),
-        next, rec));
+      acts.el);
     // the board + the keys leave, the end screen comes in
     els.play.classList.add('is-out');
     doors.set(run);
@@ -234,43 +231,23 @@ export function createView() {
   }
   /** the score to the server (DFIX1 — like COAST CLEAR's): a lost signal is retried, backed off; a retry is free (the server keeps the first
    *  finish); nothing on screen while it waits — a quiet NOT RECORDED line only once every try failed */
-  const retryable = e => !e || e.status === 0 || e.status >= 500 || e.code === 'offline' || e.code === 'http';
   async function record() {
-    for (let tries = 0; tries < 4 && !gone; tries++) {
-      try { const f = await judge.finish(); if (gone) return; doneScore = f && f.score != null ? f.score : doneScore; finished = 'RECORDED'; return; } catch (e) {
-        if (!retryable(e)) break;
-        await wait(800 * (tries + 1));
-      }
-    }
-    if (!gone && finished !== 'RECORDED') { finished = 'FAILED'; if (els.rec) els.rec.textContent = 'NOT RECORDED · NO SIGNAL'; }
+    const r = await recordFinish(() => judge.finish(), { wait, alive: () => !gone });   // (DM1 — THE DAILY KIT: retried, backed off)
+    if (gone) return;
+    if (r.ok) { const f = r.resp; doneScore = f && f.score != null ? f.score : doneScore; finished = 'RECORDED'; return; }
+    if (finished !== 'RECORDED') { finished = 'FAILED'; if (els.rec) els.rec.textContent = NOT_RECORDED; }
   }
-  /** the headline shrinks to its line (never wraps, never clips) */
-  function fitTitle(el) {
-    const max = parseFloat(getComputedStyle(el).fontSize) || 40;
-    let size = max;
-    el.style.fontSize = '';
-    for (let i = 0; i < 12 && el.scrollWidth > el.clientWidth + 1 && size > 18; i++) { size -= 2; el.style.fontSize = `${size}px`; }
-  }
+  /** the run's own day (DFIX1) */
+  const runDayKey = () => dayKeyOf(day, startedAt, Date.now() + offset);
   /** "NEXT PASSWORD IN 13:39:21" — to the next 4 am Eastern, ticking (the server's clock); a run that crossed the turn: today's is open */
-  const runDayKey = () => (/^d\d{8}$/.test(String(day || '')) ? day : streakDay(startedAt || Date.now() + offset));
   function tickClock(el) {
     clearInterval(clockT);
-    const paint = () => {
-      const now = Date.now() + offset;
-      el.textContent = runDayKey() < streakDay(now) ? 'TODAY’S PASSWORD IS OPEN' : `NEXT PASSWORD IN ${fmtClock(msToTurn(easternParts(now), now % 1000))}`;
-    };
-    paint();
-    clockT = setInterval(() => { if (gone) clearInterval(clockT); else paint(); }, 1000);
+    clockT = tickTurn(el, { now: () => Date.now() + offset, day: runDayKey, open: 'TODAY’S PASSWORD IS OPEN', next: 'NEXT PASSWORD IN', alive: () => !gone });
   }
-  /** SHARE (PW2 — the share card is Group 6: the line now; the image lands with share.js) */
+  /** SHARE (PW2 — share.js, lazy): the image + the one line; the plain line if the card can't be made */
   async function share() {
     const line = shareLine(run, runDayKey());
-    try {
-      const S = await import('./share.js');
-      await S.shareRun({ run, line, look: document.body.dataset.look || 'night', root });
-    } catch (e) {
-      try { if (navigator.share) await navigator.share({ text: line }); else await navigator.clipboard.writeText(line); } catch { /* the user closed it */ }
-    }
+    await shareOrLine(async () => (await import('./share.js')).shareRun({ run, line, look: document.body.dataset.look || 'night', root }), line);
   }
 
   /** the run from the server (a mount, a resume, a re-sync after an out-of-step answer) */

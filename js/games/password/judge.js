@@ -6,9 +6,8 @@
 //   judge.finish()     → { score, stand, outcome }  (the server scores from ITS record; a retry gets the stored score back)
 //   judge.canType(w)   → the phone's PRE-CHECK against the public data/words/valid-5.json (the server checks again)
 // Everything goes through js/profile/api.js (fetch + the ID token — no database socket: THE PARKED DATABASE never wakes for a daily).
-import { api } from '../../profile/api.js';
 import { cleanWord } from './logic.js';
-import { runDay } from '../../daily/run-day.js';
+import { createDailyJudge } from '../../daily/judge.js';
 
 export const GAME_ID = 'password';
 let validP = null;
@@ -16,20 +15,11 @@ let validP = null;
 export function loadValid() {
   return (validP ||= fetch(new URL('../../../data/words/valid-5.json', import.meta.url)).then(r => r.json()).then(s => new Set(String(s).toUpperCase().match(/.{5}/g) || [])).catch(() => null));
 }
+/** (DM1: on THE DAILY KIT's judge — js/daily/judge.js: start / finish + the run's own day on every call; THE PASSWORD adds its guess + the pre-check) */
 export function createApiJudge() {
   let valid = null;
   loadValid().then(v => { valid = v; });
-  const rd = runDay(GAME_ID);   // (DFIX1 — every call names the run's own day: a run that crosses 4 am Eastern finishes on its day)
-  return {
-    kind: 'api',
-    async start() {
-      const asked = rd.asked();
-      const r = await api('daily', { action: 'start', game: GAME_ID, ...(asked ? { day: asked } : {}) });
-      rd.started(r);
-      return { startedAt: r.startedAt, done: r.done, run: r.run, day: r.day, now: r.now };
-    },
-    async guess(word) { return api('daily', rd.with({ action: 'guess', game: GAME_ID, word: cleanWord(word) })); },
-    async finish() { const r = await api('daily', rd.with({ action: 'finish', game: GAME_ID, result: null })); rd.scored(); return r; },
-    canType(w) { const c = cleanWord(w); return !!c && (!valid || valid.has(c)); },
-  };
+  const judge = createDailyJudge(GAME_ID, { moves: { guess: word => ({ word: cleanWord(word) }) } });
+  judge.canType = w => { const c = cleanWord(w); return !!c && (!valid || valid.has(c)); };
+  return judge;
 }

@@ -182,7 +182,10 @@ await H.run(async () => {
   ok(after.open.length === before.open.length && after.lit.join() === before.lit.join() && after.spots === 1 && buA.join() === buB.join(), `REFRESH → the run resumes from the server (${after.open.length} cells, 1 light) + the buoys come back`);
 
   // ---- a PAUSE (THE DAILY MODULE calls it when the room starts a game) + the screen torn down → rebuilt: the clock goes on by itself
-  await p.evaluate(() => window.__api({ action: 'pause' }));
+  // (DM1 — THE ROOM WINS: the server pauses only for a room that really started a game, with this phone in it)
+  const pUid = await p.evaluate(() => window.__daily.uid);
+  await ref('rooms/CCEE').set({ meta: { hostId: pUid, status: 'playing', createdAt: Date.now() }, players: { [pUid]: { name: 'ALICE', pid: await pidOf(p) } } });
+  await p.evaluate(() => window.__api({ action: 'pause', room: 'CCEE' }));
   await grab(p);
   await p.evaluate(() => window.__suspend());
   await sleep(2500);

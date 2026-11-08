@@ -111,9 +111,9 @@ test('THE THROWAWAY GATE: a profile made at 3:59 counts that day, one made at 4:
   await ensure('g-early', 'Early', start - 60e3);   // 3:59 am
   await ensure('g-late', 'Late', start + 60e3);     // 4:01 am
   const early = await perfect('g-early', 'test', PLAY);
-  assert.equal(early.counts, true); assert.equal(early.stand.n, 1);
+  assert.equal(early.counted, true); assert.equal(early.stand.n, 1);
   const late = await perfect('g-late', 'test', PLAY + 5e3);
-  assert.equal(late.counts, false, 'the 4:01 profile: does not count today');
+  assert.equal(late.counted, false, 'the 4:01 profile: does not count today');
   assert.equal(late.score, 1000, 'its own score is kept + shown');
   assert.equal(late.stand.band, null); assert.equal(late.stand.n, 2, 'shown where it WOULD stand');
   assert.equal(await val(`dly/test/${d}/n`), 1, 'out of the histogram');
@@ -123,7 +123,7 @@ test('THE THROWAWAY GATE: a profile made at 3:59 counts that day, one made at 4:
   assert.deepEqual(late.outcome.ach, [], 'no reward');
   // one try, whatever the gate said
   const again = await perfect('g-late', 'test', PLAY + 9e3);
-  assert.equal(again.again, true); assert.equal(again.counts, false);
+  assert.equal(again.again, true); assert.equal(again.counted, false);
   // YOUR TABLE: the throwaway's result is missing for a friend; the early one's is there
   await ensure('g-pal', 'Pal');
   const [pal, e, l] = await Promise.all([pidOf('g-pal'), pidOf('g-early'), pidOf('g-late')]);
@@ -136,7 +136,7 @@ test('THE THROWAWAY GATE: a profile made at 3:59 counts that day, one made at 4:
   assert.equal(own.mine.test, 1000); assert.equal(own.gated.test, true, 'the player sees their own score (+ that it doesn\'t count)');
   // tomorrow it counts
   const next = await perfect('g-late', 'test', PLAY + DAY);
-  assert.equal(next.counts, true); assert.equal(next.outcome.streak.n, 2);
+  assert.equal(next.counted, true); assert.equal(next.outcome.streak.n, 2);
 });
 
 test('THE THROWAWAY GATE on a real daily: a same-day profile cracks THE PASSWORD in two — no KEYHOLE, no SAFECRACKER, no band', async () => {
@@ -147,7 +147,7 @@ test('THE THROWAWAY GATE on a real daily: a same-day profile cracks THE PASSWORD
   await D('g-crack', { action: 'guess', game: 'password', word: W1 }, at + 1e3);
   await D('g-crack', { action: 'guess', game: 'password', word: W2 }, at + 2e3);
   const f = await D('g-crack', { action: 'finish', game: 'password', result: null }, at + 3e3);
-  assert.equal(f.counts, false); assert.equal(f.score, 2);
+  assert.equal(f.counted, false); assert.equal(f.score, 2);
   assert.deepEqual(f.outcome.ach, [], 'a perfect run by a throwaway: nothing');
   const st = await val(`pstats/${await pidOf('g-crack')}`);
   assert.ok(!(st.pa && st.pa.gf), 'no flags kept'); assert.ok(!(st.it && (st.it['emb-keyhole'] || st.it['card-safecracker'])));

@@ -32,4 +32,4 @@ export const feats = game => { const r = result(game); const v = game && game.ru
 export const resultFor = game => result(game);
 /** CC2 — THE MUSIC FOLLOWS THE LOOK (like THE PASSWORD): DAY = the day deck, NIGHT = the evening deck; the console re-reads it when the look
  *  changes (app.js#applyLook → render) and crossfades (music.js); the menu song until the decks load */
-export const musicFor = () => [typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
+export { lookMusic as musicFor } from '../../daily/end.js';   // (DM1 — THE DAILY KIT)
