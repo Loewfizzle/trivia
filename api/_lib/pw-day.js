@@ -98,3 +98,9 @@ export function frozenWords(rec, idx) {
   while (j < rec.s.length - 1 && rec.s[j] === a) j++;
   return [a, rec.s[j]];
 }
+/** THE RESEED (DM1 ADD-ON): everything up to day `keepIdx`'s pair kept; every word after it — the same words — in a NEW order from the new
+ *  daily secret (no word lost, none added, today + the past untouched) → a new record */
+export function reorderAfter(rec, keepIdx, key, label = 'reseed') {
+  const keepN = Math.max(0, Math.min(rec.s.length, 2 * (keepIdx + 1)));
+  return { ...rec, s: [...rec.s.slice(0, keepN), ...up(orderFor(rec.s.slice(keepN), key, label))], rs: label };
+}

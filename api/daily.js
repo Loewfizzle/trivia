@@ -98,7 +98,7 @@ export async function dailyAction(uid, body, now = Date.now()) {
         const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day, now) : null]);
         return { day, startedAt, done: done ?? null, run: cart.resume({ record, day, startedAt, data }), now };
       }
-      return { day, seed: dailySeed(cart.id, day), startedAt, done: done ?? null };
+      return { day, seed: await dailySeed(cart.id, day), startedAt, done: done ?? null };
     }
     case 'guess': {
       const day = dayOfCall(body, now);
@@ -157,7 +157,7 @@ export async function dailyAction(uid, body, now = Date.now()) {
       const record = cart.judged ? await val(`${base}/p/${pid}`) : null;
       if (cart.judged && !(record && record.e)) throw new ApiError(409, 'not_done', 'Finish the run first.');
       const data = cart.judged && cart.load ? await cart.load(day, now) : null;
-      const score = cart.verify(dailySeed(cart.id, day), cart.judged ? null : body.result, { startedAt, now, record, day, data });
+      const score = cart.verify(await dailySeed(cart.id, day), cart.judged ? null : body.result, { startedAt, now, record, day, data });
       if (typeof score !== 'number' || !Number.isFinite(score)) throw new ApiError(422, 'refused', 'That result doesn’t check out.');
       // DM1 — THE THROWAWAY GATE: does this profile's result COUNT on this day?
       const counts = countsOn(createdAt, day);

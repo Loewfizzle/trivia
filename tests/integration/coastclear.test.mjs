@@ -19,6 +19,7 @@ import { profileAction } from '../../api/profile.js';
 import { dailyAction } from '../../api/daily.js';
 import { loadDailies } from '../../api/_lib/dailies.js';
 import { ccBoard } from '../../api/_lib/cc.js';
+import { dailySecret } from '../../api/_lib/daily-secret.js';
 import { buildBoard, forgetBoards, unpackBoard } from '../../api/_lib/cc-board.js';
 import { unregisterDaily, dailyOf } from '../../js/core/daily.js';
 import { streakDay } from '../../js/core/streak.js';
@@ -26,7 +27,7 @@ import { countsOf, flood, nbOf, runView, CAUGHT, safeCount } from '../../js/game
 
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
 const DAY_MS = 86_400_000;
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress', 'dsched', 'dsecret'];
 before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); forgetBoards(); await ref('rooms/CCPL/meta').set({ hostId: 'cc-host', status: 'playing', createdAt: NOW }); });
 after(async () => { await deleteApp(fb().app); });
 
@@ -63,7 +64,7 @@ test('START: the opening + the size, no seed, the server clock; the board built 
   const stored = await val(`dly/coastclear/${day}/b`);
   assert.ok(stored && stored.v === 1 && typeof stored.l === 'string' && stored.a >= 1, 'the board stored once (server-only)');
   const board = unpackBoard(stored);
-  assert.deepEqual(board, buildBoard(day, fb().pepper).board, 'the stored board IS the pepper\'s board for the day');
+  assert.deepEqual(board, buildBoard(day, await dailySecret(day)).board, 'the stored board IS THE DAILY SECRET\'s board for the day');
   assert.deepEqual(s.run.open.map(c => c[0]).sort((a, b) => a - b), board.open, 'the start shows exactly the pre-opened safe area');
   assert.ok(!('lights' in s.run && Array.isArray(s.run.lights)), 'the light count, never their cells');
   // the stored copy wins over a rebuild (built once a day)

@@ -9,13 +9,14 @@
 //   pause / resume   → the clock stops (+15 s a pause) / goes on — THE DAILY MODULE calls them (the room started a game mid-run); a move resumes too
 //   finish           → the score from THE SERVER's record (replay — never the phone's claim): time + 30 s a spot + 15 s a pause; caught below all
 // Registered by dailies.js — until THE SWITCH-OVER only under DAILY_TEST=1 (production answers 'no_daily').
-import { fb, ref, val } from './fb.js';
+import { ref, val } from './fb.js';
+import { dailySecret } from './daily-secret.js';
 import { boardFor } from './cc-board.js';
 import { runView, serverAct, newRecord, replay, bucketOf, BUCKETS, GHOST_S, runFlags } from '../../js/games/coastclear/logic.js';
 export { GHOST_S, runFlags };   // (CC2 — the rule lives in the pure logic.js: the unit tests + the simulation read it without firebase-admin)
 
-/** THE DAY's BOARD (server-only): memory → the stored copy → built + stored once */
-export const ccBoard = day => boardFor(day, { ref, val, pepper: fb().pepper });
+/** THE DAY's BOARD (server-only): memory → the stored copy → built + stored once — from THE DAILY SECRET (DM1 ADD-ON: never the pepper) */
+export const ccBoard = async day => boardFor(day, { ref, val, pepper: await dailySecret(day) });
 
 /** COAST CLEAR's daily cartridge (core/daily.js#registerDaily): better = LOW, 300 buckets (5-second steps, then the caught runs) */
 export const CC_DAILY = {

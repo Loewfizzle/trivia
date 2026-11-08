@@ -20,7 +20,7 @@ import { streakDay } from '../../js/core/streak.js';
 const H = await createHarness({ name: 'password', slot: 'pw', sizes: [[390, 844], [402, 874], [430, 932]] });
 const { log, sleep, ok, shotAll, BASE, browser } = H;
 const day = streakDay(Date.now());
-const [W1, W2] = wordsFor(day);
+const [W1, W2] = await wordsFor(day);
 const bad = new Set((W1 + W2).split(''));
 const MISS = pwLists().answers.find(w => new Set(w).size === 5 && ![...w].some(c => bad.has(c))) || 'XXXXX';
 log(`today ${day}: the miss word ${MISS} (the answers stay in this log's head only)`);

@@ -18,13 +18,14 @@ import { createHarness } from './kit/harness.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
 import { ref, val, fb } from '../../api/_lib/fb.js';
 import { buildBoard, unpackBoard } from '../../api/_lib/cc-board.js';
+import { dailySecret } from '../../api/_lib/daily-secret.js';
 import { countsOf, nbOf, runView, replay, safeCount } from '../../js/games/coastclear/logic.js';
 import { streakDay } from '../../js/core/streak.js';
 
 const H = await createHarness({ name: 'coastclear', slot: 'cc', sizes: [[390, 844], [402, 874], [430, 932]] });
 const { log, sleep, ok, shotAll, BASE, browser } = H;
 const day = streakDay(Date.now());
-const board = buildBoard(day, fb().pepper).board;
+const board = buildBoard(day, await dailySecret(day)).board;   // (DM1 ADD-ON: THE DAILY SECRET — never the pepper)
 const counts = countsOf(board), L = new Set(board.lights), NB = nbOf(board.w, board.h);
 const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? Math.round(s[Math.min(s.length - 1, Math.floor(p * s.length))]) : null; };
 

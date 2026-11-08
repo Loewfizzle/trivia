@@ -42,7 +42,7 @@ test('THE DAILY CONTRACT: one official try, the score checked on the server, the
   await rejects(dailyAction('d-ann', { action: 'finish', game: 'test', result: { guess: 1 } }, NOW), 409, 'not_started');
   await rejects(dailyAction('d-ann', { action: 'start', game: 'nope' }, NOW), 404, 'no_daily');
   const s = await dailyAction('d-ann', { action: 'start', game: 'test' }, NOW);
-  assert.equal(s.day, day); assert.equal(s.seed, dailySeed('test', day)); assert.equal(s.done, null);
+  assert.equal(s.day, day); assert.equal(s.seed, await dailySeed('test', day)); assert.equal(s.done, null);
   // a refresh = the same try (its clock started at the first start)
   const s2 = await dailyAction('d-ann', { action: 'start', game: 'test' }, NOW + 30e3);
   assert.equal(s2.startedAt, s.startedAt);

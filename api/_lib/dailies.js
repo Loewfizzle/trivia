@@ -11,7 +11,8 @@
 // DAILY (guess a number 0–999, the score = 1000 − how far off) + any test-registered daily (registerTestDaily) — never on the live site
 // (Vercel has no DAILY_TEST).
 import { createHmac } from 'node:crypto';
-import { fb, ref, val } from './fb.js';
+import { ref, val } from './fb.js';
+import { dailySecret } from './daily-secret.js';
 import { registerDaily, unregisterDaily, dailyOf, dailyIds, dailyRows, todaysDailies, addDailyRow, removeDailyRow } from '../../js/core/daily.js';
 import { PW_DAILY } from './pw.js';
 import { CC_DAILY } from './cc.js';
@@ -101,5 +102,6 @@ export async function pickDay(day, now = Date.now()) {
 }
 export const forgetPicks = () => PICKED.clear();
 
-/** The day's seed for a daily: secret (the pepper), the same for everyone, unknowable before the server hands it out. */
-export const dailySeed = (id, day) => parseInt(createHmac('sha256', fb().pepper).update(`daily:${id}:${day}`).digest('hex').slice(0, 8), 16);
+/** The day's seed for a daily: from THE DAILY SECRET (daily-secret.js — never the pepper), the same for everyone, unknowable before the server
+ *  hands it out (async: the secret lives in the database) */
+export const dailySeed = async (id, day) => parseInt(createHmac('sha256', String(await dailySecret(day))).update(`daily:${id}:${day}`).digest('hex').slice(0, 8), 16);

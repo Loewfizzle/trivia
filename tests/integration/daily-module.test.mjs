@@ -31,7 +31,7 @@ import { DAILIES } from '../../js/config.js';
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
 const DAY = 86_400_000, WEEK_AGO = NOW - 7 * DAY;
 const day = streakDay(NOW);
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'dsched', 'pcount', 'streak', 'progress', 'pfr', 'seats'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'dsched', 'pcount', 'streak', 'progress', 'pfr', 'seats', 'dsecret'];
 before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); forgetPicks(); forgetPwDays(); forgetBoards(); clearSwitchCache(); loadDailies(); });
 after(async () => { await deleteApp(fb().app); });
 
@@ -90,7 +90,7 @@ test('THE 4 AM PICKER: the day\'s set stored ONCE for every daily (the pair, the
   await pickDay(d1, NOW + 3 * DAY);
   const pw = await val(`dly/password/${d1}/b`), cc = await val(`dly/coastclear/${d1}/b`);
   assert.ok(pw && pw.v === 1 && /^[A-Z]{5},[A-Z]{5}$/.test(pw.w), 'THE PASSWORD\'s pair, stored');
-  assert.equal(pw.w, wordsFor(d1).join(','), 'the frozen schedule = the formula (untouched list)');
+  assert.equal(pw.w, (await wordsFor(d1)).join(','), 'the frozen schedule = the formula (untouched list)');
   assert.ok(cc && cc.v === 1 && cc.l, 'COAST CLEAR\'s board, stored');
   const sched = await val(SCHED_PATH);
   assert.ok(sched && sched.v === 1 && sched.s.split(',').length >= 1000 && sched.h, 'THE FROZEN SCHEDULE, server-only');
@@ -142,7 +142,7 @@ test('THE THROWAWAY GATE: a profile made at 3:59 counts that day, one made at 4:
 test('THE THROWAWAY GATE on a real daily: a same-day profile cracks THE PASSWORD in two — no KEYHOLE, no SAFECRACKER, no band', async () => {
   const d = streakDay(NOW), at = NOW;
   await ensure('g-crack', 'Cracker', dayStartAt(d) + 3600e3);   // made today
-  const [W1, W2] = wordsFor(d);
+  const [W1, W2] = await wordsFor(d);
   await D('g-crack', { action: 'start', game: 'password' }, at);
   await D('g-crack', { action: 'guess', game: 'password', word: W1 }, at + 1e3);
   await D('g-crack', { action: 'guess', game: 'password', word: W2 }, at + 2e3);
@@ -246,4 +246,64 @@ test('THE GO-LIVE SWITCH: off → production refuses every daily; on (the owner,
   // DAILY_TEST: open again whatever the switch says
   assert.ok((await D('s-pat', { action: 'start', game: 'test' }, T + 7e3)).seed != null);
   assert.ok(dailyOf('password') && dailyOf('coastclear'));
+});
+
+// ---------------------------------------------------------------- DM1 ADD-ON — THE DAILY SECRET + THE RESEED
+import { reseedDailies, dailySecret, dailyKeys, clearSecretCache, BASE_DAY, SECRET_PATH } from '../../api/_lib/daily-secret.js';
+import { reseedSchedule, pwDay } from '../../api/_lib/pw.js';
+import { ccBoard } from '../../api/_lib/cc.js';
+import { buildBoard } from '../../api/_lib/cc-board.js';
+import { keyHash } from '../../api/_lib/profiles.js';
+
+test('THE DAILY SECRET is its own (never the pepper): the days come from it; it lives only in the database', async () => {
+  const k = await dailyKeys(NOW);
+  assert.ok(k[BASE_DAY] && /^[0-9a-f]{64}$/.test(k[BASE_DAY]), 'a random base key, made + stored once');
+  assert.notEqual(k[BASE_DAY], fb().pepper);
+  assert.equal((await val(SECRET_PATH)).k[BASE_DAY], k[BASE_DAY]);
+  forgetBoards();
+  assert.deepEqual((await ccBoard(day)).lights, buildBoard(day, k[BASE_DAY]).board.lights, 'COAST CLEAR\'s board = the daily secret\'s');
+  assert.notDeepEqual(buildBoard(day, fb().pepper).board.lights, buildBoard(day, k[BASE_DAY]).board.lights, '… not the pepper\'s');
+});
+
+test('THE RESEED: a new key from the NEXT 4 am — past days + today unchanged, tomorrow differs, nothing using the pepper changes; safe twice; a dry run writes nothing', async () => {
+  const T = NOW + 8 * DAY, today = streakDay(T), past = dayOf(dayNum(today) - 2), tomorrow = dayOf(dayNum(today) + 1);
+  forgetPicks(); forgetPwDays(); forgetBoards(); clearSecretCache();
+  // a past day + today built (+ a result on today's), tomorrow only computed (never built before its day)
+  await ensure('rs-ann', 'Reseeder');
+  const pastPw = (await pwDay(past, T)).words, todayPw = (await pwDay(today, T)).words;
+  const pastCc = (await ccBoard(past)).lights, todayCc = (await ccBoard(today)).lights;
+  await perfect('rs-ann', 'test', T);
+  const resBefore = await val(`dly/test/${today}/r/${await pidOf('rs-ann')}`);
+  const seedTomorrow = await (await import('../../api/_lib/dailies.js')).dailySeed('test', tomorrow);
+  const tomorrowCc = buildBoard(tomorrow, await dailySecret(tomorrow, T)).board.lights;
+  const sched0 = (await val(SCHED_PATH)).s.split(',');
+  const tIdx = dayNum(tomorrow) - dayNum('d20261101');
+  const tomorrowPw = [sched0[2 * tIdx], sched0[2 * tIdx + 1]];
+  const pepper = fb().pepper, kh = keyHash('ABCD-EFGH-IJKL');
+  // a stray stored future day (a clock skew) — dropped
+  await ref(`dly/coastclear/${tomorrow}/b`).set({ v: 1, stray: true });
+  const hooks = { games: ['password', 'coastclear', 'test'], schedule: reseedSchedule };
+  // the dry run: the plan, nothing written
+  const dry = await reseedDailies({ now: T, dryRun: true, hooks });
+  assert.equal(dry.dryRun, true); assert.equal(dry.from, tomorrow);
+  assert.equal((await dailyKeys(T))[tomorrow], undefined); assert.deepEqual((await val(SCHED_PATH)).s.split(','), sched0);
+  // the reseed
+  const r = await reseedDailies({ now: T, hooks });
+  assert.equal(r.changed, true); assert.ok(r.steps.length >= 3, r.steps.join(' | '));
+  forgetPicks(); forgetPwDays(); forgetBoards(); clearSecretCache();
+  assert.deepEqual((await pwDay(past, T)).words, pastPw, 'a past day: unchanged'); assert.deepEqual((await pwDay(today, T)).words, todayPw, 'today: unchanged');
+  assert.deepEqual((await ccBoard(past)).lights, pastCc); assert.deepEqual((await ccBoard(today)).lights, todayCc);
+  assert.equal(await val(`dly/test/${today}/r/${await pidOf('rs-ann')}`), resBefore, 'today\'s result untouched');
+  const sched1 = (await val(SCHED_PATH)).s.split(',');
+  assert.deepEqual(sched1.slice(0, 2 * tIdx), sched0.slice(0, 2 * tIdx), 'the schedule through today kept word for word');
+  assert.deepEqual([...sched1].sort(), [...sched0].sort(), 'the same words — none lost, none added');
+  assert.notDeepEqual((await pwDay(tomorrow, T + DAY)).words, tomorrowPw, 'tomorrow\'s PASSWORD differs');
+  assert.equal(await val(`dly/coastclear/${tomorrow}/b/stray`), null, 'the stray future day dropped');
+  assert.notDeepEqual((await ccBoard(tomorrow)).lights, tomorrowCc, 'tomorrow\'s harbor differs');
+  assert.notEqual(await (await import('../../api/_lib/dailies.js')).dailySeed('test', tomorrow), seedTomorrow, 'tomorrow\'s seed differs');
+  assert.equal(fb().pepper, pepper, 'the pepper: untouched'); assert.equal(keyHash('ABCD-EFGH-IJKL'), kh, 'a restore key still hashes the same');
+  // twice: nothing
+  const again = await reseedDailies({ now: T, hooks });
+  assert.equal(again.changed, false); assert.match(again.steps[0], /already reseeded/);
+  assert.deepEqual((await val(SCHED_PATH)).s.split(','), sched1);
 });

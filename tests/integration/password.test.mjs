@@ -24,7 +24,7 @@ import { GUESSES, HIT } from '../../js/games/password/logic.js';
 
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
 const DAY = 86_400_000;
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress', 'dsched', 'dsecret'];
 before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); });
 after(async () => { await deleteApp(fb().app); });
 
@@ -49,7 +49,7 @@ const noLeak = (o, words) => { const s = JSON.stringify(o); for (const w of word
 test('a clean crack: start → guesses judged by the server → THE BACK ROOM → finish from the record; the answers never early; a non-word costs nothing', async () => {
   await ensure('pw-ann', 'Ann');
   const day = streakDay(NOW);
-  const [W1, W2] = wordsFor(day);
+  const [W1, W2] = await wordsFor(day);
   assert.notEqual(W1, W2); assert.match(W1, /^[A-Z]{5}$/);
   await rejects(G('pw-ann', 'ABOUT', NOW), 409, 'not_started');
   const s = await S('pw-ann', NOW);
@@ -104,7 +104,7 @@ test('a clean crack: start → guesses judged by the server → THE BACK ROOM �
 test('THE DOOR held: six misses close door 1, its word shown, the run over — THE BACK ROOM never opened, its word in NO response; the cap', async () => {
   await ensure('pw-bob', 'Bob');
   const day = streakDay(NOW);
-  const [W1, W2] = wordsFor(day);
+  const [W1, W2] = await wordsFor(day);
   const miss = blank([W1, W2]);
   await S('pw-bob', NOW);
   const all = [];
@@ -124,7 +124,7 @@ test('THE DOOR held: six misses close door 1, its word shown, the run over — T
 test('THE BACK ROOM held: door 1 in two, six misses on door 2 → 100 + 8; the standing is LOW = better', async () => {
   await ensure('pw-cat', 'Cat');
   const day = streakDay(NOW);
-  const [W1, W2] = wordsFor(day);
+  const [W1, W2] = await wordsFor(day);
   const miss = blank([W1, W2]);
   await S('pw-cat', NOW);
   await G('pw-cat', miss, NOW + 1e3);
@@ -143,7 +143,7 @@ test('THE BACK ROOM held: door 1 in two, six misses on door 2 → 100 + 8; the s
 test('PW2 — a crack in SEVEN: KEYHOLE but not SAFECRACKER (the threshold is six, from the record — never a phone\'s claim)', async () => {
   await ensure('pw-dan', 'Dan');
   const day = streakDay(NOW);
-  const [W1, W2] = wordsFor(day);
+  const [W1, W2] = await wordsFor(day);
   const miss = blank([W1, W2]);
   await S('pw-dan', NOW);
   for (let i = 0; i < 5; i++) await G('pw-dan', miss, NOW + (i + 1) * 1e3);
@@ -159,10 +159,10 @@ test('PW2 — a crack in SEVEN: KEYHOLE but not SAFECRACKER (the threshold is si
 test('the day turns at 4 am Eastern: tomorrow is a new try with new words; the streak follows', async () => {
   const day0 = streakDay(NOW), day1 = streakDay(NOW + DAY);
   assert.notEqual(day0, day1);
-  assert.notDeepEqual(wordsFor(day0), wordsFor(day1));
+  assert.notDeepEqual(await wordsFor(day0), await wordsFor(day1));
   const s = await S('pw-ann', NOW + DAY);
   assert.equal(s.done, null); assert.equal(s.run.door, 0); assert.equal(s.run.doors[0].guesses.length, 0);
-  const [W1, W2] = wordsFor(day1);
+  const [W1, W2] = await wordsFor(day1);
   await G('pw-ann', W1, NOW + DAY + 1e3); await G('pw-ann', W2, NOW + DAY + 2e3);
   const f = await F('pw-ann', NOW + DAY + 3e3);
   assert.equal(f.score, 2); assert.equal(f.outcome.streak.n, 2);
@@ -199,10 +199,10 @@ test('DFIX1 — the 4 am turn: start 3:58 → guesses across 4:00 → finish 4:0
   await ensure('pw-tom', 'Tom', TURN - 3 * DAY);
   const d0 = streakDay(TURN - 120e3), d1 = streakDay(TURN + 30e3);
   assert.equal(d0, 'd20261201'); assert.equal(d1, 'd20261202');
-  const [W1, W2] = wordsFor(d0);
+  const [W1, W2] = await wordsFor(d0);
   const s = await S('pw-tom', TURN - 120e3);
   assert.equal(s.day, d0);
-  const miss = blank([W1, W2, ...wordsFor(d1)]);
+  const miss = blank([W1, W2, ...await wordsFor(d1)]);
   await GD('pw-tom', miss, TURN - 100e3, d0);
   // past the turn: the run's own day goes on — the old words, the same record
   const g2 = await GD('pw-tom', W1, TURN + 10e3, d0);
@@ -228,7 +228,7 @@ test('DFIX1 — the 4 am turn: start 3:58 → guesses across 4:00 → finish 4:0
   assert.equal(s1.day, d1); assert.equal(s1.done, null); assert.equal(s1.run.door, 0); assert.equal(s1.run.doors[0].guesses.length, 0);
   await rejects(GD('pw-tom', miss, TURN + 41e3, d0), 409, 'finished');
   // and today's run counts as today (the streak goes on to 2)
-  const [V1, V2] = wordsFor(d1);
+  const [V1, V2] = await wordsFor(d1);
   await GD('pw-tom', V1, TURN + 50e3, d1); await GD('pw-tom', V2, TURN + 60e3, d1);
   const f1 = await FD('pw-tom', TURN + 70e3, d1);
   assert.equal(f1.day, d1); assert.equal(f1.outcome.streak.n, 2);
@@ -237,7 +237,7 @@ test('DFIX1 — the 4 am turn: start 3:58 → guesses across 4:00 → finish 4:0
 test('DFIX1 — the review\'s case: both doors cracked at 3:58:40, the finish lands at 4:00:30 → recorded (never 409 not_started)', async () => {
   await ensure('pw-uma', 'Uma', TURN - 3 * DAY);
   const d0 = streakDay(TURN - 120e3);
-  const [W1, W2] = wordsFor(d0);
+  const [W1, W2] = await wordsFor(d0);
   await S('pw-uma', TURN - 120e3);
   await GD('pw-uma', W1, TURN - 90e3, d0);
   assert.equal((await GD('pw-uma', W2, TURN - 80e3, d0)).done, true);
@@ -252,7 +252,7 @@ test('DFIX1 — the abuse checks: a made-up day, two days back, tomorrow, a day 
   assert.equal(s.day, d1);
   const pid = await val('uids/pw-wes');
   assert.equal(await val(`dly/password/${d0}/s/${pid}`), null, 'never a start on yesterday\'s day');
-  const [W1] = wordsFor(d1);
+  const [W1] = await wordsFor(d1);
   await rejects(GD('pw-wes', W1, TURN + 61e3, d0), 409, 'not_started');            // yesterday, but no start there
   await rejects(GD('pw-wes', W1, TURN + 61e3, 'd20261130'), 400, 'bad_day');        // two back
   await rejects(GD('pw-wes', W1, TURN + 61e3, 'd20261203'), 400, 'bad_day');        // tomorrow

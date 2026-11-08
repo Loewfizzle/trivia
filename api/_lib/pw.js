@@ -9,9 +9,11 @@
 //   finish → the score from the SERVER's record (never the phone's claim): replay() → (2 − doors) × 100 + guesses
 // Registered by dailies.js — until THE SWITCH-OVER only under DAILY_TEST=1 (production answers 'no_daily').
 import { readFileSync } from 'node:fs';
-import { fb, ref, val } from './fb.js';
-import { dayWords, freezeSchedule, extendSchedule, reconcileSchedule, frozenWords, dayIndex, listHash } from './pw-day.js';
-import { streakDay } from '../../js/core/streak.js';
+import { ref, val } from './fb.js';
+import { dayWords, freezeSchedule, extendSchedule, reconcileSchedule, reorderAfter, frozenWords, dayIndex, listHash } from './pw-day.js';
+import { dailySecret } from './daily-secret.js';
+import { streakDay, dayOf } from '../../js/core/streak.js';
+import { SCHEDULE_EPOCH } from './pw-day.js';
 import { runView, serverGuess, recordOf, canGuess, cleanWord, replay, SCORE_MIN, SCORE_MAX } from '../../js/games/password/logic.js';
 
 const DATA = new URL('../_data/pw/', import.meta.url);
@@ -29,9 +31,10 @@ export function pwLists() {
 }
 /** is this a word a guess may be? (valid-5 ∪ the answers) */
 export const isWord = w => { const c = cleanWord(w); return !!c && pwLists().valid.has(c); };
-/** the schedule's FORMULA for a day (pw-day.js#dayWords) — the same words as THE FROZEN SCHEDULE while the list is untouched (the tests read the
- *  answers through it); the server judges from pwDay(day), the frozen schedule's stored pair */
-export const wordsFor = (day, pepper = fb().pepper) => dayWords(day, pwLists().answers, pepper);
+/** the schedule's FORMULA for a day (pw-day.js#dayWords) from THE DAILY SECRET (daily-secret.js — never the pepper) — the same words as THE
+ *  FROZEN SCHEDULE while the list is untouched and no reseed has run (the tests read the answers through it); the server judges from
+ *  pwDay(day), the frozen schedule's stored pair */
+export const wordsFor = async (day, secret = null) => dayWords(day, pwLists().answers, secret || await dailySecret(day));
 
 // ---- DM1 — THE 4 AM PICKER's part for THE PASSWORD: the day's pair FIXED once (dly/password/{day}/b = { v, w: 'W1,W2' }, server-only), read from
 // THE FROZEN SCHEDULE (dsched/password = { v, s: 'W,W,…', c, h }, server-only — pw-day.js: extended + reconciled, never reshuffled). Built lazily
@@ -40,7 +43,8 @@ export const SCHED_PATH = 'dsched/password';
 const packSched = r => ({ v: 1, s: r.s.join(','), c: r.c, h: r.h });
 const unpackSched = p => (p && p.v === 1 && typeof p.s === 'string' ? { v: 1, s: p.s ? p.s.split(',') : [], c: p.c || 1, h: p.h || '' } : null);
 /** the frozen schedule, frozen / reconciled / extended as needed so day index `idx` has its pair (one transaction) */
-export async function frozenSchedule(idx, keepIdx, { pepper = fb().pepper, list = pwLists().answers } = {}) {
+export async function frozenSchedule(idx, keepIdx, { pepper = null, list = pwLists().answers } = {}) {
+  pepper ||= await dailySecret(dayOfIndex(Math.max(idx, keepIdx)));   // (THE DAILY SECRET in force that day — a reseed's new key from its day on)
   const h = listHash(list);
   let out = null;
   const step = cur => {
@@ -68,7 +72,7 @@ export async function pwDay(day, now = Date.now()) {
   let words = have && have.v === 1 && typeof have.w === 'string' ? have.w.split(',') : null;
   if (!words) {
     const idx = dayIndex(day);
-    if (idx < 0) words = wordsFor(day);
+    if (idx < 0) words = await wordsFor(day);
     else {
       const rec = await frozenSchedule(idx, Math.max(idx, dayIndex(streakDay(now))));
       const pair = frozenWords(rec, idx);
@@ -82,11 +86,24 @@ export async function pwDay(day, now = Date.now()) {
   return { words };
 }
 export const forgetPwDays = () => DAYS.clear();
-/** the day's words from a cartridge call's data (the picker's pair), else the formula (a direct unit call) */
-const wordsOf = (day, data) => (data && Array.isArray(data.words) ? data.words : wordsFor(day));
+const dayOfIndex = i => dayOf(SCHEDULE_EPOCH + i);
+/** the day's words from a cartridge call's data (the picker's pair — api/daily.js always loads it) */
+const wordsOf = (day, data) => { if (!(data && Array.isArray(data.words))) throw new Error(`pw: ${day}'s words (the cartridge's load) are required`); return data.words; };
+
+/** THE RESEED's part (daily-secret.js#reseedDailies hooks.schedule): every word after TODAY's pair in a new order from the new key (frozen
+ *  first if it never was — today's key) → a line for the report */
+export async function reseedSchedule({ today, from, key, dryRun }) {
+  const idx = dayIndex(today);
+  if (idx < 0) return null;
+  const rec = await frozenSchedule(idx + 1, idx);
+  const next = reorderAfter(rec, idx, key, `reseed:${from}`);
+  if (!dryRun) await ref(SCHED_PATH).set(packSched(next));
+  forgetPwDays();
+  return `THE PASSWORD: ${next.s.length - 2 * (idx + 1)} scheduled words after today reordered (today's pair + ${idx} day(s) before kept)`;
+}
 
 /** the phone's view of a stored record */
-export const viewOf = (record, day, { startedAt = 0, pepper, data } = {}) => runView(record, data ? wordsOf(day, data) : wordsFor(day, pepper), { day, startedAt });
+export const viewOf = (record, day, { startedAt = 0, data } = {}) => runView(record, wordsOf(day, data), { day, startedAt });
 
 /** THE PASSWORD's daily cartridge (core/daily.js#registerDaily): better = LOW, one bucket per score 2…206 */
 export const PW_DAILY = {

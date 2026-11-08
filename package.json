@@ -7,7 +7,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "dailies:reseed": "node scripts/dailies-reseed.mjs"
   },
   "dependencies": {
     "@simplewebauthn/server": "13.3.3",
