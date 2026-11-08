@@ -233,11 +233,11 @@ export function createDockWork(T) {
       const paint = t => {
         if (!dock) return;
         dock.setDaily(L.dockState(t));
-        // THE RESUME CHIP: a held run still in flight (finished elsewhere → the hold is dropped)
-        const hr = T2.heldRun(), live = !!(t && Array.isArray(t.dailies) && t.dailies.some(d => hr && d.id === hr.id));
-        if (hr && t && t.mine && t.mine[hr.id] != null) T2.dropHeld();
-        const show = !!(hr && live && !(t.mine && t.mine[hr.id] != null));
-        if (T.els.dyChip) T.els.dyChip.hidden = !show;
+        // THE RESUME CHIP: a held run still RESUMABLE (DFIX2, finding 5 — today-logic.js#chipState: its day today's, or yesterday's with a run
+        // still in flight there; finished elsewhere / its day gone → the hold is dropped and the chip clears itself)
+        const hr = T2.heldRun(), cs = L.chipState(t, hr);
+        if (cs === 'drop') { T2.dropHeld(); return; }           // (dropHeld tells every listener — this paint runs again without the hold)
+        if (T.els.dyChip) T.els.dyChip.hidden = cs !== 'show';
         // the ☰ menu's row (THE DAILY SCREEN from anywhere outside a match — the room's way in): only while a daily is live
         const ds = L.dockState(t);
         Promise.all([import('../ui/settings-panel.js'), import('../ui/components.js')]).then(([S, Cm]) => S.setMenuExtra('dailies', ds.show

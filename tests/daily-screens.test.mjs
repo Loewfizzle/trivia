@@ -61,3 +61,49 @@ test('the everyone line, the ordinals, the host\'s line, the words', () => {
   assert.equal(line, 'NEON SPEAKEASY DAILIES · PASSWORD 7 guesses · COASTCLEAR 2:41 · SWEPT · neonspeakeasy.com');
   assert.ok(!/[\u{1F300}-\u{1FAFF}]/u.test(line), 'no emoji');
 });
+
+// ---------------------------------------------------------------- DFIX2 — THE DAILIES FIX PASS (FABLE REVIEW #2)
+import { dayTurned, chipState, tableCut, cardRows, stillToPlay, TABLE_TOP } from '../js/daily/today-logic.js';
+
+test('DFIX2 finding 4 — the 4 am turn: a `today` from another day is stale (re-read, never a reload)', () => {
+  assert.equal(dayTurned({ day: 'd20261108' }, 'd20261109'), true);
+  assert.equal(dayTurned({ day: 'd20261109' }, 'd20261109'), false);
+  assert.equal(dayTurned(null, 'd20261109'), false); assert.equal(dayTurned({ dailies: [] }, 'd20261109'), false, 'an answer with no day (an old server) is never stale by day');
+});
+
+test('DFIX2 finding 5 — THE RESUME CHIP shows only while its run is still resumable; a stale hold clears itself', () => {
+  const t = { day: 'd20261109', dailies: D('password', 'coastclear'), mine: {}, started: {}, startedDay: {} };
+  assert.equal(chipState(t, null), 'none');
+  assert.equal(chipState({ dailies: [] }, { id: 'coastclear', day: 'd20261109' }), 'none', 'the dailies off / no answer yet: hidden, the hold kept');
+  assert.equal(chipState(t, { id: 'coastclear', day: 'd20261109' }), 'show', 'held today, unplayed');
+  assert.equal(chipState(t, { id: 'coastclear', day: null }), 'show', 'an old hold with no day: today\'s');
+  assert.equal(chipState({ ...t, mine: { coastclear: 140 } }, { id: 'coastclear', day: 'd20261109' }), 'drop', 'finished elsewhere');
+  assert.equal(chipState(t, { id: 'coastclear', day: 'd20261108' }), 'drop', 'yesterday\'s hold with no run in flight there (the run is lost to the 4 am rule)');
+  assert.equal(chipState({ ...t, started: { coastclear: true }, startedDay: { coastclear: 'd20261108' } }, { id: 'coastclear', day: 'd20261108' }), 'show', 'yesterday\'s run still in flight (finding 7): RESUME');
+  assert.equal(chipState({ ...t, started: { coastclear: true }, startedDay: {} }, { id: 'coastclear', day: 'd20261108' }), 'show', 'an older server (no startedDay): started is enough');
+  assert.equal(chipState({ ...t, started: { coastclear: true } }, { id: 'coastclear', day: 'd20261107' }), 'drop', 'two days back: gone');
+  assert.equal(chipState(t, { id: 'nightcap', day: 'd20261109' }), 'drop', 'a daily no longer on the list');
+});
+
+test('DFIX2 — SLIM CARDS ON SCORES: the finishers vs STILL TO PLAY, the top 5 + you, SHOW ALL n', () => {
+  const me = { pid: 'P0', name: 'AVA' }, names = { P1: 'BEN', P2: 'KIM', P3: 'LOU', P4: 'MAXIMILIANOS' };
+  const t = { dailies: D('pw'), mine: { pw: 6 }, table: ['P1', 'P2', 'P3', 'P4'], friends: { P1: { pw: { score: 4 } }, P2: { pw: { score: 8 } }, P3: {}, P4: {} } };
+  const { finishers, waiting } = cardRows(tableFor(t, 'pw', { names, me, better: 'low' }).rows);
+  assert.deepEqual(finishers.map(r => [r.name, r.place]), [['BEN', 1], ['AVA', 2], ['KIM', 3]]);
+  assert.equal(stillToPlay(waiting), 'STILL TO PLAY · LOU · MAXIMILIANOS', 'whole names, one line');
+  assert.equal(stillToPlay([]), '');
+  // you not yet played: YOU leads the line; a friend who PLAYED (score hidden) is a finisher (a card reading PLAYED)
+  const u = { dailies: D('pw'), mine: {}, table: ['P1', 'P3'], friends: { P1: { pw: { done: true } }, P3: {} } };
+  const cr = cardRows(tableFor(u, 'pw', { names, me, better: 'low' }).rows);
+  assert.deepEqual(cr.finishers.map(r => [r.name, r.played, r.score]), [['BEN', true, null]]);
+  assert.equal(stillToPlay(cr.waiting), 'STILL TO PLAY · YOU · LOU');
+  // the cut: ≤ 6 finishers all shown; 11 → the top 5 + you at 9TH + SHOW ALL 11; you inside the top 5 → just the top 5
+  const rows = n => Array.from({ length: n }, (_, i) => ({ pid: `P${i}`, name: `N${i}`, place: i + 1, me: i === 8 }));
+  assert.equal(TABLE_TOP, 5);
+  assert.deepEqual(tableCut(rows(6)), { shown: rows(6), hidden: [], more: 0 }, 'six: no row for one more');
+  const c = tableCut(rows(11));
+  assert.deepEqual(c.shown.map(r => r.place), [1, 2, 3, 4, 5, 9]); assert.equal(c.hidden.length, 5); assert.equal(c.more, 11);
+  const inTop = tableCut(rows(11).map(r => ({ ...r, me: r.place === 2 })));
+  assert.deepEqual(inTop.shown.map(r => r.place), [1, 2, 3, 4, 5]); assert.equal(inTop.hidden.length, 6);
+  assert.deepEqual(tableCut(rows(11), { all: true }).hidden, [], 'SHOW ALL opens the rest in place');
+});

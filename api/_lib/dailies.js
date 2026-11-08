@@ -12,7 +12,7 @@
 // (Vercel has no DAILY_TEST).
 import { createHmac } from 'node:crypto';
 import { ref, val } from './fb.js';
-import { dailySecret } from './daily-secret.js';
+import { dailySecret, clearSecretCache } from './daily-secret.js';
 import { registerDaily, unregisterDaily, dailyOf, dailyIds, dailyRows, todaysDailies, addDailyRow, removeDailyRow } from '../../js/core/daily.js';
 import { PW_DAILY } from './pw.js';
 import { CC_DAILY } from './cc.js';
@@ -93,6 +93,9 @@ export async function pickDay(day, now = Date.now()) {
   const ids = todaysDailies();
   const key = `${day}|${ids.join(',')}`;
   if (!PICKED.has(key)) {
+    // DFIX2 (FABLE REVIEW #2, finding 3 → Ben's decision 5): a day this instance has not seen reads THE DAILY SECRET afresh — a RESEED on the
+    // admin function in the last minute before 4 am can't hand the new day the OLD key from this instance's 60 s cache (one extra read a day)
+    clearSecretCache();
     const p = Promise.all(ids.map(id => { const c = dailyOf(id); return c && c.load ? c.load(day, now) : null; }))
       .then(() => ids, e => { PICKED.delete(key); throw e; });
     PICKED.set(key, p);

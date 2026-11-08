@@ -4,6 +4,11 @@
 //   loadToday({ fresh }) → the answer (or the last one) · todayNow() · onToday(fn) → off() · markFinished(id, score)
 //   THE HELD RUN (THE ROOM WINS): heldRun() → { id, day } | null · holdRun(id, day) · dropHeld()   (per device — the RESUME chip after the match)
 import { api } from '../profile/api.js';
+import { serverNow } from '../firebase.js';
+import { streakDay } from '../core/streak.js';
+import { easternParts } from '../core/week.js';
+import { msToTurn } from './clock.js';
+import { dayTurned } from './today-logic.js';
 
 const TTL = 20_000;
 let cache = null, at = 0, inflight = null;
@@ -15,10 +20,12 @@ export function onToday(fn) { subs.add(fn); return () => subs.delete(fn); }
 
 /** today's dailies + your results + YOUR TABLE (≤ 12 friends — the server picks them) */
 export function loadToday({ fresh = false } = {}) {
+  // DFIX2 (FABLE REVIEW #2, finding 4): an answer from ANOTHER day is stale whatever its age — the 4 am turn re-reads it, never a reload
+  if (dayTurned(cache, streakDay(serverNow()))) fresh = true;
   if (!fresh && cache && Date.now() - at < TTL) return Promise.resolve(cache);
   if (inflight) return inflight;
   inflight = api('daily', { action: 'today' })
-    .then(r => { cache = r && Array.isArray(r.dailies) ? r : { dailies: [] }; at = Date.now(); tell(); return cache; })
+    .then(r => { cache = r && Array.isArray(r.dailies) ? r : { dailies: [] }; at = Date.now(); armTurn(); tell(); return cache; })
     .catch(() => { if (!cache) { cache = { dailies: [], down: true }; tell(); } return cache; })
     .finally(() => { inflight = null; });
   return inflight;
@@ -43,6 +50,21 @@ export function markStarted(id) {
 export function markLesson(id) { if (cache) { cache = { ...cache, lessons: { ...(cache.lessons || {}), [id]: 1 } }; tell(); } }
 /** (previews + tests: a scripted answer) */
 export function setToday(t) { cache = t; at = Date.now(); tell(); }
+
+// ---- THE 4 AM TURN (DFIX2, finding 4): ONE timer to the next day start (re-armed after every answer; a sleeping phone fires it on waking —
+// a stale answer is also caught by loadToday's day check on the dock's visibilitychange) → a fresh `today`; the dock + the screen repaint from
+// onToday as always. A run in flight is untouched: it keeps its own day (run-day.js).
+let turnT = 0;
+function armTurn() {
+  if (typeof setTimeout !== 'function') return;
+  clearTimeout(turnT);
+  const t = serverNow();
+  turnT = setTimeout(turnNow, Math.min(2 ** 31 - 1, msToTurn(easternParts(t), t % 1000) + 1500));
+}
+/** the day turned (the timer, the screen's countdown at zero, a test): the answer re-read now */
+export function turnNow() { if (!cache) return Promise.resolve(null); at = 0; return loadToday({ fresh: true }); }
+/** (tests) make the kept answer look like yesterday's */
+export function staleToday(day = 'd00000000') { if (cache) cache = { ...cache, day }; }
 
 // ---- THE HELD RUN — the room started a game mid-daily: the run is saved on the server (THE PASSWORD has no clock; COAST CLEAR paused); the
 // RESUME chip shows after the match until the run is opened again or finished

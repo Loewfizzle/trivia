@@ -21,8 +21,10 @@ import { easternParts } from '../core/week.js';
 import { streakDay } from '../core/streak.js';
 import { dailyRow } from '../core/daily.js';
 import { msToTurn, fmtCountdown } from '../daily/clock.js';
-import { loadToday, todayNow, onToday, markFinished, markStarted, markLesson, heldRun, holdRun, dropHeld } from '../daily/today.js';
-import { rowState, sweepState, tableFor, everyoneLine, ordinal, COUNTS_FROM_TOMORROW, ROOM_BANNER } from '../daily/today-logic.js';
+import { loadToday, todayNow, onToday, markFinished, markStarted, markLesson, heldRun, holdRun, dropHeld, turnNow, staleToday } from '../daily/today.js';
+import { rowState, sweepState, tableFor, everyoneLine, ordinal, tableCut, cardRows, stillToPlay, COUNTS_FROM_TOMORROW, ROOM_BANNER } from '../daily/today-logic.js';
+import { syncMidFlag, wantFlag } from '../daily/room-flag.js';
+import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
 
 // ------------------------------------------------------------------------------------------------ the sheet + each daily's thin meta
 let css = null;
@@ -72,7 +74,9 @@ export function syncDaily(st) {
   if (key.startsWith('run:') && !run) run = openRun(d.id);
   document.body.dataset.daily = key ? (key === 'screen' ? 'screen' : 'run') : '';
   if (!key) delete document.body.dataset.daily;
+  syncMidFlag(wantFlag(), st);   // (DFIX2 — THE MID-DAILY FLAG on this phone's room node: a run open / held → the host's line, no poll)
 }
+onToday(() => syncMidFlag(wantFlag()));   // (a hold dropped — resumed, the day turned, the chip's rule → the flag goes with it)
 /** THE ROOM WINS: the host started a game while this phone is mid-daily → the banner, the run saved (paused on the server), the overlay gone */
 function roomWins(st) {
   const r = run;
@@ -85,6 +89,7 @@ function roomWins(st) {
   if (scr) { scr.close(); scr = null; }
   lastKey = '';
   delete document.body.dataset.daily;
+  syncMidFlag(wantFlag(), st);
   queueMicrotask(() => setState({ daily: null }));   // (not inside the render that called us)
 }
 /** THE ROOM WINS' banner: its own strip over the walk inside (~3.6 s) — never THE MESSAGE (the game start's own messages would replace it) */
@@ -122,6 +127,9 @@ function openScreen(tab0) {
   const O = overlay('dy-screen', () => closeAll());
   const els = {};
   let tab = tab0, today = todayNow(), friends = null, gone = false, clockT = 0, lastSig = '';
+  // DFIX2 — SLIM CARDS ON SCORES: ONE effect surface per daily's panel (fx/renderer.js); every surface goes on a repaint + when the screen closes
+  let surfaces = [], showAll = {};
+  const dropSurfaces = () => { for (const sf of surfaces) { try { sf.destroy(); } catch { /* fine */ } } surfaces = []; };
   els.head = h('header.dy-head', backBtn('Back', () => closeAll()),
     h('h1.dy-sign', { 'aria-label': 'The dailies' }, h('span.dy-sign-t', 'THE DAILIES')));
   els.tabs = h('nav.dy-tabs', { role: 'tablist' },
@@ -137,9 +145,10 @@ function openScreen(tab0) {
     await loadMetas(t.dailies || []);
     if (gone) return;
     // (a repaint only when something on screen changed — a tap never lands on a row that was just rebuilt)
-    const sig = JSON.stringify([tab, t, names(), pidNow()]);
+    const sig = JSON.stringify([tab, t, names(), pidNow(), showAll]);
     if (sig === lastSig && !sweepNext) return;
     lastSig = sig;
+    dropSurfaces();
     els.tToday.classList.toggle('is-on', tab === 'today'); els.tToday.setAttribute('aria-selected', String(tab === 'today'));
     els.tScores.classList.toggle('is-on', tab === 'scores'); els.tScores.setAttribute('aria-selected', String(tab === 'scores'));
     clear(els.body);
@@ -177,31 +186,68 @@ function openScreen(tab0) {
     return h(`div.dy-ticket.is-${st}`, { dataset: { id: d.id }, style: { '--tk0': themeInk(d.id) } }, h('div.dy-stub', art), info, h('div.dy-act', act));
   }
 
+  // SCORES — YOUR TABLE as SLIM CARDS (DFIX2 — Ben: "they look so good, we need to start using them"): each FINISHER's row = their equipped slim
+  // card through the results lists' own code (ui/strip-board.js — never a second strip system), the rank LEFT of the card, the SCORE on the line
+  // under it at its right end (never over the card), YOU = your card + a lit frame; the ones STILL TO PLAY get no card — one line under the
+  // cards; a long table = the top 5 + you (your real place) + SHOW ALL n. The everyone line stays at the panel's foot.
   function paintScores(t) {
     for (const d of t.dailies) {
       const tb = tableFor(t, d.id, { names: names(), me: me(), better: d.better });
       const mineDone = t.mine && t.mine[d.id] != null;
-      const list = tb.rows.map(r => h(`div.dy-trow${r.me ? '.is-me' : ''}${r.waiting ? '.is-wait' : ''}`,
-        h('span.dy-tplace', r.place ? ordinal(r.place) : ''),
-        h('span.dy-tname', r.me ? `${r.name} (YOU)` : r.name),
-        h('span.dy-tscore', r.score != null ? lineOf(d.id, r.score) : r.gated ? 'NOT COUNTED' : r.played ? 'PLAYED' : 'WAITING')));
+      const { finishers, waiting } = cardRows(tb.rows);
+      const cut = tableCut(finishers, { all: !!showAll[d.id] });
+      const list = h('ol.board-list.is-strips.dy-cards', { 'aria-label': `${d.name} — your table` },
+        ...cut.shown.map(r => h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.place === 1 ? '.is-first' : ''}`, { dataset: { pid: r.pid } },
+          h('span.lb-rank', r.place ? ordinal(r.place) : ''),
+          h('div.lb-card.dy-card', h('div.lb-sub',
+            r.gated ? h('small.dy-cnote', 'NOT COUNTED') : null,
+            h('span.lb-pts', h('span.lb-score.dy-cscore', r.score != null ? lineOf(d.id, r.score) : 'PLAYED')))))));
+      const more = cut.hidden.length ? h('button.dy-more', { type: 'button', onclick: () => { sfx('select'); showAll[d.id] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
+      const still = stillToPlay(waiting);
       const solo = tb.rows.length <= 1;
-      els.body.append(h('section.dy-sec', { style: { '--tk0': themeInk(d.id) } },
+      els.body.append(h('section.dy-sec', { style: { '--tk0': themeInk(d.id) }, dataset: { id: d.id } },
         h('h2.dy-sec-h', h('span.dy-sec-art', { html: TICKET_ART[d.ticket] || TICKET_ART.star }), d.name),
         h('h3.dy-sub', 'YOUR TABLE'),
-        h('div.dy-table', ...list),
+        cut.shown.length ? list : null,
+        more,
+        still ? h('p.dy-still', still) : null,
         solo ? h('p.dy-quiet', 'Add friends from a player’s name tag — their scores sit here.') : null,
-        !mineDone && tb.rows.some(r => r.played) ? h('p.dy-quiet', 'Play it to see their scores.') : null,
+        !mineDone && finishers.length ? h('p.dy-quiet', 'Play it to see their scores.') : null,
         everyoneLine(t.stand && t.stand[d.id]) ? h('p.dy-every', everyoneLine(t.stand[d.id])) : null));
+      if (cut.shown.length) dressCards(list, cut.shown, d);
     }
   }
+  /** the strips into their rows (async: the kit loads once a page) — a friend from their card in the friends list, you from `me` */
+  async function dressCards(list, rows, d) {
+    const K = await stripKit();
+    if (gone || !list.isConnected) return;
+    const surface = K.createSurface(list, { label: `scores:${d.id}` });
+    surfaces.push(surface);
+    rows.forEach((r, i) => {
+      const slot = list.querySelector(`.dy-crow[data-pid="${r.pid}"] .dy-card`);
+      if (!slot) return;
+      const pub = r.me ? (pidMod && pidMod.myPublic && pidMod.myPublic()) || { n: r.name } : friendCard(r.pid) || { n: r.name };
+      const strip = stripFor(K, pub, { name: r.name });
+      slot.prepend(strip.el);
+      stripFx(K, surface, strip, i + 1);
+    });
+    list.dataset.strips = String(rows.length);
+  }
+  const friendCard = pid => ((friends && friends.friends) || []).find(c => c.pid === pid) || null;
 
   const names = () => Object.fromEntries(((friends && friends.friends) || []).map(c => [c.pid, String(c.n || 'FRIEND').toUpperCase()]));
   const me = () => ({ pid: pidNow(), name: String((loadProfile() || {}).name || 'YOU').toUpperCase() });
 
   function tickNext() {
     clearInterval(clockT);
-    const draw = () => { if (els.next && els.next.isConnected) { const t = serverNow(); els.next.textContent = `NEW DAILIES IN ${fmtCountdown(msToTurn(easternParts(t), t % 1000))}`; } };
+    let turned = false;
+    const draw = () => {
+      if (!els.next || !els.next.isConnected) return;
+      const t = serverNow(), ms = msToTurn(easternParts(t), t % 1000);
+      els.next.textContent = `NEW DAILIES IN ${fmtCountdown(ms)}`;
+      // DFIX2 (finding 4): the countdown reaching zero turns the screen over itself — a fresh `today` (the tickets back to PLAY), no reload
+      if (ms <= 1000 && !turned) { turned = true; turnNow(); }
+    };
     draw(); clockT = setInterval(draw, 1000);
   }
   function playSweep() {
@@ -218,7 +264,8 @@ function openScreen(tab0) {
   loadToday({ fresh: true });
   return {
     setTab(t) { if (t !== tab) { tab = t; paint(); } },
-    close() { gone = true; off(); clearInterval(clockT); O.close(); },
+    close() { gone = true; off(); clearInterval(clockT); dropSurfaces(); O.close(); },
+    surfaces: () => surfaces.length,
   };
 }
 let pidMod = null;
@@ -282,6 +329,7 @@ function openRun(id) {
   function mount() {
     clear(stage);
     if (heldRun() && heldRun().id === id) dropHeld();     // (THE ROOM WINS: back in the run — the chip's job is done)
+    syncMidFlag(true);                                    // (DFIX2: a run open in a room → the host's MID-DAILY line)
     inner = mod.createApiJudge ? mod.createApiJudge() : null;
     const judge = inner && wrapJudge(inner);
     const uid = state.uid || 'me', now = serverNow(), dk = streakDay(now);
@@ -323,8 +371,11 @@ function openRun(id) {
       try { if (view) view.unmount(); } catch (e) { console.warn('[daily run] unmount', e); }
       if (document.body.dataset.theme === (row.theme || id)) document.body.dataset.theme = '';
       O.close();
+      queueMicrotask(() => syncMidFlag(wantFlag()));       // (closed unheld → the flag goes; held → it stays)
     },
   };
 }
 // (test hook: the screens' state)
-if (typeof window !== 'undefined') window.__daily2 = { syncDaily, state: () => ({ screen: !!scr, run: run ? run.id : null, key: lastKey }), sweptAt: () => sweptAt, heldRun, setSweepNext: v => { sweepNext = !!v; } };
+if (typeof window !== 'undefined') window.__daily2 = { syncDaily, state: () => ({ screen: !!scr, run: run ? run.id : null, key: lastKey }), sweptAt: () => sweptAt, heldRun, setSweepNext: v => { sweepNext = !!v; },
+  // DFIX2 — the tests: the effect surfaces open on SCORES (0 once the screen closes), the 4 am turn (stale = make the kept answer yesterday's)
+  surfaces: () => (scr ? scr.surfaces() : 0), stale: staleToday, turn: turnNow };

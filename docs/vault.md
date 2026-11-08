@@ -684,6 +684,17 @@ COAST CLEAR's two collectibles, awarded by the SERVER from its own record of the
   capped before its hero (THE SLIM-CARD LONG-NAME STANDARD) and sets `data-step=''` so `vault/layout.js` lays a full card. The slim dev line reads
   **DEV** (the full card's stays DEV · <RANK>).
 
+## SLIM CARDS ON SCORES (DFIX2, Nov 8 — Ben: "they look so good, we need to start using them"; docs/progression.md "DFIX2")
+- **SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS** (the owner's standing decision from DFIX2 on): the dailies' SCORES → YOUR TABLE draws each FINISHER's row as
+  their equipped slim card through the results lists' OWN code — `js/ui/strip-board.js` now exports the pieces (`stripKit()` loads the vault, the effects,
+  the plain palettes + the APPROVED set once a page; `stripFor(K, pub, p)` = one card from any public face — a room player's profile, a friend's card
+  (`api/_lib/friends.js#cardOf`), your `me`; `stripFx(K, surface, strip, seed)` = its motion on a shared surface, CALM, radius 12). A NEW list of players
+  uses these three — never a second strip system (`tests/shell.test.mjs`). ONE effect surface per panel; an unapproved card → its plain colours; no card →
+  the Gilded plain strip; the name always whole. The rank sits LEFT of the card, the score on the line UNDER it at its right end (never over the card);
+  YOU = a lit frame drawn along the card (`css/daily.css` ".dy-cards .is-me .dy-card::after" — never a pill or a tinted row).
+- **A preview approves its own set:** `&labmarks=<id,id,…>` (`js/vault/approved.js`) on a local server or a private LAN address — the daily preview shows a
+  legendary, a rare, an uncommon with MAXIMILIANOS, LOU's zebra UNAPPROVED (plain) and RAY with no card (Gilded) side by side.
+
 ## THE DAILY MODULE's CARDS — PERFECT WEEK + PENTHOUSE · THE DIAL (DM2, Nov 8 — docs/progression.md "DM2")
 - **PERFECT WEEK** (`card-perfect-week`, epic — THE SWEEP 7 daily-days in a row, server-awarded): the owner's pick (Grok's `card-perfect-week-backup.png` →
   `art/dm-cards/src/` → `assets/vault/dm/perfect-week.webp` by `scripts/build-dm-cards.mjs`) + `js/fx/dm-cards.js` (data in `dm-specs.js`): a light runs along

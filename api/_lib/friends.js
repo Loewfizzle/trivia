@@ -20,7 +20,8 @@ const fail = (status, why) => { throw new ApiError(status, why, FR_WHY[why] || w
 export async function cardOf(pid, at = 0) {
   const p = await publicProfile(pid);
   if (!p) return null;
-  return { pid, bid: boardId(pid), n: p.n, t: p.t, a: p.a, c: p.c, l: p.l, cd: p.cd, g: p.g, tb: p.tb, es: p.es, at };
+  // (DFIX2 — SLIM CARDS ON SCORES: + the XP + the member Nº, so a friend's strip is drawn exactly like a room player's — ui/strip-board.js)
+  return { pid, bid: boardId(pid), n: p.n, t: p.t, a: p.a, c: p.c, l: p.l, x: p.x, mn: p.mn, cd: p.cd, g: p.g, tb: p.tb, es: p.es, at };
 }
 const cards = async (m, order = null) => {
   const list = (order || Object.entries(m || {}).sort((x, y) => y[1] - x[1]).map(([p]) => p)).filter(isPid);

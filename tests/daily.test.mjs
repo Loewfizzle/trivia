@@ -3,8 +3,8 @@
 import '../api/_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog — names, rewards, achievements)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SWEEP_XP, isPenthouse, penthouseCut, registerDaily, unregisterDaily, dailyOf, standing, bandFor, todayView, BAND_MIN, dailyRows, dailyRow, listedDailies, todaysDailies, addDailyRow, removeDailyRow, sweptDay, dailyXp, DAILY_XP } from '../js/core/daily.js';
-import { dailyStep } from '../js/core/progress.js';
+import { SWEEP_XP, isPenthouse, penthouseCut, penthouseWinners, registerDaily, unregisterDaily, dailyOf, standing, bandFor, todayView, BAND_MIN, dailyRows, dailyRow, listedDailies, todaysDailies, addDailyRow, removeDailyRow, sweptDay, dailyXp, DAILY_XP } from '../js/core/daily.js';
+import { dailyStep, penthouseStep } from '../js/core/progress.js';
 
 const FAKE = { id: 'fake', name: 'FAKE', buckets: 101, bucket: s => s / 10, verify: (seed, r) => (Number.isInteger(r && r.guess) ? 1000 - Math.abs(r.guess - (seed % 1000)) : null) };
 const LOW = { id: 'fakelow', name: 'FAKE LOW', better: 'low', buckets: 100, bucket: s => s, verify: () => 1 };
@@ -43,12 +43,14 @@ test('YOUR TABLE\'s TODAY: their score only once you have played that daily', ()
 test('the daily\'s step: the streak + DAILY BREAD / THE SWEEP / EARLY BIRD / PENTHOUSE counters, idempotent', () => {
   const now = Date.UTC(2026, 10, 10, 12, 0);   // 7 am Eastern
   let r = dailyStep(null, { game: 'fake', day: 'd20261110', now, top: 1, n: 80, hourET: 7 });
-  assert.deepEqual([r.dl.n, r.dl.early, r.dl.ph, r.streak.n], [1, 1, 1, 1]);
+  assert.deepEqual([r.dl.n, r.dl.early, r.dl.ph, r.streak.n], [1, 1, 0, 1], 'DFIX2: PENTHOUSE is never decided at finish time (the day\'s close — penthouseStep)');
   assert.equal(dailyStep(r.next, { game: 'fake', day: 'd20261110', now, hourET: 7 }).skip, 'counted');
   r = dailyStep(r.next, { game: 'fakelow', day: 'd20261110', now, top: 40, n: 30, hourET: 9 });
-  assert.deepEqual([r.dl.n, Object.keys(r.dl.day.g).length, r.dl.early, r.dl.ph], [1, 2, 1, 1]);
+  assert.deepEqual([r.dl.n, Object.keys(r.dl.day.g).length, r.dl.early, r.dl.ph], [1, 2, 1, 0]);
   r = dailyStep(r.next, { game: 'fake', day: 'd20261111', now: now + 864e5, top: 1, n: 20, hourET: 21 });
-  assert.deepEqual([r.dl.n, r.dl.ph, r.streak.n], [2, 1, 2], 'a top-1 % under 50 finishers isn\'t the PENTHOUSE');
+  assert.deepEqual([r.dl.n, r.dl.ph, r.streak.n], [2, 0, 2]);
+  assert.deepEqual(Object.keys(r.dl.days).sort(), ['d20261110', 'd20261111'], 'DFIX2: the two newest days keep their own counters');
+  assert.equal(r.dl.day.k, 'd20261111', 'dl.day mirrors the newest day');
   unregisterDaily('fake'); unregisterDaily('fakelow');
 });
 
@@ -102,7 +104,8 @@ test('DM1 — THE THROWAWAY GATE in the step: a non-counting result keeps the st
   assert.equal(dailyStep(r.next, { game: 'password', day, now, today: ['password'], counts: true }).skip, 'counted', 'one result a day, whatever the gate said');
   // the same run, counted: every reward
   const c = dailyStep(null, { game: 'password', day, now, top: 1, n: 80, hourET: 7, flags: { crack: 1, safe: 1 }, today: ['password'] });
-  assert.ok(['keyhole', 'safecracker', 'early-bird', 'penthouse-suite', 'the-triple'].every(a => c.ach.includes(a)), c.ach.join());
+  assert.ok(['keyhole', 'safecracker', 'early-bird', 'the-triple'].every(a => c.ach.includes(a)), c.ach.join());
+  assert.ok(!c.ach.includes('penthouse-suite'), 'DFIX2: PENTHOUSE waits for the day\'s close');
 });
 
 // ---------------------------------------------------------------- DM2 — THE REWARDS (the owner's Step 0)
@@ -146,9 +149,58 @@ test('DM2 — PENTHOUSE: rank ≤ max(1, floor(n × 1 %)) AND n ≥ 50 — exact
   assert.equal(isPenthouse(2, 199), false); assert.equal(isPenthouse(2, 200), true); assert.equal(isPenthouse(3, 200), false);
   assert.equal(isPenthouse(10, 1000), true); assert.equal(isPenthouse(11, 1000), false); assert.equal(isPenthouse(0, 100), false);
   const day = 'd20261110', now = Date.UTC(2026, 10, 10, 20);
-  const ph = (rank, n, counts = true) => dailyStep(null, { game: 'a', day, now, rank, n, today: ['a', 'b'], counts });
-  assert.equal(ph(1, 50).dl.ph, 1); assert.ok(ph(1, 50).ach.includes('penthouse-suite') && ph(1, 50).items.includes('card-penthouse'));
-  assert.equal(ph(1, 49).dl.ph, 0, 'the 49th finisher’s day: dormant');
-  assert.equal(ph(2, 150).dl.ph, 0, '2nd of 150: not the penthouse (floor(1.5) = 1)');
-  assert.equal(ph(1, 80, false).dl.ph, 0); assert.deepEqual(ph(1, 80, false).ach, [], 'never for a same-day profile');
+  // DFIX2 — never at finish time: a finish with rank 1 of 80 adds nothing to dl.ph
+  const fin = dailyStep(null, { game: 'a', day, now, rank: 1, n: 80, today: ['a', 'b'] });
+  assert.equal(fin.dl.ph, 0); assert.ok(!fin.ach.includes('penthouse-suite') && !fin.items.includes('card-penthouse'));
+  // THE DAY'S CLOSE (penthouseWinners): the review's probe — #1 = 950 (the day's early best), #2–#49 = 500, #50 = 950, #51 = 1000, #52–#60 = 500
+  const scores = {}; for (let i = 1; i <= 60; i++) scores[`P${String(i).padStart(2, '0')}`] = i === 1 || i === 50 ? 950 : i === 51 ? 1000 : 500;
+  assert.deepEqual(penthouseWinners(scores, 'high'), ['P51'], 'the one true rank 1 of the day (was: #50 + #51 at finish time)');
+  scores.P51 = 950;
+  assert.deepEqual(penthouseWinners(scores, 'high'), ['P01', 'P50', 'P51'], 'a tie at the top: all of them (the early best included)');
+  const low = {}; for (let i = 1; i <= 200; i++) low[`L${String(i).padStart(3, '0')}`] = i <= 2 ? 3 : i === 3 ? 4 : 10;
+  assert.deepEqual(penthouseWinners(low, 'low'), ['L001', 'L002'], 'a LOW daily: fewer is better; cut 2 at 200');
+  low.L003 = 3;
+  assert.deepEqual(penthouseWinners(low, 'low'), ['L001', 'L002', 'L003'], 'a tie AT the cutoff: all of them win');
+  const few = {}; for (let i = 1; i <= 49; i++) few[`F${i}`] = i;
+  assert.deepEqual(penthouseWinners(few, 'high'), [], '49 finishers: nobody (dormant below 50)');
+  assert.deepEqual(penthouseWinners({}, 'high'), []);
+  // penthouseStep: the winner's grant — dl.ph + PENTHOUSE SUITE + the card, ONCE (idempotent by ph_<game>_<day>)
+  let w = penthouseStep(fin.next, { game: 'a', day, now: now + 36e5 });
+  assert.equal(w.next.dl.ph, 1); assert.ok(w.ach.includes('penthouse-suite') && w.items.includes('card-penthouse'));
+  assert.equal(penthouseStep(w.next, { game: 'a', day, now: now + 72e5 }).skip, 'counted', 'two racing closers: one grant');
+  w = penthouseStep(w.next, { game: 'b', day, now: now + 72e5 });
+  assert.equal(w.next.dl.ph, 2); assert.deepEqual(w.ach, [], 'a second daily\'s penthouse the same day: the counter, the achievement once');
+  assert.equal(penthouseStep(null, { game: 'a', day, now }).next.dl.ph, 1, 'a profile with no stats yet');
+});
+
+test('DFIX2 — FABLE REVIEW #2 finding 1: a run that crossed 4 am finishes on YESTERDAY after today\'s finishes — BOTH days keep their sweep, PERFECT WEEK\'s run grows', () => {
+  const today = ['fa', 'fb', 'test'], A = 'd20261109', B = 'd20261110';
+  const atA = Date.UTC(2026, 10, 10, 3, 0), atB = Date.UTC(2026, 10, 10, 9, 5);   // day A 10 pm · day B 4:05 am Eastern
+  let s = null, r = null;
+  for (const g of ['fa', 'fb']) { r = dailyStep(s, { game: g, day: A, now: atA, today }); s = r.next; }      // day A: fa + fb
+  for (const g of ['fa', 'fb']) { r = dailyStep(s, { game: g, day: B, now: atB, today }); s = r.next; }      // day B: fa + fb (test still in flight from A)
+  assert.equal(r.swept, false); assert.deepEqual(Object.keys(s.dl.days).sort(), [A, B]);
+  r = dailyStep(s, { game: 'test', day: A, now: atB + 5 * 60e3, today }); s = r.next;                        // the run from 3:50 finishes on ITS day
+  assert.equal(r.swept, true, 'day A swept (was: dl.day replaced → no sweep for A)');
+  assert.deepEqual(s.dl.days[B].g, { fa: 1, fb: 1 }, 'day B\'s finishes kept (was: wiped)');
+  assert.deepEqual(s.dl.sr, { d: A, n: 1 });
+  r = dailyStep(s, { game: 'test', day: B, now: atB + 10 * 60e3, today }); s = r.next;                       // today's test
+  assert.equal(r.swept, true, 'day B swept too'); assert.equal(s.dl.sw, 2); assert.deepEqual(s.dl.sr, { d: B, n: 2 }, 'PERFECT WEEK\'s run: two in a row');
+  assert.ok(Object.keys(s.m).filter(k => k.startsWith('daily_')).length === 6, 'every finish counted once');
+  assert.equal(s.dl.day.k, B, 'dl.day mirrors today');
+  // THE OTHER ORDER: today sweeps first, then yesterday's late run → yesterday is bridged INTO today's run (+ the run that ended the day before)
+  const Z = 'd20261108', Y = 'd20261107';
+  let u = null;
+  for (const g of today) { r = dailyStep(u, { game: g, day: Y, now: atA - 2 * 864e5, today }); u = r.next; }   // two days back: swept (a run of 1)
+  for (const g of today) { r = dailyStep(u, { game: g, day: B, now: atB, today }); u = r.next; }               // today swept — the gap (Z … A)
+  assert.deepEqual(u.dl.sr, { d: B, n: 1 }); assert.equal(u.dl.sp, undefined, 'a two-day gap can never close: nothing held');
+  let v = null;
+  for (const g of today) { r = dailyStep(v, { game: g, day: Z, now: atA - 864e5, today }); v = r.next; }       // yesterday-but-one swept
+  for (const g of ['fa', 'fb']) { r = dailyStep(v, { game: g, day: A, now: atA, today }); v = r.next; }        // yesterday: two of three (one in flight)
+  for (const g of today) { r = dailyStep(v, { game: g, day: B, now: atB, today }); v = r.next; }               // today swept first
+  assert.deepEqual(v.dl.sr, { d: B, n: 1 }); assert.deepEqual(v.dl.sp, { d: Z, n: 1 }, 'the old run held while yesterday may still sweep');
+  r = dailyStep(v, { game: 'test', day: A, now: atB + 60e3, today }); v = r.next;                             // yesterday's late run
+  assert.equal(r.swept, true); assert.deepEqual(v.dl.sr, { d: B, n: 3 }, 'Z + A + B: bridged into one run of three'); assert.equal(v.dl.sp, undefined);
+  assert.equal(v.dl.sb, 3);
+  assert.deepEqual(Object.keys(v.dl.days).sort(), [A, B], 'only the two newest days are kept');
 });

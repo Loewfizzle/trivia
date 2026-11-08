@@ -138,7 +138,8 @@ test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the
 test('ADD-ON: THE RESULTS ROWS = the players\' SLIM CARDS (every results list) on ONE shared surface, calm; THE XP BOX\'s pieces on their own row', () => {
   assert.match(read('js/ui/components.js'), /import\('\.\/strip-board\.js'\)\.then\(m => m\.upgradeBoard\(list, rows, players\)\)/);
   const sb = read('js/ui/strip-board.js');
-  assert.match(sb, /const surface = createSurface\(list, \{ label: 'results' \}\);/, 'ONE surface for the list');
+  assert.match(sb, /const surface = K\.createSurface\(list, \{ label: 'results' \}\);/, 'ONE surface for the list');   // (DFIX2: the kit's — stripKit() loads the pieces once; SCORES shares them)
+  assert.match(read('js/screens/daily.js'), /stripKit, stripFor, stripFx \} from '\.\.\/ui\/strip-board\.js'/, 'DFIX2 — SLIM CARDS ON SCORES through the same code, never a second strip system');
   assert.match(sb, /calm: 1, radius: 12/, 'every strip calm');
   assert.match(sb, /const rowEls = \[\.\.\.list\.children\];/, 'the rows read before the canvas joins the list');
   assert.match(read('css/components.css'), /\.lb-row\.lb-strip \{[^}]*animation: none; \}/, 'no stacking context on a strip row');

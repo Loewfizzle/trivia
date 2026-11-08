@@ -7,10 +7,14 @@
 <link rel="icon" href="data:,">
 <!-- DM2 — THE DAILY SCREENS without Firebase or /api (the REAL js/screens/daily.js through an import map: fake-firebase + fake-daily-api).
        ?state=waiting | one | mixed | swept | progress | gated | fake3      TODAY's states (&tab=scores = SCORES) · &sweep=1 plays THE SWEEP moment
+       &tab=scores&big=1                                                  DFIX2: 12 friends — the top 5 + you at 9TH + SHOW ALL 11 (with state=swept)
        ?view=lesson                                                       COAST CLEAR's PRACTICE HARBOR (&step=0..3)
        ?view=banner                                                       THE ROOM WINS' banner ("GAME STARTING · YOUR DAILY IS SAVED")
        &look=day | night                                                  the look (THE GAME LOOK — Settings in the app)
-     The dock button + the RESUME chip + the host's line live on the real title: title-preview.html?daily=waiting|done|off&held=1 (the host's MID-DAILY line: e2e-daily.mjs) -->
+     DFIX2 — SLIM CARDS ON SCORES: the fake friends wear REAL cards (a legendary, a rare, an uncommon, one UNAPPROVED → its plain colours, one with
+     no card → the Gilded plain strip, one 12-letter name); the page approves exactly that set through &labmarks= (js/vault/approved.js — a local
+     server only). The dock button + the RESUME chip + the host's line live on the real title: title-preview.html?daily=waiting|done|off&held=1
+     (the host's MID-DAILY line: e2e-daily.mjs) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
@@ -24,31 +28,62 @@
 <div id="stage"></div>
 <script type="module">
 const q = new URLSearchParams(location.search);
-if (!q.get('slot')) { q.set('slot', 'pv'); history.replaceState(null, '', `?${q}`); }
+// the approved cards on this page (every friend's but LOU's zebra — the UNAPPROVED one shows its plain colours); your own: THE MARQUEE
+const APPROVED = ['card-marquee', 'card-sg-aurora', 'card-chrome', 'card-inferno', 'card-emerald', 'card-heartbreaker', 'card-neonglass', 'card-velvet', 'card-carbon', 'card-sapphire', 'card-noir', 'card-brass'];
+let moved = false;
+if (!q.get('slot')) { q.set('slot', 'pv'); moved = true; }
+if (!q.get('labmarks')) { q.set('labmarks', APPROVED.join(',')); moved = true; }
+if (moved) history.replaceState(null, '', `?${q}`);
 document.body.dataset.look = q.get('look') === 'day' ? 'day' : 'night';
 try {
   localStorage.setItem('na:pv:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' }));
-  localStorage.setItem('na:pv:me', JSON.stringify({ uid: 'pv', pid: 'P_ava', profile: { n: 'AVA', t: '0042', l: 12 } }));
+  localStorage.setItem('na:pv:me', JSON.stringify({ uid: 'pv', pid: 'P_ava', profile: { n: 'AVA', t: '0042', l: 12, x: 2600, a: 'bolt', c: 'magenta', cd: 'card-marquee', es: null, g: null, tb: null, mn: 42 } }));
   localStorage.removeItem('ns:fr:v1');
 } catch { /* fine */ }
 const D = [
   { id: 'password', name: 'THE PASSWORD', order: 1, ticket: 'password', lesson: false, better: 'low', hook: 'Two doors. Six guesses each.' },
   { id: 'coastclear', name: 'COAST CLEAR', order: 2, ticket: 'coastclear', lesson: true, better: 'low', hook: 'Slip past the searchlights.' },
 ];
-window.__dyFriends = [{ pid: 'P_ben', n: 'BEN' }, { pid: 'P_kim', n: 'KIM' }, { pid: 'P_max', n: 'MAXIMILIANOS' }, { pid: 'P_lou', n: 'LOU' }];
-const table = ['P_ben', 'P_kim', 'P_max', 'P_lou'];
+// the friends' cards (api/_lib/friends.js#cardOf's shape): a legendary (BEN), a rare (KIM), an uncommon with the 12-letter name (MAXIMILIANOS),
+// LOU's zebra UNAPPROVED → plain, RAY with no card → the Gilded plain strip, SAM a common
+const F = (pid, n, a, c, cd, x, extra = {}) => ({ pid, n, a, c, l: Math.max(1, Math.round(x / 220)), x, cd, es: null, g: null, tb: null, mn: null, ...extra });
+const base = [
+  F('P_ben', 'BEN', 'star', 'cyan', 'card-sg-aurora', 9800, { mn: 2 }),
+  F('P_kim', 'KIM', 'hex', 'yellow', 'card-chrome', 4100),
+  F('P_max', 'MAXIMILIANOS', 'wave', 'orange', 'card-inferno', 3300),
+  F('P_ray', 'RAY', 'moon', 'green', null, 900),
+  F('P_lou', 'LOU', 'bolt', 'violet', 'card-zebra', 1500),
+  F('P_sam', 'SAM', 'diamond', 'red', 'card-brass', 600),
+];
+const big = q.get('big') === '1';
+const more = ['card-emerald', 'card-heartbreaker', 'card-neonglass', 'card-velvet', 'card-carbon', 'card-sapphire'].map((cd, i) => F(`P_x${i}`, ['NIA', 'OTTO', 'PRIYA', 'QUINN', 'ROSA', 'THEO'][i], 'bolt', ['cyan', 'magenta', 'yellow', 'green', 'orange', 'violet'][i], cd, 1200 + i * 700));
+window.__dyFriends = big ? [...base, ...more] : base;
+const table = window.__dyFriends.map(f => f.pid);
+const pw = (s, cc) => ({ password: { score: s }, ...(cc != null ? { coastclear: { score: cc } } : {}) });
 const S = {
-  waiting: { mine: {}, friends: { P_ben: { password: { done: true } }, P_kim: {}, P_max: { coastclear: { done: true } }, P_lou: {} } },
-  one: { mine: { password: 6 }, friends: { P_ben: { password: { score: 4 } }, P_kim: { password: { score: 8 } }, P_max: { coastclear: { done: true }, password: { score: 6 } }, P_lou: {} } },
-  mixed: { mine: { password: 6 }, started: { coastclear: true }, friends: { P_ben: { password: { score: 4 } }, P_kim: { password: { score: 8 } }, P_max: { password: { score: 104 } }, P_lou: {} } },
-  swept: { mine: { password: 5, coastclear: 132 }, stand: { password: { n: 212, top: 11.4, pct: 88 } }, friends: { P_ben: { password: { score: 4 }, coastclear: { score: 158 } }, P_kim: { password: { score: 8 }, coastclear: { score: 10004 } }, P_max: { password: { score: 6 } }, P_lou: {} } },
+  waiting: { mine: {}, friends: { P_ben: { password: { done: true } }, P_kim: {}, P_max: { coastclear: { done: true } }, P_ray: {}, P_lou: {}, P_sam: {} } },
+  one: { mine: { password: 6 }, friends: { P_ben: pw(4), P_kim: pw(8), P_max: { coastclear: { done: true }, password: { score: 6 } }, P_ray: { coastclear: { done: true } }, P_lou: {}, P_sam: pw(5) } },
+  mixed: { mine: { password: 6 }, started: { coastclear: true }, friends: { P_ben: pw(4), P_kim: pw(8), P_max: pw(104), P_ray: {}, P_lou: {}, P_sam: {} } },
+  // SCORES (swept): 5 finishers (you + BEN · KIM · MAXIMILIANOS · LOU — LOU's card UNAPPROVED → plain) + 2 waiting (RAY · SAM) on THE PASSWORD;
+  // COAST CLEAR: BEN + KIM + RAY (no card → the Gilded plain strip) finished
+  swept: { mine: { password: 5, coastclear: 132 }, stand: { password: { n: 212, top: 11.4, pct: 88 } },
+    friends: { P_ben: pw(4, 158), P_kim: pw(8, 10004), P_max: pw(6), P_ray: { coastclear: { score: 201 } }, P_lou: pw(5), P_sam: {} } },
   progress: { mine: {}, started: { coastclear: true }, friends: {} },
-  gated: { mine: { password: 5 }, gated: { password: true }, countsFrom: Date.now() + 6 * 3600e3, friends: { P_ben: { password: { score: 4 } } } },
-  fake3: { mine: { password: 7 }, extra: true, friends: { P_ben: { password: { score: 4 } } } },
+  gated: { mine: { password: 5 }, gated: { password: true }, countsFrom: Date.now() + 6 * 3600e3, friends: { P_ben: pw(4) } },
+  fake3: { mine: { password: 7 }, extra: true, friends: { P_ben: pw(4) } },
 };
-const pick = S[q.get('state') || 'waiting'] || S.waiting;
+const pick = JSON.parse(JSON.stringify(S[q.get('state') || 'waiting'] || S.waiting));
+if (big) {
+  // 12 friends: 10 finished THE PASSWORD (you 9TH of 11 — SHOW ALL 11), LOU + SAM still to play; COAST CLEAR: six finished
+  // (their PASSWORD scores 2 · 3 · 3 · 4 · 4 · 4 · 4 · 4 · 6 · 7 — you on 5 = 9TH of 11)
+  const fin = ['P_ben', 'P_kim', 'P_max', 'P_ray', 'P_x0', 'P_x1', 'P_x2', 'P_x3', 'P_x4', 'P_x5'];
+  pick.friends = {};
+  fin.forEach((p, i) => { pick.friends[p] = { password: { score: [2, 3, 3, 4, 4, 4, 4, 4, 6, 7][i] }, ...(i < 6 ? { coastclear: { score: 120 + i * 17 } } : {}) }; });
+  pick.friends.P_lou = {}; pick.friends.P_sam = {};
+  pick.mine = { password: 5, coastclear: 132 };
+}
 const dailies = pick.extra ? [...D, { id: 'nightcap', name: 'THE NIGHTCAP', order: 3, ticket: 'star', lesson: false, better: 'high', hook: 'A third daily, plugged in by one row.' }] : D;
-window.__dyToday = { day: 'd20261108', dailies, mine: pick.mine, gated: pick.gated || {}, started: pick.started || {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table, ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
+window.__dyToday = { day: 'd20261108', dailies, mine: pick.mine, gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table, ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
 
 const { state, setState, subscribe } = await import('/js/store.js');
 state.uid = 'pv';
@@ -60,6 +95,8 @@ if (view === 'screen') {
   subscribe(st => M.syncDaily(st));
   if (q.get('sweep') === '1') window.__daily2.setSweepNext(true);
   setState({ daily: { v: 'screen', tab: q.get('tab') === 'scores' ? 'scores' : 'today' } });
+  // (the cards' strips land async — the shots wait for them: data-strips on every list)
+  if (q.get('tab') === 'scores') { for (let i = 0; i < 100 && ![...document.querySelectorAll('.dy-cards')].every(l => l.dataset.strips); i++) await new Promise(r => setTimeout(r, 50)); }
 } else if (view === 'lesson') {
   await import('/js/screens/daily.js').then(m => m.dailySheet());
   const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/css/coastclear.css'; document.head.append(l);

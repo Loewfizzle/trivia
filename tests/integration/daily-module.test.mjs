@@ -340,3 +340,157 @@ test('DM2 — `today` for the screens: answered with no profile (the list only),
   t = await D('dm2-ann', { action: 'today' }, T + 2e3);
   assert.equal(t.lessons.coastclear, 1, 'seen — on the profile (every device)');
 });
+
+// ---------------------------------------------------------------- DFIX2 — THE DAILIES FIX PASS (FABLE REVIEW #2 — docs/games/review-dailies-2.md)
+import { closeDays, closeDay, forgetClosed, LOOK_BACK } from '../../api/_lib/daily-close.js';
+import { MIN_PARTY } from '../../api/_lib/daily-room.js';
+import { penthouseCut } from '../../js/core/daily.js';
+import { secretOf } from '../../api/_lib/daily-secret.js';
+
+test('DFIX2 finding 1 (MUST FIX): a run that crossed 4 am finishes on YESTERDAY after today\'s finishes — BOTH days keep THE SWEEP, PERFECT WEEK\'s run grows (the review\'s three-daily timeline, over /api)', async () => {
+  const rows = DAILIES.filter(r => r.id === 'password' || r.id === 'coastclear');
+  for (const r of rows) r.on = false;
+  registerTestDaily({ order: 3 }, fakeCart('fa')); registerTestDaily({ order: 4 }, fakeCart('fb'));
+  try {
+    assert.deepEqual(todaysDailies(), ['fa', 'fb', 'test']);
+    const A = 'd20261120', B = 'd20261121';                       // day A (Fri Nov 20) · day B
+    const tenPmA = dayStartAt(A) + 18 * 3600e3, lateA = dayStartAt(B) - 10 * 60e3, earlyB = dayStartAt(B) + 5 * 60e3;   // 10 pm · 3:50 am · 4:05 am
+    await ensure('x4-ann', 'Crosser');
+    const pid = await pidOf('x4-ann');
+    await perfect('x4-ann', 'fa', tenPmA); await perfect('x4-ann', 'fb', tenPmA + 60e3);
+    const s = await D('x4-ann', { action: 'start', game: 'test' }, lateA);           // 3:50 am: the run starts on day A …
+    assert.equal(s.day, A);
+    await perfect('x4-ann', 'fa', earlyB); const fb = await perfect('x4-ann', 'fb', earlyB + 60e3);   // 4:05 / 4:06: day B's two
+    assert.equal(fb.outcome.swept, false);
+    // RESUME (finding 7): yesterday's run still in flight reads started on `today` + its day
+    const t = await D('x4-ann', { action: 'today' }, earlyB + 2 * 60e3);
+    assert.equal(t.started.test, true, 'yesterday\'s unfinished run → RESUME, not PLAY'); assert.equal(t.startedDay.test, A);
+    assert.equal(t.started.fa, undefined);
+    // 4:10: the run from 3:50 finishes on ITS day (DFIX1) → day A swept; day B's two finishes KEPT
+    const fin = await D('x4-ann', { action: 'finish', game: 'test', day: A, result: { guess: FAKE_DAILY.target(s.seed) } }, earlyB + 5 * 60e3);
+    assert.equal(fin.day, A); assert.equal(fin.outcome.swept, true, 'day A swept (was: swept false — dl.day replaced)');
+    let st = await val(`pstats/${pid}`);
+    assert.deepEqual(st.dl.days[B].g, { fa: 1, fb: 1 }, 'day B\'s finishes survive yesterday\'s late finish (were wiped)');
+    const t2 = await D('x4-ann', { action: 'today' }, earlyB + 6 * 60e3);
+    assert.equal(t2.started.test, undefined, 'scored → PLAY today\'s');
+    // 4:15: today's test → day B swept too
+    const last = await perfect('x4-ann', 'test', earlyB + 10 * 60e3);
+    assert.equal(last.outcome.swept, true); assert.equal(last.outcome.run, 2, 'PERFECT WEEK\'s run: 2');
+    st = await val(`pstats/${pid}`);
+    assert.equal(st.dl.sw, 2); assert.deepEqual(st.dl.sr, { d: B, n: 2 }); assert.ok(st.ac && st.ac['the-triple'], 'THE SWEEP awarded');
+    assert.equal(Object.keys(st.m).filter(k => k.startsWith('daily_')).length, 6, 'every finish counted once');
+    assert.equal(st.xp, 6 * DAILY_XP + 2 * SWEEP_XP, 'the XP: six dailies + two sweeps');
+  } finally {
+    for (const r of rows) r.on = true;
+    removeTestDaily('fa'); removeTestDaily('fb'); loadDailies();
+  }
+});
+
+test('DFIX2 finding 2 → decision 2 — PENTHOUSE at THE DAY\'S CLOSE: the first call after 4 am closes yesterday ONCE; the early best wins, a rank-1-at-50 who drops out loses, two racing closers grant once, 49 finishers award nobody, a week of silence closes every day', async () => {
+  const T = NOW + 40 * DAY, day = streakDay(T), tomorrow = dayOf(dayNum(day) + 1), after = dayStartAt(tomorrow) + 60e3;   // 4:01 am the next day
+  forgetClosed();
+  // the review's probe: 60 established profiles — #1 = 950 (the day's early best), #2–#49 = 500, #50 = 950, #51 = 1000, #52–#60 = 500
+  const score = i => (i === 1 || i === 50 ? 950 : i === 51 ? 1000 : 500);
+  const pids = [];
+  for (let i = 1; i <= 60; i++) {
+    const uid = `ph-${i}`; await ensure(uid, `Guest${i}`); pids.push(await pidOf(uid));
+    const s = await D(uid, { action: 'start', game: 'test' }, T + i * 1000);
+    const g = FAKE_DAILY.target(s.seed), want = score(i);
+    const off = 1000 - want, guess = g + off <= 999 ? g + off : g - off;   // (a guess stays 0–999: the fake refuses one outside)
+    const f = await D(uid, { action: 'finish', game: 'test', result: { guess } }, T + i * 1000 + 500);
+    assert.equal(f.score, want);
+    assert.ok(!(f.outcome.ach || []).includes('penthouse-suite'), `#${i}: nothing at finish time (was: #50 + #51)`);
+  }
+  // a same-day profile with the best score of all: never counted, never a winner
+  await ensure('ph-throw', 'Throwaway', dayStartAt(day) + 60e3);
+  const ts = await D('ph-throw', { action: 'start', game: 'test' }, T + 70e3);
+  assert.equal((await D('ph-throw', { action: 'finish', game: 'test', result: { guess: FAKE_DAILY.target(ts.seed) } }, T + 71e3)).counted, false);
+  assert.equal(await val(`dly/test/${day}/c`), null, 'nothing closed before 4 am');
+  // the day's first call after 4 am (a `today` from the title) closes yesterday — two at once: ONE grant
+  await Promise.all([D('ph-1', { action: 'today' }, after), D('ph-2', { action: 'today' }, after + 1)]);
+  const c = await val(`dly/test/${day}/c`);
+  assert.equal(c.st, 'done'); assert.equal(c.n, 60, 'the throwaway out of the count'); assert.deepEqual(c.w, [pids[50]], 'the one true rank 1 (#51) — #50 lost it, #1 never had it');
+  const s51 = await val(`pstats/${pids[50]}`);
+  assert.equal(s51.dl.ph, 1); assert.ok(s51.ac['penthouse-suite'] && s51.it['card-penthouse'], 'PENTHOUSE SUITE + the card, waiting for their next visit');
+  assert.equal(((await val(`pstats/${pids[49]}`)).dl || {}).ph || 0, 0, '#50 (rank 2 by the day\'s end): nothing');
+  assert.equal(await val('pcount/a/penthouse-suite'), 1, 'counted once in X%');
+  // a second closer later (a fresh instance): nothing more
+  forgetClosed();
+  await D('ph-3', { action: 'start', game: 'test' }, after + 60e3);
+  assert.equal((await val(`pstats/${pids[50]}`)).dl.ph, 1); assert.equal(await val('pcount/a/penthouse-suite'), 1);
+  // a tie at the top, closed directly: all of them win (the early best included)
+  const d2 = dayOf(dayNum(day) + 2), r2 = {};
+  for (let i = 0; i < 60; i++) r2[pids[i]] = i < 3 ? 950 : 500;
+  await ref(`dly/test/${d2}`).set({ r: r2, n: 60 });
+  const tie = await closeDay({ game: 'test', day: d2, now: dayStartAt(dayOf(dayNum(d2) + 1)) + 1 });
+  assert.deepEqual(tie.winners, [pids[0], pids[1], pids[2]].sort());
+  // 49 finishers: nobody; a day with no finishers: closed quietly
+  const d3 = dayOf(dayNum(day) + 3), r3 = {};
+  for (let i = 0; i < 49; i++) r3[pids[i]] = 900 + i;
+  await ref(`dly/test/${d3}`).set({ r: r3, n: 49 });
+  assert.deepEqual((await closeDay({ game: 'test', day: d3, now: T })).winners, []);
+  assert.equal((await val(`dly/test/${d3}/c`)).n, 49);
+  assert.equal((await closeDay({ game: 'test', day: dayOf(dayNum(day) + 4), now: T })).n, 0);
+  // a 'busy' marker left by a closer that died is retaken after STALE_MS; a fresh one is respected
+  const d5 = dayOf(dayNum(day) + 5);
+  await ref(`dly/test/${d5}`).set({ r: r2, n: 60, c: { at: T, st: 'busy' } });
+  assert.equal((await closeDay({ game: 'test', day: d5, now: T + 60e3 })).closed, false, 'a live closer is at work');
+  assert.equal((await closeDay({ game: 'test', day: d5, now: T + 11 * 60e3 })).closed, true, 'a dead one is retaken');
+  // a week with no traffic: the next call closes every unclosed day it finds (LOOK_BACK back from yesterday), none twice — the days closed
+  // above carry their 'done' marker and are left alone
+  forgetClosed();
+  const d6 = dayOf(dayNum(day) + 6), d7 = dayOf(dayNum(day) + 7);
+  await ref(`dly/test/${d6}`).set({ r: r2, n: 60 }); await ref(`dly/test/${d7}`).set({ r: { [pids[0]]: 1 }, n: 1 });
+  const far = dayStartAt(dayOf(dayNum(day) + 8)) + 60e3;            // 4:01 am, 8 days on: the window = day+1 … day+7
+  const closed = await closeDays({ games: ['test'], now: far });
+  // (tomorrow = the day ph-3's start opened — a day with a start and no finisher is closed with n 0)
+  assert.deepEqual(closed.map(x => x.day).sort(), [tomorrow, d6, d7], `the unclosed days within ${LOOK_BACK}, closed; the done ones untouched`);
+  assert.equal(closed.find(x => x.day === tomorrow).n, 0);
+  assert.deepEqual(closed.find(x => x.day === d6).winners, [pids[0], pids[1], pids[2]].sort());
+  assert.deepEqual(await closeDays({ games: ['test'], now: far }), [], 'the memo: nothing on the next call');
+  assert.equal(penthouseCut(60), 1);
+});
+
+test('DFIX2 finding 3 → decision 5 — a RESEED in the last minute before 4 am: COAST CLEAR\'s new day uses the NEW key on a WARM instance (pickDay reads the secret afresh for a day it has not seen)', async () => {
+  const T = NOW + 50 * DAY, today = streakDay(T), dayB = dayOf(dayNum(today) + 1);
+  const T0 = dayStartAt(dayB) - 30e3;                                   // 3:59:30 — this instance's key cache fills
+  forgetPicks(); forgetPwDays(); forgetBoards(); clearSecretCache();
+  await pickDay(today, T0);
+  const warm = await dailyKeys(T0), oldKey = secretOf(warm, dayB);
+  // ANOTHER instance (the admin function) reseeds at 3:59:35 — its clears never reach this one (modelled: the key written under us)
+  const fresh = 'ab'.repeat(32);
+  await ref(`${SECRET_PATH}/k/${dayB}`).set(fresh);
+  assert.equal(secretOf(await dailyKeys(T0 + 35e3), dayB), oldKey, 'the warm cache (60 s) still says the old key at 4:00:05');
+  // 4:00:05 — the new day's first start on THIS instance
+  await pickDay(dayB, T0 + 35e3);
+  const stored = await val(`dly/coastclear/${dayB}/b`);
+  assert.equal(stored.l, buildBoard(dayB, fresh).board.lights.join(','), 'the stored board = the NEW key\'s (was: the old key\'s)');
+  assert.notEqual(stored.l, buildBoard(dayB, oldKey).board.lights.join(','));
+  await ref(`${SECRET_PATH}/k/${dayB}`).remove(); await ref(`dly/coastclear/${dayB}/b`).remove(); await ref(`dly/password/${dayB}/b`).remove();
+  forgetPicks(); forgetPwDays(); forgetBoards(); clearSecretCache();
+});
+
+test('DFIX2 finding 8 → decision 3 — THE ROOM WINS needs 2+ players: a room of ONE that started a game can\'t pause a daily; two can', async () => {
+  const T = NOW + 60 * DAY;
+  assert.equal(MIN_PARTY, 2);
+  await ensure('solo-ann', 'Solo'); await ensure('solo-bob', 'Partner');
+  const pa = await pidOf('solo-ann');
+  await D('solo-ann', { action: 'start', game: 'coastclear' }, T);
+  await ref('rooms/SOLO').set({ meta: { hostId: 'solo-ann', status: 'playing', createdAt: T }, players: { 'solo-ann': { name: 'Solo', pid: pa } } });
+  await rejects(D('solo-ann', { action: 'pause', game: 'coastclear', room: 'SOLO' }, T + 1e3), 409, 'no_room_game');
+  await ref('rooms/SOLO/players/solo-bob').set({ name: 'Partner' });
+  assert.equal((await D('solo-ann', { action: 'pause', game: 'coastclear', room: 'SOLO' }, T + 2e3)).paused, true, 'two in the room: the clock stops');
+  await D('solo-ann', { action: 'resume', game: 'coastclear' }, T + 3e3);
+});
+
+test('DFIX2 OPTIONAL — the day\'s first start while the database hiccups → 503 busy (the phone retries), never a 500', async () => {
+  const T = NOW + 70 * DAY;
+  let fails = 2;
+  registerTestDaily({ order: 5 }, { ...fakeCart('flaky'), judged: true, moves: [], resume: () => ({}), act: () => ({}), load: async () => { if (fails-- > 0) throw new Error('ETIMEDOUT'); return { ok: 1 }; } });
+  try {
+    await ensure('bz-ann', 'Busy');
+    const e = await rejects(D('bz-ann', { action: 'start', game: 'flaky' }, T), 503, 'busy');
+    assert.match(e.message, /try again/i);
+    assert.ok((await D('bz-ann', { action: 'start', game: 'flaky' }, T + 2e3)).run, 'the retry: the day loads');
+  } finally { removeTestDaily('flaky'); loadDailies(); forgetPicks(); }
+});

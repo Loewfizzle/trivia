@@ -7,6 +7,9 @@
 // (a host + this phone in a room: the ☰ row → the dailies → RESUME COAST CLEAR; the host's "1 PLAYER IS MID-DAILY"; the host starts OVERCLOCK →
 // the banner, the run held + PAUSED on the server; back to the room → RESUME YOUR DAILY → the run resumes, unpaused) → COAST CLEAR cleared by
 // taps → THE SWEEP (the meter fills, SWEPT; dl.sw + the +10 bonus) → the dock ALL DONE. A same-day profile: YOUR SCORE COUNTS FROM TOMORROW.
+// DFIX2: SCORES = SLIM CARDS (a finisher's strip, the rank left, the score under, YOU framed, STILL TO PLAY in one line; no leak over 30 opens);
+// the host's MID-DAILY line from the player's OWN flag (players/{uid}/dy — no poll); a room of ONE can't pause (the hold stays, the clock runs);
+// the 4 am turn on an open DAILY screen (a stale answer re-read, no reload).
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
 process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
 process.env.GCLOUD_PROJECT ||= 'demo-arcade';
@@ -108,9 +111,14 @@ await H.run(async () => {
   if (H.SHOTS) await H.shotAll(A.page, 'dy-01-today');
   await click(A.page, '.dy-tab:nth-child(2)');
   await waitFor(A.page, `!!document.querySelector('.dy-sec')`, 'SCORES', 6000);
-  const sc = await A.page.evaluate(() => [...document.querySelectorAll('.dy-sec')].map(s => ({ h: s.querySelector('.dy-sec-h').textContent, rows: [...s.querySelectorAll('.dy-trow')].map(r => r.innerText.replace(/\s+/g, ' ').trim()) })));
+  // DFIX2 — SLIM CARDS: BOBBY (played, his score hidden) = his strip + PLAYED under it; ALICE hasn't played → STILL TO PLAY · YOU
+  await waitFor(A.page, `[...document.querySelectorAll('.dy-sec[data-id="password"] .dy-cards')].length === 1 && !!document.querySelector('.dy-sec[data-id="password"] .dy-cards').dataset.strips`, 'the strips on SCORES', 10000);
+  const sc = await A.page.evaluate(() => [...document.querySelectorAll('.dy-sec')].map(s => ({ h: s.querySelector('.dy-sec-h').textContent, rows: [...s.querySelectorAll('.dy-crow')].map(r => r.innerText.replace(/\s+/g, ' ').trim()),
+    strips: s.querySelectorAll('.dy-crow .vl-strip').length, still: (s.querySelector('.dy-still') || {}).textContent || '', canvases: s.querySelectorAll('.fx-host canvas').length })));
   const pwSec = sc.find(x => /PASSWORD/.test(x.h));
   ok(pwSec && pwSec.rows.some(r => /BOBBY.*PLAYED/.test(r)) && !pwSec.rows.some(r => /GUESS/.test(r)), `SCORES before you play: YOUR TABLE shows BOBBY PLAYED — never his score (${pwSec && pwSec.rows.join(' | ')})`);
+  ok(pwSec && pwSec.strips === 1 && pwSec.rows.length === 1 && /STILL TO PLAY · YOU/.test(pwSec.still) && pwSec.canvases <= 1, `DFIX2 — SLIM CARDS: BOBBY's row is his slim card (${pwSec && pwSec.strips} strip, ${pwSec && pwSec.canvases} effect canvas for the panel); ALICE in one line: "${pwSec && pwSec.still}"`);
+  if (H.SHOTS) await H.shotAll(A.page, 'dy-07-scores-before');
   ok(!(await A.page.evaluate(() => /ALL TIME/i.test(document.querySelector('.dy-overlay').innerText))), 'ALL TIME is hidden (Step 0 — no empty tab, no "coming soon")');
   await click(A.page, '.dy-tab:nth-child(1)');
 
@@ -154,6 +162,35 @@ await H.run(async () => {
   const pwRow = await ev(A.page, `document.querySelector('.dy-ticket[data-id="password"]').innerText.replace(/\\s+/g, ' ')`);
   ok(/2 GUESSES/.test(pwRow) && /1ST OF 2 AT YOUR TABLE/.test(pwRow) && !!(await A.page.$('.dy-ticket[data-id="password"] .dy-check svg')), `DONE: the score + YOUR TABLE's place + a drawn check ("${pwRow}")`);
   if (H.SHOTS) await H.shotAll(A.page, 'dy-03-mixed');
+  // DFIX2 — SCORES after you play: ALICE 1ST (2 GUESSES) framed as YOU, BOBBY 2ND (3 GUESSES) — each their slim card, the score UNDER it
+  await click(A.page, '.dy-tab:nth-child(2)');
+  await waitFor(A.page, `(() => { const l = document.querySelector('.dy-sec[data-id="password"] .dy-cards'); return l && l.dataset.strips === '2'; })()`, 'two slim cards', 10000);
+  const sc2 = await A.page.evaluate(() => {
+    const rows = [...document.querySelectorAll('.dy-sec[data-id="password"] .dy-crow')];
+    const me = rows.find(r => r.classList.contains('is-me'));
+    const sr = me.querySelector('.vl-strip').getBoundingClientRect(), sc = me.querySelector('.dy-cscore').getBoundingClientRect(), rk = me.querySelector('.lb-rank').getBoundingClientRect();
+    return { rows: rows.map(r => `${r.querySelector('.lb-rank').textContent}|${r.querySelector('.vl-name').textContent}|${r.querySelector('.dy-cscore').textContent}`),
+      under: sc.top >= sr.bottom - 1, rightEnd: Math.abs(sc.right - sr.right) < 8, rankLeft: rk.right <= sr.left, frame: getComputedStyle(me.querySelector('.dy-card'), '::after').boxShadow !== 'none', still: !!document.querySelector('.dy-sec[data-id="password"] .dy-still') };
+  });
+  ok(sc2.rows[0] === '1ST|ALICE|2 GUESSES' && sc2.rows[1] === '2ND|BOBBY|3 GUESSES', `SCORES as slim cards: ${sc2.rows.join(' · ')}`);
+  ok(sc2.under && sc2.rightEnd && sc2.rankLeft && sc2.frame && !sc2.still, `the rank LEFT of the card, the score UNDER it at its right end, YOU framed, nobody still to play (${JSON.stringify({ under: sc2.under, rightEnd: sc2.rightEnd, rankLeft: sc2.rankLeft, frame: sc2.frame })})`);
+  if (H.SHOTS) await H.shotAll(A.page, 'dy-08-scores');
+  // no leak: 30 opens / closes of SCORES → every effect surface gone with the screen
+  for (let i = 0; i < 30; i++) {
+    await click(A.page, '.dy-screen .dy-back');
+    await waitFor(A.page, `!document.querySelector('.dy-overlay')`, 'closed', 6000);
+    await A.page.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));
+    await waitFor(A.page, `(() => { const l = document.querySelector('.dy-sec[data-id="password"] .dy-cards'); return l && l.dataset.strips === '2'; })()`, `open ${i}`, 10000);
+  }
+  await click(A.page, '.dy-screen .dy-back');
+  await waitFor(A.page, `!document.querySelector('.dy-overlay')`, 'the screen closed', 6000);
+  const leak = await A.page.evaluate(() => ({ surfaces: window.__daily2.surfaces(), canvases: document.querySelectorAll('.dy-overlay .fx-host canvas, .dy-cards').length }));
+  ok(leak.surfaces === 0 && leak.canvases === 0, `30 opens / closes of SCORES: 0 surfaces, 0 card lists left (${JSON.stringify(leak)})`);
+  // DFIX2 — THE 4 AM TURN on an open DAILY screen: a stale answer (yesterday's day) is re-read by the turn, no reload — the screen stays, the day is today's
+  await A.page.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'today' } })));
+  await waitFor(A.page, `document.querySelectorAll('.dy-ticket').length === 3`, 'TODAY again', 8000);
+  const turned = await A.page.evaluate(async () => { const T = await import('/js/daily/today.js'); const nav = performance.getEntriesByType('navigation').length; window.__daily2.stale(); const before = T.todayNow().day; await window.__daily2.turn(); return { before, after: T.todayNow().day, tickets: document.querySelectorAll('.dy-ticket').length, nav, overlay: !!document.querySelector('.dy-screen') }; });
+  ok(turned.before === 'd00000000' && turned.after === day && turned.tickets === 3 && turned.overlay, `the 4 am turn re-reads today (${turned.before} → ${turned.after}) with the screen open, no reload`);
   await click(A.page, '.dy-screen .dy-back');
   await waitFor(A.page, `!document.querySelector('.dy-overlay')`, 'the screen closed', 6000);
 
@@ -178,6 +215,8 @@ await H.run(async () => {
   const hostLine = await ev(Hst.page, `(document.querySelector('.rdk-mid:not([hidden])') || {}).textContent || ''`);
   ok(/1 PLAYER IS MID-DAILY/.test(hostLine), `the HOST sees "${hostLine}" before START (who only — nothing about the run)`);
   ok(!(await A.page.$('.rdk-mid:not([hidden])')), 'a guest sees no MID-DAILY line');
+  const aUid = await ev(A.page, 'window.__arcade.state.uid');
+  ok((await val(`rooms/${code}/players/${aUid}/dy`)) === true, 'DFIX2: the line reads ALICE\'s OWN flag on her player node (players/{uid}/dy — no poll, zero /api calls)');
   if (H.SHOTS) await H.shotAll(Hst.page, 'dy-05-hostline');
   // the host starts a game → the banner, the run held + paused on the server, the overlay gone
   await Hst.page.evaluate(() => import('/js/host.js').then(m => m.startGame('overclock', {})));
@@ -200,6 +239,7 @@ await H.run(async () => {
   for (let i = 0; i < 40; i++) { rec = await val(`dly/coastclear/${day}/p/${A.pid}`); if (rec && pausesOf(rec).at == null) break; await sleep(200); }
   ok(rec && pausesOf(rec).at == null && pausesOf(rec).n === 1, 'RESUMED exactly where it was — the clock running again (+15 s for the one pause)');
   ok(await ev(A.page, `!(document.querySelector('.nd-dychip') || {}).hidden === false || document.querySelector('.nd-dychip').hidden`), 'the chip gone once the run is open');
+  ok((await val(`rooms/${code}/players/${aUid}/dy`)) === true, 'the flag stays while the run is open in the room');
 
   // ================================================================ 7. COAST CLEAR cleared by taps → THE SWEEP
   const board = await ccBoard(day), LIGHTS = new Set(board.lights);   // (the day's STORED board — the server's)
@@ -219,6 +259,8 @@ await H.run(async () => {
   const st = await val(`pstats/${A.pid}`);
   ok(st.dl && st.dl.sw === 1 && st.dl.sr && st.dl.sr.n === 1, `the server: one swept day (dl.sw ${st.dl && st.dl.sw}), PERFECT WEEK's run started (dl.sr.n ${st.dl && st.dl.sr && st.dl.sr.n})`);
   ok(st.xp >= 3 * DAILY_XP + SWEEP_XP, `the XP: three dailies + the sweep bonus (${st.xp} ≥ ${3 * DAILY_XP + SWEEP_XP})`);
+  for (let i = 0; i < 30 && (await val(`rooms/${code}/players/${aUid}/dy`)) != null; i++) await sleep(200);
+  ok((await val(`rooms/${code}/players/${aUid}/dy`)) == null, 'the run finished → the flag cleared (the host\'s line goes)');
   await click(A.page, '.dy-screen .dy-back');
   await A.page.evaluate(() => import('/js/room.js').then(m => m.leaveRoom && m.leaveRoom()));
   await waitFor(A.page, `!window.__arcade.state.code`, 'ALICE left the room', 15000).catch(() => {});
@@ -239,5 +281,20 @@ await H.run(async () => {
   ok(/YOUR SCORE COUNTS FROM TOMORROW/.test(await ev(C.page, `document.querySelector('.dy-ticket[data-id="test"]').innerText`)), 'YOUR SCORE COUNTS FROM TOMORROW on its own result (quiet, small)');
   const bobToday = await dailyAction('e2e-dy-bob', { action: 'today' });
   ok(!bobToday.table.includes(C.pid), 'absent from others\' tables (not a friend; a friend\'s non-counting result is left out on the server)');
+  // DFIX2 — A ROOM OF ONE CAN'T PAUSE: CASEY alone in a room, COAST CLEAR open, starts a game → the banner + the hold, but the server refuses the
+  // pause (409 no_room_game) — the clock keeps running
+  await C.page.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: null })));
+  const soloCode = await C.page.evaluate(() => import('/js/room.js').then(async m => { const { loadProfile } = await import('/js/identity.js'); await m.createRoom(loadProfile()); return window.__arcade.state.code; }));
+  await waitFor(C.page, `!!window.__arcade.state.code && !!window.__arcade.state.meta`, 'CASEY\'s solo room', 20000);
+  await C.page.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'run', id: 'coastclear' } })));
+  await waitFor(C.page, `!!document.querySelector('.cc-lesson .cc-ls-skip')`, 'the lesson (a new player)', 20000);
+  await click(C.page, '.cc-lesson .cc-ls-skip');
+  await waitFor(C.page, `!!window.__coastclear && window.__coastclear.ready() && !!document.querySelector('.dy-run .cc-board')`, 'CASEY\'s harbor', 20000);
+  await C.page.evaluate(() => import('/js/host.js').then(m => m.startGame('overclock', {})));
+  await waitFor(C.page, `!document.querySelector('.dy-run') && !!JSON.parse(localStorage.getItem('daily:held') || 'null')`, 'the run held', 20000);
+  await sleep(1500);
+  // (a run with no move yet has no record at all — a refused pause writes nothing; a start there proves the run is real)
+  const [soloRec, soloStart] = await Promise.all([val(`dly/coastclear/${day}/p/${C.pid}`), val(`dly/coastclear/${day}/s/${C.pid}`)]);
+  ok(!!soloStart && (!soloRec || (pausesOf(soloRec).at == null && pausesOf(soloRec).n === 0)), `a room of ONE (${soloCode}): the run is held, but the server refused the pause — the clock runs (record ${soloRec ? JSON.stringify(pausesOf(soloRec)) : 'untouched'})`);
   await C.ctx.close(); await A.ctx.close();
 });

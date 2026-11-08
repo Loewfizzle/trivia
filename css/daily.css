@@ -140,10 +140,33 @@ body[data-look="day"] .dy-run > .dy-back { color: #14284a; }
   display: flex; align-items: center; gap: 10px; width: max-content; max-width: calc(100vw - 32px); padding: 12px 18px 12px 14px; border-radius: 10px; pointer-events: none;
   background: rgba(12, 8, 22, 0.94); box-shadow: inset 0 0 0 1.5px rgba(255, 111, 200, 0.75), 0 0 18px rgba(255, 111, 200, 0.35), 0 10px 26px rgba(0, 0, 0, 0.5); }
 .dy-banner.is-in { opacity: 1; transform: translate(-50%, 0); }
-.dy-banner b { font: 800 12.5px/1.25 var(--font-ui); letter-spacing: 0.14em; color: #fff0f8; }
+.dy-banner b { font: 800 12px/1.25 var(--font-ui); letter-spacing: 0.1em; color: #fff0f8; white-space: nowrap; }   /* (DFIX2: ONE line at 390 — was 12.5 px / 0.14 em, two lines) */
 .dy-banner-ic svg { display: block; width: 24px; height: 24px; fill: none; stroke: #ff7fd0; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px rgba(255, 111, 200, 0.8)); }
 @media (prefers-reduced-motion: reduce) {
   .dy-banner { transition: none; }
   .dy-sweep.is-sweeping .dy-seg.is-done:last-child::after, .dy-sweep.is-sweeping::before, .dy-sweep.is-sweeping .dy-sweep-l b { animation: none; }
   .dy-tab::after { transition: none; }
 }
+
+/* ---- SCORES — SLIM CARDS (DFIX2; Ben: "they look so good, we need to start using them"): the results lists' own rows (components.css
+   .board-list.is-strips / .lb-row.lb-strip / .lb-card / .lb-sub — ui/strip-board.js) with the dailies' tokens: the rank LEFT of the card (an
+   ordinal — a wider column than the podium's 01 / 02), the SCORE on the line UNDER the card at its right end (the number font — never over the
+   card), YOU = a lit frame drawn along your card (never a pill, never a tinted row), the ones STILL TO PLAY in ONE line under the cards ---- */
+.dy-cards.board-list.is-strips { margin: 4px 0 2px; padding: 0; gap: 10px; list-style: none; }
+.dy-cards .lb-row.lb-strip { grid-template-columns: 4.3ch minmax(0, 1fr); gap: 6px; }
+.dy-cards .lb-row.lb-strip .lb-rank { font: 800 13px/1 var(--font-num); letter-spacing: 0.02em; color: var(--dy-dim); white-space: nowrap; }
+.dy-cards .lb-row.lb-strip.is-first .lb-rank { color: var(--dy-seg-on); }
+.dy-cards .lb-row.lb-strip.is-me .lb-rank { color: var(--dy-ink); }
+.dy-card { position: relative; border-radius: 12px; }
+.dy-card .vl-strip { width: 100%; }
+.dy-card .lb-sub { justify-content: flex-end; margin: 4px 2px 0; }
+.dy-cards .lb-pts .lb-score.dy-cscore { font: 800 15px/1 var(--font-num); letter-spacing: 0.06em; color: var(--dy-ink); text-shadow: 0 0 10px var(--dy-seg-glow); }
+.dy-cnote { margin-right: auto; font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.16em; color: var(--dy-faint); }
+/* YOU: a lit frame along the card (its own layer — no repaint of the strip; both looks through the tokens) */
+.dy-cards .is-me .dy-card::after { content: ''; position: absolute; left: -3px; right: -3px; top: -3px; height: calc(100% - 23px); border-radius: 14px; pointer-events: none;
+  box-shadow: 0 0 0 1.5px var(--dy-seg-on), 0 0 12px var(--dy-seg-glow), inset 0 0 0 1px color-mix(in srgb, var(--dy-seg-on) 35%, transparent); }
+.dy-still { margin: 10px 2px 2px; font: 700 11px/1.5 var(--font-ui); letter-spacing: 0.14em; color: var(--dy-dim); overflow-wrap: anywhere; }
+.dy-more { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin: 4px 0 0; border: 0; background: none; cursor: pointer;
+  color: var(--dy-tab-on); font: 800 12px/1 var(--font-ui); letter-spacing: 0.2em; text-indent: 0.2em; -webkit-tap-highlight-color: transparent; }
+.dy-more i { width: 8px; height: 8px; margin-top: -3px; border-right: 2px solid var(--dy-seg-on); border-bottom: 2px solid var(--dy-seg-on); transform: rotate(45deg); }
+.dy-more:active { opacity: 0.7; }

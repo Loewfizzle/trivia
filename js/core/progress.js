@@ -12,7 +12,7 @@ import { SIGN_EMBLEMS } from './items.js';
 import { weekKey, dayKey } from './week.js';
 import { streakDay, streakPlay, dayNum, dayOf } from './streak.js';
 import { noteMatch, noteEvent, awardAll } from './achievements.js';
-import { todaysDailies, sweptDay, dailyXp, isPenthouse, SWEEP_XP } from './daily.js';
+import { todaysDailies, sweptDay, dailyXp, SWEEP_XP } from './daily.js';
 const prevDayKey = d => dayOf(dayNum(d) - 1);
 
 export const KEEP_KEYS = 60;
@@ -180,23 +180,28 @@ export function dailyStep(s0, { game, day, now, top = 100, rank = null, n = 0, h
   if (s.m && s.m[key]) return { skip: 'counted' };
   const next = { ...s, m: { ...(s.m || {}), [key]: now } };
   const dl = { n: 0, early: 0, ph: 0, ...(s.dl || {}) };
-  dl.day = dl.day && dl.day.k === day ? { ...dl.day, g: { ...(dl.day.g || {}) } } : { k: day, g: {} };
+  // DFIX2 (FABLE REVIEW #2, finding 1) — EACH DAY KEEPS ITS OWN COUNTERS: dl.days = { [dayKey]: { g, x, sw? } }, the two newest days kept
+  // (a run that crossed 4 am finishes on YESTERDAY's day — DFIX1 — after today's finishes have landed: it must never wipe today's, nor today's
+  // wipe its). dl.day stays as a MIRROR of the newest day for anything that reads it.
+  const days = dayCounters(dl, day);
+  const D = days[day];
   // THE DAILY XP (counted or not — "the streak / XP as usual")
-  const xp = dailyXp(dl.day.x, today);
-  dl.day.x = (dl.day.x || 0) + 1;
+  const xp = dailyXp(D.x, today);
+  D.x = (D.x || 0) + 1;
   const from = s.xp || 0;
   let swept = false, ach = [];
   if (counts) {
     if (dl.last !== day) { dl.n += 1; dl.last = day; }
-    dl.day.g[game] = 1;
+    D.g[game] = 1;
     if (hourET >= 4 && hourET < 8) dl.early += 1;
-    // DM2 — PENTHOUSE: the top 1 % of the day's COUNTING finishers by PLACE — rank ≤ max(1, floor(n × 1 %)) — and only from BAND_MIN (50)
-    if (isPenthouse(rank ?? Math.round((top * n) / 100), n)) dl.ph += 1;
-    // THE SWEEP: the day's last daily on the list — once a day (dl.day.sw) — + DM2's SWEEP BONUS (+10 XP) + PERFECT WEEK's run (dl.sr = the
+    // (DM2's PENTHOUSE used to be decided HERE, at finish time, against the finishers so far — DFIX2 (finding 2 → Ben's decision 2): it is
+    //  decided at THE DAY'S CLOSE against the day's FINAL counting finishers: penthouseStep below, run by api/_lib/daily-close.js)
+    void top; void rank; void n;
+    // THE SWEEP: the day's last daily on the list — once a day (D.sw) — + DM2's SWEEP BONUS (+10 XP) + PERFECT WEEK's run (dl.sr = the
     // swept days IN A ROW: { d: the last swept day, n }; any 7 consecutive daily-days — never a weekday rule)
-    if (!dl.day.sw && sweptDay(dl.day.g, today)) {
-      swept = true; dl.day.sw = 1; dl.sw = (dl.sw || 0) + 1;
-      dl.sr = dl.sr && dl.sr.d === prevDayKey(day) ? { d: day, n: (dl.sr.n || 0) + 1 } : dl.sr && dl.sr.d === day ? dl.sr : { d: day, n: 1 };
+    if (!D.sw && sweptDay(D.g, today)) {
+      swept = true; D.sw = 1; dl.sw = (dl.sw || 0) + 1;
+      sweepRun(dl, day);
       dl.sb = Math.max(dl.sb || 0, dl.sr.n);
       delete dl.pw;                                              // (DM1's week counter — replaced by the run)
       xp.total += SWEEP_XP;
@@ -205,6 +210,9 @@ export function dailyStep(s0, { game, day, now, top = 100, rank = null, n = 0, h
     const gf = Object.entries(flags || {}).filter(([, v]) => v).map(([k]) => `${game}-${k}`);   // (a DASH — never a dot in a database key)
     if (gf.length) next.pa = { ...(s.pa || {}), gf: { ...((s.pa && s.pa.gf) || {}), ...Object.fromEntries(gf.map(k => [k, 1])) } };
   }
+  dl.days = days;
+  const newest = Object.keys(days).sort().pop();
+  dl.day = { k: newest, ...days[newest] };
   next.xp = from + xp.total;
   const lv = { from: levelOf(from), to: levelOf(next.xp) };
   const items = lv.to > lv.from ? grant(next, rewardsBetween(lv.from, lv.to), now) : [];
@@ -213,4 +221,44 @@ export function dailyStep(s0, { game, day, now, top = 100, rank = null, n = 0, h
   items.push(...streak.items);
   if (counts) { const aw = awardAll(next, now, { founderOpen }); items.push(...aw.items); ach = aw.ach; }
   return { next, items, ach, streak: { n: next.st.n, ev: streak.ev }, dl, xp, lv, swept, counts: !!counts };
+}
+
+/** the per-day counters with `day`'s entry (a copy — safe to write), the two newest days kept; DM1's single `dl.day` migrates in */
+function dayCounters(dl, day) {
+  const days = {};
+  for (const [k, v] of Object.entries(dl.days || {})) days[k] = { ...v, g: { ...((v && v.g) || {}) } };
+  if (dl.day && dl.day.k && !days[dl.day.k]) days[dl.day.k] = { g: { ...(dl.day.g || {}) }, x: dl.day.x || 0, ...(dl.day.sw ? { sw: 1 } : {}) };
+  if (!days[day]) days[day] = { g: {}, x: 0 };
+  for (const k of Object.keys(days).sort().slice(0, -2)) delete days[k];
+  return days;
+}
+const nextDayKey = d => dayOf(dayNum(d) + 1);
+/**
+ * PERFECT WEEK's run after a sweep on `day` (DFIX2): the chain continues (yesterday's run + 1); a sweep landing OUT OF ORDER (yesterday's
+ * after today's — the run that crossed 4 am) is bridged into today's run (+ the run that ended the day before it, kept as dl.sp while the gap
+ * could still close); otherwise a fresh run of 1 — the old run held in dl.sp only when the gap is exactly the one day that may still sweep.
+ */
+function sweepRun(dl, day) {
+  const sr = dl.sr && dl.sr.d ? dl.sr : null, sp = dl.sp && dl.sp.d ? dl.sp : null;
+  if (sr && sr.d === day) return;
+  if (sr && sr.d === prevDayKey(day)) { dl.sr = { d: day, n: (sr.n || 0) + 1 }; delete dl.sp; return; }
+  if (sr && sr.d === nextDayKey(day)) { dl.sr = { d: sr.d, n: (sr.n || 0) + 1 + (sp && sp.d === prevDayKey(day) ? sp.n || 0 : 0) }; delete dl.sp; return; }
+  if (sr && sr.d === prevDayKey(prevDayKey(day))) dl.sp = sr; else delete dl.sp;
+  dl.sr = { d: day, n: 1 };
+}
+
+/**
+ * DFIX2 — PENTHOUSE at THE DAY'S CLOSE (FABLE REVIEW #2, finding 2 → Ben's decision 2): one winner's grant, PURE + idempotent by its key
+ * (m/ph_<game>_<day>) — the server runs it inside ONE pstats transaction per winner (api/_lib/daily-close.js) once the day is over and its
+ * COUNTING finishers are final. → { skip } | { next, items, ach }
+ */
+export function penthouseStep(s0, { game, day, now, founderOpen = false }) {
+  const s = s0 || {};
+  const key = `ph_${game}_${day}`;
+  if (s.m && s.m[key]) return { skip: 'counted' };
+  const next = { ...s, m: { ...(s.m || {}), [key]: now }, dl: { n: 0, early: 0, ...(s.dl || {}), ph: ((s.dl && s.dl.ph) || 0) + 1 } };
+  const keys = Object.keys(next.m);
+  if (keys.length > KEEP_KEYS) keys.sort((a, b) => next.m[a] - next.m[b]).slice(0, keys.length - KEEP_KEYS).forEach(k => delete next.m[k]);
+  const aw = awardAll(next, now, { founderOpen });
+  return { next, items: aw.items, ach: aw.ach };
 }

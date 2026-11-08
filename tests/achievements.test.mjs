@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ACHIEVEMENTS, ACH, GAME_ACHIEVEMENTS, LEGENDARIES, noteMatch, noteEvent, awardAll, heldOf } from '../js/core/achievements.js';
 import { ITEM } from '../js/core/items.js';
-import { matchStep, dailyStep, eventStep, carryOver } from '../js/core/progress.js';
+import { matchStep, dailyStep, penthouseStep, eventStep, carryOver } from '../js/core/progress.js';
 import { dayOf, dayNum } from '../js/core/streak.js';
 
 const T0 = Date.UTC(2026, 10, 11, 1, 0);   // Tue Nov 10, 8 pm Eastern
@@ -84,8 +84,9 @@ test('DAILIES (dormant until the first daily) — the contract\'s step: daily br
   // (DM1 — THE SWEEP: every daily on TODAY's list — however many; was THE TRIPLE's fixed 3)
   let t = null; for (const g of ['a', 'b', 'c']) { const r = dailyStep(t, { game: g, day: 'd20261110', now: T0, today: ['a', 'b', 'c'] }); t = r.next; assert.equal(r.ach.includes('the-triple'), g === 'c'); }
   assert.equal(ACH['the-triple'].name, 'THE SWEEP'); assert.equal(ACH['the-triple'].item, 'emb-stars');
-  assert.ok(dailyStep(null, { game: 'a', day: 'd20261110', now: T0, top: 1, n: 60 }).ach.includes('penthouse-suite'));
-  assert.ok(!dailyStep(null, { game: 'a', day: 'd20261110', now: T0, top: 1, n: 49 }).ach.includes('penthouse-suite'));
+  // (DFIX2 — PENTHOUSE is decided at THE DAY'S CLOSE, never at finish time: progress.js#penthouseStep grants it to the day's final winners)
+  assert.ok(!dailyStep(null, { game: 'a', day: 'd20261110', now: T0, top: 1, n: 60 }).ach.includes('penthouse-suite'));
+  assert.ok(penthouseStep(null, { game: 'a', day: 'd20261110', now: T0 }).ach.includes('penthouse-suite'));
 });
 
 test('PW2 — THE PASSWORD\'s rewards through the daily step: KEYHOLE on any crack, SAFECRACKER at the threshold (the flags from the SERVER\'s record), never twice, nothing without a flag', () => {

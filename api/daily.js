@@ -13,14 +13,16 @@
 //                                 DM1 — THE THROWAWAY GATE: counted = the profile existed before that day's 4 am Eastern start (ppriv/{pid}/at — server-written
 //                                 at creation). A non-counting result is kept (one try, the player's own score, the streak + the XP as usual) but is NOT in
 //                                 the histogram / the band, YOUR TABLE, THE BOARD or any reward; `countsFrom` = when this profile's dailies start counting
-//   today  { pids? }           → { day, dailies: [row…], mine: { game: score }, gated: { game: true }, started: { game: true } (in flight), stand: { game:
+//   today  { pids? }           → { day, dailies: [row…], mine: { game: score }, gated: { game: true }, started: { game: true } (in flight — DFIX2: yesterday's
+//                                 unfinished run too, its day in startedDay: { game: yday }), stand: { game:
 //                                 { n, top, pct } } (a counted score's place once ≥ BAND_MIN), lessons: { game: 1 }, countsFrom? (a same-day profile), friends: { pid: { game: { done } | { score } } }, table: [pid] }
 //                                 (YOUR TABLE's TODAY — FRIENDS A: only YOUR FRIENDS (pfr/{pid}/f), ≤ 12; a friend's NON-COUNTING result is left out)
 //   lesson { game }            → { ok }   DM2 — a daily's first-time lesson seen (pstats/{pid}/ls/{game} — once per player, every device)
 //   room   { room }            → { mid: [uid…] }   DM1 — which players of YOUR room have a daily in flight (uids only — nothing about a run; DM2's host line)
 //
 //   dly/{game}/{day}/s/{pid}: startedAt · r/{pid}: score · x/{pid}: 1 (DM1 — a non-counting result) · h/{bucket}: count · n: finishers · p/{pid}: a judged
-//   daily's record · b: the day's data (THE 4 AM PICKER — the pair / the board)      (server only — the rules' default deny)
+//   daily's record · b: the day's data (THE 4 AM PICKER — the pair / the board) · c: THE DAY'S CLOSE marker (DFIX2 — _lib/daily-close.js: PENTHOUSE
+//   decided once the day is over, by the first start / today after 4 am)      (server only — the rules' default deny)
 //   DM1 — THE CALL BUDGET: CALLS.max calls a uid per CALLS.windowMs (rl/dc_{uid} — a COAST CLEAR run is ~50–110 calls, a PASSWORD run ≤ 15) → 429 slow_down
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
@@ -31,6 +33,7 @@ import { outageDays } from './_lib/stats.js';
 import { take } from './_lib/limit.js';
 import { dailySeed, openDailies, pickDay } from './_lib/dailies.js';
 import { roomStarted, midDaily } from './_lib/daily-room.js';
+import { closeDays } from './_lib/daily-close.js';
 import { dailyOf, bucketOf, standing, todayView, todaysDailies, dailyRow, BAND_MIN } from '../js/core/daily.js';
 import { streakDay, dayNum, dayOf, dayStartAt } from '../js/core/streak.js';
 import { dailyStep } from '../js/core/progress.js';
@@ -90,14 +93,19 @@ export async function dailyAction(uid, body, now = Date.now()) {
       const base = `dly/${cart.id}/${day}`;
       // THE 4 AM PICKER: the day's set fixed for EVERY live daily on its first start (lazy, idempotent — a memo per warm function)
       const picked = pickDay(day, now).catch(() => null);
+      // DFIX2 — THE DAY'S CLOSE (PENTHOUSE for yesterday's final finishers): lazy too, a memo per warm function (never on a move)
+      const closed = closeDays({ games: todaysDailies(), now }).catch(() => null);
       if (startedAt == null) {
         const tx = await ref(`${base}/s/${pid}`).transaction(cur => (cur ? undefined : now));
         startedAt = tx.snapshot.val();
       }
       const done = await val(`${base}/r/${pid}`);
-      await picked;
+      await Promise.all([picked, closed]);
+      // (DFIX2 — OPTIONAL: the day's first start while the database hiccups — the picker's failure was swallowed above; the second load's →
+      //  503 `busy`, which the phone retries, never a 500)
+      const loadDay = () => (cart.load ? cart.load(day, now).catch(e => { throw new ApiError(503, 'busy', 'The dailies are waking up — try again in a moment.', { cause: String(e && e.message || e) }); }) : null);
       if (cart.judged) {
-        const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day, now) : null]);
+        const [record, data] = await Promise.all([val(`${base}/p/${pid}`), loadDay()]);
         return { day, startedAt, done: done ?? null, run: cart.resume({ record, day, startedAt, data }), now };
       }
       return { day, seed: await dailySeed(cart.id, day), startedAt, done: done ?? null };
@@ -203,13 +211,21 @@ export async function dailyAction(uid, body, now = Date.now()) {
       // profile too (a new phone still sees the dock button; THE GO-LIVE SWITCH off → an empty list → no button)
       const dailies = games.map(id => { const r = dailyRow(id) || {}, c = dailyOf(id) || {}; return { id, name: r.name || c.name, order: r.order ?? 99, ticket: r.ticket || id, lesson: !!r.lesson, better: c.better || 'high', hook: r.hook || r.tag || '' }; });
       const pid = await pidOf(uid);
-      if (!pid) return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true };
-      const mineScores = {}, gated = {}, started = {}, stand = {};
+      // DFIX2 — THE DAY'S CLOSE runs from `today` too (the title's first call of the day): a memo per warm function
+      const closing = closeDays({ games, now }).catch(() => null);
+      if (!pid) { await closing; return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true }; }
+      const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {};
       const [ls, createdAt] = await Promise.all([val(`pstats/${pid}/ls`), createdAtOf(pid)]);
+      const yday = prevDay(day);
       await Promise.all(games.map(async g => {
         const base = `dly/${g}/${day}`;
         const [v, s0] = await Promise.all([val(`${base}/r/${pid}`), val(`${base}/s/${pid}`)]);
         if (s0 && v == null) started[g] = true;                   // (IN PROGRESS → RESUME)
+        // DFIX2 (FABLE REVIEW #2, finding 7): YESTERDAY's run still in flight (DFIX1's yesterday-key rule — a tap resumes it) reads RESUME too
+        if (!s0 && v == null) {
+          const [s1, r1] = await Promise.all([val(`dly/${g}/${yday}/s/${pid}`), val(`dly/${g}/${yday}/r/${pid}`)]);
+          if (s1 && r1 == null) { started[g] = true; startedDay[g] = yday; }
+        }
         if (v == null) return;
         mineScores[g] = v;
         if (await val(`${base}/x/${pid}`)) { gated[g] = true; return; }
@@ -232,7 +248,8 @@ export async function dailyAction(uid, body, now = Date.now()) {
         }));
         friends[p] = todayView(mineScores, theirs);
       }));
-      return { day, dailies, mine: mineScores, gated, started, stand, lessons: ls || {}, friends, table: pids,
+      await closing;
+      return { day, dailies, mine: mineScores, gated, started, startedDay, stand, lessons: ls || {}, friends, table: pids,
         ...(countsOn(createdAt, day) ? {} : { countsFrom: dayStartAt(dayOf(dayNum(day) + 1)) }) };
     }
     case 'lesson': {

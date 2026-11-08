@@ -46,6 +46,22 @@ export const listedDailies = () => dailyRows().filter(r => r.on !== false).map(r
  *  only once the day has BAND_MIN (50) counting finishers (dormant below). rank = 1-based (1 + the finishers strictly better). */
 export const penthouseCut = n => Math.max(1, Math.floor(n / 100));
 export const isPenthouse = (rank, n) => n >= BAND_MIN && rank >= 1 && rank <= penthouseCut(n);
+/**
+ * DFIX2 — PENTHOUSE at THE DAY'S CLOSE (FABLE REVIEW #2, finding 2 → Ben's decision 2): the winners among a day's FINAL counting finishers
+ * — scores = { pid: score } (the non-counting ones already left out), better = 'high' | 'low'. Rank = 1 + the finishers strictly better;
+ * every finisher at or inside the cut wins (a tie AT the cutoff: all of them). Nobody below BAND_MIN finishers. → [pid…] sorted.
+ */
+export function penthouseWinners(scores, better = 'high') {
+  const rows = Object.entries(scores || {}).filter(([, v]) => typeof v === 'number' && Number.isFinite(v));
+  const n = rows.length;
+  if (n < BAND_MIN) return [];
+  const cut = penthouseCut(n), sign = better === 'low' ? 1 : -1;
+  rows.sort((a, b) => sign * (a[1] - b[1]));
+  const out = [];
+  let place = 0, prev = null;
+  rows.forEach(([pid, v], i) => { if (prev === null || v !== prev) { place = i + 1; prev = v; } if (place <= cut) out.push(pid); });
+  return out.sort();
+}
 /** DM2 — THE SWEEP BONUS: +10 XP on the day every daily is finished (on top of DAILY_XP each), once a day, counted results only */
 export const SWEEP_XP = 10;
 /** DM2 — PERFECT WEEK: THE SWEEP on this many daily-days IN A ROW (any 7 consecutive — never a weekday rule) */

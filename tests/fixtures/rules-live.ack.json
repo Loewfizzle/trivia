@@ -1,4 +1,4 @@
 {
- "hash": "3fead099bb671be6",
- "line": "RULES CHANGED: pfr/{pid} (FRIENDS A — the friends list: its owner reads it, nobody writes it but the server; a new node, nothing old changed) — RE-PUBLISH database.rules.json in the Firebase console (the whole file: it also carries OC1's ocm / ocnext + B2's meta/hostId + meta/hostBy, which the fixture still predates — harmless if those are already live)"
+ "hash": "6f35ee29e51fd3f8",
+ "line": "RULES CHANGED: rooms/{CODE}/players/{uid}/dy (DFIX2 — THE MID-DAILY FLAG: a player writes only their own, a boolean, nothing else) — RE-PUBLISH database.rules.json in the Firebase console (the whole file: it also carries pfr, ocm / ocnext and meta/hostId + meta/hostBy from earlier passes, which the fixture still predates — harmless if those are already live)"
 }

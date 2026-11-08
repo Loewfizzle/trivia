@@ -4,12 +4,16 @@
 // shows everything (it's where the marks are made). Profiles are polish: /api down → nothing new ships (the placeholders stand).
 import { ONE_OF_ONE_CARDS } from '../core/dev-cards.js';
 let marksP = null;
-// (the look previews on THIS machine only — localhost / 127.0.0.1, never the live site: &labmarks=all = every lab item approved, so a
-//  preview page with no /api shows the real strips)
-const previewAll = () => { try { return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('labmarks') === 'all'; } catch { return false; } };
+// (the look previews on a LOCAL server only — localhost / 127.0.0.1 / a private LAN address (the Beelink's preview links on the owner's phone),
+//  never the live site: &labmarks=all = every lab item approved, so a preview page with no /api shows the real strips; DFIX2: &labmarks=<id,id,…>
+//  = exactly those approved — a preview can show one UNAPPROVED card beside real ones)
+const LOCAL_HOST = /^(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3})$/;
+const previewMarks = () => { try { return LOCAL_HOST.test(location.hostname) ? new URLSearchParams(location.search).get('labmarks') || null : null; } catch { return null; } };
 export function labMarks() {
   if (marksP) return marksP;
-  if (previewAll()) { marksP = import('./catalog.js').then(C => Object.fromEntries(C.LAB_IDS.map(id => [id, { m: 'approve' }]))); return marksP; }
+  const pm = previewMarks();
+  if (pm === 'all') { marksP = import('./catalog.js').then(C => Object.fromEntries(C.LAB_IDS.map(id => [id, { m: 'approve' }]))); return marksP; }
+  if (pm) { marksP = Promise.resolve(Object.fromEntries(pm.split(',').filter(Boolean).map(id => [id, { m: 'approve' }]))); return marksP; }
   marksP = fetch('/api/admin?lab=export', { cache: 'no-store' }).then(r => (r.ok ? r.json() : { marks: {} })).then(j => j.marks || {}).catch(() => ({}));
   return marksP;
 }

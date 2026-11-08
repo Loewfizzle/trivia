@@ -559,7 +559,10 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
 - **DM2 — DAILY (Nov 8):** `[ JOIN ring ] [ glass pill: DAILY · BOARD · GAMES · YOU ] [ HOST ring ]` while a daily is live (THE DAILY MODULE's switch on): a drawn
   ticket in the house's hot pink, left-most; each cell 6 px narrower with four (366 pt wide at 390 — a 12 pt gutter; 4 = the most this dock holds). WAITING = lit
   + a breathing pink pool + the count left; ALL DONE = a small drawn check; no live daily = hidden (the 3 old icons exactly as before). It lights with the sign's
-  LAST N (with the corner buttons). Above the dock: **RESUME YOUR DAILY** after a room's game held a run. Tap → THE DAILY SCREEN (docs/progression.md "DM2").
+  LAST N (with the corner buttons). Above the dock: **RESUME YOUR DAILY** after a room's game held a run — DFIX2: only while that run is still resumable
+  (`today-logic.js#chipState`: its day today's, or yesterday's with a run still in flight there; finished elsewhere / its day gone → the hold is dropped, the
+  chip clears itself). The button + the screen TURN OVER AT 4 AM by themselves (`today.js#armTurn` — a fresh `today`, no reload). Tap → THE DAILY SCREEN
+  (docs/progression.md "DM2"; SCORES = slim cards since DFIX2).
 - **Layout** (an iPhone held upright first): `[ JOIN ring ]  [ glass pill: BOARD · GAMES · YOU ]  [ HOST ring ]` — centred and
   mirrored, two identical rings (76 px; 68 under 360 px wide, 70 on short screens, 86 on wide screens) standing just outside a compact
   smoked-glass pill (58 px tall) with an even 10 px gap each side (`.nd-flank`: `--disc --pill-h --cell --gap`). The pill holds three

@@ -185,7 +185,8 @@ await H.run(async () => {
   // ---- a PAUSE (THE DAILY MODULE calls it when the room starts a game) + the screen torn down → rebuilt: the clock goes on by itself
   // (DM1 — THE ROOM WINS: the server pauses only for a room that really started a game, with this phone in it)
   const pUid = await p.evaluate(() => window.__daily.uid);
-  await ref('rooms/CCEE').set({ meta: { hostId: pUid, status: 'playing', createdAt: Date.now() }, players: { [pUid]: { name: 'ALICE', pid: await pidOf(p) } } });
+  // (DFIX2 — THE ROOM WINS needs 2+ players: a second player in the room, else a room of one can't stop the clock)
+  await ref('rooms/CCEE').set({ meta: { hostId: pUid, status: 'playing', createdAt: Date.now() }, players: { [pUid]: { name: 'ALICE', pid: await pidOf(p) }, 'cc-e2e-bob': { name: 'BOB' } } });
   await p.evaluate(() => window.__api({ action: 'pause', room: 'CCEE' }));
   await grab(p);
   await p.evaluate(() => window.__suspend());

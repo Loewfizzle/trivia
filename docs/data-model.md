@@ -228,7 +228,8 @@ profiles/{pid}:   { n, nk (name key), t (tag "4821"), mn (THE VAULT 2B — the M
 uids/{uid}:       pid                                     read: that uid. The device ↔ profile link
 pstats/{pid}:     { xp, g{game:{p,w,…counters}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records), day{k, g{}},
                     last, m{matchKey: at} (matches already counted),
-                    dl{n, last, day{k, g, x, sw}, early, ph, sw, sr{d, n} (DM2 — swept days IN A ROW: PERFECT WEEK), sb (the best run)},
+                    dl{n, last, days{<day>: {g, x, sw?}} (DFIX2 — the two newest days' counters; day{k, …} = a mirror of the newest), early, ph (PENTHOUSE days — granted at THE DAY'S CLOSE),
+                       sw, sr{d, n} (DM2 — swept days IN A ROW: PERFECT WEEK), sp{d, n} (DFIX2 — the run held while yesterday may still sweep), sb (the best run)},
                     ls{game: 1} (DM2 — a daily's first-time lesson seen: THE PRACTICE HARBOR) }       read: the profile's owner (written by /api only)
 ppriv/{pid}:      { kh (key HMAC), keyAt, at, nameAt, opt? (opted out), ban? (admin), uids{uid: at} }  server only
 pkeys/{keyHmac}:  pid          tags/{nameKey}/{tag}: pid          rl/{bucket}: { n, t } (restore attempts)   server only
@@ -237,9 +238,11 @@ results/{code}_{matchId}: { st: busy|done, at, g, mode, n, src: room|snap, by, r
 audit/{push}:     { at, by (admin pid), act, pid, … }                                                  server only
 flags/{boardId}:  { pid, n, why{score|name: n}, b{board: n}, first, last }  THE BOARD's REPORT (BNAME)      server only
 rooms/{CODE}/players/{uid}/pid: the player's own profile id (rules: must equal uids/{auth.uid}; LOBBY FIXES: refused while seats/{pid} is ANOTHER uid's)
+rooms/{CODE}/players/{uid}/dy:  true while this phone has a daily run OPEN or HELD (DFIX2 — THE MID-DAILY FLAG: the host's "N PLAYERS ARE MID-DAILY" reads it; a boolean, the player's own; js/daily/room-flag.js)
 seats/{pid}:      { code, uid, at }                       read + write: the profile's own devices (uids/{auth.uid} === $pid; uid = the writer; at = now). ONE ACCOUNT, ONE ROOM (js/seat.js)
 dly/{game}/{day}/  s/{pid} startedAt · r/{pid} score · x/{pid}: 1 (DM1 — a NON-COUNTING result: THE THROWAWAY GATE) · h/{bucket} · n · p/{pid} a judged run's record ·
-                   b: the day's data (DM1 — THE 4 AM PICKER: THE PASSWORD's pair { v, w } · COAST CLEAR's board)       server-only (the rules' default deny)
+                   b: the day's data (DM1 — THE 4 AM PICKER: THE PASSWORD's pair { v, w } · COAST CLEAR's board) ·
+                   c: { at, st: 'busy' | 'done', n, w: [pid…] } (DFIX2 — THE DAY'S CLOSE marker: PENTHOUSE's winners, once)       server-only (the rules' default deny)
 dsched/password:   { v, s: 'W,W,…', c, h } — DM1: THE FROZEN SCHEDULE (api/_lib/pw.js)                                       server-only — never a committed file
 dsecret:           { v, k: { '<fromDay>': hex } } — DM1 ADD-ON: THE DAILY SECRET (api/_lib/daily-secret.js; never the pepper)     server-only — never a committed file
 progress/dailies:  { on: true, at, by } — DM1: THE GO-LIVE SWITCH (absent = OFF; /api/admin dailySwitch, the owner)            server-only
@@ -299,9 +302,11 @@ hsbet/{CODE}/{m}/{rk}/{uid}: { b: { b, at }, a: { a 0-3, at } }            ← t
 dly/{game}/{day}/s/{pid}: startedAt    ← ONE OFFICIAL TRY (a refresh = the same try); day = the streak-day key (4 am Eastern)
 dly/{game}/{day}/r/{pid}: score        ← the first finish (a transaction); h/{bucket}: count · n: finishers (THE STANDING)
 dly/{game}/{day}/p/{pid}: record       ← a JUDGED daily's record: THE PASSWORD { g: { 0: [words], 1: [words] }, e? } · COAST CLEAR { st, mv, p?, e?, o? }
-dly/coastclear/{day}/b: board          ← the day's board, built once from the pepper (never served)
+dly/coastclear/{day}/b: board          ← the day's board, built once from THE DAILY SECRET (never served)
+dly/{game}/{day}/c: { at, st, n, w }   ← DFIX2 — THE DAY'S CLOSE (api/_lib/daily-close.js): claimed by the first start / today after 4 am Eastern (st 'busy' → 'done'),
+                                          n = the counting finishers, w = PENTHOUSE's winners (rank ≤ max(1, ⌊n / 100⌋), n ≥ 50)
 ```
-A run's calls name its own day (DFIX1): today's or yesterday's with a start there. Never pruned yet (THE DAILY MODULE's).
+A run's calls name its own day (DFIX1): today's or yesterday's with a start there. Never pruned yet (THE DAILY MODULE's; before ~500 players a day).
 
 ## gifts/ (SHELL 2.0 B2 — server only)
 ```

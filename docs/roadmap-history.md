@@ -2219,6 +2219,19 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
   harbor `stripfit` (NAME_MAX); a Safari bug that let a long name run over a gift card's face fixed. No rules change.
 
 
+## DFIX2 — THE DAILIES FIX PASS (Nov 8, 2026) — docs/progression.md "DFIX2", docs/games/review-dailies-2.md
+FABLE REVIEW #2's fix pass, with the owner's answers to its five questions (docs/games/plan.md DFIX2 — "go with all of his recommendations"). The MUST FIX: a
+run that crossed 4 am wiped the other day's counters when it finished — `dailyStep` now keeps each day's own (`dl.days`, the two newest), PERFECT WEEK's run
+bridges a sweep that lands out of order. The SHOULD FIXes: PENTHOUSE decided at THE DAY'S CLOSE (`api/_lib/daily-close.js` — lazy, once, against the final
+counting finishers, ties at the cutoff all win; never at finish time); `pickDay` reads THE DAILY SECRET afresh for a new day (a reseed in the last minute before
+4 am can't hand a warm instance's old key to the new day); THE 4 AM TURN on the title + an open DAILY screen (a timer + the countdown's zero → a fresh `today`,
+no reload); THE RESUME CHIP only while its run is resumable; the host's MID-DAILY line from each phone's own flag on its player node (`dy` — a rules change,
+re-published by the owner; the 20 s poll gone); `today` says RESUME for yesterday's unfinished run; THE ROOM WINS needs 2+ players; a cold day's first start →
+503 busy; the room banner on one line at 390. SLIM CARDS ON SCORES: YOUR TABLE's finishers as their equipped slim cards through the results lists' own code
+(`ui/strip-board.js`'s `stripKit` / `stripFor` / `stripFx`), the rank left, the score under at the right end, YOU a drawn frame, STILL TO PLAY one line, the top 5 +
+you + SHOW ALL n, both looks, 60 fps at 4× CPU with two full panels — the owner's standing decision: SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS. The dailies
+stay OFF until the owner flips the switch.
+
 ## THE DAILY MODULE — DM2: THE SCREENS (Nov 8, 2026) — docs/progression.md "THE DAILY MODULE — DM2"
 - Step 0: the owner's decisions in docs/games/plan.md (PERFECT WEEK 7 in a row, the +10 sweep bonus, PENTHOUSE's rule + THE DIAL, ALL TIME hidden,
   counts-from-tomorrow, THE PRACTICE HARBOR, the DAILY dock button) + the ADD-ON (THE RESEED server-side).

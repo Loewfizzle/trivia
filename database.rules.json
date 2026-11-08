@@ -130,6 +130,9 @@
             "ln": {
               ".validate": "newData.isString() && (newData.val() === 'L' || newData.val() === 'R')"
             },
+            "dy": {
+              ".validate": "newData.isBoolean()"
+            },
             "$other": {
               ".validate": false
             }

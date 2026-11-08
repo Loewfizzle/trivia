@@ -1,5 +1,7 @@
 # FABLE REVIEW #2 — THE DAILY MODULE (Nov 8 2026, read-only)
 
+> **DFIX2 (Nov 8 2026) fixed the MUST FIX, all seven SHOULD FIXes and two OPTIONAL items — each finding below carries its `DFIX2:` line. SCORES → YOUR TABLE became SLIM CARDS in the same pass (docs/progression.md "DFIX2").**
+
 A fresh reviewer who did not build THE DAILY MODULE (DM1 + DM2) or either daily, over `main` at `8501cf2d` (DM2's last docs commit). Nothing in
 the games, the server, the rules, the tests or the styles was changed. Every finding below was proved with a probe against the real `/api/daily`
 on the emulators (node-level, the way `tests/integration/*.test.mjs` call it), a browser probe on the test server (`DAILY_TEST=1 node
@@ -42,6 +44,7 @@ Wordle's problem too; it is fine for friends and wants a choice before the publi
   day, `n` += 1 when the earlier day is its predecessor). `dl.day` can stay as a mirror of today's entry for the screens. Pin the probe's
   timeline in `tests/daily.test.mjs` (pure `dailyStep`) + one `/api` case in `daily-module.test.mjs`.
 - **Size:** small (≈ 20 lines + two tests).
+**DFIX2: FIXED** — `core/progress.js#dailyStep` keeps EACH DAY's own counters (`dl.days = { [day]: { g, x, sw? } }`, the two newest; `dl.day` = a mirror of the newest), and PERFECT WEEK's run bridges a sweep that lands out of order (`sweepRun` — yesterday's late finish after today's; `dl.sp` holds the run that ended the day before while the gap may still close). The probe's timeline is pinned pure (`tests/daily.test.mjs` — both orders) and over `/api` (`daily-module.test.mjs`: fa + fb on A, the run from 3:50, fa + fb on B, the finish on A → A swept, B's finishes kept, B's `test` → `dl.sw = 2`, `dl.sr = { d: B, n: 2 }`, six keys, the XP exact).
 
 ## SHOULD FIX (before the dailies go public)
 
@@ -60,6 +63,7 @@ Wordle's problem too; it is fine for friends and wants a choice before the publi
   nobody loses; Ben's call — question 2). The `today` answer can then show PENTHOUSE's result on yesterday's ticket line. Test: the probe's 60
   finishers → #51 only; a tie at the top → both; n = 49 → nobody; the close run twice → nothing more.
 - **Size:** medium (≈ 60 lines + the test). Dormant until a day has 50 counting finishers — nothing for Ben and his friends, everything once public.
+**DFIX2: FIXED (Ben's decision 2 — the day's close)** — `api/_lib/daily-close.js`: the first `start` / `today` after 4 am Eastern closes every unclosed day it finds (yesterday back to `LOOK_BACK` 7), each ONCE (`dly/{game}/{day}/c` claimed by a transaction — `busy` → `done`; a `busy` older than 10 min is retaken); the winners = `core/daily.js#penthouseWinners` (rank ≤ max(1, ⌊n / 100⌋) of the day's FINAL counting finishers, n ≥ 50, a non-counting `x` left out, ties at the cutoff all win) each get `progress.js#penthouseStep` in ONE pstats transaction (idempotent by `m/ph_<game>_<day>`) + `bumpOwners`; the finish awards NOTHING for PENTHOUSE any more (`dailyStep`'s branch gone). The player meets the card on their next visit. Tests: the probe's 60 → #51 only (#50 lost it, #1 never had it), a tie at the top → all, 49 → nobody, two racing closers → one grant, the stale `busy`, a week of silence closes every day once (`daily-module.test.mjs`; pure: `tests/daily.test.mjs`).
 
 ### 3. A RESEED in the last minute before 4 am gives COAST CLEAR's new day the OLD key on a warm server
 - **What:** `api/_lib/daily-secret.js` caches the keys ~60 s per warm function (`TTL_MS`); `api/admin.js#dailyReseed` runs on the ADMIN function
@@ -78,6 +82,7 @@ Wordle's problem too; it is fine for friends and wants a choice before the publi
   itself. Test: the child-process probe above, in `daily-module.test.mjs` (a `dailyKeys(T0)` fill, a reseed through `adminAction` with a cleared
   cache, then `pickDay(dayB, T0 + 35 s)` → the stored board = the new key's).
 - **Size:** small.
+**DFIX2: FIXED (Ben's decision 5 — the one-liner)** — `api/_lib/dailies.js#pickDay` calls `clearSecretCache()` before loading a day this instance has not seen (one extra read a day per instance). Test: the warm instance's keys filled at 3:59:30, the new key written under it (the admin instance's reseed), `pickDay(dayB)` at 4:00:05 → the stored board = the NEW key's (`daily-module.test.mjs`).
 
 ### 4. Nothing turns over at 4 am by itself — the title and the DAILY screen keep yesterday until the page is hidden and shown
 - **What:** `js/screens/daily.js#tickNext` (lines 202–206) only redraws the countdown each second; when it reaches zero it starts over at 24:00:00 and
@@ -90,6 +95,7 @@ Wordle's problem too; it is fine for friends and wants a choice before the publi
   `loadToday({ fresh: true })` once; the dock's `paint` runs from `onToday` as today. Test: `tests/daily-screens.test.mjs` with a fake clock, and
   one e2e-daily check with the server's `now` pushed past 4 am (the suites already stub time through `dailyAction(..., now)`).
 - **Size:** small.
+**DFIX2: FIXED** — `js/daily/today.js`: `today` carries its `day`; `loadToday` treats an answer from another day as stale whatever its age (`today-logic.js#dayTurned` — the dock's visibilitychange re-read included); ONE timer to the next day start (`armTurn` → `turnNow`, re-armed after every answer) and the DAILY screen's countdown reaching zero turns it over too — the tickets back to PLAY, the dock to WAITING, no reload; a run in flight keeps its own day. Tests: `tests/daily-screens.test.mjs` (`dayTurned`), `e2e-daily.mjs` (a stale answer on an open DAILY screen → the turn re-reads today, the screen stays).
 
 ### 5. RESUME YOUR DAILY can outlive its run by a day
 - **What:** the chip's hold (`daily:held` — today.js:46) carries `{ id, day, at }` but the dock shows it on `hr && live && mine[hr.id] == null`
@@ -101,6 +107,7 @@ Wordle's problem too; it is fine for friends and wants a choice before the publi
   is not set (the server says no run is in flight). Also finding 7 below makes `started` honest for yesterday's run. Test: a unit on the chip rule
   (`today-logic.js` gets a `chipState(today, held)`), one e2e line.
 - **Size:** small.
+**DFIX2: FIXED** — `today-logic.js#chipState` (the dock's `paint` uses it): 'show' only while the held run is still resumable — its daily live, no score of yours in, its day today's or yesterday's with the server saying a run is still in flight there (finding 7's `started` + `startedDay`); otherwise the hold is dropped and the chip clears itself. Tests: `tests/daily-screens.test.mjs` (every case), e2e-daily's chip loop as before.
 
 ### 6. The host's MID-DAILY poll is the module's biggest cost after the digs
 - **What:** `js/screens/room-city.js#watchMid` (lines 313–330): while a phone is HOST, the room is not playing and a daily is live, it POSTs
@@ -112,6 +119,7 @@ Wordle's problem too; it is fine for friends and wants a choice before the publi
   `rooms/{CODE}/players/{uid}/dy: 1` (its own node — the rules already let a player write it; add a `dy` boolean validate), the host reads it from
   the mirrored room state, the server's `room` action stays for the e2e. (b) is a rules change → THE RULES-LAG (the ack + RE-PUBLISH). Question 4.
 - **Size:** small either way.
+**DFIX2: FIXED (Ben's decision 4 — the flag, zero invocations)** — `js/daily/room-flag.js`: a phone with a run OPEN or HELD while in a room writes `rooms/{CODE}/players/{uid}/dy = true` (its own node; `database.rules.json`: a boolean, the player's own, nothing else — THE RULES-LAG ack + RE-PUBLISH), cleared on finish / a close unheld / a dropped hold / leaving; `room-city.js#paintDock` counts the flags in the mirrored room — the 20 s poll is GONE (`room` stays for the tests). Tests: `rules.test.mjs` (own true / null / false ok; a number, a string, another player's, the host's hand, another field refused), `e2e-daily.mjs` (the host's line from the flag, the flag's life through the hold, the resume and the finish).
 
 ### 7. `today` says PLAY for a run that is still in flight from yesterday
 - **What:** `api/daily.js#today` (lines 211–212) sets `started[g]` from TODAY's `s` / `r` only; `midDaily` (daily-room.js:34) knows about yesterday's
@@ -120,6 +128,7 @@ Wordle's problem too; it is fine for friends and wants a choice before the publi
 - **Fix:** the same `(!s && s0 && r0 == null)` check `midDaily` uses, → `started[g] = true` (+ `startedDay: yesterday` if the screen wants to say
   "FINISH YESTERDAY'S"). One `/api` test.
 - **Size:** tiny.
+**DFIX2: FIXED** — `api/daily.js` `today`: yesterday's unfinished run (no start today, a start and no score yesterday) → `started[g] = true` + `startedDay[g] = yesterday`; the ticket reads RESUME, the dock counts it, the chip's rule knows its day. Test: `daily-module.test.mjs` (finding 1's timeline checks it between the days).
 
 ### 8. A room of ONE counts as "a room that really started a game"
 - **What:** `daily-room.js#roomStarted` accepts any room with `status: 'playing'` (or a fresh `go` stamp) that lists the player — a solo PRISM DROP
@@ -130,23 +139,26 @@ Wordle's problem too; it is fine for friends and wants a choice before the publi
   → 409 `pause_limit` (the 20-min cap closed it); the record `p = { n: 2, ms: 1200000 }`.
 - **Fix:** require ≥ 2 live players in the room for THE ROOM WINS (`Object.keys(players).length >= 2`), or accept it (question 3). One test line.
 - **Size:** tiny.
+**DFIX2: FIXED (Ben's decision 3 — two players)** — `daily-room.js#roomStarted` needs `MIN_PARTY` (2) players in the room (distinct uids); a room of one → 409 `no_room_game`, the clock runs (the phone still holds the run + shows the banner / RESUME). Tests: `daily-module.test.mjs` (one → refused, two → accepted; the COAST CLEAR suite's fixture gained its host), `e2e-daily.mjs` (CASEY alone starts a game: the run held, no pause on the record).
 
 ## OPTIONAL (label: polish)
 
-- **A 500 on the day's first start when the database hiccups:** `api/daily.js:92` swallows `pickDay`'s failure, then line 100 calls `cart.load` again
+- **A 500 on the day's first start when the database hiccups** (**DFIX2: FIXED** — the second load's failure → 503 `busy`; a test)**:** `api/daily.js:92` swallows `pickDay`'s failure, then line 100 calls `cart.load` again
   and throws → a 500 (`server`) instead of a 503 the phone would retry. Let the second call's error map to 503 `busy`. Tiny.
-- **The room banner wraps at 390:** "GAME STARTING · YOUR DAILY IS / SAVED" is two lines at 390 (one at 402 / 430 — `css/daily.css:140–143`,
+- **The room banner wraps at 390** (**DFIX2: FIXED** — 12 px / 0.1 em, `white-space: nowrap`; one line at 390 / 393 / 412 / 430)**:** "GAME STARTING · YOUR DAILY IS / SAVED" is two lines at 390 (one at 402 / 430 — `css/daily.css:140–143`,
   12.5 px / 0.14 em on `max-width: 100vw − 32px`). DM2's refine aimed for one line; a 12 px letter-spacing 0.1 em fits 390. Look only.
-- **YOUR SCORE COUNTS FROM TOMORROW** wraps to two lines on the ticket at 390 (reads fine; the ticket grows 14 px). Look only.
+- **YOUR SCORE COUNTS FROM TOMORROW** (DFIX2: LEFT — reads fine) wraps to two lines on the ticket at 390 (reads fine; the ticket grows 14 px). Look only.
 - **THE LAB page** (admin-only) with 54 effect slots runs at 30 fps at 2× CPU and 14.5 at 4× — a tool, never a player screen; the cards alone hold
   60 (below). Nothing to do unless Ben reviews the lab on a phone.
-- **Two per-id tables remain for the dailies' look:** `screens/daily.js:228 themeInk` and `share-today.js:11 INK` (the two inks; a third daily gets the
+- **Two per-id tables remain for the dailies' look** (DFIX2: LEFT for the third daily)**:** `screens/daily.js:228 themeInk` and `share-today.js:11 INK` (the two inks; a third daily gets the
   house pink) and `TICKET_ART` (a star for an unknown ticket key). Everything else walks the list; a new daily's row could carry `ink` + `ticket`
   art to make even these go away. Tiny, when the third daily comes.
 - **DST:** `dayStartAt` finds the 4 am instant by testing 08:00 / 09:00 UTC (`core/streak.js:37–41`); checked for Nov 1 2026 (the fall-back day:
   09:00 UTC) and Mar 8 2026 (the spring-forward day: 08:00 UTC) — right on both. The gate's 3:59 / 4:01 edge is in `daily-module.test.mjs`.
 
 ## QUESTIONS FOR BEN (the code can't decide these)
+
+**Ben, Nov 8 (DFIX2's Step 0): "go with all of his recommendations"** — 1 (a) accepted for now, (b) when public; 2 the day's close; 3 two players; 4 the flag; 5 the `pickDay` clear. All five built in DFIX2 except 1 (b), which waits for the public day (docs/games/plan.md DFIX2 — BEFORE PUBLIC).
 
 1. **The throwaway leak — accept it for now?** THE THROWAWAY GATE works exactly as decided (a same-day profile plays, keeps its streak + XP, never
    ranks, never gets a reward, is missing from YOUR TABLE and the band — all re-proved). But it does not stop review #1's finding 2: the throwaway

@@ -9,6 +9,8 @@
 //   everyoneLine(stand)      → 'TOP 12% OF EVERYONE' | ''                      only from BAND_MIN counting finishers (the server sends none below)
 //   midLine(n)               → '2 PLAYERS ARE MID-DAILY' | ''                  the host's line in the room (THE ROOM WINS)
 
+import { dayNum, dayOf } from '../core/streak.js';
+
 export const COUNTS_FROM_TOMORROW = 'YOUR SCORE COUNTS FROM TOMORROW';
 export const ROOM_BANNER = 'GAME STARTING · YOUR DAILY IS SAVED';
 export const RESUME_CHIP = 'RESUME YOUR DAILY';
@@ -88,4 +90,46 @@ export function shareTodayLine(today, lineOf, site = 'neonspeakeasy.com') {
   for (const d of ds) parts.push(`${d.name} ${has(today.mine, d.id) ? lineOf(d.id, today.mine[d.id]) : '—'}`);
   const sw = sweepState(today);
   return ['NEON SPEAKEASY DAILIES', ...parts, sw.swept ? 'SWEPT' : `${sw.done} of ${sw.of}`, site].join(' · ');
+}
+
+// ---------------------------------------------------------------- DFIX2 — THE DAILIES FIX PASS (FABLE REVIEW #2)
+/** the 4 am turn (finding 4): a `today` answer from another day is stale — the dock + the screen re-read it, never a reload */
+export const dayTurned = (today, dayNow) => !!(today && today.day && dayNow && today.day !== dayNow);
+
+/**
+ * THE RESUME CHIP's rule (finding 5): 'show' only while the held run is still resumable — its daily live, no score of yours in for it, and its
+ * day = today's, or yesterday's with the server saying a run is still in flight there (`started` + `startedDay`); 'drop' = the hold is stale (the
+ * run finished elsewhere, its day gone — the chip clears itself); 'none' = nothing to show (no hold, or no answer yet / the dailies off).
+ */
+export function chipState(today, held) {
+  if (!held || !held.id) return 'none';
+  const ds = list(today);
+  if (!ds.length) return 'none';
+  if (!ds.some(d => d.id === held.id)) return 'drop';
+  if (has(today.mine, held.id)) return 'drop';
+  if (!held.day || !today.day || held.day === today.day) return 'show';
+  const sd = today.startedDay && today.startedDay[held.id];
+  const inFlight = !!(today.started && today.started[held.id]) && (sd ? sd === held.day : held.day === dayOf(dayNum(today.day) - 1));
+  return inFlight ? 'show' : 'drop';
+}
+
+/** SLIM CARDS ON SCORES — a long table shows the top TABLE_TOP finishers + you (with your real place) and a SHOW ALL n row for the rest */
+export const TABLE_TOP = 5;
+export function tableCut(finishers, { top = TABLE_TOP, all = false } = {}) {
+  const rows = finishers || [];
+  if (all || rows.length <= top + 1) return { shown: rows, hidden: [], more: 0 };
+  const shown = rows.slice(0, top);
+  const me = rows.find((r, i) => r.me && i >= top);
+  if (me) shown.push(me);
+  return { shown, hidden: rows.filter(r => !shown.includes(r)), more: rows.length };
+}
+/** the table's split for the cards: the FINISHERS (a score, or PLAYED — their score hidden until you play) and the ones STILL TO PLAY */
+export function cardRows(rows) {
+  const finishers = (rows || []).filter(r => r.played || r.score != null);
+  return { finishers, waiting: (rows || []).filter(r => !finishers.includes(r)) };
+}
+/** the one line under the cards: "STILL TO PLAY · YOU · LOU · MAXIMILIANOS" (whole names; '' when everyone played) */
+export function stillToPlay(waiting) {
+  const names = (waiting || []).map(r => (r.me ? 'YOU' : String(r.name || 'FRIEND').toUpperCase()));
+  return names.length ? ['STILL TO PLAY', ...names].join(' · ') : '';
 }

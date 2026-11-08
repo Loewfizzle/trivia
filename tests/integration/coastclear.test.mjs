@@ -28,7 +28,7 @@ import { countsOf, flood, nbOf, runView, CAUGHT, safeCount } from '../../js/game
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
 const DAY_MS = 86_400_000;
 const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress', 'dsched', 'dsecret'];
-before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); forgetBoards(); await ref('rooms/CCPL/meta').set({ hostId: 'cc-host', status: 'playing', createdAt: NOW }); });
+before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); forgetBoards(); await ref('rooms/CCPL').set({ meta: { hostId: 'cc-host', status: 'playing', createdAt: NOW }, players: { 'cc-host': { name: 'cc-host' } } }); });   // (DFIX2: THE ROOM WINS needs 2+ players — the host is always in)
 after(async () => { await deleteApp(fb().app); });
 
 const ensure = (uid, name, at = NOW - 7 * 86_400_000) => profileAction(uid, { action: 'ensure', name, avatar: 'bolt', color: 'cyan' }, '', at);

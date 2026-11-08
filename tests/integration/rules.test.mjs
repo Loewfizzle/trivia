@@ -203,6 +203,18 @@ test('LOBBY 2.0 A — THE LINE: a player writes their own side of the door (L / 
   await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), { ...player('TWO'), joinedAt: 2, ln: 'L' }), 'in the node itself too');
 });
 
+test('DFIX2 — THE MID-DAILY FLAG: a player writes only their OWN rooms/{CODE}/players/{uid}/dy, a boolean, nothing else (the host\'s line reads it live — no poll)', async () => {
+  await seed(lobbyRoom());
+  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2/dy`), true), 'their own flag: a run held / open');
+  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2/dy`), null), 'cleared (resume / finish / the day turned)');
+  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2/dy`), false));
+  await assertFails(set(ref(db('p2'), `${R}/players/p2/dy`), 1), 'a boolean, never a number');
+  await assertFails(set(ref(db('p2'), `${R}/players/p2/dy`), 'coastclear'), 'never WHICH daily');
+  await assertFails(set(ref(db('p2'), `${R}/players/host/dy`), true), 'never another player’s');
+  await assertFails(set(ref(db('host'), `${R}/players/p2/dy`), true), 'not even the host’s hand');
+  await assertFails(set(ref(db('p2'), `${R}/players/p2/dyx`), true), 'no other field');
+});
+
 test('LOBBY 2.0 B — THE GAME START + AFTER THE MATCH: meta/go + meta/back stamped by the host at the server\'s now; nobody else', async () => {
   await seed(lobbyRoom());
   await assertSucceeds(update(ref(db('host'), R), { 'meta/go': { at: serverTimestamp(), m: 'm1', g: 'overclock' }, 'meta/back': null, rv: null }), 'the start\'s stamp first (+ the walk-out + the votes cleared)');

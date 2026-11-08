@@ -8,6 +8,8 @@ import { val } from './fb.js';
 import { streakDay, dayNum, dayOf } from '../../js/core/streak.js';
 
 export const GO_FRESH_MS = 120_000;
+/** THE ROOM WINS needs this many players in the room (DFIX2 — a room of one can't pause a daily) */
+export const MIN_PARTY = 2;
 const CODE = /^[A-Z]{4}$/;
 
 /** has `code`'s room started a game, with this player in it? → the code, or null */
@@ -20,7 +22,9 @@ export async function roomStarted({ uid, pid, code, now = Date.now() }) {
   const inIt = !!players[uid] || (!!pid && Object.values(players).some(p => p && p.pid === pid));
   const go = meta.go && Number(meta.go.at);
   const started = meta.status === 'playing' || (!!go && now - go >= -5000 && now - go <= GO_FRESH_MS);
-  return inIt && started ? c : null;
+  // DFIX2 (FABLE REVIEW #2, finding 8 → Ben's decision 3): a room of ONE isn't a party — 2+ real players (distinct uids) dealt into the game
+  const party = Object.keys(players).filter(u => players[u]).length >= MIN_PARTY;
+  return inIt && started && party ? c : null;
 }
 
 /** the players of `code` with a daily in flight (today's start without a result, or yesterday's when today has none — the run a phone resumes) */
