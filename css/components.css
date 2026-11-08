@@ -599,6 +599,9 @@ body.bd-on .help-btn, body.help-open .help-btn { display: none; }
 .winner { flex: none; overflow-x: clip; overflow-y: visible; }   /* (SHELL 2.0 A: the winner line wraps whole — never cut at the bottom) */
 .winner-name { line-height: 1.5; text-wrap: balance; }
 .final-back { flex: none; }
+/* FRIENDS B — THE END SCREEN TAKES THE GAME'S COLOUR: a cartridge's ACCENT (--fin, set by ui/final.js) re-lights the frame's main tube in the
+   game's colour (OVERCLOCK = molten orange); without one it stays THE NEON TUBE's pink */
+.final.has-accent .final-back { --tc: var(--fin); --tcore: color-mix(in srgb, var(--fin) 16%, #fff); --tg: color-mix(in srgb, var(--fin) 55%, transparent); --tg2: color-mix(in srgb, var(--fin) 30%, transparent); text-shadow: 0 0 10px color-mix(in srgb, var(--fin) 55%, transparent); }
 
 /* ---- how to play ---- */
 .sheet.help { max-height: 92dvh; gap: 14px; }
@@ -1200,12 +1203,13 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .lb-row.lb-strip.is-first .lb-rank { color: var(--yellow); }
 .lb-card { position: relative; min-width: 0; }
 .lb-card .vl-strip { width: 100%; }
-.lb-over { position: absolute; z-index: 4; top: 7px; right: 9px; display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
-  background: rgba(6, 5, 14, 0.82); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16); pointer-events: none; }
-.lb-over .lb-score { min-width: 0; font-size: 16px; color: #fff; }
-.lb-over .lb-delta { font-size: 11px; }
-.lb-sub { display: flex; gap: 8px; margin: 4px 2px 0; font: 700 10px/1.2 var(--font-mono); letter-spacing: 0.1em; color: var(--text-dim); }
-.lb-sub .lb-note { margin: 0; }
+/* (FRIENDS B: the score OFF the card — the stats line under it: the game's note on the left, the SCORE at the right end, big + bright) */
+.lb-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 5px 2px 0; font: 700 10px/1.2 var(--font-mono); letter-spacing: 0.1em; color: var(--text-dim); }
+.lb-sub .lb-note { margin: 0; min-width: 0; }
+.lb-pts { margin-left: auto; display: inline-flex; align-items: baseline; gap: 6px; }
+.lb-pts .lb-score { min-width: 0; font: 800 19px/1 var(--font-num); letter-spacing: 0.01em; color: #fff; text-shadow: 0 0 12px color-mix(in srgb, var(--c, #fff) 45%, transparent); font-variant-numeric: tabular-nums; }
+.lb-pts .lb-delta { font: 700 12px/1 var(--font-num); }
+.lb-pts .lb-move { font-size: 10px; }
 
 /* SHELL 2.0 B1 — THE SOLO LANE's podium (ui/final.js: a room of one): SOLO RUN, the player + the score — no place number, no "1" block */
 .final.is-solo .pod-block span { visibility: hidden; }

@@ -36,6 +36,8 @@ export const OPTIONAL = Object.freeze({
                                 //   (ui/final.js — the console keeps the XP box, the moment + the card reveal, BACK TO THE ROOM)
   daily: 'object',              // THE DAILY PLUG-IN (ships OFF — THE DAILY MODULE switches the dailies on): see DAILY below
   LOOKS: 'array',               // OC1 — its looks (default both); ONE = always that look, the setting shows LOCKED (lookLockOf; docs/cartridge.md)
+  OWN_VICTORY_SOUND: 'boolean', // FRIENDS B (B2) — true = its body plays its OWN winner sound: the console's podium sting is skipped (OVERCLOCK's fanfare)
+  ACCENT: 'string',             // FRIENDS B — the END SCREEN's colour (the console frame's main tube): a #hex; missing = THE NEON TUBE's pink
 });
 /** what host.js passes to start() (tested) */
 export const START_ARGS = Object.freeze(['code', 'matchId', 'settings', 'participants', 'now', 'used']);
@@ -53,7 +55,7 @@ export const DAILY = Object.freeze({ on: 'boolean', create: 'function', resumeKe
 //   BEFORE a match (the registry imports only the metas at boot); index.js re-exports them (`export * from './meta.js'`) and everything
 //   else (start, prepare, step, livePaths, finalRanks, finalScene, sealed, rematchSettings, daily.create, feats, createView) loads with the
 //   cartridge (games/registry.js#loadGame — the host's start, every phone's walk inside, a refresh mid-match).
-export const META_KEYS = Object.freeze(['DEFAULT_SETTINGS', 'OPTIONS', 'estimateMinutes', 'MUSIC', 'FINAL_MUSIC', 'MIN_PLAYERS', 'SOLO', 'BANNER_NAME', 'CHAT_CHIPS', 'chatLocked', 'NO_INTERCOM', 'LOOKS']);
+export const META_KEYS = Object.freeze(['DEFAULT_SETTINGS', 'OPTIONS', 'estimateMinutes', 'MUSIC', 'FINAL_MUSIC', 'MIN_PLAYERS', 'SOLO', 'BANNER_NAME', 'CHAT_CHIPS', 'chatLocked', 'NO_INTERCOM', 'LOOKS', 'OWN_VICTORY_SOUND', 'ACCENT']);
 // THE PRELOAD BUDGET: a game's preload() runs on EVERY phone during the start's ~5 s (the lit sign + the walk inside) — at most ~1.5 MB
 //   (its sounds, its fonts, its FIRST content pool); the rest lazy. The start never waits past its 5 s for it: the game shows when its own
 //   pieces are ready (its view says LOADING itself, never the console).
@@ -81,6 +83,7 @@ export function checkCartridge(id, mod, o = {}) {
     if (mod.daily.on === true) out.push(`${id}: daily.on — the daily ships OFF (THE DAILY MODULE switches the dailies on together)`);
   }
   if (Array.isArray(mod.OPTIONS)) for (const op of mod.OPTIONS) if (!op || !op.key || !(op.key in (mod.DEFAULT_SETTINGS || {}))) out.push(`${id}: OPTIONS row "${op && op.key}" has no DEFAULT_SETTINGS value`);
+  if (mod.ACCENT != null && !/^#[0-9a-f]{6}$/i.test(String(mod.ACCENT))) out.push(`${id}: ACCENT — a #rrggbb colour (the end screen's frame)`);
   if (mod.LOOKS != null && (!Array.isArray(mod.LOOKS) || !mod.LOOKS.length || mod.LOOKS.some(l => !LOOK_VALUES.includes(l)) || new Set(mod.LOOKS).size !== mod.LOOKS.length)) out.push(`${id}: LOOKS — one or both of 'day' / 'night', each once`);
   if (o.marks && !o.marks[id]) out.push(`${id}: no tube mark in core/marks.js (the sign at the game start + the city's signs)`);
   if (o.game && (!o.game.name || !o.game.theme)) out.push(`${id}: its config.js GAMES row needs a name + a theme`);

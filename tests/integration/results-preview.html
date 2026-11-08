@@ -32,11 +32,15 @@
   };
   installEmblems();
   const players = { me: { name: 'BENNY', color: 'magenta', avatar: 'crown', pid: 'pmeeeeeeeeee' }, u2: { name: 'DEX', color: 'cyan', avatar: 'bolt' }, u3: { name: 'LUNA', color: 'yellow', avatar: 'moon' } };
-  setState({ code: 'ABCD', uid: 'me', players, game: { id: 'slip', matchId: `m${kind}`, phase: 'final', participants: { me: true, u2: true, u3: true } } });
+  // (FRIENDS B — &n=5: a bigger room — B4's list starts at 4th; the rows carry a game's note, like PRISM DROP's "KO · SENT · BADGES")
+  const N = Math.max(3, Math.min(8, Number(q.get('n')) || 3));
+  const MORE = [['u4', 'MAXIMILIANOS', 'green', 'ghost'], ['u5', 'ZED', 'orange', 'star'], ['u6', 'KIT', 'violet', 'heart'], ['u7', 'OPAL', 'red', 'diamond'], ['u8', 'WREN', 'cyan', 'bolt']];
+  for (const [u, name, color, avatar] of MORE.slice(0, N - 3)) players[u] = { name, color, avatar };
+  setState({ code: 'ABCD', uid: 'me', players, game: { id: 'slip', matchId: `m${kind}`, phase: 'final', participants: Object.fromEntries(Object.keys(players).map(u => [u, true])) } });
   // (SHELL 2.0 A — the XP box's fit test: &xp=from,to overrides the case's XP — e.g. LEGEND · LEVEL 99 → "662 XP TO 100")
   if (q.get('xp')) { const [a, b] = q.get('xp').split(',').map(Number); OUT[kind] = { ...OUT[kind], xp: xp(a, b) }; }
   sessionStorage.setItem(`rc:ABCD_m${kind}`, JSON.stringify(OUT[kind]));
-  const rows = [{ uid: 'me', rank: 1, score: 9412 }, { uid: 'u2', rank: 2, score: 8100 }, { uid: 'u3', rank: 3, score: 5200 }];
+  const rows = [{ uid: 'me', rank: 1, score: 9412 }, { uid: 'u2', rank: 2, score: 8100 }, { uid: 'u3', rank: 3, score: 5200 }, ...MORE.slice(0, N - 3).map(([u], i) => ({ uid: u, rank: 4 + i, score: 4100 - i * 650, note: `${3 - (i % 3)} KO · ${5 - i} SENT · ${2 + i} BADGES` }))];
   setTimeout(() => {
     const f = createFinal({ rows, players, me: 'me', presence: {}, winnerLine: n => `${n} RODE THE FARTHEST`, scoreLabel: 'M' });
     document.querySelector('.screen').append(f.el);

@@ -201,11 +201,14 @@ function musicFor(st) {
   const mod = metaOf(st.game.id);   // (SHELL 2.0 B1: the meta carries MUSIC; the loaded cartridge its musicFor)
   // MUSIC: null = no music during the match (PULSE: the song is the music; menu music fades out)
   // musicFor(game): a track that changes during the match (NEON PAR: one per zone) -> [track, fallback]
-  if (mod && mod.musicFor && st.game.phase !== 'final') return mod.musicFor(st.game);
+  // (FRIENDS B — B2: the podium's music starts with the podium FRAME on screen (ui/final.js sets state.podium) — never during a last round's
+  //  answer screen inside 'final' (OVERCLOCK's beats); until then the game's own track keeps playing)
+  const podium = st.game.phase === 'final' && st.podium === st.game.matchId;
+  if (mod && mod.musicFor && !podium) return mod.musicFor(st.game);
   const track = mod && mod.musicFor ? mod.musicFor(st.game)[0] : mod && 'MUSIC' in mod ? mod.MUSIC : 'menu';
   // FINAL_MUSIC: a game's own podium music (HIGH STAKES: victory.mp3, never the other fanfares)
   // (SHELL 2.0 B1: a mood station — 'mood:evening' — falls back to the menu song until the mood decks have loaded)
-  return st.game.phase === 'final' ? [(mod && mod.FINAL_MUSIC) || 'victory', track] : [track, typeof track === 'string' && track.startsWith('mood:') ? 'menu' : undefined].filter(x => x !== undefined);
+  return podium ? [(mod && mod.FINAL_MUSIC) || 'victory', track] : [track, typeof track === 'string' && track.startsWith('mood:') ? 'menu' : undefined].filter(x => x !== undefined);
 }
 
 function render(st) {

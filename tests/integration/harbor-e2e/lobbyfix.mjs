@@ -628,7 +628,7 @@ G('shell', async () => {
   const { launch } = await import('./kit.mjs');
   const ctx = await (await launch()).createBrowserContext(), q = await ctx.newPage();
   await q.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-  await q.goto(`${BASE}/tests/integration/results-preview.html?case=pb`);
+  await q.goto(`${BASE}/tests/integration/results-preview.html?case=pb&n=5`);   // (FRIENDS B — B4: 5 players, the list from 4th)
   await waitFor(q, "!!document.querySelector('.final .final-back')", 'the podium', 15000);
   for (let i = 0; i < 6 && await ev(q, "!!document.querySelector('.pg-moment')"); i++) { await ev(q, "(() => { const b = document.querySelector('.pg-moment .pg-btn'); if (b) b.click(); })()"); await sleep(700); }
   await sleep(600);
@@ -638,27 +638,29 @@ G('shell', async () => {
   // ---- THE ADD-ON: the results rows = the players' SLIM CARDS (the winner's on top), on ONE shared effect surface
   const sb = await ev(q, `(() => { const l = document.querySelector('.final .board-list'), rows = [...l.querySelectorAll('.lb-row')];
     return { strips: l.classList.contains('is-strips'), n: rows.filter(r => r.querySelector('.vl-strip')).length, rows: rows.length, first: (rows[0].querySelector('.vl-name') || {}).textContent, rank: rows[0].querySelector('.lb-rank').textContent,
-      score: !!rows[0].querySelector('.lb-over .lb-score'), canvases: l.querySelectorAll('canvas').length }; })()`);
-  ok(sb.strips && sb.n === sb.rows && /BENNY/.test(sb.first) && sb.rank === '01' && sb.score && sb.canvases <= 1, `THE RESULTS ROWS = SLIM CARDS: ${sb.n}/${sb.rows} strips, the winner's on top ("${sb.first}" ${sb.rank}), the score over it, ${sb.canvases} shared canvas`);
+      score: !!rows[0].querySelector('.lb-sub .lb-score'), canvases: l.querySelectorAll('canvas').length }; })()`);
+  ok(sb.strips && sb.n === sb.rows && sb.rows === 2 && /MAXIMILIANOS/.test(sb.first) && sb.rank === '04' && sb.score && sb.canvases <= 1, `THE RESULTS ROWS = SLIM CARDS: ${sb.n}/${sb.rows} strips — B4: the podium shows 1st–3rd, the list starts at 4th ("${sb.first}" ${sb.rank}), the score in the line under the card, ${sb.canvases} shared canvas`);
   if (SHOTS) await q.screenshot({ path: `${OUT}shell-podium-390.png` });
   await ctx.close();
-  // ---- THE XP BOX FITS (the owner: "LEVEL 1451 XP"): its pieces never collide + YOUR CARD on ONE line — a 2-digit level, a 2-digit + 3-digit
+  // ---- THE XP BOX FITS (the owner: "LEVEL 1451 XP"): its pieces never collide; FRIENDS B: the WHOLE box is the button to your card (no YOUR
+  //      CARD tube), the reason line WRAPS (never cut) — a 2-digit level, a 2-digit + 3-digit
   //      pair (LEGEND · LEVEL 99 → 662 XP TO 100) and the longest band name (NEWCOMER) at 390 / 402 / 430
   const fits = [];
   for (const [w, hh] of [[390, 844], [402, 874], [430, 932]]) for (const xpq of ['', '&xp=44300,44338', '&xp=0,20']) {
     const c2 = await (await launch()).createBrowserContext(), r2 = await c2.newPage();
     await r2.setViewport({ width: w, height: hh, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     await r2.goto(`${BASE}/tests/integration/results-preview.html?case=pb${xpq}`);
-    await waitFor(r2, "!!document.querySelector('.final .rc-xp .rc-xp-card')", 'the XP box', 15000).catch(() => {});
+    await waitFor(r2, "!!document.querySelector('.final .rc-xp .rc-xp-chev')", 'the XP box', 15000).catch(() => {});
     await sleep(500);
     fits.push(await ev(r2, `(() => { const box = document.querySelector('.final .rc-xp'); if (!box) return { ok: false, why: 'no box' };
-      const parts = [...box.querySelectorAll('.rc-xp-step, .rc-xp-need, .rc-xp-card, .rc-xp-top')].map(e => ({ t: e.textContent, r: e.getBoundingClientRect() }));
+      const parts = [...box.querySelectorAll('.rc-xp-step, .rc-xp-need, .rc-xp-chev, .rc-xp-top')].map(e => ({ t: e.textContent, r: e.getBoundingClientRect() }));
       const hit = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
       const clash = []; for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) if (parts[i].t && parts[j].t && hit(parts[i].r, parts[j].r)) clash.push(parts[i].t + ' × ' + parts[j].t);
-      const b = box.querySelector('.rc-xp-card'), rg = document.createRange(); rg.selectNodeContents(b); const lines = new Set([...rg.getClientRects()].map(x => Math.round(x.top))).size;
+      const pr = box.querySelector('.rc-xp-parts'), lines = pr && pr.scrollWidth <= pr.clientWidth + 1 && getComputedStyle(pr).textOverflow !== 'ellipsis' ? 1 : 0;
+      const btn = box.tagName === 'BUTTON' && !box.querySelector('.rc-xp-card');
       const inBox = parts.every(p => p.r.right <= box.getBoundingClientRect().right + 0.5);
-      return { ok: !clash.length && lines === 1 && inBox, w: innerWidth, lv: (box.querySelector('.rc-xp-step') || {}).textContent, clash, lines, inBox }; })()`));
+      return { ok: !clash.length && lines === 1 && inBox && btn, w: innerWidth, lv: (box.querySelector('.rc-xp-step') || {}).textContent, clash, lines, inBox }; })()`));
     await c2.close();
   }
-  ok(fits.every(f => f.ok), `THE XP BOX FITS at 390 / 402 / 430 (${fits.map(f => `${f.w}: ${f.lv}${f.ok ? '' : ` ✗ ${f.clash.join(' · ')} lines ${f.lines} in ${f.inBox}`}`).join(' | ')}) — nothing collides, YOUR CARD on one line`);
+  ok(fits.every(f => f.ok), `THE XP BOX FITS at 390 / 402 / 430 (${fits.map(f => `${f.w}: ${f.lv}${f.ok ? '' : ` ✗ ${f.clash.join(' · ')} lines ${f.lines} in ${f.inBox}`}`).join(' | ')}) — nothing collides, the whole box a button (no YOUR CARD tube), the reasons whole`);
 });

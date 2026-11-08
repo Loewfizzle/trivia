@@ -118,7 +118,16 @@ test('THE CARDS: the full card wears the tier gem in its top-right corner; a 1-o
 
 test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the XP box → ONE button BACK TO THE ROOM (the tube main) → the board', () => {
   const f = read('js/ui/final.js');
-  assert.match(f, /body \|\| podium,\n\s+rcSlot,\n\s+actions,\n\s+extra,\n\s+leaderboard\(/);
+  assert.match(f, /body \|\| podium,\n\s+rcSlot,\n\s+actions,\n\s+extra,\n\s+listRows\.length \? leaderboard\(listRows/);
+  // (FRIENDS B — B4: the body shows 1st–3rd → the list from 4th; a body with NO podium says so; B2: OWN_VICTORY_SOUND skips the sting;
+  //  the music waits for the frame (state.podium); the game's ACCENT on the frame)
+  assert.match(f, /const listRows = top3 \? rows\.slice\(3\) : rows;/);
+  assert.match(f, /if \(!\(mod && mod\.OWN_VICTORY_SOUND\)\) pgSfx\('victory'\);/);
+  assert.match(f, /setState\(\{ podium: g\.matchId \}\)/);
+  assert.match(read('js/app.js'), /const podium = st\.game\.phase === 'final' && st\.podium === st\.game\.matchId;/);
+  assert.match(f, /el\.style\.setProperty\('--fin', mod\.ACCENT\)/);
+  const oc = read('js/games/overclock/meta.js');
+  assert.match(oc, /export const ACCENT = '#ff6a1a';/); assert.match(oc, /export const OWN_VICTORY_SOUND = true;/);
   assert.match(f, /h\('button\.btn\.btn-primary\.btn-block\.final-back'/);
   assert.doesNotMatch(f, /'REMATCH'|rematch\(\)/, 'no rematch on the podium (the room dock has the vote)');
   assert.match(f, /mod\.finalScene\(body, g, state\)/);

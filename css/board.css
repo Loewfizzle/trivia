@@ -438,13 +438,14 @@ body.reduced-fx .bd-card.is-cascade .bd-row { animation-duration: 0.01s; animati
 .rc-plaque.is-first .rc-n { font-size: 15px; }
 .rc-plaque.is-top10, .rc-plaque.is-world, .rc-plaque.is-week { border-color: rgba(160, 230, 255, 0.5); background: linear-gradient(180deg, rgba(16, 26, 40, 0.92), rgba(8, 10, 18, 0.94)); box-shadow: inset 0 1px 0 rgba(220, 245, 255, 0.26), 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 26px rgba(120, 210, 255, 0.18); }
 .rc-plaque.is-top10 .rc-n, .rc-plaque.is-world .rc-n, .rc-plaque.is-week .rc-n { text-shadow: 0 0 12px rgba(140, 220, 255, 0.7); }
-.rc-xp { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(12, 10, 24, 0.72); border: 1px solid color-mix(in srgb, var(--rk) 35%, transparent); opacity: 0; transform: translateY(8px); transition: opacity 0.5s var(--ease), transform 0.6s var(--ease); }
+.rc-xp { width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(12, 10, 24, 0.72); border: 1px solid color-mix(in srgb, var(--rk) 35%, transparent); opacity: 0; transform: translateY(8px); transition: opacity 0.5s var(--ease), transform 0.6s var(--ease); }
 .rc-xp.is-in { opacity: 1; transform: none; }
 .rc-xp-main { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.rc-xp-top { display: flex; align-items: baseline; gap: 2px; min-width: 0; font: 700 10px/1 var(--font-mono); letter-spacing: 0.16em; color: var(--text-dim); }
+.rc-xp-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px; row-gap: 4px; min-width: 0; font: 700 10px/1 var(--font-mono); letter-spacing: 0.16em; color: var(--text-dim); }
 .rc-xp-top b { font: 700 16px/1 var(--font-num); color: var(--rk); letter-spacing: 0; text-shadow: 0 0 10px color-mix(in srgb, var(--rk) 60%, transparent); }
-.rc-xp-parts { margin-left: 8px; font-size: 8.5px; letter-spacing: 0.12em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-faint); }
-.rc-xp-bar { position: relative; height: 6px; border-radius: 99px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
+.rc-xp-parts { margin-left: 8px; flex: 1 1 150px; min-width: 0; font-size: 9px; line-height: 1.35; letter-spacing: 0.12em; white-space: normal; overflow-wrap: anywhere; color: var(--text-faint); }   /* (FRIENDS B: wraps — every reason whole) */
+.rc-xp-main { display: flex; }
+.rc-xp-bar { display: block; position: relative; height: 6px; border-radius: 99px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
 .rc-xp-fill { position: absolute; inset: 0; transform-origin: 0 50%; transform: scaleX(var(--f0)); background: linear-gradient(90deg, color-mix(in srgb, var(--rk) 55%, #fff), var(--rk)); box-shadow: 0 0 10px var(--rk); transition: transform 1.3s var(--ease) 0.3s; }
 .rc-xp.is-in .rc-xp-fill { transform: scaleX(max(0.02, var(--f))); }
 /* (SHELL 2.0 A — ADD-ON: "REGULAR · LEVEL 14" + "51 XP TO 15" collided at 390 ("LEVEL 1451 XP") — the next-level line is its OWN ROW under
@@ -453,7 +454,10 @@ body.reduced-fx .bd-card.is-cascade .bd-row { animation-duration: 0.01s; animati
 .rc-xp-next > span { white-space: nowrap; }
 .rc-xp-lv { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .rc-xp-lv > span { white-space: nowrap; }
-.rc-xp-next .rc-xp-card { margin-left: auto; }
+/* FRIENDS B — the whole box opens your card: a quiet › at its right edge says so; a press dims it a touch (transform only) */
+.rc-xp-chev { align-self: center; font: 400 22px/1 var(--font-ui); color: color-mix(in srgb, var(--rk) 70%, #fff); opacity: 0.8; }
+.rc-xp.is-in:active { transform: scale(0.985); }
+.rc-xp:focus-visible { outline: 2px solid color-mix(in srgb, var(--rk) 70%, #fff); outline-offset: 2px; }
 
 /* RANK UP: the old emblem dissolves, the new one forges in light, the name resolves */
 .rc-up { position: fixed; inset: 0; z-index: 400; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; opacity: 0; transition: opacity 0.35s ease; -webkit-tap-highlight-color: transparent; }

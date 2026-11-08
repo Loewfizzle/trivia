@@ -119,25 +119,27 @@ export function attachCallouts(code, game) {
     const from = levelInfo(o.xp.from), to = levelInfo(o.xp.to);
     const fill = h('span.rc-xp-fill', { style: { '--f0': String(from.lvl === to.lvl ? from.frac : 0), '--f': String(to.frac) } });
     const gain = h('b', '+0');
-    const line = h('div.rc-xp', { style: { '--rk': RANK_COLORS[to.band.r] } },
+    // (FRIENDS B — the owner's podium test: the WHOLE XP BOX is the way to your card (its YOUR CARD button gone — one clear button on the podium,
+    //  BACK TO THE ROOM); a real <button>, so iOS sends the tap; the reason line WRAPS, never "NEW GAME TONI…")
+    const line = h('button.rc-xp', { type: 'button', style: { '--rk': RANK_COLORS[to.band.r] }, 'aria-label': 'Your card', onclick: () => import('../screens/profile.js').then(m => m.openCard()) },
       emblem(to.band.r, 22),
-      h('div.rc-xp-main',
-        h('div.rc-xp-top', gain, h('span', ' XP'), h('span.rc-xp-parts', o.xp.parts.map(p => p.label).join(' · '))),
-        h('div.rc-xp-bar', fill)),
+      h('span.rc-xp-main',
+        h('span.rc-xp-top', gain, h('span', ' XP'), h('span.rc-xp-parts', o.xp.parts.map(p => p.label).join(' · '))),
+        h('span.rc-xp-bar', fill)),
+      h('span.rc-xp-chev', { 'aria-hidden': 'true' }, '›'),
       h('span.rc-xp-next', ...xpNext(o)));
     el.append(line);
     turnOn(line, 'is-in');
     countUp(gain, 0, o.xp.gain, reduced() ? 1 : 900, v => `+${num(v)}`);
   }
 
-  // under the bar: the band + the level, what the next level needs, the streak, and the card
+  // under the bar: the band + the level, what the next level needs, the streak (the whole box opens the card — FRIENDS B)
   function xpNext(o) {
     const to = levelInfo(o.xp.to);
     return [
       // (SHELL 2.0 A — ADD-ON: the band · level OVER what the next needs — two lines, so YOUR CARD fits beside them at 390 and nothing collides)
       h('span.rc-xp-lv', h('span.rc-xp-step', `${to.band.name} · LEVEL ${to.lvl}`), to.max ? null : h('span.rc-xp-need', `${num(to.need)} XP TO ${to.lvl + 1}`)),
       o.streak >= 2 ? h('span', `${o.streak}-NIGHT STREAK 🔥`) : null,
-      h('button.btn.btn-ghost.btn-sm.rc-xp-card', { type: 'button', onclick: () => import('../screens/profile.js').then(m => m.openCard()) }, 'YOUR CARD'),   // (SHELL 2.0 A: a small quiet tube)
     ];
   }
 

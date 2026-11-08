@@ -33,11 +33,12 @@ export async function upgradeBoard(list, rows, players) {
       lv: levelOf((pub && pub.x) || 0), emblem: pub && pub.es, avatar: p.avatar, color: p.color, tube: pub && pub.tb, glow: pub && pub.g, no: pub ? memberLabel(pub.mn) : null });
     if (isOneOfOne(card) && real) import('../vault/dress.js').then(m => m.oneOfOne(el)).catch(() => {});
     // the row keeps its rank + its score (the count-up runs on the same element); the strip takes the avatar + name's place
-    // (the score laid over the strip's top-right with its delta + arrow; a game's note — "3 KO · 2 SENT" — under it)
+    // (FRIENDS B — the owner's podium test: the score's bubble covered "Nº 0002" + the gem → the SCORE leaves the card: it sits in the stats
+    //  line UNDER the card — at its right end, beside the game's note ("3 KO · 2 SENT · 1 BADGES"), in a bigger number font; the delta + arrow with it)
     const keep = c => row.querySelector(c);
     const score = keep('.lb-score'), note = keep('.lb-note'), lost = keep('.lb-lost');
-    const over = h('div.lb-over', keep('.lb-move'), keep('.lb-delta'), score);
-    const slot = h('div.lb-card', el, over, note || lost ? h('div.lb-sub', lost, note) : null);
+    const pts = h('span.lb-pts', keep('.lb-move'), keep('.lb-delta'), score);
+    const slot = h('div.lb-card', el, h('div.lb-sub', lost, note, pts));
     for (const k of [...row.children]) if (!k.classList.contains('lb-rank')) k.remove();
     row.append(slot);
     row.classList.add('lb-strip');

@@ -12,6 +12,10 @@ export const SOLO = true;
 export const BANNER_NAME = 'OVERCLOCK';
 // NIGHT only (the OVERDRIVE skin) — a DAY skin later = ['day', 'night']
 export const LOOKS = ['night'];
+// FRIENDS B — the END SCREEN in OVERDRIVE's molten orange (the console frame's main tube); the body's fanfare is the winner sound (B2:
+// the console's sting skipped — no double sound)
+export const ACCENT = '#ff6a1a';
+export const OWN_VICTORY_SOUND = true;
 
 export const OPTIONS = [
   { key: 'mode', label: 'MODE', type: 'list', choices: [

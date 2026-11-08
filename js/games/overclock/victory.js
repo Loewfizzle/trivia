@@ -116,6 +116,7 @@ export function finalScene(el, game, state) {
     }).catch(() => {});
   } else if (zero) {
     // NOBODY SCORED (A2): the graphite stamp + the zero — no sign, no fanfare, no podium (nobody earned a step)
+    el.dataset.podium = 'none';   // (FRIENDS B — B4: the console's results list then shows everyone)
     kids.push(
       h('div.oc-vic-stamp.is-none', h('span.oc-vic-stamp-glow', { 'aria-hidden': 'true' }), h('b', 'NOBODY SCORED')),
       h('div.oc-vic-solo.is-none', h('b.oc-vic-solo-n', '0'), h('span.oc-vic-solo-k', 'POINTS')));

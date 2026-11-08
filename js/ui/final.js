@@ -13,7 +13,7 @@ import { colorHex } from '../config.js';
 import { isHost, state, setState } from '../store.js';
 import { backToLobby } from '../host.js';
 import { toast } from './toast.js';
-import { sfx } from '../audio/sfx.js';
+import { pgSfx } from '../audio/progress-sfx.js';
 import { rankBadge } from './emblems.js';
 import { pubOf } from '../profile/public.js';
 import { metaOf } from '../games/registry.js';
@@ -77,6 +77,11 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   let hostShown = null;
   function refresh() { hostShown = isHost(); back.dataset.host = hostShown ? '1' : '0'; }
   refresh();
+  // (FRIENDS B — B4: a body that already shows the top three (OVERCLOCK's 2-1-3 podium, the console's own) → the results list starts at 4th;
+  //  a solo run / a room of ≤ 3 has no list then; a body that shows NO podium says so — el.dataset.podium = 'none' (OVERCLOCK's NOBODY
+  //  SCORED) → the whole list)
+  const top3 = !body || body.dataset.podium !== 'none';
+  const listRows = top3 ? rows.slice(3) : rows;
   const el = h('div.panel-full.final', solo ? { class: 'is-solo' } : null,
     h('div.sheet-kicker', kicker),
     h('div.winner', h('div.winner-title', { 'data-text': word, class: tied ? 'is-tied' : null }, word),
@@ -85,10 +90,17 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     rcSlot,
     actions,
     extra,
-    leaderboard(rows, players, { me, presence, stagger: 60 }));
+    listRows.length ? leaderboard(listRows, players, { me, presence, stagger: 60 }) : null);
+  // (FRIENDS B — THE END SCREEN TAKES THE GAME'S COLOUR: the cartridge's ACCENT tints the frame's main tube; missing = the pink)
+  if (mod && typeof mod.ACCENT === 'string' && /^#[0-9a-f]{6}$/i.test(mod.ACCENT)) { el.classList.add('has-accent'); el.style.setProperty('--fin', mod.ACCENT); }
+  // (FRIENDS B — B2: THE VICTORY MUSIC waits for the BODY: app.js#musicFor plays the podium music once this frame is on screen — never during
+  //  the last round's answer screen. Local state, keyed by the match — a refresh on the podium remounts the frame and sets it again)
+  if (g && g.matchId && state.podium !== g.matchId) queueMicrotask(() => { if (!gone && state.podium !== g.matchId) setState({ podium: g.matchId }); });
   const t = setTimeout(() => {
     el.classList.add('crowned');
-    sfx('victory');
+    // (FRIENDS B — the winner sting = THE PODIUM SOUNDS' xylophone flourish (was the synth arpeggio); a cartridge with OWN_VICTORY_SOUND
+    //  plays its own — OVERCLOCK's fanfare — so the console stays quiet: never two winner sounds — B2)
+    if (!(mod && mod.OWN_VICTORY_SOUND)) pgSfx('victory');
     if (rows[0] && rows[0].uid === me) vibrate([40, 60, 40, 60, 120]);
     const c = rows[0] && players[rows[0].uid];
     burst(el, [c ? colorHex(c.color) : '#3dff8b', '#f3ff3a', '#ff2bd6', '#00f0ff'], 48);
