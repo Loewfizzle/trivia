@@ -373,3 +373,13 @@ card's frame, CUSTOMIZE YOUR CARD + the level bar; hot pink = the end of round's
   (`me.js#previousKey` — the key held before a restore / a new key): tap = COPY; FORGET (a second tap confirms).
 - **MAKE HOST** (the room): the host's row on a player's card (docs/data-model.md — the rule takes a hand-off only to a live online player).
 - **THE CREW SWITCH LIVE**: `radioCrewSet` with the room → `rooms/{CODE}/radioCrew/role/{uid}` → that phone loads / drops its radio at once.
+
+## THE CARD PASS (Nov 7 2026 — docs/harbor/passes/card-pass.md)
+- **THE GIFT QUEUE** (`api/_lib/gifts.js`): a GIVE adds `ppriv/{pid}/gq/{pushKey}` = `{ id, at }` (it still equips the card — the newest gift is
+  the one worn). `/api/profile giftCheck` → `{ gifts: [{ k, id, at }] (unseen, in order), done, gift (the first, for an old phone) }`;
+  `giftSeen { k }` stamps `s` on that one; the last one seen clears the line; no `k` = the first unseen (an old phone). The old `ppriv/{pid}/gift`
+  slot migrates on the next check (first in line). `me`'s `priv.gift` = the first unseen, `priv.gifts` = how many wait. Server-only — no rule.
+- **B1 — AN EMPTY SOLO RUN NEVER COUNTS**: `core/match-report.js#soloEmpty` (nothing answered — no right part — and a total of 0) marks the row
+  `empty`; `core/progress.js#matchStep` skips it (`skip: 'empty'`: no solo XP, no streak day, no solo-lane count, nothing written).
+- **B3**: the OVERCLOCK solo boards' tabs + column read QUICK · SOLO / STANDARD · SOLO. **B8**: the /api-down solo run proven (queued, sent once).
+

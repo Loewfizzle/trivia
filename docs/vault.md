@@ -650,3 +650,27 @@ COAST CLEAR's two collectibles, awarded by the SERVER from its own record of the
   lamp room + cap, a cyan wave at its foot); its BEAM swinging on the lamp (`ve-lhbeam` — one HTML-wrapped layer, scaleX through 0 = the lens turning) +
   the lamp's glow breathing (`ve-lhglow`). The lighthouse picture in dailies-cards-v2 was a shape reference only. THE LAB: n 193.
 - Their names + lines live on the server (`api/_lib/catalog.js`, `lab-text.js`); the lab's APPROVE · FIX · CUT gates the art like every card.
+
+## THE CARD PASS — SEVEN GIFTS, THE GIFT QUEUE, THE SLIM-CARD LONG-NAME STANDARD (Nov 7 night — docs/harbor/passes/card-pass.md)
+- **The seven 1-of-1 gifts** (GIFTABLE 18 + the owner's own): the noir dispatcher, the lawyer's two (the punk stencil, the gig poster — a LIGHT
+  card), the buddy's two wasteland cards, the Mostar friend's two (sharing THE FLAG STRIP). Each = its full picture + its OWN strip picture
+  (`assets/vault/gift/<art>[-strip].webp` — `scripts/build-card-pass-art.py`, the originals copied into `art/gifts/src/`), a `stripArt` in
+  `js/fx/gift-specs.js`, its hero boxes, THE LAB 194–207. A card's own printed-name treatment only where the owner approved it (the dispatcher's
+  red neon — his mock); NOT GUILTY takes THE CARD TEXT STANDARD's light rule.
+- **FX PLATES** (Grok's light on pure black) ship as LIGHT WITH ALPHA (`build-card-pass-art.py#lit`): the effect canvas is TRANSPARENT — black
+  drawn 'lighter' there turns opaque black. The gift engine's `plate` layer draws them (breathe · flicker · burst · rise).
+- **New gift-engine layers** (`js/fx/gift.js`, documented at the top of gift-specs.js): plate, blinds, siren, grain, terminal (typed lines baked as
+  sprites, revealed by a clip — never text in the GL frame), rush, shimmer, trace, flicker; region ripple / jiggle (scaled up to cover its own
+  spot — no ghost) / flutter / creak (clipped to a polygon).
+- **THE GIFT QUEUE**: every gift waits in a line (`ppriv/{pid}/gq`); the reveal plays ONE card at a time, "GIFT n OF m" + FROM THE HOUSE, NEXT
+  GIFT › → IT'S YOURS; seen as each closes; a refresh resumes; the old single slot migrates (docs/profiles.md).
+- **THE SLIM-CARD LONG-NAME STANDARD** (a RULE from now on — the owner, Nov 7): the longest name is `NAME_MAX` (js/config.js — 12). On every
+  slim card the hero sits far RIGHT — a NEW card's strip hero centred **0.75–0.85** across (the gift strips: `tests/card-pass.test.mjs`), the left
+  free for the plate; every strip that declares a hero CAPS its plate there (`strip.js#heroRoom`), so a long name shrinks / goes to two lines,
+  never over the subject, never cut. Checked live by harbor **`stripfit`** (every strip at 390, `'W'.repeat(NAME_MAX)` + MAXIMILIANOS, LV 100).
+  A strip moves right by ZOOMING OUT its crop (`strip: [100, py, z]` — the art then sits right on its own ground colour; the gift / PW / CC maps
+  all take the zoom). Moved this pass: the nephew's three, SUNSET STRIP, GOLDEN HOUR, GOLDEN BOOT, BUZZED LIGHTYEAR, SAFECRACKER, GHOST RUN.
+- **A full card's plate keeps its own cap** (`strip.js#layStep` no longer writes a full card's max-width — Safari let a 12-letter name run over a
+  gift card's face); `ui/fit.js#refit` re-fits a name whose box was capped from outside.
+- **THE HORSESHOE** (`emb-horseshoe`): its real neon art (shape `shoe`) — no emblem waits on a placeholder glyph now.
+

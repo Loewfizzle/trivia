@@ -45,7 +45,7 @@ G('vault', async () => {
   { const { ctx, p } = await page('view=strips');
     await sleep(1200);
     const s = await ev(p, `(() => ({ items: document.querySelectorAll('.vl-item').length, strips: document.querySelectorAll('.vl-strip').length, canvases: document.querySelectorAll('canvas.fx-canvas').length, slots: window.__lab.stats.slots, names: [...document.querySelectorAll('.vl-item-h b')].map(b => b.textContent) }))()`);
-    ok(s.items === 52 && s.strips === 52 && s.canvases === 1 && /^116 · /.test(s.names[0]) && /^92 · /.test(s.names[2]), `THE CARD LAB: 52 cards (2B's 2 DEV cards FIRST, 2A's 3 held cards, 1C's 8 sighting cards, 1A's 8, 1B's 8, 1C's held-back 21, OVERCLOCK CARDS' 2 — ${s.strips} strips on the page; the emblems in their own tab) on ONE shared effect canvas (${s.canvases}) — first: ${s.names[0]}`);
+    ok(s.items === 54 && s.strips === 54 && s.canvases === 1 && /^116 · /.test(s.names[0]) && /^92 · /.test(s.names[2]), `THE CARD LAB: 54 cards (2B's 2 DEV cards FIRST, 2A's 3 held cards, 1C's 8 sighting cards, 1A's 8, 1B's 8, 1C's held-back 21, OVERCLOCK CARDS' 2, the dailies' SAFECRACKER + GHOST RUN — ${s.strips} strips on the page; the emblems in their own tab) on ONE shared effect canvas (${s.canvases}) — first: ${s.names[0]}`);
     await ev(p, `document.querySelector('.vl-item[data-id="card-smoke"] .vl-mark[data-m="approve"]').click()`);
     await ev(p, `document.querySelector('.vl-item[data-id="card-prism"] .vl-mark[data-m="fix"]').click()`);
     await sleep(200);
@@ -62,6 +62,7 @@ G('vault', async () => {
   // meets after a pass: NEEDS YOU by default = the CHANGED rows (a version bump), each with its dated "CHANGED — what" line beside his old mark;
   // (SHELL 2.0 B2: 6 → 12 CHANGED rows — the hero-spot audit's six: camo, the TR-3B, prism, emerald, the UFO, the marquee)
   // (CARD FIXES: the bar counts every view — + the 11 GIFT rows CHANGED (their full cards v2) → 23 NEED YOU; the CARDS view keeps its 12)
+  // (THE CARD PASS: + SAFECRACKER + GHOST RUN's strips CHANGED (THE SLIM-CARD LONG-NAME STANDARD) → 14 rows, 26 NEED YOU; the dailies' 2 cards → 54)
   // the counts; one row per item + the FULL toggle flipping in place (its own mark); a re-mark leaves NEEDS YOU; ALL CAUGHT UP; NEW since his
   // last visit (vl:seen); the top bar's ← THE CITY
   { const { ctx, p } = await page('marks=old');
@@ -70,8 +71,8 @@ G('vault', async () => {
       chg: [...document.querySelectorAll('.vl-item .vl-chg:not([hidden]) b')].length, was: document.querySelectorAll('.vl-mark.is-was').length,
       counts: Object.fromEntries([...document.querySelectorAll('.vl-filter')].map(b => [b.dataset.f, +b.querySelector('.vl-filter-n').textContent])),
       back: (document.querySelector('.vl-back') || {}).getAttribute && document.querySelector('.vl-back').getAttribute('href'), house: ((document.querySelector('.vl-item[data-id="card-house"]') || {}).dataset || {}).face || '' }))()`);
-    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 12 && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.rows.includes('card-camo') && L.chg === 12 && L.was >= 11 && /^23 NEEDS? YOU$/.test(L.need)
-      && L.counts.needs === 12 && L.counts.changed === 12 && L.counts.all === 52 && L.back === '/' && L.house === 'full',
+    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 14 && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.rows.includes('card-camo') && L.rows.includes('card-safecracker') && L.chg === 14 && L.was >= 11 && /^26 NEEDS? YOU$/.test(L.need)
+      && L.counts.needs === 14 && L.counts.changed === 14 && L.counts.all === 54 && L.back === '/' && L.house === 'full',
       `THE LAB 2.0: NEEDS YOU by default — ${L.rows.length} CHANGED rows (${L.rows.join(', ')}), each with its CHANGED line (${L.chg}) beside the old mark (${L.was} lit as "was"); the bar "${L.need}"; counts ${JSON.stringify(L.counts)}; THE HOUSE opens on its FULL face (only it changed); ← THE CITY → ${L.back}`);
     // the FULL toggle flips in place (the strip's surface slot swapped), its own mark; a re-mark drops the row's CHANGED count
     await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-face').click()`); await sleep(400);
@@ -82,7 +83,7 @@ G('vault', async () => {
     await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-mark[data-m="approve"]').click()`);
     await sleep(400);
     const A = await ev(p, `({ need: document.querySelector('.vl-need').textContent, m: window.__lab.marks['full-card-founder'], rows: document.querySelectorAll('.vl-item').length })`);
-    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^22 NEEDS? YOU$/.test(A.need) && A.rows === 12,
+    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^25 NEEDS? YOU$/.test(A.need) && A.rows === 14,
       `THE LAB 2.0: FULL CARD › flips the row in place (${F.face}, one canvas) with the full card's own marks (${F.mk}); a re-mark stores the version seen (v${A.m.v}) — "${A.need}" (the rows stay put until the filter changes: ${A.rows})`);
     await ctx.close(); }
   { const { ctx, p } = await page('marks=none&filter=needs&view=glows');
@@ -305,7 +306,8 @@ G('vault', async () => {
     await ctx.close(); await gpuB.close();
   }
   // SHELL 2.0 B2 — THE GIFT CARDS' FULL SHOW (the full card plays every layer): the three busiest, alone at 3×, 4× CPU, the GPU path — 60 fps
-  for (const id of ['card-gift-anarchist', 'card-gift-goldenboot', 'card-gift-icecold', 'card-gift-youngbuck', 'card-gift-buzzed']) {   // (+ CARD FIXES' ADD-ON: the tape card's new show; + Nov 6: the seeing-stars card — the turning spiral, the cut-out, the orbit)
+  // (THE CARD PASS: + its seven — the embers' full-card plate, the terminal's typing, the nine jiggling letters, the flag's 30 ripple slices …)
+  for (const id of ['card-gift-anarchist', 'card-gift-goldenboot', 'card-gift-icecold', 'card-gift-youngbuck', 'card-gift-buzzed', 'card-gift-dispatcher', 'card-gift-outoforder', 'card-gift-notguilty', 'card-gift-wastelander', 'card-gift-survivor', 'card-gift-zadomovinu', 'card-gift-starimost']) {   // (+ CARD FIXES' ADD-ON: the tape card's new show; + Nov 6: the seeing-stars card — the turning spiral, the cut-out, the orbit)
     const gpuB = await puppeteer.launch({ executablePath: BROWSER, headless: 'new', realCompositor: true, args: ['--enable-gpu', '--mute-audio', '--no-sandbox'] });
     const ctx = await gpuB.createBrowserContext(), p = await ctx.newPage();
     await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
@@ -340,7 +342,7 @@ G('vault', async () => {
     const saved = await waitFor(p, `!!document.querySelector('.vl-item[data-id="card-inferno"] .vl-saved')`, 'SAVED', 3000).then(() => true).catch(() => false);
     const txt = saved ? await ev(p, `document.querySelector('.vl-item[data-id="card-inferno"] .vl-saved').textContent`) : '';
     const fm = await ev(p, `({ full: (window.__lab.marks['full-card-inferno'] || {}).m || null, strip: (window.__lab.marks['card-inferno'] || {}).m || null })`);
-    ok(f.cards === 51 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt) && fm.full === 'approve' && !fm.strip, `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark on the FULL face is the full card's own (full ${fm.full}, strip ${fm.strip}) + flashes "${txt}"`);
+    ok(f.cards === 53 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt) && fm.full === 'approve' && !fm.strip, `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark on the FULL face is the full card's own (full ${fm.full}, strip ${fm.strip}) + flashes "${txt}"`);
     await ctx.close(); }
   // THE VAULT 1C — THE SIGHTING'S SCENE (the reveal's pair + the album's no-photo tile): once its full card is APPROVED the placeholder becomes
   // the card's real scene (js/vault/full.js#upgradeScene) — all 9 sightings, each its own canvas drawn; unapproved → the placeholder stays
@@ -442,7 +444,7 @@ G('vault', async () => {
       return { items: document.querySelectorAll('.vl-item').length, ves: document.querySelectorAll('.ve').length, finishes: [...new Set([...document.querySelectorAll('.ve')].map(v => (v.className.match(/ve-f-(\\w+)/) || [])[1]))].sort().join(),
         moving: [...document.querySelectorAll('.ve-l')].filter(x => getComputedStyle(x).animationName !== 'none').length, svgAnim, canvases: document.querySelectorAll('canvas.fx-canvas').length,
         small: [...document.querySelectorAll('.vl-emb-big .ve.is-28')].every(v => Math.round(v.getBoundingClientRect().width) === 28) }; })()`);
-    ok(e.items === 38 && e.ves > 120 && e.finishes === 'aurora,autumn,balloon,chrome,coin,comet,galaxy,glitch,gold,ice,metal,molten,neon,prism,spectral' && e.moving > 60 && e.svgAnim === 0 && e.canvases === 1 && e.small,
+    ok(e.items === 41 && e.ves > 120 && e.finishes === 'aurora,autumn,balloon,chrome,coin,comet,galaxy,glitch,gold,ice,metal,molten,neon,prism,spectral' && e.moving > 60 && e.svgAnim === 0 && e.canvases === 1 && e.small,
       `THE EMBLEMS section: ${e.items} items (2A's 10 samples + 2B's 25 · the 12 sign-up shapes · 1A's 2 — the tube styles live under GLOWS + TUBES since THE LAB 2.0), ${e.ves} emblems in all 8 finishes (${e.finishes}), 28 pt checked; ${e.moving} layers moving on the compositor, ${e.svgAnim} animations on an SVG element (none allowed)`);
     await ev(p, `document.querySelector('.vl-item[data-id="emb-owl"] .vl-mark[data-m="approve"]').click()`); await sleep(300);
     const m = await ev(p, `(window.__lab.marks['emb-owl'] || {}).m`);

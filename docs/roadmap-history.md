@@ -2162,3 +2162,13 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
   + end placeholders, suspend / resume from the server's record; 60.3 fps at 4× CPU.
 - Group 6: password-preview.html (a fake judge, fixed test words, the state flags) + e2e-password.mjs (the real judge on the emulators).
 - The owner's add-on (OVERCLOCK): Higher or Lower's end card — the streak bar whole at 390 / 402 / 430 + WebKit; the header row.
+
+## THE CARD PASS — SEVEN GIFTS, THE GIFT QUEUE, THE LONG-NAME STANDARD (Nov 7, 2026)
+- THE GIFT QUEUE: every gift waits in a line on the server; the reveal plays one card at a time ("GIFT 2 OF 5"), seen as each closes, a refresh
+  resumes; the old single slot migrates. B1: an empty solo run (nothing answered, 0 points) pays nothing. B3: QUICK · SOLO / STANDARD · SOLO on
+  THE BOARD. B8: the /api-down solo run proven.
+- Seven 1-of-1 gift cards, each with its own strip + motion on the shared engine (FX plates as light with alpha; the blinds, the siren, the
+  terminal typing, the speed lines, the river, the marker, ripples + jiggles); THE LAB 194–207.
+- THE HORSESHOE's real neon art. THE SLIM-CARD LONG-NAME STANDARD: every strip with a hero caps its plate there, nine strips moved right,
+  harbor `stripfit` (NAME_MAX); a Safari bug that let a long name run over a gift card's face fixed. No rules change.
+
