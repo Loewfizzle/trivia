@@ -2873,6 +2873,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the look the weather brought must be IN the bake that shows: an answer that landed since the last look (read every 2.5 s) is
     // read now, and a changed look re-bakes once more, still dark)
     { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none'; if (!late && sig !== wxSig) { lookAt = 0; return; } }
+    // (FRIENDS C — the cloud's LOAD WEATHER red, back after OC5: "bake crossfade · neon" right after the reveal = the roof board swapping to
+    //  its hint / game. The reveal is decided in the SKY pass, the board synced later in the frame (drawCity), and the workers' traces it
+    //  follows land a frame after the people are ready — so the board is synced HERE, first, and the reveal waits (bounded) for its traces)
+    if (!late && L && !clock.force.has('no-people') && !clock.force.has('no-work')) {
+      const tr = (people.crew && people.crew() || {}).traces || null;
+      if (!tr && now - t0 < REVEAL_MAX - 500) return;
+      if (tr) boardSync(tr);
+    }
     if (!late && L && bakeKey() !== baker.key) { lookAt = 0; return; }
     // (POLISH 5: the title's rects measured NOW, once — a font swapped in, the intro's dock — and the city re-laid in the dark if they
     // moved: the title only reports them again after its power-on, which used to land AFTER the reveal: a re-layout + a crossfade)

@@ -93,16 +93,22 @@ G('holiday', async () => {
     let at = null;
     let dropped = false, onWord = false;
     let dangled = false, landed = false;
-    for (let tries = 0; tries < 3 && !dropped; tries++) {
+    // (FRIENDS C — GREEN MEANS GREEN: the cloud's red — a 2-core runner's polls stepped over the short poses. The spider keeps each trip's
+    //  RECORD (dress-halloween.js — seen: { n, tuck, land, word, reel }, frame by frame): a trip STARTED = its count went up; the poses read
+    //  from the record, never a fixed-time sample)
+    const tripsNow = () => ev(Q.page, `(${P}.dress.spider.seen || { n: 0 }).n`);
+    let n0 = 0;
+    for (let tries = 0; tries < 5 && !dropped; tries++) {   // (five: on a 2-core runner it can step off the hub between the read + the tap)
+      n0 = await tripsNow();
       at = await spiderTap(Q.page, 0); if (!at) continue;
-      dropped = await waitFor(Q.page, `['drop', 'land', 'crawl'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false); }
+      dropped = await waitFor(Q.page, `(${P}.dress.spider.seen || { n: 0 }).n > ${n0}`, 'the spider dropping', 2500).then(() => true).catch(() => false); }
     if (at && dropped) {
       // (WIN3 — the owner: it DANGLES on its thread — head down, the legs tucked in (the mean reach under half the stance), a slow turn — and
       // lands feet first: the legs still pose-locked (never the full stance in the air) as it settles onto the tubes)
-      dangled = await waitFor(Q.page, `(() => { const s = ${P}.dress.spider; return s.mode === 'drop' && s.pose === 'tuck' && s.reach < 0.5 && s.spin > 0.5; })()`, 'the dangle', 2200).then(() => true).catch(() => false);
-      landed = await waitFor(Q.page, `(() => { const s = ${P}.dress.spider; return s.mode === 'land' && s.pose === 'reach' && s.reach < 0.9; })()`, 'landing feet first', 2500).then(() => true).catch(() => false);
+      dangled = await waitFor(Q.page, `!!(${P}.dress.spider.seen || {}).tuck`, 'the dangle', 6000).then(() => true).catch(() => false);
+      landed = await waitFor(Q.page, `!!(${P}.dress.spider.seen || {}).land`, 'landing feet first', 6000).then(() => true).catch(() => false);
       // (WIN2: it lands on the SPEAKEASY word's tubes and crawls along them — its y on the word, its x moving)
-      onWord = await waitFor(Q.page, `(() => { const s = ${P}.dress.spider; return s.mode === 'crawl' && s.word != null && Math.abs(s.y - s.word) < 1; })()`, 'on the word', 4000).then(() => true).catch(() => false); }
+      onWord = await waitFor(Q.page, `!!(${P}.dress.spider.seen || {}).word`, 'on the word', 8000).then(() => true).catch(() => false); }
     ok(dangled && landed, `THE DANGLE (WIN3): on the way down it hangs tucked + turning (${dangled}), then lands feet first with its legs still gathered (${landed})`);
     const st = await ev(Q.page, `${P}.dress.spider`), x0 = st && st.x;
     // WIN3 — ON TOP OF THE WORD (the owner: the spiders walk on SPEAKEASY, never behind it): hit-testing follows the paint order — with
@@ -131,7 +137,7 @@ G('holiday', async () => {
     ok(at2 && trip2 && s2 && s1 && (s1.mode !== s2.mode || Math.abs(s1.x - s2.x) > 40), `THE SECOND SPIDER (touch at ${at2 ? `${at2.x.toFixed(0)},${at2.y.toFixed(0)}` : 'none'}): its own trip (${s2 && s2.mode}), the first still ${s1 && s1.mode} — never in step`);
     // WIN3 — THE CLIMB HOME, the same in reverse: head-up, reeling the line with the front legs, the legs gathered (the mean reach
     // under 0.55), a slow turn; then both home + still (the wait is for the condition, not a fixed pause)
-    const reeled = await waitFor(Q.page, `(() => { const s = ${P}.dress.spider; return s.mode === 'climb' && s.pose === 'reel' && s.head === -1 && s.reach < 0.55; })()`, 'the first reeling home', 18000).then(() => true).catch(() => false);
+    const reeled = await waitFor(Q.page, `!!(${P}.dress.spider.seen || {}).reel`, 'the first reeling home', 18000).then(() => true).catch(() => false);   // (FRIENDS C: from the trip's record)
     const bothHome = await waitFor(Q.page, `(() => { const a = ${P}.dress.spider, b = ${P}.dress.spider2; return a && b && !a.trip && !b.trip && a.mode === 'still' && b.mode === 'still'; })()`, 'both home', 24000).then(() => true).catch(() => false);
     ok(reeled && bothHome, `THE CLIMB HOME: head-up, reeling the thread, the legs gathered (${reeled}); both home + still after (${bothHome})`);
     // ITS NERVES: a flicker on the sign (a poke: the race) — both freeze + crouch, eyes flaring, then calm

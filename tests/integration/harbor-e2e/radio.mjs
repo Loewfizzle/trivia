@@ -275,11 +275,14 @@ G('radio', async () => {
     await waitFor(O.page, '(document.querySelector(".rd-fsw-state") || {}).textContent === "OPEN"', 'OPEN again', 10000).catch(() => {});
     ok((await get('progress/founder')) === null, 'RADIO: … and reopened (the test leaves it OPEN)'); }
   // ---- THE CITY BEHIND keeps running at its tier while the radio is open (a warning on a slow machine)
-  { const t0 = await ev(O.page, '(window.__district.tiering() || {}).tier');
+  // (FRIENDS C: counted from the LOOP's own drawn frames over the 3 s — the tiering's frame window (frames()) is emptied BY DESIGN while a
+  //  bake is pending, and the radio's own billboard messages swap the roof board (a neon re-bake) in this very window: it read ~0 fps)
+  { const t0 = await ev(O.page, '(window.__district.tiering() || {}).tier'), d0 = await ev(O.page, '({ n: window.__district.loop().drawn, t: performance.now() })');
     await sleep(3000);
-    const t1 = await ev(O.page, '(window.__district.tiering() || {}).tier'), dts = (await ev(O.page, 'window.__district.frames()')) || [], last = dts.slice(-60);
-    const fps = last.length ? Math.round(1000 / (last.reduce((a, b) => a + b, 0) / last.length)) : 0;
-    okT((t1 == null || t0 == null || t1 >= t0) && fps >= 24, `RADIO: the city behind keeps drawing under the open radio (tier ${t0} → ${t1}, ~${fps} fps)`); }
+    const t1 = await ev(O.page, '(window.__district.tiering() || {}).tier'), d1 = await ev(O.page, '({ n: window.__district.loop().drawn, t: performance.now() })');
+    const fps = Math.round((d1.n - d0.n) * 1000 / Math.max(1, d1.t - d0.t));
+    const lp = await ev(O.page, `JSON.stringify(window.__district.harbor().loadLog.rows.slice(-3).map(r => r.kind + ' ' + r.msg))`);
+    okT((t1 == null || t0 == null || t1 >= t0) && fps >= 24, `RADIO: the city behind keeps drawing under the open radio (tier ${t0} → ${t1}, ~${fps} fps drawn; the load log's last: ${lp})`); }
   // ---- THE OWNER's CC-B REVIEW, fix 1 — THE SCROLL JUMP: scrolled to the bottom of THE LEDGER / THE PROGRAM / THE DESK, two refreshes
   // later (the 3-s poll) the sheet is still at the bottom (it used to jump back to the top on his iPhone); 402 wide, a short screen so
   // every face scrolls
@@ -288,7 +291,10 @@ G('radio', async () => {
     await O.page.setViewport({ width: 402, height: 560, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await sleep(600);   // (a short screen: every face scrolls)
     for (const face of ['LEDGER', 'PROGRAM', 'DESK']) {
       await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === '${face}').click()`);
-      await sleep(1500);
+      // (FRIENDS C — GREEN MEANS GREEN, (f): red only in the full 4-shard run — the face still filling in (its poll's rows) after a fixed
+      //  1.5 s, so "the bottom" moved under the finger. Now: the face's height steady for 0.8 s first, then the finger at the bottom)
+      await waitFor(O.page, `(() => { const s = document.querySelector('.rd-sheet'), h = s ? s.scrollHeight : 0, w = window.__rdH || (window.__rdH = { h: -1, at: 0 }), n = performance.now(); if (h !== w.h) { w.h = h; w.at = n; } return h > 0 && n - w.at > 800; })()`, `THE ${face} settled`, 15000).catch(() => {});
+      await ev(O.page, 'window.__rdH = null');
       await ev(O.page, `(() => { const s = document.querySelector('.rd-sheet'); s.scrollTop = s.scrollHeight; })()`);
       await sleep(7000);   // (two of the radio's 3-s polls — a fixed wait: the refreshes ARE timed)
       const b = await atBottom();

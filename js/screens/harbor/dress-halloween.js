@@ -326,6 +326,7 @@ export function createSpider(web, { seed = 7 } = {}) {
   // pause on a letter, a leg test-tapping a tube), the climb home reeling the thread in; a second tap mid-way is ignored (a cooldown).
   // ITS NERVES: a flicker / blink / race / blackout / lightning near it → it freezes, crouches, skitters a short burst (home, or away
   // from the flicker), eyes + seams flaring, then calms + resumes. word: { x0, x1, y } (logo units: the tubes' line) — setWord()
+  let tripN = 0, seenT = null;   // (FRIENDS C: the trips counted + the last one's record)
   let word = null, trip = null, tripEnd = -1e9, scare = null, crouch = 0, flare = 0, lastScare = -1e9;
   const TRIP = Object.freeze({ drop: 2.3, land: 0.55, crawl: [10, 15], climb: 3.4, cool: 3 });   // (WIN3: a slower drop — the dangle must read)
   const LAND_H = 11;   // (logo units: the body hangs this far above the tubes when its tucked front feet touch them — it lands FEET FIRST)
@@ -422,6 +423,7 @@ export function createSpider(web, { seed = 7 } = {}) {
   }
   // ---- THE TRIP (lazy phases: drop → land → [still | turn | move]* along the word → climb → home)
   function tripStart(t) {
+    tripN++;
     const R = rngFrom(hashString(`trip|${seed}|${Math.floor(t * 10)}`));
     const depth = word ? Math.max(12, word.y - hub[1]) : 34;
     trip = { phase: 'drop', t0: t, dur: TRIP.drop, depth, x: hub[0], h: Math.PI / 2, until: t + TRIP.drop + TRIP.land + TRIP.crawl[0] + R() * (TRIP.crawl[1] - TRIP.crawl[0]), R, dir: 1, from: hub[0], to: hub[0], hFrom: Math.PI / 2, hTo: Math.PI / 2 };
@@ -606,6 +608,15 @@ export function createSpider(web, { seed = 7 } = {}) {
       const slot = Math.floor((t + adjOff) / 2.7), pick = Math.floor(rngFrom(hashString(`adj|${seed}|${slot}`))() * 16);
       if (pick < 8 && t + adjOff - slot * 2.7 < 0.05 && !legs.some(o => o.step)) { const g = legs[pick]; const tl0 = g.L.rest, tgt = W(tl0[0] * g.s, tl0[1], bs); const ld = [(R0() - 0.5) * 1.4, (R0() - 0.5) * 1.4]; g.step = { from: g.foot || tgt, to: [tgt[0] + ld[0], tgt[1] + ld[1]], lead: ld, u: 0, dur: 0.3 }; }
     }
+    // (FRIENDS C — THE TRIP's RECORD (the cloud's red: a 2-core runner's polls stepped over the short dangle / landing poses): what each trip
+    //  DID, frame by frame — it dangled tucked + turning, landed feet first (the legs still gathered), reached the word, climbed home reeling)
+    if (trip) {
+      const R = legs.reduce((s, g) => s + (g.pf == null ? 1 : g.pf), 0) / legs.length, T = seenT && seenT.n === tripN ? seenT : (seenT = { n: tripN, tuck: false, land: false, word: false, reel: false });
+      if (body.mode === 'drop' && body.pose === 'tuck' && R < 0.5 && (body.spinK || 0) > 0.5) T.tuck = true;
+      if (body.mode === 'land' && body.pose === 'reach' && R < 0.9) T.land = true;
+      if (body.mode === 'crawl' && word && Math.abs(body.y + body.hang - word.y) < 1) T.word = true;
+      if (body.mode === 'climb' && body.pose === 'reel' && body.head === -1 && R < 0.55) T.reel = true;
+    }
   }
   function settleAll() { for (const g of legs) { const tgt = W(g.L.rest[0] * g.s, g.L.rest[1]); g.foot = tgt; g.step = null; } }
   const footOf = g => (g.step ? (() => { const u = snap(clamp01(g.step.u)); return [lerp(g.step.from[0], g.step.to[0], u), lerp(g.step.from[1], g.step.to[1], u), Math.sin(Math.PI * clamp01(g.step.u))]; })() : [...(g.foot || W(g.L.rest[0] * g.s, g.L.rest[1])), 0]);
@@ -749,6 +760,7 @@ export function createSpider(web, { seed = 7 } = {}) {
       // WIN3: the pose on the thread (tuck / reach / reel | null), the spin's weight, head −1 = up; the legs' mean reach (a fraction of the stance: ~0.3 tucked, 1 standing)
       // SP5: far = the body's distance from the hub, blur = the dash's leg blur, wary = the slow return after a scare, stretch = the longest leg's hip → foot over its length
       far: +Math.hypot(body.x - hub[0], body.y + body.hang - hub[1]).toFixed(1), blur: +(body.blur || 0).toFixed(2), wary: !!body.wary, stretch: +legCheck().maxStretch.toFixed(2),
+      seen: seenT ? { ...seenT } : null,   // (FRIENDS C: the last trip's record)
       pose: body.pose || null, spin: +(body.spinK || 0).toFixed(2), head: body.head || 1, reach: +(legs.reduce((s, g) => s + (g.pf == null ? 1 : g.pf), 0) / legs.length).toFixed(2) }),
   };
 }

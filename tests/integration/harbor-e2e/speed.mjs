@@ -3,7 +3,8 @@
 //   staleroom — out of the room (a disconnect / a leave): the room's figures walk off the city, a host claim for that room never toasts,
 //               ONE toast at a time (the newer replaces the older)
 // ADDING A GROUP: G('name', …) here + the name in ../harbor-jobs.mjs (CI_JOBS.speed).
-import { log, sleep, ok, okT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI, BASE, launchReal, closeReal, NIGHT } from './kit.mjs';
+import { log, sleep, ok, okT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI, skipNoDisplay, BASE, launchReal, closeReal, NIGHT } from './kit.mjs';
+import { displayAttached } from '../kit/puppeteer.mjs';
 import { dbPatch, dbDel, dbGet, ROOMQ, hostRoom, joinRoom, fakeGuests, settledRoom, startOC, onTitle, podium } from './lobby2.mjs';
 
 const people = p => ev(p, 'window.__district.roomPeople ? window.__district.roomPeople() : null');
@@ -214,7 +215,7 @@ G('partyroom', async () => {
   log('partyroom', `THE PARTY ROOM (A1's missing row): 1× ${f1.fps} fps (${f1.slow}/${f1.n} slow) · 2× ${f2.fps} fps (${f2.slow}/${f2.n} slow) · the city's frame work median ${cost.med} ms, p95 ${cost.p95}`);
   const what = `THE PARTY ROOM at 1× (8 in the lines + the party + a legendary + 8 legendary strips): ${f1.fps} fps (${f1.slow} slow); at 2× CPU ${f2.fps} fps; the city's work median ${cost.med} ms`;
   if (ON_CI) skipCI(what, 'no GPU path on the 2-core runner — the mini PC + the owner\u2019s iPhone measure it');
-  else okT(f1.fps >= 55, what);
+  else { const d = await displayAttached(); if (d.attached) okT(f1.fps >= 55, what); else skipNoDisplay(what, d.reason); }   // (FRIENDS C — (d): the real compositor's frame rate needs a display: the display rule)
 });
 
 // ================================================================ THE SPEED PASS B — Group 0: THE OWNER's FOUR (docs/harbor/passes/speed-b.md)

@@ -1,7 +1,8 @@
 // CITY 2.0 — THE HARBOR end to end: LOBBY 2.0 A (Nov 3 — docs/harbor/passes/lobby-2a.md). `billboard`: THE ANNOUNCEMENT BILLBOARD's
 // cross-fade (the owner: his message "snaps on"). More groups of this pass join here (the room in the city, the dock, the guest list…).
 // ADDING A GROUP: G('name', …) in its job's file + the name in ../harbor-jobs.mjs (CI_JOBS).
-import { log, sleep, ok, okT, NIGHT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI } from './kit.mjs';
+import { log, sleep, ok, okT, NIGHT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI, skipNoDisplay } from './kit.mjs';
+import { displayAttached } from '../kit/puppeteer.mjs';
 
 const RM = { fn: () => { const mm = window.matchMedia.bind(window); window.matchMedia = q => (/prefers-reduced-motion/.test(q) ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} } : mm(q)); }, arg: null };
 
@@ -158,7 +159,12 @@ G('room', async () => {
 // room's OWN cost (the city's frame work with the room vs without it — this machine's throttled city alone is the floor, not 60 fps
 // here) + 60 fps at 1× (the phone's own speed is the bench's job: &bench=1)
 G('roomperf', async () => {
-  const A = await open({ slot: 'rpf', qs: ROOMQ, view: [402, 874], dpr: 3, real: true }), p = A.page;
+  // (FRIENDS C — GREEN MEANS GREEN, (d) + (e): on a machine with NO DISPLAY the real compositor falls back to SOFTWARE — the frame rate is
+  //  then the software path's (skipped with its reason: the display rule, SHELL 2.0 B2), and the city's own frame work grew too (a 2D canvas
+  //  rasterised on the CPU: the known 39 → 48 ms red). So with no display the page is the GPU-pinned headless one (kit/puppeteer.mjs — the
+  //  Radeon by its LUID): THE ROOM's OWN COST is measured there, as on a phone's GPU — a real number, never a skip)
+  const disp = ON_CI ? { attached: false, reason: 'CI' } : await displayAttached();
+  const A = await open({ slot: 'rpf', qs: ROOMQ, view: [402, 874], dpr: 3, real: !!disp.attached }), p = A.page;
   await harborUp(p); await sleep(1500);
   await ev(p, "document.querySelector('.nd-hostbtn').click()");
   await waitFor(p, 'window.__arcade.state.code', 'hosted', 20000);
@@ -182,7 +188,7 @@ G('roomperf', async () => {
   //  reason; the mini PC + the owner's iPhone answer them. The party night's room: speed.mjs#partyroom — FR6 A7)
   const w1 = `THE FULL ROOM at 1×: ${f1.fps} fps (${f1.slow} slow) alone → ${f2.fps} fps (${f2.slow} slow) with 8 in the lines + the guest list open`, w2 = `THE ROOM's OWN COST at 4× CPU (the city's frame work): ${c0} ms alone → ${cW} ms while 7 walk in → ${cS} standing → ${cG} with the guest list's 8 strips`;
   if (ON_CI) { skipCI(w1, 'no GPU path on the 2-core runner'); skipCI(w2, 'no GPU path on the 2-core runner'); }
-  else { okT(f1.fps >= 55 && f2.fps >= 55, w1); okT(cW - c0 < 9 && cS - c0 < 3 && cG - c0 < 4, w2); }
+  else { if (disp.attached) okT(f1.fps >= 55 && f2.fps >= 55, w1); else skipNoDisplay(w1, disp.reason); okT(cW - c0 < 9 && cS - c0 < 3 && cG - c0 < 4, `${w2}${disp.attached ? '' : ' (the GPU-pinned headless page — no display)'}`); }
   await A.ctx.close(); await closeRealSafe();
 });
 const closeRealSafe = async () => { try { const k = await import('./kit.mjs'); await k.closeReal(); } catch { /* fine */ } };

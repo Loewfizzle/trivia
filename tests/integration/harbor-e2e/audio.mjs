@@ -556,7 +556,9 @@ G('music', async () => {
     ok(l2.running && l2.drawn <= d0 + 2 && l2.stalls >= 1, `RETURN (rAF dropped): "running" yet not one frame drawn in 2.6 s (${d0} → ${l2.drawn}) — the old loop's dead end (start() saw running and did nothing); the watchdog saw it stall (${l2.stalls})`);
     await ev(r, 'window.__suspend = false'); await fire('vis');
     await sleep(900);
-    const p2 = await PUNCH(2600);
+    // (FRIENDS C — GREEN MEANS GREEN: the cloud's red was 0.842 vs a bar of 0.851 — a 2.6-s window holds ~5 beats and the song's bars differ in
+    //  level; the return measured over 4 s (a whole bar of kicks), the same 70 % bar)
+    const p2 = await PUNCH(4000);
     ok(p2.loop.running && p2.loop.drawn > l2.drawn + 20 && ['visible', 'watchdog'].includes(p2.loop.why) && p2.loop.stalls >= 2 && p2.hi - p2.lo > 0.3 && p2.hi > p0.hi * 0.7, `RETURN (rAF dropped): restarted (${JSON.stringify(p2.loop)} · rAF ${JSON.stringify(await ev(r, 'window.__raf'))} · suspend ${await ev(r, 'window.__suspend')} · ticks ${p2.n}, max gap ${p2.gap} ms), the punch swings again ${p2.lo} → ${p2.hi} (before ${p0.hi})`);
     // (b2) the same with NO event at all on return: the watchdog (once a second) finds it
     await ev(r, 'window.__suspend = true'); await sleep(2000); await ev(r, 'window.__suspend = false'); await nudge();

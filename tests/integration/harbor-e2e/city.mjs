@@ -223,10 +223,10 @@ async function panelSection() {
   // 7a §0 — THE WORD TOWERS from the panel: one word per tower, the one too long for its tower scrolls on it; the readout says so
   // (CONN: at night, like its EVERYONE twin — after CLEAR ALL the clock is the real one, and the words never light by day)
   await ev(O.page, "window.__district.remote().setMine({ force: ['spell'], text: 'HAPPY BIRTHDAY SAM', tower: 'wordA,wordB,wordV', when: '2026-10-24T23:00' })");
-  await waitFor(O.page, "(() => { const s = window.__district.harbor().windows.spelling; return !!s && s.towers.length === 3; })()", 'three towers', 8000).catch(() => {});
+  await waitFor(O.page, "(() => { const s = window.__district.harbor().windows.spelling; return !!s && s.towers.length === 3 && s.scrolls.length > 0; })()", 'three towers', 20000).catch(() => {});   // (FRIENDS C — (f): red only in the full 4-shard run: the same condition, longer to come true on a busy machine)
   { const s = await ev(O.page, 'window.__district.harbor().windows.spelling');
     await ev(O.page, "window.__district.remote().open(), window.__district.remote().openCats(['lights'])");
-    await waitFor(O.page, "!!document.querySelector('.hr-fit')", 'the readout', 4000).catch(() => {});
+    await waitFor(O.page, "(() => { const f = document.querySelector('.hr-fit'); return !!f && /SCROLLS/.test(f.textContent); })()", 'the readout', 12000).catch(() => {});
     const fit = await ev(O.page, "(() => { const f = document.querySelector('.hr-fit'); return f ? [...f.querySelectorAll('.hr-fit-row')].map(r => r.textContent).join(' | ') + ' || ' + [...f.querySelectorAll('.hr-fit-n')].map(r => r.textContent).join(' | ') : ''; })()");
     if (SHOTS) await O.page.screenshot({ path: `${OUT}panel-towers-390x844.png` });
     ok(s && ['wordA', 'wordB', 'wordV'].every(t => s.towers.includes(t)) && s.scrolls.join() === 'wordB' && /BIRTHDAY.*SCROLLS/.test(fit) && /ROOM/.test(fit),
