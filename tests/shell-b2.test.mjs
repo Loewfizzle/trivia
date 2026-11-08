@@ -66,7 +66,9 @@ test('THE GAME LOOK: no dock button; a Settings row; saveLook fires the live eve
   assert.equal(L.nextLook, undefined, 'B1\'s one-tap cycle (the dock button) is gone');
   const dock = read('js/screens/room-dock.js'), city = read('js/screens/room-city.js'), app = read('js/app.js'), set = read('js/ui/settings-panel.js'), css = read('css/title.css');
   assert.doesNotMatch(dock + city + css, /rdk-look|lookChoice/);
-  assert.match(set, /function gameLookRow\(\)/); assert.match(set, /h\('span\.label', 'GAME LOOK'\)/); assert.match(set, /gameLookRow\(\),/);
+  assert.match(set, /function gameLookRow\(\)/); assert.match(set, /h\('span\.label', 'GAME LOOK'\)/); assert.match(set, /const lookRow = gameLookRow\(\);/);
+  // (FRIENDS B — B5: a locked row → no live "Always night" switch under it)
+  assert.match(set, /lookRow\.classList\.contains\('is-locked'\) \? \[\] : \[toggle\('Always night', 'alwaysNight'\)\]/);
   // every match on screen (solo or not), live: the event + a minute's sun re-read; no participants-count gate
   assert.match(app, /lookOnNow = !!\(g && st\.meta && st\.meta\.status === 'playing' && st\.quit !== g\.matchId\);/);
   assert.match(app, /window\.addEventListener\(lookMod\.LOOK_EVENT/);
@@ -209,13 +211,18 @@ test('THE IDLE CUTOFF: 5 h with no tap / key / scroll → the music off + ONE me
 });
 
 // ---- GROUP 3 — YOUR PREVIOUS KEY · THE LINK-PREVIEW IMAGE · THE CITY-1.0 SONGS
-test('YOUR PREVIOUS KEY on YOU → ACCOUNT; the new og.png (1200 × 630, ?v=3, a shots.mjs size); late1 + late2 out of the deploy, nothing names them', () => {
+test('YOUR PREVIOUS KEY on YOU → ACCOUNT; the link preview og.jpg (FRIENDS B: 1200 × 630 JPEG ≤ 300 KB, ?v=4, a shots.mjs size); late1 + late2 out of the deploy, nothing names them', () => {
   const prof = read('js/screens/profile.js');
   assert.match(prof, /els\.prevKey = prevKeyRow\(\);/); assert.match(prof, /const k = previousKey\(\);\n    if \(!k\) return null;/);
   assert.match(prof, /label: 'Your previous key', sub: k, value: 'COPY'/); assert.match(prof, /confirm: 'TAP AGAIN TO FORGET IT'/);
-  const og = readFileSync(new URL('../assets/og.png', import.meta.url));
-  assert.equal(og.readUInt32BE(16), 1200); assert.equal(og.readUInt32BE(20), 630);
-  const idx = read('index.html'); assert.equal((idx.match(/assets\/og\.png\?v=3/g) || []).length, 2);
+  const og = readFileSync(new URL('../assets/og.jpg', import.meta.url));
+  assert.equal(og.readUInt16BE(0), 0xffd8, 'a JPEG'); assert.ok(og.length <= 300 * 1024, `≤ 300 KB (${og.length})`);
+  // (the frame's size from its SOF marker)
+  let i = 2, dim = null;
+  while (i < og.length - 9) { if (og[i] !== 0xff) { i++; continue; } const m = og[i + 1]; if (m >= 0xc0 && m <= 0xc3) { dim = [og.readUInt16BE(i + 7), og.readUInt16BE(i + 5)]; break; } i += 2 + og.readUInt16BE(i + 2); }
+  assert.deepEqual(dim, [1200, 630]);
+  assert.ok(!existsSync(new URL('../assets/og.png', import.meta.url)), 'the 1 MB png gone');
+  const idx = read('index.html'); assert.equal((idx.match(/assets\/og\.jpg\?v=4/g) || []).length, 2); assert.match(idx, /og:image:type" content="image\/jpeg"/);
   assert.match(read('tests/integration/shots.mjs'), /og: '1200x630'/);
   for (const f of ['late1', 'late2']) {
     assert.ok(!existsSync(new URL(`../audio/music/${f}.mp3`, import.meta.url)), `${f}.mp3 gone`);

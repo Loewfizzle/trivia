@@ -3,7 +3,6 @@ import { setErrorContext } from './errlog.js';   // first: errors from phones (i
 import { h, $ } from './ui/dom.js';
 import './ui/vv.js';   // (THE VAULT 1B: --vv-ob — every bottom sheet above Safari's toolbar)
 import { watchLayers } from './ui/layers.js';
-import { glitchFlash } from './ui/components.js';
 import { toast } from './ui/toast.js';
 import { APP_NAME, GAMES } from './config.js';
 import { state, setState, subscribe } from './store.js';
@@ -236,9 +235,9 @@ function render(st) {
     old.screen.unmount && old.screen.unmount();
     old.el.classList.add('screen-out');
     old.el.setAttribute('aria-hidden', 'true');
-    setTimeout(() => old.el.remove(), 380);
-    // (LOBBY 2.0 B: City 2.0's room ↔ a game has its own transitions — the push through the door in, the walk back out — never the glitch)
-    if (old.key !== 'boot' && !((old.key === 'title' || key === 'title') && st.code)) glitchFlash();
+    // (FRIENDS B — THE SCREEN CHANGE is a calm 150 ms cross-fade (base.css .screen): the blue / pink GLITCH on every route change is gone;
+    //  reduced motion = an instant cut. LOBBY 2.0 B's room ↔ game keeps its own push through the door + the walk back out)
+    setTimeout(() => old.el.remove(), 220);
   }
   requestAnimationFrame(() => el.classList.add('screen-in'));
 }

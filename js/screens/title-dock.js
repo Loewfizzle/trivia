@@ -198,8 +198,9 @@ export function createDockWork(T) {
   const dockLight = (i, on) => dock && dock.light(i, on);
   const dockAll = on => dock && dock.all(on);
   const ringOn = times => dock && dock.ringOn(times);
-  /** JOIN / HOST are lit while the sign is: from the catch through the morning goodbye (dark by day and through the ramp) */
-  const ringsWanted = st => !!st && (st.caught || st.stage === 'goodbye');
+  /** JOIN / HOST: LIT DAY + NIGHT (FRIENDS B — the owner: "even in daytime the footer buttons should be lit"; was: dark glass by day) —
+   *  softer by day (title.css .is-daylit), full at night */
+  const ringsWanted = st => !!st;
 
   // JOIN: the panel above the bar. Tap outside, swipe it down, tap JOIN again or Escape to close
   let swipe = null;

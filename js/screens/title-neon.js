@@ -93,8 +93,8 @@ export function createNeon(T) {
     T.scene.set({ signPower: st.signs });
     // HOST: bright from the catch until the last letter dies; softer by day and through the ramp
     T.els.actions.classList.toggle('is-daylit', st.stage === 'day' || st.stage === 'ramp');
-    // JOIN / HOST follow the sign (Oct 21): unlit glass by day and through the evening ramp; they go dark with the sign's last
-    // letter at the morning goodbye and light again at the catch with a short flicker (none under Reduced effects)
+    // JOIN / HOST (FRIENDS B): lit day + night — softer by day; the old "unlit glass by day" is gone (ringsWanted is always true once the
+    // title's sequence is done)
     if (T.tl && T.tl.done && T.dk.dock) {
       const want = T.dk.ringsWanted(st);
       if (want && !T.dk.dock.ringLit()) T.dk.ringOn(prev === 'ramp' && !opts.quiet && !T.reduced() ? [[0, true], [70, false], [150, true], [230, false], [340, true]] : null);
@@ -140,7 +140,7 @@ export function createNeon(T) {
     // at dawn sounds, the dropout, softly (it lands as the plan turns to 'day'). Never on the first paint, never under Reduced effects.
     if (st.stage === 'ramp' && !opts.quiet && !fade && struck) warmFlicker();
     if (prev === 'goodbye' && st.stage === 'day' && !opts.quiet && !fade && dropped) neonDropout({ level: 0.55 });
-    T.dk.dockAll(st.stage === 'goodbye');                                          // the dock goes dark with the last letter
+    T.dk.dockAll(true);   // (FRIENDS B: the pill's icons stay LIT by day — they no longer go dark with the sign's last letter)
     const share = fade ? st.fade : on / 4;
     T.scene.set({ logo: share > 0 ? 1 : 0, signPow: share, caught: false });
   }

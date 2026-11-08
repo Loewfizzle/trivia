@@ -122,13 +122,13 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
   else if (TEST_EMBLEMS[emblem] || (!emblem && !avatar)) { embId = TEST_EMBLEMS[emblem] ? emblem : look.emblem || 'emb-test-neon'; const em = TEST_EMBLEMS[embId] || TEST_EMBLEMS['emb-test-neon']; mode = prominence(tier, em.tier); emb = emblemSvg(em.finish, mode); }
   else { embId = hasArt(emblem) ? emblem : ''; mode = prominence(tier, embTier(embId)); emb = emblemEl({ id: embId || null, avatar, color, tube, mode }); }
   // (the name glow follows the same rule: on a LEGENDARY card it holds its still, lit look — the card leads)
-  // (THE VAULT 2B — a DEV card: THE DEVELOPER · his № on the plate; 2C: THE DEV GEM for its tag)
+  // (THE VAULT 2B — a DEV card: THE DEVELOPER on the plate; 2C: THE DEV GEM for its tag; FRIENDS B: the slim dev line reads just DEV)
   const dev = !plain && isDevCard(card), one = !plain && isOneOfOne(card);   // (B2: a GIFT card is 1-of-1 too — the gem; the plate's dev line stays the dev cards')
   const nameEl = applyGlow(h('b.vl-name', name), glow);
   if (tier === 'legendary') nameEl.classList.add('vg-still');
   const plate = h('div.vl-plate',
     h('span.vl-emb', emb),
-    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', dev ? `DEV · № ${no || '0001'}` : host ? `LV ${lv} · HOST` : `LV ${lv}`)));
+    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', dev ? 'DEV' : host ? `LV ${lv} · HOST` : `LV ${lv}`)));
   const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}${one ? ' vl-dev1' : ''}${one && !dev ? ' vl-gift' : ''}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     plate,
@@ -143,7 +143,7 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
   return el;
 }
 
-// ---------------------------------------------------------------- THE STEPPED PLATE (LOBBY 2.0 A — the owner's approved mock, Nov 3 9:40 pm)
+// ---------------------------------------------------------------- THE PLATE (FRIENDS B: THE STEP DROPPED — one clean box; the history below)
 // A long name used to stretch the smoked-glass plate across BOTH rows, hiding the card's art. Now the plate is full length only on the
 // NAME row; the LEVEL row below reaches just past "LV n" (+ HOST / the dev line), then steps in with a rounded inner corner — the art
 // shows under the name. The plate keeps its own glass (each card's colours); a clip-path cuts the step and a thin line follows its edge
@@ -154,20 +154,14 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
 // long row runs full length: the upside-down L. The full card's plate steps too (vault/full.js — the same function, its own rows). A GIFT
 // strip's plate keeps off the card's hero (vault/hero.js — its face): the plate's max-width ends before it (the name fits smaller first).
 // The plate says what it did: data-step = n (normal) · r (reverse) · '' (none), data-x2 / data-y1 = the step's corner in plate px.
-const STEP_MIN = 30, STEP_R = 8, STEP_PAD = 12, STEP_M = 16;
+// FRIENDS B: the step itself is gone — this observer now only keeps a strip's plate capped before its hero + tells a full card it can lay out.
 let stepRO = null;
-const SVGNS = 'http://www.w3.org/2000/svg';
 const ROWS = el => [el.querySelector('.vl-name, .vl-fc-name'), el.querySelector('.vl-lv, .vl-fc-lv')];
 export function stepPlate(plate) {
   if (typeof ResizeObserver === 'undefined') return;
   if (!stepRO) stepRO = new ResizeObserver(es => { for (const e of es) layStep(e.target.closest('.vl-plate, .vl-fc-plate')); });
   stepRO.observe(plate);
   for (const r of ROWS(plate)) if (r) stepRO.observe(r);
-}
-/** the plate's own inset line colour (its card's), read from its box-shadow once */
-function lineOf(plate) {
-  const m = /(rgba?\([^)]+\))\s+0px\s+0px\s+0px\s+([\d.]+)px\s+inset/.exec(getComputedStyle(plate).boxShadow || '');
-  return m ? { c: m[1], w: Math.min(2, parseFloat(m[2]) || 1) } : { c: 'rgba(255,255,255,0.09)', w: 1 };
 }
 /** a strip with a HERO (js/vault/hero.js): the plate's max-width ends before it — px, or ''. THE CARD PASS — THE SLIM-CARD LONG-NAME STANDARD:
  *  every strip that declares one (was: the gift strips only) — a NAME_MAX-letter name shrinks / goes to two lines, never over the subject */
@@ -182,36 +176,12 @@ function layStep(plate) {
   // (THE CARD PASS: a STRIP's plate only — a full card's plate has its own cap from vault/layout.js#layFull; writing '' here wiped it, the two
   //  then fought through the ResizeObserver + Safari ended UNCAPPED: a 12-letter name ran over a gift card's face)
   if (!plate.classList.contains('vl-fc-plate')) { const room = heroRoom(plate); if (plate.style.maxWidth !== room) plate.style.maxWidth = room; }
-  const W = plate.offsetWidth, H = plate.offsetHeight, [nm, lv] = ROWS(plate);
-  const off = () => { const was = plate.dataset.step; plate.style.clipPath = ''; plate.classList.remove('vl-stepped', 'vl-rstep'); plate.dataset.step = ''; const o = plate.querySelector(':scope > .vl-step'); if (o) o.remove(); if (was !== '' && plate.classList.contains('vl-fc-plate')) layFull(plate.closest('.vl-fc')); };
-  if (!W || !H || !nm || !lv) return off();
-  // (rects in the plate's own px: a card shown scaled — the lab's 72 % viewer, the reveal's flip — divides out)
-  const P = plate.getBoundingClientRect(), sc = P.width / W || 1, rg = document.createRange();
-  const ext = el => { rg.selectNodeContents(el); const r = rg.getBoundingClientRect(); return { r: (r.right - P.left) / sc, t: (r.top - P.top) / sc, b: (r.bottom - P.top) / sc }; };
-  const N = ext(nm), V = ext(lv), full = plate.classList.contains('vl-fc-plate'), cs = getComputedStyle(plate), pad = full ? Math.max(6, parseFloat(cs.paddingLeft) || 0) : STEP_PAD;
-  const rev = V.r > N.r + STEP_MIN / 2;   // (the second row is the longer: the name row steps in)
-  // (CARD FIXES' 6:04 pm ADD-ON: a FULL card's plate is the NAME + LV n — a clean rounded box; it steps only when the second row is the longer)
-  if (full && !rev) return off();
-  const x2 = Math.ceil((rev ? N.r : V.r) + pad), y1 = Math.round((N.b + V.t) / 2 * 2) / 2;
-  if (W - x2 < STEP_MIN || y1 <= 4 || y1 >= H - 4) return off();
-  const R0 = parseFloat(cs.borderTopRightRadius) || STEP_R;
-  const r = Math.max(2, Math.min(full ? R0 : STEP_R, (H - y1) / 2, (W - x2) / 2, y1 / 2)), m = full ? 28 : STEP_M, f = v => +v.toFixed(2);
-  const R = Math.max(2, Math.min(R0, y1 / 2, x2 / 2));
-  plate.style.clipPath = rev
-    ? `path('M ${-m} ${-m} L ${f(x2 - R)} ${-m} L ${f(x2 - R)} 0 A ${f(R)} ${f(R)} 0 0 1 ${x2} ${f(R)} L ${x2} ${f(y1 - r)} A ${f(r)} ${f(r)} 0 0 0 ${f(x2 + r)} ${f(y1)} L ${f(W - r)} ${f(y1)} A ${f(r)} ${f(r)} 0 0 1 ${W} ${f(y1 + r)} L ${f(W + m)} ${f(y1 + r)} L ${f(W + m)} ${f(H + m)} L ${-m} ${f(H + m)} Z')`
-    : `path('M ${-m} ${-m} L ${f(W + m)} ${-m} L ${f(W + m)} ${f(y1 - r)} L ${W} ${f(y1 - r)} A ${f(r)} ${f(r)} 0 0 1 ${f(W - r)} ${f(y1)} L ${f(x2 + r)} ${f(y1)} A ${f(r)} ${f(r)} 0 0 0 ${x2} ${f(y1 + r)} L ${x2} ${f(H - r)} A ${f(r)} ${f(r)} 0 0 1 ${f(x2 - r)} ${H} L ${f(x2 - r)} ${H + m} L ${-m} ${H + m} Z')`;
-  plate.classList.add('vl-stepped'); plate.classList.toggle('vl-rstep', rev);
-  plate.dataset.step = rev ? 'r' : 'n'; plate.dataset.x2 = x2; plate.dataset.y1 = y1;
-  // the edge line along the step (the rest of the outline is the plate's own inset ring)
-  let svg = plate.querySelector(':scope > .vl-step');
-  if (!svg) { svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'vl-step'); svg.setAttribute('aria-hidden', 'true'); svg.append(document.createElementNS(SVGNS, 'path')); plate.append(svg); }
-  const L = lineOf(plate), k = L.w / 2, path = svg.firstChild;
-  svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  path.setAttribute('d', rev
-    ? `M ${f(x2 - R)} ${f(k)} A ${f(R - k)} ${f(R - k)} 0 0 1 ${f(x2 - k)} ${f(R)} L ${f(x2 - k)} ${f(y1 - r)} A ${f(r + k)} ${f(r + k)} 0 0 0 ${f(x2 + r)} ${f(y1 + k)} L ${f(W - r)} ${f(y1 + k)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(W - k)} ${f(y1 + r)}`
-    : `M ${f(W - k)} ${f(y1 - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(W - r)} ${f(y1 - k)} L ${f(x2 + r)} ${f(y1 - k)} A ${f(r + k)} ${f(r + k)} 0 0 0 ${f(x2 - k)} ${f(y1 + r)} L ${f(x2 - k)} ${f(H - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(x2 - r)} ${f(H - k)}`);
-  path.setAttribute('stroke', L.c); path.setAttribute('stroke-width', L.w); path.setAttribute('fill', 'none');
-  if (full) layFull(plate.closest('.vl-fc'));   // (the full card's placement reads the step's real shape — lay it again now it's known)
+  // (FRIENDS B — DROP THE STEP, the owner: both kinds gone — every plate is ONE clean rounded box as wide as its longest row; the hero cap
+  //  above stays. data-step = '' says so to vault/layout.js, which lays a full card once it reads it)
+  const was = plate.dataset.step;
+  plate.style.clipPath = ''; plate.classList.remove('vl-stepped', 'vl-rstep'); plate.dataset.step = '';
+  const o = plate.querySelector(':scope > .vl-step'); if (o) o.remove();
+  if (was !== '' && plate.classList.contains('vl-fc-plate')) layFull(plate.closest('.vl-fc'));
 }
 
 /** a list of strips on ONE shared effect surface (the host becomes it) */

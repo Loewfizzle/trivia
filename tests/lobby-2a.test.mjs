@@ -39,13 +39,14 @@ test('CENTURY: NO FLAMES — the bronze deco sunburst + embers (INFERNO keeps th
   assert.deepEqual(flameCards, ['card-inferno']);
 });
 
-test('THE STEPPED PLATE: full width on the NAME row, the LEVEL row past "LV n" only — a clip measured by ONE ResizeObserver (never a frame loop); short names unchanged', () => {
+// (FRIENDS B — DROP THE STEP, the owner: both kinds gone; the observer stays — the hero cap + a full card's layout)
+test('THE PLATE: ONE clean rounded box — no step, no reverse step (FRIENDS B); the ONE ResizeObserver keeps the hero cap (never a frame loop)', () => {
   const s = read('js/vault/strip.js');
   assert.match(s, /stepPlate\(plate\);/);
   assert.match(s, /stepRO = new ResizeObserver/);
-  assert.match(s, /if \(W - x2 < STEP_MIN/, 'a tiny step → the plate as it was');
-  assert.match(s, /plate\.style\.clipPath = rev\s*\? `path\(/);   // (CARD FIXES: THE REVERSE STEP — either way, one clip-path)
-  assert.match(s, /A \$\{f\(r\)\} \$\{f\(r\)\} 0 0 0 \$\{x2\}/, 'the rounded INNER corner');
+  assert.doesNotMatch(s, /clipPath = rev|vl-stepped'\); plate\.classList\.toggle|STEP_MIN/, 'no step is cut any more');
+  assert.match(s, /plate\.style\.clipPath = ''; plate\.classList\.remove\('vl-stepped', 'vl-rstep'\); plate\.dataset\.step = '';/);
+  assert.match(s, /h\('small\.vl-lv', dev \? 'DEV' :/, 'the slim dev line reads DEV');
   assert.doesNotMatch(s, /requestAnimationFrame\(.*layStep/);
   assert.match(read('css/vault.css'), /\.vl-lv \{ align-self: flex-start; \}/, 'the level row measured by its text');
 });

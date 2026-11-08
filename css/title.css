@@ -707,11 +707,11 @@ body.nd-spill .nd-bar-glass::after { opacity: 1; }
 .nd-tab-ind { position: absolute; left: 50%; bottom: -9px; width: 16px; height: 2px; margin-left: -8px; border-radius: 2px; pointer-events: none;
   background: #8ff6ff; box-shadow: 0 0 5px #3fe0ff, 0 0 12px rgba(63, 224, 255, 0.7); opacity: 0; transform: scaleX(0.3); transition: opacity 0.25s ease, transform 0.35s var(--ease); }
 .nd-actions.is-join .nd-tab-ind { opacity: 1; transform: none; }
-/* by day: still lit (two small OPEN signs that are always on), softer */
-.nd-actions.is-daylit .nd-ringbtn { --hk: 0.62; }
-.nd-actions.is-daylit .nd-ringbtn:active { --hk: 0.9; }
-.nd-actions.is-daylit .nd-hring .hr-g2 { opacity: 0.32; }
-.nd-actions.is-daylit .nd-hring .hr-g1 { opacity: 0.7; }
+/* by day: LIT (FRIENDS B — the owner: every footer button lit day + night), a touch softer than at night so the daylight scene stays calm */
+.nd-actions.is-daylit .nd-ringbtn { --hk: 0.85; }
+.nd-actions.is-daylit .nd-ringbtn:active { --hk: 1; }
+.nd-actions.is-daylit .nd-hring .hr-g2 { opacity: 0.5; }
+.nd-actions.is-daylit .nd-hring .hr-g1 { opacity: 0.85; }
 .nd-actions.is-daylit .nd-ringbtn.is-lit .nd-host-label { text-shadow: 0 0 2px var(--hb1), 0 0 7px color-mix(in srgb, var(--hg1) 60%, transparent); }
 /* each ring's reflection on the wet street below: a soft broken streak of its colour (static: it's behind the dock) */
 .nd-hrefl {

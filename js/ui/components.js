@@ -168,13 +168,6 @@ export function burst(container, colors = ['#00f0ff', '#ff2bd6', '#f3ff3a'], cou
   setTimeout(() => wrap.remove(), 1600);
 }
 
-// Full-screen glitch slice flash used on screen transitions.
-export function glitchFlash() {
-  if (reducedMotion()) return;
-  const el = h('div.glitch-flash', h('i'), h('i'), h('i'));
-  document.body.append(el);
-  setTimeout(() => el.remove(), 450);
-}
 
 // Multi-select chips. values: array of selected values.
 export function chips(options, values, onChange) {

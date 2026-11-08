@@ -113,7 +113,7 @@ export function createView() {
     root = h('div.pd', { 'data-mode': game.settings.mode });
     els.world = h('canvas.pd-world', { 'aria-hidden': 'true' });
     els.fx = h('canvas.pd-fx', { 'aria-hidden': 'true' });
-    els.top = h('div.pd-top',
+    els.top = h('div.pd-top', { dataset: { msgUnder: '' } },
       h('div.pd-info', h('b.pd-mode', rush() ? 'SCORE RUSH' : 'BATTLE'), h('span.pd-sub')),
       h('div.pd-announce', { 'aria-live': 'polite' }));
     els.hold = h('canvas.pd-hold-c');

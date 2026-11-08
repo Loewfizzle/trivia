@@ -1173,7 +1173,7 @@ body.pf-on .bar { padding-left: 0; }
    dark glass with a short neon tube on its left edge: CYAN info · GREEN done · AMBER heads-up · RED problem; a bold first line + an
    optional small second; an ×; a newer one replaces the older ---- */
 .sh-msgs { position: fixed; z-index: 8500; left: 50%; width: min(calc(100vw - 24px), 460px); transform: translateX(-50%); pointer-events: none;
-  top: calc(var(--safe-t) + 56px); }
+  top: max(calc(var(--safe-t) + 56px), var(--msg-t, 0px)); }   /* (FRIENDS B — B6: in a game, under its header — ui/toast.js#gameTop) */
 body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px)); }
 .sh-msg {
   --mc: #5fe3ff;

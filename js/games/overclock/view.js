@@ -100,7 +100,7 @@ export function createView() {
     els.head = h('header.game-head.oc-head',
       h('div.oc-head-l', h('div.oc-mark', 'OVER', h('b', 'CLOCK')), els.sub),
       h('div.oc-score', h('span.oc-score-k', 'SCORE'), els.score));
-    els.timer = h('div.oc-tach', tach.el);
+    els.timer = h('div.oc-tach', { dataset: { msgUnder: '' } }, tach.el);   // (FRIENDS B — B6: a message sits under the tach, never over it)
     els.strip = h('div.oc-strip');
     els.row = h('div.oc-row', combo.el, els.strip);
     // (OC8 — A9: ONE sound palette — the console's synth tap on every button press stays out of the challenges; each plays its own)

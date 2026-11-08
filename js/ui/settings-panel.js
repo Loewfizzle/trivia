@@ -100,6 +100,7 @@ function gameLookRow() {
 function open() {
   if (sheet) return;
   const playable = id => GAMES.some(g => g.id === id && g.playable);
+  const lookRow = gameLookRow();
   sheet = openSheet({ title: 'SETTINGS', cls: 'settings', label: 'Settings', onClose: () => { sheet = null; }, body: [
     h('div.sh-sub', 'SOUND'),
     toggle('Music', 'musicOff', true, 'music'),
@@ -115,8 +116,10 @@ function open() {
     toggle('Reduced effects', 'reducedFx'),
     toggle('Colour-blind colours', 'colorBlind'),   // (SHELL 2.0 B1 — right in BLUE, close in ORANGE in every game: ui/colorblind.js)
     // (SHELL 2.0 B2 — THE GAME LOOK: AUTO = the real sun · DAY · NIGHT, this phone only, no lock — a change mid-game re-themes at once)
-    gameLookRow(),
-    toggle('Always night', 'alwaysNight'),
+    lookRow,
+    // (FRIENDS B — B5: while a ONE-look game locks the row (NIGHT · LOCKED), the city's "Always night" switch is not shown under it — a locked
+    //  row with a live toggle beside it read as two controls for one thing; back in the city it's there again)
+    ...(lookRow.classList.contains('is-locked') ? [] : [toggle('Always night', 'alwaysNight')]),
     ...(playable('prism') ? [
       h('div.sh-sub', 'PRISM DROP'),
       h('div.set-row.set-seg', h('span.label', 'CONTROLS'), segmented([{ value: 'gesture', label: 'GESTURES' }, { value: 'buttons', label: 'BUTTONS' }], settings.prismScheme || 'gesture', v => updateSettings({ prismScheme: v }))),

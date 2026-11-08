@@ -384,14 +384,14 @@ const cardFit = async (p, BASE, w) => {
     });
     out.push({ what, ...r });
   }
-  // the strips: the step's direction follows the longer row
+  // the strips: FRIENDS B — NO STEP on any plate (one clean box as wide as its longest row; both rows inside it)
   await p.goto(`${BASE}/tests/integration/plate-preview.html?only=strip&name=BEN&lv=100&host=1`);
   await p.waitForFunction('window.__ready', { timeout: 15000 }); await new Promise(r => setTimeout(r, 700));
   const st = await p.evaluate(() => { const bad = []; let rev = 0, n = 0;
     for (const pl of document.querySelectorAll('.vl-plate')) { n++; const rg = document.createRange(), ext = s => { rg.selectNodeContents(pl.querySelector(s)); return rg.getBoundingClientRect().right; };
       const nm = ext('.vl-name'), lv = ext('.vl-lv'), P = pl.getBoundingClientRect(), x2 = +pl.dataset.x2;
-      if (pl.dataset.step === 'r') { rev++; if (nm - P.left > x2 - 2 || lv > P.right) bad.push(pl.closest('[data-card]').dataset.card); }
-      else if (lv > nm + 15 && pl.dataset.step !== '') bad.push(pl.closest('[data-card]').dataset.card + ' (normal step on a longer level line)'); }
+      void x2; if (pl.dataset.step || pl.style.clipPath || pl.classList.contains('vl-stepped') || pl.querySelector('.vl-step')) { rev++; bad.push(pl.closest('[data-card]').dataset.card + ' (stepped)'); }
+      else if (nm > P.right + 0.5 || lv > P.right + 0.5) bad.push(pl.closest('[data-card]').dataset.card + ' (a row past the box)'); }
     return { n, rev, bad }; });
   return { out, st };
 };
@@ -400,7 +400,7 @@ G('cardfit', async () => {
     const Q = await open({ slot: `cf${w}`, view: [w, 900], wait: false, city: false }), p = Q.page;
     const r = await cardFit(p, BASE, w);
     for (const o of r.out) ok(o.n >= 55 && o.heroed >= 11 && !o.bad.length, `THE CARD's LAYOUT at ${w} — ${o.what}: ${o.n} full cards, nothing overlapping (the top line, the badge, the FOUNDER pill, the plate, MEMBER SINCE, the card's name), the plate off the hero on ${o.heroed}, no FOUNDER pill on a gift${o.bad.length ? ` — ${o.bad.slice(0, 8).join(' | ')}` : ''}`);
-    ok(r.st.n >= 55 && r.st.rev >= 1 && !r.st.bad.length, `THE REVERSE STEP at ${w}: ${r.st.n} strips (BEN · LV 100 · HOST), ${r.st.rev} stepped the name row in — the step follows the longer row${r.st.bad.length ? ` — ${r.st.bad.slice(0, 6).join(' | ')}` : ''}`);
+    ok(r.st.n >= 55 && r.st.rev === 0 && !r.st.bad.length, `NO STEP (FRIENDS B) at ${w}: ${r.st.n} strips (BEN · LV 100 · HOST), ${r.st.rev} stepped — every plate one clean box, both rows inside${r.st.bad.length ? ` — ${r.st.bad.slice(0, 6).join(' | ')}` : ''}`);
     if (SHOTS) { await p.goto(`${BASE}/tests/integration/plate-preview.html?name=BEN&lv=23&fx=1&cards=card-gift-playerone,card-gift-youngbuck,card-gift-icecold,card-gift-anarchist`); await waitFor(p, 'window.__ready', 'p', 15000); await sleep(1200); await p.screenshot({ path: `${OUT}cardfit-${w}.png`, fullPage: true }); }
     await Q.ctx.close();
   }

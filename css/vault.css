@@ -872,10 +872,9 @@ html.ve-beat-on .ve-t-beat .ve-bt { animation: ve-beat var(--beat, 0.5357s) cubi
 /* ---------------------------------------------------------------- THE VAULT 2C — THE TIER GEM (js/vault/gems.js; the owner's approved mock
    Downloads\NEON\vault\tier-gem.png): replaces the big tier pill on every SLIM STRIP — no words there (the full card + CUSTOMIZE spell the
    tier). Each moving part its own HTML layer, transform + opacity only; a part inside the gem under a CSS mask of it. Static glows only. */
-.vl-gem { --gs: 17px; position: relative; display: inline-block; width: var(--gs); height: var(--gs); flex: none; pointer-events: none; }
-.vl-gem-common, .vl-gem-uncommon { --gs: 15px; }
-.vl-gem-epic { --gs: 18px; }
-.vl-gem-legendary { --gs: 22px; }
+.vl-gem { --gs: 18px; position: relative; display: inline-block; width: var(--gs); height: var(--gs); flex: none; pointer-events: none; }
+/* (FRIENDS B — THE TIER GEM = ONE SHAPE: every tier the SAME size (the tier = colour + shine); the classes stay for the tier's light) */
+.vl-gem-common, .vl-gem-uncommon, .vl-gem-rare, .vl-gem-epic, .vl-gem-legendary { --gs: 18px; }
 .vl-gem-dev { --gs: 27px; }
 .vl-gem > .vl-gl, .vl-gem-body > .vl-gl, .vl-gem-body > .vl-gm, .vl-gem > .vl-gm { position: absolute; inset: 0; display: block; }
 .vl-gl > svg { display: block; width: 100%; height: 100%; overflow: visible; }

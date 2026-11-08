@@ -25,11 +25,25 @@ function dockBottom() {
   return Math.max(16, Math.round(window.innerHeight - r.top + 10));
 }
 
+/** FRIENDS B — B6 ("Host signal lost — You are now the host" landed over OVERCLOCK's header + tach mid-race): in a game the message sits
+ *  UNDER the screen's header — its .game-head + anything the game marks [data-msg-under] (OVERCLOCK's tach, PRISM DROP's top line) — 8 px
+ *  below the lowest, never past a third of the screen. Read once per message, never in a frame loop; null = the default spot under the corners */
+function gameTop() {
+  if (document.body.classList.contains('nd-on')) return null;
+  const scr = [...document.querySelectorAll('#stage > .screen.screen-in')].pop();
+  if (!scr) return null;
+  let low = 0;
+  for (const e of scr.querySelectorAll('.game-head, [data-msg-under]')) { const r = e.getBoundingClientRect(); if (r.height && r.bottom > 0 && r.top < window.innerHeight / 2) low = Math.max(low, r.bottom); }
+  return low ? Math.round(Math.min(low + 8, window.innerHeight / 3)) : null;
+}
+
 export function toast(msg, kind = 'info', opts = 2600) {
   const { ms = 2600, sub = null } = typeof opts === 'number' ? { ms: opts } : (opts || {});
   if (!host) { host = h('div.sh-msgs', { role: 'status', 'aria-live': 'polite' }); document.body.append(host); }
   const b = dockBottom();
   if (b != null) host.style.setProperty('--msg-b', `${b}px`); else host.style.removeProperty('--msg-b');
+  const gt = b == null ? gameTop() : null;
+  if (gt != null) host.style.setProperty('--msg-t', `${gt}px`); else host.style.removeProperty('--msg-t');
   for (const old of host.children) if (!old.classList.contains('is-out')) { old.classList.add('is-out', 'is-replaced'); setTimeout(() => old.remove(), 260); }
   const k = LABEL[kind] ? kind : 'info';
   let gone = false, t = 0;
