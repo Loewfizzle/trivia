@@ -240,7 +240,7 @@ Every daily still OFF — the owner's switch (/admin → THE DAILIES) turns them
   n ≥ 50 (`core/daily.js#isPenthouse` — dormant below 50; `dailyStep({ rank })`, the rank = 1 + the finishers strictly better) → PENTHOUSE SUITE + `card-penthouse`.
 - **THE PRACTICE HARBOR** (docs/coastclear.md): the first COAST CLEAR open; seen once per player (`pstats/{pid}/ls/{game}` — every device).
 - **Previews:** `tests/integration/daily-preview.html?state=waiting|one|mixed|swept|progress|gated|fake3 &tab=scores &sweep=1 &look=day · ?view=lesson&step=0..3 ·
-  ?view=banner`; the dock + the chip + the host line on the real title: `title-preview.html?daily=waiting|done|off&of=2&left=1&held=1&act=room`.
+  ?view=banner`; the dock + the chip on the real title: `title-preview.html?daily=waiting|done|off&of=2&left=1&held=1` (the host's line needs the real /api — `e2e-daily.mjs` shoots it).
 - **Tests:** `tests/daily-screens.test.mjs` (PURE) · `tests/daily.test.mjs` (the bonus, PERFECT WEEK, PENTHOUSE's edges) · `daily-module.test.mjs` (today's fields,
   `lesson`, the admin RESEED) · `e2e-daily.mjs` (36 checks — the dock, TODAY → PLAY → DONE + the table rank, THE PRACTICE HARBOR once, THE ROOM WINS' loop, THE SWEEP).
 
