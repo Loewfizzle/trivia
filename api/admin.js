@@ -43,9 +43,15 @@
 //                                    owner's switch (progress/dailies — OFF until THE SWITCH-OVER, audited); FRESH = wipe every stored daily day
 //                                    (dly/ — the test runs, the pairs, the boards) + THE FROZEN SCHEDULE (dsched/) so the first live day builds them
 //                                    anew — refused while the switch is ON, typed FRESH (docs/progression.md "THE SWITCH-OVER")
+//   dailyReseed { confirm?, force? } → DM2 ADD-ON — THE RESEED, SERVER-SIDE (the owner's rule: no service-account key on his PC): the same
+//                                    reseedDailies() as scripts/dailies-reseed.mjs (now the emulators' + tests' only) — no confirm = the DRY RUN
+//                                    (the plan, nothing written); confirm: true = a new daily secret from the NEXT 4 am (today + the past + every
+//                                    result untouched; a second run says "already reseeded"); audited (dailyReseed). Owner only (the admin gate)
 import { displayOf } from './_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
 import { dailiesState, setDailiesSwitch, forgetPicks } from './_lib/dailies.js';
-import { forgetPwDays } from './_lib/pw.js';
+import { forgetPwDays, reseedSchedule } from './_lib/pw.js';
+import { reseedDailies } from './_lib/daily-secret.js';
+import { DAILIES } from '../js/config.js';
 import { forgetBoards } from './_lib/cc-board.js';
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, adminPids } from './_lib/fb.js';
@@ -309,6 +315,13 @@ export async function adminAction(uid, body, now = Date.now()) {
       forgetPicks(); forgetPwDays(); forgetBoards();
       await audit(me, 'dailyFresh', null);
       return { fresh: true, dailies: await dailiesState(now) };
+    }
+    // DM2 ADD-ON — THE RESEED from /admin (the dry run first, the real one on a second tap — the page's confirm)
+    case 'dailyReseed': {
+      const confirm = body.confirm === true, force = body.force === true;
+      const r = await reseedDailies({ now, dryRun: !confirm, force, hooks: { games: [...DAILIES.map(d => d.id), 'test'], schedule: reseedSchedule } });
+      if (r.changed) { forgetPicks(); forgetPwDays(); await audit(me, 'dailyReseed', null, { b: r.from }); }
+      return { reseed: r };
     }
     // THE VAULT 1A — THE CARD LAB (api/_lib/lab.js): the owner's marks, read + written by admins only, every change audited
     // (THE VAULT 1B: the owner's &sgdemo preview — a preview never claims, so its pair's NAMES come from here, admins only)

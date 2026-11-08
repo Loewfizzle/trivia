@@ -116,6 +116,12 @@ function shell() {
       h('div.ad-reset-out', { id: 'ad-reset-out' }),
       h('h3', 'Backups'),
       h('div.ad-reset-bk', { id: 'ad-reset-bk' }, h('p.ad-dim', 'Loading…'))),
+    // DM2 — THE DAILIES (owner only — the server checks): THE GO-LIVE SWITCH (a second tap flips it) + THE RESEED (DM2 ADD-ON: server-side —
+    // PREVIEW shows the plan, nothing written; RESEED NOW on a second tap: a fresh daily secret from the next 4 am, today + the past untouched)
+    card('ad-dailies', 'The dailies', { cls: 'ad-dailies' },
+      h('p.ad-dim', 'THE GO-LIVE SWITCH turns every daily on or off for everyone, at once (any time). RESEED gives the dailies a fresh secret from the next 4 am Eastern — run it when the repo goes private (preview first; today’s run and every past result stay as they are).'),
+      h('div.ad-row', { id: 'ad-dly-row' }, h('span.ad-dim', 'Loading…')),
+      h('div.ad-dly-out', { id: 'ad-dly-out' })),
     // PROGRESSION A — THE OUTAGE BUTTON: a day the site was down breaks nobody's streak (audited; the streak day turns at 4 am Eastern)
     card('ad-outage', 'Streak outage', { cls: 'ad-outage' },
       h('p.ad-dim', 'The site was down? Mark the day: nobody’s streak breaks over it (no freeze used, no day added). The streak day turns at 4 am Eastern.'),
@@ -135,6 +141,7 @@ function shell() {
     grid);
   audit();
   outages();
+  dailies();
   errors();
   reports();
   flags();
@@ -435,6 +442,24 @@ function renderStats() {
 }
 
 // THE OUTAGE: today + the 6 days before, each a toggle (a second tap confirms)
+/** DM2 — THE DAILIES card: the switch's state + ON / OFF + RESEED (preview → confirm) */
+async function dailies(st) {
+  const row = document.getElementById('ad-dly-row'), out = document.getElementById('ad-dly-out');
+  if (!row) return;
+  try {
+    st ||= (await call('dailyState')).dailies;
+    const on = !!(st && st.on);
+    const lines = r => h('ul.ad-dly-steps', ...(r.steps || []).map(s => h('li', s)));
+    row.replaceChildren(
+      h('b.ad-dly-state', on ? 'DAILIES: ON' : 'DAILIES: OFF'),
+      confirmBtn(on ? 'SWITCH OFF' : 'SWITCH ON', async () => { const r = await call('dailySwitch', { on: !on }); toast(on ? 'The dailies are OFF' : 'The dailies are ON'); dailies(r.dailies); audit(); }, on ? '' : 'is-primary'),
+      tubeButton('RESEED · PREVIEW', { kind: 'secondary', size: 'sm', cls: 'ad-btn', onClick: async () => {
+        const r = (await call('dailyReseed', {})).reseed;
+        out.replaceChildren(h('p.ad-dim', r.dryRun ? 'THE PLAN (nothing written yet):' : 'Nothing to do:'), lines(r),
+          r.dryRun ? confirmBtn('RESEED NOW', async () => { const x = (await call('dailyReseed', { confirm: true })).reseed; out.replaceChildren(h('p.ad-dim', x.changed ? `DONE — the new days start ${x.from} at 4 am Eastern (today untouched).` : 'Nothing changed.'), lines(x)); toast(x.changed ? 'Reseeded' : 'Nothing changed'); audit(); }, 'is-danger') : null);
+      } }));
+  } catch (e) { row.replaceChildren(h('span.ad-dim', `Couldn’t load (${e.message || e})`)); }
+}
 async function outages(r) {
   const row = document.getElementById('ad-outage-row');
   if (!row) return;

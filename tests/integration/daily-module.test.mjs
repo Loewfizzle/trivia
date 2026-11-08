@@ -24,7 +24,7 @@ import { FAKE_DAILY, registerTestDaily, removeTestDaily, clearSwitchCache, forge
 import { wordsFor, forgetPwDays, SCHED_PATH } from '../../api/_lib/pw.js';
 import { forgetBoards } from '../../api/_lib/cc-board.js';
 import { NEW_PROFILES } from '../../api/_lib/profiles.js';
-import { todaysDailies, dailyOf, DAILY_XP } from '../../js/core/daily.js';
+import { todaysDailies, dailyOf, DAILY_XP, SWEEP_XP } from '../../js/core/daily.js';
 import { streakDay, dayStartAt, dayNum, dayOf } from '../../js/core/streak.js';
 import { DAILIES } from '../../js/config.js';
 
@@ -65,10 +65,10 @@ test('PLUG-AND-PLAY: a FAKE 3rd + 4th daily join the live list, `today`, the pic
     let xp = 0, last = null;
     for (const g of ['fake3', 'fake4', 'test']) { last = await perfect('m-ann', g, NOW + xp * 10); xp += last.outcome.xp.total; assert.equal(last.outcome.swept, g === 'test', `${g}: the sweep only on the last of three`); }
     assert.ok(loaded.includes(`fake3:${day}`) && loaded.includes(`fake4:${day}`), 'THE 4 AM PICKER fixed their day too');
-    assert.equal(xp, 3 * DAILY_XP, 'the XP cap: one credit per daily on the list');
+    assert.equal(xp, 3 * DAILY_XP + SWEEP_XP, 'the XP cap: one credit per daily on the list (+ DM2: the sweep bonus once)');
     assert.ok(last.outcome.ach.includes('the-triple'), 'THE SWEEP (the-triple)');
     const prof = await val(`profiles/${await pidOf('m-ann')}`);
-    assert.equal(prof.x, 3 * DAILY_XP, 'the daily XP lands on the public profile');
+    assert.equal(prof.x, 3 * DAILY_XP + SWEEP_XP, 'the daily XP lands on the public profile');
     // one removed → two to sweep tomorrow
     removeTestDaily('fake4');
     assert.deepEqual(todaysDailies(), ['fake3', 'test']);
@@ -306,4 +306,37 @@ test('THE RESEED: a new key from the NEXT 4 am — past days + today unchanged, 
   const again = await reseedDailies({ now: T, hooks });
   assert.equal(again.changed, false); assert.match(again.steps[0], /already reseeded/);
   assert.deepEqual((await val(SCHED_PATH)).s.split(','), sched1);
+});
+
+test('DM2 ADD-ON — THE RESEED from /admin (server-side — no key on a PC): owner only; no confirm = the dry run (nothing written); confirm = a key from the next 4 am, audited; a second run changes nothing', async () => {
+  const T = NOW + 20 * DAY, tomorrow = dayOf(dayNum(streakDay(T)) + 1);
+  forgetPicks(); forgetPwDays(); forgetBoards(); clearSecretCache();
+  await ensure('ar-own', 'Owner'); await ensure('ar-pat', 'Patron');
+  const own = await pidOf('ar-own');
+  try {
+    await rejects(adminAction('ar-pat', { action: 'dailyReseed', confirm: true }, T), 403, 'not_admin');
+    process.env.ADMIN_PIDS = own;
+    const dry = (await adminAction('ar-own', { action: 'dailyReseed' }, T)).reseed;
+    assert.equal(dry.dryRun, true); assert.equal(dry.from, tomorrow); assert.ok(dry.steps.length >= 1);
+    assert.equal((await dailyKeys(T))[tomorrow], undefined, 'the dry run wrote nothing');
+    const r = (await adminAction('ar-own', { action: 'dailyReseed', confirm: true }, T)).reseed;
+    assert.equal(r.changed, true); assert.ok((await dailyKeys(T))[tomorrow], 'a key from the next 4 am');
+    assert.ok(Object.values((await val('audit')) || {}).some(a => a.act === 'dailyReseed'), 'audited');
+    const again = (await adminAction('ar-own', { action: 'dailyReseed', confirm: true }, T)).reseed;
+    assert.equal(again.changed, false, 'safe twice');
+  } finally { process.env.ADMIN_PIDS = ''; clearSecretCache(); }
+});
+
+test('DM2 — `today` for the screens: answered with no profile (the list only), started (IN PROGRESS) · lessons · countsFrom; `lesson` remembers a lesson ONCE per player (refused for a daily without one)', async () => {
+  const T = NOW + 30 * DAY;
+  const anon = await D('dm2-anon', { action: 'today' }, T);
+  assert.equal(anon.noProfile, true); assert.ok(anon.dailies.length >= 1 && anon.dailies.every(d => d.better && 'hook' in d), 'the list + better + hook');
+  await ensure('dm2-ann', 'Ann');
+  await D('dm2-ann', { action: 'start', game: 'test' }, T);
+  let t = await D('dm2-ann', { action: 'today' }, T + 1e3);
+  assert.equal(t.started.test, true, 'a start with no score = IN PROGRESS'); assert.deepEqual(t.lessons, {});
+  await rejects(D('dm2-ann', { action: 'lesson', game: 'password' }, T), 400, 'no_lesson');
+  assert.deepEqual(await D('dm2-ann', { action: 'lesson', game: 'coastclear' }, T), { ok: true });
+  t = await D('dm2-ann', { action: 'today' }, T + 2e3);
+  assert.equal(t.lessons.coastclear, 1, 'seen — on the profile (every device)');
 });
