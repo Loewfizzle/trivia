@@ -79,3 +79,14 @@
   Both awarded by the SERVER from its record.
 - COAST CLEAR: a CAUGHT run reveals every searchlight on its end screen (KEPT, Ben Nov 7 — a winner knows them all anyway; one try a day).
 - FABLE REVIEW #1 (THE PASSWORD + COAST CLEAR) run read-only; its report: docs/games/review-dailies-1.md.
+
+## DFIX1 — THE DAILIES: FABLE REVIEW #1's FIX PASS (Nov 7 2026 — both still ship OFF)
+- A run keeps ITS OWN DAY: every daily call carries the `day` its `start` returned; the server accepts it for today or yesterday when the
+  player has a start on that day — a run that crosses 4 am Eastern finishes on its own day.
+- COAST CLEAR pauses are capped: at most 3 pauses a run AND at most 20 minutes paused in total; past either cap a pause is refused and the
+  clock keeps running (+15 s per accepted pause, as before). (THE DAILY MODULE will also check the player's room really started a game.)
+- THE PASSWORD's word list: the ADULT-VOCABULARY group from the review is cut (banal, trite, pithy, terse, fjord, segue, …). The MEAN words
+  (taunt, snide, sneer, spite, catty, dorky, inane, vapid, …) and the GLOOMY words (gaunt, eerie, dingy, …) STAY (Ben's call).
+- THROWAWAY PROFILES (for THE DAILY MODULE — NOT this pass): a daily only COUNTS (standing, THE BOARD, rewards, ranking) if the profile
+  existed before that day's 4 am Eastern start; same-day new profiles can still play but don't rank / award; plus a per-IP limit on new
+  profiles. (Chosen over the review's "3 counted matches" floor, which would block solo players.)
