@@ -126,6 +126,23 @@ test('PROGRESSION A: pstats (xp · it · ac · st · pa · dl · fv), pcount, pr
   for (const n of ['pcount', 'progress/founder', 'dly/test', 'streak/outage']) await assertFails(get(ref(db('me'), n)), `a client reads ${n} by socket (/api answers)`);
 });
 
+// FRIENDS A: pfr/{pid} (friends, requests in + out, blocks, recently played with, waiting invites) — the SERVER writes it (/api); its owner
+// may read it, another player never (not even a friend); the invite notifications' subscriptions (ppriv/{pid}/ps) server-only
+test('FRIENDS A: pfr/{pid} — the owner reads their own, another player never; nobody writes it (not even their own)', async () => {
+  await seed({ uids: { me: 'pme', pal: 'ppal' }, pfr: { pme: { f: { ppal: 1 }, in: { pxx: 1 }, b: { pzz: 1 }, rp: { ppal: 1 }, inv: { ppal: { r: 'ABCD', ca: 1, at: 1, until: 2 } } }, ppal: { f: { pme: 1 } } },
+    ppriv: { pme: { ps: { k: { endpoint: 'https://fcm.googleapis.com/x' } } } } });
+  await assertSucceeds(get(ref(db('me'), 'pfr/pme')));
+  await assertFails(get(ref(db('pal'), 'pfr/pme')), 'a friend reads my list');
+  await assertFails(get(ref(db('stranger'), 'pfr/pme')), 'a stranger reads my list');
+  await assertFails(get(ref(db(null), 'pfr/pme')), 'signed out');
+  await assertFails(get(ref(db('me'), 'pfr')), 'the whole node');
+  await assertFails(get(ref(db('me'), 'ppriv/pme/ps')), 'the subscriptions are server-only');
+  for (const [who, path, v] of [['me', 'pfr/pme/f/pnew', 1], ['me', 'pfr/ppal/f/pme', null], ['pal', 'pfr/pme/in/ppal', 1], ['me', 'pfr/pme/b/pzz', null], ['me', 'pfr/pme/inv/ppal', null],
+    ['stranger', 'pfr/pme', null], ['me', 'ppriv/pme/ps/k2', { endpoint: 'x' }]]) {
+    await assertFails(set(ref(db(who), path), v), `${who} writes ${path}`);
+  }
+});
+
 // PROGRESSION B: CITY SIGHTINGS (the counts, the appearances counted, the radio's once-a-day, the pairs), BIRTHDAYS (private), FAVORS, the
 // radio's fired-moment record + a room's radio — the SERVER's only: a phone can't claim its own sighting, birthday or favor by socket
 test('PROGRESSION B: sightings (pa.sg · sgt · it card-sg-*), ppriv sgk / sgr / bd / bdr, fv, radio/fired, rooms/{CODE}/radio — written by nobody', async () => {

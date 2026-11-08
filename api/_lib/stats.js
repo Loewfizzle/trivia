@@ -12,6 +12,7 @@ import { easternParts } from '../../js/core/week.js';
 import { holidayOf } from '../../js/core/sky.js';
 import { inPartyWindow } from '../../js/core/party.js';
 import { bumpOwners } from './owners.js';
+import { noteRecent } from './friends.js';
 
 // one match per player per this long — a real match takes minutes; this stops a forged room from farming wins
 export const MIN_MATCH_GAP_MS = Number(process.env.MATCH_GAP_MS ?? 45_000);
@@ -97,6 +98,8 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
     };
   }));
   clearBoardCache();
+  // FRIENDS A — RECENTLY PLAYED WITH: every credited player gets the others (a VERIFIED match only — this one; best effort)
+  await noteRecent(Object.keys(outcomes).filter(p => !outcomes[p].skip), now).catch(e => console.warn('recent', e && e.message));
   return outcomes;
 }
 

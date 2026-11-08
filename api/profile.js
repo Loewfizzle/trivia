@@ -10,6 +10,14 @@
 //   birthday { m, d }                → { bd, until }         month + day (never the year), private, changeable once a year
 //   birthdayRoom { room, tz }        → the room's HAPPY BDAY skywrite (dormant until LOBBY 2.0)
 //   favor    { jack, room, text?, colour?, show? } → { moment, spent }   CALL IN A FAVOR (a FAVOR token → one crew jack for the room)
+//   FRIENDS A (api/_lib/friends.js — docs/profiles.md "FRIENDS"):
+//   friends                          → { friends, in, out, blocked, recent, caps }   your own list (nobody else's, ever)
+//   friendAdd { pid } | { b, bid }   → { ok, rel, pid, state }   a REQUEST (they accept); a request from them already → friends at once
+//   friendAccept · friendDecline · friendCancel · friendRemove · friendBlock · friendUnblock { pid } → { ok, rel, pid, state }
+//   friendInvite { pid, room }       → { ok, sent, until }       a friend into your room: their push + the waiting card
+//   inviteCheck                      → { invites }                the waiting invites (on open; never a socket)
+//   inviteDismiss { pid }            → { ok }
+//   friendPush { op, sub?, endpoint? } → { key, subs, mine }      INVITE NOTIFICATIONS on this phone
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/http.js';
 import { ITEM, STARTER, signOf, SIGN_EMBLEMS } from '../js/core/items.js';
@@ -30,6 +38,7 @@ import { claimSighting } from './_lib/sightings.js';
 import { setBirthday, birthdayRoom } from './_lib/birthday.js';
 import { callFavor } from './_lib/favors.js';
 import { weekKey } from '../js/core/week.js';
+import { friendsState, friendDo, friendInvite, inviteCheck, inviteDismiss, friendPush, pendingIn } from './_lib/friends.js';
 
 /** the IP's zone (Vercel's header; tests: the body's, only without a request) */
 const ipTzOf = (req, body) => (req ? (req.headers && req.headers['x-vercel-ip-timezone'] ? decodeURIComponent(String(req.headers['x-vercel-ip-timezone'])) : null) : (body && body.ipTz) || null);
@@ -93,7 +102,8 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
       }
       const s = stats || {};
       const wk = weekKey(now);
-      return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0 } };
+      const frIn = await pendingIn(pid, now).catch(() => 0);   // (FRIENDS A: the badge on the profile button)
+      return { pid, profile, priv, fr: { in: frIn }, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0 } };
     }
     case 'ranks': {
       const pid = await mine(uid);
@@ -149,6 +159,14 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
     case 'show': { const pid = await mine(uid); await setShown(pid, !!body.on); return { priv: await privateInfo(pid) }; }
     // (SHELL 2.0 B1 — COLOUR-BLIND on the profile: ppriv/{pid}/cb — private, server-written)
     case 'prefs': { const pid = await mine(uid); await setPrefs(pid, body); return { priv: await privateInfo(pid) }; }
+    // FRIENDS A — the friends list, invites that wait, invite notifications (api/_lib/friends.js)
+    case 'friends': return friendsState(await mine(uid), now);
+    case 'friendAdd': case 'friendAccept': case 'friendDecline': case 'friendCancel': case 'friendRemove': case 'friendBlock': case 'friendUnblock':
+      return friendDo(await mine(uid), body, now);
+    case 'friendInvite': return friendInvite(await mine(uid), uid, body, now);
+    case 'inviteCheck': return inviteCheck(await mine(uid), now);
+    case 'inviteDismiss': return inviteDismiss(await mine(uid), body);
+    case 'friendPush': return friendPush(await mine(uid), body, now);
     default: throw new ApiError(400, 'bad_action');
   }
 }

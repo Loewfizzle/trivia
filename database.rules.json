@@ -1205,6 +1205,11 @@
         ".read": "auth != null && root.child('uids/' + auth.uid).val() === $pid"
       }
     },
+    "pfr": {
+      "$pid": {
+        ".read": "auth != null && root.child('uids/' + auth.uid).val() === $pid"
+      }
+    },
     "lb": {
       "$board": {
         "$period": {
