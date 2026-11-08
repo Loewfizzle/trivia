@@ -11,7 +11,6 @@
 // clock paused on the server (+15 s), the run HELD (js/daily/today.js) → the RESUME chip after the match brings it back exactly where it was.
 import { h, clear } from '../ui/dom.js';
 import { tubeButton } from '../ui/components.js';
-import { toast } from '../ui/toast.js';
 import { sfx } from '../audio/sfx.js';
 import { state, setState } from '../store.js';
 import { serverNow } from '../firebase.js';
@@ -58,7 +57,7 @@ const CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.4 8.4l3 3
 const BACK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>';
 
 // ------------------------------------------------------------------------------------------------ the overlay manager
-let scr = null, run = null, lastKey = '', sweepNext = false;
+let scr = null, run = null, lastKey = '', sweepNext = false, sweptAt = 0;
 /** app.js calls this on every render: open / close / switch the overlay the state asks for (+ THE ROOM WINS) */
 export function syncDaily(st) {
   const d = st.daily || null;
@@ -79,7 +78,7 @@ function roomWins(st) {
   const r = run;
   if (r && !r.isDone()) {
     holdRun(r.id, r.day());
-    toast(ROOM_BANNER, 'info', { ms: 4200 });
+    banner();
     r.pause(st.code);
   }
   if (run) { run.close(); run = null; }
@@ -88,7 +87,22 @@ function roomWins(st) {
   delete document.body.dataset.daily;
   queueMicrotask(() => setState({ daily: null }));   // (not inside the render that called us)
 }
-onCloseAll(() => { /* (a kick / the game start: syncDaily sees the state change; nothing to do twice here) */ });
+/** THE ROOM WINS' banner: its own strip over the walk inside (~3.6 s) — never THE MESSAGE (the game start's own messages would replace it) */
+export function banner() {
+  const old = document.querySelector('.dy-banner'); if (old) old.remove();
+  const el = h('div.dy-banner', { role: 'status', 'aria-live': 'assertive' }, h('span.dy-banner-ic', { html: TICKET_SVG, 'aria-hidden': 'true' }), h('b', ROOM_BANNER));
+  document.body.append(el);
+  requestAnimationFrame(() => el.classList.add('is-in'));
+  setTimeout(() => { el.classList.remove('is-in'); setTimeout(() => el.remove(), 400); }, 3600);
+}
+const TICKET_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 6.6h16.8v3a2.4 2.4 0 0 0 0 4.8v3H3.6v-3a2.4 2.4 0 0 0 0-4.8z"/><path d="M15.2 7.9v1.3M15.2 11.35v1.3M15.2 14.8v1.3"/></svg>';
+// THE GAME START closes every pop-up (layers.js#closeAll — at the host's meta/go stamp, before the room says 'playing'): a daily open then is
+// THE ROOM WINS (the banner, the run held + paused — the server accepts a pause from the go stamp); any other closeAll (a kick, leaving the
+// room) leaves the dailies to the layer stack
+onCloseAll(() => {
+  const st = state, go = st.meta && st.meta.go;
+  if ((run || scr) && st.code && st.meta && (st.meta.status === 'playing' || (go && Math.abs(serverNow() - (go.at || 0)) < 120000))) roomWins(st);
+});
 
 /** a full-screen overlay: the layer stack (Esc / the system back = ‹), the city held under it */
 function overlay(cls, onBack) {
@@ -192,6 +206,7 @@ function openScreen(tab0) {
   }
   function playSweep() {
     if (!els.meter) return;
+    sweptAt = Date.now();
     els.meter.classList.remove('is-sweeping'); void els.meter.offsetWidth; els.meter.classList.add('is-sweeping');
     try { sfx('win'); } catch { /* polish */ }
   }
@@ -312,4 +327,4 @@ function openRun(id) {
   };
 }
 // (test hook: the screens' state)
-if (typeof window !== 'undefined') window.__daily2 = { syncDaily, state: () => ({ screen: !!scr, run: run ? run.id : null, key: lastKey }), heldRun, setSweepNext: v => { sweepNext = !!v; } };
+if (typeof window !== 'undefined') window.__daily2 = { syncDaily, state: () => ({ screen: !!scr, run: run ? run.id : null, key: lastKey }), sweptAt: () => sweptAt, heldRun, setSweepNext: v => { sweepNext = !!v; } };

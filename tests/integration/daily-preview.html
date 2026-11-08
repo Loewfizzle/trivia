@@ -72,9 +72,10 @@ if (view === 'screen') {
   const step = Number(q.get('step') || 0);
   for (let i = 0; i < step; i++) L.next && L.next();
 } else if (view === 'banner') {
-  const { toast } = await import('/js/ui/toast.js');
-  const { ROOM_BANNER } = await import('/js/daily/today-logic.js');
-  toast(ROOM_BANNER, 'info', { ms: 600000 });
+  const M = await import('/js/screens/daily.js');
+  await M.dailySheet();
+  M.banner();
+  setTimeout(() => { const b = document.querySelector('.dy-banner'); if (b) b.replaceWith(b.cloneNode(true)); document.querySelector('.dy-banner').classList.add('is-in'); }, 300);   // (held on screen for the look review)
 }
 document.body.dataset.ready = '1';
 </script>
