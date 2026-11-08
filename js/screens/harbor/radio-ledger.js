@@ -42,6 +42,7 @@ export function paint({ api, now }) {
       h('section.rd-paper', h('h4', 'THE CARD LAB', h('em', 'the vault · mark the new cards')),
         h('div.rd-lg', h('span', h('a', { href: '/lab', target: '_blank', rel: 'noopener' }, 'Open THE CARD LAB'), h('small', 'approve · fix · cut')), h('b', '›'))),
       crewPaper(L),
+      crewIcPaper(L),
       pushEl || (pushEl = pushPaper({ api })));
   };
   // THE FOUNDER WINDOW
@@ -71,6 +72,22 @@ export function paint({ api, now }) {
   let armed = null, addErr = '';
   let pushEl = null;   // (CC-B — A ROOM JUST OPENED: built once, it keeps its own state across the ledger's refills)
   const crewAct = async body => { try { const r = await api('admin', { action: 'radioCrewSet', ...body }); memo = memo ? { ...memo, data: { ...memo.data, crew: r.crew } } : memo; addErr = ''; } catch (e) { addErr = (e && e.message) || 'Couldn’t change the crew.'; } if (memo) fill(memo.data); };
+  // FRIENDS A — THE CREW INTERCOM: ONE master switch (server-stored + checked, default OFF): ON = the crew get a hold-to-talk for the room
+  // they're in (≤ 15 s, a few a room a night, gone after an hour); OFF = not shown + the server refuses a crew send
+  let icBusy = false, icErr = '';
+  function crewIcPaper(L) {
+    const on = !!(L.crewIc && L.crewIc.on);
+    const flip = async () => {
+      if (icBusy) return; icBusy = true; icErr = ''; if (memo) fill(memo.data);
+      try { const r = await api('admin', { action: 'radioCrewIntercom', on: !on }); memo = memo ? { ...memo, data: { ...memo.data, crewIc: r.crewIc } } : memo; }
+      catch (e) { icErr = (e && e.message) || 'Couldn’t change it.'; }
+      icBusy = false; if (memo) fill(memo.data);
+    };
+    return h('section.rd-paper.rd-crewic', h('h4', 'CREW INTERCOM', h('em', on ? 'on · the crew can talk to their room' : 'off · the crew’s mic is hidden')),
+      h('div.rd-lg', h('span', 'The crew’s hold-to-talk', h('small', 'their own room only · 15 s a clip · a few a night · gone after an hour')),
+        h('button.rd-lever', { type: 'button', role: 'switch', 'aria-checked': String(on), class: on ? 'is-on' : '', disabled: icBusy, 'aria-label': 'Crew intercom', onclick: flip }, h('i.rd-lever-arm'), h('span', on ? 'ON' : 'OFF'))),
+      icErr ? h('p.rd-err', { role: 'alert' }, icErr) : null);
+  }
   function crewPaper(L) {
     const C = L.crew || [], cap = L.crewCap || 10;
     const inp = h('input.rd-inp', { type: 'text', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', enterkeyhint: 'done', placeholder: 'MIKE#4821', 'aria-label': 'A name tag', maxlength: '30' });

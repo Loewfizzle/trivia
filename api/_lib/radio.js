@@ -7,6 +7,8 @@
 //   radio/fired/{id}      THE RECORD (what, when, the audience, who, sight: the owner's to a real audience — PROGRESSION 2.0 counts a
 //                         fired moment a player SPOTS as a City Sighting once a day; previews + the crew's never)
 //   radio/board/{id}      the owner's BILLBOARD messages (now · at a time · every week)
+//   radio/crewIc          FRIENDS A — THE CREW INTERCOM's master switch { on, at, by } (the owner's; default OFF = the crew's mic hidden + every crew
+//                         send refused); the crew's clips count under radio/limits/{room}/{night}/ic
 //   radio/crew/{pid}      THE CREW (CC-B — the owner grants it: { at, by, n, t }; cap 10); radio/limits/{room}/{night} the crew's counts +
 //                         the cooldown; rooms/{CODE}/radioCrew { hand: { uid, host, at }, ask: { uid, name, at }, nope } — ONE RADIO PER
 //                         LOBBY (core/harbor-radio.js#radioHolder): the server writes the hand-over + the ask, the room's phones see them
@@ -234,7 +236,7 @@ async function ledger(me, role, now, o) {
       errors: (errs || []).filter(e => e.last > now - 864e5).length },
     week: days.map(d => ({ d, visits: Object.keys(V[d] || {}).length, games: daily[d] || 0 })),
     estimate: true, since: dayStart,
-    crew: await crewList(), crewCap: knob('radio').crew.cap,
+    crew: await crewList(), crewCap: knob('radio').crew.cap, crewIc: { on: !!((await val('radio/crewIc')) || {}).on },
     founder: await founderState().catch(() => null),
   };
 }
@@ -252,9 +254,13 @@ async function state(me, role, uid, body, now) {
   if (role === 'owner') {
     const [b, sc, rooms, here, ics] = await Promise.all([boardList(now), val('city2/showcase'), openRooms(now), cityCount(now), icList(now)]);
     Object.assign(out, { board: b, showcase: SHOWCASE_LEVELS.includes(sc) ? sc : knob('showcase').level, rooms, here,
-      intercom: ics.filter(m => m.by === me).map(m => ({ ...icPublic(m.id, m), unsend: canUnsend(m, now) })), presets: await presetList() });
+      intercom: ics.filter(m => m.by === me).map(m => ({ ...icPublic(m.id, m), unsend: canUnsend(m, now) })), presets: await presetList(), crewIc: { on: !!((await val('radio/crewIc')) || {}).on } });
   } else if (room) {
     out.limits = (await val(`radio/limits/${room}/${nightKey(now, knob('radio').home.tz)}`)) || {};
+    // (FRIENDS A — THE CREW INTERCOM: shown only while the owner's switch is ON; their own clips going out; the room's count tonight)
+    const cic = !!((await val('radio/crewIc')) || {}).on, KC = knob('radio.intercom').crew;
+    out.crewIc = cic ? { on: true, maxS: KC.maxS, left: Math.max(0, KC.perNight - ((out.limits && out.limits.ic) || 0)) } : { on: false };
+    if (cic) out.intercom = (await icList(now)).filter(m => m.by === me && m.room === room).map(m => icPublic(m.id, m));
     // CC-B — ONE RADIO PER LOBBY: who holds it here (+ an ask / a refusal for this phone)
     if (await val(`rooms/${room}/players/${uid}`)) {
       const R = await crewOfRoom(room), name = u => (R.players[u] || {}).name || null;
@@ -302,7 +308,14 @@ export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
       await audit(me, open ? 'founderOpen' : 'founderClose', { b: open ? 'FOUNDER WINDOW: OPEN' : `FOUNDER WINDOW: CLOSED · ${r.holders} founders (${r.swept} swept now)` });
       return { founder: r };
     }
-    case 'radioIntercom': return intercom(me, role, body, now);
+    case 'radioIntercom': return intercom(me, role, body, now, uid);
+    case 'radioCrewIntercom': {   // (FRIENDS A — the owner's master switch: CREW INTERCOM ON / OFF; server-stored, audited)
+      need(role === 'owner', 'not_owner', 'Only the owner turns the crew intercom on.');
+      const on = body.on === true;
+      await ref('radio/crewIc').set({ on, at: now, by: me });
+      await audit(me, on ? 'crewIcOn' : 'crewIcOff', { b: `CREW INTERCOM: ${on ? 'ON' : 'OFF'}` });
+      return { crewIc: { on, at: now } };
+    }
     case 'radioPreset': return preset(me, role, uid, body, now);
     case 'radioPresetFire': return presetFire(me, role, uid, body, now);
     case 'radioPush': return push(me, role, body, now);
@@ -339,8 +352,23 @@ async function icList(now) {
   return out.sort((a, b) => a.at - b.at);
 }
 /** SEND { aud, room?, wait, head?, mime, dur, b64 } → { intercom } — the clip + the announcement written by the SERVER, every lobby's copy */
-async function intercom(me, role, body, now) {
-  need(role === 'owner', 'not_owner', 'The intercom is the owner’s.');
+async function intercom(me, role, body, now, uid = null) {
+  // FRIENDS A — THE CREW INTERCOM: the crew's hold-to-talk for THEIR OWN ROOM — only while the owner's switch is ON (OFF: refused, the mic
+  // isn't shown); the room they're IN + hold its radio (ONE RADIO PER LOBBY); NOW only (no schedule), no headline, ≤ crew.maxS s, crew.perNight
+  // a room a night. The owner's own intercom is unchanged.
+  const KC = knob('radio.intercom').crew;
+  if (role === 'crew') {
+    need(!!((await val('radio/crewIc')) || {}).on, 'crew_ic_off', 'The crew intercom is off.');
+    need(body.aud === 'room', 'not_your_audience', 'The crew talks to the room they’re in only.');
+    if (body.when && body.when !== 'now') throw new ApiError(400, 'bad_time', 'The crew intercom plays right away.');
+    if (Number(body.dur) > KC.maxS + 0.5) throw new ApiError(400, 'bad_length', `Up to ${KC.maxS} seconds.`);
+    body = { ...body, head: '', when: 'now' };
+    const code = String(body.room || '').toUpperCase();
+    if (!/^[A-Z]{4}$/.test(code) || !(await val(`rooms/${code}/meta`))) throw new ApiError(404, 'no_room', 'That lobby is closed.');
+    need(!!uid && !!(await val(`rooms/${code}/players/${uid}`)), 'not_in_room', 'You can only talk in the lobby you are in.');
+    const R = await crewOfRoom(code);
+    need(R.holder === uid, 'not_holder', `THE RADIO’S WITH ${R.holder ? (R.players[R.holder] || {}).name || 'ANOTHER CREW MEMBER' : 'NOBODY'} TONIGHT — whoever hosts runs the show in this lobby.`);
+  } else need(role === 'owner', 'not_owner', 'The intercom is the owner’s.');
   const pre = cleanIntercom(body);
   if (pre.bad) throw new ApiError(400, pre.bad, IC_WHY[pre.bad] || undefined);
   let names = [], rooms = [];
@@ -354,6 +382,12 @@ async function intercom(me, role, body, now) {
   if ((await icList(now)).filter(m => m.state !== 'stopped').length >= 12) throw new ApiError(429, 'queue_full', 'Twelve announcements this hour — wait a little.');
   const W = icWhen(body, now);
   if (W.bad) throw new ApiError(400, W.bad, IC_WHY[W.bad]);
+  // (the crew's per-room-per-night count — taken only once the clip passed every check; a refusal counts nothing)
+  if (role === 'crew') {
+    const lim = `radio/limits/${req.room}/${nightKey(now, knob('radio').home.tz)}/ic`;
+    const t = await ref(lim).transaction(cur => ((cur || 0) >= KC.perNight ? undefined : (cur || 0) + 1));
+    if (!t.committed) throw new ApiError(429, 'ic_limit', `${KC.perNight} crew clips in this room tonight — that’s the lot.`);
+  }
   const id = ref('radio/ic').push().key, at = W.at || now + K.lead[req.aud] * 1000;
   const m = { aud: req.aud, room: req.room, wait: req.wait, head: req.head, mime: req.mime, dur: req.dur, bytes: req.bytes, by: me, role, made: now, at, until: at + icLen(req.dur) * 1000, state: 'q', rooms };
   const up = { [`radio/ic/${id}`]: m, [`radio/clips/${id}`]: { b64: req.b64, mime: req.mime, made: now } };

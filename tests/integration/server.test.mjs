@@ -1250,7 +1250,7 @@ test('CITY CONTROLS B: the intercom, the crew, presets + the room push — every
     await rejects(adminAction('u-ccbboss', { action: 'radioCrewSet', tag: 'NOBODY#0001', on: true }), 404, 'no_tag');
     await rejects(adminAction('u-ccbboss', { action: 'radioCrewSet', uid: 'u-ccbboss', on: true }), 400, 'is_owner');
     await rejects(adminAction('u-ccbpal', { action: 'radioCrewSet', uid: 'u-ccbtwo', on: false }), 403, 'not_owner');
-    await rejects(adminAction('u-ccbpal', { action: 'radioIntercom', aud: 'room', room: 'CCBA', mime: 'audio/mp4', dur: 2, b64: clip }), 403, 'not_owner');
+    await rejects(adminAction('u-ccbpal', { action: 'radioIntercom', aud: 'room', room: 'CCBA', mime: 'audio/mp4', dur: 2, b64: clip }), 403, 'crew_ic_off');   // (FRIENDS A: the crew's own intercom waits behind the owner's switch — OFF by default)
     await rejects(adminAction('u-ccbpal', { action: 'radioPreset', op: 'delete', id: 'x' }), 403, 'not_owner');
     await rejects(adminAction('u-ccbpal', { action: 'radioPush', op: 'test' }), 403, 'not_owner');
     // ---- ONE RADIO PER LOBBY: the host (pal) holds it; two is refused + asks; pal hands it over

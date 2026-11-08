@@ -61,7 +61,9 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   const isOwner = role === 'owner';
   // CC-B — THE INTERCOM (the owner's): the mic strip, the review card, the sent strips (radio-intercom.js)
   let ic = null;
-  const icDesk = () => { if (!ic && isOwner) ic = createIntercomDesk({ sfx, act: (b, snd) => act(b, snd), who: () => ({ aud, room, line: audLine() }), setCard: c => { card = c; render(); }, render: () => render(), st: () => st }); return ic; };
+  // (FRIENDS A — THE CREW INTERCOM: the crew's own mic for THEIR room, only while the owner's switch is ON — the server's state says crewIc.on)
+  const crewIc = () => !isOwner && !!(st && st.crewIc && st.crewIc.on);
+  const icDesk = () => { if (!ic && (isOwner || crewIc())) ic = createIntercomDesk({ sfx, crew: !isOwner, act: (b, snd) => act(b, snd), who: () => (isOwner ? { aud, room, line: audLine() } : { aud: 'room', room: roomCode(), line: `${audLine()} · ${st && st.crewIc ? st.crewIc.left : 0} clips left tonight` }), setCard: c => { card = c; render(); }, render: () => render(), st: () => st }); return ic; };
 
   // ---------------------------------------------------------------- THE CORNER BUTTON
   const dot = h('i.rd-dot', { hidden: true });
@@ -324,8 +326,8 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     if (!isOwner) { const L = lobbyOf(); if (lockedOut()) return [lockFace(L)]; }
     return [
       isOwner ? tuning() : null,
-      isOwner ? icDesk().strip() : null,
-      isOwner ? h('div.rd-icsent', icDesk().sent()) : null,
+      isOwner || crewIc() ? icDesk().strip() : null,
+      isOwner || crewIc() ? h('div.rd-icsent', icDesk().sent()) : null,
       moments(),
       !isOwner ? h('p.rd-dormant', h('b', 'THIS LOBBY ONLY'), ' · every phone in your lobby sees it, in a couple of seconds') : null,
       strips(),

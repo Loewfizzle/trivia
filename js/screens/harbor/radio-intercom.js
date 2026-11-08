@@ -49,6 +49,8 @@ const toB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.
 /** o: { sfx, act (body, sound) → server, who () → { aud, room, line }, setCard (card | null), render (), st () } */
 export function createIntercomDesk(o) {
   const K = knob('radio.intercom');
+  // (FRIENDS A — THE CREW INTERCOM: o.crew → the crew's desk: ≤ crew.maxS s, their own room, NOW, no headline, no UNSEND — the server checks it all)
+  const MAX = o.crew ? K.crew.maxS : K.maxS;
   let rec = null;                        // the recording in progress: { mr, stream, chunks, t0, meter, sr, transcript, timer, raf }
   let take = null;                       // the last recording: { blob, mime, dur, url, transcript }
   let preview = null;                    // PLAY BACK's handle
@@ -92,7 +94,7 @@ export function createIntercomDesk(o) {
       if (SR) { const r = new SR(); r.lang = 'en-US'; r.interimResults = false; r.continuous = true; r.onresult = ev => { let t = ''; for (const x of ev.results) t += `${x[0].transcript} `; if (rec) rec.transcript = t; else if (take) take.transcript = t; }; r.onerror = () => {}; r.start(); rec.sr = r; }
     } catch { /* fine */ }
     o.sfx.play('fire');
-    rec.timer = setTimeout(() => stop(), K.maxS * 1000);
+    rec.timer = setTimeout(() => stop(), MAX * 1000);
     const frame = () => {
       if (!rec || !rec.mr) return;
       const el = (performance.now() - rec.t0) / 1000;
@@ -108,7 +110,7 @@ export function createIntercomDesk(o) {
     if (!rec.mr) { rec.want.held = false; return; }      // (still asking for the mic)
     const r = rec; rec = null;
     clearTimeout(r.timer); cancelAnimationFrame(r.raf);
-    const dur = Math.min(K.maxS, (performance.now() - r.t0) / 1000);
+    const dur = Math.min(MAX, (performance.now() - r.t0) / 1000);
     r.mr.onstop = () => {
       r.stream.getTracks().forEach(t => t.stop());
       micSession(false);   // (the session back to the music's)
@@ -132,7 +134,7 @@ export function createIntercomDesk(o) {
     const recording = !!(rec && rec.mr), asking = !!(rec && !rec.mr);
     const bars = Array.from({ length: 14 }, () => h('i'));
     meterEl = h('span.rd-meter', { 'aria-hidden': 'true' }, ...bars);
-    timeEl = h('b.rd-mic-t', recording ? `${secs((performance.now() - rec.t0) / 1000)} / ${secs(K.maxS)}` : `UP TO ${K.maxS} S`);
+    timeEl = h('b.rd-mic-t', recording ? `${secs((performance.now() - rec.t0) / 1000)} / ${secs(MAX)}` : `UP TO ${MAX} S`);
     const btn = h('button.rd-mic-btn', { type: 'button', class: recording ? 'is-on' : asking ? 'is-ask' : '', 'aria-label': 'The intercom: hold to talk' },
       h('i.rd-mic-grille', { 'aria-hidden': 'true' }), h('span.rd-mic-l', h('i.rd-onair'), recording ? 'ON AIR · LET GO' : asking ? 'ALLOW THE MIC…' : 'HOLD TO TALK'), meterEl, timeEl);
     btn.addEventListener('pointerdown', e => { try { btn.setPointerCapture(e.pointerId); } catch { /* fine */ } start(e); });
@@ -141,12 +143,12 @@ export function createIntercomDesk(o) {
     btn.addEventListener('contextmenu', e => e.preventDefault());
     btn.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) start(e); });
     btn.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') stop(); });
-    stripEl = h('section.rd-face.rd-mic', h('div.rd-fh', h('span.rd-plate', 'THE INTERCOM'), h('em', 'your voice to the city')), btn, err ? h('p.rd-err', { role: 'alert' }, err) : null);
+    stripEl = h('section.rd-face.rd-mic', h('div.rd-fh', h('span.rd-plate', 'THE INTERCOM'), h('em', o.crew ? 'your voice to this room' : 'your voice to the city')), btn, err ? h('p.rd-err', { role: 'alert' }, err) : null);
     return stripEl;
   }
   function paintStrip() { if (stripEl && stripEl.isConnected) stripEl.replaceWith(strip()); }
   function paintMeter(el) {
-    if (timeEl) timeEl.textContent = `${secs(el)} / ${secs(K.maxS)}`;
+    if (timeEl) timeEl.textContent = `${secs(el)} / ${secs(MAX)}`;
     if (!meterEl) return;
     const n = meterEl.children.length, lv = rec ? rec.level : 0;
     for (let i = 0; i < n; i++) meterEl.children[i].style.opacity = i / n < lv ? '1' : '0.18';
@@ -167,11 +169,11 @@ export function createIntercomDesk(o) {
       h('h3', h('i.rd-lamp'), 'THE INTERCOM', h('button.rd-cx', { type: 'button', 'aria-label': 'Discard + close', onclick: () => discard() }, '✕')),
       h('div.rd-take', h('b', `${t.dur.toFixed(1)} S`), h('small', 'recorded — nothing has left this phone'),
         h('button.rd-play', { type: 'button', class: preview ? 'is-on' : '', onclick: () => playBack() }, preview ? '■ STOP' : '▶ PLAY BACK')),
-      h('div.rd-sec', h('div.rd-lb', 'ON THE BILLBOARD', h('em', t.headOn ? 'the headline while it plays' : 'voice only')), lever),
-      t.headOn ? h('div.rd-sec', h('div.rd-lb', 'THE HEADLINE', cnt), inp, h('div.rd-board', h('div.rd-board-face', pa, pb), h('small', 'ON THE SPEAKEASY’s BILLBOARD'))) : null,
+      o.crew ? null : h('div.rd-sec', h('div.rd-lb', 'ON THE BILLBOARD', h('em', t.headOn ? 'the headline while it plays' : 'voice only')), lever),
+      t.headOn && !o.crew ? h('div.rd-sec', h('div.rd-lb', 'THE HEADLINE', cnt), inp, h('div.rd-board', h('div.rd-board-face', pa, pb), h('small', 'ON THE SPEAKEASY’s BILLBOARD'))) : null,
       h('div.rd-sec', h('div.rd-lb', 'IN A GAME', h('em', 'phones mid-game')), seg([[true, 'WAIT FOR THE LOBBY'], [false, 'DON’T WAIT']], t.wait, v => { t.wait = v; ls.set(WAIT_KEY, v); })),
       // THE WHEN (the owner's PROGRESSION A review): NOW · IN 10 MIN · AT A TIME (your time, up to a day ahead — kept until it plays)
-      h('div.rd-sec', h('div.rd-lb', 'WHEN', h('em', t.when === 'at' ? `at ${fmtAt(atOf(t.time))}` : t.when === 'in10' ? 'ten minutes from now' : 'right away')),
+      o.crew ? null : h('div.rd-sec', h('div.rd-lb', 'WHEN', h('em', t.when === 'at' ? `at ${fmtAt(atOf(t.time))}` : t.when === 'in10' ? 'ten minutes from now' : 'right away')),
         seg([['now', 'NOW'], ['in10', 'IN 10 MIN'], ['at', 'AT A TIME']], t.when, v => { t.when = v; }),
         t.when === 'at' ? h('input.rd-inp.rd-time', { type: 'time', value: t.time, 'aria-label': 'The time (yours)', onchange: e => { t.time = e.target.value || t.time; o.render(); } }) : null),
       t.err ? h('p.rd-err', { role: 'alert' }, t.err) : null,
@@ -195,7 +197,7 @@ export function createIntercomDesk(o) {
     t.sending = true; t.err = ''; o.render();
     try {
       const b64 = await toB64(t.blob);
-      const r = await o.act({ action: 'radioIntercom', aud: W.aud, room: W.room || undefined, wait: t.wait, head: t.headOn ? (t.head || '') : '', mime: t.mime, dur: Math.round(t.dur * 100) / 100, b64, when: t.when, at: t.when === 'at' ? atOf(t.time) : undefined }, 'fire');
+      const r = await o.act({ action: 'radioIntercom', aud: W.aud, room: W.room || undefined, wait: t.wait, head: t.headOn && !o.crew ? (t.head || '') : '', mime: t.mime, dur: Math.round(t.dur * 100) / 100, b64, when: o.crew ? 'now' : t.when, at: !o.crew && t.when === 'at' ? atOf(t.time) : undefined }, 'fire');
       take = null; o.setCard(null);
       // the owner's own phone plays it at once (the others: their lobby's socket / the city's feed)
       if (r && r.intercom) intercomFeed('desk', [r.intercom]);
@@ -210,7 +212,7 @@ export function createIntercomDesk(o) {
       const ph = now < m.at ? 'q' : now < m.until ? 'run' : 'done', can = IC.canUnsend(m, now), later = ph === 'q' && m.at - now > 60e3;
       return h('div.rd-strip', { class: ph === 'run' ? 'is-run' : 'is-q', dataset: { ic: m.id } }, h('i.rd-lamp'),
         h('div', h('b', `INTERCOM · ${ph === 'run' ? 'PLAYING' : later ? `QUEUED · ${fmtAt(m.at)}` : ph === 'q' ? 'ON ITS WAY' : 'SENT'}`), h('small', `${m.dur.toFixed(1)} s · ${m.aud === 'room' ? `lobby only ${m.room || ''}` : AUD_LABEL[m.aud].toLowerCase()}${m.head ? ` · “${m.head}”` : ''}${m.wait ? '' : ' · don’t wait'}`)),
-        can ? h('button.rd-stop', { type: 'button', onclick: () => { o.sfx.play('jackOut'); intercomStopped(m.id); o.act({ action: 'radioUnsend', id: m.id }).catch(() => {}); } }, later ? 'CANCEL' : 'UNSEND') : null);
+        can && !o.crew ? h('button.rd-stop', { type: 'button', onclick: () => { o.sfx.play('jackOut'); intercomStopped(m.id); o.act({ action: 'radioUnsend', id: m.id }).catch(() => {}); } }, later ? 'CANCEL' : 'UNSEND') : null);
     }));
   }
 

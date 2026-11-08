@@ -15,7 +15,7 @@ import { profileAction } from '../../api/profile.js';
 import { noteRecent } from '../../api/_lib/friends.js';
 import { FR } from '../../js/core/friends.js';
 
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'pfr', 'rooms', 'members'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'pfr', 'rooms', 'members', 'radio', 'audit'];
 before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); });
 after(async () => { await deleteApp(fb().app); });
 
@@ -186,4 +186,53 @@ test('THE PUSH: an invite reaches the friend\'s subscribed phone (a local receiv
     assert.equal((await act('fr-qu', { action: 'friendPush', op: 'state' })).subs, 0, 'the gone subscription removed');
     await ref('rooms/PUSH').remove();
   } finally { srv.close(); }
+});
+
+test('THE CREW INTERCOM: the owner\'s switch (default OFF); ON → the crew talks to THEIR room only, holding its radio, ≤ 15 s, a few a night; OFF refuses again', async () => {
+  const { adminAction } = await import('../../api/admin.js');
+  const boss = await ensure('ci-boss', 'Boss'), cr = await ensure('ci-crew', 'Crewy'), pl = await ensure('ci-pl', 'Plain');
+  process.env.ADMIN_PIDS = boss;
+  try {
+    const clip = Buffer.alloc(3000, 7).toString('base64'), T = clock;
+    await ref('radio').remove();
+    await ref(`radio/crew/${cr}`).set({ at: T, by: boss, n: 'Crewy', t: '0001' });
+    await ref('rooms/CRIC').set({ meta: { hostId: 'ci-crew', status: 'lobby', createdAt: T, activeAt: T }, players: { 'ci-crew': { name: 'CREWY', color: 'cyan', avatar: 'bolt', joinedAt: 1 }, 'ci-pl': { name: 'PLAIN', color: 'pink', avatar: 'star', joinedAt: 2 } } });
+    await ref('rooms/OTHR').set({ meta: { hostId: 'ci-pl', status: 'lobby', createdAt: T, activeAt: T }, players: { 'ci-pl': { name: 'PLAIN', color: 'pink', avatar: 'star', joinedAt: 2 } } });
+    const send = (uid, extra = {}) => adminAction(uid, { action: 'radioIntercom', aud: 'room', room: 'CRIC', mime: 'audio/mp4', dur: 6, b64: clip, ...extra }, tick());
+    // OFF (the default): the crew's desk doesn't show it, the server refuses
+    assert.deepEqual((await adminAction('ci-crew', { action: 'radioState', room: 'CRIC' }, T)).crewIc, { on: false });
+    await rejects(send('ci-crew'), 403, 'crew_ic_off');
+    // only the owner flips it (audited)
+    await rejects(adminAction('ci-crew', { action: 'radioCrewIntercom', on: true }, T), 403, 'not_owner');
+    await rejects(adminAction('ci-pl', { action: 'radioCrewIntercom', on: true }, T), 403, 'not_radio');
+    assert.equal((await adminAction('ci-boss', { action: 'radioCrewIntercom', on: true }, T)).crewIc.on, true);
+    assert.equal((await val('radio/crewIc')).on, true);
+    assert.equal((await adminAction('ci-boss', { action: 'radioState' }, T)).crewIc.on, true, 'the owner\'s desk shows the switch');
+    // ON: their room, NOW, no headline, ≤ 15 s
+    const st = await adminAction('ci-crew', { action: 'radioState', room: 'CRIC' }, T);
+    assert.equal(st.crewIc.on, true); assert.equal(st.crewIc.maxS, 15); assert.equal(st.crewIc.left, 4);
+    await rejects(send('ci-crew', { dur: 20 }), 400, 'bad_length');
+    await rejects(send('ci-crew', { aud: 'everyone' }), 403, 'not_your_audience');
+    await rejects(send('ci-crew', { room: 'OTHR' }), 403, 'not_in_room');
+    await rejects(send('ci-crew', { when: 'in10' }), 400, 'bad_time');
+    await rejects(send('ci-pl'), 403, 'not_radio');
+    const ic = (await send('ci-crew', { head: 'shout', dur: 14.9 })).intercom;
+    assert.equal(ic.head, null, 'no headline from the crew'); assert.equal(ic.aud, 'room');
+    assert.equal((await val(`rooms/CRIC/radio/${ic.id}`)).kind, 'intercom', 'the room\'s phones get it (its node)');
+    assert.equal((await adminAction('ci-crew', { action: 'radioState', room: 'CRIC' }, tick())).intercom.length, 1, 'their own clip on their desk');
+    await rejects(adminAction('ci-crew', { action: 'radioUnsend', id: ic.id }, tick()), 403, 'not_owner');
+    // the per-room-per-night limit (4)
+    for (let i = 0; i < 3; i++) await send('ci-crew');
+    await rejects(send('ci-crew'), 429, 'ic_limit');
+    // the clips go after the hour
+    const { clipOf } = await import('../../api/_lib/radio.js');
+    assert.ok(await clipOf(ic.id, clock + 1000));
+    assert.equal(await clipOf(ic.id, clock + 3700e3), null, 'gone after an hour');
+    // OFF again → refused
+    await adminAction('ci-boss', { action: 'radioCrewIntercom', on: false }, tick());
+    await ref('radio/limits').remove();
+    await rejects(send('ci-crew'), 403, 'crew_ic_off');
+    const aud = Object.values((await val('audit')) || {}).filter(a => a.act === 'crewIcOn' || a.act === 'crewIcOff');
+    assert.equal(aud.length, 2, 'both flips audited');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('rooms/CRIC').remove(); await ref('rooms/OTHR').remove(); }
 });

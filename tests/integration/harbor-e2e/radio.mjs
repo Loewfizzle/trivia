@@ -382,6 +382,20 @@ G('crew', async () => {
   await ev(C.page, `window.__radio.open()`); await waitFor(C.page, '!!document.querySelector(".rd-modal.is-in .rd-jack")', 'the crew desk in the lobby', 10000);
   await ev(C.page, `window.__radio.refresh()`); await sleep(400);
   { const l = await ev(C.page, `(document.querySelector('.rd-jack[data-jack="lightning"]') || {}).dataset.lamp`); ok(l === 'grey', `CREW: the cooldown greys the jack (${l})`); }
+  // ---- FRIENDS A — THE CREW INTERCOM: the owner's ONE switch (default OFF) → ON: the holder's desk gets the hold-to-talk (≤ 15 s, this lobby);
+  //      OFF: gone again + the server refuses a crew send
+  { const micOn = () => ev(C.page, `!!document.querySelector('.rd-modal.is-in .rd-mic-btn')`);
+    const off0 = await micOn();
+    const on = await call(O.page, { action: 'radioCrewIntercom', on: true });
+    await ev(C.page, `window.__radio.refresh()`);
+    const shown = await waitFor(C.page, `!!document.querySelector('.rd-modal.is-in .rd-mic-btn')`, 'the crew mic', 10000).then(() => true, () => false);
+    const label = await ev(C.page, `(document.querySelector('.rd-mic-t') || {}).textContent || ''`);
+    if (SHOTS) await C.page.screenshot({ path: `${OUT}crew-intercom-on.png` });
+    await call(O.page, { action: 'radioCrewIntercom', on: false });
+    await ev(C.page, `window.__radio.refresh()`);
+    const hidden = await waitFor(C.page, `!document.querySelector('.rd-modal.is-in .rd-mic-btn')`, 'the crew mic gone', 10000).then(() => true, () => false);
+    const refused = await call(C.page, { action: 'radioIntercom', aud: 'room', room: code, mime: 'audio/mp4', dur: 2, b64: 'A'.repeat(400) });
+    ok(!off0 && on.ok && shown && /15 S/.test(label) && hidden && !refused.ok && refused.code === 'crew_ic_off', `CREW INTERCOM: OFF by default (no mic: ${!off0}) → the owner's switch ON → the holder's hold-to-talk ("${label}") → OFF → gone + a send refused (${refused.code})`); }
   // D: the lock face → ASK FOR THE RADIO
   await ev(D.page, `window.__radio.open()`); await waitFor(D.page, '!!document.querySelector(".rd-modal.is-in .rd-lockface")', 'the lock face', 10000);
   const lockT = await ev(D.page, `document.querySelector('.rd-lockface').textContent`);
