@@ -42,8 +42,13 @@ test('WHEN a phone plays it: the lobby TOGETHER, the city\'s feed late, a game h
   assert.equal(D(at - 500), 'wait', 'before its start');
   assert.equal(D(at + 100), 'play', 'a lobby starts it together');
   assert.equal(D(at + 6000), 'skip', 'a lobby phone late by more than a few seconds skips it');
-  assert.equal(D(at + 30e3, { source: 'feed' }), 'play', 'the feed arrives ~45 s late — still played');
-  assert.equal(D(m.until + (K.late + 5) * 1000, { source: 'feed' }), 'skip');
+  // (FRIENDS C — THE INTERCOM IN SYNC: the feed + the desk play at `at` on the server clock; late = mid-way until its end, then skipped)
+  assert.equal(D(at + 8000, { source: 'feed' }), 'play', 'the feed a little late — joins mid-way (audio/intercom.js: late = now − at)');
+  assert.equal(D(m.until + 1, { source: 'feed' }), 'skip', 'after its end: skipped — never played out of step');
+  assert.equal(D(m.until + 1, { source: 'desk' }), 'skip', "the owner's own phone too");
+  assert.equal(D(at - 3000, { source: 'feed', prep: 4000 }), 'play', 'PREP: begun a few seconds early (the sound scheduled for `at`)');
+  assert.equal(D(at - 5000, { source: 'feed', prep: 4000 }), 'wait');
+  assert.equal(K.lead.everyone, 50, "EVERYONE stamped ~50 s ahead (the city's ~45 s poll has it by then)");
   assert.equal(D(at + 100, { inGame: true }), 'hold', 'WAIT FOR THE LOBBY: in a game it holds');
   assert.equal(D(at + 20 * 60e3, { held: true }), 'play', 'back in the lobby within the hour: it plays');
   assert.equal(D(at + (K.keep + 10) * 1000, { held: true }), 'skip', 'after the hour: dropped');

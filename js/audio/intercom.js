@@ -19,7 +19,7 @@ import { takesOf } from '../core/city-sounds.js';
 import { serverNow } from '../firebase.js';
 import { state as store } from '../store.js';
 import { metaOf } from '../games/registry.js';
-import { icDecide, headLines, CHIME_S, GAP_IN, GAP_OUT } from '../core/radio-intercom.js';
+import { icDecide, icLen, headLines, CHIME_S, GAP_IN, GAP_OUT } from '../core/radio-intercom.js';
 import { knob } from '../core/harbor-schedule.js';
 
 const PLAYED_KEY = 'nd:ic-played';
@@ -28,6 +28,10 @@ let played = new Set((() => { try { return JSON.parse(sessionStorage.getItem(PLA
 let busyFn = () => false, headFn = null, now$ = () => serverNow();
 let tickT = 0, playing = null;
 const log = [];                          // (tests) what happened: { id, what, at }
+const starts = {};                       // (tests — FRIENDS C) id → the server ms its first chime starts on this phone
+// FRIENDS C — THE INTERCOM IN SYNC: a phone begins up to PREP_MS before `at` (the clip fetched + decoded), the sound SCHEDULED on the audio
+// clock for `at` on the server clock — every phone the same moment (core/radio-intercom.js#icDecide)
+const PREP_MS = 4000;
 const note = (id, what) => { log.push({ id, what, at: Date.now() }); if (log.length > 40) log.shift(); audioLog(`intercom ${id}: ${what}`); };
 
 /** the harbor tells the intercom when a legendary's own audio is on (it waits) */
@@ -66,11 +70,11 @@ function tick() {
   let pending = false;
   for (const [id, k] of known) {
     if (played.has(id)) { if (k.m.state === 'stopped' || now > (k.m.made || k.m.at) + knob('radio.intercom').keep * 1000) known.delete(id); continue; }
-    const d = icDecide(k.m, { now, source: k.source, inGame: inGame(), holdGame: holdGame(), busy: !!playing || safe(busyFn), held: k.held });
+    const d = icDecide(k.m, { now, source: k.source, inGame: inGame(), holdGame: holdGame(), busy: !!playing || safe(busyFn), held: k.held, prep: k.held ? 0 : PREP_MS });
     if (d === 'skip') { known.delete(id); markPlayed(id); note(id, 'skipped'); continue; }
     if (d === 'hold') { if (!k.held) note(id, 'held (a game is on)'); k.held = true; pending = true; continue; }
     if (d === 'wait') { pending = true; continue; }
-    if (d === 'play' && !playing) { markPlayed(id); play(k.m, now); pending = true; }
+    if (d === 'play' && !playing) { markPlayed(id); play(k.m, k.held); pending = true; }
     else pending = true;
   }
   if (pending && !tickT) tickT = setTimeout(tick, 400);
@@ -123,8 +127,11 @@ export function playAnnouncement(m, o = {}) {
   const h = { id, stopped: false, done: null, stop() {} };
   let endT = 0, nodes = [], crackle = null, prevDuck = null;
   const showHead = on => { try { if (headFn && head) headFn(on ? head : null); } catch { /* polish */ } };
+  // (FRIENDS C: o.at = the server ms it starts — the timeline's place is worked out when the sound is SCHEDULED, after the fetch + decode)
+  const lateNow = () => (o.at != null ? (now$() - o.at) / 1000 : Math.max(0, o.late || 0));
+  let headT = 0, duckT = 0;
   const finish = why => {
-    if (h.stopped) return; h.stopped = true; clearTimeout(endT);
+    if (h.stopped) return; h.stopped = true; clearTimeout(endT); clearTimeout(headT); clearTimeout(duckT);
     showHead(false);
     try { if (crackle) crackle.stop(0.3); } catch { /* fine */ }
     for (const n of nodes) { try { if (n.stop) n.stop(); } catch { /* fine */ } try { n.disconnect(); } catch { /* fine */ } }
@@ -135,19 +142,21 @@ export function playAnnouncement(m, o = {}) {
   };
   h.stop = () => finish('stopped');
   playing = h;
-  showHead(true);
-  const silent = () => { const len = (CHIME_S * 2 + GAP_IN + GAP_OUT + (m.dur || 3)) * 1000; endT = setTimeout(() => finish('done (silent — audio locked or off)'), len); return h; };
+  // (ms: from now to the first chime — < 0 = already that far in) → the headline up then, the start noted on the server clock
+  const begin = ms => { headT = setTimeout(() => { if (!h.stopped) showHead(true); }, Math.max(0, ms)); starts[id] = Math.round(now$() + ms); };
+  const silent = () => { const late = lateNow(), len = icLen(m.dur || 3) * 1000; begin(-late * 1000); endT = setTimeout(() => finish('done (silent — audio locked or off)'), Math.max(0, len - late * 1000)); return h; };
   if (!c || !bus || !isUnlocked() || !audible()) return silent();
   const clip = o.local ? Promise.resolve(o.local).then(b => (b instanceof Blob ? b.arrayBuffer() : b)) : fetch(`/api/admin?clip=${encodeURIComponent(id)}`).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`clip ${r.status}`))));
   Promise.all([clip.then(ab => decode(c, ab.slice ? ab.slice(0) : ab)), chime(c)]).then(([voice, ch]) => {
     if (h.stopped) return;
-    const late = Math.max(0, o.late || 0), t0 = c.currentTime + 0.05 - late;
+    const late = lateNow(), t0 = c.currentTime + (o.at != null ? 0 : 0.05) - late;
+    begin((t0 - c.currentTime) * 1000);
     const out = c.createGain(); out.gain.value = 1; out.connect(bus); nodes.push(out);
     const at = (src, t, dest = out) => { src.connect(dest); const w = Math.max(c.currentTime, t), off = Math.max(0, c.currentTime - t); if (src.buffer && off >= src.buffer.duration) return; src.start(w, off); nodes.push(src); };
     // the chime in
     if (ch) { const s = c.createBufferSource(); s.buffer = ch; const g = c.createGain(); g.gain.value = 0.95; g.connect(out); nodes.push(g); at(s, t0, g); }
     // the music ducks with the first ding (the ducking: music.js — the song voice, the party song, the direct path)
-    prevDuck = musicDuckLevel(); duckMusic(Math.min(prevDuck, knob('radio.intercom').duck), 0.6);
+    duckT = setTimeout(() => { if (h.stopped) return; prevDuck = musicDuckLevel(); duckMusic(Math.min(prevDuck, knob('radio.intercom').duck), 0.6); }, Math.max(0, (t0 - c.currentTime) * 1000));
     // the voice through the PA (+ the crackle bed under it)
     const vT = t0 + (ch ? CHIME_S : 0.4) + GAP_IN, pa = paChain(c); pa.output.connect(out); nodes.push(...pa.nodes);
     const v = c.createBufferSource(); v.buffer = voice; at(v, vT, pa.input);
@@ -162,12 +171,12 @@ export function playAnnouncement(m, o = {}) {
   }).catch(e => { note(id, `could not play: ${e && e.message}`); if (!h.stopped) silent(); });
   return h;
 }
-function play(m, now) {
-  const late = m.at && now > m.at ? (now - m.at) / 1000 : 0;
-  playAnnouncement(m, { late: late < 4 ? late : 0 });
+function play(m, held) {
+  // (FRIENDS C: on the server clock — scheduled for `at`, or mid-way when late; a phone that held it through a game: from the top, now)
+  playAnnouncement(m, held || !Number.isFinite(m.at) ? { late: 0 } : { at: m.at });
 }
 
 /** (tests + the panel) what the intercom knows + did */
-export const intercomDebug = () => ({ known: [...known.values()].map(k => ({ id: k.m.id, source: k.source, held: k.held, state: k.m.state, at: k.m.at })), played: [...played], playing: playing ? playing.id : null, log: log.slice() });
+export const intercomDebug = () => ({ starts: { ...starts }, known: [...known.values()].map(k => ({ id: k.m.id, source: k.source, held: k.held, state: k.m.state, at: k.m.at })), played: [...played], playing: playing ? playing.id : null, log: log.slice() });
 /** (tests) a fake clock */
 export function intercomTestClock(fn) { now$ = typeof fn === 'function' ? fn : () => serverNow(); }

@@ -7,7 +7,8 @@
 //                 feed + every open lobby's node)
 //   WAIT          WAIT FOR THE LOBBY (default): a phone in a running game holds it until it's back in the lobby / the title (≤ `keep`);
 //                 DON'T WAIT: it plays at once over the game (its music ducked) — a game that exports NO_INTERCOM still holds it
-//   TOGETHER      a lobby's phones start it at ONE moment on the server clock (`at`); a late lobby phone skips it (unless it was holding it)
+//   TOGETHER      EVERY phone starts it at ONE moment on the server clock (`at` — EVERYONE's stamped ~50 s ahead: FRIENDS C); a late phone
+//                 joins mid-way (a lobby phone more than 4 s late skips it), a held one plays from the top
 //   THE HEADLINE  ON THE BILLBOARD: ≤ `head` letters (the radio's word rules: the profanity filter, BNAME) on the speakeasy's billboard while
 //                 the voice plays (two lines of ≤ 12 — the board's own)
 import { knob } from './harbor-schedule.js';
@@ -89,22 +90,26 @@ export function icPublic(id, m) {
 /**
  * WHEN does this phone play it? m: the public moment; ctx: { now (server ms), source ('desk' — the owner's own phone · 'room' — a lobby's
  * node · 'feed' — the city's cached GET), inGame (this phone's room has a game running), holdGame (the game exports NO_INTERCOM — it
- * holds even a DON'T WAIT), busy (a legendary's own audio is on — wait for it), held (this phone held it while in a game) }
+ * holds even a DON'T WAIT), busy (a legendary's own audio is on — wait for it), held (this phone held it while in a game), prep (ms: how
+ * early this phone may begin — the clip fetched + decoded, the sound SCHEDULED for `at` on the audio clock; 0 = at `at`) }
  * → 'play' · 'wait' (not yet — ask again) · 'hold' (in a game: until the lobby / the title) · 'skip' (never)
+ * FRIENDS C — THE INTERCOM IN SYNC (the owner, Nov 5: two phones in one house heard it at different moments): EVERY phone plays it at ONE
+ * moment, its `at` on the SERVER clock (EVERYONE: stamped `lead.everyone` s ahead — the city's ~45 s poll has it by then); a phone that
+ * learns of it late JOINS MID-WAY (audio/intercom.js: `late` = now − at) up to its end, then skips it — never from the top out of step.
+ * Only a phone that HELD it through a game plays it from the top (by design: WAIT FOR THE LOBBY).
  */
 export function icDecide(m, ctx) {
   const K = knob('radio.intercom'), now = ctx.now;
   if (!m || m.state === 'stopped') return 'skip';
   if (now > Math.max(m.made || 0, m.at || 0) + K.keep * 1000) return 'skip';   // (a scheduled one keeps its hour from its own start)
-  if (now < m.at) return 'wait';
+  if (now < m.at - Math.max(0, ctx.prep || 0)) return 'wait';
   if (ctx.inGame && (m.wait !== false || ctx.holdGame)) return 'hold';
   if (ctx.busy) return 'wait';
   if (ctx.held) return 'play';
-  if (ctx.source === 'desk') return now <= m.until + K.late * 1000 ? 'play' : 'skip';
   // a lobby's phones start TOGETHER: a phone more than a few seconds late skips it (it wasn't holding it)
   if (ctx.source === 'room') return now <= m.at + 4000 ? 'play' : 'skip';
-  // the city's feed arrives up to ~45 s late (the cached poll): a title phone still plays one that just went out
-  return now <= m.until + K.late * 1000 ? 'play' : 'skip';
+  // the owner's desk + the city's feed: TOGETHER on the server clock — mid-way while it still plays, then skipped
+  return now < m.until ? 'play' : 'skip';
 }
 /** may the owner still UNSEND it? (the button stays until every phone would have it: `unsend` s after it went out) */
 export const canUnsend = (m, now) => { if (!m || m.state === 'stopped') return false; const base = (m.at || 0) - (m.made || 0) > 60e3 ? m.at : (m.made || 0); return now < base + knob('radio.intercom').unsend * 1000; };   // (a scheduled one: until it plays + the same minute)
