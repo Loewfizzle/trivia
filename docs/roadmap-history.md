@@ -2163,6 +2163,20 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 6: password-preview.html (a fake judge, fixed test words, the state flags) + e2e-password.mjs (the real judge on the emulators).
 - The owner's add-on (OVERCLOCK): Higher or Lower's end card — the streak bar whole at 390 / 402 / 430 + WebKit; the header row.
 
+## FRIENDS C — THE CITY FIXES (Nov 8, 2026)
+- THE RADIO: a fired one-shot plays ONCE (the played record kept for the tab — a city rebuilt mid-window never begins it again); YOUR QUEUE ·
+  THE WEEK · the timeline; the crew radio's header fits at 390.
+- THE INTERCOM IN SYNC: EVERYONE stamped 50 s ahead on the server clock; each phone schedules it on its audio clock for that moment (a late
+  phone joins mid-way, never from the top); two pages 0 ms apart.
+- THE SKY UNDER WEATHER: the flyby / air show / missing man drawn after the clouds, the storm deck + the far fog veil (the clouds thin under
+  them); skywriting in front of fog; the moment × weather grid.
+- THE BLACK HELICOPTER: the patrol's CC0 model baked all black + a cold rim, its rotor's blurred spin frames; the medium tier's night pass (the
+  same times), a radio jack + &force=blackhelo; nav lights, strobe, beacon, the searchlight's sweep + glint, reflections; a synthesized thump.
+- THE SLOW-3G START: each playable cartridge's whole module graph preloaded at once (generated list), the lobby wires it — Slow 3G guest 50.6 →
+  5.0 s after the start with a lobby.
+- THE CLOUD REDS: the spiders (a trip record), RETURN (a 4-s window), LOAD WEATHER (the board synced before the reveal), the display rule on the
+  lobby speed checks, the radio desk + word towers' waits. Left: THE ROOM's OWN COST (the guest list's strips +7 ms at 4×). No rules change.
+
 ## FRIENDS B — FACE ID / PASSKEY SIGN-IN + THE PODIUM, PROFILE + SHELL FIXES (Nov 8, 2026)
 - FACE ID / PASSKEYS: ADD FACE ID SIGN-IN on ACCOUNT; SIGN IN WITH FACE ID on BRING YOUR CARD + RESTORE YOUR ACCOUNT → the card, like a restore key
   (WebAuthn on api/profile.js through one server-side library; server-only nodes; user verification required; one-time challenges; the counter;

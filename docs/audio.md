@@ -554,6 +554,19 @@ low-pass 3.4 kHz, +5 dB at 1.8 kHz, a tanh drive ×2.4, a 110 ms dark slap echo 
 music back up. A lobby's phones start it TOGETHER on the server clock (a phone a moment late joins the timeline); never over a legendary's
 own audio (it waits). PLAY BACK on the owner's review card plays the take through the same chain, on his phone only.
 
+**THE INTERCOM IN SYNC (FRIENDS C, Nov 8 — the owner: two phones in one house heard it at different moments):** EVERY phone plays it at ONE
+moment, its `at` on the SERVER clock (`serverNow` — the parked title has no socket: `/api/time`'s offset). EVERYONE is stamped `lead.everyone`
+= 50 s ahead (the city's ~45 s poll + the 15 s edge cache have it by then), LOBBY ONLY 2.5 s (unchanged), JUST ME 0.5 s. A phone that has it
+begins up to 4 s early (`audio/intercom.js` PREP_MS — the clip fetched + decoded) and SCHEDULES the chime on the audio clock for `at` (the
+headline + the duck go up with it); a phone that learns of it late JOINS MID-WAY (`late` = now − at) until its end, then skips it — never from
+the top out of step (`core/radio-intercom.js#icDecide`); a phone that held it through a game plays it from the top. `intercomDebug().starts`
+= each id's scheduled start (the harbor `radio` group's two-page proof: 0 ms apart).
+
+**THE BLACK HELICOPTER's ROTOR THUMP (FRIENDS C):** the `rotor-thump` slot — SYNTHESIZED (`scripts/build-synth-sfx.py#thump`: soft low thuds
+~7.2 a second, a faint blade slap, a slow swell, a whisper of turbine; the 2nd harmonic lifted for a phone's speaker) → imported by
+`add-city-sfx.py` (a 30.5 s loop, 16 kHz / 32 kbps, 129 KB); `sounds.js` runs it under the patrol's recorded flybys while the black helicopter
+is up — louder in the hover, panned with it. Felt more than heard (the slot 0.06).
+
 ## THE PASSWORD's SOUNDS (PW2, Nov 7 2026) — `js/games/password/sfx.js`, `audio/sfx/password/`, `scripts/build-pw-sfx.py`
 The dailies chat's Grok set (Downloads\grok\dailies-sfx, files 01–11; its review's picks are final — the owner): key tap · delete · submit · tile hit /
 near / miss (one per flipping tile, as its mark lands) · not-a-word (the shake) · door unlock + door open (THE DOOR REVEAL) · win sting (WELCOME IN) ·

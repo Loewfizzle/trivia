@@ -312,6 +312,11 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     THE QUICK SOLO BOARD in `tests/profiles.test.mjs` + the profile E2E (§10). The guard's `luck` group = every Dumb Luck screen.
     OC8: the luck E2E also proves THE LOCK GRACE — FINN taps at 6.9 s through a transport that holds every WebSocket send 300 ms, and the pick
     still has its ticket.
+  - THE SLOW-3G START (FRIENDS C): `MOUNT=1 SLOW=1 node tests/integration/e2e-oc-slow.mjs "<browser path>" ./shots-oc-slow` — Chrome's Slow 3G
+    (400 kbps, 2 s), 2 phones: when each phone's match screen mounts after the start's stamp, the guest within 2 s of the host; `LOBBY=30000` =
+    30 s in the lobby first (the guests wiring the cartridges — js/games/preload.js); without it the lobby's own wiring is off (A: the start at
+    once). The local server is HTTP/1.1 (six connections) — the no-lobby case is slower here than on Vercel's HTTP/2. `tests/preload-graph.test.mjs`
+    = the generated module list fresh (`node scripts/build-preload-graph.mjs`).
   - A POOL CHALLENGE FIRST ON A SLOW LINE (OC8 — A6): `node tests/integration/e2e-oc-slow.mjs "<browser path>" ./shots-oc-slow` (2 phones,
     ≈ 40 s, the emulators) — every phone on Chrome's Fast 3G profile, TRIVIA forced first (`?emu` + `window.__ocFirst`): the pool's fetch begins
     in the walk inside on every phone, the deal carries the night memory, the questions are on screen the moment the challenge can open (the

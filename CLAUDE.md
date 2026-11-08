@@ -187,6 +187,12 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   the podium music waits for the FRAME (`state.podium`); `ACCENT` colours the frame; the results list from 4th; the score under each slim card;
   the whole XP box opens your card. THE TIER GEM = ONE SHAPE (`vault/gems.js`); the screen change = a 150 ms fade (no glitch); the dock lit by day;
   the link preview `assets/og.jpg` (JPEG ≤ 300 KB — og.png gone); game toasts under the header (`toast.js#gameTop`, `[data-msg-under]`).
+- **FRIENDS C (docs/harbor/passes/friends-c.md):** a fired radio one-shot plays ONCE per tab (`scene-radio.js` — `nd:rd-seen`; a hold comes back);
+  THE INTERCOM plays on every phone at ONE server-clock moment (EVERYONE 50 s ahead; scheduled on the audio clock; late = mid-way, never from the
+  top); the show (flyby / air show / missing man) draws AFTER every weather layer (`skyfx.js#showOver`) — no show moment hidden by weather;
+  THE BLACK HELICOPTER = the medium tier's night helicopter pass (`air.js#blackPlan`, `scripts/bake/blackhelo.mjs`, a jack + `&force=blackhelo`);
+  a cartridge's whole module graph is preloaded at once (`js/games/preload.js` + the GENERATED `preload-graph.js` — `node scripts/build-preload-graph.mjs`
+  after a game's imports change; a test fails when stale), the lobby wires the playable ones 4 s in.
 - **THE PASSWORD (PW1 — docs/password.md):** a DAILY-ONLY cartridge lives in `config.js#DAILIES` (never GAMES — GAMES is the lobby's list: the city's signs, HOW TO PLAY,
   THE BOARD, the reports); THE SERVER JUDGES EVERY GUESS (`api/_lib/pw.js` + `pw-day.js`: the answers in `api/_data/pw/` — never served, a door's word only
   once it closes; the schedule from the pepper, never the date); the list is BUILT + REVIEWED (`scripts/pw-words/`, never edited by hand); no ✓ / ✕ / ⌫
