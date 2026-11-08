@@ -6290,3 +6290,7 @@ THE CARD PASS DONE (Nov 7, ~11:10 pm ET; ci, green, rules unchanged — the queu
 * 11:25 pm ET (the owner): READY for FRIENDS A.
 
 - THE BUILD TABLE (Nov 7 late, FRIENDS A Step 0): THE CARD PASS ✅ (passes/card-pass.md); FRIENDS A (this pass: THE FRIENDS CORE, THE FRIENDS SCREENS, INVITES THAT WAIT, YOUR TABLE's data, THE CREW INTERCOM, THE KEY IN THE PHONE'S PASSWORDS — nothing from FRIENDS B) ← NEXT; FRIENDS B (the fix list + FACE ID / PASSKEYS) after; then THE DAILY MODULE (the dailies chat) + its Fable review → BOARD 2.0 → PRISM DROP → FR7 → THE SWITCH-OVER.
+- FRIENDS A DONE (Nov 8, after midnight) — passes/friends-a.md. THE BUILD TABLE: FRIENDS A ✅ (THE FRIENDS CORE — pfr/{pid}, RULES CHANGED, the owner
+  re-publishes; THE FRIENDS SCREENS on the profile card + the badge + ADD FRIEND on name tags + the INVITE sheet; INVITES THAT WAIT — the push + the card;
+  YOUR TABLE's data; THE CREW INTERCOM; SAVE TO PASSWORDS); FRIENDS B (the fix list + FACE ID / PASSKEYS) ← NEXT → THE DAILY MODULE → BOARD 2.0 → PRISM DROP →
+  FR7 → THE SWITCH-OVER.

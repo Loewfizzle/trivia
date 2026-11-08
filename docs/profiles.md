@@ -383,3 +383,31 @@ card's frame, CUSTOMIZE YOUR CARD + the level bar; hot pink = the end of round's
   `empty`; `core/progress.js#matchStep` skips it (`skip: 'empty'`: no solo XP, no streak day, no solo-lane count, nothing written).
 - **B3**: the OVERCLOCK solo boards' tabs + column read QUICK · SOLO / STANDARD · SOLO. **B8**: the /api-down solo run proven (queued, sent once).
 
+## FRIENDS A (Nov 7–8 2026 — docs/harbor/passes/friends-a.md)
+- **THE FRIENDS LIST** — `pfr/{pid}` (server-written; its owner may read it, another player never): `f` friends (both sides) · `in` / `out`
+  requests · `b` blocks · `rp` RECENTLY PLAYED WITH (from VERIFIED matches — `api/_lib/stats.js#applyMatch` → `friends.js#noteRecent`) · `inv`
+  waiting invites. Every change = ONE pure step (`js/core/friends.js#friendStep`) → one multi-path update (`api/_lib/friends.js#friendDo`).
+  ADD → a REQUEST they ACCEPT (nobody on your list without a yes; their request already there → ADD accepts). DECLINE + REMOVE are QUIET; BLOCK
+  ends the friendship, hides them from your suggestions and swallows their next requests (theirs look sent, never land). Caps: 100 friends,
+  20 out, 50 in, 200 blocks, requests age out in 30 days; `rl/fr_h_{pid}` 30 an hour + `rl/fr_d_{pid}` 80 a day.
+- **`POST /api/profile`** actions: `friends` · `friendAdd { pid } | { b, bid }` (THE BOARD's row id → the pid on the server) · `friendAccept` ·
+  `friendDecline` · `friendCancel` · `friendRemove` · `friendBlock` · `friendUnblock { pid }` → `{ ok, rel, pid, state }` · `friendInvite
+  { pid, room }` · `inviteCheck` → `{ invites, frIn }` · `inviteDismiss { pid }` · `friendPush { op, sub?, endpoint? }`; `me` carries `fr.in`.
+  A card = `{ pid, bid, n, t, a, c, l, cd, g, tb, es, at }` — never a key.
+- **WHERE FRIENDS LIVE** (NO DOCK TAB): the profile card's FRIENDS section (requests, the list + ⋯ REMOVE / BLOCK, SENT, RECENTLY PLAYED WITH,
+  BLOCKED + unblock, INVITE NOTIFICATIONS, YOUR TABLE's placeholder), the pink badge on YOU (pending requests), ADD FRIEND on a player's card in
+  the room, on the podium + THE BOARD's ⋯ (in the app only), the room's INVITE sheet (FRIENDS on top). ONLINE STATUS = NONE — the only presence
+  is the green dot on a friend IN THE ROOM WITH YOU (`.rc-tag.is-friend`). /api down → no friends anywhere, nothing breaks.
+- **INVITES THAT WAIT**: `friendInvite` — from a player seated in that room, to a friend → `pfr/{friend}/inv/{me}` `{ r, ca, at, until (+30 min) }`
+  + a Web Push to the friend's INVITE NOTIFICATIONS phones (`ppriv/{pid}/ps`, ≤ 4; the same VAPID keys as THE LEDGER's push; iPhone: the Home
+  Screen app with notifications allowed) opening `/?room=CODE&inv=1` (it knocks by itself — the normal join rules). On the next open the title
+  asks `inviteCheck` (ONE /api call — never a socket: CONN) → the card "<NAME> invited you · JOIN ROOM XXXX" (NOT NOW · JOIN), held during a match;
+  gone when the room closes, its hush word is reused (`ca`), or after 30 min.
+- **SAVE TO PASSWORDS** (account backup (a) — `js/profile/keychain.js`): a real login form beside YOUR KEY (NAME#1234 = `username`, the key =
+  `current-password`, a submit handled on the page — PasswordCredential where it exists, the form leaving = Safari's Save Password); RESTORE YOUR
+  ACCOUNT + BRING YOUR CARD's key field = `current-password` in a real form → a new phone autofills it. The key goes nowhere new.
+- **THE CREW INTERCOM** (`api/_lib/radio.js#intercom` with role crew): the owner's ONE switch on THE LEDGER (`radioCrewIntercom` → `radio/crewIc`,
+  default OFF, audited); ON → the room's radio holder gets the hold-to-talk for THEIR room (≤ 15 s, NOW, no headline, 4 a room a night —
+  `radio/limits/{room}/{night}/ic`; the clip gone after the hour); OFF → not shown + refused (`crew_ic_off`).
+- Proof: `tests/friends.test.mjs`, `tests/integration/friends.test.mjs` (+ rules.test FRIENDS A, progression.test YOUR TABLE), `e2e-friends.mjs`,
+  `wk-keychain.mjs`, harbor `crew`.

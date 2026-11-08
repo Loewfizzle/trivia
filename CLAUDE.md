@@ -27,7 +27,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | `docs/vault.md` | THE VAULT (1A–2A, Nov 3; 1C: THE ONE TIER PALETTE `core/rarity.js`, the 8 SIGHTING CARDS from the city's own models `js/fx/sg-*.js`, the held-back cards; 2A: the 3 held cards + THE EMBLEM SYSTEM — `js/vault/emblem-art.js` (a shape + a finish as composited SVG layers), tube styles, name glows `js/vault/glows.js`, the picker's style rows, the lab's EMBLEMS + GLOWS tabs, THE PROMINENCE RULE as the budget): the CARDS' ART — THE CARD LAB (`/lab`: the owner's APPROVE · FIX · CUT; `docs/vault-lab-marks.md` = his marks, read FIRST in a VAULT pass), THE EFFECT LIBRARY (`js/fx/` — ONE shared renderer, never a canvas per card; how a new effect / card / emblem plugs in), the slim strips (SLIM FIRST), the tiers, THE PROMINENCE RULE, THE BAR |
 | `docs/chat.md` | room chat (data, locks per game, system lines, profanity filter) |
 | `docs/content.md` | adding questions / puzzles / words to any bank; rebuilding word lists |
-| `docs/profiles.md` | profiles, name tags + keys, `/api`, result reporting, THE BOARD, XP ranks + steps, streaks, the weekly goal, mastery, THE VAULT (card finishes, name glows), emblems, `/board`, `/admin`, the Vercel setup |
+| `docs/profiles.md` | profiles, name tags + keys, FRIENDS (the list, invites that wait, SAVE TO PASSWORDS, the crew intercom), `/api`, result reporting, THE BOARD, XP ranks + steps, streaks, the weekly goal, mastery, THE VAULT (card finishes, name glows), emblems, `/board`, `/admin`, the Vercel setup |
 | `docs/overclock.md` | **OVERCLOCK** — the OVERDRIVE rebuild's plan (7 passes, the owner's decisions) + each pass's decisions + log; read it before an Overclock pass |
 | `docs/coastclear.md` | **COAST CLEAR** (CC1 — a DAILY-ONLY, SERVER-JUDGED Minesweeper-type, ships OFF: the no-guess maker + solver `api/_lib/cc-board.js` + `cc-solve.js`; the board only on the server, `/api/daily` dig / chord / pause / resume; the instant feel) |
 | `docs/password.md` | **THE PASSWORD** (PW1 — a DAILY-ONLY, SERVER-JUDGED Wordle-type, ships OFF: `config.js#DAILIES`, never GAMES; `/api/daily` `guess`; the list build + THE REVIEWER; the kit keyboard's `setKeyStates`) · the owner's game decisions: `docs/games/plan.md` |
@@ -173,6 +173,12 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   (Hunspell en_US / ENABLE) or a Wiktionary phrase; SPELLCHECK is American (the right word in Hunspell en_US — SCOWL; no wrong one a word in
   en_US / en_GB / ENABLE; `hard` = the common slip, the answer's underlines).
 - **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists).
+- **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
+  actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
+  remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,
+  the badge on YOU, ADD FRIEND on name tags, the INVITE sheet); INVITES THAT WAIT (a push + the card — `profile/invites.js`, one /api call, never a
+  socket); YOUR TABLE = `today` reads the friends list (≤ 12); THE CREW INTERCOM behind the owner's switch (`radio/crewIc`, default OFF); SAVE TO
+  PASSWORDS (`profile/keychain.js` — a real credential form; the key goes nowhere new).
 - **THE PASSWORD (PW1 — docs/password.md):** a DAILY-ONLY cartridge lives in `config.js#DAILIES` (never GAMES — GAMES is the lobby's list: the city's signs, HOW TO PLAY,
   THE BOARD, the reports); THE SERVER JUDGES EVERY GUESS (`api/_lib/pw.js` + `pw-day.js`: the answers in `api/_data/pw/` — never served, a door's word only
   once it closes; the schedule from the pepper, never the date); the list is BUILT + REVIEWED (`scripts/pw-words/`, never edited by hand); no ✓ / ✕ / ⌫

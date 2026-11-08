@@ -242,6 +242,11 @@ rooms/{CODE}/meta/go: { at (the server's now), m (matchId), g (game id) } — LO
   match is prepared); every phone runs the 2.6 s walk inside from it (core/room-show.js#startShow); the game's clock = at + START_MS; cleared at the end
 rooms/{CODE}/meta/back: { at, m, g, rm } — LOBBY 2.0 B: the match's end (host): the walk back out, THE WINNER's BANNER PLANE (bannerAt), the REMATCH
   ring while rm (false once the host picks another game); cleared by the next start
+pfr/{pid}:        FRIENDS A — { f{pid: at} friends (both sides), in{pid: at} / out{pid: at} requests (30 days), b{pid: at} blocks,
+                    rp{pid: at} recently played with (verified matches, the newest 40), inv{pid: { r (room), ca (its createdAt), at, until, n }} }
+                    read: the profile's OWNER only (uids/{auth.uid} === $pid); written by the server only (/api/profile — docs/profiles.md "FRIENDS A")
+ppriv/{pid}/ps/{k}: FRIENDS A — INVITE NOTIFICATIONS' push subscriptions { endpoint, keys{p256dh, auth}, at } (≤ 4)   server only
+radio/crewIc:     FRIENDS A — THE CREW INTERCOM's switch { on, at, by } (default OFF); radio/limits/{room}/{night}/ic = the crew's clips tonight   server only
 rooms/{CODE}/rv/{uid}: matchId — LOBBY 2.0 B: THE REMATCH VOTE — your own vote for the match just played (only while meta/back.rm, the room in the lobby,
   you a player); the host clears them all (a start, another game)
 ```

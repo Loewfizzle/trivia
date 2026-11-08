@@ -2163,6 +2163,14 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 6: password-preview.html (a fake judge, fixed test words, the state flags) + e2e-password.mjs (the real judge on the emulators).
 - The owner's add-on (OVERCLOCK): Higher or Lower's end card — the streak bar whole at 390 / 402 / 430 + WebKit; the header row.
 
+## FRIENDS A — THE FRIENDS LIST, INVITES THAT WAIT, THE CREW INTERCOM, THE KEY IN THE PHONE'S PASSWORDS (Nov 8, 2026)
+- THE FRIENDS CORE: pfr/{pid} (server-written, owner-read — a rules change), one pure step for add / accept / decline / cancel / remove / block /
+  unblock, the caps (100 friends, 20 out, 50 in) + rate limits, RECENTLY PLAYED WITH from verified matches.
+- THE FRIENDS SCREENS: the profile card's FRIENDS section, the badge on YOU, ADD FRIEND on the room's player card, the podium + THE BOARD's ⋯, the
+  green dot on a friend in the room, the INVITE sheet's FRIENDS row.
+- INVITES THAT WAIT: a push (INVITE NOTIFICATIONS) + the card on the next open, 30 min or until the room closes; the push link knocks by itself.
+- YOUR TABLE's data: `today` reads the friends list (≤ 12). THE CREW INTERCOM behind the owner's switch. SAVE TO PASSWORDS + autofilling restore.
+
 ## THE CARD PASS — SEVEN GIFTS, THE GIFT QUEUE, THE LONG-NAME STANDARD (Nov 7, 2026)
 - THE GIFT QUEUE: every gift waits in a line on the server; the reveal plays one card at a time ("GIFT 2 OF 5"), seen as each closes, a refresh
   resumes; the old single slot migrates. B1: an empty solo run (nothing answered, 0 points) pays nothing. B3: QUICK · SOLO / STANDARD · SOLO on

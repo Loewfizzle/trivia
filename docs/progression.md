@@ -130,6 +130,9 @@ and no card gets it now) — so "everyone who played before the launch" is exact
 - **THE STREAK + THE COUNTERS:** `dailyStep` (idempotent by `daily_<game>_<day>`) keeps the streak like a match + DAILY BREAD / THE TRIPLE /
   EARLY BIRD / PENTHOUSE's counters (`pstats/dl`).
 - **YOUR TABLE's TODAY** (`today { pids }` — BOARD 2.0 draws it): your scores + each friend's: a tick until YOU have finished that daily, then their score.
+  FRIENDS A: the server reads YOUR FRIENDS LIST (`pfr/{pid}/f`) — a stranger named by id is never read; ≤ 12 a read: a picked `pids` list kept to
+  friends (its order), else the friends you played with most recently, then the newest friendships (`core/friends.js#tablePids`); the answer adds
+  `table` (the pids covered). The profile card shows a YOUR TABLE placeholder until THE DAILY MODULE draws it.
 - **No socket:** a solo daily is `/api` only (`js/daily/contract.js` — fetch + the ID token; THE PARKED DATABASE never wakes).
 - Cost (Spark / Hobby): a finish = ~6 small writes + 3 reads; `today` ≤ 12 friends × the dailies' reads. One more function (`api/daily.js` — 8 of Hobby's 12).
 
