@@ -1095,6 +1095,10 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-s-pw-safecracker .vl-mat { background: #070a1c url('../assets/vault/pw/safecracker.webp') 100% 37% / 46% auto no-repeat; }   /* (THE CARD PASS: zoomed out + set right — THE SLIM-CARD LONG-NAME STANDARD) */
 .vl-fcm-pw-safecracker .vl-mat { background-position: 50% 50%; }
 .vl-s-pw-safecracker .vl-plate { background: rgba(6, 8, 20, 0.82); }
+/* DM2 — PERFECT WEEK: Grok's fan of neon tickets (assets/vault/dm/) — the strip zoomed out + set right (the fan ≈ 0.80 across), the full card centred on the fan */
+.vl-s-dm-week .vl-mat { background: #05030c url('../assets/vault/dm/perfect-week.webp') 100% 42% / 64.8% auto no-repeat; }
+.vl-fcm-dm-week .vl-mat { background-position: 62% 50%; background-size: cover; }
+.vl-s-dm-week .vl-plate { background: rgba(6, 4, 16, 0.82); }
 /* CC2 — COAST CLEAR's card: Grok's speedboat (1280 × 720 — js/fx/cc-specs.js holds the same crop) = the material. THE STRIP sits ~10 % lower than
    centre (the boat sits low — the owner, CC2: a per-card value), the boat right of centre leaves the left clear for a long name; the gem corner dark */
 .vl-s-cc-ghost-run .vl-mat { background: #07081c url('../assets/vault/cc/ghost-run.webp') 100% 70% / 65.3% auto no-repeat; }   /* (THE CARD PASS: zoomed out + set right) */

@@ -46,6 +46,8 @@ import { GIFT_SPECS } from './gift-specs.js';
 import { ocRedline, ocPhoto } from './oc-cards.js';
 import { pwSafe } from './pw-cards.js';
 import { ccGhost } from './cc-cards.js';
+import { dmWeek } from './dm-cards.js';   // (DM2 — PERFECT WEEK)
+import { phDial } from './ph-dial.js';    // (DM2 — PENTHOUSE · THE DIAL, drawn in code)
 
 /** COMBO (THE VAULT 1C — an EPIC's two effects together on ONE slot): parts = [[effect, opts the part overrides]…], drawn in order */
 export function combo(id, tier, ...parts) {
@@ -76,4 +78,6 @@ export const FX = Object.freeze({ deco, ufo, laser, smoke, frost, flames, prism,
   pwSafe,
   // CC2 — COAST CLEAR's card (the spray off the bow, the lighthouse breathing + its beam, the searchlights' crossing, a light along the trim)
   ccGhost,
+  dmWeek,
+  phDial,
   platinum: combo('platinum', 'epic', [sheen, { tint: '214,228,255', gain: 2.4 }], [bevel, null]) });

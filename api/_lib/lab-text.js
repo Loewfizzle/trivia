@@ -79,6 +79,8 @@ export const LAB_TEXT = {
  "full-card-safecracker": { "name": "SAFECRACKER · FULL CARD", "motion": "The whole door: the dust pouring out to the right, the blaze breathing, the glint on the wheel; the plate keeps to the dark wall on the left." },
  "card-ghost-run": { "name": "GHOST RUN", "motion": "RARE (COAST CLEAR — a clear with no light finding you, in 50 seconds or less): Grok’s glossy black speedboat racing right in a burst of white + cyan spray, two searchlight beams crossing behind it, a lighthouse on the pink horizon; the game’s layers: the SPRAY thrown back off the bow (droplets arcing + flickering out), the lighthouse’s lamp BREATHING with a short beam sweeping round now and then, a soft shimmer where the searchlights cross (they never find you), a light running along the hull’s cyan trim. The strip sits ~10 % lower than centre (the boat sits low); the left stays clear for a long name." },
  "full-card-ghost-run": { "name": "GHOST RUN · FULL CARD", "motion": "The whole run: the boat + its spray, the crossing searchlights above, the lighthouse on the horizon; the plate keeps to the dark water + sky on the left." },
+ "card-perfect-week": { "name": "PERFECT WEEK", "motion": "EPIC (THE DAILIES — THE SWEEP seven days in a row): Grok’s fan of neon-tube tickets (pink · violet · blue · white · blue · orange) round a white-hot starburst, reflected on black glass; the reward’s layers: A LIGHT RUNS ALONG THE FAN one ticket a beat (the days), then the whole fan flares together and settles; the burst BREATHES, sparks drift up out of it. The strip zoomed out + set right (the fan ≈ 0.80 across)." },
+ "full-card-perfect-week": { "name": "PERFECT WEEK · FULL CARD", "motion": "The whole fan + its reflection: the light running ticket to ticket, the flare, the breathing burst, the sparks; the plate keeps to the dark glass on the left." },
  "emb-lighthouse": { "name": "LIGHTHOUSE", "motion": "NEON (uncommon — any clear of COAST CLEAR): a lighthouse in tubes — the white tapered tower with its stripe, the gold lamp room + cap, a cyan wave at its foot; its BEAM swinging round on the lamp (the lens turning) while the lamp’s glow breathes" },
  "emb-keyhole": { "name": "KEYHOLE", "motion": "NEON (uncommon — any full crack of THE PASSWORD): a keyhole in amber — the round eye and the slot below it — with a pink key’s tip at the eye; a warm light GLOWING through the hole, swelling + fading slowly (the room behind the door)" },
  "emb-key": { "name": "THE KEY", "motion": "NEON — the house style: an amber key with a pink diamond in its bow, two tubes in the sign's own layers (glass, glow, body, white-hot core); still — its motion comes from the tube style you equip" },
@@ -260,11 +262,11 @@ export const LAB_TEXT = {
  },
  "card-penthouse": {
   "name": "PENTHOUSE",
-  "motion": "The city at night far below a gold-framed window — its lights twinkling, traffic streaming along the avenues"
+  "motion": "EPIC (THE DAILIES — the top 1 % of a daily's counting finishers, from 50): design A · THE DIAL, DRAWN IN CODE — an Art Deco elevator floor dial (1 → 9 → PH, gold on black lacquer, sunburst rays behind) over gold doors with chevrons + Deco pilasters. The needle sweeps up from 1 and lands on PH, PH + its label blaze warm gold, then a line of light opens between the doors. The slim strip shows the dial + PH (its own band), PH clear of the gem corner."
  },
  "full-card-penthouse": {
   "name": "PENTHOUSE · FULL CARD",
-  "motion": "The city at night far below a gold-framed window — its lights twinkling, traffic streaming along the avenues, at full size"
+  "motion": "THE DIAL at full size: the floor numbers round the arch, the needle's climb to PH, PH's warm blaze + bloom, the light opening between the gold doors; the left 42 % dark lacquer for the name."
  },
  "card-wildfire": {
   "name": "WILDFIRE",
@@ -506,6 +508,8 @@ export const LAB_TEXT = {
 // THE LAB 2.0 (THE VAULT 2C) — WHAT CHANGED, per item + version (js/vault/catalog.js#LAB_V holds the numbers): the lab shows the newest
 // line beside his old mark ("CHANGED Nov 3 — …"). A pass that edits an item's art / words bumps its LAB_V + adds its line here.
 export const LAB_CHANGES = {
+  'card-penthouse': [{ v: 2, at: '2026-11-08', what: 'A NEW FACE (DM2 — the owner’s design A · THE DIAL): the gold-framed window over the city is gone; an Art Deco elevator floor dial, DRAWN IN CODE — the needle climbs 1 → PH, PH blazes, the doors’ seam lights. The strip has its own band (the dial + PH, clear of the gem).' }],
+  'full-card-penthouse': [{ v: 2, at: '2026-11-08', what: 'A NEW FACE (DM2 — THE DIAL, drawn in code): the dial + the gold doors at full size, the left dark for the name.' }],
   'card-safecracker': [{ v: 2, at: '2026-11-07', what: 'The strip zoomed out + set further RIGHT (THE SLIM-CARD LONG-NAME STANDARD — the subject ≈ 0.77 across, the left free for a 12-letter name).' }],
   'card-ghost-run': [{ v: 2, at: '2026-11-07', what: 'The strip zoomed out + set further RIGHT (THE SLIM-CARD LONG-NAME STANDARD — the subject ≈ 0.77 across, the left free for a 12-letter name).' }],
   'card-gift-enforcer': [{ v: 2, at: '2026-11-07', what: 'The strip zoomed out a touch + set further RIGHT (THE SLIM-CARD LONG-NAME STANDARD — the face ≈ 0.76 across, the left free for a 12-letter name).' }],

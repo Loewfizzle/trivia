@@ -17,6 +17,8 @@ import { artMap } from '../fx/gift.js';
 import { OC_SPECS, ocMap } from '../fx/oc-specs.js';
 import { PW_SPECS, pwMap } from '../fx/pw-specs.js';
 import { CC_SPECS, ccMap } from '../fx/cc-specs.js';
+import { DM_SPECS, dmMap } from '../fx/dm-specs.js';
+import { phMap, PH_HERO_FULL } from '../fx/ph-specs.js';
 
 /** any other card's full-card hero, as fractions of the card [x, y, w, h] (none declared yet — a NEW focal full card adds its row) */
 export const FULL_HERO = Object.freeze({});
@@ -30,6 +32,9 @@ export function heroBox(card, w, h) {
   if (P) { const M = pwMap(w, h, P.full), [x, y, bw, bh] = P.heroFull; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
   const Q = CC_SPECS[card];   // (CC2 — COAST CLEAR's card: 1280 × 720 too)
   if (Q) { const M = ccMap(w, h, Q.full), [x, y, bw, bh] = Q.heroFull; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
+  if (card === 'card-penthouse') { const M = phMap(w, h, true), [x, y, bw, bh] = PH_HERO_FULL; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }   // (DM2 — THE DIAL)
+  const D = DM_SPECS[card];   // (DM2 — PERFECT WEEK: 1280 × 720 too)
+  if (D) { const M = dmMap(w, h, D.full), [x, y, bw, bh] = D.heroFull; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
   const f = FULL_HERO[card]; return f ? [f[0] * w, f[1] * h, f[2] * w, f[3] * h] : null;
 }
 /** the plate's real shape at (x, y): its two rows when stepped (vault/strip.js#layStep says where: data-step, -x2, -y1), else its box */

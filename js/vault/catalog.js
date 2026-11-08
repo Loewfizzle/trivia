@@ -236,6 +236,12 @@ LAB.push(
   { id: 'full-card-ghost-run', kind: 'full', of: 'card-ghost-run', tier: 'rare', n: 192 },
   { id: 'emb-lighthouse', kind: 'emblem', tier: 'uncommon', n: 193, fin: 'neon' },
 );
+// DM2 — THE DAILY MODULE's rewards (the server awards both from its own record): PERFECT WEEK (THE SWEEP 7 days in a row) + PENTHOUSE's
+// new face (design A · THE DIAL, drawn in code — card-penthouse keeps its id + numbers 67 / 88; its LAB_V bumped below)
+LAB.push(
+  { id: 'card-perfect-week', kind: 'card', tier: 'epic', n: 209 },
+  { id: 'full-card-perfect-week', kind: 'full', of: 'card-perfect-week', tier: 'epic', n: 210 },
+);
 // THE CARD PASS (Nov 7) — seven 1-OF-1 GIFTS (the owner gives them in /admin → GIFTS): their strips, then their full cards
 LAB.push(
   { id: 'card-gift-dispatcher', kind: 'card', tier: 'legendary', n: 194, gift: true },
@@ -273,7 +279,8 @@ export const LAB_V = Object.freeze({
   'card-gift-playerone': 2, 'card-gift-halloffame': 2, 'card-gift-sunsetstrip': 3, 'card-gift-youngbuck': 4, 'card-gift-icecold': 2, 'card-gift-anarchist': 2,
   // (THE CARD PASS — THE SLIM-CARD LONG-NAME STANDARD: the gift strips whose face sat left of 0.75 zoomed out + set right)
   'card-gift-enforcer': 2, 'card-gift-linebacker': 2, 'card-gift-underlights': 2, 'card-gift-goldenhour': 2, 'card-gift-goldenboot': 2, 'card-gift-buzzed': 2,
-  'card-safecracker': 2, 'card-ghost-run': 2,   // (Nov 6: the tape card's strip v4 — its effects back on their spots)
+  'card-safecracker': 2, 'card-ghost-run': 2,
+  'card-penthouse': 2, 'full-card-penthouse': 2,   // (DM2 — PENTHOUSE's new face: design A · THE DIAL, drawn in code)   // (Nov 6: the tape card's strip v4 — its effects back on their spots)
   'card-dev-switchboard': 4, 'card-dev-source': 4, 'full-card-dev-switchboard': 6, 'full-card-dev-source': 6,
 });
 /** an item's current version */

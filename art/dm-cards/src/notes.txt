@@ -1,0 +1,8 @@
+Neon Speakeasy - THE DAILY MODULE's cards (DM2, Nov 8 2026)
+
+card-perfect-week.png - a copy of the owner's pick: Downloads\grok\dailies-cards-v2\card-perfect-week-backup.png (Grok Imagine (xAI), free tier,
+1280x720, no retouching — the v2 notes: "a tighter fan at about 46-91% across with a white-hot starburst at the middle ticket, which is clearly the
+brightest"). Neon-tube tickets fanned in an arc (pink, violet, blue, white, blue, orange), sparks + light rings, reflections on black glass.
+Suggested credit: "Art generated with Grok Imagine (xAI)".
+
+PENTHOUSE (card-penthouse) has NO art file: design "A · THE DIAL" (Downloads\grok\dailies-cards-v3\penthouse-own-a.png) is drawn in code — js/fx/ph-dial.js.

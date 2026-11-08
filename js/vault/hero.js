@@ -10,6 +10,8 @@ import { GIFT_SPECS } from '../fx/gift-specs.js';
 import { OC_SPECS, OC_AH } from '../fx/oc-specs.js';
 import { PW_SPECS, PW_AH } from '../fx/pw-specs.js';
 import { CC_SPECS, CC_AH } from '../fx/cc-specs.js';
+import { DM_SPECS, DM_AH } from '../fx/dm-specs.js';
+import { phMap, PH_HERO } from '../fx/ph-specs.js';
 export const HERO_BAND = Object.freeze([0.6, 0.84]);           // (where a hero's centre may sit, across the strip: right of a 10-letter name's
                                                                //  plate on every phone — LOEWFIZZLE's name row ends at 0.58 at 390)
 export const GEM_BOX = Object.freeze([0.88, 0.5, 0.12, 0.5]);  // (the tier gem's corner + its glow — css/vault.css .vl-strip .vl-gem)
@@ -61,6 +63,15 @@ for (const [id, S] of Object.entries(CC_SPECS)) {
   const y0 = Math.max(0, (oy + y * k) / SH), y1 = Math.min(1, (oy + (y + h) * k) / SH);
   HERO[id] = Object.freeze([[(ox + x * k) / SW, y0, (w * k) / SW, Math.max(0.05, y1 - y0)]]);
 }
+// (DM2 — PERFECT WEEK: the fan + its burst — its art 1280 × 720 too, zoomed out + set right)
+for (const [id, S] of Object.entries(DM_SPECS)) {
+  const k = Math.max(SW / AW, SH / DM_AH) * (S.strip[2] || 1), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - DM_AH * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
+  const y0 = Math.max(0, (oy + y * k) / SH), y1 = Math.min(1, (oy + (y + h) * k) / SH);
+  HERO[id] = Object.freeze([[(ox + x * k) / SW, y0, (w * k) / SW, Math.max(0.05, y1 - y0)]]);
+}
+// (DM2 — PENTHOUSE · THE DIAL: drawn in code — its strip band's arch + floors up to PH)
+{ const M = phMap(SW, SH, false), [x, y, w, h] = PH_HERO, y0 = Math.max(0, (M.oy + y * M.k) / SH), y1 = Math.min(1, (M.oy + (y + h) * M.k) / SH);
+  HERO['card-penthouse'] = Object.freeze([[(M.ox + x * M.k) / SW, y0, (w * M.k) / SW, Math.max(0.05, y1 - y0)]]); }
 /** do two boxes [x, y, w, h] overlap? */
 export const overlaps = (a, b) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
 /** the rule's pure half: every element's centre in the band, none over the gem's corner → the cards that break it */

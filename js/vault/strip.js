@@ -65,7 +65,7 @@ export const LOOKS = Object.freeze({
   'card-legend': { mat: 'legend', fx: 'legend' },
   'card-century': { mat: 'century', fx: 'century' },
   'card-marquee-gold': { mat: 'marqueegold', fx: 'bulbs' },
-  'card-penthouse': { mat: 'penthouse', fx: 'penthouse' },
+  'card-penthouse': { mat: 'penthouse', fx: 'phDial' },   // (DM2 — the owner's design A · THE DIAL, drawn in code: js/fx/ph-dial.js — was the window over the city)
   'card-wildfire': { mat: 'wildfire', fx: 'wildfire' },
   'card-eternal': { mat: 'eternal', fx: 'eternal' },
   'card-witness': { mat: 'witness', fx: 'witness' },
@@ -104,6 +104,8 @@ export const LOOKS = Object.freeze({
   'card-safecracker': { mat: 'pw-safecracker', fx: 'pwSafe' },
   // CC2 — COAST CLEAR's card: Grok's art = the material (css/vault.css .vl-s-cc-*), the game's layers = js/fx/cc-cards.js
   'card-ghost-run': { mat: 'cc-ghost-run', fx: 'ccGhost' },
+  // DM2 — THE DAILY MODULE's card: PERFECT WEEK = Grok's fan of tickets (css/vault.css .vl-s-dm-*) + js/fx/dm-cards.js
+  'card-perfect-week': { mat: 'dm-week', fx: 'dmWeek' },
 });
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });
