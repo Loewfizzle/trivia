@@ -107,3 +107,6 @@ actions needed a fresh process) — all stopped at the end.
 - **Known**: the real iPhone Save Password prompt + the Home Screen push are only checkable on the owner's phone. INVITE NOTIFICATIONS needs the
   VAPID keys in Vercel (they're set for THE LEDGER's push — the same keys). The crew radio sheet's header ("NEON SPEAKEASY · RADIO" beside THIS
   LOBBY ONLY) crowds at 390 — older than this pass, left as it was. The friend tag shows #digits to your friends (private; it tells two ALEXes apart).
+- **THE CLOUD (one run, bd3ea56)**: `tests` GREEN · harbor 15 / 16 — the `audio` job's "RETURN (rAF dropped)" red (restarts 3, stalls 2): the known
+  timing check (atm-b.md, part-8b1.md), GREEN in the local full run, nothing in this pass touches the frame loop or the music → not re-run (the
+  standing rule: never re-run to confirm a flake). Vercel BUILT (bd3ea56 — "Deployment has completed").
