@@ -42,6 +42,7 @@ having been wired into its preview or its E2E page — the most likely reason th
 
 ### 2. A throwaway profile gives the puzzle away (the rewards + the standing can be bought for free)
 **DFIX1: LEFT FOR THE DAILY MODULE** — the owner chose the rule (docs/games/plan.md DFIX1): a daily COUNTS (standing, THE BOARD, rewards, ranking) only for a profile that existed before that day's 4 am Eastern start (not the review's "3 counted matches" — it would block solo players), + a per-IP limit on new profiles. Not built here.
+**DM1: DONE** (Nov 8) — THE THROWAWAY GATE (`api/daily.js#countsOn`: a result counts only for a profile made before that day's 4 am Eastern — `ppriv/{pid}/at`; no band, no YOUR TABLE, no reward) + 20 new profiles a day per IP (`profiles.js#NEW_PROFILES`) + the daily call budget; proof `tests/integration/daily-module.test.mjs` (a same-day throwaway's crack in two awards nothing).
 - **What:** everyone gets the same two words / the same harbor, and a new anonymous Firebase uid is a new profile (`api/_lib/profiles.js#ensureProfile`
   creates one for any uid with no limit — the limits there are for `restore` only) and so a new try. A closed door's word and a finished run's
   `reveal` are handed to their own player (the owner KEPT the caught reveal, Nov 7 — plan.md). So: throwaway 1 fails THE FRONT DOOR → its word;
@@ -154,6 +155,7 @@ at the foot on every end screen as the owner asked.
 
 ### 10. Duplicated logic the two games should share before THE DAILY MODULE
 **DFIX1: LEFT FOR THE DAILY MODULE** — its first two pieces landed (`js/daily/sfx.js` — the sound engine; `js/daily/run-day.js` — the run's day); the rest (clock, share, judge factory, end scaffold) is the module's first group.
+**DM1: DONE** (Nov 8) — the kit: `js/daily/clock.js` · `judge.js` · `end.js` · `share.js` (+ `sfx.js`, `run-day.js`); both games on it, e2e-password 40/40 + e2e-coastclear 36/36 unchanged; `tests/daily-kit.test.mjs` fails on a copy kept in a game.
 Identical or near-identical in `js/games/password/*` and `js/games/coastclear/*` (file:line of the PASSWORD copy, the CC copy mirrors it):
 - `logic.js#msToTurn` (password 190 / coastclear 301 — byte-identical), `fmtClock` ↔ `fmtCountdown` (h:mm:ss), `dayNumber` (two implementations of
   the same epoch arithmetic), the `shareLine` shape, `SITE`.
@@ -185,6 +187,7 @@ best done as the module's first group, not before.
 
 ### 13. The secret schedule is fragile to a list edit
 **DFIX1: LEFT FOR THE DAILY MODULE** (freeze before go-live — docs/password.md "The schedule" says so); the list changed now while it is free to.
+**DM1: DONE** (Nov 8) — THE FROZEN SCHEDULE (`dsched/password`, database-only — `pw-day.js`: extended, reconciled on a list edit — a removed word skipped, a new one at the end — never reshuffled; the cycle seam never repeats the last day's word); every day's pair stored once (THE 4 AM PICKER); the days from THE DAILY SECRET (never the pepper) + THE RESEED.
 `pw-day.js` shuffles the WHOLE list per cycle from the pepper; any change to `answers.json` after launch (one word cut) reorders every day of the
 current cycle — words already played come back, others are skipped — and nothing records which words a day used. Also: the first day of a cycle
 may repeat the last day's word (a new order), and the odd 1,449th word is never drawn in a cycle. **Fix:** at the switch-over freeze the list behind
@@ -193,6 +196,7 @@ once in `dly/password/order/{cycle}` (server-only) and read it back. Small.
 
 ### 14. No rate limit on `/api/daily` (cost)
 **DFIX1: LEFT FOR THE DAILY MODULE** (a per-player `/api/daily` budget + pruning `dly/`).
+**DM1: DONE** (Nov 8) — THE CALL BUDGET (`api/daily.js#CALLS`: 400 calls / 10 min a player, 429 `slow_down`). Pruning `dly/` is still LEFT (a later pass — the stored days are small).
 Every action costs a function invocation + 2–4 database round trips; `not_a_word` / `chord_count` / `already` are free to the player and unlimited.
 A script can burn invocations at will. `api/_lib/limit.js#take` exists: a per-pid budget (e.g. 600 daily calls a day — a COAST CLEAR run needs
 ~50) costs one more transaction a call; or count only refusals. Small. **The honest numbers:** THE PASSWORD ≈ 10–15 calls a run (start + ≤ 12
@@ -275,6 +279,7 @@ Everything else above is polish that can ride with it.
    after the switch-over it needs 13 first). ~30 min.
 6. The full local run: unit, rules + `/api` (password, coastclear alone), smoke `GAMES=overclock`, e2e-password + e2e-coastclear; the ci tag on the final push.
 Deferred to THE DAILY MODULE: the throwaway gate + the IP limit (2), the shared `js/daily/` kit (10), the schedule freeze (13), a `/api/daily` budget (14).
+**DM1 (Nov 8):** the gate + the IP limit (2), the kit (10), the schedule freeze (13) and the call budget (14) are DONE — see each finding.
 
 ## DFIX1 — the fix pass (Nov 7 2026)
 Every finding above is marked FIXED / LEFT FOR THE DAILY MODULE / LEFT / WON'T FIX. Also in the pass: the owner's ADULT-VOCABULARY cut (47 words →

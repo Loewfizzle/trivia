@@ -103,7 +103,7 @@ with a counted match / daily) + `pcount/i/{item}` + `pcount/a/{ach}` (`ServerVal
 | | KNOCK KNOCK — the speakeasy's door knocked | emblem THE PEEPHOLE |
 | | PATIENCE PAYS — THE WATCHER's hour (≥ 55 min on the SERVER's clock from the city first seen) | card CARBON |
 | SIGHTINGS *(dormant — PROGRESSION B's tap)* | STARGAZER (3 different) · FREQUENT FLYER (25) · THE WITNESS (every legend in `LEGENDARIES`) | STARLIGHT · WINGS · THE WITNESS (legendary) |
-| DAILIES *(dormant — the first daily)* | DAILY BREAD (7 different days) · THE TRIPLE (all 3 in a day) · EARLY BIRD (before 8 am) · PENTHOUSE SUITE (top 1 %, ≥ 50 finishers) | CANDLELIGHT · THREE STARS · SUNRISE · PENTHOUSE (epic) |
+| DAILIES *(dormant — the first daily)* | DAILY BREAD (7 different days) · THE SWEEP (every daily on today's list in one day — was THE TRIPLE, id `the-triple` kept, DM1) · EARLY BIRD (before 8 am) · PENTHOUSE SUITE (top 1 %, ≥ 50 finishers) | CANDLELIGHT · THREE STARS · SUNRISE · PENTHOUSE (epic) |
 | SPECIALS | HODL — a 21-night streak · MANY HAPPY RETURNS — your birthday *(dormant — B)* · SEASON'S GREETINGS — 3 holidays (`core/sky.js#holidayOf`) | emblem ₿ · CONFETTI · glow TINSEL |
 | GAMES | FOUR ON THE FLOOR (PRISM DROP: a 4-line clear) · DEAD ON (OVERCLOCK: a Closest Call exact) · OVERCLOCKED (10 OVERCLOCK wins) · REDLINE (OVERCLOCK: alone on top of every challenge of a QUICK match, 2+ players — `overclock-sweep`) · PHOTO FINISH (OVERCLOCK: the win by exactly one point, 2+ players — `overclock-photo`) · HORSESHOE (OVERCLOCK OC5: backed the winning horse in DUMB LUCK, 2+ players — `overclock-horseshoe`, the server replays the race) | PRISM · BULLSEYE · CIRCUIT · card REDLINE (legendary) · card PHOTO FINISH (rare) · emblem HORSESHOE (uncommon — its art PENDING in THE LAB: the glyph until then) · **LIGHTHOUSE** (COAST CLEAR CC2: any clear — `coastclear-clear`, emblem, uncommon) · **GHOST RUN** (COAST CLEAR CC2: a clear with zero spots in 50 s or less — `coastclear-ghost`, card, rare; *dormant until THE SWITCH-OVER*) · **KEYHOLE** (THE PASSWORD PW2: both doors opened — `password-crack`, from the SERVER's record on finish, `api/_lib/pw.js#flags` → `dailyStep({ flags })`) · **SAFECRACKER** (THE PASSWORD: both doors in ≤ 6 guesses combined — `password-safe`) | … · emblem KEYHOLE (uncommon) · card SAFECRACKER (rare — Grok's vault door, js/fx/pw-cards.js) — both dormant until THE SWITCH-OVER (no cartridge in production) |
 
@@ -121,20 +121,82 @@ and no card gets it now) — so "everyone who played before the launch" is exact
 
 ## THE DAILY CONTRACT (`POST /api/daily`)
 - **A CARTRIDGE** (`core/daily.js#registerDaily`): `{ id, name, better: 'high'|'low', buckets, bucket(score), verify(seed, result, {startedAt, now}) → score | null }`.
-  The server lists its cartridges in `api/_lib/dailies.js` (THE PASSWORD + COAST CLEAR — both behind `DAILY_TEST=1` until THE SWITCH-OVER; `DAILY_TEST=1` adds THE FAKE DAILY — guess 0–999, 1000 − the miss).
-- **THE DAY** = the streak's day. **THE SEED** = HMAC(the pepper, `daily:<id>:<day>`) — secret, the same for everyone, never early.
+  The server lists its cartridges in `api/_lib/dailies.js` (`SERVER_CARTS`: THE PASSWORD + COAST CLEAR — open while THE GO-LIVE SWITCH is on, or under `DAILY_TEST=1`, which adds THE FAKE DAILY — guess 0–999, 1000 − the miss; DM1 below).
+- **THE DAY** = the streak's day. **THE SEED** = HMAC(THE DAILY SECRET, `daily:<id>:<day>`) — secret, the same for everyone, never early (DM1 ADD-ON: the dailies' own key, never the pepper).
 - **ONE OFFICIAL TRY:** `start` records `dly/{game}/{day}/s/{pid}` (a refresh = the same try, its clock running); `finish` → the cartridge's
   `verify` replays the result against the seed → the first score is kept (`r/{pid}`, a transaction) → the histogram `h/{bucket}` + `n`.
 - **THE STANDING:** the percentile ("better than X %" of the other finishers) + the band by place from the top — **PENTHOUSE** top 1 % ·
   **VIP ROOM** 10 % · **LOUNGE** 25 % · **BAR** 50 % · **FLOOR** — shown only from **50 finishers** (`BAND_MIN`).
-- **THE STREAK + THE COUNTERS:** `dailyStep` (idempotent by `daily_<game>_<day>`) keeps the streak like a match + DAILY BREAD / THE TRIPLE /
-  EARLY BIRD / PENTHOUSE's counters (`pstats/dl`).
+- **THE STREAK + THE COUNTERS:** `dailyStep` (idempotent by `daily_<game>_<day>`) keeps the streak like a match + the DAILY XP + DAILY BREAD / THE SWEEP /
+  EARLY BIRD / PENTHOUSE's counters (`pstats/dl`) — the counters + rewards only for a COUNTED result (DM1's THROWAWAY GATE).
 - **YOUR TABLE's TODAY** (`today { pids }` — BOARD 2.0 draws it): your scores + each friend's: a tick until YOU have finished that daily, then their score.
   FRIENDS A: the server reads YOUR FRIENDS LIST (`pfr/{pid}/f`) — a stranger named by id is never read; ≤ 12 a read: a picked `pids` list kept to
   friends (its order), else the friends you played with most recently, then the newest friendships (`core/friends.js#tablePids`); the answer adds
   `table` (the pids covered). The profile card shows a YOUR TABLE placeholder until THE DAILY MODULE draws it.
 - **No socket:** a solo daily is `/api` only (`js/daily/contract.js` — fetch + the ID token; THE PARKED DATABASE never wakes).
 - Cost (Spark / Hobby): a finish = ~6 small writes + 3 reads; `today` ≤ 12 friends × the dailies' reads. One more function (`api/daily.js` — 8 of Hobby's 12).
+
+## THE DAILY MODULE — DM1: THE ENGINE (Nov 8 2026; the owner's decisions: docs/games/plan.md DM1 + its ADD-ON)
+The server half of THE DAILY MODULE: everything a daily needs to go live except the screens (DM2 draws the picker, TODAY, the banner, the RESUME
+chip, the host's "N players are mid-daily", the "counts from tomorrow" line, PENTHOUSE's card — design "A · THE DIAL").
+
+| file | what |
+| --- | --- |
+| `js/config.js#DAILIES` | THE LIST — the ONE registry the server + the phone share: `{ id, name, theme, tag, blurb, order, ticket (its ticket art key), lesson (a first-time lesson — DM2's practice harbor), on }` |
+| `js/core/daily.js` | PURE: `dailyRows()` (the list, in order + the test rows) · `todaysDailies()` (the LIVE ones — the registered cartridges in the list's order) · `sweptDay` · `dailyXp` (`DAILY_XP` = 15 a daily, capped at one per daily on the list) |
+| `js/core/progress.js#dailyStep` | the streak + the DAILY XP (+ the level rewards it crosses) · counted only: DAILY BREAD / EARLY BIRD / PENTHOUSE's counters, the flags, THE SWEEP (`dl.sw` days swept; `dl.pw` = PERFECT WEEK's swept days this Eastern week — DM2 adds its card), the award engine |
+| `api/_lib/dailies.js` | `SERVER_CARTS` (a row's server cartridge) · THE GO-LIVE SWITCH (`progress/dailies`, cached 30 s) · `openDailies` / `syncDailies` (registers exactly the live set) · `registerTestDaily` (DAILY_TEST only) · THE 4 AM PICKER (`pickDay`) · `dailySeed` |
+| `api/_lib/daily-secret.js` | THE DAILY SECRET (`dsecret/k/{fromDay}`) + THE RESEED (`reseedDailies`) |
+| `api/_lib/pw.js` · `pw-day.js` | THE PASSWORD's day: `pwDay` (the stored pair) ← THE FROZEN SCHEDULE (`dsched/password`: freeze · extend · reconcile · `reorderAfter`) |
+| `api/_lib/daily-room.js` | THE ROOM WINS (`roomStarted`) + `midDaily` |
+| `api/daily.js` | the call budget, the picker on the day's first start, THE THROWAWAY GATE at finish, the XP on the public profile, `today`'s `dailies` + `gated`, `room` |
+| `js/daily/` | THE SHARED KIT (the phone): `clock.js` (the 4 am countdown, the run's own day) · `judge.js` (`createDailyJudge`) · `end.js` (`recordFinish`, `tickTurn`, `endActions`, `fitTitle`, `shareOrLine`, `lookMusic`) · `share.js` (the card's frame, foot + sender) · `sfx.js` · `run-day.js` · `contract.js` |
+| `scripts/dailies-reseed.mjs` | THE RESEED command (`npm run dailies:reseed`) |
+
+- **PLUG-AND-PLAY:** no fixed count anywhere — THE SWEEP, the XP cap, THE 4 AM PICKER and `today` (its `dailies` rows for DM2's picker / TODAY rows /
+  SCORES tabs) all read `todaysDailies()`. **Adding a daily** = its cartridge (docs/cartridge.md D2 — the client half + its server half in
+  `SERVER_CARTS`) + ONE row in `DAILIES`. Proof: a fake 3rd + 4th daily join everything with no other change (`tests/daily.test.mjs`,
+  `tests/integration/daily-module.test.mjs`). THE SWEEP = every one of today's dailies finished (`the-triple` — renamed, the id + emblem kept).
+- **THE 4 AM PICKER:** the day's first `start` fixes the day for EVERY live daily (`pickDay` → each cartridge's `load(day)`): THE PASSWORD's pair
+  (`dly/password/{day}/b`), COAST CLEAR's board (`dly/coastclear/{day}/b`) — each from THE DAILY SECRET, stored once (a transaction: two first calls
+  at once keep one day), idempotent, a memo per warm function. Lazy (no cron): the 4 am turn takes effect with the day's first call.
+- **THE FROZEN SCHEDULE** (`dsched/password` — server-only, NEVER a file): THE PASSWORD's order fixed once (cycle 0 = the old formula's order, so the
+  switch moved nothing); a new cycle appended when the days reach its end; a LIST EDIT reconciles it — everything up to today's pair kept, a removed
+  word skipped (the later days slide up), a new word joins the end of the cycle: nothing already scheduled moves (`tests/pw-day.test.mjs`).
+- **THE THROWAWAY GATE:** a result COUNTS only if the profile existed before that day's 4 am Eastern start (`ppriv/{pid}/at` — server-written at
+  creation; `core/streak.js#dayStartAt`, DST-safe; no time = an old profile = counts). A non-counting result: one try, kept, the player's own score,
+  the streak + the DAILY XP as usual — but NOT in the histogram / the band (`dly/{game}/{day}/x/{pid}` marks it), YOUR TABLE (a friend's is left
+  out), THE BOARD, or ANY reward (SAFECRACKER, KEYHOLE, GHOST RUN, LIGHTHOUSE, THE SWEEP, PERFECT WEEK, PENTHOUSE, FOUNDER). The finish answers
+  `counted: false` + `countsFrom` (tomorrow's 4 am — DM2's quiet "counts from tomorrow").
+- **THE CAPS:** new profiles = **20 a day per IP** (`profiles.js#NEW_PROFILES` — a party of 8 new guests on one Wi-Fi fits twice; a loopback address
+  never counts; refused = 429 `too_many_profiles`, the phone still plays without a profile) · daily calls = **400 per 10 minutes a player**
+  (`api/daily.js#CALLS` — a COAST CLEAR run is ~50–110 calls, a PASSWORD run ≤ 15; 429 `slow_down`; taken beside the first read — no added wait).
+- **THE ROOM WINS:** a `pause` (COAST CLEAR) is accepted only while the player's room has REALLY started a game — `rooms/{CODE}/meta` status
+  `playing`, or THE GAME START's `go` stamp ≤ 2 min old — with the player in it (`players/{uid}`, or a player node carrying their pid); the room =
+  the call's `room` (`judge.pause(room)`), else the profile's seat. Otherwise 409 `no_room_game` and the clock runs. The caps (3 pauses, 20 min) stay.
+  THE PASSWORD has nothing to pause. **`room { room }` → `{ mid: [uid…] }`**: which players of YOUR room have a run in flight — uids only.
+- **THE GO-LIVE SWITCH** (`progress/dailies` = `{ on, at, by }`, server-only): /admin `dailyState` · `dailySwitch { on }` (owner only — ADMIN_PIDS —
+  audited `dailiesOn` / `dailiesOff`) · `dailyFresh` (typed FRESH; refused while ON: wipes `dly/` + `dsched/`). OFF (the default) → production
+  answers every daily 404 `no_daily`; ON → the list's switched-on rows answer (never the fake). It can be flipped **at any time** (the ADD-ON);
+  `DAILY_TEST=1` opens them on the emulators whatever it says. Until DM2 there is no way IN on the phone, so ON changes nothing a player sees yet.
+- **THE DAILY SECRET** (`dsecret = { v, k: { '<fromDay>': hex } }`, server-only): every day's content comes from it (THE PASSWORD's schedule,
+  COAST CLEAR's boards, the plain seed) — NEVER the pepper (the restore keys, the board ids, the flags, the logs), so rotating it can't break any of
+  those. The base key = the `DAILY_SECRET` env when set (set it before the first live day or never), else a random one made + stored at first use.
+- **THE RESEED** — `node scripts/dailies-reseed.mjs` (or `npm run dailies:reseed`; `--dry-run` = the plan, nothing written; `--force` = rotate again):
+  run with the live database's env (`FIREBASE_SERVICE_ACCOUNT` + `FIREBASE_DATABASE_URL` — the same two Vercel has; `FIREBASE_DATABASE_EMULATOR_HOST`
+  for the emulators). A NEW key from the NEXT 4 am Eastern day on; THE PASSWORD's schedule after today's pair reordered by it (the same words);
+  any stored future day dropped. Today's run, every past day + every result stay exactly as they were; a second run says "already reseeded"
+  and changes nothing. Proof: `daily-module.test.mjs` (past + today unchanged, tomorrow differs, the pepper + a key's hash unchanged).
+- **NOTHING SECRET IN THE REPO:** the schedule, a stored day and the secret live only in the database; `tests/daily-secrets.test.mjs` reads every
+  tracked file and fails on one (the answer list stays alphabetical — an order in the file would be a schedule).
+
+### THE SWITCH-OVER (the changed plan — Ben, Nov 8: ON while the repo is public; private + fresh later)
+1. **Now (the repo public, Ben + a few friends):** /admin → `dailySwitch { on: true }` (or off again) — any time. Check one real day: a start, a
+   finish, `today`. (DM2 brings the way in on the phone; set `PW_EPOCH` / `CC_EPOCH` in the two meta.js files to the first live day for the share #.)
+2. **When Ben tells people:** make the repo PRIVATE → `node scripts/dailies-reseed.mjs --dry-run`, then without the flag (a fresh daily secret from
+   the next 4 am — every day anyone could have worked out from the public code is gone; today + the past untouched) → check the next day. (The
+   OVERCLOCK reserve only matters if Overclock's daily ever comes back — DROPPED, Nov 8.)
+3. Never needed for a reseed: a new pepper (the keys + board ids depend on it), a database rules change, a deploy.
 
 ## THE SCREENS (the owner's mockups, THE ORIGINAL GILDED — black lacquer, brass foil, the fan crown, one hot-pink neon accent)
 - **THE END-OF-ROUND MOMENT** (`progress/moment.js`) — right after the podium (the crown + the board's plaques), once THIS phone's outcome is

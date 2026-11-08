@@ -105,3 +105,14 @@
 - THE ROOM WINS (server side): a daily pause is accepted only when the player's room really started a game.
 - PENTHOUSE card = top 1% of a daily (DM2 builds the card — design "A · THE DIAL", drawn in code).
 - The go-live switch exists but stays OFF until THE SWITCH-OVER (repo private first, then fresh reserves / schedules, then on).
+
+## DM1 ADD-ON — THE DAILY SWITCH, CHANGED PLAN (Nov 8 2026 — Ben, via the city chat)
+- THE GO-LIVE SWITCH can be flipped ON for everyone at ANY time — not tied to THE SWITCH-OVER (supersedes "stays OFF until THE SWITCH-OVER" above).
+  Ben turns the dailies on for real while the repo is still PUBLIC (him + a few friends for months — the public code is an accepted risk); only
+  later, when he tells people: the repo PRIVATE + a FRESH reserve. Owner-only, server-side: off → production refuses every daily, on → they answer.
+- NOTHING SECRET IN THE REPO while public: THE PASSWORD's frozen schedule (and anything that would reveal a future day) lives ONLY in server-only
+  database paths — never a committed file (a test checks every tracked file).
+- A DEDICATED DAILY SECRET: the days (THE PASSWORD's word order, COAST CLEAR's boards) come from their OWN server secret, never the shared pepper —
+  rotating it can never break tags, keys or anything else.
+- ONE EASY RESEED COMMAND (`node scripts/dailies-reseed.mjs`): rotates the daily secret + rebuilds THE PASSWORD's schedule + COAST CLEAR's future
+  boards from it, from the NEXT 4 am day — today's run and every past result untouched; safe twice; prints what it changed; a dry-run flag.

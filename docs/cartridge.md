@@ -60,10 +60,19 @@ never a party-only part — DUMB LUCK). Two kinds (FRIENDS B fixed this line to 
 `password/daily.js`, `coastclear/daily.js`) returns an EMPTY run shell — its puzzle never leaves the server (`api/_lib/pw.js`, `cc-board.js`),
 **one try**, **resume** (a refresh / an app switch resumes from `resumeKey`, never restarts). **A RUN KEEPS ITS OWN DAY (DFIX1):** a judged daily's
 every call after `start` names the day that start returned (`js/daily/run-day.js`; `api/daily.js#dayOfCall` takes today's or yesterday's with a start
-there) — "one try" = a run may be finished until 4 am the day after it began, never started twice. THE DAILY MODULE (not built yet) brings: the shared
-`js/daily/` kit (the clock + countdown, the share canvas, the judge factory, the end scaffold — FABLE REVIEW #1, 10; `js/daily/sfx.js` + `run-day.js`
-are its first two pieces), THE THROWAWAY GATE (a daily COUNTS — standing, THE BOARD, rewards — only for a profile that existed before that day's 4 am
-start, + a per-IP limit on new profiles: docs/games/plan.md DFIX1), freezing THE PASSWORD's schedule before go-live, a per-player `/api/daily` budget. OC5 (OVERCLOCK, `js/games/overclock/daily.js`)
+there) — "one try" = a run may be finished until 4 am the day after it began, never started twice. **THE DAILY MODULE's ENGINE (DM1, Nov 8 —
+docs/progression.md "THE DAILY MODULE")** built: the shared `js/daily/` kit (`clock.js` · `judge.js#createDailyJudge` · `end.js` · `share.js` + `sfx.js` ·
+`run-day.js` — a judged daily's view uses these, never its own copy: `tests/daily-kit.test.mjs`), THE THROWAWAY GATE, THE FROZEN SCHEDULE, THE 4 AM
+PICKER, the call budget, THE ROOM WINS, THE GO-LIVE SWITCH, THE DAILY SECRET (every day's content from it — never the pepper). OVERCLOCK's daily is
+DROPPED (Ben, Nov 8 — its plug-in stays in the code, off and unwired).
+
+**THE DAILY REGISTRY + ADDING A DAILY (DM1 — PLUG-AND-PLAY, no fixed count anywhere).** `config.js#DAILIES` is the ONE list the server + the phone
+share (`core/daily.js#dailyRows` / `todaysDailies`): a row = `{ id, name, theme, tag, blurb, playable: false, daily: true, order, ticket (its ticket
+art key), lesson (a first-time lesson — DM2), on }`. **A new daily** = (1) its cartridge as below (meta.js + index.js + `daily` OFF, its tube mark,
+theme, registry loader — `tests/cartridge.test.mjs` `DAILY_ONLY`); (2) its SERVER half (`api/_lib/<id>.js`: `{ id, name, better, buckets, bucket,
+verify, judged?, load(day) (its day built from THE DAILY SECRET + stored once — THE 4 AM PICKER), resume, judge | act + moves, flags }`) in
+`api/_lib/dailies.js#SERVER_CARTS`; (3) ONE row in `DAILIES`. THE SWEEP, the daily XP cap, the picker, `today` and DM2's screens follow by themselves.
+A judged daily's phone side = `createDailyJudge(id, { moves })` + the kit's end parts. OC5 (OVERCLOCK, `js/games/overclock/daily.js`)
 added the `daySet` slot (+ `code`, the solo room's code its trivia bank is encoded with) and two more pieces the module calls:
 `result(game, uid) → { score, time, rank }` (ONE comparable number: the points, then the faster run) and `replay(daySet, record, uid)` (the
 server re-scores a finished run's record → the same result, or null). OVERCLOCK's day set: `{ v: 1, day, seed, order: [six skill challenges,

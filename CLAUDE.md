@@ -196,7 +196,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 - **THE PASSWORD (PW1 — docs/password.md):** a DAILY-ONLY cartridge lives in `config.js#DAILIES` (never GAMES — GAMES is the lobby's list: the city's signs, HOW TO PLAY,
   THE BOARD, the reports); THE SERVER JUDGES EVERY GUESS (`api/_lib/pw.js` + `pw-day.js`: the answers in `api/_data/pw/` — never served, a door's word only
   once it closes; the schedule from the pepper, never the date); the list is BUILT + REVIEWED (`scripts/pw-words/`, never edited by hand); no ✓ / ✕ / ⌫
-  glyphs as icons in the game (drawn SVG); every colour a `--pw-*` token. THE PASSWORD answers `/api/daily` only under `DAILY_TEST=1` until THE SWITCH-OVER.
+  glyphs as icons in the game (drawn SVG); every colour a `--pw-*` token. THE PASSWORD answers `/api/daily` only while THE GO-LIVE SWITCH is on (DM1) or under `DAILY_TEST=1`.
   PW2 (Nov 7): THE FRONT DOOR → THE BACK ROOM (never "THE DOOR"); NO PILLS on the dailies (drawn objects or plain type; a button's radius modest); THE DRAWN DOORS
   (`password/doors.js`), THE DOOR REVEAL, THE END SCREEN (WELCOME IN · LOCKED OUT — the owner's ADD-ON; the block under the doors, the space at the foot), BOTH LOOKS as
   tokens (`body[data-look="day"]` retokens; the music follows the look — `index.js#musicFor`, app.js re-renders on a look change), the sounds (`sfx.js`), THE SHARE CARD
@@ -211,6 +211,14 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   Eastern finishes on its day; COAST CLEAR's PAUSE CAPS (3 a run, 20 min in all — `logic.js#MAX_PAUSES` / `PAUSE_CAP_MS`); ONE daily sound engine with THE
   FIRST-TAP CATCH (`js/daily/sfx.js` — a game's sfx.js is its table); a move a daily doesn't own → 400, never a 500. Left for THE DAILY MODULE: the throwaway
   gate (a daily counts only for a profile older than that day's 4 am), the IP limit on new profiles, the shared `js/daily/` kit, the schedule freeze.
+- **THE DAILY MODULE — DM1: THE ENGINE (docs/progression.md "THE DAILY MODULE"):** PLUG-AND-PLAY — `config.js#DAILIES` is the ONE list (no fixed count
+  anywhere: THE SWEEP = every daily on `core/daily.js#todaysDailies`, the DAILY XP 15 a daily capped by the list, `today`'s rows); a new daily = its cartridge
+  (+ its server half in `api/_lib/dailies.js#SERVER_CARTS`) + ONE row. THE 4 AM PICKER stores each day once; THE PASSWORD's FROZEN SCHEDULE + every stored day +
+  THE DAILY SECRET live ONLY in the database (`dsched/`, `dly/…/b`, `dsecret/` — never a committed file: `tests/daily-secrets.test.mjs`); every day comes from
+  THE DAILY SECRET, NEVER the pepper. THE THROWAWAY GATE (a result counts only for a profile made before that day's 4 am Eastern — `counted`), 20 new profiles
+  a day per IP, 400 daily calls / 10 min. THE ROOM WINS (a pause only for a room that really started a game). The phone side on the kit (`js/daily/` — never a
+  copy in a game). THE GO-LIVE SWITCH = /admin `dailySwitch` (owner-only, ANY time — OFF). **THE RESEED: `node scripts/dailies-reseed.mjs`** (`--dry-run`,
+  `--force`; npm run dailies:reseed) — a fresh daily secret from the NEXT 4 am: today + the past untouched (run it when the repo goes private).
 - **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
   music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:
   `tests/cartridge.test.mjs` checks the boot graph, `node scripts/boot-bytes.mjs`); only `start` is async, `step` pure + seeded; `prepare` host-only,

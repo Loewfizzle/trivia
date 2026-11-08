@@ -2163,6 +2163,20 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 6: password-preview.html (a fake judge, fixed test words, the state flags) + e2e-password.mjs (the real judge on the emulators).
 - The owner's add-on (OVERCLOCK): Higher or Lower's end card — the streak bar whole at 390 / 402 / 430 + WebKit; the header row.
 
+## THE DAILY MODULE — DM1: THE ENGINE (Nov 8, 2026 — every daily still OFF; docs/progression.md "THE DAILY MODULE")
+- PLUG-AND-PLAY: config.js#DAILIES (+ order · ticket · lesson · on) is the ONE list the server + the phone share (core/daily.js dailyRows /
+  todaysDailies); MAX_DAILIES_A_DAY gone; THE TRIPLE renamed THE SWEEP (same id + emblem: every daily on today's list); PERFECT WEEK's counter
+  (dl.pw); a small DAILY XP (15 a daily, capped at one per daily on the list). A fake 3rd + 4th daily join everything with no other change (tests).
+- THE 4 AM PICKER: every live daily's day fixed + stored once on the day's first start (THE PASSWORD's pair, COAST CLEAR's board); THE FROZEN
+  SCHEDULE (dsched/password — extended, reconciled on a list edit, never reshuffled; database-only).
+- ANTI-CHEAT: THE THROWAWAY GATE (a result counts only for a profile made before that day's 4 am Eastern — the score, the streak + the XP as usual,
+  never the band, YOUR TABLE or a reward; `countsFrom` for DM2's line), 20 new profiles a day per IP, 400 daily calls / 10 min a player.
+- THE ROOM WINS: a COAST CLEAR pause only while the player's room really started a game; `room` = which players of a room are mid-daily (uids only).
+- THE SHARED KIT: js/daily/ clock · judge · end · share (+ sfx · run-day) — THE PASSWORD + COAST CLEAR on it, their E2Es unchanged.
+- THE GO-LIVE SWITCH (progress/dailies — /admin dailyState · dailySwitch · dailyFresh, owner-only, audited; any time — OFF).
+- ADD-ON (Ben: ON while the repo is public): THE DAILY SECRET (dsecret — the days' own key, never the pepper) + THE RESEED (`node scripts/dailies-reseed.mjs`,
+  --dry-run, --force: a new key from the next 4 am; today + the past untouched); a test fails on any committed schedule / stored day / secret. No rules change.
+
 ## FRIENDS C — THE CITY FIXES (Nov 8, 2026)
 - THE RADIO: a fired one-shot plays ONCE (the played record kept for the tab — a city rebuilt mid-window never begins it again); YOUR QUEUE ·
   THE WEEK · the timeline; the crew radio's header fits at 390.

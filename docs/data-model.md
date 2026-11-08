@@ -236,6 +236,12 @@ audit/{push}:     { at, by (admin pid), act, pid, … }                         
 flags/{boardId}:  { pid, n, why{score|name: n}, b{board: n}, first, last }  THE BOARD's REPORT (BNAME)      server only
 rooms/{CODE}/players/{uid}/pid: the player's own profile id (rules: must equal uids/{auth.uid}; LOBBY FIXES: refused while seats/{pid} is ANOTHER uid's)
 seats/{pid}:      { code, uid, at }                       read + write: the profile's own devices (uids/{auth.uid} === $pid; uid = the writer; at = now). ONE ACCOUNT, ONE ROOM (js/seat.js)
+dly/{game}/{day}/  s/{pid} startedAt · r/{pid} score · x/{pid}: 1 (DM1 — a NON-COUNTING result: THE THROWAWAY GATE) · h/{bucket} · n · p/{pid} a judged run's record ·
+                   b: the day's data (DM1 — THE 4 AM PICKER: THE PASSWORD's pair { v, w } · COAST CLEAR's board)       server-only (the rules' default deny)
+dsched/password:   { v, s: 'W,W,…', c, h } — DM1: THE FROZEN SCHEDULE (api/_lib/pw.js)                                       server-only — never a committed file
+dsecret:           { v, k: { '<fromDay>': hex } } — DM1 ADD-ON: THE DAILY SECRET (api/_lib/daily-secret.js; never the pepper)     server-only — never a committed file
+progress/dailies:  { on: true, at, by } — DM1: THE GO-LIVE SWITCH (absent = OFF; /api/admin dailySwitch, the owner)            server-only
+rl/dc_{uid} · rl/np_{ipHash}: DM1 — the daily call budget (400 / 10 min) · new profiles per IP (20 a day)                     server-only
 rooms/{CODE}/players/{uid}/ln: 'L' | 'R' — LOBBY 2.0 A: the side of the speakeasy's door this player queues on (the room in the city), picked once
   at the join (core/room-lines.js#pickLine — the shorter line) in a SEPARATE write (a join never depends on it); rules: L or R, your own node
 rooms/{CODE}/meta/go: { at (the server's now), m (matchId), g (game id) } — LOBBY 2.0 B: THE GAME START's stamp, written by the host FIRST (before the

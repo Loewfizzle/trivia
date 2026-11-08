@@ -113,6 +113,7 @@ re-mount's `start` brings them back); the re-mount resumes from the server's rec
 comes back (`judge.resume()` on mount); any move resumes it too.
 
 ## The board maker (`api/_lib/cc-board.js` + `cc-solve.js`)
+**DM1 ADD-ON:** the board comes from THE DAILY SECRET (`api/_lib/daily-secret.js` — `cc.js#ccBoard`), never the pepper; THE RESEED gives every day from the next 4 am a fresh harbor. THE ROOM WINS (DM1): a `pause` only while the player's room really started a game (`judge.pause(room)`; docs/progression.md).
 ONE ATTEMPT: a start cell in the middle band (x 2…6, y 4…7) with its 3 × 3 kept clear (so it is a 0), the 18 lights scattered over the rest by a
 seeded shuffle, the opening = the start's flood — kept only at **10–20 cells**. Then **THE SOLVER** plays it from that opening with pure logic:
 (1) single cells — a number whose lights are all known → the rest safe; a number needing every unknown neighbour → all lights; (2) PAIRS — two

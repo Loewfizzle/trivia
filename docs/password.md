@@ -139,13 +139,14 @@ shared (or copied) and the image is saved. No emoji anywhere.
   rate shows in `pcount` once the daily is live.
 
 ## The schedule (`api/_lib/pw-day.js`)
-The list is shuffled once per cycle with an HMAC-SHA256 stream keyed by THE PEPPER + the cycle number (`pw-order:<cycle>` — never the 32-bit
+The list is shuffled once per cycle with an HMAC-SHA256 stream keyed by THE DAILY SECRET (DM1 ADD-ON — `api/_lib/daily-secret.js`; was the pepper) + the cycle number (`pw-order:<cycle>` — never the 32-bit
 `dailySeed`, never the date alone: the repo is public), and day k of the cycle takes words 2k and 2k + 1 of that order: two words a day, always
 different, no word repeats until the list is used up (a cycle = ⌊n / 2⌋ days — **701 days on today's 1,402**, DFIX1), then a fresh order. Day 0 = Nov 1 2026
-(`SCHEDULE_EPOCH`); the emulators' pepper is `emulator-pepper` (fb.js), so a local run's words are NOT the live schedule's.
-**Before go-live (THE DAILY MODULE — not built yet):** freeze the schedule — any edit to the list after launch reorders the whole current cycle (FABLE
-REVIEW #1, 13): put a list version in the HMAC label (`pw-order:<listVersion>:<cycle>`) with a test that fails on an edit without a bump, or store each
-cycle's order once server-side. The list is free to change until then.
+(`SCHEDULE_EPOCH`); the emulators make their own daily secret, so a local run's words are NOT the live schedule's.
+**FROZEN (DM1 — docs/progression.md "THE DAILY MODULE"):** the order is stored ONCE server-side (`dsched/password` — never a file): cycle 0 = the formula's
+order (nothing moved), new cycles appended, a list edit RECONCILED (up to today kept; a removed word skipped, a new one at the end — never reshuffled);
+each day's pair stored once (`dly/password/{day}/b` — THE 4 AM PICKER) and judged from there. THE RESEED (`node scripts/dailies-reseed.mjs`) reorders
+everything after today with a fresh daily secret. The list may now change any time: edit it, rebuild it, the days already scheduled stay put.
 
 ## The list build (`scripts/pw-words/build.mjs`)
 `node scripts/pw-words/build.mjs <count_1w.txt> [--candidates]` — Norvig's unigram counts (MIT, norvig.com/ngrams) rank the words; the words
