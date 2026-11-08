@@ -81,7 +81,9 @@ test('DAILIES (dormant until the first daily) — the contract\'s step: daily br
   let s = null; const got = [];
   for (let d = 0; d < 7; d++) { const r = dailyStep(s, { game: 'a', day: dayOf(dayNum('d20261110') + d), now: T0 + d * DAY, hourET: d === 3 ? 6 : 20 }); s = r.next; got.push(...r.ach); }
   assert.ok(got.includes('daily-bread') && got.includes('early-bird'));
-  let t = null; for (const g of ['a', 'b', 'c']) { const r = dailyStep(t, { game: g, day: 'd20261110', now: T0 }); t = r.next; if (g === 'c') assert.ok(r.ach.includes('the-triple')); }
+  // (DM1 — THE SWEEP: every daily on TODAY's list — however many; was THE TRIPLE's fixed 3)
+  let t = null; for (const g of ['a', 'b', 'c']) { const r = dailyStep(t, { game: g, day: 'd20261110', now: T0, today: ['a', 'b', 'c'] }); t = r.next; assert.equal(r.ach.includes('the-triple'), g === 'c'); }
+  assert.equal(ACH['the-triple'].name, 'THE SWEEP'); assert.equal(ACH['the-triple'].item, 'emb-stars');
   assert.ok(dailyStep(null, { game: 'a', day: 'd20261110', now: T0, top: 1, n: 60 }).ach.includes('penthouse-suite'));
   assert.ok(!dailyStep(null, { game: 'a', day: 'd20261110', now: T0, top: 1, n: 49 }).ach.includes('penthouse-suite'));
 });

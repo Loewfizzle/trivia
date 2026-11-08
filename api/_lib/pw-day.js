@@ -43,3 +43,58 @@ export function dayWords(day, list, pepper) {
   const order = orderFor(list, pepper, cycle);
   return [order[2 * k], order[2 * k + 1]].map(w => String(w).toUpperCase());
 }
+
+// ------------------------------------------------------------------ THE FROZEN SCHEDULE (DM1 — FABLE REVIEW #1, 13)
+// dayWords() reshuffles a whole cycle whenever the list changes (its length + its order feed the shuffle). THE FROZEN SCHEDULE fixes the order
+// ONCE: a flat sequence of words (day k of the schedule = words 2k + 2k+1), stored server-only (pw.js — dsched/password) and only ever:
+//   · EXTENDED — a new cycle appended when the days reach the end (the same keyed order dayWords uses, cut to an even length: so while the list
+//     is untouched the frozen schedule IS dayWords' — the switch to it moved nothing), its first words never the last day's;
+//   · RECONCILED when the list changes — everything up to TODAY's pair kept as it is (a day already scheduled — played, or in flight — never
+//     moves), the rest: a REMOVED word skipped (the later days slide up one), a NEW word joins at the END (the current cycle's end) — nothing
+//     already scheduled is reshuffled.
+// PURE (node:crypto only): the tests pass the pepper in; pw.js stores + reads the record.
+/** a list's fingerprint (the record's `h`: a changed list → reconcile) */
+export const listHash = list => createHmac('sha256', 'pw-list').update(list.map(w => String(w).toUpperCase()).join(',')).digest('hex').slice(0, 16);
+const up = list => list.map(w => String(w).toUpperCase());
+/** cycle c's words, as the schedule takes them (an even count — the odd word rests that cycle, like dayWords) */
+export function cycleWords(list, pepper, c) {
+  const o = up(orderFor(list, pepper, c));
+  return o.slice(0, 2 * Math.floor(o.length / 2));
+}
+/** the first record: cycle 0 → { v, s: [words], c: 1 (cycles appended), h } */
+export function freezeSchedule(list, pepper) {
+  if (!Array.isArray(list) || list.length < 2) throw new Error('pw-day: a list of at least two words');
+  if (!pepper) throw new Error('pw-day: the pepper');
+  return { v: 1, s: cycleWords(list, pepper, 0), c: 1, h: listHash(list) };
+}
+/** append cycles until day index `idx` has its pair (a new cycle never opens on the last day's words) → a new record, or the same one */
+export function extendSchedule(rec, list, pepper, idx) {
+  if (2 * idx + 1 < rec.s.length) return rec;
+  const s = rec.s.slice();
+  let c = rec.c;
+  while (2 * idx + 1 >= s.length) {
+    const add = cycleWords(list, pepper, c++);
+    const tail = new Set(s.slice(-2));
+    for (let i = 0, g = 0; i < 2 && g < add.length; g++) { if (tail.has(add[i])) add.push(add.splice(i, 1)[0]); else i++; }
+    s.push(...add);
+    if (!add.length) break;
+  }
+  return { ...rec, s, c };
+}
+/** the list changed: keep every word up to (and including) day `idx`'s pair; skip removed words after it; new words join at the end */
+export function reconcileSchedule(rec, list, pepper, idx) {
+  const now = new Set(up(list)), keepN = Math.max(0, Math.min(rec.s.length, 2 * (idx + 1)));
+  const kept = rec.s.slice(0, keepN), rest = rec.s.slice(keepN).filter(w => now.has(w));
+  const seen = new Set(rec.s);
+  const fresh = up(orderFor(up(list).filter(w => !seen.has(w)), pepper, `add:${listHash(list)}`));
+  return { ...rec, s: [...kept, ...rest, ...fresh], h: listHash(list) };
+}
+/** day index (from SCHEDULE_EPOCH) of a streak-day key */
+export const dayIndex = day => dayNum(day) - SCHEDULE_EPOCH;
+/** THE DAY's two words from a frozen record (two different words — a seam's repeat steps over to the next word) */
+export function frozenWords(rec, idx) {
+  const a = rec.s[2 * idx];
+  let j = 2 * idx + 1;
+  while (j < rec.s.length - 1 && rec.s[j] === a) j++;
+  return [a, rec.s[j]];
+}

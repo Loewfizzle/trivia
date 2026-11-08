@@ -10,7 +10,7 @@ export const LAB_TEXT = {
  "emb-crescent": { "name": "CRESCENT", "motion": "NEON (uncommon) — a violet crescent moon, a small cyan star beside it twinkling" },
  "emb-butterfly": { "name": "BUTTERFLY", "motion": "NEON (uncommon, level 9) — purple wings with pink accents (the antennae, a dot on each wing), its wings slowly opening + closing" },
  "emb-peephole": { "name": "KNOCK KNOCK", "motion": "NEON (rare) — the speakeasy's arched door in amber, its peephole SLIDING OPEN: warm light, two eyes looking out, a blink, it shuts" },
- "emb-stars": { "name": "THE TRIPLE", "motion": "NEON (rare) — three stars (gold, pink, cyan), the light hopping from star to star" },
+ "emb-stars": { "name": "THE SWEEP", "motion": "NEON (rare) — three stars (gold, pink, cyan), the light hopping from star to star" },
  "emb-wings": { "name": "WINGS", "motion": "METAL (epic) — aviator's wings in polished silver, three feather tiers each side, a gold roundel + star; a shine gliding across, the feather tips catching the light" },
  "emb-bitcoin": { "name": "HODL", "motion": "COIN (epic) — a struck gold coin, the ₿ embossed on its face; now + then it spins on its edge, a shine across it, a glint off the rim" },
  "emb-sunburst": { "name": "SUNBURST", "motion": "METAL (epic) — an Art Deco sunburst in gold (the Chrysler's fan), its rays catching the light one after another, a glint at its crown" },

@@ -30,7 +30,7 @@ const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb
 before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); });
 after(async () => { await deleteApp(fb().app); });
 
-const ensure = (uid, name, at = NOW) => profileAction(uid, { action: 'ensure', name, avatar: 'bolt', color: 'cyan' }, '', at);
+const ensure = (uid, name, at = NOW - 7 * 86_400_000) => profileAction(uid, { action: 'ensure', name, avatar: 'bolt', color: 'cyan' }, '', at);
 const rejects = async (p, status, code) => {
   try { await p; } catch (e) { assert.equal(e.status, status, `${code}: status ${e.status} (${e.message})`); if (code) assert.equal(e.code, code); return; }
   assert.fail(`expected ${status} ${code}`);

@@ -76,7 +76,7 @@ export async function myRanks(pid, boards, now = Date.now()) {
 
 export async function profileAction(uid, body, ip = '', now = Date.now(), req = null) {
   switch (body.action) {
-    case 'ensure': return ensureProfile(uid, { name: body.name, avatar: body.avatar, color: body.color }, now);
+    case 'ensure': return ensureProfile(uid, { name: body.name, avatar: body.avatar, color: body.color }, now, ip);
     case 'me': {
       const pid = await mine(uid);
       let [profile, stats, priv] = await Promise.all([publicProfile(pid), val(`pstats/${pid}`), privateInfo(pid)]);

@@ -39,7 +39,14 @@
 //   radio…                         → CITY CONTROLS A — THE RADIO (api/_lib/radio.js): radioState · radioFire · radioStop · radioClearAll ·
 //                                    radioBoard · radioBoardEdit · radioBoardCancel · radioDial · radioRooms · radioWho · radioHello —
 //                                    each checks the caller's ROLE (the owner = ADMIN_PIDS, THE CREW = radio/crew/{pid}) per action
+//   dailyState · dailySwitch { on } · dailyFresh { confirm, typed } → DM1 — THE GO-LIVE SWITCH (api/_lib/dailies.js): the dailies' state; the
+//                                    owner's switch (progress/dailies — OFF until THE SWITCH-OVER, audited); FRESH = wipe every stored daily day
+//                                    (dly/ — the test runs, the pairs, the boards) + THE FROZEN SCHEDULE (dsched/) so the first live day builds them
+//                                    anew — refused while the switch is ON, typed FRESH (docs/progression.md "THE SWITCH-OVER")
 import { displayOf } from './_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
+import { dailiesState, setDailiesSwitch, forgetPicks } from './_lib/dailies.js';
+import { forgetPwDays } from './_lib/pw.js';
+import { forgetBoards } from './_lib/cc-board.js';
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, adminPids } from './_lib/fb.js';
 import { pidOf, publicProfile, rename, privateInfo, isPid, encodeKey } from './_lib/profiles.js';
@@ -287,6 +294,22 @@ export async function adminAction(uid, body, now = Date.now()) {
       return { outage: (await val('streak/outage')) || {} };
     }
     case 'outages': return { outage: (await val('streak/outage')) || {}, today: streakDay(now) };
+    // DM1 — THE GO-LIVE SWITCH (owner only — the admin gate above): OFF until THE SWITCH-OVER; every flip audited
+    case 'dailyState': return { dailies: await dailiesState(now) };
+    case 'dailySwitch': {
+      const on = body.on === true;
+      const st = await setDailiesSwitch(on, me, now);
+      await audit(me, on ? 'dailiesOn' : 'dailiesOff', null);
+      return { dailies: st };
+    }
+    case 'dailyFresh': {
+      if ((await dailiesState(now)).on) throw new ApiError(409, 'switch_on', 'Switch the dailies OFF first.');
+      if (body.confirm !== true || body.typed !== 'FRESH') return { dryRun: true, wipes: ['dly', 'dsched'] };
+      await ref('/').update({ dly: null, dsched: null });
+      forgetPicks(); forgetPwDays(); forgetBoards();
+      await audit(me, 'dailyFresh', null);
+      return { fresh: true, dailies: await dailiesState(now) };
+    }
     // THE VAULT 1A — THE CARD LAB (api/_lib/lab.js): the owner's marks, read + written by admins only, every change audited
     // (THE VAULT 1B: the owner's &sgdemo preview — a preview never claims, so its pair's NAMES come from here, admins only)
     case 'sightShow': { const id = String(body.id || ''); if (!/^[a-z0-9]{2,16}$/.test(id)) throw new ApiError(400, 'bad_id'); return { show: { items: displayOf([`card-sg-${id}`, `emb-sg-${id}`]), ach: {} } }; }

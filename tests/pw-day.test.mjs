@@ -49,3 +49,48 @@ test('a different pepper → a different order; the date alone decides nothing',
   assert.throws(() => dayWords('d20261107', ['one'], P1)); assert.throws(() => dayWords('d20261107', LIST, ''));
   assert.equal(SCHEDULE_EPOCH, dayNum('d20261101'));
 });
+
+// ---------------------------------------------------------------- DM1 — THE FROZEN SCHEDULE (FABLE REVIEW #1, 13)
+import { freezeSchedule, extendSchedule, reconcileSchedule, frozenWords, dayIndex, listHash } from '../api/_lib/pw-day.js';
+const EVEN = Array.from({ length: 200 }, (_, i) => `w${String(i).padStart(4, '0')}`);
+const run = (rec, list, days) => { const out = []; for (let k = 0; k < days; k++) { rec = extendSchedule(rec, list, P1, k); out.push(frozenWords(rec, k).join('+')); } return { rec, out }; };
+
+test('DM1 — THE FROZEN SCHEDULE equals the old formula while the list is untouched (switching to it moved nothing), across cycles', () => {
+  for (const list of [LIST, EVEN]) {
+    const { out } = run(freezeSchedule(list, P1), list, 3 * Math.floor(list.length / 2) + 5);
+    out.forEach((pair, k) => assert.equal(pair, dayWords(dayOf(SCHEDULE_EPOCH + k), list, P1).join('+'), `day ${k}`));
+  }
+  assert.equal(dayIndex(dayOf(SCHEDULE_EPOCH + 7)), 7);
+  assert.notEqual(listHash(LIST), listHash(EVEN));
+});
+
+test('DM1 — removing a word changes NOTHING before its day (the later days slide up; no reshuffle); every day two different words', () => {
+  const days = 150;
+  const base = run(freezeSchedule(EVEN, P1), EVEN, days);
+  const today = 40;
+  const gone = base.rec.s[2 * 90];                       // a word scheduled for day 90
+  const pastWord = base.rec.s[2 * 10];                    // and one already played (day 10)
+  const list2 = EVEN.filter(w => w.toUpperCase() !== gone && w.toUpperCase() !== pastWord);
+  let rec = reconcileSchedule(extendSchedule(freezeSchedule(EVEN, P1), EVEN, P1, today), list2, P1, today);
+  const after = run(rec, list2, days).out;
+  for (let k = 0; k < 90; k++) assert.equal(after[k], base.out[k], `day ${k} (before the removed word's day) unchanged`);
+  assert.ok(!after.slice(90).some(p => p.split('+').includes(gone)), 'the removed word is skipped');
+  assert.equal(after[90].split('+')[0], base.rec.s[2 * 90 + 1], 'its day slides up one word');
+  assert.ok(after.every(p => { const [a, b] = p.split('+'); return a && b && a !== b; }));
+});
+
+test('DM1 — adding a word changes nothing already scheduled: it joins the END of the cycle', () => {
+  const per = EVEN.length / 2, today = 30;
+  const base = run(freezeSchedule(EVEN, P1), EVEN, per).out;
+  const list2 = [...EVEN, 'NEWW1', 'NEWW2', 'NEWW3'];
+  const rec0 = extendSchedule(freezeSchedule(EVEN, P1), EVEN, P1, today);
+  const rec = reconcileSchedule(rec0, list2, P1, today);
+  const after = run(rec, list2, per + 2).out;
+  for (let k = 0; k < per; k++) assert.equal(after[k], base[k], `day ${k} unchanged`);
+  const tail = after.slice(per, per + 2).join('+').split('+');
+  assert.ok(['NEWW1', 'NEWW2', 'NEWW3'].every(w => rec.s.slice(-3).includes(w)), 'the new words at the end');
+  assert.ok(tail.some(w => w.startsWith('NEWW')), 'played right after the cycle\'s last day');
+  assert.equal(rec.h, listHash(list2));
+  // reconciling twice with the same list is a no-op
+  assert.deepEqual(reconcileSchedule(rec, list2, P1, today).s, rec.s);
+});

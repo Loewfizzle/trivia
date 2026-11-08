@@ -12,7 +12,6 @@
 //   lc last places · pn { d, n } matches on tonight's party night · fr { pid: [nights, last night] } (≤ 30 friends) · hol { holiday: 1 } ·
 //   m8 an 8-player match · ow a match 2–4 am · rn a real thunderstorm · sn real snow · kn THE KNOCK · pw THE WATCHER's hour ·
 //   bd played on your birthday (PROGRESSION B) · sg { legendary: count } + sgt (CITY SIGHTINGS — PROGRESSION B) · gf { flag: 1 } (games)
-import { MAX_DAILIES_A_DAY } from './daily.js';
 
 /** The legendaries a sighting can be (PROGRESSION B adds the tap; THE WITNESS = every one of them). A new legendary = a new id here. */
 export const LEGENDARIES = ['ufo', 'tr3b', 'blackbird', 'f22', 'ghostship', 'aurora', 'fireball', 'skull', 'btc'];

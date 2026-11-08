@@ -20,9 +20,14 @@ import { OLD_FINISH, OLD_GLOW } from '../../js/core/items.js';
 import { NAME_MAX, AVATAR_IDS, COLORS } from '../../js/config.js';
 import { STARTER } from '../../js/core/items.js';
 import { memberNo } from './members.js';
+import { take } from './limit.js';
 
 export const RENAME_MS = 24 * 3600_000;
 export const RESTORE_LIMIT = { uid: 10, ip: 40, windowMs: 3600_000 };
+/** DM1 — new profiles a day from one IP address (ensureProfile) */
+export const NEW_PROFILES = { ip: 20, windowMs: 24 * 3600_000 };
+/** the emulators' + a local server's addresses — never limited */
+export const isLoopback = ip => /^(127\.|::1$|::ffff:127\.|localhost$)/.test(String(ip || '').trim());
 
 const PID_ALPHA = 'abcdefghijkmnpqrstuvwxyz23456789';
 export function newPid() {
@@ -96,7 +101,7 @@ export async function newKey(pid) {
  * same way on their next visit). A changed avatar or colour is applied at once; a changed name goes through rename().
  * → { pid, profile, key? (only when just created), renamed?, rename? { blocked, until } }
  */
-export async function ensureProfile(uid, info = {}, now = Date.now()) {
+export async function ensureProfile(uid, info = {}, now = Date.now(), ip = '') {
   const name = sanitizeName(info.name, NAME_MAX) || 'Player';
   const a = cleanAvatar(info.avatar), c = cleanColor(info.color);
   let pid = await pidOf(uid);
@@ -118,6 +123,12 @@ export async function ensureProfile(uid, info = {}, now = Date.now()) {
       out.profile = await publicProfile(pid);
       return out;
     }
+  }
+  // DM1 — THE NEW-PROFILE LIMIT per IP (THE THROWAWAY GATE's other half): NEW_PROFILES.ip a day from one address — a party of 8 new guests on
+  // one Wi-Fi fits twice over; a farm of throwaways doesn't. A loopback address (the emulators, serve.mjs) is never limited. The phone still
+  // plays without a profile (profiles are polish) and the next day it can make one.
+  if (ip && !isLoopback(ip) && !(await take(`np_${createHash('sha256').update(String(ip)).digest('hex').slice(0, 24)}`, NEW_PROFILES.ip, NEW_PROFILES.windowMs, now))) {
+    throw new ApiError(429, 'too_many_profiles', 'Too many new members from this connection today — try again tomorrow.');
   }
   // create: claim the uid link first so two racing calls from one device can't make two profiles
   const fresh = newPid();

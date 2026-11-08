@@ -10,6 +10,8 @@
 // A CARTRIDGE: { id, name, better: 'high' | 'low', buckets (the histogram's size), bucket(score) → 0…buckets−1, verify(seed, result,
 //   { startedAt, now }) → a score (a finite number) | null (refused) }. Register with registerDaily(); the server lists its cartridges in
 //   api/_lib/dailies.js (+ a TEST-ONLY fake behind DAILY_TEST=1).
+import { DAILIES } from '../config.js';
+
 export const BAND_MIN = 50;
 export const BANDS = [
   { id: 'penthouse', name: 'PENTHOUSE', top: 1 },
@@ -18,7 +20,38 @@ export const BANDS = [
   { id: 'bar', name: 'BAR', top: 50 },
   { id: 'floor', name: 'FLOOR', top: 100 },
 ];
-export const MAX_DAILIES_A_DAY = 3;   // THE TRIPLE = all of them in one day
+
+// ------------------------------------------------------------------ THE LIST (DM1 — PLUG-AND-PLAY: no fixed count anywhere)
+// ONE registry the server + the phone share: config.js#DAILIES (each row: id · name · order · ticket (its ticket art key) · lesson (a first-time
+// lesson — DM2's practice harbor) · on (in the set)) + the TEST-ONLY rows a test adds (addDailyRow). Adding a daily = its cartridge (D2) + one row.
+//   dailyRows()     → every row, in order (the phone's picker, the TODAY rows, the SCORES tabs — DM2)
+//   listedDailies() → the rows switched on (`on` !== false)
+//   todaysDailies() → the dailies LIVE on this server: the registered cartridges, in the list's order (the server registers exactly the list's
+//                     switched-on rows while THE GO-LIVE SWITCH is on, + under DAILY_TEST=1 the test ones — api/_lib/dailies.js#openDailies).
+//                     THE SWEEP, the daily XP cap, the 4 am picker and `today` all read it.
+const EXTRA = new Map();
+/** a TEST-ONLY row (the server takes one only under DAILY_TEST=1 — api/_lib/dailies.js#registerTestDaily) */
+export function addDailyRow(row) {
+  if (!row || !/^[a-z0-9-]{2,16}$/.test(row.id)) throw new Error('bad daily row');
+  EXTRA.set(row.id, { name: row.id.toUpperCase(), order: 90, ticket: row.id, lesson: false, on: true, test: true, ...row });
+  return EXTRA.get(row.id);
+}
+export const removeDailyRow = id => EXTRA.delete(id);
+const ord = r => (r && Number.isFinite(r.order) ? r.order : 99);
+export const dailyRows = () => [...DAILIES, ...EXTRA.values()].sort((a, b) => ord(a) - ord(b));
+export const dailyRow = id => dailyRows().find(r => r.id === String(id)) || null;
+export const listedDailies = () => dailyRows().filter(r => r.on !== false).map(r => r.id);
+
+/** THE SWEEP: every one of today's dailies finished (dayG = { game: 1 } — the day's COUNTED finishes); an empty list never sweeps */
+export const sweptDay = (dayG, today) => Array.isArray(today) && today.length > 0 && today.every(id => !!(dayG && dayG[id]));
+/** THE DAILY XP (DM1): a small XP per finished daily — the solo lane's size (ranks.js#SOLO_XP = 15: never more than a match played) — capped at
+ *  ONE credit per daily on today's list (credited = the day's credits so far) */
+export const DAILY_XP = 15;
+export function dailyXp(credited, today) {
+  const cap = Math.max(1, Array.isArray(today) ? today.length : 1);
+  const v = (credited || 0) < cap ? DAILY_XP : 0;
+  return { total: v, cap, parts: [{ k: 'daily', label: v ? 'DAILY' : 'DAILY · TODAY’S XP DONE', v }] };
+}
 
 const CARTS = new Map();
 export function registerDaily(c) {
@@ -28,6 +61,12 @@ export function registerDaily(c) {
 }
 export const dailyOf = id => CARTS.get(String(id)) || null;
 export const dailyIds = () => [...CARTS.keys()];
+/** the LIVE dailies, in the list's order (a cartridge with no row — a unit test's — after the rows) */
+export function todaysDailies() {
+  const at = new Map(dailyRows().map((r, i) => [r.id, i]));
+  const pos = id => (at.has(id) ? at.get(id) : 1e3);
+  return dailyIds().sort((a, b) => pos(a) - pos(b) || (a < b ? -1 : 1));
+}
 export const unregisterDaily = id => CARTS.delete(id);
 
 /** The bucket a score falls in (clamped). */

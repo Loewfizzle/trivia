@@ -33,6 +33,12 @@ export const streakDay = ms => dayKey(ms - DAY_TURN_H * 3600_000);
 /** 'd20261102' ↔ a day number (days since 1970) — plain calendar arithmetic. */
 export const dayNum = dk => { const s = String(dk); return Math.round(Date.UTC(+s.slice(1, 5), +s.slice(5, 7) - 1, +s.slice(7, 9)) / 864e5); };
 export const dayOf = num => { const d = new Date(num * 864e5); const p = x => String(x).padStart(2, '0'); return `d${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}`; };
+/** DM1 — the INSTANT a streak day starts: its 4 am Eastern (08:00 UTC in summer time, 09:00 UTC in winter — DST-safe: the clocks change at 2 am) */
+export function dayStartAt(dk) {
+  const base = dayNum(dk) * 864e5;
+  for (const h of [8, 9]) { const t = base + h * 3600e3; if (streakDay(t) === dk && streakDay(t - 1) !== dk) return t; }
+  return base + 9 * 3600e3;
+}
 const monthOf = dk => `m${String(dk).slice(1, 7)}`;
 /** The weekday of a streak day (0 = Monday … 6 = Sunday). */
 export const weekdayOf = dk => (new Date(dayNum(dk) * 864e5).getUTCDay() + 6) % 7;

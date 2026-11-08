@@ -27,15 +27,18 @@ import { countsOf, flood, nbOf, runView, CAUGHT, safeCount } from '../../js/game
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
 const DAY_MS = 86_400_000;
 const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress'];
-before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); forgetBoards(); });
+before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); forgetBoards(); await ref('rooms/CCPL/meta').set({ hostId: 'cc-host', status: 'playing', createdAt: NOW }); });
 after(async () => { await deleteApp(fb().app); });
 
-const ensure = (uid, name, at = NOW) => profileAction(uid, { action: 'ensure', name, avatar: 'bolt', color: 'cyan' }, '', at);
+const ensure = (uid, name, at = NOW - 7 * 86_400_000) => profileAction(uid, { action: 'ensure', name, avatar: 'bolt', color: 'cyan' }, '', at);
 const rejects = async (p, status, code) => {
   try { await p; } catch (e) { assert.equal(e.status, status, `${code}: status ${e.status} (${e.message})`); if (code) assert.equal(e.code, code); return e; }
   assert.fail(`expected ${status} ${code}`);
 };
-const A = (uid, action, at, extra = {}) => dailyAction(uid, { action, game: 'coastclear', ...extra }, at);
+// DM1 — THE ROOM WINS: a pause is accepted only while the player's room has really started a game — every pause here comes from a player
+// seated in CCPL, a room that is playing (the refusal itself: daily-module.test.mjs)
+const inRoom = async uid => { await ref(`rooms/CCPL/players/${uid}`).set({ name: uid }); return { room: 'CCPL' }; };
+const A = async (uid, action, at, extra = {}) => dailyAction(uid, { action, game: 'coastclear', ...(action === 'pause' ? await inRoom(uid) : {}), ...extra }, at);
 const day = streakDay(NOW);
 const pidOf = uid => val(`uids/${uid}`);
 /** EVERY ANSWER names only what the record has opened / spotted (the view rebuilt from the server's own record after the call) */
@@ -277,7 +280,7 @@ test('production (no DAILY_TEST) refuses coastclear: no cartridge, 404 no_daily'
 
 // ---- DFIX1 — A RUN KEEPS ITS OWN DAY (the 4 am turn) + THE PAUSE CAPS + THE CLEAN ERRORS
 const TURN = Date.UTC(2026, 11, 2, 9, 0, 0);   // Wed Dec 2 2026, 4:00 am Eastern (EST)
-const AD = (uid, action, at, d, extra = {}) => dailyAction(uid, { action, game: 'coastclear', day: d, ...extra }, at);
+const AD = async (uid, action, at, d, extra = {}) => dailyAction(uid, { action, game: 'coastclear', day: d, ...(action === 'pause' ? await inRoom(uid) : {}), ...extra }, at);
 /** dig every safe cell left (on `d`'s board), `step` ms apart from t → { last, t } */
 async function digAll(uid, d, t, step = 500) {
   const board = await ccBoard(d), counts = countsOf(board), L = new Set(board.lights), safeN = safeCount(board);

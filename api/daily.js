@@ -1,5 +1,5 @@
-// POST /api/daily { action, … } — THE DAILY CONTRACT (PROGRESSION A; core/daily.js). Signed-in players with a profile; no database socket
-// on the phone (THE PARKED DATABASE — a solo daily is /api only).
+// POST /api/daily { action, … } — THE DAILY CONTRACT (PROGRESSION A; core/daily.js) + THE DAILY MODULE's ENGINE (DM1). Signed-in players with
+// a profile; no database socket on the phone (THE PARKED DATABASE — a solo daily is /api only).
 //   start  { game }            → { day, seed, startedAt, done? }      ONE OFFICIAL TRY: the first start is recorded (a refresh = the same try)
 //                                 a JUDGED daily (PW1 — THE PASSWORD, _lib/pw.js: cart.judged) gets { day, startedAt, done?, run } instead — the run so
 //                                 far from the SERVER's record (a resume), and NO seed (a seed a phone holds must say nothing about the answers)
@@ -7,26 +7,39 @@
 //                                 judges every guess inside a transaction on its record; a word that isn't one is refused with NO cost (422 not_a_word)
 //   dig / chord / pause / resume { game, … }  (CC1 — COAST CLEAR, _lib/cc.js: a judged cartridge's `moves`) → the cartridge's answer, ONE transaction
 //                                 on its record each (a repeat is free: nothing written); every judged answer carries the server's `now` (the phone's clock)
-//   finish { game, result }    → { day, score, stand: { n, pct, top, band }, outcome: { streak, items } }   checked + stored server-side
-//                                 (a judged daily scores from ITS record — the phone's result is ignored; an unfinished run → 409 not_done)
-//   today  { pids? }           → { day, mine: { game: score }, friends: { pid: { game: { done } | { score } } }, table: [pid] }   (YOUR TABLE's TODAY —
-//                                FRIENDS A: only YOUR FRIENDS (pfr/{pid}/f), ≤ 12: a picked list kept to friends, else the ones you played with last)
+//                                 DM1 — THE ROOM WINS: `pause { room? }` only while the player's room has really started a game (_lib/daily-room.js) — else 409 no_room_game
+//   finish { game, result }    → { day, score, counts, stand: { n, pct, top, band }, outcome: { streak, items, ach, xp, lv, swept } }   checked + stored
+//                                 server-side (a judged daily scores from ITS record — the phone's result is ignored; an unfinished run → 409 not_done)
+//                                 DM1 — THE THROWAWAY GATE: counts = the profile existed before that day's 4 am Eastern start (ppriv/{pid}/at — server-written
+//                                 at creation). A non-counting result is kept (one try, the player's own score, the streak + the XP as usual) but is NOT in
+//                                 the histogram / the band, YOUR TABLE, THE BOARD or any reward; `countsFrom` = when this profile's dailies start counting
+//   today  { pids? }           → { day, dailies: [row…], mine: { game: score }, gated: { game: true }, friends: { pid: { game: { done } | { score } } }, table: [pid] }
+//                                 (YOUR TABLE's TODAY — FRIENDS A: only YOUR FRIENDS (pfr/{pid}/f), ≤ 12; a friend's NON-COUNTING result is left out)
+//   room   { room }            → { mid: [uid…] }   DM1 — which players of YOUR room have a daily in flight (uids only — nothing about a run; DM2's host line)
 //
-//   dly/{game}/{day}/s/{pid}: startedAt · r/{pid}: score · h/{bucket}: count · n: finishers · p/{pid}: a judged daily's record      (server only — the rules' default deny)
+//   dly/{game}/{day}/s/{pid}: startedAt · r/{pid}: score · x/{pid}: 1 (DM1 — a non-counting result) · h/{bucket}: count · n: finishers · p/{pid}: a judged
+//   daily's record · b: the day's data (THE 4 AM PICKER — the pair / the board)      (server only — the rules' default deny)
+//   DM1 — THE CALL BUDGET: CALLS.max calls a uid per CALLS.windowMs (rl/dc_{uid} — a COAST CLEAR run is ~50–110 calls, a PASSWORD run ≤ 15) → 429 slow_down
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val } from './_lib/fb.js';
 import { pidOf } from './_lib/profiles.js';
 import { bumpOwners } from './_lib/owners.js';
 import { outageDays } from './_lib/stats.js';
-import { dailySeed, loadDailies } from './_lib/dailies.js';
-import { dailyOf, bucketOf, standing, todayView, dailyIds } from '../js/core/daily.js';
-import { streakDay, dayNum, dayOf } from '../js/core/streak.js';
+import { take } from './_lib/limit.js';
+import { dailySeed, openDailies, pickDay } from './_lib/dailies.js';
+import { roomStarted, midDaily } from './_lib/daily-room.js';
+import { dailyOf, bucketOf, standing, todayView, todaysDailies, dailyRow } from '../js/core/daily.js';
+import { streakDay, dayNum, dayOf, dayStartAt } from '../js/core/streak.js';
 import { dailyStep } from '../js/core/progress.js';
+import { levelOf, emblemRank } from '../js/core/levels.js';
 import { easternParts } from '../js/core/week.js';
 import { founderOpen } from './_lib/founder.js';
 import { isPid } from './_lib/profiles.js';
 import { tablePids } from '../js/core/friends.js';
+
+/** DM1 — THE CALL BUDGET: generous for real play (both dailies, retries, refreshes), a flood refused */
+export const CALLS = { max: 400, windowMs: 10 * 60_000 };
 
 async function mine(uid) {
   const pid = await pidOf(uid);
@@ -49,10 +62,17 @@ export function dayOfCall(body, now) {
   if (typeof d === 'string' && DAY_KEY.test(d) && d === prevDay(today)) return d;
   throw new ApiError(400, 'bad_day', 'That day isn’t open.');
 }
+/** DM1 — THE THROWAWAY GATE (PURE): a profile made at `createdAt` counts on `day` only if it existed before that day's 4 am Eastern start (no
+ *  creation time = an old profile = counts) */
+export const countsOn = (createdAt, day) => !(Number(createdAt) > 0) || Number(createdAt) < dayStartAt(day);
+/** the profile's server-side creation time (ppriv/{pid}/at — written once, by the server, when the profile is made) */
+const createdAtOf = pid => val(`ppriv/${pid}/at`);
 
 export async function dailyAction(uid, body, now = Date.now()) {
-  loadDailies();
   body = body && typeof body === 'object' ? body : {};
+  // the live dailies (THE GO-LIVE SWITCH, cached) + THE CALL BUDGET — together (the budget never adds a wait to a dig)
+  const [, allowed] = await Promise.all([openDailies(now), take(`dc_${String(uid).replace(/[.#$[\]/]/g, '_')}`, CALLS.max, CALLS.windowMs, now)]);
+  if (!allowed) throw new ApiError(429, 'slow_down', 'Too many moves — wait a minute.');
   const today = streakDay(now);
   switch (body.action) {
     case 'start': {
@@ -66,13 +86,16 @@ export async function dailyAction(uid, body, now = Date.now()) {
         if (s0 && r0 == null) { day = asked; startedAt = s0; }
       }
       const base = `dly/${cart.id}/${day}`;
+      // THE 4 AM PICKER: the day's set fixed for EVERY live daily on its first start (lazy, idempotent — a memo per warm function)
+      const picked = pickDay(day, now).catch(() => null);
       if (startedAt == null) {
         const tx = await ref(`${base}/s/${pid}`).transaction(cur => (cur ? undefined : now));
         startedAt = tx.snapshot.val();
       }
       const done = await val(`${base}/r/${pid}`);
+      await picked;
       if (cart.judged) {
-        const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day) : null]);
+        const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day, now) : null]);
         return { day, startedAt, done: done ?? null, run: cart.resume({ record, day, startedAt, data }), now };
       }
       return { day, seed: dailySeed(cart.id, day), startedAt, done: done ?? null };
@@ -81,15 +104,15 @@ export async function dailyAction(uid, body, now = Date.now()) {
       const day = dayOfCall(body, now);
       const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
       if (!cart.judged || typeof cart.judge !== 'function') throw new ApiError(400, 'bad_action', 'This daily has no such move.');
-      const startedAt = await val(`${base}/s/${pid}`);
+      const [startedAt, result, data] = await Promise.all([val(`${base}/s/${pid}`), val(`${base}/r/${pid}`), cart.load ? cart.load(day, now) : null]);
       if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
-      if ((await val(`${base}/r/${pid}`)) != null) throw new ApiError(409, 'finished', 'Today’s run is done.');
+      if (result != null) throw new ApiError(409, 'finished', 'Today’s run is done.');
       // the word's spelling first — refused before anything is written (no cost); then the guess inside ONE transaction on the record
-      const pre = cart.judge({ record: null, word: body.word, day, startedAt, now });
+      const pre = cart.judge({ record: null, word: body.word, day, startedAt, now, data });
       if (pre.refused === 'not_a_word') throw new ApiError(422, 'not_a_word', 'Not in the word list.');
       let out = null, refused = null;
       const tx = await ref(`${base}/p/${pid}`).transaction(cur => {
-        const r = cart.judge({ record: cur, word: body.word, day, startedAt, now });
+        const r = cart.judge({ record: cur, word: body.word, day, startedAt, now, data });
         if (r.refused) { refused = r.refused; out = null; return undefined; }
         refused = null; out = r.resp;
         return r.record;
@@ -102,8 +125,11 @@ export async function dailyAction(uid, body, now = Date.now()) {
       const day = dayOfCall(body, now);
       const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
       if (!cart.judged || typeof cart.act !== 'function' || !(cart.moves || []).includes(body.action)) throw new ApiError(400, 'bad_action', 'This daily has no such move.');
-      const [startedAt, data] = await Promise.all([val(`${base}/s/${pid}`), cart.load ? cart.load(day) : null]);
+      const [startedAt, data, room] = await Promise.all([val(`${base}/s/${pid}`), cart.load ? cart.load(day, now) : null,
+        body.action === 'pause' ? roomStarted({ uid, pid, code: body.room, now }) : null]);
       if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
+      // DM1 — THE ROOM WINS: a pause only for a room that really started a game (the clock keeps running otherwise)
+      if (body.action === 'pause' && !room) throw new ApiError(409, 'no_room_game', 'The clock only stops when your room starts a game.');
       let out = null, refused = null, status = 409;
       await ref(`${base}/p/${pid}`).transaction(cur => {
         out = null; refused = null;
@@ -125,45 +151,60 @@ export async function dailyAction(uid, body, now = Date.now()) {
     case 'finish': {
       const day = dayOfCall(body, now);
       const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
-      const startedAt = await val(`${base}/s/${pid}`);
+      const [startedAt, createdAt] = await Promise.all([val(`${base}/s/${pid}`), createdAtOf(pid)]);
       if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
       // a JUDGED daily scores from the server's own record — the phone's result is never read (an unfinished run: come back when it's done)
       const record = cart.judged ? await val(`${base}/p/${pid}`) : null;
       if (cart.judged && !(record && record.e)) throw new ApiError(409, 'not_done', 'Finish the run first.');
-      const data = cart.judged && cart.load ? await cart.load(day) : null;
+      const data = cart.judged && cart.load ? await cart.load(day, now) : null;
       const score = cart.verify(dailySeed(cart.id, day), cart.judged ? null : body.result, { startedAt, now, record, day, data });
       if (typeof score !== 'number' || !Number.isFinite(score)) throw new ApiError(422, 'refused', 'That result doesn’t check out.');
+      // DM1 — THE THROWAWAY GATE: does this profile's result COUNT on this day?
+      const counts = countsOn(createdAt, day);
       // ONE official try: the first finish is the score (a retry gets the stored one back)
       const claim = await ref(`${base}/r/${pid}`).transaction(cur => (cur != null ? undefined : score));
       const kept = claim.snapshot.val();
       if (claim.committed) {
         const { ServerValue } = await import('firebase-admin/database');
-        await ref('/').update({ [`${base}/h/${bucketOf(cart, kept)}`]: ServerValue.increment(1), [`${base}/n`]: ServerValue.increment(1) });
+        await ref('/').update(counts
+          ? { [`${base}/h/${bucketOf(cart, kept)}`]: ServerValue.increment(1), [`${base}/n`]: ServerValue.increment(1) }
+          : { [`${base}/x/${pid}`]: 1 });                         // (a non-counting result: kept for the player, out of the day's histogram)
       }
       const [hist, n] = await Promise.all([val(`${base}/h`), val(`${base}/n`)]);
-      const stand = standing(cart, hist || {}, n || 1, kept);
-      // the player's stats: THE STREAK + the dailies' counters (idempotent by the day's key)
+      // the standing: a counted result is IN the histogram; a non-counting one is shown where it WOULD stand (never a band, never stored)
+      const h = { ...(hist || {}) };
+      if (!counts) h[bucketOf(cart, kept)] = (h[bucketOf(cart, kept)] || 0) + 1;
+      const stand = standing(cart, h, (n || 0) + (counts ? 0 : 1) || 1, kept);
+      if (!counts) stand.band = null;
+      // the player's stats: THE STREAK + the DAILY XP (+ the dailies' counters + THE SWEEP + the rewards, counted only) — idempotent by the day's key
       const outage = await outageDays().catch(() => ({}));
       const fOpen = await founderOpen(now).catch(() => false);
       let res = null;
       // (PW2 — a judged daily's FLAGS come from the server's own record, never the phone: THE PASSWORD's crack / safe → KEYHOLE / SAFECRACKER)
-      const flags = cart.judged && cart.flags ? cart.flags({ record, day, startedAt, data }) : null;
-      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags }); return res.skip ? undefined : res.next; });
+      const flags = counts && cart.judged && cart.flags ? cart.flags({ record, day, startedAt, data }) : null;
+      const live = todaysDailies();
+      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts }); return res.skip ? undefined : res.next; });
       if (res && !res.skip) {
-        const st = res.next.st;
-        await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d });
+        const st = res.next.st, xp = res.next.xp || 0;
+        await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d, [`profiles/${pid}/x`]: xp, [`profiles/${pid}/l`]: levelOf(xp), [`profiles/${pid}/r`]: emblemRank(xp) });
         await bumpOwners(res.items, !(res.next.g && Object.keys(res.next.g).length) && res.dl.n === 1, res.ach).catch(() => {});
         if (res.next.fd) await ref(`profiles/${pid}/fd`).set(true);
       }
-      return { day, score: kept, again: !claim.committed, stand: { n: stand.n, pct: stand.pct, top: Math.round(stand.top * 10) / 10, band: stand.band ? stand.band.name : null },
-        outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach } : null };
+      return { day, score: kept, again: !claim.committed, counts, ...(counts ? {} : { countsFrom: dayStartAt(dayOf(dayNum(streakDay(Number(createdAt) || now)) + 1)) }),
+        stand: { n: stand.n, pct: stand.pct, top: Math.round(stand.top * 10) / 10, band: stand.band ? stand.band.name : null },
+        outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach, xp: res.xp, lv: res.lv, swept: res.swept } : null };
     }
     case 'today': {
       const day = today;
       const pid = await mine(uid);
-      const games = dailyIds();
-      const mineScores = {};
-      await Promise.all(games.map(async g => { const v = await val(`dly/${g}/${day}/r/${pid}`); if (v != null) mineScores[g] = v; }));
+      const games = todaysDailies();
+      const mineScores = {}, gated = {};
+      await Promise.all(games.map(async g => {
+        const v = await val(`dly/${g}/${day}/r/${pid}`);
+        if (v == null) return;
+        mineScores[g] = v;
+        if (await val(`dly/${g}/${day}/x/${pid}`)) gated[g] = true;
+      }));
       const friends = {};
       // (FRIENDS A — YOUR TABLE reads YOUR FRIENDS LIST on the server: a stranger's daily is never readable by naming their id; ≤ 12 —
       //  the phone's own pick kept to friends, else the friends you PLAYED WITH most recently, then the newest friendships)
@@ -171,10 +212,22 @@ export async function dailyAction(uid, body, now = Date.now()) {
       const pids = tablePids((await val(`pfr/${pid}`)) || {}, pid, picked.length ? picked : null, now);
       await Promise.all(pids.map(async p => {
         const theirs = {};
-        await Promise.all(games.map(async g => { const v = await val(`dly/${g}/${day}/r/${p}`); if (v != null) theirs[g] = v; }));
+        await Promise.all(games.map(async g => {
+          const v = await val(`dly/${g}/${day}/r/${p}`);
+          if (v == null) return;
+          if (await val(`dly/${g}/${day}/x/${p}`)) return;          // (DM1 — THE THROWAWAY GATE: a non-counting result never ranks at YOUR TABLE)
+          theirs[g] = v;
+        }));
         friends[p] = todayView(mineScores, theirs);
       }));
-      return { day, mine: mineScores, friends, table: pids };
+      // the list for DM2's picker / TODAY rows / SCORES tabs: the LIVE dailies, in order (name, ticket art, a first-time lesson)
+      const dailies = games.map(id => { const r = dailyRow(id) || {}; return { id, name: r.name || dailyOf(id).name, order: r.order ?? 99, ticket: r.ticket || id, lesson: !!r.lesson }; });
+      return { day, dailies, mine: mineScores, gated, friends, table: pids };
+    }
+    case 'room': {
+      const mid = await midDaily({ uid, code: body.room, games: todaysDailies(), now });
+      if (!mid) throw new ApiError(403, 'not_in_room', 'Only someone in the room can ask.');
+      return { mid };
     }
     default: throw new ApiError(400, 'bad_action');
   }

@@ -9,8 +9,9 @@
 //   finish → the score from the SERVER's record (never the phone's claim): replay() → (2 − doors) × 100 + guesses
 // Registered by dailies.js — until THE SWITCH-OVER only under DAILY_TEST=1 (production answers 'no_daily').
 import { readFileSync } from 'node:fs';
-import { fb } from './fb.js';
-import { dayWords } from './pw-day.js';
+import { fb, ref, val } from './fb.js';
+import { dayWords, freezeSchedule, extendSchedule, reconcileSchedule, frozenWords, dayIndex, listHash } from './pw-day.js';
+import { streakDay } from '../../js/core/streak.js';
 import { runView, serverGuess, recordOf, canGuess, cleanWord, replay, SCORE_MIN, SCORE_MAX } from '../../js/games/password/logic.js';
 
 const DATA = new URL('../_data/pw/', import.meta.url);
@@ -28,41 +29,96 @@ export function pwLists() {
 }
 /** is this a word a guess may be? (valid-5 ∪ the answers) */
 export const isWord = w => { const c = cleanWord(w); return !!c && pwLists().valid.has(c); };
-/** THE DAY's two words (server-only) */
+/** the schedule's FORMULA for a day (pw-day.js#dayWords) — the same words as THE FROZEN SCHEDULE while the list is untouched (the tests read the
+ *  answers through it); the server judges from pwDay(day), the frozen schedule's stored pair */
 export const wordsFor = (day, pepper = fb().pepper) => dayWords(day, pwLists().answers, pepper);
 
+// ---- DM1 — THE 4 AM PICKER's part for THE PASSWORD: the day's pair FIXED once (dly/password/{day}/b = { v, w: 'W1,W2' }, server-only), read from
+// THE FROZEN SCHEDULE (dsched/password = { v, s: 'W,W,…', c, h }, server-only — pw-day.js: extended + reconciled, never reshuffled). Built lazily
+// on the day's first call; both writes are transactions (two first calls at once keep ONE pair); a warm function keeps ≤ 3 days in memory.
+export const SCHED_PATH = 'dsched/password';
+const packSched = r => ({ v: 1, s: r.s.join(','), c: r.c, h: r.h });
+const unpackSched = p => (p && p.v === 1 && typeof p.s === 'string' ? { v: 1, s: p.s ? p.s.split(',') : [], c: p.c || 1, h: p.h || '' } : null);
+/** the frozen schedule, frozen / reconciled / extended as needed so day index `idx` has its pair (one transaction) */
+export async function frozenSchedule(idx, keepIdx, { pepper = fb().pepper, list = pwLists().answers } = {}) {
+  const h = listHash(list);
+  let out = null;
+  const step = cur => {
+    let r = unpackSched(cur) || freezeSchedule(list, pepper);
+    if (r.h !== h) r = reconcileSchedule(r, list, pepper, keepIdx);
+    r = extendSchedule(r, list, pepper, Math.max(idx, keepIdx));
+    out = r;
+    return r;
+  };
+  const tx = await ref(SCHED_PATH).transaction(cur => {
+    const before = unpackSched(cur);
+    const r = step(cur);
+    if (before && before.h === r.h && before.s.length === r.s.length && before.c === r.c) return undefined;   // nothing new: nothing written
+    return packSched(r);
+  });
+  return unpackSched(tx.snapshot.val()) || out;
+}
+const DAYS = new Map();   // day → [W1, W2] (a warm function's copy; ≤ 3 days)
+/** THE DAY's two words (server-only): memory → the stored pair → the frozen schedule (+ the pair stored once). A day before the schedule's
+ *  epoch (no frozen slot) takes the formula. */
+export async function pwDay(day, now = Date.now()) {
+  if (DAYS.has(day)) return { words: DAYS.get(day) };
+  const path = `dly/password/${day}/b`;
+  const have = await val(path);
+  let words = have && have.v === 1 && typeof have.w === 'string' ? have.w.split(',') : null;
+  if (!words) {
+    const idx = dayIndex(day);
+    if (idx < 0) words = wordsFor(day);
+    else {
+      const rec = await frozenSchedule(idx, Math.max(idx, dayIndex(streakDay(now))));
+      const pair = frozenWords(rec, idx);
+      const tx = await ref(path).transaction(cur => (cur && cur.v === 1 ? undefined : { v: 1, w: pair.join(',') }));
+      const kept = tx.snapshot.val();
+      words = kept && typeof kept.w === 'string' ? kept.w.split(',') : pair;
+    }
+  }
+  DAYS.set(day, words);
+  for (const k of [...DAYS.keys()].slice(0, -3)) DAYS.delete(k);
+  return { words };
+}
+export const forgetPwDays = () => DAYS.clear();
+/** the day's words from a cartridge call's data (the picker's pair), else the formula (a direct unit call) */
+const wordsOf = (day, data) => (data && Array.isArray(data.words) ? data.words : wordsFor(day));
+
 /** the phone's view of a stored record */
-export const viewOf = (record, day, { startedAt = 0, pepper } = {}) => runView(record, wordsFor(day, pepper), { day, startedAt });
+export const viewOf = (record, day, { startedAt = 0, pepper, data } = {}) => runView(record, data ? wordsOf(day, data) : wordsFor(day, pepper), { day, startedAt });
 
 /** THE PASSWORD's daily cartridge (core/daily.js#registerDaily): better = LOW, one bucket per score 2…206 */
 export const PW_DAILY = {
   id: 'password', name: 'THE PASSWORD', better: 'low', buckets: SCORE_MAX - SCORE_MIN + 1,
   bucket: score => score - SCORE_MIN,
   judged: true,                                                  // the server holds the record: start returns the run, guess exists, finish ignores the claim
+  /** DM1 — the day's server-side data before any call: the day's pair, FIXED by the 4 am picker (pwDay — THE FROZEN SCHEDULE) */
+  load: (day, now) => pwDay(day, now),
   /** a resume: the record → what the phone may see */
-  resume: ({ record, day, startedAt }) => viewOf(record, day, { startedAt }),
+  resume: ({ record, day, startedAt, data }) => viewOf(record, day, { startedAt, data }),
   /** ONE guess, judged inside a transaction on the record (two taps at once can't both be guess n) → { record, resp } or a refusal */
-  judge({ record, word, day, startedAt, now }) {
+  judge({ record, word, day, startedAt, now, data }) {
     const g = cleanWord(word);
     if (!g || !isWord(g)) return { refused: 'not_a_word' };      // (no cost: nothing is written)
-    const run = viewOf(record, day, { startedAt });
+    const run = viewOf(record, day, { startedAt, data });
     const why = canGuess(run);
     if (why) return { refused: why };                             // 'done' | 'closed'
-    const { run: next, resp } = serverGuess(run, g, wordsFor(day), now);
+    const { run: next, resp } = serverGuess(run, g, wordsOf(day, data), now);
     if (resp.done) resp.finishedAt = next.finishedAt;
     return { record: recordOf(next), resp };
   },
   /** THE SCORE from the server's record — the phone's `result` is ignored; null = not finished / a record no run makes */
-  verify(seed, result, { startedAt, record, day } = {}) {
+  verify(seed, result, { startedAt, record, day, data } = {}) {
     if (!record || !day) return null;
-    const r = replay(record, wordsFor(day), { startedAt });
+    const r = replay(record, wordsOf(day, data), { startedAt });
     return r ? r.score : null;
   },
   /** PW2 — THE FLAGS a finished run earns, from the RECORD (the award engine keys them `password-<flag>`): `crack` = both doors opened
    *  (KEYHOLE) · `safe` = both doors in SAFE_GUESSES or fewer combined (SAFECRACKER — ≈ the best ~10 % of runs: scripts/sim-password.mjs) */
-  flags({ record, day, startedAt } = {}) {
+  flags({ record, day, startedAt, data } = {}) {
     if (!record || !day) return null;
-    return runFlags(replay(record, wordsFor(day), { startedAt }));
+    return runFlags(replay(record, wordsOf(day, data), { startedAt }));
   },
 };
 /** the threshold SAFECRACKER asks for: both doors in this many guesses or fewer (the owner, PW2 — the simulation checks ≈ 10 %) */

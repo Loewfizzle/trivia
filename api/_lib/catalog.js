@@ -10,7 +10,6 @@ import { registerAchievements } from '../../js/core/achievements.js';
 import { registerLevelRewards } from '../../js/core/levels.js';
 import { registerMilestoneItems } from '../../js/core/streak.js';
 import { registerSeasonalItems } from '../../js/core/progress.js';
-import { MAX_DAILIES_A_DAY } from '../../js/core/daily.js';
 import { LEGENDARIES } from '../../js/core/achievements.js';
 
 const C = (id, name, tier, lac, foil, acc, line, x = {}) => ({ id, kind: 'card', name, tier, look: { lac, foil, ink: x.ink || foil, acc }, line, ...x });
@@ -125,7 +124,7 @@ export const ITEM_ROWS = [
   E('emb-snowflake', 'SNOWED IN', 'epic', '❄', 'Played while it really snowed.'),
   E('emb-peephole', 'THE PEEPHOLE', 'rare', '◉', 'You know the knock.'),
   E('emb-wings', 'WINGS', 'epic', '✈', 'Twenty-five sightings.'),
-  E('emb-stars', 'THREE STARS', 'rare', '✦', 'All three dailies in one day.'),
+  E('emb-stars', 'THREE STARS', 'rare', '✦', 'Every daily in one day.'),
   E('emb-sunrise', 'SUNRISE', 'uncommon', '☀', 'A daily before 8 am.'),
   E('emb-bitcoin', '₿', 'epic', '₿', 'Twenty-one nights in a row. HODL.'),
   E('emb-prism', 'FOUR ON THE FLOOR', 'rare', '◆', 'Four lines at once.'),
@@ -210,7 +209,9 @@ export const ACH_ROWS = [
   A('the-witness', 'THE WITNESS', 'sightings', 'card-witness', 'Every legend over the harbor, seen.', (s, p) => LEGENDARIES.every(id => p.sg && p.sg[id]), { dormant: 'sightings' }),
   // DAILIES — dormant until the first daily ships (the contract is built; the fake daily proves them)
   A('daily-bread', 'DAILY BREAD', 'dailies', 'glow-candle', 'A daily on seven different days.', (s) => !!s.dl && s.dl.n >= 7, { dormant: 'dailies' }),
-  A('the-triple', 'THE TRIPLE', 'dailies', 'emb-stars', 'Every daily in one day.', (s) => !!s.dl && !!s.dl.day && Object.keys(s.dl.day.g || {}).length >= MAX_DAILIES_A_DAY, { dormant: 'dailies' }),
+  // (DM1 — THE SWEEP: was THE TRIPLE (3 dailies); the id + emblem kept. "Every daily" = today's list — core/daily.js#todaysDailies — counted by
+  //  progress.js#dailyStep into dl.sw (the days swept); a non-counting result (THE THROWAWAY GATE) never sweeps)
+  A('the-triple', 'THE SWEEP', 'dailies', 'emb-stars', 'Every daily in one day.', (s) => !!s.dl && (s.dl.sw || 0) >= 1, { dormant: 'dailies' }),
   A('early-bird', 'EARLY BIRD', 'dailies', 'emb-sunrise', 'A daily before 8 am.', (s) => !!s.dl && s.dl.early >= 1, { dormant: 'dailies' }),
   A('penthouse-suite', 'PENTHOUSE SUITE', 'dailies', 'card-penthouse', 'Top one percent of a daily.', (s) => !!s.dl && s.dl.ph >= 1, { dormant: 'dailies' }),
   // SPECIALS
