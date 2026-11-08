@@ -39,8 +39,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   // (FRIENDS C — THE SLOW-3G START: the cartridges' module lists fetched now, in the lobby — the start then puts a whole graph on the wire at once)
   //  + THE LOBBY IS THE LOADING TIME: a few seconds in, the playable cartridges' graphs are WIRED (modulepreload — fetched + parsed, never run;
   //  the guests only learn the game at the start, and a slow line needs the lobby's wait) — not on a Save-Data line
-  const wireT = setTimeout(() => { if (navigator.connection && navigator.connection.saveData) return; import('../games/registry.js').then(R => { for (const id of Object.keys(R.META)) R.wireGame(id); }).catch(() => {}); }, (typeof window !== 'undefined' && window.__wireDelay) || 4000);   // (__wireDelay: the slow-3G E2E's hook)
-  import('../games/registry.js').then(R => R.primeGraph()).catch(() => {});
+  const wireT = setTimeout(() => { if (navigator.connection && navigator.connection.saveData) return; Promise.all([import('../games/registry.js'), import('../games/preload.js')]).then(([R, P]) => { for (const id of Object.keys(R.META)) P.wireGame(id); }).catch(() => {}); }, (typeof window !== 'undefined' && window.__wireDelay) || 4000);   // (__wireDelay: the slow-3G E2E's hook)
+  import('../games/preload.js').catch(() => {});
   let st = state, destroyed = false, raf = 0, dock = null, lastRoster = '';
   const tags = new Map();            // uid → { el, emb, name, bubble, sig, nameUntil }
   const layer = h('div.rc-tags', { 'aria-label': 'The room' });
@@ -377,7 +377,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     closeAll();   // (FR6 FIXES A — B1: EVERY sheet + overlay on every phone — the profile, CUSTOMIZE, the full card, ☰, HOW TO PLAY…; never one over the match)
     // (THE CARTRIDGE PLUG — its loading: the walk inside is the console's loading time on EVERY phone — the view module + its sheets warm,
     //  the game's own preload (pools, sounds) runs; the city is still drawing, so nothing heavy is BUILT here — only fetched)
-    import('../games/registry.js').then(R => R.preloadGame(ss.g)).then(mod => { if (!mod) return;   // (FRIENDS C: the whole graph at once — never a waterfall)   // (SHELL 2.0 B1: every phone LOADS the cartridge here — the walk inside)
+    import('../games/preload.js').then(P => P.preloadGame(ss.g)).then(mod => { if (!mod) return;   // (FRIENDS C: the whole graph at once — never a waterfall)   // (SHELL 2.0 B1: every phone LOADS the cartridge here — the walk inside)
       if (mod.createView && mod.createView.warm) mod.createView.warm(); if (typeof mod.preload === 'function') { try { mod.preload({ settings: (st.meta && st.meta.settings && st.meta.settings[ss.g]) || mod.DEFAULT_SETTINGS || {}, host: isHost() }); } catch (e) { console.warn('preload', e); } } }).catch(() => {});
   }
   const diedSaid = new Set();

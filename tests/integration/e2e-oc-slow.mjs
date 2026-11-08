@@ -98,7 +98,7 @@ try {
   }
   // (MOUNT=1 + LOBBY=ms: B — a lobby that long on the slow line, the guests wiring the cartridges in it — else A: the start at once, no wiring)
   if (process.env.MOUNT === '1' && Number(process.env.LOBBY || 0) > 0) {
-    for (const p of pages.slice(1)) await p.evaluate(() => import('/js/games/registry.js').then(R => { for (const id of Object.keys(R.META)) R.wireGame(id); }));
+    for (const p of pages.slice(1)) await p.evaluate(() => Promise.all([import('/js/games/registry.js'), import('/js/games/preload.js')]).then(([R, P]) => { for (const id of Object.keys(R.META)) P.wireGame(id); }));
     log(`B: ${process.env.LOBBY} ms in the lobby on the slow line (the guests wiring the cartridges)`); await sleep(Number(process.env.LOBBY));
   }
   await host.evaluate(() => import('/js/host.js').then(m => m.startGame('overclock', { mode: 'quick' })));
