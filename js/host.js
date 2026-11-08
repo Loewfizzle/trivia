@@ -11,7 +11,7 @@ import { state, isHost, onlineMap } from './store.js';
 import { shouldClaimHost, isOnline, roomIdle } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
-import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, loadGame, metaOf } from './games/registry.js';
+import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, loadGame, preloadGame, metaOf } from './games/registry.js';
 import { toast } from './ui/toast.js';
 
 // SPEED PASS B — THE SECOND TAB's check (tests: e2e speed.mjs twotabs): this tab's own host writes — the beats + the director's steps
@@ -198,7 +198,7 @@ export function startGame(gameId, settings, { quick = false } = {}) {
   return p;
 }
 async function startGameNow(gameId, settings, quick = false) {
-  const mod = await loadGame(gameId).catch(() => null);   // (SHELL 2.0 B1 — THE LAZY LOGIC: the cartridge loads on the host's tap)
+  const mod = await preloadGame(gameId).catch(() => null);   // (SHELL 2.0 B1 — THE LAZY LOGIC: the cartridge loads on the host's tap; FRIENDS C: its whole graph at once)
   if (!mod || !isHost()) return false;
   // (WINDOWS — ONLY TWO GAMES PLAYABLE: a hidden game never starts — not from a rematch, an invite, a stale link or the console)
   if (!isPlayable(gameId)) { toast('COMING SOON', 'info'); return false; }

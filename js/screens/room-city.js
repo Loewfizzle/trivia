@@ -36,6 +36,11 @@ export const LOST_GRACE_MS = 1500;
 const NAME_MS = 4200, TAP_NAME_MS = 3000;
 
 export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
+  // (FRIENDS C — THE SLOW-3G START: the cartridges' module lists fetched now, in the lobby — the start then puts a whole graph on the wire at once)
+  //  + THE LOBBY IS THE LOADING TIME: a few seconds in, the playable cartridges' graphs are WIRED (modulepreload — fetched + parsed, never run;
+  //  the guests only learn the game at the start, and a slow line needs the lobby's wait) — not on a Save-Data line
+  const wireT = setTimeout(() => { if (navigator.connection && navigator.connection.saveData) return; import('../games/registry.js').then(R => { for (const id of Object.keys(R.META)) R.wireGame(id); }).catch(() => {}); }, (typeof window !== 'undefined' && window.__wireDelay) || 4000);   // (__wireDelay: the slow-3G E2E's hook)
+  import('../games/registry.js').then(R => R.primeGraph()).catch(() => {});
   let st = state, destroyed = false, raf = 0, dock = null, lastRoster = '';
   const tags = new Map();            // uid → { el, emb, name, bubble, sig, nameUntil }
   const layer = h('div.rc-tags', { 'aria-label': 'The room' });
@@ -372,7 +377,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     closeAll();   // (FR6 FIXES A — B1: EVERY sheet + overlay on every phone — the profile, CUSTOMIZE, the full card, ☰, HOW TO PLAY…; never one over the match)
     // (THE CARTRIDGE PLUG — its loading: the walk inside is the console's loading time on EVERY phone — the view module + its sheets warm,
     //  the game's own preload (pools, sounds) runs; the city is still drawing, so nothing heavy is BUILT here — only fetched)
-    import('../games/registry.js').then(R => R.loadGame(ss.g)).then(mod => { if (!mod) return;   // (SHELL 2.0 B1: every phone LOADS the cartridge here — the walk inside)
+    import('../games/registry.js').then(R => R.preloadGame(ss.g)).then(mod => { if (!mod) return;   // (FRIENDS C: the whole graph at once — never a waterfall)   // (SHELL 2.0 B1: every phone LOADS the cartridge here — the walk inside)
       if (mod.createView && mod.createView.warm) mod.createView.warm(); if (typeof mod.preload === 'function') { try { mod.preload({ settings: (st.meta && st.meta.settings && st.meta.settings[ss.g]) || mod.DEFAULT_SETTINGS || {}, host: isHost() }); } catch (e) { console.warn('preload', e); } } }).catch(() => {});
   }
   const diedSaid = new Set();
@@ -447,7 +452,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     debug: () => ({ tags: [...tags.keys()], roster: roster(), seen: seen ? [...seen] : null, hits: Object.fromEntries([...tags].map(([u, T]) => [u, T.hit && { x0: Math.round(T.hit.x0), x1: Math.round(T.hit.x1), y0: Math.round(T.hit.y0), y1: Math.round(T.hit.y1) }])) }),
     nearestAt,
     destroy() {
-      destroyed = true; cancelAnimationFrame(raf); clearInterval(noteT); clearTimeout(graceT); closeHostCard(); if (offChat) offChat(); if (offFr) offFr(); if (invSheet) invSheet.close(); banner.destroy();
+      destroyed = true; clearTimeout(wireT); cancelAnimationFrame(raf); clearInterval(noteT); clearTimeout(graceT); closeHostCard(); if (offChat) offChat(); if (offFr) offFr(); if (invSheet) invSheet.close(); banner.destroy();
       // (the start's veil stays over the hand-off to the game screen — app.js's screen-in fades the game up; then it goes)
       if (goFx) { const v = goFx.veil; goFx.veil = h('i'); v.style.animation = 'none'; v.style.opacity = '1'; void v.offsetWidth; v.style.transition = 'opacity 0.45s ease'; v.style.opacity = '0'; setTimeout(() => v.remove(), 500); endFx(); }
       // (SPEED PASS B: out of the room only YOUR figure leaves the promenade — waving only on a LEAVE; the others carry on inside)

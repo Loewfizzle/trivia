@@ -45,6 +45,27 @@ export function loadGame(id) {
   }, e => { delete pending[id]; throw e; }));
 }
 export const metaOf = id => GAME_MODULES[id] || META[id] || null;
+// FRIENDS C — THE SLOW-3G START (OC8: on slow 3G a guest's match screen came ~7 s late — the cartridge, then its view, then their modules,
+// each discovered only once its parent arrived: a waterfall of round trips). js/games/preload-graph.js (GENERATED — scripts/build-preload-graph.mjs)
+// lists each playable cartridge's WHOLE graph past the boot; preloadGame(id) puts every module on the wire AT ONCE (<link rel="modulepreload">)
+// + its two stylesheets, then loads it as before. primeGraph() fetches the tiny list ahead (a phone entering a room) — never at boot.
+let graphP = null;
+const wired = new Set();
+export function primeGraph() { return (graphP ||= import('./preload-graph.js').then(m => m.PRELOAD).catch(() => { graphP = null; return null; })); }
+/** the graph's links only (fetched + parsed, never run — no side effects): the lobby wires the playable cartridges ahead of any start */
+export function wireGame(id) {
+  if (typeof document === 'undefined' || !LOADERS[id] || GAME_MODULES[id]) return Promise.resolve(false);
+  return primeGraph().then(G => {
+      const add = (rel, href, as) => { if (wired.has(href)) return; wired.add(href); const l = document.createElement('link'); l.rel = rel; l.href = href; if (as) l.as = as; document.head.append(l); };
+      for (const f of (G && G[id]) || []) add('modulepreload', new URL(`../../${f}`, import.meta.url).href);
+      for (const n of ['kit', id]) add('preload', new URL(`../../css/${n}.css`, import.meta.url).href, 'style');
+      return true;
+  });
+}
+export function preloadGame(id) {
+  wireGame(id);
+  return loadGame(id);
+}
 export function onGameLoaded(fn) { loadedFns.add(fn); return () => loadedFns.delete(fn); }
 
 export function livePathsFor(game) {
