@@ -5,9 +5,10 @@
 export const SW = 1000, SH = 630, C = Object.freeze({ x: 740, y: 400 });
 export const R_OUT = 190, R_IN = 172, R_NUM = 240, R_WEDGE = 160, R_HUB = 46;
 export const DEG = Math.PI / 180;
-/** the floors: 1 … 9 then PH, from 188° (left, just under the horizontal) up to ~74° (PH — up and right of the top) */
+/** the floors: 1 … 9 then PH, from 188° (left, just under the horizontal) to 9 at 88.8°, then PH set apart at 66° (PH — up and right of the top) */
 export const FLOORS = Object.freeze(['1', '2', '3', '4', '5', '6', '7', '8', '9', 'PH']);
-export const ANG = Object.freeze(FLOORS.map((_, i) => (188 - 12.7 * i) * DEG));
+export const ANG = Object.freeze(FLOORS.map((_, i) => (i < 9 ? 188 - 12.4 * i : 66) * DEG));   // (PH set apart: 22.8° past 9)
+export const STEP = 12.4 * DEG;
 export const PH = FLOORS.length - 1;
 export const PH_BAND = Object.freeze([0.2, 0.52]);
 /** a point at math angle a (radians, counter-clockwise from +x) and radius r round the pivot, in scene units (y down) */

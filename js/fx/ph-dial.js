@@ -14,7 +14,7 @@ import { sprite, stamp, glow, sparkle, clamp01, smooth, lerp, fract } from './ki
 import { rrect } from './renderer.js';
 import { bakeDpr } from './sg-kit.js';
 
-import { SW, SH, C, R_OUT, R_IN, R_NUM, R_WEDGE, R_HUB, DEG, FLOORS, ANG, PH, pt, phMap } from './ph-specs.js';
+import { SW, SH, C, R_OUT, R_IN, R_NUM, R_WEDGE, R_HUB, DEG, FLOORS, ANG, PH, STEP, pt, phMap } from './ph-specs.js';
 const LOOP = 8, STILL_T = 5;
 
 // ---- the gold (2D bakes only): a brushed vertical gold · a polished ring (conic where the browser has it) ----
@@ -108,7 +108,7 @@ function scene(w, h, full, dpr) {
       c.fillStyle = g; c.fill();
     });
     // the minute ticks inside the ring
-    for (let a = 180; a >= 0; a -= 4.4) { const r0 = Math.abs((188 - a) % 12.7) < 0.1 ? R_IN - 14 : R_IN - 8, [x0, y0] = pt(a * DEG, r0), [x1, y1] = pt(a * DEG, R_IN - 2); c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.strokeStyle = 'rgba(232,190,110,0.45)'; c.lineWidth = 1.4; c.stroke(); }
+    for (let a = 180; a >= 0; a -= 4.133) { const r0 = Math.abs((188 - a) % 12.4) < 0.1 ? R_IN - 14 : R_IN - 8, [x0, y0] = pt(a * DEG, r0), [x1, y1] = pt(a * DEG, R_IN - 2); c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.strokeStyle = 'rgba(232,190,110,0.45)'; c.lineWidth = 1.4; c.stroke(); }
     c.restore();
     // THE ARCH RING: polished gold (conic), a bevel — a light inner lip + a dark outer edge — + its specular line
     c.save();
@@ -189,7 +189,7 @@ function draw(c, s, t, Q) {
   for (let i = 0; i < FLOORS.length; i++) {
     let a;
     if (i === PH) a = landed;
-    else { const passed = ang <= ANG[i] + 0.5 * DEG; const since = passed ? (ANG[i] - ang) / (12.7 * DEG) : -1; a = passed && p < 2.6 ? clamp01(1 - since * 0.55) * (1 - smooth(2.1, 2.7, p)) : 0; }
+    else { const passed = ang <= ANG[i] + 0.5 * DEG; const since = passed ? (ANG[i] - ang) / STEP : -1; a = passed && p < 2.6 ? clamp01(1 - since * 0.55) * (1 - smooth(2.1, 2.7, p)) : 0; }
     if (a <= 0.01) continue;
     // the lit wedge (warm gold, 'lighter' over the dim one)
     const half = 6.1 * DEG;
