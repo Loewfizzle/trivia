@@ -90,3 +90,18 @@
 - THROWAWAY PROFILES (for THE DAILY MODULE — NOT this pass): a daily only COUNTS (standing, THE BOARD, rewards, ranking) if the profile
   existed before that day's 4 am Eastern start; same-day new profiles can still play but don't rank / award; plus a per-IP limit on new
   profiles. (Chosen over the review's "3 counted matches" floor, which would block solo players.)
+
+## DM1 — THE DAILY MODULE: THE ENGINE (Nov 8 2026 — every daily still ships OFF)
+- OVERCLOCK 6 is DROPPED as a daily (Ben, Nov 8). Its built daily plug-in stays in the code, off and unused; THE DAILY MODULE does not wire
+  it. The dailies are THE PASSWORD + COAST CLEAR, with a slot for a THIRD daily (TBD, built later).
+- PLUG-AND-PLAY DAILIES: no fixed count anywhere. config.js#DAILIES drives the picker, the TODAY rows, the SCORES tabs, the dock badge, the
+  sweep, SHARE TODAY (fits 1–6 rows), PERFECT WEEK and the daily XP cap. Adding a daily = its cartridge (D2) + one line in the list.
+- THE SWEEP = finishing ALL of today's dailies (however many). The dormant achievement "THE TRIPLE" (catalog id the-triple, emblem emb-stars) is
+  RENAMED "THE SWEEP" and counts today's dailies from the list (keep its id + emblem so nothing breaks).
+- THE THROWAWAY GATE: a daily only COUNTS — standing, the everyone band, YOUR TABLE rank, THE BOARD, rewards — if the player's profile EXISTED
+  BEFORE that day's 4 am Eastern start. A same-day new profile can still play (and keeps its streak / XP as usual) but its result doesn't rank
+  or award. Plus a per-IP limit on new profiles and a per-player limit on daily calls.
+- THE PASSWORD's word schedule is FROZEN (the order fixed once, so later list edits never reshuffle days already scheduled).
+- THE ROOM WINS (server side): a daily pause is accepted only when the player's room really started a game.
+- PENTHOUSE card = top 1% of a daily (DM2 builds the card — design "A · THE DIAL", drawn in code).
+- The go-live switch exists but stays OFF until THE SWITCH-OVER (repo private first, then fresh reserves / schedules, then on).
