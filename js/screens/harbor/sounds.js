@@ -266,6 +266,8 @@ export function createCitySounds() {
     if (s) {
       const heli = s.air && s.air.heli;
       run('helicopter', heli ? (heli.hover ? 1 : 0.75) * sk : 0, heli ? panX(heli.x, W) : 0, { ramp: 0.6 });
+      // (FRIENDS C — THE BLACK HELICOPTER: its quiet synthesized rotor THUMP under the flybys — louder while it hovers, panned with it)
+      run('rotor-thump', heli && heli.black && !heli.off ? (heli.hover ? 1 : 0.7) * sk : 0, heli ? panX(heli.x, W) : 0, { ramp: 0.8 });
       // the loudest airliner: fading in / out at the ends of its crossing, the bigger (nearer) ones louder, panned with it
       let best = null, bl = 0;
       for (const p of (s.air && s.air.planes) || []) {

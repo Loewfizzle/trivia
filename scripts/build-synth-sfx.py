@@ -11,6 +11,9 @@ batch"): written as WAVs into a folder the city-sounds importer reads, then impo
   * periscope-ping (a one-shot): a submarine's SONAR PING as the periscope breaks the surface — a clean 1.25 kHz ping (5 ms attack, a
     slight downward glide), its long UNDERWATER ECHO: a 3.6 s dark reverb tail (filtered decaying noise convolved) + two soft discrete
     returns — all of it in the 0.6–2.5 kHz band a phone plays
+  * rotor-thump (a loop — FRIENDS C, THE BLACK HELICOPTER): a helicopter's ROTOR THUMP, far + low — a train of soft blade-pass thuds
+    (~7.2 a second: low-passed noise bursts 70–260 Hz, each a 45 ms decay) + a faint blade SLAP on each (0.5–1.4 kHz), a slow breathing
+    swell (the craft turning), a whisper of turbine whine — felt more than heard; it lifts the low thuds into the band a phone plays
 Deterministic (seeded), mono 44.1 kHz 16-bit. Licence: made here, CC0.
 """
 import os
@@ -136,6 +139,27 @@ def horn(blasts=((0.0, 1.15), (1.6, 1.15), (3.2, 1.6)), tail=2.6):
     return norm(y * fade)
 
 
+def thump(dur=37.0, rate=7.2):
+    n = int(dur * SR); t = np.arange(n) / SR; y = np.zeros(n)
+    k = 0.045
+    env = np.exp(-np.arange(int(0.16 * SR)) / SR / k)
+    lowb = band(rng.standard_normal(len(env)) * env, 70, 260)
+    slap_env = np.exp(-np.arange(int(0.05 * SR)) / SR / 0.012)
+    for i in range(int(dur * rate)):
+        at = int((i / rate + rng.uniform(-0.002, 0.002)) * SR)
+        if at + len(env) >= n: break
+        a = 0.85 + 0.15 * rng.random()
+        y[at:at + len(env)] += lowb * a
+        sl = band(rng.standard_normal(len(slap_env)) * slap_env, 500, 1400) * 0.22 * a
+        y[at:at + len(sl)] += sl
+    # the swell: the craft turning (two slow sines — seamless enough over the importer's crossfade)
+    y *= 0.78 + 0.16 * np.sin(2 * np.pi * t / 7.0) + 0.06 * np.sin(2 * np.pi * t / 3.5 + 1.0)
+    whine = np.sin(2 * np.pi * 1780 * t + 0.4 * np.sin(2 * np.pi * 0.3 * t)) * 0.012
+    # (the low thuds' 2nd harmonic lifted: a phone's speaker rolls off below ~200 Hz)
+    y = y + 0.5 * band(np.abs(y) - np.mean(np.abs(y)), 140, 420)
+    return norm(y + whine, 0.8)
+
+
 def write(name, y):
     os.makedirs(OUT, exist_ok=True)
     wf.write(os.path.join(OUT, name), SR, (np.clip(y, -1, 1) * 32767).astype(np.int16))
@@ -147,7 +171,8 @@ if __name__ == '__main__':
     write('periscope-ping.wav', ping())
     write('cat-hiss.wav', hiss())
     write('tower-horn-3.wav', horn())
+    write('rotor-thump.wav', thump())
     with open(os.path.join(OUT, 'credits.txt'), 'w', encoding='utf-8') as fh:
-        for f, what in (('hydrant-spray.wav', 'an open fire hydrant: the stream’s hiss + the splash on cobbles'), ('periscope-ping.wav', 'a submarine sonar ping with its underwater echo'), ('cat-hiss.wav', 'a cat’s hiss (11a-1)'), ('tower-horn-3.wav', 'a deep compressed-air warning horn, three blasts, far (9g: HORN C)')):
+        for f, what in (('hydrant-spray.wav', 'an open fire hydrant: the stream’s hiss + the splash on cobbles'), ('periscope-ping.wav', 'a submarine sonar ping with its underwater echo'), ('cat-hiss.wav', 'a cat’s hiss (11a-1)'), ('tower-horn-3.wav', 'a deep compressed-air warning horn, three blasts, far (9g: HORN C)'), ('rotor-thump.wav', 'a helicopter rotor thump, far + low (FRIENDS C: THE BLACK HELICOPTER)')):
             fh.write(f'{f}\n    {what} — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)\n\n')
     print('credits.txt written')

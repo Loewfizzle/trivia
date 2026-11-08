@@ -1557,6 +1557,12 @@ are kept anyway, with each source file's MD5.
 - Original: Freesound user geogblog, "Backyard party Bloor-Dovercourt Toronto 26 Jun 2011" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
+## rotor-thump.wav  →  rotor-thump
+
+- MD5 `910e6008b1a62188063c6be886c09c3a`
+- rotor-thump.wav
+- a helicopter rotor thump, far + low (FRIENDS C: THE BLACK HELICOPTER) — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)
+
 ## scissors-snip.wav  →  scissors-snip
 
 - MD5 `271035fc17c884a726d6a8fd0ff51da7`

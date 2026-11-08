@@ -44,11 +44,11 @@ export function dayChart(dateKey, o = {}) {
   // THE LEGENDARIES (the showcase's list — their minutes)
   const L = legendsTonight(y, m, d, lv);
   for (const x of L) add('legendary', x.h, x.h + x.len / 3600, NAMES[x.kind] || x.kind.toUpperCase(), true);
-  // THE MEDIUM TIER (the scheduled plane passes + the extra helicopter passes)
+  // THE MEDIUM TIER (the scheduled plane passes + THE BLACK HELICOPTER — FRIENDS C: the medium tier's night helicopter pass is it)
   for (const e of mediumDay(wkey, day0, dow, { level: lv })) if (e.kind === 'plane') add('medium', H(e.t), H(e.t) + 40 / 3600, 'An airliner crossing');
   // THE PATROL (the helicopter's own timetable)
   const elAt = t => sunPosition(t * 1000, lat, lon).el;
-  for (const f of patrolDay(day0 + 12 * 3600, off, elAt, seed)) add(f.medium ? 'medium' : 'sky', H(f.t0), H(f.t0 + f.dur), f.medium ? 'A helicopter pass (the medium tier)' : f.night ? 'The helicopter patrol (its searchlight)' : 'The helicopter patrol');
+  for (const f of patrolDay(day0 + 12 * 3600, off, elAt, seed)) add(f.medium ? 'medium' : 'sky', H(f.t0), H(f.t0 + f.dur), f.medium ? 'THE BLACK HELICOPTER (the medium tier)' : f.night ? 'The helicopter patrol (its searchlight)' : 'The helicopter patrol');
   // THE WORKERS' DAY (the shows + the regulars)
   for (const w of workDay(wkey, { seed, day0, off })) add('workers', H(w.t0), H(w.t1 || w.t0 + 300), WORKER_NAMES[w.kind] || `The ${w.kind.replace(/\d+$/, '')}`);
   // THE WINDOWS (the scenes + the shadowboxer)

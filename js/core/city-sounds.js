@@ -193,6 +193,8 @@ export const SLOTS = [
   // day hum's −43.6 LUFS: −43 to −43.5), the airliners, the banner plane, the geese + the drone hum +3.5 dB (an airliner ≈ −49.3, the
   // banner plane ≈ −46.5, the swarm ≈ −51.5) — and ducked with the bed under the music (bedMix's k))
   S('helicopter', 'sky', 'once', 0.117, 'a helicopter, distant + a flyby (two takes)', 'the helicopter while it’s up: its flybys chained, panned with it, louder while it hovers'),
+  // (FRIENDS C — THE BLACK HELICOPTER: a quiet SYNTHESIZED rotor thump under it while it's up — scripts/build-synth-sfx.py; felt more than heard)
+  S('rotor-thump', 'sky', 'loop', 0.06, 'a helicopter rotor thump, far + low (synthesized)', 'THE BLACK HELICOPTER while it’s up (sounds.js#tick: louder while it hovers, panned with it)'),
   S('airliner-far', 'sky', 'once', 0.051, 'an airliner far up (a long, slow flyby)', 'the airliners while one crosses (the nearest: its flyby from the start of its crossing, panned, swelling with it)'),
   S('prop-plane', 'sky', 'once', 0.071, 'a vintage prop plane overhead (two swells: a plane circling)', 'the banner plane, the skywriters'),
   // (FP3b, the owner's 8P note 10 — "sound great, a bit louder still": +3 dB (0.14 → 0.198) + a slightly deeper dip of the music (−3.6 →

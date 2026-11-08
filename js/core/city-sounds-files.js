@@ -476,6 +476,9 @@ export const FILES = /*FILES*/{
   "rooftop-party": [
     {"f": "rooftop-party.mp3", "v": "50893bee", "d": 23.0, "lufs": -24.4, "loop": 21.0, "xf": 2.0, "from": [40.0, 63.0], "src": "rooftop-party", "r": 16000}
   ],
+  "rotor-thump": [
+    {"f": "rotor-thump.mp3", "v": "32bb6692", "d": 33.0, "lufs": -24.4, "loop": 30.5, "xf": 2.5, "from": [2.8, 35.8], "src": "rotor-thump", "r": 16000}
+  ],
   "scissors-snip": [
     {"f": "scissors-snip_1.mp3", "v": "0eed15e4", "d": 0.8, "lufs": -26.7, "peak": 0.15, "sw": [0.15, 0.55], "from": [0.05, 0.85], "src": "scissors-snip"},
     {"f": "scissors-snip_2.mp3", "v": "b9ee6df5", "d": 1.1, "lufs": -26.8, "peak": 0.7, "sw": [0.5, 0.75], "from": [1.2, 2.3], "src": "scissors-snip"},

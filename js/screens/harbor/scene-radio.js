@@ -1,7 +1,7 @@
 // CITY CONTROLS A — THE RADIO in the city (a cut like scene-legend / scene-fireworks): the moments the owner (+ CC-B's crew) FIRED, played
 // ONCE each at their start on the server clock — never the preview panel's loop (a forced preview starts again a few seconds after each
 // end + vanishes when cleared; a fired moment plays its whole length + leaves by its own motion). core/harbor-radio.js#startOf says how:
-//   legend:<kind> · flyby · blackbird · words (skytyped by day in the SMOKE COLOUR picked — CC-B; the DRONE SHOW after dark — in its colour) · banner · balloons
+//   legend:<kind> · flyby · blackbird · blackhelo (FRIENDS C) · words (skytyped by day in the SMOKE COLOUR picked — CC-B; the DRONE SHOW after dark — in its colour) · banner · balloons
 //   · fireworks (a one-off show: the weeknight's or the full party show) · lightning · hold:<force id> (the force held on for its length —
 //   the searchlights, the sky beams, the party, a dance break)
 // A night-only moment on a phone where it's still light is skipped there (the city's time ALWAYS follows the real clock). A late load
@@ -42,6 +42,7 @@ export function createSceneRadio(C) {
     else if (p.kind === 'blackbird') C.stopBlackbird();
     else if (p.kind === 'lightning') C.stopLightning();
     else if (p.kind === 'fireworks') fw = fw.filter(s => s.id !== id);
+    else if (p.kind === 'blackhelo') { try { const api = C.sky(); if (api && api.stopBlackhelo) api.stopBlackhelo(); } catch { /* fine */ } }
     else if (p.kind !== 'hold') { try { const api = C.sky(); if (api && api.stop) api.stop(); } catch { /* fine */ } }
   }
   function begin(m, S, now, S0) {
@@ -51,6 +52,7 @@ export function createSceneRadio(C) {
       case 'legend': C.legend(S.arg, atClock); return true;
       case 'flyby': return !!(a && a.airshow('flyby', { at: atClock }));
       case 'blackbird': return !!C.blackbird(atClock);
+      case 'blackhelo': return !!(a && a.blackhelo && a.blackhelo({ at: atClock, seed: (m.id || '').length + Math.floor(S0 / 1000) }));   // (FRIENDS C — THE BLACK HELICOPTER)
       case 'words': {
         if (!a) return false;
         if (C.dark()) return !!a.drones([{ text: S.text }], { at: atClock, colour: S.colour === 'rainbow' ? 'rainbow' : `#${S.colour || 'ffffff'}` });

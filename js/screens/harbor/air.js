@@ -187,6 +187,18 @@ function loadHeliModel() {
   return heliLoad;
 }
 export const heliModelReady = () => !!heliModel;
+// FRIENDS C — THE BLACK HELICOPTER's sprites (scripts/bake/blackhelo.mjs: the same model ALL BLACK + a cold rim, 12 headings, + its ROTOR's
+// motion-blurred spin frames): LAZY — fetched as it sets off, dropped once it has flown (4.8 MB decoded: never held for nothing)
+const BHELI = new URL('../../../assets/city/blackhelo/', import.meta.url);
+let blackLoad = null, blackModel = null;
+function loadBlackModel() {
+  if (blackLoad) return blackLoad;
+  const img = n => new Promise((res, rej) => { const i = new Image(); i.decoding = 'async'; i.onload = () => (i.decode ? i.decode().catch(() => {}) : Promise.resolve()).then(() => res(i)); i.onerror = () => rej(new Error(n)); i.src = new URL(n, BHELI).href; });
+  blackLoad = (async () => { const r = await fetch(new URL('blackhelo.json', BHELI).href); if (!r.ok) throw new Error('blackhelo.json'); const meta = await r.json(); const [b, rot] = await Promise.all([img('blackhelo.webp'), img('rotor.webp')]); blackModel = { meta, sheets: { black: b }, rotor: rot }; return blackModel; })();
+  blackLoad.catch(() => { blackLoad = null; });
+  return blackLoad;
+}
+function dropBlackModel() { if (blackModel) { blackModel.sheets.black.src = ''; blackModel.rotor.src = ''; } blackModel = null; blackLoad = null; }
 
 // ------------------------------------------------------------------ the module
 export function createAir() {
@@ -461,6 +473,31 @@ export function createAir() {
     clearLegs(route, occ, len, top, bot);
     return { start, route, dir, spr: null, sprKey: '', len, own: false, sp: P.speed * K, occKey: occKeyOf(s), seed, occRef: s.heliOcc, avRef: s.avoidSky };
   }
+  // FRIENDS C — THE BLACK HELICOPTER's FLIGHT (core/harbor-schedule.js medium.heli → knobs.black): in LOW over the harbor from one side
+  // (bigger than the patrol: `size` × its near size), a HOVER over the water mid-screen (it turns toward us + sweeps its searchlight —
+  // beam0), then it BANKS AWAY: climbing + shrinking (away into the distance) off the other side. Clear of every sign + near piece (the
+  // patrol's own rules: avoidSky, heliOcc, clearLegs). seed: its side.
+  function blackPlan(s, start, seed) {
+    const wl = s.lanes && s.lanes.water;
+    if (!wl) return null;
+    const P = knob('medium.heli').black, PP = knob('helicopter.patrol'), dir = seed % 2 ? 1 : -1;
+    const len = 28 * K * PP.near * P.size, top = len * 0.36, bot = len * 0.26, avoid = (s.avoidSky || []).filter(r => r && r.w > 0 && r.h > 0), occ = (s.heliOcc || []).filter(r => r && r.w > 0 && r.h > 0);
+    let y = wl.y + wl.h * P.y;
+    for (let pass = 0; pass < 2; pass++) for (const r of avoid) if (r.y + r.h > wl.y - 90 * K && r.y + r.h < y + bot) y = Math.max(y, r.y + r.h + top + 3);
+    y = Math.min(y, wl.y + wl.h - bot * 0.4);
+    const rnd = i => { let h = (Math.imul(seed | 0, 2654435761) + Math.imul(i + 1, 40503)) >>> 0; h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0; h ^= h >>> 13; return (h % 100000) / 100000; };
+    // (the hover: LOW over the water — the first spot across the harbor where nothing (a near piece, a sign) stands in front of the craft at
+    //  the low line; only if none is clear does it climb over them, as the patrol does)
+    const hit = (x, yy) => [...occ, ...avoid].some(r => r.x < x + len * 0.62 && r.x + r.w > x - len * 0.62 && r.y < yy + bot && r.y + r.h > yy - top);
+    const j0 = rnd(1) * 0.08, cands = [0.5, 0.4, 0.6, 0.32, 0.68, 0.45, 0.55, 0.25, 0.75].map(v => (dir > 0 ? v + j0 - 0.04 : 1 - v - j0 + 0.04) * W);
+    let x = cands.find(cx => !hit(cx, y));
+    let sy = y;
+    if (x == null) { x = cands[0]; for (let pass = 0; pass < 3; pass++) for (const r of [...occ, ...avoid]) if (r.x < x + len * 0.62 && r.x + r.w > x - len * 0.62 && r.y < sy + bot && r.y + r.h > sy - top) sy = r.y - bot - 6 * K; }
+    const inX = dir > 0 ? -len : W + len, outX = dir > 0 ? W + len : -len;
+    const route = [[inX, sy - 10 * K, 0, 1], [x, sy, P.hover, 1, { id: 'bh', sweep: true }], [outX, sy - P.climb * K, 0, P.away, { v: 1.15 }]];
+    clearLegs(route, occ, len, top, bot);
+    return { start, route, dir, spr: null, sprKey: '', len, own: false, sp: P.speed * K, occKey: null, seed, occRef: s.heliOcc, avRef: s.avoidSky, mode: 'black', black: true };
+  }
   /** the near pieces' rects as a key — a route planned before they were all registered (a slow phone's first seconds) re-plans */
   function occKeyOf(s) {
     const r4 = r => `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.w)},${Math.round(r.h)}`;
@@ -589,15 +626,18 @@ export function createAir() {
     if (!heli) return null;
     const e = (s.now - heli.start) / 1000;
     if (e < 0) return null;
-    if (!heli.own && heli.mode !== 'break' && heli.occKey != null && (heli.occRef !== s.heliOcc || heli.avRef !== s.avoidSky)) replanHeli(s, e);
+    if (!heli.own && heli.mode !== 'break' && !heli.black && heli.occKey != null && (heli.occRef !== s.heliOcc || heli.avRef !== s.avoidSky)) replanHeli(s, e);
     const p = heli.mode === 'break' ? breakAt(heli, e, s.now / 1000) : { ...heliAt(heli, e), yaw: 0, pitch: 0 };
-    if (p.done) { if (heli.spr) heli.spr.cv.width = 0; if (heli.mspr) heli.mspr.width = 0; heli = null; return null; }
-    if (heli.mode !== 'break') { p.pitch = p.hover ? 0 : 0.07 * p.dir * Math.min(1, Math.abs(p.vx) / (40 * K)); p.patrol = true; p.yaw = heliModel ? turn(heli, p, e) : p.dir; if (!heliModel) heli.th = p.dir > 0 ? 0 : Math.PI; } else p.yaw = turn(heli, p, e);
+    if (p.done) { if (heli.spr) heli.spr.cv.width = 0; if (heli.mspr) heli.mspr.width = 0; if (heli.black) dropBlackModel(); heli = null; return null; }
+    // (FRIENDS C: the black one BANKS harder as it leaves — a steeper tilt into the climb away)
+    const hasM = heli.black ? !!blackModel : !!heliModel;
+    if (heli.mode !== 'break') { p.pitch = p.hover ? 0 : (heli.black ? 0.12 : 0.07) * p.dir * Math.min(1, Math.abs(p.vx) / (40 * K)); p.patrol = true; p.yaw = hasM ? turn(heli, p, e) : p.dir; if (!hasM) heli.th = p.dir > 0 ? 0 : Math.PI; } else p.yaw = turn(heli, p, e);
     const L = heli.len, sc = p.sc || 1, t = s.t, ext = L * sc * 0.8;
     // (off-screen — the turn round behind the city: not drawn, no beam)
     if (p.x < -ext || p.x > W + ext) return { x: p.x, y: p.y, dir: p.dir, hover: 0, off: true, e, sc, behind: !!p.behind };
     // (SKY-B: the far pass is drawn in the SKY layer, behind the towers; the near pass after the city — each layer draws only its own)
     if ((layer === 'sky') !== !!p.behind) return { x: p.x, y: p.y, dir: p.dir, hover: p.hover, off: true, e, sc, behind: !!p.behind };
+    if (heli.black) return blackModel ? drawModel(c, s, look, p, e, L, sc, t, blackModel) : { x: p.x, y: p.y, dir: p.dir, hover: p.hover, off: true, e, sc, behind: false };   // (FRIENDS C: never the drawn navy chopper — it waits off-screen for its sprites)
     if (heliModel) return drawModel(c, s, look, p, e, L, sc, t);
     const S = heliSprite(heli, look), yw = p.yaw || p.dir;
     c.save(); c.translate(p.x, p.y); c.rotate(p.pitch || 0); c.scale(sc * yw, sc);
@@ -616,8 +656,25 @@ export function createAir() {
     const tx = -L * 0.6, ty = -L * 0.06;
     c.fillStyle = rgb(rc, 0.3); c.beginPath(); c.arc(tx, ty, L * 0.085, 0, TAU); c.fill();
     // the lights at night: the red beacon on the boom, the nav lights, a white tail light
-    const lightA = clamp01((look.dark + look.golden * 0.3) * 1.3);
-    if (lightA > 0.03) {
+    const lightA = black ? Math.max(0.55, clamp01((look.dark + look.golden * 0.3) * 1.3)) : clamp01((look.dark + look.golden * 0.3) * 1.3);
+    const refl = [];
+    if (black) {
+      // FRIENDS C — THE BLACK HELICOPTER's LIGHTS (small but readable at ~100 pt): the RED nav light on its LEFT (port) + the GREEN on its
+      // RIGHT (starboard) — the near side bright, the far side dimmer as it turns toward us — a WHITE STROBE double-flash every 1.2 s, the
+      // red anti-collision BEACON on top; each mirrored faintly on the harbor below (refl)
+      c.globalCompositeOperation = 'lighter';
+      const r = 3.4 * K * Math.max(1, (L * sc) / (28 * K)) ** 0.55, cs0 = Math.cos(th), sn0 = Math.abs(Math.sin(th));
+      const [nx, ny] = P(lerpP('nose')), [lx, ly] = P(lamp), [bx2, by2] = P(lerpP('beacon')), [tlx, tly] = P(lerpP('tailLight'));
+      const navX = nx * 0.55 + lx * 0.45, navY = ny * 0.55 + ly * 0.45;
+      const near = cs0 >= 0 ? [60, 255, 140] : [255, 50, 60], far = cs0 >= 0 ? [255, 50, 60] : [60, 255, 140];
+      const bk = s.motion ? Math.max(0, Math.sin(t * TAU / 1.1)) ** 3 : 0.5, ph = s.motion ? t % 1.2 : 0.3, strobe = ph < 0.06 || (ph > 0.17 && ph < 0.23) ? 1 : 0;
+      c.globalAlpha = lightA * 0.95; c.drawImage(glow(...near), navX - r, navY - r, r * 2, r * 2); refl.push([navX, navY, near, 0.95]);
+      if (sn0 > 0.15) { const fx = navX - Math.sign(cs0 || 1) * r * 1.1 * sn0; c.globalAlpha = lightA * 0.5 * sn0; c.drawImage(glow(...far), fx - r * 0.8, navY - r * 0.8, r * 1.6, r * 1.6); refl.push([fx, navY, far, 0.4 * sn0]); }
+      c.globalAlpha = lightA * bk; c.drawImage(glow(255, 40, 50), bx2 - r * 1.5, by2 - r * 1.5, r * 3, r * 3); refl.push([bx2, by2, [255, 40, 50], bk]);
+      if (strobe) { c.globalAlpha = lightA; c.drawImage(glow(255, 255, 255), tlx - r * 2.2, tly - r * 2.2, r * 4.4, r * 4.4); c.drawImage(glow(255, 255, 255), lx - r * 1.4, ly - r * 1.4, r * 2.8, r * 2.8); refl.push([tlx, tly, [255, 255, 255], 1]); }
+      c.globalAlpha = lightA * 0.85; c.drawImage(glow(240, 246, 255), lx - r * 0.9, ly - r * 0.9, r * 1.8, r * 1.8);
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+    } else if (lightA > 0.03) {
       c.globalCompositeOperation = 'lighter';
       const bk = s.motion ? Math.max(0, Math.sin(t * TAU / 1.1)) ** 3 : 0.5, r = 3.2 * K * Math.max(1, L / (28 * K)) ** 0.6;   // (SKY-A: a bigger craft, bigger lights)
       // (6b: at night it reads by its lights — the searchlight's lamp under its belly, a warm cockpit glow)
@@ -628,13 +685,21 @@ export function createAir() {
       c.globalAlpha = lightA * 0.6; c.drawImage(glow(255, 255, 255), tx - L * 0.03 - r * 0.8, ty - r * 0.8, r * 1.6, r * 1.6);
     }
     c.restore();
+    // (FRIENDS C — the black one's lights on the harbor: a soft vertical streak under each, as far below the water's face as the light is
+    //  above it — only on the water, faint)
+    if (refl.length && lastWater && lastWater.waterY > lastWater.waterTop) {
+      const ws = Math.min(lastWater.waterY, p.y + L * sc * 1.1), r = 3.4 * K * Math.max(1, (L * sc) / (28 * K)) ** 0.55;
+      c.save(); c.beginPath(); c.rect(0, lastWater.waterTop, W, lastWater.waterY - lastWater.waterTop + 18 * K); c.clip(); c.globalCompositeOperation = 'lighter';
+      for (const [rx, ry0, col, a] of refl) { const wy = p.y + ry0, yr = ws + (ws - wy) * 0.55; if (yr < lastWater.waterTop) continue; c.globalAlpha = 0.22 * a * lightA; c.drawImage(glow(...col), p.x + rx - r * 0.9, yr - r * 3, r * 1.8, r * 6); }
+      c.restore();
+    }
     // (the belly's lamp on screen: the beam's start)
     const bx = L * 0.08 * sc * yw, by = L * 0.12 * sc, cs = Math.cos(p.pitch || 0), sn = Math.sin(p.pitch || 0);
     return { x: p.x + bx * cs - by * sn, y: p.y + bx * sn + by * cs, cx: p.x, cy: p.y, dir: p.dir, hover: p.hover, e, sc, yaw: +yw.toFixed(2), behind: !!p.behind, look: p.look || null, stop: p.stop || null };
   }
   // MODELS — THE BAKED CRAFT at heading th (rad; its two nearest views cross-faded — never a stepped turn), its rotors + lights live
-  function drawModel(c, s, look, p, e, L, sc, t) {
-    const M = heliModel.meta, N = M.yaws, th = heli.th != null ? heli.th : (p.dir > 0 ? 0 : Math.PI);
+  function drawModel(c, s, look, p, e, L, sc, t, MD = heliModel) {
+    const M = MD.meta, N = M.yaws, black = !!(heli && heli.black), th = heli.th != null ? heli.th : (p.dir > 0 ? 0 : Math.PI);
     const deg = ((th * 180 / Math.PI) % 360 + 360) % 360, fi = deg / (360 / N), i0 = Math.floor(fi) % N, i1 = (i0 + 1) % N, f = fi - Math.floor(fi);
     const k = (L * sc) / M.px;                          // (pt a sprite px: the fuselage's length 2 units = M.px px = L × sc pt)
     const F0 = M.frames[i0], F1 = M.frames[i1], lerpP = key => [F0[key][0] + (F1[key][0] - F0[key][0]) * f, F0[key][1] + (F1[key][1] - F0[key][1]) * f];
@@ -644,13 +709,13 @@ export function createAir() {
     c.save(); c.translate(p.x, p.y); c.rotate(pitch);
     // (THE SPRITE, cached: the two nearest views × the hour's two lights blended ONCE into a small canvas at this size — rebuilt only when
     // the heading, the light or the size moves on (the turn quantised to sixths): one drawImage a frame, as the drawn chopper was)
-    const fq = Math.round(f * 6) / 6, nq = Math.round(n * 6) / 6, sz = Math.max(4, Math.round(L * sc)), d = Math.min(3, dpr * 1.25), key = `${i0}|${i1}|${fq}|${nq}|${sz}|${d}`;
+    const fq = Math.round(f * 6) / 6, nq = Math.round(n * 6) / 6, sz = Math.max(4, Math.round(L * sc)), d = Math.min(3, dpr * 1.25), key = `${black ? 'B' : ''}${i0}|${i1}|${fq}|${nq}|${sz}|${d}`;
     if (!heli.mspr || heli.msprKey !== key) {
       const kk = sz / M.px, w = Math.ceil(M.fw * kk * d), hgt = Math.ceil(M.fh * kk * d);
       if (!heli.mspr) heli.mspr = mk(w, hgt); else if (heli.mspr.width !== w || heli.mspr.height !== hgt) { heli.mspr.width = w; heli.mspr.height = hgt; }
       const x = safeCtx(heli.mspr); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, w, hgt); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
       const blit = (i, a) => { if (a <= 0.003) return; const cx = (i % M.cols) * M.fw, cy = Math.floor(i / M.cols) * M.fh;
-        for (const [lt, wt] of [['day', 1 - nq], ['night', nq]]) if (wt > 0.003 && heliModel.sheets[lt]) { x.globalAlpha = a * wt; x.drawImage(heliModel.sheets[lt], cx, cy, M.fw, M.fh, 0, 0, w, hgt); } };
+        for (const [lt, wt] of (black ? [['black', 1]] : [['day', 1 - nq], ['night', nq]])) if (wt > 0.003 && MD.sheets[lt]) { x.globalAlpha = a * wt; x.drawImage(MD.sheets[lt], cx, cy, M.fw, M.fh, 0, 0, w, hgt); } };
       // (the light: night over day; the two views: the nearer one whole, the next one laid over it by how far the heading has come)
       blit(i0, 1); blit(i1, fq); x.globalAlpha = 1;
       heli.msprKey = key; heli.msprK = kk;
@@ -661,11 +726,18 @@ export function createAir() {
     // tail disc on the fin — face-on from the side, edge-on head-on
     const day = clamp01(look.day + look.golden + look.dawn) * (1 - look.dark);
     const rc = mix([34, 34, 48], [70, 74, 90], day), [hx, hy] = P(hub), R = (M.rotorR / M.lenM) * 2 * M.px * k * 0.5, ry = Math.max(0.8, R * Math.sin(M.elev * Math.PI / 180));
+    if (black && MD.rotor && M.rotor) {
+      // (FRIENDS C — THE BLACK HELICOPTER's ROTOR: its own baked spin frames, motion-blurred — the frame steps at ~30 a second (a still frame
+      //  without motion); at the hub, at the body's scale (baked at the same px))
+      const RM = M.rotor, fi2 = s.motion ? Math.floor(t * 30) % RM.n : 0;
+      c.drawImage(MD.rotor, fi2 * RM.fw, 0, RM.fw, RM.fh, hx - RM.hub[0] * k, hy - RM.hub[1] * k, RM.fw * k, RM.fh * k);
+    } else {
     if (!heli.rotorM || heli.rotorMKey !== `${rc}|${Math.round(R)}`) { heli.rotorMKey = `${rc}|${Math.round(R)}`; const g = c.createLinearGradient(-R, 0, R, 0); g.addColorStop(0, rgb(rc, 0)); g.addColorStop(0.2, rgb(rc, 0.2)); g.addColorStop(0.5, rgb(rc, 0.3)); g.addColorStop(0.8, rgb(rc, 0.2)); g.addColorStop(1, rgb(rc, 0)); heli.rotorM = g; }
     c.save(); c.translate(hx, hy); c.fillStyle = heli.rotorM; c.beginPath(); c.ellipse(0, 0, R, ry, 0, 0, TAU); c.fill();
     if (s.motion) { const ph = (t * 7.3) % 1; c.strokeStyle = rgb(rc, 0.5); c.lineWidth = Math.max(0.8, R * 0.035); c.lineCap = 'round';
       for (const o of [ph, (ph + 0.5) % 1]) { const a = o * TAU, bx = Math.cos(a) * R, by = Math.sin(a) * ry; c.beginPath(); c.moveTo(-bx, -by); c.lineTo(bx, by); c.stroke(); } }
     c.restore();
+    }
     const [tx, ty] = P(lerpP('tail')), tr = (M.tailR / M.lenM) * 2 * M.px * k * 0.5;
     c.fillStyle = rgb(rc, 0.32); c.beginPath(); c.ellipse(tx, ty, Math.max(0.6, tr * Math.abs(Math.cos(th))), tr, 0, 0, TAU); c.fill();
     // THE LIGHTS at night: the searchlight's lamp under the belly, the red beacon on the engine deck, the nav light on the near side (green
@@ -685,7 +757,7 @@ export function createAir() {
     // (the belly's lamp on screen: the beam's start — the drawn craft's own point (within a couple of pt of the model's lamp): every planner +
     // clearance check sees the same geometry as before)
     const yw = Math.cos(th), lx0 = L * 0.08 * sc * yw, ly0 = L * 0.12 * sc, cs = Math.cos(pitch), sn = Math.sin(pitch);
-    return { x: p.x + lx0 * cs - ly0 * sn, y: p.y + lx0 * sn + ly0 * cs, cx: p.x, cy: p.y, dir: p.dir, hover: p.hover, e, sc, yaw: +yw.toFixed(2), heading: Math.round(deg), behind: !!p.behind, look: p.look || null, stop: p.stop || null, model: true, w: Math.round(L * sc) };
+    return { x: p.x + lx0 * cs - ly0 * sn, y: p.y + lx0 * sn + ly0 * cs, cx: p.x, cy: p.y, dir: p.dir, hover: p.hover, e, sc, yaw: +yw.toFixed(2), heading: Math.round(deg), behind: !!p.behind, look: p.look || null, stop: p.stop || null, model: true, w: Math.round(L * sc), black };
   }
   // ATM-D — a stop's searchlight spot from a lamp at (hx, hy), the craft facing d, its wanted kind (look) — or null (no clear spot)
   function spotFor(hx, hy, d, look, s, waterY, waterTop) {
@@ -773,10 +845,10 @@ export function createAir() {
   function beam0(c, s, waterY, part = 'near', waterTop = 0) {
     const h = heliNow;
     if (!h || h.off || !heli || heli.mode === 'break') { if (part === 'near') beamAng = null; return; }   // (NIGHT-C: a break's beam is breakDraw's — on the crowd)
-    const look = airLook(s.L), k = clamp01((look.dark - 0.35) * 2) * (s.L.fog > 0.6 ? 0.6 : 1);
+    const look = airLook(s.L), k = clamp01((look.dark - 0.35) * 2) * (s.L.fog > 0.6 ? 0.6 : 1) * (h.black ? 1.5 : 1);   // (FRIENDS C: the black one's searchlight brighter — it's looking for someone)
     if (k < 0.02) { if (part === 'near') lookNow = null; return; }
     const PT = s.party || {}, party = PT.on > 0.3 && s.motion, bf = Number.isFinite(PT.beatsF) ? PT.beatsF : 0;
-    const sw = party ? beatSweep(bf) * 0.32 : s.motion ? Math.sin(h.e * 0.45) * 0.32 : 0.1;
+    const sw = party && !h.black ? beatSweep(bf) * 0.32 : h.black ? (s.motion ? Math.sin(h.e * knob('medium.heli').black.sweep) * 0.55 : 0.2) : s.motion ? Math.sin(h.e * 0.45) * 0.32 : 0.1;   // (FRIENDS C: the black one sweeps wider + quicker — it's searching)
     const pc = party ? beamColour(PT.palette, bf) : null, pr = party ? beamPair(PT.palette, bf) : null;
     // (MODELS — THE SEARCHLIGHT SWEEPS SMOOTHLY (the owner: it jerked / skipped): the angle the beam wants — ahead + down in flight, the
     // sweep on a stop / on the beat — reached by an eased follow every frame (never a jump as the craft slows into a hover or speeds off);
@@ -802,6 +874,7 @@ export function createAir() {
     if ((part === 'near') === !(ey > stageY)) {
       if (pr) { pool(pr.a, (0.5 + 0.25 * e) * k * (1 - pr.e)); pool(pr.b, (0.5 + 0.25 * e) * k * pr.e); } else pool([230, 238, 255], (0.5 + 0.25 * e) * k);
       if (e > 0.02) { c.globalAlpha = 0.5 * e * k; c.drawImage(glow(255, 252, 240), ex - spread * 0.7, ey - spread * 0.2, spread * 1.4, spread * 0.4); }
+      if (h.black && part === 'near') { const gl = s.motion ? 0.75 + 0.25 * Math.sin(s.t * 17) : 0.85; c.globalAlpha = 0.7 * k * gl; c.drawImage(glow(255, 255, 255), ex - spread * 0.3, ey - spread * 0.06, spread * 0.6, spread * 0.12); }   // (FRIENDS C: the GLINT where it hits the water)
     }
     if (part === 'near') { c.globalAlpha = 0.9 * k; c.drawImage(glow(255, 255, 255), h.x - 3, h.y - 3, 6, 6); }
     c.restore();
@@ -934,12 +1007,18 @@ export function createAir() {
     /** HOOK (Part 10: the party yacht's landing): fly a route of [x, y, hold s] points (screen pt) from now; land: hold at the last */
     fly(s, route, { land = false } = {}) { if (!route || route.length < 2) return; const r = route.map(p => [p[0], p[1], p[2] || 0]); if (land) r[r.length - 1][2] = 1e6; heli = { start: s.now, route: r, dir: r[1][0] >= r[0][0] ? 1 : -1, spr: null, sprKey: '', len: 28 * K, own: true }; },
     heliOn: () => !!heli,
+    /** FRIENDS C — THE BLACK HELICOPTER now (the medium tier's night pass, a radio jack, &force=blackhelo): start = clock ms, seed: its side.
+     *  It takes the sky from a patrol already up (never from a dance break's helicopter) → true when it flies */
+    blackHelo(s, start, seed) { if (heli && heli.mode === 'break') return false; const h = blackPlan(s, start, seed); if (!h) return false; if (heli && heli.mspr) heli.mspr.width = 0; heli = h; loadBlackModel(); return true; },
+    blackOn: () => !!(heli && heli.black),
+    blackStop() { if (heli && heli.black) { if (heli.mspr) heli.mspr.width = 0; dropBlackModel(); heli = null; heliNow = null; } },
+    blackReady: () => !!blackModel,
     /** ATM-C (tests): the patrol's route for a seed, planned from this frame's near pieces — [x, y, hold, behind] points (null before a frame) */
     planFor: seed => { if (!lastS) return null; const h = heliPlan(lastS, 0, seed); if (!h) return null; const sp = (q, i) => (q[2] && q[4] && q[4].look && !q[4].behind && lastWater ? spotFor(q[0], q[1], (h.route[i + 1] ? Math.sign(h.route[i + 1][0] - q[0]) : h.dir) || h.dir || 1, q[4].look, lastS, lastWater.waterY, lastWater.waterTop) : undefined); return { len: h.len, water: lastWater, route: h.route.map(q => [Math.round(q[0]), Math.round(q[1]), +(q[2] || 0).toFixed(1), q[4] && q[4].behind ? 1 : 0]), spots: h.route.map((q, i) => { const r = sp(q, i); return r === undefined ? undefined : r ? r.kind : null; }) }; },   // (ATM-D: + each stop's spot — the e2e sweeps seeds)
     /** anything crossing the sky right now (the calm frame rate: a plane, the train, a satellite, the helicopter keep 60 fps) */
     busy: () => planes.some(p => p.k < 1) || !!train || !!sat || !!heli,
     lanesInUse: () => new Set(planes.filter(p => p.k < 1).map(p => p.lane)),
-    debug: () => ({ planes: planes.filter(p => p.k < 1).map(p => ({ lane: p.lane, x0: Math.round(p.x0), y0: Math.round(p.y0), x1: Math.round(p.x1), y1: Math.round(p.y1), slope: +p.slope.toFixed(3), dir: p.dir, approach: p.approach, len: +p.len.toFixed(1), k: +p.k.toFixed(2) })), trails: planes.reduce((n, p) => n + p.trail.length, 0), cap: CAP, train: train ? { n: train.n, mode: train.mode } : null, sat: !!sat, heli: heliNow ? { x: Math.round(heliNow.x), y: Math.round(heliNow.y), hover: heliNow.hover, behind: !!heliNow.behind, look: lookNow ? lookNow.kind : null, lk: lookNow ? +lookNow.lk.toFixed(2) : 0, tx: lookNow ? Math.round(lookNow.x) : null, ty: lookNow ? Math.round(lookNow.y) : null, mode: heli && heli.mode === 'break' ? 'break' : 'patrol', yaw: heliNow.yaw, model: !!heliNow.model, heading: heliNow.heading, w: heliNow.w, cx: heliNow.cx != null ? Math.round(heliNow.cx) : null, cy: heliNow.cy != null ? Math.round(heliNow.cy) : null, ang: beamAng != null ? +beamAng.toFixed(3) : null, sc: heliNow.sc, off: !!heliNow.off, len: heli ? +heli.len.toFixed(1) : null, dur: heli ? Math.round(routeDur(heli)) : null, e: +(heliNow.e || 0).toFixed(1), band: heli && heli.brk ? Math.round(heli.brk.A * 2) : null, replans: heli ? heli.replans || 0 : 0, route: heli ? heli.route.map(q => [Math.round(q[0]), Math.round(q[1]), +(q[2] || 0).toFixed(1), q[4] && q[4].behind ? 1 : 0]) : null } : null, beamArts: beamArts.size, glows: glows.size, nextPlane: Math.round(nextPlane) }),
+    debug: () => ({ planes: planes.filter(p => p.k < 1).map(p => ({ lane: p.lane, x0: Math.round(p.x0), y0: Math.round(p.y0), x1: Math.round(p.x1), y1: Math.round(p.y1), slope: +p.slope.toFixed(3), dir: p.dir, approach: p.approach, len: +p.len.toFixed(1), k: +p.k.toFixed(2) })), trails: planes.reduce((n, p) => n + p.trail.length, 0), cap: CAP, train: train ? { n: train.n, mode: train.mode } : null, sat: !!sat, heli: heliNow ? { x: Math.round(heliNow.x), y: Math.round(heliNow.y), hover: heliNow.hover, black: !!(heli && heli.black), w: heliNow.w || null, heading: heliNow.heading != null ? heliNow.heading : null, off: !!heliNow.off, behind: !!heliNow.behind, look: lookNow ? lookNow.kind : null, lk: lookNow ? +lookNow.lk.toFixed(2) : 0, tx: lookNow ? Math.round(lookNow.x) : null, ty: lookNow ? Math.round(lookNow.y) : null, mode: heli && heli.mode === 'break' ? 'break' : 'patrol', yaw: heliNow.yaw, model: !!heliNow.model, heading: heliNow.heading, w: heliNow.w, cx: heliNow.cx != null ? Math.round(heliNow.cx) : null, cy: heliNow.cy != null ? Math.round(heliNow.cy) : null, ang: beamAng != null ? +beamAng.toFixed(3) : null, sc: heliNow.sc, off: !!heliNow.off, len: heli ? +heli.len.toFixed(1) : null, dur: heli ? Math.round(routeDur(heli)) : null, e: +(heliNow.e || 0).toFixed(1), band: heli && heli.brk ? Math.round(heli.brk.A * 2) : null, replans: heli ? heli.replans || 0 : 0, route: heli ? heli.route.map(q => [Math.round(q[0]), Math.round(q[1]), +(q[2] || 0).toFixed(1), q[4] && q[4].behind ? 1 : 0]) : null } : null, beamArts: beamArts.size, glows: glows.size, nextPlane: Math.round(nextPlane) }),
     destroy() { for (const p of planes) if (p.spr) p.spr.cv.width = 0; if (heli && heli.spr) heli.spr.cv.width = 0; for (const c of glows.values()) c.width = 0; glows.clear(); for (const q of beamArts.values()) { q.cone.width = 0; q.pool.width = 0; } beamArts.clear(); planes = []; heli = null; },
   };
 }

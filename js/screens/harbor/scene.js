@@ -567,6 +567,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // while it flies (dimSign(id, { logo, tag, ms }) / dimSign(id, null)); title.js applies it (S.onSignDim)
   const signDim = createSignDim(d => { if (S.onSignDim) S.onSignDim(d); });
   let events = { active: [], quiet: [] }, eventsAt = 0, sched = null, schedRead = false, density = densityOf([]);
+  // (FRIENDS C — THE BLACK HELICOPTER: the patrol planner's ctx, kept — the sky asks whether a slot's flight is the medium tier's night pass)
+  let heliCtxNow = null;
+  const heliBlackNow = ms => { try { const f = heliCtxNow && patrolInSlot(ms, SLOT_MS, heliCtxNow); return !!(f && f.medium); } catch { return false; } };
   // CITY CONTROLS A — THE RADIO's moments, played ONCE each (scene-radio.js; the remote feeds them: the city's from the cached GET, the
   // owner's desk at once)
   const radioScene = createSceneRadio({
@@ -1540,7 +1543,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const brksOf = tt => { const ev = spEveningOf(tt, heliOff), dk = partyDeckNow(), key = `${ev.key}|${dk ? dk.sig : '-'}`;
         if (!brkMemo.has(key)) { if (brkMemo.size > 8) brkMemo.clear(); brkMemo.set(key, partyNight(ev.day0, { off: heliOff }) ? danceBreaks(ev.day0, ev.key, { off: heliOff, seed, deck: dk }) : []); }
         return brkMemo.get(key); };
-      const heliCtx = { off: heliOff, seed, memo: heliMemo, elAt: tt => (an ? -30 : sunPosition(tt * 1000, lat, lon).el),
+      const heliCtx = heliCtxNow = { off: heliOff, seed, memo: heliMemo, elAt: tt => (an ? -30 : sunPosition(tt * 1000, lat, lon).el),
         blocked: (a, b) => !!fwHold(a, b) || [a, b].some(tt => brksOf(tt).some(x => b > x.s0 - Bk.lead && a < x.s1 + Bk.trail)) };   // (PART 10: no patrol over a show)
       sched = createScheduler(HARBOR_EVENTS, t => { const sp = sunPosition(t, lat, lon); return { ms: t, force: clock.force, night: an || sp.el < -6, el: an ? -30 : sp.el, az: sp.az, month: new Date(t).getUTCMonth() + 1, south: lat < 0, heli: ms => !!patrolInSlot(ms, SLOT_MS, heliCtx) }; }, { seed, forced: ['demo', 'searchlights'].filter(id => clock.force.has(id)), anchor: anchorFor(ms, LK.local) });
     }
@@ -1772,7 +1775,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the scheduler's first read is at once, the moment it exists)
     if (now - eventsAt > 500 || (sched && !schedRead)) { eventsAt = now; if (sched) { events = sched.at(clock.now()); schedRead = true; } density = densityOf([...events.quiet, ...sky.quiet()]); }
     // density: what each lane keeps of its usual traffic (a heavy event elsewhere thins it: the planes, the birds, the cars read it)
-    const fs = { windF: WF, cityCut, centre: centre.active() || giantUp(), lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], boatSpots: boats.spots, avoidSky: heliAvoid(), heliOcc: heliOcc(), stageY: groundY(cam, Z.rail), promY: L.prom ? groundY(cam, (L.prom.z0 + L.prom.z1) / 2) : cam.H, dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, skyTops: skyTopsNow(), L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, soundsReady: k => !snd || !snd.legendReady || snd.legendReady(k, sndPicks()), holiday: XP.banner ? 'blackfriday' : HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
+    const fs = { heliBlack: heliBlackNow, windF: WF, cityCut, centre: centre.active() || giantUp(), lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], boatSpots: boats.spots, avoidSky: heliAvoid(), heliOcc: heliOcc(), stageY: groundY(cam, Z.rail), promY: L.prom ? groundY(cam, (L.prom.z0 + L.prom.z1) / 2) : cam.H, dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, skyTops: skyTopsNow(), L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, soundsReady: k => !snd || !snd.legendReady || snd.legendReady(k, sndPicks()), holiday: XP.banner ? 'blackfriday' : HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
     const off = clock.force;
     // PART 6b — THE LEGENDARY SKY: tonight's, a preview's or the API's → the lazy module; the sign glitches while the TR-3B passes under it
     linkGate(now);
@@ -1860,7 +1863,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     { const sd = sun.debug(); if (!off.has('no-clouds') && !fogHidesSky) clouds.draw(c, fs, { x: sd && sd.vis > 0.02 ? sd.x : null, y: sd ? sd.y : null, vis: sd ? sd.vis : 0, side: (bakeTones && bakeTones.sunDir) || 0 }, part); }
     };
     const msgB = sky.msgUp ? sky.msgUp() : null, msgUp = !!msgB;
-    { const dt0 = Math.min(100, dt || 16); thinK = Math.max(0, Math.min(1, thinK + (msgUp ? 1 : -1) * dt0 / 1800)); if (msgB) thinBox = msgB; clouds.thin(thinK > 0.002 ? thinBox : null, thinK); }
+    // (FRIENDS C — THE SKY UNDER WEATHER: the show's flight band thins the clouds too — it flies BELOW the deck, drawn in front: sky.showOver)
+    const thinB = msgB || (sky.showUp ? sky.showUp() : null);
+    { const dt0 = Math.min(100, dt || 16); thinK = Math.max(0, Math.min(1, thinK + (thinB ? 1 : -1) * dt0 / (msgB ? 1800 : 700))); if (thinB) thinBox = thinB; clouds.thin(thinK > 0.002 ? thinBox : null, thinK); }
     // (WINDOWS — the owner: BALLOONS ALWAYS IN FRONT OF THE HIGH CLOUDS (cirrus, the veil, alto: far higher); behind the low heaps only)
     const balloonsUp = !msgUp && sky.balloonsOn && sky.balloonsOn();
     if (msgUp) cloudsNow(); else if (balloonsUp) cloudsNow('high');
@@ -1951,6 +1956,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!off.has('no-snowfall') && fadeIn > 0 && (LK.snow || 0) > 0.004) snowfall.draw(c, { ...snowEnv(), layer: 'far' });
     // SP3 — HEAVY RAIN's biggest read: the far skyline GREYED behind a rain haze (the far rows melt into it; the near rows stay clearer)
     rainHaze(c, 'far', 0.62, fadeIn);
+    // (FRIENDS C — THE SKY UNDER WEATHER: the show here — in front of the clouds, the storm deck, the far fog veil + the far rain haze; the
+    //  near skyline still in front of it)
+    if (sky.showOver) sky.showOver(c, fs);
     { const dkN = deadCity && darkOf('near'); if (dkN && fadeIn > 0) { const g = baker.group('near'); c.globalAlpha = fadeIn; c.drawImage(dkN.cv, 0, g.show.y0, W, g.show.h); c.globalAlpha = 1; } else pair('near', 'nearLit', deadCity ? 0 : winK, lx, xf, fadeIn); }
     rainHaze(c, 'near', 0.34, fadeIn);       // (SP3: heavy rain greys the skyline — the far rows most)
     eventsTick(now, nightK);

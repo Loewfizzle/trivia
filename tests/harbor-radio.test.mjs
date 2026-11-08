@@ -9,7 +9,7 @@ const NIGHT = Date.UTC(2026, 10, 3, 3, 0, 0), DAY = Date.UTC(2026, 10, 3, 17, 0,
 
 test('THE JACKS come FROM THE TIMETABLE: one per row marked with a jack (plug and play), in the desk\'s order', () => {
   const J = jacks();
-  assert.deepEqual(J.map(j => j.id), ['skywrite', 'banner', 'fireworks', 'lights', 'ufo', 'tr3b', 'party', 'blackbird', 'flyby', 'dance', 'balloons', 'billboard', 'lightning', 'beams']);
+  assert.deepEqual(J.map(j => j.id), ['skywrite', 'banner', 'fireworks', 'lights', 'ufo', 'tr3b', 'party', 'blackbird', 'flyby', 'dance', 'balloons', 'billboard', 'lightning', 'beams', 'blackhelo']);   // (FRIENDS C: THE BLACK HELICOPTER — medium.heli's jack)
   assert.equal(J.length, SCHEDULE.filter(r => r.jack).length);
   for (const j of J) { assert.ok(j.label && j.card && j.len >= 0 && ['legend', 'words', 'show', 'free'].includes(j.lane) && j.start, j.id); assert.ok(j.order > 0); }
   assert.ok(J.length <= 16, 'four rows of four (more → the rows scroll)');

@@ -29,7 +29,7 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     'cart-bell', 'cat-land', 'cat-meow', 'city-hum-day', 'city-hum-night', 'club-murmur-calm', 'club-murmur-party', 'coyote-howl', 'coyote-yip', 'crates-clink', 'crowd-clap',
     'crowd-whoop', 'dog-bark', 'door-heavy', 'door-heavy-close', 'door-knock', 'drone-swarm', 'footsteps-cobble', 'footsteps-heels', 'geese', 'glasses-clink',
     'bb-boom', 'bb-scream', 'bb-static', 'glow-wand-swish', 'gulls', 'helicopter', 'hydrant-spray', 'jet-flyby', 'jogger-trip', 'ladder-clank', 'laugh-distant', 'line-murmur', 'market-murmur', 'milk-bottles', 'newspaper-rustle', 'periscope-ping',
-    'pigeon-coo', 'pigeon-flutter', 'police-car-1920s', 'police-whistle', 'power-failure', 'power-restore', 'prop-plane', 'roller-blind', 'rooftop-party', 'scissors-snip', 'ship-horn', 'ships-bell', 'shop-bell',
+    'pigeon-coo', 'pigeon-flutter', 'police-car-1920s', 'police-whistle', 'power-failure', 'power-restore', 'prop-plane', 'roller-blind', 'rotor-thump', 'rooftop-party', 'scissors-snip', 'ship-horn', 'ships-bell', 'shop-bell',
     'siren-1920s', 'squeegee', 'squirrel-chatter', 'steam-whistle', 'street-door', 'street-door-close', 'tr3b-crackle', 'tr3b-drone', 'tr3b-power-down', 'tr3b-presence', 'trash-can-lid',
     'trash-truck-arrive', 'trash-truck-depart', 'truck-delivery', 'tv-murmur', 'ufo-beam', 'ufo-hum', 'water-lapping', 'window-sash-down', 'window-sash-up',
     // (9a — THE WEATHER's sounds)
@@ -122,7 +122,8 @@ test('every take points at a real, small file whose content matches its cache ke
   // (PART 10: + Grok's FIREWORKS — 28 takes, 0.86 MB (24 / 32 kHz, 56 kbps; the crowd 22 kHz / 48): ~21.0 MB; fetched when a show plays)
   // (CITY CONTROLS A: + Grok's RADIO DESK set — 25 short takes, 79 KB (32 kHz / 64 kbps): ~21.13 MB; fetched only on the owner's phone)
   // (CITY CONTROLS B: + THE INTERCOM's chime (27 KB) + the PA crackle loop (178 KB, 22 kHz / 48 kbps): ~21.34 MB; fetched when an intercom plays)
-  assert.ok(total < 21.4e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
+  // (FRIENDS C: + THE BLACK HELICOPTER's synthesized rotor thump loop (16 kHz / 32 kbps, ~0.15 MB): ~21.5 MB; fetched when it flies)
+  assert.ok(total < 21.6e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
   assert.ok(takesOf('city-hum-night')[0].from[1] < 190, '… nor the chirps at 193–203 s');

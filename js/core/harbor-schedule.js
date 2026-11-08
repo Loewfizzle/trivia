@@ -40,7 +40,13 @@ export const SCHEDULE = Object.freeze([
   //  each: a plane pass + a helicopter pass at night; the dog walk is off — the crowd's cap)
   { id: 'medium.plane', trigger: 'clock', status: 'live', src: 'screens/harbor/air.js (a scheduled pass)', what: 'A MEDIUM MOMENT: an airliner crossing (on approach at night: its landing lights)', knobs: { medium: { kind: 'plane', weight: 1, when: 'any', cool: 150 } } },   // (SHELL 2.0 B2 — the owner: weight 2 → 1, the medium moments MIX)
   { id: 'medium.dogwalk', trigger: 'clock', status: 'off', off: 'SCHED: OFF — an extra walker on top of a full crowd broke the people cap (FOLK.cap: 13 at 390); the crowd keeps its own dog walkers (people.mix)', src: 'core/harbor-people.js', what: 'A MEDIUM MOMENT: a dog walker along the front, a stop mid-screen (every other one sniffs the hydrant)', knobs: { medium: { kind: 'dogwalk', weight: 1.5, when: 'any', cool: 420 } } },
-  { id: 'medium.heli', trigger: 'clock', status: 'live', src: 'core/harbor-heli.js (a scheduled pass)', what: 'A MEDIUM MOMENT: an extra helicopter pass at night (its searchlight on the water)', knobs: { medium: { kind: 'heli', weight: 1, when: 'dark', cool: 1200 } } },
+  // (FRIENDS C — THE BLACK HELICOPTER, the owner Nov 6 "spooky black government helicopter": the medium tier's night helicopter pass IS it
+  //  now — the same seeded times (kind 'heli': THE GOLDEN TABLE unchanged), a different craft + flight: baked ALL BLACK (scripts/bake/blackhelo.mjs),
+  //  in LOW from one side, a `hover` s hover over the water sweeping its searchlight, then it banks away (climbs `climb` pt, shrinks to `away`);
+  //  `size` × the patrol's near size; a jack on the desk + &force=blackhelo; NIGHT ONLY)
+  { id: 'medium.heli', trigger: 'clock', status: 'live', src: 'core/harbor-heli.js (a scheduled pass) + screens/harbor/air.js#blackPlan', what: 'A MEDIUM MOMENT: THE BLACK HELICOPTER — in low over the harbor at night, a hover sweeping its searchlight over the water, then it banks away (nav lights, a white strobe, a red beacon)',
+    jack: { id: 'blackhelo', label: 'BLACK HELI', order: 15, card: 'fire', dark: true, len: 30, lane: 'legend', start: 'blackhelo', note: 'the black helicopter: in low, a hover sweeping its searchlight, then away' },
+    knobs: { medium: { kind: 'heli', weight: 1, when: 'dark', cool: 1200 }, black: { size: 1.55, y: 0.3, hover: 4.2, climb: 46, away: 0.62, speed: 44, sweep: 1.15 } } },
   // ---- SCHED Group 4 — THE BILLBOARD's MESSAGE QUEUE (core/harbor-billboard.js; the owner, Nov 2: "short, whole board"): each row a message —
   // kind (fireworks · party · lookup · postcard; CITY CONTROLS adds 'text'), its two short lines (≤ ~10 letters each: the board is ~70 pt wide
   // on an iPhone), its window (from: an evening hour; the end = its event), prio (the highest ON wins), every / show (s: it takes the WHOLE

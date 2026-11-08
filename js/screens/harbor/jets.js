@@ -449,6 +449,8 @@ export function createAirShow() {
     start(kind, at, o = {}) { if (!SHOW_LEN[kind]) return false; jets.load(); cur = { kind, at, flip: o.dir === -1 ? -1 : 1, n: o.n || 4 }; return true; },
     on: () => !!cur,
     kind: () => (cur ? cur.kind : null),
+    /** FRIENDS C — THE SKY UNDER WEATHER: the band its passes fly through (the clouds thin there) — { x, y, w, h } | null */
+    band() { if (!cur || !lastBox) return null; const ys = (SHOW_PASSES[cur.kind] || []).map(p => p.y); if (!ys.length) return null; const b = lastBox, y0 = b.y + b.h * (Math.min(...ys) - 0.14), y1 = b.y + b.h * (Math.max(...ys) + 0.1); return { x: b.x, y: y0, w: b.w, h: y1 - y0 }; },
     stop() { cur = null; },
     setDpr(d) { jets.setDpr(d); },
     draw(c, s, box) {

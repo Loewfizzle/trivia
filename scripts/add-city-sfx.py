@@ -94,6 +94,8 @@ CUTS = {
     # touch of phone saturation on the low ones, distance by low-pass; the beds' level set at runtime ×slot gain)
     # (2:23 "Balkan street rain echo": steady −32…−38 dB the whole way — a long window, a little presence for the patter)
     # (11a-1 — HALLOWEEN: the ghost ship's creak + the haunted wind lean like the weather beds — heard rarely, low, under the music)
+    # (FRIENDS C — THE BLACK HELICOPTER's synthesized rotor thump: a low, quiet loop — lean like the weather beds)
+    'rotor-thump': [{'loop': (2.0, 30.5), 'xf': 2.5, 'hp': 70, 'lp': 3200, 'rate': 16000, 'kbps': 32}],
     'ghost-ship-creak': [{'loop': (1.9, 28.5), 'xf': 2.5, 'hp': 90, 'lp': 7000, 'rate': 22050, 'kbps': 40}],
     'haunted-wind': [{'loop': (1.4, 24.0), 'xf': 2.5, 'hp': 120, 'lp': 6000, 'rate': 16000, 'kbps': 40}],
     'rain-pavement': [{'loop': (6.0, 34.0), 'xf': 2.5, 'hp': 140, 'presence': (2.0, 1800), 'rate': 22050, 'kbps': 48}],

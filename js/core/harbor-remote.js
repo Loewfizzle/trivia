@@ -169,6 +169,7 @@ export const EVENTS = [
   { id: 'skywrite', label: 'SKYWRITING', cat: 'sky', group: 'MESSAGES', oneShot: true, inputs: ['text'], text: 140, ready: false },   // (6b: CUT — an old link types it)
   { id: 'skytype', label: 'SKYTYPING', cat: 'sky', kw: 'message text words smoke', group: 'MESSAGES', oneShot: true, inputs: ['text', 'colour'], text: 140, hint: 'up to 3 lines × ~16 letters a page, 3 pages; | starts a page' },
   { id: 'helicopter', label: 'HELICOPTER', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
+  { id: 'blackhelo', label: 'THE BLACK HELICOPTER', cat: 'sky', group: 'AIRCRAFT', oneShot: true, kw: 'black government helicopter searchlight spooky medium', hint: 'FRIENDS C: in low over the harbor, a hover sweeping its searchlight, then it banks away — the medium tier’s night pass (a radio jack too)' },
   { id: 'jets', label: 'AIR SHOW (F-22s)', cat: 'sky', kw: 'fighter jets raptor formation', group: 'AIRCRAFT', oneShot: true, hint: 'a diamond of four stealth fighters: two straight formation flybys, smooth smoke trails by day — July 4th' },
   { id: 'flyby', label: 'SURPRISE FLYBY', cat: 'sky', kw: 'f-22 fighter jets raptor afterburner', group: 'AIRCRAFT', oneShot: true, hint: '2–4 F-22s straight across on afterburner — ~twice a month, golden hour → 11 pm' },
   { id: 'missing-man', label: 'MISSING MAN', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a finger-four, #3 pulls up + away — Memorial + Veterans Day' },

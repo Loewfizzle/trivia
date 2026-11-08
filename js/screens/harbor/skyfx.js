@@ -227,7 +227,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       handled.add(key); if (handled.size > 200) handled.clear();
       if (e.lanes.some(l => u.has(l))) continue;                             // (a holiday / API piece holds the lane)
       if (e.id === 'banner' && bannerWeather(Lk)) startBanner(s, eventMessage('banner', e.seed, games, s.holiday || null), e.start, { passes: 2 });   // (11a-1: a holiday's lines)
-      else if (e.id === 'helicopter' && !Lk.storm && (Lk.wind || 0) < 14) air.heli(s, e.start, e.seed);
+      else if (e.id === 'helicopter' && !Lk.storm && (Lk.wind || 0) < 14) { if (s.heliBlack && s.heliBlack(e.start)) air.blackHelo(s, e.start, e.seed); else air.heli(s, e.start, e.seed); }   // (FRIENDS C: the medium tier's night pass = THE BLACK HELICOPTER)
       else if ((e.id === 'balloons' || e.id === 'balloon-festival') && balloonWeather(Lk) && (e.id === 'balloons' || may('festival', 'rare'))) startBalloons(s, e.start, e.id === 'balloon-festival', e.seed);
     }
     // THE HOLIDAY SKY, on the clock: the entry's local hour → its clock ms; a piece starts there (a late arrival lands mid-way)
@@ -269,6 +269,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       again('skywrite', smoke.on(), at => startSmoke(s, 'skytype', text || 'HELLO', at));     // (6b: skywriting cut — an old link types it)
       again('skytype', smoke.on(), at => startSmoke(s, 'skytype', text || 'HAPPY BIRTHDAY JESSICA', at, qp && qp.get('colour') ? qp.get('colour').replace('#', '') : null));   // (CC-B: &colour= — coloured smoke)
       again('helicopter', air.heliOn(), at => air.heli(s, at, Math.floor(at / 1000)));
+      again('blackhelo', air.blackOn(), at => air.blackHelo(s, at, Math.floor(at / 1000)));   // (FRIENDS C — THE BLACK HELICOPTER's preview)
       again('jets', show.on(), at => show.start('airshow', at));
       again('missing-man', show.on(), at => show.start('missing', at));
       again('flyby', show.on(), at => show.start('flyby', at, { dir: (Math.floor(at / 1000) & 1) ? 1 : -1, n: 2 + (Math.floor(at / 7000) % 3) }));
@@ -288,6 +289,8 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     }
   }
 
+  // (FRIENDS C — THE SKY UNDER WEATHER: in fog the far veil covers the sky — skytyped words then draw in front of it, with the show)
+  const fogSky = s => ((s.L && s.L.fog) || 0) > 0.3;
   return {
     /** a re-layout: the camera's sky lanes, the water's top (the drones + the gulls), the barge's place */
     layout(l, o) {
@@ -329,10 +332,15 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       balloons.draw(c, s);
       // (LOBBY FIXES — THE BANNER PLANE FADED: drawn here it flew BEHIND the clouds — a cloud bank turned it + its words to a ghost mid-flight
       //  ("…R TAKES PRI…", worse on a wide desktop sky). It is drawn by bannerOver() now, after the clouds, the storm deck + the lightning)
-      smoke.draw(c, s, lastSun);                                   // (POLISH 4: the sun, so the sky letters' dark halo firms up in front of its glare)
-      if (show.on()) show.draw(c, s, msgBox(s));                 // (6b: the air show / the missing man — the whole open sky)
+      if (!fogSky(s)) smoke.draw(c, s, lastSun);                   // (POLISH 4: the sun, so the sky letters' dark halo firms up in front of its glare)   (FRIENDS C: in fog → showOver, in front of the far veil)
+      // (FRIENDS C — THE SKY UNDER WEATHER, the owner Nov 7: the flyby flew BEHIND an overcast deck — invisible. The show (the flyby, the
+      //  air show, the missing man) is drawn by showOver() now: after the clouds, the storm deck, the lightning + the far fog veil)
       if (!s.force.has('no-birds') && s.motion) birds.sky(c, s, { 'sky-high': free['sky-high'] && !inUse.has('sky-high'), 'sky-low': free['sky-low'] && !inUse.has('sky-low') });
     },
+    /** FRIENDS C — THE SKY UNDER WEATHER: the show IN FRONT of every weather layer up there (the deck, the storm deck, the far fog veil):
+     *  it flies BELOW the deck — the clouds thin under its path (showUp) — never hidden by weather */
+    showOver(c, s) { if (fogSky(s)) smoke.draw(c, s, lastSun); if (show.on()) show.draw(c, s, msgBox(s)); },
+    showUp: () => (show.on() ? show.band() : null),
     /** LOBBY FIXES — the banner plane + its words IN FRONT of the clouds (+ the storm deck, the lightning): fully visible its whole flight */
     bannerOver(c, s) { if (lanes) banner.draw(c, s, bannerLane(s)); },
     /** POLISH 5 — CLOUDS NEVER COVER A MESSAGE: a skytyped message is up (the scene draws every cloud BEHIND it while it is) */
@@ -398,6 +406,9 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       drones: (specs, o = {}) => !!last && startDrones(last, (Array.isArray(specs) ? specs : [specs]).map(x => (typeof x === 'string' ? (DRONE_SHAPES.includes(x) || x.startsWith('mark:') ? { shape: x } : { text: x }) : x)), o.at || last.now, o),
       balloons: (o = {}) => !!last && startBalloons(last, (o.at || last.now) - (o.into ? balloons.flightLen(o.seed || 3, !!o.festival) * 1000 * o.into : 0), !!o.festival, o.seed || 3, { fast: !!o.fast, fade: !!o.fade }),   // (o.into: already that share of the way across — CITY CONTROLS A's jack: in view at once)
       helicopter: (o = {}) => { if (!last) return false; air.heli(last, o.at || last.now, o.seed || 1); return air.heliOn(); },
+      /** FRIENDS C — THE BLACK HELICOPTER now (a radio jack): o.at (clock ms), o.seed (its side) → true when it flies */
+      blackhelo: (o = {}) => (last ? air.blackHelo(last, o.at || last.now, o.seed || 1) : false),
+      stopBlackhelo: () => air.blackStop(),
       /** 6b: the jets — airshow('airshow' | 'missing', { at }) */
       airshow: (kind = 'airshow', o = {}) => !!last && show.start(kind, o.at || last.now),
       fly: (route, o = {}) => { if (!last) return false; air.fly(last, route, o); return true; },

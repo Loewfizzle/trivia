@@ -2525,6 +2525,18 @@
   ],
   "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
  },
+ "rotor-thump": {
+  "file": "rotor-thump.wav",
+  "md5": "910e6008b1a62188063c6be886c09c3a",
+  "slots": [
+   "rotor-thump"
+  ],
+  "credit": [
+   "rotor-thump.wav",
+   "    a helicopter rotor thump, far + low (FRIENDS C: THE BLACK HELICOPTER) — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)"
+  ],
+  "note": null
+ },
  "scissors-snip": {
   "file": "scissors-snip.wav",
   "md5": "271035fc17c884a726d6a8fd0ff51da7",
