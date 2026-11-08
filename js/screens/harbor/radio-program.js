@@ -88,8 +88,9 @@ export function paint({ st, now, cancel, edit }) {
     parts.push(box);
   }
   const sw = h('div.rd-prf', { role: 'group', 'aria-label': 'What the program lists' }, ...FILTERS.map(([k, l]) => h('button.rd-prfb', { type: 'button', class: filter === k ? 'is-on' : '', 'aria-pressed': String(filter === k),
-    onclick: () => { if (filter === k) return; filter = k; try { localStorage.setItem('rd:prog', k); } catch { /* fine */ } const nu = paint({ st, now, cancel, edit })[0]; tonight.replaceWith(nu); } }, l)));
-  const tonight = h('section.rd-paper', h('h4', `${evening ? 'TONIGHT' : 'TODAY'} · ${DOW[date.getDay()]}`, h('em', `${MON[date.getMonth()]} ${date.getDate()} · your time · ${rows.length} on the program`)), sw, ...parts);
+    onclick: () => { if (filter === k) return; filter = k; try { localStorage.setItem('rd:prog', k); } catch { /* fine */ } const nu = paint({ st, now, cancel, edit }).find(x => x.dataset && x.dataset.paper === 'tonight'); tonight.replaceWith(nu); } }, l)));
+  // (FRIENDS C: tonight is the LAST section now — found by its mark, never by its place)
+  const tonight = h('section.rd-paper', { dataset: { paper: 'tonight' } }, h('h4', `${evening ? 'TONIGHT' : 'TODAY'} · ${DOW[date.getDay()]}`, h('em', `${MON[date.getMonth()]} ${date.getDate()} · your time · ${rows.length} on the program`)), sw, ...parts);
 
   // THE WEEK: the legendaries a night (the showcase's own list), the party nights red
   const week = [];

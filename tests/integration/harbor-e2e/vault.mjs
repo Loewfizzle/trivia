@@ -388,15 +388,15 @@ G('vault', async () => {
     const s = await ev(p, `(() => { const e = document.querySelector('.byc-bring .sh-panel'), r = e.getBoundingClientRect(), c = getComputedStyle(e); return { gap: Math.round(innerHeight - r.bottom), rad: parseFloat(c.borderBottomLeftRadius), bw: parseFloat(c.borderBottomWidth) }; })()`);
     ok(s.gap >= 8 && s.rad >= 16 && s.bw >= 1, `BOTTOM SHEETS: BRING YOUR CARD floats ${s.gap} pt above the bottom, its rounded border whole (radius ${s.rad}, bottom border ${s.bw} px)`);
     await ctx.close(); }
-  // THE PROGRAM (the add-on): the full day (a Friday ~180 rows) · RARE + LEGENDARY (only those) · VAULT 1C: EVERY row its tier badge in THE ONE
+  // THE PROGRAM (the add-on — FRIENDS C: tonight is the LAST section now, after YOUR QUEUE + THE WEEK): the full day (a Friday ~180 rows) · RARE + LEGENDARY (only those) · VAULT 1C: EVERY row its tier badge in THE ONE
   // TIER PALETTE + its name tinted; the filter's rows all rare / epic / legendary; remembered
   { const { ctx, p } = await anyPage('/tests/integration/program-preview.html?at=2026-11-06T21:30&filter=all');
     await waitFor(p, 'document.body.dataset.ready', 'the program', 15000);
-    const all = await ev(p, `document.querySelectorAll('.rd-paper:first-child .rd-pr').length`);
-    const badges = await ev(p, `(() => { const rows = [...document.querySelectorAll('.rd-paper:first-child .rd-pr[data-tier]')]; return { n: rows.length, badged: rows.filter(x => x.querySelector('i.rd-tier')).length, tinted: rows.filter(x => { const c = getComputedStyle(x.querySelector(':scope > span')).color; return c !== 'rgb(42, 26, 10)'; }).length, tiers: [...new Set(rows.map(x => x.dataset.tier))].sort().join(',') }; })()`);
+    const all = await ev(p, `document.querySelectorAll('.rd-paper[data-paper="tonight"] .rd-pr').length`);
+    const badges = await ev(p, `(() => { const rows = [...document.querySelectorAll('.rd-paper[data-paper="tonight"] .rd-pr[data-tier]')]; return { n: rows.length, badged: rows.filter(x => x.querySelector('i.rd-tier')).length, tinted: rows.filter(x => { const c = getComputedStyle(x.querySelector(':scope > span')).color; return c !== 'rgb(42, 26, 10)'; }).length, tiers: [...new Set(rows.map(x => x.dataset.tier))].sort().join(',') }; })()`);
     ok(badges.n === all && badges.badged === all && badges.tinted === all && /common/.test(badges.tiers) && /legendary/.test(badges.tiers), `THE PROGRAM's TIER COLOURS: ${badges.badged}/${all} rows wear their tier badge, ${badges.tinted} names tinted (tiers tonight: ${badges.tiers})`);
     await ev(p, `[...document.querySelectorAll('.rd-prfb')].find(b => /RARE/.test(b.textContent)).click()`);
-    const r = await ev(p, `({ n: document.querySelectorAll('.rd-paper:first-child .rd-pr').length, tagged: [...document.querySelectorAll('.rd-paper:first-child .rd-pr')].filter(x => ['rare', 'epic', 'legendary'].includes(x.dataset.tier)).length, saved: localStorage.getItem('rd:prog') })`);
+    const r = await ev(p, `({ n: document.querySelectorAll('.rd-paper[data-paper="tonight"] .rd-pr').length, tagged: [...document.querySelectorAll('.rd-paper[data-paper="tonight"] .rd-pr')].filter(x => ['rare', 'epic', 'legendary'].includes(x.dataset.tier)).length, saved: localStorage.getItem('rd:prog') })`);
     ok(all > 120 && r.n >= 3 && r.n < 20 && r.tagged === r.n - (r.n > r.tagged ? 1 : 0) && r.saved === 'rare', `THE PROGRAM: THE FULL DAY lists ${all} rows; RARE + LEGENDARY ${r.n} (${r.tagged} rare / epic / legendary), remembered (${r.saved})`);
     await ctx.close(); }
   // THE NO-TAP SIGHTING in WebKit (Safari's engine) at 402 × 874, a returning visitor: zero input → nothing · a tap AWAY → nothing · a tap

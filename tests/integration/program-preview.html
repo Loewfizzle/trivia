@@ -20,7 +20,7 @@ const { paint } = await import('/js/screens/harbor/radio-program.js');
 const at = q.get('at') ? new Date(q.get('at')).getTime() : Date.now();
 const host = document.getElementById('pp');
 host.replaceChildren(...paint({ st: { moments: [], board: [], intercom: [] }, now: () => at, cancel: { moment() {}, board() {}, intercom() {} }, edit() {} }));
-window.__pp = { rows: () => document.querySelectorAll('.rd-paper:first-child .rd-pr').length };
+window.__pp = { rows: () => document.querySelectorAll('.rd-paper[data-paper="tonight"] .rd-pr').length };
 document.fonts.ready.then(() => { document.body.dataset.ready = '1'; });
 </script>
 </body>
