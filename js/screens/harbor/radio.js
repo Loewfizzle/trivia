@@ -155,9 +155,10 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   function nixie(n, digits = 3) { return h('span.rd-nixie', ...pad3(n).slice(-digits).split('').map(d => h('span', d))); }
   function header() {
     const here = st && st.here != null ? st.here : null;
-    return h('header.rd-head',
-      h('div.rd-brand', h('b', 'NEON SPEAKEASY ·'), h('b', 'RADIO')),
-      isOwner ? h('div.rd-count', { 'aria-label': `${here == null ? 'unknown' : here} people in the city now (an estimate)` }, nixie(here || 0), h('small', 'IN', h('br'), 'THE', h('br'), 'CITY')) : h('div.rd-count.rd-lobplate', h('span.rd-plate', 'THIS LOBBY ONLY')),
+    // (FRIENDS C — the crew's header crowded at 390: THIS LOBBY ONLY beside the brand clipped "NEON SPEAKEASY ·" — it is the brand's third line now)
+    return h('header.rd-head', { class: isOwner ? '' : 'is-crew' },
+      h('div.rd-brand', h('b', 'NEON SPEAKEASY ·'), h('b', 'RADIO'), isOwner ? null : h('span.rd-plate.rd-lobplate', 'THIS LOBBY ONLY')),
+      isOwner ? h('div.rd-count', { 'aria-label': `${here == null ? 'unknown' : here} people in the city now (an estimate)` }, nixie(here || 0), h('small', 'IN', h('br'), 'THE', h('br'), 'CITY')) : null,
       h('button.rd-x', { type: 'button', 'aria-label': 'Close the radio', onclick: () => { sfx.play('band'); hide(); } }, '✕'));
   }
   function bandSel() {

@@ -7,6 +7,7 @@ import { BASE, log, sleep, ok, okT, open, ev, waitFor, harborUp, dbPut, G, SHOTS
 // (SHELL 2.0 B1: each face shot top + bottom — the neon desk's look review)
 const shotFace = async (p, name) => { if (!SHOTS) return; await sleep(500); await p.screenshot({ path: `${OUT}radio-${name}.png` }); await p.evaluate(() => { const s = document.querySelector('.rd-sheet'); if (s) s.scrollTop = s.scrollHeight; }); await sleep(300); await p.screenshot({ path: `${OUT}radio-${name}-end.png` }); await p.evaluate(() => { const s = document.querySelector('.rd-sheet'); if (s) s.scrollTop = 0; }); };
 import * as RD from '../../../js/core/harbor-radio.js';
+import * as RD_IC from '../../../js/core/radio-intercom.js';
 
 const DB = 'http://127.0.0.1:9000', get = async p => (await fetch(`${DB}/${p}.json?ns=demo-arcade-default-rtdb`, { headers: { Authorization: 'Bearer owner' } })).json();
 const call = (p, body) => ev(p, `(async () => { const m = await import('/js/profile/api.js'); try { return { ok: true, r: await m.api('admin', ${JSON.stringify(body)}) }; } catch (e) { return { ok: false, status: e.status, code: e.code, msg: e.message }; } })()`);
@@ -134,6 +135,7 @@ G('radio', async () => {
     const g = await ev(O.page, `fetch('/api/admin?clip=${sent && sent.id}').then(r => ({ s: r.status, t: r.headers.get('content-type'), c: r.headers.get('cache-control') }))`);
     ok(g.s === 200 && /^audio\//.test(g.t) && /s-maxage=60/.test(g.c), `RADIO (CC-B): the clip through GET ?clip= (${JSON.stringify(g)})`);
     await waitFor(O.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug().log.some(l => l.id === '${sent && sent.id}' && /^playing|silent/.test(l.what)))`, 'the intercom plays', 10000).catch(() => {});
+    await waitFor(O.page, `import('/js/core/harbor-billboard.js').then(m => !!m.intercomHead())`, 'the headline (at its start)', 4000).catch(() => {});   // (FRIENDS C: the sound is scheduled a moment ahead — the headline goes up with its first chime)
     const head = await ev(O.page, `import('/js/core/harbor-billboard.js').then(m => m.intercomHead())`);
     const dbg = await ev(O.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug())`);
     ok(dbg.log.some(l => l.id === (sent && sent.id) && /^playing/.test(l.what)) && JSON.stringify(head) === '["TEST NIGHT",""]', `RADIO (CC-B): the owner's phone plays it (the chime → the PA voice: ${JSON.stringify(dbg.log.filter(l => l.id === (sent && sent.id)).map(l => l.what))}) + the headline on the billboard (${JSON.stringify(head)})`);
@@ -176,6 +178,33 @@ G('radio', async () => {
     ok(e.ok && en && en.wait === false && live.radio && live.radio.intercom.some(m => m.id === e.r.intercom.id), `RADIO (CC-B): EVERYONE → every open lobby's node + the city's feed`);
     for (const id of [r.ok && r.r.intercom.id, e.ok && e.r.intercom.id].filter(Boolean)) await call(O.page, { action: 'radioUnsend', id });
     await ev(P.page, `import('/js/room.js').then(m => m.leaveRoom()).catch(() => {})`); await P.ctx.close(); }
+  // ---- FRIENDS C — THE INTERCOM IN SYNC (the owner, Nov 5: two phones in one house heard it at different moments): EVERYONE is stamped
+  // ~50 s ahead on the server clock (the one sent above: never played — unsent long before its time); two WATCHING phones given the city's
+  // copy start a REAL clip at the same moment (< 150 ms apart — each fetched, decoded + scheduled it on its own audio clock); a phone that
+  // learns of it LATE joins mid-way (its start = the same `at`), never from the top. (A JUST ME clip fed as the city's copy on those pages:
+  // nothing goes out to the other shards' phones.)
+  { const fs = await import('node:fs'), mp3 = fs.readFileSync(new URL('../../../audio/city/boxer-combo_4.mp3', import.meta.url)).toString('base64');
+    const e2 = await call(O.page, { action: 'radioIntercom', aud: 'everyone', mime: 'audio/mpeg', dur: 1, b64: mp3, head: '' });
+    const lead = e2.ok ? (e2.r.intercom.at - e2.r.intercom.made) / 1000 : null;
+    if (e2.ok) await call(O.page, { action: 'radioUnsend', id: e2.r.intercom.id });
+    const s = await call(O.page, { action: 'radioIntercom', aud: 'me', mime: 'audio/mpeg', dur: 1, b64: mp3, head: '' }), id = s.ok && s.r.intercom.id;
+    const W = [];
+    for (const k of ['ica', 'icb', 'icc']) { const P = await open({ slot: k, qs: 'when=2026-11-03T21:00', profile: false }); await harborUp(P.page); await P.page.keyboard.press('Shift'); await waitFor(P.page, `import('/js/audio/engine.js').then(m => m.isUnlocked())`, 'the audio unlocked (a key)', 8000).catch(() => {}); W.push(P); }
+    const t0 = await ev(W[0].page, `import('/js/firebase.js').then(m => m.serverNow())`), at = Math.round(t0 + 9000);
+    const m = { ...(s.ok ? s.r.intercom : {}), aud: 'everyone', at, until: at + RD_IC.icLen(1) * 1000, made: t0, state: 'q' };
+    const feed = P => ev(P.page, `import('/js/audio/intercom.js').then(x => { x.intercomFeed('feed', [${JSON.stringify(m)}]); return true; })`);
+    await feed(W[0]); await sleep(1300); await feed(W[1]);   // (the two learn of it at different times — like two polls)
+    const startOf = P => ev(P.page, `import('/js/audio/intercom.js').then(x => ({ s: x.intercomDebug().starts['${id}'] || null, log: x.intercomDebug().log.filter(l => l.id === '${id}').map(l => l.what) }))`);
+    for (const P of W.slice(0, 2)) await waitFor(P.page, `import('/js/audio/intercom.js').then(x => x.intercomDebug().log.some(l => l.id === '${id}' && /^(playing|done|could)/.test(l.what)))`, 'the clip scheduled', 12000).catch(() => {});
+    await sleep(Math.max(0, at + 3000 - Date.now()));   // (the late one: told 3 s after its start)
+    await feed(W[2]);
+    await waitFor(W[2].page, `import('/js/audio/intercom.js').then(x => x.intercomDebug().log.some(l => l.id === '${id}' && /^playing/.test(l.what)))`, 'the late phone', 10000).catch(() => {});
+    const [a, b, c] = [await startOf(W[0]), await startOf(W[1]), await startOf(W[2])];
+    ok(Math.abs(lead - 50) < 2 && a.s && b.s && Math.abs(a.s - b.s) < 150 && Math.abs(a.s - at) < 150 && a.log.some(w => /^playing/.test(w)) && b.log.some(w => /^playing/.test(w)),
+      `THE INTERCOM IN SYNC (FRIENDS C): EVERYONE stamped ${lead} s ahead; two phones start the clip together — ${a.s && b.s ? Math.abs(a.s - b.s) : '?'} ms apart, ${a.s ? a.s - at : '?'} ms from its time (${a.log.join(' · ')} | ${b.log.join(' · ')})`);
+    ok(c.s && Math.abs(c.s - at) < 250 && c.log.some(w => /^playing .*late/.test(w)), `THE INTERCOM IN SYNC (FRIENDS C): a phone told 3 s late joins MID-WAY on the same timeline (start ${c.s ? c.s - at : '?'} ms from its time: ${c.log.join(' · ')})`);
+    for (const P of W) await P.ctx.close();
+    if (id) await call(O.page, { action: 'radioUnsend', id }); }
   // ---- PROGRESSION B's add-on — THE INTERCOM's WHEN: JUST ME, AT A TIME ~35 s ahead → kept + queued (THE PROGRAM's YOURS + CANCEL), it
   // plays THEN — not before; a second one CANCELLED before its time never plays
   { const b64 = Buffer.alloc(3000, 4).toString('base64'), t0 = await ev(O.page, `import('/js/firebase.js').then(m => m.serverNow())`);
@@ -190,9 +219,9 @@ G('radio', async () => {
     const c2 = id2 ? await call(O.page, { action: 'radioUnsend', id: id2 }) : { ok: false };
     const logOf = id => ev(O.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug().log.filter(l => l.id === '${id}').map(l => l.what))`);
     await sleep(Math.max(0, t0 + 25e3 - (await ev(O.page, `import('/js/firebase.js').then(m => m.serverNow())`))));
-    const early = await logOf(id1);
+    const early = (await logOf(id1)).filter(w => !/^could not play/.test(w));   // (FRIENDS C: a fake clip fails its decode during the few seconds of PREP — the start itself is still on time)
     await waitFor(O.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug().log.some(l => l.id === '${id1}' && !/held/.test(l.what)))`, 'the scheduled intercom', 25000).catch(() => {});
-    const later = await logOf(id1), when = await ev(O.page, `import('/js/audio/intercom.js').then(m => (m.intercomDebug().log.find(l => l.id === '${id1}') || {}).at || 0)`);
+    const later = await logOf(id1), when = await ev(O.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug().starts['${id1}'] || 0)`);   // (FRIENDS C: the start it was SCHEDULED for — the fetch begins a few seconds ahead)
     const st2 = await get(`radio/ic/${id2}`), clip2 = await get(`radio/clips/${id2}`);
     ok(early.length === 0 && later.length > 0 && !later.includes('skipped') && when >= t0 + 33e3 && c2.ok && st2 && st2.state === 'stopped' && !clip2 && !(await logOf(id2)).some(w => /playing/.test(w)),
       `RADIO (the WHEN): the JUST ME one played at its time, not before (${((when - t0) / 1000).toFixed(1)} s after the send: ${JSON.stringify(later)}); the cancelled one never (${st2 && st2.state}, its clip ${clip2 ? 'kept' : 'gone'})`); }
@@ -219,8 +248,8 @@ G('radio', async () => {
   await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'PROGRAM').click()`);
   await waitFor(O.page, `[...document.querySelectorAll('.rd-paper h4')].some(h => /YOUR QUEUE/.test(h.textContent))`, 'THE PROGRAM', 8000);
   await shotFace(O.page, 'program');
-  const prog = await ev(O.page, `({ heads: [...document.querySelectorAll('.rd-paper h4')].map(h => h.firstChild.textContent), rows: document.querySelectorAll('.rd-paper .rd-pr').length, queue: [...document.querySelectorAll('.rd-paper')].pop().textContent, week: document.querySelectorAll('.rd-wk div').length })`);
-  ok(prog.heads.length === 3 && prog.rows >= 3 && prog.week === 7 && /GAME NIGHT · 8 PM/.test(prog.queue) && /FRI 19:45|FRI \d/.test(prog.queue) === /FRI/.test(prog.queue), `RADIO: THE PROGRAM — tonight (${prog.rows} rows), the week (${prog.week}), YOUR QUEUE with the billboard REPEAT ("${prog.queue.slice(0, 90)}")`);
+  const prog = await ev(O.page, `({ heads: [...document.querySelectorAll('.rd-paper h4')].map(h => h.firstChild.textContent), rows: document.querySelectorAll('.rd-paper .rd-pr').length, queue: [...document.querySelectorAll('.rd-paper')][0].textContent, week: document.querySelectorAll('.rd-wk div').length })`);
+  ok(prog.heads.length === 3 && prog.heads[0] === 'YOUR QUEUE' && prog.heads[1] === 'THE WEEK' && prog.rows >= 3 && prog.week === 7 && /GAME NIGHT · 8 PM/.test(prog.queue) && /FRI 19:45|FRI \d/.test(prog.queue) === /FRI/.test(prog.queue), `RADIO: THE PROGRAM — the order ${prog.heads.join(' · ')} (FRIENDS C: YOUR QUEUE first), tonight (${prog.rows} rows), the week (${prog.week}), YOUR QUEUE with the billboard REPEAT ("${prog.queue.slice(0, 90)}")`);
   // ---- THE LEDGER's nixies
   await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'LEDGER').click()`);
   await waitFor(O.page, '!!document.querySelector(".rd-big3 .rd-nixie")', 'THE LEDGER', 10000);
@@ -300,6 +329,30 @@ G('radio', async () => {
     await ev(O.page, `[...document.querySelectorAll('.rd-precard .rd-cancel')].find(b => /SURE/.test(b.textContent)).click()`); await sleep(1000);
     const after = await call(O.page, { action: 'radioState' });
     ok(steps === 1 && res.length === 1 && res.every(t => /✓/.test(t)) && !(after.r.presets || []).some(x => x.name === 'E2E NIGHT'), `RADIO (CC-B): the jack's card (${steps} step) → FIRE THE PRESET (${res.join(' | ')}) → DELETE (a second tap)`); }
+  // ---- FRIENDS C — A FIRED JACK PLAYS ONCE (the owner, Nov 5: SKYWRITE · EVERYONE, the UFO, the TR-3B "on a loop"): four one-shots of
+  // different kinds at once (THE DRONE SHOW = skywrite after dark · a LEGENDARY · the BALLOONS · the BANNER — JUST ME, written straight into the
+  // queue: the server's own after-dark check reads the REAL clock), watched for their whole window while the city is REBUILT in the middle
+  // (YOUR CARD → back: the bug — a rebuilt city began each again). Each piece appears exactly once.
+  { await O.page.keyboard.press('Escape'); await waitFor(O.page, '!document.querySelector(".rd-modal")', 'the radio closed', 6000).catch(() => {});
+    const t0 = await ev(O.page, `import('/js/firebase.js').then(m => m.serverNow())`), shots = [['skywrite', 'drones'], ['ufo', 'legend'], ['balloons', 'balloons'], ['banner', 'banner']];
+    for (const [jack] of shots) { const len = RD.jackDef(jack).len; await dbPut(`radio/q/e2eonce-${jack}`, { jack, aud: 'me', room: null, by: pid, role: 'owner', text: jack === 'balloons' || jack === 'ufo' ? null : 'ONCE', colour: null, show: null, dance: null, local: null, at: t0 + 2000, until: t0 + 2000 + len * 1000, made: t0, state: 'q', wait: 0 }); }
+    const on = `(() => { const h = window.__district.harbor(), d = h.sky.state; return { drones: !!(d.drones && d.drones.lit), legend: !!h.legend.state.run, balloons: !!(d.balloons && d.balloons.n), banner: !!d.banner }; })()`;
+    const n = { drones: 0, legend: 0, balloons: 0, banner: 0 }, was = {}, end = Date.now() + 100e3;
+    let away = false, seen = '';
+    while (Date.now() < end) {
+      const s = await ev(O.page, on).catch(() => null);
+      if (s) for (const k of Object.keys(n)) { if (s[k] && !was[k]) n[k]++; was[k] = s[k]; }
+      if (!away && n.drones && n.legend) {   // (the city rebuilt mid-window: YOUR CARD, then back)
+        away = true; await ev(O.page, `import('/js/store.js').then(m => m.setState({ view: 'profile' }))`); await sleep(2500);
+        await ev(O.page, `import('/js/store.js').then(m => m.setState({ view: 'title' }))`); await harborUp(O.page).catch(() => {}); for (const k of Object.keys(was)) was[k] = false;
+        seen = JSON.stringify(await ev(O.page, `import('/js/screens/harbor/scene-radio.js').then(m => Object.keys(m.radioSeen()).filter(k => /^e2eonce/.test(k)))`));
+      }
+      if (Object.values(n).every(v => v >= 1) && away && Date.now() > end - 40e3) break;
+      await sleep(500);
+    }
+    ok(away && Object.values(n).every(v => v === 1), `RADIO (FRIENDS C): A FIRED JACK PLAYS ONCE — each piece shown once over its whole window, the city rebuilt in the middle (${JSON.stringify(n)}; kept for the tab: ${seen})`);
+    for (const [jack] of shots) await dbPut(`radio/q/e2eonce-${jack}`, null);
+    await ev(O.page, `document.querySelector('.rd-btn').click()`); await waitFor(O.page, '!!document.querySelector(".rd-modal.is-in .rd-jack")', 'the desk', 10000); }
   // ---- CLEAR ALL under the cover: the cover first, then the button
   await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'DESK').click()`); await sleep(400);
   await ev(O.page, `document.querySelector('.rd-cover').click()`); await sleep(400);
@@ -348,6 +401,16 @@ G('crew', async () => {
   { const d = await ev(C.page, `({ jacks: [...document.querySelectorAll('.rd-jack')].map(j => j.dataset.jack), grey: [...document.querySelectorAll('.rd-jack')].every(j => j.dataset.lamp === 'grey'), tune: !!document.querySelector('.rd-tune'), mic: !!document.querySelector('.rd-mic'), band: !!document.querySelector('.rd-bb'), plate: (document.querySelector('.rd-lobplate') || {}).textContent || '', clear: !!document.querySelector('.rd-clear') })`);
     const want = RD.jacks().filter(j => j.crew).map(j => j.id);
     ok(d.jacks.length === 11 && d.jacks.every(j => want.includes(j)) && d.grey && !d.tune && !d.mic && !d.band && !d.clear && /THIS LOBBY ONLY/.test(d.plate), `CREW: the cut-down desk — 11 jacks (${d.jacks.join(' ')}), THIS LOBBY ONLY, no tuning / mic / program / ledger / clear-all; not in a lobby → every jack greyed`);
+    // (FRIENDS C — the crew's header crowded at 390: every piece whole + apart at 390 / 402 / 430)
+    const fit = [];
+    // (the sheet set to each phone's width — a resize of the page would close the radio + drop its button)
+    for (const w of [390, 402, 430]) {
+      fit.push(await ev(C.page, `(() => { const sh = document.querySelector('.rd-modal .rd-sheet'); if (!sh) return { w: ${w}, miss: ['.rd-sheet'] }; sh.style.width = '${w}px'; const q = s => sh.querySelector(s), r = s => q(s).getBoundingClientRect(), miss = ['.rd-brand', '.rd-x', '.rd-lobplate'].filter(s => !q(s)); if (miss.length) { sh.style.width = ''; return { w: ${w}, miss }; }
+        const b = q('.rd-brand'), x = r('.rd-x'), p = r('.rd-lobplate'), br = r('.rd-brand'), S = sh.getBoundingClientRect();
+        const o = { w: ${w}, whole: [...b.children].every(e => e.scrollWidth <= e.clientWidth + 1) && b.scrollWidth <= b.clientWidth + 1, apart: br.right <= x.left && p.right <= x.left, inside: x.right <= S.right && br.left >= S.left };
+        sh.style.width = ''; return o; })()`));
+    }
+    ok(fit.every(f => f.whole && f.apart && f.inside), `CREW (FRIENDS C): the crew radio's header fits — nothing clipped or touching the ✕ (${JSON.stringify(fit)})`);
     await tapJack(C.page, 'banner'); await sleep(300);
     const bub = await ev(C.page, `(document.querySelector('.rd-bub') || {}).textContent || ''`);
     ok(/join a lobby/i.test(bub), `CREW: a greyed jack says why ("${bub}")`);

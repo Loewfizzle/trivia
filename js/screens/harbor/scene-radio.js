@@ -8,6 +8,16 @@
 // joins a running moment mid-way (its start in the past); a STOP ends it on the phone's next read. Each phone the same start: the server's.
 import { jackDef, startOf, localStart, lenOf } from '../../core/harbor-radio.js';
 
+// FRIENDS C — A FIRED JACK PLAYS ONCE (the owner, Nov 5: SKYWRITE · EVERYONE, the UFO, the TR-3B "on a loop"): the `played` record died
+// with the scene, so every rebuilt city (back from YOUR CARD / setup / a match — THE CITY PAUSE) began a moment still inside its window
+// AGAIN (a "late load" mid-way). The one-shots this phone has STARTED are kept for the tab (sessionStorage — a reload too): a rebuilt
+// city never begins them twice. A HOLD (the searchlights, the beams, the party, a dance) is a state, not a pass: it still comes back on.
+const SEEN_KEY = 'nd:rd-seen';
+function seenLoad() { try { const v = JSON.parse(sessionStorage.getItem(SEEN_KEY) || '{}'); return v && typeof v === 'object' ? v : {}; } catch { return {}; } }
+function seenSave(v) { try { sessionStorage.setItem(SEEN_KEY, JSON.stringify(v)); } catch { /* private mode: this scene's own record still holds */ } }
+/** the one-shots this tab has started: { id: until (server ms) } — pruned once over */
+export function radioSeen() { return seenLoad(); }
+
 /** C: { clock, srv (server ms), dark () → bool, off () → the zone (minutes east), legend (kind, atClock), stopLegend (), sky () → the sky
  *  API, blackbird (atClock) → bool, stopBlackbird (), lightning (atClock, o) → bool, stopLightning (), resetEvents (), log (what) } */
 export function createSceneRadio(C) {
@@ -16,6 +26,8 @@ export function createSceneRadio(C) {
   const held = new Set();                 // the force ids THIS module added to clock.force
   let fw = [];                            // the one-off shows (scene-fireworks reads them): [{ id, kind, t0 (clock s) }]
   const startMs = m => (m.local ? localStart(m.local, m.made || m.at, C.off()) : m.at);
+  const seen = seenLoad();
+  { const now = C.srv(); let pruned = false; for (const id of Object.keys(seen)) if (!(seen[id] > now - 60e3)) { delete seen[id]; pruned = true; } if (pruned) seenSave(seen); }
 
   function set(moments) {
     const next = new Map();
@@ -60,11 +72,14 @@ export function createSceneRadio(C) {
       const S0 = startMs(m), len = lenOf(m) * 1000, end = m.local ? S0 + len : Math.max(m.until || 0, S0 + len);
       if (now < S0 || now >= end) { if (now >= end && played.has(m.id) && played.get(m.id) !== 'skip') played.set(m.id, 'skip'); continue; }
       const j = jackDef(m.jack), S = startOf(m);
+      if (!played.has(m.id) && S.kind !== 'hold' && seen[m.id]) { played.set(m.id, 'skip'); C.log(`radio: ${m.jack} already played on this phone`); continue; }
       if (!played.has(m.id)) {
         if (j.dark && !C.dark()) { played.set(m.id, 'skip'); C.log(`radio: ${m.jack} skipped here (not dark)`); continue; }
         let ok = false; try { ok = Number.isFinite(S0) && begin(m, S, now, S0); } catch (e) { console.warn('[harbor] radio', m.jack, e); }
         if (!ok && S.kind !== 'hold') continue;            // (not ready yet — a sky piece before the lanes: next frame)
-        played.set(m.id, { kind: S.kind, arg: S.arg, startS: S0 }); C.log(`radio: ${m.jack} started (${Math.round((now - S0) / 1000)} s in)`);
+        played.set(m.id, { kind: S.kind, arg: S.arg, startS: S0 });
+        if (S.kind !== 'hold') { seen[m.id] = end; seenSave(seen); }
+        C.log(`radio: ${m.jack} started (${Math.round((now - S0) / 1000)} s in)`);
       }
       if (S.kind === 'hold' && played.get(m.id) !== 'skip') want.add(S.arg);
     }

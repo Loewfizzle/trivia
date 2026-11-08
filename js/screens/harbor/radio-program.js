@@ -1,5 +1,6 @@
 // CITY CONTROLS A — THE PROGRAM (the radio's middle face; mockup 3): a printed RADIO LISTING on cream paper, built FROM THE DAY CHART
 // (core/harbor-daychart.js — the same planners the city runs; never a hand-made list):
+// THE ORDER (FRIENDS C, the owner): YOUR QUEUE · THE WEEK · then TONIGHT (its EARLIER still folded).
 //   TONIGHT (or TODAY before 3 pm)  THREE SECTIONS (the owner's PROGRESSION A review, Nov 2): ON NOW (a live dot) · COMING UP (full strength,
 //                                   a countdown on each) · EARLIER TONIGHT at the bottom, COLLAPSED to one line (greyed, its tags too);
 //                                   a row moves between them as time passes (repainted in place — the scroll kept); the legendaries tagged
@@ -118,5 +119,6 @@ export function paint({ st, now, cancel, edit }) {
       h('button.rd-qx', { type: 'button', onclick: () => edit(b) }, 'EDIT'), h('button.rd-qx', { type: 'button', onclick: () => cancel.board(b.id) }, 'CANCEL')));
   }
   const queue = h('section.rd-paper', h('h4', 'YOUR QUEUE', h('em', q.length ? 'tap to edit · cancel' : '')), ...(q.length ? q : [h('div.rd-pr', h('span', 'Nothing queued — fire a moment AT A TIME or post to the billboard from the desk.'))]));
-  return [tonight, weekCard, queue];
+  // (FRIENDS C — the owner: YOUR QUEUE first, THE WEEK second, then the night's timeline — only a re-order)
+  return [queue, weekCard, tonight];
 }
