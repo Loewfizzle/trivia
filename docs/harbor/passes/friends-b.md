@@ -72,6 +72,12 @@ key keeps working everywhere. **THE RESTORE KEY STAYS** — unchanged.
   (35.3–38.4 ms): the known display-less red. Earlier touched groups (shell, platefit, cardfit, stripfit, dock, neon, load, corners) 108/109 — LOAD
   WEATHER green alone 19/19.
 - One final push with the harbor tag (a City 2.0 file changed: the dock lit by day).
+- **THE CLOUD (one run, 7e9f6f1)**: `tests` GREEN · harbor 14 / 15 — the `holiday` job's three Halloween-spider motion checks (THE DANGLE, THE
+  SPIDER'S TAP, THE CLIMB HOME: the tap landed before the spider had dropped — it tapped 160,103 where the local runs tap 125,120) red; the same
+  three GREEN in the local full run AND `ONLY=holiday` alone (30/30); nothing in this pass touches the spider → not re-run (the standing rule).
+  Vercel BUILT ("Deployment has completed"); live: `og.jpg` 268 KB image/jpeg, the page's og tags point at it. Note: the site answers on
+  www.neonspeakeasy.com — the passkeys' RP ID neonspeakeasy.com covers it (both origins allowed).
+- Servers: the emulators + serve.mjs stopped at the end (and the browser preview).
 - **Known**: the real Face ID prompt, the iCloud Keychain sync + the QR sign-in from a Windows / Android browser are only checkable on real devices
   (the owner's iPhone). The podium sounds are Grok's measured picks — the owner A/Bs them on the iPhone (the backups are in his folder). The
   console's winner sting = Grok's level-up BACKUP (a judgement call — the notes name no victory file; swap or drop on a word). THE ROOM's OWN COST
