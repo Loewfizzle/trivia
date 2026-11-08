@@ -138,3 +138,13 @@
 - Nov 8: All six daily cards APPROVED in THE LAB by Ben: SAFECRACKER, KEYHOLE, GHOST RUN, LIGHTHOUSE, PERFECT WEEK, PENTHOUSE (THE DIAL).
 - Nov 8: FABLE REVIEW #2 (read-only) reviews THE DAILY MODULE; its findings + Ben's iPhone notes on DM2 become the fix pass DFIX2. The dailies
   stay OFF until DFIX2 lands; then Ben flips the switch. The report: docs/games/review-dailies-2.md.
+
+## DFIX2 — THE DAILIES FIX PASS (Nov 8 2026 — FABLE REVIEW #2's fixes + SLIM CARDS ON SCORES; the dailies still OFF until Ben flips the switch)
+- Nov 8 — FABLE REVIEW #2's five questions, Ben: "go with all of his recommendations":
+  1. Throwaways can still LEARN today's answers: ACCEPTED while the site is Ben + friends; when public → no reveal for a non-counting (same-day) run.
+  2. PENTHOUSE is decided at the DAY'S CLOSE, against the day's final counting finishers — closed lazily by the first /api call after 4 am Eastern (no cron).
+  3. THE ROOM WINS needs 2+ real players dealt into the started game (a room of one can't pause a daily).
+  4. The host's "1 PLAYER IS MID-DAILY" line reads a flag on the player's room node (no polling, zero invocations) — a rules change; Ben re-publishes the rules.
+  5. RESEED: the day cache is keyed by the day and cleared on reseed (the one-line clear in pickDay).
+- Nov 8 — SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS (Ben: "they look so good, we need to start using them"). The dailies' SCORES → YOUR TABLE uses them from DFIX2 on.
+- BEFORE PUBLIC (not now): repo private + RESEED; no reveal for a non-counting run; batch COAST CLEAR's digs before ~350 players a day (Hobby's 1M invocations); dly/ cleanup before ~500 players a day.
