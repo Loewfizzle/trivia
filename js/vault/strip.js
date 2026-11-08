@@ -169,10 +169,11 @@ function lineOf(plate) {
   const m = /(rgba?\([^)]+\))\s+0px\s+0px\s+0px\s+([\d.]+)px\s+inset/.exec(getComputedStyle(plate).boxShadow || '');
   return m ? { c: m[1], w: Math.min(2, parseFloat(m[2]) || 1) } : { c: 'rgba(255,255,255,0.09)', w: 1 };
 }
-/** a GIFT strip: the plate's max-width ends before the card's hero (its face) — px, or '' */
+/** a strip with a HERO (js/vault/hero.js): the plate's max-width ends before it — px, or ''. THE CARD PASS — THE SLIM-CARD LONG-NAME STANDARD:
+ *  every strip that declares one (was: the gift strips only) — a NAME_MAX-letter name shrinks / goes to two lines, never over the subject */
 function heroRoom(plate) {
   const strip = plate.parentElement;
-  if (!strip || !strip.classList.contains('vl-gift') || !strip.classList.contains('vl-strip')) return '';
+  if (!strip || !strip.classList.contains('vl-strip')) return '';
   const b = (HERO[strip.dataset.card] || [])[0]; if (!b) return '';
   return `${Math.max(120, Math.floor(b[0] * strip.clientWidth - plate.offsetLeft - 6))}px`;
 }

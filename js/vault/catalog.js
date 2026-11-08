@@ -253,6 +253,8 @@ LAB.push(
   { id: 'full-card-gift-zadomovinu', kind: 'full', of: 'card-gift-zadomovinu', tier: 'legendary', n: 206, gift: true },
   { id: 'full-card-gift-starimost', kind: 'full', of: 'card-gift-starimost', tier: 'legendary', n: 207, gift: true },
 );
+// THE CARD PASS — B7: OVERCLOCK's lucky emblem (OC5 shipped it with a placeholder glyph) — its real neon art
+LAB.push({ id: 'emb-horseshoe', kind: 'emblem', tier: 'uncommon', n: 208, fin: 'neon' });
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 // THE VAULT 1B — NAMES ONLY TO OWNERS: the lab's NAMES + what each one does are the SERVER's (api/_lib/lab-text.js) — handed to the lab with
 // the marks (admins only: /api/admin labMarks → { marks, text }); the look previews (never deployed) import them off the local server.
@@ -268,7 +270,10 @@ export const LAB_V = Object.freeze({
   'card-founder': 2, 'full-card-founder': 2, 'full-card-house': 2,
   // (CARD FIXES — the owner's LAB notes + THE CARD LAYOUT RULE: every gift's full card, the strips whose art moved, the dev line)
   'full-card-gift-playerone': 2, 'full-card-gift-halloffame': 2, 'full-card-gift-enforcer': 2, 'full-card-gift-linebacker': 2, 'full-card-gift-underlights': 2, 'full-card-gift-sunsetstrip': 2, 'full-card-gift-goldenhour': 2, 'full-card-gift-goldenboot': 2, 'full-card-gift-youngbuck': 3, 'full-card-gift-icecold': 2, 'full-card-gift-anarchist': 2,
-  'card-gift-playerone': 2, 'card-gift-halloffame': 2, 'card-gift-sunsetstrip': 2, 'card-gift-youngbuck': 4, 'card-gift-icecold': 2, 'card-gift-anarchist': 2,   // (Nov 6: the tape card's strip v4 — its effects back on their spots)
+  'card-gift-playerone': 2, 'card-gift-halloffame': 2, 'card-gift-sunsetstrip': 3, 'card-gift-youngbuck': 4, 'card-gift-icecold': 2, 'card-gift-anarchist': 2,
+  // (THE CARD PASS — THE SLIM-CARD LONG-NAME STANDARD: the gift strips whose face sat left of 0.75 zoomed out + set right)
+  'card-gift-enforcer': 2, 'card-gift-linebacker': 2, 'card-gift-underlights': 2, 'card-gift-goldenhour': 2, 'card-gift-goldenboot': 2, 'card-gift-buzzed': 2,
+  'card-safecracker': 2, 'card-ghost-run': 2,   // (Nov 6: the tape card's strip v4 — its effects back on their spots)
   'card-dev-switchboard': 4, 'card-dev-source': 4, 'full-card-dev-switchboard': 6, 'full-card-dev-source': 6,
 });
 /** an item's current version */

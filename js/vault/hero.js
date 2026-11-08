@@ -22,7 +22,7 @@ export const HERO = {
   'card-sg-tr3b': [[0.47, 0.12, 0.3, 0.56]],                      // the craft (sg-tr3b.js: cx 0.62 — B2)
   'card-sg-f22': [[0.52, 0.05, 0.34, 0.8]],                        // the pair of jets (sg-kit.js: cx 0.7)
   'card-sg-ghostship': [[0.56, 0.1, 0.2, 0.8]],                   // the ship
-  'card-sg-fireball': [[0.45, 0, 0.47, 0.45]],                    // the fireball's path (sg-fireball.js: 0.34 → 1.04 across the top)
+  'card-sg-fireball': [[0.62, 0, 0.3, 0.45]],                     // the fireball's path's right part (sg-fireball.js: 0.34 → 1.04 across the top — THE CARD PASS: it streaks in from BEHIND a 12-letter name's plate, like a ground; its head + burst burn right of it)
   'card-sg-skull': [[0.6, 0.04, 0.16, 0.92]],                     // the skull balloon
   'card-sg-btc': [[0.52, 0.04, 0.34, 0.76]],                       // the ₿ balloons
   'card-camo': [[0.64, 0.25, 0.12, 0.5]],                         // the scope's reticle (scan.js: 0.7 — B2)
@@ -51,13 +51,13 @@ for (const [id, S] of Object.entries(OC_SPECS)) {
 }
 // (PW2 — THE PASSWORD's card: the wheel + the open door's gold — its art 1280 × 720 too)
 for (const [id, S] of Object.entries(PW_SPECS)) {
-  const k = Math.max(SW / AW, SH / PW_AH), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - PW_AH * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
+  const k = Math.max(SW / AW, SH / PW_AH) * (S.strip[2] || 1), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - PW_AH * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
   const y0 = Math.max(0, (oy + y * k) / SH), y1 = Math.min(1, (oy + (y + h) * k) / SH);
   HERO[id] = Object.freeze([[(ox + x * k) / SW, y0, (w * k) / SW, Math.max(0.05, y1 - y0)]]);
 }
 // (CC2 — COAST CLEAR's card: the boat — its art 1280 × 720 too; its strip crop ~10 % lower than centre)
 for (const [id, S] of Object.entries(CC_SPECS)) {
-  const k = Math.max(SW / AW, SH / CC_AH), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - CC_AH * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
+  const k = Math.max(SW / AW, SH / CC_AH) * (S.strip[2] || 1), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - CC_AH * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
   const y0 = Math.max(0, (oy + y * k) / SH), y1 = Math.min(1, (oy + (y + h) * k) / SH);
   HERO[id] = Object.freeze([[(ox + x * k) / SW, y0, (w * k) / SW, Math.max(0.05, y1 - y0)]]);
 }

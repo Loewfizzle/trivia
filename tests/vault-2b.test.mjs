@@ -76,8 +76,9 @@ test('THE REST OF THE SET: every 2B emblem / glow / tube style a real item at th
     if (x.kind === 'glow') assert.match(glows, new RegExp(`'${x.id}': \\{ look: '\\w+'`), `${x.id}: a glow with a look`);
   }
   // every emblem item in the catalog has art now (no placeholder glyph left) · every glow + tube style a look
-  // (PENDING_ART: an emblem whose art THE LAB hasn't drawn yet — it shows its glyph / the player's sign until then: OC5's HORSESHOE)
-  const PENDING_ART = new Set(['emb-horseshoe']);
+  // (PENDING_ART: an emblem whose art THE LAB hasn't drawn yet — it shows its glyph / the player's sign until then; OC5's lucky emblem had one
+  //  until THE CARD PASS drew it — none pending now)
+  const PENDING_ART = new Set([]);
   for (const r of ITEM_ROWS.filter(x => x.kind === 'emblem' && !PENDING_ART.has(x.id))) assert.match(art, new RegExp(`'${r.id}': \\{ shape:`), `${r.id}: art`);
   for (const id of PENDING_ART) assert.ok(ROW[id] && ROW[id].glyph && !LAB.some(x => x.id === id), `${id}: pending — a glyph, no lab row yet`);
   for (const r of ITEM_ROWS.filter(x => x.kind === 'glow')) assert.match(glows, new RegExp(`'${r.id}': \\{ look:`), `${r.id}: a look`);

@@ -74,3 +74,17 @@ test('THE GIFT QUEUE (the phone): the reveal plays the line one card at a time, 
   assert.match(srv, /ppriv\/\$\{pid\}\/gq/, 'the line lives in ppriv (server-only — no rules change)');
   assert.doesNotMatch(read('database.rules.json'), /"gq"/);
 });
+
+// ---- THE SLIM-CARD LONG-NAME STANDARD (the pure half; the live half = harbor `stripfit`, every strip with W × NAME_MAX + MAXIMILIANOS at 390):
+//      every GIFT strip's hero (its face / subject) centred 0.75–0.85 across, clear of the gem; every strip with a hero caps its plate there
+test('THE SLIM-CARD LONG-NAME STANDARD: every gift strip keeps its hero far right (0.75–0.85), the plate capped at the hero on every strip', async () => {
+  const { HERO, heroMisses } = await import('../js/vault/hero.js');
+  const { GIFT_CARDS } = await import('../js/core/gift-cards.js');
+  assert.deepEqual(heroMisses(), []);
+  const off = GIFT_CARDS.map(id => [id, HERO[id] && HERO[id][0]]).filter(([, b]) => !b || b[0] + b[2] / 2 < 0.75 || b[0] + b[2] / 2 > 0.85).map(([id, b]) => `${id} ${b ? (b[0] + b[2] / 2).toFixed(3) : 'no hero'}`);
+  assert.deepEqual(off, [], 'every gift strip centred 0.75–0.85');
+  const strip = read('js/vault/strip.js');
+  assert.match(strip, /function heroRoom\(plate\) \{\n  const strip = plate\.parentElement;\n  if \(!strip \|\| !strip\.classList\.contains\('vl-strip'\)\) return '';/, 'the cap on every strip with a hero (not only the gifts)');
+  assert.match(strip, /if \(!plate\.classList\.contains\('vl-fc-plate'\)\) \{ const room = heroRoom\(plate\);/, 'a full card plate keeps its own cap');
+  assert.match(read('tests/integration/harbor-e2e/lobbyfix.mjs'), /G\('stripfit'[\s\S]*?NAME_MAX/, 'the live check reads NAME_MAX');
+});

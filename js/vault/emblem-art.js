@@ -111,6 +111,7 @@ export const EMBLEM_ART = Object.freeze({
   'emb-peephole': { shape: 'door', finish: 'neon' },
   'emb-keyhole': { shape: 'keyhole', finish: 'neon' },
   'emb-lighthouse': { shape: 'lighthouse', finish: 'neon' },
+  'emb-horseshoe': { shape: 'shoe', finish: 'neon' },   // (THE CARD PASS — OVERCLOCK's lucky emblem: its real art, was a placeholder glyph)
   'emb-stars': { shape: 'stars3', finish: 'neon' },
   'emb-wings': { shape: 'wings', finish: 'metal' },
   'emb-bitcoin': { shape: 'coin', finish: 'coin' },
@@ -410,6 +411,15 @@ Object.assign(SH, {
     fx(C) {
       const G = C.layer('ve-lhglow'); G.g.append(el('circle', { cx: 24, cy: 16.2, r: 3.4, fill: '#fff3c4', opacity: 0.9 }), el('circle', { cx: 24, cy: 16.2, r: 6.5, fill: '#ffd27a', opacity: 0.25 }));
       const B = C.layer('ve-lhbeam', `transform-origin:${pct(24)} ${pct(16.2)}`); B.g.append(el('path', { d: 'M24 16.2 L44 10.5 L44 21.9 Z', fill: '#ffe6a3', opacity: 0.56 }), el('path', { d: 'M24 16.2 L4 10.5 L4 21.9 Z', fill: '#ffe6a3', opacity: 0.28 }));
+    } },
+  // emb-horseshoe (THE CARD PASS — B7: OVERCLOCK's DUMB LUCK — you backed the winning horse) — a LUCKY GOLD horseshoe in neon tubes, opening UP
+  // (it holds the luck): the band one closed tube (gold) — a round ~300° shoe with a narrow gap at the top, so it never reads as a letter U, its six nail holes (pale gold dots — they read at 24 pt as a dotted band), a soft warm
+  // glow breathing behind it + a glint TWINKLING on its right heel (two layers: opacity + transform). Readable at the plate's ~24 pt size.
+  shoe: { tubes: [{ d: 'M17.45 10.95 A15.5 15.5 0 1 0 30.55 10.95 L26.33 16.31 A9 9 0 1 1 21.67 16.31 Z', col: '#ffc94a' },
+      { d: `${circ(12.9, 19.8, 1.05)} ${circ(12.17, 28.17, 1.05)} ${circ(16.97, 35.03, 1.05)} ${circ(31.03, 35.03, 1.05)} ${circ(35.83, 28.17, 1.05)} ${circ(35.1, 19.8, 1.05)}`, col: '#fff1b8', thin: true }],
+    fx(C) {
+      const G = C.layer('ve-keyglow'); G.g.append(el('path', { d: 'M17.45 10.95 A15.5 15.5 0 1 0 30.55 10.95 L26.33 16.31 A9 9 0 1 1 21.67 16.31 Z', fill: '#ffd27a', opacity: 0.28 }));
+      const L = C.layer('ve-tw2', `transform-origin:${pct(33.5)} ${pct(8.6)}`); L.g.append(el('path', { d: starPath(33.5, 8.6, 4.4), fill: '#fffbe6' }), el('circle', { cx: 33.5, cy: 8.6, r: 3, fill: '#ffd27a', opacity: 0.4 }));
     } },
   // emb-stars — three stars (gold, pink, cyan); the light HOPPING star to star
   stars3: { tubes: [{ d: star5(24, 13.5, 8), col: '#ffcf5a' }, { d: star5(13.5, 31.5, 7), col: '#ff5fb4' }, { d: star5(34.5, 31.5, 7), col: '#5fd7ff' }],

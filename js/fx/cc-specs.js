@@ -10,13 +10,14 @@
 export const CC_AW = 1280, CC_AH = 720;
 /** the art → slot mapping, exactly the CSS `background: … px% py% / cover` of a 1280 × 720 picture: { k, ox, oy } */
 export function ccMap(w, h, crop) {
-  const k = Math.max(w / CC_AW, h / CC_AH);
+  // (THE CARD PASS: crop[2] = a zoom OUT, like the gift cards' — the art then sits right, the strip's left its dark ground: THE SLIM-CARD LONG-NAME STANDARD)
+  const k = Math.max(w / CC_AW, h / CC_AH) * (crop[2] || 1);
   return { k, ox: (w - CC_AW * k) * (crop[0] / 100), oy: (h - CC_AH * k) * (crop[1] / 100) };
 }
 export const CC_SPECS = Object.freeze({
-  'card-ghost-run': { art: 'ghost-run', strip: [50, 64], full: [50, 56],
-    hero: [600, 380, 500, 150],          // the boat's cabin + hull (the spray trails left of it; the bow's tip runs on under the gem — its dark backing, css/vault.css)
-    heroFull: [380, 340, 800, 260],      // the boat + its spray (the plate keeps to the dark water / sky on the left)
+  'card-ghost-run': { art: 'ghost-run', strip: [100, 70, 0.653], full: [50, 56],   // (THE CARD PASS: the strip zoomed out + set right — the cabin 0.65 → 0.77 across)
+    hero: [640, 370, 380, 130],          // (THE CARD PASS: the cabin + the hull's middle — the bow's tip runs on under the gem)          // the boat's cabin + hull (the spray trails left of it; the bow's tip runs on under the gem — its dark backing, css/vault.css)
+    heroFull: [560, 340, 640, 240],      // the boat (THE CARD PASS: its spray may trail under a 12-letter name's plate — the boat itself stays clear)
     spray: [600, 470],                   // the bow wave's root — the spray flies back + up to the left from here
     lamp: [1095, 303],                   // the lighthouse's lamp (its glow breathes, its beam sweeps)
     cross: [852, 118],                   // where the two searchlight beams cross (a soft shimmer)

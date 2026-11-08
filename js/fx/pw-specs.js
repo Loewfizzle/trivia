@@ -8,13 +8,14 @@
 export const PW_AW = 1280, PW_AH = 720;
 /** the art → slot mapping, exactly the CSS `background: … px% py% / cover` of a 1280 × 720 picture: { k, ox, oy } */
 export function pwMap(w, h, crop) {
-  const k = Math.max(w / PW_AW, h / PW_AH);
+  // (THE CARD PASS: crop[2] = a zoom OUT, like the gift cards' — the art then sits right, the strip's left its dark ground: THE SLIM-CARD LONG-NAME STANDARD)
+  const k = Math.max(w / PW_AW, h / PW_AH) * (crop[2] || 1);
   return { k, ox: (w - PW_AW * k) * (crop[0] / 100), oy: (h - PW_AH * k) * (crop[1] / 100) };
 }
 export const PW_SPECS = Object.freeze({
-  'card-safecracker': { art: 'safecracker', strip: [50, 50], full: [50, 50],
-    hero: [560, 110, 480, 500],          // the wheel + the door's open edge + the gold blaze (centre ≈ 0.62 across)
-    heroFull: [520, 60, 600, 600],        // the whole door (the plate may cover the dark wall's left)
+  'card-safecracker': { art: 'safecracker', strip: [100, 37, 0.46], full: [50, 50],   // (THE CARD PASS: the strip zoomed out + set right — the wheel 0.50 → 0.77 across)
+    hero: [530, 80, 380, 560],           // the wheel + the door's open edge (THE CARD PASS: the gold blaze behind it runs on under the gem)
+    heroFull: [556, 70, 354, 580],        // the door + its wheel from its pink rim's inner edge (THE CARD PASS: the gold blaze, the dark wall + the rim's glow may sit beside a 12-letter name's plate)
     wheel: [705, 350, 150],               // the wheel's centre + radius (the glint runs round its rim)
     blaze: [930, 350, 170, 240],          // the gold inside the doorway (it breathes)
     dust: [900, 160, 380, 460] },         // where the gold dust drifts (right of the door, off the right edge)

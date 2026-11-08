@@ -1008,23 +1008,23 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 /* SHELL 2.0 B2 — THE GIFT CARDS (1 OF 1): the art is the MATERIAL (assets/vault/gift/<art>.webp — scripts/build-gift-art.mjs); the strip shows its
    middle band at the spec's crop (js/fx/gift-specs.js `strip` — the SAME numbers: tests/shell-b2.test.mjs), the full card nearly all of it;
    the motion is js/fx/gift.js on the shared surface. The full card's plate sits LOWER (the approved mocks: the face stays clear). */
-.vl-s-g-enforcer .vl-mat { background: #07060a url('../assets/vault/gift/enforcer.webp') 50% 28% / cover no-repeat; }
+.vl-s-g-enforcer .vl-mat { background: #07060a url('../assets/vault/gift/enforcer.webp') 100% 26% / 70% auto no-repeat; }   /* (THE CARD PASS: zoomed out + set right — THE SLIM-CARD LONG-NAME STANDARD) */
 .vl-fcm-g-enforcer .vl-mat { background-position: 50% 50%; }
-.vl-s-g-linebacker .vl-mat { background: #07060a url('../assets/vault/gift/linebacker.webp') 50% 28% / cover no-repeat; }
+.vl-s-g-linebacker .vl-mat { background: #0b1636 url('../assets/vault/gift/linebacker.webp') 100% 26% / 70% auto no-repeat; }
 .vl-fcm-g-linebacker .vl-mat { background-position: 50% 50%; }
-.vl-s-g-underlights .vl-mat { background: #07060a url('../assets/vault/gift/underlights.webp') 50% 28% / cover no-repeat; }
+.vl-s-g-underlights .vl-mat { background: #0e0322 url('../assets/vault/gift/underlights.webp') 100% 26% / 70% auto no-repeat; }
 .vl-fcm-g-underlights .vl-mat { background-position: 50% 50%; }
 .vl-s-g-halloffame .vl-mat { background: #0b0806 url('../assets/vault/gift/halloffame.webp') 100% 40% / 90% auto no-repeat; }   /* (CARD FIXES: "show more of his face" — zoomed out, the face whole) */
 .vl-fcm-g-halloffame .vl-mat { background-position: 50% 50%; }
 .vl-s-g-playerone .vl-mat { background: #0b1640 url('../assets/vault/gift/playerone.webp') 100% 38.5% / 75% auto no-repeat; }   /* (the same: his face whole; the art's navy carried on under the plate) */
 .vl-fcm-g-playerone .vl-mat { background-position: 50% 50%; }
-.vl-s-g-sunsetstrip .vl-mat { background: #07060a url('../assets/vault/gift/sunsetstrip.webp') 50% 43% / cover no-repeat; }
+.vl-s-g-sunsetstrip .vl-mat { background: #3a1450 url('../assets/vault/gift/sunsetstrip.webp') 100% 44% / 87% auto no-repeat; }
 .vl-fcm-g-sunsetstrip .vl-mat { background-position: 50% 50%; }
-.vl-s-g-goldenhour .vl-mat { background: #07060a url('../assets/vault/gift/goldenhour.webp') 50% 43% / cover no-repeat; }
+.vl-s-g-goldenhour .vl-mat { background: #ffeadf url('../assets/vault/gift/goldenhour.webp') 100% 48% / 82% auto no-repeat; }
 .vl-fcm-g-goldenhour .vl-mat { background-position: 50% 50%; }
 .vl-s-g-anarchist .vl-mat { background: #07060a url('../assets/vault/gift/anarchist.webp') 50% 38% / cover no-repeat; }
 .vl-fcm-g-anarchist .vl-mat { background-position: 50% 50%; }
-.vl-s-g-goldenboot .vl-mat { background: #07060a url('../assets/vault/gift/goldenboot.webp') 50% 43% / cover no-repeat; }
+.vl-s-g-goldenboot .vl-mat { background: #120a2a url('../assets/vault/gift/goldenboot.webp') 100% 34% / 66% auto no-repeat; }
 .vl-fcm-g-goldenboot .vl-mat { background-position: 50% 50%; }
 .vl-s-g-bruh .vl-mat { background: #151214 url('../assets/vault/gift/bruh-strip.webp') 50% 50% / cover no-repeat; }   /* (Liam's tape card — its OWN strip picture; the full card its full one) */
 .vl-fcm-g-bruh .vl-mat { background-image: url('../assets/vault/gift/bruh.webp'); background-position: 50% 50%; }
@@ -1032,7 +1032,7 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
    edge (paint-order: the stroke under the fill); MEMBER SINCE untouched */
 .vl-fcm-g-bruh .vl-fc-card { font: 900 max(14px, 4.2cqi)/1 var(--font-display); letter-spacing: 0.06em; color: #ffd36a; -webkit-text-stroke: 0.08em #1a0a02; paint-order: stroke fill;
   text-shadow: 0 1px 0 rgba(26, 10, 2, 0.9), 0 0 10px rgba(0, 0, 0, 0.55); }
-.vl-s-g-buzzed .vl-mat { background: #2a0a20 url('../assets/vault/gift/buzzed-strip.webp') 50% 50% / cover no-repeat; }   /* (THE SEEING-STARS CARD, Nov 6 — its OWN strip picture, eyes → mouth; the spiral turns in js/fx/gift.js) */
+.vl-s-g-buzzed .vl-mat { background: #2a0a20 url('../assets/vault/gift/buzzed-strip.webp') 100% 50% / 90% auto no-repeat; }   /* (THE SEEING-STARS CARD, Nov 6 — its OWN strip picture, eyes → mouth; the spiral turns in js/fx/gift.js) */
 .vl-fcm-g-buzzed .vl-mat { background-image: url('../assets/vault/gift/buzzed.webp'); background-position: 50% 50%; }
 .vl-s-g-icecold .vl-mat { background: #07060a url('../assets/vault/gift/icecold.webp') 50% 32.5% / cover no-repeat; }
 .vl-fcm-g-icecold .vl-mat { background-position: 50% 50%; }
@@ -1093,12 +1093,12 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-fcm-oc-photofinish .vl-mat { background-position: 50% 50%; }
 .vl-s-oc-redline .vl-plate, .vl-s-oc-photofinish .vl-plate { background: rgba(6, 6, 9, 0.84); }
 /* PW2 — THE PASSWORD's card: Grok's vault door (1280 × 720 — js/fx/pw-specs.js holds the same crop) = the material; the plate on the dark wall */
-.vl-s-pw-safecracker .vl-mat { background: #070a1c url('../assets/vault/pw/safecracker.webp') 50% 50% / cover no-repeat; }
+.vl-s-pw-safecracker .vl-mat { background: #070a1c url('../assets/vault/pw/safecracker.webp') 100% 37% / 46% auto no-repeat; }   /* (THE CARD PASS: zoomed out + set right — THE SLIM-CARD LONG-NAME STANDARD) */
 .vl-fcm-pw-safecracker .vl-mat { background-position: 50% 50%; }
 .vl-s-pw-safecracker .vl-plate { background: rgba(6, 8, 20, 0.82); }
 /* CC2 — COAST CLEAR's card: Grok's speedboat (1280 × 720 — js/fx/cc-specs.js holds the same crop) = the material. THE STRIP sits ~10 % lower than
    centre (the boat sits low — the owner, CC2: a per-card value), the boat right of centre leaves the left clear for a long name; the gem corner dark */
-.vl-s-cc-ghost-run .vl-mat { background: #07081c url('../assets/vault/cc/ghost-run.webp') 50% 64% / cover no-repeat; }
+.vl-s-cc-ghost-run .vl-mat { background: #07081c url('../assets/vault/cc/ghost-run.webp') 100% 70% / 65.3% auto no-repeat; }   /* (THE CARD PASS: zoomed out + set right) */
 .vl-fcm-cc-ghost-run .vl-mat { background-position: 50% 56%; }
 .vl-s-cc-ghost-run .vl-plate { background: rgba(6, 8, 22, 0.82); }
 /* (the bow's tip + its cyan trim run on to ~92 % across, under the strip's gem — a dark backing under the stone, as REDLINE's, so it reads) */

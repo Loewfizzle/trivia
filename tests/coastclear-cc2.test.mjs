@@ -147,9 +147,10 @@ test('THE REWARDS\' WIRING: the lab rows (strip + full card + emblem), the lab t
   assert.match(cat, /p\.gf\['coastclear-clear'\]/); assert.match(cat, /p\.gf\['coastclear-ghost'\]/);
   const css = readFileSync(new URL('../css/vault.css', import.meta.url), 'utf8');
   const S = CC_SPECS['card-ghost-run'];
-  const m = /\.vl-s-cc-ghost-run \.vl-mat \{ background: #\w+ url\('\.\.\/assets\/vault\/cc\/ghost-run\.webp'\) (\d+)% (\d+)% \/ cover/.exec(css);
-  assert.ok(m); assert.deepEqual([+m[1], +m[2]], S.strip, 'the strip\'s crop = the effect\'s');
-  assert.ok(S.strip[1] >= 60 && S.strip[1] <= 66, 'the strip ~10 % lower than centre (the boat sits low)');
+  // (THE CARD PASS — THE SLIM-CARD LONG-NAME STANDARD: the strip zoomed out + set right — `z·100% auto`)
+  const m = /\.vl-s-cc-ghost-run \.vl-mat \{ background: #\w+ url\('\.\.\/assets\/vault\/cc\/ghost-run\.webp'\) (\d+)% (\d+)% \/ ([\d.]+)% auto/.exec(css);
+  assert.ok(m); assert.deepEqual([+m[1], +m[2], +m[3] / 100], S.strip, 'the strip\'s crop = the effect\'s');
+  assert.ok(S.strip[1] >= 60 && S.strip[1] <= 75, 'the strip lower than centre (the boat sits low)');
   assert.ok(HERO['card-ghost-run']); assert.ok(HERO['card-ghost-run'][0][0] + HERO['card-ghost-run'][0][2] / 2 >= 0.6, 'the boat right of centre');
   assert.deepEqual(heroMisses(), []);
 });

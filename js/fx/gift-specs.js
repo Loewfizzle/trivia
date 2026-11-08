@@ -37,19 +37,19 @@
 //   glint   { lenses: [[cx, cy, rx, ry]…], period, dur, angle, rgb, width, a, stars: [[x, y]…], size } — a glint across the LENSES only
 //           (clipped to them) + a star twinkling on the rims after it passes (CARD FIXES: the shiba's sunglasses)
 export const GIFT_SPECS = Object.freeze({
-  'card-gift-enforcer': { art: 'enforcer', hero: [720, 140, 260, 290], strip: [50, 28], layers: [
+  'card-gift-enforcer': { art: 'enforcer', hero: [720, 140, 260, 290], strip: [100, 26, 0.7], layers: [   // (THE CARD PASS: the strip zoomed out + set right — the face 0.66 → 0.77 across: THE SLIM-CARD LONG-NAME STANDARD)
     { t: 'breathe', at: [290, 370], r: 340, rgb: '255,244,225', a: [0.02, 0.16], period: 3.2, flicker: 0.7 },
     { t: 'motes', box: [430, 0, 850, 800], n: 34, rgb: '255,200,130', size: [2, 4.5], dir: 'up', speed: 20, a: 0.85, kind: 'glow', tw: 0.5 },
     { t: 'motes', box: [0, 0, 1280, 800], n: 26, rgb: '230,230,230', size: [1.5, 3], dir: 'drift', speed: 7, a: 0.45, kind: 'dot', tw: 0.3 },
     { t: 'sweep', box: [0, 0, 1280, 800], period: 7.5, dur: 2.6, angle: -0.35, rgb: '255,210,130', width: 190, a: 0.22 },
   ] },
-  'card-gift-linebacker': { art: 'linebacker', hero: [720, 140, 260, 290], strip: [50, 28], layers: [
+  'card-gift-linebacker': { art: 'linebacker', hero: [720, 140, 260, 290], strip: [100, 26, 0.7], layers: [   // (THE CARD PASS: the face 0.66 → 0.77)
     { t: 'rays', at: [960, 260], n: 16, rgb: '170,200,255', a: 0.09, speed: 0.06 },
     { t: 'haze', box: [0, 0, 1280, 800], rgb: '150,180,255', a: 0.05, halftone: true },
     { t: 'flash', box: [600, 0, 680, 520], period: 2.6, rgb: '255,255,255' },
     { t: 'text', on: 'full', at: [60, 520], text: 'HIT HARD.', font: 'italic 900 118px Impact, "Arial Black", sans-serif', fill: '#ffd23a', stroke: '#0a1230', size: 470, mode: 'punch', period: 6 },
   ] },
-  'card-gift-underlights': { art: 'underlights', hero: [720, 140, 260, 290], strip: [50, 28], layers: [
+  'card-gift-underlights': { art: 'underlights', hero: [720, 140, 260, 290], strip: [100, 26, 0.7], layers: [   // (THE CARD PASS: the face 0.66 → 0.77)
     { t: 'breathe', at: [700, 40], r: 320, rgb: '255,150,240', a: [0.14, 0.42], period: 4, flicker: 0.25 },
     { t: 'breathe', at: [1190, 20], r: 360, rgb: '255,170,250', a: [0.18, 0.46], period: 5.3, flicker: 0.2 },
     { t: 'grid', y0: 600, rgb: '255,79,216', a: 0.55, speed: 0.35 },
@@ -66,14 +66,14 @@ export const GIFT_SPECS = Object.freeze({
     { t: 'twinkle', box: [640, 30, 600, 620], n: 5, rgb: '255,214,90', size: 22, period: 2.3, pixel: true },
     { t: 'text', on: 'full', at: [640, 752], text: 'PRESS START', font: '800 118px "JetBrains Mono", Consolas, monospace', fill: '#8ff0ff', stroke: '#06102a', size: 540, mode: 'blink', period: 1.1, center: true },   // (CARD FIXES: readable at 402 unzoomed — it was a 19 pt smudge; an arcade's blink)
   ] },
-  'card-gift-sunsetstrip': { art: 'sunsetstrip', hero: [760, 270, 340, 200], heroFull: [730, 90, 480, 470], strip: [50, 43], layers: [
+  'card-gift-sunsetstrip': { art: 'sunsetstrip', hero: [760, 270, 340, 200], heroFull: [730, 90, 480, 470], strip: [100, 44, 0.87], layers: [   // (THE CARD PASS: the face 0.73 → 0.76)
     { t: 'haze', box: [440, 300, 500, 340], rgb: '255,220,160', a: 0.1 },
     { t: 'palm', at: [150, 655], h: 430, sway: 0.035, period: 5.5, rgb: '28,8,40' },
     { t: 'palm', at: [345, 655], h: 300, sway: 0.03, period: 6.3, rgb: '28,8,40', flip: true },   // (both palms left: a palm across the shiba's face read as a mistake)
     { t: 'glint', lenses: [[806, 331, 62, 53], [995, 342, 77, 60]], period: 3.6, dur: 0.9, angle: -0.7, rgb: '255,255,255', width: 70, a: 1, stars: [[858, 292], [1056, 300]], size: 64 },
     { t: 'motes', box: [300, 280, 980, 520], n: 22, rgb: '255,214,150', size: [3, 6], dir: 'up', speed: 14, a: 0.8, kind: 'spark', tw: 0.8 },
   ] },
-  'card-gift-goldenhour': { art: 'goldenhour', hero: [725, 180, 360, 420], strip: [50, 43], layers: [
+  'card-gift-goldenhour': { art: 'goldenhour', hero: [725, 180, 360, 420], strip: [100, 48, 0.82], layers: [   // (THE CARD PASS: the polaroid 0.71 → 0.76)
     { t: 'motes', box: [0, 0, 1280, 800], n: 30, rgb: '255,205,110', size: [2, 4], dir: 'drift', speed: 8, a: 0.75, kind: 'glow', tw: 0.6 },
     { t: 'sprite', art: 'goldenhour-polaroid', at: [905, 390], w: 360, rot: 0.08, bob: 7, period: 4.2, glints: [[150, 160], [262, 160]] },
     { t: 'heart', at: [612, 300], size: 96, period: 1.15 },
@@ -88,7 +88,7 @@ export const GIFT_SPECS = Object.freeze({
     { t: 'sweep', box: [930, 290, 100, 45], period: 5, dur: 0.7, angle: 0, rgb: '255,255,255', width: 40, a: 0.95, star: true },
     { t: 'smoke', box: [560, 560, 720, 240], n: 6, rgb: '190,170,200', a: 0.08 },
   ] },
-  'card-gift-goldenboot': { art: 'goldenboot', hero: [755, 270, 100, 110], heroFull: [745, 250, 175, 230], strip: [50, 43], layers: [
+  'card-gift-goldenboot': { art: 'goldenboot', hero: [755, 270, 100, 110], heroFull: [745, 250, 175, 230], strip: [100, 34, 0.66], layers: [   // (THE CARD PASS: his face 0.63 → 0.76)
     { t: 'breathe', at: [560, 70], r: 280, rgb: '255,255,235', a: [0.12, 0.34], period: 4 },
     { t: 'breathe', at: [1010, 95], r: 300, rgb: '255,255,235', a: [0.12, 0.34], period: 4.7 },
     { t: 'motes', box: [380, 0, 900, 720], n: 30, rgb: '255,214,120', size: [2, 4], dir: 'drift', speed: 9, a: 0.8, kind: 'glow', tw: 0.5 },
@@ -127,7 +127,7 @@ export const GIFT_SPECS = Object.freeze({
   //   cutout  { art, box: [x, y, w, h] }                                                — a baked RGBA piece (him, the light) drawn in place
   //   orbit   { side: 'back'|'front', ring: { cx, cy, rx, ry, rot }, n, a0, size, period, fill }
   //   pop     { art, box, period }                                                      — the HIC! hiccup: a swell, a squash, a dying wobble
-  'card-gift-buzzed': { art: 'buzzed', hero: [745, 225, 380, 440], heroFull: [690, 90, 520, 610], strip: [50, 50], layers: [
+  'card-gift-buzzed': { art: 'buzzed', hero: [745, 225, 380, 440], heroFull: [690, 90, 520, 610], strip: [100, 50, 0.9], layers: [   // (THE CARD PASS: its strip zoomed out a touch + set right — his face 0.73 → 0.76)
     { t: 'spiral', key: 'buzzed', sp: { cx: 859.38, cy: 564.67, k: 0.0059146, c: -0.95747, e: 0.075075, rot: -0.181911, phase: -0.720564, d: -0.004715, N: 3 }, R: 1087, size: 1536, rgb: ['232,61,157', '242,213,65'], speed: 0.16 },
     { t: 'dots', per: 31.5, x0: 9.0, y0: 8.94, r: 5.6, a: 0.19, shimmer: 0.75, period: 5.5 },
     { t: 'cutout', art: 'buzzed-shade', box: [0, 0, 1280, 800] },
@@ -136,7 +136,7 @@ export const GIFT_SPECS = Object.freeze({
     { t: 'cutout', art: 'buzzed-man', box: [658, 89, 554, 665] },
     { t: 'orbit', side: 'front', ring: { cx: 925, cy: 74, rx: 196, ry: 52, rot: -0.12 }, n: 5, a0: 0.6, size: 62, period: 7, fill: '#fff6b0' },
     { t: 'pop', art: 'buzzed-hic', box: [585, 186, 134, 108], period: 3.6 },
-  ], stripArt: { art: 'buzzed-strip', h: 256, crop: [50, 50], hero: [790, 0, 300, 256], layers: [   // (the owner, Nov 6 12:40 pm: "eyebrows to chin" — the strip
+  ], stripArt: { art: 'buzzed-strip', h: 256, crop: [100, 50, 0.9], hero: [790, 0, 300, 256], layers: [   // (the owner, Nov 6 12:40 pm: "eyebrows to chin" — the strip
     // picture is COMPOSED from the full one: art y 240 → 655 scaled x 0.6169 into 256 px, his face at 72 % across — every number below is
     // the full card's own, mapped the same way: build-buzzed-art.py's `strip`)
     { t: 'spiral', key: 'buzzed-strip2', sp: { cx: 881.12, cy: 200.28, k: 0.0095881, c: -2.51618, e: 0.075075, rot: -0.181911, phase: -0.720564, d: -0.004715, N: 3 }, R: 935, size: 1024, rgb: ['232,61,157', '242,213,65'], speed: 0.12 },
