@@ -25,6 +25,7 @@ import { sfx } from '../audio/sfx.js';
 import { settings } from '../audio/settings.js';
 import { memberLabel } from '../core/member.js';
 import { openPfSheet, closeAllPfSheets } from '../profile/sheets.js';
+import { friendsSection, frSheet } from '../profile/friends-ui.js';
 
 const HL = { gridlock: [['sunk', 'FLEETS SUNK'], ['w_classic', 'CLASSIC WINS'], ['w_salvo', 'SALVO WINS'], ['w_royale', 'ROYALE WINS'], ['w_arcade', 'ARCADE WINS']], agent: [['esc', 'ESCAPES'], ['spot', 'AGENTS CAUGHT']], signal: [['el', 'ELIMINATIONS']], bluff: [['fool', 'PLAYERS FOOLED']], prism: [['ko', 'KNOCKOUTS']] };
 const num = n => Math.round(n || 0).toLocaleString('en-US');
@@ -103,6 +104,8 @@ export function createView({ onBack = null, overlay = false } = {}) {
     //  a new key (profile/me.js#previousKey): a way back to that card. A glass row, only when there is one: tap = COPY; FORGET beside it)
     els.prevKey = prevKeyRow();
     els.mast = h('div.pf-mast-slot');
+    els.friends = h('div.pf-friends-slot');   // (FRIENDS A — the FRIENDS section: requests, the list, recently played with — painted once the server knows the card)
+    frSheet();
     // (SHELL 2.0 A — THE ONE LOOK: NEW KEY a small danger tube, its second tap the button itself red; the two account rows THE ROW)
     els.newKey = tubeButton('NEW KEY', { kind: 'danger', size: 'sm', cls: 'pf-newkey', confirm: 'TAP AGAIN — THE OLD KEY STOPS WORKING', onClick: onNewKey });
     els.elsewhere = row({ icon: 'card', label: 'Use this card on another device', sub: 'Your card on a second phone, a computer or the Home Screen app', cls: 'pf-elsewhere', onClick: () => import('../profile/bring.js').then(B => B.openElsewhere()) });
@@ -117,6 +120,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
         els.cz,
         els.why,
         els.prog = h('div.pf-prog'),
+        els.friends,
         els.mast,
         h('section.pf-sec.pf-account',
           h('h3.pf-h', 'ACCOUNT'),
@@ -254,6 +258,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
       paintWhy(loadMe());
       paintProgress();
       paintMastery();
+      if (!els.friends.firstChild) els.friends.replaceChildren(friendsSection());
       els.show.checked = !!data.priv.shown;
       els.show.disabled = !!data.priv.banned;
       els.foot.replaceChildren(

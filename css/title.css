@@ -967,6 +967,8 @@ body.reduced-fx .nd-box.is-filled { animation: none; }
 .rc-emb { position: absolute; left: -15px; top: -27px; width: 30px; height: 30px; display: grid; place-items: center; pointer-events: auto; cursor: pointer; border-radius: 50%; }
 .rc-emb .avatar, .rc-emb .ve { --s: 18px; width: 18px; height: 18px; filter: drop-shadow(0 0 3px var(--c)); }
 .rc-tag.is-down .rc-emb { filter: saturate(0.5); }
+/* FRIENDS A — THE GREEN DOT: a friend in this room with you (the only presence a friend ever shows; --good = colour-blind safe blue) */
+.rc-tag.is-friend .rc-emb::after { content: ''; position: absolute; right: 1px; top: 1px; width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 1.5px rgba(8, 7, 14, 0.9), 0 0 6px var(--good); }
 /* LOBBY 2.0 B — THE TAP AREA: the whole person (figure + ring + emblem, ≥ 44 pt) — an invisible box; room-city.js sizes it on change only */
 .rc-hit { position: absolute; left: -22px; top: -30px; width: 44px; height: 44px; pointer-events: auto; cursor: pointer; border-radius: 12px; -webkit-tap-highlight-color: transparent; }
 .rc-name { position: absolute; left: 0; top: -52px; transform: translateX(-50%) translateY(4px); padding: 5px 10px 4px; border-radius: 999px; white-space: nowrap;

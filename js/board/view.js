@@ -210,7 +210,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       h('span.bd-n', name, mine ? h('span.bd-you', 'YOU') : null),
       h('span.bd-t', emblem(r.r | 0, 14), h('span', `LV ${r.l || 1}`), r.rank === 1 ? h('span.bd-crown', bandOf(r.l || 1).name) : null)),
     h('span.bd-v', fmtValue(def, r.v)),
-    mine || !r.id ? null : h('button.bd-more', { type: 'button', 'aria-label': `Report ${r.n}`, onclick: e => { e.stopPropagation(); openReport(r, def); } }, h('span', '⋯')));
+    mine || !r.id ? null : h('button.bd-more', { type: 'button', 'aria-label': pub ? `Report ${r.n}` : `${r.n} — add friend or report`, onclick: e => { e.stopPropagation(); openReport(r, def); } }, h('span', '⋯')));
     return li;
   }
 
@@ -246,8 +246,13 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       h('button.btn.btn-ghost.btn-block.bd-rep-b', { type: 'button', onclick: send('score') }, 'SUSPICIOUS SCORE'),
       h('button.btn.btn-ghost.btn-block.bd-rep-b', { type: 'button', onclick: send('name') }, 'BAD NAME OR EMBLEM'),
     ];
-    els.rep = openSheet({ title: 'REPORT', kicker: `${els.label.textContent} · #${r.rank}`, cls: 'bd-rep', label: `Report ${r.n}`, onClose: () => { els.rep = null; }, body: [
+    // (FRIENDS A — ADD FRIEND on THE BOARD: the row's ⋯ = that player — ADD FRIEND (in the app, signed in; never on the public /board), then REPORT)
+    const fr = h('div.bd-rep-fr');
+    if (!pub) import('../profile/friends-ui.js').then(F => { if (els.rep) fr.replaceChildren(F.friendButton({ b: def.id, bid: r.id }, { name: r.n })); }).catch(() => {});
+    els.rep = openSheet({ title: pub ? 'REPORT' : String(r.n || '').toUpperCase(), kicker: `${els.label.textContent} · #${r.rank}`, cls: 'bd-rep', label: `${r.n}`, onClose: () => { els.rep = null; }, body: [
       h('div.bd-rep-who', avatar(r.a, r.c, 30), h('b', r.n)),
+      fr,
+      pub ? null : h('h4.bd-rep-h', 'REPORT'),
       msg,
       ...btns,
       h('button.btn.btn-text.btn-block.bd-rep-b.is-cancel', { type: 'button', onclick: closeReport }, 'CANCEL')] });

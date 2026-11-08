@@ -127,7 +127,7 @@ export async function inviteCheck(me, now = Date.now()) {
     if (c) out.push({ pid: p, n: c.n, room: x.r, at: x.at, until: x.until, card: c });
   }));
   if (Object.keys(gone).length) await ref('/').update(gone);
-  return { invites: out.sort((a, b) => b.at - a.at) };
+  return { invites: out.sort((a, b) => b.at - a.at), frIn: await pendingIn(me, now) };   // (+ the badge's count: one call on open)
 }
 /** NOT NOW (or JOIN taken) { pid } — the card goes */
 export async function inviteDismiss(me, body) {

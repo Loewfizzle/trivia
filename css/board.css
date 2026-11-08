@@ -237,6 +237,8 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 }
 .bd-rep-who { display: flex; align-items: center; justify-content: center; gap: 9px; font: 600 17px/1.1 var(--font-ui); color: #fff7ea; }
 .bd-rep-who span { font: 600 12px/1 var(--font-num); color: var(--bd-faint); }
+.bd-rep-h { margin: 8px 0 0; text-align: center; font: 800 10.5px/1 var(--font-display); letter-spacing: 0.24em; color: var(--bd-dim); }   /* (FRIENDS A: the ⋯ sheet = the player — ADD FRIEND, then REPORT) */
+.bd-rep-fr:empty { display: none; }
 .bd-rep-msg { margin: 2px 0 4px; text-align: center; font: 500 13.5px/1.4 var(--font-ui); color: var(--bd-dim); }
 .bd-rep-msg.is-ok { color: #9ff0c4; font-weight: 700; letter-spacing: 0.06em; }
 .bd-rep-msg.is-err { color: #ffc2cf; }

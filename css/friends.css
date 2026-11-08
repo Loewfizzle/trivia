@@ -1,0 +1,75 @@
+/* FRIENDS A — THE FRIENDS SCREENS (js/profile/friends-ui.js; prefix fr-). NEON GLASS rows on the profile + in sheets; THE SHELL's tubes for
+   every action; 44 pt targets; readable unzoomed at 390. No "online now" anywhere — the green dot = a friend IN A ROOM WITH YOU only. */
+.fr-sec { gap: 12px; }
+.fr-h { display: flex; align-items: baseline; gap: 10px; }
+.fr-count { font: 700 12px/1 var(--font-num); letter-spacing: 0.08em; color: rgba(255, 236, 220, 0.72); }
+.fr-body { display: flex; flex-direction: column; gap: 14px; }
+.fr-group { display: flex; flex-direction: column; gap: 8px; }
+.fr-gh { margin: 2px 2px 0; font: 800 10.5px/1.2 var(--font-display); letter-spacing: 0.24em; color: rgba(230, 236, 255, 0.78); }
+.fr-hint, .fr-empty { margin: 0; padding: 12px 14px; border-radius: 16px; font: 500 14px/1.4 var(--font-ui); color: rgba(226, 232, 255, 0.84);
+  background: rgba(20, 18, 40, 0.72); border: 1px solid rgba(255, 255, 255, 0.1); }
+.fr-small { margin: 0 2px; font: 500 12.5px/1.4 var(--font-ui); color: rgba(222, 228, 255, 0.74); }
+
+/* a player row: the emblem · NAME + #tag · LV · its actions on the right */
+.fr-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 8px 6px 12px; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(38, 34, 64, 0.94), rgba(28, 25, 50, 0.94)); border: 1px solid rgba(255, 255, 255, 0.12); }
+.fr-row.is-req { border-color: rgba(255, 124, 203, 0.5); flex-wrap: wrap; row-gap: 8px; padding: 10px 12px; }
+/* a request: the player on top, ACCEPT · DECLINE side by side under it (a 12-letter name never squeezed by two buttons at 390) */
+.fr-row.is-req .fr-acts { flex: 1 1 100%; }
+.fr-row.is-req .fr-acts .btn { flex: 1; }
+.fr-row.is-head { background: none; border: 0; padding: 0 0 6px; min-height: 0; }
+.fr-av { flex: none; display: grid; place-items: center; width: 40px; height: 40px; }
+.fr-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.fr-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 16px/1.15 var(--font-ui); color: #fff; letter-spacing: 0.01em; }
+.fr-who small { font: 500 12.5px/1.2 var(--font-num); color: rgba(222, 228, 255, 0.74); letter-spacing: 0.03em; }
+.fr-acts { flex: none; display: flex; align-items: center; gap: 6px; }
+.fr-acts .btn { min-height: 44px; }
+.fr-more { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: #fff; font: 700 20px/1 var(--font-ui);
+  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.2); -webkit-tap-highlight-color: transparent; }
+.fr-more:active { transform: scale(0.94); }
+.fr-tag { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; font: 800 11px/1 var(--font-display); letter-spacing: 0.16em;
+  color: rgba(226, 232, 255, 0.86); }
+/* the green dot: a friend in the room with you (and a FRIENDS button) — the shared --good token (colour-blind safe: the word is beside it) */
+.fr-dot { display: inline-block; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--good); box-shadow: 0 0 8px color-mix(in srgb, var(--good) 70%, transparent); }
+.fr-tag.is-here { color: var(--good); }
+
+/* the name tag's button on a card */
+.fr-btn-slot[hidden] { display: none; }
+.fr-btn.is-friend { pointer-events: none; }
+.fr-btn.is-friend > span { display: inline-flex; align-items: center; }
+.fr-btn .fr-dot { margin-right: 9px; }
+.fr-foot { display: flex; flex-direction: column; gap: 10px; }
+.fr-btn.is-busy { opacity: 0.6; }
+
+/* the badge on YOU (pending requests) */
+.fr-badge { position: absolute; top: 2px; right: calc(50% - 22px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: grid; place-items: center;
+  font: 800 11px/1 var(--font-num); color: #1a0716; background: #ff7ccb; box-shadow: 0 0 0 2px rgba(10, 8, 22, 0.9), 0 0 10px rgba(255, 124, 203, 0.6); pointer-events: none; }
+.fr-badge[hidden] { display: none; }
+
+/* THE BOARD's ⋯ sheet: the friend button above REPORT */
+.bd-rep .fr-btn-slot { margin-bottom: 4px; }
+
+/* the INVITE sheet */
+.fr-invite-sheet .sh-body { gap: 10px; }
+.fr-inv-list { max-height: min(46vh, 380px); overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+
+/* the waiting invite card (Group 3) */
+.fr-wait { position: fixed; left: 50%; z-index: 380; width: min(calc(100% - 32px), 420px); bottom: calc(var(--safe-b) + 112px); transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 14px; border-radius: 20px;
+  background: linear-gradient(180deg, rgba(34, 22, 52, 0.97), rgba(22, 16, 40, 0.97)); border: 1.5px solid rgba(255, 124, 203, 0.7);
+  box-shadow: 0 0 26px rgba(255, 79, 184, 0.26), 0 14px 40px rgba(0, 0, 0, 0.5); transition: opacity 0.26s ease, transform 0.26s ease; }
+.fr-wait.is-out { opacity: 0; transform: translate(-50%, 12px); }
+.fr-wait-top { display: flex; align-items: center; gap: 12px; }
+.fr-wait-t { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fr-wait-t b { font: 700 16px/1.25 var(--font-ui); color: #fff; overflow-wrap: anywhere; }
+.fr-wait-t small { font: 600 12px/1.2 var(--font-display); letter-spacing: 0.18em; color: #ffb3e1; }
+.fr-wait-acts { display: flex; gap: 10px; }
+.fr-wait-acts .btn { flex: 1; }
+
+/* YOUR TABLE — a placeholder until THE DAILY MODULE + BOARD 2.0 draw it */
+.fr-table { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: rgba(20, 18, 40, 0.72); border: 1px dashed rgba(255, 255, 255, 0.22); }
+.fr-table b { font: 800 11px/1.2 var(--font-display); letter-spacing: 0.22em; color: rgba(255, 236, 220, 0.9); }
+.fr-table span { font: 500 13.5px/1.35 var(--font-ui); color: rgba(226, 232, 255, 0.82); }
+
+@media (min-width: 900px) { .fr-wait { bottom: calc(var(--safe-b) + 128px); } }   /* (the desktop dock sits higher) */
+@media (prefers-reduced-motion: reduce) { .fr-wait { transition: none; } }

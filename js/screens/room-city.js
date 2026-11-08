@@ -67,10 +67,34 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
 
   // ---------------------------------------------------------------- INVITE (everyone)
   const inviteUrl = () => `${location.origin}${location.pathname}?room=${code()}`;
-  async function invite() {
+  // FRIENDS A — THE INVITE SHEET: with friends on this card, INVITE opens a sheet — FRIENDS at the top (each INVITE = a push + the card that
+  // waits), SHARE INVITE LINK under it; with none (or /api down) it shares at once, as before. Decided from the CACHED list, inside the tap
+  // (the system share sheet needs the tap's own gesture — never after a network wait); the list is fetched when the room opens.
+  let frMod = null;
+  let offFr = null;
+  import('../profile/friends.js').then(m => { if (destroyed) return; frMod = m; offFr = m.onFriends(() => paintFriends()); m.loadFriends().then(() => paintFriends()).catch(() => {}); }).catch(() => {});
+  // (THE GREEN DOT — ONLINE STATUS = NONE everywhere else: a FRIEND here, in this room with you, online — a dot on their emblem)
+  function paintFriends() {
+    if (!frMod || destroyed) return;
+    const F = frMod.friendsHere(players());
+    for (const [uid, T] of tags) { const on = uid !== st.uid && F.has(uid) && isOnline(st.presence, uid); if (T.el.classList.contains('is-friend') !== on) T.el.classList.toggle('is-friend', on); }
+  }
+  let invSheet = null;
+  function invite() {
+    const S = frMod && frMod.friendsNow();
+    if (!S || !S.friends.length || invSheet) { shareLink(); return; }
+    invited(true); closeHostCard(); paintDock();
+    import('../audio/lobby-sfx.js').then(m => m.lobbySfx('invite')).catch(() => {});
+    const here = new Set(Object.values(players()).map(p => p && p.pid).filter(Boolean));
+    Promise.all([import('../profile/friends-ui.js'), import('../profile/sheets.js')]).then(([F, { openPfSheet }]) => {
+      if (destroyed) return;
+      invSheet = openPfSheet({ kicker: `THE HUSH WORD IS ${code()}`, title: 'INVITE', cls: 'fr-invite-sheet', body: F.inviteFriendsBlock({ code: code(), here, share: () => shareLink(true) }), onClose: () => { invSheet = null; } });
+    }).catch(() => shareLink());
+  }
+  async function shareLink(quiet = false) {
     invited(true); closeHostCard(); paintDock();
     const url = inviteUrl(), text = `Get in here — the hush word is ${code()}`;
-    import('../audio/lobby-sfx.js').then(m => m.lobbySfx('invite')).catch(() => {});
+    if (!quiet) import('../audio/lobby-sfx.js').then(m => m.lobbySfx('invite')).catch(() => {});
     if (navigator.share) { try { await navigator.share({ title: APP_NAME, text, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
     try { await navigator.clipboard.writeText(url); toast('Invite link copied', 'ok', { sub: `The hush word is ${code()}.` }); } catch { toast(`The hush word is ${code()}`, 'info', 6000); }
   }
@@ -94,7 +118,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const fresh = st.meta.createdAt && serverNow() - st.meta.createdAt < 20000;
     if (!mine || !fresh || flag(`rc:hc:${code()}`)) return;
     flag(`rc:hc:${code()}`, true);
-    const share = h('button.btn.btn-primary.btn-block.rc-hc-share', { type: 'button', onclick: e => { e.stopPropagation(); sfx('select'); invite(); } }, 'SHARE INVITE');   // (SHELL 2.0 A: THE NEON TUBE's main)
+    const share = h('button.btn.btn-primary.btn-block.rc-hc-share', { type: 'button', onclick: e => { e.stopPropagation(); sfx('select'); shareLink(); } }, 'SHARE INVITE');   // (SHELL 2.0 A: THE NEON TUBE's main)
     const el = h('div.rc-hostcard', { role: 'status', 'aria-live': 'polite' },
       h('small.rc-hc-k', 'YOUR ROOM IS OPEN'),
       h('b.rc-hc-t', 'THE HUSH WORD IS ', h('span.rc-hc-w', code())),
@@ -156,7 +180,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const crew = uid !== st.uid ? await import('./crew-row.js').then(m => (m.isOwnerPhone() ? m.crewRow(uid) : null)).catch(() => null) : null;
     // (SHELL 2.0 B2 — MAKE HOST: the host's phone, another player, in the room — the second tap confirms; offline → said, not offered)
     const mk = uid !== st.uid && isHost() && !(st.meta && st.meta.status === 'playing') ? makeHostRow(uid, p) : null;
-    const foot = crew || mk ? h('div.rc-foot', mk, crew) : null;
+    // (FRIENDS A — ADD FRIEND on any player's card: a request they accept; REQUESTED / FRIENDS once it's sent / taken)
+    const fb = uid !== st.uid && p.pid ? await import('../profile/friends-ui.js').then(m => m.friendButton({ pid: p.pid }, { name: p.name })).catch(() => null) : null;
+    const foot = crew || mk || fb ? h('div.rc-foot', fb, mk, crew) : null;
     if (pub && pub.cd && pub.cd !== 'card-gilded') {
       try {
         const F = await import('../vault/full.js');
@@ -405,6 +431,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     startFx();
     banner.update(st);
     paintDock();
+    paintFriends();
     paintNotes();
     if (guestsUi && guestsUi.update) guestsUi.update(st);
     if (!raf) raf = requestAnimationFrame(frame);
@@ -420,7 +447,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     debug: () => ({ tags: [...tags.keys()], roster: roster(), seen: seen ? [...seen] : null, hits: Object.fromEntries([...tags].map(([u, T]) => [u, T.hit && { x0: Math.round(T.hit.x0), x1: Math.round(T.hit.x1), y0: Math.round(T.hit.y0), y1: Math.round(T.hit.y1) }])) }),
     nearestAt,
     destroy() {
-      destroyed = true; cancelAnimationFrame(raf); clearInterval(noteT); clearTimeout(graceT); closeHostCard(); if (offChat) offChat(); banner.destroy();
+      destroyed = true; cancelAnimationFrame(raf); clearInterval(noteT); clearTimeout(graceT); closeHostCard(); if (offChat) offChat(); if (offFr) offFr(); if (invSheet) invSheet.close(); banner.destroy();
       // (the start's veil stays over the hand-off to the game screen — app.js's screen-in fades the game up; then it goes)
       if (goFx) { const v = goFx.veil; goFx.veil = h('i'); v.style.animation = 'none'; v.style.opacity = '1'; void v.offsetWidth; v.style.transition = 'opacity 0.45s ease'; v.style.opacity = '0'; setTimeout(() => v.remove(), 500); endFx(); }
       // (SPEED PASS B: out of the room only YOUR figure leaves the promenade — waving only on a LEAVE; the others carry on inside)

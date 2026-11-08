@@ -935,6 +935,7 @@ export function createTitle() {
     cityDone();
     pgPreviewSoon(600);
     keyPopSoon(2600);
+    friendsSoon(3400);   // (FRIENDS A — the requests badge on YOU + INVITES THAT WAIT: ONE /api call, never a socket)
     // (LOBBY 2.0 B — THE NIGHT's CHAMPION: the app closed during a night of 2+ games → LAST NIGHT'S CHAMPION: <them>, the next open within ~12 h, once)
     setTimeout(() => { if (!destroyed && scene && !(st && st.code)) import('./room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-night', !!(st && st.code)); }).catch(() => {}); }, 4200);
   }
@@ -944,6 +945,28 @@ export function createTitle() {
   function keyPopSoon(ms) {
     clearTimeout(keyPopT);
     keyPopT = setTimeout(() => { if (!destroyed) import('../profile/keypop.js').then(k => { if (destroyed) return; k.maybeKeyPop({ why: 'open', busy: () => !!(scene && scene.legendBusy && scene.legendBusy()) }); keyPopDot(k.keyPopState()); if (!offKeyPop) offKeyPop = k.onKeyPop(keyPopDot); }).catch(() => {}); }, ms);
+  }
+  // FRIENDS A — THE BADGE (pending friend requests) on YOU + INVITES THAT WAIT (profile/invites.js: a friend's room → the card, after a match)
+  let frT = 0, offFrB = null;
+  function friendsSoon(ms) {
+    clearTimeout(frT);
+    frT = setTimeout(() => {
+      if (destroyed) return;
+      Promise.all([import('../profile/invites.js'), import('../profile/friends.js')]).then(([I, F]) => {
+        if (destroyed) return;
+        if (!offFrB) offFrB = F.onFriends(() => frBadge(F.pendingBadge()));
+        I.checkInvites({ busy: () => !!(scene && scene.legendBusy && scene.legendBusy()) }).then(() => frBadge(F.pendingBadge())).catch(() => {});
+      }).catch(() => {});
+    }, ms);
+  }
+  function frBadge(n) {
+    for (const t of [els.youTab, roomUi && roomUi.dock && roomUi.dock.els.youTab]) {
+      if (!t) continue;
+      let b = t.querySelector(':scope > .fr-badge');
+      if (!b && n > 0) { import('../profile/friends-ui.js').then(m => m.frSheet()).catch(() => {}); b = h('i.fr-badge', { 'aria-hidden': 'true' }); t.append(b); }
+      if (b) { b.hidden = !(n > 0); b.textContent = n > 9 ? '9+' : String(n); }
+      t.setAttribute('aria-description', n > 0 ? `${n} friend request${n > 1 ? 's' : ''} waiting` : '');
+    }
   }
   function keyPopDot(stt) {
     const on = stt === 'dot';
@@ -1140,6 +1163,13 @@ export function createTitle() {
       els.go.classList.add('is-ready');
     }
     if (state.inviteExpired) dk.note(`That room has closed (${state.inviteExpired}). Host a new game, or ask for a fresh hush word.`, 'warn', 9000);   // (FR6 FIXES A: a push for a room gone by the tap lands here)
+    // (FRIENDS A — A FRIEND's INVITE PUSH (/?room=CODE&inv=1) opens straight into the room's JOIN: once the app is ready + this phone has a
+    //  name, the knock goes by itself — the normal join rules (LOCK THE DOOR, kicked, full) answer as for any join; no name → setup first)
+    if (state.invite && state.ready && els.autoJoined !== state.invite && (state.autoJoin === state.invite || /(^|[?&])inv=1(&|$)/.test(location.search)) && !state.code) {
+      els.autoJoined = state.invite;
+      try { history.replaceState(null, '', location.pathname + location.search.replace(/([?&])inv=1(&|$)/, '$1').replace(/[?&]$/, '')); } catch { /* fine */ }
+      dk.join(dk.clean(state.invite));
+    }
   }
   // (title-dock.js#createDockWork: moved out by scripts/split-closure.mjs — T carries the names it shares with this closure, live)
   const dk = createDockWork({
@@ -1216,6 +1246,7 @@ export function createTitle() {
     destroyed = true;
     if (els.down) { els.down.remove(); els.down = null; return; }   // (CITY 1.0 OUT: the city never loaded — only the card to take away)
     clearTimeout(keyPopT); if (offKeyPop) { offKeyPop(); offKeyPop = null; }
+    clearTimeout(frT); if (offFrB) { offFrB(); offFrB = null; }
     if (roomUi) { roomUi.destroy(); roomUi = null; }
     neon.humSync(false);
     if (tl) cancelAnimationFrame(tl.raf);

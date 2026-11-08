@@ -51,7 +51,10 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     const scoreEl = h('div.pod-score', '0');
     // (THE VAULT 1B — the winner's FULL CARD on a tap, when they wear an approved one)
     const pub = place === 1 ? pubOf(p) : null, cd = pub && pub.cd;
-    const openCard = cd ? () => import('../vault/full.js').then(F => F.openFullCard(cd, { name: p.name, lv: pub.x != null ? levelOf(pub.x) : 1, avatar: p.avatar, color: p.color, at: pub.at, pub })).catch(() => {}) : null;
+    // (FRIENDS A — tap ANY other player on the podium → their card with ADD FRIEND under it; your own winner's card as before)
+    const other = r.uid !== state.uid && p.pid;
+    const openCard = other ? () => import('../profile/friends-ui.js').then(F => F.openTheirCard({ pid: p.pid, name: p.name, color: p.color, avatar: p.avatar, pub: pubOf(p) })).catch(() => {})
+      : cd ? () => import('../vault/full.js').then(F => F.openFullCard(cd, { name: p.name, lv: pub.x != null ? levelOf(pub.x) : 1, avatar: p.avatar, color: p.color, at: pub.at, pub })).catch(() => {}) : null;
     podium.append(h(`div.pod.pod-${place}`, { style: { '--c': colorHex(p.color), '--d': `${delays[place]}ms` } },
       h('div.pod-who', openCard ? { role: 'button', tabindex: '0', 'aria-label': `${p.name}'s card`, onclick: openCard, onkeydown: e => { if (e.key === 'Enter') openCard(); } } : {}, avatar(p.avatar, p.color, place === 1 ? 64 : 46), fitName(h('div.pod-name', p.name, rankBadge(pubOf(p), { tag: false })), { min: 10 }),
         h('div.pod-score-wrap', scoreEl, scoreLabel ? h('small', scoreLabel) : null)),

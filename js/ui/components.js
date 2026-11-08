@@ -265,5 +265,9 @@ export const ICONS = {
   user: svg('<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/>'),
   lock: svg('<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>'),
   invite: svg('<path d="M4 12.5l16-8-5 16-3.5-6.5z"/><path d="M11.5 14l3-3"/>'),
+  // (FRIENDS A: two people · a block · the bell of INVITE NOTIFICATIONS)
+  friends: svg('<circle cx="9" cy="8.5" r="3.3"/><path d="M3 19.5c.9-3.1 3.2-4.7 6-4.7s5.1 1.6 6 4.7"/><circle cx="16.5" cy="9.5" r="2.6"/><path d="M15.6 14.9c2.4.1 4.3 1.6 5 4.1"/>'),
+  block: svg('<circle cx="12" cy="12" r="8.5"/><path d="M6 18L18 6"/>'),
+  bell: svg('<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>'),
   games: svg('<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>'),
 };
