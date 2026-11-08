@@ -68,7 +68,7 @@
 
 /* YOUR TABLE — a placeholder until THE DAILY MODULE + BOARD 2.0 draw it */
 .fr-table { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: rgba(20, 18, 40, 0.72); border: 1px dashed rgba(255, 255, 255, 0.22); }
-.fr-table b { font: 800 11px/1.2 var(--font-display); letter-spacing: 0.22em; color: rgba(255, 236, 220, 0.9); }
+.fr-table b { flex: none; white-space: nowrap; font: 800 11px/1.2 var(--font-display); letter-spacing: 0.22em; color: rgba(255, 236, 220, 0.9); }
 .fr-table span { font: 500 13.5px/1.35 var(--font-ui); color: rgba(226, 232, 255, 0.82); }
 
 @media (min-width: 900px) { .fr-wait { bottom: calc(var(--safe-b) + 128px); } }   /* (the desktop dock sits higher) */

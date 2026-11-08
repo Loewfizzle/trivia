@@ -511,3 +511,17 @@ html body .music-btn.bd-music { top: calc(var(--safe-t) + 12px) !important; righ
   .pf-scroll::-webkit-scrollbar-track { background: transparent; }
   .pf-scroll.is-dragging { cursor: grabbing; user-select: none; }
 }
+
+/* FRIENDS A — THE KEY IN THE PHONE'S PASSWORDS (js/profile/keychain.js): SAVE TO PASSWORDS is a real login form — the name tag shown as
+   "SAVES AS", the key in a password field the password manager reads (never display:none — Safari + Chrome skip hidden fields); RESTORE's
+   key field a "current-password" field with SHOW */
+.pf-kc { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.pf-kc-l { display: flex; align-items: center; gap: 8px; min-width: 0; font: 800 10px/1 var(--font-display); letter-spacing: 0.2em; color: rgba(226, 232, 255, 0.72); }
+.pf-kc-user { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: #fff; font: 600 14px/1.2 var(--font-num); letter-spacing: 0.04em; text-transform: none; outline: none; }
+.pf-kc-pass, .pf-kc-hu { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; overflow: hidden; }
+.pf-kc-done { margin: 0; font: 500 13px/1.4 var(--font-ui); color: rgba(226, 232, 255, 0.86); }
+.pf-kc-done b { color: #fff; }
+.pf-kc-form { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.pf-kc-field { position: relative; display: flex; align-items: center; }
+.pf-kc-field > .input { flex: 1; min-width: 0; padding-right: 68px; }
+.pf-kc-show { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-width: 56px; min-height: 44px; border-radius: 12px; font: 800 11px/1 var(--font-display); letter-spacing: 0.14em; color: rgba(226, 232, 255, 0.86); background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.18); }

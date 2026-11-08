@@ -26,6 +26,7 @@ import { settings } from '../audio/settings.js';
 import { memberLabel } from '../core/member.js';
 import { openPfSheet, closeAllPfSheets } from '../profile/sheets.js';
 import { friendsSection, frSheet } from '../profile/friends-ui.js';
+import { saveToPasswordsForm, keyFields, keyForm } from '../profile/keychain.js';
 
 const HL = { gridlock: [['sunk', 'FLEETS SUNK'], ['w_classic', 'CLASSIC WINS'], ['w_salvo', 'SALVO WINS'], ['w_royale', 'ROYALE WINS'], ['w_arcade', 'ARCADE WINS']], agent: [['esc', 'ESCAPES'], ['spot', 'AGENTS CAUGHT']], signal: [['el', 'ELIMINATIONS']], bluff: [['fool', 'PLAYERS FOOLED']], prism: [['ko', 'KNOCKOUTS']] };
 const num = n => Math.round(n || 0).toLocaleString('en-US');
@@ -175,9 +176,12 @@ export function createView({ onBack = null, overlay = false } = {}) {
     const acts = h('div.pf-kb-acts',
       h('button.btn.btn-ghost.btn-sm', { type: 'button', 'data-act': 'copy', onclick: async () => { const B = await import('../profile/bring.js'); await B.copyKey(k, text); paintS(); } }, 'COPY'),
       typeof navigator.share === 'function' ? h('button.btn.btn-ghost.btn-sm', { type: 'button', 'data-act': 'share', onclick: async () => { const B = await import('../profile/bring.js'); await B.shareKey(k); paintS(); } }, 'SHARE') : null);
+    // (FRIENDS A — SAVE TO PASSWORDS: a real login form — NAME#1234 + the key — so the phone's password manager keeps it + fills it on a new phone)
+    const me0 = loadMe(), pp = me0 && me0.uid === state.uid && me0.profile ? me0.profile : null, nm = (pp && pp.n) || (loadProfile() || {}).name || 'MEMBER';
+    const kc = saveToPasswordsForm({ user: pp && pp.t ? `${nm}#${pp.t}` : nm, key: k, onSaved: () => { setNotes({ saved: true }); paintS(); } });
     els.keyBox.replaceChildren(h('div.pf-kb',
       h('div.pf-kb-h', h('b', 'YOUR KEY'), h('span', 'the password at the door')),
-      val, acts, saved,
+      val, acts, kc, saved,
       h('p.pf-kb-why', 'It brings this card to any device. Never give it to anyone else — whoever has it is you.')));
     paintT(); paintS();
   }
@@ -188,12 +192,13 @@ export function createView({ onBack = null, overlay = false } = {}) {
   // ---------------------------------------------------------------- RESTORE YOUR ACCOUNT (a sheet)
   function openRestore() {
     let s = null;
-    const input = h('input.input.pf-key-in', { type: 'text', placeholder: 'NEON-XXXX-XXXX-XXXX', autocapitalize: 'characters', autocomplete: 'off', spellcheck: false, 'aria-label': 'Profile key', maxLength: 24 });
-    const go = h('button.btn.btn-primary.btn-block', { type: 'button' }, h('span', 'RESTORE MY PROFILE'));
-    go.addEventListener('click', async () => { if (await doRestore(input.value, go)) s.close(); });
+    // (FRIENDS A: the key field is a "current-password" field in a real form — a new phone's password manager FILLS it from SAVE TO PASSWORDS)
+    const { wrap: field, input } = keyFields({ cls: 'pf-key-in', label: 'Profile key' });
+    const go = h('button.btn.btn-primary.btn-block', { type: 'submit' }, h('span', 'RESTORE MY PROFILE'));
+    const restoreNow = async () => { if (await doRestore(input.value, go)) s.close(); };
     s = openPfSheet({ kicker: 'YOUR ACCOUNT', title: 'RESTORE YOUR ACCOUNT', cls: 'pf-restore-sheet', body: [
       h('p.sh-note', 'Paste the key from your other device. This device joins that card — with all its stats; the other device stays signed in.'),
-      input, go,
+      keyForm([field, go], restoreNow),
       h('p.sh-note.is-small', 'The profile this device has now is replaced (if it never finished a match, it’s removed).')] });
     setTimeout(() => input.focus(), 320);
     return s;

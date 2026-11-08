@@ -115,7 +115,9 @@ export async function openBring({ lead = false, onDone = null } = {}) {
   if (document.querySelector('.byc-bring')) return null;
   await bringCss();
   last.opened = Date.now();
-  const input = h('input.input.byc-in', { type: 'text', placeholder: 'NEON-XXXX-XXXX-XXXX', autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off', spellcheck: false, 'aria-label': 'Your key', maxLength: 24 });
+  // (FRIENDS A — the key field a password manager FILLS: "current-password" in a real form — SAVE TO PASSWORDS put it in the phone's keychain)
+  const { keyFields, keyForm } = await import('./keychain.js');
+  const { wrap: field, input } = keyFields({ cls: 'byc-in', label: 'Your key' });
   const err = h('p.byc-err', { role: 'alert', hidden: true });
   const go = h('button.btn.btn-primary.btn-block.byc-go', { type: 'button', 'data-act': 'bring' }, 'BRING MY CARD');
   const app = standalone();
@@ -123,7 +125,7 @@ export async function openBring({ lead = false, onDone = null } = {}) {
     h('div.byc-k', 'ALREADY A MEMBER?'),
     h('h2.byc-h', 'BRING YOUR CARD'),
     h('p.byc-p', app ? 'This Home Screen app keeps its own storage, so it starts empty — your card isn’t lost. Paste your key and this app joins it.' : 'Paste your key and this device joins your card. Your card works on all your devices at once — the others stay signed in.'),
-    input, err, go,
+    keyForm([field, err, go], () => run()),
     h('p.byc-help', h('b', 'Where’s my key? '), 'On a device you already play on: open your membership card → ', h('b', 'USE THIS CARD ON ANOTHER DEVICE'), ' → COPY. Or wherever you saved it.'));
   // (THE VAULT 2A — I'M NEW HERE removed with its welcome line: the owner, Nov 3 11:47 am — "no point, the ✕ already does it")
   if (lead) sheet.classList.add('is-lead');
