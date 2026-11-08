@@ -7,7 +7,8 @@ import { emptyView } from './logic.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { result } from './daily.js';
 export { daily } from './daily.js';
-export { createApiJudge } from './judge.js';   // (DM2 — THE DAILY SCREEN's run host wraps it: it hears the start + the finish)
+export { createApiJudge } from './judge.js';
+export { createLesson } from './lesson.js';   // (DM2 — THE PRACTICE HARBOR: the first time only — config.js#DAILIES lesson: true)   // (DM2 — THE DAILY SCREEN's run host wraps it: it hears the start + the finish)
 
 export const createView = lazyView(() => import('./view.js'), gameSheets('coastclear'));
 

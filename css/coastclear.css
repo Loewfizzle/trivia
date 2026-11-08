@@ -342,3 +342,39 @@ body[data-look="day"] .cc-screen .btn.cc-share { --tc: #2f86ff; --tcore: #2f86ff
   .cc-lh-beam { display: none; }
   .cc-lh-glow { opacity: 1; }
 }
+
+/* ==================================================================================================================================
+   DM2 — THE PRACTICE HARBOR (js/games/coastclear/lesson.js): the first visit's 5 × 5 lesson, in the game's own tokens (both looks). Bigger cells
+   (5 across), ONE short line a step, a soft glowing ring on the cell to tap (opacity + scale only), SKIP top-right, YOU'RE READY → today's run.
+   ================================================================================================================================== */
+.screen.cc-screen.cc-lesson { --cc-cell: clamp(44px, calc((min(100vw, var(--maxw)) - 2 * var(--gutter) - 4 * var(--cc-gap)) / 5), 60px); }
+.cc-lesson .cc-head { position: relative; }
+.cc-ls-skip { min-height: 44px; padding: 0 14px; border: 0; background: none; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px;
+  font: 800 12px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--cc-ink-dim); -webkit-tap-highlight-color: transparent; }
+.cc-ls-skip[hidden] { display: none; }
+.cc-ls-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; width: 100%; padding: 0 var(--gutter); }
+.cc-ls-kick { font: 800 11px/1 var(--font-ui); letter-spacing: 0.24em; color: var(--cc-ink-dim); }
+.cc-ls-dots { display: flex; gap: 8px; }
+.cc-ls-dots i { width: 22px; height: 4px; border-radius: 2px; background: var(--cc-water-line); }
+.cc-ls-dots i.is-on { background: var(--cc-sign); box-shadow: 0 0 8px var(--cc-sign-glow); }
+.cc-ls-line { margin: 0; min-height: 2.6em; max-width: 320px; text-align: center; font: 700 16px/1.3 var(--font-ui); color: var(--cc-ink); }
+.cc-ls-board { flex: none; }
+.cc-lesson .cc-mode { width: calc(5 * var(--cc-cell) + 4 * var(--cc-gap)); margin: 10px auto calc(var(--safe-b) + 18px); }
+/* the cell to tap: a ring of the game's light breathing round it (its own layer — never the cell's box-shadow animated) */
+.cc-cell.cc-ls-hint { z-index: 3; }
+.cc-cell.cc-ls-hint > .cc-n::after, .cc-cell.cc-ls-hint::after { content: ''; position: absolute; inset: 2px; border-radius: 5px; pointer-events: none;
+  box-shadow: 0 0 0 2.5px var(--cc-sign), 0 0 16px var(--cc-sign-glow); background: transparent; opacity: 1; animation: cc-ls-ring 1.4s ease-in-out infinite; }
+.cc-cell.cc-ls-hint > .cc-n::after { display: none; }
+@keyframes cc-ls-ring { 0%, 100% { opacity: 0.45; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1.05); } }
+.cc-mode-b.cc-ls-hint { position: relative; }
+.cc-mode-b.cc-ls-hint::after { content: ''; position: absolute; inset: 3px; border-radius: 10px; pointer-events: none; box-shadow: 0 0 0 2.5px var(--cc-mode-buoy), 0 0 16px var(--cc-mode-buoy-glow); animation: cc-ls-ring 1.4s ease-in-out infinite; }
+.cc-cell.cc-ls-nudge { animation: cc-ls-nudge 0.32s ease-out; }
+@keyframes cc-ls-nudge { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.cc-ls-ready { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.cc-ls-ready[hidden] { display: none; }
+.cc-ls-ready-t { font: 900 clamp(26px, 8vw, 34px)/1 var(--font-display); letter-spacing: 0.1em; color: var(--good); text-shadow: 0 0 14px color-mix(in srgb, var(--good) 60%, transparent); }
+.cc-lesson .btn.cc-ls-go { min-width: 240px; border-radius: 10px; }
+.cc-lesson .btn.cc-ls-go::before, .cc-lesson .btn.cc-ls-go::after { border-radius: 10px; }
+.cc-lesson[data-step="ready"] .cc-mode { visibility: hidden; }
+body[data-look="day"] .cc-lesson .btn.cc-ls-go { --tc: #2f86ff; --tcore: #2f86ff; --tg: rgba(47, 134, 255, 0.5); --tg2: rgba(47, 134, 255, 0.22); --tube-in: rgba(255, 255, 255, 0.86); color: #14284a; text-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .cc-cell.cc-ls-hint::after, .cc-mode-b.cc-ls-hint::after { animation: none; } .cc-cell.cc-ls-nudge { animation: none; } }
