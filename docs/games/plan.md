@@ -133,3 +133,8 @@
 - No Vercel setting is needed: DAILY_SECRET is optional (else a random key is made + stored in the database). Ben does nothing.
 - THE RESEED runs SERVER-SIDE (the owner's rule: service-account keys NEVER go on his PC): /admin → THE DAILIES → RESEED · PREVIEW (the dry run)
   → RESEED NOW (a second tap) — the same reseedDailies(), audited like the switch. scripts/dailies-reseed.mjs stays for the emulators + tests only.
+
+## FABLE REVIEW #2 — THE DAILY MODULE (Nov 8 2026 — read-only; the dailies still ship OFF)
+- Nov 8: All six daily cards APPROVED in THE LAB by Ben: SAFECRACKER, KEYHOLE, GHOST RUN, LIGHTHOUSE, PERFECT WEEK, PENTHOUSE (THE DIAL).
+- Nov 8: FABLE REVIEW #2 (read-only) reviews THE DAILY MODULE; its findings + Ben's iPhone notes on DM2 become the fix pass DFIX2. The dailies
+  stay OFF until DFIX2 lands; then Ben flips the switch. The report: docs/games/review-dailies-2.md.
