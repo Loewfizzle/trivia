@@ -29,7 +29,7 @@ export const INFO = {
   math: { name: 'QUICK MATH', glyph: '±', rules: ['Four rapid calculations.', 'Normal order of operations. Type the answer.'] },
   pattern: { name: 'PATTERN LOCK', glyph: '∴', rules: ['Two number sequences.', 'Enter the next number in each.'] },
   trivia: { name: 'TRIVIA LIGHTNING', glyph: 'ϟ', rules: ['Three rapid-fire questions.', 'One shot each. Speed matters.'] },
-  stroop: { name: 'COLOR CLASH', glyph: '◐', rules: ['A color word, shown in a different color.', 'Tap the COLOR OF THE TEXT — not what the word says.'] },
+  stroop: { name: 'COLOR CLASH', glyph: '◐', rules: ['A color word in a different color — and four color words to tap, each in the wrong color.', 'Tap the word that names the COLOR OF THE TEXT.'] },
   reflex: { name: 'SIGNAL LOCK', glyph: '◎', rules: ['Wait for the screen to flash.', 'Then tap as fast as you can. Too early counts as a miss.'] },
   count: { name: 'QUICK COUNT', glyph: '#', rules: ['Shapes flash for a moment, then vanish.', 'Count the one we ask for. Off by one earns half.'] },
   truefalse: { name: 'TRUE OR FALSE', glyph: '✓', rules: ['Rapid-fire statements: math and facts.', 'True or false? Wrong answers cost points.'] },
@@ -170,19 +170,31 @@ export const STROOP_COLORS = {
 // challenge ABOUT color, so it never swaps in purple / orange any more (too close to blue / red for many eyes). Later challenges still
 // reshuffle the tiles' order every word.
 export const CLASH_COLORS = Object.freeze(['red', 'blue', 'green', 'yellow']);
+// THE ADD-ONS (the owner, Nov 7): the answers are COLOR WORDS, never plain swatches (matching a colour to a square was too easy) — their four text
+// colours a DERANGEMENT of the four colours, re-rolled every word (all four different, no word in its own colour); the right one = the word that
+// names the prompt's TEXT COLOUR (clashAnswer — the ONE rule the screen, the answer review + the preview read). (A "TAP THE WORD" rule was built
+// and dropped the same evening — the owner: no.)
+/** the four buttons' text colours: a DERANGEMENT of the four colours (all different, none its own word's colour) — seeded rejection (9 of 24) */
+function clashOpts(rand) {
+  let perm;
+  do perm = shuffle(rand, CLASH_COLORS); while (perm.some((c, i) => c === CLASH_COLORS[i]));
+  return Object.fromEntries(CLASH_COLORS.map((id, i) => [id, perm[i]]));
+}
 export function genStroop(rand, level) {
   const palette = CLASH_COLORS.slice();
   const items = [];
   for (let i = 0; i < 8; i++) {
-    const ink = pick(rand, palette);
+    const color = pick(rand, palette);          // the prompt's TEXT COLOUR
     // mostly mismatched (that's the trick), with the odd honest one to keep you guessing
-    const word = rand() < 0.15 ? ink : pick(rand, palette.filter(c => c !== ink));
+    const word = rand() < 0.15 ? color : pick(rand, palette.filter(c => c !== color));
     // button order is fixed early on; later it reshuffles every time
     const order = level < 0.5 ? palette : shuffle(rand, palette);
-    items.push({ word, ink, order });
+    items.push({ word, color, order, opts: clashOpts(rand) });
   }
   return { type: 'stroop', parts: 8, items };
 }
+/** THE ANSWER of one word (the button id that is right): the word that names the prompt's text colour */
+export const clashAnswer = (spec, it) => it.color;
 
 // ---------- signal lock (reaction time) ----------
 export const REFLEX_TIMEOUT_MS = 1200;

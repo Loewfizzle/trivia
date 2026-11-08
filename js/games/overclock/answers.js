@@ -20,7 +20,7 @@ import { h, reducedMotion } from '../../ui/dom.js';
 import { answerFrame, answerPanel, tubeMark } from '../kit/answer.js';
 import { trickyLetters, wrongLetters, spellRuns } from './spell.js';
 import { hlRightDir, statEl, DIR_WORD } from './ui/higherlower.js';
-import { STROOP_COLORS, COMPASS_DIRS, COMPASS_TURN, closestCredit, linkAccepts, normWord } from './challenges.js';
+import { STROOP_COLORS, clashAnswer, COMPASS_DIRS, COMPASS_TURN, closestCredit, linkAccepts, normWord } from './challenges.js';
 import { colorHex } from '../../config.js';
 import { buildReveal } from './reveals.js';
 import { fmtVal, joinedWord, joinedText } from './shared.js';
@@ -433,17 +433,17 @@ function count(spec, picks, ctx = {}) {
     });
   }));
 }
-// COLOR CLASH (OC4 — its dressing): the word as it was shown (big, in its text color), the TEXT COLOR on THE ANSWER tile as a solid chip +
-// its NAME (the name says it — never the color alone), your pick's chip + name struck through
+// COLOR CLASH (OC4 — its dressing; the ADD-ONS, Nov 7: answered with color WORDS — clashAnswer): the word as it was shown (big, in its text color),
+// THE ANSWER as a solid chip + its NAME (the name says it — never the color alone), your pick's chip + name struck through
 const swatch = id => h('span.oc-ans-color', h('i', { style: { '--sw': STROOP_COLORS[id].hex } }), STROOP_COLORS[id].name);
 function stroop(spec, picks) {
-  const res = spec.items.map((it, i) => st(picks[i], it.ink));
+  const res = spec.items.map((it, i) => st(picks[i], clashAnswer(spec, it)));
   const { show, label } = missesFirst(res);
   return box(sumRow(res, label), show.map((i, k) => {
-    const it = spec.items[i], p = picks[i];
+    const it = spec.items[i], p = picks[i], ans = clashAnswer(spec, it);
     return answerFrame({
-      q: h('span.oc-ans-cc', h('b', { style: { color: STROOP_COLORS[it.ink].hex } }, STROOP_COLORS[it.word].name), h('small', 'THE TEXT WAS')),
-      answer: swatch(it.ink), pick: p == null || p === it.ink ? null : swatch(p),
+      q: h('span.oc-ans-cc', h('b', { style: { color: STROOP_COLORS[it.color].hex } }, STROOP_COLORS[it.word].name), h('small', 'THE TEXT WAS')),
+      answer: swatch(ans), pick: p == null || p === ans ? null : swatch(p),
       state: res[i], note: p == null ? NONE() : '', delay: 200 + k * 300,
     });
   }));

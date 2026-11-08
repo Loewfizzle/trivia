@@ -131,7 +131,7 @@ Read that file before writing EVERY Overclock prompt. What it changes / adds for
 ## Challenge looks — approved direction (ALL mocked Nov 1)
 - REWIRE: glass neon tubes, unlit until connected; live light flow; surge source → core on completion; stage 1 orange, stage 2 blue; 4×4 tiles ≈ 75 pt.
 - MEMORY: 3×3 glass nodes, played one blazes orange with its own tone, slanted step bar.
-- COLOR CLASH: huge word, 4 solid color tiles; text says "TAP THE COLOR OF THE TEXT" (never "ink").
+- COLOR CLASH: huge word, 4 COLOR WORDS to tap (DFIX1's add-ons, Nov 7 — below; was 4 solid colour tiles); text says "TAP THE TEXT COLOR" (never "ink").
 - SORT IT: big tilting card; target side glows (blue left / orange right).
 - HIGHER OR LOWER: stat chip, two stacked cards, orange VS slam, 10-segment streak bar.
 - TIMELINE: four slanted rows, tapped rows orange with order badge, LOCK IT IN.
@@ -983,3 +983,26 @@ TOWERS (both red in the first full run too, green when their groups run alone + 
    (`.panel-full.oc-standings`, OC1's add-on — THE ANSWER · the banner · the standings in their own box, the NEXT footer) painted over the whole
    screen, the header underneath it; OC8's add-on only moved its top below the corner buttons (A1), it lost nothing (`git show 922d9d3 --
    css/overclock.css`: the one changed line is that padding-top). Left as it is.
+
+## COLOR CLASH — THE OWNER'S ADD-ONS (Nov 7 2026, run as DFIX1's last group)
+The owner's decisions, in order:
+1. (7:30 pm) The answers were plain SOLID-COLOUR SQUARES — you just matched the text colour to a square: too easy. Now the four answers are COLOR WORDS
+   (RED · BLUE · GREEN · YELLOW), big + bold (Barlow 900 italic, `.oc-cc-optw`), on dark glass tiles — no solid swatch anywhere, you have to READ them;
+   still ≥ 44 pt (the tiles are 84–104 pt tall). Never the word "ink" in the game or its help — "text color" (the game's American spelling: COLOR CLASH).
+2. (7:40 pm) The four answers' text colours must all be DIFFERENT: a DERANGEMENT of the four colours (no word in its own colour), re-rolled every word
+   (`challenges.js#genStroop` → `it.opts`; seeded rejection, all nine derangements come up). This replaced 1's "never the prompt's text colour" — with four
+   buttons and four different colours one button always wears the prompt's colour (the two rules can't both hold; the later one won).
+3. (later) "No tap the word feature": the per-round rule flip (TAP THE TEXT COLOR ↔ TAP THE WORD, flashed big at the round's start) that 1 asked for was
+   built, then DROPPED — Color Clash is always **TAP THE TEXT COLOR** (the line above the word, "TEXT COLOR" lit); with one rule there is nothing to flash, so
+   the flash went too (no 0.9 s wait — the challenge's timings are as before: 220 / 650 ms to the next word).
+- THE ONE RULE: `challenges.js#clashAnswer(spec, item)` = the item's text colour (`it.color` — the word naming it is the right button); the screen
+  (`ui/stroop.js`), THE ANSWER review (`answers.js` — the word as shown, "THE TEXT WAS", the answer chip + its name) and the preview read it. The right
+  button never shows its own colour (the derangement), so the colour never gives it away. The item: `{ word, color, order, opts: { id: text colour } }`
+  (`ink` renamed `color`; the CSS custom property `--cc-tc`).
+- THE SERVER: Color Clash is generated from the match seed on every phone (never pooled, never in THE DAILY RESERVE — `daily.js#POOLED`), and scored by
+  `ok` counts the server bounds + replays as before (`daily.js#replay`, `logic.js#ptsCeiling`); nothing in api/ changed, no reserve format changed.
+- Tests: `tests/overclock-clash.test.mjs` (1,200 seeded challenges: four words, four different text colours, none its own, the answer = the text colour,
+  one rule only, no flash, no "ink" on screen or in the help, the review on the same rule) + the old Color Clash checks moved to `it.color`.
+- Proof: `Downloads/NEON/overclock/shots/oc-clash-addon/` — `final-play` (word 1) · `final-right` (word 2, the colours re-rolled) · `final-wrong` (the crack + the
+  right word's green outline) · `final-answer` (THE ANSWER review), each at 390 / 402 / 430 (Chromium) + `final-wk-play` / `final-wk-right` (WebKit, the three
+  widths). The no-sideways guard (Color Clash 12 / 12; the full guard in the pass's run) + e2e-oc-2.

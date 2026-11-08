@@ -23,6 +23,7 @@ having been wired into its preview or its E2E page — the most likely reason th
 ## MUST FIX
 
 ### 1. The 4 am Eastern turn loses a run in flight (data loss + a broken one-try)
+**DFIX1: FIXED** — every call after `start` carries its `day` (`js/daily/run-day.js` in both judges); `api/daily.js#dayOfCall` takes today's or yesterday's with a start there (made up / two back / tomorrow → 400 `bad_day`, no start → 409); the finish scores + streaks on the run's day (`progress.js#playDay(…, day)`); a refresh across the turn resumes (`start { day }`); the review's probe is now `/api` tests in both suites.
 - **What:** every `/api/daily` call recomputes the day from the server clock (`api/daily.js:36` `const day = streakDay(now)`) and looks the run up
   under that day only. A run started before 4:00 am ET whose next call lands after it gets 409 `not_started`: a `guess` / `dig` mid-run, AND the
   `finish` of a run that was already complete at 3:59. The phone's view treats `not_started` as out of step and re-syncs from `start` — which
@@ -40,6 +41,7 @@ having been wired into its preview or its E2E page — the most likely reason th
 - **Size:** small–medium (server ~15 lines, the two judges one line each, two tests, the docs' "one try" sentence).
 
 ### 2. A throwaway profile gives the puzzle away (the rewards + the standing can be bought for free)
+**DFIX1: LEFT FOR THE DAILY MODULE** — the owner chose the rule (docs/games/plan.md DFIX1): a daily COUNTS (standing, THE BOARD, rewards, ranking) only for a profile that existed before that day's 4 am Eastern start (not the review's "3 counted matches" — it would block solo players), + a per-IP limit on new profiles. Not built here.
 - **What:** everyone gets the same two words / the same harbor, and a new anonymous Firebase uid is a new profile (`api/_lib/profiles.js#ensureProfile`
   creates one for any uid with no limit — the limits there are for `restore` only) and so a new try. A closed door's word and a finished run's
   `reveal` are handed to their own player (the owner KEPT the caught reveal, Nov 7 — plan.md). So: throwaway 1 fails THE FRONT DOOR → its word;
@@ -61,6 +63,7 @@ having been wired into its preview or its E2E page — the most likely reason th
 ## SHOULD FIX
 
 ### 3. Pauses are unbounded — a scoring exploit (COAST CLEAR)
+**DFIX1: FIXED (the owner's caps: 3 pauses + 20 minutes in all — not the review's 2 + 30)** — `logic.js#MAX_PAUSES` / `PAUSE_CAP_MS`; past either → 409 `pause_limit`, the clock running; an open pause closed AT the cap on the next call; the phone's clock + the replay cap the same; unit + `/api` tests.
 - **What:** `pause` / `resume` are plain `/api/daily` moves any client may call (`coastclear/judge.js:21`); `logic.js#serverAct` (line 177) caps
   neither the count nor the length. The clock stops for as long as the player likes at a flat +15 s each — so anyone who thinks longer than 15 s
   between moves gains by pausing, and the opening can be studied for free before the first dig (a GHOST RUN's first five deductions planned
@@ -73,6 +76,7 @@ having been wired into its preview or its E2E page — the most likely reason th
 - **Size:** small.
 
 ### 4. A stray `guess` on COAST CLEAR is a 500
+**DFIX1: FIXED** — 400 `bad_action` for any move a daily doesn't own (guess on COAST CLEAR, dig / chord / pause / resume on THE PASSWORD); a null / non-object body → 400 too (it was a 500 as well); tests in both suites.
 - **What:** `api/daily.js:55` calls `cart.judge(...)` for any `judged` cartridge; COAST CLEAR is judged but has no `judge` → `TypeError` → 500
   `server` (logged as `console.error` on Vercel — noise a script can generate at will).
 - **Proved:** `{ action: 'guess', game: 'coastclear', word: 'CRANE' }` → an error with no status / code (the route sends 500).
@@ -81,6 +85,7 @@ having been wired into its preview or its E2E page — the most likely reason th
 - **Size:** small.
 
 ### 5. THE PASSWORD's sounds: never heard in the preview or the E2E, and iOS-fragile in the game
+**DFIX1: FIXED** — both PASSWORD pages install the unlock; ONE daily sound engine (`js/daily/sfx.js`, was COAST CLEAR's) gives THE PASSWORD the first-tap catch + decode-at-unlock; e2e-password proves the sounds start after a trusted tap + the catch (and nothing without a tap); the silent-switch line in docs/password.md. Still unproven on a real iPhone (no WebKit audio here).
 - **Why Ben heard nothing in the preview:** `tests/integration/password-preview.html` and `password-daily.html` never call
   `audio/engine.js#installAudio()` — nothing ever unlocks the AudioContext there, `isUnlocked()` stays false and `pwSfx()` (sfx.js:50) returns
   before playing. By construction, silent. COAST CLEAR's two pages install it (coastclear-preview.html:46, coastclear-daily.html:28) and its E2E
@@ -98,12 +103,14 @@ having been wired into its preview or its E2E page — the most likely reason th
 - **Size:** small–medium.
 
 ### 6. THE PASSWORD's finish is tried once; COAST CLEAR's four times
+**DFIX1: FIXED** — `view.js#record()` like COAST CLEAR's (4 tries backed off, nothing on screen while it waits).
 - **What:** `password/view.js:233` `await judge.finish()` once; a transient failure (status 0 / 5xx) leaves "NOT RECORDED · NO SIGNAL" until the player
   reloads (a reload re-syncs → `end()` → finish again, so it self-heals, but only on a reload). `coastclear/view.js:437` retries 4× with backoff.
 - **Fix:** the same `record()` loop in THE PASSWORD (or the shared daily helper — finding 10).
 - **Size:** small.
 
 ### 7. "HELD" still shows under the grid on a held door
+**DFIX1: FIXED** — the line under the grid is gone (the owner: "no HELD anywhere — LOCKED OUT only"); e2e-password checks no line + no HELD during the held beat.
 - **What:** the owner's ADD-ON (plan.md, PW2): "no HELD anywhere". `password/view.js:97` still writes `THE FRONT DOOR HELD · THE WORD WAS <word>` into
   `.pw-reveal` when a door fails; it is on screen for `HELD_MS` (1.1 s) + `LEAVE_MS` (0.4 s) before the end screen covers it, and again for 0.4 s on
   a re-mount onto a lost run. The E2E asserts it (e2e-password.mjs: "HELD · THE WORD WAS" under the grid) and separately asserts no HELD on the
@@ -111,6 +118,7 @@ having been wired into its preview or its E2E page — the most likely reason th
 - **Size:** small.
 
 ### 8. The suites: green, not flaky — nothing to fix, two weak spots to know about
+**DFIX1:** (a) FIXED — e2e-password now checks the sounds; (b) + (c) LEFT (known, not flakes).
 Run on the Beelink against the emulators + `DAILY_TEST=1 node scripts/serve.mjs 5195 --emu`, one after the other, nothing else busy:
 - unit (the dailies' files: password, pw-day, password-list, coastclear, cc-board, coastclear-cc2, cartridge, achievements, kit-oc1): 64 / 64.
 - `/api`: password.test.mjs 6 / 6 · coastclear.test.mjs 9 / 9.
@@ -126,6 +134,7 @@ Run on the Beelink against the emulators + `DAILY_TEST=1 node scripts/serve.mjs 
   has none); production's env (`DAILY_TEST` unset on Vercel is a dashboard check).
 
 ### 9. Phone readability: good at 390 / 402 / 430 — three small things
+**DFIX1:** the sublines FIXED (11 px, one line at 390 / 402 / 430 both looks — the row's gaps tightened so the names fit too; an E2E check); the unlit lamps FIXED (a touch brighter, both looks); the low board at 430 + the 38 pt cells — WON'T FIX now (the owner's layout / decide after the play-test).
 Looked at (shots.mjs `--page`, 390 × 844 · 402 × 874 · 430 × 932, both looks): THE PASSWORD mid THE BACK ROOM with all three marks, WELCOME IN,
 LOCKED OUT (day); COAST CLEAR mid-run, COAST CLEAR won, CAUGHT (day). No pills, no emoji, no dev text, nothing clipped, the marks never by colour
 alone (the bar / the dot read at arm's length), the numbers' colours distinct, the keys 54 pt, the tiles 58 pt, SHARE one tube, the leftover space
@@ -144,6 +153,7 @@ at the foot on every end screen as the owner asked.
 ## NICE TO HAVE
 
 ### 10. Duplicated logic the two games should share before THE DAILY MODULE
+**DFIX1: LEFT FOR THE DAILY MODULE** — its first two pieces landed (`js/daily/sfx.js` — the sound engine; `js/daily/run-day.js` — the run's day); the rest (clock, share, judge factory, end scaffold) is the module's first group.
 Identical or near-identical in `js/games/password/*` and `js/games/coastclear/*` (file:line of the PASSWORD copy, the CC copy mirrors it):
 - `logic.js#msToTurn` (password 190 / coastclear 301 — byte-identical), `fmtClock` ↔ `fmtCountdown` (h:mm:ss), `dayNumber` (two implementations of
   the same epoch arithmetic), the `shareLine` shape, `SITE`.
@@ -158,11 +168,13 @@ the end scaffold) would cut ~400 lines and give the module one place to add the 
 best done as the module's first group, not before.
 
 ### 11. Dead code
+**DFIX1: LEFT** — `js/daily/contract.js`, `statusLine`, `resultFor` are the module's to keep or cut when it builds the shared kit.
 - `js/daily/contract.js` (`startDaily` / `finishDaily` / `dailyToday`): nothing imports it — both judges call `api('daily', …)` directly.
 - `password/logic.js#statusLine`: only a unit test uses it ("no longer on screen").
 - `index.js#resultFor` (both games): exported, read by nothing; `feats` is named in cartridge.js's comment but no server path reads a daily's feats.
 
 ### 12. Docs that don't match the code
+**DFIX1: FIXED** — the first-null write (docs/coastclear.md), progression.md's "none real yet", the `dly/` node in docs/data-model.md, password.md's check count + a cost paragraph, CLAUDE.md's LOOKS line.
 - docs/coastclear.md ("a repeat / a refusal → nothing written"): a REFUSED move on a player with no record yet writes `{ st }` (api/daily.js:76 — the
   first-null write). Proved: a chord with no buoys before any move → 422 `chord_count`, the record afterwards `{"st":…}`. Harmless; say so.
 - docs/progression.md:124 "none real yet" — two real dailies exist behind `DAILY_TEST`.
@@ -172,6 +184,7 @@ best done as the module's first group, not before.
 - CLAUDE.md's CC bullet still says `LOOKS: ['night']` until CC2 — CC2 shipped both looks (`meta.js:25`).
 
 ### 13. The secret schedule is fragile to a list edit
+**DFIX1: LEFT FOR THE DAILY MODULE** (freeze before go-live — docs/password.md "The schedule" says so); the list changed now while it is free to.
 `pw-day.js` shuffles the WHOLE list per cycle from the pepper; any change to `answers.json` after launch (one word cut) reorders every day of the
 current cycle — words already played come back, others are skipped — and nothing records which words a day used. Also: the first day of a cycle
 may repeat the last day's word (a new order), and the odd 1,449th word is never drawn in a cycle. **Fix:** at the switch-over freeze the list behind
@@ -179,6 +192,7 @@ a version in the HMAC label (`pw-order:<listVersion>:<cycle>`) and make the cont
 once in `dly/password/order/{cycle}` (server-only) and read it back. Small.
 
 ### 14. No rate limit on `/api/daily` (cost)
+**DFIX1: LEFT FOR THE DAILY MODULE** (a per-player `/api/daily` budget + pruning `dly/`).
 Every action costs a function invocation + 2–4 database round trips; `not_a_word` / `chord_count` / `already` are free to the player and unlimited.
 A script can burn invocations at will. `api/_lib/limit.js#take` exists: a per-pid budget (e.g. 600 daily calls a day — a COAST CLEAR run needs
 ~50) costs one more transaction a call; or count only refusals. Small. **The honest numbers:** THE PASSWORD ≈ 10–15 calls a run (start + ≤ 12
@@ -186,6 +200,7 @@ guesses + resumes + finish); COAST CLEAR ≈ 50 (docs/coastclear.md's measuremen
 (Vercel Hobby: 1M), the database traffic ≈ 200 MB (Spark: 10 GB), storage ≈ 2 MB a month; `dly/` is never pruned (the module's job). Fine on the free plans.
 
 ### 15. Smaller notes
+**DFIX1:** the countdowns on the SERVER clock — FIXED (both games; a run that crossed the turn reads TODAY'S … IS OPEN); the cells — after the play-test; `rankOf`'s shape — the module; the simulations + the share tokens — no change needed.
 - The countdowns ("NEXT PASSWORD IN", "NEXT HARBOR IN") run on the phone's clock (`Date.now()`); the server's `now` is in hand on every judged
   answer — use the offset like COAST CLEAR's clock does. Small.
 - COAST CLEAR's cells are ~38 pt at 390 wide (CLAUDE.md asks ≥ 44 pt touch targets); the owner chose 9 × 12 knowing it, with the 8 × 11 / 42 pt
@@ -260,3 +275,11 @@ Everything else above is polish that can ride with it.
    after the switch-over it needs 13 first). ~30 min.
 6. The full local run: unit, rules + `/api` (password, coastclear alone), smoke `GAMES=overclock`, e2e-password + e2e-coastclear; the ci tag on the final push.
 Deferred to THE DAILY MODULE: the throwaway gate + the IP limit (2), the shared `js/daily/` kit (10), the schedule freeze (13), a `/api/daily` budget (14).
+
+## DFIX1 — the fix pass (Nov 7 2026)
+Every finding above is marked FIXED / LEFT FOR THE DAILY MODULE / LEFT / WON'T FIX. Also in the pass: the owner's ADULT-VOCABULARY cut (47 words →
+**1,402 answers, a 701-day cycle**; the mean + gloomy words kept), and the owner's OVERCLOCK add-ons on COLOR CLASH (docs/overclock.md — colour WORDS in a
+derangement of text colours, TAP THE TEXT COLOR only).
+**The local run before the push (the Beelink, the emulators, `DAILY_TEST=1 node scripts/serve.mjs 5190 --emu`):** unit **1,346 / 1,346** · rules **66** · `/api` server **38** +
+password **9** + coastclear **12** · smoke `GAMES=overclock` **5 / 5** · e2e-password **40 / 40 × 5** · e2e-coastclear **36 / 36 × 5** (60 fps every run: the sweep / the
+catch / the lighthouse 59.7–60.1) · e2e-oc-2 **27 / 27** · the no-sideways guard **312 / 312**. No rules change (nothing to re-publish).

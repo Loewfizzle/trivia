@@ -1489,23 +1489,25 @@
 .oc-mem-got.is-slip em { color: #ff8095; }
 @media (prefers-reduced-motion: reduce) { .oc-mg-step { animation: none; } .oc-mem-num { transition: none; } }
 
-/* ---------------- COLOR CLASH (ui/stroop.js): one huge word in a different colour, four SOLID colour tiles (no names on them) */
+/* ---------------- COLOR CLASH (ui/stroop.js): one huge word in a different colour; THE ADD-ONS (Nov 7): four COLOR WORDS on dark glass, their text
+   colours a derangement of the four (all different, none its own), TAP THE TEXT COLOR (never a solid swatch — you read them). */
 .oc-od .oc-cc { gap: 12px; margin: 6px 0 auto; }
 .oc-cc-bar { height: 12px; }
 .oc-od .oc-cc-q { margin: 2px 0 0; font: italic 900 clamp(24px, 7vw, 30px) / 1 var(--oc-font-title); letter-spacing: 0.02em; }
+.oc-cc-q em { font-style: inherit; color: var(--oc-hot); text-shadow: 0 0 14px var(--oc-hot-glow); }
 .oc-cc-stage { display: grid; place-items: center; min-height: clamp(130px, 20vh, 180px); }
-.oc-cc-word { position: relative; display: grid; font: italic 900 clamp(72px, calc(600px / var(--len, 5)), 124px) / 0.9 var(--oc-font-title); letter-spacing: 0.01em; color: var(--ink); }
+.oc-cc-word { position: relative; display: grid; font: italic 900 clamp(72px, calc(600px / var(--len, 5)), 124px) / 0.9 var(--oc-font-title); letter-spacing: 0.01em; color: var(--cc-tc); }
 .oc-cc-word > * { grid-area: 1 / 1; padding: 0 0.06em; }
 .oc-cc-word b { position: relative; font: inherit; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
-.oc-cc-word-glow { color: var(--ink); opacity: 0.6; text-shadow: 0 0 26px var(--ink), 0 0 60px color-mix(in srgb, var(--ink) 55%, transparent); }
+.oc-cc-word-glow { color: var(--cc-tc); opacity: 0.6; text-shadow: 0 0 26px var(--cc-tc), 0 0 60px color-mix(in srgb, var(--cc-tc) 55%, transparent); }
 .oc-cc-stage.q-in .oc-cc-word { animation: oc-cc-in 0.22s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
 @keyframes oc-cc-in { from { opacity: 0; transform: scale(1.18); } to { opacity: 1; transform: none; } }
 .oc-cc-tiles { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 16px; padding: 0 6px; }
-.oc-od .oc-cc-opt { min-height: clamp(84px, 12.5vh, 104px); padding: 0; }
+.oc-od .oc-cc-opt { min-height: clamp(84px, 12.5vh, 104px); padding: 0; justify-content: center; text-align: center; }
 .oc-od .oc-cc-opt .oc-tile-face, .oc-od .oc-cc-opt.is-picked .oc-tile-face, .oc-od .oc-cc-opt.is-right.is-picked .oc-tile-face, .oc-od .oc-cc-opt.is-wrong .oc-tile-face {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--sw) 72%, #fff) 0%, var(--sw) 26%, var(--sw) 70%, color-mix(in srgb, var(--sw) 78%, #000) 100%);
-  border: 1px solid color-mix(in srgb, var(--sw) 60%, #fff); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -3px 0 rgba(0, 0, 0, 0.22), 0 6px 16px rgba(0, 0, 0, 0.45); }
-.oc-cc-sheen { position: absolute; inset: 0; transform: skewX(var(--oc-slant)); pointer-events: none; background: linear-gradient(118deg, rgba(255, 255, 255, 0.3) 0, rgba(255, 255, 255, 0.06) 34%, rgba(255, 255, 255, 0) 52%); }
+  background: linear-gradient(180deg, #232733 0%, #161920 60%, #111318 100%); border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -3px 0 rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.45); }
+/* the word on the button: big, bold, in its MISMATCHED text colour (a static glow — no animation) */
+.oc-cc-optw { position: relative; display: block; padding: 0 6px; font: italic 900 clamp(26px, calc(200px / var(--len, 5)), 40px) / 1 var(--oc-font-title); letter-spacing: 0.02em; color: var(--cc-tc); text-shadow: 0 0 14px color-mix(in srgb, var(--cc-tc) 45%, transparent), 0 2px 0 rgba(0, 0, 0, 0.5); white-space: nowrap; pointer-events: none; }
 .oc-od .oc-cc-opt.is-wrong .oc-tile-face { filter: none; }
 .oc-od .oc-cc-opt.is-wrong .oc-tile-bad { background: linear-gradient(180deg, rgba(10, 2, 5, 0.45), rgba(10, 2, 5, 0.62)); }
 .oc-od .oc-cc-opt.is-right .oc-tile-ok { border-width: 3px; background: none; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), 0 0 18px color-mix(in srgb, var(--good) 55%, transparent); }

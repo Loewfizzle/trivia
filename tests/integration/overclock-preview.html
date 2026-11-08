@@ -191,7 +191,7 @@ function tap(k, right = true) {
   else if (s.type === 'reflex') return rxTap(right);
   else if (s.type === 'compass') return cpTap(k, right);
   else if (s.type === 'oddone') { const g = s.grids[k]; press(document.querySelectorAll('.oc-odd-cell')[right ? g.idx : (g.idx + 3) % (g.size * g.size)]); }
-  else if (s.type === 'stroop') { const it = s.items[k]; press(document.querySelector(`.oc-cc-opt[data-c="${right ? it.ink : it.order.find(c => c !== it.ink)}"]`)); }
+  else if (s.type === 'stroop') { const it = s.items[k]; press(document.querySelector(`.oc-cc-opt[data-c="${right ? it.color : it.order.find(c => c !== it.color)}"]`)); }
 }
 // SIGNAL LOCK: right = wait for GO then a finger ~240 ms later; wrong = a tap during the wait (EARLY)
 async function rxTap(right = true) {
@@ -331,7 +331,7 @@ async function answerOther(s) {
     memory: () => [{ at: Math.min(3, s.seq.length - 1), n: (s.seq[Math.min(3, s.seq.length - 1)] + 4) % 9 }],
     oddone: () => s.grids.map((g, i) => (i === 1 ? (g.idx + 2) % (g.size * g.size) : g.idx)),
     count: () => s.items.map((it, i) => (i === 1 ? it.ans + 1 : i === 2 ? it.ans + 2 : it.ans)),
-    stroop: () => s.items.map((it, i) => (i === 2 ? it.order.find(c => c !== it.ink) : it.ink)),
+    stroop: () => s.items.map((it, i) => (i === 2 ? it.order.find(c => c !== it.color) : it.color)),
     reflex: () => [287, 312, null, 255, 301],
     compass: () => s.rounds.map((R, i) => (i === 2 ? (R.ans + 1) % 4 : R.ans)),
     closest: () => [Math.round(s.answer * 0.86)],

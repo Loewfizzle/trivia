@@ -237,11 +237,11 @@ test('new challenges: color clash, signal lock, quick count, true or false are w
     const st = generate('stroop', args);
     assert.equal(st.items.length, 8);
     for (const it of st.items) {
-      assert.ok(STROOP_COLORS[it.ink] && STROOP_COLORS[it.word]);
+      assert.ok(STROOP_COLORS[it.color] && STROOP_COLORS[it.word]);
       assert.equal(it.order.length, 4);
-      assert.ok(it.order.includes(it.ink) && it.order.includes(it.word), 'the answer is always a button');
+      assert.ok(it.order.includes(it.color) && it.order.includes(it.word), 'the answer is always a button');
     }
-    assert.ok(st.items.filter(it => it.word !== it.ink).length >= 4, 'mostly mismatched');
+    assert.ok(st.items.filter(it => it.word !== it.color).length >= 4, 'mostly mismatched');
     const rx = generate('reflex', args);
     assert.equal(rx.delays.length, 5);
     assert.ok(rx.delays.every(d => d >= 1100 && d <= 2600));

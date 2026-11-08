@@ -277,7 +277,7 @@ test('NO TIMING CHANGED (the owner): the seven screens\' own step times + the ch
 test('THE SCORING + THE RECORD are unchanged: Color Clash keeps its four colours only; the record the server reads', async () => {
   const C = await import('../js/games/overclock/challenges.js');
   for (let s = 0; s < 300; s++) for (const level of [0, 0.6, 1]) for (const it of C.generate('stroop', { seed: `cc${s}`, ci: 2, level }).items) {
-    for (const c of [it.ink, it.word, ...it.order]) assert.ok(C.CLASH_COLORS.includes(c), c);
+    for (const c of [it.color, it.word, ...it.order]) assert.ok(C.CLASH_COLORS.includes(c), c);
     assert.equal(new Set(it.order).size, 4);
   }
   assert.deepEqual([...C.CLASH_COLORS].sort(), ['blue', 'green', 'red', 'yellow']);
