@@ -480,6 +480,78 @@ await H.run(async () => {
     ok(!!hr && hr.name === 'HORSESHOE', `THE HORSESHOE: unlocked from the replayed race + revealed (${h1.ach.map(x => x.name).join(', ')} — its art is THE LAB's: the placeholder tile)`);
     ok(!!(await val(`pstats/${me0.pid}/it/emb-horseshoe`)) && !(await val(`pstats/${me1.pid}/it/emb-horseshoe`)), 'the server granted THE HORSESHOE to ALICE only (BOB backed a loser)');
     ok(!!(await val(`pstats/${me0.pid}/pa/gf/overclock-horseshoe`)), 'the flag is kept with a DASH (overclock-horseshoe)');
+
+    // THE CARD PASS — B1: AN EMPTY SOLO RUN NEVER COUNTS — ALICE alone, nothing answered, 0 points: the podium as ever, but no solo XP,
+    // no streak day, no solo-lane count, no match counted (the server's skip 'empty')
+    const putGame = async (g, pl) => {
+      await sleep(2500);
+      for (const pid of [me0.pid, me1.pid]) await ref(`pstats/${pid}/last`).set(null);
+      await H.backToLobby(p0).catch(() => {}); await sleep(800);
+      await p0.evaluate(async (c, gm, nm, pp) => { const fb = await import('/js/firebase.js'); await fb.update(fb.dbRef(`rooms/${c}`), { game: gm, 'meta/status': 'playing', [`night/${gm.matchId}`]: { g: gm.id, at: fb.serverTimestamp(), p: pp, n: nm } }); }, H.code, g, Object.fromEntries(Object.keys(g.participants).map(u => [u, names[u]])), pl);
+    };
+    const b1 = { xp: await val(`pstats/${me0.pid}/xp`), p: await val(`pstats/${me0.pid}/g/overclock/p`), so: await val(`pstats/${me0.pid}/day/so`) };
+    await putGame(ocFinal(Array.from({ length: 6 }, () => ({ [uids[0]]: 0 })), [uids[0]]), { [uids[0]]: 0 });
+    await p0.waitForSelector('.final', { timeout: 20000 });
+    await sleep(5000);   // (the report's round trip: the moment would be up by now)
+    const b1a = { xp: await val(`pstats/${me0.pid}/xp`), p: await val(`pstats/${me0.pid}/g/overclock/p`), so: await val(`pstats/${me0.pid}/day/so`) };
+    ok(b1a.xp === b1.xp && b1a.p === b1.p && b1a.so === b1.so, `B1: an EMPTY solo run pays nothing — XP ${b1.xp} → ${b1a.xp}, matches ${b1.p} → ${b1a.p}, solo count ${b1.so} → ${b1a.so}`);
+    ok(!!(await p0.$('.final')) && !(await p0.$('.pg-moment')), 'B1: the podium shows as ever, no end-of-round moment for a run that never counted');
+    await H.shot(p0, 'pf-oc-empty-solo-390x844');
+
+    // THE CARD PASS — B8: THE /api-DOWN SOLO PATH — BOB alone with /api unreachable: the run finishes cleanly (the podium, no error), the
+    // result waits in the queue, and is sent + counted once /api is back (exactly once)
+    const bobP = await val(`pstats/${me1.pid}/g/overclock/p`) || 0;
+    const errs0 = H.errors.length;
+    blockApi = true;
+    await p1.evaluate(s => localStorage.removeItem(`na:${s}:rq`), slotOf(1));
+    await putGame(ocFinal(Array.from({ length: 6 }, () => ({ [uids[1]]: 80 })), [uids[1]]), { [uids[1]]: 0 });
+    await p1.waitForSelector('.final', { timeout: 20000 });
+    await sleep(2500);
+    const q8 = await p1.evaluate(s => (JSON.parse(localStorage.getItem(`na:${s}:rq`) || '[]')).length, slotOf(1));
+    ok(q8 === 1, `B8: /api down — BOB's solo result waits in the queue (${q8})`);
+    ok(!!(await p1.$('.final')) && !(await p1.$('.pg-moment')) && H.errors.length === errs0, `B8: /api down — the solo podium shows, no crash (${H.errors.slice(errs0).join(' | ') || 'no errors'})`);
+    await H.shot(p1, 'pf-oc-solo-apidown-390x844');
+    blockApi = false;
+    await p1.evaluate(() => import('/js/profile/queue.js').then(m => m.flush(true)));
+    await p1.waitForFunction(s => !(JSON.parse(localStorage.getItem(`na:${s}:rq`) || '[]')).length, { timeout: 20000 }, slotOf(1));
+    await sleep(1500);
+    const bobP2 = await val(`pstats/${me1.pid}/g/overclock/p`) || 0;
+    ok(bobP2 === bobP + 1, `B8: /api back — the queued solo run was sent + counted once (${bobP} → ${bobP2})`);
     await H.backToLobby(p0).catch(() => {});
+  }
+
+  // ---- 11. THE CARD PASS — THE GIFT QUEUE: five gifts waiting → five reveals IN ORDER, "GIFT n OF 5", tap → the next; a refresh mid-line
+  //  resumes at the next unseen (numbered in the same line); the last one says IT'S YOURS and the line is cleared
+  {
+    const five = ['card-gift-playerone', 'card-gift-halloffame', 'card-gift-enforcer', 'card-gift-linebacker', 'card-gift-underlights'];
+    await ref(`ppriv/${me0.pid}/gq`).set(Object.fromEntries(five.map((id, i) => [`-0e2e${i}`, { id, at: Date.now() + i }])));
+    const shown = async n => {
+      await p0.waitForSelector(`.vl-gift-head[data-gift="${n}/5"]`, { timeout: 20000 });
+      await sleep(1600);   // (the flip lands)
+      return p0.evaluate(() => ({ head: document.querySelector('.vl-gift-head small').textContent, btn: document.querySelector('.vl-full-x').textContent }));
+    };
+    const tapNext = async () => { await p0.click('.vl-full-x'); await sleep(250); };
+    await p0.reload();
+    let s1 = await shown(1);
+    ok(s1.head === 'GIFT 1 OF 5' && s1.btn === 'NEXT GIFT ›', `THE GIFT QUEUE: the first of five ("${s1.head}" · "${s1.btn}")`);
+    await H.shot(p0, 'pf-gq-1of5-390x844');
+    await tapNext();
+    const s2 = await shown(2);
+    ok(s2.head === 'GIFT 2 OF 5', `tap → the next ("${s2.head}")`);
+    await tapNext();
+    await shown(3);
+    await sleep(800);   // (the two 'seen' calls land)
+    const seen = Object.values((await val(`ppriv/${me0.pid}/gq`)) || {}).filter(g => g.s).length;
+    ok(seen === 2, `each one marked seen as it closes (${seen} of 5)`);
+    await p0.reload();
+    const s3 = await shown(3);
+    ok(s3.head === 'GIFT 3 OF 5', `a refresh mid-line resumes at the next unseen — never a replay ("${s3.head}")`);
+    await tapNext(); await shown(4); await tapNext();
+    const s5 = await shown(5);
+    ok(s5.head === 'GIFT 5 OF 5' && s5.btn === 'IT’S YOURS', `the last one: "${s5.head}" · "${s5.btn}"`);
+    await H.shot(p0, 'pf-gq-5of5-390x844');
+    await tapNext();
+    await sleep(1500);
+    ok(!(await p0.$('.vl-gift-head')) && (await val(`ppriv/${me0.pid}/gq`)) == null, 'all five seen → the line is cleared, nothing left on screen');
   }
 });

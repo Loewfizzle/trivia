@@ -283,6 +283,18 @@ export function unreportable(game) {
   return null;
 }
 
+// THE CARD PASS — B1 (OVERCLOCK's FABLE REVIEW): AN EMPTY SOLO RUN NEVER COUNTS — a room of one that answered nothing and scored nothing (a
+// phone left on the table) pays no solo XP, no streak day, no solo-lane count (core/progress.js#matchStep skips it: 'empty'). It counts
+// with ≥ 1 answered part (a right part: `ok`) or a total > 0. PURE (the tests).
+const SOLO_PLAYED = {
+  overclock: (game, uid) => vals(game.results).some(rr => { const x = rr && rr[uid]; return !!x && (num(x.ok) > 0 || num(x.pts) > 0); }),
+  prism: (game, uid) => { const r = (game.results || {})[uid] || {}; return num(r.sc) > 0 || num(r.ln) > 0; },
+};
+export function soloEmpty(game, uid, row = {}) {
+  const f = SOLO_PLAYED[game && game.id];
+  return !(num(row.score) > 0 || (f ? f(game, uid) : false));
+}
+
 export function extractMatch(game, ctx = {}) {
   const why = unreportable(game);
   if (why) throw new Error(why);
@@ -297,6 +309,7 @@ export function extractMatch(game, ctx = {}) {
     const win = !solo && row.rank === 1 && firsts < n;
     const o = { rank: row.rank, win, c: { p: 1, ...(win ? { w: 1 } : {}) }, rec: {}, rejected: out.rejected };
     EXTRA[game.id](game, row.uid, o, row, ctx, win);
+    if (solo && soloEmpty(game, row.uid, row)) o.empty = 1;   // (B1: nothing answered, nothing scored → never counted)
     if (solo) { o.solo = true; const rec = {}; for (const [b, v] of Object.entries(o.rec)) { const sb = soloBoard(b); if (sb) rec[sb] = v; } o.rec = rec; }
     delete o.rejected;
     out.rows[row.uid] = o;

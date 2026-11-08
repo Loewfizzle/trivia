@@ -38,6 +38,9 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   const s = s0 || {};
   if (s.m && s.m[key]) return { skip: 'counted' };
   if (s.last && now - s.last < gap && now >= s.last) return { skip: 'too_soon' };
+  // (THE CARD PASS — B1: AN EMPTY SOLO RUN NEVER COUNTS — nothing answered, nothing scored: no solo XP, no streak, no solo-lane count;
+  //  core/match-report.js#soloEmpty marks the row)
+  if (n === 1 && row && row.empty) return { skip: 'empty' };
   // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: a match that OVERLAPS one already counted from ANOTHER room — the same profile seated in two rooms
   //  at once from two devices — is never credited; `ctx.win` = { c: the room, s: its start, e: its end }, the last OV_KEEP windows kept)
   if (overlaps(s.ov, ctx.win)) return { skip: 'overlap' };

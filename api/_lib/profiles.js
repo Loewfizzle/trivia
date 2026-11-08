@@ -226,6 +226,8 @@ export async function privateInfo(pid) {
   const p = (await val(`ppriv/${pid}`)) || {};
   // (PROGRESSION B: the birthday — month + day only, private to its owner; bdAt = when it may change next)
   const bd = p.bd && !p.bd.off && p.bd.m ? { m: p.bd.m, d: p.bd.d } : null;
-  // (SHELL 2.0 B2: a GIFT waiting to be revealed — api/_lib/gifts.js; cleared by 'giftSeen')
-  return { gift: p.gift && p.gift.id ? { id: String(p.gift.id), at: p.gift.at || 0 } : null, cb: !!p.cb, shown: !p.opt, banned: !!p.ban, nameAt: p.nameAt || 0, renameAt: p.nameAt ? p.nameAt + RENAME_MS : 0, keyAt: p.keyAt || 0, bd, bdAt: p.bd && p.bd.at ? p.bd.at + 365 * 864e5 : 0 };
+  // (SHELL 2.0 B2: a GIFT waiting to be revealed — api/_lib/gifts.js; THE CARD PASS: the first unseen in THE GIFT QUEUE, or the old slot)
+  const gq = Object.entries(p.gq || {}).filter(([, g]) => g && g.id && !g.s).sort(([a], [b]) => (a < b ? -1 : 1)).map(([, g]) => g);
+  const g0 = gq[0] || (p.gift && p.gift.id ? p.gift : null);
+  return { gift: g0 ? { id: String(g0.id), at: g0.at || 0 } : null, gifts: gq.length + (p.gift && p.gift.id ? 1 : 0), cb: !!p.cb, shown: !p.opt, banned: !!p.ban, nameAt: p.nameAt || 0, renameAt: p.nameAt ? p.nameAt + RENAME_MS : 0, keyAt: p.keyAt || 0, bd, bdAt: p.bd && p.bd.at ? p.bd.at + 365 * 864e5 : 0 };
 }

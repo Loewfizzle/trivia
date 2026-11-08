@@ -19,6 +19,7 @@ import { val, ref, adminPids } from './_lib/fb.js';
 import { memberNo } from './_lib/members.js';
 import { DEV_CARDS, isDevCard } from '../js/core/dev-cards.js';
 import { OWNER_GIFTS, isOwnerGift, isGiftCard } from '../js/core/gift-cards.js';
+import { giftQueue, giftSeen } from './_lib/gifts.js';
 import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo, setPrefs } from './_lib/profiles.js';
 import { boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
@@ -102,8 +103,9 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
       return { ranks, m: prof ? prof.m : 0, mm: prof ? prof.mm : 3 };
     }
     // SHELL 2.0 B2 — THE GIFT's reveal seen (the phone showed "A gift from the house"): clear the waiting gift
-    case 'giftCheck': { const pid = await mine(uid); const g = await val(`ppriv/${pid}/gift`); return { gift: g && g.id ? { id: String(g.id), at: g.at || 0 } : null }; }   // (a light boot check — profile/gift-reveal.js)
-    case 'giftSeen': { const pid = await mine(uid); await ref(`ppriv/${pid}/gift`).remove(); return { ok: true }; }
+    // (THE CARD PASS — THE GIFT QUEUE: the whole waiting line + how many of it are seen; `gift` = the first, for an old phone)
+    case 'giftCheck': { const q = await giftQueue(await mine(uid)); return { ...q, gift: q.gifts[0] ? { id: q.gifts[0].id, at: q.gifts[0].at } : null }; }   // (a light boot check — profile/gift-reveal.js)
+    case 'giftSeen': return giftSeen(await mine(uid), body.k ? String(body.k) : '', now);
     case 'restore': return restore(uid, body.key, ip, now);
     case 'regen': return { key: await newKey(await mine(uid)) };
     case 'rename': return { profile: await rename(await mine(uid), body.name, { now }) };

@@ -1401,3 +1401,38 @@ test('THE GIFT TOOL: owner-only, one profile ever, equipped + revealed once; the
     assert.equal(await val(`pstats/${other.pid}/it/card-gift-anarchist`), null, '… taken back on their next open');
   } finally { process.env.ADMIN_PIDS = ''; await ref('audit').remove(); await ref('gifts').remove(); }
 });
+
+// THE CARD PASS — THE GIFT QUEUE: five gifts → five reveals IN ORDER; a seen one never replays; a refresh mid-line resumes at the next
+// unseen, numbered in the same line; the line clears once all are seen; an old single-slot gift MIGRATES into the line (first); an old
+// phone's giftSeen (no k) still clears the first.
+test('THE GIFT QUEUE: five in order, seen never replays, a refresh resumes, the old slot migrates', async () => {
+  const owner = await ensure('u-gq-owner', 'Giver'), kid = await ensure('u-gq-kid', 'Queue');
+  const tagOf = p => `${p.profile.n}#${p.profile.t}`;
+  process.env.ADMIN_PIDS = owner.pid;
+  const five = ['card-gift-playerone', 'card-gift-halloffame', 'card-gift-enforcer', 'card-gift-linebacker', 'card-gift-underlights'];
+  try {
+    // (an old single-slot gift, written the way the server did before the queue)
+    await ref(`ppriv/${kid.pid}/gift`).set({ id: 'card-gift-sunsetstrip', at: clock - 5000 });
+    for (const [i, card] of five.entries()) await adminAction('u-gq-owner', { action: 'giftGive', card, tag: tagOf(kid) }, clock + i);
+    assert.equal(await val(`profiles/${kid.pid}/cd`), five[4], 'the newest gift is the one equipped');
+    let q = await profileAction('u-gq-kid', { action: 'giftCheck' }, '', clock);
+    assert.deepEqual(q.gifts.map(g => g.id), ['card-gift-sunsetstrip', ...five], 'the old slot first, then the five in the order given');
+    assert.equal(q.done, 0); assert.equal(q.gift.id, 'card-gift-sunsetstrip', '(an old phone still gets the first)');
+    assert.equal(await val(`ppriv/${kid.pid}/gift`), null, 'the old slot is gone (migrated)');
+    // see the first two, then "refresh"
+    await profileAction('u-gq-kid', { action: 'giftSeen', k: q.gifts[0].k }, '', clock);
+    await profileAction('u-gq-kid', { action: 'giftSeen', k: q.gifts[1].k }, '', clock);
+    await profileAction('u-gq-kid', { action: 'giftSeen', k: q.gifts[1].k }, '', clock);   // (a double tap marks nothing new)
+    q = await profileAction('u-gq-kid', { action: 'giftCheck' }, '', clock);
+    assert.deepEqual(q.gifts.map(g => g.id), five.slice(1), 'resumes at the next unseen — seen ones never replay');
+    assert.equal(q.done, 2, 'numbered in the same line (GIFT 3 OF 6)');
+    // an old phone's giftSeen (no k) = the first unseen
+    await profileAction('u-gq-kid', { action: 'giftSeen' }, '', clock);
+    q = await profileAction('u-gq-kid', { action: 'giftCheck' }, '', clock);
+    assert.deepEqual(q.gifts.map(g => g.id), five.slice(2)); assert.equal(q.done, 3);
+    for (const g of q.gifts) await profileAction('u-gq-kid', { action: 'giftSeen', k: g.k }, '', clock);
+    q = await profileAction('u-gq-kid', { action: 'giftCheck' }, '', clock);
+    assert.deepEqual(q.gifts, []); assert.equal(q.done, 0); assert.equal(q.gift, null, 'all seen');
+    assert.equal(await val(`ppriv/${kid.pid}/gq`), null, 'the finished line is cleared');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('audit').remove(); await ref('gifts').remove(); }
+});

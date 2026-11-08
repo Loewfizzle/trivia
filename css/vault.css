@@ -989,6 +989,9 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
    reduced motion: it simply appears) */
 .vl-gift-head { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 0 0 14px; text-align: center; }
 .vl-gift-head small { font: 700 12px/1 var(--font-ui); letter-spacing: 0.34em; color: #ffd6f2; }
+/* THE CARD PASS — THE GIFT QUEUE: "GIFT 2 OF 5" (the line's count, in the gift line's own pink) + the house's line under it, quieter */
+.vl-gift-head[data-gift] small:first-child { font-size: 13px; color: #ffe3f6; }
+.vl-gift-head .vl-gift-sub { margin-top: -2px; font-size: 10.5px; letter-spacing: 0.3em; color: #e9c7dd; }
 /* CARD FIXES — the owner (Nov 5 4:58 pm): the rainbow header was "too much" → SOLID: ONE OF ONE white + IT'S YOURS gold, a soft static glow (no
    gradient, no filter: it moves in — the vault's no-filter-under-motion rule) */
 .vl-gift-head b { font: 900 clamp(18px, 5.4vw, 26px)/1.05 var(--font-display); letter-spacing: 0.08em; }

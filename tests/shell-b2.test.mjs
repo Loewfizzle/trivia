@@ -134,13 +134,13 @@ test('THE GIFT TOOL: owner-only on the server (the admin gate), one profile ever
   const g = read('api/_lib/gifts.js'), adm = read('api/admin.js'), prof = read('api/profile.js'), rev = read('js/profile/gift-reveal.js'), app = read('js/app.js');
   assert.match(g, /const lock = await ref\(`gifts\/\$\{card\}`\)\.transaction\(cur => \(cur \? undefined : \{ pid, at: now, by \}\)\);/);
   assert.match(g, /if \(isOwnerGift\(card\)\) throw new ApiError\(403, 'not_giftable'/);
-  assert.match(g, /\[`profiles\/\$\{pid\}\/cd`\]: card/); assert.match(g, /\[`ppriv\/\$\{pid\}\/gift`\]: \{ id: card, at: now \}/);
+  assert.match(g, /\[`profiles\/\$\{pid\}\/cd`\]: card/); assert.match(g, /\[`\$\{qPath\(pid\)\}\/\$\{ref\(qPath\(pid\)\)\.push\(\)\.key\}`\]: \{ id: card, at: now \}/);   // (THE CARD PASS: into THE GIFT QUEUE)
   // (the gate: every non-radio action past `if (!admin) throw … not_admin`)
   assert.ok(adm.indexOf("if (!admin) throw new ApiError(403, 'not_admin'") < adm.indexOf("case 'giftGive':"));
   assert.match(adm, /await audit\(me, 'giftGive', r\.gift\.pid/);
   assert.match(prof, /OWN = \[\.\.\.DEV_CARDS, \.\.\.OWNER_GIFTS\]/); assert.match(prof, /act: 'giftOwner'/);
   assert.match(prof, /case 'giftCheck':/); assert.match(prof, /case 'giftSeen':/);
-  assert.match(rev, /h\('small', 'A GIFT FROM THE HOUSE'\)/); assert.match(rev, /flip: true/);
+  assert.match(rev, /h\('small', o\.n \? `GIFT \$\{o\.n\} OF \$\{o\.of\}` : 'A GIFT FROM THE HOUSE'\)/); assert.match(rev, /flip: true/);
   assert.match(app, /import\('\.\/profile\/gift-reveal\.js'\)\.then\(m => m\.checkGift\(\)\)/);
   assert.match(read('js/admin/admin.js'), /tubeButton\('GIVE', \{ kind: 'main', size: 'sm', cls: 'ad-btn ad-gift-go', confirm: 'TAP AGAIN TO GIVE'/);
 });
