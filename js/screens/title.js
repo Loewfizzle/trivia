@@ -1131,6 +1131,13 @@ export function createTitle() {
     st = state;
     if (!els.youTab) return;
     roomSync(state);
+    // (FRIENDS A — A FRIEND's INVITE PUSH (/?room=CODE&inv=1) opens straight into the room's JOIN: once the app is ready + this phone has a
+    //  name, the knock goes by itself — the normal join rules (LOCK THE DOOR, kicked, full) answer as for any join; no name → setup first)
+    if (state.invite && state.ready && els.autoJoined !== state.invite && (state.autoJoin === state.invite || /(^|[?&])inv=1(&|$)/.test(location.search)) && !state.code) {
+      els.autoJoined = state.invite;
+      try { history.replaceState(null, '', location.pathname + location.search.replace(/([?&])inv=1(&|$)/, '$1').replace(/[?&]$/, '')); } catch { /* fine */ }
+      dk.join(dk.clean(state.invite));
+    }
     const p = loadProfile();
     const me = loadMe();
     const pub = me && me.profile && me.uid === state.uid ? me.profile : null;
@@ -1163,13 +1170,6 @@ export function createTitle() {
       els.go.classList.add('is-ready');
     }
     if (state.inviteExpired) dk.note(`That room has closed (${state.inviteExpired}). Host a new game, or ask for a fresh hush word.`, 'warn', 9000);   // (FR6 FIXES A: a push for a room gone by the tap lands here)
-    // (FRIENDS A — A FRIEND's INVITE PUSH (/?room=CODE&inv=1) opens straight into the room's JOIN: once the app is ready + this phone has a
-    //  name, the knock goes by itself — the normal join rules (LOCK THE DOOR, kicked, full) answer as for any join; no name → setup first)
-    if (state.invite && state.ready && els.autoJoined !== state.invite && (state.autoJoin === state.invite || /(^|[?&])inv=1(&|$)/.test(location.search)) && !state.code) {
-      els.autoJoined = state.invite;
-      try { history.replaceState(null, '', location.pathname + location.search.replace(/([?&])inv=1(&|$)/, '$1').replace(/[?&]$/, '')); } catch { /* fine */ }
-      dk.join(dk.clean(state.invite));
-    }
   }
   // (title-dock.js#createDockWork: moved out by scripts/split-closure.mjs — T carries the names it shares with this closure, live)
   const dk = createDockWork({

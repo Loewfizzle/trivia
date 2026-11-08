@@ -161,3 +161,29 @@ test('INVITE NOTIFICATIONS: this phone\'s subscription stored privately (≤ 4 p
   assert.equal((await act('fr-mo', { action: 'friendPush', op: 'state' })).subs, FR.pushSubsMax - 1);
   assert.ok(await val(`ppriv/${(await val('uids/fr-mo'))}/ps`), 'kept in ppriv (server-only)');
 });
+
+test('THE PUSH: an invite reaches the friend\'s subscribed phone (a local receiver), opening /?room=CODE&inv=1; a gone phone is dropped', async () => {
+  const { createServer } = await import('node:http');
+  const { createECDH, randomBytes } = await import('node:crypto');
+  const got = [];
+  let status = 201;
+  const srv = createServer((req, res) => { let n = 0; req.on('data', c => { n += c.length; }); req.on('end', () => { got.push({ url: req.url, auth: req.headers.authorization || '', enc: req.headers['content-encoding'], ttl: req.headers.ttl, n }); res.statusCode = status; res.end(); }); });
+  await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  const port = srv.address().port;
+  try {
+    const pa = await ensure('fr-pa', 'Pat'), qu = await ensure('fr-qu', 'Quinn');
+    await act('fr-pa', { action: 'friendAdd', pid: qu }); await act('fr-qu', { action: 'friendAccept', pid: pa });
+    const e = createECDH('prime256v1'); e.generateKeys();
+    const sub = { endpoint: `http://127.0.0.1:${port}/push/q1`, keys: { p256dh: e.getPublicKey().toString('base64url'), auth: randomBytes(16).toString('base64url') } };
+    await act('fr-qu', { action: 'friendPush', op: 'sub', sub });
+    await ref('rooms/PUSH').set({ meta: { hostId: 'fr-pa', status: 'lobby', createdAt: clock, activeAt: clock }, players: { 'fr-pa': { name: 'Pat', pid: pa, joinedAt: clock } } });
+    const r = await act('fr-pa', { action: 'friendInvite', pid: qu, room: 'PUSH' });
+    assert.equal(r.sent, 1, 'one phone got it');
+    assert.equal(got.length, 1); assert.match(got[0].auth, /^vapid t=.+, k=/); assert.equal(got[0].enc, 'aes128gcm'); assert.equal(Number(got[0].ttl), FR.inviteMs / 1000, 'the push lives as long as the invite'); assert.ok(got[0].n > 100, 'an encrypted payload');
+    // a gone phone (410) is dropped from the list
+    status = 410; tick(100e3);
+    await act('fr-pa', { action: 'friendInvite', pid: qu, room: 'PUSH' });
+    assert.equal((await act('fr-qu', { action: 'friendPush', op: 'state' })).subs, 0, 'the gone subscription removed');
+    await ref('rooms/PUSH').remove();
+  } finally { srv.close(); }
+});
