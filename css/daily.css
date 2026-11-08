@@ -26,15 +26,35 @@ body[data-look="day"] .dy-overlay {
   --dy-row-me: rgba(47, 134, 255, 0.12);
   background: linear-gradient(180deg, var(--dy-bg-1), var(--dy-bg-0) 55%);
 }
-/* the corner rule on these screens: BACK takes the top-left (like the profile), the music stays top-right over the overlay */
+/* the corner rule on these screens: BACK takes the top-left (like the profile), the music stays top-right over the overlay — at the SCREEN's
+   corner (DFIX3: the menus' "beside the gear" offset put it half over the sign at 430; there is no gear here) */
 body[data-daily] .menu-btn { display: none !important; }
-body[data-daily] .music-btn { z-index: 89; }
+body[data-daily] .music-btn { z-index: 89; right: calc(var(--safe-r) + 12px); top: calc(var(--safe-t) + 11px); width: 40px; height: 40px; }
+/* DFIX3 — the DAY look: light glass + the day TEXT colour (the title's dark smoked glass read as a brown disc over the morning sky); night unchanged */
+body[data-daily][data-look="day"] .music-btn, body[data-daily][data-look="day"] .music-btn.is-off {
+  color: #14284a; --ic: #14284a;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.74));
+  box-shadow: inset 0 1px 0 #fff, inset 0 0 0 1px rgba(60, 100, 160, 0.22), 0 6px 16px rgba(20, 40, 74, 0.18);
+  border: 0;
+}
+body[data-daily][data-look="day"] .music-btn::before { opacity: 0 !important; }
+body[data-daily][data-look="day"] .music-btn svg { stroke: #14284a; }
+body[data-daily][data-look="day"] .music-btn .nd-cic svg { filter: none; }
+body[data-daily][data-look="day"] .music-btn .nd-cic .t { stroke: #14284a; }
+body[data-daily][data-look="day"] .music-btn .nd-cic .c { stroke: #14284a; opacity: 0.35; }
+body[data-daily][data-look="day"] .music-btn.is-off { color: #b3254a; }
+body[data-daily][data-look="day"] .music-btn.is-off .nd-cic .t, body[data-daily][data-look="day"] .music-btn.is-off svg { stroke: #b3254a; }
 .dy-back { position: absolute; z-index: 3; top: calc(var(--safe-t) + 10px); left: calc(var(--safe-l) + 8px); width: 44px; height: 44px; display: grid; place-items: center;
   border: 0; background: none; color: var(--dy-ink); -webkit-tap-highlight-color: transparent; cursor: pointer; }
 .dy-back svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-.dy-scroll { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
+.dy-scroll { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column;
   padding: 0 max(16px, var(--safe-r)) calc(var(--safe-b) + 28px) max(16px, var(--safe-l)); }
-.dy-scroll > * { max-width: 520px; margin-left: auto; margin-right: auto; }
+.dy-scroll > * { width: 100%; max-width: 520px; margin-left: auto; margin-right: auto; flex: none; }
+/* DFIX3 — TODAY CENTRED: the body takes the rest of the box; TODAY's block sits mid-way by auto margins (taller than the space → it starts at the top
+   and scrolls — never a flex centre that clips); SCORES flows from the top as before */
+.dy-scroll > .dy-body { flex: 1 0 auto; display: flex; flex-direction: column; min-height: 0; }
+.dy-body > .dy-today { width: 100%; margin: auto 0; padding-bottom: 8px; }
+.dy-body.is-scores { display: block; }
 .dy-head { position: relative; height: calc(var(--safe-t) + 64px); padding-top: var(--safe-t); display: grid; place-items: center; }
 .dy-head .dy-back { top: calc(var(--safe-t) + 10px); left: -8px; }
 .dy-sign { margin: 0; padding: 0 52px; font: 900 clamp(22px, 6.6vw, 28px) / 1 var(--font-display); letter-spacing: 0.14em; text-indent: 0.14em; white-space: nowrap;
@@ -68,41 +88,80 @@ body[data-look="day"] .dy-sign { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); 
 @keyframes dy-flourish { 0% { opacity: 0; transform: scaleX(0.2); } 30% { opacity: 1; transform: scaleX(1.05); } 100% { opacity: 0; transform: scaleX(1.25); } }
 @keyframes dy-pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.18); opacity: 1; } 100% { transform: none; } }
 
-/* ---- THE TICKET ROWS: a drawn ticket — notched both sides, a perforated stub with the game's art ---- */
-.dy-rows { display: flex; flex-direction: column; gap: 12px; }
-.dy-ticket { --tk: var(--tk0, #ff6fc8); --nr: 9px; position: relative; display: grid; grid-template-columns: 66px 1fr auto; align-items: center; min-height: 88px;
-  background: var(--dy-panel);
+/* ---- THE TICKET ROWS — DFIX3: THE PREMIUM TICKET. A real admission ticket: PAPER (the CC0 grain tile assets/daily/paper-grain.webp — ambientCG
+   Paper001 — blended over the look's cardstock: DAY cream, NIGHT the same grain tinted to the look's purple-black), notched both sides, a tear-off
+   STUB (the daily's art + the serial "Nº MMDD") cut off by a row of PUNCHED HOLES, a lift shadow under it; DONE = the ADMITTED rubber stamp
+   (drawn, tilted −8°, the daily's ink, an uneven edge) — never the check circle; NIGHT adds a faint neon edge + a foil sheen that drifts slowly
+   (transform only — held while scrolling (SCROLL-PAUSE), under a full card, and with reduced motion). No pills, no emoji. ---- */
+.dy-overlay { --dy-paper: #1b1331; --dy-paper-hi: rgba(255, 255, 255, 0.07); --dy-hole: #09061a; --dy-grain: soft-light; --dy-lift: rgba(0, 0, 0, 0.55); --dy-serial: rgba(226, 222, 246, 0.62); }
+body[data-look="day"] .dy-overlay { --dy-paper: #f4ecda; --dy-paper-hi: #fffdf7; --dy-hole: #cfe0f6; --dy-grain: overlay; --dy-lift: rgba(20, 40, 74, 0.28); --dy-serial: #5a6f93; }
+.dy-rows { display: flex; flex-direction: column; gap: 14px; }
+.dy-tkw { position: relative; }
+/* the lift: a shadow of the ticket's own box (inset past the notches), behind it — no filter (the foil moves inside: a filter would re-render it every frame) */
+.dy-tkw::before { content: ''; position: absolute; left: 12px; right: 12px; top: 6px; bottom: 0; border-radius: 12px; pointer-events: none;
+  box-shadow: 0 10px 22px -8px var(--dy-lift), 0 2px 5px rgba(0, 0, 0, 0.18); }
+body:not([data-look="day"]) .dy-tkw::before { box-shadow: 0 10px 22px -8px var(--dy-lift), 0 0 14px -2px color-mix(in srgb, var(--tk, #ff6fc8) 32%, transparent); }
+.dy-tkw { --tk: var(--tk0, #ff6fc8); }
+.dy-ticket { --tk: var(--tk0, #ff6fc8); --nr: 9px; position: relative; display: grid; grid-template-columns: 70px 1fr auto; align-items: center; min-height: 92px;
+  color: var(--dy-ink);
+  background: url(/assets/daily/paper-grain.webp) 0 0 / 256px 256px repeat, linear-gradient(var(--dy-paper), var(--dy-paper));
+  background-blend-mode: var(--dy-grain), normal;
   -webkit-mask: radial-gradient(circle var(--nr) at 0 50%, transparent 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle var(--nr) at 100% 50%, transparent 97%, #000) right / 51% 100% no-repeat;
   mask: radial-gradient(circle var(--nr) at 0 50%, transparent 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle var(--nr) at 100% 50%, transparent 97%, #000) right / 51% 100% no-repeat;
-  border-radius: 12px; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tk) 55%, transparent), inset 0 1px 0 var(--dy-panel-hi); }
-body[data-look="day"] .dy-ticket { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tk) 45%, #9ab8e0), inset 0 1px 0 #fff; }
-body[data-look="day"] .dy-ticket, body[data-look="day"] .dy-sec { --tk: #2f86ff; }
-body[data-look="day"] .dy-ticket[data-id="coastclear"] { --tk: #0f86b0; }
+  border-radius: 12px; overflow: hidden;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tk) 60%, transparent), inset 0 1px 0 var(--dy-paper-hi); }
+body[data-look="day"] .dy-ticket { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tk) 45%, #c9b89a), inset 0 1px 0 var(--dy-paper-hi); }
+body[data-look="day"] .dy-ticket, body[data-look="day"] .dy-sec, body[data-look="day"] .dy-tkw { --tk: #2f86ff; }
+body[data-look="day"] .dy-ticket[data-id="coastclear"], body[data-look="day"] .dy-tkw:has(.dy-ticket[data-id="coastclear"]) { --tk: #0f86b0; }
 /* the notches' own outline: a ring round each cut (its inner half masked away — only the arc inside the ticket shows) */
 .dy-ticket::before, .dy-ticket::after { content: ''; position: absolute; top: 50%; width: calc(var(--nr) * 2 + 3px); height: calc(var(--nr) * 2 + 3px); margin-top: calc(var(--nr) * -1 - 1.5px);
-  border-radius: 50%; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tk) 55%, transparent); pointer-events: none; }
+  border-radius: 50%; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tk) 60%, transparent); pointer-events: none; z-index: 2; }
 .dy-ticket::before { left: calc(var(--nr) * -1 - 1.5px); }
 .dy-ticket::after { right: calc(var(--nr) * -1 - 1.5px); }
-.dy-stub { align-self: stretch; display: grid; place-items: center; border-right: 2px dashed color-mix(in srgb, var(--tk) 40%, transparent); }
-.dy-art svg, .dy-sec-art svg { width: 36px; height: 36px; fill: none; stroke-linecap: round; stroke-linejoin: round; overflow: visible;
+/* THE STUB: the art over the serial; its right edge a column of punched holes (drawn: the hole's dark + a thin ink rim) */
+.dy-stub { position: relative; align-self: stretch; display: grid; grid-template-rows: 1fr auto; place-items: center; padding: 10px 0 7px; gap: 2px; }
+.dy-stub::after { content: ''; position: absolute; top: 9px; bottom: 9px; right: -4px; width: 8px; pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, var(--dy-hole) 2.1px, color-mix(in srgb, var(--tk) 38%, transparent) 2.7px, transparent 3.3px) 0 0 / 8px 10px repeat-y; }
+.dy-art svg, .dy-sec-art svg { width: 34px; height: 34px; fill: none; stroke-linecap: round; stroke-linejoin: round; overflow: visible;
   filter: drop-shadow(0 0 2.2px var(--tk)) drop-shadow(0 0 8px color-mix(in srgb, var(--tk) 50%, transparent)); }
 .dy-art .t, .dy-sec-art .t { stroke: var(--tk); stroke-width: 1.7; }
 .dy-art .c, .dy-sec-art .c { stroke: color-mix(in srgb, var(--tk) 20%, #fff); stroke-width: 0.6; }
 body[data-look="day"] .dy-art svg, body[data-look="day"] .dy-sec-art svg { filter: none; }
 body[data-look="day"] .dy-art .c, body[data-look="day"] .dy-sec-art .c { display: none; }
-.dy-info { min-width: 0; padding: 12px 8px 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.dy-serial { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.08em; color: var(--dy-serial); white-space: nowrap; }
+.dy-info { min-width: 0; padding: 12px 6px 12px 14px; display: flex; flex-direction: column; gap: 6px; }
 .dy-name { font: 900 15px/1.1 var(--font-display); letter-spacing: 0.06em; color: var(--dy-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dy-hook { font: 600 13px/1.25 var(--font-ui); color: var(--dy-dim); }
-.dy-act { padding-right: 16px; }
+.dy-act { position: relative; z-index: 1; padding-right: 12px; }
 .dy-ticket .btn.dy-play { min-height: 44px; min-width: 92px; padding: 0 16px; border-radius: 10px; font-size: 12px; letter-spacing: 0.18em; }
 .dy-ticket .btn.dy-play::before, .dy-ticket .btn.dy-play::after { border-radius: 10px; }
 body[data-look="day"] .dy-overlay .btn { --tube-in: rgba(255, 255, 255, 0.9); color: #14284a; text-shadow: none; }
 body[data-look="day"] .dy-overlay .btn-primary { --tc: #2f86ff; --tcore: #2f86ff; --tg: rgba(47, 134, 255, 0.5); --tg2: rgba(47, 134, 255, 0.22); }
 body[data-look="day"] .dy-overlay .btn-ghost { --tc: #5a7aa8; --tcore: #5a7aa8; --tg: rgba(90, 122, 168, 0.3); --tg2: transparent; }
-.dy-check { flex: none; width: 34px; height: 34px; margin-right: 4px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--good), 0 0 10px color-mix(in srgb, var(--good) 35%, transparent); }
-.dy-check svg { width: 20px; height: 20px; fill: none; stroke: var(--good); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+/* THE STAMP: ADMITTED — a drawn rubber stamp in the daily's ink, tilted; its ink a touch translucent like a real one */
+.dy-stamp { position: relative; display: block; width: 86px; height: 32px; margin-right: 0; color: var(--tk); transform: rotate(-8deg); transform-origin: 50% 50%; opacity: 0.96; }
+body[data-look="day"] .dy-stamp { color: color-mix(in srgb, var(--tk) 82%, #14284a); }
+.dy-stamp-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+body:not([data-look="day"]) .dy-stamp-svg { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--tk) 45%, transparent)); }
+/* the ink spread under a stamp coming down (its own layer — opacity only) */
+.dy-stamp::after { content: ''; position: absolute; inset: -10px -14px; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--tk) 40%, transparent), transparent); }
+.dy-stamp.is-down { animation: dy-stamp 0.62s cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
+.dy-stamp.is-down::after { animation: dy-ink 0.62s ease-out both; }
+@keyframes dy-stamp { 0% { transform: rotate(-14deg) scale(1.9); opacity: 0; } 55% { transform: rotate(-8deg) scale(0.96); opacity: 1; } 78% { transform: rotate(-8deg) scale(1.03); } 100% { transform: rotate(-8deg) scale(1); opacity: 0.96; } }
+@keyframes dy-ink { 0%, 45% { opacity: 0; } 60% { opacity: 0.55; } 100% { opacity: 0; } }
 .dy-result { font: 800 17px/1 var(--font-num); letter-spacing: 0.06em; color: var(--dy-ink); }
-.dy-rank { font: 700 11px/1.25 var(--font-ui); letter-spacing: 0.12em; color: var(--dy-dim); }
+.dy-rank { font: 700 10.5px/1.25 var(--font-ui); letter-spacing: 0.1em; color: var(--dy-dim); }
+/* THE FOIL (night): a soft light band drifting across the paper every few seconds — one layer, transform only; still while scrolling / covered / reduced motion */
+.dy-foil { display: none; position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+body:not([data-look="day"]) .dy-foil { display: block; }
+.dy-foil::before { content: ''; position: absolute; top: -40%; bottom: -40%; left: 0; width: 46%; opacity: 0.11; transform: translateX(-130%) skewX(-18deg);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--tk) 70%, #fff) 45%, #fff 52%, transparent); animation: dy-foil 7.5s linear infinite; }
+.dy-tkw:nth-child(2) .dy-foil::before { animation-delay: -3.2s; }
+.dy-tkw:nth-child(3) .dy-foil::before { animation-delay: -5.4s; }
+@keyframes dy-foil { 0% { transform: translateX(-130%) skewX(-18deg); } 100% { transform: translateX(330%) skewX(-18deg); } }
+.dy-overlay.is-scrolling .dy-foil::before, body.vl-covered .dy-foil::before { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .dy-foil::before { animation: none; display: none; } .dy-stamp.is-down, .dy-stamp.is-down::after { animation: none; } }
 
 .dy-gated { margin: 14px auto 0; text-align: center; font: 700 11px/1.3 var(--font-ui); letter-spacing: 0.16em; color: var(--dy-faint); }
 .dy-gated-run { position: absolute; left: 16px; right: 16px; bottom: calc(var(--safe-b) + 10px); z-index: 4; }
@@ -162,9 +221,14 @@ body[data-look="day"] .dy-run > .dy-back { color: #14284a; }
 .dy-card .lb-sub { justify-content: flex-end; margin: 4px 2px 0; }
 .dy-cards .lb-pts .lb-score.dy-cscore { font: 800 15px/1 var(--font-num); letter-spacing: 0.06em; color: var(--dy-ink); text-shadow: 0 0 10px var(--dy-seg-glow); }
 .dy-cnote { margin-right: auto; font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.16em; color: var(--dy-faint); }
-/* YOU: a lit frame along the card (its own layer — no repaint of the strip; both looks through the tokens) */
-.dy-cards .is-me .dy-card::after { content: ''; position: absolute; left: -3px; right: -3px; top: -3px; height: calc(100% - 23px); border-radius: 14px; pointer-events: none;
-  box-shadow: 0 0 0 1.5px var(--dy-seg-on), 0 0 12px var(--dy-seg-glow), inset 0 0 0 1px color-mix(in srgb, var(--dy-seg-on) 35%, transparent); }
+/* YOU: a lit frame drawn ON the strip's own box (DFIX3 — the owner: it sat larger than the card and stuck out top-left; now the strip's exact box +
+   radius, no offset, no double edge — both looks through the tokens) */
+.dy-cards .is-me .dy-card .vl-strip { box-shadow: 0 0 0 1.5px var(--dy-seg-on), 0 0 12px var(--dy-seg-glow); }
+/* DFIX3 — a table of ONE (just you): no rank column — the card alone; the ranks appear with a second finisher */
+.dy-cards.is-solo .lb-row.lb-strip { grid-template-columns: minmax(0, 1fr); }
+.dy-cards.is-solo .lb-row.lb-strip .lb-rank { display: none; }
+/* DFIX3 — the empty-table hint ONCE at the foot of SCORES, in the house small-caps style (never inside a panel) */
+.dy-foot-hint { margin: 4px auto 10px; max-width: 320px; text-align: center; font: 700 10.5px/1.6 var(--font-ui); letter-spacing: 0.16em; color: var(--dy-dim); }
 .dy-still { margin: 10px 2px 2px; font: 700 11px/1.5 var(--font-ui); letter-spacing: 0.14em; color: var(--dy-dim); overflow-wrap: anywhere; }
 .dy-more { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin: 4px 0 0; border: 0; background: none; cursor: pointer;
   color: var(--dy-tab-on); font: 800 12px/1 var(--font-ui); letter-spacing: 0.2em; text-indent: 0.2em; -webkit-tap-highlight-color: transparent; }

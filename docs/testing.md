@@ -533,3 +533,12 @@ load problem, not a flake to patch.
   resident key, UV) → ADD → `Storage.clearDataForOrigin` (a new anonymous sign-in) → BRING YOUR CARD → SIGN IN → the same card → REMOVE. The RP ID is
   `localhost` — run the page on `http://localhost:5173` (never 127.0.0.1: an IP can't be an RP ID). WebKit: `wk-keychain.mjs` (Playwright's Windows
   WebKit has no `navigator.credentials` — an inert stand-in draws the buttons; the real Face ID = an iPhone).
+
+## DFIX3 — the dailies' probes (Nov 8 2026)
+- `tests/integration/daily-probe.mjs "<browser>" [./shots]` (E2E_BASE = the local server): saves SHARE TODAY's CANVAS itself (both states × both looks — what a
+  phone would share, never the page round it) + measures THE DAILY SCREEN's real frame pacing at 1× / 4× CPU, dpr 2, both looks (the stamp-down + the foil).
+- `tests/integration/admin-probe.mjs "<browser>" [./shots]` (the emulators up): makes an owner profile through /api, starts ITS OWN `serve.mjs 5179 --emu` with
+  that profile in ADMIN_PIDS, restores the key in a browser (that browser's uid IS the owner), seeds a few plays, shoots /admin → THE DAILIES at a phone width
+  + desktop, stops its server.
+- `e2e-coastclear.mjs` now also proves COALESCED MOVES (six taps on a 150 ms line = 2 calls), the dev timing + Server-Timing, and THE FADE ON LEAVING's order
+  (audio/engine.js — `simulateVisible`); `e2e-daily.mjs` THE ONE-TIME HINT (once; none on a resume) and YOUR FRAME on the strip.

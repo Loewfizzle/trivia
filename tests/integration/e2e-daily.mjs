@@ -2,8 +2,8 @@
 // scripts/serve.mjs <port> --emu`):   node e2e-daily.mjs "<browser>" ./shots-daily        (E2E_BASE=http://localhost:<port>; SHOTS=0)
 // THE DOCK BUTTON (the title preview: off → no button, the pill's 3 old icons; WAITING + the count; ALL DONE + the check) → the REAL app on the
 // emulators: WAITING · 3 (THE PASSWORD, COAST CLEAR + DAILY_TEST's fake = the FAKE 3rd daily) → THE DAILY SCREEN (TODAY's tickets, SCORES: a
-// friend who played shows PLAYED, never the score) → THE PRACTICE HARBOR once (three steps → TODAY'S HARBOR → the real board; seen on the
-// profile; the next open goes straight to the board) → THE PASSWORD cracked in the overlay → DONE + "1ST OF 2 AT YOUR TABLE" → THE ROOM WINS
+// friend who played shows PLAYED, never the score) → THE ONE-TIME HINT once (DFIX3: one line under the real board; gone on the first number; seen on
+// the profile; the next open shows none) → THE PASSWORD cracked in the overlay → DONE + "1ST OF 2 AT YOUR TABLE" → THE ROOM WINS
 // (a host + this phone in a room: the ☰ row → the dailies → RESUME COAST CLEAR; the host's "1 PLAYER IS MID-DAILY"; the host starts OVERCLOCK →
 // the banner, the run held + PAUSED on the server; back to the room → RESUME YOUR DAILY → the run resumes, unpaused) → COAST CLEAR cleared by
 // taps → THE SWEEP (the meter fills, SWEPT; dl.sw + the +10 bonus) → the dock ALL DONE. A same-day profile: YOUR SCORE COUNTS FROM TOMORROW.
@@ -122,27 +122,23 @@ await H.run(async () => {
   ok(!(await A.page.evaluate(() => /ALL TIME/i.test(document.querySelector('.dy-overlay').innerText))), 'ALL TIME is hidden (Step 0 — no empty tab, no "coming soon")');
   await click(A.page, '.dy-tab:nth-child(1)');
 
-  // ================================================================ 4. THE PRACTICE HARBOR (once)
+  // ================================================================ 4. THE ONE-TIME HINT (DFIX3 — the practice harbor cut)
   await waitFor(A.page, `!!document.querySelector('.dy-ticket[data-id="coastclear"] .dy-play')`, 'TODAY', 6000);
   await click(A.page, '.dy-ticket[data-id="coastclear"] .dy-play');
-  await waitFor(A.page, `!!document.querySelector('.cc-lesson')`, 'THE PRACTICE HARBOR', 20000);
-  const L0 = await A.page.evaluate(() => ({ cells: document.querySelectorAll('.cc-lesson .cc-cell').length, step: document.querySelector('.cc-lesson').dataset.step, skip: !!document.querySelector('.cc-ls-skip:not([hidden])'), hint: document.querySelector('.cc-ls-hint') && document.querySelector('.cc-ls-hint').dataset.i, clock: !!document.querySelector('.cc-time') }));
-  ok(L0.cells === 25 && L0.step === 'dig' && L0.skip && L0.hint === '20' && !L0.clock, `THE PRACTICE HARBOR: a 5 × 5 board, step 1 (tap the lit cell ${L0.hint}), SKIP from the first step, no clock running`);
-  if (H.SHOTS) await H.shotAll(A.page, 'dy-02-lesson');
-  await up(A.page, '.cc-lesson .cc-cell[data-i="20"]');
-  await waitFor(A.page, `document.querySelector('.cc-lesson').dataset.step === 'number'`, 'step 2', 4000);
-  await up(A.page, '.cc-lesson .cc-cell[data-i="9"]');
-  await waitFor(A.page, `document.querySelector('.cc-lesson').dataset.step === 'buoy'`, 'step 3', 4000);
-  await click(A.page, '.cc-lesson .cc-mode-b[data-m="buoy"]');
-  await up(A.page, '.cc-lesson .cc-cell[data-i="4"]');
-  await waitFor(A.page, `document.querySelector('.cc-lesson').dataset.step === 'ready'`, 'YOU\'RE READY', 4000);
-  ok(/YOU.RE READY/.test(await ev(A.page, `document.querySelector('.cc-ls-ready').innerText`)), 'three steps → YOU\'RE READY');
-  await click(A.page, '.cc-ls-go');
-  await waitFor(A.page, `document.querySelectorAll('.cc-board .cc-cell').length === 108 && !document.querySelector('.cc-lesson') && !!window.__coastclear && window.__coastclear.ready()`, 'today\'s harbor', 20000);
-  ok(true, 'TODAY\'S HARBOR → the real 9 × 12 board (its clock starts only now)');
-  await waitFor(A.page, 'true', 'x', 100);
-  for (let i = 0; i < 40 && !(await val(`pstats/${A.pid}/ls/coastclear`)); i++) await sleep(150);
-  ok((await val(`pstats/${A.pid}/ls/coastclear`)) === 1, 'the lesson SEEN — remembered on the profile (every device)');
+  await waitFor(A.page, `document.querySelectorAll('.dy-run .cc-board .cc-cell').length === 108 && !document.querySelector('.cc-lesson') && !!window.__coastclear && window.__coastclear.ready()`, 'today’s harbor', 20000);
+  const H0 = await A.page.evaluate(() => { const h = document.querySelector('.dy-run .cc-hint'); const b = document.querySelector('.dy-run .cc-board').getBoundingClientRect(), r = h && h.getBoundingClientRect(); return { text: h && h.textContent, shown: !!h && !h.hidden && getComputedStyle(h).opacity !== '0', under: !!r && r.top >= b.bottom - 1, oneLine: !!r && r.height < 24, inside: !!r && r.left >= 0 && r.right <= innerWidth, state: window.__coastclear.state().hint }; });
+  ok(H0.text === 'EACH NUMBER = SEARCHLIGHTS TOUCHING THAT SQUARE' && H0.shown && H0.under && H0.oneLine && H0.inside && H0.state, `THE ONE-TIME HINT: straight to the real board, one calm line under it ("${H0.text}") — no practice harbor (${JSON.stringify(H0)})`);
+  if (H.SHOTS) await H.shotAll(A.page, 'dy-02-hint');
+  ok(!(await val(`pstats/${A.pid}/ls/coastclear`)), 'not yet seen on the profile (it stays until the first number)');
+  // the first dig that reveals a NUMBER → the hint fades, SEEN on the profile
+  { const board0 = await ccBoard(day), counts0 = (await import('../../js/games/coastclear/logic.js')).countsOf(board0);
+    const numbered = await A.page.evaluate(C => { const c = [...document.querySelectorAll('.dy-run .cc-cell')].find(x => !x.classList.contains('is-open') && C[+x.dataset.i] > 0); return c ? +c.dataset.i : -1; }, counts0);
+    await A.page.click(`.dy-run .cc-cell[data-i="${numbered}"]`);
+    await waitFor(A.page, `window.__coastclear.state().pending === 0 && window.__coastclear.state().inflight === 0 && !window.__coastclear.state().hint`, 'the number landed → the hint goes', 10000);
+    await waitFor(A.page, `(() => { const h = document.querySelector('.dy-run .cc-hint'); return h && (h.hidden || getComputedStyle(h).opacity === '0'); })()`, 'the hint faded', 4000);
+    ok(true, 'the first number revealed → the hint fades (opacity only)');
+    for (let i = 0; i < 40 && !(await val(`pstats/${A.pid}/ls/coastclear`)); i++) await sleep(150);
+    ok((await val(`pstats/${A.pid}/ls/coastclear`)) === 1, 'the hint SEEN — remembered on the profile (every device)'); }
   await click(A.page, '.dy-run > .dy-back');
   await waitFor(A.page, `!!document.querySelector('.dy-ticket[data-id="coastclear"].is-progress')`, 'IN PROGRESS', 8000);
   ok(true, 'BACK: COAST CLEAR\'s ticket reads RESUME (in progress)');
@@ -160,7 +156,8 @@ await H.run(async () => {
   await waitFor(A.page, `!!document.querySelector('.dy-ticket[data-id="password"].is-done')`, 'DONE', 10000);
   await waitFor(A.page, `/1ST OF 2 AT YOUR TABLE/.test(document.querySelector('.dy-ticket[data-id="password"]').innerText)`, 'the table rank', 10000).catch(() => {});
   const pwRow = await ev(A.page, `document.querySelector('.dy-ticket[data-id="password"]').innerText.replace(/\\s+/g, ' ')`);
-  ok(/2 GUESSES/.test(pwRow) && /1ST OF 2 AT YOUR TABLE/.test(pwRow) && !!(await A.page.$('.dy-ticket[data-id="password"] .dy-check svg')), `DONE: the score + YOUR TABLE's place + a drawn check ("${pwRow}")`);
+  const stamp = await A.page.evaluate(() => { const s = document.querySelector('.dy-ticket[data-id="password"] .dy-stamp'); if (!s) return null; const m = /rotate\((-?[\d.]+)deg\)|matrix\(([^)]+)\)/.exec(getComputedStyle(s).transform) || []; return { svg: !!s.querySelector('svg text'), word: (s.querySelector('svg text') || {}).textContent, check: !!document.querySelector('.dy-check'), serial: (document.querySelector('.dy-ticket[data-id="password"] .dy-serial') || {}).textContent, tilted: getComputedStyle(s).transform !== 'none' }; });
+  ok(/2 GUESSES/.test(pwRow) && /1ST OF 2 AT YOUR TABLE/.test(pwRow) && stamp && stamp.svg && stamp.word === 'ADMITTED' && !stamp.check && stamp.tilted && /^Nº \d{4}$/.test(stamp.serial || ''), `DONE: the score + YOUR TABLE's place + the drawn ADMITTED stamp (tilted, no check circle) + the serial ${stamp && stamp.serial} ("${pwRow}")`);
   if (H.SHOTS) await H.shotAll(A.page, 'dy-03-mixed');
   // DFIX2 — SCORES after you play: ALICE 1ST (2 GUESSES) framed as YOU, BOBBY 2ND (3 GUESSES) — each their slim card, the score UNDER it
   await click(A.page, '.dy-tab:nth-child(2)');
@@ -170,7 +167,7 @@ await H.run(async () => {
     const me = rows.find(r => r.classList.contains('is-me'));
     const sr = me.querySelector('.vl-strip').getBoundingClientRect(), sc = me.querySelector('.dy-cscore').getBoundingClientRect(), rk = me.querySelector('.lb-rank').getBoundingClientRect();
     return { rows: rows.map(r => `${r.querySelector('.lb-rank').textContent}|${r.querySelector('.vl-name').textContent}|${r.querySelector('.dy-cscore').textContent}`),
-      under: sc.top >= sr.bottom - 1, rightEnd: Math.abs(sc.right - sr.right) < 8, rankLeft: rk.right <= sr.left, frame: getComputedStyle(me.querySelector('.dy-card'), '::after').boxShadow !== 'none', still: !!document.querySelector('.dy-sec[data-id="password"] .dy-still') };
+      under: sc.top >= sr.bottom - 1, rightEnd: Math.abs(sc.right - sr.right) < 8, rankLeft: rk.right <= sr.left, frame: getComputedStyle(me.querySelector('.dy-card .vl-strip')).boxShadow !== 'none' && getComputedStyle(me.querySelector('.dy-card'), '::after').boxShadow === 'none', still: !!document.querySelector('.dy-sec[data-id="password"] .dy-still') };
   });
   ok(sc2.rows[0] === '1ST|ALICE|2 GUESSES' && sc2.rows[1] === '2ND|BOBBY|3 GUESSES', `SCORES as slim cards: ${sc2.rows.join(' · ')}`);
   ok(sc2.under && sc2.rightEnd && sc2.rankLeft && sc2.frame && !sc2.still, `the rank LEFT of the card, the score UNDER it at its right end, YOU framed, nobody still to play (${JSON.stringify({ under: sc2.under, rightEnd: sc2.rightEnd, rankLeft: sc2.rankLeft, frame: sc2.frame })})`);
@@ -209,7 +206,7 @@ await H.run(async () => {
   await waitFor(A.page, `!!document.querySelector('.dy-ticket[data-id="coastclear"] .dy-play')`, 'the screen from the menu', 8000);
   await click(A.page, '.dy-ticket[data-id="coastclear"] .dy-play');
   await waitFor(A.page, `!!window.__coastclear && window.__coastclear.ready() && !!document.querySelector('.dy-run .cc-board')`, 'COAST CLEAR resumed', 20000);
-  ok(!(await A.page.$('.cc-lesson')), 'RESUME: straight to the board — the practice harbor never repeats');
+  ok(!(await A.page.$('.cc-lesson')) && !(await A.page.evaluate(() => { const h = document.querySelector('.dy-run .cc-hint'); return h && !h.hidden; })), 'RESUME: straight to the board — no hint on a resume, never again once seen');
   // the host's line (who only)
   await waitFor(Hst.page, `(() => { const m = document.querySelector('.rdk-mid'); return m && !m.hidden && /1 PLAYER IS MID-DAILY/.test(m.textContent); })()`, 'the host\'s MID-DAILY line', 30000).catch(() => {});
   const hostLine = await ev(Hst.page, `(document.querySelector('.rdk-mid:not([hidden])') || {}).textContent || ''`);
@@ -287,9 +284,8 @@ await H.run(async () => {
   const soloCode = await C.page.evaluate(() => import('/js/room.js').then(async m => { const { loadProfile } = await import('/js/identity.js'); await m.createRoom(loadProfile()); return window.__arcade.state.code; }));
   await waitFor(C.page, `!!window.__arcade.state.code && !!window.__arcade.state.meta`, 'CASEY\'s solo room', 20000);
   await C.page.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'run', id: 'coastclear' } })));
-  await waitFor(C.page, `!!document.querySelector('.cc-lesson .cc-ls-skip')`, 'the lesson (a new player)', 20000);
-  await click(C.page, '.cc-lesson .cc-ls-skip');
   await waitFor(C.page, `!!window.__coastclear && window.__coastclear.ready() && !!document.querySelector('.dy-run .cc-board')`, 'CASEY\'s harbor', 20000);
+  ok(await C.page.evaluate(() => window.__coastclear.state().hint), 'a new player: the one-time hint under the board (no step to skip — the practice harbor is cut)');
   await C.page.evaluate(() => import('/js/host.js').then(m => m.startGame('overclock', {})));
   await waitFor(C.page, `!document.querySelector('.dy-run') && !!JSON.parse(localStorage.getItem('daily:held') || 'null')`, 'the run held', 20000);
   await sleep(1500);

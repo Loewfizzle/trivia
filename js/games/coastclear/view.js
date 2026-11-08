@@ -1,10 +1,12 @@
 // COAST CLEAR — THE SCREEN (CC1 + CC2 — docs/coastclear.md "The screen"). Renders purely from the RUN the server hands back (judge.start → the
 // opening + the record so far; every dig / chord answer folded in with logic.js#foldAnswer): the sign, the status row (the TIME in plain neon
 // type, THREE drawn searchlights — lit = spotted —, a drawn buoy + the buoys left), the 9 × 12 harbor, the DIG / BUOY switch in the thumb zone.
-// THE INSTANT FEEL: a tap presses the tile down AT ONCE (+ a soft pending shimmer) and its request fires at once — taps never wait for each
-// other (pipelined; the answers fold in in any order); the number pops in the moment its answer lands; a flood ripples outward from the
-// tapped cell; buoys are the phone's own (instant, kept per device for the day). A dropped connection → the answers retry; a quiet
-// RECONNECTING line only past ~2 s. The clock = SERVER time (the start's + every answer's `now`), the pauses stopped, + 30 s a spot.
+// THE INSTANT FEEL: a tap presses the tile down AT ONCE (+ a soft pending shimmer) and its request fires at once; the number pops in the moment
+// its answer lands; a flood ripples outward from the tapped cell; buoys are the phone's own (instant, kept per device for the day). DFIX3 —
+// COALESCED MOVES: taps made while an answer is in flight QUEUE and go out TOGETHER in the next call (judge.moves — one invocation answers several
+// cells; nothing waits on purpose: the first tap always fires at once; the answers fold in in order). A dropped connection → the call retries (a
+// repeat is free on the server); a quiet RECONNECTING line only past ~2 s. The clock = SERVER time (the start's + every answer's `now`), the
+// pauses stopped, + 30 s a spot. `&debug=1` logs every tap → number time + the server's Server-Timing phases (the hook: __coastclear.taps()).
 // CC2: GETTING SPOTTED (a white searchlight BEAM sweeps in from off-screen and lands on the cell — the gold burst, the siren blip, "+30 s"
 // floating up, a status lamp lights; play never stops) · CAUGHT (three beams converge on the last cell, one red pulse, the firmer siren) ·
 // THE END SCREENS (the board + the switch leave: COAST CLEAR with the lighthouse sweep · CAUGHT in red; the finished harbor shrunk; SHARE;
@@ -24,6 +26,7 @@ export const SLOW_MS = 2000;          // an answer this late → the quiet RECON
 // CC2 — GETTING SPOTTED's beats: the beam's sweep in (it lands on the cell), its hold on the cell, its fade; CAUGHT's converge + pulse
 export const SWEEP = Object.freeze({ travel: 700, hold: 280, fade: 420, stagger: 90, pulse: 620, caughtEnd: 1500 });
 export const LEAVE_MS = 320;          // the board + the switch animate out before the end screen comes in
+export const MAX_BATCH = 12;          // DFIX3 — the most queued taps one coalesced call carries (api/daily.js#MAX_BATCH)
 const MOVE_PX = 12;                   // a finger that slides this far is not a tap
 
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -42,6 +45,8 @@ export function createView() {
   let root = null, st = null, judge = null, gone = false;
   let view = emptyView(), om = new Map(), ls = new Set(), ready = false, mode = 'dig', day = null, doneScore = null, finished = null, ended = false;
   let buoys = new Set(), pending = new Set(), inflight = new Map(), seq = 0, offset = 0, bestRtt = Infinity, net = false;
+  let queue = [], flying = false, calls = 0;   // DFIX3 — the taps waiting for the next call; one coalesced call in flight at a time; the calls made
+  const taps = [];                             // the dev-only timing: { cell, ms: the tap → its number on screen, server: Server-Timing's phases }
   let timers = [], tickT = 0, netT = 0, clockT = 0, press = null;
   const landing = new Set();      // CC2: lights the server has named whose beam is still on its way (painted lit when it lands)
   let beams = 0;                  // beams in flight (the hook + the E2E)
@@ -74,6 +79,9 @@ export function createView() {
       cells.push(c); els.board.append(c);
     }
     els.note = h('div.cc-note', { role: 'status', 'aria-live': 'polite' });
+    // DFIX3 — THE ONE-TIME HINT (state.hint — the DAILY screen hands it in on a player's first COAST CLEAR): one calm line under the board, gone
+    // once the first dig reveals a number (the run host then marks it seen on the server — never again, any device)
+    els.hint = h('p.cc-hint', { hidden: !(st && st.hint) }, st && st.hint ? String(st.hint) : '');
     els.dig = h('button.cc-mode-b', { type: 'button', 'data-m': 'dig', onclick: () => pickMode('dig') }, svg('0 0 24 24', 'cc-mode-i cc-mode-dig', RIPPLE), h('span', 'DIG'));
     els.buoy = h('button.cc-mode-b', { type: 'button', 'data-m': 'buoy', onclick: () => pickMode('buoy') }, svg('0 0 24 24', 'cc-mode-i cc-mode-buoy', BUOY), h('span', 'BUOY'));
     els.mode = h('div.cc-mode', { role: 'radiogroup', 'aria-label': 'what a tap does' }, els.dig, els.buoy);
@@ -84,6 +92,7 @@ export function createView() {
     els.red = h('i.cc-red');
     els.fx.append(els.red);
     root.classList.add('cc-screen');
+    els.play.append(els.hint);   // (right under the board — it moves with it)
     root.append(els.head, els.play, els.note, els.mode, els.end, els.fx);
     els.board.addEventListener('pointerdown', onDown);
     els.board.addEventListener('pointermove', onMove);
@@ -199,7 +208,9 @@ export function createView() {
     paintStatus();
   }
 
-  // ---- the network: every move fires AT ONCE; a lost answer retries (a repeat is free on the server) ----------------------------------
+  // ---- the network (DFIX3 — COALESCED MOVES): the first tap fires AT ONCE; taps made while its answer is in flight queue and go out together
+  // in the next call (judge.moves); a judge without `moves` pipelines singles. A lost answer retries (a repeat is free on the server) -------
+  const DEBUG = typeof location !== 'undefined' && /[?&]debug=1/.test(location.search);
   function sample(resp, d0, d1) {
     const rtt = d1 - d0;
     rtts.push(rtt); if (rtts.length > 400) rtts.shift();
@@ -211,27 +222,67 @@ export function createView() {
     clearInterval(netT);
     if (inflight.size) netT = setInterval(() => { if (gone) clearInterval(netT); else watchNet(); }, 400);
   }
-  async function send(fn, cellsOf, origin) {
+  /** a move the player made: { a: 'dig' | 'chord', cell, buoys?, cellsOf, origin, at } → the queue → the next call */
+  function enqueue(mv) { queue.push(mv); pump(); }
+  function pump() {
+    if (gone || !queue.length) return;
+    if (typeof judge.moves !== 'function') { while (queue.length) fire([queue.shift()]); return; }   // (the old fake: singles, pipelined)
+    if (flying) return;
+    fire(queue.splice(0, MAX_BATCH));
+  }
+  async function fire(batch) {
     const id = ++seq;
+    flying = true; calls++;
     inflight.set(id, Date.now()); watchNet();
+    const one = batch.length === 1 ? batch[0] : null;
+    const call = () => (one ? (one.a === 'dig' ? judge.dig(one.cell) : judge.chord(one.cell, one.buoys))
+      : judge.moves(batch.map(m => ({ a: m.a, cell: m.cell, ...(m.a === 'chord' ? { buoys: m.buoys } : {}) }))));
     for (let tries = 0; !gone; tries++) {
       const d0 = Date.now();
       try {
-        const resp = await fn();
+        const resp = await call();
         if (gone) return;
         sample(resp, d0, Date.now());
         inflight.delete(id); watchNet();
-        land(resp, origin, cellsOf);
-        return;
+        const answers = one ? [resp] : (resp.answers || []).map(a => (a ? { ...a, now: resp.now } : null));
+        let bad = false;
+        batch.forEach((m, k) => {
+          const a = answers[k];
+          if (!a || a.refused) { bad = true; for (const c of m.cellsOf) { pending.delete(c); paintCell(c); } return; }
+          land(a, m.origin, m.cellsOf);
+          timed(m);
+        });
+        if (bad && !view.done) resync();   // out of step (a refused chord, a cell the server says is shut): the server's record is the truth
+        break;
       } catch (e) {
         if (gone) return;
         if (retryable(e)) { await wait(Math.min(1500, 250 * 2 ** Math.min(tries, 3))); continue; }
         inflight.delete(id); watchNet();
-        for (const c of cellsOf) { pending.delete(c); paintCell(c); }
+        for (const m of batch) for (const c of m.cellsOf) { pending.delete(c); paintCell(c); }
         resync();   // out of step (finished, a refused chord, a cell the server says is shut): the server's record is the truth
-        return;
+        break;
       }
     }
+    flying = false;
+    pump();
+  }
+  /** DFIX3 — the dev-only timing: the tap → its number on screen (+ the server's Server-Timing phases of the newest answer) */
+  function timed(m) {
+    const ms = Math.round(performance.now() - m.at), server = serverTimingNow();
+    taps.push({ cell: m.cell, ms, server });
+    if (taps.length > 400) taps.shift();
+    if (DEBUG) console.info(`[cc] tap → number ${ms} ms`, server ? Object.entries(server).map(([k, v]) => `${k} ${v}`).join(' · ') : '');
+  }
+  /** the newest /api/daily answer's Server-Timing (same origin: the browser hands the phases to the resource entries) → { phase: ms, phase_: desc } */
+  function serverTimingNow() {
+    try {
+      const es = performance.getEntriesByType('resource').filter(e => /\/api\/daily(\?|$)/.test(e.name));
+      const e = es[es.length - 1];
+      if (!e || !e.serverTiming || !e.serverTiming.length) return null;
+      const o = {};
+      for (const t of e.serverTiming) { o[t.name] = t.duration; if (t.description) o[`${t.name}_`] = t.description; }   // (tx_ = the attempts, region_)
+      return o;
+    } catch { return null; }
   }
   /** an answer lands: the opened cells pop in (a ripple outward from the tapped cell), a light → THE SWEEP (CC2) */
   function land(resp, origin, cellsOf) {
@@ -239,11 +290,11 @@ export function createView() {
     const wasDone = view.done;
     setView(foldAnswer(view, resp));
     for (const c of cellsOf) pending.delete(c);
-    let far = 0, fresh = 0, calm = false;
+    let far = 0, fresh = 0, calm = false, numbered = false;
     for (const [c, n] of resp.cells || []) {
       if (before.has(c)) { paintCell(c); continue; }
       buoys.delete(c);
-      fresh++; if (n === 0) calm = true;
+      fresh++; if (n === 0) calm = true; else numbered = true;
       const d = reducedMotion() ? 0 : Math.min(14, ring(c, origin)) * RIPPLE_MS;
       far = Math.max(far, d);
       paintCell(c, { pop: true, delay: d });
@@ -252,9 +303,20 @@ export function createView() {
     const lights = (resp.lit || []).filter(c => !litBefore.has(c));
     lights.forEach((c, k) => { buoys.delete(c); spotted(c, caughtNow && k === lights.length - 1); });
     if (fresh && !lights.length) ccSfx(calm && fresh > 1 ? 'flood' : 'dig');
+    if (numbered) hintDone();
     for (const c of cellsOf) paintCell(c);
     paintStatus(); saveBuoys();
     if (view.done && !wasDone) later(() => end(false), caughtNow && !reducedMotion() ? SWEEP.caughtEnd : far + (lights.length ? SWEEP.travel + 500 : 450));
+  }
+
+  /** THE ONE-TIME HINT goes (a soft fade; reduced motion = at once) and the run host hears it (state.onHint — the server flag) */
+  let hintGone = false;
+  function hintDone() {
+    if (hintGone || !els.hint || els.hint.hidden) return;
+    hintGone = true;
+    els.hint.classList.add('is-gone');
+    later(() => { if (els.hint) els.hint.hidden = true; }, reducedMotion() ? 0 : 700);
+    if (st && typeof st.onHint === 'function') { try { st.onHint(); } catch (e) { console.warn('[cc] hint', e); } }
   }
 
   // ---- the moves ---------------------------------------------------------------------------------------------------------------------
@@ -266,14 +328,14 @@ export function createView() {
     if (mode === 'buoy') { toggleBuoy(i); return; }
     if (buoys.has(i)) return;                              // a tap on a buoyed cell does nothing
     pending.add(i); paintCell(i);
-    send(() => judge.dig(i), [i], i);
+    enqueue({ a: 'dig', cell: i, cellsOf: [i], origin: i, at: performance.now() });
   }
   function chord(i) {
     const t = chordTargets(view, i, buoys);
     if (!t || t.some(j => pending.has(j))) { nudge(i); return; }
     const nb = nbOf(view.w, view.h)[i].filter(j => buoys.has(j));
     for (const j of t) { pending.add(j); paintCell(j); }
-    send(() => judge.chord(i, nb), t, i);
+    enqueue({ a: 'chord', cell: i, buoys: nb, cellsOf: t, origin: i, at: performance.now() });
   }
   function toggleBuoy(i) {
     if (!ready || view.done || ended) return;
@@ -455,8 +517,9 @@ export function createView() {
       window.__coastclear = {
         view: () => view, buoys: () => [...buoys], pending: () => [...pending], mode: () => mode, ready: () => ready, finished: () => finished, score: () => doneScore,
         setMode, tap, long: i => toggleBuoy(i), resync, share, rtts: () => rtts.slice(), offset: () => offset, inflight: () => inflight.size, beams: () => beams,
+        queued: () => queue.length, calls: () => calls, taps: () => taps.slice(),   // (DFIX3 — the coalescing + the timing)
         shareInputs: () => shareInputs(view, dayKey()), shareLine: () => shareLine(view, dayKey()),
-        state: () => ({ ready, done: view.done, out: view.out, spots: view.spots, shown: shownSpots(), open: view.open.length, lit: view.lit.length, buoys: buoys.size, pending: pending.size, inflight: inflight.size, beams, landing: landing.size, mode, note: els.note.textContent, end: ended && els.end.classList.contains('is-in'), clock: els.time.textContent, paused: !!view.paused, pauses: view.pauses }),
+        state: () => ({ ready, done: view.done, out: view.out, spots: view.spots, shown: shownSpots(), open: view.open.length, lit: view.lit.length, buoys: buoys.size, pending: pending.size, inflight: inflight.size, queued: queue.length, calls, beams, landing: landing.size, mode, note: els.note.textContent, end: ended && els.end.classList.contains('is-in'), clock: els.time.textContent, paused: !!view.paused, pauses: view.pauses, hint: !!(els.hint && !els.hint.hidden && !hintGone) }),
       };
     },
     update(state) { st = state; },
@@ -468,7 +531,7 @@ export function createView() {
       if (press) clearTimeout(press.t);
       if (root) { clear(root); root.classList.remove('cc-screen', 'is-end', 'is-leaving'); delete root.dataset.ready; delete root.dataset.mode; delete root.dataset.out; }
       delete window.__coastclear;
-      root = null; cells.length = 0; press = null; pending = new Set(); inflight = new Map(); landing.clear(); beams = 0;
+      root = null; cells.length = 0; press = null; pending = new Set(); inflight = new Map(); landing.clear(); beams = 0; queue = []; flying = false; taps.length = 0;
     },
   };
   return api;

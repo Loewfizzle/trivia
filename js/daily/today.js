@@ -46,7 +46,7 @@ export function markStarted(id) {
   cache = { ...cache, started: { ...(cache.started || {}), [id]: true } };
   tell();
 }
-/** the lesson seen (once per player — the server keeps it on the profile) */
+/** the first-time hint seen (once per player — the server keeps it on the profile: pstats/{pid}/ls) */
 export function markLesson(id) { if (cache) { cache = { ...cache, lessons: { ...(cache.lessons || {}), [id]: 1 } }; tell(); } }
 /** (previews + tests: a scripted answer) */
 export function setToday(t) { cache = t; at = Date.now(); tell(); }

@@ -2244,3 +2244,19 @@ stay OFF until the owner flips the switch.
 - Group 5: COAST CLEAR's PRACTICE HARBOR (5 × 5, three steps, YOU'RE READY, SKIP; seen once per player — pstats/{pid}/ls).
 - ADD-ON: /admin → THE DAILIES (THE GO-LIVE SWITCH button + RESEED · PREVIEW → RESEED NOW — api/admin.js dailyReseed, audited).
 - Proof: tests/daily-screens.test.mjs, daily.test.mjs (the rewards), daily-module.test.mjs (+ the admin reseed + today's fields), e2e-daily.mjs (36).
+
+## DFIX3 — THE DAILIES' FIRST-PLAY FIXES (Nov 8, 2026) — docs/progression.md "DFIX3", docs/coastclear.md "The dig path + its timings", docs/audio.md "THE FADE ON LEAVING"
+The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixes + his add-ons (docs/games/plan.md DFIX3).
+- Group 1 — THE DIG LAG: measured live (functions in iad1, the edge cle1, the database in Iowa; a dig = six database waits); the region pinned to cle1, the
+  budget off the path (in memory, written behind), the pid memo, the record held in the SDK's cache → one transaction attempt, COALESCED MOVES (`moves`),
+  lazy finish imports, Server-Timing + the `&debug=1` tap log. Emulators: p50 14 ms, tx attempts 1; six taps on a 150 ms line = 2 calls.
+- Group 2 — THE ONE-TIME HINT (the practice harbor cut): one line under the board on the first COAST CLEAR, gone on the first number, seen per player.
+- Group 3 — /admin: ‹ BACK TO THE CITY; THE DAILIES' STATS (started / finished, today + 7 days) + TODAY'S PLAYERS with ADD FRIEND (the existing flow).
+- Group 4 — TODAY centred (auto margins; scrolls from the top when taller).
+- Group 5 — THE PREMIUM TICKET: the CC0 paper grain (ambientCG Paper001), the punched stub, the serial Nº MMDD, the drawn ADMITTED stamp + its stamp-down,
+  the lift, night's neon edge + foil (paused while scrolling); 60 fps at 4× CPU.
+- Group 6 — THE SHARE IMAGE from the ticket (the date, the sign, the meter, big tickets, the streak flame, the foot; 1–6 dailies; no spoilers).
+- Group 7 — Ben's add-ons: YOUR FRAME hugs the strip, the foot hint once, a table of one = the card alone, the day look's music button; THE FADE ON LEAVING
+  in the shared audio engine (one master gain, a ramp on the audio clock, then the suspend; back = a ramp up; the freeze event; the direct <audio> paused
+  at the fade's start) with an E2E of the order.
+- Proof: unit 1380, the /api suites, e2e-coastclear 38, e2e-daily, e2e-password, smoke, the harbor groups touched.

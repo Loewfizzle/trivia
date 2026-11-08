@@ -35,12 +35,23 @@
 //    music.js takes THE DIRECT PATH instead (a plain <audio> element, iOS's own pipeline — docs/audio.md#m4). A context that
 //    never started (clock 0.00 after 0.7 s of 'running') is frozen at once, not after 1.5 s. The old context is closed FIRST,
 //    and the panel counts the contexts alive (made − closed).
+//  - THE FADE ON LEAVING (DFIX3 ADD-ON, the owner's iPhone: a short high hum when switching out of Safari with the sound on — the context
+//    was suspended INSTANTLY, mid-buffer, and iOS clicked / looped the last buffer): EVERY sound path ends on ONE MASTER gain (music bus +
+//    SFX bus → the limiter → master → the speaker). On hidden / pagehide / freeze the master ramps to 0 ON THE AUDIO CLOCK first (scheduled
+//    synchronously — iOS may freeze the page's JS right after pagehide, so the ramp must already be on the audio thread before anything
+//    waits), the suspend follows ~110 ms later. Back on screen (visible / pageshow / resume): the master is set to 0, the context asked to
+//    run, and the moment it runs everything ramps back up over ~150 ms — never a jump to full (no pop). THE DIRECT PATH's plain <audio>
+//    (iOS ignores an element's volume) is paused at the START of the fade; the graph's voices after it (music.js). The clock watch, the
+//    unlock, the retries + the rebuilds are unchanged. The log reads: fade out → suspended after the fade → fade in.
 //  - THE LOG (audioLog / audioEvents): the last events with times — what the &debug=1 AUDIO block shows (audio/diag.js).
 import { settings, onSettings } from './settings.js';
 
 let ctx = null;
 let musicBus = null;
 let sfxBus = null;
+let master = null;        // THE MASTER (DFIX3 ADD-ON): the one gain every path leaves through — the fade on leaving / the ramp back
+let fadeT = 0, pendingFadeIn = false;
+const FADE_OUT_S = 0.09, FADE_IN_S = 0.15, SUSPEND_AFTER_MS = 110;
 let unlocked = false;
 let visibleNow = true;
 let visibleAt = 0;        // performance.now() when the page last came back on screen
@@ -67,6 +78,9 @@ export const audioEvents = () => LOG.slice();
 export const getContext = () => ctx;
 export const getMusicBus = () => musicBus;
 export const getSfxBus = () => sfxBus;
+export const getMaster = () => master;
+/** the fade's timings (the tests + the docs): the ramp out, the ramp back, the suspend's wait after the ramp is scheduled */
+export const FADE = Object.freeze({ outS: FADE_OUT_S, inS: FADE_IN_S, suspendMs: SUSPEND_AFTER_MS });
 export const isUnlocked = () => unlocked && !!ctx && ctx.state === 'running';
 /** Inside a gesture's handling right now (iOS lets a media element / a context start only here)? */
 export const inGesture = () => performance.now() - gestureAt < 60;
@@ -116,7 +130,7 @@ function createContext() {
   c.onstatechange = () => {
     if (c !== ctx) return;
     audioLog(`ctx → ${c.state}`);
-    if (c.state === 'running') { stuck = false; askedAt = 0; gestureAskAt = 0; resumeListeners.forEach(fn => { try { fn(); } catch (e) { console.warn(e); } }); }
+    if (c.state === 'running') { stuck = false; askedAt = 0; gestureAskAt = 0; if (pendingFadeIn) fadeIn('running again'); resumeListeners.forEach(fn => { try { fn(); } catch (e) { console.warn(e); } }); }
     // the OS took it away while we're on screen (a call, Siri, another app's audio, the route changed): ask for it back
     else if (visibleNow && unlocked && document.visibilityState === 'visible') ask('os took it');
   };
@@ -126,7 +140,10 @@ function createContext() {
   limiter.ratio.value = 4;
   limiter.attack.value = 0.004;
   limiter.release.value = 0.25;
-  limiter.connect(ctx.destination);
+  master = ctx.createGain();
+  master.gain.value = pendingFadeIn ? 0 : 1;   // (made while coming back on screen: it ramps up once it runs — never a pop)
+  limiter.connect(master);
+  master.connect(ctx.destination);
   musicBus = ctx.createGain();
   sfxBus = ctx.createGain();
   musicBus.connect(limiter);
@@ -186,7 +203,7 @@ function closeContext(c) {
 function rebuild(why) {
   const old = ctx;
   closeContext(old);
-  ctx = null; musicBus = null; sfxBus = null;
+  ctx = null; musicBus = null; sfxBus = null; master = null;
   if (!createContext()) { ctx = old; return; }
   stuck = false; rebuilds++; lastWhy = why; askedAt = 0; gestureAskAt = 0; lastRebuildAt = performance.now(); bornOfRebuild = true; frozenAfterRebuild = false;
   audioLog(`rebuild #${rebuilds} (${why}) · alive ${made - closed}`);
@@ -263,7 +280,7 @@ export function onGesture(fn) { gestureListeners.add(fn); return () => gestureLi
 export function onFrozen(fn) { frozenListeners.add(fn); return () => frozenListeners.delete(fn); }
 
 /** The engine's state for tests + the readout. */
-export const audioHealth = () => ({ state: ctx ? ctx.state : 'none', stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow,
+export const audioHealth = () => ({ state: ctx ? ctx.state : 'none', stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
   time: ctx ? +ctx.currentTime.toFixed(2) : 0, session: sessionInfo(), sessionSet: { ...sessionSet }, made, closed, alive: made - closed,
   movingFor: clock.moving > 0 && !frozen ? Math.round(performance.now() - clock.moving) : 0, ok: graphOk() });
 function sessionInfo() { try { const a = navigator.audioSession; return a ? `${a.type || '?'}/${'state' in a ? a.state || '?' : 'n/a'}` : ''; } catch { return ''; } }
@@ -311,6 +328,46 @@ export function onVisibility(fn) {
   visibilityListeners.add(fn);
 }
 
+// ---- THE FADE ON LEAVING (DFIX3 ADD-ON — the header): the master ramps on the AUDIO clock first, the suspend follows; back = 0 → up once running
+function fadeOut(why) {
+  clearTimeout(fadeT);
+  const c = ctx;
+  if (!c || !master || c.state !== 'running') { if (c && c.state === 'running') c.suspend().catch(() => {}); return; }
+  try {
+    const t = c.currentTime, g = master.gain;
+    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + FADE_OUT_S);
+  } catch { /* closed */ }
+  audioLog(`fade out (${why})`);
+  fadeT = setTimeout(() => { if (ctx === c && !visibleNow && c.state === 'running') c.suspend().then(() => { if (ctx === c) audioLog('suspended after the fade'); }, () => {}); }, SUSPEND_AFTER_MS);
+}
+function fadeIn(why) {
+  const c = ctx;
+  pendingFadeIn = false;
+  if (!c || !master) return;
+  try {
+    const t = c.currentTime, g = master.gain;
+    g.cancelScheduledValues(t); g.setValueAtTime(0, t); g.linearRampToValueAtTime(1, t + FADE_IN_S);
+  } catch { /* closed */ }
+  audioLog(`fade in (${why})`);
+}
+/** hidden / shown — visibilitychange, pagehide / pageshow (the back-forward cache), freeze / resume (the page frozen in the background) */
+function setVisible(visible, why = '') {
+  if (visible === visibleNow) { if (visible) kick(); return; }
+  visibleNow = visible;
+  if (visible) { visibleAt = performance.now(); setSession('back on screen'); }
+  if (ctx) {
+    if (visible && unlocked) {
+      clearTimeout(fadeT);
+      pendingFadeIn = true;
+      try { if (master) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(0, ctx.currentTime); } } catch { /* closed */ }
+      if (ctx.state === 'running' && !frozen) fadeIn('back on screen'); else ask('back on screen');
+    } else if (!visible) { askedAt = 0; gestureAskAt = 0; frozen = false; pendingFadeIn = false; fadeOut(why || 'hidden'); }
+  }
+  visibilityListeners.forEach(fn => fn(visible));
+}
+/** Test hook: the page leaves / comes back (the fade → the suspend → the resume → the ramp up, in the log). */
+export function simulateVisible(v) { setVisible(!!v, v ? 'test show' : 'test hide'); }
+
 export function installAudio() {
   // the gestures (capture, on the document: a tap ANYWHERE counts, before any handler can stop it) — every tap, never removed
   for (const ev of ['pointerdown', 'touchend', 'click', 'keydown']) document.addEventListener(ev, unlock, { capture: true, passive: true });
@@ -318,20 +375,13 @@ export function installAudio() {
   for (const ev of ['input', 'focusin', 'touchstart']) document.addEventListener(ev, kick, { capture: true, passive: true });
   window.addEventListener('focus', () => { audioLog('focus'); kick(); });
   window.addEventListener('blur', () => audioLog('blur'));
-  // hidden / shown: visibilitychange, + pagehide / pageshow for the back-forward cache (a restored page may get no visibilitychange)
-  const setVisible = visible => {
-    if (visible === visibleNow) { if (visible) kick(); return; }
-    visibleNow = visible;
-    if (visible) { visibleAt = performance.now(); setSession('back on screen'); }
-    if (ctx) {
-      if (visible && unlocked) ask('back on screen');
-      else if (!visible) { askedAt = 0; gestureAskAt = 0; frozen = false; if (ctx.state === 'running') ctx.suspend().catch(() => {}); }
-    }
-    visibilityListeners.forEach(fn => fn(visible));
-  };
-  document.addEventListener('visibilitychange', () => { audioLog(`visibility ${document.visibilityState}`); setVisible(document.visibilityState === 'visible'); });
-  window.addEventListener('pagehide', e => { audioLog(`pagehide${e.persisted ? ' (persisted)' : ''}`); setVisible(false); });
+  // hidden / shown: visibilitychange, + pagehide / pageshow for the back-forward cache (a restored page may get no visibilitychange), + the
+  // Page Lifecycle's freeze / resume (DFIX3 ADD-ON) — each through THE FADE ON LEAVING (above)
+  document.addEventListener('visibilitychange', () => { audioLog(`visibility ${document.visibilityState}`); setVisible(document.visibilityState === 'visible', 'hidden'); });
+  window.addEventListener('pagehide', e => { audioLog(`pagehide${e.persisted ? ' (persisted)' : ''}`); setVisible(false, 'pagehide'); });
   window.addEventListener('pageshow', e => { audioLog(`pageshow${e.persisted ? ' (persisted)' : ''}`); setVisible(document.visibilityState === 'visible'); });
+  document.addEventListener('freeze', () => { audioLog('freeze'); setVisible(false, 'freeze'); });
+  document.addEventListener('resume', () => { audioLog('resume (lifecycle)'); setVisible(document.visibilityState === 'visible'); });
   // iOS 17+: the audio session comes back after a call / Siri / another app's audio
   try { if (navigator.audioSession && navigator.audioSession.addEventListener) navigator.audioSession.addEventListener('statechange', () => { audioLog(`session ${sessionInfo()}`); setSession('session change'); kick(); }); } catch { /* unsupported */ }
   setInterval(watchClock, 250);

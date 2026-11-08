@@ -7,6 +7,7 @@ import { avatar, tubeButton } from '../ui/components.js';
 import { emblem, installEmblems } from '../ui/emblems.js';
 import { initFirebase, isConfigured } from '../firebase.js';
 import { api } from '../profile/api.js';
+import { state } from '../store.js';
 import { boardDef, fmtValue } from '../core/boards.js';
 import { fmtTag, isOffensive } from '../core/names.js';
 import { houseNick } from '../core/nicknames.js';
@@ -121,7 +122,9 @@ function shell() {
     card('ad-dailies', 'The dailies', { cls: 'ad-dailies' },
       h('p.ad-dim', 'THE GO-LIVE SWITCH turns every daily on or off for everyone, at once (any time). RESEED gives the dailies a fresh secret from the next 4 am Eastern — run it when the repo goes private (preview first; today’s run and every past result stay as they are).'),
       h('div.ad-row', { id: 'ad-dly-row' }, h('span.ad-dim', 'Loading…')),
-      h('div.ad-dly-out', { id: 'ad-dly-out' })),
+      h('div.ad-dly-out', { id: 'ad-dly-out' }),
+      // DFIX3 — THE STATS (started / finished per daily, today + 7 days) + TODAY'S PLAYERS (ADD FRIEND = the ordinary friend request)
+      h('div.ad-dly-stats', { id: 'ad-dly-stats' }, h('p.ad-dim', 'Loading…'))),
     // PROGRESSION A — THE OUTAGE BUTTON: a day the site was down breaks nobody's streak (audited; the streak day turns at 4 am Eastern)
     card('ad-outage', 'Streak outage', { cls: 'ad-outage' },
       h('p.ad-dim', 'The site was down? Mark the day: nobody’s streak breaks over it (no freeze used, no day added). The streak day turns at 4 am Eastern.'),
@@ -136,12 +139,13 @@ function shell() {
         tubeButton('GIVE', { kind: 'main', size: 'sm', cls: 'ad-btn ad-gift-go', confirm: 'TAP AGAIN TO GIVE', onClick: giveGift }))),
     card('ad-audit', 'Audit log', { cls: 'ad-audit', open: false }, h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' })));
   app.replaceChildren(
+    h('a.ad-link.ad-back', { href: '/' }, '‹ BACK TO THE CITY'),   // (DFIX3 — the owner: the authorized page had no way back; the denied page always had one)
     h('header.ad-head', h('div', h('div.ad-kicker', 'NEON SPEAKEASY'), h('h1', 'Admin')), h('div.ad-head-links', h('a.ad-link', { href: '/lab' }, 'The Card Lab ›'), ' ', h('a.ad-link', { href: '/board' }, 'The Board ›'))),
     jumpBar(),
     grid);
   audit();
   outages();
-  dailies();
+  dailies(); dailyStats();
   errors();
   reports();
   flags();
@@ -442,6 +446,41 @@ function renderStats() {
 }
 
 // THE OUTAGE: today + the 6 days before, each a toggle (a second tap confirms)
+/** DFIX3 — a daily's spoiler-free score line (its thin meta — js/screens/daily.js reads it the same way) */
+const dyMetas = new Map();
+const dyMeta = id => { if (!dyMetas.has(id)) dyMetas.set(id, import(`../games/${id}/meta.js`).catch(() => ({}))); return dyMetas.get(id); };
+/** DFIX3 — THE DAILIES' STATS block: per daily STARTED · FINISHED today + the last 7 days as small bars; TODAY'S PLAYERS with ADD FRIEND */
+async function dailyStats() {
+  const box = document.getElementById('ad-dly-stats');
+  if (!box) return;
+  try {
+    const S = (await call('dailyStats')).stats;
+    const metas = Object.fromEntries(await Promise.all(S.dailies.map(async d => [d.id, await dyMeta(d.id)])));
+    const line = (id, score) => { const m = metas[id]; return m && typeof m.scoreLine === 'function' ? m.scoreLine(score) : String(score); };
+    const dl = k => `${+k.slice(5, 7)}/${+k.slice(7, 9)}`;
+    const { friendButton } = await import('../profile/friends-ui.js');
+    const blocks = S.dailies.map(d => {
+      const max = Math.max(1, ...d.days.map(x => x.started));
+      return h('div.ad-block.ad-dly-g',
+        h('div.ad-row.ad-between', h('h3', d.name), h('b.ad-dly-today', `STARTED ${d.today.started} · FINISHED ${d.today.finished}`)),
+        h('div.ad-cols.is-weeks.ad-dly-cols', ...d.days.map(x => h('div.ad-col', { title: `${dl(x.day)}: ${x.started} started · ${x.finished} finished`, style: { '--h': `${(x.started / max) * 100}%`, '--f': `${(x.finished / max) * 100}%` } },
+          h('i'), h('i.ad-col-f'), h('em', `${x.finished}/${x.started}`), h('small', x.day === S.day ? 'TODAY' : dl(x.day))))),
+        h('p.ad-note', 'Each column is a day: the tall bar = started, the bright one = finished (finished/started).'));
+    });
+    const rows = S.players.map(p => h('li.ad-dly-p',
+      avatar(p.a, p.c, 26),
+      h('button.ad-linkbtn', { type: 'button', onclick: () => open(p.pid) }, p.n, h('small', p.t ? fmtTag(p.t) : '')),
+      h('span.ad-dly-lv', `LV ${p.l || 1}`),
+      h('span.ad-dly-res', ...S.dailies.map(d => { const r = p.results[d.id]; return h('span.ad-dly-r', { class: r && r.playing ? 'is-playing' : r ? 'is-done' : 'is-none' }, h('small', d.name), r && r.playing ? 'PLAYING' : r ? line(d.id, r.score) + (r.gated ? ' · NOT COUNTED' : '') : '—'); })),
+      h('span.ad-tag', { class: p.counts ? 'is-counts' : 'is-new' }, p.counts ? 'COUNTS' : 'NEW TODAY'),
+      p.h ? h('span.ad-tag.is-hidden', 'HIDDEN') : null,
+      h('span.ad-dly-fr', friendButton({ pid: p.pid }, { name: p.n, size: 'sm', block: false }))));
+    box.replaceChildren(
+      ...blocks,
+      h('div.ad-row.ad-between', h('h3', `Today’s players`), h('span.ad-dim', S.n > S.players.length ? `newest ${S.players.length} of ${S.n}` : `${S.n}`)),
+      rows.length ? h('ol.ad-top.ad-dly-players', ...rows) : h('p.ad-dim', 'Nobody has started a daily yet today.'));
+  } catch (e) { box.replaceChildren(h('p.ad-dim', `Couldn’t load the stats (${e.message || e})`)); }
+}
 /** DM2 — THE DAILIES card: the switch's state + ON / OFF + RESEED (preview → confirm) */
 async function dailies(st) {
   const row = document.getElementById('ad-dly-row'), out = document.getElementById('ad-dly-out');
@@ -578,7 +617,8 @@ async function boot() {
   installEmblems();
   if (!isConfigured) { app.replaceChildren(h('p.ad-wait', 'Firebase is not configured.')); return; }
   try {
-    await initFirebase();
+    const uid = await initFirebase();
+    state.uid = uid;   // (DFIX3 — the profile modules read this browser's identity from the store: ADD FRIEND on TODAY'S PLAYERS needs it)
     const who = await api('admin', { action: 'whoami' });
     if (!who.admin) { denied(who); return; }
     shell();

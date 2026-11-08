@@ -4,12 +4,12 @@
 //                                              the countdown to 4 am Eastern) · SCORES (YOUR TABLE per daily + the everyone line; ALL TIME hidden
 //                                              until BOARD 2.0 — the owner, Step 0)
 //   { v: 'run', id }                           a daily's RUN: its cartridge's own view, mounted solo (state.game = daily.create's shell, the judge =
-//                                              its API judge wrapped so the screen hears the start + the finish) — first its LESSON once per
-//                                              player (a row's `lesson` + the cartridge's createLesson: COAST CLEAR's PRACTICE HARBOR)
+//                                              its API judge wrapped so the screen hears the start + the finish) — with its ONE-TIME HINT on a
+//                                              player's first run (a row's `lesson` + the cartridge's HINT line — DFIX3; the practice harbor is cut)
 // Both are OVERLAYS over the city (like YOUR CARD in a room): the title + its city stay mounted, their frames HELD underneath (ui/city-hold.js).
 // THE ROOM WINS (DM1's server half): the room starts a game mid-run → the run closes ("GAME STARTING · YOUR DAILY IS SAVED"), COAST CLEAR's
 // clock paused on the server (+15 s), the run HELD (js/daily/today.js) → the RESUME chip after the match brings it back exactly where it was.
-import { h, clear } from '../ui/dom.js';
+import { h, clear, reducedMotion } from '../ui/dom.js';
 import { tubeButton } from '../ui/components.js';
 import { sfx } from '../audio/sfx.js';
 import { state, setState } from '../store.js';
@@ -48,18 +48,14 @@ async function loadMetas(ds) { await Promise.all(ds.map(async d => { META[d.id] 
 export const lineOf = (id, score) => { const m = META[id]; return m && typeof m.scoreLine === 'function' ? m.scoreLine(score) : String(score); };
 
 // ------------------------------------------------------------------------------------------------ the drawn pieces (no emoji, no pills)
-const tube = (d, vb = '0 0 24 24') => `<svg viewBox="${vb}" aria-hidden="true"><g class="t">${d}</g><g class="c">${d}</g></svg>`;
-/** a ticket's art by its key (config.js#DAILIES `ticket`): THE PASSWORD's door + keyhole · COAST CLEAR's lighthouse + beam · a star */
-export const TICKET_ART = {
-  password: tube('<path d="M6.6 20.6V4.6c0-.6.5-1.1 1.1-1.1h8.6c.6 0 1.1.5 1.1 1.1v16"/><circle cx="12" cy="10.6" r="1.6"/><path d="M12 12.2v3"/><path d="M4 20.6h16"/>'),
-  coastclear: tube('<path d="M9.6 20.6l1.1-10.4h2.6l1.1 10.4"/><path d="M10 10.2h4M10.5 7.7h3l-.3-2.6h-2.4z"/><path d="M14.6 6.1l5.6-2.2M14.6 7.6l5.8 1"/><path d="M3.6 20.6c2.2-1.3 4.4-1.3 6.6 0s4.4 1.3 6.6 0 2.4-1 3.6-.6"/>'),
-  star: tube('<path d="M12 3.6l2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.5l-5.1 2.8 1.1-5.7-4.3-4 5.8-.7z"/>'),
-};
-const CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.4 8.4l3 3 6.2-6.6"/></svg>';
+// (DFIX3 — THE PREMIUM TICKET: the art, the ADMITTED stamp + the serial live in js/daily/ticket-art.js, shared with SHARE TODAY's image)
+import { TICKET_ART, stampSvg, serialOf } from '../daily/ticket-art.js';
+export { TICKET_ART };
 const BACK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>';
 
 // ------------------------------------------------------------------------------------------------ the overlay manager
 let scr = null, run = null, lastKey = '', sweepNext = false, sweptAt = 0;
+const stampNext = new Set();   // DFIX3 — the dailies just finished on this phone: their ADMITTED stamp comes down on the next TODAY paint (once each)
 /** app.js calls this on every render: open / close / switch the overlay the state asks for (+ THE ROOM WINS) */
 export function syncDaily(st) {
   const d = st.daily || null;
@@ -138,6 +134,9 @@ function openScreen(tab0) {
   els.body = h('div.dy-body');
   els.scroll = h('div.dy-scroll', els.head, els.tabs, els.body);
   O.el.append(els.scroll);
+  // SCROLL-PAUSE (the owner, Nov 8 — kept on purpose): the foil sheen holds while a finger scrolls (the fx surfaces hold themselves — fx/renderer.js)
+  let scrollT = 0;
+  els.scroll.addEventListener('scroll', () => { O.el.classList.add('is-scrolling'); clearTimeout(scrollT); scrollT = setTimeout(() => O.el.classList.remove('is-scrolling'), 220); }, { passive: true });
 
   const paint = async () => {
     if (gone) return;
@@ -146,11 +145,12 @@ function openScreen(tab0) {
     if (gone) return;
     // (a repaint only when something on screen changed — a tap never lands on a row that was just rebuilt)
     const sig = JSON.stringify([tab, t, names(), pidNow(), showAll]);
-    if (sig === lastSig && !sweepNext) return;
+    if (sig === lastSig && !sweepNext && !stampNext.size) return;
     lastSig = sig;
     dropSurfaces();
     els.tToday.classList.toggle('is-on', tab === 'today'); els.tToday.setAttribute('aria-selected', String(tab === 'today'));
     els.tScores.classList.toggle('is-on', tab === 'scores'); els.tScores.setAttribute('aria-selected', String(tab === 'scores'));
+    els.body.classList.toggle('is-today', tab !== 'scores'); els.body.classList.toggle('is-scores', tab === 'scores');   // (DFIX3 — TODAY centred)
     clear(els.body);
     if (!t.dailies || !t.dailies.length) { els.body.append(h('p.dy-quiet', t.down ? 'The dailies are resting. Try again in a minute.' : 'No dailies today.')); return; }
     if (tab === 'scores') paintScores(t); else paintToday(t);
@@ -164,26 +164,41 @@ function openScreen(tab0) {
     const rows = t.dailies.map(d => ticketRow(t, d));
     const share = sw.done ? tubeButton('SHARE TODAY', { kind: 'secondary', block: true, cls: 'dy-share', onClick: () => shareToday(t) }) : null;
     els.next = h('div.dy-next', { 'aria-live': 'off' });
-    els.body.append(...[els.meter, h('div.dy-rows', ...rows),
-      share, els.next].filter(Boolean));
+    // DFIX3 — TODAY CENTRED: one box (the meter → the tickets → SHARE → the countdown) sits mid-way between the tabs and the bottom safe area; taller
+    // than the space (a third daily, the gated line) → it simply scrolls from the top (an auto margin, never a flex centre that clips)
+    els.body.append(h('div.dy-today', ...[els.meter, h('div.dy-rows', ...rows), share, els.next].filter(Boolean)));
     tickNext();
+    if (stampNext.size) { for (const id of stampNext) { const s = els.body.querySelector(`.dy-ticket[data-id="${id}"] .dy-stamp`); if (s) stampDown(s); } stampNext.clear(); }
     if (sweepNext && sw.swept) { sweepNext = false; playSweep(); }
   }
 
+  /** DFIX3 — THE PREMIUM TICKET: paper (the CC0 grain tile), a tear-off STUB (the art + the serial, a row of punched holes), the name + the hook
+   *  / the result, and on the right PLAY · RESUME · the ADMITTED stamp (drawn, tilted — never the green check circle); a lift shadow under it, at
+   *  night a neon edge + a foil sheen that drifts (transform only; held while scrolling / reduced motion) */
   function ticketRow(t, d) {
     const st = rowState(t, d.id), row = dailyRow(d.id) || {};
     const art = h('span.dy-art', { html: TICKET_ART[d.ticket] || TICKET_ART[row.ticket] || TICKET_ART.star });
+    const serial = h('span.dy-serial', { 'aria-hidden': 'true' }, serialOf(t.day));
     let info, act;
     if (st === 'done') {
-      // DONE: the result where the hook was (the score + YOUR TABLE's place, or the everyone line), a drawn check on the right
+      // DONE: the result where the hook was (the score + YOUR TABLE's place, or the everyone line), the ADMITTED stamp on the right
       const tb = tableFor(t, d.id, { names: names(), me: me(), better: d.better });
       const gated = !!(t.gated && t.gated[d.id]);
       const sub = gated ? COUNTS_FROM_TOMORROW : tb.line || everyoneLine(t.stand && t.stand[d.id]) || 'DONE FOR TODAY';
       info = h('div.dy-info', h('b.dy-name', d.name), h('span.dy-result', lineOf(d.id, t.mine[d.id])), h('small.dy-rank', sub));
-      act = h('span.dy-check', { html: CHECK, role: 'img', 'aria-label': 'done' });
+      act = h('span.dy-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' });
     } else info = h('div.dy-info', h('b.dy-name', d.name), h('span.dy-hook', d.hook || row.hook || row.tag || ''));
     if (st !== 'done') act = tubeButton(st === 'progress' ? 'RESUME' : 'PLAY', { kind: st === 'progress' ? 'secondary' : 'main', cls: 'dy-play', onClick: () => play(d.id) });
-    return h(`div.dy-ticket.is-${st}`, { dataset: { id: d.id }, style: { '--tk0': themeInk(d.id) } }, h('div.dy-stub', art), info, h('div.dy-act', act));
+    const ticket = h(`div.dy-ticket.is-${st}`, { dataset: { id: d.id }, style: { '--tk0': themeInk(d.id) } },
+      h('div.dy-stub', art, serial), info, h('div.dy-act', act), h('i.dy-foil', { 'aria-hidden': 'true' }));
+    return h('div.dy-tkw', ticket);
+  }
+  /** the stamp comes DOWN (the daily just finished on this phone): scale-in + a settle + a tiny ink spread — transform + opacity only; reduced
+   *  motion = it is simply there */
+  function stampDown(el) {
+    if (!el || reducedMotion()) return;
+    el.classList.remove('is-down'); void el.offsetWidth; el.classList.add('is-down');
+    try { sfx('select'); } catch { /* polish */ }
   }
 
   // SCORES — YOUR TABLE as SLIM CARDS (DFIX2 — Ben: "they look so good, we need to start using them"): each FINISHER's row = their equipped slim
@@ -191,31 +206,33 @@ function openScreen(tab0) {
   // under it at its right end (never over the card), YOU = your card + a lit frame; the ones STILL TO PLAY get no card — one line under the
   // cards; a long table = the top 5 + you (your real place) + SHOW ALL n. The everyone line stays at the panel's foot.
   function paintScores(t) {
+    let lonely = true;   // (DFIX3: no friend at any table → ONE hint at the foot, never inside a panel)
     for (const d of t.dailies) {
       const tb = tableFor(t, d.id, { names: names(), me: me(), better: d.better });
       const mineDone = t.mine && t.mine[d.id] != null;
       const { finishers, waiting } = cardRows(tb.rows);
       const cut = tableCut(finishers, { all: !!showAll[d.id] });
-      const list = h('ol.board-list.is-strips.dy-cards', { 'aria-label': `${d.name} — your table` },
-        ...cut.shown.map(r => h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.place === 1 ? '.is-first' : ''}`, { dataset: { pid: r.pid } },
-          h('span.lb-rank', r.place ? ordinal(r.place) : ''),
+      const soloTable = finishers.length <= 1;   // (DFIX3 — a table of one: the card alone, no rank; the ranks come with a second finisher)
+      const list = h(`ol.board-list.is-strips.dy-cards${soloTable ? '.is-solo' : ''}`, { 'aria-label': `${d.name} — your table` },
+        ...cut.shown.map(r => h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.place === 1 && !soloTable ? '.is-first' : ''}`, { dataset: { pid: r.pid } },
+          h('span.lb-rank', r.place && !soloTable ? ordinal(r.place) : ''),
           h('div.lb-card.dy-card', h('div.lb-sub',
             r.gated ? h('small.dy-cnote', 'NOT COUNTED') : null,
             h('span.lb-pts', h('span.lb-score.dy-cscore', r.score != null ? lineOf(d.id, r.score) : 'PLAYED')))))));
       const more = cut.hidden.length ? h('button.dy-more', { type: 'button', onclick: () => { sfx('select'); showAll[d.id] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
       const still = stillToPlay(waiting);
-      const solo = tb.rows.length <= 1;
+      if (tb.rows.length > 1) lonely = false;
       els.body.append(h('section.dy-sec', { style: { '--tk0': themeInk(d.id) }, dataset: { id: d.id } },
         h('h2.dy-sec-h', h('span.dy-sec-art', { html: TICKET_ART[d.ticket] || TICKET_ART.star }), d.name),
         h('h3.dy-sub', 'YOUR TABLE'),
         cut.shown.length ? list : null,
         more,
         still ? h('p.dy-still', still) : null,
-        solo ? h('p.dy-quiet', 'Add friends from a player’s name tag — their scores sit here.') : null,
         !mineDone && finishers.length ? h('p.dy-quiet', 'Play it to see their scores.') : null,
         everyoneLine(t.stand && t.stand[d.id]) ? h('p.dy-every', everyoneLine(t.stand[d.id])) : null));
       if (cut.shown.length) dressCards(list, cut.shown, d);
     }
+    if (lonely) els.body.append(h('p.dy-foot-hint', FOOT_HINT));
   }
   /** the strips into their rows (async: the kit loads once a page) — a friend from their card in the friends list, you from `me` */
   async function dressCards(list, rows, d) {
@@ -272,6 +289,8 @@ let pidMod = null;
 const pidNow = () => (pidMod ? pidMod.myPid() : null);
 const pidReady = import('../profile/me.js').then(m => { pidMod = m; }).catch(() => {});
 /** a daily's ink on the ticket (its theme accent) — THE PASSWORD pink, COAST CLEAR cyan, else the house pink */
+/** DFIX3 — the one hint at the foot of SCORES while no friend sits at any table (the house small-caps style) */
+export const FOOT_HINT = 'ADD FRIENDS BY THEIR NAME TAG — THEIR SCORES LAND HERE';
 const themeInk = id => ({ password: '#ff5ec4', coastclear: '#5fe1ff' })[id] || '#ff6fc8';
 
 /** PLAY / RESUME: a profile first (the dailies are official — /api counts them), then the run */
@@ -287,10 +306,14 @@ async function play(id) {
 
 // ------------------------------------------------------------------------------------------------ SHARE TODAY
 async function shareToday(t) {
-  try { const m = await import('../daily/share-today.js'); await m.shareToday(t, lineOf); } catch (e) { console.warn('[daily share]', e); }
+  try {
+    const m = await import('../daily/share-today.js');
+    const pub = pidMod && pidMod.myPublic ? pidMod.myPublic() : null;   // (DFIX3 — the streak flame on the share image: the profile's streak)
+    await m.shareToday(t, lineOf, { streak: pub && Number(pub.s) > 0 ? Number(pub.s) : 0 });
+  } catch (e) { console.warn('[daily share]', e); }
 }
 
-// ------------------------------------------------------------------------------------------------ A RUN (+ its lesson)
+// ------------------------------------------------------------------------------------------------ A RUN (+ its one-time hint)
 function openRun(id) {
   const O = overlay('dy-run', () => goScreen());
   const row = dailyRow(id) || {};
@@ -305,28 +328,19 @@ function openRun(id) {
     if (gone) return;
     const t = todayNow() || (await loadToday());
     if (gone) return;
-    if (row.lesson && typeof mod.createLesson === 'function' && !(t && t.lessons && t.lessons[id]) && !(heldRun() && heldRun().id === id)
-      && !(t && t.started && t.started[id])) {
-      await lesson();
-      if (gone) return;
-    }
-    mount();
+    // DFIX3 — THE ONE-TIME HINT (the owner, Nov 8 — the practice harbor CUT): a daily with a `lesson` row + a HINT line shows it ONCE, under the board
+    // of a player's FIRST run (never on a resume, a held run or a seen one — the server's flag, every device)
+    const hint = row.lesson && typeof mod.HINT === 'string' && !(t && t.lessons && t.lessons[id]) && !(heldRun() && heldRun().id === id)
+      && !(t && t.started && t.started[id]) ? mod.HINT : null;
+    mount(hint);
   })().catch(e => { console.warn('[daily run]', e); if (!gone) stage.append(h('p.dy-quiet.dy-fail', 'The daily couldn’t open. Check your signal and try again.')); });
 
-  /** the first-time lesson (never scored, never the day's board) → seen once per player (the server keeps it) */
-  function lesson() {
-    return new Promise(res => {
-      const L = mod.createLesson({
-        onDone: () => {
-          L.unmount(); clear(stage); markLesson(id);
-          import('../profile/api.js').then(a => a.api('daily', { action: 'lesson', game: id })).catch(() => {});
-          res();
-        },
-      });
-      L.mount(stage);
-    });
+  /** the hint has gone (the first number landed) → seen once per player (the server keeps it on the profile) */
+  function hintSeen() {
+    markLesson(id);
+    import('../profile/api.js').then(a => a.api('daily', { action: 'lesson', game: id })).catch(() => {});
   }
-  function mount() {
+  function mount(hint = null) {
     clear(stage);
     if (heldRun() && heldRun().id === id) dropHeld();     // (THE ROOM WINS: back in the run — the chip's job is done)
     syncMidFlag(true);                                    // (DFIX2: a run open in a room → the host's MID-DAILY line)
@@ -336,7 +350,7 @@ function openRun(id) {
     const game = mod.daily.create({ date: dk, uid, now, daySet: { v: 1, day: dk } });
     const players = { [uid]: { name: (loadProfile() || {}).name || 'YOU', color: (loadProfile() || {}).color || 'cyan', avatar: (loadProfile() || {}).avatar || 'bolt' } };
     view = mod.createView();
-    view.mount(stage, { uid, game, players, meta: { status: 'playing' }, ...(judge ? { judge } : {}) });
+    view.mount(stage, { uid, game, players, meta: { status: 'playing' }, ...(judge ? { judge } : {}), ...(hint ? { hint, onHint: hintSeen } : {}) });
   }
   /** the cartridge's API judge, heard: the start (IN PROGRESS), the finish (the score in at once, THE SWEEP moment, counts-from-tomorrow) */
   function wrapJudge(j) {
@@ -346,6 +360,7 @@ function openRun(id) {
       const r = await j.finish();
       done = true;
       markFinished(id, r.score, r);
+      stampNext.add(id);   // (DFIX3 — the ticket's stamp comes down on the next TODAY paint)
       if (r.outcome && r.outcome.swept) sweepNext = true;
       if (r.counted === false) later(() => gatedLine(), 1600);
       return r;
@@ -377,5 +392,6 @@ function openRun(id) {
 }
 // (test hook: the screens' state)
 if (typeof window !== 'undefined') window.__daily2 = { syncDaily, state: () => ({ screen: !!scr, run: run ? run.id : null, key: lastKey }), sweptAt: () => sweptAt, heldRun, setSweepNext: v => { sweepNext = !!v; },
+  setStampNext: id => { stampNext.add(id); },   // (DFIX3 — the previews + the tests: the stamp-down on the next paint)
   // DFIX2 — the tests: the effect surfaces open on SCORES (0 once the screen closes), the 4 am turn (stale = make the kept answer yesterday's)
   surfaces: () => (scr ? scr.surfaces() : 0), stale: staleToday, turn: turnNow };

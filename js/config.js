@@ -87,8 +87,8 @@ export const DAILIES = [
   { id: 'coastclear', name: 'COAST CLEAR', theme: 'coastclear', tag: 'DAILY · THE NIGHT HARBOR', blurb: 'Slip your boat across the harbor past the hidden searchlights. Buoy the ones you find. Once a day.', hook: 'Slip past the searchlights.', playable: false, daily: true, order: 2, ticket: 'coastclear', lesson: true, on: true },
   // (a THIRD daily — TBD, DM1: its cartridge (docs/cartridge.md D2) + ONE row here; nothing else counts the dailies)
 ];
-// DM1 — PLUG-AND-PLAY: every row's `order` (the picker's order), `ticket` (its ticket art key — DM2), `lesson` (a first-time lesson — DM2's
-// practice harbor), `on` (in the set). DM2: `hook` = the TODAY row's one line (else `tag`). The server opens a row only while THE GO-LIVE SWITCH is on (api/_lib/dailies.js) — `on` alone opens nothing.
+// DM1 — PLUG-AND-PLAY: every row's `order` (the picker's order), `ticket` (its ticket art key — DM2), `lesson` (a first-time lesson — DFIX3's
+// ONE-TIME HINT under the board, the cartridge's HINT line), `on` (in the set). DM2: `hook` = the TODAY row's one line (else `tag`). The server opens a row only while THE GO-LIVE SWITCH is on (api/_lib/dailies.js) — `on` alone opens nothing.
 export const gameRow = id => GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || null;
 
 /** WINDOWS: can a match of this game start? (the one switch: GAMES[].playable) */

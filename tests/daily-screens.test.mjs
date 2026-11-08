@@ -107,3 +107,24 @@ test('DFIX2 — SLIM CARDS ON SCORES: the finishers vs STILL TO PLAY, the top 5 
   assert.deepEqual(inTop.shown.map(r => r.place), [1, 2, 3, 4, 5]); assert.equal(inTop.hidden.length, 6);
   assert.deepEqual(tableCut(rows(11), { all: true }).hidden, [], 'SHOW ALL opens the rest in place');
 });
+
+// ---------------------------------------------------------------- DFIX3 — THE PREMIUM TICKET's drawn pieces (js/daily/ticket-art.js)
+import { serialOf, dateLineOf, stampSvg, STAMP_WORD, TICKET_ART, TICKET_PATHS } from '../js/daily/ticket-art.js';
+
+test('DFIX3 — the serial is the day key\'s MMDD ("Nº 1108"), the date line its own calendar day ("SUN NOV 8"); a missing key falls back to the clock', () => {
+  assert.equal(serialOf('d20261108'), 'Nº 1108');
+  assert.equal(serialOf('d20270101'), 'Nº 0101');
+  assert.equal(dateLineOf('d20261108'), 'SUN NOV 8');
+  assert.equal(dateLineOf('d20261225'), 'FRI DEC 25');
+  const at = Date.UTC(2026, 10, 8, 17);
+  assert.match(serialOf(null, at), /^Nº \d{4}$/);
+  assert.match(dateLineOf(null, at), /^[A-Z]{3} [A-Z]{3} \d{1,2}$/);
+});
+test('DFIX3 — the ADMITTED stamp is DRAWN (an SVG: a double rounded border + the word, no glyph, no emoji), each with its own filter id; the art keys share one table', () => {
+  const a = stampSvg(), b = stampSvg();
+  assert.ok(/<svg/.test(a) && (a.match(/<rect/g) || []).length === 2 && a.includes(`>${STAMP_WORD}<`) && a.includes('feDisplacementMap'));
+  assert.notEqual(/id="([^"]+)"/.exec(a)[1], /id="([^"]+)"/.exec(b)[1], 'two stamps on one page: two filter ids');
+  assert.ok(!/[✓✕⌫]|\p{Extended_Pictographic}/u.test(a), 'no glyph, no emoji');
+  assert.deepEqual(Object.keys(TICKET_ART).sort(), Object.keys(TICKET_PATHS).sort());
+  for (const k of Object.keys(TICKET_PATHS)) assert.ok(TICKET_ART[k].includes(TICKET_PATHS[k]), `${k}: the share image draws the same paths`);
+});

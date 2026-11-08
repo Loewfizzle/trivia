@@ -8,8 +8,11 @@
 <!-- DM2 — THE DAILY SCREENS without Firebase or /api (the REAL js/screens/daily.js through an import map: fake-firebase + fake-daily-api).
        ?state=waiting | one | mixed | swept | progress | gated | fake3      TODAY's states (&tab=scores = SCORES) · &sweep=1 plays THE SWEEP moment
        &tab=scores&big=1                                                  DFIX2: 12 friends — the top 5 + you at 9TH + SHOW ALL 11 (with state=swept)
-       ?view=lesson                                                       COAST CLEAR's PRACTICE HARBOR (&step=0..3)
        ?view=banner                                                       THE ROOM WINS' banner ("GAME STARTING · YOUR DAILY IS SAVED")
+       ?view=share&look=night|day (&state=swept|one) (&streak=12)        DFIX3 — SHARE TODAY's image from THE PREMIUM TICKET, at real size (1080 × 1350)
+       &stamp=1                                                          DFIX3 — the ADMITTED stamp's stamp-down on the first paint (with state=swept|one)
+       &corner=1                                                         DFIX3 — the real corner music button over the screen (the day look's colours)
+       &solo=1                                                           DFIX3 — a table of ONE (you alone on SCORES: no rank, the card alone)
        &look=day | night                                                  the look (THE GAME LOOK — Settings in the app)
      DFIX2 — SLIM CARDS ON SCORES: the fake friends wear REAL cards (a legendary, a rare, an uncommon, one UNAPPROVED → its plain colours, one with
      no card → the Gilded plain strip, one 12-letter name); the page approves exactly that set through &labmarks= (js/vault/approved.js — a local
@@ -82,8 +85,10 @@ if (big) {
   pick.friends.P_lou = {}; pick.friends.P_sam = {};
   pick.mine = { password: 5, coastclear: 132 };
 }
+if (q.get('solo') === '1') { window.__dyFriends = []; pick.friends = {}; }   // (DFIX3 — a table of one: you alone)
 const dailies = pick.extra ? [...D, { id: 'nightcap', name: 'THE NIGHTCAP', order: 3, ticket: 'star', lesson: false, better: 'high', hook: 'A third daily, plugged in by one row.' }] : D;
-window.__dyToday = { day: 'd20261108', dailies, mine: pick.mine, gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table, ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
+const table2 = q.get('solo') === '1' ? [] : table;
+window.__dyToday = { day: 'd20261108', dailies, mine: pick.mine, gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table: table2, ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
 
 const { state, setState, subscribe } = await import('/js/store.js');
 state.uid = 'pv';
@@ -94,20 +99,34 @@ if (view === 'screen') {
   const M = await import('/js/screens/daily.js');
   subscribe(st => M.syncDaily(st));
   if (q.get('sweep') === '1') window.__daily2.setSweepNext(true);
+  if (q.get('stamp') === '1') for (const d of dailies) if (pick.mine[d.id] != null) window.__daily2.setStampNext(d.id);   // (DFIX3 — the stamp moment)
+  if (q.get('corner') === '1') {
+    // the real corner button as the title dresses it (body.nd-on + title.css + the tube icon — title-dock.js#dressCorners): the overlay sits over the title
+    const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/css/title.css'; document.head.append(l);
+    await new Promise(r => { l.onload = r; l.onerror = r; });
+    document.body.classList.add('nd-on');
+    const { ICON, dressCorners } = await import('/js/screens/title-dock.js');
+    const b = document.createElement('button'); b.className = 'music-btn'; b.type = 'button'; b.setAttribute('aria-label', 'Music');
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>';
+    document.body.append(b); dressCorners(true); void ICON;
+  }
   setState({ daily: { v: 'screen', tab: q.get('tab') === 'scores' ? 'scores' : 'today' } });
   // (the cards' strips land async — the shots wait for them: data-strips on every list)
   if (q.get('tab') === 'scores') { for (let i = 0; i < 100 && ![...document.querySelectorAll('.dy-cards')].every(l => l.dataset.strips); i++) await new Promise(r => setTimeout(r, 50)); }
-} else if (view === 'lesson') {
+} else if (view === 'share') {
+  // DFIX3 — THE SHARE IMAGE at real size (the preview's own stage; the fonts loaded first so the canvas draws them)
   await import('/js/screens/daily.js').then(m => m.dailySheet());
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/css/coastclear.css'; document.head.append(l);
-  const { createLesson } = await import('/js/games/coastclear/lesson.js');
-  const el = document.createElement('section'); el.className = 'screen screen-in'; el.style.cssText = 'position:fixed;inset:0';
-  document.getElementById('stage').append(el);
-  const L = createLesson({ onDone: () => { el.dataset.done = '1'; } });
-  L.mount(el);
-  window.__lesson = L;
-  const step = Number(q.get('step') || 0);
-  for (let i = 0; i < step; i++) L.next && L.next();
+  try { await document.fonts.load('900 92px Orbitron'); await document.fonts.load('800 40px "Chakra Petch"'); await document.fonts.load('700 20px "JetBrains Mono"'); } catch { /* fine */ }
+  const { drawToday } = await import('/js/daily/share-today.js');
+  const { lineOf } = await import('/js/screens/daily.js');
+  const metas = {}; for (const d of dailies) metas[d.id] = await import(`/js/games/${d.id}/meta.js`).catch(() => ({}));
+  const line = (id, s) => (metas[id] && metas[id].scoreLine ? metas[id].scoreLine(s) : String(s));
+  void lineOf;
+  const cv = await drawToday(window.__dyToday, line, document.body.dataset.look, { streak: Number(q.get('streak') ?? 12) });
+  cv.style.cssText = 'display:block;max-width:100%;max-height:100%;margin:auto;object-fit:contain';
+  const st = document.getElementById('stage'); st.style.cssText += ';display:grid;place-items:center;background:#222';
+  st.append(cv);
+  window.__share = cv;
 } else if (view === 'banner') {
   const M = await import('/js/screens/daily.js');
   await M.dailySheet();

@@ -170,6 +170,13 @@ username + the board id leave the server (server.test.mjs).
   (where others do see it) or an emblem — the admin sees the real name next to the report and decides.
 
 ## Admin (`/admin`)
+- **DFIX3 (Nov 8):** `‹ BACK TO THE CITY` at the top of the authorized page (the denied page always had one). **THE DAILIES card** gained **THE STATS**
+  (`dailyStats`, admin only, read-only — no audit line): per live daily STARTED · FINISHED today + the last 7 days as columns (the day nodes' keys —
+  `dly/{game}/{day}/s` + `/r` — a few small reads, never a scan of the profiles), and **TODAY'S PLAYERS** (everyone with a start today, newest first,
+  ≤ 50 of n): name#tag → the player, LV, each daily's score line / PLAYING / —, COUNTS or NEW TODAY (THE THROWAWAY GATE), and **ADD FRIEND** through
+  the EXISTING `friendButton` (`js/profile/friends-ui.js` — the ordinary friend request they accept; REQUESTED / FRIENDS by itself; never for yourself —
+  the page now sets `state.uid` so the profile modules know this browser's identity). Nothing leaves the admin.
+
 - **THE ADMIN CHECK NEVER CACHES A NO** (PERF-A — `screens/harbor/remote.js#checkAdmin`, the ☰ menu's ADMIN row on `?city=2`): only a yes with a
   real pid is kept (6 h, per tab); a whoami with no pid (this login not linked yet) waits for the profile sync and asks once more; every
   profile change (a restore, a first link — `me.js` fires `nd:me`) asks again.

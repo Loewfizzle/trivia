@@ -23,7 +23,7 @@ export const BANDS = [
 
 // ------------------------------------------------------------------ THE LIST (DM1 — PLUG-AND-PLAY: no fixed count anywhere)
 // ONE registry the server + the phone share: config.js#DAILIES (each row: id · name · order · ticket (its ticket art key) · lesson (a first-time
-// lesson — DM2's practice harbor) · on (in the set)) + the TEST-ONLY rows a test adds (addDailyRow). Adding a daily = its cartridge (D2) + one row.
+// lesson — DFIX3's one-time hint, the cartridge's HINT line) · on (in the set)) + the TEST-ONLY rows a test adds (addDailyRow). Adding a daily = its cartridge (D2) + one row.
 //   dailyRows()     → every row, in order (the phone's picker, the TODAY rows, the SCORES tabs — DM2)
 //   listedDailies() → the rows switched on (`on` !== false)
 //   todaysDailies() → the dailies LIVE on this server: the registered cartridges, in the list's order (the server registers exactly the list's

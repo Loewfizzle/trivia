@@ -17,19 +17,26 @@
 //                                 unfinished run too, its day in startedDay: { game: yday }), stand: { game:
 //                                 { n, top, pct } } (a counted score's place once ≥ BAND_MIN), lessons: { game: 1 }, countsFrom? (a same-day profile), friends: { pid: { game: { done } | { score } } }, table: [pid] }
 //                                 (YOUR TABLE's TODAY — FRIENDS A: only YOUR FRIENDS (pfr/{pid}/f), ≤ 12; a friend's NON-COUNTING result is left out)
-//   lesson { game }            → { ok }   DM2 — a daily's first-time lesson seen (pstats/{pid}/ls/{game} — once per player, every device)
+//   moves  { game, list: [{ a: 'dig' | 'chord', cell, buoys? }…] } → { day, answers: [resp | { refused }], now }   DFIX3 — COALESCED MOVES: the taps a
+//                                 phone queued while an answer was in flight go out TOGETHER (≤ MAX_BATCH), applied in order inside ONE transaction on
+//                                 the record (one invocation answers several cells; a refused move is its own { refused } slot, the rest still land)
+//   lesson { game }            → { ok }   DM2 — a daily's first-time lesson seen (pstats/{pid}/ls/{game} — once per player, every device; DFIX3: THE
+//                                 ONE-TIME HINT reads the same flag — `hint` rows)
 //   room   { room }            → { mid: [uid…] }   DM1 — which players of YOUR room have a daily in flight (uids only — nothing about a run; DM2's host line)
 //
 //   dly/{game}/{day}/s/{pid}: startedAt · r/{pid}: score · x/{pid}: 1 (DM1 — a non-counting result) · h/{bucket}: count · n: finishers · p/{pid}: a judged
 //   daily's record · b: the day's data (THE 4 AM PICKER — the pair / the board) · c: THE DAY'S CLOSE marker (DFIX2 — _lib/daily-close.js: PENTHOUSE
 //   decided once the day is over, by the first start / today after 4 am)      (server only — the rules' default deny)
 //   DM1 — THE CALL BUDGET: CALLS.max calls a uid per CALLS.windowMs (rl/dc_{uid} — a COAST CLEAR run is ~50–110 calls, a PASSWORD run ≤ 15) → 429 slow_down
+//   DFIX3 — THE DIG PATH (docs/coastclear.md "The dig path + its timings"): a move waits on the database TWICE — the reads (the record + the start +
+//   the board memo, in parallel) and ONE transaction attempt (the record is held in the SDK's cache by a listener for the call, so the transaction's
+//   first run sees the real value — no "first null" round trip); the budget is a per-instance counter with the shared rl/ count written BEHIND it;
+//   uid → pid memoised a minute. Every answer carries `Server-Timing` (auth · pre · load · tx;desc=attempts · total · region — no secrets).
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val } from './_lib/fb.js';
 import { pidOf } from './_lib/profiles.js';
 import { bumpOwners } from './_lib/owners.js';
-import { outageDays } from './_lib/stats.js';
 import { take } from './_lib/limit.js';
 import { dailySeed, openDailies, pickDay } from './_lib/dailies.js';
 import { roomStarted, midDaily } from './_lib/daily-room.js';
@@ -39,18 +46,63 @@ import { streakDay, dayNum, dayOf, dayStartAt } from '../js/core/streak.js';
 import { dailyStep } from '../js/core/progress.js';
 import { levelOf, emblemRank } from '../js/core/levels.js';
 import { easternParts } from '../js/core/week.js';
-import { founderOpen } from './_lib/founder.js';
 import { isPid } from './_lib/profiles.js';
 import { tablePids } from '../js/core/friends.js';
 
 /** DM1 — THE CALL BUDGET: generous for real play (both dailies, retries, refreshes), a flood refused */
 export const CALLS = { max: 400, windowMs: 10 * 60_000 };
+/** DFIX3 — a coalesced call carries at most this many moves (a phone queues taps only while one answer is in flight) */
+export const MAX_BATCH = 12;
 
+/** DFIX3 — Server-Timing (no secrets): the phases of a call in ms + the region the function ran in → the header's value */
+export function timing() {
+  const t0 = performance.now();
+  let last = t0;
+  const marks = [];
+  const r = v => Math.round(v * 10) / 10;
+  return {
+    mark(name, desc) { const t = performance.now(); marks.push([name, r(t - last), desc]); last = t; },
+    header() {
+      const parts = marks.map(([n, d, x]) => `${n};dur=${d}${x != null ? `;desc="${String(x).replace(/[^\w .:-]/g, '')}"` : ''}`);
+      parts.push(`total;dur=${r(performance.now() - t0)}`);
+      if (process.env.VERCEL_REGION) parts.push(`region;desc="${String(process.env.VERCEL_REGION).replace(/[^\w-]/g, '')}"`);
+      return parts.join(', ');
+    },
+  };
+}
+const noTiming = { mark() {}, header: () => '' };
+
+// DFIX3 — THE BUDGET OFF THE DIG PATH: a per-instance window counter decides AT ONCE; the shared count (rl/dc_{uid} — every warm instance) is
+// written behind it, never waited for, and its refusal lifts the local count so a flood across instances still stops within one round trip
+const BUDGET = new Map();
+function budget(uid, now) {
+  const key = String(uid).replace(/[.#$[\]/]/g, '_');
+  let b = BUDGET.get(key);
+  if (!b || now - b.t >= CALLS.windowMs || now < b.t) {
+    b = { n: 0, t: now };
+    BUDGET.set(key, b);
+    if (BUDGET.size > 4000) for (const k of [...BUDGET.keys()].slice(0, 1000)) BUDGET.delete(k);
+  }
+  if (b.n >= CALLS.max) return false;
+  b.n++;
+  take(`dc_${key}`, CALLS.max, CALLS.windowMs, now).then(ok => { if (!ok) b.n = Math.max(b.n, CALLS.max); }).catch(() => {});
+  return true;
+}
+export const forgetBudgets = () => BUDGET.clear();
+
+// DFIX3 — uid → pid memoised a minute per warm instance (uids/{uid} is written once at the profile's creation; a restore re-links a device from the
+// profile screen, never mid-dig — the memo is short and only ever a HIT, a miss asks the database)
+const PIDS = new Map(), PID_TTL = 60_000;
 async function mine(uid) {
+  const m = PIDS.get(uid);
+  if (m && Date.now() - m.at < PID_TTL) return m.pid;
   const pid = await pidOf(uid);
   if (!pid) throw new ApiError(404, 'no_profile');
+  PIDS.set(uid, { pid, at: Date.now() });
+  if (PIDS.size > 5000) for (const k of [...PIDS.keys()].slice(0, 1000)) PIDS.delete(k);
   return pid;
 }
+export const forgetPids = () => PIDS.clear();
 const cartOf = id => { const c = dailyOf(id); if (!c) throw new ApiError(404, 'no_daily'); return c; };
 const DAY_KEY = /^d\d{8}$/;
 /** the streak day before `dk` */
@@ -73,11 +125,12 @@ export const countsOn = (createdAt, day) => !(Number(createdAt) > 0) || Number(c
 /** the profile's server-side creation time (ppriv/{pid}/at — written once, by the server, when the profile is made) */
 const createdAtOf = pid => val(`ppriv/${pid}/at`);
 
-export async function dailyAction(uid, body, now = Date.now()) {
+export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
   body = body && typeof body === 'object' ? body : {};
-  // the live dailies (THE GO-LIVE SWITCH, cached) + THE CALL BUDGET — together (the budget never adds a wait to a dig)
-  const [, allowed] = await Promise.all([openDailies(now), take(`dc_${String(uid).replace(/[.#$[\]/]/g, '_')}`, CALLS.max, CALLS.windowMs, now)]);
-  if (!allowed) throw new ApiError(429, 'slow_down', 'Too many moves — wait a minute.');
+  // THE CALL BUDGET (in memory — DFIX3: it never adds a wait to a dig) + the live dailies (THE GO-LIVE SWITCH, cached ~30 s)
+  if (!budget(uid, now)) throw new ApiError(429, 'slow_down', 'Too many moves — wait a minute.');
+  await openDailies(now);
+  T.mark('pre');
   const today = streakDay(now);
   switch (body.action) {
     case 'start': {
@@ -130,33 +183,58 @@ export async function dailyAction(uid, body, now = Date.now()) {
       if (!tx.committed || !out) throw new ApiError(409, refused === 'done' ? 'finished' : refused === 'closed' ? 'closed' : 'refused', refused === 'done' ? 'Today’s run is done.' : 'That door is closed.');
       return { day, ...out };
     }
-    case 'dig': case 'chord': case 'pause': case 'resume': {
-      // CC1 — a judged cartridge's MOVES (COAST CLEAR): the day's data (its board) + the start in parallel, then ONE transaction on the record
+    case 'dig': case 'chord': case 'pause': case 'resume': case 'moves': {
+      // CC1 — a judged cartridge's MOVES (COAST CLEAR): the record + the start + the day's data (its board) in parallel, then ONE transaction on the
+      // record. DFIX3 — `moves` = several queued taps in ONE call (applied in order, one transaction, one answer each); THE DIG PATH = two waits
       const day = dayOfCall(body, now);
       const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
-      if (!cart.judged || typeof cart.act !== 'function' || !(cart.moves || []).includes(body.action)) throw new ApiError(400, 'bad_action', 'This daily has no such move.');
-      const [startedAt, data, room] = await Promise.all([val(`${base}/s/${pid}`), cart.load ? cart.load(day, now) : null,
-        body.action === 'pause' ? roomStarted({ uid, pid, code: body.room, now }) : null]);
-      if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
-      // DM1 — THE ROOM WINS: a pause only for a room that really started a game (the clock keeps running otherwise)
-      if (body.action === 'pause' && !room) throw new ApiError(409, 'no_room_game', 'The clock only stops when your room starts a game.');
-      let out = null, refused = null, status = 409;
-      await ref(`${base}/p/${pid}`).transaction(cur => {
-        out = null; refused = null;
-        const r = cart.act({ action: body.action, body, record: cur, day, startedAt, now, data });
-        if (r.refused) { refused = r.refused; status = r.status || 409; }
-        else out = r.resp;
-        // a transaction's FIRST call may see null (nothing cached here): never abort on it — write what the move made (or the fresh record), so
-        // the server checks it against the stored one and retries with the real record
-        if (cur == null) return r.record || { st: startedAt };
-        return r.record || undefined;                              // nothing changed (a repeat, a refusal) → nothing written
-      });
-      if (refused) {
-        const code = refused === 'done' ? 'finished' : refused;
-        throw new ApiError(status, code, code === 'finished' ? 'Today’s run is done.' : code === 'pause_limit' ? 'No more pauses this run — the clock is running.' : 'That move doesn’t work there.');
+      const batch = body.action === 'moves';
+      if (!cart.judged || typeof cart.act !== 'function') throw new ApiError(400, 'bad_action', 'This daily has no such move.');
+      let list;
+      if (batch) {
+        list = Array.isArray(body.list) ? body.list : null;
+        if (!list || !list.length || list.length > MAX_BATCH || !list.every(m => m && typeof m === 'object' && (m.a === 'dig' || m.a === 'chord') && (cart.moves || []).includes(m.a))) throw new ApiError(400, 'bad_moves', 'Those moves don’t read.');
+        list = list.map(m => ({ a: m.a, cell: m.cell, ...(m.a === 'chord' ? { buoys: m.buoys } : {}) }));
+      } else {
+        if (!(cart.moves || []).includes(body.action)) throw new ApiError(400, 'bad_action', 'This daily has no such move.');
+        list = [{ a: body.action, cell: body.cell, buoys: body.buoys }];
       }
-      if (!out) throw new ApiError(409, 'refused', 'Try that again.');
-      return { day, ...out, now };
+      // the record HELD in the SDK's cache for this call (a listener): the transaction's first attempt then runs on the real value — ONE round
+      // trip, not the "first null" two (the listener goes in `finally`, whatever happens)
+      const recRef = ref(`${base}/p/${pid}`), hold = () => {};
+      recRef.on('value', hold);
+      let outs = [], attempts = 0;
+      try {
+        const [, startedAt, data, room] = await Promise.all([
+          new Promise((res, rej) => recRef.once('value', s => res(s.val()), rej)),
+          val(`${base}/s/${pid}`), cart.load ? cart.load(day, now) : null,
+          body.action === 'pause' ? roomStarted({ uid, pid, code: body.room, now }) : null]);
+        T.mark('load');
+        if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
+        // DM1 — THE ROOM WINS: a pause only for a room that really started a game (the clock keeps running otherwise)
+        if (body.action === 'pause' && !room) throw new ApiError(409, 'no_room_game', 'The clock only stops when your room starts a game.');
+        await recRef.transaction(cur => {
+          attempts++; outs = [];
+          let rec = cur;
+          for (const mv of list) {
+            const r = cart.act({ action: mv.a, body: mv, record: rec, day, startedAt, now, data });
+            if (r.refused) outs.push({ refused: r.refused, status: r.status || 409 });
+            else outs.push({ resp: r.resp });
+            if (r.record) rec = r.record;                          // (a refusal may still close a pause — the record it hands back is kept)
+          }
+          // a transaction's first call could still see null (a cold cache): never abort on it — write what the moves made (or the fresh record), so
+          // the server checks it against the stored one and retries with the real record
+          if (cur == null) return rec || { st: startedAt };
+          return rec !== cur ? rec : undefined;                     // nothing changed (a repeat, a refusal) → nothing written
+        });
+        T.mark('tx', attempts);
+      } finally { recRef.off('value', hold); }
+      const wording = code => (code === 'finished' ? 'Today’s run is done.' : code === 'pause_limit' ? 'No more pauses this run — the clock is running.' : 'That move doesn’t work there.');
+      if (batch) return { day, answers: outs.map(o => (o.refused ? { refused: o.refused === 'done' ? 'finished' : o.refused } : o.resp)), now };
+      const o = outs[0];
+      if (!o) throw new ApiError(409, 'refused', 'Try that again.');
+      if (o.refused) { const code = o.refused === 'done' ? 'finished' : o.refused; throw new ApiError(o.status, code, wording(code)); }
+      return { day, ...o.resp, now };
     }
     case 'finish': {
       const day = dayOfCall(body, now);
@@ -187,6 +265,8 @@ export async function dailyAction(uid, body, now = Date.now()) {
       const stand = standing(cart, h, (n || 0) + (counts ? 0 : 1) || 1, kept);
       if (!counts) stand.band = null;
       // the player's stats: THE STREAK + the DAILY XP (+ the dailies' counters + THE SWEEP + the rewards, counted only) — idempotent by the day's key
+      // (DFIX3 — lazy: stats.js + founder.js pull the boards, friends + push modules a dig never needs — loaded on the first finish of a warm function)
+      const [{ outageDays }, { founderOpen }] = await Promise.all([import('./_lib/stats.js'), import('./_lib/founder.js')]);
       const outage = await outageDays().catch(() => ({}));
       const fOpen = await founderOpen(now).catch(() => false);
       let res = null;
@@ -270,7 +350,10 @@ export async function dailyAction(uid, body, now = Date.now()) {
 }
 
 export default route(['POST'], async (req, res) => {
+  const T = timing();
   const uid = await requireUser(req);
+  T.mark('auth');
   const body = await readBody(req);
-  send(res, 200, withShow(await dailyAction(uid, body)));
+  const out = withShow(await dailyAction(uid, body, Date.now(), T));
+  send(res, 200, out, { 'Server-Timing': T.header() });
 });

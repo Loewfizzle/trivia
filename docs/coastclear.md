@@ -155,13 +155,15 @@ copy) and stored as `{ v, w, h, l: 'cell,…', s: start, a: attempts }` (~95 byt
 - Registered by `api/_lib/dailies.js#loadDailies` **only under `DAILY_TEST=1`**: production answers 404 `no_daily`. No rules change (`dly/` is the
   rules' default deny — server-only).
 
-## THE PRACTICE HARBOR (DM2, Nov 8 — the owner's Step 0; `js/games/coastclear/lesson.js`, css/coastclear.css "THE PRACTICE HARBOR")
-The FIRST time a player opens COAST CLEAR (from THE DAILY SCREEN): a fixed 5 × 5 harbor (one searchlight top-right, its three neighbours 1) in the game's own
-tokens, both looks — three short steps, ONE line each + a soft ring on the cell to tap: (1) tap the glowing water to dig (the calm water floods open) · (2) a 1
-means one searchlight hides next to it · (3) switch to BUOY, tap where the light hides — then **YOU'RE READY** → TODAY'S HARBOR (today's real run; its clock
-starts only then). **SKIP THE LESSON** from the first step. Never scored, never the day's board — nothing sent but "seen" (`/api/daily lesson` →
-`pstats/{pid}/ls/coastclear`, so a new device never repeats it; a held / in-flight run never shows it). Any daily declares one: its row's `lesson: true` +
-`createLesson({ onDone })` from its cartridge (`js/screens/daily.js#openRun`). Preview: `daily-preview.html?view=lesson&step=0..3&look=day`.
+## THE ONE-TIME HINT (DFIX3, Nov 8 — the owner: the practice harbor glitched on his first play → CUT; `js/games/coastclear/index.js#HINT`)
+A player's FIRST COAST CLEAR shows ONE calm line right under the board — **EACH NUMBER = SEARCHLIGHTS TOUCHING THAT SQUARE** (`.cc-hint`, one line at
+390 — `clamp(10px, 2.7vw, 12px)`, both looks through the game's tokens). It stays until the first dig that reveals a NUMBER, then fades (opacity only;
+reduced motion = at once) and the run host marks it seen on the server (`/api/daily lesson` → `pstats/{pid}/ls/coastclear` — the same flag the lesson
+used): never again on any device; never on a resume, a held run or a run already started. The plumbing is PLUG-AND-PLAY like the lesson was: a daily's
+row keeps `lesson: true`, its cartridge exports a `HINT` string, THE DAILY SCREEN's run host (`js/screens/daily.js#openRun`) hands it in as
+`state.hint` + `state.onHint` and the view draws it (`view.js` — the hook's `state().hint`). THE PRACTICE HARBOR (lesson.js, its CSS, its preview view,
+its E2E steps) is gone. Preview: `coastclear-preview.html?hint=1&look=day` (body `data-hint-seen` once it went). Proof: `e2e-daily.mjs` (the hint
+once: shown under the board, gone on the first number, seen on the profile, none on the resume; a new player gets it).
 
 ## The preview (no Firebase — `tests/integration/coastclear-preview.html`)
 The real view against a LOCAL FAKE SERVER (`logic.js#serverAct` on a local record) on a FIXED no-guess test board (the real maker on a fixed seed —
@@ -188,6 +190,35 @@ state at 390 / 402 / 430, desktop, the flood strip), `cc1-e2e` (the E2E's).
   min of Hobby's 4 h); the database download ≈ 50 calls × ~0.6 KB + the finish's streak transaction ≈ 40–50 KB a run → ~150 MB a month (Firebase Spark:
   10 GB — ~1.5 %); storage ≈ 0.4 KB a player a day → ~1.2 MB a month (Spark: 1 GB; `dly/` is never pruned yet — THE DAILY MODULE's job). The
   connections are the functions' own (a warm instance holds one; Spark: 100). (The plan limits as of this writing — check the dashboards.)
+
+## The dig path + its timings (DFIX3, Nov 8 — the owner's first live play: "the DIG LAGS")
+**Measured before the pass (the live site, from the Beelink in Michigan, plain GETs only — no play on the live site):** the functions ran in **iad1**
+(Washington DC — `X-Vercel-Id: cle1::iad1::…`; the edge is cle1 = Cleveland), the database in us-central1 (Iowa). A warm `/api/time` on a kept-alive
+connection: 80–90 ms to the first byte; a `POST /api/daily` that only verified a token (a 401): 180–230 ms. A dig then waited on the database SIX times
+in a row — the budget's `rl/` transaction (2 round trips), `uids/{uid}` (1), the start key (1), the record's transaction with its "first null" attempt
+(2) — ≈ 6 × 25–30 ms from iad1, under the phone ↔ edge ↔ function legs: the ~300–400 ms Ben felt.
+**After (api/daily.js — every correctness guarantee kept: one try, server-judged, a repeat / a reorder free, the replay score, the throwaway gate, THE
+ROOM WINS):**
+1. **The region** — `vercel.json` `"regions": ["cle1"]` (Cleveland: the closest Vercel region to both Ben and Iowa; Hobby allows ONE region — Vercel's
+   changelog "Hobby customers can now select their preferred region"; Vercel has no us-central region). The edge → function hop disappears, each
+   database round trip drops ~10 ms. **Check the first deploy's build log: if Vercel refuses the key on Hobby, remove it and set the region in
+   Project → Settings → Functions instead.**
+2. **Two waits, not six** — THE BUDGET is a per-instance window counter decided at once (the shared `rl/dc_{uid}` count written BEHIND it, never
+   waited for; a refusal from it lifts the local count so a flood across instances still stops within a round trip); uid → pid memoised a minute;
+   the record is HELD in the SDK's cache by a listener for the call (`recRef.on('value')` … `off()` in `finally`), so the transaction's first attempt
+   runs on the real value — ONE round trip, not the "first null" two (`tests/integration/coastclear.test.mjs` proves `tx;desc="1"` on every move);
+   the reads (the record · the start · the board memo) go out in parallel. A dig = [reads] → [one transaction attempt].
+3. **COALESCED MOVES** — the FIRST tap's call fires at once; taps made while an answer is in flight QUEUE on the phone and go out TOGETHER in the next
+   call (`moves { list: [{ a, cell, buoys? }…] }`, ≤ `MAX_BATCH` 12, one transaction, one answer each — a refused move is its own `{ refused }`
+   slot; `judge.moves` in judge.js; the view's `enqueue` / `pump` / `fire`). Six fast taps on a 150 ms line = 2 calls (was 6) — also the
+   BEFORE-PUBLIC invocation fix. A judge without `moves` (the preview's old fake) pipelines singles.
+4. **Warm start** — `stats.js` + `founder.js` (the boards, friends, push modules) load lazily on the first `finish`; a dig's own modules ≈ 35 ms cold,
+   firebase-admin itself ≈ 230 ms (unavoidable: the token check) — no keep-warm.
+**Server-Timing on every answer** (`timing()` — `auth · pre · load · tx;desc=<attempts> · total · region`, no secrets) + a dev log on the phone:
+`&debug=1` prints every tap → number time with the server's phases (`__coastclear.taps()`; the E2E reads them).
+**Measured after (the emulators, the Beelink):** the dig round trip p50 14 ms · p95 20–34 ms; the server's phases p50 auth 1–3 · pre 0–1 · load 1–2 ·
+tx 1–2 · total 3–7 ms — tx attempts 1. **From Michigan on a warm function the model is now** phone ↔ cle1 edge (~35–45 ms) + the token check +
+2 × ~20 ms to Iowa ≈ 90–120 ms to the number (the goal: < ~150 ms) — Ben judges it on tomorrow's harbor.
 
 ## Tests + proof
 - Pure: `node --test tests/coastclear.test.mjs tests/cc-board.test.mjs tests/cartridge.test.mjs`.

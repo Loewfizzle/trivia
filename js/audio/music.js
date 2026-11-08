@@ -724,7 +724,16 @@ onVisibility(v => {
   visible = v;
   if (!current) { apply(); return; }
   // (an element still on its silent blob is being activated: pausing it would abort that — leave it)
-  if (!v) { if (tape.active()) tape.abort('hidden'); positions[current.id] = current.voice.el.currentTime || 0; for (const x of [...voices, ...(direct ? [direct] : [])]) if (!x.el.src.startsWith('blob:')) x.el.pause(); stall = { t: -1, since: 0, still: false }; }
+  // DFIX3 ADD-ON — THE FADE ON LEAVING (engine.js): THE DIRECT PATH's element is paused AT ONCE (iOS ignores its volume — a pause is its only
+  // clean stop, at the start of the master's fade); the graph's voices after the fade has run (a pause mid-buffer under full gain clicked);
+  // a page whose JS iOS froze first is silent anyway — the master ramped and the context suspends
+  if (!v) {
+    if (tape.active()) tape.abort('hidden'); positions[current.id] = current.voice.el.currentTime || 0;
+    const pauseAll = list => { for (const x of list) if (!x.el.src.startsWith('blob:')) x.el.pause(); };
+    if (direct) pauseAll([direct]);
+    setTimeout(() => { if (!visible) pauseAll(voices); }, 110);
+    stall = { t: -1, since: 0, still: false };
+  }
   else {
     heal('back on screen');
     // 1.5 s later: still not sounding? the next tap restarts it (the engine rebuilds a stuck context in that same tap)

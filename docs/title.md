@@ -770,6 +770,9 @@ The SAVE-YOUR-KEY POP-UP's pink dot sits on YOU (both docks) until the key is sa
 - **THE START** (LOBBY FIXES' lit sign + walk-in + fade): no backdrop-filter anywhere while `body.rc-going`.
 
 ## THE SHELL — ONE LOOK EVERYWHERE (SHELL 2.0 A, Nov 5 — docs/harbor/passes/shell-a.md; the mocks: docs/harbor/refs/shell/)
+- **DFIX3 (Nov 8) — the corner music button on THE DAILY SCREEN** (an overlay over the title, so it wears the title's smoked glass): `body[data-daily]`
+  pins it to the SCREEN's corner (the menus' "beside the gear" offset put it half over THE DAILIES sign at 430 — there is no gear there) and by DAY
+  retokens it to light glass + the day text colour (css/daily.css); night unchanged. THE DAILY SCREEN itself: docs/progression.md "DFIX3".
 Four parts, ONE builder + ONE block of CSS each (components.css "THE SHELL"); a new screen uses them, never a copy (tests/shell.test.mjs):
 - **THE NEON TUBE** — every action button: `tubeButton(label, { kind: 'main' | 'secondary' | 'danger', size: 'sm', block, onClick, confirm })`
   or the classes `.btn.btn-primary | .btn-ghost | .btn-danger (.btn-sm, .btn-block)`. ONE main (pink) a screen. A second tap to confirm:

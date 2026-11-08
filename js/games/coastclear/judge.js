@@ -4,6 +4,7 @@
 //   judge.start()               → { startedAt, done (a score, once today's run is finished), run (the opening + the run so far), day, now }
 //   judge.dig(cell)             → { cells: [[cell, n]…], lit: [cell…], spots, done, out?, finishedAt?, already?, now }
 //   judge.chord(cell, buoys)    → the same shape (the phone's buoys around that number)
+//   judge.moves(list)           → { answers: [the same shape | { refused }…], now }   DFIX3 — the taps queued while an answer was in flight, in ONE call
 //   judge.pause() / resume()    → { paused, pauses, pausedMs }   (THE DAILY MODULE calls pause — the room started a game mid-run)
 //   judge.finish()              → { score, stand, outcome }       (the server scores from ITS record; a retry gets the stored score back)
 // Everything goes through js/profile/api.js (fetch + the ID token — no database socket: THE PARKED DATABASE never wakes for a daily).
@@ -15,6 +16,7 @@ export function createApiJudge() {
   return createDailyJudge(GAME_ID, { moves: {
     dig: cell => ({ cell }),
     chord: (cell, buoys) => ({ cell, buoys }),
+    moves: list => ({ list }),   // (DFIX3 — COALESCED MOVES: [{ a: 'dig' | 'chord', cell, buoys? }…] → { answers: [...], now })
     pause: room => (room ? { room } : {}),
     resume: () => ({}),
   } });

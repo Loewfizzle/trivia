@@ -12,6 +12,7 @@
                               caught = three · clear = every safe cell (one spot on the way)
        &flood=1               once ready, a far 0 is dug so the biggest calm area RIPPLES open (film it: shots.mjs --cast)
        &lat=40                the fake's answer time in ms (default 40; &lat=190 = a slow phone line)   &drop=1  answers lost for 3 s (RECONNECTING)
+       &hint=1                DFIX3 — THE ONE-TIME HINT under the board (gone on the first number; body[data-hint-seen] once it went)
        &mode=buoy             the switch on BUOY   &paused=1   the run is paused when the screen mounts (the view resumes it)   &t=95   seconds on the clock
        &seed=preview          the test board's seed   &corner=0   hides the console's corner buttons
      CC2:
@@ -85,6 +86,14 @@ const judge = {
   },
   dig(cell) { return this.act('dig', { cell }); },
   chord(cell, buoys) { return this.act('chord', { cell, buoys }); },
+  /** DFIX3 — COALESCED MOVES: the queued taps in one call, one answer each (a refused one = its { refused } slot) */
+  async moves(list) {
+    this.calls++;
+    await tick();
+    if (Date.now() < dropUntil) throw fail(0, 'offline');
+    const answers = list.map(m => { const r = serverAct(board, this.record, m.a, m, Date.now()); if (r.refused) return { refused: r.refused === 'done' ? 'finished' : r.refused }; if (r.record) this.record = r.record; return r.resp; });
+    return { answers, now: Date.now() };
+  },
   pause() { return this.act('pause', {}); },
   resume() { return this.act('resume', {}); },
   async finish() { await tick(); const v = runView(this.record, board); if (!v.done) throw fail(409, 'not_done'); const again = this.score != null; const { replay } = await import('/js/games/coastclear/logic.js'); this.score = replay(this.record, board).score; return { score: this.score, again }; },
@@ -132,7 +141,8 @@ try { localStorage.setItem(`cc:buoys:${DAY}:${UID}`, [...buoys].join(',')); } ca
 
 // mount the real view, as the console would (state.game = the daily's run shell, state.judge = the fake)
 const game = create({ date: DAY, uid: UID, now: T0, daySet: { v: 1, day: DAY } });
-const state = { uid: UID, game, judge, players: { [UID]: { name: 'YOU', color: 'cyan', avatar: 'bolt' } }, meta: { status: 'playing' } };
+const state = { uid: UID, game, judge, players: { [UID]: { name: 'YOU', color: 'cyan', avatar: 'bolt' } }, meta: { status: 'playing' },
+  ...(q.get('hint') === '1' ? { hint: (await import('/js/games/coastclear/index.js')).HINT, onHint: () => { document.body.dataset.hintSeen = '1'; } } : {}) };   // (DFIX3 — THE ONE-TIME HINT under the board)
 const view = createView();
 view.mount(document.getElementById('screen'), state);
 await new Promise(r => { const t = setInterval(() => { if (window.__coastclear && window.__coastclear.ready()) { clearInterval(t); r(); } }, 20); });

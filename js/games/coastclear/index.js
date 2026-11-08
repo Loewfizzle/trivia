@@ -8,7 +8,9 @@ import { lazyView, gameSheets } from '../lazy-view.js';
 import { result } from './daily.js';
 export { daily } from './daily.js';
 export { createApiJudge } from './judge.js';
-export { createLesson } from './lesson.js';   // (DM2 — THE PRACTICE HARBOR: the first time only — config.js#DAILIES lesson: true)   // (DM2 — THE DAILY SCREEN's run host wraps it: it hears the start + the finish)
+/** DFIX3 — THE ONE-TIME HINT (the owner, Nov 8: the practice harbor CUT): one line under the board on a player's FIRST COAST CLEAR only (config.js#DAILIES
+ *  lesson: true; the DAILY screen's run host hands it in as state.hint and marks it seen on the server once the first number lands — pstats/{pid}/ls) */
+export const HINT = 'EACH NUMBER = SEARCHLIGHTS TOUCHING THAT SQUARE';
 
 export const createView = lazyView(() => import('./view.js'), gameSheets('coastclear'));
 

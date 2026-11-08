@@ -377,3 +377,52 @@ test('DFIX1 — clean errors: a GUESS sent to COAST CLEAR (it owns no guess) →
   await rejects(A('cc-ann', 'dig', NOW, { day: 12345, cell: 3 }), 400, 'bad_day');
   await rejects(A('cc-ann', 'dig', NOW, { cell: { x: 1 } }), 422);
 });
+
+// ---------------------------------------------------------------- DFIX3 — THE DIG PATH (docs/coastclear.md "The dig path + its timings")
+import { timing, MAX_BATCH } from '../../api/daily.js';
+
+test('DFIX3 — COALESCED MOVES: several queued taps in ONE call → one answer each, applied in order, one record write; a refused move is its own slot; a repeat free; every answer honest; the batch bounded', async () => {
+  await ensure('cc-bat', 'Batty');
+  const s = await A('cc-bat', 'start', NOW + 20e3);
+  const board = await ccBoard(day), counts = countsOf(board), opening = new Set(s.run.open.map(c => c[0]));
+  const safe = [...Array(108).keys()].filter(i => !opening.has(i) && counts[i] > 0).slice(0, 4);
+  const pid = await pidOf('cc-bat'), P = `dly/coastclear/${day}/p/${pid}`;
+  const r = await A('cc-bat', 'moves', NOW + 21e3, { list: [{ a: 'dig', cell: safe[0] }, { a: 'dig', cell: safe[1] }, { a: 'dig', cell: safe[0] }, { a: 'chord', cell: safe[1], buoys: [] }, { a: 'dig', cell: 200 }] });
+  assert.equal(r.now, NOW + 21e3); assert.equal(r.answers.length, 5);
+  assert.deepEqual(r.answers[0].cells, [[safe[0], counts[safe[0]]]]); assert.deepEqual(r.answers[1].cells, [[safe[1], counts[safe[1]]]]);
+  assert.equal(r.answers[2].already, true, 'the repeat inside the batch: free');
+  assert.equal(r.answers[3].refused, 'chord_count', 'a refused move = its own slot, the rest landed');
+  assert.equal(r.answers[4].refused, 'bad_cell');
+  for (const a of r.answers) if (!a.refused) await honest('cc-bat', a, board);
+  const rec = await val(P);
+  assert.deepEqual(rec.mv, [`d${safe[0]}`, `d${safe[1]}`], 'ONE record write: the two real moves, in order');
+  // the same taps again (a retried call): nothing written, every slot `already`
+  const again = await A('cc-bat', 'moves', NOW + 22e3, { list: [{ a: 'dig', cell: safe[0] }, { a: 'dig', cell: safe[1] }] });
+  assert.ok(again.answers.every(a => a.already), 'a repeated batch is free');
+  assert.deepEqual(await val(P), rec);
+  // the bounds + the shape
+  await rejects(A('cc-bat', 'moves', NOW, { list: [] }), 400, 'bad_moves');
+  await rejects(A('cc-bat', 'moves', NOW, { list: Array.from({ length: MAX_BATCH + 1 }, () => ({ a: 'dig', cell: 1 })) }), 400, 'bad_moves');
+  await rejects(A('cc-bat', 'moves', NOW, { list: [{ a: 'pause' }] }), 400, 'bad_moves');
+  await rejects(A('cc-bat', 'moves', NOW, { list: 'dig' }), 400, 'bad_moves');
+  // after the run ends every later slot reads finished (the batch still answers)
+  const lights = board.lights.slice(0, 3);
+  const end = await A('cc-bat', 'moves', NOW + 30e3, { list: [...lights.map(c => ({ a: 'dig', cell: c })), { a: 'dig', cell: safe[2] }] });
+  assert.equal(end.answers[2].done, true); assert.equal(end.answers[2].out, 'caught'); assert.equal(end.answers[3].refused, 'finished');
+});
+
+test('DFIX3 — THE DIG PATH: a move\'s transaction runs ONCE (the record held in the cache for the call — no "first null" round trip), Server-Timing names the phases + no secret', async () => {
+  await ensure('cc-tim', 'Timer');
+  await A('cc-tim', 'start', NOW + 40e3);
+  const board = await ccBoard(day), counts = countsOf(board), opening = new Set(board.open);
+  const safe = [...Array(108).keys()].filter(i => !opening.has(i) && counts[i] > 0);
+  for (const [k, cell] of safe.slice(0, 3).entries()) {
+    const T = timing();
+    await dailyAction('cc-tim', { action: 'dig', game: 'coastclear', cell }, NOW + 41e3 + k, T);
+    const h = T.header();
+    assert.match(h, /^pre;dur=[\d.]+, load;dur=[\d.]+, tx;dur=[\d.]+;desc="1", total;dur=[\d.]+$/, `one transaction attempt, the phases named (${h})`);
+  }
+  const T2 = timing();
+  await dailyAction('cc-tim', { action: 'moves', game: 'coastclear', list: safe.slice(3, 6).map(cell => ({ a: 'dig', cell })) }, NOW + 45e3, T2);
+  assert.match(T2.header(), /tx;dur=[\d.]+;desc="1"/, 'a batch too: one attempt');
+});

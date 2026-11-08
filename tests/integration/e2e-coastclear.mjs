@@ -107,6 +107,32 @@ await H.run(async () => {
     v = vv;
   }
 
+  // ---- DFIX3 ADD-ON — THE FADE ON LEAVING (audio/engine.js): the page leaves → the master ramps on the audio clock, THEN the context suspends;
+  // back → it resumes and ramps up from 0 (the log's order; the master back at 1; the sounds still play after)
+  {
+    await p.click('.cc-head');   // (a real tap: the engine unlocks + makes its context — the page had only scripted taps so far)
+    await p.waitForFunction(() => import('/js/audio/engine.js').then(E => E.audioHealth().state === 'running'), { timeout: 5000 }).catch(() => {});
+    const aud = await p.evaluate(async () => {
+      const E = await import('/js/audio/engine.js');
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const n0 = E.audioEvents().length;
+      const before = E.audioHealth();
+      E.simulateVisible(false);
+      const mid = E.audioHealth();                 // (right after: the ramp is scheduled, the context still runs)
+      await wait(E.FADE.suspendMs + 250);
+      const hidden = E.audioHealth();
+      E.simulateVisible(true);
+      await wait(E.FADE.inS * 1000 + 350);
+      const back = E.audioHealth();
+      const log = E.audioEvents().slice(n0).map(e => e.m);
+      const idx = k => log.findIndex(m => m.startsWith(k));
+      return { before: before.state, mid: mid.state, hidden: hidden.state, back: back.state, master: back.master, log, order: [idx('fade out'), idx('suspended after the fade'), idx('fade in')] };
+    });
+    const ordered = aud.order.every(i => i >= 0) && aud.order[0] < aud.order[1] && aud.order[1] < aud.order[2];
+    ok(aud.before === 'running' && aud.mid === 'running' && aud.hidden === 'suspended' && aud.back === 'running' && ordered && aud.master > 0.95,
+      `THE FADE ON LEAVING: running → fade out (still running: the ramp first) → suspended → back: fade in → running, the master back at ${aud.master} (${aud.log.join(' · ')})`);
+  }
+
   // ---- a FLOOD: a 0 outside what's open → its whole calm area in ONE answer
   const zero = [...Array(108).keys()].find(i => !openSet(v).has(i) && counts[i] === 0);
   if (zero != null) {
@@ -259,10 +285,15 @@ await H.run(async () => {
   const safeQ = [...Array(108).keys()].filter(i => !L.has(i) && !openSet(qv).has(i)).slice(0, 6);
   const t0 = Date.now();
   const press = await q.evaluate(sels => sels.map(sel => { const el = document.querySelector(sel); const r = el.getBoundingClientRect(); const t = performance.now(); el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: r.x + 4, clientY: r.y + 4, pointerId: 9, button: 0 })); const ok = el.classList.contains('is-press'); el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: r.x + 4, clientY: r.y + 4, pointerId: 9, button: 0 })); return { ok, ms: performance.now() - t }; }), safeQ.map(cellSel));
-  const peak = await q.evaluate(() => window.__coastclear.state().inflight);
+  // DFIX3 — COALESCED MOVES: the first tap's call flies at once, the five behind it QUEUE and go out together in the next call (2 calls for 6 taps)
+  const peak = await q.evaluate(() => { const s = window.__coastclear.state(); return { inflight: s.inflight, queued: s.queued, calls: s.calls }; });
   await idle(q);
   const all = Date.now() - t0;
-  ok(press.every(x => x.ok && x.ms < 16) && peak >= 3, `150 ms LINE: every press shows in the same event (${Math.max(...press.map(x => x.ms)).toFixed(1)} ms max), ${peak} taps in flight at once, all six answered in ${all} ms`);
+  const callsNow = await q.evaluate(() => window.__coastclear.state().calls);
+  const made = callsNow - peak.calls + 1;   // (the first call was already counted in `peak`)
+  ok(press.every(x => x.ok && x.ms < 16) && peak.inflight === 1 && peak.queued >= 3 && made <= 3, `150 ms LINE: every press shows in the same event (${Math.max(...press.map(x => x.ms)).toFixed(1)} ms max), ${peak.queued} taps queued behind the one in flight, six taps in ${made} call${made === 1 ? '' : 's'} (coalesced), all answered in ${all} ms`);
+  const tapsB = await q.evaluate(() => window.__coastclear.taps());
+  ok(tapsB.length >= 6 && tapsB.every(t => t.ms > 0) && tapsB.some(t => t.server && 'tx' in t.server), `the dev timing: ${tapsB.length} taps timed (tap → number ${tapsB.map(t => t.ms).join(' / ')} ms), Server-Timing read (${JSON.stringify(tapsB.find(t => t.server) && tapsB.find(t => t.server).server)})`);
   for (const c of board.lights.slice(0, 2)) { await tap(q, c); await calm(q); }
   await tap(q, board.lights[2]);
   const conv = await q.waitForFunction(() => window.__coastclear.state().beams >= 3, { timeout: 8000, polling: 'raf' }).then(() => true, () => false);
@@ -281,9 +312,9 @@ await H.run(async () => {
   // ---- NO LEAK: every answer names only cells its player's record has opened / lights it has spotted; no board, no record
   const finals = { ALICE: runView(fin, board), BOB: runView(qRec, board) };
   let bad = 0;
-  for (const a of answers) {
+  for (const a of answers) for (const b of (a.body && a.body.answers ? a.body.answers : [a.body])) {   // (DFIX3: a coalesced call's slots, each checked)
     const f = finals[a.name], open = new Map(f.open), lit = new Set(f.lit);
-    const b = a.body;
+    if (!b || b.refused) continue;
     for (const [c, n] of [...(b.cells || []), ...((b.run && b.run.open) || [])]) if (open.get(c) !== n) bad++;
     for (const c of [...(b.lit || []), ...((b.run && b.run.lit) || [])]) if (!lit.has(c)) bad++;
     if ((b.reveal && !b.done) || (b.run && b.run.reveal && !b.run.done)) bad++;      // (CC2: the lights revealed only once the run is over)
@@ -339,6 +370,8 @@ await H.run(async () => {
   const digs = calls.filter(a => a.req.action === 'dig' || a.req.action === 'chord').length;
   log(`THE NUMBERS — ALICE: ${calls.length} /api/daily calls (${digs} digs + chords), the record ${JSON.stringify(fin).length} bytes, the board ${JSON.stringify(await val(`dly/coastclear/${day}/b`)).length} bytes`);
   log(`  the dig round trip on the emulators: p50 ${pct(rttA, 0.5)} ms · p95 ${pct(rttA, 0.95)} ms (${rttA.length} answers)`);
+  { const tt = tapsB.filter(t => t.server), ph = k => pct(tt.map(t => Number(t.server[k]) || 0), 0.5);
+    if (tt.length) log(`  the server's phases (Server-Timing, p50 on the emulators): auth ${ph('auth')} · pre ${ph('pre')} · load ${ph('load')} · tx ${ph('tx')} · total ${ph('total')} ms — tx attempts ${[...new Set(tt.map(t => String(t.server.tx_)))].join('/')}`); }
   log(`  with 150 ms added each way-ish (CDP latency 150): p50 ${pct(rttB, 0.5)} ms · p95 ${pct(rttB, 0.95)} ms — the press itself ${Math.max(...press.map(x => x.ms)).toFixed(1)} ms`);
   void safeCount; void unpackBoard;
 });

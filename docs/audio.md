@@ -1652,3 +1652,22 @@ on a new set (vercel.json caches /audio a week).
 
 CREDITS: `js/ui/credits.js` → PODIUM SOUNDS (14 rows, the notes' sources word for word). THE VICTORY MUSIC starts with the podium frame (`state.podium` —
 docs/cartridge.md), never during OVERCLOCK's last answer screen.
+
+## THE FADE ON LEAVING (DFIX3 ADD-ON, Nov 8 2026 — Ben's iPhone: a short high-pitched hum when switching out of Safari with the sound on; site-wide)
+**The cause:** `engine.js#setVisible(false)` suspended the context INSTANTLY — mid-buffer — and iOS clicked / looped the last buffer. **The fix, in the
+SHARED engine (every sound path ends there — the music bus + the SFX bus → the limiter → ONE MASTER gain → the speaker; the dailies' sfx, the city's
+loops + recorded neon, the intercom, the party / station songs, the lobby song all sit on those two buses):**
+- **On hidden / pagehide / freeze** (the Page Lifecycle's `freeze` + `resume` events are listened for beside visibilitychange + pagehide / pageshow):
+  the master ramps to 0 **ON THE AUDIO CLOCK, scheduled synchronously** — `gain.cancelScheduledValues(now) → setValueAtTime(current, now) →
+  linearRampToValueAtTime(0, now + 0.09)` — THEN the suspend ~110 ms later (`FADE.suspendMs`). iOS may freeze the page's JS right after pagehide: the
+  ramp is already on the audio thread before anything waits; a page frozen before the suspend is silent anyway (the master at 0).
+- **Back on screen** (visible / pageshow / resume): the master is set to 0 at once, the context asked to run, and the moment it runs (the state
+  change — a late iOS resume too) everything ramps up from 0 over 150 ms (`FADE.inS`) — never a jump to full, no pop. A context REBUILT while coming
+  back is born at 0 and ramps the same way.
+- **THE DIRECT PATH's plain `<audio>`** (music.js — iOS ignores an element's volume) is paused AT THE START of the fade (its only clean stop); the
+  graph's voices (MediaElementSources) are paused ~110 ms later, after the master's ramp (a pause mid-buffer under full gain clicked).
+- Nothing else changed: the clock watch, the unlock-on-tap, the retries, the stuck / frozen rebuilds, the audio session.
+- **The log** (the AUDIO panel, `audioEvents()`): `fade out (hidden)` → `suspended after the fade` → `fade in (back on screen | running again)`;
+  `audioHealth().master` = the master's gain. Test hook: `simulateVisible(false | true)`. **Proof:** `e2e-coastclear.mjs` — the order fade out
+  (still running) → suspended → fade in → running, the master back at 1, on a real tap-unlocked engine. (Not provable headless: the hum itself —
+  Ben's iPhone, an app switch with the music on: the city's hum + ambience, a station song, a daily's music + sfx should all come back softly.)

@@ -59,7 +59,7 @@ test('DM1 — PLUG-AND-PLAY: a FAKE 3rd + 4th daily appear in the list, the live
   const ids = () => todaysDailies();
   assert.deepEqual(dailyRows().filter(r => !r.test).map(r => r.id), ['password', 'coastclear'], 'config.js#DAILIES, in order');
   assert.ok(dailyRows().every(r => r.ticket && typeof r.lesson === 'boolean' && Number.isFinite(r.order)), 'every row: order · ticket · lesson');
-  assert.equal(dailyRow('coastclear').lesson, true, 'COAST CLEAR has a first-time lesson (DM2: the practice harbor)');
+  assert.equal(dailyRow('coastclear').lesson, true, 'COAST CLEAR has a first-time lesson (DFIX3: THE ONE-TIME HINT under the board)');
   const cart = id => ({ id, name: id, buckets: 10, bucket: s => s, verify: () => 1 });
   // the two real ones live + a FAKE 3rd and 4th (test-only rows + cartridges)
   for (const id of ['password', 'coastclear']) registerDaily(cart(id));

@@ -43,12 +43,19 @@
 //                                    owner's switch (progress/dailies — OFF until THE SWITCH-OVER, audited); FRESH = wipe every stored daily day
 //                                    (dly/ — the test runs, the pairs, the boards) + THE FROZEN SCHEDULE (dsched/) so the first live day builds them
 //                                    anew — refused while the switch is ON, typed FRESH (docs/progression.md "THE SWITCH-OVER")
+//   dailyStats                     → DFIX3 — THE DAILIES' STATS (admin only, cheap reads — never a scan of the profiles): per live daily STARTED +
+//                                    FINISHED today and the last 7 days (dly/{game}/{day}/s + /r keys), + TODAY'S PLAYERS: everyone with a start today
+//                                    (newest first, ≤ 50 of n) — name#tag, level, each daily's score / PLAYING / —, COUNTS or NEW TODAY (the gate),
+//                                    the admin's friend relation (the page's ADD FRIEND = the ordinary friend request). Nothing leaves the admin.
 //   dailyReseed { confirm?, force? } → DM2 ADD-ON — THE RESEED, SERVER-SIDE (the owner's rule: no service-account key on his PC): the same
 //                                    reseedDailies() as scripts/dailies-reseed.mjs (now the emulators' + tests' only) — no confirm = the DRY RUN
 //                                    (the plan, nothing written); confirm: true = a new daily secret from the NEXT 4 am (today + the past + every
 //                                    result untouched; a second run says "already reseeded"); audited (dailyReseed). Owner only (the admin gate)
 import { displayOf } from './_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
-import { dailiesState, setDailiesSwitch, forgetPicks } from './_lib/dailies.js';
+import { dailiesState, setDailiesSwitch, forgetPicks, openDailies } from './_lib/dailies.js';
+import { countsOn } from './daily.js';
+import { relOf as friendRel } from '../js/core/friends.js';
+import { dailyRow } from '../js/core/daily.js';
 import { forgetPwDays, reseedSchedule } from './_lib/pw.js';
 import { reseedDailies } from './_lib/daily-secret.js';
 import { DAILIES } from '../js/config.js';
@@ -64,7 +71,8 @@ import { weekKey } from '../js/core/week.js';
 import { summarize } from '../js/core/insights.js';
 import { activity } from './_lib/activity.js';
 import { cleanRemote, isEmpty, toParams, describe, cleanDelay, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
-import { streakDay, dayNum } from '../js/core/streak.js';
+import { streakDay, dayNum, dayOf } from '../js/core/streak.js';
+import { dailyOf as dailyOfCart } from '../js/core/daily.js';
 import { radioAction, radioPublic, clipOf } from './_lib/radio.js';
 import { labMarks, labMark, labExport, LAB_CACHE, LAB_TEXT, LAB_CHANGES } from './_lib/lab.js';
 import { listTestPlayers, removeTestPlayers } from './_lib/testplayers.js';
@@ -198,6 +206,43 @@ async function flagList() {
   return list;
 }
 
+// DFIX3 — THE DAILIES' STATS for /admin: started / finished per daily per day from the day nodes' KEYS (s = the starts, r = the scores — a few
+// small reads, never the profiles), TODAY'S PLAYERS from today's starts (≤ PLAYERS_MAX, newest first — their public profile + the gate + the admin's
+// friend relation). Read-only: no audit line.
+export const STATS_DAYS = 7, PLAYERS_MAX = 50;
+async function dailyStats(me, now) {
+  const games = await openDailies(now);
+  const today = streakDay(now), days = Array.from({ length: STATS_DAYS }, (_, i) => dayOf(dayNum(today) - i)).reverse();
+  const keys = o => Object.keys(o || {});
+  const perGame = await Promise.all(games.map(async g => {
+    const byDay = await Promise.all(days.map(async d => {
+      const [s, r] = await Promise.all([val(`dly/${g}/${d}/s`), val(`dly/${g}/${d}/r`)]);
+      return { day: d, started: keys(s).length, finished: keys(r).length, s: d === today ? s || {} : null, r: d === today ? r || {} : null };
+    }));
+    const t = byDay[byDay.length - 1];
+    const x = (await val(`dly/${g}/${today}/x`)) || {};
+    const row = dailyRow(g) || {};
+    return { id: g, name: row.name || g.toUpperCase(), better: (dailyOfSafe(g) || {}).better || 'high', today: { started: t.started, finished: t.finished }, days: byDay.map(({ day, started, finished }) => ({ day, started, finished })), _s: t.s, _r: t.r, _x: x };
+  }));
+  // TODAY'S PLAYERS: every pid with a start today, newest start first
+  const at = new Map();
+  for (const g of perGame) for (const [pid, t] of Object.entries(g._s || {})) if (isPid(pid)) at.set(pid, Math.max(at.get(pid) || 0, Number(t) || 0));
+  const pids = [...at.entries()].sort((a, b) => b[1] - a[1]).map(([p]) => p);
+  const mine = (await val(`pfr/${me}`)) || {};
+  const players = (await Promise.all(pids.slice(0, PLAYERS_MAX).map(async pid => {
+    const [p, created] = await Promise.all([publicProfile(pid), val(`ppriv/${pid}/at`)]);
+    if (!p) return null;
+    const results = {};
+    for (const g of perGame) {
+      const r = g._r && g._r[pid];
+      results[g.id] = r != null ? { score: r, gated: !!(g._x && g._x[pid]) } : g._s && g._s[pid] ? { playing: true } : null;
+    }
+    return { pid, n: p.n, t: p.t, a: p.a, c: p.c, l: p.l, h: p.h, at: at.get(pid), counts: countsOn(created, today), results, rel: friendRel(mine, me, pid, now) };
+  }))).filter(Boolean);
+  return { day: today, days, dailies: perGame.map(({ _s, _r, _x, ...g }) => g), players, n: pids.length, max: PLAYERS_MAX };
+}
+const dailyOfSafe = g => { try { return dailyOfCart(g); } catch { return null; } };
+
 // CITY 2.0 — THE PREVIEW PANEL (docs/harbor.md): one public node, written here only (the rules: read by signed-in users, no
 // client writes). Plain values only — the state is rebuilt from the registry's lists; anything it had to drop refuses the call.
 async function cityLive(me, body, now) {
@@ -302,6 +347,7 @@ export async function adminAction(uid, body, now = Date.now()) {
     case 'outages': return { outage: (await val('streak/outage')) || {}, today: streakDay(now) };
     // DM1 — THE GO-LIVE SWITCH (owner only — the admin gate above): OFF until THE SWITCH-OVER; every flip audited
     case 'dailyState': return { dailies: await dailiesState(now) };
+    case 'dailyStats': return { stats: await dailyStats(me, now) };
     case 'dailySwitch': {
       const on = body.on === true;
       const st = await setDailiesSwitch(on, me, now);

@@ -237,6 +237,16 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   line reads it, NO poll; a rules change); THE ROOM WINS needs 2+ players (`MIN_PARTY`); a cold day's start → 503 `busy`. **SLIM CARDS EVERYWHERE A PLAYER
   LIST SHOWS** (the owner, Nov 8): SCORES → YOUR TABLE = the finishers' slim cards through `ui/strip-board.js`'s `stripKit` / `stripFor` / `stripFx` (never a
   second strip system; one surface a panel; the rank left, the score under at the right end, YOU a drawn frame, STILL TO PLAY one line, top 5 + you + SHOW ALL n).
+- **THE DAILY MODULE — DFIX3 (THE DAILIES' FIRST-PLAY FIXES, Nov 8 — the dailies LIVE; docs/progression.md "DFIX3", docs/coastclear.md "The dig path"):**
+  THE DIG PATH = TWO database waits (the budget in memory, the pid memoised, the record HELD in the SDK's cache for the call → ONE transaction attempt —
+  `tx;desc="1"` in `Server-Timing` on every /api/daily answer) + COALESCED MOVES (`moves { list }` — the taps a phone queued while an answer was in
+  flight go out together; `view.js#enqueue`), the functions pinned to **cle1** (`vercel.json` regions — check the deploy); THE ONE-TIME HINT replaces
+  the practice harbor (a row's `lesson: true` + the cartridge's `HINT` string → `state.hint`; seen = `pstats/{pid}/ls`); THE PREMIUM TICKET (paper =
+  `assets/daily/paper-grain.webp` CC0, the punched stub, the serial Nº MMDD, the drawn ADMITTED stamp + its stamp-down — `js/daily/ticket-art.js`
+  shared with SHARE TODAY's image, which is rebuilt from the same ticket + the streak flame; `drawToday` is async); TODAY CENTRED by auto margins;
+  /admin → THE DAILIES' STATS + TODAY'S PLAYERS (ADD FRIEND = the existing `friendButton`) + BACK TO THE CITY; SCORES: YOUR FRAME on the strip's own box,
+  the foot hint once, a table of one = the card alone; THE FADE ON LEAVING in the SHARED audio engine (ONE MASTER gain — a ramp on the audio clock, THEN
+  the suspend; back = resume + a ramp up; docs/audio.md) — never suspend a context hard again.
 - **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
   music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:
   `tests/cartridge.test.mjs` checks the boot graph, `node scripts/boot-bytes.mjs`); only `start` is async, `step` pure + seeded; `prepare` host-only,

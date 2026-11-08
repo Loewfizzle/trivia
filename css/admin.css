@@ -158,3 +158,25 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-gift-prev { max-width: 420px; margin: 6px 0 10px; }
 .ad-gift-strip { position: relative; }
 .ad-gift-tag { max-width: 220px; text-transform: uppercase; }
+
+/* DFIX3 — BACK TO THE CITY + THE DAILIES' STATS + TODAY'S PLAYERS (js/admin/admin.js#dailyStats) */
+.ad-back { display: inline-block; margin: 0 0 14px; min-height: 32px; line-height: 32px; }
+.ad-dly-stats { margin-top: 14px; display: grid; gap: 14px; }
+.ad-dly-today { font: 700 11px/1 var(--font-num); letter-spacing: 0.08em; color: #f2c869; }
+.ad-dly-cols .ad-col { position: relative; }
+.ad-dly-cols .ad-col i.ad-col-f { position: absolute; left: 25%; right: 25%; bottom: 0; height: var(--f, 0%); background: #f2c869; border-radius: 3px 3px 0 0; opacity: 0.95; }
+.ad-dly-players li.ad-dly-p { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 8px; row-gap: 4px; align-items: center; padding: 6px 0; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.ad-dly-players li.ad-dly-p:first-child { border-top: 0; }
+.ad-dly-p .ad-dly-lv { font: 700 11px/1 var(--font-num); color: var(--bd-faint); letter-spacing: 0.06em; justify-self: end; }
+.ad-dly-p .ad-dly-res { grid-column: 2 / 3; display: flex; flex-wrap: wrap; gap: 4px 14px; font: 700 12px/1.2 var(--font-num); letter-spacing: 0.04em; color: #fff3dc; }
+.ad-dly-p .ad-dly-r small { display: block; font: 700 9px/1 var(--font-ui); letter-spacing: 0.16em; color: var(--bd-faint); margin-bottom: 3px; }
+.ad-dly-p .ad-dly-r.is-playing { color: #f2c869; }
+.ad-dly-p .ad-dly-r.is-none { color: var(--bd-faint); }
+.ad-dly-p .ad-tag.is-counts { color: #9fe3b4; border-color: rgba(159, 227, 180, 0.4); }
+.ad-dly-p .ad-tag.is-new { color: var(--bd-faint); }
+.ad-dly-p .ad-dly-fr { grid-column: 3 / 4; grid-row: 1 / 3; align-self: center; justify-self: end; min-width: 108px; }
+.ad-dly-p .ad-dly-fr .fr-btn-slot[hidden] { display: none; }
+.ad-dly-p .ad-dly-fr .btn { min-height: 34px; font-size: 10.5px; }
+@media (max-width: 520px) { .ad-dly-players li.ad-dly-p { grid-template-columns: 26px minmax(0, 1fr); } .ad-dly-p .ad-dly-fr { grid-column: 1 / -1; grid-row: auto; justify-self: start; } .ad-dly-p .ad-dly-lv { grid-column: 2; justify-self: start; } }
+.ad-dly-p .ad-tag { grid-column: 2; justify-self: start; white-space: nowrap; }
+@media (max-width: 520px) { .ad-dly-p .ad-dly-fr .btn { min-width: 0; padding: 0 14px; } }
