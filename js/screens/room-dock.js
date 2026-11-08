@@ -35,7 +35,9 @@ export function createRoomDock(on) {
   //  the pill or the screen's edge — and the "3 of 7 want a rematch" pill just above the row; the same on every phone. Never animated)
   E.pips = h('span.rdk-pips', { 'aria-hidden': 'true' });
   E.votes = h('span.rdk-votes', { role: 'status', hidden: true });
-  E.host.append(E.pips, E.votes);
+  // DM2 — THE ROOM WINS: the HOST sees "2 PLAYERS ARE MID-DAILY" right above PLAY before starting (who only — never a run; api/daily.js `room`)
+  E.mid = h('span.rdk-mid', { role: 'status', hidden: true }, h('span.rdk-mid-ic', { 'aria-hidden': 'true', html: ICON.daily }), h('span.rdk-mid-t'));
+  E.host.append(E.pips, E.votes, E.mid);
   // (SHELL 2.0 B2: B1's LOOK SWITCH above PLAY is gone — the owner: "more confusing than helpful" → ☰ → Settings → Game look)
   // the pill: YOU · GUESTS · GAMES · CHAT, a tiny label under each icon
   const tab = (cls, aria, icon, label, onclick) => h(`button.nd-tab.rdk-tab.${cls}`, { type: 'button', 'aria-label': aria, onclick },
@@ -67,6 +69,9 @@ export function createRoomDock(on) {
       E.gamesTab.querySelector('.rdk-lbl').textContent = ng ? 'NEW GAME' : 'GAMES';
       E.gamesTab.setAttribute('aria-label', ng ? 'New game — pick another game' : 'The games');
     }
+    // (DM2: the host's MID-DAILY line — before START only; the rematch pill takes the spot after a match)
+    const midN = v.host && !rm ? v.mid || 0 : 0;
+    if ((E.mid.dataset.n || '0') !== String(midN)) { E.mid.dataset.n = String(midN); E.mid.hidden = !midN; E.mid.querySelector('.rdk-mid-t').textContent = midN ? `${midN} ${midN === 1 ? 'PLAYER IS' : 'PLAYERS ARE'} MID-DAILY` : ''; }
     const k = `${v.host ? 1 : 0}|${v.hostName || ''}|${v.guestsDot ? 1 : 0}|${v.chatDot ? 1 : 0}|${v.chatN || 0}|${rm ? `${rm.voted ? 1 : 0}${rm.n}/${rm.total}:${rm.pips.map(p => `${p.col}${p.on ? 1 : 0}`).join(',')}` : ''}`;
     // (LOBBY FIXES — AFTER HOST: the INVITE ring breathes until the host invites someone or a guest arrives — opacity + scale only, CSS)
     if (E.joinTab.classList.contains('rdk-pulse') !== !!v.invitePulse) E.joinTab.classList.toggle('rdk-pulse', !!v.invitePulse);

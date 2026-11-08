@@ -117,8 +117,12 @@ export function createDock(on) {
       els.go));
   // above the dock: REJOIN, and a note (a host that couldn't open, an expired invite)
   els.rejoin = h('div.nd-rejoin');
+  // DM2 — THE ROOM WINS: after a room's game took a phone out of its daily, RESUME YOUR DAILY floats above the dock (the title + the room) until
+  // the run is opened again or finished (a drawn ticket + the words; modest corners — no pill)
+  els.dyChip = h('button.nd-dychip', { type: 'button', hidden: true, onclick: () => on.resumeDaily && on.resumeDaily() },
+    h('span.nd-dychip-ic', { 'aria-hidden': 'true', html: ICON.daily }), h('span.nd-dychip-t', 'RESUME YOUR DAILY'));
   els.note = h('button.nd-note', { type: 'button', role: 'status', 'aria-live': 'polite', onclick: on.note });
-  const el = h('section.nd-actions', h('div.nd-dk', h('div.nd-above', els.note, els.rejoin), els.jpanel, els.door));
+  const el = h('section.nd-actions', h('div.nd-dk', h('div.nd-above', els.note, els.dyChip, els.rejoin), els.jpanel, els.door));
 
   // HOST wears the sign: its four letters' glow / body / core colours, straight from the sign's own tubes (every holiday, now
   // and later, follows by itself); registered colours, so a change blends. force: re-read even if unchanged (a test hook).
@@ -199,6 +203,7 @@ export function createDockWork(T) {
     dock = createDock({
       join: () => { sfx('select'); openJoin(!T.els.actions.classList.contains('is-join'), true); },
       daily: () => { sfx('select'); openJoin(false); setState({ daily: { v: 'screen' } }); },
+      resumeDaily: () => { const hr = dailyHeld && dailyHeld(); if (!hr) return; sfx('select'); openJoin(false); setState({ daily: { v: 'run', id: hr.id } }); },
       board: () => { sfx('select'); setState({ view: 'board' }); },
       games: () => { openJoin(false); T.openGames(); },
       you: () => { sfx('select'); const p = loadProfile(); setState(p && p.name ? { view: 'profile' } : { view: 'setup', setupMode: 'edit' }); },
@@ -219,12 +224,26 @@ export function createDockWork(T) {
   }
   // DM2 — THE DAILY BUTTON: today's answer (js/daily/today.js — /api, no socket) → hidden / WAITING (+ the count) / ALL DONE; re-read when the
   // page comes back (a finish elsewhere, the 4 am turn). /api down or the switch off → hidden (the pill as it always was)
-  let dailyOff = null, dailyDead = false;
+  let dailyOff = null, dailyDead = false, dailyHeld = null;
   function watchDaily() {
     import('../daily/today.js').then(async T2 => {
       const L = await import('../daily/today-logic.js');
       if (!dock || dailyDead) return;
-      const paint = t => dock && dock.setDaily(L.dockState(t));
+      dailyHeld = T2.heldRun;
+      const paint = t => {
+        if (!dock) return;
+        dock.setDaily(L.dockState(t));
+        // THE RESUME CHIP: a held run still in flight (finished elsewhere → the hold is dropped)
+        const hr = T2.heldRun(), live = !!(t && Array.isArray(t.dailies) && t.dailies.some(d => hr && d.id === hr.id));
+        if (hr && t && t.mine && t.mine[hr.id] != null) T2.dropHeld();
+        const show = !!(hr && live && !(t.mine && t.mine[hr.id] != null));
+        if (T.els.dyChip) T.els.dyChip.hidden = !show;
+        // the ☰ menu's row (THE DAILY SCREEN from anywhere outside a match — the room's way in): only while a daily is live
+        const ds = L.dockState(t);
+        Promise.all([import('../ui/settings-panel.js'), import('../ui/components.js')]).then(([S, Cm]) => S.setMenuExtra('dailies', ds.show
+          ? ({ close }) => Cm.row({ icon: ICON.daily, ic: '#ff6fc8', label: 'The dailies', value: ds.state === 'waiting' ? `${ds.left} LEFT` : 'ALL DONE', cls: 'gm-dailies', onClick: () => { close(); setState({ daily: { v: 'screen' } }); } })
+          : null)).catch(() => {});
+      };
       if (dailyOff) dailyOff();
       const off1 = T2.onToday(paint);
       const vis = () => { if (document.visibilityState === 'visible') T2.loadToday(); };

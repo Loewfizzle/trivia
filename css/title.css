@@ -610,6 +610,20 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 .nd-tab-daily { --ic: #ff6fc8; }
 .nd-tab-daily[hidden] { display: none; }
 .nd-pill.is-four .nd-tab { width: calc(var(--cell) - 6px); }
+/* DM2 — THE RESUME CHIP above the dock (title + room): a drawn ticket + RESUME YOUR DAILY; modest corners (no pill) */
+.nd-dychip { display: flex; align-items: center; gap: 9px; margin: 0 auto 10px; min-height: 44px; padding: 0 16px 0 12px; border-radius: 10px; border: 0; cursor: pointer;
+  font: 800 12px/1 var(--font-ui); letter-spacing: 0.18em; color: #ffe8f6; background: rgba(14, 9, 22, 0.88);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 111, 200, 0.7), 0 0 14px rgba(255, 111, 200, 0.35), 0 6px 18px rgba(0, 0, 0, 0.45); -webkit-tap-highlight-color: transparent; }
+.nd-dychip[hidden] { display: none; }
+.nd-dychip-ic svg { --ic: #ff6fc8; width: 22px; height: 22px; display: block; overflow: visible; fill: none; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px rgba(255, 111, 200, 0.8)); }
+.nd-dychip-ic .t { stroke: #ff7fd0; stroke-width: 1.7; } .nd-dychip-ic .c { stroke: #fff2fa; stroke-width: 0.55; }
+.nd-dychip:active { transform: scale(0.97); }
+/* DM2 — THE ROOM WINS: the host's MID-DAILY line right above PLAY (before START) */
+.rdk-mid { position: absolute; right: 4px; bottom: calc(100% + 10px); display: flex; align-items: center; gap: 7px; padding: 7px 11px 6px 9px; border-radius: 8px; white-space: nowrap; pointer-events: none;
+  font: 800 11px/1 var(--font-ui); letter-spacing: 0.12em; color: #ffe8f6; background: rgba(10, 8, 18, 0.88); box-shadow: inset 0 0 0 1px rgba(255, 111, 200, 0.55), 0 4px 14px rgba(0, 0, 0, 0.45); }
+.rdk-mid[hidden] { display: none; }
+.rdk-mid-ic svg { width: 17px; height: 17px; display: block; fill: none; stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
+.rdk-mid-ic .t { stroke: #ff7fd0; stroke-width: 1.8; } .rdk-mid-ic .c { display: none; }
 .nd-dy-pulse { position: absolute; left: 50%; top: 40%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; pointer-events: none; opacity: 0;
   background: radial-gradient(circle, rgba(255, 111, 200, 0.5), rgba(255, 111, 200, 0.14) 46%, transparent 70%); will-change: transform, opacity; }
 .nd-tab-daily[data-state="waiting"] .nd-dy-pulse { animation: nd-dy-breathe 2.4s ease-in-out infinite; }

@@ -296,6 +296,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   // ---------------------------------------------------------------- the dock's state + the notes
   let chatMod = null, offChat = null;
   import('../chat/chat.js').then(m => { if (destroyed) return; chatMod = m; offChat = m.onChat(() => { paintDock(); paintBubbles(); }); paintDock(); }).catch(() => {});
+  let midN = 0, midT = 0, midAt = 0;   // (DM2 — the host's MID-DAILY count: watchMid below)
   function paintDock() {
     if (!dock || destroyed) return;
     const P = players(), me = P[st.uid] || {}, ids = Object.keys(P);
@@ -304,7 +305,29 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const vs = voteNow();
     const rm = vs.on ? { on: true, voted: !!(st.rv && st.rv[st.uid] === vs.m), n: vs.voters.length, total: vs.total, pips: vs.guests.map(u => ({ col: colorHex((P[u] || {}).color), on: vs.voters.includes(u) })) } : null;
     dock.set({ host: isHost(), hostName: hostName(), invitePulse: isHost() && ids.length === 1 && !invited(), newGame: isHost() && vs.on ? (ngSeen() ? 'calm' : 'breathe') : null, guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
-      you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm });
+      you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm, mid: midN });
+    watchMid();
+  }
+  // DM2 — THE ROOM WINS (the host's side): while the room waits, the host asks the server who of the room is mid-daily (uids only — api/daily.js
+  // `room`), every 20 s while a daily is live; nothing for a guest, nothing during a match; /api down → no line
+  function watchMid() {
+    const want = !destroyed && isHost() && st.meta && st.meta.status !== 'playing';
+    if (!want) { if (midN) { midN = 0; paintDock(); } clearTimeout(midT); midT = 0; return; }
+    if (midT || Date.now() - midAt < 19000) return;
+    midT = setTimeout(async () => {
+      midAt = Date.now();
+      try {
+        const T = await import('../daily/today.js'), t = T.todayNow() || await T.loadToday();
+        if (t && t.dailies && t.dailies.length) {
+          const { api } = await import('../profile/api.js');
+          const r = await api('daily', { action: 'room', room: code() });
+          const n = Array.isArray(r.mid) ? r.mid.filter(u => u !== st.uid).length : 0;
+          if (n !== midN) { midN = n; paintDock(); }
+        }
+      } catch { /* polish: no line */ }
+      midT = 0;
+      if (!destroyed) setTimeout(() => watchMid(), 20000);
+    }, midAt ? 0 : 600);
   }
   function paintBubbles() {
     const ty = chatMod ? chatMod.chat.typing || {} : {}, now = serverNow();

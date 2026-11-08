@@ -86,7 +86,7 @@ function roomWins(st) {
   if (scr) { scr.close(); scr = null; }
   lastKey = '';
   delete document.body.dataset.daily;
-  setState({ daily: null });
+  queueMicrotask(() => setState({ daily: null }));   // (not inside the render that called us)
 }
 onCloseAll(() => { /* (a kick / the game start: syncDaily sees the state change; nothing to do twice here) */ });
 
