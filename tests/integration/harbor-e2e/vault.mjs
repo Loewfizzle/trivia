@@ -343,7 +343,7 @@ G('vault', async () => {
     const saved = await waitFor(p, `!!document.querySelector('.vl-item[data-id="card-inferno"] .vl-saved')`, 'SAVED', 3000).then(() => true).catch(() => false);
     const txt = saved ? await ev(p, `document.querySelector('.vl-item[data-id="card-inferno"] .vl-saved').textContent`) : '';
     const fm = await ev(p, `({ full: (window.__lab.marks['full-card-inferno'] || {}).m || null, strip: (window.__lab.marks['card-inferno'] || {}).m || null })`);
-    ok(f.cards === 53 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt) && fm.full === 'approve' && !fm.strip, `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark on the FULL face is the full card's own (full ${fm.full}, strip ${fm.strip}) + flashes "${txt}"`);
+    ok(f.cards === 54 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt) && fm.full === 'approve' && !fm.strip, `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark on the FULL face is the full card's own (full ${fm.full}, strip ${fm.strip}) + flashes "${txt}"`);
     await ctx.close(); }
   // THE VAULT 1C — THE SIGHTING'S SCENE (the reveal's pair + the album's no-photo tile): once its full card is APPROVED the placeholder becomes
   // the card's real scene (js/vault/full.js#upgradeScene) — all 9 sightings, each its own canvas drawn; unapproved → the placeholder stays

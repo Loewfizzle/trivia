@@ -556,7 +556,8 @@ G('shell', async () => {
   await sleep(450);
   const m = await ev(p, `(() => { const rows = [...document.querySelectorAll('.gm .sh-row')], pn = document.querySelector('.gm .sh-panel'), r = pn.getBoundingClientRect(), mid = document.elementFromPoint(r.left + r.width / 2, r.top + 40);
     return { labels: rows.map(x => x.querySelector('.sh-row-l b').textContent), h: Math.min(...rows.map(x => Math.round(x.getBoundingClientRect().height))), solid: !!(mid && mid.closest('.sh-panel')), bg: getComputedStyle(pn).backgroundImage, blur: getComputedStyle(pn).backdropFilter }; })()`);
-  ok(m.labels.join(' · ') === 'Your card · How to play · Settings · Sound effects' && m.h >= 56 && m.solid && !/rgba/.test(m.bg) && (!m.blur || m.blur === 'none'),
+  // (DM2: + THE DAILIES while a daily is live — the test server's DAILY_TEST opens them; production shows it once the owner's switch is on)
+  ok(/^Your card · How to play · Settings · Sound effects( · The dailies)?$/.test(m.labels.join(' · ')) && m.h >= 56 && m.solid && !/rgba/.test(m.bg) && (!m.blur || m.blur === 'none'),
     `THE ☰ MENU: ${m.labels.join(' · ')} (no admin rows for a member), rows ${m.h} pt, the sheet SOLID (${m.solid}, no blur)`);
   // ---- SHELL 2.0 B1 — ‹ BACK ON EVERY NESTED SHEET (the owner, 9:15 am: ☰'s sheets had only an ×): a sheet opened FROM another shows a
   //      VISIBLE ‹ at its top-left + its parent's name small under the title; ‹ = one step back to the parent; × closes everything; Esc = the
@@ -620,8 +621,9 @@ G('shell', async () => {
     const s = sign ? sign.getBoundingClientRect() : { bottom: 0 }; return { n: on.length, t: on[0] && on[0].querySelector('.sh-msg-t').textContent, above: r && r.bottom <= d.top + 1, clear: r && r.top >= s.bottom, tube: on[0] && getComputedStyle(on[0].querySelector('.sh-msg-tube')).width, x: on[0] && on[0].querySelector('.sh-msg-x').getBoundingClientRect().height }; })()`);
   ok(ms.n === 1 && /you’re the host now/i.test(ms.t) && ms.above && ms.clear && ms.x >= 44, `ONE MESSAGE: "${ms.t}" — one at a time (${ms.n}), above the dock (${ms.above}), clear of the sign (${ms.clear}), its tube ${ms.tube}, × ${ms.x} pt`);
   // ---- the dock's labels
-  const lb = await ev(p, "[...document.querySelectorAll('.nd-actions .nd-tab .rdk-lbl')].map(x => x.textContent).join(' · ')");
-  ok(lb === 'BOARD · GAMES · YOU', `THE TITLE DOCK's LABELS: ${lb}`);
+  const lb = await ev(p, "[...document.querySelectorAll('.nd-actions .nd-tab:not([hidden]) .rdk-lbl')].map(x => x.textContent).join(' · ')");
+  // (DM2: DAILY leads the pill while a daily is live — the test server's DAILY_TEST; hidden otherwise)
+  ok(lb === 'BOARD · GAMES · YOU' || lb === 'DAILY · BOARD · GAMES · YOU', `THE TITLE DOCK's LABELS: ${lb}`);
   if (SHOTS) await p.screenshot({ path: `${OUT}shell-message-390.png` });
   await Q.ctx.close();
   // ---- THE PODIUM's FRAME (the results preview: no Firebase): BACK TO THE ROOM right under the XP box, in view without scrolling at 390
