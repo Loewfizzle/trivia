@@ -6294,3 +6294,11 @@ THE CARD PASS DONE (Nov 7, ~11:10 pm ET; ci, green, rules unchanged — the queu
   re-publishes; THE FRIENDS SCREENS on the profile card + the badge + ADD FRIEND on name tags + the INVITE sheet; INVITES THAT WAIT — the push + the card;
   YOUR TABLE's data; THE CREW INTERCOM; SAVE TO PASSWORDS); FRIENDS B (the fix list + FACE ID / PASSKEYS) ← NEXT → THE DAILY MODULE → BOARD 2.0 → PRISM DROP →
   FR7 → THE SWITCH-OVER.
+
+## OWNER'S NOTES — NOV 8 (night)
+
+FRIENDS A DONE (Nov 8, ~3:15 am ET; RULES CHANGED — pfr/{pid}; tests green, harbor 15/16 — the audio job's 'RETURN (rAF dropped)' known flake) — friends (request / accept, quiet REMOVE, BLOCK, 100 / 20 out / 50 in, requests expire in 30 days, rate-limited), presence = the green dot in your room only, FRIENDS on the card + the YOU badge + ADD FRIEND on name tags (room, podium, THE BOARD's ⋯ in-app) + INVITE's friends row; invites = push + the waiting card (30 min / room close); YOUR TABLE's server side (≤ 12: most-recently-played first); the CREW INTERCOM (radio → THE LEDGER → CREW INTERCOM, default OFF; 15 s, 4 a room a night, 1 h); SAVE TO PASSWORDS. Functions 8 / 12. Known: the crew radio's header crowds at 390 (older) → FRIENDS B; friends see each other's 4 digits.
+
+* 3:26 am ET (the owner): too tired for the checklist tonight — runs it tomorrow (incl. re-publishing the rules: Downloads\NEON\database.rules.nov8.json); FRIENDS B now. FRIENDS B's list is too big for one ~5 h pass → SPLIT: FRIENDS B (Face ID + the podium / profile / shell fixes) and FRIENDS C (the city: the radio, the intercom sync, the sky + weather, the helicopter, the cloud reds, the slow-3G load).
+
+- THE BUILD TABLE (Nov 8 night, FRIENDS B Step 0): FRIENDS A ✅ (passes/friends-a.md; rules published by the owner on Nov 8); FRIENDS B (this pass: FACE ID / PASSKEY SIGN-IN, THE PODIUM + THE END SCREEN, THE CARDS + THE SHELL — nothing from FRIENDS C) ← NEXT; FRIENDS C (the city: the radio, the intercom sync, the sky + weather, the helicopter, the cloud reds, the slow-3G load) after; then THE DAILY MODULE (the dailies chat) + its Fable review → BOARD 2.0 → PRISM DROP → FR7 → THE SWITCH-OVER.
