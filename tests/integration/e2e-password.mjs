@@ -14,13 +14,13 @@ process.env.GCLOUD_PROJECT ||= 'demo-arcade';
 import { createHarness } from './kit/harness.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
 import { ref, val } from '../../api/_lib/fb.js';
-import { wordsFor, pwLists } from '../../api/_lib/pw.js';
+import { pwDay, pwLists } from '../../api/_lib/pw.js';
 import { streakDay } from '../../js/core/streak.js';
 
 const H = await createHarness({ name: 'password', slot: 'pw', sizes: [[390, 844], [402, 874], [430, 932]] });
 const { log, sleep, ok, shotAll, BASE, browser } = H;
 const day = streakDay(Date.now());
-const [W1, W2] = await wordsFor(day);
+const [W1, W2] = (await pwDay(day)).words;   // (DM1: the day the server judges from — its stored pair / THE FROZEN SCHEDULE, never a formula)
 const bad = new Set((W1 + W2).split(''));
 const MISS = pwLists().answers.find(w => new Set(w).size === 5 && ![...w].some(c => bad.has(c))) || 'XXXXX';
 log(`today ${day}: the miss word ${MISS} (the answers stay in this log's head only)`);

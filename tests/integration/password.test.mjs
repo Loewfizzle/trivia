@@ -9,6 +9,9 @@ process.env.MATCH_GAP_MS = '20000';
 process.env.ADMIN_PIDS = '';
 process.env.BOARD_MIN_MATCHES = '1';
 process.env.DAILY_TEST = '1';
+// (DM1 ADD-ON: the days come from THE DAILY SECRET, random per emulator run unless set — pinned here to the key these tests' days were picked
+//  against: `blank()` needs a word sharing no letter with four answers, which some random days don't have)
+process.env.DAILY_SECRET = 'emulator-pepper';
 
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
