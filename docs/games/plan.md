@@ -116,3 +116,15 @@
   rotating it can never break tags, keys or anything else.
 - ONE EASY RESEED COMMAND (`node scripts/dailies-reseed.mjs`): rotates the daily secret + rebuilds THE PASSWORD's schedule + COAST CLEAR's future
   boards from it, from the NEXT 4 am day — today's run and every past result untouched; safe twice; prints what it changed; a dry-run flag.
+
+## DM2 — THE DAILY MODULE: THE SCREENS (Nov 8 2026 — the dailies still ship OFF; the owner's switch turns them on)
+- PERFECT WEEK = THE SWEEP on 7 days IN A ROW (any 7 consecutive daily-days, not tied to a weekday). Card art = card-perfect-week-backup.png.
+- THE SWEEP bonus = +10 XP on the day every daily is finished (on top of DAILY_XP 15 each), once a day.
+- PENTHOUSE = top 1% of a daily's COUNTING finishers that day: rank ≤ max(1, floor(n × 1%)) AND n ≥ 50 (BAND_MIN) — dormant until a day
+  has 50 counting finishers. Card = design "A · THE DIAL", drawn in code.
+- SCORES → ALL TIME is HIDDEN until BOARD 2.0 fills it (no empty tab, no "coming soon"); THE BOARD stays on the title dock until then.
+- Same-day new profiles see one quiet line on their result: "YOUR SCORE COUNTS FROM TOMORROW".
+- COAST CLEAR's PRACTICE HARBOR: a fixed 5 × 5 board shown the first time a player opens COAST CLEAR — three guided steps (tap a cell · what a
+  number means · place a buoy), then "YOU'RE READY"; skippable; never scored; never the day's board. Any daily can declare a lesson like it.
+- The title dock gains DAILY: [ JOIN ring ] [ pill: DAILY · BOARD · GAMES · YOU ] [ HOST ring ] (4 icons — the max at today's sizes).
+  BOARD 2.0 later moves THE BOARD inside DAILY → SCORES → ALL TIME and FRIENDS takes its slot (the city chat's decided final dock).
