@@ -82,7 +82,10 @@ export function friendsSection(o = {}) {
   frSheet();
   const body = h('div.fr-body', h('p.fr-hint', 'Loading your friends…'));
   const count = h('span.fr-count');
-  const el = h('section.pf-sec.fr-sec', { 'aria-label': 'Friends' }, h('h3.pf-h.fr-h', h('span', 'FRIENDS'), count), body, pushRow(), ...(o.extra || []));
+  const el = h('section.pf-sec.fr-sec', { 'aria-label': 'Friends' }, h('h3.pf-h.fr-h', h('span', 'FRIENDS'), count), body, pushRow(),
+    // (YOUR TABLE — the server's data exists (api/daily.js `today`: your friends' daily scores, a tick until you've played it); THE DAILY MODULE +
+    //  BOARD 2.0 draw the real table — until the dailies switch on, a quiet placeholder)
+    h('div.fr-table', { 'aria-label': 'Your table' }, h('b', 'YOUR TABLE'), h('span', 'Your friends’ daily scores sit here — the dailies arrive soon.')), ...(o.extra || []));
   const paint = S => {
     if (!S) { count.textContent = ''; body.replaceChildren(h('p.fr-hint', 'Your friends show here when the membership office is open.')); return; }
     count.textContent = S.friends.length ? `${S.friends.length}` : '';

@@ -9,7 +9,8 @@
 //                                 on its record each (a repeat is free: nothing written); every judged answer carries the server's `now` (the phone's clock)
 //   finish { game, result }    → { day, score, stand: { n, pct, top, band }, outcome: { streak, items } }   checked + stored server-side
 //                                 (a judged daily scores from ITS record — the phone's result is ignored; an unfinished run → 409 not_done)
-//   today  { pids? }           → { day, mine: { game: score }, friends: { pid: { game: { done } | { score } } } }   (YOUR TABLE's TODAY)
+//   today  { pids? }           → { day, mine: { game: score }, friends: { pid: { game: { done } | { score } } }, table: [pid] }   (YOUR TABLE's TODAY —
+//                                FRIENDS A: only YOUR FRIENDS (pfr/{pid}/f), ≤ 12: a picked list kept to friends, else the ones you played with last)
 //
 //   dly/{game}/{day}/s/{pid}: startedAt · r/{pid}: score · h/{bucket}: count · n: finishers · p/{pid}: a judged daily's record      (server only — the rules' default deny)
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
@@ -25,6 +26,7 @@ import { dailyStep } from '../js/core/progress.js';
 import { easternParts } from '../js/core/week.js';
 import { founderOpen } from './_lib/founder.js';
 import { isPid } from './_lib/profiles.js';
+import { tablePids } from '../js/core/friends.js';
 
 async function mine(uid) {
   const pid = await pidOf(uid);
@@ -163,13 +165,16 @@ export async function dailyAction(uid, body, now = Date.now()) {
       const mineScores = {};
       await Promise.all(games.map(async g => { const v = await val(`dly/${g}/${day}/r/${pid}`); if (v != null) mineScores[g] = v; }));
       const friends = {};
-      const pids = (Array.isArray(body.pids) ? body.pids : []).map(String).filter(isPid).filter(p => p !== pid).slice(0, 12);
+      // (FRIENDS A — YOUR TABLE reads YOUR FRIENDS LIST on the server: a stranger's daily is never readable by naming their id; ≤ 12 —
+      //  the phone's own pick kept to friends, else the friends you PLAYED WITH most recently, then the newest friendships)
+      const picked = (Array.isArray(body.pids) ? body.pids : []).map(String).filter(isPid);
+      const pids = tablePids((await val(`pfr/${pid}`)) || {}, pid, picked.length ? picked : null, now);
       await Promise.all(pids.map(async p => {
         const theirs = {};
         await Promise.all(games.map(async g => { const v = await val(`dly/${g}/${day}/r/${p}`); if (v != null) theirs[g] = v; }));
         friends[p] = todayView(mineScores, theirs);
       }));
-      return { day, mine: mineScores, friends };
+      return { day, mine: mineScores, friends, table: pids };
     }
     default: throw new ApiError(400, 'bad_action');
   }

@@ -26,7 +26,7 @@ import { extractMatch } from '../../js/core/match-report.js';
 
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
 const DAY = 86_400_000;
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress', 'radio', 'testAdmins', 'gplay'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress', 'radio', 'testAdmins', 'gplay', 'pfr'];
 before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); });
 after(async () => { await deleteApp(fb().app); });
 
@@ -83,7 +83,11 @@ test('the percentile + THE BANDS (shown from ~50 finishers)', async () => {
 test('YOUR TABLE\'s TODAY: a friend\'s score hidden until you have played that daily', async () => {
   const day = streakDay(NOW);
   const ann = await val('uids/d-ann'), bob = await val('uids/d-bob');
-  await ensure('d-cat', 'Cat');
+  const cat = (await ensure('d-cat', 'Cat')).pid || await val('uids/d-cat');
+  // (FRIENDS A: YOUR TABLE reads the FRIENDS LIST — a stranger named by id is never read)
+  const strangers = await dailyAction('d-cat', { action: 'today', pids: [ann, bob] }, NOW);
+  assert.deepEqual(strangers.friends, {}, 'not friends yet: nothing of theirs');
+  await ref('pfr').update({ [`${cat}/f/${ann}`]: NOW - 2000, [`${ann}/f/${cat}`]: NOW - 2000, [`${cat}/f/${bob}`]: NOW - 1000, [`${bob}/f/${cat}`]: NOW - 1000 });
   const before = await dailyAction('d-cat', { action: 'today', pids: [ann, bob, 'not-a-pid'] }, NOW);
   assert.deepEqual(before.friends[ann], { test: { done: true } });
   assert.deepEqual(before.mine, {});
@@ -92,6 +96,17 @@ test('YOUR TABLE\'s TODAY: a friend\'s score hidden until you have played that d
   const after = await dailyAction('d-cat', { action: 'today', pids: [ann, bob] }, NOW);
   assert.deepEqual(after.friends[ann], { test: { score: 1000 } });
   assert.equal(after.day, day);
+  // no pick: the friends you PLAYED WITH last, then the newest friendships — at most 12
+  const auto = await dailyAction('d-cat', { action: 'today' }, NOW);
+  assert.deepEqual(auto.table, [bob, ann], 'the newest friendship first (nobody played together yet)');
+  await ref(`pfr/${cat}/rp/${ann}`).set(NOW - 500);
+  assert.deepEqual((await dailyAction('d-cat', { action: 'today' }, NOW)).table, [ann, bob], 'the one you played with last leads');
+  const AL = 'abcdefghijkmnpqrstuvwxyz23456789', many = {};
+  for (let i = 0; i < 20; i++) many[`pt${AL[i]}aaaaaaaaa`] = NOW - 10e3 - i;
+  await ref(`pfr/${cat}/f`).update(many);
+  const t12 = await dailyAction('d-cat', { action: 'today' }, NOW);
+  assert.equal(t12.table.length, 12, 'YOUR TABLE: at most 12 friends a read');
+  await ref(`pfr/${cat}`).remove();
 });
 
 test('a daily keeps THE STREAK like a match: tomorrow → 2 nights', async () => {
