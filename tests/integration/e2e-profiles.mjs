@@ -283,6 +283,65 @@ await H.run(async () => {
     await p7.click('.byc-else .sh-x').catch(() => {});
     await p7.close(); }
 
+  // ---- 6p. FRIENDS B — FACE ID / PASSKEY SIGN-IN with Chromium's VIRTUAL AUTHENTICATOR (CDP WebAuthn — a platform passkey, Face ID "passed"):
+  // ALICE's card on a device → ACCOUNT → ADD FACE ID SIGN-IN → listed → CLEAR SITE DATA (a new anonymous sign-in, nothing saved) → BRING YOUR
+  // CARD → SIGN IN WITH A PASSKEY → the SAME card (the key not on the device: the note says so) → REMOVE → it no longer signs in
+  { const p8 = await openPlayer(8);
+    const cdp = await p8.createCDPSession();
+    await cdp.send('WebAuthn.enable');
+    const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+    await p8.waitForFunction(() => !!window.__arcade, { timeout: 25000 }).catch(() => {});
+    const rk = await p8.evaluate(k => import('/js/profile/me.js').then(m => m.restoreKey(k)).then(r => r.pid, e => `ERR ${e.code}`), JSON.parse(key0));
+    ok(rk === me0.pid, `passkeys: this device holds ALICE's card (${rk})`);
+    await p8.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));
+    await p8.waitForSelector('.pk-box .pk-add', { timeout: 15000 }).catch(() => {});
+    ok(!!(await p8.$('.pk-box .pk-add')), 'ACCOUNT shows ADD … SIGN-IN (WebAuthn in this browser)');
+    await shotAll(p8, 'pf-06p-account-add', REVIEW_SIZES.slice(0, 3));
+    await p8.click('.pk-box .pk-add');
+    await p8.waitForSelector('.pk-box .pk-row', { timeout: 15000 }).catch(() => {});
+    const row1 = await p8.evaluate(() => { const r = document.querySelector('.pk-box .pk-row'); return r ? r.textContent : null; });
+    const creds = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials;
+    ok(row1 && /added [A-Z][a-z]{2} \d+/.test(row1) && /REMOVE/.test(row1) && creds.length === 1 && creds[0].isResidentCredential && creds[0].rpId === 'localhost',
+      `ADD: the phone saved a discoverable passkey for this site + ACCOUNT lists it ("${row1}")`);
+    await shotAll(p8, 'pf-06p-account-listed', REVIEW_SIZES.slice(0, 3));
+    // clear site data (localStorage + IndexedDB = the anonymous sign-in) → a NEW device as far as the site knows; the passkey stays in the "keychain"
+    const uidOf = () => p8.evaluate(() => import('/js/store.js').then(m => m.state.uid));
+    const uidBefore = await uidOf();
+    await cdp.send('Storage.clearDataForOrigin', { origin: BASE, storageTypes: 'all' });
+    await p8.reload();
+    await p8.waitForSelector('.byc-chip .byc-chip-go', { timeout: 30000 }).catch(() => {});
+    ok(!!(await p8.$('.byc-chip .byc-chip-go')), 'after clearing site data: nothing saved → ALREADY A MEMBER? BRING YOUR CARD');
+    await p8.click('.byc-chip-go');
+    await p8.waitForSelector('.byc-bring .pk-signin', { timeout: 8000 }).catch(() => {});
+    ok(!!(await p8.$('.byc-bring .pk-signin')) && /OR PASTE YOUR KEY/.test(await p8.$eval('.byc-bring', e => e.textContent)), 'BRING YOUR CARD: SIGN IN WITH … above "OR PASTE YOUR KEY"');
+    await shotAll(p8, 'pf-06p-bring-faceid', REVIEW_SIZES.slice(0, 3));
+    await p8.click('.byc-bring .pk-signin');
+    await p8.waitForFunction(pid => (JSON.parse(localStorage.getItem('na:f8:me') || 'null') || {}).pid === pid, { timeout: 20000 }, me0.pid).catch(() => {});
+    await p8.waitForFunction(() => !document.querySelector('.byc-bring'), { timeout: 3000 }).catch(() => {});
+    const m8 = await meOf(p8, 'f8');
+    const uidAfter = await uidOf();
+    ok(m8 && m8.pid === me0.pid && uidAfter && uidAfter !== uidBefore && !(await p8.$('.byc-bring')), `SIGN IN WITH A PASSKEY: a new sign-in (${uidBefore} → ${uidAfter}) → the SAME card (${m8 && m8.pid})`);
+    const k8 = await p8.evaluate(() => localStorage.getItem('na:f8:pkey'));
+    ok(!k8, 'the passkey brings no key — none written on this device');
+    const still8 = await p0.evaluate(() => import('/js/profile/me.js').then(m => m.fetchMe()).then(r => r.pid, e => `ERR ${e.code}`));
+    ok(still8 === me0.pid, 'the first device stays signed in');
+    await p8.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));
+    await p8.waitForSelector('.pf-kb-none', { timeout: 15000 }).catch(() => {});
+    ok(/not on this device/.test((await p8.$eval('.pf-kb-none', e => e.textContent).catch(() => '')) || '') && !!(await p8.$('.pf-newkey:not([hidden])')), 'ACCOUNT: YOUR KEY "not on this device" + NEW KEY offered');
+    await shotAll(p8, 'pf-06p-signed-in', REVIEW_SIZES.slice(0, 3));
+    // REMOVE (a second tap) → the server forgets it → signing in with it refuses ("isn't on a card any more")
+    await p8.waitForSelector('.pk-box .pk-row', { timeout: 10000 }).catch(() => {});
+    await p8.click('.pk-box .pk-row'); await sleep(250); await p8.click('.pk-box .pk-row');
+    await p8.waitForFunction(() => !document.querySelector('.pk-box .pk-row'), { timeout: 10000 }).catch(() => {});
+    ok(!(await p8.$('.pk-box .pk-row')), 'REMOVE: gone from ACCOUNT');
+    // (Chromium has the Signal API: REMOVE also tells the phone's list — the passkey goes from the authenticator itself; without it, the
+    //  phone still offers it and the SERVER refuses — server.test.mjs "PASSKEYS" proves that half)
+    const left = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length;
+    const gone = await p8.evaluate(() => import('/js/profile/passkey.js').then(m => m.signInWithPasskey()).then(() => 'signed in', e => e.code));
+    ok(left === 0 ? gone === 'pk_cancel' : gone === 'pk_unknown', `a removed passkey no longer signs in (${left === 0 ? 'the Signal API took it off the phone too' : 'the server refuses it'} — ${gone})`);
+    await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId }).catch(() => {});
+    await p8.close(); }
+
   // ---- 7. a new key: the old one stops working
   const fresh = await p0.evaluate(() => import('/js/profile/me.js').then(m => m.regenKey()));
   ok(fresh !== JSON.parse(key0), 'a new key was issued');

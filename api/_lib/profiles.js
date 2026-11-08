@@ -5,7 +5,8 @@
 //   ppriv/{pid}: { kh, at, nameAt, opt?, ban?, uids{uid:at} }   server only
 //   pkeys/{keyHash}: pid                               server only — the key itself is never stored
 //   tags/{nameKey}/{tag}: pid                          server only — keeps Mike#4821 unique per name
-//   rl/{bucket}: { n, t }                              server only — restore attempts per uid / ip
+//   rl/{bucket}: { n, t }                              server only — restore attempts per uid / ip (+ passkey sign-ins: the same buckets)
+//   pkc/{pid}/{h} · pkx/{h} · pkch/{uid}               server only — PASSKEYS (FRIENDS B — api/_lib/passkeys.js)
 import './catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
 import { createHmac, randomBytes, createHash } from 'node:crypto';
 import { ref, val, fb } from './fb.js';
@@ -21,7 +22,7 @@ import { STARTER } from '../../js/core/items.js';
 import { memberNo } from './members.js';
 
 export const RENAME_MS = 24 * 3600_000;
-const RESTORE_LIMIT = { uid: 10, ip: 40, windowMs: 3600_000 };
+export const RESTORE_LIMIT = { uid: 10, ip: 40, windowMs: 3600_000 };
 
 const PID_ALPHA = 'abcdefghijkmnpqrstuvwxyz23456789';
 export function newPid() {
@@ -161,7 +162,7 @@ export async function rename(pid, input, { force = false, now = Date.now() } = {
   return publicProfile(pid);
 }
 
-async function limited(bucket, max, now) {
+export async function limited(bucket, max, now) {
   const r = await ref(`rl/${bucket}`).transaction(cur => {
     const x = cur && now - cur.t < RESTORE_LIMIT.windowMs ? cur : { n: 0, t: now };
     if (x.n >= max) return undefined;
@@ -174,11 +175,21 @@ async function limited(bucket, max, now) {
 export async function restore(uid, input, ip = '', now = Date.now()) {
   const raw = normalizeKey(input);
   if (!raw) throw new ApiError(400, 'bad_key', 'That doesn’t look like a profile key (NEON-XXXX-XXXX-XXXX).');
+  await signInLimit(uid, ip, now);
+  const pid = await val(`pkeys/${keyHash(raw)}`);
+  if (!isPid(pid) || !(await val(`profiles/${pid}/n`))) throw new ApiError(404, 'no_key', 'No profile has that key.');
+  return linkDevice(uid, pid, now);
+}
+
+/** THE SIGN-IN LIMIT — a key restore and a passkey sign-in (FRIENDS B) count in the SAME buckets: 10 an hour a device, 40 an IP */
+export async function signInLimit(uid, ip, now) {
   if (await limited(`u_${uid}`, RESTORE_LIMIT.uid, now) || (ip && await limited(`i_${createHash('sha256').update(ip).digest('hex').slice(0, 24)}`, RESTORE_LIMIT.ip, now))) {
     throw new ApiError(429, 'restore_limit', 'Too many attempts. Try again in an hour.');
   }
-  const pid = await val(`pkeys/${keyHash(raw)}`);
-  if (!isPid(pid) || !(await val(`profiles/${pid}/n`))) throw new ApiError(404, 'no_key', 'No profile has that key.');
+}
+
+/** This device (uid) joins the profile — the restore key's and the passkey's one path; a blank profile the device made alone goes */
+export async function linkDevice(uid, pid, now = Date.now()) {
   const old = await pidOf(uid);
   await ref('/').update({ [`uids/${uid}`]: pid, [`ppriv/${pid}/uids/${uid}`]: now });
   if (old && old !== pid) await dropIfBlank(old, uid);
@@ -204,7 +215,8 @@ async function dropIfBlank(pid, uid) {
   const played = ownsAnything(stats, prof);
   const others = Object.keys((priv && priv.uids) || {}).filter(u => u !== uid);
   if (played || others.length) { if (priv && priv.uids) await ref(`ppriv/${pid}/uids/${uid}`).remove(); return; }
-  const patch = { [`profiles/${pid}`]: null, [`ppriv/${pid}`]: null, [`pstats/${pid}`]: null };
+  const patch = { [`profiles/${pid}`]: null, [`ppriv/${pid}`]: null, [`pstats/${pid}`]: null, [`pkc/${pid}`]: null };
+  for (const h of Object.keys((await val(`pkc/${pid}`)) || {})) patch[`pkx/${h}`] = null;   // (FRIENDS B: its passkeys + their index)
   if (priv && priv.kh) patch[`pkeys/${priv.kh}`] = null;
   await ref('/').update(patch);
   if (prof) await releaseTag(prof.nk, prof.t, pid);

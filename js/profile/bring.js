@@ -121,10 +121,14 @@ export async function openBring({ lead = false, onDone = null } = {}) {
   const err = h('p.byc-err', { role: 'alert', hidden: true });
   const go = h('button.btn.btn-primary.btn-block.byc-go', { type: 'button', 'data-act': 'bring' }, 'BRING MY CARD');
   const app = standalone();
+  // (FRIENDS B — SIGN IN WITH FACE ID: the passkey from any of your devices — the same join as the key)
+  const { passkeySignIn } = await import('./passkey-ui.js');
+  const pk = passkeySignIn({ cls: 'byc-pk', onDone: r => { last.restored = r.pid; dismissOffer('done'); document.querySelectorAll('.byc-chip').forEach(c => c.remove()); toast(`Welcome back, ${String(r.profile.n || '')}`, 'ok', { ms: 4200, sub: 'This device joined your card.' }); close(); onDone && onDone(r); } });
   const { sheet, close } = sheetOf('byc-bring', 'Already a member? Bring your card',
     h('div.byc-k', 'ALREADY A MEMBER?'),
     h('h2.byc-h', 'BRING YOUR CARD'),
     h('p.byc-p', app ? 'This Home Screen app keeps its own storage, so it starts empty — your card isn’t lost. Paste your key and this app joins it.' : 'Paste your key and this device joins your card. Your card works on all your devices at once — the others stay signed in.'),
+    pk,
     keyForm([field, err, go], () => run()),
     h('p.byc-help', h('b', 'Where’s my key? '), 'On a device you already play on: open your membership card → ', h('b', 'USE THIS CARD ON ANOTHER DEVICE'), ' → COPY. Or wherever you saved it.'));
   // (THE VAULT 2A — I'M NEW HERE removed with its welcome line: the owner, Nov 3 11:47 am — "no point, the ✕ already does it")

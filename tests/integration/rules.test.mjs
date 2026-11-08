@@ -143,6 +143,22 @@ test('FRIENDS A: pfr/{pid} — the owner reads their own, another player never; 
   }
 });
 
+// FRIENDS B: PASSKEYS — pkc/{pid} (the public keys + counters), pkx/{h} (credential → profile), pkch/{uid} (the one-time challenges) and
+// ppriv/{pid}/wh (the WebAuthn user handle) — the SERVER only: no rule names them, the root's deny keeps every phone out (even the owner's,
+// even their own device's challenge) — a phone that could write pkx could point a passkey at any card
+test('FRIENDS B: PASSKEYS — pkc / pkx / pkch / ppriv wh: read + written by nobody (not even their owner)', async () => {
+  await seed({ uids: { me: 'pme' }, pkc: { pme: { h1: { id: 'abc', pk: 'xyz', c: 0, rp: 'localhost', n: 'iPhone', at: 1 } } }, pkx: { h1: 'pme' },
+    pkch: { me: { a: { c: 'ch', rp: 'localhost', o: 'http://localhost:5173', x: 9e12 } } }, ppriv: { pme: { wh: 'handle' } } });
+  for (const who of ['me', 'stranger', null]) {
+    for (const p of ['pkc', 'pkc/pme', 'pkc/pme/h1', 'pkx', 'pkx/h1', 'pkch', 'pkch/me', 'pkch/me/a', 'ppriv/pme/wh']) {
+      await assertFails(get(ref(db(who), p)), `${who || 'signed out'} reads ${p}`);
+    }
+    for (const [p, v] of [['pkc/pme/h2', { id: 'mine', pk: 'k', c: 0 }], ['pkc/pme/h1/c', 0], ['pkx/h9', 'pme'], ['pkx/h1', 'pstranger'], ['pkch/me/a', { c: 'mine', x: 9e12 }], ['ppriv/pme/wh', 'x']]) {
+      await assertFails(set(ref(db(who), p), v), `${who || 'signed out'} writes ${p}`);
+    }
+  }
+});
+
 // PROGRESSION B: CITY SIGHTINGS (the counts, the appearances counted, the radio's once-a-day, the pairs), BIRTHDAYS (private), FAVORS, the
 // radio's fired-moment record + a room's radio — the SERVER's only: a phone can't claim its own sighting, birthday or favor by socket
 test('PROGRESSION B: sightings (pa.sg · sgt · it card-sg-*), ppriv sgk / sgr / bd / bdr, fv, radio/fired, rooms/{CODE}/radio — written by nobody', async () => {

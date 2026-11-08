@@ -101,12 +101,20 @@ export async function restoreKey(input, { onRetry } = {}) {
     try { r = await api('profile', { action: 'restore', key: raw }, { timeout: i ? 15000 : 9000 }); break; }
     catch (e) { if (!(e instanceof ApiFail) || e.status !== 0 || i >= 3) throw e; if (onRetry) onRetry(i + 1); await new Promise(res => setTimeout(res, 900 * (i + 1))); }
   }
-  const n0 = loadNotes();
+  adoptCard(r, raw);
+  return r;
+}
+
+/** This device JOINED a card ({ pid, profile }) — by its restore key (raw) or a PASSKEY (raw null — FRIENDS B: profile/passkey.js). */
+export function adoptCard(r, raw = null) {
+  const n0 = loadNotes(), was = loadMe();
   // (FR6 FIXES A — C2: the restore used to overwrite the device's previous key without keeping it — PERF-A's keepNewKey protected only
   //  the ensure path. The previous key (+ a held new one, never adopted) goes into oldKeys: ACCOUNT shows it as YOUR PREVIOUS KEY)
-  const prevs = [loadKey(), n0.heldNew].filter(k => k && normalizeKey(k) !== raw);
-  saveKey(formatKey(raw));
-  saveNotes({ ...n0, saved: true, heldNew: null, oldKeys: [...(n0.oldKeys || []).filter(k => !prevs.includes(k) && normalizeKey(k) !== raw), ...prevs].slice(-3) });
+  // (FRIENDS B: a passkey brings no key — the device's own key stays only if it is THIS card's; another card's goes to oldKeys)
+  const same = !raw && was && was.pid === r.pid && loadKey();
+  const prevs = same ? [n0.heldNew].filter(Boolean) : [loadKey(), n0.heldNew].filter(k => k && (!raw || normalizeKey(k) !== raw));
+  if (raw) saveKey(formatKey(raw)); else if (!same) saveKey(null);
+  saveNotes({ ...n0, saved: raw ? true : !!(same && n0.saved), pkIn: raw ? null : Date.now(), heldNew: null, oldKeys: [...(n0.oldKeys || []).filter(k => !prevs.includes(k) && (!raw || normalizeKey(k) !== raw)), ...prevs].slice(-3) });
   setState({ keyOffer: null });
   store(r.pid, r.profile);
   // the room name / avatar / colour follow the restored profile
@@ -114,7 +122,6 @@ export async function restoreKey(input, { onRetry } = {}) {
   saveProfile({ ...local, name: r.profile.n, avatar: r.profile.a, color: r.profile.c });
   lastSig = `${state.uid}|${r.profile.n}|${r.profile.a}|${r.profile.c}`;
   linkRoomSeat();
-  return r;
 }
 
 export async function regenKey() {

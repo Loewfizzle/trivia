@@ -32,12 +32,14 @@ import { isOffensive } from '../../js/core/names.js';
 import { finalGame, cipherSigned } from '../fixtures/finals.mjs';
 import { weekKey } from '../../js/core/week.js';
 import { RANKS } from '../../js/core/ranks.js';
+import { softAuthenticator } from './kit/soft-authenticator.mjs';
+import { rpOf, deviceLabel } from '../../api/_lib/passkeys.js';
 
 const NOW = Date.UTC(2026, 9, 14, 23, 0, 0);       // Wed 2026-10-14, 7 pm Eastern
 const DAY = 86_400_000;
 let clock = NOW;
 const tick = (ms = 60_000) => (clock += ms);
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'errlog', 'wx', 'phonelog', 'flags', 'members', 'seats'];
+const NODES = ['pkc', 'pkx', 'pkch', 'profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'errlog', 'wx', 'phonelog', 'flags', 'members', 'seats'];
 
 before(async () => {
   await ref('/').update(Object.fromEntries(NODES.map(n => [n, null])));
@@ -1435,4 +1437,81 @@ test('THE GIFT QUEUE: five in order, seen never replays, a refresh resumes, the 
     assert.deepEqual(q.gifts, []); assert.equal(q.done, 0); assert.equal(q.gift, null, 'all seen');
     assert.equal(await val(`ppriv/${kid.pid}/gq`), null, 'the finished line is cleared');
   } finally { process.env.ADMIN_PIDS = ''; await ref('audit').remove(); await ref('gifts').remove(); }
+});
+
+// FRIENDS B — FACE ID / PASSKEY SIGN-IN (api/_lib/passkeys.js): ADD on the card's ACCOUNT → a new device SIGNS IN WITH FACE ID → the same card,
+// exactly like a restore key; a wrong origin, a replayed challenge, a removed passkey, a cloned one (the counter) and no Face ID all refuse
+test('PASSKEYS: add → sign in on a new device → the same card; the bad cases refuse', async () => {
+  const O = 'http://localhost:5173', UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_1 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1';
+  const P = (uid, body) => profileAction(uid, { origin: O, ...body }, '', clock);
+  const pkA = await ensure('u-pk-phone', 'PASSKAT');
+  const auth = softAuthenticator({ origin: O, rpID: 'localhost' });
+  // the RP: neonspeakeasy.com + localhost (off production) — nothing else
+  assert.equal(rpOf('https://neonspeakeasy.com').rpID, 'neonspeakeasy.com');
+  assert.equal(rpOf('http://localhost:5173/').rpID, 'localhost');
+  assert.throws(() => rpOf('https://evil.example'), e => e.code === 'pk_origin');
+  assert.equal(deviceLabel(UA), 'iPhone');
+  await rejects(P('u-pk-phone', { action: 'pkRegOptions', origin: 'https://neon-speakeasy.evil' }), 400, 'pk_origin');
+  // ADD FACE ID SIGN-IN: discoverable + Face ID required; the user handle is opaque (never the pid)
+  const { options: ro } = await P('u-pk-phone', { action: 'pkRegOptions' });
+  assert.equal(ro.rp.id, 'localhost');
+  assert.equal(ro.authenticatorSelection.userVerification, 'required');
+  assert.equal(ro.authenticatorSelection.residentKey, 'required');
+  assert.ok(!String(ro.user.id).includes(pkA.pid) && ro.user.name.startsWith('PASSKAT#'), 'an opaque handle; the name tag as the account name');
+  const reg = await profileAction('u-pk-phone', { action: 'pkRegister', origin: O, ua: UA, response: auth.create(ro) }, '', clock);
+  assert.equal(reg.ok, true);
+  assert.equal(reg.pk.length, 1); assert.equal(reg.pk[0].n, 'iPhone'); assert.equal(reg.pk[0].at, clock);
+  assert.equal(await val('pkch/u-pk-phone/r'), null, 'the challenge is used once');
+  // the same answer again (a replayed challenge) → refused
+  await rejects(P('u-pk-phone', { action: 'pkRegister', response: auth.create(ro) }), 400, 'pk_stale');
+  // the card's 'me' lists it (ACCOUNT's PASSKEYS) — label + dates only, never the key material
+  const me = await P('u-pk-phone', { action: 'me' });
+  assert.deepEqual(Object.keys(me.pk[0]).sort(), ['at', 'h', 'n', 'u']);
+  // a NEW DEVICE (another uid, nothing saved) signs in → the same card
+  tick();
+  const { options: ao } = await P('u-pk-new', { action: 'pkAuthOptions' });
+  assert.equal(ao.userVerification, 'required'); assert.deepEqual(ao.allowCredentials || [], []);
+  const r = await P('u-pk-new', { action: 'pkAuth', response: auth.get(ao) });
+  assert.equal(r.pid, pkA.pid); assert.equal(r.via, 'passkey');
+  assert.equal(await val('uids/u-pk-new'), pkA.pid, 'this device joined the card');
+  assert.ok(await val(`ppriv/${pkA.pid}/uids/u-pk-new`));
+  assert.equal((await P('u-pk-phone', { action: 'me' })).pk[0].u, clock, 'last used');
+  // a replayed sign-in (the same signed answer) → refused (the challenge went with the first)
+  const { options: ao2 } = await P('u-pk-new2', { action: 'pkAuthOptions' });
+  const ans2 = auth.get(ao2);
+  assert.equal((await P('u-pk-new2', { action: 'pkAuth', response: ans2 })).pid, pkA.pid);
+  await rejects(P('u-pk-new2', { action: 'pkAuth', response: ans2 }), 400, 'pk_stale');
+  // a challenge made for ANOTHER device can't be answered from this one
+  const { options: ao3 } = await P('u-pk-x1', { action: 'pkAuthOptions' });
+  await rejects(P('u-pk-x2', { action: 'pkAuth', response: auth.get(ao3) }), 400, 'pk_stale');
+  // a wrong origin inside the signed answer (a phishing page) → refused
+  const { options: ao4 } = await P('u-pk-x3', { action: 'pkAuthOptions' });
+  await rejects(P('u-pk-x3', { action: 'pkAuth', response: auth.get(ao4, { origin: 'https://neonspeakeasy.evil' }) }), 400, 'pk_bad');
+  // an expired challenge (5 min) → refused
+  const { options: ao5 } = await P('u-pk-x4', { action: 'pkAuthOptions' });
+  tick(6 * 60_000);
+  await rejects(P('u-pk-x4', { action: 'pkAuth', response: auth.get(ao5) }), 400, 'pk_stale');
+  // the signature counter went backwards (a cloned authenticator) → refused
+  const { options: ao6 } = await P('u-pk-x5', { action: 'pkAuthOptions' });
+  await rejects(P('u-pk-x5', { action: 'pkAuth', response: auth.get(ao6, { counter: 1 }) }), 400, 'pk_bad');
+  // no Face ID (user verification missing) → refused
+  const noUv = softAuthenticator({ origin: O, rpID: 'localhost', uv: false });
+  const { options: ro2 } = await P('u-pk-phone', { action: 'pkRegOptions' });
+  assert.ok(ro2.excludeCredentials.some(c => c.id === auth.id), 'the phone is told which passkey it already holds');
+  await rejects(P('u-pk-phone', { action: 'pkRegister', response: noUv.create(ro2) }), 400, 'pk_bad');
+  // a passkey nobody registered → refused
+  const stray = softAuthenticator({ origin: O, rpID: 'localhost' });
+  const { options: ao7 } = await P('u-pk-x6', { action: 'pkAuthOptions' });
+  await rejects(P('u-pk-x6', { action: 'pkAuth', response: stray.get(ao7) }), 404, 'pk_unknown');
+  // REMOVE on ACCOUNT → that passkey no longer signs in (the Signal API's list comes back for the phone)
+  const rm = await P('u-pk-phone', { action: 'pkRemove', h: reg.h });
+  assert.deepEqual(rm.pk, []); assert.equal(rm.signal.rpId, 'localhost'); assert.deepEqual(rm.signal.ids, []);
+  assert.equal(await val(`pkx/${reg.h}`), null);
+  const { options: ao8 } = await P('u-pk-x7', { action: 'pkAuthOptions' });
+  await rejects(P('u-pk-x7', { action: 'pkAuth', response: auth.get(ao8) }), 404, 'pk_unknown');
+  // the sign-ins share the restore key's limit (10 an hour a device)
+  for (let i = 0; i < 10; i++) { const { options } = await P('u-pk-lim', { action: 'pkAuthOptions' }); await P('u-pk-lim', { action: 'pkAuth', response: stray.get(options) }).catch(() => {}); }
+  const { options: ao9 } = await P('u-pk-lim', { action: 'pkAuthOptions' });
+  await rejects(P('u-pk-lim', { action: 'pkAuth', response: stray.get(ao9) }), 429, 'restore_limit');
+  tick();
 });

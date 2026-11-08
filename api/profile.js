@@ -18,6 +18,12 @@
 //   inviteCheck                      → { invites }                the waiting invites (on open; never a socket)
 //   inviteDismiss { pid }            → { ok }
 //   friendPush { op, sub?, endpoint? } → { key, subs, mine }      INVITE NOTIFICATIONS on this phone
+//   FRIENDS B — FACE ID / PASSKEYS (api/_lib/passkeys.js — docs/profiles.md "PASSKEYS"; the RP from the request's Origin):
+//   pkRegOptions                     → { options }                ADD FACE ID SIGN-IN (your card; a discoverable passkey, Face ID required)
+//   pkRegister { response }          → { ok, h, pk }               the browser's answer → stored (pk = ACCOUNT's list)
+//   pkAuthOptions                    → { options }                SIGN IN WITH FACE ID (no card needed yet)
+//   pkAuth { response }              → { pid, profile, via }      → this device joins the passkey's card (like restore; the same limit)
+//   pkRemove { h }                   → { ok, pk, signal }         a passkey off your card
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/http.js';
 import { ITEM, STARTER, signOf, SIGN_EMBLEMS } from '../js/core/items.js';
@@ -39,6 +45,7 @@ import { setBirthday, birthdayRoom } from './_lib/birthday.js';
 import { callFavor } from './_lib/favors.js';
 import { weekKey } from '../js/core/week.js';
 import { friendsState, friendDo, friendInvite, inviteCheck, inviteDismiss, friendPush, pendingIn } from './_lib/friends.js';
+import { regOptions, register, authOptions, authenticate, removePasskey, passkeyList, originOf } from './_lib/passkeys.js';
 
 /** the IP's zone (Vercel's header; tests: the body's, only without a request) */
 const ipTzOf = (req, body) => (req ? (req.headers && req.headers['x-vercel-ip-timezone'] ? decodeURIComponent(String(req.headers['x-vercel-ip-timezone'])) : null) : (body && body.ipTz) || null);
@@ -103,7 +110,8 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
       const s = stats || {};
       const wk = weekKey(now);
       const frIn = await pendingIn(pid, now).catch(() => 0);   // (FRIENDS A: the badge on the profile button)
-      return { pid, profile, priv, fr: { in: frIn }, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0 } };
+      const pk = await passkeyList(pid).catch(() => []);   // (FRIENDS B: ACCOUNT's PASSKEYS)
+      return { pid, profile, priv, pk, fr: { in: frIn }, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0 } };
     }
     case 'ranks': {
       const pid = await mine(uid);
@@ -167,6 +175,11 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
     case 'inviteCheck': return inviteCheck(await mine(uid), now);
     case 'inviteDismiss': return inviteDismiss(await mine(uid), body);
     case 'friendPush': return friendPush(await mine(uid), body, now);
+    case 'pkRegOptions': return regOptions(await mine(uid), uid, { origin: originOf(req, body), now });
+    case 'pkRegister': return register(await mine(uid), uid, body.response, { origin: originOf(req, body), ua: req ? req.headers['user-agent'] : body.ua, now });
+    case 'pkAuthOptions': return authOptions(uid, { origin: originOf(req, body), now });
+    case 'pkAuth': return authenticate(uid, body.response, { origin: originOf(req, body), ip, now });
+    case 'pkRemove': return removePasskey(await mine(uid), body.h);
     default: throw new ApiError(400, 'bad_action');
   }
 }

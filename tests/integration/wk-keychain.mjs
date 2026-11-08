@@ -20,7 +20,11 @@ const ok = (c, what) => { checks.push(!!c); console.log(c ? 'OK  ' : 'FAIL', wha
 const wf = (p, js, ms = 25000) => p.waitForFunction(js, null, { timeout: ms }).then(() => true, () => false);
 try {
   const slot = 'wkk';
-  const ctx = await browser.newContext({ viewport: { width: 402, height: 874 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+  // (FRIENDS B: an iPhone's user agent — the passkey buttons say FACE ID as on the owner's phone)
+  const ctx = await browser.newContext({ viewport: { width: 402, height: 874 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1' });
+  // (FRIENDS B: Playwright's Windows WebKit build has PublicKeyCredential but NO navigator.credentials — a real iPhone has both. An INERT
+  //  stand-in (it never makes a passkey) lets the page draw the passkey buttons for the look review; the real Face ID = the owner's iPhone)
+  await ctx.addInitScript(() => { try { if (window.PublicKeyCredential && !navigator.credentials) Object.defineProperty(navigator, 'credentials', { value: { create: () => Promise.reject(Object.assign(new Error('stub'), { name: 'NotAllowedError' })), get: () => Promise.reject(Object.assign(new Error('stub'), { name: 'NotAllowedError' })) }, configurable: true }); } catch { /* fine */ } });
   await ctx.addInitScript(([s]) => { try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('nd:byc', 'test'); localStorage.setItem(`na:${s}:profile`, JSON.stringify({ name: 'KEYCHAIN', color: 'cyan', avatar: 'bolt' })); } catch { /* fine */ } }, [slot]);
   const p = await ctx.newPage();
   const sent = [];
@@ -51,6 +55,14 @@ try {
   await p.waitForTimeout(800);
   ok(sent.length === 0 && !/NEON-/.test(p.url()), `the key sent NOWHERE (${sent.length ? sent.join(', ') : 'no request carried it'}; the URL clean)`);
   await p.screenshot({ path: `${OUT}wk-keychain-saved.png` });
+  // FRIENDS B — FACE ID SIGN-IN in Safari's engine: ACCOUNT's block + ADD (where WebAuthn exists — Playwright's WebKit build may lack it: then the
+  //  block says so and no ADD is drawn; the real Face ID prompt = the owner's iPhone)
+  ok(await wf(p, '!!document.querySelector(".pk-box")', 15000), 'FACE ID SIGN-IN: ACCOUNT has the passkey block');
+  const wa = await p.evaluate(() => ({ api: !!window.PublicKeyCredential && !!navigator.credentials, add: !!document.querySelector('.pk-box .pk-add'), txt: (document.querySelector('.pk-box') || {}).textContent || '' }));
+  ok(wa.api ? wa.add && /FACE ID SIGN-IN/.test(wa.txt) : /can’t save a passkey/.test(wa.txt), `the block in WebKit: WebAuthn ${wa.api ? 'present → ADD … SIGN-IN drawn' : 'absent → "can’t save a passkey" (no button)'} ("${wa.txt.slice(0, 80)}")`);
+  await p.evaluate(() => document.querySelector('.pk-box').scrollIntoView({ block: 'center' }));
+  await p.waitForTimeout(400);
+  await p.screenshot({ path: `${OUT}wk-faceid-account.png` });
   // the FRIENDS section in WebKit (the look review)
   await p.evaluate(() => { const s = document.querySelector('.fr-sec'); if (s) s.scrollIntoView({ block: 'start' }); });
   await p.waitForTimeout(500);
@@ -62,6 +74,8 @@ try {
   ok(r.ac === 'current-password' && r.type === 'password' && r.user && r.submit, `the restore key field: autocomplete="${r.ac}", type ${r.type}, a username field + a submit in its form — a new phone AUTOFILLS it`);
   await p.waitForTimeout(400);
   await p.screenshot({ path: `${OUT}wk-keychain-restore.png` });
+  const ps = await p.evaluate(() => ({ api: !!window.PublicKeyCredential && !!navigator.credentials, btn: !!document.querySelector('.pf-restore-sheet .pk-signin') && /SIGN IN WITH FACE ID/.test(document.querySelector('.pf-restore-sheet .pk-signin').textContent) }));
+  ok(ps.api ? ps.btn : !ps.btn, `RESTORE YOUR ACCOUNT: SIGN IN WITH FACE ID ${ps.api ? 'drawn above the key' : 'not drawn (no WebAuthn in this build)'}`);
 } catch (e) { errors.push(`FATAL ${e.message}`); console.log('FATAL', e); }
 await browser.close();
 console.log(`checks ${checks.filter(Boolean).length}/${checks.length} passed`);

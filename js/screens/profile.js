@@ -2,6 +2,7 @@
 // that fills with light; the profile key as a secret password card (tap to reveal, copy, a new key); "Show me on
 // global leaderboards"; and per-game cards (wins, win rate, highlights, records, weekly and all-time ranks).
 import { h, reducedMotion } from '../ui/dom.js';
+import { passkeyBlock, passkeySignIn } from '../profile/passkey-ui.js';
 import { onCloseAll } from '../ui/layers.js';
 import { avatar, tubeButton, row } from '../ui/components.js';
 import { emblem } from '../ui/emblems.js';
@@ -101,6 +102,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
     els.cz = h('div.pf-cz-slot');
     els.bday = h('div.pf-bday-slot');
     els.keyBox = h('div.pf-keybox-slot');
+    els.pk = h('div.pf-pk-slot');   // (FRIENDS B — FACE ID SIGN-IN: the passkeys on this card + ADD; painted once the server answers)
     // (SHELL 2.0 B2 — YOUR PREVIOUS KEY on YOU → ACCOUNT: it only lived in City 1.0's key sheet — the key this phone held before a restore or
     //  a new key (profile/me.js#previousKey): a way back to that card. A glass row, only when there is one: tap = COPY; FORGET beside it)
     els.prevKey = prevKeyRow();
@@ -129,6 +131,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
           //  ACCOUNT keeps the key / restore / sign-in things only)
           els.bday,
           els.keyBox,
+          els.pk,
           els.prevKey,
           els.elsewhere,
           els.restore,
@@ -160,7 +163,10 @@ export function createView({ onBack = null, overlay = false } = {}) {
   function paintKey() {
     const k = loadKey();
     els.elsewhere.hidden = !k;
-    els.newKey.hidden = !k;
+    // (FRIENDS B: signed in with a PASSKEY, this device holds no key — NEW KEY makes one here; the note says the saved key still works)
+    const pkIn = !k && !!(notes() || {}).pkIn && !!(loadMe() || {}).pid;
+    els.newKey.hidden = !k && !pkIn;
+    if (pkIn) { els.keyBox.replaceChildren(h('div.pf-kb.pf-kb-none', h('div.pf-kb-h', h('b', 'YOUR KEY'), h('span', 'not on this device')), h('p.pf-kb-why', 'You signed in with a passkey, so your key isn’t on this device. The key you saved still works anywhere — or NEW KEY makes a fresh one here (the old one stops).'))); return; }
     if (!k) { els.keyBox.replaceChildren(); return; }
     let shown = false, timer = 0;
     const text = h('span.pf-kb-text');
@@ -196,7 +202,10 @@ export function createView({ onBack = null, overlay = false } = {}) {
     const { wrap: field, input } = keyFields({ cls: 'pf-key-in', label: 'Profile key' });
     const go = h('button.btn.btn-primary.btn-block', { type: 'submit' }, h('span', 'RESTORE MY PROFILE'));
     const restoreNow = async () => { if (await doRestore(input.value, go)) s.close(); };
+    // (FRIENDS B — SIGN IN WITH FACE ID above the key: the passkey on any of your devices brings the card the same way)
+    const pkIn = passkeySignIn({ onDone: r => { s.close(); afterJoin(r); } });
     s = openPfSheet({ kicker: 'YOUR ACCOUNT', title: 'RESTORE YOUR ACCOUNT', cls: 'pf-restore-sheet', body: [
+      pkIn,
       h('p.sh-note', 'Paste the key from your other device. This device joins that card — with all its stats; the other device stays signed in.'),
       keyForm([field, go], restoreNow),
       h('p.sh-note.is-small', 'The profile this device has now is replaced (if it never finished a match, it’s removed).')] });
@@ -236,16 +245,20 @@ export function createView({ onBack = null, overlay = false } = {}) {
     }
     els.why.replaceChildren();
   }
+  /** this device joined a card (a key or a passkey) → the card repaints from the server */
+  function afterJoin(r) {
+    toast(`Welcome back, ${r.profile.n}`, 'ok');
+    data = null;
+    paintKey();
+    paintLocal();
+    load();
+  }
   async function doRestore(key, btn) {
     if (btn) btn.classList.add('is-busy');
     try {
       const r = await restoreKey(key, { onRetry: () => toast('WAKING THE SERVER — TRYING AGAIN', 'info', 2600) });
-      toast(`Welcome back, ${r.profile.n}`, 'ok');
+      afterJoin(r);
       sfx('join');
-      data = null;
-      paintKey();
-      paintLocal();
-      load();
       return true;
     } catch (e) {
       toast(e.message || 'THAT KEY DIDN’T WORK', 'err');
@@ -264,6 +277,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
       paintProgress();
       paintMastery();
       if (!els.friends.firstChild) els.friends.replaceChildren(friendsSection());
+      els.pk.replaceChildren(passkeyBlock({ list: data.pk || [] }));   // (FRIENDS B)
       els.show.checked = !!data.priv.shown;
       els.show.disabled = !!data.priv.banned;
       els.foot.replaceChildren(
