@@ -109,7 +109,10 @@ DAILY MODULE after); decisions.md (FRIENDS C building, THE BLACK HELICOPTER, A S
 - **(a) `holiday` — the Halloween spiders** (red in the last 4+ cloud runs). The cause: the dangle / landing / word / reel checks POLLED the
   spider's live pose — a 2-core runner's polls stepped over the short poses — and the tap missed a spider that stepped off its hub between the
   read and the tap. The fix: the spider keeps each TRIP's RECORD frame by frame (`dress-halloween.js` — `seen: { n, tuck, land, word, reel }`, the
-  same conditions as before); the test reads the record (a trip STARTED = its count went up), five tap tries. No check loosened.
+  same conditions as before); the test reads the record (a trip STARTED = its count went up), more tap tries. No check loosened.
+  **Cloud run 1** still red: the record showed the trip DROPPED (its tuck) and was then cut short — ITS NERVES, by design (a flicker near it —
+  the tired tube, a blink — scares it off the thread; it bolts home), met more often on the 2-core runner. The record now notes it
+  (`seen.scared`) and the test taps again for a trip that runs whole (the landing, the word, the climb home read from that trip).
 - **(b) `audio` — RETURN (rAF dropped):** the loop restarted fine every time; the red was the punch's peak, 0.842 vs a bar of 0.851 (70 % of the
   first window's peak) — a 2.6 s window holds ~5 beats and the song's bars differ in level. Now measured over 4 s (a whole bar of kicks), the
   same 70 % bar.
@@ -138,7 +141,8 @@ DAILY MODULE after); decisions.md (FRIENDS C building, THE BLACK HELICOPTER, A S
   ROOM's OWN COST (the known one — left red, above), and THE PROGRAM's two checks in `vault` — **a real bug of Group 1's re-order**: the RARE +
   LEGENDARY filter repainted with `paint()[0]` (tonight was the first section) and would have swapped tonight for a copy of YOUR QUEUE → tonight
   is found by its mark now (`data-paper="tonight"`); `vault` **58 / 58** after.
-- The cloud run: the harbor tag on the final push (see the summary).
+- **Cloud run 1** (c9a5429): tests ✅; harbor **14 / 15** — `holiday`'s spiders (the trip scared off — above), fixed for run 2.
+- **Cloud run 2**: see the summary.
 
 ## Decisions taken in the pass (for the owner)
 - THE BLACK HELICOPTER = the medium tier's night helicopter pass (the same times — the golden table unchanged), not a new medium kind;

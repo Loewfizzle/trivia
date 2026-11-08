@@ -1,7 +1,7 @@
 // CITY 2.0 — THE HARBOR end to end: the `holiday` cloud job's groups (holiday, thanks, panelrows, citylife) — tests/integration/harbor-jobs.mjs#CI_JOBS.
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=holiday, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
-import { OUT, SHOTS, sleep, ok, okT, GR, open, ev, waitFor, tapAt, harborUp, G, settled } from './kit.mjs';
+import { OUT, SHOTS, log, sleep, ok, okT, GR, open, ev, waitFor, tapAt, harborUp, G, settled } from './kit.mjs';
 
 // 11a-1 — THE HOLIDAYS: Halloween's build-up by date (Oct 10 / Oct 27), Halloween night, the come-down into Day of the Dead (Nov 1), the
 // procession (Nov 2 at dusk), all gone (Nov 3 evening); the forced moments; reduced motion (docs/harbor/passes/part-11a-1.md)
@@ -98,10 +98,20 @@ G('holiday', async () => {
     //  from the record, never a fixed-time sample)
     const tripsNow = () => ev(Q.page, `(${P}.dress.spider.seen || { n: 0 }).n`);
     let n0 = 0;
-    for (let tries = 0; tries < 5 && !dropped; tries++) {   // (five: on a 2-core runner it can step off the hub between the read + the tap)
+    // (the cloud's run 1 of this pass: the trip DROPPED (its tuck seen) and was then cut short — ITS NERVES, by design: a flicker near it (the
+    //  tired tube, a blink) scares it off the thread and it bolts home; the 2-core runner meets that window more often. The record says so
+    //  (seen.scared): a scared trip is tapped again — the checks below read a trip that ran whole)
+    let whole = false;
+    for (let tries = 0; tries < 6 && !whole; tries++) {   // (on a 2-core runner it can step off the hub between the read + the tap)
       n0 = await tripsNow();
       at = await spiderTap(Q.page, 0); if (!at) continue;
-      dropped = await waitFor(Q.page, `(${P}.dress.spider.seen || { n: 0 }).n > ${n0}`, 'the spider dropping', 2500).then(() => true).catch(() => false); }
+      dropped = await waitFor(Q.page, `(${P}.dress.spider.seen || { n: 0 }).n > ${n0}`, 'the spider dropping', 2500).then(() => true).catch(() => false);
+      if (!dropped) continue;
+      await waitFor(Q.page, `(() => { const r = ${P}.dress.spider.seen || {}; return r.word || r.scared; })()`, 'the word (or a scare)', 12000).catch(() => {});
+      const rec = await ev(Q.page, `${P}.dress.spider.seen`);
+      whole = !!(rec && !rec.scared);
+      if (!whole) { log('holiday', `the spider's trip ${rec && rec.n} was scared off the thread (its nerves) — tapped again`); await waitFor(Q.page, `!${P}.dress.spider.trip`, 'home again', 20000).catch(() => {}); }
+    }
     if (at && dropped) {
       // (WIN3 — the owner: it DANGLES on its thread — head down, the legs tucked in (the mean reach under half the stance), a slow turn — and
       // lands feet first: the legs still pose-locked (never the full stance in the air) as it settles onto the tubes)
@@ -137,7 +147,14 @@ G('holiday', async () => {
     ok(at2 && trip2 && s2 && s1 && (s1.mode !== s2.mode || Math.abs(s1.x - s2.x) > 40), `THE SECOND SPIDER (touch at ${at2 ? `${at2.x.toFixed(0)},${at2.y.toFixed(0)}` : 'none'}): its own trip (${s2 && s2.mode}), the first still ${s1 && s1.mode} — never in step`);
     // WIN3 — THE CLIMB HOME, the same in reverse: head-up, reeling the line with the front legs, the legs gathered (the mean reach
     // under 0.55), a slow turn; then both home + still (the wait is for the condition, not a fixed pause)
-    const reeled = await waitFor(Q.page, `!!(${P}.dress.spider.seen || {}).reel`, 'the first reeling home', 18000).then(() => true).catch(() => false);   // (FRIENDS C: from the trip's record)
+    let reeled = await waitFor(Q.page, `(() => { const r = ${P}.dress.spider.seen || {}; return r.reel || r.scared; })()`, 'the first reeling home', 18000).then(() => ev(Q.page, `!!(${P}.dress.spider.seen || {}).reel`)).catch(() => false);   // (FRIENDS C: from the trip's record)
+    // (a trip scared off before it climbed home (its nerves): one more whole trip for the climb)
+    for (let k = 0; k < 2 && !reeled && (await ev(Q.page, `!!(${P}.dress.spider.seen || {}).scared`)); k++) {
+      await waitFor(Q.page, `!${P}.dress.spider.trip`, 'home again', 20000).catch(() => {});
+      const n1 = await tripsNow(); await spiderTap(Q.page, 0);
+      await waitFor(Q.page, `(${P}.dress.spider.seen || { n: 0 }).n > ${n1}`, 'a new trip', 3000).catch(() => {});
+      reeled = await waitFor(Q.page, `(() => { const r = ${P}.dress.spider.seen || {}; return r.reel || r.scared; })()`, 'reeling home', 30000).then(() => ev(Q.page, `!!(${P}.dress.spider.seen || {}).reel`)).catch(() => false);
+    }
     const bothHome = await waitFor(Q.page, `(() => { const a = ${P}.dress.spider, b = ${P}.dress.spider2; return a && b && !a.trip && !b.trip && a.mode === 'still' && b.mode === 'still'; })()`, 'both home', 24000).then(() => true).catch(() => false);
     ok(reeled && bothHome, `THE CLIMB HOME: head-up, reeling the thread, the legs gathered (${reeled}); both home + still after (${bothHome})`);
     // ITS NERVES: a flicker on the sign (a poke: the race) — both freeze + crouch, eyes flaring, then calm

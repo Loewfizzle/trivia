@@ -514,6 +514,7 @@ export function createSpider(web, { seed = 7 } = {}) {
     }
     const dist = to.up ? pos.hang : Math.hypot(to.x - pos.x, to.y - pos.y);
     scare = { t0: t, k: kk, pos, to, freeze: 0.04 + R0() * 0.2 + 0.1 + 0.25 * kk, dash: Math.max(0.14, dist / 125), hold: 1.2 + 1.8 * kk, calm: 2.2, ret: null, dist };
+    if (trip && seenT && seenT.n === tripN) seenT.scared = true;   // (FRIENDS C: the trip's record says so — a scared trip is cut short by design)
     if (trip && !crawl) { trip = null; tripEnd = t; } else if (trip) trip.scared = true;   // (scared on the thread: the trip is off — it bolts home)
     return true;
   }
@@ -611,7 +612,7 @@ export function createSpider(web, { seed = 7 } = {}) {
     // (FRIENDS C — THE TRIP's RECORD (the cloud's red: a 2-core runner's polls stepped over the short dangle / landing poses): what each trip
     //  DID, frame by frame — it dangled tucked + turning, landed feet first (the legs still gathered), reached the word, climbed home reeling)
     if (trip) {
-      const R = legs.reduce((s, g) => s + (g.pf == null ? 1 : g.pf), 0) / legs.length, T = seenT && seenT.n === tripN ? seenT : (seenT = { n: tripN, tuck: false, land: false, word: false, reel: false });
+      const R = legs.reduce((s, g) => s + (g.pf == null ? 1 : g.pf), 0) / legs.length, T = seenT && seenT.n === tripN ? seenT : (seenT = { n: tripN, tuck: false, land: false, word: false, reel: false, scared: false });
       if (body.mode === 'drop' && body.pose === 'tuck' && R < 0.5 && (body.spinK || 0) > 0.5) T.tuck = true;
       if (body.mode === 'land' && body.pose === 'reach' && R < 0.9) T.land = true;
       if (body.mode === 'crawl' && word && Math.abs(body.y + body.hang - word.y) < 1) T.word = true;
