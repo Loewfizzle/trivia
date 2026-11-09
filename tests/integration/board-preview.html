@@ -65,6 +65,8 @@
   });
   if (pub) view.el.classList.add('is-public');
   document.getElementById('app').append(view.el);
+  // (PD-1 GROUP 0: the shared corner pair as the app draws it — ☰ top-left, the music top-right — so a shot shows THE BOARD's real top bar)
+  if (!pub && !q.has('nocorners')) document.body.insertAdjacentHTML('beforeend', '<button class="menu-btn" type="button" aria-label="Menu"><span class="mb-bars"><i></i><i></i><i></i></span></button><button class="music-btn" type="button" aria-label="Music"><svg viewBox="0 0 24 24" aria-hidden="true"><g class="nt"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></g><path class="slash-bg" d="M4 4l16 16"/><path class="slash" d="M4 4l16 16"/></svg></button>');
   view.start();
   document.body.dataset.ready = '1';
   window.__board = { state: () => view.state(), pick: (g, c, p) => view.pick(g, c, p) };

@@ -1589,6 +1589,15 @@ test('BOARD 2.0 A — THE OVERALL BOARD: XP this week + total XP, the replay, th
     await ref(`lb/xp/${wk}/${a.pid}`).remove();
     const mine = (await profileAction('u-xp-a', { action: 'ranks', boards: ['xp'] }, '', clock)).ranks.xp;
     assert.ok(mine && mine.week && mine.week.v === sa.xw.x && mine.week.rank >= 1, `YOUR rank while hidden ${JSON.stringify(mine)}`);
+    // (PD-1 GROUP 0: the opted-out player is out of their friends' XP THIS WEEK too — wx null; a shown friend keeps the number)
+    await ref('/').update({ [`pfr/${a.pid}/f/${b.pid}`]: clock, [`pfr/${b.pid}/f/${a.pid}`]: clock });
+    const fb = (await profileAction('u-xp-b', { action: 'friends' }, '', clock)).friends;
+    const fa = fb && (fb.friends || fb).find ? (fb.friends || fb).find(c => c.pid === a.pid) : null;
+    assert.ok(fa && fa.wx === null, `a hidden friend has no week number ${JSON.stringify(fa && { wx: fa.wx })}`);
+    const fbb = (await profileAction('u-xp-a', { action: 'friends' }, '', clock)).friends;
+    const fbx = fbb && (fbb.friends || fbb).find ? (fbb.friends || fbb).find(c => c.pid === b.pid) : null;
+    assert.ok(fbx && typeof fbx.wx === 'number', `a shown friend keeps theirs ${JSON.stringify(fbx && { wx: fbx.wx })}`);
+    await ref('/').update({ [`pfr/${a.pid}`]: null, [`pfr/${b.pid}`]: null });
   } else assert.fail('the opt-out action did not hide the profile');
   // THE BACK-FILL (admins only): a lost counter rebuilt from the records; a second run = the same numbers
   await rejects(adminAction('u-xp-b', { action: 'boardsBackfill' }, clock), 403, 'not_admin');

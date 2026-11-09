@@ -2,7 +2,7 @@
    BOARD 2.0 B — THE PLAYER PAGE (js/profile/player-page.js; prefix pp-): a FULL SHEET over the paused city — the full card (vault.css .vl-full*),
    LV + the rank line + the flame, the 3 rarest achievements, INVITE / the friend button + ⋯. Loaded on demand. Only transform + opacity animate.
    ========================================================================== */
-.vl-full.pp { overflow-y: auto; overscroll-behavior: contain; place-items: start center; background: rgba(4, 3, 8, 0.95); }
+.vl-full.pp { overflow-y: auto; overscroll-behavior: contain; place-items: start center; background: radial-gradient(90% 50% at 50% 0%, #1a0f22 0%, #07050b 70%) #07050b; }   /* (PD-1 GROUP 0: OPAQUE — the list behind no longer shows through; the cover holds it still) */
 .pp-in { margin: auto 0; }
 .pp-stage { min-height: 0; }
 .pp-foot { width: 100%; display: grid; gap: 12px; }

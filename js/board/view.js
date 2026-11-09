@@ -19,12 +19,11 @@
 import { openSheet } from '../ui/sheet.js';
 import { h } from '../ui/dom.js';
 import { avatar } from '../ui/components.js';
-import { emblem, RANK_COLORS } from '../ui/emblems.js';
+import { emblem } from '../ui/emblems.js';
 import { GAMES, DAILIES } from '../config.js';
 import { boardDef, recordBoards, careerBoards, fmtValue, MIN_WR_GAMES } from '../core/boards.js';
 import { POINT_DAILIES } from '../core/daily-points.js';
 import { weekEndsAt } from '../core/week.js';
-import { levelOf } from '../core/levels.js';
 import { board as fetchBoard, reportRow } from '../profile/api.js';
 import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
 import { boardSfx } from './audio.js';
@@ -91,7 +90,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     rows: [], more: false, all: false, ends: null,
     loading: false, token: 0,
   };
-  let destroyed = false, cascadeSound = false, io = null, surface = null, meSurface = null, K = null;
+  let destroyed = false, cascadeSound = false, io = null, surface = null, meSurface = null, K = null, seeMine = null;
   const els = {};
   const myRankCache = new Map();
 
@@ -120,7 +119,8 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       h('span.bd-kicker', 'NEON SPEAKEASY'),
       h('h1.bd-name', { 'data-text': 'THE BOARD' }, 'THE BOARD'),
       h('span.bd-sub', 'HALL OF FAME')),
-    els.meBtn = pub ? h('span.bd-head-pad') : h('button.bd-mebtn', { type: 'button', 'aria-label': 'Your profile', onclick: () => onProfile && onProfile() }));
+    // (PD-1 GROUP 0 — the owner, Nov 9: the gold emblem button beside ‹ is GONE — the bar = ☰ · ‹ · the music, nothing else)
+    h('span.bd-head-pad'));
   els.el = h('section.bd', { class: pub ? 'is-public' : '' },
     els.scene,
     h('div.bd-wrap',
@@ -198,7 +198,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     els.rows.append(...Array.from({ length: 5 }, (_, i) => h('li.bd-row.is-skel', { style: { '--i': i } }, h('span.bd-rank'), h('span.bd-sk-card'))));
     els.scroll.replaceChildren(els.rows);
   }
-  function dropSurface() { if (surface) { try { surface.destroy(); } catch { /* fine */ } surface = null; } }
+  function dropSurface() { if (surface) { try { surface.destroy(); } catch { /* fine */ } surface = null; } if (seeMine) { seeMine.disconnect(); seeMine = null; } setInList(false); }
 
   function row(r, i, def) {
     const bid = myBid();
@@ -331,6 +331,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     } else if (S.all && S.more) els.rows.append(els.sentinel);
     else els.rows.append(h('li.bd-end', h('span', S.rows.length < 10 ? 'THE HOUSE AWAITS NEW NAMES' : 'THE TOP OF THE HOUSE')));
     els.rows.dataset.built = String(els.rows.querySelectorAll('.bd-row').length);
+    watchMine();
     if (fresh) {
       els.card.classList.remove('is-cascade'); void els.card.offsetWidth; els.card.classList.add('is-cascade');
       if (cascadeSound) { boardSfx('rows'); cascadeSound = false; }
@@ -348,6 +349,21 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       S.rows = S.rows.concat(data.rows || []); S.more = !!data.more && S.rows.length < MAX;
       renderRows(def, false);
     } catch { /* the sentinel stays; scrolling again retries */ } finally { S.loading = false; }
+  }
+
+  // ------------------------------------------------------------------ NO DOUBLE "YOU" (PD-1 GROUP 0 — the owner, Nov 9): the pinned row shows ONLY while
+  // your own card is NOT on screen in the list (scrolled away, not built yet or ranked off the page). One IntersectionObserver on your row, the
+  // list's scroller its root; ≥ 60 % of the card in view = "visible". Stable both ways: hiding the foot only grows the list's view.
+  function watchMine() {
+    if (seeMine) { seeMine.disconnect(); seeMine = null; }
+    const mine = els.rows.querySelector('.bd-row.is-me');
+    if (!mine || typeof IntersectionObserver !== 'function') { setInList(false); return; }
+    seeMine = new IntersectionObserver(es => { const e = es[es.length - 1]; setInList(!!(e && e.isIntersecting && e.intersectionRatio >= 0.6)); }, { root: els.scroll, threshold: [0, 0.6, 1] });
+    seeMine.observe(mine);
+  }
+  function setInList(on) {
+    const v = on ? '1' : '';
+    if ((els.me.dataset.inlist || '') !== v) els.me.dataset.inlist = v;
   }
 
   // ------------------------------------------------------------------ your row (pinned at the foot)
@@ -426,20 +442,10 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     }
   }
 
-  function paintMeBtn() {
-    if (pub || !els.meBtn) return;
-    const m = me();
-    els.meBtn.replaceChildren(...(m && m.profile
-      ? [emblem(m.profile.r | 0, 30), h('span.bd-mebtn-l', `LV ${levelOf(m.profile.x || 0)}`)]
-      : [h('span.bd-mebtn-l', 'PROFILE')]));
-    if (m && m.profile) els.meBtn.style.setProperty('--rk', RANK_COLORS[m.profile.r | 0]);
-  }
-
   // ------------------------------------------------------------------ life
   function start() {
     io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) more(); }, { root: els.scroll, rootMargin: '300px' });
     io.observe(els.sentinel);
-    paintMeBtn();
     renderTabs();
     relight();
     stripKit().then(k => { K = k; }).catch(() => {});
@@ -450,13 +456,14 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     el: els.el,
     start,
     /** the player's profile changed (rename, rank-up, opt-out) */
-    meChanged() { paintMeBtn(); myRankCache.clear(); const def = boardDef(S.board); if (def) loadMe(def, S.token); },
-    state: () => ({ ...S, rows: S.rows.length, built: els.rows.querySelectorAll('.bd-row').length }),
+    meChanged() { myRankCache.clear(); const def = boardDef(S.board); if (def) loadMe(def, S.token); },
+    state: () => ({ ...S, rows: S.rows.length, built: els.rows.querySelectorAll('.bd-row').length, pinned: !els.me.hidden && els.me.dataset.inlist !== '1' }),
     pick: (tab, cat, period) => { if (period) S.period = period; if (cat) S.cat = cat; const t = tab && tabOf(tab); if (t && t !== S.tab) pickTab(t); else refresh(); },
     destroy() {
       destroyed = true;
       closeReport();
       io && io.disconnect();
+      if (seeMine) seeMine.disconnect();
       dropSurface();
       if (meSurface) { try { meSurface.destroy(); } catch { /* fine */ } }
     },

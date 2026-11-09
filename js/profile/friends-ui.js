@@ -142,8 +142,9 @@ function herePids() {
 /** in your room first, then by THIS WEEK's XP (the friends answer's `wx`), then by name */
 export function friendOrder(list) {
   const here = herePids();
-  return (list || []).map(c => ({ ...c, here: here.has(c.pid), wx: Number(c.wx) || 0 }))
-    .sort((a, b) => (b.here - a.here) || (b.wx - a.wx) || String(a.n || '').localeCompare(String(b.n || '')));
+  // (PD-1 GROUP 0: wx null = that friend opted out of the public boards — no number shown, sorted as 0)
+  return (list || []).map(c => ({ ...c, here: here.has(c.pid), wx: c.wx == null ? null : Number(c.wx) || 0 }))
+    .sort((a, b) => (b.here - a.here) || ((b.wx || 0) - (a.wx || 0)) || String(a.n || '').localeCompare(String(b.n || '')));
 }
 /** the friends as SLIM CARDS (ui/strip-board.js — never a second strip system): a tap on the card = THE PLAYER PAGE; the line under it: ⋯ (REMOVE /
  *  BLOCK) · HERE (in your room) · the XP this week at its right end. ONE fx surface per list (it goes with the list) */
@@ -155,7 +156,7 @@ function cardList(cs) {
       h('div.fr-ssub',
         h('button.fr-dots', { type: 'button', 'aria-label': `More for ${c.n}`, html: '<svg viewBox="0 0 16 4" aria-hidden="true"><circle cx="2" cy="2" r="1.8"/><circle cx="8" cy="2" r="1.8"/><circle cx="14" cy="2" r="1.8"/></svg>', onclick: () => openMore(c) }),
         c.here ? h('span.fr-here', h('i.fr-dot', { 'aria-hidden': 'true' }), 'HERE') : null,
-        h('span.fr-wx', (c.wx || 0).toLocaleString('en-US'), h('small', 'XP THIS WEEK'))))));
+        c.wx == null ? null : h('span.fr-wx', c.wx.toLocaleString('en-US'), h('small', 'XP THIS WEEK'))))));
   }
   stripKit().then(K => {
     if (!list.isConnected && !list.dataset.wait) { list.dataset.wait = '1'; requestAnimationFrame(() => dress(K)); return; }

@@ -40,7 +40,11 @@ export async function friendsState(pid, now = Date.now()) {
   const [friends0, inn, out, blocked, recent] = await Promise.all([cards(X.f), cards(X.in), cards(X.out), cards(X.b), cards(X.rp, sug)]);
   // (BOARD 2.0 B — THE FRIENDS LIST as slim cards, by THIS WEEK's XP: each FRIEND's week counter (pstats/{pid}/xw — the OVERALL board's own number), the
   //  friends only — never a request, a block or a suggestion; the existing read, no new function)
-  const friends = await Promise.all(friends0.map(async c => ({ ...c, wx: weekXp({ xw: await val(`pstats/${c.pid}/xw`) }, now) })));
+  //  (PD-1 GROUP 0: a friend who OPTED OUT of the public boards — profiles/{pid}/h — is out of this number too: wx null, only they see their own)
+  const friends = await Promise.all(friends0.map(async c => {
+    const [hid, xw] = await Promise.all([val(`profiles/${c.pid}/h`), val(`pstats/${c.pid}/xw`)]);
+    return { ...c, wx: hid ? null : weekXp({ xw }, now) };
+  }));
   return { friends, in: inn, out, blocked, recent: recent.map(c => ({ ...c, rel: relOf(A, pid, c.pid, now) })), caps: { max: FR.max, outMax: FR.outMax } };
 }
 
