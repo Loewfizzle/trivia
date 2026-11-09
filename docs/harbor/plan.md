@@ -6452,3 +6452,24 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 - NO DOUBLE "YOU": the pinned YOUR-ROW at the panel's foot shows ONLY while your own card is NOT visible in the list (scrolled away or ranked off the page).
 - A player who OPTED OUT of the public boards is out of the friends' XP-this-week too (only they see their own number).
 - THE PLAYER PAGE: the list behind it no longer shows through (an opaque enough backdrop, or the list held / hidden under it).
+
+## OWNER'S NOTES — NOV 9 (evening)
+
+- Nov 9 (the owner): THE ORDER — PRISM DROP (+ its own Fable review + fixes; FR7 covers the console hookups so the game's review stays on the game) →
+  HOLD'EM (its own chat, built on the BEELINK, + its Fable review) → FR7 (the WHOLE app, read-only) + FR7 FIXES → THE SWITCH-OVER (incl. /board's link-preview
+  image re-shot from the new velvet board + the billboard to NOW OPEN) → SIDEWAYS. LOAD FIX 2 slots in now, between PRISM DROP passes.
+- Nov 9: THE BOARD's top bar fix, B's two leftovers, WHO GETS LISTED (the 3rd COUNTED PLAY — a room match of 2+ or a counted daily; never a solo run) and
+  SHARE TODAY's balanced one card all shipped inside PRISM DROP's passes (PD-1, PD-3, PD-4 Group 0s). The owner re-runs /admin → THE BOARDS → BACK-FILL.
+- Nov 9: SIDEWAYS — a 1-of-1 GIFT card for the owner's friend MAZDA MIKIE (drifting, Japan, anime): THREE anime scenes on ONE card that SWITCH WITH THE REAL
+  WORLD — day + sunset = C DESERT DRIFT, night = A TOUGE NIGHT, real rain (the city's live weather) = B NEON TOKYO RAIN (its signs kept as Grok drew them);
+  a slide-out / drift-in between scenes; the strip follows. Art in Downloads\grok\anime-card\ (Grok drew 3:4 and stretched to 2:3 — un-stretch; the full
+  cards are LANDSCAPE 1.586, crop each; most FX plates don't align → the game draws the lights itself, only the petals / rain / dust + smoke plates used).
+  Built AFTER HOLD'EM.
+- Nov 9: LATER IDEAS (parked, not on the roadmap): THE ARENA — a real-time game server (e.g. Cloudflare Durable Objects; free / $5 a month at our size) for
+  physical games (a knockout show, SUMO, a top-down neon LASER TAG arena, up to 8); a 3D one-shot experiment (three.js) + a Unity web-build demo, both OUTSIDE
+  the project, to judge 3D on the owner's iPhone. Nothing built for these now.
+- Nov 9, 4:34 pm (the owner, iPhone, Safari, home Wi-Fi): THE SITE IS SLOW TO LOAD — EVERY time (so not the network: the boot's own bytes + work). THE CLOUDS
+  once SNAPPED (jumped) then FADED to a different cloud right after the reveal — intermittent; later loads fine. → LOAD FIX 2.
+- THE BUILD TABLE (Nov 9 evening, LOAD FIX 2 Step 0): BOARD 2.0 B ✅; PRISM DROP (PD-1 → PD-5A ✅, the rest + its Fable review ← in its chat);
+  LOAD FIX 2 (this pass: the city loads FAST again + the clouds never snap after the reveal — nothing else) ← NOW; then PRISM DROP's remaining passes →
+  HOLD'EM (its own chat, the beelink) → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS (Mikie's gift card).
