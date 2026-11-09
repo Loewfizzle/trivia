@@ -204,3 +204,20 @@ an upscaled bitmap. **After**: the chip **45 × 45 (1.000) night · 44 × 44 (1.
 mock beside the 1:1 night + day crops + a game poster (OVERCLOCK) at 1:1.
 (The game posters + the hints draw their WORDS in the board's long-standing "condensed hand" — 80 % width, an earlier design, not the
 resize; left as it is.)
+
+## The end — the checks (all local, on the mini PC; THE BUSY-PC CHECK quiet: 3.9 % average)
+
+- unit **1397 / 1397** · rules **69** · `/api`: server **41**, progression 10, friends 8, sightings 4, lab 2, vault-2b 3, vault-2c 3, password 9,
+  coastclear 14, daily-module 17 — all green · smoke **6 / 6** · CONN green (0 sockets parked / 1 in a room / the admin panel 1) ·
+  `e2e-daily` **46 / 46** (its own `DAILY_TEST=1` server) · THE BASELINE GUARD **3 / 3** (0.87–1.13×) · `e2e-taps` Chromium **22 / 22**,
+  WebKit **20 / 20**.
+- **THE FULL `e2e-harbor` SUITE** (4 shards): run 1 **1219 / 1221** — `roomperf` red (the night posters' crisp copy re-painted at every lamp
+  step — FIXED: painted once, the lamps' level as its opacity; `roomperf` green after, 36.1 → 38.0 standing) + the panel's WORD TOWERS (JUST ME).
+  Run 1 was on my first `serve.mjs`, started before this pass changed `/api` (it caches each `/api` module) — restarted fresh for run 2.
+  Run 2 **1218 / 1222**: THE WORD TOWERS (JUST ME) again + three that were green in run 1 and pass ALONE (sightings' parked-print easing,
+  freeze's 9g mid-drain frame at 4× CPU, crew's CC-B push — `sightings,freeze` 47 / 47, `crew` 20 / 20): the 4-shard load's timing.
+- **Known issue — THE WORD TOWERS (JUST ME)** (`panel`, city.mjs): red only in the FULL run's tail (both runs), green ALONE 4 / 4 on this tree
+  (also right after the `radio` group) and on the pass's starting commit — the same "red only in the 4-shard run" FRIENDS C logged (its (f));
+  this pass touches nothing in the word towers' path. The next city pass: find which earlier group's state the tail inherits.
+- Servers: the emulators + `serve.mjs --emu` (:5173) started fresh at the start (DFIX3's were stopped first), + `DAILY_TEST=1` on :5176 for
+  e2e-daily, + a bisect worktree's server on :5177 (removed) — all stopped at the end. The owner's own preview server on :5190 left running.
