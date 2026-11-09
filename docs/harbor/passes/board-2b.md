@@ -127,7 +127,7 @@ behind the gold title; drawn in code, nothing to load on /board; a gold sunburst
 ("Deployment has completed"). **tests RED on the first run** — ONE unit test: CIPHER's (a frozen game's) whole-match simulation "answer not stored in
 plain text" — a FLAKE older than this pass: the secret word picked at random can be a word that is also a JSON key or the phase's value (PHASE ·
 MATCH · ROUND · INTRO) → the whole-JSON `includes` matched ~60 games in 20,000 (0.3 %). Fixed in the test (the check reads the stored string VALUES,
-the phase name excepted: 0 / 20,000), unit 1438 / 1438; the second (and last) cloud run = the tests workflow on the fix (the ci tag).
+the phase name excepted: 0 / 20,000), unit 1438 / 1438; the second (and last) cloud run = the tests workflow on the fix (the ci tag, 15eb9fd6): **tests GREEN**, Vercel BUILT.
 
 The servers this pass started (the emulators' Java + node, `serve.mjs --emu` on :5173, the `DAILY_TEST=1` one on :5176, the plain one on :5173
 before them) all stopped; the owner's preview server on :5190 left running.
