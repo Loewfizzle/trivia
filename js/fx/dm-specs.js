@@ -7,12 +7,14 @@
 //   heroFull [x, y, w, h] — the full card's (THE PLATE PLACEMENT RULE keeps the plate off it — vault/layout.js)
 export const DM_AW = 1280, DM_AH = 720;
 /** the art → slot mapping, exactly the CSS `background: … px% py% / cover` (× the zoom) of a 1280 × 720 picture: { k, ox, oy } */
+// (BOARD 2.0 B — THE LONG-NAME FIX: crop[3] === 'w' = a zoom by the card's WIDTH — exactly the CSS "Z% auto" — so a full card whose art is set right
+//  + zoomed out maps its effects + its hero box onto the art the CSS really draws; THE CARD PASS's strip zoom had shrunk the full card's art too)
 export function dmMap(w, h, crop) {
-  const k = Math.max(w / DM_AW, h / DM_AH) * (crop[2] || 1);
+  const k = crop[3] === 'w' ? (w / DM_AW) * crop[2] : Math.max(w / DM_AW, h / DM_AH) * (crop[2] || 1);
   return { k, ox: (w - DM_AW * k) * (crop[0] / 100), oy: (h - DM_AH * k) * (crop[1] / 100) };
 }
 export const DM_SPECS = Object.freeze({
-  'card-perfect-week': { art: 'perfect-week', strip: [100, 42, 0.648], full: [62, 50],
+  'card-perfect-week': { art: 'perfect-week', strip: [100, 42, 0.648], full: [100, 50, 0.8, 'w'],   // (BOARD 2.0 B: the full card's fan set right at 80 % — a 12-letter name on ONE line)
     hero: [640, 160, 400, 330],          // the fan's middle tickets + the burst (the outer orange ticket runs on beside the gem)
     heroFull: [590, 140, 590, 380],      // the whole fan (the plate keeps left of it)
     burst: [884, 418],                   // the white-hot star at the middle ticket's foot (it breathes)

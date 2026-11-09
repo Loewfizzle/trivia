@@ -14,8 +14,11 @@ export const PH_BAND = Object.freeze([0.2, 0.52]);
 /** a point at math angle a (radians, counter-clockwise from +x) and radius r round the pivot, in scene units (y down) */
 export const pt = (a, r) => [C.x + Math.cos(a) * r, C.y - Math.sin(a) * r];
 /** the scene → slot mapping: { k, ox, oy } */
+/** BOARD 2.0 B — THE LONG-NAME FIX: the full card's dial a little smaller + set flush right (the lacquer fills the card behind it), so a 12-letter
+ *  name fits on ONE line left of it */
+export const PH_FULL_Z = 0.8;
 export function phMap(w, h, full) {
-  if (full) { const k = Math.max(w / SW, h / SH); return { k, ox: (w - SW * k) / 2, oy: (h - SH * k) / 2 }; }
+  if (full) { const k = Math.max(w / SW, h / SH) * PH_FULL_Z; return { k, ox: w - SW * k, oy: (h - SH * k) / 2 }; }
   const k = h / ((PH_BAND[1] - PH_BAND[0]) * SH);
   return { k, ox: w * 0.8 - C.x * k, oy: -PH_BAND[0] * SH * k };
 }

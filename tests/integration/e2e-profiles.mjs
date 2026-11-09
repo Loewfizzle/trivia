@@ -401,33 +401,35 @@ await H.run(async () => {
   ok(/ALREADY A MEMBER\?.*Nothing is saved on this device yet .*wasn’t deleted.*BRING YOUR CARD/.test(await p7.$eval('.pf-note', e => e.textContent)), `THE EMPTY CARD SAYS WHY: "${await p7.$eval('.pf-note', e => e.textContent)}"`);
 
   // ---- 8. THE BOARD in the app (the floor, REAL USERNAMES — LOBBY 2.0 A, your own row, REPORT), and the opt-out
-  const openBoard = async () => {
+  // (BOARD 2.0 B: THE BOARD's tabs = XP · DAILIES · OVERCLOCK · PRISM DROP — the floor + the rows are read on XP; every row a SLIM CARD: the name in
+  //  data-n, YOUR row the YOU chip + a frame, every other row its ⋯ REPORT; a tap on a card = THE PLAYER PAGE)
+  const openBoard = async (period = 'week') => {
     await p3.evaluate(() => import('/js/profile/api.js').then(m => m.clearBoardCache()));
     await p3.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'title' })));
-    await p3.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'board', boardGame: 'cipher' })));
+    await p3.evaluate(p => import('/js/store.js').then(m => m.setState({ view: 'board', boardGame: 'xp', boardBoard: 'xp', boardPeriod: p })), period);
     await p3.waitForSelector('.bd-card.is-cascade .bd-row, .bd-card .bd-empty', { timeout: 20000 });
     await sleep(1200);
   };
   await openBoard();
   const floorNote = await p3.$eval('.bd-me', el => el.textContent).catch(() => '');
   ok(/MORE MATCH/.test(floorNote), `one match: under the 3-match floor, the pinned row says so ("${floorNote.replace(/\s+/g, ' ').trim()}")`);
-  ok((await val(`lb/cipher-score/all/${me0.pid}`)) == null, '…and no board entry is written yet');
+  ok((await val(`lb/xp/all/${me0.pid}`)) == null, '…and no board entry is written yet');
   // top both players up to 3 matches (two earlier ones elsewhere), then a resync puts them up
   for (const [pg, m] of [[p0, me0], [p1, me1]]) {
     // (BOB's seeded match scores 0 — give him a best score elsewhere so the board has another player's row; it used to come from older runs' leftovers)
-    await ref('/').update({ [`pstats/${m.pid}/g/slip/p`]: 2, [`profiles/${m.pid}/m`]: 3, ...(m === me1 ? { [`pstats/${m.pid}/b/cipher-score`]: { a: 412 } } : {}) });
+    await ref('/').update({ [`pstats/${m.pid}/g/slip/p`]: 2, [`profiles/${m.pid}/m`]: 3, ...(m === me1 ? { [`pstats/${m.pid}/b/cipher-score`]: { a: 412 }, [`pstats/${m.pid}/xp`]: 520 } : {}) });
     await pg.evaluate(() => import('/js/profile/me.js').then(x => x.setShown(false)));
     await pg.evaluate(() => import('/js/profile/me.js').then(x => x.setShown(true)));
   }
-  ok((await val(`lb/cipher-score/all/${me0.pid}`)) != null, '3 matches: on the boards');
+  ok((await val(`lb/xp/all/${me0.pid}`)) != null, '3 matches: on the boards (THE OVERALL BOARD — XP)');
   // the board's GET is browser-cached (max-age 10 s + stale-while-revalidate 60 s): look at ALL TIME, a list this browser hasn't fetched
-  await p3.evaluate(() => sessionStorage.setItem('bd:period', 'all'));
-  await openBoard();
+  await openBoard('all');
   ok(await p3.$('.bd-me.is-ranked'), 'your pinned row shows your exact rank');
-  const rows = await p3.$$eval('.bd-row:not(.is-skel)', els => els.map(el => ({ n: el.querySelector('.bd-n').textContent, me: el.classList.contains('is-me'), more: !!el.querySelector('.bd-more'), id: el.dataset.id })));
+  const rows = await p3.$$eval('.bd-rows .bd-row:not(.is-skel)', els => els.map(el => ({ n: el.dataset.n || '', me: el.classList.contains('is-me'), you: !!el.querySelector('.bd-you'), more: !!el.querySelector('.bd-more'), strip: !!el.querySelector('.vl-strip'), id: el.dataset.id })));
+  ok(rows.length > 0 && rows.every(r => r.strip), `SLIM CARDS EVERYWHERE: every board row is its player's slim card (${rows.length})`);
   const mine = rows.find(r => r.me);
   const bid3 = await p3.evaluate(() => { for (const k of Object.keys(localStorage)) if (/:me$/.test(k)) { const v = JSON.parse(localStorage.getItem(k)); return `${k}=${v && v.profile && v.profile.bid}`; } return 'none'; });
-  ok(mine && (mine.n.startsWith(me0.profile.n) || mine.n.startsWith('KATIEJO')) && /YOU$/.test(mine.n) && !mine.more, `your own row: your real name + YOU, no REPORT (${mine && mine.n}; ${bid3}; rows ${rows.map(r => r.id).join(',')})`);
+  ok(mine && (mine.n.toUpperCase().startsWith(String(me0.profile.n).toUpperCase()) || mine.n.toUpperCase().startsWith('KATIEJO')) && mine.you && !mine.more, `your own row: your real name + YOU, no REPORT (${mine && mine.n}; ${bid3}; rows ${rows.map(r => r.id).join(',')})`);
   const others = rows.filter(r => !r.me);
   ok(others.length > 0 && others.every(r => r.more), `every other row: its player's username + ⋯ (${others.map(r => r.n).join(', ')})`);
   ok(!others.some(r => /^[A-Z][a-z]+ [A-Z][a-z]+$/.test(r.n)), `no house nicknames on the board — the players' usernames (${others.map(r => r.n).join(', ')})`);
@@ -443,16 +445,78 @@ await H.run(async () => {
   ok((await val(`flags/${target.id}/why/score`)) === flagged0 + 1, 'REPORT: stored under flags/ for /admin');
   await p3.waitForFunction(() => !document.querySelector('.bd-rep'), { timeout: 5000 });
   await p0.evaluate(() => import('/js/profile/me.js').then(m => m.setShown(false)));
-  ok((await val(`lb/cipher-score/all/${me0.pid}`)) == null, 'opted out: off the boards');
+  ok((await val(`lb/xp/all/${me0.pid}`)) == null, 'opted out: off the boards');
   ok((await val(`pstats/${me0.pid}/g/cipher/p`)) === 1, '…and the stats are still there');
   await p0.evaluate(() => import('/js/profile/me.js').then(m => m.setShown(true)));
-  ok((await val(`lb/cipher-score/all/${me0.pid}`)) != null, 'opted back in: on the boards again');
+  ok((await val(`lb/xp/all/${me0.pid}`)) != null, 'opted back in: on the boards again');
+
+  // ---- 8b. BOARD 2.0 B — THE PLAYER PAGE: from a board row, a room's name tag, a friend; a hidden player + a blocker see the name + the emblem only
+  {
+    const pp = async (pg, want = 'card') => { await pg.waitForFunction(w => { const e = document.querySelector('.vl-full.pp'); return e && e.dataset.state === w; }, { timeout: 15000 }, want); return pg.evaluate(() => { const e = document.querySelector('.vl-full.pp'); return { text: e.textContent.toUpperCase(), card: !!e.querySelector('.vl-fc, .pg-card'), lv: !!e.querySelector('.pp-lv'), meds: e.querySelectorAll('.pp-med').length, dots: !!e.querySelector('.pp-dots'), covered: document.body.classList.contains('vl-covered') }; }); };
+    const ppClose = pg => pg.evaluate(() => { const b = document.querySelector('.vl-full.pp .vl-full-x'); if (b) b.click(); });
+    // (a) a BOARD ROW (p3 = ALICE's second phone): tap BOB's card
+    await openBoard('all');
+    const bob = (await p3.$$eval('.bd-rows .bd-row', els => els.map(e => ({ id: e.dataset.id, me: e.classList.contains('is-me') })))).find(r => !r.me);
+    ok(!!bob, 'the board has another player\'s row to tap');
+    if (bob) {
+      await p3.click(`.bd-row[data-id="${bob.id}"] .bd-open`);
+      const a = await pp(p3);
+      const bobName = String((await val(`profiles/${me1.pid}/n`)) || me1.profile.n).toUpperCase();
+      ok(a.card && a.lv && a.dots && a.covered && a.text.includes(bobName), `THE PLAYER PAGE from a board row: ${bobName}'s card + LV + ⋯, over a covered page`);
+      ok(!/MATCHES PLAYED|WIN RATE|BEST GAME/.test(a.text) && !a.text.includes(String(me1.pid).toUpperCase()), 'NOT the stats, NOT the best game, never the profile id');
+      await shotAll(p3, 'pf-07c-player-page', REVIEW_SIZES.slice(0, 1));
+      await ppClose(p3);
+      await p3.waitForFunction(() => !document.querySelector('.vl-full.pp') && !document.body.classList.contains('vl-covered'), { timeout: 5000 });
+      ok(true, 'CLOSE: the page goes + the cover lifts');
+    }
+    // (b) a ROOM's NAME TAG (p0 + p1 share a room): ALICE taps BOB's tag → his page, ADD FRIEND (no friendship yet)
+    const bobUid = await p1.evaluate(() => import('/js/store.js').then(m => m.state.uid));
+    const tapTag = (pg, uid) => pg.evaluate(u => { const t = document.querySelector(`.rc-tag[data-uid="${u}"]`); if (!t) return false; const r = t.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2; t.dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: y, bubbles: true })); t.dispatchEvent(new PointerEvent('pointerup', { clientX: x, clientY: y, bubbles: true })); return true; }, uid);
+    await p0.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'title' })));
+    await p0.waitForSelector(`.rc-tag[data-uid="${bobUid}"]`, { timeout: 15000 });
+    ok(await tapTag(p0, bobUid), 'the room: BOB\'s name tag tapped');
+    const b = await pp(p0);
+    ok(b.card && b.lv, 'THE PLAYER PAGE from a room\'s name tag');
+    await p0.waitForFunction(() => /ADD FRIEND/.test((document.querySelector('.vl-full.pp .pp-main') || {}).textContent || ''), { timeout: 10000 }).catch(() => {});
+    ok(/ADD FRIEND/.test(await p0.$eval('.vl-full.pp .pp-main', e => e.textContent).catch(() => '')), '…not friends yet: ADD FRIEND');
+    await ppClose(p0);
+    // (c) a FRIEND: ALICE asks, BOB accepts → ALICE's friends list (slim cards, BOB HERE) → his page
+    await p0.evaluate(pid => import('/js/profile/friends.js').then(m => m.friendDo('add', { pid })), me1.pid);
+    await p1.evaluate(pid => import('/js/profile/friends.js').then(m => m.friendDo('accept', { pid })), me0.pid);
+    await p0.evaluate(() => import('/js/profile/friends.js').then(m => m.loadFriends({ fresh: true })));
+    await p0.evaluate(() => import('/js/screens/profile.js').then(m => m.openCard()));   // (in a room: YOUR CARD opens over the city)
+    await p0.waitForSelector(`.fr-crow[data-pid="${me1.pid}"] .fr-open .vl-strip`, { timeout: 20000 });
+    ok(!!(await p0.$(`.fr-crow[data-pid="${me1.pid}"] .fr-here`)), 'YOU → FRIENDS: BOB as a slim card, HERE (in your room)');
+    ok(/XP THIS WEEK/.test(await p0.$eval(`.fr-crow[data-pid="${me1.pid}"] .fr-wx`, e => e.textContent)), '…this week\'s XP under his card');
+    await p0.click(`.fr-crow[data-pid="${me1.pid}"] .fr-open`);
+    const c = await pp(p0);
+    ok(c.card && c.dots, 'THE PLAYER PAGE from the friends list');
+    ok(!(await p0.$('.vl-full.pp .pp-invite')), '…no INVITE: he\'s already in your room');
+    await ppClose(p0);
+    await p0.evaluate(() => import('/js/screens/profile.js').then(m => m.closeCard()));
+    // (e) a BLOCKER: BOB blocks ALICE → her look at his page is limited too (never told why)
+    await p1.evaluate(pid => import('/js/profile/friends.js').then(m => m.friendDo('block', { pid })), me0.pid);
+    await p0.evaluate(pid => import('/js/profile/player-page.js').then(m => m.openPlayer({ pid })), me1.pid);
+    const e = await pp(p0, 'limited');
+    ok(!e.card && !e.dots && /PRIVATE/.test(e.text), 'BLOCKED BY THEM: the same private page — no card, no ⋯ ADD, nothing that says a block');
+    await ppClose(p0);
+    await p1.evaluate(pid => import('/js/profile/friends.js').then(m => m.friendDo('unblock', { pid })), me0.pid);
+    // (d) HIDDEN (opted out of the boards) → the name + the emblem only, no ⋯ — VETERAN (a page nobody fetched yet: the server keeps a player's own part 30 s)
+    const me2 = await meOf(p2, 'f2');
+    await p2.evaluate(() => import('/js/profile/me.js').then(m => m.setShown(false)));
+    await p0.evaluate(pid => import('/js/profile/player-page.js').then(m => m.openPlayer({ pid })), me2.pid);
+    const d = await pp(p0, 'limited');
+    ok(!d.card && !d.dots && !d.lv, 'a HIDDEN player: the name + the emblem only — no card, no ⋯');
+    await ppClose(p0);
+    await p2.evaluate(() => import('/js/profile/me.js').then(m => m.setShown(true)));
+    await p0.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'title' })));
+  }
 
   // ---- 9. the public page, for anyone
   const ctx = await browser.createBrowserContext();
   const pub = await ctx.newPage();
   await pub.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-  await pub.goto(`${BASE}/board?g=cipher&c=records&p=all`);
+  await pub.goto(`${BASE}/board?g=xp&p=all`);
   await pub.waitForSelector('.bd-row:not(.is-skel)', { timeout: 20000 });
   ok(await pub.$('.bd-play'), 'neonspeakeasy.com/board: the board for anyone, with PLAY NOW');
   const pubText = await pub.$eval('.bd-rows', el => el.textContent.toUpperCase());

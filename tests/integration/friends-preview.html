@@ -10,7 +10,10 @@
        ?here=2      the first N friends are IN YOUR ROOM (a room with them online — the green dot, listed first)
        &n=8         how many friends (the top 5 + "All n friends")
        &all=1       the "All n friends" sheet open
-       &none=1      no friends yet -->
+       &none=1      no friends yet
+     BOARD 2.0 B — THE PLAYER PAGE (the REAL js/profile/player-page.js — the fake answers ):
+       &player=P_nova  open NOVA's page (a friend; &rel=none|in|out|blocked; &room=1 = you in a room → INVITE) · &limited=1 · &down=1 (/api down) · &skel=1 (held loading)
+       &top=0         no achievements yet -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
@@ -48,6 +51,16 @@ const { friendsSection, frSheet } = await import('/js/profile/friends-ui.js');
 await frSheet();
 document.getElementById('pane').append(friendsSection());
 for (let i = 0; i < 80 && !document.querySelector('.fr-cards[data-strips]') && !document.querySelector('.fr-empty'); i++) await new Promise(r => setTimeout(r, 50));
+if (q.get('player')) {
+  const f = ALL.find(x => x.pid === q.get('player')) || ALL[0];
+  if (q.has('room')) { state.code = state.code || 'MINT'; }
+  const TOP = [{ id: 'the-witness', name: 'THE WITNESS', group: 'sightings', item: 'card-witness', tier: 'legendary', pct: 0.4 }, { id: 'kingpin', name: 'KINGPIN', group: 'playing', item: 'card-marquee-gold', tier: 'epic', pct: 1.2 }, { id: 'night-owl', name: 'NIGHT OWL', group: 'playing', item: 'emb-owl', tier: 'rare', pct: 6 }];
+  if (q.has('skel')) window.__ppDelay = 1e9;
+  if (!q.has('down')) window.__ppAnswer = () => q.has('limited') ? { limited: true, rel: 'none', card: { n: f.n, a: f.a, c: f.c, es: null } } : { rel: q.get('rel') || 'friend', card: { n: q.get('name') || f.n, a: f.a, c: f.c, l: f.l, r: 3, cd: q.get('cd') || f.cd, g: null, tb: null, es: null, at: Date.parse('2026-10-24'), fd: false }, band: null, streak: { n: 12, alive: true }, top: q.get('top') === '0' ? [] : TOP };
+  const { openPlayer } = await import('/js/profile/player-page.js');
+  await openPlayer({ pid: f.pid, row: f });
+  await new Promise(r => setTimeout(r, 900));
+}
 if (q.has('all')) { const b = document.querySelector('.fr-all'); if (b) b.click(); await new Promise(r => setTimeout(r, 900)); }
 document.body.dataset.ready = '1';
 </script>

@@ -213,7 +213,7 @@ onCloseAll(() => { if (open) open.close(); });   // (FR6 FIXES A — B1)
 // SPEED PASS B — THE COVER: the fx surfaces behind held, the page's CSS animations paused (css/vault.css: body.vl-covered — everything but
 // the full card itself), the city held (title.js listens for 'vl-cover'); covers count (a card opened over a card) → uncover()
 let coverN = 0;
-function coverBehind(el) {
+export function coverBehind(el) {   // (BOARD 2.0 B: THE PLAYER PAGE covers through it too)
   const fx = fxCover(el);
   const city = holdCity();   // (DM2: the city's hold is shared + counted — ui/city-hold.js — a daily overlay may hold it too)
   if (!coverN++) document.body.classList.add('vl-covered');

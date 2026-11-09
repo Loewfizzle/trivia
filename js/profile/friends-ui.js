@@ -4,7 +4,7 @@
 // room's own green dot on a friend IN A ROOM WITH YOU (room-city.js).
 //   friendsSection()                  → the profile's FRIENDS section (requests, the list + ⋯, sent, recently played with, blocked, YOUR TABLE)
 //   friendButton(target, o)           → ADD FRIEND · REQUESTED · ACCEPT · FRIENDS · UNBLOCK (target: { pid } or THE BOARD's { b, bid })
-//   openTheirCard(who)                → a player's card (their full card or the gilded one) with ADD FRIEND under it (the podium)
+//   openTheirCard(who)                → THE PLAYER PAGE (BOARD 2.0 B — profile/player-page.js) for a player with a profile; else their card
 //   inviteFriendsBlock({ code, share }) → the INVITE sheet's FRIENDS row + SHARE INVITE LINK
 import { afterTap } from '../ui/tapwatch.js';
 import { h } from '../ui/dom.js';
@@ -72,6 +72,8 @@ export function friendButton(target, o = {}) {
 
 /** a player's card (the podium's tap): their full card when they wear an approved one, else the gilded card — ADD FRIEND under it */
 export async function openTheirCard({ pid, name, color, avatar: av, pub }) {
+  // (BOARD 2.0 B: a player with a profile → THE PLAYER PAGE (the podium's tap); the card below only for a player with none)
+  if (pid) return import('./player-page.js').then(m => m.openPlayer({ pid, row: { ...(pub || {}), n: (pub && pub.n) || name, a: (pub && pub.a) || av, c: (pub && pub.c) || color } }));
   await frSheet();
   const foot = pid ? h('div.rc-foot.fr-foot', friendButton({ pid }, { name })) : null;
   if (pub && pub.cd && pub.cd !== 'card-gilded') {

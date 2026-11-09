@@ -21,7 +21,7 @@ const GROUP_ICON = { playing: 'star', city: 'moon', sightings: 'alien', dailies:
 const ICON = { 'first-round': 'bolt', 'top-shelf': 'crown', 'made-man': 'crown', kingpin: 'crown', 'full-house': 'diamond', 'the-host': 'star', 'comeback-kid': 'bolt', 'party-animal': 'wave', 'patience-pays': 'eye', 'the-witness': 'eye', 'many-happy-returns': 'star' };
 
 /** the medal: a ring in the tier colour, the icon inside */
-function medal(a, tier) {
+export function medal(a, tier) {
   const it = ITEM[a.item] || {};
   const icon = it.kind === 'emblem' && hasArt(a.item) ? emblemEl({ id: a.item, mode: 'quiet', size: 30 })
     : emblemEl({ avatar: ICON[a.id] || GROUP_ICON[a.group] || 'star', color: tier === 'legendary' ? 'yellow' : tier === 'epic' ? 'violet' : tier === 'rare' ? 'cyan' : tier === 'uncommon' ? 'green' : 'magenta', mode: 'quiet', size: 28 });

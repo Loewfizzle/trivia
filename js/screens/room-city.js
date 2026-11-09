@@ -189,6 +189,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     // (FRIENDS A — ADD FRIEND on any player's card: a request they accept; REQUESTED / FRIENDS once it's sent / taken)
     const fb = uid !== st.uid && p.pid ? await import('../profile/friends-ui.js').then(m => m.friendButton({ pid: p.pid }, { name: p.name })).catch(() => null) : null;
     const foot = crew || mk || fb ? h('div.rc-foot', fb, mk, crew) : null;
+    // (BOARD 2.0 B — THE PLAYER PAGE: another player with a profile → their page (the card, LV, the medals, the friend button, ⋯) with the room's
+    //  own rows under it (MAKE HOST, the owner's CREW); you, or a player with no profile → the card as before)
+    if (uid !== st.uid && p.pid) { import('../profile/player-page.js').then(m => m.openPlayer({ pid: p.pid, row: { ...(pub || {}), n: (pub && pub.n) || p.name, a: (pub && pub.a) || p.avatar, c: (pub && pub.c) || p.color } }, { extra: mk || crew ? [h('div.rc-foot', mk, crew)] : [] })).catch(() => {}); return; }
     if (pub && pub.cd && pub.cd !== 'card-gilded') {
       try {
         const F = await import('../vault/full.js');
