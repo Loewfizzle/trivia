@@ -162,3 +162,9 @@ with daily points") → **BACK-FILL NOW** (a second tap) → "Done … R board r
   'played' (one constant: `core/daily-points.js#ALL_TIME_RULE`).
 - A stored ALL TIME average updates when the player next finishes a daily (no daily job rewrites it) — the span rule's 0s land on the next play.
 - The sighting line on THE BTC CARD sits close under the basket at 390 (1 px clear of the hero box by measure).
+
+## The cloud run
+9ee9aeeb (the harbor tag — both workflows): **tests GREEN on the first run** + **harbor GREEN on the first run** (all 15 jobs — `city` with
+LOAD WEATHER + the panel's WORD TOWERS); **Vercel BUILT** ("Deployment has completed"). One cloud run of each. The servers this pass started
+(the emulators' Java + node, `serve.mjs --emu` on :5173, the `DAILY_TEST=1` one on :5176, the starting commit's worktree on :5177) all stopped at
+the end; the owner's preview server on :5190 left running.
