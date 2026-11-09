@@ -229,7 +229,7 @@ async function perfRun(p) {
   await p.setViewport({ ...VIEW, deviceScaleFactor: process.env.GPU ? 2.75 : 1 });
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
   const perf = [];
-  for (const t of [2, 1, 0]) {
+  for (const t of [3, 2, 1, 0]) {   // (PD-3: four tiers — the light steps down first, the board's 3× last)
     await P(p, `window.__prism.setTier(${t})`);
     await sleep(4200);
     const f = await P(p, 'window.__prism.fps()');
@@ -388,6 +388,28 @@ try {
     const co = await P(A, 'window.__prism.callouts()');
     const gh2 = await P(A, 'window.__prism.ghost()');
     ok(co.some(t => /^BLOCKED!/.test(t)) && !gh2.tag && !gh2.bands, `CALLOUTS: a clear that cancels incoming → BLOCKED! + the ghost rows go (${co.slice(-2).join(' | ')})`);
+  }
+
+  // ---------------------------------------------------------------- PD-3: THE NIGHT LOOK — THE GAME LOOK switched LIVE on one phone: NIGHT = the neon
+  // tubes + the light layer (a SLAM + a 4-line clear light it; it hides itself once nothing is lit), DAY = the glass placeholder, the light layer off
+  {
+    const setLook = l => A.evaluate(v => { localStorage.setItem('ns:look', v); window.dispatchEvent(new CustomEvent('ns-look', { detail: v })); }, l);
+    await setLook('night');
+    await waitFor(A, () => document.body.dataset.look === 'night' && window.__prism.look().look === 'neon', 'the night look');
+    const n0 = await P(A, 'window.__prism.look()');
+    const dom = await A.evaluate(() => ({ look: document.querySelector('.pd').dataset.look, edge: getComputedStyle(document.querySelector('.pd')).getPropertyValue('--pd-edge').trim(), canvas: !!document.querySelector('.pd-light') }));
+    await P(A, 'window.__prism.fire("slam")');
+    await P(A, 'window.__prism.fire("clear", { lines: 4, combo: 2 })');
+    await sleep(120);
+    const n1 = await P(A, 'window.__prism.look()');
+    ok(n0.light && dom.look === 'neon' && dom.canvas && /^#/.test(dom.edge) && n1.lit > 0 && n1.visible, `NIGHT LOOK: neon tubes in the world's palette (${n0.pal}, edge ${dom.edge}) + the light layer lit by a SLAM + a 4-line clear (${n1.lit} light(s), ${n1.size && n1.size.join('×')})`);
+    await setLook('day');
+    await waitFor(A, () => document.body.dataset.look === 'day' && window.__prism.look().look === 'glass', 'the day look');
+    await sleep(200);
+    const d1 = await P(A, 'window.__prism.look()');
+    ok(d1.look === 'glass' && !d1.visible, `DAY LOOK: back to the glass placeholder live, the light layer off (${JSON.stringify(d1)})`);
+    await setLook('night');
+    await waitFor(A, () => window.__prism.look().look === 'neon', 'the night look again');
   }
 
   // ---------------------------------------------------------------- FAST=1 (SHELL 2.0 B1): two phones — the battle to its end, the

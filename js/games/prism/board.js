@@ -2,7 +2,12 @@
 // Blocks are pre-rendered "glass crystal" sprites per piece colour — gradient body, inner glow, a facet, a
 // specular glint, clean bright edges — plus a soft glow sprite drawn under them and a desaturated set for the
 // danger drain. A frame is ~200 drawImage calls: cheap on any phone.
+// PD-3 — THE NEON LOOK (night): a second set of sprites beside the glass one — solid DARK cores, a crisp HOT EDGE tube in the piece's colour with a
+// near-white core line, the static glow PRE-RENDERED (a ring sprite drawn under the stack; never a per-frame shadowBlur), three variants per colour
+// (a tube's hot spot — real neon is never perfectly even). The colours come from the world's palette (neon.js#neonPalette — the family holds).
+// The glass look stays the DAY placeholder until PD-4. The view picks the look from THE GAME LOOK (body[data-look]), live.
 import { W, VISIBLE, SHAPES, BOX, cellsOf, ghostY } from './engine.js';
+import { neonPalette, mixHex } from './neon.js';
 
 // jewel colours: 1 I aquamarine, 2 O citrine, 3 T amethyst, 4 S emerald, 5 Z ruby, 6 J sapphire, 7 L fire opal, 8 junk (smoky quartz)
 export const JEWEL = [null, '#2be4f0', '#ffc93a', '#b46bff', '#2fe07a', '#ff4d6d', '#4a86ff', '#ff9b3d', '#6b7385'];
@@ -138,6 +143,136 @@ function incomingSprite(size) {
   return c;
 }
 
+
+// ---------------------------------------------------------------- THE NEON SPRITES (PD-3)
+const WHITE = '#ffffff';
+function neonBlock(size, col, glowCol, v = 0, junk = false, dim = 1) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const x = c.getContext('2d');
+  const p = Math.max(1, size * 0.05);           // the gap between cells
+  const b = size - 2 * p;
+  const r = size * 0.2;
+  const tw = Math.max(1.5, size * 0.115);       // the tube
+  // the core: dark, a deep tint of the colour — solid (the stack reads as blocks, never as outlines)
+  rr(x, p, p, b, b, r);
+  const cg = x.createLinearGradient(0, p, 0, p + b);
+  cg.addColorStop(0, mix(col, '#000000', junk ? 0.74 : 0.8));
+  cg.addColorStop(1, mix(col, '#000000', junk ? 0.84 : 0.9));
+  x.fillStyle = cg;
+  x.fill();
+  // the tube lights the core from its edges (baked once: the inner glow, clipped to the cell)
+  x.save();
+  rr(x, p, p, b, b, r);
+  x.clip();
+  x.shadowColor = rgba(glowCol, (junk ? 0.45 : 0.9) * dim);
+  x.shadowBlur = size * 0.26;
+  rr(x, p + tw * 0.5, p + tw * 0.5, b - tw, b - tw, Math.max(1, r - tw * 0.5));
+  x.lineWidth = tw;
+  x.strokeStyle = rgba(col, 0.9 * dim);
+  x.stroke();
+  x.restore();
+  // the hot tube: its colour, then the near-white core line down its middle
+  rr(x, p + tw * 0.5, p + tw * 0.5, b - tw, b - tw, Math.max(1, r - tw * 0.5));
+  x.lineWidth = tw;
+  x.strokeStyle = junk ? rgba(mixHex(col, WHITE, 0.08), 0.85) : rgba(mixHex(col, WHITE, 0.14), dim);
+  x.stroke();
+  x.lineWidth = Math.max(1, size * (junk ? 0.025 : 0.036));
+  x.strokeStyle = junk ? rgba(mixHex(col, WHITE, 0.45), 0.55) : rgba(mixHex(col, WHITE, 0.86), 0.97 * dim);
+  x.stroke();
+  // the variant: a hotter stretch of the tube (top-left or bottom-right) — real neon is never perfectly even
+  if (v && !junk) {
+    const g = v === 1 ? x.createLinearGradient(p, p, p + b, p + b * 0.6) : x.createLinearGradient(p + b, p + b, p, p + b * 0.4);
+    g.addColorStop(0, rgba(WHITE, 0.55 * dim));
+    g.addColorStop(0.45, rgba(WHITE, 0));
+    g.addColorStop(1, rgba(WHITE, 0));
+    x.lineWidth = Math.max(1, size * 0.05);
+    x.strokeStyle = g;
+    x.stroke();
+  }
+  // the glass: a fine sheen across the tube's upper-left
+  x.beginPath();
+  x.moveTo(p + r * 0.9, p + tw * 0.32);
+  x.lineTo(p + b * 0.55, p + tw * 0.32);
+  x.lineWidth = Math.max(0.6, size * 0.014);
+  x.strokeStyle = rgba(WHITE, junk ? 0.12 : 0.34 * dim);
+  x.stroke();
+  return c;
+}
+/** the static glow round a lit cell: a soft ring of light (drawn 'lighter' under the stack — it shows in the gaps + round the stack's edge) */
+function neonGlow(size, glowCol) {
+  const c = document.createElement('canvas');
+  const n = Math.round(size * 2.2);
+  c.width = c.height = n;
+  const x = c.getContext('2d');
+  const o = (n - size) / 2, p = size * 0.1;
+  x.shadowColor = rgba(glowCol, 0.95);
+  x.shadowBlur = size * 0.42;
+  rr(x, o + p, o + p, size - 2 * p, size - 2 * p, size * 0.2);
+  x.lineWidth = size * 0.14;
+  x.strokeStyle = rgba(glowCol, 0.5);
+  x.stroke();
+  return c;
+}
+/** where the falling piece lands: an UNLIT glass tube — a thin pale line in its colour, no core light */
+function neonGhost(size, col) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const x = c.getContext('2d');
+  const p = Math.max(1, size * 0.05), tw = Math.max(1.5, size * 0.115);
+  rr(x, p + tw * 0.5, p + tw * 0.5, size - 2 * p - tw, size - 2 * p - tw, Math.max(1, size * 0.2 - tw * 0.5));
+  x.fillStyle = rgba(col, 0.07);
+  x.fill();
+  x.lineWidth = Math.max(1, size * 0.05);
+  x.strokeStyle = rgba(mixHex(col, WHITE, 0.3), 0.5);
+  x.stroke();
+  return c;
+}
+/** (PD-2's rule, the neon way) an INCOMING ghost cell: a red tube outline + hatching — no dark core, no hot core: never a block */
+function neonIncoming(size) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const x = c.getContext('2d');
+  const p = Math.max(1, size * 0.07), s = size - 2 * p;
+  rr(x, p, p, s, s, size * 0.18);
+  x.fillStyle = rgba(INCOMING, 0.16);
+  x.fill();
+  x.save();
+  rr(x, p, p, s, s, size * 0.18);
+  x.clip();
+  x.strokeStyle = 'rgba(255,120,150,0.55)';
+  x.lineWidth = Math.max(1, size * 0.06);
+  for (let k = -1; k <= 2; k++) { const o = p + k * s * 0.42; x.beginPath(); x.moveTo(o, p + s); x.lineTo(o + s, p); x.stroke(); }
+  x.restore();
+  rr(x, p, p, s, s, size * 0.18);
+  x.shadowColor = rgba(INCOMING, 0.9);
+  x.shadowBlur = size * 0.16;
+  x.lineWidth = Math.max(1, size * 0.06);
+  x.strokeStyle = 'rgba(255,160,182,0.95)';
+  x.stroke();
+  return c;
+}
+const neonSprites = new Map();
+let neonPalId = '';
+/** a neon sprite: kind block | grey | glow | ghost | incoming | iglow; pal = neon.js#neonPalette(world); v = the tube's variant (0–2) */
+export function neonSprite(size, kind, t, pal, v = 0) {
+  if (pal.id !== neonPalId) { neonSprites.clear(); neonPalId = pal.id; }   // (one world's set at a time — a song change rebuilds the cache)
+  const key = `${size}|${kind}|${t}|${v}`;
+  let s = neonSprites.get(key);
+  if (!s) {
+    const col = pal.piece[t] || pal.piece[8];
+    const glow = pal.glow[t] || col;
+    s = kind === 'block' ? neonBlock(size, col, glow, v, t === 8)
+      : kind === 'grey' ? neonBlock(size, grey(col), grey(col), 0, true, 0.6)
+        : kind === 'glow' ? neonGlow(size, glow)
+          : kind === 'incoming' ? neonIncoming(size)
+            : kind === 'iglow' ? neonGlow(size, INCOMING)
+              : neonGhost(size, col);
+    neonSprites.set(key, s);
+  }
+  return s;
+}
+
 export function sprite(size, kind, t) {
   const key = `${size}|${kind}|${t}`;
   let s = sprites.get(key);
@@ -160,14 +295,14 @@ export const clearSprites = () => sprites.clear();
 // never changes). PD-2 adds the first hook: `incoming(ctx, bands, o)` paints THE RISING GHOST ROWS (incoming.js#ghostBands — bottom-up) OVER
 // the board's bottom rows and returns each drawn row's place (canvas px) for the shatter. The rules every look keeps: an occupied cell is only
 // TINTED (the stack stays readable through them — never covered), the gap column stays open, the rows never move the real stack.
-export const LOOKS = {
-  glass: {
-    /** o: { px, cells, H (canvas height px), now (ms), reduced } → [{ y, h, gap }] (one per visible row, top first) */
-    incoming(ctx, bands, { px, cells, H, now, reduced }) {
+/** the ghost rows' drawing, shared by the looks — `spr(px, kind, pal)` gives the look's own 'incoming' + 'iglow' sprites; `edge` its leading edge */
+function incomingHook(spr, edge) {
+  /** o: { px, cells, H (canvas height px), now (ms), reduced, pal } → [{ y, h, gap }] (one per visible row, top first) */
+  return function incoming(ctx, bands, { px, cells, H, now, reduced, pal }) {
       const geo = [];
       if (!bands || !bands.length) return geo;
-      const ghost = sprite(px, 'incoming', 0);
-      const halo = sprite(px, 'iglow', 0);
+      const ghost = spr(px, 'incoming', pal);
+      const halo = spr(px, 'iglow', pal);
       let base = 0;   // rows above the bottom edge already taken by the bands under this one
       for (const b of bands) {
         const top = base + b.rows;
@@ -211,13 +346,18 @@ export const LOOKS = {
       gl.addColorStop(1, rgba(INCOMING, 0.32));
       ctx.fillStyle = gl;
       ctx.fillRect(0, yTop - px * 1.2, W * px, px * 1.2);
-      ctx.fillStyle = 'rgba(255,210,220,0.9)';
-      ctx.fillRect(0, yTop - Math.max(1, px * 0.04), W * px, Math.max(2, px * 0.07));
+      ctx.fillStyle = edge.core;
+      ctx.fillRect(0, yTop - Math.max(1, px * 0.04), W * px, Math.max(2, px * edge.w));
+      if (edge.halo) { ctx.fillStyle = edge.halo; ctx.fillRect(0, yTop - px * 0.12, W * px, px * 0.24); }
       ctx.globalCompositeOperation = 'source-over';
       geo.sort((p, q) => p.y - q.y);
       return geo;
-    },
-  },
+  };
+}
+export const LOOKS = {
+  glass: { incoming: incomingHook((px, kind) => sprite(px, kind, 0), { core: 'rgba(255,210,220,0.9)', w: 0.07 }) },
+  // (PD-3) the neon look: the same rules (an occupied cell only tinted, the gap open, never covering a block) — a red tube edge with a hot core
+  neon: { incoming: incomingHook((px, kind, pal) => neonSprite(px, kind, 0, pal || neonPalette('')), { core: 'rgba(255,236,240,0.95)', w: 0.05, halo: 'rgba(255,79,116,0.35)' }) },
 };
 
 /**
@@ -226,7 +366,11 @@ export const LOOKS = {
 export function createBoardView(canvas) {
   let ctx = canvas.getContext('2d');
   let cell = 24, dpr = 1, px = 24;
-  let gridLayer = null;
+  let gridLayer = null, gridSig = '';
+  let skin = { look: 'glass', pal: null };   // (PD-3) the look this frame draws in + the world's palette (neon)
+  /** the sprite for this look: glass = today's jewels; neon = the world's tubes (v = the tube's variant) */
+  const spr = (kind, t, v = 0) => (skin.look === 'neon' ? neonSprite(px, kind, t, skin.pal, v) : sprite(px, kind, t));
+  const vOf = (x, y) => (x * 7 + y * 13) % 3;
   let stack = null, stackCtx = null, stackSig = '';
   const fx = { flashes: [], sweeps: [], glitch: 0, lockFlash: [], shards: [] };
   let lastGhost = [];   // (PD-2) the ghost rows drawn last frame (device px, top first) — what a cancel shatters
@@ -247,31 +391,41 @@ export function createBoardView(canvas) {
     gridLayer = document.createElement('canvas');
     gridLayer.width = canvas.width;
     gridLayer.height = canvas.height;
+    gridSig = '';
+  }
+  /** the well's grid: glass = faint white lines + dots; neon (PD-3) = the world's well colour, fainter lines, brighter crossings */
+  function paintGrid(look, pal) {
+    const sig = `${look}|${pal ? pal.id : ''}|${px}`;
+    if (sig === gridSig) return;
+    gridSig = sig;
     const g = gridLayer.getContext('2d');
-    g.strokeStyle = 'rgba(200,220,255,0.055)';
+    g.clearRect(0, 0, gridLayer.width, gridLayer.height);
+    const neon = look === 'neon' && pal;
+    g.strokeStyle = neon ? rgba(pal.well, 0.045) : 'rgba(200,220,255,0.055)';
     g.lineWidth = 1;
     for (let x = 1; x < W; x++) { g.beginPath(); g.moveTo(x * px + 0.5, 0); g.lineTo(x * px + 0.5, canvas.height); g.stroke(); }
     for (let y = 1; y < VISIBLE; y++) { g.beginPath(); g.moveTo(0, y * px + 0.5); g.lineTo(canvas.width, y * px + 0.5); g.stroke(); }
     // dots at the crossings: a calm, precise stage
-    g.fillStyle = 'rgba(220,235,255,0.12)';
-    for (let x = 1; x < W; x++) for (let y = 1; y < VISIBLE; y++) g.fillRect(x * px - 1, y * px - 1, 2, 2);
+    g.fillStyle = neon ? rgba(pal.well, 0.16) : 'rgba(220,235,255,0.12)';
+    const d = neon ? Math.max(2, Math.round(px * 0.035)) : 2;
+    for (let x = 1; x < W; x++) for (let y = 1; y < VISIBLE; y++) g.fillRect(x * px - d / 2, y * px - d / 2, d, d);
   }
 
   const sy = y => (VISIBLE - 1 - y) * px; // board row -> canvas y (top of the cell)
 
-  function drawCell(x, y, t, alphaGrey, glow) {
+  function drawCell(x, y, t, alphaGrey, glow, v = vOf(x, y)) {
     if (y >= VISIBLE || y < 0) return;
     if (glow) {
-      const gs = sprite(px, 'glow', t);
+      const gs = spr('glow', t);
       const o = (gs.width - px) / 2;
       ctx.globalAlpha = glow;
       ctx.drawImage(gs, x * px - o, sy(y) - o);
       ctx.globalAlpha = 1;
     }
-    ctx.drawImage(sprite(px, 'block', t), x * px, sy(y));
+    ctx.drawImage(spr('block', t, v), x * px, sy(y));
     if (alphaGrey > 0.02) {
       ctx.globalAlpha = alphaGrey;
-      ctx.drawImage(sprite(px, 'grey', t), x * px, sy(y));
+      ctx.drawImage(spr('grey', t), x * px, sy(y));
       ctx.globalAlpha = 1;
     }
   }
@@ -301,9 +455,12 @@ export function createBoardView(canvas) {
       lastGhost = lastGhost.slice(rows.length);
       return rows.length;
     },
-    draw(g, { danger = 0, glow = 0.32, showGhost = true, frozen = false, rush = false, incoming = null, look = 'glass', reduced = false } = {}) {
+    draw(g, { danger = 0, glow = 0.32, showGhost = true, frozen = false, rush = false, incoming = null, look = 'glass', pal = null, reduced = false } = {}) {
       const now = performance.now();
       let ghostGeo = [];
+      const neon = look === 'neon';
+      skin = { look: neon ? 'neon' : 'glass', pal: neon ? pal || neonPalette('') : null };
+      paintGrid(skin.look, skin.pal);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(gridLayer, 0, 0);
@@ -311,7 +468,7 @@ export function createBoardView(canvas) {
       const grey = Math.min(0.85, danger * 0.9) + (frozen ? 0.6 : 0);
       // the settled stack: a cached layer, redrawn only when a cell / the danger tint / the glow changes
       const cells = g.cells;
-      const sig = `${String.fromCharCode(...cells.subarray(0, W * VISIBLE).map(c => c + 48))}|${grey.toFixed(2)}|${glow}`;
+      const sig = `${String.fromCharCode(...cells.subarray(0, W * VISIBLE).map(c => c + 48))}|${grey.toFixed(2)}|${glow}|${skin.look}|${skin.pal ? skin.pal.id : ''}`;
       if (sig !== stackSig) {
         stackSig = sig;
         const main = ctx;
@@ -321,7 +478,7 @@ export function createBoardView(canvas) {
           ctx.globalCompositeOperation = 'lighter';
           for (let y = 0; y < VISIBLE; y++) for (let x = 0; x < W; x++) {
             const t = cells[y * W + x];
-            if (t && t !== 8) { const gs = sprite(px, 'glow', t); const o = (gs.width - px) / 2; ctx.globalAlpha = glow * (1 - grey * 0.7); ctx.drawImage(gs, x * px - o, sy(y) - o); }
+            if (t && t !== 8) { const gs = spr('glow', t); const o = (gs.width - px) / 2; ctx.globalAlpha = glow * (1 - grey * 0.7); ctx.drawImage(gs, x * px - o, sy(y) - o); }
           }
           ctx.globalAlpha = 1;
           ctx.globalCompositeOperation = 'source-over';
@@ -341,14 +498,14 @@ export function createBoardView(canvas) {
         }
       } else ctx.drawImage(stack, 0, 0);
       // (PD-2) THE RISING GHOST ROWS over the bottom rows — under the falling piece, never covering a block (the look's hook)
-      if (incoming && incoming.length && !frozen) ghostGeo = (LOOKS[look] || LOOKS.glass).incoming(ctx, incoming, { px, cells, H: canvas.height, now, reduced });
+      if (incoming && incoming.length && !frozen) ghostGeo = (LOOKS[skin.look] || LOOKS.glass).incoming(ctx, incoming, { px, cells, H: canvas.height, now, reduced, pal: skin.pal });
       lastGhost = ghostGeo;
       // (PD-2) the cancelled rows: a white flash where they were + their shards flying apart (gravity, a spin, fading out)
       if (fx.flashes.length || fx.shards.length) {
         fx.flashes = fx.flashes.filter(f => now - f.t0 < 200);
         for (const f of fx.flashes) { ctx.fillStyle = `rgba(255,220,230,${0.5 * (1 - (now - f.t0) / 200)})`; ctx.fillRect(0, f.y, W * px, f.h); }
         fx.shards = fx.shards.filter(p => now - p.t0 < SHARD_MS);
-        const gs = sprite(px, 'incoming', 0);
+        const gs = spr('incoming', 0);
         for (const p of fx.shards) {
           const t = (now - p.t0) / 1000, k = (now - p.t0) / SHARD_MS;
           const sz = px * p.s * (1 - 0.5 * k);
@@ -366,15 +523,17 @@ export function createBoardView(canvas) {
         if (showGhost) {
           const gy = ghostY(g);
           if (gy != null && gy !== g.cur.y) {
-            for (const [x, y] of cellsOf({ ...g.cur, y: gy })) if (y < VISIBLE) ctx.drawImage(sprite(px, 'ghost', g.cur.t), x * px, sy(y));
+            for (const [x, y] of cellsOf({ ...g.cur, y: gy })) if (y < VISIBLE) ctx.drawImage(spr('ghost', g.cur.t), x * px, sy(y));
           }
         }
         ctx.globalCompositeOperation = 'lighter';
-        for (const [x, y] of cellsOf(g.cur)) if (y < VISIBLE) { const gs = sprite(px, 'glow', g.cur.t); const o = (gs.width - px) / 2; ctx.globalAlpha = 0.5; ctx.drawImage(gs, x * px - o, sy(y) - o); }
+        for (const [x, y] of cellsOf(g.cur)) if (y < VISIBLE) { const gs = spr('glow', g.cur.t); const o = (gs.width - px) / 2; ctx.globalAlpha = neon ? 0.8 : 0.5; ctx.drawImage(gs, x * px - o, sy(y) - o); }
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
-        for (const [x, y] of cellsOf(g.cur)) drawCell(x, y, g.cur.t, grey * 0.4, 0);
+        cellsOf(g.cur).forEach(([x, y], i) => drawCell(x, y, g.cur.t, grey * 0.4, 0, i % 3));
       }
+      // (PD-3) the neon look's lock pulse, clear races + bursts are LIGHT — the light layer above the board (light.js); the glass keeps these
+      if (neon) { fx.lockFlash.length = 0; fx.sweeps.length = 0; }
       // lock flash: the cells that just set glow white for an instant
       fx.lockFlash = fx.lockFlash.filter(f => now - f.t0 < 140);
       for (const f of fx.lockFlash) {
@@ -418,7 +577,7 @@ export function createBoardView(canvas) {
 }
 
 /** A piece preview (hold / next) into a small canvas. */
-export function drawPiece(canvas, t, { cell = 12, dim = false } = {}) {
+export function drawPiece(canvas, t, { cell = 12, dim = false, look = 'glass', pal = null } = {}) {
   const dpr = Math.min(3, window.devicePixelRatio || 1);
   const px = Math.round(cell * dpr);
   const wpx = px * 4, hpx = px * 2.4;
@@ -437,14 +596,14 @@ export function drawPiece(canvas, t, { cell = 12, dim = false } = {}) {
   ctx.globalAlpha = dim ? 0.35 : 1;
   for (const [x, y] of cs) {
     const yy = oy + (Math.max(...ys) - y) * px;
-    ctx.drawImage(sprite(px, 'block', t), ox + x * px, yy);
+    ctx.drawImage(look === 'neon' ? neonSprite(px, 'block', t, pal || neonPalette(''), 0) : sprite(px, 'block', t), ox + x * px, yy);
   }
   ctx.globalAlpha = 1;
   void BOX;
 }
 
 /** Opponent mini-board from a published board string (+ optional active piece "t,r,x,y"). */
-export function drawMini(canvas, str, piece, { cell = 4, ko = false } = {}) {
+export function drawMini(canvas, str, piece, { cell = 4, ko = false, look = 'glass', pal = null } = {}) {
   const dpr = Math.min(3, window.devicePixelRatio || 1);
   const px = Math.max(2, Math.round(cell * dpr));
   if (canvas.width !== px * W || canvas.height !== px * VISIBLE) {
@@ -454,18 +613,24 @@ export function drawMini(canvas, str, piece, { cell = 4, ko = false } = {}) {
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const n = Math.min((str || '').length, W * VISIBLE);
+  // (PD-3) the neon look: a big mini (spectating, the podium — ≥ 18 device px a cell) draws the real tubes; a small one a lit edge + a dark core
+  const neon = look === 'neon';
+  const P = neon ? pal || neonPalette('') : null;
+  const cellAt = (x, y, t) => {
+    const X = x * px, Y = (VISIBLE - 1 - y) * px, s = px - (px > 3 ? 1 : 0);
+    if (!neon || ko) { ctx.fillStyle = ko ? '#3a3f4c' : JEWEL[t] || JEWEL[8]; ctx.fillRect(X, Y, s, s); return; }
+    if (px >= 18) { ctx.drawImage(neonSprite(px, 'block', t, P, (x * 7 + y * 13) % 3), X, Y); return; }
+    const c = P.piece[t] || P.piece[8], e = Math.max(1, Math.round(px * 0.2));
+    ctx.fillStyle = c; ctx.fillRect(X, Y, s, s);
+    if (s > 2 * e + 1) { ctx.fillStyle = mix(c, '#000000', 0.8); ctx.fillRect(X + e, Y + e, s - 2 * e, s - 2 * e); }
+  };
   for (let i = 0; i < n; i++) {
     const t = str.charCodeAt(i) - 48;
     if (!t) continue;
-    const x = i % W, y = (i / W) | 0;
-    ctx.fillStyle = ko ? '#3a3f4c' : JEWEL[t] || JEWEL[8];
-    ctx.fillRect(x * px, (VISIBLE - 1 - y) * px, px - (px > 3 ? 1 : 0), px - (px > 3 ? 1 : 0));
+    cellAt(i % W, (i / W) | 0, t);
   }
   if (piece && !ko) {
     const [t, r, x0, y0] = String(piece).split(',').map(Number);
-    if (SHAPES[t]) {
-      ctx.fillStyle = JEWEL[t];
-      for (const [x, y] of cellsOf({ t, r: r & 3, x: x0, y: y0 })) if (y < VISIBLE && y >= 0) ctx.fillRect(x * px, (VISIBLE - 1 - y) * px, px - (px > 3 ? 1 : 0), px - (px > 3 ? 1 : 0));
-    }
+    if (SHAPES[t]) for (const [x, y] of cellsOf({ t, r: r & 3, x: x0, y: y0 })) if (y < VISIBLE && y >= 0) cellAt(x, y, t);
   }
 }

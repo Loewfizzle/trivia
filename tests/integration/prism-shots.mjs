@@ -62,6 +62,32 @@ const SHOTS = {
     'surv-final': 'n=5&mode=survival&state=final&w=5600',
   },
   worlds: Object.fromEntries(['aurora', 'city', 'nebula', 'crystal', 'sunset'].map(w => [`w-${w}`, `n=5&stack=10&world=${w}`])),
+  // PD-3 — THE NIGHT LOOK: each world mid-game, the spill, a landing pulse, a SLAM, clears of 1–4 lines (mid-race + mid-burst), a combo, the ghost
+  // rows + a shatter, the callouts, the podium body, and DAY still the glass look. The light layer is FROZEN at the effect's age (__prism.freeze).
+  pd3: {
+    ...Object.fromEntries(['aurora', 'city', 'nebula', 'crystal', 'sunset'].map(w => [`n-${w}`, { q: `n=7&stack=12&world=${w}`, js: 'window.__prism.act({ a: "soft", n: 9 })', w: 200 }])),
+    'spill': { q: 'n=5&stack=12&world=city', js: 'window.__prism.act({ a: "soft", n: 12 })', w: 250 },
+    'pulse': { q: 'n=5&stack=12&world=crystal', js: 'window.__prism.act({ a: "soft", n: 20 }); window.__prism.fire("lock"); window.__prism.freeze(50)', w: 150 },
+    'slam': { q: 'n=5&stack=8&world=sunset', js: 'window.__prism.fire("slam"); window.__prism.freeze(80)', w: 150 },
+    ...Object.fromEntries([1, 2, 3, 4].flatMap(n => [
+      [`clear${n}-race`, { q: `n=5&stack=12&world=nebula`, js: `window.__prism.fire("clear", { lines: ${n} }); window.__prism.freeze(${Math.round((150 + 20 * n) * 0.55)})`, w: 150 }],
+      [`clear${n}-burst`, { q: `n=5&stack=12&world=nebula`, js: `window.__prism.fire("clear", { lines: ${n} }); window.__prism.freeze(${150 + 20 * n + 70})`, w: 110 }],
+    ])),
+    'combo4': { q: 'n=5&stack=12&world=aurora', js: 'window.__prism.fire("clear", { lines: 2, combo: 4 }); window.__prism.freeze(260)', w: 120 },
+    'pc': { q: 'n=5&stack=12&world=city', js: 'window.__prism.fire("clear", { lines: 4, pc: true }); window.__prism.freeze(330)', w: 120 },
+    'ghost6': 'n=5&stack=6&inc=6&rise=hot&world=crystal',
+    'shatter': { q: 'n=5&stack=6&inc=6&rise=mid&world=crystal', js: 'window.__prism.counter(4)', w: 140 },
+    'co-b2b': 'n=5&stack=8&callout=b2b&after=300&world=sunset',
+    'co-blocked': 'n=5&stack=8&callout=blocked&after=300&world=sunset',
+    'co-ko': 'n=5&stack=8&callout=ko&after=300&world=city',
+    'duel': 'n=3&stack=10&state=duel&world=aurora',
+    'spec': 'n=7&state=spec&world=nebula',
+    'final': 'n=5&state=final',
+    'reduced-clear4': { q: 'n=5&stack=12&world=nebula&reduced=1', js: 'window.__prism.fire("clear", { lines: 4 }); window.__prism.freeze(80)', w: 110 },
+    'reduced-slam': { q: 'n=5&stack=8&world=sunset&reduced=1', js: 'window.__prism.fire("slam"); window.__prism.freeze(60)', w: 120 },
+    'day': 'look=day&n=5&stack=10',
+    'day-inc': 'look=day&n=5&stack=6&inc=6&rise=hot',
+  },
 };
 
 const browser = await puppeteer.launch({
@@ -96,22 +122,27 @@ for (const set of sets) {
 console.log(`${n} shot(s) in ${outDir}`);
 
 // frame timing: the real view, a bot playing, 3× at 390 (CPU throttled = a mid-range phone stand-in) — the board's DPR per tier
+// PD-3: two moments per tier — REST (a bot playing) + HEAVY (&heavy=1: a 4-line clear every 650 ms with the combo climbing + six ghost rows + the
+// bot + 7 rail tiles); PERF_SETS=rest,heavy · PERF_TIERS=3,2,1,0 · PERF_LOOK=night|day. Each row: the tier asked for + where it ended (`after`).
 if (process.env.PERF !== '0') {
   const report = [];
-  for (const tier of [2, 1, 0]) {
+  const PERF_SETS = (process.env.PERF_SETS || 'rest,heavy').split(',');
+  const PERF_TIERS = (process.env.PERF_TIERS || '3,2,1,0').split(',').map(Number);
+  const LOOK = process.env.PERF_LOOK ? `&look=${process.env.PERF_LOOK}` : '';
+  for (const set of PERF_SETS) for (const tier of PERF_TIERS) {
     const page = await browser.newPage();
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
     const cdp = await page.target().createCDPSession();
     if (CPU > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
-    await page.goto(`${BASE}/tests/integration/prism-preview.html?n=7&stack=6&bot=1&tier=${tier}&st=47&sb=34${EXTRA}`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE}/tests/integration/prism-preview.html?n=7&stack=6&bot=1&tier=${tier}&st=47&sb=34${set === 'heavy' ? '&heavy=1' : ''}${LOOK}${EXTRA}`, { waitUntil: 'networkidle0' });
     await page.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 20000 }).catch(() => {});
     await sleep(1500);
-    await page.evaluate(() => { window.__prism.fps().length = 0; });
+    await page.evaluate(lock => { if (lock && window.__prism.lockTier) window.__prism.lockTier(true); if (window.__prism.record) window.__prism.record(true); }, process.env.PERF_AUTO !== '1');   // (PD-2's view on :5174 has neither — the A/B)
     await sleep(Number(process.env.PERF_MS || 5000));
-    const r = await page.evaluate(() => ({ w: window.__prism.work ? window.__prism.work() : [], f: window.__prism.fps(), tier: window.__prism.tier(), dpr: window.__prism.layout().dpr, px: window.__prism.layout().px }));
+    const r = await page.evaluate(() => { const x = window.__prism.record ? window.__prism.record(false) : { f: window.__prism.fps(), w: window.__prism.work() }; const lk = window.__prism.look ? window.__prism.look() : {}; return { w: x.w, f: x.f, tier: window.__prism.tier(), dpr: window.__prism.layout().dpr, px: window.__prism.layout().px, light: lk.size ? lk.size.join('x') : '-' }; });
     const s = [...r.f].sort((a, b) => a - b);
     const pct = p => (s.length ? +s[Math.min(s.length - 1, Math.floor(s.length * p))].toFixed(1) : 0);
-    report.push({ tier, after: r.tier, boardDpr: r.dpr, cellPx: r.px, frames: s.length, p50: pct(0.5), p75: pct(0.75), p95: pct(0.95), cpuP75: r.w.length ? +[...r.w].sort((a, b) => a - b)[Math.floor(r.w.length * 0.75)].toFixed(2) : null, fps: s.length ? +(1000 / (s.reduce((a, b) => a + b, 0) / s.length)).toFixed(1) : 0 });
+    report.push({ set, tier, after: r.tier, boardDpr: r.dpr, cellPx: r.px, frames: s.length, p50: pct(0.5), p75: pct(0.75), p95: pct(0.95), cpuP75: r.w.length ? +[...r.w].sort((a, b) => a - b)[Math.floor(r.w.length * 0.75)].toFixed(2) : null, cpuP95: r.w.length ? +[...r.w].sort((a, b) => a - b)[Math.floor(r.w.length * 0.95)].toFixed(2) : null, light: r.light, fps: s.length ? +(1000 / (s.reduce((a, b) => a + b, 0) / s.length)).toFixed(1) : 0 });
     await page.close();
   }
   console.table(report);

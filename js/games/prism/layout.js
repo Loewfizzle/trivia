@@ -8,6 +8,7 @@
 //   HOLD + NEXT float INSIDE the board's top corners (slim see-through panels); the rail's tiles stack from its top, SLAM at its foot.
 //   THE BUTTONS scheme only: the board shrinks to fit the button bar under it; GESTURES (the default) gets the full MAX BOARD.
 import { W, VISIBLE } from './engine.js';
+import { tierOf, TOP_TIER } from './tiers.js';
 
 export const MARGIN = 12;     // the screen's outer margin (pt)
 export const GAP = 8;         // board ↔ rail
@@ -25,7 +26,7 @@ export const TILE_GAP = 6;
  * → { cell, boardW, boardH, fieldW, topH, btnH, railW, gap, hold: { w, h }, next: { w, h }, pieceCell, slamD, slamArea, tileH, duelCell,
  *     boardDpr, fxDpr }
  */
-export function prismLayout({ W0, H0, safe = {}, scheme = 'gesture', spectating = false, btnScale = 0.5, tier = 2, dpr = 1, n = 1, duel = false }) {
+export function prismLayout({ W0, H0, safe = {}, scheme = 'gesture', spectating = false, btnScale = 0.5, tier = TOP_TIER, dpr = 1, n = 1, duel = false }) {
   const s = { t: safe.t || 0, r: safe.r || 0, b: safe.b || 0, l: safe.l || 0 };
   const q = Math.max(1, Math.min(3, dpr || 1));
   const gesture = scheme !== 'buttons';
@@ -50,10 +51,10 @@ export function prismLayout({ W0, H0, safe = {}, scheme = 'gesture', spectating 
   return {
     W0, H0, cell, boardW, boardH, fieldW: boardW + GAP + RAIL, topH: TOP, btnH, railW: RAIL, gap: GAP,
     hold, next, pieceCell, slamD, slamArea, tileH, duelCell,
-    // THE BOARD at the phone's FULL pixel ratio (3× on an iPhone); a tier that can't hold 60 fps steps it to 2× (then 1.5×). The world +
-    // the shards keep their own reduced resolution (fxDpr)
-    boardDpr: tier >= 2 ? q : tier === 1 ? Math.min(q, 2) : Math.min(q, 1.5),
-    fxDpr: [1, 1.5, 2][tier] || 1,
+    // THE BOARD at the phone's FULL pixel ratio (3× on an iPhone); only the LAST tier steps it to 2× (PD-3 — tiers.js: the light, the spill +
+    // the particles step down first). The world + the shards keep their own reduced resolution (fxDpr)
+    boardDpr: Math.min(q, tierOf(tier).board),
+    fxDpr: tierOf(tier).fx,
   };
 }
 

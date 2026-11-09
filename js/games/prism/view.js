@@ -22,6 +22,10 @@ import { ghostBands, incomingTag } from './incoming.js';
 import { loadSong, beatClock } from './songs.js';
 import { createWorlds, WORLDS } from './worlds.js';
 import { createBoardView, drawPiece, drawMini, JEWEL } from './board.js';
+import { neonPalette } from './neon.js';
+import { createLight } from './light.js';
+import { createNeonFx } from './neonfx.js';
+import { tierOf, TOP_TIER } from './tiers.js';
 import { createRail } from './rail.js';
 import { createFx } from './fx.js';
 import { attachInput } from './input.js';
@@ -56,8 +60,14 @@ export function createView() {
   const synth = createSynth();
   const docs = {};          // song index -> doc
   let curSong = -1;
-  let tier = 2;
+  let tier = TOP_TIER;
   const frameTimes = [];
+  // (PD-3 — THE NIGHT LOOK) the look this screen draws in (THE GAME LOOK: body[data-look] — day = the glass placeholder until PD-4, night = NEON),
+  // the world's neon palette, the light layer above the board (light.js) + the game's light (neonfx.js)
+  let look = '';
+  let pal = neonPalette('');
+  let light = null, nfx = null;
+  let boardRect = null;     // the board's rect in the root's CSS px (from the layout — the light + the shards' origin)
   let tierCool = 0;
   // publishing
   let pub = { b: null, p: null, stats: null, tg: null, lastB: 0, lastP: 0, lastSave: 0, ev: null };
@@ -79,6 +89,8 @@ export function createView() {
   let tierUpBlocked = -1;  // a tier that already failed this match is not retried
   let goodSince = 0;
   const workTimes = [];      // CPU time per frame (dt alone can't show headroom on a 60 Hz screen)
+  const rec = { on: false, f: [], w: [] };   // (PD-3) the speed run's recorder: every frame of a window (the 90-frame rings above are the tier logic's)
+  let tierLocked = false;    // (PD-3) the speed run measures each tier as itself
   let attackersRecent = []; // [{ uid, at }] every attack received (AUTO-TARGET: the most recent attacker still alive)
   // targeting (PD-2 — AUTO-TARGET: logic.js#autoTarget, no button, no setting)
   let target = null;
@@ -169,13 +181,18 @@ export function createView() {
         h('button.pd-btn.pd-btn-hard', { type: 'button', 'data-btn': 'HARD', 'aria-label': 'Hard drop' }, 'DROP')));
     els.ui = h('div.pd-ui', els.top, els.stage, els.buttons);
     els.overlay = h('div.pd-overlay');
-    root.append(els.world, els.fx, els.ui, els.overlay);
+    els.light = h('canvas.pd-light', { 'aria-hidden': 'true' });
+    root.append(els.world, els.fx, els.ui, els.light, els.overlay);
     el.append(root);
     document.body.classList.add('pd-on');
 
     world = createWorlds(els.world);
     fx = createFx(els.fx);
     board = createBoardView(els.board);
+    light = createLight(els.light);
+    nfx = createNeonFx(light);
+    nfx.tier(tier);
+    nfx.palette(pal);
     rail = createRail(els.rail);
     calls = createAnnouncer(els.callout, { prefix: 'pd', holdMs: 1100, outMs: 260, queueMax: 3, fit: true });
     // the press's light: a short flash as the finger lifts (the sound + the drop come from the press itself)
@@ -208,6 +225,7 @@ export function createView() {
     if (qRef) { off(qRef); qRef = null; }
     songPlayer.stop();
     if (world) world.destroy();
+    if (light) light.destroy();
     if (unsubSettings) unsubSettings();
     if (finalView) finalView.destroy();
     if (rail) rail.destroy();
@@ -343,7 +361,9 @@ export function createView() {
     const evs = E.takeEvents(eng);
     if (!evs.length) return;
     let hardThisBatch = false;
+    const neon = look === 'neon' && nfx;
     for (const ev of evs) {
+      if (neon && (ev.e === 'hard' || ev.e === 'lock' || ev.e === 'counter')) nfx.event(ev, { reduced: reduced() });
       switch (ev.e) {
         case 'move': synth.play('move'); break;
         case 'rotate': synth.play('rotate', { dir: ev.dir }); break;
@@ -395,7 +415,11 @@ export function createView() {
   function onClear(ev) {
     const big = ev.lines >= 4 || ev.twist === 'twist' || ev.pc;
     const strength = ev.lines >= 4 || ev.pc ? 1 : ev.lines >= 2 ? 0.75 : 0.45;
-    board.flashRows(ev.rows.map((y, i) => y - i >= 0 ? ev.rows[i] : y), strength, (fxs.hue * 57) % 360);
+    const neon = look === 'neon' && nfx && light;
+    if (!neon) board.flashRows(ev.rows.map((y, i) => y - i >= 0 ? ev.rows[i] : y), strength, (fxs.hue * 57) % 360);
+    // (PD-3 — THE NEON LOOK's clears: light RACES along the rows, then they BURST into shards (fx.js, behind the board) + sparks (the light layer)
+    //  — every clear, bigger clears bigger; 4 LINES = a full-board flash; a combo lifts the frame's light)
+    else nfx.event(ev, { onBurst: reduced() ? null : () => neonShards(ev) });
     // audio
     if (ev.pc) synth.play('pc');
     else if (ev.twist) synth.play('twist');
@@ -405,7 +429,7 @@ export function createView() {
     const comboBoost = Math.min(1, Math.max(0, ev.combo) * 0.12);
     fxs.bloom = Math.min(1.2, fxs.bloom + (ev.lines >= 2 ? 0.35 : 0.15) + comboBoost * 0.5);
     if (!reduced()) fxs.hue += 0.08 + Math.max(0, ev.combo) * 0.05;
-    if (big && !reduced()) {
+    if (big && !reduced() && !neon) {
       const r = els.board.getBoundingClientRect();
       const rf = els.fx.getBoundingClientRect();
       const cells = [];
@@ -422,7 +446,7 @@ export function createView() {
       fxs.waveT = 0;
       fxs.wave[2] = Math.random();
       bump(els.boardWrap, 'pd-pulse');
-    }
+    } else if (big && !reduced()) { fxs.waveT = 0; fxs.wave[2] = Math.random(); bump(els.boardWrap, 'pd-pulse'); }
     // the callout's headline: the clear's name when it's worth one (a twist shows what it hits for in BATTLE: "TWIST +2")
     const atk = battle() && ev.attack > 0 ? ` +${ev.attack}` : '';
     let special = null;
@@ -569,6 +593,7 @@ export function createView() {
     drawAll(dt, t);
     workTimes.push(performance.now() - w0);
     if (workTimes.length > 90) workTimes.shift();
+    if (rec.on) { rec.f.push(dt); rec.w.push(performance.now() - w0); }
   }
 
   function dangerOf() {
@@ -581,21 +606,23 @@ export function createView() {
     frameTimes.push(dt);
     if (frameTimes.length > 90) frameTimes.shift();
     if (tierCool > 0) { tierCool--; return; }
+    if (tierLocked) return;
     if (frameTimes.length < 90 || document.visibilityState !== 'visible') return;
     const s = [...frameTimes].sort((a, b) => a - b);
     const p75 = s[Math.floor(s.length * 0.75)];
     if (p75 > 19.5 && tier > 0) { tierUpBlocked = tier; setTier(tier - 1); tierCool = 120; frameTimes.length = 0; goodSince = 0; return; }
     // plenty of headroom for ~4 s: try one tier up again (never back to one that already struggled)
     const w = [...workTimes].sort((a, b) => a - b)[Math.floor(workTimes.length * 0.75)] || 99;
-    if (p75 < 17.5 && w < 6 && tier < 2 && tier + 1 !== tierUpBlocked) {
+    if (p75 < 17.5 && w < 6 && tier < TOP_TIER && tier + 1 !== tierUpBlocked) {
       if (!goodSince) goodSince = performance.now();
       else if (performance.now() - goodSince > 4000) { setTier(tier + 1); tierCool = 120; frameTimes.length = 0; goodSince = 0; }
     } else goodSince = 0;
   }
   function setTier(t) {
-    tier = Math.max(0, Math.min(2, t));
+    tier = Math.max(0, Math.min(TOP_TIER, t));
     if (world) world.setTier(tier);
-    if (fx) fx.setCap([50, 110, 200][tier]);
+    if (fx) fx.setCap(tierOf(tier).shards);
+    if (nfx) nfx.tier(tier);
     layoutSig = '';
     applyLayout();
   }
@@ -608,6 +635,7 @@ export function createView() {
       curSong = c.i;
       synth.setKey(c.doc.tonic, c.doc.mode);
       if (world) world.setWorld(c.doc.world, variantOf(c.i), performance.now() / 1000);
+      setPalette(c.doc.world);
       if (c.i > 0) announce(`NOW PLAYING · ${String(c.doc.title || '').toUpperCase()}`, 'world');
     }
     if (c.clk) {
@@ -699,8 +727,10 @@ export function createView() {
     if (fxs.waveT >= 0) { fxs.waveT += dt / 1500; if (fxs.waveT > 1) fxs.waveT = -1; }
     const wave = fxs.waveT >= 0 ? [-0.2 + fxs.waveT * 1.6, Math.sin(Math.PI * fxs.waveT), fxs.wave[2]] : [0, 0, 0];
     const danger = eng && !eng.over ? dangerOf() : 0;
+    watchLook();
     if (world) {
       world.set({
+        calm: look === 'neon' ? 1 : 0,
         beat: reduced() ? 0 : fxs.beat * 0.8, energy: fxs.energy ?? 0.5, bloom: reduced() ? fxs.bloom * 0.3 : fxs.bloom,
         hue: reduced() ? 0 : fxs.hue, danger, glitch: reduced() ? 0 : fxs.glitch, duel: fxs.duel, wave,
       });
@@ -712,11 +742,53 @@ export function createView() {
     if (eng && board) {
       const frozen = !!(game.out && game.out[me()]);
       const bands = incomingNow();
-      const r = board.draw(eng, { danger, glow: tier === 0 ? 0 : 0.32, frozen, incoming: bands, reduced: reduced() });
+      const neon = look === 'neon';
+      const r = board.draw(eng, { danger, glow: tierOf(tier).glow ? (neon ? 0.62 : 0.32) : 0, frozen, incoming: bands, reduced: reduced(), look: neon ? 'neon' : 'glass', pal });
       ghostGeo = (r && r.ghost) || [];
       paintTag(r && r.ghostTop);
     }
+    // (PD-3) the light layer: the falling piece's spill + every running effect (nothing when idle — the canvas hides itself)
+    if (nfx && look === 'neon') {
+      light.setReduced(reduced());
+      nfx.frame(t, eng, { live: !!(eng && game.phase === 'play' && !(game.out && game.out[me()])), reduced: reduced() });
+    }
     drawHud();
+  }
+
+  // ================================================================ THE NIGHT LOOK (PD-3): the look, the palette, the clears' shards
+  /** THE GAME LOOK, read LIVE (a cheap attribute read): day = the glass look (the placeholder until PD-4), anything else = NEON */
+  function watchLook() {
+    const lk = document.body.dataset.look === 'day' ? 'glass' : 'neon';
+    if (lk === look) return;
+    look = lk;
+    root.dataset.look = lk;
+    if (light && lk !== 'neon') { light.clear(); light.render(); }
+    lastHoldSig = ''; lastNextSig = ''; miniSig = {};
+    if (rail) layoutSig = '';
+  }
+  /** the world's neon palette (neon.js): the pieces' shade + glow, the frame, the well, the sparks — CSS reads the frame + the well */
+  function setPalette(worldId) {
+    const p = neonPalette(worldId);
+    if (p === pal) return;
+    pal = p;
+    if (nfx) nfx.palette(p);
+    root.style.setProperty('--pd-edge', p.edge);
+    root.style.setProperty('--pd-frame', p.frame);
+    root.style.setProperty('--pd-well', p.well);
+    lastHoldSig = ''; lastNextSig = ''; miniSig = {};
+  }
+  /** the clear's shards (fx.js — behind the board, flying out into the world) at the burst, in the palette's colours */
+  function neonShards(ev) {
+    if (!boardRect || !fx) return;
+    const cells = [];
+    ev.rows.forEach((y, k) => {
+      const row = ev.cells[k] || [];
+      for (let x = 0; x < E.W; x += ev.lines >= 2 ? 1 : 2) {
+        const [cx, cy] = board.cellCenter(x, Math.min(E.VISIBLE - 1, y));
+        cells.push({ x: boardRect.x + cx, y: boardRect.y + cy, color: pal.piece[row[x]] || pal.flash });
+      }
+    });
+    fx.shatter(cells, { cx: boardRect.x + boardRect.w / 2, cy: boardRect.y + boardRect.h / 2, power: ev.pc ? 1.4 : ev.lines >= 4 ? 1.15 : 0.6 + 0.1 * ev.lines, life: 700, size: 0.8 });
   }
 
   // ================================================================ THE RISING GHOST ROWS (PD-2 — incoming.js + the look's hook in board.js)
@@ -753,12 +825,13 @@ export function createView() {
   function drawHud() {
     if (!eng || !L) return;
     const hs = `${eng.hold}|${eng.held}|${L.pieceCell}`;
-    if (hs !== lastHoldSig) { lastHoldSig = hs; drawPiece(els.hold, eng.hold, { cell: L.pieceCell, dim: eng.held }); }
+    const skin = { look: look === 'neon' ? 'neon' : 'glass', pal };
+    if (hs !== lastHoldSig) { lastHoldSig = hs; drawPiece(els.hold, eng.hold, { cell: L.pieceCell, dim: eng.held, ...skin }); }
     const nq = E.nextQueue(eng, 3);
     const ns = `${nq.join('')}|${L.pieceCell}`;
     if (ns !== lastNextSig) {
       lastNextSig = ns;
-      nq.forEach((t, i) => drawPiece(els.next[i], t, { cell: L.pieceCell * (i ? 0.86 : 1) }));
+      nq.forEach((t, i) => drawPiece(els.next[i], t, { cell: L.pieceCell * (i ? 0.86 : 1), ...skin }));
     }
     // a piece (or the stack) under a corner panel → that panel fades further, so the piece stays readable
     const cover = c => {
@@ -807,6 +880,11 @@ export function createView() {
     for (const [k, v] of Object.entries(set)) root.style.setProperty(k, v);
     board.size(L.cell, L.boardDpr);
     fx.resize(L.fxDpr);
+    // (PD-3) the board's rect in the root's CSS px — the light layer, the shards' origin + the calmer world's glass (read here, never per frame)
+    const rr = root.getBoundingClientRect(), br = els.board.getBoundingClientRect();
+    boardRect = { x: br.left - rr.left, y: br.top - rr.top, w: br.width || L.boardW, h: br.height || L.boardH, cell: L.cell };
+    if (nfx) nfx.layout(boardRect);
+    if (world) world.set({ board: [boardRect.x / W0, 1 - (boardRect.y + boardRect.h) / H0, (boardRect.x + boardRect.w) / W0, 1 - boardRect.y / H0] });
     lastHoldSig = ''; lastNextSig = ''; miniSig = {}; coverSig = ''; topSig = '';
     renderSide(spectating, duelist);
   }
@@ -880,7 +958,7 @@ export function createView() {
         board: n.b, piece: n.p,
       };
     });
-    rail.update(rows, { duel: !!duelOpp, duelCell: L ? L.duelCell : 3 });
+    rail.update(rows, { duel: !!duelOpp, duelCell: L ? L.duelCell : 3, look: look === 'neon' ? 'neon' : 'glass', pal });
   }
 
   // ================================================================ spectator / call the winner / KO
@@ -979,8 +1057,8 @@ export function createView() {
       const se = card.querySelector('.pd-spec-stat');
       if (se.textContent !== stat) se.textContent = stat;
       card.classList.toggle('is-danger', uid === danger && hgt(uid) >= 12);
-      const sig = `${n.b}|${n.p}|${mc}`;
-      if (miniSig[`s:${uid}`] !== sig) { miniSig[`s:${uid}`] = sig; drawMini(card.querySelector('canvas'), n.b, n.p, { cell: mc }); }
+      const sig = `${n.b}|${n.p}|${mc}|${look}|${pal.id}`;
+      if (miniSig[`s:${uid}`] !== sig) { miniSig[`s:${uid}`] = sig; drawMini(card.querySelector('canvas'), n.b, n.p, { cell: mc, look: look === 'neon' ? 'neon' : 'glass', pal }); }
     }
     for (const c of [...grid.children]) if (!keep.has(c.dataset.uid)) c.remove();
     // the rest of the field, one line: initial · stack height (or KO)
@@ -1062,7 +1140,7 @@ export function createView() {
         const t = eng.cells[y * E.W + x];
         if (!t) continue;
         const [cx, cy] = board.cellCenter(x, y);
-        cells.push({ x: r.left - rf.left + cx, y: r.top - rf.top + cy, color: JEWEL[t] });
+        cells.push({ x: r.left - rf.left + cx, y: r.top - rf.top + cy, color: look === 'neon' ? pal.piece[t] : JEWEL[t] });
       }
       fx.setCap(Math.max(200, cells.length * 3));
       fx.shatter(cells, { cx: r.left - rf.left + r.width / 2, cy: r.top - rf.top + r.height / 2, power: 1.5 });
@@ -1182,6 +1260,25 @@ export function createView() {
     }, 500);
   }
 
+  // ================================================================ (PD-3) the effects, fired down the real path — the look review + the speed run
+  /** kind: 'slam' (the falling piece hard-drops for real) · 'clear' (o.lines 1–4, o.combo, o.pc — a clear's events through handleEvents: the
+   *  callout, the sounds, the race + the burst + the shards; the stack itself is left as it is) · 'lock' (a landing pulse on the falling piece) */
+  function fireFx(kind, o = {}) {
+    if (!eng) return false;
+    if (kind === 'slam') { if (!eng.cur) return false; E.hardDrop(eng); handleEvents(); return true; }
+    if (kind === 'lock' && eng.cur) { eng.events.push({ e: 'lock', t: eng.cur.t, cells: E.cellsOf(eng.cur) }); handleEvents(); return true; }
+    if (kind === 'clear') {
+      const n = Math.max(1, Math.min(4, o.lines || 1));
+      const rows = Array.from({ length: n }, (_, i) => (o.from || 0) + i);
+      const cells = rows.map(y => Array.from({ length: E.W }, (_, x) => eng.cells[y * E.W + x] || 1 + ((x * 3 + y) % 7)));
+      const key = o.pc ? 'quad' : [null, 'single', 'double', 'triple', 'quad'][n];
+      eng.events.push({ e: 'clear', lines: n, rows, cells, twist: null, key, b2b: !!o.b2b, combo: o.combo ?? 0, pc: !!o.pc, pts: 100 * n, attack: n === 4 ? 4 : n - 1 });
+      handleEvents();
+      return true;
+    }
+    return false;
+  }
+
   // ================================================================ test hook
   const api = { mount, update, unmount };
   function setupTestHook() {
@@ -1219,6 +1316,9 @@ export function createView() {
       tier: () => tier,
       setTier: t => setTier(t),
       fps: () => [...frameTimes],
+      // (PD-3) the speed run: record(true) starts a fresh window, record(false) stops it → { f: frame dt[], w: frame CPU[] }; lockTier(true) holds the tier
+      record: on => { if (on) { rec.f = []; rec.w = []; } rec.on = !!on; return { f: rec.f.slice(), w: rec.w.slice() }; },
+      lockTier: v => { tierLocked = !!v; },
       work: () => [...workTimes],   // (PD-1: the frame's CPU time — the headroom a 60 Hz screen hides)
       layout: () => {
         const R = el => (el && el.isConnected ? el.getBoundingClientRect().toJSON() : null);
@@ -1228,6 +1328,10 @@ export function createView() {
       },
       clock: () => songClock(),
       fxCount: () => fx.count,
+      // (PD-3) the night look: the look, the palette, the light layer + a way to fire its effects down the real path (the preview + the E2E)
+      look: () => ({ look, pal: pal.id, light: !!light, lit: light ? light.effects + light.count : 0, size: light ? light.size : null, visible: els.light.style.visibility !== 'hidden' }),
+      freeze: ms => light && light.freeze(ms),
+      fire: (kind, o = {}) => fireFx(kind, o),
     };
   }
 

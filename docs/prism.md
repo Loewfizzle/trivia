@@ -98,14 +98,63 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
   - **THE BUTTONS scheme** (Settings → CONTROLS): the board shrinks to fit the button bar under it (27.7 pt at 390); no SLAM (its own DROP); the
     rail stays on the right.
   - **The countdown** card + numbers sit over THE BOARD (the overlay padded by the rail + gap), not the screen's centre.
-- **Visuals:** the board is Canvas 2D with pre-rendered glass sprites (`board.js`) at the phone's **FULL pixel ratio** (PD-1: 3× on an iPhone —
-  was capped at 2; the HOLD / NEXT pieces + the minis too); the world is one WebGL fragment shader per
-  world at 0.33–0.6 of screen resolution (`worlds.js`; uniforms: beat, energy, bloom, hue, combo, wave, danger, duel, glitch) and
-  shards are a capped canvas particle layer (`fx.js`) between them. Quality tiers 2/1/0 (world scale, fbm octaves, the BOARD's DPR full / 2 / 1.5
-  — `layout.js#boardDpr` — the shards' 2/1.5/1, particle cap 200/110/50, glow) step down when the p75 frame > 19.5 ms. Measured (PD-1,
+- **Visuals:** the board is Canvas 2D with pre-rendered sprites (`board.js` — THE LOOKS: the glass jewels by DAY, the neon tubes by NIGHT, PD-3) at the
+  phone's **FULL pixel ratio** (PD-1: 3× on an iPhone — was capped at 2; the HOLD / NEXT pieces + the minis too); the world is one WebGL fragment shader
+  per world at 0.24–0.45 of screen resolution (`worlds.js`; uniforms: beat, energy, bloom, hue, combo, wave, danger, duel, glitch + PD-3's calm, board)
+  and shards are a capped canvas particle layer (`fx.js`) between them; PD-3's LIGHT LAYER (`light.js`) sits ABOVE the board. FOUR quality tiers (PD-3
+  — `tiers.js`, below) step down when the p75 frame > 19.5 ms. Measured (PD-1,
   `prism-shots.mjs` at 390 × 844 @3, 7 opponents, a bot playing, 4× CPU, GPU): **60 fps at every tier (p95 16.8 ms), 1.7 ms of CPU a frame** —
   the same 60 fps as the view before PD-1 on the same page. "Reduced effects" (settings) + prefers-reduced-motion
   turn off shards, hue drift, beat pulses and camera pulses.
+- **THE NIGHT LOOK (PD-3, Nov 9 2026 — the owner's decisions: docs/games/plan.md "PD-3"; the pass log: docs/harbor/passes/pd-3.md).** THE GAME
+  LOOK (`body[data-look]`, ☰ → Settings, read LIVE — `view.js#watchLook`): `day` = the glass look (the placeholder until PD-4), anything else = NEON
+  (`.pd[data-look='neon']`). A look = sprites + effects behind one interface (`board.js#LOOKS` + the draw's `look` / `pal`); the engine never changes.
+  - **THE NEON TUBES** (`board.js#neonSprite`): a solid DARK core (a deep tint of the colour), a crisp HOT EDGE tube in the piece's colour with a
+    near-white core line down its middle, a fine glass sheen, the tube's light baked into the core's edges; the static glow PRE-RENDERED (a soft ring
+    sprite drawn 'lighter' under the stack — never a per-frame shadowBlur); THREE variants per colour (a hotter stretch of tube — real neon is never
+    even; the stack picks by place, the falling piece by cell). The landing ghost = an UNLIT tube (a thin pale line); junk = a cool grey tube; the
+    danger drain the same grey sprite as before. HOLD / NEXT, the rail's duel mini, spectating's boards + the podium's winning board draw the same tubes
+    (`drawPiece` / `drawMini` take `look` + `pal`; a mini under 18 device px a cell = a lit edge + a dark core).
+  - **THE PALETTES** (`neon.js` — PURE): each piece keeps its COLOUR FAMILY in every world (JEWEL's hues: the long piece cyan, the square yellow…); a
+    world (`WORLD_SHIFT`) pulls every hue toward its own by a capped share (`PIECE_PULL`: yellow + orange barely move — 15° apart), shades the
+    saturation + lightness, leans the glow toward its colour, and brings its frame tube (`edge`), the frame's light (`frame`), the walls' line (`well`)
+    + two spark colours. AURORA → teal · NEON CITY → magenta · DEEP NEBULA → violet · CRYSTAL CAVE → icier + lighter · SYNTH SUNSET → warmer. Never a
+    swap. `tests/prism-neon.test.mjs`: every world keeps each hue within ±15° of its JEWEL hue, every pair of pieces ≥ ΔE 18 (CIE76), junk ≥ 25
+    from every piece, sunset warms + crystal cools ≥ 5 of 7. The view sets `--pd-edge` / `--pd-frame` / `--pd-well` on a world change (the CSS: the
+    board's frame = a neon tube with a white-hot core, HOLD / NEXT, the rail tiles, the top line, the callouts, the incoming tag, the cards).
+  - **THE CALMER WORLD** (`worlds.js` — uCalm + uBoard): behind the BOARD only the world is dimmed to ~50 % under a soft dark glass (its HUE kept, the
+    brights compressed, a little less colour — a grey wash turned a bright sky into a flat brown panel, round 1), feathered ~2 cells; a lighter
+    vignette keeps the top + the edges round the board vivid. The board's own glass is thinner in the neon look (0.3).
+  - **THE LIGHT ENGINE** (`light.js` + `neonfx.js`): ONE low-res WebGL canvas ABOVE the board (`.pd-light`, z 3 — the overlays at 4), pure ADDED light:
+    it writes premultiplied (rgb, a = max(rgb)), so the page composites `light + below × (1 − a)` (no CSS blend mode). Soft light quads (a blob, a
+    streak with a tapering tail, a soft rect, a frame ring) in ONE vertex batch, then THE BLOOM on the GPU: a bright-pass (only light above 0.42
+    blooms — a wide wash would lift the board's blacks: round 2) + a dual-filter chain at ½ → ¼ → ⅛ and back up. The canvas hides itself when nothing
+    is lit. **Why not bloom the whole board:** copying the 3× board canvas (970 × 1940, 7.5 MB) into a texture every frame MEASURED 0.7 ms to issue and
+    2.4–4 ms to finish on the mini PC's Chrome at 4× CPU (`tests/integration/prism-upload-cost.mjs`) — and on an iPhone that 2D canvas is rasterised on
+    the CPU; the light layer's whole cost is ~0.5 ms a frame (the A/B below). The effects (each big but SHORT, never covering the stack or the incoming rows):
+    - THE SPILL — the falling piece's coloured light on the empty well + the blocks near it, the nearer WALL catching more at its height, a faint pool
+      on the floor when it's near the bottom (top two tiers only).
+    - THE LANDING PULSE — the cells that lock surge (their tubes ring with light + a soft fill), ~0.26 s; stronger after a SLAM.
+    - SLAM — a light trail per column from where the piece was to where it landed (the tail catches up), then an impact flash along its foot + sparks.
+    - LINE CLEARS — light RACES along each clearing row's tubes (rows alternate direction; each cell's tube surges as the head passes, 150 + 20 × lines
+      ms), then the rows BURST: a white-hot flash, sparks with glowing trails (more per line + per combo step) and the shards (`fx.js`, behind the
+      board, flying out into the world — every clear now, fewer for one line). 4 LINES / a perfect clear: a breath of light over the board + the frame
+      flares; a combo lifts the frame's light (0.2 + 0.16 × combo), settling over ~1 s. A cancel (BLOCKED!) adds a faint red flash.
+    - "Reduced effects" + prefers-reduced-motion: no motion (the race is instant, no trail, no sparks, no shards), every light × 0.35, the flash × 0.3.
+    - Sounds: PRISM's own synth SFX as before (in the song's key, on its beat) — no new files.
+- **THE TIERS (PD-3 — `tiers.js`, `tests/prism-layout.test.mjs`):** the view starts at the TOP tier (3) and steps down while the p75 frame > 19.5 ms.
+  The light goes FIRST, the board's full 3× LAST:
+  | tier | board | world | light layer | bloom | spill | sparks | shards | glow |
+  |---|---|---|---|---|---|---|---|---|
+  | 3 | 3× | 0.45, 4 oct | 1× CSS | 3 levels | on | 260 | 200 | on |
+  | 2 | 3× | 0.34, 3 oct | 0.75× | 2 levels | on | 160 | 130 | on |
+  | 1 | 3× | 0.28, 2 oct | 0.5× | off | off | 90 | 80 | on |
+  | 0 | **2×** | 0.24, 1 oct | 0.5× | off | off | 40 | 40 | off |
+- **Measured (PD-3, `prism-shots.mjs` PERF — 390 × 844 @3, 7 opponents, a bot playing, 4× CPU, GPU on; each tier LOCKED, ~300 frames recorded):**
+  REST (the bot) — 60 fps at every tier, p95 16.8 ms; CPU a frame (p75 / p95) 3.5 / 4.2 ms (tier 3), 3.5 / 4.0 (2), 2.6 / 3.6 (1), 2.7 / 4.0 (0).
+  HEAVY (`&heavy=1`: a 4-line clear every 650 ms with the combo climbing + six ghost rows + the bot + 7 rail tiles) — 60 fps at every tier, p95 16.8
+  ms; CPU 5.7 / 6.6 ms (3), 5.3 / 6.2 (2), 4.8 / 5.7 (1), 4.0 / 4.7 (0). A/B against PD-2 on the same page (:5174): rest 2.7 vs 2.2 ms, with six ghost
+  rows 3.8 vs 3.0 ms — both 60 fps.
 - **Checking a real phone:** add `?pdperf` to the address (it survives joining a room): a corner readout of fps, frame
   CPU time, quality tier, world resolution, audio state/latency and the songs playing.
 - **THE PODIUM (PD-1 — the console's, docs/cartridge.md D8):** `index.js` exports `finalScene` (`victory.js`) — PRISM draws ONLY the BODY inside the
@@ -121,7 +170,8 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
 - **THE PREVIEW (PD-1 + PD-2):** `tests/integration/prism-preview.html` mounts the REAL view (the fake database) with a scripted state — `&n=1..7`
   `&state=play|count|ko|duel|final|spec` `&rush=1` `&scheme=buttons` `&slam=left` `&world=` `&bot=1` `&under=1` `&down=1` (SLAM pressed) `&hit=1`
   `&st=47&sb=34` (the safe areas); PD-2: `&mode=survival&t=` `&solo=1` `&state=kocard|ko|spec` `&inc=1|3|6&rise=fresh|mid|hot` `&shatter=n`
-  `&callout=send|blocked|twist|b2b|ko|pc` `&fresh=1&tip=1` `&after=ms`. `node tests/integration/prism-shots.mjs "<chrome>" ./shots-prism [cpu]`
+  `&callout=send|blocked|twist|b2b|ko|pc` `&fresh=1&tip=1` `&after=ms`; PD-3: `&look=day|night` (default night) `&reduced=1` `&heavy=1` + from a shot's js:
+  `__prism.fire('slam' | 'lock' | 'clear', { lines, combo, pc })` + `__prism.freeze(ms)` (the light layer held at that age) — the `pd3` set (35 states). `node tests/integration/prism-shots.mjs "<chrome>" ./shots-prism [cpu]`
   shoots every state at 390 / 402 / 430 with each phone's real safe areas (`SIZES=`, `ONLY=`, `SETS=look,states,worlds,pd2`; an entry may be
   `{ q, js, w }` — a line of JS fired just before the shot) + the frame timing per tier (`PERF=0` skips it; `Q=` adds to every URL).
 - **Measured (PD-2, prism-shots.mjs, 390 × 844 @3, 7 opponents, a bot, 4× CPU, GPU):** 60 fps at every tier (p95 16.8 ms); 2.1 ms CPU a frame

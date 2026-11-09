@@ -4,6 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { prismLayout, panelCells, MARGIN, GAP, RAIL, TOP, TILE_MIN } from '../js/games/prism/layout.js';
+import { TIERS } from '../js/games/prism/tiers.js';
 
 const PHONES = [[390, 844, 47, 34], [402, 874, 62, 34], [430, 932, 59, 34], [375, 667, 20, 0], [412, 915, 24, 16]];
 
@@ -37,10 +38,19 @@ test('THE RAIL: 7 opponents + SLAM fit beside the board; a duel tile shows a boa
   assert.ok(d.slamD >= 36 && d.slamD + 12 >= 44, 'SLAM ~38–44 pt with a 44 pt tap area');
 });
 
-test('THE TIERS: the board at the full 3×, stepped to 2× (then 1.5×) — the world + shards keep their reduced resolution', () => {
+test('THE TIERS (PD-3): the board at the full 3× on every tier but the LAST (2×) — the light steps down first; the shards keep their reduced resolution', () => {
   const dprAt = tier => prismLayout({ W0: 390, H0: 844, dpr: 3, tier }).boardDpr;
-  assert.deepEqual([dprAt(2), dprAt(1), dprAt(0)], [3, 2, 1.5]);
-  assert.deepEqual([0, 1, 2].map(tier => prismLayout({ W0: 390, H0: 844, dpr: 3, tier }).fxDpr), [1, 1.5, 2]);
+  assert.deepEqual([dprAt(3), dprAt(2), dprAt(1), dprAt(0)], [3, 3, 3, 2]);
+  assert.equal(prismLayout({ W0: 390, H0: 844, dpr: 3 }).boardDpr, 3, 'the top tier by default');
+  assert.deepEqual([0, 1, 2, 3].map(tier => prismLayout({ W0: 390, H0: 844, dpr: 3, tier }).fxDpr), [1, 1, 1.5, 2]);
+  // the order the owner asked for: bloom → spill → particles drop before the board's resolution
+  const T = TIERS;
+  assert.equal(T.length, 4);
+  for (let t = 1; t < T.length; t++) {
+    assert.ok(T[t].bloom >= T[t - 1].bloom && T[t].sparks >= T[t - 1].sparks && T[t].light >= T[t - 1].light, `tier ${t} never has less light than ${t - 1}`);
+  }
+  assert.ok(T[1].board === 3 && T[1].bloom === 0 && !T[1].spill, 'the bloom + the spill are gone before the board drops');
+  assert.ok(T[3].bloom === 3 && T[3].spill, 'the top tier: the full light');
 });
 
 test('HOLD + NEXT: the board cells under each corner panel (the fade zones)', () => {

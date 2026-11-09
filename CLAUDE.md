@@ -181,7 +181,12 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   (`incoming.js` PURE + the look's hook `board.js#LOOKS` — the engine's attack math + delays untouched; an occupied cell only tinted, never
   covered; no red bar); callouts on the kit's announcer (`fit`); KO card → Call the Winner (the kit's `ring`) → SPECTATE (names → THE PLAYER PAGE
   only there); SURVIVAL (the seeded 10 s → 4 s rows, `survivalRows`) + SOLO (`SOLO: true` — SCORE RUSH + SURVIVAL; BATTLE needs 2: a CHOICE's
-  `when(players)` in the options sheet + `cleanSettings(s, players)`); the results carry `ko` / `pc` / `dz` / `t` for PD-5's cards.
+  `when(players)` in the options sheet + `cleanSettings(s, players)`); the results carry `ko` / `pc` / `dz` / `t` for PD-5's cards. PD-3 (Nov 9 — docs/prism.md "THE NIGHT
+  LOOK"): THE GAME LOOK picks the board's look LIVE (`view.js#watchLook` — day = the glass placeholder until PD-4, night = THE NEON TUBES,
+  `board.js#neonSprite`); each piece keeps its COLOUR FAMILY in every world (`neon.js` PURE — `tests/prism-neon.test.mjs`); every MOVING light is the
+  LIGHT LAYER's (`light.js` — one low-res WebGL canvas above the board, pure added light + a GPU bloom; never a full-res 2D blur, never the board
+  copied to a texture: measured); effects short, never over the stack or the incoming rows; FOUR TIERS (`tiers.js`) — the light steps down FIRST,
+  the board's 3× LAST.
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,

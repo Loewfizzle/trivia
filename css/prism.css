@@ -17,9 +17,11 @@
   user-select: none;
   -webkit-touch-callout: none;
 }
-.pd-world, .pd-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.pd-world, .pd-fx, .pd-light { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .pd-world { z-index: 0; }
 .pd-fx { z-index: 1; }
+/* (PD-3) THE LIGHT LAYER (light.js): above the board, under the overlays — pure added light (premultiplied: light + below × (1 − a)); hidden when idle */
+.pd-light { z-index: 3; }
 .pd-ui {
   position: absolute;
   inset: 0;
@@ -339,7 +341,7 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd-btn-hard.is-down { background: #fff; }
 
 /* ---- overlays ---- */
-.pd-overlay { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.pd-overlay { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 .pd-overlay > * { pointer-events: auto; }
 .pd-title {
   position: absolute;
@@ -486,6 +488,65 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd-fs-line b { font-family: var(--font-display); font-weight: 900; font-size: 20px; letter-spacing: 0.06em; color: var(--c); text-shadow: 0 0 14px color-mix(in srgb, var(--c) 45%, transparent); overflow-wrap: anywhere; }
 .pd-fs-line span { font-family: var(--font-num); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; color: #fff; }
 .pd-fs-top li.is-open { cursor: pointer; }
+
+/* ==================================================================================================================================
+   PD-3 — THE NEON LOOK (night — body[data-look] ≠ day → the view sets .pd[data-look='neon']; day keeps the glass look above until PD-4).
+   The world's palette arrives as --pd-edge (the frame's tube), --pd-frame (its outer light), --pd-well (the walls' inner line) — neon.js.
+   Every glow here is STATIC (box-shadow / text-shadow painted once); the moving light is the light layer's (light.js).
+   ================================================================================================================================== */
+.pd[data-look='neon'] { --pd-edge: #9fd8ff; --pd-frame: #7fb8ff; --pd-well: #cfe6ff; background: radial-gradient(120% 80% at 50% 10%, #0d1230 0%, #05060f 60%, #020307 100%); }
+/* THE BOARD's frame = a neon tube in the world's edge colour (a white-hot core line down its middle), the well a soft dark glass — the world
+   behind it is already dimmed by its shader (THE CALMER WORLD) */
+.pd[data-look='neon'] .pd-board-glass {
+  inset: -4px;
+  border-radius: 8px;
+  background: rgba(2, 3, 9, calc(0.3 + var(--danger, 0) * 0.25));
+  border: 2px solid var(--pd-edge);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 10px color-mix(in srgb, var(--pd-edge) 70%, transparent), 0 0 34px color-mix(in srgb, var(--pd-frame) 32%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--pd-well) 16%, transparent), inset 0 0 22px color-mix(in srgb, var(--pd-edge) 16%, transparent);
+}
+.pd[data-look='neon'] .pd-board-glass::before {
+  inset: -1.5px;
+  border-radius: 8px;
+  padding: 0;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  -webkit-mask: none;
+  mask: none;
+  opacity: 1;
+}
+/* HOLD + NEXT: dark see-through glass with a thin tube edge */
+.pd[data-look='neon'] .pd-corner { background: rgba(3, 4, 12, 0.5); border-color: color-mix(in srgb, var(--pd-edge) 45%, transparent); box-shadow: 0 0 8px color-mix(in srgb, var(--pd-edge) 18%, transparent); }
+.pd[data-look='neon'] .pd-corner small { color: color-mix(in srgb, var(--pd-well) 75%, #ffffff); text-shadow: 0 0 6px color-mix(in srgb, var(--pd-edge) 60%, transparent); }
+/* THE TOP LINE: white neon type lit in the world's edge colour */
+.pd[data-look='neon'] .pd-mode { background: none; color: #fff; text-shadow: 0 0 2px rgba(255, 255, 255, 0.8), 0 0 9px var(--pd-edge), 0 0 20px color-mix(in srgb, var(--pd-frame) 60%, transparent); }
+.pd[data-look='neon'] .pd-sub { color: color-mix(in srgb, var(--pd-well) 70%, #b8c2dc); }
+/* THE RAIL: each tile a dark cell edged in the player's colour, a static glow; the stack's fill a lit column */
+.pd[data-look='neon'] .pd-tile {
+  background: rgba(3, 4, 12, 0.74);
+  border-color: color-mix(in srgb, var(--c) 75%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--c) 30%, transparent), inset 0 0 8px color-mix(in srgb, var(--c) 16%, transparent);
+}
+.pd[data-look='neon'] .pd-tile-fill { background: linear-gradient(0deg, color-mix(in srgb, var(--c) 55%, transparent), color-mix(in srgb, var(--c) 14%, transparent)); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--c) 85%, #fff); }
+.pd[data-look='neon'] .pd-tile-ini { text-shadow: 0 0 3px #fff, 0 0 10px var(--c), 0 1px 2px rgba(0, 0, 0, 0.9); }
+.pd[data-look='neon'] .pd-tile.is-high { border-color: #ff5a7a; box-shadow: 0 0 10px rgba(255, 70, 100, 0.45), inset 0 0 8px rgba(255, 70, 100, 0.2); }
+.pd[data-look='neon'] .pd-tile.is-ko { box-shadow: none; }
+/* SLAM stays the red push button — its surroundings take a red neon halo */
+.pd[data-look='neon'] .pd-slam-bezel { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), 0 4px 10px rgba(0, 0, 0, 0.6), 0 0 14px rgba(255, 40, 60, 0.5), 0 0 30px rgba(255, 30, 60, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1px rgba(0, 0, 0, 0.55); }
+/* THE RISING GHOST ROWS' tag: a red neon tube */
+.pd[data-look='neon'] .pd-inc-tag { background: rgba(26, 2, 9, 0.86); border: 1.5px solid #ff4f74; box-shadow: 0 0 10px rgba(255, 79, 116, 0.6), inset 0 0 6px rgba(255, 79, 116, 0.3); text-shadow: 0 0 6px rgba(255, 130, 160, 0.9); }
+/* THE CALLOUTS: lit neon words — a white-hot core, the kind's colour as the glow, a dark edge so they read over any light (--good = right) */
+.pd[data-look='neon'] .pd-callout .pd-ann-in { color: #e9f1ff; text-shadow: 0 0 8px rgba(3, 4, 12, 0.95), 0 2px 3px rgba(0, 0, 0, 0.9); }
+.pd[data-look='neon'] .pd-callout .pd-ann-in::first-line { color: #fff; text-shadow: 0 0 2px #fff, 0 0 10px var(--pd-edge), 0 0 24px color-mix(in srgb, var(--pd-frame) 70%, transparent), 0 2px 3px rgba(0, 0, 0, 0.85); }
+.pd[data-look='neon'] .pd-callout .pd-ann-in.is-good::first-line { color: var(--good); text-shadow: 0 0 2px #fff, 0 0 10px var(--good), 0 0 24px color-mix(in srgb, var(--good) 60%, transparent), 0 2px 3px rgba(0, 0, 0, 0.85); }
+.pd[data-look='neon'] .pd-callout .pd-ann-in.is-ko::first-line { color: #ffd2dc; text-shadow: 0 0 2px #fff, 0 0 10px #ff4f74, 0 0 24px rgba(255, 79, 116, 0.6), 0 2px 3px rgba(0, 0, 0, 0.85); }
+.pd[data-look='neon'] .pd-callout .pd-ann-in.is-send::first-line { color: #e2f6ff; text-shadow: 0 0 2px #fff, 0 0 10px #4fd8ff, 0 0 24px rgba(79, 216, 255, 0.55), 0 2px 3px rgba(0, 0, 0, 0.85); }
+.pd[data-look='neon'] .pd-callout .pd-ann-in.is-big::first-line { color: #fff; text-shadow: 0 0 3px #fff, 0 0 12px var(--pd-edge), 0 0 30px var(--pd-frame), 0 2px 3px rgba(0, 0, 0, 0.85); }
+/* the cards over the board: a neon edge */
+.pd[data-look='neon'] .pd-count-song, .pd[data-look='neon'] .pd-tip { border-color: color-mix(in srgb, var(--pd-edge) 70%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--pd-edge) 30%, transparent), inset 0 0 12px color-mix(in srgb, var(--pd-edge) 10%, transparent); }
+.pd[data-look='neon'] .pd-count-song b { background: none; color: #fff; text-shadow: 0 0 2px #fff, 0 0 10px var(--pd-edge), 0 0 22px var(--pd-frame); }
+.pd[data-look='neon'] .pd-ko { border: 1.5px solid #ff4f74; box-shadow: 0 0 14px rgba(255, 79, 116, 0.55), 0 0 40px rgba(255, 60, 100, 0.25), inset 0 0 14px rgba(255, 79, 116, 0.2); }
+.pd[data-look='neon'] .pd-spec-frame, .pd[data-look='neon'] .pd-fs-frame { box-shadow: 0 0 0 1px color-mix(in srgb, var(--pd-edge) 60%, transparent), 0 0 14px color-mix(in srgb, var(--pd-edge) 25%, transparent); }
 
 body.pd-duel .pd-mode { letter-spacing: 0.2em; }
 

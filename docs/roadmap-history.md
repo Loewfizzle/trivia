@@ -2338,3 +2338,19 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   again); MAXIMILIANOS on one line on PENTHOUSE, SAFECRACKER, GHOST RUN, PERFECT WEEK.
 - THE ADD-ON: SHARE TODAY = one card (one header, a section per finished daily from its own share.js pieces — the own cards pixel-identical — one
   foot); the data from the server's record (`today { share }`, spoiler-free).
+
+## PD-3 — PRISM DROP: THE NIGHT LOOK (Nov 9, 2026 — docs/harbor/passes/pd-3.md; the plan: docs/games/plan.md "PD-3")
+- **THE NEON TUBES** (board.js#neonSprite + LOOKS.neon): solid dark cores, a crisp hot edge tube in the piece's colour with a near-white core line, the
+  static glow baked (a ring sprite under the stack), three variants per colour; the landing ghost an unlit tube, junk a grey tube; HOLD / NEXT, the duel
+  tile, spectating + the podium's board draw the same. THE GAME LOOK picks it live: day = the glass placeholder (until PD-4), night = neon.
+- **THE PALETTES** (neon.js, pure + tests/prism-neon.test.mjs): every piece keeps its colour family in every world (±15° of its JEWEL hue, every pair
+  ≥ ΔE 18); a world shifts the shade + the glow + the frame / well / sparks (sunset warmer, crystal icier); yellow + orange barely move.
+- **THE CALMER WORLD** (worlds.js uCalm + uBoard): the world ~50 % behind the board only (its hue kept, the brights compressed), vivid at the top + edges.
+- **THE LIGHT ENGINE** (light.js + neonfx.js): one low-res WebGL canvas above the board — pure added light (premultiplied, a = max(rgb)), a bright-pass +
+  dual-filter GPU bloom; the spill, the landing pulse, SLAM's trail + impact sparks, the clears' race along the rows + the burst (sparks + shards; 4
+  LINES' flash; the combo's frame); Reduced effects tones it right down. The whole-board bloom was MEASURED out (prism-upload-cost.mjs).
+- **FOUR TIERS** (tiers.js): the light, the spill + the particles step down first; the board's 3× only at the last step. 60 fps (p95 16.8 ms) at every
+  tier at rest + in the heavy moment (4× CPU); CPU 3.5 / 5.7 ms a frame at the top tier (rest / heavy); A/B vs PD-2: 2.7 vs 2.2 ms.
+- **Group 0 — WHO GETS LISTED** (the owner's add-on): the public boards list a profile from its 3rd COUNTED PLAY (a room match of 2+ or a counted daily
+  finish — THE THROWAWAY GATE; never a solo run): pstats.cp (core/progress.js#countedPlays / boardHidden), a daily that crosses the floor puts every board
+  up, the back-fill re-counts from the records + rewrites every row; THE BOARD's pinned row "N MORE PLAYS". tests/listing.test.mjs.

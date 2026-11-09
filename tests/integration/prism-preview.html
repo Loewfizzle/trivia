@@ -16,6 +16,12 @@
        &shatter=2         a clear cancels 2 of them (the shatter + BLOCKED!)
        &callout=send|blocked|twist|b2b|ko|pc       one callout          &fresh=1&tip=1   the first BATTLE's tip at GO
        &after=ms          wait this long after the setup before data-ready (a shot mid-effect)
+     PD-3 — THE NIGHT LOOK:
+       &reduced=1         Settings → Reduced effects (every effect toned right down)
+       &look=day|night    THE GAME LOOK (default night = NEON; day = the glass placeholder until PD-4)
+       &fx=slam|clear1|clear2|clear3|clear4|combo|pc   that effect on a LOOP (watch it live on a phone — every ~1.5 s)
+       &heavy=1           the speed run's worst moment, on a loop: a 4-line clear every 650 ms (the combo climbing) + six ghost rows + the bot
+       (the effects themselves are fired from prism-shots.mjs: window.__prism.fire('slam' | 'clear', { lines, combo, pc }) + __prism.freeze(ms))
      prism-shots.mjs shoots it; Used for the look review + the frame timing. -->
 <html lang="en">
 <head>
@@ -47,9 +53,10 @@ import { installEmblems } from '/js/ui/emblems.js';
 
 const q = new URLSearchParams(location.search);
 const ROOT = document.documentElement;
+document.body.dataset.look = q.get('look') === 'day' ? 'day' : 'night';   // (PD-3: as app.js#paintLook sets it during a match)
 if (q.has('st')) ROOT.style.setProperty('--safe-t', `${q.get('st')}px`);
 if (q.has('sb')) ROOT.style.setProperty('--safe-b', `${q.get('sb')}px`);
-updateSettings({ prismScheme: q.get('scheme') === 'buttons' ? 'buttons' : 'gesture', prismSlam: q.get('slam') === 'left' ? 'left' : 'right', prismBtn: 0.5, reducedFx: false });
+updateSettings({ prismScheme: q.get('scheme') === 'buttons' ? 'buttons' : 'gesture', prismSlam: q.get('slam') === 'left' ? 'left' : 'right', prismBtn: 0.5, reducedFx: q.get('reduced') === '1' });   // (PD-3: &reduced=1 = Settings → Reduced effects)
 installEmblems();
 // the shared corner pair, as the app draws it (☰ top-left, the music top-right)
 document.body.classList.add('pd-on');
@@ -155,6 +162,26 @@ if (q.has('after')) await wait(Number(q.get('after')));
 if (q.get('down') === '1') document.querySelector('.pd-slam-b')?.classList.add('is-down');
 if (q.get('hit') === '1') setTimeout(() => { const t = document.querySelector('.pd-tile'); if (t) t.classList.add('is-hit'); }, 200);
 if (q.has('tier')) window.__prism && window.__prism.setTier(Number(q.get('tier')));
+// (PD-3) an effect on a loop, for watching on a phone: a SLAM (the stack wiped when it gets tall), a clear of n lines, a combo climbing, a perfect clear
+if (q.has('fx') && ready()) {
+  const FX = q.get('fx');
+  let k = 0;
+  const fire = () => {
+    const g = window.__prism.engine();
+    if (!g) return;
+    if (FX === 'slam') { if (E.stackHeight(g) > 12) g.cells.fill(0); window.__prism.fire('slam'); return; }
+    const m = /^clear([1-4])$/.exec(FX);
+    window.__prism.fire('clear', FX === 'pc' ? { lines: 4, pc: true } : FX === 'combo' ? { lines: 2, combo: (k++ % 6) + 1 } : { lines: m ? Number(m[1]) : 4 });
+  };
+  setTimeout(fire, 900);
+  setInterval(fire, FX === 'slam' ? 1300 : 1700);
+}
+// (PD-3) the speed run's heaviest moment, held: 4-line clears on a loop with the combo climbing + six ghost rows rising (a long delay — they never land)
+if (q.get('heavy') === '1' && ready()) {
+  window.__prism.incoming(3, uids[3] || uids[1], 600_000); window.__prism.incoming(3, uids[4] || uids[1], 600_000);
+  let k = 0;
+  setInterval(() => window.__prism.fire('clear', { lines: 4, combo: 1 + (k++ % 6) }), 650);
+}
 document.body.dataset.ready = '1';
 </script>
 </body>

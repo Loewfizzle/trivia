@@ -4,6 +4,9 @@
 // clears, the danger drain (cooler, greyer, vignette), the final-duel intensity, a junk glitch. A song change
 // crossfades the old world into the new one. WebGL1 only, no libraries; if WebGL is missing the CSS gradient
 // behind the canvas shows instead.
+// PD-3 — THE CALMER WORLD (the night look): behind the BOARD only the world is dimmed ~50 % under a soft dark glass (lower contrast, a touch less
+// colour — uBoard = the board's rect in uv, feathered ~2 cells), vivid at the top + in the edges around it (a lighter vignette); uCalm 0 = today.
+import { tierOf, TOP_TIER } from './tiers.js';
 export const WORLDS = {
   aurora: {
     name: 'AURORA OCEAN',
@@ -52,7 +55,8 @@ const VERT = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
 
 const HEAD = `
 precision highp float;
-uniform vec2 uRes; uniform float uTime, uBeat, uEnergy, uBloom, uHue, uDanger, uGlitch, uDuel, uAlpha, uV, uQ;
+uniform vec2 uRes; uniform float uTime, uBeat, uEnergy, uBloom, uHue, uDanger, uGlitch, uDuel, uAlpha, uV, uQ, uCalm;
+uniform vec4 uBoard; // (PD-3) the board's rect in uv (x0, y0, x1, y1 — y up)
 uniform vec3 uWave; // x: wave front height (0..1.4), y: strength, z: hue
 uniform vec3 uC0, uC1, uC2, uC3, uC4;
 float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
@@ -269,8 +273,18 @@ void main(){
   c=hueRot(c,uHue);
   float l=dot(c,vec3(.299,.587,.114));
   c=mix(c, vec3(l)*vec3(.62,.8,1.15), uDanger*.7);
+  // (PD-3) THE CALMER WORLD: behind the board, a soft dark glass — less contrast + colour, ~50 % of the light; the edges stay vivid
+  if(uCalm>0.){
+    float asp=uRes.x/uRes.y;
+    vec2 o=max(max(uBoard.xy-uv, uv-uBoard.zw), 0.)*vec2(asp,1.);
+    float m=(1.-smoothstep(0., .07, length(o)))*uCalm;
+    // keep the world's HUE (a grey wash turned a bright sky into a flat brown panel): lower the colour a little, compress the brights, ~50 %
+    float lum=dot(c,vec3(.299,.587,.114));
+    vec3 soft=mix(vec3(lum), c, .8)/(1.+lum*1.1);
+    c=mix(c, soft*.55, m);
+  }
   vec2 vq=uv-.5;
-  float vig=1.-dot(vq,vq)*(1.1+uDanger*2.6+uDuel*1.4);
+  float vig=1.-dot(vq,vq)*(mix(1.1,.55,uCalm)+uDanger*2.6+uDuel*1.4);
   c*=clamp(vig,0.,1.);
   c=mix(c, pow(max(c,0.),vec3(1.3))*1.25, uDuel*.6);
   c=c/(1.+c*.35);
@@ -280,7 +294,7 @@ void main(){
 const hex3 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
 // world resolution per tier, as a fraction of the screen's real pixels (DPR capped at 2): soft backgrounds
 // don't need full resolution, but on a 3× phone the old CSS-pixel scale came out blurry
-const TIERS = [0.24, 0.34, 0.45];
+// (PD-3: the tier table — tiers.js; the top tier 0.45)
 
 export function createWorlds(canvas) {
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false, powerPreference: 'high-performance' });
@@ -289,13 +303,13 @@ export function createWorlds(canvas) {
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   const programs = {};
-  let tier = 2;
+  let tier = TOP_TIER;
   let cur = null;   // { id, variant, prog }
   let prev = null;  // fading out
   let mixT = 1;
   let mixStart = 0;
   const MIX_S = 3.2;
-  const u = { beat: 0, energy: 0.5, bloom: 0, hue: 0, danger: 0, glitch: 0, duel: 0, wave: [0, 0, 0] };
+  const u = { beat: 0, energy: 0.5, bloom: 0, hue: 0, danger: 0, glitch: 0, duel: 0, wave: [0, 0, 0], calm: 0, board: [0, 0, 0, 0] };
   let w = 0, hgt = 0;
   let lost = false;
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); lost = true; });
@@ -320,7 +334,7 @@ export function createWorlds(canvas) {
     gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) { console.warn('world link', gl.getProgramInfoLog(p)); return null; }
     const loc = {};
-    for (const n of ['uRes', 'uTime', 'uBeat', 'uEnergy', 'uBloom', 'uHue', 'uDanger', 'uGlitch', 'uDuel', 'uAlpha', 'uV', 'uQ', 'uWave', 'uC0', 'uC1', 'uC2', 'uC3', 'uC4']) loc[n] = gl.getUniformLocation(p, n);
+    for (const n of ['uRes', 'uTime', 'uBeat', 'uEnergy', 'uBloom', 'uHue', 'uDanger', 'uGlitch', 'uDuel', 'uAlpha', 'uV', 'uQ', 'uWave', 'uC0', 'uC1', 'uC2', 'uC3', 'uC4', 'uCalm', 'uBoard']) loc[n] = gl.getUniformLocation(p, n);
     programs[id] = { p, loc };
     return programs[id];
   }
@@ -333,7 +347,7 @@ export function createWorlds(canvas) {
   ro.observe(canvas);
   function resize() {
     if (w) return;
-    const s = TIERS[tier] * Math.min(2, window.devicePixelRatio || 1);
+    const s = tierOf(tier).world * Math.min(2, window.devicePixelRatio || 1);
     w = Math.max(64, Math.round(cssW * s));
     hgt = Math.max(64, Math.round(cssH * s));
     canvas.width = w; canvas.height = hgt;
@@ -356,7 +370,9 @@ export function createWorlds(canvas) {
     gl.uniform1f(L.uDuel, u.duel);
     gl.uniform1f(L.uAlpha, alpha);
     gl.uniform1f(L.uV, v.v);
-    gl.uniform1f(L.uQ, tier + 1);
+    gl.uniform1f(L.uQ, tierOf(tier).oct);
+    gl.uniform1f(L.uCalm, u.calm);
+    gl.uniform4f(L.uBoard, u.board[0], u.board[1], u.board[2], u.board[3]);
     gl.uniform3f(L.uWave, u.wave[0], u.wave[1], u.wave[2]);
     v.c.forEach((c, i) => gl.uniform3fv(L[`uC${i}`], hex3(c)));
     gl.enableVertexAttribArray(0);
@@ -374,7 +390,7 @@ export function createWorlds(canvas) {
       cur = next;
     },
     set(v) { Object.assign(u, v); },
-    setTier(t) { tier = Math.max(0, Math.min(2, t)); w = 0; },
+    setTier(t) { tier = Math.max(0, Math.min(TOP_TIER, t)); w = 0; },
     get tier() { return tier; },
     current: () => cur && { id: cur.id, variant: cur.variant, mixing: mixT < 1 },
     render(time) {

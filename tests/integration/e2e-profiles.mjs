@@ -417,7 +417,8 @@ await H.run(async () => {
   // top both players up to 3 matches (two earlier ones elsewhere), then a resync puts them up
   for (const [pg, m] of [[p0, me0], [p1, me1]]) {
     // (BOB's seeded match scores 0 — give him a best score elsewhere so the board has another player's row; it used to come from older runs' leftovers)
-    await ref('/').update({ [`pstats/${m.pid}/g/slip/p`]: 2, [`profiles/${m.pid}/m`]: 3, ...(m === me1 ? { [`pstats/${m.pid}/b/cipher-score`]: { a: 412 }, [`pstats/${m.pid}/xp`]: 520 } : {}) });
+    // (PD-3 Group 0: the listing reads the COUNTED PLAYS — pstats.cp)
+    await ref('/').update({ [`pstats/${m.pid}/g/slip/p`]: 2, [`pstats/${m.pid}/cp`]: 3, [`profiles/${m.pid}/m`]: 3, ...(m === me1 ? { [`pstats/${m.pid}/b/cipher-score`]: { a: 412 }, [`pstats/${m.pid}/xp`]: 520 } : {}) });
     await pg.evaluate(() => import('/js/profile/me.js').then(x => x.setShown(false)));
     await pg.evaluate(() => import('/js/profile/me.js').then(x => x.setShown(true)));
   }
