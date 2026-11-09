@@ -194,3 +194,8 @@
 - THE WORLD BEHIND THE BOARD: dimmed ~50 % behind the board only, under a soft dark glass; the world stays vivid at the top and in the edges around the board.
 - SOUNDS: the effects reuse PRISM's existing synth SFX (in the song's key, on its beat) — no new sound files.
 - Today's glass look stays as the DAY placeholder until PD-4 (body[data-look] = day → the glass look; night → NEON).
+
+## PD-4 — THE DAY LOOK (Nov 9 2026)
+- CRAYON COLOURS: the SAME colour families as night (the long piece cyan-ish, the square yellow-ish… from the JEWEL hues), in crayon shades, so a piece learned at night is recognised by day. The same hue-family test as PD-3.
+- THE PAPER is picked per MATCH from the match's seed — the SAME page for everyone in the room — and changes match to match: notepad · graph paper · construction paper · a coloring page.
+- The glass look (today's) is RETIRED as the day look: day = CRAYON, night = NEON. The light layer stays OFF by day.
