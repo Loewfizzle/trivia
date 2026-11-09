@@ -180,3 +180,11 @@
 
 ## PD-1 — LAYOUT + CONTROLS (Nov 9 2026)
 - This pass: Group 0 (THE BOARD's top — docs/harbor/plan.md), the MAX BOARD + the corner row + HOLD / NEXT in the corners + the slim rail + the red SLAM button (LEFT mirrors rail + SLAM), the BUTTONS scheme's smaller board, the board at full 3×, the console's podium (finalScene + the player page on names), the preload, splitting view.js where it's touched (+ the regenerated preload graph). PRISM's pieces + worlds keep TODAY's look (PD-3 / PD-4 replace it); battle rules unchanged until PD-2.
+
+## PD-2 — BATTLE MADE SIMPLE + SURVIVAL + SOLO (Nov 9 2026)
+- SOLO: SCORE RUSH + SURVIVAL can be started by ONE player through the console's solo lane (meta SOLO: true → the streak + a small capped XP, never a win). BATTLE stays 2+ (hidden from the mode list in a room of one).
+- SURVIVAL: no attacks; junk rows rise for everyone from the start, the same rows at the same moments on every phone (seeded): one row every 10 s, speeding up smoothly to one every 4 s (a typical game ~2–4 min). Last one standing wins; solo = survive as long as you can (score = time survived, then lines).
+- SURVIVAL on THE BOARD: NO new board — its wins count toward PRISM DROP's wins + win rate.
+- COMEBACK's danger zone (for the PD-5 card): your stack in the TOP 5 ROWS at any point of a BATTLE you go on to win — record that flag in the match from this pass.
+- THE CARDS (FIRST KO, PERFECT CLEAR, COMEBACK) MOVED to PD-5 to keep PD-2 inside ~4 h. Record the facts they need from this pass (KOs, perfect clears, the danger-zone flag) in the match results.
+- The rising ghost rows SHOW the existing pending-junk queue + its delay (the engine's attack math, cancelling + delays don't change).
