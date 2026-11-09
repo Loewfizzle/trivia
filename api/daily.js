@@ -276,7 +276,10 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, rank: stand.better + 1, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts }); return res.skip ? undefined : res.next; });
       if (res && !res.skip) {
         const st = res.next.st, xp = res.next.xp || 0;
-        await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d, [`profiles/${pid}/x`]: xp, [`profiles/${pid}/l`]: levelOf(xp), [`profiles/${pid}/r`]: emblemRank(xp) });
+        // (BOARD 2.0 A — THE OVERALL BOARD in the SAME update as the XP: listed like every board — the 3-match floor, the opt-out, the admin's hide)
+        const [{ overallPaths, matchCount, minMatches }, prof] = await Promise.all([import('./_lib/lb.js'), val(`profiles/${pid}`)]);
+        const listed = !!prof && !prof.h && matchCount(res.next) >= minMatches();
+        await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d, [`profiles/${pid}/x`]: xp, [`profiles/${pid}/l`]: levelOf(xp), [`profiles/${pid}/r`]: emblemRank(xp), ...overallPaths(pid, res.next, { hidden: !listed, now }) });
         await bumpOwners(res.items, !(res.next.g && Object.keys(res.next.g).length) && res.dl.n === 1, res.ach).catch(() => {});
         if (res.next.fd) await ref(`profiles/${pid}/fd`).set(true);
       }

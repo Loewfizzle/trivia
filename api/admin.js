@@ -81,6 +81,7 @@ import { radioAction, radioPublic, clipOf } from './_lib/radio.js';
 import { labMarks, labMark, labExport, LAB_CACHE, LAB_TEXT, LAB_CHANGES } from './_lib/lab.js';
 import { listTestPlayers, removeTestPlayers } from './_lib/testplayers.js';
 import { progressReset, progressBackups, progressRestore } from './_lib/reset.js';
+import { boardsBackfill } from './_lib/board-fill.js';
 import { giftList, giftGive } from './_lib/gifts.js';
 
 async function audit(by, act, pid, detail = {}) {
@@ -142,7 +143,9 @@ async function resetBoard(pid, b, now) {
   const def = boardDef(b);
   if (!def) throw new ApiError(400, 'bad_board');
   if (def.kind === 'record') return removeRecord(pid, b, null, now);
-  const stats = ['wins', 'wr'].includes(b.split('-').slice(1).join('-')) ? ['p', 'w'] : [def.stat];
+  // (BOARD 2.0 A: an OVERALL board — XP, the daily points — is the player's whole earning, never a counter to zero: hide the player instead)
+  if (def.kind === 'overall') throw new ApiError(400, 'overall_board', 'An overall board can’t be reset — hide the player instead.');
+  const stats =['wins', 'wr'].includes(b.split('-').slice(1).join('-')) ? ['p', 'w'] : [def.stat];
   await ref(`pstats/${pid}`).transaction(cur => {
     if (!cur) return cur;
     const x = JSON.parse(JSON.stringify(cur));
@@ -392,6 +395,12 @@ export async function adminAction(uid, body, now = Date.now()) {
     case 'labMark': { const marks = await labMark(me, body, now); await audit(me, 'labMark', null, { b: `${String(body.id).slice(0, 40)} ${body.mark || 'clear'}`, note: String(body.note || '').slice(0, 140) }); return { marks }; }
     // LOBBY FIXES — REMOVE TEST PLAYERS (/admin's TEST PLAYERS card): the list, the dry run, then the removal (the server's own key; audited)
     case 'testPlayers': return listTestPlayers({ since: body.since, also: body.also });
+    // BOARD 2.0 A — THE BACK-FILL (/admin → THE BOARDS): the PREVIEW (confirm false), then the real run on a second tap — idempotent, audited
+    case 'boardsBackfill': {
+      const r = await boardsBackfill({ confirm: body.confirm === true, now });
+      if (r.done) await audit(me, 'boardsBackfill', null, { b: `${r.preview.wk} · ${r.preview.weekPlayers} players · ${r.preview.weekXp} XP this week · ${r.rows} rows` });
+      return { backfill: r };
+    }
     case 'progressReset': {
       const r = await progressReset({ confirm: body.confirm === true, typed: String(body.typed || ''), me, now });
       if (r.done) await audit(me, 'progressReset', null, { b: `${r.line} · backup ${r.stamp} · ${r.founders} founder card${r.founders === 1 ? '' : 's'} first` });

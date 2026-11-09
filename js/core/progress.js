@@ -4,7 +4,7 @@
 //
 //   pstats/{pid}: { xp, g{game:{p,w,…}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records), day{k, g{game:1}}, last, m{key: at},
 //                   gd (the week whose goal was paid), it{item: at} (THE VAULT — owned items, server-granted only), st (THE STREAK —
-//                   core/streak.js), fv (FAVOR tokens held — PROGRESSION B spends them) … }
+//                   core/streak.js), fv (FAVOR tokens held — PROGRESSION B spends them), xw (BOARD 2.0 A — the XP earned THIS WEEK: { wk, x }) … }
 import { boardDef, better, BOARD_GAMES, GOAL_GAMES } from './boards.js';
 import { matchXp, soloXp, weeklyGoal, goalProgress, GOAL_XP } from './ranks.js';
 import { levelOf, rewardsBetween, rewardsUpTo } from './levels.js';
@@ -16,6 +16,21 @@ import { todaysDailies, sweptDay, dailyXp, SWEEP_XP } from './daily.js';
 const prevDayKey = d => dayOf(dayNum(d) - 1);
 
 export const KEEP_KEYS = 60;
+
+/**
+ * BOARD 2.0 A — THE ONE XP PAYMENT (PURE): every step that pays XP goes through here (tests/board-xp.test.mjs greps for a stray `.xp =`).
+ * next.xp = from + gain, and THE OVERALL BOARD's week counter xw = { wk (the Eastern week of the payment — Monday 00:00 ET), x (the XP earned
+ * that week) } — a new week starts at 0. Inside the step's own transaction, so a replayed report (skipped by its key) pays nothing.
+ */
+export function payXp(next, from, gain, now) {
+  const g = Math.max(0, Math.round(gain || 0)), wk = weekKey(now);
+  next.xp = (from || 0) + g;
+  const xw = next.xw && next.xw.wk === wk ? next.xw : null;
+  next.xw = { ...(xw || {}), wk, x: ((xw && xw.x) || 0) + g };
+  return next;
+}
+/** the XP a stats object earned in the week of `now` (0 when its counter is from another week) */
+export const weekXp = (s, now) => (s && s.xw && s.xw.wk === weekKey(now) ? s.xw.x || 0 : 0);
 export const DEFAULT_GAP_MS = 45_000;
 const add = (o, c) => { const x = { ...(o || {}) }; for (const [k, v] of Object.entries(c || {})) x[k] = (x[k] || 0) + v; return x; };
 
@@ -75,7 +90,7 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   const goal = weeklyGoal(wk, GOAL_GAMES);
   if (!solo && next.gd !== wk && goalProgress(goal, next.gw, next.gs).done) { xp.parts.push({ k: 'goal', label: 'WEEKLY GOAL', v: GOAL_XP }); xp.total += GOAL_XP; next.gd = wk; }
   const from = s.xp || 0;
-  next.xp = from + xp.total;
+  payXp(next, from, xp.total, now);   // (BOARD 2.0 A: + this week's XP — THE OVERALL BOARD)
   next.last = now;
   next.m[key] = now;
   if (ctx.win) next.ov = [...(Array.isArray(s.ov) ? s.ov : []), cleanWin(ctx.win)].slice(-OV_KEEP);
@@ -213,7 +228,7 @@ export function dailyStep(s0, { game, day, now, top = 100, rank = null, n = 0, h
   dl.days = days;
   const newest = Object.keys(days).sort().pop();
   dl.day = { k: newest, ...days[newest] };
-  next.xp = from + xp.total;
+  payXp(next, from, xp.total, now);   // (BOARD 2.0 A: + this week's XP — THE OVERALL BOARD)
   const lv = { from: levelOf(from), to: levelOf(next.xp) };
   const items = lv.to > lv.from ? grant(next, rewardsBetween(lv.from, lv.to), now) : [];
   next.dl = dl;

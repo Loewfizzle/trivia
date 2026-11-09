@@ -15,13 +15,28 @@ import { houseNick, BOARD_MIN_MATCHES } from '../../js/core/nicknames.js';
 import { isOffensive } from '../../js/core/names.js';
 import { levelOf } from '../../js/core/levels.js';
 import { weekKey } from '../../js/core/week.js';
+import { overallValues } from '../../js/core/overall.js';
 
 export const TOP_N = 100;
 const periodKey = (p, now) => (p === 'week' ? weekKey(now) : p === 'all' ? 'all' : p);
 
-/** Every board path a player's stats put them on (value = sort value, or null when hidden / not eligible). */
+/**
+ * BOARD 2.0 A — THE OVERALL BOARDS' paths from a player's stats (value = sort value, null = off the board): `xp` — ALL TIME = the total XP,
+ * THIS WEEK = pstats.xw (the XP earned since Monday 00:00 ET — core/progress.js#payXp). Written in the SAME update as the profile's XP by every
+ * path that pays it (api/_lib/stats.js — a match; api/daily.js — a daily); a replay pays nothing, so it writes nothing.
+ */
+export function overallPaths(pid, stats, { hidden = false, now = Date.now() } = {}) {
+  const wk = weekKey(now), out = {};
+  for (const [board, v] of Object.entries(overallValues(stats, now))) {
+    out[`lb/${board}/all/${pid}`] = hidden || v.all == null ? null : v.all;
+    out[`lb/${board}/${wk}/${pid}`] = hidden || v.week == null ? null : v.week;
+  }
+  return out;
+}
+
+/** Every board path a player's stats put them on (value = sort value, or null when hidden / not eligible). `only` = one game's boards. */
 export function boardPaths(pid, stats, { hidden = false, now = Date.now(), only = null } = {}) {
-  const out = {};
+  const out = only ? {} : overallPaths(pid, stats, { hidden, now });
   const wk = weekKey(now);
   const thisWeek = stats && stats.wk === wk;
   const put = (board, period, v) => { out[`lb/${board}/${period}/${pid}`] = hidden || v == null ? null : v; };

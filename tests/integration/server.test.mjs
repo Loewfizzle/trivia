@@ -1553,3 +1553,64 @@ test('CITY FIXES — THE TAP WATCH on the server: LOST TAP is its own kind with 
   const g = groupReports([{ id: 'a', kind: 'lost', at: 1 }, { id: 'b', kind: 'hang', at: 2 }]);
   assert.deepEqual(g.map(x => x.title).sort(), ['HANG', 'LOST TAP']);
 });
+
+// BOARD 2.0 A — THE OVERALL BOARD = XP THIS WEEK (lb/xp/{period}/{pid} — server-written in the same update as the XP): a match puts both
+// periods up; a replayed report writes nothing; GET /api/board serves it like every board; the opt-out takes the rows off (YOUR rank is still
+// returned); THE BACK-FILL rebuilds THIS WEEK from the records (a lost counter comes back) and a second run writes the same numbers
+test('BOARD 2.0 A — THE OVERALL BOARD: XP this week + total XP, the replay, the opt-out, YOUR rank, THE BACK-FILL', async () => {
+  const a = await ensure('u-xp-a', 'XPONE'), b = await ensure('u-xp-b', 'XPTWO');
+  tick(10 * 60e3);
+  const room = await seedRoom('overclock', ['u-xp-a', 'u-xp-b'], {}, { 'u-xp-a': 'XPONE', 'u-xp-b': 'XPTWO' });
+  const r = await report('u-xp-a', room);
+  assert.equal(r.status, 'counted');
+  const wk = weekKey(clock);
+  const sa = await stats('u-xp-a');
+  assert.ok(sa.xw && sa.xw.wk === wk && sa.xw.x > 0, `this week's counter (${JSON.stringify(sa.xw)})`);
+  assert.equal(await val(`lb/xp/${wk}/${a.pid}`), sa.xw.x, 'THIS WEEK on the board');
+  assert.equal(await val(`lb/xp/all/${a.pid}`), sa.xp, 'ALL TIME = the total XP');
+  // a replayed report (another phone, a retry) pays nothing + writes nothing
+  const before = await val(`lb/xp/${wk}/${a.pid}`);
+  await report('u-xp-b', room, clock + 5000);
+  assert.equal(await val(`lb/xp/${wk}/${a.pid}`), before);
+  assert.equal((await stats('u-xp-a')).xp, sa.xp);
+  // the endpoint: a row = the public fields only, its value = the week's XP
+  clearBoardCache();
+  const q = await boardQuery({ b: 'xp', p: 'week' }, clock);
+  const row = q.rows.find(x => x.id === boardId(a.pid));
+  assert.ok(row && row.v === sa.xw.x && row.n === 'XPONE' && !('pid' in row), `the public row ${JSON.stringify(row)}`);
+  assert.ok((await boardQuery({ b: 'xp', p: 'all' }, clock)).rows.some(x => x.id === boardId(a.pid) && x.v === sa.xp));
+  // the opt-out: off the board, YOUR rank still returned
+  await profileAction('u-xp-a', { action: 'show', on: false }, '', clock);
+  const hid = await val(`profiles/${a.pid}/h`);
+  if (hid) {
+    // (setShown re-syncs on the REAL clock — this test's clock is October: the real week's key + ALL TIME are the ones it clears)
+    assert.equal(await val(`lb/xp/all/${a.pid}`), null, 'the opt-out takes ALL TIME off');
+    assert.equal(await val(`lb/xp/${weekKey(Date.now())}/${a.pid}`), null, 'and THIS WEEK');
+    await ref(`lb/xp/${wk}/${a.pid}`).remove();
+    const mine = (await profileAction('u-xp-a', { action: 'ranks', boards: ['xp'] }, '', clock)).ranks.xp;
+    assert.ok(mine && mine.week && mine.week.v === sa.xw.x && mine.week.rank >= 1, `YOUR rank while hidden ${JSON.stringify(mine)}`);
+  } else assert.fail('the opt-out action did not hide the profile');
+  // THE BACK-FILL (admins only): a lost counter rebuilt from the records; a second run = the same numbers
+  await rejects(adminAction('u-xp-b', { action: 'boardsBackfill' }, clock), 403, 'not_admin');
+  process.env.ADMIN_PIDS = `${b.pid}`;
+  try {
+    await ref(`pstats/${b.pid}/xw`).remove();
+    await ref(`lb/xp/${wk}/${b.pid}`).remove();
+    const sb = await stats('u-xp-b');
+    const dry = (await adminAction('u-xp-b', { action: 'boardsBackfill' }, clock)).backfill;
+    assert.equal(dry.done, false);
+    assert.equal(await val(`pstats/${b.pid}/xw`), null, 'the preview writes nothing');
+    assert.ok(dry.preview.weekPlayers >= 2 && dry.preview.wk === wk, JSON.stringify(dry.preview));
+    const run = (await adminAction('u-xp-b', { action: 'boardsBackfill', confirm: true }, clock)).backfill;
+    assert.equal(run.done, true);
+    const xw1 = await val(`pstats/${b.pid}/xw`), lb1 = await val(`lb/xp/${wk}/${b.pid}`);
+    assert.equal(xw1.x, await val(`results/${room.code}_${room.matchId}/o/${b.pid}/xp/gain`), 'THIS WEEK = the match record\'s XP');
+    assert.equal(lb1, xw1.x, 'back on the board');
+    assert.equal(await val(`lb/xp/all/${b.pid}`), sb.xp);
+    assert.equal(await val(`lb/xp/${wk}/${a.pid}`), null, 'a hidden player stays off');
+    await adminAction('u-xp-b', { action: 'boardsBackfill', confirm: true }, clock);
+    assert.deepEqual(await val(`pstats/${b.pid}/xw`), xw1, 'a second run: the same numbers');
+    assert.ok(Object.values((await val('audit')) || {}).some(e => e && e.act === 'boardsBackfill'), 'audited');
+  } finally { process.env.ADMIN_PIDS = ''; }
+  tick();
+});

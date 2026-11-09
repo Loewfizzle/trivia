@@ -33,6 +33,13 @@ export const GAME_BOARDS = {
   stakes: { records: [rec('stakes-chips', 'BEST FINAL STACK', 'int', { short: 'CHIPS' }), rec('stakes-big', 'BIGGEST SINGLE HAND', 'int', { short: 'WON' })], career: [] },
 };
 export const BOARD_GAMES = Object.keys(GAME_BOARDS);
+// BOARD 2.0 A — THE OVERALL BOARDS (not under any game): `xp` = THE OVERALL BOARD — THIS WEEK = the XP earned since Monday 00:00 ET (pstats.xw),
+// ALL TIME = the total XP (the level order). Server-written like every board (lb/xp/{period}/{pid} — api/_lib/lb.js#overallPaths).
+const ovr = (id, label, o = {}) => ({ id, kind: 'overall', label, fmt: o.fmt || 'int', dir: 1, short: o.short || label, week: o.week || label, all: o.all || label, game: null, ...o });
+export const OVERALL_BOARDS = Object.freeze({
+  xp: ovr('xp', 'XP', { week: 'XP THIS WEEK', all: 'TOTAL XP' }),
+});
+export const OVERALL_IDS = Object.keys(OVERALL_BOARDS);
 /** the games a weekly goal may name: the board games a player can START today (config.js GAMES[].playable — the one switch) */
 export const GOAL_GAMES = BOARD_GAMES.filter(id => (GAMES.find(g => g.id === id) || {}).playable !== false);
 export const PULSE_DIFFS = ['easy', 'normal', 'hard'];
@@ -61,6 +68,7 @@ const PULSE_RE = /^pulse-(pulse\d{1,3})-(easy|normal|hard)$/;
 /** The board definition for an id (null for an unknown id). */
 export function boardDef(id) {
   id = String(id || '');
+  if (Object.prototype.hasOwnProperty.call(OVERALL_BOARDS, id)) return { ...OVERALL_BOARDS[id] };
   const m = PULSE_RE.exec(id);
   if (m) return { ...rec(id, `TRACK ${m[1].replace(/\D/g, '').padStart(2, '0')}`, 'int', { short: 'BEST SCORE' }), game: 'pulse', song: m[1], diff: m[2] };
   const game = id.split('-')[0];

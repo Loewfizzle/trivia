@@ -117,6 +117,12 @@ function shell() {
       h('div.ad-reset-out', { id: 'ad-reset-out' }),
       h('h3', 'Backups'),
       h('div.ad-reset-bk', { id: 'ad-reset-bk' }, h('p.ad-dim', 'Loading…'))),
+    // BOARD 2.0 A — THE BOARDS' BACK-FILL (api/_lib/board-fill.js): PREVIEW (nothing written) → BACK-FILL NOW on a second tap — once, after the
+    // deploy (idempotent: a second run writes the same numbers); THE OVERALL BOARD's THIS WEEK from the stored records + the daily points
+    card('ad-boards', 'The boards', { cls: 'ad-boards', open: false },
+      h('p.ad-dim', 'BOARD 2.0: XP THIS WEEK (the overall board) is rebuilt from every match record + daily run of this week; TOTAL XP from each profile; DAILY POINTS from every counted daily since the dailies went live. Run it ONCE after the deploy — running it again changes nothing.'),
+      h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: boardsPreview }, 'Preview')),
+      h('div.ad-boards-out', { id: 'ad-boards-out' })),
     // CITY FIXES + HOLD'EM — THE BILLBOARD: the speakeasy roof board's BASE POSTER (every phone within ~a minute, through the cached feed)
     card('ad-billboard', 'The billboard', { cls: 'ad-billboard' },
       h('p.ad-dim', 'The speakeasy’s roof billboard shows the TEXAS HOLD’EM ad in place of the day’s game while this is ON (your radio messages, LOOK UP, FIREWORKS, the party + the Sunday postcard still interrupt it). Turning it on starts it today — the billposter pastes it at ~5 pm, then stays home. OFF = the daily game posters again.'),
@@ -284,6 +290,19 @@ async function giveGift() {
   toast(`${r.gift.name} is ${r.gift.who}’s now`, 'ok', { sub: 'Equipped — their next visit shows the gift.' });
   document.getElementById('ad-gift-tag').value = '';
   giftPick = null; gifts(r); audit();
+}
+
+// ---------------------------------------------------------------- BOARD 2.0 A — THE BOARDS' BACK-FILL
+const fillLine = p => `Week ${p.wk}: ${p.weekPlayers} player${p.weekPlayers === 1 ? '' : 's'} earned ${Number(p.weekXp).toLocaleString('en-US')} XP this week · ${p.players} profiles · ${p.days} daily-days read${p.pointsPlayers != null ? ` · ${p.pointsPlayers} with daily points` : ''}`;
+async function boardsPreview() {
+  const out = document.getElementById('ad-boards-out');
+  const { backfill: dry } = await call('boardsBackfill');
+  out.replaceChildren(h('div.ad-tp-dry', h('b', fillLine(dry.preview)), h('p.ad-dim', 'Nothing written yet. Tap twice to fill the boards.'),
+    h('div.ad-row', confirmBtn('Back-fill now', async () => {
+      const { backfill: r } = await call('boardsBackfill', { confirm: true });
+      out.replaceChildren(h('p', h('b', 'Done. '), `${fillLine(r.preview)} — ${r.rows} board row${r.rows === 1 ? '' : 's'} written.`));
+      toast('Boards back-filled'); audit();
+    }))));
 }
 
 // ---------------------------------------------------------------- THE SPEED PASS add-on — THE PROGRESS RESET
