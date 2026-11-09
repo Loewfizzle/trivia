@@ -758,7 +758,7 @@ test('HTTP: every call needs a valid ID token; the board is public and cacheable
   const text = JSON.stringify(b.body);
   const pid = await val(`uids/${u.localId}`);
   assert.ok(!text.includes(pid), 'no profile id in the public response');
-  for (const r of b.body.rows) assert.deepEqual(Object.keys(r).sort(), ['a', 'c', 'id', 'l', 'n', 'r', 'rank', 'v']);   // (BNAME's t — the nickname's number — is gone)
+  for (const r of b.body.rows) assert.deepEqual(Object.keys(r).sort(), ['a', 'c', 'cd', 'es', 'g', 'id', 'l', 'n', 'r', 'rank', 'tb', 'v']);   // (BNAME's t — the nickname's number — is gone; BOARD 2.0 A: + the slim card's display ids)
 });
 
 // ---- THE BOARD's PUBLIC NAMES — REAL USERNAMES (LOBBY 2.0 A; reverses BNAME's house nicknames — kept only to stand in for a rude name)
@@ -1612,5 +1612,68 @@ test('BOARD 2.0 A — THE OVERALL BOARD: XP this week + total XP, the replay, th
     assert.deepEqual(await val(`pstats/${b.pid}/xw`), xw1, 'a second run: the same numbers');
     assert.ok(Object.values((await val('audit')) || {}).some(e => e && e.act === 'boardsBackfill'), 'audited');
   } finally { process.env.ADMIN_PIDS = ''; }
+  tick();
+});
+
+// BOARD 2.0 A — THE ROWS' DATA + THE PLAYER PAGE's DATA: a public row carries the SLIM CARD's display ids and no forbidden field (every key walked);
+// `player` for a friend, a stranger, a hidden player, one who blocked you; the TOP 3 RAREST achievements' names appear there only (held, ≤ 3)
+test('BOARD 2.0 A — the rows\' slim-card data (no forbidden key) + THE PLAYER PAGE: friend · stranger · hidden · blocker · the top 3', async () => {
+  const { ROW_KEYS } = await import('../../api/board.js');
+  const { forgetPlayers } = await import('../../api/_lib/player.js');
+  const v = await ensure('u-pp-v', 'VIEWER'), s = await ensure('u-pp-s', 'STAR'), h = await ensure('u-pp-h', 'SHY'), k = await ensure('u-pp-k', 'GRUMP');
+  tick(10 * 60e3);
+  for (const [u, n] of [['u-pp-s', 'STAR'], ['u-pp-h', 'SHY'], ['u-pp-k', 'GRUMP']]) { const room = await seedRoom('overclock', [u, 'u-pp-v'], {}, { [u]: n, 'u-pp-v': 'VIEWER' }); await report(u, room); tick(60e3); }
+  await ref(`profiles/${s.pid}`).update({ cd: 'card-sg-btc', es: 'emb-sg-btc', tb: 'tube-gold', g: 'glow-neon' });
+  clearBoardCache();
+  // THE ROWS: every key is a display key; the worn card / emblem / tube / glow ride along; never a pid, a tag, a member Nº
+  const q = await boardQuery({ b: 'xp', p: 'all' }, clock);
+  assert.ok(q.rows.length >= 3);
+  for (const r of q.rows) for (const key of Object.keys(r)) assert.ok(ROW_KEYS.includes(key), `a row's key "${key}"`);
+  const sr = q.rows.find(r => r.id === boardId(s.pid));
+  assert.deepEqual([sr.cd, sr.es, sr.tb, sr.g, sr.n], ['card-sg-btc', 'emb-sg-btc', 'tube-gold', 'glow-neon', 'STAR']);
+  const dump = JSON.stringify(q);
+  for (const p of [s, v, h, k]) { assert.ok(!dump.includes(p.pid), 'no pid'); assert.ok(!dump.includes(`"${p.profile.t}"`), 'no tag digits'); }
+  // THE TOP 3 RAREST (n = 100 players): full-house 3 + kingpin 3 (a tie → the newest first), the-regular 10, first-round 50 (4th — not shown)
+  await ref('pcount').update({ n: 100, 'a/first-round': 50, 'a/the-regular': 10, 'a/full-house': 3, 'a/kingpin': 3 });
+  await ref(`pstats/${s.pid}/ac`).set({ 'first-round': 1, 'the-regular': 2, 'full-house': 3, kingpin: 4 });
+  forgetPlayers();
+  const later = clock + 5 * 60e3;   // (past the owners' one-minute cache)
+  const P = body => profileAction('u-pp-v', { action: 'player', ...body }, '', later);
+  // a stranger, by THE BOARD's row id + its board
+  const st = await P({ b: 'xp', bid: boardId(s.pid) });
+  assert.equal(st.rel, 'none');
+  assert.deepEqual(st.top.map(t => t.id), ['kingpin', 'full-house', 'the-regular']);
+  assert.deepEqual(st.top.map(t => t.pct), [3, 3, 10]);
+  assert.ok(st.top.every(t => t.name && t.name !== t.id && t.group && t.tier), JSON.stringify(st.top));
+  assert.deepEqual(Object.keys(st.card).sort(), ['a', 'at', 'c', 'cd', 'es', 'fd', 'g', 'l', 'n', 'r', 'tb'].sort());
+  assert.equal(st.card.cd, 'card-sg-btc'); assert.ok(st.band && st.streak && typeof st.streak.alive === 'boolean');
+  const sd = JSON.stringify(st);
+  for (const bad of [s.pid, s.profile.t, 'pid', '"mn"', '"key"', '"xp"', '"g":{', 'wins', 'stats']) assert.ok(!sd.includes(bad), `the answer never carries ${bad}`);
+  // by pid (a friend / a room player) + the RELATIONSHIP from YOUR list: request sent → friend
+  await profileAction('u-pp-v', { action: 'friendAdd', pid: s.pid }, '', later);
+  assert.equal((await P({ pid: s.pid })).rel, 'out');
+  assert.equal((await profileAction('u-pp-s', { action: 'player', pid: v.pid }, '', later)).rel, 'in');
+  await profileAction('u-pp-s', { action: 'friendAccept', pid: v.pid }, '', later);
+  const fr = await P({ id: s.pid });
+  assert.equal(fr.rel, 'friend'); assert.equal(fr.top.length, 3);
+  // a hidden player → only what a room shows (name + emblem), no card, no achievements
+  await profileAction('u-pp-h', { action: 'show', on: false }, '', later);
+  forgetPlayers();
+  const hid = await P({ pid: h.pid });
+  assert.equal(hid.limited, true); assert.deepEqual(Object.keys(hid.card).sort(), ['a', 'c', 'es', 'n']); assert.equal(hid.top, undefined);
+  // a player who BLOCKED you → the same; your own block reads `blocked`
+  await profileAction('u-pp-k', { action: 'friendBlock', pid: v.pid }, '', later);
+  const bl = await P({ pid: k.pid });
+  assert.equal(bl.limited, true); assert.equal(bl.rel, 'none', 'their block is never told'); assert.equal(bl.top, undefined);
+  await profileAction('u-pp-v', { action: 'friendBlock', pid: k.pid }, '', later);
+  assert.equal((await P({ pid: k.pid })).rel, 'blocked');
+  // yourself: the whole page; nobody → 404
+  assert.equal((await P({ pid: v.pid })).rel, 'self');
+  await rejects(P({ pid: 'pzzzzzzzzzzz' }), 404, 'no_profile');
+  await rejects(P({ b: 'xp', bid: '0123456789abcdef' }), 404, 'no_profile');
+  // the names reach no other answer: the board, YOUR card's `me` (you don't hold them), a friend's list
+  const names = st.top.map(t => t.name);
+  const others = JSON.stringify([await boardQuery({ b: 'xp', p: 'week' }, clock), await profileAction('u-pp-v', { action: 'friends' }, '', later)]);
+  for (const n of names) assert.ok(!others.includes(n), `"${n}" only on the player page`);
   tick();
 });

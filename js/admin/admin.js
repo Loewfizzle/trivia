@@ -195,6 +195,10 @@ function render(v) {
       p.bid ? h('span.ad-tag', `ON THE BOARD AS ${(isOffensive(p.n) ? houseNick(p.bid).n : p.n).toUpperCase()}${(p.m || 0) < (p.mm || 3) ? ` · ${p.m || 0}/${p.mm || 3} MATCHES — NOT LISTED YET` : ''}`) : null),
     h('h3', 'Rename'),
     h('div.ad-row', name, h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: async () => { render(await call('rename', { pid: p.pid, name: name.value })); toast('Renamed'); audit(); } }, 'Rename')),
+    // BOARD 2.0 A — THE PLAYER PAGE's DATA as a viewer gets it (/api/profile `player` — what BOARD 2.0 B draws; you as the viewer): a plain look
+    h('h3', 'Player page data'),
+    h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: async e => { const out = e.currentTarget.parentNode.nextElementSibling; try { out.textContent = JSON.stringify(await api('profile', { action: 'player', pid: p.pid }), null, 1); } catch (err) { out.textContent = String(err && err.message || err); } } }, 'Show')),
+    h('pre.ad-dim.ad-pp', { style: { whiteSpace: 'pre-wrap', fontSize: '12px', maxHeight: '320px', overflow: 'auto' } }),
     h('h3', 'Visibility'),
     h('div.ad-row', v.priv.banned
       ? confirmBtn('Return to the boards', async () => { render(await call('hide', { pid: p.pid, on: false })); toast('Back on the boards'); audit(); })
@@ -203,11 +207,11 @@ function render(v) {
     boards.length ? h('div.ad-boards', ...boards.map(b => {
       const def = boardDef(b.b);
       return h('div.ad-board',
-        h('div.ad-board-h', h('b', `${gameName(b.game)} · ${def ? def.label : b.b}`), h('code', b.b)),
+        h('div.ad-board-h', h('b', `${b.game ? gameName(b.game) : 'OVERALL'} · ${def ? def.label : b.b}`), h('code', b.b)),
         h('div.ad-board-v',
-          h('span', 'ALL TIME ', h('b', b.all ? fmtValue(def, b.all.v) : '—'), b.all && b.all.rank ? ` #${b.all.rank}` : ''),
+          h('span', 'ALL TIME ', h('b', b.all ? fmtValue(def && def.allFmt ? { ...def, fmt: def.allFmt } : def, b.all.v) : '—'), b.all && b.all.rank ? ` #${b.all.rank}` : ''),
           h('span', 'THIS WEEK ', h('b', b.week ? fmtValue(def, b.week.v) : '—'), b.week && b.week.rank ? ` #${b.week.rank}` : '')),
-        h('div.ad-row',
+        def && def.kind === 'overall' ? null : h('div.ad-row',
           def && def.kind === 'record' ? confirmBtn('Remove all-time', async () => { render(await call('removeRecord', { pid: p.pid, b: b.b, p: 'all' })); audit(); }) : null,
           def && def.kind === 'record' ? confirmBtn('Remove this week', async () => { render(await call('removeRecord', { pid: p.pid, b: b.b, p: 'week' })); audit(); }) : null,
           confirmBtn(def && def.kind === 'record' ? 'Remove both' : 'Reset this board', async () => { render(await call(def && def.kind === 'record' ? 'removeRecord' : 'resetBoard', { pid: p.pid, b: b.b })); audit(); }, 'is-danger')));

@@ -1,7 +1,9 @@
 // POST /api/profile { action, … } — the caller's own profile (Firebase ID token required).
 //   ensure  { name, avatar, color }  → { pid, profile, key? (new profiles only), rename? }   (created automatically)
 //   me                               → { pid, profile, stats, priv }
-//   ranks   { boards: [id] }         → { ranks: { board: { all: {v, rank}, week: {v, rank} } }, m, mm }  (exact, server-side; m = counted matches, mm = the board floor)
+//   ranks   { boards: [id] }         → { ranks: { board: { all: {v, rank}, week: {v, rank}, mine? } }, m, mm }  (exact, server-side; m = counted matches, mm = the board floor;
+//                                      BOARD 2.0 A: a points board's `mine` = { avg, days, need } — YOUR average even below 10 days)
+//   player  { pid } | { b, bid } | { id }  → { rel, card, band, streak, top, limited? }   BOARD 2.0 A — THE PLAYER PAGE's data (api/_lib/player.js)
 //   restore { key }                  → { pid, profile }      links this device to the key's profile
 //   regen                            → { key }               a new key; the old one stops working
 //   rename  { name }                 → { profile } | 429 { until }
@@ -35,6 +37,7 @@ import { DEV_CARDS, isDevCard } from '../js/core/dev-cards.js';
 import { OWNER_GIFTS, isOwnerGift, isGiftCard } from '../js/core/gift-cards.js';
 import { giftQueue, giftSeen } from './_lib/gifts.js';
 import { overallValues } from '../js/core/overall.js';
+import { playerAnswer } from './_lib/player.js';
 import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo, setPrefs } from './_lib/profiles.js';
 import { boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
@@ -116,6 +119,7 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
       const pk = await passkeyList(pid).catch(() => []);   // (FRIENDS B: ACCOUNT's PASSKEYS)
       return { pid, profile, priv, pk, fr: { in: frIn }, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, gs: s.wk === wk ? s.gs || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0 } };
     }
+    case 'player': return playerAnswer(uid, body, now);   // (BOARD 2.0 A — THE PLAYER PAGE's data: api/_lib/player.js)
     case 'ranks': {
       const pid = await mine(uid);
       const boards = Array.isArray(body.boards) ? body.boards.map(String) : [];

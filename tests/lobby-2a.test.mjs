@@ -128,7 +128,7 @@ test('EVERY WEEKLY GOAL IS POSSIBLE: the playable games only (the server + the p
 test('REAL USERNAMES on THE BOARD (BNAME\'s nicknames retired — kept only to stand in for a rude name); the report push; the sign-up line', () => {
   const lb = read('api/_lib/lb.js');
   assert.match(lb, /export const publicName = \(id, n\) => \(n && !isOffensive\(n\) \? String\(n\) : houseNick\(id\)\.n\);/);
-  assert.match(lb, /return \{ id, n: publicName\(id, p\.n\), a: p\.a, c: p\.c, r: p\.r \|\| 0, l: p\.l \|\| levelOf\(p\.x \|\| 0\) \};/, 'the username — no tag, no pid');
+  assert.match(lb, /return \{ id, n: publicName\(id, p\.n\), a: p\.a, c: p\.c, r: p\.r \|\| 0, l: p\.l \|\| levelOf\(p\.x \|\| 0\),\s+cd: p\.cd \|\| OLD_FINISH\[p\.f\] \|\| null, es: p\.es \|\| null, tb: p\.tb \|\| null, g: OLD_GLOW\[p\.g\] \|\| p\.g \|\| null \};/, 'the username — no tag, no pid (BOARD 2.0 A: + the slim card\'s display ids)');
   assert.doesNotMatch(read('js/board/view.js'), /fmtTag/, 'no tag digits on a row');
   const b = read('api/board.js');
   assert.match(b, /notifyOwner\(\{ title: why === 'name' \? 'Name reported' : 'Score reported', body: `\$\{why === 'name' \? 'Name' : 'Score'\} reported: \$\{row\.n\} — /);

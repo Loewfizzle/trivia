@@ -18,7 +18,10 @@ import { activity } from './_lib/activity.js';
 import { take } from './_lib/limit.js';
 import { notifyOwner } from './_lib/radio.js';
 
-const pub = r => ({ id: r.id, n: r.n, t: r.t, a: r.a, c: r.c, r: r.r, l: r.l || 1, rank: r.rank, v: r.v });
+// BOARD 2.0 A — a public row = the board id + the USERNAME + the SLIM CARD's display ids (cd · es · tb · g) + the level, the rank emblem, the place, the
+// value. Never the pid, the key, the tag's digits or the member Nº (server.test.mjs walks every key)
+export const ROW_KEYS = Object.freeze(['id', 'n', 'a', 'c', 'r', 'l', 'cd', 'es', 'tb', 'g', 'rank', 'v']);
+const pub = r => ({ id: r.id, n: r.n, a: r.a, c: r.c, r: r.r, l: r.l || 1, cd: r.cd || null, es: r.es || null, tb: r.tb || null, g: r.g || null, rank: r.rank, v: r.v });
 
 export async function boardQuery(q, now = Date.now()) {
   const b = String(q.b || '');

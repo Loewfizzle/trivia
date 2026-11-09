@@ -23,6 +23,8 @@
 //   lesson { game }            → { ok }   DM2 — a daily's first-time lesson seen (pstats/{pid}/ls/{game} — once per player, every device; DFIX3: THE
 //                                 ONE-TIME HINT reads the same flag — `hint` rows)
 //   room   { room }            → { mid: [uid…] }   DM1 — which players of YOUR room have a daily in flight (uids only — nothing about a run; DM2's host line)
+//   points { pids? }           → { mine, friends: { pid: … }, table }   BOARD 2.0 A — DAILY POINTS for YOU + YOUR TABLE (the same friends `today` reads):
+//                                 per board (daily · daily-<game>) { week, all, avg, days } — the values THE DAILIES' BOARDS hold (core/overall.js)
 //
 //   dly/{game}/{day}/s/{pid}: startedAt · r/{pid}: score · x/{pid}: 1 (DM1 — a non-counting result) · h/{bucket}: count · n: finishers · p/{pid}: a judged
 //   daily's record · b: the day's data (THE 4 AM PICKER — the pair / the board) · c: THE DAY'S CLOSE marker (DFIX2 — _lib/daily-close.js: PENTHOUSE
@@ -346,6 +348,16 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       if (!row || !row.lesson) throw new ApiError(400, 'no_lesson');
       await ref(`pstats/${pid}/ls/${row.id}`).set(1);
       return { ok: true };
+    }
+    case 'points': {
+      // BOARD 2.0 A — YOUR TABLE's ALL TIME (B draws it): you + your friends' DAILY POINTS — from YOUR friends list only (a stranger's never read)
+      const pid = await mine(uid);
+      const picked = (Array.isArray(body.pids) ? body.pids : []).map(String).filter(isPid);
+      const pids = tablePids((await val(`pfr/${pid}`)) || {}, pid, picked.length ? picked : null, now);
+      const { overallValues } = await import('../js/core/overall.js');
+      const view = async p => { const v = overallValues({ dp: await val(`pstats/${p}/dp`) }, now); return Object.fromEntries(Object.entries(v).filter(([b]) => b !== 'xp').map(([b, x]) => [b, { week: x.week, all: x.all, avg: x.avg, days: x.days }])); };
+      const [me0, ...rest] = await Promise.all([view(pid), ...pids.map(view)]);
+      return { mine: me0, friends: Object.fromEntries(pids.map((p, i) => [p, rest[i]])), table: pids };
     }
     case 'room': {
       const mid = await midDaily({ uid, code: body.room, games: todaysDailies(), now });

@@ -14,6 +14,7 @@ import { BOARD_GAMES, boardDef, careerBoards, toSort, winRate, MIN_WR_GAMES, fro
 import { houseNick, BOARD_MIN_MATCHES } from '../../js/core/nicknames.js';
 import { isOffensive } from '../../js/core/names.js';
 import { levelOf } from '../../js/core/levels.js';
+import { OLD_FINISH, OLD_GLOW } from '../../js/core/items.js';
 import { weekKey } from '../../js/core/week.js';
 import { overallValues } from '../../js/core/overall.js';
 
@@ -120,11 +121,14 @@ async function profilesOf(pids) {
   return out;
 }
 
-/** A row as the public sees it: the board id, the USERNAME (a rude one → its house nickname), the emblem, colour, rank + level. No pid, no key, no tag. */
+/** A row as the public sees it: the board id, the USERNAME (a rude one → its house nickname), the emblem, colour, rank + level. No pid, no key, no tag.
+ *  BOARD 2.0 A — + the SLIM CARD's display ids (ui/strip-board.js#stripFor draws it): cd the worn card · es the emblem shape · tb its tube style ·
+ *  g the name glow — ids that draw, never an item's NAME (those stay owner-only), never the member Nº */
 export const publicName = (id, n) => (n && !isOffensive(n) ? String(n) : houseNick(id).n);
 export function publicRow(pid, p) {
   const id = boardId(pid);
-  return { id, n: publicName(id, p.n), a: p.a, c: p.c, r: p.r || 0, l: p.l || levelOf(p.x || 0) };
+  return { id, n: publicName(id, p.n), a: p.a, c: p.c, r: p.r || 0, l: p.l || levelOf(p.x || 0),
+    cd: p.cd || OLD_FINISH[p.f] || null, es: p.es || null, tb: p.tb || null, g: OLD_GLOW[p.g] || p.g || null };
 }
 
 export async function topRows(board, period, now = Date.now()) {

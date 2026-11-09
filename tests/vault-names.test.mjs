@@ -50,6 +50,19 @@ test('THE SHARED MODULES alone (as a phone loads them): the ORIGINAL GILDED only
   assert.equal(r.when, new Set(LEVEL_REWARD_ROWS.map(x => x.lvl)).size, 'WHEN stays (the vague tease)');
 });
 
+// BOARD 2.0 A — THE APPROVED EXCEPTION (the owner, Nov 9 2:30 am): THE PLAYER PAGE names a player's TOP 3 RAREST achievements to any signed-in
+// viewer — only those 3, only on that answer (api/_lib/player.js), only ones that player holds (server.test.mjs proves the answer). Every other
+// achievement / item name stays owner-only: the server files that read the catalog's NAMES to answer a phone are exactly these (a new one fails here)
+test('THE APPROVED EXCEPTION — the player page alone names achievements a viewer may not hold (top 3, held); no other /api file reads the names', () => {
+  const walk = d => readdirSync(d).flatMap(f => { const p = join(d, f); return statSync(p).isDirectory() ? walk(p) : extname(p) === '.js' ? [p] : []; });
+  const readers = walk(join(ROOT, 'api')).filter(p => /\bACH_ROWS\b|\bITEM_ROWS\b/.test(readFileSync(p, 'utf8'))).map(p => p.slice(ROOT.length).replace(/\\/g, '/').replace(/^\//, '')).sort();
+  assert.deepEqual(readers, ['api/_lib/catalog.js', 'api/_lib/player.js']);
+  const src = readFileSync(join(ROOT, 'api/_lib/player.js'), 'utf8');
+  assert.match(src, /rarestThree\(held/, 'the names come only from the player\'s HELD achievements');
+  const core = readFileSync(join(ROOT, 'js/core/player.js'), 'utf8');
+  assert.match(core, /\.slice\(0, 3\)/, 'three at most (core/player.js#rarestThree)');
+});
+
 test('THE SHOW: a response describes exactly the ids it carries — an outcome\'s unlocks, the profile\'s owned + held; never the rest', () => {
   const r = withShow({ ok: true, outcome: { items: ['card-inferno'], ach: ['first-round'] } });
   assert.deepEqual(Object.keys(r.show.items), ['card-inferno']);
