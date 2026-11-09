@@ -6445,3 +6445,10 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
   THE BOARD's slim cards + the tabs XP · DAILIES · OVERCLOCK · PRISM DROP; SCORES' ALL TIME; THE FRIENDS LIST as slim cards; THE PLAYER PAGE; THE
   LONG-NAME FIX on PENTHOUSE / SAFECRACKER / GHOST RUN / PERFECT WEEK; the add-on SHARE TODAY = ONE CARD; no rules change); PRISM DROP ← NEXT; FR7;
   THE SWITCH-OVER.
+
+## PD-1 GROUP 0 — THE BOARD's TOP + BOARD 2.0 B's two leftovers (the owner, Nov 9, his iPhone 390 screenshot)
+- THE TOP BAR: the gold glass / emblem button next to ‹ is REMOVED (it opened YOUR CARD — not needed on THE BOARD). The bar = ☰ top-left, ‹ back beside it, the music button top-right — nothing else. THE BOARD title on its OWN row with clear air under the buttons (never touching them).
+- THE TABS: XP · DAILIES · OVERCLOCK · PRISM DROP = FOUR EQUAL tabs (same width + height; the selected one changes only colour / fill, never size), inset by the same gutter as the panel below; the labels fit at 390 / 402 / 430 without touching (shrink the letter-spacing, never wrap).
+- NO DOUBLE "YOU": the pinned YOUR-ROW at the panel's foot shows ONLY while your own card is NOT visible in the list (scrolled away or ranked off the page).
+- A player who OPTED OUT of the public boards is out of the friends' XP-this-week too (only they see their own number).
+- THE PLAYER PAGE: the list behind it no longer shows through (an opaque enough backdrop, or the list held / hidden under it).
