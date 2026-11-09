@@ -925,10 +925,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // in the city's canvas — only the messages, the lettering the eye reads)
     // (CITY FIXES + HOLD'EM: the HOLD'EM poster's lettering crisp at night too — the eye reads it like a message)
     // (+ the owner, Nov 8: "the game posters + the hints too" — EVERY roof poster at night at the phone's full dpr, never the 2× bake)
+    // (CITY FIXES — roomperf's red: the copy was RE-PAINTED each time the lamps' level stepped (50 steps — in a room the lamps move a lot):
+    //  now the lit poster is painted ONCE at full light and the lamps' level is the layer's OPACITY over the city's own board (a CSS opacity —
+    //  no repaint); at full light it is exact, in a dim moment the 2× board under it shows through a little)
     const rbN = !busy ? (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak' && b.content && b.nightPoster) : null;
-    if (rbN && rbN.rect) { const R0 = rbN.rect, aN = neon.boardNightA ? neon.boardNightA(rbN.id) : 0;
-      const kN = Math.round(Math.min(1, aN) * 50) / 50;   // (quantised: a repaint only when the lamps' level steps — ~0.06 MB, cheap)
-      if (aN > 0.01) crisp.show(c, { id: 'roofboard-msg', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${rbN.content.lines ? rbN.content.lines.join('|') : rbN.content.poster ? `poster:${rbN.content.poster}` : `game:${rbN.content.title}`}|${rbN.content.art || ''}|${rbN.dead}|${crisp.dpr}|${kN}`, xfade: 0, alpha: fadeIn, draw: x => rbN.nightPoster(x, crisp.dpr, kN) }); }
+    if (rbN && rbN.rect) { const R0 = rbN.rect, aN = Math.min(1, neon.boardNightA ? neon.boardNightA(rbN.id) : 0);
+      if (aN > 0.01) crisp.show(c, { id: 'roofboard-msg', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${rbN.content.lines ? rbN.content.lines.join('|') : rbN.content.poster ? `poster:${rbN.content.poster}` : `game:${rbN.content.title}`}|${rbN.content.art || ''}|${rbN.dead}|${crisp.dpr}`, xfade: 0, alpha: fadeIn * aN, draw: x => rbN.nightPoster(x, crisp.dpr, 1) }); }
     { const a = boardXfA(); if (a > 0.004 && bxf.box) crisp.show(c, { id: 'roofboard-xf', z: 3, box: bxf.box, key: `xf${bxf.n}`, xfade: 0, alpha: a * fadeIn, draw: x => x.drawImage(bxf.cv, bxf.box.x, bxf.box.y, bxf.box.w, bxf.box.h) }); }
     crisp.end();
   }
