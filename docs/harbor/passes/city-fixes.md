@@ -221,3 +221,7 @@ resize; left as it is.)
   this pass touches nothing in the word towers' path. The next city pass: find which earlier group's state the tail inherits.
 - Servers: the emulators + `serve.mjs --emu` (:5173) started fresh at the start (DFIX3's were stopped first), + `DAILY_TEST=1` on :5176 for
   e2e-daily, + a bisect worktree's server on :5177 (removed) — all stopped at the end. The owner's own preview server on :5190 left running.
+- **THE CLOUD** (two runs, as allowed): run 1 (1f5d67a5, the harbor tag) — harbor **15 / 15 green** (`city` incl. LOAD WEATHER green in the
+  cloud at last; the panel's job green); tests **red**: the unit job has no `firebase-admin` and `tests/tapwatch.test.mjs` imported `api/log.js`
+  (local unit runs have it installed). Moved that check into `server.test.mjs` (42 / 42 locally). Run 2 (2362126b, the ci tag) — tests **green**.
+  Vercel built 2362126b (live).
