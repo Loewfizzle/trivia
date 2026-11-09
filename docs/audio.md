@@ -49,6 +49,27 @@ The rest followed in OC2 – OC4; OC5 plays Dumb Luck's five (19 the bell · 20 
   music off for that page only (`setPageQuiet`), never saved; it plays again once it's the player's tab.
 - The bytes probe: `node tests/integration/bytes-probe.mjs "<chrome>"` (a fresh visit's music / other bytes in its first 25 s).
 
+## QUICK START + CUE-INS + THE HEARD BEAT (PD-5A, Nov 9 2026 — PRISM DROP; docs/prism.md, docs/harbor/passes/pd-5a.md) — `audio/synced-songs.js`, `core/mp3-slice.js#prefixCut`, `core/sync-math.js#envelopeFrom`
+- **QUICK START** (`createSyncedSongs({ quick: true })` — PRISM DROP only; the stations, the party deck, the lobby song + SLIPSTREAM unchanged):
+  `quickDecode` STREAMS the file (one fetch, no second download) and, while the bytes arrive, decodes slices from the stream's first frame —
+  `QUICK_STEPS` [12, 30, 75] s, each ≥ the song's place now + 6 s (`need()`); the song due + nothing sounding → whatever has arrived; a slice
+  running low → re-cut (≤ 8) — `prefixCut`: a frame boundary, every frame before it complete, the ID3 tag + the Xing/LAME header kept — so a
+  slice's samples ARE the whole decode's (e2e-prism compares all ten PRISM files in Chrome: the largest difference 0). A CUE-IN ≥ 1.5 s →
+  RANGE MODE (`rangeFrom`): ONE `Range: bytes=<~0.5 s before the cue>-` placed from the file's first audio frame's byte (`game.ff` — the build's
+  `ff`) + the stream's own first header (the CBR frame size) → its first frame number, exactly (no `ff`: `bytes=0-4095` fetched beside it); a headerless decode = the whole file's samples `LAME_DELAY` (1105 = 576 + 529) later —
+  `bufferT0(buf)` = its sample 0's FILE time (a voice plays `file position − t0`); a range that missed (a server without ranges, a frame past
+  the cue) → prefix mode. The cache keys a range stream as `url#cue`. A slice is handed to every player of the
+  URL (`acquire(url, onPart)`), a voice starts from it at once (the same schedule — `start()`'s `part`), and `swap()` moves it to the longer
+  slice / the whole song ON ONE SAMPLE (the new source `start(T, T − origin)`, the old `stop(T)`, the gain = `envelopeFrom(the envelope, T)`).
+  A part never marks a song "done" and never schedules the last song's end fade (it doesn't know the end). No slice while the rest is < 1.2 s
+  away (good signal: one whole decode, as before). Slow 3G (50 KB/s) feeds 3.5× a 112 kbps song's rate: audible at GO.
+- **CUE-INS** (`game.cu[i]`, ms): the room's schedule starts the FILE that far in — the voice's `origin` (file position 0) = `ctxAtServer(start)
+  − speakerLead() − cue`; the envelope's own origin = the schedule's start; a 12 ms ramp (`songEnvelope`'s `minFade`) — never a click.
+- **THE HEARD BEAT** (`voice(i)` → `{ origin, part }`, `now()` + `origin`): PRISM's beat-timed visuals + SFX read the sounding voice's own clock
+  (games/prism/sync.js — the song as heard: − SPEAKER DELAY − an unreported iPhone speaker's 20 ms − the measured lead; the SFX on origin + songT +
+  lead). The listener is THE CITY's (beat.js#analyser: a 150 Hz low-pass → a 1024 analyser's time-domain RMS, strong kicks ≥ 0.6 — so KICK_LAG
+  holds; a first try on FFT bins read +60–80 ms late on c2-day8, whose kicks the city's listener puts within ±10 ms of the grid).
+
 ## THE BEAT (PARTY NIGHTS, Oct 20 2026) — `js/audio/beat.js`
 `beatSource()` → `{ id, bpm, pos }` for the song sounding on this phone right now: in a lobby the room's synced song
 (`lobby-music.js#lobbyNow`, the synced player's loudest voice), else this phone's mood song (`music.js#nowPlaying`); bpm from
@@ -1113,7 +1134,7 @@ The legendary events (docs/harbor/passes/part-6b.md) report their state through 
 
 
 ## Music
-RUMRUNNER's `run1-4` (the owner's, 112 kbps; playlist `rum`: a seeded calm pair then the driving pair, see docs/rum.md), HIGH STAKES' `high1-3` (lo-fi, the owner's, 112 kbps; playlist `stakes`, seeded per room) and NEON PAR's three zone tracks (`golf-rooftops`, `golf-cyber`, `golf-arcade`), DOUBLE AGENT's `spy1-3` and PRISM DROP's `prism1-5` are the owner's, re-encoded at 112 kbps stereo.
+RUMRUNNER's `run1-4` (the owner's, 112 kbps; playlist `rum`: a seeded calm pair then the driving pair, see docs/rum.md), HIGH STAKES' `high1-3` (lo-fi, the owner's, 112 kbps; playlist `stakes`, seeded per room) and NEON PAR's three zone tracks (`golf-rooftops`, `golf-cyber`, `golf-arcade`), DOUBLE AGENT's `spy1-3` and PRISM DROP's `prism1-5` are the owner's, re-encoded at 112 kbps stereo; PRISM DROP's DAY SET `prismd1-5` (PD-5A: four HoliznaCC0 lo-fi tracks, CC0 + the owner's day8) at 112 kbps stereo, loudness-matched to −14.4 LUFS / ≤ −1.2 dBTP (docs/prism.md).
 Six tracks supplied by the owner, re-encoded with ffmpeg (`-vn -map_metadata -1 -ar 44100 -ac 2 -b:a 128k`; overclock at
 120k to stay under 4 MB). The originals stay out of the repo.
 

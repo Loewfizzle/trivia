@@ -45,7 +45,7 @@ export function serverOffsetFrom(samples) {
  *   song (xfS long, from the song's own start) · joinFade: the ramp when joining mid-song · out: { start, end } of the fade-out
  *   (into the next song / the last song's end) or null.
  */
-export function songEnvelope({ at, origin, crossIn = false, xfS = 0, joinFade = 0.15, out = null }) {
+export function songEnvelope({ at, origin, crossIn = false, xfS = 0, joinFade = 0.15, out = null, minFade = 0 }) {
   const off = at - origin;
   const pts = [];
   let inEnd = at, inFrom = 1, inStart = at;
@@ -54,8 +54,9 @@ export function songEnvelope({ at, origin, crossIn = false, xfS = 0, joinFade = 
     pts.push({ t: at, v: 0, ramp: false }, { t: at + 0.001, v: inFrom, ramp: true });
     inStart = at + 0.001; inEnd = Math.max(inStart, origin + xfS);
     pts.push({ t: inEnd, v: 1, ramp: true });
-  } else if (off > 0.02) {
-    inFrom = 0; inStart = at; inEnd = at + joinFade;
+  } else if (off > 0.02 || minFade > 0) {
+    // (PD-5A: minFade — a song that starts at a CUE-IN begins mid-sound: a few ms of ramp, never a click)
+    inFrom = 0; inStart = at; inEnd = at + (off > 0.02 ? joinFade : minFade);
     pts.push({ t: at, v: 0, ramp: false }, { t: inEnd, v: 1, ramp: true });
   } else {
     pts.push({ t: at, v: 1, ramp: false });
@@ -74,6 +75,19 @@ export function songEnvelope({ at, origin, crossIn = false, xfS = 0, joinFade = 
   const e = Math.max(out.end, s + 0.05);
   pts.push({ t: e, v: 0, ramp: true });
   return pts;
+}
+
+/** PD-5A — THE SWAP (a quick-start slice → the whole song, on the same sample): the envelope's points from time T on — its value AT T
+ *  (set there) + every later point — so the new voice carries on exactly where the old one was, fades included */
+export function envelopeFrom(pts, T) {
+  let cur = 0, prevT = -Infinity, v = null;
+  for (const p of pts || []) {
+    if (p.t <= T) { cur = p.v; prevT = p.t; continue; }
+    v = p.ramp && Number.isFinite(prevT) ? cur + (p.v - cur) * (T - prevT) / (p.t - prevT) : cur;
+    break;
+  }
+  if (v == null) v = cur;
+  return [{ t: T, v, ramp: false }, ...(pts || []).filter(p => p.t > T)];
 }
 
 /** a sounding synced song more than this (s) off the server clock's place is re-placed (audio/synced-songs.js, checked twice a second) —

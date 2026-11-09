@@ -15,12 +15,19 @@
 // MUSICAL SFX. Every effect is synthesized in the current song's key and scale (data/prism/prismN.json:
 // tonic + mode), soft and round, with a shared reverb, on the SFX bus. Line clears are scheduled on the song's
 // next 16th note, on the same "heard at server time" clock as the song, so they land exactly in time.
+//
+// PD-5A — THE HEARD BEAT (sync.js + createHeardBeat below): every beat-timed visual reads the song AS HEARD (the sounding voice's own
+// clock − SPEAKER DELAY − what the browser can't report − the measured lead), and the musical SFX schedule on the song's own clock
+// (+ the lead) — never the server clock beside it. QUICK START: the songs stream in and start from their first slices
+// (synced-songs.js `quick`). A day song's CUE-IN (game.cu) is inside the voice's origin.
 import { getContext, getMusicBus, getSfxBus } from '../../audio/engine.js';
 import { serverNow } from '../../firebase.js';
 import { settings } from '../../audio/settings.js';
-import { ctxAtServer } from '../pulse/clock.js';
-import { createSyncedSongs } from '../../audio/synced-songs.js';
+import { ctxAtServer, heard } from '../pulse/clock.js';
+import { createSyncedSongs, speakerLead } from '../../audio/synced-songs.js';
+import { createOnsets, onsetStep, createLead, leadKick, leadState, kickLag } from '../../core/harbor-beat.js';
 import { songUrl, beatClock } from './songs.js';
+import { heardSongPos, serverSongPos, ctxForSongTime, unreportedOut, kickErr, leadGrid } from './sync.js';
 
 const SCALES = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
 const PENT = { major: [0, 2, 4, 7, 9], minor: [0, 3, 5, 7, 10] };
@@ -34,9 +41,12 @@ export function createSongPlayer() {
   let duelAt = null;
   let duelDone = false;
   let finaleAt = null;
+  let kick = null;       // (PD-5A) the listener's reading this frame: { e (the low end's level), t (ctx s) }
+  let wave = null;
   const songs = createSyncedSongs({
     urlFor: songUrl,
     label: 'prism song',
+    quick: true,
     connect(ctx) {
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
@@ -47,14 +57,37 @@ export function createSongPlayer() {
       const out = ctx.createGain();
       out.gain.value = 1;
       filter.connect(lift).connect(out).connect(getMusicBus());
-      chain = { filter, lift, out };
-      return filter;
+      // THE LISTENER (PD-5A — the city's own, audio/beat.js#analyser: a 150 Hz low-pass → a 1024 analyser's time-domain RMS, pulled
+      // through a silent gain, so its KICK_LAG holds): the songs' low end BEFORE the danger filter / the volume — its kicks only
+      // calibrate the lead (createHeardBeat), they never time anything themselves
+      const inp = ctx.createGain();
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 150; lp.Q.value = 0.7;
+      const an = ctx.createAnalyser();
+      an.fftSize = 1024;
+      an.smoothingTimeConstant = 0;
+      const z = ctx.createGain();
+      z.gain.value = 0;
+      inp.connect(filter);
+      inp.connect(lp).connect(an).connect(z).connect(ctx.destination);
+      wave = new Float32Array(an.fftSize);
+      chain = { filter, lift, out, inp, an, lp, z };
+      return inp;
     },
   });
 
+  function listen(ctx) {
+    if (!chain || !chain.an || typeof chain.an.getFloatTimeDomainData !== 'function') { kick = null; return; }
+    chain.an.getFloatTimeDomainData(wave);
+    let s = 0;
+    for (let i = 0; i < wave.length; i++) s += wave[i] * wave[i];
+    kick = { e: Math.sqrt(s / wave.length), t: ctx.currentTime };
+  }
+
   function tick() {
     const ctx = songs.tick();
-    if (!ctx || !chain) return;
+    if (!ctx || !chain) { kick = null; return; }
+    listen(ctx);
     const t = serverNow();
     // danger: the music sinks under water as the stack nears the top
     const target = danger > 0.01 ? 20000 * Math.pow(600 / 20000, Math.min(1, danger)) : 20000;
@@ -84,14 +117,101 @@ export function createSongPlayer() {
     fadeOutAt(at) { finaleAt = at; },
     tick,
     ready: i => songs.ready(i),
+    /** (PD-5A) song i's voice { origin, part } | null · the loudest sounding song { i, at, origin } | null · this frame's kick reading */
+    voice: i => songs.voice(i),
+    now: () => songs.now(),
+    kick: () => kick,
     debug() {
       return { ready: !!chain, filter: chain ? Math.round(chain.filter.frequency.value) : null, lift: chain ? +chain.lift.gain.value.toFixed(3) : 1, ...songs.debug() };
     },
     stop() {
       songs.stop();
       void game;
-      if (chain) setTimeout(() => { try { chain.filter.disconnect(); chain.lift.disconnect(); chain.out.disconnect(); } catch { /* fine */ } }, 900);
+      if (chain) setTimeout(() => { try { chain.inp.disconnect(); chain.lp.disconnect(); chain.an.disconnect(); chain.z.disconnect(); chain.filter.disconnect(); chain.lift.disconnect(); chain.out.disconnect(); } catch { /* fine */ } }, 900);
     },
+  };
+}
+
+// ================================================================ THE HEARD BEAT (PD-5A — sync.js has the maths)
+/** the most the measured lead may trim (s): past it, the song's kicks aren't on its beats — the grid alone */
+export const LEAD_CAP = 0.06;
+const WEBKIT = typeof navigator !== 'undefined' && /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg|Android/.test(navigator.userAgent);
+/**
+ * ONE clock for every beat-timed thing in a match: place(i, startMs, cue, clk) → { pos (the song AS HEARD, file s), atCtx(songT) (the ctx time
+ * that lands ON song time songT as heard — the SFX, the countdown, the finale), songAtCtx(ctxT) (its inverse), lead (s), origin (the voice's,
+ * or null on the server clock while the song loads) }. listen(i, clk) once a frame: a strong kick on the song's grid → the song's lead (the
+ * city's estimator — core/harbor-beat.js#leadKick: bounded steps, only when the kicks agree; one lead per song, its own grid's offset).
+ */
+export function createHeardBeat(player) {
+  const leads = new Map();
+  const deaf = new Set();   // songs whose kicks sit OFF their beats (a syncopated groove): the grid alone, lead 0 — the city's "deaf song"
+  const onsets = createOnsets();
+  let lastFrame = 0, frameS = 1 / 60;
+  const stamp = { v: 0, at: -1e9 };
+  const leadOf = i => { if (!leads.has(i)) leads.set(i, createLead(null, 0)); return leads.get(i); };
+  // the output latency an output timestamp implies (the city's beat.js#stampLatency): > 3 ms = the browser reports one
+  function stampLat(c) {
+    const now = performance.now();
+    if (now - stamp.at < 250) return stamp.v;
+    stamp.at = now;
+    try {
+      const ts = c.getOutputTimestamp && c.getOutputTimestamp();
+      if (ts && ts.contextTime > 0 && ts.performanceTime > 0) {
+        const l = (c.currentTime - ts.contextTime) - (now - ts.performanceTime) / 1000;
+        if (l > 0.003 && l < 0.5) stamp.v = stamp.v ? stamp.v + (l - stamp.v) * 0.2 : l;
+      }
+    } catch { /* unsupported */ }
+    return stamp.v;
+  }
+  function unreported() {
+    const c = getContext();
+    return c ? unreportedOut({ outputLatency: c.outputLatency || 0, stamp: stampLat(c), webkit: WEBKIT }) : 0;
+  }
+  return {
+    place(i, startMs, cue, clk) {
+      void clk;
+      const lc = leadOf(i), L = deaf.has(i) || lc.fast ? 0 : lc.v, un = unreported(), spk = speakerLead();   // (a lead still settling is not applied yet)
+      const v = player.voice(i);
+      const c = getContext();
+      if (v && c && c.state === 'running') {
+        const origin = v.origin;
+        return {
+          pos: heardSongPos({ heardCtx: heard(), origin, speaker: spk, unreported: un, lead: L }),
+          atCtx: songT => ctxForSongTime({ origin, songT, lead: L }),
+          songAtCtx: t => t - origin - L,
+          lead: L, origin, unreported: un, speaker: spk,
+        };
+      }
+      // (no voice yet — the song still on its way: the room's clock, the same place the voice will take)
+      const base = () => ctxAtServer(startMs) - spk - cue;
+      return {
+        pos: serverSongPos({ serverMs: serverNow(), startMs, cue, unreported: un, lead: L }),
+        atCtx: songT => base() + songT + L,
+        songAtCtx: t => t - base() - L,
+        lead: L, origin: null, unreported: un, speaker: spk,
+      };
+    },
+    listen(i, clk) {
+      const now = performance.now();
+      if (lastFrame) frameS += (Math.min(0.1, (now - lastFrame) / 1000) - frameS) * 0.1;
+      lastFrame = now;
+      const k = player.kick();
+      if (!k || !clk) return;
+      const hit = onsetStep(onsets, k.e, k.t);
+      if (!(hit >= 0.6)) return;   // (a STRONG kick, as the city counts one)
+      const v = player.voice(i);
+      if (!v) return;
+      if (deaf.has(i)) return;
+      const c = leadOf(i);
+      leadKick(c, kickErr(clk, k.t - v.origin, kickLag(frameS)), leadGrid(clk), now);
+      // (the grid is the build's, checked against the sound: the lead only trims a small offset — kicks that pull it past LEAD_CAP are
+      //  off the beats (Summer Felt Longer Then's sit ~100–340 ms early: a syncopated kick) → this song is the grid alone from here on)
+      if (Math.abs(c.v) > LEAD_CAP) { deaf.add(i); c.v = 0; c.errs = []; c.res = null; c.fast = null; }
+    },
+    lead: i => leadOf(i).v,
+    state: i => (deaf.has(i) ? { state: 'deaf', ms: 0, n: leadOf(i).seen } : leadState(leadOf(i), performance.now())),
+    /** the tests + the beat check: the song's estimator (its residuals, s — relative to the applied lead) */
+    raw: i => { const c = leadOf(i); return { v: c.v, errs: c.errs.slice(), seen: c.seen, res: c.res, deaf: deaf.has(i) }; },
   };
 }
 
@@ -267,21 +387,22 @@ export function createSynth() {
     s.start(at);
   }
 
-  // the next 16th note of the song (ctx time) — so clears land in time
+  // the next 16th note of the song (ctx time) — so clears land in time. (PD-5A: on the SONG's own clock — the sounding voice's origin
+  // + the measured lead (clockFn().atCtx): the song + the sound leave through the same speaker, so they land together whatever its delay;
+  // before, the server clock beside it put every clear SPEAKER DELAY late)
   function q16(extra = 0) {
     const now = ctx.currentTime;
     const c = clockFn && clockFn();
-    if (!c || !c.clk) return { at: now + 0.01, step: 0.12 };
-    const { pos, clk } = c;
+    if (!c || !c.clk || !c.atCtx) return { at: now + 0.01, step: 0.12 };
+    const { clk } = c;
+    const pos = c.songAtCtx(now);   // the song time being SCHEDULED now
     const p = clk.period;
     const step = p / 4;
     const bi = clk.indexAt(pos);
     const bt = clk.timeOf(bi);
     const k = Math.ceil((pos - bt + 0.015) / step);
     const tNext = bt + k * step + extra * step;
-    // heard at the same moment as that point of the song (same clock map as the song itself)
-    const at = c.start != null ? ctxAtServer(c.start + tNext * 1000) : now + (tNext - pos);
-    return { at: Math.max(now + 0.005, at), step, songAt: tNext };
+    return { at: Math.max(now + 0.005, c.atCtx(tNext)), step, songAt: tNext };
   }
 
   const record = (name, notes, songAt) => { log.push({ name, notes, songAt, key: tonic, mode }); if (log.length > 400) log.shift(); };
@@ -431,8 +552,8 @@ export function createSynth() {
     ctxAt(songSec) {
       if (!ensure()) return null;
       const c = clockFn && clockFn();
-      if (!c) return null;
-      return c.start != null ? Math.max(ctx.currentTime + 0.005, ctxAtServer(c.start + songSec * 1000)) : ctx.currentTime + (songSec - c.pos);
+      if (!c || !c.atCtx) return null;
+      return Math.max(ctx.currentTime + 0.005, c.atCtx(songSec));
     },
     scale: () => ({ tonic, mode, notes: SCALES[mode].map(s => (tonic + s) % 12) }),
     log,

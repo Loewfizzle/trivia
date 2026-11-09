@@ -54,8 +54,8 @@ export function maxSlipDistance(sec) {
 /** A generous ceiling on a Score Rush score: every line a back-to-back perfect clear at the level it could reach. */
 /** FR6 FIXES A (C3 — a board could be cheated): PRISM DROP's SCORE RUSH is ONE song; the bound's seconds came from `game.sd` — the HOST
  *  writes it (a hacked host: sd [1e9] → any score passed). Now capped from the songs themselves: the longest in data/prism/manifest.json
- *  (227.8 s) + 10 s, rounded up — tests/profiles.test.mjs fails if a longer song is added without raising it */
-export const RUSH_MAX_S = 240;
+ *  (PD-5A: Feeling Human Again, 230.8 s — a day song) + 10 s, rounded up — tests/profiles.test.mjs fails if a longer song is added without raising it */
+export const RUSH_MAX_S = 241;
 export function maxRushScore(lines, seconds) {
   const lv = 16 + Math.ceil(lines / 10);
   const pieces = seconds * 6 + 60;

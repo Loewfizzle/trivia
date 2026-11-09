@@ -190,7 +190,13 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   the night's COLOUR FAMILIES + read on every paper (`crayon.js` PURE — `tests/prism-crayon.test.mjs`); every crayon drawing PRE-DRAWN once (`crayon-art.js`
   — never a stroke per frame; warmed in slices); THE PAPER = the HOST's deal per match (`game.pp` — `crayon.js#pickPaper`, the night's memory: a rotation,
   never twice in a row — the same page on every phone); the page + the world doodle = ONE canvas redrawn only on a change (`page.js`), the WebGL world
-  skipped by day; the papers (CC0) + Permanent Marker (Apache 2.0) load ONLY when the day look shows (`page.js#warmDay`).
+  skipped by day; the papers (CC0) + Permanent Marker (Apache 2.0) load ONLY when the day look shows (`page.js#warmDay`). PD-5A (Nov 9 — docs/prism.md "THE TWO SETS" + "THE BEAT FIX"): EVERY beat-timed
+  thing (visuals, the countdown, the musical SFX, the finale) reads `view.js#songClock` = THE HEARD BEAT (`sync.js` PURE — the sounding voice's clock − SPEAKER
+  DELAY − an unreported iPhone speaker − the measured lead; the SFX on the song's own clock), never `serverNow()` beside it; the lead = the city's
+  listener + estimator, bounded ±60 ms (kicks off the beats → the grid alone); QUICK START = `synced-songs.js` `quick` (slices from the stream's start, the
+  swap on one sample; a cue-in streams from ~0.5 s before its cue — ONE Range request placed by `game.ff`, `bufferT0` = a buffer's file time); TWO SETS — NIGHT `prism1-5` (unchanged) + DAY `prismd1-5` (`look: 'day'`, hand-set worlds, cue-ins), the HOST's look at
+  `start` = `game.set` (every phone plays it), DAY's playlist in the night's memory (`meta/used/prism/dn<N>`); a day song = `build-prism.py --day`
+  (it STOPS a song off its measured BPM by > 0.1, drifting or on the half-beats — never a guess).
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,

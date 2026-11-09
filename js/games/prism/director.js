@@ -6,13 +6,15 @@
 // the song does / you top out. The results carry what PD-5's cards need: KOs (ko), perfect clears (pc), the danger-zone flag (dz — BATTLE:
 // your stack reached the top 5 rows) + SURVIVAL's time survived (t, ms).
 import {
-  cleanSettings, aliveOf, applyKo, callBonus, songsUsed, OFFLINE_OUT_MS, END_MS, DANGER_ZONE_ROWS,
+  cleanSettings, aliveOf, applyKo, callBonus, songsUsed, OFFLINE_OUT_MS, END_MS, DANGER_ZONE_ROWS, dayKey,
 } from './logic.js';
 
 /**
- * opts: { matchId, settings, participants, now, seed, songs: [ids], sd: [ms], pl0, songStartAt, playStartAt, endAt? }
+ * opts: { matchId, settings, participants, now, seed, songs: [ids], sd: [ms], pl0, songStartAt, playStartAt, endAt?, set?, cu? }
+ *   (PD-5A) set: the room's song set this match — 'day' | 'night' (the HOST's look at the start; absent = night) · cu: each song's cue-in (ms)
+ *   · ff: each song file's first audio frame (byte — the quick start's range stream; kept only beside a cue-in)
  */
-export function createGame({ matchId, settings, participants, now, seed, songs, sd, pl0, songStartAt, playStartAt, endAt = null }) {
+export function createGame({ matchId, settings, participants, now, seed, songs, sd, pl0, songStartAt, playStartAt, endAt = null, set = 'night', cu = null, ff = null }) {
   const s = cleanSettings(settings, Object.keys(participants || {}).length);
   return {
     id: 'prism',
@@ -30,6 +32,8 @@ export function createGame({ matchId, settings, participants, now, seed, songs, 
     playStartAt,
     endAt: s.mode === 'rush' ? endAt : null,
     n0: Object.keys(participants).length,
+    set: set === 'day' ? 'day' : 'night',
+    ...(cu && cu.some(x => x > 0) ? { cu, ...(ff && ff.some(x => x > 0) ? { ff } : {}) } : {}),
   };
 }
 
@@ -119,7 +123,10 @@ export function nextStep(game, ctx) {
       }
       return {
         phase: 'final', phaseStartAt: now, phaseEndsAt: null, results, calls,
-        $room: { 'meta/prism/n': (game.pl0 || 0) + songsUsed(game, game.phaseStartAt) },
+        // (PD-5A: each set its own playlist — NIGHT on meta/prism/n, DAY in the night's memory)
+        $room: game.set === 'day'
+          ? { [`meta/used/prism/${dayKey((game.pl0 || 0) + songsUsed(game, game.phaseStartAt))}`]: true }
+          : { 'meta/prism/n': (game.pl0 || 0) + songsUsed(game, game.phaseStartAt) },
       };
     }
 

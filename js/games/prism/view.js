@@ -32,7 +32,8 @@ import { createPage, warmDay } from './page.js';
 import { createRail } from './rail.js';
 import { createFx } from './fx.js';
 import { attachInput } from './input.js';
-import { createSongPlayer, createSynth } from './audio.js';
+import { createSongPlayer, createSynth, createHeardBeat } from './audio.js';
+import { beatPulse } from './sync.js';
 import { chooseMove } from './bot.js';
 import { prismLayout, panelCells } from './layout.js';
 import { buildFinal } from './victory.js';
@@ -60,9 +61,11 @@ export function createView() {
   let input = null;
   let world = null, fx = null, board = null;
   const songPlayer = createSongPlayer();
+  const heardBeat = createHeardBeat(songPlayer);   // (PD-5A — THE HEARD BEAT: every beat-timed thing reads the song as heard)
   const synth = createSynth();
   const docs = {};          // song index -> doc
   let curSong = -1;
+  let lastBeat = null;   // (PD-5A) the beat pulse of the last frame: { v, down, idx, ph }
   let tier = TOP_TIER;
   const frameTimes = [];
   // (PD-3 — THE NIGHT LOOK) the look this screen draws in (THE GAME LOOK: body[data-look] — day = CRAYON (PD-4), night = NEON),
@@ -288,13 +291,21 @@ export function createView() {
   }
   const docOf = i => docs[`${game.matchId}:${i}`] || null;
 
+  // (PD-5A) a day song's CUE-IN (ms into the file where the room's schedule starts it) — game.cu, dealt by the host
+  const cueOf = i => Math.max(0, Number(game && game.cu && game.cu[i]) || 0) / 1000;
+  /** the song clock — PD-5A: pos = the song AS HEARD (FILE seconds — the grid's own time, the cue-in inside), atCtx(songT) = the ctx time
+   *  that lands on song time songT as heard (the SFX, the countdown, the finale) — audio.js#createHeardBeat */
   function songClock() {
     if (!game || !game.songs || !game.songs.length) return null;
-    const t = serverNow();
-    const s = songAt(game, t);
+    const s = songAt(game, serverNow());
     const doc = docOf(s.i);
-    return { i: s.i, start: s.start, pos: (t - s.start) / 1000, doc, clk: doc ? beatClock(doc) : null };
+    const clk = doc ? beatClock(doc) : null;
+    const cue = cueOf(s.i);
+    const hb = heardBeat.place(s.i, s.start, cue, clk);
+    return { i: s.i, start: s.start, cue, pos: hb.pos, doc, clk, atCtx: hb.atCtx, songAtCtx: hb.songAtCtx, lead: hb.lead, origin: hb.origin, unreported: hb.unreported, speaker: hb.speaker };
   }
+  /** the countdown's GO in FILE seconds of the first song (its cue-in included) */
+  const goSongS = () => (game.playStartAt - game.songStartAt) / 1000 + cueOf(0);
 
   function variantOf(i) { return hashString(`${game.seed}:world:${i}`) % 3; }
 
@@ -659,15 +670,15 @@ export function createView() {
       if (c.i > 0) announce(`NOW PLAYING · ${String(c.doc.title || '').toUpperCase()}`, 'world');
     }
     if (c.clk) {
-      const bi = c.clk.indexAt(c.pos);
-      const ph = (c.pos - c.clk.timeOf(bi)) / c.clk.period;
-      const down = ((bi - c.clk.phase) % 4 + 4) % 4 === 0;
-      fxs.beat = c.pos >= 0 ? Math.exp(-Math.max(0, ph) * 5) * (down ? 1 : 0.6) : 0;
+      heardBeat.listen(c.i, c.clk);   // (PD-5A: the kicks calibrate this song's lead — they never time anything themselves)
+      const bp = beatPulse(c.clk, c.pos);
+      fxs.beat = bp.v;
       fxs.energy = c.clk.energyAt(Math.max(0, c.pos));
+      lastBeat = bp;
     }
     // countdown ticks on the beat (scheduled precisely on the audio clock)
     if (game.phase === 'count' && c.clk && c.i === 0) {
-      const goSong = (game.playStartAt - game.songStartAt) / 1000;
+      const goSong = goSongS();
       const p = c.clk.period;
       [3, 2, 1, 0].forEach(k => {
         const tt = goSong - k * p;
@@ -682,7 +693,7 @@ export function createView() {
     // Score Rush: the finale lands on the song's final beat
     if (rush() && game.endAt && !finaleScheduled && game.endAt - now < 2500 && game.endAt - now > -1500) {
       finaleScheduled = true;
-      const at = synth.ctxAt((game.endAt - songStarts(game)[0]) / 1000);
+      const at = synth.ctxAt((game.endAt - songStarts(game)[0]) / 1000 + cueOf(0));
       synth.play('finale', { at });
       setTimeout(() => finale(), Math.max(0, game.endAt - serverNow()));
     }
@@ -1169,7 +1180,7 @@ export function createView() {
     }
     let n = '';
     if (c && c.clk) {
-      const goSong = (game.playStartAt - game.songStartAt) / 1000;
+      const goSong = goSongS();
       const p = c.clk.period;
       const k = Math.ceil((goSong - c.pos) / p - 1e-6);
       if (c.pos >= goSong - 3 * p - 0.02) n = k >= 1 && k <= 3 ? String(k) : k <= 0 ? 'GO' : '';
@@ -1390,6 +1401,8 @@ export function createView() {
           under: [els.holdBox.classList.contains('is-under'), els.nextBox.classList.contains('is-under')], L };
       },
       clock: () => songClock(),
+      // (PD-5A) THE HEARD BEAT for the preview's &beat=1 flash + the E2E: the beat as the lights place it, the lead, the delays
+      beat: () => { const c = songClock(); return c ? { i: c.i, id: game.songs[c.i], pos: c.pos, cue: c.cue, lead: c.lead, origin: c.origin, unreported: c.unreported, speaker: c.speaker, beat: lastBeat, bpm: c.doc && c.doc.bpm, title: c.doc && c.doc.title, set: game.set || 'night', leadState: heardBeat.state(c.i), raw: heardBeat.raw(c.i) } : null; },
       fxCount: () => fx.count,
       // (PD-3) the night look: the look, the palette, the light layer + a way to fire its effects down the real path (the preview + the E2E)
       look: () => ({ look, pal: pal.id, paper: paper ? paper.id : null, light: !!light, lit: light ? light.effects + light.count : 0, size: light ? light.size : null, visible: els.light.style.visibility !== 'hidden', warm: warmPx === (board && board.px), crayonBusy: !!(board && board.crayonBusy) }),

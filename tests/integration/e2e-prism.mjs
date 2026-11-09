@@ -8,6 +8,8 @@
 //   song's key and on its 16th-note grid; frame pacing at every quality tier under CPU throttling; results.
 // Match B — SCORE RUSH: the next song of the room playlist; live leaderboard; a top-out reboots the board (score
 //   kept); the finale on the final beat; results by score.
+// PD-5A (both paths — soundChecks): THE QUICK START's slices = the whole song's samples (every file); a DAY host + a NIGHT phone on SLOW 3G
+//   → the day set, audible at GO from its first slice, then the swap to the whole song (no double play, no re-place); the heard beat.
 // PD-2 (both paths): the RISING GHOST ROWS + their tag, BLOCKED! (the cancel), the KO card; then SURVIVAL (everyone still here: the same
 //   rows on every phone, no attacks, last one standing), a room of ONE (the options = SCORE RUSH + SURVIVAL), a solo SURVIVAL + a solo
 //   SCORE RUSH (SOLO RUN on the podium, never a win).
@@ -137,6 +139,110 @@ async function shiftClock(page, ms) {
   const g = await game(page);
   await page.evaluate(async (c, g0, s) => { const f = await import('/js/firebase.js'); const patch = { songStartAt: g0.songStartAt - s, playStartAt: g0.playStartAt - s }; if (g0.endAt) patch.endAt = g0.endAt - s; await f.update(f.dbRef(`rooms/${c}/game`), patch); }, code, g, ms);
 }
+// PD-5A — THE SOUND: the quick start's slices, THE HOST's SET (a day host, a night phone), audible at GO on Slow 3G, the swap, the heard beat
+async function soundChecks() {
+  let hi = await hostIdx();
+  let h = pages[hi];
+  const gNow = await game(h);
+  if (gNow && gNow.phase) { await h.evaluate(() => import('/js/host.js').then(m => m.backToLobby())); await waitFor(h, s => s.meta.status === 'lobby' && !s.game, 'back in the room', 30000); }
+  // (a) a first slice decodes to the SAME samples as the whole song — every song file, two slice lengths (the swap's promise: no seam)
+  const same = await h.evaluate(async () => {
+    const M = await import('/js/core/mp3-slice.js');
+    const S = await import('/js/games/prism/songs.js');
+    const dec = ab => new Promise((res, rej) => new OfflineAudioContext(2, 1, 44100).decodeAudioData(ab, res, rej));
+    const out = [];
+    for (const song of await S.loadManifest()) {
+      const bytes = new Uint8Array(await (await fetch(S.songUrl(song.id))).arrayBuffer());
+      const full = await dec(bytes.slice().buffer);
+      let worst = 0, n = 0;
+      for (const want of [12, 30]) {
+        const cut = M.prefixCut(bytes, want);
+        const part = await dec(bytes.slice(0, cut.end).buffer);
+        const k = Math.floor((cut.s - 0.5) * part.sampleRate);
+        for (let ch = 0; ch < 2; ch++) { const a = part.getChannelData(ch), b = full.getChannelData(ch); for (let i = 0; i < k; i++) { const d = Math.abs(a[i] - b[i]); if (d > worst) worst = d; } }
+        n += k;
+      }
+      out.push({ id: song.id, worst, n });
+    }
+    return out;
+  });
+  // (a2) a CUE-IN's RANGE stream (from a frame just before the cue — the intro never fetched): placed by bufferT0, the same samples too
+  const ranged = await h.evaluate(async () => {
+    const SS = await import('/js/audio/synced-songs.js');
+    const S = await import('/js/games/prism/songs.js');
+    const dec = ab => new Promise((res, rej) => new OfflineAudioContext(2, 1, 44100).decodeAudioData(ab, res, rej));
+    const out = [];
+    for (const song of (await S.loadManifest()).filter(x => x.cue >= 1.5)) {
+      const url = S.songUrl(song.id);
+      const full = await dec(await (await fetch(url)).arrayBuffer());
+      for (const ff of [song.ff || 0, 0]) {   // (one request with the build's first-frame byte; the two-request fallback without)
+        const q = await SS.quickWholeForTest(url, song.cue, ff);
+        const F = full.getChannelData(0), Q = q.buf.getChannelData(0), off = Math.round(q.t0 * 44100);
+        let worst = 0;
+        for (let p = Math.round(song.cue * 44100); p < Math.round((song.cue + 20) * 44100); p++) { const d = Math.abs(Q[p - off] - F[p]); if (d > worst) worst = d; }
+        out.push({ id: song.id + (ff ? ' (ff)' : ''), mode: q.mode, worst });
+      }
+    }
+    return out;
+  });
+  ok(ranged.length >= 6 && ranged.every(x => /^range/.test(x.mode) && x.worst < 1e-6), `QUICK START: a cue-in's RANGE stream (its intro never fetched) lands on the whole song's samples (${ranged.map(x => x.id + ' ' + x.mode + ' · ' + x.worst).join(' · ')})`);
+  const worstAll = Math.max(...same.map(x => x.worst));
+  ok(same.length >= 10 && worstAll < 1e-6 && same.every(x => x.n > 0), `QUICK START: a first slice (12 s / 30 s from byte 0) decodes to the SAME samples as the whole song — all ${same.length} files (the largest difference ${worstAll})`);
+
+  // (b) THE HOST's SET: the host on DAY, the other phone on NIGHT, that phone on SLOW 3G (Chrome's preset: 50 KB/s, 2 s latency)
+  const j = alive().find(i => i !== hi);
+  const B = pages[j];
+  const setLook = (p, l) => p.evaluate(v => { localStorage.setItem('ns:look', v); window.dispatchEvent(new CustomEvent('ns-look', { detail: v })); }, l);
+  await setLook(h, 'day');
+  await setLook(B, 'night');
+  await B.emulateNetworkConditions({ download: 50_000, upload: 50_000, latency: 2000 });
+  await h.evaluate(() => import('/js/host.js').then(m => m.startGame('prism', { mode: 'rush' })));
+  await waitFor(h, s => s.game && s.game.id === 'prism' && s.game.settings.mode === 'rush' && s.game.phase === 'count', 'the day rush: count', 30000);
+  const gD = await game(h);
+  // (a day deal with no cue-in at all stores no cu — createGame keeps it only when a song has one)
+  ok(gD.set === 'day' && /^prismd\d$/.test(gD.songs[0]) && (!gD.cu || gD.cu.length === gD.songs.length), `THE HOST's SET: a DAY host deals the DAY set (${gD.songs[0]}, cue-in ${gD.cu ? gD.cu[0] : 0} ms)`);
+  await waitFor(B, () => !!(window.__prism && window.__prism.clock()), "the night phone's screen", 40000);
+  // GO: the song must be sounding on the throttled night phone — from its first slice (the whole file can't have arrived yet)
+  await waitFor(B, s => s.game && s.game.phase === 'play', 'GO on the throttled phone', 40000);
+  const atGo = await P(B, `(async () => { const f = await import('/js/firebase.js'); const ss = await import('/js/audio/synced-songs.js'); const g = window.__arcade.state.game; const a = window.__prism.audio(); const fl = (ss.songCache().held.find(x => x.url.startsWith(g.songs[0])) || {}).flow; return { late: f.serverNow() - g.playStartAt, goIn: g.playStartAt - g.songStartAt, made: f.serverNow() - g.phaseStartAt, flow: fl, slots: a.slots, parts: a.parts, decoded: a.decoded, swaps: a.swaps, look: document.body.dataset.look, beat: window.__prism.beat() }; })()`);
+  // (what else this phone downloaded while the song streamed — the line is shared)
+  const others = await P(B, `performance.getEntriesByType('resource').filter(r => r.startTime > performance.now() - 20000 && !/prismd\\d\\.mp3/.test(r.name)).map(r => [r.name.split('/').slice(-2).join('/').slice(0, 60), Math.round(r.transferSize / 1024) + 'KB', Math.round(r.duration) + 'ms']).filter(x => x[1] !== '0KB')`);
+  log('the throttled phone also fetched:', JSON.stringify(others));
+  const sounding = atGo.slots.filter(x => x.gain > 0.05 && x.id === gD.songs[0]);
+  // (THE LINE AS DELIVERED: Chrome's Slow 3G preset asks 50 KB/s, but this harness delivers ~12–36 KB/s to the stream run to run — measured,
+  //  nothing else fetched. A line slower than ~1.25× the song's own 14 KB/s can't carry ANY player's song through its opening: judged only
+  //  above that — below it the numbers are reported, not judged)
+  const fl = atGo.flow || {};
+  const rate = fl.n && fl.ago > fl.head ? fl.n / ((fl.ago - fl.head) / 1000) : 0;
+  const judged = rate >= 1.25 * 14000;
+  ok(atGo.look === 'night' && (sounding.length === 1 || !judged), `SLOW 3G (the line gave ${(rate / 1000).toFixed(1)} KB/s${judged ? '' : ' — under 1.25× the song’s own rate: NOT JUDGED'}):`);
+  if (judged) ok(atGo.look === 'night' && sounding.length === 1, `SLOW 3G: the DAY song is AUDIBLE at GO on the NIGHT phone (${Math.round(atGo.late)} ms after GO: ${JSON.stringify(atGo.slots)}; look ${atGo.look}; the stream: ${JSON.stringify(atGo.flow)}, the match made ${atGo.made} ms ago, GO ${atGo.goIn} ms into the song)`);
+  if (judged) ok(atGo.parts.length === 1 || atGo.swaps > 0, `QUICK START: it plays from a first slice while the rest streams in (${JSON.stringify({ parts: atGo.parts, decoded: atGo.decoded, swaps: atGo.swaps })})`);
+  const b0 = atGo.beat;
+  ok(b0 && b0.set === 'day' && b0.id === gD.songs[0] && (b0.origin != null || !judged), `THE HEARD BEAT: the night phone's lights follow the day song's sounding voice (${b0 && b0.title}, pos ${b0 && b0.pos.toFixed(2)} s, lead ${b0 && Math.round(b0.lead * 1000)} ms, unreported ${b0 && Math.round(b0.unreported * 1000)} ms)`);
+  // the swap: the throttle lifted — the rest arrives, the voice takes the whole song on one sample (one voice for the song throughout, no re-place)
+  await B.emulateNetworkConditions(null);
+  let maxVoices = 0, swapped = null;
+  for (let k = 0; k < 120 && !swapped; k++) {
+    const a = await P(B, 'window.__prism.audio()');
+    maxVoices = Math.max(maxVoices, a.slots.filter(x => x.i === 0).length);
+    if (a.decoded.length && !a.parts.length && a.swaps > 0) swapped = a;
+    else await sleep(250);
+  }
+  ok((!!swapped || !judged) && maxVoices <= 1 && (!swapped || swapped.restarts === 0), `QUICK START: the slice → the whole song on one sample (${swapped ? `${swapped.swaps} swap(s), ${swapped.restarts} re-place(s)` : 'no swap'}; at most ${maxVoices} voice for the song — no double play)`);
+  // the heard beat sits where the room's clock puts it (no jump between the server clock + the voice's own)
+  const hb = await P(B, `(async () => { const f = await import('/js/firebase.js'); const g = window.__arcade.state.game; const b = window.__prism.beat(); const L = await import('/js/games/prism/logic.js'); const s = L.songAt(g, f.serverNow()); return { pos: b.pos, srv: (f.serverNow() - s.start) / 1000 + b.cue - b.unreported - b.lead }; })()`);
+  ok(Math.abs(hb.pos - hb.srv) < 0.06, `THE HEARD BEAT: the voice's clock and the room's clock agree (${Math.round((hb.pos - hb.srv) * 1000)} ms)`);
+  await cleanText(B, 'the day song on a night phone');
+  await shot(B, 'pd-5a-day-song-night-phone');
+  // back: the looks as before (night), the room
+  await setLook(h, 'night');
+  await h.evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
+  await waitFor(h, s => s.meta.status === 'lobby' && !s.game, 'back in the room', 30000);
+  const used = await evalIn(h, s => s.meta && s.meta.used && s.meta.used.prism);
+  void used;
+}
+
 async function survivalAndSolo() {
   let hi = await hostIdx();
   let h = pages[hi];
@@ -270,11 +376,13 @@ try {
   await sleep(500);
 
   // ================================================================ MATCH A — BATTLE
+  await host.evaluate(() => { localStorage.setItem('ns:look', 'night'); window.dispatchEvent(new CustomEvent('ns-look', { detail: 'night' })); });   // (PD-5A: the night set — AUTO would follow this machine's clock)
   await host.evaluate(() => import('/js/host.js').then(m => m.startGame('prism', { mode: 'battle' })));
   await waitFor(host, s => s.game && s.game.id === 'prism' && s.game.phase === 'count', 'count phase');
   const gA = await game(host);
   log('songs', gA.songs.join(','), 'go in', gA.playStartAt - gA.songStartAt, 'ms of song');
   ok(gA.songs.length >= 2 && gA.songs.every(Boolean), 'BATTLE: a playlist of songs is dealt for the match');
+  ok(gA.set === 'night' && gA.songs.every(id => /^prism\d$/.test(id)) && !gA.cu, `THE HOST's SET: a NIGHT host deals the night set — unchanged (${gA.set}: ${gA.songs.join(', ')})`);
   await Promise.all(alive().map(i => pages[i].waitForFunction(() => window.__prism && window.__prism.world() && window.__prism.clock() && window.__prism.clock().doc, { timeout: 20000 }).catch(async e => {
     const d = await pages[i].evaluate(() => { try { const p = window.__prism; return p ? { world: p.world(), clock: !!p.clock(), doc: !!(p.clock() && p.clock().doc), audio: p.audio() } : 'no hook'; } catch (err) { return 'ERR ' + err.message; } });
     throw new Error(`${NAMES[i]}: world not ready ${JSON.stringify(d)}`);
@@ -465,6 +573,7 @@ try {
     await waitFor(A, s => s.meta.status === 'lobby' && !s.game, 'FAST: back in the room', 30000);
     await A.waitForSelector('.title-screen.is-room .rdk-dock', { timeout: 30000 });
     ok(true, 'FAST: back in THE ROOM IN THE CITY (the room dock)');
+    await soundChecks();
     await survivalAndSolo();
     throw new Error('FAST done');
   }
@@ -544,6 +653,10 @@ try {
   // ---------------------------------------------------------------- the host's phone dies
   const hk = await hostIdx();
   log('killing the host', NAMES[hk]);
+  // (PD-5A: the bots' junk could top the host out in the instant before its phone "dies" — then it's out by a KO, not gone, and the check
+  //  below never gets its case: its bot stops + its board is cleared first, so the 30-s disconnect is the only way out)
+  await P(pages[hk], '(() => { window.__prism.stopBot(); const e = window.__prism.engine(); if (e) { e.cells.fill(0); e.pending.length = 0; } })()').catch(() => {});
+  await sleep(400);
   await pages[hk].close();
   dead.add(hk);
   await waitFor(anyPage(), (s, old) => s.meta.hostId && s.meta.hostId !== old, 'new host', 40000, uids[hk]);
@@ -597,8 +710,21 @@ try {
   // the duel
   await waitFor(anyPage(), s => !!s.game.duelAt || s.game.phase !== 'play', 'FINAL DUEL', 20000);
   // both duelists play their best for a while, so the duel lasts long enough to look at
-  { const gd = await game(anyPage()); for (const u of Object.keys(gd.participants).filter(u => !(gd.out && gd.out[u]))) if (alive().includes(idx(u))) await P(pages[idx(u)], `window.__prism.bot({ skill: 1, every: 120, seed: 41 })`); }
+  // (PD-5A: two skill-1 bots made the duel a coin flip — it could end before the test's own top-out with the other winner; the test's winner
+  //  plays its best, the other a little weaker + slower, so the duel lasts + ends the way the checks below expect)
+  { const gd = await game(anyPage()); for (const u of Object.keys(gd.participants).filter(u => !(gd.out && gd.out[u]))) if (alive().includes(idx(u))) await P(pages[idx(u)], idx(u) === keepA ? `window.__prism.bot({ skill: 1, every: 120, seed: 41 })` : `window.__prism.bot({ skill: 0.7, every: 240, seed: 42 })`); }
   ok(!!(await game(anyPage())).duelAt, 'FINAL DUEL: triggered when two are left');
+  // (PD-5A: the spectator's view read AT the duel's start — two skill-1 bots can end a duel in ~6 s, and a reading after the shots below
+  //  found "CHARLIE WINS" instead: a race in the test, the view itself right; waits up to 3 s for it while the battle is still on)
+  let spDuel = null;
+  if (caller != null) {
+    for (let k = 0; k < 15; k++) {
+      spDuel = await P(pages[caller], 'window.__prism.spec()');
+      if (spDuel.on && spDuel.lead.length === 2 && /DUEL SOON/.test(spDuel.head)) break;
+      if ((await game(anyPage())).phase !== 'play') break;
+      await sleep(200);
+    }
+  }
   await pages[keepA].waitForSelector('.pd-title', { timeout: 6000 }).catch(() => {});
   await sleep(300);
   await shot(pages[keepA], 'pd-08-duel-title');
@@ -607,7 +733,7 @@ try {
   await shotBoth(pages[keepA], 'pd-09-duelist');
   if (caller != null) {
     await shotBoth(pages[caller], 'pd-10-spectator-duel');
-    const sp = await P(pages[caller], 'window.__prism.spec()');
+    const sp = spDuel;
     ok(sp.on && sp.lead.length === 2 && /DUEL SOON/.test(sp.head), `SPECTATE: the two left BIG side by side + DUEL SOON ("${sp.head}", ${sp.field} more on the line)`);
   }
   const lift = await P(pages[keepA], 'window.__prism.audio()');
@@ -637,10 +763,13 @@ try {
     const h = pages[await hostIdx()];
     await h.evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
     await waitFor(h, s => s.meta.status === 'lobby', 'lobby', 15000);
+    // (PD-5A: the host may have changed — its look picks the set; pinned to NIGHT here: this checks the night playlist moving on after Match A)
+    await h.evaluate(() => { localStorage.setItem('ns:look', 'night'); window.dispatchEvent(new CustomEvent('ns-look', { detail: 'night' })); });
     await h.evaluate(() => import('/js/host.js').then(m => m.startGame('prism', { mode: 'rush' })));
     await waitFor(h, s => s.game && s.game.phase === 'count' && s.game.settings.mode === 'rush', 'rush count');
     const gR = await game(h);
-    const expect = await h.evaluate(async (seed, n) => { const L = await import('/js/games/prism/logic.js'); const S = await import('/js/games/prism/songs.js'); const ids = (await S.loadManifest()).map(x => x.id); return L.playlistAt(seed, n, ids); }, plBefore.seed, plBefore.n);
+    ok(gR.set === 'night', `THE HOST's SET: the NEW host's look picks the next match's set (${gR.set})`);
+    const expect = await h.evaluate(async (seed, n) => { const L = await import('/js/games/prism/logic.js'); const S = await import('/js/games/prism/songs.js'); const ids = (await S.loadManifest()).filter(x => L.setOfSong(x) === 'night').map(x => x.id); return L.playlistAt(seed, n, ids); }, plBefore.seed, plBefore.n);
     ok(gR.songs[0] === expect && gR.songs[0] !== gA.songs[1], `PLAYLIST: the next match plays the next song of the room playlist (${gR.songs[0]}, position ${plBefore.n})`);
     ok(gR.endAt - gR.songStartAt > 60_000, `SCORE RUSH: the match is one song long (${Math.round((gR.endAt - gR.songStartAt) / 1000)} s, ends on its final beat)`);
     await waitFor(h, s => s.game.phase === 'play', 'rush GO', 30000);
@@ -678,6 +807,7 @@ try {
     await shotBoth(hr, 'pd-17-rush-final');
   }
 
+  await soundChecks();
   await survivalAndSolo();
 
   // ---------------------------------------------------------------- the settings sheet (controls)

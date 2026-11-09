@@ -25,6 +25,12 @@
      PD-4 — THE DAY LOOK (&look=day = THE CRAYON LOOK):
        &paper=notepad|graph|construction|coloring   the page the host dealt (default: the seed's)
        (the &fx loops + &inc + &shatter + &callout + every &state work by day too)
+     PD-5A — THE SOUND:
+       &set=day|night     the room's SONG SET (the host's look picked it; default night) — any look can play either set
+       &song=prismd1…5 | prism1…5    that song first (a day id → the day set)
+       &beat=1            THE BEAT CHECK: a big flash on every beat of the song AS HEARD (the downbeat brightest) + a readout — tap once
+                          for the sound, then judge the sync BY EAR (the flash must land on the kick / the snare you hear). The song starts
+                          near its top (its cue-in for a day song); &at=s puts it s seconds into the song
      prism-shots.mjs shoots it; Used for the look review + the frame timing. -->
 <html lang="en">
 <head>
@@ -47,6 +53,7 @@
 import * as E from '/js/games/prism/engine.js';
 import { chooseMove } from '/js/games/prism/bot.js';
 import { createGame } from '/js/games/prism/director.js';
+import { slotOf, setOfSong } from '/js/games/prism/logic.js';
 import { loadManifest } from '/js/games/prism/songs.js';
 import { rngFrom } from '/js/core/rng.js';
 import { loadGame, liveKeyFor } from '/js/games/registry.js';
@@ -79,16 +86,24 @@ const presence = Object.fromEntries(uids.map(u => [u, { online: true, lastSeen: 
 const participants = Object.fromEntries(uids.map(u => [u, true]));
 
 const songs = await loadManifest();
-const pick = songs.find(s => s.world === q.get('world')) || songs[0];
-const list = [pick.id, ...songs.filter(s => s.id !== pick.id).map(s => s.id)].slice(0, mode === 'rush' ? 1 : 5);
-const sd = list.map(id => Math.round((songs.find(s => s.id === id).duration || 180) * 1000));
+// (PD-5A) the room's SET: &set=day|night, or the set of the &song asked for
+const SET = q.get('set') === 'day' || /^prismd/.test(q.get('song') || '') ? 'day' : 'night';
+const setSongs = songs.filter(s => setOfSong(s) === SET);
+const pick = setSongs.find(s => s.id === q.get('song')) || setSongs.find(s => s.world === q.get('world')) || setSongs[0];
+const list = [pick.id, ...setSongs.filter(s => s.id !== pick.id).map(s => s.id)].slice(0, mode === 'rush' ? 1 : 5);
+const slots = list.map(id => slotOf(songs.find(s => s.id === id), SET));
+const sd = slots.map(x => x.sd);
+const cu = SET === 'day' ? slots.map(x => x.cu) : null;
+const ff = SET === 'day' ? slots.map(x => x.ff) : null;
 const now = Date.now();
 const count = show === 'count';
 const fresh = q.get('fresh') === '1';
+const BEAT = q.get('beat') === '1';
 const played = mode === 'survival' ? Number(q.get('t') || 75_000) : fresh ? 1200 : 16_000;
-const songStartAt = count ? now - 1200 : now - played - 8000;
+// (&beat=1: the song near its top — &at=s into it — so the whole song can be checked from the start)
+const songStartAt = BEAT ? now - Number(q.get('at') || 1) * 1000 : count ? now - 1200 : now - played - 8000;
 const playStartAt = count ? now + 3400 : now - played;
-const game = { ...createGame({ matchId: 'pvw', settings: { mode }, participants, now, seed: q.get('seed') || 'preview', songs: list, sd, pl0: 0, songStartAt, playStartAt, endAt: mode === 'rush' ? now + 140_000 : null }), phase: count ? 'count' : 'play', names: Object.fromEntries(uids.map((u, i) => [u, NAMES[i]])) };
+const game = { ...createGame({ matchId: 'pvw', settings: { mode }, participants, now, seed: q.get('seed') || 'preview', songs: list, sd, pl0: 0, songStartAt, playStartAt, endAt: mode === 'rush' ? now + 140_000 : null, set: SET, cu, ff }), phase: count ? 'count' : 'play', names: Object.fromEntries(uids.map((u, i) => [u, NAMES[i]])) };
 game.out = {}; game.bd = {}; game.ko = {};
 // (PD-4) the page the host dealt: &paper=notepad|graph|construction|coloring (default: the seed's — as a game from before the deal)
 { const P = ['notepad', 'graph', 'construction', 'coloring'].indexOf(q.get('paper')); if (P >= 0) game.pp = P; }
@@ -186,6 +201,37 @@ if (q.get('heavy') === '1' && ready()) {
   window.__prism.incoming(3, uids[3] || uids[1], 600_000); window.__prism.incoming(3, uids[4] || uids[1], 600_000);
   let k = 0;
   setInterval(() => window.__prism.fire('clear', { lines: 4, combo: 1 + (k++ % 6) }), 650);
+}
+// (PD-5A) THE BEAT CHECK: a full-screen flash on every beat AS HEARD (window.__prism.beat() — the same clock every beat-timed visual reads)
+if (BEAT) {
+  // the sound, as the app has it: the engine's tap listeners (app.js#installAudio) — the first tap unlocks the audio
+  (await import('/js/audio/engine.js')).installAudio();
+  updateSettings({ muted: false, musicOff: false });
+  const flash = document.createElement('div');
+  flash.style.cssText = 'position:fixed;inset:0;z-index:9998;pointer-events:none;background:#fff;opacity:0;will-change:opacity';
+  const read = document.createElement('div');
+  read.style.cssText = 'position:fixed;left:50%;bottom:calc(var(--safe-b, 0px) + 96px);transform:translateX(-50%);z-index:9999;pointer-events:none;background:rgba(8,6,14,.9);color:#fff;font:600 12px/1.45 "JetBrains Mono",monospace;padding:8px 12px;border-radius:10px;text-align:center;white-space:pre;max-width:calc(100vw - 32px);overflow:hidden';
+  const tap = document.createElement('button');
+  tap.textContent = 'TAP FOR SOUND';
+  tap.style.cssText = 'position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:10000;min-height:56px;padding:0 28px;border-radius:12px;border:2px solid #ff4fd8;background:#16061a;color:#fff;font:700 18px "Chakra Petch",sans-serif;letter-spacing:.08em';
+  tap.addEventListener('click', () => { tap.remove(); });
+  document.body.append(flash, read, tap);
+  let lastRead = 0;
+  const frame = now => {
+    requestAnimationFrame(frame);
+    const b = window.__prism && window.__prism.beat && window.__prism.beat();
+    const p = b && b.beat;
+    // a hard flash ON the beat, gone within ~a sixth of it (the downbeat full, the rest softer)
+    flash.style.opacity = p && b.pos >= 0 ? String((p.down ? 0.9 : 0.5) * Math.exp(-Math.max(0, p.ph) * 14)) : '0';
+    if (now - lastRead > 250 && b) {
+      lastRead = now;
+      const a = window.__prism.audio();
+      const sounding = a && a.slots && a.slots.length ? 'PLAYING' + (a.parts && a.parts.length ? ' (first slice)' : '') : 'silent — tap';
+      const ms = v => (v == null ? '—' : `${Math.round(v * 1000)} ms`);
+      read.textContent = `${String(b.title || b.id).toUpperCase()} · ${b.set.toUpperCase()} SET\n${b.bpm} BPM · beat ${p ? ((p.idx % 4) + 4) % 4 + 1 : '-'}/4 · ${b.pos.toFixed(2)} s\nlead ${ms(b.lead)} (${b.leadState.state}) · speaker ${ms(b.speaker)} · unreported ${ms(b.unreported)}\n${sounding}`;
+    }
+  };
+  requestAnimationFrame(frame);
 }
 document.body.dataset.ready = '1';
 </script>

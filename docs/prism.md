@@ -67,9 +67,47 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
   (`pulse/clock.js#ctxAtServer`) — never streamed through an <audio> element and "corrected" (that version warbled and
   stuttered on phones). Only the playing song + the next (≤ 45 s before its turn) stay decoded; after a suspension the song
   is restarted once at the right spot. It plays through a low-pass (DANGER: stack ≥ 13 rows sinks it toward 600 Hz) and a lift gain (DUEL).
-  Menu music is off during the match (`MUSIC = null`); the podium plays victory. **The song file is NOT preloaded** (1.8–3.2 MB, fetched whole
-  + decoded before it plays — `audio/synced-songs.js`): the match never waits for it (everything runs on the server clock), but on a slow line the
-  first seconds play silent while it downloads — PD-5 (a slice-first start, `core/mp3-slice.js`, as the city's songs do).
+  Menu music is off during the match (`MUSIC = null`); the podium plays victory. **The song file is NOT preloaded** (1.8–3.2 MB) — it streams in
+  at the start, QUICK-STARTED (PD-5A, below); the match never waits for it (everything runs on the server clock).
+- **THE TWO SETS — THE HOST's SET (PD-5A, Nov 9 2026):** NIGHT = the original five (`prism1-5`, unchanged: no `look` in the manifest) · DAY =
+  five lo-fi songs (`prismd1-5`, manifest `look: 'day'` + a HAND-SET world, never the mood picker): Roof Tops → sunset · Summer Felt Longer Then
+  → city · The Last Long Day → crystal · Feeling Human Again → aurora (HoliznaCC0, CC0 — ☰ → CREDITS) · the owner's City song c2-day8 → nebula
+  (encoded from his ORIGINAL `Downloads/day/day8.mp3` — the md5 the city's import recorded). At `start` the HOST's resolved look (THE GAME LOOK
+  — AUTO = the host's sun: `kit/look.js#resolveLook` + `sunUpNow`) picks the room's set → `game.set`; EVERY phone plays that set's songs in
+  sync whatever look it draws (the view reads `game.songs` only); a host change keeps it (the director never touches it); a refresh rejoins the
+  same song at its place. Each set its own no-repeat shuffle (`logic.js#dealSongs`): NIGHT on `meta/prism/n` (the deal is byte-for-byte the
+  old one — a test proves it), DAY on the seed `<roomSeed>:day` + its position in THE NIGHT's MEMORY (`meta/used/prism/dn<N>` = the day
+  playlist has reached N, the highest counts — `dayPos` / `dayKey`; no rules change). A day song's CUE-IN (`cue`, s — a soft intro skipped:
+  the room's schedule starts the FILE there; the file untouched) → `game.cu` (ms, only when a song has one); its slot ends at its LAST STRONG
+  BEAT (`slotOf`: `sd` = lastBeat − cue + the 4 s crossfade) — BATTLE / SURVIVAL crossfade into the next day song FROM that beat (the night
+  set keeps its whole-song slots). SCORE RUSH = one song, its end = `lastBeat` after the cue (`logic.js#matchTiming` — GO on a downbeat ≥ 3.2 s
+  into the schedule, both on the song's own grid). The preload predicts the set from THIS phone's look (most rooms' phones share a clock).
+- **QUICK START (PD-5A — `audio/synced-songs.js` `quick: true`, docs/audio.md "QUICK START"):** the song is STREAMED (one request); as its bytes
+  arrive SLICES are decoded from the stream's first frame — 12 s, 30 s, 75 s, each at least where the song will be (its place now + 6 s); when
+  the song is due + nothing sounds, whatever has arrived (if it covers the moment + 1 s); a slice running low (< 3 s left, in the first 45 s)
+  re-cut from what has arrived (≤ 8 slices). Every slice's samples ARE the whole decode's (`core/mp3-slice.js#prefixCut` — a frame boundary;
+  the E2E compares all ten files: the difference 0) → the player SWAPS slice → longer slice → whole on ONE SAMPLE (`core/sync-math.js#envelopeFrom`
+  carries the gain on): no seam, no double play, no re-place. **A CUE-IN = RANGE MODE:** the stream starts at a frame ~0.5 s before the cue — ONE
+  Range request, placed from the file's first audio frame's byte the build measured (`ff`, dealt in `game.ff` beside `game.cu`; without it a
+  second request for the first 4 KB places it); a headerless decode lands `LAME_DELAY` 1105 samples later than the
+  whole file's trimmed one — the same samples otherwise (measured: 0) — so each buffer carries its sample 0's FILE time (`bufferT0`). The intro
+  is never fetched (Feeling Human Again: ~500 KB). A slice only while the rest is > 1.2 s away (good signal = one decode, as before). Slow 3G
+  (50 KB/s, 2 s latency): AUDIBLE AT GO (e2e — incl. Feeling Human Again from 34.19 s, and an 8-board room sharing the line at ~17–24 KB/s).
+- **THE BEAT FIX — THE HEARD BEAT (PD-5A — `sync.js` PURE + `audio.js#createHeardBeat`; tests/prism-sound.test.mjs):** before, the beat-timed
+  visuals ran on the SERVER clock beside the song's AUDIO clock — an iPhone reports no output latency, and SETTINGS → SPEAKER DELAY moved the song
+  earlier but not the lights → the lights ran AHEAD of what you hear. Now ONE clock, `view.js#songClock`: `pos` = the song AS HEARD = (the audio
+  clock's heard time − the SOUNDING voice's origin — `synced-songs.js#voice`) − SPEAKER DELAY − what the browser can't report (an iPhone's built-
+  in speaker: 20 ms, the city's figure — 0 when it reports a latency) − the measured lead; before a voice sounds, the same place from the room's
+  clock (`serverSongPos` — the two agree: e2e 0–1 ms). The world's pulse (`beatPulse`), the countdown's numbers + ticks, the musical SFX (the
+  next 16th: `atCtx(songT)` = the voice's origin + songT + the lead — the song's own clock, so a SPEAKER DELAY no longer puts every clear late),
+  SCORE RUSH's finale — all read it. **THE MEASURED LEAD** (the city's approach — core/harbor-beat.js): a listener on PRISM's song chain (the
+  city's own: a 150 Hz low-pass → a 1024 analyser's time-domain RMS, its KICK_LAG) hears the strong kicks; `leadKick` turns their distance from
+  the grid into ONE number per song, slowly + bounded; a trusted grid ALWAYS punches — the kicks only trim it, and only up to `LEAD_CAP` 60 ms:
+  kicks that pull it further sit OFF the beats (a syncopated groove — Summer Felt Longer Then's) → that song is the grid alone (DEAF, lead 0 — never a
+  wrong shift); a lead still settling isn't applied. Measured in Chrome: c2-day8's kicks land within ±10 ms of the grid (lead −3 ms, locked); prism1
+  + Summer Felt Longer Then → deaf (the grid as built). What no page can hear: a Bluetooth / TV delay iOS doesn't report → SETTINGS → SPEAKER DELAY
+  (☰ → Settings, in a match too) — the song plays that much earlier AND the lights hold back the same. THE BEAT CHECK on a phone:
+  `prism-preview.html?beat=1&song=<id>` (a big flash on every beat as heard + the readout: the lead, the delays, the slice).
 - **Musical SFX** (`audio.js#createSynth`): every note comes from the current song's scale (`tonic` + `mode`); line-clear phrases,
   twists, KO, level-up are quantized to the song's next 16th note (beat clock from the analysis); combos climb the scale; the
   countdown ticks are scheduled on the beats before GO. Synth: soft plucks, FM bells, a detuned pad, one convolver reverb.
@@ -232,6 +270,16 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
   cell) = hard drop, swipe up = hold. Settings: GESTURES/BUTTONS, swipe sensitivity, button size, reduced effects (`audio/settings.js`
   `prismScheme/prismSens/prismBtn/prismReduced`). Keys: ← → ↓ space ↑/X Z C/shift. (PD-1: the gestures are UNCHANGED — the owner: "the controls
   are really good"; the flick slams only with SWIPE-DOWN SLAM on — `prismFlick`; by default THE SLAM BUTTON drops.)
+
+**THE DAY SET** (PD-5A — `python scripts/build-prism.py --day [--only prismd2]`): the five sources are fixed in `build-prism.py#DAY` (id, source,
+world, title, artist, Claude (chat)'s measured BPM); the originals are only read. Each: a two-pass `loudnorm` (−14 LUFS integrated, −1 dBTP — the
+target pulled down until the ENCODE holds −1 dBTP) → 112 kbps stereo 44.1 kHz; then the analysis of the encode decoded back: THE DAY SEARCH
+(`beat_grid_near` — the night search folds into 90–180 BPM: an 80 BPM song came out at 160) + the checks — the BPM within 0.1 of the measured one,
+NO DRIFT (the four quarters' best phase: trend ≤ 25 ms, scatter ≤ 45 ms — a groove may swing, a tempo error grows), NOT ON THE HALF-BEATS (the
+grid's onsets ≥ 1.15 × the half-beat grid's). A song that fails STOPS (nothing written) and prints its numbers — never a guess. Then the cue-in
+(`cue_in`: the first downbeat where the song's energy has arrived and stays — 30 ms before it; 0 when it's strong from the top or under 2 s in),
+the last strong beat, the key, `lufs` / `tp` / `check` in the song's JSON; `write_manifest` (night rows untouched, then the day rows with
+`look` + `cue`). The numbers: docs/harbor/passes/pd-5a.md.
 
 **Adding PRISM DROP songs** (the owner drops `prism6.mp3`, `prism7.mp3`, … into ~/Downloads and asks to "add the new PRISM DROP songs"):
 1. PULSE's Python venv (see PULSE step 1).

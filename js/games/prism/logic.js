@@ -21,6 +21,68 @@ export const SONGS_PER_MATCH = 5;     // a battle can run through this many song
 
 // ---------------------------------------------------------------- playlist (shared: core/playlist.js)
 export { playlistAt, songStarts, songAt, songsUsed } from '../../core/playlist.js';
+import { playlistAt, XF_MS } from '../../core/playlist.js';
+import { goBeat } from './songs.js';
+
+// ---------------------------------------------------------------- THE SETS (PD-5A — docs/prism.md "THE HOST's SET")
+// Two sets of songs: NIGHT (the original five — unchanged) and DAY (five lo-fi songs, manifest look: 'day'). The HOST's resolved look at the
+// match's start picks the room's set (game.set) — every phone plays that set's songs in sync, whatever look it draws. Each set keeps its own
+// no-repeat shuffle through the room's night: NIGHT on meta/prism/n (as before), DAY in the night's memory (meta/used/prism/dn<N> = the day
+// playlist has reached N — the highest N counts; no new rule). A day song's CUE-IN (manifest `cue`, s) skips a soft intro: the schedule
+// starts the file there (game.cu, ms); its slot ends at its LAST STRONG BEAT — the next song's crossfade starts there (sd = lastBeat − cue + XF).
+export const SETS = Object.freeze(['night', 'day']);
+export const setOfSong = s => (s && s.look === 'day' ? 'day' : 'night');
+/** the set a resolved look plays: 'day' | 'night' */
+export const setForLook = look => (look === 'day' ? 'day' : 'night');
+/** the day playlist's position in this room (the night's memory: meta/used/prism) */
+export function dayPos(used) {
+  let n = 0;
+  for (const k of Object.keys(used || {})) { const m = /^dn(\d+)$/.exec(k); if (m) n = Math.max(n, Number(m[1])); }
+  return n;
+}
+/** the night-memory key that moves the day playlist to position n */
+export const dayKey = n => `dn${Math.max(0, Math.floor(n))}`;
+/**
+ * Deal a match's songs. manifest: the manifest's songs · set: 'day' | 'night' (a set with no songs → night) · roomSeed · pos: the set's
+ * playlist position · count. → { set, songs: [ids], sd: [ms], cu: [ms] | null }
+ */
+export function dealSongs({ manifest = [], set = 'night', roomSeed, pos = 0, count = 1 }) {
+  let pool = manifest.filter(s => setOfSong(s) === set);
+  if (!pool.length) { set = 'night'; pool = manifest.filter(s => setOfSong(s) === 'night'); }
+  const ids = pool.map(s => s.id);
+  const seed = set === 'day' ? `${roomSeed}:day` : roomSeed;
+  const songs = ids.length ? Array.from({ length: count }, (_, i) => playlistAt(seed, pos + i, ids)) : [];
+  const byId = Object.fromEntries(pool.map(s => [s.id, s]));
+  const slots = songs.map(id => slotOf(byId[id], set));
+  return { set, songs, sd: slots.map(x => x.sd), cu: set === 'day' ? slots.map(x => x.cu) : null, ff: set === 'day' ? slots.map(x => x.ff) : null };
+}
+/**
+ * The match's song timing (PURE — index.js#start + the tests): the GO (the first downbeat ≥ COUNT_MIN_MS into the room's schedule) and
+ * SCORE RUSH's end (the first song's LAST STRONG BEAT), both on the song's own grid — a day song's cue-in included (the schedule starts the
+ * file at the cue: song time = schedule time + cue). doc0: the first song's analysis (null while unknown).
+ */
+export function matchTiming({ songStartAt, doc0 = null, cue0 = 0, sd0 = 0, hasSongs = true }) {
+  let playStartAt = songStartAt + COUNT_MIN_MS + 800;
+  let endAt;
+  if (!hasSongs) endAt = playStartAt + 150_000;
+  else if (doc0) {
+    const go = goBeat(doc0, cue0 + COUNT_MIN_MS / 1000);
+    playStartAt = songStartAt + Math.round((go.time - cue0) * 1000);
+    endAt = songStartAt + Math.round(((doc0.lastBeat || doc0.duration - 2) - cue0) * 1000);
+  } else endAt = songStartAt + sd0 - 2000;
+  return { playStartAt, endAt };
+}
+/** one song's slot in the schedule (ms): sd = its length in the room's schedule, cu = its cue-in. NIGHT: the whole file, no cue (as
+ *  before PD-5A). DAY: from the cue-in to the LAST STRONG BEAT + the crossfade (the next song fades in from that beat) */
+export function slotOf(song, set = setOfSong(song)) {
+  const s = song || {};
+  const dur = s.duration || 180;
+  if (set !== 'day') return { sd: Math.round(dur * 1000), cu: 0, ff: 0 };
+  const cue = Math.max(0, s.cue || 0);
+  const last = s.lastBeat > cue ? s.lastBeat : dur;
+  // (ff: the file's first AUDIO frame's byte — a cue-in's quick start streams from a frame just before the cue in ONE request: synced-songs.js)
+  return { sd: Math.round(Math.min(dur - cue, last - cue + XF_MS / 1000) * 1000), cu: Math.round(cue * 1000), ff: Math.max(0, Math.floor(s.ff || 0)) };
+}
 
 // ---------------------------------------------------------------- battle pacing
 export const battleLevel = elapsed => Math.min(12, 1 + Math.floor(Math.max(0, elapsed) / SPEED_STEP_MS));

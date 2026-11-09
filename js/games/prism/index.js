@@ -1,13 +1,20 @@
 // PRISM DROP module entry (see games/registry.js for the contract).
 import { createGame, nextStep, nightBonus as bonus } from './director.js';
-import { LEAD_MS, COUNT_MIN_MS, SONGS_PER_MATCH, playlistAt, standings, cleanSettings } from './logic.js';
+import { LEAD_MS, SONGS_PER_MATCH, playlistAt, standings, cleanSettings, dealSongs, dayPos, setForLook, setOfSong, matchTiming } from './logic.js';
 // (SHELL 2.0 B1 — THE THIN META: DEFAULT_SETTINGS, MIN_PLAYERS, OPTIONS, estimateMinutes, MUSIC, the banner, the chat's lock — meta.js)
 export * from './meta.js';
-import { loadManifest, loadSong, goBeat } from './songs.js';
+import { loadManifest, loadSong } from './songs.js';
 import { state } from '../../store.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { markUsed } from '../kit/night.js';
 import { pickPaper } from './crayon.js';
+import { currentLook, resolveLook, sunUpNow } from '../kit/look.js';
+
+/** (PD-5A — THE HOST's SET) the look THIS phone resolves now: its THE GAME LOOK choice, AUTO = the real sun → 'day' | 'night' */
+async function lookNow(ms) {
+  const choice = currentLook();
+  return resolveLook(choice, choice === 'auto' ? await sunUpNow(ms) : true);
+}
 
 export const createView = lazyView(() => import('./view.js'), gameSheets('prism'));
 // the match plays its own songs (synced to the server clock, through a filter for the danger/duel effects)
@@ -23,38 +30,29 @@ function newSeed() {
 export async function start({ matchId, settings, participants, now, used }) {
   const s = cleanSettings(settings, Object.keys(participants || {}).length);   // (PD-2: one player never plays BATTLE)
   const songs = await loadManifest().catch(() => []);
-  const ids = songs.map(x => x.id);
-  // the room's playlist: one seeded shuffle per room session, continuing match after match
+  // the room's playlist: one seeded shuffle per room session and per SET, continuing match after match (PD-5A: the HOST's look picks the
+  // set — stored in the game; every phone plays it, whatever it draws)
   const pm = (state.meta && state.meta.prism) || {};
   const roomSeed = pm.seed || newSeed();
-  const pl0 = pm.n || 0;
+  const set0 = setForLook(await lookNow(now).catch(() => 'night'));
+  const usedP = (used && used.prism) || {};
+  const pos = set => (set === 'day' ? dayPos(usedP) : pm.n || 0);
   const count = s.mode === 'rush' ? 1 : SONGS_PER_MATCH;
-  const list = ids.length ? Array.from({ length: count }, (_, i) => playlistAt(roomSeed, pl0 + i, ids)) : [];
-  const byId = Object.fromEntries(songs.map(x => [x.id, x]));
-  const sd = list.map(id => Math.round(((byId[id] && byId[id].duration) || 180) * 1000));
+  const deal = dealSongs({ manifest: songs, set: set0, roomSeed, pos: pos(set0), count });
+  const { set, songs: list, sd, cu, ff } = deal;
+  const pl0 = pos(set);
   const songStartAt = now + LEAD_MS;
-  let playStartAt = songStartAt + COUNT_MIN_MS + 800;
-  let endAt = null;
-  if (list.length) {
-    const doc = await loadSong(list[0]).catch(() => null);
-    if (doc) {
-      const go = goBeat(doc, COUNT_MIN_MS / 1000);
-      playStartAt = songStartAt + Math.round(go.time * 1000);
-      endAt = songStartAt + Math.round((doc.lastBeat || doc.duration - 2) * 1000);
-    } else {
-      endAt = songStartAt + sd[0] - 2000;
-    }
-  } else {
-    endAt = playStartAt + 150_000;
-  }
+  // GO + SCORE RUSH's end on the first song's grid (its cue-in included — logic.js#matchTiming)
+  const doc0 = list.length ? await loadSong(list[0]).catch(() => null) : null;
+  const { playStartAt, endAt } = matchTiming({ songStartAt, doc0, cue0: cu ? cu[0] / 1000 : 0, sd0: sd[0] || 0, hasSongs: list.length > 0 });
   const seed = newSeed();
   // (PD-4 — THE PAPER: the host deals one page per match — the same for everyone, a different one every match; the night's memory remembers it)
   const paper = pickPaper(seed, (used && used.prism) || {});
   const game = { ...createGame({
     matchId, settings: s, participants, now, seed, songs: list, sd, pl0,
-    songStartAt, playStartAt, endAt,
+    songStartAt, playStartAt, endAt, set, cu, ff,
   }), pp: paper.i };
-  const $room = { ...markUsed('prism', [paper.key]), ...(pm.seed ? {} : { 'meta/prism': { seed: roomSeed, n: pl0 } }) };
+  const $room = { ...markUsed('prism', [paper.key]), ...(pm.seed ? {} : { 'meta/prism': { seed: roomSeed, n: pm.n || 0 } }) };
   return { ...game, $room };
 }
 
@@ -65,10 +63,14 @@ export function prepare() { /* nothing to top up: every phone runs its own board
  *  the host deals it at the start) takes all five (~25 KB). The worlds are shaders in code (worlds.js — in the view's module graph, already
  *  preloaded by js/games/preload.js); the song FILE itself (1.8–3.2 MB) is NOT preloaded — it streams in at the start (docs/prism.md). */
 export function preload() {
-  return loadManifest().then(songs => {
-    const ids = songs.map(x => x.id);
+  // (PD-5A: the set is the HOST's look — predicted here from this phone's: a room plays the same set as most of its phones' clocks)
+  return Promise.all([loadManifest(), lookNow(Date.now()).catch(() => 'night')]).then(([songs, look]) => {
+    const set = setForLook(look);
+    const ids = songs.filter(x => setOfSong(x) === set).map(x => x.id);
     const pm = (state.meta && state.meta.prism) || {};
-    const first = pm.seed && ids.length ? playlistAt(pm.seed, pm.n || 0, ids) : null;
+    const used = (state.meta && state.meta.used && state.meta.used.prism) || {};
+    const pos = set === 'day' ? dayPos(used) : pm.n || 0;
+    const first = pm.seed && ids.length ? playlistAt(set === 'day' ? `${pm.seed}:day` : pm.seed, pos, ids) : null;
     return Promise.all((first ? [first] : ids).map(id => loadSong(id).catch(() => null)));
   }).catch(() => null);
 }

@@ -72,3 +72,21 @@ export function sliceAt(bytes, from, len, lead = 2) {
   const offset = frames[i0], end = i1 >= frames.length ? bytes.length : frames[i1];
   return { bytes: bytes.subarray(offset, end), startS: i0 * fs, endS: i1 * fs, frames: i1 - i0, sr, spf, offset, length: end - offset, atEnd: i1 >= frames.length, songS: frames.length * fs };
 }
+
+/** PD-5A — QUICK START (audio/synced-songs.js#quickDecode): the byte offset that ends the first `s` seconds of an MP3 PREFIX (the bytes
+ *  so far) — a frame boundary with every frame before it complete; the prefix is decoded from byte 0 (the tag + the encoder's header
+ *  kept), so its samples are the whole decode's samples → { end, s (the seconds it really covers) } | null (not that much yet) */
+export function prefixCut(bytes, s) {
+  const t = frameTable(bytes);
+  if (!t || !t.frames.length) return null;
+  const fs = t.spf / t.sr, k = Math.max(1, Math.floor(s / fs));
+  if (k >= t.frames.length) return null;
+  return { end: t.frames[k], s: k * fs };
+}
+/** the stream's bytes a second (from the frames walked so far; 0 while too few) */
+export function bytesPerSecond(bytes) {
+  const t = frameTable(bytes);
+  if (!t || t.frames.length < 3) return 0;
+  const f = t.frames, fs = t.spf / t.sr;
+  return (f[f.length - 1] - f[0]) / ((f.length - 1) * fs);
+}

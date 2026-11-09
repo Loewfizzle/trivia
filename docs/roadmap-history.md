@@ -2374,3 +2374,15 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - **Group 0 — SHARE TODAY's ONE CARD, BALANCED** (the owner's add-on): the sections use the full height, the header ~1.4×, THE PASSWORD centred with its
   two grids side by side (+40 %, a door over each — no names), COAST CLEAR's result + time a centred pair + 2× searchlights; each daily's own card
   pixel-identical (share-same 18 / 18).
+
+## PD-5A — PRISM DROP: THE SOUND (Nov 9, 2026 — docs/harbor/passes/pd-5a.md; the plan: docs/games/plan.md "PD-5 SPLIT + PD-5A")
+- **THE BEAT FIX — THE HEARD BEAT** (games/prism/sync.js PURE + audio.js#createHeardBeat; tests/prism-sound.test.mjs): every beat-timed visual + the
+  countdown + the musical SFX read ONE clock — the song as heard (the sounding voice's origin − SPEAKER DELAY − an unreported iPhone speaker's 20 ms
+  − the measured lead); the SFX schedule on the song's own clock (a SPEAKER DELAY no longer puts every clear late). THE MEASURED LEAD = the city's
+  listener (150 Hz low-pass, time-domain RMS) + its estimator, bounded to ±60 ms: kicks off the beats → the grid alone. `&beat=1` on prism-preview.
+- **QUICK START** (synced-songs.js `quick`): streamed, the first 12 / 30 / 75 s decoded from byte 0 as they arrive (the same samples as the whole
+  decode — all 10 files, difference 0), swapped on one sample; audible at GO on Slow 3G (e2e).
+- **THE DAY SET** (scripts/build-prism.py --day): prismd1–5 — Roof Tops 79.992 · Summer Felt Longer Then 79.997 · The Last Long Day 83.000 · Feeling
+  Human Again 79.010 · c2-day8 (from the original) 109.999 BPM; −14.4 LUFS each, ≤ −1.2 dBTP; cue-ins 2.96 / 2.23 / 0 / 35.7 / 0 s; hand-set worlds.
+- **THE HOST's SET** (logic.js#dealSongs / matchTiming): game.set from the host's resolved look; each set its own shuffle (DAY in the night's memory
+  `meta/used/prism/dn<N>` — no rules change); day slots end on the last strong beat (the crossfade from there). RUSH_MAX_S 240 → 241.
