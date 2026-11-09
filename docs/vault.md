@@ -706,3 +706,17 @@ COAST CLEAR's two collectibles, awarded by the SERVER from its own record of the
   the landed frame). The full card covers the 1000 × 630 scene (the pivot 74 % across, the left 42 % dark for the name); the SLIM strip has its OWN band (20–52 %
   down — the upper floors, the arch + PH) at the strip's height, the pivot ~0.80 across, PH clear of the gem. The old window-over-the-city effect
   (`js/fx/penthouse.js`) stays registered, unused.
+
+## THE BTC CARD — the ₿ balloon card's premium art + THE BURNER FLARE (Nov 8–9 — docs/harbor/passes/btc-card.md)
+- `card-sg-btc` (LEGENDARY, its line + emblem unchanged; the unlock unchanged — any ₿ balloon tap, server-verified) rebuilt on Grok's master
+  (`art/btc-card/src/card-btc-backup.png` → `assets/vault/btc/` by `scripts/build-btc-card.mjs`) + `js/fx/btc-card.js` (data + the burn schedule in
+  `btc-specs.js`). The old city-model scene (`sg-balloons.js#btc`, fx `sgBtc`) stays registered, unused.
+- **THE CLEAN BASE** (a new pattern for a card whose subject MOVES over Grok's art): the build fills the subject out of the master (`btc-clean` —
+  a push-pull fill) and cuts it out on its own (`btc-balloon`); the effect draws the clean master OPAQUE first, then the moving subject. Two rules
+  learned: (1) light drawn 'lighter' on the TRANSPARENT effect canvas adds fully only over an opaque canvas pixel — a partial opaque patch shows
+  its outline as a dark edge under a big glow, so the base is the WHOLE picture; (2) the GL painter's shared atlas is 2048² for every slot on the
+  page — keep a card's sprites small and let ONE big picture (> 1024 px) go external (a 560 × 540 patch overflowed it in a lobby of 8 sightings).
+- THE FLARE (the envelope lit from inside in its own shape, hottest at the mouth — `btc-lit`; the ₿ blazing; the bloom; Grok's glow plate moved
+  onto the REAL burner; the water catching it), THE BLOCK RING every 10 s, the coins rising + spinning, the sway, the sheen, THE REVEAL (a full card:
+  the balloon rises in + a big first burn). Reduced motion = the lit frame. Its own strip band (20–52 % down); the full card in the standard layout
+  (`vault/full.js#ART_SIGHTINGS`), its hero the balloon.

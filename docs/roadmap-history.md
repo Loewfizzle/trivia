@@ -2277,3 +2277,10 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   in the shared audio engine (one master gain, a ramp on the audio clock, then the suspend; back = a ramp up; the freeze event; the direct <audio> paused
   at the fade's start) with an E2E of the order.
 - Proof: unit 1380, the /api suites, e2e-coastclear 38, e2e-daily, e2e-password, smoke, the harbor groups touched.
+
+## THE BTC CARD (Nov 8–9, 2026, late night — docs/harbor/passes/btc-card.md)
+- The ₿ balloon card (`card-sg-btc`, legendary) rebuilt on Grok's master (the approved mock): its own strip band (the ₿ + the coins), the full card
+  in the standard layout (the plate off the balloon). THE FLARE: the burner fires in bursts a few seconds apart and the whole envelope lights up
+  from inside, the ₿ blazes, a bloom, the flame on the real burner, the water catching it; a gold BLOCK RING every 10 s; the coins rise + spin; the
+  balloon sways (a cut-out over the clean base); a sheen across the ₿; the reveal (the balloon rises in + a big first burn). LAB v2 (CHANGED).
+- The unlock unchanged, proved on the emulators (a ₿ balloon tap grants it once; no ₿ balloon up → nothing). 60 fps with the full card + a strip.
