@@ -209,11 +209,11 @@ function dots() {
 const ROOF_SPOTS = SPOTS.filter(sp => sp.mount === 'tower');
 const b0Seed = l => (l.seed || 1924) * 31 + 7;
 export function createLights() {
-  let L = null, faces = {}, beacons = [], spell = null, toggles = [], nextToggle = 0, sets = new Map(), lateTvs = [], lateK = 0;
+  let L = null, faces = {}, beacons = [], spell = null, lastDrop = null, toggles = [], nextToggle = 0, sets = new Map(), lateTvs = [], lateK = 0;
   let metaFar = newMeta(), metaNear = newMeta();
 
   function layout(l) {
-    L = l; faces = wordFaces(l); faceDark.clear(); toggles = []; spell = spell && respell(spell);
+    L = l; faces = wordFaces(l); faceDark.clear(); toggles = []; if (spell) { spell = respell(spell); if (!spell) lastDrop = 'layout'; }
     beacons = [];
     const u = l.cam.F / 600;
     let best = null;
@@ -298,7 +298,7 @@ export function createLights() {
   function spellIt(text, opts = {}) {
     if (!L) return false;
     const base = { opts, colour: opts.colour || [255, 238, 206], t0: opts.at ?? performance.now(), until: opts.ms ? (opts.at ?? performance.now()) + opts.ms : Infinity, out: -1 };
-    dropSpell();                                   // (a word replacing a word: its sprite goes)
+    dropSpell('replace');                          // (a word replacing a word: its sprite goes)
     // THE SCROLL: asked for (one face), or a word too long for its tower — it tickers across THAT tower's face (7a §0: one word
     // per tower; the others stand still); opts.tower may list towers ('wordA,wordB' — core/harbor-windows.js#TOWER_CHOICES)
     const b = build(text, opts);
@@ -306,7 +306,7 @@ export function createLights() {
     spell = { ...base, raw: text, ...b };
     return true;
   }
-  function clearSpell(fade = true) { if (spell) { if (fade) spell.out = performance.now(); else dropSpell(); } }
+  function clearSpell(fade = true) { if (spell) { if (fade) spell.out = performance.now(); else dropSpell('clear'); } }
 
   /** a window by its address: set(id, tier, col, row, { col: [r,g,b], a }) or null to give it back to the timeline */
   function set(id, tier, col, row, v) { const k = `${id}|${tier}|${col}|${row}`; if (v) sets.set(k, { ...v, id, tier, col, row }); else sets.delete(k); }
@@ -315,7 +315,7 @@ export function createLights() {
   function draw(c, group, now, k, motion) {
     // (a word cleared or run out BY DAY still finishes: the lights skip drawing then, so drawSpell's drop never came — the word lingered
     // in `spelling` until dusk; the panel's CLEAR ALL check failed by day)
-    if (spell && k <= 0.02 && ((spell.out >= 0 && now - spell.out > 1600) || now > spell.until + 1600)) dropSpell();
+    if (spell && k <= 0.02 && ((spell.out >= 0 && now - spell.out > 1600) || now > spell.until + 1600)) dropSpell('day');
     if (k <= 0.02 || !L) return;
     const t = now / 1000, meta = group === 'far' ? metaFar : metaNear;
     c.save();
@@ -455,7 +455,7 @@ export function createLights() {
     const sp = spell, el = now - sp.t0, D = dots();
     if (now > sp.until && sp.out < 0) sp.out = sp.until;
     const fadeIn = Math.min(1, el / 1200), fadeOut = sp.out >= 0 ? Math.max(0, 1 - (now - sp.out) / 1600) : 1;
-    if (fadeOut <= 0) { dropSpell(); return; }
+    if (fadeOut <= 0) { dropSpell('faded'); return; }
     const env = fadeIn * fadeOut * k;
     for (const S of sp.scrolls) {
       // THE SCROLL: one window-column a step, right to left, like a Times Square ticker (slower under Reduced motion) — one per
@@ -505,7 +505,7 @@ export function createLights() {
     }
     c.globalAlpha = fadeOut * k; c.drawImage(S.cv, S.x0, S.y0, S.w, S.h); c.globalAlpha = 1;
   }
-  const dropSpell = () => { if (spell && spell.sprite) spell.sprite.cv.width = spell.sprite.cv.height = 0; spell = null; };
+  const dropSpell = (why = '?') => { if (spell && spell.sprite) spell.sprite.cv.width = spell.sprite.cv.height = 0; if (spell) lastDrop = why; spell = null; };
 
   /**
    * THE POWER-ON (the title's tap; City 1.0's exactly): while S.wave < 1 the lit windows come on one by one instead of the
@@ -542,6 +542,6 @@ export function createLights() {
         cells: spell.parts.reduce((n, p) => n + p.cells.length, 0) + spell.scrolls.reduce((n, S) => n + bits(S.cols), 0) };
     },
     faces: () => Object.fromEntries(Object.entries(faces).map(([id, f]) => [id, { cols: f.cols, rows: f.rows, word: f.word, ar: +f.ar.toFixed(3), rect: (() => { const a = f.cell(0, 0), b = f.cell(f.cols - 1, f.rows - 1); return { x: a[0], y: a[1], w: b[0] + b[2] - a[0], h: b[1] + b[3] - a[1] }; })() }])),
-    debug: () => ({ lateTvs: lateTvs.length, lateK: +lateK.toFixed(2), beacons: beacons.length, twinkle: metaFar.twinkle.length, tv: metaNear.tv.length, cands: metaNear.cands.length, toggles: toggles.length, sets: sets.size }),
+    debug: () => ({ lastDrop, lateTvs: lateTvs.length, lateK: +lateK.toFixed(2), beacons: beacons.length, twinkle: metaFar.twinkle.length, tv: metaNear.tv.length, cands: metaNear.cands.length, toggles: toggles.length, sets: sets.size }),
   };
 }

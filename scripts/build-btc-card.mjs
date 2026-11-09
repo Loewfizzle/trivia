@@ -139,7 +139,26 @@ const res = await p.evaluate(async () => {
     const n = (rnd() - 0.5) * 5; return [lv[0].c[k * 3] + n, lv[0].c[k * 3 + 1] + n, lv[0].c[k * 3 + 2] + n, a]; });
   // THE CLEAN MASTER: the master with the patch pasted in (one opaque 1280 × 720 picture — the effect's base; an external texture, so the
   // shared atlas keeps its room: a 560 × 540 patch on top of the base overflowed it in a lobby of the 8 sighting cards)
-  { const c = canvas(W, H), x = c.getContext('2d'); x.drawImage(M, 0, 0); x.drawImage(patchCv, PB[0], PB[1]); out['btc-clean'] = webp(c, 0.86); }
+  // BOARD 2.0 A — THE HALO OUT: the master's burner halo left a soft warm COLUMN in the sky behind the balloon (x ≈ 830–990, y ≈ 230–560 —
+  // seen only while the balloon rises in). Its SMOOTH excess goes: a wide blur of the clean sky against a baseline drawn straight across the
+  // column from its two sides (each row), and only blur − baseline (where positive) subtracted, feathered — the clouds' own detail stays.
+  { const c = canvas(W, H), x = c.getContext('2d'); x.drawImage(M, 0, 0); x.drawImage(patchCv, PB[0], PB[1]);
+    const HB = [790, 200, 240, 400], [hx, hy, hw, hh] = HB, D = x.getImageData(hx, hy, hw, hh), dd = D.data;
+    const xl = 22, xr = hw - 23;   // (the baseline's two sides: x 812 + 1022)
+    for (const rad of [14, 6]) for (let ch = 0; ch < 3; ch++) {   // (two passes: the wide bump, then what a finer blur still sees)
+      const f = new Float32Array(hw * hh); for (let k = 0; k < hw * hh; k++) f[k] = dd[k * 4 + ch];
+      const bl = blur(f, hw, hh, rad, 3);
+      for (let y = 0; y < hh; y++) {
+        const L = bl[y * hw + xl], R = bl[y * hw + xr], fy = sm(0, 50, y) * (1 - sm(hh - 60, hh, y));
+        for (let u = 0; u < hw; u++) {
+          const fx = sm(xl, xl + 30, u) * (1 - sm(xr - 30, xr, u)), wgt = fx * fy; if (wgt <= 0) continue;
+          const base = L + (R - L) * ((u - xl) / (xr - xl)), ex = bl[y * hw + u] - base;
+          if (ex > 0) { const i = (y * hw + u) * 4 + ch; dd[i] = Math.max(0, Math.round(dd[i] - ex * wgt)); }
+        }
+      }
+    }
+    x.putImageData(D, hx, hy);
+    out['btc-clean'] = webp(c, 0.86); }
   // ---- THE ₿ (white on the envelope): its own pixels → the sheen's mask + the blaze
   let bx0 = W, by0 = H, bx1 = 0, by1 = 0;
   const whiteOf = (x, y) => { const [r, g, bb] = rgb(x, y); return env[y * W + x] > 0.5 && y < eBot - 80 ? sm(150, 215, Math.min(r, g, bb + 25)) : 0; };

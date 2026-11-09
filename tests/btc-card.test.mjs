@@ -44,7 +44,8 @@ test('THE BTC CARD — THE HERO-SPOT RULE: the envelope 0.60–0.84 across on th
 });
 
 test('THE BTC CARD — THE LAB: v2 + its CHANGED line + the new motion text; the credit; the baked layers on disk (small)', () => {
-  assert.equal(verOf('card-sg-btc'), 2); assert.equal(verOf('full-card-sg-btc'), 2);
+  assert.equal(verOf('card-sg-btc'), 2); assert.equal(verOf('full-card-sg-btc'), 3);   // (BOARD 2.0 A: the full card's v3 — the name, the sighting line, the rise-in)
+  assert.ok(LAB_CHANGES['full-card-sg-btc'].at(-1).v === 3 && /one line.*sighting line back.*rise-in fixed/i.test(LAB_CHANGES['full-card-sg-btc'].at(-1).what), 'the v3 CHANGED line');
   for (const id of ['card-sg-btc', 'full-card-sg-btc']) {
     assert.ok(LAB_CHANGES[id] && LAB_CHANGES[id][0].v === 2 && /premium art \+ the burner flare/i.test(LAB_CHANGES[id][0].what), id);
     assert.match(LAB_TEXT[id].motion, /burn/i);

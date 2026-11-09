@@ -138,7 +138,9 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const plate = h('div.vl-fc-plate',
     // (THE VAULT 2A: the player's emblem + tube style + name glow — as on their strip)
     h('span.vl-fc-emb', emblemEl({ id: hasArt(who.shape) ? who.shape : null, avatar: who.avatar || 'bolt', color: who.color || 'magenta', tube: who.tube, mode: prominence(t, embTier(hasArt(who.shape) ? who.shape : null)) })),
-    h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', { class: t === 'legendary' ? 'vg-still' : '' }, name), who.glow), { min: 15, two: 17 }), h('small.vl-fc-lv', `LV ${lv}`)));
+    // (BOARD 2.0 A — A 12-LETTER NAME ON ONE LINE: the name shrinks to its column down to 13 px — THE CARD TEXT STANDARD's name floor — before
+    //  it ever splits; was 15, which sent MAXIMILIANOS to two lines on THE BTC CARD at 390 — its plate stops before the balloon)
+    h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', { class: t === 'legendary' ? 'vg-still' : '' }, name), who.glow), { min: 13, two: 17 }), h('small.vl-fc-lv', `LV ${lv}`)));
   coverWidest(plate); stepPlate(plate);   // (CARD FIXES: the full card's plate steps too — the step / THE REVERSE STEP)
   const dev = isOneOfOne(card), badge = badgeOf(card);   // (B2: `dev` here = any 1-of-1 — the rainbow gem + 1 OF 1; the plate's dev line reads isDevCard)
   const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}${dev ? ' vl-dev1' : ''}${isGiftCard(card) ? ' vl-gift-fc' : ''}`, dataset: { card, tier: t } },
@@ -151,7 +153,10 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
     who.fd && !sighting && badge.slot === 'pill' && !isGiftCard(card) ? h('span.vl-fc-fd', 'FOUNDER') : null,
     sighting ? h('div.vl-fc-title', { class: nameOf(card).length > 18 ? 'is-long' : '' }, h('b', nameOf(card)), h('small', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : null,
     plate,
-    h('div.vl-fc-foot', h('span.vl-fc-since', h('em.vl-fc-rank', isDevCard(card) ? `DEV · ${bandOf(lv).name}` : bandOf(lv).name), h('small', 'MEMBER SINCE'), h('b', sinceOf(who.at))), sighting ? null : h('span.vl-fc-card', nameOf(card))),
+    // (BOARD 2.0 A: a sighting rebuilt on premium art keeps the SIGHTING's title + spot line — the printed name in the sighting's glow with the spot
+    //  line under it, at the foot: vault/layout.js keeps the plate clear of them, the balloon's hero box above them)
+    h('div.vl-fc-foot', h('span.vl-fc-since', h('em.vl-fc-rank', isDevCard(card) ? `DEV · ${bandOf(lv).name}` : bandOf(lv).name), h('small', 'MEMBER SINCE'), h('b', sinceOf(who.at))),
+      sighting ? null : ART_SIGHTINGS.has(card) ? h('span.vl-fc-card.vl-fc-sgt', h('b', nameOf(card)), h('small.vl-fc-spot', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : h('span.vl-fc-card', nameOf(card))),
     // FOUNDING MEMBER (THE VAULT 2A): the member's REAL number, stamped in gold — a numbered first edition (+ MEMBER SINCE moves in)
     card === 'card-founder' ? h('div.vl-fc-stamp', h('small', 'FOUNDING MEMBER'), h('b', who.no != null ? `№ ${who.no}` : '№ —'), h('em', `SINCE ${sinceOf(who.at)}`)) : null,
     t === 'legendary' ? h('i.vl-fc-brackets', { 'aria-hidden': 'true' }, h('i'), h('i')) : null,

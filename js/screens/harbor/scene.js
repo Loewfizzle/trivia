@@ -335,7 +335,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const leaves = createLeaves();                  // (8a: the trees' falling leaves / petals — live)             // (8a: THE IMPLIED ROAD's cars — light only, + their sound)
   // (the word's flags are read when it lights: THE PREVIEW PANEL changes them live)
   const spellOpts = () => [qp.get('text') || 'HELLO', { style: qp.get('style') || 'wipe', tower: qp.get('tower') || undefined }];
-  let spellBy = null;                             // who lit the current word: 'force' | an event's seed
+  let dbgFadeIn = 0; let spellBy = null;                             // who lit the current word: 'force' | an event's seed
   let raf = 0, last = 0, lastRaf = 0, running = false, destroyed = false, t0 = performance.now();
   let drawn = 0, fastUntil = 0, fastWhy = '';      // BATTERY: the frames actually drawn; what keeps the city at 60 fps right now
   let shownClock = null;                   // (9c: the city's clock at THE REVEAL — a preview forced at the load starts here, not under the curtain)
@@ -1929,7 +1929,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function drawCity(F, t, dt, now) {
     const { c, deadCity, deadFar, dk0, fs, lit, off } = F;
     // ---- the city: the baked layers, far → near, with the moving things between them
-    const fadeIn = fadeT0 < 0 ? 0 : smooth(0, 900, now - fadeT0);
+    // (BOARD 2.0 A — THE FAST REVEAL: "revealed" = shownAt, never the sign of fadeT0 — a reveal under the boot screen in the page's first
+    //  900 ms set fadeT0 = now − 900 < 0, read as "not revealed": the city drew at opacity 0 for good and the word towers never lit)
+    const fadeIn = shownAt < 0 ? 0 : smooth(0, 900, now - fadeT0);
     mk9('the skyline');
     const crispOn = crisp.begin(c, tier, !off.has('no-crisp') && fadeIn > 0 && !!L && !!bakeTones && !!baker.key);   // (9c: the crisp layer this frame)
     const xf = fadeFrom < 0 ? 1 : smooth(0, fadeMs, now - fadeFrom);
@@ -1983,7 +1985,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (sky.showOver) sky.showOver(c, fs);
     { const dkN = deadCity && darkOf('near'); if (dkN && fadeIn > 0) { const g = baker.group('near'); c.globalAlpha = fadeIn; c.drawImage(dkN.cv, 0, g.show.y0, W, g.show.h); c.globalAlpha = 1; } else pair('near', 'nearLit', deadCity ? 0 : winK, lx, xf, fadeIn); }
     rainHaze(c, 'near', 0.34, fadeIn);       // (SP3: heavy rain greys the skyline — the far rows most)
-    eventsTick(now, nightK);
+    eventsTick(now, nightK); dbgFadeIn = fadeIn;
     // (7b: the LATE TVs across the skyline — ~10 pm → ~3 am, eased in + out over 20 min — core/harbor-moments.js#lateTvK)
     lights.lateTv(LK.local ? lateTvK(LK.local.h + LK.local.mi / 60) * nightK : 0);
     if (!deadCity) lights.draw(c, 'near', now, nightK, S.motion);
@@ -3176,7 +3178,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     loadProbe: () => ({ shown: shownAt >= 0, W, H, hold: holdOn ? 1 : 0, holds: holdN, cams: { now: camSig, baked: bakeCamShown, prev: fadeFrom >= 0 ? bakeCamPrev : null, lit: litBaker.key ? litBaker.key.includes(`|${camSig}|`) : null } }),
     harbor: () => (L ? { fireworks: () => { const nowS = clock.now() / 1000; let tonight = []; try { tonight = LK.local ? fwNightOf(nowS).map(sh => ({ kind: sh.kind, t0: sh.t0, t1: sh.t1, inS: Math.round(sh.t0 - nowS) })) : []; } catch { /* fine */ } return { ...fwx.debug(), on: fwState.on, why: fwState.why, dim: fwState.dim, show: fwState.show ? { id: fwState.show.id, kind: fwState.show.kind, t0: fwState.show.t0, t1: fwState.show.t1, s: +(nowS - fwState.show.t0).toFixed(2) } : null, tonight, lights: fwx.lights().length, ly: fwx.lights().map(l => Math.round(l.y)), synced: !!(fwState.show && fwPlan(fwState.show.kind, fwState.show.seed, fwState.show.t0).synced), under: (() => { const cv = document.querySelector('.hb-fw'); return cv ? { parent: cv.parentElement ? cv.parentElement.className : '', afterCity: (() => { const k = [...cv.parentElement.children], i = k.indexOf(cv), crisp = k.findIndex(e => e.classList && e.classList.contains('hc-crisp')); return i > k.indexOf(canvas) && (crisp < 0 || i < crisp); })(), z: cv.style.zIndex } : null; })(), mb: fwx.mem(), crowd: (() => { try { return fwCrowd(); } catch (e) { return String(e); } })() }; }, tower: { st: TWS ? { stage: TWS.stage, k: TWS.k, s: TWS.s, crane: TWS.crane, announce: TWS.announce, design: TWS.design ? TWS.design.name : null } : null, key: L.towerKey, fx: towerFx.debug() }, holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone, zFront: cam.zFront, cx0: cam.cx0 || 0, dpr }, squeeze: L.squeeze, medallion: L.medallion ? { x: L.medallion.x, z: L.medallion.z, ring: L.medallion.ring } : null, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(), chimneys: chimneys.debug(), xmas: { ...XP, tree: treeHeld, xlK: +xlK.toFixed(2) }, parade: parade ? { ...parade.debug(), units: paraUnits ? paraUnits.length : 0 } : null,
-      windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
+      windows: { faces: lights.faces(), spelling: lights.spelling, spellBy, fadeIn: +dbgFadeIn.toFixed(3), ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
       wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z), hd = L.pier.head, [h0] = project(cam, hd.x0, L.pier.y, w.z), [h1] = project(cam, hd.x1, L.pier.y, w.z); return { ...wheel.debug(), schemeId: wheel.debug().scheme, x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r], head: [h0, h1], scheme: n => wheel.scheme(n) }; })(),
       lighthouse: { ...beam.debug(), set: o => beam.set(o), spin: () => beam.spin() },

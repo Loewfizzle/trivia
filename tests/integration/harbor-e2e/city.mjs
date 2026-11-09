@@ -186,6 +186,11 @@ async function panelSection() {
   await O.page.reload();
   await waitFor(O.page, '!!window.__district && window.__district.phase().done', 'reload', 25000);
   await harborUp(O.page);
+  // (BOARD 2.0 A — THE FAST REVEAL: a reload that reveals under the boot screen in the page's first 900 ms used to leave the city's fade-in at 0
+  //  for good — every layer drawn at opacity 0, the word towers never lit: THE WORD TOWERS' late red. The fade-in reaches 1)
+  await waitFor(O.page, 'window.__district.harbor().windows.fadeIn >= 1', 'the city faded in', 8000).catch(() => {});
+  { const w = await ev(O.page, '(() => ({ f: window.__district.harbor().windows.fadeIn, ms: Math.round(performance.now()) }))()');
+    ok(w.f >= 1, `THE FAST REVEAL: after a reload the city's fade-in reaches 1 (${w.f} at ${w.ms} ms of the page)`); }
   await waitFor(O.page, "window.__district.harbor().flags.remote && window.__district.harbor().flags.force.includes('spell')", 'JUST ME after a reload', 8000);
   ok((await flags(O.page)).q.text === 'HEY YOU', 'JUST ME: a refresh keeps it (this tab)');
   // CLEAR ALL: back to the real city at once, no countdown (the page's own flags: the link's &at keeps clear weather)
@@ -223,8 +228,9 @@ async function panelSection() {
   // 7a §0 — THE WORD TOWERS from the panel: one word per tower, the one too long for its tower scrolls on it; the readout says so
   // (CONN: at night, like its EVERYONE twin — after CLEAR ALL the clock is the real one, and the words never light by day)
   await ev(O.page, "window.__district.remote().setMine({ force: ['spell'], text: 'HAPPY BIRTHDAY SAM', tower: 'wordA,wordB,wordV', when: '2026-10-24T23:00' })");
-  await waitFor(O.page, "(() => { const s = window.__district.harbor().windows.spelling; return !!s && s.towers.length === 3 && s.scrolls.length > 0; })()", 'three towers', 20000).catch(() => {});   // (FRIENDS C — (f): red only in the full 4-shard run: the same condition, longer to come true on a busy machine)
+  await waitFor(O.page, "(() => { const s = window.__district.harbor().windows.spelling; return !!s && s.towers.length === 3 && s.scrolls.length > 0; })()", 'three towers', 20000).catch(() => {});   // (FRIENDS C — (f) gave it time; BOARD 2.0 A found the real cause: THE FAST REVEAL above)
   { const s = await ev(O.page, 'window.__district.harbor().windows.spelling');
+    if (!s) log('WORD TOWERS — why not lit', JSON.stringify(await ev(O.page, "(() => { const h = window.__district.harbor(); return { spellBy: h.windows.spellBy, lastDrop: h.windows.lastDrop, fadeIn: h.windows.fadeIn, force: h.flags.force, when: h.flags.q.when }; })()")));   // (BOARD 2.0 A: what a red here needs to be read)
     await ev(O.page, "window.__district.remote().open(), window.__district.remote().openCats(['lights'])");
     await waitFor(O.page, "(() => { const f = document.querySelector('.hr-fit'); return !!f && /SCROLLS/.test(f.textContent); })()", 'the readout', 12000).catch(() => {});
     const fit = await ev(O.page, "(() => { const f = document.querySelector('.hr-fit'); return f ? [...f.querySelectorAll('.hr-fit-row')].map(r => r.textContent).join(' | ') + ' || ' + [...f.querySelectorAll('.hr-fit-n')].map(r => r.textContent).join(' | ') : ''; })()");
