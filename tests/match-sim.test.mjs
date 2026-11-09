@@ -55,7 +55,11 @@ test('a full 5-round match runs to the podium and back to the lobby', () => {
   const online = { a: true, b: true, c: true };
   db.game = createGame({ code: db.code, matchId: 'm1', settings: { rounds: 5, roundSec: 120 }, participants, now, pickWord });
   assert.equal(db.game.phase, 'intro');
-  assert.ok(!JSON.stringify(db.game).includes(decodeWord(db.game.secret, secretKey('WXYZ', 'm1', 0))), 'answer not stored in plain text');
+  // (BOARD 2.0 B — the cloud's one red: a word that is also a KEY or the phase's value — PHASE · MATCH · ROUND · INTRO — matched the whole JSON
+  //  ~1 run in 330; the check is about the STORED VALUES: no string value carries the word — the phase name excepted)
+  const word0 = decodeWord(db.game.secret, secretKey('WXYZ', 'm1', 0)), vals = [];
+  JSON.stringify(db.game, (k, v) => { if (typeof v === 'string' && k !== 'phase') vals.push(v); return v; });
+  assert.ok(!vals.some(v => v.includes(word0)), 'answer not stored in plain text');
 
   const answers = [];
   for (let round = 0; round < 5; round++) {
