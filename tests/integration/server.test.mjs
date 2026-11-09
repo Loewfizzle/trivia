@@ -1539,3 +1539,17 @@ test('THE HOLD\'EM BILLBOARD switch: the default until set; OFF / NOW OPEN reach
     await assert.rejects(adminAction('u-hold-x', { action: 'billboardSet', on: false }), 'a non-admin is refused');
   } finally { process.env.ADMIN_PIDS = ''; await ref('city2/billboard').remove(); }
 });
+
+test('CITY FIXES — THE TAP WATCH on the server: LOST TAP is its own kind with its own buckets; the log keeps the newest per kind', async () => {
+  const { LOST_LIMITS } = await import('../../api/log.js'); const { prunePlan, REPORT_KEEP } = await import('../../api/_lib/prune.js'); const { groupReports } = await import('../../js/admin/groups.js');
+  assert.deepEqual(cleanReport({ kind: 'lost', text: 'A LOST TAP' }), { kind: 'lost', text: 'A LOST TAP' });
+  assert.ok(LOST_LIMITS.ipPerHour > REPORT_LIMITS.ipPerHour && LOST_LIMITS.text < REPORT_LIMITS.text);
+  const phonelog = {};
+  for (let i = 0; i < REPORT_KEEP + 10; i++) phonelog[`l${i}`] = { at: 1000 + i, kind: 'lost' };
+  phonelog.h1 = { at: 1, kind: 'hang' };   // the OLDEST of all — still kept: its kind has one
+  const plan = prunePlan({ phonelog }, 5000);
+  assert.equal(plan.phonelog.length, 10, 'only the lost taps past the keep go');
+  assert.ok(!plan.phonelog.includes('h1'), 'a hang is never pushed out by lost taps');
+  const g = groupReports([{ id: 'a', kind: 'lost', at: 1 }, { id: 'b', kind: 'hang', at: 2 }]);
+  assert.deepEqual(g.map(x => x.title).sort(), ['HANG', 'LOST TAP']);
+});

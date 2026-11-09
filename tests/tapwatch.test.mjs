@@ -5,8 +5,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { mayReport, cleanTap, RESCUE_MS } from '../js/ui/tapwatch.js';
-import { cleanReport, LOST_LIMITS, REPORT_LIMITS } from '../api/log.js';
-import { prunePlan, REPORT_KEEP } from '../api/_lib/prune.js';
 import { groupReports } from '../js/admin/groups.js';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..');
@@ -90,15 +88,7 @@ test('suspect 1 — the shared repainters wait for a tap in progress (afterTap) 
   assert.match(read('js/board/public.js'), /installTapWatch\(/);
 });
 
-test('the server: LOST TAP is its own kind with its own buckets; the log keeps the newest per kind', () => {
-  assert.deepEqual(cleanReport({ kind: 'lost', text: 'A LOST TAP' }), { kind: 'lost', text: 'A LOST TAP' });
-  assert.ok(LOST_LIMITS.ipPerHour > REPORT_LIMITS.ipPerHour && LOST_LIMITS.text < REPORT_LIMITS.text);
-  const phonelog = {};
-  for (let i = 0; i < REPORT_KEEP + 10; i++) phonelog[`l${i}`] = { at: 1000 + i, kind: 'lost' };
-  phonelog.h1 = { at: 1, kind: 'hang' };   // the OLDEST of all — still kept: its kind has one
-  const plan = prunePlan({ phonelog }, 5000);
-  assert.equal(plan.phonelog.length, 10, 'only the lost taps past the keep go');
-  assert.ok(!plan.phonelog.includes('h1'), 'a hang is never pushed out by lost taps');
+test('/admin groups THE TAP WATCH’s reports as LOST TAP (the server half — its buckets + the per-kind keep: tests/integration/server.test.mjs)', () => {
   const g = groupReports([{ id: 'a', kind: 'lost', at: 1 }, { id: 'b', kind: 'hang', at: 2 }]);
   assert.deepEqual(g.map(x => x.title).sort(), ['HANG', 'LOST TAP']);
 });
