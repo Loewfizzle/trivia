@@ -18,19 +18,24 @@ function fit(g, cx, cap, maxW) { let s = cap / g.cap; if (g.w * s > maxW) s = ma
 function word(x, g, cx, by, cap, maxW, paint) { const f = fit(g, cx, cap, maxW); x.save(); x.translate(f.x0, by); x.scale(f.s, f.s); paint(g.p, f.s); x.restore(); return f; }
 
 /** the poster face into R; bar: 'soon' | 'open'; sd: the sun's side (the shadows fall away from it; 0 at night) */
+export const POSTER_ASPECT = 848 / 448;   // (the approved flat poster's own shape — never stretched to the board's)
 export function paintHoldem(x, R, bar = 'soon', sd = 0) {
-  const G = P(), { x: X, y: Y, w: W, h: H } = R, cx = X + W / 2;
+  const G = P(), cx = R.x + R.w / 2;
   x.save();
-  x.beginPath(); x.rect(X, Y, W, H); x.clip();
-  // the field: navy, darker at the edges
-  x.fillStyle = NAVY; x.fillRect(X, Y, W, H);
+  x.beginPath(); x.rect(R.x, R.y, R.w, R.h); x.clip();
+  // the field: navy across the WHOLE board (the letterbox, if the board's face is a different shape, is more of the same field)
+  x.fillStyle = NAVY; x.fillRect(R.x, R.y, R.w, R.h);
+  // (the owner, Nov 8: "keeps ITS OWN aspect exactly — re-fit INSIDE, never stretch": the poster's box = the flat poster's 848:448, fitted
+  //  inside the board + centred; every piece below is laid out in THAT box — the chip measures round, the words keep their shape)
+  let W = R.w, H = R.w / POSTER_ASPECT; if (H > R.h) { H = R.h; W = R.h * POSTER_ASPECT; }
+  const X = R.x + (R.w - W) / 2, Y = R.y + (R.h - H) / 2;
   const chipY = Y + H * 0.215, chipR = H * 0.165;
   // the sunburst from the chip (rays fanning out — alternate wedges a touch lighter)
   x.fillStyle = RAY;
   const n = 28, Rr = W * 1.2;
   for (let i = 0; i < n; i += 2) { const a0 = i * Math.PI * 2 / n, a1 = a0 + Math.PI * 2 / n; x.beginPath(); x.moveTo(cx, chipY); x.lineTo(cx + Math.cos(a0) * Rr, chipY + Math.sin(a0) * Rr); x.lineTo(cx + Math.cos(a1) * Rr, chipY + Math.sin(a1) * Rr); x.closePath(); x.fill(); }
   const vg = x.createRadialGradient(cx, Y + H * 0.45, H * 0.2, cx, Y + H * 0.5, W * 0.62);
-  vg.addColorStop(0, 'rgba(19,32,74,0)'); vg.addColorStop(1, NAVY_D); x.fillStyle = vg; x.fillRect(X, Y, W, H);
+  vg.addColorStop(0, 'rgba(19,32,74,0)'); vg.addColorStop(1, NAVY_D); x.fillStyle = vg; x.fillRect(R.x, R.y, R.w, R.h);
   // the frame: a cream border + a thin gold keyline inside it
   const fb = Math.max(0.6, H * 0.035);
   x.strokeStyle = CREAM; x.lineWidth = fb; x.strokeRect(X + fb / 2, Y + fb / 2, W - fb, H - fb);
@@ -58,11 +63,11 @@ export function paintHoldem(x, R, bar = 'soon', sd = 0) {
     x.bezierCurveTo(cx - s * 0.72, by - s * 0.2, cx - s * 0.18, by - s * 0.48, cx, by - s * 0.78);
     x.fill(); }
   // HOLD'EM: the drop shadow → the gold edge → the cream face → a lighter top
-  const hb = Y + H * 0.645, hcap = H * 0.215, hW = W * 0.84;
-  const ds = Math.max(0.35, hcap * 0.07);
+  const hb = Y + H * 0.655, hcap = H * 0.235, hW = W * 0.84;   // (~80 % of the poster's width — the mock's proportion)
+  const ds = Math.max(0.3, hcap * 0.05);
   word(x, G.holdem, cx + (sd > 0 ? -ds : ds) * 0.6, hb + ds, hcap, hW, p => { x.fillStyle = 'rgba(4,6,16,0.75)'; x.fill(p); });
   word(x, G.holdem, cx, hb, hcap, hW, (p, s) => {
-    x.lineJoin = 'round'; x.strokeStyle = GOLD; x.lineWidth = Math.max(0.5, hcap * 0.1) / s; x.stroke(p);
+    x.lineJoin = 'round'; x.strokeStyle = GOLD; x.lineWidth = Math.max(0.35, hcap * 0.055) / s; x.stroke(p);   // (a fine gold edge — a heavy one filled the counters: soft + squat)
     x.fillStyle = CREAM; x.fill(p);
     x.save(); x.clip(p); x.fillStyle = 'rgba(255,252,240,0.55)'; x.fillRect(0, -G.holdem.cap * 1.05, G.holdem.w, G.holdem.cap * 0.32); x.fillStyle = 'rgba(160,140,100,0.25)'; x.fillRect(0, -G.holdem.cap * 0.32, G.holdem.w, G.holdem.cap * 0.34); x.restore();
   });
@@ -74,14 +79,14 @@ export function paintHoldem(x, R, bar = 'soon', sd = 0) {
   word(x, g, cx + (sd > 0 ? -1 : 1) * bcap * 0.05, bb + bcap * 0.08, bcap, bW, p => { x.fillStyle = 'rgba(4,6,16,0.7)'; x.fill(p); });
   // (the owner, a minute later: WHITE "would be even better — just not as big letters as HOLD'EM": white letters, a dark navy edge, the gold rules kept)
   word(x, g, cx, bb, bcap, bW, (p, s) => {
-    x.lineJoin = 'round'; x.strokeStyle = NAVY_D; x.lineWidth = Math.max(0.35, bcap * 0.14) / s; x.stroke(p);
+    x.lineJoin = 'round'; x.strokeStyle = NAVY_D; x.lineWidth = Math.max(0.3, bcap * 0.09) / s; x.stroke(p);
     x.fillStyle = '#ffffff'; x.fill(p);
   });
   // the paper: the pasted sheets' seams, a warm top wash, a little grime at the foot
-  x.fillStyle = 'rgba(0,0,0,0.13)'; for (const fr of [0.34, 0.67]) x.fillRect(X + W * fr, Y, Math.max(0.3, W * 0.004), H);
-  x.fillStyle = 'rgba(0,0,0,0.08)'; x.fillRect(X, Y + H * 0.5, W, Math.max(0.25, H * 0.006));
-  const pg = x.createLinearGradient(0, Y, 0, Y + H); pg.addColorStop(0, 'rgba(255,240,210,0.07)'); pg.addColorStop(0.7, 'rgba(0,0,0,0)'); pg.addColorStop(1, 'rgba(0,0,0,0.16)');
-  x.fillStyle = pg; x.fillRect(X, Y, W, H);
+  x.fillStyle = 'rgba(0,0,0,0.13)'; for (const fr of [0.34, 0.67]) x.fillRect(R.x + R.w * fr, R.y, Math.max(0.3, R.w * 0.004), R.h);
+  x.fillStyle = 'rgba(0,0,0,0.08)'; x.fillRect(R.x, R.y + R.h * 0.5, R.w, Math.max(0.25, R.h * 0.006));
+  const pg = x.createLinearGradient(0, R.y, 0, R.y + R.h); pg.addColorStop(0, 'rgba(255,240,210,0.07)'); pg.addColorStop(0.7, 'rgba(0,0,0,0)'); pg.addColorStop(1, 'rgba(0,0,0,0.16)');
+  x.fillStyle = pg; x.fillRect(R.x, R.y, R.w, R.h);
   x.restore();
 }
 export { CREAM, CREAM_D };

@@ -187,3 +187,20 @@ Everything hangs off that rect, so it all follows: the gooseneck lamps + their l
 catwalk, THE BILLPOSTER's plan (`harbor-crew.js` reads `L.roof.board`), the dead-lamp fault (a lamp index), the crisp layer's box, the
 board's tap area. Every poster, hint, the postcard + the HOLD'EM ad scale with it (the aspect kept — no re-fit).
 Shots: `board-{before,after}-{night,day}-{390x844,1440x900}.png` (close-ups) + `board-{before,after}-city-night-390.jpg` (the whole frame).
+
+## Add-on 2 (the owner, seeing the board shots) — STRETCHED + SOFT?
+
+**Measured first** (a 1:1 crop of the board at 402×874 @3 in WebKit — `holdem-1to1-{night,day}-402x3.png`): the chip's red disc measured
+**46 × 46 px (w/h 1.000) by day and 46 × 45 (1.022) by night** — no stretch anywhere between the board and the screen; the 15 % growth was
+UNIFORM (the board's aspect 1.837 → 1.836: both world sizes × 1.15, so every game poster + hint keeps its aspect too). What read as "wide +
+squat + soft": the poster was laid out on the BOARD's 1.84 shape (not its own 1.89), and HOLD'EM's gold edge was heavy (10 % of the cap
+height) — it filled the letters' counters.
+**Fixed**: (1) the poster is painted in ITS OWN aspect — the flat poster's 848 : 448 box fitted INSIDE the board and centred, the rest of the
+board the same navy field (a letterbox; `holdem-art.js#POSTER_ASPECT`) — never stretched; (2) a fine gold edge (5.5 %), a lighter shadow,
+HOLD'EM ~80 % of the poster's width like the mock's; (3) CRISP at the phone's real pixels: the board's face is drawn on THE CRISP LAYER at the
+device's dpr (3 on the iPhone) by day already, at night for HOLD'EM + the messages — and now for EVERY roof poster at night (the game posters
+too: they were in the city's 2× bake). It is painted from paths each time the board's size / content / light changes (crisp.js keys) — never
+an upscaled bitmap. **After**: the chip **45 × 45 (1.000) night · 44 × 44 (1.000) day**. `holdem-1to1-vs-mock.png` = the approved flat
+mock beside the 1:1 night + day crops + a game poster (OVERCLOCK) at 1:1.
+(The game posters + the hints draw their WORDS in the board's long-standing "condensed hand" — 80 % width, an earlier design, not the
+resize; left as it is.)
