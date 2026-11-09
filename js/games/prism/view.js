@@ -1,11 +1,11 @@
-// PRISM DROP view: your board (simulated here, on this phone), everyone else's live mini-boards, the world behind
-// it all, the music and the musical effects.
+// PRISM DROP view: your board (simulated here, on this phone), everyone else on THE SLIM RAIL beside it, the world behind
+// it all, the music and the musical effects. PD-1 — THE MAX BOARD (docs/prism.md "The layout"): the board fills the upright phone (layout.js),
+// HOLD + NEXT float in its top corners, the rail (rail.js) + THE SLAM BUTTON at its side; the podium body = victory.js#finalScene.
 //
 // Stability: the board is local; what leaves the phone is a throttled snapshot (prism/{m}/{uid}: board string,
 // active piece, stats, ~5 Hz) plus a full save every 3 s (sv: enough to resume after a refresh) and attacks
 // (prismq/{m}/{target}/{push}: lines + gap, written straight away). A refresh / rejoin restores from `sv`.
 import { h, vibrate, reducedMotion } from '../../ui/dom.js';
-import { avatar } from '../../ui/components.js';
 import { colorHex } from '../../config.js';
 import { dbRef, update as dbUpdate, onValue, off, push, serverNow, serverTimestamp } from '../../firebase.js';
 import { liveKeyFor } from '../registry.js';
@@ -21,18 +21,17 @@ import {
 import { loadSong, beatClock } from './songs.js';
 import { createWorlds, WORLDS } from './worlds.js';
 import { createBoardView, drawPiece, drawMini, JEWEL } from './board.js';
+import { createRail } from './rail.js';
 import { createFx } from './fx.js';
 import { attachInput } from './input.js';
 import { createSongPlayer, createSynth } from './audio.js';
 import { chooseMove } from './bot.js';
-import { prismLayout } from './layout.js';
+import { prismLayout, panelCells } from './layout.js';
 import { buildFinal } from './victory.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 // native replaceChildren() prints a null argument as text — always go through this
 const put = (el, ...kids) => el.replaceChildren(...kids.flat().filter(k => k != null && k !== false));
-const TARGET_LABEL = { random: 'RANDOM', attackers: 'ATTACKERS', danger: 'DANGER' };
-const TARGET_SHORT = TARGET_LABEL;
 const BIG = new Set(['quad', 'tsingle', 'tdouble', 'ttriple', 'pc', 'mdouble']);
 const TKEY = 'na:prism:target';
 
@@ -92,6 +91,10 @@ export function createView() {
   let rebootUntil = 0;
   let bot = null;           // { skill, every, next }
   let lastHoldSig = '', lastNextSig = '';
+  let L = null;             // the layout (layout.js) — its numbers, never a layout read in the frame loop
+  let rail = null;
+  let coverSig = '';
+  let topSig = '';
   let unsubSettings = null;
   let finalView = null;
   let destroyed = false;
@@ -117,21 +120,23 @@ export function createView() {
     els.top = h('div.pd-top', { dataset: { msgUnder: '' } },
       h('div.pd-info', h('b.pd-mode', rush() ? 'SCORE RUSH' : 'BATTLE'), h('span.pd-sub')),
       h('div.pd-announce', { 'aria-live': 'polite' }));
+    // THE BOARD with HOLD + NEXT floating in its top corners (slim see-through glass; pieces passing under them stay readable — they fade)
     els.hold = h('canvas.pd-hold-c');
-    els.next = Array.from({ length: 5 }, () => h('canvas.pd-next-c'));
+    els.next = Array.from({ length: 3 }, () => h('canvas.pd-next-c'));
+    els.holdBox = h('div.pd-corner.pd-hold', { 'aria-hidden': 'true' }, h('small', 'HOLD'), h('div.pd-corner-in', els.hold));
+    els.nextBox = h('div.pd-corner.pd-next', { 'aria-hidden': 'true' }, h('small', 'NEXT'), h('div.pd-corner-in', els.next));
     els.meter = h('div.pd-meter', h('i'));
     els.board = h('canvas.pd-board-c');
-    els.boardWrap = h('div.pd-board', els.meter, h('div.pd-board-glass'), els.board, h('div.pd-board-over'));
-    els.badges = h('div.pd-badges');
-    els.target = h('button.pd-target', { type: 'button', 'data-nogesture': '', onclick: cycleTarget });
-    els.stats = h('div.pd-stats');
-    els.left = h('aside.pd-side.pd-left',
-      h('div.pd-card.pd-holdcard', h('small', 'HOLD'), els.hold),
-      els.badges, els.target, els.stats);
-    els.opp = h('div.pd-opp');
-    els.right = h('aside.pd-side.pd-right', h('div.pd-card.pd-nextcard', h('small', 'NEXT'), ...els.next), els.opp);
-    els.play = h('div.pd-play', els.left, h('div.pd-center', els.boardWrap), els.right);
-    els.minis = h('div.pd-minis');
+    els.boardWrap = h('div.pd-board', els.meter, h('div.pd-board-glass'), els.board, els.holdBox, els.nextBox, h('div.pd-board-over'));
+    // THE SLAM BUTTON (gestures): a glossy red push button at the rail's foot — chrome bezel, red dome, a gloss, SLAM in white; it presses down
+    // (transform + opacity only) and flashes on release. An in-game control, never a shell button.
+    els.slamBtn = h('button.pd-slam-b', { type: 'button', 'data-btn': 'HARD', 'aria-label': 'Slam: drop the piece straight down' },
+      h('i.pd-slam-bezel', { 'aria-hidden': 'true' }), h('i.pd-slam-dome', { 'aria-hidden': 'true' }), h('i.pd-slam-press', { 'aria-hidden': 'true' }),
+      h('i.pd-slam-gloss', { 'aria-hidden': 'true' }), h('i.pd-slam-flash', { 'aria-hidden': 'true' }), h('b', 'SLAM'));
+    els.slam = h('div.pd-slam', { 'data-nogesture': '' }, els.slamBtn);
+    els.rail = h('aside.pd-rail', { 'aria-label': 'The other players' }, els.slam);
+    els.field = h('div.pd-field', els.boardWrap, els.rail);
+    els.stage = h('div.pd-stage', els.field);
     els.buttons = h('div.pd-buttons', { 'data-nogesture': '' },
       h('div.pd-bgroup.pd-bl',
         h('button.pd-btn', { type: 'button', 'data-btn': 'L', 'aria-label': 'Move left' }, '◀'),
@@ -142,9 +147,7 @@ export function createView() {
         h('button.pd-btn', { type: 'button', 'data-btn': 'CCW', 'aria-label': 'Rotate counter-clockwise' }, '⟲'),
         h('button.pd-btn', { type: 'button', 'data-btn': 'CW', 'aria-label': 'Rotate clockwise' }, '⟳'),
         h('button.pd-btn.pd-btn-hard', { type: 'button', 'data-btn': 'HARD', 'aria-label': 'Hard drop' }, 'DROP')));
-    // gesture mode's SLAM: one tap, the piece lands where its ghost is (side + size from Settings)
-    els.slam = h('div.pd-slam', { 'data-nogesture': '' }, h('button.pd-btn.pd-btn-slam', { type: 'button', 'data-btn': 'HARD', 'aria-label': 'Slam: drop the piece straight down' }, h('b', 'SLAM'), h('i', '▼')));
-    els.ui = h('div.pd-ui', els.top, h('div.pd-main', els.play, els.minis), els.buttons, els.slam);
+    els.ui = h('div.pd-ui', els.top, els.stage, els.buttons);
     els.overlay = h('div.pd-overlay');
     root.append(els.world, els.fx, els.ui, els.overlay);
     el.append(root);
@@ -153,6 +156,9 @@ export function createView() {
     world = createWorlds(els.world);
     fx = createFx(els.fx);
     board = createBoardView(els.board);
+    rail = createRail(els.rail);
+    // the press's light: a short flash as the finger lifts (the sound + the drop come from the press itself)
+    els.slamBtn.addEventListener('pointerup', () => { if (!reduced()) bump(els.slamBtn, 'is-flash'); });
     input = attachInput(els.ui, {
       act: a => act(a),
       softHeld: v => { softHeld = v; },
@@ -183,6 +189,7 @@ export function createView() {
     if (world) world.destroy();
     if (unsubSettings) unsubSettings();
     if (finalView) finalView.destroy();
+    if (rail) rail.destroy();
     document.body.classList.remove('pd-on', 'pd-duel');
     if (window.__prism && window.__prism.view === api) delete window.__prism;
   }
@@ -278,16 +285,6 @@ export function createView() {
     else if (a.a === 'hard') E.hardDrop(eng);
     else if (a.a === 'hold') E.holdPiece(eng);
     handleEvents();
-  }
-
-  function cycleTarget() {
-    const i = TARGET_MODES.indexOf(tMode);
-    tMode = TARGET_MODES[(i + 1) % TARGET_MODES.length];
-    try { localStorage.setItem(TKEY, tMode); } catch { /* fine */ }
-    lastTargetPick = 0;
-    pickTarget(true);
-    synth.play('rotate', { dir: 1 });
-    vibrate(6);
   }
 
   function candidates() {
@@ -397,11 +394,11 @@ export function createView() {
     if (!target) return;
     const gap = Math.floor(Math.random() * E.W);
     push(dbRef(`rooms/${st.code}/prismq/${game.matchId}/${target}`), { f: me(), n: Math.min(30, n), g: gap, at: serverTimestamp() }).catch(e => console.warn('attack', e && e.message));
-    // a light flies to the target's mini-board
-    const card = els.minis.querySelector(`[data-uid="${target}"]`) || els.opp;
+    // the target's rail tile flashes; a light rings out from it
+    const card = rail && rail.hit(target);
     if (card && !reduced()) {
       const r = card.getBoundingClientRect(), rf = els.fx.getBoundingClientRect();
-      fx.ring(r.left - rf.left + r.width / 2, r.top - rf.top + r.height / 2, { size: 120, ms: 520 });
+      fx.ring(r.left - rf.left + r.width / 2, r.top - rf.top + r.height / 2, { size: 90, ms: 520 });
     }
   }
 
@@ -658,14 +655,24 @@ export function createView() {
   }
 
   function drawHud() {
-    if (!eng) return;
-    const hs = `${eng.hold}|${eng.held}`;
-    if (hs !== lastHoldSig) { lastHoldSig = hs; drawPiece(els.hold, eng.hold, { cell: Math.max(7, Math.round(board.cell * 0.36)), dim: eng.held }); }
-    const nq = E.nextQueue(eng).join('');
-    if (nq !== lastNextSig) {
-      lastNextSig = nq;
-      E.nextQueue(eng).forEach((t, i) => drawPiece(els.next[i], t, { cell: Math.max(6, Math.round(board.cell * (i ? 0.3 : 0.38))) }));
+    if (!eng || !L) return;
+    const hs = `${eng.hold}|${eng.held}|${L.pieceCell}`;
+    if (hs !== lastHoldSig) { lastHoldSig = hs; drawPiece(els.hold, eng.hold, { cell: L.pieceCell, dim: eng.held }); }
+    const nq = E.nextQueue(eng, 3);
+    const ns = `${nq.join('')}|${L.pieceCell}`;
+    if (ns !== lastNextSig) {
+      lastNextSig = ns;
+      nq.forEach((t, i) => drawPiece(els.next[i], t, { cell: L.pieceCell * (i ? 0.86 : 1) }));
     }
+    // a piece (or the stack) under a corner panel → that panel fades further, so the piece stays readable
+    const cover = c => {
+      const z = panelCells(L, c);
+      if (eng.cur && !(game.out && game.out[me()])) for (const [x, y] of E.cellsOf(eng.cur)) if (x >= z.x0 && x < z.x1 && y >= z.y0 && y < E.VISIBLE) return 1;
+      for (let y = z.y0; y < E.VISIBLE; y++) for (let x = z.x0; x < z.x1; x++) if (eng.cells[y * E.W + x]) return 1;
+      return 0;
+    };
+    const cs = `${cover('hold')}${cover('next')}`;
+    if (cs !== coverSig) { coverSig = cs; els.holdBox.classList.toggle('is-under', cs[0] === '1'); els.nextBox.classList.toggle('is-under', cs[1] === '1'); }
     const pend = E.pendingTotal(eng);
     const hot = eng.pending.some(q => q.at <= eng.clock);
     const ms = `${Math.min(20, pend)}|${hot}`;
@@ -673,6 +680,14 @@ export function createView() {
   }
 
   // ================================================================ layout
+  /** the safe-area insets as the screen resolves them (read only when the layout changes — never in the frame loop) */
+  function safeInsets() {
+    const cs = getComputedStyle(els.ui);
+    const px = v => parseFloat(v) || 0;
+    return { t: px(cs.paddingTop), r: px(cs.paddingRight), b: px(cs.paddingBottom), l: px(cs.paddingLeft) };
+  }
+  const others = () => Object.keys((game && game.participants) || {}).filter(u => u !== me());
+
   function applyLayout() {
     if (!root || !game) return;
     const W0 = root.clientWidth || window.innerWidth;
@@ -680,140 +695,88 @@ export function createView() {
     const scheme = settings.prismScheme === 'buttons' ? 'buttons' : 'gesture';
     const spectating = !participant() || isOut() || game.phase === 'final';
     const duelist = !!game.duelAt && participant() && !isOut() && !rush();
-    const sig = [W0, H0, scheme, spectating, duelist, rush(), settings.prismBtn, settings.prismSlam, aliveOf(game).length, tier].join('|');
+    const n = others().length;
+    const dpr = window.devicePixelRatio || 1;
+    const sig = [W0, H0, scheme, spectating, duelist, rush(), settings.prismBtn, settings.prismSlam, n, tier, dpr].join('|');
     if (sig === layoutSig) { renderSide(spectating, duelist); return; }
     layoutSig = sig;
     root.dataset.scheme = scheme;
-    root.dataset.slam = settings.prismSlam === 'left' ? 'left' : 'right';
+    // the LEFT slam setting mirrors the rail + SLAM to the board's left (gestures — the buttons scheme has its own DROP)
+    root.dataset.slam = scheme === 'gesture' && settings.prismSlam === 'left' ? 'left' : 'right';
     root.classList.toggle('is-spectating', spectating);
     root.classList.toggle('is-duelist', duelist);
     const btnScale = settings.prismBtn ?? 0.5;
-    const { cell, sideL, sideR, topH, minisH, btnH, boardDpr } = prismLayout({ W0, H0, scheme, spectating, duelist, btnScale, tier });
-    root.style.setProperty('--cell', `${cell}px`);
-    root.style.setProperty('--sideL', `${sideL}px`);
-    root.style.setProperty('--sideR', `${sideR}px`);
-    root.style.setProperty('--topH', `${topH}px`);
-    root.style.setProperty('--minisH', `${minisH}px`);
-    root.style.setProperty('--btnH', `${btnH}px`);
-    root.style.setProperty('--btnS', String(btnScale));
-    board.size(cell, boardDpr);
-    fx.resize([1, 1.5, 2][tier]);
-    lastHoldSig = ''; lastNextSig = ''; miniSig = {};
+    L = prismLayout({ W0, H0, safe: safeInsets(), scheme, spectating, btnScale, tier, dpr, n, duel: duelist });
+    const px = v => `${v}px`;
+    const set = { '--cell': px(L.cell), '--boardW': px(L.boardW), '--boardH': px(L.boardH), '--topH': px(L.topH), '--btnH': px(L.btnH), '--railW': px(L.railW),
+      '--gap': px(L.gap), '--holdW': px(L.hold.w), '--holdH': px(L.hold.h), '--nextW': px(L.next.w), '--nextH': px(L.next.h), '--slamD': px(L.slamD),
+      '--slamA': px(L.slamArea), '--tileH': px(L.tileH), '--btnS': String(btnScale) };
+    for (const [k, v] of Object.entries(set)) root.style.setProperty(k, v);
+    board.size(L.cell, L.boardDpr);
+    fx.resize(L.fxDpr);
+    lastHoldSig = ''; lastNextSig = ''; miniSig = {}; coverSig = ''; topSig = '';
     renderSide(spectating, duelist);
   }
 
   function renderSide(spectating, duelist) {
     renderStats();
-    renderMinis(spectating, duelist);
+    renderRail(spectating, duelist);
   }
 
+  /** THE TOP LINE (between ☰ and the music): the mode + the players left (BATTLE) / your score (SCORE RUSH), the world's name under it — sized
+   *  from its length + the room between the buttons (no measuring), never wrapping, never under a button */
   function renderStats() {
-    if (!eng && !rush()) { els.stats.replaceChildren(); }
-    const myB = (game.bd && game.bd[me()]) || 0;
-    if (!rush()) {
-      const pips = Math.min(myB, 12);
-      const bonus = [0, 25, 25, 50, 50, 50, 75, 75, 75, 75, 100][Math.min(10, myB)];
-      const sig = `${myB}`;
-      if (els.badges.dataset.sig !== sig) {
-        els.badges.dataset.sig = sig;
-        els.badges.replaceChildren(h('small', 'BADGES'),
-          h('div.pd-pips', Array.from({ length: Math.max(1, pips) }, (_, i) => h('i', { class: i < myB ? 'on' : null }))),
-          h('b', myB ? `+${bonus}%` : '—'));
-      }
-      const tg = target ? player(target) : null;
-      const tsig = `${tMode}|${target}|${tg && tg.name}`;
-      if (els.target.dataset.sig !== tsig) {
-        els.target.dataset.sig = tsig;
-        els.target.replaceChildren(h('small', 'TARGET'),
-          tg ? avatar(tg.avatar, tg.color, 22) : h('span.pd-tnone', '—'),
-          h('b', TARGET_SHORT[tMode]));
-        els.target.style.setProperty('--c', tg ? colorHex(tg.color) : '#ffffff');
-        els.target.setAttribute('aria-label', `Target: ${tg ? tg.name : 'none'}, mode ${TARGET_LABEL[tMode]}. Tap to change.`);
-      }
-    }
-    if (eng) {
-      const s = rush() ? `${eng.score}|${eng.level}|${eng.lines}` : `${eng.lines}|${eng.sent}|${eng.level}`;
-      if (els.stats.dataset.sig !== s) {
-        els.stats.dataset.sig = s;
-        els.stats.replaceChildren(...(rush()
-          ? [h('small', 'SCORE'), h('b.pd-score', eng.score.toLocaleString('en-US')), h('small', 'LEVEL'), h('b', String(eng.level)), h('small', 'LINES'), h('b', String(eng.lines))]
-          : [h('small', 'LINES'), h('b', String(eng.lines)), h('small', 'SENT'), h('b', String(eng.sent)), h('small', 'SPEED'), h('b', String(eng.level))]));
-      }
-    }
-    // the top line
     const now = serverNow();
-    let sub = '';
-    if (rush()) {
+    let line;
+    if (rush()) line = `SCORE RUSH${eng ? ` · ${eng.score.toLocaleString('en-US')}` : ''}`;
+    else line = `BATTLE${game.phase === 'play' ? ` · ${aliveOf(game).length} LEFT` : ''}`;
+    const c = curSong >= 0 ? docOf(curSong) : null;
+    const w = c && WORLDS[c.world];
+    let sub = w ? `${w.name} · ${w.variants[variantOf(curSong)].name}` : 'PRISM DROP';
+    if (rush() && game.phase === 'play') {
       const left = Math.max(0, Math.round(((game.endAt || now) - now) / 1000));
-      sub = game.phase === 'play' ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')} LEFT` : '';
-    } else {
-      sub = game.phase === 'play' ? `${aliveOf(game).length} LEFT` : '';
+      sub = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')} LEFT · ${sub}`;
     }
-    const subEl = els.top.querySelector('.pd-sub');
-    if (subEl.textContent !== sub) subEl.textContent = sub;
+    const sig = `${line}|${sub}`;
+    if (sig === topSig) return;
+    topSig = sig;
+    const room = Math.max(120, (L ? L.W0 : 0) || 390) - 2 * 56;
+    const fit = (txt, size, em) => `${Math.max(8.5, Math.min(size, room / Math.max(1, txt.length * em))).toFixed(1)}px`;
+    const modeEl = els.top.querySelector('.pd-mode'), subEl = els.top.querySelector('.pd-sub');
+    modeEl.textContent = line;
+    modeEl.style.fontSize = fit(line, 15, 0.98);
+    subEl.textContent = sub;
+    subEl.style.fontSize = fit(sub, 11, 0.8);
   }
 
-  function renderMinis(spectating, duelist) {
-    const b = boards();
-    const others = Object.keys(game.participants || {}).filter(u => u !== me());
+  /** THE SLIM RAIL: one tile per opponent (rail.js) — battle in seat order, SCORE RUSH by score (with the rank) */
+  function renderRail(spectating, duelist) {
     if (spectating) { renderSpectator(); return; }
     els.overlay.querySelector('.pd-spec')?.remove();
-    // duel: the opponent big on the right
-    if (duelist) {
-      const opp = aliveOf(game).find(u => u !== me()) || (game.duelOpp && game.duelOpp[me()]) || Object.keys(game.participants).find(u => u !== me() && game.out && game.out[u] && game.out[u].place === 2);
-      const n = opp && b[opp];
-      const sig = n ? `${n.b}|${n.p}|${opp}` : 'none';
-      if (els.opp.dataset.sig !== sig) {
-        els.opp.dataset.sig = sig;
-        const p = player(opp);
-        const c = els.opp.querySelector('canvas') || h('canvas');
-        if (!c.isConnected) els.opp.replaceChildren(h('small', { style: { color: colorHex(p.color) } }, p.name), c);
-        const sideR = parseFloat(getComputedStyle(root).getPropertyValue('--sideR')) || 100;
-        drawMini(c, n && n.b, n && n.p, { cell: Math.max(4, Math.floor((sideR - 8) / E.W)), ko: !!(game.out && game.out[opp]) });
-      }
-    } else if (els.opp.childNodes.length) { els.opp.replaceChildren(); els.opp.dataset.sig = ''; }
-    // the row of minis (battle) / live leaderboard (rush)
-    let list = others;
-    if (rush()) list = Object.keys(game.participants || {}).sort((x, y) => ((b[y] && b[y].sc) || 0) - ((b[x] && b[x].sc) || 0) || (x < y ? -1 : 1));
-    const atk = new Set(attackers());
-    const minisH = parseFloat(getComputedStyle(root).getPropertyValue('--minisH')) || 90;
-    const W0 = root.clientWidth || 390;
-    const mc = Math.max(2, Math.min(5, Math.floor(Math.min((minisH - 20) / E.VISIBLE, (W0 - 24) / (list.length || 1) / (E.W + 3)))));
-    els.minis.style.setProperty('--mc', `${mc}px`);
-    const keep = new Set();
-    list.forEach((uid, i) => {
-      keep.add(uid);
+    if (!rail) return;
+    const b = boards();
+    let list = others();
+    let rankOf = () => 0;
+    if (rush()) {
+      const sc = u => (u === me() && eng ? eng.score : (b[u] && b[u].sc) || 0);
+      const ranked = Object.keys(game.participants || {}).sort((x, y) => sc(y) - sc(x) || (x < y ? -1 : 1));
+      list = list.slice().sort((x, y) => ranked.indexOf(x) - ranked.indexOf(y));
+      rankOf = u => ranked.indexOf(u) + 1;
+    }
+    const atk = new Set(rush() ? [] : attackers());
+    const duelOpp = duelist ? (aliveOf(game).find(u => u !== me()) || null) : null;
+    const rows = (duelOpp ? [duelOpp] : list).map(uid => {
       const n = b[uid] || {};
       const p = player(uid);
-      const ko = !rush() && !!(game.out && game.out[uid]);
-      let card = els.minis.querySelector(`[data-uid="${uid}"]`);
-      if (!card) {
-        card = h('div.pd-mini', { 'data-uid': uid, style: { '--c': colorHex(p.color) } },
-          h('canvas'), h('div.pd-mini-pips'), h('span.pd-mini-name'), h('span.pd-mini-ko', 'KO'));
-        els.minis.append(card);
-      }
-      card.style.order = String(i);
-      card.classList.toggle('is-target', !rush() && uid === target);
-      card.classList.toggle('is-attacker', !rush() && atk.has(uid));
-      card.classList.toggle('is-ko', ko);
-      card.classList.toggle('is-me', uid === me());
-      card.classList.toggle('is-off', !!(st.presence && st.presence[uid] && st.presence[uid].online === false));
-      const bd = (game.bd && game.bd[uid]) || 0;
-      const label = p.name;
-      const nameEl = card.querySelector('.pd-mini-name');
-      const scoreTxt = rush() ? ` ${((uid === me() && eng) ? eng.score : n.sc || 0).toLocaleString('en-US')}` : '';
-      if (nameEl.textContent !== label + scoreTxt || card.dataset.rank !== (rush() ? String(i + 1) : '')) {
-        put(nameEl, h('b', label), rush() ? h('em', scoreTxt) : null);
-        card.dataset.rank = rush() ? String(i + 1) : '';
-      }
-      const pipsEl = card.querySelector('.pd-mini-pips');
-      if (pipsEl.dataset.n !== String(bd)) { pipsEl.dataset.n = String(bd); pipsEl.replaceChildren(...Array.from({ length: Math.min(bd, 8) }, () => h('i'))); }
-      const bs = uid === me() && eng ? E.boardString(eng) : n.b;
-      const ps = uid === me() && eng && eng.cur ? `${eng.cur.t},${eng.cur.r},${eng.cur.x},${eng.cur.y}` : n.p;
-      const sig = `${bs}|${ps}|${ko}|${mc}`;
-      if (miniSig[uid] !== sig) { miniSig[uid] = sig; drawMini(card.querySelector('canvas'), bs, ps, { cell: mc, ko }); }
+      return {
+        uid, name: p.name, color: p.color, height: n.h || 0,
+        ko: !rush() && !!(game.out && game.out[uid]),
+        off: !!(st.presence && st.presence[uid] && st.presence[uid].online === false),
+        target: !rush() && uid === target, attacker: atk.has(uid), rank: rankOf(uid),
+        board: n.b, piece: n.p,
+      };
     });
-    for (const c of [...els.minis.children]) if (!keep.has(c.dataset.uid)) c.remove();
+    rail.update(rows, { duel: !!duelOpp, duelCell: L ? L.duelCell : 3 });
   }
 
   // ================================================================ spectator / call the winner / KO
@@ -979,9 +942,10 @@ export function createView() {
     const lane = els.top.querySelector('.pd-announce');
     const el = h(`div.pd-ann.is-${a.kind}`, a.text);
     lane.replaceChildren(el);
+    els.top.classList.add('has-ann');   // (PD-1: the line between the corner buttons is the announcement's for a moment)
     announceBusy = now + 1250;
     setTimeout(() => el.classList.add('is-out'), 1500);
-    setTimeout(() => { if (el.isConnected) el.remove(); }, 1900);
+    setTimeout(() => { if (el.isConnected) el.remove(); if (!lane.firstChild) els.top.classList.remove('has-ann'); }, 1900);
     if (announceQ.length) setTimeout(pumpAnnounce, 1270);
   }
 
@@ -1051,7 +1015,13 @@ export function createView() {
       tier: () => tier,
       setTier: t => setTier(t),
       fps: () => [...frameTimes],
-      layout: () => ({ cell: board.cell, board: els.board.getBoundingClientRect().toJSON(), scheme: root.dataset.scheme }),
+      work: () => [...workTimes],   // (PD-1: the frame's CPU time — the headroom a 60 Hz screen hides)
+      layout: () => {
+        const R = el => (el && el.isConnected ? el.getBoundingClientRect().toJSON() : null);
+        return { cell: board.cell, px: board.px, dpr: L && L.boardDpr, board: R(els.board), scheme: root.dataset.scheme, slam: root.dataset.slam, slamBtn: R(els.slamBtn),
+          rail: R(els.rail), hold: R(els.holdBox), next: R(els.nextBox), top: R(els.top.querySelector('.pd-info')), tiles: [...els.rail.querySelectorAll('.pd-tile')].map(t => ({ uid: t.dataset.uid, ...R(t) })),
+          under: [els.holdBox.classList.contains('is-under'), els.nextBox.classList.contains('is-under')], L };
+      },
       clock: () => songClock(),
       fxCount: () => fx.count,
     };

@@ -8,6 +8,8 @@ export const MIN_PLAYERS = 2;
 
 export const MUSIC = null;                 // (the songs are the music)
 export const BANNER_NAME = 'PRISM DROP';
+// (PD-1 — THE CONSOLE'S PODIUM: the end screen's main tube in PRISM's light — the theme's spectral cyan; the console's winner sting plays — no OWN_VICTORY_SOUND)
+export const ACCENT = '#8fd8ff';
 
 export function cleanSettings(s = {}) {
   return { mode: MODES.includes(s.mode) ? s.mode : DEFAULT_SETTINGS.mode };

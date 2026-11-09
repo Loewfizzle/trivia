@@ -1,18 +1,68 @@
-// PRISM DROP — THE LAYOUT (PD-1, split out of view.js): the sizes of the screen's parts from the screen's size + the settings. PURE (no DOM):
-// the view measures the screen once per change (a ResizeObserver) and paints the numbers as CSS custom properties.
-//   prismLayout({ W0, H0, scheme, spectating, duelist, btnScale, tier }) → { cell, sideL, sideR, topH, minisH, btnH, boardDpr }
+// PRISM DROP — THE LAYOUT (PD-1 — THE MAX BOARD, the owner's plan: docs/games/plan.md "PRISM DROP — THE REWORK PLAN"). PURE (no DOM): the
+// view measures the screen when it changes (never in the frame loop) and paints these numbers as CSS custom properties.
+//
+//   the corner row (☰ · the top line · the music) = TOP pt under the safe area; under it THE FIELD, centred in the space left:
+//   [ 12 pt ][ THE BOARD — 10 × 20 cells ][ 8 pt ][ THE RAIL — 34 pt ][ 12 pt ]   (the LEFT slam setting mirrors the rail to the board's left)
+//   The cell is as big as the width allows, the height then checked (20 rows must fit — never clipped, never scrolled), and snapped to the
+//   phone's device pixels (an iPhone: thirds of a point) so the board's sprites land on whole pixels at the full 3×.
+//   HOLD + NEXT float INSIDE the board's top corners (slim see-through panels); the rail's tiles stack from its top, SLAM at its foot.
+//   THE BUTTONS scheme only: the board shrinks to fit the button bar under it; GESTURES (the default) gets the full MAX BOARD.
 import { W, VISIBLE } from './engine.js';
 
-export function prismLayout({ W0, H0, scheme = 'gesture', spectating = false, duelist = false, btnScale = 0.5, tier = 2, dpr = 1 }) {
-  const topH = 52;
-  const btnH = scheme === 'buttons' && !spectating ? Math.round(118 + 46 * btnScale) : 0;
-  let minisH = spectating ? 0 : (btnH ? 66 : 96);
-  const sideL = Math.round(Math.max(40, Math.min(64, W0 * 0.115)));
-  const sideR = duelist ? Math.round(Math.max(92, Math.min(150, W0 * 0.28))) : sideL;
-  const cellW = (W0 - sideL - sideR - 16 - 9 - 6 - 12 - 4) / W; // ui padding, meter, glass inset, gaps, slack
-  const cellH = (H0 - topH - minisH - btnH - 20) / VISIBLE;
-  const cell = Math.max(10, Math.floor(Math.min(cellW, cellH, 40)));
-  // spare height goes to the mini-boards (bigger when there's room)
-  if (minisH) minisH = Math.max(minisH, Math.min(150, H0 - topH - cell * VISIBLE - btnH - 30));
-  return { cell, sideL, sideR, topH, minisH, btnH, boardDpr: [1, 1.5, 2][tier] || 1, dpr };
+export const MARGIN = 12;     // the screen's outer margin (pt)
+export const GAP = 8;         // board ↔ rail
+export const RAIL = 34;       // the rail's width
+export const TOP = 52;        // the corner row under the safe area (☰ + the music are 36 pt at +10)
+export const AIR = 8;         // the least air above + below the board
+export const MAX_CELL = 44;   // a desktop / a tablet: the board stops growing here
+export const TILE_MAX = 54;   // a rail tile's height (shrinks to fit 7 opponents)
+export const TILE_MIN = 22;
+export const TILE_GAP = 6;
+
+/**
+ * { W0, H0 (the screen, pt), safe: { t, r, b, l }, scheme: 'gesture' | 'buttons', spectating, btnScale (0–1), tier (2 | 1 | 0), dpr, n (opponents
+ *   on the rail), duel (one opponent left — its tile shows their board) }
+ * → { cell, boardW, boardH, fieldW, topH, btnH, railW, gap, hold: { w, h }, next: { w, h }, pieceCell, slamD, slamArea, tileH, duelCell,
+ *     boardDpr, fxDpr }
+ */
+export function prismLayout({ W0, H0, safe = {}, scheme = 'gesture', spectating = false, btnScale = 0.5, tier = 2, dpr = 1, n = 1, duel = false }) {
+  const s = { t: safe.t || 0, r: safe.r || 0, b: safe.b || 0, l: safe.l || 0 };
+  const q = Math.max(1, Math.min(3, dpr || 1));
+  const gesture = scheme !== 'buttons';
+  const btnH = !gesture && !spectating ? Math.round(118 + 46 * btnScale) : 0;
+  const cellW = (W0 - s.l - s.r - 2 * MARGIN - GAP - RAIL) / W;
+  const cellH = (H0 - s.t - TOP - s.b - btnH - 2 * AIR) / VISIBLE;
+  // snapped DOWN to the device's pixel grid (never bigger than the space)
+  const cell = Math.max(10, Math.floor(Math.min(cellW, cellH, MAX_CELL) * q) / q);
+  const boardW = cell * W, boardH = cell * VISIBLE;
+  const slamD = Math.round(36 + 8 * btnScale);
+  const slamArea = gesture && !spectating ? slamD + 10 : 0;
+  const count = Math.max(1, n | 0);
+  const free = boardH - slamArea;
+  const duelCell = duel ? Math.max(2, Math.min(3, Math.floor((RAIL - 4) / W))) : 0;
+  const tileH = duel
+    ? Math.min(free, duelCell * VISIBLE + 22)
+    : Math.max(TILE_MIN, Math.min(TILE_MAX, Math.floor((free - (count - 1) * TILE_GAP) / count)));
+  const hold = { w: Math.round(cell * 2), h: Math.round(cell * 1.6) };
+  const next = { w: Math.round(cell * 4.5), h: hold.h };
+  // a preview piece: 4 cells across a NEXT slot (a third of the panel) + 2 rows under the label
+  const pieceCell = Math.max(6, Math.floor(Math.min((next.w / 3 - 6) / 4, (hold.h - 15) / 2) * q) / q);
+  return {
+    W0, H0, cell, boardW, boardH, fieldW: boardW + GAP + RAIL, topH: TOP, btnH, railW: RAIL, gap: GAP,
+    hold, next, pieceCell, slamD, slamArea, tileH, duelCell,
+    // THE BOARD at the phone's FULL pixel ratio (3× on an iPhone); a tier that can't hold 60 fps steps it to 2× (then 1.5×). The world +
+    // the shards keep their own reduced resolution (fxDpr)
+    boardDpr: tier >= 2 ? q : tier === 1 ? Math.min(q, 2) : Math.min(q, 1.5),
+    fxDpr: [1, 1.5, 2][tier] || 1,
+  };
+}
+
+/** the board cells a corner panel covers (HOLD top-left, NEXT top-right) — for the fade while a piece passes under it.
+ *  → { x0, x1, y0 } in board cells: columns [x0, x1), rows y ≥ y0 (row 0 = the bottom) */
+export function panelCells(L, which, inset = 4) {
+  const p = which === 'hold' ? L.hold : L.next;
+  const left = which === 'hold' ? inset : L.boardW - inset - p.w;
+  const x0 = Math.floor(left / L.cell), x1 = Math.ceil((left + p.w) / L.cell);
+  const rows = Math.ceil((inset + p.h) / L.cell);
+  return { x0: Math.max(0, x0), x1: Math.min(W, x1), y0: VISIBLE - rows };
 }

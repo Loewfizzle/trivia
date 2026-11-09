@@ -1,4 +1,4 @@
-// PRISM DROP board rendering (Canvas 2D, crisp at the device pixel ratio, capped at 2).
+// PRISM DROP board rendering (Canvas 2D, crisp at the FULL device pixel ratio — 3× on an iPhone since PD-1; the quality tiers step it down).
 // Blocks are pre-rendered "glass crystal" sprites per piece colour — gradient body, inner glow, a facet, a
 // specular glint, clean bright edges — plus a soft glow sprite drawn under them and a desaturated set for the
 // danger drain. A frame is ~200 drawImage calls: cheap on any phone.
@@ -139,7 +139,7 @@ export function createBoardView(canvas) {
   const fx = { flashes: [], sweeps: [], glitch: 0, lockFlash: [] };
 
   function size(cssCell, tierDpr) {
-    dpr = Math.min(2, tierDpr || window.devicePixelRatio || 1);
+    dpr = Math.min(3, tierDpr || window.devicePixelRatio || 1);   // (PD-1: the full 3× — was capped at 2)
     cell = cssCell;
     px = Math.max(4, Math.round(cell * dpr));
     canvas.width = px * W;
@@ -285,7 +285,7 @@ export function createBoardView(canvas) {
 
 /** A piece preview (hold / next) into a small canvas. */
 export function drawPiece(canvas, t, { cell = 12, dim = false } = {}) {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
   const px = Math.round(cell * dpr);
   const wpx = px * 4, hpx = px * 2.4;
   if (canvas.width !== wpx || canvas.height !== Math.round(hpx)) {
@@ -311,7 +311,7 @@ export function drawPiece(canvas, t, { cell = 12, dim = false } = {}) {
 
 /** Opponent mini-board from a published board string (+ optional active piece "t,r,x,y"). */
 export function drawMini(canvas, str, piece, { cell = 4, ko = false } = {}) {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
   const px = Math.max(2, Math.round(cell * dpr));
   if (canvas.width !== px * W || canvas.height !== px * VISIBLE) {
     canvas.width = px * W; canvas.height = px * VISIBLE;

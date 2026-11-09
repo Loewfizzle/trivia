@@ -1,119 +1,130 @@
 <!doctype html>
-<!-- PRISM DROP scene preview (no Firebase): a world + a bot-played board + effects.
-     ?world=aurora|city|nebula|crystal|sunset &v=0..2 &tier=0..2 &bot=1 &danger=0..1 &fx=1 (big clears on a loop) &t=seconds
-     Used for the visual review and for frame-time profiling (golf-profile.mjs style). -->
+<!-- PRISM DROP preview (no Firebase) — PD-1: the REAL view (js/games/prism/view.js) mounted with a scripted state through the fake database, so a
+     shot is exactly the phone's screen: THE MAX BOARD, HOLD / NEXT in its corners, THE SLIM RAIL, THE SLAM BUTTON, the corner pair, the podium body.
+       &n=1..7            opponents on the rail (default 5)
+       &state=play | count | ko | duel | final | spec      (default play)
+       &rush=1            SCORE RUSH            &scheme=buttons     THE BUTTONS scheme        &slam=left    the mirrored rail + SLAM
+       &world=aurora|city|nebula|crystal|sunset            the first song is one in that world
+       &bot=1             a bot plays your board (frame timing: window.__prism.fps())     &stack=8   pieces dropped before the shot
+       &under=1           no bot: the new piece waits at the top, under NEXT (the panel fades)
+       &st=47&sb=34       the safe areas (pt) — an iPhone 13/14 = 47 / 34, a 15/16 Pro = 62 / 34, a Pro Max = 59 / 34
+       &tier=0..2         the quality tier       &down=1   SLAM held down (the press)       &hit=1   the first tile's hit flash
+     prism-shots.mjs shoots it; Used for the look review + the frame timing. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Prism preview</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="../../css/base.css">
 <link rel="stylesheet" href="../../css/components.css">
+<link rel="stylesheet" href="../../css/kit.css">
+<link rel="stylesheet" href="../../css/board.css">
 <link rel="stylesheet" href="../../css/prism.css">
-<style>html,body{background:#000;height:100%;margin:0} .pd{position:fixed}</style>
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>html, body { background: #000; height: 100%; margin: 0; overflow: hidden; }</style>
 </head>
 <body data-theme="prism">
-<div class="pd" id="root" data-mode="battle">
-  <canvas class="pd-world" id="world"></canvas>
-  <canvas class="pd-fx" id="fx"></canvas>
-  <div class="pd-ui" id="ui" style="--topH:52px;--minisH:96px;--btnH:0px">
-    <div class="pd-top"><div class="pd-info"><b class="pd-mode">BATTLE</b><span class="pd-sub">5 LEFT</span></div><div class="pd-announce"></div></div>
-    <div class="pd-main"><div class="pd-play">
-      <aside class="pd-side pd-left"><div class="pd-card"><small>HOLD</small><canvas id="hold"></canvas></div>
-        <div class="pd-badges"><small>BADGES</small><div class="pd-pips"><i class="on"></i><i class="on"></i><i></i></div><b>+25%</b></div>
-        <button class="pd-target" style="--c:#ff4d6d"><small>TARGET</small><span class="pd-tnone">◎</span><b>DANGER</b></button>
-        <div class="pd-stats"><small>LINES</small><b id="ln">0</b><small>SENT</small><b>4</b><small>SPEED</small><b>2</b></div></aside>
-      <div class="pd-center"><div class="pd-board" id="bw"><div class="pd-meter" style="--n:5"><i></i></div><div class="pd-board-glass"></div><canvas class="pd-board-c" id="board"></canvas><div class="pd-board-over"></div></div></div>
-      <aside class="pd-side pd-right"><div class="pd-card pd-nextcard"><small>NEXT</small><canvas id="n0"></canvas><canvas id="n1"></canvas><canvas id="n2"></canvas><canvas id="n3"></canvas><canvas id="n4"></canvas></div><div class="pd-opp"></div></aside>
-    </div>
-    <div class="pd-minis" id="minis"></div></div>
-    <div class="pd-buttons"></div>
-  </div>
-</div>
+<div class="screen screen-in" id="app"></div>
 <script type="module">
-import * as E from '../../js/games/prism/engine.js';
-import { createWorlds } from '../../js/games/prism/worlds.js';
-import { createBoardView, drawPiece, drawMini, JEWEL } from '../../js/games/prism/board.js';
-import { createFx } from '../../js/games/prism/fx.js';
-import { chooseMove } from '../../js/games/prism/bot.js';
-import { rngFrom } from '../../js/core/rng.js';
+import * as E from '/js/games/prism/engine.js';
+import { chooseMove } from '/js/games/prism/bot.js';
+import { createGame } from '/js/games/prism/director.js';
+import { loadManifest } from '/js/games/prism/songs.js';
+import { rngFrom } from '/js/core/rng.js';
+import { loadGame, liveKeyFor } from '/js/games/registry.js';
+import { updateSettings } from '/js/audio/settings.js';
+import { setState } from '/js/store.js';
+import { installEmblems } from '/js/ui/emblems.js';
+
 const q = new URLSearchParams(location.search);
-const tier = Number(q.get('tier') ?? 2);
-const root = document.getElementById('root');
-const W0 = root.clientWidth, H0 = root.clientHeight;
-const side = Math.round(Math.max(40, Math.min(64, W0 * 0.115)));
-const cell = Math.floor(Math.min((W0 - 2 * side - 26) / 10, (H0 - 52 - 96 - 20) / 20, 40));
-const minisH = Math.max(96, Math.min(150, H0 - 52 - cell * 20 - 30)); root.style.setProperty('--minisH', minisH + 'px');
-root.style.setProperty('--cell', cell + 'px'); root.style.setProperty('--sideL', side + 'px'); root.style.setProperty('--sideR', side + 'px');
-const world = createWorlds(document.getElementById('world'));
-world.setTier(tier);
-world.setWorld(q.get('world') || 'aurora', Number(q.get('v') || 0), 0);
-const fx = createFx(document.getElementById('fx')); fx.resize([1, 1.5, 2][tier]); fx.setCap([50, 110, 200][tier]);
-const board = createBoardView(document.getElementById('board')); board.size(cell, [1, 1.5, 2][tier]);
-const g = E.createEngine({ seed: q.get('seed') || 'preview', mode: 'battle' });
-E.start(g);
-const rnd = rngFrom('p');
-// a believable mid-game stack
-const pre = Number(q.get('stack') ?? 8);
-for (let i = 0; i < pre && g.cur; i++) { const m = chooseMove(g, { skill: 0.6, rnd }); while (g.cur && g.cur.r !== m.r) if (!E.rotate(g, 1)) break; while (g.cur && g.cur.x !== m.x) if (!E.move(g, Math.sign(m.x - g.cur.x))) break; E.hardDrop(g); }
-E.takeEvents(g);
-const minis = document.getElementById('minis');
-const names = ['ALICE', 'BOB', 'CHARLIE', 'DANA', 'EVE', 'FINN', 'GRACE'];
-const cols = ['#ff4d6d', '#2be4f0', '#ff6ad5', '#ffd23a', '#2fe07a', '#ff9b3d', '#a374ff'];
-const mc = Math.max(2, Math.min(5, Math.floor(Math.min((minisH - 20) / 20, (W0 - 24) / 7 / 13))));
-names.forEach((n, i) => {
-  const o = E.createEngine({ seed: 'preview', mode: 'battle' }); E.start(o);
-  const r = rngFrom(n);
-  for (let k = 0; k < 6 + i * 3 && o.cur; k++) { const m = chooseMove(o, { skill: 0.5, rnd: r }); if (m) { while (o.cur && o.cur.r !== m.r) if (!E.rotate(o, 1)) break; while (o.cur && o.cur.x !== m.x) if (!E.move(o, Math.sign(m.x - o.cur.x))) break; } E.hardDrop(o); }
-  if (i === 3) E.insertJunk(o, 5, 3);
-  const card = document.createElement('div'); card.className = 'pd-mini' + (i === 2 ? ' is-target' : '') + (i === 4 ? ' is-attacker' : '') + (i === 6 ? ' is-ko' : '');
-  card.style.setProperty('--c', cols[i]);
-  card.innerHTML = `<canvas></canvas><div class="pd-mini-pips">${'<i></i>'.repeat(i === 1 ? 3 : i === 4 ? 1 : 0)}</div><span class="pd-mini-name"><b>${n}</b></span><span class="pd-mini-ko">KO</span>`;
-  minis.append(card);
-  drawMini(card.querySelector('canvas'), E.boardString(o), o.cur ? `${o.cur.t},${o.cur.r},${o.cur.x},${o.cur.y}` : '', { cell: mc, ko: i === 6 });
+const ROOT = document.documentElement;
+if (q.has('st')) ROOT.style.setProperty('--safe-t', `${q.get('st')}px`);
+if (q.has('sb')) ROOT.style.setProperty('--safe-b', `${q.get('sb')}px`);
+updateSettings({ prismScheme: q.get('scheme') === 'buttons' ? 'buttons' : 'gesture', prismSlam: q.get('slam') === 'left' ? 'left' : 'right', prismBtn: 0.5, reducedFx: false });
+installEmblems();
+// the shared corner pair, as the app draws it (☰ top-left, the music top-right)
+document.body.classList.add('pd-on');
+document.body.insertAdjacentHTML('beforeend', '<button class="menu-btn" type="button" aria-label="Menu"><span class="mb-bars"><i></i><i></i><i></i></span></button><button class="music-btn" type="button" aria-label="Music"><svg viewBox="0 0 24 24" aria-hidden="true"><g class="nt"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></g><path class="slash-bg" d="M4 4l16 16"/><path class="slash" d="M4 4l16 16"/></svg></button>');
+
+const mode = q.get('rush') === '1' ? 'rush' : 'battle';
+const show = q.get('state') || 'play';
+const N = Math.max(1, Math.min(7, Number(q.get('n') || 5)));
+const NAMES = ['AVA', 'BOBBY', 'CHARLIE', 'DANA', 'EVE', 'FINN', 'MAXIMILIANOS', 'ZOE'];
+const COLORS = ['magenta', 'cyan', 'yellow', 'green', 'orange', 'violet', 'red', 'blue'];
+const AV = ['bolt', 'eye', 'crown', 'ghost', 'star', 'heart', 'diamond', 'moon'];
+const uids = Array.from({ length: N + 1 }, (_, i) => `u${i}`);
+const me = uids[0];
+const players = Object.fromEntries(uids.map((u, i) => [u, { name: NAMES[i], color: COLORS[i], avatar: AV[i], joinedAt: i }]));
+const presence = Object.fromEntries(uids.map(u => [u, { online: true, lastSeen: Date.now() }]));
+const participants = Object.fromEntries(uids.map(u => [u, true]));
+
+const songs = await loadManifest();
+const pick = songs.find(s => s.world === q.get('world')) || songs[0];
+const list = [pick.id, ...songs.filter(s => s.id !== pick.id).map(s => s.id)].slice(0, mode === 'rush' ? 1 : 5);
+const sd = list.map(id => Math.round((songs.find(s => s.id === id).duration || 180) * 1000));
+const now = Date.now();
+const count = show === 'count';
+const songStartAt = count ? now - 1200 : now - 24_000;
+const playStartAt = count ? now + 3400 : now - 16_000;
+const game = { ...createGame({ matchId: 'pvw', settings: { mode }, participants, now, seed: q.get('seed') || 'preview', songs: list, sd, pl0: 0, songStartAt, playStartAt, endAt: mode === 'rush' ? now + 140_000 : null }), phase: count ? 'count' : 'play', names: Object.fromEntries(uids.map((u, i) => [u, NAMES[i]])) };
+game.out = {}; game.bd = {}; game.ko = {};
+// the others' boards: a believable mid-game stack each (the engine + the bot), one in danger, one KO'd (battle)
+const boards = {};
+uids.slice(1).forEach((u, i) => {
+  const o = E.createEngine({ seed: 'preview', mode });
+  E.start(o);
+  const r = rngFrom(u);
+  for (let k = 0; k < 5 + i * 4 && o.cur; k++) { const m = chooseMove(o, { skill: 0.5, rnd: r }); if (m) { while (o.cur && o.cur.r !== m.r) if (!E.rotate(o, 1)) break; while (o.cur && o.cur.x !== m.x) if (!E.move(o, Math.sign(m.x - o.cur.x))) break; } E.hardDrop(o); }
+  if (i === 2) E.insertJunk(o, 6, 3);
+  boards[u] = { b: E.boardString(o), h: E.stackHeight(o), p: o.cur ? `${o.cur.t},${o.cur.r},${o.cur.x},${o.cur.y}` : '', st: 'play', sc: 4000 + ((i * 7919) % 9000), tg: i === 1 ? me : '' };
 });
-const danger = Number(q.get('danger') || 0);
-const bot = q.get('bot') === '1';
-const loopFx = q.get('fx') === '1';
-let last = performance.now(), t0 = last, nextMove = 0, nextBig = 800;
-const frames = [];
-const fxs = { bloom: 0, hue: 0, waveT: -1, wz: 0 };
-function bigClear() {
-  const r = document.getElementById('board').getBoundingClientRect(), rf = document.getElementById('fx').getBoundingClientRect();
-  const cells = []; for (let y = 2; y < 6; y++) for (let x = 0; x < 10; x++) { const [cx, cy] = board.cellCenter(x, y); cells.push({ x: r.left - rf.left + cx, y: r.top - rf.top + cy, color: JEWEL[1 + ((x + y) % 7)] }); }
-  fx.shatter(cells, { cx: r.left - rf.left + r.width / 2, cy: r.top - rf.top + r.height / 2 });
-  fx.ring(r.left - rf.left + r.width / 2, r.top - rf.top + r.height * 0.75, { size: r.width * 1.6 });
-  board.flashRows([2, 3, 4, 5], 1, 200);
-  fxs.waveT = 0; fxs.bloom = 0.9; fxs.hue += 0.3; fxs.wz = Math.random();
+if (mode === 'battle' && N >= 4) { game.out[uids[N]] = { place: N + 1, by: uids[1], at: now - 30_000 }; boards[uids[N]].st = 'out'; game.ko[uids[1]] = 1; game.bd[uids[1]] = 1; }
+if (show === 'duel') {
+  uids.slice(2).forEach((u, i) => { game.out[u] = { place: N + 1 - i, by: uids[1], at: now - 20_000 - i * 1000 }; boards[u].st = 'out'; });
+  game.duelAt = now - 4000;
 }
-window.__preview = { frames, bigClear, world, setTier: t => { world.setTier(t); }, glitch: () => board.glitch(200) };
-function frame(t) {
-  requestAnimationFrame(frame);
-  const dt = Math.min(100, t - last); last = t;
-  frames.push(dt); if (frames.length > 600) frames.shift();
-  if (bot && g.cur && t > nextMove) {
-    nextMove = t + 420;
-    const m = chooseMove(g, { skill: 0.85, rnd });
-    if (m) { while (g.cur && g.cur.r !== m.r) if (!E.rotate(g, 1)) break; while (g.cur && g.cur.x !== m.x) if (!E.move(g, Math.sign(m.x - g.cur.x))) break; }
-    E.hardDrop(g);
-  }
-  E.update(g, dt);
-  for (const ev of E.takeEvents(g)) if (ev.e === 'clear') board.flashRows(ev.rows, ev.lines >= 4 ? 1 : 0.6, 160);
-  if (loopFx && t - t0 > nextBig) { nextBig += 2600; bigClear(); }
-  fxs.bloom *= Math.pow(0.12, dt / 1000); fxs.hue *= Math.pow(0.55, dt / 1000);
-  if (fxs.waveT >= 0) { fxs.waveT += dt / 1500; if (fxs.waveT > 1) fxs.waveT = -1; }
-  const sec = (t - t0) / 1000 + Number(q.get('t') || 0);
-  const beat = Math.exp(-((sec % 0.48) / 0.48) * 5);
-  world.set({ beat: beat * 0.8, energy: 0.7, bloom: fxs.bloom, hue: fxs.hue, danger, duel: Number(q.get('duel') || 0), wave: fxs.waveT >= 0 ? [-0.2 + fxs.waveT * 1.6, Math.sin(Math.PI * fxs.waveT), fxs.wz] : [0, 0, 0] });
-  world.render(sec);
-  fx.draw(dt);
-  board.draw(g, { danger, glow: tier === 0 ? 0 : 0.32 });
-  drawPiece(document.getElementById('hold'), 3, { cell: Math.round(cell * 0.36) });
-  E.nextQueue(g).forEach((p, i) => drawPiece(document.getElementById('n' + i), p, { cell: Math.round(cell * (i ? 0.3 : 0.38)) }));
-  document.getElementById('ln').textContent = g.lines;
-  document.getElementById('root').style.setProperty('--danger', danger);
+if (show === 'ko' || show === 'spec') {
+  game.out[me] = { place: N + 1, by: uids[1], at: now - 500, rem: N };
+  boards[me] = { st: 'out', b: '1'.repeat(10) + '0123456789'.repeat(12), h: 14 };
 }
-requestAnimationFrame(frame);
+if (show === 'final') {
+  game.phase = 'final';
+  game.phaseStartAt = now - 1500;
+  // a finished battle: the winner first, then by elimination order — with every stat the podium + the body read
+  uids.slice(1).forEach((u, i) => { game.out[u] = { place: i + 2, by: i < 3 ? me : uids[1], at: now - 30_000 + i * 2000 }; });
+  game.winner = me;
+  game.results = Object.fromEntries(uids.map((u, i) => [u, { sc: 12000 - i * 1100, ln: 40 - i * 3, lv: 5, mc: 6 - (i % 4), se: 31 - i * 4, best: i === 0 ? 'quad' : 'double', ko: i === 0 ? 3 : i === 1 ? 2 : 0, bd: i === 0 ? 4 : 1 }]));
+  game.calls = {};
+  boards[me] = { st: 'play', b: boards[uids[1]] && boards[uids[1]].b, h: 6 };   // (the winner's last published board — the body draws it)
+}
+const state = { uid: me, code: 'PVW1', players, presence, game, meta: { hostId: me }, live: { boards, calls: {} }, liveKey: null };
+await loadGame('prism');
+state.liveKey = liveKeyFor(game);
+// the console's store (the podium frame reads it): the room's code left out — no callouts / reports from a preview
+setState({ uid: me, players, presence, game, meta: { hostId: me }, live: state.live });
+const { createView } = await import('/js/games/prism/view.js');
+const view = createView();
+view.mount(document.getElementById('app'), state);
+const push = () => view.update({ ...state, game: { ...state.game } });
+window.__preview = { state, push, view, uids };
+// the engine is made on the first update with the live boards in; stack a few pieces, then the bot (or wait under NEXT)
+const ready = () => window.__prism && window.__prism.engine() && window.__prism.engine().cur;
+for (let k = 0; k < 200 && !ready() && show !== 'final' && show !== 'ko' && show !== 'spec' && !count; k++) await new Promise(r => setTimeout(r, 25));
+if (ready()) {
+  const g = window.__prism.engine();
+  const rnd = rngFrom('p');
+  const pre = Number(q.get('stack') ?? 8);
+  for (let i = 0; i < pre && g.cur; i++) { const m = chooseMove(g, { skill: 0.6, rnd }); if (m) { while (g.cur && g.cur.r !== m.r) if (!E.rotate(g, 1)) break; while (g.cur && g.cur.x !== m.x) if (!E.move(g, Math.sign(m.x - g.cur.x))) break; } E.hardDrop(g); }
+  if (q.get('hold') !== '0' && g.cur) E.holdPiece(g);
+  if (q.get('bot') === '1') window.__prism.bot({ skill: 0.85, every: 140 });
+  else if (q.get('under') !== '1') E.setLevel && E.setLevel(g, 1);
+}
+if (q.get('down') === '1') document.querySelector('.pd-slam-b')?.classList.add('is-down');
+if (q.get('hit') === '1') setTimeout(() => { const t = document.querySelector('.pd-tile'); if (t) t.classList.add('is-hit'); }, 200);
+if (q.has('tier')) window.__prism && window.__prism.setTier(Number(q.get('tier')));
+document.body.dataset.ready = '1';
 </script>
 </body>
 </html>

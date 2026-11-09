@@ -257,6 +257,28 @@ try {
   }
   ok(accidental === 0, `GESTURE: 8 fast sideways swipes with downward drift, ${accidental} accidental hard drops`);
   await shotBoth(A, 'pd-03-play');
+  // (PD-1 — THE MAX BOARD: the board under the corner row, the rail beside it (one tile per opponent), the red SLAM at the rail's foot clear of the board, HOLD + NEXT inside its top corners)
+  {
+    const L = await P(A, 'window.__prism.layout()');
+    const vw = await A.evaluate(() => innerWidth);
+    const inside = (a, b) => a && b && a.left >= b.left - 1 && a.right <= b.right + 1 && a.top >= b.top - 1;
+    ok(L.board.top >= 52 && L.rail.left >= L.board.right + 4 && L.rail.right <= vw && L.tiles.length === N - 1, `LAYOUT: board + rail (${L.tiles.length} tiles), cell ${L.cell.toFixed(2)} pt at ${L.dpr}×`);
+    ok(L.slamBtn && L.slamBtn.left >= L.board.right + 3 && L.slamBtn.bottom <= L.board.bottom + 4 && L.slamBtn.width >= 36, `LAYOUT: SLAM at the rail's foot, clear of the board (${JSON.stringify(L.slamBtn && { l: Math.round(L.slamBtn.left), w: Math.round(L.slamBtn.width) })})`);
+    ok(inside(L.hold, L.board) && inside(L.next, L.board) && L.hold.right < L.next.left, "LAYOUT: HOLD + NEXT float inside the board's top corners");
+    await P(A, "import('/js/audio/settings.js').then(m => { m.updateSettings({ prismSlam: 'left' }); return 1; })");
+    await sleep(200);
+    const L2 = await P(A, 'window.__prism.layout()');
+    await P(A, "import('/js/audio/settings.js').then(m => { m.updateSettings({ prismSlam: 'right' }); return 1; })");
+    ok(L2.slam === 'left' && L2.rail.right <= L2.board.left - 4 && L2.slamBtn.right <= L2.board.left - 3, "LAYOUT: the LEFT setting mirrors the rail + SLAM to the board's left");
+    await sleep(200);
+    const L3 = await P(A, 'window.__prism.layout()');
+    const sx = L3.slamBtn.left + L3.slamBtn.width / 2, sy = L3.slamBtn.top + L3.slamBtn.height / 2;
+    const h0 = await P(A, "window.__prism.synthLog().filter(x => x.name === 'hard').length");
+    await touch(A, [[sx, sy], [sx, sy]], 40);
+    await sleep(150);
+    const h1 = await P(A, "window.__prism.synthLog().filter(x => x.name === 'hard').length");
+    ok(h1 === h0 + 1, `SLAM: a tap on the red button hard-drops the piece (${h1 - h0})`);
+  }
 
   // ---------------------------------------------------------------- FAST=1 (SHELL 2.0 B1): two phones — the battle to its end, the
   // results, the walk back out to the ROOM IN THE CITY (the full path below needs 8: the host killed, the late joiner, the call)
@@ -269,8 +291,10 @@ try {
     await waitFor(A, s => s.game.phase === 'final', 'FAST: the results', 30000);
     const gF = await game(A);
     ok(gF.winner === uids[0], `FAST: ${NAMES[0]} is the last one standing (2 phones)`);
-    await A.waitForSelector('.final, .pd-res', { timeout: 15000 }).catch(() => {});
-    ok(await A.evaluate(() => !!document.querySelector('.final .final-back, .pd-res')), 'FAST: the podium shows (the results + BACK TO THE ROOM)');
+    await A.waitForSelector('.final .pd-fs', { timeout: 15000 }).catch(() => {});
+    // (PD-1 — THE CONSOLE'S PODIUM: the frame's BACK TO THE ROOM + PRISM's body only — the winning board + the top 3 as slim cards, the frame's list from 4th)
+    const fin = await A.evaluate(() => ({ back: !!document.querySelector('.final .final-back'), body: !!document.querySelector('.final .pd-fs .pd-fs-moment'), top: document.querySelectorAll('.final .pd-fs .pd-fs-top > li').length, accent: document.querySelector('.final.has-accent') ? getComputedStyle(document.querySelector('.final')).getPropertyValue('--fin').trim() : '' }));
+    ok(fin.back && fin.body && fin.top === 2 && /8fd8ff/i.test(fin.accent), `FAST: the podium = the console's frame + PRISM's body (${JSON.stringify(fin)})`);
     await cleanText(A, 'final');
     await A.evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
     await waitFor(A, s => s.meta.status === 'lobby' && !s.game, 'FAST: back in the room', 30000);
@@ -427,7 +451,7 @@ try {
   if (caller != null) ok(night && night.b && Object.keys(night.b).length >= 1, `GAME NIGHT: the bonus is on the scoreboard (${JSON.stringify(night && night.b)})`);
   await sleep(3200);
   await shotBoth(pages[keepA], 'pd-12-final');
-  await pages[keepA].evaluate(() => document.querySelector('.pd-res').scrollIntoView({ block: 'center' }));
+  await pages[keepA].evaluate(() => { const x = document.querySelector('.final .final-back'); if (x) x.scrollIntoView({ block: 'center' }); });
   await sleep(400);
   await shotBoth(pages[keepA], 'pd-13-results');
 

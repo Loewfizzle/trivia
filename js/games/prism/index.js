@@ -54,9 +54,25 @@ export async function start({ matchId, settings, participants, now }) {
 
 export function prepare() { /* nothing to top up: every phone runs its own board */ }
 
+/** THE PRELOAD (PD-1 — docs/cartridge.md THE PRELOAD BUDGET, ≤ 1.5 MB): on every phone during the walk inside — the songs' manifest + the FIRST
+ *  song's analysis (beat grid, key, world: ~5 KB), predicted from the room's playlist (meta/prism); a room's first match (no playlist yet —
+ *  the host deals it at the start) takes all five (~25 KB). The worlds are shaders in code (worlds.js — in the view's module graph, already
+ *  preloaded by js/games/preload.js); the song FILE itself (1.8–3.2 MB) is NOT preloaded — it streams in at the start (docs/prism.md). */
+export function preload() {
+  return loadManifest().then(songs => {
+    const ids = songs.map(x => x.id);
+    const pm = (state.meta && state.meta.prism) || {};
+    const first = pm.seed && ids.length ? playlistAt(pm.seed, pm.n || 0, ids) : null;
+    return Promise.all((first ? [first] : ids).map(id => loadSong(id).catch(() => null)));
+  }).catch(() => null);
+}
+
 export const step = (game, { now, live, online }) => nextStep(game, { now, online, presence: state.presence, live });
 
 export const finalRanks = game => standings(game).map(r => ({ uid: r.uid, rank: r.rank }));
 export const nightBonus = bonus;
+
+// (PD-1 — THE CONSOLE'S PODIUM: PRISM draws only the BODY inside the console's frame — docs/cartridge.md D8)
+export { finalScene } from './victory.js';
 
 // (THE CARTRIDGE PLUG's chat lock + BANNER_NAME + OPTIONS: meta.js)
