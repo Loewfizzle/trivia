@@ -6,9 +6,10 @@ A new game is its pure rules + its one distinctive screen; everything below come
 ## In the page (`import { … } from '../kit/index.js'`)
 | piece | what | how |
 | --- | --- | --- |
-| `createAnnouncer(lane, { prefix, holdMs })` | the announcement lane: max one visible, a short queue, a log for tests | `ann.announce('FINAL TWO', 'world')`, kinds → `is-<kind>` |
+| `createAnnouncer(lane, { prefix, holdMs, fit })` | the announcement lane: max one visible, a short queue, a log for tests; `fit: true` puts `--len` (the first line's letters) on each element so the css sizes it to the lane (PRISM DROP's callouts) | `ann.announce('FINAL TWO', 'world')`, kinds → `is-<kind>`; a `
+` = a second, smaller line |
 | `createCards(overlay, { prefix })` | full-screen title cards (VICTORY, YOU'RE OUT…), one at a time | `cards.card(title, sub, ms, kind)`; `cards.showing(kind)` |
-| `showCall({ … })` | Call the Winner: an eliminated player picks who wins within `CALL_MS`; refresh-safe; writes `{ w, at }` to `path` | `candidates` (≥ 2), `line(uid)`, `intro(n)`, `ended()`, `onState(msg)`, `sfx()` |
+| `showCall({ … })` | Call the Winner: an eliminated player picks who wins within `CALL_MS`; refresh-safe; writes `{ w, at }` to `path` | `candidates` (≥ 2), `line(uid)`, `intro(n)`, `ended()`, `onState(msg)`, `sfx()`, `ring: true` = a countdown RING (20 ticks + the seconds, opacity only) beside the title in place of the bar (PD-2) |
 | `reportPanel({ title, head, rows, calls, player })` | the stats table under the podium + the calls list | rows: `{ uid, name, color, me, cells[] }`; `ordinal(n)` |
 | `createTiers({ apply })` | quality tiers 2/1/0 from frame pacing (p75 > 19.5 ms steps down; 8 s of headroom steps up, never to a tier that failed) | per frame: `tiers.sample(now, workMs)`, `tiers.tick(now[, frameTimes])`; `get/set/fps/work` |
 | `installTestHook(name, api)` / `removeTestHook` | `window.__<game>` for the E2E, only on `?emu` / localhost (`always: true` to force) | mount / unmount |

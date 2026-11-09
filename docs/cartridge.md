@@ -15,7 +15,7 @@ game" checklist. This page is what it must EXPORT and what it GETS.
 | `step(game, { code, now, live, online })` | required | the PURE director: a patch, `{ lobby: true }` or `null` (+ `$room` side writes) |
 | `livePaths(game)` | required | the player-written paths the room mirrors into `state.live` (check `liveKey` before trusting it) |
 | `createView` | required | `lazyView(() => import('./view.js'), gameSheets('<id>'))` — its code + sheets load only when it's played; the console WARMS it (`createView.warm()`) on every phone during the walk inside |
-| `DEFAULT_SETTINGS`, `OPTIONS`, `estimateMinutes(s)` | required | the options sheet under PLAY / GAMES (every OPTIONS key has a default) |
+| `DEFAULT_SETTINGS`, `OPTIONS`, `estimateMinutes(s)` | required | the options sheet under PLAY / GAMES (every OPTIONS key has a default; an option OR one of its choices may carry `when(players)` — shown only with that many connected players; a hidden saved choice falls back to the first shown — PD-2: PRISM DROP's BATTLE needs 2) |
 | `finalRanks(game)` | required | GAME NIGHT's 3 / 2 / 1 points (`night/{matchId}`) → THE WINNER's BANNER (3 points = first; a tie = everyone with 3) + THE NIGHT's CHAMPION |
 | `MUSIC` or `musicFor(game)` | required (one) | its music (`null` = none — the song is the music) |
 | `FINAL_MUSIC` | optional | its podium music (default the victory playlist) — it starts when the podium FRAME is on screen (`ui/final.js` sets `state.podium` → `app.js#musicFor`), never during a last round's answer screen inside `final` (FRIENDS B — B2) |

@@ -2297,6 +2297,20 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   (baked in the clean base — subtracted at build), THE FAST REVEAL (a reveal in the page's first 900 ms left the city at opacity 0 — the WORD
   TOWERS flake's cause), THE MONDAY BLADE (the city re-baked its blade in view on a Monday load — LOAD WEATHER's Monday red).
 
+## PD-2 — PRISM DROP: BATTLE MADE SIMPLE + SURVIVAL + SOLO (Nov 9, 2026 — docs/harbor/passes/pd-2.md; the plan: docs/games/plan.md "PD-2")
+- AUTO-TARGET: `logic.js#autoTarget` — the most recent attacker still alive, else a random opponent kept while valid; the target modes + their
+  setting gone.
+- THE RISING GHOST ROWS: `incoming.js` (PURE bands from the engine's own queue) + the look's hook `board.js#LOOKS.glass.incoming` — hatched
+  see-through ghosts over the bottom rows (an occupied cell only tinted), rising as the delay runs out, solid when the engine lands them; a cancel
+  shatters them on the board; "INCOMING 3 · EVE"; SURVIVAL / sudden-death rows rise the same way. The red bar gone.
+- THE CALLOUTS (the kit's announcer, `fit`): one per moment — PERFECT CLEAR · BACK-TO-BACK · TWIST +2 · BLOCKED! · +4 → DANA · KO → EVE; the
+  one-time tip "Clear lines to attack your friends."
+- KO card → Call the Winner (the kit's countdown `ring`) → SPECTATE (two leaders big, the one in danger outlined, DUEL SOON, the field on one line;
+  names → THE PLAYER PAGE only there).
+- SURVIVAL (seeded rows 10 s → 4 s, last one standing, no KO credit; counts as PRISM DROP wins) + SOLO (`SOLO: true`: SCORE RUSH + SURVIVAL;
+  BATTLE needs 2 — a per-choice `when()` in the options sheet). The results record `ko` / `pc` / `dz` / `t` for PD-5's cards.
+- 60 fps at every tier at 3× (4× CPU): 2.1 ms CPU a frame, 2.3–2.5 with six ghost rows. No rules change.
+
 ## PD-1 — PRISM DROP: LAYOUT + CONTROLS (Nov 9, 2026 — docs/harbor/passes/pd-1.md; the plan: docs/games/plan.md "PRISM DROP — THE REWORK PLAN")
 - GROUP 0 — THE BOARD's TOP: the gold emblem / LV button gone (☰ · ‹ · the music), the title on its own row with air, four equal tabs, NO DOUBLE
   "YOU" (the pinned row only while your card is off screen), an opted-out friend shows no XP this week (`wx: null`), THE PLAYER PAGE opaque.

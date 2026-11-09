@@ -16,10 +16,50 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
   Speed: level = 1 + minutes played (cap 12). Sudden death: after 5 min, one junk row every 10 s (gap from the seed). A top-out
   writes `st:'out'` + `by` (the sender of the last junk received = KO credit); the director orders knockouts by time, moves badges
   (`applyKo`: killer gets victim's + 1), counts KOs, sets `duelAt` when 2 of ≥ 3 remain, ends when ≤ 1. Offline > 30 s = out.
-  Targeting (`chooseTarget`): RANDOM (re-picks every ~8 s), ATTACKERS (who hit you in the last 15 s / targets you), DANGER
-  (tallest stack). Call the Winner: 10 s after you're out (rules: 12 s); bonus = `callBonus(rem)` = 0.4 × (players left − 1).
+  **AUTO-TARGET (PD-2 — `logic.js#autoTarget`, no button, no setting):** your attacks go to whoever is attacking you (the most recent attacker
+  still alive — `attackersOf` over every attack you received), otherwise a random living opponent, KEPT while it stays valid; re-picked when an
+  attack arrives and every ~0.6 s. The old RANDOM / ATTACKERS / DANGER modes + `na:prism:target` are gone. Badges + KO bonuses work as before,
+  behind the scenes (no panel). Call the Winner: 10 s after you're out (rules: 12 s); bonus = `callBonus(rem)` = 0.4 × (players left − 1).
 - **Score Rush:** no attacks; the match = one song (`endAt` = the song's analysed last strong beat); levels every 10 lines; a
   top-out clears the board (score kept); the finale (chord + the board shattering) is scheduled on that beat.
+- **SURVIVAL (PD-2):** no attacks (the engine runs in mode `survival`: it sends + counters nothing); junk rows rise for EVERYONE on one seeded
+  schedule — `logic.js#survivalRows` / `survivalRowAt` (the k-th row's time, ms after GO: one every 10 s, a smoothstep over `SURV_RAMP_MS`
+  150 s to one every 4 s), the gap = `survivalGap(seed, k)` (sudden death's rule), each phone inserting them at the server-clock moment
+  (`eng.sd` counts them — saved, so a refresh keeps the count). Speed = battle's (`battleLevel`). Last one standing wins (no KO credit, no
+  badges); the results' `t` = the time survived (ms); the standings' score = the seconds survived, then the lines. Calibration (bots on the real
+  schedule, solo): the strongest bot ~100 s median (65–147 s), a weak one ~45 s — real players outlast the bots; typical 2–4 min.
+- **SOLO (PD-2 — meta `SOLO: true`, the console's solo lane):** ONE player may start SCORE RUSH or SURVIVAL (the streak + a small capped XP, never
+  a win). BATTLE needs 2: its choice carries `when: n => n >= 2` (the options sheet's per-choice filter — screens/game-options.js), and
+  `cleanSettings(s, players)` deals SCORE RUSH to a room of one whatever was asked. A solo SURVIVAL plays until you top out (the KO card + the
+  podium show the time: `scoreText` on the console's SOLO RUN line); a solo SCORE RUSH plays the song. Neither feeds a board (no `-solo` board
+  exists for PRISM); `match-report.js#soloEmpty` decides PRISM's empty run by points / lines only (a phone on the table "survives" a while).
+  THE BOARD's PRISM DROP tab: SURVIVAL wins count as PRISM DROP wins + win rate (no new board).
+- **THE FACTS FOR PD-5's CARDS (the results, written by the director at the end):** `ko` (KOs), `pc` (perfect clears — the save's `st[3]`),
+  `dz: 1` (BATTLE only: your stack reached the TOP 5 ROWS — the engine's `peak` ≥ `DANGER_ZONE_ROWS` 16, saved as `sv.pk`; the save is written at
+  once when it first happens + at the end, so a winner's flag is never 3 s stale) — FIRST KO, PERFECT CLEAR, COMEBACK (= the winner + `dz`).
+- **THE RISING GHOST ROWS (PD-2 — the red bar is gone):** the engine's pending junk drawn ON your board — `incoming.js#ghostBands` (PURE) turns
+  the queue into bands from the bottom up (the newest attack at the bottom, the oldest on top — the order they will really land): a fresh attack
+  shows 30 % of its rows at once and slides up from below the board's edge as its delay runs out; due = fully up + HOT (a faster shake, a brighter
+  glow); it goes SOLID exactly when the engine lands it (the next lock without a clear — unchanged). Drawn by the LOOK's hook
+  (`board.js#LOOKS.glass.incoming` — PD-3 / PD-4 add their own) OVER the bottom rows: an empty cell gets a hatched see-through ghost (never
+  mistaken for a block), an occupied cell is only tinted (the stack stays readable), the gap stays open, a bright leading edge on top, ≤ 12 rows
+  drawn. A clear that cancels them (the engine's counter, oldest first) SHATTERS the top rows on the board itself (`board.shatterGhost` —
+  ~0.5 s of hatched shards + a flash). The tag `INCOMING 3 · EVE` (`incomingTag` — the biggest sender, "+1" per other) rides just above the ghost
+  rows' top edge or your stack, whichever is higher (never over a block; a transform). SURVIVAL's next row (and BATTLE's sudden-death rows) rise
+  the same way over their last 3 s (`sched`, no tag, can't be cancelled).
+- **THE CALLOUTS (PD-2):** the kit's announcer (`createAnnouncer(…, { fit: true })` — `--len` sizes the headline to the board: never a wrap) in
+  `.pd-callout`, centred over the board's upper middle (never the bottom rows / the incoming rows), ~1.1 s each: one per moment (a batch of engine
+  events → `part()` → `flushCallout()`): the headline big (PERFECT CLEAR · BACK-TO-BACK · TWIST +2 · 4 LINES · COMBO ×3 · BLOCKED! · +4 → DANA)
+  and the rest small under it; `KO → EVE` for the one who scored it (the others see the top line's "X KO'd Y"). BLOCKED! = the shared `--good`
+  (a word too). The rail tile you hit flashes (PD-1's `rail.hit`).
+- **THE TIP (PD-2):** "Clear lines to attack your friends." — the first BATTLE on this device (`na:prism:tip`; the console's one-time hint is the
+  dailies'), at GO + 0.8 s, gone after ~5 s or on the first move.
+- **KO → CALL THE WINNER → SPECTATE (PD-2):** the KO card on your board (KO · BY DANA / TOPPED OUT / THE JUNK GOT YOU / SIGNAL LOST · 5TH PLACE;
+  solo SURVIVAL: SURVIVED 1:42) for 1.8 s (`KO_CARD_MS`), then the kit's Call the Winner (`ring: true` — 20 ticks round a circle go out one by one
+  + the seconds, opacity only; big tap targets; the line under a name = their stack) with the KO card stepped back, then SPECTATE: the two
+  leaders' boards BIG side by side (live; SCORE RUSH: the top two scores, else the two lowest stacks then the most KOs, kept in seat order), the
+  higher one outlined red from 12 rows, `DUEL SOON` in the header when two remain, the rest of the field as one line (initial · stack · KO). A
+  name opens THE PLAYER PAGE — only here, never during live play. A refresh after the KO goes straight to the call / spectating.
 - **Songs:** `meta/prism` holds the room's playlist seed + position. `playlistAt(seed, k, ids)` = per-cycle seeded shuffles, a cycle
   never starts with the song the last one ended on, so nothing repeats until all have played. A match takes the next song(s)
   (battle deals 5 in a row; if it outlasts a song the next crossfades in over 4 s and the world transforms); the final step
@@ -78,10 +118,14 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
 - **THE PRELOAD (PD-1):** `preload()` (every phone, the walk inside): the manifest + the FIRST song's analysis (~5 KB, predicted from the room's
   `meta/prism` playlist; a room's first match — no playlist yet — all five, ~25 KB). The worlds are shaders in code (in the view's module graph, already
   preloaded — `js/games/preload-graph.js`, 29 modules / 213 KB). Far under the 1.5 MB budget; the song file is not preloaded (above).
-- **THE PREVIEW (PD-1):** `tests/integration/prism-preview.html` mounts the REAL view (the fake database) with a scripted state — `&n=1..7`
+- **THE PREVIEW (PD-1 + PD-2):** `tests/integration/prism-preview.html` mounts the REAL view (the fake database) with a scripted state — `&n=1..7`
   `&state=play|count|ko|duel|final|spec` `&rush=1` `&scheme=buttons` `&slam=left` `&world=` `&bot=1` `&under=1` `&down=1` (SLAM pressed) `&hit=1`
-  `&st=47&sb=34` (the safe areas). `node tests/integration/prism-shots.mjs "<chrome>" ./shots-prism [cpu]` shoots every state at 390 / 402 / 430
-  with each phone's real safe areas (`SIZES=`, `ONLY=`, `SETS=look,states,worlds`) + the frame timing per tier (`PERF=0` skips it).
+  `&st=47&sb=34` (the safe areas); PD-2: `&mode=survival&t=` `&solo=1` `&state=kocard|ko|spec` `&inc=1|3|6&rise=fresh|mid|hot` `&shatter=n`
+  `&callout=send|blocked|twist|b2b|ko|pc` `&fresh=1&tip=1` `&after=ms`. `node tests/integration/prism-shots.mjs "<chrome>" ./shots-prism [cpu]`
+  shoots every state at 390 / 402 / 430 with each phone's real safe areas (`SIZES=`, `ONLY=`, `SETS=look,states,worlds,pd2`; an entry may be
+  `{ q, js, w }` — a line of JS fired just before the shot) + the frame timing per tier (`PERF=0` skips it; `Q=` adds to every URL).
+- **Measured (PD-2, prism-shots.mjs, 390 × 844 @3, 7 opponents, a bot, 4× CPU, GPU):** 60 fps at every tier (p95 16.8 ms); 2.1 ms CPU a frame
+  (PD-1: 1.7), 2.3–2.5 ms with six ghost rows on screen.
 - **Controls** (`input.js#makeGesture`, pure + unit-tested with 2000 random swipes): drag = follow the finger by distance (no
   overshoot), tap = rotate by screen half, slow drag down = soft drop row by row, flick (≥ ~1.15 px/ms over 70 ms, steep, ≥ 0.9
   cell) = hard drop, swipe up = hold. Settings: GESTURES/BUTTONS, swipe sensitivity, button size, reduced effects (`audio/settings.js`

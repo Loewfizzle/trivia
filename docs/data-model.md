@@ -190,9 +190,11 @@ sample `{x,y,z,vx,vy,t}`, `pu` held power-up, `pk` bitmask of pickups taken this
 `ri/rt` riding a moving platform, `sab {h,to,k,at}` the sabotage this player sent this hole (once), `ball {c,f,t}` their look.
 Totals are derived from `results` (lowest strokes wins).
 
-PRISM DROP `game`: `{ id:'prism', matchId, settings{mode: battle|rush}, participants, seed, songs[ids], sd[ms], pl0 (playlist
+PRISM DROP `game`: `{ id:'prism', matchId, settings{mode: battle|rush|survival}, participants, seed, songs[ids], sd[ms], pl0 (playlist
 position), phase: count|play|end|final, songStartAt, playStartAt (= a downbeat of song 0), endAt (rush: the song's last beat),
-n0, out{uid:{at,place,rem,by,gone}}, ko{uid}, bd{uid badges}, duelAt, winner, results{uid:{sc,ln,lv,mc,se,best,ko,bd}}, calls{uid:{w,ok,bonus}} }`.
+n0, out{uid:{at,place,rem,by,gone}}, ko{uid}, bd{uid badges}, duelAt, winner, results{uid:{sc,ln,lv,mc,se,best,ko,bd,pc,dz?,t?}}, calls{uid:{w,ok,bonus}} }`
+(PD-2: `pc` perfect clears, `dz: 1` BATTLE's danger zone — the stack reached the top 5 rows, `t` SURVIVAL's ms survived; a player's `sv` carries
+`pk` = the stack's peak height — inside `sv`, whose extra keys the rules already allow: no rules change).
 
 GRIDLOCK `game`: `{ id:'gridlock', matchId, settings{mode: classic|salvo|royale|arcade, placeSec, turnSec}, mode, participants, names, size
 (10 for 2–3 players, 8 for 4+), fleet [lengths], n0, order[] (seeded Classic turn order), phase: place|turn|aim|resolve|show|end|final,

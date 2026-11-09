@@ -176,7 +176,12 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   rework plan: docs/games/plan.md): THE MAX BOARD's sizes are ONE pure module (`prism/layout.js` — the real safe areas, the cell snapped to device
   pixels, the board at the FULL 3×), HOLD + NEXT inside the board's corners, the other players on THE SLIM RAIL (`rail.js`), SLAM = the red push
   button at the rail's foot (LEFT mirrors it); the podium = the console's frame + `victory.js#finalScene` (PRISM draws no frame, no report table);
-  `prism-preview.html` mounts the REAL view (`prism-shots.mjs`).
+  `prism-preview.html` mounts the REAL view (`prism-shots.mjs`). PD-2 (Nov 9 — docs/prism.md): AUTO-TARGET is ONE pure rule (`logic.js#autoTarget` —
+  the most recent attacker still alive, else a random opponent kept while valid; no button, no setting); incoming junk = THE RISING GHOST ROWS
+  (`incoming.js` PURE + the look's hook `board.js#LOOKS` — the engine's attack math + delays untouched; an occupied cell only tinted, never
+  covered; no red bar); callouts on the kit's announcer (`fit`); KO card → Call the Winner (the kit's `ring`) → SPECTATE (names → THE PLAYER PAGE
+  only there); SURVIVAL (the seeded 10 s → 4 s rows, `survivalRows`) + SOLO (`SOLO: true` — SCORE RUSH + SURVIVAL; BATTLE needs 2: a CHOICE's
+  `when(players)` in the options sheet + `cleanSettings(s, players)`); the results carry `ko` / `pc` / `dz` / `t` for PD-5's cards.
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,
