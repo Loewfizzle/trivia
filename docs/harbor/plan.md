@@ -6432,3 +6432,12 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
   most). ONE daily finished = that daily's own card exactly as now. Both looks (the day sky / the night neon, as their own cards). Fits up to 6
   dailies (sections scale evenly). THE BAR: at a 360-px-wide downscale (how a text thread shows it) THE PASSWORD's grid colours, the time and the
   address still read. Before / after shots (night + day, both dailies done + one done, full + 360 px) in the pass log; the summary says it's done.
+
+## OWNER'S NOTES — NOV 9 (B's mock)
+
+- Nov 9 (the owner, on the mock page — claude.ai artifact "Board 2.0 B Mock"): "Everything looks good. The layout, images, the mock-ups, everything
+  besides the background. I don't like the fact that it's brown and in the bar area it looks super cheap. I want something to look premium."
+  → three backgrounds drawn (1 THE CITY behind it · 2 BLACK VELVET + GOLD DECO · 3 NIGHT GLASS); the owner: "I like number 2 or number 1. You can
+  pick whatever one you like out of those two." → **2, BLACK VELVET + GOLD DECO** (the session's pick: the same at every hour — the city's still
+  would put a bright day sky behind the gold title; drawn in code, nothing to load on /board; a gold sunburst fits the hall of fame). The brown
+  bar hall (board/scene.js) goes; the board's panel = dark glass with a gold hairline. Build to the mock (tests/integration/board2-preview.html).
