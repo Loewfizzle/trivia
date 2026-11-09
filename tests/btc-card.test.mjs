@@ -51,7 +51,7 @@ test('THE BTC CARD — THE LAB: v2 + its CHANGED line + the new motion text; the
   }
   assert.ok(CREDITS.some(c => /balloon card/.test(c.title) && /Card art created with Grok/.test(c.by)));
   let total = 0;
-  for (const n of ['btc', 'btc-balloon', 'btc-patch', 'btc-lit', 'btc-mark', 'btc-sheen', 'btc-bloom', 'btc-coins', 'btc-flame', 'btc-glints', 'btc-water']) {
+  for (const n of ['btc', 'btc-clean', 'btc-balloon', 'btc-lit', 'btc-mark', 'btc-sheen', 'btc-bloom', 'btc-coins', 'btc-flame', 'btc-glints', 'btc-water']) {
     const s = statSync(new URL(`../assets/vault/btc/${n}.webp`, import.meta.url)).size; total += s;
     assert.ok(s > 2000 && s < 120e3, `${n}.webp ${s}`);
   }

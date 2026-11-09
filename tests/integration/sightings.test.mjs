@@ -15,6 +15,8 @@ import { profileAction } from '../../api/profile.js';
 import { pushPrefix } from '../../api/_lib/sightings.js';
 import { legendsTonight } from '../../js/core/harbor-showcase.js';
 import { localParts } from '../../js/core/sky.js';
+import { balloonFlights } from '../../js/core/sightings.js';
+import { kindsOf } from '../../js/core/harbor-balloon-kinds.js';
 
 const TZ = 'America/New_York';
 const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'pcount', 'progress', 'radio', 'city2'];
@@ -54,6 +56,41 @@ test('CITY SIGHTINGS: a tap the timetable agrees with counts ONCE per appearance
   assert.equal((await claim('sg-ann', 'ufo', at + 4000, at + 4000, { tz: 'Asia/Tokyo' })).why, 'place');
   // the client never wrote any of it (the rules test proves it can't): the counts are the server's
   assert.ok(await val(`ppriv/${a.pid}/sgk`));
+});
+
+// THE BTC CARD (Nov 8 late night — no unlock change, PROVED): TAP ANY ₿ BALLOON in the city (core/sightings.js row 'btc', kinds 'bitcoin' +
+// 'btc-orange') → the server replays the balloon scheduler at the place and grants card-sg-btc + its emblem ONCE; a tap while no ₿ balloon is up
+// (a flight without one, or none at all) never does
+test('THE ₿ BALLOON: a tap while a ₿ balloon flies awards card-sg-btc ONCE; a tap with no ₿ balloon up never', async () => {
+  const GR = { lat: 43, lon: -85.5 }, BTC = k => k.some(x => x === 'bitcoin' || x === 'btc-orange');
+  let hit = null, hit2 = null, miss = null;
+  for (let day = 0; day < 160 && (!hit || !hit2 || !miss); day++) for (const h of [7.5, 8.5, 9.5, 19.5]) {
+    const t = evMs(2026, 6, 1 + day, h);
+    for (const fl of balloonFlights(t, TZ, GR)) {
+      const at = fl.start + 120e3, k = kindsOf(fl.seed, fl.festival);
+      if (BTC(k)) { if (!hit) hit = at; else if (!hit2 && at - hit > 86400e3) hit2 = at; }
+      else if (!miss && !balloonFlights(at, TZ, GR).some(g => BTC(kindsOf(g.seed, g.festival)))) miss = at;
+    }
+  }
+  assert.ok(hit && hit2 && miss, JSON.stringify({ hit, hit2, miss }));
+  const p = await ensure('sg-btc1', 'Satoshi', hit - 3600e3);
+  const tap = (t, extra = {}) => claim('sg-btc1', 'btc', t, t + 2000, { place: GR, ...extra });
+  // no ₿ balloon up → refused, nothing granted
+  const no = await tap(miss);
+  assert.equal(no.ok, false); assert.equal(no.why, 'not_on_screen');
+  assert.equal(await val(`pstats/${p.pid}/it/card-sg-btc`), null, 'no card from a tap with no ₿ balloon');
+  // a ₿ balloon flying → the card + its emblem (the MATCHED PAIR)
+  const r = await tap(hit);
+  assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.counted, true); assert.equal(r.first, true);
+  assert.ok(r.items.includes('card-sg-btc') && r.items.includes('emb-sg-btc'), JSON.stringify(r.items));
+  assert.ok(await val(`pstats/${p.pid}/it/card-sg-btc`));
+  // the same balloon again → a reaction, no second count / grant; a ₿ balloon on another day → counted, but the card is never granted twice
+  const again = await tap(hit + 30e3);
+  assert.equal(again.counted, false); assert.deepEqual(again.items, []);
+  const later = await tap(hit2);
+  assert.equal(later.ok, true); assert.equal(later.counted, true); assert.ok(!later.items.includes('card-sg-btc'), 'the card once');
+  assert.equal(await val(`pstats/${p.pid}/pa/sg/btc`), 2);
+  assert.equal(await val('pcount/i/card-sg-btc'), 1, 'X% counted once');
 });
 
 test('THE RADIO: the OWNER\'s moment counts once a day per player; the CREW\'s never; JUST ME never', async () => {

@@ -23,11 +23,11 @@ export const BTC = Object.freeze({
   pivot: [915, 290],                 // the sway turns round the envelope's middle
   // the layers' boxes (where the build cut them)
   balloon: [751, 74, 328, 471],      // btc-balloon.webp (the cut-out: envelope + rigging + basket)
-  patch: [640, 40, 560, 540],        // btc-patch.webp (the sky behind the balloon + the coins)
+  patch: [640, 40, 560, 540],        // (the region the build filled in — btc-clean.webp = the master with the balloon + the coins gone)
   lit: [751, 74, 328, 411],          // btc-lit.webp (the inside light — the envelope's shape)
   mark: [836, 148, 160, 199],        // btc-mark.webp (the ₿ blazing)
   sheen: [868, 180, 96, 135],        // btc-sheen.webp (the ₿ alone)
-  bloom: [655, -22, 520, 603],       // btc-bloom.webp (a quarter size — drawn into this box)
+  bloom: [601, -76, 628, 711],       // btc-bloom.webp (a quarter size, blurred wide — drawn into this box)
   flame: { core: [148, 198.2], size: 300 },   // btc-flame.webp (Grok's glow plate, halved): its hot core in its own px — moved onto `burner`
   glints: [576, 43, 636, 646],       // btc-glints.webp (halved) — Grok's coin-edge glints + star sparks
   water: [0, 618, 1280, 102],        // btc-water.webp (halved) — the harbor's reflections

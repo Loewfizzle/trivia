@@ -5,8 +5,8 @@
 //   btc          the master, converted only (1280 × 720) — the card's MATERIAL (css/vault.css .vl-s-sg-btc)
 //   btc-balloon  THE BALLOON cut out (the envelope — its outline filled row by row, the ₿ inside it — + the rigging, burner + basket) with a
 //                soft 1-px edge: the layer that sways + rises
-//   btc-patch    the SKY behind it: the master with the balloon + the five coins filled in (a push-pull fill + a little grain), kept only
-//                around them (feathered) — drawn opaque over the material so the moving balloon / coins never show a second copy
+//   btc-clean    the SKY behind it: the master with the balloon + the five coins filled in (a push-pull fill + a little grain, pasted in
+//                feathered) — the effect's opaque BASE, so the moving balloon / coins never show a second copy
 //   btc-lit      THE FLARE's inside light: the envelope's own shape, hottest at the mouth, fading up the panels (the gores' light kept)
 //   btc-mark     the ₿ BLAZING (its letter + a soft gold glow) · btc-sheen = the ₿ alone (the gold sheen slides across it in slices)
 //   btc-bloom    the soft bloom around the envelope (its outline blurred — never a box)
@@ -105,13 +105,12 @@ const res = await p.evaluate(async () => {
   // ---- THE PATCH: the balloon (dilated 5) + the coins (r + 4) filled in from the sky around them (push-pull), a little grain; kept only
   //      within ~12 px of them (feathered) so everywhere else stays the material's own pixels
   const PB = [640, 40, 560, 540], [px0, py0, pw, ph] = PB;
-  const hole = new Float32Array(pw * ph);
-  for (let y = 0; y < ph; y++) for (let x = 0; x < pw; x++) { const X = px0 + x, Y = py0 + y; let v = Math.max(env[Y * W + X] || 0, rig(X, Y)) > 0.02 ? 1 : 0; for (const [cx, cy, r] of coins) if (Math.hypot(X - cx, Y - cy) < r + 4) v = 1; hole[y * pw + x] = v; }
   const dil = (f, r) => { const g = blur(f, pw, ph, r, 1); return g.map(v => (v > 0.001 ? 1 : 0)); };
-  const hole5 = dil(hole, 5);
+  const holeOf = rigF => { const m = new Float32Array(pw * ph); for (let y = 0; y < ph; y++) for (let x = 0; x < pw; x++) { const X = px0 + x, Y = py0 + y; let v = Math.max(env[Y * W + X] || 0, rigF(X, Y)) > 0.02 ? 1 : 0; for (const [cx, cy, r] of coins) if (Math.hypot(X - cx, Y - cy) < r + 4) v = 1; m[y * pw + x] = v; } return dil(m, 5); };
   // push-pull: level 0 = the known pixels (weight 1), each coarser level the weighted 2 × 2 sums, then back up filling the unknown
+  const pushPull = holeM => {
   const lv = [{ w: pw, h: ph, c: new Float32Array(pw * ph * 3), a: new Float32Array(pw * ph) }];
-  for (let y = 0; y < ph; y++) for (let x = 0; x < pw; x++) { const k = y * pw + x, a = 1 - hole5[k]; const [r, g, bb] = rgb(px0 + x, py0 + y); lv[0].a[k] = a; lv[0].c[k * 3] = r * a; lv[0].c[k * 3 + 1] = g * a; lv[0].c[k * 3 + 2] = bb * a; }
+  for (let y = 0; y < ph; y++) for (let x = 0; x < pw; x++) { const k = y * pw + x, a = 1 - holeM[k]; const [r, g, bb] = rgb(px0 + x, py0 + y); lv[0].a[k] = a; lv[0].c[k * 3] = r * a; lv[0].c[k * 3 + 1] = g * a; lv[0].c[k * 3 + 2] = bb * a; }
   while (lv[lv.length - 1].w > 1 || lv[lv.length - 1].h > 1) {
     const f = lv[lv.length - 1], w2 = Math.max(1, Math.ceil(f.w / 2)), h2 = Math.max(1, Math.ceil(f.h / 2)), c2 = new Float32Array(w2 * h2 * 3), a2 = new Float32Array(w2 * h2);
     for (let y = 0; y < f.h; y++) for (let x = 0; x < f.w; x++) { const k = y * f.w + x, q = (y >> 1) * w2 + (x >> 1); a2[q] += f.a[k]; c2[q * 3] += f.c[k * 3]; c2[q * 3 + 1] += f.c[k * 3 + 1]; c2[q * 3 + 2] += f.c[k * 3 + 2]; }
@@ -125,14 +124,22 @@ const res = await p.evaluate(async () => {
       return (v(x0, y0) * (1 - fx) + v(x1, y0) * fx) * (1 - fy) + (v(x0, y1) * (1 - fx) + v(x1, y1) * fx) * fy; };
     for (let y = 0; y < f.h; y++) for (let x = 0; x < f.w; x++) { const k = y * f.w + x, a = f.a[k]; if (a >= 1) continue; for (let ch = 0; ch < 3; ch++) f.c[k * 3 + ch] += (1 - a) * samp(x, y, ch); f.a[k] = 1; }
   }
-  rigSky = (X, Y) => { const k = (Y - py0) * pw + (X - px0); return [lv[0].c[k * 3], lv[0].c[k * 3 + 1], lv[0].c[k * 3 + 2]]; };
+  return lv[0].c; };
+  // pass 1: the rigging's whole box filled → the sky estimate there → the rigging = only what differs from it (the ropes, the burner, the basket)
+  const fillA = pushPull(holeOf(rig));
+  rigSky = (X, Y) => { const k = (Y - py0) * pw + (X - px0); return [fillA[k * 3], fillA[k * 3 + 1], fillA[k * 3 + 2]]; };
+  // pass 2: the hole = the envelope + the rigging's own pixels + the coins (the real clouds between the ropes stay — no flat wedge beside the basket)
+  const hole5 = holeOf(rigA), fill = pushPull(hole5), lv = [{ c: fill }];
   // (the rigging's dilated box went into the fill; the cut-out keeps only the ropes, the burner + the basket — what differs from the sky)
   out['btc-balloon'] = balloonOut();
   let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   const keep = blur(dil(hole5, 10), pw, ph, 4, 2);
-  out['btc-patch'] = webp(lightCanvas(W, PB, (X, Y) => { const k = (Y - py0) * pw + (X - px0), a = Math.min(1, keep[k] * 1.6); if (a <= 0.004) return null;
+  const patchCv = lightCanvas(W, PB, (X, Y) => { const k = (Y - py0) * pw + (X - px0), a = Math.min(1, keep[k] * 1.6); if (a <= 0.004) return null;
     if (!hole5[k]) { const [r, g, bb] = rgb(X, Y); return [r, g, bb, a]; }
-    const n = (rnd() - 0.5) * 5; return [lv[0].c[k * 3] + n, lv[0].c[k * 3 + 1] + n, lv[0].c[k * 3 + 2] + n, a]; }), 0.92);
+    const n = (rnd() - 0.5) * 5; return [lv[0].c[k * 3] + n, lv[0].c[k * 3 + 1] + n, lv[0].c[k * 3 + 2] + n, a]; });
+  // THE CLEAN MASTER: the master with the patch pasted in (one opaque 1280 × 720 picture — the effect's base; an external texture, so the
+  // shared atlas keeps its room: a 560 × 540 patch on top of the base overflowed it in a lobby of the 8 sighting cards)
+  { const c = canvas(W, H), x = c.getContext('2d'); x.drawImage(M, 0, 0); x.drawImage(patchCv, PB[0], PB[1]); out['btc-clean'] = webp(c, 0.86); }
   // ---- THE ₿ (white on the envelope): its own pixels → the sheen's mask + the blaze
   let bx0 = W, by0 = H, bx1 = 0, by1 = 0;
   const whiteOf = (x, y) => { const [r, g, bb] = rgb(x, y); return env[y * W + x] > 0.5 && y < eBot - 80 ? sm(150, 215, Math.min(r, g, bb + 25)) : 0; };
@@ -148,15 +155,16 @@ const res = await p.evaluate(async () => {
   const mouth = [(Ls[eBot - 6] + Rs[eBot - 6]) / 2, eBot];
   let Lmax = 0; for (let y = eTop; y <= eBot; y++) for (let x = Math.max(0, Ls[y] | 0); x <= Rs[y]; x++) { const [r, g, bb] = rgb(x, y); Lmax = Math.max(Lmax, r * 0.5 + g * 0.4 + bb * 0.1); }
   const EB = [BAL[0], BAL[1], BAL[2], eBot + 4 - BAL[1]];
-  out['btc-lit'] = webp(lightCanvas(W, EB, (X, Y) => { const a = env[Y * W + X]; if (!a) return null; const [r, g, bb] = rgb(X, Y);
+  const envSoft = blur(env, W, H, 1, 2);   // (the inside light's edge a touch soft — the row fill steps at the mouth)
+  out['btc-lit'] = webp(lightCanvas(W, EB, (X, Y) => { const a = Math.min(env[Y * W + X], envSoft[Y * W + X] * 1.15); if (!(a > 0.004)) return null; const [r, g, bb] = rgb(X, Y);
     const dm = Math.hypot((X - mouth[0]) / 190, (Y - mouth[1]) / 370), heat = Math.max(0, 1 - dm * 0.9), tex = 0.62 + 0.38 * Math.min(1, (r * 0.5 + g * 0.4 + bb * 0.1) / Lmax);
-    return [255, 150 + 100 * heat, 50 + 150 * heat, a * (0.07 + 0.93 * Math.pow(heat, 1.5)) * tex]; }), 0.88);
+    return [255, 150 + 100 * heat, 50 + 150 * heat, a * (0.13 + 0.87 * Math.pow(heat, 1.25)) * tex]; }), 0.88);
   // ---- THE BLOOM: the envelope's outline blurred wide (a quarter size — it's soft light), warm orange
-  { const q = 4, BB = [BAL[0] - 96, BAL[1] - 96, BAL[2] + 192, EB[3] + 192], w4 = Math.ceil(BB[2] / q), h4 = Math.ceil(BB[3] / q), f = new Float32Array(w4 * h4);
+  { const q = 4, BB = [BAL[0] - 150, BAL[1] - 150, BAL[2] + 300, EB[3] + 300], w4 = Math.ceil(BB[2] / q), h4 = Math.ceil(BB[3] / q), f = new Float32Array(w4 * h4);
     for (let y = 0; y < h4; y++) for (let x = 0; x < w4; x++) { let s = 0; for (let j = 0; j < q; j++) for (let i = 0; i < q; i++) { const X = BB[0] + x * q + i, Y = BB[1] + y * q + j; if (X >= 0 && Y >= 0 && X < W && Y < H) s += env[Y * W + X]; } f[y * w4 + x] = s / (q * q); }
-    const g = blur(f, w4, h4, 6, 3); let gm = 0; for (const v of g) gm = Math.max(gm, v);
+    const g = blur(f, w4, h4, 12, 3); let gm = 0; for (const v of g) gm = Math.max(gm, v);
     const c = canvas(w4, h4), x = c.getContext('2d'), d = x.createImageData(w4, h4);
-    for (let k = 0; k < w4 * h4; k++) { const v = g[k] / gm; d.data[k * 4] = 255; d.data[k * 4 + 1] = 168 + 40 * v; d.data[k * 4 + 2] = 70 + 30 * v; d.data[k * 4 + 3] = Math.round(255 * Math.min(1, v * 1.05)); }
+    for (let k = 0; k < w4 * h4; k++) { const v = g[k] / gm; d.data[k * 4] = 255; d.data[k * 4 + 1] = 168 + 40 * v; d.data[k * 4 + 2] = 70 + 30 * v; d.data[k * 4 + 3] = Math.round(255 * Math.min(1, Math.pow(v, 1.3))); }
     x.putImageData(d, 0, 0); out['btc-bloom'] = webp(c, 0.9); out.bloomBox = BB; }
   // ---- Grok's plates: the glow (its light 621..1219 × 98..698, halved) + the coins plate's glints (576..1210 × 43..688, halved)
   out['btc-flame'] = webp(plateLight(await load('card-btc-fx-glow.png'), [621, 98, 600, 600], 0.5), 0.86);

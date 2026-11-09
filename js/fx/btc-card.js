@@ -59,21 +59,32 @@ export function btcState(s, t, still) {
 function draw(c, s, t, Q) {
   const S = BTC, full = !!s.opts.full, still = !!Q.still, rad = s.opts.radius || 12, calm = full ? 1 : 0.88;
   const M = btcMap(s.w, s.h, full ? S.full : S.strip);
-  const patch = img('btc-patch'), bal = img('btc-balloon');
+  const base = img('btc-clean'), bal = img('btc-balloon');
   const st = btcState(s, t, still), b = st.b * calm;
   c.save(); rrect(c, 0, 0, s.w, s.h, rad); c.clip();
   c.translate(M.ox, M.oy); c.scale(M.k, M.k);   // (from here on: ART px)
   const art = 1 / M.k;                            // (one device-independent px in art px — for the thin rims)
-  if (patch && bal) {
-    // 0 · THE PATCH: the sky behind the balloon + the coins (opaque, feathered — the material's own pixels round its edge)
+  if (base && bal) {
+    // 0 · THE BASE: the CLEAN master (the balloon + the coins filled in — they move on top), opaque, exactly where the material shows the master.
+    //     WHY opaque: light drawn 'lighter' on the TRANSPARENT effect canvas
+    //     is composited over the page with its own alpha — it adds fully only where the canvas is opaque underneath (the patch) and a little
+    //     less elsewhere, so the patch's outline showed as two dark fins beside the basket. Over an opaque base every light adds the same.
+    //     (The full card's name zone + foot darkening, the material's CSS gradients, drawn here too.)
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-    c.drawImage(patch, S.patch[0], S.patch[1], S.patch[2], S.patch[3]);
+    c.drawImage(base, 0, 0, 1280, 720);   // (one external texture — the shared atlas keeps its room)
+    if (full) {
+      const x0 = -M.ox / M.k, y0 = -M.oy / M.k, W0 = s.w / M.k, H0 = s.h / M.k;
+      const gl = c.createLinearGradient(x0, 0, x0 + W0, 0); gl.addColorStop(0, 'rgba(7,4,18,0.5)'); gl.addColorStop(0.28, 'rgba(7,4,18,0.3)'); gl.addColorStop(0.47, 'rgba(7,4,18,0)'); gl.addColorStop(1, 'rgba(7,4,18,0)');
+      c.fillStyle = gl; c.fillRect(x0, y0, W0, H0);
+      const gb = c.createLinearGradient(0, y0 + H0, 0, y0); gb.addColorStop(0, 'rgba(6,3,14,0.62)'); gb.addColorStop(0.12, 'rgba(6,3,14,0.25)'); gb.addColorStop(0.21, 'rgba(6,3,14,0)'); gb.addColorStop(1, 'rgba(6,3,14,0)');
+      c.fillStyle = gb; c.fillRect(x0, y0, W0, H0);
+    }
     c.globalCompositeOperation = 'lighter';
     // 1 · THE GLINTS (Grok's coins plate): two copies drifting up + twinkling, crossfaded (behind the balloon)
     const gl = img('btc-glints');
     if (gl) {
       const [gx, gy, gw, gh] = S.glints;
-      for (let j = 0; j < 2; j++) {
+      for (let j = 0; j < (full ? 2 : 1); j++) {
         const v = still ? 0.5 : fract(t / 22 + j / 2), tw = still ? 1 : 0.75 + 0.25 * Math.sin(t * 2.3 + j * 2.1);
         c.globalAlpha = Math.sin(v * Math.PI) * (0.36 + 0.3 * b) * tw * st.coinIn * calm;
         c.drawImage(gl, gx + (j ? 14 : -8), gy + 40 - v * 80, gw, gh);
@@ -95,8 +106,10 @@ function draw(c, s, t, Q) {
       }
     }
     // 3 · THE COINS: rising past the balloon, spinning (scaleX), a rim edge-on, a glint face-on (in front of the glints, behind the balloon)
-    const cs = img('btc-coins');
+    // (the coins first, all 'source-over', then their glints all 'lighter' — a blend change flushes the GPU batch: never twice a coin)
+    const cs = img('btc-coins'), glints = [];
     if (cs) {
+      c.globalCompositeOperation = 'source-over';
       S.coins.forEach(([cx, cy, r], i) => {
         const P = 13 + (i * 2.7) % 5, ph = (i * 0.37) % 1;
         const u = still ? 0.5 : fract(t / P + ph), rise = (0.5 - u) * 210, x = cx + (still ? 0 : 6 * Math.sin(t * 0.4 + i * 1.7)), y = cy + rise;
@@ -104,28 +117,31 @@ function draw(c, s, t, Q) {
         if (!full) a *= 1 - smooth(0.82, 0.9, (M.ox + x * M.k) / s.w) * smooth(0.4, 0.55, (M.oy + y * M.k) / s.h);   // (the strip: clear of the gem's corner)
         if (a < 0.02) return;
         const spin = still ? 0 : t * (Math.PI * 2) / (3.4 + i * 0.55) + i * 1.3, sx = Math.cos(spin), w = Math.max(0.1, Math.abs(sx));
-        c.globalCompositeOperation = 'source-over'; c.globalAlpha = a;
+        c.globalAlpha = a;
         c.save(); c.translate(x, y); c.scale(sx < 0 ? -w : w, 1);
         c.drawImage(cs, i * S.cell, 0, S.cell, S.cell, -S.cell / 2, -S.cell / 2, S.cell, S.cell); c.restore();
         if (w < 0.3) { c.fillStyle = 'rgb(214,150,52)'; c.globalAlpha = a * (1 - w / 0.3); c.fillRect(x - Math.max(1.2 * art, 2), y - r * 0.96, Math.max(2.4 * art, 4), r * 1.92); }
-        c.globalCompositeOperation = 'lighter';
         const face = still ? 0.6 : smooth(0.93, 1, w);
-        if (face > 0.02) stamp(c, sparkle('255,236,180', 48), x - r * 0.42, y - r * 0.5, r * 1.7, a * face * 0.85);
+        if (face > 0.02) glints.push([x - r * 0.42, y - r * 0.5, r * 1.7, a * face * 0.85]);
       });
+      c.globalCompositeOperation = 'lighter';
+      for (const [gx, gy, d, a] of glints) stamp(c, sparkle('255,236,180', 48), gx, gy, d, a);
     }
     // 4 · THE BALLOON + everything that is part of it (one transform: the sway + the reveal's rise)
     const [px, py] = S.pivot;
     c.save();
     c.translate(px + st.dx, py + st.dy + st.rise * 300); c.rotate(st.rot); c.translate(-px, -py);
-    c.globalCompositeOperation = 'lighter';
-    const bloom = img('btc-bloom');
-    if (bloom && b > 0.01) { c.globalAlpha = Math.min(1, (0.5 + 0.35 * st.big) * b) * st.fade; c.drawImage(bloom, S.bloom[0], S.bloom[1], S.bloom[2], S.bloom[3]); }
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = st.fade;
     c.drawImage(bal, S.balloon[0], S.balloon[1], S.balloon[2], S.balloon[3]);
     c.globalCompositeOperation = 'lighter';
+    // (the bloom AFTER the balloon: drawn under it, the rigging cut-out's sky edges stayed un-bloomed — two dark wedges beside the basket)
+    const bloom = img('btc-bloom');
+    if (bloom && b > 0.01) { c.globalAlpha = Math.min(1, (0.75 + 0.25 * st.big) * b) * st.fade; c.drawImage(bloom, S.bloom[0], S.bloom[1], S.bloom[2], S.bloom[3]); }
+    // (the burner's light in the air round the mouth — fills the V under the envelope's sides, so the bloom's taper never reads as a shadow)
+    if (b > 0.01) stamp(c, glow('255,150,60', 0.08, 64), S.mouth[0], S.mouth[1] - 30, 560, 0.42 * b * st.fade, 500);
     // THE FLARE: the inside light (the envelope's own shape) + the ₿ blazing
     const lit = img('btc-lit'), mk = img('btc-mark');
-    if (lit && b > 0.01) { c.globalAlpha = Math.min(1, 0.92 * b) * st.fade; c.drawImage(lit, S.lit[0], S.lit[1], S.lit[2], S.lit[3]); }
+    if (lit && b > 0.01) { c.globalAlpha = Math.min(1, 1.08 * b) * st.fade; c.drawImage(lit, S.lit[0], S.lit[1], S.lit[2], S.lit[3]); }
     // (the ₿: it blazes in a burn; the block's pulse rides the ring's first beat)
     const pulse = st.blockAge < 0.9 ? Math.exp(-(((st.blockAge - 0.25) / 0.2) ** 2)) : 0;
     if (mk) { const a = Math.min(1, 0.85 * b + 0.5 * pulse) * st.fade; if (a > 0.01) { c.globalAlpha = a; c.drawImage(mk, S.mark[0], S.mark[1], S.mark[2], S.mark[3]); } }
@@ -134,9 +150,9 @@ function draw(c, s, t, Q) {
     if (shn && !still) {
       const P = 7.3, e = fract((t + ((s.opts.seed || 0) * 1.7)) / P) * P;
       if (e < 1.1) {
-        const [sx0, sy0, sw, sh] = S.sheen, n = 24, cw = shn.width / n, mid = -0.25 + (e / 1.1) * 1.5;
+        const [sx0, sy0, sw, sh] = S.sheen, n = 12, cw = shn.width / n, mid = -0.25 + (e / 1.1) * 1.5;
         for (let i = 0; i < n; i++) {
-          const f = (i + 0.5) / n, a = Math.max(0, 1 - Math.abs(f - mid) / 0.16) * 0.6 * calm * st.fade;
+          const f = (i + 0.5) / n, a = Math.max(0, 1 - Math.abs(f - mid) / 0.18) * 0.6 * calm * st.fade;
           if (a < 0.02) continue;
           c.globalAlpha = a; c.drawImage(shn, i * cw, 0, cw, shn.height, sx0 + (i * sw) / n, sy0, sw / n, sh);
         }
@@ -145,7 +161,7 @@ function draw(c, s, t, Q) {
     // the burner flame flares: Grok's glow plate on the REAL burner (its core moved onto the flame), + a white-hot core
     const fp = img('btc-flame');
     if (fp && b > 0.01 && full) {
-      const k = (0.3 + 0.1 * b + 0.06 * st.big) * 2, [fx, fy] = S.burner, [cx, cy] = S.flame.core;
+      const k = (0.17 + 0.07 * b + 0.05 * st.big) * 2, [fx, fy] = S.burner, [cx, cy] = S.flame.core;
       c.globalAlpha = Math.min(1, b * 0.95) * st.fade; c.drawImage(fp, fx - cx * k, fy + 6 - cy * k, S.flame.size * k, S.flame.size * k);
     }
     if (b > 0.01) { c.globalAlpha = 1; stamp(c, glow('255,250,230', 0.4, 32), S.burner[0], S.burner[1], 34 + 18 * b, b * st.fade); }
