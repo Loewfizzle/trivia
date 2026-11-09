@@ -199,3 +199,9 @@
 - CRAYON COLOURS: the SAME colour families as night (the long piece cyan-ish, the square yellow-ish… from the JEWEL hues), in crayon shades, so a piece learned at night is recognised by day. The same hue-family test as PD-3.
 - THE PAPER is picked per MATCH from the match's seed — the SAME page for everyone in the room — and changes match to match: notepad · graph paper · construction paper · a coloring page.
 - The glass look (today's) is RETIRED as the day look: day = CRAYON, night = NEON. The light layer stays OFF by day.
+
+## PD-5 SPLIT + PD-5A — THE SOUND (Nov 9 2026)
+- PD-5 is SPLIT: PD-5A = the sound (the beat fix, quick-start songs, the day songs); PD-5B = the three cards + the polish. Then PRISM DROP's Fable review + its fixes.
+- HOLIDAY TOUCHES are CUT from the rework: PD-5B builds only the HOOK (a look can take a holiday variant later in minutes); no holiday art now.
+- COMEBACK's tier = EPIC (FIRST KO common · PERFECT CLEAR rare).
+- THE NIGHT SONGS + their behaviour stay exactly as they are; the day set is added beside them.
