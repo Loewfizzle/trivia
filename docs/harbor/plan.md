@@ -6366,3 +6366,24 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 
 - THE BUILD TABLE (Nov 8 night, THE BTC CARD Step 0): CITY FIXES + HOLD'EM ✅ (passes/city-fixes.md; the roof board KEEPS +15 %, the overhang OK); THE BTC CARD (this pass: FIX THE MONEY, FIX THE WORLD's premium art + THE BURNER FLARE — nothing else) ← NEXT; BOARD 2.0 A (server + data); BOARD 2.0 B (screens + THE PLAYER PAGE); PRISM DROP; FR7; THE SWITCH-OVER.
 - THE BTC CARD DONE (Nov 9, small hours) — passes/btc-card.md. THE BUILD TABLE: THE BTC CARD ✅ (the ₿ balloon card on Grok's master — THE BURNER FLARE, the block ring, the coins, the sway, the sheen, the reveal; the unlock unchanged + proved; no rules change); BOARD 2.0 A (server + data) ← NEXT; BOARD 2.0 B (screens + THE PLAYER PAGE); PRISM DROP; FR7; THE SWITCH-OVER.
+
+## OWNER'S NOTES — NOV 9 (small hours)
+
+- Nov 9, 2:20 am ET: THE BTC CARD ✅ (live, cloud green first run). The owner marks it in THE LAB. Its KNOWN ISSUES → BOARD 2.0 A's Group 0.
+- Nov 9, 2:30 am ET: BOARD 2.0's QUESTIONS ROUND, DECIDED (the owner):
+  1. THE OVERALL BOARD = XP EARNED THIS WEEK (every room match, solo run, daily + event counts as the server already pays it; resets Monday
+     00:00 ET like every board). ALL TIME = total XP (= the level order).
+  2. THE DAILIES = DAILY POINTS: each day's result → points (the server, from its own record). THIS WEEK = the sum; ALL TIME = the average per
+     day played, shown from 10 days played. Skipping a day never helps; a played-and-lost day always beats not playing.
+  3. THE PLAYER PAGE (tap any name: friends, room name tags, board rows, the podium) = THE FULL CARD (+ live effects) · level + rank line + the
+     streak flame · the TOP 3 RAREST achievements WITH their names + art + X% of players (the owner's approved exception to ITEM NAMES ONLY TO
+     OWNERS: only the 3 shown, only once that player owns them) · INVITE (when you're in a room) · ⋯ → REMOVE / BLOCK. NOT on it: the 4 stats
+     + the best game (the owner left them off).
+  4. SPLIT: BOARD 2.0 A = the server + the data (~3.5 h); BOARD 2.0 B = the screens + THE PLAYER PAGE (~4 h). B's own questions round first
+     (the dock's BOARD button vs the Nov 5 plan of moving THE BOARD inside DAILY → SCORES, the friends list's slim cards, the mock board2-mock.png).
+  THE SPEED RULES for B (already agreed): calm mode on long lists, only the on-screen cards animate, ONE shared surface, the city PAUSED behind
+  a full sheet, build only the top ~10 cards (the rest on SHOW ALL).
+
+- THE BUILD TABLE (Nov 9 small hours, BOARD 2.0 A Step 0): THE BTC CARD ✅ (passes/btc-card.md; no rules change); BOARD 2.0 A (this pass: the BTC
+  card's carry-overs + the WORD TOWERS flake, THE OVERALL BOARD = XP THIS WEEK, DAILY POINTS + the dailies' boards, the rows' slim-card data + THE
+  PLAYER PAGE's data — no new screens) ← NEXT; BOARD 2.0 B (the screens + THE PLAYER PAGE); PRISM DROP; FR7; THE SWITCH-OVER.
