@@ -494,3 +494,45 @@ test('DFIX2 OPTIONAL — the day\'s first start while the database hiccups → 5
     assert.ok((await D('bz-ann', { action: 'start', game: 'flaky' }, T + 2e3)).run, 'the retry: the day loads');
   } finally { removeTestDaily('flaky'); loadDailies(); forgetPicks(); }
 });
+
+// BOARD 2.0 A — DAILY POINTS over /api: a counted PASSWORD in two → 100 points on THE RUN's day, THE DAILIES' BOARDS (THIS WEEK; ALL TIME only
+// from 10 days — YOUR average still returned by `ranks`); a repeat finish writes nothing; a same-day profile earns none (THE THROWAWAY GATE —
+// g-crack above); THE BACK-FILL re-scores the stored results to the same numbers
+test('BOARD 2.0 A — DAILY POINTS: the server\'s score → points, the boards, YOUR average under 10 days, a repeat, THE BACK-FILL', async () => {
+  const { weekOfDay, dailyPoints } = await import('../../js/core/daily-points.js');
+  const d = streakDay(NOW), at = NOW + 60e3, wk = weekOfDay(d);
+  const me = await ensure('bp-one', 'Pointer');
+  const [W1, W2] = await wordsFor(d);
+  await D('bp-one', { action: 'start', game: 'password' }, at);
+  await D('bp-one', { action: 'guess', game: 'password', word: W1 }, at + 1e3);
+  await D('bp-one', { action: 'guess', game: 'password', word: W2 }, at + 2e3);
+  const f = await D('bp-one', { action: 'finish', game: 'password', result: { score: 999 } }, at + 3e3);
+  assert.equal(f.counted, true); assert.equal(f.score, 2);
+  assert.equal(f.outcome.points, 100, 'both doors in 2 = 100 (the server\'s own score — the phone\'s claim ignored)');
+  const st = await val(`pstats/${me.pid}`);
+  assert.deepEqual(st.dp.d[d], { g: { password: 100 }, t: 100 });
+  assert.equal(await val(`lb/daily-password/${wk}/${me.pid}`), 100, 'THIS WEEK on the password board');
+  assert.equal(await val(`lb/daily/${wk}/${me.pid}`), 100, 'and on the dailies\' board');
+  assert.equal(await val(`lb/daily/all/${me.pid}`), null, 'ALL TIME: unranked under 10 days played');
+  const rk = (await profileAction('bp-one', { action: 'ranks', boards: ['daily', 'daily-password'] }, '', at + 4e3)).ranks;
+  assert.deepEqual(rk.daily.mine, { avg: 100, days: 1, need: 10 }, 'YOUR average returned below the threshold');
+  assert.ok(rk['daily-password'].week && rk['daily-password'].week.v === 100 && rk['daily-password'].week.rank >= 1);
+  // a repeat finish (a retry, a second tap): the same score, nothing written
+  const again = await D('bp-one', { action: 'finish', game: 'password', result: null }, at + 9e3);
+  assert.equal(again.again, true);
+  assert.deepEqual((await val(`pstats/${me.pid}`)).dp, st.dp);
+  // the throwaway (g-crack, made today) earned no points
+  assert.equal(await val(`pstats/${await pidOf('g-crack')}/dp`), null);
+  // THE BACK-FILL: the points rebuilt from the stored results — the same numbers
+  process.env.ADMIN_PIDS = me.pid;
+  try {
+    await ref(`pstats/${me.pid}/dp`).remove(); await ref(`lb/daily/${wk}/${me.pid}`).remove();
+    const r = (await adminAction('bp-one', { action: 'boardsBackfill', confirm: true }, at + 20e3)).backfill;
+    assert.ok(r.done && r.preview.pointsPlayers >= 1, JSON.stringify(r.preview));
+    const dp = (await val(`pstats/${me.pid}`)).dp;
+    assert.equal(dp.d[d].g.password, dailyPoints('password', 2));
+    assert.equal(dp.a.t, st.dp.a.t); assert.equal(dp.a.n, 1);
+    assert.equal(await val(`lb/daily/${wk}/${me.pid}`), 100, 'back on the board');
+    assert.equal(await val(`pstats/${await pidOf('g-crack')}/dp`), null, 'a non-counting result still earns nothing');
+  } finally { process.env.ADMIN_PIDS = ''; }
+});

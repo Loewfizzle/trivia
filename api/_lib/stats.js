@@ -2,7 +2,7 @@
 // player's update is ONE transaction on pstats/{pid} running the PURE step (js/core/progress.js#matchStep — the same code the year sim
 // runs) that also records the match key (m/{key}), so a retry, a second reporter or a crash halfway can never count a match twice.
 import { ref, val } from './fb.js';
-import { boardPaths, overallPaths, rankOf, clearBoardCache, matchCount, minMatches, syncBoards } from './lb.js';
+import { boardPaths, overallPaths, hiddenOf, rankOf, clearBoardCache, matchCount, minMatches, syncBoards } from './lb.js';
 import { boardDef, toSort } from '../../js/core/boards.js';
 import { matchStep } from '../../js/core/progress.js';
 import { levelOf, emblemRank, LEVEL_REWARDS } from '../../js/core/levels.js';
@@ -69,7 +69,7 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
       }));
     }
     const r0 = emblemRank(res.from), r1 = emblemRank(stats.xp);
-    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/l`]: levelOf(stats.xp), [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, [`profiles/${pid}/sd`]: (stats.st && stats.st.d) || null, [`profiles/${pid}/m`]: played, ...boardPaths(pid, stats, { hidden: !listed, now, only: ex.gid }), ...overallPaths(pid, stats, { hidden: !listed, now }) };   // (BOARD 2.0 A: THE OVERALL BOARD in the same update as the XP)
+    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/l`]: levelOf(stats.xp), [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, [`profiles/${pid}/sd`]: (stats.st && stats.st.d) || null, [`profiles/${pid}/m`]: played, ...boardPaths(pid, stats, { hidden: !listed, now, only: ex.gid }), ...overallPaths(pid, stats, { hidden: hiddenOf(prof, stats), now }) };   // (BOARD 2.0 A: THE OVERALL BOARD in the same update as the XP)
     await ref('/').update(patch);
     // "X% OF PLAYERS HAVE THIS": the owners' counts (best effort — a count is display only)
     await bumpOwners(res.items, !matchCount(res.prevStats), res.ach).catch(e => console.warn('owners', e && e.message));

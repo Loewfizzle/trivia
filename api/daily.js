@@ -48,6 +48,7 @@ import { levelOf, emblemRank } from '../js/core/levels.js';
 import { easternParts } from '../js/core/week.js';
 import { isPid } from './_lib/profiles.js';
 import { tablePids } from '../js/core/friends.js';
+import { dailyPoints } from '../js/core/daily-points.js';
 
 /** DM1 — THE CALL BUDGET: generous for real play (both dailies, retries, refreshes), a flood refused */
 export const CALLS = { max: 400, windowMs: 10 * 60_000 };
@@ -273,19 +274,22 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       // (PW2 — a judged daily's FLAGS come from the server's own record, never the phone: THE PASSWORD's crack / safe → KEYHOLE / SAFECRACKER)
       const flags = counts && cart.judged && cart.flags ? cart.flags({ record, day, startedAt, data }) : null;
       const live = todaysDailies();
-      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, rank: stand.better + 1, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts }); return res.skip ? undefined : res.next; });
+      // BOARD 2.0 A — DAILY POINTS from the KEPT score (the server's own — never the phone's claim), a COUNTED result only
+      const points = counts ? dailyPoints(cart.id, kept) : null;
+      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, rank: stand.better + 1, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts, points }); return res.skip ? undefined : res.next; });
       if (res && !res.skip) {
         const st = res.next.st, xp = res.next.xp || 0;
         // (BOARD 2.0 A — THE OVERALL BOARD in the SAME update as the XP: listed like every board — the 3-match floor, the opt-out, the admin's hide)
-        const [{ overallPaths, matchCount, minMatches }, prof] = await Promise.all([import('./_lib/lb.js'), val(`profiles/${pid}`)]);
-        const listed = !!prof && !prof.h && matchCount(res.next) >= minMatches();
-        await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d, [`profiles/${pid}/x`]: xp, [`profiles/${pid}/l`]: levelOf(xp), [`profiles/${pid}/r`]: emblemRank(xp), ...overallPaths(pid, res.next, { hidden: !listed, now }) });
+        // (+ DAILY POINTS' boards from the same stats — a counted result's points were added in the transaction above; the daily boards list a
+        //  player from their 3rd day played — lb.js#hiddenOf)
+        const [{ overallPaths, hiddenOf }, prof] = await Promise.all([import('./_lib/lb.js'), val(`profiles/${pid}`)]);
+        await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d, [`profiles/${pid}/x`]: xp, [`profiles/${pid}/l`]: levelOf(xp), [`profiles/${pid}/r`]: emblemRank(xp), ...overallPaths(pid, res.next, { hidden: hiddenOf(prof, res.next), now }) });
         await bumpOwners(res.items, !(res.next.g && Object.keys(res.next.g).length) && res.dl.n === 1, res.ach).catch(() => {});
         if (res.next.fd) await ref(`profiles/${pid}/fd`).set(true);
       }
       return { day, score: kept, again: !claim.committed, counted: counts, ...(counts ? {} : { countsFrom: dayStartAt(dayOf(dayNum(streakDay(Number(createdAt) || now)) + 1)) }),
         stand: { n: stand.n, pct: stand.pct, top: Math.round(stand.top * 10) / 10, band: stand.band ? stand.band.name : null },
-        outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach, xp: res.xp, lv: res.lv, swept: res.swept, run: res.swept && res.dl.sr ? res.dl.sr.n : 0 } : null };
+        outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach, xp: res.xp, lv: res.lv, swept: res.swept, run: res.swept && res.dl.sr ? res.dl.sr.n : 0, points: res.points } : null };
     }
     case 'today': {
       const day = today;

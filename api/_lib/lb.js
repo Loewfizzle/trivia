@@ -28,8 +28,11 @@ const periodKey = (p, now) => (p === 'week' ? weekKey(now) : p === 'all' ? 'all'
 export function overallPaths(pid, stats, { hidden = false, now = Date.now() } = {}) {
   const wk = weekKey(now), out = {};
   for (const [board, v] of Object.entries(overallValues(stats, now))) {
-    out[`lb/${board}/all/${pid}`] = hidden || v.all == null ? null : v.all;
-    out[`lb/${board}/${wk}/${pid}`] = hidden || v.week == null ? null : v.week;
+    // (the daily boards: listed from their own 3rd day played — a dailies-only player has no room matches; the opt-out + the hide as always)
+    const off = hidden && !(board !== 'xp' && hidden === 'matches' && (v.days || 0) >= minMatches());
+    out[`lb/${board}/all/${pid}`] = off || v.all == null ? null : v.all;
+    out[`lb/${board}/${wk}/${pid}`] = null;
+    for (const [w, x] of Object.entries(v.weeks || {})) out[`lb/${board}/${w}/${pid}`] = off || !(x > 0) ? null : x;
   }
   return out;
 }
@@ -79,6 +82,10 @@ const cache = new Map();
 const CACHE_MS = 15_000;
 
 export function clearBoardCache() { cache.clear(); pubCache.clear(); }
+
+/** BOARD 2.0 A — why a profile is off the boards: 'opt' (the opt-out / the admin's hide — every board) · 'matches' (under the 3-match floor —
+ *  the daily boards still list it from its 3rd day played) · false (listed) */
+export const hiddenOf = (prof, stats) => (!prof || prof.h ? 'opt' : matchCount(stats) < minMatches() ? 'matches' : false);
 
 /** A profile's board id: 16 hex, stable, not reversible without the server's pepper (so a row can't be looked up). */
 const bids = new Map();
@@ -137,7 +144,7 @@ export async function topRows(board, period, now = Date.now()) {
   let rank = 0, prev = null, i = 0;
   for (const r of raw) {
     const p = profs[r.pid];
-    if (!p || p.h || (p.m || 0) < minMatches()) continue;
+    if (!p || p.h || (!def.points && (p.m || 0) < minMatches())) continue;   // (BOARD 2.0 A: a points board's floor is checked when it is written)
     i++;
     if (r.s !== prev) { rank = i; prev = r.s; }
     // pid stays on the cached row for the server (REPORT finds a row by its id); api/board.js sends only the public fields
@@ -154,7 +161,7 @@ export async function topRows(board, period, now = Date.now()) {
 export async function syncBoards(pid, { now = Date.now(), only = null } = {}) {
   const [stats, prof] = await Promise.all([val(`pstats/${pid}`), val(`profiles/${pid}`)]);
   if (!prof) return {};
-  const paths = boardPaths(pid, stats || {}, { hidden: !!prof.h || matchCount(stats) < minMatches(), now, only });
+  const paths = boardPaths(pid, stats || {}, { hidden: hiddenOf(prof, stats), now, only });
   if (Object.keys(paths).length) await ref('/').update(paths);
   clearBoardCache();
   return paths;

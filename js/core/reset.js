@@ -12,7 +12,7 @@
 import { levelOf, emblemRank } from './levels.js';
 
 /** the progress fields of pstats/{pid} that the reset clears */
-export const RESET_STATS = Object.freeze(['xp', 'xw', 'g', 'gw', 'wk', 'b', 'day', 'gd', 'pa', 'ac', 'dl', 'st']);   // (BOARD 2.0 A: + xw — this week's XP)
+export const RESET_STATS = Object.freeze(['xp', 'xw', 'dp', 'g', 'gw', 'wk', 'b', 'day', 'gd', 'pa', 'ac', 'dl', 'st']);   // (BOARD 2.0 A: + xw — this week's XP, dp — the daily points)
 
 /** one player's stats after the reset (null stays null) */
 export function resetStats(s) {

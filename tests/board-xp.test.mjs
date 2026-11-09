@@ -78,9 +78,9 @@ test('THE DAILIES pay the week too (the daily XP + THE SWEEP), idempotent by the
 });
 
 test('the board values — ALL TIME = total XP, THIS WEEK = xw; nothing earned = off the board', () => {
-  assert.deepEqual(overallValues({}, Date.now()).xp, { all: null, week: null });
+  assert.deepEqual(overallValues({}, Date.now()).xp, { all: null, week: null, weeks: {} });
   const t = ET(2026, 11, 12, 12, 0, 5);
-  assert.deepEqual(overallValues({ xp: 900, xw: { wk: weekKey(t), x: 75 } }, t).xp, { all: 900, week: 75 });
+  assert.deepEqual(overallValues({ xp: 900, xw: { wk: weekKey(t), x: 75 } }, t).xp, { all: 900, week: 75, weeks: { [weekKey(t)]: 75 } });
 });
 
 test('THE BACK-FILL — this week rebuilt from the match records + the week\'s daily runs (THE DAILY XP\'s rule); never lower than the live counter', () => {

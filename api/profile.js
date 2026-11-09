@@ -34,6 +34,7 @@ import { memberNo } from './_lib/members.js';
 import { DEV_CARDS, isDevCard } from '../js/core/dev-cards.js';
 import { OWNER_GIFTS, isOwnerGift, isGiftCard } from '../js/core/gift-cards.js';
 import { giftQueue, giftSeen } from './_lib/gifts.js';
+import { overallValues } from '../js/core/overall.js';
 import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo, setPrefs } from './_lib/profiles.js';
 import { boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
@@ -70,6 +71,8 @@ export async function myRanks(pid, boards, now = Date.now()) {
       all: sa != null ? { v: fromSort(def, sa), rank: await rankOf(b, 'all', sa, now) } : null,
       week: sw != null ? { v: fromSort(def, sw), rank: await rankOf(b, wk, sw, now) } : null,
     };
+    // BOARD 2.0 A — a points board: YOUR average a day + the days played, even below MIN_DAYS (unranked on ALL TIME until then)
+    if (def.points) { const v = overallValues(stats, now)[b]; out[b].mine = { avg: v ? v.avg : null, days: v ? v.days : 0, need: def.minDays }; }
   }));
   return out;
 }

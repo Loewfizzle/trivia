@@ -4,6 +4,7 @@
 // "gridlock-w-salvo"); dashes, never dots, because board ids are database keys. Each board has two periods: 'all' and the current week ("w20261012", core/week.js).
 // lb/{board}/{period}/{pid} holds a SORT value where higher is always better; `toSort`/`fromSort` convert.
 import { GAMES } from '../config.js';
+import { POINT_DAILIES, MIN_DAYS } from './daily-points.js';
 export const PERIODS = ['week', 'all'];
 export const MIN_WR_GAMES = 10;     // win rate shows only after this many games of that game
 
@@ -36,8 +37,12 @@ export const BOARD_GAMES = Object.keys(GAME_BOARDS);
 // BOARD 2.0 A — THE OVERALL BOARDS (not under any game): `xp` = THE OVERALL BOARD — THIS WEEK = the XP earned since Monday 00:00 ET (pstats.xw),
 // ALL TIME = the total XP (the level order). Server-written like every board (lb/xp/{period}/{pid} — api/_lib/lb.js#overallPaths).
 const ovr = (id, label, o = {}) => ({ id, kind: 'overall', label, fmt: o.fmt || 'int', dir: 1, short: o.short || label, week: o.week || label, all: o.all || label, game: null, ...o });
+// `daily` + `daily-<game>` — THE DAILIES' BOARDS (DAILY POINTS — core/daily-points.js): THIS WEEK = the week's points summed, ALL TIME = the
+// average per day (ranked from MIN_DAYS days played; its sort value = the average × 100 — `allFmt: 'avg'`); a board per daily on the points table
 export const OVERALL_BOARDS = Object.freeze({
   xp: ovr('xp', 'XP', { week: 'XP THIS WEEK', all: 'TOTAL XP' }),
+  daily: ovr('daily', 'DAILY POINTS', { week: 'POINTS THIS WEEK', all: 'AVERAGE A DAY', points: true, of: null, allFmt: 'avg', minDays: MIN_DAYS }),
+  ...Object.fromEntries(POINT_DAILIES.map(g => [`daily-${g}`, ovr(`daily-${g}`, 'DAILY POINTS', { week: 'POINTS THIS WEEK', all: 'AVERAGE A DAY', points: true, of: g, allFmt: 'avg', minDays: MIN_DAYS })])),
 });
 export const OVERALL_IDS = Object.keys(OVERALL_BOARDS);
 /** the games a weekly goal may name: the board games a player can START today (config.js GAMES[].playable — the one switch) */
@@ -92,6 +97,7 @@ export function fmtValue(def, v) {
     case 'ms': return `${(v / 1000).toFixed(v < 10000 ? 2 : 1)} s`;
     case 'par': return v === 0 ? 'E' : v > 0 ? `+${v}` : `−${Math.abs(v)}`;
     case 'pct': return `${(v / 100).toFixed(1)}%`;
+    case 'avg': return (v / 100).toFixed(1);   // (BOARD 2.0 A: a points board's ALL TIME — the average a day, stored × 100)
     default: return num(v);
   }
 }

@@ -93,7 +93,7 @@ export async function removeTestPlayers(pids, { confirm = false, now = Date.now(
     const [prof, priv, stats] = await Promise.all([val(`profiles/${pid}`), val(`ppriv/${pid}`), val(`pstats/${pid}`)]);
     const patch = { [`profiles/${pid}`]: null, [`ppriv/${pid}`]: null, [`pstats/${pid}`]: null, [`seats/${pid}`]: null, [`radio/crew/${pid}`]: null };
     if (priv && priv.kh) patch[`pkeys/${priv.kh}`] = null;
-    for (const k of Object.keys(boardPaths(pid, stats || {}, { hidden: true, now }))) patch[k] = null;
+    for (const k of Object.keys(boardPaths(pid, stats || {}, { hidden: 'opt', now }))) patch[k] = null;
     // (+ every older week's entry: the boards are walked once — a small node on this site's scale)
     for (const [b, periods] of Object.entries(lb)) for (const [per, rows] of Object.entries(periods || {})) if (rows && rows[pid] != null) patch[`lb/${b}/${per}/${pid}`] = null;
     // (the device links still pointing here — a device that restored another card points there now and is left alone)

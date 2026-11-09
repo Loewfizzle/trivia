@@ -13,6 +13,7 @@ import { weekKey, dayKey } from './week.js';
 import { streakDay, streakPlay, dayNum, dayOf } from './streak.js';
 import { noteMatch, noteEvent, awardAll } from './achievements.js';
 import { todaysDailies, sweptDay, dailyXp, SWEEP_XP } from './daily.js';
+import { pointsStep } from './daily-points.js';
 const prevDayKey = d => dayOf(dayNum(d) - 1);
 
 export const KEEP_KEYS = 60;
@@ -189,7 +190,7 @@ export function eventStep(s0, ev, now, { founderOpen = false } = {}) {
  * (api/daily.js — the profile existed before that day's 4 am Eastern start): false → the STREAK + the XP as usual, but NO counters, NO flags,
  * NO award (no achievement, no FOUNDER, no sweep) — the rewards are for counted results only.
  */
-export function dailyStep(s0, { game, day, now, top = 100, rank = null, n = 0, hourET = 12, outage = null, founderOpen = false, flags = null, today = todaysDailies(), counts = true }) {
+export function dailyStep(s0, { game, day, now, top = 100, rank = null, n = 0, hourET = 12, outage = null, founderOpen = false, flags = null, today = todaysDailies(), counts = true, points = null }) {
   const s = s0 || {};
   const key = `daily_${game}_${day}`;
   if (s.m && s.m[key]) return { skip: 'counted' };
@@ -224,6 +225,9 @@ export function dailyStep(s0, { game, day, now, top = 100, rank = null, n = 0, h
     }
     const gf = Object.entries(flags || {}).filter(([, v]) => v).map(([k]) => `${game}-${k}`);   // (a DASH — never a dot in a database key)
     if (gf.length) next.pa = { ...(s.pa || {}), gf: { ...((s.pa && s.pa.gf) || {}), ...Object.fromEntries(gf.map(k => [k, 1])) } };
+    // BOARD 2.0 A — DAILY POINTS (core/daily-points.js): the day's points from the SERVER's stored score (api/daily.js passes `points`), on THE
+    // RUN's OWN DAY (DFIX1), a COUNTED result only — in this same transaction, idempotent (a day + game already scored is a no-op)
+    if (points != null) { const dp = pointsStep(s.dp, { game, day, pts: points }); if (dp) next.dp = dp; }
   }
   dl.days = days;
   const newest = Object.keys(days).sort().pop();
@@ -235,7 +239,7 @@ export function dailyStep(s0, { game, day, now, top = 100, rank = null, n = 0, h
   const streak = playDay(next, now, outage, day);   // (DFIX1: the RUN's day — a run that crossed 4 am keeps its streak day)
   items.push(...streak.items);
   if (counts) { const aw = awardAll(next, now, { founderOpen }); items.push(...aw.items); ach = aw.ach; }
-  return { next, items, ach, streak: { n: next.st.n, ev: streak.ev }, dl, xp, lv, swept, counts: !!counts };
+  return { next, items, ach, streak: { n: next.st.n, ev: streak.ev }, dl, xp, lv, swept, counts: !!counts, points: counts && points != null ? points : null };
 }
 
 /** the per-day counters with `day`'s entry (a copy — safe to write), the two newest days kept; DM1's single `dl.day` migrates in */
