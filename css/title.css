@@ -187,6 +187,13 @@ html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3,
 .nd-pv-top { list-style: none; margin: 0; padding: 0; }
 .nd-pv-top li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 38px; border-top: 1px solid rgba(255, 214, 150, 0.08); }
 .nd-pv-top b { font: 700 15px/1 var(--font-num); color: #fff3dc; }
+/* BOARD 2.0 B — the top three as SLIM CARDS: the medal at the left, the card, the score on the line under it at the right */
+.nd-pv-top.is-strips { position: relative; display: grid; gap: 8px; padding-top: 2px; }
+.nd-pv-top.is-strips li { grid-template-columns: 26px minmax(0, 1fr); align-items: start; border-top: 0; min-height: 0; }
+.nd-pv-top.is-strips .nd-pv-medal { margin-top: 18px; }
+.nd-pv-card { min-width: 0; display: grid; gap: 3px; }
+.nd-pv-card .vl-strip { width: 100%; }
+.nd-pv-card > b { justify-self: end; padding-right: 2px; }
 .nd-pv-n { display: flex; align-items: center; min-width: 0; font: 600 14px/1.2 var(--font-ui); color: #fff; white-space: nowrap; overflow: hidden; }
 .nd-pv-medal { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; font: 800 11px/1 var(--font-num); color: #2a1a06; background: radial-gradient(circle at 35% 28%, #fff9e0, #f6d27a 40%, #b8842c 80%); }
 .nd-pv-medal.is-silver { color: #1b2230; background: radial-gradient(circle at 35% 28%, #fff, #dfe7f3 40%, #8f9cb0 80%); }

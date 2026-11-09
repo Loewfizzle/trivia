@@ -3,7 +3,6 @@
 import { createBoardView } from './view.js';
 import { setState } from '../store.js';
 import { loadMe } from '../identity.js';
-import { backdropStill } from '../screens/backdrop.js';
 
 export function createView() {
   let view = null, unsub = null, lastMe = '';
@@ -21,7 +20,9 @@ export function createView() {
         ranks: async boards => (await import('../profile/me.js')).myRanks(boards),
         onBack: () => { try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); },
         onProfile: () => setState({ view: 'profile' }),
-        initial: { still: backdropStill(), game: st.boardGame || undefined },
+        // (BOARD 2.0 B — a tap on a card = THE PLAYER PAGE (js/profile/player-page.js); your own card = YOUR CARD)
+        onPlayer: who => import('../profile/player-page.js').then(m => m.openPlayer(who)).catch(() => {}),
+        initial: { game: st.boardGame || undefined },
       });
       el.append(view.el);
       view.start();

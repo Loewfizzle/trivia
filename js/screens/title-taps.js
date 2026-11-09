@@ -10,7 +10,6 @@ import { gameArtSvg } from '../ui/game-art.js';
 import { h } from '../ui/dom.js';
 import { primaryBoard, fmtValue } from '../core/boards.js';
 import { setState } from '../store.js';
-import { rankBadge } from '../ui/emblems.js';
 import { layersOpen } from '../ui/layers.js';
 import { reducedMotion } from '../ui/dom.js';
 
@@ -228,14 +227,25 @@ export function createTaps(T) {
     const wrap = h('div.nd-pv-board', { style: { '--acc': T.ACC[g.id] || '#d6f0ff' } },
       h('div.nd-pv-bh', h('span', 'THE BOARD'), h('span', def.label)),
       list, mine,
-      h('button.nd-pv-more', { type: 'button', onclick: () => { close(); setState({ view: 'board', boardGame: g.id }); } }, 'SEE THE FULL BOARD ›'));
+      // (BOARD 2.0 B: THE BOARD's tabs are the two playable games — a sign of a game without a tab shows its top three, no link)
+      g.playable !== false ? h('button.nd-pv-more', { type: 'button', onclick: () => { close(); setState({ view: 'board', boardGame: g.id }); } }, 'SEE THE FULL BOARD ›') : null);
     const MEDALS = ['gold', 'silver', 'bronze'];
-    import('../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })).then(d => {
+    Promise.all([import('../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })), import('../ui/strip-board.js').then(m => m.stripKit().then(K => ({ ...m, K })))]).then(([d, SB]) => {
       // (LOBBY 2.0 A — REAL USERNAMES: the rows carry the players' usernames; your own row, by your board id, is yours)
+      // (BOARD 2.0 B — SLIM CARDS EVERYWHERE: each of the three = their slim card (ui/strip-board.js), the medal at the left, the score under it)
       const you = loadMe();
       const own = r => !!(you && you.profile && you.profile.bid && r.id === you.profile.bid);
-      list.replaceChildren(...(d.rows.length ? d.rows.map(r => (own(r) ? { ...r, n: you.profile.n, t: you.profile.t } : r)).map(r => h('li', h('span.nd-pv-medal', { class: `is-${MEDALS[Math.min(2, r.rank - 1)]}` }, String(r.rank)), h('span.nd-pv-n', r.n, rankBadge(r, { tag: true, size: 13 })), h('b', fmtValue(def, r.v))))
-        : [h('li.nd-pv-wait', 'No one yet — be the first.')]));
+      if (!d.rows.length) { list.replaceChildren(h('li.nd-pv-wait', 'No one yet — be the first.')); return; }
+      if (!list.isConnected && !wrap.isConnected) return;
+      const strips = [];
+      list.classList.add('is-strips');
+      list.replaceChildren(...d.rows.map(r => (own(r) ? { ...r, ...you.profile, l: r.l } : r)).map(r => {
+        const st = SB.stripFor(SB.K, r); strips.push(st);
+        return h('li', h('span.nd-pv-medal', { class: `is-${MEDALS[Math.min(2, r.rank - 1)]}` }, String(r.rank)), h('div.nd-pv-card', st.el, h('b', fmtValue(def, r.v))));
+      }));
+      const surface = SB.K.createSurface(list, { label: 'preview-top' });
+      strips.forEach((st, i) => SB.stripFx(SB.K, surface, st, i + 1));
+      const iv = setInterval(() => { if (!list.isConnected) { clearInterval(iv); try { surface.destroy(); } catch { /* fine */ } } }, 2000);
     }).catch(() => { wrap.remove(); });
     const me = loadMe();
     if (me && me.pid) {

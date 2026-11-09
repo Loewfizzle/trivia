@@ -1,7 +1,7 @@
 /* ==========================================================================
-   THE BOARD — the leaderboard hall of the speakeasy (js/board/*), the profile card (js/screens/profile.js),
+   THE BOARD — the leaderboard hall of the speakeasy (js/board/* — BOARD 2.0 B: slim cards on black velvet + gold deco), the profile card (js/screens/profile.js),
    the results plaques and the rank-up (js/profile/callouts.js). Prefixes: bd- (board), pf- (profile), rc- (results).
-   Only transform and opacity animate; the hall itself is one static canvas that drifts on the compositor.
+   Only transform and opacity animate; the background is still (CSS + one SVG sunburst).
    ========================================================================== */
 :root {
   --bd-ink: #f6ecd8;
@@ -19,22 +19,16 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 /* the corner pair (☰ + music) comes from components.css */
 .bd { position: relative; width: 100%; height: 100%; color: var(--bd-ink); font-family: var(--font-ui); }
 
-/* ---- the hall: one painted canvas drifting slowly, the game's light, dust in the lamplight ---- */
-.bd-scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: #060307; pointer-events: none; }
-.bd-drift { position: absolute; inset: 0; transform-origin: 50% 40%; animation: bd-drift 80s ease-in-out infinite alternate; }
-.bd-drift canvas { display: block; width: 100%; height: 100%; }
-@keyframes bd-drift { from { transform: scale(1.04) translate3d(-0.8%, 0.4%, 0); } to { transform: scale(1.09) translate3d(1.1%, -0.9%, 0); } }
-.bd-tint {
-  position: absolute; inset: 0; opacity: 0; transition: opacity 1.4s ease;
-  background:
-    radial-gradient(70% 42% at 50% 12%, color-mix(in srgb, var(--t1, #ffcf8a) 20%, transparent), transparent 72%),
-    radial-gradient(60% 46% at 92% 96%, color-mix(in srgb, var(--t2, #ff7ccb) 16%, transparent), transparent 72%),
-    radial-gradient(46% 40% at 4% 64%, color-mix(in srgb, var(--t1, #ffcf8a) 10%, transparent), transparent 72%);
-}
-.bd-tint.is-on { opacity: 1; }
-.bd-dust i { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: rgba(255, 226, 180, 0.55); opacity: 0; animation: bd-mote 22s linear infinite; }
-.bd-dust i:nth-child(odd) { width: 2px; height: 2px; animation-duration: 28s; }
-@keyframes bd-mote { 0% { opacity: 0; transform: translate3d(0, 0, 0); } 12% { opacity: 0.7; } 80% { opacity: 0.35; } 100% { opacity: 0; transform: translate3d(36px, -140px, 0); } }
+/* ---- BOARD 2.0 B — THE BACKGROUND: BLACK VELVET + GOLD DECO (the owner's pick over the brown bar hall, Nov 9): near-black plum, a gold
+   Art Deco sunburst behind the title (one SVG drawn in code — view.js#SUN), a fine gold pinstripe fading down, a warm glow; nothing moves ---- */
+.bd-scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: #07040b; pointer-events: none; }
+.bd-bg, .bd-bg > i { position: absolute; inset: 0; }
+.bd-bg-base { background: radial-gradient(90% 55% at 50% 8%, #2a0f2c 0%, #14071a 45%, #07040b 100%); }
+.bd-bg-glow { background: radial-gradient(40% 22% at 50% 9%, rgba(255, 196, 110, 0.28), transparent 70%), radial-gradient(70% 40% at 50% 100%, color-mix(in srgb, var(--a1, #f2c869) 8%, transparent), transparent 70%); }
+.bd-bg-pin { background: repeating-linear-gradient(90deg, rgba(242, 200, 105, 0.035) 0 1px, transparent 1px 22px); -webkit-mask-image: linear-gradient(180deg, #000, transparent 70%); mask-image: linear-gradient(180deg, #000, transparent 70%); }
+.bd-bg > i.bd-bg-sun { inset: auto; left: 50%; top: calc(var(--safe-t) - 120px); width: 760px; height: 460px; transform: translateX(-50%); }
+.bd-bg-sun svg { display: block; width: 100%; height: 100%; }
+@media (min-width: 900px) { .bd-bg > i.bd-bg-sun { width: 1240px; height: 750px; top: calc(var(--safe-t) - 196px); } }
 
 /* ---- the column ---- */
 .bd-wrap {
@@ -75,40 +69,32 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 .bd-mebtn:active { transform: scale(0.95); }
 .bd-head-pad { display: none; }
 
-/* ---- game tabs: each lights the room in its own colours ---- */
-.bd-games {
-  display: flex; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; flex: none;
-  margin: 2px -16px 0; padding: 4px 16px;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
-}
-.bd-games::-webkit-scrollbar { display: none; }
-.bd-gtab {
-  flex: none; height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 0 15px; border-radius: 999px;
-  font: 700 11.5px/1 var(--font-ui); letter-spacing: 0.14em; color: var(--bd-dim); white-space: nowrap;
-  background: rgba(18, 11, 16, 0.62); border: 1px solid rgba(255, 225, 190, 0.13);
+/* ---- BOARD 2.0 B — THE TABS: XP · DAILIES · OVERCLOCK · PRISM DROP, four even pills ---- */
+.bd-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; flex: none; }
+.bd-tab {
+  min-width: 0; height: 38px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; border-radius: 999px;
+  font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.08em; color: var(--bd-dim); white-space: nowrap; overflow: hidden;
+  background: rgba(12, 9, 20, 0.7); border: 1px solid rgba(255, 225, 190, 0.13);
   transition: color 0.25s, border-color 0.25s, background-color 0.25s, transform 0.15s var(--ease);
 }
-.bd-gtab:active { transform: scale(0.96); }
-.bd-gdot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, var(--a1), var(--a2)); box-shadow: 0 0 8px color-mix(in srgb, var(--a1) 70%, transparent); opacity: 0.75; }
-.bd-gtab.is-on {
+.bd-tab:active { transform: scale(0.96); }
+.bd-tab.is-on {
   color: #fff; border-color: color-mix(in srgb, var(--a1) 65%, transparent);
   background: linear-gradient(180deg, color-mix(in srgb, var(--a1) 22%, rgba(18, 11, 16, 0.8)), color-mix(in srgb, var(--a2) 10%, rgba(18, 11, 16, 0.8)));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 18px color-mix(in srgb, var(--a1) 32%, transparent);
   text-shadow: 0 0 10px color-mix(in srgb, var(--a1) 70%, transparent);
 }
-.bd-gtab.is-on .bd-gdot { opacity: 1; }
-.bd[data-game='prism'] .bd-gtab.is-on .bd-gdot, .bd-gtab[data-id='prism'] .bd-gdot { background: conic-gradient(#ff7ccb, #ffd27a, #9fe8ff, #a874ff, #ff7ccb); }
 
 /* ---- segmented controls ---- */
 .bd-ctrl { display: flex; gap: 8px; flex: none; }
-.bd-seg { flex: 1; display: flex; padding: 3px; border-radius: 999px; background: rgba(10, 6, 10, 0.66); border: 1px solid rgba(255, 225, 190, 0.12); }
+.bd-seg { flex: 1; display: flex; padding: 3px; border-radius: 999px; background: rgba(12, 9, 20, 0.7); border: 1px solid rgba(255, 225, 190, 0.12); }
 .bd-seg-b {
   flex: 1; min-height: 34px; padding: 0 8px; border-radius: 999px; font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.16em; white-space: nowrap;
   color: var(--bd-dim); transition: color 0.2s, background-color 0.2s;
 }
 .bd-seg-b.is-on { color: #1a1007; background: linear-gradient(180deg, #ffe9b8, var(--bd-gold) 55%, #c99234); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 0 14px rgba(242, 200, 105, 0.35); }
 .bd-seg-b:disabled { opacity: 0.38; }
+.bd-seg[hidden] { display: none; }
 .bd-picks { display: flex; flex-direction: column; gap: 8px; flex: none; }
 .bd-picks[hidden] { display: none; }
 .bd-diff { flex: none; }
@@ -116,7 +102,7 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 .bd-chips::-webkit-scrollbar { display: none; }
 .bd-chip {
   flex: none; min-height: 32px; padding: 0 13px; border-radius: 999px; font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.14em; white-space: nowrap;
-  color: var(--bd-dim); background: rgba(14, 9, 13, 0.6); border: 1px solid rgba(255, 225, 190, 0.12);
+  color: var(--bd-dim); background: rgba(12, 9, 20, 0.7); border: 1px solid rgba(255, 225, 190, 0.12);
 }
 .bd-chip.is-on { color: #fff; border-color: color-mix(in srgb, var(--a1, #f2c869) 60%, transparent); background: color-mix(in srgb, var(--a1, #f2c869) 16%, rgba(14, 9, 13, 0.7)); }
 
@@ -124,118 +110,85 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 .bd-card {
   position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 22px;
   background:
-    radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--a1, #ffcf8a) 9%, transparent), transparent 60%),
-    linear-gradient(180deg, rgba(30, 17, 20, 0.9), rgba(12, 7, 11, 0.94));
-  border: 1px solid rgba(255, 214, 150, 0.24);
+    radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--a1, #ffcf8a) 7%, transparent), transparent 60%),
+    linear-gradient(180deg, rgba(16, 11, 24, 0.86), rgba(7, 5, 12, 0.94));
+  border: 1px solid rgba(242, 200, 105, 0.32);
   box-shadow: inset 0 1px 0 rgba(255, 236, 200, 0.2), 0 30px 80px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 70px color-mix(in srgb, var(--a1, #ffcf8a) 12%, transparent);
 }
 .bd-card::before { content: ''; position: absolute; inset: 5px; border-radius: 18px; border: 1px solid rgba(255, 214, 150, 0.08); pointer-events: none; z-index: 2; }
 .bd-card::after { content: ''; position: absolute; top: 0; left: 12%; right: 12%; height: 1px; background: linear-gradient(90deg, transparent, var(--a1, #f2c869), transparent); opacity: 0.8; pointer-events: none; z-index: 2; }
-.bd-card-head { flex: none; padding: 16px 16px 0; }
-.bd-plate { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-bottom: 12px; text-align: center; }
+.bd-card-head { flex: none; padding: 16px 16px 2px; }
+.bd-plate { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-bottom: 10px; text-align: center; border-bottom: 1px solid var(--bd-line); }
 .bd-label { margin: 0; font: 900 14.5px/1.2 var(--font-display); letter-spacing: 0.18em; padding-left: 0.18em; color: #fff3dc; text-shadow: 0 0 14px color-mix(in srgb, var(--a1, #ffcf8a) 45%, transparent); }
 .bd-when { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.24em; color: var(--bd-faint); }
-.bd-cols, .bd-row, .bd-me { display: grid; grid-template-columns: 44px 36px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; }
-.bd-cols { padding: 8px 4px 8px; border-top: 1px solid var(--bd-line); font: 700 9px/1 var(--font-mono); letter-spacing: 0.24em; color: var(--bd-faint); }
-.bd-cols span:nth-child(2) { grid-column: 2 / span 2; }
-.bd-cols span:last-child { text-align: right; }
 .bd-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(255, 214, 150, 0.2) transparent; }
-.bd-rows { list-style: none; margin: 0; padding: 0 0 8px; }
+.bd-rows { position: relative; list-style: none; margin: 0; padding: 10px 12px 12px 6px; display: grid; gap: 12px; }
 
-/* rows */
-.bd-row { position: relative; min-height: 56px; padding: 0 16px 0 20px; border-bottom: 1px solid rgba(255, 214, 150, 0.055); }
-.bd-rank { font: 700 15px/1 var(--font-num); font-variant-numeric: tabular-nums; color: rgba(242, 210, 150, 0.75); text-align: center; }
-.bd-who { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.bd-n { font: 600 15px/1.15 var(--font-ui); color: #fff7ea; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bd-t { display: flex; align-items: center; gap: 5px; font: 600 11px/1 var(--font-num); letter-spacing: 0.04em; color: var(--bd-faint); font-variant-numeric: tabular-nums; }
-.bd-crown { display: none; }
-.bd-v { font: 700 17px/1 var(--font-num); font-variant-numeric: tabular-nums; color: #fff3dc; text-align: right; white-space: nowrap; }
-.bd-v small { display: block; max-width: 96px; white-space: normal; text-align: right; font: 700 9px/1.35 var(--font-mono); letter-spacing: 0.12em; color: var(--bd-faint); }
-.bd-end { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 22px 16px 14px; font: 700 9px/1 var(--font-mono); letter-spacing: 0.3em; color: rgba(242, 210, 150, 0.5); }
+/* BOARD 2.0 B — SLIM CARDS: the rank at the left, the card, the line UNDER it (⋯ REPORT at its left · the score at its right end) */
+.bd-row { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: start; column-gap: 6px; }
+.bd-rank { height: 58px; display: grid; place-items: center; font: 800 14px/1 var(--font-num); font-variant-numeric: tabular-nums; color: rgba(242, 210, 150, 0.78); white-space: nowrap; letter-spacing: -0.02em; }
+.bd-rank.is-long { font-size: 10.5px; }
+.bd-scard { position: relative; min-width: 0; }
+.bd-open { display: block; width: 100%; padding: 0; margin: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; border-radius: 12px; }
+div.bd-open { cursor: default; }
+.bd-open .vl-strip { width: 100%; }
+button.bd-open:active { transform: scale(0.985); }
+button.bd-open:focus-visible { outline: 2px solid var(--bd-gold); outline-offset: 3px; }
+.bd-ssub { display: flex; align-items: center; gap: 8px; margin: 4px 2px 0; min-height: 22px; }
+.bd-more { position: relative; flex: none; width: 32px; height: 22px; display: grid; place-items: center; border: 0; border-radius: 8px; background: rgba(255, 225, 190, 0.06); color: var(--bd-dim); padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.bd-more::after { content: ''; position: absolute; inset: -11px -7px; }   /* (a 44 pt tap area) */
+.bd-more svg { width: 16px; height: 4px; fill: currentColor; }
+@media (hover: hover) { .bd-more:hover { color: #fff3dc; background: rgba(255, 236, 200, 0.12); } }   /* (CITY FIXES: the hover rule) */
+.bd-more:active { transform: scale(0.92); }
+.bd-you { flex: none; font: 800 9.5px/1 var(--font-mono); letter-spacing: 0.22em; color: #1a1007; background: linear-gradient(180deg, #ffe9b8, var(--bd-gold)); padding: 4px 6px 3px; border-radius: 5px; }
+.bd-v { margin-left: auto; font: 800 17px/1 var(--font-num); color: #fff6e6; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; text-shadow: 0 0 12px rgba(255, 196, 110, 0.45); white-space: nowrap; }
+.bd-v small, .bd-me-note2 b small { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.18em; color: var(--bd-dim); margin-left: 5px; text-shadow: none; }
+.bd-row.is-1 .bd-v { color: #ffe39a; }
+.bd-row.is-me .vl-strip { box-shadow: 0 0 0 2px var(--bd-gold), 0 0 16px rgba(242, 200, 105, 0.55); }
+.bd-row.is-me .bd-rank { color: #ffe39a; }
+.bd-end { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 12px 16px 6px; font: 700 9px/1 var(--font-mono); letter-spacing: 0.3em; color: rgba(242, 210, 150, 0.62); }
 .bd-end::before, .bd-end::after { content: ''; width: 40px; height: 1px; background: linear-gradient(90deg, transparent, rgba(242, 200, 105, 0.5)); }
 .bd-end::after { transform: scaleX(-1); }
-.bd-card.is-cascade .bd-end { animation: bd-row-in 0.62s var(--ease) both; animation-delay: calc(var(--i) * 34ms + 120ms); }
-
-/* the top three: lit gold, silver and bronze — elevated, never gaudy */
-.bd-row.is-top { min-height: 68px; --m: #f2c869; background: linear-gradient(90deg, color-mix(in srgb, var(--m) 15%, transparent), color-mix(in srgb, var(--m) 4%, transparent) 55%, transparent); }
-.bd-row.is-2 { --m: #d9e3f2; }
-.bd-row.is-3 { --m: #e8a06a; }
-.bd-row.is-top::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: linear-gradient(180deg, transparent, var(--m), transparent); box-shadow: 0 0 12px var(--m); }
-.bd-row.is-top .bd-n { font-size: 16.5px; }
-.bd-row.is-top .bd-v { font-size: 19px; color: color-mix(in srgb, var(--m) 55%, #fff); text-shadow: 0 0 14px color-mix(in srgb, var(--m) 45%, transparent); }
-.bd-row.is-1 { min-height: 76px; }
-.bd-row.is-1 .bd-n { font-size: 18px; }
-.bd-row.is-1 .bd-v { font-size: 21px; }
-.bd-row.is-1::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.9;
-  background: linear-gradient(105deg, transparent 38%, rgba(255, 240, 200, 0.12) 50%, transparent 62%);
-  transform: translateX(-100%); animation: bd-sweep 7s ease-in-out 1.2s infinite;
-}
-@keyframes bd-sweep { 0% { transform: translateX(-100%); } 22%, 100% { transform: translateX(100%); } }
+.bd-showall { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 auto; min-height: 44px; padding: 0 18px; border: 0; background: none; font: 700 11px/1 var(--font-ui); letter-spacing: 0.22em; color: var(--bd-gold); cursor: pointer; }
+.bd-showall i { width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+.bd-showall-li { display: flex; justify-content: center; }
+.bd-sentinel { height: 1px; }
 .bd-medal {
-  width: 32px; height: 32px; margin: 0 auto; display: grid; place-items: center; border-radius: 50%;
-  font: 800 15px/1 var(--font-num); color: #2a1a06;
+  width: 28px; height: 28px; margin: 0 auto; display: grid; place-items: center; border-radius: 50%;
+  font: 800 13px/1 var(--font-num); color: #2a1a06;
   background: radial-gradient(circle at 35% 28%, #fff9e0, #f6d27a 38%, #b8842c 78%, #6d4812);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 220, 140, 0.5), 0 0 16px rgba(242, 200, 105, 0.5);
 }
 .bd-medal.is-silver { color: #1b2230; background: radial-gradient(circle at 35% 28%, #ffffff, #dfe7f3 40%, #8f9cb0 80%, #5a6578); box-shadow: inset 0 1px 1px #fff, inset 0 -2px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(230, 238, 250, 0.5), 0 0 14px rgba(210, 225, 245, 0.35); }
 .bd-medal.is-bronze { color: #2a1206; background: radial-gradient(circle at 35% 28%, #ffe6cf, #e6a06c 40%, #9a5a30 80%, #5e3216); box-shadow: inset 0 1px 1px rgba(255, 240, 225, 0.8), inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(240, 180, 130, 0.5), 0 0 14px rgba(232, 160, 106, 0.35); }
-.bd-row.is-1 .bd-medal { width: 36px; height: 36px; font-size: 17px; }
 
-/* your row, wherever it is in the list */
-.bd-row.is-me { background: linear-gradient(90deg, color-mix(in srgb, var(--c) 22%, transparent), color-mix(in srgb, var(--c) 5%, transparent) 70%); box-shadow: inset 3px 0 0 var(--c); }
-.bd-row.is-me .bd-n { color: #fff; text-shadow: 0 0 12px color-mix(in srgb, var(--c) 60%, transparent); }
+/* the list fades in (the cards + their effect layer together: opacity on the list) */
+.bd-card.is-cascade .bd-rows { animation: bd-rows-in 0.38s var(--ease) both; }
+@keyframes bd-rows-in { from { opacity: 0; } }
+@keyframes bd-row-in { from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.985); } }   /* (the profile's game panels still use it) */
 
-/* the cascade */
-.bd-card.is-cascade .bd-row:not(.is-skel) { animation: bd-row-in 0.62s var(--ease) both; animation-delay: calc(var(--i) * 34ms); }
-@keyframes bd-row-in { from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.985); } }
-
-/* loading */
+/* loading: a short skeleton of card shapes (no spinner wall) */
 .bd-row.is-skel { pointer-events: none; }
-.bd-sk-av { width: 30px; height: 30px; border-radius: 50%; background: rgba(255, 220, 180, 0.06); }
-.bd-sk-n { height: 12px; width: calc(40% + var(--i) * 4%); max-width: 70%; border-radius: 6px; background: rgba(255, 220, 180, 0.07); }
-.bd-sk-v { height: 14px; width: 54px; border-radius: 6px; background: rgba(255, 220, 180, 0.07); }
-.bd-row.is-skel { overflow: hidden; }
-.bd-row.is-skel::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255, 230, 190, 0.05) 50%, transparent 70%); transform: translateX(-100%); animation: bd-sweep 1.6s ease-in-out infinite; animation-delay: calc(var(--i) * 60ms); }
+.bd-sk-card { display: block; height: 58px; border-radius: 12px; background: rgba(255, 220, 180, 0.05); box-shadow: inset 0 0 0 1px rgba(255, 220, 180, 0.07); position: relative; overflow: hidden; }
+.bd-sk-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255, 230, 190, 0.06) 50%, transparent 70%); transform: translateX(-100%); animation: bd-sweep 1.6s ease-in-out infinite; animation-delay: calc(var(--i, 0) * 60ms); }
+@keyframes bd-sweep { 0% { transform: translateX(-100%); } 22%, 100% { transform: translateX(100%); } }
 
-/* empty / dark */
-.bd-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 46px 28px; text-align: center; }
-.bd-empty b { font: 900 12px/1.4 var(--font-display); letter-spacing: 0.2em; color: #fff0d6; }
-.bd-empty span { font-size: 14px; line-height: 1.45; color: var(--bd-dim); max-width: 300px; }
-.bd-empty-mark { opacity: 0.55; margin-bottom: 4px; }
-.bd-empty.is-error b { color: #ffc2cf; }
-.bd-retry { margin-top: 6px; min-height: 40px; padding: 0 18px; border-radius: 999px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--bd-ink); border: 1px solid rgba(255, 220, 180, 0.3); background: rgba(255, 255, 255, 0.04); }
-.bd-sentinel { height: 1px; }
+/* empty / dark — a designed state (a fresh week every Monday), never a blank panel */
+.bd-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 34px 26px 26px; text-align: center; }
+.bd-empty b { font: 800 15px/1.2 var(--font-display); letter-spacing: 0.16em; color: #fff6e6; text-shadow: 0 0 14px rgba(255, 196, 110, 0.6); }
+.bd-empty span { font: 500 13.5px/1.45 var(--font-ui); color: var(--bd-dim); max-width: 30ch; }
+.bd-empty-mark { display: grid; place-items: center; min-height: 84px; margin-bottom: 2px; }
+.bd-empty.is-error b { color: #ffc2cf; text-shadow: none; }
+.bd-retry { margin-top: 6px; min-height: 44px; padding: 0 18px; border-radius: 999px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--bd-ink); border: 1px solid rgba(255, 220, 180, 0.3); background: rgba(255, 255, 255, 0.04); }
 
-/* your pinned row: always there, in your colour */
-.bd-me {
-  position: relative; z-index: 3; flex: none; min-height: 62px; padding: 0 16px 0 20px; --c: #f2c869;
-  border-top: 1px solid color-mix(in srgb, var(--c) 55%, transparent);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 17%, rgba(18, 10, 15, 0.97)), rgba(10, 6, 10, 0.98));
-  box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 color-mix(in srgb, var(--c) 45%, transparent), inset 0 0 28px color-mix(in srgb, var(--c) 16%, transparent);
-}
+/* your pinned card: always there at the foot */
+.bd-me { position: relative; z-index: 3; flex: none; padding: 10px 12px 12px 6px; border-top: 1px solid rgba(242, 200, 105, 0.35); background: linear-gradient(180deg, rgba(22, 15, 30, 0.97), rgba(10, 7, 16, 0.99)); box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.5); }
 .bd-me[hidden] { display: none; }
-.bd-me .bd-rank { color: var(--c); font-size: 15px; text-shadow: 0 0 12px color-mix(in srgb, var(--c) 70%, transparent); }
-.bd-me-k { font: 700 9px/1 var(--font-mono); letter-spacing: 0.26em; color: color-mix(in srgb, var(--c) 70%, #fff); }
-.bd-me .bd-n { display: flex; align-items: center; }
-.bd-me .rk-badge { margin-left: 7px; }
-.bd-me-note { grid-column: 1 / -1; text-align: center; font-size: 13px; color: var(--bd-dim); padding: 0 10px; }
-
-/* BNAME: the ⋯ on every other player's row (REPORT) — a quiet glyph on a full-height 44 pt tap strip at the row's right edge */
-.bd-row { padding-right: 46px; }
-.bd-me { padding-right: 46px; }
-.bd-cols { padding-right: 34px; }
-.bd-more {
-  /* desktop: the rows keep 56 px on the right for it (the @media (min-width: 900px) block) */
-  position: absolute; top: 0; right: 0; bottom: 0; width: 44px; display: grid; place-items: center;
-  padding: 0; border: 0; background: none; color: var(--bd-faint); cursor: pointer; -webkit-tap-highlight-color: transparent;
-}
-.bd-more span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font: 700 15px/1 var(--font-ui); letter-spacing: 0.04em; transition: background 0.2s, color 0.2s; }
-.bd-more:focus-visible span { background: rgba(255, 236, 200, 0.08); color: #fff3dc; }
-@media (hover: hover) { .bd-more:hover span { background: rgba(255, 236, 200, 0.08); color: #fff3dc; } }   /* (CITY FIXES: the hover rule) */
-.bd-more:active span { transform: scale(0.9); }
-.bd-you { margin-left: 7px; padding: 2px 5px 1px; border-radius: 4px; font: 700 8.5px/1 var(--font-mono); letter-spacing: 0.18em; color: #120a0e; background: color-mix(in srgb, var(--c) 75%, #fff); vertical-align: 2px; }
-}
+.bd-me .bd-rank { font-size: 13px; color: #ffe39a; }
+.bd-me .bd-rank.is-long { font-size: 10.5px; }
+.bd-me-note2 { margin-left: auto; display: grid; justify-items: end; gap: 3px; font: 700 9.5px/1.25 var(--font-mono); letter-spacing: 0.12em; color: var(--bd-dim); text-align: right; }
+.bd-me-note2 b { font: 800 17px/1 var(--font-num); color: #ffe39a; letter-spacing: 0.02em; text-shadow: 0 0 12px rgba(255, 196, 110, 0.45); }
+.bd-me-note { display: block; text-align: center; font-size: 13px; color: var(--bd-dim); padding: 8px 10px; }
 .bd-rep-who { display: flex; align-items: center; justify-content: center; gap: 9px; font: 600 17px/1.1 var(--font-ui); color: #fff7ea; }
 .bd-rep-who span { font: 600 12px/1 var(--font-num); color: var(--bd-faint); }
 .bd-rep-h { margin: 8px 0 0; text-align: center; font: 800 10.5px/1 var(--font-display); letter-spacing: 0.24em; color: var(--bd-dim); }   /* (FRIENDS A: the ⋯ sheet = the player — ADD FRIEND, then REPORT) */
@@ -260,21 +213,15 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 
 /* ---- wide screens: the scoreboard on its own, the windows and the back bar either side ---- */
 @media (min-width: 900px) {
-  .bd-wrap { max-width: 780px; gap: 12px; padding-top: calc(var(--safe-t) + 18px); padding-bottom: 22px; }
+  .bd-wrap { max-width: 600px; gap: 12px; padding-top: calc(var(--safe-t) + 18px); padding-bottom: 22px; }
   .bd-name { font-size: 52px; }
   .bd-mebtn { left: auto; right: 0; padding: 0 6px 0 6px; }
   .bd.is-public .bd-mebtn { display: none; }
   .bd-mebtn-l { display: inline; }
-  .bd-games { justify-content: center; flex-wrap: wrap; margin: 4px 0 0; padding: 0; -webkit-mask-image: none; mask-image: none; overflow: visible; }
-  .bd-ctrl { width: 560px; align-self: center; }
+  .bd-tab { font-size: 11px; letter-spacing: 0.12em; }
   .bd-picks { align-items: center; }
   .bd-chips { justify-content: center; flex-wrap: wrap; margin: 0; padding: 0; -webkit-mask-image: none; mask-image: none; overflow: visible; }
-  .bd-diff { width: 360px; }
-  .bd-row, .bd-me { padding: 0 56px 0 30px; column-gap: 14px; grid-template-columns: 52px 38px minmax(0, 1fr) auto; }
-  .bd-cols { padding-left: 14px; padding-right: 44px; grid-template-columns: 52px 38px minmax(0, 1fr) auto; column-gap: 14px; }
   .bd-label { font-size: 17px; }
-  .bd-row { min-height: 58px; }
-  .bd-row.is-1 { min-height: 80px; }
 }
 /* phones: the corner buttons (music, settings) own the top row, the title sits under it */
 @media (max-width: 899px) {
@@ -296,12 +243,9 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 }
 
 /* ---- reduced effects ---- */
-body.reduced-fx .bd-drift, body.reduced-fx .bd-dust, body.reduced-fx .bd-row.is-1::after, body.reduced-fx .bd-play-sheen { animation: none; }
-body.reduced-fx .bd-dust { display: none; }
-body.reduced-fx .bd-card.is-cascade .bd-row { animation-duration: 0.01s; animation-delay: 0s; }
+body.reduced-fx .bd-sk-card::after, body.reduced-fx .bd-play-sheen, body.reduced-fx .bd-card.is-cascade .bd-rows { animation: none; }
 @media (prefers-reduced-motion: reduce) {
-  .bd-drift, .bd-dust i, .bd-row.is-1::after, .bd-play-sheen { animation: none; }
-  .bd-card.is-cascade .bd-row { animation-duration: 0.01s; animation-delay: 0s; }
+  .bd-sk-card::after, .bd-play-sheen, .bd-card.is-cascade .bd-rows { animation: none; }
 }
 
 /* ==========================================================================
