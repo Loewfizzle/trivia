@@ -6391,3 +6391,27 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
   POINTS + the dailies' boards, the rows' slim-card data, THE PLAYER PAGE's data; the BTC carry-overs + THE FAST REVEAL; no rules change; the
   BACK-FILL waits for the owner in /admin → THE BOARDS) ; BOARD 2.0 B (the screens + THE PLAYER PAGE — its questions round first) ← NEXT; PRISM
   DROP; FR7; THE SWITCH-OVER.
+
+## OWNER'S NOTES — NOV 9 (morning)
+
+- Nov 9, morning ET: BOARD 2.0 A ✅ (live; tests + harbor green on the first cloud run; no rules change). THE BACK-FILL is the owner's tap in /admin →
+  THE BOARDS (PREVIEW → BACK-FILL NOW) — the screens must look right whether or not it has run (an empty week is a real state every Monday).
+- Nov 9 (the owner): DAILY POINTS' ALL TIME rule = 'SPAN' — DECIDED (a day skipped between your first and your latest daily counts 0, so skipping
+  never helps; the days before your first daily don't count). `core/daily-points.js#ALL_TIME_RULE` stays 'span'. The points table as built is OK.
+- Nov 9 (the owner): BOARD 2.0 B's QUESTIONS ROUND — DECIDED:
+  1. THE DOCK STAYS AS IT IS: `[ JOIN ] [ DAILY · BOARD · GAMES · YOU ] [ HOST ]` (supersedes the Nov 5 plan of moving THE BOARD inside DAILY →
+     SCORES; no FRIENDS dock button — FRIENDS A stands). DAILY stays after you finish (ALL DONE + a check); it hides only while no daily is live.
+     After a daily: today's scores = DAILY → SCORES (YOUR TABLE = you + your friends, + the everyone line); the week + ALL TIME = BOARD → DAILIES.
+  2. THE BOARD's TABS = XP · DAILIES · OVERCLOCK · PRISM DROP (the two playable games only); it opens on XP, THIS WEEK. ALL TIME opened on every tab.
+  3. THE FRIENDS LIST stays where it is (YOU → FRIENDS), now as SLIM CARDS: friends in your room first, then the rest by THIS WEEK's XP, that number
+     on the line under each card.
+  4. THE PLAYER PAGE = a FULL SHEET over the paused city (the same way your own card opens): the card on top, then LV + rank + the flame, the 3
+     medals, INVITE, ⋯. Tap any name — friends, the room's name tags, board rows, the podium.
+  5. THE MOCK: board2-mock.png isn't on the PC — DROPPED. Instead the session draws ITS OWN MOCK first (THE BOARD + THE PLAYER PAGE at phone size)
+     and sends it to the owner for an OK BEFORE building the screens.
+  6. THE LONG-NAME FIX: yes — a 12-letter name on ONE line on PENTHOUSE, SAFECRACKER, GHOST RUN + PERFECT WEEK's full cards too.
+  NO GROK needed for B.
+
+- THE BUILD TABLE (Nov 9 morning, BOARD 2.0 B Step 0): BOARD 2.0 A ✅ (passes/board-2a.md; no rules change; ALL TIME = 'span' DECIDED); BOARD 2.0 B
+  (this pass: THE MOCK first, then THE BOARD's screens, DAILY → SCORES + THE FRIENDS LIST, THE PLAYER PAGE + the long-name fix) ← NEXT; PRISM DROP;
+  FR7; THE SWITCH-OVER.
