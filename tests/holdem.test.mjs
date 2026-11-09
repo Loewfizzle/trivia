@@ -72,3 +72,17 @@ test('the messages still interrupt: HOLD\'EM is no hint row; the day chart shows
   const it = C.items.find(i => /BASE POSTER: TEXAS HOLD/.test(i.label));
   assert.ok(it && /COMING SOON/.test(it.label) && /no billposter today/.test(it.label), it && it.label);
 });
+
+test('THE BOARD\'s REPEATED SWAPS: two of the owner\'s messages a second apart never blip the board back to the poster between them', async () => {
+  const { setOwnerMessages, ownerAt, BRIDGE_MS } = await import('../js/core/harbor-billboard.js');
+  const B = knob('radio.billboard'), T = Date.UTC(2026, 10, 8, 20);
+  // A starts at T, B a spell's length + 2 s later: A ends at T + show, B begins 2 s after
+  setOwnerMessages([{ id: 'a', lines: ['ONE', 'A'], at: T, until: T + 600e3 }, { id: 'b', lines: ['TWO', 'B'], at: T + (B.show + 2) * 1000, until: T + 600e3 }]);
+  const seq = []; for (let t = T; t < T + (B.show + 8) * 1000; t += 500) { const o = ownerAt(t); const k = o ? o.lines[0] : '-'; if (seq[seq.length - 1] !== k) seq.push(k); }
+  assert.deepEqual(seq, ['ONE', 'TWO'], `straight from one message to the next (${seq.join(' → ')})`);
+  // a real pause (longer than the bridge) still returns the poster
+  setOwnerMessages([{ id: 'a', lines: ['ONE', 'A'], at: T, until: T + 600e3 }, { id: 'b', lines: ['TWO', 'B'], at: T + (B.show + 1 + BRIDGE_MS / 1000 + 3) * 1000, until: T + 600e3 }]);
+  const seq2 = []; for (let t = T; t < T + (B.show + 20) * 1000; t += 500) { const o = ownerAt(t); const k = o ? o.lines[0] : '-'; if (seq2[seq2.length - 1] !== k) seq2.push(k); }
+  assert.deepEqual(seq2, ['ONE', '-', 'TWO']);
+  setOwnerMessages([]);
+});

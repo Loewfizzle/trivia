@@ -1,7 +1,8 @@
 // CITY 2.0 — THE HARBOR end to end: the `audio` cloud job's groups (music, flags, harbor, dock, tape) — tests/integration/harbor-jobs.mjs#CI_JOBS.
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=audio, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
-import { OUT, BASE, SHOTS, t0, sleep, errors, ok, okT, GR, NIGHT, open, ev, waitFor, tapAt, tap, harborUp, G } from './kit.mjs';
+import { OUT, BASE, SHOTS, t0, sleep, errors, ok, okT, GR, NIGHT, open, ev, waitFor, tapAt, tap, harborUp, G, skipNoDisplay } from './kit.mjs';
+import { displayAttached } from '../kit/puppeteer.mjs';
 
 G('flags', async () => {
   // ================================================================ 3. every title flag works with ?city=2
@@ -1019,6 +1020,24 @@ G('heli', async () => {
         p.spots.forEach((k, i) => { if (k === undefined || k === null && (p.route[i][0] < 0 || p.route[i][0] > innerWidth)) return; const q = p.route[i]; if (q[0] < 0 || q[0] > innerWidth) return; n++; if (k == null) none++; else kinds[k] = (kinds[k] || 0) + 1; }); } return { n, none, kinds }; })()`);
       ok(r && r.n > 50 && r.none / r.n < 0.08, `ATM-D — 200 SEEDS' STOPS FIND A CLEAR SPOT: ${r ? `${r.n} on-screen stops, ${r.none} without (${(100 * r.none / r.n).toFixed(1)} % — the hovers just over the billboard's shoulder, where every spot is behind it: no pool, the beam keeps its sweep) — ${JSON.stringify(r.kinds)}` : 'no plan'}`); }
     ok(maxStep < 0.25, `THE SEARCHLIGHT SWEEPS SMOOTHLY: its biggest change between samples ${maxStep.toFixed(3)} rad (it used to jump ~0.8 as the craft slowed into a stop)`);
+    await Q.ctx.close(); }
+  // CITY FIXES — THE BLACK HELICOPTER's TURNS (the owner's iPhone: "it jumps and skips a little as it turns + adjusts"): its 24 baked views
+  // cross-faded EXACTLY, the heading EASED — sampled EVERY FRAME through its pass (consecutive on-screen frames of ONE flight): the heading never jumps (≤ 4° a frame), it does turn, and
+  // (with a display — THE DISPLAY CHECK) the pass holds 60 fps. FRIENDS C skipped this frame check.
+  { const disp = await displayAttached();
+    const Q = await open({ slot: 'hblk', qs: `when=2026-11-03T22:10${GR}&wx=clear&force=blackhelo`, view: [402, 874], dpr: 3, real: !!disp.attached });
+    await harborUp(Q.page);
+    await waitFor(Q.page, '(() => { try { const u = window.__district.harbor().heli.up; return !!(u && u.black && u.model && !u.off); } catch { return false; } })()', 'the black helicopter on its model', 60000).catch(() => {});
+    const r = await ev(Q.page, `new Promise(res => { const hd = [], gaps = []; let last = 0; const t0 = performance.now();
+      const f = t => { if (last) gaps.push(t - last); last = t; try { const u = window.__district.harbor().heli.up; const on = u && u.black && u.model && !u.off && u.heading != null; const pe = hd.length && hd[hd.length - 1] ? hd[hd.length - 1].e : null;
+          if (on && pe != null && u.e < pe) hd.push(null);   // (a NEW flight — the preview's next one, the other way: never compared across)
+          hd.push(on ? { h: u.heading, e: u.e } : null); } catch { hd.push(null); }
+        if (t - t0 < 22000) requestAnimationFrame(f); else { let big = 0, turning = 0; const n = hd.filter(Boolean).length; for (let i = 1; i < hd.length; i++) { if (!hd[i] || !hd[i - 1]) continue; const d = Math.abs(((hd[i].h - hd[i - 1].h + 540) % 360) - 180); big = Math.max(big, d); if (d > 0.05) turning++; }
+          const s = gaps.slice().sort((a, b) => a - b); res({ n, big: +big.toFixed(2), turning, fps: +(1000 / s[Math.floor(s.length / 2)]).toFixed(1), slow: +(100 * gaps.filter(g => g > 20).length / gaps.length).toFixed(1) }); } };
+      requestAnimationFrame(f); })`);
+    ok(r.n > 300 && r.turning > 20 && r.big <= 4, `THE BLACK HELICOPTER TURNS SMOOTHLY: ${r.n} frames on its model, ${r.turning} turning, the biggest heading step ${r.big}° a frame (≤ 4°)`);
+    const w = `THE BLACK HELICOPTER's PASS at 1×: ${r.fps} fps (p50), ${r.slow} % of frames over 20 ms`;
+    if (disp.attached) okT(r.fps >= 55 && r.slow < 5, w); else skipNoDisplay(w, disp.reason);
     await Q.ctx.close(); }
 });
 

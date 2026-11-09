@@ -15,7 +15,7 @@ import path from 'node:path';
 
 export const MODEL = 'art/models/helicopter/helicopter-utility-hd_3dassets-18712.glb';
 export const OUT = 'assets/city/blackhelo';
-export const BAKE = { px: 300, elev: 9, yaws: 12, lights: ['black'], spin: 6, sub: 10 };   // (px: the fuselage's length — the hover ~100 pt at 402 → 300 px at 3×; 12 headings: it turns less than the patrol — 4.8 MB decoded, loaded only while it flies)
+export const BAKE = { px: 300, elev: 9, yaws: 24, lights: ['black'], spin: 6, sub: 10 };   // (px: the fuselage's length — the hover ~100 pt at 402 → 300 px at 3×; CITY FIXES: 24 headings (15° steps — the owner's iPhone: 12 "jumps as it turns"), ~9.6 MB decoded, loaded only while it flies + dropped after)
 // points in the model's own metres (+Y up, nose +Z): the hubs (Grok's notes), the belly lamp under the cabin, the beacon on the engine deck, the tail light
 export const PTS = { hub: [0, 3.01, 0.53], tail: [0.18, 2.2, -4.13], lamp: [0, 0.55, 1.7], beacon: [0, 2.55, -0.9], tailLight: [0, 2.3, -4.75], nose: [0, 1.2, 2.6], back: [0, 1.6, -4.6] };
 

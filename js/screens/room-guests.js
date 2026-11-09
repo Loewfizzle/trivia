@@ -8,6 +8,7 @@
 import { row, tubeButton } from '../ui/components.js';
 import { h } from '../ui/dom.js';
 import { afterTap } from '../ui/tapwatch.js';
+import { holdCity } from '../ui/city-hold.js';
 import { toast } from '../ui/toast.js';
 import { isHost } from '../store.js';
 import { isOnline } from '../core/room-logic.js';
@@ -35,8 +36,12 @@ export async function openGuestList(ctx) {
   const surface = (await import('../fx/renderer.js')).createSurface(surfHost, { label: 'guests' });
   const rows = new Map();     // uid → { el, sig, slot }
   let kickArmed = { uid: null, at: 0 }, first = true, lockBusy = false;
+  // (CITY FIXES — the owner, Nov 8: THE GUEST LIST PAUSES THE CITY behind it — THE ROOM's OWN COST: 8 live strips + the full city at 4× CPU
+  //  were +7.2 ms. The shared, COUNTED hold (ui/city-hold.js — the full card's + the dailies'): the city keeps its last frame while the list is up,
+  //  and runs on from the same clock on close — no jump; a full card opened from a strip just adds its own hold)
+  const unhold = holdCity();
   const sheet = openPfSheet({ kicker: 'THE GUEST LIST', title: 'IN THE ROOM', cls: 'rg-sheet', body: [h('div.rg-h', count), list, lockRow, night, leave],
-    onClose: () => { surface.destroy(); if (ctx.onClose) ctx.onClose(); } });
+    onClose: () => { unhold(); surface.destroy(); if (ctx.onClose) ctx.onClose(); } });
   approvedIds().then(a => { approved = new Set(a || []); for (const r of rows.values()) r.sig = ''; paint(); }).catch(() => {});
 
   function stripOf(uid, p, pub, st) {

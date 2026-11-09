@@ -34,7 +34,7 @@ import { createFireworks } from './fireworks-2d.js';
 import { createSceneFireworks } from './scene-fireworks.js';
 import { createSceneRadio } from './scene-radio.js';
 import { setShowcase } from '../../core/harbor-showcase.js';
-import { hintAt } from '../../core/harbor-billboard.js';
+import { hintAt, ownerMessages, intercomHead } from '../../core/harbor-billboard.js';
 import { holdemShow, setHoldemForce, holdemRev } from '../../core/harbor-holdem.js';
 import { roomRects } from '../../core/harbor-room.js';
 import { createScenePanel } from './scene-panel.js';
@@ -139,7 +139,7 @@ import { roadLampAt } from '../../core/harbor-light.js';
 import { WITNESS, witnessWindow } from '../../core/harbor-witness.js';
 import { hornsBetween } from '../../core/harbor-boats.js';
 import { createDirector } from '../../core/harbor-director.js';
-import { createLoadLog, keyDiff } from '../../core/harbor-loadlog.js';
+import { createLoadLog, keyDiff, LOAD_LOG_MS } from '../../core/harbor-loadlog.js';
 import { weatherSettled, weatherAsk } from './live-weather.js';
 import { climateWeather, climateDays, nearestStation } from '../../core/climate.js';
 import { snowmanPlan, forcedSnowman } from '../../core/harbor-snowman.js';
@@ -1022,7 +1022,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   };
   // (9f — LOAD WEATHER: the board's game is synced BEFORE the reveal too — a panel's clock jump to another day used to swap the poster
   // ~1 s after the city showed, a neon re-bake crossfading over it)
-  let boardHintKey = '';
+  let boardHintKey = '', boardInSig = '';
   // LOBBY 2.0 A — THE ANNOUNCEMENT BILLBOARD CROSS-FADES (the owner, Nov 3 8:46 pm: his message "snaps on"): the board's swap lands on three
   // layers at once (the baked poster, the crisp lettering, the night lamps) — so at the swap the board is copied ONCE as it looks on screen
   // (the city canvas + its crisp canvases over it) and that copy FADES OUT over the new board (opacity only: a crisp item's CSS opacity, or
@@ -1077,7 +1077,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (THE LOAD FIX — the cloud's LOAD WEATHER red: a neon re-layout rebuilds the board with its GAME and the day's HINT came back ≤ 500 ms
     //  later — a reveal inside that window showed the swap + its re-bake crossfading. Before the reveal it is checked every frame: the hint
     //  is back in the bake the reveal waits for)
-    if ((shownAt < 0 || now - boardCheck > 500) && now > boardHeld) {
+    // (CITY FIXES — LOAD WEATHER's cloud red: a message's spell that STARTS or ENDS a few seconds after the reveal (FIREWORKS 20 s every 3 min,
+    //  LOOK UP, the Sunday postcard from 10 — the check pins 10 am) swapped the board inside the load's window — by chance, more often on a slow
+    //  runner. The board SETTLES before the reveal and keeps that content through THE LOAD LOG's window: a spell waits ≤ LOAD_LOG_MS on a fresh
+    //  load — never a swap the eye sees as the city comes in)
+    // (only the SCHEDULE waits: a change of the board's INPUTS — a panel / link force, the owner's messages, the intercom's headline, the HOLD'EM
+    //  switch — is a deliberate act: it lands at once, even in the load's window)
+    const inSig = `${[...clock.force].sort().join(',')}|${ownerMessages().map(m => m.id).join(',')}|${(intercomHead() || []).join('|')}|${holdemRev()}`;
+    if (shownAt < 0) boardInSig = inSig; else if (inSig !== boardInSig) boardInSig = null;
+    const loadQuiet = shownAt >= 0 && now - shownAt < LOAD_LOG_MS && boardInSig != null;   // (synced every frame BEFORE the reveal — tryReveal syncs it too)
+    if ((shownAt < 0 || now - boardCheck > 500) && now > boardHeld && !loadQuiet) {
       boardCheck = now;
       const want = boardWant(tr.board.key), dead = tr.boardLampDead == null ? null : tr.boardLampDead;
       // SCHED Group 4 — THE BOARD's HINTS (core/harbor-billboard.js — the timetable's billboard.* queue): a hint takes the WHOLE board for its
@@ -3123,7 +3132,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     session: () => ({ ...sess, after: { ...sess.after } }),
     /** NEON PASS 5: the tiering's state (capped: the phone's frame-rate cap it found, Hz; probe: a step down being tried) */
     speakCtx: () => { const v = speakCtx(); return { key: v.key, hushLit: !!v.hushLit }; },   // (WIN2: the facade's bake context — the washer swap)
-    boardXf: () => ({ n: bxf.n, a: +boardXfA().toFixed(3), ms: bxf.ms, layer: crisp.on ? 'crisp' : 'city' }),   // (LOBBY 2.0 A: the billboard's cross-fade — swaps faded, the old copy's alpha now)
+    boardXf: () => ({ n: bxf.n, a: +boardXfA().toFixed(3), ms: bxf.ms, layer: crisp.on ? 'crisp' : 'city', rev: (neon.fresh() || {}).rev || 0, show: bxf.shown }),   // (CITY FIXES: + the board's rebuild count — one swap per real change)   // (LOBBY 2.0 A: the billboard's cross-fade — swaps faded, the old copy's alpha now)
     tiering: () => ({ tier, dprTier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), why: stepWhy.slice(), wantStep, manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())), grace: TIER_GRACE, heavy: heavyNow(performance.now()), judge: lastJudge, slowN, sinceReveal: shownAt < 0 ? null : +((performance.now() - shownAt) / 1000).toFixed(1) }),
     cost: () => costs.slice(),
     // (NIGHT-C: the street party now — its break { kind, s0, s1, song } + level k — for the &debug=1 readout's party line, cheap)

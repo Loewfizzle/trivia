@@ -74,6 +74,22 @@ export const intercomHead = () => IC_HEAD;
 /** the owner's message ON at abs ms (its spell in the cycle) → { id, lines, own: true } | null */
 export function ownerAt(ms, off = 0) {
   if (IC_HEAD) return { id: `ic.${IC_HEAD.join('|')}`, lines: IC_HEAD, art: null, own: true };
+  const on = ownerOn(ms, off);
+  if (on) return on;
+  // (CITY FIXES — THE BOARD's REPEATED SWAPS: with TWO+ messages live each runs its own cycle — one's spell ending a second before the next's
+  //  began swapped the board to the poster and straight back (two re-bakes + two fades for nothing; FRIENDS C's radio group fired several).
+  //  A gap of ≤ BRIDGE_MS between two spells is bridged: the board goes from the one message straight to the next)
+  for (let b = 1000; b <= BRIDGE_MS; b += 1000) {
+    const prev = ownerOn(ms - b, off);
+    if (!prev) continue;
+    for (let f = 1000; f + b <= BRIDGE_MS + 1000; f += 1000) if (ownerOn(ms + f, off)) return prev;
+    break;
+  }
+  return null;
+}
+export const BRIDGE_MS = 5000;
+/** the owner's message whose spell is ON at abs ms (no bridge) */
+function ownerOn(ms, off) {
   const B = knob('radio.billboard');
   for (const m of OWNER) { const w = ownerWindow(m, ms, off); if (w && (((ms - w[0]) / 1000) % B.every) < B.show) return { id: `own.${m.id}`, lines: m.lines, art: null, own: true }; }
   return null;

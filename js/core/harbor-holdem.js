@@ -25,7 +25,14 @@ export function cleanHoldem(v) {
   return { on: v.on !== false, bar: v.bar === 'open' ? 'open' : 'soon', since: KEY_RE.test(String(v.since || '')) ? v.since : null };
 }
 /** the owner's switch, from the cached GET (radio.base.holdem) — undefined/null = the default */
-export function setHoldem(v) { const n = cleanHoldem(v); if (JSON.stringify(n) !== JSON.stringify(SERVER)) { SERVER = n; REV++; } }
+export function setHoldem(v) {
+  const n = cleanHoldem(v);
+  if (JSON.stringify(n) !== JSON.stringify(SERVER)) { SERVER = n; REV++; }
+  // (CITY FIXES — LOAD WEATHER: remembered on the device, so the next load's board uses the owner's switch BEFORE the reveal — the feed lands later)
+  if (typeof window !== 'undefined') { try { localStorage.setItem(LS, JSON.stringify(n)); } catch { /* private mode: the default until the feed */ } }
+}
+const LS = 'nd:holdem';
+if (typeof window !== 'undefined') { try { SERVER = cleanHoldem(JSON.parse(localStorage.getItem(LS) || 'null')); } catch { SERVER = null; } }
 /** &force=billboard-holdem: from `since` (today's key) on this phone, COMING SOON or NOW OPEN; null clears it */
 export function setHoldemForce(f) { FORCE = f && KEY_RE.test(String(f.since || '')) ? { since: f.since, bar: f.bar === 'open' ? 'open' : 'soon' } : null; REV++; }
 

@@ -187,8 +187,8 @@ function loadHeliModel() {
   return heliLoad;
 }
 export const heliModelReady = () => !!heliModel;
-// FRIENDS C — THE BLACK HELICOPTER's sprites (scripts/bake/blackhelo.mjs: the same model ALL BLACK + a cold rim, 12 headings, + its ROTOR's
-// motion-blurred spin frames): LAZY — fetched as it sets off, dropped once it has flown (4.8 MB decoded: never held for nothing)
+// FRIENDS C — THE BLACK HELICOPTER's sprites (scripts/bake/blackhelo.mjs: the same model ALL BLACK + a cold rim, 24 headings (CITY FIXES), + its ROTOR's
+// motion-blurred spin frames): LAZY — fetched as it sets off, dropped once it has flown (~5.2 MB decoded at 24 headings: never held for nothing)
 const BHELI = new URL('../../../assets/city/blackhelo/', import.meta.url);
 let blackLoad = null, blackModel = null;
 function loadBlackModel() {
@@ -611,8 +611,11 @@ export function createAir() {
     // back onto its heading as it moves on; the break's flight as before — through the head-on view at each end of a drift)
     const want = p.patrol ? (p.hover ? (p.dir > 0 ? 0.6 : Math.PI - 0.6) : (p.dir > 0 ? 0 : Math.PI))
       : p.vx > thr ? 0 : p.vx < -thr ? Math.PI : !p.hover && p.dir ? (p.dir > 0 ? 0 : Math.PI) : h.th;
-    const step = (Math.PI / 1.4) * dt, d = want - h.th;
-    h.th += Math.abs(d) <= step ? d : Math.sign(d) * step;
+    // (CITY FIXES — AN EASED HEADING: the turn speeds up + settles (an angular velocity eased toward a capped target), never a dead start + stop
+    //  at a constant rate — the owner's "it jumps a little as it adjusts in the air"; the cap keeps a helicopter's ~1.4 s half turn)
+    const vmax = Math.PI / 1.4, d = want - h.th, vt = Math.max(-vmax, Math.min(vmax, d * 3.2));
+    h.thV = (h.thV || 0) + (vt - (h.thV || 0)) * Math.min(1, dt * 7);
+    if (Math.abs(d) < 0.002 && Math.abs(h.thV) < 0.02) { h.th = want; h.thV = 0; } else h.th += Math.abs(h.thV * dt) >= Math.abs(d) ? d : h.thV * dt;
     const c = Math.cos(h.th);
     return Math.abs(c) < 0.2 ? (c < 0 ? -0.2 : 0.2) : c;
   }
@@ -709,15 +712,18 @@ export function createAir() {
     c.save(); c.translate(p.x, p.y); c.rotate(pitch);
     // (THE SPRITE, cached: the two nearest views × the hour's two lights blended ONCE into a small canvas at this size — rebuilt only when
     // the heading, the light or the size moves on (the turn quantised to sixths): one drawImage a frame, as the drawn chopper was)
-    const fq = Math.round(f * 6) / 6, nq = Math.round(n * 6) / 6, sz = Math.max(4, Math.round(L * sc)), d = Math.min(3, dpr * 1.25), key = `${black ? 'B' : ''}${i0}|${i1}|${fq}|${nq}|${sz}|${d}`;
+    // (CITY FIXES — the owner's iPhone: THE BLACK HELICOPTER "jumps as it turns": the blend stepped in sixths of a 30° view AND the old view stayed
+    //  WHOLE under the new one, then vanished at the boundary — a pop every 30°. Now: 24 views (15°), the blend in twelfths, an EXACT cross-fade)
+    const fq = Math.round(f * 12) / 12, nq = Math.round(n * 6) / 6, sz = Math.max(4, Math.round(L * sc)), d = Math.min(3, dpr * 1.25), key = `${black ? 'B' : ''}${i0}|${i1}|${fq}|${nq}|${sz}|${d}`;
     if (!heli.mspr || heli.msprKey !== key) {
       const kk = sz / M.px, w = Math.ceil(M.fw * kk * d), hgt = Math.ceil(M.fh * kk * d);
       if (!heli.mspr) heli.mspr = mk(w, hgt); else if (heli.mspr.width !== w || heli.mspr.height !== hgt) { heli.mspr.width = w; heli.mspr.height = hgt; }
       const x = safeCtx(heli.mspr); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, w, hgt); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
       const blit = (i, a) => { if (a <= 0.003) return; const cx = (i % M.cols) * M.fw, cy = Math.floor(i / M.cols) * M.fh;
         for (const [lt, wt] of (black ? [['black', 1]] : [['day', 1 - nq], ['night', nq]])) if (wt > 0.003 && MD.sheets[lt]) { x.globalAlpha = a * wt; x.drawImage(MD.sheets[lt], cx, cy, M.fw, M.fh, 0, 0, w, hgt); } };
-      // (the light: night over day; the two views: the nearer one whole, the next one laid over it by how far the heading has come)
-      blit(i0, 1); blit(i1, fq); x.globalAlpha = 1;
+      // (THE EXACT CROSS-FADE: every layer ADDED ('lighter' = premultiplied sums) at weights that total 1 — view (1 − f) + view f, each in the
+      //  hour's two lights — a true linear mix: nothing pops at a view's boundary, no see-through middle)
+      x.globalCompositeOperation = 'lighter'; blit(i0, 1 - fq); blit(i1, fq); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
       heli.msprKey = key; heli.msprK = kk;
     }
     c.drawImage(heli.mspr, -ax * heli.msprK, -ay * heli.msprK, M.fw * heli.msprK, M.fh * heli.msprK);

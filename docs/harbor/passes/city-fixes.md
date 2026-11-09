@@ -134,3 +134,31 @@ round it (THE DAILIES sign's treatment); DAY strong dark navy. The "NEON SPEAKEA
 tickets, stamps, the streak flame; no spoilers; both looks; the tickets still fill the room above the foot for 1–6 dailies).
 Shots: `share-before-{night,day}.png` → `share-after-{night,day}.png` + each at the 360-px downscale (`…-360.png` — the address legible in a text
 thread), `share-after-one-nostreak.png`; the goal: `goal-done-390.png` (the one line), `goal-wait-390.png` (done by the count, waiting to be paid).
+
+## Group 4 — THE CITY's CARRY-OVERS
+
+1. **THE GUEST LIST PAUSES THE CITY** (the owner, Nov 8): the guest list takes the shared, counted city hold (`ui/city-hold.js` — the full
+   card's + the dailies'): the city keeps its last frame while the list is up and runs on from the same clock on close (the scene re-bases its
+   frame clock — no jump). `roomperf` with a display: **60 fps alone → 60 fps** with 8 in the lines + the list open; THE ROOM's OWN COST at 4×
+   CPU 37 ms alone → 38.7 walking in → 38.7 standing → **36.4 with the list's 8 strips** (was +7.2 ms over the budget of 4).
+2. **THE BLACK HELICOPTER's TURNS** (the owner's iPhone: "jumps / skips a little as it turns + adjusts"): the cause was the cross-fade itself —
+   the two nearest views were blended with the OLD one drawn whole under the new one, which then vanished at each 30° boundary (a pop every
+   view), stepped in sixths. Now: **24 baked headings** (15° — `scripts/bake/blackhelo.mjs`; 124 KB, ~5.2 MB decoded, still loaded only while
+   it flies + dropped after), an **EXACT cross-fade** (`air.js#drawModel`: both views ADDED at weights summing to 1 — a true linear mix, the
+   patrol gets it too), the blend in twelfths, and an **EASED HEADING** (`air.js#turn`: an angular velocity eased toward a capped target —
+   it speeds up into a turn + settles out of it; the same ~1.4 s half turn). Proof (harbor `heli`, new block): every frame of its pass on the
+   model — the biggest heading step **2° a frame** (≤ 4°), **59.9 fps p50, 0.2 % of frames over 20 ms** with a display (the bench frame check
+   FRIENDS C skipped). Frame sheets of a turn (20 frames, 90 ms apart, cropped on it): `blackheli-turn-before.png` → `blackheli-turn-after.png`.
+   WebKit: not run for this item (the harbor's helicopter checks are Chromium; the look is the same code path).
+3. **THE BOARD's REPEATED SWAPS with the radio open**: probed (the board's rebuild counter — `boardXf().rev`): with nothing playing, 0 rebuilds
+   in 30 s; with SEVERAL of the owner's messages live (what the radio group fires) each ran its own 25-s-every-60-s cycle — one spell ending a
+   second before the next began swapped the board to the poster and straight back (two re-bakes + two fades for nothing). **Fix**
+   (`harbor-billboard.js#ownerAt`): a gap ≤ 5 s between two message spells is bridged — the board goes from one message straight to the next
+   (a unit test; the probe: 0 rebuilds over ~130 s with 4 overlapping messages). Also: `neon.boardGame` now names the HOLD'EM poster, so the
+   500 ms check never re-applies it (that would have been a swap loop).
+4. **LOAD WEATHER — red in the cloud only** — reproduced LOCALLY today (a Sunday): the check pins 10 am Eastern, the Sunday postcard's window
+   opens at 10:00 — any scheduled spell (FIREWORKS 20 s every 3 min, LOOK UP, the postcard) can start or end inside THE LOAD LOG's 15 s by
+   chance, a re-bake the eye sees. **Fix** (`scene.js#boardSync`): the board SETTLES before the reveal (synced every frame, tryReveal too) and
+   KEEPS that content through the load's window — a scheduled spell waits ≤ 15 s on a fresh load; a change of the board's INPUTS (a panel /
+   link force, the owner's messages, the intercom's headline, the HOLD'EM switch) still lands at once. The HOLD'EM switch is remembered on the
+   device (`nd:holdem`), so a load uses the owner's last switch before the feed lands. Harbor `load` 19/19 (all five LOAD WEATHER cases).
