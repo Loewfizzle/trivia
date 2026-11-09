@@ -65,6 +65,7 @@ G('vault', async () => {
   // (THE CARD PASS: + SAFECRACKER + GHOST RUN's strips CHANGED (THE SLIM-CARD LONG-NAME STANDARD) → 14 rows, 26 NEED YOU; the dailies' 2 cards → 54)
   // (DM2: PENTHOUSE's new face (THE DIAL — v2) → 15 rows, 27 NEED YOU; + PERFECT WEEK → 55)
   // (THE BTC CARD: the ₿ balloon card's new art (both faces v2) → 16 rows, 28 NEED YOU)
+  // (BOARD 2.0 B — THE LONG-NAME FIX: PERFECT WEEK's full card CHANGED (+ PENTHOUSE / SAFECRACKER / GHOST RUN's full cards — rows already listed) → 17 rows, 29 NEED YOU)
   // the counts; one row per item + the FULL toggle flipping in place (its own mark); a re-mark leaves NEEDS YOU; ALL CAUGHT UP; NEW since his
   // last visit (vl:seen); the top bar's ← THE CITY
   { const { ctx, p } = await page('marks=old');
@@ -73,8 +74,8 @@ G('vault', async () => {
       chg: [...document.querySelectorAll('.vl-item .vl-chg:not([hidden]) b')].length, was: document.querySelectorAll('.vl-mark.is-was').length,
       counts: Object.fromEntries([...document.querySelectorAll('.vl-filter')].map(b => [b.dataset.f, +b.querySelector('.vl-filter-n').textContent])),
       back: (document.querySelector('.vl-back') || {}).getAttribute && document.querySelector('.vl-back').getAttribute('href'), house: ((document.querySelector('.vl-item[data-id="card-house"]') || {}).dataset || {}).face || '' }))()`);
-    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 16 && L.rows.includes('card-sg-btc') && L.rows.includes('card-penthouse') && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.rows.includes('card-camo') && L.rows.includes('card-safecracker') && L.chg === 16 && L.was >= 11 && /^28 NEEDS? YOU$/.test(L.need)
-      && L.counts.needs === 16 && L.counts.changed === 16 && L.counts.all === 55 && L.back === '/' && L.house === 'full',
+    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 17 && L.rows.includes('card-perfect-week') && L.rows.includes('card-sg-btc') && L.rows.includes('card-penthouse') && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.rows.includes('card-camo') && L.rows.includes('card-safecracker') && L.chg === 17 && L.was >= 11 && /^29 NEEDS? YOU$/.test(L.need)
+      && L.counts.needs === 17 && L.counts.changed === 17 && L.counts.all === 55 && L.back === '/' && L.house === 'full',
       `THE LAB 2.0: NEEDS YOU by default — ${L.rows.length} CHANGED rows (${L.rows.join(', ')}), each with its CHANGED line (${L.chg}) beside the old mark (${L.was} lit as "was"); the bar "${L.need}"; counts ${JSON.stringify(L.counts)}; THE HOUSE opens on its FULL face (only it changed); ← THE CITY → ${L.back}`);
     // the FULL toggle flips in place (the strip's surface slot swapped), its own mark; a re-mark drops the row's CHANGED count
     await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-face').click()`); await sleep(400);
@@ -85,7 +86,7 @@ G('vault', async () => {
     await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-mark[data-m="approve"]').click()`);
     await sleep(400);
     const A = await ev(p, `({ need: document.querySelector('.vl-need').textContent, m: window.__lab.marks['full-card-founder'], rows: document.querySelectorAll('.vl-item').length })`);
-    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^27 NEEDS? YOU$/.test(A.need) && A.rows === 16,
+    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^28 NEEDS? YOU$/.test(A.need) && A.rows === 17,
       `THE LAB 2.0: FULL CARD › flips the row in place (${F.face}, one canvas) with the full card's own marks (${F.mk}); a re-mark stores the version seen (v${A.m.v}) — "${A.need}" (the rows stay put until the filter changes: ${A.rows})`);
     await ctx.close(); }
   { const { ctx, p } = await page('marks=none&filter=needs&view=glows');

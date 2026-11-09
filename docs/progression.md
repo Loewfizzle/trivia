@@ -445,3 +445,15 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
   ranked from `MIN_DAYS` 10; YOUR average below it via `ranks`' `mine`.
 - **Proof**: `tests/board-points.test.mjs` (every row, the order, skipping, 10 days, the 4 am crossing, the gate, a repeat, the back-fill, THE
   SIMULATION — `scripts/sim-board.mjs`: 40 bots × 2 weeks = the hand-computed order) + `daily-module.test.mjs` over /api.
+
+## BOARD 2.0 B — SCORES' ALL TIME + SHARE TODAY AS ONE CARD (Nov 9 — docs/harbor/passes/board-2b.md)
+- **SCORES: TODAY'S SCORES · ALL TIME** (`js/screens/daily.js#paintAllTime`): per daily, YOUR TABLE · AVERAGE A DAY from `/api/daily points` (once a
+  visit — `today-logic.js#allTimeRows` / `allTimeLine`, PURE: ranked from MIN_DAYS 10, ties share a place; YOU below: "3 MORE DAYS TO BE RANKED ·
+  YOUR AVERAGE 83.3"; a friend below: "7 OF 10 DAYS · 95.0 AVG") as slim cards, then EVERYONE · ALL TIME (the daily's board's top 3) + SEE THE FULL
+  BOARD › (THE BOARD → DAILIES · ALL TIME on that daily). Proof: `tests/daily-alltime.test.mjs`, `e2e-daily`.
+- **SHARE TODAY = ONE CARD FROM EACH DAILY's OWN PIECES** (the owner's add-on — `js/daily/share-today.js`): ONE header (the date + the flame), a
+  section per FINISHED daily drawn by its own `share.js#paintSection` (the same exported pieces its own card calls — pixel-identical:
+  `tests/integration/share-same.html`), "NOT YET: <name>" once, ONE foot (NEONSPEAKEASY.COM); one daily = its own card. A NEW daily: export its
+  pieces + a `paintSection` (+ `SECTION_H`) + a row in `share-today.js#SECTIONS` + its server cart's `share()` (spoiler-free) — without them it gets
+  its name + its result line. The data: `today { share: true }` (the SHARE TODAY tap only) → each finished run's spoiler-free inputs from the
+  SERVER's record (THE PASSWORD: `logic.js#shareRunOf` — marks + counts, never a word; COAST CLEAR: `shareInputs` — no board).

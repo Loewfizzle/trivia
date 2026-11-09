@@ -463,3 +463,20 @@ A second way to bring your card to a device, beside the restore key (which stays
 - **`/api/daily points`** → YOUR + YOUR TABLE's daily points (`{ week, all, avg, days }` a board — your friends list only).
 - **THE BACK-FILL** (`/admin` → THE BOARDS → PREVIEW → BACK-FILL NOW — `boardsBackfill`, admins only, audited, idempotent): THIS WEEK's XP from the
   match records + the week's daily runs; DAILY POINTS from every counted result since the dailies went live. The owner runs it ONCE after the deploy.
+
+## BOARD 2.0 B — THE SCREENS (Nov 9 2026 — docs/harbor/passes/board-2b.md)
+- **THE BOARD's screens** (`js/board/view.js` — the app's screen, `/board`, the title's preview): THE TABS XP · DAILIES · OVERCLOCK · PRISM DROP
+  (`TABS`; opens on XP, THIS WEEK; ALL TIME on every tab; a game without a tab → XP); every row = the player's SLIM CARD through
+  `ui/strip-board.js` (the rank left, the score under the card with its unit — `unitOf`, ⋯ REPORT at the line's left, YOU framed + a YOU chip);
+  YOUR card pinned at the foot with your exact rank (`ranks`) or "N MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3" (`mine`); the top 10 built + SHOW
+  ALL (pages as they scroll in, ≤ 100), ONE fx surface; A FRESH WEEK / NO ONE RANKED YET / THE BOARD IS DARK designed; the background = BLACK VELVET
+  + GOLD DECO (the owner's pick — CSS + one SVG sunburst). The title's preview: the top three as slim cards. Proof: `board-preview.html`.
+- **THE FRIENDS LIST** (YOU → FRIENDS — `profile/friends-ui.js#cardList`): SLIM CARDS, friends IN YOUR ROOM first (HERE — the only presence), then
+  by THIS WEEK's XP (the friends answer's `wx` = `pstats/{pid}/xw` of each FRIEND only — never a request, a block or a suggestion); the line under
+  each card: ⋯ (REMOVE / BLOCK) · HERE · the XP; a tap = THE PLAYER PAGE. Preview: `friends-preview.html`.
+- **THE PLAYER PAGE** (`js/profile/player-page.js#openPlayer` + `css/player.css`, prefix `pp-`): tap ANY name (a board row `{ b, bid }`, a friend
+  `{ pid }`, a room's name tag, the podium) → a full sheet through THE COVER on THE LAYER STACK, reading ONLY `/api/profile player`: the full card
+  (no member line) · LEVEL + the band + its line + the flame (`alive` only) · the 3 RAREST achievements (names + medals + "% OF PLAYERS" — the
+  approved exception) · INVITE (a friend not in your room) or the friend button · ⋯ by `rel`. `limited` → the name + the emblem + "This member keeps
+  their card private." (never says a block); /api down → the same from what the screen had. Your own name → YOUR CARD. The room's MAKE HOST + CREW
+  rows ride under it. Proof: `e2e-profiles` 8b.

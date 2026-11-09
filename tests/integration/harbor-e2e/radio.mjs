@@ -491,7 +491,8 @@ G('crew', async () => {
     await ev(O.page, `(() => { const c = document.querySelector('.rc-tag[data-uid="${cuid}"], .chip.player[data-uid="${cuid}"]'), hb = (window.__district.room().hits || {})['${cuid}'], r = c.getBoundingClientRect();
       const x = hb ? (hb.x0 + hb.x1) / 2 : r.left + 20, y = hb ? (hb.y0 + hb.y1) / 2 : r.top + 10, o = { bubbles: true, clientX: x, clientY: y }; c.dispatchEvent(new PointerEvent('pointerdown', o)); c.dispatchEvent(new PointerEvent('pointerup', o)); return true; })()`);
     await waitFor(O.page, "!!document.querySelector('.sh.is-in .sh-t b, .vl-full')", 'a card', 8000).catch(() => {});
-    opened = await ev(O.page, "(() => { const t = document.querySelector('.sh.is-in .sh-t b'); return t ? t.textContent : document.querySelector('.vl-full') ? 'full' : ''; })()");
+    // (BOARD 2.0 B: a player with a profile opens THE PLAYER PAGE — its name in the sheet's label, the CREW row under it)
+    opened = await ev(O.page, `(() => { const pp = document.querySelector('.vl-full.pp'); if (pp) return pp.dataset.pid === '${cpid}' ? 'CREW HOST (player page)' : 'player ' + pp.dataset.pid; const t = document.querySelector('.sh.is-in .sh-t b'); return t ? t.textContent : document.querySelector('.vl-full') ? 'full' : ''; })()`);
     if (/CREW HOST/.test(opened)) break;
     // (a figure walking past was nearer: the wrong card — close it, tap again)
     await ev(O.page, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(500);

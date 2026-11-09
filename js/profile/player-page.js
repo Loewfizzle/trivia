@@ -54,7 +54,7 @@ export async function openPlayer(target = {}, o = {}) {
   const foot = h('div.pp-foot', h('div.pp-skel-bar'), h('div.pp-skel-bar.is-short'), ...extra.map(x => h('div.pp-extra', x)));
   const box = h('div.vl-full-in.pp-in', stage, foot, h('button.vl-full-x', { type: 'button', 'aria-label': 'Close', onclick: close }, 'CLOSE'));
   const born = performance.now();
-  const el = h('div.vl-full.pp', { role: 'dialog', 'aria-modal': 'true', 'aria-label': name ? `${name} — their card` : 'A player’s card', dataset: { state: 'loading' },
+  const el = h('div.vl-full.pp', { role: 'dialog', 'aria-modal': 'true', 'aria-label': name ? `${name} — their card` : 'A player’s card', dataset: { state: 'loading', pid: target.pid || '' },
     onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);
   release = takeLayer(el, { close });
   uncover = F.coverBehind(el);

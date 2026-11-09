@@ -6441,3 +6441,7 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
   pick whatever one you like out of those two." → **2, BLACK VELVET + GOLD DECO** (the session's pick: the same at every hour — the city's still
   would put a bright day sky behind the gold title; drawn in code, nothing to load on /board; a gold sunburst fits the hall of fame). The brown
   bar hall (board/scene.js) goes; the board's panel = dark glass with a gold hairline. Build to the mock (tests/integration/board2-preview.html).
+- BOARD 2.0 B DONE (Nov 9) — passes/board-2b.md. THE BUILD TABLE: BOARD 2.0 A ✅; BOARD 2.0 B ✅ (THE MOCK OK'd — the background black velvet + gold deco;
+  THE BOARD's slim cards + the tabs XP · DAILIES · OVERCLOCK · PRISM DROP; SCORES' ALL TIME; THE FRIENDS LIST as slim cards; THE PLAYER PAGE; THE
+  LONG-NAME FIX on PENTHOUSE / SAFECRACKER / GHOST RUN / PERFECT WEEK; the add-on SHARE TODAY = ONE CARD; no rules change); PRISM DROP ← NEXT; FR7;
+  THE SWITCH-OVER.

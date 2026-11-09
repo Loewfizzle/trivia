@@ -2296,3 +2296,17 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - Group 0: a 12-letter name on one line on the full cards (13 px floor), THE BTC CARD's sighting line back, the warm column in its rise-in gone
   (baked in the clean base — subtracted at build), THE FAST REVEAL (a reveal in the page's first 900 ms left the city at opacity 0 — the WORD
   TOWERS flake's cause), THE MONDAY BLADE (the city re-baked its blade in view on a Monday load — LOAD WEATHER's Monday red).
+
+## BOARD 2.0 B (Nov 9, 2026 — docs/harbor/passes/board-2b.md)
+- THE MOCK first (board2-preview.html — the real strips + full card): OK'd; the brown bar hall → BLACK VELVET + GOLD DECO (the owner's pick of three).
+- THE BOARD: tabs XP · DAILIES · OVERCLOCK · PRISM DROP (opens on XP, THIS WEEK); rows = slim cards (rank left, score under, ⋯ REPORT, YOU framed +
+  pinned with the exact rank / the 10-day line); the top 10 + SHOW ALL; A FRESH WEEK designed; the title's preview's top three as slim cards.
+  Scrolling 100 cards: 58.9 fps at 4× CPU.
+- SCORES: TODAY'S SCORES · ALL TIME (YOUR TABLE's averages + EVERYONE's top 3 → THE BOARD). YOU → FRIENDS: slim cards, in your room first, then by
+  this week's XP (the friends answer's `wx`).
+- THE PLAYER PAGE (profile/player-page.js): a full sheet over the paused city — the card, LV + rank + flame, the 3 rarest achievements, INVITE / the
+  friend button, ⋯; limited → name + emblem; from a board row, a friend, a name tag, the podium.
+- THE LONG-NAME FIX: the full cards' art set right (THE CARD PASS's strip zoom had shrunk it on the full cards) + the maps = the CSS (effects aligned
+  again); MAXIMILIANOS on one line on PENTHOUSE, SAFECRACKER, GHOST RUN, PERFECT WEEK.
+- THE ADD-ON: SHARE TODAY = one card (one header, a section per finished daily from its own share.js pieces — the own cards pixel-identical — one
+  foot); the data from the server's record (`today { share }`, spoiler-free).
