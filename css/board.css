@@ -231,7 +231,8 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
   padding: 0; border: 0; background: none; color: var(--bd-faint); cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .bd-more span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font: 700 15px/1 var(--font-ui); letter-spacing: 0.04em; transition: background 0.2s, color 0.2s; }
-.bd-more:hover span, .bd-more:focus-visible span { background: rgba(255, 236, 200, 0.08); color: #fff3dc; }
+.bd-more:focus-visible span { background: rgba(255, 236, 200, 0.08); color: #fff3dc; }
+@media (hover: hover) { .bd-more:hover span { background: rgba(255, 236, 200, 0.08); color: #fff3dc; } }   /* (CITY FIXES: the hover rule) */
 .bd-more:active span { transform: scale(0.9); }
 .bd-you { margin-left: 7px; padding: 2px 5px 1px; border-radius: 4px; font: 700 8.5px/1 var(--font-mono); letter-spacing: 0.18em; color: #120a0e; background: color-mix(in srgb, var(--c) 75%, #fff); vertical-align: 2px; }
 }

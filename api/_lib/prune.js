@@ -13,9 +13,11 @@ const MARK = 'rl/zz_prune';
 
 /** PURE: what to delete → { phonelog: [ids], errlog: [sigs], rl: [keys] } */
 export function prunePlan({ phonelog = {}, errlog = {}, rl = {} } = {}, now = Date.now()) {
-  const reports = Object.entries(phonelog || {}).map(([id, r]) => ({ id, at: (r && r.at) || 0 })).sort((a, b) => b.at - a.at);
+  const reports = Object.entries(phonelog || {}).map(([id, r]) => ({ id, at: (r && r.at) || 0, k: (r && r.kind) || 'tap' })).sort((a, b) => b.at - a.at);
+  // (CITY FIXES: the newest REPORT_KEEP PER KIND — THE TAP WATCH's lost taps never push a hang report out)
+  const per = {};
   return {
-    phonelog: reports.slice(REPORT_KEEP).map(r => r.id),
+    phonelog: reports.filter(r => (per[r.k] = (per[r.k] || 0) + 1) > REPORT_KEEP).map(r => r.id),
     errlog: Object.keys(errlog || {}).filter(k => !((errlog[k] && errlog[k].last) > now - ERR_KEEP_MS)),
     rl: Object.keys(rl || {}).filter(k => k !== MARK.slice(3) && !((rl[k] && rl[k].t) > now - RL_KEEP_MS)),
   };

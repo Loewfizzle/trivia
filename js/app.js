@@ -1,5 +1,6 @@
 // Entry point: boot Firebase, restore session, route state -> screen.
 import { setErrorContext } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
+import { installTapWatch } from './ui/tapwatch.js';   // (CITY FIXES: THE TAP WATCH — a lost first tap → /admin, + THE RESCUE)
 import { h, $ } from './ui/dom.js';
 import './ui/vv.js';   // (THE VAULT 1B: --vv-ob — every bottom sheet above Safari's toolbar)
 import { watchLayers } from './ui/layers.js';
@@ -259,11 +260,14 @@ function render(st) {
 
 subscribe(render);
 // error reports say which screen was up — never the room code or match id
-setErrorContext(() => {
+const whereNow = () => {
   const k = routeKey(state);
   if (k.startsWith('game:')) return `game:${k.split(':')[1]}${state.game && state.game.phase ? `/${state.game.phase}` : ''}`;
   return k;
-});
+};
+setErrorContext(whereNow);
+// (CITY FIXES — THE TAP WATCH: the screen + the top sheet's title — never a code or a name)
+installTapWatch({ where: () => { const sh = document.querySelector('.sh.is-in:last-of-type .sh-t b'); const ov = document.querySelector('.vl-full') ? ' + a full card' : document.querySelector('.vl-dress') ? ' + CUSTOMIZE' : document.querySelector('.rd-modal') ? ' + the radio' : ''; return `${whereNow()}${sh ? ` › ${sh.textContent.slice(0, 30)}` : ''}${ov}${state.daily ? ` · daily ${state.daily.v || ''}` : ''}`; } });
 // A finished match goes to the global boards: every phone in it queues one report when the podium appears
 // (the server counts it once and answers each phone with its own outcome). Back in the lobby, the key reminder.
 let reportedKey = '';

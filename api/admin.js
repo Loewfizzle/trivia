@@ -189,9 +189,11 @@ async function errorList(now) {
 async function reportList() {
   const all = (await val('phonelog')) || {};
   const list = Object.entries(all).map(([id, r]) => ({ id, ...r })).sort((a, b) => b.at - a.at);
-  const old = list.slice(40);
+  // (CITY FIXES: the newest 40 PER KIND — THE TAP WATCH's LOST TAPS keep their own 40 beside the hangs + SEND REPORTs)
+  const per = {}, keep = [], old = [];
+  for (const r of list) ((per[r.kind || 'tap'] = (per[r.kind || 'tap'] || 0) + 1) > 40 ? old : keep).push(r);
   if (old.length) await ref('phonelog').update(Object.fromEntries(old.map(r => [r.id, null])));
-  return list.slice(0, 40);
+  return keep;
 }
 
 // BNAME — THE BOARD's REPORTS (api/board.js#flagRow): newest first, joined with the real profile (only the admin sees it)

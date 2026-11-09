@@ -441,7 +441,11 @@ body.reduced-fx .nd-word-p { animation: none !important; opacity: 0 !important; 
 .nd.is-idle .nd-sign:not(.nd-tag-gone) .nd-tag.nd-tag-msg { opacity: 1; transition: opacity 1.2s ease; }
 
 /* the screen at rest: just the sign and the city */
-.nd.is-idle .nd-actions { opacity: 0; pointer-events: none; transition: opacity 1.8s ease; }
+/* (CITY FIXES — THE TAP WATCH: the lost first tap's main cause on the title — .is-idle took the dock's taps AT ONCE while it was still fading
+   (1.8 s, plainly visible): a tap on HOST / JOIN / YOU in that window only woke it. Now TWO phases: .is-idle = the fade (still tappable — a tap
+   wakes it AND goes through), .is-rest = faded out (untappable; the waking tap only wakes) — title-taps.js#goIdle) */
+.nd.is-idle .nd-actions { opacity: 0; transition: opacity 1.8s ease; }
+.nd.is-rest .nd-actions { pointer-events: none; }
 .nd.is-idle .nd-sign .nd-tag:not(.nd-count), .nd.is-idle .nd-sign .nd-sub, .nd.is-idle .nd-corner { opacity: 0; transition: opacity 1.8s ease; }
 body.nd-on .menu-btn, body.nd-on .music-btn { transition: transform 0.12s var(--ease), opacity 0.45s ease, background-color 1.2s ease; }
 /* the sun passes behind the corner buttons (title.js#sunGlass): its light is painted into the glass where it is behind the
@@ -454,7 +458,8 @@ body.nd-on .menu-btn.nd-sunlit, body.nd-on .music-btn.nd-sunlit {
     radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%);
 }
 body.nd-on .nd-sunlit svg, body.nd-on .nd-sunlit .mb-bars { filter: drop-shadow(0 0 0.8px rgba(4, 4, 12, 0.95)) drop-shadow(0 0 1.6px rgba(4, 4, 12, 0.85)) drop-shadow(0 0 5px rgba(4, 4, 12, 0.45)); }
-body.nd-idle .menu-btn, body.nd-idle .music-btn { opacity: 0; pointer-events: none; transition: opacity 1.8s ease; }
+body.nd-idle .menu-btn, body.nd-idle .music-btn { opacity: 0; transition: opacity 1.8s ease; }
+body.nd-rest .menu-btn, body.nd-rest .music-btn { pointer-events: none; }
 
 @media (max-height: 720px) {
   .nd-sub { margin-top: 6px; }
@@ -1123,7 +1128,8 @@ body.rc-going *, body.rc-going *::before, body.rc-going *::after { -webkit-backd
 /* LOBBY FIXES — the owner's ADD-ON 2: THE RADIO BUTTON (the owner's + the crew's) RESTS WITH THE REST — the same fade as ☰ + the music
    (opacity only, the same timing + easing), back on the same wake tap; untappable while faded (the wake tap only wakes) */
 body.nd-on .rd-btn { transition: transform 0.12s var(--ease), opacity 0.45s ease; }
-body.nd-idle .rd-btn { opacity: 0; pointer-events: none; transition: opacity 1.8s ease; }
+body.nd-idle .rd-btn { opacity: 0; transition: opacity 1.8s ease; }
+body.nd-rest .rd-btn { pointer-events: none; }
 
 /* CITY 1.0 OUT — THE CITY COULDN'T LOAD (title.js#cityDown: the Harbor's module failed twice — it used to fall back to City 1.0) */
 .nd-down-card { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;

@@ -1,6 +1,7 @@
 // THE FLANK — the title's dock (docs/title.md): [ JOIN ring ] [ glass pill: (DAILY ·) BOARD · GAMES · YOU ] [ HOST ring ], the JOIN panel
 // above it, REJOIN / notes, and the title's two corner buttons dressed as tubes of the sign. This module owns the markup, the
 // rings and the lighting; title.js owns the behaviour (what JOIN, HOST, BOARD… do) and passes it in as handlers.
+import { afterTap } from '../ui/tapwatch.js';
 import { h } from '../ui/dom.js';
 import { sfx } from '../audio/sfx.js';
 import { setState } from '../store.js';
@@ -155,7 +156,9 @@ export function createDock(on) {
     if (i < 3) { const t = tabs()[i]; if (t) t.classList.toggle('is-lit', !!lit); } else { corners().forEach(b => b.classList.toggle('nd-cl-lit', !!lit)); els.dailyTab.classList.toggle('is-lit', !!lit); }
   }
   /** DM2 — the DAILY button from today's answer (js/daily/today-logic.js#dockState): { show, state, left } */
-  function setDaily(d) {
+  // (CITY FIXES — THE TAP WATCH, suspect 4: the DAILY slot appearing SHIFTS the pill's icons — never under a finger: it waits for the tap)
+  function setDaily(d) { afterTap(() => setDailyNow(d)); }
+  function setDailyNow(d) {
     if (destroyed) return;
     const show = !!(d && d.show);
     els.dailyTab.hidden = !show;

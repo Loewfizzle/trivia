@@ -4,6 +4,8 @@
 import { setErrorContext } from '../errlog.js';   // first: it also sees errors while the page boots
 import { createBoardView } from './view.js';
 setErrorContext(() => 'board', 'board');
+import { installTapWatch } from '../ui/tapwatch.js';
+installTapWatch({ where: () => 'board (public)' });
 import { installEmblems } from '../ui/emblems.js';
 import { installAudio } from '../audio/engine.js';
 import { playMusic, registerTracks, setListProvider, musicDebug, musicNeedsRescue } from '../audio/music.js';

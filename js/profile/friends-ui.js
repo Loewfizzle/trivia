@@ -6,6 +6,7 @@
 //   friendButton(target, o)           → ADD FRIEND · REQUESTED · ACCEPT · FRIENDS · UNBLOCK (target: { pid } or THE BOARD's { b, bid })
 //   openTheirCard(who)                → a player's card (their full card or the gilded one) with ADD FRIEND under it (the podium)
 //   inviteFriendsBlock({ code, share }) → the INVITE sheet's FRIENDS row + SHARE INVITE LINK
+import { afterTap } from '../ui/tapwatch.js';
 import { h } from '../ui/dom.js';
 import { avatar, tubeButton, row, ICONS } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
@@ -33,10 +34,15 @@ const LABEL = { none: 'ADD FRIEND', out: 'REQUESTED', in: 'ACCEPT FRIEND', frien
 export function friendButton(target, o = {}) {
   frSheet();
   const wrap = h('div.fr-btn-slot', { dataset: { pid: target.pid || '', bid: target.bid || '' } });
-  let busy = false;
+  let busy = false, shown = null;
   const rel = () => (target.pid ? relOf(target.pid) : relOfBid(target.bid));
-  const paint = () => {
+  // (CITY FIXES — THE TAP WATCH: ADD FRIEND was REBUILT when the friends list loaded (right after the card opened) + on every friends event,
+  //  even unchanged — a tap in that moment hit a replaced button (iOS drops it). Now: rebuilt only when the relation CHANGES, never under a finger)
+  const paint = (force = false) => afterTap(() => paintNow(force));
+  const paintNow = (force = false) => {
     const r = rel();
+    if (!force && r === shown && wrap.firstChild) return;
+    shown = r;
     if (!r || r === 'self') { wrap.replaceChildren(); wrap.hidden = true; return; }
     wrap.hidden = false;
     const kind = r === 'none' || r === 'in' ? 'main' : 'secondary';
@@ -47,7 +53,7 @@ export function friendButton(target, o = {}) {
         if (k === 'add') toast(res.rel === 'friend' ? `You and ${o.name || 'they'} are friends` : 'Friend request sent', 'ok', { sub: res.rel === 'friend' ? null : 'They’ll see it on their card.' });
         if (k === 'accept') toast(`You and ${o.name || 'they'} are friends`, 'ok');
       } catch (e) { toast(why(e), 'warn'); }
-      busy = false; paint();
+      busy = false; paint(true);
     };
     const b = r === 'out' ? tubeButton(LABEL.out, { kind, size: o.size, block: o.block !== false, cls: 'fr-btn is-out', confirm: 'TAP AGAIN TO CANCEL', onClick: () => run('cancel') })
       : r === 'friend' ? tubeButton(LABEL.friend, { kind, size: o.size, block: o.block !== false, cls: 'fr-btn is-friend', attrs: { 'aria-disabled': 'true' } })
@@ -57,7 +63,7 @@ export function friendButton(target, o = {}) {
   };
   paint();
   const off = onFriends(() => { if (!wrap.isConnected && wrap.dataset.seen) { off(); return; } wrap.dataset.seen = '1'; paint(); });
-  loadFriends().then(paint).catch(() => {});
+  loadFriends().then(() => paint()).catch(() => {});
   return wrap;
 }
 

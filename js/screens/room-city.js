@@ -9,6 +9,7 @@
 //   · the notes above the dock: the room closing soon (host: KEEP OPEN), a match on that this phone stepped out of (WATCH).
 // EACH PHONE KEEPS ITS OWN CITY (its sky, sun, weather, its local-time events); the ROOM's things are the same on every phone — all of
 // them derived from rooms/{CODE} (players, presence, meta, kicked): a refresh / a rejoin / a host change = everyone back in place.
+import { tapHandled } from '../ui/tapwatch.js';
 import { h } from '../ui/dom.js';
 import { avatar, row } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
@@ -232,7 +233,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     //  tag moves under the finger: the same tap whether it moved or not)
     let down = null;
     el.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
-    el.addEventListener('pointerup', e => { if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 14) openPlayerCard(nearestAt(e.clientX, e.clientY) || uid); down = null; });
+    el.addEventListener('pointerup', e => { if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 14) { tapHandled(); openPlayerCard(nearestAt(e.clientX, e.clientY) || uid); } down = null; });
     el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPlayerCard(uid); } });
     T = { el, emb, name, bubble, hitEl, hit: null, hitSig: '', sig: '', nameUntil: 0 };
     tags.set(uid, T); layer.append(el);

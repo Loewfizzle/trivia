@@ -11,6 +11,8 @@ import { h } from '../ui/dom.js';
 import { primaryBoard, fmtValue } from '../core/boards.js';
 import { setState } from '../store.js';
 import { rankBadge } from '../ui/emblems.js';
+import { layersOpen } from '../ui/layers.js';
+import { reducedMotion } from '../ui/dom.js';
 
 /** createTaps(T) — moved out of title.js#createTitle by scripts/split-closure.mjs (no behaviour change): T carries the names it shares
  *  with that closure, live (getters + setters); what it returns, the closure reads as tap.<name>. */
@@ -117,7 +119,11 @@ export function createTaps(T) {
   // after 10 s without a touch (a device's first visit; 5 s after that — 9g) the menu and the tagline fade away — just the sign and the
   // city; any touch brings them back
   const IDLE_MS = T.isFirstVisit() ? T.IDLE_FIRST_MS : T.IDLE_MS_AFTER;
-  let idleTimer = 0, swallowed = false, mouseAt = null;
+  let idleTimer = 0, restTimer = 0, swallowed = false, mouseAt = null;
+  // (CITY FIXES — THE TAP WATCH: the dock FADES for REST_MS (.is-idle — still tappable: a tap wakes it AND goes through), then RESTS (.is-rest:
+  //  untappable, the waking tap only wakes). It used to swallow from the fade's FIRST frame — the owner's lost first taps on HOST / JOIN / YOU)
+  const REST_MS = 1800;
+  const resting = () => T.els.root.classList.contains('is-rest');
   // (local test runs don't fade on their own unless they ask with &idle=1 — a slow test step must not hide the buttons)
   // (SP3: &idle=0 keeps the dock + the corner buttons up for a look review — the glass's weather shot at length)
   const autoIdle = !(useEmulator && !/[?&]idle(?![a-z])/.test(location.search)) && !/[?&]idle=0(?![0-9])/.test(location.search);
@@ -125,13 +131,17 @@ export function createTaps(T) {
   function goIdle() {
     if (T.destroyed || !T.tl || !T.tl.done) return;
     if (T.roomUi) { armIdle(); return; }   // (LOBBY 2.0 A: in a room the dock stays up — it's the room's controls)
-    const busyNow = T.busy || document.querySelector('.sh, .modal, .sheet') || document.activeElement === T.els.code || T.els.actions.classList.contains('is-join');
+    // (CITY FIXES: never at rest under ANY pop-up — every one is on THE LAYER STACK (the radio, CUSTOMIZE, a full card, the dailies…): the
+    //  radio's SEND after a pause to read was swallowed — only .sh / .modal used to count)
+    const busyNow = T.busy || layersOpen() > 0 || document.querySelector('.sh, .modal, .sheet, .rd-modal, .vl-dress, .vl-full, .pf-overlay') || document.activeElement === T.els.code || T.els.actions.classList.contains('is-join');
     if (busyNow) { armIdle(); return; }
     T.els.root.classList.add('is-idle');
     document.body.classList.add('nd-idle');
+    clearTimeout(restTimer);
+    restTimer = setTimeout(() => { if (!T.destroyed && T.els.root.classList.contains('is-idle')) { T.els.root.classList.add('is-rest'); document.body.classList.add('nd-rest'); } }, reducedMotion() ? 0 : REST_MS);
     T.tagState();
   }
-  function wake() { const was = T.els.root.classList.contains('is-idle'); T.els.root.classList.remove('is-idle'); document.body.classList.remove('nd-idle'); if (was) T.tagState(); }
+  function wake() { clearTimeout(restTimer); const was = T.els.root.classList.contains('is-idle'); T.els.root.classList.remove('is-idle', 'is-rest'); document.body.classList.remove('nd-idle', 'nd-rest'); if (was) T.tagState(); }
   // 9e — THE QUICK FADE (the owner, DECIDED): a tap WHILE a scene plays on the street under the dock (the car crossing, the patrol…) brings
   // the dock up but lets it fade away again within ~2 s so they keep watching; ANY further touch (a button, a press-and-hold, a scroll)
   // returns to the normal 10 s
@@ -140,14 +150,16 @@ export function createTaps(T) {
   function onWake(e) {
     if (T.destroyed) return;
     const wasIdle = T.els.root.classList.contains('is-idle');
+    const inLayer = !!(e.target && e.target.closest && e.target.closest('.sh, .modal, [data-layer]'));
     if (wasIdle && e.type === 'pointerdown' && autoIdle && T.scene && T.scene.frontBusy && T.scene.frontBusy()) {
-      if (!(e.target && e.target.closest && e.target.closest('.sh, .modal'))) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
+      if (resting() && !inLayer) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
       wake(); quickIdle = true; clearTimeout(idleTimer); idleTimer = setTimeout(goIdle, QUICK_MS); return;
     }
     quickIdle = false;
     // the touch that wakes the screen only wakes it (it doesn't press whatever was under it)
     // (9b: never a tap inside the ☰ menu or a sheet — the owner's CREDITS tap on the iPhone was swallowed this way)
-    if (T.els.root.classList.contains('is-idle') && e.type === 'pointerdown' && !(e.target && e.target.closest && e.target.closest('.sh, .modal'))) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
+    // (CITY FIXES: only once the dock has FADED OUT (.is-rest) — a tap on the still-visible fading dock is a real tap; never inside a pop-up)
+    if (resting() && e.type === 'pointerdown' && !inLayer) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
     wake();
     armIdle();
   }

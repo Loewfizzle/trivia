@@ -135,7 +135,7 @@ export function createIntercomDesk(o) {
     const bars = Array.from({ length: 14 }, () => h('i'));
     meterEl = h('span.rd-meter', { 'aria-hidden': 'true' }, ...bars);
     timeEl = h('b.rd-mic-t', recording ? `${secs((performance.now() - rec.t0) / 1000)} / ${secs(MAX)}` : `UP TO ${MAX} S`);
-    const btn = h('button.rd-mic-btn', { type: 'button', class: recording ? 'is-on' : asking ? 'is-ask' : '', 'aria-label': 'The intercom: hold to talk' },
+    const btn = h('button.rd-mic-btn', { type: 'button', 'data-tap-own': '', class: recording ? 'is-on' : asking ? 'is-ask' : '', 'aria-label': 'The intercom: hold to talk' },
       h('i.rd-mic-grille', { 'aria-hidden': 'true' }), h('span.rd-mic-l', h('i.rd-onair'), recording ? 'ON AIR · LET GO' : asking ? 'ALLOW THE MIC…' : 'HOLD TO TALK'), meterEl, timeEl);
     btn.addEventListener('pointerdown', e => { try { btn.setPointerCapture(e.pointerId); } catch { /* fine */ } start(e); });
     btn.addEventListener('pointerup', () => stop());

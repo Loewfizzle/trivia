@@ -124,6 +124,7 @@ import { safeCtx, starvedCount, blurWorks, BAKE_CAP, canvasMb } from '../../ui/c
 import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip, createDebugButton } from '../../ui/debug-strip.js';
 import { createReporter } from './report.js';
+import { setTapContext } from '../../ui/tapwatch.js';
 import { createTowerFx } from './tower.js';
 import { isFilled, pickTakes } from '../../core/city-sounds.js';
 import { towerAt, forcedTower, towerKey, implosionSounds, IMPLODE } from '../../core/harbor-tower.js';
@@ -2971,6 +2972,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   start();
   // 9e — THE HANG WATCH + SEND REPORT (report.js): the worker beats from now; &debug=1 also names the frame's parts
   try { reporter = createReporter({ text: reportText, marks: DEBUG }); } catch { reporter = null; }
+  // CITY FIXES — THE TAP WATCH (ui/tapwatch.js): what the city was doing when a tap was lost (read only then — never per frame)
+  setTapContext(() => ({ 'the city': shownAt < 0 ? 'not shown yet' : 'running', 'last frame ms': lastDt, 'a bake pending': !!(baker.pending || litBaker.pending || neon.pending) }));
   // C4c — THE PHONE BENCH (`&bench=1`, LAZY: bench.js): the heaviest scenes ~20 s each through the panel's own switch, measured; the report
   // on screen (COPY) + to /admin. Never without the flag; it starts on a tap. While it runs the panel's re-apply is held off (benchHold)
   if (qp.get('bench') === '1') import('./bench.js').then(m => {
@@ -3242,6 +3245,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (llStrip) { llStrip.remove(); llStrip = null; }
       if (repBtn) { repBtn.remove(); repBtn = null; }
       if (reporter) { reporter.destroy(); reporter = null; }
+      setTapContext(null);
       if (bench) { bench.destroy(); bench = null; } benchHook = null; benchHold = false;
       vigLayer.destroy();
       for (const c of [skyCv, skyPrev, pxCv, vignette, glow, ...sigGlow, ...Object.values(bulbGlow), canvas, quayLamps && quayLamps.cv, pierLampCv && pierLampCv.cv, ...Object.values(merged).map(m => m.cv), skyMix.cv]) if (c) { c.width = 0; c.height = 0; }

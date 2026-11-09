@@ -27,6 +27,8 @@ export function takeLayer(el, { close = null, min = 0 } = {}) {
 }
 /** true when el is the newest open layer (or nothing is in the stack) */
 export const isTopLayer = el => !open.length || open[open.length - 1].el === el;
+/** how many pop-ups are open on THE LAYER STACK (CITY FIXES: the title's screen at rest waits for none) */
+export const layersOpen = () => open.length;
 export const layerDebug = () => ({ z, open: open.length, top: open.length ? open[open.length - 1].el.className : null, esc: escN });
 
 // THE ONE Esc: the top layer's own close (a layer taken without one — a watched .modal — gets its backdrop's click, the way a tap outside

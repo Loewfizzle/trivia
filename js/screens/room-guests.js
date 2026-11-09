@@ -7,6 +7,7 @@
 //   openGuestList({ st (a live getter), openCard(uid), onClose }) → { update(st), close() }
 import { row, tubeButton } from '../ui/components.js';
 import { h } from '../ui/dom.js';
+import { afterTap } from '../ui/tapwatch.js';
 import { toast } from '../ui/toast.js';
 import { isHost } from '../store.js';
 import { isOnline } from '../core/room-logic.js';
@@ -80,7 +81,10 @@ export async function openGuestList(ctx) {
     const locked = !!(st.meta && st.meta.locked === true);
     lockRow.hidden = !host;
     // (SHELL 2.0 A: THE ROW with the pink switch)
-    if (host) lockRow.replaceChildren(row({ icon: 'lock', ic: '#ffd84a', label: locked ? 'The door is locked' : 'Lock the door', sub: locked ? 'No new players · tap to open' : 'Anyone with the word can join', cls: 'rg-lockbtn', toggle: () => toggleLock(), on: locked }));
+    // (CITY FIXES — THE TAP WATCH: rebuilt only when it CHANGES — it was replaced on every room update (presence included): a tap on it lost)
+    const lockSig = host ? String(locked) : '';
+    if (host && lockRow.dataset.sig !== lockSig) lockRow.replaceChildren(row({ icon: 'lock', ic: '#ffd84a', label: locked ? 'The door is locked' : 'Lock the door', sub: locked ? 'No new players · tap to open' : 'Anyone with the word can join', cls: 'rg-lockbtn', toggle: () => toggleLock(), on: locked }));
+    lockRow.dataset.sig = lockSig;
     // GAME NIGHT (every match played in this room): 3 / 2 / 1 points
     const nr = nightStandings(st.night, P);
     night.hidden = !nr.length;
@@ -106,5 +110,6 @@ export async function openGuestList(ctx) {
     lockBusy = false;
   }
   paint();
-  return { update: () => paint(), close: () => sheet.close() };
+  // (CITY FIXES — THE TAP WATCH: a room update never repaints the list under a finger — it waits until the tap has landed)
+  return { update: () => afterTap(paint), close: () => sheet.close() };
 }

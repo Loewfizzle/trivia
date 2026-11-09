@@ -532,7 +532,10 @@ G('radiorest', async () => {
     const fade = [];
     for (let i = 0; i < 12; i++) { fade.push(await ev(O.page, "(() => { const o = s => +getComputedStyle(document.querySelector(s)).opacity; return { r: o('.rd-btn'), m: o('.menu-btn'), pe: getComputedStyle(document.querySelector('.rd-btn')).pointerEvents }; })()")); await sleep(180); }
     const worst = Math.max(...fade.map(f => Math.abs(f.r - f.m))), endR = fade[fade.length - 1].r;
-    ok(worst < 0.08 && endR < 0.05 && fade.every(f => f.pe === 'none'), `THE RADIO BUTTON RESTS (${view[0]}): its opacity follows the corner buttons' through the fade (worst gap ${worst.toFixed(2)}, at rest ${endR}), untappable while faded`);
+    // (CITY FIXES — THE TAP WATCH: TAPPABLE while it FADES (a tap on the still-visible button is a real tap), untappable once AT REST)
+    await waitFor(O.page, "document.body.classList.contains('nd-rest')", 'at rest', 5000);
+    const restPe = await ev(O.page, "getComputedStyle(document.querySelector('.rd-btn')).pointerEvents");
+    ok(worst < 0.08 && endR < 0.05 && fade[0].pe !== 'none' && restPe === 'none', `THE RADIO BUTTON RESTS (${view[0]}): its opacity follows the corner buttons' through the fade (worst gap ${worst.toFixed(2)}, at rest ${endR}), tappable while fading (${fade[0].pe}), untappable at rest (${restPe})`);
     // the wake tap only wakes: a tap where the radio sits brings everything back — and opens nothing
     const rb = await ev(O.page, "(() => { const b = document.querySelector('.rd-btn').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; })()");
     await O.page.mouse.click(rb.x, rb.y);

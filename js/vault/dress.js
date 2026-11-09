@@ -13,6 +13,7 @@
 // tiles on screen draw (js/fx/renderer.js), every emblem a stack of composited layers (emblem-art.js), the calmer cut on the tiles.
 //   dressPanel(data, o) → [panel, collection]     o = { name, wear(slot, id) → Promise<boolean>, view(id, who) }
 //   openDress(data, o) → { close() }
+import { tapHandled, afterTap } from '../ui/tapwatch.js';
 import { row } from '../ui/components.js';
 import { h } from '../ui/dom.js';
 import { createSurface } from '../fx/renderer.js';
@@ -151,7 +152,8 @@ export function openDress(data, o = {}) {
   const youRow = row({ icon: 'user', ic: colorHex(who.color), label: 'Edit username', value: who.name, cls: 'vl-yr-row vl-yr-name', attrs: { 'aria-label': 'Edit your username and colour' },
     onClick: () => openYouEditor((v, done) => { who.name = v.name.toUpperCase(); who.color = v.color; youChanged(done); }) });
   const paintYou = () => { youRow.style.setProperty('--ic', colorHex(who.color)); const v = youRow.querySelector('.sh-row-v'); if (v) v.textContent = who.name; };
-  const youChanged = done => { paintYou(); paintPin(); paintGrid(); line.textContent = wornLine(W, who); if (done && o.onYou) done.then(() => o.onYou()).catch(() => {}); };
+  // (CITY FIXES — THE TAP WATCH: the repaints that land LATER (the server's answer, the approved list) never replace a tile under a finger)
+  const youChanged = done => afterTap(() => { paintYou(); paintPin(); paintGrid(); line.textContent = wornLine(W, who); if (done && o.onYou) done.then(() => o.onYou()).catch(() => {}); });
   const youRows = h('div.vl-yr', youRow);
   function paintGrid() {
     for (const b of tabBtns) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
@@ -203,7 +205,7 @@ export function openDress(data, o = {}) {
   document.body.append(el);
   paintPin(); paintGrid(); paintYou();
   requestAnimationFrame(() => el.classList.add('is-in'));
-  approvedIds().then(a => { if (closed) return; approved = a; paintPin(); paintGrid(); }).catch(() => {});
+  approvedIds().then(a => afterTap(() => { if (closed) return; approved = a; paintPin(); paintGrid(); })).catch(() => {});
   openNow = { close, el };
   return openNow;
 }
@@ -219,7 +221,11 @@ function press(el, onTap, onHold) {
     if (onHold) t = setTimeout(hold, 450);
   });
   el.addEventListener('pointermove', e => { if (down && Math.hypot(e.clientX - x, e.clientY - y) > 10) { down = false; clearTimeout(t); } });
-  el.addEventListener('pointerup', () => { clearTimeout(t); if (down && !held) onTap(); down = false; });
+  // (CITY FIXES — THE TAP WATCH: a tap it took says so (ui/tapwatch.js#tapHandled — never a lost tap, never rescued twice); a CLICK that
+  //  no lift of ours answered (THE RESCUE's click on a tile a re-render replaced mid-tap — its new copy never saw the pointerdown) taps too)
+  let tookAt = -1e9;
+  el.addEventListener('pointerup', () => { clearTimeout(t); if (down && !held) { tookAt = performance.now(); tapHandled(); onTap(); } down = false; });
+  el.addEventListener('click', () => { if (held || performance.now() - tookAt < 800) return; tookAt = performance.now(); onTap(); });
   el.addEventListener('pointercancel', () => { clearTimeout(t); down = false; });
   el.addEventListener('contextmenu', e => { if (!onHold) return; e.preventDefault(); if (!held) hold(); });
   // (a HOLD's lift must not click what opened under the finger — the full card's backdrop closed it at once)

@@ -18,7 +18,10 @@ export const LOG_LIMITS = { perRequest: 10, ipPerHour: 40, perDay: 3000, maxBody
 // js/hangwatch.js): POST /api/log { p: 'report', r: { kind: 'tap' | 'hang' | 'stall', text } } → phonelog/{push} { at, kind, text, ua, d,
 // b, v } — plain text the owner reads (+ screenshots) on /admin. 8 an hour per IP, 120 a day in all, the newest 40 kept.
 export const REPORT_LIMITS = { ipPerHour: 8, perDay: 120, keep: 40, text: 24_000 };
-const REPORT_KINDS = ['tap', 'hang', 'stall', 'bench'];   // (C4c: 'bench' — THE PHONE BENCH's report, &bench=1)
+const REPORT_KINDS = ['tap', 'hang', 'stall', 'bench', 'lost'];   // (C4c: 'bench' — THE PHONE BENCH's report, &bench=1; CITY FIXES: 'lost' — THE TAP WATCH)
+// CITY FIXES — THE TAP WATCH's LOST TAPS (js/ui/tapwatch.js — always on, ≤ 1 a minute + ≤ 20 a day per device): their OWN buckets, so a burst
+// of lost taps never eats the hang watch's + SEND REPORT's; the newest REPORT_KEEP kept PER KIND (prune.js) — never pushing a hang out
+export const LOST_LIMITS = { ipPerHour: 20, perDay: 400, text: 4000 };
 
 /** PURE: a report body → { kind, text } to store, or null */
 export function cleanReport(r) {
@@ -30,8 +33,10 @@ export function cleanReport(r) {
 export async function logReport(body, { ip = '', ua = '', now = Date.now() } = {}) {
   const r = cleanReport(body && body.r);
   if (!r) return 0;
-  let n = await take(`rep_ip_${ipKey(ip)}`, 1, REPORT_LIMITS.ipPerHour, 3600_000, now);
-  if (n) n = await take(`rep_day_${dayKey(now)}`, 1, REPORT_LIMITS.perDay, 86_400_000, now);
+  const lost = r.kind === 'lost', pre = lost ? 'lost' : 'rep', L = lost ? LOST_LIMITS : REPORT_LIMITS;
+  if (lost) r.text = r.text.slice(0, LOST_LIMITS.text);
+  let n = await take(`${pre}_ip_${ipKey(ip)}`, 1, L.ipPerHour, 3600_000, now);
+  if (n) n = await take(`${pre}_day_${dayKey(now)}`, 1, L.perDay, 86_400_000, now);
   if (!n) return 0;
   const { d, b } = deviceOf(ua);
   await ref('phonelog').push({ at: now, kind: r.kind, text: r.text, ua: str(ua, 220), d, b, v: str(process.env.VERCEL_GIT_COMMIT_SHA, 7) || 'local' });

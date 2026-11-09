@@ -1114,6 +1114,10 @@ body.pf-on .bar { padding-left: 0; }
   color: #fff;
   transform: translateY(110%); transition: transform 0.32s var(--ease);
 }
+/* CITY FIXES — THE TAP WATCH, suspect 3 (see-through layers): a pop-up ON ITS WAY OUT never catches a tap. A closing sheet stayed a full-screen
+   fixed box for its 280 ms fade — a tap on the dock right after × landed on its scrim and did nothing. (tests/tap-layers.test.mjs keeps the list) */
+.sh.is-out, .screen-out, .modal.out, .sg-modal.is-out, .fr-wait.is-out, .rc-hostcard.is-out, .pg-sc.is-out, .mh-hint.is-out, .rg-row.is-out,
+.rc-up.is-out, .vl-dress:not(.is-in), .rd-modal:not(.is-in), .dy-banner { pointer-events: none !important; }
 .sh.is-in .sh-scrim { opacity: 1; }
 .sh.is-in .sh-panel { transform: none; }
 .sh.is-out .sh-scrim { opacity: 0; }

@@ -23,6 +23,7 @@
 //   (every step through the server's own checks — one that can't go now is said, the rest still go), DELETE (a second tap).
 // Every action goes to the SERVER (/api/admin radio…), which checks the role + the rules + writes it; this page only draws. Audio is
 // polish (radio-sound.js): the desk works silently. 60 fps: the needle, the knobs, the lamps, the plug, the card — transform + opacity.
+import { afterTap } from '../../ui/tapwatch.js';
 import { takeLayer } from '../../ui/layers.js';
 import { h, reducedMotion } from '../../ui/dom.js';
 import { api as apiCall } from '../../profile/api.js';
@@ -487,7 +488,8 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     cancel: { moment: id => { sfx.play('jackOut'); act({ action: 'radioStop', id }).catch(e => { err = e.message; render(); }); }, board: id => { sfx.play('jackOut'); act({ action: 'radioBoardCancel', id }).catch(e => { err = e.message; render(); }); },
       intercom: id => { sfx.play('jackOut'); act({ action: 'radioUnsend', id }).then(() => { if (refresh) refresh(); }).catch(e => { err = e.message; render(); }); } } });
   /** THE PROGRAM / THE LEDGER on a poll: the paper's rows replaced IN PLACE — the sheet (the scrolling box) is never rebuilt, its scroll kept */
-  function paintPaper() {
+  function paintPaper() { afterTap(paintPaperNow); }
+  function paintPaperNow() {
     const holder = sheet && sheet.querySelector('.rd-paperwrap[data-face]');
     const m = faces[band];
     if (!holder || holder.dataset.face !== band || !m) { render(); return; }
@@ -500,7 +502,11 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     if (!faces[id]) { try { const m = await import(id === 'program' ? './radio-program.js' : './radio-ledger.js'); faces[id] = m; } catch (e) { console.warn('[radio]', id, e); } }
     return faces[id];
   }
-  function render() {
+  // (CITY FIXES — THE TAP WATCH: the desk is never rebuilt under a finger — a poll / a timer / the intercom's headline suggestion (900 ms
+  //  after the release — o.render) used to replace the SEND button between the touch + the lift: iOS then drops the click. It waits for the
+  //  tap to land (ui/tapwatch.js#afterTap); a click's own render() runs at once — the press ended before its handler)
+  function render() { afterTap(renderNow); }
+  function renderNow() {
     if (!sheet) return;
     const kids = [header(), bandSel()];
     if (band === 'desk' || !isOwner) kids.push(...desk());
@@ -523,7 +529,8 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     sheet.scrollTop = keep;
   }
   /** the live bits between polls: the lamps + the strips' timers (no rebuild of the cards) */
-  function paintLive() {
+  function paintLive() { afterTap(paintLiveNow); }
+  function paintLiveNow() {
     if (!sheet || card || band !== 'desk') return;
     for (const el of sheet.querySelectorAll('.rd-jack')) { const j = (st && st.jacks || []).find(x => x.id === el.dataset.jack); if (!j) continue; const L = lamp(j); if (el.dataset.lamp !== L) { el.dataset.lamp = L; el.className = `rd-jack${L ? ` is-${L}` : ''}`; } }
     { const box = sheet.querySelector('.rd-icsent'); if (box && ic) box.replaceChildren(...[ic.sent()].filter(Boolean)); }

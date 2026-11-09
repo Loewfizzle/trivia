@@ -124,7 +124,7 @@
   border: 1px solid var(--line);
 }
 .kick:active { transform: scale(0.94); }
-.kick:not(:empty):is(:hover) { color: var(--red); border-color: var(--red); }
+@media (hover: hover) { .kick:not(:empty):is(:hover) { color: var(--red); border-color: var(--red); } }   /* (CITY FIXES: the hover rule) */
 
 .games { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .gc-glyph {
