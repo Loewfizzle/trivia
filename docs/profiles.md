@@ -158,10 +158,15 @@ username + the board id leave the server (server.test.mjs).
 - **The rules** (`database.rules.json`): `profiles/{pid}` is readable **one at a time by signed-in users** (the lobby + podium read a
   room-mate's profile by the pid on their seat), never the whole list and never signed out (it was `.read: true` at the top — a dump of
   every typed name). **Re-publish the rules in the Firebase console.**
-- **THE 3-MATCH FLOOR:** a profile is listed on any public board only from its **3rd counted match** (all games together;
-  `profiles/{pid}/m`, the server's own count, written with every counted match — older profiles without it are counted from `pstats`
-  once). Under it no board entry is written (`boardPaths(..., hidden)`); the match that crosses it re-syncs every game's boards at once.
-  Your pinned row says "N MORE MATCHES TO JOIN THE BOARD" (the `ranks` call returns `m` + `mm`, the floor); no would-be rank is shown.
+- **THE FLOOR — WHO GETS LISTED (PD-3 Group 0, the owner Nov 9; was the 3-match floor):** a profile is listed on any public board only from
+  its **3rd COUNTED PLAY** — a counted ROOM match (2+ players) OR a counted DAILY finish (THE THROWAWAY GATE's `counts` — `core/streak.js#countsOn`);
+  a SOLO run never counts. `pstats/{pid}/cp` = the count, kept by `core/progress.js#matchStep` + `dailyStep` in their own transactions
+  (`countedPlays(stats)` — a profile from before it: its counted matches + its counted daily finishes, an estimate until the back-fill);
+  `lb.js#hiddenOf` = `progress.js#boardHidden`. `profiles/{pid}/m` = the same count (written by a match AND a daily). Under it no board entry is
+  written (`boardPaths(..., hidden)`); the play that crosses it (a match OR a daily) re-syncs every game's boards at once. /admin → THE BOARDS →
+  BACK-FILL re-counts every profile EXACTLY from the records (`core/board-fill.js#countedPlaysFromRecords` — results/{key} with 2+ players, not
+  skipped + the counted daily runs) and rewrites EVERY board row (its PREVIEW shows `listedNow` → `listedAfter`). Unit: `tests/listing.test.mjs`.
+  Your pinned row says "N MORE PLAYS TO JOIN THE BOARD" (the `ranks` call returns `m` + `mm`, the floor); no would-be rank is shown.
   Env `BOARD_MIN_MATCHES` (tests: 1).
 - **REPORT:** a ⋯ on every other player's row (a 44-pt strip at the row's right edge) → a sheet: SUSPICIOUS SCORE · BAD NAME OR EMBLEM ·
   CANCEL → `POST /api/board { action: 'report', b, id, why, dev }` (no sign-in) → `flags/{id}: { pid, n, why{}, b{}, first, last }`

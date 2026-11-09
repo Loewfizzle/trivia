@@ -156,7 +156,7 @@ export async function fetchMe() {
 
 export async function myRanks(boards) {
   const r = await api('profile', { action: 'ranks', boards });
-  // BNAME: keep the cached profile's match count current (THE BOARD's pinned row: "N MORE MATCHES TO JOIN THE BOARD")
+  // BNAME: keep the cached profile's match count current (THE BOARD's pinned row: "N MORE PLAYS TO JOIN THE BOARD" — PD-3: room matches + counted dailies)
   const m = loadMe();
   if (m && m.profile && typeof r.m === 'number' && (m.profile.m !== r.m || m.profile.mm !== r.mm)) {
     m.profile = { ...m.profile, m: r.m, mm: r.mm };

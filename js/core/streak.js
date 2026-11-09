@@ -33,6 +33,9 @@ export const streakDay = ms => dayKey(ms - DAY_TURN_H * 3600_000);
 /** 'd20261102' ↔ a day number (days since 1970) — plain calendar arithmetic. */
 export const dayNum = dk => { const s = String(dk); return Math.round(Date.UTC(+s.slice(1, 5), +s.slice(5, 7) - 1, +s.slice(7, 9)) / 864e5); };
 export const dayOf = num => { const d = new Date(num * 864e5); const p = x => String(x).padStart(2, '0'); return `d${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}`; };
+/** DM1 — THE THROWAWAY GATE (PURE — moved from api/daily.js, PD-3 Group 0): a profile made at `createdAt` counts on `day` only if it existed before
+ *  that day's 4 am Eastern start (no creation time = an old profile = counts) */
+export const countsOn = (createdAt, day) => !(Number(createdAt) > 0) || Number(createdAt) < dayStartAt(day);
 /** DM1 — the INSTANT a streak day starts: its 4 am Eastern (08:00 UTC in summer time, 09:00 UTC in winter — DST-safe: the clocks change at 2 am) */
 export function dayStartAt(dk) {
   const base = dayNum(dk) * 864e5;

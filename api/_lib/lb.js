@@ -7,7 +7,8 @@
 //   names?"): a PUBLIC row carries the player's USERNAME and nothing else of theirs — never the profile id, the key, the tag's digits —
 //   beside an opaque board id (boardId: an HMAC of the pid with the server's pepper — REPORT + your own row find it). A name the filter
 //   calls rude (core/names.js#isOffensive) is shown as its HOUSE NICKNAME (js/core/nicknames.js — the old BNAME names, kept for this);
-//   REPORT NAME + /admin's rename / hide stay. A profile is listed only after BOARD_MIN_MATCHES counted matches (profiles/{pid}/m).
+//   REPORT NAME + /admin's rename / hide stay. A profile is listed only from its BOARD_MIN_MATCHES-th COUNTED PLAY (profiles/{pid}/m) — a counted
+//   room match or a counted daily finish; never a solo run (PD-3 Group 0 — core/progress.js#countedPlays).
 import { createHmac } from 'node:crypto';
 import { ref, val, fb } from './fb.js';
 import { BOARD_GAMES, boardDef, careerBoards, toSort, winRate, MIN_WR_GAMES, fromSort, GAME_BOARDS } from '../../js/core/boards.js';
@@ -17,6 +18,7 @@ import { levelOf } from '../../js/core/levels.js';
 import { OLD_FINISH, OLD_GLOW } from '../../js/core/items.js';
 import { weekKey } from '../../js/core/week.js';
 import { overallValues } from '../../js/core/overall.js';
+import { countedPlays, boardHidden } from '../../js/core/progress.js';
 
 export const TOP_N = 100;
 const periodKey = (p, now) => (p === 'week' ? weekKey(now) : p === 'all' ? 'all' : p);
@@ -84,9 +86,12 @@ const CACHE_MS = 15_000;
 
 export function clearBoardCache() { cache.clear(); pubCache.clear(); }
 
-/** BOARD 2.0 A — why a profile is off the boards: 'opt' (the opt-out / the admin's hide — every board) · 'matches' (under the 3-match floor —
- *  the daily boards still list it from its 3rd day played) · false (listed) */
-export const hiddenOf = (prof, stats) => (!prof || prof.h ? 'opt' : matchCount(stats) < minMatches() ? 'matches' : false);
+/** BOARD 2.0 A — why a profile is off the boards: 'opt' (the opt-out / the admin's hide — every board) · 'matches' (under the floor of 3 COUNTED
+ *  PLAYS — PD-3 Group 0: room matches + counted daily finishes, never a solo run; the daily boards still list it from its 3rd day played) ·
+ *  false (listed) */
+export const hiddenOf = (prof, stats) => boardHidden(prof, stats, minMatches());
+/** the counted plays the listing reads (core/progress.js#countedPlays) */
+export const playCount = stats => countedPlays(stats);
 
 /** A profile's board id: 16 hex, stable, not reversible without the server's pepper (so a row can't be looked up). */
 const bids = new Map();
@@ -100,7 +105,7 @@ export function boardId(pid) {
   return id;
 }
 
-/** The matches a profile must have before a public board lists it (env BOARD_MIN_MATCHES for tests). */
+/** The counted plays a profile must have before a public board lists it (env BOARD_MIN_MATCHES for tests). */
 export const minMatches = () => Number(process.env.BOARD_MIN_MATCHES ?? BOARD_MIN_MATCHES);
 
 /** Total counted matches, all games together, from the stats (pstats/{pid}/g/{game}/p). */

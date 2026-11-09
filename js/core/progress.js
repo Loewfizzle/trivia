@@ -33,6 +33,21 @@ export function payXp(next, from, gain, now) {
 /** the XP a stats object earned in the week of `now` (0 when its counter is from another week) */
 export const weekXp = (s, now) => (s && s.xw && s.xw.wk === weekKey(now) ? s.xw.x || 0 : 0);
 export const DEFAULT_GAP_MS = 45_000;
+/**
+ * WHO GETS LISTED (PD-3 Group 0 — the owner, Nov 9): a profile is on the public boards from its 3rd COUNTED PLAY — a counted ROOM match (2+
+ * players; a solo run never counts) OR a counted DAILY finish (THE THROWAWAY GATE's `counts`). pstats.cp keeps the count, written by matchStep +
+ * dailyStep in the same transaction as the rest; a profile from before it has none yet → the best estimate from what its stats hold (every match
+ * counted in `g` + every counted daily finish in DAILY POINTS' tally) — /admin → THE BOARDS' back-fill sets it exactly from the records.
+ */
+export function countedPlays(s) {
+  if (s && typeof s.cp === 'number') return s.cp;
+  const matches = Object.values((s && s.g) || {}).reduce((n, g) => n + ((g && g.p) || 0), 0);
+  const dailies = Object.values((s && s.dp && s.dp.a && s.dp.a.g) || {}).reduce((n, g) => n + ((g && g.n) || 0), 0);
+  return matches + dailies;
+}
+/** why a profile is off the public boards: 'opt' (the opt-out / the admin's hide) · 'matches' (under `min` counted plays) · false (listed) */
+export const boardHidden = (prof, stats, min) => (!prof || prof.h ? 'opt' : countedPlays(stats) < min ? 'matches' : false);
+
 const add = (o, c) => { const x = { ...(o || {}) }; for (const [k, v] of Object.entries(c || {})) x[k] = (x[k] || 0) + v; return x; };
 
 /** THE SEASONAL EMBLEMS (THE VAULT 2B): holiday id → its emblem — the SERVER's (api/_lib/catalog.js registers it; names only to owners) */
@@ -67,6 +82,7 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   if (next.wk !== wk) { next.wk = wk; next.gw = {}; next.gs = {}; } else { next.gw = { ...(s.gw || {}) }; next.gs = { ...(s.gs || {}) }; }
   next.day = s.day && s.day.k === dk ? { k: dk, g: { ...(s.day.g || {}) }, ...(s.day.so ? { so: s.day.so } : {}) } : { k: dk, g: {} };
   const solo = n === 1;   // (SHELL 2.0 B1 — THE SOLO LANE: a room of one)
+  next.cp = countedPlays(s) + (solo ? 0 : 1);   // (PD-3 Group 0 — WHO GETS LISTED: a room match counts, a solo run never)
   const firstToday = !next.day.g[gid];
   next.day.g[gid] = 1;
   const gamesToday = Object.keys(next.day.g).length;
@@ -195,6 +211,7 @@ export function dailyStep(s0, { game, day, now, top = 100, rank = null, n = 0, h
   const key = `daily_${game}_${day}`;
   if (s.m && s.m[key]) return { skip: 'counted' };
   const next = { ...s, m: { ...(s.m || {}), [key]: now } };
+  next.cp = countedPlays(s) + (counts ? 1 : 0);   // (PD-3 Group 0 — WHO GETS LISTED: a counted daily finish is a counted play)
   const dl = { n: 0, early: 0, ph: 0, ...(s.dl || {}) };
   // DFIX2 (FABLE REVIEW #2, finding 1) — EACH DAY KEEPS ITS OWN COUNTERS: dl.days = { [dayKey]: { g, x, sw? } }, the two newest days kept
   // (a run that crossed 4 am finishes on YESTERDAY's day — DFIX1 — after today's finishes have landed: it must never wipe today's, nor today's

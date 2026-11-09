@@ -38,6 +38,28 @@ export function rebuildWeekXp({ results = {}, daily = {}, live = [], wk }) {
   return out;
 }
 
+/**
+ * WHO GETS LISTED (PD-3 Group 0): every profile's COUNTED PLAYS rebuilt from the records — a counted ROOM match (results/{key}: the outcome not
+ * skipped, 2+ players — a solo run never counts; a record from before `n` was stored counts as a room match) + a counted DAILY finish (dly/…: a
+ * score that isn't in `x`, the non-counting results — THE THROWAWAY GATE). → { [pid]: n }
+ */
+export function countedPlaysFromRecords({ results = {}, daily = {} }) {
+  const out = {};
+  const add = pid => { out[pid] = (out[pid] || 0) + 1; };
+  for (const r of Object.values(results || {})) {
+    if (!r || !r.o) continue;
+    for (const [pid, o] of Object.entries(r.o)) {
+      if (!o || o.skip) continue;
+      const n = Number(r.n ?? o.n ?? 2);
+      if (n >= 2) add(pid);
+    }
+  }
+  for (const days of Object.values(daily || {})) for (const D of Object.values(days || {})) {
+    for (const [pid, score] of Object.entries((D && D.r) || {})) if (score != null && !(D.x && D.x[pid])) add(pid);
+  }
+  return out;
+}
+
 /** a player's week counter after the back-fill: the larger of the live counter (same week) and the rebuilt sum — never lower */
 export function filledWeek(cur, rebuilt, wk) {
   const live = cur && cur.wk === wk ? Number(cur.x) || 0 : 0;

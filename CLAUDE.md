@@ -128,7 +128,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   `/board`, the title's preview) = an opaque board id + the player's USERNAME — never a profile id, the key or the tag's digits; a name the
   filter calls rude shows as its HOUSE NICKNAME (`api/_lib/lb.js#publicName`, `js/core/nicknames.js`); REPORT + /admin's rename / hide stay;
   a report pushes the owner (`api/board.js` → `radio.js#notifyOwner`). `profiles/{pid}` is readable one at a time by signed-in users, never
-  as a list. A profile is listed from its 3rd counted match. docs/profiles.md "REAL USERNAMES".
+  as a list. A profile is listed from its 3rd COUNTED PLAY (a room match or a counted daily — never a solo run; `core/progress.js#countedPlays`, PD-3). docs/profiles.md "REAL USERNAMES".
 - **THE ROOM IN THE CITY (LOBBY 2.0 A + B):** in City 2.0 THE OLD LOBBY SCREEN IS RETIRED — the room lives in the city from the join to the podium
   and back (the old lobby screen + lobby.js went with City 1.0 — CITY 1.0 OUT). LOBBY 2.0 B: THE GAME START (meta/go — LOBBY FIXES: the game's own pink sign lights, the walk inside, a fade — 5 s FULL / 3 s for a same-game REMATCH, the kind in the match id,
   `core/room-show.js`), THE CITY PAUSE (a match on screen = the city destroyed + rebuilt after), the walk back out + THE WINNER's BANNER PLANE (meta/back

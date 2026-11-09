@@ -811,7 +811,7 @@ test('BNAME: the 3-match floor — listed from the 3rd counted match (all games 
     { const rr = await report('u-floor', room); assert.equal(rr.status, 'counted'); assert.ok(!rr.outcome.skip, JSON.stringify(rr.outcome)); }
     const two = await profileAction('u-floor', { action: 'me' }, '', clock);
     assert.equal(two.profile.m, 2);
-    assert.equal(two.profile.mm, 3, 'the client learns the floor (2 more → "1 MORE MATCH")');
+    assert.equal(two.profile.mm, 3, 'the client learns the floor (2 more → "1 MORE PLAY")');
     assert.equal(await listed('slip-dist'), false, '2 matches: not listed');
     tick(60_000);
     room = await seedRoom('cipher', ['u-floor', 'u-floor2'], {}, names);

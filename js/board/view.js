@@ -391,7 +391,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     const left = typeof p.m === 'number' ? Math.max(0, (p.mm || 3) - p.m) : 0;
     const daily = def && def.points;
     // BNAME: under the 3-match floor nobody sees you yet (a dailies board counts from the 3rd day played instead — lb.js#hiddenOf)
-    if (left && !p.h && !daily) return [null, `${left} MORE MATCH${left === 1 ? '' : 'ES'} TO JOIN THE BOARD`];
+    if (left && !p.h && !daily) return [null, `${left} MORE PLAY${left === 1 ? '' : 'S'} TO JOIN THE BOARD`];
     if (info === 'loading') return [null, '…'];
     const mine = info && info.mine;
     if (daily && S.period === 'all' && mine && (!info.rank) && mine.days < (mine.need || def.minDays)) {

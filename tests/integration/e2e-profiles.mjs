@@ -412,7 +412,7 @@ await H.run(async () => {
   };
   await openBoard();
   const floorNote = await p3.$eval('.bd-me', el => el.textContent).catch(() => '');
-  ok(/MORE MATCH/.test(floorNote), `one match: under the 3-match floor, the pinned row says so ("${floorNote.replace(/\s+/g, ' ').trim()}")`);
+  ok(/MORE PLAY/.test(floorNote), `one match: under the floor of 3 counted plays, the pinned row says so ("${floorNote.replace(/\s+/g, ' ').trim()}")`);
   ok((await val(`lb/xp/all/${me0.pid}`)) == null, '…and no board entry is written yet');
   // top both players up to 3 matches (two earlier ones elsewhere), then a resync puts them up
   for (const [pg, m] of [[p0, me0], [p1, me1]]) {

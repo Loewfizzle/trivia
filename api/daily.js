@@ -45,7 +45,7 @@ import { dailySeed, openDailies, pickDay } from './_lib/dailies.js';
 import { roomStarted, midDaily } from './_lib/daily-room.js';
 import { closeDays } from './_lib/daily-close.js';
 import { dailyOf, bucketOf, standing, todayView, todaysDailies, dailyRow, BAND_MIN } from '../js/core/daily.js';
-import { streakDay, dayNum, dayOf, dayStartAt } from '../js/core/streak.js';
+import { streakDay, dayNum, dayOf, dayStartAt, countsOn } from '../js/core/streak.js';
 import { dailyStep } from '../js/core/progress.js';
 import { levelOf, emblemRank } from '../js/core/levels.js';
 import { easternParts } from '../js/core/week.js';
@@ -123,9 +123,8 @@ export function dayOfCall(body, now) {
   if (typeof d === 'string' && DAY_KEY.test(d) && d === prevDay(today)) return d;
   throw new ApiError(400, 'bad_day', 'That day isn’t open.');
 }
-/** DM1 — THE THROWAWAY GATE (PURE): a profile made at `createdAt` counts on `day` only if it existed before that day's 4 am Eastern start (no
- *  creation time = an old profile = counts) */
-export const countsOn = (createdAt, day) => !(Number(createdAt) > 0) || Number(createdAt) < dayStartAt(day);
+/** DM1 — THE THROWAWAY GATE: core/streak.js#countsOn (pure — re-exported for the tests that import it from here) */
+export { countsOn };
 /** the profile's server-side creation time (ppriv/{pid}/at — written once, by the server, when the profile is made) */
 const createdAtOf = pid => val(`ppriv/${pid}/at`);
 
@@ -279,14 +278,17 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       const live = todaysDailies();
       // BOARD 2.0 A — DAILY POINTS from the KEPT score (the server's own — never the phone's claim), a COUNTED result only
       const points = counts ? dailyPoints(cart.id, kept) : null;
-      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, rank: stand.better + 1, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts, points }); return res.skip ? undefined : res.next; });
+      let cur0 = null;
+      await ref(`pstats/${pid}`).transaction(cur => { cur0 = cur; res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, rank: stand.better + 1, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts, points }); return res.skip ? undefined : res.next; });
       if (res && !res.skip) {
         const st = res.next.st, xp = res.next.xp || 0;
         // (BOARD 2.0 A — THE OVERALL BOARD in the SAME update as the XP: listed like every board — the 3-match floor, the opt-out, the admin's hide)
         // (+ DAILY POINTS' boards from the same stats — a counted result's points were added in the transaction above; the daily boards list a
         //  player from their 3rd day played — lb.js#hiddenOf)
-        const [{ overallPaths, hiddenOf }, prof] = await Promise.all([import('./_lib/lb.js'), val(`profiles/${pid}`)]);
-        await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d, [`profiles/${pid}/x`]: xp, [`profiles/${pid}/l`]: levelOf(xp), [`profiles/${pid}/r`]: emblemRank(xp), ...overallPaths(pid, res.next, { hidden: hiddenOf(prof, res.next), now }) });
+        const [{ overallPaths, hiddenOf, playCount, minMatches, syncBoards }, prof] = await Promise.all([import('./_lib/lb.js'), val(`profiles/${pid}`)]);
+        await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d, [`profiles/${pid}/x`]: xp, [`profiles/${pid}/l`]: levelOf(xp), [`profiles/${pid}/r`]: emblemRank(xp), [`profiles/${pid}/m`]: playCount(res.next), ...overallPaths(pid, res.next, { hidden: hiddenOf(prof, res.next), now }) });
+        // (PD-3 Group 0 — WHO GETS LISTED: a counted daily finish is a counted play — the one that crosses the floor puts every board up at once)
+        if (prof && !prof.h && counts && playCount(res.next) >= minMatches() && playCount(cur0) < minMatches()) await syncBoards(pid, { now }).catch(() => {});
         await bumpOwners(res.items, !(res.next.g && Object.keys(res.next.g).length) && res.dl.n === 1, res.ach).catch(() => {});
         if (res.next.fd) await ref(`profiles/${pid}/fd`).set(true);
       }

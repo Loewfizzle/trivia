@@ -2,7 +2,7 @@
 // player's update is ONE transaction on pstats/{pid} running the PURE step (js/core/progress.js#matchStep — the same code the year sim
 // runs) that also records the match key (m/{key}), so a retry, a second reporter or a crash halfway can never count a match twice.
 import { ref, val } from './fb.js';
-import { boardPaths, overallPaths, hiddenOf, rankOf, clearBoardCache, matchCount, minMatches, syncBoards } from './lb.js';
+import { boardPaths, overallPaths, hiddenOf, rankOf, clearBoardCache, matchCount, minMatches, syncBoards, playCount } from './lb.js';
 import { boardDef, toSort } from '../../js/core/boards.js';
 import { matchStep } from '../../js/core/progress.js';
 import { levelOf, emblemRank, LEVEL_REWARDS } from '../../js/core/levels.js';
@@ -54,8 +54,9 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
     }
     const stats = tx.snapshot.val();
     const prof = (await val(`profiles/${pid}`)) || {};
-    // BNAME: listed on the public boards only from the BOARD_MIN_MATCHES-th counted match (all games together)
-    const played = matchCount(stats);
+    // BNAME → PD-3 Group 0: listed on the public boards only from the BOARD_MIN_MATCHES-th COUNTED PLAY (room matches + counted daily finishes —
+    // never a solo run: core/progress.js#countedPlays)
+    const played = playCount(stats);
     const listed = !prof.h && played >= minMatches();
     // ranks before the boards change (for "ENTERED THE TOP 10")
     const watch = [...res.pbs.map(p => p.b), `${ex.gid}-wins`].filter((b, i, a) => a.indexOf(b) === i);
@@ -75,7 +76,7 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
     await bumpOwners(res.items, !matchCount(res.prevStats), res.ach).catch(e => console.warn('owners', e && e.message));
     if (stats.fd) await ref(`profiles/${pid}/fd`).set(true);
     // the match that crosses the floor puts every game's boards up at once (the earlier matches were held back)
-    if (listed && played === minMatches()) await syncBoards(pid, { now });
+    if (listed && playCount(res.prevStats) < minMatches()) await syncBoards(pid, { now });
     const ranks = [];
     if (listed) {
       const paths = boardPaths(pid, stats, { now, only: ex.gid });
