@@ -98,6 +98,26 @@
   .pp-lim b { font: 800 20px/1 var(--font-display); letter-spacing: 0.12em; color: #fff; }
   .pp-lim span { font: 500 13px/1.4 var(--font-ui); color: var(--text-dim); text-align: center; }
   .vl-full-in { max-height: 100%; overflow-y: auto; }
+  /* ---- THE BACKGROUND OPTIONS (the owner, Nov 9: the brown bar looks cheap → premium): &bg=city | velvet | glass ---- */
+  .bd2[data-bg] .bd-scene > *:not(.bd-bg2) { display: none; }
+  .bd-bg2 { position: absolute; inset: 0; overflow: hidden; }
+  .bd-bg2 > * { position: absolute; inset: 0; }
+  /* (A) THE CITY: the harbor at night behind, dimmed (in the app: the paused live city; on /board: its still) */
+  .bg-city .bg-img { inset: -12px; background: #0b0614 url(/assets/og.jpg) 50% 82% / auto 152% no-repeat; filter: blur(2.5px) saturate(1.2); }
+  .bg-city .bg-dim { background: linear-gradient(180deg, rgba(8, 4, 16, 0.62) 0%, rgba(8, 4, 16, 0.3) 30%, rgba(8, 4, 16, 0.55) 55%, rgba(6, 3, 12, 0.92) 100%); }
+  /* (B) BLACK VELVET + GOLD DECO: near-black plum, a gold sunburst behind the title, a fine pinstripe */
+  .bg-velvet .bg-base { background: radial-gradient(90% 55% at 50% 8%, #2a0f2c 0%, #14071a 45%, #07040b 100%); }
+  .bg-velvet .bg-pin { background: repeating-linear-gradient(90deg, rgba(242, 200, 105, 0.035) 0 1px, transparent 1px 22px); -webkit-mask-image: linear-gradient(180deg, #000, transparent 70%); mask-image: linear-gradient(180deg, #000, transparent 70%); }
+  .bg-velvet .bg-sun { inset: auto; left: 50%; top: -120px; width: 760px; height: 460px; transform: translateX(-50%); }
+  .bg-velvet .bg-glow { background: radial-gradient(40% 22% at 50% 9%, rgba(255, 196, 110, 0.28), transparent 70%); }
+  /* (C) NIGHT GLASS: midnight blue → violet, the tab's colour as a soft aurora, a few stars */
+  .bg-glass .bg-base { background: linear-gradient(180deg, #0b1030 0%, #160b33 45%, #08060f 100%); }
+  .bg-glass .bg-aur { background: radial-gradient(70% 34% at 14% 4%, color-mix(in srgb, var(--a1) 46%, transparent), transparent 72%), radial-gradient(70% 32% at 90% 12%, color-mix(in srgb, var(--a2) 44%, transparent), transparent 72%), radial-gradient(90% 30% at 50% 100%, rgba(80, 60, 255, 0.22), transparent 70%); }
+  .bg-glass .bg-stars { background-image: radial-gradient(1.2px 1.2px at 12% 18%, #fff8, transparent), radial-gradient(1px 1px at 34% 8%, #fff7, transparent), radial-gradient(1.4px 1.4px at 61% 22%, #fff9, transparent), radial-gradient(1px 1px at 78% 6%, #fff6, transparent), radial-gradient(1.2px 1.2px at 90% 30%, #fff7, transparent), radial-gradient(1px 1px at 47% 31%, #fff5, transparent), radial-gradient(1px 1px at 6% 38%, #fff5, transparent); }
+  /* every option: the panel is dark glass with a gold hairline (no brown) */
+  .bd2[data-bg] .bd-card { background: linear-gradient(180deg, rgba(16, 11, 24, 0.86), rgba(7, 5, 12, 0.94)); border-color: rgba(242, 200, 105, 0.32); box-shadow: inset 0 1px 0 rgba(255, 236, 200, 0.16), 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 60px color-mix(in srgb, var(--a1) 10%, transparent); }
+  .bd2[data-bg] .bd-me2 { background: linear-gradient(180deg, rgba(22, 15, 30, 0.97), rgba(10, 7, 16, 0.99)); }
+  .bd2[data-bg] .bd-gtab:not(.is-on), .bd2[data-bg] .bd-seg, .bd2[data-bg] .bd-chip:not(.is-on) { background: rgba(12, 9, 20, 0.7); }
 </style>
 </head>
 <body>
@@ -156,6 +176,17 @@
       h('div.bd-scene', { 'aria-hidden': 'true' }, h('div.bd-drift', canvas), h('div.bd-tint.is-on', { style: { '--t1': '#f2c869', '--t2': '#ff7ccb' } })),
       wrap);
     el.style.setProperty('--a1', '#f2c869'); el.style.setProperty('--a2', '#ff7ccb');
+    const BG = q.get('bg');
+    if (BG) {
+      el.dataset.bg = BG;
+      const sun = () => { // the gold Art Deco sunburst: rays + three arcs, drawn in code
+        const rays = Array.from({ length: 29 }, (_, i) => { const a = Math.PI * (i / 28); const x = 380 - Math.cos(a) * 380, y = 120 + Math.sin(a) * 340; return `<line x1="380" y1="120" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#f2c869" stroke-opacity="${i % 2 ? 0.07 : 0.16}" stroke-width="${i % 2 ? 1 : 1.4}"/>`; }).join('');
+        const arcs = [110, 190, 280].map((r, i) => `<path d="M${380 - r} 120 A${r} ${r} 0 0 0 ${380 + r} 120" fill="none" stroke="#f2c869" stroke-opacity="${0.22 - i * 0.05}" stroke-width="1.2"/>`).join('');
+        return h('div.bg-sun', { html: `<svg viewBox="0 0 760 460" width="760" height="460" aria-hidden="true">${rays}${arcs}</svg>` });
+      };
+      const layer = BG === 'city' ? [h('div.bg-img'), h('div.bg-dim')] : BG === 'velvet' ? [h('div.bg-base'), h('div.bg-glow'), h('div.bg-pin'), sun()] : [h('div.bg-base'), h('div.bg-aur'), h('div.bg-stars')];
+      el.querySelector('.bd-scene').append(h(`div.bd-bg2.bg-${BG}`, ...layer));
+    }
     const head = h('header.bd-head', h('button.bd-back', { type: 'button', 'aria-label': 'Back' }, '‹'),
       h('div.bd-title', h('span.bd-kicker', 'NEON SPEAKEASY'), h('h1.bd-name', 'THE BOARD'), h('span.bd-sub', 'HALL OF FAME')));
     const T = [['xp', 'XP', '#f2c869', '#ff7ccb'], ['dailies', 'DAILIES', '#ff7ccb', '#5aa9ff'], ['overclock', 'OVERCLOCK', '#ffb627', '#ff2bd6'], ['prism', 'PRISM DROP', '#9fe8ff', '#ff7ccb']];
