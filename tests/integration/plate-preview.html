@@ -34,7 +34,7 @@ for (const card of cards) {
   if (only !== 'full' && q.has('fx')) { const list = document.createElement('div'); stage.append(Object.assign(document.createElement('div'), { className: 'lbl', textContent: card }), list); mountStrips(list, [{ card, name: q.get('name') || 'MIKE', lv, no: '0001', avatar: 'crown', color: 'magenta' }]); continue; }
   if (only !== 'full') { const list = Object.assign(document.createElement('div'), { className: 'vl-list' }); list.append(stripEl({ card, name, lv, host: q.has('host'), no: '0001', avatar: 'crown', color: 'magenta' })); stage.append(list); }
 }
-window.__ready = true;
+window.__ready = true; document.body.dataset.ready = "1";   // (THE BTC CARD: shots.mjs --page waits for body.dataset.ready)
 </script>
 </body>
 </html>

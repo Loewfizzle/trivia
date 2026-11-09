@@ -12,6 +12,7 @@ import { PW_SPECS, PW_AH } from '../fx/pw-specs.js';
 import { CC_SPECS, CC_AH } from '../fx/cc-specs.js';
 import { DM_SPECS, DM_AH } from '../fx/dm-specs.js';
 import { phMap, PH_HERO } from '../fx/ph-specs.js';
+import { BTC, btcMap } from '../fx/btc-specs.js';
 export const HERO_BAND = Object.freeze([0.6, 0.84]);           // (where a hero's centre may sit, across the strip: right of a 10-letter name's
                                                                //  plate on every phone — LOEWFIZZLE's name row ends at 0.58 at 390)
 export const GEM_BOX = Object.freeze([0.88, 0.5, 0.12, 0.5]);  // (the tier gem's corner + its glow — css/vault.css .vl-strip .vl-gem)
@@ -26,7 +27,6 @@ export const HERO = {
   'card-sg-ghostship': [[0.56, 0.1, 0.2, 0.8]],                   // the ship
   'card-sg-fireball': [[0.62, 0, 0.3, 0.45]],                     // the fireball's path's right part (sg-fireball.js: 0.34 → 1.04 across the top — THE CARD PASS: it streaks in from BEHIND a 12-letter name's plate, like a ground; its head + burst burn right of it)
   'card-sg-skull': [[0.6, 0.04, 0.16, 0.92]],                     // the skull balloon
-  'card-sg-btc': [[0.52, 0.04, 0.34, 0.76]],                       // the ₿ balloons
   'card-camo': [[0.64, 0.25, 0.12, 0.5]],                         // the scope's reticle (scan.js: 0.7 — B2)
   'card-eternal': [[0.57, 0.05, 0.14, 0.9]],                      // the eternal flame
   'card-century': [[0.55, 0.2, 0.14, 0.6]],                       // the sunburst's heart (deco.js: 0.62 — B2)
@@ -72,6 +72,9 @@ for (const [id, S] of Object.entries(DM_SPECS)) {
 // (DM2 — PENTHOUSE · THE DIAL: drawn in code — its strip band's arch + floors up to PH)
 { const M = phMap(SW, SH, false), [x, y, w, h] = PH_HERO, y0 = Math.max(0, (M.oy + y * M.k) / SH), y1 = Math.min(1, (M.oy + (y + h) * M.k) / SH);
   HERO['card-penthouse'] = Object.freeze([[(M.ox + x * M.k) / SW, y0, (w * M.k) / SW, Math.max(0.05, y1 - y0)]]); }
+// (THE BTC CARD — the envelope through the strip's own band: Grok's art 1280 × 720, the same map the CSS + the effect use)
+{ const M = btcMap(SW, SH, BTC.strip), [x, y, w, h] = BTC.hero, y0 = Math.max(0, (M.oy + y * M.k) / SH), y1 = Math.min(1, (M.oy + (y + h) * M.k) / SH);
+  HERO[BTC.card] = Object.freeze([[(M.ox + x * M.k) / SW, y0, (w * M.k) / SW, Math.max(0.05, y1 - y0)]]); }
 /** do two boxes [x, y, w, h] overlap? */
 export const overlaps = (a, b) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
 /** the rule's pure half: every element's centre in the band, none over the gem's corner → the cards that break it */

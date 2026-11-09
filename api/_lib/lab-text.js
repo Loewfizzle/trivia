@@ -350,11 +350,11 @@ export const LAB_TEXT = {
  },
  "card-sg-btc": {
   "name": "FIX THE MONEY, FIX THE WORLD",
-  "motion": "The two ₿ balloons over the festival at sunset — burners flaring, a gold pulse on every new block, the other balloons drifting far off + THE BORDER LASER"
+  "motion": "LEGENDARY — Grok’s ₿ balloon over the neon harbor at dusk (its own strip band: the ₿ + the coins). THE FLARE: the burner fires in bursts a few seconds apart and the whole envelope lights up from inside, hottest at the mouth, the ₿ blazing; every 10 s a BLOCK burn + a gold ring pulsing out from the ₿; the coins rise + spin with glints; a gold sheen across the ₿; the balloon sways gently + THE BORDER LASER in gold"
  },
  "full-card-sg-btc": {
   "name": "FIX THE MONEY, FIX THE WORLD · FULL CARD",
-  "motion": "The two ₿ balloons over the festival at sunset — burners flaring, a gold pulse on every new block, the other balloons drifting far off, the title in neon + THE BORDER LASER"
+  "motion": "The whole picture (the left + the foot darkened for the plate + MEMBER SINCE): the balloon RISES into the card, then a big first burn lights it; then the burner fires every few seconds — the envelope lit from inside, a soft bloom round it, the flame flaring on the real burner, the harbor water catching the flicker; the block ring every 10 s; the coins rise + spin; the reflections shimmer + THE BORDER LASER. Reduced motion = the lit frame"
  },
  "card-brushed": {
   "name": "BRUSHED GOLD",
@@ -508,6 +508,8 @@ export const LAB_TEXT = {
 // THE LAB 2.0 (THE VAULT 2C) — WHAT CHANGED, per item + version (js/vault/catalog.js#LAB_V holds the numbers): the lab shows the newest
 // line beside his old mark ("CHANGED Nov 3 — …"). A pass that edits an item's art / words bumps its LAB_V + adds its line here.
 export const LAB_CHANGES = {
+  'card-sg-btc': [{ v: 2, at: '2026-11-08', what: 'New premium art + the burner flare (THE BTC CARD — the approved mock): Grok’s big orange ₿ balloon over the neon harbor, its own strip band (the ₿ + the coins); the burner fires in bursts and the whole balloon lights up from inside, the ₿ blazes, a gold ring pulses out every block, the coins rise + spin, a sheen across the ₿.' }],
+  'full-card-sg-btc': [{ v: 2, at: '2026-11-08', what: 'New premium art + the burner flare: the whole harbor picture, laid out like the other full cards (the plate mid-left, MEMBER SINCE + the name at the foot); the balloon rises into the card + a big first burn, then burns every few seconds — the envelope lit from inside, the bloom, the flame on the real burner, the water catching it; the block ring every 10 s.' }],
   'card-penthouse': [{ v: 2, at: '2026-11-08', what: 'A NEW FACE (DM2 — the owner’s design A · THE DIAL): the gold-framed window over the city is gone; an Art Deco elevator floor dial, DRAWN IN CODE — the needle climbs 1 → PH, PH blazes, the doors’ seam lights. The strip has its own band (the dial + PH, clear of the gem).' }],
   'full-card-penthouse': [{ v: 2, at: '2026-11-08', what: 'A NEW FACE (DM2 — THE DIAL, drawn in code): the dial + the gold doors at full size, the left dark for the name.' }],
   'card-safecracker': [{ v: 2, at: '2026-11-07', what: 'The strip zoomed out + set further RIGHT (THE SLIM-CARD LONG-NAME STANDARD — the subject ≈ 0.77 across, the left free for a 12-letter name).' }],

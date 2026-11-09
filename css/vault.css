@@ -357,6 +357,15 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
 .vl-s-sg-skull { --sg: 255, 132, 52; --sg-dk: 10, 8, 10; --sg-ink: #fff3e8; }
 .vl-s-sg-btc { --sg: 255, 184, 64; --sg-dk: 22, 10, 4; --sg-ink: #fff6e6; }
 [class*="vl-s-sg-"] .vl-mat { background: rgb(var(--sg-dk)); }
+/* THE BTC CARD (Nov 8 late night — the owner's approved mock mock-btc-v1): Grok's ₿ balloon over the harbor is the MATERIAL (assets/vault/btc/btc.webp,
+   1280 × 720 — scripts/build-btc-card.mjs); the strip its OWN band (20–52 % down: the ₿ + the coins — js/fx/btc-specs.js `strip`, the SAME numbers),
+   the full card the whole picture with the name zone (left ~42 %) + the foot darkened as the mock does (THE CARD TEXT STANDARD's wash on top);
+   what moves is js/fx/btc-card.js on the shared surface. Its dark = the night sky's violet (the plate's glass). */
+.vl-s-sg-btc { --sg-dk: 9, 6, 20; }
+.vl-s-sg-btc .vl-mat { background: #0a0716 url('../assets/vault/btc/btc.webp') 50% 29.3% / cover no-repeat; }
+.vl-fcm-sg-btc .vl-mat { background: linear-gradient(90deg, rgba(7, 4, 18, 0.5) 0%, rgba(7, 4, 18, 0.3) 28%, rgba(7, 4, 18, 0) 47%),
+  linear-gradient(0deg, rgba(6, 3, 14, 0.62) 0%, rgba(6, 3, 14, 0.25) 12%, rgba(6, 3, 14, 0) 21%),
+  #0a0716 url('../assets/vault/btc/btc.webp') 50% 50% / cover no-repeat; }
 [class*="vl-s-sg-"] .vl-plate { background: linear-gradient(90deg, rgba(var(--sg-dk), 0.82), rgba(var(--sg-dk), 0.62)); box-shadow: inset 0 0 0 1px rgba(var(--sg), 0.26), 0 2px 10px rgba(0, 0, 0, 0.45); }
 .vl-t-legendary[class*="vl-s-sg-"] .vl-frame { box-shadow: inset 0 0 0 1.5px rgba(var(--sg), 0.6), 0 0 0 1.5px rgba(214, 178, 106, 0.85), 0 0 18px rgba(var(--sg), 0.25), 0 4px 14px rgba(0, 0, 0, 0.55); }
 .vl-fc.vl-t-legendary[class*="vl-s-sg-"] .vl-frame { box-shadow: inset 0 0 0 2px rgba(var(--sg), 0.62), 0 0 0 2px rgba(214, 178, 106, 0.9), 0 0 30px rgba(var(--sg), 0.22), 0 8px 26px rgba(0, 0, 0, 0.6); }

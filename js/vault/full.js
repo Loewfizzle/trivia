@@ -127,9 +127,13 @@ function tierBadge(t, dev) {
   return h('span.vl-fc-gem', { class: dev ? 'is-1of1' : null, dataset: { tier: dev ? 'dev' : t } },
     dev ? h('b.vl-fc-1of1', h('i.vl-fc-1of1-t', ONE_OF_ONE)) : null, gemEl(dev ? null : t, { dev }));   // (its size: css/vault.css; B2: the rainbow on the inner span, the backing on the outer)
 }
+/** the sighting cards rebuilt on Grok's art (the standard full-card layout — vault/layout.js keeps the plate off their hero) */
+export const ART_SIGHTINGS = new Set(['card-sg-btc']);
 export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const look = LOOKS[card] || LOOKS['card-brushed'], t = tier || tierOf(card), lv = who.lv || 1;
-  const sighting = /^card-sg-/.test(card);
+  // (a sighting card keeps its own layout — the title + the spot line, the plate at the foot — EXCEPT one rebuilt on premium art, laid out like
+  //  every other full card: THE BTC CARD — the owner's approved mock mock-btc-v1: the top line, the plate mid-left, MEMBER SINCE + the name)
+  const sighting = /^card-sg-/.test(card) && !ART_SIGHTINGS.has(card);
   const name = (who.name || 'MEMBER').toUpperCase();
   const plate = h('div.vl-fc-plate',
     // (THE VAULT 2A: the player's emblem + tube style + name glow — as on their strip)

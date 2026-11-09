@@ -281,6 +281,7 @@ export const LAB_V = Object.freeze({
   'card-gift-enforcer': 2, 'card-gift-linebacker': 2, 'card-gift-underlights': 2, 'card-gift-goldenhour': 2, 'card-gift-goldenboot': 2, 'card-gift-buzzed': 2,
   'card-safecracker': 2, 'card-ghost-run': 2,
   'card-penthouse': 2, 'full-card-penthouse': 2,   // (DM2 — PENTHOUSE's new face: design A · THE DIAL, drawn in code)   // (Nov 6: the tape card's strip v4 — its effects back on their spots)
+  'card-sg-btc': 2, 'full-card-sg-btc': 2,   // (THE BTC CARD — new premium art (Grok's ₿ balloon over the harbor) + THE BURNER FLARE)
   'card-dev-switchboard': 4, 'card-dev-source': 4, 'full-card-dev-switchboard': 6, 'full-card-dev-source': 6,
 });
 /** an item's current version */

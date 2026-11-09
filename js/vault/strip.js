@@ -46,7 +46,7 @@ export const LOOKS = Object.freeze({
   'card-sg-aurora': { mat: 'sg-aurora', fx: 'sgAurora' },
   'card-sg-fireball': { mat: 'sg-fireball', fx: 'sgFireball' },
   'card-sg-skull': { mat: 'sg-skull', fx: 'sgSkull' },
-  'card-sg-btc': { mat: 'sg-btc', fx: 'sgBtc' },
+  'card-sg-btc': { mat: 'sg-btc', fx: 'btcCard' },   // (THE BTC CARD: Grok's art = the material, js/fx/btc-card.js the motion — was the city-model scene sgBtc)
   // THE VAULT 1C — THE HELD-BACK CARDS (tiers: UNCOMMON one effect · RARE an effect + glowing edges · EPIC two · LEGENDARY a scene + the laser)
   'card-zebra': { mat: 'zebra', fx: 'sheen', tint: '255,79,184' },
   'card-camo': { mat: 'camo', fx: 'scan' },

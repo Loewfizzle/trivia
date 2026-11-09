@@ -1,0 +1,16 @@
+FIX THE MONEY, FIX THE WORLD — 8 November 2026 (America/Detroit, EST)
+Preferred files: card-btc.png; card-btc-fx-glow.png; card-btc-fx-coins.png. Optional alternate: card-btc-backup.png. All PNG RGB, 1280 x 720.
+
+Tool: built-in Grok Bot GenerateImage. Four calls total: initial master, two FX, and one allowed backup because first logo was too high for slim strip. No payment, trial, card details, account changes or quota workaround. Tool does not expose a free-tier label, so specifically verified Grok Imagine free-tier status cannot be certified.
+
+Usage terms/source checked this session: https://x.ai/legal/faq says "You own the Inputs and Outputs. You are free to use Grok’s Outputs (including generated images) from your conversations as you wish, including for commercial use." It asks attribution to Grok under its Brand Guidelines. Consumer terms: https://x.ai/legal/terms-of-service . The FAQ describes consumer grok.com/mobile use; built-in tool exposes no separate contract, so account-specific applicability is not independently certified. AI-generated, NOT CC0. Suggested credit: AI-generated with Grok.
+
+Processing: generated JPEGs converted to PNG. Main original uniformly scaled to 82% and offset +18% width/+20% height onto dark violet extended sky, feathered at top/left; lower reflections darkened for footer safe zone. This keeps shapes/coin logos undistorted. Backup is unmodified composition. FX compression residue below 5/255 removed, blank left margin and outer top/bottom forced #000; soft emitted-light falloff retained. No background vignette. RGB black is opaque; use additive/light blending.
+
+Main inspected positions (approx): balloon white Bitcoin symbol centre 77% across/47% down; burner 77%/75%; balloon envelope top 23%, basket bottom 84%. Main logo is complete in 38–62% crop, prominent on right; two right-hand coin details enter the band, left stays calm/dark. Harbor is visible in full card but its skyline/glow is BELOW the slim crop. Main contains no words/numbers/frame/gem, only permitted Bitcoin symbols. Gold coins, orange envelope, burner, basket, purple sky, ferris wheel and neon harbor are present.
+
+Material deviations: balloon lower/smaller than requested (top 23% rather than ~15%; basket 84% rather than ~72%). Burner lower than intended. Slim strip does NOT include harbor glow and has fewer coins than ideal. Actual left-to-right sky transition is visibly darker at far left after extending the composition. About ten small coins rather than a minimal handful. Some city details remain immediately above footer fade. Backup logo ~71.5%/34%, burner ~71.5%/63%, basket ~73%; backup fails full-logo slim crop, so main is preferred. No further attempts beyond permitted backup.
+
+FX glow generated hot core ~72%/69%, softly luminous oval round bloom above it; overlay may need translation/scale to line up with main burner 77%/75%. FX glints include five crescent-like coin-edge flashes (not full coins), sparks and tiny star glints. Empty background numerically checked pure black. Local glow gradients are intentional emitted light, not background gradients.
+
+No project/repository edits or deployment. Actual 38–62% crop preview retained on work box only.
