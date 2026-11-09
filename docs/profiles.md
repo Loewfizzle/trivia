@@ -468,15 +468,19 @@ A second way to bring your card to a device, beside the restore key (which stays
 - **THE BOARD's screens** (`js/board/view.js` — the app's screen, `/board`, the title's preview): THE TABS XP · DAILIES · OVERCLOCK · PRISM DROP
   (`TABS`; opens on XP, THIS WEEK; ALL TIME on every tab; a game without a tab → XP); every row = the player's SLIM CARD through
   `ui/strip-board.js` (the rank left, the score under the card with its unit — `unitOf`, ⋯ REPORT at the line's left, YOU framed + a YOU chip);
-  YOUR card pinned at the foot with your exact rank (`ranks`) or "N MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3" (`mine`); the top 10 built + SHOW
+  YOUR card pinned at the foot with your exact rank (`ranks`) or "N MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3" (`mine`) — **PD-1 GROUP 0: ONLY while your
+  own card is NOT on screen in the list** (one IntersectionObserver on your row, ≥ 60 % in view = on screen — `view.js#watchMine`; NO DOUBLE "YOU");
+  **THE TOP BAR = ☰ · ‹ · the music, nothing else** (the gold emblem / LV button that opened YOUR CARD is gone); THE BOARD's title on its own row
+  with air under the buttons; the four tabs EQUAL (the selected one changes colour + fill only; the letter-spacing shrinks to fit, never a wrap); the top 10 built + SHOW
   ALL (pages as they scroll in, ≤ 100), ONE fx surface; A FRESH WEEK / NO ONE RANKED YET / THE BOARD IS DARK designed; the background = BLACK VELVET
   + GOLD DECO (the owner's pick — CSS + one SVG sunburst). The title's preview: the top three as slim cards. Proof: `board-preview.html`.
 - **THE FRIENDS LIST** (YOU → FRIENDS — `profile/friends-ui.js#cardList`): SLIM CARDS, friends IN YOUR ROOM first (HERE — the only presence), then
-  by THIS WEEK's XP (the friends answer's `wx` = `pstats/{pid}/xw` of each FRIEND only — never a request, a block or a suggestion); the line under
+  by THIS WEEK's XP (the friends answer's `wx` = `pstats/{pid}/xw` of each FRIEND only — never a request, a block or a suggestion; **PD-1: a friend who
+  OPTED OUT of the public boards (`profiles/{pid}/h`) gets `wx: null` — no number under their card, sorted as 0; only they see their own**); the line under
   each card: ⋯ (REMOVE / BLOCK) · HERE · the XP; a tap = THE PLAYER PAGE. Preview: `friends-preview.html`.
 - **THE PLAYER PAGE** (`js/profile/player-page.js#openPlayer` + `css/player.css`, prefix `pp-`): tap ANY name (a board row `{ b, bid }`, a friend
   `{ pid }`, a room's name tag, the podium) → a full sheet through THE COVER on THE LAYER STACK, reading ONLY `/api/profile player`: the full card
   (no member line) · LEVEL + the band + its line + the flame (`alive` only) · the 3 RAREST achievements (names + medals + "% OF PLAYERS" — the
   approved exception) · INVITE (a friend not in your room) or the friend button · ⋯ by `rel`. `limited` → the name + the emblem + "This member keeps
   their card private." (never says a block); /api down → the same from what the screen had. Your own name → YOUR CARD. The room's MAKE HOST + CREW
-  rows ride under it. Proof: `e2e-profiles` 8b.
+  rows ride under it. Proof: `e2e-profiles` 8b. **PD-1 GROUP 0: its backdrop is OPAQUE** (`css/player.css` — the list behind no longer shows through).

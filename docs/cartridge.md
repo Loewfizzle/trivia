@@ -182,6 +182,8 @@ The start never waits past its 5 s for a preload: the game shows when its own pi
 - `finalScene(el, game, state)` = the game's podium BODY (D8: the console owns the FRAME: BACK TO THE ROOM, the XP box, already-yours / next
   unlock, THE CARD REVEAL). BUILT by OVERCLOCK (OC2 — `js/games/overclock/victory.js`: the neon-tube winner, the 2-1-3 podium on the slim
   cards via `leaderboard()`, the award chips, SOLO's score); a game whose body says WINNER hides the frame's own `.winner` line in its css.
+  PRISM DROP's (PD-1 — `js/games/prism/victory.js`): THE WINNING BOARD (the winner's last published board, frozen) + one line, then the top 3 as
+  slim cards; a name opens THE PLAYER PAGE (`profile/player-page.js#openPlayer`); `ACCENT '#8fd8ff'`; the console's sting.
 - THE DAILY (D2) = a SOLO ROOM fed a server-picked DAY SET (THE DAILY MODULE picks the day's challenges + item ids SERVER-SIDE once a day: a
   seed + a server secret) — passed to `daily.create({ …, daySet })` (OC5). It is NEVER computable from the date alone; `daily.on` ships `false`.
 

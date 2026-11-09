@@ -27,22 +27,66 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
   (`pulse/clock.js#ctxAtServer`) — never streamed through an <audio> element and "corrected" (that version warbled and
   stuttered on phones). Only the playing song + the next (≤ 45 s before its turn) stay decoded; after a suspension the song
   is restarted once at the right spot. It plays through a low-pass (DANGER: stack ≥ 13 rows sinks it toward 600 Hz) and a lift gain (DUEL).
-  Menu music is off during the match (`MUSIC = null`); the podium plays victory.
+  Menu music is off during the match (`MUSIC = null`); the podium plays victory. **The song file is NOT preloaded** (1.8–3.2 MB, fetched whole
+  + decoded before it plays — `audio/synced-songs.js`): the match never waits for it (everything runs on the server clock), but on a slow line the
+  first seconds play silent while it downloads — PD-5 (a slice-first start, `core/mp3-slice.js`, as the city's songs do).
 - **Musical SFX** (`audio.js#createSynth`): every note comes from the current song's scale (`tonic` + `mode`); line-clear phrases,
   twists, KO, level-up are quantized to the song's next 16th note (beat clock from the analysis); combos climb the scale; the
   countdown ticks are scheduled on the beats before GO. Synth: soft plucks, FM bells, a detuned pad, one convolver reverb.
   `window.__prism.synthLog()` records every note (the E2E checks key + grid).
-- **Visuals:** the board is Canvas 2D with pre-rendered glass sprites (`board.js`); the world is one WebGL fragment shader per
+- **THE LAYOUT — THE MAX BOARD (PD-1, Nov 9 2026; the owner's plan in docs/games/plan.md "PRISM DROP — THE REWORK PLAN"):** `layout.js` (PURE —
+  `tests/prism-layout.test.mjs`) sizes everything from the screen + the real safe areas (the view reads `.pd-ui`'s resolved paddings once per
+  layout change, never in the frame loop): the corner row (☰ top-left · THE TOP LINE · the music top-right — the shared OC8 buttons, PRISM draws
+  nothing of its own up there) = 52 pt under the safe area; under it THE FIELD, centred: `[12 pt][THE BOARD 10 × 20][8 pt][THE RAIL 34 pt][12 pt]`.
+  The cell is as wide as the phone allows, checked against the height (20 rows always fit — never clipped, never scrolled), snapped to the device's
+  pixels (thirds of a point on an iPhone): **32.3 pt at 390, 33.3 at 402, 36.3 at 430** (was ~25), capped at 44 (a desktop's phone column: 41.3).
+  - **THE TOP LINE** (between the buttons, `var(--cb-room)` both sides, centred): `BATTLE · 5 LEFT` / `SCORE RUSH · <your score>` + the world's
+    name (SCORE RUSH: the time left first); its font sized from the text's length + the room (no measuring), never wrapping; an announcement takes
+    the line for a moment (`.pd-top.has-ann`).
+  - **HOLD + NEXT** float INSIDE the board's top corners (HOLD 2 × 1.6 cells, NEXT 4.5 × 1.6 with THREE pieces): slim see-through glass; when the
+    falling piece or the stack is under one (`layout.js#panelCells` — the cells it covers) it fades to 0.3 (`.is-under`), so the piece reads.
+  - **THE SLIM RAIL** (`rail.js`): one tile per opponent (54 pt, shrinking to fit 7): their colour (a left stripe + the border), their initial,
+    their stack height as a fill (a scaleY layer — `is-high` from 65 % turns its edge red), KO when out, a white outline flash when your attack
+    lands on them (`rail.hit`), the current target's thin white ring, a red notch on whoever is hitting you; SCORE RUSH: score order + the rank. A
+    FINAL DUEL: the one tile grows and shows their board (`drawMini`). The old side columns (badges, TARGET, the stats) + the mini-board row are
+    GONE — their data stays in the game state (the podium, THE BOARD, PD-2's cards); targeting keeps its saved mode (PD-2 makes it automatic).
+  - **THE SLAM BUTTON** (gestures — the default): a glossy RED PUSH BUTTON at the rail's foot (36 + 8 × button size pt — 40 by default, a 52 pt tap
+    area), leaning OUT into the screen margin so it never comes within 5 pt of the board: a chrome bezel (light top → dark bottom), a red dome (bright
+    top-left → deep red edge), a gloss, SLAM in white; the press sinks + darkens the dome (`.is-down` from `input.js#bindButtons`), the release
+    flashes (`.is-flash`); its sound = the hard drop's. transform + opacity only. Nothing like a shell DANGER tube. The LEFT setting (Settings →
+    SLAM BUTTON) mirrors the rail + SLAM to the board's left (the junk meter moves to the right edge).
+  - **THE BUTTONS scheme** (Settings → CONTROLS): the board shrinks to fit the button bar under it (27.7 pt at 390); no SLAM (its own DROP); the
+    rail stays on the right.
+  - **The countdown** card + numbers sit over THE BOARD (the overlay padded by the rail + gap), not the screen's centre.
+- **Visuals:** the board is Canvas 2D with pre-rendered glass sprites (`board.js`) at the phone's **FULL pixel ratio** (PD-1: 3× on an iPhone —
+  was capped at 2; the HOLD / NEXT pieces + the minis too); the world is one WebGL fragment shader per
   world at 0.33–0.6 of screen resolution (`worlds.js`; uniforms: beat, energy, bloom, hue, combo, wave, danger, duel, glitch) and
-  shards are a capped canvas particle layer (`fx.js`) between them. Quality tiers 2/1/0 (world scale, fbm octaves, DPR 2/1.5/1,
-  particle cap 200/110/50, glow) step down when the p75 frame > 19.5 ms. "Reduced effects" (settings) + prefers-reduced-motion
+  shards are a capped canvas particle layer (`fx.js`) between them. Quality tiers 2/1/0 (world scale, fbm octaves, the BOARD's DPR full / 2 / 1.5
+  — `layout.js#boardDpr` — the shards' 2/1.5/1, particle cap 200/110/50, glow) step down when the p75 frame > 19.5 ms. Measured (PD-1,
+  `prism-shots.mjs` at 390 × 844 @3, 7 opponents, a bot playing, 4× CPU, GPU): **60 fps at every tier (p95 16.8 ms), 1.7 ms of CPU a frame** —
+  the same 60 fps as the view before PD-1 on the same page. "Reduced effects" (settings) + prefers-reduced-motion
   turn off shards, hue drift, beat pulses and camera pulses.
 - **Checking a real phone:** add `?pdperf` to the address (it survives joining a room): a corner readout of fps, frame
   CPU time, quality tier, world resolution, audio state/latency and the songs playing.
+- **THE PODIUM (PD-1 — the console's, docs/cartridge.md D8):** `index.js` exports `finalScene` (`victory.js`) — PRISM draws ONLY the BODY inside the
+  console's frame (`ui/final.js#createFinal`: the WINNER line, BACK TO THE ROOM, the XP box, the card reveal, the results list from 4th, the
+  console's winner sting — no `OWN_VICTORY_SOUND`): THE WINNING BOARD (the winner's last published board, frozen — `drawMini`) + one line
+  (BATTLE: "3 KNOCKOUTS · 31 LINES SENT"; SCORE RUSH: points · lines · the best combo), then the TOP 3 as the console's slim cards (`leaderboard()`);
+  a name with a profile opens THE PLAYER PAGE (`profile/player-page.js#openPlayer` — the podium only, never during live play). The old BATTLE REPORT
+  table is gone. `ACCENT = '#8fd8ff'` (meta.js — the theme's spectral cyan) lights the frame's main tube. THE BOARD's PRISM DROP tab is fed as
+  before (`core/match-report.js` / `core/boards.js` unchanged).
+- **THE PRELOAD (PD-1):** `preload()` (every phone, the walk inside): the manifest + the FIRST song's analysis (~5 KB, predicted from the room's
+  `meta/prism` playlist; a room's first match — no playlist yet — all five, ~25 KB). The worlds are shaders in code (in the view's module graph, already
+  preloaded — `js/games/preload-graph.js`, 29 modules / 213 KB). Far under the 1.5 MB budget; the song file is not preloaded (above).
+- **THE PREVIEW (PD-1):** `tests/integration/prism-preview.html` mounts the REAL view (the fake database) with a scripted state — `&n=1..7`
+  `&state=play|count|ko|duel|final|spec` `&rush=1` `&scheme=buttons` `&slam=left` `&world=` `&bot=1` `&under=1` `&down=1` (SLAM pressed) `&hit=1`
+  `&st=47&sb=34` (the safe areas). `node tests/integration/prism-shots.mjs "<chrome>" ./shots-prism [cpu]` shoots every state at 390 / 402 / 430
+  with each phone's real safe areas (`SIZES=`, `ONLY=`, `SETS=look,states,worlds`) + the frame timing per tier (`PERF=0` skips it).
 - **Controls** (`input.js#makeGesture`, pure + unit-tested with 2000 random swipes): drag = follow the finger by distance (no
   overshoot), tap = rotate by screen half, slow drag down = soft drop row by row, flick (≥ ~1.15 px/ms over 70 ms, steep, ≥ 0.9
   cell) = hard drop, swipe up = hold. Settings: GESTURES/BUTTONS, swipe sensitivity, button size, reduced effects (`audio/settings.js`
-  `prismScheme/prismSens/prismBtn/prismReduced`). Keys: ← → ↓ space ↑/X Z C/shift.
+  `prismScheme/prismSens/prismBtn/prismReduced`). Keys: ← → ↓ space ↑/X Z C/shift. (PD-1: the gestures are UNCHANGED — the owner: "the controls
+  are really good"; the flick slams only with SWIPE-DOWN SLAM on — `prismFlick`; by default THE SLAM BUTTON drops.)
 
 **Adding PRISM DROP songs** (the owner drops `prism6.mp3`, `prism7.mp3`, … into ~/Downloads and asks to "add the new PRISM DROP songs"):
 1. PULSE's Python venv (see PULSE step 1).

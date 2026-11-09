@@ -172,7 +172,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   `ml-` `sp-`); MISSING LINK records each clue's SIDE (the answer screen + the demo show the WHOLE word, the link lit) and every join is a real word
   (Hunspell en_US / ENABLE) or a Wiktionary phrase; SPELLCHECK is American (the right word in Hunspell en_US — SCOWL; no wrong one a word in
   en_US / en_GB / ENABLE; `hard` = the common slip, the answer's underlines).
-- **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists).
+- **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists). PD-1 (Nov 9 — docs/prism.md "THE LAYOUT"; the
+  rework plan: docs/games/plan.md): THE MAX BOARD's sizes are ONE pure module (`prism/layout.js` — the real safe areas, the cell snapped to device
+  pixels, the board at the FULL 3×), HOLD + NEXT inside the board's corners, the other players on THE SLIM RAIL (`rail.js`), SLAM = the red push
+  button at the rail's foot (LEFT mirrors it); the podium = the console's frame + `victory.js#finalScene` (PRISM draws no frame, no report table);
+  `prism-preview.html` mounts the REAL view (`prism-shots.mjs`).
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,

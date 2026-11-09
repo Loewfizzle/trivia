@@ -2297,6 +2297,20 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   (baked in the clean base — subtracted at build), THE FAST REVEAL (a reveal in the page's first 900 ms left the city at opacity 0 — the WORD
   TOWERS flake's cause), THE MONDAY BLADE (the city re-baked its blade in view on a Monday load — LOAD WEATHER's Monday red).
 
+## PD-1 — PRISM DROP: LAYOUT + CONTROLS (Nov 9, 2026 — docs/harbor/passes/pd-1.md; the plan: docs/games/plan.md "PRISM DROP — THE REWORK PLAN")
+- GROUP 0 — THE BOARD's TOP: the gold emblem / LV button gone (☰ · ‹ · the music), the title on its own row with air, four equal tabs, NO DOUBLE
+  "YOU" (the pinned row only while your card is off screen), an opted-out friend shows no XP this week (`wx: null`), THE PLAYER PAGE opaque.
+- view.js split: `layout.js` (PURE sizes — tests/prism-layout.test.mjs), `rail.js`, `victory.js` (the podium body).
+- THE MAX BOARD: [12][board][8][rail 34][12] centred under the corner row with the real safe areas; 32.3 / 33.3 / 36.3 pt at 390 / 402 / 430,
+  snapped to device pixels, the board at the full 3× (tiers 2× / 1.5×); THE TOP LINE between ☰ + the music; HOLD + NEXT (3 pieces) inside the
+  board's top corners, fading under a piece; THE SLIM RAIL (colour, initial, stack fill, KO, the hit flash; a duel tile shows the board).
+- THE SLAM BUTTON: a glossy red push button (chrome bezel, red dome, gloss) with a real press + a release flash; LEFT mirrors rail + SLAM; THE
+  BUTTONS scheme's smaller board. The gestures unchanged.
+- THE CONSOLE'S PODIUM: `finalScene` (the winning board frozen + one line, the top 3 as slim cards → THE PLAYER PAGE), `ACCENT #8fd8ff`, the
+  console's sting; the BATTLE REPORT table gone. `preload()` = the first song's analysis (~5 KB).
+- prism-preview.html mounts the REAL view; prism-shots.mjs shoots every state at 390 / 402 / 430 with real safe areas. 60 fps at every tier at
+  3× (4× CPU), 1.7 ms CPU a frame — the same as before.
+
 ## BOARD 2.0 B (Nov 9, 2026 — docs/harbor/passes/board-2b.md)
 - THE MOCK first (board2-preview.html — the real strips + full card): OK'd; the brown bar hall → BLACK VELVET + GOLD DECO (the owner's pick of three).
 - THE BOARD: tabs XP · DAILIES · OVERCLOCK · PRISM DROP (opens on XP, THIS WEEK); rows = slim cards (rank left, score under, ⋯ REPORT, YOU framed +
