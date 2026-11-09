@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BOARD 2.0 B — the mock</title>
+<link rel="icon" href="data:,">
+<!-- BOARD 2.0 B — THE MOCK (the owner's OK before the screens are built): the REAL slim strips (ui/strip-board.js), the REAL full card
+     (vault/full.js#openFullCard), the REAL hall (board/scene.js) — scripted rows, no Firebase, no /api.
+       ?shot=board     (a) THE BOARD · XP · THIS WEEK · YOU framed (14th) — &far=1 = YOU below the top 100 (#1,342)
+       ?shot=dailies   (b) DAILIES · ALL TIME · "N MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3"
+       ?shot=friends   (c) YOU → FRIENDS as slim cards (in your room first, then by this week's XP)
+       ?shot=player    (d) THE PLAYER PAGE for a friend (card · LV + rank + flame · 3 medals · INVITE · ⋯) — &limited=1 = a limited player
+       ?shot=empty     (e) an empty week (Monday morning) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/progress.css">
+<link rel="stylesheet" href="/css/friends.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>
+  html, body { margin: 0; background: #060307; }
+  #app { position: relative; height: 100dvh; }
+  /* ---- THE BOARD 2.0 rows (the mock's draft — moves to board.css when built) ---- */
+  .bd-tabs4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; flex: none; }
+  .bd-tabs4 .bd-gtab { justify-content: center; padding: 0 4px; gap: 0; font-size: 10.5px; letter-spacing: 0.08em; min-width: 0; height: 38px; }
+  .bd-tabs4 .bd-gdot { display: none; }
+  .bd2 .bd-kicker { display: none; }
+  .bd2 .bd-name { margin-top: 2px; font-size: clamp(26px, 7.6vw, 42px); }
+  .bd2 .bd-head { grid-template-rows: 40px auto; }
+  .bd-tabs4 .bd-gtab span:last-child { overflow: hidden; text-overflow: clip; }
+  .bd2 .bd-wrap { max-width: 600px; }
+  .bd2 .bd-card-head { padding-bottom: 2px; }
+  .bd2 .bd-plate { padding-bottom: 10px; border-bottom: 1px solid var(--bd-line); }
+  .bd-srows { list-style: none; margin: 0; padding: 10px 12px 12px 6px; display: grid; gap: 12px; }
+  .bd-srow { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: start; column-gap: 6px; }
+  .bd-srank { height: 58px; display: grid; place-items: center; font: 800 14px/1 var(--font-num); color: var(--bd-dim); }
+  .bd-srank .bd-medal { width: 28px; height: 28px; font-size: 13px; }
+  .bd-scard { position: relative; min-width: 0; }
+  .bd-scard .vl-strip { width: 100%; }
+  .bd-ssub { display: flex; align-items: center; gap: 8px; margin: 4px 2px 0; min-height: 22px; }
+  .bd-ssub .bd-more2 { position: relative; width: 32px; height: 22px; display: grid; place-items: center; border: 0; border-radius: 8px; background: rgba(255, 225, 190, 0.06); color: var(--bd-dim); padding: 0; cursor: pointer; }
+  .bd-ssub .bd-more2 svg { width: 16px; height: 4px; fill: currentColor; }
+  .bd-ssub .bd-more2::after { content: ''; position: absolute; inset: -11px -7px; }
+  .bd-ssub .bd-you2 { font: 800 9.5px/1 var(--font-mono); letter-spacing: 0.22em; color: #1a1007; background: linear-gradient(180deg, #ffe9b8, var(--bd-gold)); padding: 4px 6px 3px; border-radius: 5px; }
+  .bd-sval { margin-left: auto; font: 800 17px/1 var(--font-num); color: #fff6e6; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; text-shadow: 0 0 12px rgba(255, 196, 110, 0.45); white-space: nowrap; }
+  .bd-sval small { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.18em; color: var(--bd-dim); margin-left: 5px; text-shadow: none; }
+  .bd-srow.is-1 .bd-sval { color: #ffe39a; }
+  .bd-srow.is-me .vl-strip { box-shadow: 0 0 0 2px #f2c869, 0 0 16px rgba(242, 200, 105, 0.55); }
+  .bd-srow.is-me .bd-srank { color: #ffe39a; }
+  .bd-showall { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 2px auto 10px; min-height: 44px; padding: 0 18px; border: 0; background: none; font: 700 11px/1 var(--font-ui); letter-spacing: 0.22em; color: var(--bd-gold); cursor: pointer; }
+  .bd-showall i { width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+  .bd-me2 { flex: none; position: relative; z-index: 3; padding: 10px 12px 12px 6px; border-top: 1px solid rgba(242, 200, 105, 0.35); background: linear-gradient(180deg, rgba(40, 24, 18, 0.96), rgba(22, 13, 12, 0.98)); }
+  .bd-me2 .bd-srow { margin: 0; }
+  .bd-me2 .bd-srank { font-size: 13px; color: #ffe39a; white-space: nowrap; letter-spacing: -0.02em; }
+  .bd-me2 .bd-srank.is-long { font-size: 10.5px; }
+  .bd-me2 .bd-note2 { margin-left: auto; display: grid; justify-items: end; gap: 3px; font: 700 9.5px/1.25 var(--font-mono); letter-spacing: 0.12em; color: var(--bd-dim); text-align: right; }
+  .bd-me2 .bd-note2 b { font: 800 17px/1 var(--font-num); color: #ffe39a; letter-spacing: 0.02em; text-shadow: 0 0 12px rgba(255, 196, 110, 0.45); }
+  .bd-me2 .bd-note2 b small { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.18em; color: var(--bd-dim); margin-left: 5px; text-shadow: none; }
+  .bd-empty2 { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 34px 26px 26px; }
+  .bd-empty2 b { font: 800 15px/1.2 var(--font-display); letter-spacing: 0.16em; color: #fff6e6; text-shadow: 0 0 14px rgba(255, 196, 110, 0.6); }
+  .bd-empty2 span { font: 500 13px/1.45 var(--font-ui); color: var(--bd-dim); max-width: 30ch; }
+  .bd-empty2 .bd-dial { width: 92px; height: 92px; }
+  /* ---- YOU → FRIENDS (the mock's draft — friends.css when built) ---- */
+  .pf-mock { height: 100dvh; overflow-y: auto; background: radial-gradient(120% 60% at 50% 0%, #2a1030, #0b0612 60%); padding: calc(var(--safe-t) + 18px) 16px 40px; box-sizing: border-box; }
+  .pf-mock > * { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .pf-mock-top { font: 700 10px/1 var(--font-mono); letter-spacing: 0.3em; color: var(--text-faint); margin-bottom: 14px; text-align: center; }
+  .fr-cards { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 12px; }
+  .fr-crow { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .fr-crow .bd-ssub { margin: 4px 2px 0; }
+  .fr-crow .fr-here { display: inline-flex; align-items: center; gap: 6px; font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.18em; color: #7dffb0; }
+  .fr-crow .fr-here i { width: 8px; height: 8px; border-radius: 50%; background: #3dff8b; box-shadow: 0 0 8px #3dff8b; }
+  .fr-crow .bd-sval { font-size: 15px; color: #fff; text-shadow: 0 0 10px rgba(255, 124, 203, 0.45); }
+  .fr-gh2 { margin: 16px 0 2px; font: 700 10px/1 var(--font-mono); letter-spacing: 0.26em; color: var(--text-dim); }
+  .fr-crow .bd-more2 { background: rgba(255, 255, 255, 0.07); color: var(--text-dim); }
+  /* ---- THE PLAYER PAGE (the mock's draft — css/player.css when built) ---- */
+  .pp-foot { width: 100%; display: grid; gap: 12px; }
+  .pp-lv { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: rgba(255, 255, 255, 0.045); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.28); }
+  .pp-lvn { font: 800 30px/1 var(--font-num); color: #fff6e6; letter-spacing: 0.02em; }
+  .pp-lvn small { display: block; font: 700 9px/1 var(--font-mono); letter-spacing: 0.3em; color: var(--text-dim); margin-bottom: 4px; }
+  .pp-band { min-width: 0; }
+  .pp-band b { display: block; font: 800 13px/1.1 var(--font-display); letter-spacing: 0.16em; color: #ffe39a; }
+  .pp-band span { display: block; margin-top: 4px; font: 500 12.5px/1.3 var(--font-ui); color: var(--text-dim); }
+  .pp-fl { display: inline-flex; align-items: center; gap: 2px; font: 800 18px/1 var(--font-num); color: #ffb35c; }
+  .pp-meds { display: grid; gap: 8px; padding: 12px 14px 12px; border-radius: 16px; background: rgba(255, 255, 255, 0.045); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); }
+  .pp-h { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.28em; color: var(--text-dim); margin-bottom: 2px; }
+  .pp-med { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+  .pp-med .pg-medal { width: 46px; height: 46px; }
+  .pp-med .pg-medal .ve { transform: scale(0.85); }
+  .pp-med b { font: 800 13px/1.15 var(--font-ui); letter-spacing: 0.08em; color: #fff; }
+  .pp-med em { font: 700 10px/1.2 var(--font-mono); font-style: normal; letter-spacing: 0.1em; color: #ff7ccb; text-align: right; }
+  .pp-acts { display: grid; grid-template-columns: 1fr 52px; gap: 10px; }
+  .pp-dots { min-height: 48px; display: grid; place-items: center; border-radius: 14px; border: 0; background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22); color: #fff; padding: 0; cursor: pointer; }
+  .pp-dots svg { width: 20px; height: 5px; fill: currentColor; }
+  .pp-lim { display: grid; justify-items: center; gap: 10px; padding: 26px 18px; border-radius: 18px; background: rgba(255, 255, 255, 0.045); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); width: 100%; box-sizing: border-box; }
+  .pp-lim b { font: 800 20px/1 var(--font-display); letter-spacing: 0.12em; color: #fff; }
+  .pp-lim span { font: 500 13px/1.4 var(--font-ui); color: var(--text-dim); text-align: center; }
+  .vl-full-in { max-height: 100%; overflow-y: auto; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+  const q = new URLSearchParams(location.search);
+  if (!q.get('labmarks')) { q.set('labmarks', 'all'); history.replaceState(null, '', `?${q}`); }
+  const SHOT = q.get('shot') || 'board';
+  const { h } = await import('/js/ui/dom.js');
+  const { installEmblems } = await import('/js/ui/emblems.js');
+  const { tubeButton } = await import('/js/ui/components.js');
+  const { stripKit, stripFor, stripFx } = await import('/js/ui/strip-board.js');
+  const { createHall } = await import('/js/board/scene.js');
+  const { emblemEl } = await import('/js/vault/emblem-art.js');
+  const { flameArt } = await import('/js/progress/flame-art.js');
+  const { bandOf } = await import('/js/core/levels.js');
+  const { ITEM } = await import('/js/core/items.js');
+  const { AVATAR_IDS, COLORS } = await import('/js/config.js');
+  installEmblems();
+  const K = await stripKit();
+
+  // ---- scripted players (real card ids — a legendary, rares, a plain, a 12-letter name, a Gilded)
+  const CARDS = ['card-sg-aurora', 'card-inferno', 'card-chrome', 'card-emerald', 'card-heartbreaker', 'card-neonglass', 'card-velvet', null, 'card-carbon', 'card-sapphire', 'card-noir', 'card-brass', 'card-zebra', 'card-marquee'];
+  const NAMES = ['NOVA', 'MAXIMILIANOS', 'KIM', 'DEX', 'LUNA', 'ROOK', 'JUNO', 'VEE', 'KAI', 'IRIS', 'BO', 'REMY', 'SASHA', 'THEO', 'PIP', 'MARLOWE', 'QUINN', 'WREN', 'JAX', 'ECHO'];
+  const ME = { n: 'AVA', a: 'bolt', c: 'magenta', cd: 'card-marquee', l: 23, r: 2, es: null, tb: null, g: null };
+  const MY = q.has('far') ? 1342 : 14;
+  function rows(kind) {
+    let v = kind === 'avg' ? 9410 : 4860;
+    return Array.from({ length: 100 }, (_, i) => {
+      if (i) v = Math.max(kind === 'avg' ? 4000 : 20, v - (kind === 'avg' ? 20 + ((i * 37) % 60) : 40 + ((i * 53) % 170)));
+      if (i + 1 === MY) return { ...ME, id: 'me', rank: i + 1, v };
+      return { id: `b${i}`, n: NAMES[i % NAMES.length], a: AVATAR_IDS[i % AVATAR_IDS.length], c: COLORS[(i * 3) % COLORS.length].id, cd: CARDS[i % CARDS.length], l: Math.max(2, 64 - i), r: i < 3 ? 4 : i < 10 ? 3 : 2, es: null, tb: null, g: null, rank: i + 1, v };
+    });
+  }
+  const dots = label => h('button.bd-more2', { type: 'button', 'aria-label': label, html: '<svg viewBox="0 0 16 4" aria-hidden="true"><circle cx="2" cy="2" r="1.8"/><circle cx="8" cy="2" r="1.8"/><circle cx="14" cy="2" r="1.8"/></svg>' });
+  const fmt = (kind, v) => (kind === 'avg' ? (v / 100).toFixed(1) : Math.round(v).toLocaleString('en-US'));
+
+  // ---- one slim-card row: the rank LEFT, the card, the line UNDER it (⋯ left · the value right)
+  function srow(r, i, kind, unit, surface) {
+    const mine = r.id === 'me';
+    const s = stripFor(K, r);
+    const rk = r.rank <= 3 ? h('span.bd-medal', { class: `is-${['', 'gold', 'silver', 'bronze'][r.rank]}` }, String(r.rank)) : String(r.rank);
+    const li = h(`li.bd-srow${mine ? '.is-me' : ''}${r.rank === 1 ? '.is-1' : ''}`,
+      h('span.bd-srank', rk),
+      h('div.bd-scard', s.el, h('div.bd-ssub',
+        mine ? h('span.bd-you2', 'YOU') : dots(`${r.n} — report`),
+        h('span.bd-sval', fmt(kind, r.v), unit ? h('small', unit) : null))));
+    stripFx(K, surface, s, i + 1);
+    return li;
+  }
+
+  function hall(game, tabs, sub, plate, when) {
+    const canvas = h('canvas');
+    const wrap = h('div.bd-wrap');
+    const el = h('section.bd.bd2', { dataset: { game } },
+      h('div.bd-scene', { 'aria-hidden': 'true' }, h('div.bd-drift', canvas), h('div.bd-tint.is-on', { style: { '--t1': '#f2c869', '--t2': '#ff7ccb' } })),
+      wrap);
+    el.style.setProperty('--a1', '#f2c869'); el.style.setProperty('--a2', '#ff7ccb');
+    const head = h('header.bd-head', h('button.bd-back', { type: 'button', 'aria-label': 'Back' }, '‹'),
+      h('div.bd-title', h('span.bd-kicker', 'NEON SPEAKEASY'), h('h1.bd-name', 'THE BOARD'), h('span.bd-sub', 'HALL OF FAME')));
+    const T = [['xp', 'XP', '#f2c869', '#ff7ccb'], ['dailies', 'DAILIES', '#ff7ccb', '#5aa9ff'], ['overclock', 'OVERCLOCK', '#ffb627', '#ff2bd6'], ['prism', 'PRISM DROP', '#9fe8ff', '#ff7ccb']];
+    const tabsEl = h('nav.bd-tabs4', ...T.map(([id, l, a1, a2]) => h('button.bd-gtab', { type: 'button', class: id === tabs ? 'is-on' : '', dataset: { id }, style: { '--a1': a1, '--a2': a2 } }, h('span.bd-gdot'), h('span', l))));
+    const period = h('div.bd-seg.bd-period', ...['THIS WEEK', 'ALL TIME'].map(l => h('button.bd-seg-b', { type: 'button', class: l === (when.all ? 'ALL TIME' : 'THIS WEEK') ? 'is-on' : '' }, l)));
+    const card = h('article.bd-card', h('header.bd-card-head', h('div.bd-plate', h('h2.bd-label', plate), h('span.bd-when', when.line))));
+    wrap.append(head, tabsEl, h('div.bd-ctrl', period), ...(sub ? [sub] : []), card);
+    document.getElementById('app').append(el);
+    const hl = createHall(canvas);
+    const fit = () => hl.resize(el.clientWidth, el.clientHeight); fit(); new ResizeObserver(fit).observe(el);
+    return card;
+  }
+
+  function board({ kind, unit, empty, tab, sub, plate, when, mine }) {
+    const card = hall('xp', tab, sub, plate, when);
+    const scroll = h('div.bd-scroll'); card.append(scroll);
+    const surface = K.createSurface(scroll, { label: 'board' });
+    if (empty) {
+      scroll.append(h('div.bd-empty2', h('span.bd-dial', emblemEl({ avatar: 'crown', color: 'yellow', mode: 'quiet', size: 92 })),
+        h('b', 'A FRESH WEEK'), h('span', 'The board starts over every Monday. Earn XP in any match or daily to take the first spot.')));
+    } else {
+      const R = rows(kind);
+      const top = R.slice(0, 10);
+      const list = h('ol.bd-srows', ...top.map((r, i) => srow(r, i, kind, unit, surface)));
+      scroll.append(list, h('button.bd-showall', { type: 'button' }, h('span', 'SHOW ALL 100'), h('i')));
+    }
+    // YOUR line pinned at the foot (when your card isn't in the built rows)
+    if (mine) {
+      const s = stripFor(K, ME);
+      const me = h('div.bd-me2', h('div.bd-srow.is-me', h('span.bd-srank', { class: mine.rank.length > 4 ? 'is-long' : '' }, mine.rank), h('div.bd-scard', s.el, h('div.bd-ssub', h('span.bd-you2', 'YOU'), h('span.bd-note2', ...[].concat(mine.note))))));
+      card.append(me);
+      const meSurf = K.createSurface(me, { label: 'me' }); stripFx(K, meSurf, s, 99);
+    }
+  }
+
+  if (SHOT === 'board') {
+    const far = q.has('far');
+    board({ kind: 'xp', unit: 'XP', tab: 'xp', plate: 'XP THIS WEEK', when: { line: 'RESETS MONDAY · IN 6D 16H' },
+      mine: far ? { rank: '#1,342', note: [h('b', '320', h('small', 'XP'))] } : null });
+    if (!far) { /* YOU are 14th: framed in the list once SHOW ALL is opened — the pinned line shows you meanwhile */
+      document.querySelector('.bd-card').append(h('div.bd-me2', h('div.bd-srow.is-me', h('span.bd-srank', '#14'), h('div.bd-scard', stripFor(K, ME).el, h('div.bd-ssub', h('span.bd-you2', 'YOU'), h('span.bd-note2', h('b', '4,120', h('small', 'XP'))))))));
+    }
+  } else if (SHOT === 'dailies') {
+    const chips = h('div.bd-picks', h('div.bd-chips', ...['ALL DAILIES', 'THE PASSWORD', 'COAST CLEAR'].map((l, i) => h('button.bd-chip', { type: 'button', class: i ? '' : 'is-on' }, l))));
+    board({ kind: 'avg', unit: 'AVG', tab: 'dailies', sub: chips, plate: 'AVERAGE A DAY', when: { all: true, line: 'RANKED FROM 10 DAYS PLAYED' },
+      mine: { rank: '—', note: [h('span', '3 MORE DAYS TO BE RANKED'), h('span', 'YOUR AVERAGE 83.3')] } });
+  } else if (SHOT === 'empty') {
+    board({ kind: 'xp', unit: 'XP', tab: 'xp', empty: true, plate: 'XP THIS WEEK', when: { line: 'RESETS MONDAY · IN 6D 23H' },
+      mine: { rank: '—', note: [h('b', '0', h('small', 'XP')), h('span', 'NOT ON THE BOARD YET')] } });
+  } else if (SHOT === 'friends') {
+    const F = [
+      { n: 'NOVA', a: 'star', c: 'cyan', cd: 'card-sg-aurora', l: 44, here: true, wk: 1240 },
+      { n: 'MAXIMILIANOS', a: 'wave', c: 'orange', cd: 'card-inferno', l: 26, here: true, wk: 380 },
+      { n: 'KIM', a: 'hex', c: 'yellow', cd: 'card-chrome', l: 30, wk: 2210 },
+      { n: 'DEX', a: 'moon', c: 'green', cd: null, l: 9, wk: 640 },
+      { n: 'LUNA', a: 'diamond', c: 'violet', cd: 'card-heartbreaker', l: 19, wk: 120 },
+      { n: 'ROOK', a: 'bolt', c: 'red', cd: 'card-velvet', l: 12, wk: 0 },
+    ];
+    const pane = h('div.pf-mock', h('div.pf-mock-top', 'YOUR CARD · FRIENDS'));
+    const list = h('ol.fr-cards');
+    const sec = h('section.pf-sec.fr-sec', h('h3.pf-h.fr-h', h('span', 'FRIENDS'), h('span.fr-count', '8')),
+      h('div.fr-group.fr-req', h('h4.fr-gh', 'REQUESTS · 1'), h('div.fr-row.is-req', h('span.fr-av', (await import('/js/ui/components.js')).avatar('eye', 'cyan', 34)), h('span.fr-who', h('b.fr-n', 'ECHO'), h('small', '#···· · LV 7')), h('span.fr-acts', tubeButton('ACCEPT', { kind: 'main', size: 'sm' }), tubeButton('DECLINE', { kind: 'secondary', size: 'sm' })))),
+      h('h4.fr-gh2', 'IN YOUR ROOM'), list);
+    const list2 = h('ol.fr-cards');
+    sec.append(h('h4.fr-gh2', 'THIS WEEK'), list2, h('button.bd-showall', { type: 'button', style: { color: '#ff7ccb' } }, h('span', 'ALL 8 FRIENDS'), h('i')));
+    pane.append(sec);
+    document.getElementById('app').append(pane);
+    const surface = K.createSurface(sec, { label: 'friends' });
+    const add = (L, f, i) => { const s = stripFor(K, f); L.append(h('li.fr-crow', h('div.bd-scard', s.el, h('div.bd-ssub', dots(`${f.n} — more`), f.here ? h('span.fr-here', h('i'), 'HERE') : null, h('span.bd-sval', f.wk.toLocaleString('en-US'), h('small', 'XP THIS WEEK')))))); stripFx(K, surface, s, i + 1); };
+    F.filter(f => f.here).forEach((f, i) => add(list, f, i));
+    F.filter(f => !f.here).sort((a, b) => b.wk - a.wk).slice(0, 3).forEach((f, i) => add(list2, f, i + 2));
+  } else if (SHOT === 'player') {
+    // the city behind (a still), then THE PLAYER PAGE through the real openFullCard
+    const bg = h('section.bd', h('div.bd-scene', h('div.bd-drift', h('canvas', { id: 'pbg' }))));
+    document.getElementById('app').append(bg);
+    const hl = createHall(document.getElementById('pbg')); hl.resize(innerWidth, innerHeight);
+    const Fm = await import('/js/vault/full.js');
+    await import('/js/vault/strip.js').then(m => m.vaultSheet());
+    if (q.has('limited')) {
+      const box = h('div.pp-lim', emblemEl({ avatar: 'wave', color: 'orange', mode: 'quiet', size: 96 }), h('b', 'MAXIMILIANOS'), h('span', 'This member keeps their card private.'));
+      const el = h('div.vl-full', h('div.vl-full-in', box, h('button.vl-full-x', { type: 'button' }, 'CLOSE')));
+      document.body.append(el);
+    } else {
+      const top = [
+        { id: 'the-witness', name: 'THE WITNESS', group: 'sightings', item: 'card-witness', tier: 'legendary', pct: 0.4 },
+        { id: 'kingpin', name: 'KINGPIN', group: 'playing', item: 'card-marquee-gold', tier: 'epic', pct: 1.2 },
+        { id: 'night-owl', name: 'NIGHT OWL', group: 'playing', item: 'emb-owl', tier: 'rare', pct: 6 },
+      ];
+      const medal = a => { const tier = a.tier || 'common'; return h('span.pg-medal', { class: `pg-medal-${tier}` }, h('i.pg-medal-ring'), emblemEl({ id: a.item.startsWith('emb-') ? a.item : null, avatar: a.group === 'sightings' ? 'alien' : a.id === 'kingpin' ? 'crown' : 'eye', color: tier === 'legendary' ? 'yellow' : tier === 'epic' ? 'violet' : 'cyan', mode: 'quiet', size: 28 })); };
+      const lv = 44, band = bandOf(lv);
+      const foot = h('div.pp-foot',
+        h('div.pp-lv', h('span.pp-lvn', h('small', 'LEVEL'), String(lv)), h('span.pp-band', h('b', band.name), h('span', band.line)), h('span.pp-fl', flameArt('lit', 26), '12')),
+        h('div.pp-meds', h('div.pp-h', 'RAREST ACHIEVEMENTS'), ...top.map(a => h('div.pp-med', medal(a), h('b', a.name), h('em', `${a.pct < 1 ? '<1' : Math.round(a.pct)}% OF PLAYERS`)))),
+        h('div.pp-acts', tubeButton('INVITE TO THE ROOM', { kind: 'main', block: true }), h('button.pp-dots', { type: 'button', 'aria-label': 'More', html: '<svg viewBox="0 0 16 4" aria-hidden="true"><circle cx="2" cy="2" r="1.8"/><circle cx="8" cy="2" r="1.8"/><circle cx="14" cy="2" r="1.8"/></svg>' })));
+      await Fm.openFullCard('card-sg-aurora', { name: 'NOVA', lv, avatar: 'star', color: 'cyan', at: Date.parse('2026-10-24'), shape: null, foot });
+    }
+  }
+  document.body.dataset.ready = '1';
+</script>
+</body>
+</html>
