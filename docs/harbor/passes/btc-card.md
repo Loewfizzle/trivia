@@ -87,7 +87,9 @@ BOARD 2.0 split into A + B, the roof board's 15 % KEPT). a3fe05f8.
   (database.rules.json unchanged) · `/api` server.test **42 / 42** · sightings.test **5 / 5** (the new ₿ balloon unlock) · smoke `GAMES=overclock`
   **5 / 5** · harbor `platefit, cardfit, stripfit, fullcard, progress, sightings` **49 / 49** · harbor `vault` alone **58 / 58** (its lab counts +1:
   16 CHANGED rows, 28 NEED YOU; THE 8 SIGHTING CARDS 55.7 fps, median 16.7 ms). No City 2.0 file changed → the ci tag; the full harbor suite not run.
-- The cloud run: below.
+- **The cloud run** (9ea4d5ec, the ci tag): tests **GREEN on the first run** (run 42570377006 — unit + whole-match simulations ✓, rules + /api +
+  smoke ✓; the harbor workflow skipped — no harbor tag, no City 2.0 file); **Vercel BUILT** ("Deployment has completed").
+- The servers this pass started (the emulators' Java + node, `serve.mjs --emu` on :5173) stopped at the end.
 
 ## Known issues
 - **A lobby of the 8 sighting cards** at 4× CPU on the GPU path: 55 fps vs 57–58 with the old scene (the vault group's bar is ≥ 54 + a median
