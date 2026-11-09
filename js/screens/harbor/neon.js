@@ -80,7 +80,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
         // tonight's billboard advertises the game with NO sign tonight (NEON PASS 5: 11 signs for 12 games — the nightly shuffle
         // picks which), else one with no named sign (an icon one), never the one up the street
         const show = (boards.length === 0 && o.boardGame) || billboardPick(games, spots, bPick, bKey, boards.length) || sp.show;
-        boards.push({ ...buildBillboard(sp, billboardContent({ game: show }, games), { dpr, roofY, dead: o.boardDead }), roofY, item: true }); continue;
+        boards.push({ ...buildBillboard(sp, billboardContent({ game: show }, games), { dpr, roofY, dead: o.boardDead, roofX0: roofX0Of(sp) }), roofY, item: true }); continue;
       }
       const g = sp.kind === 'fixed' ? null : games.find(x => x.id === pick.get(sp.id));
       if (sp.kind !== 'fixed' && !g) continue;
@@ -120,6 +120,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   }
   // the screen y a roof-mounted sign's scaffold stands on: the highest roof under it, among the near band (a sign on a
   // tower's roof: that roof)
+  // (CITY FIXES: the speakeasy roof's LEFT EDGE on screen at the board's depth — the bigger board's frame keeps its feet on the roof)
+  function roofX0Of(sp) { try { return sp && sp.mount === 'speak' && L && L.speakeasy ? project(cam, L.speakeasy.x0, sp.w.y0, sp.w.z)[0] : null; } catch { return null; } }
   function roofUnder(sp) {
     const R = sp.rect;
     if (sp.mount === 'tower') return project(cam, 0, sp.w.roof, sp.w.z)[1];
@@ -1171,14 +1173,14 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     /** 8b1 — the roof board's game for a night key (the same pick its layout makes: neon's own games, with their signs' full names) */
     boardPick(key, n = 0, l = L) { if (!l) return null; const sp = signSpots(l); return billboardPick(games, sp, assignSigns(games, sp, key), key, n); },
     /** 8b1 — THE BILLPOSTER: a board built for `show` (not hung — its poster + light for the sheets he pastes) */
-    boardArt(id, show) { const it = items.find(x => x.kind === 'board' && x.id === id); if (!it) return null; const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY }); free(b.nightS); return b; },
+    boardArt(id, show) { const it = items.find(x => x.kind === 'board' && x.id === id); if (!it) return null; const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY, roofX0: roofX0Of(it.b.spot) }); free(b.nightS); return b; },
     /** the game a board shows now (null: none / CITY CONTROL's own content) */
     boardGame(id) { const it = items.find(x => x.kind === 'board' && x.id === id); const c = it && it.b.content; return c && c.game ? c.game.id : c && c.poster ? c.poster : null; },   // (CITY FIXES: HOLD'EM's id — never a re-apply every check)
     boardDead(id) { const it = items.find(x => x.kind === 'board' && x.id === id); return it ? (it.b.dead == null ? null : it.b.dead) : null; },
     /** a billboard's content (CITY CONTROL later): { game } or { title, sub, bg, ink } */
     billboard(id, show) {
       const it = items.find(x => x.kind === 'board' && x.id === id); if (!it) return false;
-      const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY, dead: show ? show.dead : null });
+      const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY, dead: show ? show.dead : null, roofX0: roofX0Of(it.b.spot) });
       const i = boards.indexOf(it.b);
       free(it.night); it.b = { ...b, roofY: it.b.roofY }; it.night = b.nightS; if (i >= 0) boards[i] = it.b;
       dropComp(); rev++; fresh = { b: it.b, rev }; onContent();

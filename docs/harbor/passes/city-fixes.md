@@ -108,7 +108,7 @@ single-digit days — compared as day numbers now (a unit test).
 
 Shots (`docs/harbor/passes/city-fixes/`): `holdem-night-402.png` · `holdem-day-402.png` · `holdem-open-402.png` (NOW OPEN) ·
 `holdem-fireworks-402.png` (FIREWORKS / TONIGHT 9:30 takes the board) · `holdem-paste-402.png` (the billposter pasting it over OVERCLOCK) ·
-`holdem-city-night-402.png` (the whole frame) · `holdem-webkit-402.png` (WebKit @3) · `holdem-night-390/430/1440.png`.
+`holdem-city-night-402.jpg` (the whole frame) · `holdem-webkit-402.jpg` (WebKit @3) · `holdem-night-390/430/1440.png`.
 Proof: `tests/holdem.test.mjs` (the state, the billposter once, the force, the day chart), server.test's switch → the public feed (41/41),
 harbor `billboard,workers,panelrows,load,core` 90/90.
 
@@ -148,7 +148,7 @@ thread), `share-after-one-nostreak.png`; the goal: `goal-done-390.png` (the one 
    patrol gets it too), the blend in twelfths, and an **EASED HEADING** (`air.js#turn`: an angular velocity eased toward a capped target —
    it speeds up into a turn + settles out of it; the same ~1.4 s half turn). Proof (harbor `heli`, new block): every frame of its pass on the
    model — the biggest heading step **2° a frame** (≤ 4°), **59.9 fps p50, 0.2 % of frames over 20 ms** with a display (the bench frame check
-   FRIENDS C skipped). Frame sheets of a turn (20 frames, 90 ms apart, cropped on it): `blackheli-turn-before.png` → `blackheli-turn-after.png`.
+   FRIENDS C skipped). Frame sheets of a turn (20 frames, 90 ms apart, cropped on it): `blackheli-turn-before.jpg` → `blackheli-turn-after.jpg`.
    WebKit: not run for this item (the harbor's helicopter checks are Chromium; the look is the same code path).
 3. **THE BOARD's REPEATED SWAPS with the radio open**: probed (the board's rebuild counter — `boardXf().rev`): with nothing playing, 0 rebuilds
    in 30 s; with SEVERAL of the owner's messages live (what the radio group fires) each ran its own 25-s-every-60-s cycle — one spell ending a
@@ -162,3 +162,28 @@ thread), `share-after-one-nostreak.png`; the goal: `goal-done-390.png` (the one 
    KEEPS that content through the load's window — a scheduled spell waits ≤ 15 s on a fresh load; a change of the board's INPUTS (a panel /
    link force, the owner's messages, the intercom's headline, the HOLD'EM switch) still lands at once. The HOLD'EM switch is remembered on the
    device (`nd:holdem`), so a load uses the owner's last switch before the feed lands. Harbor `load` 19/19 (all five LOAD WEATHER cases).
+
+## Add-on (the owner, mid-pass) — THE ROOF BILLBOARD ~15 % BIGGER
+
+**Feasibility first** (the real layout at each size — a throwaway probe of the board's rect, its lamps' top, the signs, the three word faces,
+☰ / ♪ and the dock; the after-rect = the before × 1.15 anchored at its bottom-right): **15 % passes every check the owner listed** — the left
+edge ≥ 12.8 pt on every phone (≥ 8), no sign or word face touched, the dock 190+ pt below, the corner buttons far above.
+
+| size | before (pt) | after (pt) | left edge after |
+| --- | --- | --- | --- |
+| 390×844 | 72.0 × 39.2 at x 23.6 | 82.8 × 45.1 at x 12.8 | 12.8 |
+| 402×874 | 74.2 × 40.4 at x 24.3 | 85.3 × 46.5 at x 13.2 | 13.2 |
+| 430×932 | 79.3 × 43.2 at x 26.0 | 91.2 × 49.7 at x 14.1 | 14.1 |
+| 1440×900 | 89.7 × 48.8 at x 124.8 | 103.2 × 56.1 at x 111.3 | 111.3 |
+
+**One more constraint the old layout test caught**: anchored at the bottom-right, the board's left end now reaches 0.42 units (~4 pt) past
+the speakeasy roof's left edge at its depth. Kept the full 15 % (the owner's readability ask, every listed check passing) with the owner's
+"feet stay on the roof" honoured literally: the FRAME, its lattice + the DUNNAGE stop at the roof's edge (`signs.js#buildBillboard` — `FX`
+from `ctx.roofX0`, the roof's edge on screen at the board's depth, `neon.js#roofX0Of`); the board's last ~5 % is cantilevered over the
+parapet like a real roof sign. If the owner wants it fully over the roof, the largest size that stays inside is ~7 % (`BILLBOARD_SCALE`).
+
+**How**: ONE number — `core/harbor-layout.js#BILLBOARD` (`BILLBOARD_SCALE = 1.15`: u0 0.6 → −0.42, h 3.7 → 4.255; u1 + the foot unchanged).
+Everything hangs off that rect, so it all follows: the gooseneck lamps + their light pools (THE LIGHT's lamp map is built from the rect), the
+catwalk, THE BILLPOSTER's plan (`harbor-crew.js` reads `L.roof.board`), the dead-lamp fault (a lamp index), the crisp layer's box, the
+board's tap area. Every poster, hint, the postcard + the HOLD'EM ad scale with it (the aspect kept — no re-fit).
+Shots: `board-{before,after}-{night,day}-{390x844,1440x900}.png` (close-ups) + `board-{before,after}-city-night-390.jpg` (the whole frame).

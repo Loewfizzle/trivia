@@ -141,7 +141,13 @@ export const REF_TITLE = { W: 402, H: 874, tag: { y: 319, h: 14 }, dock: { x: 14
  * board's bottom only a little above the string lights) standing on a DUNNAGE platform (steel beams on short posts from the deck)
  * whose top (dun, above the pavement) sits just behind the string lights, clear of the parapet's line from this camera.
  */
-export const BILLBOARD = Object.freeze({ u0: 0.6, u1: 7.4, back: 1.0, dun: 11.9, open: 0.5, h: 3.7 });
+// (CITY FIXES — THE OWNER's ADD-ON, Nov 8: the roof billboard ~15 % BIGGER for readability — UNIFORM (the aspect kept: every poster, hint, the
+//  postcard + the HOLD'EM ad scale without a re-fit), anchored at its BOTTOM-RIGHT (u1 + the foot y0 unchanged): it grows UP + to the LEFT.
+//  Was u0 0.6 · h 3.7 (6.8 × 3.7 units). Everything hangs off this rect: the lamps + their pools, the catwalk, the frame, the billposter's
+//  plan, the dead-lamp fault, the tap area. Feasibility checked at 390 / 402 / 430 + 1440: ≥ 12.8 pt off the left edge, no sign / word face
+//  touched, the dock + the corner buttons clear — docs/harbor/passes/city-fixes.md)
+export const BILLBOARD_SCALE = 1.15;
+export const BILLBOARD = Object.freeze({ u0: 7.4 - 6.8 * BILLBOARD_SCALE, u1: 7.4, back: 1.0, dun: 11.9, open: 0.5, h: 3.7 * BILLBOARD_SCALE });
 
 
 /**

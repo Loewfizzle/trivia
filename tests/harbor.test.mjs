@@ -1958,9 +1958,11 @@ test("8a — THE BILLBOARD on the speakeasy's roof: over the left half-plus of t
   for (const k of ['390x844', '402x874', '430x932']) {
     const { cam, L } = setup(k), sp = signSpots(L).find(x => x.kind === 'billboard'), R = sp.rect, b = L.roof.board, s = L.speakeasy;
     assert.equal(sp.mount, 'speak');
-    assert.ok(R.x >= 4 && R.w > 60 * cam.F / 600, `${k}: the board ${R.x.toFixed(1)}..${(R.x + R.w).toFixed(1)} inside the left edge, ${R.w.toFixed(0)} pt wide`);
+    // (CITY FIXES — the owner's add-on: ~15 % bigger, anchored bottom-right — ≥ 8 pt off the screen's left edge; its left end may reach a little
+    //  past the roof's edge (≤ 0.6 units, cantilevered — the frame + the dunnage keep their feet on the roof: signs.js#buildBillboard's FX))
+    assert.ok(R.x >= 8 && R.w > 68 * cam.F / 600, `${k}: the board ${R.x.toFixed(1)}..${(R.x + R.w).toFixed(1)} ≥ 8 pt inside the left edge, ${R.w.toFixed(0)} pt wide`);
     // over the roof: between the speakeasy's two ends at its depth, its left half-plus
-    assert.ok(b.x0 > s.x0 && b.x1 < s.x1 && (b.x1 - s.x0) / (s.x1 - s.x0) > 0.5 && (b.x1 - s.x0) / (s.x1 - s.x0) < 0.75 && b.z > s.z0 && b.z < s.z1);
+    assert.ok(b.x0 > s.x0 - 0.6 && b.x1 < s.x1 && (b.x1 - s.x0) / (s.x1 - s.x0) > 0.5 && (b.x1 - s.x0) / (s.x1 - s.x0) < 0.75 && b.z > s.z0 && b.z < s.z1);
     // the wheel: the board ends left of its rim; the word towers far right
     const w = L.wheel, [wx, wy] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z;
     assert.ok(Math.hypot(Math.max(R.x - wx, 0, wx - (R.x + R.w)), Math.max(R.y - wy, 0, wy - (R.y + R.h))) > r + 6, `${k}: clear of the wheel`);

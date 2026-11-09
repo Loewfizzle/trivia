@@ -634,12 +634,15 @@ export function buildBillboard(spot, content, ctx) {
       // board's foot only a little above the string lights; under it ONE dark structure — a shadowed backing (the depth of the frame
       // under the board: nothing busy shows through it), five posts with a Warren lattice of diagonals between them, on the DUNNAGE
       // (a steel I-beam on short posts down to the deck, behind the parapet + the string lights); a soft shadow on the roof by day
-      const d0 = R.x - 3 * k, d1 = R.x + R.w + 3 * k, bh = Math.max(1.1, 1.25 * k), dark = mix([12, 10, 18], [64, 62, 66], day);
+      // (CITY FIXES — THE BOARD ~15 % BIGGER, anchored at its bottom-right: its left end now reaches a little past the roof's left edge — the
+      //  FRAME + the dunnage stay ON THE ROOF (from ctx.roofX0, the roof's edge at the board's depth): the board's last few pt cantilevered)
+      const FX = ctx.roofX0 != null ? Math.max(R.x, ctx.roofX0 + 1.4 * k) : R.x, FW = R.x + R.w - FX;
+      const d0 = ctx.roofX0 != null ? Math.max(FX - 3 * k, ctx.roofX0 + 0.4 * k) : R.x - 3 * k, d1 = R.x + R.w + 3 * k, bh = Math.max(1.1, 1.25 * k), dark = mix([12, 10, 18], [64, 62, 66], day);
       const bk = x.createLinearGradient(0, deckY, 0, foot);
       bk.addColorStop(0, rgba(dark, 0.94)); bk.addColorStop(1, rgba(dark, 0.8));
-      x.fillStyle = bk; x.fillRect(R.x - 0.6 * k, deckY, R.w + 1.2 * k, foot - deckY + 0.2);
+      x.fillStyle = bk; x.fillRect(FX - 0.6 * k, deckY, FW + 1.2 * k, foot - deckY + 0.2);
       // the posts (each a lit edge + its steel) + the diagonals, alternating (a Warren truss): read as ONE lattice
-      const posts = [0.04, 0.27, 0.5, 0.73, 0.96].map(f => R.x + R.w * f), pw = Math.max(0.7, 0.8 * k);
+      const posts = [0.04, 0.27, 0.5, 0.73, 0.96].map(f => FX + FW * f), pw = Math.max(0.7, 0.8 * k);
       x.fillStyle = rgba(steel); for (const px of posts) x.fillRect(px - pw / 2, deckY, pw, foot - deckY);
       if (day > 0.05) { x.fillStyle = rgba(lit, 0.7 * day); for (const px of posts) x.fillRect(px + (sd > 0 ? 0 : -pw / 2), deckY, pw / 2, foot - deckY); }
       x.strokeStyle = rgba(steel); x.lineWidth = Math.max(0.45, 0.45 * k);
@@ -647,9 +650,9 @@ export function buildBillboard(spot, content, ctx) {
       for (let i = 0; i < posts.length - 1; i++) { const up = i % 2 === 0; x.moveTo(posts[i], up ? foot - 0.2 : deckY + 0.3); x.lineTo(posts[i + 1], up ? deckY + 0.3 : foot - 0.2); }
       x.stroke();
       // a mid tie along the frame
-      x.fillStyle = rgba(steel, 0.9); x.fillRect(R.x, (deckY + foot) / 2 - 0.2 * k, R.w, Math.max(0.35, 0.35 * k));
+      x.fillStyle = rgba(steel, 0.9); x.fillRect(FX, (deckY + foot) / 2 - 0.2 * k, FW, Math.max(0.35, 0.35 * k));
       // the dunnage: its posts down to the deck, the beam, its lit flange, the base plates + bolts under each frame post
-      x.fillStyle = rgba(steel); for (const f of [0.06, 0.3, 0.5, 0.7, 0.94]) x.fillRect(R.x + R.w * f - 0.5 * k, foot + bh * 0.6, Math.max(0.8, 1.0 * k), 7 * k);
+      x.fillStyle = rgba(steel); for (const f of [0.06, 0.3, 0.5, 0.7, 0.94]) x.fillRect(FX + FW * f - 0.5 * k, foot + bh * 0.6, Math.max(0.8, 1.0 * k), 7 * k);
       x.fillStyle = rgba(mix(steel, [0, 0, 0], 0.25)); x.fillRect(d0, foot, d1 - d0, bh);
       x.fillStyle = rgba(lit, 0.95); x.fillRect(d0, foot, d1 - d0, Math.max(0.35, 0.3 * k));
       x.fillStyle = rgba(steel); x.fillRect(d0, foot + bh - Math.max(0.3, 0.25 * k), d1 - d0, Math.max(0.3, 0.25 * k));

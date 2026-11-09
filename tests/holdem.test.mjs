@@ -74,7 +74,7 @@ test('the messages still interrupt: HOLD\'EM is no hint row; the day chart shows
 });
 
 test('THE BOARD\'s REPEATED SWAPS: two of the owner\'s messages a second apart never blip the board back to the poster between them', async () => {
-  const { setOwnerMessages, ownerAt, BRIDGE_MS } = await import('../js/core/harbor-billboard.js');
+  const { setOwnerMessages, ownerAt, bridgeMs } = await import('../js/core/harbor-billboard.js'); const BRIDGE_MS = bridgeMs();
   const B = knob('radio.billboard'), T = Date.UTC(2026, 10, 8, 20);
   // A starts at T, B a spell's length + 2 s later: A ends at T + show, B begins 2 s after
   setOwnerMessages([{ id: 'a', lines: ['ONE', 'A'], at: T, until: T + 600e3 }, { id: 'b', lines: ['TWO', 'B'], at: T + (B.show + 2) * 1000, until: T + 600e3 }]);
