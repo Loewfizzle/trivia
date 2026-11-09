@@ -7,17 +7,16 @@
 import { h, vibrate, reducedMotion } from '../../ui/dom.js';
 import { avatar } from '../../ui/components.js';
 import { colorHex } from '../../config.js';
-import { createFinal } from '../../ui/final.js';
 import { dbRef, update as dbUpdate, onValue, off, push, serverNow, serverTimestamp } from '../../firebase.js';
 import { liveKeyFor } from '../registry.js';
 import { settings, onSettings } from '../../audio/settings.js';
 import { getContext } from '../../audio/engine.js';
 import { hashString, rngFrom } from '../../core/rng.js';
-import { showCall as kitCall, reportPanel, ordinal } from '../kit/index.js';
+import { showCall as kitCall } from '../kit/index.js';
 import * as E from './engine.js';
 import {
-  songAt, songStarts, battleLevel, suddenRows, suddenGap, junkDelay, chooseTarget, TARGET_MODES, standings,
-  CLEAR_NAME, aliveOf, CALL_MS, SUDDEN_MS,
+  songAt, songStarts, battleLevel, suddenRows, suddenGap, junkDelay, chooseTarget, TARGET_MODES,
+  CLEAR_NAME, aliveOf,
 } from './logic.js';
 import { loadSong, beatClock } from './songs.js';
 import { createWorlds, WORLDS } from './worlds.js';
@@ -26,6 +25,8 @@ import { createFx } from './fx.js';
 import { attachInput } from './input.js';
 import { createSongPlayer, createSynth } from './audio.js';
 import { chooseMove } from './bot.js';
+import { prismLayout } from './layout.js';
+import { buildFinal } from './victory.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 // native replaceChildren() prints a null argument as text — always go through this
@@ -687,16 +688,7 @@ export function createView() {
     root.classList.toggle('is-spectating', spectating);
     root.classList.toggle('is-duelist', duelist);
     const btnScale = settings.prismBtn ?? 0.5;
-    const topH = 52;
-    const btnH = scheme === 'buttons' && !spectating ? Math.round(118 + 46 * btnScale) : 0;
-    let minisH = spectating ? 0 : (btnH ? 66 : 96);
-    const sideL = Math.round(Math.max(40, Math.min(64, W0 * 0.115)));
-    const sideR = duelist ? Math.round(Math.max(92, Math.min(150, W0 * 0.28))) : sideL;
-    const cellW = (W0 - sideL - sideR - 16 - 9 - 6 - 12 - 4) / E.W; // ui padding, meter, glass inset, gaps, slack
-    const cellH = (H0 - topH - minisH - btnH - 20) / E.VISIBLE;
-    const cell = Math.max(10, Math.floor(Math.min(cellW, cellH, 40)));
-    // spare height goes to the mini-boards (bigger when there's room)
-    if (minisH) minisH = Math.max(minisH, Math.min(150, H0 - topH - cell * E.VISIBLE - btnH - 30));
+    const { cell, sideL, sideR, topH, minisH, btnH, boardDpr } = prismLayout({ W0, H0, scheme, spectating, duelist, btnScale, tier });
     root.style.setProperty('--cell', `${cell}px`);
     root.style.setProperty('--sideL', `${sideL}px`);
     root.style.setProperty('--sideR', `${sideR}px`);
@@ -704,7 +696,7 @@ export function createView() {
     root.style.setProperty('--minisH', `${minisH}px`);
     root.style.setProperty('--btnH', `${btnH}px`);
     root.style.setProperty('--btnS', String(btnScale));
-    board.size(cell, [1, 1.5, 2][tier]);
+    board.size(cell, boardDpr);
     fx.resize([1, 1.5, 2][tier]);
     lastHoldSig = ''; lastNextSig = ''; miniSig = {};
     renderSide(spectating, duelist);
@@ -966,38 +958,11 @@ export function createView() {
     if (finalView) { finalView.refresh(); return; }
     document.body.classList.remove('pd-duel');
     els.overlay.querySelectorAll('.pd-call, .pd-count, .pd-spec').forEach(e => e.remove());
-    const rows = standings(game).map(r => ({ ...r, score: rush() ? r.score : ((game.results && game.results[r.uid] && game.results[r.uid].ko) || 0), note: noteFor(r.uid) }));
-    finalView = createFinal({
-      rows, players: st.players, me: me(), presence: st.presence, scoreLabel: rush() ? 'PTS' : 'KO',
-      kicker: rush() ? 'SCORE RUSH · FINAL' : 'BATTLE · FINAL',
-      winnerLine: nm => (rush() ? `${nm} TOPS THE SONG` : `${nm} IS THE LAST ONE STANDING`),
-      extra: resultsPanel(),
-    });
-    els.overlay.append(h('div.pd-final', finalView.el));
+    const fin = buildFinal({ game, st, me: me(), player });
+    finalView = fin.finalView;
+    els.overlay.append(fin.wrap);
     root.classList.add('is-final');
     layoutSig = '';
-  }
-
-  function noteFor(uid) {
-    const r = (game.results && game.results[uid]) || {};
-    if (rush()) return `${r.ln || 0} LINES · LV ${r.lv || 1} · COMBO ${r.mc || 0}`;
-    return `${r.ko || 0} KO · ${r.se || 0} SENT · ${r.bd || 0} BADGES`;
-  }
-
-  function resultsPanel() {
-    const res = game.results || {};
-    return reportPanel({
-      prefix: 'pd', title: rush() ? 'SONG RESULTS' : 'BATTLE REPORT', calls: game.calls, player, showCalls: !rush(),
-      head: rush() ? ['SCORE', 'LINES', 'LEVEL', 'MAX COMBO'] : ['PLACE', 'KOs', 'BADGES', 'SENT', 'COMBO', 'BEST'],
-      rows: standings(game).map(r => {
-        const x = res[r.uid] || {};
-        const p = player(r.uid);
-        const cells = rush()
-          ? [(x.sc || 0).toLocaleString('en-US'), x.ln || 0, x.lv || 1, x.mc || 0]
-          : [ordinal(r.rank), x.ko || 0, x.bd || 0, x.se || 0, x.mc || 0, x.best ? (CLEAR_NAME[x.best] || '').replace('CLEAR', '').trim() || '—' : '—'];
-        return { uid: r.uid, name: p.name, color: p.color, me: r.uid === me(), cells };
-      }),
-    });
   }
 
   // ================================================================ announcements
