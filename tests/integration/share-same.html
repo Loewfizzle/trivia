@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SHARE CARDS — the same pixels</title>
+<link rel="icon" href="data:,">
+<!-- BOARD 2.0 B — the add-on's proof: each daily's OWN share card, drawn by the split pieces (js/games/<id>/share.js) and by the code BEFORE the split
+     (tests/integration/_old/*-share.js — a copy kept for this check), in both looks, for several runs → every pixel compared (window.__same).
+     Run with the fonts loaded (the canvas text). Open: /tests/integration/share-same.html → document.body.dataset.ready + window.__same. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<style>body { margin: 0; background: #222; color: #ddd; font: 13px monospace; }</style>
+</head>
+<body>
+<pre id="out">…</pre>
+<script type="module">
+try { await document.fonts.load('900 92px Orbitron'); await document.fonts.load('800 40px "Chakra Petch"'); await document.fonts.load('700 40px "Chakra Petch"'); await document.fonts.load('700 20px "JetBrains Mono"'); } catch { /* fine */ }
+const NEW_PW = await import('/js/games/password/share.js'), OLD_PW = await import('/tests/integration/_old/pw-share.js');
+const NEW_CC = await import('/js/games/coastclear/share.js'), OLD_CC = await import('/tests/integration/_old/cc-share.js');
+const G = await import('/js/games/password/logic.js');
+const H = G.HIT, N = G.NEAR, M = G.MISS;
+const door = (state, marks) => ({ state, marks, guesses: marks.map(() => 'xxxxx'), word: null });
+const RUNS = {
+  crack: { done: true, door: 1, startedAt: 1000, finishedAt: 175000, doors: [door('solved', [[M, N, M, M, H], [H, H, N, M, M], [H, H, H, H, H]]), door('solved', [[N, M, M, H, M], [H, H, H, H, H]])] },
+  lockedBack: { done: true, door: 1, startedAt: 1000, finishedAt: 420000, doors: [door('solved', [[H, H, H, H, H]]), door('failed', Array.from({ length: 6 }, () => [N, M, H, M, M]))] },
+  lockedFront: { done: true, door: 0, startedAt: 1000, finishedAt: 300000, doors: [door('failed', Array.from({ length: 6 }, () => [M, M, N, M, H])), { state: 'open', marks: [], guesses: [], word: null }] },
+};
+const CCS = {
+  clear: { head: 'COAST CLEAR', caught: false, time: '2:41', line: '1 SPOTTED · +30 s', spots: 1, dayNo: 12, site: 'neonspeakeasy.com' },
+  ghost: { head: 'COAST CLEAR', caught: false, time: '0:48', line: '0 SPOTTED', spots: 0, dayNo: 12, site: 'neonspeakeasy.com' },
+  caught: { head: 'CAUGHT', caught: true, time: null, line: '3 SPOTTED · 1:58', spots: 3, dayNo: 12, site: 'neonspeakeasy.com' },
+};
+const same = (a, b) => {
+  const x = a.getContext('2d').getImageData(0, 0, a.width, a.height).data, y = b.getContext('2d').getImageData(0, 0, b.width, b.height).data;
+  let diff = 0; for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) diff++;
+  return diff;
+};
+const out = [];
+for (const look of ['night', 'day']) {
+  for (const [k, run] of Object.entries(RUNS)) for (const dayNo of [null, 7]) out.push({ card: `password ${k} ${look}${dayNo ? ' #7' : ''}`, diff: same(NEW_PW.renderShare({ run, look, dayNo }), OLD_PW.renderShare({ run, look, dayNo })) });
+  for (const [k, inputs] of Object.entries(CCS)) out.push({ card: `coastclear ${k} ${look}`, diff: same(NEW_CC.renderShare({ inputs, look }), OLD_CC.renderShare({ inputs, look })) });
+}
+window.__same = out;
+document.getElementById('out').textContent = out.map(o => `${o.diff === 0 ? 'SAME' : 'DIFF ' + o.diff}  ${o.card}`).join('\n');
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

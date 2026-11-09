@@ -119,7 +119,12 @@ await H.run(async () => {
   ok(pwSec && pwSec.rows.some(r => /BOBBY.*PLAYED/.test(r)) && !pwSec.rows.some(r => /GUESS/.test(r)), `SCORES before you play: YOUR TABLE shows BOBBY PLAYED — never his score (${pwSec && pwSec.rows.join(' | ')})`);
   ok(pwSec && pwSec.strips === 1 && pwSec.rows.length === 1 && /STILL TO PLAY · YOU/.test(pwSec.still) && pwSec.canvases <= 1, `DFIX2 — SLIM CARDS: BOBBY's row is his slim card (${pwSec && pwSec.strips} strip, ${pwSec && pwSec.canvases} effect canvas for the panel); ALICE in one line: "${pwSec && pwSec.still}"`);
   if (H.SHOTS) await H.shotAll(A.page, 'dy-07-scores-before');
-  ok(!(await A.page.evaluate(() => /ALL TIME/i.test(document.querySelector('.dy-overlay').innerText))), 'ALL TIME is hidden (Step 0 — no empty tab, no "coming soon")');
+  // (BOARD 2.0 B — ALL TIME OPENED: TODAY'S SCORES · ALL TIME on SCORES; ALL TIME = YOUR TABLE's average a day + EVERYONE's top 3, never an empty tab)
+  ok(await A.page.evaluate(() => [...document.querySelectorAll('.dy-scope-b')].map(b => b.textContent).join('|') === 'TODAY’S SCORES|ALL TIME'), 'SCORES: TODAY’S SCORES · ALL TIME (BOARD 2.0 B opened it)');
+  await A.page.evaluate(() => [...document.querySelectorAll('.dy-scope-b')].find(b => /ALL TIME/.test(b.textContent)).click());
+  await A.page.waitForFunction(() => document.querySelectorAll('.dy-sec .dy-sub').length && /AVERAGE A DAY/.test(document.querySelector('.dy-overlay').innerText), { timeout: 10000 });
+  ok(/YOUR TABLE · AVERAGE A DAY/.test(await A.page.evaluate(() => document.querySelector('.dy-overlay').innerText)) && /EVERYONE · ALL TIME/.test(await A.page.evaluate(() => document.querySelector('.dy-overlay').innerText)), 'ALL TIME: YOUR TABLE’s average a day + EVERYONE (from /api/daily points + the board)');
+  await A.page.evaluate(() => [...document.querySelectorAll('.dy-scope-b')].find(b => /TODAY/.test(b.textContent)).click());
   await click(A.page, '.dy-tab:nth-child(1)');
 
   // ================================================================ 4. THE ONE-TIME HINT (DFIX3 — the practice harbor cut)
@@ -256,6 +261,18 @@ await H.run(async () => {
   const st = await val(`pstats/${A.pid}`);
   ok(st.dl && st.dl.sw === 1 && st.dl.sr && st.dl.sr.n === 1, `the server: one swept day (dl.sw ${st.dl && st.dl.sw}), PERFECT WEEK's run started (dl.sr.n ${st.dl && st.dl.sr && st.dl.sr.n})`);
   ok(st.xp >= 3 * DAILY_XP + SWEEP_XP, `the XP: three dailies + the sweep bonus (${st.xp} ≥ ${3 * DAILY_XP + SWEEP_XP})`);
+  // BOARD 2.0 B — SHARE TODAY = ONE CARD (the owner's add-on): `today { share }` → each finished run's spoiler-free inputs from the SERVER's record —
+  // THE PASSWORD's marks + counts (never a word), COAST CLEAR's no-board inputs; then the card itself draws (one section each + NOT YET none)
+  {
+    const sh = await api(A.page, { action: 'today', share: true });
+    const pw = sh.share && sh.share.password, cc = sh.share && sh.share.coastclear;
+    ok(pw && pw.done && Array.isArray(pw.doors) && pw.doors.every(d => Array.isArray(d.marks) && typeof d.n === 'number') && !JSON.stringify(pw).match(/"[A-Z]{5}"/), `SHARE TODAY's data: THE PASSWORD = marks + counts, no word (${JSON.stringify(pw).slice(0, 90)})`);
+    ok(cc && cc.head && !cc.caught && cc.time && !('board' in cc) && !('lights' in cc), `…COAST CLEAR = its no-board inputs (${JSON.stringify(cc)})`);
+    const regular = await api(A.page, { action: 'today' });
+    ok(!('share' in regular), '…only when asked (the regular `today` carries none)');
+    const drawn = await A.page.evaluate(async () => { const m = await import('/js/daily/share-today.js'); const t = await import('/js/daily/contract.js').then(c => c.dailyShare()); const cv = await m.drawToday(t, (id, s) => String(s), 'night', { share: t.share }); return { w: cv.width, h: cv.height, plan: m.planToday(t, t.share) }; });
+    ok(drawn.w === 1080 && drawn.h === 1350 && drawn.plan.sections.filter(s => s.own).length >= 2, `SHARE TODAY draws ONE card: a section from each daily's own pieces (${JSON.stringify(drawn.plan.sections)})`);
+  }
   for (let i = 0; i < 30 && (await val(`rooms/${code}/players/${aUid}/dy`)) != null; i++) await sleep(200);
   ok((await val(`rooms/${code}/players/${aUid}/dy`)) == null, 'the run finished → the flag cleared (the host\'s line goes)');
   await click(A.page, '.dy-screen .dy-back');

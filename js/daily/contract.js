@@ -11,3 +11,5 @@ export const finishDaily = (game, result) => api('daily', { action: 'finish', ga
 export const dailyToday = (pids = []) => api('daily', { action: 'today', pids });
 /** BOARD 2.0 B — SCORES → ALL TIME: DAILY POINTS for you + YOUR TABLE ({ mine, friends: { pid: { [board]: { week, all, avg, days } } }, table }) */
 export const dailyPoints = (pids = []) => api('daily', { action: 'points', pids });
+/** BOARD 2.0 B — SHARE TODAY: today + each finished run's spoiler-free share inputs from the server's record ({ …today, share: { [game]: … } }) */
+export const dailyShare = () => api('daily', { action: 'today', share: true });

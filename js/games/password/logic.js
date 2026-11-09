@@ -126,6 +126,19 @@ export function runView(record, answers, { day, uid, startedAt } = {}) {
 /** what the server stores of a run (the words only — never a mark, never an answer) */
 export const recordOf = run => ({ g: Object.fromEntries(run.doors.map((d, i) => [i, d.guesses.slice()]).filter(([, g]) => g.length)), ...(run.done ? { e: run.finishedAt } : {}) });
 
+/** BOARD 2.0 B — SHARE TODAY's data (the add-on): a FINISHED run as its SHARE CARD sees it — each door's state + its MARKS + how many guesses,
+ *  the door, the start + the finish — NEVER a word or a letter (the server sends this on `today { share }`; tests/share-today.test.mjs) */
+export function shareRunOf(run) {
+  if (!run || !run.done) return null;
+  return { done: true, door: run.door, startedAt: run.startedAt || 0, finishedAt: run.finishedAt || 0,
+    doors: run.doors.map(d => ({ state: d.state, marks: (d.marks || []).map(r => r.slice()), n: d.guesses.length })) };
+}
+/** …and back to the run shape renderShare draws (the guesses as blanks — only their count) */
+export function runFromShare(s) {
+  if (!s || !Array.isArray(s.doors)) return null;
+  return { done: !!s.done, door: s.door | 0, startedAt: s.startedAt || 0, finishedAt: s.finishedAt || 0,
+    doors: s.doors.map(d => ({ state: d.state, marks: Array.isArray(d.marks) ? d.marks : [], guesses: new Array(Math.max(0, d.n | 0)).fill(''), word: null })) };
+}
 /** doors opened · guesses used · THE SCORE = (2 − doors) × 100 + guesses (lower is better) · the time (ms, start → finish) */
 export function scoreOf(run) {
   const doors = run.doors.filter(d => d.state === 'solved').length;

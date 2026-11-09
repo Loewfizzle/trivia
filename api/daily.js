@@ -23,6 +23,7 @@
 //   lesson { game }            → { ok }   DM2 — a daily's first-time lesson seen (pstats/{pid}/ls/{game} — once per player, every device; DFIX3: THE
 //                                 ONE-TIME HINT reads the same flag — `hint` rows)
 //   room   { room }            → { mid: [uid…] }   DM1 — which players of YOUR room have a daily in flight (uids only — nothing about a run; DM2's host line)
+//   today  { share: true }     → + share: { [game]: its share card's spoiler-free inputs } (BOARD 2.0 B — SHARE TODAY's tap only; your finished runs)
 //   points { pids? }           → { mine, friends: { pid: … }, table }   BOARD 2.0 A — DAILY POINTS for YOU + YOUR TABLE (the same friends `today` reads):
 //                                 per board (daily · daily-<game>) { week, all, avg, days } — the values THE DAILIES' BOARDS hold (core/overall.js)
 //
@@ -303,7 +304,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       // DFIX2 — THE DAY'S CLOSE runs from `today` too (the title's first call of the day): a memo per warm function
       const closing = closeDays({ games, now }).catch(() => null);
       if (!pid) { await closing; return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true }; }
-      const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {};
+      const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {}, shareOf = {};
       const [ls, createdAt] = await Promise.all([val(`pstats/${pid}/ls`), createdAtOf(pid)]);
       const yday = prevDay(day);
       await Promise.all(games.map(async g => {
@@ -317,6 +318,8 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         }
         if (v == null) return;
         mineScores[g] = v;
+        // (BOARD 2.0 B — SHARE TODAY: the finished run's spoiler-free share inputs from the SERVER's record, only when asked — the share tap)
+        if (body.share) { let cart = null; try { cart = cartOf(g); } catch { /* not a judged daily */ } if (cart && cart.share) { try { const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day, now) : null]); const s = cart.share({ record, day, startedAt: s0, data }); if (s) shareOf[g] = s; } catch { /* the card falls back to the line */ } } }
         if (await val(`${base}/x/${pid}`)) { gated[g] = true; return; }
         // THE EVERYONE LINE (DM2): where a COUNTED score stands — only once the day has BAND_MIN counting finishers (never a stranger's data)
         const [hist, n] = await Promise.all([val(`${base}/h`), val(`${base}/n`)]);
@@ -338,7 +341,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         friends[p] = todayView(mineScores, theirs);
       }));
       await closing;
-      return { day, dailies, mine: mineScores, gated, started, startedDay, stand, lessons: ls || {}, friends, table: pids,
+      return { day, dailies, mine: mineScores, gated, started, startedDay, stand, lessons: ls || {}, friends, table: pids, ...(body.share ? { share: shareOf } : {}),
         ...(countsOn(createdAt, day) ? {} : { countsFrom: dayStartAt(dayOf(dayNum(day) + 1)) }) };
     }
     case 'lesson': {

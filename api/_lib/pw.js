@@ -14,7 +14,7 @@ import { dayWords, freezeSchedule, extendSchedule, reconcileSchedule, reorderAft
 import { dailySecret } from './daily-secret.js';
 import { streakDay, dayOf } from '../../js/core/streak.js';
 import { SCHEDULE_EPOCH } from './pw-day.js';
-import { runView, serverGuess, recordOf, canGuess, cleanWord, replay, SCORE_MIN, SCORE_MAX } from '../../js/games/password/logic.js';
+import { runView, serverGuess, recordOf, canGuess, cleanWord, replay, shareRunOf, SCORE_MIN, SCORE_MAX } from '../../js/games/password/logic.js';
 
 const DATA = new URL('../_data/pw/', import.meta.url);
 let lists = null;
@@ -130,6 +130,11 @@ export const PW_DAILY = {
     if (!record || !day) return null;
     const r = replay(record, wordsOf(day, data), { startedAt });
     return r ? r.score : null;
+  },
+  /** BOARD 2.0 B — SHARE TODAY's section: the finished run's marks + counts (logic.js#shareRunOf — never a word) */
+  share({ record, day, startedAt, data } = {}) {
+    if (!record || !day) return null;
+    return shareRunOf(viewOf(record, day, { startedAt, data }));
   },
   /** PW2 — THE FLAGS a finished run earns, from the RECORD (the award engine keys them `password-<flag>`): `crack` = both doors opened
    *  (KEYHOLE) · `safe` = both doors in SAFE_GUESSES or fewer combined (SAFECRACKER — ≈ the best ~10 % of runs: scripts/sim-password.mjs) */

@@ -5,7 +5,11 @@
 // spot count, the day number, the site — no cell, no light, no count), so nothing about the board can reach the picture. Sent through the
 // phone's share sheet (navigator.share with the file) + ONE plain line ("COAST CLEAR #<n> · 2:41 · 0 spotted · neonspeakeasy.com"). No file
 // sharing → the line is shared (or copied) and the image is saved. No emoji anywhere. Lazy: the view imports this on the first tap.
+// BOARD 2.0 B (the owner's add-on — SHARE TODAY = ONE CARD FROM EACH DAILY's OWN PIECES): the card is built from EXPORTED PIECES (the sign, the
+// beam, the headline, the big time, the line, the searchlights) that BOTH this card and SHARE TODAY's section (`paintSection`) call — this card
+// stays pixel-identical (tests/integration/share-same.html). Still ONLY the no-board inputs.
 //   renderShare({ inputs, look }) → <canvas>      shareRun({ inputs, line, look }) → 'shared' | 'saved' | 'copied' | 'none'
+//   paintSection(c, { inputs, look, W }) — SHARE TODAY's section (the box W × SECTION_H, its own small wordmark on top)
 import { SHARE_W, SHARE_H, shareFrame, shareFoot, sendShare } from '../../daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
 export { SHARE_W, SHARE_H };
 /** the only keys the card may read (tests/coastclear-share.test.mjs holds the line) */
@@ -15,7 +19,7 @@ const LOOK = {
   day: { bg0: '#8ec6ff', bg1: '#f7fbff', sign: '#16305c', signCore: '#16305c', ink: '#14284a', dim: '#3a5582', win: '#1f7a45', lose: '#c0304a', lampOff: 'rgba(22,48,92,0.34)', lamp: '#f0a51c', lampCore: '#fff6dc', beam: 'rgba(255,214,110,0.55)', site: '#2f86ff', font: 'ui-rounded, "SF Pro Rounded", "Chakra Petch", system-ui, sans-serif' },
 };
 /** the shared answer token as the page has it now (the colour-blind swap rides along) */
-function tokens(look) {
+export function tokens(look) {
   const L = { ...(LOOK[look] || LOOK.night) };
   try { const g = getComputedStyle(document.body).getPropertyValue('--good').trim(); if (g && look !== 'day') L.win = g; } catch { /* no DOM tokens */ }
   return L;
@@ -35,11 +39,50 @@ function lamp(c, x, y, S, lit, L, look) {
   c.beginPath(); c.moveTo(10, 16); c.lineTo(10, 21); c.moveTo(6.5, 21.5); c.lineTo(13.5, 21.5); c.strokeStyle = col; c.lineWidth = 1.6; c.stroke();
   c.restore();
 }
+const pick = inputs => { const I = {}; for (const k of SHARE_KEYS) I[k] = inputs ? inputs[k] : undefined; return I; };
+
+// ---------------------------------------------------------------------------------------------- THE PIECES (this card + SHARE TODAY's section)
+/** the sign: "coast clear." by day, the neon COAST CLEAR by night — centred on cx (k = its scale) */
+export function paintSign(c, L, look, cx, y, k = 1) {
+  if (look === 'day') { c.font = `800 ${70 * k}px ${L.font}`; const tw = c.measureText('coast clear').width, dw = c.measureText('.').width; c.textAlign = 'left'; c.fillStyle = L.sign; c.fillText('coast clear', (cx * 2 - tw - dw) / 2, y); c.fillStyle = L.site; c.fillText('.', (cx * 2 - tw - dw) / 2 + tw, y); c.textAlign = 'center'; }
+  else { c.font = `900 ${54 * k}px ${L.font}`; c.save(); c.letterSpacing = `${13 * k}px`; glowText(c, 'COAST CLEAR', cx + 6 * k, y, L.signCore, L.sign, 36 * k); c.restore(); }
+}
+/** the lighthouse beam behind a clear's headline: a broad soft cone from (x, y), rotated, `len` long (k scales its spread) */
+export function paintBeam(c, L, x, y, len = 1150, k = 1) {
+  c.save(); c.translate(x, y); c.rotate(-0.36);
+  for (const [spread, a] of [[340, 0.45], [170, 1]]) {
+    const bm = c.createLinearGradient(0, 0, len, 0); bm.addColorStop(0, L.beam); bm.addColorStop(0.55, 'rgba(255,236,190,0.08)'); bm.addColorStop(1, 'rgba(255,240,200,0)');
+    c.globalAlpha = a; c.fillStyle = bm; c.beginPath(); c.moveTo(0, -6 * k); c.lineTo(len, -spread * k); c.lineTo(len, spread * k); c.lineTo(0, 6 * k); c.closePath(); c.fill();
+  }
+  c.restore();
+}
+/** the headline (COAST CLEAR · CAUGHT); fitW = the widest it may print (a section's column) */
+export function paintHead(c, I, L, look, cx, y, px, ls, fitW = 0) {
+  const hc = I.caught ? L.lose : L.win;
+  c.font = `900 ${px}px ${L.font}`;
+  c.save(); c.letterSpacing = `${ls}px`;
+  if (fitW) { let p = px; while (p > 24 && c.measureText(String(I.head || '')).width > fitW) { p -= 2; c.font = `900 ${p}px ${L.font}`; } }
+  glowText(c, String(I.head || ''), cx + ls / 2, y, hc, look === 'day' ? 'rgba(0,0,0,0)' : hc, look === 'day' ? 0 : 36);
+  c.restore();
+}
+/** the big time (a clear) */
+export function paintTime(c, I, L, cx, y, px) {
+  c.font = `700 ${px}px "Chakra Petch", system-ui, sans-serif`; c.fillStyle = L.ink; c.fillText(String(I.time), cx, y);
+}
+/** the one line ("0 SPOTTED" · "3 SPOTTED · 1:58") */
+export function paintLine(c, I, L, cx, y, px, ls) {
+  c.font = `700 ${px}px "Chakra Petch", system-ui, sans-serif`; c.fillStyle = I.caught ? L.ink : L.dim; c.save(); c.letterSpacing = `${ls}px`;
+  c.fillText(String(I.line || ''), cx + ls / 2, y); c.restore();
+}
+/** THREE drawn searchlights, lit per spot, centred on cx */
+export function paintLamps(c, I, L, look, cx, y, S, gap) {
+  const lw = 32 * S, x0 = (cx * 2 - (3 * lw + 2 * gap)) / 2;
+  for (let k = 0; k < 3; k++) lamp(c, x0 + k * (lw + gap), y, S, k < (Number(I.spots) || 0), L, look);
+}
 
 /** the share image (a canvas, 1080 × 1350) from the no-board inputs ONLY */
 export function renderShare({ inputs, look = 'night' } = {}) {
-  const I = {};
-  for (const k of SHARE_KEYS) I[k] = inputs ? inputs[k] : undefined;
+  const I = pick(inputs);
   const L = tokens(look);
   const { cv, c, W, H } = shareFrame(L, look);   // (the ground + the day's sun — the kit)
   if (look === 'day') {
@@ -49,36 +92,43 @@ export function renderShare({ inputs, look = 'night' } = {}) {
   }
   c.textAlign = 'center'; c.textBaseline = 'middle';
   // the sign (the name once; the headline below is the result)
-  if (look === 'day') { c.font = `800 70px ${L.font}`; const tw = c.measureText('coast clear').width, dw = c.measureText('.').width; c.textAlign = 'left'; c.fillStyle = L.sign; c.fillText('coast clear', (W - tw - dw) / 2, 140); c.fillStyle = L.site; c.fillText('.', (W - tw - dw) / 2 + tw, 140); c.textAlign = 'center'; }
-  else { c.font = `900 54px ${L.font}`; c.save(); c.letterSpacing = '13px'; glowText(c, 'COAST CLEAR', W / 2 + 6, 140, L.signCore, L.sign, 36); c.restore(); }
+  paintSign(c, L, look, W / 2, 140);
   // the headline, with a soft lighthouse beam behind a clear
   const hy = I.caught ? 540 : 440;   // (a caught card has no big time: its block sits lower, centred)
-  if (!I.caught) {
-    // the lighthouse: a broad soft cone from low on the left, sweeping up behind the headline (a halo cone + the beam)
-    c.save(); c.translate(W * 0.12, hy + 120); c.rotate(-0.36);
-    for (const [spread, a] of [[340, 0.45], [170, 1]]) {
-      const bm = c.createLinearGradient(0, 0, 1150, 0); bm.addColorStop(0, L.beam); bm.addColorStop(0.55, 'rgba(255,236,190,0.08)'); bm.addColorStop(1, 'rgba(255,240,200,0)');
-      c.globalAlpha = a; c.fillStyle = bm; c.beginPath(); c.moveTo(0, -6); c.lineTo(1150, -spread); c.lineTo(1150, spread); c.lineTo(0, 6); c.closePath(); c.fill();
-    }
-    c.restore();
-  }
-  const hc = I.caught ? L.lose : L.win;
-  c.font = `900 ${I.caught ? 118 : 104}px ${L.font}`;
-  c.save(); c.letterSpacing = '8px';
-  glowText(c, String(I.head || ''), W / 2 + 4, hy, hc, look === 'day' ? 'rgba(0,0,0,0)' : hc, look === 'day' ? 0 : 36);
-  c.restore();
+  if (!I.caught) paintBeam(c, L, W * 0.12, hy + 120);
+  paintHead(c, I, L, look, W / 2, hy, I.caught ? 118 : 104, 8);
   // the big time (a clear) + the one line
   let y = hy + 150;
-  if (!I.caught && I.time) { c.font = '700 190px "Chakra Petch", system-ui, sans-serif'; c.fillStyle = L.ink; c.fillText(String(I.time), W / 2, y + 30); y += 190; }
-  c.font = '700 44px "Chakra Petch", system-ui, sans-serif'; c.fillStyle = I.caught ? L.ink : L.dim; c.save(); c.letterSpacing = '6px';
-  c.fillText(String(I.line || ''), W / 2 + 3, y); c.restore();
+  if (!I.caught && I.time) { paintTime(c, I, L, W / 2, y + 30, 190); y += 190; }
+  paintLine(c, I, L, W / 2, y, 44, 6);
   // THREE drawn searchlights, lit per spot (under the result — never a hole above them)
-  const lampY = y + 120;
-  const S = 5.4, lw = 32 * S, gap = 46, x0 = (W - (3 * lw + 2 * gap)) / 2;
-  for (let k = 0; k < 3; k++) lamp(c, x0 + k * (lw + gap), lampY, S, k < (Number(I.spots) || 0), L, look);
+  paintLamps(c, I, L, look, W / 2, y + 120, 5.4, 46);
   // the day number + the site
   shareFoot(c, { name: 'COAST CLEAR', dayNo: I.dayNo, dim: L.dim, color: L.site, site: I.site, W });   // (the kit's foot)
   return cv;
+}
+
+// ---------------------------------------------------------------------------------------------- SHARE TODAY's SECTION
+export const SECTION_H = 420;
+/**
+ * COAST CLEAR as a section of SHARE TODAY (BOARD 2.0 B): its small wordmark on top; the left column the headline (the beam behind a clear), the
+ * line + the three searchlights; the right column THE BIG TIME (a clear) — a caught run puts its three searchlights there instead. The same pieces.
+ */
+export function paintSection(c, { inputs, look = 'night', W = SHARE_W } = {}) {
+  const I = pick(inputs);
+  const L = tokens(look);
+  c.save();
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  paintSign(c, L, look, W / 2, 34, 0.62);
+  const lx = W * 0.27, rx = W * 0.72, colW = W * 0.44;
+  if (!I.caught) { c.save(); c.beginPath(); c.rect(0, 70, W, 330); c.clip(); paintBeam(c, L, W * 0.02, 250, 760, 0.5); c.restore(); }
+  paintHead(c, I, L, look, lx, 150, 72, 6, colW);
+  paintLine(c, I, L, lx, 226, 36, 4);
+  if (!I.caught && I.time) {
+    paintTime(c, I, L, rx, 214, 168);
+    paintLamps(c, I, L, look, lx, 262, 2.6, 22);
+  } else paintLamps(c, I, L, look, rx, 150, 4.2, 30);
+  c.restore();
 }
 
 /** SHARE: the image through the share sheet with the line; no file sharing → the line shared (or copied) + the image saved (THE DAILY KIT's sender) */

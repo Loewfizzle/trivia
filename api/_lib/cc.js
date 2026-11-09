@@ -12,7 +12,7 @@
 import { ref, val } from './fb.js';
 import { dailySecret } from './daily-secret.js';
 import { boardFor } from './cc-board.js';
-import { runView, serverAct, newRecord, replay, bucketOf, BUCKETS, GHOST_S, runFlags } from '../../js/games/coastclear/logic.js';
+import { runView, serverAct, newRecord, replay, bucketOf, BUCKETS, GHOST_S, runFlags, shareInputs } from '../../js/games/coastclear/logic.js';
 export { GHOST_S, runFlags };   // (CC2 — the rule lives in the pure logic.js: the unit tests + the simulation read it without firebase-admin)
 
 /** THE DAY's BOARD (server-only): memory → the stored copy → built + stored once — from THE DAILY SECRET (DM1 ADD-ON: never the pepper) */
@@ -35,6 +35,12 @@ export const CC_DAILY = {
     if (!record || !data) return null;
     const r = replay(record, data, { startedAt });
     return r ? r.score : null;
+  },
+  /** BOARD 2.0 B — SHARE TODAY's section: a FINISHED run's NO-BOARD inputs (logic.js#shareInputs — the headline, the time, the line, the lit lamps) */
+  share({ record, day, startedAt, data } = {}) {
+    if (!record || !data) return null;
+    const view = runView(record, data, { startedAt });
+    return view && view.done ? shareInputs(view, day) : null;
   },
   /** CC2 — THE FLAGS a finished run earns, from the RECORD (the award engine keys them `coastclear-<flag>`): `clear` = any clear (LIGHTHOUSE) ·
    *  `ghost` = a clear with ZERO spots at or under GHOST_S on the score's clock (GHOST RUN — ≈ the best ~10 % of clean runs: scripts/sim-coastclear.mjs) */
