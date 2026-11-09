@@ -9,7 +9,7 @@
 // beam, the headline, the big time, the line, the searchlights) that BOTH this card and SHARE TODAY's section (`paintSection`) call — this card
 // stays pixel-identical (tests/integration/share-same.html). Still ONLY the no-board inputs.
 //   renderShare({ inputs, look }) → <canvas>      shareRun({ inputs, line, look }) → 'shared' | 'saved' | 'copied' | 'none'
-//   paintSection(c, { inputs, look, W }) — SHARE TODAY's section (the box W × SECTION_H, its own small wordmark on top)
+//   paintSection(c, { inputs, look, W, H }) — SHARE TODAY's section (the box W × H ≥ SECTION_H, its wordmark on top — PD-4 Group 0: the result + the time a centred pair)
 import { SHARE_W, SHARE_H, shareFrame, shareFoot, sendShare } from '../../daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
 export { SHARE_W, SHARE_H };
 /** the only keys the card may read (tests/coastclear-share.test.mjs holds the line) */
@@ -111,23 +111,37 @@ export function renderShare({ inputs, look = 'night' } = {}) {
 // ---------------------------------------------------------------------------------------------- SHARE TODAY's SECTION
 export const SECTION_H = 420;
 /**
- * COAST CLEAR as a section of SHARE TODAY (BOARD 2.0 B): its small wordmark on top; the left column the headline (the beam behind a clear), the
- * line + the three searchlights; the right column THE BIG TIME (a clear) — a caught run puts its three searchlights there instead. The same pieces.
+ * COAST CLEAR as a section of SHARE TODAY (BOARD 2.0 B; PD-4's Group 0 — the owner, Nov 9: "no dead space"): its wordmark on top; the result (the
+ * headline over its line) + THE BIG TIME side by side, centred as a PAIR (the beam behind a clear's headline); the three searchlights ~2× bigger
+ * centred under them (a caught run: the result centred alone, the searchlights under it). The whole block centred in the box (W × H). The same pieces.
  */
-export function paintSection(c, { inputs, look = 'night', W = SHARE_W } = {}) {
+export function paintSection(c, { inputs, look = 'night', W = SHARE_W, H = SECTION_H } = {}) {
   const I = pick(inputs);
   const L = tokens(look);
+  const clear = !I.caught && !!I.time;
+  const lampS = 5.2, lampH = 22 * lampS, lampTop = clear ? 262 : 246;
+  const contentH = lampTop + lampH;
   c.save();
+  c.translate(0, Math.max(0, (H - contentH) / 2));
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  paintSign(c, L, look, W / 2, 34, 0.62);
-  const lx = W * 0.27, rx = W * 0.72, colW = W * 0.44;
-  if (!I.caught) { c.save(); c.beginPath(); c.rect(0, 70, W, 330); c.clip(); paintBeam(c, L, W * 0.02, 250, 760, 0.5); c.restore(); }
-  paintHead(c, I, L, look, lx, 150, 72, 6, colW);
-  paintLine(c, I, L, lx, 226, 36, 4);
-  if (!I.caught && I.time) {
-    paintTime(c, I, L, rx, 214, 168);
-    paintLamps(c, I, L, look, lx, 262, 2.6, 22);
-  } else paintLamps(c, I, L, look, rx, 150, 4.2, 30);
+  paintSign(c, L, look, W / 2, 40, 0.87);
+  // the widths (the pieces' own fonts) → the pair's places
+  const widthOf = (font, ls, t) => { c.save(); c.font = font; c.letterSpacing = `${ls}px`; const w = c.measureText(String(t || '')).width; c.restore(); return w; };
+  let headPx = 72;
+  while (headPx > 40 && widthOf(`900 ${headPx}px ${L.font}`, 6, I.head) > (clear ? W * 0.46 : W - 180)) headPx -= 2;
+  if (clear) {
+    const left = Math.max(widthOf(`900 ${headPx}px ${L.font}`, 6, I.head), widthOf('700 38px "Chakra Petch", system-ui, sans-serif', 4, I.line));
+    const timeW = widthOf('700 176px "Chakra Petch", system-ui, sans-serif', 0, I.time), gapX = 64;
+    const x0 = (W - (left + gapX + timeW)) / 2, lx = x0 + left / 2, rx = x0 + left + gapX + timeW / 2;
+    c.save(); c.beginPath(); c.rect(0, 70, W, 200); c.clip(); paintBeam(c, L, Math.max(0, x0 - 60), 210, 760, 0.5); c.restore();
+    paintHead(c, I, L, look, lx, 138, headPx, 6);
+    paintLine(c, I, L, lx, 204, 38, 4);
+    paintTime(c, I, L, rx, 168, 176);
+  } else {
+    paintHead(c, I, L, look, W / 2, 130, headPx, 6);
+    paintLine(c, I, L, W / 2, 196, 38, 4);
+  }
+  paintLamps(c, I, L, look, W / 2, lampTop, lampS, 44);
   c.restore();
 }
 

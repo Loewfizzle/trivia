@@ -53,24 +53,25 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
   // ONE daily finished → that daily's OWN card, exactly as it is (its own sign, foot and all)
   if (plan.single && mods[plan.single]) { const M = mods[plan.single]; return M.S.renderShare({ ...M.input(share[plan.single]), look }); }
   const { cv, c, W } = shareFrame({ bg0: L.bg0, bg1: L.bg1 }, look);
-  const flame = streak > 0 ? await flameImage('lit', 120) : null;
+  const flame = streak > 0 ? await flameImage('lit', 160) : null;
   if (night) { const hz = c.createRadialGradient(W / 2, -60, 0, W / 2, -60, 720); hz.addColorStop(0, 'rgba(255,111,200,0.14)'); hz.addColorStop(1, 'rgba(255,111,200,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, 1350); }
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  // ONE HEADER: the date + the streak flame
-  c.save(); c.font = `800 38px ${FONT_U}`; c.letterSpacing = '10px'; c.fillStyle = L.ink; c.fillText(dateLineOf(today.day), W / 2 + 5, 78); c.restore();
-  let top = 130;
+  // ONE HEADER: the date + the streak flame (PD-4's Group 0 — the owner: ~1.4× bigger, it reads in a thread)
+  c.save(); c.font = `800 53px ${FONT_U}`; c.letterSpacing = '12px'; c.fillStyle = L.ink; c.fillText(dateLineOf(today.day), W / 2 + 6, 82); c.restore();
+  let top = 136;
   if (streak > 0) {
-    const fw = 52, fh = Math.round(fw * 160 / 140), label = `${streak}-DAY STREAK`;
-    c.save(); c.font = `800 32px ${FONT_U}`; c.letterSpacing = '5px';
-    const tw = c.measureText(label).width, lx = W / 2 - (fw + 14 + tw) / 2;
-    if (flame) c.drawImage(flame, lx, 136 - fh / 2, fw, fh);
-    c.textAlign = 'left'; c.fillStyle = L.dim; c.fillText(label, lx + fw + 14, 138); c.restore();
+    const fw = 72, fh = Math.round(fw * 160 / 140), label = `${streak}-DAY STREAK`;
+    c.save(); c.font = `800 45px ${FONT_U}`; c.letterSpacing = '6px';
+    const tw = c.measureText(label).width, lx = W / 2 - (fw + 18 + tw) / 2;
+    if (flame) c.drawImage(flame, lx, 158 - fh / 2, fw, fh);
+    c.textAlign = 'left'; c.fillStyle = L.dim; c.fillText(label, lx + fw + 18, 160); c.restore();
     c.textAlign = 'center';
-    top = 186;
+    top = 222;
   }
-  // THE SECTIONS — the room between the header and the foot, shared evenly (≤ 6), each drawn by its daily's own pieces
+  // THE SECTIONS — ALL the room between the header and the foot, shared evenly (≤ 6; PD-4's Group 0: no empty band above the foot), each drawn by
+  // its daily's own pieces in its whole box (a box taller than the section's smallest lays itself out in it — centred)
   const notLine = plan.notYet.length ? `NOT YET: ${plan.notYet.join(' · ')}` : '';
-  const bottom = notLine ? 1168 : 1206, gap = 24, n = Math.max(1, plan.sections.length);
+  const bottom = notLine ? 1166 : 1218, gap = 24, n = Math.max(1, plan.sections.length);
   const each = (bottom - top - gap * (n - 1)) / n;
   plan.sections.forEach((sec, i) => {
     const y = top + i * (each + gap);
@@ -79,8 +80,8 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
     if (M) {
       // (scaled to its share of the card's height, never past its own size; drawn W / s wide, so it always spans the card's full width)
       const H0 = M.S.SECTION_H || 420, s = Math.min(1, each / H0);
-      c.save(); c.translate(0, y + (each - H0 * s) / 2); c.scale(s, s);
-      M.S.paintSection(c, { ...M.input(share[sec.id]), look, W: W / s });
+      c.save(); c.translate(0, y); c.scale(s, s);
+      M.S.paintSection(c, { ...M.input(share[sec.id]), look, W: W / s, H: each / s });
       c.restore();
     } else {
       // a daily with no section painter / no share data: its name (a small sign) + its result line

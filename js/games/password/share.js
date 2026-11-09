@@ -7,7 +7,7 @@
 // doors, the headline, the line, the grids) that BOTH this card and SHARE TODAY's section (`paintSection` — js/daily/share-today.js) call: never a
 // redraw or a copy; this card stays pixel-identical (tests/integration/share-same.html checks it against the code before the split).
 //   renderShare({ run, look }) → <canvas>      shareRun({ run, line, look }) → 'shared' | 'saved' | 'copied' | 'none'
-//   paintSection(c, { run, look, W, H }) — SHARE TODAY's section (the box W × SECTION_H, its own small wordmark on top)
+//   paintSection(c, { run, look, W, H }) — SHARE TODAY's section (the box W × H ≥ SECTION_H, its wordmark on top — PD-4 Group 0: centred, the grids big)
 import { scoreOf, fmtTime, doorState, HEAD_IN, HEAD_OUT, DOOR_NAMES, DOORS, HIT, NEAR } from './logic.js';
 import { SHARE_W, SHARE_H, SITE, shareFrame, shareFoot, sendShare } from '../../daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
 export { SHARE_W, SHARE_H, SITE };
@@ -125,26 +125,43 @@ export function renderShare({ run, look = 'night', dayNo = null } = {}) {
 }
 
 // ---------------------------------------------------------------------------------------------- SHARE TODAY's SECTION
-/** the section's box height in its own units (SHARE TODAY scales it to its share of the card) */
+/** the section's box height in its own units — its smallest (SHARE TODAY scales it below this; above it, the section lays out in the taller box) */
 export const SECTION_H = 420;
+/** one door alone (a piece: SHARE TODAY's section heads each grid with its door — no name; the door's state as on the card) */
+export function paintDoor(c, run, L, i, x, y, S) { door(c, x, y, S, doorState(run, i), L); }
 /**
- * THE PASSWORD as a section of SHARE TODAY (BOARD 2.0 B): its small wordmark on top; the left column the headline, the line + the two drawn doors;
- * the right column the mini grids (the colours — the part that must read when a text thread shows the card small). The same pieces as the card.
+ * THE PASSWORD as a section of SHARE TODAY (BOARD 2.0 B; PD-4's Group 0 — the owner, Nov 9: "centred, the grids bigger"): its wordmark on top, the
+ * headline (WELCOME IN · LOCKED OUT) + "n GUESSES · m:ss" centred under it, then THE TWO GRIDS SIDE BY SIDE, centred, each headed by its small drawn
+ * door (no names — unreadable at thread size; the daily's OWN card keeps them). The cell as big as the box allows (≤ 56 — ~40 % over the old 40),
+ * the same gutter both sides; the whole block centred in the box (W × H). The same pieces as the card.
  */
-export function paintSection(c, { run, look = 'night', W = SHARE_W } = {}) {
+export function paintSection(c, { run, look = 'night', W = SHARE_W, H = SECTION_H } = {}) {
   const L = tokens(look);
+  const played = run.doors.map((d, i) => ({ d, i })).filter(x => x.d.guesses.length);
+  const n = Math.max(1, played.length);
+  const rows = Math.max(1, ...played.map(x => x.d.marks.length));
+  const GUT = 90, doorS = 1.4, doorH = 44 * doorS, doorW = 34 * doorS, doorTop = 206;
+  // a tall run (more than 3 rows — every LOCKED OUT door has 6) → each door BESIDE its grid (the height goes to the cells); else ABOVE it
+  const beside = rows > 3, dx = beside ? doorW + 14 : 0;
+  const gridTop = beside ? doorTop : doorTop + doorH + 10;
+  // the cell: as big as the room + the card's width (the same gutter both sides) allow — a grid = 5 cells + 4 gaps of 0.2, 1.5 cells between grids
+  const byH = (H - gridTop - 12) / (1.2 * rows - 0.2);
+  const byW = (W - 2 * GUT - n * dx) / (n * 5.8 - 0.8 + (n - 1) * 1.5);
+  const cell = Math.max(18, Math.min(56, byH, byW)), gap = cell * 0.2, gx = cell * 1.5;
+  const contentH = gridTop + rows * cell + (rows - 1) * gap;
   c.save();
+  c.translate(0, Math.max(0, (H - contentH) / 2));
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  paintSign(c, L, look, W / 2, 34, 0.62);
-  const lx = W * 0.27, rx = W * 0.72, colW = W * 0.44;
-  paintHead(c, run, L, look, lx, 150, 66, 5, colW);
-  paintLine(c, run, L, lx, 226, 40, 4);
-  paintDoors(c, run, L, look, { xs: [lx - 222, lx + 8], y: 280, S: 1.75, font: 15, ls: 2, tx: 9, ty: 280 + 40 * (1.75 / 2.9) });
-  const played = run.doors.filter(d => d.guesses.length).length || 1;
-  const cell = played > 1 ? 40 : 46, gap = played > 1 ? 8 : 9, gx = 26;
-  const rows = Math.max(1, ...run.doors.map(d => d.marks.length));
-  const gh = rows * cell + (rows - 1) * gap;
-  paintGrids(c, run, L, rx, 90 + Math.max(0, (6 * (cell + gap) - gap - gh) / 2), cell, gap, gx);
+  paintSign(c, L, look, W / 2, 40, 0.87);
+  paintHead(c, run, L, look, W / 2, 118, 72, 6, W - 2 * GUT);
+  paintLine(c, run, L, W / 2, 176, 42, 5);
+  // the units [door][grid] side by side, centred (paintGrids lays the grids out — its gap widened by each door, its centre shifted by one)
+  const gw = 5 * cell + 4 * gap, total = n * (dx + gw) + (n - 1) * gx, x0 = W / 2 - total / 2;
+  played.forEach((x, k) => {
+    const ux = x0 + k * (dx + gw + gx);
+    paintDoor(c, run, L, x.i, beside ? ux : ux + gw / 2 - doorW / 2, doorTop, doorS);
+  });
+  paintGrids(c, run, L, W / 2 + dx / 2, gridTop, cell, gap, gx + dx);
   c.restore();
 }
 

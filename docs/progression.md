@@ -457,3 +457,9 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
   pieces + a `paintSection` (+ `SECTION_H`) + a row in `share-today.js#SECTIONS` + its server cart's `share()` (spoiler-free) — without them it gets
   its name + its result line. The data: `today { share: true }` (the SHARE TODAY tap only) → each finished run's spoiler-free inputs from the
   SERVER's record (THE PASSWORD: `logic.js#shareRunOf` — marks + counts, never a word; COAST CLEAR: `shareInputs` — no board).
+  **BALANCED (PD-4's Group 0 — the owner, Nov 9, his real share in a text thread):** the sections share ALL the height between the header and the
+  foot, each handed its whole box (`paintSection(c, { W, H })` centres its block in it; under `SECTION_H` it is scaled); the header + each wordmark
+  ~1.4×; THE PASSWORD centred — the result + the line on top, the two grids side by side (cell ≤ 56), each headed by its small drawn door
+  (`paintDoor` — no door names on the combined card; BESIDE the grid for a run over 3 rows); COAST CLEAR's result + big time a centred pair, the
+  searchlights ~2× under them. THE BAR: at a 360-px downscale the grid colours, the time, the streak line + the address read
+  (`daily-probe.mjs SHARE_ONLY=1` saves both sizes; docs/harbor/passes/pd-4.md).

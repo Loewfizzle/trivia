@@ -136,6 +136,8 @@ if (view === 'screen') {
   //  COAST CLEAR's no-board inputs; &old=1 = the ticket version before it (tests/integration/_old/share-today.js) for the before / after shots)
   const G = await import('/js/games/password/logic.js'), H = G.HIT, N = G.NEAR, M = G.MISS;
   const pwRun = { done: true, door: 1, startedAt: 1000, finishedAt: 175000, doors: [{ state: 'solved', marks: [[M, N, M, M, H], [H, H, N, M, M], [H, H, H, H, H]], n: 3 }, { state: 'solved', marks: [[N, M, M, H, M], [H, H, H, H, H]], n: 2 }] };
+  // (PD-4's Group 0: &pw=locked = a LOCKED OUT run — the back room's six rows, the tallest grid a section must fit)
+  if (q.get('pw') === 'locked') pwRun.doors = [{ state: 'solved', marks: [[M, N, M, M, H], [H, H, H, H, H]], n: 2 }, { state: 'failed', marks: Array.from({ length: 6 }, () => [N, M, H, M, M]), n: 6 }];
   const ccIn = q.get('cc') === 'caught' ? { head: 'CAUGHT', caught: true, time: null, line: '3 SPOTTED · 1:58', spots: 3, dayNo: 9, site: 'neonspeakeasy.com' } : { head: 'COAST CLEAR', caught: false, time: '2:12', line: '1 SPOTTED · +30 s', spots: 1, dayNo: 9, site: 'neonspeakeasy.com' };
   const share = { password: pwRun, coastclear: ccIn };
   const { drawToday } = await import(q.get('old') === '1' ? '/tests/integration/_old/share-today.js' : '/js/daily/share-today.js');
