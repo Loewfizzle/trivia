@@ -51,6 +51,10 @@
 //                                    reseedDailies() as scripts/dailies-reseed.mjs (now the emulators' + tests' only) — no confirm = the DRY RUN
 //                                    (the plan, nothing written); confirm: true = a new daily secret from the NEXT 4 am (today + the past + every
 //                                    result untouched; a second run says "already reseeded"); audited (dailyReseed). Owner only (the admin gate)
+import { cleanHoldem } from '../js/core/harbor-holdem.js';
+import { knob as schedKnob } from '../js/core/harbor-schedule.js';
+/** CITY FIXES + HOLD'EM: the switch as /admin shows it (the timetable's default when never set) */
+const holdemPublic = v => { const D = schedKnob('billboard.holdem'), c = cleanHoldem(v && v.holdem); return c ? { on: c.on, bar: c.bar, since: c.since || D.since, set: true } : { on: D.on !== false, bar: D.bar || 'soon', since: D.since, set: false }; };
 import { displayOf } from './_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
 import { dailiesState, setDailiesSwitch, forgetPicks, openDailies } from './_lib/dailies.js';
 import { countsOn } from './daily.js';
@@ -348,6 +352,16 @@ export async function adminAction(uid, body, now = Date.now()) {
     }
     case 'outages': return { outage: (await val('streak/outage')) || {}, today: streakDay(now) };
     // DM1 — THE GO-LIVE SWITCH (owner only — the admin gate above): OFF until THE SWITCH-OVER; every flip audited
+    // CITY FIXES + HOLD'EM — THE BILLBOARD: the roof board's BASE POSTER (HOLD'EM on / off, COMING SOON / NOW OPEN) → city2/billboard (every
+    // phone through the cached GET ?live=1 → radioPublic.base); turning it ON starts it from TODAY (Eastern) — the billposter pastes it at ~5 pm
+    case 'billboardState': return { billboard: holdemPublic(await val('city2/billboard')) };
+    case 'billboardSet': {
+      const cur = holdemPublic(await val('city2/billboard')), on = body.on !== false, bar = body.bar === 'open' ? 'open' : body.bar === 'soon' ? 'soon' : cur.bar;
+      const since = on && cur.on && cur.since ? cur.since : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(now));
+      await ref('city2/billboard').set({ holdem: { on, bar, since }, at: now });
+      await audit(me, 'billboardSet', null, { b: `${on ? 'on' : 'off'} · ${bar}` });
+      return { billboard: holdemPublic({ holdem: { on, bar, since } }) };
+    }
     case 'dailyState': return { dailies: await dailiesState(now) };
     case 'dailyStats': return { stats: await dailyStats(me, now) };
     case 'dailySwitch': {

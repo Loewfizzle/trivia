@@ -16,7 +16,8 @@ const dowOf = (y, m, d) => new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 const isParty = (y, m, d) => { const pd = partyDow(y, m, d, dowOf(y, m, d)); return pd === 5 || pd === 6; };
 
 /** the queue's rows (the automatic hints now; CITY CONTROLS' typed messages join as rows with kind 'text' next pass) */
-export const billboardRows = () => SCHEDULE.filter(r => r.id.startsWith('billboard.') && r.status === 'live').map(r => ({ id: r.id, ...r.knobs }));
+// (CITY FIXES + HOLD'EM: the BASE poster's row — kind 'base' — is no hint: core/harbor-holdem.js reads it)
+export const billboardRows = () => SCHEDULE.filter(r => r.id.startsWith('billboard.') && r.status === 'live' && r.knobs.kind !== 'base').map(r => ({ id: r.id, ...r.knobs }));
 
 /**
  * The hints that may show at a local moment lc ({ y, m, d, h, mi, s }) → [{ id, lines: [a, b], art?, from (evening h), to, prio, every, show }]

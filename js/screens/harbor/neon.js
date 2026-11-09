@@ -1173,7 +1173,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     /** 8b1 — THE BILLPOSTER: a board built for `show` (not hung — its poster + light for the sheets he pastes) */
     boardArt(id, show) { const it = items.find(x => x.kind === 'board' && x.id === id); if (!it) return null; const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY }); free(b.nightS); return b; },
     /** the game a board shows now (null: none / CITY CONTROL's own content) */
-    boardGame(id) { const it = items.find(x => x.kind === 'board' && x.id === id); return it && it.b.content && it.b.content.game ? it.b.content.game.id : null; },
+    boardGame(id) { const it = items.find(x => x.kind === 'board' && x.id === id); const c = it && it.b.content; return c && c.game ? c.game.id : c && c.poster ? c.poster : null; },   // (CITY FIXES: HOLD'EM's id — never a re-apply every check)
     boardDead(id) { const it = items.find(x => x.kind === 'board' && x.id === id); return it ? (it.b.dead == null ? null : it.b.dead) : null; },
     /** a billboard's content (CITY CONTROL later): { game } or { title, sub, bg, ink } */
     billboard(id, show) {

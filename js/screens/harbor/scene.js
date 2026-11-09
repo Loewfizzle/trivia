@@ -35,6 +35,7 @@ import { createSceneFireworks } from './scene-fireworks.js';
 import { createSceneRadio } from './scene-radio.js';
 import { setShowcase } from '../../core/harbor-showcase.js';
 import { hintAt } from '../../core/harbor-billboard.js';
+import { holdemShow, setHoldemForce, holdemRev } from '../../core/harbor-holdem.js';
 import { roomRects } from '../../core/harbor-room.js';
 import { createScenePanel } from './scene-panel.js';
 import { createScenePerf } from './scene-perf.js';
@@ -549,10 +550,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const tempNow = () => { const q = qp.get('temp'); return q != null && q !== '' && Number.isFinite(+q) ? +q : LK.temp; };
   const hotDay = () => { const tc = tempNow(); return tc != null && tc >= HOT_C; };
   // the traces outside a frame (the billboard's game at a layout): the crew's pure plan on the base map
-  let workCache = new Map(), workCacheL = null;
+  let workCache = new Map(), workCacheL = null, workCacheH = -1;
   function workTraceNow() {
     if (!L || !LK.local || clock.force.has('no-work')) return null;
-    if (workCacheL !== L) { workCache = new Map(); workCacheL = L; }
+    if (workCacheL !== L || workCacheH !== holdemRev()) { workCache = new Map(); workCacheL = L; workCacheH = holdemRev(); }   // (CITY FIXES: the HOLD'EM switch re-plans the billposter)
     try { return tracesAt(clock.now() / 1000, { L, M: folkMap(L), ctx: { off: LK.local.off, seed: L.seed || 1924, force: workForced(), forceAt: workForceAt(), dusk: duskFor, hot: hotDay, flush: () => flushOk() } }, workCache); } catch { return null; }
   }
   // (DT1: the palette + the facades' tones from the Harbor's weights — the sky model's + THE BLUE HOUR: tones.js#harborWeights)
@@ -629,7 +630,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     towerFx.layout(L);
     archFor();
     lights.layout(L);
-    { const bt = workTraceNow(); neon.layout(L, { dpr, tier, night: nightKey(LK.local), board: bt ? bt.board.key : null, boardGame: bt ? boardGameOf(bt.board.key, L) : null, boardDead: bt ? bt.boardLampDead : null }); } neon.setTier(tier);
+    { const bt = workTraceNow(); neon.layout(L, { dpr, tier, night: nightKey(LK.local), board: bt ? bt.board.key : null, boardGame: bt ? boardWant(bt.board.key, L) : null, boardDead: bt ? bt.boardLampDead : null }); } neon.setTier(tier);
     water.layout(L, { dpr, tier });
     waterfront.layout(L, { dpr });
     wheel.layout(L, { dpr, tier }); beam.layout(L); boats.layout(L, { dpr, tier, taxi: clock.force.has('taxi'), turn: clock.force.has('rosie-turn') });
@@ -922,10 +923,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // CITY CONTROLS A — THE BILLBOARD's MESSAGES CRISP AT NIGHT (the owner's SCHED review: a hint, the Sunday postcard, a typed message at
     // the phone's FULL dpr): the lamp-lit poster face on the crisp layer, at the city's own lamp level for the board (a game's poster stays
     // in the city's canvas — only the messages, the lettering the eye reads)
-    const rbN = !busy ? (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak' && b.content && b.content.lines && b.nightPoster) : null;
+    // (CITY FIXES + HOLD'EM: the HOLD'EM poster's lettering crisp at night too — the eye reads it like a message)
+    const rbN = !busy ? (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak' && b.content && (b.content.lines || b.content.poster) && b.nightPoster) : null;
     if (rbN && rbN.rect) { const R0 = rbN.rect, aN = neon.boardNightA ? neon.boardNightA(rbN.id) : 0;
       const kN = Math.round(Math.min(1, aN) * 50) / 50;   // (quantised: a repaint only when the lamps' level steps — ~0.06 MB, cheap)
-      if (aN > 0.01) crisp.show(c, { id: 'roofboard-msg', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${rbN.content.lines.join('|')}|${rbN.content.art || ''}|${rbN.dead}|${crisp.dpr}|${kN}`, xfade: 0, alpha: fadeIn, draw: x => rbN.nightPoster(x, crisp.dpr, kN) }); }
+      if (aN > 0.01) crisp.show(c, { id: 'roofboard-msg', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${rbN.content.lines ? rbN.content.lines.join('|') : `poster:${rbN.content.poster}`}|${rbN.content.art || ''}|${rbN.dead}|${crisp.dpr}|${kN}`, xfade: 0, alpha: fadeIn, draw: x => rbN.nightPoster(x, crisp.dpr, kN) }); }
     { const a = boardXfA(); if (a > 0.004 && bxf.box) crisp.show(c, { id: 'roofboard-xf', z: 3, box: bxf.box, key: `xf${bxf.n}`, xfade: 0, alpha: a * fadeIn, draw: x => x.drawImage(bxf.cv, bxf.box.x, bxf.box.y, bxf.box.w, bxf.box.h) }); }
     crisp.end();
   }
@@ -1011,6 +1013,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // other way round, so the billposter's daily change can never flip the blade)
   const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), games.filter(g => g.sign).map(g => g.id), null); };
   const boardGameOf = (key, l) => { try { let g = neon.boardPick(key, 0, l); const nx = new Date(Date.UTC(...key.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) + 864e5).toISOString().slice(0, 10), bl = [bladeGameOn(key), bladeGameOn(nx)]; for (let n = 1; n < 4 && g && bl.includes(g); n++) g = neon.boardPick(key, n, l) || g; return g; } catch { return null; } };
+  // CITY FIXES + HOLD'EM — THE BASE POSTER (core/harbor-holdem.js): a day key the ad covers shows HOLD'EM instead of its game (the owner's
+  // switch via the cached GET; &force=billboard-holdem (+ &holdem=open) = from TODAY on this phone — the billposter pastes it at his slot)
+  let holdemForced = false;
+  const boardWant = (key, l) => {
+    if (!holdemForced && clock.force.has('billboard-holdem') && LK.local) { holdemForced = true; const dk = workDayOf(clock.now() / 1000, LK.local.off || 0); setHoldemForce({ since: clock.force.has('work-billposter') ? dk.key : workDayOf(clock.now() / 1000 - 86400, LK.local.off || 0).key, bar: qp.get('holdem') === 'open' ? 'open' : 'soon' }); }   // (up all day; with &force=work-billposter from TODAY — the paste to watch)
+    return holdemShow(key) || boardGameOf(key, l);
+  };
   // (9f — LOAD WEATHER: the board's game is synced BEFORE the reveal too — a panel's clock jump to another day used to swap the poster
   // ~1 s after the city showed, a neon re-bake crossfading over it)
   let boardHintKey = '';
@@ -1070,7 +1079,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     //  is back in the bake the reveal waits for)
     if ((shownAt < 0 || now - boardCheck > 500) && now > boardHeld) {
       boardCheck = now;
-      const want = boardGameOf(tr.board.key), dead = tr.boardLampDead == null ? null : tr.boardLampDead;
+      const want = boardWant(tr.board.key), dead = tr.boardLampDead == null ? null : tr.boardLampDead;
       // SCHED Group 4 — THE BOARD's HINTS (core/harbor-billboard.js — the timetable's billboard.* queue): a hint takes the WHOLE board for its
       // spell, then the day's game is back (never while the billposter pastes); &force=billboard-hints&hint=<kind> previews one on a loop
       const hint = tr.board.pasting || clock.force.has('no-hints') ? null : boardHintNow();
@@ -1090,7 +1099,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     boardSync(tr);
     const ps = tr.board.pasting;
     if (!ps || !bakeTones) return;
-    const g = boardGameOf(ps.to), key = `${g}|${toneKey(TW)}|${camSig}|${tr.boardLampDead}`;
+    const g = boardWant(ps.to), key = `${g}|${toneKey(TW)}|${camSig}|${tr.boardLampDead}`;
     if (key !== sheetK) { sheetK = key; const b = neon.boardArt(BOARD_ID, { game: g, dead: tr.boardLampDead }); sheetV = b ? sheetArt(b, bakeTones, dpr) : null; }
     if (sheetV) drawSheets(c, sheetV, ps);
   }

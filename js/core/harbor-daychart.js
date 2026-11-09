@@ -13,6 +13,7 @@ import { fireworksNight, fireworksWeather } from './harbor-fireworks.js';
 import { partyNight, danceBreaks } from './harbor-streetparty.js';
 import { raidEvening, RAID } from './harbor-raid.js';
 import { hintsAt } from './harbor-billboard.js';
+import { holdemShow, holdemKeeps } from './harbor-holdem.js';
 import { holidayAt, ghostShipTimes, GHOST_LEN } from './harbor-holiday.js';
 import { paradeWindow } from './harbor-parade.js';
 import { mixNow } from './harbor-people.js';
@@ -83,6 +84,9 @@ export function dayChart(dateKey, o = {}) {
   // THE BILLBOARD's hints (each one's window — it shows its spell every few minutes inside it)
   { const seen = new Map(); for (let q = DAY_FROM * 4; q < DAY_TO * 4; q++) { const hh = q / 4, lc = hh < 24 ? { y, m, d, h: Math.floor(hh), mi: (hh % 1) * 60, s: 0 } : (() => { const p = new Date(Date.UTC(y, m - 1, d) + 864e5); return { y: p.getUTCFullYear(), m: p.getUTCMonth() + 1, d: p.getUTCDate(), h: Math.floor(hh - 24), mi: ((hh - 24) % 1) * 60, s: 0 }; })();
       for (const x of hintsAt(lc, { level: lv })) { const k = `${x.id}|${x.lines.join(' ')}`, e = seen.get(k); if (e && e.h1 >= hh - 0.25) e.h1 = hh + 0.25; else { const it = { cat: 'billboard', h0: hh, h1: hh + 0.25, label: `THE BILLBOARD: ${x.lines.join(' / ')}`, big: false }; seen.set(k, it); items.push(it); } } } }
+  // CITY FIXES + HOLD'EM — THE BASE POSTER: the roof board shows HOLD'EM instead of the day's game (the board turns over at the billposter's
+  // ~5 pm paste — none while it keeps HOLD'EM); the hints above still take their spells over it
+  { const hs = holdemShow(key); if (hs) items.push({ cat: 'billboard', h0: DAY_FROM, h1: DAY_TO, label: `THE BILLBOARD's BASE POSTER: TEXAS HOLD’EM · ${hs === 'holdem-open' ? 'NOW OPEN' : 'COMING SOON'}${holdemKeeps(key) ? ' (no billposter today)' : ' (pasted at ~5 pm)'}`, big: false }); }
   items.sort((a, b) => a.h0 - b.h0 || (b.big - a.big));
   const summary = [
     `${['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][dow]} ${key}${party ? ' · A PARTY NIGHT' : ''}${hol && hol.id ? ` · ${hol.label}` : ''} · THE SHOWCASE ${lv.toUpperCase()}`,

@@ -117,6 +117,10 @@ function shell() {
       h('div.ad-reset-out', { id: 'ad-reset-out' }),
       h('h3', 'Backups'),
       h('div.ad-reset-bk', { id: 'ad-reset-bk' }, h('p.ad-dim', 'Loading…'))),
+    // CITY FIXES + HOLD'EM — THE BILLBOARD: the speakeasy roof board's BASE POSTER (every phone within ~a minute, through the cached feed)
+    card('ad-billboard', 'The billboard', { cls: 'ad-billboard' },
+      h('p.ad-dim', 'The speakeasy’s roof billboard shows the TEXAS HOLD’EM ad in place of the day’s game while this is ON (your radio messages, LOOK UP, FIREWORKS, the party + the Sunday postcard still interrupt it). Turning it on starts it today — the billposter pastes it at ~5 pm, then stays home. OFF = the daily game posters again.'),
+      h('div.ad-row', { id: 'ad-bb-row' }, h('span.ad-dim', 'Loading…'))),
     // DM2 — THE DAILIES (owner only — the server checks): THE GO-LIVE SWITCH (a second tap flips it) + THE RESEED (DM2 ADD-ON: server-side —
     // PREVIEW shows the plan, nothing written; RESEED NOW on a second tap: a fresh daily secret from the next 4 am, today + the past untouched)
     card('ad-dailies', 'The dailies', { cls: 'ad-dailies' },
@@ -145,7 +149,7 @@ function shell() {
     grid);
   audit();
   outages();
-  dailies(); dailyStats();
+  dailies(); dailyStats(); billboard();
   errors();
   reports();
   flags();
@@ -482,6 +486,19 @@ async function dailyStats() {
   } catch (e) { box.replaceChildren(h('p.ad-dim', `Couldn’t load the stats (${e.message || e})`)); }
 }
 /** DM2 — THE DAILIES card: the switch's state + ON / OFF + RESEED (preview → confirm) */
+async function billboard(st) {
+  const row = document.getElementById('ad-bb-row');
+  if (!row) return;
+  try {
+    st ||= (await call('billboardState')).billboard;
+    const set = async patch => { const r = await call('billboardSet', patch); toast(r.billboard.on ? `HOLD’EM ad ON · ${r.billboard.bar === 'open' ? 'NOW OPEN' : 'COMING SOON'}` : 'HOLD’EM ad OFF — the game posters are back'); billboard(r.billboard); audit(); };
+    row.replaceChildren(
+      h('b.ad-dly-state', st.on ? `HOLD’EM AD: ON · ${st.bar === 'open' ? 'NOW OPEN' : 'COMING SOON'}` : 'HOLD’EM AD: OFF'),
+      confirmBtn(st.on ? 'SWITCH OFF' : 'SWITCH ON', () => set({ on: !st.on, bar: st.bar }), st.on ? '' : 'is-primary'),
+      st.on ? tubeButton(st.bar === 'open' ? 'SHOW COMING SOON' : 'SHOW NOW OPEN', { kind: 'secondary', size: 'sm', cls: 'ad-btn', onClick: () => set({ on: true, bar: st.bar === 'open' ? 'soon' : 'open' }) }) : null,
+      h('span.ad-dim', st.set ? `since ${st.since}` : `the default (since ${st.since})`));
+  } catch (e) { row.replaceChildren(h('span.ad-dim', `Couldn’t load (${e.message || e})`)); }
+}
 async function dailies(st) {
   const row = document.getElementById('ad-dly-row'), out = document.getElementById('ad-dly-out');
   if (!row) return;

@@ -29,6 +29,8 @@ export const CREDITS = [
   { group: '3D MODELS', title: '"F22 Raptor FREE" by NLM', by: 'NLM (@NLM-Group)', licence: 'CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)', link: 'https://sketchfab.com/3d-models/f22-raptor-free-2a64abf0866a405c865466c7642ca689' },
   // NIGHT-A2: City 2.0's EVENING deck (c2-80s-retro-synthwave) — the Pixabay Content License asks no attribution; credited anyway
   { group: 'THE MUSIC', title: '80s Retro Synthwave', by: 'Playsound, Pixabay', licence: 'Pixabay Content License', link: 'https://pixabay.com/music/synthwave-80s-retro-synthwave-186631/' },
+  // CITY FIXES + HOLD'EM — the roof billboard's HOLD'EM ad: its lettering drawn from two Google Fonts (scripts/build-holdem-art.mjs)
+  { group: 'TYPE', title: 'Alfa Slab One + Poppins — the HOLD’EM billboard’s lettering', by: 'JM Solé (Alfa Slab One) · Indian Type Foundry (Poppins)', licence: 'SIL Open Font License 1.1 (https://openfontlicense.org)', link: 'https://fonts.google.com' },
   { group: 'THE CITY SOUNDS', title: 'Field recordings + effects', by: 'Freesound contributors (CC0), the Sonniss GDC Game Audio Bundles, Mixkit, Pixabay', licence: 'CC0 · royalty-free licences (edited, cut + re-encoded for the city)' },
   // NIGHT-B — THE STREET PARTY's crowd (the owner's party-crowd folder's credits.txt: none is CC BY — no attribution required — credited
   // anyway, word for word; only these files ship, cut + re-encoded: audio/city/party-*.mp3)

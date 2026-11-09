@@ -52,6 +52,7 @@ import { debugTool, setDebugTool } from '../../ui/debug-tools.js';
 import { setMenuExtra, setMenuCue } from '../../ui/settings-panel.js';
 import { setServerShowcase } from '../../core/harbor-showcase.js';
 import { setOwnerMessages, setIntercomHead as setBillboardHead } from '../../core/harbor-billboard.js';
+import { setHoldem } from '../../core/harbor-holdem.js';
 import { intercomFeed, setIntercomBusy, setIntercomHead } from '../../audio/intercom.js';
 
 const FOLD_KEY = 'nd:hr-folds';   // (ATM-C: the long blocks the owner opened — remembered on this device)
@@ -232,6 +233,7 @@ export function createRemote({ scene, api = apiCall }) {
     radioStopped = new Set(Array.isArray(r.stopped) ? r.stopped : []);
     setServerShowcase(r.showcase || null);
     setOwnerMessages(Array.isArray(r.board) ? r.board : []);
+    setHoldem(r.base && r.base.holdem);   // (CITY FIXES + HOLD'EM: the owner's /admin switch — absent = the timetable's default, ON)
     feedRadio();
     // CC-B — THE INTERCOM to EVERYONE: the city's copy (audio/intercom.js decides when — a title phone plays it as it arrives)
     intercomFeed('feed', Array.isArray(r.intercom) ? r.intercom : [], r.stopped || []);

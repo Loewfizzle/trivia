@@ -10,6 +10,7 @@ import { soloDay } from '../../js/core/harbor-blackbird.js';
 import { mothmanNight } from '../../js/core/harbor-mothman.js';
 import { patrolDay } from '../../js/core/harbor-heli.js';
 import { createScheduler, HARBOR_EVENTS, SLOT_MS } from '../../js/core/harbor-events.js';
+import { setHoldem } from '../../js/core/harbor-holdem.js';
 import { workDay, bulbOut, lampFault, boardLampOut, bootlegNight, dayOf } from '../../js/core/harbor-workers.js';
 import { dayPlan, edgeMoods, edgeShades, bossDayPlan, parkedNight, quietNight, bedtimes, windowParty, eyesNights, legendNights } from '../../js/core/harbor-moments.js';
 import { scenesTonight, shadesNight } from '../../js/core/harbor-scenes.js';
@@ -37,6 +38,9 @@ import { sunPosition } from '../../js/core/sky.js';
 export const ZONES = Object.freeze([{ tz: 'America/Detroit', lat: 42.96, lon: -85.67 }, { tz: 'Europe/Berlin', lat: 52.52, lon: 13.4 }]);
 export const SEEDS = Object.freeze([1924, 7]);
 export const YEAR = Object.freeze({ from: '2026-11-01', days: 365 });
+// (CITY FIXES + HOLD'EM: the planners' OWN behaviour — the owner's HOLD'EM switch is an input like the weather: OFF here, so a move still
+//  shows as no change; with it on THE BILLPOSTER stays home on the days the board keeps HOLD'EM — tests/holdem.test.mjs)
+setHoldem({ on: false });
 
 const pad = n => String(n).padStart(2, '0');
 /** the zone's UTC offset (minutes, east positive — the city's `off`) at abs ms */

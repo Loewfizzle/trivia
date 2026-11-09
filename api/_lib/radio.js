@@ -21,6 +21,7 @@
 //   radio/ic/{id}         CC-B — THE INTERCOM's announcements (who, the audience, wait, the headline, the clip's length + type, at / until,
 //                         state); radio/clips/{id} the clip itself (base64 — served by GET /api/admin?clip=<id>, cached a minute); both
 //                         pruned after `keep` s (an hour); a lobby's copy at rooms/{CODE}/radio/{id} (kind 'intercom')
+import { cleanHoldem } from '../../js/core/harbor-holdem.js';
 import { ApiError } from './http.js';
 import { ref, val, adminPids, emulated } from './fb.js';
 import { knob } from '../../js/core/harbor-schedule.js';
@@ -327,7 +328,7 @@ export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
 /** the public part of the radio for GET /api/admin?live=1 (every phone, cached): the CITY's moments (everyone + city), the billboard's
  *  messages, the dial — never who fired them */
 export async function radioPublic(now) {
-  const [Q, b, sc, ics] = await Promise.all([queue(now), boardList(now), val('city2/showcase'), icList(now)]);
+  const [Q, b, sc, ics, base] = await Promise.all([queue(now), boardList(now), val('city2/showcase'), icList(now), val('city2/billboard')]);
   return {
     moments: Q.filter(m => (m.aud === 'everyone' || m.aud === 'city') && m.until > now && m.state !== 'stopped').map(m => publicMoment(m.id, m)),
     stopped: [...Q.filter(m => (m.aud === 'everyone' || m.aud === 'city') && m.state === 'stopped' && m.until > now - 600e3).map(m => m.id),
@@ -336,6 +337,8 @@ export async function radioPublic(now) {
     intercom: ics.filter(m => m.aud === 'everyone' && m.state !== 'stopped').map(m => icPublic(m.id, m)),
     board: b.map(x => ({ id: x.id, lines: x.lines, local: x.local, repeat: x.repeat, at: x.at, until: x.until, made: x.made })),
     showcase: SHOWCASE_LEVELS.includes(sc) ? sc : null,
+    // CITY FIXES + HOLD'EM — the roof board's BASE POSTER switch (/admin → THE BILLBOARD); null = the timetable's default (ON · COMING SOON)
+    base: base && base.holdem ? { holdem: cleanHoldem(base.holdem) } : null,
   };
 }
 

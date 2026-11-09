@@ -22,7 +22,7 @@ import { SHOWCASE_LEVELS } from './harbor-showcase.js';
 import { knob } from './harbor-schedule.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
-export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'showcase', 'hint', 'horn', 'hum', 'depart', 'round', 'min'];
+export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'showcase', 'hint', 'horn', 'hum', 'depart', 'round', 'min', 'holdem'];
 /** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): every PREVIEW flag a link may carry — the panel's keys (not the tools &debug / &grid)
  *  + the previews' own extras (&moment, &hush, &letter, &ad, &season, &n, &wind, &rained, &tagms) + &at (a place for the sun WITH A FORCED
  *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city (an
@@ -57,6 +57,7 @@ export const INPUTS = {
   game: { kind: 'select', label: 'GAME', options: GAME_IDS, default: 'pulse' },
   // (SCHED Group 4: which billboard hint the preview loops — core/harbor-billboard.js)
   hint: { kind: 'select', label: 'HINT', options: ['fireworks', 'party', 'lookup', 'postcard'], default: 'fireworks' },
+  holdem: { kind: 'select', label: 'THE BAR', options: ['soon', 'open'], default: 'soon' },   // (CITY FIXES + HOLD'EM: COMING SOON · NOW OPEN)
   // (9g — THE SOUNDS NOBODY HAS HEARD: the owner picks by ear — core/city-sounds.js#SOUND_PICKS; '' = the default: PROM — HORN B, HUM A, DEPART LAYERED)
   horn: { kind: 'select', label: 'HORN', options: ['', 'a', 'c'], labels: { '': 'B · THE OLD HORN', a: 'A · DESTROYER', c: 'C · SYNTHESIZED' } },
   hum: { kind: 'select', label: 'HUM', options: ['', 'b'], labels: { '': 'A · HOVER ENGINE', b: 'B · DEEP THROB' } },
@@ -259,6 +260,7 @@ export const EVENTS = [
   // (SP3 + SP6 — THE ROOF SIGNS' HOURLY MODES, every named sign in one mode, its turn coming round fast: neon.js#planRoof)
   { id: 'roof-spell', label: 'ROOF SIGNS · SPELL', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'the letters light one by one, a hold, two flashes' },
   { id: 'roof-race', label: 'ROOF SIGNS · RACE', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'a bright pulse once round each sign’s frame' },
+  { id: 'billboard-holdem', label: 'THE HOLD’EM BILLBOARD', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['holdem'], kw: 'texas holdem poker coming soon now open roof billboard ad poster chip', hint: 'CITY FIXES + HOLD’EM: the roof board’s base poster (COMING SOON / NOW OPEN) from today on this phone — the billposter pastes it at his ~5 pm slot (+ &force=work-billposter); the owner’s real switch is /admin → THE BILLBOARD' },
   { id: 'billboard-hints', label: 'THE BILLBOARD’S HINTS', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['hint'], hint: 'the speakeasy’s billboard as a message board: 20 s of a hint, 10 s of the game, looping (SCHED)' },
   { id: 'roof-breath', label: 'ROOF SIGNS · BREATH', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'a slow brighten / dim, never off' },
   { id: 'roof-wordflash', label: 'ROOF SIGNS · WORD FLASH', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'the 1920s drum flasher: word by word, then both held' },

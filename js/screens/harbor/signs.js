@@ -5,6 +5,7 @@
 //   Types: vbox (vertical: the name stacked, the mark on top) · box (horizontal) · icon (the game's tube mark on a raceway) ·
 //   script (open tube letters on a raceway; JAZZ used it until NEON PASS 4) · billboard (a painted 1920s board, gooseneck lamps lighting it at night).
 // The games' marks + the tube alphabet are core/marks.js (the same marks as City 1.0's signs and the tube logos).
+import { paintHoldem } from './holdem-art.js';
 import { MARKS, LETTERS, markFor, bladeWord, hexRgb } from '../../core/marks.js';
 import { flattenPath, signSpots } from '../../core/harbor-neon.js';
 import { tube, drawLit, drawGlass, sprite, bbox, mix, rgba } from './tubes.js';
@@ -432,6 +433,8 @@ function litSprites(sg, dpr, swap = false) {
 export function billboardContent(show, games) {
   // (SCHED Group 4: a hint — two short lines, or the Sunday postcard's silhouette + its name: a cream handbill, black + red ink)
   if (show && show.lines) return { title: show.lines.join(' '), lines: show.lines, art: show.art || null, sub: '', game: null, bg: [236, 222, 190], ink: [30, 22, 26], acc: show.acc || [214, 40, 60] };
+  // (CITY FIXES + HOLD'EM: the roof board's BASE POSTER — core/harbor-holdem.js; painted by holdem-art.js, COMING SOON or NOW OPEN)
+  if (show && (show.game === 'holdem' || show.game === 'holdem-open')) return { title: 'HOLD’EM', sub: show.game === 'holdem-open' ? 'NOW OPEN' : 'COMING SOON', poster: show.game, bar: show.game === 'holdem-open' ? 'open' : 'soon', game: null, lines: null, bg: [31, 50, 99], ink: [239, 228, 198], acc: [198, 50, 59] };
   const g = games.find(x => x.id === (show && show.game)) || null;
   if (g) { const acc = accOf(g); return { title: g.name, sub: g.tag || '', game: g, bg: mix(acc, [30, 18, 40], 0.78), ink: mix(acc, [255, 246, 226], 0.35), acc }; }
   return { title: (show && show.title) || 'NEON SPEAKEASY', sub: (show && show.sub) || 'YOUR FRIENDS ARE ALREADY INSIDE', game: null, bg: (show && show.bg) || [40, 22, 48], ink: (show && show.ink) || [255, 214, 120], acc: (show && show.acc) || [255, 46, 151] };
@@ -580,6 +583,7 @@ export function buildBillboard(spot, content, ctx) {
   const SQ = 0.8;                                               // (the name's condensed hand: 80 % width)
   // THE POSTER (the same art by day + night; sd: the sun's side for the paint's shadows, 0 at night)
   const poster = (x, sd) => {
+    if (content.poster) { paintHoldem(x, R, content.bar, sd); return; }   // (CITY FIXES + HOLD'EM: its own painted poster)
     const pt = posterPaint(content.game, content.acc);
     x.fillStyle = rgba(pt.face); x.fillRect(R.x, R.y, R.w, R.h);
     if (content.lines) { hintPoster(x, R, content, pt, sd, FONT, SQ); return; }
