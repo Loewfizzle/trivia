@@ -188,3 +188,9 @@
 - COMEBACK's danger zone (for the PD-5 card): your stack in the TOP 5 ROWS at any point of a BATTLE you go on to win — record that flag in the match from this pass.
 - THE CARDS (FIRST KO, PERFECT CLEAR, COMEBACK) MOVED to PD-5 to keep PD-2 inside ~4 h. Record the facts they need from this pass (KOs, perfect clears, the danger-zone flag) in the match results.
 - The rising ghost rows SHOW the existing pending-junk queue + its delay (the engine's attack math, cancelling + delays don't change).
+
+## PD-3 — THE NIGHT LOOK (Nov 9 2026)
+- PIECE COLOURS: each piece keeps its COLOUR FAMILY in every world (the long piece always cyan-ish, the square always yellow-ish… from today's JEWEL hues) so players recognise pieces by colour. Each WORLD shifts only the SHADE + the glow (warmer at SYNTH SUNSET, icier in CRYSTAL CAVE…), plus the well's edge, the sparks and the board frame. Never a full colour swap between songs.
+- THE WORLD BEHIND THE BOARD: dimmed ~50 % behind the board only, under a soft dark glass; the world stays vivid at the top and in the edges around the board.
+- SOUNDS: the effects reuse PRISM's existing synth SFX (in the song's key, on its beat) — no new sound files.
+- Today's glass look stays as the DAY placeholder until PD-4 (body[data-look] = day → the glass look; night → NEON).
