@@ -423,3 +423,11 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
   `coastclear.test.mjs` (+ COALESCED MOVES: order, one write, a refused slot, a repeat free, the bounds; THE DIG PATH: one transaction attempt + Server-Timing)
   · `e2e-coastclear.mjs` (+ the 150 ms line: 5 taps queued behind the one in flight, six taps in 2 calls; the dev timing + Server-Timing; THE FADE ON LEAVING's
   order) · `e2e-daily.mjs` (+ THE ONE-TIME HINT once; the frame on the strip).
+
+## THIS WEEK'S GOAL — DONE = ONE LINE (CITY FIXES, Nov 8 — docs/harbor/passes/city-fixes.md)
+- Once the SERVER has paid the week's goal (`pstats.gd` = the Eastern week key — `core/ranks.js#goalPaid`) YOUR CARD drops the goal box for ONE
+  quiet line under the four stats: a drawn check · GOAL DONE · +200 XP — until next Monday's goal. Never DONE before it is paid.
+- SOLO matches (THE SOLO LANE — small capped XP) never pay the goal, so they no longer FILL it: the week's solo plays are counted apart
+  (`pstats.gs`, reset with the week) and come off the goal's count (`goalProgress(goal, gw, gs)` — the server step, the tile, /api/profile).
+  A week's older solo plays (no `gs`): "Paid with your next room match". Paid exactly once (`tests/goal-paid.test.mjs`). Preview:
+  `progress-preview.html?view=profile&goal=done|wait|half`.

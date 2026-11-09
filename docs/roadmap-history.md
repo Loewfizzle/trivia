@@ -2177,6 +2177,23 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - ADD-ON (Ben: ON while the repo is public): THE DAILY SECRET (dsecret — the days' own key, never the pepper) + THE RESEED (`node scripts/dailies-reseed.mjs`,
   --dry-run, --force: a new key from the next 4 am; today + the past untouched); a test fails on any committed schedule / stored day / secret. No rules change.
 
+## CITY FIXES + HOLD'EM (Nov 8, 2026, evening — docs/harbor/passes/city-fixes.md)
+- THE TAP WATCH (js/ui/tapwatch.js, always on): a pointerdown + up on a control with no click in 350 ms → a LOST TAP report (/admin, its own
+  buckets, kept per kind; what replaced / covered / moved it, the delays, the page's work) + THE RESCUE (the click given once — iOS drops a
+  click on a node replaced under the finger). The causes fixed at the shared layer: THE SCREEN AT REST swallowed a tap on the still-visible
+  fading dock + went to rest under the radio / CUSTOMIZE / a full card (two phases now, never under a layer); the radio desk, the guest list's
+  LOCK THE DOOR, ADD FRIEND, CUSTOMIZE's grid + the dock's DAILY slot re-rendered under a finger (afterTap + rebuilt only on a change); a
+  closing sheet's scrim caught taps; three stray :hover rules. e2e-taps: Chromium 22/22, WebKit 20/20, 0 lost.
+- THE HOLD'EM BILLBOARD: design B painted in code (the lettering as paths from Alfa Slab One + Poppins, OFL), COMING SOON white + bigger (the
+  owner), the roof board's BASE POSTER (the messages still interrupt; the billposter pastes it once, then stays home), /admin → THE BILLBOARD
+  (on / off, COMING SOON / NOW OPEN) through the cached live feed, &force=billboard-holdem. The roof board ~15 % bigger (the owner's add-on —
+  one number, anchored bottom-right; the frame keeps its feet on the roof).
+- THE WEEKLY GOAL: one quiet line once the server paid it; solo matches no longer fill its bar (they never pay it — the owner's 8 / 8 unpaid);
+  paid exactly once (tests/goal-paid.test.mjs). SHARE TODAY: NEONSPEAKEASY.COM as the foot's headline.
+- THE CARRY-OVERS: the guest list holds the city (roomperf green); the black helicopter's 24 views + an exact cross-fade + an eased heading
+  (2° a frame, 60 fps); two owner messages a second apart never blip the board; LOAD WEATHER (the board keeps its revealed content through the
+  load window) — green locally.
+
 ## FRIENDS C — THE CITY FIXES (Nov 8, 2026)
 - THE RADIO: a fired one-shot plays ONCE (the played record kept for the tab — a city rebuilt mid-window never begins it again); YOUR QUEUE ·
   THE WEEK · the timeline; the crew radio's header fits at 390.

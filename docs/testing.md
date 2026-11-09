@@ -542,3 +542,12 @@ load problem, not a flake to patch.
   + desktop, stops its server.
 - `e2e-coastclear.mjs` now also proves COALESCED MOVES (six taps on a 150 ms line = 2 calls), the dev timing + Server-Timing, and THE FADE ON LEAVING's order
   (audio/engine.js — `simulateVisible`); `e2e-daily.mjs` THE ONE-TIME HINT (once; none on a resume) and YOUR FRAME on the strip.
+
+## CITY FIXES (Nov 8 2026) — the lost taps + the billboard
+- **THE LOST TAPS:** `node tests/integration/e2e-taps.mjs "<chromium>"` and `ENGINE=webkit node tests/integration/e2e-taps.mjs` (Playwright's WebKit,
+  402×874 @3, touch) — on the emulators + `serve.mjs --emu`; `N=20` taps a control (YOU / BOARD 6, HOST 8, LOCK 10), each with a random
+  disturbance at a random moment; THE TAP TABLE at the end (landed · lost · rescued); a tap that hit a still-moving sheet elsewhere is an
+  AIM miss (the watch's `lastDown()` names what it pressed), never counted as lost. ≈ 6 min Chromium, ≈ 9 min WebKit.
+- The board's rebuild count: `__district.boardXf().rev` (+ `show`). THE BLACK HELICOPTER's per-frame heading + its pass's frame rate: harbor `heli`.
+- The HOLD'EM look: `shots.mjs --preview --city 2 --qs "force=billboard-holdem" --crop bill` (+ `&holdem=open`; the paste:
+  `force=billboard-holdem,work-billposter&speed=20 --wait 34000`).

@@ -770,6 +770,16 @@ The SAVE-YOUR-KEY POP-UP's pink dot sits on YOU (both docks) until the key is sa
 - **THE START** (LOBBY FIXES' lit sign + walk-in + fade): no backdrop-filter anywhere while `body.rc-going`.
 
 ## THE SHELL — ONE LOOK EVERYWHERE (SHELL 2.0 A, Nov 5 — docs/harbor/passes/shell-a.md; the mocks: docs/harbor/refs/shell/)
+**THE TAP WATCH + THE TAP RULES (CITY FIXES, Nov 8 — docs/harbor/passes/city-fixes.md):** `js/ui/tapwatch.js` is ALWAYS ON (app.js + /board):
+a pointerdown + pointerup on a control with no click on it within 350 ms = a LOST TAP → /admin ("Reports from phones" → LOST TAP: the screen,
+the element, replaced / covered / moved, the delays, what re-rendered, the city's frame), ≤ 1 a minute + ≤ 20 a day per device; THE RESCUE gives
+a clean finger tap its click (once — a late real click is swallowed). The shared rules every screen keeps: **never re-render a control under a
+finger** — a periodic repaint goes through `afterTap(fn)` and rebuilds only what CHANGED (the radio, the guest list, ADD FRIEND, CUSTOMIZE, the
+dock's DAILY slot); **every `:hover` rule behind `@media (hover: hover)`** (iOS spends a first tap on a hover — `tests/tapwatch.test.mjs` greps);
+**a pop-up on its way out takes no taps** (components.css's leaving list); a control that acts on its OWN pointer events calls `tapHandled()`
+(and `[data-tap-own]` keeps the watch off a hold-to-talk). **THE SCREEN AT REST** (title-taps.js#goIdle) is TWO phases: `.is-idle` = the
+1.8 s fade, still tappable (a tap wakes it AND goes through); `.is-rest` (+ `body.nd-rest`) = faded out, untappable, the waking tap only wakes;
+never at rest while any pop-up is on THE LAYER STACK.
 - **DFIX3 (Nov 8) — the corner music button on THE DAILY SCREEN** (an overlay over the title, so it wears the title's smoked glass): `body[data-daily]`
   pins it to the SCREEN's corner (the menus' "beside the gear" offset put it half over THE DAILIES sign at 430 — there is no gear there) and by DAY
   retokens it to light glass + the day text colour (css/daily.css); night unchanged. THE DAILY SCREEN itself: docs/progression.md "DFIX3".
