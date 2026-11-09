@@ -15,7 +15,7 @@ import { favorPanel } from './extras.js';
 import { trophiesSection } from './trophies.js';
 import { openDress } from '../vault/dress.js';
 import { vaultSheet } from '../vault/sheet.js';
-import { weeklyGoal, goalProgress, GOAL_XP } from '../core/ranks.js';
+import { goalPaid, weeklyGoal, goalProgress, GOAL_XP } from '../core/ranks.js';
 import { GOAL_GAMES } from '../core/boards.js';
 import { weekKey, weekEndsAt } from '../core/week.js';
 import { GAMES } from '../config.js';
@@ -57,12 +57,18 @@ export function progressSections(data, o = {}) {
       h('span.pg-lv-st', h('b', sv.n ? `${sv.n} NIGHT STREAK` : 'NO STREAK RIGHT NOW'),
         h('small', sv.state === 'lit' ? 'Tonight’s counted · see you tomorrow' : sv.state === 'out' ? (sv.winBack ? 'WIN IT BACK — three plays and the run returns' : 'Play a match tonight to light it') : 'Play tonight to keep it lit')),
       h('i', '›')) : null);
-  const goal = goalTile(data, now);
+  // (CITY FIXES — the owner, Nov 8: a FINISHED goal's big box is "clutter" → once the SERVER has paid it (stats.gd = this week) it collapses
+  //  to ONE quiet line under the stats — GOAL DONE · +200 XP + a drawn check — until next Monday's goal; never DONE before it's paid)
+  const paid = goalPaid(s, weekKey(now));
+  const goal = paid ? null : goalTile(data, now);
   const stats = h('section.pg-panel.pg-stats',
     h('div', h('b', num(sum(s.g, 'p'))), h('span', 'MATCHES')),
     h('div', h('b', num(sum(s.g, 'w'))), h('span', 'WINS')),
     h('div', h('b', num(best)), h('span', 'BEST STREAK')),
-    h('div', h('b', num(bests)), h('span', 'BESTS')));
+    h('div', h('b', num(bests)), h('span', 'BESTS')),
+    paid ? h('p.pf-goal-done', { 'aria-label': `This week’s goal done — plus ${GOAL_XP} XP paid` },
+      h('span.pf-gd-ic', { 'aria-hidden': 'true', html: '<svg viewBox="0 0 16 16"><path d="M3.4 8.4l3 3 6.2-6.6"/></svg>' }),
+      h('span', 'GOAL DONE'), h('em', `+${GOAL_XP} XP`)) : null);
   // ACHIEVEMENTS AS TROPHIES (js/progress/trophies.js): the LATEST 3 + ALL ACHIEVEMENTS › (THE TROPHY CASE) — a medal in the tier colour, X% of
   // players (the server's counts), the reward as a real preview (tap = equip it), the date earned — only the ones you hold
   const ach = heldOf(s.ac).length ? trophiesSection(data, o) : null;
@@ -78,7 +84,7 @@ export function progressSections(data, o = {}) {
  *  LEFT" small on top; the goal in BIG type; a THICK cyan neon-tube bar + "3 / 8"; THE REWARD as a real chip; done = lit + CLAIMED ✓ */
 export function goalTile(data, now = Date.now()) {
   const s = data.stats || {};
-  const wk = s.wk || weekKey(now), goal = weeklyGoal(wk, GOAL_GAMES), gp = goalProgress(goal, s.gw);
+  const wk = s.wk || weekKey(now), goal = weeklyGoal(wk, GOAL_GAMES), gp = goalProgress(goal, s.gw, s.gs);
   const paid = s.gd === wk, days = Math.max(1, Math.ceil((weekEndsAt(now) - now) / 86_400_000));
   const gname = goal.game ? (GAMES.find(g => g.id === goal.game) || {}).name : null;
   const frac = Math.max(0, Math.min(1, gp.have / Math.max(1, gp.n)));
@@ -91,7 +97,9 @@ export function goalTile(data, now = Date.now()) {
     h('div.pf-gt-f',
       h('span.pf-gt-k', paid ? 'REWARD' : 'THE REWARD'),
       h('span.pf-gt-chip', h('b', `+${GOAL_XP}`), ' XP'),
-      paid ? h('span.pf-gt-claimed', 'CLAIMED ✓') : null));
+      paid ? h('span.pf-gt-claimed', 'CLAIMED ✓') : null),
+    // (CITY FIXES: done by the count but not paid yet — a week's solo plays from before the fix: the server pays it with the next ROOM match)
+    gp.done && !paid ? h('p.pf-gt-wait', 'Paid with your next room match — solo games don’t pay the goal') : null);
 }
 
 export { ITEM, signOf };

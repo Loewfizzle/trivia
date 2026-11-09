@@ -1,7 +1,7 @@
 // THE DAILY MODULE — SHARE TODAY (DM2 → DFIX3 — THE SHARE IMAGE FROM THE TICKET): ONE 1080 × 1350 card built from THE PREMIUM TICKET itself —
 // the date at the top ("SUN NOV 8"), THE DAILIES sign, THE SWEEP meter, each daily as a BIG ticket (the paper grain, the notches, the punched
 // stub with its art + serial, the name, the spoiler-free result line — its meta's scoreLine — and the ADMITTED stamp when done / NOT YET with no
-// stamp), the player's STREAK FLAME + count, NEON SPEAKEASY + the site at the foot. Composed to FILL the card for 1–6 dailies, in the look on
+// stamp), the player's STREAK FLAME + count, NEONSPEAKEASY.COM as the foot's headline (CITY FIXES). Composed to FILL the card for 1–6 dailies, in the look on
 // screen (day / night). NO SPOILERS: never a word, a letter colour, a board or a searchlight. The one plain line is unchanged (today-logic.js).
 import { shareFrame, sendShare } from './share.js';
 import { sweepState, shareTodayLine, MAX_ROWS } from './today-logic.js';
@@ -134,10 +134,24 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
     c.textAlign = 'left'; c.fillStyle = L.ink; c.fillText(label, lx + fw + 18, fy + fh / 2 - 4); c.restore();
     c.textAlign = 'center';
   }
-  // the foot
-  c.save(); c.font = `700 30px ${FONT_U}`; c.letterSpacing = '6px';
-  c.fillStyle = L.dim; c.fillText('NEON SPEAKEASY', W / 2 + 3, 1262);
-  c.fillStyle = L.on; c.fillText('NEONSPEAKEASY.COM', W / 2 + 3, 1308); c.restore();
+  // THE FOOT = THE ADDRESS AS ITS HEADLINE (CITY FIXES — the dailies chat, Nov 8): NEONSPEAKEASY.COM about the result lines' size, bold, wide
+  // tracking that never crowds; NIGHT a small neon sign (the sign's pink in a soft glow, a white core, a thin pink tube round it — like THE
+  // DAILIES sign); DAY strong dark navy. The old "NEON SPEAKEASY" line above it is gone. It must read when the image is shown SMALL in a text
+  // thread (a 360-px-wide downscale: ~17 px letters)
+  { const ADDR = 'NEONSPEAKEASY.COM', ay = 1280;
+    c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
+    let fs = 52, ls = 7; c.font = `800 ${fs}px ${FONT_U}`; c.letterSpacing = `${ls}px`;
+    while (c.measureText(ADDR).width > W - 220 && fs > 34) { fs -= 2; ls = Math.max(4, ls - 0.3); c.font = `800 ${fs}px ${FONT_U}`; c.letterSpacing = `${ls}px`; }
+    const tw = c.measureText(ADDR).width, cx = W / 2 + ls / 2;
+    if (night) {
+      // the tube round it (rounded, thin, pink, glowing) + the letters: the glow pass, then the white-hot core
+      const bw = tw + 76, bh = fs + 36;
+      c.save(); c.shadowColor = L.glow; c.shadowBlur = 22; c.strokeStyle = L.sign; c.lineWidth = 4; roundRect(c, W / 2 - bw / 2, ay - bh / 2, bw, bh, bh / 2); c.stroke();
+      c.shadowBlur = 4; c.strokeStyle = 'rgba(255,236,248,0.85)'; c.lineWidth = 1.4; roundRect(c, W / 2 - bw / 2, ay - bh / 2, bw, bh, bh / 2); c.stroke(); c.restore();
+      c.shadowColor = L.glow; c.shadowBlur = 30; c.fillStyle = L.sign; c.fillText(ADDR, cx, ay);
+      c.shadowBlur = 7; c.fillStyle = '#fff3fb'; c.fillText(ADDR, cx, ay);
+    } else { c.fillStyle = '#10234a'; c.fillText(ADDR, cx, ay); }
+    c.restore(); }
   return cv;
 }
 

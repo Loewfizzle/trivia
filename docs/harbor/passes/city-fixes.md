@@ -111,3 +111,26 @@ Shots (`docs/harbor/passes/city-fixes/`): `holdem-night-402.png` · `holdem-day-
 `holdem-city-night-402.png` (the whole frame) · `holdem-webkit-402.png` (WebKit @3) · `holdem-night-390/430/1440.png`.
 Proof: `tests/holdem.test.mjs` (the state, the billposter once, the force, the day chart), server.test's switch → the public feed (41/41),
 harbor `billboard,workers,panelrows,load,core` 90/90.
+
+## Group 3 — THIS WEEK'S GOAL + SHARE TODAY's ADDRESS
+
+**THIS WEEK'S GOAL, DONE = one line.** Once the SERVER has paid the week's goal (`stats.gd` = the Eastern week key — `core/ranks.js#goalPaid`), YOUR
+CARD's profile drops the big goal box and shows ONE quiet line under the four stats: a drawn check · GOAL DONE · +200 XP — until next Monday's goal
+(`progress/profile.js`, `css/progress.css` `.pf-goal-done`). Never DONE before it's paid.
+
+**The owner's case (8 / 8, "THE REWARD +200 XP", LV 5 at 70 / 85) — why it wasn't paid:** the server pays the goal only on a ROOM match
+(`progress.js#matchStep`: `!solo`) — THE SOLO LANE (a room of one) is small capped XP by the owner's rule — but solo matches still advanced the
+goal's COUNTER (`gw`, shared with the weekly boards). So solo plays filled the bar to 8 / 8 while the server, correctly, paid nothing; it would pay
+on his next room match. **Fix:** the week's solo plays are counted apart (`pstats.gs`, reset with the week) and come off the goal's count
+(`goalProgress(goal, gw, gs)` — the server's step + the tile + `/api/profile` all read it): the bar counts ROOM matches only, so it never says done
+before it can pay. His current week's old solo plays (no `gs` yet): the box says "Paid with your next room match — solo games don't pay the goal".
+**Verified** (`tests/goal-paid.test.mjs`): +200 exactly ONCE on the completing match; the same match reported again → `counted`, no second +200;
+7 room + 1 solo = 7 / 8 (not done); the 8th ROOM match pays; next week the box is back. (His live data can't be read from here — no
+service-account key; the logic is proven on the same pure step the server runs.)
+
+**SHARE TODAY — the address is the foot's headline** (`js/daily/share-today.js`): NEONSPEAKEASY.COM ~52 px bold (the result lines are ≤ 44 px),
+wide tracking fitted to the card (never crowded); NIGHT a small neon sign — the sign's pink in a soft glow, a white-hot core, a thin pink tube
+round it (THE DAILIES sign's treatment); DAY strong dark navy. The "NEON SPEAKEASY" line above it is gone. Everything else unchanged (date,
+tickets, stamps, the streak flame; no spoilers; both looks; the tickets still fill the room above the foot for 1–6 dailies).
+Shots: `share-before-{night,day}.png` → `share-after-{night,day}.png` + each at the 360-px downscale (`…-360.png` — the address legible in a text
+thread), `share-after-one-nostreak.png`; the goal: `goal-done-390.png` (the one line), `goal-wait-390.png` (done by the count, waiting to be paid).

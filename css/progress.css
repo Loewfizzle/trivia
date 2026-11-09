@@ -209,6 +209,13 @@
 .pg-prof-h em { font: italic 400 13px/1 var(--pg-serif); letter-spacing: 0; color: var(--pg-dim); }
 .pg-prof .pg-bar { margin: 4px 0 0; }
 .pg-stats { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; }
+/* CITY FIXES — THIS WEEK'S GOAL, DONE: one quiet line under the stats (a drawn check, the words, the reward) until next Monday's goal */
+.pg-stats .pf-goal-done { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.pg-stats .pf-goal-done span { display: inline; margin: 0; font: 800 11px/1 var(--font-ui); letter-spacing: 0.2em; color: #bff6ff; }
+.pg-stats .pf-goal-done em { font: 700 12px/1 var(--font-num); font-style: normal; letter-spacing: 0.06em; color: var(--pg-dim); }
+.pg-stats .pf-goal-done .pf-gd-ic { display: inline-grid; width: 18px; height: 18px; place-items: center; border-radius: 50%; background: rgba(95, 232, 255, 0.14); box-shadow: inset 0 0 0 1px rgba(95, 232, 255, 0.5); }
+.pf-gd-ic svg { width: 12px; height: 12px; fill: none; stroke: #8ff6ff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.pf-gt-wait { margin: 0; font: 600 12px/1.35 var(--font-ui); color: #bff6ff; }
 .pg-stats b { display: block; font: 800 26px/1 var(--font-num); color: var(--pg-cream); }
 .pg-stats span { display: block; margin-top: 7px; font: 700 9.5px/1.2 var(--font-ui); letter-spacing: 0.2em; color: var(--pg-dim); }
 .pg-row-btn { width: 100%; cursor: pointer; text-align: left; color: inherit; font: inherit; min-height: 56px; }

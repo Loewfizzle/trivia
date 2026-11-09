@@ -2,6 +2,7 @@
 // (title.js opens it over the city; nothing is written, nothing is sent — a preview never counts). The look page:
 // tests/integration/progress-preview.html?view=… (no Firebase). Flags: &at=end · &up=0 · &card=<card id> · &streak=N · &state=lit|waiting|frozen
 // · &cards=1 (every card look) · &rm=1 (reduced motion).
+import { weekKey } from '../core/week.js';
 import { h } from '../ui/dom.js';
 import { XP_AT, rewardsUpTo } from '../core/levels.js';
 import { dayOf, dayNum, streakDay } from '../core/streak.js';
@@ -34,8 +35,14 @@ export function sampleProfile(q = new URLSearchParams()) {
     pid: 'ppreview00000',
     priv: { bd: q.get('bd') === '0' ? null : { m: 11, d: 3 }, bdAt: Date.UTC(2027, 10, 1) },
     profile: { n: NAME, t: '0042', mn: q.get('dev') === '1' ? 1 : 42, a: 'diamond', c: 'magenta', x: xp, at: Date.UTC(2026, 9, 3), s: n, sd: null, cd: q.get('card') || null, g: null, fd: true },
-    stats: { xp, g: { prism: { p: 81, w: 27 }, overclock: { p: 47, w: 14 } }, b: { 'prism-rush': { a: 1 }, 'overclock-std': { a: 1 }, x1: { a: 1 }, x2: { a: 1 }, x3: { a: 1 }, x4: { a: 1 } }, st: sampleStreak(n, q.get('state') || 'lit'), it, ac, sg: { ufo: 3, skull: 1, btc: 2 }, fv: Number(q.get('fv') || 1) },
+    stats: { xp, g: { prism: { p: 81, w: 27 }, overclock: { p: 47, w: 14 } }, b: { 'prism-rush': { a: 1 }, 'overclock-std': { a: 1 }, x1: { a: 1 }, x2: { a: 1 }, x3: { a: 1 }, x4: { a: 1 } }, st: sampleStreak(n, q.get('state') || 'lit'), it, ac, sg: { ufo: 3, skull: 1, btc: 2 }, fv: Number(q.get('fv') || 1), ...goalDemo(q.get('goal')) },
   };
+}
+/** CITY FIXES — &goal=done (paid this week: the one quiet line) · wait (8 / 8 by the count, not paid — a week's old solo plays) · half (3 / 8) */
+function goalDemo(k) {
+  if (!k) return {};
+  const wk = weekKey(Date.now()), p = k === 'half' ? 3 : 8;
+  return { wk, gw: { prism: { p, w: 1 } }, gs: {}, ...(k === 'done' ? { gd: wk } : {}) };
 }
 /** the outcome a match gives (the server's shape): 2nd of 4, a level-up 24 → 25 (its reward: `card-champagne`), the streak, TOP SHELF (+ BRUSHED GOLD) */
 export function sampleOutcome(q = new URLSearchParams()) {

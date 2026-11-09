@@ -111,7 +111,7 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
       const wk = weekKey(now);
       const frIn = await pendingIn(pid, now).catch(() => 0);   // (FRIENDS A: the badge on the profile button)
       const pk = await passkeyList(pid).catch(() => []);   // (FRIENDS B: ACCOUNT's PASSKEYS)
-      return { pid, profile, priv, pk, fr: { in: frIn }, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0 } };
+      return { pid, profile, priv, pk, fr: { in: frIn }, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, gs: s.wk === wk ? s.gs || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0 } };
     }
     case 'ranks': {
       const pid = await mine(uid);

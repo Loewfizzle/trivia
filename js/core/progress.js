@@ -48,7 +48,7 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   if (overlaps(s.ov, ctx.win)) return { skip: 'overlap' };
   const wk = weekKey(now), dk = dayKey(now);
   const next = { ...s, g: { ...(s.g || {}) }, b: { ...(s.b || {}) }, m: { ...(s.m || {}) } };
-  if (next.wk !== wk) { next.wk = wk; next.gw = {}; } else next.gw = { ...(s.gw || {}) };
+  if (next.wk !== wk) { next.wk = wk; next.gw = {}; next.gs = {}; } else { next.gw = { ...(s.gw || {}) }; next.gs = { ...(s.gs || {}) }; }
   next.day = s.day && s.day.k === dk ? { k: dk, g: { ...(s.day.g || {}) }, ...(s.day.so ? { so: s.day.so } : {}) } : { k: dk, g: {} };
   const solo = n === 1;   // (SHELL 2.0 B1 — THE SOLO LANE: a room of one)
   const firstToday = !next.day.g[gid];
@@ -69,11 +69,11 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
     next.b[board] = b;
   }
   const xp = solo ? soloXp(next.day.so || 0) : matchXp({ rank: row.rank, win: row.win, n, pbs: pbs.filter(p => !p.first).length, firstToday, gamesToday });
-  if (solo) next.day.so = (next.day.so || 0) + 1;
+  if (solo) { next.day.so = (next.day.so || 0) + 1; next.gs[gid] = (next.gs[gid] || 0) + 1; }   // (CITY FIXES: the week's solo plays — never the goal)
   // (PROGRESSION A: NO streak XP — the owner kept Grok's "streaks pay in milestones"; the old +10 % a night is gone)
   // the weekly goal: paid once, the match that completes it
   const goal = weeklyGoal(wk, GOAL_GAMES);
-  if (!solo && next.gd !== wk && goalProgress(goal, next.gw).done) { xp.parts.push({ k: 'goal', label: 'WEEKLY GOAL', v: GOAL_XP }); xp.total += GOAL_XP; next.gd = wk; }
+  if (!solo && next.gd !== wk && goalProgress(goal, next.gw, next.gs).done) { xp.parts.push({ k: 'goal', label: 'WEEKLY GOAL', v: GOAL_XP }); xp.total += GOAL_XP; next.gd = wk; }
   const from = s.xp || 0;
   next.xp = from + xp.total;
   next.last = now;

@@ -111,8 +111,13 @@ export function weeklyGoal(wk, games) {
   if (kind === 'variety') return { kind, n: 5, text: 'Play 5 different games' };
   return { kind: 'game', game, n: 4, text: 'Play 4 matches of the featured game' };
 }
-export function goalProgress(goal, gw) {
-  const g = gw || {};
+/** PURE (CITY FIXES): the server paid THIS week's goal — stats.gd = the week key `wk` (the profile's one quiet line, never before it's paid) */
+export function goalPaid(s, wk) { return !!(s && s.gd && s.gd === wk && (!s.wk || s.wk === wk)); }
+// (CITY FIXES — the owner's 8 / 8 with nothing paid: a SOLO match (a room of one — THE SOLO LANE, small capped XP) counted toward the goal's
+//  bar but the server pays the goal only on a ROOM match. gs = this week's solo plays per game ({ game: n }, pstats.gs): the goal counts ROOM
+//  matches only, so the bar never says done before it can pay. Solo never wins, so only the plays come off)
+export function goalProgress(goal, gw, gs = null) {
+  const g = gs ? Object.fromEntries(Object.entries(gw || {}).map(([k, x]) => [k, { ...(x || {}), p: Math.max(0, ((x && x.p) || 0) - (gs[k] || 0)) }])) : gw || {};
   const sum = k => Object.values(g).reduce((a, x) => a + ((x && x[k]) || 0), 0);
   let have = 0;
   if (goal.kind === 'play') have = sum('p');
