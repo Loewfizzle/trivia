@@ -6415,3 +6415,20 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 - THE BUILD TABLE (Nov 9 morning, BOARD 2.0 B Step 0): BOARD 2.0 A ✅ (passes/board-2a.md; no rules change; ALL TIME = 'span' DECIDED); BOARD 2.0 B
   (this pass: THE MOCK first, then THE BOARD's screens, DAILY → SCORES + THE FRIENDS LIST, THE PLAYER PAGE + the long-name fix) ← NEXT; PRISM DROP;
   FR7; THE SWITCH-OVER.
+
+## OWNER'S NOTES — NOV 9 (B's add-on: SHARE TODAY)
+
+- Nov 9 (the owner, iPhone) — ADD-ON to BOARD 2.0 B, done as the LAST group (before the final test run + push): SHARE TODAY = ONE CARD FROM EACH
+  DAILY's OWN PIECES. He loves each daily's OWN share card — THE PASSWORD (password/share.js: the sign, the two drawn doors + THE FRONT DOOR / THE
+  BACK ROOM, WELCOME IN / LOCKED OUT, "n GUESSES · m:ss", the two coloured grids — marks only) and COAST CLEAR (coastclear/share.js: the sign,
+  COAST CLEAR / CAUGHT + the soft beam, the big time, "n SPOTTED · +n s", the three drawn searchlights, COAST CLEAR #n) — but the combined SHARE
+  TODAY image (js/daily/share-today.js — the ticket version) is "a weird one". REBUILD SHARE TODAY (1080 × 1350) as ONE card: ONE header (the date +
+  the streak flame), ONE foot (NEONSPEAKEASY.COM as the headline — CITY FIXES' rule, no repeated per-daily footers), and a SECTION per finished daily
+  in the dailies' order, each built from that daily's OWN share-card pieces — split each share.js into exported section painters that BOTH its own
+  card and SHARE TODAY call (never a redraw / copy; its own card must stay pixel-identical — pixdiff it). Each section headed by its own small
+  wordmark (the password. / coast clear. by day, the neon sign by night). The data: each section from that daily's own spoiler-free share inputs
+  (THE PASSWORD's marks, COAST CLEAR's logic.js#shareInputs — still NO BOARD, never a word / letter) — if `today` doesn't carry them yet, the
+  server's record of the finished run supplies them (spoiler-free only). An unfinished daily = no section (one quiet "NOT YET: <name>" line at
+  most). ONE daily finished = that daily's own card exactly as now. Both looks (the day sky / the night neon, as their own cards). Fits up to 6
+  dailies (sections scale evenly). THE BAR: at a 360-px-wide downscale (how a text thread shows it) THE PASSWORD's grid colours, the time and the
+  address still read. Before / after shots (night + day, both dailies done + one done, full + 360 px) in the pass log; the summary says it's done.
