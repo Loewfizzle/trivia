@@ -2354,3 +2354,23 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - **Group 0 — WHO GETS LISTED** (the owner's add-on): the public boards list a profile from its 3rd COUNTED PLAY (a room match of 2+ or a counted daily
   finish — THE THROWAWAY GATE; never a solo run): pstats.cp (core/progress.js#countedPlays / boardHidden), a daily that crosses the floor puts every board
   up, the back-fill re-counts from the records + rewrites every row; THE BOARD's pinned row "N MORE PLAYS". tests/listing.test.mjs.
+
+## PD-4 — PRISM DROP: THE DAY LOOK (Nov 9, 2026 — docs/harbor/passes/pd-4.md; the plan: docs/games/plan.md "PD-4")
+- **THE CRAYONS** (crayon.js, pure + tests/prism-crayon.test.mjs): the night's colour families in crayon shades (±15° of JEWEL, pairs ≥ ΔE 18) + each
+  one's darker outline; every crayon checked against every paper (fill ≥ ΔE 25, outline ≥ 3:1; the ink ≥ 4.5:1).
+- **THE BLOCKS** (crayon-art.js — pre-drawn once, six variants a colour): waxy strokes, the wax at the edges, the paper's tooth, a wobbly two-pass outline,
+  a broken sheen; the pencil ghost, the grey drain, the pencil-sketch incoming cell, the crumbs, the scribble, the star burst, the marks; warmed in
+  ≤ 4 ms slices (the board's size + HOLD / NEXT's) so a live switch never waits. `prism-crayon-sheet.html` shows them all on each paper.
+- **THE PAPERS** (assets/prism/paper — CC0: OpenGameArt's "CC0 PBR Paper Textures" + ambientCG Paper001 / Paper002; scripts/build-prism-paper.py): notepad ·
+  graph · construction · coloring page, the rulings drawn in code; THE HOST DEALS ONE PER MATCH (`game.pp` — crayon.js#pickPaper: a rotation, never twice
+  in a row; THE NIGHT'S MEMORY `meta/used/prism/pp<k>-<i>`; no rules change).
+- **THE PAGE** (page.js): the paper + its rulings + the song's WORLD DOODLE (sunset, city, crystal, nebula, aurora — drawn once a song) + the board's well
+  wash + its pencil frame, redrawn only on a change; the WebGL world + the light layer off by day. The panels go paper (css/prism.css "PD-4").
+- **THE MOMENTS** (crayonfx.js on the board's canvas): the boing, the scribble + crumbs, the star burst behind the stack, SLAM's speed lines + ticks, the
+  pencil-sketch incoming rows + eraser crumbs, the finale's crayon crumbs (fx.js `crayon`); Reduced effects = no motion.
+- **THE LETTERING**: Permanent Marker (Font Diner — Apache 2.0, not the OFL the plan expected), self-hosted, loaded only by day (page.js#warmDay); the
+  callouts masked with the crayon's tooth + a paper edge.
+- Speed (390 @3, 4× CPU): 60 fps at every tier, rest + heavy; CPU 2.0 / 4.8 ms at the top tier (night 3.5 / 5.7); a live switch's longest frame 17 ms.
+- **Group 0 — SHARE TODAY's ONE CARD, BALANCED** (the owner's add-on): the sections use the full height, the header ~1.4×, THE PASSWORD centred with its
+  two grids side by side (+40 %, a door over each — no names), COAST CLEAR's result + time a centred pair + 2× searchlights; each daily's own card
+  pixel-identical (share-same 18 / 18).

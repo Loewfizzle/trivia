@@ -1,0 +1,56 @@
+<!doctype html>
+<!-- PRISM DROP — THE CRAYON SHEET (PD-4): every crayon block (7 colours + junk × the variants), the ghost, the danger drain, the outline, the incoming
+     sketch (cool + hot), the crumbs, a scribble per combo level, the star burst + the marks — on each of the four papers, at a phone's real cell size.
+       ?px=97 (device px a cell — 3 × 32.3 pt at 390)   &paper=notepad|graph|construction|coloring (default: all four)   &scale=0.5 (shown smaller)
+     For judging the drawings themselves; the game's own screens are prism-preview.html (&look=day). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crayon sheet</title>
+<link rel="icon" href="data:,">
+<style>
+  body { margin: 0; background: #222; font: 12px monospace; color: #ccc; }
+  .sheet { display: flex; flex-wrap: wrap; gap: 0; }
+  .paper { position: relative; padding: 12px; background-size: 256px; }
+  .paper h3 { margin: 0 0 6px; color: #333; }
+  .row { display: flex; gap: 0; align-items: center; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<div class="sheet" id="s"></div>
+<script type="module">
+import { crayonSprite, crumbSprite, scribbleSprite, starSprite, markSprite, VARIANTS } from '/js/games/prism/crayon-art.js';
+import { PAPERS, CRAYON } from '/js/games/prism/crayon.js';
+const q = new URLSearchParams(location.search);
+const PX = Number(q.get('px') || 97), SC = Number(q.get('scale') || 1 / 3);
+const show = c => { const k = c.cloneNode(); k.getContext('2d').drawImage(c, 0, 0); k.style.width = `${c.width * SC}px`; k.style.height = `${c.height * SC}px`; return k; };
+const papers = PAPERS.filter(p => !q.get('paper') || q.get('paper') === p.id);
+for (const p of papers) {
+  const el = document.createElement('div');
+  el.className = 'paper';
+  el.style.backgroundColor = p.base;
+  el.style.backgroundImage = `url(/assets/prism/paper/${p.file})`;
+  el.innerHTML = `<h3>${p.name}</h3>`;
+  for (let t = 1; t <= 8; t++) {
+    const r = document.createElement('div');
+    r.className = 'row';
+    for (let v = 0; v < VARIANTS; v++) r.append(show(crayonSprite(PX, 'block', t, v)));
+    for (const k of ['ghost', 'grey', 'outline']) r.append(show(crayonSprite(PX, k, t)));
+    el.append(r);
+  }
+  const r2 = document.createElement('div');
+  r2.className = 'row';
+  r2.append(show(crayonSprite(PX, 'incoming', 0)), show(crayonSprite(PX, 'ihot', 0)));
+  for (let k = 0; k < 3; k++) r2.append(show(crumbSprite(PX * 0.3, CRAYON[k + 1], k)), show(crumbSprite(PX * 0.3, 'eraser', k)));
+  r2.append(show(markSprite(PX * 0.5, 'bounce')), show(markSprite(PX * 0.6, 'impact')), show(markSprite(PX * 0.5, 'streak', CRAYON[5])));
+  el.append(r2);
+  for (let lv = 0; lv < 3; lv++) el.append(show(scribbleSprite(PX * 10, PX * 1.05, lv ? CRAYON.slice(1, 2 + lv * 2) : '#3a3d45', lv)));
+  el.append(show(starSprite(PX * 6)));
+  document.getElementById('s').append(el);
+}
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

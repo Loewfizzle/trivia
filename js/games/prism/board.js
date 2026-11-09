@@ -5,9 +5,14 @@
 // PD-3 — THE NEON LOOK (night): a second set of sprites beside the glass one — solid DARK cores, a crisp HOT EDGE tube in the piece's colour with a
 // near-white core line, the static glow PRE-RENDERED (a ring sprite drawn under the stack; never a per-frame shadowBlur), three variants per colour
 // (a tube's hot spot — real neon is never perfectly even). The colours come from the world's palette (neon.js#neonPalette — the family holds).
-// The glass look stays the DAY placeholder until PD-4. The view picks the look from THE GAME LOOK (body[data-look]), live.
+// PD-4 — THE CRAYON LOOK (day): crayon-art.js's pre-drawn crayon blocks (six variants a colour) on a faint PENCIL grid, the pencil-sketch incoming
+// rows, the crayon moments (crayonfx.js — the boing, the scribble + crumbs, the star burst, SLAM's speed lines, the eraser crumbs). The glass look
+// is RETIRED as the day look (kept here as a look of its own — THE LOOK SYSTEM; nothing picks it now). The view picks the look LIVE (body[data-look]).
 import { W, VISIBLE, SHAPES, BOX, cellsOf, ghostY } from './engine.js';
 import { neonPalette, mixHex } from './neon.js';
+import { CRAYON, CRAYON_LINE, GRAPHITE } from './crayon.js';
+import { crayonSprite, VARIANTS } from './crayon-art.js';
+import { createCrayonFx } from './crayonfx.js';
 
 // jewel colours: 1 I aquamarine, 2 O citrine, 3 T amethyst, 4 S emerald, 5 Z ruby, 6 J sapphire, 7 L fire opal, 8 junk (smoky quartz)
 export const JEWEL = [null, '#2be4f0', '#ffc93a', '#b46bff', '#2fe07a', '#ff4d6d', '#4a86ff', '#ff9b3d', '#6b7385'];
@@ -354,7 +359,68 @@ function incomingHook(spr, edge) {
       return geo;
   };
 }
+/** (PD-4) the crayon look's INCOMING rows: grey PENCIL SKETCHES (hatched — never a crayon block), shaking marks at the sides, a pencil leading edge;
+ *  the same rules as every look (an occupied cell only tinted, the gap open, never covering a block) — drawn source-over (paper, not light) */
+function crayonIncoming(ctx, bands, { px, cells, H, now, reduced }) {
+  const geo = [];
+  if (!bands || !bands.length) return geo;
+  let base = 0;
+  const w = now / 1000;
+  for (const b of bands) {
+    const top = base + b.rows;
+    const shake = reduced ? 0 : Math.round(Math.sin(w * Math.PI * 2 * (b.hot ? 7 : 3)) * px * (b.hot ? 0.05 : 0.022));
+    const a = b.hot ? 0.95 : 0.62 + 0.3 * b.prog;
+    const ghost = crayonSprite(px, b.hot ? 'ihot' : 'incoming', 0);
+    let yTopBand = null;
+    for (let k = 0; k < b.n; k++) {
+      const rTop = top - k, rBot = rTop - 1;
+      if (rTop <= base) break;
+      const vBot = Math.max(rBot, base);
+      const y = H - rTop * px, hh = (rTop - vBot) * px;
+      if (hh < 0.5) continue;
+      if (yTopBand === null) yTopBand = y;
+      const row = Math.max(0, Math.min(VISIBLE - 1, Math.floor((rTop + vBot) / 2)));
+      for (let x = 0; x < W; x++) {
+        if (x === b.gap) continue;
+        if (cells[row * W + x]) { ctx.globalAlpha = 0.16; ctx.fillStyle = GRAPHITE; ctx.fillRect(x * px, y, px, hh); }
+        else { ctx.globalAlpha = a; ctx.drawImage(ghost, 0, 0, ghost.width, ghost.height * (hh / px), x * px + shake, y, px, hh); }
+      }
+      geo.push({ y, h: hh, gap: b.gap });
+    }
+    // the shaking marks at both sides of the band — a warning, drawn like motion lines in pencil
+    if (yTopBand !== null && !reduced) {
+      const yMid = (yTopBand + (H - base * px)) / 2, j = Math.sin(w * Math.PI * 2 * (b.hot ? 9 : 4)) * px * 0.06;
+      ctx.globalAlpha = b.hot ? 0.9 : 0.6;
+      ctx.strokeStyle = GRAPHITE;
+      ctx.lineWidth = Math.max(1.5, px * 0.045);
+      ctx.lineCap = 'round';
+      for (const side of [-1, 1]) {
+        const x0 = side < 0 ? px * 0.16 : W * px - px * 0.16;
+        for (let i = 0; i < 2; i++) {
+          ctx.beginPath();
+          ctx.arc(x0 + side * (i * px * 0.14 - j), yMid, px * (0.24 + i * 0.12), side < 0 ? Math.PI * 0.72 : -Math.PI * 0.28, side < 0 ? Math.PI * 1.28 : Math.PI * 0.28);
+          ctx.stroke();
+        }
+      }
+    }
+    base = top;
+  }
+  ctx.globalAlpha = 1;
+  // the leading edge: a firm pencil line across the top of everything incoming (doubled — a pencil pressed hard)
+  const yTop = H - base * px;
+  ctx.fillStyle = GRAPHITE;
+  ctx.globalAlpha = 0.9;
+  ctx.fillRect(0, yTop - Math.max(1, px * 0.02), W * px, Math.max(2, px * 0.04));
+  ctx.globalAlpha = 0.45;
+  ctx.fillRect(0, yTop - px * 0.09, W * px, Math.max(1, px * 0.02));
+  ctx.globalAlpha = 1;
+  geo.sort((p, q) => p.y - q.y);
+  return geo;
+}
+
 export const LOOKS = {
+  // (PD-4) THE CRAYON LOOK (day): the pencil-sketch incoming rows
+  crayon: { incoming: crayonIncoming },
   glass: { incoming: incomingHook((px, kind) => sprite(px, kind, 0), { core: 'rgba(255,210,220,0.9)', w: 0.07 }) },
   // (PD-3) the neon look: the same rules (an occupied cell only tinted, the gap open, never covering a block) — a red tube edge with a hot core
   neon: { incoming: incomingHook((px, kind, pal) => neonSprite(px, kind, 0, pal || neonPalette('')), { core: 'rgba(255,236,240,0.95)', w: 0.05, halo: 'rgba(255,79,116,0.35)' }) },
@@ -368,9 +434,10 @@ export function createBoardView(canvas) {
   let cell = 24, dpr = 1, px = 24;
   let gridLayer = null, gridSig = '';
   let skin = { look: 'glass', pal: null };   // (PD-3) the look this frame draws in + the world's palette (neon)
-  /** the sprite for this look: glass = today's jewels; neon = the world's tubes (v = the tube's variant) */
-  const spr = (kind, t, v = 0) => (skin.look === 'neon' ? neonSprite(px, kind, t, skin.pal, v) : sprite(px, kind, t));
-  const vOf = (x, y) => (x * 7 + y * 13) % 3;
+  /** the sprite for this look: neon = the world's tubes (v = the tube's variant); crayon (PD-4) = the crayon drawings (v of six); glass = the jewels */
+  const spr = (kind, t, v = 0) => (skin.look === 'neon' ? neonSprite(px, kind, t, skin.pal, v) : skin.look === 'crayon' ? crayonSprite(px, kind, t, v) : sprite(px, kind, t));
+  const vOf = (x, y) => (skin.look === 'crayon' ? (x * 7 + y * 13) % VARIANTS : (x * 7 + y * 13) % 3);
+  const cfx = createCrayonFx();   // (PD-4) the crayon moments
   let stack = null, stackCtx = null, stackSig = '';
   const fx = { flashes: [], sweeps: [], glitch: 0, lockFlash: [], shards: [] };
   let lastGhost = [];   // (PD-2) the ghost rows drawn last frame (device px, top first) — what a cancel shatters
@@ -400,6 +467,13 @@ export function createBoardView(canvas) {
     gridSig = sig;
     const g = gridLayer.getContext('2d');
     g.clearRect(0, 0, gridLayer.width, gridLayer.height);
+    if (look === 'crayon') {
+      // (PD-4) a faint PENCIL grid: thin graphite lines, the pressure varying along each (a hand with a ruler, not a printer)
+      let k = 0;
+      for (let x = 1; x < W; x++) for (let y = 0; y < VISIBLE; y++) { g.fillStyle = rgba(GRAPHITE, 0.07 + 0.05 * (((x * 31 + y * 17 + k++) % 7) / 7)); g.fillRect(x * px - 0.5, y * px, Math.max(1, px * 0.012), px); }
+      for (let y = 1; y < VISIBLE; y++) for (let x = 0; x < W; x++) { g.fillStyle = rgba(GRAPHITE, 0.07 + 0.05 * (((y * 29 + x * 13 + k++) % 7) / 7)); g.fillRect(x * px, y * px - 0.5, px, Math.max(1, px * 0.012)); }
+      return;
+    }
     const neon = look === 'neon' && pal;
     g.strokeStyle = neon ? rgba(pal.well, 0.045) : 'rgba(200,220,255,0.055)';
     g.lineWidth = 1;
@@ -455,15 +529,31 @@ export function createBoardView(canvas) {
       lastGhost = lastGhost.slice(rows.length);
       return rows.length;
     },
+    /** (PD-4) the crayon look's moments: an engine event (hard · lock · clear) → crayonfx.js; o: { reduced } */
+    crayonEvent(ev, o = {}) { cfx.event(ev, { px, reduced: !!o.reduced }); },
+    /** (PD-4) the crayon look's cancel: the top n pencil rows crumble into eraser crumbs (the view's shatter, by day) */
+    eraseGhost(n, o = {}) {
+      const rows = lastGhost.slice(0, Math.max(0, n));
+      cfx.erase(rows, { px, reduced: !!o.reduced });
+      lastGhost = lastGhost.slice(rows.length);
+      return rows.length;
+    },
+    /** (PD-4) the crumbs' cap (the tier's sparks) */
+    setCrumbs(n) { cfx.setCap(n); },
+    get crayonBusy() { return cfx.busy; },
     draw(g, { danger = 0, glow = 0.32, showGhost = true, frozen = false, rush = false, incoming = null, look = 'glass', pal = null, reduced = false } = {}) {
       const now = performance.now();
       let ghostGeo = [];
       const neon = look === 'neon';
-      skin = { look: neon ? 'neon' : 'glass', pal: neon ? pal || neonPalette('') : null };
+      const crayon = look === 'crayon';
+      skin = { look: neon ? 'neon' : crayon ? 'crayon' : 'glass', pal: neon ? pal || neonPalette('') : null };
+      if (!crayon && cfx.busy) cfx.clear();
       paintGrid(skin.look, skin.pal);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(gridLayer, 0, 0);
+      const cx = { px, sy, H: canvas.height };
+      if (crayon) cfx.under(ctx, cx);   // (PD-4: the star burst — behind the stack)
       const glitching = now < fx.glitch;
       const grey = Math.min(0.85, danger * 0.9) + (frozen ? 0.6 : 0);
       // the settled stack: a cached layer, redrawn only when a cell / the danger tint / the glow changes
@@ -497,6 +587,7 @@ export function createBoardView(canvas) {
           ctx.drawImage(stack, 0, y0, stack.width, band, shift, y0, stack.width, band);
         }
       } else ctx.drawImage(stack, 0, 0);
+      if (crayon) cfx.clears(ctx, cx);   // (PD-4: the cleared rows scribbled out — before the incoming rows, which stay on top)
       // (PD-2) THE RISING GHOST ROWS over the bottom rows — under the falling piece, never covering a block (the look's hook)
       if (incoming && incoming.length && !frozen) ghostGeo = (LOOKS[skin.look] || LOOKS.glass).incoming(ctx, incoming, { px, cells, H: canvas.height, now, reduced, pal: skin.pal });
       lastGhost = ghostGeo;
@@ -518,6 +609,7 @@ export function createBoardView(canvas) {
         }
         ctx.globalAlpha = 1;
       }
+      if (crayon) cfx.streaks(ctx, cx);   // (PD-4: SLAM's speed lines — behind the piece)
       // ghost + active piece
       if (g.cur && !frozen) {
         if (showGhost) {
@@ -526,14 +618,18 @@ export function createBoardView(canvas) {
             for (const [x, y] of cellsOf({ ...g.cur, y: gy })) if (y < VISIBLE) ctx.drawImage(spr('ghost', g.cur.t), x * px, sy(y));
           }
         }
-        ctx.globalCompositeOperation = 'lighter';
-        for (const [x, y] of cellsOf(g.cur)) if (y < VISIBLE) { const gs = spr('glow', g.cur.t); const o = (gs.width - px) / 2; ctx.globalAlpha = neon ? 0.8 : 0.5; ctx.drawImage(gs, x * px - o, sy(y) - o); }
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = 'source-over';
-        cellsOf(g.cur).forEach(([x, y], i) => drawCell(x, y, g.cur.t, grey * 0.4, 0, i % 3));
+        if (!crayon) {
+          ctx.globalCompositeOperation = 'lighter';
+          for (const [x, y] of cellsOf(g.cur)) if (y < VISIBLE) { const gs = spr('glow', g.cur.t); const o = (gs.width - px) / 2; ctx.globalAlpha = neon ? 0.8 : 0.5; ctx.drawImage(gs, x * px - o, sy(y) - o); }
+          ctx.globalAlpha = 1;
+          ctx.globalCompositeOperation = 'source-over';
+        }
+        // (the falling piece keeps its drawing while it falls: by day a variant per cell of THIS piece — never by place)
+        cellsOf(g.cur).forEach(([x, y], i) => drawCell(x, y, g.cur.t, grey * 0.4, 0, crayon ? ((g.n || 0) * 5 + i) % VARIANTS : i % 3));
       }
+      if (crayon) cfx.over(ctx, cx);   // (PD-4: the boing, the bounce / impact marks, the crumbs)
       // (PD-3) the neon look's lock pulse, clear races + bursts are LIGHT — the light layer above the board (light.js); the glass keeps these
-      if (neon) { fx.lockFlash.length = 0; fx.sweeps.length = 0; }
+      if (neon || crayon) { fx.lockFlash.length = 0; fx.sweeps.length = 0; }   // (PD-4: the crayon look has its own — crayonfx.js)
       // lock flash: the cells that just set glow white for an instant
       fx.lockFlash = fx.lockFlash.filter(f => now - f.t0 < 140);
       for (const f of fx.lockFlash) {
@@ -560,7 +656,7 @@ export function createBoardView(canvas) {
         ctx.fillRect(0, yy + px * 0.08, canvas.width, px * 0.84);
         ctx.globalCompositeOperation = 'source-over';
       }
-      if (glitching) {
+      if (glitching && !crayon) {   // (by day the rows' jolt alone — no digital colour bands on paper)
         ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = 'rgba(255,40,90,0.10)';
         const band = Math.random() * canvas.height;
@@ -596,7 +692,7 @@ export function drawPiece(canvas, t, { cell = 12, dim = false, look = 'glass', p
   ctx.globalAlpha = dim ? 0.35 : 1;
   for (const [x, y] of cs) {
     const yy = oy + (Math.max(...ys) - y) * px;
-    ctx.drawImage(look === 'neon' ? neonSprite(px, 'block', t, pal || neonPalette(''), 0) : sprite(px, 'block', t), ox + x * px, yy);
+    ctx.drawImage(look === 'neon' ? neonSprite(px, 'block', t, pal || neonPalette(''), 0) : look === 'crayon' ? crayonSprite(px, 'block', t, (x * 3 + y * 5 + t) % VARIANTS) : sprite(px, 'block', t), ox + x * px, yy);
   }
   ctx.globalAlpha = 1;
   void BOX;
@@ -615,9 +711,18 @@ export function drawMini(canvas, str, piece, { cell = 4, ko = false, look = 'gla
   const n = Math.min((str || '').length, W * VISIBLE);
   // (PD-3) the neon look: a big mini (spectating, the podium — ≥ 18 device px a cell) draws the real tubes; a small one a lit edge + a dark core
   const neon = look === 'neon';
+  const crayon = look === 'crayon';
   const P = neon ? pal || neonPalette('') : null;
   const cellAt = (x, y, t) => {
     const X = x * px, Y = (VISIBLE - 1 - y) * px, s = px - (px > 3 ? 1 : 0);
+    // (PD-4) the crayon look: a big mini draws the real crayon blocks; a small one a crayon fill + its darker outline (a KO'd board in graphite)
+    if (crayon) {
+      if (px >= 18 && !ko) { ctx.drawImage(crayonSprite(px, 'block', t, (x * 7 + y * 13) % VARIANTS), X, Y); return; }
+      const c = ko ? '#9a9da5' : CRAYON[t] || CRAYON[8], e = Math.max(1, Math.round(px * 0.16));
+      ctx.fillStyle = ko ? '#6e727c' : CRAYON_LINE[t] || CRAYON_LINE[8]; ctx.fillRect(X, Y, s, s);
+      if (s > 2 * e) { ctx.fillStyle = c; ctx.fillRect(X + e, Y + e, s - 2 * e, s - 2 * e); }
+      return;
+    }
     if (!neon || ko) { ctx.fillStyle = ko ? '#3a3f4c' : JEWEL[t] || JEWEL[8]; ctx.fillRect(X, Y, s, s); return; }
     if (px >= 18) { ctx.drawImage(neonSprite(px, 'block', t, P, (x * 7 + y * 13) % 3), X, Y); return; }
     const c = P.piece[t] || P.piece[8], e = Math.max(1, Math.round(px * 0.2));

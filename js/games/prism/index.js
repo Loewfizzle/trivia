@@ -6,6 +6,8 @@ export * from './meta.js';
 import { loadManifest, loadSong, goBeat } from './songs.js';
 import { state } from '../../store.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
+import { markUsed } from '../kit/night.js';
+import { pickPaper } from './crayon.js';
 
 export const createView = lazyView(() => import('./view.js'), gameSheets('prism'));
 // the match plays its own songs (synced to the server clock, through a filter for the danger/duel effects)
@@ -18,7 +20,7 @@ function newSeed() {
   return [...a].map(x => x.toString(36)).join('');
 }
 
-export async function start({ matchId, settings, participants, now }) {
+export async function start({ matchId, settings, participants, now, used }) {
   const s = cleanSettings(settings, Object.keys(participants || {}).length);   // (PD-2: one player never plays BATTLE)
   const songs = await loadManifest().catch(() => []);
   const ids = songs.map(x => x.id);
@@ -45,11 +47,15 @@ export async function start({ matchId, settings, participants, now }) {
   } else {
     endAt = playStartAt + 150_000;
   }
-  const game = createGame({
-    matchId, settings: s, participants, now, seed: newSeed(), songs: list, sd, pl0,
+  const seed = newSeed();
+  // (PD-4 — THE PAPER: the host deals one page per match — the same for everyone, a different one every match; the night's memory remembers it)
+  const paper = pickPaper(seed, (used && used.prism) || {});
+  const game = { ...createGame({
+    matchId, settings: s, participants, now, seed, songs: list, sd, pl0,
     songStartAt, playStartAt, endAt,
-  });
-  return pm.seed ? game : { ...game, $room: { 'meta/prism': { seed: roomSeed, n: pl0 } } };
+  }), pp: paper.i };
+  const $room = { ...markUsed('prism', [paper.key]), ...(pm.seed ? {} : { 'meta/prism': { seed: roomSeed, n: pl0 } }) };
+  return { ...game, $room };
 }
 
 export function prepare() { /* nothing to top up: every phone runs its own board */ }

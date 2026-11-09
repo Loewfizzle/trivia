@@ -26,6 +26,9 @@ import { neonPalette } from './neon.js';
 import { createLight } from './light.js';
 import { createNeonFx } from './neonfx.js';
 import { tierOf, TOP_TIER } from './tiers.js';
+import { paperOf, CRAYON } from './crayon.js';
+import { warmCrayon, toothMaskURL } from './crayon-art.js';
+import { createPage, warmDay } from './page.js';
 import { createRail } from './rail.js';
 import { createFx } from './fx.js';
 import { attachInput } from './input.js';
@@ -62,9 +65,12 @@ export function createView() {
   let curSong = -1;
   let tier = TOP_TIER;
   const frameTimes = [];
-  // (PD-3 — THE NIGHT LOOK) the look this screen draws in (THE GAME LOOK: body[data-look] — day = the glass placeholder until PD-4, night = NEON),
+  // (PD-3 — THE NIGHT LOOK) the look this screen draws in (THE GAME LOOK: body[data-look] — day = CRAYON (PD-4), night = NEON),
   // the world's neon palette, the light layer above the board (light.js) + the game's light (neonfx.js)
+  // (PD-4 — THE DAY LOOK) the page (page.js: the paper the host dealt, the world's doodle, the board's pencil frame) — the WebGL world skipped by day
   let look = '';
+  let page = null, paper = null, curWorld = '';
+  let warmT = 0, warmPx = 0;
   let pal = neonPalette('');
   let light = null, nfx = null;
   let boardRect = null;     // the board's rect in the root's CSS px (from the layout — the light + the shards' origin)
@@ -182,17 +188,20 @@ export function createView() {
     els.ui = h('div.pd-ui', els.top, els.stage, els.buttons);
     els.overlay = h('div.pd-overlay');
     els.light = h('canvas.pd-light', { 'aria-hidden': 'true' });
-    root.append(els.world, els.fx, els.ui, els.light, els.overlay);
+    els.page = h('canvas.pd-page', { 'aria-hidden': 'true' });
+    root.append(els.page, els.world, els.fx, els.ui, els.light, els.overlay);
     el.append(root);
     document.body.classList.add('pd-on');
 
     world = createWorlds(els.world);
+    page = createPage(els.page);
     fx = createFx(els.fx);
     board = createBoardView(els.board);
     light = createLight(els.light);
     nfx = createNeonFx(light);
     nfx.tier(tier);
     nfx.palette(pal);
+    setPaper(paperOf(game));   // (PD-4: the first match's page)
     rail = createRail(els.rail);
     calls = createAnnouncer(els.callout, { prefix: 'pd', holdMs: 1100, outMs: 260, queueMax: 3, fit: true });
     // the press's light: a short flash as the finger lifts (the sound + the drop come from the press itself)
@@ -226,6 +235,8 @@ export function createView() {
     songPlayer.stop();
     if (world) world.destroy();
     if (light) light.destroy();
+    if (page) page.destroy();
+    clearTimeout(warmT);
     if (unsubSettings) unsubSettings();
     if (finalView) finalView.destroy();
     if (rail) rail.destroy();
@@ -257,6 +268,7 @@ export function createView() {
     seenOut = { ...(game.out || {}) }; seenEv = {}; lastAlive = null; duelShown = !!game.duelAt; suddenShown = false;
     countScheduled = {}; finaleScheduled = false; endShown = false; callShownFor = null; miniSig = {};
     target = null; ghostGeo = []; callout = null; lastTag = ''; lastTagY = -1; koShownAt = 0; pubForce = false; callOpen = false; lastSpec = null;
+    setPaper(paperOf(game));   // (PD-4: the page the host dealt this match — the same on every phone)
     if (tipEl) { tipEl.remove(); tipEl = null; }
     tipDone = false;
     if (calls) calls.clear();
@@ -364,6 +376,7 @@ export function createView() {
     const neon = look === 'neon' && nfx;
     for (const ev of evs) {
       if (neon && (ev.e === 'hard' || ev.e === 'lock' || ev.e === 'counter')) nfx.event(ev, { reduced: reduced() });
+      else if (look === 'crayon' && board && (ev.e === 'hard' || ev.e === 'lock')) board.crayonEvent(ev, { reduced: reduced() });   // (PD-4: the boing, SLAM's lines)
       switch (ev.e) {
         case 'move': synth.play('move'); break;
         case 'rotate': synth.play('rotate', { dir: ev.dir }); break;
@@ -416,7 +429,10 @@ export function createView() {
     const big = ev.lines >= 4 || ev.twist === 'twist' || ev.pc;
     const strength = ev.lines >= 4 || ev.pc ? 1 : ev.lines >= 2 ? 0.75 : 0.45;
     const neon = look === 'neon' && nfx && light;
-    if (!neon) board.flashRows(ev.rows.map((y, i) => y - i >= 0 ? ev.rows[i] : y), strength, (fxs.hue * 57) % 360);
+    const crayon = look === 'crayon';
+    // (PD-4 — THE CRAYON LOOK's clears: the rows SCRIBBLED OUT, then crumbs; 4 LINES = the star burst — crayonfx.js on the board's canvas)
+    if (crayon) board.crayonEvent(ev, { reduced: reduced() });
+    else if (!neon) board.flashRows(ev.rows.map((y, i) => y - i >= 0 ? ev.rows[i] : y), strength, (fxs.hue * 57) % 360);
     // (PD-3 — THE NEON LOOK's clears: light RACES along the rows, then they BURST into shards (fx.js, behind the board) + sparks (the light layer)
     //  — every clear, bigger clears bigger; 4 LINES = a full-board flash; a combo lifts the frame's light)
     else nfx.event(ev, { onBurst: reduced() ? null : () => neonShards(ev) });
@@ -429,7 +445,8 @@ export function createView() {
     const comboBoost = Math.min(1, Math.max(0, ev.combo) * 0.12);
     fxs.bloom = Math.min(1.2, fxs.bloom + (ev.lines >= 2 ? 0.35 : 0.15) + comboBoost * 0.5);
     if (!reduced()) fxs.hue += 0.08 + Math.max(0, ev.combo) * 0.05;
-    if (big && !reduced() && !neon) {
+    if (crayon) { if (big && !reduced()) bump(els.boardWrap, 'pd-pulse'); }
+    else if (big && !reduced() && !neon) {
       const r = els.board.getBoundingClientRect();
       const rf = els.fx.getBoundingClientRect();
       const cells = [];
@@ -621,6 +638,7 @@ export function createView() {
   function setTier(t) {
     tier = Math.max(0, Math.min(TOP_TIER, t));
     if (world) world.setTier(tier);
+    if (board) board.setCrumbs(tierOf(tier).sparks);
     if (fx) fx.setCap(tierOf(tier).shards);
     if (nfx) nfx.tier(tier);
     layoutSig = '';
@@ -636,6 +654,8 @@ export function createView() {
       synth.setKey(c.doc.tonic, c.doc.mode);
       if (world) world.setWorld(c.doc.world, variantOf(c.i), performance.now() / 1000);
       setPalette(c.doc.world);
+      curWorld = c.doc.world;
+      syncPage();   // (PD-4: the song's doodle)
       if (c.i > 0) announce(`NOW PLAYING · ${String(c.doc.title || '').toUpperCase()}`, 'world');
     }
     if (c.clk) {
@@ -728,7 +748,7 @@ export function createView() {
     const wave = fxs.waveT >= 0 ? [-0.2 + fxs.waveT * 1.6, Math.sin(Math.PI * fxs.waveT), fxs.wave[2]] : [0, 0, 0];
     const danger = eng && !eng.over ? dangerOf() : 0;
     watchLook();
-    if (world) {
+    if (world && look !== 'crayon') {   // (PD-4: by day the world is the page — its shader's work skipped entirely)
       world.set({
         calm: look === 'neon' ? 1 : 0,
         beat: reduced() ? 0 : fxs.beat * 0.8, energy: fxs.energy ?? 0.5, bloom: reduced() ? fxs.bloom * 0.3 : fxs.bloom,
@@ -743,7 +763,7 @@ export function createView() {
       const frozen = !!(game.out && game.out[me()]);
       const bands = incomingNow();
       const neon = look === 'neon';
-      const r = board.draw(eng, { danger, glow: tierOf(tier).glow ? (neon ? 0.62 : 0.32) : 0, frozen, incoming: bands, reduced: reduced(), look: neon ? 'neon' : 'glass', pal });
+      const r = board.draw(eng, { danger, glow: tierOf(tier).glow && neon ? 0.62 : 0, frozen, incoming: bands, reduced: reduced(), look, pal });
       ghostGeo = (r && r.ghost) || [];
       paintTag(r && r.ghostTop);
     }
@@ -756,15 +776,55 @@ export function createView() {
   }
 
   // ================================================================ THE NIGHT LOOK (PD-3): the look, the palette, the clears' shards
-  /** THE GAME LOOK, read LIVE (a cheap attribute read): day = the glass look (the placeholder until PD-4), anything else = NEON */
+  /** THE GAME LOOK, read LIVE (a cheap attribute read): day = THE CRAYON LOOK (PD-4), anything else = NEON */
   function watchLook() {
-    const lk = document.body.dataset.look === 'day' ? 'glass' : 'neon';
+    const lk = document.body.dataset.look === 'day' ? 'crayon' : 'neon';
     if (lk === look) return;
     look = lk;
     root.dataset.look = lk;
     if (light && lk !== 'neon') { light.clear(); light.render(); }
-    lastHoldSig = ''; lastNextSig = ''; miniSig = {};
+    if (lk === 'crayon') { warmDay(paper); root.style.setProperty('--pd-tooth', `url(${toothMaskURL()})`); }   // (the papers + the marker font — fetched only when the day look shows; the lettering's crayon tooth)
+    if (fx) fx.clear();
+    lastHoldSig = ''; lastNextSig = ''; miniSig = {}; topSig = '';
+    syncPage();
+    warmSprites();
     if (rail) layoutSig = '';
+  }
+  // ================================================================ THE DAY LOOK (PD-4): the paper, the page, the crayon sprites warmed in idle slices
+  /** the match's paper (crayon.js#paperOf — the host's deal): CSS reads its colour + ink + grain (the panels, the cards, the top line) */
+  function setPaper(p) {
+    if (!p || p === paper) return;
+    paper = p;
+    root.dataset.paper = p.id;
+    root.style.setProperty('--pd-paper', p.base);
+    root.style.setProperty('--pd-ink', p.ink);
+    root.style.setProperty('--pd-grain', `url(${new URL(`../../../assets/prism/paper/${p.file}`, import.meta.url).href})`);
+    if (look === 'crayon') warmDay(p);
+    syncPage();
+  }
+  /** the page: drawn only when its paper / world / size / the board's place changes (never in the frame loop) */
+  function syncPage() {
+    if (!page) return;
+    const d0 = docOf(0);
+    const field = !!game && game.phase !== 'final' && !specNow();   // (spectating + the podium: no board on the page — the cards stand alone)
+    page.set({ on: look === 'crayon', paper, world: curWorld || (d0 && d0.world) || 'sunset', w: (L && L.W0) || root.clientWidth, h: (L && L.H0) || root.clientHeight, board: field ? boardRect : null });
+  }
+  /** every crayon block for the board's size, drawn in slices of <= 4 ms between frames — a live switch to day never waits on them */
+  function warmSprites() {
+    clearTimeout(warmT);
+    const px = board && board.px;
+    if (!px || destroyed) return;
+    if (warmPx !== px) warmPx = 0;
+    // the board's cells, then HOLD / NEXT's (drawPiece's own sizes: the piece cell × the screen's ratio, the 2nd + 3rd NEXT at 0.86)
+    const r = Math.min(3, window.devicePixelRatio || 1), pc = (L && L.pieceCell) || 12;
+    const sizes = [px, Math.round(pc * r), Math.round(pc * 0.86 * r)];
+    const step = () => {
+      if (destroyed) return;
+      while (sizes.length && warmCrayon(sizes[0], 4)) sizes.shift();
+      if (!sizes.length) { warmPx = px; return; }
+      warmT = setTimeout(step, 16);
+    };
+    if (!warmPx) warmT = setTimeout(step, 50);
   }
   /** the world's neon palette (neon.js): the pieces' shade + glow, the frame, the well, the sparks — CSS reads the frame + the well */
   function setPalette(worldId) {
@@ -818,14 +878,15 @@ export function createView() {
   function shatterGhosts(n) {
     vibrate(8);
     if (!board || reduced()) { ghostGeo = ghostGeo.slice(Math.max(0, n)); return; }
-    board.shatterGhost(n);
+    if (look === 'crayon') board.eraseGhost(n, { reduced: reduced() });   // (PD-4: the pencil rows crumble into eraser crumbs)
+    else board.shatterGhost(n);
     ghostGeo = ghostGeo.slice(Math.max(0, n));
   }
 
   function drawHud() {
     if (!eng || !L) return;
     const hs = `${eng.hold}|${eng.held}|${L.pieceCell}`;
-    const skin = { look: look === 'neon' ? 'neon' : 'glass', pal };
+    const skin = { look, pal };
     if (hs !== lastHoldSig) { lastHoldSig = hs; drawPiece(els.hold, eng.hold, { cell: L.pieceCell, dim: eng.held, ...skin }); }
     const nq = E.nextQueue(eng, 3);
     const ns = `${nq.join('')}|${L.pieceCell}`;
@@ -884,6 +945,8 @@ export function createView() {
     const rr = root.getBoundingClientRect(), br = els.board.getBoundingClientRect();
     boardRect = { x: br.left - rr.left, y: br.top - rr.top, w: br.width || L.boardW, h: br.height || L.boardH, cell: L.cell };
     if (nfx) nfx.layout(boardRect);
+    syncPage();
+    warmSprites();
     if (world) world.set({ board: [boardRect.x / W0, 1 - (boardRect.y + boardRect.h) / H0, (boardRect.x + boardRect.w) / W0, 1 - boardRect.y / H0] });
     lastHoldSig = ''; lastNextSig = ''; miniSig = {}; coverSig = ''; topSig = '';
     renderSide(spectating, duelist);
@@ -958,7 +1021,7 @@ export function createView() {
         board: n.b, piece: n.p,
       };
     });
-    rail.update(rows, { duel: !!duelOpp, duelCell: L ? L.duelCell : 3, look: look === 'neon' ? 'neon' : 'glass', pal });
+    rail.update(rows, { duel: !!duelOpp, duelCell: L ? L.duelCell : 3, look, pal });
   }
 
   // ================================================================ spectator / call the winner / KO
@@ -1058,7 +1121,7 @@ export function createView() {
       if (se.textContent !== stat) se.textContent = stat;
       card.classList.toggle('is-danger', uid === danger && hgt(uid) >= 12);
       const sig = `${n.b}|${n.p}|${mc}|${look}|${pal.id}`;
-      if (miniSig[`s:${uid}`] !== sig) { miniSig[`s:${uid}`] = sig; drawMini(card.querySelector('canvas'), n.b, n.p, { cell: mc, look: look === 'neon' ? 'neon' : 'glass', pal }); }
+      if (miniSig[`s:${uid}`] !== sig) { miniSig[`s:${uid}`] = sig; drawMini(card.querySelector('canvas'), n.b, n.p, { cell: mc, look, pal }); }
     }
     for (const c of [...grid.children]) if (!keep.has(c.dataset.uid)) c.remove();
     // the rest of the field, one line: initial · stack height (or KO)
@@ -1140,10 +1203,10 @@ export function createView() {
         const t = eng.cells[y * E.W + x];
         if (!t) continue;
         const [cx, cy] = board.cellCenter(x, y);
-        cells.push({ x: r.left - rf.left + cx, y: r.top - rf.top + cy, color: look === 'neon' ? pal.piece[t] : JEWEL[t] });
+        cells.push({ x: r.left - rf.left + cx, y: r.top - rf.top + cy, color: look === 'neon' ? pal.piece[t] : look === 'crayon' ? CRAYON[t] || CRAYON[8] : JEWEL[t] });
       }
       fx.setCap(Math.max(200, cells.length * 3));
-      fx.shatter(cells, { cx: r.left - rf.left + r.width / 2, cy: r.top - rf.top + r.height / 2, power: 1.5 });
+      fx.shatter(cells, { cx: r.left - rf.left + r.width / 2, cy: r.top - rf.top + r.height / 2, power: 1.5, crayon: look === 'crayon' });   // (PD-4: by day the board crumbles into crayon bits)
       eng.cells.fill(0);
       eng.cur = null;
     }
@@ -1329,7 +1392,7 @@ export function createView() {
       clock: () => songClock(),
       fxCount: () => fx.count,
       // (PD-3) the night look: the look, the palette, the light layer + a way to fire its effects down the real path (the preview + the E2E)
-      look: () => ({ look, pal: pal.id, light: !!light, lit: light ? light.effects + light.count : 0, size: light ? light.size : null, visible: els.light.style.visibility !== 'hidden' }),
+      look: () => ({ look, pal: pal.id, paper: paper ? paper.id : null, light: !!light, lit: light ? light.effects + light.count : 0, size: light ? light.size : null, visible: els.light.style.visibility !== 'hidden', warm: warmPx === (board && board.px), crayonBusy: !!(board && board.crayonBusy) }),
       freeze: ms => light && light.freeze(ms),
       fire: (kind, o = {}) => fireFx(kind, o),
     };

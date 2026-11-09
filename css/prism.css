@@ -17,8 +17,10 @@
   user-select: none;
   -webkit-touch-callout: none;
 }
-.pd-world, .pd-fx, .pd-light { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.pd-world, .pd-fx, .pd-light, .pd-page { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .pd-world { z-index: 0; }
+/* (PD-4) THE PAGE (page.js — the day look's paper, its rulings, the world's doodle, the board's pencil frame): under everything, shown only by day */
+.pd-page { z-index: 0; display: none; }
 .pd-fx { z-index: 1; }
 /* (PD-3) THE LIGHT LAYER (light.js): above the board, under the overlays — pure added light (premultiplied: light + below × (1 − a)); hidden when idle */
 .pd-light { z-index: 3; }
@@ -548,12 +550,177 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd[data-look='neon'] .pd-ko { border: 1.5px solid #ff4f74; box-shadow: 0 0 14px rgba(255, 79, 116, 0.55), 0 0 40px rgba(255, 60, 100, 0.25), inset 0 0 14px rgba(255, 79, 116, 0.2); }
 .pd[data-look='neon'] .pd-spec-frame, .pd[data-look='neon'] .pd-fs-frame { box-shadow: 0 0 0 1px color-mix(in srgb, var(--pd-edge) 60%, transparent), 0 0 14px color-mix(in srgb, var(--pd-edge) 25%, transparent); }
 
+/* ==================================================================================================================================
+   PD-4 — THE CRAYON LOOK (day — body[data-look='day'] → the view sets .pd[data-look='crayon']): a coloring book. The page (page.js — the paper the
+   host dealt, its rulings, the world's doodle, the board's pencil frame) fills the screen; the WebGL world + the light layer are off.
+   The paper arrives as --pd-paper (its colour), --pd-ink (its dark pencil-grey text, ≥ 4.5:1), --pd-grain (its tile) and --pd-tooth (the crayon
+   lettering's mask) — crayon.js#PAPERS. The panels go PAPER (a grain, a pencil border drawn twice); SLAM stays the glossy red push button; the
+   shared ☰ / music buttons stay the console's. Lettering = Permanent Marker ('PD Marker' — page.js#warmDay loads it only by day; the UI font until then).
+   ================================================================================================================================== */
+.pd[data-look='crayon'] {
+  --pd-paper: #fbf7ea;
+  --pd-ink: #3a3d45;
+  --pd-pencil: rgba(74, 78, 87, 0.78);
+  --pd-pencil-2: rgba(74, 78, 87, 0.38);
+  --pd-marker: 'PD Marker', var(--font-ui);
+  background: var(--pd-paper);
+  color: var(--pd-ink);
+}
+.pd[data-look='crayon'] .pd-page { display: block; }
+.pd[data-look='crayon'] .pd-world, .pd[data-look='crayon'] .pd-light { visibility: hidden; }
+/* the board: the page draws the frame + the well's wash; only the danger shows here (a faint red crayon wash rising with it) */
+.pd[data-look='crayon'] .pd-board-glass { background: rgba(226, 51, 79, calc(var(--danger, 0) * 0.1)); border: 0; box-shadow: none; }
+.pd[data-look='crayon'] .pd-board-glass::before { display: none; }
+/* a paper card: the grain, a pencil border, a second fainter pass a little off it (a hand drew it twice) */
+.pd[data-look='crayon'] :is(.pd-corner, .pd-tip, .pd-ko, .pd-count-song, .pd-call, .pd-spec-head, .pd-spec-card, .pd-ann, .pd-inc-tag, .pd-title b, .pd-title small, .pd-fs-moment, .pd-btn) {
+  background: var(--pd-paper) var(--pd-grain) 0 0 / 256px;
+  border: 1.5px solid var(--pd-pencil);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 2px 5px rgba(40, 32, 20, 0.16);
+  color: var(--pd-ink);
+  text-shadow: none;
+}
+.pd[data-look='crayon'] :is(.pd-corner, .pd-tip, .pd-ko, .pd-count-song, .pd-call, .pd-spec-card, .pd-fs-moment)::after {
+  content: '';
+  position: absolute;
+  inset: -2px -1px -1px -2px;
+  border: 1px solid var(--pd-pencil-2);
+  border-radius: inherit;
+  transform: rotate(0.5deg);
+  pointer-events: none;
+}
+.pd[data-look='crayon'] :is(.pd-tip, .pd-ko, .pd-count-song, .pd-call, .pd-spec-card, .pd-fs-moment) { position: relative; }
+/* HOLD + NEXT: slim paper cards in the board's top corners (still fading when a piece passes under), a touch askew */
+.pd[data-look='crayon'] .pd-corner { border-radius: 4px; opacity: 0.94; }
+.pd[data-look='crayon'] .pd-hold { rotate: -0.8deg; }
+.pd[data-look='crayon'] .pd-next { rotate: 0.6deg; }
+.pd[data-look='crayon'] .pd-corner small { font-family: var(--pd-marker); font-size: 9.5px; line-height: 10px; letter-spacing: 0.08em; color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-corner.is-under { opacity: 0.3; }
+/* THE TOP LINE: dark pencil-grey marker lettering */
+.pd[data-look='crayon'] .pd-mode { font-family: var(--pd-marker); font-weight: 400; letter-spacing: 0.06em; background: none; color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-sub { color: var(--pd-ink); opacity: 0.85; }
+.pd[data-look='crayon'] .pd-ann { font-family: var(--pd-marker); font-weight: 400; letter-spacing: 0.06em; border-radius: 4px; }
+.pd[data-look='crayon'] .pd-ann::before { background: repeating-linear-gradient(90deg, #e2334f 0 12px, #f4b81a 12px 24px, #14b2c6 24px 36px, #8a4fd8 36px 48px); height: 3px; opacity: 0.8; }
+.pd[data-look='crayon'] .pd-ann.is-ko { border-color: #b8253d; }
+/* THE RAIL: small paper tiles — a crayon fill for the stack, an X scribble for a KO, a crayon circle for the hit */
+.pd[data-look='crayon'] .pd-tile {
+  background: var(--pd-paper) var(--pd-grain) 0 0 / 256px;
+  border: 1.5px solid var(--pd-pencil);
+  border-left: 4px solid var(--c);
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(40, 32, 20, 0.14);
+  overflow: visible;
+}
+.pd[data-look='crayon'] .pd-tile-fill {
+  border-radius: 0 0 3px 3px;
+  background: repeating-linear-gradient(-38deg, color-mix(in srgb, var(--c) 92%, #1a1424) 0 2.5px, color-mix(in srgb, var(--c) 62%, transparent) 2.5px 4.5px);
+  -webkit-mask-image: var(--pd-tooth); mask-image: var(--pd-tooth); -webkit-mask-size: 64px; mask-size: 64px;
+  box-shadow: none;
+}
+.pd[data-look='crayon'] .pd-tile.is-high { border-color: #b8253d; border-left-color: var(--c); }
+.pd[data-look='crayon'] .pd-tile.is-high .pd-tile-fill { background: repeating-linear-gradient(-38deg, color-mix(in srgb, var(--c) 92%, #1a1424) 0 2.5px, rgba(226, 51, 79, 0.55) 2.5px 4.5px); }
+.pd[data-look='crayon'] .pd-tile-ini { font-family: var(--pd-marker); font-weight: 400; font-size: 17px; color: var(--pd-ink); text-shadow: -1.5px 0 var(--pd-paper), 1.5px 0 var(--pd-paper), 0 -1.5px var(--pd-paper), 0 1.5px var(--pd-paper); }
+.pd[data-look='crayon'] .pd-tile-rank { color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-tile.is-ko { opacity: 0.8; border-color: var(--pd-pencil-2); }
+.pd[data-look='crayon'] .pd-tile.is-ko .pd-tile-fill { background: repeating-linear-gradient(-38deg, rgba(110, 114, 124, 0.7) 0 2px, rgba(110, 114, 124, 0.25) 2px 4px); }
+.pd[data-look='crayon'] .pd-tile.is-ko .pd-tile-ko { font-family: var(--pd-marker); font-weight: 400; font-size: 10px; color: #b8253d; }
+.pd[data-look='crayon'] .pd-tile.is-ko::before {
+  content: '';
+  position: absolute;
+  inset: 3px 2px 12px;
+  z-index: 1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 50' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23d22a45' stroke-linecap='round' stroke-width='4.2'%3E%3Cpath d='M6 7 C14 17 22 28 34 44'/%3E%3Cpath d='M34 6 C26 16 15 30 5 43'/%3E%3C/g%3E%3Cg fill='none' stroke='%23d22a45' stroke-linecap='round' stroke-width='1.6' opacity='.6'%3E%3Cpath d='M8 6 C15 18 24 29 33 45'/%3E%3Cpath d='M33 8 C25 18 16 29 7 44'/%3E%3C/g%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+.pd[data-look='crayon'] .pd-tile.is-target { box-shadow: 0 0 0 2px var(--pd-paper), 0 0 0 3.5px var(--pd-ink), 0 2px 4px rgba(40, 32, 20, 0.14); }
+.pd[data-look='crayon'] .pd-tile.is-attacker::after { border-color: transparent #d22a45 transparent transparent; }
+.pd[data-look='crayon'] .pd-tile-hit {
+  inset: -7px -6px;
+  border-radius: 0;
+  box-shadow: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 70' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23e2334f' stroke-linecap='round'%3E%3Cpath stroke-width='3.4' d='M27 4 C44 5 48 22 47 38 C46 57 36 67 23 66 C9 65 3 52 3 35 C3 16 11 5 30 6'/%3E%3Cpath stroke-width='1.6' opacity='.55' d='M24 7 C40 8 45 24 44 39 C43 56 34 63 22 63 C10 62 6 50 6 34 C6 18 13 9 31 9'/%3E%3C/g%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+/* THE INCOMING TAG: a little paper tag, askew (the view moves it by transform — the tilt rides `rotate`) */
+.pd[data-look='crayon'] .pd-inc-tag { font-family: var(--pd-marker); font-weight: 400; font-size: 11.5px; letter-spacing: 0.05em; border-radius: 3px; border-color: #4a4e57; rotate: -1.5deg; }
+/* THE CALLOUTS: Permanent Marker with the crayon's tooth (a mask) + a paper-coloured edge — they read over any block */
+.pd[data-look='crayon'] .pd-callout .pd-ann-in {
+  font-family: var(--pd-marker);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--pd-ink);
+  text-shadow: -2px -2px 0 var(--pd-paper), 2px -2px 0 var(--pd-paper), -2px 2px 0 var(--pd-paper), 2px 2px 0 var(--pd-paper), 0 -2.5px 0 var(--pd-paper), 0 2.5px 0 var(--pd-paper), -2.5px 0 0 var(--pd-paper), 2.5px 0 0 var(--pd-paper), 0 4px 6px rgba(40, 32, 20, 0.25);
+  -webkit-mask-image: var(--pd-tooth); mask-image: var(--pd-tooth); -webkit-mask-size: 110px; mask-size: 110px;
+}
+/* (Permanent Marker is narrower than Orbitron: the headline a little bigger for the same --len) */
+.pd[data-look='crayon'] .pd-callout .pd-ann-in::first-line { font-size: min(38px, calc((100cqw - 20px) / (var(--len) * 0.8))); font-weight: 400; letter-spacing: 0.03em; color: #2f63d4; }
+.pd[data-look='crayon'] .pd-callout .pd-ann-in.is-big::first-line { color: #e2531f; }
+.pd[data-look='crayon'] .pd-callout .pd-ann-in.is-good::first-line { color: color-mix(in srgb, var(--good) 52%, #0d2416); }
+.pd[data-look='crayon'] .pd-callout .pd-ann-in.is-ko::first-line { color: #d22a45; }
+.pd[data-look='crayon'] .pd-callout .pd-ann-in.is-send::first-line { color: #2f63d4; }
+.pd[data-look='crayon'] .pd-callout .pd-ann-in.is-clear::first-line { color: #8a4fd8; }
+/* the cards over the board: paper */
+.pd[data-look='crayon'] .pd-tip { font-family: var(--pd-marker); font-weight: 400; font-size: 17px; letter-spacing: 0.02em; border-radius: 6px; rotate: -0.6deg; }
+.pd[data-look='crayon'] .pd-ko { border-radius: 8px; border-color: #b8253d; }
+.pd[data-look='crayon'] .pd-ko b { font-family: var(--pd-marker); font-weight: 400; color: #d22a45; text-shadow: 2px 2px 0 rgba(226, 51, 79, 0.18); letter-spacing: 0.06em; }
+.pd[data-look='crayon'] .pd-ko small { font-family: var(--pd-marker); font-weight: 400; color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-ko .pd-ko-place { color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-count-song { border-radius: 8px; }
+.pd[data-look='crayon'] .pd-count-song b { font-family: var(--pd-marker); font-weight: 400; background: none; color: #2f63d4; letter-spacing: 0.06em; }
+.pd[data-look='crayon'] .pd-count-song :is(small, em, span) { color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-count-n b { font-family: var(--pd-marker); font-weight: 400; color: var(--pd-ink); text-shadow: -3px -3px 0 var(--pd-paper), 3px -3px 0 var(--pd-paper), -3px 3px 0 var(--pd-paper), 3px 3px 0 var(--pd-paper), 0 5px 8px rgba(40, 32, 20, 0.22); }
+.pd[data-look='crayon'] :is(.pd-count-n b, .pd-title b)::before, .pd[data-look='crayon'] :is(.pd-count-n b, .pd-title b)::after { display: none; }
+.pd[data-look='crayon'] .pd-title b { font-family: var(--pd-marker); font-weight: 400; letter-spacing: 0.06em; border-radius: 6px; rotate: -1deg; }
+.pd[data-look='crayon'] .pd-title small { border-radius: 4px; }
+/* CALL THE WINNER: a paper sheet; the ring's ticks in pencil */
+.pd[data-look='crayon'] .pd-call { border-radius: 10px; }
+.pd[data-look='crayon'] :is(.pd-kicker, .pd-call p, .pd-call-ring b) { color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-call-ring i { background: var(--pd-ink); box-shadow: none; }
+.pd[data-look='crayon'] .pd-call-pick { background: rgba(255, 255, 255, 0.45); border: 1.5px solid var(--pd-pencil); border-top: 4px solid var(--c); border-radius: 6px; color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-call-pick b { font-family: var(--pd-marker); font-weight: 400; font-size: 14px; color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-call-pick small { color: var(--pd-ink); opacity: 0.8; }
+.pd[data-look='crayon'] .pd-call-bar { background: rgba(74, 78, 87, 0.15); }
+/* SPECTATING: paper cards, pencil frames; names in ink with the player's colour as the card's crayon top edge */
+.pd[data-look='crayon'] .pd-spec-head { font-family: var(--pd-marker); font-weight: 400; letter-spacing: 0.06em; border-radius: 4px; }
+.pd[data-look='crayon'] .pd-spec-head.is-duel { border-color: #e2531f; box-shadow: 0 2px 5px rgba(40, 32, 20, 0.16); color: #b33d12; }
+.pd[data-look='crayon'] .pd-spec-card { border-top: 4px solid var(--c); border-radius: 8px; }
+.pd[data-look='crayon'] .pd-spec-card.is-danger { border-color: #b8253d; border-top-color: var(--c); box-shadow: 0 0 0 1.5px rgba(210, 42, 69, 0.55), 0 2px 5px rgba(40, 32, 20, 0.16); }
+.pd[data-look='crayon'] .pd-spec-name { font-family: var(--pd-marker); font-weight: 400; font-size: 15px; color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-spec-name[data-pid] { text-decoration-color: var(--c); }
+.pd[data-look='crayon'] .pd-spec-frame { background: var(--pd-paper); box-shadow: inset 0 0 0 1.5px var(--pd-pencil); border-radius: 3px; }
+.pd[data-look='crayon'] .pd-spec-stat, .pd[data-look='crayon'] .pd-spec-p { color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-spec-card.is-danger .pd-spec-stat { color: #b8253d; }
+.pd[data-look='crayon'] .pd-spec-p b { font-family: var(--pd-marker); font-weight: 400; color: var(--pd-ink); text-decoration: underline 3px var(--c); text-underline-offset: 3px; }
+.pd[data-look='crayon'] .pd-spec-p.is-ko i { color: #b8253d; }
+/* THE PODIUM's body (the console's frame keeps its own look — slim cards are cards): the winning board on a paper card */
+.pd[data-look='crayon'] .pd-final { background: color-mix(in srgb, var(--pd-paper) 72%, transparent); }
+.pd[data-look='crayon'] .pd-fs-moment { border-left: 4px solid var(--c); border-radius: 8px; }
+.pd[data-look='crayon'] .pd-fs-frame { background: var(--pd-paper); box-shadow: inset 0 0 0 1.5px var(--pd-pencil); }
+.pd[data-look='crayon'] .pd-fs-line small { color: var(--pd-ink); opacity: 0.85; }
+.pd[data-look='crayon'] .pd-fs-line b { font-family: var(--pd-marker); font-weight: 400; color: var(--pd-ink); text-shadow: none; text-decoration: underline 3px var(--c); text-underline-offset: 4px; }
+.pd[data-look='crayon'] .pd-fs-line span { color: var(--pd-ink); }
+/* the console's frame on paper: its kicker + the winner line in dark pencil-grey marker (the night's glitch halves off) */
+.pd[data-look='crayon'] .pd-final .winner-title { font-family: var(--pd-marker); font-weight: 400; color: var(--pd-ink); text-shadow: 2px 3px 0 color-mix(in srgb, var(--pd-ink) 14%, transparent); }
+.pd[data-look='crayon'] .pd-final .winner-title::before, .pd[data-look='crayon'] .pd-final .winner-title::after { display: none; }
+.pd[data-look='crayon'] .pd-final :is(.winner-name, .sheet-kicker) { color: var(--pd-ink); }
+/* the results rows: the slim cards lie straight on the paper (no dark row behind them); the place, the note + the score in ink */
+.pd[data-look='crayon'] .pd-final .lb-row { background: color-mix(in srgb, var(--pd-paper) 70%, transparent); border: 1.5px solid var(--pd-pencil-2); border-left: 4px solid var(--c); }
+.pd[data-look='crayon'] .pd-final .lb-row.lb-strip { background: none; border: 0; }
+.pd[data-look='crayon'] .pd-final :is(.lb-rank, .lb-sub, .lb-note, .lb-name) { color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-final .lb-row.is-first .lb-rank { color: #a8740a; }
+.pd[data-look='crayon'] .pd-final .lb-pts .lb-score { color: var(--pd-ink); text-shadow: none; }
+/* THE BUTTONS scheme: paper buttons, pencil glyphs (DROP the darkest) */
+.pd[data-look='crayon'] .pd-btn { border-radius: 10px; font-family: var(--pd-marker); font-weight: 400; }
+.pd[data-look='crayon'] .pd-btn.is-down { background: color-mix(in srgb, var(--pd-ink) 14%, var(--pd-paper)); }
+.pd[data-look='crayon'] .pd-btn-hard { background: var(--pd-ink); color: var(--pd-paper); border-color: var(--pd-ink); }
+/* SLAM: the red push button, sitting on paper — a soft paper shadow instead of the night's glow */
+.pd[data-look='crayon'] .pd-slam-bezel { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 4px 8px rgba(40, 32, 20, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1px rgba(0, 0, 0, 0.55); }
+
 body.pd-duel .pd-mode { letter-spacing: 0.2em; }
 
 @media (prefers-reduced-motion: reduce) {
   .pd-board.pd-pulse, .pd-board.pd-thud { animation: none; }
   .pd-ann, .pd-title, .pd-count-n b, .pd-count-song, .pd-ko { animation-duration: 0.01s; }
   .pd-callout .pd-ann-in, .pd-tip, .pd-inc-tag { animation-duration: 0.01s; }
+  .pd-tile-hit, .pd-tile-fill { animation-duration: 0.01s; transition: none; }
 }
 
 /* ?pdperf readout (testing on a real phone) */

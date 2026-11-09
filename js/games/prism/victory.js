@@ -57,7 +57,7 @@ export function finalScene(el, game, state) {
   const moment = h('div.pd-fs-moment', { style: { '--c': colorHex(w.color) } });
   if (str) {
     const c = h('canvas.pd-fs-board', { 'aria-hidden': 'true' });
-    drawMini(c, str, null, { cell: 8, look: document.body.dataset.look === 'day' ? 'glass' : 'neon' });   // (PD-3: the night look's tubes)
+    drawMini(c, str, null, { cell: 8, look: document.body.dataset.look === 'day' ? 'crayon' : 'neon' });   // (PD-3: the night look's tubes; PD-4: the day's crayon)
     moment.append(h('div.pd-fs-frame', c));
   }
   moment.append(h('div.pd-fs-line',

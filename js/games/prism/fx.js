@@ -1,6 +1,7 @@
 // PRISM DROP effects layer: a full-screen canvas BEHIND the board (above the world) — prismatic shards from big
 // clears that fly out and away into the background, light rings, a soft spark trail. Sprites are pre-rendered;
 // the particle count is capped per quality tier, and it does nothing at all when idle.
+import { crumbSprite } from './crayon-art.js';
 const shardCache = new Map();
 
 function shardSprite(color, size) {
@@ -69,7 +70,7 @@ export function createFx(canvas) {
     /**
      * Shatter cleared cells: cells [{ x, y (css px, canvas space), color }], from: centre the shards fly away from.
      */
-    shatter(cells, { cx, cy, power = 1, life = 0, size = 1 } = {}) {   // (PD-2: life (ms) + size — the ghost rows' short ~0.5 s burst)
+    shatter(cells, { cx, cy, power = 1, life = 0, size = 1, crayon = false } = {}) {   // (PD-2: life (ms) + size — the ghost rows' short ~0.5 s burst; PD-4: crayon = crumbs on paper, not glass)
       const per = power >= 1 ? 3 : 2;
       for (const c of cells) {
         for (let k = 0; k < per; k++) {
@@ -81,7 +82,7 @@ export function createFx(canvas) {
             vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 0.05,
             r: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.012,
             s: (10 + Math.random() * 16) * size, z: 0, vz: 0.0006 + Math.random() * 0.0008,
-            life: 0, max: life ? life * (0.8 + Math.random() * 0.4) : 1100 + Math.random() * 900, color: c.color,
+            life: 0, max: life ? life * (0.8 + Math.random() * 0.4) : 1100 + Math.random() * 900, color: c.color, cr: crayon ? 1 + ((Math.random() * 3) | 0) : 0,
           });
         }
       }
@@ -119,8 +120,10 @@ export function createFx(canvas) {
         const k = p.life / p.max;
         const a = (1 - k) * (k < 0.08 ? k / 0.08 : 1);
         const sc = (1 - p.z * 0.8) * dpr;
-        const spr = shardSprite(p.color, 48);
-        const s = p.s * sc;
+        // (PD-4) a crayon crumb is paint on paper (source-over); a glass shard is light (added)
+        const spr = p.cr ? crumbSprite(36, p.color, p.cr - 1) : shardSprite(p.color, 48);
+        const s = p.s * sc * (p.cr ? 0.7 : 1);
+        ctx.globalCompositeOperation = p.cr ? 'source-over' : 'lighter';
         ctx.globalAlpha = a * 0.95;
         const c = Math.cos(p.r), sn = Math.sin(p.r);
         ctx.setTransform(c, sn, -sn, c, p.x * dpr, p.y * dpr);

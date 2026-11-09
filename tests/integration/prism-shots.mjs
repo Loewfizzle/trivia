@@ -88,6 +88,44 @@ const SHOTS = {
     'day': 'look=day&n=5&stack=10',
     'day-inc': 'look=day&n=5&stack=6&inc=6&rise=hot',
   },
+  // PD-4 — THE DAY LOOK by the game's own screens: each paper mid-game, each world's doodle, the moments (frozen mid-way by a wait), the incoming
+  // rows + a cancel, the callouts, the cards, spectating, the podium body, BUTTONS, SLAM LEFT
+  pd4: {
+    ...Object.fromEntries(['notepad', 'graph', 'construction', 'coloring'].map(p => [`d-${p}`, `look=day&paper=${p}&n=5&stack=12`])),
+    ...Object.fromEntries(['aurora', 'city', 'nebula', 'crystal', 'sunset'].map(w => [`d-w-${w}`, `look=day&paper=notepad&n=5&stack=4&world=${w}`])),
+    'd-coloring-city': 'look=day&paper=coloring&n=5&stack=6&world=city',
+    'd-land': { q: 'look=day&paper=graph&n=5&stack=10', js: 'window.__prism.act({ a: "soft", n: 20 }); window.__prism.fire("lock")', w: 70 },
+    'd-slam': { q: 'look=day&paper=notepad&n=5&stack=8', js: 'window.__prism.fire("slam")', w: 60 },
+    ...Object.fromEntries([1, 2, 3, 4].flatMap(n => [
+      [`d-clear${n}-scribble`, { q: `look=day&paper=notepad&n=5&stack=12`, js: `window.__prism.fire("clear", { lines: ${n} })`, w: Math.round((120 + 20 * n) * 0.6) }],
+      [`d-clear${n}-crumbs`, { q: `look=day&paper=notepad&n=5&stack=12`, js: `window.__prism.fire("clear", { lines: ${n} })`, w: 120 + 20 * n + 160 }],
+    ])),
+    'd-combo4': { q: 'look=day&paper=construction&n=5&stack=12', js: 'window.__prism.fire("clear", { lines: 2, combo: 4 })', w: 110 },
+    'd-pc': { q: 'look=day&paper=coloring&n=5&stack=12', js: 'window.__prism.fire("clear", { lines: 4, pc: true })', w: 260 },
+    'd-inc6': 'look=day&paper=notepad&n=5&stack=6&inc=6&rise=hot',
+    'd-inc3': 'look=day&paper=graph&n=5&stack=6&inc=3&rise=mid',
+    'd-erase': { q: 'look=day&paper=notepad&n=5&stack=6&inc=6&rise=mid', js: 'window.__prism.counter(4)', w: 160 },
+    'd-co-send': 'look=day&paper=notepad&n=5&stack=8&callout=send&after=300',
+    'd-co-blocked': 'look=day&paper=graph&n=5&stack=8&callout=blocked&after=300',
+    'd-co-twist': 'look=day&paper=construction&n=5&stack=8&callout=twist&after=300',
+    'd-co-b2b': 'look=day&paper=coloring&n=5&stack=8&callout=b2b&after=300',
+    'd-co-ko': 'look=day&paper=notepad&n=5&stack=8&callout=ko&after=300',
+    'd-co-pc': 'look=day&paper=graph&n=5&stack=8&callout=pc&after=300',
+    'd-count': 'look=day&paper=notepad&n=5&state=count',
+    'd-tip': 'look=day&paper=graph&n=5&stack=0&fresh=1&tip=1&after=900',
+    'd-kocard': { q: 'look=day&paper=notepad&n=5&stack=10', js: 'window.__prism.topOut()', w: 700 },
+    'd-call': 'look=day&paper=construction&n=5&state=ko&after=600',
+    'd-spec': 'look=day&paper=notepad&n=7&state=spec',
+    'd-duel': 'look=day&paper=graph&n=3&stack=10&state=duel',
+    'd-final': 'look=day&paper=notepad&n=5&state=final&w=4600',
+    'd-buttons': 'look=day&paper=graph&n=5&stack=10&scheme=buttons',
+    'd-left': 'look=day&paper=construction&n=5&stack=10&slam=left',
+    'd-hit': 'look=day&paper=notepad&n=5&stack=10&hit=1',
+    'd-rush': 'look=day&paper=coloring&n=5&stack=10&rush=1',
+    'd-reduced-clear4': { q: 'look=day&paper=notepad&n=5&stack=12&reduced=1', js: 'window.__prism.fire("clear", { lines: 4 })', w: 120 },
+  },
+  // PD-4 — THE DAY LOOK: the crayon sheet (every drawing on each paper — one size), then the game's own day screens
+  sheet: Object.fromEntries(['notepad', 'graph', 'construction', 'coloring'].map(p => [`sheet-${p}`, { page: 'prism-crayon-sheet.html', q: `paper=${p}`, w: 400 }])),
 };
 
 const browser = await puppeteer.launch({
@@ -108,10 +146,14 @@ for (const set of sets) {
       const desk = width >= 900;
       await page.setViewport({ width, height, deviceScaleFactor: desk ? 1 : DSF, isMobile: !desk, hasTouch: !desk });
       const [st, sb] = desk ? [0, 0] : (SAFE[width] || [47, 34]);
-      await page.goto(`${BASE}/tests/integration/prism-preview.html?${qs}&st=${st}&sb=${sb}${EXTRA}`, { waitUntil: 'networkidle0' });
+      const html = (typeof spec === 'object' && spec.page) || 'prism-preview.html';   // (PD-4: an entry may name another page — the crayon sheet)
+      // (PD-4: 'load' + a bounded wait for the network to settle — the podium's card system keeps a request open on a serve without /api)
+      await page.goto(`${BASE}/tests/integration/${html}?${qs}&st=${st}&sb=${sb}${EXTRA}`, { waitUntil: 'load' });
+      await page.waitForNetworkIdle({ idleTime: 300, timeout: 8000 }).catch(() => {});
       await page.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 15000 }).catch(() => errors.push(`${name}@${width}: never ready`));
       const own = /(?:^|&)w=(\d+)/.exec(qs);   // (PD-2: a shot's own wait)
-      if (typeof spec === 'object' && spec.js) { await sleep(Number(process.env.WAIT || 800)); await page.evaluate(spec.js); await sleep(spec.w || 0); }
+      if (typeof spec === 'object' && spec.page && !spec.js) await sleep(spec.w || 300);
+      else if (typeof spec === 'object' && spec.js) { await sleep(Number(process.env.WAIT || 800)); await page.evaluate(spec.js); await sleep(spec.w || 0); }
       else await sleep(own ? Number(own[1]) : Number(process.env.WAIT || (name.startsWith('final') ? 4200 : 1200)));   // (the podium frame's entrance runs ~3.5 s)
       await page.screenshot({ path: `${outDir}/${name}-${width}.png` });
       n++;

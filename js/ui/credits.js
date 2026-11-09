@@ -31,6 +31,8 @@ export const CREDITS = [
   { group: 'THE MUSIC', title: '80s Retro Synthwave', by: 'Playsound, Pixabay', licence: 'Pixabay Content License', link: 'https://pixabay.com/music/synthwave-80s-retro-synthwave-186631/' },
   // CITY FIXES + HOLD'EM — the roof billboard's HOLD'EM ad: its lettering drawn from two Google Fonts (scripts/build-holdem-art.mjs)
   { group: 'TYPE', title: 'Alfa Slab One + Poppins — the HOLD’EM billboard’s lettering', by: 'JM Solé (Alfa Slab One) · Indian Type Foundry (Poppins)', licence: 'SIL Open Font License 1.1 (https://openfontlicense.org)', link: 'https://fonts.google.com' },
+  // PD-4 — PRISM DROP's DAY LOOK: the callouts' marker lettering (self-hosted: assets/fonts/prism/ + its licence beside it)
+  { group: 'TYPE', title: 'Permanent Marker — PRISM DROP’s day look', by: 'Font Diner, Inc. (Google Fonts)', licence: 'Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0)', link: 'https://fonts.google.com/specimen/Permanent+Marker' },
   { group: 'THE CITY SOUNDS', title: 'Field recordings + effects', by: 'Freesound contributors (CC0), the Sonniss GDC Game Audio Bundles, Mixkit, Pixabay', licence: 'CC0 · royalty-free licences (edited, cut + re-encoded for the city)' },
   // NIGHT-B — THE STREET PARTY's crowd (the owner's party-crowd folder's credits.txt: none is CC BY — no attribution required — credited
   // anyway, word for word; only these files ship, cut + re-encoded: audio/city/party-*.mp3)
@@ -79,6 +81,8 @@ export const CREDITS = [
   // copy of the photo; Downloads/grok/overclock-crack/credits.txt): CC-BY 3.0 — its credit line EXACTLY as the author asks
   // DFIX3 — THE PREMIUM TICKET's paper grain (assets/daily/paper-grain.webp — a 256 px crop of the colour map, mirrored into a seamless tile, its contrast lifted; CC0 asks for nothing, credited as the site suggests)
   { group: 'ART', title: 'The dailies’ ticket paper', by: 'Created using Paper001 from ambientCG.com, licensed under CC0 1.0', licence: 'CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/) — cropped, mirror-tiled, contrast lifted (assets/daily/CREDITS.md)', link: 'https://ambientcg.com/a/Paper001' },
+  // PD-4 — PRISM DROP's day look: the four papers (assets/prism/paper/CREDITS.md)
+  { group: 'ART', title: 'PRISM DROP’s papers (the day look)', by: '"CC0 PBR Paper Textures" (OpenGameArt.org) + Paper001 + Paper002 from ambientCG.com', licence: 'CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/) — the grain kept, made seamless, recoloured (assets/prism/paper/CREDITS.md)', link: 'https://opengameart.org/content/cc0-pbr-paper-textures' },
   { group: 'ART', title: 'RadialCracksB (the cracked glass in OVERCLOCK)', by: 'RadialCracksB by Keith333 (https://opengameart.org/users/keith333), licensed under CC-BY 3.0', licence: 'CC-BY 3.0 (https://creativecommons.org/licenses/by/3.0/) — downscaled + recoloured (cracks to transparency)', link: 'https://opengameart.org/content/broken-glass-batch-of-7-seamless-textures-with-normalmaps' },
   // OVERCLOCK CARDS (Nov 5 night — art/oc-cards/src/notes.txt): xAI's terms ask for "Created with Grok" wherever the art is shown
   // THE BTC CARD (Nov 8 — art/btc-card/src/notes.txt): Grok's ₿ balloon master + two FX plates; xAI's terms ask for the attribution

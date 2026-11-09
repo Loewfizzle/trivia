@@ -107,7 +107,7 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
   the same 60 fps as the view before PD-1 on the same page. "Reduced effects" (settings) + prefers-reduced-motion
   turn off shards, hue drift, beat pulses and camera pulses.
 - **THE NIGHT LOOK (PD-3, Nov 9 2026 — the owner's decisions: docs/games/plan.md "PD-3"; the pass log: docs/harbor/passes/pd-3.md).** THE GAME
-  LOOK (`body[data-look]`, ☰ → Settings, read LIVE — `view.js#watchLook`): `day` = the glass look (the placeholder until PD-4), anything else = NEON
+  LOOK (`body[data-look]`, ☰ → Settings, read LIVE — `view.js#watchLook`): `day` = THE CRAYON LOOK (PD-4 — below), anything else = NEON
   (`.pd[data-look='neon']`). A look = sprites + effects behind one interface (`board.js#LOOKS` + the draw's `look` / `pal`); the engine never changes.
   - **THE NEON TUBES** (`board.js#neonSprite`): a solid DARK core (a deep tint of the colour), a crisp HOT EDGE tube in the piece's colour with a
     near-white core line down its middle, a fine glass sheen, the tube's light baked into the core's edges; the static glow PRE-RENDERED (a soft ring
@@ -142,6 +142,56 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
       flares; a combo lifts the frame's light (0.2 + 0.16 × combo), settling over ~1 s. A cancel (BLOCKED!) adds a faint red flash.
     - "Reduced effects" + prefers-reduced-motion: no motion (the race is instant, no trail, no sparks, no shards), every light × 0.35, the flash × 0.3.
     - Sounds: PRISM's own synth SFX as before (in the song's key, on its beat) — no new files.
+- **THE CRAYON LOOK (PD-4, Nov 9 2026 — the owner's decisions: docs/games/plan.md "PD-4"; the pass log: docs/harbor/passes/pd-4.md).** THE GAME LOOK's
+  DAY = a COLORING BOOK (`.pd[data-look='crayon']`; night = NEON; the glass look is RETIRED as the day look — kept in board.js as a look of its own, nothing
+  picks it). The engine never changes; a look = sprites + moments + the page behind one interface.
+  - **THE CRAYONS** (`crayon.js` — PURE): the SAME colour families as the night (JEWEL's hues — the long piece turquoise, the square yellow…) in crayon
+    shades (`CRAYON`) + each one's outline = the same crayon pressed harder (`CRAYON_LINE`); junk = a graphite crayon. `tests/prism-crayon.test.mjs`: every
+    crayon ±15° of its JEWEL hue (PD-3's family test), every pair ≥ ΔE 18, junk ≥ 25 from every piece, and on EVERY paper every fill ≥ ΔE 25 off it +
+    every outline ≥ 3:1, the page's ink ≥ 4.5:1, the pencil ≥ 3:1.
+  - **THE BLOCKS** (`crayon-art.js` — all PRE-DRAWN ONCE into cached sprites at the board's full ratio; the frame loop only blits): a waxy FILL (diagonal
+    strokes pressed unevenly, the wax building up at the edges, the paper's TOOTH punched through — two octaves of value noise, thresholded), a bold
+    slightly WOBBLY outline in the darker shade drawn TWICE (the second pass a little off), a few broken light strokes for the wax's sheen. SIX variants
+    a colour — the stack picks one by place, the falling piece by its own cell (it keeps its drawing while it falls). The landing ghost = a light pencil
+    outline; the danger drain = the same block in grey; HOLD / NEXT, the rail's duel tile, spectating's boards + the podium's winning board draw the same
+    (`drawPiece` / `drawMini` take `look: 'crayon'`; a mini under 18 device px = a crayon fill + its outline). The view warms every block for the board's
+    size + HOLD / NEXT's in ≤ 4 ms slices between frames (`warmCrayon`), so a live switch never draws one mid-frame.
+  - **THE PAPERS** (`crayon.js#PAPERS`, `assets/prism/paper/*.webp` — CC0, the grain only, ~81 KB in all, built by `scripts/build-prism-paper.py`):
+    NOTEPAD (ruled blue lines + a doubled red margin) · GRAPH PAPER (a 13 px grid, every 5th darker) · CONSTRUCTION PAPER (a fibrous slate-blue sheet) ·
+    a COLORING PAGE (a thick hand-drawn frame; the doodle in black outlines like a coloring book). THE HOST DEALS ONE PER MATCH (`index.js#start` →
+    `game.pp` = `crayon.js#pickPaper(seed, used)`): the SAME page on every phone, a rotation through all four, never the same twice in a row — remembered
+    in THE NIGHT'S MEMORY (`meta/used/prism/pp<k>-<i>` — kit/night.js; no rules change). A game from before PD-4 takes its seed's (`paperOf`).
+  - **THE PAGE** (`page.js` — ONE canvas, `.pd-page`, under everything; redrawn only when the paper / the song's world / the screen / the board's place
+    changes — never in the frame loop): the grain tiled, the rulings DRAWN IN CODE, THE WORLD DOODLE (each song's world as a faint crayon line drawing —
+    SYNTH SUNSET a striped half sun over a road + mountains, NEON CITY a skyline in the rain, CRYSTAL CAVE crystal clusters + stalactites, DEEP NEBULA a
+    swirl of stars + a ringed planet, AURORA OCEAN wavy ribbons over waves; drawn once per song into its own canvas, the tooth punched through, at 0.24),
+    then the board: its well washed with the paper (the doodle only faintly through it) + a hand-drawn PENCIL frame (two passes, the corners
+    overshooting); the board's own canvas adds a faint PENCIL grid. Spectating + the podium: no board on the page. The WebGL world is NOT drawn by day
+    (its work skipped) and the light layer stays off.
+  - **THE PANELS GO PAPER** (css/prism.css "PD-4"): the paper's colour, ink + grain arrive as `--pd-paper` / `--pd-ink` / `--pd-grain`; HOLD / NEXT =
+    slim paper cards a touch askew with a pencil border (still fading when a piece passes under), the rail = paper tiles with a hatched crayon fill for
+    the stack, a red X scribble for a KO, a crayon circle for the hit flash, a pencil ring for the target; the top line in dark pencil-grey marker; the
+    KO card, the count, the tip, Call the Winner, spectating, the podium's body (+ the console frame's kicker + winner line + the results rows' text),
+    the BUTTONS scheme = paper. SLAM stays the glossy red push button (a paper shadow); the ☰ / music buttons stay the console's.
+  - **THE MOMENTS** (`crayonfx.js`, on the board's own canvas — all short, from pre-drawn sprites): LANDING = the boing (the piece's crayon outline
+    squashes + springs back, bounce marks at its foot, 0.26 s) · CLEARS = the rows SCRIBBLED OUT (a zig-zag crayon stroke races across each, rows
+    alternating — the rows held on the page for the race, 120 + 20 × lines ms) then they crumble into crayon CRUMBS that pop up, fall + fade; bigger
+    clears = thicker scribbles + more crumbs; a combo's scribbles in more colours; 4 LINES / a perfect clear = a big crayon STAR BURST (drawn BEHIND the
+    stack — it never covers a block) · SLAM = crayon speed lines down to the landing + impact ticks · INCOMING (`LOOKS.crayon.incoming`) = grey PENCIL
+    SKETCH rows (hatched both ways, never a crayon block; an occupied cell only tinted; shaking pencil marks at both sides; a pressed pencil leading edge)
+    + a paper tag `INCOMING 3 · EVE`; a cancel = the pencil rows crumble into pink ERASER crumbs · the finale / a victory's board breaks into crayon
+    crumbs (`fx.js` `crayon: true` — paint on paper, not light). Reduced effects / reduced motion: nothing moves (no race, no crumbs, no squash, no
+    streaks) — the scribble + the star just show + fade. The crumbs' cap = the tier's sparks.
+  - **THE LETTERING** = Permanent Marker (Font Diner — **Apache License 2.0**, not OFL: Google Fonts lists it under apache/; self-hosted latin woff2,
+    30 KB, `assets/fonts/prism/` + `LICENSE-PermanentMarker.txt` + a CREDITS line) as `'PD Marker'`, loaded by `page.js#warmDay` through the FontFace API
+    ONLY when the day look shows (never in the boot graph, never by night); the UI font until it's in. It has no `→` (the callouts' arrow falls back to
+    the UI font). THE CALLOUTS: the marker with the crayon's tooth as a CSS mask (`--pd-tooth` — `crayon-art.js#toothMaskURL`) + a paper-coloured edge
+    (8 offsets of `--pd-paper`) so they read over any block; BLOCKED! = the shared `--good` darkened by `color-mix` (colour-blind mode follows) + the word.
+  - **Measured (PD-4 — `prism-shots.mjs` PERF with `PERF_LOOK=day`, 390 × 844 @3, 7 opponents, a bot, 4× CPU, GPU; each tier locked, ~300 frames):**
+    REST — 60 fps at every tier (p95 16.8 ms), CPU a frame (p75 / p95) 2.0 / 2.8 ms (tier 3), 2.0 / 2.8 (2), 2.1 / 2.8 (1), 2.0 / 2.7 (0). HEAVY (a
+    4-line clear every 650 ms with the combo climbing + six incoming rows + 7 rail tiles) — 60 fps at every tier, CPU 4.8 / 6.0 (3), 4.3 / 5.4 (2),
+    3.7 / 4.9 (1), 3.0 / 3.8 (0). (The night: 3.5 / 5.7 at the top tier — the day skips the WebGL world.) A LIVE SWITCH night ↔ day mid-match: the
+    longest frame 17 ms both ways (e2e-prism).
 - **THE TIERS (PD-3 — `tiers.js`, `tests/prism-layout.test.mjs`):** the view starts at the TOP tier (3) and steps down while the p75 frame > 19.5 ms.
   The light goes FIRST, the board's full 3× LAST:
   | tier | board | world | light layer | bloom | spill | sparks | shards | glow |
@@ -166,12 +216,13 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
   before (`core/match-report.js` / `core/boards.js` unchanged).
 - **THE PRELOAD (PD-1):** `preload()` (every phone, the walk inside): the manifest + the FIRST song's analysis (~5 KB, predicted from the room's
   `meta/prism` playlist; a room's first match — no playlist yet — all five, ~25 KB). The worlds are shaders in code (in the view's module graph, already
-  preloaded — `js/games/preload-graph.js`, 29 modules / 213 KB). Far under the 1.5 MB budget; the song file is not preloaded (above).
+  preloaded — `js/games/preload-graph.js`, 29 modules / 213 KB; PD-4: 40 modules / 370 KB). Far under the 1.5 MB budget (the day's papers + font load
+  only when the day look shows — `page.js#warmDay`, ~110 KB); the song file is not preloaded (above).
 - **THE PREVIEW (PD-1 + PD-2):** `tests/integration/prism-preview.html` mounts the REAL view (the fake database) with a scripted state — `&n=1..7`
   `&state=play|count|ko|duel|final|spec` `&rush=1` `&scheme=buttons` `&slam=left` `&world=` `&bot=1` `&under=1` `&down=1` (SLAM pressed) `&hit=1`
   `&st=47&sb=34` (the safe areas); PD-2: `&mode=survival&t=` `&solo=1` `&state=kocard|ko|spec` `&inc=1|3|6&rise=fresh|mid|hot` `&shatter=n`
-  `&callout=send|blocked|twist|b2b|ko|pc` `&fresh=1&tip=1` `&after=ms`; PD-3: `&look=day|night` (default night) `&reduced=1` `&heavy=1` + from a shot's js:
-  `__prism.fire('slam' | 'lock' | 'clear', { lines, combo, pc })` + `__prism.freeze(ms)` (the light layer held at that age) — the `pd3` set (35 states). `node tests/integration/prism-shots.mjs "<chrome>" ./shots-prism [cpu]`
+  `&callout=send|blocked|twist|b2b|ko|pc` `&fresh=1&tip=1` `&after=ms`; PD-3: `&look=day|night` (default night) `&reduced=1` `&heavy=1`; PD-4: `&paper=notepad|graph|construction|coloring` (by day) + from a shot's js:
+  `__prism.fire('slam' | 'lock' | 'clear', { lines, combo, pc })` + `__prism.freeze(ms)` (the light layer held at that age) — the `pd3` set (35 states); PD-4's `pd4` set (the day — 43 states) + `sheet` (`prism-crayon-sheet.html`: every crayon drawing on each paper; an entry may name its own `page`). `node tests/integration/prism-shots.mjs "<chrome>" ./shots-prism [cpu]`
   shoots every state at 390 / 402 / 430 with each phone's real safe areas (`SIZES=`, `ONLY=`, `SETS=look,states,worlds,pd2`; an entry may be
   `{ q, js, w }` — a line of JS fired just before the shot) + the frame timing per tier (`PERF=0` skips it; `Q=` adds to every URL).
 - **Measured (PD-2, prism-shots.mjs, 390 × 844 @3, 7 opponents, a bot, 4× CPU, GPU):** 60 fps at every tier (p95 16.8 ms); 2.1 ms CPU a frame

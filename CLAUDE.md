@@ -186,7 +186,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   `board.js#neonSprite`); each piece keeps its COLOUR FAMILY in every world (`neon.js` PURE — `tests/prism-neon.test.mjs`); every MOVING light is the
   LIGHT LAYER's (`light.js` — one low-res WebGL canvas above the board, pure added light + a GPU bloom; never a full-res 2D blur, never the board
   copied to a texture: measured); effects short, never over the stack or the incoming rows; FOUR TIERS (`tiers.js`) — the light steps down FIRST,
-  the board's 3× LAST.
+  the board's 3× LAST. PD-4 (Nov 9 — docs/prism.md "THE CRAYON LOOK"): DAY = THE CRAYON LOOK (the glass look retired as the day look); the crayons keep
+  the night's COLOUR FAMILIES + read on every paper (`crayon.js` PURE — `tests/prism-crayon.test.mjs`); every crayon drawing PRE-DRAWN once (`crayon-art.js`
+  — never a stroke per frame; warmed in slices); THE PAPER = the HOST's deal per match (`game.pp` — `crayon.js#pickPaper`, the night's memory: a rotation,
+  never twice in a row — the same page on every phone); the page + the world doodle = ONE canvas redrawn only on a change (`page.js`), the WebGL world
+  skipped by day; the papers (CC0) + Permanent Marker (Apache 2.0) load ONLY when the day look shows (`page.js#warmDay`).
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,

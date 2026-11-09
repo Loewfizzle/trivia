@@ -22,6 +22,9 @@
        &fx=slam|clear1|clear2|clear3|clear4|combo|pc   that effect on a LOOP (watch it live on a phone — every ~1.5 s)
        &heavy=1           the speed run's worst moment, on a loop: a 4-line clear every 650 ms (the combo climbing) + six ghost rows + the bot
        (the effects themselves are fired from prism-shots.mjs: window.__prism.fire('slam' | 'clear', { lines, combo, pc }) + __prism.freeze(ms))
+     PD-4 — THE DAY LOOK (&look=day = THE CRAYON LOOK):
+       &paper=notepad|graph|construction|coloring   the page the host dealt (default: the seed's)
+       (the &fx loops + &inc + &shatter + &callout + every &state work by day too)
      prism-shots.mjs shoots it; Used for the look review + the frame timing. -->
 <html lang="en">
 <head>
@@ -87,6 +90,8 @@ const songStartAt = count ? now - 1200 : now - played - 8000;
 const playStartAt = count ? now + 3400 : now - played;
 const game = { ...createGame({ matchId: 'pvw', settings: { mode }, participants, now, seed: q.get('seed') || 'preview', songs: list, sd, pl0: 0, songStartAt, playStartAt, endAt: mode === 'rush' ? now + 140_000 : null }), phase: count ? 'count' : 'play', names: Object.fromEntries(uids.map((u, i) => [u, NAMES[i]])) };
 game.out = {}; game.bd = {}; game.ko = {};
+// (PD-4) the page the host dealt: &paper=notepad|graph|construction|coloring (default: the seed's — as a game from before the deal)
+{ const P = ['notepad', 'graph', 'construction', 'coloring'].indexOf(q.get('paper')); if (P >= 0) game.pp = P; }
 // the others' boards: a believable mid-game stack each (the engine + the bot), one in danger, one KO'd (battle)
 const boards = {};
 uids.slice(1).forEach((u, i) => {

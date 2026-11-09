@@ -390,8 +390,9 @@ try {
     ok(co.some(t => /^BLOCKED!/.test(t)) && !gh2.tag && !gh2.bands, `CALLOUTS: a clear that cancels incoming → BLOCKED! + the ghost rows go (${co.slice(-2).join(' | ')})`);
   }
 
-  // ---------------------------------------------------------------- PD-3: THE NIGHT LOOK — THE GAME LOOK switched LIVE on one phone: NIGHT = the neon
-  // tubes + the light layer (a SLAM + a 4-line clear light it; it hides itself once nothing is lit), DAY = the glass placeholder, the light layer off
+  // ---------------------------------------------------------------- PD-3 + PD-4: THE GAME LOOK switched LIVE on one phone: NIGHT = the neon tubes + the
+  // light layer (a SLAM + a 4-line clear light it), DAY = THE CRAYON LOOK (PD-4: the page on, the world + the light layer off, the crayon moments); both
+  // switches smooth (no frame over 100 ms); THE PAPER = the host's deal, the SAME page on every phone of the match
   {
     const setLook = l => A.evaluate(v => { localStorage.setItem('ns:look', v); window.dispatchEvent(new CustomEvent('ns-look', { detail: v })); }, l);
     await setLook('night');
@@ -403,13 +404,39 @@ try {
     await sleep(120);
     const n1 = await P(A, 'window.__prism.look()');
     ok(n0.light && dom.look === 'neon' && dom.canvas && /^#/.test(dom.edge) && n1.lit > 0 && n1.visible, `NIGHT LOOK: neon tubes in the world's palette (${n0.pal}, edge ${dom.edge}) + the light layer lit by a SLAM + a 4-line clear (${n1.lit} light(s), ${n1.size && n1.size.join('×')})`);
+    await sleep(900);
+    // night → day, live: the longest frame across the switch
+    await waitFor(A, () => window.__prism.look().warm, 'the crayon sprites warmed', 15000);
+    await P(A, 'window.__prism.record(true)');
     await setLook('day');
-    await waitFor(A, () => document.body.dataset.look === 'day' && window.__prism.look().look === 'glass', 'the day look');
-    await sleep(200);
+    await waitFor(A, () => document.body.dataset.look === 'day' && window.__prism.look().look === 'crayon', 'the day look');
+    await sleep(700);
+    const swD = await P(A, 'window.__prism.record(false)');
     const d1 = await P(A, 'window.__prism.look()');
-    ok(d1.look === 'glass' && !d1.visible, `DAY LOOK: back to the glass placeholder live, the light layer off (${JSON.stringify(d1)})`);
+    const dd = await A.evaluate(() => { const r = document.querySelector('.pd'), cs = n => getComputedStyle(document.querySelector(n)); return { look: r.dataset.look, page: cs('.pd-page').display, world: cs('.pd-world').visibility, paper: r.dataset.paper, ink: getComputedStyle(r).getPropertyValue('--pd-ink').trim() }; });
+    ok(d1.look === 'crayon' && !d1.visible && dd.page === 'block' && dd.world === 'hidden' && /^#/.test(dd.ink) && d1.paper === dd.paper,
+      `DAY LOOK: THE CRAYON LOOK live — the page on (${dd.paper}), the world + the light layer off (${JSON.stringify({ look: d1.look, page: dd.page, world: dd.world, light: d1.visible })})`);
+    const worst = a => Math.max(0, ...a);
+    ok(worst(swD.f) <= 100, `DAY LOOK: the switch night → day is smooth (the longest frame ${worst(swD.f).toFixed(0)} ms over ${swD.f.length} frames)`);
+    await P(A, 'window.__prism.fire("slam")');
+    await P(A, 'window.__prism.fire("clear", { lines: 4, combo: 2 })');
+    await sleep(100);
+    const d2 = await P(A, 'window.__prism.look()');
+    ok(d2.crayonBusy && !d2.visible, `DAY LOOK: a SLAM + a 4-line clear play the crayon moments on the board (the light layer stays off)`);
+    await shotBoth(A, 'pd-04-day');
+    // the paper: the host's deal — the same page on every phone of the match
+    const papers = [];
+    for (const i of alive()) papers.push(await pages[i].evaluate(() => { const g = window.__arcade.state.game; return { pp: g && g.pp, el: document.querySelector('.pd') && document.querySelector('.pd').dataset.paper }; }));
+    const PIDS = ['notepad', 'graph', 'construction', 'coloring'];
+    ok(papers.every(x => Number.isInteger(x.pp) && x.pp === papers[0].pp && x.el === PIDS[x.pp]), `THE PAPER: the host dealt ${PIDS[papers[0].pp]} — the same page on all ${papers.length} phones (${papers.map(x => x.el).join(', ')})`);
+    // day → night, live
+    await sleep(600);
+    await P(A, 'window.__prism.record(true)');
     await setLook('night');
     await waitFor(A, () => window.__prism.look().look === 'neon', 'the night look again');
+    await sleep(700);
+    const swN = await P(A, 'window.__prism.record(false)');
+    ok(worst(swN.f) <= 100, `NIGHT LOOK: the switch day → night is smooth (the longest frame ${worst(swN.f).toFixed(0)} ms over ${swN.f.length} frames)`);
   }
 
   // ---------------------------------------------------------------- FAST=1 (SHELL 2.0 B1): two phones — the battle to its end, the
