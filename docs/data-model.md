@@ -230,10 +230,14 @@ pstats/{pid}:     { xp, g{game:{p,w,…counters}}, wk, gw{game:{…}} (this week
                     last, m{matchKey: at} (matches already counted),
                     dl{n, last, days{<day>: {g, x, sw?}} (DFIX2 — the two newest days' counters; day{k, …} = a mirror of the newest), early, ph (PENTHOUSE days — granted at THE DAY'S CLOSE),
                        sw, sr{d, n} (DM2 — swept days IN A ROW: PERFECT WEEK), sp{d, n} (DFIX2 — the run held while yesterday may still sweep), sb (the best run)},
-                    ls{game: 1} (DM2 — a daily's first-time lesson seen: THE PRACTICE HARBOR) }       read: the profile's owner (written by /api only)
+                    ls{game: 1} (DM2 — a daily's first-time lesson seen: THE PRACTICE HARBOR),
+                    xw{wk, x, bf?} (BOARD 2.0 A — the XP earned THIS WEEK: THE OVERALL BOARD; core/progress.js#payXp),
+                    dp{d{<day>: {g{game: pts}, t}} (16 days), w{<wk>: {t, g{game: t}}} (2 weeks), a{t, n, f, l, g{game: {t, n, f, l}}}} (BOARD 2.0 A — DAILY POINTS) }       read: the profile's owner (written by /api only)
 ppriv/{pid}:      { kh (key HMAC), keyAt, at, nameAt, opt? (opted out), ban? (admin), uids{uid: at} }  server only
 pkeys/{keyHmac}:  pid          tags/{nameKey}/{tag}: pid          rl/{bucket}: { n, t } (restore attempts)   server only
 lb/{board}/{period}/{pid}: sort value (higher is better; period 'all' | 'w20261012')                 server only (read via /api/board)
+                  BOARD 2.0 A: + the OVERALL boards — lb/xp/… (XP: the week's / the total) · lb/daily/… + lb/daily-<game>/… (DAILY POINTS: the week's sum /
+                  the average a day × 100 from 10 days)
 results/{code}_{matchId}: { st: busy|done, at, g, mode, n, src: room|snap, by, rej?, o{pid: outcome} }   server only
 audit/{push}:     { at, by (admin pid), act, pid, … }                                                  server only
 flags/{boardId}:  { pid, n, why{score|name: n}, b{board: n}, first, last }  THE BOARD's REPORT (BNAME)      server only

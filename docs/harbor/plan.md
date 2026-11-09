@@ -6387,3 +6387,7 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 - THE BUILD TABLE (Nov 9 small hours, BOARD 2.0 A Step 0): THE BTC CARD ✅ (passes/btc-card.md; no rules change); BOARD 2.0 A (this pass: the BTC
   card's carry-overs + the WORD TOWERS flake, THE OVERALL BOARD = XP THIS WEEK, DAILY POINTS + the dailies' boards, the rows' slim-card data + THE
   PLAYER PAGE's data — no new screens) ← NEXT; BOARD 2.0 B (the screens + THE PLAYER PAGE); PRISM DROP; FR7; THE SWITCH-OVER.
+- BOARD 2.0 A DONE (Nov 9, small hours) — passes/board-2a.md. THE BUILD TABLE: THE BTC CARD ✅; BOARD 2.0 A ✅ (THE OVERALL BOARD = XP THIS WEEK, DAILY
+  POINTS + the dailies' boards, the rows' slim-card data, THE PLAYER PAGE's data; the BTC carry-overs + THE FAST REVEAL; no rules change; the
+  BACK-FILL waits for the owner in /admin → THE BOARDS) ; BOARD 2.0 B (the screens + THE PLAYER PAGE — its questions round first) ← NEXT; PRISM
+  DROP; FR7; THE SWITCH-OVER.

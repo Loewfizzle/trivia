@@ -1422,7 +1422,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   // PART 7a: the speakeasy's bake inputs — this week's GHOST AD (the same for everyone: core/harbor-speakeasy.js), the month (the ivy)
   const playable = games.filter(g => g.sign);   // (WINDOWS — THE FIVE SIGNS: the ghost ad rotates the five sign games)
-  let speakMemo = null;
+  let speakMemo = null, trRevealSeen = false;
   // (8b1 — THE SIGN PAINTERS: on Monday the blade keeps LAST week's name until they've finished repainting it, ~4 pm)
   function speakCtxFor(ms) {
     const id = ghostAdGame(ms, playable.map(g => g.id), null), g = playable.find(g => g.id === id) || null;
@@ -2904,6 +2904,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const tr = (people.crew && people.crew() || {}).traces || null;
       if (!tr && now - t0 < REVEAL_MAX - 500) return;
       if (tr) boardSync(tr);
+      // (BOARD 2.0 A — THE MONDAY BLADE: the facade's key reads the workers' traces (bladeMs — the Monday painters keep LAST week's blade until
+      //  theirs is done); a memo taken before the traces came would bake this week's, then re-bake in view: forget it once, as they arrive)
+      if (tr && !trRevealSeen) { trRevealSeen = true; speakMemo = null; }
     }
     if (!late && L && bakeKey() !== baker.key) { lookAt = 0; return; }
     // (POLISH 5: the title's rects measured NOW, once — a font swapped in, the intro's dock — and the city re-laid in the dark if they

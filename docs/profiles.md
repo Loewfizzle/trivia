@@ -445,3 +445,21 @@ A second way to bring your card to a device, beside the restore key (which stays
 - Proof: `server.test.mjs` PASSKEYS (`kit/soft-authenticator.mjs` — a real P-256 key, real CBOR, real signatures), `rules.test.mjs` PASSKEYS,
   `e2e-profiles.mjs` 6p (Chromium's CDP virtual authenticator: add → clear site data → sign in → the same card → remove), `wk-keychain.mjs` (WebKit
   402×874 @3 draws the buttons — Playwright's Windows WebKit lacks `navigator.credentials`, so an inert stand-in; the real Face ID = the owner's iPhone).
+
+## BOARD 2.0 A — THE NEW BOARDS' SERVER + DATA (Nov 9 2026 — docs/harbor/passes/board-2a.md)
+- **THE OVERALL BOARD `xp`** (`core/boards.js#OVERALL_BOARDS` — `kind: 'overall'`, no game): THIS WEEK = the XP earned since Monday 00:00 ET
+  (`pstats.xw = { wk, x }` — `core/progress.js#payXp`, the ONE XP payment every step uses), ALL TIME = the total XP. `lb/xp/{period}/{pid}` written
+  by the server in the SAME update as `profiles/{pid}/x` (`api/_lib/stats.js`, `api/daily.js` → `lb.js#overallPaths` over the pure
+  `core/overall.js`); a replay writes nothing. The listing rules unchanged; YOUR rank via `ranks`.
+- **THE DAILIES' BOARDS** `daily` · `daily-password` · `daily-coastclear` (DAILY POINTS — docs/progression.md "DAILY POINTS"): THIS WEEK = the
+  week's points, ALL TIME = the average a day × 100 (`allFmt: 'avg'`) from 10 days played; listed from the 3rd DAY PLAYED (`lb.js#hiddenOf` —
+  'opt' hides every board, 'matches' only the room boards); `ranks` adds `mine: { avg, days, need }` on a points board.
+- **THE ROWS**: a public row = `{ id, n, a, c, r, l, cd, es, tb, g, rank, v }` (`api/board.js#ROW_KEYS`) — + the SLIM CARD's display ids (the worn
+  card, the emblem shape, its tube, the name glow); never the pid, the key, the tag's digits, the member Nº.
+- **THE PLAYER PAGE's DATA**: `player { pid } | { b, bid } | { id }` → `{ rel, card, band, streak, top, limited? }` (`api/_lib/player.js`): `rel`
+  from YOUR list; `top` = the TOP 3 RAREST achievements they hold WITH their names — **THE APPROVED EXCEPTION** to ITEM NAMES ONLY TO OWNERS (the
+  owner, Nov 9: only those 3, only on this answer — `tests/vault-names.test.mjs` allows exactly `api/_lib/player.js`); hidden / banned /
+  opted-out / blocked-you → `limited` (the name + the emblem). Never stats, the best game, matches, wins. 120 a uid / 10 min; cached 30 s.
+- **`/api/daily points`** → YOUR + YOUR TABLE's daily points (`{ week, all, avg, days }` a board — your friends list only).
+- **THE BACK-FILL** (`/admin` → THE BOARDS → PREVIEW → BACK-FILL NOW — `boardsBackfill`, admins only, audited, idempotent): THIS WEEK's XP from the
+  match records + the week's daily runs; DAILY POINTS from every counted result since the dailies went live. The owner runs it ONCE after the deploy.

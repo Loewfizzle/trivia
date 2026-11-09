@@ -2284,3 +2284,15 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   from inside, the ₿ blazes, a bloom, the flame on the real burner, the water catching it; a gold BLOCK RING every 10 s; the coins rise + spin; the
   balloon sways (a cut-out over the clean base); a sheen across the ₿; the reveal (the balloon rises in + a big first burn). LAB v2 (CHANGED).
 - The unlock unchanged, proved on the emulators (a ₿ balloon tap grants it once; no ₿ balloon up → nothing). 60 fps with the full card + a strip.
+
+## BOARD 2.0 A (Nov 9, 2026, small hours — docs/harbor/passes/board-2a.md)
+- THE OVERALL BOARD `xp`: THIS WEEK = the XP earned since Monday 00:00 ET (pstats.xw — every XP payment goes through core/progress.js#payXp), ALL
+  TIME = the total XP; written in the same update as the XP; the BACK-FILL rebuilds this week from the match records + the daily runs.
+- DAILY POINTS (core/daily-points.js): THE PASSWORD both doors 100 … 60, one door 55 … 25, locked out 10; COAST CLEAR cleared 100 … 40 (a log
+  scale from the human-paced sim), caught 10 … 30. Boards `daily` + `daily-password` + `daily-coastclear`: THIS WEEK the sum, ALL TIME the
+  average a day from 10 days ('span' — a skipped day counts 0). 40 bots × 2 weeks = the hand-computed order.
+- The rows carry the slim card's display ids; THE PLAYER PAGE's data (`player` — the full card, the rank line, the flame, the TOP 3 RAREST
+  achievements WITH their names: the owner's approved exception); YOUR TABLE's points (`/api/daily points`).
+- Group 0: a 12-letter name on one line on the full cards (13 px floor), THE BTC CARD's sighting line back, the warm column in its rise-in gone
+  (baked in the clean base — subtracted at build), THE FAST REVEAL (a reveal in the page's first 900 ms left the city at opacity 0 — the WORD
+  TOWERS flake's cause), THE MONDAY BLADE (the city re-baked its blade in view on a Monday load — LOAD WEATHER's Monday red).

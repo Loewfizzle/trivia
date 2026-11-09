@@ -431,3 +431,17 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
   (`pstats.gs`, reset with the week) and come off the goal's count (`goalProgress(goal, gw, gs)` — the server step, the tile, /api/profile).
   A week's older solo plays (no `gs`): "Paid with your next room match". Paid exactly once (`tests/goal-paid.test.mjs`). Preview:
   `progress-preview.html?view=profile&goal=done|wait|half`.
+
+## DAILY POINTS (BOARD 2.0 A, Nov 9 — docs/harbor/passes/board-2a.md; the owner's decision: "each day's result → points (the server, from its own record)")
+- **THE TABLE** = `js/core/daily-points.js` (pure, a row per daily — a new daily = its row + its cartridge): the SERVER's stored score → 0–100.
+  THE PASSWORD: both doors 100 − 4 × (G − 2) (100 … 60) · the first door in g, then locked out 55 − 6 × (g − 1) (55 … 25) · locked out at the first
+  door 10. COAST CLEAR: cleared 100 at ≤ 0:45 → 83 at the sim's median 1:19 → 50 at 4:00 → 40 past 15:00 (a log scale from
+  `scripts/sim-coastclear.mjs`) · caught 10 + up to 20 by the share of the harbor opened. A better result never fewer points; a lost day ≥ 10; not
+  playing 0; a COUNTED result only.
+- **Written by `dailyStep({ points })`** in THE DAILY's own transaction (`api/daily.js` → `dailyPoints(game, kept)`), on THE RUN's OWN DAY,
+  idempotent: `pstats/{pid}/dp = { d (16 days), w (2 weeks), a (ALL TIME: t, n, f, l + per game) }`. The finish answers `outcome.points`.
+- **THE BOARDS** `daily` (summed a day) + `daily-<game>`: THIS WEEK = the sum; ALL TIME = the average a day (`ALL_TIME_RULE` 'span' — a skipped
+  day between your first + last daily-day counts 0, so skipping never helps; 'played' = the plain per-day-played average — the owner's pick),
+  ranked from `MIN_DAYS` 10; YOUR average below it via `ranks`' `mine`.
+- **Proof**: `tests/board-points.test.mjs` (every row, the order, skipping, 10 days, the 4 am crossing, the gate, a repeat, the back-fill, THE
+  SIMULATION — `scripts/sim-board.mjs`: 40 bots × 2 weeks = the hand-computed order) + `daily-module.test.mjs` over /api.
