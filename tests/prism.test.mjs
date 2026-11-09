@@ -67,15 +67,76 @@ test('comeback breathing room: junk waits longer when the stack is near the top'
   assert.equal(L.junkDelay(16), 2500);
 });
 
-test('targeting: random keeps a valid target, attackers, danger', () => {
-  const cand = ['a', 'b', 'c'];
+test('AUTO-TARGET (PD-2): whoever attacks you (the most recent still alive), else a random opponent kept while valid', () => {
   const r = rngFrom('t');
-  assert.equal(L.chooseTarget({ mode: 'random', candidates: cand, current: 'b', rnd: r }), 'b');
-  assert.ok(cand.includes(L.chooseTarget({ mode: 'random', candidates: cand, current: 'z', rnd: r })));
-  assert.equal(L.chooseTarget({ mode: 'attackers', candidates: cand, attackers: ['x', 'c'], rnd: r }), 'c');
-  assert.ok(cand.includes(L.chooseTarget({ mode: 'attackers', candidates: cand, attackers: [], rnd: r })), 'no attackers -> random');
-  assert.equal(L.chooseTarget({ mode: 'danger', candidates: cand, heights: { a: 3, b: 17, c: 9 }, rnd: r }), 'b');
-  assert.equal(L.chooseTarget({ mode: 'danger', candidates: [], rnd: r }), null);
+  // 2 players: the only opponent, attacked or not
+  assert.equal(L.autoTarget({ candidates: ['b'], rnd: r }), 'b');
+  assert.equal(L.autoTarget({ candidates: ['b'], attackers: ['b'], current: 'b', rnd: r }), 'b');
+  // 8 players: no attacker → a random one, then KEPT while it stays valid
+  const cand = ['b', 'c', 'd', 'e', 'f', 'g', 'h'];
+  const first = L.autoTarget({ candidates: cand, rnd: r });
+  assert.ok(cand.includes(first));
+  for (let i = 0; i < 20; i++) assert.equal(L.autoTarget({ candidates: cand, current: first, rnd: r }), first, 'kept');
+  // someone hits you → you hit them back; the most recent attacker wins
+  assert.equal(L.autoTarget({ candidates: cand, attackers: ['e'], current: first, rnd: r }), 'e');
+  const atk = L.attackersOf([{ uid: 'c', at: 10 }, { uid: 'f', at: 30 }, { uid: 'c', at: 20 }, { uid: 'x' }]);
+  assert.deepEqual(atk, ['f', 'c', 'x'], 'the most recent first, each once');
+  assert.equal(L.autoTarget({ candidates: cand, attackers: atk, rnd: r }), 'f');
+  // the attacker dies → the next most recent attacker still alive
+  assert.equal(L.autoTarget({ candidates: cand.filter(u => u !== 'f'), attackers: atk, current: 'f', rnd: r }), 'c');
+  // every attacker gone (KO'd mid-attack) → a living opponent at random, never the dead one
+  for (let i = 0; i < 50; i++) {
+    const t = L.autoTarget({ candidates: ['b', 'd'], attackers: atk, current: 'f', rnd: r });
+    assert.ok(['b', 'd'].includes(t));
+  }
+  assert.equal(L.autoTarget({ candidates: [], attackers: atk, current: 'b', rnd: r }), null, 'nobody left');
+  // a host change / replay: the same inputs (+ the same seeded stream) → the same target
+  const a = L.autoTarget({ candidates: cand, attackers: [], current: null, rnd: rngFrom('replay') });
+  const b = L.autoTarget({ candidates: cand, attackers: [], current: null, rnd: rngFrom('replay') });
+  assert.equal(a, b);
+  // the old modes are gone
+  assert.equal(L.chooseTarget, undefined);
+  assert.equal(L.TARGET_MODES, undefined);
+});
+
+test('SURVIVAL schedule (PD-2): one row every 10 s, speeding up smoothly to one every 4 s; the same for everyone', () => {
+  assert.equal(L.survivalRows(0), 0);
+  assert.equal(L.survivalRows(9_999), 0);
+  assert.equal(L.survivalRows(10_000), 1);
+  assert.equal(L.survivalRowAt(0), 10_000);
+  let prev = Infinity;
+  for (let k = 1; k < 80; k++) {
+    const gap = L.survivalRowAt(k) - L.survivalRowAt(k - 1);
+    assert.ok(gap <= prev + 1, `never slower (row ${k}: ${gap} ms)`);
+    assert.ok(gap >= L.SURV_FAST_MS - 1 && gap <= L.SURV_SLOW_MS, `between 4 and 10 s (${gap})`);
+    prev = gap;
+  }
+  assert.ok(L.survivalRowAt(1) - L.survivalRowAt(0) > 9_500, 'starts at ~10 s');
+  assert.equal(L.survivalRowAt(70) - L.survivalRowAt(69), L.SURV_FAST_MS, 'ends at 4 s');
+  // smooth: no step between consecutive gaps bigger than ~0.6 s
+  for (let k = 2; k < 80; k++) {
+    const g1 = L.survivalRowAt(k - 1) - L.survivalRowAt(k - 2), g2 = L.survivalRowAt(k) - L.survivalRowAt(k - 1);
+    assert.ok(Math.abs(g2 - g1) < 600, `smooth at ${k}`);
+  }
+  for (const t of [12_345, 61_000, 150_000, 240_000]) assert.equal(L.survivalRows(t), Array.from({ length: 200 }, (_, k) => L.survivalRowAt(k)).filter(x => x <= t).length);
+  assert.equal(L.survivalGap('s', 4), L.survivalGap('s', 4));
+});
+
+test('SOLO (PD-2): SCORE RUSH + SURVIVAL by one player; BATTLE needs 2 (hidden + never played solo)', async () => {
+  const meta = await import('../js/games/prism/meta.js');
+  assert.equal(meta.SOLO, true);
+  assert.deepEqual(meta.MODES, ['battle', 'rush', 'survival']);
+  const choices = meta.OPTIONS[0].choices;
+  const shown = n => choices.filter(c => !c.when || c.when(n)).map(c => c.value);
+  assert.deepEqual(shown(1), ['rush', 'survival']);
+  assert.deepEqual(shown(2), ['battle', 'rush', 'survival']);
+  assert.equal(meta.cleanSettings({ mode: 'battle' }, 1).mode, 'rush');
+  assert.equal(meta.cleanSettings({ mode: 'survival' }, 1).mode, 'survival');
+  assert.equal(meta.cleanSettings({ mode: 'battle' }, 2).mode, 'battle');
+  assert.equal(meta.cleanSettings({ mode: 'battle' }).mode, 'battle');
+  assert.equal(meta.estimateMinutes({ mode: 'survival' }), 3);
+  const g = createGame({ matchId: 'm', settings: { mode: 'battle' }, participants: { a: true }, now: 0, seed: 's', songs: [], sd: [], pl0: 0, songStartAt: 0, playStartAt: 1000 });
+  assert.equal(g.settings.mode, 'rush', 'a room of one is dealt SCORE RUSH');
 });
 
 test('KO badges: the killer takes the victim’s badges plus one; attack bonus steps', () => {
@@ -264,29 +325,46 @@ test('gestures: tap rotates by side, swipe up holds', () => {
 });
 
 // ---------------------------------------------------------------- whole battles with bots
-function simulateBattle(n, seed, { offline = null } = {}) {
-  let g = createGame({ matchId: 'sim', settings: { mode: 'battle' }, participants: P(n), now: 0, seed, songs: ['prism1'], sd: [180_000], pl0: 0, songStartAt: 0, playStartAt: 1000 });
+function simulateBattle(n, seed, { offline = null, mode = 'battle', refreshAt = null, hostSwapAt = null, skill = null } = {}) {
+  let g = createGame({ matchId: 'sim', settings: { mode }, participants: P(n), now: 0, seed, songs: ['prism1'], sd: [180_000], pl0: 0, songStartAt: 0, playStartAt: 1000 });
   g = apply(g, nextStep(g, { now: 1000, online: online(n), live: {} }));
   const eng = {};
   const rnd = {};
   const lastFrom = {};
-  for (const u of Object.keys(g.participants)) { eng[u] = E.createEngine({ seed, mode: 'battle' }); E.start(eng[u]); rnd[u] = rngFrom(`${seed}:${u}`); }
+  const emode = mode;   // (the engine sends + counters attacks in 'battle' only; SURVIVAL's speed comes from battleLevel like BATTLE's)
+  for (const u of Object.keys(g.participants)) { eng[u] = E.createEngine({ seed, mode: emode }); E.start(eng[u]); rnd[u] = rngFrom(`${seed}:${u}`); }
   const boards = {};
   const sequences = {};
+  const hits = {};
+  const target = {};
+  let refreshed = false;
   let now = 1000;
   for (let step = 0; step < 200_000 && g.phase === 'play'; step++) {
     now += 50;
     for (const u of Object.keys(eng)) {
-      const e = eng[u];
+      let e = eng[u];
       if (g.out && g.out[u]) continue;
       if (u === offline) continue;
-      if (e.over) { boards[u] = { st: 'out', by: lastFrom[u] || null, at: now }; continue; }
+      if (e.over) { boards[u] = { st: 'out', by: lastFrom[u] || null, at: now, sv: E.save(e) }; continue; }
+      // a refresh mid-game: the phone comes back from its 3 s save (the board, the queue, the rows already risen)
+      if (refreshAt && !refreshed && u === 'u0' && now - g.playStartAt >= refreshAt) {
+        refreshed = true;
+        const sv = JSON.parse(JSON.stringify(E.save(e)));
+        e = eng[u] = E.createEngine({ seed, mode: emode });
+        E.restore(e, sv);
+      }
       E.setLevel(e, L.battleLevel(now - g.playStartAt));
-      const due = L.suddenRows(now - g.playStartAt);
-      while (e.sd < due && !e.over) { E.insertJunk(e, 1, L.suddenGap(seed, e.sd)); e.sd++; }
+      if (mode === 'survival') {
+        const due = L.survivalRows(now - g.playStartAt);
+        while (e.sd < due && !e.over) { E.insertJunk(e, 1, L.survivalGap(seed, e.sd)); e.sd++; }
+      } else {
+        const due = L.suddenRows(now - g.playStartAt);
+        while (e.sd < due && !e.over) { E.insertJunk(e, 1, L.suddenGap(seed, e.sd)); e.sd++; }
+      }
+      if (e.over) { boards[u] = { st: 'out', by: lastFrom[u] || null, at: now, sv: E.save(e) }; continue; }
       if (e.cur && rnd[u]() < 0.08) {
         (sequences[u] ||= []).push(e.cur.t);
-        const mv = chooseMove(e, { skill: 0.55 + 0.4 * (Number(u.slice(1)) / n), rnd: rnd[u] });
+        const mv = chooseMove(e, { skill: skill ?? (0.55 + 0.4 * (Number(u.slice(1)) / n)), rnd: rnd[u] });
         if (mv) {
           while (e.cur && e.cur.r !== mv.r) if (!E.rotate(e, 1)) break;
           while (e.cur && e.cur.x !== mv.x) if (!E.move(e, Math.sign(mv.x - e.cur.x))) break;
@@ -296,26 +374,39 @@ function simulateBattle(n, seed, { offline = null } = {}) {
       E.update(e, 50);
       for (const ev of E.takeEvents(e)) {
         if (ev.e !== 'send') continue;
+        assert.equal(mode, 'battle', 'only BATTLE sends attacks');
         const cand = Object.keys(eng).filter(v => v !== u && !(g.out && g.out[v]) && !eng[v].over);
-        const t = L.chooseTarget({ mode: 'danger', candidates: cand, heights: Object.fromEntries(cand.map(v => [v, E.stackHeight(eng[v])])), rnd: rnd[u] });
-        if (t) { E.receive(eng[t], { n: ev.n, gap: Math.floor(rnd[u]() * 10), from: u, delayMs: L.junkDelay(E.stackHeight(eng[t])) }); lastFrom[t] = u; }
+        // AUTO-TARGET (PD-2): the most recent attacker still alive, else a random opponent kept while valid
+        const t = target[u] = L.autoTarget({ candidates: cand, attackers: L.attackersOf(hits[u] || []), current: target[u] || null, rnd: rnd[u] });
+        if (t) {
+          E.receive(eng[t], { n: ev.n, gap: Math.floor(rnd[u]() * 10), from: u, delayMs: L.junkDelay(E.stackHeight(eng[t])) });
+          lastFrom[t] = u;
+          (hits[t] ||= []).push({ uid: u, at: now });
+        }
       }
-      if (e.over) boards[u] = { st: 'out', by: lastFrom[u] || null, at: now };
-      else boards[u] = { st: 'play', sc: e.score, ln: e.lines, mc: e.maxCombo, se: e.sent, best: e.best ? e.best.k : '' };
+      if (e.over) boards[u] = { st: 'out', by: lastFrom[u] || null, at: now, sv: E.save(e) };
+      else boards[u] = { st: 'play', sc: e.score, ln: e.lines, mc: e.maxCombo, se: e.sent, best: e.best ? e.best.k : '', sv: E.save(e) };
     }
     if (step % 5 === 0) {
       const on = Object.fromEntries(Object.keys(eng).map(u => [u, u !== offline]));
       const pres = offline ? { [offline]: { online: false, lastSeen: 1000 } } : {};
-      const p = nextStep(g, { now, online: on, presence: pres, live: { boards } });
+      const ctx = { now, online: on, presence: pres, live: { boards } };
+      // a host change: the new host runs the same step on its own copy of the DB → the same patch
+      if (hostSwapAt && now - g.playStartAt >= hostSwapAt && now - g.playStartAt < hostSwapAt + 300) {
+        assert.deepEqual(nextStep(structuredClone(g), structuredClone(ctx)), nextStep(structuredClone(g), structuredClone(ctx)));
+      }
+      const p = nextStep(g, ctx);
       if (p) g = apply(g, p);
     }
   }
-  return { g, eng, sequences, now };
+  // the end → final: the results (from each phone's last save)
+  if (g.phase === 'end') g = apply(g, nextStep(g, { now: g.phaseEndsAt, online: online(n), live: { boards } }));
+  return { g, eng, sequences, now, boards };
 }
 
 test('8-player battle with bots: identical piece order, attacks + junk, KOs, badges add up, sudden death ends it', () => {
   const { g, sequences, now } = simulateBattle(8, 'battle-seed-1');
-  assert.equal(g.phase, 'end', `battle ended (t=${Math.round((now - 1000) / 1000)} s)`);
+  assert.equal(g.phase, 'final', `battle ended (t=${Math.round((now - 1000) / 1000)} s)`);
   assert.ok(g.winner, 'a winner');
   assert.equal(Object.keys(g.out).length, 7);
   // everyone was dealt the same pieces in the same order
@@ -333,4 +424,141 @@ test('8-player battle with bots: identical piece order, attacks + junk, KOs, bad
 test('8-player battle: a player who vanishes is out after 30 s', () => {
   const { g } = simulateBattle(4, 'battle-seed-2', { offline: 'u2' });
   assert.ok(g.out.u2 && g.out.u2.gone);
+});
+
+test('2-player battle with AUTO-TARGET: one wins; the results carry KOs, perfect clears + the danger-zone flag', () => {
+  const { g, boards } = simulateBattle(2, 'battle-seed-3');
+  assert.equal(g.phase, 'final');
+  assert.ok(g.winner);
+  for (const u of ['u0', 'u1']) {
+    assert.equal(typeof g.results[u].pc, 'number');
+    assert.equal(g.results[u].pc, boards[u].sv.st[3]);
+    assert.equal(!!g.results[u].dz, boards[u].sv.pk >= L.DANGER_ZONE_ROWS, 'dz = the stack reached the top 5 rows');
+  }
+  const loser = Object.keys(g.out)[0];
+  assert.equal(g.out[loser].place, 2);
+});
+
+test('director: the results record dz only in BATTLE, pc in any mode, t only in SURVIVAL', () => {
+  const g = apply(base(2), { phase: 'end', phaseStartAt: 50_000, phaseEndsAt: 54_200, winner: 'u1', out: { u0: { at: 50_000, place: 2, rem: 1, by: 'u1' } } });
+  const boards = { u0: { sv: { st: [40, 0, 0, 2], pk: 20 } }, u1: { sv: { st: [41, 1, 0, 1], pk: 17 } } };
+  let f = nextStep(g, { now: 54_200, online: online(2), live: { boards } });
+  assert.equal(f.results.u1.pc, 1);
+  assert.equal(f.results.u0.pc, 2);
+  assert.equal(f.results.u1.dz, 1, 'the winner was in the danger zone → COMEBACK (PD-5)');
+  assert.equal(f.results.u1.t, undefined);
+  const r = apply(base(2, 'rush'), { phase: 'end', phaseStartAt: 50_000, phaseEndsAt: 54_200 });
+  f = nextStep(r, { now: 54_200, online: online(2), live: { boards } });
+  assert.equal(f.results.u1.dz, undefined, 'no danger zone outside BATTLE');
+  assert.equal(f.results.u0.pc, 2);
+});
+
+test('engine: the stack peak (pk) is saved + restored, capped at the visible rows', () => {
+  const e = E.createEngine({ seed: 'pk', mode: 'battle' });
+  E.start(e);
+  E.insertJunk(e, 7, 3);
+  assert.equal(e.peak, 7);
+  const e2 = E.createEngine({ seed: 'pk', mode: 'battle' });
+  E.restore(e2, JSON.parse(JSON.stringify(E.save(e))));
+  assert.equal(e2.peak, 7);
+  E.insertJunk(e2, 30, 3);
+  assert.ok(e2.peak <= E.VISIBLE);
+});
+
+test('SURVIVAL (PD-2): 8 players — no attacks, the same rows for everyone, last one standing; no KO credit, no badges', () => {
+  const { g, now } = simulateBattle(8, 'surv-seed-1', { mode: 'survival', skill: 0.75 });
+  assert.equal(g.phase, 'final', 'ended');
+  assert.ok(g.winner, 'a winner');
+  assert.equal(Object.keys(g.out).length, 7);
+  assert.ok(Object.values(g.out).every(o => o.by === null), 'nobody gets KO credit in SURVIVAL');
+  assert.deepEqual(g.ko, {});
+  const st = L.standings(g);
+  assert.equal(st[0].uid, g.winner);
+  assert.equal(st[0].rank, 1);
+  for (let i = 1; i < st.length; i++) assert.ok(st[i - 1].score >= st[i].score, 'a later knockout survived longer');
+  assert.equal(st[0].score, Math.round(g.results[g.winner].t / 1000));
+  const min = (now - 1000) / 60_000;
+  assert.ok(min > 0.8 && min < 7, `a typical game is a few minutes (${min.toFixed(1)} min)`);
+});
+
+test('SURVIVAL: 2 players + a refresh mid-game + a host change — the same rows, it ends with a winner', () => {
+  const { g, eng } = simulateBattle(2, 'surv-seed-2', { mode: 'survival', refreshAt: 40_000, hostSwapAt: 30_000 });
+  assert.equal(g.phase, 'final');
+  assert.ok(g.winner);
+  assert.ok(eng.u0.sd > 0 && eng.u1.sd > 0, 'rows rose on both boards (the refresh kept the count)');
+});
+
+test('SURVIVAL solo: you play until you top out — no winner, the score = the seconds survived; solo SCORE RUSH still ends on the beat', () => {
+  const { g } = simulateBattle(1, 'surv-solo', { mode: 'survival', skill: 0.7 });
+  assert.equal(g.phase, 'final');
+  assert.ok(!g.winner, 'no winner in a solo run');
+  assert.equal(g.n0, 1);
+  const st = L.standings(g);
+  assert.equal(st.length, 1);
+  assert.ok(st[0].score > 20, `survived ${st[0].score} s`);
+  assert.equal(st[0].score, Math.round(g.results.u0.t / 1000));
+  let r = apply(base(1, 'rush'), { phase: 'play', phaseStartAt: 9000 });
+  assert.equal(nextStep(r, { now: r.endAt - 1, online: online(1), live: { boards: {} } }), null);
+  r = apply(r, nextStep(r, { now: r.endAt, online: online(1), live: { boards: {} } }));
+  assert.equal(r.phase, 'end');
+});
+
+test('SURVIVAL on THE BOARD: a SURVIVAL win counts as a PRISM DROP win; a solo SURVIVAL feeds no board + never a win', async () => {
+  const { extractMatch, soloEmpty } = await import('../js/core/match-report.js');
+  const { g } = simulateBattle(3, 'surv-seed-3', { mode: 'survival', skill: 0.7 });
+  const m = extractMatch(g);
+  assert.equal(m.mode, 'survival');
+  assert.equal(m.rows[g.winner].win, true);
+  assert.equal(m.rows[g.winner].c.w, 1);
+  for (const r of Object.values(m.rows)) assert.deepEqual(r.rec, {}, 'no SURVIVAL board');
+  const solo = simulateBattle(1, 'surv-solo-2', { mode: 'survival', skill: 0.7 }).g;
+  const s = extractMatch(solo);
+  assert.equal(s.solo, true);
+  assert.equal(s.rows.u0.win, false);
+  assert.deepEqual(s.rows.u0.rec, {});
+  // a phone left on the table (no points, no lines) never counts, even though it "survived" a while
+  const empty = { ...solo, results: { u0: { ...solo.results.u0, sc: 0, ln: 0, t: 90_000 } } };
+  assert.equal(soloEmpty(empty, 'u0', { score: 90 }), true);
+  assert.equal(soloEmpty(solo, 'u0', { score: 90 }), !(solo.results.u0.sc > 0 || solo.results.u0.ln > 0));
+  // a solo SCORE RUSH: no board (no solo SCORE RUSH board exists), never a win
+  const rush = apply(base(1, 'rush'), { phase: 'final', results: { u0: { sc: 5000, ln: 20 } } });
+  const sr = extractMatch(rush);
+  assert.deepEqual(sr.rows.u0.rec, {});
+  assert.equal(sr.rows.u0.win, false);
+});
+
+// ---------------------------------------------------------------- THE RISING GHOST ROWS (PD-2 — incoming.js, pure)
+test('GHOST ROWS: the bands come from the engine’s own queue — newest at the bottom, rising over the delay, hot when due', async () => {
+  const I = await import('../js/games/prism/incoming.js');
+  const e = E.createEngine({ seed: 'g', mode: 'battle' });
+  E.start(e);
+  E.receive(e, { n: 3, gap: 4, from: 'dana', delayMs: 1000 });
+  for (let k = 0; k < 5; k++) E.update(e, 100);   // (one update steps at most 250 ms)
+  E.receive(e, { n: 2, gap: 7, from: 'eve', delayMs: 1000 });
+  let b = I.ghostBands(e.pending, e.clock);
+  assert.equal(b.length, 2);
+  assert.deepEqual(b.map(x => x.from), ['eve', 'dana'], 'the newest attack at the bottom (it lands under the older one)');
+  assert.ok(b[0].prog < 0.05 && b[0].rows >= 2 * I.RISE_MIN - 1e-9 && b[0].rows < 2 * 0.4, 'a fresh attack shows ~30 % at once');
+  assert.ok(b[1].prog > 0.45 && b[1].prog < 0.55 && b[1].rows > 3 * I.RISE_MIN && b[1].rows < 3, 'half its delay run → partly risen');
+  for (let k = 0; k < 12; k++) E.update(e, 100);
+  b = I.ghostBands(e.pending, e.clock);
+  assert.ok(b.every(x => x.hot && Math.abs(x.rows - x.n) < 1e-9), 'due → fully up + hot');
+  assert.equal(I.incomingTag(e.pending, u => u), 'INCOMING 5 · DANA +1');
+  assert.equal(I.incomingTag([{ n: 2, from: 'u1' }], () => 'Bob'), 'INCOMING 2 · BOB');
+  assert.equal(I.incomingTag([], u => u), null);
+  // the cap: never more than GHOST_MAX rows drawn
+  const many = I.ghostBands([{ n: 10, g: 1, at: 0, t0: 0 }, { n: 10, g: 2, at: 0, t0: 0 }], 5);
+  assert.equal(many.reduce((s, x) => s + x.rows, 0), I.GHOST_MAX);
+  // a scheduled row (SURVIVAL / sudden death) rises over its last 3 s, on top; nothing before that
+  assert.equal(I.ghostBands([], 0, { sched: { gap: 3, inMs: 3500 } }).length, 0);
+  const s = I.ghostBands([], 0, { sched: { gap: 3, inMs: 1500 } });
+  assert.equal(s.length, 1);
+  assert.equal(s[0].kind, 'sched');
+  assert.ok(s[0].prog > 0.45 && s[0].prog < 0.55);
+  // a clear cancels pending junk exactly as before (the engine's math, untouched): the bands shrink with it
+  const e2 = E.createEngine({ seed: 'g2', mode: 'battle' });
+  E.start(e2);
+  E.receive(e2, { n: 4, gap: 1, from: 'x', delayMs: 1000 });
+  assert.equal(E.pendingTotal(e2), 4);
+  assert.equal(I.ghostBands(e2.pending, e2.clock)[0].n, 4);
 });

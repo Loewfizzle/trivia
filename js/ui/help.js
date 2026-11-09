@@ -209,30 +209,17 @@ RULES.agent = {
 };
 
 RULES.prism = {
-  goal: 'A falling-block battle set to music. Everyone gets the same pieces in the same order. 2–8 players.',
+  goal: 'A falling-block game set to music. Everyone gets the same pieces in the same order. 1–8 players.',
+  // (PD-2: three short lines — the owner's "no walls of text")
   sections: [
-    ['CONTROLS (GESTURES)', [
-      'Drag sideways: the piece follows your finger, one column at a time.',
-      'Tap the right half to rotate clockwise, the left half to rotate counter-clockwise.',
-      'Tap SLAM (bottom corner) to drop the piece straight down, exactly where its ghost shows.',
-      'Drag down to soft drop (it keeps its column). Swipe up to hold a piece for later.',
-      '⚙ settings → PRISM DROP: move SLAM to the LEFT, turn the old SWIPE-DOWN SLAM back on, or switch to full BUTTONS.',
+    ['THE MODES', [
+      'BATTLE — clear lines to attack your friends. Junk you’re sent rises from the bottom; clear lines to break it. Last one standing wins.',
+      'SCORE RUSH — no attacks: one song, highest score wins. Solo too.',
+      'SURVIVAL — junk rises for everyone, faster and faster. Last one standing wins; solo, last as long as you can.',
     ]],
-    ['BATTLE', [
-      'Clearing lines sends junk rows to your target: 2 lines = 1, 3 = 2, 4 = 4. Twists hit harder, back-to-back and combos add more, a perfect clear sends 10.',
-      'Incoming junk shows on the red bar beside your board and lands about a second later — clear lines first to cancel it.',
-      'Tap TARGET to choose: RANDOM, ATTACKERS (whoever is hitting you) or DANGER (whoever is closest to the top).',
-      'Knock someone out and you take their badges plus one. Badges make your attacks stronger.',
-      'Fill your board to the top and you’re out. Last one standing wins. It speeds up every minute; after 5 minutes junk rises on its own.',
-      'Out? Call the winner within 10 seconds — a right call earns game-night points (more the earlier you call it).',
-    ]],
-    ['SCORE RUSH', [
-      'No attacks — everyone plays for points for exactly one song. The match ends on the song’s final beat.',
-      'Bigger clears, twists, combos and back-to-back clears score more; every 10 lines the level (and speed) goes up.',
-      'Top out and your board resets — your score stays.',
-    ]],
-    ['TWISTS', [
-      'Rotate the T-shaped piece into a tight slot (three of its corners blocked) to score a twist.',
+    ['CONTROLS', [
+      'Drag to move · tap a side to rotate · swipe up to hold · drag down to drop faster.',
+      'SLAM drops the piece straight down (☰ → Settings moves it LEFT or switches to BUTTONS).',
     ]],
   ],
 };

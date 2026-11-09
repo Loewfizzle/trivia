@@ -45,8 +45,17 @@ export function openGameOptions(g, { meta = null, onClose = null } = {}) {
   preloadSheets(g.id);   // its screen's stylesheets, so the match starts styled at once
   const saved = (meta && meta.settings && meta.settings[g.id]) || {};
   const settings = { ...mod.DEFAULT_SETTINGS, ...saved };
-  const shownOptions = mod.OPTIONS.filter(o => !o.when || o.when(onlineCount()));
-  for (const o of mod.OPTIONS) if (!shownOptions.includes(o)) settings[o.key] = mod.DEFAULT_SETTINGS[o.key];
+  const players = onlineCount();
+  // (PD-2: a CHOICE may carry when(players) too — PRISM DROP's BATTLE needs 2+, so a room of one sees SCORE RUSH + SURVIVAL only; a saved
+  //  choice that isn't shown falls back to the first one that is)
+  const shownOptions = mod.OPTIONS.filter(o => !o.when || o.when(players))
+    .map(o => (o.choices && o.choices.some(c => c.when) ? { ...o, choices: o.choices.filter(c => !c.when || c.when(players)) } : o));
+  for (const o of mod.OPTIONS) if (!shownOptions.some(x => x.key === o.key)) settings[o.key] = mod.DEFAULT_SETTINGS[o.key];
+  for (const o of shownOptions) {
+    const full = mod.OPTIONS.find(x => x.key === o.key);
+    if (!full || !full.choices || !full.choices.some(c => c.when) || !o.choices.length || o.type === 'multi') continue;
+    if (!o.choices.some(c => String(c.value) === String(settings[o.key]))) settings[o.key] = o.choices[0].value;
+  }
   const est = h('span.est');
   const renderEst = () => { est.textContent = `≈ ${mod.estimateMinutes(settings)} MIN`; };
   const startBtn = h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button' }, h('span', 'INITIATE'));

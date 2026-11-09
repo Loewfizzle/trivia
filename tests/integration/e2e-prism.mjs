@@ -2,12 +2,15 @@
 //   node e2e-prism.mjs "<browser path>" ./shots-prism        (env N=8, SHOTS=0, RUSH=0 to skip Score Rush, CPU=4)
 // Match A — BATTLE: lobby card + options; the same song / world / piece order on every phone; real touch gestures
 //   (drag 3 columns, tap rotate both ways, slow soft drop, flick = hard drop, swipe up = hold); bots play; real junk
-//   attacks arrive and land; targeting modes; refresh mid-battle (board restored); the host's phone dies (a new host
+//   attacks arrive and land; AUTO-TARGET (PD-2 — no button); refresh mid-battle (board restored); the host's phone dies (a new host
 //   carries on); a player gone > 30 s is out; knockouts with KO credit + badges; Call the Winner (a right call earns
 //   game-night points); FINAL DUEL; a song change mid-match (world transforms, audio follows); musical SFX in the
 //   song's key and on its 16th-note grid; frame pacing at every quality tier under CPU throttling; results.
 // Match B — SCORE RUSH: the next song of the room playlist; live leaderboard; a top-out reboots the board (score
 //   kept); the finale on the final beat; results by score.
+// PD-2 (both paths): the RISING GHOST ROWS + their tag, BLOCKED! (the cancel), the KO card; then SURVIVAL (everyone still here: the same
+//   rows on every phone, no attacks, last one standing), a room of ONE (the options = SCORE RUSH + SURVIVAL), a solo SURVIVAL + a solo
+//   SCORE RUSH (SOLO RUN on the podium, never a win).
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
@@ -127,6 +130,97 @@ const cleanText = async (page, where) => {
 };
 const touchTap = async page => { const l = await P(page, 'window.__prism.layout()'); await touch(page, [[l.board.x + l.board.width * 0.8, l.board.y + 40], [l.board.x + l.board.width * 0.8, l.board.y + 40]], 30); };
 const line = (x0, y0, x1, y1, n) => Array.from({ length: n + 1 }, (_, i) => [x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n]);
+
+// PD-2 — SURVIVAL (everyone still in the room: the same rows on every phone, no attacks, last one standing), then a room of ONE: the options
+// show SCORE RUSH + SURVIVAL only; a solo SURVIVAL (until you top out — SOLO RUN, the time); a solo start of BATTLE plays SCORE RUSH
+async function shiftClock(page, ms) {
+  const g = await game(page);
+  await page.evaluate(async (c, g0, s) => { const f = await import('/js/firebase.js'); const patch = { songStartAt: g0.songStartAt - s, playStartAt: g0.playStartAt - s }; if (g0.endAt) patch.endAt = g0.endAt - s; await f.update(f.dbRef(`rooms/${c}/game`), patch); }, code, g, ms);
+}
+async function survivalAndSolo() {
+  let hi = await hostIdx();
+  let h = pages[hi];
+  const gNow = await game(h);
+  if (gNow && gNow.phase) { await h.evaluate(() => import('/js/host.js').then(m => m.backToLobby())); await waitFor(h, s => s.meta.status === 'lobby' && !s.game, 'back in the room', 30000); }
+  await h.evaluate(() => import('/js/host.js').then(m => m.startGame('prism', { mode: 'survival' })));
+  await waitFor(h, s => s.game && s.game.settings.mode === 'survival' && s.game.phase === 'play', 'SURVIVAL: GO', 40000);
+  const players = Object.keys((await game(h)).participants).map(idx).filter(i => alive().includes(i));
+  await Promise.all(players.map(i => pages[i].waitForFunction(() => window.__prism.engine() && window.__prism.engine().cur, { timeout: 20000 })));
+  for (const i of players) await P(pages[i], `window.__prism.bot({ skill: 0.9, every: 150, seed: ${i + 50} })`);
+  await shiftClock(h, 52_000);   // (52 s in: five rows have risen on every board)
+  await sleep(2500);
+  const sds = await Promise.all(players.map(i => P(pages[i], 'window.__prism.engine().sd')));
+  ok(new Set(sds).size === 1 && sds[0] >= 4, `SURVIVAL: the same rows rose on every phone (${sds.join(', ')})`);
+  const sent = await Promise.all(players.map(i => P(pages[i], 'window.__prism.engine().sent')));
+  ok(sent.every(x => x === 0), `SURVIVAL: no attacks are sent (${sent.join(', ')})`);
+  // the next row rises as a ghost in its last 3 s
+  let sched = false;
+  for (let k = 0; k < 60 && !sched; k++) { sched = await P(pages[players[0]], "(() => { const g = window.__prism.ghost(); return !!(g.bands && g.bands.some(b => b.kind === 'sched')); })()"); if (!sched) await sleep(200); }
+  ok(sched, 'SURVIVAL: the next row rises as a ghost before it lands');
+  await cleanText(pages[players[0]], 'survival');
+  await shotBoth(pages[players[0]], 'pd-19-survival');
+  // last one standing: everyone but the host tops out
+  for (const i of players.filter(i => i !== hi)) {
+    await P(pages[i], 'window.__prism.topOut()');
+    await waitFor(h, (s, u) => !!(s.game.out && s.game.out[u]) || s.game.phase !== 'play', `${NAMES[i]} out (SURVIVAL)`, 20000, uids[i]);
+  }
+  await waitFor(h, s => s.game.phase === 'final', 'SURVIVAL: the results', 30000);
+  const gS = await game(h);
+  ok(gS.winner === uids[hi] && !Object.values(gS.out).some(o => o.by) && gS.results[uids[hi]].t > 50_000, `SURVIVAL: ${NAMES[hi]} is the last one standing — no KO credit, the time survived recorded (${Math.round(gS.results[uids[hi]].t / 1000)} s)`);
+  await sleep(4500);
+  await shotBoth(h, 'pd-20-survival-final');
+  await h.evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
+  await waitFor(h, s => s.meta.status === 'lobby' && !s.game, 'back in the room', 30000);
+  // ---- a room of ONE: everyone else leaves
+  for (const i of alive().filter(i => i !== hi)) { await pages[i].close(); dead.add(i); }
+  await waitFor(h, s => Object.values(s.presence || {}).filter(p => p && p.online !== false).length === 1, 'a room of one', 60000);
+  await h.waitForSelector('.rdk-games', { timeout: 20000 });
+  await h.evaluate(() => document.querySelector('.rdk-games').click());
+  await h.waitForSelector('.rc-games-sheet .rc-game[data-game="prism"]', { timeout: 8000 });
+  await h.evaluate(() => document.querySelector('.rc-games-sheet .rc-game[data-game="prism"]').click());
+  await h.waitForSelector('.sh.options .opt-row', { timeout: 8000 });
+  await sleep(400);
+  const modes = await h.evaluate(() => [...document.querySelectorAll('.sh.options .opt-row')].map(b => b.dataset.v));
+  ok(modes.join() === 'rush,survival', `SOLO: a room of one sees SCORE RUSH + SURVIVAL only (${modes.join(', ')})`);
+  await shotBoth(h, 'pd-21-solo-options');
+  await h.evaluate(() => { const x = document.querySelector('.sh:not(.is-out) .sh-x'); if (x) x.click(); });
+  await sleep(500);
+  // ---- solo SURVIVAL: play until you top out
+  await h.evaluate(() => import('/js/host.js').then(m => m.startGame('prism', { mode: 'survival' })));
+  await waitFor(h, s => s.game && s.game.settings.mode === 'survival' && s.game.phase === 'play', 'SOLO SURVIVAL: GO', 40000);
+  await h.waitForFunction(() => window.__prism.engine() && window.__prism.engine().cur, { timeout: 20000 });
+  await P(h, 'window.__prism.bot({ skill: 0.9, every: 150, seed: 61 })');
+  await shiftClock(h, 30_000);
+  await sleep(2500);
+  await P(h, 'window.__prism.topOut()');
+  await sleep(400);
+  const ko = await P(h, 'window.__prism.ko()');
+  ok(/SURVIVED \d+:\d\d/.test(ko), `SOLO SURVIVAL: the KO card shows the time survived ("${ko}")`);
+  await waitFor(h, s => s.game.phase === 'final', 'SOLO SURVIVAL: the results', 30000);
+  const g1 = await game(h);
+  await h.waitForSelector('.final .winner-title', { timeout: 15000 });
+  await sleep(4500);
+  const head = await h.evaluate(() => ({ w: document.querySelector('.final .winner-title').textContent, n: document.querySelector('.final .winner-name').textContent }));
+  ok(!g1.winner && g1.results[uids[hi]].t > 25_000 && head.w === 'SOLO RUN' && /\d+:\d\d/.test(head.n), `SOLO SURVIVAL: no winner — SOLO RUN + the time ("${head.n}")`);
+  await shotBoth(h, 'pd-22-solo-survival-final');
+  await h.evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
+  await waitFor(h, s => s.meta.status === 'lobby' && !s.game, 'back in the room', 30000);
+  // ---- a solo start of BATTLE plays SCORE RUSH (BATTLE needs 2)
+  await h.evaluate(() => import('/js/host.js').then(m => m.startGame('prism', { mode: 'battle' })));
+  await waitFor(h, s => s.game && s.game.phase === 'play', 'SOLO SCORE RUSH: GO', 40000);
+  const gR = await game(h);
+  ok(gR.settings.mode === 'rush' && Object.keys(gR.participants).length === 1, `SOLO: a room of one is dealt SCORE RUSH, never BATTLE (${gR.settings.mode})`);
+  await h.waitForFunction(() => window.__prism.engine() && window.__prism.engine().cur, { timeout: 20000 });
+  await P(h, 'window.__prism.bot({ skill: 0.9, every: 120, seed: 71 })');
+  await sleep(5000);
+  const now = await h.evaluate(async () => (await import('/js/firebase.js')).serverNow());
+  await shiftClock(h, gR.endAt - (now + 4000));
+  await waitFor(h, s => s.game.phase === 'final', 'SOLO SCORE RUSH: the results', 40000);
+  const g2 = await game(h);
+  ok(!g2.winner && (g2.results[uids[hi]].sc || 0) > 0, `SOLO SCORE RUSH: played to the song's end — a score, never a win (${g2.results[uids[hi]].sc})`);
+  await sleep(4500);
+  await shotBoth(h, 'pd-23-solo-rush-final');
+}
 
 async function perfRun(p) {
   // a mid-range phone stand-in: ${CPU}× CPU throttle, phone pixel density, every tier (the auto-step-down is
@@ -280,13 +374,34 @@ try {
     ok(h1 === h0 + 1, `SLAM: a tap on the red button hard-drops the piece (${h1 - h0})`);
   }
 
+  // ---------------------------------------------------------------- PD-2: AUTO-TARGET, THE RISING GHOST ROWS, BLOCKED!
+  {
+    const clean = await A.evaluate(() => ({ btn: !!document.querySelector('.pd [class*="target"]:not(.pd-tile)'), bar: !!document.querySelector('.pd-meter'), word: /TARGET/i.test(document.querySelector('.pd').innerText) }));
+    ok(!clean.btn && !clean.bar && !clean.word, `AUTO-TARGET: no target button, no target word, no red bar (${JSON.stringify(clean)})`);
+    await P(A, `window.__prism.incoming(3, ${JSON.stringify(uids[1])}, 60000)`);
+    await sleep(400);
+    const gh = await P(A, 'window.__prism.ghost()');
+    ok(gh.rows >= 1 && /^INCOMING 3 · BOB$/.test(gh.tag) && gh.bands && gh.bands[0].kind === 'junk' && !gh.bands[0].hot, `GHOST ROWS: incoming junk rises as ghost rows + its tag ("${gh.tag}", ${gh.rows} row(s) shown)`);
+    await shotBoth(A, 'pd-03b-incoming');
+    await P(A, 'window.__prism.counter(3)');
+    await sleep(250);
+    const co = await P(A, 'window.__prism.callouts()');
+    const gh2 = await P(A, 'window.__prism.ghost()');
+    ok(co.some(t => /^BLOCKED!/.test(t)) && !gh2.tag && !gh2.bands, `CALLOUTS: a clear that cancels incoming → BLOCKED! + the ghost rows go (${co.slice(-2).join(' | ')})`);
+  }
+
   // ---------------------------------------------------------------- FAST=1 (SHELL 2.0 B1): two phones — the battle to its end, the
   // results, the walk back out to the ROOM IN THE CITY (the full path below needs 8: the host killed, the late joiner, the call)
   if (FAST) {
     await P(A, 'window.__prism.bot({ skill: 0.95, every: 140, seed: 1 })');
     await P(pages[1], 'window.__prism.bot({ skill: 0.4, every: 260, seed: 2 })');
     await sleep(6000);
+    const tA = await P(A, 'window.__prism.target()');
+    ok(tA.target === uids[1], `AUTO-TARGET: two players — ALICE's attacks go to BOB with no button (${tA.target && NAMES[idx(tA.target)]})`);
     await P(pages[1], 'window.__prism.topOut()');
+    await sleep(500);
+    const ko = await P(pages[1], 'window.__prism.ko()');
+    ok(/^KO/.test(ko) && /2ND PLACE/.test(ko), `KO CARD: on BOB's board — KO, how, the place ("${ko}")`);
     await waitFor(A, s => s.game.phase === 'end' || s.game.phase === 'final', 'FAST: the battle over', 60000);
     await waitFor(A, s => s.game.phase === 'final', 'FAST: the results', 30000);
     const gF = await game(A);
@@ -295,11 +410,13 @@ try {
     // (PD-1 — THE CONSOLE'S PODIUM: the frame's BACK TO THE ROOM + PRISM's body only — the winning board + the top 3 as slim cards, the frame's list from 4th)
     const fin = await A.evaluate(() => ({ back: !!document.querySelector('.final .final-back'), body: !!document.querySelector('.final .pd-fs .pd-fs-moment'), top: document.querySelectorAll('.final .pd-fs .pd-fs-top > li').length, accent: document.querySelector('.final.has-accent') ? getComputedStyle(document.querySelector('.final')).getPropertyValue('--fin').trim() : '' }));
     ok(fin.back && fin.body && fin.top === 2 && /8fd8ff/i.test(fin.accent), `FAST: the podium = the console's frame + PRISM's body (${JSON.stringify(fin)})`);
+    ok(Object.values(gF.results).every(r => typeof r.pc === 'number' && typeof r.ko === 'number'), `RESULTS: every row records KOs + perfect clears for PD-5's cards (${JSON.stringify(Object.values(gF.results).map(r => ({ ko: r.ko, pc: r.pc, dz: r.dz || 0 })))})`);
     await cleanText(A, 'final');
     await A.evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
     await waitFor(A, s => s.meta.status === 'lobby' && !s.game, 'FAST: back in the room', 30000);
     await A.waitForSelector('.title-screen.is-room .rdk-dock', { timeout: 30000 });
     ok(true, 'FAST: back in THE ROOM IN THE CITY (the room dock)');
+    await survivalAndSolo();
     throw new Error('FAST done');
   }
 
@@ -308,17 +425,23 @@ try {
   const skills = [0.85, 0.8, 0.98, 0.7, 0.6, 0.75, 0.65, 0.55];
   // human-ish pace (a few moves a second), so the battle lasts long enough to test knockouts and calls
   for (const i of alive()) await P(pages[i], `window.__prism.bot({ skill: ${skills[i]}, every: ${i === 0 ? 160 : 220 + i * 15}, seed: ${i + 1} })`);
-  // targeting modes
-  await P(pages[1], "window.__prism.setTargetMode('danger')");
-  await P(pages[2], "window.__prism.setTargetMode('attackers')");
+  // AUTO-TARGET (PD-2): a living opponent with no button — and whoever hits you is who you hit back
   await sleep(9000);
   const tgt = await P(pages[1], 'window.__prism.target()');
-  ok(tgt.mode === 'danger' && tgt.target, `TARGET: DANGER mode picks someone (${tgt.target && NAMES[idx(tgt.target)]})`);
+  ok(tgt.target && tgt.target !== uids[1], `AUTO-TARGET: BOB's attacks have a target with no button (${tgt.target && NAMES[idx(tgt.target)]})`);
   // a junk attack: wait until someone has sent lines and someone received them
   await waitFor(host, s => Object.values((s.live && s.live.boards) || {}).some(b => (b.se || 0) > 0), 'someone sent junk', 90000);
   ok(true, 'BATTLE: line clears send junk');
   const recv = await Promise.all(alive().map(i => P(pages[i], `(() => { const l = window.__prism.synthLog(); return l.some(x => x.name === 'incoming'); })()`)));
-  ok(recv.some(Boolean), 'BATTLE: incoming junk reaches a phone (warning sound + meter)');
+  ok(recv.some(Boolean), 'BATTLE: incoming junk reaches a phone (warning sound + ghost rows)');
+  {
+    // whoever was hit last hits back: the most recent attacker still alive is the target
+    const gT = await game(anyPage());
+    const back = await Promise.all(alive().map(i => P(pages[i], 'window.__prism.target()')));
+    const hit = back.map((t, k) => ({ t, k })).filter(x => x.t.hitBy && x.t.hitBy.length);
+    const right = hit.filter(({ t }) => { const a = t.hitBy.find(u => !(gT.out && gT.out[u])); return !a || t.target === a; });
+    ok(hit.length >= 1 && right.length === hit.length, `AUTO-TARGET: a phone that was hit targets its most recent attacker still alive (${right.length}/${hit.length})`);
+  }
   await cleanText(pages[1], 'battle');
   await shotBoth(pages[1], 'pd-04-battle');
 
@@ -433,7 +556,11 @@ try {
   await sleep(2600);
   await cleanText(pages[keepA], 'duel');
   await shotBoth(pages[keepA], 'pd-09-duelist');
-  if (caller != null) await shotBoth(pages[caller], 'pd-10-spectator-duel');
+  if (caller != null) {
+    await shotBoth(pages[caller], 'pd-10-spectator-duel');
+    const sp = await P(pages[caller], 'window.__prism.spec()');
+    ok(sp.on && sp.lead.length === 2 && /DUEL SOON/.test(sp.head), `SPECTATE: the two left BIG side by side + DUEL SOON ("${sp.head}", ${sp.field} more on the line)`);
+  }
   const lift = await P(pages[keepA], 'window.__prism.audio()');
   ok(lift.lift > 1.05, `FINAL DUEL: the music lifts (${lift.lift})`);
   // end it: the other duelist tops out -> keepA wins
@@ -501,6 +628,8 @@ try {
     await sleep(3200);
     await shotBoth(hr, 'pd-17-rush-final');
   }
+
+  await survivalAndSolo();
 
   // ---------------------------------------------------------------- the settings sheet (controls)
   const s0 = anyPage();

@@ -113,6 +113,31 @@ function ghostSprite(size, color) {
   return c;
 }
 
+// (PD-2) an INCOMING ghost cell: see-through warning red, a bright rim, a lit top edge — a ghost, never a solid block
+const INCOMING = '#ff4f74';
+function incomingSprite(size) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const x = c.getContext('2d');
+  const p = Math.max(1, size * 0.07);
+  const s = size - 2 * p;
+  rr(x, p, p, s, s, size * 0.14);
+  x.fillStyle = rgba(INCOMING, 0.26);
+  x.fill();
+  // diagonal hatching: a ghost, never mistaken for a glass block (a ruby block is solid + glossy)
+  x.save();
+  rr(x, p, p, s, s, size * 0.14);
+  x.clip();
+  x.strokeStyle = 'rgba(255,150,172,0.62)';
+  x.lineWidth = Math.max(1, size * 0.07);
+  for (let k = -1; k <= 2; k++) { const o = p + k * s * 0.42; x.beginPath(); x.moveTo(o, p + s); x.lineTo(o + s, p); x.stroke(); }
+  x.restore();
+  x.lineWidth = Math.max(1, size * 0.06);
+  x.strokeStyle = 'rgba(255,186,200,0.95)';
+  x.stroke();
+  return c;
+}
+
 export function sprite(size, kind, t) {
   const key = `${size}|${kind}|${t}`;
   let s = sprites.get(key);
@@ -121,12 +146,79 @@ export function sprite(size, kind, t) {
     s = kind === 'block' ? blockSprite(size, col, t === 8)
       : kind === 'grey' ? blockSprite(size, grey(col), true)
         : kind === 'glow' ? glowSprite(size, col)
-          : ghostSprite(size, col);
+          : kind === 'incoming' ? incomingSprite(size)
+            : kind === 'iglow' ? glowSprite(size, INCOMING)
+            : ghostSprite(size, col);
     sprites.set(key, s);
   }
   return s;
 }
 export const clearSprites = () => sprites.clear();
+
+// ---------------------------------------------------------------- THE LOOKS' DRAWING HOOKS (PD-2)
+// A look = how the board's own pieces are drawn, behind one interface (the owner's LOOK SYSTEM — PD-3 night / PD-4 day add theirs; the engine
+// never changes). PD-2 adds the first hook: `incoming(ctx, bands, o)` paints THE RISING GHOST ROWS (incoming.js#ghostBands — bottom-up) OVER
+// the board's bottom rows and returns each drawn row's place (canvas px) for the shatter. The rules every look keeps: an occupied cell is only
+// TINTED (the stack stays readable through them — never covered), the gap column stays open, the rows never move the real stack.
+export const LOOKS = {
+  glass: {
+    /** o: { px, cells, H (canvas height px), now (ms), reduced } → [{ y, h, gap }] (one per visible row, top first) */
+    incoming(ctx, bands, { px, cells, H, now, reduced }) {
+      const geo = [];
+      if (!bands || !bands.length) return geo;
+      const ghost = sprite(px, 'incoming', 0);
+      const halo = sprite(px, 'iglow', 0);
+      let base = 0;   // rows above the bottom edge already taken by the bands under this one
+      for (const b of bands) {
+        const top = base + b.rows;
+        // a gentle shake (stronger once it's due) + a breathing glow; reduced motion = still
+        const w = now / 1000;
+        const shake = reduced ? 0 : Math.round(Math.sin(w * Math.PI * 2 * (b.hot ? 7 : 3)) * px * (b.hot ? 0.05 : 0.022));
+        const a = b.hot ? 0.86 + (reduced ? 0 : 0.12 * Math.sin(w * Math.PI * 2 * 3)) : 0.6 + 0.26 * b.prog;
+        for (let k = 0; k < b.n; k++) {
+          const rTop = top - k, rBot = rTop - 1;
+          if (rTop <= base) break;
+          const vBot = Math.max(rBot, base);
+          const y = H - rTop * px, hh = (rTop - vBot) * px;
+          if (hh < 0.5) continue;
+          const row = Math.max(0, Math.min(VISIBLE - 1, Math.floor((rTop + vBot) / 2)));
+          for (let x = 0; x < W; x++) {
+            if (x === b.gap) continue;
+            if (cells[row * W + x]) {
+              ctx.globalAlpha = 0.16;
+              ctx.fillStyle = INCOMING;
+              ctx.fillRect(x * px, y, px, hh);
+            } else {
+              // a lit ghost: added light (the dark well glows red through it), a soft halo under it
+              ctx.globalCompositeOperation = 'lighter';
+              ctx.globalAlpha = a * 0.4;
+              ctx.drawImage(halo, x * px + shake - (halo.width - px) / 2, y - (halo.height - px) / 2 + (hh - px) / 2);
+              ctx.globalAlpha = a;
+              ctx.drawImage(ghost, 0, 0, ghost.width, ghost.height * (hh / px), x * px + shake, y, px, hh);
+              ctx.globalCompositeOperation = 'source-over';
+            }
+          }
+          geo.push({ y, h: hh, gap: b.gap });
+        }
+        base = top;
+      }
+      ctx.globalAlpha = 1;
+      // the leading edge: one bright line across the top of everything incoming + a soft red light rising above it
+      const yTop = H - base * px;
+      ctx.globalCompositeOperation = 'lighter';
+      const gl = ctx.createLinearGradient(0, yTop - px * 1.2, 0, yTop);
+      gl.addColorStop(0, rgba(INCOMING, 0));
+      gl.addColorStop(1, rgba(INCOMING, 0.32));
+      ctx.fillStyle = gl;
+      ctx.fillRect(0, yTop - px * 1.2, W * px, px * 1.2);
+      ctx.fillStyle = 'rgba(255,210,220,0.9)';
+      ctx.fillRect(0, yTop - Math.max(1, px * 0.04), W * px, Math.max(2, px * 0.07));
+      ctx.globalCompositeOperation = 'source-over';
+      geo.sort((p, q) => p.y - q.y);
+      return geo;
+    },
+  },
+};
 
 /**
  * The main board. view: { cell (css px) }. Draws the engine state + effects each frame.
@@ -136,7 +228,9 @@ export function createBoardView(canvas) {
   let cell = 24, dpr = 1, px = 24;
   let gridLayer = null;
   let stack = null, stackCtx = null, stackSig = '';
-  const fx = { flashes: [], sweeps: [], glitch: 0, lockFlash: [] };
+  const fx = { flashes: [], sweeps: [], glitch: 0, lockFlash: [], shards: [] };
+  let lastGhost = [];   // (PD-2) the ghost rows drawn last frame (device px, top first) — what a cancel shatters
+  const SHARD_MS = 520;
 
   function size(cssCell, tierDpr) {
     dpr = Math.min(3, tierDpr || window.devicePixelRatio || 1);   // (PD-1: the full 3× — was capped at 2)
@@ -191,8 +285,25 @@ export function createBoardView(canvas) {
     flashRows(rows, strength, hue) { const now = performance.now(); for (const y of rows) fx.sweeps.push({ y, t0: now, strength, hue }); },
     lockFlash(cells) { fx.lockFlash.push({ cells, t0: performance.now() }); },
     glitch(ms = 160) { fx.glitch = performance.now() + ms; },
-    draw(g, { danger = 0, glow = 0.32, showGhost = true, frozen = false, rush = false } = {}) {
+    /** (PD-2) a clear cancelled `n` incoming rows: the top n ghost rows SHATTER — their cells fly apart + fade (~0.5 s), on the board itself */
+    shatterGhost(n) {
       const now = performance.now();
+      const rows = lastGhost.slice(0, Math.max(0, n));
+      for (const r of rows) {
+        fx.flashes.push({ y: r.y, h: r.h, t0: now });
+        for (let x = 0; x < W; x++) {
+          if (x === r.gap) continue;
+          const a = Math.random() * Math.PI * 2;
+          fx.shards.push({ x: (x + 0.5) * px, y: r.y + r.h / 2, vx: (Math.random() - 0.5) * px * 9, vy: -(1.5 + Math.random() * 5) * px, r: Math.random() * 6.28, vr: (Math.random() - 0.5) * 9, s: 0.55 + Math.random() * 0.35, a, t0: now });
+        }
+      }
+      if (fx.shards.length > 160) fx.shards.splice(0, fx.shards.length - 160);
+      lastGhost = lastGhost.slice(rows.length);
+      return rows.length;
+    },
+    draw(g, { danger = 0, glow = 0.32, showGhost = true, frozen = false, rush = false, incoming = null, look = 'glass', reduced = false } = {}) {
+      const now = performance.now();
+      let ghostGeo = [];
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(gridLayer, 0, 0);
@@ -229,6 +340,27 @@ export function createBoardView(canvas) {
           ctx.drawImage(stack, 0, y0, stack.width, band, shift, y0, stack.width, band);
         }
       } else ctx.drawImage(stack, 0, 0);
+      // (PD-2) THE RISING GHOST ROWS over the bottom rows — under the falling piece, never covering a block (the look's hook)
+      if (incoming && incoming.length && !frozen) ghostGeo = (LOOKS[look] || LOOKS.glass).incoming(ctx, incoming, { px, cells, H: canvas.height, now, reduced });
+      lastGhost = ghostGeo;
+      // (PD-2) the cancelled rows: a white flash where they were + their shards flying apart (gravity, a spin, fading out)
+      if (fx.flashes.length || fx.shards.length) {
+        fx.flashes = fx.flashes.filter(f => now - f.t0 < 200);
+        for (const f of fx.flashes) { ctx.fillStyle = `rgba(255,220,230,${0.5 * (1 - (now - f.t0) / 200)})`; ctx.fillRect(0, f.y, W * px, f.h); }
+        fx.shards = fx.shards.filter(p => now - p.t0 < SHARD_MS);
+        const gs = sprite(px, 'incoming', 0);
+        for (const p of fx.shards) {
+          const t = (now - p.t0) / 1000, k = (now - p.t0) / SHARD_MS;
+          const sz = px * p.s * (1 - 0.5 * k);
+          ctx.save();
+          ctx.globalAlpha = (1 - k) * (1 - k);
+          ctx.translate(p.x + p.vx * t, p.y + p.vy * t + 18 * px * t * t);
+          ctx.rotate(p.r + p.vr * t);
+          ctx.drawImage(gs, -sz / 2, -sz / 2, sz, sz);
+          ctx.restore();
+        }
+        ctx.globalAlpha = 1;
+      }
       // ghost + active piece
       if (g.cur && !frozen) {
         if (showGhost) {
@@ -279,6 +411,8 @@ export function createBoardView(canvas) {
         ctx.globalCompositeOperation = 'source-over';
       }
       void rush;
+      // the ghost rows' places in CSS px of the canvas (the view's shatter + the tag)
+      return { ghost: ghostGeo.map(r => ({ y: r.y / dpr, h: r.h / dpr, gap: r.gap })), ghostTop: ghostGeo.length ? ghostGeo[0].y / dpr : null };
     },
   };
 }

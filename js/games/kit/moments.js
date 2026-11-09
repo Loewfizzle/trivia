@@ -9,7 +9,8 @@ import { h } from '../../ui/dom.js';
 
 const cls = (prefix, name) => (prefix && prefix !== 'mk' ? `${prefix}-${name}` : `mk-${name}`);
 
-export function createAnnouncer(lane, { prefix = 'mk', holdMs = 1800, outMs = 400, queueMax = 4, logMax = 60 } = {}) {
+// fit: true (PD-2 — PRISM DROP's callouts) → each element carries --len = its first line's length, so the css can size it to fit its lane
+export function createAnnouncer(lane, { prefix = 'mk', holdMs = 1800, outMs = 400, queueMax = 4, logMax = 60, fit = false } = {}) {
   const q = [];
   const log = [];
   let busy = 0;
@@ -18,7 +19,7 @@ export function createAnnouncer(lane, { prefix = 'mk', holdMs = 1800, outMs = 40
     if (!q.length) return;
     if (busy > now) { setTimeout(pump, busy - now + 20); return; }
     const a = q.shift();
-    const el = h(`div.${cls(prefix, 'ann-in')}.is-${a.kind}`, a.text);
+    const el = h(`div.${cls(prefix, 'ann-in')}.is-${a.kind}`, fit ? { style: { '--len': String([...String(a.text).split('\n')[0]].length) } } : null, a.text);
     lane.replaceChildren(el);
     busy = now + holdMs;
     setTimeout(() => el.classList.add('is-out'), holdMs - 200);

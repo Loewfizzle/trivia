@@ -19,7 +19,7 @@ function newSeed() {
 }
 
 export async function start({ matchId, settings, participants, now }) {
-  const s = cleanSettings(settings);
+  const s = cleanSettings(settings, Object.keys(participants || {}).length);   // (PD-2: one player never plays BATTLE)
   const songs = await loadManifest().catch(() => []);
   const ids = songs.map(x => x.id);
   // the room's playlist: one seeded shuffle per room session, continuing match after match

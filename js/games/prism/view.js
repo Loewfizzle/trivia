@@ -12,12 +12,13 @@ import { liveKeyFor } from '../registry.js';
 import { settings, onSettings } from '../../audio/settings.js';
 import { getContext } from '../../audio/engine.js';
 import { hashString, rngFrom } from '../../core/rng.js';
-import { showCall as kitCall } from '../kit/index.js';
+import { showCall as kitCall, createAnnouncer } from '../kit/index.js';
 import * as E from './engine.js';
 import {
-  songAt, songStarts, battleLevel, suddenRows, suddenGap, junkDelay, chooseTarget, TARGET_MODES,
-  CLEAR_NAME, aliveOf,
+  songAt, songStarts, battleLevel, suddenRows, suddenGap, junkDelay, autoTarget, attackersOf,
+  survivalRows, survivalRowAt, survivalGap, SUDDEN_MS, SUDDEN_EVERY_MS, DANGER_ZONE_ROWS, CLEAR_NAME, aliveOf,
 } from './logic.js';
+import { ghostBands, incomingTag } from './incoming.js';
 import { loadSong, beatClock } from './songs.js';
 import { createWorlds, WORLDS } from './worlds.js';
 import { createBoardView, drawPiece, drawMini, JEWEL } from './board.js';
@@ -33,7 +34,12 @@ const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 // native replaceChildren() prints a null argument as text — always go through this
 const put = (el, ...kids) => el.replaceChildren(...kids.flat().filter(k => k != null && k !== false));
 const BIG = new Set(['quad', 'tsingle', 'tdouble', 'ttriple', 'pc', 'mdouble']);
-const TKEY = 'na:prism:target';
+// (PD-2 — THE TIP: one line, once per device (the console's one-time hint is the dailies' — a room game keeps it here), the first BATTLE)
+const TIPKEY = 'na:prism:tip';
+const TIP = 'Clear lines to attack your friends.';
+const ORD = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'TH' : ['TH', 'ST', 'ND', 'RD'][n % 10] || 'TH'}`;
+const KO_CARD_MS = 1800;   // (PD-2) the KO card holds this long before Call the Winner / spectating
+const mmss = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
 export function createView() {
   let root, st, game;
@@ -63,15 +69,22 @@ export function createView() {
   let resumeT = null;       // after a refresh: the piece that was in play
   let lastStatsT = 0;
   let lastDanger = '';
-  let lastMeter = '';
+  let lastTag = '', lastTagY = -1;
+  let ghostGeo = [];         // (PD-2) the ghost rows drawn last frame (CSS px of the board) — the shatter takes the top ones
+  let callout = null;        // (PD-2) this batch's callout parts { special, sent, to, blocked }
+  let tipEl = null, tipDone = false;
+  let koShownAt = 0;
+  let callOpen = false;
+  let lastSpec = null;
   let tierUpBlocked = -1;  // a tier that already failed this match is not retried
   let goodSince = 0;
   const workTimes = [];      // CPU time per frame (dt alone can't show headroom on a 60 Hz screen)
-  let attackersRecent = []; // [{ uid, at }]
-  // targeting
-  let tMode = (() => { try { const m = localStorage.getItem(TKEY); return TARGET_MODES.includes(m) ? m : 'random'; } catch { return 'random'; } })();
+  let attackersRecent = []; // [{ uid, at }] every attack received (AUTO-TARGET: the most recent attacker still alive)
+  // targeting (PD-2 — AUTO-TARGET: logic.js#autoTarget, no button, no setting)
   let target = null;
   let lastTargetPick = 0;
+  let calls = null;          // the board's callout lane (the kit's announcer)
+  let pubForce = false;
   // fx state
   const fxs = { bloom: 0, hue: 0, wave: [0, 0, 0], waveT: -1, glitch: 0, duel: 0, beat: 0, pulseT: 0 };
   let announceQ = [];
@@ -106,6 +119,9 @@ export function createView() {
   const myNode = () => boards()[me()] || null;
   const liveReady = () => game && st.liveKey === liveKeyFor(game);
   const rush = () => game && game.settings.mode === 'rush';
+  const surv = () => game && game.settings.mode === 'survival';
+  const battle = () => game && game.settings.mode === 'battle';
+  const solo = () => !!game && Object.keys(game.participants || {}).length === 1;
   const isOut = () => !!(game && game.out && game.out[me()]) || (eng && eng.over && !rush());
   const reduced = () => settings.reducedFx || reducedMotion();
   const nodePath = () => `rooms/${st.code}/prism/${game.matchId}/${me()}`;
@@ -114,20 +130,24 @@ export function createView() {
   function mount(el, state) {
     st = state;
     game = state.game;
+    seenOut = { ...(game.out || {}) };   // (PD-2: a refresh mid-match never re-announces the knockouts that already happened)
     root = h('div.pd', { 'data-mode': game.settings.mode });
     els.world = h('canvas.pd-world', { 'aria-hidden': 'true' });
     els.fx = h('canvas.pd-fx', { 'aria-hidden': 'true' });
     els.top = h('div.pd-top', { dataset: { msgUnder: '' } },
-      h('div.pd-info', h('b.pd-mode', rush() ? 'SCORE RUSH' : 'BATTLE'), h('span.pd-sub')),
+      h('div.pd-info', h('b.pd-mode', modeName()), h('span.pd-sub')),
       h('div.pd-announce', { 'aria-live': 'polite' }));
     // THE BOARD with HOLD + NEXT floating in its top corners (slim see-through glass; pieces passing under them stay readable — they fade)
     els.hold = h('canvas.pd-hold-c');
     els.next = Array.from({ length: 3 }, () => h('canvas.pd-next-c'));
     els.holdBox = h('div.pd-corner.pd-hold', { 'aria-hidden': 'true' }, h('small', 'HOLD'), h('div.pd-corner-in', els.hold));
     els.nextBox = h('div.pd-corner.pd-next', { 'aria-hidden': 'true' }, h('small', 'NEXT'), h('div.pd-corner-in', els.next));
-    els.meter = h('div.pd-meter', h('i'));
     els.board = h('canvas.pd-board-c');
-    els.boardWrap = h('div.pd-board', els.meter, h('div.pd-board-glass'), els.board, els.holdBox, els.nextBox, h('div.pd-board-over'));
+    // (PD-2) the incoming rows' tag ("INCOMING 3 · EVE" — it rides the ghost rows' top edge: a transform, never a layout property) + the CALLOUT
+    // lane (the kit's announcer — big + short, centred over the board's upper middle: never over the bottom rows or the incoming rows)
+    els.tag = h('div.pd-inc-tag', { 'aria-hidden': 'true' });
+    els.callout = h('div.pd-callout', { 'aria-live': 'polite' });
+    els.boardWrap = h('div.pd-board', h('div.pd-board-glass'), els.board, els.holdBox, els.nextBox, els.tag, els.callout, h('div.pd-board-over'));
     // THE SLAM BUTTON (gestures): a glossy red push button at the rail's foot — chrome bezel, red dome, a gloss, SLAM in white; it presses down
     // (transform + opacity only) and flashes on release. An in-game control, never a shell button.
     els.slamBtn = h('button.pd-slam-b', { type: 'button', 'data-btn': 'HARD', 'aria-label': 'Slam: drop the piece straight down' },
@@ -157,6 +177,7 @@ export function createView() {
     fx = createFx(els.fx);
     board = createBoardView(els.board);
     rail = createRail(els.rail);
+    calls = createAnnouncer(els.callout, { prefix: 'pd', holdMs: 1100, outMs: 260, queueMax: 3, fit: true });
     // the press's light: a short flash as the finger lifts (the sound + the drop come from the press itself)
     els.slamBtn.addEventListener('pointerup', () => { if (!reduced()) bump(els.slamBtn, 'is-flash'); });
     input = attachInput(els.ui, {
@@ -217,6 +238,10 @@ export function createView() {
     pub = { b: null, p: null, stats: null, tg: null, lastB: 0, lastP: 0, lastSave: 0, ev: null };
     seenOut = { ...(game.out || {}) }; seenEv = {}; lastAlive = null; duelShown = !!game.duelAt; suddenShown = false;
     countScheduled = {}; finaleScheduled = false; endShown = false; callShownFor = null; miniSig = {};
+    target = null; ghostGeo = []; callout = null; lastTag = ''; lastTagY = -1; koShownAt = 0; pubForce = false; callOpen = false; lastSpec = null;
+    if (tipEl) { tipEl.remove(); tipEl = null; }
+    tipDone = false;
+    if (calls) calls.clear();
     if (qRef) { off(qRef); qRef = null; }
     if (finalView) { finalView.destroy(); finalView = null; }
     els.overlay.replaceChildren();
@@ -249,9 +274,10 @@ export function createView() {
     if (engFor === game.matchId) return;
     if (!liveReady()) return; // wait: a saved board might be in our node
     const node = myNode();
-    eng = E.createEngine({ seed: game.seed, mode: game.settings.mode, level: 1 });
+    eng = E.createEngine({ seed: game.seed, mode: game.settings.mode, level: 1 });   // (PD-2: 'survival' sends + counters nothing)
     engFor = game.matchId;
     if (node && node.st === 'out' && !rush()) {
+      koShownAt = 1;   // (a refresh after the KO: no card again — straight to the call / spectating)
       if (node.b) E.loadBoard(eng, node.b);
       eng.over = true; restored = true;
       showKO();
@@ -279,6 +305,7 @@ export function createView() {
   // ================================================================ actions
   function act(a) {
     if (!eng || !eng.cur || eng.over) return;
+    if (tipEl) hideTip();
     if (a.a === 'move') { const n = Math.abs(a.dx); for (let i = 0; i < n; i++) if (!E.move(eng, Math.sign(a.dx))) break; }
     else if (a.a === 'rotate') E.rotate(eng, a.dir);
     else if (a.a === 'soft') { for (let i = 0; i < a.n; i++) if (!E.stepDown(eng, true)) break; }
@@ -288,11 +315,12 @@ export function createView() {
   }
 
   function candidates() {
-    if (!game || rush()) return [];
+    if (!game || !battle()) return [];
     const online = st.presence || {};
     return aliveOf(game).filter(u => u !== me() && (!online[u] || online[u].online !== false) && !(boards()[u] && boards()[u].st === 'out'));
   }
 
+  /** who is hitting you right now (the rail's red notch): an attack in the last 15 s, or their target is you */
   function attackers() {
     const b = boards();
     const now = serverNow();
@@ -301,17 +329,12 @@ export function createView() {
     return [...new Set([...recent, ...tg])];
   }
 
+  /** AUTO-TARGET (PD-2 — logic.js#autoTarget): the most recent attacker still alive, else a random opponent, kept while valid */
   function pickTarget(force = false) {
     const now = performance.now();
     if (!force && now - lastTargetPick < 600) return;
     lastTargetPick = now;
-    const heights = Object.fromEntries(Object.entries(boards()).map(([u, n]) => [u, (n && n.h) || 0]));
-    const cand = candidates();
-    // RANDOM keeps a target ~8 s, then picks again
-    const keep = tMode !== 'random' || now - (pickTarget.since || 0) < 8000;
-    const next = chooseTarget({ mode: tMode, candidates: cand, attackers: attackers(), heights, current: keep ? target : null });
-    if (next !== target) pickTarget.since = now;
-    target = next;
+    target = autoTarget({ candidates: candidates(), attackers: attackersOf(attackersRecent), current: target });
   }
 
   // ================================================================ events -> audio, visuals, network
@@ -336,9 +359,9 @@ export function createView() {
           vibrate(5);
           break;
         case 'clear': onClear(ev); break;
-        case 'twist0': synth.play('twist'); announce(ev.twist === 'mini' ? 'MINI TWIST' : 'TWIST', 'self'); break;
+        case 'twist0': synth.play('twist'); part({ special: ev.twist === 'mini' ? 'MINI TWIST' : 'TWIST' }); break;
         case 'send': sendAttack(ev.n); break;
-        case 'counter': floatText(`−${ev.n} BLOCKED`); break;
+        case 'counter': shatterGhosts(ev.n); part({ blocked: ev.n }); break;
         case 'incoming': synth.play('incoming'); vibrate(8); break;
         case 'junk':
           if (ev.n) { synth.play('junk'); board.glitch(160); fxs.glitch = 1; vibrate([12, 30, 18]); }
@@ -348,7 +371,25 @@ export function createView() {
         default: break;
       }
     }
+    flushCallout();
     markPublish();
+  }
+
+  // ================================================================ THE CALLOUTS (PD-2): big + short over the board — one per moment
+  // "+4 → DANA" (lines sent, to whom) · "BLOCKED!" (you cancelled incoming) · "TWIST +2" · "BACK-TO-BACK" · "KO → EVE". A moment's parts (a clear
+  // + what it sent / blocked) gather in one batch of engine events, then go out as ONE callout: the headline big, the rest small under it.
+  function part(p) { callout = { ...(callout || {}), ...p }; }
+  function flushCallout() {
+    const c = callout;
+    callout = null;
+    if (!c || !calls) return;
+    const lines = [];
+    if (c.special) lines.push({ t: c.special, k: c.kind || 'clear' });
+    if (c.blocked) lines.push({ t: 'BLOCKED!', k: 'good' });
+    if (c.sent) lines.push({ t: `+${c.sent}${c.to ? ` → ${c.to}` : ''}`, k: 'send' });
+    if (!lines.length) return;
+    const [head, ...rest] = lines;
+    calls.announce(rest.length ? `${head.t}\n${rest.map(r => r.t).join(' · ')}` : head.t, head.k);
   }
 
   function onClear(ev) {
@@ -382,16 +423,25 @@ export function createView() {
       fxs.wave[2] = Math.random();
       bump(els.boardWrap, 'pd-pulse');
     }
-    const name = ev.pc ? 'PERFECT CLEAR' : CLEAR_NAME[ev.key];
-    if (big || ev.lines >= 3) announce(`${ev.b2b ? 'B2B · ' : ''}${name}${ev.combo >= 2 ? ` · COMBO ×${ev.combo}` : ''}`, 'self');
-    else if (ev.combo >= 3) announce(`COMBO ×${ev.combo}`, 'self');
+    // the callout's headline: the clear's name when it's worth one (a twist shows what it hits for in BATTLE: "TWIST +2")
+    const atk = battle() && ev.attack > 0 ? ` +${ev.attack}` : '';
+    let special = null;
+    if (ev.pc) special = 'PERFECT CLEAR';
+    else if (ev.b2b) special = 'BACK-TO-BACK';
+    else if (ev.twist === 'twist') special = `TWIST${atk}`;
+    else if (ev.twist === 'mini') special = `MINI TWIST${atk}`;
+    else if (ev.lines >= 4) special = '4 LINES';
+    else if (ev.combo >= 2) special = `COMBO ×${ev.combo}`;
+    if (special) part({ special, kind: ev.pc || ev.lines >= 4 || ev.b2b ? 'big' : 'clear' });
     if (BIG.has(ev.pc ? 'pc' : ev.key)) pub.ev = { k: ev.pc ? 'pc' : ev.key, at: serverTimestamp() };
+    if (ev.pc) pubForce = true;   // (PD-5's PERFECT CLEAR card reads the save — written at once)
   }
 
   function sendAttack(n) {
-    if (rush() || !game || game.phase !== 'play') return;
+    if (!battle() || !game || game.phase !== 'play') return;
     pickTarget(true);
     if (!target) return;
+    part({ sent: n, to: String(player(target).name || '').toUpperCase() });
     const gap = Math.floor(Math.random() * E.W);
     push(dbRef(`rooms/${st.code}/prismq/${game.matchId}/${target}`), { f: me(), n: Math.min(30, n), g: gap, at: serverTimestamp() }).catch(e => console.warn('attack', e && e.message));
     // the target's rail tile flashes; a light rings out from it
@@ -403,7 +453,7 @@ export function createView() {
   }
 
   function watchAttacks() {
-    if (qRef || !participant() || rush() || !game || game.phase === 'final' || !eng) return;
+    if (qRef || !participant() || !battle() || !game || game.phase === 'final' || !eng) return;
     qRef = dbRef(`rooms/${st.code}/prismq/${game.matchId}/${me()}`);
     onValue(qRef, snap => {
       const all = snap.val() || {};
@@ -419,7 +469,8 @@ export function createView() {
         E.receive(eng, { n: a.n | 0, gap: a.g | 0, from: a.f || null, id: key, delayMs: delay });
         lastAttacker = a.f || lastAttacker;
         attackersRecent.push({ uid: a.f, at: serverNow() });
-        if (attackersRecent.length > 20) attackersRecent.shift();
+        if (attackersRecent.length > 40) attackersRecent.shift();
+        pickTarget(true);   // (AUTO-TARGET: hit back whoever just hit you)
       }
       handleEvents();
     });
@@ -441,9 +492,10 @@ export function createView() {
     }
     // battle: out — tell everyone who sent the junk that finished us (KO credit)
     // KO credit: whoever's junk landed on this board in the last 20 s (sudden-death rows and your own stacking: nobody)
-    const by = lastHit && lastHit.from !== me() && performance.now() - lastHit.at < 20_000 ? lastHit.from : null;
+    const by = battle() && lastHit && lastHit.from !== me() && performance.now() - lastHit.at < 20_000 ? lastHit.from : null;
     dbUpdate(dbRef(nodePath()), { st: 'out', by, at: serverTimestamp(), b: E.boardString(eng), sv: { ...E.save(eng), ak: attackCursor } }).catch(() => {});
-    showKO();
+    if (tipEl) hideTip();
+    showKO(by);
   }
 
   // ================================================================ publishing
@@ -451,7 +503,7 @@ export function createView() {
   function markPublish() { pubDirty = true; }
   function publish(force = false) {
     if (!eng || !participant() || !game || game.phase === 'final' || (eng.over && !rush())) return;
-    if (!force && !pubDirty && performance.now() - pub.lastSave < 3000) return;
+    if (!force && !pubDirty && !pubForce && performance.now() - pub.lastSave < 3000) return;
     const now = performance.now();
     const patch = {};
     const b = E.boardString(eng);
@@ -463,9 +515,10 @@ export function createView() {
       Object.assign(patch, { sc: eng.score, ln: eng.lines, lv: eng.level, mc: Math.max(0, eng.maxCombo), se: eng.sent, best: eng.best ? eng.best.k : '', pd: E.pendingTotal(eng) });
       pub.stats = stats;
     }
-    if (target !== pub.tg && !rush()) { patch.tg = target || ''; pub.tg = target; }
+    if (target !== pub.tg && battle()) { patch.tg = target || ''; pub.tg = target; }
     if (pub.ev) { patch.ev = pub.ev; pub.ev = null; }
-    if (force || now - pub.lastSave >= 3000) { patch.sv = { ...E.save(eng), ak: attackCursor }; pub.lastSave = now; }
+    if (battle() && eng.peak >= DANGER_ZONE_ROWS && !pub.dz) { pub.dz = 1; pubForce = true; }   // (COMEBACK's danger zone — PD-5)
+    if (force || pubForce || now - pub.lastSave >= 3000) { patch.sv = { ...E.save(eng), ak: attackCursor }; pub.lastSave = now; pubForce = false; }
     if (!Object.keys(patch).length) { pubDirty = false; return; }
     patch.st = 'play';
     patch.at = serverTimestamp();
@@ -489,10 +542,14 @@ export function createView() {
         if (rushOver()) { eng.cur = null; publish(true); }
         else {
           if (!rush()) E.setLevel(eng, battleLevel(now - game.playStartAt));
-          if (!rush()) {
+          if (battle()) {
             const due = suddenRows(now - game.playStartAt);
             while (eng.sd < due && !eng.over) { E.insertJunk(eng, 1, suddenGap(game.seed, eng.sd)); eng.sd++; }
             if (due > 0 && !suddenShown) { suddenShown = true; announce('SUDDEN DEATH', 'world'); }
+          } else if (surv()) {
+            // SURVIVAL (PD-2): the same rows at the same moments on every phone — the seed's gap, the server clock (logic.js#survivalRows)
+            const due = survivalRows(now - game.playStartAt);
+            while (eng.sd < due && !eng.over) { E.insertJunk(eng, 1, survivalGap(game.seed, eng.sd)); eng.sd++; }
           }
           if (bot) runBot(t);
           E.update(eng, dt, softHeld);
@@ -500,12 +557,13 @@ export function createView() {
         }
       }
       handleEvents();
-      if (game.phase === 'play' && !rush() && performance.now() - lastTargetPick > 600) pickTarget();
+      if (game.phase === 'play' && battle() && performance.now() - lastTargetPick > 600) pickTarget();
       publish();
+      watchTip(now);
     }
     songPlayer.setDanger(eng && !eng.over ? dangerOf() : 0);
     songPlayer.tick();
-    if (t - lastStatsT > 250) { lastStatsT = t; renderStats(); }
+    if (t - lastStatsT > 250) { lastStatsT = t; renderStats(); if (lastSpec !== null && specNow() !== lastSpec) { layoutSig = ''; applyLayout(); } }
     watchWorld(now);
     watchMatch(now);
     drawAll(dt, t);
@@ -590,13 +648,16 @@ export function createView() {
       if (seenOut[uid]) continue;
       seenOut[uid] = o;
       const victim = player(uid).name;
-      if (o.by) {
-        announce(`${player(o.by).name} KO'd ${victim}`, 'ko');
-        if (o.by === me()) { synth.play('ko'); setTimeout(() => synth.play('badge'), 380); vibrate([20, 40, 20]); }
-      } else announce(o.gone ? `${victim} — SIGNAL LOST` : `${victim} TOPPED OUT`, 'ko');
+      if (uid === me()) { showKO(o.by); continue; }   // (your own KO card learns its place)
+      if (o.by === me()) {
+        // (PD-2 — the callout for the one who scored it: "KO → EVE")
+        if (calls) calls.announce(`KO → ${String(victim).toUpperCase()}`, 'ko');
+        synth.play('ko'); setTimeout(() => synth.play('badge'), 380); vibrate([20, 40, 20]);
+      } else if (o.by) announce(`${player(o.by).name} KO'd ${victim}`, 'ko');
+      else announce(o.gone ? `${victim} — SIGNAL LOST` : `${victim} TOPPED OUT`, 'ko');
     }
     const alive = aliveOf(game).length;
-    if (game.phase === 'play' && !rush() && lastAlive != null && alive < lastAlive && alive >= 2) announce(alive === 2 ? 'FINAL TWO' : `${alive} PLAYERS LEFT`, 'world');
+    if (game.phase === 'play' && !rush() && !solo() && lastAlive != null && alive < lastAlive && alive >= 2) announce(alive === 2 ? 'FINAL TWO' : `${alive} PLAYERS LEFT`, 'world');
     lastAlive = alive;
     // others' big clears
     for (const [uid, n] of Object.entries(boards())) {
@@ -618,7 +679,8 @@ export function createView() {
     }
     fxs.duel += ((game.duelAt && game.phase !== 'final' ? 1 : 0) - fxs.duel) * 0.03;
     // KO'd: Call the Winner
-    if (participant() && game.out && game.out[me()] && callShownFor !== game.matchId && !rush() && game.phase === 'play' && liveReady()) {
+    // KO'd → the KO card → Call the Winner (the kit's: big tap targets, the countdown ring) → SPECTATE
+    if (participant() && game.out && game.out[me()] && callShownFor !== game.matchId && !rush() && game.phase === 'play' && liveReady() && koCardOver()) {
       callShownFor = game.matchId;
       showCall();
     }
@@ -649,9 +711,43 @@ export function createView() {
     if (fx) fx.draw(dt);
     if (eng && board) {
       const frozen = !!(game.out && game.out[me()]);
-      board.draw(eng, { danger, glow: tier === 0 ? 0 : 0.32, frozen });
+      const bands = incomingNow();
+      const r = board.draw(eng, { danger, glow: tier === 0 ? 0 : 0.32, frozen, incoming: bands, reduced: reduced() });
+      ghostGeo = (r && r.ghost) || [];
+      paintTag(r && r.ghostTop);
     }
     drawHud();
+  }
+
+  // ================================================================ THE RISING GHOST ROWS (PD-2 — incoming.js + the look's hook in board.js)
+  /** the bands to draw now: the engine's pending junk (+ its delays) and, in SURVIVAL / sudden death, the next scheduled row rising */
+  function incomingNow() {
+    if (!eng || eng.over || rush() || game.phase !== 'play') return null;
+    const now = serverNow();
+    const el = now - game.playStartAt;
+    let sched = null;
+    if (surv()) sched = { gap: survivalGap(game.seed, eng.sd), inMs: survivalRowAt(eng.sd) - el };
+    else if (battle() && el > SUDDEN_MS - 3500) sched = { gap: suddenGap(game.seed, eng.sd), inMs: SUDDEN_MS + eng.sd * SUDDEN_EVERY_MS - el };
+    if (sched && !(sched.inMs >= 0)) sched = null;
+    const bands = ghostBands(eng.pending, eng.clock, { sched });
+    return bands.length ? bands : null;
+  }
+  /** "INCOMING 3 · EVE" sits just above the ghost rows' top edge — or above your stack when that's higher: it never covers a block (a
+   *  transform; rebuilt only when the text / its whole-px place changes) */
+  function paintTag(top) {
+    const txt = eng && !eng.over && top != null ? incomingTag(eng.pending, uid => player(uid).name) : null;
+    if ((txt || '') !== lastTag) { lastTag = txt || ''; els.tag.textContent = lastTag; els.tag.classList.toggle('is-on', !!txt); }
+    if (!txt) return;
+    const stackTop = (E.VISIBLE - Math.min(E.VISIBLE, E.stackHeight(eng))) * board.cell;
+    const y = Math.max(2, Math.round(Math.min(top, stackTop) - 21));
+    if (y !== lastTagY) { lastTagY = y; els.tag.style.transform = `translateY(${y}px)`; }
+  }
+  /** a clear cancelled `n` incoming rows: the top n ghost rows (the ones it ate — the engine counters the oldest first) SHATTER (~0.5 s) */
+  function shatterGhosts(n) {
+    vibrate(8);
+    if (!board || reduced()) { ghostGeo = ghostGeo.slice(Math.max(0, n)); return; }
+    board.shatterGhost(n);
+    ghostGeo = ghostGeo.slice(Math.max(0, n));
   }
 
   function drawHud() {
@@ -673,10 +769,6 @@ export function createView() {
     };
     const cs = `${cover('hold')}${cover('next')}`;
     if (cs !== coverSig) { coverSig = cs; els.holdBox.classList.toggle('is-under', cs[0] === '1'); els.nextBox.classList.toggle('is-under', cs[1] === '1'); }
-    const pend = E.pendingTotal(eng);
-    const hot = eng.pending.some(q => q.at <= eng.clock);
-    const ms = `${Math.min(20, pend)}|${hot}`;
-    if (ms !== lastMeter) { lastMeter = ms; els.meter.style.setProperty('--n', String(Math.min(20, pend))); els.meter.classList.toggle('is-hot', hot); }
   }
 
   // ================================================================ layout
@@ -693,7 +785,8 @@ export function createView() {
     const W0 = root.clientWidth || window.innerWidth;
     const H0 = root.clientHeight || window.innerHeight;
     const scheme = settings.prismScheme === 'buttons' ? 'buttons' : 'gesture';
-    const spectating = !participant() || isOut() || game.phase === 'final';
+    const spectating = specNow();
+    lastSpec = spectating;
     const duelist = !!game.duelAt && participant() && !isOut() && !rush();
     const n = others().length;
     const dpr = window.devicePixelRatio || 1;
@@ -718,6 +811,15 @@ export function createView() {
     renderSide(spectating, duelist);
   }
 
+  /** SPECTATE once you're out AND your KO card + Call the Winner are done (a spectator who never played: at once) */
+  function specNow() {
+    if (!game) return false;
+    if (!participant() || game.phase === 'final') return true;
+    return isOut() && koCardOver() && !callOpen;
+  }
+  const koCardOver = () => koShownAt === 1 || (koShownAt > 0 && performance.now() - koShownAt > KO_CARD_MS);
+  const modeName = () => (rush() ? 'SCORE RUSH' : surv() ? 'SURVIVAL' : 'BATTLE');
+
   function renderSide(spectating, duelist) {
     renderStats();
     renderRail(spectating, duelist);
@@ -728,15 +830,17 @@ export function createView() {
   function renderStats() {
     const now = serverNow();
     let line;
+    const played = game.phase === 'play' ? now - game.playStartAt : 0;
     if (rush()) line = `SCORE RUSH${eng ? ` · ${eng.score.toLocaleString('en-US')}` : ''}`;
-    else line = `BATTLE${game.phase === 'play' ? ` · ${aliveOf(game).length} LEFT` : ''}`;
+    else if (surv() && solo()) line = `SURVIVAL${game.phase === 'play' ? ` · ${mmss(eng && eng.over ? 0 : played)}` : ''}`;
+    else line = `${modeName()}${game.phase === 'play' ? ` · ${aliveOf(game).length} LEFT` : ''}`;
     const c = curSong >= 0 ? docOf(curSong) : null;
     const w = c && WORLDS[c.world];
     let sub = w ? `${w.name} · ${w.variants[variantOf(curSong)].name}` : 'PRISM DROP';
     if (rush() && game.phase === 'play') {
       const left = Math.max(0, Math.round(((game.endAt || now) - now) / 1000));
       sub = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')} LEFT · ${sub}`;
-    }
+    } else if (surv() && !solo() && game.phase === 'play') sub = `${mmss(played)} · ${sub}`;
     const sig = `${line}|${sub}`;
     if (sig === topSig) return;
     topSig = sig;
@@ -763,7 +867,7 @@ export function createView() {
       list = list.slice().sort((x, y) => ranked.indexOf(x) - ranked.indexOf(y));
       rankOf = u => ranked.indexOf(u) + 1;
     }
-    const atk = new Set(rush() ? [] : attackers());
+    const atk = new Set(battle() ? attackers() : []);
     const duelOpp = duelist ? (aliveOf(game).find(u => u !== me()) || null) : null;
     const rows = (duelOpp ? [duelOpp] : list).map(uid => {
       const n = b[uid] || {};
@@ -772,7 +876,7 @@ export function createView() {
         uid, name: p.name, color: p.color, height: n.h || 0,
         ko: !rush() && !!(game.out && game.out[uid]),
         off: !!(st.presence && st.presence[uid] && st.presence[uid].online === false),
-        target: !rush() && uid === target, attacker: atk.has(uid), rank: rankOf(uid),
+        target: battle() && uid === target, attacker: atk.has(uid), rank: rankOf(uid),
         board: n.b, piece: n.p,
       };
     });
@@ -780,55 +884,117 @@ export function createView() {
   }
 
   // ================================================================ spectator / call the winner / KO
-  function showKO() {
+  /** THE KO CARD (PD-2): on your own board — KO, who knocked you out (or how you went), your place; then the call, then spectating */
+  function showKO(by) {
     const o = els.boardWrap.querySelector('.pd-board-over');
-    o.replaceChildren(h('div.pd-ko', h('b', { 'data-text': 'KO' }, 'KO'), h('small', 'YOU TOPPED OUT')));
+    const out = game.out && game.out[me()];
+    const who = by !== undefined ? by : out ? out.by : null;
+    const place = out && out.place ? out.place : Math.max(1, aliveOf(game).length);
+    let line;
+    if (surv() && solo()) line = `SURVIVED ${mmss(((out && out.at) || serverNow()) - game.playStartAt)}`;
+    else line = `${ORD(place)} PLACE`;
+    const how = who ? `BY ${String(player(who).name || '').toUpperCase()}` : out && out.gone ? 'SIGNAL LOST' : surv() ? 'THE JUNK GOT YOU' : 'TOPPED OUT';
+    o.replaceChildren(h('div.pd-ko', h('b', { 'data-text': 'KO' }, 'KO'), h('small.pd-ko-by', how), h('span.pd-ko-place', line)));
+    if (!koShownAt) koShownAt = performance.now();
     layoutSig = '';
   }
 
+  /** CALL THE WINNER (the kit's — 10 s from your KO, big tap targets, the countdown RING): the players still in */
   function showCall() {
-    kitCall({
-      overlay: els.overlay, prefix: 'pd', game, st, me: me(), player, candidates: aliveOf(game).filter(u => u !== me()), avatarSize: 44,
+    const el = kitCall({
+      overlay: els.overlay, prefix: 'pd', game, st, me: me(), player, candidates: aliveOf(game).filter(u => u !== me()), avatarSize: 44, ring: true,
       path: `rooms/${st.code}/prismcall/${game.matchId}/${me()}`,
-      line: uid => `${(game.bd && game.bd[uid]) || 0} BADGES`,
+      line: uid => { const n = boards()[uid]; return `STACK ${(n && n.h) || 0}`; },
       intro: n => `Tap who wins. ${n} left — a right call earns game-night points.`,
       sfx: () => synth.play('hold'), ended: () => game.phase !== 'play', isDestroyed: () => destroyed,
-      onState: msg => { els.ui.dataset.call = msg; layoutSig = ''; },
+      onState: msg => { els.ui.dataset.call = msg; callOpen = false; root.classList.remove('has-call'); layoutSig = ''; applyLayout(); },
     });
+    callOpen = !!el;
+    root.classList.toggle('has-call', callOpen);
   }
 
+  /** the two to watch: SCORE RUSH = the top two scores; else the two healthiest still in (the lowest stacks, then the most KOs) */
+  function leadersOf() {
+    const b = boards();
+    const pool = rush() ? Object.keys(game.participants || {}) : aliveOf(game);
+    const list = pool.filter(u => !(participant() && u === me() && !rush()));
+    const hgt = u => (b[u] && b[u].h) || 0;
+    const ko = u => (game.ko && game.ko[u]) || 0;
+    const sc = u => (b[u] && b[u].sc) || 0;
+    list.sort((x, y) => (rush() ? sc(y) - sc(x) : hgt(x) - hgt(y) || ko(y) - ko(x)) || (x < y ? -1 : 1));
+    // keep the seat order between the two (no swapping sides while they play)
+    const two = list.slice(0, 2);
+    const seat = Object.keys(game.participants || {});
+    return two.sort((x, y) => seat.indexOf(x) - seat.indexOf(y));
+  }
+
+  /** SPECTATE (PD-2): the two leaders' boards BIG side by side (live), the one in danger outlined, DUEL SOON when two remain; the rest of the
+   *  field as ONE line (initial · stack height · KO). A name opens THE PLAYER PAGE — here only, never during live play. */
   function renderSpectator() {
     let spec = els.overlay.querySelector('.pd-spec');
-    const alive = aliveOf(game).filter(u => rush() || true);
-    const list = (rush() ? Object.keys(game.participants || {}) : alive).filter(u => u !== me() || !participant() || rush());
-    if (game.phase === 'final' || !list.length) { if (spec) spec.remove(); return; }
-    if (!spec) { spec = h('div.pd-spec', h('div.pd-spec-head'), h('div.pd-spec-grid')); els.overlay.prepend(spec); }
+    const lead = game.phase === 'final' ? [] : leadersOf();
+    if (!lead.length) { if (spec) spec.remove(); return; }
+    if (!spec) {
+      spec = h('div.pd-spec', h('div.pd-spec-head'), h('div.pd-spec-grid'), h('div.pd-spec-field'));
+      spec.addEventListener('click', e => {
+        const nm = e.target.closest('.pd-spec-name[data-pid]');
+        if (!nm) return;
+        const p = player(nm.dataset.uid);
+        import('../../profile/player-page.js').then(m => m.openPlayer({ pid: nm.dataset.pid, row: { n: p.name, a: p.avatar, c: p.color } })).catch(() => {});
+      });
+      els.overlay.prepend(spec);
+    }
+    const alive = aliveOf(game).length;
     const head = spec.querySelector('.pd-spec-head');
     const call = els.ui.dataset.call;
-    const txt = `${participant() ? 'YOU’RE OUT — SPECTATING' : 'SPECTATING — YOU’RE IN NEXT MATCH'}${call && participant() ? ` · ${call}` : ''}`;
-    if (head.textContent !== txt) head.textContent = txt;
+    const out = participant() && game.out && game.out[me()];
+    const who = participant() ? (rush() ? 'WATCHING' : `YOU’RE OUT${out && out.place ? ` · ${ORD(out.place)}` : ''}`) : 'SPECTATING · YOU’RE IN NEXT MATCH';
+    const duel = !rush() && alive === 2 && Object.keys(game.participants || {}).length >= 3;
+    const txt = [duel ? 'DUEL SOON' : null, who, call && participant() && call !== 'NO CALL' ? call : null].filter(Boolean).join(' · ');
+    if (head.textContent !== txt) { head.textContent = txt; head.classList.toggle('is-duel', duel); }
     const grid = spec.querySelector('.pd-spec-grid');
-    grid.dataset.n = String(list.length);
-    const W0 = root.clientWidth || 390, H0 = root.clientHeight || 800;
-    const cols = list.length <= 2 ? list.length : list.length <= 4 ? 2 : 3;
-    const rows = Math.ceil(list.length / cols);
-    const mc = Math.max(3, Math.floor(Math.min((W0 - 32) / cols / (E.W + 1.5), (H0 - 150) / rows / (E.VISIBLE + 3))));
+    grid.dataset.n = String(lead.length);
+    // the boards: as big as two side by side allow (read only when the screen changes — the layout's own numbers)
+    const W0 = (L && L.W0) || 390, H0 = (L && L.H0) || 800;
+    const cols = lead.length;
+    const mc = Math.max(4, Math.floor(Math.min((W0 - 24 - (cols - 1) * 10) / cols / (E.W + 0.8), (H0 - 260) / (E.VISIBLE + 1))));
     const b = boards();
+    const hgt = u => (b[u] && b[u].h) || 0;
+    const danger = lead.length === 2 && !rush() ? lead.slice().sort((x, y) => hgt(y) - hgt(x))[0] : null;
     const keep = new Set();
-    for (const uid of list) {
+    for (const uid of lead) {
       keep.add(uid);
       let card = grid.querySelector(`[data-uid="${uid}"]`);
       const p = player(uid);
-      if (!card) { card = h('div.pd-spec-card', { 'data-uid': uid, style: { '--c': colorHex(p.color) } }, h('div.pd-spec-name'), h('canvas')); grid.append(card); }
+      if (!card) {
+        card = h('div.pd-spec-card', { 'data-uid': uid, style: { '--c': colorHex(p.color) } },
+          h('button.pd-spec-name', { type: 'button', dataset: { uid } }), h('div.pd-spec-frame', h('canvas')), h('div.pd-spec-stat'));
+        grid.append(card);
+      }
+      const nb = card.querySelector('.pd-spec-name');
+      if (p.pid && nb.dataset.pid !== p.pid) nb.dataset.pid = p.pid;
+      if (nb.textContent !== p.name) nb.textContent = p.name;
       const n = b[uid] || {};
-      const bd = (game.bd && game.bd[uid]) || 0;
-      const nm = `${p.name}${bd ? ` · ${bd}◆` : ''}${rush() ? ` · ${(n.sc || 0).toLocaleString('en-US')}` : ''}`;
-      const ne = card.querySelector('.pd-spec-name');
-      if (ne.textContent !== nm) ne.textContent = nm;
+      const stat = rush() ? `${(n.sc || 0).toLocaleString('en-US')} PTS` : `STACK ${hgt(uid)}${(game.ko && game.ko[uid]) ? ` · ${game.ko[uid]} KO` : ''}`;
+      const se = card.querySelector('.pd-spec-stat');
+      if (se.textContent !== stat) se.textContent = stat;
+      card.classList.toggle('is-danger', uid === danger && hgt(uid) >= 12);
       const sig = `${n.b}|${n.p}|${mc}`;
       if (miniSig[`s:${uid}`] !== sig) { miniSig[`s:${uid}`] = sig; drawMini(card.querySelector('canvas'), n.b, n.p, { cell: mc }); }
     }
     for (const c of [...grid.children]) if (!keep.has(c.dataset.uid)) c.remove();
+    // the rest of the field, one line: initial · stack height (or KO)
+    const rest = Object.keys(game.participants || {}).filter(u => !keep.has(u));
+    const field = spec.querySelector('.pd-spec-field');
+    const fsig = rest.map(u => `${u}:${game.out && game.out[u] ? 'KO' : hgt(u)}`).join('|');
+    if (field.dataset.sig !== fsig) {
+      field.dataset.sig = fsig;
+      put(field, rest.map(u => {
+        const p = player(u);
+        const ko = !rush() && game.out && game.out[u];
+        return h('span.pd-spec-p', { class: ko ? 'is-ko' : null, style: { '--c': colorHex(p.color) } }, h('b', [...String(p.name || '?')][0].toUpperCase()), h('i', ko ? 'KO' : String(hgt(u))));
+      }));
+    }
   }
 
   // ================================================================ title card, countdown, end, finale
@@ -855,7 +1021,7 @@ export function createView() {
       songEl.dataset.sig = songSig;
       // the world is the headline; the track, its key and tempo underneath
       put(songEl,
-        h('small', rush() ? 'SCORE RUSH · ONE SONG' : 'BATTLE · LAST ONE STANDING'),
+        h('small', rush() ? `SCORE RUSH · ${solo() ? 'SOLO · ' : ''}ONE SONG` : surv() ? (solo() ? 'SURVIVAL · AS LONG AS YOU CAN' : 'SURVIVAL · LAST ONE STANDING') : 'BATTLE · LAST ONE STANDING'),
         h('b', w ? w.name : 'PRISM DROP'),
         w ? h('em', w.variants[variantOf(0)].name) : null,
         doc ? h('span', `${String(doc.title || '').toUpperCase()} · ${doc.key} ${doc.mode.toUpperCase()} · ${Math.round(doc.bpm)} BPM`) : null);
@@ -907,13 +1073,18 @@ export function createView() {
 
   function showEnd() {
     if (rush()) return; // the finale already played on the last beat
+    // (PD-2) the facts PD-5's cards read (the perfect clears, the danger zone) — the winner's save, written before the board shatters
+    if (participant() && eng && !eng.over) publish(true);
     const w = game.winner;
-    if (w === me()) {
+    if (solo()) {
+      const o = game.out && game.out[me()];
+      titleCard('SURVIVED', mmss(((o && o.at) || serverNow()) - game.playStartAt), 3600);
+    } else if (w === me()) {
       synth.play('finale');
       shatterBoard();
       fxs.waveT = 0; fxs.bloom = 1.2;
       titleCard('VICTORY', 'LAST ONE STANDING', 3600);
-    } else titleCard(w ? `${player(w).name} WINS` : 'NO SURVIVORS', 'BATTLE OVER', 3600);
+    } else titleCard(w ? `${player(w).name} WINS` : 'NO SURVIVORS', surv() ? 'SURVIVAL OVER' : 'BATTLE OVER', 3600);
     songPlayer.fadeOutAt(serverNow() + 2600);
   }
 
@@ -949,10 +1120,26 @@ export function createView() {
     if (announceQ.length) setTimeout(pumpAnnounce, 1270);
   }
 
-  function floatText(text) {
-    const el = h('div.pd-float', text);
-    els.boardWrap.append(el);
-    setTimeout(() => el.remove(), 900);
+  // ================================================================ THE TIP (PD-2): one line, the first BATTLE on this device, at GO
+  function watchTip(now) {
+    if (tipDone || !battle() || !participant() || game.phase !== 'play' || !eng || eng.over) return;
+    const since = now - game.playStartAt;
+    if (since < 800) return;
+    tipDone = true;
+    let seen = false;
+    try { seen = localStorage.getItem(TIPKEY) === '1'; localStorage.setItem(TIPKEY, '1'); } catch { /* private mode: show it */ }
+    if (seen || since > 8000) return;
+    tipEl = h('div.pd-tip', { role: 'note' }, TIP);
+    els.boardWrap.append(tipEl);
+    const el = tipEl;
+    setTimeout(() => { if (tipEl === el) hideTip(); }, 4800);
+  }
+  function hideTip() {
+    const el = tipEl;
+    tipEl = null;
+    if (!el) return;
+    el.classList.add('is-out');
+    setTimeout(() => el.remove(), 320);
   }
 
   function bump(el, cls) {
@@ -1006,8 +1193,25 @@ export function createView() {
       stopBot: () => { bot = null; },
       topOut: () => { if (eng) { E.insertJunk(eng, 40, 0); handleEvents(); } },
       junk: (n = 1, gap = 0) => { if (eng) { E.insertJunk(eng, n, gap); handleEvents(); } },
-      target: () => ({ mode: tMode, target }),
-      setTargetMode: m => { tMode = m; lastTargetPick = 0; pickTarget(true); return target; },
+      target: () => ({ target, hitBy: attackersOf(attackersRecent) }),   // (PD-2 — AUTO-TARGET: no modes, no button)
+      // (PD-2) the ghost rows, the tag, the callouts, the tip, the KO card + spectating — for the E2E + the preview
+      incoming: (n = 3, from = null, delayMs = 1000) => { if (eng) { E.receive(eng, { n, gap: Math.floor(Math.random() * E.W), from, delayMs }); handleEvents(); } },
+      ghost: () => ({ bands: incomingNow(), rows: ghostGeo.length, tag: lastTag }),
+      // a clear cancelling n incoming rows, down the real path (the engine's own counter: the oldest attack first → the shatter + BLOCKED!)
+      counter: (n = 2) => {
+        if (!eng) return;
+        let k = n, done = 0;
+        while (k > 0 && eng.pending.length) { const q = eng.pending[0]; const t = Math.min(q.n, k); q.n -= t; k -= t; done += t; if (!q.n) eng.pending.shift(); }
+        if (done) { eng.events.push({ e: 'counter', n: done }); handleEvents(); }
+      },
+      callouts: () => (calls ? calls.log.slice() : []),
+      callout: (text, kind = 'clear') => calls && calls.announce(text, kind),
+      // the preview's still: the announcer's own element, held (no timers) — a shot never misses it
+      calloutHold: (text, kind = 'clear') => { els.callout.replaceChildren(h(`div.pd-ann-in.is-${kind}`, { style: { animation: 'none', '--len': String([...String(text).split('\n')[0]].length) } }, text)); },
+      tip: () => !!tipEl,
+      showTip: () => { tipDone = false; try { localStorage.removeItem(TIPKEY); } catch { /* */ } },
+      spec: () => ({ on: root.classList.contains('is-spectating'), lead: [...els.overlay.querySelectorAll('.pd-spec-card')].map(c => c.dataset.uid), head: (els.overlay.querySelector('.pd-spec-head') || {}).textContent || '', field: els.overlay.querySelectorAll('.pd-spec-p').length }),
+      ko: () => (els.boardWrap.querySelector('.pd-ko') || {}).textContent || '',
       audio: () => songPlayer.debug(),
       synthLog: () => synth.log.slice(),
       scale: () => synth.scale(),

@@ -85,7 +85,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   const el = h('div.panel-full.final', solo ? { class: 'is-solo' } : null,
     h('div.sheet-kicker', kicker),
     h('div.winner', h('div.winner-title', { 'data-text': word, class: tied ? 'is-tied' : null }, word),
-      h('div.winner-name', solo ? `${winner ? winner.name : ''}${rows[0] && rows[0].score != null ? ` · ${rows[0].score}` : ''}`.toUpperCase() : tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),
+      h('div.winner-name', solo ? `${winner ? winner.name : ''}${rows[0] && rows[0].score != null ? ` · ${rows[0].scoreText || rows[0].score}` : ''}`.toUpperCase() : tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),
     body || podium,
     rcSlot,
     actions,

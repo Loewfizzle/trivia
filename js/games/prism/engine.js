@@ -111,6 +111,7 @@ export function createEngine({ seed, level = 1, mode = 'rush' } = {}) {
     clock: 0,             // engine ms
     acc: 0, fall: 0, lockT: 0, resets: 0, lowest: 99, lastRot: null,
     over: false, sd: 0,
+    peak: 0,              // (PD-2) the tallest the settled stack has been — COMEBACK's danger zone (logic.js#DANGER_ZONE_ROWS)
     events: [],
     stats: { pieces: 0, quads: 0, twists: 0, pcs: 0 },
   };
@@ -341,6 +342,7 @@ function lock(g) {
     }
     g.combo = -1;
   }
+  notePeak(g);
   // battle: counter incoming junk with this clear, then send the rest; with no clear, due junk lands
   if (g.mode === 'battle') {
     if (attack > 0) {
@@ -371,7 +373,7 @@ function lock(g) {
 /** Queue incoming junk (battle). delayMs: how long until it may land. */
 export function receive(g, { n, gap, from = null, id = null, delayMs = 1000 }) {
   if (g.over || n <= 0) return;
-  g.pending.push({ n, g: gap, from, id, at: g.clock + delayMs });
+  g.pending.push({ n, g: gap, from, id, at: g.clock + delayMs, t0: g.clock });   // (PD-2: t0 = when it arrived — the ghost rows rise over [t0, at])
   g.events.push({ e: 'incoming', n, from });
 }
 
@@ -405,7 +407,14 @@ export function insertJunk(g, count, gap, from = null) {
     if (!fits(g, g.cur) || cellsOf(g.cur).some(c => c[1] >= H)) { topOut(g, 'junk'); return; }
     g.lowest = Math.min(g.lowest + count, g.cur.y);
   }
+  notePeak(g);
   g.events.push({ e: 'junk', n: count, from, gap });
+}
+
+/** (PD-2) the settled stack's peak height (only the visible rows count — a top-out isn't a danger zone survived) */
+function notePeak(g) {
+  const h = Math.min(VISIBLE, stackHeight(g));
+  if (h > g.peak) g.peak = h;
 }
 
 /** Highest filled row + 1 (0 = empty board). */
@@ -470,6 +479,7 @@ export function save(g) {
     pd: g.pending.map(q => [q.n, q.g, q.from || '', q.id || '']), sd: g.sd, best: g.best ? g.best.k : '',
     st: [g.stats.pieces, g.stats.quads, g.stats.twists, g.stats.pcs],
     ct: g.cur ? g.cur.t : 0, // the piece in play (after a hold swap it isn't the queue's piece n)
+    pk: g.peak,              // (PD-2) the stack's peak height
   };
 }
 
@@ -477,8 +487,9 @@ export function restore(g, s) {
   loadBoard(g, s.b || '');
   g.n = s.n || 0; g.hold = s.h || 0; g.held = !!s.hd; g.level = s.lv || 1; g.lines = s.ln || 0; g.score = s.sc || 0;
   g.combo = s.cb ?? -1; g.maxCombo = s.mc || 0; g.b2b = !!s.bb; g.b2bCount = s.bc || 0; g.sent = s.se || 0; g.frac = s.fr || 0;
-  g.pending = (s.pd || []).map(([n, gap, from, id]) => ({ n, g: gap, from: from || null, id: id || null, at: g.clock }));
+  g.pending = (s.pd || []).map(([n, gap, from, id]) => ({ n, g: gap, from: from || null, id: id || null, at: g.clock, t0: g.clock }));
   g.sd = s.sd || 0;
+  g.peak = s.pk || 0;
   g.best = s.best ? { k: s.best, rank: CLEAR_RANK[s.best] || 0 } : null;
   const st = s.st || [];
   g.stats = { pieces: st[0] || 0, quads: st[1] || 0, twists: st[2] || 0, pcs: st[3] || 0 };

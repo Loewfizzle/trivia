@@ -6,6 +6,8 @@
 //     candidates: uids still in (not me) — needs ≥ 2;  path: `rooms/${code}/glcall/${matchId}/${me}`
 //     line(uid) → the small text under a name;  intro(n) → the sentence;  ended() → true once the match is over
 //     onState(msg) → 'YOUR CALL · NAME' | 'NO CALL' (the HUD shows it);  sfx() on a pick
+//     ring: true → a COUNTDOWN RING beside the title (PD-2 — PRISM DROP): RING_TICKS ticks round a circle go out one by one + the seconds left
+//       in its middle (opacity only — never a repaint), in place of the bar
 import { h } from '../../ui/dom.js';
 import { avatar } from '../../ui/components.js';
 import { toast } from '../../ui/toast.js';
@@ -14,9 +16,10 @@ import { dbRef, update as dbUpdate, serverTimestamp, serverNow } from '../../fir
 import { vibrate } from '../../ui/dom.js';
 import { CALL_MS } from '../../core/playlist.js';
 
+const RING_TICKS = 20;
 const cls = (prefix, name) => (prefix && prefix !== 'mk' ? `${prefix}-${name}` : `mk-${name}`);
 
-export function showCall({ overlay, prefix = 'mk', game, st, me, player, candidates, path, line, intro, ended, onState, sfx, avatarSize = 40, isDestroyed }) {
+export function showCall({ overlay, prefix = 'mk', game, st, me, player, candidates, path, line, intro, ended, onState, sfx, avatarSize = 40, isDestroyed, ring = false }) {
   const alive = candidates;
   if (alive.length < 2) return null;
   const endsAt = ((game.out && game.out[me] && game.out[me].at) || serverNow()) + CALL_MS;
@@ -30,8 +33,12 @@ export function showCall({ overlay, prefix = 'mk', game, st, me, player, candida
     return h(`button.${cls(prefix, 'call-pick')}`, { type: 'button', style: { '--c': colorHex(p.color) }, onclick: () => pick(uid) },
       avatar(p.avatar, p.color, avatarSize), h('b', p.name), line ? h('small', line(uid)) : null);
   }));
-  const el = h(`div.${cls(prefix, 'call')}`, { 'data-nogesture': '' }, h(`div.${cls(prefix, 'kicker')}`, 'CALL THE WINNER'),
-    h('p', intro ? intro(alive.length) : `${alive.length} left — a right call earns game-night points.`), grid, h(`div.${cls(prefix, 'call-bar')}`, bar));
+  const ticks = ring ? Array.from({ length: RING_TICKS }, (_, i) => h('i', { style: { transform: `rotate(${(360 / RING_TICKS) * i}deg)` } })) : [];
+  const secs = h('b');
+  const ringEl = ring ? h(`div.${cls(prefix, 'call-ring')}`, { 'aria-hidden': 'true' }, ticks, secs) : null;
+  const el = h(`div.${cls(prefix, 'call')}`, { 'data-nogesture': '', class: ring ? 'has-ring' : null },
+    h(`div.${cls(prefix, 'call-top')}`, h(`div.${cls(prefix, 'kicker')}`, 'CALL THE WINNER'), ringEl),
+    h('p', intro ? intro(alive.length) : `${alive.length} left — a right call earns game-night points.`), grid, ring ? null : h(`div.${cls(prefix, 'call-bar')}`, bar));
   overlay.append(el);
   function pick(uid) {
     if (picked || serverNow() > endsAt) return;
@@ -48,7 +55,12 @@ export function showCall({ overlay, prefix = 'mk', game, st, me, player, candida
   }
   const iv = setInterval(() => {
     const left = endsAt - serverNow();
-    bar.style.transform = `scaleX(${Math.max(0, left / CALL_MS)})`;
+    if (ring) {
+      const lit = Math.ceil(Math.max(0, left / CALL_MS) * RING_TICKS);
+      ticks.forEach((t, i) => { const on = i < lit; if (t.classList.contains('is-off') === on) t.classList.toggle('is-off', !on); });
+      const n = String(Math.max(0, Math.ceil(left / 1000)));
+      if (secs.textContent !== n) secs.textContent = n;
+    } else bar.style.transform = `scaleX(${Math.max(0, left / CALL_MS)})`;
     if (left <= 0 || picked || (isDestroyed && isDestroyed()) || (ended && ended())) { clearInterval(iv); if (!picked) close('NO CALL'); }
   }, 100);
   return el;

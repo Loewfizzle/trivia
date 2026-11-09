@@ -1,29 +1,34 @@
-// PRISM DROP — THE THIN META (SHELL 2.0 B1 — THE CONTRACT, D1: docs/cartridge.md "THE THIN META + LAZY LOGIC"). What the CONSOLE reads
-// before a match — the options sheet, the GAMES list's minutes, the banner, the chat's lock, the music. PURE + tiny: no DOM, no engine, no
-// songs (registry.js imports this at boot; index.js + its logic load at the game start — games/registry.js#loadGame). logic.js and
-// index.js take these from here (one source).
-export const MODES = ['battle', 'rush'];
+// PRISM DROP — THE THIN META (docs/cartridge.md): what the console reads at boot. PURE + tiny; logic.js + index.js take these from here.
+export const MODES = ['battle', 'rush', 'survival'];
 export const DEFAULT_SETTINGS = { mode: 'battle' };
 export const MIN_PLAYERS = 2;
+// (PD-2 — THE SOLO LANE: one player may start SCORE RUSH or SURVIVAL; BATTLE needs 2 — cleanSettings(s, players))
+export const SOLO = true;
+export const SOLO_MODES = ['rush', 'survival'];
 
 export const MUSIC = null;                 // (the songs are the music)
 export const BANNER_NAME = 'PRISM DROP';
-// (PD-1 — THE CONSOLE'S PODIUM: the end screen's main tube in PRISM's light — the theme's spectral cyan; the console's winner sting plays — no OWN_VICTORY_SOUND)
+// (PD-1: the podium frame's tube in PRISM's spectral cyan)
 export const ACCENT = '#8fd8ff';
 
-export function cleanSettings(s = {}) {
-  return { mode: MODES.includes(s.mode) ? s.mode : DEFAULT_SETTINGS.mode };
+/** players (optional): one player never plays BATTLE (→ SCORE RUSH) */
+export function cleanSettings(s = {}, players = 0) {
+  let mode = MODES.includes(s.mode) ? s.mode : DEFAULT_SETTINGS.mode;
+  if (players === 1 && !SOLO_MODES.includes(mode)) mode = SOLO_MODES[0];
+  return { mode };
 }
 
 export const OPTIONS = [
   { key: 'mode', label: 'MODE', type: 'list', choices: [
-    { value: 'battle', label: 'BATTLE', sub: 'Clear lines to send junk — last one standing wins' },
+    { value: 'battle', label: 'BATTLE', sub: 'Clear lines to attack your friends — last one standing wins', when: n => n >= 2 },
     { value: 'rush', label: 'SCORE RUSH', sub: 'No attacks — one song, highest score wins' },
+    { value: 'survival', label: 'SURVIVAL', sub: 'Junk rises for everyone, faster and faster — last one standing wins' },
   ] },
 ];
 
 export function estimateMinutes(settings, songMinutes = 3.2) {
-  return cleanSettings(settings).mode === 'rush' ? Math.round(songMinutes + 1) : 5;
+  const m = cleanSettings(settings).mode;
+  return m === 'rush' ? Math.round(songMinutes + 1) : m === 'survival' ? 3 : 5;
 }
 
 /** THE CARTRIDGE PLUG — the chat's lock: shut while your board is in play (count + play), open once you're out or watching */

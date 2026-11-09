@@ -82,7 +82,7 @@ test('MUSIC BY MOOD: a cartridge may say MUSIC: "mood:<mood>" — every mood has
 test('THE SOLO LANE (the server): a SOLO cartridge alone counts — no win, no placing, its record on the SOLO board; a non-solo game alone does not', async () => {
   const { finalGame } = await import('./fixtures/finals.mjs');
   const { extractMatch, unreportable, SOLO_OK } = await import('../js/core/match-report.js');
-  assert.deepEqual(SOLO_OK, { overclock: true, prism: false });
+  assert.deepEqual(SOLO_OK, { overclock: true, prism: true });   // (PD-2: PRISM DROP's SCORE RUSH + SURVIVAL went solo)
   const oc = finalGame('overclock', ['solo1']);
   assert.equal(unreportable(oc), null, 'OVERCLOCK alone is reportable');
   const ex = extractMatch(oc);
@@ -91,7 +91,8 @@ test('THE SOLO LANE (the server): a SOLO cartridge alone counts — no win, no p
   assert.equal(r.win, false, 'never a win'); assert.equal(r.solo, true); assert.ok(!r.c.w, 'no win counter');
   assert.ok(!('overclock-std' in r.rec), 'never the multiplayer board');
   for (const b of Object.keys(r.rec)) assert.match(b, /-solo$/);
-  assert.equal(unreportable(finalGame('prism', ['solo1'])), 'too few players', 'PRISM DROP needs two');
+  assert.equal(unreportable(finalGame('prism', ['solo1'])), null, 'PRISM DROP alone is reportable (PD-2)');
+  assert.equal(unreportable(finalGame('gridlock', ['solo1'])), 'too few players', 'a non-solo game alone is not');
   assert.equal(unreportable({ ...oc, participants: {} }), 'too few players');
   const two = extractMatch(finalGame('overclock', ['a', 'b']));
   assert.equal(two.solo, false); assert.ok(Object.values(two.rows).some(x => x.win), 'two players: a winner as before');

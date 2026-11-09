@@ -13,23 +13,30 @@ import { drawMini } from './board.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 const rushOf = game => !!(game && game.settings && game.settings.mode === 'rush');
+const survOf = game => !!(game && game.settings && game.settings.mode === 'survival');   // (PD-2)
+const soloOf = game => !!(game && Object.keys(game.participants || {}).length === 1);
+const mmss = ms => { const s = Math.max(0, Math.round((ms || 0) / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
 /** the line under a player on the podium */
 export function noteFor(game, uid) {
   const r = (game.results && game.results[uid]) || {};
   if (rushOf(game)) return `${r.ln || 0} LINES · LV ${r.lv || 1} · COMBO ${r.mc || 0}`;
+  if (survOf(game)) return `SURVIVED ${mmss(r.t)} · ${r.ln || 0} LINES`;
   return `${r.ko || 0} KO · ${r.se || 0} SENT`;
 }
 /** the rows the frame + the body share (the score each mode ranks by) */
 export function finalRows(game) {
-  const rush = rushOf(game);
-  return standings(game).map(r => ({ ...r, score: rush ? r.score : ((game.results && game.results[r.uid] && game.results[r.uid].ko) || 0), note: noteFor(game, r.uid) }));
+  const rush = rushOf(game), surv = survOf(game);
+  // (SURVIVAL: the seconds survived — scoreText "2:31" for the frame's solo line)
+  return standings(game).map(r => ({ ...r, score: rush || surv ? r.score : ((game.results && game.results[r.uid] && game.results[r.uid].ko) || 0),
+    ...(surv ? { scoreText: mmss(((game.results && game.results[r.uid]) || {}).t) } : {}), note: noteFor(game, r.uid) }));
 }
 
 /** the winner's one line: BATTLE = KOs + lines sent · SCORE RUSH = points + lines + the best combo */
 export function momentLine(game, uid) {
   const r = (game.results && game.results[uid]) || {};
   if (rushOf(game)) return [`${fmtNum(r.sc || 0)} POINTS`, `${r.ln || 0} LINES`, r.mc ? `BEST COMBO ×${r.mc}` : null].filter(Boolean).join(' · ');
+  if (survOf(game)) return `SURVIVED ${mmss(r.t)} · ${r.ln || 0} LINE${r.ln === 1 ? '' : 'S'}`;
   const ko = r.ko || 0, se = r.se || 0;
   return `${ko} KNOCKOUT${ko === 1 ? '' : 'S'} · ${se} LINE${se === 1 ? '' : 'S'} SENT`;
 }
@@ -54,7 +61,7 @@ export function finalScene(el, game, state) {
     moment.append(h('div.pd-fs-frame', c));
   }
   moment.append(h('div.pd-fs-line',
-    h('small', 'THE WINNING BOARD'),
+    h('small', soloOf(game) ? 'YOUR LAST BOARD' : 'THE WINNING BOARD'),
     h('b', w.name),
     h('span', momentLine(game, top.uid))));
   // the top 3 as the console's slim cards (the frame's list starts at 4th); a name → THE PLAYER PAGE
@@ -74,11 +81,11 @@ export function finalScene(el, game, state) {
 
 /** the console's podium frame (ui/final.js) with PRISM's rows → its body comes from finalScene (index.js) */
 export function buildFinal({ game, st, me }) {
-  const rush = rushOf(game);
+  const rush = rushOf(game), surv = survOf(game);
   const finalView = createFinal({
-    rows: finalRows(game), players: st.players, me, presence: st.presence, scoreLabel: rush ? 'PTS' : 'KO',
-    kicker: rush ? 'SCORE RUSH · FINAL' : 'BATTLE · FINAL',
-    winnerLine: nm => (rush ? `${nm} TOPS THE SONG` : `${nm} IS THE LAST ONE STANDING`),
+    rows: finalRows(game), players: st.players, me, presence: st.presence, scoreLabel: rush ? 'PTS' : surv ? 'SEC' : 'KO',
+    kicker: rush ? 'SCORE RUSH · FINAL' : surv ? 'SURVIVAL · FINAL' : 'BATTLE · FINAL',
+    winnerLine: nm => (rush ? `${nm} TOPS THE SONG` : surv ? `${nm} OUTLASTED EVERYONE` : `${nm} IS THE LAST ONE STANDING`),
   });
   return { finalView, wrap: h('div.pd-final', finalView.el) };
 }

@@ -69,7 +69,7 @@ export function createFx(canvas) {
     /**
      * Shatter cleared cells: cells [{ x, y (css px, canvas space), color }], from: centre the shards fly away from.
      */
-    shatter(cells, { cx, cy, power = 1 } = {}) {
+    shatter(cells, { cx, cy, power = 1, life = 0, size = 1 } = {}) {   // (PD-2: life (ms) + size — the ghost rows' short ~0.5 s burst)
       const per = power >= 1 ? 3 : 2;
       for (const c of cells) {
         for (let k = 0; k < per; k++) {
@@ -80,8 +80,8 @@ export function createFx(canvas) {
             x: c.x + (Math.random() - 0.5) * 10, y: c.y + (Math.random() - 0.5) * 10,
             vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 0.05,
             r: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.012,
-            s: 10 + Math.random() * 16, z: 0, vz: 0.0006 + Math.random() * 0.0008,
-            life: 0, max: 1100 + Math.random() * 900, color: c.color,
+            s: (10 + Math.random() * 16) * size, z: 0, vz: 0.0006 + Math.random() * 0.0008,
+            life: 0, max: life ? life * (0.8 + Math.random() * 0.4) : 1100 + Math.random() * 900, color: c.color,
           });
         }
       }

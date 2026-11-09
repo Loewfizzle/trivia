@@ -2,15 +2,18 @@
 // count (title card, song starts, 3-2-1 on the beat) -> play -> end (last KO / finale) -> final.
 // Every phone simulates its own board; the director only reads what players publish (prism/{m}/{uid}):
 // who topped out (and who sent the junk that did it), stats for the results, and Call the Winner picks.
+// PD-2: SURVIVAL eliminates like BATTLE (topped out / gone) with no KO credit; a SOLO match (one player — SCORE RUSH or SURVIVAL) ends when
+// the song does / you top out. The results carry what PD-5's cards need: KOs (ko), perfect clears (pc), the danger-zone flag (dz — BATTLE:
+// your stack reached the top 5 rows) + SURVIVAL's time survived (t, ms).
 import {
-  cleanSettings, aliveOf, applyKo, callBonus, songsUsed, OFFLINE_OUT_MS, END_MS,
+  cleanSettings, aliveOf, applyKo, callBonus, songsUsed, OFFLINE_OUT_MS, END_MS, DANGER_ZONE_ROWS,
 } from './logic.js';
 
 /**
  * opts: { matchId, settings, participants, now, seed, songs: [ids], sd: [ms], pl0, songStartAt, playStartAt, endAt? }
  */
 export function createGame({ matchId, settings, participants, now, seed, songs, sd, pl0, songStartAt, playStartAt, endAt = null }) {
-  const s = cleanSettings(settings);
+  const s = cleanSettings(settings, Object.keys(participants || {}).length);
   return {
     id: 'prism',
     matchId,
@@ -49,7 +52,8 @@ export function nextStep(game, ctx) {
         if (now < game.endAt) return null;
         return { phase: 'end', phaseStartAt: now, phaseEndsAt: now + END_MS };
       }
-      // battle: who is out (topped out, or gone too long)
+      // battle + SURVIVAL: who is out (topped out, or gone too long)
+      const surv = game.settings.mode === 'survival';
       const out = { ...(game.out || {}) };
       let alive = aliveOf(game);
       const fresh = [];
@@ -58,7 +62,7 @@ export function nextStep(game, ctx) {
         const pres = ctx.presence && ctx.presence[uid];
         const gone = !(ctx.online && ctx.online[uid]) && (!pres || !pres.lastSeen || now - pres.lastSeen >= OFFLINE_OUT_MS)
           && now - game.playStartAt >= OFFLINE_OUT_MS;
-        if (b && b.st === 'out') fresh.push({ uid, at: b.at || now, by: validBy(game, b.by, uid) });
+        if (b && b.st === 'out') fresh.push({ uid, at: b.at || now, by: surv ? null : validBy(game, b.by, uid) });
         else if (gone) fresh.push({ uid, at: now, by: null, gone: true });
       }
       if (!fresh.length) return null;
@@ -76,7 +80,8 @@ export function nextStep(game, ctx) {
       patch.bd = bd;
       patch.ko = ko;
       if (alive.length === 2 && (game.n0 || 0) >= 3 && !game.duelAt) patch.duelAt = now;
-      if (alive.length <= 1) {
+      // the end: one left (a solo match: none — you play until you top out)
+      if (alive.length <= ((game.n0 || 0) >= 2 ? 1 : 0)) {
         patch.phase = 'end';
         patch.phaseStartAt = now;
         patch.phaseEndsAt = now + END_MS;
@@ -88,15 +93,23 @@ export function nextStep(game, ctx) {
     case 'end': {
       if (now < game.phaseEndsAt) return null;
       const results = {};
+      const mode = game.settings.mode;
       for (const uid of Object.keys(game.participants || {})) {
         const b = boards[uid] || {};
-        results[uid] = {
+        const sv = b.sv || {};
+        const pc = Math.max(0, Math.min(99, Number((sv.st || [])[3]) || 0));
+        const r = results[uid] = {
           sc: b.sc || 0, ln: b.ln || 0, lv: b.lv || 1, mc: Math.max(0, b.mc || 0), se: b.se || 0, best: b.best || '',
-          ko: (game.ko && game.ko[uid]) || 0, bd: (game.bd && game.bd[uid]) || 0,
+          ko: (game.ko && game.ko[uid]) || 0, bd: (game.bd && game.bd[uid]) || 0, pc,
         };
+        if (mode === 'battle' && (Number(sv.pk) || 0) >= DANGER_ZONE_ROWS) r.dz = 1;
+        if (mode === 'survival') {
+          const o = game.out && game.out[uid];
+          r.t = Math.max(0, (o ? o.at : game.phaseStartAt) - game.playStartAt);
+        }
       }
       const calls = {};
-      if (game.settings.mode === 'battle') {
+      if (mode !== 'rush') {
         const winner = game.winner || aliveOf(game)[0] || null;
         for (const [uid, c] of Object.entries((ctx.live && ctx.live.calls) || {})) {
           if (!c || !c.w || !game.out || !game.out[uid]) continue;

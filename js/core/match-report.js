@@ -290,8 +290,12 @@ const SOLO_PLAYED = {
   overclock: (game, uid) => vals(game.results).some(rr => { const x = rr && rr[uid]; return !!x && (num(x.ok) > 0 || num(x.pts) > 0); }),
   prism: (game, uid) => { const r = (game.results || {})[uid] || {}; return num(r.sc) > 0 || num(r.ln) > 0; },
 };
+// (PD-2 — PRISM DROP's solo SURVIVAL: the standings' score is the SECONDS SURVIVED, which a phone on the table earns too (the pieces fall + lock
+//  by themselves) — so PRISM's own check decides alone: points or lines (a solo SCORE RUSH's score IS its points — the same answer))
+const SOLO_PLAYED_ONLY = new Set(['prism']);
 export function soloEmpty(game, uid, row = {}) {
   const f = SOLO_PLAYED[game && game.id];
+  if (f && SOLO_PLAYED_ONLY.has(game.id)) return !f(game, uid);
   return !(num(row.score) > 0 || (f ? f(game, uid) : false));
 }
 
