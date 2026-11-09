@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YOU → FRIENDS — preview</title>
+<link rel="icon" href="data:,">
+<!-- BOARD 2.0 B — THE FRIENDS LIST as SLIM CARDS without Firebase or /api: the REAL js/profile/friends-ui.js#friendsSection through an import map
+     (fake-firebase + fake-daily-api, which answers `profile friends` from window.__dyFriends).
+       ?here=2      the first N friends are IN YOUR ROOM (a room with them online — the green dot, listed first)
+       &n=8         how many friends (the top 5 + "All n friends")
+       &all=1       the "All n friends" sheet open
+       &none=1      no friends yet -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/board.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js", "/js/profile/api.js": "/tests/integration/fake-daily-api.js" } }</script>
+<style>html, body { margin: 0; background: #0b0612; } #pane { height: 100dvh; overflow-y: auto; box-sizing: border-box; padding: calc(var(--safe-t) + 18px) 16px 40px; background: radial-gradient(120% 60% at 50% 0%, #2a1030, #0b0612 60%); } #pane > * { max-width: 520px; margin: 0 auto; }</style>
+</head>
+<body>
+<div id="pane"></div>
+<script type="module">
+const q = new URLSearchParams(location.search);
+if (!q.get('labmarks') || !q.get('slot')) { if (!q.get('labmarks')) q.set('labmarks', 'all'); q.set('slot', 'pv'); history.replaceState(null, '', `?${q}`); }
+try { localStorage.setItem('na:pv:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); localStorage.setItem('na:pv:me', JSON.stringify({ uid: 'pv', pid: 'P_ava', profile: { n: 'AVA', t: '0042', l: 12, x: 2600, a: 'bolt', c: 'magenta', cd: 'card-marquee' } })); } catch { /* fine */ }
+try { localStorage.removeItem('ns:fr:v1'); } catch { /* fine */ }
+const F = (pid, n, a, c, cd, l, wx) => ({ pid, n, a, c, l, x: l * 220, cd, es: null, g: null, tb: null, mn: null, t: '0000', wx });
+const ALL = [
+  F('P_nova', 'NOVA', 'star', 'cyan', 'card-sg-aurora', 44, 1240), F('P_max', 'MAXIMILIANOS', 'wave', 'orange', 'card-inferno', 26, 380),
+  F('P_kim', 'KIM', 'hex', 'yellow', 'card-chrome', 30, 2210), F('P_dex', 'DEX', 'moon', 'green', null, 9, 640),
+  F('P_luna', 'LUNA', 'diamond', 'violet', 'card-heartbreaker', 19, 120), F('P_rook', 'ROOK', 'bolt', 'red', 'card-velvet', 12, 0),
+  F('P_iris', 'IRIS', 'eye', 'magenta', 'card-emerald', 33, 905), F('P_bo', 'BO', 'crown', 'yellow', 'card-carbon', 7, 55),
+];
+window.__dyFriends = q.has('none') ? [] : ALL.slice(0, Number(q.get('n') || 8));
+const { state } = await import('/js/store.js');
+state.uid = 'pv';
+const here = Number(q.get('here') || 0);
+if (here) {
+  state.code = 'MINT';
+  state.players = Object.fromEntries(ALL.slice(0, here).map((f, i) => [`u${i}`, { name: f.n, pid: f.pid }]));
+  state.presence = Object.fromEntries(ALL.slice(0, here).map((f, i) => [`u${i}`, { online: true, lastSeen: Date.now() }]));
+}
+const { installEmblems } = await import('/js/ui/emblems.js');
+installEmblems();
+const { friendsSection, frSheet } = await import('/js/profile/friends-ui.js');
+await frSheet();
+document.getElementById('pane').append(friendsSection());
+for (let i = 0; i < 80 && !document.querySelector('.fr-cards[data-strips]') && !document.querySelector('.fr-empty'); i++) await new Promise(r => setTimeout(r, 50));
+if (q.has('all')) { const b = document.querySelector('.fr-all'); if (b) b.click(); await new Promise(r => setTimeout(r, 900)); }
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

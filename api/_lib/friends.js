@@ -11,6 +11,7 @@ import { boardDef } from '../../js/core/boards.js';
 import { FR, FR_WHY, friendStep, relOf, fresh, suggestions, recentPatch, inviteLive } from '../../js/core/friends.js';
 import { sendPush, okEndpoint, vapid } from './push.js';
 import { presenceOnline } from '../../js/core/room-logic.js';
+import { weekXp } from '../../js/core/progress.js';
 import { createHash } from 'node:crypto';
 
 const node = async pid => (await val(`pfr/${pid}`)) || {};
@@ -36,7 +37,10 @@ export async function friendsState(pid, now = Date.now()) {
   for (const k of ['in', 'out']) for (const p of Object.keys(A[k] || {})) if (!X[k][p]) gone[`pfr/${pid}/${k}/${p}`] = null;
   if (Object.keys(gone).length) await ref('/').update(gone);
   const sug = suggestions(A, pid, now);
-  const [friends, inn, out, blocked, recent] = await Promise.all([cards(X.f), cards(X.in), cards(X.out), cards(X.b), cards(X.rp, sug)]);
+  const [friends0, inn, out, blocked, recent] = await Promise.all([cards(X.f), cards(X.in), cards(X.out), cards(X.b), cards(X.rp, sug)]);
+  // (BOARD 2.0 B — THE FRIENDS LIST as slim cards, by THIS WEEK's XP: each FRIEND's week counter (pstats/{pid}/xw — the OVERALL board's own number), the
+  //  friends only — never a request, a block or a suggestion; the existing read, no new function)
+  const friends = await Promise.all(friends0.map(async c => ({ ...c, wx: weekXp({ xw: await val(`pstats/${c.pid}/xw`) }, now) })));
   return { friends, in: inn, out, blocked, recent: recent.map(c => ({ ...c, rel: relOf(A, pid, c.pid, now) })), caps: { max: FR.max, outMax: FR.outMax } };
 }
 

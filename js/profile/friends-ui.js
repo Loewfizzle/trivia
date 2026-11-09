@@ -13,6 +13,9 @@ import { toast } from '../ui/toast.js';
 import { openPfSheet } from './sheets.js';
 import { loadFriends, friendsNow, onFriends, relOf, relOfBid, friendDo } from './friends.js';
 import { FR_WHY } from '../core/friends.js';
+import { state } from '../store.js';
+import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
+import { presenceOnline } from '../core/room-logic.js';
 
 let css = null;
 export function frSheet() {
@@ -98,8 +101,15 @@ export function friendsSection(o = {}) {
     const kids = [];
     if (S.in.length) kids.push(h('div.fr-group.fr-req', h('h4.fr-gh', `REQUESTS · ${S.in.length}`), ...S.in.map(reqRow)));
     if (S.friends.length) {
-      kids.push(h('div.fr-group.fr-list', ...S.friends.slice(0, SHOW).map(friendRow)));
-      if (S.friends.length > SHOW) kids.push(row({ icon: ICONS.friends, label: `All ${S.friends.length} friends`, cls: 'fr-all', onClick: () => openAll() }));
+      // BOARD 2.0 B — THE FRIENDS LIST as SLIM CARDS (the owner, Nov 9): friends IN YOUR ROOM first (the green dot — the only presence), then the
+      // rest by THIS WEEK's XP (that number under each card); the top SHOW + "All n friends" (the same cards in a sheet)
+      const ord = friendOrder(S.friends);
+      const here = ord.filter(c => c.here), rest = ord.filter(c => !c.here);
+      const top = [...here, ...rest].slice(0, Math.max(SHOW, here.length));
+      if (here.length) kids.push(h('h4.fr-gh', 'IN YOUR ROOM'), cardList(top.filter(c => c.here)));
+      const after = top.filter(c => !c.here);
+      if (after.length) kids.push(...(here.length ? [h('h4.fr-gh', 'THIS WEEK')] : []), cardList(after));
+      if (S.friends.length > top.length) kids.push(row({ icon: ICONS.friends, label: `All ${S.friends.length} friends`, cls: 'fr-all', onClick: () => openAll() }));
     } else kids.push(h('p.fr-empty', 'No friends yet — tap a player’s name tag after a game to add them.'));
     if (S.out.length) kids.push(h('div.fr-group.fr-sent', h('h4.fr-gh', `SENT · ${S.out.length}`), ...S.out.map(sentRow)));
     if (S.recent.length) kids.push(h('div.fr-group.fr-recent', h('h4.fr-gh', 'RECENTLY PLAYED WITH'), ...S.recent.map(recentRow)));
@@ -119,6 +129,45 @@ function reqRow(c) {
   return h('div.fr-row.is-req', { dataset: { pid: c.pid } }, face(c), who(c), h('span.fr-acts',
     tubeButton('ACCEPT', { kind: 'main', size: 'sm', cls: 'fr-acc', onClick: act('accept', c, `You and ${c.n} are friends`) }),
     tubeButton('DECLINE', { kind: 'secondary', size: 'sm', cls: 'fr-dec', onClick: act('decline', c) })));
+}
+/** the friends in YOUR ROOM right now (a live, online player whose node names that profile — the room's own green dot) */
+function herePids() {
+  const out = new Set();
+  if (!state.code) return out;
+  for (const [uid, p] of Object.entries(state.players || {})) if (p && p.pid && presenceOnline((state.presence || {})[uid])) out.add(p.pid);
+  return out;
+}
+/** in your room first, then by THIS WEEK's XP (the friends answer's `wx`), then by name */
+export function friendOrder(list) {
+  const here = herePids();
+  return (list || []).map(c => ({ ...c, here: here.has(c.pid), wx: Number(c.wx) || 0 }))
+    .sort((a, b) => (b.here - a.here) || (b.wx - a.wx) || String(a.n || '').localeCompare(String(b.n || '')));
+}
+/** the friends as SLIM CARDS (ui/strip-board.js — never a second strip system): a tap on the card = THE PLAYER PAGE; the line under it: ⋯ (REMOVE /
+ *  BLOCK) · HERE (in your room) · the XP this week at its right end. ONE fx surface per list (it goes with the list) */
+function cardList(cs) {
+  const list = h('ol.fr-cards');
+  for (const c of cs) {
+    list.append(h('li.fr-crow', { dataset: { pid: c.pid } }, h('div.fr-scard',
+      h('button.fr-open', { type: 'button', 'aria-label': `${c.n} — their card`, onclick: () => import('./player-page.js').then(m => m.openPlayer({ pid: c.pid, row: c })).catch(() => {}) }),
+      h('div.fr-ssub',
+        h('button.fr-dots', { type: 'button', 'aria-label': `More for ${c.n}`, html: '<svg viewBox="0 0 16 4" aria-hidden="true"><circle cx="2" cy="2" r="1.8"/><circle cx="8" cy="2" r="1.8"/><circle cx="14" cy="2" r="1.8"/></svg>', onclick: () => openMore(c) }),
+        c.here ? h('span.fr-here', h('i.fr-dot', { 'aria-hidden': 'true' }), 'HERE') : null,
+        h('span.fr-wx', (c.wx || 0).toLocaleString('en-US'), h('small', 'XP THIS WEEK'))))));
+  }
+  stripKit().then(K => {
+    if (!list.isConnected && !list.dataset.wait) { list.dataset.wait = '1'; requestAnimationFrame(() => dress(K)); return; }
+    dress(K);
+  }).catch(() => {});
+  let done = false;
+  function dress(K) {
+    if (done) return; done = true;
+    const surface = K.createSurface(list, { label: 'friends' });
+    cs.forEach((c, i) => { const slot = list.querySelector(`.fr-crow[data-pid="${c.pid}"] .fr-open`); if (!slot) return; const st = stripFor(K, c); slot.append(st.el); stripFx(K, surface, st, i + 1); });
+    list.dataset.strips = String(cs.length);
+    const iv = setInterval(() => { if (!list.isConnected && list.dataset.seen) { clearInterval(iv); try { surface.destroy(); } catch { /* fine */ } } else if (list.isConnected) list.dataset.seen = '1'; }, 2000);
+  }
+  return list;
 }
 function friendRow(c) {
   return h('div.fr-row.is-friend', { dataset: { pid: c.pid } }, face(c), who(c),
@@ -145,7 +194,9 @@ function openMore(c) {
 function openAll() {
   const S = friendsNow(); if (!S) return;
   const list = h('div.fr-group.fr-list.is-all');
-  const paint = X => list.replaceChildren(...(X ? X.friends : []).map(friendRow));
+  // (BOARD 2.0 B: the whole list as the same slim cards, in the same order)
+  let sig = '';
+  const paint = X => { const ord = friendOrder(X ? X.friends : []); const k = JSON.stringify(ord.map(c => [c.pid, c.wx, c.here, c.cd, c.n])); if (k === sig) return; sig = k; list.replaceChildren(cardList(ord)); };
   paint(S);
   const off = onFriends(X => { if (!list.isConnected && list.dataset.seen) { off(); return; } list.dataset.seen = '1'; paint(X); });
   openPfSheet({ kicker: 'YOUR CARD', title: `FRIENDS · ${S.friends.length}`, cls: 'fr-all-sheet', body: [list] });

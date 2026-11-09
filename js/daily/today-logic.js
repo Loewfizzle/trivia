@@ -133,3 +133,24 @@ export function stillToPlay(waiting) {
   const names = (waiting || []).map(r => (r.me ? 'YOU' : String(r.name || 'FRIEND').toUpperCase()));
   return names.length ? ['STILL TO PLAY', ...names].join(' · ') : '';
 }
+
+/** BOARD 2.0 B — SCORES → ALL TIME: YOUR TABLE's average a day per daily (`/api/daily points` → { mine, friends: { pid: { [board]: { avg, days } } } }).
+ *  Ranked = an average from `need` days played (the boards' MIN_DAYS), best first, with a place; the rest after it, unranked, in the order of
+ *  their days; nobody who never played. → [{ pid, me, name, avg, days, place }] */
+export function allTimeRows(points, { board, me = {}, names = {}, need = 10 } = {}) {
+  if (!points || !board) return [];
+  const one = (pid, vals, isMe) => { const v = (vals || {})[board]; return v && v.avg != null ? { pid, me: !!isMe, name: isMe ? me.name || 'YOU' : names[pid] || 'FRIEND', avg: Number(v.avg), days: Number(v.days) || 0 } : null; };
+  const rows = [one(me.pid || 'me', points.mine, true), ...Object.entries(points.friends || {}).map(([pid, v]) => one(pid, v, false))].filter(Boolean);
+  const ranked = rows.filter(r => r.days >= need).sort((a, b) => b.avg - a.avg || (a.me ? -1 : b.me ? 1 : 0));
+  let place = 0, last = null;
+  ranked.forEach((r, i) => { if (r.avg !== last) place = i + 1; last = r.avg; r.place = place; });
+  const rest = rows.filter(r => r.days < need).sort((a, b) => b.days - a.days || b.avg - a.avg).map(r => ({ ...r, place: null }));
+  return [...ranked, ...rest];
+}
+/** the line under an ALL TIME card: a ranked average, or how far from being ranked (YOU: "3 MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3") */
+export function allTimeLine(r, need = 10) {
+  const avg = Number(r.avg).toFixed(1);
+  if (r.place) return { score: avg, unit: 'AVG' };
+  const left = Math.max(1, need - r.days);
+  return r.me ? { note: `${left} MORE DAY${left === 1 ? '' : 'S'} TO BE RANKED · YOUR AVERAGE ${avg}` } : { note: `${r.days} OF ${need} DAYS · ${avg} AVG` };
+}

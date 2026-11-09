@@ -9,3 +9,5 @@ export const startDaily = game => api('daily', { action: 'start', game });
 export const finishDaily = (game, result) => api('daily', { action: 'finish', game, result });
 /** YOUR TABLE's TODAY: your scores + friends' (a tick until you've played that daily, then their score). */
 export const dailyToday = (pids = []) => api('daily', { action: 'today', pids });
+/** BOARD 2.0 B — SCORES → ALL TIME: DAILY POINTS for you + YOUR TABLE ({ mine, friends: { pid: { [board]: { week, all, avg, days } } }, table }) */
+export const dailyPoints = (pids = []) => api('daily', { action: 'points', pids });

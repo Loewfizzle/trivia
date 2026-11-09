@@ -22,7 +22,7 @@ export function createView() {
         onProfile: () => setState({ view: 'profile' }),
         // (BOARD 2.0 B — a tap on a card = THE PLAYER PAGE (js/profile/player-page.js); your own card = YOUR CARD)
         onPlayer: who => import('../profile/player-page.js').then(m => m.openPlayer(who)).catch(() => {}),
-        initial: { game: st.boardGame || undefined },
+        initial: { game: st.boardGame || undefined, board: st.boardBoard || undefined, period: st.boardPeriod || undefined },
       });
       el.append(view.el);
       view.start();

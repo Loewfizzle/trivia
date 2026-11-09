@@ -207,7 +207,7 @@ export function createDockWork(T) {
       join: () => { sfx('select'); openJoin(!T.els.actions.classList.contains('is-join'), true); },
       daily: () => { sfx('select'); openJoin(false); setState({ daily: { v: 'screen' } }); },
       resumeDaily: () => { const hr = dailyHeld && dailyHeld(); if (!hr) return; sfx('select'); openJoin(false); setState({ daily: { v: 'run', id: hr.id } }); },
-      board: () => { sfx('select'); setState({ view: 'board' }); },
+      board: () => { sfx('select'); setState({ view: 'board', boardGame: null, boardBoard: null, boardPeriod: null }); },
       games: () => { openJoin(false); T.openGames(); },
       you: () => { sfx('select'); const p = loadProfile(); setState(p && p.name ? { view: 'profile' } : { view: 'setup', setupMode: 'edit' }); },
       host,

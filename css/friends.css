@@ -77,3 +77,22 @@
 
 @media (min-width: 900px) { .fr-wait { bottom: calc(var(--safe-b) + 128px); } }   /* (the desktop dock sits higher) */
 @media (prefers-reduced-motion: reduce) { .fr-wait { transition: none; } }
+
+/* BOARD 2.0 B — THE FRIENDS LIST as SLIM CARDS: the card (a tap = THE PLAYER PAGE), the line under it: ⋯ · HERE · the XP this week */
+.fr-cards { position: relative; list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.fr-crow { display: block; }
+.fr-scard { min-width: 0; }
+.fr-open { display: block; width: 100%; min-height: 58px; padding: 0; margin: 0; border: 0; background: none; border-radius: 12px; cursor: pointer; text-align: left; color: inherit; -webkit-tap-highlight-color: transparent; }
+.fr-open .vl-strip { width: 100%; }
+.fr-open:active { transform: scale(0.985); }
+.fr-open:focus-visible { outline: 2px solid #ff7ccb; outline-offset: 3px; }
+.fr-ssub { display: flex; align-items: center; gap: 8px; margin: 4px 2px 0; min-height: 22px; }
+.fr-dots { position: relative; flex: none; width: 32px; height: 22px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: rgba(255, 255, 255, 0.07); color: var(--text-dim); cursor: pointer; }
+.fr-dots::after { content: ''; position: absolute; inset: -11px -7px; }
+.fr-dots svg { width: 16px; height: 4px; fill: currentColor; }
+.fr-dots:active { transform: scale(0.92); }
+.fr-here { display: inline-flex; align-items: center; gap: 6px; font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.18em; color: #7dffb0; }
+.fr-here .fr-dot { width: 8px; height: 8px; border-radius: 50%; background: #3dff8b; box-shadow: 0 0 8px #3dff8b; }
+.fr-wx { margin-left: auto; font: 800 15px/1 var(--font-num); color: #fff; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; text-shadow: 0 0 10px rgba(255, 124, 203, 0.45); white-space: nowrap; }
+.fr-wx small { margin-left: 5px; font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.18em; color: var(--text-dim); text-shadow: none; }
+.fr-list.is-all .fr-cards { margin-top: 2px; }

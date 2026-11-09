@@ -228,7 +228,7 @@ export function createTaps(T) {
       h('div.nd-pv-bh', h('span', 'THE BOARD'), h('span', def.label)),
       list, mine,
       // (BOARD 2.0 B: THE BOARD's tabs are the two playable games — a sign of a game without a tab shows its top three, no link)
-      g.playable !== false ? h('button.nd-pv-more', { type: 'button', onclick: () => { close(); setState({ view: 'board', boardGame: g.id }); } }, 'SEE THE FULL BOARD ›') : null);
+      g.playable !== false ? h('button.nd-pv-more', { type: 'button', onclick: () => { close(); setState({ view: 'board', boardGame: g.id, boardBoard: null, boardPeriod: null }); } }, 'SEE THE FULL BOARD ›') : null);
     const MEDALS = ['gold', 'silver', 'bronze'];
     Promise.all([import('../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })), import('../ui/strip-board.js').then(m => m.stripKit().then(K => ({ ...m, K })))]).then(([d, SB]) => {
       // (LOBBY 2.0 A — REAL USERNAMES: the rows carry the players' usernames; your own row, by your board id, is yours)

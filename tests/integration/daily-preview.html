@@ -13,6 +13,7 @@
        &stamp=1                                                          DFIX3 — the ADMITTED stamp's stamp-down on the first paint (with state=swept|one)
        &corner=1                                                         DFIX3 — the real corner music button over the screen (the day look's colours)
        &solo=1                                                           DFIX3 — a table of ONE (you alone on SCORES: no rank, the card alone)
+       &scope=all (&days=7 | 12) (&pts=down) (&every=empty)                  BOARD 2.0 B — SCORES → ALL TIME
        &look=day | night                                                  the look (THE GAME LOOK — Settings in the app)
      DFIX2 — SLIM CARDS ON SCORES: the fake friends wear REAL cards (a legendary, a rare, an uncommon, one UNAPPROVED → its plain colours, one with
      no card → the Gilded plain strip, one 12-letter name); the page approves exactly that set through &labmarks= (js/vault/approved.js — a local
@@ -88,6 +89,19 @@ if (big) {
 if (q.get('solo') === '1') { window.__dyFriends = []; pick.friends = {}; }   // (DFIX3 — a table of one: you alone)
 const dailies = pick.extra ? [...D, { id: 'nightcap', name: 'THE NIGHTCAP', order: 3, ticket: 'star', lesson: false, better: 'high', hook: 'A third daily, plugged in by one row.' }] : D;
 const table2 = q.get('solo') === '1' ? [] : table;
+// BOARD 2.0 B — SCORES → ALL TIME (&scope=all): YOUR TABLE's averages (`daily points` — you below 10 days with &days=7) + EVERYONE's top 3
+{
+  const av = (avg, days) => ({ avg, days });
+  const myDays = Number(q.get('days') ?? 7);
+  window.__dyPoints = q.get('pts') === 'down' ? null : { mine: { 'daily-password': av(83.3, myDays), 'daily-coastclear': av(77.1, myDays), daily: av(80.2, myDays) },
+    friends: { P_ben: { 'daily-password': av(91.2, 14), 'daily-coastclear': av(88.4, 12) }, P_kim: { 'daily-password': av(86.5, 10), 'daily-coastclear': av(70.2, 11) },
+      P_max: { 'daily-password': av(95.0, 3) }, P_ray: { 'daily-coastclear': av(64.0, 13) }, P_lou: {}, P_sam: { 'daily-password': av(72.4, 18) } }, table: [] };
+  const top = (cds) => cds.map(([n, cd, a, c, l, v], i) => ({ id: `b${i}`, n, cd, a, c, l, rank: i + 1, v }));
+  window.__dyBoard = q.get('every') === 'empty' ? {} : {
+    'daily-password': top([['NOVA', 'card-sg-aurora', 'star', 'cyan', 44, 9410], ['MAXIMILIANOS', 'card-inferno', 'wave', 'orange', 26, 9350], ['KIM', 'card-chrome', 'hex', 'yellow', 30, 9320]]),
+    'daily-coastclear': top([['ROOK', 'card-velvet', 'bolt', 'red', 12, 9120], ['NOVA', 'card-sg-aurora', 'star', 'cyan', 44, 9050], ['DEX', null, 'moon', 'green', 9, 8870]]),
+  };
+}
 window.__dyToday = { day: 'd20261108', dailies, mine: pick.mine, gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table: table2, ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
 
 const { state, setState, subscribe } = await import('/js/store.js');
@@ -112,6 +126,7 @@ if (view === 'screen') {
   }
   setState({ daily: { v: 'screen', tab: q.get('tab') === 'scores' ? 'scores' : 'today' } });
   // (the cards' strips land async — the shots wait for them: data-strips on every list)
+  if (q.get('scope') === 'all') { await new Promise(r => setTimeout(r, 300)); const b = [...document.querySelectorAll('.dy-scope-b')].find(x => /ALL TIME/.test(x.textContent)); if (b) b.click(); await new Promise(r => setTimeout(r, 600)); }
   if (q.get('tab') === 'scores') { for (let i = 0; i < 100 && ![...document.querySelectorAll('.dy-cards')].every(l => l.dataset.strips); i++) await new Promise(r => setTimeout(r, 50)); }
 } else if (view === 'share') {
   // DFIX3 — THE SHARE IMAGE at real size (the preview's own stage; the fonts loaded first so the canvas draws them)

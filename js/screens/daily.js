@@ -1,8 +1,8 @@
 // THE DAILY MODULE — THE SCREENS (DM2 — docs/progression.md "THE DAILY MODULE — DM2: THE SCREENS"; prefix `dy-`, css/daily.css on demand).
 // Driven by `state.daily` (app.js#paintDaily → syncDaily on every render — a screen renders from the state):
 //   { v: 'screen', tab?: 'today' | 'scores' }  THE DAILY SCREEN — TODAY (the sign, THE SWEEP meter, one TICKET ROW per live daily, SHARE TODAY,
-//                                              the countdown to 4 am Eastern) · SCORES (YOUR TABLE per daily + the everyone line; ALL TIME hidden
-//                                              until BOARD 2.0 — the owner, Step 0)
+//                                              the countdown to 4 am Eastern) · SCORES (TODAY: YOUR TABLE per daily + the everyone line · ALL TIME —
+//                                              BOARD 2.0 B: YOUR TABLE's average a day + the everyone board's top 3 → THE BOARD)
 //   { v: 'run', id }                           a daily's RUN: its cartridge's own view, mounted solo (state.game = daily.create's shell, the judge =
 //                                              its API judge wrapped so the screen hears the start + the finish) — with its ONE-TIME HINT on a
 //                                              player's first run (a row's `lesson` + the cartridge's HINT line — DFIX3; the practice harbor is cut)
@@ -22,7 +22,8 @@ import { streakDay } from '../core/streak.js';
 import { dailyRow } from '../core/daily.js';
 import { msToTurn, fmtCountdown } from '../daily/clock.js';
 import { loadToday, todayNow, onToday, markFinished, markStarted, markLesson, heldRun, holdRun, dropHeld, turnNow, staleToday } from '../daily/today.js';
-import { rowState, sweepState, tableFor, everyoneLine, ordinal, tableCut, cardRows, stillToPlay, COUNTS_FROM_TOMORROW, ROOM_BANNER } from '../daily/today-logic.js';
+import { rowState, sweepState, tableFor, everyoneLine, ordinal, tableCut, cardRows, stillToPlay, allTimeRows, allTimeLine, COUNTS_FROM_TOMORROW, ROOM_BANNER } from '../daily/today-logic.js';
+import { MIN_DAYS } from '../core/daily-points.js';
 import { syncMidFlag, wantFlag } from '../daily/room-flag.js';
 import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
 
@@ -125,6 +126,9 @@ function openScreen(tab0) {
   let tab = tab0, today = todayNow(), friends = null, gone = false, clockT = 0, lastSig = '';
   // DFIX2 — SLIM CARDS ON SCORES: ONE effect surface per daily's panel (fx/renderer.js); every surface goes on a repaint + when the screen closes
   let surfaces = [], showAll = {};
+  // BOARD 2.0 B — SCORES → ALL TIME: TODAY · ALL TIME on SCORES; YOUR TABLE's averages (/api/daily points — once a visit) + the everyone board's top 3
+  let scope = 'today', pts = null, ptsP = null;
+  const every = {};
   const dropSurfaces = () => { for (const sf of surfaces) { try { sf.destroy(); } catch { /* fine */ } } surfaces = []; };
   els.head = h('header.dy-head', backBtn('Back', () => closeAll()),
     h('h1.dy-sign', { 'aria-label': 'The dailies' }, h('span.dy-sign-t', 'THE DAILIES')));
@@ -144,7 +148,7 @@ function openScreen(tab0) {
     await loadMetas(t.dailies || []);
     if (gone) return;
     // (a repaint only when something on screen changed — a tap never lands on a row that was just rebuilt)
-    const sig = JSON.stringify([tab, t, names(), pidNow(), showAll]);
+    const sig = JSON.stringify([tab, t, names(), pidNow(), showAll, scope, pts, Object.keys(every).filter(k => every[k] !== 'loading')]);
     if (sig === lastSig && !sweepNext && !stampNext.size) return;
     lastSig = sig;
     dropSurfaces();
@@ -206,6 +210,9 @@ function openScreen(tab0) {
   // under it at its right end (never over the card), YOU = your card + a lit frame; the ones STILL TO PLAY get no card — one line under the
   // cards; a long table = the top 5 + you (your real place) + SHOW ALL n. The everyone line stays at the panel's foot.
   function paintScores(t) {
+    els.body.append(h('div.dy-scope', { role: 'tablist', 'aria-label': 'Today or all time' }, ...[['today', 'TODAY’S SCORES'], ['all', 'ALL TIME']].map(([v, l]) =>
+      h(`button.dy-scope-b${scope === v ? '.is-on' : ''}`, { type: 'button', role: 'tab', 'aria-selected': String(scope === v), onclick: () => { if (scope !== v) { sfx('select'); scope = v; paint(); } } }, l))));
+    if (scope === 'all') { paintAllTime(t); return; }
     let lonely = true;   // (DFIX3: no friend at any table → ONE hint at the foot, never inside a panel)
     for (const d of t.dailies) {
       const tb = tableFor(t, d.id, { names: names(), me: me(), better: d.better });
@@ -233,6 +240,54 @@ function openScreen(tab0) {
       if (cut.shown.length) dressCards(list, cut.shown, d);
     }
     if (lonely) els.body.append(h('p.dy-foot-hint', FOOT_HINT));
+  }
+  // BOARD 2.0 B — SCORES → ALL TIME: per daily, YOUR TABLE's average a day as slim cards (ranked from MIN_DAYS days played — the boards' rule; YOU
+  // below it: "3 MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3"), then EVERYONE's top 3 (the daily's ALL TIME board) + SEE THE FULL BOARD › (THE BOARD →
+  // DAILIES · ALL TIME on that daily). /api down → a quiet line, never a dead panel.
+  function paintAllTime(t) {
+    if (!pts && !ptsP) {
+      ptsP = import('../daily/contract.js').then(C => C.dailyPoints(((friends && friends.friends) || []).map(c => c.pid)))
+        .then(r => { pts = r || { down: true }; }).catch(() => { pts = { down: true }; }).finally(() => { if (!gone) paint(); });
+    }
+    if (!pts) { els.body.append(h('p.dy-quiet', 'Counting up the averages…')); return; }
+    for (const d of t.dailies) {
+      const board = `daily-${d.id}`;
+      const rows = pts.down ? [] : allTimeRows(pts, { board, me: { pid: pidNow() || 'me', name: me().name }, names: names(), need: MIN_DAYS });
+      const cut = tableCut(rows, { all: !!showAll[`all:${d.id}`] });
+      const list = rows.length ? h('ol.board-list.is-strips.dy-cards', { 'aria-label': `${d.name} — your table, all time` },
+        ...cut.shown.map(r => { const ln = allTimeLine(r, MIN_DAYS); return h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.place === 1 ? '.is-first' : ''}`, { dataset: { pid: r.pid } },
+          h('span.lb-rank', r.place ? ordinal(r.place) : ''),
+          h('div.lb-card.dy-card', h('div.lb-sub', ln.note ? h('small.dy-cnote.dy-anote', ...ln.note.split(' · ').map(x => h('span', x))) : null,
+            ln.score ? h('span.lb-pts', h('span.lb-score.dy-cscore', ln.score, h('small.dy-unit', ln.unit))) : null))); })) : null;
+      const more = cut.hidden.length ? h('button.dy-more', { type: 'button', onclick: () => { sfx('select'); showAll[`all:${d.id}`] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
+      const ev = h('ol.board-list.is-strips.dy-cards.dy-every-list', { 'aria-label': `${d.name} — everyone, all time` });
+      const sec = h('section.dy-sec', { style: { '--tk0': themeInk(d.id) }, dataset: { id: d.id } },
+        h('h2.dy-sec-h', h('span.dy-sec-art', { html: TICKET_ART[d.ticket] || TICKET_ART.star }), d.name),
+        h('h3.dy-sub', 'YOUR TABLE · AVERAGE A DAY'),
+        list || h('p.dy-quiet', pts.down ? 'The averages are resting. Try again in a minute.' : `Play ${d.name} to start your average — a player is ranked from ${MIN_DAYS} days.`),
+        more,
+        h('h3.dy-sub', 'EVERYONE · ALL TIME'),
+        ev,
+        h('button.dy-more.dy-seeboard', { type: 'button', onclick: () => { sfx('select'); setState({ daily: null, view: 'board', boardGame: 'dailies', boardBoard: board, boardPeriod: 'all' }); } }, h('span', 'SEE THE FULL BOARD'), h('b', { 'aria-hidden': 'true' }, '›')));
+      els.body.append(sec);
+      if (list) dressCards(list, cut.shown, d);
+      paintEvery(ev, board, d);
+    }
+  }
+  /** EVERYONE's top 3 on a daily's ALL TIME board (the public rows — the slim card's own ids), loaded once a visit */
+  function paintEvery(ev, board, d) {
+    const got = every[board];
+    if (!got) { every[board] = 'loading'; import('../profile/api.js').then(A => A.board(board, 'all', { n: 3 })).then(r => { every[board] = (r && r.rows) || []; }).catch(() => { every[board] = []; }).finally(() => { if (!gone) paint(); }); }
+    if (!Array.isArray(got)) { ev.replaceWith(h('p.dy-quiet', '…')); return; }
+    if (!got.length) { ev.replaceWith(h('p.dy-quiet', `Nobody is ranked yet — it takes ${MIN_DAYS} days of ${d.name}.`)); return; }
+    ev.append(...got.map(r => h('li.lb-row.lb-strip.dy-crow', { dataset: { pid: r.id } }, h('span.lb-rank', ordinal(r.rank)),
+      h('div.lb-card.dy-card', h('div.lb-sub', h('span.lb-pts', h('span.lb-score.dy-cscore', (r.v / 100).toFixed(1), h('small.dy-unit', 'AVG'))))))));
+    stripKit().then(K => {
+      if (gone || !ev.isConnected) return;
+      const surface = K.createSurface(ev, { label: `every:${d.id}` }); surfaces.push(surface);
+      got.forEach((r, i) => { const slot = ev.querySelector(`.dy-crow[data-pid="${r.id}"] .dy-card`); if (!slot) return; const st = stripFor(K, r); slot.prepend(st.el); stripFx(K, surface, st, i + 1); });
+      ev.dataset.strips = String(got.length);
+    }).catch(() => {});
   }
   /** the strips into their rows (async: the kit loads once a page) — a friend from their card in the friends list, you from `me` */
   async function dressCards(list, rows, d) {

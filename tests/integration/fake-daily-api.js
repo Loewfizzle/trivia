@@ -9,10 +9,11 @@ export async function api(name, body = {}) {
   if (name === 'daily' && body.action === 'today') return JSON.parse(JSON.stringify(window.__dyToday || { dailies: [] }));
   if (name === 'daily' && body.action === 'room') return { mid: window.__dyMid || [] };
   if (name === 'daily' && body.action === 'lesson') return { ok: true };
+  if (name === 'daily' && body.action === 'points') { if (!window.__dyPoints) throw new ApiFail(0, 'offline', 'preview'); return JSON.parse(JSON.stringify(window.__dyPoints)); }
   if (name === 'profile' && body.action === 'friends') return { friends: window.__dyFriends || [], in: [], out: [], blocked: [], recent: [], caps: {} };
   throw new ApiFail(0, 'offline', 'preview');
 }
-export async function board() { return { rows: [] }; }
+export async function board(b) { return { rows: ((window.__dyBoard || {})[b] || []).slice(0, 3) }; }
 export const clearBoardCache = () => {};
 export function reportRow() { return Promise.resolve(); }
 export function activeGames() { return []; }
