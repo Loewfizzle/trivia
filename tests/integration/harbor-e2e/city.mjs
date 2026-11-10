@@ -724,7 +724,63 @@ G('load', async () => {
     ok(r.log.visible.length === 0, `LOAD — THE FULL POWER-ON (&intro=1: the screen's entrance, the fonts, the dock easing in): 0 changes after the reveal (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
   await loadFixChecks();
   await loadFix2Checks();
+  await loadFix3Checks();
 });
+// LOAD FIX 3 (Nov 10 — the owner's iPhone: "the site sometimes freezes completely while loading"): THE BOOT SAFETY NET. ONE failed or
+// stalled request among the boot's ~310 module files held the boot screen FOREVER (the app's graph never ran — nothing could notice).
+// Each fault forced ONCE on a fresh cold page (the test's own request router) must end in a REVEALED city that answers a tap (BOARD →
+// THE BOARD on screen) — never a held boot screen: index.html's BOOT WATCHDOG (a failed graph → at once; no reveal in 12 s on screen →
+// the BOOT HANG report + ONE reload), the core sheets asked for once more, the module files re-fetched on a link error (THE VERSION SKEW).
+// The WebKit proof: tests/integration/wk-freeze.mjs (the same faults through THE LINE).
+async function loadFix3Checks() {
+  const cases = [
+    { name: 'a core module failed once (js/errlog.js)', re: /\/js\/errlog\.js$/, act: 'abort', reload: true },
+    { name: 'THE VERSION SKEW once (js/config.js from another deploy — APP_NAME renamed)', re: /\/js\/config\.js$/, act: 'skew', reload: true, expectErr: /APP_NAME/ },
+    { name: 'a core sheet failed once (css/title.css)', re: /\/css\/title\.css$/, act: 'abort', reload: false },
+    { name: '/api/sky + /api/time dead (every call)', re: /\/api\/(sky|time)/, act: 'abort', every: true, reload: false },
+    { name: 'the fonts never load (Google’s fonts never answer)', re: /fonts\.(googleapis|gstatic)\.com/, act: 'stall', every: true, reload: false },
+    { name: 'a city module never answers once (harbor/meteors.js)', re: /\/js\/screens\/harbor\/meteors\.js$/, act: 'stall', reload: true, report: true },
+  ];
+  const { readFileSync } = await import('node:fs');
+  const cfg = readFileSync(new URL('../../../js/config.js', import.meta.url), 'utf8').replace('export const APP_NAME', 'export const APP_TITLE');
+  for (const c of cases) {
+    const ctx = await (await launch()).createBrowserContext();
+    const p = await ctx.newPage();
+    const perr = [];
+    p.on('pageerror', e => perr.push(e.message));
+    await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await p.evaluateOnNewDocument(() => { try { localStorage.setItem('nd:entered', '1'); } catch { /* fine */ } });
+    await p.setRequestInterception(true);
+    let hits = 0; const reports = [];
+    p.on('request', r => {
+      const u = r.url();
+      if (u.includes('/api/log') && r.method() === 'POST') { try { const b = JSON.parse(r.postData() || '{}'); if (b.p === 'report') reports.push(b.r.kind); } catch { /* fine */ } return r.respond({ status: 200, contentType: 'application/json', body: '{"kept":1}' }).catch(() => {}); }
+      if (c.re.test(u) && (c.every || hits++ === 0)) {
+        if (c.act === 'abort') return r.abort('failed').catch(() => {});
+        if (c.act === 'skew') return r.respond({ status: 200, contentType: 'text/javascript', body: cfg }).catch(() => {});
+        return;   // (stall: never answered)
+      }
+      r.continue().catch(() => {});
+    });
+    const t1 = Date.now();
+    p.goto(`${BASE}/?emu&slot=l3&when=2026-11-06T13:02&wx=overcast${GR}&city=2`, { timeout: 60000 }).catch(() => {});   // (not awaited: a stalled request can hold the load event)
+    let up = true;
+    await waitFor(p, "(() => { const b = document.getElementById('boot'); return !!(window.__district && window.__district.loadProbe && window.__district.loadProbe().shown) && (!b || b.classList.contains('out')); })()", 'the reveal', 40000).catch(() => { up = false; });
+    const revealMs = Date.now() - t1;
+    const nav = up ? await ev(p, "(performance.getEntriesByType('navigation')[0] || {}).type") : '—';
+    let tapped = false;
+    if (up) {
+      await sleep(400);
+      const xy = await ev(p, "(() => { const b = document.querySelector('.nd-tab-board'); if (!b) return null; const r = b.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()");
+      if (xy) { await p.touchscreen.tap(xy[0], xy[1]); tapped = await waitFor(p, 'document.body.classList.contains("bd-on") || !!document.querySelector(".bd-screen, .bd-board")', 'the board', 10000).then(() => true).catch(() => false); }
+    }
+    const bad = perr.filter(m => !(c.expectErr && c.expectErr.test(m)));
+    for (const m of bad) { errors.push(`loadfix3 pageerror (${c.name}): ${m}`); log('load', 'PAGEERROR', m); }
+    ok(up && tapped && (c.reload ? nav === 'reload' : nav !== 'reload') && (!c.report || reports.includes('boot')),
+      `THE BOOT SAFETY NET (LOAD FIX 3) — ${c.name}: ${up ? `revealed at ${(revealMs / 1000).toFixed(1)} s` : 'NEVER REVEALED — the boot screen held'}${nav === 'reload' ? ' after THE WATCHDOG’s ONE reload' : ''}, the first tap ${tapped ? 'answered (BOARD)' : 'DEAD'}${c.report ? ` · the BOOT HANG report ${reports.includes('boot') ? 'sent' : 'NOT sent'}` : ''}`);
+    await ctx.close();
+  }
+}
 // LOAD FIX 2 (Nov 9 — the owner's iPhone: "slow to load, EVERY time" + the clouds SNAPPED then faded to a different cloud after the reveal):
 //   THE BOOT BUDGET — the real boot (cold, 402×874 @3): the requests + the bytes on the wire before the reveal under
 //     tests/integration/boot-budget.json (raising it = a decision a pass names), and NO AUDIO before the reveal (no song before a tap).

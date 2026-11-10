@@ -173,6 +173,7 @@ const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t
 const GROUPS = ['far', 'near', 'water', 'harbor', 'road', 'bill', 'stage', 'front'];
 
 export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = skyClock(), games = [] } = {}) {
+  if (typeof window !== 'undefined' && window.__boot) window.__boot.stage('the city started');   // (LOAD FIX 3: THE BOOT WATCHDOG's stage)
   // NIGHT-C — THE PARTY SONG IN SYNC: the live city runs on the SERVER clock (core/sky.js#setRealNow — the saved offset while parked, no
   // socket for it), so its party songs + dance breaks agree with the music every phone hears (audio/party-music.js)
   setRealNow(serverNow);

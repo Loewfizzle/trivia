@@ -76,6 +76,105 @@
     @keyframes ns-turn-rot { 0%, 22% { transform: rotate(-90deg); } 50%, 88% { transform: rotate(0deg); } 100% { transform: rotate(-90deg); } }
     @media (prefers-reduced-motion: reduce) { #ns-turn .ns-turn-phone { animation: none; } }
   </style>
+  <!-- LOAD FIX 3 — THE BOOT WATCHDOG + THE HANG WATCH AT BOOT (docs/harbor/passes/load-fix-3.md). INLINE ON PURPOSE: they must run when no
+       module ever does (THE FREEZE: one failed or stalled request among the ~310 module files held the boot screen forever — the app's graph
+       never ran, so nothing could notice). The watchdog: the app's module graph failing → at once; no reveal after 12 s ON SCREEN (paused
+       while hidden) → a BOOT HANG report to /admin ("Reports from phones": the stage, the modules that never arrived, the errors — no ids),
+       then it recovers: the app reveals what is ready (window.__bootOut — app.js), else ONE reload (once a session, never a loop), else
+       TAP TO TRY AGAIN. The hang watch: a tiny worker beating from here (the city's scene feeds it its snapshot later — harbor/report.js). -->
+  <script>
+  (function () {
+    var W = window, D = document, LIMIT = 12000, RK = 'ns:boot-re', T0 = Date.now(), errs = [], stage = 'html', vis = 0, lastT = T0, done = false, sent = false, acted = 0, snapFn = null, hw = null, did = '';
+    try { performance.setResourceTimingBufferSize(1500); } catch (e) { /* old browser */ }   // (250 by default — a boot asks for ~400 files: the report's "never arrived" needs them all)
+    var ms = function () { return Math.round(Date.now() - T0); };
+    var note = function (s) { if (errs.length < 14) errs.push(ms() + ' ms · ' + String(s).slice(0, 260)); };
+    var cssIn = function () { return D.documentElement.classList.contains('css-ready'); };
+    function bootSnap(why) {
+      var pre = (W.__bootPre && W.__bootPre.l) || [], got = {}, open = [];
+      try { var rs = performance.getEntriesByType('resource'); for (var i = 0; i < rs.length; i++) got[rs[i].name.replace(location.origin + '/', '')] = 1; } catch (e) { /* old browser */ }
+      for (var j = 0; j < pre.length; j++) if (!got['js/' + pre[j] + '.js']) open.push(pre[j]);
+      var nav = navigator, c = nav.connection;
+      return (why || 'THE BOOT') + '\nStage: ' + stage + ' · the core sheets ' + (cssIn() ? 'in' : 'NOT in (' + (W.__css || 0) + ' of 4)') + ' · the boot screen ' + (done ? 'gone' : 'up')
+        + ' · on screen ' + (vis / 1000).toFixed(1) + ' s of ' + (ms() / 1000).toFixed(1) + ' s' + (did ? ' · did: ' + did : '')
+        + '\nModules: ' + pre.length + ' in the boot preload' + (W.__bootPre && W.__bootPre.done ? ' (asked for)' : ' (NOT asked for yet)') + ' · never arrived: ' + open.length + (open.length ? ' — ' + open.slice(0, 30).join(' ') : '')
+        + '\nErrors: ' + (errs.length ? '\n  ' + errs.join('\n  ') : 'none caught')
+        + '\nThe phone: ' + screen.width + '×' + screen.height + ' @' + (W.devicePixelRatio || 1) + ' · online ' + nav.onLine + (c && c.effectiveType ? ' · ' + c.effectiveType : '')
+        + ' · service worker ' + (nav.serviceWorker && nav.serviceWorker.controller ? 'in control' : 'none') + ' · reloaded by the watchdog before: ' + (prevReload() ? 'yes' : 'no');
+    }
+    function prevReload() { try { return !!W.sessionStorage.getItem(RK); } catch (e) { return false; } }
+    function post(kind, text) { try { fetch('/api/log', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, keepalive: true, body: JSON.stringify({ p: 'report', r: { kind: kind, text: text.slice(0, 20000) } }) }).catch(function () {}); } catch (e) { /* polish */ } }
+    function report(why) { if (sent) return; sent = true; post('boot', bootSnap('THE BOOT HUNG — ' + why)); }
+    function offerTap() {
+      var b = D.getElementById('boot'); if (!b || b.dataset.retry) return;
+      b.dataset.retry = '1'; b.style.pointerEvents = 'auto'; b.classList.remove('out');
+      var s = b.querySelector('.boot-status'); if (s) { s.textContent = 'TAP TO TRY AGAIN'; s.style.animation = 'none'; s.style.opacity = '.9'; }
+      var down = 0;
+      b.addEventListener('pointerdown', function () { down = 1; });
+      b.addEventListener('pointerup', function () { if (down) location.reload(); });
+    }
+    function reloadOnce() {
+      if (prevReload()) { did += 'TAP TO TRY AGAIN (the one reload was used); '; offerTap(); return; }
+      try { W.sessionStorage.setItem(RK, String(Date.now())); } catch (e) { did += 'TAP TO TRY AGAIN (no session storage); '; offerTap(); return; }
+      did += 'ONE reload; '; try { W.sessionStorage.setItem('ns:boot-did', stage + ' · ' + did + errs.join(' / ')); } catch (e) { /* fine */ }   // (what the reloaded page's tests read)
+      setTimeout(function () { location.reload(); }, 350);   // (the report's keepalive fetch goes first)
+    }
+    // (THE VERSION SKEW — a module that fails to LINK = two deploys' files in one load: the reload alone kept the cached copy (WebKit), so
+    //  every module of the boot is asked for afresh from the network first — at most 4 s — and only then the one reload)
+    function refresh() {
+      var l = (W.__bootPre && W.__bootPre.l) || [], ps = [];
+      try { ps.push(fetch('js/app.js', { cache: 'reload' })); for (var i = 0; i < l.length; i++) ps.push(fetch('js/' + l[i] + '.js', { cache: 'reload' }).catch(function () {})); } catch (e) { return Promise.resolve(); }
+      return Promise.race([Promise.all(ps.map(function (p) { return p.catch(function () {}); })), new Promise(function (r) { setTimeout(r, 4000); })]);
+    }
+    function fatal(why, skew) { if (done || acted >= 2) return; acted = 2; note('FATAL: ' + why); report(why); if (skew && !prevReload()) { did += 'the modules re-fetched; '; refresh().then(reloadOnce); } else reloadOnce(); }
+    addEventListener('error', function (e) {
+      var t = e.target;
+      if (t && t !== W && t.tagName) {
+        var u = String(t.src || t.href || '').replace(location.origin, '');
+        note('failed to load: ' + t.tagName.toLowerCase() + (t.rel ? ' ' + t.rel : '') + ' ' + u);
+        if (t.tagName === 'SCRIPT' && /\/js\/app\.js$/.test(u) && stage === 'html') fatal('the app’s module graph failed to load (' + u + ')');
+        return;
+      }
+      note((e.message || 'an error') + (e.filename ? ' @ ' + String(e.filename).replace(location.origin, '') + ':' + e.lineno : ''));
+      if (stage === 'html' && /SyntaxError|import|export|binding/i.test(String(e.message))) fatal('a module failed to link (two deploys’ files?) — ' + e.message, true);
+    }, true);
+    addEventListener('unhandledrejection', function (e) { var r = e.reason; note('a rejection: ' + (r && (r.message || r))); });
+    // THE HANG WATCH (9e — moved here from harbor/report.js): the page beats once a second; no beat for 7 s while visible = the main thread
+    // stuck → the WORKER sends the last snapshot itself (kind 'hang'), + a short follow-up if the page comes back
+    try {
+      var WK = "let snap='',vis='visible',last=Date.now(),sent=false,mark='',markAt=0,back=false;"
+        + "const post=(k,t)=>fetch('/api/log',{method:'POST',headers:{'Content-Type':'text/plain'},keepalive:true,body:JSON.stringify({p:'report',r:{kind:k,text:t}})}).catch(()=>{});"
+        + "onmessage=e=>{const m=e.data||{};if(m.t==='beat'){const gap=Date.now()-last;if(sent&&!back&&vis==='visible'){back=true;post('hang','THE PAGE CAME BACK after '+(gap/1000).toFixed(1)+' s without answering (the report before this one is the hang).\\n\\n'+(m.snap||''));}"
+        + "last=Date.now();vis=m.vis||'visible';if(m.snap)snap=m.snap;}else if(m.t==='mark'){mark=m.m;markAt=Date.now();}else if(m.t==='vis'){vis=m.vis;last=Date.now();}};"
+        + "setInterval(()=>{if(sent||vis!=='visible')return;const gap=Date.now()-last;if(gap<7000)return;sent=true;"
+        + "post('hang','THE MAIN THREAD STOPPED ANSWERING for '+(gap/1000).toFixed(1)+' s while the page was visible (the music can keep playing — iOS plays it off the main thread).\\n'"
+        + "+(mark?'The frame was last in: '+mark+' ('+((Date.now()-markAt)/1000).toFixed(1)+' s ago) — a hang there.\\n':'No frame marks (open the link with &debug=1 to name the part it hangs in).\\n')"
+        + "+'\\nThe last snapshot (taken ≤ 1 s before it stopped):\\n'+snap);},1000);";
+      hw = new Worker(URL.createObjectURL(new Blob([WK], { type: 'text/javascript' })));
+      D.addEventListener('visibilitychange', function () { try { hw.postMessage({ t: 'vis', vis: D.visibilityState }); } catch (e) { /* polish */ } });
+    } catch (e) { hw = null; }
+    var beatAt = 0;
+    setInterval(function () {
+      var t = Date.now(), d = Math.min(t - lastT, 1000); lastT = t;
+      if (D.visibilityState === 'visible') vis += d;
+      if (hw && t - beatAt >= 1000) { beatAt = t; var s = ''; try { s = snapFn ? snapFn('hang') : bootSnap('THE BOOT (no city yet)'); } catch (e) { s = '(the snapshot failed: ' + (e && e.message) + ')'; } try { hw.postMessage({ t: 'beat', vis: D.visibilityState, snap: s }); } catch (e) { /* polish */ } }
+      if (done || vis < LIMIT) return;
+      if (!acted) {
+        acted = 1; report('no reveal after ' + (LIMIT / 1000) + ' s on screen');
+        var ok = false; try { ok = !!(cssIn() && W.__bootOut && W.__bootOut('watchdog')); } catch (e) { note('the reveal failed: ' + (e && e.message)); }
+        if (ok) did += 'revealed what was ready; '; else reloadOnce();
+      } else if (acted === 1 && vis > LIMIT + 6000) { acted = 2; note('still no reveal 6 s after the watchdog’s reveal'); reloadOnce(); }
+    }, 250);
+    W.__boot = {
+      stage: function (s) { stage = s; },                                    // ('app' · 'title' · 'city' — app.js / title.js / scene.js)
+      revealed: function () { if (!done) { done = true; try { W.sessionStorage.removeItem(RK); } catch (e) { /* fine */ } } },   // (the boot screen lifted — a later hang may reload again)
+      snap: function (fn) { snapFn = fn; },                                  // (the city's own snapshot for the hang watch — harbor/report.js; null = the boot's)
+      mark: function (m) { if (hw) try { hw.postMessage({ t: 'mark', m: m }); } catch (e) { /* polish */ } },
+      watching: function () { return !!hw; },
+      reload: function (why) { if (done || prevReload()) return false; acted = 2; note('the app asked: ' + why); report(why); reloadOnce(); return true; },   // (true = the one reload is on its way)
+      text: bootSnap, errors: function () { return errs.slice(); }, get stageNow() { return stage; }
+    };
+  })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -89,12 +188,15 @@
        have arrived (html.css-ready), so there is still never a flash of unstyled content. -->
   <script>
     window.__css = 0;
-    window.__cssDone = function () { if (++window.__css >= 4) { document.documentElement.classList.add('css-ready'); if (window.__bootPre) window.__bootPre(); } };   // (LOAD FIX 2: then THE BOOT PRELOAD)
+    window.__cssDone = function (l) { if (l) { if (l.__nsIn) return; l.__nsIn = 1; } if (++window.__css >= 4) { document.documentElement.classList.add('css-ready'); if (window.__bootPre) window.__bootPre(); } };   // (LOAD FIX 2: then THE BOOT PRELOAD; LOAD FIX 3: each sheet counted ONCE — WebKit fires a second load when the media flips print → all, so 4 came with a sheet still missing)
+    // (LOAD FIX 3: a core sheet that FAILED is asked for once more before it counts — a failed one used to count as in: an unstyled title,
+    //  dead to taps; a sheet that never answers keeps the boot screen up until THE BOOT WATCHDOG reloads)
+    window.__cssFail = function (l) { if (l.getAttribute('data-again')) { __cssDone(l); return; } var n = document.createElement('link'); n.rel = 'stylesheet'; n.media = 'print'; n.setAttribute('data-again', '1'); n.href = l.getAttribute('href') + '?again=' + Date.now(); n.onload = function () { n.media = 'all'; __cssDone(n); }; n.onerror = function () { __cssDone(n); }; l.parentNode.insertBefore(n, l.nextSibling); l.parentNode.removeChild(l); };
   </script>
-  <link rel="stylesheet" href="css/base.css" media="print" onload="this.media='all';__cssDone()" onerror="__cssDone()">
-  <link rel="stylesheet" href="css/components.css" media="print" onload="this.media='all';__cssDone()" onerror="__cssDone()">
-  <link rel="stylesheet" href="css/screens.css" media="print" onload="this.media='all';__cssDone()" onerror="__cssDone()">
-  <link rel="stylesheet" href="css/title.css" media="print" onload="this.media='all';__cssDone()" onerror="__cssDone()">
+  <link rel="stylesheet" href="css/base.css" media="print" onload="this.media='all';__cssDone(this)" onerror="__cssFail(this)">
+  <link rel="stylesheet" href="css/components.css" media="print" onload="this.media='all';__cssDone(this)" onerror="__cssFail(this)">
+  <link rel="stylesheet" href="css/screens.css" media="print" onload="this.media='all';__cssDone(this)" onerror="__cssFail(this)">
+  <link rel="stylesheet" href="css/title.css" media="print" onload="this.media='all';__cssDone(this)" onerror="__cssFail(this)">
   <noscript><link rel="stylesheet" href="css/base.css"><link rel="stylesheet" href="css/components.css"><link rel="stylesheet" href="css/screens.css"><link rel="stylesheet" href="css/title.css"></noscript>
   <!-- chat, THE BOARD and the membership card are reachable from the menus, so they load (without blocking the first paint)
        on every visit. Each game's own sheet + the match kit's load with its screen: js/games/lazy-view.js (which keeps this order). -->
@@ -102,7 +204,7 @@
   <link rel="stylesheet" href="css/board.css" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="css/card.css" media="print" onload="this.media='all'">
   <!-- BOOT PRELOAD (GENERATED: node scripts/build-boot-preload.mjs — LOAD FIX 2; tests/boot-preload.test.mjs) -->
-  <script>window.__bootPre=function(){if(window.__bootPre.done)return;window.__bootPre.done=1;var l="audio/ambience audio/beat audio/city-sound audio/engine audio/lobby-music audio/mood audio/music-url audio/music audio/party-music audio/settings audio/sfx audio/synced-songs audio/tape-stop config core/boards core/city-mood core/city-sounds-files core/city-sounds core/city core/daily-points core/harbor-beat core/harbor-cabs core/harbor-crew core/harbor-dark core/harbor-holdem core/harbor-holiday core/harbor-holidayfolk core/harbor-holidayprops core/harbor-layout core/harbor-legend core/harbor-moments core/harbor-mothman core/harbor-parade core/harbor-people core/harbor-promenade core/harbor-raid core/harbor-room core/harbor-routines core/harbor-schedule core/harbor-show core/harbor-showcase core/harbor-snowwork core/harbor-solids core/harbor-speakeasy core/harbor-spots core/harbor-streetparty core/harbor-tiers core/harbor-tower core/harbor-traffic core/harbor-weather core/harbor-windows core/harbor-witness core/harbor-workers core/harbor-xmas core/hush core/levels core/lobby-song core/mp3-slice core/names core/neon-ramp core/party-deck core/party core/playlist core/ranks core/rng core/room-lines core/room-logic core/room-show core/rules-lag core/sky core/sync-math core/tape-math core/tube-path core/weather errlog firebase-config firebase games/cartridge games/kit/seal games/lazy-view games/overclock/meta games/prism/meta games/pulse/clock games/registry host identity profile/public room screens/backdrop screens/setup screens/title-dock screens/title-neon screens/title-taps screens/title seat store ui/colorblind ui/components ui/debug-tools ui/dom ui/emblems ui/game-art ui/help ui/layers ui/logo ui/settings-panel ui/sheet ui/tapwatch ui/toast ui/vv ui/word-neon wakelock chat/logic core/climate core/harbor-balloon-kinds core/harbor-billboard core/harbor-blackbird core/harbor-boats core/harbor-bookie core/harbor-boxer core/harbor-centre core/harbor-charleston core/harbor-clouds core/harbor-crate core/harbor-dance core/harbor-director core/harbor-events core/harbor-fireball core/harbor-fireworks core/harbor-flight core/harbor-ghost core/harbor-heli core/harbor-hush core/harbor-juggler core/harbor-lamps core/harbor-light core/harbor-loadlog core/harbor-neon core/harbor-phase core/harbor-radio core/harbor-remote core/harbor-roofmodes core/harbor-rooms core/harbor-scenes core/harbor-signdim core/harbor-sky core/harbor-snow core/harbor-snowman core/harbor-trees core/harbor-wildlife core/harbor-wind core/marks core/palette core/rainbow screens/harbor/air screens/harbor/aircraft screens/harbor/aurora screens/harbor/bake screens/harbor/balloons screens/harbor/banner screens/harbor/birds screens/harbor/blackbird screens/harbor/blocks screens/harbor/boat-models screens/harbor/boat3d screens/harbor/boats screens/harbor/bookie screens/harbor/boxer screens/harbor/bus screens/harbor/cabstand screens/harbor/centre screens/harbor/charleston screens/harbor/chimneys screens/harbor/clouds screens/harbor/crane-model screens/harbor/crate screens/harbor/crisp screens/harbor/dayfx screens/harbor/doors screens/harbor/drones screens/harbor/f22-model screens/harbor/fauna screens/harbor/fireworks-2d screens/harbor/fireworks screens/harbor/floods screens/harbor/fogbeam screens/harbor/fogdepth screens/harbor/folk screens/harbor/foreground screens/harbor/fx screens/harbor/galesea screens/harbor/gear screens/harbor/glasswx screens/harbor/grid screens/harbor/holdem-art screens/harbor/holdem-glyphs screens/harbor/hushsign screens/harbor/icefx screens/harbor/jets screens/harbor/juggler screens/harbor/lighthouse screens/harbor/lightning screens/harbor/lights screens/harbor/live-weather screens/harbor/meteors screens/harbor/moon screens/harbor/mothman screens/harbor/motorcar screens/harbor/neon screens/harbor/people screens/harbor/pier screens/harbor/props-garden screens/harbor/props-light screens/harbor/props screens/harbor/quay screens/harbor/raid screens/harbor/rainbow screens/harbor/rainfx screens/harbor/rays screens/harbor/report screens/harbor/road screens/harbor/roadlight screens/harbor/scene-fireworks screens/harbor/scene-holiday screens/harbor/scene-kit screens/harbor/scene-legend screens/harbor/scene-panel screens/harbor/scene-party screens/harbor/scene-perf screens/harbor/scene-radio screens/harbor/scene-weather screens/harbor/scene screens/harbor/searchlights screens/harbor/shapes screens/harbor/sight-react screens/harbor/signs screens/harbor/sky screens/harbor/skybeams screens/harbor/skyfx screens/harbor/skyline screens/harbor/smoke screens/harbor/snapshot screens/harbor/snow screens/harbor/snowfx screens/harbor/snowman screens/harbor/sounds screens/harbor/speakeasy-bake screens/harbor/speakeasy-blade screens/harbor/speakeasy-geo screens/harbor/speakeasy screens/harbor/stage screens/harbor/stars screens/harbor/still screens/harbor/stormdeck screens/harbor/street screens/harbor/strings screens/harbor/sun screens/harbor/tones screens/harbor/tower screens/harbor/tree-model screens/harbor/trees screens/harbor/tubes screens/harbor/vehicles screens/harbor/wands screens/harbor/water screens/harbor/waterfog screens/harbor/waterfront screens/harbor/wetground screens/harbor/wheel screens/harbor/wildlife screens/harbor/window-figure screens/harbor/window-holiday screens/harbor/window-paint screens/harbor/window-rooms screens/harbor/windows screens/harbor/winterfolk screens/harbor/workers screens/harbor/xlights ui/canvas-safe ui/debug-strip screens/harbor/weather-fx screens/harbor/frost screens/harbor/giant screens/harbor/harvest screens/harbor/holidayprops screens/harbor/treestand audio/intercom core/achievements core/items core/radio-intercom profile/api screens/harbor/remote core/streak core/week daily/clock daily/today-logic daily/today core/pkey profile/me profile/queue".split(" "),h=document.head;for(var i=0;i<l.length;i++){var e=document.createElement("link");e.rel="modulepreload";e.href="js/"+l[i]+".js";h.appendChild(e);}};if(window.__css>=4)window.__bootPre();else setTimeout(window.__bootPre,1200);</script>
+  <script>window.__bootPre=function(){if(window.__bootPre.done)return;window.__bootPre.done=1;var l=window.__bootPre.l,h=document.head;for(var i=0;i<l.length;i++){var e=document.createElement("link");e.rel="modulepreload";e.href="js/"+l[i]+".js";h.appendChild(e);}};window.__bootPre.l="audio/ambience audio/beat audio/city-sound audio/engine audio/lobby-music audio/mood audio/music-url audio/music audio/party-music audio/settings audio/sfx audio/synced-songs audio/tape-stop config core/boards core/city-mood core/city-sounds-files core/city-sounds core/city core/daily-points core/harbor-beat core/harbor-cabs core/harbor-crew core/harbor-dark core/harbor-holdem core/harbor-holiday core/harbor-holidayfolk core/harbor-holidayprops core/harbor-layout core/harbor-legend core/harbor-moments core/harbor-mothman core/harbor-parade core/harbor-people core/harbor-promenade core/harbor-raid core/harbor-room core/harbor-routines core/harbor-schedule core/harbor-show core/harbor-showcase core/harbor-snowwork core/harbor-solids core/harbor-speakeasy core/harbor-spots core/harbor-streetparty core/harbor-tiers core/harbor-tower core/harbor-traffic core/harbor-weather core/harbor-windows core/harbor-witness core/harbor-workers core/harbor-xmas core/hush core/levels core/lobby-song core/mp3-slice core/names core/neon-ramp core/party-deck core/party core/playlist core/ranks core/rng core/room-lines core/room-logic core/room-show core/rules-lag core/sky core/sync-math core/tape-math core/tube-path core/weather errlog firebase-config firebase games/cartridge games/kit/seal games/lazy-view games/overclock/meta games/prism/meta games/pulse/clock games/registry host identity profile/public room screens/backdrop screens/setup screens/title-dock screens/title-neon screens/title-taps screens/title seat store ui/colorblind ui/components ui/debug-tools ui/dom ui/emblems ui/game-art ui/help ui/layers ui/logo ui/settings-panel ui/sheet ui/tapwatch ui/toast ui/vv ui/word-neon wakelock chat/logic core/climate core/harbor-balloon-kinds core/harbor-billboard core/harbor-blackbird core/harbor-boats core/harbor-bookie core/harbor-boxer core/harbor-centre core/harbor-charleston core/harbor-clouds core/harbor-crate core/harbor-dance core/harbor-director core/harbor-events core/harbor-fireball core/harbor-fireworks core/harbor-flight core/harbor-ghost core/harbor-heli core/harbor-hush core/harbor-juggler core/harbor-lamps core/harbor-light core/harbor-loadlog core/harbor-neon core/harbor-phase core/harbor-radio core/harbor-remote core/harbor-roofmodes core/harbor-rooms core/harbor-scenes core/harbor-signdim core/harbor-sky core/harbor-snow core/harbor-snowman core/harbor-trees core/harbor-wildlife core/harbor-wind core/marks core/palette core/rainbow screens/harbor/air screens/harbor/aircraft screens/harbor/aurora screens/harbor/bake screens/harbor/balloons screens/harbor/banner screens/harbor/birds screens/harbor/blackbird screens/harbor/blocks screens/harbor/boat-models screens/harbor/boat3d screens/harbor/boats screens/harbor/bookie screens/harbor/boxer screens/harbor/bus screens/harbor/cabstand screens/harbor/centre screens/harbor/charleston screens/harbor/chimneys screens/harbor/clouds screens/harbor/crane-model screens/harbor/crate screens/harbor/crisp screens/harbor/dayfx screens/harbor/doors screens/harbor/drones screens/harbor/f22-model screens/harbor/fauna screens/harbor/fireworks-2d screens/harbor/fireworks screens/harbor/floods screens/harbor/fogbeam screens/harbor/fogdepth screens/harbor/folk screens/harbor/foreground screens/harbor/fx screens/harbor/galesea screens/harbor/gear screens/harbor/glasswx screens/harbor/grid screens/harbor/holdem-art screens/harbor/holdem-glyphs screens/harbor/hushsign screens/harbor/icefx screens/harbor/jets screens/harbor/juggler screens/harbor/lighthouse screens/harbor/lightning screens/harbor/lights screens/harbor/live-weather screens/harbor/meteors screens/harbor/moon screens/harbor/mothman screens/harbor/motorcar screens/harbor/neon screens/harbor/people screens/harbor/pier screens/harbor/props-garden screens/harbor/props-light screens/harbor/props screens/harbor/quay screens/harbor/raid screens/harbor/rainbow screens/harbor/rainfx screens/harbor/rays screens/harbor/report screens/harbor/road screens/harbor/roadlight screens/harbor/scene-fireworks screens/harbor/scene-holiday screens/harbor/scene-kit screens/harbor/scene-legend screens/harbor/scene-panel screens/harbor/scene-party screens/harbor/scene-perf screens/harbor/scene-radio screens/harbor/scene-weather screens/harbor/scene screens/harbor/searchlights screens/harbor/shapes screens/harbor/sight-react screens/harbor/signs screens/harbor/sky screens/harbor/skybeams screens/harbor/skyfx screens/harbor/skyline screens/harbor/smoke screens/harbor/snapshot screens/harbor/snow screens/harbor/snowfx screens/harbor/snowman screens/harbor/sounds screens/harbor/speakeasy-bake screens/harbor/speakeasy-blade screens/harbor/speakeasy-geo screens/harbor/speakeasy screens/harbor/stage screens/harbor/stars screens/harbor/still screens/harbor/stormdeck screens/harbor/street screens/harbor/strings screens/harbor/sun screens/harbor/tones screens/harbor/tower screens/harbor/tree-model screens/harbor/trees screens/harbor/tubes screens/harbor/vehicles screens/harbor/wands screens/harbor/water screens/harbor/waterfog screens/harbor/waterfront screens/harbor/wetground screens/harbor/wheel screens/harbor/wildlife screens/harbor/window-figure screens/harbor/window-holiday screens/harbor/window-paint screens/harbor/window-rooms screens/harbor/windows screens/harbor/winterfolk screens/harbor/workers screens/harbor/xlights ui/canvas-safe ui/debug-strip screens/harbor/weather-fx screens/harbor/frost screens/harbor/giant screens/harbor/harvest screens/harbor/holidayprops screens/harbor/treestand audio/intercom core/achievements core/items core/radio-intercom profile/api screens/harbor/remote core/streak core/week daily/clock daily/today-logic daily/today core/pkey profile/me profile/queue".split(" ");if(window.__css>=4)window.__bootPre();else setTimeout(window.__bootPre,1200);</script>
   <!-- /BOOT PRELOAD -->
 </head>
 <body>

@@ -27,7 +27,8 @@ const SW = !!opt('sw', false), LIMIT = +opt('limit', 10000), OUT = opt('out', ''
 const UP = opt('upstream', 'http://localhost:5173'), LIVE = !!opt('live', false), QUIET = !!opt('quiet', false);
 const SKEW = !!opt('skew', false), SKEW_TO = opt('skew-to', 'http://localhost:5174'), SKEW_AT = +opt('skew-at', 800);
 const PORT = +opt('port', 5181);
-const JUNK = opt('junk', '') || null;   // (--junk VALUE: every stored key the app reads, + the profile + the session, set to VALUE before the boot — an older version's leftovers)
+const JUNK = opt('junk', '') || null;
+const MANGLE = opt('mangle', '') ? { re: opt('mangle'), from: opt('mangle-from', ''), to: opt('mangle-to', ''), n: +opt('mangle-n', 1) } : null;   // (--mangle RE --mangle-from A --mangle-to B: another deploy's copy of one file, the first n times a load — THE VERSION SKEW)   // (--junk VALUE: every stored key the app reads, + the profile + the session, set to VALUE before the boot — an older version's leftovers)
 const XHANG = opt('x-stall', '') || null, XFAIL = opt('x-fail', '') || null;   // (--x-stall / --x-fail RE: any URL — another host too (Google's fonts, the Firebase SDK) — never answered / refused, by the browser's router)
 const FAIL = opt('fail', '') || null, FAIL_N = +opt('fail-n', 1), STALL = opt('stall', '') || null, STALL_N = opt('stall-n', '') === '' ? null : +opt('stall-n');   // (--fail RE: the first --fail-n requests matching dropped EACH LOAD; --stall RE: never answered)
 const SCENES = { day: 'when=2026-11-06T13:00&wx=clear', grey: 'when=2026-11-06T13:02&wx=overcast', night: 'when=2026-11-06T21:30&wx=clear' };
@@ -60,24 +61,29 @@ const STAGE = `(() => {
   const b = document.getElementById('boot'), d = window.__district;
   let p = null; try { p = d && d.loadProbe ? d.loadProbe() : null; } catch (e) { p = { err: String(e) }; }
   let log = null; try { const h = d && d.harbor && d.harbor(); log = h && h.loadLog ? h.loadLog.rows.slice(-40).map(r => (r.text || r.msg || JSON.stringify(r)).slice(0, 200)) : null; } catch { /* fine */ }
-  return { boot: b ? (b.classList.contains('out') ? 'fading' : 'ON') : 'gone', cssReady: document.documentElement.classList.contains('css-ready'),
+  const sheets = [...document.querySelectorAll('link[rel=stylesheet]')].map(l => l.getAttribute('href').replace('css/', '') + ':' + l.media + (l.sheet ? '' : '(no sheet)')).join(' ');
+  return { status: b && b.querySelector('.boot-status') ? b.querySelector('.boot-status').textContent : null, sheets, css: window.__css, boot: b ? (b.classList.contains('out') ? 'fading' : 'ON') : 'gone', cssReady: document.documentElement.classList.contains('css-ready'),
     district: !!d, shown: !!(p && p.shown), preload: !!(window.__bootPre && window.__bootPre.done), stage: document.querySelector('#stage') ? document.querySelector('#stage').className + ' | ' + (document.querySelector('#stage').firstElementChild || {}).className : null,
-    sw: navigator.serviceWorker && navigator.serviceWorker.controller ? 'controlled' : 'no sw', nav: (performance.getEntriesByType('navigation')[0] || {}).type, bootErrs: window.__boot ? window.__boot.errors() : null, gaps: window.__wf ? window.__wf.gaps : null, errs: window.__wf ? window.__wf.errs : null, log };
+    sw: navigator.serviceWorker && navigator.serviceWorker.controller ? 'controlled' : 'no sw', nav: (performance.getEntriesByType('navigation')[0] || {}).type, bootErrs: window.__boot ? window.__boot.errors() : null, bootDid: (() => { try { return sessionStorage.getItem('ns:boot-did'); } catch (e) { return null; } })(), gaps: window.__wf ? window.__wf.gaps : null, errs: window.__wf ? window.__wf.errs : null, log };
 })()`;
 
+// THE REVEAL as a player sees it: the city shown (scene.js shownAt) AND the boot screen lifting (gone or fading) — the city can be shown
+// under a boot screen that is still held (a core sheet missing)
+const SHOWN = "(() => { const b = document.getElementById('boot'); return !!(window.__district && window.__district.loadProbe && window.__district.loadProbe().shown) && (!b || b.classList.contains('out')); })()";
 const results = [];
 async function load(page, tag, pend, cons) {
   const t0 = Date.now();
   pend.clear(); cons.length = 0;
   if (line && FAIL) line.set({ fail: FAIL, failN: FAIL_N });
   if (line && STALL) line.set({ stall: STALL, stallN: STALL_N });
+  if (line && MANGLE) line.set({ mangle: MANGLE });
   let skewed = false;
   const nav = page.goto(url, { waitUntil: 'commit', timeout: 60000 }).catch(e => cons.push('goto: ' + e.message));
   if (SKEW && tag.endsWith('mid')) setTimeout(() => { line.switchTo(SKEW_TO); skewed = true; }, SKEW_AT);
   await nav;
   let reveal = -1, alive = true;
   while (Date.now() - t0 < LIMIT + 5000) {
-    const s = await Promise.race([page.evaluate('!!(window.__district && window.__district.loadProbe && window.__district.loadProbe().shown)').catch(() => false), sleep(3000).then(() => 'hung')]);
+    const s = await Promise.race([page.evaluate(SHOWN).catch(() => false), sleep(3000).then(() => 'hung')]);
     if (s === 'hung') { alive = false; continue; }
     alive = true;
     if (s) { reveal = Date.now() - t0; break; }
@@ -97,7 +103,7 @@ async function load(page, tag, pend, cons) {
   const st = await Promise.race([page.evaluate(STAGE).catch(e => ({ err: e.message })), sleep(4000).then(() => ({ err: 'the page never answered (the main thread stuck)' }))]);
   const freeze = reveal < 0 || reveal > LIMIT || (TAP && tap != null && tap < 0);
   const kind = reveal < 0 ? (st.err ? 'DEAD PAGE' : st.boot === 'ON' ? 'HELD BOOT SCREEN' : 'NO REVEAL') : reveal > LIMIT ? 'SLOW REVEAL' : tap === -1 ? 'DEAD TO TAPS' : tap === -2 ? 'NO DOCK' : '';
-  const row = { tag, reveal, tap, freeze, kind, nav: st.nav, bootErrs: st.bootErrs, gaps: (st.gaps || []).filter(g => g[1] > 400), errs: [...new Set([...(st.errs || []), ...cons.filter(c => /error|fail|goto/i.test(c))])].slice(0, 8), skewed };
+  const row = { tag, reveal, tap, freeze, kind, nav: st.nav, bootErrs: st.bootErrs, bootDid: st.bootDid, gaps: (st.gaps || []).filter(g => g[1] > 400), errs: [...new Set([...(st.errs || []), ...cons.filter(c => /error|fail|goto/i.test(c))])].slice(0, 8), skewed };
   if (freeze && OUT) {
     const dir = join(OUT, `${tag}-${Date.now()}`); mkdirSync(dir, { recursive: true });
     try { writeFileSync(join(dir, 'shot.png'), await page.screenshot({ timeout: 5000 })); } catch { /* the page is stuck */ }

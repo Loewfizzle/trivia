@@ -40,11 +40,12 @@ export function preloadList() {
 const A = '<!-- BOOT PRELOAD (GENERATED: node scripts/build-boot-preload.mjs — LOAD FIX 2; tests/boot-preload.test.mjs) -->', Z = '<!-- /BOOT PRELOAD -->';
 export function preloadBlock(list = preloadList()) {
   const names = list.map(f => f.slice(3).replace(/\.js$/, ''));
+  // (LOAD FIX 3: the list kept as window.__bootPre.l — THE BOOT WATCHDOG's report names the modules that never arrived)
   // (asked for once the four core sheets are in — index.html's __cssDone calls window.__bootPre — or at the latest 1.2 s in: Chrome holds
   //  the sheets' low-priority (print-media) requests behind 297 high-priority preloads on an HTTP/1.1 line — measured: the city laid out
   //  at 320×320 for 7 s; on the sheets first, then everything at once)
   return `${A}
-  <script>window.__bootPre=function(){if(window.__bootPre.done)return;window.__bootPre.done=1;var l="${names.join(' ')}".split(" "),h=document.head;for(var i=0;i<l.length;i++){var e=document.createElement("link");e.rel="modulepreload";e.href="js/"+l[i]+".js";h.appendChild(e);}};if(window.__css>=4)window.__bootPre();else setTimeout(window.__bootPre,1200);</script>
+  <script>window.__bootPre=function(){if(window.__bootPre.done)return;window.__bootPre.done=1;var l=window.__bootPre.l,h=document.head;for(var i=0;i<l.length;i++){var e=document.createElement("link");e.rel="modulepreload";e.href="js/"+l[i]+".js";h.appendChild(e);}};window.__bootPre.l="${names.join(' ')}".split(" ");if(window.__css>=4)window.__bootPre();else setTimeout(window.__bootPre,1200);</script>
   ${Z}`;
 }
 export function withPreload(html, block = preloadBlock()) {

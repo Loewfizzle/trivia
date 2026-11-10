@@ -1,7 +1,7 @@
 // /admin — THE GROUPED LOGS (THE SPEED PASS — the owner, Nov 4 6:07 pm: "/admin is too long, tons of logs"). PURE (unit-tested:
 // tests/admin-groups.test.mjs). The errors from phones (errlog — already one entry per message + file + line) and the phones' reports
 // (phonelog) fold into ONE ROW PER KIND: an error's message (long numbers folded, so "id 48213" and "id 99120" are one kind), a report's
-// kind (TAP · HANG · STALL · BENCH · LOST TAP). Each group: its count, first + last seen, how many came in since MARK SEEN, its entries newest first.
+// kind (TAP · HANG · STALL · BENCH · LOST TAP · BOOT HANG). Each group: its count, first + last seen, how many came in since MARK SEEN, its entries newest first.
 
 /** an error message's kind: long numbers folded, whitespace squeezed */
 export const errorKind = m => String(m || '').replace(/\d{3,}/g, 'N').replace(/\s+/g, ' ').trim().slice(0, 200) || '(no message)';
@@ -27,7 +27,7 @@ export function groupErrors(list) {
 export function groupReports(list) {
   const by = new Map();
   for (const r of list || []) {
-    const key = r.kind === 'lost' ? 'LOST TAP' : String(r.kind || 'tap').toUpperCase();   // (CITY FIXES: THE TAP WATCH's own kind)
+    const key = r.kind === 'lost' ? 'LOST TAP' : r.kind === 'boot' ? 'BOOT HANG' : String(r.kind || 'tap').toUpperCase();   // (CITY FIXES: THE TAP WATCH's own kind; LOAD FIX 3: THE BOOT WATCHDOG's)
     let g = by.get(key);
     if (!g) by.set(key, g = { key, title: key, n: 0, newN: 0, first: Infinity, last: 0, items: [] });
     g.n++;

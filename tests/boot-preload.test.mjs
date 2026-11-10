@@ -17,5 +17,5 @@ test('THE BOOT PRELOAD: every listed module exists, the city + its entries are i
   for (const e of ENTRIES) assert.ok(list.includes(e), `${e} not preloaded`);
   // (after the core sheets: the preloads are asked for once the four are in — index.html's __cssDone calls window.__bootPre)
   assert.ok(html.indexOf('BOOT PRELOAD (GENERATED') > html.indexOf('href="css/title.css"'), 'the preload block sits after the core sheets');
-  assert.match(html, /__cssDone = function \(\) \{[^\n]*__bootPre/, '__cssDone hands on to THE BOOT PRELOAD');
+  assert.match(html, /__cssDone = function \(l\) \{[^\n]*__bootPre/, '__cssDone hands on to THE BOOT PRELOAD');
 });

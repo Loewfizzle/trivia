@@ -11,7 +11,10 @@
 import { createServer, request } from 'node:http';
 import { createHash } from 'node:crypto';
 
-export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40, mbps = 40, drop = 0, log = false, fail = null, failN = 1, stall = null, stallN = Infinity } = {}) {
+export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40, mbps = 40, drop = 0, log = false, fail = null, failN = 1, stall = null, stallN = Infinity, mangle = null } = {}) {
+  // (mangle: { re, from, to, n } — the first n answers for a path matching re have `from` replaced by `to`: ANOTHER DEPLOY's copy of a file —
+  //  e.g. an export renamed, so its importers fail to link: THE VERSION SKEW)
+  let mg = mangle ? { ...mangle, re: new RegExp(mangle.re), n: mangle.n == null ? 1 : mangle.n } : null;
   let upstream = to;
   // (fail: a RegExp — the first failN requests whose path matches are dropped, then it answers; stall: a RegExp — those never answer)
   let failRe = fail ? new RegExp(fail) : null, failLeft = failN, stallRe = stall ? new RegExp(stall) : null, stallLeft = stallN;
@@ -52,6 +55,7 @@ export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40,
     let up;
     try { up = await fetchUp(req, Buffer.concat(parts)); } catch (e) { res.writeHead(502); res.end(String(e)); return; }
     const headers = { ...up.headers }; delete headers['content-length']; delete headers['transfer-encoding']; delete headers['content-encoding']; delete headers.connection;
+    if (mg && mg.n > 0 && up.status === 200 && mg.re.test(path)) { mg.n--; up.body = Buffer.from(up.body.toString('utf8').split(mg.from).join(mg.to)); if (log) console.log('MANGLE', path); }
     if (!isApi && up.status === 200 && req.method === 'GET') {
       const etag = '"' + createHash('sha1').update(up.body).digest('hex').slice(0, 20) + '"';
       headers.etag = etag; headers['cache-control'] = 'public, max-age=0, must-revalidate'; delete headers.pragma; delete headers.expires;
@@ -62,7 +66,7 @@ export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40,
   });
   return new Promise(ok => server.listen(port, () => ok({
     port, close: () => new Promise(r => { server.closeAllConnections && server.closeAllConnections(); server.close(() => r()); }),
-    switchTo: u => { upstream = u; }, set: o => { if (o.rtt != null) rtt = o.rtt; if (o.mbps != null) mbps = o.mbps; if (o.drop != null) drop = o.drop; if ('fail' in o) { failRe = o.fail ? new RegExp(o.fail) : null; failLeft = o.failN || 1; } if ('stall' in o) { stallRe = o.stall ? new RegExp(o.stall) : null; stallLeft = o.stallN == null ? Infinity : o.stallN; } },
+    switchTo: u => { upstream = u; }, set: o => { if (o.rtt != null) rtt = o.rtt; if (o.mbps != null) mbps = o.mbps; if (o.drop != null) drop = o.drop; if ('fail' in o) { failRe = o.fail ? new RegExp(o.fail) : null; failLeft = o.failN || 1; } if ('mangle' in o) mg = o.mangle ? { ...o.mangle, re: new RegExp(o.mangle.re), n: o.mangle.n == null ? 1 : o.mangle.n } : null; if ('stall' in o) { stallRe = o.stall ? new RegExp(o.stall) : null; stallLeft = o.stallN == null ? Infinity : o.stallN; } },
     stats: () => ({ upstream, req: st.req, n304: st.n304, drops: st.drops, kb: Math.round(st.bytes / 1024) }),
   })));
 }

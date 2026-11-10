@@ -18,7 +18,7 @@ export const LOG_LIMITS = { perRequest: 10, ipPerHour: 40, perDay: 3000, maxBody
 // js/hangwatch.js): POST /api/log { p: 'report', r: { kind: 'tap' | 'hang' | 'stall', text } } → phonelog/{push} { at, kind, text, ua, d,
 // b, v } — plain text the owner reads (+ screenshots) on /admin. 8 an hour per IP, 120 a day in all, the newest 40 kept.
 export const REPORT_LIMITS = { ipPerHour: 8, perDay: 120, keep: 40, text: 24_000 };
-const REPORT_KINDS = ['tap', 'hang', 'stall', 'bench', 'lost'];   // (C4c: 'bench' — THE PHONE BENCH's report, &bench=1; CITY FIXES: 'lost' — THE TAP WATCH)
+const REPORT_KINDS = ['tap', 'hang', 'stall', 'bench', 'lost', 'boot'];   // (C4c: 'bench' — THE PHONE BENCH's report, &bench=1; CITY FIXES: 'lost' — THE TAP WATCH; LOAD FIX 3: 'boot' — THE BOOT WATCHDOG's BOOT HANG, index.html)
 // CITY FIXES — THE TAP WATCH's LOST TAPS (js/ui/tapwatch.js — always on, ≤ 1 a minute + ≤ 20 a day per device): their OWN buckets, so a burst
 // of lost taps never eats the hang watch's + SEND REPORT's; the newest REPORT_KEEP kept PER KIND (prune.js) — never pushing a hang out
 export const LOST_LIMITS = { ipPerHour: 20, perDay: 400, text: 4000 };

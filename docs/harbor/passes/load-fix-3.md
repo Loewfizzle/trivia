@@ -87,3 +87,59 @@ load, a tiny per-request failure rate is a few loads in a hundred ("intermittent
 starts (app.js's first imports) still kill the load — and at a 2 % drop the live build's freezes are the SILENT kind (the boot screen held
 forever), where the parent's were the city's "couldn't load" sheet. Whether LOAD FIX 2's one burst of 300 requests also raises the failure
 rate on Safari's own stack (HTTP/2 + the service worker on a real phone) can't be measured here — the fix doesn't depend on it.
+
+## Group 2 — THE FREEZE, FIXED + THE BOOT SAFETY NET (no look change)
+
+**The root:** nothing in the page could notice a boot that stopped, because everything that could was a module in the graph that failed. So
+the net is INLINE in index.html (a classic script, ahead of every module, the preload + the sheets — `tests/boot-watchdog.test.mjs` keeps it
+there), plus the three places a single failure used to end a load:
+
+1. **THE BOOT WATCHDOG** (index.html): the app's module graph failing to load (the `<script type="module" src="js/app.js">` error event) or to
+   LINK (a SyntaxError before the app ran — two deploys' files) → AT ONCE; otherwise no reveal after **12 s ON SCREEN** (counted only while
+   the page is visible — a locked phone isn't a hang) → a **BOOT HANG** report to /admin → "Reports from phones" (kind `boot`, its own row
+   BOOT HANG: the stage it reached — html · app · the city's module in · the city started —, the core sheets, the boot preload's modules that
+   never arrived (the resource-timing buffer raised to 1500 — 250 by default cut the list), the errors it caught (failed scripts / sheets /
+   preloads by name, script errors, rejections), the screen, online, the service worker, whether it reloaded before; the server adds the
+   version + the browser; no ids), then it RECOVERS: the app reveals what is ready (`window.__bootOut` — app.js: the city's module in + a
+   screen under the boot screen) or, when it can't (the graph never ran, the city's module never came, a core sheet missing), **ONE reload**
+   — never two without a reveal between (sessionStorage `ns:boot-re`, cleared by a reveal; no session storage = no reload) — and after that
+   **TAP TO TRY AGAIN** on the boot screen (pointerdown + pointerup → a reload). On a LINK error the boot's ~300 module files are first asked
+   for afresh (`cache: 'reload'`, ≤ 4 s): WebKit's reload alone reused the cached copy of the other deploy's file.
+2. **THE HANG WATCH AT BOOT**: its worker is made by the same inline script from the first parse and beats from there (the boot's own
+   snapshot); the city's scene hands it its snapshot + frame marks when it starts (`harbor/report.js` uses `window.__boot` — ONE worker; a
+   page without index.html's script, a preview, keeps its own). A main thread stuck BEFORE the city now reports too.
+3. **THE CORE SHEETS** (index.html): each counted ONCE (`__cssDone(this)` — WebKit fires a second `load` when a sheet's media flips print →
+   all, so the count reached 4 with `title.css` still missing: a city dead to taps); a sheet that FAILS is asked for once more (`__cssFail`,
+   `?again=`) before it counts. A sheet that never answers keeps the boot screen up → the watchdog's reload.
+4. **THE CITY's MODULE** (title.js): three tries (1.5 s, then 3 s apart — the browser asks again only for the files that failed), then the
+   watchdog's ONE reload (`__boot.reload`), and THE CITY COULDN'T LOAD + RELOAD only after that.
+5. **THE SERVICE WORKER** (sw.js): a failed network fetch gets ONE more try (250 ms later) before the cache's copy — which may be an older
+   deploy's (THE VERSION SKEW's other door).
+
+**THE BOOT PRELOAD stays as it is** — it never froze a load (Group 1: 0 in 180), and in WebKit it HELPS (a failed preload is fetched again by
+the import). THE BOOT BUDGET unchanged (the load group: 333–340 requests, ~2.7 MB — ≤ 360 / 2900).
+
+**The proof** (WebKit, wk-freeze.mjs; the reveal now = the city shown AND the boot screen lifting — a city shown under a held boot screen is
+no reveal):
+
+| run | before (LOAD FIX 2 deployed) | after |
+| --- | --- | --- |
+| 30 + 30, no throttle | 0 frozen; 2.60 / 2.67 s | **0 / 60**; 2.61 / 2.43 s, the tap 0.13 s |
+| 30 + 30, 3× CPU + 40 ms / 40 Mbps | 0 frozen; 6.01 / 5.97 s | **0 / 60**; 6.45 / 5.66 s, the tap 0.40 s |
+| the deploy mid-visit (A → B at 0.7 s, then a warm load on B), 8 + 8 | 0 | **0 / 16** |
+| RANDOM 2 % of requests dropped, service worker on | **2 / 16 frozen forever** | **0 / 20** (127 requests dropped) |
+| one core module FAILED (`errlog.js`) | held forever | **3.6–4.0 s** (the at-once reload) |
+| THE VERSION SKEW (`config.js` from another deploy: APP_NAME renamed) | held forever | **7.2–7.6 s** (re-fetched + the reload) |
+| a core module never answers once | held forever | **15.4–15.9 s** (12 s + the reload) |
+| a city module never answers once | held ≥ 30 s | **14.7–15.1 s** |
+| `title.css` never answers once / fails once | dead to taps | **14.8 s** / **3.9 s** (asked for again — no reload) |
+| a core module never answers EVER | held forever | **TAP TO TRY AGAIN** after the one reload (no loop) |
+
+The harbor `load` group (Chromium) — **THE BOOT SAFETY NET**, each fault forced once on a fresh cold page through the test's own router, each
+must end REVEALED + the first tap answered (BOARD): a core module failed (1.9 s, the reload), THE VERSION SKEW (2.3 s, the reload), a core sheet
+failed (1.4 s, no reload), `/api/sky` + `/api/time` dead (1.4 s), the fonts never answering (5.0 s), a city module never answering (13.8 s, the
+reload + the BOOT HANG report sent) — **load 28 / 28** (~106 s; harbor-jobs.mjs's SECONDS updated).
+
+**The reveal (Chromium, no throttle, 3 loads — LOAD FIX 2's run):** 1.33 s before → **1.33 s** now (the boot screen's first paint 32 → 36 ms —
+the inline script). No speed traded. **No look change**: pixdiff (`--pin`, the title preview, before = 4c945a65 on :5175) night 1 px, noon
+0 px, golden 27 px (walkers in the promenade band — the usual residue).

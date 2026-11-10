@@ -31,6 +31,8 @@ import { settings, onSettings, PAGE_SILENT, setPageQuiet } from './audio/setting
 import { lazyView } from './games/lazy-view.js';
 import { startShow } from './core/room-show.js';
 import { debugTool, onDebugTools } from './ui/debug-tools.js';
+// (LOAD FIX 3 — THE BOOT WATCHDOG, index.html: the app's whole static graph is in + running)
+if (window.__boot) window.__boot.stage('app');
 // (SHELL 2.0 B1: declared before anything can render — routeKey / paintLook run from the first render on; B2: + paintLook's + paintCrew's)
 const wanting = new Set();
 let lookMod = null, lookSun = null, lookSunAt = -1e9, lookOnNow = false, lookHooked = false, lookLock = null;
@@ -345,7 +347,15 @@ async function dismissBoot() {
   if (current && current.key === 'title') { holdBoot(el); return; }
   bootOut(el);
 }
-function bootOut(el) { el.classList.add('out'); setTimeout(() => el.remove(), 500); }
+function bootOut(el) { if (window.__boot) window.__boot.revealed(); el.classList.add('out'); setTimeout(() => el.remove(), 500); }
+// LOAD FIX 3 — THE BOOT WATCHDOG's "reveal what is ready" (index.html, no reveal after 12 s on screen): true when it could — the city's module
+// in + a screen mounted under the boot screen (a city that never revealed shows as it is: the dock + the corners answer); false = reload
+window.__bootOut = why => {
+  if (harborPending() || !current || current.key === 'boot') return false;
+  const el = document.getElementById('boot');
+  if (el && !el.classList.contains('out')) { console.warn(`the boot screen lifted by the watchdog (${why})`); bootOut(el); }
+  return true;
+};
 function holdBoot(el) {
   if (el.dataset.hold) return;
   el.dataset.hold = '1';

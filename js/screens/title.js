@@ -49,14 +49,16 @@ import { createTaps } from './title-taps.js';
 import { createNeon } from './title-neon.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): THE city (CITY 1.0 OUT, Nov 5 — City 1.0 deleted; an old `?city=1` / `?city=2` link lands here).
 // No top-level await (iOS 14 can't parse one — the whole app would die, every game too): app.js holds the title on the boot screen until
-// harborReady settles. A failed load is tried once more after 1.5 s; a second failure → the title shows THE CITY COULDN'T LOAD + RELOAD
+// harborReady settles. A failed load is tried 3 times (LOAD FIX 3), then the boot watchdog's one reload; after that → the title shows THE CITY COULDN'T LOAD + RELOAD
 // (cityDown — it was City 1.0 until CITY 1.0 OUT). A unit test keeps await out of module tops.
 let createHarbor = null, harborSettled = false;
 let visitAnswered = false;   // (ATM-A: the sign has answered a song this visit — the first-tap detector is FRESH until then)
-const loadHarbor = () => import('./harbor/scene.js').then(m => { createHarbor = m.createHarbor; });
-export const harborReady = loadHarbor()
-  .catch(e => { console.warn('harbor', e); return new Promise(r => setTimeout(r, 1500)).then(loadHarbor); })
-  .catch(e => { console.warn('harbor (again)', e); })
+const loadHarbor = () => import('./harbor/scene.js').then(m => { createHarbor = m.createHarbor; if (window.__boot) window.__boot.stage('the city’s module in'); });   // (LOAD FIX 3: the watchdog's stage)
+// (LOAD FIX 3 — THE BOOT SAFETY NET: three tries (1.5 s, then 3 s apart — the browser asks again only for the files that failed), then
+//  index.html's watchdog's ONE reload; THE CITY COULDN'T LOAD only once that reload was used — a flaky line used to end a load here)
+const tryHarbor = n => loadHarbor().catch(e => { console.warn(`harbor (try ${n})`, e); if (n >= 3) throw e; return new Promise(r => setTimeout(r, 1500 * n)).then(() => tryHarbor(n + 1)); });
+export const harborReady = tryHarbor(1)
+  .catch(e => { console.warn('harbor (gave up)', e); if (typeof window !== 'undefined' && window.__boot && window.__boot.reload && window.__boot.reload('the city’s module failed 3 times')) return new Promise(() => {}); })
   .finally(() => { harborSettled = true; });
 export const harborPending = () => !harborSettled;
 // THE LOAD FIX (Nov 6 — the owner's "pops in in chunks" + "a whole different screen flashes"): the boot screen (index.html #boot) stays over

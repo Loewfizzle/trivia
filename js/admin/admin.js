@@ -99,7 +99,7 @@ function shell() {
       h('ol.ad-errs', { id: 'ad-errs' }, h('li.ad-dim', 'Loading…'))),
     card('ad-reports', 'Reports from phones', { cls: 'ad-errors', open: false },
       logTools('ad-reports', v => { logs.repQ = v; paintReports(); }, reports, confirmBtn('Clear all', async () => { renderReports((await call('clearReports')).reports); toast('Cleared'); audit(); }, 'is-danger')),
-      h('p.ad-dim', 'City 2.0 snapshots, one row per kind: SEND REPORT in the &debug=1 strip (TAP), or sent by the page itself when it froze (HANG — the main thread stopped answering; STALL — no frames), BENCH. Newest 40 kept.'),
+      h('p.ad-dim', 'City 2.0 snapshots, one row per kind: SEND REPORT in the &debug=1 strip (TAP), or sent by the page itself when it froze (HANG — the main thread stopped answering; STALL — no frames; BOOT HANG — the page never got past its boot screen: what it was waiting for + what the watchdog did), BENCH. Newest 40 kept.'),
       h('ol.ad-errs', { id: 'ad-reps' }, h('li.ad-dim', 'Loading…'))),
     // LOBBY FIXES → THE SPEED PASS — TEST PLAYERS, ALL OF THEM: CREATED SINCE (default the very first profile) → review the pre-ticks → PREVIEW → CONFIRM
     card('ad-tp', 'Test players', { cls: 'ad-tp', open: false },

@@ -19,7 +19,10 @@ self.addEventListener('fetch', event => {
   if (url.pathname.startsWith('/audio/') || url.pathname.startsWith('/api/') || req.headers.has('range')) return;
   event.respondWith((async () => {
     try {
-      const res = await fetch(req, { cache: 'no-cache' });
+      // (LOAD FIX 3 — THE FREEZE: one failed request among the boot's ~310 module files held the boot screen forever — a Wi-Fi blip gets
+      //  ONE more try on the network before the cache's copy, which may be an older deploy's)
+      const net = () => fetch(req, { cache: 'no-cache' });
+      const res = await net().catch(() => new Promise(r => setTimeout(r, 250)).then(net));
       if (res.ok && res.type === 'basic') {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});

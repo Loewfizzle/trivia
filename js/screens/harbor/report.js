@@ -41,12 +41,29 @@ setInterval(() => {
 /** o: { text(kind) → the snapshot, marks (bool: post the frame's parts — &debug=1) } */
 export function createReporter(o) {
   let worker = null, url = null, beatT = 0, lastSend = 0, stallSent = false, lastMark = '';
+  /** C4c — THE PHONE BENCH: a report of its own (kind 'bench', the text given) → Promise<bool> kept by the server */
+  const sendText = (kind, text) => fetch('/api/log', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, keepalive: text.length < 60000, body: JSON.stringify({ p: 'report', r: { kind, text } }) })
+    .then(r => r.json().catch(() => ({}))).then(j => !!(j && j.kept)).catch(() => false);
   const send = (kind) => {
     let text = '';
     try { text = o.text(kind); } catch (e) { text = `(the snapshot failed: ${e && e.message})`; }
     return fetch('/api/log', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, keepalive: text.length < 60000, body: JSON.stringify({ p: 'report', r: { kind, text } }) })
       .then(r => r.json().catch(() => ({}))).then(j => !!(j && j.kept)).catch(() => false);
   };
+  // (LOAD FIX 3 — THE HANG WATCH AT BOOT: index.html's inline watchdog made the worker before any module ran — a frozen boot is reported too;
+  //  the scene only hands it its snapshot + its frame marks. This page's own worker below = a page without index.html's (a preview page).)
+  const B = typeof window !== 'undefined' && window.__boot && window.__boot.watching && window.__boot.watching() ? window.__boot : null;
+  if (B) {
+    B.snap(kind => o.text(kind));
+    return {
+      get watching() { return true; },
+      mark(m) { if (!o.marks || m === lastMark) return; lastMark = m; B.mark(m); },
+      send(kind = 'tap') { const now = Date.now(); if (now - lastSend < 4000) return Promise.resolve(false); lastSend = now; return send(kind); },
+      sendText,
+      stall() { if (stallSent) return; stallSent = true; send('stall'); },
+      destroy() { B.snap(null); },
+    };
+  }
   try {
     if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined' && typeof URL !== 'undefined' && URL.createObjectURL) {
       url = URL.createObjectURL(new Blob([WORKER], { type: 'text/javascript' }));
@@ -63,11 +80,7 @@ export function createReporter(o) {
     mark(m) { if (!o.marks || !worker || m === lastMark) return; lastMark = m; try { worker.postMessage({ t: 'mark', m }); } catch { /* polish */ } },
     /** SEND REPORT (the button): → Promise<bool> kept by the server */
     send(kind = 'tap') { const now = Date.now(); if (now - lastSend < 4000) return Promise.resolve(false); lastSend = now; return send(kind); },
-    /** C4c — THE PHONE BENCH: a report of its own (kind 'bench', the text given) → Promise<bool> kept by the server */
-    sendText(kind, text) {
-      return fetch('/api/log', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, keepalive: text.length < 60000, body: JSON.stringify({ p: 'report', r: { kind, text } }) })
-        .then(r => r.json().catch(() => ({}))).then(j => !!(j && j.kept)).catch(() => false);
-    },
+    sendText,
     /** a stall the page itself noticed (once a session) */
     stall() { if (stallSent) return; stallSent = true; send('stall'); },
     destroy() { clearInterval(beatT); document.removeEventListener('visibilitychange', onVis); try { if (worker) worker.terminate(); } catch { /* */ } if (url) URL.revokeObjectURL(url); worker = null; },
