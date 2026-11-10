@@ -6,6 +6,9 @@
 // FULL (8 phones): a hand played on the real buttons to a showdown, a refresh mid-hand (the same cards back), THE LEAK CHECK on every
 // phone, a phone LOCKED through its turn (the shot clock → the time bank → the auto check / fold), the host's phone KILLED mid-hand (a
 // guest's poke moves the table on, a new host), 60 fps at 4× CPU at 8 players, then a CASH session: a REBUY + END SESSION → the ledger.
+// HE4: FAST also checks a BUST → THE KO CARD → SPECTATING on the busted phone + THE END SCREEN's body (every place as a slim card). FULL adds a
+// REFRESH in the MIDDLE of a pot award (the state, no replay), 60 fps at 4× CPU during THE BUSIEST MOMENT (the preview's 8-seat side-pot run-out
+// + its three awards — the motion's ghosts, flips + roll-ups), and CASH's LEAVE TABLE (the button + its confirm) → the leaver in THE LEDGER.
 import { createHarness } from './kit/harness.mjs';
 
 const H = await createHarness({ name: 'holdem', slot: 'h', hook: '__holdem', sizes: [[390, 844], [402, 874], [430, 932]] });
@@ -92,7 +95,23 @@ await H.run(async () => {
 
   if (FAST) {
     // ---------------------------------------------------------- FAST: a whole TURBO match at 3 — shoves to a winner, the podium, the room
-    await drive('mix', p => p.evaluate(() => window.__arcade.state.game && window.__arcade.state.game.phase === 'final'), 'the match to its podium', { timeout: 300000, watch: host });
+    // (HE4: the first BUST — the busted phone shows THE KO CARD (a fresh bust), then SPECTATING in its own area; the seat goes on the others)
+    let koSeen = null;
+    const watchKo = async () => {
+      for (const i of alive()) {
+        const r = await pages[i].evaluate(() => { const h = window.__holdem; return h ? { ko: h.ko(), spec: h.spectating() } : null; }).catch(() => null);
+        if (r && r.ko && !koSeen) koSeen = { i, ko: r.ko };
+        if (koSeen && koSeen.i === i && r && r.spec) koSeen.spec = true;
+      }
+    };
+    await drive('mix', async p => { await watchKo(); return p.evaluate(() => window.__arcade.state.game && window.__arcade.state.game.phase === 'final'); }, 'the match to its podium', { timeout: 300000, watch: host });
+    // (a bust in the match's LAST hand: the podium may come before its KO card — it still shows, over the table, for ~4 s)
+    for (let k = 0; k < 30 && !koSeen; k++) { await watchKo(); await sleep(200); }
+    ok(!!koSeen && /KNOCKED OUT/.test(koSeen.ko) && /(2ND|3RD) OF 3/.test(koSeen.ko) && /HAND/.test(koSeen.ko), `THE KO CARD on the busted phone: "${koSeen && koSeen.ko}"`);
+    const fin0 = await pub(host), lastHand = fin0.hand;
+    const firstOut = [...(fin0.places || [])].sort((a, b) => b.place - a.place)[0];
+    if (firstOut && firstOut.hand < lastHand) ok(!!(koSeen && koSeen.spec), 'then SPECTATING in its own area (the table played on)');
+    else log('the first bust ended the match in the same hand — no table left to spectate');
     const hands = (await pub(host)).hands;
     ok(hands >= 1, `the match ran ${hands} hand(s) to a winner`);
     const fin = await pub(host);
@@ -100,7 +119,8 @@ await H.run(async () => {
     const g = await evalIn(host, s => s.game);
     ok(Array.isArray(g.ranks) && g.ranks.length === 3 && g.ranks[0].uid === fin.winner, `the podium's places from the dealer (${JSON.stringify(g.ranks)})`);
     for (const i of alive()) await pages[i].waitForSelector('.he-final .he-fs', { timeout: 15000 }).catch(() => {});
-    ok(await host.evaluate(() => !!document.querySelector('.he-final .he-fs-line') && !!document.querySelector('.he-final .final-actions, .he-final button')), 'the podium = the console frame + HOLD\'EM\'s body');
+    const fs = await host.evaluate(() => { const b = document.querySelector('.he-final .final-body[data-game="holdem"]'); return b && { all: b.dataset.podium, win: (b.querySelector('.he-fs-name') || {}).textContent, rows: b.querySelectorAll('.he-fs-list > li').length, frameList: document.querySelectorAll('.he-final .final > .board-list').length, back: !!document.querySelector('.he-final .final-back') }; });
+    ok(fs && fs.all === 'all' && fs.rows === 3 && fs.frameList === 0 && fs.back && !!fs.win, `THE END SCREEN: the console's frame + HOLD'EM's body — ${fs && fs.win} WINS HOLD'EM, every place as a slim card (${fs && fs.rows}), no second list`);
     await H.shotAll(host, 'he-09-final');
     await H.backToLobby(host);
     await waitFor(host, s => s.meta.status === 'lobby' && !s.game, 'back in the room', 30000);
@@ -129,6 +149,51 @@ await H.run(async () => {
     ok(shown >= 2, `the showdown: ${shown} hands turned up`);
     await leakCheck('the showdown');
     await H.shotAll(host, 'he-02-showdown');
+  }
+
+  // ------------------------------------------------------------ HE4: a REFRESH in the MIDDLE of a pot award — the state, never a replay
+  {
+    let mid = null;
+    await drive('passive', async () => {
+      for (const i of alive()) {
+        if (pages[i] === host) continue;
+        const a = await pages[i].evaluate(() => window.__holdem && window.__holdem.award()).catch(() => null);
+        if (a) { mid = { i, a }; return true; }
+      }
+      return false;
+    }, 'a pot being awarded on a guest', { timeout: 150000, watch: host }).catch(() => null);
+    if (mid) {
+      const rp = pages[mid.i];
+      await H.refresh(rp);
+      await ready(rp, 'the table after a refresh mid-award');
+      await sleep(250);
+      const r = await rp.evaluate(() => {
+        const h = window.__holdem, p = h.pub(), t = p.table;
+        const stacks = [...document.querySelectorAll('.he-seat')].map(e => e.querySelector('.he-sstack').textContent.replace(/,/g, ''));
+        const want = t.seats.filter(x => x.id !== window.__arcade.state.uid).map(x => String(x.stack));
+        return { motion: h.motion(), award: h.award(), ghosts: document.querySelectorAll('.he-ghost').length, stacksOk: stacks.every(v => want.includes(v)), street: t.street };
+      });
+      ok(!r.motion && !r.award && r.ghosts === 0 && r.stacksOk, `REFRESH MID-AWARD ("${mid.a}"): ${NAMES[mid.i]} lands on the state — no motion, no award replayed, every stack its real number (${r.street})`);
+    } else ok(false, 'REFRESH MID-AWARD: no pot award was caught on a guest');
+  }
+
+  // ------------------------------------------------------------ HE4: 60 fps at 4× CPU in THE BUSIEST MOMENT (8 seats: the side-pot run-out + three awards)
+  if (process.env.PERF !== '0') {
+    const bctx = await H.browser.createBrowserContext(), bp = await bctx.newPage();
+    await bp.setViewport({ width: 390, height: 844, deviceScaleFactor: process.env.GPU ? 2.75 : 1, isMobile: true, hasTouch: true });
+    const cdp = await bp.target().createCDPSession();
+    await bp.goto(`${H.BASE}/tests/integration/holdem-preview.html?state=sidepots&n=8`);
+    await bp.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 30000 });
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: H.CPU });
+    await sleep(7400);   // (the run-out from ~0.6 s, the hands' awards ~4–7.4 s: the frames buffer = the last ~4 s — the river, the showdown, all three pots)
+    const f = await bp.evaluate(() => window.__holdem.fps());
+    const busy = await bp.evaluate(() => window.__holdem.pub().table.street);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    const s2 = [...f].sort((a, b) => a - b);
+    const p50 = +(s2[Math.floor(s2.length * 0.5)] || 0).toFixed(1), p95 = +(s2[Math.floor(s2.length * 0.95)] || 0).toFixed(1);
+    log('busiest moment', JSON.stringify({ p50, p95, n: s2.length, busy }));
+    ok(p50 <= 17.5 && s2.length > 150, `PERF (the busiest moment, ${H.CPU}× CPU, 8 seats — the side-pot run-out + three awards): p50 ${p50} / p95 ${p95} ms over ${s2.length} frames`);
+    await bctx.close();
   }
 
   // ------------------------------------------------------------ a phone LOCKED through its turn: 20 s, then its 30 s TIME BANK, then the auto move
@@ -197,6 +262,29 @@ await H.run(async () => {
     ok(true, `REBUY: ${NAMES[rebought]} bought back in from 0 (the button)`);
   } else ok(false, 'REBUY: nobody went broke');
   await H.shotAll(nh, 'he-05-cash');
+  // HE4 — LEAVE TABLE: a guest's button (only between hands / sat out) + its confirm → the dealer's leave → SPECTATING; their chips in the ledger
+  let leftUid = null, leftName = '';
+  {
+    const gi = alive().filter(i => pages[i] !== nh);
+    const end = Date.now() + 90000;
+    let li = null;
+    while (li == null && Date.now() < end) {
+      for (const i of alive()) if (!gi.includes(i) || i !== gi[0]) await moveOn(pages[i], 'passive');
+      if (await pages[gi[0]].evaluate(() => window.__holdem.leave()).catch(() => false)) li = gi[0];
+      else await moveOn(pages[gi[0]], 'passive');
+      await sleep(150);
+    }
+    if (li != null) {
+      leftUid = await uidOf(pages[li]); leftName = NAMES[li];
+      await pages[li].evaluate(() => document.querySelector('.he-leave').click());
+      await pages[li].waitForSelector('.sh .btn-danger', { timeout: 8000 }).catch(() => {});
+      await H.shot(pages[li], 'he-06-leave').catch(() => {});
+      await pages[li].evaluate(() => { const b = document.querySelector('.sh .btn-danger'); b && b.click(); });
+      await waitFor(nh, (s, id) => { const n = s.live.table; return n && n.p && n.p[id] && /"left":true/.test(n.p[id]); }, 'the leaver on the table', 20000, leftUid);
+      await sleep(600);
+      ok(await pages[li].evaluate(() => window.__holdem.spectating()), `LEAVE TABLE: ${leftName} tapped LEAVE → the confirm → left the table, now SPECTATING`);
+    } else ok(false, 'LEAVE TABLE: the button never showed between hands');
+  }
   // END SESSION: the host's button, twice (the second tap confirms) → the session closes when the running hand ends
   await nh.evaluate(() => { const b = document.querySelector('.he-hostbar button'); b && b.click(); });
   await sleep(300);
@@ -206,6 +294,9 @@ await H.run(async () => {
   const sum = (cf.ledger || []).reduce((n, r) => n + r.net, 0);
   ok(cf.ended && cf.rep === 'done' && cf.ledger && sum === 0, `THE LEDGER: ${cf.ledger && cf.ledger.length} rows, Σ net = ${sum} (chips only)`);
   await sleep(1500);
+  const lg = await nh.evaluate(() => { const b = document.querySelector('.he-final .he-fs.is-cash'); return b && { rows: [...b.querySelectorAll('.he-fs-list > li')].map(li => li.textContent), foot: (b.querySelector('.he-fs-foot') || {}).textContent, money: /\$/.test(b.textContent) }; });
+  const played = (cf.ledger || []).filter(r => r.hands > 0).length;
+  ok(lg && lg.rows.length === played && !lg.money && /HANDS? PLAYED/.test(lg.foot || '') && (!leftName || lg.rows.some(r => r.includes(leftName))), `THE LEDGER SCREEN: ${lg && lg.rows.length} slim-card rows (BOUGHT IN · FINAL · NET)${leftName ? `, the leaver ${leftName} among them` : ''}; "${lg && lg.foot}"; no money signs`);
   await H.cleanText(nh, 'the ledger', '.he');
   await H.shotAll(nh, 'he-09-ledger');
   await H.backToLobby(nh);
