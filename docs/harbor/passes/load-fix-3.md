@@ -214,3 +214,24 @@ music-off setting: the audio session code untouched; with the music off there is
   AFTER with the effect running (the 2D path — headless screenshots don't capture the GPU canvas; the renderer's own probe counts its lit
   pixels there) = the same frame, moving. The profile's collection + THE BOARD wear the same strip element + the same rule (not shot apart).
   The harbor `vault` group **58 / 58**; the unit suite 1579 / 1579.
+
+## Group 6 — the end
+
+- **Docs:** this log; docs/harbor.md (#performance THE BOOT SAFETY NET, KNOWN ISSUES, the index — no file moved); decisions.md; docs/audio.md
+  (THE MUSIC ON THE TAP); docs/vault.md (NO BLACK TILES); docs/testing.md (wk-freeze, THE LINE, tap-music, the card stills); ROADMAP + history;
+  plan.md's build table; CLAUDE.md (THE BOOT WATCHDOG under THE LOAD; code-drawn cards = a baked still).
+- **THE BUSY-PC CHECK:** before the full suite only the emulators, my `serve.mjs` (:5173) and Ben's :5190 preview server (his — left running);
+  17.9 GB free. My A/B servers (:5174 LOAD FIX 2's parent, :5175 the pass's base, :5177 DAILY_TEST) + their worktrees were stopped / removed
+  first. (A `serve.mjs --emu` left on :5173 from an earlier pass, started 11:54 am, was stopped at the start.)
+- **Locally (the mini PC):** the unit suite **1579 / 1579** · rules **76 / 76** (unchanged — nothing to re-publish from this pass) · `/api`
+  **44 / 44** · smoke **6 / 6** · CONN green · THE BASELINE GUARD **3 / 3** · `e2e-daily` **51 / 51** (on its DAILY_TEST server) ·
+  `e2e-prism FAST=1` **63 / 63** · `e2e-holdem FAST=1` **12 / 12** · the FULL `e2e-harbor` at 4 shards **1228 / 1232** — the four reds
+  (`sightings` — the capture's worst frame 133 ms; `sgfast` — a fast legendary's photo; `motion` — the dancers' arms; `roomperf` — the room's
+  cost at 4×) **all green alone: 21 / 21** (the shards' load, as in LOAD FIX 2's run).
+- **The rules: NOT changed** (PFIX-B's change of Nov 10 still waits for the owner's re-publish). Still 8 functions.
+- **Not started:** anything outside the four items.
+
+**Known issues** (also docs/harbor.md KNOWN ISSUES): a request that never answers costs 12 s + a reload (a stall can't be told from a slow
+phone sooner); a second hang in one tab without a reveal between gets TAP TO TRY AGAIN, not another reload; THE MUSIC ON THE TAP measured in
+Chromium only (Playwright's Windows WebKit has no Web Audio — the iPhone judges Safari); the warm-up decodes up to 3 station songs a page even
+with no tap; how often a real iPhone loses a request can't be measured here — the BOOT HANG reports in /admin will say.
