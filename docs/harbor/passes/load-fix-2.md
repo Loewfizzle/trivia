@@ -107,3 +107,50 @@ So the growth is ~60 KB of scripts the first picture does need. The cost is the 
   alto)" — a SEEN row: no slow blend, because there was no born set to blend from: `appearMs = old && shown ? SLOW_MS : 1600`). On a phone
   whose first set was born just before the change, the fading set is dropped instead (THE CUT). Either way: a sky that changes by a cut or
   a quick fade right after the reveal, on the loads where the phone is slow to its gates — the owner's "intermittent".
+
+## Group 2 — THE BOOT, FASTER (no look change)
+
+1. **THE LOOK TRAP fixed** (`scene.js#refreshLook`): `lookAt = 0` now FORCES the read (`lookAt !== 0 && …`) — the reveal no longer waits
+   for the page to be 2.5 s old. Chromium, no throttle: the reveal 3.45 → 1.42 s from this alone (the old 900-ms first-frame task went
+   with it — it ran inside the held frames; no long task appears after the reveal: `boot-time.mjs` now also lists the long tasks in the
+   2.5 s AFTER it — none).
+2. **THE BOOT PRELOAD** (`scripts/build-boot-preload.mjs` → index.html, GENERATED; `tests/boot-preload.test.mjs` fails when stale): ONE
+   inline script asks for all 297 modules the first picture needs (`<link rel="modulepreload">` — the static graph of js/app.js + the city
+   + the weather's effects + the holiday props' module + the dock's `today` + the profile it reads) the moment the four core sheets are in
+   (index.html's `__cssDone` → `window.__bootPre`; at the latest 1.2 s in). The ~22-deep waterfall → ONE round trip. Measured first with
+   the block ahead of the sheets: Chrome held the sheets' low-priority (print-media) requests behind 297 high-priority preloads on the
+   local HTTP/1.1 server — the city laid out at 320×320 for 7 s — so the sheets go first. A/B on the Wi-Fi line (Chromium, cpu 1×, the
+   local HTTP/1.1 server — the live site's HTTP/2 multiplexes, so the gain there should be larger): 4.20 / 4.20 → 3.91 / 3.89 s.
+3. **NO SONG BEFORE A TAP** (`audio/party-music.js#partyMusicTick`): the station's synced player is made at the first tap (engine.js's
+   unlock), not at boot — 2.6 MB (3.0 live) off the boot: the bytes before the reveal 5303 → 2639 KB. The song then loads + decodes after
+   the first tap (partyClaims keeps this phone's own player quiet while it does — as on any station change): the music starts a moment
+   after the first tap instead of with it. The harbor `stations` + `partysync` groups green.
+4. **The preview panel after the reveal** (`title.js`): its module + 3 `/api/admin` calls + the intercom it imports load 1.5 s after the
+   city's REVEAL (they loaded 1.5 s after its start — before the reveal on a slow load); a stored JUST ME state still loads at once.
+5. **The first picture's slices, hidden frames** — WebKit's last gates were the clouds' first set (~2.0 s) then the bake (~1.5 s), each fed a
+   few ms a frame while the frames are invisible anyway (the boot screen above is CSS on the compositor): before the reveal the clouds'
+   jobs get 22 ms a frame (`clouds.js#run` — 10 after it, as before), the city's bake 22 (was 14) and the lit windows 12 (was 8). After the
+   reveal every slice is as before.
+
+**After Group 2** (the same runs as Group 1's table, 3 loads, medians):
+
+| row | Nov 6 | before (Group 1) | after Group 2 |
+| --- | ---: | ---: | ---: |
+| Chromium, no throttle, COLD — the reveal | 3.45 s | 3.45 s | **1.32 s** |
+| … WARM — the reveal | 3.56 s | 3.62 s | **1.03 s** |
+| Chromium, cpu 4× + wifi, COLD — the reveal | 8.89 s | 8.90 s | **8.48 s** |
+| … WARM — the reveal | 10.50 s | 9.12 s | **8.62 s** |
+| WebKit 402×874 @3, grey day (3 loads) | 2.63–2.72 s | 2.70–2.80 s | **2.20–2.23 s** |
+| WebKit, night (3 loads) | — | 2.67–2.91 s | **2.32–2.40 s** |
+| bytes before the reveal (cold) | 5244 KB | 5303 KB | **2639 KB** |
+| the first tap — BOARD on screen (no throttle / 4× + wifi) | 0.41 / 2.28 s | 0.37 / 2.06 s | 0.45 / 2.22 s |
+
+The 4× rows stay CPU-bound (headless Chromium at 4× draws the hidden city at ~4 frames a second — the slices are per frame); the TARGET
+(at least as fast as Nov 6 on the same throttled run) holds: 8.89 → 8.48 s cold, 10.50 → 8.62 s warm; a normal load is 2.6× faster in
+Chromium, ~0.5 s faster in WebKit locally (no network there — on the phone's line the preload + the 2.6 MB less add to it).
+
+**No look change** — `pixdiff.mjs --pin --scenes night,party,noon,golden,dusk` against 1b773a20 on :5174: night 0 px; noon 29 px, golden
+129, dusk 24 (the walkers in the promenade band — the usual residue); party 22,175 px — ALL of it the dancers' poses (the dance's phase
+before a first tap: the station's song is no longer decoded by then) — the city, the sky, the signs: 0 (`shots-lf2-diff/party-diff.png`).
+The harbor `load` group 19 / 19 + `stations` + `partysync` (36 / 36 together); `wk-load.mjs` 6 / 6 clean (no doubled frame, no chunk,
+no #net pill, nothing between).

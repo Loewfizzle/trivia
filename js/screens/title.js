@@ -435,7 +435,12 @@ export function createTitle() {
     // Loaded 1.5 s after the city starts (never in the title's first second); the default city never requests it.
     // (SP4: a JUST ME state kept for this tab loads at once — the scene's reveal waits for it, so the preview is in the first picture)
     const remoteSoon = (() => { try { return sessionStorage.getItem('nd:hr-me') ? 0 : 1500; } catch { return 1500; } })();
-    remoteT = setTimeout(() => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) { remote = m.createRemote({ scene: () => scene }); liveRemote = remote; roomRadioSig = ''; feedRoomRadio(st); } }).catch(e => console.warn('preview panel', e)); }, remoteSoon);
+    // (LOAD FIX 2: 1.5 s after the city's REVEAL, not its start — on a slow load the panel's module, its three /api/admin calls + the
+    //  intercom it brings landed on the main thread BEFORE the reveal, for nothing the first picture shows; a stored JUST ME state still
+    //  loads at once — the reveal waits for it)
+    const loadRemote = () => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) { remote = m.createRemote({ scene: () => scene }); liveRemote = remote; roomRadioSig = ''; feedRoomRadio(st); } }).catch(e => console.warn('preview panel', e)); };
+    if (!remoteSoon) remoteT = setTimeout(loadRemote, 0);
+    else cityShown().then(() => { if (!destroyed && !remoteT) remoteT = setTimeout(loadRemote, remoteSoon); });
 
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },

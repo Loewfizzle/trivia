@@ -1061,7 +1061,8 @@ export function createClouds() {
         const key = cloudLit(G, d, d.xNow > -1e8 ? d.xNow : d.x0, box).key;
         if (key !== d.lit) { d.queued = true; perf.relit++; jobs.push({ d, gen: build(d, true) }); }
       }
-      { const j0 = performance.now(); run(born ? 1.2 : 10); perf.jobMs = perf.jobMs * 0.97 + (performance.now() - j0) * 0.03; }
+      // (LOAD FIX 2: before the reveal — the frames are hidden + the first set is the reveal's LAST gate in WebKit — a bigger slice)
+      { const j0 = performance.now(); run(born ? 1.2 : shown ? 10 : 22); perf.jobMs = perf.jobMs * 0.97 + (performance.now() - j0) * 0.03; }
       if (!born && !jobs.length) born = performance.now();
       const now = performance.now(), dt = Math.min(100, fs.dt || 16);
       // (WSP — the light changes SLOWLY: a re-lit cloud eases into its new light over CLOUD_FADE_MS (was 0.9 s — each step of the light a

@@ -139,6 +139,10 @@ export function partyMusicTick(active, hold = false) {
   // (APP FIXES — Grok 3.4: + 'interrupted' + stuck — engine.js#graphDead)
   const dead = graphDead();
   if (!T || hold || dead) { stopPartyMusic(hold || dead ? 0.25 : 0.6); return false; }
+  // (LOAD FIX 2 — NO SONG BEFORE A GESTURE: the station's song is a whole file fetched + decoded (2–3 MB — half the bytes before the
+  //  city's reveal, on every load, for a sound nothing may play before the first tap). It is asked for at the first tap (engine.js's
+  //  unlock) — the player made then, on the server clock as always; partyClaims keeps this phone's own player quiet while it loads)
+  if (!audioUnlocked()) return false;
   const w = deckWindow(T.deck, T.tl.anchor, T.tl.seed, T.cityMs / 1000);
   // (SKY-B: the key is the deck's window only — when the server clock's offset settles (the first seconds after a load) the start moves and
   // the synced player RE-PLACES its voices (a quick fade, the decoded song kept); a new key re-created the player + decoded the song again:

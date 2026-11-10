@@ -1536,7 +1536,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
 
   function refreshLook(now) {
-    if (now - lookAt < ((clock.speed || 1) > 1 ? 250 : 2500) && skyKey) return;
+    // (LOAD FIX 2 — THE LOOK TRAP: `lookAt = 0` is every caller's "read the look NOW" — as a plain time it could not force a read before the
+    //  PAGE was 2.5 s old, and the reveal waited for exactly that: a fast load held ~1.3 s with every gate open)
+    if (lookAt !== 0 && now - lookAt < ((clock.speed || 1) > 1 ? 250 : 2500) && skyKey) return;
     lookAt = now;
     const ms = clock.now();
     LK = skyLook(ms, clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() }); lkMs = ms;
@@ -1775,7 +1777,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the first bake: nothing but the sky draws yet, so it may take a bigger slice of the frame — the city and its windows are
     // ready early in the title's power-on wave)
     mk9('bakes');
-    if (baker.pump(shownAt < 0 || holdOn ? TIERS[tier].bakeMs * 3 + 2 : TIERS[tier].bakeMs)) {
+    // (LOAD FIX 2: before the reveal the frames are hidden + THE BAKE is the reveal's last gate in WebKit — a bigger slice: 22 ms (the
+    //  boot screen above is CSS on the compositor); a held picture keeps the old slice)
+    if (baker.pump(shownAt < 0 ? Math.max(22, TIERS[tier].bakeMs * 3 + 2) : holdOn ? TIERS[tier].bakeMs * 3 + 2 : TIERS[tier].bakeMs)) {
       if (shownAt < 0 || holdOn) baker.settle(); else fadeFrom = now;   // (before the reveal nothing shows: a bake swaps in at once, no crossfade; THE LOAD FIX: nor under a held picture)
       bakeCamPrev = bakeCamShown; bakeCamShown = camOfBake.get(baker.key) || null;   // (THE LOAD FIX: the camera on screen — the probe)
       liveTones = bakeTones;
@@ -1784,7 +1788,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the lit windows bake behind it (never in the same frame as a facade step: the frame's budget is shared); a new light key
     // (the timeline's next step, a re-layout) starts at once, never during the lit layer's own crossfade
     if (L && !litBaker.pending && litFadeFrom < 0 && lightKey() !== litBaker.key && !waitRects()) rebakeLights();
-    if ((!baker.pending || litBaker.bakes === 0) && litBaker.pump(TIERS[tier].bakeMs * (litBaker.bakes === 0 || holdOn ? 2 : 1))) {
+    if ((!baker.pending || litBaker.bakes === 0) && litBaker.pump(shownAt < 0 ? Math.max(12, TIERS[tier].bakeMs * 2) : TIERS[tier].bakeMs * (litBaker.bakes === 0 || holdOn ? 2 : 1))) {
       if (litBaker.bakes > 1 && shownAt >= 0 && !holdOn) litFadeFrom = now; else litBaker.settle();
       lights.swap(litMeta.far, litMeta.near);
     }

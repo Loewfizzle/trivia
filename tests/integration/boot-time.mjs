@@ -104,7 +104,8 @@ async function oneLoad(ctx, page, tag) {
       tap = seen ? Math.round((await page.evaluate('performance.now()')) - t0) : -1;
     }
   }
-  await sleep(1500);
+  await sleep(2500);
+  const after = await page.evaluate('__bt.lt.filter(([s]) => s > __bt.reveal && s < __bt.reveal + 2500)').catch(() => []);
   let longs = null;
   if (TRACE) {
     const buf = await page.tracing.stop();
@@ -118,7 +119,7 @@ async function oneLoad(ctx, page, tag) {
   const all = [...reqs.values()];
   const row = { tag, fcp: Math.round(bt.fcp), reveal: Math.round(bt.reveal), tap, n: before.length, bytes: before.reduce((s, r) => s + r.bytes, 0), by,
     sw: before.filter(r => r.sw).length, cached: before.filter(r => r.cache).length, swNet: swReqs.length, sw304: swReqs.filter(r => r.status === 304).length,
-    lt: bt.lt.filter(([s]) => s <= bt.reveal), longs, allN: all.length, log: L,
+    lt: bt.lt.filter(([s]) => s <= bt.reveal), after, longs, allN: all.length, log: L,
     urls: before.map(r => ({ u: r.url.replace(BASE, ''), k: kindOf(r.url, r.type), b: r.bytes, at: Math.round(r.at - origin) })) };
   await cdp.detach().catch(() => {});
   return row;
@@ -176,7 +177,7 @@ const kb = b => `${(b / 1024).toFixed(0)} KB`;
 const med = a => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor((s.length - 1) / 2)] : -1; };
 console.log(`THE BOOT CLOCK — ${BASE}${LIVE ? ' (LIVE, read-only)' : ''} ${W}×${H}@3 ${CPU ? `cpu ${CPU}×` : 'cpu 1×'} net ${opt('net', 'none')} ${WARM ? 'WARM' : 'COLD'} · ${RUNS} run(s)`);
 for (const r of results) {
-  console.log(`  ${r.tag}: boot ${r.fcp} ms · reveal ${r.reveal} ms · tap → board ${r.tap == null ? '—' : r.tap + ' ms'} · before the reveal ${r.n} requests ${kb(r.bytes)}${WARM ? ` (sw ${r.sw}, its network ${r.swNet} — 304s ${r.sw304})` : ''} · long tasks ${r.lt.length} = ${r.lt.reduce((s, x) => s + x[1], 0)} ms`);
+  console.log(`  ${r.tag}: boot ${r.fcp} ms · reveal ${r.reveal} ms · tap → board ${r.tap == null ? '—' : r.tap + ' ms'} · before the reveal ${r.n} requests ${kb(r.bytes)}${WARM ? ` (sw ${r.sw}, its network ${r.swNet} — 304s ${r.sw304})` : ''} · long tasks ${r.lt.length} = ${r.lt.reduce((s, x) => s + x[1], 0)} ms · after it (2.5 s) ${r.after.length ? r.after.map(x => `${x[1]} ms @+${x[0] - r.reveal}`).join(', ') : 'none'}`);
   console.log('    ' + Object.entries(r.by).sort((a, b) => b[1].bytes - a[1].bytes).map(([k, o]) => `${k} ${o.n} / ${kb(o.bytes)}`).join(' · '));
   if (r.longs) for (const l of r.longs) console.log(`    long @${l.at} ${l.ms} ms: ${l.top.join(' | ')}`);
   if (r.log) for (const l of r.log) console.log('    ' + l);
