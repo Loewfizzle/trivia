@@ -190,3 +190,27 @@ music-off setting: the audio session code untouched; with the music off there is
 - **The look** — the REAL game-start sign (the real title, the real `.rc-tonight` markup + title.css, `gameLogoSvg(holdem, { lit, premium,
   tint: NEON_PINK })` as room-city.js mounts it; `shots.mjs --preview --js …`) at 390 / 402 / 430, unzoomed: **HOLD'EM** — the apostrophe
   reads as one (`load-fix-3/holdem-sign-390x844.png`, `-402x874`, `-430x932`).
+
+## Group 5 — NO BLACK TILES
+
+- **Found** (a measure of every card: its material ALONE — no effect running — vs its effect's own still frame, mean brightness + lit share):
+  24 cards whose material is a near-black ground (lit ≈ 1 %) and whose whole picture is the effect — the known PENTHOUSE · THE DIAL, + INFERNO,
+  PRISM, NOIR, LEGEND, MARQUEE GOLD, NEON CAMO (its camo is the effect's image), WILDFIRE, ETERNAL, WITNESS, FOUNDER, HOUSE, DEV SOURCE, THE 8
+  SIGHTING CARDS (UFO, TR-3B, BLACKBIRD, F-22, GHOST SHIP, AURORA, FIREBALL, SKULL) and PRISM DROP's three STRIPS (PD-5B baked their full cards
+  only). Not code-drawn: the gift cards, OVERCLOCK / THE PASSWORD / COAST CLEAR / PERFECT WEEK (Grok's art = the material), the CSS-designed
+  materials (CSS_ART — brushed, chrome, marble, carbon …), the emblems (SVG layers in the DOM — no renderer).
+- **The fix = PD-5B's, for all of them**: `scripts/build-card-stills.mjs` (generalises `build-pd-cards.mjs`) bakes each card's effect STILL
+  (the reduced-motion frame, its tint) as the strip (360 × 64 @2) + the full card (400 × 252 @2) → `assets/vault/still/<card>-s.webp` /
+  `-f.webp` (45 files, ~0.75 MB — each loads only where its card shows unpainted) + the GENERATED block at the end of css/vault.css.
+  `js/vault/stills.js` = the list (STILLS) + the CSS-designed ones (CSS_ART).
+- **Never under a live effect**: most effects draw transparent light over the material — a still beneath would double the picture. So
+  `fx/renderer.js` marks a slot it has PAINTED (`.fx-on` on the card's element; off again when the slot is removed, its effect fails, the surface
+  is destroyed or cleared) and the still is the material only `:not(.fx-on)` — where the effect runs, the card is exactly as before.
+- **The art unchanged** → no `LAB_V` bump, no CHANGED line.
+- `tests/card-stills.test.mjs`: every LOOKS card has a picture in its material, a still, or a place on CSS_ART (a new code-drawn card fails);
+  every still on disk + wired; the block current (`build-card-stills.mjs --check`); the renderer's `.fx-on` marking.
+- **The look at 402** (THE LAB's grid — `vault-preview.html`, the strips cropped; `load-fix-3/no-black-tiles-402.png`): BEFORE with no effect
+  running = near-black strips; AFTER with no effect running = the still (PENTHOUSE's dial + PH, the Blackbird, FOUNDER's NEON sign, FIRST KO);
+  AFTER with the effect running (the 2D path — headless screenshots don't capture the GPU canvas; the renderer's own probe counts its lit
+  pixels there) = the same frame, moving. The profile's collection + THE BOARD wear the same strip element + the same rule (not shot apart).
+  The harbor `vault` group **58 / 58**; the unit suite 1579 / 1579.

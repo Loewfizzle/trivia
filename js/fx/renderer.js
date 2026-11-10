@@ -152,9 +152,9 @@ export function createSurface(host, o = {}) {
       measure(S); kick();
       return sl;
     },
-    remove(el) { const sl = S.slots.get(el); if (!sl) return; S.slots.delete(el); if (ro) ro.unobserve(el); if (io) io.unobserve(el); S.dirty = true; kick(); },
+    remove(el) { const sl = S.slots.get(el); if (!sl) return; S.slots.delete(el); unpainted(sl); if (ro) ro.unobserve(el); if (io) io.unobserve(el); S.dirty = true; kick(); },
     redraw() { measure(S); kick(); },
-    destroy() { surfaces.delete(S); if (ro) ro.disconnect(); if (io) io.disconnect(); if (S.gl) S.gl.destroy(); S.cv.width = S.cv.height = 0; S.cv.remove(); },
+    destroy() { surfaces.delete(S); for (const sl of S.slots.values()) unpainted(sl); if (ro) ro.disconnect(); if (io) io.disconnect(); if (S.gl) S.gl.destroy(); S.cv.width = S.cv.height = 0; S.cv.remove(); },
   };
   S.destroy = api.destroy;
   return api;
@@ -186,7 +186,12 @@ export function rrect(c, x, y, w, h, r) {
   c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
 }
 
+// LOAD FIX 3 — NO BLACK TILES: a slot this renderer has PAINTED is marked `.fx-on` on its element — a card drawn in code shows its baked
+// still (css/vault.css, vault/stills.js) only while it is NOT painted (the after-match tile, a strip past the budget, before the first frame)
+const painted = sl => { if (!sl.painted && sl.el && sl.el.classList) { sl.painted = true; sl.el.classList.add('fx-on'); } };
+const unpainted = sl => { if (sl.painted && sl.el && sl.el.classList) { sl.painted = false; sl.el.classList.remove('fx-on'); } };
 function clearSurface(S) {
+  for (const sl of S.slots.values()) unpainted(sl);
   if (S.gl) { S.gl.begin(S.cv.width, S.cv.height); S.gl.end(); return 0; }
   if (S.c) { S.c.setTransform(1, 0, 0, 1, 0, 0); S.c.clearRect(0, 0, S.cv.width, S.cv.height); }
   return 0;
@@ -203,7 +208,7 @@ function drawSurface(S, t, still, Q) {
     if (S.gl) S.gl.slot();
     c.setTransform(S.dpr, 0, 0, S.dpr, S.dpr * sl.x, S.dpr * sl.y);
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-    try { sl.fx.draw(c, sl, tt, { ...Q, still, dpr: S.dpr, calm: sl.opts.calm || 0 }); } catch (e) { console.warn('[fx]', sl.fx.id, e); sl.fx = null; }
+    try { sl.fx.draw(c, sl, tt, { ...Q, still, dpr: S.dpr, calm: sl.opts.calm || 0 }); painted(sl); } catch (e) { console.warn('[fx]', sl.fx.id, e); sl.fx = null; unpainted(sl); }
     n++;
   }
   c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
