@@ -18,8 +18,8 @@ import { SPEEDS, DEFAULT_SPEED, MAX_SEATS, MIN_PLAYERS } from '../../js/games/ho
 export const PAUSE = { street: 1_500, fold: 3_000, showdown: 6_000 };
 /** END SESSION's fallback: the host may void a pending end's hand only once it has waited this long (never a normal button). */
 export const VOID_AFTER_MS = 120_000;
-/** The public view keeps this many recent events (numbered `n` — a phone that missed a write still sees them). */
-export const EV_KEEP = 40;
+/** The public view keeps this many recent events (numbered `n` — a phone that missed a write or two still animates them; further behind, it redraws from the state). Every phone downloads the view on every change: 40 kept events made it ~8.8 KB, 16 ~5.8 KB (measured — tests/integration/holdem-server.test.mjs). */
+export const EV_KEEP = 16;
 export const PRE_KINDS = ['checkfold', 'callany'];
 const ACTS = ['fold', 'check', 'call', 'bet', 'raise', 'allin'];
 
