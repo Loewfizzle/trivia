@@ -210,3 +210,8 @@
 - THE CARD ART (drawn in code, the OVERCLOCK cards' bar; the hero middle-right): FIRST KO (common) = a glowing block cracking apart into shards with a "KO" flash · PERFECT CLEAR (rare) = an empty, spotless well with a rainbow light sweeping through (the prism splitting light) · COMEBACK (epic) = a stack touching the red danger line at the top, one bright piece clearing it, light rising. Only Ben's APPROVED art ships (THE LAB).
 - Ben's phone review of PD-1…PD-5A: all good; the day songs approved by ear; Feeling Human Again keeps its 35.7 s cue-in.
 - The silent preview Ben found was the DAY-MATCH preview (prism-preview.html?look=day&set=day&n=5&stack=8&bot=1) — no tap-for-sound unlock there; The Last Long Day itself is fine. Every preview state that plays music gets the same "tap for sound" button as &beat=1.
+
+## FABLE REVIEW — PRISM DROP (Nov 9 2026 — read-only)
+- Nov 9: Ben APPROVED all three PRISM DROP cards in THE LAB (FIRST KO, PERFECT CLEAR, COMEBACK); FIRST KO keeps its burst (a moving common, accepted).
+- Nov 9: DECIDED for the fix pass: the NIGHT songs are turned down at PLAYBACK to match the day set (~−14.4 LUFS) — a per-song gain value, the files untouched, the night behaviour otherwise unchanged.
+- Nov 9: FABLE REVIEW (read-only) of PRISM DROP after PD-5B; its findings + the night-gain fix become the fix pass. The report: docs/games/review-prism-1.md.
