@@ -57,12 +57,72 @@ function acquire(url, onPart = null, need = null, fromS = 0, ff = 0) {
   return e.p;
 }
 function release(url, onPart = null, fromS = 0) { const e = decoded.get(fromS >= RANGE_FROM_S ? `${url}#${fromS.toFixed(3)}` : url); if (!e) return; if (onPart) e.subs.delete(onPart); e.refs = Math.max(0, e.refs - 1); if (!e.refs) { e.at = Date.now(); prune(); } }
-// LOAD FIX 3 — THE MUSIC ON THE TAP: the city's station song decoded AHEAD of the first tap (party-music.js#warmAhead — fetched + decoded
-// on an OFFLINE context: no sound, no unlocked graph — after the city's reveal), held by a ref of its own until the player made at the tap
-// has taken it: the tap then only unlocks + starts (LOAD FIX 2's known issue: the fetch + the decode ran after the tap — ½–1 s of silence)
-const warmed = new Set();
-export function warmSong(url) { if (warmed.has(url)) return; warmed.add(url); acquire(url); }
-export function coolSong(url) { if (warmed.delete(url)) release(url); }
+// LOAD FIX 3 — THE MUSIC ON THE TAP: the city's station music decoded AHEAD of the first tap (party-music.js#warmAhead — on an OFFLINE
+// context: no sound, no unlocked graph — after the city's reveal): the tap then only unlocks + starts (LOAD FIX 2's known issue: the fetch +
+// the decode ran after the tap — ½–1 s of silence). LOAD FIX 3 held whole songs; HE4 a slice (below).
+
+// HE4 — THE WARM-UP, SMALLER (the city chat, Nov 10 — docs/audio.md "THE MUSIC ON THE TAP"): LOAD FIX 3 fetched + decoded up to 3 WHOLE station
+// songs (2–3 MB each) before any tap — even for a visitor who never taps. Now the warm-up is ONE SLICE: ~WARM_SLICE_S seconds of the song
+// from just before where the station's clock is — a 4 KB head + ONE bounded Range request (never the whole file), decoded on an offline
+// context (no sound, no unlocked graph). The player made at the tap starts from it at once (a PART — `bufferT0` = its file time, PD-5A's
+// RANGE mode: a headerless decode lands LAME_DELAY samples later than the whole file's), and the whole song — fetched after the tap — takes
+// over on one sample (#swap, as QUICK START does). One slice in flight at most; party-music.js#warmAhead keeps the page's cap.
+export const WARM_SLICE_S = 14;
+const slices = new Map();   // url → { p: Promise<part | null>, part, fromS }
+let sliceBytes = 0, sliceN = 0, sliceLast = 0;
+const heads = new Map();   // url → its frames' facts from the 4 KB head (fetched once a page)
+/** the bytes the slices fetched on this page (+ how many) — THE CAP's count, the AUDIO panel, the tests */
+export const warmSliceStats = () => ({ bytes: sliceBytes, n: sliceN, last: sliceLast, held: [...slices].map(([u, x]) => ({ url: u.split('/').pop(), fromS: x.fromS, endS: x.part ? +x.part.endS.toFixed(2) : null })) });
+/** fetch + decode ONE slice of `url` from file second `fromS` (0 = the song's top: its header kept), `lenS` long → its part, or null */
+export function warmSlice(url, fromS, lenS = WARM_SLICE_S) {
+  for (const u of [...slices.keys()]) if (u !== url || slices.get(u).fromS !== fromS) slices.delete(u);   // (the newest slice only)
+  const x = { p: null, part: null, fromS };
+  x.p = sliceDecode(url, fromS, lenS).then(part => { x.part = part; if (!part && slices.get(url) === x) slices.delete(url); return part; }, () => { if (slices.get(url) === x) slices.delete(url); return null; });
+  slices.set(url, x);
+  return x.p;
+}
+const cancelBody = r => { try { if (r && r.body) r.body.cancel(); } catch { /* gone */ } };
+async function sliceDecode(url, fromS, lenS) {
+  // the head: where the frames start + their size (a CBR frame — the city's songs are 112 kbps) — once a page per song
+  let hd = heads.get(url);
+  if (!hd) {
+    const ra = await fetch(url, { headers: { Range: 'bytes=0-4095' } });
+    if (ra.status !== 206) { cancelBody(ra); return null; }   // (no ranges here: never the whole file before a tap)
+    const head = new Uint8Array(await ra.arrayBuffer());
+    sliceBytes += head.length;
+    const ft = frameTable(head), h = ft && ft.frames.length ? frameHeader(head, ft.frames[0]) : null;
+    if (!h) return null;
+    hd = { h, first: ft.frames[0] };
+    heads.set(url, hd);
+  }
+  const { h, first } = hd;
+  const avg = (h.mpeg1 ? 144 : 72) * h.br / h.sr, fs = h.spf / h.sr, bps = avg / fs;
+  const prefix = fromS < RANGE_FROM_S, lead = prefix ? 0 : RANGE_PRE_S;
+  const k0 = prefix ? 0 : Math.max(0, Math.floor((fromS - lead) / fs));
+  const est = prefix ? 0 : first + Math.floor(k0 * avg);
+  const end = (prefix ? first : est) + Math.ceil((lenS + lead + 1) * bps) + 2048;
+  const rb = await fetch(url, { headers: { Range: `bytes=${est}-${end}` } });
+  if (rb.status !== 206) { cancelBody(rb); return null; }
+  const bytes = new Uint8Array(await rb.arrayBuffer());
+  sliceBytes += bytes.length; sliceN++; sliceLast = bytes.length;
+  let data, base = 0, startS = 0;
+  if (prefix) data = bytes;
+  else {
+    // place the slice's first frame in the file (its absolute byte → its frame number): its file time → the decode's (− LAME_DELAY)
+    const loc = frameTable(bytes);
+    if (!loc || !loc.frames.length) return null;
+    const k = Math.round((est + loc.frames[0] - first) / avg);
+    startS = k * fs;
+    if (k < 0 || startS > fromS - fs) return null;
+    base = startS - LAME_DELAY / h.sr;
+    data = bytes.subarray(loc.frames[0]);
+  }
+  const cut = prefixCut(data, lenS + lead);   // (whole frames only — a frame cut short at the slice's end never decodes)
+  if (!cut) return null;
+  const buf = await decodeBytes(data.slice(0, cut.end).buffer);
+  t0Of.set(buf, base);
+  return { buf, t0: base, endS: Math.min(startS + cut.s, base + buf.duration) };
+}
 /** TESTS + THE AUDIO panel: the shared decodes (url → refs) and how many fetch + decodes this page has started */
 export const songCache = () => ({ decodes, parts, held: [...decoded].map(([u, e]) => ({ url: u.split('/').pop(), refs: e.refs, part: e.part ? +e.part.endS.toFixed(1) : null, full: !!e.full, flow: flow.get(u.split('#')[0]) ? { ...flow.get(u.split('#')[0]), ago: Math.round(performance.now() - flow.get(u.split('#')[0]).t0) } : null })) });
 
@@ -225,6 +285,12 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     // (LOAD FIX 3: decoded already — warmed before the tap, or another player's — the voice can start in THIS tick)
     const en = decoded.get(keyFor(url, e.from));
     if (en && en.buf) { e.buf = en.buf; e.part = null; }
+    // (HE4 — THE WARM-UP, SMALLER: the slice warmed before the tap is a PART — the voice starts from it now; the whole song swaps in on one sample)
+    const ws = !e.buf && slices.get(url);
+    if (ws) {
+      const take = p => { if (p && !e.buf && (!e.part || p.endS > e.part.endS)) e.part = p; };
+      if (ws.part) take(ws.part); else ws.p.then(take);
+    }
   }
   const drop = k => { const e = bufs.get(k); if (!e) return; bufs.delete(k); release(e.url, e.sub, e.from || 0); };
 

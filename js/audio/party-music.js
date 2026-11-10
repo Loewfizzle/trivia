@@ -12,7 +12,7 @@
 //     the synced player takes over again at the next song. The dips + the low-pass reach the synced voices (onMusicDuck, musicInput).
 // THE PARKED DATABASE holds: serverNow() is the saved offset while parked — no socket is opened for this. A sped-up preview (&speed) can't
 // be in sync: this phone's own player then plays the deck as before. MUSIC OFF: nothing plays; the breaks still follow the same timeline.
-import { createSyncedSongs, speakerLead, warmSong, coolSong } from './synced-songs.js';
+import { createSyncedSongs, speakerLead, warmSlice, warmSliceStats } from './synced-songs.js';
 import { musicUrl } from './music-url.js';
 import { getMusicBus, getContext, graphDead, audioUnlocked } from './engine.js';
 import { serverNow } from '../firebase.js';
@@ -143,7 +143,6 @@ export function partyMusicTick(active, hold = false, warm = false) {
   //  city's reveal, on every load, for a sound nothing may play before the first tap). It is asked for at the first tap (engine.js's
   //  unlock) — the player made then, on the server clock as always; partyClaims keeps this phone's own player quiet while it loads)
   if (!audioUnlocked()) { warmAhead(T, warm); return false; }
-  if (warmUrl && !coolT) coolT = setTimeout(() => { coolT = 0; if (warmUrl) { coolSong(warmUrl); warmUrl = null; } }, 20000);   // (the player holds its own ref by then)
   const w = deckWindow(T.deck, T.tl.anchor, T.tl.seed, T.cityMs / 1000);
   // (SKY-B: the key is the deck's window only — when the server clock's offset settles (the first seconds after a load) the start moves and
   // the synced player RE-PLACES its voices (a quick fade, the decoded song kept); a new key re-created the player + decoded the song again:
@@ -182,24 +181,36 @@ export function partyMusicTick(active, hold = false, warm = false) {
 }
 
 // LOAD FIX 3 — THE MUSIC ON THE TAP (the owner, Nov 10: the music ½–1 s after the first tap — LOAD FIX 2's known issue): before any tap, once
-// the city has been on screen a moment (`warm` — app.js), the song the station will be playing at a tap is FETCHED + DECODED (never played:
-// an offline decode — synced-songs.js#warmSong), so the tap only unlocks + starts it, on the server clock as always. ≤ WARM_MAX songs a page
-// (a phone left on the title without a tap stops fetching), never with Save-Data on; the next song when this one ends within WARM_NEXT_S.
-const WARM_MAX = 3, WARM_NEXT_S = 25;
-let warmUrl = null, warms = 0, coolT = 0;
+// the city has been on screen a moment (`warm` — app.js), what the tap needs is ready, so the tap only unlocks + starts it, on the server
+// clock as always. HE4 — THE WARM-UP, SMALLER (the city chat): no longer whole songs (LOAD FIX 3 decoded up to 3: 6–9 MB a visit, even for
+// a phone that only looks) — ONE SLICE of the song the station is playing, from just ahead of its place now, WARM_SLICE_S long
+// (synced-songs.js#warmSlice: a bounded Range request, decoded offline); when the station has played on past most of it, ONE new slice (never
+// two in flight); near a song's end the next song's top. ≤ WARM_CAP bytes a page without a tap; never with Save-Data or the music off.
+const WARM_CAP = 1024 * 1024, WARM_LEFT_S = 4, WARM_LEAD_S = 0.4;
+let warmed = null, warmBusy = false, warmOff = false;
 function warmAhead(T, ok) {
-  if (!ok || !T) return;
+  if (!ok || !T || warmBusy || warmOff) return;
   try { if (navigator.connection && navigator.connection.saveData) return; } catch { /* fine */ }
-  let s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, T.cityMs / 1000 + 1);
-  if (s && s.t1 - (T.cityMs / 1000) < WARM_NEXT_S) s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, s.t1 + 0.01) || s;
+  const nowS = T.cityMs / 1000;
+  let s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, nowS);
   if (!s) return;
+  let pos = nowS - s.t0;
+  const covers = x => !!(warmed && warmed.id === x.id && warmed.t0 === x.t0 && (x === s ? pos : 0) + WARM_LEFT_S < warmed.endS);
+  if (covers(s)) return;
+  // (too near the song's end for a slice to help: the next song, from its top)
+  if (s.t1 - nowS < WARM_LEFT_S + 2) { const n = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, s.t1 + 0.01); if (n) { s = n; pos = 0; if (covers(s)) return; } }
+  const st = warmSliceStats();
+  if (st.bytes + (st.last || 230 * 1024) > WARM_CAP) return;   // (THE CAP: the next slice must fit under it)
   const url = urlFor(s.id);
-  if (!url || url === warmUrl || warms >= WARM_MAX) return;
-  warms++; warmSong(url);
-  if (warmUrl) coolSong(warmUrl);
-  warmUrl = url;
+  if (!url) return;
+  const song = s, fromS = pos < 1.5 ? 0 : pos + WARM_LEAD_S;
+  warmBusy = true;
+  warmSlice(url, fromS).then(part => {
+    if (part) warmed = { id: song.id, t0: song.t0, url, endS: part.endS };
+    else warmOff = true;   // (no ranges, a bad file: no more tries this page — the tap fetches as LOAD FIX 2 did)
+  }).finally(() => { warmBusy = false; });
 }
-export const partyWarm = () => ({ url: warmUrl ? warmUrl.split('/').pop() : null, warms });
+export const partyWarm = () => { const st = warmSliceStats(); return { url: warmed ? warmed.url.split('/').pop() : null, endS: warmed ? +warmed.endS.toFixed(1) : null, bytes: st.bytes, slices: st.n, warms: st.n }; };
 
 /** the party song sounding from the synced player right now: { id, at } or null (the beat follows it like the lobby's) */
 export function partyNow() { const n = player ? player.now() : null; return n ? { id: n.id, at: n.at } : null; }
