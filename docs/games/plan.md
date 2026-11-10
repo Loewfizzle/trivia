@@ -224,3 +224,8 @@
 - E. AWAY: a phone whose board is silent ≥ 30 s during play is OUT (the same 30 s as a lost signal), credited to nobody, the KO card says why (AWAY).
 - The NIGHT songs are turned down at PLAYBACK to the day set's level (~−14.4 LUFS) — a per-song gain value, the files untouched.
 - The fix work is split: PFIX-A (this) = MUST FIX 1–5 + D + the night gain + optional 18; PFIX-B = MUST FIX 6–7 (rules) + SHOULD FIX 8–10 + the worthwhile optionals.
+
+## PFIX-B — ANTI-CHEAT RULES + THE SHOULD-FIXES + THE POLISH (Nov 10 2026)
+- ANTI-CHEAT = question C's CHEAP BOUNDS (they narrow forgery, they don't replay the board): `sv` closed + bounded, a board frozen once out + outside `play`, attacks stamped by the server + one per piece + never at a player already out, KO credit only with a real recent attack, the award flags only from plausible numbers. PERFECT CLEAR in SOLO stays. A full server replay = a later pass, only if PRISM's scores ever matter to strangers.
+- A RULES CHANGE → Ben re-publishes database.rules.json after this pass.
+- OPTIONAL 21 (any signed-in user can read a room's boards) stays as designed — nothing secret there.
