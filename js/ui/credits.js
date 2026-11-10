@@ -33,6 +33,10 @@ export const CREDITS = [
   { group: 'TYPE', title: 'Alfa Slab One + Poppins — the HOLD’EM billboard’s lettering', by: 'JM Solé (Alfa Slab One) · Indian Type Foundry (Poppins)', licence: 'SIL Open Font License 1.1 (https://openfontlicense.org)', link: 'https://fonts.google.com' },
   // PD-4 — PRISM DROP's DAY LOOK: the callouts' marker lettering (self-hosted: assets/fonts/prism/ + its licence beside it)
   { group: 'TYPE', title: 'Permanent Marker — PRISM DROP’s day look', by: 'Font Diner, Inc. (Google Fonts)', licence: 'Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0)', link: 'https://fonts.google.com/specimen/Permanent+Marker' },
+  // HE3 — HOLD'EM's table: the felt (ambientCG Fabric030, CC0 — recoloured, no attribution required, credited as a courtesy) + the casino card
+  //  back (generated with Grok) — Downloads/grok/holdem/credits.txt; only the compressed copies in assets/holdem/ ship
+  { group: 'ART', title: 'Fabric030 — HOLD’EM’s green felt (recoloured)', by: 'ambientCG (https://ambientcg.com/a/Fabric030)', licence: 'CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)', link: 'https://ambientcg.com/a/Fabric030' },
+  { group: 'ART', title: 'HOLD’EM’s casino card back (AI-generated)', by: 'Generated with Grok', licence: 'Generated art — no CC licence claimed' },
   { group: 'THE CITY SOUNDS', title: 'Field recordings + effects', by: 'Freesound contributors (CC0), the Sonniss GDC Game Audio Bundles, Mixkit, Pixabay', licence: 'CC0 · royalty-free licences (edited, cut + re-encoded for the city)' },
   // NIGHT-B — THE STREET PARTY's crowd (the owner's party-crowd folder's credits.txt: none is CC BY — no attribution required — credited
   // anyway, word for word; only these files ship, cut + re-encoded: audio/city/party-*.mp3)

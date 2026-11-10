@@ -414,7 +414,8 @@ import { GAMES } from '../js/config.js';
 import { MARKS, bladeWord } from '../js/core/marks.js';
 
 // (WINDOWS: the sign MECHANICS are tested on all twelve — a list that grows or shrinks fills more or fewer spots; THE FIVE SIGNS below)
-const GAMES12 = GAMES.map(g => ({ id: g.id, name: g.name, short: signName(g) }));
+// (HE3: a game still being BUILT — config.js `preview: true`, HOLD'EM — joins the signs' tests the pass it becomes playable)
+const GAMES12 = GAMES.filter(g => !g.preview).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
 const faceRect = (cam, t) => { const tr = t.tiers[0], [a, b] = project(cam, tr.x0, tr.y0 + tr.h, tr.z0), [c] = project(cam, tr.x1, 0, tr.z0); return { x: a, y: b, w: c - a, h: t.face.y - b }; };
 
 test('word towers (Part 3): both faces fully on screen, nothing nearer over them — the lighthouse, the wheel, the boats, the signs', () => {
@@ -1829,7 +1830,7 @@ test('DT2 — THE CLOUDS\' light: white by midday, gold low, coral + pink after 
 test('THE DAY PASS — the painted day faces: every game has one, and its letters stand out from its board (the glance test by day)', () => {
   const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
   const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-  for (const g of GAMES) {
+  for (const g of GAMES.filter(x => !x.preview)) {   // (HE3: a game being built gets its day face the pass it becomes playable)
     assert.ok(DAY_PAINT[g.id], `${g.id} has a painted scheme`);
     const p = dayPaint(g);
     assert.ok(ratio(p.ink, p.face) >= 4.5, `${g.id}: letters ${ratio(p.ink, p.face).toFixed(1)}:1 on their board`);

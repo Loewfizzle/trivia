@@ -14,7 +14,7 @@ export const REQUIRED = Object.freeze({
   createView: 'function',       // lazyView(() => import('./view.js'), gameSheets('<id>')) — { mount(el, state), update(state), unmount() }
   DEFAULT_SETTINGS: 'object',   // the options sheet's defaults
   OPTIONS: 'array',             // [{ key, label, type, choices, hint?, when?(onlineCount) }]
-  estimateMinutes: 'function',  // estimateMinutes(settings) → minutes (the options sheet's EST. MATCH LENGTH)
+  estimateMinutes: 'function',  // estimateMinutes(settings) → minutes (the options sheet's EST. MATCH LENGTH) — or a word (HE3: HOLD'EM's CASH → 'OPEN')
   finalRanks: 'function',       // finalRanks(game) → [{ uid, rank }] — GAME NIGHT's points, THE WINNER's BANNER, the night's champion
 });
 export const OPTIONAL = Object.freeze({

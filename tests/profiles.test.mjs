@@ -95,7 +95,7 @@ test('restore keys: NEON-XXXX-XXXX-XXXX, no look-alikes, typed any way', () => {
 });
 
 test('board catalog: every game has WINS + WIN RATE; records, pulse songs, sort order', () => {
-  assert.deepEqual([...BOARD_GAMES].sort(), GAMES.map(g => g.id).sort());
+  assert.deepEqual([...BOARD_GAMES].sort(), GAMES.filter(g => !g.preview).map(g => g.id).sort());   // (HE3: HOLD'EM, being built — its boards come with BOARD 2.0's HOLD'EM pass)
   for (const g of BOARD_GAMES) {
     const c = careerBoards(g);
     assert.equal(c[0].id, `${g}-wins`);
@@ -121,7 +121,7 @@ test('board catalog: every game has WINS + WIN RATE; records, pulse songs, sort 
 });
 
 test('every game reports its finished match: placings, wins, highlights, records', () => {
-  assert.deepEqual([...REPORT_GAMES].sort(), GAMES.map(g => g.id).sort());
+  assert.deepEqual([...REPORT_GAMES].sort(), GAMES.filter(g => !g.preview).map(g => g.id).sort());   // (HE3: HOLD'EM's result is the SERVER DEALER's own — api/_lib/holdem-store.js#reportMatch, never extractMatch)
   const expectRec = { cipher: ['cipher-score', 'cipher-fast5'], overclock: ['overclock-std'], pulse: ['pulse-pulse1-normal'], golf: ['golf-par9'], slip: ['slip-dist'], stakes: ['stakes-chips', 'stakes-big'], rum: ['rum-f15'] };
   const expectC = { signal: 'el', bluff: 'fool', agent: 'esc', prism: 'ko', gridlock: 'sunk' };
   for (const id of REPORT_GAMES) {

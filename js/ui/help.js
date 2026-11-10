@@ -224,6 +224,23 @@ RULES.prism = {
   ],
 };
 
+// HE3 — HOLD'EM: ONE short screen in plain words (the owner: no walls of text) + the rankings sheet a tap away
+RULES.holdem = {
+  goal: 'Texas Hold’em with play chips. You get two cards; five more land in the middle for everyone. The best five-card hand wins the pot — or the last player who didn’t fold. 2–8 players.',
+  sections: [
+    ['HOW A HAND GOES', [
+      'Two players post the blinds, then everyone bets before the flop, after the flop (3 cards), after the turn (1) and after the river (1).',
+      'On your turn: FOLD (give up the hand), CHECK or CALL (match the bet), or RAISE. The quick buttons bet a real amount in one tap.',
+      'ALL IN = every chip you have. If someone is all in for less, the extra chips go into a SIDE POT they can’t win.',
+    ]],
+    ['THE MODES', [
+      'TOURNAMENT — everyone starts even and the blinds climb; run out of chips and you’re out. Last one with chips wins.',
+      'CASH — fixed blinds, rebuy when you hit zero; the host ends it and the chips decide.',
+    ]],
+    ['WHAT BEATS WHAT', 'holdem-rankings'],
+  ],
+};
+
 RULES.gridlock = {
   goal: 'A fleet battle on a holographic war table. Hide your ships, call your shots, sink everyone else. The last fleet standing wins. 2–8 players.',
   sections: [
@@ -349,7 +366,7 @@ const LEGEND = [
   ['0', 'C', 'Not in the word'],
 ];
 
-const TAB = { rum: 'RR', stakes: 'HS', gridlock: 'GL', slip: 'SS', prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
+const TAB = { holdem: 'HE', rum: 'RR', stakes: 'HS', gridlock: 'GL', slip: 'SS', prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
 
 let sheet = null;
 
@@ -361,7 +378,10 @@ function body(id) {
       h('h3.help-h', title),
       items === 'legend'
         ? h('ul.help-legend', LEGEND.map(([s, ch, label]) => h('li', h('span.help-tile', { dataset: { s } }, ch), h('span', label))))
-        : h('ul.help-list', items.map(t => h('li', t))))),
+        : items === 'holdem-rankings'
+          // (HE3 — the 10 hands best → worst, each with a tiny example: the cartridge's own sheet, loaded on the tap)
+          ? h('button.btn.btn-ghost.btn-sm.help-more', { type: 'button', onclick: () => import('../games/holdem/rankings.js').then(m => m.openRankings()).catch(() => {}) }, 'SEE THE HAND RANKINGS')
+          : h('ul.help-list', items.map(t => h('li', t))))),
   ];
 }
 

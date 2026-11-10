@@ -127,6 +127,11 @@ function open() {
       slider('BUTTON SIZE', 'prismBtn'),
       h('div.set-row.set-seg', h('span.label', 'SLAM BUTTON'), segmented([{ value: 'left', label: 'LEFT' }, { value: 'right', label: 'RIGHT' }], settings.prismSlam || 'right', v => updateSettings({ prismSlam: v }))),
       toggle('Swipe-down slam', 'prismFlick')] : []),
+    // (HE3 — HOLD'EM's card faces: the FOUR-COLOUR deck (spades black · hearts red · diamonds blue · clubs green) or the CLASSIC two —
+    //  this phone only; shown while its match is on screen until it's playable)
+    ...(playable('holdem') || (state.game && state.game.id === 'holdem') ? [
+      h('div.sh-sub', 'HOLD’EM'),
+      h('div.set-row.set-seg', h('span.label', 'CARD COLOURS'), segmented([{ value: 'four', label: 'FOUR' }, { value: 'two', label: 'CLASSIC' }], settings.heDeck || 'four', v => updateSettings({ heDeck: v })))] : []),
     ...(playable('slip') ? [h('div.sh-sub', 'SLIPSTREAM'), row({ label: 'Your ride', onClick: () => { close(); const me = state.players && state.players[state.uid]; import('../games/slip/ride.js').then(m => m.openRidePicker({ color: colorHex(me ? me.color : 'cyan') })); } })] : []),
     ...(playable('pulse') ? [h('div.sh-sub', 'PULSE'), toggle('Hit sounds', 'pulseHits'), row({ label: 'Recalibrate audio sync', onClick: () => { close(); import('../games/pulse/calibrate.js').then(m => m.openCalibration({ reason: 'PULSE · RECALIBRATE (DO THIS AFTER SWITCHING HEADPHONES)' })); } })] : []),
     ...chatHostRows(),

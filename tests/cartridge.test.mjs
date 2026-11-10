@@ -28,11 +28,15 @@ export const EXEMPT = Object.freeze(['cipher', 'signal', 'bluff', 'pulse', 'golf
 /** PW1 — THE DAILY-ONLY cartridges: never playable in a room (GAMES `daily: true`, playable false — no lobby row, no sign), NOT exempt: they
  *  meet the whole contract like a playable game (THE DAILY MODULE opens them once a day, later) */
 export const DAILY_ONLY = Object.freeze(['password', 'coastclear']);
-const CHECKED = [...PLAYABLE, ...DAILY_ONLY];
+/** HE3 — BEING BUILT: a GAMES row with playable: false + `preview: true` (no sign, never offered; a local emulator page may start it), NOT
+ *  exempt: it meets the whole contract like a playable game. It leaves this list in the pass that makes it playable. */
+export const BUILDING = Object.freeze(['holdem']);
+const CHECKED = [...PLAYABLE, ...DAILY_ONLY, ...BUILDING];
 
 test('every registered game is PLAYABLE (and checked), DAILY-ONLY (checked, never in a room) or EXEMPT (hidden, frozen) — never neither', () => {
   assert.deepEqual([...PLAYABLE].sort(), ['overclock', 'prism']);
-  for (const id of registered) assert.equal([PLAYABLE, DAILY_ONLY, EXEMPT].filter(l => l.includes(id)).length, 1, `${id}: exactly one of playable / daily-only / exempt`);
+  for (const id of registered) assert.equal([PLAYABLE, DAILY_ONLY, EXEMPT, BUILDING].filter(l => l.includes(id)).length, 1, `${id}: exactly one of playable / daily-only / exempt / being built`);
+  for (const id of BUILDING) { const g = GAMES.find(x => x.id === id); assert.ok(g && g.playable === false && g.preview === true && !g.sign, `${id}: a GAMES row, playable false, preview, NO sign (never offered)`); }
   for (const id of EXEMPT) assert.ok(!PLAYABLE.includes(id), `${id} is exempt — it isn't playable`);
   for (const id of DAILY_ONLY) { const g = DAILIES.find(x => x.id === id); assert.ok(g && g.daily === true && g.playable === false && !g.sign && !GAMES.some(x => x.id === id), `${id}: a DAILIES row (daily: true, never playable, no sign) — never a GAMES row`); assert.equal(gameRow(id), g); }
 });
@@ -94,7 +98,7 @@ test("THE THIN META: the registry's static imports are the meta files only; ever
   const statics = [...REG.matchAll(/^import .* from '(\.\/[^']+)'/gm)].map(m => m[1]);
   assert.deepEqual(statics.filter(s => /\/(index|logic|director|view)\.js$/.test(s)), [], 'no game code imported statically');
   assert.deepEqual([...REG.matchAll(/^import \* as \w+ from '\.\/(\w+)\/meta\.js'/gm)].map(m => m[1]).sort(), [...PLAYABLE].sort());
-  assert.equal(registered.length, 14);
+  assert.equal(registered.length, 15);   // (HE3: + HOLD'EM, being built)
   for (const id of CHECKED) {
     const meta = read(`js/games/${id}/meta.js`);
     assert.doesNotMatch(meta, /^import /m, `${id}/meta.js imports nothing (pure + tiny)`);

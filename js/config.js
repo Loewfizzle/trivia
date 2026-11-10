@@ -77,6 +77,9 @@ export const GAMES = [ // lobby order
   { id: 'cipher', name: 'CIPHER BREACH', theme: 'cipher', tag: 'WORD RACE', blurb: 'Same hidden word. Everyone races. Watch their boards light up.', playable: false },
   { id: 'signal', name: 'LAST SIGNAL', theme: 'signal', tag: 'TRIVIA ROYALE', blurb: '100 HP. Answer fast, strike a rival. Last one standing.', playable: false },
   { id: 'bluff', name: 'NEURAL BLUFF', theme: 'bluff', tag: 'BLUFF TRIVIA', blurb: 'Fake the truth. Spot the truth. The Ministry is watching.', playable: false },
+  // HE3 — HOLD'EM (docs/holdem.md): BEING BUILT — playable: false until Ben flips it (no sign, never offered); `preview: true` lets a LOCAL
+  // emulator page (localhost + ?emu) start it for the E2E + the passes' own play-tests (isPlayable below) — never the live site
+  { id: 'holdem', name: "HOLD'EM", theme: 'holdem', tag: 'TEXAS HOLD’EM · 2–8', blurb: 'Two cards each, five on the table. Bet, bluff or fold. Play chips only.', playable: false, preview: true },
 ];
 
 // PW1 — THE DAILIES: the DAILY-ONLY cartridges (docs/password.md). NOT in GAMES on purpose: GAMES is the lobby's list — it drives the city's
@@ -92,4 +95,9 @@ export const DAILIES = [
 export const gameRow = id => GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || null;
 
 /** WINDOWS: can a match of this game start? (the one switch: GAMES[].playable) */
-export const isPlayable = id => !!GAMES.find(g => g.id === id && g.playable);
+export const isPlayable = id => !!GAMES.find(g => g.id === id && (g.playable || (g.preview && localPreview())));
+/** HE3 — a game still being built starts only on a LOCAL emulator page (localhost / 127.0.0.1 + ?emu): the E2E + the passes' play-tests */
+function localPreview() {
+  const loc = globalThis.location;
+  return !!loc && /^(localhost|127\.0\.0\.1)$/.test(loc.hostname) && /[?&]emu(?:&|=|$)/.test(loc.search || '');
+}
