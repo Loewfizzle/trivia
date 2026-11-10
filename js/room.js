@@ -89,6 +89,7 @@ async function claimRoom(code) {
 }
 
 export const createRoom = joining(async profile => {
+  cancelResume();   // (LOAD FIX 4: a late boot resume never walks this phone back into its old room after a HOST)
   cleanupStaleRooms().catch(() => {});
   await claimSeatFor(null);   // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: already seated on another device → MOVE HERE · CANCEL — seat.js)
   const [words, hush] = await Promise.all([
@@ -156,6 +157,7 @@ export const LOCKED_MSG = 'The door’s locked. Ask the host to let you in.';
 export const joinRoom = joining(async (input, profile) => {
   const code = normalizeCode(input);
   if (!code) throw new Error('The hush word is 4 letters.');
+  cancelResume();   // (LOAD FIX 4: the dock joins a still-running boot resume for the SAME room itself — title-dock.js#join; any other join wins)
   const wait = joinWait();
   if (wait > 0) throw new Error(`Easy there — too many wrong words. Try again in ${Math.ceil(wait / 1000)} s.`);
   const room = await readRoomBasics(code);
@@ -183,14 +185,27 @@ export const joinRoom = joining(async (input, profile) => {
 // Called on boot: puts a refreshed/returning player straight back into their room.
 // Returns 'ok', 'none' (no saved room), 'gone' (closed / removed / full — forgotten) or
 // 'error' (couldn't reach the room right now — the session is kept so a retry works).
+// LOAD FIX 4 — THE REJOIN LIMIT (Grok's boot audit #1): on a dead line Firebase's get() waits for the socket with NO time limit, so the boot
+// gives up WAITING after a while (app.js) — never the attempt: it runs on while the socket keeps trying, and lands as a normal rejoin. While
+// it runs, a REJOIN tap for the same room joins THIS attempt (pendingResume — never a second join); a HOST or another JOIN cancels it
+// (cancelResume: checked after every wait — a cancelled resume writes nothing more and never enters the room → 'cancelled').
+let resumeRun = null;   // { code, p } while a resume is out
+let resumeGen = 0;
+export const pendingResume = code => (resumeRun && (!code || resumeRun.code === code) ? resumeRun.p : null);
+export function cancelResume() { resumeGen++; }
 export async function resumeSession() {
   const session = loadSession();
-  return session && session.code ? resumeSaved(session) : 'none';   // (no saved room: the line stays parked)
+  if (!session || !session.code) return 'none';   // (no saved room: the line stays parked)
+  const gen = ++resumeGen;
+  const run = { code: session.code, p: resumeSaved(session, () => gen !== resumeGen) };
+  resumeRun = run;
+  try { return await run.p; } finally { if (resumeRun === run) resumeRun = null; }
 }
-const resumeSaved = joining(async session => {
+const resumeSaved = joining(async (session, stale) => {
   const profile = loadProfile();
   let room;
   try { room = await readRoomBasics(session.code); } catch { return 'error'; }
+  if (stale()) return 'cancelled';
   // Back the next day: the room sat for an hour without a game — close it and start fresh on the title.
   if (room.meta && roomIdle(room.meta, serverNow())) { await deleteRoom(session.code); saveSession(null); setUrlRoom(null); return 'idle'; }
   const gone = !room.meta || room.kicked
@@ -199,11 +214,14 @@ const resumeSaved = joining(async session => {
   // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: another device of this profile took the seat while this one was away → never silently back in;
   //  the title says where the card is — a JOIN asks MOVE HERE)
   const moved = await seatConflict(session.code).catch(() => null);
+  if (stale()) return 'cancelled';
   if (moved) { saveSession(null); setUrlRoom(null); lastMoved = moved.code; return 'moved'; }
   await takeSeat(session.code);
+  if (stale()) return 'cancelled';
   try {
     // Seat was lost (e.g. left on another device) — rejoin with the saved profile.
     if (!room.players[state.uid]) await writePlayer(session.code, profile, room.players);
+    if (stale()) return 'cancelled';
     enterRoom(session.code);
     return 'ok';
   } catch {

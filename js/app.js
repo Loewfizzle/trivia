@@ -15,6 +15,7 @@ import { keepAwake } from './wakelock.js';
 import { GAME_MODULES, GAME_IDS, loadGame, metaOf } from './games/registry.js';
 import { lookLockOf } from './games/cartridge.js';
 import { createTitle, harborReady, harborPending, harborRemote, cityShown } from './screens/title.js';
+import { onScreenWait } from './ui/onscreen.js';
 import { createSetup } from './screens/setup.js';
 import { installAudio, onUnlock, onResume } from './audio/engine.js';
 import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider, switchNow, nowPlaying, cueMusic } from './audio/music.js';
@@ -54,6 +55,7 @@ let current = null; // { key, screen, el }
 // Players with a saved room wait on the boot screen while we reconnect them; everyone else
 // gets the title screen straight away (it doesn't need Firebase until they tap HOST/JOIN).
 const resuming = !!(loadSession() && loadSession().code);
+const UPLINK_WAIT_MS = 8000;   // (LOAD FIX 4 — THE REJOIN LIMIT: the boot's wait for Firebase + the room, ON SCREEN — boot() below)
 if (resuming) { const s = document.querySelector('#boot .boot-status'); if (s) s.textContent = 'REJOINING YOUR ROOM'; }
 
 function routeKey(st) {
@@ -428,26 +430,46 @@ async function boot() {
       h('p.mono.dim', 'Paste your web config into js/firebase-config.js — see CLAUDE.md.')));
     return;
   }
-  try {
-    const uid = await initFirebase((connected, net) => {
-      setState({ connected, net });
-      if (connected) armPresence();
-    });
-    setState({ uid });
-    withProfile().then(m => { m.me.watchProfile(); m.me.syncMe(); m.queue.startQueue(); }).catch(e => console.warn('profile', e));
-    const saved = loadSession();
-    const resumed = await resumeSession();
-    if (resumed === 'ok') setState({ invite: '' });   // (CITY 1.0 OUT — THE STUCK JOIN: a reload in a room left ?room= as an "invite" that filled JOIN after a LEAVE)
-    else if (resumed === 'gone') setState({ inviteExpired: saved.code, invite: '' });
-    else if (resumed === 'moved') { setState({ invite: '' }); import('./room.js').then(m => toast(`You’re in room ${m.movedTo() || ''} on another device`, 'info', { ms: 5000, sub: 'Join here to move your seat.' })).catch(() => {}); }
-    else if (resumed === 'idle') { setState({ invite: '' }); toast('YOUR ROOM CLOSED AFTER AN HOUR WITHOUT A GAME', 'info', 5000); }
-    // Couldn't reach the room (weak signal): keep the seat and offer a one-tap REJOIN on the title.
-    else if (resumed === 'error') setState({ rejoin: saved.code });
-    // An invite link to a room that no longer exists: say so up front instead of failing on JOIN.
-    else if (resumed === 'none' && state.invite && !(await roomExists(state.invite))) setState({ inviteExpired: state.invite, invite: '' });
-  } catch (e) {
-    console.error(e);
-    toast('UPLINK FAILED — CHECK CONNECTION', 'err', 5000);
+  // LOAD FIX 4 — THE REJOIN LIMIT (Grok's boot audit #1): the uplink (the gstatic SDK import, the auth restore, the room resume's reads)
+  // has NO time limit of its own — on a dead line Firebase's get() just queues for the socket, so a refresh in a room sat on REJOINING YOUR
+  // ROOM until THE BOOT WATCHDOG's reload → TAP TO TRY AGAIN, every tap the same. Now the boot waits for it ≤ UPLINK_WAIT_MS ON SCREEN
+  // (ui/onscreen.js — paused while hidden), then goes on WITHOUT it: the title + the city (ready) with REJOIN on the dock, the seat KEPT,
+  // the socket still trying. The uplink itself runs on: a late 'ok' walks into the room as a normal rejoin (REJOIN goes away — the same
+  // handler, room.js#resumeSession's ONE attempt; a REJOIN tap meanwhile joins it: title-dock.js#join), a late failure leaves REJOIN up.
+  const saved = loadSession();
+  let uplinkDone = false;
+  const uplink = (async () => {
+    try {
+      const uid = await initFirebase((connected, net) => {
+        setState({ connected, net });
+        if (connected) armPresence();
+      });
+      setState({ uid });
+      withProfile().then(m => { m.me.watchProfile(); m.me.syncMe(); m.queue.startQueue(); }).catch(e => console.warn('profile', e));   // (the profile's ensure: never on the boot path)
+      const resumed = await resumeSession();
+      if (resumed === 'ok') setState({ invite: '', rejoin: '' });   // (CITY 1.0 OUT — THE STUCK JOIN: a reload in a room left ?room= as an "invite" that filled JOIN after a LEAVE)
+      else if (resumed === 'gone') setState({ inviteExpired: saved.code, invite: '', rejoin: '' });
+      else if (resumed === 'moved') { setState({ invite: '', rejoin: '' }); import('./room.js').then(m => toast(`You’re in room ${m.movedTo() || ''} on another device`, 'info', { ms: 5000, sub: 'Join here to move your seat.' })).catch(() => {}); }
+      else if (resumed === 'idle') { setState({ invite: '', rejoin: '' }); toast('YOUR ROOM CLOSED AFTER AN HOUR WITHOUT A GAME', 'info', 5000); }
+      // Couldn't reach the room (weak signal): keep the seat and offer a one-tap REJOIN on the title.
+      else if (resumed === 'error') setState({ rejoin: saved.code });
+      // ('cancelled': a HOST / another JOIN won while the resume was out — nothing to say)
+      // An invite link to a room that no longer exists: say so up front instead of failing on JOIN (a dead line: JOIN says it later).
+      else if (resumed === 'none' && state.invite) {
+        const code = state.invite;
+        const there = await Promise.race([roomExists(code), onScreenWait(UPLINK_WAIT_MS).then(() => true)]);
+        if (!there && state.invite === code && !state.code) setState({ inviteExpired: code, invite: '' });
+      }
+    } catch (e) {
+      console.error(e);
+      toast('UPLINK FAILED — CHECK CONNECTION', 'err', 5000);
+      if (resuming && state.uid && !state.code) setState({ rejoin: saved.code });
+    } finally { uplinkDone = true; }
+  })();
+  await Promise.race([uplink, onScreenWait(UPLINK_WAIT_MS)]);
+  if (!uplinkDone) {
+    console.warn(`[boot] the uplink isn’t back after ${UPLINK_WAIT_MS / 1000} s on screen — the city comes up${resuming ? `, REJOIN ${saved.code} on the dock (the seat kept, still trying)` : ''}`);
+    if (resuming && !state.code) setState({ rejoin: saved.code });
   }
   setState({ ready: true });
   dismissBoot();

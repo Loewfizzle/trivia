@@ -725,7 +725,62 @@ G('load', async () => {
   await loadFixChecks();
   await loadFix2Checks();
   await loadFix3Checks();
+  await loadFix4Checks();
 });
+// LOAD FIX 4 (Nov 10 — GROK'S BOOT AUDIT #1): THE REJOIN LIMIT. A refresh IN A ROOM with the database line DEAD (the socket refused, the
+// long-poll + sign-in hosts dropped — the page's own files still load, as on a captive Wi-Fi / a dead mobile line) used to hold REJOINING
+// YOUR ROOM forever (Firebase's get() has no time limit) → THE WATCHDOG's reload → TAP TO TRY AGAIN. Now: the city + REJOIN in ≤ ~10 s on
+// screen, no reload; the line back after 20 s → into the room by ITSELF (a) or through REJOIN tapped while the first try was still out (b)
+// — the SAME attempt (room.js#pendingResume), never a second join.
+export async function loadFix4Checks() {
+  const DEAD = () => {
+    const RW = window.WebSocket;
+    window.__lineDead = (() => { try { return sessionStorage.getItem('t:dead') === '1'; } catch { return false; } })();
+    window.__wsTries = 0;
+    const W2 = function (url, prot) { if (/127\.0\.0\.1:9000|localhost:9000/.test(String(url))) { window.__wsTries++; if (window.__lineDead) url = 'ws://127.0.0.1:9/'; } return prot === undefined ? new RW(url) : new RW(url, prot); };
+    W2.prototype = RW.prototype; Object.assign(W2, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 });
+    window.WebSocket = W2;
+  };
+  for (const how of ['by itself', 'REJOIN tapped while the first try is out']) {
+    const ctx = await (await launch()).createBrowserContext();
+    const p = await ctx.newPage();
+    const perr = [];
+    p.on('pageerror', e => perr.push(e.message));
+    await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await p.evaluateOnNewDocument(() => { try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('nd:byc', 'test'); localStorage.setItem('na:rj:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ } });
+    await p.evaluateOnNewDocument(DEAD);
+    await p.setRequestInterception(true);
+    let dead = false;
+    p.on('request', r => { if (dead && /127\.0\.0\.1:(9000|9099)/.test(r.url())) return r.abort('internetdisconnected').catch(() => {}); r.continue().catch(() => {}); });
+    await p.goto(`${BASE}/?emu&slot=rj&when=2026-11-06T13:02&wx=overcast${GR}&city=2`);
+    await waitFor(p, '!!window.__district && window.__district.phase().done', 'the title', 25000);
+    await ev(p, "document.querySelector('.nd-hostbtn').click()");
+    await waitFor(p, '!!(window.__arcade && window.__arcade.state.code && window.__arcade.state.meta)', 'the room', 20000);
+    const code = await ev(p, 'window.__arcade.state.code');
+    await ev(p, "sessionStorage.setItem('t:dead', '1')"); dead = true;
+    const t1 = Date.now();
+    p.reload().catch(() => {});
+    await sleep(500);
+    let up = true;
+    await waitFor(p, "(() => { const b = document.getElementById('boot'); return !!(window.__district && window.__district.loadProbe && window.__district.loadProbe().shown) && (!b || b.classList.contains('out')) && !!document.querySelector('.nd-rejoin-btn'); })()", 'the city + REJOIN', 30000).catch(() => { up = false; });
+    const upMs = Date.now() - t1;
+    const s1 = await ev(p, "({ code: window.__arcade.state.code, rejoin: window.__arcade.state.rejoin, ready: window.__arcade.state.ready, did: sessionStorage.getItem('ns:boot-did'), retry: !!(document.getElementById('boot') && document.getElementById('boot').dataset.retry), ws: window.__wsTries })").catch(() => ({}));
+    ok(up && upMs < 11000 && !s1.code && s1.rejoin === code && !s1.did && !s1.retry,
+      `THE REJOIN LIMIT (LOAD FIX 4) — ${how}: a refresh in room ${code} on a DEAD line → ${up ? `the city + REJOIN ${s1.rejoin} at ${(upMs / 1000).toFixed(1)} s` : 'NO CITY + REJOIN in 30 s'} (${s1.did ? `THE WATCHDOG: ${s1.did}` : 'no watchdog reload'}${s1.retry ? ', TAP TO TRY AGAIN' : ', no TAP TO TRY AGAIN'})`);
+    if (how !== 'by itself' && up) { await tap(p, '.nd-rejoin-btn'); await sleep(600); }
+    const busy = how !== 'by itself' ? await ev(p, "(() => { const m = [...document.querySelectorAll('.nd-note, .nd-msg')].map(x => x.textContent.trim()).filter(Boolean); return m.join(' / '); })()").catch(() => '') : '';
+    await sleep(Math.max(0, 20000 - (Date.now() - t1)));
+    dead = false; await ev(p, "window.__lineDead = false; sessionStorage.removeItem('t:dead')");
+    const t2 = Date.now();
+    let back = true;
+    await waitFor(p, `window.__arcade.state.code === ${JSON.stringify(code)} && !!window.__arcade.state.meta`, 'back in the room', 45000).catch(() => { back = false; });
+    const s2 = await ev(p, "({ rejoin: window.__arcade.state.rejoin, players: Object.keys(window.__arcade.state.players || {}).length, view: window.__arcade.state.view })").catch(() => ({}));
+    ok(back && !s2.rejoin && s2.players === 1,
+      `THE REJOIN LIMIT — ${how}: the line back after 20 s → ${back ? `in room ${code} ${((Date.now() - t2) / 1000).toFixed(1)} s later (REJOIN ${s2.rejoin ? 'STILL UP' : 'gone'}, ${s2.players} player)` : 'NEVER BACK IN THE ROOM'}${busy ? ` · the tap said "${busy.trim()}"` : ''}`);
+    for (const m of perr) { errors.push(`loadfix4 pageerror (${how}): ${m}`); log('load', 'PAGEERROR', m); }
+    await ctx.close();
+  }
+}
 // LOAD FIX 3 (Nov 10 — the owner's iPhone: "the site sometimes freezes completely while loading"): THE BOOT SAFETY NET. ONE failed or
 // stalled request among the boot's ~310 module files held the boot screen FOREVER (the app's graph never ran — nothing could notice).
 // Each fault forced ONCE on a fresh cold page (the test's own request router) must end in a REVEALED city that answers a tap (BOARD →

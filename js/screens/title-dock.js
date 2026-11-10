@@ -4,10 +4,10 @@
 import { afterTap } from '../ui/tapwatch.js';
 import { h } from '../ui/dom.js';
 import { sfx } from '../audio/sfx.js';
-import { setState } from '../store.js';
+import { state, setState } from '../store.js';
 import { loadProfile } from '../identity.js';
 import { firebaseReady } from '../firebase.js';
-import { createRoom, joinRoom } from '../room.js';
+import { createRoom, joinRoom, pendingResume } from '../room.js';
 
 const tube = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="t">${d}</g><g class="c">${d}</g></svg>`;
 export const ICON = {
@@ -391,6 +391,15 @@ export function createDockWork(T) {
     const tell = T.els.actions.classList.contains('is-join') ? say : note;
     tell(isRejoin ? `Rejoining ${code}…` : `Knocking: ${code}…`, 'info');
     try {
+      // (LOAD FIX 4 — THE REJOIN LIMIT: the boot's resume of THIS room is still out (a dead line — app.js went on without it) → this tap
+      //  joins THAT attempt, never a second join; ≤ 20 s, then the dock is free again and the attempt runs on (a late 'ok' still walks in).
+      //  Only once it has ENDED without getting in ('error') does the tap knock afresh.)
+      const out = pendingResume(code);
+      if (out) {
+        const r = await Promise.race([out, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
+        if (state.code === code) { setState({ invite: '', rejoin: '', inviteExpired: '' }); return; }   // (in — as a join's success)
+        if (r !== 'error') { T.busy = false; T.els.code.parentElement.classList.remove('is-busy'); tell('', 'info'); return; }   // (gone / moved / idle: app.js says so)
+      }
       await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
       await joinRoom(code, p);
       setState({ invite: '', rejoin: '', inviteExpired: '' });
@@ -398,7 +407,7 @@ export function createDockWork(T) {
       T.busy = false;
       T.els.code.parentElement.classList.remove('is-busy');
       tell(isRejoin && /No room/i.test(String((e && e.message) || e)) ? `That room has closed (${code}).` : friendly(e, code), 'warn');
-      if (isRejoin) setState({ rejoin: '' });
+      if (isRejoin && !pendingResume(code)) setState({ rejoin: '' });   // (LOAD FIX 4: REJOIN stays while the boot's attempt still runs)
       sfx('invalid');
       shake();
       T.els.code.select && T.els.code.select();
