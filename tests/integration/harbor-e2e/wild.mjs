@@ -551,13 +551,16 @@ G('bench', async () => {
     await waitFor(Q.page, `!!(${P}.phoneBench) && !!document.querySelector('.hb-bench')`, 'the bench card', 15000);
     const b0 = await ev(Q.page, `(() => { const b = ${P}.phoneBench; return { running: b.running, text: document.querySelector('.hb-bench').textContent }; })()`);
     ok(!b0.running && /START/.test(b0.text), `THE PHONE BENCH waits for a tap: a START card (${b0.text.slice(0, 60)}…)`);
+    const startUrl = await ev(Q.page, 'location.search');
     await ev(Q.page, `${P}.phoneBench.start()`).catch(() => {});
     // (MODELS — the cloud caught a read landing mid-navigation (the bench loads each scene's page): every read here retries across one)
     // (APP FIXES — the cloud caught a read on a scene page still BOOTING: window.__district / its harbor / the bench not built yet →
     // "Cannot read properties of undefined (reading 'harbor')" — a read of a half-built page is retried like one mid-navigation)
     const evN = async js => { for (let k = 0; k < 20; k++) { try { return await ev(Q.page, js); } catch (e) { if (!/context was destroyed|navigation|Target closed|detached|Cannot read properties of (undefined|null)/i.test(String(e && e.message))) throw e; await sleep(250); } } return null; };
     // (SKY-B: EVERY SCENE ON A FRESH PAGE — the bench loads each scene's link: its bakes finished, a cool-down with the city paused, settle, measure)
-    const seen = new Set(), phases = new Set(); let loads = 0, lastUrl = '';
+    // (LOAD FIX 2: the START page counts as the first page — with the faster boot the bench had already left it for its first scene before
+    //  the first poll below, so a URL-change count saw 2 pages for 2 scenes: the cloud's red; the start page's own address is read above)
+    const seen = new Set([new URLSearchParams(startUrl).get('when')]), phases = new Set(); let loads = 1, lastUrl = startUrl;
     const tB = Date.now();
     while (Date.now() - tB < 90000) {
       const r = await evN(`(() => { const h = window.__district && window.__district.harbor && window.__district.harbor(), b = h && h.phoneBench; return b ? { rows: b.rows, i: b.i, phase: b.phase, running: b.running, url: location.search } : null; })()`).catch(() => null);
