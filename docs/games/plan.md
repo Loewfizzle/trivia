@@ -229,3 +229,19 @@
 - ANTI-CHEAT = question C's CHEAP BOUNDS (they narrow forgery, they don't replay the board): `sv` closed + bounded, a board frozen once out + outside `play`, attacks stamped by the server + one per piece + never at a player already out, KO credit only with a real recent attack, the award flags only from plausible numbers. PERFECT CLEAR in SOLO stays. A full server replay = a later pass, only if PRISM's scores ever matter to strangers.
 - A RULES CHANGE → Ben re-publishes database.rules.json after this pass.
 - OPTIONAL 21 (any signed-in user can read a room's boards) stays as designed — nothing secret there.
+
+## HOLD'EM — THE PLAN (Nov 10 2026)
+- HOLD'EM = Texas Hold'em, 2–8 players, one phone each, PLAY CHIPS ONLY (chips reset every match; no bankroll; nothing buyable becomes chips). No solo / no bots in v1.
+- THE SERVER IS THE DEALER (HE2): it shuffles with a NEW server secret (never KEY_PEPPER), sends each phone only its own 2 cards, reveals the board, checks every action, settles pots. The host holds no cards.
+- MODES: TOURNAMENT with a speed setting TURBO (DEFAULT) · STANDARD · DEEP, and CASH (an open session).
+  - TOURNAMENT stacks: 1,500 (TURBO + STANDARD), 3,000 (DEEP). No antes.
+  - BLIND LADDER: 10/20 · 15/30 · 25/50 · 50/100 · 75/150 · 100/200 · 150/300 · 200/400 · 300/600 · 500/1,000 · 700/1,400 · 1,000/2,000 · 1,500/3,000 · 2,000/4,000 · 3,000/6,000 · 5,000/10,000 (then ×2 per level).
+  - LEVEL TIME: TURBO 2 min · STANDARD 6 min · DEEP 12 min. Target lengths at 6–8 players: TURBO ~15–20 min, STANDARD ~45–60 min, DEEP 2 h+.
+  - SHOT CLOCK 20 s a turn + a 30 s TIME BANK per player per match (used only after the 20 s runs out).
+  - CASH: 1,000 chips, blinds fixed 5/10, REBUY for 1,000 once you hit zero (between hands), late joiners sit in at the next hand, no timer; the host ends it → THE LEDGER: each player's net = final stack − everything bought in (rebuys included), plus hands played + the biggest pot. Chips only — no dollar signs, no rates, no "owes".
+  - Tournament: no late joiners. Busted = KO card → spectate (chat open). No Call the Winner.
+- SHOWDOWN: everyone still in shows automatically; when everyone folds, the winner may SHOW (optional).
+- Beginner help: a plain hand label under your cards ("TWO PAIR · KINGS") + a rankings sheet. NO win-odds %.
+- Bet controls (HE3): FOLD / CHECK·CALL / RAISE + one-tap presets with real amounts — before the flop MIN · 3× · ALL IN, after the flop ½ POT · POT · ALL IN; RAISE opens a slider. Pre-action toggles CHECK/FOLD and CALL ANY. Plain words, never "BB".
+- Looks (later passes): 3 skins any player picks any time (NEON CASINO · COZY CABIN · CYBERPUNK APARTMENT), NO day/night; portrait = a tall stadium table filling the screen with uniform seats on the rail, + a sideways view. Approved art, chips + sounds wait in Downloads\grok\holdem\ for HE5.
+- Passes: HE1 engine + sims → HE2 the server dealer → HE3–HE4 the table screen → HE5–HE6 skins → HE7 sideways → HE8 E2E + polish → HE9 Fable review → HE10 fixes. It goes live only by flipping its own playable switch when Ben says so.
