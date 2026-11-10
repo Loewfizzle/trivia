@@ -18,6 +18,10 @@
        &deck=two          the CLASSIC two-colour faces           &hand=AsKd   your two cards (the deck is rigged to deal them)
        &seed=x            another deal                            &host=0      you're not the host (no END SESSION in CASH)
        &st=47&sb=34       the safe areas (pt) — an iPhone 13/14 = 47 / 34 (the default), a 15/16 Pro = 62 / 34
+     HE4 ADD-ON (Ben) — REAL SLIM CARDS: every fake player has a REAL public face, as a room player's profile (profiles/{pid} through
+     fake-firebase.js → profile/public.js#watchRoomProfiles → pubOf): a different APPROVED card each (two legendaries, the textured ZEBRA ·
+     GLITTER BOMB · VELVET ROOM · MARBLE), their own emblem (shape + finish, a tube style) + name glow + a level — the page approves exactly that
+     set through &labmarks= (js/vault/approved.js — a local server / the LAN only; added to the address when missing). Preview-only data.
      tests/integration/holdem-shots.mjs shoots it. -->
 <html lang="en">
 <head>
@@ -46,6 +50,22 @@ import { setState } from '/js/store.js';
 import { updateSettings } from '/js/audio/settings.js';
 
 const q = new URLSearchParams(location.search);
+// (HE4 ADD-ON — the players' REAL faces: one approved card each — the lab's marks for this page only)
+const FACES = [
+  { cd: 'card-sg-aurora', es: 'emb-house', g: 'glow-gold', l: 42 },                         // ALEX — SKY DANCER (legendary)
+  { cd: 'card-zebra', es: 'emb-key', tb: 'tube-chase', g: 'glow-neon', l: 18 },              // MAXIMILIANOS — ZEBRA (the 12-letter name)
+  { cd: 'card-glitter', es: 'emb-prism', g: 'glow-prism', l: 27 },                          // BO — GLITTER BOMB (epic)
+  { cd: 'card-velvet', es: 'emb-sweetheart', tb: 'tube-breath', g: 'glow-candle', l: 12 },   // GRACE — VELVET ROOM (rare)
+  { cd: 'card-wildfire', es: 'emb-torch', g: 'glow-fire', l: 55 },                          // CHARLOTTE — WILDFIRE (legendary)
+  { cd: 'card-marquee', es: 'emb-cocktail', tb: 'tube-twotone', g: 'glow-champagne', l: 9 }, // ED — THE MARQUEE (epic)
+  { cd: 'card-marble', es: 'emb-diamond', g: 'glow-ice', l: 21 },                           // PENELOPE — MARBLE & GOLD (rare)
+  { cd: 'card-chrome', es: 'emb-owl', g: 'glow-frost', l: 6 },                              // JUN — SILVER CHROME (uncommon)
+];
+if (!q.get('labmarks')) {
+  const ids = [...new Set(FACES.flatMap(f => [f.cd, `full-${f.cd}`, f.es, f.g, f.tb].filter(Boolean)))];
+  q.set('labmarks', ids.join(','));
+  history.replaceState(null, '', `?${q}`);
+}
 const ASK = q.get('state') || 'myturn';
 const N = ASK === 'headsup' ? 2 : Math.max(2, Math.min(8, Number(q.get('n') || (ASK === 'raised' ? 4 : 6))));
 const STATE = q.get('play') === '1' ? 'play' : ({ ledger: 'final', headsup: 'myturn', raised: 'flop' })[ASK] || ASK;
@@ -64,7 +84,10 @@ const NAMES = ['ALEX', 'MAXIMILIANOS', 'BO', 'GRACE', 'CHARLOTTE', 'ED', 'PENELO
 const AV = ['bolt', 'crown', 'eye', 'star', 'diamond', 'moon', 'alien', 'wave'];
 const COL = ['cyan', 'magenta', 'yellow', 'green', 'orange', 'violet', 'red', 'blue'];
 const uids = Array.from({ length: N }, (_, i) => `p${i}`);
-const players = Object.fromEntries(uids.map((u, i) => [u, { name: NAMES[i], avatar: AV[i], color: COL[i], joinedAt: i }]));
+const pidOf = i => `phepreview${'abcdefgh'[i]}${'abcdefgh'[i]}`;   // (profile/public.js's pid shape: p + 11 of [a-z2-9])
+const players = Object.fromEntries(uids.map((u, i) => [u, { name: NAMES[i], avatar: AV[i], color: COL[i], joinedAt: i, pid: pidOf(i) }]));
+// each player's public face (profiles/{pid} — the shape a room player's profile has: n · a · c · l · cd · es · g · tb · mn), served by the fake database
+window.__fakeDb = Object.fromEntries(uids.map((u, i) => [`profiles/${pidOf(i)}`, { n: NAMES[i], a: AV[i], c: COL[i], mn: null, ...FACES[i] }]));
 const presence = Object.fromEntries(uids.map(u => [u, { online: true, lastSeen: 0 }]));
 
 // HE4 — THE MOTION DEMO (&play=1): a scripted table that PLAYS on the real clock, through the real dealer core + THE LEAN WIRE, on a loop —
@@ -186,7 +209,7 @@ if (!PLAY && !STAGED && STATE !== 'spectate') window.__clock = () => (t.deadline
 const pub = publicOf(rec);
 const node = { seq: rec.seq, at: now, ...nestWire(toWire(pub)) };
 const hole = holeOf(rec, me);
-window.__fakeDb = { [`hole/PVWX/${me}`]: hole };
+window.__fakeDb[`hole/PVWX/${me}`] = hole;
 const host = q.get('host') === '0' ? uids.find(u => u !== me) : me;
 const game = { id: 'holdem', matchId: rec.id, settings: { mode: MODE, speed: 'turbo' }, participants: Object.fromEntries(uids.map(u => [u, true])), phase: 'play', startAt: T0 };
 if (STATE === 'final') {
@@ -200,6 +223,8 @@ if (STATE === 'final') {
 }
 const state = { uid: me, code: 'PVWX', players, presence, game, meta: { hostId: host, status: 'playing' }, live: STATE === 'waiting' ? { table: null } : { table: node }, liveKey: 'x' };
 setState({ uid: me, players, presence, game, meta: state.meta, live: state.live });
+(await import('/js/profile/public.js')).watchRoomProfiles(players);   // (the room's profiles, as room.js watches them)
+await new Promise(r => setTimeout(r, 20));
 const { loadGame } = await import('/js/games/registry.js');
 await loadGame('holdem');   // (the cartridge, as every phone has it by the podium — its finalScene draws the body)
 const { createView } = await import('/js/games/holdem/view.js');
