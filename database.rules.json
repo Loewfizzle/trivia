@@ -1121,6 +1121,9 @@
               }
             }
           }
+        },
+        "holdem": {
+          ".write": false
         }
       }
     },
@@ -1411,6 +1414,14 @@
         "$match": {
           ".read": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid",
           ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !data.exists() && newData.isString() && newData.val().length <= 64"
+        }
+      }
+    },
+    "hole": {
+      "$code": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid && !root.child('rooms/' + $code + '/kicked/' + $uid).exists()",
+          ".write": false
         }
       }
     },

@@ -1,4 +1,4 @@
 {
- "hash": "ea5e337a3ed528ce",
- "line": "RULES CHANGED: rooms/{CODE}/prism/{match}/{uid} + rooms/{CODE}/prismq/{match}/{target}/{key} (PFIX-B — PRISM DROP anti-cheat: the board closed + bounded by the play clock, frozen once out + outside play; an attack stamped by the server, one per piece, never at or from a board that is out) — RE-PUBLISH database.rules.json in the Firebase console (the whole file: it also carries DFIX2's players/{uid}/dy and the earlier passes' pfr, ocm / ocnext, meta/hostId + meta/hostBy, which the fixture still predates — harmless if those are already live)"
+ "hash": "b0aacaaa2d27d0e8",
+ "line": "RULES CHANGED: rooms/{CODE}/holdem + hole/{CODE}/{uid} (HE2 — THE HOLD'EM DEALER: the public table written by the server only; each seat's two cards readable by that uid alone, never once kicked; hrec stays default-deny) — RE-PUBLISH database.rules.json in the Firebase console (the whole file: it also carries PFIX-B's rooms/{CODE}/prism + prismq, DFIX2's players/{uid}/dy and the earlier passes' pfr, ocm / ocnext, meta/hostId + meta/hostBy, which the fixture still predates — harmless if those are already live)"
 }

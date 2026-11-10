@@ -21,7 +21,7 @@ import { ref, val, emulated } from './fb.js';
 import { take } from './limit.js';
 import { noTiming } from './timing.js';
 import { pidOf } from './profiles.js';
-import { DealerError, newRecord, applyOp, advance, dueOf, publicOf, holeOf, seatUids, resultRows } from './holdem-dealer.js';
+import { DealerError, newRecord, applyOp, advance, dueOf, publicOf, holeOf, seatUids, resultRows, abandoned } from './holdem-dealer.js';
 
 export const OPS = ['start', 'act', 'pre', 'show', 'poke', 'rebuy', 'back', 'leave', 'sit', 'endSession'];
 
@@ -91,8 +91,9 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
   const recHold = holdRef(recRef), pubHold = holdRef(pubRef);
   try {
     const needHost = op === 'start' || op === 'endSession';
-    const [, , inRoom, kicked, hostId, players] = await Promise.all([
-      recHold.loaded, pubHold.loaded, member(), val(`${rp}/kicked`), needHost ? val(`${rp}/meta/hostId`) : null, op === 'start' ? val(`${rp}/players`) : null]);
+    const [, , inRoom, kicked, hostId, players, roomAt] = await Promise.all([
+      recHold.loaded, pubHold.loaded, member(), val(`${rp}/kicked`), needHost ? val(`${rp}/meta/hostId`) : null, op === 'start' ? val(`${rp}/players`) : null,
+      op === 'start' ? val(`${rp}/meta/createdAt`) : null]);
     T.mark('load');
     const kickedMap = kicked && typeof kicked === 'object' ? kicked : {};
     if (!inRoom) throw new ApiError(403, 'not_in_room', 'Only someone in the room can play at its table.');
@@ -109,9 +110,9 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
       let rec;
       try {
         if (op === 'start') {
-          if (prev && !prev.m.ended) throw new DealerError(409, 'running', 'A game is already running at this table.', { seq: prev.seq });
+          if (prev && !abandoned(prev, { roomAt, players, kicked: kickedMap })) throw new DealerError(409, 'running', 'A game is already running at this table.', { seq: prev.seq });
           const uids = Object.keys(players || {}).filter(u => !kickedMap[u]).sort((a, b) => ((players[a] || {}).joinedAt || 0) - ((players[b] || {}).joinedAt || 0));
-          rec = newRecord({ code, uids, mode: body.mode, speed: body.speed, now, rng, prevSeq: prev ? prev.seq : 0 });
+          rec = newRecord({ code, uids, mode: body.mode, speed: body.speed, now, rng, prevSeq: prev ? prev.seq : 0, roomAt: roomAt ?? null });
           advance(rec, now, rng);
         } else {
           if (!prev) throw new DealerError(404, 'no_match', 'No game at this table.');

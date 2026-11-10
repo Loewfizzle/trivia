@@ -44,7 +44,7 @@ function shuffled(list, rng) {
 }
 
 /** START: seats = the room's players (≤ 8), in an order the server's randomness picks; hand 1 is dealt by `advance`. */
-export function newRecord({ code, uids, mode = 'tournament', speed, now, rng, prevSeq = 0 }) {
+export function newRecord({ code, uids, mode = 'tournament', speed, now, rng, prevSeq = 0, roomAt = null }) {
   if (mode !== 'tournament' && mode !== 'cash') refuse(400, 'bad_mode', 'Pick TOURNAMENT or CASH.');
   const sp = mode === 'cash' ? null : (speed == null ? DEFAULT_SPEED : speed);
   if (sp != null && !SPEEDS[sp]) refuse(400, 'bad_speed', 'Pick TURBO, STANDARD or DEEP.');
@@ -52,7 +52,7 @@ export function newRecord({ code, uids, mode = 'tournament', speed, now, rng, pr
   if (ids.length < MIN_PLAYERS) refuse(409, 'too_few', 'Two players are needed.');
   if (ids.length > MAX_SEATS) refuse(409, 'too_many', `At most ${MAX_SEATS} players at the table.`);
   const m = createMatch({ mode, speed: sp || DEFAULT_SPEED, players: shuffled(ids, rng), now, stepRunout: true });
-  return { v: 1, id: matchIdOf(now, rng), code, mode, speed: m.speed, seq: prevSeq + 1, m, pre: {}, doneAt: null, revealAt: null, endingAt: null, ev: [], evn: 0, rep: null };
+  return { v: 1, id: matchIdOf(now, rng), code, roomAt, mode, speed: m.speed, seq: prevSeq + 1, m, pre: {}, doneAt: null, revealAt: null, endingAt: null, ev: [], evn: 0, rep: null };
 }
 
 function note(rec, events) {
@@ -152,6 +152,17 @@ export function advance(rec, now, rng, { kicked = null } = {}) {
 }
 
 const seated = (rec, uid) => !!seatById(rec.m.table, uid);
+
+/**
+ * May a START replace this unfinished match? Only when it is ABANDONED: its room is gone (a HUSH WORD comes back 24 h after a room
+ * closes — `roomAt` = the room's meta/createdAt differs) or fewer than 2 of its seated players are still in the room, not kicked.
+ */
+export function abandoned(rec, { roomAt, players, kicked }) {
+  if (rec.m.ended) return true;
+  if (rec.roomAt != null && roomAt != null && rec.roomAt !== roomAt) return true;
+  const live = rec.m.table.seats.filter(x => players && players[x.id] && !(kicked && kicked[x.id]));
+  return live.length < 2;
+}
 
 /**
  * ONE OP from a player (uid = the CALLER — never a uid from the body: nobody acts for another player, the host included).

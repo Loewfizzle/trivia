@@ -1353,3 +1353,65 @@ test('MAKE HOST: the host hands the room to a live online player only; never to 
   await assertFails(set(ref(db('p2'), 'gifts/card-gift-enforcer'), { pid: 'x' }), 'gifts/ unwritable');
   await assertFails(set(ref(db('p2'), 'rooms/' + CODE + '/radioCrew/role/p2'), { on: true, at: 1 }), 'the crew stamp is the server\'s');
 });
+
+// ---------------------------------------------------------------------------------------------- HE2 — THE HOLD'EM DEALER
+// rooms/{CODE}/holdem = the public table (any signed-in reader, written by the server only); hole/{CODE}/{uid} = a seat's own two cards
+// (that uid only, never once kicked; server-written); hrec/{CODE} = the server's record — the deck, every card (no rule: the default deny)
+function holdemRoom(extra = {}) {
+  const r = playingRoom();
+  r.rooms[CODE].players.p3 = { name: 'THREE', color: 'green', avatar: 'hex', joinedAt: 3 };
+  r.rooms[CODE].holdem = { seq: 3, at: now(), j: JSON.stringify({ seq: 3, table: { board: ['Kc', 'Qd', '5s'] } }) };
+  r.hole = { [CODE]: { host: { h: 1, c: ['As', 'Ah'] }, p2: { h: 1, c: ['7c', '2d'] }, p3: { h: 1, c: ['9h', '9s'] } } };
+  r.hrec = { [CODE]: { seq: 3, due: now() + 20000, j: JSON.stringify({ deck: ['Jh', 'Tc'] }) } };
+  Object.assign(r, extra);
+  return r;
+}
+
+test('HE2 — HOLD\'EM: a phone reads ONLY its own two cards — never another seat\'s, the room\'s whole node, the whole tree or the record', async () => {
+  await seed(holdemRoom());
+  await assertSucceeds(get(ref(db('p2'), `hole/${CODE}/p2`)));
+  await assertFails(get(ref(db('p2'), `hole/${CODE}/host`)), 'another seat\'s cards');
+  await assertFails(get(ref(db('p2'), `hole/${CODE}/p3`)));
+  await assertFails(get(ref(db('p2'), `hole/${CODE}`)), 'the room\'s private node whole');
+  await assertFails(get(ref(db('p2'), 'hole')), 'the whole private tree');
+  await assertFails(get(ref(db('host'), `hole/${CODE}/p2`)), 'the host holds no cards');
+  await assertFails(get(ref(db('stranger'), `hole/${CODE}/p2`)));
+  await assertFails(get(ref(db(null), `hole/${CODE}/p2`)));
+  for (const who of ['host', 'p2', 'stranger']) {
+    await assertFails(get(ref(db(who), `hrec/${CODE}`)), `${who} reads the server's record`);
+    await assertFails(get(ref(db(who), 'hrec')));
+    await assertFails(get(ref(db(who), `hrec/${CODE}/due`)));
+  }
+  // the public table: the room's players + any signed-in spectator (like every room), never signed out
+  await assertSucceeds(get(ref(db('p2'), `${R}/holdem`)));
+  await assertSucceeds(get(ref(db('stranger'), `${R}/holdem`)));
+  await assertFails(get(ref(db(null), `${R}/holdem`)));
+  // reading the whole room tree never reaches the private cards (they live outside rooms/)
+  const room = (await get(ref(db('p2'), R))).val();
+  assert.ok(!JSON.stringify(room).includes('"As"') && !JSON.stringify(room).includes('"9h"'), 'no other seat\'s card in the room tree');
+});
+
+test('HE2 — HOLD\'EM: no client writes the public table, a private node or the record — the host and the owner included', async () => {
+  await seed(holdemRoom());
+  const fake = { seq: 99, at: now(), j: '{}' };
+  for (const who of ['host', 'p2', 'stranger']) {
+    await assertFails(set(ref(db(who), `${R}/holdem`), fake), `${who} writes the table`);
+    await assertFails(update(ref(db(who), `${R}/holdem`), { seq: 100 }));
+    await assertFails(set(ref(db(who), `${R}/holdem/j`), '{}'));
+    await assertFails(set(ref(db(who), `hole/${CODE}/${who}`), { h: 1, c: ['As', 'Ad'] }), `${who} writes their own cards`);
+    await assertFails(set(ref(db(who), `hole/${CODE}/p3`), null));
+    await assertFails(set(ref(db(who), `hrec/${CODE}`), { j: '{}' }), `${who} writes the record`);
+    await assertFails(set(ref(db(who), `hrec/${CODE}/due`), 0));
+  }
+  await assertFails(update(ref(db('host'), R), { holdem: fake }), 'the host\'s room update can\'t carry the table');
+  await assertFails(update(ref(db('host'), '/'), { [`${R}/game/x`]: 1, [`${R}/holdem`]: fake }), 'nor a multi-path update');
+});
+
+test('HE2 — HOLD\'EM: a kicked player reads nothing new — their own private node closes the moment they are kicked', async () => {
+  await seed(holdemRoom());
+  await assertSucceeds(get(ref(db('p3'), `hole/${CODE}/p3`)));
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/kicked/p3`), true));
+  await assertFails(get(ref(db('p3'), `hole/${CODE}/p3`)), 'kicked → their cards closed');
+  await assertFails(get(ref(db('p3'), `hole/${CODE}/p2`)));
+  await assertSucceeds(get(ref(db('p2'), `hole/${CODE}/p2`)), 'the others are untouched');
+});
