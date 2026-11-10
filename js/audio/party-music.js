@@ -185,7 +185,7 @@ export function partyMusicTick(active, hold = false, warm = false) {
 // clock as always. HE4 — THE WARM-UP, SMALLER (the city chat): no longer whole songs (LOAD FIX 3 decoded up to 3: 6–9 MB a visit, even for
 // a phone that only looks) — ONE SLICE of the song the station is playing, from just ahead of its place now, WARM_SLICE_S long
 // (synced-songs.js#warmSlice: a bounded Range request, decoded offline); when the station has played on past most of it, ONE new slice (never
-// two in flight); near a song's end the next song's top. ≤ WARM_CAP bytes a page without a tap; never with Save-Data or the music off.
+// two in flight); near a song's end the next song's top. ≤ WARM_CAP bytes a page without a tap; never with Save-Data or the CLASSIC menu music (no station) — the music OFF / muted switch is NOT read here yet (the city chat's "part 2").
 const WARM_CAP = 1024 * 1024, WARM_LEFT_S = 4, WARM_LEAD_S = 0.4;
 let warmed = null, warmBusy = false, warmOff = false;
 function warmAhead(T, ok) {

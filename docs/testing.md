@@ -546,7 +546,9 @@ load problem, not a flake to patch.
   --upstream A --skew-to B] [--live] [--out DIR] [--json f]` — WebKit 402×874 @3, a cold + a warm load a run through THE LINE
   (`kit/line-proxy.mjs`: Vercel's ETag caching, a phone's line + the faults, the deploy switch), each timed to the reveal (the city shown AND the
   boot screen lifting) + the first tap (BOARD); a freeze saved with its stage. **THE MUSIC ON THE TAP:** `node tests/integration/tap-music.mjs
-  [--engine chromium] [--net wifi] [--scene night|day]` — the first tap → the station's music sounding (no voice before a tap). **THE CARD
+  [--engine chromium] [--net wifi] [--scene night|day] [--hold 18] [--notap 60 --cap 1024]` — the first tap → the station's music sounding (no voice
+  before a tap); HE4: `--hold` = that many seconds after it sampled (no silent sample — the warm slice hands over to the whole song), `--notap N` = NO
+  tap: the music bytes fetched in N s (each request + its Range; fails above `--cap` KB). **THE CARD
   STILLS:** `node scripts/build-card-stills.mjs "<browser>"` (`--check`).
 - **LOAD FIX 2 (Nov 9) — THE BOOT CLOCK:** `node tests/integration/boot-time.mjs "<browser>" [--runs 3] [--cpu 4] [--net wifi|4g|3g] [--warm]
   [--trace] [--log] [--tap 0] [--json out]` — Chromium (CDP throttles): the boot screen, THE REVEAL, a tap on BOARD at the reveal → THE BOARD,

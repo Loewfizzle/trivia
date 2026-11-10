@@ -249,7 +249,8 @@ reads the look LIVE (a change mid-game re-themes the screen at once). Right / cl
 
 ## THE PODIUM FRAME's rules for a body (FRIENDS B, Nov 8)
 - **The list from 4th (B4):** the frame's results list starts at 4th — the body (a `finalScene` or the console's own podium) already shows 1st–3rd. A
-  body that shows NO podium says so with `el.dataset.podium = 'none'` (OVERCLOCK's NOBODY SCORED) → the whole list.
+  body that shows NO podium says so with `el.dataset.podium = 'none'` (OVERCLOCK's NOBODY SCORED) → the whole list; a body that shows EVERY place
+  itself says `el.dataset.podium = 'all'` (HE4 — HOLD'EM's places + THE LEDGER as slim cards) → no list at all.
 - **The score is in the line under each slim card** (`ui/strip-board.js`): the game's `note` on the left ("3 KO · 2 SENT · 1 BADGES"), the score at
   the right end in the number font — never over the card.
 - **The music** waits for the frame; **the sound** — `OWN_VICTORY_SOUND`; **the colour** — `ACCENT` (the table above).

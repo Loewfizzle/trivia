@@ -3,7 +3,8 @@
 *(HE1, Nov 10 2026 — THE ENGINE + THE SIMULATIONS. HE2, Nov 10 2026 — THE SERVER DEALER (below: "THE DEALER"). HE3, Nov 10 2026 — THE
 LEAN WIRE + THE TABLE SCREEN A (below): a cartridge + the portrait table, playable end to end in a LOCAL test room — its `config.js` GAMES row is
 `playable: false` + `preview: true` (never offered, no sign; only a local emulator page that asks — `&preview=1` — can start it). The owner's
-decisions: docs/games/plan.md "HOLD'EM — THE PLAN (Nov 10 2026)" + "HE1" + "HE2 — THE SERVER DEALER" + "HE3 — THE TABLE SCREEN A".)*
+decisions: docs/games/plan.md "HOLD'EM — THE PLAN (Nov 10 2026)" + "HE1" + "HE2 — THE SERVER DEALER" + "HE3 — THE TABLE SCREEN A" + "HE4 — THE TABLE
+SCREEN B". HE4, Nov 10 2026 — THE TABLE SCREEN B (below: "THE MOTION", "THE SHOWDOWN", "KO + SPECTATING", "CASH: LEAVE + THE LEDGER", "THE END SCREEN").)*
 
 ## The plan in short
 - Texas Hold'em (no-limit), 2–8 players, one phone each, **PLAY CHIPS ONLY** — chips reset every match, no bankroll, nothing buyable becomes
@@ -292,18 +293,25 @@ The view renders ONLY from the database: the public table (`fromWire(live.table)
   thin gold line, the real green felt (`assets/holdem/felt-green.webp`, a 512² tile of ambientCG's Fabric030, CC0) + a vignette, a cream betting line,
   the quiet print NEON SPEAKEASY under the board. On a shorter phone everything scales with the table's height (`s`, 0.74–1.08); the seat blocks shrink
   with it (`ss` ≤ 1). Desktop: the same column at phone width (the sideways layout = HE7).
-- THE SEATS (anchors at the emblem's centre, fractions of the table's height): the top seat 0.028 (on the rail); the side rows in the band 0.15–0.395 —
-  2 rows (4–5 opponents) as far apart as the band allows, 3 rows (6–7) evenly; heads-up = the top seat alone, bigger (56 pt). Clockwise from your
+- THE SEATS (anchors at the emblem's centre): the top seat 0.028 of the table's height (on the rail). **HE4 (Ben's preview fixes):** the side rows are
+  placed in PX (`layout.js#sideRowsPx` — the seats' blocks are fixed sizes × `ss`, the band scales with the table): from just under the top seat (5, 7:
+  the row's bet between the top seat's plate and its bet) or 0.128 / 0.16 of the height (6 / 4) down to just above the pot line (its bet clear of a side
+  pot stacked over the pot, its block clear of the board) — evenly: **96 pt between rows at 6–8 players (HE3: 80)**; 2–3 opponents one row at the
+  band's middle; heads-up = the top seat alone, bigger (56 pt). The top seat's TAG sits LEFT of its plate (the side rows tuck in under it). Clockwise from your
   left: the left side bottom → top, the top, the right side top → bottom (`logic.js#seatSlots`, `othersInOrder`). Each: the EMBLEM (44 pt) on the
   rail, the dark plate under it (name ≤ 12 letters, stack in gold), the status tag (FOLD = the whole seat dimmed; ALL IN red; AWAY / SAT OUT / OUT /
   LEFT grey), two small backs inward, the bet (a placeholder chip + the amount) further inward, the D button, WHOSE TURN = a gold ring + the draining
   bar under the plate (the time bank turns it red-orange). Watching with 8 at the table: the first seat takes the bottom.
-- THE BOARD at 0.606 (5 slots, 56 × 78 pt; heads-up 60 × 84), the POT at 0.527 (side pots as SIDE n beside it); THE ACTION AREA below the board —
+- THE BOARD by the player count (HE4 — `layout.js#BOARD`): heads-up CENTRED between the opponent and your buttons (0.44, up to 64 pt cards — as big as
+  the felt allows: ~60 on a 390, 64+ on a 430), 3–4 players RAISED toward the middle (0.54 / 0.55), 5–8 HE3's place (0.6); the POT line just above the
+  board wherever it is, the SIDE POTS stacked ABOVE the main pot (each one short — they never reach the side seats' columns); THE ACTION AREA below the board —
   the presets at 0.714, the round buttons at 0.8 (≥ 56 pt, 66 at the design size); YOUR two cards at 0.95 (78 × 108, over the bottom rail — the
   biggest thing on screen), your plate under them (YOU · stack · the hand label in gold — a tap opens THE RANKINGS SHEET).
 - At a showdown a seat's label is the hand's CATEGORY (STRAIGHT, TWO PAIR — short, so a full table's labels never run into each other) and a winner's
   "+n" sits where its bet was, in gold; your own label is the full one (STRAIGHT · SEVEN HIGH · WINS 40). Checked: `tests/holdem-phone.test.mjs` (no seat
-  blocks overlap at 2–8 players on 375 × 667 … 430 × 932; the board above the presets, the buttons above your cards).
+  blocks overlap at 2–8 players on 375 × 667 … 430 × 932; the board above the presets, the buttons above your cards). HE4: `layout.js#blocks` = every
+piece's RECTANGLE (`SEAT_BOX` = the CSS's own offsets — keep the two in step): the test checks no seat block / cards / bet / tag overlaps another seat's,
+the board, the pot, a side pot or the presets at 375 / 390 / 402 / 430 + an SE height; the felt print NEON SPEAKEASY a little more visible.
 
 **THE CONTROLS:** your turn — the one-tap PRESETS with their real amounts (MIN · 3× · ALL IN before the flop, ½ POT · POT · ALL IN after — the
 engine's) + FOLD · RAISE (BET when nothing's bet) · CALL n / CHECK / ALL IN n; RAISE opens THE SLIDER (min → all in, the amount big, CONFIRM / BACK)
@@ -339,9 +347,74 @@ its own cards + the board + the shown hands), a phone LOCKED through its turn (2
 a REBUY from zero + END SESSION → the ledger Σ 0 (≈ 3.5 min). `CASH_ONLY=1` = the CASH part alone. The game starts there because the suite sets
 `window.__nsPreview` (config.js#isPlayable — a game being built starts only on a local emulator page that asks).
 
-## Flagged for HE4+
-- THE KO card + spectate, the ledger screen, the podium's polish, the motion (deals, chips to the pot, the showdown's drama) + the sounds = HE4.
+## THE MOTION (HE4 — `motion-plan.js` PURE + `motion.js` the player)
+**ANIMATIONS COME FROM THE STATE.** The view paints the state FIRST (exactly what a refresh shows); the motion only plays OVER it. Each phone keeps the
+number of the last dealer event it showed (`ev[].n` — THE LEAN WIRE's last 16): `freshEvents` hands over only the events after it, only when the whole run
+is there (no gap) and the newest is ≤ 2.5 s old by the server's clock (`MAX_AGE_MS`) — a refresh / a rejoin / a phone that slept (a hidden page) / a gap
+jumps straight to the state, never a replay; the first look (a mount) animates nothing. `schedule(list, { bets, heroId, k })` turns the run into ONE
+timeline (ms from now), `motion.js#run` plays it: every move transform + opacity through the Web Animations API (the individual `translate` / `scale`
+properties so a piece's own transform stays), ghosts in `.he-fx` (over the felt, under your buttons + your cards, `pointer-events: none`); a piece the
+state already shows but the motion hasn't reached waits invisible on its first keyframe (`fill: backwards`). The number roll-ups (the stacks, the pot)
+are HOLDS the view's ONE frame loop lets go of (`motion.tick` — text only). Nothing waits on the motion: the dealer's pauses run on the server.
+
+| the dealer's event(s) | the motion (`BEAT` — every one ≤ ~0.5 s) |
+| --- | --- |
+| `dealt` | the backs fly from the button's D to each dealt seat, round by round (45 ms a card, 260 ms a flight); YOUR two fly in, then flip face up (a 3D flip, rotateY — the back on the reverse); your hand's name waits for the flip; HEADS UP (the table down to two: a word in the felt's middle) |
+| `posted` · `called` · `bet` · `raised` · `allin` | a chip from the seat to its bet spot (the amount appears as it lands; several 110 ms apart); ALL IN = a stamp on the seat's tag (yours: the ALL IN on your plate) |
+| `street` (a new street) | every bet in front SWEEPS into the pot together (the POT number rolls up — the pot line = the chips COLLECTED), then the new cards flip (the flop 90 ms apart, a tiny settle); an all-in run-out: each street as the dealer reveals it |
+| `folded` | the seat's backs slide toward the middle + fade; the seat dims |
+| `shown` | the hand turns up at its seat (a fold-win's SHOW: your own two flip once) |
+| `pot` (one per pot) | after the hands are up: ONE AT A TIME — the side pots smallest first, the main pot last, 900 ms apart: the pot's line ("SIDE POT · 1,320 → BO" · "MAIN POT · …" · "POT · …" · a split "→ ALEX & BO"), its winners' five lifted, chips pot → winner(s), each winner's stack rolling up; the whole showdown < the dealer's 6 s pause (a fold-win < 3 s) |
+| `returned` | the uncalled chip back to its seat |
+| `level` | BLINDS UP · 25/50 — a short gold word under the level line |
+| `out` | the seat: OUT, then it fades (`.is-busted` — a delayed transition: a refresh paints it faded); YOUR bust: THE KO CARD (below) |
+
+Your turn: the action row rises in ONCE a turn (a new hand / street / bet to face — never rebuilt under a finger), your plate's glow; the timer bar
+drains (the time bank red-orange). THE RE-SPREAD: a busted seat is drawn to its hand's end (`drawnSeats`), then at the next deal the seats that stay
+glide to their new places (+ the board + the pot with them). prefers-reduced-motion = the states at once (only the words: BLINDS UP, HEADS UP, the KO card).
+Measured: 60 fps at 4× CPU with 8 seats during the busiest moment (the side-pot run-out + three awards): p50 16.7 ms (e2e-holdem.mjs FULL).
+
+## THE SHOWDOWN (HE4)
+Shown hands face up at their seats; the WINNING FIVE (on the board + in the winner's hand — `rank.js#bestFive`) lift with a gold edge, the rest of the
+board dims, the losing hands dim; the pot line then reads the main pot's line + the winning hand in gold ("STRAIGHT · SEVEN HIGH"; a tie "SPLIT POT") —
+state-driven (`paintShowdown`), so a refresh lands on it; during the awards each pot lifts ITS winners' five. Your own result in your plate (HE3). The
+next hand starts on the dealer's pause — nothing waits on an animation.
+
+## KO + SPECTATING (HE4)
+YOUR bust (a tournament — a FRESH `out` for you): THE KO CARD over the middle of the table (never the whole table): KNOCKED OUT · "5TH OF 8" · "BO TOOK
+YOUR LAST CHIPS" · the hands you played; it shrinks toward your plate after ~4 s or a tap (pointerdown + pointerup). Then SPECTATING: the table plays on
+live, your area says SPECTATING (from the next deal — the busted hand's cards stay until then), your plate "OUT · 5TH", the chat open. An opponent's bust:
+its seat OUT, fades, gone at the next deal (the re-spread).
+
+## CASH: LEAVE + THE LEDGER (HE4)
+LEAVE TABLE: a small button right of your cards — only between hands or while you're sat out (`canLeave`) — opens a confirm (THE SHEET: "LEAVE THE
+TABLE? Your 2,140 chips count in the ledger." · LEAVE THE TABLE · STAY) → the dealer's `leave` (your stack counts then) → SPECTATING (SIT BACK DOWN
+stays). END SESSION (the host) → THE LEDGER = the podium body in CASH (`final.js`): one SLIM CARD a player who played (the console's `leaderboard()` →
+`ui/strip-board.js` — never a second strip system), BOUGHT IN · FINAL under the card, the NET at its right end (+ gold, − a dim red, 0 white), sorted by
+net; the foot: hands played · the biggest pot (who, how much). Chips only. All 8 rows + the console's button fit at 390 × 844 (the strips 50 pt there).
+
+## THE END SCREEN (HE4 — the tournament's `finalScene` body)
+Inside the console's frame (`ui/final.js` — its BACK TO THE ROOM, XP box + card reveal; its WINNER line, its confetti + its full-screen flash OFF for
+HOLD'EM: "premium but calm"): THE WINNER (their emblem, the name big in the casino gold, WINS HOLD'EM — a short gold reveal), then EVERY PLACE as slim
+cards (1st … last; KOs at the right end, hands won · played under) — the body says `podium = 'all'` so the frame draws no second list (docs/cartridge.md)
+— then two AWARD CHIPS: BIGGEST POT (who + how much) · MOST KOs (who + n) from the server's record (`logic.js#finalSummaryOf` → the director stores
+`game.sum` beside the rows; shown only — no new cards or achievements).
+
+## THE PREVIEW (HE4 additions — tests/integration/holdem-preview.html)
+`&state=headsup` (the board centred) · `raised&n=3|4` · `split` (a board straight — every hand still in splits) · `sidepots` (3 short stacks + a caller,
+a rigged deal: the side pots awarded one at a time to three different players, one busts) · `levelup` (BLINDS UP at the next deal) · `ko` (you bust →
+the KO card) · `spectate` (after it) · `out` (an opponent busts: OUT, the fade, the re-spread) · `leave` (CASH's confirm) · `ledger` · `final` —
+`sidepots` / `levelup` / `ko` / `out` play their last step LIVE ~0.6 s after the page shows (the real clock: the real motion). **`&play=1` = THE MOTION
+DEMO**: a scripted table on a loop through the real dealer core + THE LEAN WIRE (a showdown with bets every street, an all in with side pots + busts, a
+fold-win; the blinds up every `&lv` s (40); down to two → HEADS UP; a winner → a new match; `&ko=1` = you're a short stack). HE4 ADD-ON (Ben): every fake
+player wears a REAL public face (an approved card each — two legendaries, ZEBRA, GLITTER BOMB, VELVET ROOM, MARBLE … — its emblem + tube + name glow +
+level, served as `profiles/{pid}` through `fake-firebase.js`; `&labmarks=` added when missing), so the end screen + the ledger show the real strips.
+Shots: `node tests/integration/holdem-shots.mjs "<browser>" --only he4` (a wait per staged state).
+
+## Flagged for HE5+
+- The sounds (HE5), real chips / lighting / the skins (HE5–HE6), the sideways view (HE7).
 - The robots' length numbers are a guide; HE8's real play-tests should re-check TURBO (90 s) + DEEP (15 min) with people.
-- A CASH player has no LEAVE button yet (QUIT TO THE ROOM leaves the room's screen, the seat sits out on the clock) — HE4.
-- The tube sign at the game start reads HOLDEM (the tube alphabet has no apostrophe).
+- LEAVE TABLE shows only between hands (the dealer's 3–6 s pause) or while sat out — a busy table's window is short (Ben's rule; HE8's play-test says).
+- The KO card shows only on a FRESH bust (a phone that slept through it lands on SPECTATING); a bust in the match's last hand: its card over the podium.
+- Two or more SIDE POTS stacked above the pot can touch a bottom-row seat's bet chip on an SE-size phone (rare: 2+ side pots while betting goes on).
 - When it becomes playable: `scripts/build-preload-graph.mjs` (+ its CARTRIDGES list), a day face + a sign scheme, THE BOARD's catalog.

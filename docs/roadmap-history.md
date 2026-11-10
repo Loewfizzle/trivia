@@ -2437,6 +2437,27 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - THE GHOST ROWS (8 + 13 + 14), THE DAY TIERS (10 — `tiers.js#stepTier`, 3 → 0 by day), the hold ended by a lock (11), the playlist at start (12),
   SURVIVAL's time on the podium (15), no blank header (16), the day art warmed after GO (17 — the first switch 3–4 slow frames → 2), the test tools (22).
 
+## HE4 — HOLD'EM: THE TABLE SCREEN B (Nov 10, 2026 — docs/holdem.md "THE MOTION" … "THE END SCREEN"; the decisions: docs/games/plan.md "HE4")
+- Group 0 — BEN'S PREVIEW FIXES: `layout.js` — the board by the player count (heads-up centred between the opponent and your buttons, up to 64 pt cards as the
+  felt allows; 3–4 players raised; 5–8 HE3's place), the side rows in px from just under the top seat to just above the pot line (96 pt apart at 6–8 — HE3 80),
+  the top seat's tag left of its plate, the side pots stacked above the main pot, the felt print more visible; `blocks()` = every piece's rectangle — the phone
+  test checks no overlaps at 375 / 390 / 402 / 430 + an SE height, 2–8 players.
+- Groups 1 + 2 — THE MOTION + THE SHOWDOWN: `motion-plan.js` (PURE: `freshEvents`, `schedule`, `awardOrder`, `awardLine`, `winLine`, `holdsOf`, `drawnSeats`,
+  `winningCards`) + `motion.js` (WAAPI ghosts + 3D flips, the roll-ups as holds); the pot line = the chips collected; the winning five lifted + gold edge, the
+  rest dimmed, the gold winning-hand line; your turn's row rises in once; tests/holdem-motion.test.mjs (a whole match through the real dealer: every run plans,
+  every showdown inside its pause, a refresh mid-award replays nothing).
+- Groups 3–5 — the KO card → SPECTATING, a busted seat's OUT + fade + the re-spread at the next deal; CASH's LEAVE TABLE + its confirm; `final.js` — THE LEDGER
+  (slim cards, BOUGHT IN · FINAL · NET, hands played + the biggest pot) + the tournament's END SCREEN (the winner in gold, every place, BIGGEST POT · MOST KOs —
+  `logic.js#finalSummaryOf` → `game.sum`); `ui/final.js`: a body with every place says `podium = 'all'`.
+- Group 6 — the preview's new states (headsup · raised · split · sidepots · levelup · ko · spectate · out · leave · ledger · final; four of them play their last
+  step live) + THE MOTION DEMO `&play=1` (`fake-firebase.js#__fakePush`); ADD-ON (Ben): every fake player wears a real approved card (+ emblem, glow, level);
+  three refine rounds at 390 / 402 / 430 / 1440 (your hand's name waits for your flip; SPECTATING bigger; the frame's confetti + flash off for HOLD'EM);
+  e2e-holdem.mjs: FAST + the KO card / SPECTATING / the end screen (14/14), FULL + a refresh mid-award, 60 fps at 4× CPU in the busiest moment (p50 16.7 ms),
+  LEAVE → the ledger (25/25).
+- Group 7 — THE MUSIC WARM-UP, SMALLER (the city chat): one ~14 s slice (a 4 KB head + one bounded Range request) instead of whole songs, ≤ 1 MB a visit with
+  no tap; the tap's player starts from the slice and swaps to the whole song on one sample. NO TAP 60 s 6,234 → 860 KB; tap → music median 83 → 73 ms.
+- No rules change; still 8 functions; HOLD'EM still `playable: false`.
+
 ## HE3 — HOLD'EM: THE TABLE SCREEN A (Nov 10, 2026 — docs/holdem.md "THE LEAN WIRE" + "THE TABLE SCREEN"; the decisions: docs/games/plan.md "HE3")
 - THE LEAN WIRE (group 0): `rooms/{CODE}/holdem` as small parts (`js/games/holdem/wire.js`), ONE multi-path update a call with only the changed parts +
   the changed private nodes + `meta/activeAt` (≤ once a minute); THE HEAL (a late publish leaves `seq` behind — the next call, a poke included, rewrites

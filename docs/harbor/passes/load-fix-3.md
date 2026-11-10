@@ -238,3 +238,13 @@ with no tap; how often a real iPhone loses a request can't be measured here — 
 - **Cloud run 1** (2827a170, the harbor tag): **tests ✅ + harbor ✅ (all 15 jobs) — green first try.** Vercel BUILT 2827a170 (live).
 - **The servers:** every server this pass started is stopped (the emulators, serve.mjs :5173, the A/B servers :5174 / :5175, the daily test
   server :5177) + the A/B worktrees removed; Ben's :5190 preview server left running.
+
+## FOLLOW-UP — THE MUSIC WARM-UP, SMALLER (Nov 10 2026, carried by HE4 from the city chat)
+`warmAhead` decoded up to 3 WHOLE station songs before any tap (6–9 MB a visit, even for a phone that only looks — and Vercel's bandwidth after the
+switch-over). Now it warms ONE SLICE (~14 s) of the song the station is playing, from just ahead of its place — a 4 KB head + ONE bounded Range request,
+decoded offline (`synced-songs.js#warmSlice`, `bufferT0`); re-warmed one at a time as the station plays on; ≤ 1 MB a visit without a tap; never with
+Save-Data. NOT yet gated on the music OFF / muted switch (nothing on the warm-up path reads it — the city chat's "part 2", still open). The player made at the tap starts from the slice (a part) and the whole song — fetched after the tap — swaps in on one
+sample (QUICK START's `#swap`). Measured in Chromium (the party night, the local server): **NO TAP 60 s: 6,234 KB → 860 KB** (2 whole songs → a head +
+4 slices of ~214 KB, then THE CAP); **the tap → the music: median 83 → 73 ms** (72 / 83 / 157 → 70 / 73 / 171); 18 s after the tap: 0 silent samples, the
+slice → the whole song in 1 swap. The harbor `audio` job 208/208, THE BASELINE GUARD 3/3. Known: WebKit can't be measured here (no Web Audio in
+Playwright on Windows) — Safari's decode of a headerless slice + the swap are the iPhone's to judge.

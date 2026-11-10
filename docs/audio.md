@@ -39,13 +39,19 @@ through the console's SFX bus (the slider + the one mute apply; the console owns
 the 3-2-1 — a SLICE of `07-321-go.mp3` (its beeps are 0.35 s apart, the slam's stamps 1 s: each number plays the beep, GO the hit at 1.03 s).
 The rest followed in OC2 – OC4; OC5 plays Dumb Luck's five (19 the bell · 20 the hooves — a Web Audio buffer LOOP, `sfx.js#ocLoop` · 21 the crowd, swelling down the stretch · 22 the photo finish · 23 LONG SHOT!) — fetched only by a match that deals it (`DL_FILES`) — + a synthesized neon HUM for its sign (`ocHum`, no file). Music: `MUSIC: 'mood:evening'`.
 
-## THE MUSIC ON THE TAP (LOAD FIX 3, Nov 10 2026) — `audio/party-music.js#warmAhead`, `synced-songs.js#warmSong`, app.js's `musicTick`
-- Once the city has been on screen 1.5 s (the page visible, no room), the song the station will be playing at a tap is FETCHED + DECODED on an
-  OFFLINE context (no sound, no unlocked graph — a decode is not audio) into THE MUSIC CACHE under a ref of its own (≤ 3 songs a page; never
-  with Save-Data or the music off; released 20 s after the tap). A decoded song is handed to the player IN the tick that asks (the buffer kept
-  on the cache entry), and the music tick runs IN the tap (`onUnlock`) + again when the graph runs (`onResume` — a voice starts only on a
-  running clock: the song stays on the server clock). Chromium on a Wi-Fi-like line: the tap → the music 1.7–2.4 s → 0.09–0.17 s
-  (`tests/integration/tap-music.mjs`; WebKit has no Web Audio in Playwright on Windows — the iPhone judges Safari).
+## THE MUSIC ON THE TAP (LOAD FIX 3, Nov 10 2026; HE4 — THE WARM-UP, SMALLER) — `audio/party-music.js#warmAhead`, `synced-songs.js#warmSlice`, app.js's `musicTick`
+- Once the city has been on screen 1.5 s (the page visible, no room), the music the tap needs is decoded ahead on an OFFLINE context (no sound,
+  no unlocked graph — a decode is not audio). **HE4 (the city chat): ONE SLICE, never whole songs** (LOAD FIX 3 decoded up to 3 whole station
+  songs, 2–3 MB each — 6–9 MB a visit even with no tap): ~14 s (`WARM_SLICE_S`) of the song the station is playing, from just ahead of its place
+  now — a 4 KB head (once a song: where the frames start, their size) + ONE bounded Range request; a headerless slice carries its file time
+  (`bufferT0` — PD-5A's RANGE rule: the decode lands LAME_DELAY samples late); a song's top is a prefix slice (its header kept). When the station
+  has played on to within 4 s of the slice's end, ONE new slice (never two in flight; near a song's end the next song's top). THE CAP: ≤ 1 MB a
+  visit without a tap (the next slice must fit); never with Save-Data or CLASSIC menu music (no station) — NOT yet gated on the music OFF / muted switch (the city chat's "part 2", open); no ranges → no more tries (the tap fetches as before).
+- At the tap the station's player takes the slice as a PART (`load` — the voice starts from it IN the tap's tick: `onUnlock`, + `onResume` when
+  the graph runs — on the server clock), the whole song is fetched AFTER the tap and swaps in ON ONE SAMPLE (`#swap`, QUICK START's). Measured
+  (Chromium, the local server, the party night): NO TAP 60 s **6,234 → 860 KB**; the tap → the music median **83 → 73 ms**; 18 s after the tap 0
+  silent samples, 1 swap (`tests/integration/tap-music.mjs --notap 60` / `--hold 18`; WebKit has no Web Audio in Playwright on Windows — the iPhone
+  judges Safari).
 
 ## NO SONG BEFORE A TAP (LOAD FIX 2, Nov 9 2026) — `audio/party-music.js#partyMusicTick`
 - The city's radio station (the synced player on the server clock) is made at the FIRST TAP (engine.js's unlock — `audioUnlocked()`), not

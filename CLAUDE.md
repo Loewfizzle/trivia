@@ -237,8 +237,15 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   `hole` node + `serverNow()`, the layout from ONE pure module (`holdem/layout.js` — no seat overlaps at 2–8: `tests/holdem-phone.test.mjs`); WHO POKES =
   `logic.js#pokeIn`; the faces drawn in code (`card-art.js` — four colours, CLASSIC in Settings); BEING BUILT = `playable: false` + `preview: true` (starts
   only on a local emulator page with `&preview=1` — config.js#isPlayable; docs/cartridge.md); `tests/integration/e2e-holdem.mjs` + `holdem-preview.html`.
+- **HOLD'EM's MOTION + THE END (HE4 — docs/holdem.md "THE MOTION" … "THE END SCREEN"):** ANIMATIONS COME FROM THE STATE — the view paints the state, the
+  motion plays only the dealer's events this phone hasn't shown (`motion-plan.js#freshEvents`: numbered after the last shown, fresh ≤ 2.5 s, no gap — a
+  refresh / a sleep / a gap = the state, never a replay), one timeline (`schedule` — the side pots smallest first, the main last; inside the dealer's pauses:
+  nothing waits on it), played by `motion.js` (WAAPI transform / opacity, ghosts in `.he-fx` under your buttons + cards, roll-ups as holds); the board by the
+  player count + the side rows in px (`layout.js#blocks` = every piece's rectangle, the CSS's offsets — keep them in step); a busted seat to its hand's end
+  (`drawnSeats`), the re-spread at the next deal; THE KO CARD only on a fresh bust; CASH's LEAVE between hands / sat out; THE LEDGER + THE END SCREEN = the
+  console's slim cards, the body says `podium = 'all'` (`ui/final.js`), the numbers from the server's record (`game.sum`).
 - **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
-  `now`; a test greps — the screen `view.js` alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
+  `now`; a test greps — the screen — `view.js` + its `motion.js` — alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
   DEALER is the server (HE2: crypto randomness — never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /
   `seatView`; the sims scan every view); PLAY CHIPS ONLY — no money words ("CASH" = the mode's name); TURBO's level is 90 s, DEEP's 15 min, CASH has the shot clock too + AWAY = SAT OUT (the length study:
   `node scripts/holdem-sim.mjs`); the test robots (`tests/fixtures/holdem-bots.mjs`) are never shipped. Its GAMES row is `playable: false` + `preview` (HE3).
