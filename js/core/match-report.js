@@ -200,10 +200,21 @@ function agentExtra(game, uid, out) {
   if (spot) out.c.spot = spot;
 }
 
-function prismExtra(game, uid, out) {
+function prismExtra(game, uid, out, row, ctx, win) {
   const r = (game.results || {})[uid] || {};
   if (r.best === 'quad') (out.f ||= {}).quad = 1;   // FOUR ON THE FLOOR (the match's best clear was four lines at once)
   if (num(r.ko)) out.c.ko = Math.min(num(r.ko), 7);
+  // PD-5B — THE THREE CARDS' flags, from the room's OWN record (PD-2's results + the eliminations the host wrote), each checked against it:
+  const mode = game.settings && game.settings.mode, n = Object.keys(game.participants || {}).length;
+  // FIRST KO — firstko: a BATTLE (2+ players) where this player knocked someone out: the KO count AND an elimination credited to them in
+  // game.out (by: uid), never more KOs than opponents
+  const byMe = vals(game.out).filter(o => o && o.by === uid).length;
+  if (mode === 'battle' && n >= 2 && num(r.ko) >= 1 && num(r.ko) <= n - 1 && byMe >= 1) (out.f ||= {}).firstko = 1;
+  // PERFECT CLEAR — pc: ≥ 1 perfect clear, any mode (a solo run too — the solo lane hands every row's flags to the award engine); each one
+  // clears at least one line, so never more than the lines cleared
+  if (num(r.pc) >= 1 && num(r.pc) <= num(r.ln)) (out.f ||= {}).pc = 1;
+  // COMEBACK — comeback: WON a BATTLE (2+ players, the room's winner) after the stack reached the danger zone (dz — the top 5 rows)
+  if (mode === 'battle' && n >= 2 && win && game.winner === uid && r.dz === 1) (out.f ||= {}).comeback = 1;
   if (!game.settings || game.settings.mode !== 'rush') return;
   const sc = num(r.sc), ln = num(r.ln);
   const sd = vals(game.sd).map(num);

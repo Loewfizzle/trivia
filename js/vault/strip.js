@@ -106,6 +106,10 @@ export const LOOKS = Object.freeze({
   'card-ghost-run': { mat: 'cc-ghost-run', fx: 'ccGhost' },
   // DM2 — THE DAILY MODULE's card: PERFECT WEEK = Grok's fan of tickets (css/vault.css .vl-s-dm-*) + js/fx/dm-cards.js
   'card-perfect-week': { mat: 'dm-week', fx: 'dmWeek' },
+  // PD-5B — PRISM DROP's three cards: DRAWN IN CODE (js/fx/pd-cards.js — the scene + its motion on the shared surface; the material is only the ground under it)
+  'card-first-ko': { mat: 'pd-firstko', fx: 'pdFirstKo' },
+  'card-perfect-clear': { mat: 'pd-perfect', fx: 'pdPerfect' },
+  'card-comeback': { mat: 'pd-comeback', fx: 'pdComeback' },
 });
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });

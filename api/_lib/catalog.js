@@ -68,6 +68,10 @@ export const ITEM_ROWS = [
   C('card-safecracker', 'SAFECRACKER', 'rare', '#070a1c', '#ffd27a', '#ff4fd8', 'Both doors in six. The vault was never locked to you.'),
   // CC2 — COAST CLEAR's card (Grok's speedboat — the art assets/vault/cc/, the motion js/fx/cc-cards.js): a clear with zero spots at or under GHOST_S
   C('card-ghost-run', 'GHOST RUN', 'rare', '#07081c', '#5fe1ff', '#ff6fd8', 'Not one light found you. Across in under fifty seconds.'),
+  // PD-5B — PRISM DROP's three cards (DRAWN IN CODE — js/fx/pd-cards.js, the night's neon): unlocked by the achievements below
+  C('card-first-ko', 'FIRST KO', 'common', '#05070d', '#bff6ff', '#2be4f0', 'You sent the rows. They went down.'),
+  C('card-perfect-clear', 'PERFECT CLEAR', 'rare', '#05050c', '#eef6ff', '#b46bff', 'Not one block left standing.'),
+  C('card-comeback', 'COMEBACK', 'epic', '#0a0408', '#ffd6dc', '#ff4d6d', 'Up against the red line. Then the win.'),
   C('card-perfect-week', 'PERFECT WEEK', 'epic', '#07051a', '#ffe9ff', '#ff5fd2', 'Seven days. Every daily. Not one missed.'),
   C('card-founder', 'FOUNDING MEMBER', 'legendary', '#0a0806', '#ffdca0', '#ff4fb8', 'Here before the doors opened.'),
   // ---- THE VAULT 2B — THE TWO DEVELOPER CARDS (ONE OF ONE · DEV — js/core/dev-cards.js): the owner's only, granted by /api/profile 'me' to
@@ -231,6 +235,12 @@ export const ACH_ROWS = [
   A('photo-finish', 'PHOTO FINISH', 'overclock', 'card-photofinish', 'Won by a single point.', (s, p) => !!(p.gf && p.gf['overclock-photo']), { game: 'overclock' }),
   // OC5 — `horseshoe` = backed the winner of a DUMB LUCK race (2+ players — the server replays the race from the room's record)
   A('horseshoe', 'HORSESHOE', 'overclock', 'emb-horseshoe', 'Backed the winning horse.', (s, p) => !!(p.gf && p.gf['overclock-horseshoe']), { game: 'overclock' }),
+  // PD-5B — PRISM DROP's cards: the flags come from the room's OWN record of the match (core/match-report.js#prismExtra — never a number a
+  // phone sends): `firstko` = a KO in a BATTLE (2+ players, an elimination credited in the room's record) · `pc` = a perfect clear, any mode
+  // (a solo run too) · `comeback` = won a BATTLE after the stack reached the danger zone (the top 5 rows — PD-2's dz)
+  A('first-ko', 'FIRST KO', 'prism', 'card-first-ko', 'Knock out a player in a PRISM DROP battle.', (s, p) => !!(p.gf && p.gf['prism-firstko']), { game: 'prism' }),
+  A('perfect-clear', 'PERFECT CLEAR', 'prism', 'card-perfect-clear', 'Empty your whole board in PRISM DROP.', (s, p) => !!(p.gf && p.gf['prism-pc']), { game: 'prism' }),
+  A('comeback', 'COMEBACK', 'prism', 'card-comeback', 'Win a PRISM DROP battle from the danger zone.', (s, p) => !!(p.gf && p.gf['prism-comeback']), { game: 'prism' }),
   // PW2 — THE PASSWORD (a daily — its flags from the SERVER's record on finish, api/_lib/pw.js#flags): `crack` = both doors opened · `safe` =
   // both in six guesses or fewer combined (≈ the best ~10 % of runs — scripts/sim-password.mjs). Dormant until THE SWITCH-OVER (no cartridge in production).
   A('keyhole', 'KEYHOLE', 'password', 'emb-keyhole', 'Both doors of THE PASSWORD, one night.', (s, p) => !!(p.gf && p.gf['password-crack']), { game: 'password', dormant: 'dailies' }),

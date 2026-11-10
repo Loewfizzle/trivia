@@ -48,6 +48,7 @@ import { pwSafe } from './pw-cards.js';
 import { ccGhost } from './cc-cards.js';
 import { dmWeek } from './dm-cards.js';   // (DM2 — PERFECT WEEK)
 import { phDial } from './ph-dial.js';    // (DM2 — PENTHOUSE · THE DIAL, drawn in code)
+import { pdFirstKo, pdPerfect, pdComeback } from './pd-cards.js';   // (PD-5B — PRISM DROP's three cards, drawn in code)
 import { btcCard } from './btc-card.js';  // (THE BTC CARD — THE BTC CARD's premium art + THE BURNER FLARE)
 
 /** COMBO (THE VAULT 1C — an EPIC's two effects together on ONE slot): parts = [[effect, opts the part overrides]…], drawn in order */
@@ -85,4 +86,6 @@ export const FX = Object.freeze({ deco, ufo, laser, smoke, frost, flames, prism,
   btcCard,
   dmWeek,
   phDial,
+  // PD-5B — PRISM DROP's three cards (drawn in code, the night's neon): the block that cracks + bursts · the empty well's rainbow · the clear off the red line
+  pdFirstKo, pdPerfect, pdComeback,
   platinum: combo('platinum', 'epic', [sheen, { tint: '214,228,255', gain: 2.4 }], [bevel, null]) });

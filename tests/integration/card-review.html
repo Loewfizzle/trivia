@@ -6,7 +6,7 @@
 <title>Card review</title>
 <!-- THE VAULT 1C — THE LOOK REVIEWS: each card's SLIM STRIP + its FULL CARD at real phone size, moving, ONE shared surface, nothing else on
      the page (the lab's readout + its chrome out of the way). ?cards=card-sg-tr3b,card-sg-ufo  &strips=0 (full cards only)  &full=0 (strips
-     only)  &still=1  &t=<s> (a fixed time: the frame at t seconds — the burst's matching frames)  &mix=lobby (8 strips in the calmer cut) -->
+     only)  &name=MAXIMILIANOS (every card's name — a long-name check)  &still=1  &t=<s> (a fixed time: the frame at t seconds — the burst's matching frames)  &mix=lobby (8 strips in the calmer cut) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
@@ -37,7 +37,7 @@ const root = document.getElementById('cr');
 const surface = createSurface(root, { label: 'review' });
 const av = ['bolt', 'diamond', 'crown', 'alien', 'star', 'moon', 'ghost', 'hex'], col = ['cyan', 'magenta', 'yellow', 'green', 'violet', 'orange', 'magenta', 'cyan'];
 cards.forEach((id, i) => {
-  const g = GUESTS[i % GUESTS.length], name = (LAB.find(x => x.id === id) || {}).name || id;
+  const g0 = GUESTS[i % GUESTS.length], g = q.get('name') ? { ...g0, name: q.get('name') } : g0, name = (LAB.find(x => x.id === id) || {}).name || id;
   root.append(h('h3', name));
   if (q.get('strips') !== '0') {
     const el = stripEl({ card: id, name: g.name, lv: g.lv, host: i === 0, no: '0001' });

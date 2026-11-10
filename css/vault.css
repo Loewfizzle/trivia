@@ -1122,6 +1122,17 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-s-cc-ghost-run .vl-plate { background: rgba(6, 8, 22, 0.82); }
 /* (the bow's tip + its cyan trim run on to ~92 % across, under the strip's gem — a dark backing under the stone, as REDLINE's, so it reads) */
 .vl-s-cc-ghost-run > .vl-gem::before { inset: -78%; background: radial-gradient(closest-side, rgba(150, 230, 255, 0.3), rgba(4, 6, 18, 0.95) 34%, rgba(4, 6, 18, 0.88) 56%, rgba(4, 6, 18, 0.5) 78%, rgba(4, 6, 18, 0) 100%); }
+/* PD-5B — PRISM DROP's three cards: DRAWN IN CODE (js/fx/pd-cards.js paints the whole scene on the shared surface — the material is only the
+   ground under it, the same dark lacquer); the night's neon frames: FIRST KO (common) a cool cyan bevel · PERFECT CLEAR (rare) GLOWING EDGES in
+   a prism white-violet · COMEBACK (epic) a red line inside a black step. The plate on the dark left. */
+.vl-s-pd-firstko .vl-mat { background: radial-gradient(60% 120% at 80% 50%, rgba(43, 228, 240, 0.14), transparent 70%), linear-gradient(180deg, #060812, #020306); }
+.vl-s-pd-perfect .vl-mat { background: radial-gradient(60% 120% at 78% 60%, rgba(170, 160, 255, 0.14), transparent 70%), linear-gradient(180deg, #07061a, #020208); }
+.vl-s-pd-comeback .vl-mat { background: radial-gradient(60% 120% at 78% 20%, rgba(255, 40, 70, 0.14), transparent 70%), linear-gradient(180deg, #0b0409, #020103); }
+.vl-s-pd-firstko .vl-frame { box-shadow: inset 0 0 0 1px rgba(43, 228, 240, 0.42), inset 0 1.5px 0 rgba(220, 255, 255, 0.32), inset 0 -2px 0 rgba(0, 20, 30, 0.6), 0 2px 8px rgba(0, 0, 0, 0.45); }
+.vl-s-pd-perfect { --ge: 196, 182, 255; }
+.vl-s-pd-perfect .vl-frame { box-shadow: inset 0 0 0 1px rgba(var(--ge), 0.7), inset 0 0 12px rgba(var(--ge), 0.32), 0 0 12px rgba(var(--ge), 0.28), 0 2px 8px rgba(0, 0, 0, 0.45); }
+.vl-s-pd-comeback .vl-frame { box-shadow: inset 0 0 0 1px rgba(255, 77, 109, 0.5), inset 0 0 0 3px rgba(0, 0, 0, 0.4), inset 0 0 0 4px rgba(255, 150, 170, 0.14), 0 3px 12px rgba(0, 0, 0, 0.5); }
+.vl-s-pd-firstko .vl-plate, .vl-s-pd-perfect .vl-plate, .vl-s-pd-comeback .vl-plate { background: rgba(4, 5, 10, 0.84); }
 /* (the owner's flag on the mock: REDLINE's strip gem sat on the gauge's hot red edge — a dark backing under the gem, its gold light kept small
    in the middle, so the stone reads on the red) */
 .vl-s-oc-redline > .vl-gem::before { inset: -78%; background: radial-gradient(closest-side, rgba(255, 210, 110, 0.42), rgba(8, 5, 5, 0.95) 34%, rgba(8, 5, 5, 0.9) 56%, rgba(8, 5, 5, 0.55) 78%, rgba(8, 5, 5, 0) 100%); }

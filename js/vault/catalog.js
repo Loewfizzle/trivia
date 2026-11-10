@@ -259,6 +259,16 @@ LAB.push(
   { id: 'full-card-gift-zadomovinu', kind: 'full', of: 'card-gift-zadomovinu', tier: 'legendary', n: 206, gift: true },
   { id: 'full-card-gift-starimost', kind: 'full', of: 'card-gift-starimost', tier: 'legendary', n: 207, gift: true },
 );
+// PD-5B — PRISM DROP's three cards (unlocked by the server from the room's own record of the match: a KO in a BATTLE · a perfect clear · a
+// BATTLE won from the danger zone) — drawn in code (js/fx/pd-cards.js): the strips, then their full cards
+LAB.push(
+  { id: 'card-first-ko', kind: 'card', tier: 'common', n: 211 },
+  { id: 'card-perfect-clear', kind: 'card', tier: 'rare', n: 212 },
+  { id: 'card-comeback', kind: 'card', tier: 'epic', n: 213 },
+  { id: 'full-card-first-ko', kind: 'full', of: 'card-first-ko', tier: 'common', n: 214 },
+  { id: 'full-card-perfect-clear', kind: 'full', of: 'card-perfect-clear', tier: 'rare', n: 215 },
+  { id: 'full-card-comeback', kind: 'full', of: 'card-comeback', tier: 'epic', n: 216 },
+);
 // THE CARD PASS — B7: OVERCLOCK's lucky emblem (OC5 shipped it with a placeholder glyph) — its real neon art
 LAB.push({ id: 'emb-horseshoe', kind: 'emblem', tier: 'uncommon', n: 208, fin: 'neon' });
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));

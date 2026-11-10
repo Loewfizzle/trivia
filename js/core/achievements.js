@@ -66,7 +66,9 @@ export function noteMatch(pa0, x) {
     //  transaction failed, so a match that raised ANY game flag (DEAD ON's exact Closest Call, PRISM DROP's 4-line clear) was never counted.
     //  A dash, like the board ids)
     p.gf = { ...(p.gf || {}), [`${x.gid}-${k}`]: 1 };
-    if (k === 'comeback') p.gf.comeback = 1;
+    // (COMEBACK KID = OVERCLOCK's comeback — last at the halfway point, then the win; PD-5B: PRISM DROP's `comeback` is the danger-zone
+    //  win — its own card (prism-comeback), never COMEBACK KID)
+    if (k === 'comeback' && x.gid !== 'prism') p.gf.comeback = 1;
   }
   return p;
 }

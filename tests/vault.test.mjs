@@ -54,6 +54,7 @@ test('THE TIER TABLE: the effect library\'s rows (a stronger tier never draws le
   assert.equal(tierVal('fxDpr', 2), 20); assert.equal(tierVal('fxParticles', 2), 100);
 });
 
+const COMMON_MOVES = new Set(['card-first-ko']);
 test('THE STRIPS: every lab card has its look (a material + an effect in the registry, the common STILL), every effect drawable', async () => {
   globalThis.document ??= undefined;
   const { LOOKS } = await import('../js/vault/strip.js').catch(e => ({ LOOKS: null, e }));
@@ -61,7 +62,10 @@ test('THE STRIPS: every lab card has its look (a material + an effect in the reg
   const { FX } = await import('../js/fx/index.js');
   for (const c of LAB.filter(x => x.kind === 'card')) {
     const L = LOOKS[c.id]; assert.ok(L && L.mat, `${c.id} has a material`);
-    if (c.tier === 'common') assert.equal(L.fx, null, 'COMMONS STAY STILL'); else { assert.ok(FX[L.fx], `${c.id}: ${L.fx} in the registry`); assert.equal(typeof FX[L.fx].draw, 'function'); }
+    // (THE ONE EXCEPTION — PD-5B: FIRST KO is DRAWN IN CODE (no art file — its effect paints the whole scene) and the owner's PD-5B spec gives it
+    //  its own idle motion: the crack + burst + KO on a long loop, mostly at rest; every other common stays still)
+    if (c.tier === 'common' && !COMMON_MOVES.has(c.id)) assert.equal(L.fx, null, 'COMMONS STAY STILL');
+    else if (c.tier === 'common') { assert.ok(FX[L.fx], `${c.id}: ${L.fx} in the registry`); } else { assert.ok(FX[L.fx], `${c.id}: ${L.fx} in the registry`); assert.equal(typeof FX[L.fx].draw, 'function'); }
   }
   assert.ok(FX.laser && FX.ufo, 'THE BORDER LASER + the UFO');
 });

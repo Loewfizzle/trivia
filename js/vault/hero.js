@@ -13,6 +13,7 @@ import { CC_SPECS, CC_AH } from '../fx/cc-specs.js';
 import { DM_SPECS, DM_AH } from '../fx/dm-specs.js';
 import { phMap, PH_HERO } from '../fx/ph-specs.js';
 import { BTC, btcMap } from '../fx/btc-specs.js';
+import { PD_SPECS, pdMap } from '../fx/pd-specs.js';
 export const HERO_BAND = Object.freeze([0.6, 0.84]);           // (where a hero's centre may sit, across the strip: right of a 10-letter name's
                                                                //  plate on every phone — LOEWFIZZLE's name row ends at 0.58 at 390)
 export const GEM_BOX = Object.freeze([0.88, 0.5, 0.12, 0.5]);  // (the tier gem's corner + its glow — css/vault.css .vl-strip .vl-gem)
@@ -75,6 +76,11 @@ for (const [id, S] of Object.entries(DM_SPECS)) {
 // (THE BTC CARD — the envelope through the strip's own band: Grok's art 1280 × 720, the same map the CSS + the effect use)
 { const M = btcMap(SW, SH, BTC.strip), [x, y, w, h] = BTC.hero, y0 = Math.max(0, (M.oy + y * M.k) / SH), y1 = Math.min(1, (M.oy + (y + h) * M.k) / SH);
   HERO[BTC.card] = Object.freeze([[(M.ox + x * M.k) / SW, y0, (w * M.k) / SW, Math.max(0.05, y1 - y0)]]); }
+// (PD-5B — PRISM DROP's three cards, drawn in code: each through its strip's own band — js/fx/pd-specs.js, the same map the effect draws with)
+for (const [id, S] of Object.entries(PD_SPECS)) {
+  const M = pdMap(SW, SH, false, id), [x, y, w, h] = S.hero, y0 = Math.max(0, (M.oy + y * M.k) / SH), y1 = Math.min(1, (M.oy + (y + h) * M.k) / SH);
+  HERO[id] = Object.freeze([[(M.ox + x * M.k) / SW, y0, (w * M.k) / SW, Math.max(0.05, y1 - y0)]]);
+}
 /** do two boxes [x, y, w, h] overlap? */
 export const overlaps = (a, b) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
 /** the rule's pure half: every element's centre in the band, none over the gem's corner → the cards that break it */
