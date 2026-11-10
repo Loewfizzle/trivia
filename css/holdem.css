@@ -159,7 +159,8 @@
 .he-hand > * { width: var(--hc-w); height: var(--hc-h); border-radius: 8px; }
 .he-hand > :first-child { transform: rotate(-5deg) translateX(8%); }
 .he-hand > :last-child { transform: rotate(5deg) translateX(-8%); }
-.he-hand .he-back { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6); }
+.he-hc > * { width: 100%; height: 100%; display: block; }
+.he-hand .he-back { border-radius: 8px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6); }
 .he-hero.is-folded .he-hand { opacity: 0.4; }
 .he-plate {
   position: absolute; left: 0; top: calc(var(--plate-y) - var(--hand-y)); transform: translateX(-50%);
@@ -283,3 +284,67 @@
 
 /* HE4 — CONFIRM fits its round button on a small phone */
 .he-confirm b { font-size: 11.5px; letter-spacing: 0.04em; }
+
+/* ============================================================== HE4 — THE MOTION (motion.js) + THE SHOWDOWN + KO / SPECTATING
+   Every move: transform + opacity (WAAPI — the individual `translate` / `scale` properties, so a piece's own transform stays); the ghosts
+   live in .he-fx (over the felt, under your buttons + your cards, never a tap). */
+.he-fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.he-ghost { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+.he-gback { border-radius: 3px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55); }
+i.he-ghost.he-chip { display: block; }
+/* a card turning face up: its back on the reverse (motion.js#flip adds it for the flip, then takes it away) */
+.he-card { position: relative; }
+.he-card.is-flip { transform-style: preserve-3d; }
+.he-card.is-flip > svg { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.he-cback { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; transform: rotateY(180deg); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+
+/* your ALL IN / your place on your plate */
+.he-ytag { font-size: 10.5px; line-height: 12px; font-weight: 800; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 5px; white-space: nowrap; }
+.he-ytag:empty { display: none; }
+.he-ytag[data-kind='allin'] { background: #c8102e; color: #fff; }
+.he-ytag[data-kind='grey'] { background: #2a2a30; color: #d7d7de; }
+
+/* a busted seat: OUT for a moment, then it fades (a refresh paints it faded at once — no transition on a new element) */
+.he-seat.is-busted { opacity: 0.16; transition: opacity 0.5s ease 1.6s; }
+
+/* THE SHOWDOWN: the winning five lift with a gold edge, the rest of the board dims, the losing hands dim */
+.he-slot, .he-shown .he-card, .he-hc { transition: opacity 0.25s ease, translate 0.25s ease; }
+.he.is-showdown .he-slot.is-dim { opacity: 0.45; }
+.he.is-showdown .he-slot.is-win { translate: 0 calc(-7px * var(--s)); }
+.he.is-showdown .he-slot.is-win .he-card, .he.is-showdown .he-card.is-win { box-shadow: 0 0 0 2px var(--he-gold), 0 0 14px rgba(242, 193, 78, 0.6), 0 6px 14px rgba(0, 0, 0, 0.55); }
+.he.is-showdown .he-shown .he-card.is-win { translate: 0 -4px; }
+.he.is-showdown .he-seat.is-lose { opacity: 0.55; }
+.he-pot .he-award { font-size: calc(13.5px * var(--s)); letter-spacing: 0.05em; color: var(--he-cream); }
+.he-pot .he-winline {
+  font-style: normal; font-family: var(--font-ui); font-weight: 800; font-size: calc(14px * var(--s)); letter-spacing: 0.08em; color: var(--he-ink);
+  background: linear-gradient(180deg, #ffe08a, #e2a92f); padding: 3px 10px; border-radius: 8px; box-shadow: 0 0 14px rgba(242, 193, 78, 0.55);
+}
+
+/* BLINDS UP (under the level line) · HEADS UP (the felt's middle) — a short word, in + out by css, gone after */
+.he-toasts { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.he-toast {
+  position: absolute; left: 50%; top: calc(var(--safe-t) + 46px); translate: -50% 0; white-space: nowrap;
+  font: 800 12px/1 var(--font-ui); letter-spacing: 0.14em; color: var(--he-ink); padding: 6px 12px; border-radius: 8px;
+  background: linear-gradient(180deg, #ffe08a, #e2a92f); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 14px rgba(242, 193, 78, 0.45);
+  animation: he-toast 2.4s ease both;
+}
+@keyframes he-toast { 0% { opacity: 0; transform: translateY(-8px); } 10%, 82% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-4px); } }
+.he-moment {
+  position: absolute; left: var(--cx); top: var(--board-y); translate: -50% -50%; white-space: nowrap;
+  font: 900 calc(30px * var(--s))/1 var(--font-display); letter-spacing: 0.16em; color: var(--he-gold-2);
+  text-shadow: 0 0 18px rgba(242, 193, 78, 0.6), 0 3px 0 rgba(0, 0, 0, 0.5);
+  animation: he-moment 1.6s ease both;
+}
+@keyframes he-moment { 0% { opacity: 0; transform: scale(1.4); } 18% { opacity: 1; transform: scale(1); } 75% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.96); } }
+
+/* SPECTATING: your area, instead of your cards */
+.he-spec {
+  width: auto !important; height: auto !important; padding: 10px 18px; border-radius: 12px; white-space: nowrap;
+  font: 800 15px/1 var(--font-ui); letter-spacing: 0.22em; color: var(--he-dim);
+  border: 1.5px dashed rgba(244, 234, 210, 0.3); background: rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .he-seat.is-busted, .he-slot, .he-shown .he-card, .he-hc { transition: none; }
+  .he-toast, .he-moment { animation: none; }
+}

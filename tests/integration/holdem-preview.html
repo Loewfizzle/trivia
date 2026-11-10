@@ -41,7 +41,7 @@ import { updateSettings } from '/js/audio/settings.js';
 
 const q = new URLSearchParams(location.search);
 const N = Math.max(2, Math.min(8, Number(q.get('n') || 6)));
-const STATE = q.get('state') || 'myturn';
+const STATE = q.get('play') === '1' ? 'play' : (q.get('state') || 'myturn');
 const MODE = q.get('mode') === 'cash' ? 'cash' : 'tournament';
 const st = Number(q.get('st') ?? 47), sb = Number(q.get('sb') ?? 34);
 document.documentElement.style.setProperty('--safe-t', `${st}px`);
@@ -59,10 +59,16 @@ const uids = Array.from({ length: N }, (_, i) => `p${i}`);
 const players = Object.fromEntries(uids.map((u, i) => [u, { name: NAMES[i], avatar: AV[i], color: COL[i], joinedAt: i }]));
 const presence = Object.fromEntries(uids.map(u => [u, { online: true, lastSeen: 0 }]));
 
-const T0 = Date.UTC(2026, 10, 10, 23, 0, 0);
+// HE4 — THE MOTION DEMO (&play=1): a scripted table that PLAYS on the real clock, through the real dealer core + THE LEAN WIRE, on a loop —
+// a hand to a showdown (bets every street), an all in with side pots (a run-out street by street, the pots awarded one at a time, the short
+// stacks busted → OUT + the re-spread), a fold-win; the blinds go up every &lv seconds (default 40); down to two → HEADS UP; a winner →
+// a new match. &ko=1 = you're one of the short stacks (the KO card → SPECTATING).
+const PLAY = q.get('play') === '1';
+const T0 = PLAY ? Date.now() : Date.UTC(2026, 10, 10, 23, 0, 0);
 let now = T0;
 const rng = rngFrom(q.get('seed') || 'he3-preview');
-const rec = newRecord({ code: 'PVWX', uids, mode: MODE, now, rng });
+let rec = newRecord({ code: 'PVWX', uids, mode: MODE, now, rng });
+if (PLAY) rec.m.levelMs = Math.max(10, Number(q.get('lv') || 40)) * 1000;
 // (&hand=AsKd: the deck rigged so that seat gets them — set after the first deal below)
 advance(rec, now, rng);
 const T = () => rec.m.table;
@@ -120,7 +126,7 @@ if (MODE === 'cash' && q.get('broke') === '1') { const x = T().seats.find(y => y
 if (q.get('hand') && T().seats.find(x => x.id === me)) { const x = T().seats.find(y => y.id === me); const c = q.get('hand'); x.cards = [c.slice(0, 2), c.slice(2, 4)]; }
 // the clock: a few seconds into the turn (the bar part-drained)
 const t = T();
-window.__clock = () => (t.deadline ? t.deadline - 12_500 : now + 400);
+if (!PLAY) window.__clock = () => (t.deadline ? t.deadline - 12_500 : now + 400);
 
 const pub = publicOf(rec);
 const node = { seq: rec.seq, at: now, ...nestWire(toWire(pub)) };
@@ -147,6 +153,78 @@ await document.fonts.ready;
 await new Promise(r => setTimeout(r, 150));
 window.__preview = { rec, pub, me, node };
 document.body.dataset.ready = '1';
+
+if (PLAY) {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const KO = q.get('ko') === '1';
+  const publish = () => {
+    rec.seq++;
+    const p = publicOf(rec);
+    const n = { seq: rec.seq, at: Date.now(), ...nestWire(toWire(JSON.parse(JSON.stringify(p)))) };
+    window.__fakePush(`hole/PVWX/${me}`, holeOf(rec, me));
+    const live = { table: n };
+    Object.assign(state, { live, game: { ...state.game, matchId: rec.id } });
+    view.update({ ...state });
+  };
+  let shovers = [], lastHand = -1;
+  const scene = () => T().hand % 3;            // 1 = a showdown · 2 = an all in with side pots · 0 = a fold-win
+  function onNewHand() {
+    lastHand = T().hand;
+    shovers = [];
+    if (scene() !== 2) return;
+    // three short stacks (never you, unless &ko=1)
+    const pool = T().seats.filter(x => x.status === 'in' && (KO || x.id !== me));
+    const pick = (KO ? [pool.find(x => x.id === me), ...pool.filter(x => x.id !== me)] : pool).filter(Boolean).slice(0, 3);
+    pick.forEach((x, i) => { const keep = [260, 520, 900][i]; if (x.stack + x.bet > keep) x.stack = Math.max(1, keep - x.bet); shovers.push(x.id); });
+  }
+  function decide(l) {
+    const tb = T(), x = tb.seats.find(y => y.id === l.id);
+    const sc = scene();
+    if (sc === 2) {
+      if (shovers.includes(l.id)) return ['allin'];
+      const caller = tb.seats.filter(y => !shovers.includes(y.id) && y.status === 'in').sort((a, b) => b.stack - a.stack)[0];
+      if (caller && caller.id === l.id) return [l.canCheck ? 'check' : l.callAllIn ? 'allin' : 'call'];
+      return [l.canCheck ? 'check' : 'fold'];
+    }
+    if (sc === 0) {
+      if (tb.street === 'preflop' && tb.bet <= tb.bb && !l.canCheck) return ['raise', tb.bb * 3];
+      return [l.canCheck ? 'check' : 'fold'];
+    }
+    // a showdown: a raise before the flop, a half-pot bet on the flop + the turn, the last seat folds to the flop bet
+    if (tb.street === 'preflop') return tb.bet <= tb.bb && !l.canCheck ? ['raise', tb.bb * 3] : [l.canCheck ? 'check' : 'call'];
+    if (l.canCheck && tb.street !== 'river') { const half = (l.presets || []).find(p => p.key === 'half'); return half && !half.allin ? ['bet', half.to] : ['check']; }
+    if (l.canCheck) return ['check'];
+    const live = tb.seats.filter(y => y.status === 'in');
+    if (tb.street === 'flop' && live.length > 2 && live[live.length - 1].id === l.id) return ['fold'];
+    return [l.callAllIn ? 'allin' : 'call'];
+  }
+  (async () => {
+    for (;;) {
+      await sleep(250);
+      now = Date.now();
+      if (rec.m.ended) {
+        await sleep(4000);
+        now = Date.now();
+        rec = newRecord({ code: 'PVWX', uids, mode: MODE, now, rng, prevSeq: rec.seq });
+        rec.m.levelMs = Math.max(10, Number(q.get('lv') || 40)) * 1000;
+        advance(rec, now, rng); lastHand = -1;
+        window.__preview.rec = rec;
+        publish();
+        continue;
+      }
+      const l = L();
+      if (l) {
+        await sleep(l.id === me ? 1400 : 850);
+        now = Date.now();
+        const [a, amt] = decide(l);
+        try { applyOp(rec, 'act', l.id, { hand: T().hand, seq: rec.seq, action: a, ...(amt != null ? { amount: amt } : {}) }, { now, rng }); } catch (e) { try { applyOp(rec, 'act', l.id, { hand: T().hand, seq: rec.seq, action: l.canCheck ? 'check' : 'fold' }, { now, rng }); } catch { /* the next tick */ } }
+        publish();
+        continue;
+      }
+      if (advance(rec, now, rng)) { if (T().hand !== lastHand && running(T())) onNewHand(); publish(); }
+    }
+  })();
+}
 </script>
 </body>
 </html>

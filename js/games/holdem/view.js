@@ -7,8 +7,10 @@
 //   YOUR TURN    the one-tap presets (real amounts) + FOLD · RAISE · CALL / CHECK (RAISE = the slider panel, never over your cards)
 //   NOT YOUR TURN  the pre-actions CHECK/FOLD · CALL ANY + "<NAME> IS THINKING…"
 //   THE POKE     WHO POKES (logic.js#pokeIn): the host ~100 ms after `due`, everyone else only if it's still stuck ~2 s later (+ jitter)
-// 60 fps: the only per-frame work is the timer bars' transform + the level line's seconds (text only when it changes); the layout is
-// computed once per resize (a ResizeObserver) — never a layout read in the frame loop. Motion polish = HE4; chips, lighting, skins = HE5–HE6.
+// 60 fps: the only per-frame work is the timer bars' transform + the level line's seconds (text only when it changes) + the motion's number
+// roll-ups; the layout is computed once per resize (a ResizeObserver) — never a layout read in the frame loop. Chips, lighting, skins = HE5–HE6.
+// HE4 — THE MOTION (motion-plan.js PURE + motion.js): the dealer's events this phone hasn't shown yet (`ev[].n`, fresh, no gap) play OVER the
+// painted state — the deal, the chips, the sweep, the flips, the folds, the showdown, the pots one at a time; a refresh shows the state.
 import { h, vibrate, reducedMotion } from '../../ui/dom.js';
 import { avatar, tubeButton } from '../../ui/components.js';
 import { createFinal } from '../../ui/final.js';
@@ -19,8 +21,11 @@ import { installTestHook, removeTestHook } from '../kit/hook.js';
 import { legalActions, running } from './table.js';
 import { handLabel, evaluate } from './rank.js';
 import { fromWire } from './wire.js';
-import { levelLine, othersInOrder, potOf, sidePots, clockOf, pokeIn, POKE_RETRY_MS } from './logic.js';
-import { tableLayout } from './layout.js';
+import { levelLine, othersInOrder, sidePots, clockOf, pokeIn, POKE_RETRY_MS, ordinal } from './logic.js';
+import { tableLayout, betSpot, cardsSpot, dealerSpot } from './layout.js';
+import { freshEvents, schedule, drawnSeats, awardLine, winLine, winningCards } from './motion-plan.js';
+import { createMotion } from './motion.js';
+import { bestFive } from './rank.js';
 import { faceSvg, cardName } from './card-art.js';
 import { dealer } from './index.js';
 import { SHOT_MS } from './structure.js';
@@ -38,6 +43,10 @@ export function createView() {
   const seatEls = new Map();
   const frames = [], work = [];
   let lastFrame = 0, lastLevelTxt = '', lastSig = '', showT = 0, finalView = null;
+  // THE MOTION: the last event number this phone showed (null = the first look: nothing animates), what the awards / the sweep still hold back
+  let seenN = null, seenMatch = '', motion = null, awardNow = null, turnKey = '';
+  const hold = { stack: {}, pot: 0, sweep: 0 };
+  const posById = new Map();                                 // the drawn seats' anchors (the layout's) — the motion's start / end points
 
   const me = () => st && st.uid;
   const code = () => st && st.code;
@@ -101,13 +110,18 @@ export function createView() {
     els.pot = h('div.he-pot');
     els.board = h('div.he-board', { 'aria-label': 'The board' }, Array.from({ length: 5 }, () => h('div.he-slot')));
     els.hero = h('div.he-hero', h('div.he-hand'), h('div.he-plate', h('div.he-plate-l', h('b.he-you'), h('span.he-stack')),
+      h('b.he-ytag'),
       h('button.he-label', { type: 'button', onclick: () => import('./rankings.js').then(m => m.openRankings({ mark: myCat() })).catch(() => {}) }),
       h('div.he-clock', h('i'))));
+    els.heroStack = els.hero.querySelector('.he-stack');
     els.actions = h('div.he-actions');
     els.status = h('div.he-status', { 'aria-live': 'polite' });
+    els.fx = h('div.he-fx', { 'aria-hidden': 'true' });         // THE MOTION's ghosts: over the felt, under your buttons + your cards
+    els.toasts = h('div.he-toasts', { 'aria-live': 'polite' });
     // (the safe areas, measured once per resize by two probes — never in the frame loop)
     els.probeT = h('i.he-probe.he-probe-t'); els.probeB = h('i.he-probe.he-probe-b');
-    root.append(els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.status, els.actions, els.hero);
+    root.append(els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.fx, els.status, els.actions, els.hero, els.toasts);
+    motion = createMotion(els.fx, motionView);
     el.append(root);
     ro = new ResizeObserver(() => relayout(true));
     ro.observe(root);
@@ -121,9 +135,24 @@ export function createView() {
   function update(state) {
     st = state;
     if (destroyed) return;
+    const prevT = table(), prevK = L ? L.k : null;
     pub = fromWire(st.live && st.live.table);
+    // THE MOTION: the events this phone hasn't shown — only fresh, only a whole run (a refresh / a sleep / a gap = the state as it is)
+    let steps = [];
+    if (pub && pub.id !== seenMatch) { seenMatch = pub.id; seenN = null; if (motion) motion.cancel(); }
+    if (pub) {
+      const fr = freshEvents(pub.ev, seenN, serverNow());
+      const moved = seenN != null && fr.seen > seenN;
+      if (fr.list.length && !document.hidden) {
+        const bets = {};
+        for (const x of (prevT && prevT.hand === (fr.list[0].hand ?? prevT.hand) ? prevT.seats : [])) if (x.bet > 0) bets[x.id] = x.bet;
+        steps = schedule(fr.list, { bets, me: me(), heroId: heroId(), k: prevK });
+      } else if (moved && motion) motion.cancel();
+      seenN = fr.seen;
+    }
     watchHole();
     render();
+    if (steps.length && motion) motion.run(steps);
     paintFinal();
     schedulePoke();
   }
@@ -145,6 +174,7 @@ export function createView() {
     destroyed = true;
     cancelAnimationFrame(raf);
     clearTimeout(pokeT); clearTimeout(showT);
+    if (motion) motion.cancel();
     if (ro) ro.disconnect();
     if (offSet) offSet();
     if (holeOff) holeOff();
@@ -167,16 +197,18 @@ export function createView() {
   let laySig = '';
   function relayout(force = false) {
     if (!root) return;
-    const t = table();
-    const hero = heroId();
-    const others = t ? othersInOrder(t.seats, hero) : [];
+    const others = drawnOthers();
     const k = Math.min(7, others.length);
     const w = root.clientWidth, hh = root.clientHeight;            // (a resize only — never in the frame loop)
     const top = els.probeT.offsetHeight || 0, bottom = els.probeB.offsetHeight || 0;
     const sig = `${w}x${hh}|${top}|${bottom}|${k}`;
     if (!force && sig === laySig) return;
+    const oldK = L ? L.k : null, oldBoard = L ? L.board.y : null, oldPot = L ? L.pot : null;
     laySig = sig;
     L = tableLayout({ w, h: hh, top, bottom, k });
+    // THE RE-SPREAD (a seat count change — at a new hand, never mid-hand: drawnSeats keeps a busted seat to its hand's end): the seats that
+    // stay glide to their new places, the board + the pot with them (transform only — the old anchors from posById)
+    if (oldK != null && oldK !== k && !force) respread = { board: oldBoard, pot: oldPot, seats: new Map(posById) };
     const s = L.s, B = L.box;
     root.style.setProperty('--s', s.toFixed(3));
     root.style.setProperty('--ss', L.ss.toFixed(3));
@@ -200,6 +232,12 @@ export function createView() {
     render();
   }
 
+  let respread = null;
+  /** the opponents drawn (motion-plan.js#drawnSeats: a seat out in an EARLIER hand is gone), in table order from your left */
+  function drawnOthers() {
+    const t = table();
+    return t ? othersInOrder(drawnSeats(t.seats, t, pub && pub.places), heroId()) : [];
+  }
   // the seat at the bottom: you — or, watching, the first seat (so 8 players + a spectator still fit)
   function heroId() {
     const t = table();
@@ -216,8 +254,7 @@ export function createView() {
   // ------------------------------------------------------------------ render (from the state; DOM only where something changed)
   function render() {
     if (!root || destroyed) return;
-    const t = table();
-    const others = t ? othersInOrder(t.seats, heroId()) : [];
+    const others = drawnOthers();
     if (!L || Math.min(7, others.length) !== seatCount()) { relayout(); if (!L) return; }
     const sig = JSON.stringify([pub && pub.seq, pub && pub.id, hole, st.game && st.game.matchId, Object.keys(st.players || {}).length, st.meta && st.meta.hostId, deck(), !!slider, laySig]);
     if (sig === lastSig) return;
@@ -228,7 +265,20 @@ export function createView() {
     paintHero();
     paintActions();
     paintHostBar();
+    paintNumbers();
     pickBar();
+    if (respread) glide();
+  }
+  function glide() {
+    const r = respread; respread = null;
+    if (!motion || reducedMotion()) return;
+    for (const [id, p] of posById) {
+      const o = r.seats.get(id), s = seatEls.get(id);
+      if (o && s && (o.x !== p.x || o.y !== p.y)) motion.animate(s.el, [{ translate: `${(o.x - p.x).toFixed(1)}px ${(o.y - p.y).toFixed(1)}px` }, { translate: '0px 0px' }], { duration: 420 });
+    }
+    if (r.board != null && r.board !== L.board.y) {
+      for (const el of [els.board, els.pot, els.print]) motion.animate(el, [{ translate: `0px ${(r.board - L.board.y).toFixed(1)}px` }, { translate: '0px 0px' }], { duration: 420 });
+    }
   }
   // the one timer bar that runs now (the frame loop only moves it — never a query per frame)
   let activeBar = null;
@@ -239,17 +289,34 @@ export function createView() {
   }
   const seatCount = () => (L ? L.seats.length : -1);
 
+  // ---- THE NUMBERS (the stacks + the pot) — the state less what the motion still holds back (motion.js rolls them up; cheap: text only)
+  function paintNumbers() {
+    const t = table();
+    if (!t || !root) return;
+    for (const [id, s] of seatEls) {
+      const x = t.seats.find(y => y.id === id);
+      if (x) setText(s.stack, fmt(Math.max(0, x.stack - (hold.stack[id] || 0))));
+    }
+    const hx = t.seats.find(y => y.id === heroId());
+    setText(els.heroStack, hx ? fmt(Math.max(0, hx.stack - (hold.stack[hx.id] || 0))) : '');
+    paintPot();
+  }
+  const setText = (el, v) => { if (el && el.textContent !== v) el.textContent = v; };
+
   // ---- the opponents
   function paintSeats(others) {
     const t = table();
     const live = new Set();
+    posById.clear();
     others.slice(0, L.seats.length).forEach((x, i) => {
       const pos = L.seats[i];
       live.add(x.id);
+      posById.set(x.id, pos);
       let s = seatEls.get(x.id);
       if (!s) {
         s = { el: h('div.he-seat', h('div.he-av'), h('div.he-dealer', 'D'), h('div.he-backs'), h('div.he-shown'),
           h('div.he-splate', h('b.he-name'), h('span.he-sstack')), h('div.he-tag'), h('div.he-sclock', h('i')), h('div.he-bet', h('i.he-chip'), h('span'))), av: '' };
+        s.stack = s.el.querySelector('.he-sstack');
         seatEls.set(x.id, s);
         els.seats.append(s.el);
       }
@@ -267,11 +334,12 @@ export function createView() {
     if (s.av !== avKey) { s.av = avKey; el.querySelector('.he-av').replaceChildren(avatar(p.avatar, p.color, pos.big ? 56 : 44)); }
     el.style.setProperty('--c', colorHex(p.color));
     el.querySelector('.he-name').textContent = p.name;
-    el.querySelector('.he-sstack').textContent = fmt(x.stack);
     const run = t && running(t);
     const turn = !!(run && !t.runout && t.turn === x.seat);
     el.classList.toggle('is-turn', turn);
     el.classList.toggle('is-folded', x.status === 'folded' || x.status === 'out');
+    // HE4: busted THIS hand → OUT, then the seat fades (css: a delayed transition — a refresh paints it faded at once); gone at the next deal
+    el.classList.toggle('is-busted', x.status === 'out');
     const pl = (pub.players || {})[x.id] || {};
     const tag = x.status === 'out' ? 'OUT' : pl.left ? 'LEFT' : x.status === 'allin' ? 'ALL IN' : x.status === 'sitout' ? 'SAT OUT' : x.away ? 'AWAY' : x.status === 'folded' && run ? 'FOLD' : '';
     const tg = el.querySelector('.he-tag');
@@ -300,6 +368,8 @@ export function createView() {
     ck.hidden = !turn;
   }
   const backImg = () => h('img.he-back', { src: BACK, alt: '', draggable: 'false' });
+  /** "OUT · 5TH" — a busted seat's place (the match's places) */
+  const placeText = id => { const p = ((pub && pub.places) || []).find(q => q.id === id); return p ? `OUT · ${ordinal(p.place)}` : 'OUT'; };
   const winOf = (res, id) => (res.pots || []).reduce((n, p) => n + (p.winners || []).filter(w => w.id === id).reduce((m, w) => m + (w.amount || 0), 0), 0);
   const seatLabel = cards => { try { return cards.length >= 5 ? evaluate(cards).name : cards.length === 2 ? handLabel(cards) : ''; } catch { return ''; } };
 
@@ -316,11 +386,61 @@ export function createView() {
       slot.innerHTML = c ? `<div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck())}</div>` : '';
     });
     els.board.classList.toggle('is-big', seatCount() === 1);
-    let pot = 0;
-    if (t && t.street === 'done' && t.result) pot = t.result.total || 0;
-    else if (t) pot = potOf(t);
-    const side = t && running(t) ? sidePots(t) : [];
-    els.pot.replaceChildren(...(pot > 0 ? [h('b', `POT ${fmt(pot)}`), ...side.slice(1).map(p => h('small', `${p.label} · ${fmt(p.amount)}`))] : []));
+    paintShowdown();
+  }
+
+  // ---- THE POT LINE: while a hand runs = the chips COLLECTED (the bets in front join it at the sweep — the number rolls up) + the side pots
+  // stacked above it; at the hand's end = what the awards still hold, then each pot's line as it's awarded ("SIDE POT · 1,320 → BO"), then
+  // the main pot's line + the winning hand in gold ("STRAIGHT · SEVEN HIGH" · a tie "SPLIT POT") — which is also what a refresh shows
+  function paintPot() {
+    const t = table();
+    let kids = [], sig = '';
+    const res = t && t.street === 'done' && t.result;
+    if (!t || !current()) sig = '';
+    else if (res && awardNow) { sig = `A|${awardNow.line}|${awardNow.win}`; kids = [h('b.he-award', awardNow.line), awardNow.win ? h('em.he-winline', awardNow.win) : null]; }
+    else if (res && hold.pot > 0) { sig = `P|${hold.pot}`; kids = [h('b', `POT ${fmt(hold.pot)}`)]; }
+    else if (res) {
+      const p0 = finalPot(t);
+      if (p0) { const a = awardLine(p0, nameOf, (res.pots || []).length > 1), w = winLine(p0); sig = `F|${a}|${w}`; kids = [h('b.he-award', a), w ? h('em.he-winline', w) : null]; }
+    } else {
+      const collected = Math.max(0, t.seats.reduce((n, x) => n + (x.total || 0) - (x.bet || 0), 0) - hold.sweep);
+      const side = running(t) ? sidePots(t) : [];
+      sig = `R|${collected}|${side.map(p => p.amount).join(',')}`;
+      if (collected > 0) kids = [h('b', `POT ${fmt(collected)}`), ...side.slice(1).map(p => h('small', `${p.label} · ${fmt(p.amount)}`))];
+    }
+    if (els.pot.dataset.k === sig) return;
+    els.pot.dataset.k = sig;
+    els.pot.replaceChildren(...kids.filter(Boolean));
+  }
+  const nameOf = id => who(id).name;
+  /** the hand's main pot as an event-shaped row (its winners, its label; a fold-win says so) */
+  const finalPot = t => { const p = t.result && (t.result.pots || [])[0]; return p ? { ...p, pot: 0, byFold: !!t.result.byFold } : null; };
+
+  // ---- THE SHOWDOWN (HE4 — Group 2): the winning five (on the board + in the winner's hand) lift with a gold edge, the rest of the board dims,
+  // the losing hands dim; during the awards each pot lifts its own winners' five. State-driven (a refresh shows the main pot's).
+  function bestOf(id) {
+    const t = table(), board = (t && t.board) || [];
+    if (board.length < 3) return null;
+    const x = t.seats.find(y => y.id === id);
+    const cards = id === me() ? myCards() : x && Array.isArray(x.cards) && x.cards.length ? x.cards : null;
+    if (!cards) return null;
+    try { return bestFive([...cards, ...board]); } catch { return null; }
+  }
+  function paintShowdown() {
+    const t = table();
+    const res = t && t.street === 'done' && t.result;
+    const p0 = res && !res.byFold ? finalPot(t) : null;
+    const hi = awardNow ? awardNow.cards : p0 ? winningCards(p0, bestOf) : null;
+    const show = !!(hi && hi.size);
+    const winners = new Set(((awardNow && awardNow.ids) || (p0 && p0.winners.map(w => w.id))) || []);
+    root.classList.toggle('is-showdown', show);
+    [...els.board.children].forEach(slot => { const c = slot.firstElementChild && slot.firstElementChild.dataset.c; slot.classList.toggle('is-win', show && !!c && hi.has(c)); slot.classList.toggle('is-dim', show && !!c && !hi.has(c)); });
+    for (const [id, s] of seatEls) {
+      const cards = s.el.querySelectorAll('.he-shown .he-card');
+      cards.forEach(c => c.classList.toggle('is-win', show && hi.has(c.dataset.c)));
+      s.el.classList.toggle('is-lose', show && cards.length > 0 && !winners.has(id));
+    }
+    els.hero.querySelectorAll('.he-card').forEach(c => c.classList.toggle('is-win', show && hi.has(c.dataset.c)));
   }
 
   // ---- you (or, watching, the bottom seat)
@@ -330,11 +450,15 @@ export function createView() {
     const hand = els.hero.querySelector('.he-hand');
     const cards = mine ? myCards() : (x && Array.isArray(x.cards) && x.cards.length ? x.cards : null);
     const showBacks = !cards && x && x.held;
-    const k = cards ? `${cards.join('')}|${deck()}` : showBacks ? 'backs' : '';
+    // HE4 — SPECTATING: busted (a tournament), or at the table with no seat — your area says so instead of your cards
+    const spec = !!(mine && current() && !pub.ended && (!x || x.status === 'out'));
+    const k = cards ? `${cards.join('')}|${deck()}` : showBacks ? 'backs' : spec ? 'spec' : '';
     if (hand.dataset.k !== k) {
       hand.dataset.k = k;
-      hand.innerHTML = cards ? cards.map(c => `<div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck())}</div>`).join('')
-        : showBacks ? `<img class="he-back" src="${BACK}" alt=""><img class="he-back" src="${BACK}" alt="">` : '';
+      // (each card in its own wrapper: the wrapper holds the fan's tilt, the card inside flips — motion.js)
+      hand.innerHTML = cards ? cards.map(c => `<div class="he-hc"><div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck())}</div></div>`).join('')
+        : showBacks ? `<div class="he-hc"><img class="he-back" src="${BACK}" alt=""></div><div class="he-hc"><img class="he-back" src="${BACK}" alt=""></div>`
+          : spec ? '<div class="he-spec">SPECTATING</div>' : '';
     }
     const run = t && running(t);
     els.hero.classList.toggle('is-folded', !!(x && (x.status === 'folded' || x.status === 'out')));
@@ -342,8 +466,10 @@ export function createView() {
     els.hero.classList.toggle('is-turn', myTurn);
     els.hero.style.setProperty('--c', colorHex(who(id).color));
     els.hero.querySelector('.he-you').textContent = mine ? 'YOU' : x ? who(id).name : 'WATCHING';
-    els.hero.querySelector('.he-stack').textContent = x ? fmt(x.stack) : '';
     els.hero.querySelector('.he-plate').hidden = !x && !mine;
+    const yt = els.hero.querySelector('.he-ytag');
+    const ytag = x && x.status === 'out' ? placeText(x.id) : run && x && x.status === 'allin' ? 'ALL IN' : '';
+    yt.textContent = ytag; yt.dataset.kind = ytag === 'ALL IN' ? 'allin' : ytag ? 'grey' : '';
     const lab = els.hero.querySelector('.he-label');
     const res = t && t.street === 'done' && t.result;
     const won = res && x ? winOf(res, x.id) : 0;
@@ -391,7 +517,17 @@ export function createView() {
     // (THE TAP WATCH: a control is never rebuilt under a finger — only when what it says changed)
     const ak = JSON.stringify([yours && !slider ? [mine.presets, mine.canCheck, mine.callAmount, mine.callAllIn, mine.canRaise, mine.kind] : null, yours && !!slider,
       !yours && run && x && x.status === 'in' ? [hole && hole.pre, hole && hole.h, t.bet, x.bet] : null, kids.filter(k => k.classList.contains('he-minis')).map(k => k.textContent)]);
-    if (els.actions.dataset.k !== ak) { els.actions.dataset.k = ak; els.actions.replaceChildren(...kids); }
+    if (els.actions.dataset.k !== ak) {
+      els.actions.dataset.k = ak;
+      els.actions.replaceChildren(...kids);
+      // YOUR TURN (HE4): the action row rises in — once per turn (a new turn = a new hand / street / bet to face), never under a finger
+      const tk = yours && !slider ? `${t.hand}|${t.street}|${t.bet}|${x ? x.bet : 0}` : '';
+      if (tk && tk !== turnKey && motion && !reducedMotion()) {
+        [...els.actions.querySelectorAll('.he-preset, .he-buttons > .he-btn')].forEach((b, i) =>
+          motion.animate(b, [{ translate: '0px 16px', opacity: 0 }, { translate: '0px 0px', opacity: 1 }], { duration: 240, delay: i * 35 }));
+      }
+      if (tk || !yours) turnKey = tk;
+    }
   }
 
   function turnControls(Lg) {
@@ -461,6 +597,52 @@ export function createView() {
       : want === 'ending' ? [h('small.he-ending', 'ENDS AFTER THIS HAND')] : []));
   }
 
+  // ------------------------------------------------------------------ THE MOTION's view of the table (motion.js) — positions from the layout
+  const heroPos = what => {
+    const cx = L.box.x + L.box.w / 2, hc = L.hand.card;
+    if (what === 'bet') return { x: cx, y: L.hand.y - hc.h / 2 - 10 };
+    if (what === 'emblem') return { x: cx, y: L.plate + 14 };
+    if (what === 'dealer') return { x: cx - hc.w - 5, y: L.hand.y };
+    if (what === 'card0') return { x: cx - hc.w * 0.42, y: L.hand.y };
+    if (what === 'card1') return { x: cx + hc.w * 0.42, y: L.hand.y };
+    return { x: cx, y: L.hand.y };
+  };
+  const motionView = {
+    hold, L: () => L, me: () => me(), heroId: () => heroId(), heroEl: () => els.hero,
+    pos(id, what) {
+      if (!L) return null;
+      if (id === heroId()) return heroPos(what);
+      const p = posById.get(id);
+      if (!p) return null;
+      if (what === 'bet') return betSpot(p, L.ss);
+      if (what === 'cards') return cardsSpot(p, L.ss);
+      if (what === 'dealer') return dealerSpot(p, L.ss);
+      return { x: p.x, y: p.y };
+    },
+    seatEl: id => (seatEls.get(id) || {}).el || null,
+    heroCards: () => [...els.hero.querySelectorAll('.he-hand > .he-hc')],
+    slot: i => els.board.children[i] || null,
+    board: () => (L ? { x: L.box.x + L.box.w / 2, y: L.board.y } : null),
+    potPos: () => (L ? { x: L.box.x + L.box.w / 2, y: L.pot } : null),
+    name: id => nameOf(id),
+    best: id => bestOf(id),
+    numbers: () => paintNumbers(),
+    award(a) {
+      awardNow = a ? { ...a, ids: a.ids || null } : null;
+      paintPot(); paintShowdown();
+    },
+    toast: text => flash('he-toast', text, 2400),
+    moment: text => flash('he-moment', text, 1600),
+    ko: step => showKo(step),
+  };
+  /** a short word on the table (BLINDS UP under the level line · HEADS UP in the felt's middle) — css animates it in + out, then it goes */
+  function flash(cls, text, ms) {
+    const el = h(`div.${cls}`, text);
+    els.toasts.append(el);
+    setTimeout(() => el.remove(), ms);
+  }
+  function showKo() {}
+
   // ------------------------------------------------------------------ the frame: the timer bars + the level line's seconds (transform / text only)
   function frame(now) {
     if (destroyed) return;
@@ -480,6 +662,7 @@ export function createView() {
       if (i.style.transform !== tr) i.style.transform = tr;
       bar.classList.toggle('is-bank', ck.bank);
     }
+    if (motion) motion.tick(now);
     work.push(performance.now() - w0); if (work.length > 240) work.shift();
   }
 

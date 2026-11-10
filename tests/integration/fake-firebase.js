@@ -7,11 +7,22 @@ export const set = () => Promise.resolve();
 export const update = () => Promise.resolve();
 export const remove = () => Promise.resolve();
 // (HE3: a preview may hand a listener its value — window.__fakeDb[path]; every other preview: a listener that never fires, as before)
+// (HE4: a preview that PLAYS — holdem-preview.html &play=1 — pushes new values: window.__fakePush(path, value) calls that path's listeners)
+const fakeListeners = new Map();
 export const onValue = (r, cb) => {
   const v = typeof window !== 'undefined' && window.__fakeDb && r ? window.__fakeDb[r.path] : undefined;
   if (v !== undefined && typeof cb === 'function') setTimeout(() => cb({ val: () => v, exists: () => v != null }), 0);
-  return () => {};
+  if (!r || typeof cb !== 'function') return () => {};
+  if (!fakeListeners.has(r.path)) fakeListeners.set(r.path, new Set());
+  fakeListeners.get(r.path).add(cb);
+  return () => { const s = fakeListeners.get(r.path); if (s) s.delete(cb); };
 };
+if (typeof window !== 'undefined') {
+  window.__fakePush = (path, v) => {
+    if (window.__fakeDb) window.__fakeDb[path] = v;
+    for (const cb of fakeListeners.get(path) || []) cb({ val: () => v, exists: () => v != null });
+  };
+}
 export const off = () => {};
 export const onDisconnect = () => ({ set: () => Promise.resolve(), cancel: () => Promise.resolve() });
 export const serverTimestamp = () => Date.now();

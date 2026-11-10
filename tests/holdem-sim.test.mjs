@@ -133,12 +133,12 @@ test('THE SAME SEED REPLAYS to the same match — every chip, every card, every 
   }
 });
 
-test('the engine never reaches for a clock or Math.random', async () => {
+test('the engine never reaches for a clock or Math.random (the screen — view.js + its motion.js — alone reads clocks)', async () => {
   const { readFileSync, readdirSync } = await import('node:fs');
   for (const f of readdirSync('js/games/holdem')) {
     const src = readFileSync(`js/games/holdem/${f}`, 'utf8').replace(/\/\/.*$/gm, '');
     // (HE3: the SCREEN — view.js — times its frames + reads serverNow(); every other file, the engine + the phone's pure side, never a clock)
-    if (f !== 'view.js') assert.ok(!/Math\.random|Date\.now|performance\.now|new Date/.test(src), `${f} reads a clock or Math.random`);
+    if (f !== 'view.js' && f !== 'motion.js') assert.ok(!/Math\.random|Date\.now|performance\.now|new Date/.test(src), `${f} reads a clock or Math.random`);
     assert.ok(!/\$|cash ?out|\bowes?\b/i.test(src.replace(/\$\{/g, '')), `${f}: a money word`);
   }
 });

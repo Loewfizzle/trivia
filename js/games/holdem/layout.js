@@ -115,6 +115,11 @@ export function cardsSpot(seat, ss) {
   const c = seatRects(seat, ss).cards;
   return { x: seat.side === 'right' ? c.x1 - 18 * ss : c.x0 + 18 * ss, y: (c.y0 + c.y1) / 2 };
 }
+/** the D button's centre at a seat (the deal flies from it) — css: .he-seat .he-dealer (18 pt) */
+export function dealerSpot(seat, ss) {
+  const o = seat.side === 'top' ? (seat.big ? [-31, 13] : [-25, 13]) : seat.side === 'right' ? [-21, 17] : [21, 17];
+  return { x: seat.x + o[0] * ss, y: seat.y + o[1] * ss };
+}
 export function blocks(L) {
   const cx = L.box.x + L.box.w / 2, s = L.s;
   const bw = 5 * L.board.card.w + 4 * L.board.gap;
