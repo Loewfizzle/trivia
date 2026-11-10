@@ -267,3 +267,11 @@
 - LOOKS = ['night'] (the GAME LOOK setting shows locked while HOLD'EM runs) — HOLD'EM's 3 skins replace day/night.
 - The dealer writes ONLY CHANGED fields (multi-path updates) — the ~5 KB whole-table write was the Firebase download cost; target a few hundred bytes for a typical action.
 - The dealer keeps the room ACTIVE (rooms/{CODE}/meta/activeAt) on every write, so a 2 h DEEP match is never closed by the 1 h idle rule.
+
+## HE4 — THE TABLE SCREEN B (Nov 10 2026)
+- Ben's preview review: (1) the BOARD's position follows the player count — HEADS-UP: centred in the felt between the opponent and your buttons, cards ~64 pt; 3–4 players: raised toward the middle; 5–8: as in HE3. (2) the SIDE SEATS spread EVENLY from the top seat down to just above the pot line (≈ 20–25 % more space between them) — never onto the board or the buttons (portrait's limit; the sideways view, HE7, gets a fully even oval). (3) the NEON SPEAKEASY felt print a little more visible (still printed-in, never fighting the cards).
+- Player lists use SLIM CARDS (the ledger + the end screen's places) — Ben's standing rule.
+- A busted opponent's seat fades out; the table re-spreads at the START of the next hand (never mid-hand).
+- CASH gets a LEAVE TABLE button (between hands only, a confirm; your stack counts at leave).
+- The end screen's award chips: BIGGEST POT · MOST KOs (tournament) — computed from the server's record, shown only, no new cards/achievements.
+- Carried from the city chat (as written): THE MUSIC WARM-UP, SMALLER (the last group) — this pass's final push carries the [harbor] tag.
