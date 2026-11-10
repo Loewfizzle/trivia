@@ -7,9 +7,13 @@ export const LADDER = [
   [300, 600], [500, 1000], [700, 1400], [1000, 2000], [1500, 3000], [2000, 4000], [3000, 6000], [5000, 10000],
 ];
 
-/** TOURNAMENT speeds: the starting stack + the level time. TURBO is the default. */
+/**
+ * TOURNAMENT speeds: the starting stack + the level time. TURBO is the default. TURBO's level = 90 s (the plan said
+ * 2 min; HE1's length study — scripts/holdem-sim.mjs — put 2 min at a 22–25 min median for 6–8 players, 90 s at
+ * 18.5–19.7 inside the 15–20 target; docs/holdem.md "THE LENGTH STUDY").
+ */
 export const SPEEDS = {
-  turbo: { stack: 1500, levelMs: 2 * 60_000 },
+  turbo: { stack: 1500, levelMs: 90_000 },
   standard: { stack: 1500, levelMs: 6 * 60_000 },
   deep: { stack: 3000, levelMs: 12 * 60_000 },
 };

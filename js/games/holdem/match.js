@@ -56,7 +56,10 @@ export function nextHand(match, { rng, deck, now = 0 } = {}) {
   m.table = r.state;
   m.hands += 1;
   for (const x of m.table.seats) if (x.status !== 'out') m.players[x.id].hands += 1;
-  return { match: m, events: [...events, ...r.events] };
+  const all = [...events, ...r.events];
+  // a hand can end inside the deal (both blinds all in → the run-out; AWAY seats folding at once) — settle it now
+  if (m.table.street === 'done') settle(m, all, now);
+  return { match: m, events: all };
 }
 
 export function act(match, action, now = 0) {

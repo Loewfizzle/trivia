@@ -162,6 +162,22 @@ test('CASH: rebuy at zero, a late joiner sits in next hand, leaving takes your s
   assert.ok(!/\$|cash out|owes/i.test(JSON.stringify(s)));
 });
 
+test('a hand that ends INSIDE the deal (both blinds all in → the run-out) still settles: the bust, the winner', () => {
+  let m = createMatch({ mode: 'tournament', players: ['a', 'b'], now: 0 });
+  seatById(m.table, 'a').stack = 5; seatById(m.table, 'b').stack = 2995;
+  m.players.a.buyins = 5; m.players.b.buyins = 2995;
+  m.table.button = 1;                                    // the button → a (seat 0): a posts the small blind (all in)
+  const r = nextHand(m, { deck: rig(['As Ah', '7c 2d'], 'Kc Qd 5s Jh 4h'), now: 0 });   // deal order b, a
+  m = ok(r);
+  assert.equal(m.table.street, 'done', 'no one could act — the board ran out in the deal');
+  assert.ok(r.events.some(e => e.t === 'runout'));
+  assert.ok(r.events.some(e => e.t === 'returned' && e.id === 'b' && e.amount === 15), 'b\'s uncalled 15 back');
+  assert.ok(m.ended, 'b (AA) beat a (7-2): a is out in the deal itself');
+  assert.equal(m.winner, 'b');
+  assert.deepEqual(m.places.map(p => [p.id, p.place]), [['a', 2], ['b', 1]]);
+  assert.ok(chipCount(m).ok);
+});
+
 test('CASH: END SESSION with voidHand gives every chip of the running hand back', () => {
   let m = createMatch({ mode: 'cash', players: ['a', 'b'], now: 0 });
   m = ok(nextHand(m, { rng: rngFrom('void'), now: 0 }));
