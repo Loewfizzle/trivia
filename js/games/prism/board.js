@@ -439,6 +439,7 @@ export function createBoardView(canvas) {
   const vOf = (x, y) => (skin.look === 'crayon' ? (x * 7 + y * 13) % VARIANTS : (x * 7 + y * 13) % 3);
   const cfx = createCrayonFx();   // (PD-4) the crayon moments
   let stack = null, stackCtx = null, stackSig = '';
+  let held = null;      // (PD-5B) THE BURST BEFORE THE COLLAPSE: { cells (the stack before the clear), until (ms) } — drawn instead of the live stack
   const fx = { flashes: [], sweeps: [], glitch: 0, lockFlash: [], shards: [] };
   let lastGhost = [];   // (PD-2) the ghost rows drawn last frame (device px, top first) — what a cancel shatters
   const SHARD_MS = 520;
@@ -541,8 +542,12 @@ export function createBoardView(canvas) {
     /** (PD-4) the crumbs' cap (the tier's sparks) */
     setCrumbs(n) { cfx.setCap(n); },
     get crayonBusy() { return cfx.busy; },
+    /** (PD-5B) hold the stack as it was before a clear for ms (the neon look's race + burst read on the cleared rows; the game never waits) */
+    holdClear(cells, ms) { held = ms > 0 && cells ? { cells, until: performance.now() + ms } : null; },
+    get holding() { return !!held && performance.now() < held.until; },
     draw(g, { danger = 0, glow = 0.32, showGhost = true, frozen = false, rush = false, incoming = null, look = 'glass', pal = null, reduced = false } = {}) {
       const now = performance.now();
+      if (held && now >= held.until) held = null;
       let ghostGeo = [];
       const neon = look === 'neon';
       const crayon = look === 'crayon';
@@ -557,7 +562,7 @@ export function createBoardView(canvas) {
       const glitching = now < fx.glitch;
       const grey = Math.min(0.85, danger * 0.9) + (frozen ? 0.6 : 0);
       // the settled stack: a cached layer, redrawn only when a cell / the danger tint / the glow changes
-      const cells = g.cells;
+      const cells = held ? held.cells : g.cells;   // (PD-5B: the held stack until the burst)
       const sig = `${String.fromCharCode(...cells.subarray(0, W * VISIBLE).map(c => c + 48))}|${grey.toFixed(2)}|${glow}|${skin.look}|${skin.pal ? skin.pal.id : ''}`;
       if (sig !== stackSig) {
         stackSig = sig;
@@ -612,7 +617,7 @@ export function createBoardView(canvas) {
       if (crayon) cfx.streaks(ctx, cx);   // (PD-4: SLAM's speed lines — behind the piece)
       // ghost + active piece
       if (g.cur && !frozen) {
-        if (showGhost) {
+        if (showGhost && !held) {   // (PD-5B: no landing preview while the picture is held — it would sit inside the held rows)
           const gy = ghostY(g);
           if (gy != null && gy !== g.cur.y) {
             for (const [x, y] of cellsOf({ ...g.cur, y: gy })) if (y < VISIBLE) ctx.drawImage(spr('ghost', g.cur.t), x * px, sy(y));

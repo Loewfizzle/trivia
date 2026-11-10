@@ -20,6 +20,8 @@
        &reduced=1         Settings → Reduced effects (every effect toned right down)
        &look=day|night    THE GAME LOOK (default night = NEON; day = the glass placeholder until PD-4)
        &fx=slam|clear1|clear2|clear3|clear4|combo|pc   that effect on a LOOP (watch it live on a phone — every ~1.5 s)
+                          (PD-5B: a clear is REAL on the board — the n full rows put in under the stack, held until the burst, then the stack
+                          drops back: THE BURST BEFORE THE COLLAPSE; &collapse=now = the old look — the collapse at once, for the before / after)
        &heavy=1           the speed run's worst moment, on a loop: a 4-line clear every 650 ms (the combo climbing) + six ghost rows + the bot
        (the effects themselves are fired from prism-shots.mjs: window.__prism.fire('slam' | 'clear', { lines, combo, pc }) + __prism.freeze(ms))
      PD-4 — THE DAY LOOK (&look=day = THE CRAYON LOOK):
@@ -31,6 +33,9 @@
        &beat=1            THE BEAT CHECK: a big flash on every beat of the song AS HEARD (the downbeat brightest) + a readout — tap once
                           for the sound, then judge the sync BY EAR (the flash must land on the kick / the snare you hear). The song starts
                           near its top (its cue-in for a day song); &at=s puts it s seconds into the song
+     PD-5B: EVERY state that plays the song (all but &state=final — the podium's music is the console's) shows the same TAP FOR SOUND
+       button as &beat=1 (the engine's tap listeners — the first tap unlocks the audio, as in the app); &mute=1 = no button, silent; a test
+       browser (navigator.webdriver) gets none unless &sound=1
      prism-shots.mjs shoots it; Used for the look review + the frame timing. -->
 <html lang="en">
 <head>
@@ -182,6 +187,7 @@ if (q.has('after')) await wait(Number(q.get('after')));
 if (q.get('down') === '1') document.querySelector('.pd-slam-b')?.classList.add('is-down');
 if (q.get('hit') === '1') setTimeout(() => { const t = document.querySelector('.pd-tile'); if (t) t.classList.add('is-hit'); }, 200);
 if (q.has('tier')) window.__prism && window.__prism.setTier(Number(q.get('tier')));
+if (q.get('collapse') === 'now' && window.__prism && window.__prism.collapseHold) window.__prism.collapseHold(false);   // (PD-5B: the old look — the before)
 // (PD-3) an effect on a loop, for watching on a phone: a SLAM (the stack wiped when it gets tall), a clear of n lines, a combo climbing, a perfect clear
 if (q.has('fx') && ready()) {
   const FX = q.get('fx');
@@ -202,20 +208,27 @@ if (q.get('heavy') === '1' && ready()) {
   let k = 0;
   setInterval(() => window.__prism.fire('clear', { lines: 4, combo: 1 + (k++ % 6) }), 650);
 }
-// (PD-5A) THE BEAT CHECK: a full-screen flash on every beat AS HEARD (window.__prism.beat() — the same clock every beat-timed visual reads)
-if (BEAT) {
-  // the sound, as the app has it: the engine's tap listeners (app.js#installAudio) — the first tap unlocks the audio
+// (PD-5B) THE SOUND in every state that plays the song (Ben's silent DAY-MATCH preview: only &beat=1 had it): the engine's tap listeners
+// (app.js#installAudio — the first tap unlocks the audio, as in the app) + the TAP FOR SOUND button; the podium (&state=final) plays none here
+// (a test browser — navigator.webdriver — gets no button unless &sound=1: the shots + the frame timing stay clean)
+const SOUND = show !== 'final' && q.get('mute') !== '1' && (!navigator.webdriver || q.get('sound') === '1' || BEAT);
+if (SOUND) {
   (await import('/js/audio/engine.js')).installAudio();
   updateSettings({ muted: false, musicOff: false });
+  const tap = document.createElement('button');
+  tap.className = 'pvw-tap';
+  tap.textContent = 'TAP FOR SOUND';
+  tap.style.cssText = 'position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:10000;min-height:56px;padding:0 28px;border-radius:12px;border:2px solid #ff4fd8;background:#16061a;color:#fff;font:700 18px "Chakra Petch",sans-serif;letter-spacing:.08em';
+  tap.addEventListener('click', () => { tap.remove(); });
+  document.body.append(tap);
+}
+// (PD-5A) THE BEAT CHECK: a full-screen flash on every beat AS HEARD (window.__prism.beat() — the same clock every beat-timed visual reads)
+if (BEAT) {
   const flash = document.createElement('div');
   flash.style.cssText = 'position:fixed;inset:0;z-index:9998;pointer-events:none;background:#fff;opacity:0;will-change:opacity';
   const read = document.createElement('div');
   read.style.cssText = 'position:fixed;left:50%;bottom:calc(var(--safe-b, 0px) + 96px);transform:translateX(-50%);z-index:9999;pointer-events:none;background:rgba(8,6,14,.9);color:#fff;font:600 12px/1.45 "JetBrains Mono",monospace;padding:8px 12px;border-radius:10px;text-align:center;white-space:pre;max-width:calc(100vw - 32px);overflow:hidden';
-  const tap = document.createElement('button');
-  tap.textContent = 'TAP FOR SOUND';
-  tap.style.cssText = 'position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:10000;min-height:56px;padding:0 28px;border-radius:12px;border:2px solid #ff4fd8;background:#16061a;color:#fff;font:700 18px "Chakra Petch",sans-serif;letter-spacing:.08em';
-  tap.addEventListener('click', () => { tap.remove(); });
-  document.body.append(flash, read, tap);
+  document.body.append(flash, read);
   let lastRead = 0;
   const frame = now => {
     requestAnimationFrame(frame);

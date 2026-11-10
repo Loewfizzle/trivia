@@ -24,7 +24,8 @@ import { createWorlds, WORLDS } from './worlds.js';
 import { createBoardView, drawPiece, drawMini, JEWEL } from './board.js';
 import { neonPalette } from './neon.js';
 import { createLight } from './light.js';
-import { createNeonFx } from './neonfx.js';
+import { createNeonFx, preClear, holdMs } from './neonfx.js';
+import { holidayNow, withHoliday } from './holiday.js';
 import { tierOf, TOP_TIER } from './tiers.js';
 import { paperOf, CRAYON } from './crayon.js';
 import { warmCrayon, toothMaskURL } from './crayon-art.js';
@@ -75,6 +76,7 @@ export function createView() {
   let page = null, paper = null, curWorld = '';
   let warmT = 0, warmPx = 0;
   let pal = neonPalette('');
+  const hol = holidayNow();   // (PD-5B — THE HOLIDAY HOOK: today's variant from the city's calendar, once — holiday.js; none exist yet: nothing changes)
   let light = null, nfx = null;
   let boardRect = null;     // the board's rect in the root's CSS px (from the layout — the light + the shards' origin)
   let tierCool = 0;
@@ -124,6 +126,7 @@ export function createView() {
   let miniSig = {};
   let rebootUntil = 0;
   let bot = null;           // { skill, every, next }
+  let holdOn = true;        // (PD-5B) THE BURST BEFORE THE COLLAPSE — on (the preview's &collapse=now = the old look, for the before / after)
   let lastHoldSig = '', lastNextSig = '';
   let L = null;             // the layout (layout.js) — its numbers, never a layout read in the frame loop
   let rail = null;
@@ -446,7 +449,11 @@ export function createView() {
     else if (!neon) board.flashRows(ev.rows.map((y, i) => y - i >= 0 ? ev.rows[i] : y), strength, (fxs.hue * 57) % 360);
     // (PD-3 — THE NEON LOOK's clears: light RACES along the rows, then they BURST into shards (fx.js, behind the board) + sparks (the light layer)
     //  — every clear, bigger clears bigger; 4 LINES = a full-board flash; a combo lifts the frame's light)
-    else nfx.event(ev, { onBurst: reduced() ? null : () => neonShards(ev) });
+    else {
+      const race = nfx.event(ev, { onBurst: reduced() ? null : () => neonShards(ev) });
+      // (PD-5B — THE BURST BEFORE THE COLLAPSE: the board keeps the cleared rows in place until the burst — neonfx.js#preClear)
+      if (holdOn && eng) board.holdClear(preClear(eng.cells, ev), holdMs(race || 0, reduced()));
+    }
     // audio
     if (ev.pc) synth.play('pc');
     else if (ev.twist) synth.play('twist');
@@ -803,8 +810,9 @@ export function createView() {
   }
   // ================================================================ THE DAY LOOK (PD-4): the paper, the page, the crayon sprites warmed in idle slices
   /** the match's paper (crayon.js#paperOf — the host's deal): CSS reads its colour + ink + grain (the panels, the cards, the top line) */
-  function setPaper(p) {
-    if (!p || p === paper) return;
+  function setPaper(p0) {
+    const p = p0 && withHoliday('day', { paper: p0, world: '' }, hol).paper;   // (PD-5B: a holiday's paper overrides — none yet)
+    if (!p || p === paper || (paper && p.id === paper.id && p0 !== p)) return;
     paper = p;
     root.dataset.paper = p.id;
     root.style.setProperty('--pd-paper', p.base);
@@ -818,7 +826,8 @@ export function createView() {
     if (!page) return;
     const d0 = docOf(0);
     const field = !!game && game.phase !== 'final' && !specNow();   // (spectating + the podium: no board on the page — the cards stand alone)
-    page.set({ on: look === 'crayon', paper, world: curWorld || (d0 && d0.world) || 'sunset', w: (L && L.W0) || root.clientWidth, h: (L && L.H0) || root.clientHeight, board: field ? boardRect : null });
+    const world = withHoliday('day', { paper, world: curWorld || (d0 && d0.world) || 'sunset' }, hol).world;   // (PD-5B: a holiday's doodle — none yet)
+    page.set({ on: look === 'crayon', paper, world, w: (L && L.W0) || root.clientWidth, h: (L && L.H0) || root.clientHeight, board: field ? boardRect : null });
   }
   /** every crayon block for the board's size, drawn in slices of <= 4 ms between frames — a live switch to day never waits on them */
   function warmSprites() {
@@ -839,7 +848,7 @@ export function createView() {
   }
   /** the world's neon palette (neon.js): the pieces' shade + glow, the frame, the well, the sparks — CSS reads the frame + the well */
   function setPalette(worldId) {
-    const p = neonPalette(worldId);
+    const p = withHoliday('night', { palette: neonPalette(worldId) }, hol).palette;   // (PD-5B: a holiday's palette overrides — none yet)
     if (p === pal) return;
     pal = p;
     if (nfx) nfx.palette(p);
@@ -1362,6 +1371,7 @@ export function createView() {
       act: a => act(a),
       bot: (opts = {}) => { bot = { skill: opts.skill ?? 0.9, every: opts.every ?? 60, next: 0, rnd: rngFrom(`${me()}:${opts.seed || 1}`) }; },
       stopBot: () => { bot = null; },
+      collapseHold: on => { holdOn = !!on; },   // (PD-5B: false = the old look — the rows collapse at once, the burst over the rows that dropped in)
       topOut: () => { if (eng) { E.insertJunk(eng, 40, 0); handleEvents(); } },
       junk: (n = 1, gap = 0) => { if (eng) { E.insertJunk(eng, n, gap); handleEvents(); } },
       target: () => ({ target, hitBy: attackersOf(attackersRecent) }),   // (PD-2 — AUTO-TARGET: no modes, no button)

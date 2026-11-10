@@ -5,6 +5,25 @@
 import { W, VISIBLE, cellsOf } from './engine.js';
 import { tierOf } from './tiers.js';
 
+/**
+ * PD-5B — THE BURST BEFORE THE COLLAPSE (PD-3's note: the engine removes the cleared rows AT ONCE, so the race + the burst lit where the rows WERE —
+ * over the rows that had already dropped in, for ~0.25 s). The board now draws the stack AS IT WAS just before the clear until the burst (the
+ * race's length + a breath of the white burst), then it collapses — the light reads on the cleared rows themselves. The game itself never waits:
+ * the engine, the next piece + the timing are untouched; only the picture of the settled stack is held. PURE: the post-clear cells + the clear
+ * event (its rows ascending, their cells) → the cells before it (the rows put back, everything above lifted; the top rows past the board dropped).
+ */
+export function preClear(cells, ev, w = W) {
+  const h = Math.floor(cells.length / w), rows = [];
+  for (let y = 0; y < h; y++) rows.push(cells.subarray(y * w, (y + 1) * w));
+  const ys = (ev.rows || []).map((y, k) => [y, k]).sort((a, b) => a[0] - b[0]);
+  for (const [y, k] of ys) rows.splice(Math.max(0, Math.min(rows.length, y)), 0, Uint8Array.from({ length: w }, (_, x) => ((ev.cells || [])[k] || [])[x] || 8));
+  const out = new Uint8Array(h * w);
+  for (let y = 0; y < h; y++) out.set(rows[y], y * w);
+  return out;
+}
+/** how long the board holds the cleared rows: the race + a breath of the burst (ms; 0 = reduced effects — no race, no hold) */
+export const holdMs = (race, reduced) => (reduced || race <= 1 ? 0 : race + 70);
+
 export function createNeonFx(light) {
   let B = { x: 0, y: 0, w: 1, h: 1, cell: 30 };
   let pal = null;
@@ -50,7 +69,7 @@ export function createNeonFx(light) {
         const t = light.race(rows, { lines: ev.lines, combo, sparks: sp, onBurst: o.onBurst });
         if (big) light.flash(pal ? pal.flash : '#ffffff', { a: ev.pc ? 0.22 : 0.16, dur: 300, delay: t });   // (a breath of light over the board — the stack stays readable)
         if (combo >= 1 || big) light.frame(Math.min(1, 0.2 + 0.16 * combo + (big ? 0.3 : 0)), pal ? pal.edge : '#ffffff');
-        return;
+        return t;   // (PD-5B: the race's length — the board holds the cleared rows until the burst)
       }
       if (ev.e === 'counter') light.flash('#ff4f74', { a: 0.16, dur: 260 });
     },

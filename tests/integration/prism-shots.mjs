@@ -73,6 +73,11 @@ const SHOTS = {
       [`clear${n}-race`, { q: `n=5&stack=12&world=nebula`, js: `window.__prism.fire("clear", { lines: ${n} }); window.__prism.freeze(${Math.round((150 + 20 * n) * 0.55)})`, w: 150 }],
       [`clear${n}-burst`, { q: `n=5&stack=12&world=nebula`, js: `window.__prism.fire("clear", { lines: ${n} }); window.__prism.freeze(${150 + 20 * n + 70})`, w: 110 }],
     ])),
+    // (PD-5B — THE BURST BEFORE THE COLLAPSE: the same race / burst frames with the OLD look — &collapse=now — for the before / after)
+    ...Object.fromEntries([2, 4].flatMap(n => [
+      [`clear${n}-race-before`, { q: `n=5&stack=12&world=nebula&collapse=now`, js: `window.__prism.fire("clear", { lines: ${n} }); window.__prism.freeze(${Math.round((150 + 20 * n) * 0.55)})`, w: 150 }],
+      [`clear${n}-burst-before`, { q: `n=5&stack=12&world=nebula&collapse=now`, js: `window.__prism.fire("clear", { lines: ${n} }); window.__prism.freeze(${150 + 20 * n + 70})`, w: 110 }],
+    ])),
     'combo4': { q: 'n=5&stack=12&world=aurora', js: 'window.__prism.fire("clear", { lines: 2, combo: 4 }); window.__prism.freeze(260)', w: 120 },
     'pc': { q: 'n=5&stack=12&world=city', js: 'window.__prism.fire("clear", { lines: 4, pc: true }); window.__prism.freeze(330)', w: 120 },
     'ghost6': 'n=5&stack=6&inc=6&rise=hot&world=crystal',
