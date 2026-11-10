@@ -6496,3 +6496,15 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
   screen forever → THE BOOT SAFETY NET — THE BOOT WATCHDOG + the BOOT HANG report + the one reload, the hang watch from boot; the city's music ON the tap;
   THE APOSTROPHE TUBE — HOLD'EM's sign; NO BLACK TILES — 24 code-drawn cards' baked stills; no rules change); HOLD'EM's next pass ← NEXT → its Fable
   review → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.
+
+## OWNER'S NOTES — NOV 10 (evening)
+
+- Nov 10 (the owner): GROK'S BOOT AUDIT (Downloads\NEON\grok-boot-audit-2026-11-10.md — the boot + the first 10 s, read-only, 13 findings) checked by the city
+  chat: the real ones → LOAD FIX 4, slotted between HOLD'EM's HE4 and HE5. The one that matters most: a REFRESH INSIDE A ROOM ON A BAD LINE holds REJOINING YOUR
+  ROOM forever (Firebase's get() has no time limit) → the watchdog's reload → TAP TO TRY AGAIN, in a loop — a freeze friends could hit on a PRISM DROP night.
+- Nov 10: the music warm-up's size (#3) + "music off / muted" (#4) shipped inside HE4 (≤ 1 MB a visit with no tap; 0 with the music off).
+- Nov 10: PARKED — #2 (Firebase + the profile call start before the reveal): FR7 MEASURES it on the iPhone first; no change without numbers. #9 (the bare domain
+  308 → www): the owner checks Vercel → Domains (which one is primary) — a settings click, not code.
+- THE BUILD TABLE (Nov 10 evening, LOAD FIX 4 Step 0): LOAD FIX 3 ✅ (passes/load-fix-3.md); HOLD'EM (HE1 → HE4 ✅; HE5–HE6 skins → HE7 sideways → HE8 E2E +
+  polish → HE9 Fable review → HE10 fixes ← in its chat); LOAD FIX 4 (this pass: THE REJOIN FREEZE, THE DEPLOY SKEW, THE HIDDEN BOOT, THE SMALL FIXES — Grok's
+  boot audit, nothing else) ← NOW; then HOLD'EM HE5 → … → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.
