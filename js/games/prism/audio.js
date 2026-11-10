@@ -26,7 +26,7 @@ import { settings } from '../../audio/settings.js';
 import { ctxAtServer, heard } from '../pulse/clock.js';
 import { createSyncedSongs, speakerLead } from '../../audio/synced-songs.js';
 import { createOnsets, onsetStep, createLead, leadKick, leadState, kickLag } from '../../core/harbor-beat.js';
-import { songUrl, beatClock } from './songs.js';
+import { songUrl, beatClock, loadManifest } from './songs.js';
 import { heardSongPos, serverSongPos, ctxForSongTime, unreportedOut, kickErr, leadGrid } from './sync.js';
 
 const SCALES = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
@@ -36,6 +36,9 @@ const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 // ================================================================ songs
 export function createSongPlayer() {
   let chain = null;      // { filter, lift, out }
+  // (PFIX-A — THE NIGHT GAIN: the manifest's `gain` (dB, a cut) per song — the night set played at the day set's −14.4 LUFS; the files untouched)
+  const levels = new Map();
+  loadManifest().then(list => { for (const x of list || []) if (Number(x.gain)) levels.set(x.id, Math.pow(10, Math.min(0, Number(x.gain)) / 20)); songs.relevel(); }).catch(() => {});
   let game = null;
   let danger = 0;
   let duelAt = null;
@@ -47,6 +50,7 @@ export function createSongPlayer() {
     urlFor: songUrl,
     label: 'prism song',
     quick: true,
+    levelOf: id => levels.get(id) ?? 1,
     connect(ctx) {
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
@@ -119,10 +123,11 @@ export function createSongPlayer() {
     ready: i => songs.ready(i),
     /** (PD-5A) song i's voice { origin, part } | null · the loudest sounding song { i, at, origin } | null · this frame's kick reading */
     voice: i => songs.voice(i),
+    levels: () => songs.levels(),
     now: () => songs.now(),
     kick: () => kick,
     debug() {
-      return { ready: !!chain, filter: chain ? Math.round(chain.filter.frequency.value) : null, lift: chain ? +chain.lift.gain.value.toFixed(3) : 1, ...songs.debug() };
+      return { ready: !!chain, filter: chain ? Math.round(chain.filter.frequency.value) : null, lift: chain ? +chain.lift.gain.value.toFixed(3) : 1, ...songs.debug(), levels: songs.levels() };
     },
     stop() {
       songs.stop();
@@ -216,6 +221,43 @@ export function createHeardBeat(player) {
 }
 
 // ================================================================ musical sfx
+// PFIX-A (FABLE REVIEW optional 18): ONE reverb a page — the convolver + its ~1 MB impulse were built per mount (31 after 30 matches).
+// The synth's chain (bus → the sfx bus, dry, the reverb) is the AudioContext's, shared by every PRISM screen that context ever hosts.
+let CHAIN = null;   // { ctx, bus, dry, verb }
+/** (tests) how many reverbs this page has built */
+export let reverbsBuilt = 0;
+function chainFor(c) {
+  if (CHAIN && CHAIN.ctx === c) return CHAIN;
+  const bus = c.createGain();
+  bus.gain.value = 0.9;
+  bus.connect(getSfxBus());
+  const dry = c.createGain();
+  dry.gain.value = 1;
+  dry.connect(bus);
+  const verb = c.createConvolver();
+  verb.buffer = impulse(c, 2.6, 2.4);
+  reverbsBuilt++;
+  const wet = c.createGain();
+  wet.gain.value = 0.55;
+  verb.connect(wet).connect(bus);
+  CHAIN = { ctx: c, bus, dry, verb };
+  return CHAIN;
+}
+function impulse(c, seconds, decay) {
+  const len = Math.floor(c.sampleRate * seconds);
+  const buf = c.createBuffer(2, len, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    let lp = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      lp = lp * 0.72 + (Math.random() * 2 - 1) * 0.28; // a soft, dark tail
+      d[i] = lp * Math.pow(1 - t, decay) * (i < 64 ? i / 64 : 1);
+    }
+  }
+  return buf;
+}
+
 export function createSynth() {
   let ctx = null;
   let bus = null;
@@ -233,33 +275,8 @@ export function createSynth() {
     if (!c) return false;
     if (ctx === c) return true;
     ctx = c;
-    bus = ctx.createGain();
-    bus.gain.value = 0.9;
-    bus.connect(getSfxBus());
-    dry = ctx.createGain();
-    dry.gain.value = 1;
-    dry.connect(bus);
-    verb = ctx.createConvolver();
-    verb.buffer = impulse(ctx, 2.6, 2.4);
-    const wet = ctx.createGain();
-    wet.gain.value = 0.55;
-    verb.connect(wet).connect(bus);
+    ({ bus, dry, verb } = chainFor(c));
     return true;
-  }
-
-  function impulse(c, seconds, decay) {
-    const len = Math.floor(c.sampleRate * seconds);
-    const buf = c.createBuffer(2, len, c.sampleRate);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = buf.getChannelData(ch);
-      let lp = 0;
-      for (let i = 0; i < len; i++) {
-        const t = i / len;
-        lp = lp * 0.72 + (Math.random() * 2 - 1) * 0.28; // a soft, dark tail
-        d[i] = lp * Math.pow(1 - t, decay) * (i < 64 ? i / 64 : 1);
-      }
-    }
-    return buf;
   }
 
   // scale degree -> MIDI note (deg 0 = tonic in octave `oct`, C4 = 60)
@@ -557,6 +574,8 @@ export function createSynth() {
     },
     scale: () => ({ tonic, mode, notes: SCALES[mode].map(s => (tonic + s) % 12) }),
     log,
+    /** PFIX-A: lets go of the clock (it holds the view) + the context's nodes (the shared chain stays the context's) */
+    destroy() { clockFn = null; ctx = bus = dry = verb = null; log.length = 0; },
   };
 }
 

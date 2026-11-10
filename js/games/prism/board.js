@@ -452,6 +452,8 @@ export function createBoardView(canvas) {
     canvas.height = px * VISIBLE;
     canvas.style.width = `${cell * W}px`;
     canvas.style.height = `${cell * VISIBLE}px`;
+    if (stack) { stack.width = 0; stack.height = 0; }        // (PFIX-A: the old offscreens give their pixels back at once — not when a collection finds them)
+    if (gridLayer) { gridLayer.width = 0; gridLayer.height = 0; }
     stack = document.createElement('canvas');
     stack.width = canvas.width; stack.height = canvas.height;
     stackCtx = stack.getContext('2d');
@@ -507,6 +509,13 @@ export function createBoardView(canvas) {
 
   return {
     size,
+    /** PFIX-A (FABLE REVIEW finding 3): every canvas this board made gives its pixels back (the board's own + its two offscreens) */
+    destroy() {
+      if (stack) { stack.width = 0; stack.height = 0; } if (gridLayer) { gridLayer.width = 0; gridLayer.height = 0; }
+      canvas.width = 0; canvas.height = 0;
+      stack = stackCtx = gridLayer = null; held = null; lastGhost = [];
+      fx.flashes = []; fx.sweeps = []; fx.lockFlash = []; fx.shards = [];
+    },
     get cell() { return cell; },
     get px() { return px; },
     /** screen position (css px, relative to the canvas) of a board cell's centre */

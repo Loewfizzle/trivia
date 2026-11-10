@@ -40,7 +40,18 @@ export function createGame({ matchId, settings, participants, now, seed, songs, 
 const validBy = (game, by, uid) => (by && by !== uid && game.participants && game.participants[by] ? by : null);
 
 /**
- * ctx: { now, online: { uid: bool }, presence: { uid: { online, lastSeen } }, live: { boards: { uid: node }, calls: { uid: { w } } } }
+ * The order boards went out in — and so who wins when the last ones go in ONE tick (PFIX-A — question B): the earlier server stamp `at`
+ * goes first; an exact tie → the one who SENT FEWER rows goes first, then the LATER joiner, then the uid. The last of the list went out last.
+ */
+export function outOrder(fresh, boards = {}, players = {}) {
+  const se = u => Number((boards[u] || {}).se) || 0;
+  const jo = u => Number((players[u] || {}).joinedAt) || 0;
+  return [...fresh].sort((a, b) => a.at - b.at || se(a.uid) - se(b.uid) || jo(b.uid) - jo(a.uid) || (a.uid < b.uid ? 1 : a.uid > b.uid ? -1 : 0));
+}
+
+/**
+ * ctx: { now, online: { uid: bool }, presence: { uid: { online, lastSeen } }, players?: { uid: { joinedAt } },
+ *        live: { boards: { uid: node }, calls: { uid: { w } } } }
  */
 export function nextStep(game, ctx) {
   if (!game || game.id !== 'prism') return null;
@@ -64,20 +75,31 @@ export function nextStep(game, ctx) {
       for (const uid of alive) {
         const b = boards[uid];
         const pres = ctx.presence && ctx.presence[uid];
-        const gone = !(ctx.online && ctx.online[uid]) && (!pres || !pres.lastSeen || now - pres.lastSeen >= OFFLINE_OUT_MS)
-          && now - game.playStartAt >= OFFLINE_OUT_MS;
+        const late = now - game.playStartAt >= OFFLINE_OUT_MS;
+        const gone = !(ctx.online && ctx.online[uid]) && (!pres || !pres.lastSeen || now - pres.lastSeen >= OFFLINE_OUT_MS) && late;
+        // PFIX-A (FABLE REVIEW finding 2 + question E — AWAY): a board that has said nothing for OFFLINE_OUT_MS during play is OUT, credited to
+        // nobody, whatever presence says — a hidden tab keeps its socket (online) but runs no frames: its board froze, no row could land on it.
+        // The view's save is the heartbeat (≤ 3 s apart while its frames run); a board never written counts from GO.
+        const away = !gone && late && now - (Number(b && b.at) || game.playStartAt) >= OFFLINE_OUT_MS;
         if (b && b.st === 'out') fresh.push({ uid, at: b.at || now, by: surv ? null : validBy(game, b.by, uid) });
         else if (gone) fresh.push({ uid, at: now, by: null, gone: true });
+        else if (away) fresh.push({ uid, at: now, by: null, gone: true, away: true });
       }
       if (!fresh.length) return null;
-      fresh.sort((a, b) => a.at - b.at || (a.uid < b.uid ? -1 : 1));
+      const order = outOrder(fresh, boards, ctx.players);
+      fresh.length = 0;
+      fresh.push(...order);
+      // PFIX-A (FABLE REVIEW finding 4 + question B): the last boards out in ONE tick — the one that went out LAST wins (never "no survivors"
+      // in a match of 2+): it stays in (no out entry — place 1), its own top-out is not a KO.
+      let lastOut = null;
+      if ((game.n0 || 0) >= 2 && fresh.length >= alive.length) lastOut = fresh.pop().uid;
       let bd = { ...(game.bd || {}) };
       const ko = { ...(game.ko || {}) };
       const patch = {};
       for (const f of fresh) {
         const place = alive.length;
         alive = alive.filter(u => u !== f.uid);
-        out[f.uid] = { at: f.at, place, rem: alive.length, by: f.by || null, gone: !!f.gone };
+        out[f.uid] = { at: f.at, place, rem: alive.length, by: f.by || null, gone: !!f.gone, ...(f.away ? { away: true } : {}) };
         if (f.by) { bd = applyKo(bd, f.by, f.uid); ko[f.by] = (ko[f.by] || 0) + 1; }
         patch[`out/${f.uid}`] = out[f.uid];
       }
@@ -89,7 +111,7 @@ export function nextStep(game, ctx) {
         patch.phase = 'end';
         patch.phaseStartAt = now;
         patch.phaseEndsAt = now + END_MS;
-        patch.winner = alive[0] || null;
+        patch.winner = alive[0] || lastOut || null;
       }
       return patch;
     }

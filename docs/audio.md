@@ -56,6 +56,9 @@ The rest followed in OC2 – OC4; OC5 plays Dumb Luck's five (19 the bell · 20 
 - The bytes probe: `node tests/integration/bytes-probe.mjs "<chrome>"` (a fresh visit's music / other bytes in its first 25 s).
 
 ## QUICK START + CUE-INS + THE HEARD BEAT (PD-5A, Nov 9 2026 — PRISM DROP; docs/prism.md, docs/harbor/passes/pd-5a.md) — `audio/synced-songs.js`, `core/mp3-slice.js#prefixCut`, `core/sync-math.js#envelopeFrom`
+- **A SONG'S PLAYBACK LEVEL (PFIX-A, Nov 10 2026)** (`createSyncedSongs({ levelOf })` — PRISM DROP only; every other player passes none = 1): `levelOf(id)` → a linear
+  level ≤ 1, a gain node of its own AFTER the voice's envelope (a crossfade keeps each song's level; every envelope reading — the heard voice, the
+  tests' `gain` — is unchanged); `relevel()` applies levels that arrive after a voice started. PRISM's NIGHT GAIN (docs/prism.md) rides it.
 - **QUICK START** (`createSyncedSongs({ quick: true })` — PRISM DROP only; the stations, the party deck, the lobby song + SLIPSTREAM unchanged):
   `quickDecode` STREAMS the file (one fetch, no second download) and, while the bytes arrive, decodes slices from the stream's first frame —
   `QUICK_STEPS` [12, 30, 75] s, each ≥ the song's place now + 6 s (`need()`); the song due + nothing sounding → whatever has arrived; a slice

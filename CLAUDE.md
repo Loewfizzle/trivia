@@ -203,7 +203,14 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   flags from the room's own record (`match-report.js#prismExtra` — `firstko` · `pc` · `comeback`; PRISM's `comeback` never raises COMEBACK KID), the art
   DRAWN IN CODE (`fx/pd-cards.js` + PURE `pd-specs.js`; the material = its baked still frame — `scripts/build-pd-cards.mjs` after an art edit); FIRST KO is
   the ONE moving common (`vault.test.mjs#COMMON_MOVES`); THE BURST BEFORE THE COLLAPSE (the neon board holds the pre-clear stack until the burst —
-  `neonfx.js#preClear`; the game never waits); THE HOLIDAY HOOK = `holiday.js` (one row a holiday — empty now).
+  `neonfx.js#preClear`; the game never waits); THE HOLIDAY HOOK = `holiday.js` (one row a holiday — empty now). PFIX-A (Nov 10 — docs/prism.md
+  "PFIX-A", the review's `PFIX-A:` lines): THE LOCK = every move / turn after the first touch-down spends a reset, spent → the next touch-down
+  locks AT ONCE (`engine.js` — the lowest CELL counts); AWAY = a board silent ≥ 30 s in play is out, credited to nobody (`director.js`; the
+  view's save = the heartbeat + a save on hidden / pagehide); a DOUBLE KO = the one out LAST wins (`director.js#outOrder`); an attack's key =
+  `{uid}-{piece}` + the board saved in the same frame (a refresh never attacks twice — the receiver orders by `at`); AUTO-TARGET forgets
+  after 20 s (`TARGET_MEMORY_MS`); THE NIGHT GAIN (`build-prism.py --night-gain` → the manifest's `gain`, per voice through
+  `synced-songs.js#levelOf`); THE TEARDOWN — `unmount()` destroys + zeroes everything `mount()` made, ONE reverb a page, `ui/fit.js`'s
+  late-font list is WEAK (a podium no longer pins a match's screen; proof `e2e-prism-leak.mjs`).
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,

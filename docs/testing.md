@@ -257,6 +257,18 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     finale on the last beat, results), refresh after a KO, no stray "null" (41 checks). Scene preview without Firebase:
     `tests/integration/prism-preview.html?world=city&v=2&tier=1&bot=1&fx=1&danger=0.5`; worlds + per-tier timings:
     `node prism-shots.mjs "<browser>" ./shots-prism [cpu]` (measured with GPU=1 at 4× CPU: 16.7 ms median at all tiers).
+    PFIX-A (both paths, FAST included — ≈ 3 min now): **REFRESH** (`refreshAttackCheck` — a scripted 4-line clear, the page reloaded 400 ms later:
+    the board comes back AFTER the clear, the same piece's clear replayed is refused by its key, the queues hold ONE [4] from it) + **AWAY**
+    (`awayCheck` — a second tab brought to the front hides the phone 36 s: presence online, out after 30 s as AWAY, credited to nobody, the KO
+    card says AWAY, the other phone wins; then a tap — a person picking the phone back up: the site's fade on leaving suspended its sound).
+  - PRISM DROP's LEAK CHECK (PFIX-A — FABLE REVIEW finding 3): `node tests/integration/e2e-prism-leak.mjs "<browser>"` (≈ 2 min; the emulators +
+    `serve.mjs --emu`; env `MATCHES=6` — 30 for the long log, `GAME=overclock` = the same probe on OVERCLOCK, report only; `RETAINERS=1` prints
+    the shortest strong path from the GC roots to match 1's screen — a heap snapshot through CDP, the root tagged with a named object): two
+    phones, BATTLE then REMATCH × n; probes before the page's scripts (every canvas by WeakRef + its pixels, the convolvers made) + CDP's DOM
+    nodes / listeners after two forced collections, on the host's phone at 390 × 844 @2 at each podium → the table + the checks: the old match
+    roots collected, live canvas MB flat (≤ one match's worth, 12 MB), nodes + listeners flat, no convolver after the first match. **Never keep a
+    puppeteer ElementHandle in a memory probe** (`waitForSelector`'s return is a DevTools global handle — it pinned the podium and so match 1's
+    whole screen: the test waits through `waitForFunction` + disposes).
   - GRIDLOCK E2E: `node e2e-gridlock.mjs "<browser path>" ./shots-gridlock` (env N=8, SHOTS=0, GPU=1, PERF=0, CPU=4) — CLASSIC with 2:
     lobby card/options, a real touch drag from the tray onto the 10×10 grid, tap to rotate, an invalid drop (red ghost, snaps back),
     AUTO-PLACE keeps your ships, READY, privacy (another player's read of your fleet is denied), an aimed shot through the HUD

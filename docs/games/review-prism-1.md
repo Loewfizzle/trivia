@@ -1,5 +1,8 @@
 # FABLE REVIEW — PRISM DROP (Nov 10 2026, read-only)
 
+> **PFIX-A (Nov 10 2026) fixed MUST FIX 1–5, question D, the night gain and OPTIONAL 18 (+ half of 22) — each carries its `PFIX-A:` line.
+> MUST FIX 6–7 (a rules change → RE-PUBLISH), SHOULD FIX 8–10 and the other optionals are PFIX-B's (docs/games/plan.md "PFIX-A").**
+
 A fresh reviewer who did not build PRISM DROP's rework (PD-1 … PD-5B), over `main` at `1a245b06` (the game's last commit: `609e1a64`, PD-5B).
 Nothing in the game, the server, the rules, the tests or the styles was changed. Every finding below was proved with a probe on the pure
 modules (node, the way `tests/prism*.test.mjs` call them), a browser run on the emulators (`node scripts/serve.mjs 5173 --emu` — two to eight
@@ -40,6 +43,13 @@ the song cache, the suites (unit 84 / 84, FAST 56 / 56, the 8-phone FULL 81 / 81
   `LOCK_MS × (MAX_RESETS + 2)` of first touching down, whatever the input pattern, + the long piece over a 4-wide pit.
 - **Size:** tiny (one condition + the test).
 
+**PFIX-A: FIXED (question A — locks at once)** — `engine.js`: once the piece has touched down (`touched`), every move / rotation spends a reset,
+grounded or kicked up; with the resets spent, the lock delay is used up in the air → it locks on the tick it touches down again. A second
+cause the matrix found: "lowest" was the box's origin, which a rotation moves without the piece going lower — the long piece won its 15
+resets back on every turn; now the lowest CELL. Pin: `tests/prism-engine.test.mjs` — the matrix (320 cases: levels 1, 3, 5, 8, 10, 12, 15,
+20 × 100 / 150 / 250 / 400 ms × alternating + CW only × I, T, S, J + the long piece over a 4-wide pit): before 258 of 320 never locked, now
+every one within 7.1 s of first touching down (the limit 8.5 s), the queued rows land on that lock; + "the next touch-down locks at once".
+
 ### 2. A hidden tab is an unlimited pause — and it can win
 - **What:** the view's only clock is its frame loop (`frame()` is the one caller of `E.update`, the scheduled rows and `publish`). A tab that
   is hidden stops its frames but keeps its socket: presence stays online, so the director — which throws a player out by PRESENCE only
@@ -52,6 +62,13 @@ the song cache, the suites (unit 84 / 84, FAST 56 / 56, the 8-phone FULL 81 / 81
   publishes while frames run — make the 3 s save a heartbeat); and the view saves on `visibilitychange → hidden` + `pagehide` (see 5). Pin:
   a director simulation (online, silent 31 s → out, credited to nobody) + the e2e's hidden-tab step.
 - **Size:** small.
+
+**PFIX-A: FIXED (question E — 30 s, AWAY)** — `director.js`: a board whose `at` is ≥ `OFFLINE_OUT_MS` stale during play (a board never written:
+from GO) is out, `away: true` + `gone`, credited to nobody; the KO card says AWAY, the others "X — AWAY"; the view's save is the heartbeat
+(≤ 3 s apart while frames run) and it saves at once on `visibilitychange → hidden` + `pagehide`; a board the director put out stops. Pins: the
+director simulation in `tests/prism.test.mjs` (online + silent 31 s → out, no credit, never the winner; the review's 340-s probe → out at 30 s)
++ `e2e-prism.mjs`'s AWAY step (both paths: a tab hidden 36 s — presence online the whole time — out after 30 s, the KO card "KO · AWAY · 2ND
+PLACE", the other phone wins).
 
 ### 3. Every match leaves its whole screen in memory — nothing is ever released
 - **What:** two causes, both needed. (a) THE RETAINER is the console's `js/ui/fit.js:16` — the module-level `live` Set holds every fitted
@@ -85,6 +102,16 @@ the song cache, the suites (unit 84 / 84, FAST 56 / 56, the 8-phone FULL 81 / 81
   old roots' WeakRefs collected, live canvas MB flat within one match's worth).
 - **Size:** small (the retainer is one line; the destroys are mechanical).
 
+**PFIX-A: FIXED (both causes) + OPTIONAL 18** — (a) `ui/fit.js`: the late-font list holds WeakRefs; a fit lives as long as its element (the
+`fits` + `anchors` WeakMaps — `vault/full.js` anchors its own); nothing else changes. (b) PRISM's `unmount()` destroys everything `mount()` made
+(`board.destroy` — its canvas + both offscreens, `fx.destroy`, `nfx.destroy`, the callouts, `synth.destroy`, the ResizeObserver, the hide /
+pagehide listeners) and zeroes every canvas under its root; an update after the unmount does nothing. ONE reverb a page (`audio.js#chainFor`).
+Pin: `tests/integration/e2e-prism-leak.mjs` (two phones, 6 rematches, the host's phone at 390 × 844 @2 after two forced collections) — on the
+OLD code: canvas 34.3 → 50.1 → 67.7 → 83.4 MB, nodes +335 / match, listeners +16.5, a convolver a match, no old screen ever collected (all
+red); now: 34.3 MB flat, nodes 2 990 → 2 994, listeners 194 → 195, the old match roots collected, no convolver after the first match (all
+green). The probe's own trap, found on the way: a puppeteer `waitForSelector` handle is a DevTools global handle — it pinned the podium (the
+test now never keeps one). The 30-rematch run + OVERCLOCK's numbers: docs/harbor/passes/pfix-a.md.
+
 ### 4. Two players out in the same host tick = no winner at all
 - **What:** `director.js:92` — `patch.winner = alive[0] || null`. When the last two boards say `out` inside one 250 ms tick, `alive` is
   empty: `winner: null`. The end step (`:117`, `:120`) then finds no winner — the podium says NO SURVIVORS, EVERY Call the Winner pick is
@@ -95,6 +122,11 @@ the song cache, the suites (unit 84 / 84, FAST 56 / 56, the 8-phone FULL 81 / 81
 - **Fix:** when a tick empties `alive`, the winner is the board that went out LAST (`at`; an exact tie → more rows sent, then join order) —
   question B. Pin: the simulation above in `tests/prism.test.mjs` (a winner always exists in a 2+ BATTLE; exactly one `win`).
 - **Size:** tiny.
+
+**PFIX-A: FIXED (question B)** — `director.js#outOrder`: the boards out in one tick in the order of their server stamp, an exact tie → fewer rows
+sent first, then the later joiner (`players/{uid}/joinedAt`), then the uid; when they are the last, the one out LAST is the winner (no out
+entry — place 1). Pin: `tests/prism.test.mjs` — 2 and 8 players, the last two out in one step: the later one wins, exactly one first place,
+Call the Winner right for it; the tie rules; the same patch twice.
 
 ### 5. A refresh replays the last ≤ 3 seconds — a clear made there attacks twice
 - **What:** `publish()` (`view.js:563`) saves the board every 3 s (or when forced: out, the rush end); an attack is pushed the moment it
@@ -107,6 +139,13 @@ the song cache, the suites (unit 84 / 84, FAST 56 / 56, the 8-phone FULL 81 / 81
   by the sender's piece index (`prismq/{match}/{target}/{uid}-{n}`, create-only) so a replay cannot push it twice (it also closes most of
   7); save `at − clock` for each pending row. Pin: the e2e's refresh step asserts the target's queue after a clear + reload.
 - **Size:** small.
+
+**PFIX-A: FIXED (no rules change)** — the attack is SAVED in the same frame it is sent, the board is saved on `pagehide` / hidden; the attack's
+key = `{uid}-{piece index}` (create-only in the CURRENT rules — a replayed piece is refused; the receiver orders by the server stamp `at`, a
+restored board skips every attack stamped ≤ its save's mark `sv.ak = '@<ms>'`); each pending row keeps its remaining delay + its rise
+(`pd` gets two numbers). The rest of 7 (the server's `now`, one attack per piece in the RULES, the target not out, `sv` closed) is PFIX-B's.
+Pin: `e2e-prism.mjs`'s REFRESH step (both paths: a 4-line clear, a reload 400 ms later → the board comes back after the clear; the same
+piece's clear replayed → refused; the queues hold ONE [4] from it).
 
 ### 6. The awards, QUAD and the scores are whatever a phone writes
 - **What:** the ground rule is that anti-cheat never depends on a secret and the server replays results. PRISM's results are not replayed:
@@ -183,13 +222,13 @@ the song cache, the suites (unit 84 / 84, FAST 56 / 56, the 8-phone FULL 81 / 81
 17. **The first night → day switch** at 4× CPU hitches once (frames of 100 / 83 / 100 / 100 ms ≈ 0.4 s — the day art warming); warm
     switches 17–33 ms, ten flips in a row: no canvas growth. Warm the day art in idle slices after GO. (pd-4.md's "17 ms" was measured
     with the throttle off.)
-18. **One reverb a match:** `createSynth` (`audio.js:219`) builds a convolver + a ~1 MB impulse per mount (31 after 30 matches); build it
+18. **PFIX-A: FIXED** — **One reverb a match:** `createSynth` (`audio.js:219`) builds a convolver + a ~1 MB impulse per mount (31 after 30 matches); build it
     once per page.
 19. **A KO credited to a player already out** (`director.js:40` checks only that `by` is a participant): fair for rows sent before they
     fell — say so in a comment, or drop it.
 20. **REBOOT** (SCORE RUSH's top-out, `view.js:539–549`) skips one piece of the bag (`eng.n++`) — harmless, undocumented.
 21. **Any signed-in user can read a room's boards + another player's queue** (rooms are readable by design; nothing secret is in them).
-22. **Test tools:** the FAST e2e prints "FAILED FAST done" on a pass (the label, exit 0); `prism-shots.mjs:184`'s PERF section waits for
+22. **(PFIX-A: the preview's attack goes through `set` now — a promise; the rest PFIX-B's)** **Test tools:** the FAST e2e prints "FAILED FAST done" on a pass (the label, exit 0); `prism-shots.mjs:184`'s PERF section waits for
     `networkidle0`, which never comes on the `--emu` server; `fake-firebase.js:19`'s `push` returns no promise, so the preview throws on
     every attack (`view.js:505`'s `.catch`).
 23. **For FR7 (the console, seen in passing):** four `fit.js:69` ResizeObservers (the podium + the strips) and one `canvas-safe.js:111`
@@ -205,7 +244,8 @@ the song cache, the suites (unit 84 / 84, FAST 56 / 56, the 8-phone FULL 81 / 81
   the cards are cosmetic). A real answer — the phone logging its inputs and the server replaying the board, as OVERCLOCK's results are
   re-checked — is a pass of its own; worth it only once `prism-score` matters to strangers. Until then PERFECT CLEAR in a SOLO run has
   no witness at all: keep it (recommended — it is one common card) or make it room-only.
-- **D. AUTO-TARGET never forgets.** Your rule (the most recent attacker still alive) is what the code does — a hit four minutes old still
+- **D. AUTO-TARGET never forgets.** **PFIX-A: DONE** (`logic.js#TARGET_MEMORY_MS` 20 s; a grudge target → the random pick once forgotten).
+  The probe as a test (8 equal players, 400 attacks, 40 seeds): the biggest share 1.89 × an even split on average (worst 4.28) → 1.37 (worst 1.77). Your rule (the most recent attacker still alive) is what the code does — a hit four minutes old still
   picks the target. With 8 equal bots and 400 attacks the rows received were 46 / 23 / 34 / 20 / 44 / 23 / 96 / 114: two players take
   half of everything. Recommended: forget an attacker after ~20 s (the KO credit's own window) and fall back to the random pick.
 - **E. A phone away from the game — how long before it is out?** Recommended: the same 30 s as a lost signal, with the KO card saying

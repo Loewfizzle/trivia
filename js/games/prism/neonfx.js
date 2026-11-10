@@ -36,6 +36,8 @@ export function createNeonFx(light) {
   const glow = t => (pal && (pal.glow[t] || pal.piece[8])) || '#ffffff';
 
   return {
+    /** PFIX-A: lets go of the light layer (the view destroys the layer itself) */
+    destroy() { light = null; pal = null; hard = null; },
     /** the board's rect in the light canvas's CSS px (the view's layout — never read in the frame loop) */
     layout(b) { B = { ...B, ...b }; if (light) light.setBoard(B); },
     palette(p) { pal = p; },

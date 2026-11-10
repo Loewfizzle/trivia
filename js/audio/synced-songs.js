@@ -185,7 +185,10 @@ async function quickDecode(url, onPart, need = null, fromS = 0, ff = 0) {
 // (PD-5A) quick: stream + start from the first slices (quickDecode) · a song's CUE-IN = game.cu[i] (ms into the FILE where the room's
 // schedule starts it: a soft intro skipped — the file untouched) · now() also gives the voice's ORIGIN (the ctx time of file position 0:
 // PRISM's heard beat — games/prism/sync.js)
-export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 0.15, quick = false }) {
+// (PFIX-A) levelOf(id) → a song's PLAYBACK LEVEL (linear, ≤ 1) — a gain node of its own after the voice's envelope, so a crossfade between
+// two songs keeps each one's level and every envelope reading (the heard voice, the tests' gains) is the same as before. Absent = 1 (every
+// other player: the lobby, the city's stations — unchanged).
+export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 0.15, quick = false, levelOf = null }) {
   let minIndex = 0;          // songs before this one are not played here (another player has them: the lobby's handoff)
   let dest = null;
   let game = null;
@@ -236,24 +239,27 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     const end = origin + bufferT0(buf) + buf.duration;
     return !part && end - END_FADE > at + 0.2 ? { start: end - END_FADE, end } : null;
   }
+  const levelFor = i => { const v = levelOf && game && game.songs ? Number(levelOf(game.songs[i])) : 1; return Number.isFinite(v) && v > 0 ? Math.min(1, v) : 1; };
   function play(ctx, i, buf, at, off, pts, onEnd) {
-    let src = null, gain = null;
+    let src = null, gain = null, level = null;
     try {
       src = ctx.createBufferSource();
       src.buffer = buf;
       gain = ctx.createGain();
-      src.connect(gain).connect(dest);
+      const lv = levelFor(i);
+      if (lv !== 1) { level = ctx.createGain(); level.gain.value = lv; src.connect(gain).connect(level).connect(dest); }
+      else src.connect(gain).connect(dest);
       const g = gain.gain;
       for (const pt of pts) { if (pt.ramp) g.linearRampToValueAtTime(pt.v, pt.t); else g.setValueAtTime(pt.v, pt.t); }
-      src.onended = () => { try { src.disconnect(); gain.disconnect(); } catch { /* gone */ } onEnd(src); };
+      src.onended = () => { try { src.disconnect(); gain.disconnect(); if (level) level.disconnect(); } catch { /* gone */ } onEnd(src); };
       src.start(at, off);
     } catch (err) {
       failures++;
-      try { if (src) src.disconnect(); if (gain) gain.disconnect(); } catch { /* never connected */ }
+      try { if (src) src.disconnect(); if (gain) gain.disconnect(); if (level) level.disconnect(); } catch { /* never connected */ }
       console.warn(label, 'start', err && err.name);
       return null;
     }
-    return { src, gain };
+    return { src, gain, level };
   }
   const ended = (i, part) => src => { const v = voices.get(i); if (v && v.src === src) { voices.delete(i); if (!part) done.add(i); } };
 
@@ -382,6 +388,10 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
       return best && best.g > 0.05 ? { i: best.i, id: game.songs[best.i], at: Math.max(0, best.at), origin: best.origin } : null;
     },
     /** (PD-5A) song i's voice — sounding or scheduled — { origin, part } | null (the SFX + the countdown schedule on its clock) */
+    /** (PFIX-A) the levels arrived after a voice started (the manifest still loading): every sounding voice takes its level now */
+    relevel() { for (const [i, v] of voices) if (v.level) v.level.gain.value = levelFor(i); else if (levelFor(i) !== 1 && v.gain && dest) { try { const ctx = v.gain.context; const l = ctx.createGain(); l.gain.value = levelFor(i); v.gain.disconnect(); v.gain.connect(l).connect(dest); v.level = l; } catch { /* gone */ } } },
+    /** (PFIX-A) each sounding voice's playback level (tests) */
+    levels() { return [...voices].map(([i, v]) => ({ id: game && game.songs[i], level: v.level ? +v.level.gain.value.toFixed(3) : 1 })); },
     voice(i) { const v = voices.get(i); const ctx = getContext(); return v && ctx && v.gain.context === ctx ? { origin: v.origin, part: !!v.part } : null; },
     /** is song i decoded and ready? (PD-5A: a quick-start part counts — it can sound) */
     ready(i = 0) { const e = game && bufs.get(keyOf(i)); return !!(e && (e.buf || e.part)); },

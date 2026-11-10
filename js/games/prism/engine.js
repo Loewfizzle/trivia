@@ -109,7 +109,7 @@ export function createEngine({ seed, level = 1, mode = 'rush' } = {}) {
     sent: 0, frac: 0, badges: 0,
     pending: [],          // incoming junk [{ n, g, at (ms engine clock when it may land), id, from }]
     clock: 0,             // engine ms
-    acc: 0, fall: 0, lockT: 0, resets: 0, lowest: 99, lastRot: null,
+    acc: 0, fall: 0, lockT: 0, resets: 0, lowest: 99, lastRot: null, touched: false,
     over: false, sd: 0,
     peak: 0,              // (PD-2) the tallest the settled stack has been — COMEBACK's danger zone (logic.js#DANGER_ZONE_ROWS)
     events: [],
@@ -150,7 +150,7 @@ export function spawn(g, type = null) {
   // drop one row right away if there is room (pieces enter the visible field immediately)
   const down = { ...p, y: p.y - 1 };
   g.cur = fits(g, down) ? down : p;
-  g.fall = 0; g.lockT = 0; g.resets = 0; g.lowest = g.cur.y; g.lastRot = null;
+  g.fall = 0; g.lockT = 0; g.resets = 0; g.lowest = bottom(g.cur); g.lastRot = null; g.touched = false;
   g.events.push({ e: 'spawn', t });
   return true;
 }
@@ -169,14 +169,23 @@ function topOut(g, why) {
 
 const grounded = g => g.cur && !fits(g, { ...g.cur, y: g.cur.y - 1 });
 
+// PFIX-A (FABLE REVIEW finding 1): once the piece has touched down on its lowest row (`touched`), EVERY move / rotation spends a
+// reset — grounded or lifted off the floor by a kick — so spinning can't buy time for free. The count comes back only when the piece
+// falls below its lowest row (noteLowest). Spent: the next touch-down locks at once (update()).
 function afterMove(g) {
-  if (grounded(g)) {
+  if (g.touched || grounded(g)) {
+    g.touched = true;
     if (g.resets < MAX_RESETS) { g.lockT = 0; g.resets++; }
   }
 }
 
+// the piece's lowest CELL (PFIX-A — was the box's origin, which a rotation moves without the piece going any lower: the long piece
+// "descended" on every turn and got its 15 resets back)
+const bottom = p => p.y + Math.min(...SHAPES[p.t][p.r].map(c => c[1]));
+
 function noteLowest(g) {
-  if (g.cur.y < g.lowest) { g.lowest = g.cur.y; g.resets = 0; g.lockT = 0; }
+  const b = bottom(g.cur);
+  if (b < g.lowest) { g.lowest = b; g.resets = 0; g.lockT = 0; g.touched = false; }
 }
 
 export function move(g, dx) {
@@ -358,7 +367,8 @@ function lock(g) {
         if (!q.n) g.pending.shift();
       }
       if (countered) g.events.push({ e: 'counter', n: countered });
-      if (out > 0) { g.sent += out; g.events.push({ e: 'send', n: out, key }); }
+      // (PFIX-A: i = this piece's index in the sequence — the attack's key on the network, so a refresh's replay can't send it twice)
+      if (out > 0) { g.sent += out; g.events.push({ e: 'send', n: out, key, i: g.n }); }
     } else if (!lines) {
       landJunk(g);
     }
@@ -405,7 +415,7 @@ export function insertJunk(g, count, gap, from = null) {
     let tries = 0;
     while (!fits(g, g.cur) && tries++ < count + 2) g.cur = { ...g.cur, y: g.cur.y + 1 };
     if (!fits(g, g.cur) || cellsOf(g.cur).some(c => c[1] >= H)) { topOut(g, 'junk'); return; }
-    g.lowest = Math.min(g.lowest + count, g.cur.y);
+    g.lowest = Math.min(g.lowest + count, bottom(g.cur));
   }
   notePeak(g);
   g.events.push({ e: 'junk', n: count, from, gap });
@@ -441,10 +451,12 @@ export function update(g, ms, soft = false) {
       if (!stepDown(g, soft)) { g.fall = 0; break; }
     }
     if (g.cur && grounded(g)) {
+      g.touched = true;
       g.lockT += TICK;
       if (g.lockT >= LOCK_MS) lock(g);
     } else if (g.cur) {
-      g.lockT = 0;
+      // PFIX-A (question A): in the air with the resets spent = no lock delay left — it locks on the tick it touches down again
+      g.lockT = g.resets >= MAX_RESETS ? LOCK_MS : 0;
     }
   }
 }
@@ -476,7 +488,9 @@ export function save(g) {
   return {
     b: boardString(g), n: g.n, h: g.hold, hd: g.held ? 1 : 0, lv: g.level, ln: g.lines, sc: g.score,
     cb: g.combo, mc: g.maxCombo, bb: g.b2b ? 1 : 0, bc: g.b2bCount, se: g.sent, fr: Math.round(g.frac * 1000) / 1000,
-    pd: g.pending.map(q => [q.n, q.g, q.from || '', q.id || '']), sd: g.sd, best: g.best ? g.best.k : '',
+    // (PFIX-A — FABLE REVIEW finding 5: each pending attack keeps its rise — the ms still to wait + the ms it has been rising)
+    pd: g.pending.map(q => [q.n, q.g, q.from || '', q.id || '', Math.max(0, Math.round(q.at - g.clock)), Math.max(0, Math.round(g.clock - (q.t0 ?? q.at)))]),
+    sd: g.sd, best: g.best ? g.best.k : '',
     st: [g.stats.pieces, g.stats.quads, g.stats.twists, g.stats.pcs],
     ct: g.cur ? g.cur.t : 0, // the piece in play (after a hold swap it isn't the queue's piece n)
     pk: g.peak,              // (PD-2) the stack's peak height
@@ -487,7 +501,8 @@ export function restore(g, s) {
   loadBoard(g, s.b || '');
   g.n = s.n || 0; g.hold = s.h || 0; g.held = !!s.hd; g.level = s.lv || 1; g.lines = s.ln || 0; g.score = s.sc || 0;
   g.combo = s.cb ?? -1; g.maxCombo = s.mc || 0; g.b2b = !!s.bb; g.b2bCount = s.bc || 0; g.sent = s.se || 0; g.frac = s.fr || 0;
-  g.pending = (s.pd || []).map(([n, gap, from, id]) => ({ n, g: gap, from: from || null, id: id || null, at: g.clock, t0: g.clock }));
+  // (a save from before PFIX-A has no delays: its rows are due at once, as before)
+  g.pending = (s.pd || []).map(([n, gap, from, id, rem = 0, el = 0]) => ({ n, g: gap, from: from || null, id: id || null, at: g.clock + (Number(rem) || 0), t0: g.clock - (Number(el) || 0) }));
   g.sd = s.sd || 0;
   g.peak = s.pk || 0;
   g.best = s.best ? { k: s.best, rank: CLEAR_RANK[s.best] || 0 } : null;

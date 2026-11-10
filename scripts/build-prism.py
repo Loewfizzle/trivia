@@ -338,8 +338,13 @@ def main():
     ap.add_argument('--force', action='store_true')
     ap.add_argument('--reworld', action='store_true', help='re-pick every song world from its mood')
     ap.add_argument('--day', action='store_true', help='PD-5A: build THE DAY SET (prismd1..5) from its fixed sources')
+    ap.add_argument('--night-gain', action='store_true', help='PFIX-A: measure the night songs + store their playback gain (no encode)')
     a = ap.parse_args()
     DATA_OUT.mkdir(parents=True, exist_ok=True)
+    if a.night_gain:
+        night_gain()
+        write_manifest()
+        return
     if a.day:
         build_day({x.strip() for x in a.only.split(',') if x.strip()})
         write_manifest()
@@ -401,7 +406,26 @@ def assign_worlds(reworld):
         print(f'  {sid}: world {w}')
     for sid, d in docs.items():
         (DATA_OUT / f'{sid}.json').write_text(json.dumps(d, separators=(',', ':')))
+    night_gain()   # (PFIX-A: a new or re-encoded night song is measured too - its playback gain)
     write_manifest()
+
+
+def night_gain():
+    """PFIX-A — THE NIGHT GAIN: the night songs were mastered hot (-7.6 … -15 LUFS) beside the day set's -14.4. Each night song's
+    integrated loudness is measured from its file (never re-encoded, never touched) and a PLAYBACK gain (dB) that brings it to the day set's
+    level is stored in its JSON + the manifest (`gain`): js/games/prism/audio.js applies it per voice. A cut only — never a boost."""
+    day = [json.loads(p.read_text()).get('lufs') for p in DATA_OUT.glob('prismd[0-9]*.json')]
+    day = [x for x in day if isinstance(x, (int, float))]
+    target = round(sum(day) / len(day), 1) if day else -14.4
+    for p in sorted(DATA_OUT.glob('prism[0-9]*.json'), key=lambda p: int(re.sub(r'[^0-9]', '', p.stem))):
+        d = json.loads(p.read_text())
+        li, tp = loudness(AUDIO_OUT / f"{d['id']}.mp3")
+        if li is None:
+            print(f"  {d['id']}: no loudness measured - left as is")
+            continue
+        d['lufs'], d['tp'], d['gain'] = li, tp, round(min(0.0, target - li), 1)
+        p.write_text(json.dumps(d, separators=(',', ':')))
+        print(f"  {d['id']}: {li} LUFS (peak {tp} dBTP) -> playback gain {d['gain']} dB (the day set: {target} LUFS)")
 
 
 def write_manifest():
@@ -417,6 +441,8 @@ def write_manifest():
                    duration=d['duration'], lastBeat=d['lastBeat'], world=d['world'])
         if d.get('look') == 'day':
             row.update(look='day', cue=d.get('cue', 0), ff=d.get('ff') or first_frame(AUDIO_OUT / f"{d['id']}.mp3"))
+        elif d.get('gain'):
+            row.update(gain=d['gain'])   # (PFIX-A: THE NIGHT GAIN - dB at playback)
         songs.append(row)
     (DATA_OUT / 'manifest.json').write_bytes(json.dumps(dict(songs=songs), indent=1).encode('utf-8'))   # (LF on Windows too)
     print(f'manifest: {len(songs)} songs ({len(night)} night, {len(day)} day)')

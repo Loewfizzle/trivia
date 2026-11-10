@@ -7,7 +7,7 @@
 // (prismq/{m}/{target}/{push}: lines + gap, written straight away). A refresh / rejoin restores from `sv`.
 import { h, vibrate, reducedMotion } from '../../ui/dom.js';
 import { colorHex } from '../../config.js';
-import { dbRef, update as dbUpdate, onValue, off, push, serverNow, serverTimestamp } from '../../firebase.js';
+import { dbRef, update as dbUpdate, set as dbSet, onValue, off, push, serverNow, serverTimestamp } from '../../firebase.js';
 import { liveKeyFor } from '../registry.js';
 import { settings, onSettings } from '../../audio/settings.js';
 import { getContext } from '../../audio/engine.js';
@@ -83,7 +83,9 @@ export function createView() {
   // publishing
   let pub = { b: null, p: null, stats: null, tg: null, lastB: 0, lastP: 0, lastSave: 0, ev: null };
   let attackSeen = new Set();
-  let attackCursor = '';
+  let attackCursor = '';   // (PFIX-A) the save's mark: '@<server ms>' = every attack stamped up to then was applied before the save
+  let attackMax = 0;       // the newest attack stamp applied (saved as the mark)
+  let restoreMark = 0;     // a restored board skips every attack stamped ≤ this (it was in the save already)
   let qRef = null;
   let lastAttacker = null;
   let lastHit = null;       // { from, at } the last junk that actually landed on my board (KO credit)
@@ -102,6 +104,7 @@ export function createView() {
   const workTimes = [];      // CPU time per frame (dt alone can't show headroom on a 60 Hz screen)
   const rec = { on: false, f: [], w: [] };   // (PD-3) the speed run's recorder: every frame of a window (the 90-frame rings above are the tier logic's)
   let tierLocked = false;    // (PD-3) the speed run measures each tier as itself
+  let targetHit = false;    // (PFIX-A) the target was picked because they hit you — forgotten after TARGET_MEMORY_MS
   let attackersRecent = []; // [{ uid, at }] every attack received (AUTO-TARGET: the most recent attacker still alive)
   // targeting (PD-2 — AUTO-TARGET: logic.js#autoTarget, no button, no setting)
   let target = null;
@@ -135,6 +138,12 @@ export function createView() {
   let unsubSettings = null;
   let finalView = null;
   let destroyed = false;
+  let ro = null;            // (PFIX-A) the root's ResizeObserver — disconnected at unmount
+  // PFIX-A (FABLE REVIEW findings 2 + 5): the board is SAVED the moment the page is hidden or put away (a call, the app switcher, a refresh) —
+  // a refresh comes back from where it was, never ≤ 3 s back. (A hidden page runs no frames: the board then falls silent, and after 30 s the
+  // director counts it AWAY.)
+  const saveNow = () => { if (!destroyed && participant() && eng && !eng.over && game && game.phase !== 'final') publish(true); };
+  const onVis = () => { if (document.visibilityState === 'hidden') saveNow(); };
 
   const me = () => st.uid;
   const player = uid => st.players[uid] || (game && game.names && game.names[uid] ? { ...GHOST, name: game.names[uid] } : GHOST);
@@ -225,7 +234,10 @@ export function createView() {
     input.bindButtons(els.slam);
     synth.setClock(() => songClock());
     unsubSettings = onSettings(() => { layoutSig = ''; applyLayout(); });
-    new ResizeObserver(() => { layoutSig = ''; applyLayout(); }).observe(root);
+    ro = new ResizeObserver(() => { layoutSig = ''; applyLayout(); });
+    ro.observe(root);
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('pagehide', saveNow);
     setupTestHook();
     if (/[?&]pdperf\b/.test(location.search)) startPerfReadout();
     update(state);
@@ -246,12 +258,28 @@ export function createView() {
     if (unsubSettings) unsubSettings();
     if (finalView) finalView.destroy();
     if (rail) rail.destroy();
+    // PFIX-A (FABLE REVIEW finding 3): EVERYTHING mount() made goes — the board + its offscreens, the shards, the light's game, the callouts,
+    // the synth's hold on this screen, the observer, the page listeners — and every canvas this screen owns gives its pixels back at once
+    // (width = height = 0), so nothing is kept even while a node lingers somewhere.
+    if (board) board.destroy();
+    if (fx) fx.destroy();
+    if (nfx) nfx.destroy();
+    if (calls) calls.clear();
+    synth.destroy();
+    if (ro) { ro.disconnect(); ro = null; }
+    document.removeEventListener('visibilitychange', onVis);
+    window.removeEventListener('pagehide', saveNow);
+    if (tipEl) { tipEl.remove(); tipEl = null; }
+    if (root) for (const c of root.querySelectorAll('canvas')) { c.width = 0; c.height = 0; }
+    board = fx = nfx = light = world = page = rail = input = calls = finalView = null;
+    eng = null;
     document.body.classList.remove('pd-on', 'pd-duel');
     if (window.__prism && window.__prism.view === api) delete window.__prism;
   }
 
   // ================================================================ state updates (cheap: mark + apply)
   function update(state) {
+    if (destroyed) return;   // (PFIX-A: an update after the unmount finds nothing to draw on)
     st = state;
     const g = state.game;
     if (!g || g.id !== 'prism') return;
@@ -269,7 +297,7 @@ export function createView() {
 
   function resetMatch() {
     eng = null; engFor = null; restored = false;
-    attackSeen = new Set(); attackCursor = ''; lastAttacker = null; lastHit = null; resumeT = null; attackersRecent = [];
+    attackSeen = new Set(); attackCursor = ''; attackMax = 0; restoreMark = 0; targetHit = false; lastAttacker = null; lastHit = null; resumeT = null; attackersRecent = [];
     pub = { b: null, p: null, stats: null, tg: null, lastB: 0, lastP: 0, lastSave: 0, ev: null };
     seenOut = { ...(game.out || {}) }; seenEv = {}; lastAlive = null; duelShown = !!game.duelAt; suddenShown = false;
     countScheduled = {}; finaleScheduled = false; endShown = false; callShownFor = null; miniSig = {};
@@ -330,6 +358,7 @@ export function createView() {
     if (node && node.sv) {
       E.restore(eng, node.sv);
       attackCursor = node.sv.ak || '';
+      { const m = /^@(\d+)$/.exec(attackCursor); restoreMark = attackMax = m ? Number(m[1]) : 0; }
       restored = true;
       lastLevel = eng.level;
       resumeT = eng.cur ? eng.cur.t : null; // the piece in play when the save was made
@@ -378,7 +407,10 @@ export function createView() {
     const now = performance.now();
     if (!force && now - lastTargetPick < 600) return;
     lastTargetPick = now;
-    target = autoTarget({ candidates: candidates(), attackers: attackersOf(attackersRecent), current: target });
+    // (PFIX-A — question D: an attacker is forgotten TARGET_MEMORY_MS after their last hit → back to the random pick)
+    const atk = attackersOf(attackersRecent, serverNow());
+    target = autoTarget({ candidates: candidates(), attackers: atk, current: target, currentHit: targetHit });
+    targetHit = !!target && atk.includes(target);
   }
 
   // ================================================================ events -> audio, visuals, network
@@ -407,7 +439,7 @@ export function createView() {
           break;
         case 'clear': onClear(ev); break;
         case 'twist0': synth.play('twist'); part({ special: ev.twist === 'mini' ? 'MINI TWIST' : 'TWIST' }); break;
-        case 'send': sendAttack(ev.n); break;
+        case 'send': sendAttack(ev.n, ev.i); break;
         case 'counter': shatterGhosts(ev.n); part({ blocked: ev.n }); break;
         case 'incoming': synth.play('incoming'); vibrate(8); break;
         case 'junk':
@@ -496,13 +528,20 @@ export function createView() {
     if (ev.pc) pubForce = true;   // (PD-5's PERFECT CLEAR card reads the save — written at once)
   }
 
-  function sendAttack(n) {
+  function sendAttack(n, i) {
     if (!battle() || !game || game.phase !== 'play') return;
     pickTarget(true);
     if (!target) return;
     part({ sent: n, to: String(player(target).name || '').toUpperCase() });
     const gap = Math.floor(Math.random() * E.W);
-    push(dbRef(`rooms/${st.code}/prismq/${game.matchId}/${target}`), { f: me(), n: Math.min(30, n), g: gap, at: serverTimestamp() }).catch(e => console.warn('attack', e && e.message));
+    // PFIX-A (FABLE REVIEW finding 5): the attack's key = the sender + the piece that made it (create-only in the rules — a refresh's replay of
+    // the same piece can't land twice), and the board is SAVED in the same frame (pubForce → publish() at the frame's end), so a refresh comes
+    // back AFTER the clear. (No piece index — a preview's scripted clear — the old push key.)
+    const atk = { f: me(), n: Math.min(30, n), g: gap, at: serverTimestamp() };
+    const base = `rooms/${st.code}/prismq/${game.matchId}/${target}`;
+    const w = Number.isInteger(i) ? dbSet(dbRef(`${base}/${me()}-${i}`), atk) : push(dbRef(base), atk);
+    if (w && w.catch) w.catch(e => console.warn('attack', e && e.message));
+    pubForce = true;
     // the target's rail tile flashes; a light rings out from it
     const card = rail && rail.hit(target);
     if (card && !reduced()) {
@@ -516,13 +555,17 @@ export function createView() {
     qRef = dbRef(`rooms/${st.code}/prismq/${game.matchId}/${me()}`);
     onValue(qRef, snap => {
       const all = snap.val() || {};
-      for (const key of Object.keys(all).sort()) {
-        if (attackSeen.has(key)) continue;
+      // (PFIX-A: the keys are the sender's piece now — not in time order: the attacks land in the order of their SERVER stamps)
+      const fresh = Object.keys(all).filter(k => !attackSeen.has(k))
+        .sort((x, y) => ((all[x] && all[x].at) || 0) - ((all[y] && all[y].at) || 0) || (x < y ? -1 : 1));
+      for (const key of fresh) {
         attackSeen.add(key);
-        if (attackCursor && key <= attackCursor) continue;
         const a = all[key];
         if (!a || !eng || eng.over) continue;
-        attackCursor = key;
+        const stamp = Number(a.at) || 0;
+        if (restoreMark && stamp <= restoreMark) continue;   // already in the board this phone came back from
+        attackMax = Math.max(attackMax, stamp);
+        attackCursor = `@${attackMax}`;
         const sinceSent = Math.max(0, serverNow() - (a.at || serverNow()));
         const delay = Math.max(0, junkDelay(E.stackHeight(eng)) - sinceSent);
         E.receive(eng, { n: a.n | 0, gap: a.g | 0, from: a.f || null, id: key, delayMs: delay });
@@ -594,6 +637,8 @@ export function createView() {
     const w0 = performance.now();
     trackPerf(dt);
     const now = serverNow();
+    // (PFIX-A: out by the director — SIGNAL LOST / AWAY — while this board still ran: it stops here, never plays on under the KO card)
+    if (eng && !eng.over && !rush() && game.out && game.out[me()]) { eng.over = true; eng.cur = null; }
     // engine
     if (eng && (game.phase === 'play' || game.phase === 'count')) {
       startIfDue();
@@ -720,7 +765,7 @@ export function createView() {
         if (calls) calls.announce(`KO → ${String(victim).toUpperCase()}`, 'ko');
         synth.play('ko'); setTimeout(() => synth.play('badge'), 380); vibrate([20, 40, 20]);
       } else if (o.by) announce(`${player(o.by).name} KO'd ${victim}`, 'ko');
-      else announce(o.gone ? `${victim} — SIGNAL LOST` : `${victim} TOPPED OUT`, 'ko');
+      else announce(o.away ? `${victim} — AWAY` : o.gone ? `${victim} — SIGNAL LOST` : `${victim} TOPPED OUT`, 'ko');
     }
     const alive = aliveOf(game).length;
     if (game.phase === 'play' && !rush() && !solo() && lastAlive != null && alive < lastAlive && alive >= 2) announce(alive === 2 ? 'FINAL TWO' : `${alive} PLAYERS LEFT`, 'world');
@@ -1054,7 +1099,7 @@ export function createView() {
     let line;
     if (surv() && solo()) line = `SURVIVED ${mmss(((out && out.at) || serverNow()) - game.playStartAt)}`;
     else line = `${ORD(place)} PLACE`;
-    const how = who ? `BY ${String(player(who).name || '').toUpperCase()}` : out && out.gone ? 'SIGNAL LOST' : surv() ? 'THE JUNK GOT YOU' : 'TOPPED OUT';
+    const how = who ? `BY ${String(player(who).name || '').toUpperCase()}` : out && out.away ? 'AWAY' : out && out.gone ? 'SIGNAL LOST' : surv() ? 'THE JUNK GOT YOU' : 'TOPPED OUT';
     o.replaceChildren(h('div.pd-ko', h('b', { 'data-text': 'KO' }, 'KO'), h('small.pd-ko-by', how), h('span.pd-ko-place', line)));
     if (!koShownAt) koShownAt = performance.now();
     layoutSig = '';
@@ -1241,6 +1286,7 @@ export function createView() {
       const o = game.out && game.out[me()];
       titleCard('SURVIVED', mmss(((o && o.at) || serverNow()) - game.playStartAt), 3600);
     } else if (w === me()) {
+      els.boardWrap.querySelector('.pd-board-over')?.replaceChildren();   // (PFIX-A: the last one out of a double KO wins — no KO card under the VICTORY)
       synth.play('finale');
       shatterBoard();
       fxs.waveT = 0; fxs.bloom = 1.2;
@@ -1268,6 +1314,7 @@ export function createView() {
     pumpAnnounce();
   }
   function pumpAnnounce() {
+    if (destroyed) return;
     const now = performance.now();
     if (announceBusy > now || !announceQ.length) { if (announceQ.length) setTimeout(pumpAnnounce, announceBusy - now + 20); return; }
     const a = announceQ.shift();
@@ -1374,7 +1421,7 @@ export function createView() {
       collapseHold: on => { holdOn = !!on; },   // (PD-5B: false = the old look — the rows collapse at once, the burst over the rows that dropped in)
       topOut: () => { if (eng) { E.insertJunk(eng, 40, 0); handleEvents(); } },
       junk: (n = 1, gap = 0) => { if (eng) { E.insertJunk(eng, n, gap); handleEvents(); } },
-      target: () => ({ target, hitBy: attackersOf(attackersRecent) }),   // (PD-2 — AUTO-TARGET: no modes, no button)
+      target: () => ({ target, hitBy: attackersOf(attackersRecent, serverNow()) }),   // (PD-2 — AUTO-TARGET: no modes, no button)
       // (PD-2) the ghost rows, the tag, the callouts, the tip, the KO card + spectating — for the E2E + the preview
       incoming: (n = 3, from = null, delayMs = 1000) => { if (eng) { E.receive(eng, { n, gap: Math.floor(Math.random() * E.W), from, delayMs }); handleEvents(); } },
       ghost: () => ({ bands: incomingNow(), rows: ghostGeo.length, tag: lastTag }),

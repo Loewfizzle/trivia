@@ -92,7 +92,7 @@ export function fitTop(top) {
   tro.observe(top);
   const pill = top.querySelector('.vl-fc-gem'); if (pill) tro.observe(pill);   // (CARD FIXES: the badge growing — its font in — re-fits the line too)
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
-  onFontsLoaded(fit);   // (THE SPEED PASS: a face that lands after fonts.ready re-fits the line too — ui/fit.js)
+  onFontsLoaded(fit, top);   // (THE SPEED PASS: a face that lands after fonts.ready re-fits the line too — ui/fit.js)
   return top;
 }
 

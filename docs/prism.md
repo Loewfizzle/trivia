@@ -16,8 +16,31 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
   Speed: level = 1 + minutes played (cap 12). Sudden death: after 5 min, one junk row every 10 s (gap from the seed). A top-out
   writes `st:'out'` + `by` (the sender of the last junk received = KO credit); the director orders knockouts by time, moves badges
   (`applyKo`: killer gets victim's + 1), counts KOs, sets `duelAt` when 2 of ≥ 3 remain, ends when ≤ 1. Offline > 30 s = out.
+  **PFIX-A (Nov 10 2026 — FABLE REVIEW #1's play-breaking fixes; docs/games/review-prism-1.md):**
+  - **THE LOCK (finding 1 + question A — `engine.js`):** once the piece has touched down on its lowest row, EVERY move / rotation spends one of
+    the 15 resets — grounded or kicked up off the floor (`touched`); "lowest" is the piece's lowest CELL (it was the box's origin: a rotation of
+    the long piece "descended" and won its resets back). Spent: in the air the lock delay is used up, so the next touch-down LOCKS AT ONCE. A
+    spin can no longer hang a piece: the review's matrix (levels 1–20 × a turn every 100–400 ms × both patterns × I / T / S / J + the long piece
+    over a 4-wide pit) locks every piece within 7.1 s of touching down (the pin's limit: 8.5 s = LOCK_MS × 17; before: never, 258 of 320).
+  - **AWAY (finding 2 + question E — `director.js`):** a board silent ≥ `OFFLINE_OUT_MS` (30 s) during play is OUT whatever presence says (a hidden
+    tab keeps its socket but runs no frames — its board froze, no row could land): `out.away` + `gone`, credited to nobody; the KO card says
+    AWAY, everyone sees "X — AWAY". THE HEARTBEAT = the view's save (every ≤ 3 s while its frames run; a board never written counts from GO).
+    The view saves at once on `visibilitychange → hidden` + `pagehide`; a board the director put out stops (no play under the KO card).
+  - **THE DOUBLE KO (finding 4 + question B — `director.js#outOrder`):** the boards that go out in one tick are ordered by their server stamp `at`,
+    an exact tie → fewer rows SENT first, then the LATER joiner (`players/{uid}/joinedAt`, passed by `index.js#step`), then the uid. When they
+    are the last ones, the one that went out LAST WINS (no out entry — place 1): never "no survivors" in a match of 2+; Call the Winner is
+    judged on it.
+  - **A REFRESH NEVER ATTACKS TWICE (finding 5):** an attack is SAVED in the same frame it is sent (`pubForce` → the frame's `publish`), so a
+    refresh comes back after the clear; its key = the sender + the piece that made it (`prismq/{m}/{target}/{uid}-{n}` — the engine's `send`
+    event carries `i`; create-only in the CURRENT rules, so a replayed piece can't land twice); the receiver takes attacks in the order of
+    their SERVER stamps (`at` — the keys no longer sort by time) and a restored board skips every attack stamped ≤ its save's mark (`sv.ak =
+    '@<ms>'`). Each pending row keeps its rise across a refresh (`pd` = [n, gap, from, id, ms still to wait, ms risen]; an old save: due at once).
+  - **AUTO-TARGET FORGETS (question D — `logic.js`):** an attacker is remembered `TARGET_MEMORY_MS` (20 s — the KO credit's window) after
+    their last hit (`attackersOf(hits, now)`); a target picked BECAUSE they hit you goes back to THE RANDOM PICK once forgotten (`currentHit`),
+    a random pick is kept while valid. 8 equal players × 400 attacks (40 seeds): the biggest share 1.89 × an even split (worst 4.28) → 1.37
+    (worst 1.77). Feuds that keep hitting each other inside 20 s still trade (the rule's nature).
   **AUTO-TARGET (PD-2 — `logic.js#autoTarget`, no button, no setting):** your attacks go to whoever is attacking you (the most recent attacker
-  still alive — `attackersOf` over every attack you received), otherwise a random living opponent, KEPT while it stays valid; re-picked when an
+  still alive — `attackersOf` over the attacks you received in the last 20 s: PFIX-A), otherwise a random living opponent, KEPT while it stays valid; re-picked when an
   attack arrives and every ~0.6 s. The old RANDOM / ATTACKERS / DANGER modes + `na:prism:target` are gone. Badges + KO bonuses work as before,
   behind the scenes (no panel). Call the Winner: 10 s after you're out (rules: 12 s); bonus = `callBonus(rem)` = 0.4 × (players left − 1).
 - **Score Rush:** no attacks; the match = one song (`endAt` = the song's analysed last strong beat); levels every 10 lines; a
@@ -118,9 +141,21 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
   + Summer Felt Longer Then → deaf (the grid as built). What no page can hear: a Bluetooth / TV delay iOS doesn't report → SETTINGS → SPEAKER DELAY
   (☰ → Settings, in a match too) — the song plays that much earlier AND the lights hold back the same. THE BEAT CHECK on a phone:
   `prism-preview.html?beat=1&song=<id>` (a big flash on every beat as heard + the readout: the lead, the delays, the slice).
+- **THE NIGHT GAIN (PFIX-A):** the night songs were mastered hot (prism1 −8.7 · prism2 −12.5 · prism3 −15.0 · prism4 −8.9 · prism5 −7.6 LUFS) beside
+  the day set's −14.4: each plays through a PLAYBACK gain — prism1 −5.7 dB · prism2 −1.9 · prism3 0 (a cut only, never a boost) · prism4 −5.5 ·
+  prism5 −6.8 — measured from the files (`python scripts/build-prism.py --night-gain`: ebur128 → the song's JSON `lufs` / `tp` / `gain` →
+  the manifest's `gain`; a new night song is measured on its build). The files are untouched. Applied PER VOICE (`audio/synced-songs.js`
+  `levelOf` — a gain node after the voice's envelope, so a crossfade keeps each song's level + every envelope reading is as before; the
+  listener's kick detector is level-relative). `__prism.audio().levels` shows each sounding voice's level.
+- **THE TEARDOWN (PFIX-A — FABLE REVIEW finding 3):** every match left its whole screen in memory (+12 MB of canvas, +327 DOM nodes, +17
+  listeners, a reverb a match). Two causes, both fixed: the console's `ui/fit.js` late-font list held each podium name's fit (and its element)
+  — now WEAKLY (a fit lives as long as its element: `fits` + `anchors` WeakMaps); and PRISM's `unmount()` now destroys EVERYTHING `mount()`
+  made (`board.destroy` — the board + its two offscreens, `fx.destroy`, `nfx.destroy`, the callouts, `synth.destroy`, the root's
+  ResizeObserver, the hide / pagehide listeners) and sizes every canvas under its root to 0 × 0. ONE reverb a page (`audio.js#chainFor` —
+  the synth's bus + dry + convolver are the AudioContext's; optional 18). Proof: `tests/integration/e2e-prism-leak.mjs` (below — docs/testing.md).
 - **Musical SFX** (`audio.js#createSynth`): every note comes from the current song's scale (`tonic` + `mode`); line-clear phrases,
   twists, KO, level-up are quantized to the song's next 16th note (beat clock from the analysis); combos climb the scale; the
-  countdown ticks are scheduled on the beats before GO. Synth: soft plucks, FM bells, a detuned pad, one convolver reverb.
+  countdown ticks are scheduled on the beats before GO. Synth: soft plucks, FM bells, a detuned pad, one convolver reverb (ONE a page — PFIX-A).
   `window.__prism.synthLog()` records every note (the E2E checks key + grid).
 - **THE LAYOUT — THE MAX BOARD (PD-1, Nov 9 2026; the owner's plan in docs/games/plan.md "PRISM DROP — THE REWORK PLAN"):** `layout.js` (PURE —
   `tests/prism-layout.test.mjs`) sizes everything from the screen + the real safe areas (the view reads `.pd-ui`'s resolved paddings once per

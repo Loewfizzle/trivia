@@ -2411,3 +2411,17 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   the material = the baked still frame (`scripts/build-pd-cards.mjs`); four refine rounds beside REDLINE + PHOTO FINISH.
 - THE POLISH: THE BURST BEFORE THE COLLAPSE (`neonfx.js#preClear` + `board.js#holdClear`), TAP FOR SOUND in every preview state that plays the song (the
   day set −14.4 LUFS each through one gain), THE HOLIDAY HOOK (`holiday.js` — empty). No rules change.
+
+## PFIX-A — PRISM DROP: THE PLAY-BREAKING FIXES (Nov 10, 2026 — docs/harbor/passes/pfix-a.md; the review: docs/games/review-prism-1.md; the decisions: docs/games/plan.md "PFIX-A")
+- THE LOCK (finding 1 + A): `engine.js` — every move / turn after the first touch-down spends a reset (`touched`), the lowest CELL counts (not the
+  box's origin), spent → the next touch-down locks at once. The 320-case matrix: 258 never locked → all within 7.1 s.
+- AWAY (finding 2 + E): `director.js` — a board silent ≥ 30 s in play is out (`away`), credited to nobody; the KO card says AWAY; the save on
+  hidden / pagehide; a board the director put out stops.
+- THE TEARDOWN (finding 3 + optional 18): `ui/fit.js`'s late-font list weak (a fit lives as long as its element); PRISM's `unmount()` destroys
+  everything + zeroes its canvases; ONE reverb a page. `e2e-prism-leak.mjs`: canvas +16 MB / nodes +335 / listeners +16.5 / a reverb a match → flat.
+- THE DOUBLE KO (finding 4 + B): `director.js#outOrder` — the one out last wins (tie: more rows sent, then the earlier joiner).
+- A REFRESH NEVER ATTACKS TWICE (finding 5): the attack saved in its frame, its key `{uid}-{piece}` (create-only — the current rules), the
+  receiver by `at` + the save's mark, the pending rows keep their rise. The rest of finding 7 → PFIX-B (rules).
+- AUTO-TARGET FORGETS (D): 20 s (`TARGET_MEMORY_MS`), a grudge target → the random pick. 8 × 400 attacks: biggest share 1.89 → 1.37 × even.
+- THE NIGHT GAIN: `build-prism.py --night-gain` (ebur128) → prism1 −5.7 · prism2 −1.9 · prism3 0 · prism4 −5.5 · prism5 −6.8 dB at playback
+  (`synced-songs.js#levelOf`, per voice); the files untouched. No rules change.

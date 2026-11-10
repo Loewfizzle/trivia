@@ -291,3 +291,53 @@ test('gravity speeds up with the level', () => {
   assert.ok(E.gravityMs(5) < E.gravityMs(4));
   assert.ok(E.gravityMs(15) >= 1000 / 60);
 });
+
+// PFIX-A (FABLE REVIEW finding 1 + question A): a piece that keeps being rotated MUST lock. Once the 15 resets are spent it locks
+// at once the next time it touches down; a rotation's kick never buys a free reset. The review's matrix: levels 1–20 × a rotation
+// every 100 / 150 / 250 / 400 ms × CW/CCW alternating + CW only × the I, T, S, J pieces (Z + L mirror S + J) + the long piece over
+// a 4-wide pit — every piece locks within LOCK_MS × (MAX_RESETS + 2) of first touching down, and the queued rows land on that lock.
+function spinUntilLock({ t, level, every, pattern, pit = false }) {
+  const g = E.createEngine({ seed: 'spin', level, mode: 'battle' });
+  if (pit) for (let y = 0; y < 4; y++) for (let x = 0; x < E.W; x++) if (x < 3 || x > 6) g.cells[y * E.W + x] = E.JUNK;
+  E.spawn(g, t);
+  E.receive(g, { n: 3, gap: 0, from: 'x', id: 'q', delayMs: 0 });
+  const grounded = () => g.cur && !E.fits(g, { ...g.cur, y: g.cur.y - 1 });
+  let touch = null, nextRot = 0, i = 0;
+  for (let f = 0; f < 60 * 60 && g.stats.pieces === 0; f++) {
+    E.update(g, 1000 / 60);
+    if (!g.cur) break;
+    if (touch == null && grounded()) touch = g.clock;
+    while (g.cur && g.clock >= nextRot) { E.rotate(g, pattern === 'alt' && i % 2 ? -1 : 1); i++; nextRot += every; }
+  }
+  return { g, touch, locked: g.stats.pieces > 0, lockAt: g.clock };
+}
+
+test('PFIX-A: a piece rotated over and over still locks — within LOCK_MS × (MAX_RESETS + 2) of touching down; the queued rows land', () => {
+  const limit = E.LOCK_MS * (E.MAX_RESETS + 2);
+  const cases = [];
+  for (const level of [1, 3, 5, 8, 10, 12, 15, 20]) for (const every of [100, 150, 250, 400]) for (const pattern of ['alt', 'cw']) {
+    for (const t of [ID.I, ID.T, ID.S, ID.J]) cases.push({ t, level, every, pattern });
+    cases.push({ t: ID.I, level, every, pattern, pit: true });
+  }
+  const bad = [];
+  for (const c of cases) {
+    const r = spinUntilLock(c);
+    const late = r.locked ? r.lockAt - r.touch : Infinity;
+    if (!r.locked || late > limit) bad.push(`${Object.keys(ID).find(k => ID[k] === c.t)} L${c.level} ${c.every}ms ${c.pattern}${c.pit ? ' pit' : ''}: ${r.locked ? Math.round(late) + ' ms' : 'NEVER'}`);
+    else if (r.g.lines === 0 && E.pendingTotal(r.g) !== 0) bad.push(`${c.t} L${c.level} ${c.every} ${c.pattern}: the queued rows did not land`);
+  }
+  assert.deepEqual(bad, [], `${bad.length} of ${cases.length} cases`);
+});
+
+test('PFIX-A: with the resets spent, the next touch-down locks AT ONCE (no lock delay left to buy)', () => {
+  const g = E.createEngine({ seed: 's', level: 1 });
+  E.start(g);
+  while (E.stepDown(g)) { /* floor */ }
+  for (let i = 0; i < E.MAX_RESETS; i++) { E.move(g, i % 2 ? 1 : -1); tick(g, 100); }
+  assert.ok(g.cur && g.resets >= E.MAX_RESETS, 'the resets are spent, still in play');
+  // lift it off the floor (as a kick would) — the next contact locks on that tick
+  g.cur = { ...g.cur, y: g.cur.y + 1 };
+  const n = g.stats.pieces;
+  tick(g, 1000 + 2 * E.TICK);   // gravity brings it down (level 1: 1 s a row)
+  assert.equal(g.stats.pieces, n + 1, 'locked on touching down');
+});

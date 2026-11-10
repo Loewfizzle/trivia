@@ -65,6 +65,8 @@ export function createFx(canvas) {
 
   return {
     resize,
+    /** PFIX-A: the layer's pixels back + nothing held (the sprites are the page's shared cache) */
+    destroy() { parts = []; rings = []; canvas.width = 0; canvas.height = 0; },
     setCap(n) { cap = n; if (parts.length > cap) parts = parts.slice(-cap); },
     get count() { return parts.length; },
     /**

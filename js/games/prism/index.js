@@ -75,7 +75,7 @@ export function preload() {
   }).catch(() => null);
 }
 
-export const step = (game, { now, live, online }) => nextStep(game, { now, online, presence: state.presence, live });
+export const step = (game, { now, live, online }) => nextStep(game, { now, online, presence: state.presence, players: state.players, live });
 
 export const finalRanks = game => standings(game).map(r => ({ uid: r.uid, rank: r.rank }));
 export const nightBonus = bonus;

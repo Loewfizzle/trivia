@@ -99,6 +99,47 @@ test('AUTO-TARGET (PD-2): whoever attacks you (the most recent still alive), els
   assert.equal(L.TARGET_MODES, undefined);
 });
 
+test('PFIX-A (question D): AUTO-TARGET forgets an attacker 20 s after their last hit → the random pick (kept while valid)', () => {
+  const hits = [{ uid: 'c', at: 1000 }];
+  assert.deepEqual(L.attackersOf(hits, 1000 + 19_999), ['c'], 'remembered inside 20 s');
+  assert.deepEqual(L.attackersOf(hits, 1000 + L.TARGET_MEMORY_MS), [], 'forgotten at 20 s');
+  assert.deepEqual(L.attackersOf(hits), ['c'], 'no clock = every attack (as before)');
+  const cand = ['b', 'c', 'd', 'e'];
+  // a grudge target is let go once forgotten; a random pick is kept
+  const r = rngFrom('forget');
+  const picks = new Set();
+  for (let i = 0; i < 40; i++) picks.add(L.autoTarget({ candidates: cand, attackers: [], current: 'c', currentHit: true, rnd: r }));
+  assert.ok(picks.size >= 3, 'the forgotten attacker → a random pick');
+  for (let i = 0; i < 20; i++) assert.equal(L.autoTarget({ candidates: cand, attackers: [], current: 'd', currentHit: false, rnd: r }), 'd', 'a random pick is kept');
+});
+
+test('PFIX-A (question D): 8 equal players, 400 attacks — nobody takes far more than an even share once attackers are forgotten', () => {
+  // the review's probe: every attack from a random one of 8 equal players (≈ one a second across the room, 1–4 rows), each sent by
+  // AUTO-TARGET from what that player was hit by. "Never forgets" (the old rule) lets feuds + a four-minute-old hit hold the targets.
+  const run = (seed, forget) => {
+    const r = rngFrom(seed); const U = Array.from({ length: 8 }, (_, i) => `u${i}`);
+    const hits = {}, cur = {}, curHit = {}, got = Object.fromEntries(U.map(u => [u, 0]));
+    let now = 0;
+    for (let k = 0; k < 400; k++) {
+      now += 1000 * (0.3 + r() * 1.4);
+      const s = U[Math.floor(r() * 8)];
+      const atk = forget ? L.attackersOf(hits[s] || [], now) : L.attackersOf(hits[s] || []);
+      const t = cur[s] = L.autoTarget({ candidates: U.filter(u => u !== s), attackers: atk, current: cur[s], currentHit: forget && curHit[s], rnd: r });
+      curHit[s] = atk.includes(t);
+      got[t] += 1 + Math.floor(r() * 4); (hits[t] ||= []).push({ uid: s, at: now });
+    }
+    const v = Object.values(got); const even = v.reduce((a, b) => a + b, 0) / 8;
+    return Math.max(...v) / even;
+  };
+  const seeds = Array.from({ length: 40 }, (_, i) => `spread${i}`);
+  const avg = x => x.reduce((a, b) => a + b, 0) / x.length;
+  const before = seeds.map(s => run(s, false)), after = seeds.map(s => run(s, true));
+  // measured (PFIX-A): the biggest share of an even split — before 1.89 on average (worst 4.28) → after 1.37 (worst 1.77)
+  assert.ok(avg(before) > 1.7, `the old rule piles up (${avg(before).toFixed(2)})`);
+  assert.ok(avg(after) <= 1.5, `average biggest share ${avg(after).toFixed(2)} × an even split`);
+  assert.ok(Math.max(...after) <= 2.2, `worst ${Math.max(...after).toFixed(2)} × an even split`);
+});
+
 test('SURVIVAL schedule (PD-2): one row every 10 s, speeding up smoothly to one every 4 s; the same for everyone', () => {
   assert.equal(L.survivalRows(0), 0);
   assert.equal(L.survivalRows(9_999), 0);
@@ -225,11 +266,83 @@ test('director: a self top-out gives no KO credit; a 2-player match has no duel 
 test('director: gone > 30 s in battle = out (no credit); short drops are fine', () => {
   const g = apply(base(3), { phase: 'play', phaseStartAt: 9000 });
   const on = { u0: true, u1: true, u2: false };
-  assert.equal(nextStep(g, { now: 60_000, online: on, presence: { u2: { online: false, lastSeen: 45_000 } }, live: { boards: {} } }), null);
-  const p = nextStep(g, { now: 76_000, online: on, presence: { u2: { online: false, lastSeen: 45_000 } }, live: { boards: {} } });
+  const beat = now => ({ u0: { at: now }, u1: { at: now }, u2: { at: 45_000 } });   // (the two still here keep saving — PFIX-A's AWAY reads the board's at)
+  assert.equal(nextStep(g, { now: 60_000, online: on, presence: { u2: { online: false, lastSeen: 45_000 } }, live: { boards: beat(60_000) } }), null);
+  const p = nextStep(g, { now: 76_000, online: on, presence: { u2: { online: false, lastSeen: 45_000 } }, live: { boards: beat(76_000) } });
   assert.ok(p && p['out/u2']);
   assert.equal(p['out/u2'].gone, true);
   assert.equal(p['out/u2'].by, null);
+});
+
+test('PFIX-A (finding 2 + E): AWAY — an ONLINE player whose board is silent ≥ 30 s during play is out, credited to nobody; never the winner', () => {
+  let g = apply(base(2), { phase: 'play', phaseStartAt: 9000 });
+  // BOB's tab hidden at 40 s: presence stays online, his board's last word is at 40 s
+  const boards = { u0: { st: 'play', at: 70_000 }, u1: { st: 'play', at: 40_000, se: 0 } };
+  assert.equal(nextStep(g, { now: 69_999, online: online(2), live: { boards } }), null, '29.999 s silent: still in');
+  const p = nextStep(g, { now: 71_000, online: online(2), live: { boards: { ...boards, u0: { st: 'play', at: 71_000 } } } });
+  assert.ok(p && p['out/u1'], 'silent 31 s → out');
+  assert.equal(p['out/u1'].by, null, 'credited to nobody');
+  assert.equal(p['out/u1'].away, true, 'the KO card says AWAY');
+  assert.equal(p.ko.u0 || 0, 0);
+  g = apply(g, p);
+  assert.equal(g.phase, 'end');
+  assert.equal(g.winner, 'u0', 'the hidden phone never wins');
+  // a board that was never written counts from GO; the first 30 s of play nobody is out
+  const g2 = apply(base(3), { phase: 'play', phaseStartAt: 9000 });
+  assert.equal(nextStep(g2, { now: 38_000, online: online(3), live: { boards: { u0: { at: 38_000 }, u1: { at: 38_000 } } } }), null);
+  const p2 = nextStep(g2, { now: 39_500, online: online(3), live: { boards: { u0: { at: 39_000 }, u1: { at: 39_000 } } } });
+  assert.equal(p2['out/u2'].away, true);
+  // the director's own sim (the review's probe): an online player silent for 340 s is out long before that
+  let g3 = apply(base(3), { phase: 'play', phaseStartAt: 9000 });
+  let outAt = null;
+  for (let now = 9000; now < 349_000 && !outAt; now += 250) {
+    const p3 = nextStep(g3, { now, online: online(3), live: { boards: { u0: { at: now }, u1: { at: now }, u2: { at: 9000 } } } });
+    if (p3) { g3 = apply(g3, p3); if (g3.out && g3.out.u2) outAt = now; }
+  }
+  assert.ok(outAt && outAt - 9000 <= 30_250, `out after ${outAt - 9000} ms of silence`);
+});
+
+test('PFIX-A (finding 4 + B): the last two out in ONE tick — the one who went out LAST wins; exactly one win; Call the Winner judged on it', () => {
+  for (const n of [2, 8]) {
+    let g = apply(base(n), { phase: 'play', phaseStartAt: 9000 });
+    // knock everyone but u0 + u1 out first (8 players: one at a time)
+    const boards = {};
+    for (let i = 2; i < n; i++) {
+      boards[`u${i}`] = { st: 'out', by: 'u0', at: 10_000 + i * 1000 };
+      g = apply(g, nextStep(g, { now: 10_100 + i * 1000, online: online(n), live: { boards } }));
+    }
+    assert.equal(g.phase, 'play');
+    // both top out between two host ticks — u1 at 60 000, u0 60 040 ms (later)
+    boards.u0 = { st: 'out', by: 'u1', at: 60_040, se: 3 };
+    boards.u1 = { st: 'out', by: 'u0', at: 60_000, se: 9 };
+    const p = nextStep(g, { now: 60_200, online: online(n), live: { boards } });
+    g = apply(g, p);
+    assert.equal(g.phase, 'end');
+    assert.equal(g.winner, 'u0', `${n} players: the later top-out wins`);
+    assert.ok(g.out.u1 && !g.out.u0, 'the winner keeps no out entry (place 1)');
+    assert.equal(g.out.u1.place, 2);
+    // the knocked-out players' calls: u2 named u0 (right), the rest u1 (wrong); a right call exists
+    const calls = {};
+    for (let i = 2; i < n; i++) calls[`u${i}`] = { w: i === 2 ? 'u0' : 'u1' };
+    calls.u1 = { w: 'u0' };
+    g = apply(g, nextStep(g, { now: g.phaseEndsAt, online: online(n), live: { boards, calls } }));
+    assert.equal(g.calls.u1.ok, true, 'a call for the winner is right');
+    if (n > 2) { assert.equal(g.calls.u2.ok, true); assert.equal(g.calls.u3.ok, false); }
+    const ranks = L.standings(g);
+    assert.equal(ranks.filter(r => r.rank === 1).length, 1, 'exactly one first place');
+    assert.equal(ranks[0].uid, 'u0');
+  }
+  // an exact tie: more rows sent wins, then the earlier joiner
+  const g = apply(base(2), { phase: 'play', phaseStartAt: 9000 });
+  const tie = (se0, se1, players) => apply(g, nextStep(g, { now: 60_200, online: online(2), players,
+    live: { boards: { u0: { st: 'out', at: 60_000, se: se0 }, u1: { st: 'out', at: 60_000, se: se1 } } } })).winner;
+  assert.equal(tie(2, 7), 'u1', 'tie → more rows sent');
+  assert.equal(tie(7, 2), 'u0');
+  assert.equal(tie(4, 4, { u0: { joinedAt: 500 }, u1: { joinedAt: 100 } }), 'u1', 'then the earlier joiner');
+  assert.equal(tie(4, 4, { u0: { joinedAt: 100 }, u1: { joinedAt: 500 } }), 'u0');
+  // the same patch twice (a host change)
+  const ctx = { now: 60_200, online: online(2), live: { boards: { u0: { st: 'out', at: 60_000 }, u1: { st: 'out', at: 60_000 } } } };
+  assert.deepEqual(nextStep(structuredClone(g), ctx), nextStep(structuredClone(g), ctx));
 });
 
 test('director: score rush ends on the final beat, results come from the boards', () => {
@@ -377,7 +490,9 @@ function simulateBattle(n, seed, { offline = null, mode = 'battle', refreshAt = 
         assert.equal(mode, 'battle', 'only BATTLE sends attacks');
         const cand = Object.keys(eng).filter(v => v !== u && !(g.out && g.out[v]) && !eng[v].over);
         // AUTO-TARGET (PD-2): the most recent attacker still alive, else a random opponent kept while valid
-        const t = target[u] = L.autoTarget({ candidates: cand, attackers: L.attackersOf(hits[u] || []), current: target[u] || null, rnd: rnd[u] });
+        const atk = L.attackersOf(hits[u] || [], now);   // (PFIX-A: forgotten after 20 s — the view's rule)
+        const t = target[u] = L.autoTarget({ candidates: cand, attackers: atk, current: target[u] || null, currentHit: !!(target[u + ':hit']), rnd: rnd[u] });
+        target[u + ':hit'] = atk.includes(t);
         if (t) {
           E.receive(eng[t], { n: ev.n, gap: Math.floor(rnd[u]() * 10), from: u, delayMs: L.junkDelay(E.stackHeight(eng[t])) });
           lastFrom[t] = u;
@@ -385,7 +500,7 @@ function simulateBattle(n, seed, { offline = null, mode = 'battle', refreshAt = 
         }
       }
       if (e.over) boards[u] = { st: 'out', by: lastFrom[u] || null, at: now, sv: E.save(e) };
-      else boards[u] = { st: 'play', sc: e.score, ln: e.lines, mc: e.maxCombo, se: e.sent, best: e.best ? e.best.k : '', sv: E.save(e) };
+      else boards[u] = { st: 'play', at: now, sc: e.score, ln: e.lines, mc: e.maxCombo, se: e.sent, best: e.best ? e.best.k : '', sv: E.save(e) };   // (at: the view's heartbeat — PFIX-A's AWAY)
     }
     if (step % 5 === 0) {
       const on = Object.fromEntries(Object.keys(eng).map(u => [u, u !== offline]));

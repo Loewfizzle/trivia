@@ -9,7 +9,8 @@
    "mode": "major",
    "duration": 188.787,
    "lastBeat": 184.12,
-   "world": "sunset"
+   "world": "sunset",
+   "gain": -5.7
   },
   {
    "id": "prism2",
@@ -20,7 +21,8 @@
    "mode": "minor",
    "duration": 227.84,
    "lastBeat": 213.655,
-   "world": "nebula"
+   "world": "nebula",
+   "gain": -1.9
   },
   {
    "id": "prism3",
@@ -42,7 +44,8 @@
    "mode": "minor",
    "duration": 126.72,
    "lastBeat": 123.217,
-   "world": "city"
+   "world": "city",
+   "gain": -5.5
   },
   {
    "id": "prism5",
@@ -53,7 +56,8 @@
    "mode": "major",
    "duration": 216.973,
    "lastBeat": 210.047,
-   "world": "crystal"
+   "world": "crystal",
+   "gain": -6.8
   },
   {
    "id": "prismd1",

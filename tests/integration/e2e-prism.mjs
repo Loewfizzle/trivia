@@ -133,6 +133,85 @@ const cleanText = async (page, where) => {
 const touchTap = async page => { const l = await P(page, 'window.__prism.layout()'); await touch(page, [[l.board.x + l.board.width * 0.8, l.board.y + 40], [l.board.x + l.board.width * 0.8, l.board.y + 40]], 30); };
 const line = (x0, y0, x1, y1, n) => Array.from({ length: n + 1 }, (_, i) => [x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n]);
 
+// PFIX-A (FABLE REVIEW finding 5) — A REFRESH NEVER ATTACKS TWICE: a 4-line clear, the page reloaded 400 ms later → the board comes back
+// AFTER the clear (the save rides the attack), and replaying that same piece's clear sends nothing (the attack's key = the sender + the
+// piece — create-only). The targets' queues hold ONE attack of 4 from it.
+async function refreshAttackCheck(ai) {
+  const A = pages[ai];
+  await P(A, 'window.__prism.stopBot()');
+  await sleep(300);
+  const setup = `(async () => {
+    const E = await import('/js/games/prism/engine.js');
+    const e = window.__prism.engine();
+    e.pending.length = 0; e.frac = 0; e.combo = -1; e.b2b = false; e.badges = 0;
+    e.cells.fill(0);
+    for (let y = 0; y < 4; y++) for (let x = 1; x < E.W; x++) e.cells[y * E.W + x] = 8;
+    for (let x = 4; x < 7; x++) e.cells[4 * E.W + x] = 8;   // (a few blocks above — a plain 4-line clear, never a perfect clear's 10)
+    e.cur = { t: 1, r: 1, x: -2, y: 8 };   // the long piece upright over the one open column
+    return e.n;
+  })()`;
+  // (the receiving side needs an attack already taken: another phone's scripted 4-line clear first — in FAST its only target is this one)
+  let oi = null;
+  for (const i of alive()) if (i !== ai && (await P(pages[i], 'window.__prism.target()')).target === uids[ai]) { oi = i; break; }   // (a phone whose target it is)
+  if (oi != null) { await P(pages[oi], setup.replace('return e.n;', `const E2 = await import('/js/games/prism/engine.js'); E2.hardDrop(e); return e.n;`)); await sleep(1500); }
+  const n0 = await P(A, setup);
+  await P(A, `(async () => { const E = await import('/js/games/prism/engine.js'); E.hardDrop(window.__prism.engine()); })()`);
+  await sleep(400);
+  await A.reload();
+  await A.waitForFunction(() => window.__prism && window.__prism.engine() && window.__prism.engine().cur, { timeout: 25000 });
+  const back = await engOf(A);
+  ok(back.n >= n0 + 1 && back.lines >= 4, `REFRESH: ${NAMES[ai]}'s board comes back AFTER the 4-line clear (piece ${n0} → ${back.n}, ${back.lines} lines)`);
+  // the same piece's clear again (what a stale save made a player repeat) — refused by its key
+  await P(A, setup.replace('return e.n;', `e.n = ${n0}; return e.n;`));
+  await P(A, `(async () => { const E = await import('/js/games/prism/engine.js'); E.hardDrop(window.__prism.engine()); })()`);
+  await sleep(1500);
+  const gq = await game(A);
+  const q = await A.evaluate(async (c, m) => { const f = await import('/js/firebase.js'); return (await f.get(f.dbRef(`rooms/${c}/prismq/${m}`))).val() || {}; }, code, gq.matchId);
+  const mine = Object.values(q).flatMap(t => Object.entries(t || {})).filter(([k, a]) => a && a.f === uids[ai]);
+  const first = mine.find(([k]) => k === `${uids[ai]}-${n0}`);
+  const after = first ? mine.filter(([, a]) => a.at >= first[1].at).map(([, a]) => a.n) : [];
+  ok(first && first[1].n >= 4 && after.length === 1, `REFRESH: one clear = ONE attack — the queue holds [${after.join(', ')}] from ${NAMES[ai]} (key ${first ? first[0].slice(-6) : 'missing'})`);
+  // the RECEIVING side of the same refresh: the attacks this phone had already taken before its save are never taken again
+  // (stamped after its clear = after its save: the only attacks the restored board may hold that the save didn't)
+  const toMe = Object.values(q[uids[ai]] || {}).filter(a => a && first && a.at > first[1].at).reduce((t, a) => t + (a.n || 0), 0);
+  const all = Object.values(q[uids[ai]] || {}).reduce((t, a) => t + ((a && a.n) || 0), 0);
+  ok((oi == null || all > 0) && back.pending <= toMe, `REFRESH: the board came back without re-taking the attacks it had taken (pending ${back.pending} ≤ ${toMe} sent after its save; ${all} rows in its queue${oi == null ? ' — no phone was aiming at it' : ''})`);
+}
+
+// PFIX-A (FABLE REVIEW finding 2 + question E) — AWAY: a tab hidden 36 s (a second tab brought to the front: the socket stays, presence
+// stays online, no frames run) is OUT after 30 s, credited to nobody, never the winner; back on screen its KO card says AWAY
+async function awayCheck(vi, wi = null) {
+  const V = pages[vi];
+  await P(V, 'window.__prism.stopBot()').catch(() => {});
+  // (two phones: the other one must still be standing when the 30 s run out — its board is cleared first, the way the host-kill step does)
+  if (alive().length === 2) for (const i of alive()) if (i !== vi) await P(pages[i], '(() => { const e = window.__prism.engine(); if (e) { e.cells.fill(0); e.pending.length = 0; } })()').catch(() => {});
+  const cover = await ctxs[vi].newPage();
+  await cover.bringToFront();
+  await sleep(300);
+  let how = await V.evaluate(() => document.visibilityState);
+  let cdp = null;
+  if (how !== 'hidden') { cdp = await V.target().createCDPSession(); await cdp.send('Page.setWebLifecycleState', { state: 'frozen' }); how = 'frozen'; }
+  log(`${NAMES[vi]} hidden (${how}) for 36 s`);
+  const watch = pages[wi ?? alive().find(i => i !== vi)];
+  const t1 = Date.now();
+  await waitFor(watch, (st, u) => !!(st.game.out && st.game.out[u]) || st.game.phase !== 'play', `${NAMES[vi]} counted AWAY`, 45000, uids[vi]);
+  const secs = (Date.now() - t1) / 1000;
+  const g = await game(watch);
+  const o = g.out && g.out[uids[vi]];
+  if (!o) log('AWAY: the game moved on first', JSON.stringify({ phase: g.phase, out: g.out, winner: g.winner && NAMES[idx(g.winner)], boards: await evalIn(watch, st => Object.fromEntries(Object.entries((st.live && st.live.boards) || {}).map(([u, b]) => [u.slice(-4), { st: b.st, at: b.at, by: b.by && b.by.slice(-4) }]))) }));
+  const online = await evalIn(watch, (st, u) => !!(st.presence[u] && st.presence[u].online), uids[vi]);
+  ok(o && o.away && !o.by && online, `AWAY: ${NAMES[vi]}'s hidden tab (presence still online: ${online}) is out after ${secs.toFixed(0)} s, credited to nobody (${JSON.stringify(o)})`);
+  await sleep(Math.max(0, 36000 - (Date.now() - t1)));
+  if (cdp) { await cdp.send('Page.setWebLifecycleState', { state: 'active' }); await cdp.detach(); }
+  await V.bringToFront();
+  await cover.close();
+  await touchTap(V);   // a person picks the phone back up: the first touch brings its sound back (the site's fade on leaving suspended it)
+  await V.waitForFunction(() => /AWAY/.test((document.querySelector('.pd-ko') || {}).textContent || ''), { timeout: 15000 }).catch(() => {});
+  const ko = await P(V, 'window.__prism.ko()');
+  ok(/^KO/.test(ko) && /AWAY/.test(ko), `AWAY: back on screen, ${NAMES[vi]}'s KO card says why ("${ko}")`);
+  return o;
+}
+
 // PD-2 — SURVIVAL (everyone still in the room: the same rows on every phone, no attacks, last one standing), then a room of ONE: the options
 // show SCORE RUSH + SURVIVAL only; a solo SURVIVAL (until you top out — SOLO RUN, the time); a solo start of BATTLE plays SCORE RUSH
 async function shiftClock(page, ms) {
@@ -555,8 +634,8 @@ try {
     await sleep(6000);
     const tA = await P(A, 'window.__prism.target()');
     ok(tA.target === uids[1], `AUTO-TARGET: two players — ALICE's attacks go to BOB with no button (${tA.target && NAMES[idx(tA.target)]})`);
-    await P(pages[1], 'window.__prism.topOut()');
-    await sleep(500);
+    await refreshAttackCheck(1);
+    await awayCheck(1);
     const ko = await P(pages[1], 'window.__prism.ko()');
     ok(/^KO/.test(ko) && /2ND PLACE/.test(ko), `KO CARD: on BOB's board — KO, how, the place ("${ko}")`);
     await waitFor(A, s => s.game.phase === 'end' || s.game.phase === 'final', 'FAST: the battle over', 60000);
@@ -630,6 +709,7 @@ try {
   await touchTap(B); // a person picks the phone back up: the first touch unlocks its audio again
   const afterB = await engOf(B);
   ok(afterB.board === beforeB.board && afterB.score === beforeB.score && afterB.lines === beforeB.lines, `REJOIN: BOB's board, score and lines come back after a refresh (n ${beforeB.n} → ${afterB.n})`);
+  await refreshAttackCheck(1);
   await P(B, 'window.__prism.bot({ skill: 0.85, every: 110, seed: 9 })');
 
   // ---------------------------------------------------------------- a song change mid-match (world transforms)
@@ -657,6 +737,14 @@ try {
   //  below never gets its case: its bot stops + its board is cleared first, so the 30-s disconnect is the only way out)
   await P(pages[hk], '(() => { window.__prism.stopBot(); const e = window.__prism.engine(); if (e) { e.cells.fill(0); e.pending.length = 0; } })()').catch(() => {});
   await sleep(400);
+  // (PFIX-A — AWAY, in the same 30 s: a player who is neither the host nor the test's winner hides their tab while the host's phone is dead)
+  let awayP = null;
+  {
+    const gNow = await game(anyPage());
+    const awayV = alive().filter(i => i !== hk && i > 2 && !(gNow.out && gNow.out[uids[i]])).at(-1);
+    const watchI = alive().find(i => i !== hk && i !== awayV);
+    if (awayV != null && gNow.phase === 'play') awayP = awayCheck(awayV, watchI);
+  }
   await pages[hk].close();
   dead.add(hk);
   await waitFor(anyPage(), (s, old) => s.meta.hostId && s.meta.hostId !== old, 'new host', 40000, uids[hk]);
@@ -665,6 +753,7 @@ try {
   await waitFor(anyPage(), (s, u) => !!(s.game.out && s.game.out[u]) || s.game.phase !== 'play', `${NAMES[hk]} counted out`, 60000, uids[hk]);
   const outHk = (await game(anyPage())).out[uids[hk]];
   ok(outHk && outHk.gone, `DISCONNECT: ${NAMES[hk]}, gone > 30 s, is out (no KO credit)`);
+  if (awayP) await awayP;
 
   // ---------------------------------------------------------------- knockouts, Call the Winner, FINAL DUEL
   // let the bots fight; then knock players out until two are left, keeping CHARLIE (the caller's pick) alive
@@ -686,7 +775,8 @@ try {
       await sleep(300);
       await shot(pages[victim], 'pd-06-call');
       // call the player we'll let win
-      await pages[victim].evaluate(name => { const b = [...document.querySelectorAll('.pd-call-pick')].find(x => x.textContent.includes(name)); b.click(); }, NAMES[keepA]);
+      const picks = await pages[victim].evaluate(name => { const all = [...document.querySelectorAll('.pd-call-pick')]; const b = all.find(x => x.textContent.includes(name)); if (b) { b.click(); return null; } return all.map(x => x.textContent); }, NAMES[keepA]);
+      if (picks) log(`CALL: ${NAMES[keepA]} is not on ${NAMES[victim]}'s picker`, JSON.stringify(picks), JSON.stringify((await game(anyPage())).out));
       await sleep(600);
       const call = await evalIn(pages[victim], (s, u) => s.live && s.live.calls && s.live.calls[u], uids[victim]);
       ok(call && call.w === uids[keepA], `CALL THE WINNER: ${NAMES[victim]} called ${NAMES[keepA]} (locked in)`);

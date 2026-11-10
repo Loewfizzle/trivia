@@ -13,14 +13,25 @@ export function refit(el) { const f = el && fits.get(el); if (f) f(); }
 // flake"): `document.fonts.ready` only waits for the fonts ALREADY loading; a name whose face starts loading after it resolved was fitted on
 // the fallback face, and nothing fitted it again when the real one landed (the box's width doesn't change → no ResizeObserver). Every fitted
 // element re-fits once more when ANY font finishes loading (one listener; a disconnected element drops out)
+// PFIX-A (FABLE REVIEW PRISM finding 3 — THE RETAINER): the list holds each fit WEAKLY. It held the closures themselves (each one holds its
+// element) until a font next finished loading — after the first minute none ever does — so every podium's names pinned their whole screen
+// (PRISM's board canvases, ~12 MB a match). A fit lives exactly as long as its element (the `fits` WeakMap: element → fit); the list never
+// keeps one alive. Nothing else changes: a connected element still re-fits on a late font.
 const live = new Set();
 let lateOn = false;
-export function onFontsLoaded(fit) {
-  live.add(fit);
+const weak = fn => (typeof WeakRef === 'function' ? new WeakRef(fn) : { deref: () => fn });
+const anchors = new WeakMap();   // element → its late-font fit (the fit lives as long as its element, never longer)
+/** re-run `fit` when a font finishes loading, while `el` lives (el: the element the fit sizes — it keeps the fit alive) */
+export function onFontsLoaded(fit, el = null) {
+  if (el) anchors.set(el, fit);
+  if (live.size >= 256) for (const r of [...live]) if (!r.deref()) live.delete(r);   // (the refs of collected fits go too — the list stays small)
+  live.add(weak(fit));
   if (lateOn || typeof document === 'undefined' || !document.fonts || !document.fonts.addEventListener) return;
   lateOn = true;
-  document.fonts.addEventListener('loadingdone', () => { for (const f of [...live]) if (f() === false) live.delete(f); });
+  document.fonts.addEventListener('loadingdone', () => { for (const r of [...live]) { const f = r.deref(); if (!f || f() === false) live.delete(r); } });
 }
+/** (tests) how many fits the late-font list still names */
+export const lateFits = () => live.size;
 
 /** fit one element's text; o.min = the smallest one-line font size (px), o.two = the largest two-line size (px; default 80 % of the CSS size) */
 export function fitName(el, o = {}) {
@@ -68,7 +79,7 @@ export function fitName(el, o = {}) {
   const prev = fitted.get(el); if (prev) prev.disconnect();
   if (typeof ResizeObserver !== 'undefined') { let w = -1; const ro = new ResizeObserver(es => { const nw = Math.round(es[0].contentRect.width); if (nw !== w) { w = nw; fit(); } }); ro.observe(el); fitted.set(el, ro); }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit); else fit();
-  onFontsLoaded(fit);
+  onFontsLoaded(fit, el);
   requestAnimationFrame(fit);
   return el;
 }

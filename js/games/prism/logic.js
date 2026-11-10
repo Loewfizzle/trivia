@@ -98,19 +98,25 @@ export const junkDelay = stackRows => (stackRows >= DANGER_ROWS ? JUNK_DELAY_DAN
  *   candidates: uids you may attack (alive, online, not you)
  *   attackers:  uids that sent you junk, the most recent first (attackersOf)
  *   current:    your current target
+ *   currentHit: the current target was picked BECAUSE they attacked you (PFIX-A — question D: once they're forgotten — no attack from them
+ *               in TARGET_MEMORY_MS — the target goes back to THE RANDOM PICK, never kept as a grudge)
  *   rnd():      random number source (seeded in the tests: the same inputs give the same target)
+ * The caller keeps `currentHit = attackers.includes(result)` for the next call.
  */
-export function autoTarget({ candidates, attackers = [], current = null, rnd = Math.random }) {
+export function autoTarget({ candidates, attackers = [], current = null, currentHit = false, rnd = Math.random }) {
   if (!candidates.length) return null;
   const a = attackers.find(u => candidates.includes(u));
   if (a) return a;
-  if (current && candidates.includes(current)) return current;
+  if (current && candidates.includes(current) && !currentHit) return current;
   return candidates[Math.floor(rnd() * candidates.length)];
 }
-/** the attacks you received [{ uid, at }] → their senders, the most recent first (each once) */
-export function attackersOf(hits = []) {
+/** PFIX-A (question D): an attacker is remembered this long after their last attack on you (the KO credit's own window) */
+export const TARGET_MEMORY_MS = 20_000;
+/** the attacks you received [{ uid, at }] → their senders, the most recent first (each once); with `now`, only those who hit you in the
+ *  last `memory` ms (PFIX-A — a hit four minutes old no longer picks your target) */
+export function attackersOf(hits = [], now = null, memory = TARGET_MEMORY_MS) {
   const last = new Map();
-  for (const x of hits) if (x && x.uid && !(last.get(x.uid) >= (x.at || 0))) last.set(x.uid, x.at || 0);
+  for (const x of hits) if (x && x.uid && (now == null || now - (x.at || 0) < memory) && !(last.get(x.uid) >= (x.at || 0))) last.set(x.uid, x.at || 0);
   return [...last.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).map(e => e[0]);
 }
 
