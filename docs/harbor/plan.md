@@ -6473,3 +6473,6 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 - THE BUILD TABLE (Nov 9 evening, LOAD FIX 2 Step 0): BOARD 2.0 B ✅; PRISM DROP (PD-1 → PD-5A ✅, the rest + its Fable review ← in its chat);
   LOAD FIX 2 (this pass: the city loads FAST again + the clouds never snap after the reveal — nothing else) ← NOW; then PRISM DROP's remaining passes →
   HOLD'EM (its own chat, the beelink) → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS (Mikie's gift card).
+- LOAD FIX 2 DONE (Nov 9, evening) — passes/load-fix-2.md. THE BUILD TABLE: LOAD FIX 2 ✅ (the city loads fast again — THE BOOT PRELOAD, the station's
+  song at the first tap, THE LOOK TRAP; the clouds never snap after the reveal; THE BOOT BUDGET + the sky guard; no rules change); PRISM DROP's
+  next pass (PD-5B) ← NEXT → its Fable review → HOLD'EM (its own chat, the beelink) → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.

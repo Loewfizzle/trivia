@@ -13,12 +13,14 @@ import { bootGraph } from './boot-bytes.mjs';
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..');
 // (the dynamic imports EVERY load makes before the reveal — boot-time.mjs's request list, Nov 9: the city, the weather's effects + the
-// holiday props' module (the reveal waits for both: `extras`), the dock's DAILY (`today`) + the profile it reads)
+// holiday props' module (the reveal waits for both: `extras`), the preview panel (+ the intercom it imports), the dock's DAILY (`today`) +
+// the profile it reads)
 export const ENTRIES = [
   'js/screens/harbor/scene.js',
   'js/screens/harbor/weather-fx.js',
   'js/screens/harbor/frost.js',
   'js/screens/harbor/holidayprops.js',
+  'js/screens/harbor/remote.js',          // (THE PREVIEW PANEL — every phone follows city2/live; started at the city's start)
   'js/daily/today.js',
   'js/profile/me.js',
   'js/profile/queue.js',

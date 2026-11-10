@@ -519,6 +519,15 @@ load problem, not a flake to patch.
 - `harbor-jobs.mjs`: the speed rows' seconds were inside a comment (so the cap check never saw them) — out now; the job split to stay < 10 min.
 - `tests/integration/bytes-probe.mjs` — a fresh visit's bytes (music / the rest) in its first 25 s.
 
+- **LOAD FIX 2 (Nov 9) — THE BOOT CLOCK:** `node tests/integration/boot-time.mjs "<browser>" [--runs 3] [--cpu 4] [--net wifi|4g|3g] [--warm]
+  [--trace] [--log] [--tap 0] [--json out]` — Chromium (CDP throttles): the boot screen, THE REVEAL, a tap on BOARD at the reveal → THE BOARD,
+  the requests + bytes before the reveal by kind (+ the service worker's own fetches warm), the long tasks before (`--trace`: their pieces) and
+  in the 2.5 s after it. `E2E_BASE=http://localhost:5174` = a worktree (A/B). `LIVE=1 … --live --base https://neonspeakeasy.com --tap 0` = a
+  READ-ONLY timing of the live site (&test=1). **THE CLOUD SNAP:** `node tests/integration/sky-snap.mjs "<browser>" [--case late,late-rain,
+  stale,stale-rain,nearstale,twice,clock|all] [--runs n] [--cpu 4] [--secs 8] [--log]` — the live path with the weather + the clock scripted,
+  the clouds per frame after the reveal (`kit/load-probe.mjs#skyJudge`); exit 1 on a snap. **THE BOOT PRELOAD:** `node scripts/build-boot-preload.mjs`
+  (`--check`) after a module's imports change — `tests/boot-preload.test.mjs` fails when index.html is stale; THE BOOT BUDGET:
+  `tests/boot-budget.test.mjs` + the harbor `load` group (tests/integration/boot-budget.json).
 - **THE LOAD FIX (Nov 6) — THE BOOT IN WEBKIT:** `node tests/integration/wk-load.mjs [--scene day|grey|night|all] [--bars pre|fade|after|late|none|all]
   [--safari] [--warm] [--fresh] [--size WxH] [--shots DIR] [--log] [--frames --json out.json] [--fonts-delay ms] [--sky-delay ms] [--live]` — the
   real boot in Playwright's WebKit as an iPhone (402×874 @3), Safari's bar = the window's height 874 → 800 → 874 at a moment of the load

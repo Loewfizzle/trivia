@@ -2386,3 +2386,20 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   Human Again 79.010 · c2-day8 (from the original) 109.999 BPM; −14.4 LUFS each, ≤ −1.2 dBTP; cue-ins 2.96 / 2.23 / 0 / 35.7 / 0 s; hand-set worlds.
 - **THE HOST's SET** (logic.js#dealSongs / matchTiming): game.set from the host's resolved look; each set its own shuffle (DAY in the night's memory
   `meta/used/prism/dn<N>` — no rules change); day slots end on the last strong beat (the crossfade from there). RUSH_MAX_S 240 → 241.
+
+## LOAD FIX 2 — THE CITY LOADS FAST AGAIN + THE CLOUDS NEVER SNAP (Nov 9, 2026, evening — docs/harbor/passes/load-fix-2.md)
+- **Measured** (boot-time.mjs — THE BOOT CLOCK, new; Nov 6's commit in a worktree beside today's): nothing grew since THE LOAD FIX (3.45 s
+  both in Chromium, 8.9 s at 4× + a Wi-Fi line) — the cost was structural: the ~22-deep import waterfall with every file revalidated on
+  every load, the station's whole song (2.6 MB) fetched + decoded before any tap, THE LOOK TRAP (the reveal held until the page was 2.5 s
+  old), the bake + the clouds' first set fed a few ms a hidden frame.
+- **THE BOOT, FASTER** (no look change — pixdiff: the city 0): THE BOOT PRELOAD (scripts/build-boot-preload.mjs → index.html, GENERATED; 297
+  modules asked for at once once the core sheets are in), the station's song at the first tap (party-music.js), the preview panel
+  preloaded + started in the hidden frames, `lookAt = 0` forces the read, bigger slices while the frames are hidden. Chromium 3.45 → 1.32 s cold (1.03 warm),
+  WebKit 2.70–2.80 → 2.20–2.23 s, 4× + wifi 8.90 → 8.48 s; the bytes before the reveal 5.3 → 2.6 MB.
+- **THE CLOUDS, NEVER A SNAP** (sky-snap.mjs — new; the owner's "snapped, then faded to a different cloud" = a second re-plan inside a
+  blend freeing the set still fading out, + a late reveal's clouds fading in over 1.6 s, + the clock's offset moving every cloud): no set
+  on screen is ever freed after the reveal (a new field waits for the blend; an unbaked incoming set is replaced while the old one shows),
+  every set after the reveal blends over 6 s, any new weather answer blends the sky + the bake, a clock jump is taken out of the clouds'
+  time. BEFORE: `twice` a CUT, `clock` 213 pt; AFTER: 0 snaps (1× + 4×).
+- **THE GUARDS**: THE BOOT BUDGET (tests/integration/boot-budget.json — 310 modules / 6500 KB static; 360 requests / 2900 KB on the wire +
+  no audio before the reveal in the harbor load group; raising it = a decision a pass names) + THE SKY AFTER THE REVEAL (the load group).

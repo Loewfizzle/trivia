@@ -98,6 +98,9 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   - THE LOAD (THE LOAD FIX, Nov 6 — docs/harbor.md#performance): the boot screen holds until THE CITY's reveal (ONE fade; its unlit sign =
     the title's spot — keep index.html #boot + title.css .nd-sign in step); ONE CAMERA ON SCREEN (scene.js#holdStart: a re-layout after the
     reveal holds the picture, then cuts — never the old bake under the new signs, never a dissolve); proof: wk-load.mjs + the `load` group.
+    THE BOOT BUDGET (LOAD FIX 2): what loads before the reveal is budgeted (tests/integration/boot-budget.json — raising it = a decision a pass
+    names); THE BOOT PRELOAD = index.html's GENERATED list (`node scripts/build-boot-preload.mjs` after a module's imports change); no audio
+    before a tap; after the reveal nothing in the sky changes by a cut (clouds.js); measure: `boot-time.mjs` (docs/harbor.md#performance).
   - Debug + preview flags: `&debug=1` (strips at the TOP), `&dpr=3` (look only), `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary
     from a link waits for the reveal + a tap; `&lgnow=1` at once) — docs/harbor.md.
 - **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import

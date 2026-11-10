@@ -417,7 +417,8 @@ at 8, squeeze 0.66, people ~33 pt.)
   sheets are in — never the import waterfall (the boot graph + the city's graph were ~22 round trips deep, every file revalidated on every
   load). A new dynamic import every load makes before the reveal → its entry in `ENTRIES`.
   (2) **NOTHING BEFORE THE REVEAL THAT THE FIRST PICTURE DOESN'T NEED** — the station's song waits for the first tap (`party-music.js`),
-  the preview panel loads 1.5 s after the reveal (`title.js`); no /api call holds the reveal but the weather (≤ 2.5 s, only with nothing
+  the preview panel preloaded + started at the city's start, in the hidden frames (`title.js` — evaluated after the reveal it hitched a
+  frame in view); no /api call holds the reveal but the weather (≤ 2.5 s, only with nothing
   kept on the device).
   (3) **`lookAt = 0` FORCES the look's read** (`scene.js#refreshLook`) — it once couldn't before the page was 2.5 s old (THE LOOK TRAP).
   (4) Hidden frames before the reveal feed the bake (22 ms), the lit windows (12) + the clouds' first set (22) bigger slices.
@@ -621,6 +622,11 @@ one room), the banner's colour + passes, the words in the windows for a time win
 ## KNOWN ISSUES — OPEN (C4d, Oct 29 2026: one list; each pass's own section in its log keeps the history)
 
 **Open**
+- **LOAD FIX 2** (passes/load-fix-2.md): the music starts a moment AFTER the first tap (the station's song is fetched + decoded
+  then — ~0.5–1 s on Wi-Fi) instead of with it; before a tap the party crowd dances on the grid's stand-in clock (pixdiff: the dancers'
+  phase only). THE BOOT PRELOAD's gain was measured on the local HTTP/1.1 server (4.20 → 3.90 s on the Wi-Fi line) — the live site's
+  HTTP/2 + Safari's service-worker hop are the owner's iPhone's to judge. A 4×-CPU phone stays CPU-bound (8.9 → 8.5 s in headless Chromium);
+  the service worker still revalidates every file on every load (the repo has no per-file version to cache on — network-first stays).
 - **CITY FIXES + HOLD'EM** (passes/city-fixes.md): THE TAP WATCH keeps reporting real lost taps to /admin (LOST TAP) — the iPhone's own data
   decides whether any cause beyond the ones fixed remains (THE RESCUE turns an iOS-dropped tap into a ~350 ms-late one meanwhile). The roof
   board's last ~5 % is cantilevered past the roof's edge at 15 % (the frame keeps its feet on the roof; ~7 % would keep it fully over — the
@@ -977,6 +983,7 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | OVERCLOCK CARDS | Nov 5 | [passes/overclock-cards.md](harbor/passes/overclock-cards.md) | REDLINE + PHOTO FINISH (Grok's art + js/fx/oc-cards.js — the needle, the laser) + their server-checked unlocks; the add-on: the after-match tiles, SOLO RUN, a solo run never hosts; no rules change |
 | BUZZED LIGHTYEAR | Nov 6 | [passes/buzzed-lightyear.md](harbor/passes/buzzed-lightyear.md) | the 1-of-1 gift card (the picture taken apart: the spiral fitted + turning behind him, the stars orbiting, the HIC! popping; the strip composed eyebrows → chin) + THE CARD TEXT STANDARD on every full card; the gift strip mapping fix |
 | THE LOAD FIX | Nov 6 | [passes/load-fix.md](harbor/passes/load-fix.md) | the owner's four load problems on his iPhone reproduced in WebKit (wk-load.mjs + kit/load-probe.mjs → four `load` checks) + fixed: the bars keep the city (no doubled lettering), ONE CAMERA ON SCREEN (hold, then cut), the boot screen holds until the city (ONE fade, never the dark title), the #net pill hidden from the first frame; no rules change |
+| LOAD FIX 2 | Nov 9 | [passes/load-fix-2.md](harbor/passes/load-fix-2.md) | the city loads fast again (THE BOOT CLOCK: nothing grew since Nov 6 — the waterfall, the song before a tap, THE LOOK TRAP; THE BOOT PRELOAD, the song at the first tap; 3.45 → 1.32 s Chromium, 2.75 → 2.2 s WebKit, the bytes halved) + the clouds never snap (no set dropped mid-blend, 6-s blends, the clock's jump absorbed); THE BOOT BUDGET + the sky guard |
 | FRIENDS B | Nov 8 | [passes/friends-b.md](harbor/passes/friends-b.md) | FACE ID / PASSKEY SIGN-IN (api/_lib/passkeys.js — server-only nodes, no rules change) + THE PODIUM (Grok's sounds, OWN_VICTORY_SOUND, the music with the frame, ACCENT, the XP box, the score under the cards, the list from 4th) + THE CARDS + THE SHELL (one gem shape, no step, the 150 ms fade, the dock lit by day, og.jpg, B5, B6) |
 | FRIENDS C | Nov 8 | [passes/friends-c.md](harbor/passes/friends-c.md) | THE CITY FIXES: A FIRED JACK PLAYS ONCE (the played record kept for the tab), the schedule's order, the crew radio's header; THE INTERCOM IN SYNC (EVERYONE 50 s ahead on the server clock, scheduled on the audio clock, a late phone joins mid-way); THE SKY UNDER WEATHER (the show after every weather layer); THE BLACK HELICOPTER (the medium night pass, a jack, &force=blackhelo); THE SLOW-3G START (the whole graph at once + the lobby wires it); the cloud reds |
 | PD-1 | Nov 9 | [passes/pd-1.md](harbor/passes/pd-1.md) | PRISM DROP's layout + controls (THE MAX BOARD, HOLD / NEXT in the corners, THE SLIM RAIL, the red SLAM button, the console's podium, the preload) + Group 0: THE BOARD's top bar, equal tabs, no double YOU, the hidden friend's XP, the opaque player page |

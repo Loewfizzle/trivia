@@ -39,6 +39,12 @@ through the console's SFX bus (the slider + the one mute apply; the console owns
 the 3-2-1 — a SLICE of `07-321-go.mp3` (its beeps are 0.35 s apart, the slam's stamps 1 s: each number plays the beep, GO the hit at 1.03 s).
 The rest followed in OC2 – OC4; OC5 plays Dumb Luck's five (19 the bell · 20 the hooves — a Web Audio buffer LOOP, `sfx.js#ocLoop` · 21 the crowd, swelling down the stretch · 22 the photo finish · 23 LONG SHOT!) — fetched only by a match that deals it (`DL_FILES`) — + a synthesized neon HUM for its sign (`ocHum`, no file). Music: `MUSIC: 'mood:evening'`.
 
+## NO SONG BEFORE A TAP (LOAD FIX 2, Nov 9 2026) — `audio/party-music.js#partyMusicTick`
+- The city's radio station (the synced player on the server clock) is made at the FIRST TAP (engine.js's unlock — `audioUnlocked()`), not
+  at boot: its whole song (2–3 MB + a whole decode) was half the bytes before the city's reveal on every load, for a sound nothing may play
+  before a tap. After the tap the song loads + decodes (partyClaims keeps this phone's own player quiet meanwhile, as on any station
+  change) — the music starts a moment after the first tap. Guard: the harbor `load` group's THE BOOT BUDGET (no audio before the reveal).
+
 ## THE MUSIC CACHE + THE QUIET TAB (THE SPEED PASS B, Nov 4 2026) — `audio/synced-songs.js`, `audio/settings.js` — docs/harbor/passes/speed-b.md
 - **One decode per song** on a page (`synced-songs.js#acquire / release`): every synced player (the stations, the party deck, the lobby song,
   PRISM DROP / SLIPSTREAM) shares the fetch + `decodeAudioData` of a song URL (refs); a song no player wants stays decoded `KEEP_N` = 1 for

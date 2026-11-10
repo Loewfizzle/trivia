@@ -432,15 +432,11 @@ export function createTitle() {
     // CITY 2.0 — THE SIGN-DIM HOOK (C1.5; Part 6b's sky messages use it): the scene says how dim the logo and the tagline should be
     scene.set({ onSignDim: applySignDim, onSignFlash: applySignFlash });
     // CITY 2.0: THE PREVIEW PANEL (docs/harbor.md) — everyone on ?city=2 follows the owner's city2/live; she gets the TEST pill.
-    // Loaded 1.5 s after the city starts (never in the title's first second); the default city never requests it.
-    // (SP4: a JUST ME state kept for this tab loads at once — the scene's reveal waits for it, so the preview is in the first picture)
-    const remoteSoon = (() => { try { return sessionStorage.getItem('nd:hr-me') ? 0 : 1500; } catch { return 1500; } })();
-    // (LOAD FIX 2: 1.5 s after the city's REVEAL, not its start — on a slow load the panel's module, its three /api/admin calls + the
-    //  intercom it brings landed on the main thread BEFORE the reveal, for nothing the first picture shows; a stored JUST ME state still
-    //  loads at once — the reveal waits for it)
+    // (LOAD FIX 2: loaded AT ONCE, in the hidden frames before the reveal — its modules come with THE BOOT PRELOAD (build-boot-preload.mjs
+    //  ENTRIES), so this is their evaluation only. Moved to 1.5 s after the reveal first, it evaluated IN VIEW: the harbor sightings
+    //  group's capture caught a 100-ms frame. The reveal never waits for it unless a JUST ME state is stored for the tab (SP4))
     const loadRemote = () => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) { remote = m.createRemote({ scene: () => scene }); liveRemote = remote; roomRadioSig = ''; feedRoomRadio(st); } }).catch(e => console.warn('preview panel', e)); };
-    if (!remoteSoon) remoteT = setTimeout(loadRemote, 0);
-    else cityShown().then(() => { if (!destroyed && !remoteT) remoteT = setTimeout(loadRemote, remoteSoon); });
+    remoteT = setTimeout(loadRemote, 0);
 
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },

@@ -125,8 +125,10 @@ So the growth is ~60 KB of scripts the first picture does need. The cost is the 
    unlock), not at boot — 2.6 MB (3.0 live) off the boot: the bytes before the reveal 5303 → 2639 KB. The song then loads + decodes after
    the first tap (partyClaims keeps this phone's own player quiet while it does — as on any station change): the music starts a moment
    after the first tap instead of with it. The harbor `stations` + `partysync` groups green.
-4. **The preview panel after the reveal** (`title.js`): its module + 3 `/api/admin` calls + the intercom it imports load 1.5 s after the
-   city's REVEAL (they loaded 1.5 s after its start — before the reveal on a slow load); a stored JUST ME state still loads at once.
+4. **The preview panel** (`title.js`) — first moved to 1.5 s after the city's REVEAL; the end's full run caught it evaluating IN VIEW (the
+   sightings group's capture: a 100-ms frame) → REPLACED in Group 5: preloaded with the boot (THE BOOT PRELOAD's `ENTRIES`) + started at the
+   city's start, so its evaluation lands in the hidden frames before the reveal (the reveal never waits for it, as before, unless a JUST ME
+   state is stored for the tab).
 5. **The first picture's slices, hidden frames** — WebKit's last gates were the clouds' first set (~2.0 s) then the bake (~1.5 s), each fed a
    few ms a frame while the frames are invisible anyway (the boot screen above is CSS on the compositor): before the reveal the clouds'
    jobs get 22 ms a frame (`clouds.js#run` — 10 after it, as before), the city's bake 22 (was 14) and the lit windows 12 (was 8). After the
@@ -200,3 +202,30 @@ The harbor `load` + `sky` + `weather` groups: 70 / 70.
   jumping, the shown clouds never falling in a frame, nothing SEEN in the sky in the LOAD LOG. The load group: 22 / 22 (~75 s —
   harbor-jobs.mjs's SECONDS updated).
 - docs/harbor.md#performance: THE BOOT BUDGET + NOTHING IN THE SKY CHANGES BY A CUT + the one command (`boot-time.mjs`).
+
+## Group 5 — the end
+
+- **THE BUSY-PC CHECK**: nothing but the emulators, my two `serve.mjs` (:5173 now, :5174 the worktree for the A/Bs) and Ben's :5190 preview
+  server (his — left running).
+- **Locally (the mini PC):** the unit suite **1483 / 1483** · rules **69 / 69** (unchanged — nothing to re-publish) · `/api` **44 / 44** ·
+  smoke **6 / 6** · CONN green (0 sockets parked, 1 in a room) · `e2e-daily` **51 / 51** · `e2e-prism FAST=1` **56 / 56** (its preload
+  untouched — the cartridges stay out of the boot) · THE BASELINE GUARD **3 / 3** (1.11–1.27× the baseline) · the FULL `e2e-harbor` suite
+  at 4 shards **1222 / 1226**. The four reds, each re-run alone: `crew` (PUSH — a guest opens WIDE), `rebuild` (A2 at 4× — the worst task
+  968 ms alone, 1530 under the 4-shard load) and `vault` (the GPU path's 8 sighting cards at 4× — 55 fps alone) **green alone** (the
+  shards' load); `sightings` — "the capture never hitches the frame loop" — **RED alone too: a real one from this pass**: the preview
+  panel, moved to 1.5 s after the reveal, evaluated during the capture (worst frame 100 ms; 50–66 ms before the pass and with it reverted —
+  the song gate was tested and ruled out). Fixed (Group 2 item 4 — preloaded + started in the hidden frames): `sightings` + `load` +
+  `panel` **74 / 74**, the reveal unchanged (Chromium 1.41 s; WebKit 2.27 / 2.39 s), THE BOOT PRELOAD 300 modules (inside the budget).
+- **The sizes** (Chromium, the reveal): 390×844 1.29 s · 402×874 1.41 · 430×932 1.36 · 1440×900 1.79; WebKit 402×874 @3 2.2–2.4 s, 1440×900
+  @3 3.54 s — every load clean (no doubled frame, no chunk, no #net pill, nothing between).
+- **The rules: NOT changed** — nothing to re-publish. Still 8 functions.
+- **Not started** (as the prompt said — ONLY the load + the clouds): nothing else from the lists.
+
+**Known issues** (also docs/harbor.md KNOWN ISSUES):
+- The music starts a moment AFTER the first tap (the station's song fetched + decoded then, ~0.5–1 s on Wi-Fi), not with it; before a tap
+  the party crowd dances on the grid's stand-in clock (pixdiff: the dancers' phase only).
+- THE BOOT PRELOAD's gain was measured on the local HTTP/1.1 server (4.20 → 3.90 s on the Wi-Fi line); the live site's HTTP/2 + Safari's
+  service-worker hop are the owner's iPhone's to judge. The service worker still revalidates every file on every load (no per-file version
+  to cache on; network-first stays — CLAUDE.md).
+- A 4×-CPU phone stays CPU-bound (headless Chromium 8.90 → 8.48 s).
+
