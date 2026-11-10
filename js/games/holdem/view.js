@@ -118,9 +118,11 @@ export function createView() {
     els.status = h('div.he-status', { 'aria-live': 'polite' });
     els.fx = h('div.he-fx', { 'aria-hidden': 'true' });         // THE MOTION's ghosts: over the felt, under your buttons + your cards
     els.toasts = h('div.he-toasts', { 'aria-live': 'polite' });
+    // LEAVE TABLE (HE4 — Group 4, CASH): near your cards, only between hands (or while you're sat out); a confirm, then you spectate
+    els.leave = h('button.he-leave', { type: 'button', hidden: true, onclick: () => confirmLeave() }, h('b', 'LEAVE'), h('small', 'TABLE'));
     // (the safe areas, measured once per resize by two probes — never in the frame loop)
     els.probeT = h('i.he-probe.he-probe-t'); els.probeB = h('i.he-probe.he-probe-b');
-    root.append(els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.fx, els.status, els.actions, els.hero, els.toasts);
+    root.append(els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.fx, els.status, els.actions, els.hero, els.leave, els.toasts);
     motion = createMotion(els.fx, motionView);
     el.append(root);
     ro = new ResizeObserver(() => relayout(true));
@@ -173,7 +175,7 @@ export function createView() {
   function unmount() {
     destroyed = true;
     cancelAnimationFrame(raf);
-    clearTimeout(pokeT); clearTimeout(showT);
+    clearTimeout(pokeT); clearTimeout(showT); clearTimeout(koT);
     if (motion) motion.cancel();
     if (ro) ro.disconnect();
     if (offSet) offSet();
@@ -512,6 +514,9 @@ export function createView() {
     // the seat's own buttons (between turns): SHOW · REBUY · SIT BACK · I'M BACK · TAKE A SEAT
     if (current() && !pub.ended) kids.push(...seatButtons(x, t));
     if (kids.some(k => k.classList.contains('he-minis'))) status = '';   // (a button of your own wins the line's spot)
+    const lv = canLeave();
+    if (els.leave.hidden === lv) els.leave.hidden = !lv;
+    if (!lv && leaveSheet) leaveSheet.close();
     if (els.status.textContent !== status) els.status.textContent = status;
     els.status.hidden = !status;
     // (THE TAP WATCH: a control is never rebuilt under a finger — only when what it says changed)
@@ -586,6 +591,23 @@ export function createView() {
     if (x && (x.away || x.status === 'sitout') && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('back') }, cash ? 'SIT BACK IN' : 'I’M BACK'));
     return out.length ? [h('div.he-minis', out)] : [];
   }
+  /** LEAVE shows for a CASH seat that isn't in a running hand: between hands, or sat out (the dealer's `leave` — your stack counts then) */
+  function canLeave() {
+    const t = table(), x = mySeat(), pl = ((pub && pub.players) || {})[me()];
+    if (!pub || pub.mode !== 'cash' || !current() || pub.ended || !x || (pl && (pl.left || pl.leaving))) return false;
+    return !(t && running(t)) || x.status === 'sitout';
+  }
+  let leaveSheet = null;
+  async function confirmLeave() {
+    if (leaveSheet || !canLeave()) return;
+    const x = mySeat();
+    const { openSheet } = await import('../../ui/sheet.js');
+    const go = tubeButton('LEAVE THE TABLE', { kind: 'danger', block: true, onClick: () => { if (leaveSheet) leaveSheet.close(); send('leave'); } });
+    const stay = tubeButton('STAY', { kind: 'ghost', block: true, onClick: () => { if (leaveSheet) leaveSheet.close(); } });
+    leaveSheet = openSheet({ title: 'LEAVE THE TABLE?', cls: 'he-sheet', body: [
+      h('p.he-leave-p', `Your ${fmt(x ? x.stack : 0)} chips count in the ledger. You can watch the table — or sit back down with a new buy-in.`),
+      h('div.he-leave-row', go, stay)], onClose: () => { leaveSheet = null; } });
+  }
   const lastDoneAt = t => { const e = [...(pub.ev || [])].reverse().find(v => v.t === 'pot' && v.hand === t.hand); return e ? e.at : null; };
 
   function paintHostBar() {
@@ -641,7 +663,40 @@ export function createView() {
     els.toasts.append(el);
     setTimeout(() => el.remove(), ms);
   }
-  function showKo() {}
+  // THE KO CARD (HE4 — Group 3): you busted (a tournament) — full width over the middle of the table, never the whole table: KNOCKED OUT, your
+  // place, who took your last chips, the hands you played; it shrinks away toward your plate after ~4 s (or a tap). Then SPECTATING: the
+  // table plays on live, your area says so, the chat stays open. Only a FRESH bust shows it (motion.js — a refresh lands on SPECTATING).
+  let koT = 0;
+  function showKo(s) {
+    if (destroyed || !L) return;
+    closeKo(true);
+    const n = Object.keys((pub && pub.players) || {}).length;
+    const by = (s.by || []).map(nameOf);
+    const hands = (((pub && pub.players) || {})[me()] || {}).hands || 0;
+    const el = h('div.he-ko', { role: 'status', 'aria-live': 'assertive' },
+      h('small.he-ko-k', 'KNOCKED OUT'),
+      h('b.he-ko-place', `${ordinal(s.place)} OF ${n}`),
+      by.length ? h('span.he-ko-by', `${by.join(' & ')} TOOK YOUR LAST CHIPS`) : null,
+      h('span.he-ko-h', `${hands} HAND${hands === 1 ? '' : 'S'} PLAYED`),
+      h('em.he-ko-tap', 'TAP TO WATCH THE TABLE'));
+    // (a plain div: pointerdown + pointerup — iOS sends no click to it)
+    let down = false;
+    el.addEventListener('pointerdown', () => { down = true; });
+    el.addEventListener('pointerup', () => { if (down) closeKo(); down = false; });
+    els.ko = el;
+    root.append(el);
+    vibrate([30, 50, 30]);
+    koT = setTimeout(() => closeKo(), 4000);
+  }
+  function closeKo(now = false) {
+    clearTimeout(koT); koT = 0;
+    const el = els.ko;
+    if (!el) return;
+    els.ko = null;
+    if (now || reducedMotion() || !motion) { el.remove(); return; }
+    const a = motion.animate(el, [{ opacity: 1, scale: '1', translate: '0px 0px' }, { opacity: 0, scale: '0.35', translate: `0px ${Math.round(L.plate - L.board.y)}px` }], { duration: 420, fill: 'forwards', easing: 'cubic-bezier(.4,0,.8,.4)' });
+    if (a) a.finished.then(() => el.remove(), () => el.remove()); else el.remove();
+  }
 
   // ------------------------------------------------------------------ the frame: the timer bars + the level line's seconds (transform / text only)
   function frame(now) {
@@ -669,6 +724,8 @@ export function createView() {
   // ------------------------------------------------------------------ the E2E's hook (localhost / ?emu only)
   const hook = {
     pub: () => pub, hole: () => hole, layout: () => L,
+    ko: () => (els.ko ? els.ko.textContent : null), spectating: () => !!els.hero.querySelector('.he-spec'), leave: () => !els.leave.hidden,
+    motion: () => !!(motion && motion.busy()), award: () => awardNow && awardNow.line, potLine: () => els.pot.textContent,
     legal: () => { const t = table(); return t && running(t) ? legalActions(t) : null; },
     act: (action, amount) => act(action, amount), pre: kind => send('pre', { pre: kind }), op: (op, body) => send(op, body),
     tier: () => 0, setTier: () => {}, fps: () => frames.slice(), work: () => work.slice(),

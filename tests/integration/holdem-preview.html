@@ -34,15 +34,15 @@
 import { newRecord, applyOp, advance, publicOf, holeOf } from '/__dev/api-lib/holdem-dealer.js';
 import { legalActions, running } from '/js/games/holdem/table.js';
 import { toWire, nestWire } from '/js/games/holdem/wire.js';
-import { finalRowsOf, ranksOf } from '/js/games/holdem/logic.js';
+import { finalRowsOf, ranksOf, finalSummaryOf } from '/js/games/holdem/logic.js';
 import { rngFrom } from '/js/core/rng.js';
 import { setState } from '/js/store.js';
 import { updateSettings } from '/js/audio/settings.js';
 
 const q = new URLSearchParams(location.search);
 const N = Math.max(2, Math.min(8, Number(q.get('n') || 6)));
-const STATE = q.get('play') === '1' ? 'play' : (q.get('state') || 'myturn');
-const MODE = q.get('mode') === 'cash' ? 'cash' : 'tournament';
+const STATE = q.get('play') === '1' ? 'play' : (q.get('state') === 'ledger' ? 'final' : q.get('state') || 'myturn');
+const MODE = q.get('mode') === 'cash' || q.get('state') === 'ledger' ? 'cash' : 'tournament';
 const st = Number(q.get('st') ?? 47), sb = Number(q.get('sb') ?? 34);
 document.documentElement.style.setProperty('--safe-t', `${st}px`);
 document.documentElement.style.setProperty('--safe-b', `${sb}px`);
@@ -139,7 +139,9 @@ if (STATE === 'final') {
   const fake = MODE === 'cash'
     ? { mode: 'cash', players: pub.players, ledger: uids.map((u, i) => ({ id: u, buyins: 1000 + (i % 2) * 1000, rebuys: i % 2, final: [2840, 1260, 990, 0, 1910, 500, 1300, 1200][i], net: [2840, 1260, 990, 0, 1910, 500, 1300, 1200][i] - (1000 + (i % 2) * 1000), hands: 40 })) }
     : { mode: 'tournament', players: Object.fromEntries(uids.map((u, i) => [u, { hands: 30 - i, won: 9 - i, kos: Math.max(0, 3 - i) }])), places: uids.map((u, i) => ({ id: u, place: i + 1 })) };
-  Object.assign(game, { phase: 'final', ranks: ranksOf(fake), rows: finalRowsOf(fake), endMode: MODE });
+  Object.assign(fake, { hands: 47, biggest: { amount: 4280, ids: [uids[1]] } });
+  if (MODE !== 'cash') fake.players[uids[2]].kos = 3;
+  Object.assign(game, { phase: 'final', ranks: ranksOf(fake), rows: finalRowsOf(fake), endMode: MODE, sum: finalSummaryOf(fake) });
 }
 const state = { uid: me, code: 'PVWX', players, presence, game, meta: { hostId: host, status: 'playing' }, live: STATE === 'waiting' ? { table: null } : { table: node }, liveKey: 'x' };
 setState({ uid: me, players, presence, game, meta: state.meta, live: state.live });

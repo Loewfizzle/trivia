@@ -82,8 +82,9 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   // (FRIENDS B — B4: a body that already shows the top three (OVERCLOCK's 2-1-3 podium, the console's own) → the results list starts at 4th;
   //  a solo run / a room of ≤ 3 has no list then; a body that shows NO podium says so — el.dataset.podium = 'none' (OVERCLOCK's NOBODY
   //  SCORED) → the whole list)
+  //  (HE4: a body that shows EVERY place itself — HOLD'EM's places / ledger as slim cards — says el.dataset.podium = 'all' → no list here)
   const top3 = !body || body.dataset.podium !== 'none';
-  const listRows = top3 ? rows.slice(3) : rows;
+  const listRows = body && body.dataset.podium === 'all' ? [] : top3 ? rows.slice(3) : rows;
   const el = h('div.panel-full.final', solo ? { class: 'is-solo' } : null,
     h('div.sheet-kicker', kicker),
     h('div.winner', h('div.winner-title', { 'data-text': word, class: tied ? 'is-tied' : null }, word),

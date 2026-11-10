@@ -6,7 +6,7 @@
 export * from './meta.js';
 import { cleanSettings } from './meta.js';
 import { fromWire } from './wire.js';
-import { finished, ranksOf, finalRowsOf } from './logic.js';
+import { finished, ranksOf, finalRowsOf, finalSummaryOf } from './logic.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 
 export const createView = lazyView(() => import('./view.js'), gameSheets('holdem'));
@@ -44,7 +44,7 @@ export function step(game, { now, live }) {
   const pub = fromWire(live && live.table);
   if (!pub || pub.id !== game.matchId || !finished(pub)) return null;
   const ranks = ranksOf(pub);
-  return { phase: 'final', phaseStartAt: now, ranks, rows: finalRowsOf(pub), endMode: pub.mode };
+  return { phase: 'final', phaseStartAt: now, ranks, rows: finalRowsOf(pub), endMode: pub.mode, sum: finalSummaryOf(pub) };
 }
 
 export const finalRanks = game => (game && Array.isArray(game.ranks) ? game.ranks.map(r => ({ uid: r.uid, rank: r.rank })) : []);

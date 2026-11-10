@@ -30,14 +30,31 @@ export function finalRowsOf(pub) {
     const L = new Map((pub.ledger || []).map(r => [r.id, r]));
     return ranksOf(pub).map(r => {
       const x = L.get(r.uid) || {};
-      return { ...r, score: x.net || 0, scoreText: signed(x.net || 0), note: `${fmt(x.final)} CHIPS · BOUGHT IN ${fmt(x.buyins)} · ${plural(x.hands || 0, 'HAND')}` };
+      return { ...r, score: x.net || 0, scoreText: signed(x.net || 0), note: `BOUGHT IN ${fmt(x.buyins)} · FINAL ${fmt(x.final)}` };
     });
   }
   const n = ranksOf(pub).length;
   return ranksOf(pub).map(r => {
     const p = pl[r.uid] || {};
-    return { ...r, score: n - r.rank + 1, scoreText: ordinal(r.rank), note: `${p.kos || 0} KO · ${plural(p.won || 0, 'HAND')} WON · ${p.hands || 0} PLAYED` };
+    // (the place is the row's own number — the score at the right end = the KOs; hands won + played in the line under the card)
+    return { ...r, score: n - r.rank + 1, scoreText: `${p.kos || 0} KO`, note: `${plural(p.won || 0, 'HAND')} WON · ${p.hands || 0} PLAYED` };
   });
+}
+/**
+ * THE END SCREEN's numbers (HE4) — from the dealer's own record (the public view's players / biggest / hands), stored by the director with
+ * the rows: { mode, hands, biggest: { amount, ids } | null, kos: { ids, n } | null (a tournament's MOST KOs — ties share; none → null) }.
+ * Shown only — no new cards or achievements.
+ */
+export function finalSummaryOf(pub) {
+  if (!pub) return null;
+  const pl = pub.players || {};
+  const b = pub.biggest && pub.biggest.amount > 0 ? { amount: pub.biggest.amount, ids: (pub.biggest.ids || []).slice() } : null;
+  let kos = null;
+  if (pub.mode !== 'cash') {
+    const n = Math.max(0, ...Object.values(pl).map(p => p.kos || 0));
+    if (n > 0) kos = { n, ids: Object.keys(pl).filter(id => (pl[id].kos || 0) === n) };
+  }
+  return { mode: pub.mode === 'cash' ? 'cash' : 'tournament', hands: pub.hands || 0, biggest: b, kos };
 }
 export const ordinal = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'TH' : ['TH', 'ST', 'ND', 'RD'][n % 10] || 'TH'}`;
 

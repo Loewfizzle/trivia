@@ -273,12 +273,44 @@
 .he-rk-cards svg + svg { margin-left: -6px; }
 .he-rk-foot { margin: 12px 2px 4px; font-size: 13px; color: var(--text-dim); }
 
-/* THE PODIUM's body (final.js) */
-.he-fs { display: grid; gap: 12px; }
-.he-fs-line { display: grid; justify-items: center; gap: 2px; text-align: center; }
-.he-fs-line small { font-size: 11px; letter-spacing: 0.2em; color: #f2c14e; }
-.he-fs-line b { font-family: var(--font-display); font-size: 20px; letter-spacing: 0.06em; }
-.he-fs-line span { font-size: 12px; color: var(--text-dim); }
+/* THE END SCREEN's body (final.js — HE4): the console's frame around it; the body says the winner, so the frame's own WINNER line hides */
+.he-final .final:has(> .final-body[data-game='holdem']) > .winner { display: none; }
+.he-fs { display: grid; gap: 10px; }
+.he-fs-win { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 4px 0 2px; animation: he-fs-in 0.6s cubic-bezier(.2, .8, .2, 1) both; }
+.he-fs-av { width: 58px; height: 58px; border-radius: 50%; box-shadow: 0 0 0 2px #f2c14e, 0 0 22px rgba(242, 193, 78, 0.45); }
+.he-fs-wt { display: grid; gap: 2px; min-width: 0; }
+.he-fs-name {
+  font: 900 26px/1.05 var(--font-display); letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;
+  background: linear-gradient(180deg, #fff1bf 0%, #f2c14e 55%, #c68a1c 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 10px rgba(242, 193, 78, 0.35));
+}
+.he-fs-wt small { font: 800 12px/1 var(--font-ui); letter-spacing: 0.22em; color: #f2c14e; }
+@keyframes he-fs-in { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
+.he-fs-head { display: grid; justify-items: center; gap: 2px; }
+.he-fs-head small { font: 700 11px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); }
+.he-fs-head b { font: 900 22px/1.1 var(--font-display); letter-spacing: 0.12em; color: #f2c14e; text-shadow: 0 0 14px rgba(242, 193, 78, 0.35); }
+/* the places / the ledger: the console's slim cards, a little tighter so 8 fit on a 390 × 844 */
+.he-fs .board-list { margin: 0; }
+.he-fs .board-list.is-strips { gap: 4px; }
+.he-fs .lb-card .vl-strip { height: 50px; }
+.he-fs .lb-sub { margin-top: 1px; font-size: 9.5px; line-height: 1.15; }
+.he-fs .lb-pts .lb-score { font-size: 15px; }
+.he-fs.is-cash li[data-net='+'] .lb-score { color: #f2c14e; text-shadow: 0 0 10px rgba(242, 193, 78, 0.4); }
+.he-fs.is-cash li[data-net='-'] .lb-score { color: #e07a86; text-shadow: none; }
+.he-fs.is-cash li[data-net='0'] .lb-score { color: #fff; }
+.he-fs-foot { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font: 700 11.5px/1.3 var(--font-num); letter-spacing: 0.08em; color: var(--text-dim); }
+.he-fs-foot b { color: #f2c14e; }
+/* the award chips: BIGGEST POT · MOST KOs */
+.he-fs-chips { display: flex; justify-content: center; gap: 10px; }
+.he-fs-chip {
+  flex: 1 1 0; max-width: 170px; display: grid; justify-items: center; gap: 1px; padding: 7px 10px; border-radius: 12px; text-align: center;
+  background: linear-gradient(180deg, rgba(242, 193, 78, 0.12), rgba(242, 193, 78, 0.04)); border: 1px solid rgba(242, 193, 78, 0.55);
+  animation: he-fs-in 0.5s 0.5s cubic-bezier(.2, .8, .2, 1) both;
+}
+.he-fs-chip small { font: 700 10px/1.2 var(--font-ui); letter-spacing: 0.16em; color: #f2c14e; }
+.he-fs-chip b { font: 800 18px/1.1 var(--font-num); color: #fff; }
+.he-fs-chip span { font: 700 11px/1.2 var(--font-ui); letter-spacing: 0.04em; color: var(--text-dim); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (prefers-reduced-motion: reduce) { .he-fs-win, .he-fs-chip { animation: none; } }
 
 @media (prefers-reduced-motion: reduce) { .he-seat, .he-hand { transition: none; } }
 
@@ -344,7 +376,35 @@ i.he-ghost.he-chip { display: block; }
   border: 1.5px dashed rgba(244, 234, 210, 0.3); background: rgba(0, 0, 0, 0.35);
 }
 
+/* LEAVE TABLE (CASH): a small button right of your cards (between hands / sat out) + its confirm sheet */
+.he-leave {
+  position: absolute; z-index: 3; left: calc(var(--cx) + var(--hc-w) * 0.95 + 12px); top: calc(var(--hand-y) + var(--hc-h) / 2 - 50px);
+  min-width: 64px; min-height: 44px; padding: 4px 10px; border-radius: 12px; cursor: pointer; display: grid; place-items: center; line-height: 1.1;
+  background: rgba(7, 6, 5, 0.9); border: 1.5px solid rgba(255, 84, 104, 0.7); color: #ffd0d6;
+}
+.he-leave[hidden] { display: none; }
+.he-leave b { font: 800 12px/1.1 var(--font-ui); letter-spacing: 0.1em; }
+.he-leave small { font: 700 10px/1.1 var(--font-ui); letter-spacing: 0.14em; color: var(--he-dim); }
+.he-leave-p { margin: 4px 2px 16px; font-size: 15px; line-height: 1.45; color: var(--text-dim); }
+.he-leave-row { display: grid; gap: 10px; }
+
+/* THE KO CARD — full width over the middle of the table (never the whole table), ~4 s, a tap closes it */
+.he-ko {
+  position: absolute; z-index: 6; left: calc(var(--box-x) + 12px); width: calc(var(--box-w) - 24px); top: var(--board-y); translate: 0 -50%;
+  display: grid; justify-items: center; gap: 6px; padding: 18px 16px 14px; border-radius: 18px; text-align: center; cursor: pointer;
+  background: linear-gradient(180deg, rgba(24, 6, 10, 0.97), rgba(8, 4, 6, 0.97)); border: 1.5px solid rgba(255, 84, 104, 0.85);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 26px rgba(255, 84, 104, 0.35), 0 18px 40px rgba(0, 0, 0, 0.7);
+  animation: he-ko-in 0.36s cubic-bezier(.2, .8, .2, 1.1) both;
+}
+@keyframes he-ko-in { from { opacity: 0; transform: scale(1.18); } to { opacity: 1; transform: none; } }
+.he-ko-k { font: 900 calc(24px * var(--s))/1 var(--font-display); letter-spacing: 0.14em; color: #ff5468; text-shadow: 0 0 16px rgba(255, 84, 104, 0.55); }
+.he-ko-place { font: 800 calc(30px * var(--s))/1.05 var(--font-num); letter-spacing: 0.06em; color: var(--he-gold-2); }
+.he-ko-by { font: 700 13px/1.3 var(--font-ui); letter-spacing: 0.06em; color: var(--he-cream); }
+.he-ko-h { font: 700 12px/1.2 var(--font-num); letter-spacing: 0.1em; color: var(--he-dim); }
+.he-ko-tap { font: 700 11px/1 var(--font-ui); font-style: normal; letter-spacing: 0.16em; color: var(--he-dim); margin-top: 4px; }
+
 @media (prefers-reduced-motion: reduce) {
+  .he-ko { animation: none; }
   .he-seat.is-busted, .he-slot, .he-shown .he-card, .he-hc { transition: none; }
   .he-toast, .he-moment { animation: none; }
 }
