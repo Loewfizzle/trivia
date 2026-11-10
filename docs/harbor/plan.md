@@ -6476,3 +6476,19 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 - LOAD FIX 2 DONE (Nov 9, evening) — passes/load-fix-2.md. THE BUILD TABLE: LOAD FIX 2 ✅ (the city loads fast again — THE BOOT PRELOAD, the station's
   song at the first tap, THE LOOK TRAP; the clouds never snap after the reveal; THE BOOT BUDGET + the sky guard; no rules change); PRISM DROP's
   next pass (PD-5B) ← NEXT → its Fable review → HOLD'EM (its own chat, the beelink) → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.
+
+## OWNER'S NOTES — NOV 10
+
+- Nov 10 (the owner): THE SITE SOMETIMES FREEZES COMPLETELY WHILE LOADING (iPhone, Safari, home Wi-Fi) — intermittent; most loads are fine. Started after
+  LOAD FIX 2's deploy (Nov 9 evening) or around it. → LOAD FIX 3, slotted between HOLD'EM passes. Trading a little of LOAD FIX 2's speed for NO freezes is
+  OK — a load that never freezes beats a fast one that sometimes does.
+- Nov 10: the city's music starts ½–1 s after the first tap (LOAD FIX 2's known issue) → it starts ON the tap (LOAD FIX 3).
+- Nov 10: HOLD'EM's game-start sign reads HOLDEM — the tube alphabet has no apostrophe → THE APOSTROPHE TUBE (LOAD FIX 3); every game name's characters get
+  a glyph (a test).
+- Nov 10: the cards DRAWN IN CODE showed BLACK tiles where their renderer isn't running (found in PD-5B; PRISM DROP's three cards got their baked still).
+  PENTHOUSE · THE DIAL (and any other code-drawn card) gets the same → NO BLACK TILES (LOAD FIX 3).
+- Nov 10: the order — HOLD'EM (its own chat, the beelink, + its Fable review) → FR7 (the WHOLE app, read-only — re-check every module-level Set / Map / observer
+  that holds DOM, after PFIX-A's fit.js leak; OVERCLOCK's leak check) + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS (Mikie's gift card).
+- THE BUILD TABLE (Nov 10, LOAD FIX 3 Step 0): PRISM DROP ✅ (PD-1 → PD-5B, its Fable review, PFIX-A, PFIX-B); HOLD'EM (HE1 → HE3 ✅, the rest + its Fable
+  review ← in its chat); LOAD FIX 3 (this pass: THE FREEZE found + fixed + THE BOOT SAFETY NET, the city's music on the tap, THE APOSTROPHE TUBE, NO BLACK
+  TILES — nothing else) ← NOW; then HOLD'EM's remaining passes → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.
