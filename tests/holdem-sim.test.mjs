@@ -94,6 +94,20 @@ test('HE2 — CASH with sleepy robots: the shot clock + AWAY = SAT OUT (never de
   console.log(`# holdem: CASH sleepy — ${timeouts} timeouts, ${satOut} sat-out seat-hands`);
 });
 
+test('HE2 — THE STEP RUN-OUT (the dealer’s tables): tournaments + cash with all-in robots, a street per deal, invariants every step', () => {
+  let steps = 0;
+  for (let n = 2; n <= 8; n += 2) for (let k = 0; k < 4; k++) {
+    const styles = Array.from({ length: n }, (_, i) => (i % 2 ? 'jammer' : 'loose'));
+    const t = runMatch({ mode: 'tournament', speed: 'turbo', n, seed: `step-${n}-${k}`, styles, stepRunout: true, junk: 0.03 });
+    assert.ok(t.match.ended);
+    const c = runMatch({ mode: 'cash', n, seed: `stepc-${n}-${k}`, styles, stepRunout: true, cashHands: 30 });
+    assert.equal(c.summary.ledger.reduce((a, x) => a + x.net, 0), 0);
+    steps += t.stats.steps + c.stats.steps;
+    add(t.stats); add(c.stats);
+  }
+  assert.ok(steps > 200, `${steps} run-out streets dealt one at a time`);
+});
+
 test('THE COVERAGE across every sim: thousands of hands, side pots with 3–7 all-ins, heads-up, the clock, AWAY, splits', () => {
   assert.ok(total.hands >= 5000, `${total.hands} hands`);
   for (let n = 3; n <= 7; n++) assert.ok(total.allin[n] > 0, `a hand with ${n} players all in (${JSON.stringify(total.allin)})`);

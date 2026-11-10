@@ -52,29 +52,15 @@ import { easternParts } from '../js/core/week.js';
 import { isPid } from './_lib/profiles.js';
 import { tablePids } from '../js/core/friends.js';
 import { dailyPoints } from '../js/core/daily-points.js';
+import { timing, noTiming } from './_lib/timing.js';
 
 /** DM1 — THE CALL BUDGET: generous for real play (both dailies, retries, refreshes), a flood refused */
 export const CALLS = { max: 400, windowMs: 10 * 60_000 };
 /** DFIX3 — a coalesced call carries at most this many moves (a phone queues taps only while one answer is in flight) */
 export const MAX_BATCH = 12;
 
-/** DFIX3 — Server-Timing (no secrets): the phases of a call in ms + the region the function ran in → the header's value */
-export function timing() {
-  const t0 = performance.now();
-  let last = t0;
-  const marks = [];
-  const r = v => Math.round(v * 10) / 10;
-  return {
-    mark(name, desc) { const t = performance.now(); marks.push([name, r(t - last), desc]); last = t; },
-    header() {
-      const parts = marks.map(([n, d, x]) => `${n};dur=${d}${x != null ? `;desc="${String(x).replace(/[^\w .:-]/g, '')}"` : ''}`);
-      parts.push(`total;dur=${r(performance.now() - t0)}`);
-      if (process.env.VERCEL_REGION) parts.push(`region;desc="${String(process.env.VERCEL_REGION).replace(/[^\w-]/g, '')}"`);
-      return parts.join(', ');
-    },
-  };
-}
-const noTiming = { mark() {}, header: () => '' };
+/** DFIX3 — Server-Timing (no secrets) — HE2: moved to _lib/timing.js (THE HOLD'EM DEALER shares it); re-exported for the tests */
+export { timing };
 
 // DFIX3 — THE BUDGET OFF THE DIG PATH: a per-instance window counter decides AT ONCE; the shared count (rl/dc_{uid} — every warm instance) is
 // written behind it, never waited for, and its refusal lifts the local count so a flood across instances still stops within one round trip

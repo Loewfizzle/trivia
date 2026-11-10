@@ -45,7 +45,7 @@ export function assertSane(m) {
  */
 export function runMatch({
   mode = 'tournament', speed = 'turbo', n = 6, seed = 'sim', styles, check = true, junk = 0, sleepy = 0,
-  paced = false, cashHands = 60, maxHands = 5000, start = 1_800_000_000_000, levelMs = null,
+  paced = false, cashHands = 60, maxHands = 5000, start = 1_800_000_000_000, levelMs = null, stepRunout = false,
 } = {}) {
   const rng = rngFrom(`${seed}:table`), deckRng = rngFrom(`${seed}:deck`);
   const ids = Array.from({ length: n }, (_, i) => `p${i + 1}`);
@@ -54,9 +54,9 @@ export function runMatch({
   const brains = {};
   const brain = id => (brains[id] ||= rngFrom(`${seed}:${id}`));
   let now = start;
-  let m = createMatch({ mode, speed, players: ids, now });
+  let m = createMatch({ mode, speed, players: ids, now, stepRunout });
   if (levelMs) m.levelMs = levelMs;                       // the length study's "what if" (scripts/holdem-sim.mjs --turbo)
-  const stats = { hands: 0, actions: 0, rejected: 0, maxAllins: 0, allinHist: {}, maxPots: 0, headsUp: 0, timeouts: 0, aways: 0, runouts: 0, splits: 0, rebuys: 0, joins: 0, leaves: 0, satOut: 0 };
+  const stats = { hands: 0, actions: 0, rejected: 0, maxAllins: 0, allinHist: {}, maxPots: 0, headsUp: 0, timeouts: 0, aways: 0, runouts: 0, splits: 0, rebuys: 0, joins: 0, leaves: 0, satOut: 0, steps: 0 };
   const step = r => {
     assert.equal(r.error, undefined, `refused: ${r.error}`);
     m = r.match;
@@ -100,6 +100,14 @@ export function runMatch({
     let guard = 0;
     while (running(m.table)) {
       assert.ok(++guard < 400, 'a hand that never ends');
+      if (m.table.runout) {                                // (HE2 — THE STEP RUN-OUT: the dealer deals a street, the board grows by it)
+        const before = m.table.board.length;
+        if (mode === 'cash' && rng() < 0.05) step(leave(m, m.table.seats[Math.floor(rng() * m.table.seats.length)].id, now));
+        step(act(m, { type: 'deal' }, now += paced ? PACE.street : 1500));
+        stats.steps++;
+        if (running(m.table)) assert.ok(m.table.board.length === (before === 0 ? 3 : before + 1), 'one street a deal');
+        continue;
+      }
       const L = legalActions(m.table);
       assert.ok(L, 'a running hand with nobody to act');
       if (mode === 'cash' && rng() < 0.002) {             // a player leaves mid-hand
@@ -110,7 +118,7 @@ export function runMatch({
         step(endSession(m, now, { voidHand: rng() < 0.5 }));
         if (!m.ended) {                                   // pending: it closes when the hand ends — play it out
           assert.ok(m.ending);
-          while (running(m.table)) { const L2 = legalActions(m.table); step(act(m, decide(seatView(m.table, L2.id), L2, brain(L2.id), style[L2.id]), now += 1000)); }
+          while (running(m.table)) { if (m.table.runout) { step(act(m, { type: 'deal' }, now += 1500)); continue; } const L2 = legalActions(m.table); step(act(m, decide(seatView(m.table, L2.id), L2, brain(L2.id), style[L2.id]), now += 1000)); }
           assert.ok(m.ended, 'a pending end closes with its hand');
         }
         break;

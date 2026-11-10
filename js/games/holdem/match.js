@@ -16,7 +16,7 @@ const fail = (match, error) => ({ match, events: [], error });
 const NOTABLE_MAX = 20;
 const now0 = (m, now) => ({ hand: m.table.hand, at: now });
 
-export function createMatch({ mode = 'tournament', speed = DEFAULT_SPEED, players, now = 0 }) {
+export function createMatch({ mode = 'tournament', speed = DEFAULT_SPEED, players, now = 0, stepRunout = false }) {
   const ids = (players || []).map(String);
   if (ids.length < MIN_PLAYERS || ids.length > MAX_SEATS) throw new Error(`${MIN_PLAYERS}–${MAX_SEATS} players`);
   if (new Set(ids).size !== ids.length) throw new Error('player ids must be unique');
@@ -26,7 +26,7 @@ export function createMatch({ mode = 'tournament', speed = DEFAULT_SPEED, player
   const stack = cash ? CASH.stack : SPEEDS[speed].stack;
   const { sb, bb } = cash ? CASH : blindsAt(0);
   // (HE2: the shot clock in BOTH modes; CASH's AWAY = SAT OUT)
-  const table = createTable({ seats: ids.map((id, i) => ({ id, seat: i, stack })), sb, bb, clock: true, awaySitsOut: cash });
+  const table = createTable({ seats: ids.map((id, i) => ({ id, seat: i, stack })), sb, bb, clock: true, awaySitsOut: cash, stepRunout });
   const people = {};
   ids.forEach((id, i) => { people[id] = { seat: i, buyins: stack, rebuys: 0, banked: 0, hands: 0, won: 0, kos: 0, joinedAt: now, left: false, leaving: false }; });
   return {
@@ -216,7 +216,7 @@ export function endSession(match, now = 0, { voidHand = false } = {}) {
   if (running(m.table)) {
     if (!voidHand) { m.ending = true; return { match: m, events: [{ t: 'ending', ...now0(m, now) }] }; }
     for (const x of m.table.seats) { x.stack += x.total; x.total = 0; x.bet = 0; }
-    Object.assign(m.table, { street: 'done', turn: null, deadline: null, pots: [], result: { total: 0, byFold: null, pots: [], voided: true } });
+    Object.assign(m.table, { street: 'done', turn: null, deadline: null, pots: [], runout: false, result: { total: 0, byFold: null, pots: [], voided: true } });
     events.push({ t: 'voided', ...now0(m, now) });
   }
   close(m, events, now);

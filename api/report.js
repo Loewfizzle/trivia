@@ -20,6 +20,8 @@ import { applyMatch } from './_lib/stats.js';
 import { bumpPlayed } from './_lib/activity.js';
 import { extractMatch, unreportable } from '../js/core/match-report.js';
 import { regradeBoards, computeRoundResults } from '../js/games/cipher/logic.js';
+import { holdemAction, clockNow } from './_lib/holdem-store.js';
+import { timing } from './_lib/timing.js';
 
 const NIGHT_POINTS = { 1: 3, 2: 2, 3: 1 };   // host.js — what a placing is worth on the game-night board
 const MAX_AGE_MS = 6 * 3600_000;
@@ -125,9 +127,22 @@ export async function processReport(uid, body, now = Date.now()) {
 
 // Expected answers (still running, being counted, can't be verified, not yours) come back as 200 { ok: false, code, retry }:
 // they're part of the normal flow for every phone at the podium, not errors (browsers log every 4xx as one).
+// HE2 — THE HOLD'EM DEALER rides this function (STILL 8): POST /api/report { holdem: <op>, room, … } → _lib/holdem-store.js. Real HTTP
+// statuses (a stale tap is a 409 the phone reads, a flood a 429) + Server-Timing on every answer.
 export default route(['POST'], async (req, res) => {
+  const T = timing();
   const uid = await requireUser(req);
+  T.mark('auth');
   const body = await readBody(req);
+  if (body && body.holdem) {
+    try {
+      send(res, 200, await holdemAction(uid, body, clockNow(), T), { 'Server-Timing': T.header() });
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e;
+      send(res, e.status, { error: e.code, message: e.message, ...(e.extra || {}) }, { 'Server-Timing': T.header() });
+    }
+    return;
+  }
   try {
     send(res, 200, withShow(await processReport(uid, body)));
   } catch (e) {

@@ -2,6 +2,10 @@
 //   startHand(state, { rng | deck, now, sb?, bb? }) → { state, events, error? }   the button moves, blinds post, cards deal
 //   apply(state, action, now)                       → { state, events, error? }   one player action (or the clock's)
 //   legalActions(state)                             → what the player to act may do, + THE PRESETS (real amounts)
+// HE2 — THE STEP RUN-OUT (`stepRunout: true` — the server dealer's tables): when betting is over with players all in, the live
+// hands are turned up (`shown … runout`) and the board then comes ONE STREET per `{ type: 'deal' }` (the dealer's own action,
+// on a poke after the reveal time) — the river's deal settles the showdown. Off (HE1, the sims' default): the whole run-out
+// deals inside the action that ended the betting.
 // The state is plain JSON (it lives in the database in HE2); the input state is never changed. An illegal action
 // comes back with `error` (a plain sentence) and the SAME state. No clock, no Math.random: `now` + an injected rng.
 // The deck + every unshown hole card are SERVER-ONLY — a phone gets views.js#publicView / seatView, never this.
@@ -30,7 +34,7 @@ export function newSeat({ id, seat, stack }, clock) {
  * 20 s + a 30 s bank — both modes since HE2). awaySitsOut (CASH — HE2): an AWAY seat is SAT OUT from the next deal
  * (not dealt in, no blinds) until it is back; otherwise (a TOURNAMENT) it is dealt in + auto checks / folds.
  */
-export function createTable({ seats, sb, bb, clock = null, awaySitsOut = false }) {
+export function createTable({ seats, sb, bb, clock = null, awaySitsOut = false, stepRunout = false }) {
   if (!Array.isArray(seats) || seats.length > MAX_SEATS) throw new Error(`1–${MAX_SEATS} seats`);
   const ck = clock === true ? { shot: SHOT_MS, bank: BANK_MS } : clock;
   const list = seats.map((p, i) => newSeat({ id: p.id, seat: p.seat ?? i, stack: p.stack }, ck)).sort((a, b) => a.seat - b.seat);
@@ -38,7 +42,7 @@ export function createTable({ seats, sb, bb, clock = null, awaySitsOut = false }
   return {
     v: 1, hand: 0, street: 'idle', sb, bb, button: null, sbSeat: null, bbSeat: null,
     seats: list, board: [], deck: [], bet: 0, minRaise: bb, turn: null, deadline: null, bankOn: false, bankFrom: null,
-    clock: ck || null, awaySitsOut: !!awaySitsOut, pots: [], result: null, log: [],
+    clock: ck || null, awaySitsOut: !!awaySitsOut, stepRunout: !!stepRunout, runout: false, pots: [], result: null, log: [],
   };
 }
 
@@ -75,7 +79,7 @@ export function startHand(state, { rng, deck, now = 0, sb, bb } = {}) {
   if (dealt.length < 2) return fail(state, 'two players with chips are needed to deal');
   if (!deck && typeof rng !== 'function') return fail(state, 'the deal needs a deck or an rng');
   s.hand += 1;
-  Object.assign(s, { board: [], pots: [], result: null, log: [], bankOn: false, bankFrom: null });
+  Object.assign(s, { board: [], pots: [], result: null, log: [], bankOn: false, bankFrom: null, runout: false });
   const events = [];
   // THE BUTTON: the first hand = a random dealt-in seat (rng) or the first; then the next dealt-in seat clockwise.
   if (s.button == null) s.button = (rng ? dealt[Math.floor(rng() * dealt.length)] : dealt[0]).seat;
@@ -174,7 +178,7 @@ function presets(s, x, L) {
 /**
  * action: { id, type, to? } — type 'fold' | 'check' | 'call' | 'bet' | 'raise' (to = the total to bet this street)
  * | 'allin' | 'timeout' (the clock ran out — no id needed) | 'show' (the winner of a hand everyone folded to)
- * | 'back' (an AWAY player is back — in CASH a SAT OUT one is dealt in again from the next hand: SIT BACK).
+ * | 'deal' (HE2 — the dealer's next run-out street on a `stepRunout` table; no id) | 'back' (an AWAY player is back — in CASH a SAT OUT one is dealt in again from the next hand: SIT BACK).
  * Every action is the acting seat's OWN (HE2: nobody — the host included — acts, folds or sits out for another player).
  */
 export function apply(state, action, now = 0) {
@@ -191,6 +195,7 @@ export function apply(state, action, now = 0) {
   }
   if (type === 'show') return show(state, a.id, now);
   if (!running(state)) return fail(state, 'no hand is running');
+  if (type === 'deal') return dealNext(state, now);
   if (type === 'timeout') return timeout(state, now);
   const x = seatById(state, a.id);
   if (!x) return fail(state, 'that player is not at this table');
@@ -298,7 +303,8 @@ function show(state, id, now) {
  */
 export function forceFold(state, id, now = 0) {
   const x = seatById(state, id);
-  if (!running(state) || !x || x.status !== 'in') return { state, events: [] };
+  // (HE2 — a STEP RUN-OUT: the betting is over and the hands are face up; a leaver stays in to the hand's end, like an all in)
+  if (!running(state) || !x || x.status !== 'in' || state.runout) return { state, events: [] };
   const s = copy(state), y = seatById(s, id), events = [];
   const wasTurn = s.turn === y.seat;
   act(s, events, now, y, 'fold', 0, { left: true });
@@ -354,12 +360,30 @@ function closeStreet(s, events, now) {
   if (s.street === 'river') { showdown(s, events, now); return 'over'; }
   if (s.seats.filter(CAN_ACT).length <= 1) {                    // betting is over: RUN IT OUT
     emit(s, events, now, { t: 'runout', from: s.street, ids: s.seats.filter(LIVE).map(x => x.id) });
+    if (s.stepRunout) {                                           // HE2: the hands face up now, the board a street per 'deal'
+      s.runout = true;
+      for (const x of clockwise(s, s.button, LIVE)) {
+        x.shown = true;
+        const lab = s.board.length >= 3 ? evaluate([...x.cards, ...s.board]) : { label: holeLabel(x.cards) };
+        emit(s, events, now, { t: 'shown', id: x.id, cards: x.cards.slice(), label: lab.label, ...(lab.cat != null ? { short: lab.short, cat: lab.cat } : {}), runout: true });
+      }
+      return 'over';
+    }
     while (s.street !== 'river') deal(s, events, now, true);
     showdown(s, events, now);
     return 'over';
   }
   deal(s, events, now, false);
   return 'next';
+}
+
+/** HE2 — THE STEP RUN-OUT: the dealer's next street (the river's deal settles the showdown). */
+function dealNext(state, now) {
+  if (!state.runout) return fail(state, 'there is no run-out to deal');
+  const s = copy(state), events = [];
+  deal(s, events, now, true);
+  if (s.street === 'river') { s.runout = false; showdown(s, events, now); }
+  return { state: s, events };
 }
 
 function deal(s, events, now, runout) {
@@ -373,7 +397,7 @@ function deal(s, events, now, runout) {
 
 function finish(s, result) {
   for (const x of s.seats) { x.bet = 0; x.total = 0; }
-  Object.assign(s, { street: 'done', turn: null, deadline: null, bankOn: false, bankFrom: null, pots: [], result });
+  Object.assign(s, { street: 'done', turn: null, deadline: null, bankOn: false, bankFrom: null, pots: [], result, runout: false });
 }
 
 function winByFold(s, events, now, w) {
