@@ -2459,6 +2459,8 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - ADD-ONS (Ben + the city chat): SHOWN HANDS READ (two 30 pt cards side by side, no overlap), THE WINNINGS a gold +n inside the plate, THE AWARD BOX under the
   board at a hand's end (never across a seat), THE FELT PRINT in Chakra Petch (reads SPEAKEASY) — shot at 375 / 390 / 430 × 4 / 6 / 8 players; THE WARM-UP part 2
   (never with the music off / muted: 0 KB).
+- THE CLOUD: run 1 (f9711d86) tests ✅, harbor ❌ ONE check — windows' THE TOAST WALKS IN (the biggest depth step 0.067 vs 0.06 on the 2-core runner; 0.025
+  locally, no file of this pass near it); run 2 (c989919e, the add-ons) **tests ✅ + harbor ✅** (every job). The servers stopped; Ben's :5190 preview left running.
 - No rules change; still 8 functions; HOLD'EM still `playable: false`.
 
 ## HE3 — HOLD'EM: THE TABLE SCREEN A (Nov 10, 2026 — docs/holdem.md "THE LEAN WIRE" + "THE TABLE SCREEN"; the decisions: docs/games/plan.md "HE3")
