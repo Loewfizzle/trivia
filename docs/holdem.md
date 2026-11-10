@@ -1,8 +1,9 @@
 # HOLD'EM — Texas Hold'em, 2–8 players, play chips only
 
-*(HE1, Nov 10 2026 — THE ENGINE + THE SIMULATIONS. HE2, Nov 10 2026 — THE SERVER DEALER (below: "THE DEALER"). Still no screen and no
-`config.js` GAMES row: nothing a player can see. The owner's decisions: docs/games/plan.md "HOLD'EM — THE PLAN (Nov 10 2026)" + "HE1" +
-"HE2 — THE SERVER DEALER". The next pass, HE3, builds the table screen on the dealer.)*
+*(HE1, Nov 10 2026 — THE ENGINE + THE SIMULATIONS. HE2, Nov 10 2026 — THE SERVER DEALER (below: "THE DEALER"). HE3, Nov 10 2026 — THE
+LEAN WIRE + THE TABLE SCREEN A (below): a cartridge + the portrait table, playable end to end in a LOCAL test room — its `config.js` GAMES row is
+`playable: false` + `preview: true` (never offered, no sign; only a local emulator page that asks — `&preview=1` — can start it). The owner's
+decisions: docs/games/plan.md "HOLD'EM — THE PLAN (Nov 10 2026)" + "HE1" + "HE2 — THE SERVER DEALER" + "HE3 — THE TABLE SCREEN A".)*
 
 ## The plan in short
 - Texas Hold'em (no-limit), 2–8 players, one phone each, **PLAY CHIPS ONLY** — chips reset every match, no bankroll, nothing buyable becomes
@@ -197,12 +198,11 @@ view's `now`-corrected server time (`serverNow()`), never its own.
 - `hrec/{CODE}` = `{ j, seq, due, id, ended, at }` — THE RECORD (SERVER ONLY — the rules' default deny): `j` = the whole match as ONE JSON string (the
   deck, every hole card, the hand log, the queued pre-actions, the pause stamps, the last 16 public events) — one string, so Firebase never drops
   an empty array or a null the engine expects (HE1's flag).
-- `rooms/{CODE}/holdem` = `{ seq, at, j }` — THE PUBLIC VIEW (any signed-in reader — the room's players + spectators like every room; written by
-  the server only): `j` = `publicOf(rec)`: the engine's `publicView` (no deck, no unshown card; its `log` dropped) + `players` (seat, buy-ins,
-  rebuys, hands, won, KOs, left), `places`, `ended` / `winner` / `ending` / `ledger` / `biggest`, `startAt` + `levelMs` + `level`, `due`, `rep`
-  (the result sent), `ev` = the last **16** events numbered `n` (a phone that missed a write or two still animates them; further behind it redraws
-  from the state). ~5 KB a write (measured). `seq` moves only when what a phone can see changed; the write is a transaction that never goes
-  BACKWARDS in seq (two calls finishing out of order can't leave an older table up).
+- `rooms/{CODE}/holdem` = THE PUBLIC VIEW as THE LEAN WIRE's parts (HE3 — below): `publicOf(rec)` = the engine's `publicView` (no deck, no unshown
+  card; its `log` dropped) + `players` (seat, buy-ins, rebuys, hands, won, KOs, left), `places`, `ended` / `winner` / `ending` / `ledger` / `biggest`,
+  `startAt` + `levelMs` + `level`, `due`, `rep` (the result sent), `ev` = the last **16** events numbered `n` (a phone that missed a write or two still
+  animates them; further behind it redraws from the state). Any signed-in reader (the room's players + spectators like every room); written by the
+  server only. `seq` moves only when what a phone can see changed. (HE2 wrote it as ONE JSON string `j`, ~5 KB re-sent to every phone a move.)
 - `hole/{CODE}/{uid}` = `{ h: hand, c?: [2 cards], pre? }` — A SEAT's PRIVATE VIEW (that uid only, never once kicked; server-written): written only
   when it changes; a new match replaces the room's node whole.
 
@@ -230,12 +230,13 @@ own delete-the-whole-room close still takes it with the room); top-level `hole/{
 `hrec` has no rule (the root's deny). Proved in tests/integration/rules.test.mjs + read AS each phone in the full-match suite.
 
 **THE FREE-PLAN COST** (measured on the emulators — tests/integration/holdem-server.test.mjs prints it): ≈ **2–4 ms of function CPU a call** (an
-act ~2–3 ms, a poke that deals ~3–5 ms, a poke with nothing due ≈ 1 read); robot tables ran **6–7 calls a hand** — people, with more checks +
+act ~2–3 ms, a poke that deals ~3–5 ms, a poke with nothing due ≈ 3 tiny reads); robot tables ran **6–7 calls a hand** — people, with more checks +
 calls, ~**12 a hand** (≈ 10 acts + the deal / run-out pokes). An 8-player TURBO (~21 hands, ~20 min) ≈ **250 calls, ~1 s of CPU**; an 8-player
 DEEP (~110 hands, ~2 h) ≈ **1,350 calls, ~5 s of CPU** — against Vercel Hobby's 1 M invocations + 4 h of active CPU a month that is ~4,000
-TURBO matches. **Firebase's download is the tighter one:** each call downloads the record (~7 KB) + the public view (~5 KB) to the function and the
-view to every phone watching (~5 KB × 8) ≈ 50–60 KB a call → ~15 MB a TURBO match, ~80 MB a DEEP one: the Spark plan's 10 GB a month ≈ 650 TURBO
-or ~125 DEEP matches. Fine for parties; if HOLD'EM ever runs all night every night, slim the view first (HE3 note).
+TURBO matches. **Firebase's download** (HE3 — THE LEAN WIRE): a call now downloads the record (~6 KB) to the function (+ two numbers) and only the
+CHANGED parts to every phone watching (~1 KB a publish on average, ~0.4–0.6 KB a fold / check / call / raise) ≈ **14 KB a call** at 8 phones (HE2:
+≈ 48 KB) → **~3.5 MB a TURBO match, ~19 MB a DEEP one: the Spark plan's 10 GB a month ≈ 2,900 TURBO or ~530 DEEP matches** (HE2: ~650 / ~125). The
+record's download to the function is now the biggest piece — the next thing to slim if HOLD'EM ever runs all night every night.
 
 ## THE TESTS (HE2)
 - `tests/holdem-dealer.test.mjs` (npm test, ms): the dealer's pure core — start, stale + double taps, the clock + bank on pokes, pre-actions, the
@@ -252,10 +253,95 @@ or ~125 DEEP matches. Fine for parties; if HOLD'EM ever runs all night every nig
   room's private node, the whole tree, the record) and must fail. The result reported once + credited once per player is checked at the end.
 - `tests/integration/rules.test.mjs` — three HE2 rule tests (only your own cards; no client writes; a kick closes your node).
 
-## For HE3 (THE TABLE SCREEN) — flagged
-- The phone side of THE POKE (WHO POKES above), on `serverNow()`; a 409 `stale` → redraw from the view (and re-offer the tap if it's still your turn).
-- THE ROOM's IDLE CLOSE: rooms close after an hour without `meta/activeAt` — the host's console stamps it every 10 min while a game runs; HOLD'EM
-  must keep doing that (a DEEP match is ~2 h), or the room (+ its table) can be deleted mid-match.
-- The cartridge plug (meta/go etc.) is HE3's: `start` here doesn't touch `meta/status`. The public view's events are the animation feed (dedupe by `n`).
-- Firebase download (above): the public view is the cost driver — keep it lean.
+## THE LEAN WIRE (HE3 — the dealer writes only what changed)
+The public table at `rooms/{CODE}/holdem` is a tree of small PARTS (`js/games/holdem/wire.js` — PURE, the server + every phone share it), each one value
+as its own JSON string (a string, so Firebase never drops a null or an empty array the engine reads):
+```
+rooms/{CODE}/holdem = { seq, at,  m/{key}      every top-level field of the public view (id, mode, due, places, ledger, rep …)
+                                  t/{key}      every table field (street, board, bet, turn, deadline, pots, result …)
+                                  s/{i}/{f}    one seat's field (i = its index in table.seats) — a call writes stack, bet, total, acted: never the seat
+                                  p/{uid}      one player's match numbers        e/{n}   one recent event (the animation feed) }
+```
+- **ONE multi-path update a call** (`holdem-store.js#publish`): the public parts that changed (`wireDiff`) + `seq` + `at`, every seat's private node that
+  changed, and `rooms/{CODE}/meta/activeAt` (at most once a minute — a 2 h DEEP match is never closed by the 1 h idle rule; the rules unchanged: the
+  server's admin write). A start writes the node whole. Phones listen to the whole node as before (the room's live path `table`) and rebuild the view
+  with `fromWire` — a refresh reads exactly the server's view (tested). The function no longer downloads the public view — only its `seq`.
+- **THE HEAL:** two calls racing could land their publishes out of order (a transaction no longer guards the write). Every update carries its `seq`,
+  so a late one leaves the published `seq` BEHIND the record's: the next call — ANY op, a poke included (it reads both numbers on its cheap path) —
+  sees the gap and writes the whole view again. Proved on the emulators (a stale `seq` + a wrong part → one poke heals it).
+- **Measured (bytes a publish, the median; `tests/holdem-wire.test.mjs` + the emulator suite's `# holdem wire` line):** a fold ~440 B · a check ~360 B ·
+  a call ~530 B · a raise ~580 B · a new street ~760 B · a hand's end ~1.3 KB · a new hand ~1.9–2.3 KB — every one of them ~4.1–5.7 KB before.
+  All publishes averaged **≈ 1.0 KB (was ≈ 4.8 KB)**.
+- **start's HE3 options:** `matchId` (the console's — the podium's report finds `results/{CODE}_{matchId}`), `uids` (the console's CONNECTED players —
+  each still checked: in the room, not kicked), `at` (the moment the match begins after the walk inside: hand 1 is dealt then, on a poke, and the level
+  clock starts then — at most 10 s ahead). A start replaces an unfinished match when the CONSOLE stamped this very start (`meta/go/m` = its matchId)
+  and the room's game is no longer that match (END GAME / BACK TO THE ROOM) — still never a running match a second start would steal.
+
+## THE TABLE SCREEN (HE3 — A: portrait, wired to the dealer)
+**THE CARTRIDGE** (`js/games/holdem/` — docs/cartridge.md): `meta.js` (TOURNAMENT · CASH, SPEED for a tournament — the sheet's `when` reads only the
+player count, so CASH shows it with the hint TOURNAMENT ONLY and ignores it; `estimateMinutes` ~20 / 50 / 100, CASH → the word "OPEN"; MIN 2, no SOLO;
+`LOOKS ['night']`; `CHAT_CHIPS` NICE HAND · NO WAY · WELL PLAYED · UNLUCKY; never chat-locked; `ACCENT` the casino gold `#f2c14e`; BANNER "HOLD'EM"; MUSIC
+the LATE station) · `index.js` (`start` = the dealer's start; `livePaths` = `{ table: 'holdem' }`; `step` = the console's frame only: once the dealer's
+table says `ended` AND `rep` (the result is in) → `final` with the places + the podium's rows, so the podium's report finds the dealer's result; `preload`
+= the felt + the card back, ~30 KB) · `logic.js` (the phone's PURE side: the ranks, the podium rows, the level line, WHO POKES, the seats' order) ·
+`layout.js` (THE TABLE's numbers) · `view.js` (the screen) · `card-art.js` (the faces) · `rankings.js` (the sheet) · `final.js` (the podium body).
+The view renders ONLY from the database: the public table (`fromWire(live.table)`) + its own `hole/{CODE}/{uid}` (its own listener) + `serverNow()`.
+
+**THE LAYOUT** (`layout.js#tableLayout` — the design target 390 × 844; set once per resize by a ResizeObserver, never in a frame loop):
+- THE TABLE: a tall STADIUM ≈ x 18–372, y 100–752 (the header row above: 54 pt under the safe top; 58 pt under it for your plate) — a black rail with a
+  thin gold line, the real green felt (`assets/holdem/felt-green.webp`, a 512² tile of ambientCG's Fabric030, CC0) + a vignette, a cream betting line,
+  the quiet print NEON SPEAKEASY under the board. On a shorter phone everything scales with the table's height (`s`, 0.74–1.08); the seat blocks shrink
+  with it (`ss` ≤ 1). Desktop: the same column at phone width (the sideways layout = HE7).
+- THE SEATS (anchors at the emblem's centre, fractions of the table's height): the top seat 0.028 (on the rail); the side rows in the band 0.15–0.395 —
+  2 rows (4–5 opponents) as far apart as the band allows, 3 rows (6–7) evenly; heads-up = the top seat alone, bigger (56 pt). Clockwise from your
+  left: the left side bottom → top, the top, the right side top → bottom (`logic.js#seatSlots`, `othersInOrder`). Each: the EMBLEM (44 pt) on the
+  rail, the dark plate under it (name ≤ 12 letters, stack in gold), the status tag (FOLD = the whole seat dimmed; ALL IN red; AWAY / SAT OUT / OUT /
+  LEFT grey), two small backs inward, the bet (a placeholder chip + the amount) further inward, the D button, WHOSE TURN = a gold ring + the draining
+  bar under the plate (the time bank turns it red-orange). Watching with 8 at the table: the first seat takes the bottom.
+- THE BOARD at 0.606 (5 slots, 56 × 78 pt; heads-up 60 × 84), the POT at 0.527 (side pots as SIDE n beside it); THE ACTION AREA below the board —
+  the presets at 0.714, the round buttons at 0.8 (≥ 56 pt, 66 at the design size); YOUR two cards at 0.95 (78 × 108, over the bottom rail — the
+  biggest thing on screen), your plate under them (YOU · stack · the hand label in gold — a tap opens THE RANKINGS SHEET).
+- At a showdown a seat's label is the hand's CATEGORY (STRAIGHT, TWO PAIR — short, so a full table's labels never run into each other) and a winner's
+  "+n" sits where its bet was, in gold; your own label is the full one (STRAIGHT · SEVEN HIGH · WINS 40). Checked: `tests/holdem-phone.test.mjs` (no seat
+  blocks overlap at 2–8 players on 375 × 667 … 430 × 932; the board above the presets, the buttons above your cards).
+
+**THE CONTROLS:** your turn — the one-tap PRESETS with their real amounts (MIN · 3× · ALL IN before the flop, ½ POT · POT · ALL IN after — the
+engine's) + FOLD · RAISE (BET when nothing's bet) · CALL n / CHECK / ALL IN n; RAISE opens THE SLIDER (min → all in, the amount big, CONFIRM / BACK)
+above your cards. Not your turn — the PRE-ACTIONS (CHECK / FOLD · CALL ANY; FOLD · CHECK when it's free; `pre` → the server; lit while queued, a second
+tap clears) + "<NAME> IS THINKING…". Your own buttons between turns: SHOW YOUR CARDS (a fold-win, ~4 s), REBUY 1,000 (CASH at zero — between hands too),
+SIT BACK IN / I'M BACK (AWAY · SAT OUT), TAKE A SEAT / SIT BACK DOWN (CASH: a late joiner / a leaver); the host's END SESSION (CASH, top-left, the
+second tap confirms). A refused tap (409 stale / illegal, 429) just waits for the redraw; no signal → "NO SIGNAL — TRY AGAIN". THE TAP WATCH: the
+controls are rebuilt only when what they say changed (never under a finger).
+
+**THE CLOCK + THE POKE on the phone:** every timer from the table's `deadline` + `serverNow()` (the frame loop moves ONE bar by `transform` + the level
+line's seconds by text); WHO POKES = `logic.js#pokeIn`: the HOST 100 ms after `due`, everyone else 2 s after it + their own 0–1 s jitter (from the uid);
+a poke that changed nothing while the table still says it's due retries 0.7 s, 1.4 s … (8 at most, then the next update re-arms). A locked phone
+never blocks the table (the server's pre-actions + its clock).
+
+**THE CARD FACES** (`card-art.js` — one small SVG per card, crisp at 3×): the FOUR-COLOUR deck (spades black · hearts red · diamonds BLUE · clubs GREEN)
+by default, ☰ → Settings → HOLD'EM → CARD COLOURS: FOUR · CLASSIC (`settings.heDeck`, this phone only); the suits are drawn paths (never a font
+glyph); a big corner index + a large suit; the casino back (`assets/holdem/cardback-casino.webp`, 240 × 336, from Downloads\grok\holdem — generated
+with Grok, credited). **THE RANKINGS SHEET** (`rankings.js` — your hand label, or HOW TO PLAY's link): the ten hands best → worst, a tiny example each.
+
+**THE PODIUM** (HE3 — simple + correct; HE4 makes it premium): the console's frame (`ui/final.js`) with the director's rows (`logic.js#finalRowsOf` —
+a TOURNAMENT's places, KOs + hands won; CASH's net as +n / −n with the final chips + bought in) + `final.js#finalScene` (the winner's line + the top 3).
+
+**THE PREVIEW** (no Firebase — `tests/integration/holdem-preview.html`: the dealer's own pure core played to the moment with a seeded deck, sent
+through THE LEAN WIRE as a phone reads it, + this phone's own hole node through `fake-firebase.js`'s `window.__fakeDb`):
+`?n=2..8&state=waiting|myturn|preflop|flop|turn|river|allin|showdown|foldwin|away|slider|final` (+ `&mode=cash`, `&broke=1`, `&deck=two`,
+`&hand=AsKd`, `&seed=x`, `&host=0`, `&st=&sb=` the safe areas). Shots: `node tests/integration/holdem-shots.mjs "<browser>" --sizes 390x844,402x874,430x932`
+(16 states through `shots.mjs --page`; E2E_BASE = any local server).
+
+**THE E2E** (`tests/integration/e2e-holdem.mjs` — the emulators + `scripts/serve.mjs --emu`): FAST=1 = 3 phones, a whole TURBO match to its podium
+(≈ 35 s); FULL = 8 phones: the real CALL / CHECK buttons to a showdown, a refresh mid-hand (the same cards back), THE LEAK CHECK (a phone draws only
+its own cards + the board + the shown hands), a phone LOCKED through its turn (20 s → the 30 s time bank → the auto check / fold, ≈ 52 s), 60 fps at
+4× CPU with 8 on the rail (p50 16.7 ms, ~1 ms of work a frame), the host killed mid-hand (a guest's poke moves it on, a new host), then a CASH session:
+a REBUY from zero + END SESSION → the ledger Σ 0 (≈ 3.5 min). `CASH_ONLY=1` = the CASH part alone. The game starts there because the suite sets
+`window.__nsPreview` (config.js#isPlayable — a game being built starts only on a local emulator page that asks).
+
+## Flagged for HE4+
+- THE KO card + spectate, the ledger screen, the podium's polish, the motion (deals, chips to the pot, the showdown's drama) + the sounds = HE4.
 - The robots' length numbers are a guide; HE8's real play-tests should re-check TURBO (90 s) + DEEP (15 min) with people.
+- A CASH player has no LEAVE button yet (QUIT TO THE ROOM leaves the room's screen, the seat sits out on the clock) — HE4.
+- The tube sign at the game start reads HOLDEM (the tube alphabet has no apostrophe).
+- When it becomes playable: `scripts/build-preload-graph.mjs` (+ its CARTRIDGES list), a day face + a sign scheme, THE BOARD's catalog.

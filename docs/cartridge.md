@@ -15,7 +15,7 @@ game" checklist. This page is what it must EXPORT and what it GETS.
 | `step(game, { code, now, live, online })` | required | the PURE director: a patch, `{ lobby: true }` or `null` (+ `$room` side writes) |
 | `livePaths(game)` | required | the player-written paths the room mirrors into `state.live` (check `liveKey` before trusting it) |
 | `createView` | required | `lazyView(() => import('./view.js'), gameSheets('<id>'))` — its code + sheets load only when it's played; the console WARMS it (`createView.warm()`) on every phone during the walk inside |
-| `DEFAULT_SETTINGS`, `OPTIONS`, `estimateMinutes(s)` | required | the options sheet under PLAY / GAMES (every OPTIONS key has a default; an option OR one of its choices may carry `when(players)` — shown only with that many connected players; a hidden saved choice falls back to the first shown — PD-2: PRISM DROP's BATTLE needs 2) |
+| `DEFAULT_SETTINGS`, `OPTIONS`, `estimateMinutes(s)` | required | the options sheet under PLAY / GAMES (every OPTIONS key has a default; an option OR one of its choices may carry `when(players)` — shown only with that many connected players; a hidden saved choice falls back to the first shown — PD-2: PRISM DROP's BATTLE needs 2). `estimateMinutes` may return a WORD instead of minutes (HE3: HOLD'EM's CASH → "OPEN" — the sheet shows it as it is). `when` reads only the player count: an option that matters for one MODE only says so in its `hint` (HOLD'EM's SPEED: TOURNAMENT ONLY) |
 | `finalRanks(game)` | required | GAME NIGHT's 3 / 2 / 1 points (`night/{matchId}`) → THE WINNER's BANNER (3 points = first; a tie = everyone with 3) + THE NIGHT's CHAMPION |
 | `MUSIC` or `musicFor(game)` | required (one) | its music (`null` = none — the song is the music) |
 | `FINAL_MUSIC` | optional | its podium music (default the victory playlist) — it starts when the podium FRAME is on screen (`ui/final.js` sets `state.podium` → `app.js#musicFor`), never during a last round's answer screen inside `final` (FRIENDS B — B2) |
@@ -139,6 +139,15 @@ looked up in the site's files:
 5. `node --test tests/cartridge.test.mjs` (a returning hidden game leaves `EXEMPT` there in the pass that makes it playable) + the harbor's
    `cartridge` group (`checkCartridge` on the real module in a page).
 6. Never name it in the console: if the console needs to know something about it, that's a new OPTIONAL export here — documented, checked.
+
+## A game BEING BUILT (HE3 — HOLD'EM)
+A cartridge between its first screen and its go-live: a `config.js` GAMES row with `playable: false` + `preview: true` and NO `sign` — never offered
+(the lobby's picker, the signs, HOW TO PLAY's tabs, THE BOARD all skip it), and `host.js#startGame` refuses it everywhere EXCEPT a LOCAL emulator page
+that asks (`localhost` / `127.0.0.1` + `?emu` + `&preview=1`, or the E2E's `window.__nsPreview` — `config.js#isPlayable`): the smoke test still proves
+it can't start on a plain one. It meets the WHOLE contract like a playable game (`tests/cartridge.test.mjs#BUILDING`, the harbor `cartridge` group);
+the tests that walk every GAMES row for the city / THE BOARD / the reports skip it until the pass that makes it playable gives it those.
+A server-dealt game (HOLD'EM): `start` asks the server and returns only the console's frame (`id`, `matchId`, `settings`, `participants`, `phase`); its
+`step` moves to `final` only once the server's own result is in, so the podium's usual report finds `results/{CODE}_{matchId}` already counted.
 
 ## The exempt list
 The ten HIDDEN games (WINDOWS, Nov 1 — cipher, signal, bluff, pulse, golf, agent, slip, gridlock, stakes, rum) are EXEMPT

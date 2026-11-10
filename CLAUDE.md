@@ -31,7 +31,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | `docs/overclock.md` | **OVERCLOCK** — the OVERDRIVE rebuild's plan (7 passes, the owner's decisions) + each pass's decisions + log; read it before an Overclock pass |
 | `docs/coastclear.md` | **COAST CLEAR** (CC1 — a DAILY-ONLY, SERVER-JUDGED Minesweeper-type, ships OFF: the no-guess maker + solver `api/_lib/cc-board.js` + `cc-solve.js`; the board only on the server, `/api/daily` dig / chord / pause / resume; the instant feel) |
 | `docs/password.md` | **THE PASSWORD** (PW1 — a DAILY-ONLY, SERVER-JUDGED Wordle-type, ships OFF: `config.js#DAILIES`, never GAMES; `/api/daily` `guess`; the list build + THE REVIEWER; the kit keyboard's `setKeyStates`) · the owner's game decisions: `docs/games/plan.md` |
-| `docs/holdem.md` | **HOLD'EM** (HE1 — Texas Hold'em, 2–8, PLAY CHIPS ONLY; the PURE engine `js/games/holdem/` — not in GAMES yet): the rule choices, the state + event shapes, the privacy views, THE LENGTH STUDY; read it before a HOLD'EM pass |
+| `docs/holdem.md` | **HOLD'EM** (HE1 — Texas Hold'em, 2–8, PLAY CHIPS ONLY; the PURE engine `js/games/holdem/`; HE3 — THE LEAN WIRE + THE TABLE SCREEN, a GAMES row `playable: false` + `preview`): the rule choices, the state + event shapes, the privacy views, THE LENGTH STUDY, the dealer, the table's layout + the poke on the phone + the preview; read it before a HOLD'EM pass |
 | `docs/pulse.md` `docs/golf.md` `docs/prism.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that game |
 
 ## Ground rules
@@ -226,11 +226,17 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   acts for another seat (the host only starts + ends CASH); stale / double taps → 409 + the seq; the result credited from the server's record
   (`applyMatch`, exactly once); upcoming run-out cards never written where a phone reads (the engine's `stepRunout`). The emulator suite's LEAK SCAN
   reads AS a phone at every step (`tests/integration/holdem-server.test.mjs` — run it alone).
+- **HOLD'EM's TABLE (HE3 — docs/holdem.md "THE LEAN WIRE" + "THE TABLE SCREEN"):** the public table = THE LEAN WIRE's parts (`holdem/wire.js` — the dealer
+  writes ONLY the changed parts in ONE multi-path update + `meta/activeAt` ≤ once a minute; a late publish is HEALED by the next call — never a whole-view
+  transaction again); the cartridge's `step` only frames the match (`final` once the dealer's `rep` is in); the view renders from the table + its own
+  `hole` node + `serverNow()`, the layout from ONE pure module (`holdem/layout.js` — no seat overlaps at 2–8: `tests/holdem-phone.test.mjs`); WHO POKES =
+  `logic.js#pokeIn`; the faces drawn in code (`card-art.js` — four colours, CLASSIC in Settings); BEING BUILT = `playable: false` + `preview: true` (starts
+  only on a local emulator page with `&preview=1` — config.js#isPlayable; docs/cartridge.md); `tests/integration/e2e-holdem.mjs` + `holdem-preview.html`.
 - **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
-  `now`; a test greps), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
+  `now`; a test greps — the screen `view.js` alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
   DEALER is the server (HE2: crypto randomness — never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /
   `seatView`; the sims scan every view); PLAY CHIPS ONLY — no money words ("CASH" = the mode's name); TURBO's level is 90 s, DEEP's 15 min, CASH has the shot clock too + AWAY = SAT OUT (the length study:
-  `node scripts/holdem-sim.mjs`); the test robots (`tests/fixtures/holdem-bots.mjs`) are never shipped. Not in `config.js` GAMES until HE3+.
+  `node scripts/holdem-sim.mjs`); the test robots (`tests/fixtures/holdem-bots.mjs`) are never shipped. Its GAMES row is `playable: false` + `preview` (HE3).
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,

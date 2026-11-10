@@ -2437,6 +2437,26 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - THE GHOST ROWS (8 + 13 + 14), THE DAY TIERS (10 — `tiers.js#stepTier`, 3 → 0 by day), the hold ended by a lock (11), the playlist at start (12),
   SURVIVAL's time on the podium (15), no blank header (16), the day art warmed after GO (17 — the first switch 3–4 slow frames → 2), the test tools (22).
 
+## HE3 — HOLD'EM: THE TABLE SCREEN A (Nov 10, 2026 — docs/holdem.md "THE LEAN WIRE" + "THE TABLE SCREEN"; the decisions: docs/games/plan.md "HE3")
+- THE LEAN WIRE (group 0): `rooms/{CODE}/holdem` as small parts (`js/games/holdem/wire.js`), ONE multi-path update a call with only the changed parts +
+  the changed private nodes + `meta/activeAt` (≤ once a minute); THE HEAL (a late publish leaves `seq` behind — the next call, a poke included, rewrites
+  the view whole); the function reads only the view's `seq`. Measured: a fold ~440 B, a check ~360 B, a call ~530 B, a raise ~580 B, a street ~760 B,
+  a new hand ~2 KB (each ~4.1–5.7 KB before); ≈ 1.0 KB a publish on average (was ≈ 4.8). Firebase: ~14 KB a call at 8 phones (was ~48) → ~2,900
+  TURBO / ~530 DEEP matches a month on Spark's 10 GB (was ~650 / ~125). start's `matchId` / `uids` / `at` (the walk inside); a console-stamped
+  restart replaces an unfinished match. No rules change.
+- THE CARTRIDGE (group 1): `js/games/holdem/meta.js` + `index.js` + `logic.js` + `final.js`; a GAMES row `playable: false` + `preview: true` (a local
+  emulator page that asks may start it — config.js#isPlayable); its mark, theme, HOW TO PLAY (one screen + the rankings link), the CARD COLOURS setting,
+  the felt + the card back in `assets/holdem/` (~30 KB, credited); `estimateMinutes` may return a word (CASH → OPEN — game-options.js); the tests that
+  walk every game skip one being built (the signs, the day faces, THE BOARD, the reports); cartridge.test's BUILDING list.
+- THE PORTRAIT TABLE (group 2): `view.js` + `layout.js` + `card-art.js` + `rankings.js` + `css/holdem.css` — three look rounds on the preview at 375 /
+  390 / 402 / 430 (+ 1440): the backs' page-relative path (a 404 in the preview), a 12-letter name cut, the status line under I'M BACK, END SESSION over
+  your plate, the side bets on the plates, a shown hand over the label above (→ the seat's label = the category, a winner's "+n" where its bet was, the
+  two-row seats spread, the shown cards smaller + lower), the D button on the top seat's cards. The podium = the console's frame + the body.
+- THE TESTS (group 3): `tests/holdem-wire.test.mjs`, `tests/holdem-phone.test.mjs`, `tests/integration/holdem-preview.html` + `holdem-shots.mjs`,
+  `tests/integration/e2e-holdem.mjs` (FAST 12/12 · FULL 21/21: the showdown on the buttons, refresh, the leak check, the locked phone → bank → auto move,
+  the host killed, 60 fps at 4× CPU — p50 16.7 ms, a CASH REBUY + END SESSION → the ledger Σ 0). Found by the E2E: the game node had no `id`; REBUY was
+  hidden between hands (a busted seat still reads 'allin' until the next deal). Shots: Downloads\neon\holdem\shots\.
+
 ## HE2 — HOLD'EM: THE SERVER DEALER (Nov 10, 2026 — docs/holdem.md "THE DEALER"; the decisions: docs/games/plan.md "HE2 — THE SERVER DEALER")
 - Still no screen, no `config.js` GAMES row. Still 8 Vercel functions (the ops ride `POST /api/report { holdem }`), no new dependency, no new secret
   or env var. RULES CHANGED (`rooms/{CODE}/holdem`, `hole/{CODE}/{uid}`) — re-publish.

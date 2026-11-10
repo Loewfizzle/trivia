@@ -307,13 +307,15 @@ rooms/{CODE}/hslock/{m}/{rk}/{uid}: { b?: server time, a?: server time }   ← o
 hsbet/{CODE}/{m}/{rk}/{uid}: { b: { b, at }, a: { a 0-3, at } }            ← top level; owner reads; the host from 'show' on; once each, in phase
 ```
 
-## HOLD'EM — THE DEALER (HE2 — `docs/holdem.md` "THE DEALER"; no screen yet)
+## HOLD'EM — THE DEALER (HE2 — `docs/holdem.md` "THE DEALER"; HE3 — THE LEAN WIRE + the table screen)
 ```
 hrec/{CODE}: { j, seq, due, id, ended, at }   ← THE RECORD — SERVER ONLY (the rules' default deny): j = the whole match as ONE JSON string (the deck,
                                                  every hole card, the hand log, the queued pre-actions, the pause stamps); due = the next moment
                                                  the server's clock acts (a poke reads only this); written by POST /api/report { holdem } only
-rooms/{CODE}/holdem: { seq, at, j }           ← THE PUBLIC TABLE — any signed-in reader, NO client write (the host included): j = publicOf(rec)
-                                                 (no deck, no unshown card; ~5 KB); seq never goes backwards
+rooms/{CODE}/holdem: { seq, at, m/…, t/…, s/{i}/{f}, p/{uid}, e/{n} }   ← THE PUBLIC TABLE as THE LEAN WIRE's parts (HE3 — js/games/holdem/wire.js:
+                                                 each part one JSON string; only the changed ones written) — any signed-in reader, NO client write
+                                                 (the host included): publicOf(rec) (no deck, no unshown card); a late publish is HEALED by the next call
+rooms/{CODE}/meta/activeAt                    ← HE3: the dealer stamps it with its writes (≤ once a minute) — a long match never idles out
 hole/{CODE}/{uid}: { h, c?: [2 cards], pre? } ← a seat's PRIVATE VIEW — read by that uid only, never once kicked; no client write
 ```
 A new match replaces `hole/{CODE}` whole; an abandoned record (the room closed, its HUSH WORD reused) is replaced by the next `start`.

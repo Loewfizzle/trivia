@@ -175,7 +175,12 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
 - **HOLD'EM's DEALER (HE2):** `tests/holdem-dealer.test.mjs` (npm test — the pure core) + on the emulators (database + auth), RUN ALONE (it loads the
   real rules into the server's namespace `demo-arcade-default-rtdb` to read AS each phone): `cd tests/integration && node --test holdem-server.test.mjs`
   (≈ 2 min — whole matches through `holdemAction`, THE LEAK SCAN every step, the cost line `# holdem cost` + `# holdem bytes`). The seeded rng + clock
-  go in through `setTestRng` / `setTestClock` — honoured only under the emulators.
+  go in through `setTestRng` / `setTestClock` — honoured only under the emulators. HE3 adds `# holdem wire` (THE LEAN WIRE's bytes a publish) + the
+  heal / the console's start / the room kept active.
+- **HOLD'EM's TABLE (HE3):** npm test — `tests/holdem-wire.test.mjs` (the parts round-trip, every diff, the bytes) + `tests/holdem-phone.test.mjs` (the
+  phone's pure side + THE LAYOUT at 2–8 players on five phones). The look: `tests/integration/holdem-preview.html` (no Firebase — docs/holdem.md
+  "THE PREVIEW") + `node tests/integration/holdem-shots.mjs "<browser>"`. The E2E (the emulators + `serve.mjs --emu`):
+  `FAST=1 node tests/integration/e2e-holdem.mjs "<browser>" ./shots-e2e-holdem` (≈ 35 s) / the full 8-phone path (≈ 3.5 min; `CASH_ONLY=1`).
 - **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (214 tests: rules of all ten games (GRIDLOCK: tests/gridlock.test.mjs — placement, private resolution, points + bounty, Classic 2/3/4 + Royale 8 whole matches, the cap; SLIPSTREAM: slip + slip-course, incl. bot rides proving courses survivable) (DOUBLE AGENT: tests/agent.test.mjs; PRISM DROP: prism-engine + prism) incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).
