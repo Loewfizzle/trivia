@@ -250,3 +250,13 @@
 - TURBO's level time is TUNED 2 min → 90 s by the length study (scripts/holdem-sim.mjs, robots paced 3–8 s a decision): at 2 min the 6 / 8-player median was 22.2 / 24.6 min, at 90 s 18.5 / 19.7 (target 15–20). The ladder unchanged. STANDARD (45.5 / 53.7 min at 6 / 8) + DEEP (75.7 / 99.4 min — short of "2 h+") reported as they are, not tuned.
 - The rule choices made in HE1 (docs/holdem.md "The rule choices"): the simple moving button; the odd chip to the first winner left of the button; simultaneous busts → the bigger starting stack places higher, equal starts share; AWAY = auto check / fold at once, still dealt in + posting, until 'back'; presets rounded to 5s, never below the legal minimum; a short all-in below the big blind → the next raise to at least two big blinds; CASH's END SESSION mid-hand waits for the hand (or voids it); a CASH rebuy also while a hand runs that the player isn't in.
 - OPEN for Ben (before HE2): CASH has no clock, so a player who walks away stalls the table — a host "fold for them" / sit-out, or a long idle clock?
+
+## HE2 — THE SERVER DEALER (Nov 10 2026)
+- DEEP level time = 15 min (Ben; was 12). TURBO stays 90 s (HE1's tuning), STANDARD 6 min.
+- CASH keeps the SAME 20 s shot clock + 30 s time bank as the tournament ("no timer" in CASH means no session END time, never no shot clock). In CASH the bank refills +5 s per hand dealt in, up to 30 s.
+- AWAY in CASH = SAT OUT: after 2 timeouts in a row the player is skipped (not dealt in, posts no blinds) until they tap back in. In a TOURNAMENT, AWAY stays as HE1 built it (auto check/fold, still posts blinds).
+- The host can NOT fold, sit out or act for another player — the clock handles walk-aways. The host's only extra powers: start the match, END SESSION (CASH).
+- THE DEALER DESIGN: the server shuffles with crypto randomness; the deck + the full hand record live in a SERVER-ONLY node (rules: no client reads or writes); each player's 2 cards go to a PRIVATE node readable only by that player's signed-in uid; the public table is written ONLY by the server; every action goes through /api (an existing function — still 8). No new env var.
+- THE POKE: everything time-based (a turn's deadline, the next street during an all-in run-out, the pause before the next hand, the next blind level) happens when a phone POKES the server and the server's OWN clock says the moment has passed. Never a client clock, never a client claim.
+- PRE-ACTIONS (CHECK/FOLD, CALL ANY) are stored on the SERVER per seat, so they fire even when that phone is locked.
+- END SESSION mid-hand waits for the hand to finish; "cancel the hand + refund" is a fallback only (not a normal button).
