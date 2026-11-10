@@ -550,7 +550,7 @@ export function createClouds() {
   let veilTile = null, veilBake = null;   // (ATM-C: the high veil's fibres — veilFibres; its sheen baked — veilLook)
   // (POLISH 5 — THE LOAD: the plans made (the load log names each), the new set's fade (1.6 s; SLOW_MS once the city has shown —
   // the weather landing, a new block: a slow blend, never a pop) and whether the scene has settled the first set (settle()))
-  let plans = 0, appearMs = 1600, shown = false;
+  let plans = 0, appearMs = 1600, shown = false, cuts = 0, lastCut = '';   // (LOAD FIX 2: cuts = a set still on screen dropped by a re-plan)
   let thinB = null, thinK = 0;                            // (POLISH 5: a sky message's box — the clouds over it thin to a quarter while it is up)
   const SLOW_MS = 6000;
   // (the readout: what the clouds cost a frame — the draw + the background jobs — and how often a cloud is re-lit)
@@ -560,6 +560,9 @@ export function createClouds() {
   const windX = LK => Math.sin(((LK.windDir == null ? 250 : LK.windDir)) * Math.PI / 180);
   const free = arr => { MB.key = ''; for (const d of arr || []) { if (d.cv) d.cv.width = 0; if (d.prev) d.prev.width = 0; if (d.mix) d.mix.cv.width = 0; d.cv = d.prev = d.mix = null; d.F = null; } };
   function plan(LK, seed, motion) {
+    // (LOAD FIX 2 — THE SNAP: a re-plan while the last change still blends drops the set fading out — on screen at oldK — in one frame)
+    if (shown && old && oldK > 0.02) { cuts++; lastCut = `the fading set (${old.length} at ${oldK.toFixed(2)}) dropped`; }
+    else if (shown && list.length && !born && lastA > 0.02) { cuts++; lastCut = 'the set on screen dropped'; }
     if (old) free(old);
     old = list.length && born ? list : null; oldK = old ? 1 : 0;
     plans++; appearMs = old && shown ? SLOW_MS : 1600;
@@ -908,8 +911,11 @@ export function createClouds() {
     coverAt,
     /** POLISH 5: the load gate's view — plans made, how many clouds + their kinds, READY (planned + every cloud baked, or a clear sky),
      *  slow (the current set's blend in ms when it is a slow one) */
-    stats: () => ({ plans, n: list.length, kinds: [...new Set(list.map(d => d.kind))].join(' ') || 'clear', ready: !!planKey && (!!born || (!list.length && !jobs.length)), slow: appearMs > 1600 ? appearMs : 0 }),
+    stats: () => ({ plans, cuts, lastCut, n: list.length, kinds: [...new Set(list.map(d => d.kind))].join(' ') || 'clear', ready: !!planKey && (!!born || (!list.length && !jobs.length)), slow: appearMs > 1600 ? appearMs : 0 }),
     /** POLISH 5: the city is revealed — the set baked in the dark shows at once (no fade of its own), the old one gone; later sets blend slowly */
+    /** LOAD FIX 2 — the sky after the reveal, cheap, every frame (kit/load-probe.mjs): the plan, the shown mass (each set's clouds × its
+     *  alpha now), the current set's mean place (pt) + the cuts */
+    probe: () => { let x = 0, k = 0; for (const d of list) if (d.kind !== 'deck' && d.xNow > -1e8) { x += d.xNow; k++; } return { plans, cuts, key: planKey, cur: +(list.length * lastA).toFixed(2), old: old ? +(old.length * oldK).toFixed(2) : 0, x: k ? +(x / k).toFixed(1) : null }; },
     settle() { shown = true; if (born) born = performance.now() - appearMs - 1; if (old) { free(old); old = null; } },
     /** SP: tonight's cirrostratus veil 0..1 (the moon's 22° halo lives under it) */
     veil: () => (mix && list.length ? mix.veil || 0 : 0),

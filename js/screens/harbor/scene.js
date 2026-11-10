@@ -339,6 +339,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let raf = 0, last = 0, lastRaf = 0, running = false, destroyed = false, t0 = performance.now();
   let drawn = 0, fastUntil = 0, fastWhy = '';      // BATTERY: the frames actually drawn; what keeps the city at 60 fps right now
   let shownClock = null;                   // (9c: the city's clock at THE REVEAL — a preview forced at the load starts here, not under the curtain)
+  const heldBy = {};                        // (LOAD FIX 2: what held the reveal once its gates were open: first–last ms + how many frames)
+  const heldAt = why => { const t = Math.round(performance.now() - t0), h = heldBy[why] || (heldBy[why] = [t, t, 0]); h[1] = t; h[2]++; };
+  const gateAt = {};                        // (LOAD FIX 2: when each of the reveal's gates first opened — ms since the scene's start)
   let shownAt = -1;                         // THE REVEAL (FP3a): when the city was let in — its first bake ready, the viewport settled
   let fadeT0 = -1;                          // (THE LOAD FIX: the city's own 900 ms fade-in starts here — 900 ms early when the boot screen covers the reveal)
   // POLISH 5 — THE LOAD LOG (core/harbor-loadlog.js; &debug=1 → the 'load' strip; harbor().loadLog): every change to the picture from
@@ -349,7 +352,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // with the raw string's invisible characters spelled out)
   if (clock.tzNote) { const z = clock.tzNote; LOADLOG.add('note', `&tz= ${z.bad}: "${z.shown}" → ${z.tz}`); reportError(new Error(`a time zone Intl would reject (${z.bad}): "${z.shown}" → ${z.tz}`), 'bad tz'); }
   const vpSize = () => { const vv = window.visualViewport; return `win ${innerWidth}×${innerHeight}${vv ? ` vv ${Math.round(vv.width)}×${Math.round(vv.height)}@${Math.round(vv.offsetTop)}` : ''} scr ${screen.width}×${screen.height}`; };
-  let vpLast = '', wxSig = '', wxKindLast = '', wxChangedAt = -1e9, extrasIn = false, cloudPlans = 0;
+  let vpLast = '', wxSig = '', wxKindLast = '', wxChangedAt = -1e9, extrasIn = false, cloudPlans = 0, cloudCuts = 0;
   // (a change the weather brought after the reveal blends SLOWLY: the bakes, the sky + the clouds over WX_BLEND ms — never a jump)
   const WX_BLEND = 6000, WX_WAIT = 2500;
   let fadeMs = 1200, skyPrev = null, skyFadeFrom = -1, skyFadeMs = 1500;
@@ -1938,7 +1941,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (xf >= 1 && fadeFrom >= 0) { fadeFrom = -1; if (!baker.pending) baker.settle(); }
     if (wantBake && fadeFrom < 0 && !waitRects()) { const mv = shownAt < 0 && S.measure ? rectsMoved() : ''; if (mv) { LOADLOG.add('dock', `measured before the first bake: ${mv}`); layout('measured before the bake'); } else { wantBake = false; rebake(); } }
     // (POLISH 5: the clouds re-planned — the weather landing, a new 6-hour block, the tagline's band — logged; slow after the reveal)
-    { const cs = clouds.stats(); if (cs.plans !== cloudPlans) { cloudPlans = cs.plans; LOADLOG.add('clouds', `${cs.plans > 1 ? 're-planned' : 'planned'} · ${cs.n} (${cs.kinds})${cs.slow ? ` · blended ${cs.slow} ms` : ''}`, { replan: cs.plans > 1 && shownAt >= 0, slow: !!cs.slow }); } }
+    { const cs = clouds.stats(); if (cs.plans !== cloudPlans) { const cut = cs.cuts !== cloudCuts; cloudPlans = cs.plans; cloudCuts = cs.cuts; LOADLOG.add('clouds', `${cs.plans > 1 ? 're-planned' : 'planned'} · ${cs.n} (${cs.kinds})${cs.slow ? ` · blended ${cs.slow} ms` : ''}${cut ? ` · CUT: ${cs.lastCut}` : ''}`, { replan: cs.plans > 1 && shownAt >= 0, slow: !!cs.slow && !cut, cut }); } }
     const T = liveTones || tones(TW);
     // a layer: its current canvas in the band it was baked for (a re-layout keeps drawing the stale one there — stretched into
     // the new band after a resize or a tier change — until the new bake swaps in; then the crossfade from the old one)
@@ -2893,25 +2896,27 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const late = now - t0 > REVEAL_MAX && !(baker.bakes >= 1 && bakeCamShown !== camSig && now - t0 < REVEAL_MAX + 2000);
     // (SPEED PASS B — A2 (1): the people's first plan warmed one block a task in the dark — the city shown WITH them, never a pop-in)
     const folk = (clock.force && clock.force.has && clock.force.has('no-people')) || !people.ready || people.ready() || now - t0 > REVEAL_MAX - 500;
+    // (LOAD FIX 2: when each gate first opened — ms since the scene's start; the LOAD LOG's reveal line + loadProbe().gates)
+    { const g = { bake: ready, fonts, wx, sky, panel, songs, folk }; for (const k in g) if (g[k] && gateAt[k] == null) gateAt[k] = Math.round(now - t0); }
     if (!(ready && fonts && wx && sky && panel && songs && folk) && !late) return;
     // (the look the weather brought must be IN the bake that shows: an answer that landed since the last look (read every 2.5 s) is
     // read now, and a changed look re-bakes once more, still dark)
-    { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none'; if (!late && sig !== wxSig) { lookAt = 0; return; } }
+    { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none'; if (!late && sig !== wxSig) { lookAt = 0; heldAt('the weather look'); return; } }
     // (FRIENDS C — the cloud's LOAD WEATHER red, back after OC5: "bake crossfade · neon" right after the reveal = the roof board swapping to
     //  its hint / game. The reveal is decided in the SKY pass, the board synced later in the frame (drawCity), and the workers' traces it
     //  follows land a frame after the people are ready — so the board is synced HERE, first, and the reveal waits (bounded) for its traces)
     if (!late && L && !clock.force.has('no-people') && !clock.force.has('no-work')) {
       const tr = (people.crew && people.crew() || {}).traces || null;
-      if (!tr && now - t0 < REVEAL_MAX - 500) return;
+      if (!tr && now - t0 < REVEAL_MAX - 500) { heldAt("the workers' traces"); return; }
       if (tr) boardSync(tr);
       // (BOARD 2.0 A — THE MONDAY BLADE: the facade's key reads the workers' traces (bladeMs — the Monday painters keep LAST week's blade until
       //  theirs is done); a memo taken before the traces came would bake this week's, then re-bake in view: forget it once, as they arrive)
       if (tr && !trRevealSeen) { trRevealSeen = true; speakMemo = null; }
     }
-    if (!late && L && bakeKey() !== baker.key) { lookAt = 0; return; }
+    if (!late && L && bakeKey() !== baker.key) { lookAt = 0; heldAt('a re-bake (the key changed)'); return; }
     // (POLISH 5: the title's rects measured NOW, once — a font swapped in, the intro's dock — and the city re-laid in the dark if they
     // moved: the title only reports them again after its power-on, which used to land AFTER the reveal: a re-layout + a crossfade)
-    if (!late && L && S.measure) { const mv = rectsMoved(); if (mv) { LOADLOG.add('dock', `measured before the reveal: ${mv}`); layout('measured before the reveal'); return; } }
+    if (!late && L && S.measure) { const mv = rectsMoved(); if (mv) { LOADLOG.add('dock', `measured before the reveal: ${mv}`); layout('measured before the reveal'); heldAt('the title re-measured'); return; } }
     shownAt = now; shownClock = clock.now() / 1000; revealWhy = ready && fonts && wx && sky && panel ? 'ready' : 'late';
     { let inst = false; try { inst = !!(S.revealInstant && S.revealInstant()); } catch { /* the title's */ } fadeT0 = inst ? now - 900 : now; if (inst) LOADLOG.add('note', 'revealed under the boot screen: at once (its fade is the one fade)'); }
     clouds.settle();                              // (the clouds baked in the dark show at once with the city — no fade of their own)
@@ -2919,6 +2924,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     wxRevealed = true; wxHeld = wxNow() || wxHeld;
     { const a = weatherAsk(); if (a) LOADLOG.add('note', `wx asked: ${a.status ? `HTTP ${a.status}` : `failed (${a.err})`} in ${a.ms} ms`); }
     LOADLOG.reveal(revealWhy, `t${tier} dpr ${dpr} · ${Math.round(W)}×${Math.round(H)} · wx ${LK.wxKind || 'seeded'} (${wxSourceNow()})${waits.length ? ` · still waiting for ${waits.join(', ')}` : ''}`, now);
+    LOADLOG.add('note', `the gates opened (ms): ${Object.entries(gateAt).map(([k, v]) => `${k} ${v}`).join(' · ')}${Object.keys(heldBy).length ? ` · then held by ${Object.entries(heldBy).map(([k, v]) => `${k} ${v[0]}–${v[1]} (${v[2]}×)`).join(', ')}` : ''}`, null, now);
     if (S.onReveal) { try { S.onReveal({ why: revealWhy, ms: Math.round(now - t0) }); } catch { /* the title's */ } }
   }
   // POLISH 5 — THE FONTS (the owner's jumping load): the title's fonts come from Google's stylesheet, loaded late (a preload swapped
@@ -3178,7 +3184,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
     // (THE LOAD FIX: the per-frame read of tests/integration/kit/load-probe.mjs — cheap: harbor() builds the whole readout)
-    loadProbe: () => ({ shown: shownAt >= 0, W, H, hold: holdOn ? 1 : 0, holds: holdN, cams: { now: camSig, baked: bakeCamShown, prev: fadeFrom >= 0 ? bakeCamPrev : null, lit: litBaker.key ? litBaker.key.includes(`|${camSig}|`) : null } }),
+    loadProbe: () => ({ shown: shownAt >= 0, gates: gateAt, t0, sky: clouds.probe(), W, H, hold: holdOn ? 1 : 0, holds: holdN, cams: { now: camSig, baked: bakeCamShown, prev: fadeFrom >= 0 ? bakeCamPrev : null, lit: litBaker.key ? litBaker.key.includes(`|${camSig}|`) : null } }),
     harbor: () => (L ? { fireworks: () => { const nowS = clock.now() / 1000; let tonight = []; try { tonight = LK.local ? fwNightOf(nowS).map(sh => ({ kind: sh.kind, t0: sh.t0, t1: sh.t1, inS: Math.round(sh.t0 - nowS) })) : []; } catch { /* fine */ } return { ...fwx.debug(), on: fwState.on, why: fwState.why, dim: fwState.dim, show: fwState.show ? { id: fwState.show.id, kind: fwState.show.kind, t0: fwState.show.t0, t1: fwState.show.t1, s: +(nowS - fwState.show.t0).toFixed(2) } : null, tonight, lights: fwx.lights().length, ly: fwx.lights().map(l => Math.round(l.y)), synced: !!(fwState.show && fwPlan(fwState.show.kind, fwState.show.seed, fwState.show.t0).synced), under: (() => { const cv = document.querySelector('.hb-fw'); return cv ? { parent: cv.parentElement ? cv.parentElement.className : '', afterCity: (() => { const k = [...cv.parentElement.children], i = k.indexOf(cv), crisp = k.findIndex(e => e.classList && e.classList.contains('hc-crisp')); return i > k.indexOf(canvas) && (crisp < 0 || i < crisp); })(), z: cv.style.zIndex } : null; })(), mb: fwx.mem(), crowd: (() => { try { return fwCrowd(); } catch (e) { return String(e); } })() }; }, tower: { st: TWS ? { stage: TWS.stage, k: TWS.k, s: TWS.s, crane: TWS.crane, announce: TWS.announce, design: TWS.design ? TWS.design.name : null } : null, key: L.towerKey, fx: towerFx.debug() }, holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone, zFront: cam.zFront, cx0: cam.cx0 || 0, dpr }, squeeze: L.squeeze, medallion: L.medallion ? { x: L.medallion.x, z: L.medallion.z, ring: L.medallion.ring } : null, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(), chimneys: chimneys.debug(), xmas: { ...XP, tree: treeHeld, xlK: +xlK.toFixed(2) }, parade: parade ? { ...parade.debug(), units: paraUnits ? paraUnits.length : 0 } : null,
       windows: { faces: lights.faces(), spelling: lights.spelling, spellBy, fadeIn: +dbgFadeIn.toFixed(3), ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
