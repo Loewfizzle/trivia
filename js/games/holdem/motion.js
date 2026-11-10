@@ -16,6 +16,7 @@ const PERSP = 'perspective(700px)';
  */
 export function createMotion(layer, view) {
   const anims = new Set(), timers = new Set(), tweens = [];
+  let pills = new Set();   // (the winners whose "+n" already came in this run — it comes with their FIRST pot)
   const reduce = () => reducedMotion();
 
   function animate(el, frames, opts) {
@@ -140,6 +141,8 @@ export function createMotion(layer, view) {
       const from = view.potPos();
       later(s.at, () => view.award({ line: awardLine(p, view.name, s.of > 1 || p.side || p.pot > 0), win: winLine(p), cards: winningCards(p, view.best), ids: to.map(w => w.id) }));
       to.forEach((w, j) => {
+        const sw = view.seatEl(w.id) && view.seatEl(w.id).querySelector('.he-swon');
+        if (sw && !pills.has(w.id)) pills.add(w.id), animate(sw, [{ opacity: 0, scale: '1.6' }, { opacity: 1, scale: '1' }], { duration: 240, delay: s.at + BEAT.award - 80 });
         for (let c = 0; c < 3; c++) ghost('chip', from, view.pos(w.id, 'emblem'), { delay: s.at + 120 + c * 50 + j * 40, dur: BEAT.award - 60, s1: 0.85 });
         roll(w.amount || 0, 320, s.at + BEAT.award - 120, d => { view.hold.stack[w.id] = Math.max(0, (view.hold.stack[w.id] || 0) - d); });
       });
@@ -155,6 +158,7 @@ export function createMotion(layer, view) {
   /** run a timeline (motion-plan.js#schedule) over the painted state */
   function run(steps) {
     if (!steps.length) return;
+    pills = new Set();
     const H = holdsOf(steps);
     if (reduce()) {
       for (const s of steps) if (s.kind === 'level' || s.kind === 'headsUp' || s.kind === 'out') STEP[s.kind](s);

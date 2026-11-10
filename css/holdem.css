@@ -57,7 +57,8 @@
 }
 .he-print {
   position: absolute; left: var(--cx); top: calc(var(--board-y) + var(--bc-h) / 2 + 16px * var(--s)); transform: translate(-50%, -50%);
-  font-family: var(--font-display); font-weight: 900; font-size: calc(12px * var(--s)); letter-spacing: 0.42em; white-space: nowrap;
+  /* (HE4: Chakra Petch — Orbitron's A read as an R at phone size: "SPEAKERSY") */
+  font-family: var(--font-ui); font-weight: 700; font-size: calc(13px * var(--s)); letter-spacing: 0.4em; white-space: nowrap;
   color: rgba(4, 22, 10, 0.72); text-shadow: 0 1px 0 rgba(170, 240, 190, 0.2), 0 0 1px rgba(0, 0, 0, 0.25); pointer-events: none;
 }
 
@@ -80,12 +81,26 @@
 .he-seat.is-big .he-splate { top: 32px; }
 .he-seat[data-side='left'] .he-splate { left: -32px; transform: none; }
 .he-seat[data-side='right'] .he-splate { left: auto; right: -32px; transform: none; }
+.he-sline { display: block; white-space: nowrap; line-height: 13px; }
+.he-sline .he-sstack { display: inline; }
+/* THE WINNINGS (HE4): a gold "+40" INSIDE the plate, beside the stack — never under or behind cards, at every player count */
+.he-swon { display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 4px; font: 800 10.5px/13px var(--font-num); font-style: normal;
+  color: var(--he-ink); background: linear-gradient(180deg, #ffe08a, #e2a92f); box-shadow: 0 0 8px rgba(242, 193, 78, 0.5); vertical-align: 1px; }
+.he-swon:empty, .he-swon[hidden] { display: none; }
+/* the top seat's plate: ≤ 100 pt (the side rows' shown cards tuck in beside it — layout.js#SEAT_BOX.top), a 12-letter name still whole */
+.he-seat[data-side='top']:not(.is-big) .he-splate { max-width: 100px; min-width: 64px; padding: 3px 5px 4px; }
+.he-seat[data-side='top']:not(.is-big) .he-name { font-size: 11px; letter-spacing: 0; }
+.he-seat[data-side='top']:not(.is-big) .he-sline { white-space: normal; }
 .he-name { display: block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--he-cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .he-sstack { display: block; font-family: var(--font-num); font-size: 12.5px; font-weight: 700; color: var(--he-gold); line-height: 1.1; }
 .he-tag {
   position: absolute; top: 56px; left: 0; transform: translateX(-50%); white-space: nowrap;
-  font-size: 10px; line-height: 12px; font-weight: 800; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 5px;
+  font-size: 10px; line-height: 11px; font-weight: 800; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 5px;
 }
+/* (HE4: the plate a fixed rhythm — 23 → ~55 — so the tag below it (57 → 72) never clips the stack line, the "+n" pill included) */
+.he-seat:not(.is-big) .he-splate { top: 23px; padding: 2px 7px 3px; }
+.he-seat:not(.is-big) .he-name { line-height: 13px; }
+.he-seat:not(.is-big):not([data-side='top']) .he-tag { top: 57px; }
 .he-seat.is-big .he-tag { top: 66px; }
 /* HE4: the top seat's tag sits LEFT of its plate (the side rows tuck in under the plate — layout.js#SEAT_BOX.top.tag) */
 .he-seat[data-side='top']:not(.is-big) .he-tag { top: 30px; left: auto; right: 60px; transform: none; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
@@ -111,12 +126,15 @@
 .he-backs .he-back { width: 21px; height: 30px; border-radius: 3px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5); }
 .he-backs .he-back + .he-back { margin-left: -9px; transform: rotate(8deg); }
 .he-shown { z-index: 1; }
-.he-seat:not([data-side='top']) .he-shown { top: -10px; }
-.he-shown .he-card { width: 26px; height: 36px; }
-.he-seat[data-side='top'] .he-shown .he-card { width: 30px; height: 42px; }
-.he-shown .he-card + .he-card { margin-left: -6px; }
+/* HE4 (Ben, the split-pot shot): a SHOWN hand reads — two 30 pt cards SIDE BY SIDE, no overlap, both corner indexes whole; raised clear of the plate
+   (layout.js#SEAT_BOX: side cards [22, -21, 83, 22]) */
+.he-seat:not([data-side='top']) .he-shown { top: -21px; }
+.he-seat[data-side='left'] .he-shown { left: 22px; }
+.he-seat[data-side='right'] .he-shown { right: 22px; }
+.he-shown .he-card { width: 30px; height: 42px; }
+.he-shown .he-card + .he-card { margin-left: 1px; }
 .he-seat[data-side='right'] .he-shown { flex-direction: row-reverse; }
-.he-seat[data-side='right'] .he-shown .he-card + .he-card { margin-left: 0; margin-right: -6px; }
+.he-seat[data-side='right'] .he-shown .he-card + .he-card { margin-left: 0; margin-right: 1px; }
 .he-dealer {
   position: absolute; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
   background: #f6f1e4; color: #111; font-family: var(--font-num); font-weight: 800; font-size: 10px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.55);
@@ -344,12 +362,22 @@ i.he-ghost.he-chip { display: block; }
 /* THE SHOWDOWN: the winning five lift with a gold edge, the rest of the board dims, the losing hands dim */
 .he-slot, .he-shown .he-card, .he-hc { transition: opacity 0.25s ease, translate 0.25s ease; }
 .he.is-showdown .he-slot.is-dim { opacity: 0.45; }
-.he.is-showdown .he-slot.is-win { translate: 0 calc(-7px * var(--s)); }
+.he.is-showdown .he-slot.is-win { translate: 0 calc(-3px * var(--s)); }   /* (3 pt: the bottom row's tag sits 4 pt above the board — layout.js#sideRowsPx) */
 .he.is-showdown .he-slot.is-win .he-card, .he.is-showdown .he-card.is-win { box-shadow: 0 0 0 2px var(--he-gold), 0 0 14px rgba(242, 193, 78, 0.6), 0 6px 14px rgba(0, 0, 0, 0.55); }
 .he.is-showdown .he-shown .he-card.is-win { translate: 0 -4px; }
 .he.is-showdown .he-seat.is-lose { opacity: 0.55; }
-.he-pot .he-award { font-size: calc(13.5px * var(--s)); letter-spacing: 0.05em; color: var(--he-cream); }
-.he-pot .he-winline {
+/* THE AWARD BOX (HE4 — Ben's split-pot shot): the hand's end — the winning hand in gold over the pot's line, UNDER the board (the band the
+   buttons leave free then), never across the bottom row's seats; the between-hands buttons drop to the buttons' row; NEXT HAND… gives way */
+.he-awardbox {
+  position: absolute; left: var(--cx); top: calc(var(--board-y) + var(--bc-h) / 2 + 9px * var(--s)); transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; white-space: nowrap; pointer-events: none; max-width: calc(var(--box-w) - 24px);
+}
+.he-awardbox:empty { display: none; }
+.he.is-done .he-minis { top: var(--buttons-y); }
+.he.has-award .he-status { visibility: hidden; }
+.he.has-award .he-print { opacity: 0; }   /* (the print never peeks out around the award box) */
+.he-awardbox .he-award { font-family: var(--font-num); font-size: calc(13.5px * var(--s)); letter-spacing: 0.05em; color: var(--he-cream); padding: 2px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.5); }
+.he-awardbox .he-winline {
   font-style: normal; font-family: var(--font-ui); font-weight: 800; font-size: calc(14px * var(--s)); letter-spacing: 0.08em; color: var(--he-ink);
   background: linear-gradient(180deg, #ffe08a, #e2a92f); padding: 3px 10px; border-radius: 8px; box-shadow: 0 0 14px rgba(242, 193, 78, 0.55);
 }

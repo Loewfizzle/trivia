@@ -116,13 +116,14 @@ export function createView() {
     els.heroStack = els.hero.querySelector('.he-stack');
     els.actions = h('div.he-actions');
     els.status = h('div.he-status', { 'aria-live': 'polite' });
-    els.fx = h('div.he-fx', { 'aria-hidden': 'true' });         // THE MOTION's ghosts: over the felt, under your buttons + your cards
+    els.fx = h('div.he-fx', { 'aria-hidden': 'true' });
+    els.award = h('div.he-awardbox', { 'aria-live': 'polite' });   // (the hand's end: the winning hand + each pot's line — under the board)         // THE MOTION's ghosts: over the felt, under your buttons + your cards
     els.toasts = h('div.he-toasts', { 'aria-live': 'polite' });
     // LEAVE TABLE (HE4 — Group 4, CASH): near your cards, only between hands (or while you're sat out); a confirm, then you spectate
     els.leave = h('button.he-leave', { type: 'button', hidden: true, onclick: () => confirmLeave() }, h('b', 'LEAVE'), h('small', 'TABLE'));
     // (the safe areas, measured once per resize by two probes — never in the frame loop)
     els.probeT = h('i.he-probe.he-probe-t'); els.probeB = h('i.he-probe.he-probe-b');
-    root.append(els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.fx, els.status, els.actions, els.hero, els.leave, els.toasts);
+    root.append(els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.award, els.fx, els.status, els.actions, els.hero, els.leave, els.toasts);
     motion = createMotion(els.fx, motionView);
     el.append(root);
     ro = new ResizeObserver(() => relayout(true));
@@ -262,6 +263,7 @@ export function createView() {
     if (sig === lastSig) return;
     lastSig = sig;
     root.classList.toggle('is-waiting', !current());
+    { const t0 = table(); root.classList.toggle('is-done', !!(t0 && t0.street === 'done')); }
     paintSeats(others);
     paintBoard();
     paintHero();
@@ -317,7 +319,7 @@ export function createView() {
       let s = seatEls.get(x.id);
       if (!s) {
         s = { el: h('div.he-seat', h('div.he-av'), h('div.he-dealer', 'D'), h('div.he-backs'), h('div.he-shown'),
-          h('div.he-splate', h('b.he-name'), h('span.he-sstack')), h('div.he-tag'), h('div.he-sclock', h('i')), h('div.he-bet', h('i.he-chip'), h('span'))), av: '' };
+          h('div.he-splate', h('b.he-name'), h('span.he-sline', h('span.he-sstack'), h('em.he-swon'))), h('div.he-tag'), h('div.he-sclock', h('i')), h('div.he-bet', h('i.he-chip'), h('span'))), av: '' };
         s.stack = s.el.querySelector('.he-sstack');
         seatEls.set(x.id, s);
         els.seats.append(s.el);
@@ -361,11 +363,12 @@ export function createView() {
     // (at a seat the label is the hand's CATEGORY — "STRAIGHT", "TWO PAIR": short, so a full table's labels never run into each other)
     const label = shown && t ? seatLabel([...shown, ...(t.board || [])]) : '';
     if (label || won > 0) { tg.textContent = label || 'WINS'; tg.dataset.kind = won > 0 ? 'win' : 'label'; }
-    // the bet in front of them — or, a winner at the hand's end, the chips they took (+n, gold)
+    // the bet in front of them (a running hand only); a winner's chips = the gold "+n" INSIDE the plate (HE4 — never under the shown cards)
     const bet = el.querySelector('.he-bet');
-    bet.hidden = !((run && x.bet > 0) || won > 0);
-    bet.classList.toggle('is-win', won > 0 && !run);
-    bet.querySelector('span').textContent = won > 0 && !run ? `+${fmt(won)}` : fmt(x.bet);
+    bet.hidden = !(run && x.bet > 0);
+    bet.querySelector('span').textContent = fmt(x.bet);
+    const sw = el.querySelector('.he-swon'), wt = won > 0 && !run ? `+${fmt(won)}` : '';
+    if (sw.textContent !== wt) sw.textContent = wt;
     const ck = el.querySelector('.he-sclock');
     ck.hidden = !turn;
   }
@@ -396,19 +399,27 @@ export function createView() {
   // the main pot's line + the winning hand in gold ("STRAIGHT · SEVEN HIGH" · a tie "SPLIT POT") — which is also what a refresh shows
   function paintPot() {
     const t = table();
-    let kids = [], sig = '';
+    let kids = [], sig = '', aw = null;
     const res = t && t.street === 'done' && t.result;
+    // (HE4 — Ben's split-pot shot: a pot's line + the winning hand are long — they go in THE AWARD BOX under the board, the band the buttons
+    //  leave free at the hand's end, never across the bottom row's seats; the pot line itself keeps only "POT n")
     if (!t || !current()) sig = '';
-    else if (res && awardNow) { sig = `A|${awardNow.line}|${awardNow.win}`; kids = [h('b.he-award', awardNow.line), awardNow.win ? h('em.he-winline', awardNow.win) : null]; }
+    else if (res && awardNow) aw = { line: awardNow.line, win: awardNow.win };
     else if (res && hold.pot > 0) { sig = `P|${hold.pot}`; kids = [h('b', `POT ${fmt(hold.pot)}`)]; }
     else if (res) {
       const p0 = finalPot(t);
-      if (p0) { const a = awardLine(p0, nameOf, (res.pots || []).length > 1), w = winLine(p0); sig = `F|${a}|${w}`; kids = [h('b.he-award', a), w ? h('em.he-winline', w) : null]; }
+      if (p0) aw = { line: awardLine(p0, nameOf, (res.pots || []).length > 1), win: winLine(p0) };
     } else {
       const collected = Math.max(0, t.seats.reduce((n, x) => n + (x.total || 0) - (x.bet || 0), 0) - hold.sweep);
       const side = running(t) ? sidePots(t) : [];
       sig = `R|${collected}|${side.map(p => p.amount).join(',')}`;
       if (collected > 0) kids = [h('b', `POT ${fmt(collected)}`), ...side.slice(1).map(p => h('small', `${p.label} · ${fmt(p.amount)}`))];
+    }
+    const ak = aw ? `${aw.line}|${aw.win}` : '';
+    if (els.award.dataset.k !== ak) {
+      els.award.dataset.k = ak;
+      els.award.replaceChildren(...(aw ? [aw.win ? h('em.he-winline', aw.win) : null, h('b.he-award', aw.line)].filter(Boolean) : []));
+      root.classList.toggle('has-award', !!aw);
     }
     if (els.pot.dataset.k === sig) return;
     els.pot.dataset.k = sig;
@@ -434,7 +445,8 @@ export function createView() {
     const p0 = res && !res.byFold ? finalPot(t) : null;
     const hi = awardNow ? awardNow.cards : p0 ? winningCards(p0, bestOf) : null;
     const show = !!(hi && hi.size);
-    const winners = new Set(((awardNow && awardNow.ids) || (p0 && p0.winners.map(w => w.id))) || []);
+    // (a losing hand dims — a seat that won ANY pot (a side pot too) never does)
+    const winners = new Set(res ? (res.pots || []).flatMap(p => (p.winners || []).map(w => w.id)) : []);
     root.classList.toggle('is-showdown', show);
     [...els.board.children].forEach(slot => { const c = slot.firstElementChild && slot.firstElementChild.dataset.c; slot.classList.toggle('is-win', show && !!c && hi.has(c)); slot.classList.toggle('is-dim', show && !!c && !hi.has(c)); });
     for (const [id, s] of seatEls) {
@@ -725,7 +737,7 @@ export function createView() {
   const hook = {
     pub: () => pub, hole: () => hole, layout: () => L,
     ko: () => (els.ko ? els.ko.textContent : null), spectating: () => !!els.hero.querySelector('.he-spec'), leave: () => !els.leave.hidden,
-    motion: () => !!(motion && motion.busy()), award: () => awardNow && awardNow.line, potLine: () => els.pot.textContent,
+    motion: () => !!(motion && motion.busy()), award: () => awardNow && awardNow.line, potLine: () => els.pot.textContent + els.award.textContent,
     legal: () => { const t = table(); return t && running(t) ? legalActions(t) : null; },
     act: (action, amount) => act(action, amount), pre: kind => send('pre', { pre: kind }), op: (op, body) => send(op, body),
     tier: () => 0, setTier: () => {}, fps: () => frames.slice(), work: () => work.slice(),

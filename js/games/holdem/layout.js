@@ -73,7 +73,7 @@ export function sideRowsPx(k, { at, ss, s, topY, pot, boardTop }) {
   if (k === 3) return [at(0.3025)];
   const fr = ROWS[k];
   if (!fr) return [];
-  const last = Math.min(pot - 20 * s - 10.5 - 12 * ss - 2, boardTop - 72 * ss - 4);
+  const last = Math.min(pot - 20 * s - 10.5 - 12 * ss - 2, boardTop - 72 * ss - 4);   // (4: the showdown's lift of a winning board card is 3 pt — css)
   // with a top seat (5, 7) the first row tucks in just under its plate — its bet chip between the top seat's plate and the top seat's bet
   const first = k === 5 || k === 7 ? topY + 66 * ss : at(fr[0]);
   const n = fr.length + 1;
@@ -94,8 +94,8 @@ export function sideRows(k) {
  * A seat's offsets are in its own units (× ss around the emblem's centre). → { seats: [{ main, cards, bet }], pot, sides(n), board, presets, buttons, hand }
  */
 export const SEAT_BOX = {
-  side: { main: [-32, -22, 84, 72], cards: [26, -20, 72, 26], bet: [66, -10, 136, 12] },          // (left; the right side mirrors x)
-  top: { main: [-58, -22, 58, 55], tag: [-170, 26, -60, 42], cards: [28, -16, 92, 26], bet: [-35, 86, 35, 106] },   // (HE4: its tag LEFT of the plate)
+  side: { main: [-32, -22, 84, 72], cards: [22, -21, 83, 22], bet: [66, -10, 136, 12] },          // (left; the right side mirrors x)
+  top: { main: [-50, -22, 50, 55], tag: [-170, 26, -60, 42], cards: [28, -16, 92, 26], bet: [-35, 86, 35, 106] },   // (HE4: its tag LEFT of the plate)
   big: { main: [-58, -28, 58, 80], cards: [34, -16, 100, 26], bet: [-35, 92, 35, 112] },
 };
 export function seatRects(seat, ss) {
@@ -132,6 +132,9 @@ export function blocks(L) {
     presets: rect(cx, L.presets, 3 * 86 * s + 16, 46),
     buttons: rect(cx, L.buttons, 3 * Math.max(56, 66 * s) + 2 * 20 * s, Math.max(56, 66 * s)),
     hand: rect(cx, L.hand.y, L.hand.card.w * 1.84, L.hand.card.h),
+    // (HE4: THE AWARD BOX under the board at a hand's end — the gold winning hand + a pot's line; the between-hands buttons on the buttons' row)
+    award: { x0: L.box.x + 12, x1: L.box.x + L.box.w - 12, y0: L.board.y + L.board.card.h / 2 + 9 * s, y1: L.board.y + L.board.card.h / 2 + 9 * s + 50 * s },
+    minisDone: rect(cx, L.buttons, 280, 44),
   };
 }
 export const overlaps = (a, b, pad = 0) => a.x0 < b.x1 + pad && b.x0 < a.x1 + pad && a.y0 < b.y1 + pad && b.y0 < a.y1 + pad;

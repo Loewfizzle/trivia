@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ranksOf, finalRowsOf, levelLine, pokeIn, HOST_POKE_MS, GUEST_POKE_MS, seatSlots, othersInOrder, clockOf, sidePots, finished } from '../js/games/holdem/logic.js';
-import { tableLayout, sideRows, blocks, overlaps } from '../js/games/holdem/layout.js';
+import { tableLayout, sideRows, blocks, overlaps, SEAT_BOX } from '../js/games/holdem/layout.js';
 import { estimateMinutes, cleanSettings, OPTIONS, DEFAULT_SETTINGS, CHAT_CHIPS, LOOKS, chatLocked } from '../js/games/holdem/meta.js';
 import { faceSvg, suitColor, RANKINGS } from '../js/games/holdem/card-art.js';
 import { evaluate } from '../js/games/holdem/rank.js';
@@ -90,12 +90,20 @@ test('THE LAYOUT (HE4) at 375 / 390 / 402 / 430 wide + an SE-height phone, 2–8
         }
       });
       assert.ok(!overlaps(B.pot, B.board), `${at}: the pot above the board`);
+      // (HE4: the hand's end — THE AWARD BOX under the board clear of every seat, the between-hands buttons + your cards)
+      B.seats.forEach((A, i) => { for (const k of ['main', 'cards', 'bet', 'tag']) if (A[k]) assert.ok(!overlaps(A[k], B.award), `${at}: seat ${i}.${k} × the award box`); });
+      assert.ok(!overlaps(B.award, B.minisDone) && !overlaps(B.award, B.hand), `${at}: the award box above the between-hands buttons + your cards`);
       assert.ok(B.board.y1 + 2 <= B.presets.y0, `${at}: the presets below the board`);
       assert.ok(B.buttons.y1 <= B.hand.y0 + 4, `${at}: the buttons above your cards`);
       assert.ok(L.hand.card.w > L.board.card.w && L.hand.card.h > L.board.card.h, `${at}: your cards are the biggest thing`);
       assert.ok(L.plate + 30 <= h - bottom + 2, `${at}: your plate on screen`);
     }
   }
+});
+
+test('SHOWN HANDS READ (HE4 — Ben, the split-pot shot): a seat’s two shown cards side by side, 30 pt each, NO overlap — the seat block holds them', () => {
+  for (const g of [SEAT_BOX.side, SEAT_BOX.top, SEAT_BOX.big]) assert.ok(g.cards[2] - g.cards[0] >= 2 * 30 + 1, `the shown cards' box ${g.cards[2] - g.cards[0]} pt wide`);
+  assert.ok(SEAT_BOX.side.cards[3] <= 22, 'side seats: the cards end above the plate (it starts at 23)');
 });
 
 test('BEN’S PREVIEW FIXES (HE4): heads-up = the board centred between the opponent and your buttons, ~64 pt cards; 3–4 players raised; 5–8 as HE3; the side rows ~20 % further apart', () => {
