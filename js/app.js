@@ -191,7 +191,9 @@ function musicTick() {
   // NIGHT-C — THE PARTY SONG IN SYNC (audio/party-music.js): City 2.0's menus outside a room, the PARTY mood — the party's timeline on the
   // server clock (a legendary's tape stop holds it on this phone's own player: the city clock's musicHold)
   const cc = cityClock();
-  const warm = !!cityUpAt && performance.now() - cityUpAt > 1500 && document.visibilityState === 'visible' && !state.code;
+  // (HE4 — THE WARM-UP, part 2: never with the music OFF or muted — nothing is warmed for a phone that won't play it; switching the music
+  //  back on warms at the next tick)
+  const warm = !!cityUpAt && performance.now() - cityUpAt > 1500 && document.visibilityState === 'visible' && !state.code && !settings.musicOff && !settings.muted;
   partySynced = partyMusicTick(!!cc && moodOn() && !state.code, !!(cc && cc.musicHold && cc.musicHold()), warm);   // (SKY-B: every mood a station)
   if (was !== lobbySynced || wasP !== partySynced) render(state);
 }

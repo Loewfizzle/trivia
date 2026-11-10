@@ -13,6 +13,7 @@
 // THE PARKED DATABASE holds: serverNow() is the saved offset while parked — no socket is opened for this. A sped-up preview (&speed) can't
 // be in sync: this phone's own player then plays the deck as before. MUSIC OFF: nothing plays; the breaks still follow the same timeline.
 import { createSyncedSongs, speakerLead, warmSlice, warmSliceStats } from './synced-songs.js';
+import { settings } from './settings.js';
 import { musicUrl } from './music-url.js';
 import { getMusicBus, getContext, graphDead, audioUnlocked } from './engine.js';
 import { serverNow } from '../firebase.js';
@@ -185,11 +186,13 @@ export function partyMusicTick(active, hold = false, warm = false) {
 // clock as always. HE4 — THE WARM-UP, SMALLER (the city chat): no longer whole songs (LOAD FIX 3 decoded up to 3: 6–9 MB a visit, even for
 // a phone that only looks) — ONE SLICE of the song the station is playing, from just ahead of its place now, WARM_SLICE_S long
 // (synced-songs.js#warmSlice: a bounded Range request, decoded offline); when the station has played on past most of it, ONE new slice (never
-// two in flight); near a song's end the next song's top. ≤ WARM_CAP bytes a page without a tap; never with Save-Data or the CLASSIC menu music (no station) — the music OFF / muted switch is NOT read here yet (the city chat's "part 2").
+// two in flight); near a song's end the next song's top. ≤ WARM_CAP bytes a page without a tap; never with Save-Data, the CLASSIC menu music (no
+// station) or — THE WARM-UP part 2 (the city chat) — the music OFF / muted (app.js's `warm` + here: 0 bytes; the music back on → it warms then).
+// Before a tap no synced player is made at all (partyMusicTick returns right after this) — only the slice.
 const WARM_CAP = 1024 * 1024, WARM_LEFT_S = 4, WARM_LEAD_S = 0.4;
 let warmed = null, warmBusy = false, warmOff = false;
 function warmAhead(T, ok) {
-  if (!ok || !T || warmBusy || warmOff) return;
+  if (!ok || !T || warmBusy || warmOff || settings.musicOff || settings.muted) return;   // (part 2: the music OFF / muted — nothing warmed)
   try { if (navigator.connection && navigator.connection.saveData) return; } catch { /* fine */ }
   const nowS = T.cityMs / 1000;
   let s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, nowS);

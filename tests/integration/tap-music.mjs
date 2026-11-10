@@ -21,6 +21,8 @@ const NOTAP = +opt('notap', 0), CAP_KB = +opt('cap', 1024);
 // (HE4: after the music starts, HOLD s of it sampled every 200 ms — the warm SLICE hands over to the whole song with no gap: `gaps` = samples
 //  with nothing heard, `swaps` = the player's part → whole hand-overs, `whole` = the song decoded whole by then)
 const HOLD = +opt('hold', 18);
+// (THE WARM-UP part 2: --music off | muted = the device's setting before the boot — with --notap: 0 music bytes expected, any byte fails)
+const MUSIC = String(opt('music', ''));
 const UP = opt('base', 'http://localhost:5173');
 // (mid-song on each station — a song boundary's crossfade is its own case: --when to pick another moment)
 const SCENES = { night: 'when=2026-11-06T21:32:40&wx=clear', day: 'when=2026-11-06T13:01:30&wx=clear' };
@@ -31,8 +33,9 @@ const CHROME = process.env.CHROME || 'C:/Users/benja/AppData/Local/ms-playwright
 const line = NET === 'wifi' ? await startLine({ port: 5187, to: UP, rtt: 40, mbps: 40 }) : null;
 const BASE = line ? 'http://localhost:5187' : UP;
 
-const HOOK = () => {
+const HOOK = music => {
   try { localStorage.setItem('nd:entered', '1'); } catch { /* fine */ }
+  try { if (music === 'off' || music === 'muted') localStorage.setItem('na:settings', JSON.stringify(music === 'off' ? { musicOff: true } : { muted: true })); } catch { /* fine */ }
   const S = window.__tm = { starts: [], tapAt: 0 };
   const o = AudioBufferSourceNode.prototype.start;
   AudioBufferSourceNode.prototype.start = function (when, off) {
@@ -50,7 +53,7 @@ for (const eng of ENGINES) {
   const browser = await pw[eng === 'webkit' ? 'webkit' : 'chromium'].launch(eng === 'webkit' ? {} : { executablePath: CHROME, args: ['--autoplay-policy=user-gesture-required'] });
   for (let i = 0; i < RUNS; i++) {
     const ctx = await browser.newContext({ viewport: { width: 402, height: 874 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
-    await ctx.addInitScript(HOOK);
+    await ctx.addInitScript(HOOK, MUSIC);
     const page = await ctx.newPage();
     const music = [];
     if (NOTAP) page.on('response', async res => { if (!/\/audio\/music\//.test(res.url())) return; const req = res.request(); const b = await res.body().catch(() => null); music.push({ url: res.url().split('/').pop().split('?')[0], status: res.status(), range: (req.headers().range || ''), bytes: b ? b.length : Number(res.headers()['content-length'] || 0) }); });
@@ -92,7 +95,7 @@ for (const eng of ENGINES) {
 if (line) await line.close();
 if (NOTAP) {
   for (const eng of ENGINES) { const a = rows.filter(r => r.eng === eng).map(r => r.notapKB).sort((x, y) => x - y); console.log(`${eng}: NO TAP ${NOTAP} s → music fetched, median ${a[Math.floor(a.length / 2)]} KB (${a.join(' / ')}) · song voices: ${rows.filter(r => r.eng === eng).reduce((s, r) => s + r.before, 0)}`); }
-  process.exit(rows.some(r => r.notapKB > CAP_KB || r.before > 0) ? 1 : 0);
+  process.exit(rows.some(r => r.notapKB > (MUSIC ? 0 : CAP_KB) || r.before > 0) ? 1 : 0);
 }
 for (const eng of ENGINES) { const a = rows.filter(r => r.eng === eng && r.ms != null).map(r => r.ms).sort((x, y) => x - y); console.log(`${eng}: the tap → the music, median ${a.length ? a[Math.floor(a.length / 2)] : '—'} ms (${a.join(' / ')}) · voices before a tap: ${rows.filter(r => r.eng === eng).reduce((s, r) => s + r.before, 0)}`); }
 process.exit(rows.some(r => r.before > 0 || r.ms == null || (r.hold && r.hold.gaps > 0)) ? 1 : 0);
