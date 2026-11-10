@@ -171,6 +171,7 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   (City 2.0: add `&force=no-planes` to a raw scene query — a plane's growing contrail skews the later tiers, docs/harbor/passes/part-2.md#known-issues-part-2)
   (no emulators). The emulators need Java: on the mini PC Temurin 21 is on the PATH (the old laptop's own JRE lived at
   `~/.cache/neural-arcade/jre/jdk-21.0.12.1+1-jre/bin`).
+- **HOLD'EM (HE1):** `node --test tests/holdem-rank.test.mjs tests/holdem-table.test.mjs tests/holdem-match.test.mjs tests/holdem-sim.test.mjs` (≈ 7 s — the 2.6 M-hand proof, rigged hands, matches, ≈ 30,000 robot hands of invariants); the length study `node scripts/holdem-sim.mjs` (not in npm test) — docs/holdem.md.
 - **Unit + simulation (no deps):** `node --test tests/*.test.mjs` (214 tests: rules of all ten games (GRIDLOCK: tests/gridlock.test.mjs — placement, private resolution, points + bounty, Classic 2/3/4 + Royale 8 whole matches, the cap; SLIPSTREAM: slip + slip-course, incl. bot rides proving courses survivable) (DOUBLE AGENT: tests/agent.test.mjs; PRISM DROP: prism-engine + prism) incl. Overclock's 20 types (the six update-2 types + banks + order spread in tests/overclock-2.test.mjs) (Lexicon sets, Rewire solvability, no-repeat order) incl. NEON PAR physics + director, chat locks + profanity filter (banks checked too), host-migration replays,
   seeded generation, trivia parsing, both question banks)
 - **Several players on one computer:** open the site in multiple tabs: `/?slot=2`, `/?slot=3`, … (slot 1 = no param).

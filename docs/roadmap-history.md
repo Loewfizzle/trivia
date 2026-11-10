@@ -2436,3 +2436,18 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - THE SCORE RUSH BOUND (finding 9): `scripts/sim-prism-rush.mjs` → 3 × the fitted best run (3.2–4.6 × each song's best; the longest ≈ 2.2 M, was ≈ 222 M).
 - THE GHOST ROWS (8 + 13 + 14), THE DAY TIERS (10 — `tiers.js#stepTier`, 3 → 0 by day), the hold ended by a lock (11), the playlist at start (12),
   SURVIVAL's time on the podium (15), no blank header (16), the day art warmed after GO (17 — the first switch 3–4 slow frames → 2), the test tools (22).
+
+## HE1 — HOLD'EM: THE ENGINE + THE SIMULATIONS (Nov 10, 2026 — docs/holdem.md; the plan: docs/games/plan.md "HOLD'EM — THE PLAN (Nov 10 2026)" + "HE1")
+- Pure logic + tests only: no screen, no database, no `/api`, no rules change, no `config.js` GAMES row. Still 8 Vercel functions, no new dependency.
+- THE CARDS + THE RANKER (`js/games/holdem/cards.js`, `rank.js`): short codes, a seeded Fisher–Yates on an injected rng; best-5-of-7 as one comparable
+  number (category + rank nibbles), the wheel, kickers, exact ties; the plain labels (full + short + the two-card "ACE KING"). THE CLASSIC PROOF: all
+  2,598,960 five-card hands → the exact category counts + 7,462 distinct values in ≈ 0.16 s.
+- THE TABLE (`table.js`, `pots.js`, `views.js`): one hand as a reducer — the action order (heads-up: the button = the small blind), min bet / min raise,
+  THE REOPEN RULE (short all-ins never reopen, cumulative ones do), the uncalled bet (only ever to a player still in — found by a test: a big blind
+  leaving the table got its own dead chips back), side pots + splits + the odd chip, THE RUN-OUT, SHOW, THE PRESETS (MIN · 3× · ALL IN / ½ POT · POT ·
+  ALL IN, rounded to 5s), THE PRE-ACTIONS, the 20 s clock + the 30 s bank + AWAY, `forceFold`, the privacy views.
+- THE MATCH (`match.js`, `structure.js`): TOURNAMENT (stacks, the ladder, the level from `now`, busts + places + shared places + KOs, the winner)
+  and CASH (rebuy, late join, leave, END SESSION + voidHand, THE LEDGER — Σ net = 0); the match summary shape for HE2. Found by the sims: a hand can
+  end INSIDE the deal (both blinds all in) — `nextHand` now settles it.
+- THE SIMULATIONS (`tests/holdem-sim.test.mjs` + `tests/fixtures/holdem-bots.mjs` + `holdem-driver.mjs`): ≈ 30,000 robot hands a run with THE
+  INVARIANTS after every action (≈ 7 s for all of HOLD'EM's tests). THE LENGTH STUDY (`scripts/holdem-sim.mjs`) → TURBO 2 min → 90 s.

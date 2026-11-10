@@ -31,6 +31,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | `docs/overclock.md` | **OVERCLOCK** — the OVERDRIVE rebuild's plan (7 passes, the owner's decisions) + each pass's decisions + log; read it before an Overclock pass |
 | `docs/coastclear.md` | **COAST CLEAR** (CC1 — a DAILY-ONLY, SERVER-JUDGED Minesweeper-type, ships OFF: the no-guess maker + solver `api/_lib/cc-board.js` + `cc-solve.js`; the board only on the server, `/api/daily` dig / chord / pause / resume; the instant feel) |
 | `docs/password.md` | **THE PASSWORD** (PW1 — a DAILY-ONLY, SERVER-JUDGED Wordle-type, ships OFF: `config.js#DAILIES`, never GAMES; `/api/daily` `guess`; the list build + THE REVIEWER; the kit keyboard's `setKeyStates`) · the owner's game decisions: `docs/games/plan.md` |
+| `docs/holdem.md` | **HOLD'EM** (HE1 — Texas Hold'em, 2–8, PLAY CHIPS ONLY; the PURE engine `js/games/holdem/` — not in GAMES yet): the rule choices, the state + event shapes, the privacy views, THE LENGTH STUDY; read it before a HOLD'EM pass |
 | `docs/pulse.md` `docs/golf.md` `docs/prism.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that game |
 
 ## Ground rules
@@ -218,6 +219,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   the sender's attack in the victim's queue (`creditedBy`, 20 s); the award flags only from plausible numbers (`prismExtra` — `pn` in the
   results); SCORE RUSH's bound = the SIM's (`scripts/sim-prism-rush.mjs` — re-run it after a scoring change); by day the tiers step 3 → 0
   (`tiers.js#stepTier`); the ghost rows = the first 12 to land.
+- **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
+  `now`; a test greps), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
+  DEALER is the server (HE2: a NEW secret, never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /
+  `seatView`; the sims scan every view); PLAY CHIPS ONLY — no money words ("CASH" = the mode's name); TURBO's level is 90 s (the length study:
+  `node scripts/holdem-sim.mjs`); the test robots (`tests/fixtures/holdem-bots.mjs`) are never shipped. Not in `config.js` GAMES until HE3+.
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,
