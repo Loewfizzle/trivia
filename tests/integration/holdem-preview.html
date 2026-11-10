@@ -1,0 +1,152 @@
+<!doctype html>
+<!-- HOLD'EM preview (no Firebase) — HE3: the REAL table view (js/games/holdem/view.js) mounted with a REAL table: the dealer's own pure core
+     (api/_lib/holdem-dealer.js — the engine, a seeded deck) played to the asked-for moment, then sent through THE LEAN WIRE exactly as a
+     phone reads it (publicOf → toWire → the room's node) + this phone's own hole node. So a shot is the phone's screen.
+       &n=2..8            players at the table (default 6)
+       &state=waiting | myturn | preflop | flop | turn | river | allin | showdown | foldwin | away | slider | final   (default myturn)
+                          myturn = your turn before the flop (after a raise) · preflop = someone else's turn (your pre-actions)
+                          flop / turn / river = your turn on that street, facing a bet · allin = a multi-way all in, run out street by street
+                          showdown = the river shown down · foldwin = everyone folded to you (SHOW) · away = you're AWAY (I'M BACK), a seat OUT
+                          slider = myturn with the RAISE slider open · final = the podium (the console's frame + HOLD'EM's body)
+       &mode=cash         a CASH table (BLINDS 5/10; away = SAT OUT; &broke=1 = your stack 0 → REBUY)
+       &deck=two          the CLASSIC two-colour faces           &hand=AsKd   your two cards (the deck is rigged to deal them)
+       &seed=x            another deal                            &host=0      you're not the host (no END SESSION in CASH)
+       &st=47&sb=34       the safe areas (pt) — an iPhone 13/14 = 47 / 34 (the default), a 15/16 Pro = 62 / 34
+     tests/integration/holdem-shots.mjs shoots it. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hold'em preview</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/components.css">
+<link rel="stylesheet" href="../../css/kit.css">
+<link rel="stylesheet" href="../../css/board.css">
+<link rel="stylesheet" href="../../css/holdem.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>html, body { background: #000; height: 100%; margin: 0; overflow: hidden; }</style>
+</head>
+<body data-theme="holdem" data-look="night">
+<div class="screen screen-in" id="app"></div>
+<script type="module">
+import { newRecord, applyOp, advance, publicOf, holeOf } from '/__dev/api-lib/holdem-dealer.js';
+import { legalActions, running } from '/js/games/holdem/table.js';
+import { toWire, nestWire } from '/js/games/holdem/wire.js';
+import { finalRowsOf, ranksOf } from '/js/games/holdem/logic.js';
+import { rngFrom } from '/js/core/rng.js';
+import { setState } from '/js/store.js';
+import { updateSettings } from '/js/audio/settings.js';
+
+const q = new URLSearchParams(location.search);
+const N = Math.max(2, Math.min(8, Number(q.get('n') || 6)));
+const STATE = q.get('state') || 'myturn';
+const MODE = q.get('mode') === 'cash' ? 'cash' : 'tournament';
+const st = Number(q.get('st') ?? 47), sb = Number(q.get('sb') ?? 34);
+document.documentElement.style.setProperty('--safe-t', `${st}px`);
+document.documentElement.style.setProperty('--safe-b', `${sb}px`);
+const probeCss = document.createElement('style');
+probeCss.textContent = `.he-probe-t { height: ${st}px !important } .he-probe-b { height: ${sb}px !important }`;
+document.head.append(probeCss);
+updateSettings({ heDeck: q.get('deck') === 'two' ? 'two' : 'four', musicOff: true, sfxOff: true });
+
+// the players: mixed name lengths (a 12-letter one), the real emblem styles
+const NAMES = ['ALEX', 'MAXIMILIANOS', 'BO', 'GRACE', 'CHARLOTTE', 'ED', 'PENELOPE', 'JUN'];
+const AV = ['bolt', 'crown', 'eye', 'star', 'diamond', 'moon', 'alien', 'wave'];
+const COL = ['cyan', 'magenta', 'yellow', 'green', 'orange', 'violet', 'red', 'blue'];
+const uids = Array.from({ length: N }, (_, i) => `p${i}`);
+const players = Object.fromEntries(uids.map((u, i) => [u, { name: NAMES[i], avatar: AV[i], color: COL[i], joinedAt: i }]));
+const presence = Object.fromEntries(uids.map(u => [u, { online: true, lastSeen: 0 }]));
+
+const T0 = Date.UTC(2026, 10, 10, 23, 0, 0);
+let now = T0;
+const rng = rngFrom(q.get('seed') || 'he3-preview');
+const rec = newRecord({ code: 'PVWX', uids, mode: MODE, now, rng });
+// (&hand=AsKd: the deck rigged so that seat gets them — set after the first deal below)
+advance(rec, now, rng);
+const T = () => rec.m.table;
+const L = () => { const t = T(); return running(t) && !t.runout ? legalActions(t) : null; };
+function play(action, amount) {
+  const l = L(); if (!l) return false;
+  now += 2600;
+  applyOp(rec, 'act', l.id, { hand: T().hand, seq: rec.seq, action, ...(amount != null ? { amount } : {}) }, { now, rng });
+  rec.seq++;
+  return true;
+}
+const passive = () => { const l = L(); return play(l.canCheck ? 'check' : 'call'); };
+const toStreet = name => { for (let g = 0; g < 60 && T().street !== name && running(T()); g++) passive(); };
+
+let me = uids[0];
+if (STATE === 'myturn' || STATE === 'slider' || STATE === 'preflop') {
+  const opener = L().id;
+  play('raise', T().bb * 3);
+  if (N > 3) play('fold');
+  if (STATE === 'preflop') { me = opener; if (N > 4) passive(); }
+  else me = L().id;
+} else if (['flop', 'turn', 'river'].includes(STATE)) {
+  if (N > 4) { play('fold'); }
+  toStreet(STATE);
+  const l = L();
+  const half = l.presets && l.presets.find(p => p.key === 'half');
+  play('bet', half ? half.to : T().bb * 2);
+  me = L().id;
+} else if (STATE === 'allin') {
+  // three short stacks all in before the flop → side pots, the hands turned up, the board running out street by street
+  const seats = T().seats;
+  seats.forEach((x, i) => { if (i < 3) { const keep = [420, 860, 1500][i]; x.stack = Math.min(x.stack, keep - x.bet); } });
+  for (let g = 0; g < 20 && L(); g++) { const l = L(); const x = T().seats.find(y => y.id === l.id); if (T().seats.indexOf(x) < 3) play('allin'); else play(T().seats.indexOf(x) === 3 ? 'call' : 'fold'); }
+  now += 1600; advance(rec, now, rng); rec.seq++;
+  me = T().seats[3] ? T().seats[3].id : uids[0];
+} else if (STATE === 'showdown' || STATE === 'final') {
+  if (N > 4) { play('fold'); play('fold'); }
+  toStreet('river');
+  for (let g = 0; g < 20 && L(); g++) passive();
+  for (let g = 0; g < 10 && running(T()); g++) { now += 1600; advance(rec, now, rng); }
+  rec.seq++;
+  me = (T().seats.find(x => x.shown) || T().seats[0]).id;
+} else if (STATE === 'foldwin') {
+  for (let g = 0; g < 20 && running(T()); g++) { const l = L(); if (!l) break; me = l.id; play('fold'); }
+  me = T().result && T().result.pots[0] ? T().result.pots[0].winners[0].id : me;
+} else if (STATE === 'away') {
+  const l = L();
+  me = T().seats.find(x => x.id !== l.id && x.status === 'in').id;
+  const x = T().seats.find(y => y.id === me); x.away = true; x.timeouts = 2;
+  if (MODE === 'cash') { x.status = 'sitout'; x.held = false; x.cards = []; }
+  else if (N > 3) { const o = T().seats[T().seats.length - 1]; if (o.id !== me && o.id !== l.id) { o.status = 'out'; o.stack = 0; o.cards = []; } }
+  rec.seq++;
+}
+if (MODE === 'cash' && q.get('broke') === '1') { const x = T().seats.find(y => y.id === me); x.stack = 0; x.status = 'folded'; x.cards = []; }
+if (q.get('hand') && T().seats.find(x => x.id === me)) { const x = T().seats.find(y => y.id === me); const c = q.get('hand'); x.cards = [c.slice(0, 2), c.slice(2, 4)]; }
+// the clock: a few seconds into the turn (the bar part-drained)
+const t = T();
+window.__clock = () => (t.deadline ? t.deadline - 12_500 : now + 400);
+
+const pub = publicOf(rec);
+const node = { seq: rec.seq, at: now, ...nestWire(toWire(pub)) };
+const hole = holeOf(rec, me);
+window.__fakeDb = { [`hole/PVWX/${me}`]: hole };
+const host = q.get('host') === '0' ? uids.find(u => u !== me) : me;
+const game = { id: 'holdem', matchId: rec.id, settings: { mode: MODE, speed: 'turbo' }, participants: Object.fromEntries(uids.map(u => [u, true])), phase: 'play', startAt: T0 };
+if (STATE === 'final') {
+  // the podium: a finished match's rows (a made-up order of finish over the real players)
+  const fake = MODE === 'cash'
+    ? { mode: 'cash', players: pub.players, ledger: uids.map((u, i) => ({ id: u, buyins: 1000 + (i % 2) * 1000, rebuys: i % 2, final: [2840, 1260, 990, 0, 1910, 500, 1300, 1200][i], net: [2840, 1260, 990, 0, 1910, 500, 1300, 1200][i] - (1000 + (i % 2) * 1000), hands: 40 })) }
+    : { mode: 'tournament', players: Object.fromEntries(uids.map((u, i) => [u, { hands: 30 - i, won: 9 - i, kos: Math.max(0, 3 - i) }])), places: uids.map((u, i) => ({ id: u, place: i + 1 })) };
+  Object.assign(game, { phase: 'final', ranks: ranksOf(fake), rows: finalRowsOf(fake), endMode: MODE });
+}
+const state = { uid: me, code: 'PVWX', players, presence, game, meta: { hostId: host, status: 'playing' }, live: STATE === 'waiting' ? { table: null } : { table: node }, liveKey: 'x' };
+setState({ uid: me, players, presence, game, meta: state.meta, live: state.live });
+const { loadGame } = await import('/js/games/registry.js');
+await loadGame('holdem');   // (the cartridge, as every phone has it by the podium — its finalScene draws the body)
+const { createView } = await import('/js/games/holdem/view.js');
+const view = createView();
+view.mount(document.getElementById('app'), state);
+if (STATE === 'slider') { await new Promise(r => setTimeout(r, 60)); document.querySelector('.he-raise')?.click(); }
+await document.fonts.ready;
+await new Promise(r => setTimeout(r, 150));
+window.__preview = { rec, pub, me, node };
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

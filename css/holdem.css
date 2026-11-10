@@ -1,0 +1,280 @@
+/* HOLD'EM — THE TABLE SCREEN A (HE3 — docs/holdem.md "THE TABLE SCREEN"). NEON CASINO: black + gold plates and buttons, the real green
+   felt, the four-colour faces drawn in code (js/games/holdem/card-art.js). Every place comes from layout.js (CSS variables set once per
+   resize: --s the scale, --cx the table's centre, --board-y, --hand-y …). 60 fps: only transform + opacity move; glows are static.
+   Prefix he- (the city's pieces never share a class). Premium lighting, chips, rails + skins = HE5–HE6; motion polish = HE4. */
+.he {
+  --he-gold: #f2c14e;
+  --he-gold-2: #ffd977;
+  --he-cream: #f4ead2;
+  --he-dim: #b9ad92;
+  --he-ink: #1a1204;
+  --he-plate: rgba(8, 7, 5, 0.9);
+  --he-red: #ff5468;
+  --s: 1;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  color: var(--he-cream);
+  font-family: var(--font-ui);
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(255, 70, 160, 0.10), rgba(0, 0, 0, 0) 60%),
+    radial-gradient(90% 40% at 50% 100%, rgba(242, 193, 78, 0.08), rgba(0, 0, 0, 0) 70%),
+    #06050a;
+}
+.he-probe { position: absolute; left: 0; width: 1px; visibility: hidden; pointer-events: none; }
+.he-probe-t { top: 0; height: env(safe-area-inset-top, 0px); }
+.he-probe-b { bottom: 0; height: env(safe-area-inset-bottom, 0px); }
+
+/* the header: ☰ + music are the console's corners — the level line sits between them */
+.he-level {
+  position: absolute; top: calc(var(--safe-t) + 12px); left: var(--cb-room); right: var(--cb-room); height: 36px;
+  display: grid; place-items: center; white-space: nowrap; overflow: hidden;
+  font-family: var(--font-num); font-weight: 700; font-size: 13px; letter-spacing: 0.12em; color: var(--he-gold);
+  text-shadow: 0 0 10px rgba(242, 193, 78, 0.35);
+}
+
+/* THE TABLE: a tall stadium — the black rail with its thin gold line, the felt (+ a soft vignette), the cream betting line */
+.he-table { position: absolute; }
+.he-rail {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(180deg, #1c1813 0%, #0b0907 40%, #050403 100%);
+  box-shadow: 0 0 0 1px rgba(242, 193, 78, 0.28), 0 22px 48px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 240, 200, 0.12);
+}
+.he-felt {
+  position: absolute; inset: calc(16px * var(--s)); border-radius: calc(var(--r) - 16px * var(--s));
+  background:
+    radial-gradient(70% 55% at 50% 48%, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.5) 100%),
+    url('../assets/holdem/felt-green.webp') 0 0 / 256px 256px,
+    #145a32;
+  box-shadow: 0 0 0 1.5px var(--he-gold), 0 0 0 3px rgba(0, 0, 0, 0.7), inset 0 8px 22px rgba(0, 0, 0, 0.55);
+}
+.he-betline {
+  position: absolute; inset: calc(30px * var(--s)); border-radius: calc(var(--r) - 46px * var(--s));
+  border: 1.5px solid rgba(244, 234, 210, 0.3);
+}
+.he-print {
+  position: absolute; left: var(--cx); top: calc(var(--board-y) + var(--bc-h) / 2 + 16px * var(--s)); transform: translate(-50%, -50%);
+  font-family: var(--font-display); font-weight: 700; font-size: calc(11px * var(--s)); letter-spacing: 0.42em; white-space: nowrap;
+  color: rgba(10, 30, 16, 0.55); text-shadow: 0 1px 0 rgba(160, 230, 180, 0.12); pointer-events: none;
+}
+
+/* THE SEATS — each an anchor at its emblem's centre (layout.js); its pieces placed around it */
+.he-seats { position: absolute; inset: 0; pointer-events: none; }
+.he-seat { position: absolute; width: 0; height: 0; transform: scale(var(--ss, 1)); transition: opacity 0.25s ease; }
+.he-seat.is-folded { opacity: 0.42; }
+.he-av { position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%; background: #0b0a08; box-shadow: 0 0 0 2px #0b0a08, 0 4px 12px rgba(0, 0, 0, 0.6); }
+.he-seat.is-big .he-av { left: -28px; top: -28px; width: 56px; height: 56px; }
+.he-av > * { display: block; }
+.he-seat.is-turn .he-av::after, .he-hero.is-turn .he-plate::before {
+  content: ''; position: absolute; inset: -5px; border-radius: inherit; border: 2.5px solid var(--he-gold);
+  box-shadow: 0 0 14px rgba(242, 193, 78, 0.65); pointer-events: none;
+}
+.he-splate {
+  position: absolute; top: 24px; left: 0; transform: translateX(-50%);
+  min-width: 70px; max-width: 116px; padding: 3px 7px 4px; border-radius: 8px; text-align: center;
+  background: var(--he-plate); border: 1px solid rgba(242, 193, 78, 0.45); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+}
+.he-seat.is-big .he-splate { top: 32px; }
+.he-seat[data-side='left'] .he-splate { left: -32px; transform: none; }
+.he-seat[data-side='right'] .he-splate { left: auto; right: -32px; transform: none; }
+.he-name { display: block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--he-cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.he-sstack { display: block; font-family: var(--font-num); font-size: 12.5px; font-weight: 700; color: var(--he-gold); line-height: 1.1; }
+.he-tag {
+  position: absolute; top: 57px; left: 0; transform: translateX(-50%); white-space: nowrap;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 5px;
+}
+.he-seat.is-big .he-tag { top: 66px; }
+.he-seat[data-side='left'] .he-tag { left: -32px; transform: none; }
+.he-seat[data-side='right'] .he-tag { left: auto; right: -32px; transform: none; }
+.he-tag:empty { display: none; }
+.he-tag[data-kind='allin'] { background: #c8102e; color: #fff; }
+.he-tag[data-kind='grey'] { background: #2a2a30; color: #d7d7de; }
+.he-tag[data-kind='label'] { background: rgba(8, 7, 5, 0.86); color: var(--he-cream); }
+.he-tag[data-kind='win'] { background: var(--he-gold); color: var(--he-ink); box-shadow: 0 0 12px rgba(242, 193, 78, 0.55); }
+.he-seat.is-folded .he-tag[data-kind='grey'] { opacity: 1; }
+.he-sclock, .he-clock { position: absolute; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.he-sclock { top: 58px; left: -34px; width: 68px; }
+.he-seat[data-side='left'] .he-sclock { left: -32px; }
+.he-seat[data-side='right'] .he-sclock { left: auto; right: -32px; }
+.he-sclock > i, .he-clock > i { position: absolute; inset: 0; background: var(--he-gold); transform-origin: left center; will-change: transform; }
+.is-bank > i { background: #ff7a3a; }
+.he-backs, .he-shown { position: absolute; top: -20px; display: flex; }
+.he-seat[data-side='left'] :is(.he-backs, .he-shown) { left: 26px; }
+.he-seat[data-side='right'] :is(.he-backs, .he-shown) { right: 26px; }
+.he-seat[data-side='top'] :is(.he-backs, .he-shown) { left: 28px; top: -16px; }
+.he-seat.is-big[data-side='top'] :is(.he-backs, .he-shown) { left: 34px; }
+.he-backs .he-back { width: 21px; height: 30px; border-radius: 3px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5); }
+.he-backs .he-back + .he-back { margin-left: -9px; transform: rotate(8deg); }
+.he-shown { z-index: 1; }
+.he-seat:not([data-side='top']) .he-shown { top: -10px; }
+.he-shown .he-card { width: 26px; height: 36px; }
+.he-seat[data-side='top'] .he-shown .he-card { width: 30px; height: 42px; }
+.he-shown .he-card + .he-card { margin-left: -6px; }
+.he-seat[data-side='right'] .he-shown { flex-direction: row-reverse; }
+.he-seat[data-side='right'] .he-shown .he-card + .he-card { margin-left: 0; margin-right: -6px; }
+.he-dealer {
+  position: absolute; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
+  background: #f6f1e4; color: #111; font-family: var(--font-num); font-weight: 800; font-size: 10px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.55);
+}
+.he-seat .he-dealer { left: 12px; top: 8px; }
+.he-seat[data-side='right'] .he-dealer { left: -30px; }
+.he-seat[data-side='top'] .he-dealer { left: -34px; top: 4px; }
+.he-seat.is-big[data-side='top'] .he-dealer { left: -40px; }
+.he-dealer[hidden] { display: none; }
+.he-bet {
+  position: absolute; display: flex; align-items: center; gap: 4px; white-space: nowrap;
+  font-family: var(--font-num); font-weight: 700; font-size: 12.5px; color: var(--he-cream);
+  padding: 2px 7px 2px 3px; border-radius: 10px; background: rgba(0, 0, 0, 0.55);
+}
+.he-bet[hidden] { display: none; }
+.he-bet.is-win { background: var(--he-gold); color: var(--he-ink); box-shadow: 0 0 12px rgba(242, 193, 78, 0.55); }
+.he-chip { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle, #fff 0 22%, #c8102e 23% 62%, #fff 63% 70%, #c8102e 71%); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.he-seat[data-side='left'] .he-bet { left: 66px; top: -10px; }
+.he-seat[data-side='right'] .he-bet { right: 66px; top: -10px; }
+.he-seat[data-side='top'] .he-bet { left: 0; top: 80px; transform: translateX(-50%); }
+.he-seat.is-big[data-side='top'] .he-bet { top: 92px; }
+
+/* THE POT + THE BOARD */
+.he-pot {
+  position: absolute; left: var(--cx); top: var(--pot-y); transform: translate(-50%, -50%);
+  display: flex; align-items: baseline; gap: 10px; white-space: nowrap; pointer-events: none;
+}
+.he-pot b { font-family: var(--font-num); font-size: calc(16px * var(--s)); letter-spacing: 0.06em; color: var(--he-gold-2); padding: 2px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.5); }
+.he-pot small { font-family: var(--font-num); font-size: 11.5px; font-weight: 700; color: var(--he-cream); padding: 2px 6px; border-radius: 6px; background: rgba(0, 0, 0, 0.45); }
+.he-board { position: absolute; left: var(--cx); top: var(--board-y); transform: translate(-50%, -50%); display: flex; gap: calc(5px * var(--s)); pointer-events: none; }
+.he-slot { width: var(--bc-w); height: var(--bc-h); border-radius: calc(6px * var(--s)); border: 1.5px dashed rgba(244, 234, 210, 0.22); }
+.he-slot.is-card { border-color: transparent; }
+.he-card { width: 100%; height: 100%; border-radius: 12%/9%; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5); }
+.he-card > svg { display: block; width: 100%; height: 100%; }
+.he-slot .he-card { width: var(--bc-w); height: var(--bc-h); }
+
+/* YOU: two big cards over the bottom rail, your plate + hand label under them */
+.he-hero { position: absolute; left: var(--cx); top: var(--hand-y); width: 0; height: 0; }
+.he-hand { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); display: flex; transition: opacity 0.25s ease; }
+.he-hand > * { width: var(--hc-w); height: var(--hc-h); border-radius: 8px; }
+.he-hand > :first-child { transform: rotate(-5deg) translateX(8%); }
+.he-hand > :last-child { transform: rotate(5deg) translateX(-8%); }
+.he-hand .he-back { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6); }
+.he-hero.is-folded .he-hand { opacity: 0.4; }
+.he-plate {
+  position: absolute; left: 0; top: calc(var(--plate-y) - var(--hand-y)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; white-space: nowrap; padding: 4px 12px; border-radius: 10px;
+  background: var(--he-plate); border: 1px solid rgba(242, 193, 78, 0.5); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+}
+.he-plate[hidden] { display: none; }
+.he-hero.is-turn .he-plate { border-color: var(--he-gold); box-shadow: 0 0 16px rgba(242, 193, 78, 0.55), 0 4px 14px rgba(0, 0, 0, 0.6); }
+.he-hero.is-turn .he-plate::before { inset: -4px; border-radius: 13px; }
+.he-plate-l { display: flex; align-items: baseline; gap: 6px; }
+.he-you { font-size: 13px; letter-spacing: 0.08em; color: var(--he-cream); }
+.he-stack { font-family: var(--font-num); font-weight: 700; font-size: 15px; color: var(--he-gold); }
+.he-label {
+  position: relative; border: 0; background: none; padding: 0; color: var(--he-gold-2); font: 700 12.5px var(--font-ui); letter-spacing: 0.06em;
+  border-left: 1px solid rgba(242, 193, 78, 0.35); padding-left: 10px; min-height: 26px; cursor: pointer;
+}
+.he-label::after { content: ''; position: absolute; inset: -9px -6px; }
+.he-label[hidden] { display: none; }
+.he-hero.is-winner .he-label { color: var(--he-ink); background: var(--he-gold); border-radius: 6px; padding: 0 8px; border-left: 0; }
+.he-clock { left: 50%; width: 120px; transform: translateX(-50%); top: calc(var(--plate-y) - var(--hand-y) + 40px); }
+.he-clock[hidden], .he-sclock[hidden] { display: none; }
+.he-hero .he-bet { left: 0; top: calc(var(--hc-h) / -2 - 20px); transform: translateX(-50%); }
+.he-hero .he-dealer { left: calc(var(--hc-w) * -1 - 14px); top: -9px; }
+
+/* THE ACTION AREA — always BELOW the board, never over your cards */
+.he-actions { position: absolute; inset: 0; pointer-events: none; }
+.he-actions > * { pointer-events: auto; }
+.he-actions.is-busy button { opacity: 0.55; }
+.he-presets, .he-actions > .he-buttons, .he-pres, .he-minis { position: absolute; left: var(--cx); transform: translate(-50%, -50%); display: flex; }
+.he-presets { top: var(--presets-y); gap: 8px; }
+.he-preset {
+  min-width: calc(76px * var(--s)); min-height: 46px; padding: 3px 10px; border-radius: 12px; cursor: pointer;
+  display: grid; place-items: center; gap: 0; line-height: 1.1;
+  background: linear-gradient(180deg, #17130c, #070605); border: 1.5px solid rgba(242, 193, 78, 0.8); color: var(--he-cream);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+.he-preset b { font-size: 12px; letter-spacing: 0.08em; }
+.he-preset small { font-family: var(--font-num); font-size: 13.5px; font-weight: 700; color: var(--he-gold-2); }
+.he-actions > .he-buttons { top: var(--buttons-y); gap: calc(20px * var(--s)); }
+.he-btn {
+  width: max(56px, calc(66px * var(--s))); height: max(56px, calc(66px * var(--s))); border-radius: 50%; cursor: pointer;
+  display: grid; place-content: center; gap: 1px; line-height: 1.05; text-align: center;
+  background: radial-gradient(120% 90% at 30% 20%, #262017, #070605 70%); color: var(--he-cream);
+  border: 2px solid rgba(242, 193, 78, 0.85); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.65);
+}
+.he-btn b { font-size: 13px; letter-spacing: 0.08em; }
+.he-btn small { font-family: var(--font-num); font-size: 12.5px; font-weight: 700; }
+.he-fold { border-color: rgba(255, 84, 104, 0.85); }
+.he-fold b { color: #ffd0d6; }
+.he-call { background: radial-gradient(120% 90% at 30% 20%, #ffe08a, #e2a92f 70%); color: var(--he-ink); border-color: #ffe7a6; }
+.he-btn:disabled { opacity: 0.4; cursor: default; }
+.he-pres { top: var(--buttons-y); gap: 10px; }
+.he-pre {
+  display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; border-radius: 12px; cursor: pointer;
+  background: rgba(7, 6, 5, 0.88); border: 1.5px solid rgba(244, 234, 210, 0.35); color: var(--he-cream);
+}
+.he-pre b { font-size: 12.5px; letter-spacing: 0.06em; white-space: nowrap; }
+.he-pre i { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid rgba(244, 234, 210, 0.6); }
+.he-pre.is-on { border-color: var(--he-gold); box-shadow: 0 0 12px rgba(242, 193, 78, 0.45); }
+.he-pre.is-on i { background: var(--he-gold); border-color: var(--he-gold); box-shadow: inset 0 0 0 3px #0b0a08; }
+.he-minis { top: var(--presets-y); gap: 10px; }
+.he-mini {
+  min-height: 44px; padding: 0 16px; border-radius: 12px; cursor: pointer; white-space: nowrap;
+  font: 800 12.5px var(--font-ui); letter-spacing: 0.08em;
+  background: rgba(7, 6, 5, 0.9); border: 1.5px solid rgba(244, 234, 210, 0.45); color: var(--he-cream);
+}
+.he-mini.is-gold { background: linear-gradient(180deg, #ffe08a, #e2a92f); color: var(--he-ink); border-color: #ffe7a6; }
+.he-status {
+  position: absolute; left: var(--cx); top: calc(var(--buttons-y) - 44px * var(--s)); transform: translate(-50%, -50%);
+  white-space: nowrap; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: var(--he-cream);
+  padding: 3px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.45); pointer-events: none;
+}
+.he-status[hidden] { display: none; }
+.he-hostbar { position: absolute; left: calc(var(--box-x) - 8px); top: calc(var(--box-y) - 2px); }
+.he-hostbar .btn { min-height: 36px; }
+.he-ending { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--he-dim); }
+
+/* RAISE: the slider panel — over the felt, ending above your cards */
+.he-slider {
+  position: absolute; left: calc(var(--box-x) + 14px); width: calc(var(--box-w) - 28px);
+  bottom: calc(100% - var(--hand-y) + var(--hc-h) / 2 + 10px);
+  padding: 12px 14px 14px; border-radius: 16px; display: grid; gap: 8px;
+  background: rgba(7, 6, 5, 0.96); border: 1.5px solid var(--he-gold); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+}
+.he-sl-top { display: flex; align-items: baseline; justify-content: center; gap: 10px; }
+.he-sl-amt { font-family: var(--font-num); font-size: 30px; color: var(--he-gold-2); }
+.he-sl-sub { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: var(--he-dim); }
+.he-sl-row { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--he-dim); }
+.he-sl-range { flex: 1; height: 44px; accent-color: var(--he-gold); }
+.he-slider .he-buttons { display: flex; justify-content: center; gap: 24px; }
+
+/* THE PODIUM: the console's frame over the table */
+.he-final { position: absolute; inset: 0; z-index: 5; overflow-y: auto; touch-action: pan-y; background: rgba(6, 5, 10, 0.97);
+  padding: calc(var(--safe-t) + 14px) calc(var(--safe-r) + var(--gutter)) calc(var(--safe-b) + 20px) calc(var(--safe-l) + var(--gutter)); }
+.he-final .panel-full { background: transparent; }
+.he.is-final :is(.he-actions, .he-status, .he-hostbar) { visibility: hidden; }
+
+/* waiting for the dealer (the walk inside, a refresh before the table arrives) */
+.he.is-waiting .he-seats, .he.is-waiting .he-hero, .he.is-waiting .he-pot { opacity: 0; }
+
+/* THE RANKINGS SHEET */
+.he-rk { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.he-rk-row { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.07); }
+.he-rk-row.is-mine { border-color: #f2c14e; box-shadow: 0 0 12px rgba(242, 193, 78, 0.3); }
+.he-rk-n { font-family: var(--font-num); font-weight: 700; color: #f2c14e; text-align: center; }
+.he-rk-t b { display: block; font-size: 13px; letter-spacing: 0.06em; }
+.he-rk-t small { display: block; font-size: 12px; color: var(--text-dim); }
+.he-rk-cards { display: flex; }
+.he-rk-cards svg { width: 22px; height: 31px; }
+.he-rk-cards svg + svg { margin-left: -6px; }
+.he-rk-foot { margin: 12px 2px 4px; font-size: 13px; color: var(--text-dim); }
+
+/* THE PODIUM's body (final.js) */
+.he-fs { display: grid; gap: 12px; }
+.he-fs-line { display: grid; justify-items: center; gap: 2px; text-align: center; }
+.he-fs-line small { font-size: 11px; letter-spacing: 0.2em; color: #f2c14e; }
+.he-fs-line b { font-family: var(--font-display); font-size: 20px; letter-spacing: 0.06em; }
+.he-fs-line span { font-size: 12px; color: var(--text-dim); }
+
+@media (prefers-reduced-motion: reduce) { .he-seat, .he-hand { transition: none; } }

@@ -6,7 +6,12 @@ export const get = () => resolved();
 export const set = () => Promise.resolve();
 export const update = () => Promise.resolve();
 export const remove = () => Promise.resolve();
-export const onValue = () => () => {};
+// (HE3: a preview may hand a listener its value — window.__fakeDb[path]; every other preview: a listener that never fires, as before)
+export const onValue = (r, cb) => {
+  const v = typeof window !== 'undefined' && window.__fakeDb && r ? window.__fakeDb[r.path] : undefined;
+  if (v !== undefined && typeof cb === 'function') setTimeout(() => cb({ val: () => v, exists: () => v != null }), 0);
+  return () => {};
+};
 export const off = () => {};
 export const onDisconnect = () => ({ set: () => Promise.resolve(), cancel: () => Promise.resolve() });
 export const serverTimestamp = () => Date.now();

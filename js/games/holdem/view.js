@@ -1,0 +1,495 @@
+// HOLD'EM — THE TABLE SCREEN A (HE3 — docs/holdem.md "THE TABLE SCREEN"): the PORTRAIT table, wired to the server dealer.
+// Renders ONLY from the database: rooms/{CODE}/holdem (the public table — THE LEAN WIRE, the room's live path `table`) + this phone's
+// hole/{CODE}/{uid} (its own two cards + its queued pre-action) + serverNow(). A refresh, a lock, a rejoin or a host change just works.
+//   THE TABLE    a tall stadium (rail + gold line + the real felt + the betting line + the quiet print), the level line above it
+//   THE SEATS    the opponents uniform on the rail (layout.js), each: emblem · plate (name, stack) · tag · card backs · bet · the D button
+//   THE BOARD    5 slots in the middle, the POT above it; YOUR two cards big over the bottom rail, your plate + hand label under them
+//   YOUR TURN    the one-tap presets (real amounts) + FOLD · RAISE · CALL / CHECK (RAISE = the slider panel, never over your cards)
+//   NOT YOUR TURN  the pre-actions CHECK/FOLD · CALL ANY + "<NAME> IS THINKING…"
+//   THE POKE     WHO POKES (logic.js#pokeIn): the host ~100 ms after `due`, everyone else only if it's still stuck ~2 s later (+ jitter)
+// 60 fps: the only per-frame work is the timer bars' transform + the level line's seconds (text only when it changes); the layout is
+// computed once per resize (a ResizeObserver) — never a layout read in the frame loop. Motion polish = HE4; chips, lighting, skins = HE5–HE6.
+import { h, vibrate, reducedMotion } from '../../ui/dom.js';
+import { avatar, tubeButton } from '../../ui/components.js';
+import { createFinal } from '../../ui/final.js';
+import { colorHex } from '../../config.js';
+import { dbRef, onValue, serverNow } from '../../firebase.js';
+import { settings, onSettings } from '../../audio/settings.js';
+import { installTestHook, removeTestHook } from '../kit/hook.js';
+import { legalActions, running } from './table.js';
+import { handLabel, evaluate } from './rank.js';
+import { fromWire } from './wire.js';
+import { levelLine, othersInOrder, potOf, sidePots, clockOf, pokeIn, POKE_RETRY_MS } from './logic.js';
+import { tableLayout } from './layout.js';
+import { faceSvg, cardName } from './card-art.js';
+import { dealer } from './index.js';
+import { SHOT_MS } from './structure.js';
+
+const BACK = new URL('../../../assets/holdem/cardback-casino.webp', import.meta.url).href;
+const fmt = n => Math.round(n || 0).toLocaleString('en-US');
+const GHOST = { name: 'PLAYER', color: 'cyan', avatar: 'ghost' };
+const SHOW_MS = 4000;
+
+export function createView() {
+  let st = null, root = null, els = {}, L = null;           // L = the layout (layout.js) for the current size + seat count
+  let pub = null, hole = null, holeOff = null, holeKey = '';
+  let raf = 0, ro = null, offSet = null, destroyed = false;
+  let pokeT = 0, pokeFor = '', pokeTries = 0, busy = null, slider = null;
+  const seatEls = new Map();
+  const frames = [], work = [];
+  let lastFrame = 0, lastLevelTxt = '', lastSig = '', showT = 0, finalView = null;
+
+  const me = () => st && st.uid;
+  const code = () => st && st.code;
+  const isHost = () => !!(st && st.meta && st.meta.hostId === st.uid);
+  const who = id => (st && st.players && st.players[id]) || GHOST;
+  const deck = () => (settings.heDeck === 'two' ? 'two' : 'four');
+  const table = () => (pub && pub.table) || null;
+  const mySeat = () => { const t = table(); return t ? t.seats.find(x => x.id === me()) || null : null; };
+  const myCards = () => { const t = table(); return hole && t && hole.h === t.hand && Array.isArray(hole.c) ? hole.c : null; };
+  const current = () => !!(pub && st && st.game && pub.id === st.game.matchId);
+
+  // ------------------------------------------------------------------ the dealer's ops (a refusal just waits for the redraw)
+  async function send(op, body = {}) {
+    if (busy) return null;
+    const t = table();
+    busy = { op, at: Date.now() };
+    els.actions.classList.add('is-busy');
+    try {
+      return await dealer({ holdem: op, room: code(), ...(t ? { hand: t.hand } : {}), ...body });
+    } catch (e) {
+      // (409 stale / illegal, 429: the table moved on — the listener redraws; never a scary message)
+      if (e && e.status === 0) import('../../ui/toast.js').then(m => m.toast('NO SIGNAL — TRY AGAIN', 'warn', 2200)).catch(() => {});
+      return null;
+    } finally {
+      busy = null;
+      if (!destroyed) els.actions.classList.remove('is-busy');
+    }
+  }
+  const act = (action, amount) => { vibrate(12); slider = null; return send('act', { seq: pub.seq, action, ...(amount != null ? { amount } : {}) }); };
+
+  // ------------------------------------------------------------------ THE POKE (WHO POKES — docs/holdem.md)
+  function schedulePoke() {
+    if (!pub || !current() || pub.due == null || destroyed) { clearTimeout(pokeT); pokeT = 0; pokeFor = ''; return; }
+    const key = `${pub.seq}|${pub.due}`;
+    if (key === pokeFor && pokeT) return;
+    if (key !== pokeFor) pokeTries = 0;
+    pokeFor = key;
+    clearTimeout(pokeT);
+    const wait = pokeIn({ due: pub.due, now: serverNow(), host: isHost(), jitter: (hashUid(me()) % 1000) });
+    pokeT = setTimeout(poke, Math.max(0, wait + pokeTries * POKE_RETRY_MS));
+  }
+  async function poke() {
+    pokeT = 0;
+    if (!pub || destroyed || `${pub.seq}|${pub.due}` !== pokeFor) { schedulePoke(); return; }
+    try { await dealer({ holdem: 'poke', room: code() }); } catch { /* the next update re-schedules */ }
+    if (destroyed) return;
+    // still the same table after the poke (the server's clock a hair behind ours, or a lost write): try again, a little later each time
+    if (pub && `${pub.seq}|${pub.due}` === pokeFor && pokeTries < 8) { pokeTries++; pokeT = setTimeout(poke, POKE_RETRY_MS * pokeTries); }
+  }
+  const hashUid = s => { let x = 0; for (const c of String(s || '')) x = (x * 31 + c.charCodeAt(0)) >>> 0; return x; };
+
+  // ------------------------------------------------------------------ mount / update / unmount
+  function mount(el, state) {
+    st = state;
+    root = h('div.he', { dataset: { msgUnder: '' } });
+    els.level = h('div.he-level', { 'aria-live': 'off' });
+    els.host = h('div.he-hostbar');
+    els.table = h('div.he-table', h('div.he-rail'), h('div.he-felt', h('div.he-betline')));
+    els.print = h('div.he-print', { 'aria-hidden': 'true' }, 'NEON SPEAKEASY');
+    els.seats = h('div.he-seats');
+    els.pot = h('div.he-pot');
+    els.board = h('div.he-board', { 'aria-label': 'The board' }, Array.from({ length: 5 }, () => h('div.he-slot')));
+    els.hero = h('div.he-hero', h('div.he-hand'), h('div.he-plate', h('div.he-plate-l', h('b.he-you'), h('span.he-stack')),
+      h('button.he-label', { type: 'button', onclick: () => import('./rankings.js').then(m => m.openRankings({ mark: myCat() })).catch(() => {}) }),
+      h('div.he-clock', h('i'))));
+    els.actions = h('div.he-actions');
+    els.status = h('div.he-status', { 'aria-live': 'polite' });
+    // (the safe areas, measured once per resize by two probes — never in the frame loop)
+    els.probeT = h('i.he-probe.he-probe-t'); els.probeB = h('i.he-probe.he-probe-b');
+    root.append(els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.status, els.actions, els.hero);
+    el.append(root);
+    ro = new ResizeObserver(() => relayout(true));
+    ro.observe(root);
+    offSet = onSettings(() => { lastSig = ''; render(); });
+    watchHole();
+    update(state);
+    raf = requestAnimationFrame(frame);
+    installTestHook('__holdem', hook);
+  }
+
+  function update(state) {
+    st = state;
+    if (destroyed) return;
+    pub = fromWire(st.live && st.live.table);
+    watchHole();
+    render();
+    paintFinal();
+    schedulePoke();
+  }
+
+  // THE PODIUM: the console's frame (ui/final.js) with HOLD'EM's rows (the director stored them) — its body = final.js#finalScene
+  function paintFinal() {
+    const g = st.game;
+    if (!g || g.phase !== 'final' || !root) return;
+    if (finalView) { if (finalView.refresh) finalView.refresh(); return; }
+    const cash = g.endMode === 'cash';
+    finalView = createFinal({ rows: Array.isArray(g.rows) ? g.rows : [], players: st.players || {}, me: me(), presence: st.presence, scoreLabel: cash ? 'NET' : '',
+      kicker: cash ? 'CASH · THE LEDGER' : 'TOURNAMENT · FINAL', winnerLine: nm => (cash ? `${nm} LEAVES WITH THE MOST` : `${nm} TAKES EVERY CHIP`) });
+    els.final = h('div.he-final', finalView.el);
+    root.append(els.final);
+    root.classList.add('is-final');
+  }
+
+  function unmount() {
+    destroyed = true;
+    cancelAnimationFrame(raf);
+    clearTimeout(pokeT); clearTimeout(showT);
+    if (ro) ro.disconnect();
+    if (offSet) offSet();
+    if (holeOff) holeOff();
+    removeTestHook('__holdem', hook);
+    if (finalView) finalView.destroy();
+    seatEls.clear();
+    root && root.remove();
+  }
+
+  function watchHole() {
+    const key = code() && me() ? `${code()}|${me()}` : '';
+    if (key === holeKey) return;
+    if (holeOff) holeOff();
+    holeOff = null; hole = null; holeKey = key;
+    if (!key) return;
+    holeOff = onValue(dbRef(`hole/${code()}/${me()}`), s => { hole = s.val(); render(); }, () => { hole = null; });
+  }
+
+  // ------------------------------------------------------------------ the layout (once per resize / seat count)
+  let laySig = '';
+  function relayout(force = false) {
+    if (!root) return;
+    const t = table();
+    const hero = heroId();
+    const others = t ? othersInOrder(t.seats, hero) : [];
+    const k = Math.min(7, others.length);
+    const w = root.clientWidth, hh = root.clientHeight;            // (a resize only — never in the frame loop)
+    const top = els.probeT.offsetHeight || 0, bottom = els.probeB.offsetHeight || 0;
+    const sig = `${w}x${hh}|${top}|${bottom}|${k}`;
+    if (!force && sig === laySig) return;
+    laySig = sig;
+    L = tableLayout({ w, h: hh, top, bottom, k });
+    const s = L.s, B = L.box;
+    root.style.setProperty('--s', s.toFixed(3));
+    root.style.setProperty('--ss', L.ss.toFixed(3));
+    Object.assign(els.table.style, { left: `${B.x}px`, top: `${B.y}px`, width: `${B.w}px`, height: `${B.h}px`, borderRadius: `${B.w / 2}px` });
+    els.table.style.setProperty('--r', `${B.w / 2}px`);
+    root.style.setProperty('--cx', `${B.x + B.w / 2}px`);
+    root.style.setProperty('--pot-y', `${L.pot}px`);
+    root.style.setProperty('--board-y', `${L.board.y}px`);
+    root.style.setProperty('--bc-w', `${L.board.card.w}px`);
+    root.style.setProperty('--bc-h', `${L.board.card.h}px`);
+    root.style.setProperty('--presets-y', `${L.presets}px`);
+    root.style.setProperty('--buttons-y', `${L.buttons}px`);
+    root.style.setProperty('--hand-y', `${L.hand.y}px`);
+    root.style.setProperty('--hc-w', `${L.hand.card.w}px`);
+    root.style.setProperty('--hc-h', `${L.hand.card.h}px`);
+    root.style.setProperty('--plate-y', `${L.plate}px`);
+    root.style.setProperty('--box-x', `${B.x}px`);
+    root.style.setProperty('--box-y', `${B.y}px`);
+    root.style.setProperty('--box-w', `${B.w}px`);
+    lastSig = '';
+    render();
+  }
+
+  // the seat at the bottom: you — or, watching, the first seat (so 8 players + a spectator still fit)
+  function heroId() {
+    const t = table();
+    if (!t) return me();
+    if (t.seats.some(x => x.id === me())) return me();
+    return t.seats.length > 7 ? t.seats[0].id : me();
+  }
+  function myCat() {
+    const c = myCards(), t = table();
+    if (!c || !t || (t.board || []).length < 3) return null;
+    try { return evaluate([...c, ...t.board]).name; } catch { return null; }
+  }
+
+  // ------------------------------------------------------------------ render (from the state; DOM only where something changed)
+  function render() {
+    if (!root || destroyed) return;
+    const t = table();
+    const others = t ? othersInOrder(t.seats, heroId()) : [];
+    if (!L || Math.min(7, others.length) !== seatCount()) { relayout(); if (!L) return; }
+    const sig = JSON.stringify([pub && pub.seq, pub && pub.id, hole, st.game && st.game.matchId, Object.keys(st.players || {}).length, st.meta && st.meta.hostId, deck(), !!slider, laySig]);
+    if (sig === lastSig) return;
+    lastSig = sig;
+    root.classList.toggle('is-waiting', !current());
+    paintSeats(others);
+    paintBoard();
+    paintHero();
+    paintActions();
+    paintHostBar();
+    pickBar();
+  }
+  // the one timer bar that runs now (the frame loop only moves it — never a query per frame)
+  let activeBar = null;
+  function pickBar() {
+    activeBar = null;
+    if (!els.hero.querySelector('.he-clock').hidden) activeBar = els.hero.querySelector('.he-clock');
+    else for (const [, s] of seatEls) if (s.el.classList.contains('is-turn')) { activeBar = s.el.querySelector('.he-sclock'); break; }
+  }
+  const seatCount = () => (L ? L.seats.length : -1);
+
+  // ---- the opponents
+  function paintSeats(others) {
+    const t = table();
+    const live = new Set();
+    others.slice(0, L.seats.length).forEach((x, i) => {
+      const pos = L.seats[i];
+      live.add(x.id);
+      let s = seatEls.get(x.id);
+      if (!s) {
+        s = { el: h('div.he-seat', h('div.he-av'), h('div.he-dealer', 'D'), h('div.he-backs'), h('div.he-shown'),
+          h('div.he-splate', h('b.he-name'), h('span.he-sstack')), h('div.he-tag'), h('div.he-sclock', h('i')), h('div.he-bet', h('i.he-chip'), h('span'))), av: '' };
+        seatEls.set(x.id, s);
+        els.seats.append(s.el);
+      }
+      paintSeat(s, x, pos, t);
+    });
+    for (const [id, s] of seatEls) if (!live.has(id)) { s.el.remove(); seatEls.delete(id); }
+  }
+
+  function paintSeat(s, x, pos, t) {
+    const p = who(x.id), el = s.el;
+    el.style.left = `${pos.x}px`; el.style.top = `${pos.y}px`;
+    el.dataset.side = pos.side;
+    el.classList.toggle('is-big', !!pos.big);
+    const avKey = `${p.avatar}|${p.color}|${pos.big}`;
+    if (s.av !== avKey) { s.av = avKey; el.querySelector('.he-av').replaceChildren(avatar(p.avatar, p.color, pos.big ? 56 : 44)); }
+    el.style.setProperty('--c', colorHex(p.color));
+    el.querySelector('.he-name').textContent = p.name;
+    el.querySelector('.he-sstack').textContent = fmt(x.stack);
+    const run = t && running(t);
+    const turn = !!(run && !t.runout && t.turn === x.seat);
+    el.classList.toggle('is-turn', turn);
+    el.classList.toggle('is-folded', x.status === 'folded' || x.status === 'out');
+    const pl = (pub.players || {})[x.id] || {};
+    const tag = x.status === 'out' ? 'OUT' : pl.left ? 'LEFT' : x.status === 'allin' ? 'ALL IN' : x.status === 'sitout' ? 'SAT OUT' : x.away ? 'AWAY' : x.status === 'folded' && run ? 'FOLD' : '';
+    const tg = el.querySelector('.he-tag');
+    tg.textContent = tag; tg.dataset.kind = tag === 'ALL IN' ? 'allin' : tag ? 'grey' : '';
+    el.querySelector('.he-dealer').hidden = !(t && t.button === x.seat && t.hand > 0);
+    // the cards: backs while held + unshown; face up once shown (the showdown, a SHOW)
+    const shown = Array.isArray(x.cards) && x.cards.length ? x.cards : null;
+    const backs = el.querySelector('.he-backs'), sh = el.querySelector('.he-shown');
+    const bk = !shown && x.held ? 'b' : '';
+    if (backs.dataset.k !== bk) { backs.dataset.k = bk; backs.replaceChildren(...(bk ? [backImg(), backImg()] : [])); }
+    const sk = shown ? `${shown.join('')}|${deck()}` : '';
+    if (sh.dataset.k !== sk) { sh.dataset.k = sk; sh.innerHTML = shown ? shown.map(c => `<div class="he-card" title="${cardName(c)}">${faceSvg(c, deck())}</div>`).join('') : ''; }
+    // the showdown's line under the plate: the hand label (gold for a winner) + WINS n
+    const res = t && t.street === 'done' && t.result;
+    const won = res ? winOf(res, x.id) : 0;
+    el.classList.toggle('is-winner', won > 0);
+    // (at a seat the label is the hand's CATEGORY — "STRAIGHT", "TWO PAIR": short, so a full table's labels never run into each other)
+    const label = shown && t ? seatLabel([...shown, ...(t.board || [])]) : '';
+    if (label || won > 0) { tg.textContent = label || 'WINS'; tg.dataset.kind = won > 0 ? 'win' : 'label'; }
+    // the bet in front of them — or, a winner at the hand's end, the chips they took (+n, gold)
+    const bet = el.querySelector('.he-bet');
+    bet.hidden = !((run && x.bet > 0) || won > 0);
+    bet.classList.toggle('is-win', won > 0 && !run);
+    bet.querySelector('span').textContent = won > 0 && !run ? `+${fmt(won)}` : fmt(x.bet);
+    const ck = el.querySelector('.he-sclock');
+    ck.hidden = !turn;
+  }
+  const backImg = () => h('img.he-back', { src: BACK, alt: '', draggable: 'false' });
+  const winOf = (res, id) => (res.pots || []).reduce((n, p) => n + (p.winners || []).filter(w => w.id === id).reduce((m, w) => m + (w.amount || 0), 0), 0);
+  const seatLabel = cards => { try { return cards.length >= 5 ? evaluate(cards).name : cards.length === 2 ? handLabel(cards) : ''; } catch { return ''; } };
+
+  // ---- the board + the pot
+  function paintBoard() {
+    const t = table();
+    const board = (t && t.board) || [];
+    [...els.board.children].forEach((slot, i) => {
+      const c = board[i];
+      const k = c ? `${c}|${deck()}` : '';
+      if (slot.dataset.k === k) return;
+      slot.dataset.k = k;
+      slot.classList.toggle('is-card', !!c);
+      slot.innerHTML = c ? `<div class="he-card" title="${cardName(c)}">${faceSvg(c, deck())}</div>` : '';
+    });
+    els.board.classList.toggle('is-big', seatCount() === 1);
+    let pot = 0;
+    if (t && t.street === 'done' && t.result) pot = t.result.total || 0;
+    else if (t) pot = potOf(t);
+    const side = t && running(t) ? sidePots(t) : [];
+    els.pot.replaceChildren(...(pot > 0 ? [h('b', `POT ${fmt(pot)}`), ...side.slice(1).map(p => h('small', `${p.label} ${fmt(p.amount)}`))] : []));
+  }
+
+  // ---- you (or, watching, the bottom seat)
+  function paintHero() {
+    const t = table(), id = heroId(), x = t ? t.seats.find(y => y.id === id) : null;
+    const mine = id === me();
+    const hand = els.hero.querySelector('.he-hand');
+    const cards = mine ? myCards() : (x && Array.isArray(x.cards) && x.cards.length ? x.cards : null);
+    const showBacks = !cards && x && x.held;
+    const k = cards ? `${cards.join('')}|${deck()}` : showBacks ? 'backs' : '';
+    if (hand.dataset.k !== k) {
+      hand.dataset.k = k;
+      hand.innerHTML = cards ? cards.map(c => `<div class="he-card" title="${cardName(c)}">${faceSvg(c, deck())}</div>`).join('')
+        : showBacks ? `<img class="he-back" src="${BACK}" alt=""><img class="he-back" src="${BACK}" alt="">` : '';
+    }
+    const run = t && running(t);
+    els.hero.classList.toggle('is-folded', !!(x && (x.status === 'folded' || x.status === 'out')));
+    const myTurn = !!(run && x && !t.runout && t.turn === x.seat);
+    els.hero.classList.toggle('is-turn', myTurn);
+    els.hero.style.setProperty('--c', colorHex(who(id).color));
+    els.hero.querySelector('.he-you').textContent = mine ? 'YOU' : x ? who(id).name : 'WATCHING';
+    els.hero.querySelector('.he-stack').textContent = x ? fmt(x.stack) : '';
+    els.hero.querySelector('.he-plate').hidden = !x && !mine;
+    const lab = els.hero.querySelector('.he-label');
+    const res = t && t.street === 'done' && t.result;
+    const won = res && x ? winOf(res, x.id) : 0;
+    const all = cards ? [...cards, ...((t && t.board) || [])] : null;
+    const text = all ? (all.length >= 5 ? handLabel(all, true) : all.length >= 3 ? handLabel(all, true) : handLabel(cards)) : '';
+    lab.textContent = won > 0 ? `${text ? `${text} · ` : ''}WINS ${fmt(won)}` : text;
+    lab.hidden = !lab.textContent;
+    lab.disabled = !mine;
+    els.hero.classList.toggle('is-winner', won > 0);
+    // your own bet + the D button
+    let bet = els.hero.querySelector('.he-bet');
+    if (!bet) { bet = h('div.he-bet', h('i.he-chip'), h('span')); els.hero.append(bet, h('div.he-dealer', 'D')); }
+    bet.hidden = !(run && x && x.bet > 0);
+    bet.querySelector('span').textContent = x ? fmt(x.bet) : '';
+    els.hero.querySelector('.he-dealer').hidden = !(t && x && t.button === x.seat && t.hand > 0);
+    els.hero.querySelector('.he-clock').hidden = !myTurn;
+  }
+
+  // ---- the action area: YOUR TURN · the pre-actions · the between-hands buttons
+  function paintActions() {
+    if (!root) return;
+    const t = table(), x = mySeat(), run = t && running(t);
+    const mine = run && !t.runout ? legalActions(t) : null;
+    const yours = !!(mine && mine.id === me());
+    root.classList.toggle('is-myturn', yours);
+    const kids = [];
+    let status = '';
+    if (!current()) status = st.game && st.game.phase === 'final' ? '' : 'SHUFFLING UP…';
+    else if (pub.ended) status = pub.rep ? 'THE GAME IS OVER' : 'COUNTING THE CHIPS…';
+    else if (yours && slider) kids.push(sliderPanel(mine));
+    else if (yours) kids.push(...turnControls(mine));
+    else if (run && x && x.status === 'in') {
+      kids.push(preToggles());
+      if (t.runout) status = 'RUNNING IT OUT…';
+      else if (mine) status = `${who(mine.id).name} IS THINKING…`;
+    } else if (run) {
+      status = t.runout ? 'RUNNING IT OUT…' : mine ? `${who(mine.id).name} IS THINKING…` : '';
+    } else if (t && t.street === 'done') status = t.hand > 0 ? 'NEXT HAND…' : '';
+    else if (t && t.hand === 0) status = 'SHUFFLING UP…';
+    // the seat's own buttons (between turns): SHOW · REBUY · SIT BACK · I'M BACK · TAKE A SEAT
+    if (current() && !pub.ended) kids.push(...seatButtons(x, t));
+    if (kids.some(k => k.classList.contains('he-minis'))) status = '';   // (a button of your own wins the line's spot)
+    if (els.status.textContent !== status) els.status.textContent = status;
+    els.status.hidden = !status;
+    // (THE TAP WATCH: a control is never rebuilt under a finger — only when what it says changed)
+    const ak = JSON.stringify([yours && !slider ? [mine.presets, mine.canCheck, mine.callAmount, mine.callAllIn, mine.canRaise, mine.kind] : null, yours && !!slider,
+      !yours && run && x && x.status === 'in' ? [hole && hole.pre, hole && hole.h, t.bet, x.bet] : null, kids.filter(k => k.classList.contains('he-minis')).map(k => k.textContent)]);
+    if (els.actions.dataset.k !== ak) { els.actions.dataset.k = ak; els.actions.replaceChildren(...kids); }
+  }
+
+  function turnControls(Lg) {
+    const t = table();
+    const presets = h('div.he-presets', (Lg.presets || []).map(p => h('button.he-preset', {
+      type: 'button', dataset: { key: p.key }, disabled: !!busy,
+      onclick: () => act(p.allin ? 'allin' : (t.bet === 0 ? 'bet' : 'raise'), p.allin ? null : p.to),
+    }, h('b', p.label), h('small', fmt(p.to)))));
+    const callLabel = Lg.canCheck ? ['CHECK'] : Lg.callAllIn ? ['ALL IN', fmt(Lg.callAmount)] : ['CALL', fmt(Lg.callAmount)];
+    const buttons = h('div.he-buttons',
+      h('button.he-btn.he-fold', { type: 'button', disabled: !!busy, onclick: () => act('fold') }, h('b', 'FOLD')),
+      h('button.he-btn.he-raise', { type: 'button', disabled: !!busy || !Lg.canRaise, onclick: () => { slider = { to: Lg.minTo }; lastSig = ''; render(); } }, h('b', Lg.kind === 'bet' ? 'BET' : 'RAISE')),
+      h('button.he-btn.he-call', { type: 'button', disabled: !!busy, onclick: () => act(Lg.canCheck ? 'check' : Lg.callAllIn ? 'allin' : 'call') }, h('b', callLabel[0]), callLabel[1] ? h('small', callLabel[1]) : null));
+    return [presets, buttons];
+  }
+
+  function sliderPanel(Lg) {
+    const t = table();
+    const step = Math.max(1, Math.min(t.bb || 10, Math.round((Lg.maxTo - Lg.minTo) / 40) || 1));
+    let to = Math.max(Lg.minTo, Math.min(Lg.maxTo, slider.to || Lg.minTo));
+    const amount = h('b.he-sl-amt', fmt(to));
+    const sub = h('small.he-sl-sub');
+    const range = h('input.he-sl-range', { type: 'range', min: String(Lg.minTo), max: String(Lg.maxTo), step: String(step), value: String(to), 'aria-label': 'Raise to' });
+    const show = () => { amount.textContent = fmt(to); sub.textContent = to >= Lg.maxTo ? 'ALL IN' : `${Lg.kind === 'bet' ? 'BET' : 'RAISE TO'} ${fmt(to)}`; };
+    range.addEventListener('input', () => { to = Number(range.value); if (Lg.maxTo - to < step) to = Lg.maxTo; slider.to = to; show(); });
+    show();
+    const confirm = h('button.he-btn.he-call.he-confirm', { type: 'button', onclick: () => act(to >= Lg.maxTo ? 'allin' : Lg.kind, to >= Lg.maxTo ? null : to) }, h('b', 'CONFIRM'));
+    const back = h('button.he-btn.he-fold.he-back-b', { type: 'button', onclick: () => { slider = null; lastSig = ''; render(); } }, h('b', 'BACK'));
+    return h('div.he-slider', h('div.he-sl-top', amount, sub), h('div.he-sl-row', h('span', 'MIN'), range, h('span', 'ALL IN')), h('div.he-buttons', back, confirm));
+  }
+
+  function preToggles() {
+    const on = hole && table() && hole.h === table().hand ? hole.pre || null : null;
+    const t = table(), x = mySeat();
+    const free = !!(t && x && x.bet >= t.bet);
+    const tog = (kind, label) => h(`button.he-pre${on === kind ? '.is-on' : ''}`, { type: 'button', 'aria-pressed': String(on === kind), disabled: !!busy,
+      onclick: () => send('pre', { pre: on === kind ? null : kind }) }, h('i'), h('b', label));
+    return h('div.he-pres', tog('checkfold', free ? 'CHECK / FOLD' : 'FOLD'), tog('callany', free ? 'CHECK' : 'CALL ANY'));
+  }
+
+  function seatButtons(x, t) {
+    const out = [];
+    const cash = pub.mode === 'cash';
+    const pl = (pub.players || {})[me()] || null;
+    // a fold-win's SHOW (optional, ~4 s): the winner, until the next deal
+    const res = t && t.street === 'done' && t.result;
+    if (res && res.byFold && x && winOf(res, x.id) > 0 && !(Array.isArray(x.cards) && x.cards.length) && myCards()) {
+      const age = serverNow() - (lastDoneAt(t) || serverNow());
+      if (age < SHOW_MS) { clearTimeout(showT); showT = setTimeout(() => { lastSig = ''; render(); }, SHOW_MS - age + 50); }
+      if (age < SHOW_MS) out.push(h('button.he-mini', { type: 'button', disabled: !!busy, onclick: () => send('show') }, 'SHOW YOUR CARDS'));
+    }
+    if (cash && !x && !(pl && !pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('sit') }, 'TAKE A SEAT'));
+    if (cash && pl && pl.left) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('sit') }, 'SIT BACK DOWN'));
+    if (x && cash && x.stack === 0 && x.status !== 'in' && x.status !== 'allin' && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('rebuy') }, 'REBUY 1,000'));
+    if (x && (x.away || x.status === 'sitout') && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('back') }, cash ? 'SIT BACK IN' : 'I’M BACK'));
+    return out.length ? [h('div.he-minis', out)] : [];
+  }
+  const lastDoneAt = t => { const e = [...(pub.ev || [])].reverse().find(v => v.t === 'pot' && v.hand === t.hand); return e ? e.at : null; };
+
+  function paintHostBar() {
+    const cash = pub && pub.mode === 'cash' && current() && !pub.ended;
+    const want = cash && isHost() ? (pub.ending ? 'ending' : 'end') : '';
+    if (els.host.dataset.k === want) return;
+    els.host.dataset.k = want;
+    els.host.replaceChildren(...(want === 'end' ? [tubeButton('END SESSION', { kind: 'ghost', size: 'sm', confirm: 'TAP AGAIN TO END', onClick: () => send('endSession') })]
+      : want === 'ending' ? [h('small.he-ending', 'ENDS AFTER THIS HAND')] : []));
+  }
+
+  // ------------------------------------------------------------------ the frame: the timer bars + the level line's seconds (transform / text only)
+  function frame(now) {
+    if (destroyed) return;
+    raf = requestAnimationFrame(frame);
+    const w0 = performance.now();
+    if (lastFrame) { frames.push(now - lastFrame); if (frames.length > 240) frames.shift(); }
+    lastFrame = now;
+    const t = table(), sn = serverNow();
+    const txt = pub ? levelLine(pub, sn) : '';
+    if (txt !== lastLevelTxt) { lastLevelTxt = txt; els.level.textContent = txt; }
+    const ck = t && running(t) && !t.runout ? clockOf(t, sn, (t.clock && t.clock.shot) || SHOT_MS) : null;
+    const bar = ck ? activeBar : null;
+    if (bar) {
+      const i = bar.firstChild;
+      const v = reducedMotion() ? Math.ceil(ck.frac * 10) / 10 : ck.frac;
+      const tr = `scaleX(${v.toFixed(3)})`;
+      if (i.style.transform !== tr) i.style.transform = tr;
+      bar.classList.toggle('is-bank', ck.bank);
+    }
+    work.push(performance.now() - w0); if (work.length > 240) work.shift();
+  }
+
+  // ------------------------------------------------------------------ the E2E's hook (localhost / ?emu only)
+  const hook = {
+    pub: () => pub, hole: () => hole, layout: () => L,
+    legal: () => { const t = table(); return t && running(t) ? legalActions(t) : null; },
+    act: (action, amount) => act(action, amount), pre: kind => send('pre', { pre: kind }), op: (op, body) => send(op, body),
+    tier: () => 0, setTier: () => {}, fps: () => frames.slice(), work: () => work.slice(),
+    seats: () => [...seatEls.keys()],
+  };
+
+  return { mount, update, unmount };
+}
