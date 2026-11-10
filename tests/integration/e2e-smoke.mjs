@@ -167,7 +167,8 @@ try {
     for (const id of ids) res.push(await host.evaluate(g => import('/js/host.js').then(m => m.startGame(g, {})), id));
     await sleep(600);
     const g = await evalIn(host, s => s.game ? s.game.id : null);
-    ok(ids.length === 10 && res.every(r => r === false) && g === null, `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
+    // (HE3: + HOLD'EM, being built — `preview`: never starts on a plain emulator page either, only where a link asks for it)
+    ok(ids.length === 11 && ids.includes('holdem') && res.every(r => r === false) && g === null, `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
     // (LOBBY 2.0 A: in City 2.0 the room is the live city — its GAMES sheet lists the games; City 1.0's lobby keeps its cards)
     let cards = await host.$$eval('.lobby-screen .game-card', els => els.map(e => e.dataset.theme));
     if (!cards.length && await host.$('.rdk-games')) { await host.evaluate(() => document.querySelector('.rdk-games').click()); await host.waitForSelector('.rc-games-sheet .rc-game', { timeout: 8000 }); cards = await host.$$eval('.rc-games-sheet .rc-game', els => els.map(e => e.dataset.game)); await host.evaluate(() => document.querySelector('.rc-games-sheet .sh-back').click()); await sleep(400); }

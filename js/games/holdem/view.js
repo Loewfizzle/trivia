@@ -283,7 +283,7 @@ export function createView() {
     const bk = !shown && x.held ? 'b' : '';
     if (backs.dataset.k !== bk) { backs.dataset.k = bk; backs.replaceChildren(...(bk ? [backImg(), backImg()] : [])); }
     const sk = shown ? `${shown.join('')}|${deck()}` : '';
-    if (sh.dataset.k !== sk) { sh.dataset.k = sk; sh.innerHTML = shown ? shown.map(c => `<div class="he-card" title="${cardName(c)}">${faceSvg(c, deck())}</div>`).join('') : ''; }
+    if (sh.dataset.k !== sk) { sh.dataset.k = sk; sh.innerHTML = shown ? shown.map(c => `<div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck())}</div>`).join('') : ''; }
     // the showdown's line under the plate: the hand label (gold for a winner) + WINS n
     const res = t && t.street === 'done' && t.result;
     const won = res ? winOf(res, x.id) : 0;
@@ -313,7 +313,7 @@ export function createView() {
       if (slot.dataset.k === k) return;
       slot.dataset.k = k;
       slot.classList.toggle('is-card', !!c);
-      slot.innerHTML = c ? `<div class="he-card" title="${cardName(c)}">${faceSvg(c, deck())}</div>` : '';
+      slot.innerHTML = c ? `<div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck())}</div>` : '';
     });
     els.board.classList.toggle('is-big', seatCount() === 1);
     let pot = 0;
@@ -333,7 +333,7 @@ export function createView() {
     const k = cards ? `${cards.join('')}|${deck()}` : showBacks ? 'backs' : '';
     if (hand.dataset.k !== k) {
       hand.dataset.k = k;
-      hand.innerHTML = cards ? cards.map(c => `<div class="he-card" title="${cardName(c)}">${faceSvg(c, deck())}</div>`).join('')
+      hand.innerHTML = cards ? cards.map(c => `<div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck())}</div>`).join('')
         : showBacks ? `<img class="he-back" src="${BACK}" alt=""><img class="he-back" src="${BACK}" alt="">` : '';
     }
     const run = t && running(t);
@@ -445,7 +445,8 @@ export function createView() {
     }
     if (cash && !x && !(pl && !pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('sit') }, 'TAKE A SEAT'));
     if (cash && pl && pl.left) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('sit') }, 'SIT BACK DOWN'));
-    if (x && cash && x.stack === 0 && x.status !== 'in' && x.status !== 'allin' && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('rebuy') }, 'REBUY 1,000'));
+    // (between hands a busted seat still reads 'allin' until the next deal — the hand is over, so it may rebuy)
+    if (x && cash && x.stack === 0 && (!(t && running(t)) || (x.status !== 'in' && x.status !== 'allin')) && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('rebuy') }, 'REBUY 1,000'));
     if (x && (x.away || x.status === 'sitout') && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('back') }, cash ? 'SIT BACK IN' : 'I’M BACK'));
     return out.length ? [h('div.he-minis', out)] : [];
   }

@@ -19,6 +19,7 @@ export function ranksOf(pub) {
 }
 
 const fmt = n => Math.round(n || 0).toLocaleString('en-US');
+const plural = (n, w) => `${fmt(n)} ${w}${n === 1 ? '' : 'S'}`;
 const signed = n => (n > 0 ? `+${fmt(n)}` : n < 0 ? `−${fmt(-n)}` : '±0');
 
 /** The podium's rows (ui/final.js): { uid, rank, score, scoreText?, note } — a TOURNAMENT's KOs + hands won; CASH's net + bought in. */
@@ -29,13 +30,13 @@ export function finalRowsOf(pub) {
     const L = new Map((pub.ledger || []).map(r => [r.id, r]));
     return ranksOf(pub).map(r => {
       const x = L.get(r.uid) || {};
-      return { ...r, score: x.net || 0, scoreText: signed(x.net || 0), note: `${fmt(x.final)} CHIPS · BOUGHT IN ${fmt(x.buyins)} · ${x.hands || 0} HANDS` };
+      return { ...r, score: x.net || 0, scoreText: signed(x.net || 0), note: `${fmt(x.final)} CHIPS · BOUGHT IN ${fmt(x.buyins)} · ${plural(x.hands || 0, 'HAND')}` };
     });
   }
   const n = ranksOf(pub).length;
   return ranksOf(pub).map(r => {
     const p = pl[r.uid] || {};
-    return { ...r, score: n - r.rank + 1, scoreText: ordinal(r.rank), note: `${p.kos || 0} KO · ${p.won || 0} HANDS WON · ${p.hands || 0} PLAYED` };
+    return { ...r, score: n - r.rank + 1, scoreText: ordinal(r.rank), note: `${p.kos || 0} KO · ${plural(p.won || 0, 'HAND')} WON · ${p.hands || 0} PLAYED` };
   });
 }
 export const ordinal = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'TH' : ['TH', 'ST', 'ND', 'RD'][n % 10] || 'TH'}`;

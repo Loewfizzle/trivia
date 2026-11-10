@@ -29,7 +29,7 @@ export async function start({ code, matchId, settings, participants, now }) {
   const s = cleanSettings(settings);
   const uids = Object.keys(participants || {});
   await dealer({ holdem: 'start', room: code, mode: s.mode, ...(s.mode === 'tournament' ? { speed: s.speed } : {}), matchId, uids, at: now });
-  return { matchId, settings: s, participants, phase: 'play', phaseStartAt: now, startAt: now };
+  return { id: 'holdem', matchId, settings: s, participants, phase: 'play', phaseStartAt: now, startAt: now };
 }
 
 /** nothing to top up: the server deals (the pokes are every phone's — the view, on THE POKE's rule) */

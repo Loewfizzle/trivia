@@ -96,8 +96,10 @@ export const gameRow = id => GAMES.find(g => g.id === id) || DAILIES.find(g => g
 
 /** WINDOWS: can a match of this game start? (the one switch: GAMES[].playable) */
 export const isPlayable = id => !!GAMES.find(g => g.id === id && (g.playable || (g.preview && localPreview())));
-/** HE3 — a game still being built starts only on a LOCAL emulator page (localhost / 127.0.0.1 + ?emu): the E2E + the passes' play-tests */
+/** HE3 — a game still being built starts only on a LOCAL emulator page (localhost / 127.0.0.1 + ?emu) that asks for it: `&preview=1` in the
+ *  host's link, or the E2E's own switch (window.__nsPreview) — a plain emulator page (the smoke test) still can't start it */
 function localPreview() {
   const loc = globalThis.location;
-  return !!loc && /^(localhost|127\.0\.0\.1)$/.test(loc.hostname) && /[?&]emu(?:&|=|$)/.test(loc.search || '');
+  if (!loc || !/^(localhost|127\.0\.0\.1)$/.test(loc.hostname) || !/[?&]emu(?:&|=|$)/.test(loc.search || '')) return false;
+  return /[?&]preview=1(?:&|$)/.test(loc.search || '') || globalThis.__nsPreview === true;
 }
