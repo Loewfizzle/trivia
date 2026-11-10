@@ -37,6 +37,16 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
 - **THE FACTS FOR PD-5's CARDS (the results, written by the director at the end):** `ko` (KOs), `pc` (perfect clears — the save's `st[3]`),
   `dz: 1` (BATTLE only: your stack reached the TOP 5 ROWS — the engine's `peak` ≥ `DANGER_ZONE_ROWS` 16, saved as `sv.pk`; the save is written at
   once when it first happens + at the end, so a winner's flag is never 3 s stale) — FIRST KO, PERFECT CLEAR, COMEBACK (= the winner + `dz`).
+- **THE THREE CARDS (PD-5B, Nov 9 2026 — docs/harbor/passes/pd-5b.md):** the server's flags from the room's own record (`core/match-report.js#prismExtra`):
+  `firstko` (BATTLE 2+, a KO + an elimination credited in `game.out`), `pc` (any mode — a solo run too), `comeback` (won a BATTLE with `dz`) → FIRST KO
+  (common) · PERFECT CLEAR (rare) · COMEBACK (epic) — never COMEBACK KID (that flag stays OVERCLOCK's). The art DRAWN IN CODE in the night's neon
+  (`js/fx/pd-cards.js` + `pd-specs.js`; the material = the still frame, `scripts/build-pd-cards.mjs`) — docs/vault.md "PRISM DROP's CARDS".
+- **THE BURST BEFORE THE COLLAPSE (PD-5B):** the engine removes cleared rows at once; the NEON board holds the stack as it was before the clear
+  (`neonfx.js#preClear` → `board.js#holdClear`, `holdMs` = the race + 70 ms, ≤ 0.3 s, none with reduced effects) so the race + the burst read on the
+  cleared rows, then it collapses — the game itself never waits. Preview: `&fx=clear1…4` shows it, `&collapse=now` = the old look.
+- **THE HOLIDAY HOOK (PD-5B — `holiday.js`, PURE):** a variant name (`core/sky.js#holidayOf`) → night `{ palette: { edge, frame, well, sparks, flash } }`
+  (never the pieces' colours) · day `{ paper, world }`; `withHoliday(look, base, name)` = base itself without a variant; picked once at mount
+  (`holidayNow` — full days). `VARIANTS` is EMPTY (no holiday art — the owner cut the touches): a new holiday = one row (+ its doodle in page.js).
 - **THE RISING GHOST ROWS (PD-2 — the red bar is gone):** the engine's pending junk drawn ON your board — `incoming.js#ghostBands` (PURE) turns
   the queue into bands from the bottom up (the newest attack at the bottom, the oldest on top — the order they will really land): a fresh attack
   shows 30 % of its rows at once and slides up from below the board's edge as its delay runs out; due = fully up + HOT (a faster shake, a brighter
@@ -256,6 +266,8 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
   `meta/prism` playlist; a room's first match — no playlist yet — all five, ~25 KB). The worlds are shaders in code (in the view's module graph, already
   preloaded — `js/games/preload-graph.js`, 29 modules / 213 KB; PD-4: 40 modules / 370 KB). Far under the 1.5 MB budget (the day's papers + font load
   only when the day look shows — `page.js#warmDay`, ~110 KB); the song file is not preloaded (above).
+- **THE PREVIEW's SOUND (PD-5B):** every state that plays the song (all but `&state=final`) shows TAP FOR SOUND (the engine's tap listeners —
+  as in the app; a test browser gets none unless `&sound=1`; `&mute=1` = none). The day set: −14.4 LUFS each through one gain (no per-set gain).
 - **THE PREVIEW (PD-1 + PD-2):** `tests/integration/prism-preview.html` mounts the REAL view (the fake database) with a scripted state — `&n=1..7`
   `&state=play|count|ko|duel|final|spec` `&rush=1` `&scheme=buttons` `&slam=left` `&world=` `&bot=1` `&under=1` `&down=1` (SLAM pressed) `&hit=1`
   `&st=47&sb=34` (the safe areas); PD-2: `&mode=survival&t=` `&solo=1` `&state=kocard|ko|spec` `&inc=1|3|6&rise=fresh|mid|hot` `&shatter=n`

@@ -605,6 +605,24 @@ await H.run(async () => {
     ok(!!(await val(`pstats/${me0.pid}/it/emb-horseshoe`)) && !(await val(`pstats/${me1.pid}/it/emb-horseshoe`)), 'the server granted THE HORSESHOE to ALICE only (BOB backed a loser)');
     ok(!!(await val(`pstats/${me0.pid}/pa/gf/overclock-horseshoe`)), 'the flag is kept with a DASH (overclock-horseshoe)');
 
+    // PD-5B — PRISM DROP's THREE CARDS, from the room's OWN record: a BATTLE ALICE wins after her stack reached the danger zone (dz), with a KO
+    // (BOB's elimination credited to her) + a perfect clear → FIRST KO + PERFECT CLEAR + COMEBACK to ALICE; BOB's perfect clear in the same
+    // match → his PERFECT CLEAR only (no KO, no win); COMEBACK never raises COMEBACK KID
+    const now = Date.now();
+    const pdFinal = { id: 'prism', matchId: `e2epd${now.toString(36).slice(-6)}`, phase: 'final', phaseStartAt: now, phaseEndsAt: null, settings: { mode: 'battle' },
+      participants: { [uids[0]]: true, [uids[1]]: true }, seed: 'e2e-pd', songs: ['prism1'], sd: [188787], pl0: 0, songStartAt: now - 120_000, playStartAt: now - 110_000,
+      endAt: null, n0: 2, set: 'night', winner: uids[0], ko: { [uids[0]]: 1 }, bd: {}, calls: {},
+      out: { [uids[1]]: { at: now - 10_000, place: 2, rem: 1, by: uids[0], gone: false } },
+      results: { [uids[0]]: { sc: 12000, ln: 30, lv: 4, mc: 3, se: 18, best: 'tsingle', ko: 1, bd: 0, pc: 1, dz: 1 }, [uids[1]]: { sc: 9000, ln: 22, lv: 3, mc: 2, se: 12, best: 'double', ko: 0, bd: 0, pc: 1 } } };
+    const pd = await playOc(pdFinal, names, 'prism-cards');
+    const pdIds = pd.ach.map(x => x.id);
+    ok(['first-ko', 'perfect-clear', 'comeback'].every(id => pdIds.includes(id)) && !pdIds.includes('comeback-kid'), `PD-5B: FIRST KO + PERFECT CLEAR + COMEBACK unlocked from the room's own record + revealed (${pd.ach.map(x => x.name).join(', ')})`);
+    ok(pd.ach.filter(x => ['first-ko', 'perfect-clear', 'comeback'].includes(x.id)).every(x => /is-card/.test(x.tile) && x.real), 'PD-5B: each one revealed with its card\'s tile');
+    const has = async (pid, id) => !!(await val(`pstats/${pid}/it/${id}`));
+    ok(await has(me0.pid, 'card-first-ko') && await has(me0.pid, 'card-perfect-clear') && await has(me0.pid, 'card-comeback'), 'PD-5B: the server granted all three to ALICE');
+    ok(await has(me1.pid, 'card-perfect-clear') && !(await has(me1.pid, 'card-first-ko')) && !(await has(me1.pid, 'card-comeback')), 'PD-5B: BOB — his PERFECT CLEAR only (no KO, no win)');
+    ok(!!(await val(`pstats/${me0.pid}/pa/gf/prism-comeback`)) && !(await val(`pstats/${me0.pid}/ac/comeback-kid`)), 'PD-5B: the flag kept as prism-comeback — never COMEBACK KID');
+
     // THE CARD PASS — B1: AN EMPTY SOLO RUN NEVER COUNTS — ALICE alone, nothing answered, 0 points: the podium as ever, but no solo XP,
     // no streak day, no solo-lane count, no match counted (the server's skip 'empty')
     const putGame = async (g, pl) => {

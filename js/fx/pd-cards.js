@@ -465,7 +465,7 @@ function comeback(c, s, t, Q) {
       const u = race(r); if (u <= 0) continue;
       const yy = Y(rowY(r) + CELL / 2), xs = X(W.x0), xe = X(W.x1), hx = lerp(xs - 20 * k, xe + 20 * k, easeOut(u));
       const lit = (1 - vanish) * calm;
-      stamp(c, hband('255,255,255'), (xs + hx) / 2, yy, Math.max(2, hx - xs) * 1.05, 0.38 * lit, cs * 1.05);
+      stamp(c, hband('255,255,255'), (xs + hx) / 2, yy, Math.max(2, hx - xs) * 1.05, (still ? 0.6 : 0.38) * lit, cs * 1.05);
       stamp(c, glow('255,255,255', 0.4), hx, yy, cs * 1.8, (still ? 0.7 : Math.sin(u * Math.PI)) * 0.9 * lit, cs * 1.3);
     }
   }
@@ -487,7 +487,7 @@ function comeback(c, s, t, Q) {
     stamp(c, glow('200,250,255', 0.25), X(S.focus), Y(top6), 260 * k, rise * 0.4 * calm, 90 * k);
     for (const m of MOTES) {
       const u = still ? m.ph : fract((p - CB.GONE) * m.v / 300 + m.ph);
-      const yy = top6 - u * (top6 + 60), xx = lerp(W.x0 + 18, W.x1 - 18, m.u) + Math.sin(u * 6 + m.ph * 9) * 10;
+      const yy = top6 - u * (top6 - (full ? 50 : -60)), xx = lerp(W.x0 + 18, W.x1 - 18, m.u) + Math.sin(u * 6 + m.ph * 9) * 10;
       stamp(c, sparkle(m.c), X(xx), Y(yy), 26 * k * m.sz, Math.sin(u * Math.PI) * rise * 0.9 * calm);
     }
   }

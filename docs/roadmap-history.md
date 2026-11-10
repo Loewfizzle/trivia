@@ -2403,3 +2403,11 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   time. BEFORE: `twice` a CUT, `clock` 213 pt; AFTER: 0 snaps (1× + 4×).
 - **THE GUARDS**: THE BOOT BUDGET (tests/integration/boot-budget.json — 310 modules / 6500 KB static; 360 requests / 2900 KB on the wire +
   no audio before the reveal in the harbor load group; raising it = a decision a pass names) + THE SKY AFTER THE REVEAL (the load group).
+
+## PD-5B — PRISM DROP: THE THREE CARDS + THE FINAL POLISH (Nov 9, 2026 — docs/harbor/passes/pd-5b.md; the plan: docs/games/plan.md "PD-5B")
+- THE AWARDS: `match-report.js#prismExtra` — `firstko` / `pc` / `comeback` from the room's own record (each checked against it); the achievements
+  first-ko / perfect-clear / comeback → the cards (server catalog); COMEBACK never raises COMEBACK KID (`noteMatch` skips PRISM's `comeback`).
+- THE ART: `js/fx/pd-cards.js` + `pd-specs.js` (drawn in code, the night neon, the shared surface), THE LAB n 211–216 (NEW), the hero boxes, the frames,
+  the material = the baked still frame (`scripts/build-pd-cards.mjs`); four refine rounds beside REDLINE + PHOTO FINISH.
+- THE POLISH: THE BURST BEFORE THE COLLAPSE (`neonfx.js#preClear` + `board.js#holdClear`), TAP FOR SOUND in every preview state that plays the song (the
+  day set −14.4 LUFS each through one gain), THE HOLIDAY HOOK (`holiday.js` — empty). No rules change.

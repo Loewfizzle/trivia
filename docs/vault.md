@@ -720,3 +720,18 @@ COAST CLEAR's two collectibles, awarded by the SERVER from its own record of the
   onto the REAL burner; the water catching it), THE BLOCK RING every 10 s, the coins rising + spinning, the sway, the sheen, THE REVEAL (a full card:
   the balloon rises in + a big first burn). Reduced motion = the lit frame. Its own strip band (20–52 % down); the full card in the standard layout
   (`vault/full.js#ART_SIGHTINGS`), its hero the balloon.
+
+## PRISM DROP's CARDS — FIRST KO · PERFECT CLEAR · COMEBACK (PD-5B, Nov 9 — docs/harbor/passes/pd-5b.md)
+- Normal unlockable cards, awarded by the server from the room's own record (docs/progression.md "THE ACHIEVEMENTS"): FIRST KO (`card-first-ko`, common),
+  PERFECT CLEAR (`card-perfect-clear`, rare — its GLOWING EDGES white-violet), COMEBACK (`card-comeback`, epic). THE LAB: n 211–213 (strips) · 214–216 (full).
+- **DRAWN IN CODE** in PRISM's night neon (`js/fx/pd-cards.js` — the effects `pdFirstKo` / `pdPerfect` / `pdComeback`; the geometry PURE in `pd-specs.js`:
+  each card ONE scene of 1000 × 630, the full card covering it at 0.9 flush right, the strip its OWN band at the strip's height, the hero at `cx`). The
+  static scene baked once per slot size (PENTHOUSE's pattern), the moving parts sprites + stamps. FIRST KO = the jewel block that cracks, bursts into its
+  own shards + a red neon KO, re-forms · PERFECT CLEAR = the empty well + the prism's rainbow fan sweeping through it · COMEBACK = the stack at the red
+  line, the white-hot piece, the race + the clear, the top row falling away, the light rising.
+- **A DRAWN-IN-CODE CARD's MATERIAL = its own still frame** (`scripts/build-pd-cards.mjs` → `assets/vault/pd/*.webp`, on `.vl-fcm-pd-*`): the places that
+  draw no effect (the after-match tile — `progress/moment.js#itemSwatch`) show the real art; the effect paints over it everywhere else. (PENTHOUSE · THE
+  DIAL still shows its plain ground there — the same script pattern would fix it.)
+- **THE ONE MOVING COMMON:** FIRST KO moves (the owner's PD-5B spec — mostly at rest, the burst every 7.5 s); every other common stays still
+  (`tests/vault.test.mjs#COMMON_MOVES`).
+- **A NEW item in THE LAB stays v1 with no LAB_CHANGES line** — it shows NEW; a version bump + a change line are for an item already marked (`vault-2c.test.mjs`).

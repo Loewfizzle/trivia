@@ -85,7 +85,7 @@ with a counted match / daily) + `pcount/i/{item}` + `pcount/a/{ach}` (`ServerVal
 `{action:'style', card?, glow?, tube?, shape?}` — only what you own (the server checks `pstats/it`; GILDED is everyone's) →
 `profiles/{pid}/cd · g · tb · es`. **COLLECTIONS SHOW ONLY WHAT YOU OWN** — no ???, no silhouettes, no locked slots, no totals, no list of what's left.
 
-## THE 32 ACHIEVEMENTS (shown only once earned + X%)
+## THE ACHIEVEMENTS (41 since PD-5B — shown only once earned + X%)
 | group | achievement — how | unlocks |
 | --- | --- | --- |
 | PLAYING | FIRST ROUND — your first match | glow EMBER |
@@ -106,6 +106,11 @@ with a counted match / daily) + `pcount/i/{item}` + `pcount/a/{ach}` (`ServerVal
 | DAILIES *(dormant — the first daily)* | DAILY BREAD (7 different days) · THE SWEEP (every daily on today's list in one day — was THE TRIPLE, id `the-triple` kept, DM1) · EARLY BIRD (before 8 am) · PENTHOUSE SUITE (top 1 %, ≥ 50 finishers) | CANDLELIGHT · THREE STARS · SUNRISE · PENTHOUSE (epic) |
 | SPECIALS | HODL — a 21-night streak · MANY HAPPY RETURNS — your birthday *(dormant — B)* · SEASON'S GREETINGS — 3 holidays (`core/sky.js#holidayOf`) | emblem ₿ · CONFETTI · glow TINSEL |
 | GAMES | FOUR ON THE FLOOR (PRISM DROP: a 4-line clear) · DEAD ON (OVERCLOCK: a Closest Call exact) · OVERCLOCKED (10 OVERCLOCK wins) · REDLINE (OVERCLOCK: alone on top of every challenge of a QUICK match, 2+ players — `overclock-sweep`) · PHOTO FINISH (OVERCLOCK: the win by exactly one point, 2+ players — `overclock-photo`) · HORSESHOE (OVERCLOCK OC5: backed the winning horse in DUMB LUCK, 2+ players — `overclock-horseshoe`, the server replays the race) | PRISM · BULLSEYE · CIRCUIT · card REDLINE (legendary) · card PHOTO FINISH (rare) · emblem HORSESHOE (uncommon — its art PENDING in THE LAB: the glyph until then) · **LIGHTHOUSE** (COAST CLEAR CC2: any clear — `coastclear-clear`, emblem, uncommon) · **GHOST RUN** (COAST CLEAR CC2: a clear with zero spots in 50 s or less — `coastclear-ghost`, card, rare; *dormant until THE SWITCH-OVER*) · **KEYHOLE** (THE PASSWORD PW2: both doors opened — `password-crack`, from the SERVER's record on finish, `api/_lib/pw.js#flags` → `dailyStep({ flags })`) · **SAFECRACKER** (THE PASSWORD: both doors in ≤ 6 guesses combined — `password-safe`) | … · emblem KEYHOLE (uncommon) · card SAFECRACKER (rare — Grok's vault door, js/fx/pw-cards.js) — both dormant until THE SWITCH-OVER (no cartridge in production) |
+
+**PRISM DROP's three (PD-5B):** FIRST KO (`first-ko` — a KO in a BATTLE, credited in the room's own `game.out`) → card FIRST KO (common) · PERFECT
+CLEAR (`perfect-clear` — a perfect clear, any mode; a SOLO run counts: the solo lane hands its row's flags to the award engine) → card PERFECT CLEAR
+(rare) · COMEBACK (`comeback` — won a BATTLE after the stack reached the danger zone, PD-2's `dz`) → card COMEBACK (epic). Flags `prism-firstko` ·
+`prism-pc` · `prism-comeback`; COMEBACK KID's generic `comeback` flag is OVERCLOCK's only (`achievements.js#noteMatch` skips PRISM).
 
 **THE GAME CONTRACT:** a game's rework adds its 2–3 achievements to `ACHIEVEMENTS` (`game: '<id>'`) + sets the flags in its match report
 (`core/match-report.js` → a row's `f: { flag: 1 }`, read from the room's own copy) — the counters key them `<game>-<flag>` (a DASH — a dot in a database key fails the whole transaction: OVERCLOCK CARDS found every flagged match uncounted).

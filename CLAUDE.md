@@ -199,7 +199,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   listener + estimator, bounded ±60 ms (kicks off the beats → the grid alone); QUICK START = `synced-songs.js` `quick` (slices from the stream's start, the
   swap on one sample; a cue-in streams from ~0.5 s before its cue — ONE Range request placed by `game.ff`, `bufferT0` = a buffer's file time); TWO SETS — NIGHT `prism1-5` (unchanged) + DAY `prismd1-5` (`look: 'day'`, hand-set worlds, cue-ins), the HOST's look at
   `start` = `game.set` (every phone plays it), DAY's playlist in the night's memory (`meta/used/prism/dn<N>`); a day song = `build-prism.py --day`
-  (it STOPS a song off its measured BPM by > 0.1, drifting or on the half-beats — never a guess).
+  (it STOPS a song off its measured BPM by > 0.1, drifting or on the half-beats — never a guess). PD-5B (Nov 9 — docs/harbor/passes/pd-5b.md): THE THREE CARDS'
+  flags from the room's own record (`match-report.js#prismExtra` — `firstko` · `pc` · `comeback`; PRISM's `comeback` never raises COMEBACK KID), the art
+  DRAWN IN CODE (`fx/pd-cards.js` + PURE `pd-specs.js`; the material = its baked still frame — `scripts/build-pd-cards.mjs` after an art edit); FIRST KO is
+  the ONE moving common (`vault.test.mjs#COMMON_MOVES`); THE BURST BEFORE THE COLLAPSE (the neon board holds the pre-clear stack until the burst —
+  `neonfx.js#preClear`; the game never waits); THE HOLIDAY HOOK = `holiday.js` (one row a holiday — empty now).
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,
