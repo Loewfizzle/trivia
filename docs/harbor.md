@@ -636,8 +636,7 @@ one room), the banner's colour + passes, the words in the windows for a time win
 - **LOAD FIX 3** (passes/load-fix-3.md): a request that never answers costs 12 s + a reload before the city (the watchdog can't tell a stall
   from a slow phone sooner); a SECOND hang in the same tab without a reveal between gets TAP TO TRY AGAIN, not another reload. THE MUSIC ON THE
   TAP was measured in Chromium only (Playwright's Windows WebKit has no Web Audio) — the owner's iPhone judges Safari (HE4's slice warm-up: a
-  headerless slice's first frames + the swap to the whole song on Safari); the warm-up still runs with the music OFF / muted (≤ 1 MB a visit
-  since HE4 — the city chat's "part 2" gates it, open). Before a tap the party crowd dances on the grid's
+  headerless slice's first frames + the swap to the whole song on Safari). Before a tap the party crowd dances on the grid's
   stand-in clock (pixdiff: the dancers' phase only).
 - **LOAD FIX 2** (passes/load-fix-2.md): (the music after the tap — FIXED in LOAD FIX 3). THE BOOT PRELOAD's gain was measured on the local HTTP/1.1 server (4.20 → 3.90 s on the Wi-Fi line) — the live site's
   HTTP/2 + Safari's service-worker hop are the owner's iPhone's to judge. A 4×-CPU phone stays CPU-bound (8.9 → 8.5 s in headless Chromium);

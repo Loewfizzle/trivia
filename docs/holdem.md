@@ -375,8 +375,15 @@ glide to their new places (+ the board + the pot with them). prefers-reduced-mot
 Measured: 60 fps at 4× CPU with 8 seats during the busiest moment (the side-pot run-out + three awards): p50 16.7 ms (e2e-holdem.mjs FULL).
 
 ## THE SHOWDOWN (HE4)
+**SHOWN HANDS READ** (Ben's ADD-ON, the split-pot shot): a shown hand = two 30 pt cards SIDE BY SIDE, no overlap — both corner indexes whole on an iPhone
+unzoomed — raised clear of the plate (`SEAT_BOX.side.cards` [22, −21, 83, 22]; the top seat's plate ≤ 100 pt so the first side row's cards tuck in beside it).
+**THE WINNINGS** = a gold "+n" INSIDE the winner's plate beside the stack (never under or behind cards, at every player count — it pops in with the
+winner's first pot). **THE AWARD BOX**: at a hand's end the winning hand in gold + the pot's line sit UNDER the board (`.he-awardbox` — the band the buttons
+leave free then), never across the bottom row's seats; the between-hands buttons (SHOW YOUR CARDS, REBUY) drop to the buttons' row, NEXT HAND… + the felt
+print give way; `layout.js#blocks().award` is checked against every seat, the buttons + your cards. A seat that won ANY pot never dims. The winning board
+cards lift 3 pt. THE FELT PRINT is Chakra Petch (Orbitron's A read as an R: "SPEAKERSY").
 Shown hands face up at their seats; the WINNING FIVE (on the board + in the winner's hand — `rank.js#bestFive`) lift with a gold edge, the rest of the
-board dims, the losing hands dim; the pot line then reads the main pot's line + the winning hand in gold ("STRAIGHT · SEVEN HIGH"; a tie "SPLIT POT") —
+board dims, the losing hands dim; THE AWARD BOX then reads the main pot's line + the winning hand in gold ("STRAIGHT · SEVEN HIGH"; a tie "SPLIT POT") —
 state-driven (`paintShowdown`), so a refresh lands on it; during the awards each pot lifts ITS winners' five. Your own result in your plate (HE3). The
 next hand starts on the dealer's pause — nothing waits on an animation.
 

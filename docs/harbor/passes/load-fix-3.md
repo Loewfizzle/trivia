@@ -243,7 +243,8 @@ with no tap; how often a real iPhone loses a request can't be measured here — 
 `warmAhead` decoded up to 3 WHOLE station songs before any tap (6–9 MB a visit, even for a phone that only looks — and Vercel's bandwidth after the
 switch-over). Now it warms ONE SLICE (~14 s) of the song the station is playing, from just ahead of its place — a 4 KB head + ONE bounded Range request,
 decoded offline (`synced-songs.js#warmSlice`, `bufferT0`); re-warmed one at a time as the station plays on; ≤ 1 MB a visit without a tap; never with
-Save-Data. NOT yet gated on the music OFF / muted switch (nothing on the warm-up path reads it — the city chat's "part 2", still open). The player made at the tap starts from the slice (a part) and the whole song — fetched after the tap — swaps in on one
+Save-Data. **Part 2** (the city chat's add-on): never with the music OFF or muted either (app.js's `warm` + `warmAhead` read `settings.musicOff` /
+`settings.muted`; before a tap no synced player is made at all) — NO TAP 60 s with the music off: **0 KB**, muted: **0 KB** (`--music off|muted`). The player made at the tap starts from the slice (a part) and the whole song — fetched after the tap — swaps in on one
 sample (QUICK START's `#swap`). Measured in Chromium (the party night, the local server): **NO TAP 60 s: 6,234 KB → 860 KB** (2 whole songs → a head +
 4 slices of ~214 KB, then THE CAP); **the tap → the music: median 83 → 73 ms** (72 / 83 / 157 → 70 / 73 / 171); 18 s after the tap: 0 silent samples, the
 slice → the whole song in 1 swap. The harbor `audio` job 208/208, THE BASELINE GUARD 3/3. Known: WebKit can't be measured here (no Web Audio in

@@ -46,7 +46,8 @@ The rest followed in OC2 – OC4; OC5 plays Dumb Luck's five (19 the bell · 20 
   now — a 4 KB head (once a song: where the frames start, their size) + ONE bounded Range request; a headerless slice carries its file time
   (`bufferT0` — PD-5A's RANGE rule: the decode lands LAME_DELAY samples late); a song's top is a prefix slice (its header kept). When the station
   has played on to within 4 s of the slice's end, ONE new slice (never two in flight; near a song's end the next song's top). THE CAP: ≤ 1 MB a
-  visit without a tap (the next slice must fit); never with Save-Data or CLASSIC menu music (no station) — NOT yet gated on the music OFF / muted switch (the city chat's "part 2", open); no ranges → no more tries (the tap fetches as before).
+  visit without a tap (the next slice must fit); never with Save-Data, CLASSIC menu music (no station) or — part 2 (the city chat) — the music OFF / muted (app.js's `warm` + `warmAhead` read
+  `settings.musicOff` / `settings.muted`: 0 bytes — `tap-music.mjs --notap 60 --music off|muted`; the music back on → it warms at the next tick); no ranges → no more tries (the tap fetches as before).
 - At the tap the station's player takes the slice as a PART (`load` — the voice starts from it IN the tap's tick: `onUnlock`, + `onResume` when
   the graph runs — on the server clock), the whole song is fetched AFTER the tap and swaps in ON ONE SAMPLE (`#swap`, QUICK START's). Measured
   (Chromium, the local server, the party night): NO TAP 60 s **6,234 → 860 KB**; the tap → the music median **83 → 73 ms**; 18 s after the tap 0

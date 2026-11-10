@@ -2456,6 +2456,9 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   LEAVE → the ledger (25/25).
 - Group 7 — THE MUSIC WARM-UP, SMALLER (the city chat): one ~14 s slice (a 4 KB head + one bounded Range request) instead of whole songs, ≤ 1 MB a visit with
   no tap; the tap's player starts from the slice and swaps to the whole song on one sample. NO TAP 60 s 6,234 → 860 KB; tap → music median 83 → 73 ms.
+- ADD-ONS (Ben + the city chat): SHOWN HANDS READ (two 30 pt cards side by side, no overlap), THE WINNINGS a gold +n inside the plate, THE AWARD BOX under the
+  board at a hand's end (never across a seat), THE FELT PRINT in Chakra Petch (reads SPEAKEASY) — shot at 375 / 390 / 430 × 4 / 6 / 8 players; THE WARM-UP part 2
+  (never with the music off / muted: 0 KB).
 - No rules change; still 8 functions; HOLD'EM still `playable: false`.
 
 ## HE3 — HOLD'EM: THE TABLE SCREEN A (Nov 10, 2026 — docs/holdem.md "THE LEAN WIRE" + "THE TABLE SCREEN"; the decisions: docs/games/plan.md "HE3")
