@@ -128,7 +128,8 @@ export function leaderboard(rows, players, { me, presence, stagger = 70 } = {}) 
   const list = h('ol.board-list');
   rows.forEach((r, i) => {
     const p = players[r.uid] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
-    const scoreEl = h('span.lb-score', fmtNum(r.prevScore ?? r.score));
+    // (PFIX-B: a row may carry its score as text — PRISM's SURVIVAL time "2:31" — shown as it is, never counted up as a number)
+    const scoreEl = h('span.lb-score', r.scoreText != null ? r.scoreText : fmtNum(r.prevScore ?? r.score));
     const move = r.prevRank && r.prevRank !== r.rank ? (r.prevRank > r.rank ? 'up' : 'down') : null;
     const row = h('li.lb-row', {
       class: [r.uid === me ? 'is-me' : '', r.rank === 1 ? 'is-first' : '', move ? `move-${move}` : ''].join(' '),
@@ -142,7 +143,7 @@ export function leaderboard(rows, players, { me, presence, stagger = 70 } = {}) 
     move ? h('span.lb-move', move === 'up' ? '▲' : '▼') : null,
     scoreEl);
     list.append(row);
-    setTimeout(() => countUp(scoreEl, r.prevScore ?? r.score, r.score, 1100), 250 + i * stagger);
+    if (r.scoreText == null) setTimeout(() => countUp(scoreEl, r.prevScore ?? r.score, r.score, 1100), 250 + i * stagger);
   });
   if (rows.some(r => (r.prevScore ?? r.score) !== r.score)) setTimeout(() => sfx('shimmer'), 300);
   // (SHELL 2.0 A — ADD-ON: each row becomes the player's SLIM CARD — ui/strip-board.js, lazy; the plain row shows until then / if it can't)

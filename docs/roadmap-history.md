@@ -2425,3 +2425,14 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - AUTO-TARGET FORGETS (D): 20 s (`TARGET_MEMORY_MS`), a grudge target → the random pick. 8 × 400 attacks: biggest share 1.89 → 1.37 × even.
 - THE NIGHT GAIN: `build-prism.py --night-gain` (ebur128) → prism1 −5.7 · prism2 −1.9 · prism3 0 · prism4 −5.5 · prism5 −6.8 dB at playback
   (`synced-songs.js#levelOf`, per voice); the files untouched. No rules change.
+
+## PFIX-B — PRISM DROP: ANTI-CHEAT RULES + THE SHOULD-FIXES + THE POLISH (Nov 10, 2026 — docs/harbor/passes/pfix-b.md; the review: docs/games/review-prism-1.md; the decisions: docs/games/plan.md "PFIX-B")
+- THE RULES (findings 6 + 7 — RE-PUBLISH): `prism/{m}/{uid}` written only in play (+ GO − 2 s, + SCORE RUSH's end ≤ 4 s), frozen once out, `at` = now,
+  `sv` closed + bounded (counts ≤ pieces ≤ 20 a second of play), the stats bounded by the play clock, a quad best needs 4 lines; `prismq` keyed
+  `{uid}-{piece}` (one a piece), `at` = now, never at / from a board that's out. The view writes only inside that window (`logic.js#boardWritable`)
+  and caps its queue at 40 rows.
+- THE KO CREDIT (`logic.js#creditedBy` — the queues mirrored as a live path): only with the sender's attack in the victim's queue in the last 20 s.
+- THE AWARD FLAGS (`match-report.js#prismExtra`): quad ≥ 4 lines, perfect clear ≥ 2 lines each + enough pieces (`pn` in the results), ≥ 15 s played.
+- THE SCORE RUSH BOUND (finding 9): `scripts/sim-prism-rush.mjs` → 3 × the fitted best run (3.2–4.6 × each song's best; the longest ≈ 2.2 M, was ≈ 222 M).
+- THE GHOST ROWS (8 + 13 + 14), THE DAY TIERS (10 — `tiers.js#stepTier`, 3 → 0 by day), the hold ended by a lock (11), the playlist at start (12),
+  SURVIVAL's time on the podium (15), no blank header (16), the day art warmed after GO (17 — the first switch 3–4 slow frames → 2), the test tools (22).

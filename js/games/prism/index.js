@@ -1,6 +1,6 @@
 // PRISM DROP module entry (see games/registry.js for the contract).
 import { createGame, nextStep, nightBonus as bonus } from './director.js';
-import { LEAD_MS, SONGS_PER_MATCH, playlistAt, standings, cleanSettings, dealSongs, dayPos, setForLook, setOfSong, matchTiming } from './logic.js';
+import { LEAD_MS, SONGS_PER_MATCH, playlistAt, standings, cleanSettings, dealSongs, dayPos, setForLook, setOfSong, matchTiming, playlistAdvance } from './logic.js';
 // (SHELL 2.0 B1 — THE THIN META: DEFAULT_SETTINGS, MIN_PLAYERS, OPTIONS, estimateMinutes, MUSIC, the banner, the chat's lock — meta.js)
 export * from './meta.js';
 import { loadManifest, loadSong } from './songs.js';
@@ -19,7 +19,8 @@ async function lookNow(ms) {
 export const createView = lazyView(() => import('./view.js'), gameSheets('prism'));
 // the match plays its own songs (synced to the server clock, through a filter for the danger/duel effects)
 
-export const livePaths = g => ({ boards: `prism/${g.matchId}`, calls: `prismcall/${g.matchId}` });
+// (PFIX-B: + the attack queues — the director credits a KO only to a sender whose attack is really in the victim's queue)
+export const livePaths = g => ({ boards: `prism/${g.matchId}`, calls: `prismcall/${g.matchId}`, queues: `prismq/${g.matchId}` });
 
 function newSeed() {
   const a = new Uint32Array(2);
@@ -52,7 +53,10 @@ export async function start({ matchId, settings, participants, now, used }) {
     matchId, settings: s, participants, now, seed, songs: list, sd, pl0,
     songStartAt, playStartAt, endAt, set, cu, ff,
   }), pp: paper.i };
+  // (PFIX-B — optional 12: the playlist moves past this match's first song NOW — an END GAME never deals it again; a room's first match also
+  //  stores the room's seed + the NIGHT position it left)
   const $room = { ...markUsed('prism', [paper.key]), ...(pm.seed ? {} : { 'meta/prism': { seed: roomSeed, n: pm.n || 0 } }) };
+  if (list.length) Object.assign($room, set === 'day' ? playlistAdvance('day', pl0) : playlistAdvance('night', pl0, pm.seed ? null : roomSeed));
   return { ...game, $room };
 }
 

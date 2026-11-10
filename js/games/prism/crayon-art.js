@@ -24,11 +24,29 @@ const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${
 
 // ---- THE TOOTH: where a crayon skips the paper's valleys — two octaves of value noise, thresholded into soft holes (alpha = how much shows through)
 const tooth = new Map();
+const toothJobs = new Map();   // (PFIX-B — optional 17) a tile part-made in slices: key → { y, step }
 function toothTile(n, seed, feature, cover) {
   const key = `${n}|${seed}|${feature.toFixed(2)}|${cover}`;
-  let c = tooth.get(key);
+  const c = tooth.get(key);
   if (c) return c;
-  c = canvas(n);
+  toothStep(n, seed, feature, cover, Infinity);
+  return tooth.get(key);
+}
+/** PFIX-B (FABLE REVIEW optional 17): make a tooth tile a few rows at a time (≤ budgetMs) — the view warms the day's tiles in idle slices after GO,
+ *  so the first switch to day never computes the noise (it was ~370 ms of a 4×-throttled CPU in one frame). → true once the tile is made */
+function toothStep(n, seed, feature, cover, budgetMs) {
+  const key = `${n}|${seed}|${feature.toFixed(2)}|${cover}`;
+  if (tooth.has(key)) return true;
+  let job = toothJobs.get(key);
+  if (!job) { job = toothJob(n, seed, feature, cover); toothJobs.set(key, job); }
+  const t0 = performance.now();
+  while (!job.done()) { job.row(); if (performance.now() - t0 > budgetMs) return false; }
+  tooth.set(key, job.finish());
+  toothJobs.delete(key);
+  return true;
+}
+function toothJob(n, seed, feature, cover) {
+  const c = canvas(n);
   const x = c.getContext('2d');
   const img = x.createImageData(n, n);
   const r = rng(seed * 31 + 7);
@@ -43,15 +61,46 @@ function toothTile(n, seed, feature, cover) {
     };
   };
   const f1 = grid(Math.max(1.2, feature)), f2 = grid(Math.max(2, feature * 2.6)), f3 = grid(Math.max(1, feature * 0.55));
-  for (let y = 0; y < n; y++) for (let x0 = 0; x0 < n; x0++) {
-    const v = f1(x0, y) * 0.55 + f2(x0, y) * 0.3 + f3(x0, y) * 0.15;
-    const k = Math.max(0, Math.min(1, (v - (1 - cover)) / 0.12));   // the higher the noise, the deeper the hole
-    const o = (y * n + x0) * 4;
-    img.data[o + 3] = Math.round(k * 255);
+  let y = 0;
+  return {
+    done: () => y >= n,
+    row() {
+      for (let x0 = 0; x0 < n; x0++) {
+        const v = f1(x0, y) * 0.55 + f2(x0, y) * 0.3 + f3(x0, y) * 0.15;
+        const k = Math.max(0, Math.min(1, (v - (1 - cover)) / 0.12));   // the higher the noise, the deeper the hole
+        img.data[(y * n + x0) * 4 + 3] = Math.round(k * 255);
+      }
+      y++;
+    },
+    finish() { x.putImageData(img, 0, 0); return c; },
+  };
+}
+/** PFIX-B (optional 17): the DAY's own tooth tiles a slice at a time — the lettering's mask, the page doodle's tile at this screen's ratio, SLAM's
+ *  crayon streak at the board's cell (px: its canvas px) — true once all are made (the view then pre-draws the mask URL + the doodle — page.js#warm) */
+export function warmTooth(budgetMs = 4, dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1), px = 0) {
+  const t0 = performance.now();
+  const tiles = [[128, 211, 1.3, 0.3], [192, 97, Math.max(1, dpr * 0.8), 0.32]];
+  if (px) {
+    const n = Math.max(8, Math.round(px * 0.9));   // (markSprite(px × 0.9, 'streak') — its canvas, its punch)
+    tiles.push([Math.ceil(Math.max(Math.max(5, n * 0.3), n * 2)), 61, Math.max(1, n * 0.04), 0.32]);
+    for (let level = 0; level <= 2; level++) tiles.push([SCRIBBLE_TILE, 37 + level, Math.max(1, px * 1.05 * 0.03), 0.3]);   // (crayonfx's scribble: h = px × 1.05)
+    for (const big of [false, true]) { const m = Math.max(32, Math.round(W_CELLS * px * (big ? 1.25 : 1.1) * 0.55)); tiles.push([m, 51, Math.max(1, m * 0.006), 0.3]); }   // (the 4-LINES star)
   }
-  x.putImageData(img, 0, 0);
-  tooth.set(key, c);
-  return c;
+  for (const [n, seed, f, c] of tiles) if (!toothStep(n, seed, f, c, Math.max(0.5, budgetMs - (performance.now() - t0)))) return false;
+  return true;
+}
+const W_CELLS = 10;      // (the well's width — engine.js W; kept here so this module stays the engine's leaf)
+const SCRIBBLE_TILE = 256;
+/** the tooth over a strip (a w × h sprite): a SCRIBBLE_TILE tile repeated — PFIX-B (optional 17): the scribble across a row is ~970 × 36 px; it
+ *  punched a 970 × 970 tile (≈ 0.25 s of noise at 4× CPU on the first clear by day, ~3.7 MB of canvas a combo level) for the same grain */
+function punchRepeat(x, w, h, seed, a, feature, cover) {
+  const t = toothTile(SCRIBBLE_TILE, seed, feature, cover);
+  x.save();
+  x.globalCompositeOperation = 'destination-out';
+  x.globalAlpha = a;
+  x.fillStyle = x.createPattern(t, 'repeat');
+  x.fillRect(0, 0, w, h);
+  x.restore();
 }
 /** punch the tooth into whatever is on `x` (destination-out at strength a) */
 function punch(x, size, seed, a, feature, cover) {
@@ -315,7 +364,7 @@ export function scribbleSprite(w, h, color, level = 0) {
     x.strokeStyle = rgba(col, 0.86);
     x.stroke();
   }
-  punch(x, Math.max(w, h), 37 + level, 0.38, Math.max(1, h * 0.03), 0.3);
+  punchRepeat(x, s.width, s.height, 37 + level, 0.38, Math.max(1, h * 0.03), 0.3);
   cache.set(key, s);
   return s;
 }

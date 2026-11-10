@@ -13,3 +13,27 @@ export const TIERS = Object.freeze([
 ]);
 export const TOP_TIER = TIERS.length - 1;
 export const tierOf = t => TIERS[Math.max(0, Math.min(TOP_TIER, t | 0))];
+
+/** PFIX-B (FABLE REVIEW finding 10): THE STEPS, by look. NIGHT steps one tier at a time (the light first, the board's 3× last). THE DAY LOOK
+ *  (crayon) draws no world and no light layer: of a tier it draws only the board's ratio, the effects canvas and the crumbs (`sparks`), and only
+ *  the board's ratio moves its frame time (the review, at 4× CPU: DAY HEAVY 15 / 17 / 19 / 38.5 fps at tiers 3 / 2 / 1 / 0 — 15.5 s on AUTO to
+ *  reach the one that helps). So by day a step goes straight to the next tier whose BOARD differs — down 3 → 0, up 0 → 3 (the top of its class).
+ *  dir: −1 down · +1 up → the tier to step to (the same tier = nowhere to go). */
+export function stepTier(t, dir, look = 'neon') {
+  const cur = tierOf(t);
+  t = TIERS.indexOf(cur);
+  if (look !== 'crayon') return Math.max(0, Math.min(TOP_TIER, t + Math.sign(dir)));
+  if (dir < 0) {
+    for (let k = t - 1; k >= 0; k--) if (TIERS[k].board !== cur.board) return k;
+    return t;
+  }
+  for (let k = t + 1; k <= TOP_TIER; k++) {
+    if (TIERS[k].board === cur.board) continue;
+    let top = k;
+    while (top < TOP_TIER && TIERS[top + 1].board === TIERS[k].board) top++;
+    return top;
+  }
+  return t;
+}
+/** what the day look draws of a tier (the keys a day step must change at least one of — tests/prism-neon.test.mjs) */
+export const DAY_KEYS = Object.freeze(['board', 'fx', 'sparks']);

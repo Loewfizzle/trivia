@@ -59,3 +59,20 @@ test('the worlds DO shift the shade (warmer at SYNTH SUNSET, icier in CRYSTAL CA
   assert.equal(neonPalette('nope').id, 'neutral');
   assert.equal(neonPalette('city'), neonPalette('city'));
 });
+
+test('PFIX-B (finding 10): THE STEPS — by day every step changes the board\'s ratio (3 → 0, 0 → 3); by night one tier at a time', async () => {
+  const { TIERS, TOP_TIER, stepTier, DAY_KEYS } = await import('../js/games/prism/tiers.js');
+  for (let t = 0; t <= TOP_TIER; t++) {
+    for (const dir of [-1, 1]) {
+      const d = stepTier(t, dir, 'crayon');
+      if (d !== t) {
+        assert.ok(DAY_KEYS.some(k => TIERS[d][k] !== TIERS[t][k]), `day ${t} → ${d}: it changes something the day look draws`);
+        assert.notEqual(TIERS[d].board, TIERS[t].board, `day ${t} → ${d}: the board's ratio (the one change that helps by day)`);
+      }
+      assert.equal(stepTier(t, dir, 'neon'), Math.max(0, Math.min(TOP_TIER, t + dir)), 'night: one at a time');
+    }
+  }
+  assert.equal(stepTier(TOP_TIER, -1, 'crayon'), 0, 'day: from the top straight to the 2× board');
+  assert.equal(stepTier(0, 1, 'crayon'), TOP_TIER, 'day: back up to the top of the 3× class');
+  assert.equal(stepTier(0, -1, 'crayon'), 0, 'nowhere lower');
+});

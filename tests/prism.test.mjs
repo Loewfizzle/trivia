@@ -203,6 +203,8 @@ const base = (n, mode = 'battle') => createGame({
   matchId: 'm1', settings: { mode }, participants: P(n), now: 0, seed: 'seed', songs: ['prism1', 'prism2'], sd: [180_000, 200_000],
   pl0: 3, songStartAt: 4500, playStartAt: 9000, endAt: mode === 'rush' ? 4500 + 170_000 : null,
 });
+/** (PFIX-B) the queues behind the boards' KO credits: each named killer's attack, sent a second before the KO */
+const qs = boards => Object.fromEntries(Object.entries(boards).filter(([, b]) => b && b.by).map(([u, b]) => [u, { [`${b.by}-9`]: { f: b.by, n: 2, g: 0, at: b.at - 1000 } }]));
 const apply = (g, patch) => {
   const out = structuredClone(g);
   for (const [k, v] of Object.entries(patch)) {
@@ -223,7 +225,7 @@ test('director: count -> play at GO; knockouts in order with KO credit + badges;
   assert.equal(g.phase, 'play');
   // u3 tops out (junk from u0), then u2 (junk from u0) — badges: u0 = 1, then 1 + 0 + 1 = 2
   let boards = { u3: { st: 'out', by: 'u0', at: 20_000 } };
-  let p = nextStep(g, { now: 20_100, online: online(4), live: { boards } });
+  let p = nextStep(g, { now: 20_100, online: online(4), live: { boards, queues: qs(boards) } });
   g = apply(g, p);
   assert.equal(g.out.u3.place, 4);
   assert.equal(g.out.u3.rem, 3);
@@ -231,12 +233,12 @@ test('director: count -> play at GO; knockouts in order with KO credit + badges;
   assert.equal(g.ko.u0, 1);
   assert.equal(g.duelAt, undefined);
   boards = { ...boards, u2: { st: 'out', by: 'u0', at: 30_000 } };
-  g = apply(g, nextStep(g, { now: 30_100, online: online(4), live: { boards } }));
+  g = apply(g, nextStep(g, { now: 30_100, online: online(4), live: { boards, queues: qs(boards) } }));
   assert.equal(g.bd.u0, 2);
   assert.equal(g.duelAt, 30_100, 'two left -> FINAL DUEL');
   // u1 knocks out u0 and takes 2 + 1 badges
   boards = { ...boards, u0: { st: 'out', by: 'u1', at: 40_000 } };
-  g = apply(g, nextStep(g, { now: 40_100, online: online(4), live: { boards } }));
+  g = apply(g, nextStep(g, { now: 40_100, online: online(4), live: { boards, queues: qs(boards) } }));
   assert.equal(g.phase, 'end');
   assert.equal(g.winner, 'u1');
   assert.equal(g.bd.u1, 3);
@@ -309,13 +311,13 @@ test('PFIX-A (finding 4 + B): the last two out in ONE tick — the one who went 
     const boards = {};
     for (let i = 2; i < n; i++) {
       boards[`u${i}`] = { st: 'out', by: 'u0', at: 10_000 + i * 1000 };
-      g = apply(g, nextStep(g, { now: 10_100 + i * 1000, online: online(n), live: { boards } }));
+      g = apply(g, nextStep(g, { now: 10_100 + i * 1000, online: online(n), live: { boards, queues: qs(boards) } }));
     }
     assert.equal(g.phase, 'play');
     // both top out between two host ticks — u1 at 60 000, u0 60 040 ms (later)
     boards.u0 = { st: 'out', by: 'u1', at: 60_040, se: 3 };
     boards.u1 = { st: 'out', by: 'u0', at: 60_000, se: 9 };
-    const p = nextStep(g, { now: 60_200, online: online(n), live: { boards } });
+    const p = nextStep(g, { now: 60_200, online: online(n), live: { boards, queues: qs(boards) } });
     g = apply(g, p);
     assert.equal(g.phase, 'end');
     assert.equal(g.winner, 'u0', `${n} players: the later top-out wins`);
@@ -345,6 +347,26 @@ test('PFIX-A (finding 4 + B): the last two out in ONE tick — the one who went 
   assert.deepEqual(nextStep(structuredClone(g), ctx), nextStep(structuredClone(g), ctx));
 });
 
+test('PFIX-B (finding 6): a KO is credited only with a REAL recent attack in the victim\'s queue — a forged `by` = nobody', () => {
+  const g = apply(base(3), { phase: 'play', phaseStartAt: 9000 });
+  const out = (by, queues) => apply(g, nextStep(g, { now: 60_200, online: online(3), live: { boards: { u2: { st: 'out', by, at: 60_000 } }, queues } })).out.u2;
+  // the review's forgery: topping out naming a player who never sent a row
+  assert.equal(out('u1', {}).by, null, 'no queue at all: nobody');
+  assert.equal(out('u1', { u2: { 'u0-4': { f: 'u0', n: 2, g: 0, at: 55_000 } } }).by, null, 'a row from someone else: nobody');
+  assert.equal(out('u1', { u2: { 'u1-4': { f: 'u1', n: 2, g: 0, at: 60_000 - L.KO_CREDIT_MS - 3000 } } }).by, null, 'too long ago: nobody');
+  assert.equal(out('u1', { u1: { 'u1-4': { f: 'u1', n: 2, g: 0, at: 58_000 } } }).by, null, 'a row in ANOTHER queue: nobody');
+  assert.equal(out('u1', { u2: { 'u1-4': { f: 'u1', n: 2, g: 0, at: 58_000 } } }).by, 'u1', 'their row, 2 s before: credited');
+  assert.equal(out('u1', { u2: { 'u1-4': { f: 'u1', n: 2, g: 0, at: 60_000 - L.KO_CREDIT_MS - 1000 } } }).by, 'u1', 'sent 21 s before (it rose, then landed): credited');
+  // (optional 19: a KO by a player already out is fair — the rows they sent before they fell still landed)
+  const g2 = apply(g, { 'out/u1': { at: 59_000, place: 3, rem: 2, by: null, gone: false } });
+  const p = nextStep(g2, { now: 60_200, online: online(3), live: { boards: { u2: { st: 'out', by: 'u1', at: 60_000 } }, queues: { u2: { 'u1-4': { f: 'u1', n: 2, g: 0, at: 58_500 } } } } });
+  assert.equal(p['out/u2'].by, 'u1');
+  assert.equal(L.creditedBy(null, 'u1', 1), false);
+  // the same patch twice (a host change)
+  const ctx = { now: 60_200, online: online(3), live: { boards: { u2: { st: 'out', by: 'u1', at: 60_000 } }, queues: { u2: { 'u1-4': { f: 'u1', n: 2, g: 0, at: 58_000 } } } } };
+  assert.deepEqual(nextStep(structuredClone(g), ctx), nextStep(structuredClone(g), ctx));
+});
+
 test('director: score rush ends on the final beat, results come from the boards', () => {
   let g = apply(base(3, 'rush'), { phase: 'play', phaseStartAt: 9000 });
   assert.equal(nextStep(g, { now: g.endAt - 1, online: online(3), live: { boards: {} } }), null);
@@ -359,7 +381,7 @@ test('director: score rush ends on the final beat, results come from the boards'
 
 test('director: replaying a step on a fresh copy gives the same patch (host change is harmless)', () => {
   const g = apply(base(5), { phase: 'play', phaseStartAt: 9000 });
-  const ctx = { now: 30_000, online: online(5), live: { boards: { u4: { st: 'out', by: 'u1', at: 29_000 }, u3: { st: 'out', by: 'u4', at: 28_000 } } } };
+  const ctx = { now: 30_000, online: online(5), live: { boards: { u4: { st: 'out', by: 'u1', at: 29_000 }, u3: { st: 'out', by: 'u4', at: 28_000 } }, queues: { u4: { 'u1-3': { f: 'u1', n: 2, g: 0, at: 27_000 } }, u3: { 'u4-5': { f: 'u4', n: 4, g: 1, at: 26_500 } } } } };
   assert.deepEqual(nextStep(structuredClone(g), ctx), nextStep(structuredClone(g), ctx));
   const p = nextStep(g, ctx);
   // u3 went first (by u4), then u4 (by u1): u1 takes u4's badge + 1
@@ -447,6 +469,7 @@ function simulateBattle(n, seed, { offline = null, mode = 'battle', refreshAt = 
   const emode = mode;   // (the engine sends + counters attacks in 'battle' only; SURVIVAL's speed comes from battleLevel like BATTLE's)
   for (const u of Object.keys(g.participants)) { eng[u] = E.createEngine({ seed, mode: emode }); E.start(eng[u]); rnd[u] = rngFrom(`${seed}:${u}`); }
   const boards = {};
+  const queues = {};   // (PFIX-B: prismq/{m} — the director credits a KO from it)
   const sequences = {};
   const hits = {};
   const target = {};
@@ -497,6 +520,7 @@ function simulateBattle(n, seed, { offline = null, mode = 'battle', refreshAt = 
           E.receive(eng[t], { n: ev.n, gap: Math.floor(rnd[u]() * 10), from: u, delayMs: L.junkDelay(E.stackHeight(eng[t])) });
           lastFrom[t] = u;
           (hits[t] ||= []).push({ uid: u, at: now });
+          (queues[t] ||= {})[`${u}-${ev.i}`] = { f: u, n: ev.n, g: 0, at: now };
         }
       }
       if (e.over) boards[u] = { st: 'out', by: lastFrom[u] || null, at: now, sv: E.save(e) };
@@ -505,7 +529,7 @@ function simulateBattle(n, seed, { offline = null, mode = 'battle', refreshAt = 
     if (step % 5 === 0) {
       const on = Object.fromEntries(Object.keys(eng).map(u => [u, u !== offline]));
       const pres = offline ? { [offline]: { online: false, lastSeen: 1000 } } : {};
-      const ctx = { now, online: on, presence: pres, live: { boards } };
+      const ctx = { now, online: on, presence: pres, live: { boards, queues } };
       // a host change: the new host runs the same step on its own copy of the DB → the same patch
       if (hostSwapAt && now - g.playStartAt >= hostSwapAt && now - g.playStartAt < hostSwapAt + 300) {
         assert.deepEqual(nextStep(structuredClone(g), structuredClone(ctx)), nextStep(structuredClone(g), structuredClone(ctx)));
@@ -531,6 +555,7 @@ test('8-player battle with bots: identical piece order, attacks + junk, KOs, bad
   // badges: total badges = every KO counts 1 + the victim's badges move
   const kos = Object.values(g.ko || {}).reduce((a, b) => a + b, 0);
   assert.equal(kos, Object.values(g.out).filter(o => o.by).length);
+  assert.ok(kos >= 1, 'real attacks in the queues: KOs are credited');
   const places = Object.values(g.out).map(o => o.place).sort((a, b) => a - b);
   assert.deepEqual(places, [2, 3, 4, 5, 6, 7, 8]);
   assert.ok(now - 1000 < 9 * 60_000, 'sudden death keeps matches short');
@@ -676,4 +701,85 @@ test('GHOST ROWS: the bands come from the engine’s own queue — newest at the
   E.receive(e2, { n: 4, gap: 1, from: 'x', delayMs: 1000 });
   assert.equal(E.pendingTotal(e2), 4);
   assert.equal(I.ghostBands(e2.pending, e2.clock)[0].n, 4);
+});
+
+test('PFIX-B: the view writes its board only inside the rules\' window (boardWritable — the same window as database.rules.json); the queue cap', () => {
+  const g = { ...base(2), phase: 'play' };
+  assert.equal(L.boardWritable(g, 'u0', 20_000), true, 'PLAY');
+  assert.equal(L.boardWritable(g, 'zz', 20_000), false, 'not a participant');
+  assert.equal(L.boardWritable({ ...g, out: { u0: { at: 1 } } }, 'u0', 20_000), false, 'out by the director');
+  assert.equal(L.boardWritable(g, 'u0', 20_000, { st: 'out' }), false, 'out by its own top-out');
+  assert.equal(L.boardWritable({ ...g, phase: 'count' }, 'u0', g.playStartAt - 5000), false, 'the countdown before GO');
+  assert.equal(L.boardWritable({ ...g, phase: 'count' }, 'u0', g.playStartAt + 200), true, 'GO has passed, the host not yet ticked');
+  assert.equal(L.boardWritable({ ...g, phase: 'end' }, 'u0', 60_000), false, 'a battle\'s END');
+  assert.equal(L.boardWritable({ ...g, phase: 'final' }, 'u0', 60_000), false);
+  const r = { ...base(2, 'rush'), phase: 'end' };
+  assert.equal(L.boardWritable(r, 'u0', r.endAt + 1000), true, 'SCORE RUSH: the final save just after the song');
+  assert.equal(L.boardWritable(r, 'u0', r.endAt + 5000), false, '… never long after');
+  assert.equal(L.boardWritable({ ...r, phase: 'play' }, 'u0', r.endAt + 5000), false, '… not while the host is away either');
+  // the rules allow a little more on each side (the clocks): the view's window sits inside theirs
+  const rules = readFileSync(new URL('../database.rules.json', import.meta.url), 'utf8');
+  assert.ok(rules.includes("playStartAt').val() - 2000") && rules.includes("endAt').val() + 4000"), 'the rules\' window (−2 s at GO, +4 s after the song)');
+  assert.equal(L.QUEUE_MAX, 40);
+});
+
+test('PFIX-B (finding 8): more than 12 rows queued — the rows DRAWN are the first 12 to LAND (the oldest band first)', async () => {
+  const I = await import('../js/games/prism/incoming.js');
+  // the review's queue: OLD 4 (due), MID 6, NEW 6 — all due
+  const q = [{ n: 4, g: 1, from: 'old', at: 0, t0: 0 }, { n: 6, g: 2, from: 'mid', at: 0, t0: 0 }, { n: 6, g: 3, from: 'new', at: 0, t0: 0 }];
+  const b = I.ghostBands(q, 10);
+  assert.deepEqual(b.map(x => [x.from, x.rows]), [['new', 2], ['mid', 6], ['old', 4]], 'drawn bottom-up: NEW 2 · MID 6 · OLD 4 = what the next locks land');
+  // the engine agrees: the rows it lands first are OLD 4, MID 6, NEW 2
+  const e = E.createEngine({ seed: 'g8', mode: 'battle' });
+  E.start(e);
+  for (const x of q) E.receive(e, { n: x.n, gap: x.g, from: x.from, delayMs: 0 });
+  const landed = [];
+  let room = I.GHOST_MAX;
+  for (const p of e.pending) { const k = Math.min(p.n, room); if (k > 0) landed.push([p.from, k]); room -= k; }
+  assert.deepEqual(landed.slice().reverse(), b.map(x => [x.from, x.rows]));
+  // a scheduled row lands first of all: it takes its row before the queue
+  const s = I.ghostBands(q, 10, { sched: { gap: 0, inMs: 0 } });
+  assert.equal(s.at(-1).kind, 'sched');
+  assert.equal(s.reduce((t, x) => t + x.rows, 0), I.GHOST_MAX);
+  assert.deepEqual(s.filter(x => x.kind === 'junk').map(x => [x.from, Math.round(x.rows)]), [['new', 1], ['mid', 6], ['old', 4]]);
+  // 400 random queues: never more than 12 drawn, and the oldest band is never cut while a newer one shows
+  const rnd = rngFrom('g8');
+  for (let k = 0; k < 400; k++) {
+    const qq = Array.from({ length: 1 + Math.floor(rnd() * 5) }, (_, i) => ({ n: 1 + Math.floor(rnd() * 8), g: i, from: `p${i}`, at: 0, t0: 0 }));
+    const bb = I.ghostBands(qq, 1).slice().reverse();   // landing order
+    assert.ok(bb.reduce((t, x) => t + x.rows, 0) <= I.GHOST_MAX + 1e-9);
+    for (let i = 0; i < bb.length - 1; i++) assert.ok(Math.abs(bb[i].rows - bb[i].n) < 1e-9, 'every band but the last drawn whole');
+  }
+});
+
+test('PFIX-B (optional 13): a later-due band behind a band not yet due is drawn RISING, never HOT — it can\'t land before the head', async () => {
+  const I = await import('../js/games/prism/incoming.js');
+  // the head: sent at 0, due at 2000 · the second: sent at 0 with no delay (due at once — a counter-attack's rows, say)
+  const q = [{ n: 3, g: 1, from: 'a', at: 2000, t0: 0 }, { n: 2, g: 2, from: 'b', at: 0, t0: 0 }];
+  let b = I.ghostBands(q, 500);
+  const [second, head] = b;
+  assert.equal(head.from, 'a');
+  assert.equal(second.hot, false, 'not hot while the head isn\'t due');
+  assert.ok(second.prog <= head.prog + 1e-9, 'never further up than the band in front of it');
+  b = I.ghostBands(q, 2000);
+  assert.ok(b.every(x => x.hot), 'once the head is due both are');
+});
+
+test('PFIX-B (optional 12): the playlist moves past the first song at START — an END GAME / everyone leaving never deals it again', () => {
+  assert.deepEqual(L.playlistAdvance('night', 4), { 'meta/prism/n': 5 });
+  assert.deepEqual(L.playlistAdvance('night', 0, 'roomseed'), { 'meta/prism': { seed: 'roomseed', n: 1 } }, 'a room\'s first match: the seed + the move');
+  assert.deepEqual(L.playlistAdvance('day', 2), { 'meta/used/prism/dn3': true });
+  // the next match after an END GAME (no end step): the start's move alone deals the NEXT song
+  const ids = IDS.filter(id => !/^prismd/.test(id));
+  const first = L.dealSongs({ manifest, set: 'night', roomSeed: 'r', pos: 4, count: 1 }).songs[0];
+  const next = L.dealSongs({ manifest, set: 'night', roomSeed: 'r', pos: L.playlistAdvance('night', 4)['meta/prism/n'], count: 1 }).songs[0];
+  assert.ok(ids.includes(first) && ids.includes(next));
+  assert.notEqual(first, next, 'a different first song');
+  // the day set: the night's memory key makes dayPos move
+  const dk = Object.keys(L.playlistAdvance('day', 2))[0].split('/').pop();
+  assert.equal(L.dayPos({ dn2: true, [dk]: true }), 3);
+  // and the end step still moves it past every song played (≥ the start's move — the larger wins)
+  const g = apply(base(2), { phase: 'end', phaseStartAt: 50_000, phaseEndsAt: 54_200, winner: 'u1', out: { u0: { at: 50_000, place: 2, rem: 1 } } });
+  const fin = nextStep(g, { now: 54_200, online: online(2), live: { boards: {} } });
+  assert.ok(fin.$room['meta/prism/n'] >= L.playlistAdvance('night', g.pl0)['meta/prism/n']);
 });

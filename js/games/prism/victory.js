@@ -83,7 +83,7 @@ export function finalScene(el, game, state) {
 export function buildFinal({ game, st, me }) {
   const rush = rushOf(game), surv = survOf(game);
   const finalView = createFinal({
-    rows: finalRows(game), players: st.players, me, presence: st.presence, scoreLabel: rush ? 'PTS' : surv ? 'SEC' : 'KO',
+    rows: finalRows(game), players: st.players, me, presence: st.presence, scoreLabel: rush ? 'PTS' : surv ? 'TIME' : 'KO',
     kicker: rush ? 'SCORE RUSH · FINAL' : surv ? 'SURVIVAL · FINAL' : 'BATTLE · FINAL',
     winnerLine: nm => (rush ? `${nm} TOPS THE SONG` : surv ? `${nm} OUTLASTED EVERYONE` : `${nm} IS THE LAST ONE STANDING`),
   });

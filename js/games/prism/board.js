@@ -300,6 +300,12 @@ export const clearSprites = () => sprites.clear();
 // never changes). PD-2 adds the first hook: `incoming(ctx, bands, o)` paints THE RISING GHOST ROWS (incoming.js#ghostBands — bottom-up) OVER
 // the board's bottom rows and returns each drawn row's place (canvas px) for the shatter. The rules every look keeps: an occupied cell is only
 // TINTED (the stack stays readable through them — never covered), the gap column stays open, the rows never move the real stack.
+/** PFIX-B (FABLE REVIEW optional 14): a rising ghost row sits BETWEEN two stack rows while it rises — its cell is drawn only where EVERY stack
+ *  row it overlaps is empty (was: the row under its middle — a half-risen row showed half a ghost cell over a block); otherwise only tinted */
+export function ghostBlocked(cells, x, bot, top) {
+  for (let r = Math.max(0, Math.floor(bot)); r < Math.min(VISIBLE, Math.ceil(top - 1e-6)); r++) if (cells[r * W + x]) return true;
+  return false;
+}
 /** the ghost rows' drawing, shared by the looks — `spr(px, kind, pal)` gives the look's own 'incoming' + 'iglow' sprites; `edge` its leading edge */
 function incomingHook(spr, edge) {
   /** o: { px, cells, H (canvas height px), now (ms), reduced, pal } → [{ y, h, gap }] (one per visible row, top first) */
@@ -321,10 +327,9 @@ function incomingHook(spr, edge) {
           const vBot = Math.max(rBot, base);
           const y = H - rTop * px, hh = (rTop - vBot) * px;
           if (hh < 0.5) continue;
-          const row = Math.max(0, Math.min(VISIBLE - 1, Math.floor((rTop + vBot) / 2)));
           for (let x = 0; x < W; x++) {
             if (x === b.gap) continue;
-            if (cells[row * W + x]) {
+            if (ghostBlocked(cells, x, vBot, rTop)) {
               ctx.globalAlpha = 0.16;
               ctx.fillStyle = INCOMING;
               ctx.fillRect(x * px, y, px, hh);
@@ -379,10 +384,9 @@ function crayonIncoming(ctx, bands, { px, cells, H, now, reduced }) {
       const y = H - rTop * px, hh = (rTop - vBot) * px;
       if (hh < 0.5) continue;
       if (yTopBand === null) yTopBand = y;
-      const row = Math.max(0, Math.min(VISIBLE - 1, Math.floor((rTop + vBot) / 2)));
       for (let x = 0; x < W; x++) {
         if (x === b.gap) continue;
-        if (cells[row * W + x]) { ctx.globalAlpha = 0.16; ctx.fillStyle = GRAPHITE; ctx.fillRect(x * px, y, px, hh); }
+        if (ghostBlocked(cells, x, vBot, rTop)) { ctx.globalAlpha = 0.16; ctx.fillStyle = GRAPHITE; ctx.fillRect(x * px, y, px, hh); }
         else { ctx.globalAlpha = a; ctx.drawImage(ghost, 0, 0, ghost.width, ghost.height * (hh / px), x * px + shake, y, px, hh); }
       }
       geo.push({ y, h: hh, gap: b.gap });
@@ -445,7 +449,11 @@ export function createBoardView(canvas) {
   const SHARD_MS = 520;
 
   function size(cssCell, tierDpr) {
-    dpr = Math.min(3, tierDpr || window.devicePixelRatio || 1);   // (PD-1: the full 3× — was capped at 2)
+    const d = Math.min(3, tierDpr || window.devicePixelRatio || 1);   // (PD-1: the full 3× — was capped at 2)
+    // (PFIX-B — optional 17: the same size = keep the three canvases — a re-layout with nothing resized (a look switch) used to re-allocate the
+    //  board + both offscreens, a 50 ms frame at 4× CPU on every switch; the stack + the grid redraw from their signatures)
+    if (stack && d === dpr && cssCell === cell && canvas.width === Math.max(4, Math.round(cssCell * d)) * W) { stackSig = ''; gridSig = ''; return; }
+    dpr = d;
     cell = cssCell;
     px = Math.max(4, Math.round(cell * dpr));
     canvas.width = px * W;
@@ -554,6 +562,8 @@ export function createBoardView(canvas) {
     /** (PD-5B) hold the stack as it was before a clear for ms (the neon look's race + burst read on the cleared rows; the game never waits) */
     holdClear(cells, ms) { held = ms > 0 && cells ? { cells, until: performance.now() + ms } : null; },
     get holding() { return !!held && performance.now() < held.until; },
+    /** (PFIX-B — optional 11) the stack changed under the hold: the live stack + the landing preview at once */
+    endHold() { held = null; },
     draw(g, { danger = 0, glow = 0.32, showGhost = true, frozen = false, rush = false, incoming = null, look = 'glass', pal = null, reduced = false } = {}) {
       const now = performance.now();
       if (held && now >= held.until) held = null;

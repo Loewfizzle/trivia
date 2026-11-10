@@ -181,7 +181,9 @@ if (process.env.PERF !== '0') {
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
     const cdp = await page.target().createCDPSession();
     if (CPU > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
-    await page.goto(`${BASE}/tests/integration/prism-preview.html?n=7&stack=6&bot=1&tier=${tier}&st=47&sb=34${set === 'heavy' ? '&heavy=1' : ''}${LOOK}${EXTRA}`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE}/tests/integration/prism-preview.html?n=7&stack=6&bot=1&tier=${tier}&st=47&sb=34${set === 'heavy' ? '&heavy=1' : ''}${LOOK}${EXTRA}`, { waitUntil: 'load' });
+    // (PFIX-B — optional 22: never networkidle0 — on the --emu server the page keeps a request open; a bounded settle, as the shots do)
+    await page.waitForNetworkIdle({ idleTime: 300, timeout: 8000 }).catch(() => {});
     await page.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 20000 }).catch(() => {});
     await sleep(1500);
     await page.evaluate(lock => { if (lock && window.__prism.lockTier) window.__prism.lockTier(true); if (window.__prism.record) window.__prism.record(true); }, process.env.PERF_AUTO !== '1');   // (PD-2's view on :5174 has neither — the A/B)

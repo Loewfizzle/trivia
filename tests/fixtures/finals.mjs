@@ -45,8 +45,9 @@ export function finalGame(id, uids, opts = {}) {
     case 'prism': {
       const rush = (opts.mode || 'battle') === 'rush';
       const out = rush ? {} : Object.fromEntries(uids.slice(1).map((u, k) => [u, { at: T0 + 100_000 + k, place: k + 2, by: uids[0] }]));
-      return { ...base, settings: { mode: rush ? 'rush' : 'battle' }, sd: [200_000], out, winner: uids[0],
-        results: byRank(uids, i => ({ sc: opts.rushScore != null && i === 0 ? opts.rushScore : 40_000 - i * 5000, ln: 60 - i * 5, lv: 7, ko: rush ? 0 : (i === 0 ? n - 1 : 0), sent: 20 - i, bd: 0 })) };
+      // (PFIX-B: the play's start + each board's pieces — the award flags are checked against them)
+      return { ...base, settings: { mode: rush ? 'rush' : 'battle' }, sd: [200_000], out, winner: uids[0], playStartAt: T0 + 10_000,
+        results: byRank(uids, i => ({ sc: opts.rushScore != null && i === 0 ? opts.rushScore : 40_000 - i * 5000, ln: 60 - i * 5, lv: 7, ko: rush ? 0 : (i === 0 ? n - 1 : 0), sent: 20 - i, bd: 0, pn: 160 - i * 10 })) };
     }
     case 'slip': {
       const out = Object.fromEntries(uids.slice(1).map((u, k) => [u, { at: T0 + 200_000 - k * 1000, place: k + 2, rem: k + 1, d: 2000 - k * 200 }]));

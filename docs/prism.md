@@ -39,12 +39,52 @@ Deep-dive for PRISM DROP: engine, battle rules, songs, musical SFX, visuals, con
     their last hit (`attackersOf(hits, now)`); a target picked BECAUSE they hit you goes back to THE RANDOM PICK once forgotten (`currentHit`),
     a random pick is kept while valid. 8 equal players × 400 attacks (40 seeds): the biggest share 1.89 × an even split (worst 4.28) → 1.37
     (worst 1.77). Feuds that keep hitting each other inside 20 s still trade (the rule's nature).
+  **PFIX-B (Nov 10 2026 — FABLE REVIEW #1's MUST FIX 6–7 + SHOULD FIX 8–10 + the polish; docs/harbor/passes/pfix-b.md). THE ANTI-CHEAT RULES a
+  later pass must KEEP (question C's CHEAP BOUNDS — they narrow forgery; nothing replays the board: a server replay is a later pass, only if
+  PRISM's scores ever matter to strangers):**
+  - **THE BOARD NODE (`database.rules.json` prism/{m}/{uid}):** written only in PLAY, the countdown from GO − 2 s (GO lands before the host's
+    tick), and SCORE RUSH's END for its final save — never past the song's `endAt` + 4 s; FROZEN once out (its own `st: 'out'` or the director's
+    `game/out/{uid}` — gone / away): no field changes after a KO. `at` = the server's `now`. `sv` is CLOSED (every field typed + bounded:
+    `st` = four counts, quads / twists / perfect clears ≤ pieces, pieces ≤ 20 a second of play + 40; `ln` ≤ 4 × pieces; `pk` 0–40; `pd` rows
+    6 fields, n 1–30; strings capped); the published stats bounded by the play clock (`sc` ≤ 20 000 a second + 50 000, `ln` ≤ 10 a second +
+    40, `se` ≤ 10 a second + 60); `best: 'quad'` needs `ln ≥ 4` in the same node. The view writes only inside that window
+    (`logic.js#boardWritable` — the same window, a little inside it), so an honest phone never sends a refused write.
+  - **THE ATTACK (prismq/{m}/{target}/{uid}-{piece}):** the key = the sender + a piece number (one attack per piece, create-only — a push key
+    is refused), `at` = the server's `now` (never back-dated), never at or from a board that says out / the director put out, BATTLE + PLAY
+    only, never yourself (as before). The receiver drops an attack that would take its queue past `QUEUE_MAX` (40 rows — a flood can't bury).
+  - **THE KO CREDIT (`logic.js#creditedBy`):** `by` counts only if the victim's queue holds an attack FROM that player sent in the last
+    `KO_CREDIT_MS` (20 s) + the longest rise before the KO (`index.js#livePaths` mirrors `prismq/{m}` as `queues`); else nobody. A KO by a
+    player already out is fair (the rows they sent before they fell still landed).
+  - **THE AWARD FLAGS (`match-report.js#prismExtra`):** FOUR ON THE FLOOR needs `ln ≥ 4`; PERFECT CLEAR needs `ln ≥ 2 × pc` (a one-line
+    perfect clear can't happen — a piece is 4 cells, a row 10) + enough pieces (`pn` — the results carry it: 5 a clear in SCORE RUSH, 2 with junk
+    under you); both only from a match the player PLAYED ≥ 15 s (`PRISM_AWARD_MIN_MS`) with ≤ 10 pieces a second. PERFECT CLEAR in SOLO stays.
+  - **THE SCORE RUSH BOUND (finding 9 — `match-report.js#maxRushScore`):** from a SIM (`node scripts/sim-prism-rush.mjs [runs] [pps]` —
+    full-skill bot runs on the real engine, every song, at `RUSH_PACE.pps` 4 pieces a second): the best runs clear ≈ 1.4 lines a second at
+    ≈ 130 points a line a level → the bound = 3 × 130 × (L + L² / 20), L = 1.4 × the song's seconds — 3.2–4.6 × the best run of each song (it
+    holds against a 5-pieces-a-second bot too: 1.6 ×) — and never more than the lines can be worth (`rushLineCeiling`); lines ≤ 2.5 a second
+    + 20 (`maxRushLines`). The longest song's bound ≈ 2.2 M (was ≈ 222 M). THE BOARD's `prism-rush` had no rows when it changed (none above).
+  - **THE GHOST ROWS (finding 8 + optional 13 — `incoming.js#ghostBands`):** the 12 drawn rows are the first 12 to LAND (the scheduled row,
+    then the queue from its OLDEST band); a band never rises past the one in front of it (the engine lands the head first — a later band is
+    never HOT before it). Drawn only where every stack row a rising ghost row overlaps is empty (`board.js#ghostBlocked` — no half ghost cell
+    over a block); the INCOMING tag also stays above the landing preview.
+  - **THE DAY TIERS (finding 10 — `tiers.js#stepTier`):** by day a step goes straight to the next tier whose BOARD ratio differs (3 → 0,
+    0 → 3 — the day look draws no world and no light layer, so only the board's 3× moves its frame time); by night one tier at a time as
+    before. The view judges 90 frames OR ~1.5 s of them (a 15-fps phone is helped in ~1.5 s, not ~6 s + 15 s of steps).
+  - **THE POLISH:** a lock / landed rows inside the clear hold END it (`neonfx.js#endsHold` → `board.endHold`); the playlist moves past the
+    first song at START (`logic.js#playlistAdvance` — END GAME no longer repeats it); SURVIVAL's final rows show the time "2:31" (the
+    console's `scoreText` — `ui/final.js` + `components.js#leaderboard`); the header comes back as an announcement fades (no blank line); the
+    day art warmed at night in idle slices after GO (`view.js#warmDayArt` — the crayon tooth noise a few rows a slice, the doodle, SLAM's
+    streak + the scribble + the star's tiles; the scribble punched with a repeated 256-px tile, no longer a 970 × 970 one per combo level) —
+    the first switch to day: 3–4 frames of 100 ms → 2 at 4× CPU (`tests/integration/prism-lookswitch.mjs`; what is left = the day paper
+    arriving + the compositor: the papers + the marker font still load only when the day look shows).
   **AUTO-TARGET (PD-2 — `logic.js#autoTarget`, no button, no setting):** your attacks go to whoever is attacking you (the most recent attacker
   still alive — `attackersOf` over the attacks you received in the last 20 s: PFIX-A), otherwise a random living opponent, KEPT while it stays valid; re-picked when an
   attack arrives and every ~0.6 s. The old RANDOM / ATTACKERS / DANGER modes + `na:prism:target` are gone. Badges + KO bonuses work as before,
   behind the scenes (no panel). Call the Winner: 10 s after you're out (rules: 12 s); bonus = `callBonus(rem)` = 0.4 × (players left − 1).
 - **Score Rush:** no attacks; the match = one song (`endAt` = the song's analysed last strong beat); levels every 10 lines; a
-  top-out clears the board (score kept); the finale (chord + the board shattering) is scheduled on that beat.
+  top-out clears the board (score kept); the finale (chord + the board shattering) is scheduled on that beat. (REBOOT — `view.js#onTopOut`:
+  after 1.4 s the well empties, the queue + combo + back-to-back reset and the NEXT piece of the bag comes in — the piece that topped out is
+  skipped (`eng.n++`), so every phone still deals from the same seeded sequence.)
 - **SURVIVAL (PD-2):** no attacks (the engine runs in mode `survival`: it sends + counters nothing); junk rows rise for EVERYONE on one seeded
   schedule — `logic.js#survivalRows` / `survivalRowAt` (the k-th row's time, ms after GO: one every 10 s, a smoothstep over `SURV_RAMP_MS`
   150 s to one every 4 s), the gap = `survivalGap(seed, k)` (sudden death's rule), each phone inserting them at the server-clock moment

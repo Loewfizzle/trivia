@@ -384,3 +384,58 @@ test('OVERCLOCK — THE QUICK SOLO BOARD: a real solo QUICK run counts; a score 
   const one = solo('quick', 'afk-one', ci => (ci === 0 ? 1 : 0));
   assert.ok(extractMatch(one).rows.ua.rec['overclock-quick-solo'] > 0, 'one answered part → on the board');
 });
+
+// PFIX-B (FABLE REVIEW finding 9) — THE SCORE RUSH BOUND FROM A SIM: full-skill bot runs on the real engine (scripts/sim-prism-rush.mjs) at the
+// fast human pace; the bound sits ≥ 2.5 × the best run of the longest + the shortest song, an honest run keeps its record, the review's forged
+// score is refused (the old bound let 222 M through for 923 lines in the longest song)
+test('PFIX-B: the SCORE RUSH bound = the sim\'s best runs × ~3 — honest runs pass, the forgeries don\'t', async () => {
+  const { maxRushScore, maxRushLines, RUSH_PACE } = await import('../js/core/match-report.js');
+  const { rushRun } = await import('../scripts/sim-prism-rush.mjs');
+  const songs = JSON.parse(readFileSync(new URL('../data/prism/manifest.json', import.meta.url), 'utf8')).songs;
+  const by = [...songs].sort((a, b) => a.duration - b.duration);
+  for (const s of [by[0], by.at(-1)]) {
+    let best = { sc: 0, ln: 0 };
+    for (let k = 0; k < 4; k++) { const r = rushRun(`pin-${s.id}-${k}`, s.duration, RUSH_PACE.pps); if (r.sc > best.sc) best = r; }
+    const bound = maxRushScore(Infinity, s.duration);
+    assert.ok(bound >= 2.5 * best.sc, `${s.id}: the bound ${bound} ≥ 2.5 × the best run ${best.sc}`);
+    assert.ok(bound <= 6 * best.sc, `${s.id}: … and close to honest play (≤ 6 ×, was 100–200 ×)`);
+    assert.ok(maxRushLines(s.duration) >= 1.5 * best.ln, `${s.id}: the lines bound clears the best run`);
+    const g = { ...finalGame('prism', U, { mode: 'rush', rushScore: best.sc }), sd: [Math.round(s.duration * 1000)] };
+    g.results.ua.ln = best.ln;
+    assert.equal(extractMatch(g).rows.ua.rec['prism-rush'], best.sc, `${s.id}: an honest best run keeps its record`);
+  }
+  // the review's numbers: 60 000 000 / 900 lines for one song, and the old bound's 222 M at 923 lines in the longest song
+  for (const [sc, ln] of [[60_000_000, 900], [222_000_000, 923], [3_000_000, 500], [500_000, 10]]) {
+    const g = { ...finalGame('prism', U, { mode: 'rush', rushScore: sc }), sd: [230_833] };
+    g.results.ua.ln = ln;
+    assert.ok(extractMatch(g).rejected.some(r => r.uid === 'ua' && r.board === 'prism-rush'), `${sc} pts / ${ln} lines: refused`);
+  }
+  assert.ok(maxRushScore(923, 230.8) < 3_000_000, 'the longest song\'s bound: under 3 M');
+});
+
+// PFIX-B (FABLE REVIEW finding 6) — the award flags only from plausible numbers: the review's forged match gives no flag
+test('PFIX-B: a forged PRISM match → no FOUR ON THE FLOOR, no PERFECT CLEAR; the honest ones still flag', () => {
+  const f = (opts, tweak, uid = 'ub', more = {}) => {
+    const g = { ...finalGame('prism', U, opts), ...more };
+    g.results[uid] = { ...g.results[uid], ...tweak };
+    return (extractMatch(g).rows[uid] || {}).f || {};
+  };
+  assert.equal(f({}, { best: 'quad' }).quad, 1, 'an honest four-line best');
+  assert.equal(f({}, { pc: 1 }).pc, 1, 'an honest perfect clear');
+  assert.ok(!f({}, { best: 'quad', ln: 1 }).quad, 'quad with one line');
+  assert.ok(!f({}, { pc: 1, ln: 1 }).pc, 'a perfect clear with one line');
+  assert.ok(!f({}, { pc: 5, ln: 9 }).pc, 'more perfect clears than two lines each');
+  assert.ok(!f({ mode: 'rush' }, { pc: 3, pn: 8 }, 'ua').pc, 'SCORE RUSH: three perfect clears from eight pieces');
+  assert.ok(!f({}, { best: 'quad', pc: 1, pn: 5000 }).quad, 'more pieces than a person can place (90 s, 5 000)');
+  assert.ok(!f({}, { best: 'quad', pc: 1, pn: 5000 }).pc);
+  // a match that didn't last: out 5 s after GO
+  const short = { out: { ub: { at: T0 + 15_000, place: 2, by: 'ua' }, uc: { at: T0 + 100_001, place: 3, by: 'ua' }, ud: { at: T0 + 100_002, place: 4, by: 'ua' } } };
+  assert.ok(!f({}, { best: 'quad', pc: 1, pn: 20 }, 'ub', short).quad, 'a five-second match');
+  assert.ok(!f({}, { best: 'quad', pc: 1, pn: 20 }, 'ub', short).pc);
+  // a SOLO run's forged count (the review: f: { pc: 1 }) — the solo lane's flags pass the same checks
+  const solo = { ...finalGame('prism', ['ua'], { mode: 'rush' }) };
+  solo.results.ua = { ...solo.results.ua, pc: 4, ln: 3, pn: 12 };
+  assert.ok(!((extractMatch(solo).rows.ua || {}).f || {}).pc, 'a solo run: four perfect clears in three lines');
+  solo.results.ua = { ...solo.results.ua, pc: 1, ln: 30, pn: 80 };
+  assert.equal(((extractMatch(solo).rows.ua || {}).f || {}).pc, 1, 'a solo run\'s real perfect clear stays (Ben: keep it)');
+});

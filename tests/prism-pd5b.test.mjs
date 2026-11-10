@@ -68,3 +68,45 @@ test('THE HOLIDAY HOOK — a dummy variant through the ONE interface: night pale
   assert.equal(holidayNow(new Date(2026, 9, 31, 20)), null, 'no variant in the real table');
   assert.equal(holidayNow(new Date(2026, 4, 12, 20), DUMMY), null);
 });
+
+test('PFIX-B (optional 11): a lock or landed rows inside the clear hold END it — the live stack + the landing preview at once', async () => {
+  const { endsHold } = await import('../js/games/prism/neonfx.js');
+  const E = await import('../js/games/prism/engine.js');
+  // the view's loop (view.js#handleEvents): each event may end the hold, a clear sets it
+  const run = (batches) => {
+    let held = null;
+    const log = [];
+    for (const evs of batches) for (const ev of evs) {
+      if (endsHold(ev)) held = null;
+      if (ev.e === 'clear') held = { rows: ev.rows };
+      log.push(held ? 'held' : 'live');
+    }
+    return { held, log };
+  };
+  const g = E.createEngine({ seed: 'pfixb-11', mode: 'battle' });
+  E.start(g);
+  for (let x = 0; x < E.W; x++) if (x < 4 || x > 7) g.cells[x] = 8;   // a row open in 4..7
+  g.cur = { t: 1, r: 0, x: 4, y: 10 };                                 // the long piece, flat, over the gap (its cells x + 0..3)
+  E.hardDrop(g);
+  const clearBatch = E.takeEvents(g);
+  assert.deepEqual(clearBatch.filter(e => ['lock', 'clear'].includes(e.e)).map(e => e.e), ['lock', 'clear'], 'the clearing piece: its lock comes before its clear');
+  assert.equal(run([clearBatch]).held != null, true, 'the clear holds the picture (its own lock never ends it)');
+  E.hardDrop(g);
+  const next = E.takeEvents(g);
+  assert.ok(next.some(e => e.e === 'lock'));
+  assert.equal(run([clearBatch, next]).held, null, 'the next lock inside the hold ends it at once');
+  assert.equal(run([clearBatch, [{ e: 'junk', n: 2, from: 'b' }]]).held, null, 'rows landing end it');
+  assert.notEqual(run([clearBatch, [{ e: 'junk', n: 0 }], [{ e: 'move' }], [{ e: 'rotate' }]]).held, null, 'a move, a turn, nothing landing: still held');
+  assert.equal(endsHold(null), false);
+});
+
+test('PFIX-B (optional 14): a half-risen ghost row is drawn only over empty cells — never half a ghost cell over a block', async () => {
+  const { ghostBlocked } = await import('../js/games/prism/board.js');
+  const cells = new Uint8Array(W * H);
+  cells[0] = 5;                    // row 0, x 0: a block · row 1, x 0: empty
+  assert.equal(ghostBlocked(cells, 0, 0.475, 1.475), true, 'straddling the block\'s row: tinted only (was drawn — the row under its middle, 0.975 → 0... or 1)');
+  assert.equal(ghostBlocked(cells, 0, 1.475, 2.475), false, 'over empty rows: drawn');
+  assert.equal(ghostBlocked(cells, 0, 1, 2), false, 'a whole row over an empty cell');
+  assert.equal(ghostBlocked(cells, 0, 0, 1), true, 'a whole row over the block');
+  assert.equal(ghostBlocked(cells, 1, 0, 1), false);
+});

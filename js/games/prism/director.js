@@ -6,7 +6,7 @@
 // the song does / you top out. The results carry what PD-5's cards need: KOs (ko), perfect clears (pc), the danger-zone flag (dz — BATTLE:
 // your stack reached the top 5 rows) + SURVIVAL's time survived (t, ms).
 import {
-  cleanSettings, aliveOf, applyKo, callBonus, songsUsed, OFFLINE_OUT_MS, END_MS, DANGER_ZONE_ROWS, dayKey,
+  cleanSettings, aliveOf, applyKo, callBonus, songsUsed, OFFLINE_OUT_MS, END_MS, DANGER_ZONE_ROWS, dayKey, creditedBy,
 } from './logic.js';
 
 /**
@@ -37,7 +37,9 @@ export function createGame({ matchId, settings, participants, now, seed, songs, 
   };
 }
 
-const validBy = (game, by, uid) => (by && by !== uid && game.participants && game.participants[by] ? by : null);
+// (FABLE REVIEW optional 19: a KO may be credited to a player who is already out themselves — fair: the rows they sent before they fell
+//  still landed. PFIX-B: and only when one of those rows really is in the victim's queue — logic.js#creditedBy)
+const validBy = (game, by, uid, queue, outAt) => (by && by !== uid && game.participants && game.participants[by] && creditedBy(queue, by, outAt) ? by : null);
 
 /**
  * The order boards went out in — and so who wins when the last ones go in ONE tick (PFIX-A — question B): the earlier server stamp `at`
@@ -57,6 +59,7 @@ export function nextStep(game, ctx) {
   if (!game || game.id !== 'prism') return null;
   const { now } = ctx;
   const boards = (ctx.live && ctx.live.boards) || {};
+  const queues = (ctx.live && ctx.live.queues) || {};   // (PFIX-B: prismq/{m} — who really attacked whom, for the KO credit)
   switch (game.phase) {
     case 'count':
       if (now < game.playStartAt) return null;
@@ -81,7 +84,7 @@ export function nextStep(game, ctx) {
         // nobody, whatever presence says — a hidden tab keeps its socket (online) but runs no frames: its board froze, no row could land on it.
         // The view's save is the heartbeat (≤ 3 s apart while its frames run); a board never written counts from GO.
         const away = !gone && late && now - (Number(b && b.at) || game.playStartAt) >= OFFLINE_OUT_MS;
-        if (b && b.st === 'out') fresh.push({ uid, at: b.at || now, by: surv ? null : validBy(game, b.by, uid) });
+        if (b && b.st === 'out') fresh.push({ uid, at: b.at || now, by: surv ? null : validBy(game, b.by, uid, queues[uid], b.at || now) });
         else if (gone) fresh.push({ uid, at: now, by: null, gone: true });
         else if (away) fresh.push({ uid, at: now, by: null, gone: true, away: true });
       }
@@ -124,9 +127,11 @@ export function nextStep(game, ctx) {
         const b = boards[uid] || {};
         const sv = b.sv || {};
         const pc = Math.max(0, Math.min(99, Number((sv.st || [])[3]) || 0));
+        // (PFIX-B: pn = the pieces placed — match-report.js#prismExtra checks the award flags against it)
+        const pn = Math.max(0, Math.min(100_000, Number((sv.st || [])[0]) || 0));
         const r = results[uid] = {
           sc: b.sc || 0, ln: b.ln || 0, lv: b.lv || 1, mc: Math.max(0, b.mc || 0), se: b.se || 0, best: b.best || '',
-          ko: (game.ko && game.ko[uid]) || 0, bd: (game.bd && game.bd[uid]) || 0, pc,
+          ko: (game.ko && game.ko[uid]) || 0, bd: (game.bd && game.bd[uid]) || 0, pc, pn,
         };
         if (mode === 'battle' && (Number(sv.pk) || 0) >= DANGER_ZONE_ROWS) r.dz = 1;
         if (mode === 'survival') {

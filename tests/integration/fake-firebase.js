@@ -16,7 +16,8 @@ export const orderByChild = () => null;
 export const endAt = () => null;
 export const limitToFirst = () => null;
 export const limitToLast = () => null;
-export const push = () => ({ key: `k${Math.random().toString(36).slice(2)}` });
+// (PFIX-B — optional 22: the real push returns a thenable reference — callers .catch() it)
+export const push = () => { const key = `k${Math.random().toString(36).slice(2)}`; const p = Promise.resolve(); return Object.assign(p, { key }); };
 export const goOffline = () => {};
 export const goOnline = () => {};
 export const isConfigured = () => false;

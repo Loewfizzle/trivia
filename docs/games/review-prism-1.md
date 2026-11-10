@@ -1,7 +1,8 @@
 # FABLE REVIEW — PRISM DROP (Nov 10 2026, read-only)
 
 > **PFIX-A (Nov 10 2026) fixed MUST FIX 1–5, question D, the night gain and OPTIONAL 18 (+ half of 22) — each carries its `PFIX-A:` line.
-> MUST FIX 6–7 (a rules change → RE-PUBLISH), SHOULD FIX 8–10 and the other optionals are PFIX-B's (docs/games/plan.md "PFIX-A").**
+> PFIX-B (Nov 10 2026) fixed MUST FIX 6–7 (a RULES CHANGE — Ben re-publishes database.rules.json), SHOULD FIX 8–10 and OPTIONALS 11–17, 19,
+> 20, the rest of 22 — each carries its `PFIX-B:` line (17 partly: see its line). 21 stays as designed; 23 is FR7's.**
 
 A fresh reviewer who did not build PRISM DROP's rework (PD-1 … PD-5B), over `main` at `1a245b06` (the game's last commit: `609e1a64`, PD-5B).
 Nothing in the game, the server, the rules, the tests or the styles was changed. Every finding below was proved with a probe on the pure
@@ -163,6 +164,16 @@ piece's clear replayed → refused; the queues hold ONE [4] from it).
   `rules.test.mjs` refusals + the forged match in `tests/profiles.test.mjs` (no flag).
 - **Size:** medium (a rules change → RE-PUBLISH).
 
+**PFIX-B: FIXED (question C — the cheap bounds)** — the rules (`prism/{m}/{uid}`): written only in PLAY (+ the countdown from GO − 2 s, + SCORE
+RUSH's END ≤ `endAt` + 4 s), FROZEN once out (its own `st` or `game/out/{uid}`), `at` = the server's `now`, `sv` CLOSED + bounded (`st` = four
+counts ≤ the pieces ≤ 20 a second of play, `ln` ≤ 4 × pieces, `pk` 0–40, `pd` 6 fields), the stats bounded by the play clock, `best: 'quad'`
+needs `ln ≥ 4`; the director credits `by` only with the sender's attack in the victim's queue in the last 20 s (+ the rise) —
+`logic.js#creditedBy`; `prismExtra`: quad needs `ln ≥ 4`, PERFECT CLEAR `ln ≥ 2 × pc` + enough pieces (`pn` — new in the results), both only
+from ≥ 15 s of play at ≤ 10 pieces a second. Pins: `rules.test.mjs` — every forged write above REFUSED (`sv.st = [1, 1, 1, 99]`, `sc` 999 999 999,
+a 1 MB `sv.x`, the rewrites after the KO + in the END, a quad with 1 line, a phone-clock `at`), the honest writes ALLOWED (73 / 73; on the OLD
+rules the 3 refusal tests fail); `tests/prism.test.mjs` (a forged `by` → nobody; the window); `tests/profiles.test.mjs` + `e2e-profiles.mjs`
+(the forged match → no flag; an honest quad still awards). PERFECT CLEAR in SOLO stays (Ben).
+
 ### 7. The attack queue takes 1 200 rows in one burst, at a player already out, and `sv` has no size limit
 - **What:** `prismq` (`database.rules.json:743`) is create-only with `n` 1–30 and `at` newer than a minute — no rate, no tie to a clear, no
   check that the target is still in. The engine lands at most 12 rows a lock, so a flood is a certain KO a few pieces later.
@@ -173,6 +184,10 @@ piece's clear replayed → refused; the queues hold ONE [4] from it).
 - **Fix:** `at` must be the server's `now`; one attack per piece (the key of finding 5); the target's node must not be `out`; the view
   ignores what would take its queue past ~40 rows; `sv` closed (finding 6). Pin: `rules.test.mjs`.
 - **Size:** small (the same rules change as 6).
+
+**PFIX-B: FIXED** — `at` must be the server's `now` (the back-dated burst refused), ONE attack per piece (the key `{uid}-{n}`, create-only — a
+push key refused), never at or from a board that is out (its own `st` or the director's), the receiver drops what would take its queue past
+`QUEUE_MAX` (40), `sv` closed (finding 6). Pin: `rules.test.mjs` ("the server's clock, ONE attack per piece, neither side out").
 
 ## SHOULD FIX (before the public)
 
@@ -185,6 +200,9 @@ piece's clear replayed → refused; the queues hold ONE [4] from it).
 - **Fix:** fill the room from the OLDEST band. Pin: that queue beside `incoming.js`'s cases in `tests/prism.test.mjs` (the drawn rows = the first 12 to land).
 - **Size:** tiny.
 
+**PFIX-B: FIXED** — `ghostBands` gives the room to the rows that land first (the scheduled row, then the queue from its oldest band); the
+review's queue → NEW 2 · MID 6 · OLD 4 = what the engine lands. Pin: `tests/prism.test.mjs` (+ 400 random queues).
+
 ### 9. The SCORE RUSH bound is 100–200 × above honest play
 - **What:** `maxRushScore(lines, seconds)` (`match-report.js:59`) with `ln ≤ sec × 4`: the server accepts 60 000 000 points / 900 lines for
   one song; `maxRushScore(923, 230.8)` ≈ 222 M. The bot at full skill scores in the hundreds of thousands. A forged score just under the
@@ -194,6 +212,11 @@ piece's clear replayed → refused; the queues hold ONE [4] from it).
 - **Fix:** a bound from a sim — the best of N full-skill bot runs per song length × a margin (≈ 3 ×), and lines ≤ what the level curve
   can drop in the time. Pin: the sim's number in `tests/profiles.test.mjs`.
 - **Size:** small.
+
+**PFIX-B: FIXED** — `scripts/sim-prism-rush.mjs` (full-skill bot runs, every song incl. the day set, 4 pieces a second): the bound = 3 × the
+fitted curve → 3.2–4.6 × each song's best run (the longest ≈ 2.2 M — was ≈ 222 M); lines ≤ 2.5 a second + 20; a score never above what its
+lines can be worth. Pin: `tests/profiles.test.mjs` runs the sim (≥ 2.5 ×, ≤ 6 × the best run; the review's 60 M / 222 M refused). THE BOARD's
+`prism-rush`: no rows at all (all-time + this week) — none above the new bound.
 
 ### 10. By day a slow phone waits ~15 s for the one tier that helps
 - **What:** the tiers step 3 → 2 → 1 → 0 one at a time (`view.js:647–651`); 2 and 1 only shrink the LIGHT layer — which the day look does
@@ -206,31 +229,45 @@ piece's clear replayed → refused; the queues hold ONE [4] from it).
   change is the light layer). Pin: a unit test on `tiers.js` — each day step changes at least one thing the day look draws.
 - **Size:** small.
 
+**PFIX-B: FIXED** — `tiers.js#stepTier`: by day 3 → 0 and 0 → 3 (the next tier whose board ratio differs); the view judges 90 frames OR
+~1.5 s of them (a 15-fps phone is helped in ~1.5 s). Pin: `tests/prism-neon.test.mjs`.
+
 ## OPTIONAL (label: polish)
 
 11. **A fast lock inside the clear hold is not drawn until the hold ends (night):** `board.js:565` draws the held pre-clear stack for
     240–300 ms (`view.js:455`); a piece locked or rows landed inside it appear only when it ends, and the landing preview is
     off for as long (`board.js:620`). End the hold on the next lock. Pin in `tests/prism-pd5b.test.mjs`.
+    **PFIX-B: FIXED** — `neonfx.js#endsHold`: a lock / landed rows end the hold (`board.endHold` — the live stack + the landing preview at once). Pin: `tests/prism-pd5b.test.mjs`.
 12. **END GAME / everyone leaving repeats the song:** the playlist advances only in the director's end step (`director.js:126–129`);
     `host.js#backToLobby` mid-match leaves it, so the next match deals the same first song. Advance at `start`.
+    **PFIX-B: FIXED** — the playlist moves past the first song at `start` (`logic.js#playlistAdvance`; the end step still moves it past every song). Pin: `tests/prism.test.mjs` + the e2e's END GAME check.
 13. **A later-due band behind a not-due head is drawn HOT but cannot land** (the engine's head-of-line rule in `landJunk`); draw it rising
     until the head is due.
+    **PFIX-B: FIXED** — a band never rises past the one in front of it (`ghostBands`). Pin: `tests/prism.test.mjs`.
 14. **The INCOMING tag can sit on the landing ghost piece** (the preview's `&inc=1&rise=hot`, day `&inc=3`); a half-risen row shows a half
     cell at the bottom-left.
+    **PFIX-B: FIXED** — the tag also stays above the landing preview; a rising ghost cell is drawn only where every stack row it overlaps is empty (`board.js#ghostBlocked`). Pin: `tests/prism-pd5b.test.mjs` + the shots.
 15. **SURVIVAL's final row** says "SURVIVED 2:31 · 40 LINES" with the raw seconds "151" as the number at the right — show 2:31 there too.
+    **PFIX-B: FIXED** — the console's rows take a `scoreText` (`ui/final.js` + `components.js#leaderboard`): "2:31", label TIME.
 16. **The header is blank ~0.4 s** when an announcement fades (`.has-ann` hides `.pd-info` until the fade ends).
+    **PFIX-B: FIXED** — the header comes back as the announcement starts its fade (`view.js#pumpAnnounce`).
 17. **The first night → day switch** at 4× CPU hitches once (frames of 100 / 83 / 100 / 100 ms ≈ 0.4 s — the day art warming); warm
     switches 17–33 ms, ten flips in a row: no canvas growth. Warm the day art in idle slices after GO. (pd-4.md's "17 ms" was measured
     with the throttle off.)
+    **PFIX-B: PARTLY** — the day art warmed at night in idle slices after GO (`view.js#warmDayArt`: the crayon tooth a few rows a slice, the doodle, SLAM's streak, the scribble's + the star's tiles; the scribble no longer punches a 970 × 970 tile per combo level — a repeated 256-px one). `prism-lookswitch.mjs` at 4× CPU, GPU on, 3 runs: the first switch 3–4 frames over 34 ms (worst 100) → 2. What is left: the day paper ARRIVING (its `load` → the page redraw with a GPU readback, ~47 ms) + the compositor; the papers + the font still load only by day (PD-4) — loading them ahead removed one more frame only (a choice for Ben). A warm switch still has one 50 ms frame at 4× CPU (headless).
 18. **PFIX-A: FIXED** — **One reverb a match:** `createSynth` (`audio.js:219`) builds a convolver + a ~1 MB impulse per mount (31 after 30 matches); build it
     once per page.
 19. **A KO credited to a player already out** (`director.js:40` checks only that `by` is a participant): fair for rows sent before they
     fell — say so in a comment, or drop it.
+    **PFIX-B: DONE** — the comment at `director.js#validBy` (fair: the rows they sent before they fell still landed).
 20. **REBOOT** (SCORE RUSH's top-out, `view.js:539–549`) skips one piece of the bag (`eng.n++`) — harmless, undocumented.
+    **PFIX-B: DONE** — docs/prism.md (Score Rush).
 21. **Any signed-in user can read a room's boards + another player's queue** (rooms are readable by design; nothing secret is in them).
+    **PFIX-B: AS DESIGNED** (docs/games/plan.md "PFIX-B") — nothing secret there.
 22. **(PFIX-A: the preview's attack goes through `set` now — a promise; the rest PFIX-B's)** **Test tools:** the FAST e2e prints "FAILED FAST done" on a pass (the label, exit 0); `prism-shots.mjs:184`'s PERF section waits for
     `networkidle0`, which never comes on the `--emu` server; `fake-firebase.js:19`'s `push` returns no promise, so the preview throws on
-    every attack (`view.js:505`'s `.catch`).
+    every attack (`view.js:505`'s `.catch`). **PFIX-B: FIXED** — the FAST run ends "PASSED" (the planned stop is no failure), the PERF section
+    waits for `load` + a bounded settle, the preview's `push` is thenable.
 23. **For FR7 (the console, seen in passing):** four `fit.js:69` ResizeObservers (the podium + the strips) and one `canvas-safe.js:111`
     (the city's crisp layer) are never disconnected, per match; harmless once finding 3 is fixed, but they are the same pattern.
 

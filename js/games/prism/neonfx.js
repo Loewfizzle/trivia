@@ -23,6 +23,9 @@ export function preClear(cells, ev, w = W) {
 }
 /** how long the board holds the cleared rows: the race + a breath of the burst (ms; 0 = reduced effects — no race, no hold) */
 export const holdMs = (race, reduced) => (reduced || race <= 1 ? 0 : race + 70);
+/** PFIX-B (FABLE REVIEW optional 11): what ENDS the hold early — the stack changed under the held picture (a piece locked, rows landed): the
+ *  live stack is drawn at once and the landing preview is back (a fast lock inside the 240–300 ms hold used to appear only when it ended) */
+export const endsHold = ev => !!ev && (ev.e === 'lock' || (ev.e === 'junk' && ev.n > 0));
 
 export function createNeonFx(light) {
   let B = { x: 0, y: 0, w: 1, h: 1, cell: 30 };

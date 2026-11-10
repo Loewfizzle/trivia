@@ -69,8 +69,12 @@ rooms/{CODE}/meta/settings/chat: { filter: bool }                 ← host; "Fil
   meta/used/agent/{wordKey}: true                 ← host; DOUBLE AGENT words already dealt in this room
   meta/prism: { seed, n }                         ← host; PRISM DROP room playlist (seeded shuffle, next position)
   prism/{matchId}/{uid}: { st: play|out, at, b (board string), h, p ("t,r,x,y"), sc, ln, lv, mc, se, pd, best, tg, by?, ev?, sv }
-                                                  ← PRISM DROP, own, count/play/end; out is final (by = who KO'd you)
-  prismq/{matchId}/{target}/{push}: { f, n ≤ 30, g 0-9, at }   ← PRISM DROP junk attack, from yourself, battle only, once
+                                                  ← PRISM DROP, own; PFIX-B: PLAY (+ the countdown from GO − 2 s, + SCORE RUSH's END ≤ endAt + 4 s),
+                                                    FROZEN once out (own st or game/out); at = now; sv CLOSED: { b, n, h, hd, lv, ln, sc, cb, mc, bb,
+                                                    bc, se, fr, pd: [[n, gap, from, id, wait ms, risen ms]], sd, best, st: [pieces, quads, twists, pcs],
+                                                    ct, pk 0–40, ak } — counts ≤ pieces ≤ 20/s of play; sc / ln / se bounded by the play clock (docs/prism.md)
+  prismq/{matchId}/{target}/{uid}-{piece}: { f, n ≤ 30, g 0-9, at = now }   ← PRISM DROP junk attack: from yourself, ONE a piece (create-only),
+                                                    battle + play only, never at / from a board that is out
   prismcall/{matchId}/{uid}: { w, at }            ← Call the Winner: only when out, ≤ 12 s after, a live player, once
   meta/slip: { seed, n }                          ← host; SLIPSTREAM room playlist
   glready/{matchId}/{uid}: { at }                 ← GRIDLOCK: fleet placed (own, during 'place')
@@ -192,7 +196,7 @@ Totals are derived from `results` (lowest strokes wins).
 
 PRISM DROP `game`: `{ id:'prism', matchId, settings{mode: battle|rush|survival}, participants, seed, songs[ids], sd[ms], pl0 (playlist
 position), phase: count|play|end|final, songStartAt, playStartAt (= a downbeat of song 0), endAt (rush: the song's last beat),
-n0, out{uid:{at,place,rem,by,gone}}, ko{uid}, bd{uid badges}, duelAt, winner, results{uid:{sc,ln,lv,mc,se,best,ko,bd,pc,dz?,t?}}, calls{uid:{w,ok,bonus}} }`
+n0, out{uid:{at,place,rem,by,gone}}, ko{uid}, bd{uid badges}, duelAt, winner, results{uid:{sc,ln,lv,mc,se,best,ko,bd,pc,pn (pieces — PFIX-B),dz?,t?}}, calls{uid:{w,ok,bonus}} }`
 (PD-2: `pc` perfect clears, `dz: 1` BATTLE's danger zone — the stack reached the top 5 rows, `t` SURVIVAL's ms survived; a player's `sv` carries
 `pk` = the stack's peak height — inside `sv`, whose extra keys the rules already allow: no rules change).
 

@@ -623,6 +623,20 @@ await H.run(async () => {
     ok(await has(me1.pid, 'card-perfect-clear') && !(await has(me1.pid, 'card-first-ko')) && !(await has(me1.pid, 'card-comeback')), 'PD-5B: BOB — his PERFECT CLEAR only (no KO, no win)');
     ok(!!(await val(`pstats/${me0.pid}/pa/gf/prism-comeback`)) && !(await val(`pstats/${me0.pid}/ac/comeback-kid`)), 'PD-5B: the flag kept as prism-comeback — never COMEBACK KID');
 
+    // PFIX-B (FABLE REVIEW finding 6) — THE FORGED MATCH through the real server (FOUR ON THE FLOOR — neither player has it yet): BOB's "four-line
+    // best" with ONE line → nothing; ALICE's four-line best in a match that lasted 8 s → nothing; then an HONEST four-line best → the card (the
+    // path works — the refusals above are the checks, not a broken award). The perfect-clear forgeries: tests/profiles.test.mjs (the same code).
+    const fNow = Date.now();
+    const forged = (id, playMs, res) => ({ ...pdFinal, matchId: `e2epf${id}${fNow.toString(36).slice(-5)}`, phaseStartAt: fNow, playStartAt: fNow - playMs, songStartAt: fNow - playMs - 8000,
+      winner: uids[0], ko: {}, out: { [uids[1]]: { at: fNow - 1000, place: 2, rem: 1, by: null, gone: false } }, results: res });
+    const quad = async pid => !!(await has(pid, 'emb-prism')) || !!(await val(`pstats/${pid}/pa/gf/prism-quad`));
+    await playOc(forged('a', 110_000, { [uids[0]]: { sc: 5000, ln: 30, lv: 2, mc: 1, se: 2, best: 'double', ko: 0, bd: 0, pc: 0, pn: 90 }, [uids[1]]: { sc: 900, ln: 1, lv: 1, mc: 0, se: 0, best: 'quad', ko: 0, bd: 0, pc: 0, pn: 12 } }), names, 'prism-forged');
+    ok(!(await quad(me1.pid)), 'PFIX-B: a "four-line best" with one line → no FOUR ON THE FLOOR');
+    await playOc(forged('b', 8000, { [uids[0]]: { sc: 4000, ln: 40, lv: 2, mc: 3, se: 0, best: 'quad', ko: 0, bd: 0, pc: 0, pn: 60 }, [uids[1]]: { sc: 900, ln: 12, lv: 1, mc: 0, se: 0, best: 'double', ko: 0, bd: 0, pc: 0, pn: 40 } }), names, 'prism-short');
+    ok(!(await quad(me0.pid)), 'PFIX-B: a four-line best in an 8-second match → no FOUR ON THE FLOOR');
+    await playOc(forged('c', 110_000, { [uids[0]]: { sc: 900, ln: 12, lv: 1, mc: 0, se: 0, best: 'double', ko: 0, bd: 0, pc: 0, pn: 40 }, [uids[1]]: { sc: 6000, ln: 24, lv: 2, mc: 2, se: 0, best: 'quad', ko: 0, bd: 0, pc: 0, pn: 70 } }), names, 'prism-honest-quad');
+    ok(await quad(me1.pid), 'PFIX-B: an honest four-line best (24 lines, 70 pieces, 110 s) → FOUR ON THE FLOOR (the path works)');
+
     // THE CARD PASS — B1: AN EMPTY SOLO RUN NEVER COUNTS — ALICE alone, nothing answered, 0 points: the podium as ever, but no solo XP,
     // no streak day, no solo-lane count, no match counted (the server's skip 'empty')
     const putGame = async (g, pl) => {

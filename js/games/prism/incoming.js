@@ -19,26 +19,29 @@ const ease = k => 1 - (1 - k) * (1 - k);
  * → bands from the BOTTOM up: [{ n, gap, from, prog (0..1 of the delay), rows (rows shown — fractional while rising), hot, kind }]
  */
 export function ghostBands(pending = [], clock = 0, { sched = null, max = GHOST_MAX } = {}) {
-  const out = [];
+  // PFIX-B (FABLE REVIEW finding 8): the room goes to the rows that LAND FIRST — the scheduled row, then the queue from its oldest band — so the
+  // drawn rows are always the next ones to arrive (was: the newest band first, and the oldest — due first — left off the board)
   let room = max;
-  const add = b => {
-    if (room <= 0) return;
-    const rows = Math.min(b.rows, room);
-    room -= rows;
-    out.push({ ...b, rows });
-  };
-  for (let i = pending.length - 1; i >= 0; i--) {
-    const q = pending[i];
+  const take = rows => { const k = Math.max(0, Math.min(rows, room)); room -= k; return k; };
+  let top = null;
+  if (sched && sched.inMs <= SCHED_LEAD_MS) {
+    const prog = Math.max(0, Math.min(1, 1 - sched.inMs / SCHED_LEAD_MS));
+    top = { n: 1, gap: sched.gap | 0, from: null, prog, rows: take(RISE_MIN + (1 - RISE_MIN) * ease(prog)), hot: prog >= 0.85, kind: 'sched' };
+  }
+  const bands = [];
+  let cap = 1;   // (optional 13: a band never rises past the one in front of it — the engine lands the head first, so a later band can't be HOT first)
+  for (const q of pending) {
     if (!q || !(q.n > 0)) continue;
     const t0 = q.t0 ?? q.at;
     const span = Math.max(0, q.at - t0);
-    const prog = span > 0 ? Math.max(0, Math.min(1, (clock - t0) / span)) : 1;
-    add({ n: q.n, gap: q.g | 0, from: q.from || null, prog, rows: q.n * (RISE_MIN + (1 - RISE_MIN) * ease(prog)), hot: prog >= 1, kind: 'junk' });
+    const prog = Math.min(cap, span > 0 ? Math.max(0, Math.min(1, (clock - t0) / span)) : 1);
+    cap = prog;
+    const rows = take(q.n * (RISE_MIN + (1 - RISE_MIN) * ease(prog)));
+    if (rows > 0) bands.push({ n: q.n, gap: q.g | 0, from: q.from || null, prog, rows, hot: prog >= 1, kind: 'junk' });
   }
-  if (sched && sched.inMs <= SCHED_LEAD_MS) {
-    const prog = Math.max(0, Math.min(1, 1 - sched.inMs / SCHED_LEAD_MS));
-    add({ n: 1, gap: sched.gap | 0, from: null, prog, rows: RISE_MIN + (1 - RISE_MIN) * ease(prog), hot: prog >= 0.85, kind: 'sched' });
-  }
+  // drawn from the BOTTOM up: the newest band at the bottom (it lands under the older ones), the scheduled row on top
+  const out = bands.reverse();
+  if (top && top.rows > 0) out.push(top);
   return out;
 }
 

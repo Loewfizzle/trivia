@@ -210,7 +210,14 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   `{uid}-{piece}` + the board saved in the same frame (a refresh never attacks twice — the receiver orders by `at`); AUTO-TARGET forgets
   after 20 s (`TARGET_MEMORY_MS`); THE NIGHT GAIN (`build-prism.py --night-gain` → the manifest's `gain`, per voice through
   `synced-songs.js#levelOf`); THE TEARDOWN — `unmount()` destroys + zeroes everything `mount()` made, ONE reverb a page, `ui/fit.js`'s
-  late-font list is WEAK (a podium no longer pins a match's screen; proof `e2e-prism-leak.mjs`).
+  late-font list is WEAK (a podium no longer pins a match's screen; proof `e2e-prism-leak.mjs`). PFIX-B (Nov 10 — docs/prism.md "PFIX-B" —
+  THE ANTI-CHEAT RULES A PASS MUST KEEP): the board node `prism/{m}/{uid}` is written only in PLAY (+ GO − 2 s, + SCORE RUSH's end ≤ endAt + 4 s),
+  FROZEN once out (own `st` or `game/out`), `at` = the server's now, `sv` CLOSED + bounded by the play clock (a new saved field = its rule row +
+  a rules test, or every save is refused); the view writes only inside that window (`logic.js#boardWritable` — keep the two in step); an attack's
+  key = `{uid}-{piece}` (one a piece), `at` = now, never at / from a board that's out, the receiver's queue ≤ `QUEUE_MAX` 40; a KO counts only with
+  the sender's attack in the victim's queue (`creditedBy`, 20 s); the award flags only from plausible numbers (`prismExtra` — `pn` in the
+  results); SCORE RUSH's bound = the SIM's (`scripts/sim-prism-rush.mjs` — re-run it after a scoring change); by day the tiers step 3 → 0
+  (`tiers.js#stepTier`); the ghost rows = the first 12 to land.
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,

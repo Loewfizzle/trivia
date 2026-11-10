@@ -43,12 +43,14 @@ const ctxs = [];
 const dead = new Set();
 const uids = [];
 let code = '';
+const refusedWrites = [];   // (PFIX-B: every write the rules refused — firebase.js#write's "[rules] refused:" line, one per path shape a page)
 
 async function openPlayer(i, qs = '') {
   const ctx = ctxs[i] || (ctxs[i] = await browser.createBrowserContext());
   const page = await ctx.newPage();
   page.on('console', m => { if (m.type() === 'warning' && /game view/.test(m.text())) errors.push(`game view failed to load: ${m.text()}`); });
   page.on('pageerror', e => { errors.push(`${NAMES[i]} pageerror: ${e.message}`); log(`${NAMES[i]} PAGEERROR`, e.message); });
+  page.on('console', m => { const t = m.text(); if (/^\[rules\] refused:/.test(t)) { refusedWrites.push(`${NAMES[i]}: ${t}`); log(`${NAMES[i]} ${t}`); } });
   page.on('console', m => { const t = m.text(); if (m.type() === 'error' && !/ERR_|Failed to load resource|favicon|permission_denied|PERMISSION_DENIED|Client is offline|net::/i.test(t)) { errors.push(`${NAMES[i]}: ${t}`); log(`${NAMES[i]} console.error`, t); } });
   await page.setViewport(VIEW);
   await page.goto(`${BASE}/?emu&slot=p${i}${qs ? '&' + qs : ''}`);
@@ -319,7 +321,8 @@ async function soundChecks() {
   await h.evaluate(() => import('/js/host.js').then(m => m.backToLobby()));
   await waitFor(h, s => s.meta.status === 'lobby' && !s.game, 'back in the room', 30000);
   const used = await evalIn(h, s => s.meta && s.meta.used && s.meta.used.prism);
-  void used;
+  // PFIX-B (optional 12): an END GAME mid-match still moved the playlist past its first song (at the START) — the next match deals another
+  ok(!!(used && used[`dn${(gD.pl0 || 0) + 1}`]), `END GAME: the day playlist moved past ${gD.songs[0]} at the start (dn${(gD.pl0 || 0) + 1} in the night's memory)`);
 }
 
 async function survivalAndSolo() {
@@ -908,12 +911,19 @@ try {
   await sleep(300);
   await shotBoth(s0, 'pd-18-settings');
 } catch (e) {
-  if (e.message !== 'PERF_ONLY done' && e.message !== 'FAST done') errors.push(`FATAL ${e.message}`);
-  log('FAILED', e.message);
+  // (PFIX-B — optional 22: the FAST / PERF_ONLY end is the run's planned stop, not a failure — no "FAILED FAST done" on a pass)
+  if (e.message !== 'PERF_ONLY done' && e.message !== 'FAST done') { errors.push(`FATAL ${e.message}`); log('FAILED', e.message); }
 }
 
+// PFIX-B — THE NEW RULES: an honest phone never sends a board write the rules refuse (the view writes only inside their window — boardWritable);
+// the only refused attack is the REFRESH step's deliberate replay of one piece
+{
+  const board = refusedWrites.filter(t => /rooms\/\*\/prism\/|prismcall/.test(t));
+  ok(board.length === 0, `THE RULES: no board write refused (${board.length ? board.join(' · ') : 'none'}; refused attacks: ${refusedWrites.filter(t => /prismq/.test(t)).length} — the REFRESH replay)`);
+}
 const passed = checks.filter(c => c.ok).length;
 log(`checks ${passed}/${checks.length} passed`);
+log(errors.length || passed < checks.length ? 'FAILED' : 'PASSED');
 log(errors.length ? `errors:\n${errors.join('\n')}` : 'errors none');
 writeFileSync(`${OUT}result.json`, JSON.stringify({ checks, errors }, null, 1));
 await browser.close();

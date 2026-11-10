@@ -42,6 +42,13 @@ export function dayPos(used) {
 }
 /** the night-memory key that moves the day playlist to position n */
 export const dayKey = n => `dn${Math.max(0, Math.floor(n))}`;
+/** PFIX-B (FABLE REVIEW optional 12): the playlist moves past the match's FIRST song at its START (the end step still moves it past every song
+ *  played) — END GAME / everyone leaving mid-match no longer deals the same first song again. → the room writes (host.js's `$room`) */
+export function playlistAdvance(set, pos, seed = null) {
+  const n = Math.max(0, Math.floor(pos)) + 1;
+  if (set === 'day') return { [`meta/used/prism/${dayKey(n)}`]: true };
+  return seed ? { 'meta/prism': { seed, n } } : { 'meta/prism/n': n };
+}
 /**
  * Deal a match's songs. manifest: the manifest's songs · set: 'day' | 'night' (a set with no songs → night) · roomSeed · pos: the set's
  * playlist position · count. → { set, songs: [ids], sd: [ms], cu: [ms] | null }
@@ -149,6 +156,32 @@ export const survivalGap = (seed, k) => suddenGap(seed, k);
 export const DANGER_ZONE_ROWS = 16;   // a stack this high reaches the top 5 of the 20 visible rows
 
 // ---------------------------------------------------------------- KO badges
+/** PFIX-B (FABLE REVIEW finding 6): the KO credit's window — a phone names its killer in `by`, but the credit goes only to a player whose
+ *  attack really sits in the victim's queue (prismq — its sender rule-checked, its `at` the server's), sent in the last KO_CREDIT_MS before
+ *  the KO (+ the longest rise: the rows land after their delay, the view times its credit from the landing). */
+export const KO_CREDIT_MS = 20_000;
+export function creditedBy(queue, by, outAt) {
+  if (!by || !queue || typeof queue !== 'object') return false;
+  const from = outAt - KO_CREDIT_MS - JUNK_DELAY_DANGER_MS;
+  return Object.values(queue).some(a => a && a.f === by && Number(a.at) >= from && Number(a.at) <= outAt);
+}
+
+/** PFIX-B (finding 7): the most junk a board takes into its queue — an attack that would take it past this is dropped (a flood can't bury) */
+export const QUEUE_MAX = 40;
+
+/** PFIX-B: when a board may be written — the RULES' own window (database.rules.json prism/{m}/{uid}), so an honest phone never sends a write
+ *  the rules refuse: PLAY; the countdown from GO (GO lands before the host's tick); SCORE RUSH's END for its final save, never 4 s past the
+ *  song; never once out (its own top-out or the director's). */
+export function boardWritable(game, uid, now, node = null) {
+  if (!game || !game.participants || !game.participants[uid]) return false;
+  if ((game.out && game.out[uid]) || (node && node.st === 'out')) return false;
+  const rush = game.settings && game.settings.mode === 'rush';
+  if (rush && game.endAt && now > game.endAt + 3000) return false;
+  if (game.phase === 'play') return true;
+  if (game.phase === 'count') return now >= game.playStartAt - 1000;
+  return game.phase === 'end' && rush;
+}
+
 /** KO credit: the killer takes all of the victim's badges plus one. */
 export function applyKo(badges, killer, victim) {
   const b = { ...badges };

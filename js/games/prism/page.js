@@ -316,6 +316,9 @@ export function createPage(canvas) {
       return true;
     },
     get paper() { return st.paper; },
+    /** PFIX-B (optional 17): pre-draw a world's doodle at the page's size while the page is hidden (night) — CPU only, no paper or font is
+     *  fetched (those still load only when the day look shows); the first switch to day then only composites it */
+    warm(world, style, w, h) { if (w > 0 && h > 0) doodle(world || 'sunset', style || 'crayon', Math.round(w), Math.round(h), Math.min(2, window.devicePixelRatio || 1)); },
     destroy() { doodles.clear(); },
   };
 }

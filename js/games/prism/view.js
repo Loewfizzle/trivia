@@ -16,7 +16,7 @@ import { showCall as kitCall, createAnnouncer } from '../kit/index.js';
 import * as E from './engine.js';
 import {
   songAt, songStarts, battleLevel, suddenRows, suddenGap, junkDelay, autoTarget, attackersOf,
-  survivalRows, survivalRowAt, survivalGap, SUDDEN_MS, SUDDEN_EVERY_MS, DANGER_ZONE_ROWS, CLEAR_NAME, aliveOf,
+  survivalRows, survivalRowAt, survivalGap, SUDDEN_MS, SUDDEN_EVERY_MS, DANGER_ZONE_ROWS, CLEAR_NAME, aliveOf, QUEUE_MAX, boardWritable,
 } from './logic.js';
 import { ghostBands, incomingTag } from './incoming.js';
 import { loadSong, beatClock } from './songs.js';
@@ -24,11 +24,11 @@ import { createWorlds, WORLDS } from './worlds.js';
 import { createBoardView, drawPiece, drawMini, JEWEL } from './board.js';
 import { neonPalette } from './neon.js';
 import { createLight } from './light.js';
-import { createNeonFx, preClear, holdMs } from './neonfx.js';
+import { createNeonFx, preClear, holdMs, endsHold } from './neonfx.js';
 import { holidayNow, withHoliday } from './holiday.js';
-import { tierOf, TOP_TIER } from './tiers.js';
+import { tierOf, TOP_TIER, stepTier } from './tiers.js';
 import { paperOf, CRAYON } from './crayon.js';
-import { warmCrayon, toothMaskURL } from './crayon-art.js';
+import { warmCrayon, toothMaskURL, warmTooth } from './crayon-art.js';
 import { createPage, warmDay } from './page.js';
 import { createRail } from './rail.js';
 import { createFx } from './fx.js';
@@ -75,6 +75,7 @@ export function createView() {
   let look = '';
   let page = null, paper = null, curWorld = '';
   let warmT = 0, warmPx = 0;
+  let dayWarmT = 0, dayWarm = 0;   // (PFIX-B — optional 17) the day art warmed in idle slices after GO: 0 = not yet, 1 = running, 2 = done
   let pal = neonPalette('');
   const hol = holidayNow();   // (PD-5B — THE HOLIDAY HOOK: today's variant from the city's calendar, once — holiday.js; none exist yet: nothing changes)
   let light = null, nfx = null;
@@ -254,6 +255,7 @@ export function createView() {
     if (world) world.destroy();
     if (light) light.destroy();
     if (page) page.destroy();
+    if (dayWarmT) { if (window.cancelIdleCallback && window.requestIdleCallback) cancelIdleCallback(dayWarmT); else clearTimeout(dayWarmT); dayWarmT = 0; }   // (PFIX-B)
     clearTimeout(warmT);
     if (unsubSettings) unsubSettings();
     if (finalView) finalView.destroy();
@@ -421,6 +423,7 @@ export function createView() {
     let hardThisBatch = false;
     const neon = look === 'neon' && nfx;
     for (const ev of evs) {
+      if (board && endsHold(ev)) board.endHold();   // (PFIX-B — optional 11: a lock / landed rows end the clear's hold; this batch's own clear sets the next)
       if (neon && (ev.e === 'hard' || ev.e === 'lock' || ev.e === 'counter')) nfx.event(ev, { reduced: reduced() });
       else if (look === 'crayon' && board && (ev.e === 'hard' || ev.e === 'lock')) board.crayonEvent(ev, { reduced: reduced() });   // (PD-4: the boing, SLAM's lines)
       switch (ev.e) {
@@ -566,6 +569,9 @@ export function createView() {
         if (restoreMark && stamp <= restoreMark) continue;   // already in the board this phone came back from
         attackMax = Math.max(attackMax, stamp);
         attackCursor = `@${attackMax}`;
+        // PFIX-B (FABLE REVIEW finding 7): never past QUEUE_MAX rows waiting — a flood of attacks is dropped, not stacked (marked taken: a
+        // refresh doesn't take it either)
+        if (E.pendingTotal(eng) + (a.n | 0) > QUEUE_MAX) continue;
         const sinceSent = Math.max(0, serverNow() - (a.at || serverNow()));
         const delay = Math.max(0, junkDelay(E.stackHeight(eng)) - sinceSent);
         E.receive(eng, { n: a.n | 0, gap: a.g | 0, from: a.f || null, id: key, delayMs: delay });
@@ -595,7 +601,7 @@ export function createView() {
     // battle: out — tell everyone who sent the junk that finished us (KO credit)
     // KO credit: whoever's junk landed on this board in the last 20 s (sudden-death rows and your own stacking: nobody)
     const by = battle() && lastHit && lastHit.from !== me() && performance.now() - lastHit.at < 20_000 ? lastHit.from : null;
-    dbUpdate(dbRef(nodePath()), { st: 'out', by, at: serverTimestamp(), b: E.boardString(eng), sv: { ...E.save(eng), ak: attackCursor } }).catch(() => {});
+    if (boardWritable(game, me(), serverNow(), myNode())) dbUpdate(dbRef(nodePath()), { st: 'out', by, at: serverTimestamp(), b: E.boardString(eng), sv: { ...E.save(eng), ak: attackCursor } }).catch(() => {});
     if (tipEl) hideTip();
     showKO(by);
   }
@@ -605,6 +611,8 @@ export function createView() {
   function markPublish() { pubDirty = true; }
   function publish(force = false) {
     if (!eng || !participant() || !game || game.phase === 'final' || (eng.over && !rush())) return;
+    // (PFIX-B: only inside the rules' window — never a write they refuse: before GO, after the out, after SCORE RUSH's song)
+    if (!boardWritable(game, me(), serverNow(), myNode())) return;
     if (!force && !pubDirty && !pubForce && performance.now() - pub.lastSave < 3000) return;
     const now = performance.now();
     const patch = {};
@@ -661,6 +669,7 @@ export function createView() {
         }
       }
       handleEvents();
+      if (game.phase === 'play' && !dayWarm && now - game.playStartAt > 1500) warmDayArt();   // (PFIX-B — optional 17)
       if (game.phase === 'play' && battle() && performance.now() - lastTargetPick > 600) pickTarget();
       publish();
       watchTip(now);
@@ -687,15 +696,20 @@ export function createView() {
     if (frameTimes.length > 90) frameTimes.shift();
     if (tierCool > 0) { tierCool--; return; }
     if (tierLocked) return;
-    if (frameTimes.length < 90 || document.visibilityState !== 'visible') return;
+    // (PFIX-B — finding 10: judged on 90 frames OR ~1.5 s of them, whichever comes first — a phone at 15 fps is judged in 1.5 s, not 6)
+    if (document.visibilityState !== 'visible') return;
+    if (frameTimes.length < 90 && (frameTimes.length < 20 || frameTimes.reduce((a, b) => a + b, 0) < 1500)) return;
     const s = [...frameTimes].sort((a, b) => a - b);
     const p75 = s[Math.floor(s.length * 0.75)];
-    if (p75 > 19.5 && tier > 0) { tierUpBlocked = tier; setTier(tier - 1); tierCool = 120; frameTimes.length = 0; goodSince = 0; return; }
+    // (PFIX-B: by day a step goes straight to the tier that changes what the day look draws — tiers.js#stepTier)
+    const down = stepTier(tier, -1, look);
+    if (p75 > 19.5 && down !== tier) { tierUpBlocked = tier; setTier(down); tierCool = 30; frameTimes.length = 0; goodSince = 0; return; }
     // plenty of headroom for ~4 s: try one tier up again (never back to one that already struggled)
     const w = [...workTimes].sort((a, b) => a - b)[Math.floor(workTimes.length * 0.75)] || 99;
-    if (p75 < 17.5 && w < 6 && tier < TOP_TIER && tier + 1 !== tierUpBlocked) {
+    const up = stepTier(tier, 1, look);
+    if (p75 < 17.5 && w < 6 && up !== tier && up !== tierUpBlocked) {
       if (!goodSince) goodSince = performance.now();
-      else if (performance.now() - goodSince > 4000) { setTier(tier + 1); tierCool = 120; frameTimes.length = 0; goodSince = 0; }
+      else if (performance.now() - goodSince > 4000) { setTier(up); tierCool = 120; frameTimes.length = 0; goodSince = 0; }
     } else goodSince = 0;
   }
   function setTier(t) {
@@ -874,6 +888,29 @@ export function createView() {
     const world = withHoliday('day', { paper, world: curWorld || (d0 && d0.world) || 'sunset' }, hol).world;   // (PD-5B: a holiday's doodle — none yet)
     page.set({ on: look === 'crayon', paper, world, w: (L && L.W0) || root.clientWidth, h: (L && L.H0) || root.clientHeight, board: field ? boardRect : null });
   }
+  /** PFIX-B (FABLE REVIEW optional 17): the rest of the DAY art, warmed at night in idle slices once the match is under way — the crayon tooth
+   *  (the lettering's mask + the doodle's tile: noise, ≤ 4 ms a slice), the mask's URL, the current world's doodle at the page's size. The first
+   *  switch to day then only composites (it was ~0.4 s of 100 ms frames at 4× CPU). CPU only: no paper or font is fetched (still day-only). */
+  function warmDayArt() {
+    if (dayWarm || destroyed || look === 'crayon' || !page || !paper) return;
+    dayWarm = 1;
+    // (an idle moment, but never more than ~60 ms away: on a busy, slow phone idle time may never come — 4 ms slices still fit between frames)
+    const idle = fn => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 60 }) : setTimeout(fn, 30));
+    const stages = [
+      () => warmTooth(4, Math.min(2, window.devicePixelRatio || 1), (board && board.px) || 0),
+      () => { toothMaskURL(); return true; },
+      () => { const d0 = docOf(0); page.warm(curWorld || (d0 && d0.world) || 'sunset', paper.doodle, (L && L.W0) || root.clientWidth, (L && L.H0) || root.clientHeight); return true; },
+    ];
+    const step = () => {
+      dayWarmT = 0;
+      if (destroyed) return;
+      if (look === 'crayon') { dayWarm = 2; return; }   // (the switch came first: it draws them itself)
+      if (stages[0]()) stages.shift();   // one stage (or one tooth slice) an idle moment
+      if (!stages.length) { dayWarm = 2; return; }
+      dayWarmT = idle(step);
+    };
+    dayWarmT = idle(step);
+  }
   /** every crayon block for the board's size, drawn in slices of <= 4 ms between frames — a live switch to day never waits on them */
   function warmSprites() {
     clearTimeout(warmT);
@@ -936,7 +973,13 @@ export function createView() {
     if ((txt || '') !== lastTag) { lastTag = txt || ''; els.tag.textContent = lastTag; els.tag.classList.toggle('is-on', !!txt); }
     if (!txt) return;
     const stackTop = (E.VISIBLE - Math.min(E.VISIBLE, E.stackHeight(eng))) * board.cell;
-    const y = Math.max(2, Math.round(Math.min(top, stackTop) - 21));
+    // (PFIX-B — optional 14: nor on the landing preview — the falling piece's ghost sits on the stack, often right where the tag would)
+    let ghostTop = Infinity;
+    if (eng.cur) {
+      const gy = E.ghostY(eng);
+      if (gy != null) for (const [, cy] of E.cellsOf({ ...eng.cur, y: gy })) if (cy < E.VISIBLE) ghostTop = Math.min(ghostTop, (E.VISIBLE - 1 - cy) * board.cell);
+    }
+    const y = Math.max(2, Math.round(Math.min(top, stackTop, ghostTop) - 21));
     if (y !== lastTagY) { lastTagY = y; els.tag.style.transform = `translateY(${y}px)`; }
   }
   /** a clear cancelled `n` incoming rows: the top n ghost rows (the ones it ate — the engine counters the oldest first) SHATTER (~0.5 s) */
@@ -1323,7 +1366,8 @@ export function createView() {
     lane.replaceChildren(el);
     els.top.classList.add('has-ann');   // (PD-1: the line between the corner buttons is the announcement's for a moment)
     announceBusy = now + 1250;
-    setTimeout(() => el.classList.add('is-out'), 1500);
+    // (PFIX-B — optional 16: the header comes back AS the announcement fades — a crossfade, never ~0.4 s of blank line)
+    setTimeout(() => { el.classList.add('is-out'); if (lane.firstChild === el && !announceQ.length) els.top.classList.remove('has-ann'); }, 1500);
     setTimeout(() => { if (el.isConnected) el.remove(); if (!lane.firstChild) els.top.classList.remove('has-ann'); }, 1900);
     if (announceQ.length) setTimeout(pumpAnnounce, 1270);
   }
@@ -1462,7 +1506,7 @@ export function createView() {
       beat: () => { const c = songClock(); return c ? { i: c.i, id: game.songs[c.i], pos: c.pos, cue: c.cue, lead: c.lead, origin: c.origin, unreported: c.unreported, speaker: c.speaker, beat: lastBeat, bpm: c.doc && c.doc.bpm, title: c.doc && c.doc.title, set: game.set || 'night', leadState: heardBeat.state(c.i), raw: heardBeat.raw(c.i) } : null; },
       fxCount: () => fx.count,
       // (PD-3) the night look: the look, the palette, the light layer + a way to fire its effects down the real path (the preview + the E2E)
-      look: () => ({ look, pal: pal.id, paper: paper ? paper.id : null, light: !!light, lit: light ? light.effects + light.count : 0, size: light ? light.size : null, visible: els.light.style.visibility !== 'hidden', warm: warmPx === (board && board.px), crayonBusy: !!(board && board.crayonBusy) }),
+      look: () => ({ look, dayWarm, pal: pal.id, paper: paper ? paper.id : null, light: !!light, lit: light ? light.effects + light.count : 0, size: light ? light.size : null, visible: els.light.style.visibility !== 'hidden', warm: warmPx === (board && board.px), crayonBusy: !!(board && board.crayonBusy) }),
       freeze: ms => light && light.freeze(ms),
       fire: (kind, o = {}) => fireFx(kind, o),
     };

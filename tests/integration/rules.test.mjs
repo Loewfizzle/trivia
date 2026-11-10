@@ -874,7 +874,7 @@ function prismRoom(game = {}) {
   const room = r.rooms[CODE];
   room.meta.status = 'playing';
   room.players.p3 = { name: 'THREE', color: 'green', avatar: 'hex', joinedAt: 3 };
-  room.game = { id: 'prism', matchId: 'm1', phase: 'play', settings: { mode: 'battle' }, participants: { host: true, p2: true, p3: true }, ...game };
+  room.game = { id: 'prism', matchId: 'm1', phase: 'play', settings: { mode: 'battle' }, participants: { host: true, p2: true, p3: true }, playStartAt: now() - 60_000, ...game };
   return r;
 }
 const pnode = (extra = {}) => ({ st: 'play', at: serverTimestamp(), b: '1111000000', h: 1, p: '3,0,4,18', sc: 120, ln: 1, lv: 1, mc: 0, se: 0, pd: 0, best: 'single', tg: 'p3', ...extra });
@@ -888,7 +888,7 @@ test('prism boards: own node during the match; out is final; sizes checked', asy
   await assertFails(set(ref(db('p2'), `${N}/p2`), pnode({ b: '12x' })), 'board string: digits 0-8 only');
   await assertFails(set(ref(db('p2'), `${N}/p2`), pnode({ b: '1'.repeat(401) })), 'board string length');
   await assertFails(set(ref(db('p2'), `${N}/p2`), pnode({ hack: 1 })), 'no extra fields');
-  await assertSucceeds(update(ref(db('p2'), `${N}/p2`), { sv: { b: '1111', n: 12, ak: '-Nabc', h: 3, sc: 5, pd: [[2, 4, 'p3', '-Nk']] } }), 'full save');
+  await assertSucceeds(update(ref(db('p2'), `${N}/p2`), { sv: { b: '1111', n: 12, ak: '-Nabc', h: 3, sc: 5, pd: [[2, 4, 'p3', '-Nk']], st: [12, 0, 0, 0] } }), 'full save');
   // topping out: credit must name another participant; out can't be undone
   await assertFails(update(ref(db('p2'), `${N}/p2`), { st: 'out', by: 'p2', at: serverTimestamp() }), 'no self credit');
   await assertSucceeds(update(ref(db('p2'), `${N}/p2`), { st: 'out', by: 'p3', at: serverTimestamp() }));
@@ -901,17 +901,113 @@ test('prism junk: only from yourself, to another live participant, during a batt
   await seed(prismRoom());
   const Q = `${R}/prismq/m1`;
   const atk = (from, extra = {}) => ({ f: from, n: 2, g: 4, at: serverTimestamp(), ...extra });
-  await assertSucceeds(set(ref(db('p2'), `${Q}/p3/k1`), atk('p2')));
-  await assertFails(set(ref(db('p2'), `${Q}/p3/k1`), atk('p2')), 'written once');
-  await assertFails(set(ref(db('p2'), `${Q}/p3/k2`), atk('host')), 'cannot forge the sender');
-  await assertFails(set(ref(db('p2'), `${Q}/p2/k3`), atk('p2')), 'not at yourself');
-  await assertFails(set(ref(db('p2'), `${Q}/p3/k4`), atk('p2', { n: 99 })), 'at most 30 rows');
-  await assertFails(set(ref(db('p2'), `${Q}/p3/k5`), atk('p2', { g: 10 })), 'gap column 0-9');
-  await assertFails(set(ref(db('outsider'), `${Q}/p3/k6`), atk('outsider')));
+  await assertSucceeds(set(ref(db('p2'), `${Q}/p3/p2-1`), atk('p2')));
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-1`), atk('p2')), 'written once');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-2`), atk('host')), 'cannot forge the sender');
+  await assertFails(set(ref(db('p2'), `${Q}/p2/p2-3`), atk('p2')), 'not at yourself');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-4`), atk('p2', { n: 99 })), 'at most 30 rows');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-5`), atk('p2', { g: 10 })), 'gap column 0-9');
+  await assertFails(set(ref(db('outsider'), `${Q}/p3/outsider-6`), atk('outsider')));
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/out/p2`), { at: now(), place: 3, rem: 2 }));
-  await assertFails(set(ref(db('p2'), `${Q}/p3/k7`), atk('p2')), 'knocked out players can\'t attack');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-7`), atk('p2')), 'knocked out players can\'t attack');
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/settings/mode`), 'rush'));
-  await assertFails(set(ref(db('p3'), `${Q}/host/k8`), atk('p3')), 'no attacks in Score Rush');
+  await assertFails(set(ref(db('p3'), `${Q}/host/p3-8`), atk('p3')), 'no attacks in Score Rush');
+});
+
+// PFIX-B (FABLE REVIEW findings 6 + 7) — THE CHEAP BOUNDS: every forged write the review proved ALLOWED is refused; the honest writes still go
+const realSave = (extra = {}) => ({ b: '1111000000', n: 40, h: 3, hd: 0, lv: 2, ln: 12, sc: 4200, cb: -1, mc: 2, bb: 0, bc: 0, se: 6, fr: 0.25,
+  pd: [[2, 4, 'p3', 'p3-17', 820, 180]], sd: 0, best: 'triple', st: [40, 0, 1, 0], ct: 5, pk: 9, ak: '@1731200000000', ...extra });
+
+test('PFIX-B prism boards: the honest writes — a publish, a full save, a top-out — still go', async () => {
+  await seed(prismRoom());
+  const N = `${R}/prism/m1/p2`;
+  await assertSucceeds(set(ref(db('p2'), N), pnode({ sv: realSave() })), 'the first save');
+  await assertSucceeds(update(ref(db('p2'), N), { b: '1111110000', h: 1, p: '2,0,4,18', sc: 4300, ln: 12, lv: 2, mc: 2, se: 6, best: 'triple', pd: 2, tg: 'p3', st: 'play', at: serverTimestamp() }), 'a publish');
+  await assertSucceeds(update(ref(db('p2'), N), { sv: realSave({ pd: null, n: 41, st: [41, 0, 1, 0] }), st: 'play', at: serverTimestamp() }), 'a save with nothing pending');
+  await assertSucceeds(update(ref(db('p2'), N), { best: 'quad', ln: 16, st: 'play', at: serverTimestamp() }), 'a real four-line best');
+  await assertSucceeds(update(ref(db('p2'), N), { st: 'out', by: 'p3', at: serverTimestamp(), b: '1'.repeat(200), sv: realSave() }), 'the top-out');
+});
+
+test('PFIX-B prism boards: sv is CLOSED + bounded; the stats bounded by the play clock', async () => {
+  await seed(prismRoom());
+  const N = `${R}/prism/m1/p2`;
+  await assertSucceeds(set(ref(db('p2'), N), pnode({ sv: realSave() })));
+  const sv = extra => update(ref(db('p2'), N), { sv: realSave(extra), st: 'play', at: serverTimestamp() });
+  await assertFails(sv({ st: [1, 1, 1, 99], ln: 0, mc: 0, se: 0 }), 'more perfect clears than pieces');
+  await assertFails(sv({ st: [1, 9, 0, 0], ln: 0, mc: 0, se: 0 }), 'more four-line clears than pieces');
+  await assertFails(sv({ st: [99999, 0, 0, 0] }), 'more pieces than a minute of play allows');
+  await assertSucceeds(sv({ st: [1, 1, 0, 0], ln: 4, mc: 0, se: 4 }), 'one piece, one four-line clear (the junk rows) — allowed');
+  await assertFails(sv({ st: [1, 0, 0], ln: 0, mc: 0, se: 0 }), 'four counts');
+  await assertFails(sv({ st: [1, 0, 0, 0, 5], ln: 0, mc: 0, se: 0 }), 'four counts, no more');
+  await assertFails(sv({ pk: 41 }), 'the peak 0–40');
+  await assertFails(sv({ ln: 500 }), 'lines: at most four a piece');
+  await assertFails(sv({ x: 'x'.repeat(1_000_000) }), 'no 1 MB string — no extra fields');
+  await assertFails(sv({ sc: 999_999_999 }), 'the save\'s score bounded');
+  await assertFails(sv({ pd: [[40, 4, 'p3', 'k', 0, 0]] }), 'a pending attack ≤ 30 rows');
+  await assertFails(sv({ pd: [[2, 4, 'p3', 'k', 0, 0, 'extra']] }), 'a pending row: six fields');
+  await assertFails(sv({ h: 9 }), 'the hold: a piece 0–7');
+  await assertFails(sv({ fr: 3 }), 'the attack fraction 0–1');
+  const top = extra => update(ref(db('p2'), N), { st: 'play', at: serverTimestamp(), ...extra });
+  await assertFails(top({ sc: 999_999_999 }), 'sc: 999 999 999');
+  await assertFails(top({ sc: 5_000_000 }), 'a score a minute of play can\'t make');
+  await assertFails(top({ ln: 5000 }), 'lines a minute of play can\'t clear');
+  await assertFails(top({ best: 'quad', ln: 1 }), 'a four-line best with one line');
+  await assertFails(top({ x: 'x'.repeat(1000) }), 'no extra fields on the board');
+  await assertFails(update(ref(db('p2'), N), { st: 'play', at: now() - 5000 }), 'at = the server\'s clock, never the phone\'s');
+});
+
+test('PFIX-B prism boards: FROZEN once out (the top-out or the director) and outside play', async () => {
+  await seed(prismRoom());
+  const N = `${R}/prism/m1`;
+  await assertSucceeds(set(ref(db('p2'), `${N}/p2`), pnode({ sv: realSave() })));
+  await assertSucceeds(update(ref(db('p2'), `${N}/p2`), { st: 'out', by: 'p3', at: serverTimestamp() }));
+  await assertFails(update(ref(db('p2'), `${N}/p2`), { st: 'out', by: 'host', at: serverTimestamp() }), 'the credit rewritten after the KO');
+  await assertFails(update(ref(db('p2'), `${N}/p2`), { sc: 99_000, st: 'out', at: serverTimestamp() }), 'the score rewritten after the KO');
+  await assertFails(update(ref(db('p2'), `${N}/p2`), { sv: realSave({ st: [40, 0, 0, 3] }), st: 'out', at: serverTimestamp() }), 'the save rewritten after the KO');
+  // the director's own out (gone / away) freezes the board too
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/out/p3`), { at: now(), place: 3, rem: 2, gone: true, away: true }));
+  await assertFails(update(ref(db('p3'), `${N}/p3`), pnode()), 'out by the director: no more writes');
+  // the END phase of a BATTLE: nothing
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'end'));
+  await assertFails(update(ref(db('host'), `${N}/host`), pnode()), 'not in a battle\'s END');
+  // the countdown: only from GO (− 2 s — GO lands before the host's tick)
+  await seed(prismRoom({ phase: 'count', playStartAt: now() + 10_000 }));
+  await assertFails(set(ref(db('p2'), `${N}/p2`), pnode({ sc: 0, ln: 0, se: 0, best: '' })), 'not before GO');
+  await seed(prismRoom({ phase: 'count', playStartAt: now() - 500 }));
+  await assertSucceeds(set(ref(db('p2'), `${N}/p2`), pnode({ sc: 0, ln: 0, se: 0, best: '' })), 'GO has passed — the host just hasn\'t ticked yet');
+  // SCORE RUSH: its final save in the END phase, never long after the song
+  await seed(prismRoom({ phase: 'end', settings: { mode: 'rush' }, endAt: now() - 1000 }));
+  await assertSucceeds(set(ref(db('p2'), `${N}/p2`), pnode({ sv: realSave() })), 'the rush\'s final save, just after the end');
+  await seed(prismRoom({ phase: 'end', settings: { mode: 'rush' }, endAt: now() - 10_000 }));
+  await assertFails(set(ref(db('p2'), `${N}/p2`), pnode()), 'not 10 s after the song');
+  await seed(prismRoom({ phase: 'play', settings: { mode: 'rush' }, endAt: now() - 10_000 }));
+  await assertFails(set(ref(db('p2'), `${N}/p2`), pnode()), 'not 10 s after the song while the host is away either');
+});
+
+test('PFIX-B prism junk: the server\'s clock, ONE attack per piece, neither side out', async () => {
+  await seed(prismRoom());
+  const Q = `${R}/prismq/m1`;
+  const atk = (from, extra = {}) => ({ f: from, n: 2, g: 4, at: serverTimestamp(), ...extra });
+  await assertSucceeds(set(ref(db('p2'), `${Q}/p3/p2-14`), atk('p2')), 'an attack keyed by its piece');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-15`), atk('p2', { at: now() - 59_000 })), 'back-dated (due at once) — refused');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/-NpushKey`), atk('p2')), 'a push key — not one per piece');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p3-16`), atk('p2')), 'a key in someone else\'s name');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-x`), atk('p2')), 'the piece is a number');
+  // the target already out — on its own board, or in the director's record
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/prism/m1/p3`), { st: 'out', at: now() }));
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-17`), atk('p2')), 'at a target whose board says out');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/prism/m1/p3`), null));
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/out/p3`), { at: now(), place: 3, rem: 2 }));
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-18`), atk('p2')), 'at a target the director put out');
+  await assertSucceeds(set(ref(db('p2'), `${Q}/host/p2-18`), atk('p2')), 'the one still standing can still be hit');
+  // the sender's own board says out (before the director's next tick)
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/prism/m1/p2`), { st: 'out', at: now() }));
+  await assertFails(set(ref(db('p2'), `${Q}/host/p2-19`), atk('p2')), 'from a board that says out');
+  // the countdown + SURVIVAL — still refused
+  await seed(prismRoom({ phase: 'count' }));
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-20`), atk('p2')), 'not in the countdown');
+  await seed(prismRoom({ settings: { mode: 'survival' } }));
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-21`), atk('p2')), 'not in SURVIVAL');
 });
 
 test('prism call the winner: once, only when out, within the window, a live player', async () => {

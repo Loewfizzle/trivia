@@ -59,7 +59,9 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
       h('div.pod-who', openCard ? { role: 'button', tabindex: '0', 'aria-label': `${p.name}'s card`, onclick: openCard, onkeydown: e => { if (e.key === 'Enter') openCard(); } } : {}, avatar(p.avatar, p.color, place === 1 ? 64 : 46), fitName(h('div.pod-name', p.name, rankBadge(pubOf(p), { tag: false })), { min: 10 }),
         h('div.pod-score-wrap', scoreEl, scoreLabel ? h('small', scoreLabel) : null)),
       h('div.pod-block', h('span', String(r.rank)))));
-    setTimeout(() => cancelers.push(countUp(scoreEl, 0, r.score, 1000)), delays[place] + 200);
+    // (PFIX-B — PRISM's optional 15: a score given as text — SURVIVAL's "2:31" — shows as it is, where the raw seconds used to count up)
+    if (r.scoreText != null) setTimeout(() => { scoreEl.textContent = r.scoreText; }, delays[place] + 200);
+    else setTimeout(() => cancelers.push(countUp(scoreEl, 0, r.score, 1000)), delays[place] + 200);
   });
   const winner = rows[0] && (players[rows[0].uid] || GHOST);
   const tied = rows.filter(r => r.rank === 1).length > 1;

@@ -56,10 +56,23 @@ export function maxSlipDistance(sec) {
  *  writes it (a hacked host: sd [1e9] → any score passed). Now capped from the songs themselves: the longest in data/prism/manifest.json
  *  (PD-5A: Feeling Human Again, 230.8 s — a day song) + 10 s, rounded up — tests/profiles.test.mjs fails if a longer song is added without raising it */
 export const RUSH_MAX_S = 241;
+/** PFIX-B (FABLE REVIEW finding 9 — the old ceiling, "every line a back-to-back perfect clear", sat 100–200 × above honest play): the bound
+ *  comes from a SIM — scripts/sim-prism-rush.mjs: full-skill bot runs (bot.js, skill 1) on the real engine, every song, at a fast human pace
+ *  (RUSH_PACE.pps pieces a second). The best runs clear ≈ lps lines a second and score ≈ ppl points per line per level (SCORE RUSH's level =
+ *  1 + lines / 10, so a run of L lines scores ≈ ppl × (L + L² / 20)); the bound = margin × that. Pinned by tests/profiles.test.mjs (it runs the
+ *  sim: the bound ≥ 2.5 × the best run of every song). */
+export const RUSH_PACE = Object.freeze({ pps: 4, lps: 1.4, ppl: 130, margin: 3 });
+const curve = L => L + (L * L) / 20;
+/** the most lines a SCORE RUSH of `sec` seconds clears: rush has no junk, so 0.4 lines a piece, at 6¼ pieces a second (+ 20) */
+export const maxRushLines = sec => Math.ceil(2.5 * Math.min(sec, RUSH_MAX_S) + 20);
+/** the most points `lines` lines can be worth (what the level curve allows): every line at ~1 250 × its level (a back-to-back twist triple or
+ *  perfect clear's worth a line, the combos in) + every piece hard-dropped from the top (80 a piece, ≤ 2.5 pieces a line + 100) */
+export const rushLineCeiling = lines => Math.ceil(1250 * curve(lines) + 80 * (2.5 * lines + 100));
+/** the SCORE RUSH bound: what the sim's best runs score in `seconds` × the margin — and never more than `lines` lines can be worth */
 export function maxRushScore(lines, seconds) {
-  const lv = 16 + Math.ceil(lines / 10);
-  const pieces = seconds * 6 + 60;
-  return lv * (lines * 2200 + 6000) + pieces * 60;
+  const sec = Math.min(Math.max(0, seconds), RUSH_MAX_S);
+  const { lps, ppl, margin } = RUSH_PACE;
+  return Math.min(Math.ceil(margin * ppl * curve(lps * sec)) + 20_000, rushLineCeiling(lines));
 }
 
 /** CIPHER: the most one round can score. */
@@ -200,9 +213,22 @@ function agentExtra(game, uid, out) {
   if (spot) out.c.spot = spot;
 }
 
+/** PFIX-B (FABLE REVIEW finding 6): the award flags only from plausible numbers — a match this player PLAYED long enough (from GO to their
+ *  KO / the end), a piece count a person can place in that time (≤ 10 a second) */
+export const PRISM_AWARD_MIN_MS = 15_000;
+function prismPlausible(game, uid, r) {
+  const o = game.out && game.out[uid];
+  const end = (o && Number(o.at)) || Number(game.phaseStartAt) || 0;
+  const played = game.playStartAt ? end - Number(game.playStartAt) : Infinity;
+  const pn = num(r.pn);
+  return { long: played >= PRISM_AWARD_MIN_MS, pn, pieces: r.pn == null || pn <= (played / 1000) * 10 + 20 };
+}
+
 function prismExtra(game, uid, out, row, ctx, win) {
   const r = (game.results || {})[uid] || {};
-  if (r.best === 'quad') (out.f ||= {}).quad = 1;   // FOUR ON THE FLOOR (the match's best clear was four lines at once)
+  const ok = prismPlausible(game, uid, r);
+  // FOUR ON THE FLOOR (the match's best clear was four lines at once) — PFIX-B: with four lines on the board's own count, in a real match
+  if (r.best === 'quad' && num(r.ln) >= 4 && ok.long && ok.pieces) (out.f ||= {}).quad = 1;
   if (num(r.ko)) out.c.ko = Math.min(num(r.ko), 7);
   // PD-5B — THE THREE CARDS' flags, from the room's OWN record (PD-2's results + the eliminations the host wrote), each checked against it:
   const mode = game.settings && game.settings.mode, n = Object.keys(game.participants || {}).length;
@@ -211,8 +237,11 @@ function prismExtra(game, uid, out, row, ctx, win) {
   const byMe = vals(game.out).filter(o => o && o.by === uid).length;
   if (mode === 'battle' && n >= 2 && num(r.ko) >= 1 && num(r.ko) <= n - 1 && byMe >= 1) (out.f ||= {}).firstko = 1;
   // PERFECT CLEAR — pc: ≥ 1 perfect clear, any mode (a solo run too — the solo lane hands every row's flags to the award engine); each one
-  // clears at least one line, so never more than the lines cleared
-  if (num(r.pc) >= 1 && num(r.pc) <= num(r.ln)) (out.f ||= {}).pc = 1;
+  // clears at least one line, so never more than the lines cleared. PFIX-B: at least TWO lines each (a piece is 4 cells, a row 10 — a one-line
+  // perfect clear can't happen), enough pieces (from an empty well 5 a clear; with an opponent's junk under you one can do it — 2 a clear in
+  // BATTLE / SURVIVAL), in a real match
+  const pcs = num(r.pc), pcPieces = mode === 'rush' ? 5 : 2;
+  if (pcs >= 1 && num(r.ln) >= 2 * pcs && (r.pn == null || ok.pn >= pcPieces * pcs) && ok.long && ok.pieces) (out.f ||= {}).pc = 1;
   // COMEBACK — comeback: WON a BATTLE (2+ players, the room's winner) after the stack reached the danger zone (dz — the top 5 rows)
   if (mode === 'battle' && n >= 2 && win && game.winner === uid && r.dz === 1) (out.f ||= {}).comeback = 1;
   if (!game.settings || game.settings.mode !== 'rush') return;
@@ -221,7 +250,7 @@ function prismExtra(game, uid, out, row, ctx, win) {
   const sec = Math.min(RUSH_MAX_S, Math.max(30, sd.reduce((s, x) => s + x, 0) / 1000 || RUSH_MAX_S));
   // (one song, never longer than the longest there is: anything else is a host's own numbers)
   const bad = sd.length > 1 || sd.some(x => !(x > 0) || x > RUSH_MAX_S * 1000);
-  if (bad || sc < 0 || ln < 0 || ln > sec * 4 || sc > maxRushScore(ln, sec)) { out.rejected.push({ uid, board: 'prism-rush', v: sc }); return; }
+  if (bad || sc < 0 || ln < 0 || ln > maxRushLines(sec) || sc > maxRushScore(ln, sec)) { out.rejected.push({ uid, board: 'prism-rush', v: sc }); return; }
   if (sc > 0) out.rec['prism-rush'] = sc;
 }
 
