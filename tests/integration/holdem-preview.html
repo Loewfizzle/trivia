@@ -4,6 +4,12 @@
      phone reads it (publicOf → toWire → the room's node) + this phone's own hole node. So a shot is the phone's screen.
        &n=2..8            players at the table (default 6)
        &state=waiting | myturn | preflop | flop | turn | river | allin | showdown | foldwin | away | slider | final   (default myturn)
+          HE4:  headsup (n=2, the board centred) · raised (a flop at n=3/4 — the board raised) · split (a showdown that splits the pot) ·
+                sidepots (an all in → the run-out → 3 pots awarded one at a time, a short stack OUT) · levelup (BLINDS UP at the next deal) ·
+                ko (you bust → the KO card → SPECTATING) · spectate (after it — what a refresh shows) · out (an opponent busts: OUT, the fade,
+                the re-spread at the next deal) · leave (CASH: LEAVE TABLE's confirm) · ledger (CASH's end) · final (the tournament's end)
+                (sidepots / levelup / ko / out play their last step LIVE ~0.6 s after the page shows — the real motion, as a phone sees it)
+       &play=1            THE MOTION DEMO: a scripted table that plays on a loop (below)
                           myturn = your turn before the flop (after a raise) · preflop = someone else's turn (your pre-actions)
                           flop / turn / river = your turn on that street, facing a bet · allin = a multi-way all in, run out street by street
                           showdown = the river shown down · foldwin = everyone folded to you (SHOW) · away = you're AWAY (I'M BACK), a seat OUT
@@ -40,9 +46,11 @@ import { setState } from '/js/store.js';
 import { updateSettings } from '/js/audio/settings.js';
 
 const q = new URLSearchParams(location.search);
-const N = Math.max(2, Math.min(8, Number(q.get('n') || 6)));
-const STATE = q.get('play') === '1' ? 'play' : (q.get('state') === 'ledger' ? 'final' : q.get('state') || 'myturn');
-const MODE = q.get('mode') === 'cash' || q.get('state') === 'ledger' ? 'cash' : 'tournament';
+const ASK = q.get('state') || 'myturn';
+const N = ASK === 'headsup' ? 2 : Math.max(2, Math.min(8, Number(q.get('n') || (ASK === 'raised' ? 4 : 6))));
+const STATE = q.get('play') === '1' ? 'play' : ({ ledger: 'final', headsup: 'myturn', raised: 'flop' })[ASK] || ASK;
+const MODE = q.get('mode') === 'cash' || ASK === 'ledger' || ASK === 'leave' ? 'cash' : 'tournament';
+const STAGED = ['sidepots', 'levelup', 'ko', 'out'].includes(STATE);
 const st = Number(q.get('st') ?? 47), sb = Number(q.get('sb') ?? 34);
 document.documentElement.style.setProperty('--safe-t', `${st}px`);
 document.documentElement.style.setProperty('--safe-b', `${sb}px`);
@@ -64,7 +72,7 @@ const presence = Object.fromEntries(uids.map(u => [u, { online: true, lastSeen: 
 // stacks busted → OUT + the re-spread), a fold-win; the blinds go up every &lv seconds (default 40); down to two → HEADS UP; a winner →
 // a new match. &ko=1 = you're one of the short stacks (the KO card → SPECTATING).
 const PLAY = q.get('play') === '1';
-const T0 = PLAY ? Date.now() : Date.UTC(2026, 10, 10, 23, 0, 0);
+const T0 = PLAY ? Date.now() : STAGED || STATE === 'spectate' ? Date.now() - 180_000 : Date.UTC(2026, 10, 10, 23, 0, 0);
 let now = T0;
 const rng = rngFrom(q.get('seed') || 'he3-preview');
 let rec = newRecord({ code: 'PVWX', uids, mode: MODE, now, rng });
@@ -81,6 +89,25 @@ function play(action, amount) {
   return true;
 }
 const passive = () => { const l = L(); return play(l.canCheck ? 'check' : 'call'); };
+// (HE4: a RIGGED deal — the seats' hole cards + the five board cards, burns between — set right after the deal, before any card shows)
+const FULL = [...'23456789TJQKA'].flatMap(r => [...'shdc'].map(x => r + x));
+function rig(holes = {}, board = null) {
+  const t = T();
+  for (const [id, c] of Object.entries(holes)) { const x = t.seats.find(y => y.id === id); if (x) x.cards = c.slice(); }
+  if (board) {
+    const used = new Set([...t.seats.flatMap(x => x.cards || []), ...board]);
+    const rest = FULL.filter(c => !used.has(c));
+    t.deck = [rest[0], board[0], board[1], board[2], rest[1], board[3], rest[2], board[4], ...rest.slice(3)];
+  }
+}
+/** an all in before the flop: `short` = { seatIndex: chips kept }, `caller` = the seat that calls (the rest fold) — the run-out waits */
+function shove(short, caller) {
+  T().seats.forEach((x, i) => { if (short[i] != null && x.stack + x.bet > short[i]) x.stack = Math.max(1, short[i] - x.bet); });
+  for (let g = 0; g < 30 && L(); g++) {
+    const l = L(), i = T().seats.findIndex(y => y.id === l.id);
+    play(short[i] != null ? 'allin' : i === caller ? (l.canCheck ? 'check' : l.callAllIn ? 'allin' : 'call') : (l.canCheck ? 'check' : 'fold'));
+  }
+}
 const toStreet = name => { for (let g = 0; g < 60 && T().street !== name && running(T()); g++) passive(); };
 
 let me = uids[0];
@@ -104,6 +131,34 @@ if (STATE === 'myturn' || STATE === 'slider' || STATE === 'preflop') {
   for (let g = 0; g < 20 && L(); g++) { const l = L(); const x = T().seats.find(y => y.id === l.id); if (T().seats.indexOf(x) < 3) play('allin'); else play(T().seats.indexOf(x) === 3 ? 'call' : 'fold'); }
   now += 1600; advance(rec, now, rng); rec.seq++;
   me = T().seats[3] ? T().seats[3].id : uids[0];
+} else if (STATE === 'sidepots') {
+  // three short stacks + a caller, rigged so each pot goes to someone else: the main → seat 0 (aces), side 1 → seat 1 (kings), side 2 → seat 3 (queens); seat 2 busts
+  const S = T().seats;
+  rig({ [S[0].id]: ['Ad', 'Ac'], [S[1].id]: ['Kd', 'Kc'], [S[2].id]: ['7d', '2h'], [S[3].id]: ['Qd', 'Qc'] }, ['2c', '5d', '9h', 'Js', '3c']);
+  shove({ 0: 300, 1: 700, 2: 1100 }, 3);
+  me = S[3].id;
+} else if (STATE === 'ko' || STATE === 'spectate' || STATE === 'out') {
+  // a short stack all in against aces — it busts. ko / spectate: you're the short stack; out: someone else is (you sit it out)
+  const S = T().seats;
+  rig({ [S[0].id]: ['7c', '2d'], [S[1].id]: ['As', 'Ah'] }, ['9c', 'Jd', 'Kh', '4s', '3c']);
+  shove({ 0: 240 }, 1);
+  me = STATE === 'out' ? S[2].id : S[0].id;
+  if (STATE === 'spectate') { for (let g = 0; g < 12; g++) { now += 1600; advance(rec, now, rng); } now += 7000; advance(rec, now, rng); rec.seq++; }
+} else if (STATE === 'levelup') {
+  for (let g = 0; g < 20 && running(T()); g++) { const l = L(); if (!l) break; play('fold'); }
+  me = uids[0];
+} else if (STATE === 'leave') {
+  for (let g = 0; g < 20 && running(T()); g++) { const l = L(); if (!l) break; play('fold'); }
+  me = T().seats.find(x => x.stack > 0).id;
+} else if (STATE === 'split') {
+  // the board is a straight everyone plays — every hand still in splits the pot
+  rig({}, ['As', 'Kd', 'Qh', 'Jc', 'Ts']);
+  if (N > 4) { play('fold'); play('fold'); }
+  toStreet('river');
+  for (let g = 0; g < 20 && L(); g++) passive();
+  for (let g = 0; g < 10 && running(T()); g++) { now += 1600; advance(rec, now, rng); }
+  rec.seq++;
+  me = (T().seats.find(x => x.shown) || T().seats[0]).id;
 } else if (STATE === 'showdown' || STATE === 'final') {
   if (N > 4) { play('fold'); play('fold'); }
   toStreet('river');
@@ -126,7 +181,7 @@ if (MODE === 'cash' && q.get('broke') === '1') { const x = T().seats.find(y => y
 if (q.get('hand') && T().seats.find(x => x.id === me)) { const x = T().seats.find(y => y.id === me); const c = q.get('hand'); x.cards = [c.slice(0, 2), c.slice(2, 4)]; }
 // the clock: a few seconds into the turn (the bar part-drained)
 const t = T();
-if (!PLAY) window.__clock = () => (t.deadline ? t.deadline - 12_500 : now + 400);
+if (!PLAY && !STAGED && STATE !== 'spectate') window.__clock = () => (t.deadline ? t.deadline - 12_500 : now + 400);
 
 const pub = publicOf(rec);
 const node = { seq: rec.seq, at: now, ...nestWire(toWire(pub)) };
@@ -151,23 +206,38 @@ const { createView } = await import('/js/games/holdem/view.js');
 const view = createView();
 view.mount(document.getElementById('app'), state);
 if (STATE === 'slider') { await new Promise(r => setTimeout(r, 60)); document.querySelector('.he-raise')?.click(); }
+if (STATE === 'leave') { await new Promise(r => setTimeout(r, 120)); document.querySelector('.he-leave')?.click(); await new Promise(r => setTimeout(r, 400)); }
 await document.fonts.ready;
 await new Promise(r => setTimeout(r, 150));
 window.__preview = { rec, pub, me, node };
 document.body.dataset.ready = '1';
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+/** a new public table (+ your hole node) → the view, exactly as a phone gets the dealer's write */
+const publish = () => {
+  rec.seq++;
+  const p = publicOf(rec);
+  const n = { seq: rec.seq, at: Date.now(), ...nestWire(toWire(JSON.parse(JSON.stringify(p)))) };
+  window.__fakePush(`hole/PVWX/${me}`, holeOf(rec, me));
+  const live = { table: n };
+  Object.assign(state, { live, game: { ...state.game, matchId: rec.id } });
+  view.update({ ...state });
+};
+// THE STAGED STATES: the last step plays LIVE (the real clock — fresh events → the real motion), until the next deal (the re-spread)
+if (STAGED) {
+  await sleep(600);
+  if (STATE === 'levelup') { rec.m.startAt = Date.now() - rec.m.levelMs - 2000; rec.doneAt = Date.now() - 10_000; }
+  const h0 = T().hand;
+  for (let i = 0; i < 120; i++) {
+    if (advance(rec, Date.now(), rng)) publish();
+    if (T().hand !== h0) break;
+    await sleep(200);
+  }
+  document.body.dataset.staged = '1';
+}
+
 if (PLAY) {
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
   const KO = q.get('ko') === '1';
-  const publish = () => {
-    rec.seq++;
-    const p = publicOf(rec);
-    const n = { seq: rec.seq, at: Date.now(), ...nestWire(toWire(JSON.parse(JSON.stringify(p)))) };
-    window.__fakePush(`hole/PVWX/${me}`, holeOf(rec, me));
-    const live = { table: n };
-    Object.assign(state, { live, game: { ...state.game, matchId: rec.id } });
-    view.update({ ...state });
-  };
   let shovers = [], lastHand = -1;
   const scene = () => T().hand % 3;            // 1 = a showdown · 2 = an all in with side pots · 0 = a fold-win
   function onNewHand() {

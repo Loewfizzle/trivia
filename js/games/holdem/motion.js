@@ -94,7 +94,12 @@ export function createMotion(layer, view) {
         }
       });
     },
-    heroFlip(s) { view.heroCards().forEach((hc, i) => flip(hc.querySelector('.he-card'), s.at + i * 70)); },
+    heroFlip(s) {
+      view.heroCards().forEach((hc, i) => flip(hc.querySelector('.he-card'), s.at + i * 70));
+      // (your hand's name waits for your cards to turn up — never a spoiler under two backs)
+      const lab = view.heroEl().querySelector('.he-label');
+      if (lab) appear(lab, s.at + 200, 160);
+    },
     chip(s) {
       const hero = s.id === view.heroId();
       ghost('chip', view.pos(s.id, 'emblem'), view.pos(s.id, 'bet'), { delay: s.at, dur: BEAT.chip, s0: 0.7 });
