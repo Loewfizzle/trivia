@@ -235,3 +235,6 @@ music-off setting: the audio session code untouched; with the music off there is
 phone sooner); a second hang in one tab without a reveal between gets TAP TO TRY AGAIN, not another reload; THE MUSIC ON THE TAP measured in
 Chromium only (Playwright's Windows WebKit has no Web Audio — the iPhone judges Safari); the warm-up decodes up to 3 station songs a page even
 with no tap; how often a real iPhone loses a request can't be measured here — the BOOT HANG reports in /admin will say.
+- **Cloud run 1** (2827a170, the harbor tag): **tests ✅ + harbor ✅ (all 15 jobs) — green first try.** Vercel BUILT 2827a170 (live).
+- **The servers:** every server this pass started is stopped (the emulators, serve.mjs :5173, the A/B servers :5174 / :5175, the daily test
+  server :5177) + the A/B worktrees removed; Ben's :5190 preview server left running.
