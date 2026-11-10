@@ -21,12 +21,13 @@ import { initializeTestEnvironment, assertFails } from '@firebase/rules-unit-tes
 import { ref as cref, get as cget } from 'firebase/database';
 import { ref, val, fb } from '../../api/_lib/fb.js';
 import { ApiError } from '../../api/_lib/http.js';
-import { holdemAction, setTestRng, setTestClock, forgetHoldemBudgets, CALLS } from '../../api/_lib/holdem-store.js';
+import { holdemAction, setTestRng, setTestClock, forgetHoldemBudgets, CALLS, wireStats } from '../../api/_lib/holdem-store.js';
 import { PAUSE } from '../../api/_lib/holdem-dealer.js';
 import reportHandler from '../../api/report.js';
 import { profileAction } from '../../api/profile.js';
 import { legalActions } from '../../js/games/holdem/table.js';
 import { publicView } from '../../js/games/holdem/views.js';
+import { fromWire } from '../../js/games/holdem/wire.js';
 import { SHOT_MS, BANK_MS } from '../../js/games/holdem/structure.js';
 import { decide } from '../fixtures/holdem-bots.mjs';
 import { rngFrom } from '../../js/core/rng.js';
@@ -46,6 +47,14 @@ after(async () => {
   setTestRng(null); setTestClock(null);
   if (COST.calls) {
     const per = Object.entries(COST.byOp).map(([k, v]) => `${k} ${v.n} × ${(v.cpu / v.n).toFixed(2)} ms`).join(' · ');
+    if (wireStats.length) {
+      // (HE3 — THE LEAN WIRE: what one publish costs every listening phone, by the move it carried — the median diff vs the old whole view)
+      const med = a => { const v = a.slice().sort((x, y) => x - y); return v[Math.floor(v.length / 2)] || 0; };
+      const only = k => wireStats.filter(w => !w.whole && w.kinds.includes(k) && (k === 'dealt' || !w.kinds.includes('dealt')) && (['street', 'dealt', 'pot'].includes(k) || (!w.kinds.includes('street') && !w.kinds.includes('pot'))));
+      const rows = ['folded', 'checked', 'called', 'raised', 'street', 'pot', 'dealt'].map(k => { const w = only(k); return `${k} ${med(w.map(x => x.full))} → ${med(w.map(x => x.diff))} B (${w.length})`; });
+      const all = wireStats.filter(w => !w.whole);
+      console.log(`# holdem wire (a publish, median): ${rows.join(' · ')} — all ${all.length}: ${Math.round(all.reduce((s, w) => s + w.full, 0) / all.length)} → ${Math.round(all.reduce((s, w) => s + w.diff, 0) / all.length)} B average; whole writes ${wireStats.length - all.length}`);
+    }
     if (COST.n) console.log(`# holdem bytes: the public view ${Math.round(COST.pub / COST.n)} B, the record ${Math.round(COST.rec / COST.n)} B, a seat's private node ${Math.round(COST.hole / COST.n)} B (averages over ${COST.n} steps)`);
     console.log(`# holdem cost: ${COST.calls} calls over ${COST.hands} hands (${(COST.calls / Math.max(1, COST.hands)).toFixed(1)} a hand), CPU ${(COST.cpu / COST.calls).toFixed(2)} ms a call (wall ${(COST.wall / COST.calls).toFixed(1)} ms on the emulator) — ${per}`);
   }
@@ -104,7 +113,7 @@ class Table {
     (COST.byOp[k] ||= { n: 0, cpu: 0 }).n++; COST.byOp[k].cpu += ms;
     return out;
   }
-  async pub() { const v = await val(`rooms/${this.code}/holdem`); return v ? JSON.parse(v.j) : null; }
+  async pub() { return fromWire(await val(`rooms/${this.code}/holdem`)); }
   async rec() { const v = await val(`hrec/${this.code}`); return v ? JSON.parse(v.j) : null; }
   async hole(uid) { return val(`hole/${this.code}/${uid}`); }
   brain(id) { return (this.brains[id] ||= rngFrom(`brain:${id}`)); }
@@ -121,9 +130,9 @@ class Table {
     // (the public view keeps the last events — an earlier hand's SHOWN cards were legally shown then and are back in this hand's deck:
     //  this hand's events + everything else are scanned against this hand's hidden cards)
     if (room && room.holdem) {
-      const pub = JSON.parse(room.holdem.j);
+      const pub = fromWire(room.holdem);
       pub.ev = pub.ev.filter(e => e.hand === t.hand);
-      room.holdem = { ...room.holdem, j: pub };
+      room.holdem = pub;
     }
     for (const s of strings(room)) assert.ok(!hidden.has(s), `${who} can read the hidden card ${s} in the room (hand ${t.hand}, ${t.street})`);
     for (const s of strings(own)) assert.ok(!hidden.has(s), `${who}'s own node holds someone else's card ${s}`);
@@ -141,7 +150,7 @@ class Table {
   async refreshCheck(uid) {
     const rec = await this.rec();
     const pubRaw = await phoneRead(uid, `rooms/${this.code}/holdem`), own = await phoneRead(uid, `hole/${this.code}/${uid}`);
-    const pub = JSON.parse(pubRaw.j);
+    const pub = fromWire(pubRaw);
     assert.equal(pub.seq, rec.seq, 'the public view is the record\'s latest');
     const { log, ...want } = publicView(rec.m.table);
     assert.deepEqual(pub.table, JSON.parse(JSON.stringify(want)), 'the table a refreshed phone sees = the server\'s');
@@ -451,6 +460,38 @@ test('MANY PHONES POKE AT ONCE: a due event is applied ONCE', async () => {
   p = await T.pub();
   assert.equal(p.hand, hand + 1, 'one new hand');
   assert.equal(p.ev.filter(e => e.t === 'dealt' && e.hand === hand + 1).length, 1);
+});
+
+test('HE3 — THE LEAN WIRE on the emulators: the console\'s start (its matchId, its players, the walk inside), the room kept ACTIVE, a stale publish HEALED, a console restart', async () => {
+  const uids = users(4, 'wire');
+  const T = await new Table(uids, { seed: 'wire' }).seed();
+  T.cost = false;
+  await ref(`rooms/${T.code}/meta/activeAt`).set(clock - 50 * 60_000);
+  // the console's start: its matchId, only its connected players (the 4th is offline), the first deal after the walk inside
+  const s = ok(await T.call(T.host, { holdem: 'start', mode: 'tournament', matchId: 'abc123', uids: uids.slice(0, 3), at: clock + 5000 }));
+  assert.equal(s.id, 'abc123');
+  let p = await T.pub();
+  assert.equal(p.hand, 0, 'nothing dealt during the walk inside');
+  assert.equal(p.table.seats.length, 3, 'only the players the console named');
+  assert.equal(p.due, clock + 5000);
+  assert.ok((await val(`rooms/${T.code}/meta/activeAt`)) >= clock, 'the dealer stamped the room active');
+  clock += 5000;
+  ok(await T.call(uids[1], { holdem: 'poke' }));
+  p = await T.pub();
+  assert.equal(p.hand, 1, 'the first deal on the poke when the match begins');
+  // THE HEAL: an out-of-order publish leaves the view behind (an old seq + a wrong part) → the next poke rewrites it whole
+  await ref(`rooms/${T.code}/holdem`).update({ seq: p.seq - 1, 't/turn': '7' });
+  const r = ok(await T.call(uids[2], { holdem: 'poke' }));
+  assert.equal(r.changed, false);
+  await T.refreshCheck(uids[0]);
+  // a second start while it runs: refused — unless the CONSOLE stamped a new start (meta/go) and its game is no longer this match
+  assert.equal((await T.call(T.host, { holdem: 'start', mode: 'cash', matchId: 'zzz999' })).error, 'running');
+  await ref(`rooms/${T.code}/meta/go`).set({ m: 'zzz999', g: 'holdem', at: clock });
+  ok(await T.call(T.host, { holdem: 'start', mode: 'cash', matchId: 'zzz999' }));
+  p = await T.pub();
+  assert.equal(p.id, 'zzz999');
+  assert.equal(p.mode, 'cash');
+  assert.equal(p.table.seats.length, 4);
 });
 
 test('A KICKED player: refused at the table, their private node closed, and (CASH) their seat leaves on the next poke', async () => {

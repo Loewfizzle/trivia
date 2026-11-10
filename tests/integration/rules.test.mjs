@@ -1360,7 +1360,7 @@ test('MAKE HOST: the host hands the room to a live online player only; never to 
 function holdemRoom(extra = {}) {
   const r = playingRoom();
   r.rooms[CODE].players.p3 = { name: 'THREE', color: 'green', avatar: 'hex', joinedAt: 3 };
-  r.rooms[CODE].holdem = { seq: 3, at: now(), j: JSON.stringify({ seq: 3, table: { board: ['Kc', 'Qd', '5s'] } }) };
+  r.rooms[CODE].holdem = { seq: 3, at: now(), m: { id: '"habc"' }, t: { board: JSON.stringify(['Kc', 'Qd', '5s']) } };   // (HE3 — THE LEAN WIRE's parts)
   r.hole = { [CODE]: { host: { h: 1, c: ['As', 'Ah'] }, p2: { h: 1, c: ['7c', '2d'] }, p3: { h: 1, c: ['9h', '9s'] } } };
   r.hrec = { [CODE]: { seq: 3, due: now() + 20000, j: JSON.stringify({ deck: ['Jh', 'Tc'] }) } };
   Object.assign(r, extra);
@@ -1397,7 +1397,7 @@ test('HE2 — HOLD\'EM: no client writes the public table, a private node or the
   for (const who of ['host', 'p2', 'stranger']) {
     await assertFails(set(ref(db(who), `${R}/holdem`), fake), `${who} writes the table`);
     await assertFails(update(ref(db(who), `${R}/holdem`), { seq: 100 }));
-    await assertFails(set(ref(db(who), `${R}/holdem/j`), '{}'));
+    await assertFails(set(ref(db(who), `${R}/holdem/t/turn`), '3'));
     await assertFails(set(ref(db(who), `hole/${CODE}/${who}`), { h: 1, c: ['As', 'Ad'] }), `${who} writes their own cards`);
     await assertFails(set(ref(db(who), `hole/${CODE}/p3`), null));
     await assertFails(set(ref(db(who), `hrec/${CODE}`), { j: '{}' }), `${who} writes the record`);

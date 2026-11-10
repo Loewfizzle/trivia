@@ -44,15 +44,19 @@ function shuffled(list, rng) {
 }
 
 /** START: seats = the room's players (≤ 8), in an order the server's randomness picks; hand 1 is dealt by `advance`. */
-export function newRecord({ code, uids, mode = 'tournament', speed, now, rng, prevSeq = 0, roomAt = null }) {
+export function newRecord({ code, uids, mode = 'tournament', speed, now, rng, prevSeq = 0, roomAt = null, dealAt = null, id = null }) {
   if (mode !== 'tournament' && mode !== 'cash') refuse(400, 'bad_mode', 'Pick TOURNAMENT or CASH.');
   const sp = mode === 'cash' ? null : (speed == null ? DEFAULT_SPEED : speed);
   if (sp != null && !SPEEDS[sp]) refuse(400, 'bad_speed', 'Pick TURBO, STANDARD or DEEP.');
   const ids = [...new Set(uids.map(String))];
   if (ids.length < MIN_PLAYERS) refuse(409, 'too_few', 'Two players are needed.');
   if (ids.length > MAX_SEATS) refuse(409, 'too_many', `At most ${MAX_SEATS} players at the table.`);
-  const m = createMatch({ mode, speed: sp || DEFAULT_SPEED, players: shuffled(ids, rng), now, stepRunout: true });
-  return { v: 1, id: matchIdOf(now, rng), code, roomAt, mode, speed: m.speed, seq: prevSeq + 1, m, pre: {}, doneAt: null, revealAt: null, endingAt: null, ev: [], evn: 0, rep: null };
+  // (HE3 — THE WALK INSIDE: the console's match begins at `dealAt` — hand 1 is dealt then (a poke), the level clock starts then; `id` = the
+  //  console's matchId, so the podium's report finds results/{CODE}_{id})
+  const at = dealAt != null && dealAt > now ? dealAt : now;
+  const m = createMatch({ mode, speed: sp || DEFAULT_SPEED, players: shuffled(ids, rng), now: at, stepRunout: true });
+  const mid = matchIdOf(now, rng);
+  return { v: 1, id: id || mid, code, roomAt, mode, speed: m.speed, seq: prevSeq + 1, m, pre: {}, doneAt: null, revealAt: null, endingAt: null, dealAt: at, ev: [], evn: 0, rep: null };
 }
 
 function note(rec, events) {
@@ -94,8 +98,11 @@ export function dueOf(rec) {
     return t.deadline ?? null;
   }
   if (!canDeal(m)) return null;
-  return (rec.doneAt ?? 0) + pauseOf(t);
+  return nextDealAt(rec);
 }
+
+/** When the next hand may be dealt: the pause after the last one (and never before the match's first deal moment — HE3). */
+const nextDealAt = rec => Math.max(rec.dealAt || 0, (rec.doneAt ?? 0) + pauseOf(rec.m.table));
 
 /** Can the next hand be dealt (two players with chips who aren't sat out, the match not ending)? */
 function canDeal(m) {
@@ -144,7 +151,7 @@ export function advance(rec, now, rng, { kicked = null } = {}) {
       }
       break;
     }
-    if (!canDeal(m) || now < (rec.doneAt ?? 0) + pauseOf(t)) break;
+    if (!canDeal(m) || now < nextDealAt(rec)) break;
     if (engine(rec, mm => nextHand(mm, { rng, now }), now).error) break;
     changed = true;
   }
