@@ -229,3 +229,10 @@ The harbor `load` + `sky` + `weather` groups: 70 / 70.
   to cache on; network-first stays — CLAUDE.md).
 - A 4×-CPU phone stays CPU-bound (headless Chromium 8.90 → 8.48 s).
 
+- **Cloud run 1** (7653c1c5, the harbor tag): tests ✅; harbor **14 / 15** — `legend`'s THE PHONE BENCH ("every scene on a FRESH PAGE":
+  2 pages counted for 2 scenes) — a test race the faster boot exposed (the bench left its START page before the test's first poll; the
+  bench itself measured both scenes, in order) → the test counts the start page (green locally 5 / 5). **Cloud run 2** (`gh workflow run
+  harbor -f job=legend` — the test-only fix needs no deploy): **legend ✅** → all 15 jobs green across the two runs. Vercel BUILT 7653c1c5
+  (live).
+- **The servers**: every server this pass started is stopped (the emulators, serve.mjs :5173 + :5174 + the daily test server :5177), the
+  A/B worktree removed; Ben's :5190 preview server left running.
