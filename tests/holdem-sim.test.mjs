@@ -81,6 +81,19 @@ test('CASH: 2–8 players × 10 seeds — rebuys, late joiners, leavers (mid-han
   assert.ok(rebuys > 0 && joins > 0 && leaves > 0);
 });
 
+test('HE2 — CASH with sleepy robots: the shot clock + AWAY = SAT OUT (never dealt, never a blind) + SIT BACK; Σ net = 0', () => {
+  let satOut = 0, timeouts = 0;
+  for (let n = 3; n <= 8; n++) for (let k = 0; k < 4; k++) {
+    const r = runMatch({ mode: 'cash', n, seed: `cs-${n}-${k}`, sleepy: 0.08, junk: 0.03, cashHands: 60 });
+    assert.ok(r.match.ended);
+    assert.equal(r.summary.ledger.reduce((a, x) => a + x.net, 0), 0, 'THE LEDGER sums to 0');
+    satOut += r.stats.satOut; timeouts += r.stats.timeouts;
+    add(r.stats);
+  }
+  assert.ok(satOut > 20 && timeouts > 50, `sat-out seats ${satOut}, timeouts ${timeouts}`);
+  console.log(`# holdem: CASH sleepy — ${timeouts} timeouts, ${satOut} sat-out seat-hands`);
+});
+
 test('THE COVERAGE across every sim: thousands of hands, side pots with 3–7 all-ins, heads-up, the clock, AWAY, splits', () => {
   assert.ok(total.hands >= 5000, `${total.hands} hands`);
   for (let n = 3; n <= 7; n++) assert.ok(total.allin[n] > 0, `a hand with ${n} players all in (${JSON.stringify(total.allin)})`);

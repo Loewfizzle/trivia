@@ -26,10 +26,11 @@ export function newSeat({ id, seat, stack }, clock) {
 }
 
 /**
- * A table. seats: [{ id, seat? (0–7), stack }]; clock: null (CASH — no timer) or { shot, bank } in ms
- * (`true` = the house clock: 20 s + a 30 s bank).
+ * A table. seats: [{ id, seat? (0–7), stack }]; clock: null (no timer) or { shot, bank } in ms (`true` = the house clock:
+ * 20 s + a 30 s bank — both modes since HE2). awaySitsOut (CASH — HE2): an AWAY seat is SAT OUT from the next deal
+ * (not dealt in, no blinds) until it is back; otherwise (a TOURNAMENT) it is dealt in + auto checks / folds.
  */
-export function createTable({ seats, sb, bb, clock = null }) {
+export function createTable({ seats, sb, bb, clock = null, awaySitsOut = false }) {
   if (!Array.isArray(seats) || seats.length > MAX_SEATS) throw new Error(`1–${MAX_SEATS} seats`);
   const ck = clock === true ? { shot: SHOT_MS, bank: BANK_MS } : clock;
   const list = seats.map((p, i) => newSeat({ id: p.id, seat: p.seat ?? i, stack: p.stack }, ck)).sort((a, b) => a.seat - b.seat);
@@ -37,7 +38,7 @@ export function createTable({ seats, sb, bb, clock = null }) {
   return {
     v: 1, hand: 0, street: 'idle', sb, bb, button: null, sbSeat: null, bbSeat: null,
     seats: list, board: [], deck: [], bet: 0, minRaise: bb, turn: null, deadline: null, bankOn: false, bankFrom: null,
-    clock: ck || null, pots: [], result: null, log: [],
+    clock: ck || null, awaySitsOut: !!awaySitsOut, pots: [], result: null, log: [],
   };
 }
 
@@ -68,7 +69,7 @@ export function startHand(state, { rng, deck, now = 0, sb, bb } = {}) {
   if (bb != null) s.bb = bb;
   for (const x of s.seats) {
     Object.assign(x, { cards: [], bet: 0, total: 0, start: x.stack, acted: false, actedAt: 0, shown: false });
-    x.status = !x.left && x.stack > 0 ? 'in' : 'out';
+    x.status = x.left || x.stack <= 0 ? 'out' : s.awaySitsOut && x.away ? 'sitout' : 'in';   // (HE2 — CASH: AWAY = SAT OUT)
   }
   const dealt = s.seats.filter(CAN_ACT);
   if (dealt.length < 2) return fail(state, 'two players with chips are needed to deal');
@@ -173,7 +174,8 @@ function presets(s, x, L) {
 /**
  * action: { id, type, to? } — type 'fold' | 'check' | 'call' | 'bet' | 'raise' (to = the total to bet this street)
  * | 'allin' | 'timeout' (the clock ran out — no id needed) | 'show' (the winner of a hand everyone folded to)
- * | 'back' (an AWAY player is back).
+ * | 'back' (an AWAY player is back — in CASH a SAT OUT one is dealt in again from the next hand: SIT BACK).
+ * Every action is the acting seat's OWN (HE2: nobody — the host included — acts, folds or sits out for another player).
  */
 export function apply(state, action, now = 0) {
   const a = action || {};

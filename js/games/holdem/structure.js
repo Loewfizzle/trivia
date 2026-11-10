@@ -15,17 +15,22 @@ export const LADDER = [
 export const SPEEDS = {
   turbo: { stack: 1500, levelMs: 90_000 },
   standard: { stack: 1500, levelMs: 6 * 60_000 },
-  deep: { stack: 3000, levelMs: 12 * 60_000 },
+  deep: { stack: 3000, levelMs: 15 * 60_000 },            // HE2 (Ben): 15 min (HE1 had 12)
 };
 export const DEFAULT_SPEED = 'turbo';
 
-/** CASH: an open session — fixed blinds, a rebuy at zero, no timer. */
+/**
+ * CASH: an open session — fixed blinds, a rebuy at zero, no session END time (HE2: "no timer" never meant no shot clock —
+ * CASH runs THE SHOT CLOCK too, its time bank refilling BANK_REFILL_MS a hand dealt in, up to BANK_MS).
+ */
 export const CASH = { stack: 1000, sb: 5, bb: 10, rebuy: 1000 };
 
-/** THE SHOT CLOCK (tournament only): 20 s a turn + a 30 s TIME BANK per player per match, spent after the 20 s. */
+/** THE SHOT CLOCK (both modes — HE2): 20 s a turn + a 30 s TIME BANK, spent after the 20 s (a TOURNAMENT's bank is one per match). */
 export const SHOT_MS = 20_000;
 export const BANK_MS = 30_000;
-/** Two TIMEOUTs in a row → AWAY. */
+/** CASH (HE2): the bank refills +5 s per hand a player is dealt into, never past BANK_MS. */
+export const BANK_REFILL_MS = 5_000;
+/** Two TIMEOUTs in a row → AWAY (a TOURNAMENT: auto check / fold, still dealt in; CASH — HE2: SAT OUT, not dealt in until back). */
 export const AWAY_AFTER = 2;
 
 export const MAX_SEATS = 8;

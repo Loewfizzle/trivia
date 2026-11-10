@@ -56,7 +56,7 @@ export function runMatch({
   let now = start;
   let m = createMatch({ mode, speed, players: ids, now });
   if (levelMs) m.levelMs = levelMs;                       // the length study's "what if" (scripts/holdem-sim.mjs --turbo)
-  const stats = { hands: 0, actions: 0, rejected: 0, maxAllins: 0, allinHist: {}, maxPots: 0, headsUp: 0, timeouts: 0, aways: 0, runouts: 0, splits: 0, rebuys: 0, joins: 0, leaves: 0 };
+  const stats = { hands: 0, actions: 0, rejected: 0, maxAllins: 0, allinHist: {}, maxPots: 0, headsUp: 0, timeouts: 0, aways: 0, runouts: 0, splits: 0, rebuys: 0, joins: 0, leaves: 0, satOut: 0 };
   const step = r => {
     assert.equal(r.error, undefined, `refused: ${r.error}`);
     m = r.match;
@@ -79,12 +79,19 @@ export function runMatch({
       if (m.table.seats.length < 8 && rng() < 0.06) { step(join(m, `p${nextJoin++}`, now)); stats.joins++; }
       if (m.table.seats.length > 2 && rng() < 0.03) { step(leave(m, m.table.seats[Math.floor(rng() * m.table.seats.length)].id, now)); stats.leaves++; }
       if (m.table.seats.filter(x => x.stack > 0).length < 2) { step(endSession(m, now)); break; }
+      // (HE2 — CASH: AWAY = SAT OUT; a table with fewer than 2 dealable waits — here someone sits back at once)
+      if (m.table.seats.filter(x => x.stack > 0 && !x.away).length < 2) for (const x of m.table.seats) if (x.away && x.stack > 0) { step(act(m, { id: x.id, type: 'back' }, now)); break; }
     }
     if (paced) now += PACE.deal;
     const h = nextHand(m, { rng: deckRng, now });
     step(h);
     stats.hands++;
     const t0 = m.table;
+    // (HE2 — CASH: a SAT OUT seat is never dealt in + never posts)
+    for (const x of t0.seats) if (x.status === 'sitout' && x.away) {
+      stats.satOut++;
+      assert.ok(!t0.log.some(e => (e.t === 'posted' && e.id === x.id) || (e.t === 'dealt' && e.ids.includes(x.id))), `sat-out ${x.id} was dealt / posted`);
+    }
     if (h.events.find(e => e.t === 'dealt')?.heads) {
       stats.headsUp++;
       assert.equal(t0.sbSeat, t0.button, 'HEADS-UP: the button posts the small blind');

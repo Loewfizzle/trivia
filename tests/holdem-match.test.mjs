@@ -4,8 +4,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { newDeck } from '../js/games/holdem/cards.js';
-import { LADDER, SPEEDS, CASH, blindsAt, levelAt } from '../js/games/holdem/structure.js';
-import { createMatch, nextHand, act, rebuy, join, leave, endSession, chipCount, summary, ledgerOf, blindsFor } from '../js/games/holdem/match.js';
+import { LADDER, SPEEDS, CASH, blindsAt, levelAt, SHOT_MS, BANK_MS, BANK_REFILL_MS } from '../js/games/holdem/structure.js';
+import { createMatch, nextHand, act, rebuy, join, leave, endSession, chipCount, summary, ledgerOf, blindsFor, sitBack } from '../js/games/holdem/match.js';
 import { legalActions, running, seatById } from '../js/games/holdem/table.js';
 import { rngFrom } from '../js/core/rng.js';
 
@@ -38,7 +38,7 @@ test('THE STRUCTURE: the ladder, then ×2 a level; the stacks + level times; CAS
   assert.deepEqual(blindsAt(16), { sb: 10000, bb: 20000 });
   assert.deepEqual(blindsAt(17), { sb: 20000, bb: 40000 });
   assert.deepEqual([SPEEDS.turbo.stack, SPEEDS.standard.stack, SPEEDS.deep.stack], [1500, 1500, 3000]);
-  assert.deepEqual([SPEEDS.standard.levelMs, SPEEDS.deep.levelMs], [360000, 720000]);
+  assert.deepEqual([SPEEDS.turbo.levelMs, SPEEDS.standard.levelMs, SPEEDS.deep.levelMs], [90000, 360000, 900000], 'HE2: DEEP 15 min');
   assert.deepEqual(CASH, { stack: 1000, sb: 5, bb: 10, rebuy: 1000 });
   assert.equal(levelAt(1000, 1000 + SPEEDS.turbo.levelMs * 3 - 1, SPEEDS.turbo.levelMs), 2);
   assert.equal(levelAt(1000, 1000 + SPEEDS.turbo.levelMs * 3, SPEEDS.turbo.levelMs), 3);
@@ -114,11 +114,11 @@ test('TOURNAMENT: equal starting stacks out in one hand SHARE the place; the mat
 
 test('CASH: rebuy at zero, a late joiner sits in next hand, leaving takes your stack, END SESSION → THE LEDGER (Σ net = 0)', () => {
   let m = createMatch({ mode: 'cash', players: ['a', 'b', 'c'], now: 0 });
-  assert.equal(m.table.clock, null, 'CASH has no timer');
+  assert.deepEqual(m.table.clock, { shot: SHOT_MS, bank: BANK_MS }, 'HE2: CASH runs the shot clock too');
   assert.equal(m.table.bb, 10);
   m.table.button = 2;                                    // button a: deal order b, c, a
   m = ok(nextHand(m, { deck: rig(['7c 2d', '8c 3d', 'As Ah'], 'Kc Qd 5s Jh 4h'), now: 0 }));
-  assert.equal(m.table.deadline, null);
+  assert.equal(m.table.deadline, SHOT_MS);
   // a late joiner mid-hand: seated, not dealt in
   m = ok(join(m, 'd', 1));
   assert.equal(seatById(m.table, 'd').status, 'sitout');
@@ -188,4 +188,105 @@ test('CASH: END SESSION with voidHand gives every chip of the running hand back'
   assert.ok(m.ended);
   assert.ok(r.events.some(e => e.t === 'voided'));
   assert.deepEqual(ledgerOf(m).map(x => x.net), [0, 0]);
+});
+
+// ------------------------------------------------------------------------------------------------ HE2
+const toAct = m => m.table.seats.find(x => x.seat === m.table.turn);
+/** let the clock run out on whoever is to act (the bank first, then the timeout) */
+function clockOut(m) {
+  for (let g = 0; g < 3; g++) {
+    const was = m.table.turn, hand = m.table.hand;
+    m = ok(act(m, { type: 'timeout' }, m.table.deadline));
+    if (m.table.turn !== was || m.table.hand !== hand || !running(m.table)) return m;
+  }
+  return m;
+}
+
+test('HE2 — CASH: the shot clock + the bank; the bank refills +5 s a hand dealt in, never past 30 s', () => {
+  let m = createMatch({ mode: 'cash', players: ['a', 'b', 'c'], now: 0 });
+  m = ok(nextHand(m, { rng: rngFrom('he2-bank'), now: 0 }));
+  assert.equal(m.table.deadline, SHOT_MS, '20 s a turn');
+  const x = toAct(m);
+  assert.equal(x.bank, BANK_MS, 'a full bank: the refill never passes 30 s');
+  // they use 12 s of their bank, then act
+  let r = ok(act(m, { type: 'timeout' }, SHOT_MS));
+  assert.ok(r.table.bankOn);
+  r = ok(act(r, { id: x.id, type: 'fold' }, SHOT_MS + 12_000));
+  assert.equal(seatById(r.table, x.id).bank, BANK_MS - 12_000);
+  while (running(r.table)) { const L = legalActions(r.table); r = ok(act(r, { id: L.id, type: 'fold' }, SHOT_MS + 13_000)); }
+  r = ok(nextHand(r, { rng: rngFrom('he2-bank2'), now: 60_000 }));
+  assert.equal(seatById(r.table, x.id).bank, BANK_MS - 12_000 + BANK_REFILL_MS, '+5 s for the hand dealt in');
+  // a TOURNAMENT's bank never refills (one per match)
+  let t = createMatch({ mode: 'tournament', players: ['a', 'b', 'c'], now: 0 });
+  t = ok(nextHand(t, { rng: rngFrom('he2-tb'), now: 0 }));
+  const y = toAct(t);
+  t = ok(act(t, { type: 'timeout' }, SHOT_MS));
+  t = ok(act(t, { id: y.id, type: 'fold' }, SHOT_MS + 12_000));
+  while (running(t.table)) { const L = legalActions(t.table); t = ok(act(t, { id: L.id, type: 'fold' }, SHOT_MS + 13_000)); }
+  t = ok(nextHand(t, { rng: rngFrom('he2-tb2'), now: 60_000 }));
+  assert.equal(seatById(t.table, y.id).bank, BANK_MS - 12_000, 'TOURNAMENT: no refill');
+  // a CASH late joiner sits down with a full bank
+  m = ok(join(m, 'd', 1));
+  assert.equal(seatById(m.table, 'd').bank, BANK_MS);
+});
+
+test('HE2 — CASH: AWAY = SAT OUT (not dealt in, no blinds) until SIT BACK; a TOURNAMENT\'s AWAY is still dealt in', () => {
+  let m = createMatch({ mode: 'cash', players: ['a', 'b', 'c', 'd'], now: 0 });
+  let now = 0, hand = 0;
+  // 'a' lets the clock run out twice in a row (two hands if need be) → AWAY
+  while (!seatById(m.table, 'a').away) {
+    assert.ok(++hand < 30, 'a went away');
+    m = ok(nextHand(m, { rng: rngFrom(`sat-${hand}`), now: now += 1000 }));
+    while (running(m.table)) {
+      if (toAct(m).id === 'a') m = clockOut(m);
+      else { const L = legalActions(m.table); m = ok(act(m, { id: L.id, type: L.canCheck ? 'check' : 'call' }, m.table.deadline - 1)); }
+      now = Math.max(now, (m.table.deadline || 0));
+    }
+  }
+  assert.equal(seatById(m.table, 'a').timeouts, 2);
+  // the next deals skip 'a': not dealt in, never a blind
+  for (let k = 0; k < 4; k++) {
+    m = ok(nextHand(m, { rng: rngFrom(`sat-skip-${k}`), now: now += 1000 }));
+    const a = seatById(m.table, 'a');
+    assert.equal(a.status, 'sitout', 'SAT OUT');
+    assert.deepEqual(a.cards, []);
+    assert.ok(!m.table.log.some(e => e.t === 'posted' && e.id === 'a'), 'no blinds while sat out');
+    assert.ok(!m.table.log.find(e => e.t === 'dealt').ids.includes('a'));
+    while (running(m.table)) { const L = legalActions(m.table); m = ok(act(m, { id: L.id, type: 'fold' }, now += 1000)); }
+  }
+  const handsBefore = m.players.a.hands;
+  // SIT BACK — only someone away; dealt in from the next hand
+  assert.match(sitBack(m, 'b', now).error, /not away/);
+  m = ok(sitBack(m, 'a', now += 1000));
+  assert.equal(seatById(m.table, 'a').away, false);
+  m = ok(nextHand(m, { rng: rngFrom('sat-back'), now: now += 1000 }));
+  assert.ok(['in', 'allin'].includes(seatById(m.table, 'a').status), 'dealt in again');
+  assert.equal(m.players.a.hands, handsBefore + 1, 'a sat-out hand is never counted as played');
+  assert.ok(chipCount(m).ok);
+  // a TOURNAMENT: the AWAY seat is still dealt in + posts (HE1 unchanged)
+  let t = createMatch({ mode: 'tournament', players: ['a', 'b', 'c'], now: 0 });
+  seatById(t.table, 'a').away = true; seatById(t.table, 'a').timeouts = 2;
+  t = ok(nextHand(t, { rng: rngFrom('tour-away'), now: 1 }));
+  assert.ok(t.table.log.find(e => e.t === 'dealt').ids.includes('a'), 'TOURNAMENT: still dealt in');
+});
+
+test('HE2 — CASH: sit back while a hand runs changes nothing in it; the table waits when fewer than 2 are dealable', () => {
+  let m = createMatch({ mode: 'cash', players: ['a', 'b'], now: 0 });
+  seatById(m.table, 'a').away = true; seatById(m.table, 'a').timeouts = 2;
+  assert.match(nextHand(m, { rng: rngFrom('w'), now: 1 }).error, /two players/, 'one dealable player: no deal');
+  m = ok(join(m, 'c', 2));
+  m = ok(nextHand(m, { rng: rngFrom('w2'), now: 3 }));
+  assert.equal(seatById(m.table, 'a').status, 'sitout');
+  const before = JSON.stringify(m.table.seats.filter(x => x.id !== 'a'));
+  m = ok(sitBack(m, 'a', 4));
+  assert.equal(seatById(m.table, 'a').status, 'sitout', 'still out of the running hand');
+  assert.equal(JSON.stringify(m.table.seats.filter(x => x.id !== 'a')), before);
+});
+
+test('HE2 — the engine has no act-for-another: every action names its own seat; a wrong seat is refused', () => {
+  let m = createMatch({ mode: 'cash', players: ['a', 'b', 'c'], now: 0 });
+  m = ok(nextHand(m, { rng: rngFrom('own'), now: 0 }));
+  const L = legalActions(m.table);
+  const other = m.table.seats.find(x => x.id !== L.id).id;
+  assert.match(act(m, { id: other, type: 'fold' }, 1).error, /not your turn/);
 });

@@ -14,7 +14,7 @@ const arg = k => process.argv.find(a => a.startsWith(`--${k}=`))?.split('=')[1];
 const runs = arg('runs') ? +arg('runs') : null;
 const turbo = arg('turbo') ? +arg('turbo') * 1000 : null;
 const only = arg('only');
-const RUNS = { turbo: 40, standard: 24, deep: 12 };
+const RUNS = { turbo: 40, standard: 24, deep: 40 };   // (HE2: DEEP 12 → 40 runs — 12 left the 6 / 8-player medians out of order)
 // a party table: mostly tight / loose / calling players, a few wild ones
 const MIX = [['tight', 30], ['loose', 35], ['station', 20], ['maniac', 10], ['shover', 5]];
 function stylesFor(seed, n) {

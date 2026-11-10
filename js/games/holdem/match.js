@@ -5,9 +5,10 @@
 //   nextHand(match, { rng | deck, now })              → { match, events, error? }   deal the next hand
 //   act(match, action, now)                           → { match, events, error? }   a table action (+ the hand's settle)
 //   rebuy / join / leave / endSession (CASH)          → { match, events, error? }
+//   sitBack(match, id, now)                           → { match, events, error? }   back from AWAY (CASH: SAT OUT → dealt in next hand)
 //   summary(match)                                    → THE MATCH SUMMARY (HE2 reports it to /api for XP — not wired here)
 import { createTable, startHand, apply, forceFold, running, seatById, newSeat } from './table.js';
-import { SPEEDS, DEFAULT_SPEED, CASH, blindsAt, levelAt, MAX_SEATS, MIN_PLAYERS } from './structure.js';
+import { SPEEDS, DEFAULT_SPEED, CASH, blindsAt, levelAt, MAX_SEATS, MIN_PLAYERS, BANK_MS, BANK_REFILL_MS } from './structure.js';
 import { CAT } from './rank.js';
 
 const copy = s => JSON.parse(JSON.stringify(s));
@@ -24,7 +25,8 @@ export function createMatch({ mode = 'tournament', speed = DEFAULT_SPEED, player
   if (!cash && !SPEEDS[speed]) throw new Error(`unknown speed: ${speed}`);
   const stack = cash ? CASH.stack : SPEEDS[speed].stack;
   const { sb, bb } = cash ? CASH : blindsAt(0);
-  const table = createTable({ seats: ids.map((id, i) => ({ id, seat: i, stack })), sb, bb, clock: cash ? null : true });
+  // (HE2: the shot clock in BOTH modes; CASH's AWAY = SAT OUT)
+  const table = createTable({ seats: ids.map((id, i) => ({ id, seat: i, stack })), sb, bb, clock: true, awaySitsOut: cash });
   const people = {};
   ids.forEach((id, i) => { people[id] = { seat: i, buyins: stack, rebuys: 0, banked: 0, hands: 0, won: 0, kos: 0, joinedAt: now, left: false, leaving: false }; });
   return {
@@ -55,7 +57,10 @@ export function nextHand(match, { rng, deck, now = 0 } = {}) {
   if (r.error) return fail(match, r.error);
   m.table = r.state;
   m.hands += 1;
-  for (const x of m.table.seats) if (x.status !== 'out') m.players[x.id].hands += 1;
+  const dealtIn = x => x.status === 'in' || x.status === 'allin';
+  for (const x of m.table.seats) if (dealtIn(x)) m.players[x.id].hands += 1;
+  // (HE2 — CASH: the time bank refills +5 s per hand dealt in, never past 30 s; a TOURNAMENT's bank is one per match)
+  if (m.mode === 'cash' && m.table.clock) for (const x of m.table.seats) if (dealtIn(x)) x.bank = Math.min(BANK_MS, x.bank + BANK_REFILL_MS);
   const all = [...events, ...r.events];
   // a hand can end inside the deal (both blinds all in → the run-out; AWAY seats folding at once) — settle it now
   if (m.table.street === 'done') settle(m, all, now);
@@ -123,6 +128,15 @@ function bust(m, events, now) {
   }
 }
 
+/**
+ * SIT BACK (HE2): an AWAY player is back. A TOURNAMENT: they act on the clock again. CASH: a SAT OUT player is dealt in from
+ * the next hand (mid-hand it changes nothing in the running hand — they were not dealt in). Only the player themself.
+ */
+export function sitBack(match, id, now = 0) {
+  if (match.ended) return fail(match, 'the match is over');
+  return act(match, { id: String(id), type: 'back' }, now);
+}
+
 // ------------------------------------------------------------------------------------------------ CASH
 function needCash(match) { return match.mode === 'cash' ? null : 'only in a CASH game'; }
 
@@ -153,7 +167,7 @@ export function join(match, id, now = 0) {
   for (let n = 0; n < MAX_SEATS; n++) if (!taken.has(n)) { seat = n; break; }
   if (seat < 0) return fail(match, 'the table is full');
   const m = copy(match);
-  m.table.seats.push(newSeat({ id, seat, stack: CASH.stack }, null));
+  m.table.seats.push(newSeat({ id, seat, stack: CASH.stack }, m.table.clock));
   m.table.seats.sort((a, b) => a.seat - b.seat);
   m.players[id] = had
     ? { ...had, seat, buyins: had.buyins + CASH.stack, left: false, leaving: false }
