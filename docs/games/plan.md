@@ -260,3 +260,10 @@
 - THE POKE: everything time-based (a turn's deadline, the next street during an all-in run-out, the pause before the next hand, the next blind level) happens when a phone POKES the server and the server's OWN clock says the moment has passed. Never a client clock, never a client claim.
 - PRE-ACTIONS (CHECK/FOLD, CALL ANY) are stored on the SERVER per seat, so they fire even when that phone is locked.
 - END SESSION mid-hand waits for the hand to finish; "cancel the hand + refund" is a fallback only (not a normal button).
+
+## HE3 — THE TABLE SCREEN A (Nov 10 2026)
+- HE3's look = the REAL green felt (Downloads\grok\holdem\felt-green.jpg, a compressed copy), the NEON CASINO colours (black + gold plates and buttons, gold accent) and the REAL four-colour card faces drawn in code — not grey placeholders. Premium lighting, chips, rails, backdrops + the other skins = HE5–HE6.
+- CHAT stays open the whole match; CHAT_CHIPS = NICE HAND · NO WAY · WELL PLAYED · UNLUCKY.
+- LOOKS = ['night'] (the GAME LOOK setting shows locked while HOLD'EM runs) — HOLD'EM's 3 skins replace day/night.
+- The dealer writes ONLY CHANGED fields (multi-path updates) — the ~5 KB whole-table write was the Firebase download cost; target a few hundred bytes for a typical action.
+- The dealer keeps the room ACTIVE (rooms/{CODE}/meta/activeAt) on every write, so a 2 h DEEP match is never closed by the 1 h idle rule.
