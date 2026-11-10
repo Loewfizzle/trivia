@@ -320,7 +320,7 @@ export function createView() {
     if (t && t.street === 'done' && t.result) pot = t.result.total || 0;
     else if (t) pot = potOf(t);
     const side = t && running(t) ? sidePots(t) : [];
-    els.pot.replaceChildren(...(pot > 0 ? [h('b', `POT ${fmt(pot)}`), ...side.slice(1).map(p => h('small', `${p.label} ${fmt(p.amount)}`))] : []));
+    els.pot.replaceChildren(...(pot > 0 ? [h('b', `POT ${fmt(pot)}`), ...side.slice(1).map(p => h('small', `${p.label} · ${fmt(p.amount)}`))] : []));
   }
 
   // ---- you (or, watching, the bottom seat)

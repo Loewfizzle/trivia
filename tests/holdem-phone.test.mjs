@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ranksOf, finalRowsOf, levelLine, pokeIn, HOST_POKE_MS, GUEST_POKE_MS, seatSlots, othersInOrder, clockOf, sidePots, finished } from '../js/games/holdem/logic.js';
-import { tableLayout, sideRows } from '../js/games/holdem/layout.js';
+import { tableLayout, sideRows, blocks, overlaps } from '../js/games/holdem/layout.js';
 import { estimateMinutes, cleanSettings, OPTIONS, DEFAULT_SETTINGS, CHAT_CHIPS, LOOKS, chatLocked } from '../js/games/holdem/meta.js';
 import { faceSvg, suitColor, RANKINGS } from '../js/games/holdem/card-art.js';
 import { evaluate } from '../js/games/holdem/rank.js';
@@ -68,27 +68,48 @@ test('THE SEATS: uniform + evenly spaced — the top seat alone heads-up, 3 down
   assert.deepEqual(othersInOrder(seats, 'zz').map(x => x.id), ['a', 'b', 'c', 'd'], 'watching: everyone');
 });
 
-test('THE LAYOUT at 375 / 390 / 402 / 430 wide, 2–8 players: the table fills the screen, no seat blocks overlap, the board sits above the buttons, your cards below them and the biggest cards on screen', () => {
+test('THE LAYOUT (HE4) at 375 / 390 / 402 / 430 wide + an SE-height phone, 2–8 players: no piece overlaps another (every seat’s block, its cards + bet, the pot + a side pot, the board, the presets) — the board above the presets, the buttons above your cards, your cards the biggest', () => {
   const phones = [[375, 812, 47, 34], [390, 844, 47, 34], [402, 874, 62, 34], [430, 932, 59, 34], [375, 667, 20, 0]];
   for (const [w, h, top, bottom] of phones) {
     for (let k = 1; k <= 7; k++) {
-      const L = tableLayout({ w, h, top, bottom, k });
-      assert.ok(L.box.x >= 16 && L.box.x + L.box.w <= w - 16, `${w}: the table inside the screen`);
-      assert.ok(L.box.h > L.box.w, `${w}×${h}: a TALL stadium`);
-      // a seat's block: the emblem (±22) + its plate + its tag below (to +74) — side seats on the same side never overlap
-      for (const side of ['left', 'right']) {
-        const ys = L.seats.filter(s => s.side === side).map(s => s.y).sort((a, b) => a - b);
-        for (let i = 1; i < ys.length; i++) assert.ok(ys[i] - ys[i - 1] >= 74 * L.ss, `${w}×${h} k=${k}: ${side} seats ${Math.round(ys[i] - ys[i - 1])} pt apart`);
-      }
-      const lowest = Math.max(...L.seats.map(s => s.y));
-      const boardTop = L.board.y - L.board.card.h / 2, boardBottom = L.board.y + L.board.card.h / 2;
-      assert.ok(lowest + 74 * L.ss <= L.pot - 8, `${w}×${h} k=${k}: the seats end above the pot`);
-      assert.ok(boardBottom < L.presets - 20, `${w}×${h} k=${k}: the presets below the board`);
-      assert.ok(L.buttons + 33 * L.s <= L.hand.y - L.hand.card.h / 2 + 4, `${w}×${h} k=${k}: the buttons above your cards`);
-      assert.ok(L.hand.card.w > L.board.card.w && L.hand.card.h > L.board.card.h, 'your cards are the biggest thing');
-      assert.ok(L.plate + 30 <= h - bottom + 2, `${w}×${h}: your plate on screen`);
-      void boardTop;
+      const L = tableLayout({ w, h, top, bottom, k }), B = blocks(L), at = `${w}×${h} k=${k}`;
+      assert.ok(L.box.x >= 16 && L.box.x + L.box.w <= w - 16, `${at}: the table inside the screen`);
+      assert.ok(L.box.h > L.box.w, `${at}: a TALL stadium`);
+      const parts = ['main', 'cards', 'bet', 'tag'];
+      B.seats.forEach((A, i) => {
+        B.seats.slice(i + 1).forEach((C, j) => {
+          for (const a of parts) for (const c of parts) if (A[a] && C[c]) assert.ok(!overlaps(A[a], C[c]), `${at}: seat ${i}.${a} × seat ${i + j + 1}.${c}`);
+        });
+        for (const a of parts) {
+          if (!A[a]) continue;
+          assert.ok(!overlaps(A[a], B.board, 2), `${at}: seat ${i}.${a} × the board`);
+          assert.ok(!overlaps(A[a], B.pot, 2), `${at}: seat ${i}.${a} × the pot`);
+          assert.ok(!overlaps(A[a], B.sides(1)[0]), `${at}: seat ${i}.${a} × a side pot`);
+          assert.ok(!overlaps(A[a], B.presets), `${at}: seat ${i}.${a} × the presets`);
+        }
+      });
+      assert.ok(!overlaps(B.pot, B.board), `${at}: the pot above the board`);
+      assert.ok(B.board.y1 + 2 <= B.presets.y0, `${at}: the presets below the board`);
+      assert.ok(B.buttons.y1 <= B.hand.y0 + 4, `${at}: the buttons above your cards`);
+      assert.ok(L.hand.card.w > L.board.card.w && L.hand.card.h > L.board.card.h, `${at}: your cards are the biggest thing`);
+      assert.ok(L.plate + 30 <= h - bottom + 2, `${at}: your plate on screen`);
     }
+  }
+});
+
+test('BEN’S PREVIEW FIXES (HE4): heads-up = the board centred between the opponent and your buttons, ~64 pt cards; 3–4 players raised; 5–8 as HE3; the side rows ~20 % further apart', () => {
+  const L1 = tableLayout({ w: 390, h: 844, top: 47, bottom: 34, k: 1 }), B1 = blocks(L1);
+  const opp = B1.seats[0].bet.y1, mid = (opp + B1.presets.y0) / 2;
+  assert.ok(Math.abs(L1.board.y - mid) < 20, `heads-up board ${Math.round(L1.board.y)} ≈ the middle ${Math.round(mid)}`);
+  assert.ok(L1.board.card.w >= 58 && L1.board.card.w <= 64, 'heads-up cards ~64 pt (as big as the felt allows)');
+  assert.ok(Math.abs(tableLayout({ w: 430, h: 932, top: 59, bottom: 34, k: 1 }).board.card.w - 64 * 1.08) < 8, 'heads-up: 64 pt + on a bigger phone');
+  const y = k => tableLayout({ w: 390, h: 844, top: 47, bottom: 34, k }).board.y;
+  assert.ok(y(2) < y(4) - 30 && y(3) < y(4) - 30, '3–4 players: the board raised toward the middle');
+  assert.ok(Math.abs(y(7) - (100 + 0.6 * 652)) < 1, '5–8: HE3’s place');
+  for (const k of [6, 7]) {
+    const L = tableLayout({ w: 390, h: 844, top: 47, bottom: 34, k });
+    const ys = L.seats.filter(q => q.side === 'left').map(q => q.y).sort((a, b) => a - b);
+    for (let i = 1; i < ys.length; i++) assert.ok(ys[i] - ys[i - 1] >= 80 * 1.18, `k=${k}: rows ${Math.round(ys[i] - ys[i - 1])} pt apart (HE3: 80)`);
   }
 });
 
