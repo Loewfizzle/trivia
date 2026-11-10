@@ -56,7 +56,7 @@ export const MARKS = {
     { d: 'M64 56 L97 64', col: '#6aa8ff' },
   ] },
   // HOLD'EM (HE3): a card standing tilted in the casino's gold, a spade in front of it
-  holdem: { blade: 'HOLDEM', tubes: [
+  holdem: { blade: "HOLD'EM", tubes: [
     { d: 'M24 24 L60 14 L74 70 L38 80 Z', col: '#f2c14e' },
     { d: 'M48 34 C40 44 30 50 30 58 C30 65 37 68 43 65 Q46 63 47 60 L44 76 H54 L51 60 Q52 63 55 65 C61 68 68 65 68 58 C68 50 58 44 48 34 Z', col: '#f6efd9' },
   ] },
@@ -124,7 +124,16 @@ export const LETTERS = {
   X: 'M1 0 L9 14 M9 0 L1 14',
   Y: 'M1 0 L5 7 L9 0 M5 7 V14',
   Z: 'M1 0 H9 L1 14 H9',
+  // LOAD FIX 3 — THE APOSTROPHE TUBE (HOLD'EM's sign read HOLDEM): a short tube high on the line, slanted like a typed ’ — the letters'
+  // stroke, drawn in a NARROW cell (glyphAdvance: 0.36 of a letter) so H-O-L-D-'-E-M keeps its rhythm
+  "'": 'M2.7 0 L1.5 4.4',
 };
+/** LOAD FIX 3: a glyph's advance in letter cells (a letter = 1) — every ROW of tube letters steps by it (a column of stacked letters drops
+ *  the narrow marks: an apostrophe can't stand in a blade) */
+export const GLYPH_ADVANCE = Object.freeze({ "'": 0.36 });
+export const glyphAdvance = ch => GLYPH_ADVANCE[ch] || 1;
+/** a game's name as the tube alphabet spells it: upper case, the typed ’ as ', anything without a glyph dropped (spaces kept) */
+export const tubeText = s => String(s || '').toUpperCase().replace(/[‘’]/g, "'").replace(/[^A-Z' ]/g, '');
 
 /** The mark for a game id (falls back to its initials in tube letters). */
 export function markFor(game) {
@@ -133,7 +142,7 @@ export function markFor(game) {
   const step = 100 / (initials.length + 0.4);
   return { blade: bladeWord(game), tubes: [...initials].map((ch, i) => ({ d: scalePath(LETTERS[ch], 4.6, step * (i + 0.2) + (step - 46) / 2, 18), col: '#9fd8ff' })) };
 }
-export function bladeWord(game) { return (MARKS[game.id] && MARKS[game.id].blade) || String(game.name || game.id).toUpperCase().replace(/[^A-Z]/g, '').slice(0, 10); }
+export function bladeWord(game) { return (MARKS[game.id] && MARKS[game.id].blade) || tubeText(game.name || game.id).replace(/ /g, '').slice(0, 10); }   // (LOAD FIX 3: the apostrophe kept)
 
 /** Scale + offset a path made of M/L/H/V/Q/C/A/Z commands with absolute coordinates. */
 export function scalePath(d, s, ox = 0, oy = 0) {

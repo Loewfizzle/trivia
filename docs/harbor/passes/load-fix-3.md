@@ -172,3 +172,21 @@ Wi-Fi-like 40 ms / 40 Mbps, mid-song; the PC busy with the WebKit batteries for 
 **WebKit can't be measured here**: Playwright's Windows WebKit has no Web Audio at all (`AudioContext` undefined) — the owner's iPhone check
 (step 2) is the Safari proof. The harbor `stations` + `partysync` + `music` + `tape` groups: **144 / 144**. The iPhone's silent switch + the
 music-off setting: the audio session code untouched; with the music off there is no station, so nothing is fetched or decoded.
+
+## Group 4 — THE APOSTROPHE TUBE
+
+- `core/marks.js#LETTERS["'"]` = `M2.7 0 L1.5 4.4` — a short tube high on the line (0–4.4 of 14), slanted like a typed ’, the letters' own stroke,
+  in a NARROW cell: `GLYPH_ADVANCE` (0.36 of a letter — `glyphAdvance(ch)`), so H-O-L-D-'-E-M keeps its rhythm. `tubeText(s)` = a name as the
+  alphabet spells it (upper case, the typed ’ → ', anything without a glyph dropped, spaces kept) — the ONE strip rule now.
+- Every ROW of tube letters steps by the glyph's own advance: THE GAME START's sign (`ui/tube-logo.js#gameLogoSvg` + `logoLines` — was
+  `[^A-Z ]`, the apostrophe stripped: HOLDEM), the city's sign rows (`harbor/signs.js#lettersRow`, `signName` — was `[^A-Z ]`), the cards' sign
+  rows (`fx/sign-kit.js`), `bladeWord`'s fallback (was `[^A-Z]`); HOLD'EM's mark: `blade: "HOLD'EM"`.
+- **The signs that can't fit it — they drop it on purpose:** a VERTICAL BLADE (stacked letters — `harbor/signs.js#lettersCol`,
+  `fx/sign-kit.js#bladeLayout`): an apostrophe can't stand in a column. (No current city sign has one: the five signs are PRISM DROP, OVERCLOCK,
+  NEON PAR, HIGH STAKES, GRIDLOCK. Not game names, so untouched: the SPEAKEASY word (`ui/word-neon.js`, its own alphabet), the waterfront's shop
+  words, the hush word, OVERCLOCK's winner sign (players' names — its own `EXTRA` digits).)
+- `tests/apostrophe-tube.test.mjs`: every character of every GAMES + DAILIES name, every meta's BANNER_NAME, every blade word has a glyph — or
+  is on the DROPPED list (a space); the apostrophe's shape (high, slanted, inside its narrow cell); HOLD'EM's sign = seven tube letters.
+- **The look** — the REAL game-start sign (the real title, the real `.rc-tonight` markup + title.css, `gameLogoSvg(holdem, { lit, premium,
+  tint: NEON_PINK })` as room-city.js mounts it; `shots.mjs --preview --js …`) at 390 / 402 / 430, unzoomed: **HOLD'EM** — the apostrophe
+  reads as one (`load-fix-3/holdem-sign-390x844.png`, `-402x874`, `-430x932`).

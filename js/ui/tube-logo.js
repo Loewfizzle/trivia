@@ -5,7 +5,7 @@
 //   gameLogoSvg(game, { id, lit, premium })  → an <svg class="nd-logo tube-logo"> using the logo's own class names (.ndl,
 //   .ndl-light, .ndl-glow1 …): the title's CSS lights it the same way (.ndl.on, .is-lit), letter by letter (each tube its group).
 // Preview: tests/integration/logos-preview.html (all of them, night + day).
-import { LETTERS, markFor, tubeEnds, bladeWord } from '../core/marks.js';
+import { LETTERS, markFor, tubeEnds, bladeWord, glyphAdvance, tubeText } from '../core/marks.js';
 
 /** each game's tube colour for its name (the game's accent) */
 export const LOGO_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', holdem: '#f2c14e' };
@@ -22,7 +22,7 @@ function scaleD(d, s, ox, oy) {
 
 /** the name a logo spells: the game's name, on one line or two (a two-word name breaks at the space when it is long) */
 export function logoLines(game) {
-  const name = String(game.name || bladeWord(game)).toUpperCase().replace(/[^A-Z ]/g, '');
+  const name = tubeText(game.name || bladeWord(game));   // (LOAD FIX 3: HOLD'EM keeps its apostrophe — THE APOSTROPHE TUBE)
   const w = name.split(' ').filter(Boolean);
   return name.length > 9 && w.length > 1 ? [w.slice(0, Math.ceil(w.length / 2)).join(' '), w.slice(Math.ceil(w.length / 2)).join(' ')] : [name];
 }
@@ -43,9 +43,10 @@ export function gameLogoSvg(game, { id = `tl-${game.id}`, lit = false, blur = 1,
   // the letters, line by line, from x 118
   lines.forEach((ln, li) => {
     const y0 = lines.length > 1 ? 4 + li * (lh + 10) : (100 - lh) / 2;
-    [...ln].forEach((ch, i) => { const d = LETTERS[ch]; if (d) tubes.push({ d: scaleD(d, s, 118 + i * (lw + gap), y0), col: acc }); });
+    let x = 118;
+    for (const ch of ln) { const d = LETTERS[ch]; if (d) tubes.push({ d: scaleD(d, s, x, y0), col: acc }); x += glyphAdvance(ch) * lw + gap; }   // (LOAD FIX 3: a narrow cell for the apostrophe)
   });
-  const W = Math.max(...lines.map(ln => 118 + ln.length * (lw + gap) - gap));
+  const W = Math.max(...lines.map(ln => 118 + [...ln].reduce((a, ch) => a + glyphAdvance(ch) * lw + gap, 0) - gap));
   const vb = `${-pad} ${-pad} ${W + pad * 2} ${100 + pad * 2}`;
   const groups = tubes.map((t, i) => {
     const body = shade(t.col, 0.18), core = shade(t.col, 0.82), glass = shade(t.col, -0.72);

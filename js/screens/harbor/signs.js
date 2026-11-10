@@ -6,7 +6,7 @@
 //   script (open tube letters on a raceway; JAZZ used it until NEON PASS 4) · billboard (a painted 1920s board, gooseneck lamps lighting it at night).
 // The games' marks + the tube alphabet are core/marks.js (the same marks as City 1.0's signs and the tube logos).
 import { paintHoldem } from './holdem-art.js';
-import { MARKS, LETTERS, markFor, bladeWord, hexRgb } from '../../core/marks.js';
+import { MARKS, LETTERS, markFor, bladeWord, hexRgb, glyphAdvance, tubeText } from '../../core/marks.js';
 import { flattenPath, signSpots } from '../../core/harbor-neon.js';
 import { tube, drawLit, drawGlass, sprite, bbox, mix, rgba } from './tubes.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
@@ -20,7 +20,7 @@ export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627
  * its name, spaces kept. Where it may hang: core/harbor-neon.js#fitsSpot (the slot rule).
  */
 const SIGN_NAMES = Object.freeze({ stakes: 'HIGH STAKES', agent: 'DOUBLE AGENT', golf: 'NEON PAR' });
-export const signName = g => SIGN_NAMES[g.id] || (MARKS[g.id] ? bladeWord(g) : String(g.name || g.id).toUpperCase().replace(/[^A-Z ]/g, '').replace(/\s+/g, ' ').trim());
+export const signName = g => SIGN_NAMES[g.id] || (MARKS[g.id] ? bladeWord(g) : tubeText(g.name || g.id).replace(/\s+/g, ' ').trim());   // (LOAD FIX 3: the apostrophe kept)
 const accOf = g => hexRgb(SIGN_ACC[g.id] || (markFor(g).tubes[0] || {}).col || '#9fd8ff');
 const ICE = [214, 240, 255];
 
@@ -120,7 +120,7 @@ function lettersRow(text, x0, y0, w, h, { skew = 0 } = {}) {
     let ix0 = Infinity, ix1 = -Infinity, at = 0;
     ch.forEach(c => {
       const d = LETTERS[c], lx = at;
-      at += (d ? lw : lw * 0.45) + gap;                 // (a space: under half a cell)
+      at += (d ? glyphAdvance(c) * lw : lw * 0.45) + gap;   // (a space: under half a cell; LOAD FIX 3: the apostrophe a narrow one)
       if (!d) return;
       for (const p of flattenPath(d, s, lx, 0, 1)) { const q = skewP(p, skew, lh); polys.push(q); for (const [x] of q.pts) { if (x < ix0) ix0 = x; if (x > ix1) ix1 = x; } }
       cells.push(lx);
@@ -141,7 +141,7 @@ function lettersRow(text, x0, y0, w, h, { skew = 0 } = {}) {
 function lettersCol(text, x0, y0, w, h, { fill = 0.8, wide = 0.64 } = {}) {
   const ch = [...text], n = ch.length, lh = Math.min(w * wide * 1.4, h / Math.max(1, n) * fill), s = lh / 14, lw = 10 * s, step = h / Math.max(1, n);
   const out = [], boxes = [];
-  ch.forEach((c, i) => { const d = LETTERS[c]; if (!d) return; const lx = x0 + (w - lw) / 2, ly = y0 + i * step + (step - lh) / 2; for (const p of flattenPath(d, s, lx, ly, 1)) out.push(p); boxes.push({ x0: lx - 0.6, y0: ly - 0.6, x1: lx + lw + 0.6, y1: ly + lh + 0.6 }); });
+  ch.forEach((c, i) => { const d = glyphAdvance(c) < 1 ? null : LETTERS[c]; if (!d) return; const lx = x0 + (w - lw) / 2, ly = y0 + i * step + (step - lh) / 2; for (const p of flattenPath(d, s, lx, ly, 1)) out.push(p); boxes.push({ x0: lx - 0.6, y0: ly - 0.6, x1: lx + lw + 0.6, y1: ly + lh + 0.6 }); });
   return { polys: out, lh, boxes };
 }
 const skewP = (p, k, base) => (k ? { ...p, pts: p.pts.map(([x, y]) => [x + (base - y) * k, y]) } : p);

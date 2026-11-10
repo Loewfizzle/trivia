@@ -7,7 +7,7 @@
 import { sprite } from './kit.js';
 import { flattenPath } from '../core/tube-path.js';
 import { LOGO_LETTERS } from '../ui/logo.js';
-import { LETTERS } from '../core/marks.js';
+import { LETTERS, glyphAdvance } from '../core/marks.js';
 
 export const PINK = { glow: '255,46,151', body: '#ff5fb4', core: '#fff1f8', glass: '#40243a' };
 export const CREAM = { glow: '255,190,90', body: '#ffd78a', core: '#fffaf0', glass: '#3a2c1c' };
@@ -59,15 +59,16 @@ export function signLayout(lines) {
       LOGO_LETTERS.forEach((G, i) => out.push({ key: `logo${i}:${L.h}`, polys: polysOf(G.d, s, ox + G.x * s, L.y), col: L.col, tw: (L.tw || 9) * s, line: L }));
       continue;
     }
-    const s = L.h / 14, lw = 10 * s, gap = (L.track != null ? L.track : 0.32) * lw, chars = [...L.word], W = chars.length * lw + (chars.length - 1) * gap;
-    chars.forEach((ch, i) => { const d = LETTERS[ch]; if (d) out.push({ key: `t${ch}:${L.h}:${i}:${L.word}`, polys: polysOf(d, s, L.cx - W / 2 + i * (lw + gap), L.y), col: L.col, tw: (L.tw || 1.25) * s, line: L }); });
+    const s = L.h / 14, lw = 10 * s, gap = (L.track != null ? L.track : 0.32) * lw, chars = [...L.word], W = chars.reduce((a, ch) => a + glyphAdvance(ch) * lw, 0) + (chars.length - 1) * gap;
+    let x = L.cx - W / 2;   // (LOAD FIX 3: each glyph's own advance — the apostrophe a narrow cell)
+    chars.forEach((ch, i) => { const d = LETTERS[ch]; if (d) out.push({ key: `t${ch}:${L.h}:${i}:${L.word}`, polys: polysOf(d, s, x, L.y), col: L.col, tw: (L.tw || 1.25) * s, line: L }); x += glyphAdvance(ch) * lw + gap; });
   }
   return out;
 }
 /** a vertical word (the blade): one letter under the next, centred on cx */
 export function bladeLayout(word, cx, y0, h, col, tw = 1.25, gap = 0.36) {
   const s = h / 14, out = [];
-  [...word].forEach((ch, i) => { const d = LETTERS[ch]; if (d) out.push({ key: `v${ch}:${h}:${i}:${word}`, polys: polysOf(d, s, cx - 5 * s, y0 + i * h * (1 + gap)), col, tw: tw * s }); });
+  [...word].forEach((ch, i) => { const d = glyphAdvance(ch) < 1 ? null : LETTERS[ch]; if (d) out.push({ key: `v${ch}:${h}:${i}:${word}`, polys: polysOf(d, s, cx - 5 * s, y0 + i * h * (1 + gap)), col, tw: tw * s }); });
   return out;
 }
 /** THE IGNITION: a letter switched on at t0 — dark, a stutter (on / off / half / on), then lit; 0..1 */
