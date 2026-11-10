@@ -1550,7 +1550,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     DK = darkNow();
     TW = toneWeights(LH);
     { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none';
-      if (sig !== wxSig) { if (wxSig && LK.wxKind !== wxKindLast) wxChangedAt = now; LOADLOG.add('wx', `${w ? `${w.src === 'climate' ? 'climate' : clock.wx ? 'forced' : 'live'} ${w.kind}` : 'none (seeded)'} → the city reads ${LK.wxKind || 'seeded'}${wxSig ? '' : ' (at the start)'}`); wxSig = sig; wxKindLast = LK.wxKind; } }
+      // (LOAD FIX 2: after the reveal ANY new answer is the weather changing — the same kind with another cover too: the sky, the bake's
+      //  tones + the lit windows then blend over WX_BLEND, never the quick 1.5-s repaint)
+      if (sig !== wxSig) { if (wxSig && (LK.wxKind !== wxKindLast || shownAt >= 0)) wxChangedAt = now; LOADLOG.add('wx', `${w ? `${w.src === 'climate' ? 'climate' : clock.wx ? 'forced' : 'live'} ${w.kind}` : 'none (seeded)'} → the city reads ${LK.wxKind || 'seeded'}${wxSig ? '' : ' (at the start)'}`); wxSig = sig; wxKindLast = LK.wxKind; } }
     // THE AURORA (Part 6a, the owner's call): a rare timed event for everyone (~2 nights a month, seeded, never two in a row) +
     // a bonus night on a real strong storm (NOAA Kp >= 7, via /api/sky) — at night, under clear-enough skies only
     { const lc = LK.local, ev = lc ? new Date(Date.UTC(lc.y, lc.m - 1, lc.d) - (lc.h < 12 ? 864e5 : 0)) : null;

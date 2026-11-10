@@ -550,7 +550,7 @@ export function createClouds() {
   let veilTile = null, veilBake = null;   // (ATM-C: the high veil's fibres — veilFibres; its sheen baked — veilLook)
   // (POLISH 5 — THE LOAD: the plans made (the load log names each), the new set's fade (1.6 s; SLOW_MS once the city has shown —
   // the weather landing, a new block: a slow blend, never a pop) and whether the scene has settled the first set (settle()))
-  let plans = 0, appearMs = 1600, shown = false, cuts = 0, lastCut = '';   // (LOAD FIX 2: cuts = a set still on screen dropped by a re-plan)
+  let plans = 0, appearMs = 1600, shown = false, cuts = 0, lastCut = '', lastNow = null, lastPerf = 0, jumps = 0;   // (LOAD FIX 2: cuts = a set still on screen dropped by a re-plan)
   let thinB = null, thinK = 0;                            // (POLISH 5: a sky message's box — the clouds over it thin to a quarter while it is up)
   const SLOW_MS = 6000;
   // (the readout: what the clouds cost a frame — the draw + the background jobs — and how often a cloud is re-lit)
@@ -561,12 +561,21 @@ export function createClouds() {
   const free = arr => { MB.key = ''; for (const d of arr || []) { if (d.cv) d.cv.width = 0; if (d.prev) d.prev.width = 0; if (d.mix) d.mix.cv.width = 0; d.cv = d.prev = d.mix = null; d.F = null; } };
   function plan(LK, seed, motion) {
     // (LOAD FIX 2 — THE SNAP: a re-plan while the last change still blends drops the set fading out — on screen at oldK — in one frame)
-    if (shown && old && oldK > 0.02) { cuts++; lastCut = `the fading set (${old.length} at ${oldK.toFixed(2)}) dropped`; }
-    else if (shown && list.length && !born && lastA > 0.02) { cuts++; lastCut = 'the set on screen dropped'; }
-    if (old) free(old);
-    old = list.length && born ? list : null; oldK = old ? 1 : 0;
-    plans++; appearMs = old && shown ? SLOW_MS : 1600;
-    if (!old) free(list);
+    // (LOAD FIX 2 — NEVER A CUT after the reveal: a set still on screen is never freed here. The incoming set not baked yet (invisible —
+    //  its appear is 0) is simply replaced while the old one keeps fading at its level; a blend in progress with BOTH sets showing never
+    //  reaches here — drawAll waits for it to end (THE CLOUDS, NEVER A SNAP). And every set after the reveal blends SLOWLY — the first
+    //  one after a late reveal included: it drifts in over SLOW_MS, never a 1.6-s fade from an empty sky)
+    // (THE CUT counter — what is really freed while on screen: the fading set, or a set showing that isn't kept)
+    if (shown && old && oldK > 0.02 && !born) free(list);
+    else {
+      if (shown && old && oldK > 0.02) { cuts++; lastCut = `the fading set (${old.length} at ${oldK.toFixed(2)}) dropped`; }
+      if (old) free(old);
+      const keep = list.length && born;
+      if (!keep && shown && list.length && lastA > 0.02) { cuts++; lastCut = 'the set on screen dropped'; }
+      old = keep ? list : null; oldK = old ? 1 : 0;
+      if (!old) free(list);
+    }
+    plans++; appearMs = shown ? SLOW_MS : 1600;
     jobs = [];
     mix = cloudMix(LK, seed);
     list = cloudPlan(box, mix, seed);
@@ -915,8 +924,15 @@ export function createClouds() {
     /** POLISH 5: the city is revealed — the set baked in the dark shows at once (no fade of its own), the old one gone; later sets blend slowly */
     /** LOAD FIX 2 — the sky after the reveal, cheap, every frame (kit/load-probe.mjs): the plan, the shown mass (each set's clouds × its
      *  alpha now), the current set's mean place (pt) + the cuts */
-    probe: () => { let x = 0, k = 0; for (const d of list) if (d.kind !== 'deck' && d.xNow > -1e8) { x += d.xNow; k++; } return { plans, cuts, key: planKey, cur: +(list.length * lastA).toFixed(2), old: old ? +(old.length * oldK).toFixed(2) : 0, x: k ? +(x / k).toFixed(1) : null }; },
-    settle() { shown = true; if (born) born = performance.now() - appearMs - 1; if (old) { free(old); old = null; } },
+    probe: () => {
+      // (step: the biggest move of any one cloud since the last probe — its own drift, never a wrap past the screen's edge, off screen)
+      let x = 0, k = 0, step = 0;
+      for (const d of list) if (d.kind !== 'deck' && d.xNow > -1e8) { x += d.xNow; k++; if (d.xProbe != null) { const dx = Math.abs(d.xNow - d.xProbe); if (dx < W * 0.5) step = Math.max(step, dx); } d.xProbe = d.xNow; }
+      return { plans, cuts, jumps, key: planKey, cur: +(list.length * lastA).toFixed(2), old: old ? +(old.length * oldK).toFixed(2) : 0, x: k ? +(x / k).toFixed(1) : null, step: +step.toFixed(1) };
+    },
+    // (LOAD FIX 2: a LATE reveal — the first set not baked yet — lets that set drift in slowly once it is, never a 1.6-s fade)
+    //  and a baked set still on hand (the one before a last re-plan) stays on screen until it does: the reveal never shows an empty sky)
+    settle() { shown = true; if (born) { born = performance.now() - appearMs - 1; if (old) { free(old); old = null; } } else appearMs = SLOW_MS; },
     /** SP: tonight's cirrostratus veil 0..1 (the moon's 22° halo lives under it) */
     veil: () => (mix && list.length ? mix.veil || 0 : 0),
     debug: () => ({
@@ -1039,7 +1055,16 @@ export function createClouds() {
       const seed = `${lc ? `${lc.y}-${lc.m}-${lc.d}-${blk}` : 'x'}|${Math.round(cover * 8)}|${lay ? `${Math.round(lay.lo * 4)}${Math.round(lay.mid * 4)}${Math.round(lay.hi * 4)}` : '-'}|${LK.rain > 0.05 || LK.storm ? 'w' : ''}`;
       if (lc) epoch = (((lc.h % 6) * 60 + lc.mi) * 60 + (lc.s || 0));
       windSgn = windX(LK) < 0 ? -1 : 1;
-      if (seed !== planKey) { planKey = seed; t0Clock = fs.now; e0 = epoch; G = null; drift.reset(); plan(LK, seed, fs.motion); }
+      // (LOAD FIX 2: after the reveal a new field waits while a blend shows both sets — the newest seed is read again every frame, so it
+      //  plans the moment the blend ends: two slow blends in a row, never one set dropped mid-fade)
+      const blending = shown && old && born && oldK > 0.02;
+      if (seed !== planKey && !blending) { planKey = seed; t0Clock = fs.now; e0 = epoch; G = null; drift.reset(); plan(LK, seed, fs.motion); lastNow = fs.now; lastPerf = performance.now(); }
+      // (LOAD FIX 2 — THE CLOCK's JUMP: the field's time is the city's clock, and that clock jumps when the server's offset lands (or a
+      //  phone's clock is minutes off) — every cloud jumped with it. After the reveal a jump the real time doesn't explain (≤ 15 min) is
+      //  taken out of the field's time: the clouds keep drifting where they are)
+      { const pn = performance.now();
+        if (shown && lastNow != null) { const d = fs.now - lastNow, real = (pn - lastPerf) * (fs.speed || 1), j = d - real; if (Math.abs(j) > 1500 && Math.abs(j) < 15 * 60e3) { t0Clock += j; jumps++; } }
+        lastNow = fs.now; lastPerf = pn; }
       if (!list.length && !old) return;
       // (WSP — &force=moon-cloud, the panel's MOON BEHIND A CLOUD: the biggest heap / patch steered back + forth across the moon, its body
       //  at the moon's height — the preview of the moon behind a thick cloud; let go, it returns to its own place)

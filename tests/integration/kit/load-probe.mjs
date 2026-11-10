@@ -102,3 +102,34 @@ export function judge(D) {
   }
   return out;
 }
+
+// LOAD FIX 2 — NOTHING IN THE SKY CHANGES BY A CUT after the reveal. SKY_REC (an init script) records loadProbe().sky every frame from
+// the reveal for `ms`: [t, plans, cuts, cur, old, x, key, jumps, step]. skyJudge(frames) → the snaps: a CUT (a set on screen dropped by a
+// re-plan — clouds.js#plan counts it), the shown clouds falling > 25 % in ONE frame, any one cloud jumping > 4 pt in one frame (wraps off
+// screen ignored).
+export const SKY_REC = (ms = 8000) => `(() => {
+  const R = window.__sk = { frames: [], shownAt: -1 };
+  const tick = () => {
+    try { const p = window.__district && window.__district.loadProbe && window.__district.loadProbe();
+      if (p && p.shown) { const t = performance.now(); if (R.shownAt < 0) R.shownAt = t; if (t - R.shownAt <= ${ms} && p.sky) R.frames.push([Math.round(t - R.shownAt), p.sky.plans, p.sky.cuts, p.sky.cur, p.sky.old, p.sky.x, p.sky.key, p.sky.jumps || 0, p.sky.step == null ? null : p.sky.step]); }
+    } catch {}
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+})();`;
+export function skyJudge(F) {
+  const snaps = [];
+  for (let i = 1; i < F.length; i++) {
+    const [t, , cuts, cur, old, x, key] = F[i], [, , cuts0, cur0, old0, x0, key0] = F[i - 1];
+    const m = cur + old, m0 = cur0 + old0;
+    if (cuts > cuts0) snaps.push(`${t} ms: a CUT (a set on screen dropped)`);
+    else if (m0 > 0.5 && m < m0 * 0.75) snaps.push(`${t} ms: the shown clouds ${m0} → ${m} in one frame`);
+    // (one cloud's own move in a frame — clouds.js#probe's step; an older build without it: the set's mean place, which a wrap can trip)
+    const st = F[i][8];
+    if (st != null) { if (key === key0 && st > 4) snaps.push(`${t} ms: a cloud jumped ${st} pt in one frame`); }
+    else if (key === key0 && x != null && x0 != null && Math.abs(x - x0) > 4) snaps.push(`${t} ms: the set's place jumped ${x0} → ${x} pt`);
+  }
+  const plans = F.length ? F[F.length - 1][1] - F[0][1] : 0;
+  const planAt = F.filter((f, i) => i && f[1] !== F[i - 1][1]).map(f => f[0]);
+  return { snaps, plans, planAt, jumps: F.length ? F[F.length - 1][7] : 0 };
+}

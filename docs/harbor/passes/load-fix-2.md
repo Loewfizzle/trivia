@@ -154,3 +154,35 @@ Chromium, ~0.5 s faster in WebKit locally (no network there — on the phone's l
 before a first tap: the station's song is no longer decoded by then) — the city, the sky, the signs: 0 (`shots-lf2-diff/party-diff.png`).
 The harbor `load` group 19 / 19 + `stations` + `partysync` (36 / 36 together); `wk-load.mjs` 6 / 6 clean (no doubled frame, no chunk,
 no #net pill, nothing between).
+
+## Group 3 — THE CLOUDS, NEVER A SNAP
+
+The causes from Group 1, each fixed where it starts (`clouds.js`, `scene.js`):
+1. **THE CUT** (`clouds.js#plan` + `drawAll`): after the reveal a set on screen is never freed by a re-plan.
+   - A new field while a blend shows BOTH sets (the old fading out, the new one in) WAITS (`blending` — the seed is read again every frame,
+     so the newest field plans the moment the blend ends: two slow blends in a row, never one set dropped mid-fade).
+   - A new field while the incoming set isn't baked yet (invisible — its appear is 0) REPLACES only the incoming one; the old set keeps
+     showing at its level and the newest blends in from it.
+   - THE CUT counter now counts only what is really freed while on screen (the first version counted the replaced, invisible incoming
+     set — a false alarm at 4×).
+2. **EVERY CHANGE AFTER THE REVEAL IS SLOW**: a set planned after the reveal always blends over SLOW_MS (6 s) — before, a re-plan with no
+   baked set to blend from (`old` null) came in over 1.6 s from an empty sky. A LATE reveal (`REVEAL_MAX` — the first set not baked yet)
+   lets that set drift in over 6 s once it is (`settle()`), and keeps a baked set still on hand on screen until then (never an empty sky
+   at the reveal). And after the reveal ANY new weather answer counts as the weather changing (`wxChangedAt` — before: only a change of
+   KIND): the sky, the bake's tones + the lit windows blend over WX_BLEND (6 s), never the 1.5-s repaint, when the same kind comes back
+   with another cover.
+3. **THE CLOCK's JUMP** (`clouds.js#drawAll`): after the reveal a jump of the city's clock that the real time doesn't explain (1.5 s …
+   15 min — the server's offset landing, a phone's clock minutes off) is taken out of the field's time (`t0Clock += j`; `probe().jumps`):
+   the clouds keep drifting where they are. A bigger jump (the preview panel's hours) crosses the 6-hour block → a new field → a slow blend.
+
+**The proof** (`sky-snap.mjs`, Chromium; BEFORE = the Group 1 build f5e2ee59 on :5174 with the same test hook; the judge now reads each
+cloud's own step a frame — the first judge read the set's MEAN place, which a cloud wrapping past the screen's edge (off screen) tripped):
+
+| case | BEFORE | AFTER (1×, 2 runs each) | AFTER (4× CPU) |
+| --- | --- | --- | --- |
+| `twice` (a second answer inside the first blend) | **a CUT at 4.5 s** (the fading set dropped — SEEN in the LOAD LOG) | no snap (the 2nd field waits: plans at 1.9 + 7.9 s) | no snap |
+| `clock` (the server's clock 5 min ahead, late) | **every cloud jumped 213 pt** | no snap (1 jump absorbed) | — |
+| `late` / `late-rain` (no answer kept, it lands after the reveal) | one slow blend | one slow blend | no snap |
+| `stale` / `nearstale` / `stale-rain` | (landed inside THE LOOK TRAP) | one slow blend after the reveal | no snap |
+
+The harbor `load` + `sky` + `weather` groups: 70 / 70.

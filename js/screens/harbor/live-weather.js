@@ -88,6 +88,9 @@ export const weatherSettled = () => settled || !started;
  *  the weather's slot), got (when it was fetched) } */
 export const weatherSource = () => (wx ? { src: fromCache ? 'cached' : 'live', age: Math.round((Date.now() - wx.at) / 60000), got: wx.got || null, fresh: isFresh(wx) } : { src: null, age: null, got: null, fresh: false });
 
+/** LOAD FIX 2 — TESTS (sky-snap.mjs's `twice`): ask again now — a second answer landing inside the first one's blend */
+export const askWeatherNow = () => load();
+
 /** The live weather right now (null when unknown or stale). */
 export const liveWeather = () => (isFresh(wx) ? wx : null);
 

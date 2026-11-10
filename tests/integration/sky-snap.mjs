@@ -6,7 +6,7 @@
 //   stale      a kept answer 20 min old (fresh — the reveal uses it) + a fresh answer moments after the reveal, a different sky
 //   nearstale  a kept answer near its end (asked at once, but the reveal doesn't wait) + a different answer 1.2 s later
 //   twice      the kept answer, then TWO different answers in a row (1 s + 4 s after the reveal: a second change inside the first blend)
-//   clock      the server's clock 20 min ahead, answered late (/api/time after 2 s)
+//   clock      the server's clock 5 min ahead, answered late (/api/time after 2 s)
 // Per frame for 8 s (--secs) after the reveal: loadProbe().sky (clouds.js#probe — the plan, the shown mass of each set, the set's mean place, the
 // cuts) + the LOAD LOG's sky rows. A SNAP = a cut (a set still on screen dropped), the shown mass falling > 25 % in one frame, or the
 // set's place jumping > 4 pt in one frame. Exit 1 on any.
@@ -14,6 +14,7 @@
 // On the emulators + scripts/serve.mjs --emu.
 import puppeteer from './kit/puppeteer.mjs';
 import { writeFileSync } from 'node:fs';
+import { SKY_REC, skyJudge } from './kit/load-probe.mjs';
 
 const argv = process.argv.slice(2);
 const BROWSER = argv[0];
@@ -33,23 +34,13 @@ const CASES = {
   stale: { kept: { age: 20, a: FAIR }, sky: [{ ms: 200, a: OVERCAST }] },
   'stale-rain': { kept: { age: 20, a: FAIR }, sky: [{ ms: 200, a: RAIN }] },
   nearstale: { kept: { age: 33, a: FAIR }, sky: [{ ms: 1200, a: OVERCAST }] },
-  twice: { kept: { age: 33, a: FAIR }, sky: [{ ms: 1500, a: { cloud: 0.6, kind: 'cloudy', layers: { hi: 0.1, lo: 0.3, mid: 0.6 }, opaque: 0.6 } }, { ms: 0, a: OVERCAST, after: 4000 }] },
-  clock: { kept: { age: 5, a: FAIR }, sky: [], time: { off: 20 * MIN, ms: 2000 } },
+  twice: { kept: { age: 33, a: FAIR }, sky: [{ ms: 2500, a: { cloud: 0.6, kind: 'cloudy', layers: { hi: 0.1, lo: 0.3, mid: 0.6 }, opaque: 0.6 } }, { ms: 0, a: OVERCAST, after: 4000 }] },
+  clock: { kept: { age: 5, a: FAIR }, sky: [], time: { off: 5 * MIN, ms: 2000 } },
 };
 const pick = String(opt('case', 'all'));
 const names = pick === 'all' ? Object.keys(CASES) : pick.split(',');
 
-const REC = `(() => {
-  try { localStorage.setItem('nd:entered', '1'); } catch {}
-  const R = window.__sk = { frames: [], shownAt: -1 };
-  const tick = () => {
-    try { const p = window.__district && window.__district.loadProbe && window.__district.loadProbe();
-      if (p && p.shown) { const t = performance.now(); if (R.shownAt < 0) R.shownAt = t; if (t - R.shownAt <= __SECS__ && p.sky) R.frames.push([Math.round(t - R.shownAt), p.sky.plans, p.sky.cuts, p.sky.cur, p.sky.old, p.sky.x, p.sky.key]); }
-    } catch {}
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
-})();`;
+
 
 const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--no-sandbox'] });
 const out = [];
@@ -60,7 +51,8 @@ for (const name of names) for (let run = 0; run < RUNS; run++) {
   await page.setViewport({ width: 402, height: 874, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
   const kept = C.kept ? { ...ans(C.kept.a), at: Date.now() - C.kept.age * MIN, got: Date.now() - C.kept.age * MIN } : null;
   await page.evaluateOnNewDocument(k => { try { if (k) localStorage.setItem('nd:wx', k); else localStorage.removeItem('nd:wx'); } catch { /* fine */ } }, kept ? JSON.stringify(kept) : '');
-  await page.evaluateOnNewDocument(REC.replace('__SECS__', String(SECS * 1000)));
+  await page.evaluateOnNewDocument("try { localStorage.setItem('nd:entered', '1'); } catch {}");
+  await page.evaluateOnNewDocument(SKY_REC(SECS * 1000));
   if (CPU > 1) { const cdp = await page.target().createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU }); }
   await page.setRequestInterception(true);
   const t0 = Date.now();
@@ -83,28 +75,19 @@ for (const name of names) for (let run = 0; run < RUNS; run++) {
   await page.goto(`${BASE}/?emu&slot=sk${run}&city=2${opt('debug', false) ? '&debug=1' : ''}`, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
   await page.waitForFunction('window.__sk && window.__sk.shownAt >= 0', { timeout: 60000, polling: 50 }).catch(() => {});
   shownWall = Date.now();
-  // ('twice': the city asks again only every 15 min — the second answer is pulled by a fresh ask, the way a return to the front does)
-  if (C.sky.some(s => s.after)) { await sleep(C.sky[0].ms + 600); await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))).catch(() => {}); }
+  // ('twice': the city asks again only every 15 min — the second answer is pulled by live-weather.js#askWeatherNow, a test hook)
+  if (C.sky.some(s => s.after)) { await sleep(C.sky[0].ms + 600); await page.evaluate(() => import('/js/screens/harbor/live-weather.js').then(m => m.askWeatherNow())).catch(() => {}); }
   await sleep(SECS * 1000 + 600 - (Date.now() - shownWall));
   const R = await page.evaluate('window.__sk').catch(() => null);
   const L = await page.evaluate('(() => { const h = window.__district.harbor(); return h ? { lines: h.loadLog.lines, visible: h.loadLog.visible.map(r => r.kind + " " + r.msg) } : null; })()').catch(() => null);
   await ctx.close();
   // the judge
   const F = (R && R.frames) || [];
-  const snaps = [];
-  for (let i = 1; i < F.length; i++) {
-    const [t, , cuts, cur, old, x, key] = F[i], [, , cuts0, cur0, old0, x0, key0] = F[i - 1];
-    const m = cur + old, m0 = cur0 + old0;
-    if (cuts > cuts0) snaps.push(`${t} ms: a CUT (a set on screen dropped)`);
-    else if (m0 > 0.5 && m < m0 * 0.75) snaps.push(`${t} ms: the shown clouds ${m0} → ${m} in one frame`);
-    if (key === key0 && x != null && x0 != null && Math.abs(x - x0) > 4) snaps.push(`${t} ms: the set's place jumped ${x0} → ${x} pt`);
-  }
-  const plans = F.length ? F[F.length - 1][1] - F[0][1] : 0;
-  const planAt = F.filter((f, i) => i && f[1] !== F[i - 1][1]).map(f => f[0]);
+  const { snaps, plans, planAt, jumps } = skyJudge(F);
   const skyRows = L ? L.lines.filter(l => /\b(wx|sky|clouds)\b/.test(l)) : [];
   const vis = L ? L.visible.filter(v => /^(sky|clouds|pix)/.test(v)) : [];
   out.push({ name, run, plans, planAt, snaps, vis, skyRows, errs, frames: F });
-  console.log(`${name.padEnd(10)} re-plans after the reveal ${plans}${planAt.length ? ` (at ${planAt.join(', ')} ms)` : ''} · ${snaps.length ? `SNAP ×${snaps.length}: ${snaps.slice(0, 3).join(' · ')}` : 'no snap'} · LOAD LOG seen in the sky ${vis.length}${errs.length ? ` · errors ${errs[0]}` : ''}`);
+  console.log(`${name.padEnd(10)} re-plans after the reveal ${plans}${planAt.length ? ` (at ${planAt.join(', ')} ms)` : ''}${jumps ? ` · clock jumps absorbed ${jumps}` : ''} · ${snaps.length ? `SNAP ×${snaps.length}: ${snaps.slice(0, 3).join(' · ')}` : 'no snap'} · LOAD LOG seen in the sky ${vis.length}${errs.length ? ` · errors ${errs[0]}` : ''}`);
   if (opt('log', false)) for (const l of skyRows) console.log('    ' + l);
 }
 await browser.close();
