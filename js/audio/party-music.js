@@ -12,7 +12,7 @@
 //     the synced player takes over again at the next song. The dips + the low-pass reach the synced voices (onMusicDuck, musicInput).
 // THE PARKED DATABASE holds: serverNow() is the saved offset while parked — no socket is opened for this. A sped-up preview (&speed) can't
 // be in sync: this phone's own player then plays the deck as before. MUSIC OFF: nothing plays; the breaks still follow the same timeline.
-import { createSyncedSongs, speakerLead } from './synced-songs.js';
+import { createSyncedSongs, speakerLead, warmSong, coolSong } from './synced-songs.js';
 import { musicUrl } from './music-url.js';
 import { getMusicBus, getContext, graphDead, audioUnlocked } from './engine.js';
 import { serverNow } from '../firebase.js';
@@ -131,7 +131,7 @@ export function stationCue(mood, prev = null) {
 
 /** Every tick (app.js, 250 ms) on City 2.0's menu screens with mood music on + the PARTY mood: → true while the synced player plays the
  *  party song here (this phone's own player then rests). hold: a legendary wants the song on this phone's own player (the tape stop). */
-export function partyMusicTick(active, hold = false) {
+export function partyMusicTick(active, hold = false, warm = false) {
   const T = active ? timeline() : null;
   if (clocked !== !!T) { clocked = !!T; try { setMusicClocked(clocked); } catch { /* tests */ } }
   // (a DEAD GRAPH — iOS after the lock screen: the context frozen or closed — can't play the synced voices: the song goes back to this
@@ -142,7 +142,8 @@ export function partyMusicTick(active, hold = false) {
   // (LOAD FIX 2 — NO SONG BEFORE A GESTURE: the station's song is a whole file fetched + decoded (2–3 MB — half the bytes before the
   //  city's reveal, on every load, for a sound nothing may play before the first tap). It is asked for at the first tap (engine.js's
   //  unlock) — the player made then, on the server clock as always; partyClaims keeps this phone's own player quiet while it loads)
-  if (!audioUnlocked()) return false;
+  if (!audioUnlocked()) { warmAhead(T, warm); return false; }
+  if (warmUrl && !coolT) coolT = setTimeout(() => { coolT = 0; if (warmUrl) { coolSong(warmUrl); warmUrl = null; } }, 20000);   // (the player holds its own ref by then)
   const w = deckWindow(T.deck, T.tl.anchor, T.tl.seed, T.cityMs / 1000);
   // (SKY-B: the key is the deck's window only — when the server clock's offset settles (the first seconds after a load) the start moves and
   // the synced player RE-PLACES its voices (a quick fade, the decoded song kept); a new key re-created the player + decoded the song again:
@@ -179,6 +180,26 @@ export function partyMusicTick(active, hold = false) {
   if (handed && heardAt && !pendingAt) pendingAt = heardAt;
   return partyClaims();
 }
+
+// LOAD FIX 3 — THE MUSIC ON THE TAP (the owner, Nov 10: the music ½–1 s after the first tap — LOAD FIX 2's known issue): before any tap, once
+// the city has been on screen a moment (`warm` — app.js), the song the station will be playing at a tap is FETCHED + DECODED (never played:
+// an offline decode — synced-songs.js#warmSong), so the tap only unlocks + starts it, on the server clock as always. ≤ WARM_MAX songs a page
+// (a phone left on the title without a tap stops fetching), never with Save-Data on; the next song when this one ends within WARM_NEXT_S.
+const WARM_MAX = 3, WARM_NEXT_S = 25;
+let warmUrl = null, warms = 0, coolT = 0;
+function warmAhead(T, ok) {
+  if (!ok || !T) return;
+  try { if (navigator.connection && navigator.connection.saveData) return; } catch { /* fine */ }
+  let s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, T.cityMs / 1000 + 1);
+  if (s && s.t1 - (T.cityMs / 1000) < WARM_NEXT_S) s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, s.t1 + 0.01) || s;
+  if (!s) return;
+  const url = urlFor(s.id);
+  if (!url || url === warmUrl || warms >= WARM_MAX) return;
+  warms++; warmSong(url);
+  if (warmUrl) coolSong(warmUrl);
+  warmUrl = url;
+}
+export const partyWarm = () => ({ url: warmUrl ? warmUrl.split('/').pop() : null, warms });
 
 /** the party song sounding from the synced player right now: { id, at } or null (the beat follows it like the lobby's) */
 export function partyNow() { const n = player ? player.now() : null; return n ? { id: n.id, at: n.at } : null; }

@@ -40,15 +40,16 @@ function prune() {
 }
 // (PD-5A — QUICK START: `onPart` → the song is streamed and its FIRST SLICES are decoded as the bytes arrive (quickDecode) — each part
 // handed to every player that wants the song; the whole decode still resolves `p`)
+const keyFor = (url, fromS = 0) => (fromS >= RANGE_FROM_S ? `${url}#${fromS.toFixed(3)}` : url);
 function acquire(url, onPart = null, need = null, fromS = 0, ff = 0) {
   prune();
-  const key = fromS >= RANGE_FROM_S ? `${url}#${fromS.toFixed(3)}` : url;
+  const key = keyFor(url, fromS);
   let e = decoded.get(key);
   if (!e) {
     e = { p: null, refs: 0, at: 0, part: null, subs: new Set() };
     const ent = e;
     e.p = onPart ? quickDecode(url, part => { if (!ent.full) { ent.part = part; for (const fn of ent.subs) fn(part); } }, need, fromS, ff) : decode(url);
-    e.p.then(() => { ent.full = true; ent.part = null; }, () => {});
+    e.p.then(b => { ent.full = true; ent.buf = b; ent.part = null; }, () => {});   // (LOAD FIX 3: the buffer kept on the entry — a song already decoded is handed over at once, never a tick later)
     decodes++; decoded.set(key, e); e.p.catch(() => { if (decoded.get(key) === e) decoded.delete(key); });
   }
   if (onPart) { e.subs.add(onPart); if (e.part) onPart(e.part); }
@@ -56,6 +57,12 @@ function acquire(url, onPart = null, need = null, fromS = 0, ff = 0) {
   return e.p;
 }
 function release(url, onPart = null, fromS = 0) { const e = decoded.get(fromS >= RANGE_FROM_S ? `${url}#${fromS.toFixed(3)}` : url); if (!e) return; if (onPart) e.subs.delete(onPart); e.refs = Math.max(0, e.refs - 1); if (!e.refs) { e.at = Date.now(); prune(); } }
+// LOAD FIX 3 — THE MUSIC ON THE TAP: the city's station song decoded AHEAD of the first tap (party-music.js#warmAhead — fetched + decoded
+// on an OFFLINE context: no sound, no unlocked graph — after the city's reveal), held by a ref of its own until the player made at the tap
+// has taken it: the tap then only unlocks + starts (LOAD FIX 2's known issue: the fetch + the decode ran after the tap — ½–1 s of silence)
+const warmed = new Set();
+export function warmSong(url) { if (warmed.has(url)) return; warmed.add(url); acquire(url); }
+export function coolSong(url) { if (warmed.delete(url)) release(url); }
 /** TESTS + THE AUDIO panel: the shared decodes (url → refs) and how many fetch + decodes this page has started */
 export const songCache = () => ({ decodes, parts, held: [...decoded].map(([u, e]) => ({ url: u.split('/').pop(), refs: e.refs, part: e.part ? +e.part.endS.toFixed(1) : null, full: !!e.full, flow: flow.get(u.split('#')[0]) ? { ...flow.get(u.split('#')[0]), ago: Math.round(performance.now() - flow.get(u.split('#')[0]).t0) } : null })) });
 
@@ -215,6 +222,9 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     const need = quick ? () => (game && game.matchId === mid ? (serverNow() - songStarts(game)[i]) / 1000 + cueOf(i) : 0) : null;
     e.from = quick ? cueOf(i) : 0;
     acquire(url, e.sub, need, e.from, quick ? Math.max(0, Number(game.ff && game.ff[i]) || 0) : 0).then(b => { e.buf = b; e.part = null; }).catch(err => { e.failed = true; console.warn(label, err && err.message); });
+    // (LOAD FIX 3: decoded already — warmed before the tap, or another player's — the voice can start in THIS tick)
+    const en = decoded.get(keyFor(url, e.from));
+    if (en && en.buf) { e.buf = en.buf; e.part = null; }
   }
   const drop = k => { const e = bufs.get(k); if (!e) return; bufs.delete(k); release(e.url, e.sub, e.from || 0); };
 

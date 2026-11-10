@@ -143,3 +143,32 @@ reload + the BOOT HANG report sent) — **load 28 / 28** (~106 s; harbor-jobs.mj
 **The reveal (Chromium, no throttle, 3 loads — LOAD FIX 2's run):** 1.33 s before → **1.33 s** now (the boot screen's first paint 32 → 36 ms —
 the inline script). No speed traded. **No look change**: pixdiff (`--pin`, the title preview, before = 4c945a65 on :5175) night 1 px, noon
 0 px, golden 27 px (walkers in the promenade band — the usual residue).
+
+## Group 3 — THE MUSIC ON THE TAP
+
+**The gap** (LOAD FIX 2's known issue — the music ½–1 s after the first tap): everything happened AFTER the tap — the station's synced player
+was made only at the next 250-ms music tick, then the WHOLE song was fetched (2–3 MB), then decoded, then the voice was placed on the server
+clock. **The fix** (no audio before a gesture — a decode is not a sound; the song still on the server clock):
+- `audio/party-music.js#warmAhead`: once the city has been on screen 1.5 s (app.js — `cityShown`, the page visible, no room), the song the
+  station will be playing at a tap (the next one when this one ends within 25 s) is FETCHED + DECODED on an OFFLINE context
+  (`synced-songs.js#warmSong` — the shared decode cache, a ref of its own); ≤ 3 songs a page (a phone left on the title without a tap stops
+  fetching); never with Save-Data; never with the music off (no station → no warm). Released 20 s after the tap (the player holds its own).
+- `synced-songs.js`: a song already decoded is handed to the player IN the tick that asks for it (the buffer kept on the cache entry) — not a
+  promise's turn later.
+- `app.js`: the music tick runs IN the tap (`onUnlock`) and again the moment the graph runs (`onResume` — the synced player starts a voice only
+  on a running clock: the place on the server clock stays exact).
+
+**Measured** (`tests/integration/tap-music.mjs` — the real boot, the city revealed, 3 s, ONE tap on the sky; "the music" = the station's synced
+player sounding (`partyMusicDebug().heard` — its voice past its start, its gain past 0.05) or this phone's own player; Chromium on THE LINE's
+Wi-Fi-like 40 ms / 40 Mbps, mid-song; the PC busy with the WebKit batteries for the BEFORE runs):
+
+| | before (4c945a65) | after |
+| --- | ---: | ---: |
+| night (the party station), 3 taps | 1.69 / 1.97 / 2.43 s | **0.09 / 0.10 / 0.17 s** |
+| day (the morning station), 3 taps | 1.85 / 1.88 / 1.90 s | **0.14 / 0.14 / 0.16 s** |
+| a song voice before the tap | none | none |
+| the voice's place vs the station's (server clock) | — | 158.54 vs 158.62 s (the ramp's first quantum) |
+
+**WebKit can't be measured here**: Playwright's Windows WebKit has no Web Audio at all (`AudioContext` undefined) — the owner's iPhone check
+(step 2) is the Safari proof. The harbor `stations` + `partysync` + `music` + `tape` groups: **144 / 144**. The iPhone's silent switch + the
+music-off setting: the audio session code untouched; with the music off there is no station, so nothing is fetched or decoded.

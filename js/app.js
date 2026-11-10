@@ -16,7 +16,7 @@ import { GAME_MODULES, GAME_IDS, loadGame, metaOf } from './games/registry.js';
 import { lookLockOf } from './games/cartridge.js';
 import { createTitle, harborReady, harborPending, harborRemote, cityShown } from './screens/title.js';
 import { createSetup } from './screens/setup.js';
-import { installAudio } from './audio/engine.js';
+import { installAudio, onUnlock, onResume } from './audio/engine.js';
 import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider, switchNow, nowPlaying, cueMusic } from './audio/music.js';
 import { partyMusicTick, partyCue, partyMusicDebug, partyClaims, stationCue } from './audio/party-music.js';
 import { cityClock } from './core/city.js';
@@ -183,14 +183,23 @@ function moodWatch() {
 setInterval(moodWatch, 2000);
 let lobbySynced = false, partySynced = false;
 const inLobby = st => !!(st.code && st.meta && (st.meta.status !== 'playing' || !st.game || st.quit === st.game.matchId));
-setInterval(() => {
+// (LOAD FIX 3 — THE MUSIC ON THE TAP: the city on screen ≥ 1.5 s → the station's song may be decoded ahead of a tap — party-music.js#warmAhead)
+let cityUpAt = 0;
+cityShown().then(() => { cityUpAt = performance.now(); });
+function musicTick() {
   const was = lobbySynced, wasP = partySynced; const lob = inLobby(state) && state.ready; lobbySynced = lobbyMusicTick(state, moodOn() && lob, lob);
   // NIGHT-C — THE PARTY SONG IN SYNC (audio/party-music.js): City 2.0's menus outside a room, the PARTY mood — the party's timeline on the
   // server clock (a legendary's tape stop holds it on this phone's own player: the city clock's musicHold)
   const cc = cityClock();
-  partySynced = partyMusicTick(!!cc && moodOn() && !state.code, !!(cc && cc.musicHold && cc.musicHold()));   // (SKY-B: every mood a station)
+  const warm = !!cityUpAt && performance.now() - cityUpAt > 1500 && document.visibilityState === 'visible' && !state.code;
+  partySynced = partyMusicTick(!!cc && moodOn() && !state.code, !!(cc && cc.musicHold && cc.musicHold()), warm);   // (SKY-B: every mood a station)
   if (was !== lobbySynced || wasP !== partySynced) render(state);
-}, 250);
+}
+setInterval(musicTick, 250);
+// (LOAD FIX 3: the first tap starts the music IN the tap — not at the next 250-ms tick — and again the moment the graph runs: the synced
+//  player starts a voice only on a running clock, so the song stays on the server clock)
+onUnlock(() => { try { musicTick(); } catch (e) { console.warn('music', e); } });
+onResume(() => { try { musicTick(); } catch (e) { console.warn('music', e); } });
 
 // DM2 — THE DAILY SCREENS (screens/daily.js — overlays over the city, driven by state.daily): loaded on the first ask
 const roomGameOn = st => !!(st.code && st.meta && st.meta.status === 'playing' && st.game && st.quit !== st.game.matchId);
