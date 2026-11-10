@@ -2437,6 +2437,25 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - THE GHOST ROWS (8 + 13 + 14), THE DAY TIERS (10 — `tiers.js#stepTier`, 3 → 0 by day), the hold ended by a lock (11), the playlist at start (12),
   SURVIVAL's time on the podium (15), no blank header (16), the day art warmed after GO (17 — the first switch 3–4 slow frames → 2), the test tools (22).
 
+## HE2 — HOLD'EM: THE SERVER DEALER (Nov 10, 2026 — docs/holdem.md "THE DEALER"; the decisions: docs/games/plan.md "HE2 — THE SERVER DEALER")
+- Still no screen, no `config.js` GAMES row. Still 8 Vercel functions (the ops ride `POST /api/report { holdem }`), no new dependency, no new secret
+  or env var. RULES CHANGED (`rooms/{CODE}/holdem`, `hole/{CODE}/{uid}`) — re-publish.
+- THE ENGINE's HE2 changes (`js/games/holdem/`): DEEP 12 → 15 min; CASH runs the 20 s shot clock + 30 s bank too (+5 s a hand dealt in, cap 30 s);
+  CASH's AWAY = SAT OUT (not dealt, no blinds) until SIT BACK (`match.js#sitBack`); THE STEP RUN-OUT (`stepRunout` — the hands face up, then a
+  street per the dealer's `deal`, so upcoming cards never leave the server; a leaver mid-run-out stays in). DEEP's new medians (40 runs a cell):
+  41.5 / 66.9 / 94.6 / 111.4 min at 2 / 4 / 6 / 8 players; TURBO + STANDARD unchanged.
+- THE DEALER (`api/_lib/holdem-dealer.js` PURE + `holdem-store.js`): start / act / pre / show / poke / rebuy / back / leave / sit / endSession; one
+  transaction on the server-only record a call, then the public view (seq never backwards) + the changed private nodes; THE POKE (the server's
+  clock: deadlines + the bank, run-out streets 1.5 s apart, the next hand 3 s / 6 s after a fold-win / showdown); pre-actions stored per seat;
+  stale + double taps → 409 with the current seq; an abandoned match never blocks a new room; the call budget (900 / 10 min); Server-Timing
+  (moved to `_lib/timing.js`); the result from the server's own record through `applyMatch` (exactly once — no host relay). The public view's
+  kept events 40 → 16 after measuring (~8.8 → ~5 KB a write).
+- THE TESTS: `tests/holdem-dealer.test.mjs` (the pure core), the engine + sim additions, `tests/integration/holdem-server.test.mjs` (12 emulator
+  tests — whole matches with 2–8 fake phones, THE LEAK SCAN as a phone at every step: ≈ 850 scans across three TURBO matches, zero leaks once the
+  scan was scoped to the current hand's events — an earlier hand's shown cards are back in the deck), 3 rules tests.
+- Measured cost: ≈ 2–4 ms CPU a call, ~12 calls a hand with people → an 8-player TURBO ≈ 250 calls / ~1 s CPU, DEEP ≈ 1,350 / ~5 s; Firebase
+  download (~50–60 KB a call at 8 phones) is the tighter free-plan limit (~650 TURBO matches a month).
+
 ## HE1 — HOLD'EM: THE ENGINE + THE SIMULATIONS (Nov 10, 2026 — docs/holdem.md; the plan: docs/games/plan.md "HOLD'EM — THE PLAN (Nov 10 2026)" + "HE1")
 - Pure logic + tests only: no screen, no database, no `/api`, no rules change, no `config.js` GAMES row. Still 8 Vercel functions, no new dependency.
 - THE CARDS + THE RANKER (`js/games/holdem/cards.js`, `rank.js`): short codes, a seeded Fisher–Yates on an injected rng; best-5-of-7 as one comparable

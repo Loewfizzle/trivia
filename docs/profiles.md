@@ -69,6 +69,9 @@ unconfigured the app behaves as it always did (no tags, no emblems, results wait
   agree with the players' own signed boards (`api/report.js#cipherAgrees` — re-graded from the guesses, every round's word in
   `game.sx`); the snapshot path gives PLACINGS ONLY (`placingsOnly`, from the night record — never a client's game blob: no records,
   no scores); a uid with no profile is NOT given one by a report (each phone makes its own when it joins).
+- **HOLD'EM (HE2 — docs/holdem.md "THE DEALER"):** the SERVER is the dealer, so nothing is reported by a phone: at the match's end the dealer
+  credits it from its OWN record (`api/_lib/holdem-store.js#reportMatch` — `results/{CODE}_{matchId}` with `src: 'dealer'`, then `applyMatch`).
+  The dealer's ops ride the same function: `POST /api/report { holdem: <op>, room, … }` (real statuses + Server-Timing on that branch).
 - **What "checked" means per game:** CIPHER — re-graded from the guesses (host + server). OVERCLOCK — the per-part credit (timing,
   partial credit) is the phone's: friends-level trust, bounded per challenge. NEON PAR's physics, PRISM DROP, SLIPSTREAM, PULSE's taps:
   the phone's own numbers within plausibility bounds — friends-level trust, NOT server-verified. Placings always come from the room.

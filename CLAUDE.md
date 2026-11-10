@@ -6,7 +6,7 @@ could start them, their code + data + rules FROZEN, not deleted; `sign: true` = 
 GRIDLOCK "next on deck"). **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (CITY 1.0 OUT, Nov 5: City 1.0 deleted; an old `?city=1` / `?city=2` link lands on the Harbor;
 its code at the git tag `city-1.0-final`, a video + shots in `Downloads\NEON\museum`). Static site on Vercel
 (**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
-plus eight Vercel serverless functions in `/api` (profiles, server-checked results, THE BOARD, admin, errors from phones — `docs/profiles.md`; the daily contract — `docs/progression.md`; the live weather — `docs/title.md`; the server's clock for a parked title — `docs/audio.md`).
+plus eight Vercel serverless functions in `/api` (profiles, server-checked results + HOLD'EM's dealer, THE BOARD, admin, errors from phones — `docs/profiles.md`; the daily contract — `docs/progression.md`; the live weather — `docs/title.md`; the server's clock for a parked title — `docs/audio.md`).
 The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept their names and the title's city is still "the
 district" in code (the `nd-` class prefix, the `window.__district` test hook). `ROADMAP.md` lists what shipped and what is next.
 **Keep this file, ROADMAP.md (one line per shipped feature; the detail goes in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
@@ -219,10 +219,17 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   the sender's attack in the victim's queue (`creditedBy`, 20 s); the award flags only from plausible numbers (`prismExtra` — `pn` in the
   results); SCORE RUSH's bound = the SIM's (`scripts/sim-prism-rush.mjs` — re-run it after a scoring change); by day the tiers step 3 → 0
   (`tiers.js#stepTier`); the ghost rows = the first 12 to land.
+- **HOLD'EM's DEALER (HE2 — docs/holdem.md "THE DEALER"):** THE SERVER IS THE DEALER on `POST /api/report { holdem: <op> }` (still 8 functions;
+  `api/_lib/holdem-dealer.js` PURE + `holdem-store.js`): crypto randomness (no secret, no env var), the deck + every card ONLY in `hrec/{CODE}` (one
+  JSON string — default deny), the public table `rooms/{CODE}/holdem` (no client write), a seat's cards `hole/{CODE}/{uid}` (that uid only, never
+  kicked); ONE transaction a call; everything timed happens on a POKE by the server's own clock (`dueOf` — never a phone's clock or claim); nobody
+  acts for another seat (the host only starts + ends CASH); stale / double taps → 409 + the seq; the result credited from the server's record
+  (`applyMatch`, exactly once); upcoming run-out cards never written where a phone reads (the engine's `stepRunout`). The emulator suite's LEAK SCAN
+  reads AS a phone at every step (`tests/integration/holdem-server.test.mjs` — run it alone).
 - **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
   `now`; a test greps), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
-  DEALER is the server (HE2: a NEW secret, never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /
-  `seatView`; the sims scan every view); PLAY CHIPS ONLY — no money words ("CASH" = the mode's name); TURBO's level is 90 s (the length study:
+  DEALER is the server (HE2: crypto randomness — never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /
+  `seatView`; the sims scan every view); PLAY CHIPS ONLY — no money words ("CASH" = the mode's name); TURBO's level is 90 s, DEEP's 15 min, CASH has the shot clock too + AWAY = SAT OUT (the length study:
   `node scripts/holdem-sim.mjs`); the test robots (`tests/fixtures/holdem-bots.mjs`) are never shipped. Not in `config.js` GAMES until HE3+.
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
@@ -393,7 +400,7 @@ rooms/{CODE}/       ← CODE = the HUSH WORD (a common 4-letter word; docs/conte
   game:      host-only; per-game shape; totals are always DERIVED from results (never stored) so a replayed step can't double-score
   night/{matchId}:   { g, p: { uid: 3|2|1|0 }, n: { uid: name }, b?: { uid: bonus }, at }  ← host; game-night scoreboard
   <game nodes>/{matchId}/…/{uid}                              ← a player's own data for the current step, phase-gated by the rules
-chats/{CODE}/   fleets/{CODE}/   glsonar/{CODE}/   spy/{CODE}/   hsbet/{CODE}/   rrp/{CODE}/   seal/{CODE}/   ← top level: rooms/{CODE} is readable by any signed-in user, these are not (seal = THE SEAL: a round's secrets)
+chats/{CODE}/   fleets/{CODE}/   glsonar/{CODE}/   spy/{CODE}/   hsbet/{CODE}/   rrp/{CODE}/   seal/{CODE}/   hole/{CODE}/   ← top level: rooms/{CODE} is readable by any signed-in user, these are not (seal = THE SEAL: a round's secrets; hole = HOLD'EM's own two cards — HE2; hrec/{CODE} = the dealer's record, server only)
 city2/live      ← CITY 2.0's PREVIEW PANEL for EVERYONE (server-written via /api/admin; admins listen live, every other phone reads the cached GET /api/admin?live=1; docs/harbor.md)
 seats/{pid} (the profile's own devices — ONE ACCOUNT, ONE ROOM)  profiles/{pid} (signed-in, one at a time)  uids/{uid} (own)  pstats/{pid} (owner)  lb/ results/ ppriv/ pkeys/ tags/ rl/ audit/ flags/ (server only)   ← docs/profiles.md
 ```

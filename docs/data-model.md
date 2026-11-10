@@ -307,6 +307,18 @@ rooms/{CODE}/hslock/{m}/{rk}/{uid}: { b?: server time, a?: server time }   ← o
 hsbet/{CODE}/{m}/{rk}/{uid}: { b: { b, at }, a: { a 0-3, at } }            ← top level; owner reads; the host from 'show' on; once each, in phase
 ```
 
+## HOLD'EM — THE DEALER (HE2 — `docs/holdem.md` "THE DEALER"; no screen yet)
+```
+hrec/{CODE}: { j, seq, due, id, ended, at }   ← THE RECORD — SERVER ONLY (the rules' default deny): j = the whole match as ONE JSON string (the deck,
+                                                 every hole card, the hand log, the queued pre-actions, the pause stamps); due = the next moment
+                                                 the server's clock acts (a poke reads only this); written by POST /api/report { holdem } only
+rooms/{CODE}/holdem: { seq, at, j }           ← THE PUBLIC TABLE — any signed-in reader, NO client write (the host included): j = publicOf(rec)
+                                                 (no deck, no unshown card; ~5 KB); seq never goes backwards
+hole/{CODE}/{uid}: { h, c?: [2 cards], pre? } ← a seat's PRIVATE VIEW — read by that uid only, never once kicked; no client write
+```
+A new match replaces `hole/{CODE}` whole; an abandoned record (the room closed, its HUSH WORD reused) is replaced by the next `start`.
+Results: `results/{CODE}_{matchId}` (`src: 'dealer'`) like every room match.
+
 ## dly/ — THE DAILIES (server only — the rules' default deny; docs/progression.md "THE DAILY CONTRACT", docs/password.md, docs/coastclear.md)
 ```
 dly/{game}/{day}/s/{pid}: startedAt    ← ONE OFFICIAL TRY (a refresh = the same try); day = the streak-day key (4 am Eastern)
