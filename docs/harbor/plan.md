@@ -6492,3 +6492,7 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 - THE BUILD TABLE (Nov 10, LOAD FIX 3 Step 0): PRISM DROP ✅ (PD-1 → PD-5B, its Fable review, PFIX-A, PFIX-B); HOLD'EM (HE1 → HE3 ✅, the rest + its Fable
   review ← in its chat); LOAD FIX 3 (this pass: THE FREEZE found + fixed + THE BOOT SAFETY NET, the city's music on the tap, THE APOSTROPHE TUBE, NO BLACK
   TILES — nothing else) ← NOW; then HOLD'EM's remaining passes → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.
+- LOAD FIX 3 DONE (Nov 10) — passes/load-fix-3.md. THE BUILD TABLE: LOAD FIX 3 ✅ (THE FREEZE found: one failed / stalled module request held the boot
+  screen forever → THE BOOT SAFETY NET — THE BOOT WATCHDOG + the BOOT HANG report + the one reload, the hang watch from boot; the city's music ON the tap;
+  THE APOSTROPHE TUBE — HOLD'EM's sign; NO BLACK TILES — 24 code-drawn cards' baked stills; no rules change); HOLD'EM's next pass ← NEXT → its Fable
+  review → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.

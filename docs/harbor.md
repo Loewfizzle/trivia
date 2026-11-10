@@ -426,6 +426,17 @@ at 8, squeeze 0.66, people ~33 pt.)
   [--trace]` — the boot screen, THE REVEAL, the first tap, the requests + bytes + long tasks before the reveal (and after it); `E2E_BASE`
   for a worktree (A/B); `LIVE=1 … --live --base https://neonspeakeasy.com --tap 0` = a read-only timing of the live site. WebKit:
   `wk-load.mjs --scene grey,night --bars none --runs 3 --log` (the LOAD LOG's reveal line names when each gate opened + what held it).
+- **THE BOOT SAFETY NET (LOAD FIX 3, Nov 10 — the owner's iPhone: "the site sometimes freezes completely while loading"; passes/load-fix-3.md):**
+  THE FREEZE was ONE failed or never-answered request among the boot's ~310 module files: the app's graph never ran, so nothing could notice
+  — the boot screen held forever. Now: **THE BOOT WATCHDOG** (inline in index.html — a classic script ahead of every module; `window.__boot`):
+  the app's graph failing to load / link → at once; no reveal after **12 s ON SCREEN** → a **BOOT HANG** report (/admin → Reports from phones:
+  the stage, the modules that never arrived, the errors) → the app reveals what is ready (`app.js#__bootOut`) or **ONE reload** (never two
+  without a reveal between), then TAP TO TRY AGAIN; a link error (two deploys' files) re-fetches the boot's modules first. **THE HANG WATCH
+  starts at boot** (its worker made there; the scene feeds it — `harbor/report.js`). The core sheets counted once each + a failed one asked
+  for again; the city's module tried 3 times; the service worker tries the network twice. Proof: the `load` group's THE BOOT SAFETY NET (six
+  faults forced once → revealed + the first tap answered) + `tests/integration/wk-freeze.mjs` (WebKit, THE LINE — `kit/line-proxy.mjs`:
+  Vercel's ETags, a phone's line, drop / fail / stall / mangle / the deploy switch) + `tests/boot-watchdog.test.mjs`. The reveal unchanged
+  (1.33 s Chromium).
 - **NOTHING IN THE SKY CHANGES BY A CUT AFTER THE REVEAL (LOAD FIX 2):** a cloud re-plan never frees a set on screen (a new field waits
   while a blend shows both sets; an unbaked incoming set is replaced while the old one keeps showing); every set after the reveal blends
   over 6 s (a late reveal's first set too); any new weather answer after the reveal blends the sky + the bake; a clock jump the real time
@@ -622,9 +633,12 @@ one room), the banner's colour + passes, the words in the windows for a time win
 ## KNOWN ISSUES — OPEN (C4d, Oct 29 2026: one list; each pass's own section in its log keeps the history)
 
 **Open**
-- **LOAD FIX 2** (passes/load-fix-2.md): the music starts a moment AFTER the first tap (the station's song is fetched + decoded
-  then — ~0.5–1 s on Wi-Fi) instead of with it; before a tap the party crowd dances on the grid's stand-in clock (pixdiff: the dancers'
-  phase only). THE BOOT PRELOAD's gain was measured on the local HTTP/1.1 server (4.20 → 3.90 s on the Wi-Fi line) — the live site's
+- **LOAD FIX 3** (passes/load-fix-3.md): a request that never answers costs 12 s + a reload before the city (the watchdog can't tell a stall
+  from a slow phone sooner); a SECOND hang in the same tab without a reveal between gets TAP TO TRY AGAIN, not another reload. THE MUSIC ON THE
+  TAP was measured in Chromium only (Playwright's Windows WebKit has no Web Audio) — the owner's iPhone judges Safari; the warm-up fetches +
+  decodes up to 3 station songs a page after the reveal (2–3 MB each) even if no tap comes. Before a tap the party crowd dances on the grid's
+  stand-in clock (pixdiff: the dancers' phase only).
+- **LOAD FIX 2** (passes/load-fix-2.md): (the music after the tap — FIXED in LOAD FIX 3). THE BOOT PRELOAD's gain was measured on the local HTTP/1.1 server (4.20 → 3.90 s on the Wi-Fi line) — the live site's
   HTTP/2 + Safari's service-worker hop are the owner's iPhone's to judge. A 4×-CPU phone stays CPU-bound (8.9 → 8.5 s in headless Chromium);
   the service worker still revalidates every file on every load (the repo has no per-file version to cache on — network-first stays).
 - **CITY FIXES + HOLD'EM** (passes/city-fixes.md): THE TAP WATCH keeps reporting real lost taps to /admin (LOST TAP) — the iPhone's own data
@@ -983,6 +997,7 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | OVERCLOCK CARDS | Nov 5 | [passes/overclock-cards.md](harbor/passes/overclock-cards.md) | REDLINE + PHOTO FINISH (Grok's art + js/fx/oc-cards.js — the needle, the laser) + their server-checked unlocks; the add-on: the after-match tiles, SOLO RUN, a solo run never hosts; no rules change |
 | BUZZED LIGHTYEAR | Nov 6 | [passes/buzzed-lightyear.md](harbor/passes/buzzed-lightyear.md) | the 1-of-1 gift card (the picture taken apart: the spiral fitted + turning behind him, the stars orbiting, the HIC! popping; the strip composed eyebrows → chin) + THE CARD TEXT STANDARD on every full card; the gift strip mapping fix |
 | THE LOAD FIX | Nov 6 | [passes/load-fix.md](harbor/passes/load-fix.md) | the owner's four load problems on his iPhone reproduced in WebKit (wk-load.mjs + kit/load-probe.mjs → four `load` checks) + fixed: the bars keep the city (no doubled lettering), ONE CAMERA ON SCREEN (hold, then cut), the boot screen holds until the city (ONE fade, never the dark title), the #net pill hidden from the first frame; no rules change |
+| LOAD FIX 3 | Nov 10 | [passes/load-fix-3.md](harbor/passes/load-fix-3.md) | THE FREEZE found (one failed / stalled module request held the boot screen forever — the parent too) + THE BOOT SAFETY NET (THE BOOT WATCHDOG inline, the hang watch at boot, the sheets + the city's module retried, the one reload); the music ON the tap (1.7–2.4 → 0.09–0.17 s); THE APOSTROPHE TUBE (HOLD'EM); NO BLACK TILES (24 code-drawn cards' baked stills) |
 | LOAD FIX 2 | Nov 9 | [passes/load-fix-2.md](harbor/passes/load-fix-2.md) | the city loads fast again (THE BOOT CLOCK: nothing grew since Nov 6 — the waterfall, the song before a tap, THE LOOK TRAP; THE BOOT PRELOAD, the song at the first tap; 3.45 → 1.32 s Chromium, 2.75 → 2.2 s WebKit, the bytes halved) + the clouds never snap (no set dropped mid-blend, 6-s blends, the clock's jump absorbed); THE BOOT BUDGET + the sky guard |
 | FRIENDS B | Nov 8 | [passes/friends-b.md](harbor/passes/friends-b.md) | FACE ID / PASSKEY SIGN-IN (api/_lib/passkeys.js — server-only nodes, no rules change) + THE PODIUM (Grok's sounds, OWN_VICTORY_SOUND, the music with the frame, ACCENT, the XP box, the score under the cards, the list from 4th) + THE CARDS + THE SHELL (one gem shape, no step, the 150 ms fade, the dock lit by day, og.jpg, B5, B6) |
 | FRIENDS C | Nov 8 | [passes/friends-c.md](harbor/passes/friends-c.md) | THE CITY FIXES: A FIRED JACK PLAYS ONCE (the played record kept for the tab), the schedule's order, the crew radio's header; THE INTERCOM IN SYNC (EVERYONE 50 s ahead on the server clock, scheduled on the audio clock, a late phone joins mid-way); THE SKY UNDER WEATHER (the show after every weather layer); THE BLACK HELICOPTER (the medium night pass, a jack, &force=blackhelo); THE SLOW-3G START (the whole graph at once + the lobby wires it); the cloud reds |

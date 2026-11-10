@@ -102,6 +102,9 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
     THE BOOT BUDGET (LOAD FIX 2): what loads before the reveal is budgeted (tests/integration/boot-budget.json — raising it = a decision a pass
     names); THE BOOT PRELOAD = index.html's GENERATED list (`node scripts/build-boot-preload.mjs` after a module's imports change); no audio
     before a tap; after the reveal nothing in the sky changes by a cut (clouds.js); measure: `boot-time.mjs` (docs/harbor.md#performance).
+    THE BOOT WATCHDOG (LOAD FIX 3): inline in index.html, ahead of every module (`window.__boot` — a module can't watch the graph it dies with):
+    the graph failing → at once, no reveal in 12 s ON SCREEN → a BOOT HANG report to /admin + ONE reload (never a loop) + TAP TO TRY AGAIN; THE
+    HANG WATCH starts there at boot (the scene only feeds it); proof: the `load` group's BOOT SAFETY NET + `wk-freeze.mjs` (docs/harbor.md#performance).
   - Debug + preview flags: `&debug=1` (strips at the TOP), `&dpr=3` (look only), `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary
     from a link waits for the reveal + a tap; `&lgnow=1` at once) — docs/harbor.md.
 - **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import
@@ -123,6 +126,8 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   every strip with `'W'.repeat(NAME_MAX)` + MAXIMILIANOS at 390. FX plates (light on black) ship as LIGHT WITH ALPHA — the effect canvas is transparent.
 - **THE HERO-SPOT RULE (SHELL 2.0 B2):** a strip's main feature middle → middle-right (its centre ≥ 0.60 across), clear of the plate + the gem —
   a NEW focal card = its row in `js/vault/hero.js` (checked live at 390 / 402 / 430: harbor `platefit`).
+- **NO BLACK TILES (LOAD FIX 3 — docs/vault.md):** a card DRAWN IN CODE = a baked still as its material (`js/vault/stills.js` + `node scripts/build-card-stills.mjs`),
+  shown only where its effect isn't painting (`fx/renderer.js` marks `.fx-on`); a new one = its STILLS row (`tests/card-stills.test.mjs`).
 - **THE VAULT 2C:** the strip's tier mark is THE TIER GEM (`js/vault/gems.js` — no words; the dev cards' DEV GEM); a pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES` (it shows CHANGED in THE LAB 2.0); the 12 sign-up shapes are commons everyone owns (`core/items.js#SIGN_EMBLEMS`) — the shape changes only in CUSTOMIZE; an unknown path gets THE WRONG DOOR (`404.html` — keep vercel.json free of rewrites).
 - **ITEM NAMES ONLY TO OWNERS (THE VAULT 1B):** the catalog (names, lines, achievements, what each level / milestone gives, the lab's names) lives in `api/_lib/catalog.js` + `lab-text.js` (never served); a phone gets display rows only for what it owns (`withShow` → the /api wrapper registers them). A new item = its row there. `tests/vault-names.test.mjs` fails on a leak.
 - **PROGRESSION (docs/progression.md):** XP, levels, the streak, items, achievements, X% counts + FOUNDER are written by the SERVER only (one

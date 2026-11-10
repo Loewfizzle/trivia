@@ -39,6 +39,14 @@ through the console's SFX bus (the slider + the one mute apply; the console owns
 the 3-2-1 — a SLICE of `07-321-go.mp3` (its beeps are 0.35 s apart, the slam's stamps 1 s: each number plays the beep, GO the hit at 1.03 s).
 The rest followed in OC2 – OC4; OC5 plays Dumb Luck's five (19 the bell · 20 the hooves — a Web Audio buffer LOOP, `sfx.js#ocLoop` · 21 the crowd, swelling down the stretch · 22 the photo finish · 23 LONG SHOT!) — fetched only by a match that deals it (`DL_FILES`) — + a synthesized neon HUM for its sign (`ocHum`, no file). Music: `MUSIC: 'mood:evening'`.
 
+## THE MUSIC ON THE TAP (LOAD FIX 3, Nov 10 2026) — `audio/party-music.js#warmAhead`, `synced-songs.js#warmSong`, app.js's `musicTick`
+- Once the city has been on screen 1.5 s (the page visible, no room), the song the station will be playing at a tap is FETCHED + DECODED on an
+  OFFLINE context (no sound, no unlocked graph — a decode is not audio) into THE MUSIC CACHE under a ref of its own (≤ 3 songs a page; never
+  with Save-Data or the music off; released 20 s after the tap). A decoded song is handed to the player IN the tick that asks (the buffer kept
+  on the cache entry), and the music tick runs IN the tap (`onUnlock`) + again when the graph runs (`onResume` — a voice starts only on a
+  running clock: the song stays on the server clock). Chromium on a Wi-Fi-like line: the tap → the music 1.7–2.4 s → 0.09–0.17 s
+  (`tests/integration/tap-music.mjs`; WebKit has no Web Audio in Playwright on Windows — the iPhone judges Safari).
+
 ## NO SONG BEFORE A TAP (LOAD FIX 2, Nov 9 2026) — `audio/party-music.js#partyMusicTick`
 - The city's radio station (the synced player on the server clock) is made at the FIRST TAP (engine.js's unlock — `audioUnlocked()`), not
   at boot: its whole song (2–3 MB + a whole decode) was half the bytes before the city's reveal on every load, for a sound nothing may play

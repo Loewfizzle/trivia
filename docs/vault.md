@@ -30,6 +30,16 @@ EFFECT LIBRARY); the passes: `docs/harbor/passes/vault-1a.md` (THE STYLE TEST �
 | `js/vault/glows.js` · `js/vault/sheet.js` | NAME GLOWS (`GLOW_ART`, `applyGlow`) · css/vault.css on demand (no effect library) |
 | `js/fx/sign-kit.js` · `opening.js` · `house.js` · `bevel.js` | 2A: the app's neon baked for a card (tube letters, the switch-on) · `card-founder`'s scene · `card-house`'s scene · `card-platinum`'s bevel light |
 
+
+## NO BLACK TILES — EVERY CARD DRAWN IN CODE HAS ITS BAKED STILL (LOAD FIX 3, Nov 10 — docs/harbor/passes/load-fix-3.md)
+- A card whose picture IS its effect (a near-black material — PENTHOUSE · THE DIAL, the 8 sighting cards, INFERNO, PRISM, NOIR, LEGEND, MARQUEE
+  GOLD, NEON CAMO, WILDFIRE, ETERNAL, WITNESS, FOUNDER, HOUSE, DEV SOURCE, PRISM DROP's three strips) has its effect's STILL frame baked —
+  `node scripts/build-card-stills.mjs "<browser>"` → `assets/vault/still/<card>-s.webp` (the strip) / `-f.webp` (the full card) + the
+  GENERATED block at the end of css/vault.css — its material wherever the effect is NOT painting it: `fx/renderer.js` marks a painted slot
+  `.fx-on`, the still is `:not(.fx-on)` (never under a live effect: most effects are transparent light over the material). The list:
+  `js/vault/stills.js` (STILLS + CSS_ART — the materials that ARE their look in CSS). **A NEW code-drawn card = its STILLS row + the build**;
+  `tests/card-stills.test.mjs` fails on a dark card with neither. Re-run the build after an edit to a listed card's effect (the art unchanged
+  = no LAB_V bump). PRISM DROP's full cards keep PD-5B's own (`build-pd-cards.mjs`).
 ## THE BAR (the owner, said twice: "make sure they are HIGH QUALITY")
 Every card at the class of I WANT TO BELIEVE (`docs/harbor/plan.md` "THE SIGHTING CARDS' BAR": the real baked model, real light, depth,
 motion) — never a flat gradient with a sticker on it. **Fewer, better:** a card that can't reach it isn't shipped. Every new card gets

@@ -2490,3 +2490,15 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   end INSIDE the deal (both blinds all in) — `nextHand` now settles it.
 - THE SIMULATIONS (`tests/holdem-sim.test.mjs` + `tests/fixtures/holdem-bots.mjs` + `holdem-driver.mjs`): ≈ 30,000 robot hands a run with THE
   INVARIANTS after every action (≈ 7 s for all of HOLD'EM's tests). THE LENGTH STUDY (`scripts/holdem-sim.mjs`) → TURBO 2 min → 90 s.
+
+## LOAD FIX 3 — THE FREEZE + THE MUSIC ON THE TAP + THE APOSTROPHE TUBE + NO BLACK TILES (Nov 10, 2026 — docs/harbor/passes/load-fix-3.md)
+- THE FREEZE (the owner's iPhone: the site sometimes froze completely while loading): reproduced in WebKit through THE LINE (a proxy playing
+  Vercel's caching + a phone's line + faults): ONE failed or never-answered request among the boot's ~310 module files held the boot screen
+  FOREVER (LOAD FIX 2's parent too); 180 healthy loads + 20 live + 26 deploy-mid-visit loads never froze. THE BOOT SAFETY NET: THE BOOT WATCHDOG
+  inline in index.html (the graph failing → at once; no reveal in 12 s on screen → a BOOT HANG report → reveal what's ready / ONE reload / TAP TO
+  TRY AGAIN; a link error re-fetches the modules first), THE HANG WATCH from boot, each core sheet counted once + retried, the city's module
+  tried 3 times, the service worker's second try. WebKit after: 0 freezes in 60 + 60 + 16 + 20 at a 2 % drop; the harbor load group's six
+  forced faults revealed + tappable. The reveal unchanged (1.33 s).
+- THE MUSIC ON THE TAP: the station's song decoded ahead of the tap (offline, no sound), the tick in the tap: ~1.9 → ~0.1 s (Chromium).
+- THE APOSTROPHE TUBE: the tube alphabet's ' + per-glyph advances; HOLD'EM's sign reads HOLD'EM; a test for every name's characters.
+- NO BLACK TILES: 24 code-drawn cards' effect stills baked as their material where the effect isn't painting (`.fx-on`).

@@ -541,6 +541,13 @@ load problem, not a flake to patch.
 - `harbor-jobs.mjs`: the speed rows' seconds were inside a comment (so the cap check never saw them) — out now; the job split to stay < 10 min.
 - `tests/integration/bytes-probe.mjs` — a fresh visit's bytes (music / the rest) in its first 25 s.
 
+- **LOAD FIX 3 (Nov 10) — THE FREEZE LOOP:** `node tests/integration/wk-freeze.mjs [--runs 30] [--cpu 3] [--rtt 40] [--mbps 40] [--sw]
+  [--drop 0.02] [--fail RE] [--stall RE --stall-n 1] [--mangle RE --mangle-from A --mangle-to B] [--x-fail RE] [--x-stall RE] [--junk V] [--skew
+  --upstream A --skew-to B] [--live] [--out DIR] [--json f]` — WebKit 402×874 @3, a cold + a warm load a run through THE LINE
+  (`kit/line-proxy.mjs`: Vercel's ETag caching, a phone's line + the faults, the deploy switch), each timed to the reveal (the city shown AND the
+  boot screen lifting) + the first tap (BOARD); a freeze saved with its stage. **THE MUSIC ON THE TAP:** `node tests/integration/tap-music.mjs
+  [--engine chromium] [--net wifi] [--scene night|day]` — the first tap → the station's music sounding (no voice before a tap). **THE CARD
+  STILLS:** `node scripts/build-card-stills.mjs "<browser>"` (`--check`).
 - **LOAD FIX 2 (Nov 9) — THE BOOT CLOCK:** `node tests/integration/boot-time.mjs "<browser>" [--runs 3] [--cpu 4] [--net wifi|4g|3g] [--warm]
   [--trace] [--log] [--tap 0] [--json out]` — Chromium (CDP throttles): the boot screen, THE REVEAL, a tap on BOARD at the reveal → THE BOARD,
   the requests + bytes before the reveal by kind (+ the service worker's own fetches warm), the long tasks before (`--trace`: their pieces) and
