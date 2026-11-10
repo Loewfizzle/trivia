@@ -215,3 +215,12 @@
 - Nov 9: Ben APPROVED all three PRISM DROP cards in THE LAB (FIRST KO, PERFECT CLEAR, COMEBACK); FIRST KO keeps its burst (a moving common, accepted).
 - Nov 9: DECIDED for the fix pass: the NIGHT songs are turned down at PLAYBACK to match the day set (~−14.4 LUFS) — a per-song gain value, the files untouched, the night behaviour otherwise unchanged.
 - Nov 9: FABLE REVIEW (read-only) of PRISM DROP after PD-5B; its findings + the night-gain fix become the fix pass. The report: docs/games/review-prism-1.md.
+
+## PFIX-A — THE PLAY-BREAKING FIXES (Nov 10 2026 — FABLE REVIEW's answers, Ben: "take the recommendations")
+- A. LOCKS: once the 15 lock resets are spent, the piece locks AT ONCE the next time it touches down (no stall of any kind).
+- B. DOUBLE KO: when the last boards go out in one tick, the winner = the board that went out LAST (its server stamp `at`); an exact tie → more rows sent, then join order. Never "no survivors" in a match of 2+.
+- C. ANTI-CHEAT (PFIX-B): the cheap bounds of findings 6 + 7 + 9 (a rules change → RE-PUBLISH); no server replay now; PERFECT CLEAR in SOLO stays.
+- D. AUTO-TARGET forgets an attacker after ~20 s (the KO credit's window) → the random pick.
+- E. AWAY: a phone whose board is silent ≥ 30 s during play is OUT (the same 30 s as a lost signal), credited to nobody, the KO card says why (AWAY).
+- The NIGHT songs are turned down at PLAYBACK to the day set's level (~−14.4 LUFS) — a per-song gain value, the files untouched.
+- The fix work is split: PFIX-A (this) = MUST FIX 1–5 + D + the night gain + optional 18; PFIX-B = MUST FIX 6–7 (rules) + SHOULD FIX 8–10 + the worthwhile optionals.
