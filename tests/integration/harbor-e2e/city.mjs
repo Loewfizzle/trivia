@@ -723,7 +723,78 @@ G('load', async () => {
   { const r = await wxLoad('intro', { delay: 300, cached: false, intro: true });
     ok(r.log.visible.length === 0, `LOAD — THE FULL POWER-ON (&intro=1: the screen's entrance, the fonts, the dock easing in): 0 changes after the reveal (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
   await loadFixChecks();
+  await loadFix2Checks();
 });
+// LOAD FIX 2 (Nov 9 — the owner's iPhone: "slow to load, EVERY time" + the clouds SNAPPED then faded to a different cloud after the reveal):
+//   THE BOOT BUDGET — the real boot (cold, 402×874 @3): the requests + the bytes on the wire before the reveal under
+//     tests/integration/boot-budget.json (raising it = a decision a pass names), and NO AUDIO before the reveal (no song before a tap).
+//   THE SKY AFTER THE REVEAL — the live path with the worst of it forced in ONE load: a kept answer near its end, a different answer
+//     landing after the reveal, a SECOND one inside that blend (live-weather.js#askWeatherNow), the server's clock 5 min ahead answered
+//     late: through the first 6 s after the reveal no cloud set is dropped, no cloud jumps, the shown clouds never fall in one frame
+//     (kit/load-probe.mjs#skyJudge), and the LOAD LOG sees nothing in the sky.
+async function loadFix2Checks() {
+  const { SKY_REC, skyJudge } = await import('../kit/load-probe.mjs');
+  const { readFileSync } = await import('node:fs');
+  const BUD = JSON.parse(readFileSync(new URL('../boot-budget.json', import.meta.url), 'utf8'));
+  { const ctx = await (await launch()).createBrowserContext();
+    const p = await ctx.newPage();
+    p.on('pageerror', e => { errors.push(`bootbudget pageerror: ${e.message}`); log('load', 'PAGEERROR', e.message); });
+    await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+    await p.evaluateOnNewDocument(() => { try { localStorage.setItem('nd:entered', '1'); } catch { /* fine */ } });
+    const cdp = await p.target().createCDPSession(); await cdp.send('Network.enable');
+    const reqs = new Map();
+    cdp.on('Network.requestWillBeSent', e => { if (!reqs.has(e.requestId)) reqs.set(e.requestId, { url: e.request.url, at: e.wallTime * 1000, bytes: 0 }); });
+    cdp.on('Network.loadingFinished', e => { const r = reqs.get(e.requestId); if (r) r.bytes = e.encodedDataLength; });
+    await p.goto(`${BASE}/?emu&slot=bb&when=2026-11-06T13:02&wx=overcast${GR}&city=2`);
+    await waitFor(p, '!!window.__district && !!window.__district.loadProbe && window.__district.loadProbe().shown', 'the reveal', 30000);
+    const at = await ev(p, 'performance.timeOrigin + performance.now()');
+    await sleep(300);
+    const before = [...reqs.values()].filter(r => r.at <= at && !/^data:/.test(r.url));
+    const kb = before.reduce((x, r) => x + r.bytes, 0) / 1024, audio = before.filter(r => /\.(mp3|wav|m4a|ogg)(\?|$)/.test(r.url));
+    ok(before.length <= BUD.requests && kb <= BUD.kb && !audio.length, `THE BOOT BUDGET: before the reveal ${before.length} requests (≤ ${BUD.requests}) · ${kb.toFixed(0)} KB on the wire (≤ ${BUD.kb}) · audio ${audio.length ? audio.map(r => r.url.split('/').pop()).join(', ') : 'none'} (boot-budget.json — raising it is a decision a pass names)`);
+    await ctx.close(); }
+  const MIN = 60e3, base = { code: 2, fog: 0, gust: 3, lat: 43, lon: -85.5, rain: 0, rate: 0, snow: 0, snowDepth: 0, snowfall: 0, src: 'test', storm: 0, temp: 8, veil: 0, vis: 20000, wind: 2.5, windDir: 226 };
+  const FAIR = { ...base, cloud: 0.15, kind: 'clear', layers: { hi: 0.15, lo: 0.05, mid: 0.05 }, opaque: 0.1 };
+  const CLOUDY = { ...base, cloud: 0.6, kind: 'cloudy', layers: { hi: 0.1, lo: 0.3, mid: 0.6 }, opaque: 0.6 };
+  const OVER = { ...base, cloud: 1, kind: 'overcast', layers: { hi: 0.02, lo: 0.1, mid: 1 }, opaque: 0.9, code: 3 };
+  // (one load: kept = the answer this device kept (age in min), sky = the answers /api/sky gives (the 2nd one 3 s after the reveal, pulled by
+  //  live-weather.js#askWeatherNow), clockMs = the server's clock this much ahead, answered 2 s late)
+  const skyLoad = async (slot, { keptAge, sky, clockMs = 0, ms = 6000 }) => {
+    const ctx = await (await launch()).createBrowserContext();
+    const p = await ctx.newPage();
+    p.on('pageerror', e => { errors.push(`skysnap pageerror: ${e.message}`); log('load', 'PAGEERROR', e.message); });
+    await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await p.evaluateOnNewDocument(k => { try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('nd:wx', k); } catch { /* fine */ } }, JSON.stringify({ ...FAIR, at: Date.now() - keptAge * MIN, got: Date.now() - keptAge * MIN }));
+    await p.evaluateOnNewDocument(SKY_REC(ms));
+    await p.setRequestInterception(true);
+    let n = 0, shownWall = 0;
+    p.on('request', async r => {
+      const u = r.url();
+      if (u.includes('/api/sky')) {
+        const k = n++, a = sky[Math.min(k, sky.length - 1)];
+        if (!a) return r.respond({ status: 204, body: '' }).catch(() => {});
+        if (k === 0) await sleep(2500); else { while (!shownWall) await sleep(50); const w = shownWall + 3000 - Date.now(); if (w > 0) await sleep(w); }
+        return r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...a, at: Date.now() - 2 * MIN }) }).catch(() => {});
+      }
+      if (clockMs && u.includes('/api/time')) { await sleep(2000); return r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ t: Date.now() + clockMs }) }).catch(() => {}); }
+      r.continue().catch(() => {});
+    });
+    await p.goto(`${BASE}/?emu&slot=${slot}&city=2`);
+    await waitFor(p, 'window.__sk && window.__sk.shownAt >= 0', 'the reveal', 30000);
+    shownWall = Date.now();
+    if (sky.length > 1) { await sleep(3100); await ev(p, "import('/js/screens/harbor/live-weather.js').then(m => m.askWeatherNow())").catch(() => {}); }
+    await sleep(ms + 400 - (Date.now() - shownWall));
+    const R = await ev(p, 'window.__sk');
+    const L = await ev(p, '(() => { const h = window.__district.harbor(); return h.loadLog.visible.filter(x => /^(sky|clouds)$/.test(x.kind)).map(x => x.kind + " " + x.msg); })()');
+    await ctx.close();
+    return { R, L, J: skyJudge(R.frames || []) };
+  };
+  { const { R, L, J } = await skyLoad('ss', { keptAge: 33, sky: [CLOUDY, OVER] });
+    ok(R.frames.length > 30 && J.plans >= 1 && !J.snaps.length && !L.length, `THE SKY AFTER THE REVEAL (LOAD FIX 2): a late answer + a second one inside its blend — 6 s, ${R.frames.length} frames: re-planned ${J.plans}× (at ${J.planAt.join(', ') || '—'} ms; the next one waits for the blend), snaps ${J.snaps.length ? J.snaps.join(' · ') : 'none'}, seen in the sky ${L.length ? L.join(' | ') : 'none'}`); }
+  // (the offset lands ~5.5–6.5 s after the reveal here: two /api/time samples one after the other, each answered 2 s late — 9 s watched)
+  { const { R, L, J } = await skyLoad('sc', { keptAge: 5, sky: [], clockMs: 5 * MIN, ms: 9000 });
+    ok(R.frames.length > 30 && J.jumps >= 1 && !J.snaps.length && !L.length, `THE SKY AFTER THE REVEAL (LOAD FIX 2): the server's clock 5 min ahead, answered late — 9 s, ${R.frames.length} frames: the clock's jump absorbed ${J.jumps}× (the clouds drift on), snaps ${J.snaps.length ? J.snaps.join(' · ') : 'none'}, seen in the sky ${L.length ? L.join(' | ') : 'none'}`); }
+}
 // THE LOAD FIX (Nov 6 — the owner's iPhone, Safari, random loads): the four load problems as frames (kit/load-probe.mjs — the same probe +
 // judge as tests/integration/wk-load.mjs, the WebKit proof). The REAL boot, 402×874 @3, cold; Safari's bar played the way Safari plays it:
 // the window's height changes, the city's 100lvh box does NOT (pinned at the large viewport) — the dock + the sign move, the canvas stays.

@@ -186,3 +186,17 @@ cloud's own step a frame — the first judge read the set's MEAN place, which a 
 | `stale` / `nearstale` / `stale-rain` | (landed inside THE LOOK TRAP) | one slow blend after the reveal | no snap |
 
 The harbor `load` + `sky` + `weather` groups: 70 / 70.
+
+## Group 4 — THE GUARDS
+
+- **THE BOOT BUDGET** — `tests/integration/boot-budget.json`: **310 modules / 6500 KB** of module source before the reveal (the static
+  check, `tests/boot-budget.test.mjs` — THE BOOT PRELOAD's list; now 298 / 6191 KB; + no game cartridge / game screen in the boot) and
+  **360 requests / 2900 KB on the wire, no audio** (the harbor `load` group's THE BOOT BUDGET — the real boot, cold, 402×874 @3; now
+  332 / 2673 KB, none). Raising a number = a decision a pass names in its summary. `tests/boot-preload.test.mjs` keeps the generated
+  preload in step with the imports.
+- **NOTHING CHANGES AFTER THE REVEAL** — the `load` group's THE SKY AFTER THE REVEAL, two loads on the live path: a kept answer near its
+  end + a late answer + a SECOND one inside its blend (6 s watched); the server's clock 5 min ahead answered late (9 s watched — the
+  offset lands ~6 s in) — each: at least one real change happened (a re-plan / an absorbed jump — never a vacuous pass), no cut, no cloud
+  jumping, the shown clouds never falling in a frame, nothing SEEN in the sky in the LOAD LOG. The load group: 22 / 22 (~75 s —
+  harbor-jobs.mjs's SECONDS updated).
+- docs/harbor.md#performance: THE BOOT BUDGET + NOTHING IN THE SKY CHANGES BY A CUT + the one command (`boot-time.mjs`).

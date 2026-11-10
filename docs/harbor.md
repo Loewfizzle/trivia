@@ -407,6 +407,30 @@ at 8, squeeze 0.66, people ~33 pt.)
   (3) **THE #net PILL** hidden from the first frame (index.html: `.net { opacity: 0 }` + no transition before css-ready) — it shows only
   for a real lost signal. (4) A late reveal waits ≤ 2 s more while its bake stands at another camera. Proof: the harbor `load` group's
   four THE LOAD FIX checks (kit/load-probe.mjs) + `tests/integration/wk-load.mjs` (THE BOOT IN WEBKIT, `--safari` = the bars).
+- **THE BOOT BUDGET (LOAD FIX 2, Nov 9 — the owner's iPhone: "slow to load, EVERY time"; passes/load-fix-2.md):** what a phone fetches
+  before the city's reveal is BUDGETED in `tests/integration/boot-budget.json` — **310 modules / 6500 KB** of module source (the static
+  check: `tests/boot-budget.test.mjs`, THE BOOT PRELOAD's list) and **360 requests / 2900 KB on the wire, NO AUDIO** (the harbor `load`
+  group's THE BOOT BUDGET — the real boot, cold, 402×874 @3). Set from this pass (298 modules / 6191 KB; 328–342 requests / ~2640 KB) + a
+  small margin; **raising a number is a decision a pass names in its summary** (like PERF_BASELINE). The rules under it:
+  (1) **THE BOOT PRELOAD** (`scripts/build-boot-preload.mjs` → index.html, GENERATED; `tests/boot-preload.test.mjs` fails when stale —
+  re-run it after a module's imports change): every module the first picture needs asked for at once (`modulepreload`) once the four core
+  sheets are in — never the import waterfall (the boot graph + the city's graph were ~22 round trips deep, every file revalidated on every
+  load). A new dynamic import every load makes before the reveal → its entry in `ENTRIES`.
+  (2) **NOTHING BEFORE THE REVEAL THAT THE FIRST PICTURE DOESN'T NEED** — the station's song waits for the first tap (`party-music.js`),
+  the preview panel loads 1.5 s after the reveal (`title.js`); no /api call holds the reveal but the weather (≤ 2.5 s, only with nothing
+  kept on the device).
+  (3) **`lookAt = 0` FORCES the look's read** (`scene.js#refreshLook`) — it once couldn't before the page was 2.5 s old (THE LOOK TRAP).
+  (4) Hidden frames before the reveal feed the bake (22 ms), the lit windows (12) + the clouds' first set (22) bigger slices.
+  **How to measure (the one command):** `node tests/integration/boot-time.mjs "<browser>" --runs 3 [--cpu 4 --net wifi] [--warm]
+  [--trace]` — the boot screen, THE REVEAL, the first tap, the requests + bytes + long tasks before the reveal (and after it); `E2E_BASE`
+  for a worktree (A/B); `LIVE=1 … --live --base https://neonspeakeasy.com --tap 0` = a read-only timing of the live site. WebKit:
+  `wk-load.mjs --scene grey,night --bars none --runs 3 --log` (the LOAD LOG's reveal line names when each gate opened + what held it).
+- **NOTHING IN THE SKY CHANGES BY A CUT AFTER THE REVEAL (LOAD FIX 2):** a cloud re-plan never frees a set on screen (a new field waits
+  while a blend shows both sets; an unbaked incoming set is replaced while the old one keeps showing); every set after the reveal blends
+  over 6 s (a late reveal's first set too); any new weather answer after the reveal blends the sky + the bake; a clock jump the real time
+  doesn't explain (≤ 15 min) is taken out of the clouds' time. Proof: the `load` group's THE SKY AFTER THE REVEAL (two loads — a late
+  answer + a second one inside its blend; the server's clock 5 min ahead, late) + `tests/integration/sky-snap.mjs` (seven cases, `--cpu 4`
+  the slow phone) — both on `kit/load-probe.mjs#skyJudge` (a CUT, the shown clouds falling > 25 % in a frame, one cloud jumping > 4 pt).
 - **Baseline: today's city** (`title-perf.mjs`, 390×844 at DPR 3 capped to the tier, Chrome, 4× CPU, Oct 20 2026), the scene's own
   draw cost per frame (mean / p50 / p95): **party peak** t2 8.9 / 8.8 / 10.7 ms · t1 10.3 / 10.2 / 12.7 · t0 6.4 / 6.2 / 8.0;
   night t2 6.6 · t1 6.0 · t0 5.4; day t2 4.4 · t1 5.7 · t0 5.4. Frames held 16.7 ms everywhere.
