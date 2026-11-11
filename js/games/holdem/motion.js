@@ -9,7 +9,7 @@ import { BEAT, holdsOf, awardLine, winLine, winningCards } from './motion-plan.j
 import { stackGhost } from './chip-art.js';
 import { BET, POT } from './chips.js';
 
-const BACK = new URL('../../../assets/holdem/cardback-casino.webp', import.meta.url).href;
+const BACK = new URL('../../../assets/holdem/cardback-casino.webp', import.meta.url).href;   // (the fallback — the skin's own back comes from view.back())
 const PERSP = 'perspective(700px)';
 
 /**
@@ -51,7 +51,7 @@ export function createMotion(layer, view) {
   function ghost(kind, from, to, { delay = 0, dur = BEAT.chip, w = 14, hh = 14, fade = false, s0 = 1, s1 = 1, r0 = 0, r1 = 0, amount = 0, d = 12, o = BET } = {}) {
     if (!from || !to) return;
     let el = null;
-    if (kind === 'back') el = h('img.he-ghost.he-gback', { src: BACK, alt: '', draggable: 'false' });
+    if (kind === 'back') el = h('img.he-ghost.he-gback', { src: view.back ? view.back() : BACK, alt: '', draggable: 'false' });
     else {
       const cv = amount > 0 ? stackGhost(amount, d, o) : null;
       if (cv) { el = cv; el.className = 'he-ghost he-gchips'; w = parseFloat(cv.style.width); hh = parseFloat(cv.style.height); }
@@ -73,7 +73,7 @@ export function createMotion(layer, view) {
   /** a card turns face up (its back on the reverse: css .he-card.is-flip — preserve-3d + the back face) */
   function flip(card, delay, dur = BEAT.flip) {
     if (!card) return;
-    if (!card.querySelector('.he-cback')) card.append(h('img.he-cback', { src: BACK, alt: '', draggable: 'false' }));
+    if (!card.querySelector('.he-cback')) card.append(h('img.he-cback', { src: view.back ? view.back() : BACK, alt: '', draggable: 'false' }));
     card.classList.add('is-flip');
     const a = animate(card, [
       { transform: `${PERSP} rotateY(180deg)` },

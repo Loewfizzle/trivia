@@ -32,10 +32,11 @@ import { SHOT_MS } from './structure.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { soundPlan, tickSecond } from './sound-plan.js';
 import { fetchSounds, decodeAll, playCues, playSound, played, planned } from './sfx.js';
-import { loadChips, onChipsReady, paintStacks, artVersion } from './chip-art.js';
+import { loadChips, onChipsReady, paintStacks, artVersion, setLight } from './chip-art.js';
+import { skinOf, skinVars, assetUrl } from './skins.js';
+import { createTiers } from '../kit/tiers.js';
 import { BET, POT } from './chips.js';
 
-const BACK = new URL('../../../assets/holdem/cardback-casino.webp', import.meta.url).href;
 const fmt = n => Math.round(n || 0).toLocaleString('en-US');
 const GHOST = { name: 'PLAYER', color: 'cyan', avatar: 'ghost' };
 const SHOW_MS = 4000;
@@ -57,6 +58,10 @@ export function createView() {
   let seenN = null, seenMatch = '', motion = null, awardNow = null, turnKey = '';
   // THE SOUNDS (HE5): primed after the first look (a mount / refresh plays nothing) · the last tick second · the podium's champion once
   let primed = false, lastTick = 0, champ = false, offChips = null;
+  // THE SKIN (HE5 — skins.js: data → CSS variables + a few settings, live) + THE QUALITY TIERS (kit/tiers.js: the living touches drop first,
+  // then the light layer; the cards are SVG — crisp at every tier)
+  let skin = null, skinKey = '', tiers = null;
+  const backUrl = () => assetUrl((skin || skinOf(settings.heSkin)).back);
   const hold = { stack: {}, pot: 0, sweep: 0 };
   const posById = new Map();                                 // the drawn seats' anchors (the layout's) — the motion's start / end points
 
@@ -113,7 +118,8 @@ export function createView() {
   // ------------------------------------------------------------------ mount / update / unmount
   function mount(el, state) {
     st = state;
-    root = h('div.he', { dataset: { msgUnder: '' } });
+    root = h('div.he', { dataset: { msgUnder: '', tier: '2' } });
+    els.bd = h('div.he-bd', { 'aria-hidden': 'true' });
     els.level = h('div.he-level', { 'aria-live': 'off' });
     els.host = h('div.he-hostbar');
     els.table = h('div.he-table', h('div.he-rail'), h('div.he-felt', h('div.he-betline')));
@@ -137,14 +143,16 @@ export function createView() {
     els.leave = h('button.he-leave', { type: 'button', hidden: true, onclick: () => tapLeave() });
     // (the safe areas, measured once per resize by two probes — never in the frame loop)
     els.probeT = h('i.he-probe.he-probe-t'); els.probeB = h('i.he-probe.he-probe-b');
-    root.append(els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.award, els.fx, els.status, els.actions, els.hero, els.leave, els.toasts);
+    root.append(els.bd, els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.award, els.fx, els.status, els.actions, els.hero, els.leave, els.toasts);
     motion = createMotion(els.fx, motionView);
     fetchSounds(); decodeAll();
     loadChips(); offChips = onChipsReady(() => { lastSig = ''; if (els.pot) els.pot.dataset.k = ''; render(); });   // (the preload fetched the bytes; decoded once the audio is unlocked — a mount after the unlock decodes now)
     el.append(root);
     ro = new ResizeObserver(() => relayout(true));
     ro.observe(root);
-    offSet = onSettings(() => { lastSig = ''; render(); });
+    applySkin();
+    tiers = createTiers({ apply: t => { root.dataset.tier = String(t); } });
+    offSet = onSettings(() => { applySkin(); lastSig = ''; render(); });
     watchHole();
     update(state);
     raf = requestAnimationFrame(frame);
@@ -207,6 +215,17 @@ export function createView() {
     if (finalView) finalView.destroy();
     seatEls.clear();
     root && root.remove();
+  }
+
+  /** the chosen skin → the root's CSS variables, data-skin, the backdrop's living touches, the chips' light — only when it changed */
+  function applySkin() {
+    const sk = skinOf(settings.heSkin);
+    if (sk.id === skinKey) return;
+    skin = sk; skinKey = sk.id;
+    for (const [k, v] of Object.entries(skinVars(sk))) root.style.setProperty(k, v);
+    root.dataset.skin = sk.id;
+    els.bd.replaceChildren(...sk.living.map(k => h(`i.he-live.he-live-${k}`)));
+    setLight(sk.light.dir);
   }
 
   function watchHole() {
@@ -377,7 +396,7 @@ export function createView() {
     // the cards: backs while held + unshown; face up once shown (the showdown, a SHOW)
     const shown = Array.isArray(x.cards) && x.cards.length ? x.cards : null;
     const backs = el.querySelector('.he-backs'), sh = el.querySelector('.he-shown');
-    const bk = !shown && x.held ? 'b' : '';
+    const bk = !shown && x.held ? backUrl() : '';
     if (backs.dataset.k !== bk) { backs.dataset.k = bk; backs.replaceChildren(...(bk ? [backImg(), backImg()] : [])); }
     const sk = shown ? `${shown.join('')}|${deck()}` : '';
     if (sh.dataset.k !== sk) { sh.dataset.k = sk; sh.innerHTML = shown ? shown.map(c => `<div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck())}</div>`).join('') : ''; }
@@ -406,7 +425,7 @@ export function createView() {
     cv.dataset.k = k;
     paintStacks(cv, amount, kind.d, kind.o, id ? hashUid(id) % 3 : 0);
   }
-  const backImg = () => h('img.he-back', { src: BACK, alt: '', draggable: 'false' });
+  const backImg = () => h('img.he-back', { src: backUrl(), alt: '', draggable: 'false' });
   /** "OUT · 5TH" — a busted seat's place (the match's places) */
   const placeText = id => { const p = ((pub && pub.places) || []).find(q => q.id === id); return p ? `OUT · ${ordinal(p.place)}` : 'OUT'; };
   const winOf = (res, id) => (res.pots || []).reduce((n, p) => n + (p.winners || []).filter(w => w.id === id).reduce((m, w) => m + (w.amount || 0), 0), 0);
@@ -508,12 +527,12 @@ export function createView() {
     const showBacks = !cards && x && x.held;
     // HE4 — SPECTATING: busted (a tournament), or at the table with no seat — your area says so instead of your cards
     const spec = !!(mine && current() && !pub.ended && (!x || x.status === 'out'));
-    const k = cards ? `${cards.join('')}|${deck()}` : showBacks ? 'backs' : spec ? 'spec' : '';
+    const k = cards ? `${cards.join('')}|${deck()}` : showBacks ? `backs|${backUrl()}` : spec ? 'spec' : '';
     if (hand.dataset.k !== k) {
       hand.dataset.k = k;
       // (each card in its own wrapper: the wrapper holds the fan's tilt, the card inside flips — motion.js)
       hand.innerHTML = cards ? cards.map(c => `<div class="he-hc"><div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck())}</div></div>`).join('')
-        : showBacks ? `<div class="he-hc"><img class="he-back" src="${BACK}" alt=""></div><div class="he-hc"><img class="he-back" src="${BACK}" alt=""></div>`
+        : showBacks ? `<div class="he-hc"><img class="he-back" src="${backUrl()}" alt=""></div><div class="he-hc"><img class="he-back" src="${backUrl()}" alt=""></div>`
           : spec ? '<div class="he-spec">SPECTATING</div>' : '';
     }
     const run = t && running(t);
@@ -707,7 +726,7 @@ export function createView() {
     return { x: cx, y: L.hand.y };
   };
   const motionView = {
-    hold, L: () => L, me: () => me(), heroId: () => heroId(), heroEl: () => els.hero,
+    hold, L: () => L, me: () => me(), heroId: () => heroId(), heroEl: () => els.hero, back: () => backUrl(),
     pos(id, what) {
       if (!L) return null;
       if (id === heroId()) return heroPos(what);
@@ -799,7 +818,9 @@ export function createView() {
     const sec = mine ? tickSecond((t.bankOn ? t.deadline : t.deadline + (mine.away ? 0 : mine.bank || 0)) - sn) : 0;
     if (sec !== lastTick) { if (sec && primed) playSound('timer-tick'); lastTick = sec; }
     if (motion) motion.tick(now);
-    work.push(performance.now() - w0); if (work.length > 240) work.shift();
+    const wk = performance.now() - w0;
+    work.push(wk); if (work.length > 240) work.shift();
+    if (tiers) { tiers.sample(now, wk); tiers.tick(now); }
   }
 
   // ------------------------------------------------------------------ the E2E's hook (localhost / ?emu only)
@@ -809,7 +830,7 @@ export function createView() {
     motion: () => !!(motion && motion.busy()), award: () => awardNow && awardNow.line, potLine: () => els.pot.textContent + els.award.textContent,
     legal: () => { const t = table(); return t && running(t) ? legalActions(t) : null; },
     act: (action, amount) => act(action, amount), pre: kind => send('pre', { pre: kind }), op: (op, body) => send(op, body),
-    tier: () => 0, setTier: () => {}, fps: () => frames.slice(), work: () => work.slice(),
+    tier: () => (tiers ? tiers.get() : 2), setTier: t => tiers && tiers.set(t), skin: () => skinKey, fps: () => frames.slice(), work: () => work.slice(),
     sounds: () => played(), planned: () => planned(),
     seats: () => [...seatEls.keys()],
   };

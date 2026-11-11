@@ -10,6 +10,8 @@ import { finished, ranksOf, finalRowsOf, finalSummaryOf } from './logic.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { fetchSounds } from './sfx.js';
+import { skinOf, skinAssets } from './skins.js';
+import { settings } from '../../audio/settings.js';
 
 export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('holdem'));
 
@@ -57,7 +59,8 @@ export { finalScene } from './final.js';
  *  the unlock). Fetch, don't build. */
 export function preload() {
   const chips = ['red', 'green', 'black', 'purple', 'yellow', 'orange'].flatMap(c => [`chips/chip-${c}-top.webp`, `chips/chip-${c}-side.webp`]);   // (HE5: 36 KB)
-  const imgs = ['felt-green.webp', 'cardback-casino.webp', ...chips].map(f => new URL(`../../../assets/holdem/${f}`, import.meta.url).href);
+  // (HE5: ONLY the chosen skin's art — this phone's settings.heSkin; NEON CASINO ≈ 70 KB)
+  const imgs = [...skinAssets(skinOf(settings.heSkin)), ...chips.map(f => new URL(`../../../assets/holdem/${f}`, import.meta.url).href)];
   return Promise.all([
     ...imgs.map(src => fetch(src).then(r => r.blob()).catch(() => null)),
     fetchSounds().catch(() => null),

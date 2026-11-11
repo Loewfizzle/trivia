@@ -19,11 +19,39 @@
   -webkit-user-select: none;
   color: var(--he-cream);
   font-family: var(--font-ui);
-  background:
-    radial-gradient(120% 60% at 50% 0%, rgba(255, 70, 160, 0.10), rgba(0, 0, 0, 0) 60%),
-    radial-gradient(90% 40% at 50% 100%, rgba(242, 193, 78, 0.08), rgba(0, 0, 0, 0) 70%),
-    #06050a;
+  background: #06050a;
 }
+/* ============================================================== HE5 — THE SKIN (skins.js → these variables on .he) · NEON CASINO
+   Layers, back to front: THE BACKDROP (+ its living touches) · the rail · the felt (+ THE LIGHT: a warm pool + the vignette, static) · the
+   pieces. THE QUALITY TIERS (data-tier — kit/tiers.js): 2 = all · 1 = the living touches off · 0 = the light layer plain too; the cards are
+   SVG at every tier. prefers-reduced-motion: the living touches hold still. */
+.he-bd {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  background: linear-gradient(180deg, rgba(0, 0, 0, var(--he-backdrop-dim, 0.3)), rgba(0, 0, 0, var(--he-backdrop-dim, 0.3))), var(--he-backdrop, none) center top / cover no-repeat, #06050a;
+}
+.he-live { position: absolute; display: block; pointer-events: none; will-change: opacity, transform; }
+/* NEON CASINO's living touches: the ceiling's neon strips breathe (+ a rare flicker), the slots' glow pulses in the top corners, a slow haze */
+.he[data-skin='casino'] .he-live-neon {
+  left: 0; right: 0; top: 0; height: 3.4%; opacity: 0.55; animation: he-neon 7.3s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(255, 60, 170, 0) 2%, rgba(255, 60, 170, 0.55) 22%, rgba(150, 70, 255, 0.35) 50%, rgba(40, 210, 255, 0.55) 78%, rgba(40, 210, 255, 0) 98%);
+  -webkit-mask: linear-gradient(180deg, #000, rgba(0, 0, 0, 0.15)); mask: linear-gradient(180deg, #000, rgba(0, 0, 0, 0.15));
+}
+@keyframes he-neon { 0%, 100% { opacity: 0.5; } 40% { opacity: 0.8; } 61% { opacity: 0.78; } 62% { opacity: 0.35; } 63.5% { opacity: 0.74; } 64.5% { opacity: 0.42; } 66% { opacity: 0.76; } }
+.he[data-skin='casino'] .he-live-slots { left: 0; right: 0; top: 3%; height: 9%; }
+.he[data-skin='casino'] .he-live-slots::before, .he[data-skin='casino'] .he-live-slots::after {
+  content: ''; position: absolute; top: 0; width: 22%; height: 100%; opacity: 0.35; animation: he-slots 3.1s ease-in-out infinite alternate;
+  background: radial-gradient(closest-side, rgba(255, 150, 60, 0.75), rgba(255, 70, 160, 0.3) 55%, rgba(0, 0, 0, 0) 100%);
+}
+.he[data-skin='casino'] .he-live-slots::before { left: -6%; }
+.he[data-skin='casino'] .he-live-slots::after { right: -6%; animation-delay: -1.7s; animation-duration: 3.7s; }
+@keyframes he-slots { from { opacity: 0.2; } to { opacity: 0.55; } }
+.he[data-skin='casino'] .he-live-haze {
+  left: -40%; width: 180%; bottom: -4%; height: 30%; opacity: 0.5; animation: he-haze 46s linear infinite alternate;
+  background: radial-gradient(50% 50% at 30% 60%, rgba(255, 70, 170, 0.10), rgba(0, 0, 0, 0) 70%), radial-gradient(45% 50% at 72% 55%, rgba(40, 210, 255, 0.09), rgba(0, 0, 0, 0) 70%);
+}
+@keyframes he-haze { from { transform: translateX(-6%); } to { transform: translateX(6%); } }
+.he[data-tier='1'] .he-live, .he[data-tier='0'] .he-live { display: none; }
+@media (prefers-reduced-motion: reduce) { .he-live, .he-live::before, .he-live::after { animation: none !important; } }
 .he-probe { position: absolute; left: 0; width: 1px; visibility: hidden; pointer-events: none; }
 .he-probe-t { top: 0; height: env(safe-area-inset-top, 0px); }
 .he-probe-b { bottom: 0; height: env(safe-area-inset-bottom, 0px); }
@@ -39,27 +67,43 @@
 /* THE TABLE: a tall stadium — the black rail with its thin gold line, the felt (+ a soft vignette), the cream betting line */
 .he-table { position: absolute; }
 .he-rail {
+  /* THE RAIL: padded black leather (its grain lit by its normal map — build-holdem-skin.py), the roll's light from above + a soft sheen line */
   position: absolute; inset: 0; border-radius: inherit;
-  background: linear-gradient(180deg, #1c1813 0%, #0b0907 40%, #050403 100%);
-  box-shadow: 0 0 0 1px rgba(242, 193, 78, 0.28), 0 22px 48px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 240, 200, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 236, 205, 0.16) 0%, rgba(255, 236, 205, 0.04) 20%, rgba(0, 0, 0, 0) 38%, rgba(0, 0, 0, 0.45) 100%),
+    var(--he-rail-img, none) 0 0 / var(--he-rail-tile, 160px) var(--he-rail-tile, 160px),
+    var(--he-rail-base, #0b0a09);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.9), 0 0 0 2px rgba(255, 231, 166, 0.10), 0 24px 52px rgba(0, 0, 0, 0.75),
+    inset 0 2px 1px rgba(255, 238, 208, 0.16), inset 0 -5px 10px rgba(0, 0, 0, 0.65);
+}
+/* the padded roll: a soft sheen running round the rail's top curve, a dark crease where the leather tucks under toward the felt */
+.he-rail::before {
+  content: ''; position: absolute; inset: calc(4px * var(--s)); border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 calc(3px * var(--s)) calc(4px * var(--s)) rgba(255, 240, 215, 0.2), inset 0 calc(1px * var(--s)) 0 rgba(255, 244, 222, 0.14),
+    inset 0 calc(-3px * var(--s)) calc(4px * var(--s)) rgba(0, 0, 0, 0.45);
 }
 .he-felt {
+  /* THE FELT: the cloth (lit by its own normal map) under THE LIGHT — a warm pool on the centre fading to the rail + the vignette (static) */
   position: absolute; inset: calc(16px * var(--s)); border-radius: calc(var(--r) - 16px * var(--s));
   background:
-    radial-gradient(70% 55% at 50% 48%, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.5) 100%),
-    url('../assets/holdem/felt-green.webp') 0 0 / 256px 256px,
-    #145a32;
-  box-shadow: 0 0 0 1.5px var(--he-gold), 0 0 0 3px rgba(0, 0, 0, 0.7), inset 0 8px 22px rgba(0, 0, 0, 0.55);
+    radial-gradient(var(--he-light-pool, 60%) 46% at 50% 47%, rgba(var(--he-light, 255, 224, 168), var(--he-light-k, 0.2)), rgba(var(--he-light, 255, 224, 168), 0) 100%),
+    radial-gradient(78% 62% at 50% 48%, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, var(--he-vignette, 0.6)) 100%),
+    var(--he-felt-img, none) 0 0 / var(--he-felt-tile, 256px) var(--he-felt-tile, 256px),
+    var(--he-felt-tint, #145a32);
+  /* THE TRIM: a thin gold line where the rail meets the felt (a dark edge, the gold, a light edge, a dark crease) */
+  box-shadow: 0 0 0 1px var(--he-trim-lo, #7a5414), 0 0 0 1.75px var(--he-trim, #f2c14e), 0 0 0 2.5px rgba(255, 231, 166, 0.35), 0 0 0 4px rgba(0, 0, 0, 0.72),
+    inset 0 9px 22px rgba(0, 0, 0, 0.5), inset 0 0 2px rgba(0, 0, 0, 0.6);
 }
+.he[data-tier='0'] .he-felt { background: var(--he-felt-img, none) 0 0 / var(--he-felt-tile, 256px) var(--he-felt-tile, 256px), var(--he-felt-tint, #145a32); }
 .he-betline {
   position: absolute; inset: calc(30px * var(--s)); border-radius: calc(var(--r) - 46px * var(--s));
-  border: 1.5px solid rgba(244, 234, 210, 0.3);
+  border: 1.5px solid rgba(244, 234, 210, 0.24); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(0, 0, 0, 0.25);   /* (printed: a hair of ink bleed) */
 }
 .he-print {
   position: absolute; left: var(--cx); top: calc(var(--board-y) + var(--bc-h) / 2 + 16px * var(--s)); transform: translate(-50%, -50%);
   /* (HE4: Chakra Petch — Orbitron's A read as an R at phone size: "SPEAKERSY") */
   font-family: var(--font-ui); font-weight: 700; font-size: calc(13px * var(--s)); letter-spacing: 0.4em; white-space: nowrap;
-  color: rgba(4, 22, 10, 0.72); text-shadow: 0 1px 0 rgba(170, 240, 190, 0.2), 0 0 1px rgba(0, 0, 0, 0.25); pointer-events: none;
+  color: var(--he-print, rgba(4, 22, 10, 0.72)); text-shadow: 0 1px 0 var(--he-print-hi, rgba(170, 240, 190, 0.2)), 0 0 1px rgba(0, 0, 0, 0.25); pointer-events: none;
 }
 
 /* THE SEATS — each an anchor at its emblem's centre (layout.js); its pieces placed around it */
@@ -76,7 +120,11 @@
 .he-splate {
   position: absolute; top: 24px; left: 0; transform: translateX(-50%);
   min-width: 70px; max-width: 116px; padding: 3px 7px 4px; border-radius: 8px; text-align: center;
-  background: var(--he-plate); border: 1px solid rgba(242, 193, 78, 0.45); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+  /* (HE5 — black glass + a gold rim: a lit top edge, the rim brighter above than below) */
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 48%) padding-box, linear-gradient(var(--he-plate), var(--he-plate)) padding-box,
+    linear-gradient(180deg, var(--he-plate-rim-hi), var(--he-plate-rim) 45%, rgba(122, 84, 20, 0.6)) border-box;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
 }
 .he-seat.is-big .he-splate { top: 32px; }
 .he-seat[data-side='left'] .he-splate { left: -32px; transform: none; }
@@ -187,10 +235,14 @@
 .he-plate {
   position: absolute; left: 0; top: calc(var(--plate-y) - var(--hand-y)); transform: translateX(-50%);
   display: flex; align-items: center; gap: 10px; white-space: nowrap; padding: 4px 12px; border-radius: 10px;
-  background: var(--he-plate); border: 1px solid rgba(242, 193, 78, 0.5); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  /* YOUR plate: the black glass, a full gold rim + a soft gold glow — it marks you */
+  border: 1.25px solid transparent;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 50%) padding-box, linear-gradient(var(--he-plate), var(--he-plate)) padding-box,
+    linear-gradient(180deg, var(--he-rim-hi), var(--he-rim) 45%, var(--he-rim-lo)) border-box;
+  box-shadow: 0 0 12px rgba(242, 193, 78, 0.22), 0 4px 14px rgba(0, 0, 0, 0.6);
 }
 .he-plate[hidden] { display: none; }
-.he-hero.is-turn .he-plate { border-color: var(--he-gold); box-shadow: 0 0 16px rgba(242, 193, 78, 0.55), 0 4px 14px rgba(0, 0, 0, 0.6); }
+.he-hero.is-turn .he-plate { box-shadow: 0 0 18px rgba(242, 193, 78, 0.6), 0 4px 14px rgba(0, 0, 0, 0.6); }
 .he-hero.is-turn .he-plate::before { inset: -4px; border-radius: 13px; }
 .he-plate-l { display: flex; align-items: baseline; gap: 6px; }
 .he-you { font-size: 13px; letter-spacing: 0.08em; color: var(--he-cream); }
@@ -217,8 +269,12 @@
 .he-preset {
   min-width: calc(76px * var(--s)); min-height: 44px; padding: 3px 10px; border-radius: 12px; cursor: pointer;
   display: grid; place-items: center; gap: 0; line-height: 1.1;
-  background: linear-gradient(180deg, #17130c, #070605); border: 1.5px solid rgba(242, 193, 78, 0.8); color: var(--he-cream);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  color: var(--he-cream);
+  /* HE5 — black glass + a gold rim (a lit top, the rim catching the light above) */
+  border: 1.5px solid transparent;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 46%) padding-box, linear-gradient(180deg, var(--he-glass-hi), #060504) padding-box,
+    linear-gradient(180deg, var(--he-rim-hi), var(--he-rim) 40%, var(--he-rim-lo)) border-box;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.65), inset 0 -1px 0 rgba(0, 0, 0, 0.6);
 }
 .he-preset b { font-size: 12px; letter-spacing: 0.08em; white-space: nowrap; }
 .he-preset small { font-family: var(--font-num); font-size: 13.5px; font-weight: 700; color: var(--he-gold-2); }
@@ -226,23 +282,36 @@
 .he-btn {
   width: var(--btn, 56px); height: var(--btn, 56px); border-radius: 50%; cursor: pointer;
   display: grid; place-content: center; gap: 1px; line-height: 1.05; text-align: center;
-  background: radial-gradient(120% 90% at 30% 20%, #262017, #070605 70%); color: var(--he-cream);
-  border: 2px solid rgba(242, 193, 78, 0.85); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.65);
+  color: var(--he-cream);
+  /* HE5 — a round of black glass: the light's highlight up top, a gold rim lit from above */
+  border: 2px solid transparent;
+  background: radial-gradient(70% 45% at 50% 14%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 100%) padding-box,
+    radial-gradient(120% 90% at 32% 22%, var(--he-glass-hi), #050403 72%) padding-box,
+    linear-gradient(170deg, var(--he-rim-hi), var(--he-rim) 38%, var(--he-rim-lo) 72%, var(--he-rim)) border-box;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7), inset 0 -2px 4px rgba(0, 0, 0, 0.5);
 }
 .he-btn b { font-size: 13px; letter-spacing: 0.08em; }
 .he-btn small { font-family: var(--font-num); font-size: 12.5px; font-weight: 700; }
-.he-fold { border-color: rgba(255, 84, 104, 0.85); }
+.he-fold { background: radial-gradient(70% 45% at 50% 14%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 100%) padding-box,
+    radial-gradient(120% 90% at 32% 22%, #2a1416, #050403 72%) padding-box, linear-gradient(170deg, #ffb3bd, #ff5468 40%, #7a1a26 75%, #ff5468) border-box; }
 .he-fold b { color: #ffd0d6; }
-.he-call { background: radial-gradient(120% 90% at 30% 20%, #ffe08a, #e2a92f 70%); color: var(--he-ink); border-color: #ffe7a6; }
+.he-call { color: var(--he-ink);
+  background: radial-gradient(70% 45% at 50% 14%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 100%) padding-box,
+    radial-gradient(120% 90% at 32% 22%, #ffe9a8, #e2a92f 62%, #b07a1c) padding-box, linear-gradient(170deg, #fff4d0, #ffe7a6 40%, #9a6a18 80%, #ffe7a6) border-box;
+  box-shadow: 0 0 14px rgba(242, 193, 78, 0.35), 0 6px 16px rgba(0, 0, 0, 0.7); }
 .he-btn:disabled { opacity: 0.4; cursor: default; }
 .he-pres { top: var(--buttons-y); gap: 10px; }
 .he-pre {
   display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; border-radius: 12px; cursor: pointer;
-  background: rgba(7, 6, 5, 0.88); border: 1.5px solid rgba(244, 234, 210, 0.35); color: var(--he-cream);
+  color: var(--he-cream); border: 1.5px solid transparent;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 46%) padding-box, linear-gradient(180deg, #14110c, #060504) padding-box,
+    linear-gradient(180deg, rgba(244, 234, 210, 0.55), rgba(244, 234, 210, 0.22)) border-box;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 .he-pre b { font-size: 12.5px; letter-spacing: 0.06em; white-space: nowrap; }
 .he-pre i { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid rgba(244, 234, 210, 0.6); }
-.he-pre.is-on { border-color: var(--he-gold); box-shadow: 0 0 12px rgba(242, 193, 78, 0.45); }
+.he-pre.is-on { background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 46%) padding-box, linear-gradient(180deg, #14110c, #060504) padding-box,
+    linear-gradient(180deg, var(--he-rim-hi), var(--he-rim) 45%, var(--he-rim-lo)) border-box; box-shadow: 0 0 12px rgba(242, 193, 78, 0.45), 0 4px 12px rgba(0, 0, 0, 0.6); }
 .he-pre.is-on i { background: var(--he-gold); border-color: var(--he-gold); box-shadow: inset 0 0 0 3px #0b0a08; }
 .he-minis { top: var(--presets-y); gap: 10px; }
 .he-mini {
