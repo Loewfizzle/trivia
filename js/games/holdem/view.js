@@ -791,7 +791,10 @@ export function createView() {
     const free = !!(t && x && x.bet >= t.bet);
     const tog = (kind, label) => h(`button.he-pre${on === kind ? '.is-on' : ''}`, { type: 'button', 'aria-pressed': String(on === kind),
       onclick: () => tapPre(on === kind ? null : kind) }, h('i'), h('b', label));
-    return h('div.he-pres', tog('checkfold', free ? 'CHECK / FOLD' : 'FOLD'), tog('callany', free ? 'CHECK' : 'CALL ANY'));
+    // HE10 (Ben's A1): nothing owed → CHECK / FOLD · CHECK (a TRUE check: the dealer drops it the moment anyone bets — it never calls) ·
+    // CALL ANY; a bet to face → FOLD · CALL ANY. Every toggle says exactly what it does.
+    return free ? h('div.he-pres.is-three', tog('checkfold', 'CHECK / FOLD'), tog('check', 'CHECK'), tog('callany', 'CALL ANY'))
+      : h('div.he-pres', tog('checkfold', 'FOLD'), tog('callany', 'CALL ANY'));
   }
 
   /** YOUR queued pre-action: as tapped (preWant — at once), until your own node (hole.pre, this hand) agrees; a new hand forgets the wish */
@@ -853,7 +856,9 @@ export function createView() {
     const go = tubeButton('LEAVE THE TABLE', { kind: 'danger', block: true, onClick: () => { if (leaveSheet) leaveSheet.close(); send('leave'); } });
     const stay = tubeButton('STAY', { kind: 'ghost', block: true, onClick: () => { if (leaveSheet) leaveSheet.close(); } });
     leaveSheet = openSheet({ title: 'LEAVE THE TABLE?', cls: 'he-sheet', body: [
-      h('p.he-leave-p', `Your ${fmt(x ? x.stack : 0)} chips count in the ledger. You can watch the table — or sit back down with a new buy-in.`),
+      // (HE10 — A18: you sit back down with the chips you left with; only at zero is it a fresh 1,000 — Ben's A46 wording)
+      h('p.he-leave-p', x && x.stack > 0 ? `Your ${fmt(x.stack)} chips count in the ledger. You can watch the table — or sit back down with them later.`
+        : 'You leave with nothing in front of you. You can watch the table — or sit back down with a fresh 1,000 chips.'),
       h('div.he-leave-row', go, stay)], onClose: () => { leaveSheet = null; } });
     if (leaveState() !== 'now' && leaveSheet) leaveSheet.close();   // (a hand was dealt while the sheet opened)
   }

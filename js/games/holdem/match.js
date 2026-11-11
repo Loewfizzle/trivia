@@ -6,10 +6,10 @@
 //   act(match, action, now)                           → { match, events, error? }   a table action (+ the hand's settle)
 //   rebuy / join / leave / endSession (CASH)          → { match, events, error? }
 //   sitBack(match, id, now)                           → { match, events, error? }   back from AWAY (CASH: SAT OUT → dealt in next hand)
-//   summary(match)                                    → THE MATCH SUMMARY (HE2 reports it to /api for XP — not wired here)
+//   summary(match)                                    → THE MATCH SUMMARY (the dealer reports it to /api — holdem-dealer.js#resultRows)
 import { createTable, startHand, apply, forceFold, running, seatById, newSeat } from './table.js';
 import { SPEEDS, DEFAULT_SPEED, CASH, blindsAt, levelAt, MAX_SEATS, MIN_PLAYERS, BANK_MS, BANK_REFILL_MS } from './structure.js';
-import { CAT } from './rank.js';
+import { CAT, evaluate } from './rank.js';
 
 const copy = s => JSON.parse(JSON.stringify(s));
 const fail = (match, error) => ({ match, events: [], error });
@@ -22,7 +22,7 @@ export function createMatch({ mode = 'tournament', speed = DEFAULT_SPEED, player
   if (new Set(ids).size !== ids.length) throw new Error('player ids must be unique');
   const cash = mode === 'cash';
   if (!cash && mode !== 'tournament') throw new Error(`unknown mode: ${mode}`);
-  if (!cash && !SPEEDS[speed]) throw new Error(`unknown speed: ${speed}`);
+  if (!cash && !(typeof speed === 'string' && Object.prototype.hasOwnProperty.call(SPEEDS, speed))) throw new Error(`unknown speed: ${speed}`);
   const stack = cash ? CASH.stack : SPEEDS[speed].stack;
   const { sb, bb } = cash ? CASH : blindsAt(0);
   // (HE2: the shot clock in BOTH modes; CASH's AWAY = SAT OUT)
@@ -85,7 +85,14 @@ function settle(m, events, now) {
   const winners = [...new Set(res.pots.flatMap(p => p.winners.map(w => w.id)))];
   for (const id of winners) m.players[id].won += 1;
   if (!m.biggest || res.total > m.biggest.amount) m.biggest = { amount: res.total, hand: t.hand, ids: winners };
-  for (const e of t.log) if (e.t === 'shown' && e.cat >= CAT.quads) note(m, { hand: t.hand, kind: 'strong', id: e.id, label: e.label });
+  // (HE10: from the shown hands on the final board — a run-out's hands are turned up once, before the board is complete)
+  if (!res.byFold && t.board.length === 5) {
+    for (const x of t.seats) {
+      if (!x.shown || !Array.isArray(x.cards) || x.cards.length !== 2) continue;
+      const e = evaluate([...x.cards, ...t.board]);
+      if (e.cat >= CAT.quads) note(m, { hand: t.hand, kind: 'strong', id: x.id, label: e.label });
+    }
+  }
   if (m.mode === 'tournament') return bust(m, events, now);
   for (const x of t.seats.filter(s => m.players[s.id].leaving)) removeSeat(m, x.id, events, now);
   if (m.ending) close(m, events, now);
@@ -155,7 +162,11 @@ export function rebuy(match, id, now = 0) {
   return { match: m, events: [{ t: 'rebuy', ...now0(m, now), id, amount: CASH.rebuy }] };
 }
 
-/** LATE JOIN (CASH): a free seat, 1,000 chips, dealt in from the next hand (no blind owed). A player who left may come back. */
+/**
+ * LATE JOIN (CASH): a free seat, 1,000 chips, dealt in from the next hand (no blind owed). A player who left may come back — HE10 (Ben's
+ * A18): WITH THE CHIPS THEY LEFT WITH (their banked stack goes back on the table: no fresh 1,000 while they have chips banked — a leader
+ * can't lock a lead in and play on with a free stack); only a player who left at zero buys a fresh 1,000. THE LEDGER stays Σ net = 0.
+ */
 export function join(match, id, now = 0) {
   const why = needCash(match) || (match.ended && 'the session is over') || (match.ending && 'the session is ending');
   if (why) return fail(match, why);
@@ -167,12 +178,14 @@ export function join(match, id, now = 0) {
   for (let n = 0; n < MAX_SEATS; n++) if (!taken.has(n)) { seat = n; break; }
   if (seat < 0) return fail(match, 'the table is full');
   const m = copy(match);
-  m.table.seats.push(newSeat({ id, seat, stack: CASH.stack }, m.table.clock));
+  const banked = had ? had.banked || 0 : 0;
+  const stack = banked > 0 ? banked : CASH.stack;
+  m.table.seats.push(newSeat({ id, seat, stack }, m.table.clock));
   m.table.seats.sort((a, b) => a.seat - b.seat);
   m.players[id] = had
-    ? { ...had, seat, buyins: had.buyins + CASH.stack, left: false, leaving: false }
+    ? (banked > 0 ? { ...had, seat, banked: 0, left: false, leaving: false } : { ...had, seat, buyins: had.buyins + CASH.stack, left: false, leaving: false })
     : { seat, buyins: CASH.stack, rebuys: 0, banked: 0, hands: 0, won: 0, kos: 0, joinedAt: now, left: false, leaving: false };
-  return { match: m, events: [{ t: 'joined', ...now0(m, now), id, seat }] };
+  return { match: m, events: [{ t: 'joined', ...now0(m, now), id, seat, stack }] };
 }
 
 /**
@@ -206,19 +219,14 @@ function removeSeat(m, id, events, now) {
 }
 
 /**
- * END SESSION (CASH, the host): between hands it closes at once; mid-hand it closes when that hand ends —
- * or at once with { voidHand: true }, every chip of the running hand back where it came from.
+ * END SESSION (CASH, the host): between hands it closes at once; mid-hand it closes when that hand ends (HE10 — A17: the unused "void the
+ * hand" fallback is gone: a hand always ends by itself, on the shot clock's timeouts at the latest).
  */
-export function endSession(match, now = 0, { voidHand = false } = {}) {
-  const why = needCash(match) || (match.ended && 'the session is over');
+export function endSession(match, now = 0) {
+  const why = needCash(match) || (match.ended && 'the session is over') || (match.ending && 'the session is already ending');
   if (why) return fail(match, why);
   const m = copy(match), events = [];
-  if (running(m.table)) {
-    if (!voidHand) { m.ending = true; return { match: m, events: [{ t: 'ending', ...now0(m, now) }] }; }
-    for (const x of m.table.seats) { x.stack += x.total; x.total = 0; x.bet = 0; }
-    Object.assign(m.table, { street: 'done', turn: null, deadline: null, pots: [], runout: false, result: { total: 0, byFold: null, pots: [], voided: true } });
-    events.push({ t: 'voided', ...now0(m, now) });
-  }
+  if (running(m.table)) { m.ending = true; return { match: m, events: [{ t: 'ending', ...now0(m, now) }] }; }
   close(m, events, now);
   return { match: m, events };
 }
@@ -247,7 +255,7 @@ export function chipCount(m) {
 }
 
 /**
- * THE MATCH SUMMARY (HE2 reports it to /api for XP — the shape only, not wired):
+ * THE MATCH SUMMARY (the dealer credits the match from it — api/_lib/holdem-dealer.js#resultRows):
  * { game, v, mode, speed, startAt, endAt, hands, winner, places: [{ id, place, hand, by }] (place 1 first — TOURNAMENT),
  *   ledger: [{ id, buyins, rebuys, final, net, hands }] (CASH), biggestPot: { amount, hand, ids },
  *   notable: [{ hand, kind: 'strong' | 'knockout', … }], players: { id: { hands, won, kos } } }

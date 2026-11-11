@@ -141,19 +141,29 @@ const s_othersIn = (s, x) => s.seats.some(o => o.id !== x.id && o.status === 'in
 const round5 = n => Math.round(n / 5) * 5;
 
 /**
- * THE PRE-ACTIONS (the toggles a player sets before their turn): pre = { kind: 'checkfold' | 'callany', hand, street }
+ * THE PRE-ACTIONS (the toggles a player sets before their turn): pre = { kind: 'checkfold' | 'check' | 'callany', hand, street }
  * (hand + street = when it was set). When the turn comes → { action } to apply; a new hand or street → { cancel }.
- * CHECK/FOLD checks when it's free, else folds — it NEVER calls. CALL ANY calls whatever the bet is (all in
+ * CHECK/FOLD checks when it's free, else folds — it NEVER calls. CHECK (HE10 — Ben's A1: a TRUE check) checks when it's free and
+ * CANCELS ITSELF the moment anyone bets (it never calls, never folds — preVoid). CALL ANY calls whatever the bet is (all in
  * included), or checks when it's free. Not their turn yet → null.
  */
 export function preAction(s, id, pre) {
   if (!pre || !running(s)) return { cancel: 'no hand is running' };
   if (pre.hand !== s.hand || pre.street !== s.street) return { cancel: 'a new street' };
+  if (preVoid(s, id, pre)) return { cancel: 'a bet came in' };
   const L = legalActions(s);
   if (!L || L.id !== String(id)) return null;
   if (pre.kind === 'checkfold') return { action: { id: L.id, type: L.canCheck ? 'check' : 'fold' } };
+  if (pre.kind === 'check') return L.canCheck ? { action: { id: L.id, type: 'check' } } : { cancel: 'a bet came in' };
   if (pre.kind === 'callany') return { action: { id: L.id, type: L.canCheck ? 'check' : 'call' } };
   return { cancel: `unknown pre-action: ${pre.kind}` };
+}
+
+/** HE10 (A1): a queued TRUE CHECK no longer fits — someone bet since (the seat faces a bet now). The dealer drops it at once. */
+export function preVoid(s, id, pre) {
+  if (!pre || pre.kind !== 'check' || !running(s)) return false;
+  const x = seatById(s, id);
+  return !!x && x.bet < s.bet;
 }
 
 /** THE PRESETS: before the flop MIN · 3× · ALL IN, after it ½ POT · POT · ALL IN — clamped, rounded to 5s, deduped. */
@@ -178,7 +188,8 @@ function presets(s, x, L) {
 /**
  * action: { id, type, to? } — type 'fold' | 'check' | 'call' | 'bet' | 'raise' (to = the total to bet this street)
  * | 'allin' | 'timeout' (the clock ran out — no id needed) | 'show' (the winner of a hand everyone folded to)
- * | 'deal' (HE2 — the dealer's next run-out street on a `stepRunout` table; no id) | 'back' (an AWAY player is back — in CASH a SAT OUT one is dealt in again from the next hand: SIT BACK).
+ * | 'deal' (HE2 — the dealer's next run-out street on a `stepRunout` table; no id) | 'back' (an AWAY player is back — in CASH a SAT OUT one is dealt in again from the next hand: SIT BACK)
+ * | 'away' (HE10 — the dealer's own: that seat's player left the room / was kicked — AWAY at once).
  * Every action is the acting seat's OWN (HE2: nobody — the host included — acts, folds or sits out for another player).
  */
 export function apply(state, action, now = 0) {
@@ -194,6 +205,7 @@ export function apply(state, action, now = 0) {
     return { state: s, events };
   }
   if (type === 'show') return show(state, a.id, now);
+  if (type === 'away') return goneAway(state, a.id, now);
   if (!running(state)) return fail(state, 'no hand is running');
   if (type === 'deal') return dealNext(state, now);
   if (type === 'timeout') return timeout(state, now);
@@ -281,6 +293,25 @@ function timeout(state, now) {
   if (x.timeouts >= AWAY_AFTER && !x.away) { x.away = true; emit(s, events, now, { t: 'away', id: x.id }); }
   act(s, events, now, x, kind, 0, { auto: true });
   progress(s, events, now, x.seat);
+  return { state: s, events };
+}
+
+/**
+ * HE10 (A15) — GONE: the DEALER's own action ({ type: 'away', id }) for a seat whose player left the room or was kicked — AWAY at once
+ * (no 20 s clock + time bank to wait out): on their turn they check or fold now, and from then on as every AWAY seat (a TOURNAMENT:
+ * dealt in + auto check / fold; CASH: SAT OUT from the next deal). 'back' (their own tap, once they're in the room again) undoes it.
+ */
+function goneAway(state, id, now) {
+  const x = seatById(state, id);
+  if (!x) return fail(state, 'that player is not at this table');
+  if (x.away) return fail(state, 'already away');
+  const s = copy(state), y = seatById(s, id), events = [];
+  y.away = true;
+  emit(s, events, now, { t: 'away', id: y.id, gone: true });
+  if (running(s) && !s.runout && s.turn === y.seat && y.status === 'in') {
+    act(s, events, now, y, y.bet >= s.bet ? 'check' : 'fold', 0, { auto: true, away: true });
+    progress(s, events, now, y.seat);
+  }
   return { state: s, events };
 }
 
@@ -414,6 +445,9 @@ function showdown(s, events, now) {
   for (const x of order) {
     const seven = [...x.cards, ...s.board];
     score[x.id] = scoreInts(seven.map(cardInt));
+    // (HE10 — A4 / A6: a hand the run-out already turned up is NOT shown again — no second flip, no second sting, and an 8-way all-in's
+    //  river fits the event feed; the hands' final names are the table's own `result` + the cards on the board)
+    if (x.shown) continue;
     x.shown = true;
     const e = evaluate(seven);
     emit(s, events, now, { t: 'shown', id: x.id, cards: x.cards.slice(), label: e.label, short: e.short, cat: e.cat, best: bestFive(seven) });

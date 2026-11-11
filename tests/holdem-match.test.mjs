@@ -178,16 +178,18 @@ test('a hand that ends INSIDE the deal (both blinds all in → the run-out) stil
   assert.ok(chipCount(m).ok);
 });
 
-test('CASH: END SESSION with voidHand gives every chip of the running hand back', () => {
+test('CASH: END SESSION mid-hand waits for the hand (HE10 — A17: no void path; a second END SESSION is refused)', () => {
   let m = createMatch({ mode: 'cash', players: ['a', 'b'], now: 0 });
   m = ok(nextHand(m, { rng: rngFrom('void'), now: 0 }));
   const L = legalActions(m.table);
   m = ok(act(m, { id: L.id, type: 'raise', to: 300 }, 1));
-  const r = endSession(m, 2, { voidHand: true });
-  m = ok(r);
+  m = ok(endSession(m, 2));
+  assert.ok(m.ending && !m.ended);
+  assert.ok(endSession(m, 3).error);
+  const L2 = legalActions(m.table);
+  m = ok(act(m, { id: L2.id, type: 'fold' }, 4));
   assert.ok(m.ended);
-  assert.ok(r.events.some(e => e.t === 'voided'));
-  assert.deepEqual(ledgerOf(m).map(x => x.net), [0, 0]);
+  assert.equal(ledgerOf(m).reduce((n, x) => n + x.net, 0), 0);
 });
 
 // ------------------------------------------------------------------------------------------------ HE2

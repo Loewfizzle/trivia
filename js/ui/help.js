@@ -232,13 +232,14 @@ RULES.holdem = {
     ['HOW A HAND GOES', [
       'Two players post the blinds, then everyone bets before the flop, after the flop (3 cards), after the turn (1) and after the river (1).',
       'On your turn: FOLD (give up the hand), CHECK or CALL (match the bet), or RAISE. The quick buttons bet a real amount in one tap.',
-      'You get 20 seconds, then a 30-second time bank. If time runs out you check — or fold when there’s a bet to call.',
-      'Not your turn yet? CHECK / FOLD or CALL ANY acts for you the moment it comes round.',
+      'You get 20 seconds a turn. Past that you spend your TIME BANK — 30 seconds for the whole tournament (in CASH it refills 5 seconds a hand). When it’s gone you check — or fold when there’s a bet to call.',
+      'Not your turn yet? Tick one and it acts the moment your turn comes: CHECK / FOLD (checks, or folds to a bet) · CHECK (checks — and switches itself off if anyone bets) · CALL ANY (calls whatever the bet is, all in included).',
       'ALL IN = every chip you have. If someone is all in for less, the extra chips go into a SIDE POT they can’t win.',
     ]],
     ['THE MODES', [
       'TOURNAMENT — everyone starts even and the blinds climb; run out of chips and you’re out. Last one with chips wins.',
-      'CASH — fixed blinds; REBUY 1,000 when you hit zero; LEAVE whenever you like (mid-hand: after it). The host’s END SESSION shows the ledger — who’s up, who’s down.',
+      'CASH — fixed blinds; REBUY 1,000 when you hit zero; LEAVE whenever you like (mid-hand: after it) and SIT BACK DOWN with the chips you left with. The host’s END SESSION shows the ledger — who’s up, who’s down.',
+      'A match counts toward your level + streak after real play: 3 hands in a tournament, 10 hands and 5 minutes in CASH.',
       'Miss two turns in a row and you’re AWAY — tap I’M BACK (in CASH: SIT BACK IN) to play again.',
     ]],
     ['WHAT BEATS WHAT', 'holdem-rankings'],

@@ -4,11 +4,11 @@
 //
 //   start      { room, mode: 'tournament'|'cash', speed? }   the HOST only — seats = the room's players (≤ 8, not kicked)
 //   act        { room, hand, seq, action, amount? }           fold · check · call · bet / raise (TO amount) · allin — your own seat only
-//   pre        { room, hand, pre: 'checkfold'|'callany'|null } your queued pre-action (kept on the server — fires while your phone sleeps)
+//   pre        { room, hand, pre: 'checkfold'|'check'|'callany'|null } your queued pre-action (kept on the server — fires while your phone sleeps)
 //   show       { room, hand }                                 the optional SHOW after everyone folded to you
-//   poke       { room }                                       whatever the server's clock says is DUE (cheap when nothing is: one tiny read)
+//   poke       { room }                                       whatever the server's clock says is DUE (cheap when nothing is: 5 small reads in parallel, no write)
 //   rebuy · back · leave · sit  { room }                      CASH: rebuy at zero · back from AWAY / SAT OUT · leave · a late joiner sits down
-//   endSession { room, voidHand? }                            the HOST only, CASH: closes now, or when the running hand ends
+//   endSession { room }                                       the HOST only, CASH: closes now, or when the running hand ends
 //
 //   hrec/{CODE}                { j: the record (JSON), seq, due, id, ended, at }   SERVER ONLY (the rules' default deny) — the deck, every card
 //   rooms/{CODE}/holdem        { seq, at, m/… t/… s/… p/… e/… }                    THE LEAN WIRE (js/games/holdem/wire.js — HE3): the public view
@@ -25,7 +25,7 @@ import { GAMES } from '../../js/config.js';
 import { take } from './limit.js';
 import { noTiming } from './timing.js';
 import { pidOf } from './profiles.js';
-import { DealerError, newRecord, applyOp, advance, dueOf, publicOf, holeOf, seatUids, resultRows, abandoned } from './holdem-dealer.js';
+import { DealerError, newRecord, applyOp, advance, dueOf, publicOf, holeOf, seatUids, resultRows, abandoned, cleanAt, counts } from './holdem-dealer.js';
 import { toWire, wireDiff, nestWire, wireBytes } from '../../js/games/holdem/wire.js';
 
 export const OPS = ['start', 'act', 'pre', 'show', 'poke', 'rebuy', 'back', 'leave', 'sit', 'endSession'];
@@ -59,19 +59,25 @@ export async function startOpen(uid) {
 }
 
 // THE CALL BUDGET off the hot path (daily.js's DFIX3 pattern): a per-instance window decides at once; the shared rl/hd_{uid} count is
-// written behind it, and its refusal lifts the local count so a flood across warm instances still stops
+// written behind it — HE10 (A20): in batches (the first call of a window, then every BUDGET_EVERY calls, the batch's size at once — never a
+// transaction on every call), and its refusal lifts the local count so a flood across warm instances still stops
+export const BUDGET_EVERY = 20;
 const BUDGET = new Map();
 function budget(uid, now) {
   const key = String(uid).replace(/[.#$[\]/]/g, '_');
   let b = BUDGET.get(key);
   if (!b || now - b.t >= CALLS.windowMs || now < b.t) {
-    b = { n: 0, t: now };
+    b = { n: 0, t: now, owe: 0 };
     BUDGET.set(key, b);
     if (BUDGET.size > 4000) for (const k of [...BUDGET.keys()].slice(0, 1000)) BUDGET.delete(k);
   }
   if (b.n >= CALLS.max) return false;
-  b.n++;
-  take(`hd_${key}`, CALLS.max, CALLS.windowMs, now).then(ok => { if (!ok) b.n = Math.max(b.n, CALLS.max); }).catch(() => {});
+  b.n++; b.owe++;
+  if (b.n === 1 || b.owe >= BUDGET_EVERY) {
+    const by = b.owe;
+    b.owe = 0;
+    take(`hd_${key}`, CALLS.max, CALLS.windowMs, now, by).then(ok => { if (!ok) b.n = Math.max(b.n, CALLS.max); }).catch(() => {});
+  }
   return true;
 }
 export const forgetHoldemBudgets = () => BUDGET.clear();
@@ -85,6 +91,13 @@ export const ACTIVE_EVERY_MS = 60_000;
 /** TESTS ONLY (the emulator suite prints it): the bytes of each publish — { kinds: the new events' types, diff, full }. */
 export const wireStats = [];
 const asApi = e => new ApiError(e.status, e.code, e.message, e.extra);
+
+/** HE10 (A15): the seated players no longer in the room (their players/{uid} is gone) — or kicked → { uid: true } | null */
+function goneOf(rec, players, kicked) {
+  const out = {};
+  for (const x of rec.m.table.seats) if (!players[x.id] || kicked[x.id]) out[x.id] = true;
+  return Object.keys(out).length ? out : null;
+}
 
 /** Hold a node in the SDK's cache for the call (a transaction's first attempt then runs on the real value — one round trip). */
 function holdRef(r) {
@@ -107,7 +120,7 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
   const recPath = `hrec/${code}`, rp = `rooms/${code}`;
   const member = async () => (await ref(`${rp}/players/${uid}`).once('value')).exists();
 
-  // THE POKE's cheap path: nothing due by the server's clock → one tiny read, no write
+  // THE POKE's cheap path: nothing due by the server's clock → 5 small reads in parallel, no write
   if (op === 'poke') {
     const [due, inRoom, kickedMe, recSeq, pubSeq] = await Promise.all([val(`${recPath}/due`), member(), val(`${rp}/kicked/${uid}`), val(`${recPath}/seq`), val(`${rp}/holdem/seq`)]);
     T.mark('load');
@@ -120,12 +133,16 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
   const recHold = holdRef(recRef);
   try {
     const needHost = op === 'start' || op === 'endSession';
-    // (HE3: only the published view's NUMBER is read — never the view itself: the lean wire writes parts, the heal compares numbers)
-    const [, inRoom, kicked, hostId, players, roomAt, pubSeq, roomGame, goM] = await Promise.all([
-      recHold.loaded, member(), val(`${rp}/kicked`), needHost ? val(`${rp}/meta/hostId`) : null, op === 'start' ? val(`${rp}/players`) : null,
-      op === 'start' ? val(`${rp}/meta/createdAt`) : null, val(`${rp}/holdem/seq`), op === 'start' ? val(`${rp}/game/matchId`) : null,
+    // (HE3: only the published view's NUMBER is read — never the view itself: the lean wire writes parts, the heal compares numbers.
+    //  HE10: the room's players on every full call (≤ 8 small rows — A15: a seat whose player left the room goes AWAY at once) + the room's
+    //  createdAt (A16: a record from an earlier room with the same word is never advanced))
+    const [, playersRaw, kicked, hostId, roomAt, pubSeq, roomGame, goM] = await Promise.all([
+      recHold.loaded, val(`${rp}/players`), val(`${rp}/kicked`), needHost ? val(`${rp}/meta/hostId`) : null,
+      val(`${rp}/meta/createdAt`), val(`${rp}/holdem/seq`), op === 'start' ? val(`${rp}/game/matchId`) : null,
       op === 'start' ? val(`${rp}/meta/go/m`) : null]);
     T.mark('load');
+    const players = playersRaw && typeof playersRaw === 'object' ? playersRaw : {};
+    const inRoom = !!players[uid];
     const kickedMap = kicked && typeof kicked === 'object' ? kicked : {};
     if (!inRoom) throw new ApiError(403, 'not_in_room', 'Only someone in the room can play at its table.');
     if (kickedMap[uid]) throw new ApiError(403, 'kicked', 'You were removed from this room.');
@@ -135,10 +152,17 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
     const rng = rngNow();
 
     // ONE transaction on the server's record
-    let prev = null, next = null, refused = null, attempts = 0;
+    let prev = null, next = null, refused = null, attempts = 0, gone = null;   // gone: 'clean' | 'room' — the record deleted (HE10 — A16)
     const tx = await recRef.transaction(cur => {
-      attempts++; refused = null; prev = null; next = null;
+      attempts++; refused = null; prev = null; next = null; gone = null;
       prev = cur && typeof cur.j === 'string' ? JSON.parse(cur.j) : null;
+      if (prev && op !== 'start') {
+        // HE10 (A16): a record from an EARLIER room with this word (its createdAt differs) is never advanced — it goes; a finished match
+        // whose result is sent goes CLEAN_AFTER_MS after its end (the deck, every card, the record)
+        if (prev.roomAt != null && roomAt != null && prev.roomAt !== roomAt) { gone = 'room'; return null; }
+        const c = cleanAt(prev);
+        if (c != null && now >= c) { gone = 'clean'; return null; }
+      }
       let rec;
       try {
         if (op === 'start') {
@@ -156,12 +180,13 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
         } else {
           if (!prev) throw new DealerError(404, 'no_match', 'No game at this table.');
           rec = JSON.parse(cur.j);
-          applyOp(rec, op, uid, body, { now, rng, isHost, kicked: kickedMap });
+          applyOp(rec, op, uid, body, { now, rng, isHost, kicked: kickedMap, gone: goneOf(rec, players, kickedMap) });
         }
       } catch (e) {
         if (!(e instanceof DealerError)) throw e;
         refused = e;
-        return undefined;                                          // a refusal writes nothing
+        // a refusal writes nothing — unless the server's clock moved the table first (HE10 — A14: the caught-up table is still written)
+        if (!e.advanced) return undefined;
       }
       // the public view's number moves only when what a phone can see changed (a pre-action toggle is private)
       if (prev && op !== 'start' && JSON.stringify(publicOf(rec)) !== JSON.stringify(publicOf(prev))) rec.seq = prev.seq + 1;
@@ -171,6 +196,13 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
       return { j, seq: rec.seq, due: dueOf(rec), id: rec.id, ended: !!rec.m.ended, at: now };
     }, undefined, false);
     T.mark('tx', attempts);
+    if (gone && tx.committed) {
+      // the record went: its private nodes with it; the table's `due` → nothing (the phones stop poking — the rest of the view stays: the podium)
+      await ref('/').update({ [`hole/${code}`]: null, ...(gone === 'clean' ? { [`${rp}/holdem/m/due`]: 'null' } : {}) });
+      T.mark('write');
+      if (gone === 'room') throw new ApiError(404, 'no_match', 'No game at this table.');
+      return { ok: true, changed: true, seq: prev ? prev.seq : null, hand: prev ? prev.m.table.hand : null, due: null, now, cleaned: true };
+    }
     const changed = !!(tx.committed && next);
     let rec = changed ? next : prev;
     // THE HEAL: the published view is behind (an out-of-order publish) → this call writes it whole
@@ -213,7 +245,7 @@ async function publish(code, prev, next, now, { holes = true } = {}) {
   if (!Object.keys(u).length) return 0;
   await ref('/').update(u);
   if (stamp) { ACTIVE.set(code, now); if (ACTIVE.size > 2000) for (const k of [...ACTIVE.keys()].slice(0, 500)) ACTIVE.delete(k); }
-  if (wireStats.length < 20000) {
+  if (emulated() && wireStats.length < 20000) {                  // (HE10 — A19: the tests' byte accounting never runs in production)
     const pubPart = Object.fromEntries(Object.entries(u).filter(([k]) => k.startsWith(`${rp}/holdem`)));
     const kinds = [...new Set((next.ev || []).filter(e => !prev || e.n > (prev.evn || 0)).map(e => e.t))];
     wireStats.push({ kinds, diff: wireBytes(pubPart), full: wireBytes({ seq: next.seq, at: now, j: JSON.stringify(pubNext) }), whole: !prev });
@@ -245,8 +277,9 @@ async function settleReport(code, rec, now) {
   return next;
 }
 
-/** → 'done' | 'skipped' (fewer than 2 who played). Exactly once by the results claim + pstats m/{key}. */
+/** → 'done' | 'skipped' (fewer than 2 who played) | 'short' (HE10 — A7: too short to count). Exactly once by the results claim + pstats m/{key}. */
 export async function reportMatch(code, rec, now) {
+  if (!counts(rec)) return 'short';
   const ex = resultRows(rec);
   if (!ex) return 'skipped';
   const key = `${code}_${rec.id}`;

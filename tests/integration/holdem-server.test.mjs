@@ -298,17 +298,69 @@ test('CASH: a late joiner, a rebuy, AWAY → SAT OUT → back, a leave, END SESS
   // END SESSION mid-hand: waits for the hand; only the host
   for (let i = 0; i < 50; i++) { p = await T.pub(); if (p.table.street === 'preflop' && legalActions(p.table)) break; await T.step(); }
   assert.equal((await T.call(uids[1], { holdem: 'endSession' })).error, 'not_host');
+  clock += 5 * 60_000;                               // (HE10 — A7: a CASH session counts from 10 hands + 5 minutes — this one has the hands)
   ok(await T.call(T.host, { holdem: 'endSession' }));
   p = await T.pub();
   assert.ok(p.ending && !p.ended, 'mid-hand: the session ends with the hand');
-  assert.equal((await T.call(T.host, { holdem: 'endSession', voidHand: true })).error, 'too_soon', 'the void is only a late fallback');
+  assert.equal((await T.call(T.host, { holdem: 'endSession', voidHand: true })).error, 'ending', 'HE10 (A17): no void path — a second END SESSION just waits');
   p = await T.playToEnd({ scanAs: uids[1] });
   assert.ok(p.ended && p.ledger);
   assert.equal(p.ledger.reduce((a, r) => a + r.net, 0), 0, 'THE LEDGER sums to 0');
   assert.ok(p.ledger.find(r => r.id === busted.id).rebuys >= 1);
   assert.ok(p.players[leaver].left);
   const rec = await T.rec();
+  assert.ok(rec.m.hands >= 10, `${rec.m.hands} hands`);
+  assert.equal(p.rep, 'done');
   assert.equal((await val(`results/${T.code}_${rec.id}`)).st, 'done', 'the session reported once from the server\'s record');
+});
+
+test('HE10 — A15 + A7 + A16 on the emulators: a seat whose player left the room goes AWAY at once; a seconds-long CASH session ends but credits NOTHING (rep short); the record + the private nodes go after the end', async () => {
+  const uids = users(3, 'h10');
+  await profiles(uids);
+  const T = await new Table(uids, { seed: 'h10' }).seed();
+  ok(await T.call(T.host, { holdem: 'start', mode: 'cash' }));
+  let p = await T.pub();
+  // A15: the player to act leaves the room → the next call (anyone's) puts them AWAY + checks / folds for them at once
+  const L = legalActions(p.table);
+  await ref(`rooms/${T.code}/players/${L.id}`).remove();
+  T.gone.add(L.id);
+  const other = uids.find(u => u !== L.id && u !== T.host) || T.host;
+  ok(await T.call(other, { holdem: 'pre', hand: p.hand, pre: null }));
+  p = await T.pub();
+  assert.ok(p.table.seats.find(x => x.id === L.id).away, 'AWAY at once');
+  assert.notEqual(legalActions(p.table)?.id, L.id, 'no longer the one to act');
+  // END SESSION after seconds of play → over, nothing credited
+  ok(await T.call(T.host, { holdem: 'endSession' }));
+  for (let i = 0; i < 60 && !((p = await T.pub()).ended && p.rep); i++) await T.step();
+  assert.equal(p.rep, 'short', 'too short to count');
+  const rec = await T.rec();
+  assert.equal(await val(`results/${T.code}_${rec.id}`), null, 'no result');
+  for (const u of uids) { const pid = await val(`uids/${u}`); const st = pid ? await val(`pstats/${pid}`) : null; assert.ok(!(st && st.g && st.g.holdem), 'no play credited'); }
+  // A16: the clean-up moment — the host's poke deletes the record + every private node; the table says nothing is due (the phones stop)
+  assert.equal(p.due, rec.m.endAt + 8000);
+  clock = Math.max(clock, p.due);
+  ok(await T.call(T.host, { holdem: 'poke' }));
+  assert.equal(await val(`hrec/${T.code}`), null, 'the record is gone');
+  assert.equal(await val(`hole/${T.code}`), null, 'the private nodes are gone');
+  const after = await T.pub();
+  assert.equal(after.due, null);
+  assert.ok(after.ended, 'the table itself stays (the podium reads it)');
+  ok(await T.call(T.host, { holdem: 'start', mode: 'tournament', speed: 'turbo' }), 'a new start still works');
+});
+
+test('HE10 — A16: a record left by an EARLIER room with the same word is never advanced — a poke from the new room deletes it', async () => {
+  const uids = users(2, 'old');
+  const T = await new Table(uids, { seed: 'old' }).seed();
+  ok(await T.call(T.host, { holdem: 'start', mode: 'tournament', speed: 'turbo' }));
+  // the room closes; a new room takes the word a day later (a new createdAt, no table yet)
+  clock += 86_400_000;
+  await ref(`rooms/${T.code}/meta/createdAt`).set(clock);
+  await ref(`rooms/${T.code}/holdem`).remove();
+  const r = await T.call(T.host, { holdem: 'poke' });
+  assert.equal(r.error, 'no_match');
+  assert.equal(await val(`hrec/${T.code}`), null);
+  assert.equal(await val(`hole/${T.code}`), null);
+  assert.equal(await val(`rooms/${T.code}/holdem`), null, 'nothing published into the new room');
 });
 
 test('A MULTI-WAY ALL-IN: the run-out street by street on pokes — nothing early, upcoming cards nowhere a phone can read', async () => {

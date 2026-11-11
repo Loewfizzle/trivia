@@ -3,7 +3,7 @@
 // public view + each seat's private view, the result rows. No database (the emulator suite is tests/integration/holdem-server.test.mjs).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newRecord, applyOp, advance, dueOf, publicOf, holeOf, resultRows, PAUSE, DealerError, VOID_AFTER_MS } from '../api/_lib/holdem-dealer.js';
+import { newRecord, applyOp, advance, dueOf, publicOf, holeOf, resultRows, PAUSE, DealerError, COUNTS, counts, CLEAN_AFTER_MS } from '../api/_lib/holdem-dealer.js';
 import { legalActions, running, seatById } from '../js/games/holdem/table.js';
 import { SHOT_MS, BANK_MS } from '../js/games/holdem/structure.js';
 import { rngFrom } from '../js/core/rng.js';
@@ -143,7 +143,7 @@ test('THE PAUSES: the next hand ~3 s after a fold-win, ~6 s after a showdown —
   assert.equal(dueOf(rec), rec.doneAt + PAUSE.showdown);
 });
 
-test('CASH via the dealer: sit (late join), AWAY → SAT OUT → back, rebuy, leave, END SESSION waits for the hand; the void only as a late fallback', () => {
+test('CASH via the dealer: sit (late join), AWAY → SAT OUT → back, rebuy, leave, END SESSION waits for the hand (HE10: no void path)', () => {
   const { rec, rng } = start(3, { mode: 'cash', seed: 'cashd' });
   let now = T0 + 1;
   op(rec, 'sit', 'late', {}, now, rng);
@@ -151,19 +151,15 @@ test('CASH via the dealer: sit (late join), AWAY → SAT OUT → back, rebuy, le
   refused(() => op(rec, 'endSession', 'u1', {}, now, rng, { isHost: false }), 'not_host');
   op(rec, 'endSession', 'u1', {}, now, rng, { isHost: true });
   assert.ok(rec.m.ending && !rec.m.ended, 'mid-hand: it waits for the hand');
-  refused(() => op(rec, 'endSession', 'u1', { voidHand: true }, now + 1000, rng, { isHost: true }), 'too_soon');
+  refused(() => op(rec, 'endSession', 'u1', { voidHand: true }, now + 1000, rng, { isHost: true }), 'ending');
   // play the hand out → the session closes, THE LEDGER sums to 0
   while (running(rec.m.table)) { const L = legalActions(rec.m.table); if (!L) { advance(rec, now += PAUSE.street, rng); continue; } op(rec, 'act', L.id, { action: 'fold' }, now += 100, rng); }
   assert.ok(rec.m.ended);
   assert.equal(rec.m.ledger.reduce((a, r) => a + r.net, 0), 0);
+  assert.equal(resultRows(rec), null, 'HE10 (A7): one hand, seconds long — too short to count');
+  rec.m.hands = COUNTS.cash.hands; rec.m.endAt = rec.m.startAt + COUNTS.cash.ms;
   const ex = resultRows(rec);
   assert.ok(ex.rows.u1 && !ex.rows.late, 'a player dealt no hand is not credited');
-  // the void fallback after VOID_AFTER_MS
-  const { rec: r2, rng: g2 } = start(2, { mode: 'cash', seed: 'void' });
-  op(r2, 'endSession', 'u1', {}, T0 + 1, g2, { isHost: true });
-  op(r2, 'endSession', 'u1', { voidHand: true }, T0 + 1 + VOID_AFTER_MS, g2, { isHost: true });
-  assert.ok(r2.m.ended);
-  assert.deepEqual(r2.m.ledger.map(x => x.net), [0, 0]);
   // a CASH seat whose player was kicked from the room leaves on the next poke
   const { rec: r3, rng: g3 } = start(3, { mode: 'cash', seed: 'kick' });
   advance(r3, T0 + 2, g3, { kicked: { u2: true } });
@@ -212,6 +208,8 @@ test('THE TOURNAMENT to the end on the dealer: places → result rows (1st = the
     assertNoLeak(rec);
   }
   assert.ok(rec.m.ended, 'a winner');
+  // (HE10 — A7: a tournament counts from 3 hands dealt — this seed's shoves end it sooner, so the rows say nothing until then)
+  if (rec.m.hands < COUNTS.tournament.hands) { assert.equal(resultRows(rec), null); assert.equal(counts(rec), false); rec.m.hands = COUNTS.tournament.hands; }
   const ex = resultRows(rec);
   assert.equal(Object.keys(ex.rows).length, 4);
   assert.equal(Object.values(ex.rows).filter(r => r.win).length, 1);
@@ -219,5 +217,5 @@ test('THE TOURNAMENT to the end on the dealer: places → result rows (1st = the
   assert.equal(ex.gid, 'holdem');
   assert.equal(dueOf(rec), 0, 'the result not yet sent → due now (a poke retries it)');
   rec.rep = 'done';
-  assert.equal(dueOf(rec), null);
+  assert.equal(dueOf(rec), rec.m.endAt + CLEAN_AFTER_MS, 'HE10 (A16): the result sent → the clean-up moment');
 });
