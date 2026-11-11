@@ -309,7 +309,7 @@ hsbet/{CODE}/{m}/{rk}/{uid}: { b: { b, at }, a: { a 0-3, at } }            ← t
 
 ## HOLD'EM — THE DEALER (HE2 — `docs/holdem.md` "THE DEALER"; HE3 — THE LEAN WIRE + the table screen)
 ```
-hrec/{CODE}: { j, seq, due, id, ended, at }   ← THE RECORD — SERVER ONLY (the rules' default deny): j = the whole match as ONE JSON string (the deck,
+hrec/{CODE}: { j, seq, due, id, ended, at }   ← THE RECORD — SERVER ONLY (the rules' default deny; HE5: j carries `lv` — the queued LEAVE AFTER THIS HAND, uid → hand; the public view's players[uid].after says it): j = the whole match as ONE JSON string (the deck,
                                                  every hole card, the hand log, the queued pre-actions, the pause stamps); due = the next moment
                                                  the server's clock acts (a poke reads only this); written by POST /api/report { holdem } only
 rooms/{CODE}/holdem: { seq, at, m/…, t/…, s/{i}/{f}, p/{uid}, e/{n} }   ← THE PUBLIC TABLE as THE LEAN WIRE's parts (HE3 — js/games/holdem/wire.js:

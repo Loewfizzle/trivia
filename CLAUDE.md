@@ -248,6 +248,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   player count + the side rows in px (`layout.js#blocks` = every piece's rectangle, the CSS's offsets — keep them in step); a busted seat to its hand's end
   (`drawnSeats`), the re-spread at the next deal; THE KO CARD only on a fresh bust; CASH's LEAVE between hands / sat out; THE LEDGER + THE END SCREEN = the
   console's slim cards, the body says `podium = 'all'` (`ui/final.js`), the numbers from the server's record (`game.sum`).
+- **HOLD'EM's SOUNDS + CHIPS + SKINS (HE5 — docs/holdem.md "HE5"):** THE SOUNDS from the MOTION's own timeline (`sound-plan.js` PURE — never a replay) through
+  `sfx.js` (decoded once, HOLD'EM's own limiter + TRIM → the SFX bus; THE GAIN TABLE new 2.2 · stings 1.0 · deals 1.1 ±4 %; champion = `OWN_VICTORY_SOUND`); THE CHIPS =
+  `chips.js` (PURE — the fewest in 6 colours, a seat ≤ 2 stacks) + `chip-art.js` (lit 3/4 stacks, cached, never per frame); A SKIN = ONE entry in `skins.js` + its art
+  (`scripts/build-holdem-skin.py`) + its living touches' CSS — no skin code path, only its art loads, `settings.heSkin` per phone (HE6 adds two + the picker); the quality
+  tiers drop the living touches first, then the light; THE ACTION AREA from your cards up (`layout.js#ACT`); LEAVE always in CASH (the dealer's queued `rec.lv`).
 - **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
   `now`; a test greps — the screen — `view.js` + its `motion.js` — alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
   DEALER is the server (HE2: crypto randomness — never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /

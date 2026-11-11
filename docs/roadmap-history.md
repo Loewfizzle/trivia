@@ -2543,3 +2543,22 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - THE MUSIC ON THE TAP: the station's song decoded ahead of the tap (offline, no sound), the tick in the tap: ~1.9 → ~0.1 s (Chromium).
 - THE APOSTROPHE TUBE: the tube alphabet's ' + per-glyph advances; HOLD'EM's sign reads HOLD'EM; a test for every name's characters.
 - NO BLACK TILES: 24 code-drawn cards' effect stills baked as their material where the effect isn't painting (`.fx-on`).
+
+## HE5 — HOLD'EM: BEN'S FIXES + THE SOUNDS + THE REAL CHIPS + THE SKIN SYSTEM + NEON CASINO (Nov 10, 2026 — docs/holdem.md "HE5"; the decisions: docs/games/plan.md "HE5")
+- Group 0 (Ben's HE4 review): SPECTATING straight + level; THE ACTION AREA built up from your cards (layout.js#ACT — the buttons, ≥ 12 pt, the presets,
+  YOUR bet's stack above them; the 5–8 board up 2 pt at 390, the rows 95 pt; a short phone with 8 seats → your bet left of your cards); the buttons 30 pt
+  apart; every side pot on ONE line above the pot (no side pot can reach a bet chip — the SE overlap gone); the ledger's net on --good + a NEW --bad;
+  LEAVE always in CASH (LEAVE AFTER THIS HAND = the dealer's queued `rec.lv`, applied at the next deal's moment; a second tap cancels).
+- Group 1: the 17 approved sounds (356 KB, unchanged) on HOLD'EM's own limiter + trim into the SFX bus; THE GAIN TABLE (2.2 · 1.0 · deals 1.1 ±4 % /
+  0.85–1.0); sound-plan.js maps the motion's timeline (fresh events — never a replay); the deal 110 ms a card after a 450 ms shuffle lead; your turn,
+  the 5-s tick, champion (OWN_VICTORY_SOUND). Measured: lead-ins ≤ 6 ms, stings at 1.00, the busiest overlap 0.87; 57/57 cues started in the demo.
+  The credits (the three CC BY lines verbatim). The &play=1 demo's TAP FOR SOUND.
+- Group 2: the 12 chip images (36 KB) as lit 3/4-view stacks (the band sampled by angle, a rotation + jitter per chip, shadow + outline + rim, one light);
+  the fewest chips in 6 colours (a seat ≤ 2 stacks, yours + the pot ≤ 3); the motion flies real stacks.
+- Group 3: skins.js (one data entry a skin → CSS variables + a few settings, live, per phone; only its art loads); NEON CASINO — the felt + rail lit by their
+  normal maps (scripts/build-holdem-skin.py: 52 KB + 1.6 KB), the light pool + vignette, the padded roll + sheen + gold trim, the backdrop (12 KB) +
+  3 living touches, black glass + gold rims; the quality tiers (the living touches first, then the light). The flat HE3 felt removed.
+- Group 4: every preview state re-shot in the casino (Downloads\neon\holdem\shots\he5-*), the chips' close-up page; the E2E checks the sound PLAN
+  (known sounds, the gains, the spacing, champion once, no replay after a refresh).
+- New assets: audio/holdem/ 356 KB · assets/holdem/chips/ 36 KB · assets/holdem/casino/ 66 KB (felt 52 · backdrop 12 · rail 1.6); removed felt-green.webp
+  (14 KB) — net ≈ +444 KB. Still 8 functions; no rules change; HOLD'EM still playable: false.

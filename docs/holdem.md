@@ -4,7 +4,8 @@
 LEAN WIRE + THE TABLE SCREEN A (below): a cartridge + the portrait table, playable end to end in a LOCAL test room — its `config.js` GAMES row is
 `playable: false` + `preview: true` (never offered, no sign; only a local emulator page that asks — `&preview=1` — can start it). The owner's
 decisions: docs/games/plan.md "HOLD'EM — THE PLAN (Nov 10 2026)" + "HE1" + "HE2 — THE SERVER DEALER" + "HE3 — THE TABLE SCREEN A" + "HE4 — THE TABLE
-SCREEN B". HE4, Nov 10 2026 — THE TABLE SCREEN B (below: "THE MOTION", "THE SHOWDOWN", "KO + SPECTATING", "CASH: LEAVE + THE LEDGER", "THE END SCREEN").)*
+SCREEN B". HE4, Nov 10 2026 — THE TABLE SCREEN B (below: "THE MOTION", "THE SHOWDOWN", "KO + SPECTATING", "CASH: LEAVE + THE LEDGER", "THE END SCREEN"). HE5, Nov 10
+2026 — BEN'S FIXES + THE SOUNDS + THE REAL CHIPS + THE SKINS / NEON CASINO (below: "HE5").)*
 
 ## The plan in short
 - Texas Hold'em (no-limit), 2–8 players, one phone each, **PLAY CHIPS ONLY** — chips reset every match, no bankroll, nothing buyable becomes
@@ -394,10 +395,10 @@ live, your area says SPECTATING (from the next deal — the busted hand's cards 
 its seat OUT, fades, gone at the next deal (the re-spread).
 
 ## CASH: LEAVE + THE LEDGER (HE4)
-LEAVE TABLE: a small button right of your cards — only between hands or while you're sat out (`canLeave`) — opens a confirm (THE SHEET: "LEAVE THE
+LEAVE TABLE: a small button right of your cards — (HE5: ALWAYS there in CASH — in a hand it's LEAVE AFTER THIS HAND, see "HE5") — between hands it opens a confirm (THE SHEET: "LEAVE THE
 TABLE? Your 2,140 chips count in the ledger." · LEAVE THE TABLE · STAY) → the dealer's `leave` (your stack counts then) → SPECTATING (SIT BACK DOWN
 stays). END SESSION (the host) → THE LEDGER = the podium body in CASH (`final.js`): one SLIM CARD a player who played (the console's `leaderboard()` →
-`ui/strip-board.js` — never a second strip system), BOUGHT IN · FINAL under the card, the NET at its right end (+ gold, − a dim red, 0 white), sorted by
+`ui/strip-board.js` — never a second strip system), BOUGHT IN · FINAL under the card, the NET at its right end (HE5: + green, − red, 0 white — the shared --good / --bad), sorted by
 net; the foot: hands played · the biggest pot (who, how much). Chips only. All 8 rows + the console's button fit at 390 × 844 (the strips 50 pt there).
 
 ## THE END SCREEN (HE4 — the tournament's `finalScene` body)
@@ -418,10 +419,114 @@ player wears a REAL public face (an approved card each — two legendaries, ZEBR
 level, served as `profiles/{pid}` through `fake-firebase.js`; `&labmarks=` added when missing), so the end screen + the ledger show the real strips.
 Shots: `node tests/integration/holdem-shots.mjs "<browser>" --only he4` (a wait per staged state).
 
-## Flagged for HE5+
-- The sounds (HE5), real chips / lighting / the skins (HE5–HE6), the sideways view (HE7).
+## HE5 — BEN'S FIXES + THE SOUNDS + THE REAL CHIPS + THE SKINS (Nov 10 2026 — the decisions: docs/games/plan.md "HE5")
+
+### BEN'S FIXES (Group 0)
+- **SPECTATING** is a straight, level plate (the fan's tilt came from `.he-hand > :first-child` — the label now opts out), full strength (never the
+  folded dim), no dashed box.
+- **THE ACTION AREA is built UP from your cards** (`layout.js#ACT`): the round buttons (56 pt, 30 pt apart × s — `BTN_GAP`) 4 pt above your cards →
+  **≥ 12 pt of air** → the presets (44 pt) → **YOUR BET's stack on the felt above them** (`L.myBet` — never on a button; the felt print gives way
+  while it shows). The 5–8 player board rises only as much as that needs (390: 2 pt; the side rows 95 pt apart — HE4: 96). A short phone with
+  8 seats (375 × 812, the SE height) can't fit the bet row without crushing the rows below a seat's height (`ROW_MIN` 94.5 × ss): there your bet
+  sits LEFT of your cards, under FOLD (`myBet.above: false`); the SE height with 8 seats also takes the seats a hair smaller (ss 0.82 → 0.80).
+  k = 6's first row 0.128 → 0.11 (still on the rail's curve). `tests/holdem-phone.test.mjs` checks every size + count.
+- **EVERY SIDE POT on ONE line** just above the pot ("SIDE 1,320 · 480", more than fit → "3 SIDE POTS · 2,140" — `view.js#sideLine`):
+  `layout.js#potSideTop` is the line's top and a bottom-row bet ends 3 pt above it — no side pot can touch a bet chip (the SE overlap is gone).
+- **THE LEDGER's net**: + GREEN · − RED · 0 white on the shared `--good` + a NEW `--bad` (css/base.css — the colour-blind set swaps both:
+  blue / orange); the signs stay.
+- **LEAVE IS ALWAYS THERE (CASH)** — the button reads LEAVE TABLE (not in a running hand: a confirm, then at once — as HE4) · LEAVE AFTER THIS HAND
+  (you're IN the hand: the dealer QUEUES it — `rec.lv[uid] = hand`, you play the hand out) · LEAVING AFTER THIS HAND · CANCEL (a second tap =
+  `{ after: false }`). The dealer (`holdem-dealer.js#advance`) lets a queued leaver go at the next deal's moment (the showdown stays on screen till
+  then) — or at once when no next hand can be dealt; `dueOf` stays armed for it. The public view says it (`players[uid].after`). `leave
+  { after: true | false }` on the same op (a TOURNAMENT refuses it); `tests/holdem-dealer.test.mjs`. No rules change.
+
+### THE SOUNDS (Group 1 — `sfx.js` the player, `sound-plan.js` PURE)
+The approved set in `audio/holdem/` (17 MP3s, **356 KB** — copied unchanged: they are 192 kbps mono already, a re-encode would only lose
+quality): the NEW real recordings (Downloads\grok\holdem\sfx2 — shuffle, deal, flip, fold, check, chip-bet, chip-raise, chip-stack, all-in,
+pot-win; deal-b / chip-bet-b / all-in-b stay on Ben's PC) + the KEPT stings (sfx — your-turn, timer-tick, showdown, hand-win, knockout,
+blinds-up, champion). **NO AMBIENT BEDS** (Ben cancelled them — none shipped, none referenced).
+
+**THE ENGINE** (the site's pattern — docs/audio.md "HOLD'EM's SOUNDS"): the bytes fetched in the cartridge's `preload()`, decoded ONCE at the
+unlock (the console's unlock-on-tap) or at a mount after it, each cue an AudioBufferSourceNode scheduled on the AUDIO clock → its gain →
+HOLD'EM's soft limiter → the console's SFX bus (the slider, ☰ SOUND EFFECTS, THE ONE MUTE). Locked / muted / missing = silent, nothing throws.
+
+**THE GAIN TABLE** (Ben's balance — `sfx.js#GAIN`): the new set **2.2** (+7 dB) · the kept stings **1.0** · the deals **1.1** (≈ −6 dB from the new
+set) with **±4 % rate + 0.85–1.0 volume** each. **THE LIMITER**: threshold −6 dB, knee 4, ratio 8, attack 2 ms, release 180 ms, then **TRIM 0.76**
+(Web Audio's compressor adds its own make-up gain — the trim takes it out, so a sound under the threshold plays at exactly its level).
+MEASURED (`node tests/integration/he-sfx-measure.mjs "<browser>"`): every file's lead-in ≤ 6 ms (the browsers strip the MP3 encoder delay —
+`OFFSET` stays empty; a new file with an audible lead-in gets its row), a kept sting alone = 1.00 of its level, **THE BUSIEST MOMENT** (your
+turn + a raise + an all in + a pot win + a hand win + a bet + the showdown inside 150 ms) **2.43 → 0.87 — no clip**.
+
+**THE EVENT MAP** (`sound-plan.js#soundPlan` — from the MOTION's own timeline: the same fresh events, so a sound lands with its animation and
+NEVER replays after a refresh / a rejoin / a sleep):
+| the dealer's event(s) | the sound |
+| --- | --- |
+| a new hand (`dealt`) | shuffle, then **deal** per card — a card every **110 ms** after a 450 ms shuffle lead (the motion's `BEAT.dealLead` / `dealGap` — HE4 dealt every 45 ms; each deal is its own sound, never smeared) |
+| your two flip · a board card · a fold-win's SHOW | flip |
+| `folded` · `checked` | fold · check |
+| `posted` (a blind, 0.75 ×) · `called` · `bet` | chip-bet |
+| `raised` · `allin` | chip-raise · all-in |
+| each `pot` (side pots too) | pot-win (+ **hand-win** once a run when YOU win one) |
+| the showdown's reveal (the first `shown`) | showdown (the hands turn up under it — no flip clatter) |
+| `out` (anyone) · `level` · YOUR `rebuy` | knockout · blinds-up · chip-stack |
+| (the view) YOUR turn begins · the last 5 s of YOUR clock (the shot clock + your bank still to come) · the tournament's podium | your-turn · timer-tick a second (`tickSecond`) · **champion** (`OWN_VICTORY_SOUND` — the console's sting skipped; never on a later refresh) |
+
+**THE PREVIEW**: `holdem-preview.html?play=1` plays WITH THE SOUNDS after **TAP FOR SOUND** (the PRISM pattern; `&mute=1` silent; a test browser
+gets none unless `&sound=1`). `node tests/integration/he-sound-demo.mjs "<browser>" [s]` = the demo on a REAL audio context: every planned cue
+started (57 / 57), the deals ≥ 110 ms apart. The test hook: `__holdem.sounds()` (started) · `__holdem.planned()` (asked for — the E2E checks the
+plan silently: known sounds, the table's gains, the spacing, champion once, nothing replayed after a refresh). `tests/holdem-sound.test.mjs`.
+**CREDITS**: ☰ → CREDITS → HOLD'EM SOUNDS (the three CC BY lines verbatim from sfx2\credits.txt + the CC0 sources + the stings).
+
+### THE CHIPS (Group 2 — `chips.js` PURE, `chip-art.js` the drawing)
+Grok's clay chips (`assets/holdem/chips/` — a TOP 128² + a SIDE 128 × 24 per colour, WebP, **36 KB** for 12). **THE ARITHMETIC** (`chips.js#chipStacks`):
+an amount → the fewest chips in the six colours (**5 red · 25 green · 100 black · 500 purple · 1K yellow · 5K orange** — a canonical set, so the
+biggest first IS the fewest), the biggest value left; a value past `maxPer` splits into more stacks of it. A bet ≤ 3 stacks of ≤ 6; **a SEAT's bet
+≤ 2** (the rail's room: the two bottom rows' bets nearly meet in the middle — the amount label always whole); the pot ≤ 3 of ≤ 8 (5–8 players: 2 —
+the pot's width between the side rows). Seats 13 pt · yours 15 pt · the pot 13 pt. The AMOUNT always beside the stacks (the exact number).
+**THE DRAWING** (3/4 view, once per stack, cached ≤ 160; a bet's canvas redrawn only when its amount changes — never per frame): the side band
+(the source's x 4–508, y 28–68 — spaced by the BAND, never the canvas) sampled by ANGLE across each chip (a cylinder — the spots compress at the
+silhouette), following the ellipse's lower curve. **THE THREE FIXES**: (1) a soft CONTACT SHADOW + a dark OUTLINE round the silhouette + a light
+RIM on the top edge — the green reads on green felt; (2) the cylinder LIGHT across the edge + a SHEEN on the top, from ONE light direction (the
+skin's — `setLight`); (3) each chip its own ROTATION (a full-circumference band = the visible half + its mirror, sampled at a random offset) +
+0.5–1 pt of sideways JITTER (seeded per stack: a redraw never shimmers). **THE MOTION** flies the real stacks (`motion.js` — the chip ghost = the
+amount's stacks: a bet in, the sweep, back, each winner's share of a pot). Close-ups: `tests/integration/holdem-chips.html` (every colour at 13 /
+15 pt on the felt, bets, a big pot, side-pot shares). `tests/holdem-chips.test.mjs`.
+
+### THE SKINS (Group 3 — `skins.js` PURE data; HE6 adds two)
+**A SKIN = ONE DEFINITION in `skins.js#SKINS` + its art in `assets/holdem/<id>/` + its living touches' CSS** (`.he[data-skin='<id>'] .he-live-<k>`). The
+view consumes it through CSS variables (`skinVars`) + a few settings: the light direction (the chips), the card back, the backdrop, the living
+touches' list (the view makes one `.he-live-<k>` per entry) — NO skin-specific code path. A per-PHONE choice: `settings.heSkin` (the console's
+settings storage; default `casino`), applied LIVE (even mid-hand — `onSettings` → `applySkin`); **only the chosen skin's art loads** (its
+variables + `skinAssets` → the preload name only its files). The shape:
+```
+{ id, name, line,
+  felt: { img, tile, tint }, rail: { img, tile, base, trim, trimHi, trimLo },
+  light: { dir: { x, y }, color: 'r, g, b', strength, pool, vignette },      ← ONE light: the pool on the felt + the chips' shading
+  print: { color, hi }, accent: { main, hi, ink },
+  plate: { bg, rim, rimHi }, button: { glass, glassHi, rim, rimHi, rimLo },
+  back, backdrop: { portrait, square (HE7's sideways), dim }, living: ['neon', 'haze', 'slots'] }
+```
+**HE6 adds a skin**: bake its art (`scripts/build-holdem-skin.py` — add its rows: the felt + rail lit by their normal maps, the backdrop at phone
+size), add its entry, add its living touches' CSS, + the picker (☰ → Settings → HOLD'EM, writing `settings.heSkin`). `tests/holdem-skins.test.mjs`
+checks every skin's shape, its files, its touches' CSS and that only its own files are named.
+
+### NEON CASINO (a real high-roller table at night)
+**THE LAYERS** (back → front): **THE BACKDROP** (`.he-bd` — `casino/backdrop.webp` 645 × 1398, **12 KB**, dimmed 0.18; its accents land exactly where the
+layout leaves it visible: the ceiling's neon strips + the slots up top, the pink / cyan floor glow under your plate) + **THE LIVING TOUCHES** (the neon
+strips breathe + a rare flicker · the slots' glow pulses in the top corners · a slow haze drifts — opacity / transform only) · **THE RAIL** (padded
+black leather — `casino/rail.webp`, **1.6 KB**, its grain lit by its normal map — the roll's light from above, a sheen line round the top curve, a
+dark crease where it tucks under) · **THE TRIM** (a thin gold line where the rail meets the felt: a dark edge, the gold, a light edge, a crease) ·
+**THE FELT** (`casino/felt.webp` 512², **52 KB** — Fabric030 lit by its own normal map: the weave reads as real fabric at zero per-frame cost) under
+**THE LIGHT** (a warm overhead pool on the centre fading to the rail + a vignette — static gradients, painted once) · the printed NEON SPEAKEASY ·
+the pieces: black glass + gold rims on every button, preset, plate + toggle (a lit top, the rim catching the light above), FOLD's red rim, CALL's
+gold, YOUR plate's gold glow. The card back: `cardback-casino.webp` (HE3's — every opponent's cards + the deal).
+**THE QUALITY TIERS** (kit/tiers.js — from the frame pacing; `data-tier` on `.he`): **2** everything · **1** the living touches off (the FIRST thing to go)
+· **0** the light layer plain too (the felt's texture alone). The cards + the text are SVG / DOM — crisp at 3× at every tier. prefers-reduced-motion:
+the living touches hold still. NEON CASINO's art in all: **~82 KB** (felt 52 + backdrop 12 + rail 1.6 + the back 15).
+
+## Flagged for HE6+
+- COZY CABIN + CYBERPUNK APARTMENT + the skin picker (HE6 — data + art + CSS, see "THE SKINS"), the sideways view (HE7 — `backdrop.square`).
+- On desktop the casino's backdrop fills the phone column only (the sides black) — HE7's sideways view owns the wide screen.
 - The robots' length numbers are a guide; HE8's real play-tests should re-check TURBO (90 s) + DEEP (15 min) with people.
-- LEAVE TABLE shows only between hands (the dealer's 3–6 s pause) or while sat out — a busy table's window is short (Ben's rule; HE8's play-test says).
 - The KO card shows only on a FRESH bust (a phone that slept through it lands on SPECTATING); a bust in the match's last hand: its card over the podium.
-- Two or more SIDE POTS stacked above the pot can touch a bottom-row seat's bet chip on an SE-size phone (rare: 2+ side pots while betting goes on).
 - When it becomes playable: `scripts/build-preload-graph.mjs` (+ its CARTRIDGES list), a day face + a sign scheme, THE BOARD's catalog.

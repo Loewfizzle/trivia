@@ -177,6 +177,11 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   (≈ 2 min — whole matches through `holdemAction`, THE LEAK SCAN every step, the cost line `# holdem cost` + `# holdem bytes`). The seeded rng + clock
   go in through `setTestRng` / `setTestClock` — honoured only under the emulators. HE3 adds `# holdem wire` (THE LEAN WIRE's bytes a publish) + the
   heal / the console's start / the room kept active.
+- **HOLD'EM's SOUNDS + CHIPS + SKINS (HE5):** npm test — `tests/holdem-sound.test.mjs` (the event map, the gain table, the deals' spacing, nothing on a
+  refresh, a whole match's cues), `holdem-chips.test.mjs`, `holdem-skins.test.mjs`. In a browser (any local server): `node tests/integration/he-sfx-measure.mjs
+  "<browser>"` (each file's lead-in + the busiest overlap through the limiter — exits 1 on a clip) · `node tests/integration/he-sound-demo.mjs "<browser>" [s]`
+  (the motion demo on a REAL audio context: every planned cue started) · the chips close up: `tests/integration/holdem-chips.html`. The E2E checks the sound
+  PLAN silently (`__holdem.planned()` — headless audio stays locked).
 - **HOLD'EM's TABLE (HE3):** npm test — `tests/holdem-wire.test.mjs` (the parts round-trip, every diff, the bytes) + `tests/holdem-phone.test.mjs` (the
   phone's pure side + THE LAYOUT at 2–8 players on five phones). The look: `tests/integration/holdem-preview.html` (no Firebase — docs/holdem.md
   "THE PREVIEW") + `node tests/integration/holdem-shots.mjs "<browser>"`. The E2E (the emulators + `serve.mjs --emu`):

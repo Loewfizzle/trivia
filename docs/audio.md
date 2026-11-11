@@ -1716,3 +1716,14 @@ loops + recorded neon, the intercom, the party / station songs, the lobby song a
   `audioHealth().master` = the master's gain. Test hook: `simulateVisible(false | true)`. **Proof:** `e2e-coastclear.mjs` — the order fade out
   (still running) → suspended → fade in → running, the master back at 1, on a real tap-unlocked engine. (Not provable headless: the hum itself —
   Ben's iPhone, an app switch with the music on: the city's hum + ambience, a station song, a daily's music + sfx should all come back softly.)
+
+## HOLD'EM's SOUNDS (HE5, Nov 10 2026 — docs/holdem.md "THE SOUNDS") — `js/games/holdem/sfx.js` + `sound-plan.js`, `audio/holdem/`
+- The set Ben approved by ear: 10 NEW real recordings (Freesound originals — sfx2) + 7 KEPT stings, 17 MP3s, 356 KB, shipped unchanged (192 kbps
+  mono already). NO ambient beds (cancelled). Fetched in the cartridge's preload, decoded ONCE at the unlock, AudioBufferSourceNodes on the audio
+  clock → HOLD'EM's own soft limiter (−6 dB, knee 4, ratio 8, 2 ms) + a TRIM 0.76 (cancels the compressor's make-up gain — a quiet sound stays at
+  its level) → the console's SFX bus (slider, toggle, mute) → the master limiter.
+- THE GAIN TABLE: the new set 2.2 (+7 dB) · the stings 1.0 · the deals 1.1 with ±4 % rate + 0.85–1.0 volume. Measured
+  (`tests/integration/he-sfx-measure.mjs`): every lead-in ≤ 6 ms (no offsets), a sting alone 1.00, the busiest overlap 2.43 → 0.87 (no clip).
+- WHICH SOUND WHEN comes from the motion's own timeline (sound-plan.js PURE — fresh events only: a refresh never replays a sound); the deals
+  110 ms apart (the motion deals at that pace too); YOUR TURN / the 5-second TICK / CHAMPION (OWN_VICTORY_SOUND) from the view.
+- The motion demo (`holdem-preview.html?play=1`) plays them after TAP FOR SOUND; `tests/integration/he-sound-demo.mjs` = the demo on a real context.
