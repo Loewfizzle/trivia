@@ -16,6 +16,7 @@
 //   clouds   the clouds re-planned (their kinds) / born                                         VISIBLE if re-planned
 //   fonts    the fonts in
 //   dock     the title's rects moved (the dock / the tagline) — kept or re-laid
+//   box      (LOAD FIX 5) the city's box is not the one it was built for — THE BOX GATE's re-fit starts (the canvas / layout rows follow)
 //   extras   the weather's modules in (fog, rain, frost)
 //   pix      a band of the picture's mean brightness jumped (the watch, &debug=1 only) — anything not instrumented
 //   power    the same, while the city's power-on runs (the neon tube by tube, the windows) — by design, never counted

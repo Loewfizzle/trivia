@@ -20,6 +20,8 @@
 //   bars-pre|after|late   Safari's bars as a real window resize (659 → 712 → 659) with the box pinned at the large viewport
 //   resize-post      the whole viewport 659 → 712 after the reveal (no pinned box: a rotation-like re-layout)
 //   tier             a tier step down 3 s after the reveal, back up 3 s later
+//   no-observer-pre  the box grows before the reveal and NO ResizeObserver reports it (the layer's observer stubbed out): the reveal's own look
+//   no-observer-post the same 3 s after the reveal: THE NET — the once-a-second look re-fits it (two cameras for ≤ 1.5 s, never for good)
 //   node tests/integration/wk-double.mjs [--paths all|a,b] [--shots DIR] [--json out.json] [--vh 659] [--grow 712]
 // Exit 1 when any path showed two cameras (frames or pixels). On the emulators + scripts/serve.mjs --emu.
 import { pathToFileURL } from 'node:url';
@@ -36,7 +38,7 @@ const VH = Number(opt('vh', 659)), GROW = Number(opt('grow', 712)), SHOTS = opt(
 const GR = '&tz=America/Detroit&at=42.96,-85.67';
 const OWNER = `when=2026-11-11T08:30&wx=fog${GR}`;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const ALL = ['plain', 'box-pre@50', 'box-pre@250', 'box-pre@600', 'box-pre-shrink', 'box-post', 'box-hidden', 'resize-hidden', 'box-return', 'bfcache', 'restore', 'hours', 'hours-box', 'wx-late', 'bars-pre', 'bars-after', 'bars-late', 'resize-post', 'tier'];
+const ALL = ['plain', 'box-pre@50', 'box-pre@250', 'box-pre@600', 'box-pre-shrink', 'box-post', 'box-hidden', 'resize-hidden', 'box-return', 'bfcache', 'restore', 'hours', 'hours-box', 'wx-late', 'bars-pre', 'bars-after', 'bars-late', 'resize-post', 'tier', 'no-observer-pre', 'no-observer-post'];
 const pathsArg = String(opt('paths', 'all'));
 const PATHS = pathsArg === 'all' ? ALL : pathsArg.split(',');
 const { webkit } = await import(pathToFileURL(process.env.WK_PLAYWRIGHT || join(homedir(), 'wk', 'node_modules', 'playwright', 'index.mjs')).href);
@@ -45,7 +47,9 @@ const results = [];
 
 // (the page's test controls, installed before it mounts: the city's box by a style — a box change with NO window resize, what a late /
 //  changed 100lvh is; a faked visibility — Playwright can't background a tab; a clock that can jump)
-const INIT = ([h0, kept]) => {
+const INIT = ([h0, kept, noRO]) => {
+  // (no-observer: the city's layer is never reported by a ResizeObserver — every other observer works)
+  if (noRO && window.ResizeObserver) { const RO = window.ResizeObserver; window.ResizeObserver = class extends RO { observe(el, o) { if (el && el.classList && el.classList.contains('nd-scene')) return; super.observe(el, o); } }; }
   try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('na:w5:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); if (kept) localStorage.setItem('nd:wx', kept); } catch { /* fine */ }
   let st = null, want = h0;
   const put = () => { if (!document.head) return; if (!st || !st.isConnected) { st = document.createElement('style'); document.head.append(st); } st.textContent = want ? `.nd-scene.nd-lvh { height: ${want}px !important; }` : ''; };
@@ -100,10 +104,10 @@ async function run(name) {
   const FOG = { ...base, code: 45, vis: 180, fog: 1, dense: true, cloud: 1, kind: 'fog', layers: { hi: 0.05, lo: 1, mid: 0.2 }, opaque: 0.9 };
   const MIN = 60e3;
   const ctx = await browser.newContext({ viewport: { width: 402, height: VH }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
-  await ctx.addInitScript(INIT, [h0, live ? JSON.stringify({ ...FAIR, at: Date.now() - 33 * MIN, got: Date.now() - 33 * MIN }) : '']);
+  await ctx.addInitScript(INIT, [h0, live ? JSON.stringify({ ...FAIR, at: Date.now() - 33 * MIN, got: Date.now() - 33 * MIN }) : '', /^no-observer/.test(kind)]);
   await ctx.addInitScript(CAM_REC);
   const page = await ctx.newPage();
-  const errs = []; page.on('pageerror', e => errs.push(e.message));
+  const errs = []; page.on('pageerror', e => { if (!/access control checks|Load failed|cancelled/i.test(e.message)) errs.push(e.message); });   // (a fetch cut off by the path's own navigation away is no error of the page's)
   let shownWall = 0, jump = 0;
   if (/^hours/.test(kind)) await ctx.route(/\/api\/time/, r => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'cache-control': 'no-store' }, body: JSON.stringify({ t: Date.now() + jump }) }).catch(() => {}));   // (the server's clock moved with the phone's)
   if (live) await ctx.route(/\/api\/sky/, async r => { while (!shownWall) await sleep(40); const w = shownWall + 2500 - Date.now(); if (w > 0) await sleep(w); r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...FOG, at: Date.now() - 2 * MIN }) }).catch(() => {}); });
@@ -116,28 +120,39 @@ async function run(name) {
   const vp = h => page.setViewportSize({ width: 402, height: h }).catch(() => {});
   const checks = [], pics = [];
   // one pixel check: the crisp boxes now, a screenshot with the crisp layer, one without (hidden for that one shot)
+  // (a look is two screenshots + the boxes: it only reads a STEADY picture — the city's state must be the same before + after it. A pin →
+  //  hold → cut inside a look would compare two different moments; the frames check owns those. Retaken up to 3×, else said + skipped.)
+  const state = () => ev("(() => { const w = document.querySelector('.nd-scene'), c = w && w.querySelector('canvas:not([class])'), p = window.__district && window.__district.loadProbe ? window.__district.loadProbe() : null; return JSON.stringify([c && c.style.width, w && w.style.transform, p && p.hold, p && p.W, p && p.H, p && p.cams && p.cams.now, p && p.cams && p.cams.baked]); })()");
   const look = async label => {
-    const boxes = await ev(`(() => { const w = document.querySelector('.nd-scene'); if (!w) return []; const seen = new Set(), out = []; for (const c of w.querySelectorAll('canvas.hc-crisp')) { const cs = getComputedStyle(c); if (cs.display === 'none' || +cs.opacity < 0.5 || !/^(roofboard|datestone|blade-board)$/.test(c.dataset.item || '')) continue;   /* (the owner's three: the billboard's face, EST. 1924, the blade — lettering the city paints under its crisp copy; a window scene / a light has nothing under it) */ const r = c.getBoundingClientRect(), k = [r.left, r.top, r.width, r.height].map(Math.round).join(','); if (seen.has(k) || r.width < 16 || r.height < 12) continue; seen.add(k); out.push({ x: r.left, y: r.top, w: r.width, h: r.height }); } return out; })()`) || [];
-    const a = await page.screenshot({ scale: 'css' });
-    await ev("(() => { const s = document.createElement('style'); s.id = 'w5-nocrisp'; s.textContent = 'canvas.hc-crisp { opacity: 0 !important; }'; document.head.append(s); })()");
-    const b = await page.screenshot({ scale: 'css' });
-    await ev("(() => { const s = document.getElementById('w5-nocrisp'); if (s) s.remove(); })()");
-    const px = boxes.length ? await pixels(a, b, boxes) : [];
-    // (a second copy: the city's own picture of the item sits more than 3 pt from the crisp item, and matches there clearly better than at it)
-    const off = px.filter(p => p.contrast > 6 && Math.hypot(p.dx, p.dy) > 3 && p.s < 0.75 * p.s00);
-    checks.push({ label, boxes: px.length, off: off.map(p => `${p.box[2]}×${p.box[3]} item: its copy ${p.dx},${p.dy} pt away`), px });
-    pics.push({ label, a });
+    for (let k = 0; k < 3; k++) {
+      const s0 = await state();
+      const boxes = await ev(`(() => { const w = document.querySelector('.nd-scene'); if (!w) return []; const seen = new Set(), out = []; for (const c of w.querySelectorAll('canvas.hc-crisp')) { const cs = getComputedStyle(c); if (cs.display === 'none' || +cs.opacity < 0.5 || !/^(roofboard|datestone|blade-board)$/.test(c.dataset.item || '')) continue;   /* (the owner's three: the billboard's face, EST. 1924, the blade — lettering the city paints under its crisp copy; a window scene / a light has nothing under it) */ const r = c.getBoundingClientRect(), k = [r.left, r.top, r.width, r.height].map(Math.round).join(','); if (seen.has(k) || r.width < 16 || r.height < 12) continue; seen.add(k); out.push({ x: r.left, y: r.top, w: r.width, h: r.height }); } return out; })()`) || [];
+      const a = await page.screenshot({ scale: 'css' });
+      await ev("(() => { const s = document.createElement('style'); s.id = 'w5-nocrisp'; s.textContent = 'canvas.hc-crisp { opacity: 0 !important; }'; document.head.append(s); })()");
+      const b = await page.screenshot({ scale: 'css' });
+      await ev("(() => { const s = document.getElementById('w5-nocrisp'); if (s) s.remove(); })()");
+      if ((await state()) !== s0) { await sleep(120); continue; }
+      const px = boxes.length ? await pixels(a, b, boxes) : [];
+      // (a second copy: the city's own picture of the item sits more than 3 pt from the crisp item, and matches there clearly better than at it)
+      const off = px.filter(p => p.contrast > 6 && Math.hypot(p.dx, p.dy) > 3 && p.s < 0.75 * p.s00);
+      checks.push({ label, boxes: px.length, off: off.map(p => `${p.box[2]}×${p.box[3]} item: its copy ${p.dx},${p.dy} pt away`), px });
+      pics.push({ label, a });
+      return;
+    }
+    checks.push({ label: `${label} (unsteady: mid-transition — the frames check's)`, boxes: 0, off: [], px: [] });
   };
 
   const t0 = Date.now();
   const nav = page.goto(url, { waitUntil: 'commit', timeout: 60000 });
-  if (kind === 'box-pre' || shrink) { await waitFor(sceneUp, 20000); await sleep(Number(atArg) || 250); const was = await shown(); await mark(`the box ${h0} → ${h1}, no window resize${was ? ' (ALREADY SHOWN)' : ''}`); await ev(`window.__box(${h1})`); }
+  if (kind === 'box-pre' || kind === 'no-observer-pre' || shrink) { await waitFor(sceneUp, 20000); await sleep(Number(atArg) || 250); const was = await shown(); await mark(`the box ${h0} → ${h1}, no window resize${was ? ' (ALREADY SHOWN)' : ''}`); await ev(`window.__box(${h1})`); }
   if (kind === 'bars-pre') { await sleep(300); await vp(GROW); await sleep(500); await vp(VH); }
   await nav.catch(() => {});
   const ok = await waitFor(shown, 30000); shownWall = Date.now();
   const revealAt = Date.now() - t0;
   await mark('the reveal');
   await sleep(700); await look('0.7 s after the reveal');
+  let netAt = null;
+  if (kind === 'no-observer-post') { await sleep(2300); await mark(`the box ${h0} → ${h1}, no observer`); netAt = await ev('performance.now() - 0') ; await ev(`window.__box(${h1})`); await sleep(1700); await look('1.7 s after the box grew'); }
   if (kind === 'box-post') { await sleep(2300); await mark(`the box ${h0} → ${h1}`); await ev(`window.__box(${h1})`); await sleep(350); await look('0.35 s after the box grew'); }
   if (kind === 'box-hidden' || kind === 'resize-hidden' || kind === 'box-return' || kind === 'bfcache' || /^hours/.test(kind)) {
     await sleep(2300); await mark('hidden'); if (kind === 'bfcache') await ev("window.__page('pagehide', true)"); await ev('window.__hide(true)'); await sleep(500);
@@ -165,12 +180,15 @@ async function run(name) {
   await sleep(4500); await look('the end');
   const D = await ev('window.__cam ? window.__cam.dump() : null');
   const info = await ev(`(() => { const p = window.__district && window.__district.loadProbe ? window.__district.loadProbe() : null, w = document.querySelector('.nd-scene'), c = w && w.querySelector('canvas:not([class])'); let log = []; try { log = window.__district.harbor().loadLog.rows.filter(r => /layout|reveal|resize|dock|canvas|hold|box/.test(r.kind)).map(r => Math.round(r.t || r.ms || 0) + ' ' + r.kind + ' ' + r.msg); } catch { /* */ } return { built: p ? [p.W, p.H] : null, box: c ? [c.clientWidth, c.clientHeight] : null, holds: p ? p.holds : null, ps: window.__ps, boots: window.__bootN, log }; })()`);
-  const J = camJudge(D ? D.frames : []);
+  let J = camJudge(D ? D.frames : []);
+  // (THE NET: with no observer the once-a-second look re-fits the box — two cameras allowed for ≤ 1.5 s after the change, never later)
+  let net = '';
+  if (kind === 'no-observer-post' && D) { const m = D.marks.find(x => /no observer/.test(x.label)), t1 = m ? m.t : 0; const late = D.frames.filter(f => f.t > t1 + 1500); const first = camJudge(D.frames.filter(f => f.t <= t1 + 1500)); J = camJudge(late); J.seen += first.seen; net = ` · THE NET: ${first.n} frames with two cameras in the first 1.5 s, ${J.n} after`; }
   const pxBad = checks.filter(c => c.off.length);
   const bad = !ok || J.n > 0 || pxBad.length > 0 || errs.length > 0;
   const restored = kind === 'restore' && info ? (info.boots > 1 ? 'RELOADED on BACK' : `bfcache (pageshow persisted ${JSON.stringify(info.ps)})`) : '';
   results.push({ name, ok, revealAt, bad, frames: J, pixels: checks.map(c => ({ label: c.label, boxes: c.boxes, off: c.off })), info, errs, marks: D ? D.marks : [] });
-  console.log(`${bad ? 'FAIL' : 'OK  '} ${name.padEnd(16)} reveal ${ok ? `${revealAt} ms` : 'NEVER'} · frames ${J.seen} seen: ${J.n ? `✗ ${J.n} with TWO CAMERAS (${Object.entries(J.kinds).map(([k, v]) => `${k} ${v}`).join(', ')}) — ${J.what}` : '✓ one camera'} · pixels ${checks.length} looks: ${pxBad.length ? `✗ ${pxBad.map(c => `${c.label}: ${c.off.join('; ')}`).join(' | ')}` : '✓ one copy'}${info ? ` · built ${info.built && info.built.join('×')} in a ${info.box && info.box.join('×')} box · holds ${info.holds}` : ''}${restored ? ` · ${restored}` : ''}${errs.length ? ` · errors: ${errs[0]}` : ''}`);
+  console.log(`${bad ? 'FAIL' : 'OK  '} ${name.padEnd(16)} reveal ${ok ? `${revealAt} ms` : 'NEVER'} · frames ${J.seen} seen: ${J.n ? `✗ ${J.n} with TWO CAMERAS (${Object.entries(J.kinds).map(([k, v]) => `${k} ${v}`).join(', ')}) — ${J.what}` : '✓ one camera'} · pixels ${checks.length} looks: ${pxBad.length ? `✗ ${pxBad.map(c => `${c.label}: ${c.off.join('; ')}`).join(' | ')}` : '✓ one copy'}${info ? ` · built ${info.built && info.built.join('×')} in a ${info.box && info.box.join('×')} box · holds ${info.holds}` : ''}${restored ? ` · ${restored}` : ''}${net}${errs.length ? ` · errors: ${errs[0]}` : ''}`);
   if (opt('log', false) && info) for (const l of info.log) console.log('      ' + l);
   if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); const tag = name.replace(/[@]/g, '-'); pics.forEach((p, i) => { if (bad || i === pics.length - 1 || /after|landed|away|return|BACK/.test(p.label)) writeFileSync(join(SHOTS, `${tag}-${i}-${p.label.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}.png`), p.a); }); }
   await ctx.close();

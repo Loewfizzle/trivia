@@ -100,3 +100,46 @@ from Playwright (its WebKit has no Safari bars and reloads on BACK), so the owne
 | a memory re-bake (iOS dropped a canvas; `starved` → a tier step) | → `build()` | ✓ |
 | **a hold older than 4 s on the wall clock** | `holdTick`'s safety | **✗ lets go unbaked after a hidden spell — cause 2** |
 | a second scene / canvas set / frame loop | `title.js` mounts ONE `createHarbor`; the loop has one `raf` handle | ✓ (1 scene, 1 main canvas in every frame of every run) |
+
+## Group 2 — FIXED (at the root: `js/screens/harbor/scene.js`)
+
+**THE BOX GATE** — ONE question every path answers the same way: *is the city BUILT for the box it is shown in?* (`boxSeen` / `boxOff` /
+`boxCheck` / `boxLook`). Whoever notices a box the city isn't built for calls the ONE re-fit path that already existed —
+`onResize` → (the pin, after the reveal) → the debounced `build()` → `layout()` → `holdStart` — no second copy of the rule:
+- **the layer's ResizeObserver reports from the FIRST frame** (it returned before the reveal — cause 1). Before the reveal there is no pin
+  and nothing to hold: the re-fit runs in the dark (the LOAD GATE's own 400 ms debounce — Safari's bars settling are one build);
+- **the reveal waits for a city built for its box** (`tryReveal`: `ready` needs it; a late reveal — REVEAL_MAX — waits ≤ 2 s more for the
+  box / a re-fit on its way, as it already did for a bake at another camera) **+ its own last look**: ONE read in the frame that would
+  reveal (beside the title's rects re-measured there) — a change no observer / event reported never shows;
+- **THE NET — a look once a second + at every return to the screen** (`visibilitychange` → visible, `pageshow`; riding the loop
+  watchdog's existing 1 s interval — one layout read, never in a frame): a box change NO event reported is re-fitted within a second
+  instead of never. With the observer working it never fires.
+- **LIKE FOR LIKE**: the gate reads the CANVAS's own box (what `build()` measures) and only while the stylesheet lays the canvas out to its
+  layer. Found by the harbor `load` group mid-fix (32 / 33): with `css/title.css` failed twice (THE BOOT SAFETY NET) the layer is a plain
+  block + the canvas's box follows its own buffer — the first version of the gate re-fitted itself bigger forever (320 → 640 → 1280 …,
+  never revealed). Now that boot is exactly as before the pass (33 / 33).
+
+**THE HELD PICTURE'S SAFETY IN TIME ON SCREEN** (cause 2): `HOLD_MAX` (4 s) counts `ui/onscreen.js`'s clock (LOAD FIX 4's, the reveal's
+gates' own) — a camera change that landed while the page was hidden is still held when it comes back, bakes UNDER the picture, and cuts in
+the frame that draws it ("let go after 515–568 ms on screen" on the two hidden paths; before: "after 5798 ms (the safety)" on the first
+frame back, unbaked).
+
+**A restored tab, each way** (after the fix, WebKit): a bfcache return / a frozen tab resumed with another box → the picture as last seen,
+held, ONE cut (~0.5 s after the return); hours hidden (the phone's + the server's clock +10 h) → the light + the sky catch up by the
+existing rules at ONE camera (the bake's crossfade at the same camera, the sky's slow fade — LOAD FIX 2's rule kept), + a box change in the
+same return → held, the new camera AND the new light in one cut; Safari's own saved snapshot is the browser's — the page's first frame back
+is the held picture (or the pinned frame: the whole layer under one transform), never two cameras.
+
+**The proof** (all on the final fix):
+- `wk-double.mjs` — **21 / 21 paths, one camera on every frame (96–301 a path) + one copy at every pixel look** (the 19 of Group 1 + the two
+  no-observer paths: before the reveal clean; after it THE NET — 3–4 frames with two cameras inside the first 1.5 s, 0 after). The owner's
+  path: `box … ≠ built … (before the reveal, no window resize): re-fit in the dark` at ~0.67 s → the canvas rebuilt → revealed at 1.46 s
+  (a plain load: 1.23 s on the same clock) — the ~0.25–0.5 s is paid only by a boot whose box moved.
+- `wk-load.mjs` (THE LOAD FIX's own, WebKit) — 12 / 12 loads clean (grey + night × the four bar moments with Safari's lvh; grey × 4 with the
+  whole viewport changing).
+- the harbor `load` group — **33 / 33**; the unit suite 1643 / 1643.
+- **No look change:** `pixdiff.mjs --scenes night,party,noon,golden,dusk,fog` against a worktree of 13cd99a8 on :5174 — night 460 px,
+  noon 92, golden 63, dusk 47, fog 467 beyond the noise, all in the promenade band (the walkers — the usual residue); party 0.40 % vs
+  its own A-A noise 0.42 % (the crowd).
+- **The reveal time** (`boot-time.mjs`, Chromium, cold, 5 loads a side, three rounds): before 1308 · 1343 · 1323 ms → after 1357 · 1319 ·
+  1297 ms — the same (LOAD FIX 4's 1.32 s).

@@ -182,7 +182,7 @@ export function camJudge(F) {
   const add = (f, kind, why) => { out.n++; out.kinds[kind] = (out.kinds[kind] || 0) + 1; if (out.at.length < 5) { out.at.push(f.t); out.what += `${out.what ? '; ' : ''}${f.t} ms ${why}`; } };
   for (const f of F || []) {
     if (f.scenes > 1 || f.mains > 1) { add(f, 'scenes', `${f.scenes} scenes / ${f.mains} main canvases in the page`); continue; }
-    if (f.live && (f.live.scenes > 1 || f.live.loops > 1)) { add(f, 'scenes', `${f.live.scenes} live scenes · ${f.live.loops} frame loops`); continue; }
+    if (f.live && (f.live.scenes > 1 || f.live.loops > 1 || f.live.dup > 0)) { add(f, 'scenes', `${f.live.scenes} live scenes · ${f.live.loops} frame loops${f.live.dup ? ` · ${f.live.dup} doubled frame callbacks` : ''}`); continue; }
     if (!(f.city > 0.02) || !f.built) continue;
     out.seen++;
     if (f.holdOp >= 0.995) continue;   // (a held picture covers the city: one picture, the last one seen)
