@@ -1,7 +1,7 @@
 // HOLD'EM — THE SKIN SYSTEM (HE5 — docs/holdem.md "THE SKINS"; HE6 adds COZY CABIN + CYBERPUNK APARTMENT + THE PICKER), PURE data + PURE helpers.
 // A skin = ONE definition here + its art in assets/holdem/<id>/ (scripts/build-holdem-skin.py) + its living touches' CSS (css/holdem.css
 // `.he[data-skin='<id>'] .he-live-<k>`) — the view consumes it through CSS variables (skinVars) + a few settings (the light direction for the
-// chips, the card back, the backdrop, the living touches): NO skin-specific code path. HE7's sideways view uses `backdrop.square`.
+// chips, the card back, the backdrop, the living touches): NO skin-specific code path. HE7: the sideways view + desktop use `backdrop.square`.
 // A per-PHONE choice (settings.heSkin — the console's settings storage; ☰ → Settings → HOLD'EM → TABLE), default NEON CASINO, changeable any
 // time (live, even mid-hand). Only the chosen skin's art loads (skinAssets — the preload + the CSS variables name only its files).
 //
@@ -19,7 +19,9 @@
 //               fold: { glass, rimHi, rim, rimLo, ink } }
 //   back      the card back (every opponent's cards + the deal)
 //   stock     the card STOCK's paper colour (HE6 — the faces' ink never changes; only the paper's tint: crisp white · warm ivory · cool white)
-//   backdrop  { portrait, square, dim, pos, size }              behind the table (square = HE7), darkened by `dim`, placed by `pos` / `size`
+//   backdrop  { portrait, square, sqY, sqDim, dim, pos, size }   behind the table, darkened by `dim`, placed by `pos` / `size`; HE7: `square` =
+//                                                               the sideways view + desktop's (the whole room), `sqY` = which of its rows meet
+//                                                               the window's top (0 its top … 1 its bottom), darkened by `sqDim`
 //   living    ['neon', 'haze', 'slots']                         the cheap living touches (opacity / transform only) — the FIRST thing the tiers drop
 //   thumb     { room, back }                                    THE PICKER's mini table (picker.js — CSS only: the room's mood + the back's colour)
 const ASSET = new URL('../../../assets/holdem/', import.meta.url).href;
@@ -40,7 +42,7 @@ export const SKINS = Object.freeze({
       fold: { glass: '#2a1416', rimHi: '#ffb3bd', rim: '#ff5468', rimLo: '#7a1a26', ink: '#ffd0d6' },
     },
     back: 'cardback-casino.webp', stock: '#fbfaf6',
-    backdrop: { portrait: 'casino/backdrop.webp', square: null, dim: 0.18, pos: 'center top', size: 'cover' },
+    backdrop: { portrait: 'casino/backdrop.webp', square: 'casino/square.webp', sqY: 0.1, sqDim: 0.22, dim: 0.18, pos: 'center top', size: 'cover' },
     living: Object.freeze(['neon', 'haze', 'slots']),
     thumb: { room: 'linear-gradient(180deg, rgba(255, 60, 170, 0.45) 0 3px, #0b0910 3px, #060509 70%, #120814)', back: '#7d1420' },
   }),
@@ -59,7 +61,7 @@ export const SKINS = Object.freeze({
       fold: { glass: 'rgba(70, 20, 12, 0.5)', rimHi: '#ffb9a3', rim: '#d9603f', rimLo: '#6e2416', ink: '#ffd9cc' },
     },
     back: 'cardback-cabin.webp', stock: '#f7efde',
-    backdrop: { portrait: 'cabin/backdrop.webp', square: null, dim: 0.06, pos: 'center top', size: 'cover' },
+    backdrop: { portrait: 'cabin/backdrop.webp', square: 'cabin/square.webp', sqY: 0.16, sqDim: 0.12, dim: 0.06, pos: 'center top', size: 'cover' },
     living: Object.freeze(['fire', 'snow', 'lamp']),
     thumb: { room: 'radial-gradient(60% 30% at 0% 100%, rgba(255, 140, 50, 0.55), rgba(0, 0, 0, 0) 100%), repeating-linear-gradient(180deg, #2b1a0f 0 5px, #20130a 5px 7px)', back: '#7b1d1a' },
   }),
@@ -78,7 +80,7 @@ export const SKINS = Object.freeze({
       fold: { glass: '#2a0b22', rimHi: '#ffb3c9', rim: '#ff4f7e', rimLo: '#7a1234', ink: '#ffd0dc' },
     },
     back: 'cardback-apartment.webp', stock: '#fcfdff',
-    backdrop: { portrait: 'apartment/backdrop.webp', square: null, dim: 0.1, pos: 'center top', size: 'cover' },
+    backdrop: { portrait: 'apartment/backdrop.webp', square: 'apartment/square.webp', sqY: 0, sqDim: 0.14, dim: 0.1, pos: 'center top', size: 'cover' },
     living: Object.freeze(['rain', 'sign', 'sweep']),
     thumb: { room: 'linear-gradient(90deg, rgba(59, 224, 255, 0.55) 0 2px, rgba(0, 0, 0, 0) 2px calc(100% - 2px), rgba(255, 79, 192, 0.55) calc(100% - 2px)), linear-gradient(180deg, #1a2350, #0a0f24 28%, #060912)', back: 'linear-gradient(135deg, #3be0ff, #8a4dff 50%, #ff4fc0)' },
   }),
@@ -110,7 +112,8 @@ export function skinVars(skin) {
     '--he-fold-glass': F.glass, '--he-fold-rim-hi': F.rimHi, '--he-fold-rim': F.rim, '--he-fold-rim-lo': F.rimLo, '--he-fold-ink': F.ink,
     '--he-stock': s.stock,
     '--he-backdrop': url(s.backdrop.portrait), '--he-backdrop-dim': String(s.backdrop.dim), '--he-backdrop-pos': s.backdrop.pos, '--he-backdrop-size': s.backdrop.size,
+    '--he-square': url(s.backdrop.square), '--he-sq-y': String(s.backdrop.sqY), '--he-sq-dim': String(s.backdrop.sqDim),
   };
 }
-/** every file the skin draws with (the preload fetches only these) */
-export const skinAssets = skin => { const s = skin || SKINS[DEFAULT_SKIN]; return [s.felt.img, s.rail.img, s.back, s.backdrop.portrait, s.button.tex].filter(Boolean).map(assetUrl); };
+/** every file the skin draws with (the preload fetches only these) — HE7: `wide` = the screen is sideways (the square backdrop, not the portrait's) */
+export const skinAssets = (skin, wide = false) => { const s = skin || SKINS[DEFAULT_SKIN]; return [s.felt.img, s.rail.img, s.back, wide ? s.backdrop.square : s.backdrop.portrait, s.button.tex].filter(Boolean).map(assetUrl); };

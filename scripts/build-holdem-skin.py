@@ -6,6 +6,8 @@
   backdrop.webp   the portrait backdrop (AI-generated with Grok) at 2× phone size (860 × 1864 — HE6: HE5's 645-wide export blurred the slots'
                   lights into blocks), its composition done here (a crop, a nudge, a lift)
   wood.webp       (optional) a small dark texture the plates + buttons are made of (COZY CABIN's wood)
+  square.webp     (HE7) the SQUARE original for the sideways view + desktop — the whole room, compressed (SQ px square: it's dim background
+                  behind the table; the cards + text are what must be crisp)
 The light = the skin's ONE light direction (js/games/holdem/skins.js — <skin>.light.dir; the chips read the same one). Tileable in, tileable
 out (a per-pixel op). Run: python -P scripts/build-holdem-skin.py [<grok holdem folder>] [<skin id> …]
 """
@@ -18,6 +20,7 @@ SRC = args.pop(0) if args and os.path.isdir(args[0]) else os.path.expanduser(r'~
 ONLY = set(args)
 ROOT = os.path.join(os.path.dirname(__file__), '..', 'assets', 'holdem')
 BD_W, BD_H = 860, 1864          # the portrait backdrop: 2× a 430 × 932 phone (it's background — the cards + text are what must be 3×)
+SQ = 1280                       # HE7: the square backdrop (a 1440-wide desktop shows it ≈ 1.1×, a phone on its side ≈ 0.7× its width at 1×)
 
 
 def unit(v):
@@ -55,12 +58,22 @@ def backdrop(file, out, crop=None, lift=1.0, q=92, edit=None):
     im.save(out, 'WEBP', quality=q, method=6)
 
 
+def square(file, out, lift=1.0, q=72):
+    """HE7 — the square original at SQ × SQ (the sideways view + desktop: the room round the table), `lift` as the portrait's"""
+    im = Image.open(os.path.join(SRC, file)).convert('RGB').resize((SQ, SQ), Image.LANCZOS)
+    if lift != 1.0:
+        A = np.asarray(im).astype(np.float32) / 255.0
+        im = Image.fromarray((np.clip(A ** (1 / lift), 0, 1) * 255 + 0.5).astype(np.uint8))
+    im.save(out, 'WEBP', quality=q, method=6)
+
+
 # ---------------------------------------------------------------------------------------------------------------- THE SKINS (one row each)
 def casino(out):
     L = [-0.45, -0.9, 1.6]                     # from above, a little to the left
     lit('felt-green.jpg', 'felt-green-normal.png', 512, 1.15, L, os.path.join(out, 'felt.webp'), q=66)
     lit('rail-leather.jpg', 'rail-leather-normal.png', 384, 1.6, L, os.path.join(out, 'rail.webp'), q=80)
     backdrop('backdrop-casino-portrait.png', os.path.join(out, 'backdrop.webp'))
+    square('backdrop-casino.png', os.path.join(out, 'square.webp'))
 
 
 def cardback(file, out, q=80):
@@ -111,6 +124,7 @@ def cabin(out):
     lit('rail-walnut.jpg', 'rail-walnut-normal.png', 384, 1.8, L, os.path.join(out, 'wood.webp'), q=84,
         grade=lambda C: np.clip((C - C.mean(axis=(0, 1))) * 4.5 + C.mean(axis=(0, 1)), 0, 1) * 0.6)
     backdrop('backdrop-cabin-portrait.png', os.path.join(out, 'backdrop.webp'), lift=1.18, edit=move_window)
+    square('backdrop-cabin.png', os.path.join(out, 'square.webp'), lift=1.18)
     cardback('cardback-cabin.png', os.path.join(ROOT, 'cardback-cabin.webp'))
 
 
@@ -122,6 +136,7 @@ def apartment(out):
     # the square original, centre-cropped to the phone's shape: its skyline window shows above the table
     half = 0.5 * (BD_W / BD_H)
     backdrop('backdrop-apartment.png', os.path.join(out, 'backdrop.webp'), crop=(0.5 - half, 0, 0.5 + half, 1), edit=pillars('backdrop-apartment.png'))
+    square('backdrop-apartment.png', os.path.join(out, 'square.webp'))
     cardback('cardback-apartment.png', os.path.join(ROOT, 'cardback-apartment.webp'))
 
 

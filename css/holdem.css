@@ -578,3 +578,126 @@ i.he-ghost.he-chip { display: block; }
   .he-seat.is-busted, .he-slot, .he-shown .he-card, .he-hc { transition: none; }
   .he-toast, .he-moment { animation: none; }
 }
+
+/* ============================================================== HE7 — THE SIDEWAYS TABLE (js/games/holdem/layout-wide.js) + DESKTOP
+   Wider than tall → `.he[data-orient='wide']`: a WIDE STADIUM, the seats evenly round its rail, THE COLUMN on the right (the level line under
+   the music button; LEAVE, the status, your clock, the presets, FOLD / RAISE / CALL low under the thumb). EVERY rule here is scoped to the
+   sideways view (or to the classes HE7 adds) — the portrait table above reads none of it. THE STAGE (.he-stage) holds the table: upright and
+   on a phone on its side it is the screen; a desktop scales it to the window (the view sets its box + one transform). */
+.he-stage { position: absolute; inset: 0; }
+/* the screen spans the window (no phone column) — the console's corner buttons pin to the window's corners */
+.screen.he-screen { max-width: none; padding: 0; }
+body.he-on .menu-btn { left: calc(var(--safe-l) + 12px) !important; right: auto; }
+body.he-on .music-btn { right: calc(var(--safe-r) + 12px) !important; }
+.he-probe-l { top: 0; left: 0; height: 1px; width: env(safe-area-inset-left, 0px); }
+.he-probe-r { top: 0; left: auto; right: 0; height: 1px; width: env(safe-area-inset-right, 0px); }
+
+/* THE SQUARE BACKDROP (skins.js backdrop.square): the whole room as a square as wide as the window, its `sqY` row at the window's top; the
+   living touches sit in ITS box (their places = the square art's), so they land on their spot whatever the window's shape. Upright the square
+   is no box at all (display: contents — the touches keep the screen's places, as before). */
+.he-sq { display: contents; }
+.he[data-orient='wide'] .he-bd { background: #06050a; }
+.he[data-orient='wide'] .he-sq {
+  display: block; position: absolute; left: 50%; width: var(--sq); height: var(--sq); margin-left: calc(var(--sq) / -2);
+  top: calc(var(--sq-room) * var(--he-sq-y, 0) * -1); overflow: hidden;
+  background: linear-gradient(rgba(0, 0, 0, var(--he-sq-dim, 0.2)), rgba(0, 0, 0, var(--he-sq-dim, 0.2))), var(--he-square, none) center / 100% 100% no-repeat;
+}
+/* the living touches on the square art (% of the square — scripts/build-holdem-skin.py#square) */
+.he[data-orient='wide'][data-skin='casino'] .he-live-neon { left: 5%; right: 5%; top: 5%; height: 4%; }
+.he[data-orient='wide'][data-skin='casino'] .he-live-slots { left: 0; right: 0; top: 19%; height: 38%; }
+.he[data-orient='wide'][data-skin='casino'] .he-live-slots::before, .he[data-orient='wide'][data-skin='casino'] .he-live-slots::after { width: 13%; }
+.he[data-orient='wide'][data-skin='casino'] .he-live-slots::before { left: -2%; }
+.he[data-orient='wide'][data-skin='casino'] .he-live-slots::after { right: -2%; }
+.he[data-orient='wide'][data-skin='casino'] .he-live-haze { bottom: auto; top: 60%; height: 20%; }
+.he[data-orient='wide'][data-skin='cabin'] .he-live-fire { left: -6%; bottom: auto; top: 50%; width: 30%; height: 28%; }
+.he[data-orient='wide'][data-skin='cabin'] .he-live-snow { left: 82.4%; width: 17.6%; top: 10%; height: 29.4%; }
+.he[data-orient='wide'][data-skin='cabin'] .he-live-lamp { left: -3%; top: 2%; width: 18%; height: 17%; }
+.he[data-orient='wide'][data-skin='apartment'] .he-live-rain, .he[data-orient='wide'][data-skin='apartment'] .he-live-sweep { left: 9.3%; right: 8.9%; top: 4.4%; height: 19%; }
+.he[data-orient='wide'][data-skin='apartment'] .he-live-sign { left: 28%; top: 10%; width: 12%; height: 9%; }
+
+/* the level line: the column's top, under the music button (two balanced lines when it's long) · BLINDS UP + END SESSION under it */
+.he[data-orient='wide'] .he-level {
+  left: calc(var(--act-x) - var(--act-w) / 2); right: auto; width: var(--act-w); top: var(--level-y); height: auto; display: block;
+  text-align: center; white-space: normal; text-wrap: balance; line-height: 17px; font-size: 12.5px; letter-spacing: 0.1em;
+}
+.he[data-orient='wide'] .he-toast { left: var(--act-x); top: calc(var(--level-y) + 44px); }
+.he[data-orient='wide'] .he-hostbar { left: var(--act-x); top: calc(var(--level-y) + 44px); transform: translateX(-50%); }
+
+/* THE SEATS: one block for every seat — the emblem on the rail, the plate under it (centred · l = its left edge with the emblem's · r its
+   right), the tag under the plate (its own alignment), the cards beside the emblem (cs 1 right · -1 left · 0 above), the bet + the D button
+   on the spots the layout found (--bx / --by, --dlx / --dly) */
+.he[data-orient='wide'] .he-seat .he-splate { top: 23px; max-width: 108px; min-width: 70px; }
+.he[data-orient='wide'] .he-seat.is-big .he-splate { top: 32px; }
+.he[data-orient='wide'] .he-seat[data-pl='c'] .he-splate { left: 0; right: auto; transform: translateX(-50%); }
+.he[data-orient='wide'] .he-seat[data-pl='l'] .he-splate { left: -24px; right: auto; transform: none; }
+.he[data-orient='wide'] .he-seat[data-pl='r'] .he-splate { left: auto; right: -24px; transform: none; }
+.he[data-orient='wide'] .he-seat .he-tag { top: 57px; max-width: 116px; overflow: hidden; text-overflow: ellipsis; }
+.he[data-orient='wide'] .he-seat.is-big .he-tag { top: 66px; }
+.he[data-orient='wide'] .he-seat[data-tl='c'] .he-tag { left: 0; right: auto; transform: translateX(-50%); }
+.he[data-orient='wide'] .he-seat[data-tl='l'] .he-tag { left: -24px; right: auto; transform: none; }
+.he[data-orient='wide'] .he-seat[data-tl='r'] .he-tag { left: auto; right: -24px; transform: none; }
+.he[data-orient='wide'] .he-seat .he-sclock { top: 58px; left: -34px; right: auto; width: 68px; }
+.he[data-orient='wide'] .he-seat[data-pl='l'] .he-sclock { left: -24px; }
+.he[data-orient='wide'] .he-seat[data-pl='r'] .he-sclock { left: auto; right: -24px; }
+.he[data-orient='wide'] .he-seat[data-cs='1'] :is(.he-backs, .he-shown) { left: 24px; right: auto; top: -21px; transform: none; }
+.he[data-orient='wide'] .he-seat.is-big[data-cs='1'] :is(.he-backs, .he-shown) { left: 30px; }
+.he[data-orient='wide'] .he-seat[data-cs='-1'] :is(.he-backs, .he-shown) { left: auto; right: 24px; top: -21px; transform: none; }
+.he[data-orient='wide'] .he-seat.is-big[data-cs='-1'] :is(.he-backs, .he-shown) { right: 30px; }
+.he[data-orient='wide'] .he-seat[data-cs='-1'] .he-shown { flex-direction: row-reverse; }
+.he[data-orient='wide'] .he-seat[data-cs='-1'] .he-shown .he-card + .he-card { margin-left: 0; margin-right: 1px; }
+.he[data-orient='wide'] .he-seat[data-cs='0'] :is(.he-backs, .he-shown) { left: 0; right: auto; top: -68px; transform: translateX(-50%); }
+.he[data-orient='wide'] .he-seat.is-big[data-cs='0'] :is(.he-backs, .he-shown) { top: -74px; }
+.he[data-orient='wide'] .he-seat[data-cs='0'] .he-backs { top: -56px; }
+.he[data-orient='wide'] .he-seat .he-bet { left: var(--bx); top: var(--by); right: auto; transform: translate(-50%, -50%); flex-direction: row; }
+.he[data-orient='wide'] .he-seat .he-dealer { left: calc(var(--dlx) - 9px); top: calc(var(--dly) - 9px); }
+
+/* YOU: your hand's name ABOVE your cards (a gold line on the felt — still THE RANKINGS SHEET's button); your plate under them; your bet
+   beside them, its chips over its amount; your clock = a bar over the presets in the column */
+.he[data-orient='wide'] .he-label {
+  position: absolute; left: 50%; top: calc(var(--label-y) - var(--plate-y)); transform: translate(-50%, -50%); white-space: nowrap;
+  border-left: 0; padding: 0 9px; min-height: 0; line-height: 20px; border-radius: 7px; background: rgba(0, 0, 0, 0.45);
+}
+.he[data-orient='wide'] .he-hero.is-winner .he-label { background: var(--he-gold); padding: 0 9px; }
+.he[data-orient='wide'].has-hl .he-print { opacity: 0; }
+.he[data-orient='wide'] .he-hero .he-bet { flex-direction: column; align-items: center; gap: 1px; }
+.he[data-orient='wide'] .he-hero .he-bet > span { margin: 0; padding: 0 5px; font-size: 11.5px; line-height: 15px; }
+.he[data-orient='wide'] .he-hero .he-clock { left: calc(var(--act-x) - var(--cx)); top: calc(var(--clock-y) - var(--hand-y)); width: calc(var(--act-w) - 24px); }
+
+/* THE COLUMN: the presets above FOLD / RAISE / CALL (the slider, the pre-actions, the between-hands buttons in the same place) */
+.he[data-orient='wide'] :is(.he-presets, .he-actions > .he-buttons, .he-pres, .he-minis) { left: var(--act-x); }
+.he[data-orient='wide'] .he-presets { gap: 6px; }
+.he[data-orient='wide'] .he-preset { min-width: 0; width: calc((var(--act-w) - 12px) / 3); padding: 3px 4px; }
+.he[data-orient='wide'] .he-actions > .he-buttons { gap: var(--btn-gap); }
+.he[data-orient='wide'] .he-pres { flex-direction: column; gap: 6px; top: calc(var(--buttons-y) + var(--btn) / 2); transform: translate(-50%, -100%); width: var(--act-w); }
+.he[data-orient='wide'] .he-pre { justify-content: center; }
+.he[data-orient='wide'] .he-minis { flex-wrap: wrap; justify-content: center; width: var(--act-w); }
+.he[data-orient='wide'] .he-mini { padding: 0 12px; }
+.he[data-orient='wide'] .he-status {
+  left: var(--act-x); top: var(--status-y); max-width: var(--act-w); white-space: normal; text-wrap: balance; text-align: center;
+  font-size: 11px; line-height: 14px; letter-spacing: 0.08em;
+}
+.he[data-orient='wide'] .he-slider {
+  left: calc(var(--act-x) - var(--act-w) / 2 - 6px); width: calc(var(--act-w) + 12px); bottom: calc(100% - var(--buttons-y) - var(--btn) / 2 - 4px);
+  padding: 10px 10px 8px; gap: 6px;
+}
+.he[data-orient='wide'] .he-sl-amt { font-size: 26px; }
+.he[data-orient='wide'] .he-sl-row { gap: 6px; font-size: 10px; white-space: nowrap; }
+.he[data-orient='wide'] .he-slider .he-buttons { gap: 18px; }
+.he[data-orient='wide'] .he-leave {
+  left: var(--act-x); top: var(--leave-y); transform: translate(-50%, -50%); max-width: var(--act-w); min-height: 44px;
+  display: flex; align-items: baseline; justify-content: center; gap: 6px; padding: 4px 12px; white-space: nowrap;
+}
+.he[data-orient='wide'] .he-leave em { margin: 0; }
+.he[data-orient='wide'] .he-leave[hidden] { display: none; }
+
+/* THE HAND'S END: the award box ON THE POT'S SPOT above the board (heads-up one row, else two compact rows) · the KO card centred on the table */
+.he[data-orient='wide'] .he-awardbox { top: calc(var(--pot-y) + 11px * var(--s)); transform: translate(-50%, -100%); gap: 2px; max-width: var(--award-w); }
+.he[data-orient='wide'][data-k='1'] .he-awardbox { flex-direction: row; gap: 8px; }
+.he[data-orient='wide'] .he-awardbox .he-award { font-size: calc(12.5px * var(--s)); padding: 1px 8px; max-width: var(--award-w); overflow: hidden; text-overflow: ellipsis; }
+.he[data-orient='wide'] .he-awardbox .he-winline { font-size: calc(12.5px * var(--s)); padding: 1px 9px; }
+.he[data-orient='wide'] .he-ko { left: var(--ko-x); width: var(--ko-w); }
+
+/* DESKTOP: hover on the buttons (a pointer that hovers — never a phone's tap) */
+@media (hover: hover) {
+  .he .he-btn:not(:disabled):hover, .he .he-preset:not(:disabled):hover, .he .he-pre:not(:disabled):hover, .he .he-mini:not(:disabled):hover, .he .he-leave:hover { filter: brightness(1.18); }
+}

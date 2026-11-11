@@ -23,6 +23,7 @@ import { handLabel, evaluate } from './rank.js';
 import { fromWire } from './wire.js';
 import { levelLine, othersInOrder, sidePots, clockOf, pokeIn, POKE_RETRY_MS, ordinal } from './logic.js';
 import { tableLayout, betSpot, cardsSpot, dealerSpot } from './layout.js';
+import { wideLayout, stageOf } from './layout-wide.js';
 import { freshEvents, schedule, drawnSeats, awardLine, winLine, winningCards } from './motion-plan.js';
 import { createMotion } from './motion.js';
 import { bestFive } from './rank.js';
@@ -42,7 +43,9 @@ const GHOST = { name: 'PLAYER', color: 'cyan', avatar: 'ghost' };
 const SHOW_MS = 4000;
 /** THE CHIPS (HE5): a chip's diameter (pt) + the stacks' caps by place — a seat's bet ≤ 2 stacks (the rail's room: the two bottom rows' bets
  *  nearly meet in the middle — the amount always whole), YOUR bet + the pot ≤ 3 (chips.js) */
-const CHIP = { seat: { d: 13, o: { ...BET, maxStacks: 2 } }, hero: { d: 15, o: BET }, pot: { d: 13, o: POT }, potTight: { d: 13, o: { ...POT, maxStacks: 2 } } };
+const CHIP = { seat: { d: 13, o: { ...BET, maxStacks: 2 } }, hero: { d: 15, o: BET }, pot: { d: 13, o: POT }, potTight: { d: 13, o: { ...POT, maxStacks: 2 } },
+  // HE7 — YOUR bet sideways: ≤ 2 stacks over its amount (the felt beside your cards — layout-wide.js#MYBET)
+  heroWide: { d: 14, o: { ...BET, maxStacks: 2 } } };
 export { CHIP };
 const LEAVE_TEXT = { now: ['LEAVE', 'TABLE'], after: ['LEAVE', 'AFTER THIS HAND'], queued: ['LEAVING', 'AFTER THIS HAND', 'CANCEL'] };
 
@@ -141,15 +144,28 @@ export function createView() {
     // HE5 (Ben): ALWAYS there in CASH — LEAVE TABLE (between hands: a confirm, at once) · LEAVE AFTER THIS HAND (in a hand: the dealer
     // queues it) · LEAVING AFTER THIS HAND · CANCEL (a second tap)
     els.leave = h('button.he-leave', { type: 'button', hidden: true, onclick: () => tapLeave() });
-    // (the safe areas, measured once per resize by two probes — never in the frame loop)
+    // (the safe areas, measured once per resize by four probes — never in the frame loop; HE7: left + right for a phone on its side)
     els.probeT = h('i.he-probe.he-probe-t'); els.probeB = h('i.he-probe.he-probe-b');
-    root.append(els.bd, els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.award, els.fx, els.status, els.actions, els.hero, els.leave, els.toasts);
+    els.probeL = h('i.he-probe.he-probe-l'); els.probeR = h('i.he-probe.he-probe-r');
+    // HE7 — THE STAGE: every piece of the table inside one box. Upright (and a phone on its side) it is the screen itself; a desktop / any
+    // wide window scales it to the window (one transform — every coordinate the motion uses stays the stage's). The backdrop + the podium
+    // stay outside it, at the window's size.
+    els.stage = h('div.he-stage');
+    els.stage.append(els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.award, els.fx, els.status, els.actions, els.hero, els.leave, els.toasts);
+    root.append(els.bd, els.probeT, els.probeB, els.probeL, els.probeR, els.stage);
+    // the screen spans the window (no phone column) — the console's corner buttons pin to the window's corners (css: body.he-on)
+    el.classList.add('he-screen');
+    document.body.classList.add('he-on');
+    els.screen = el;
     motion = createMotion(els.fx, motionView);
     fetchSounds(); decodeAll();
     loadChips(); offChips = onChipsReady(() => { lastSig = ''; if (els.pot) els.pot.dataset.k = ''; render(); });   // (the preload fetched the bytes; decoded once the audio is unlocked — a mount after the unlock decodes now)
     el.append(root);
     ro = new ResizeObserver(() => relayout(true));
     ro.observe(root);
+    // (HE7: a rotation / Safari's bars — the observer sees most; these catch an iPhone that reports late)
+    addEventListener('orientationchange', onTurn);
+    if (window.visualViewport) visualViewport.addEventListener('resize', onTurn);
     applySkin();
     tiers = createTiers({ apply: t => { root.dataset.tier = String(t); } });
     offSet = onSettings(() => { applySkin(); lastSig = ''; render(); });
@@ -208,6 +224,11 @@ export function createView() {
     clearTimeout(pokeT); clearTimeout(showT); clearTimeout(koT);
     if (motion) motion.cancel();
     if (ro) ro.disconnect();
+    removeEventListener('orientationchange', onTurn);
+    if (window.visualViewport) visualViewport.removeEventListener('resize', onTurn);
+    cancelAnimationFrame(turnRaf);
+    if (els.screen) els.screen.classList.remove('he-screen');
+    document.body.classList.remove('he-on');
     if (offSet) offSet();
     if (offChips) offChips();
     if (holeOff) holeOff();
@@ -224,7 +245,9 @@ export function createView() {
     skin = sk; skinKey = sk.id;
     for (const [k, v] of Object.entries(skinVars(sk))) root.style.setProperty(k, v);
     root.dataset.skin = sk.id;
-    els.bd.replaceChildren(...sk.living.map(k => h(`i.he-live.he-live-${k}`)));
+    // (HE7: the living touches inside THE SQUARE — upright it is `display: contents` (their places = the screen's, as before); sideways it
+    //  is the square backdrop's own box, so a touch sits on its spot in the square art whatever the window's shape)
+    els.bd.replaceChildren(h('div.he-sq', ...sk.living.map(k => h(`i.he-live.he-live-${k}`))));
     setLight(sk.light.dir);
   }
 
@@ -238,18 +261,51 @@ export function createView() {
   }
 
   // ------------------------------------------------------------------ the layout (once per resize / seat count)
-  let laySig = '';
+  let laySig = '', sizeSig = '', turnRaf = 0;
+  /** HE7: an orientation change / Safari's bars (the observer usually sees it first — then this finds nothing new) */
+  function onTurn() { cancelAnimationFrame(turnRaf); turnRaf = requestAnimationFrame(() => relayout(true)); }
   function relayout(force = false) {
     if (!root) return;
     const others = drawnOthers();
     const k = Math.min(7, others.length);
     const w = root.clientWidth, hh = root.clientHeight;            // (a resize only — never in the frame loop)
     const top = els.probeT.offsetHeight || 0, bottom = els.probeB.offsetHeight || 0;
-    const sig = `${w}x${hh}|${top}|${bottom}|${k}`;
+    const left = els.probeL.offsetWidth || 0, right = els.probeR.offsetWidth || 0;
+    const sig = `${w}x${hh}|${top}|${bottom}|${left}|${right}|${k}`;
     if (!force && sig === laySig) return;
+    if (!w || !hh) return;
     const oldK = L ? L.k : null, oldBoard = L ? L.board.y : null, oldPot = L ? L.pot : null;
     laySig = sig;
-    L = tableLayout({ w, h: hh, top, bottom, k });
+    // HE7 — SIDEWAYS: wider than tall → the wide stadium (layout-wide.js), in THE STAGE (a desktop scales it to the window); else portrait
+    const wide = w > hh;
+    const size = `${w}x${hh}|${top}|${bottom}|${left}|${right}`;
+    // ROTATE ANY TIME: a new size (a turn, Safari's bars) mid-motion → everything in flight snaps to its end (the state as it is — never a
+    // jump back, never a replay; the sounds already planned simply land); an open slider closes; the KO card stays (it follows the layout)
+    if (sizeSig && size !== sizeSig) {
+      if (motion && motion.busy()) motion.snap();
+      if (L && !!L.wide !== wide) { slider = null; respread = null; }
+    }
+    sizeSig = size;
+    if (wide) {
+      const S = stageOf(w, hh), z = S.z;
+      // (a phone on its side: the frame IS the screen — its safe areas; a desktop: the frame's own units, the corner buttons scaled + shifted)
+      L = wideLayout({ w: S.w, h: S.h, k, top: Math.max(0, top - S.y) / z, bottom: Math.max(0, bottom - (hh - S.y - S.h * z)) / z,
+        left: Math.max(0, left - S.x) / z, right: Math.max(0, right - (w - S.x - S.w * z)) / z,
+        cb: 36 / z, cbTop: (top + 10 - S.y) / z, cbIn: (12 + Math.max(left, 0) - S.x) / z - Math.max(0, left - S.x) / z });
+      L.stage = S;
+      Object.assign(els.stage.style, { left: `${S.x}px`, top: `${S.y}px`, width: `${S.w}px`, height: `${S.h}px`, right: 'auto', bottom: 'auto',
+        transform: z !== 1 ? `scale(${z})` : '', transformOrigin: '0 0' });
+      root.style.setProperty('--sq', `${Math.max(w, hh)}px`);
+      root.style.setProperty('--sq-room', `${Math.max(0, Math.max(w, hh) - hh)}px`);
+    } else {
+      L = tableLayout({ w, h: hh, top, bottom, k });
+      Object.assign(els.stage.style, { left: '', top: '', width: '', height: '', right: '', bottom: '', transform: '', transformOrigin: '' });
+    }
+    root.dataset.orient = wide ? 'wide' : 'tall';
+    // (YOUR clock: upright it rides in your plate (as HE3 built it); sideways it is a bar over the presets in the column — the hero's own child)
+    const ck = els.hero.querySelector('.he-clock'), pl = els.hero.querySelector('.he-plate');
+    if (ck && pl) { if (wide && ck.parentNode !== els.hero) els.hero.append(ck); else if (!wide && ck.parentNode !== pl) pl.append(ck); }
+    root.dataset.k = String(k);
     // THE RE-SPREAD (a seat count change — at a new hand, never mid-hand: drawnSeats keeps a busted seat to its hand's end): the seats that
     // stay glide to their new places, the board + the pot with them (transform only — the old anchors from posById)
     if (oldK != null && oldK !== k && !force) respread = { board: oldBoard, pot: oldPot, seats: new Map(posById) };
@@ -275,6 +331,12 @@ export function createView() {
     root.style.setProperty('--box-x', `${B.x}px`);
     root.style.setProperty('--box-y', `${B.y}px`);
     root.style.setProperty('--box-w', `${B.w}px`);
+    // HE7 — the sideways pieces (css "HE7 — THE SIDEWAYS TABLE": every rule scoped to [data-orient='wide'] — the portrait never reads these)
+    if (L.wide) {
+      const cx = B.x + B.w / 2, koW = Math.min(420, B.w - 60);
+      for (const [k2, v] of Object.entries({ '--act-x': L.act.x, '--act-w': L.act.w, '--label-y': L.label, '--level-y': L.level, '--leave-y': L.leave,
+        '--clock-y': L.clock, '--status-y': L.status, '--side-top': L.sideTop, '--award-w': L.award, '--ko-x': cx - koW / 2, '--ko-w': koW, '--btn-gap': L.gap })) root.style.setProperty(k2, `${v}px`);
+    }
     lastSig = '';
     render();
   }
@@ -378,6 +440,12 @@ export function createView() {
     el.style.left = `${pos.x}px`; el.style.top = `${pos.y}px`;
     el.dataset.side = pos.side;
     el.classList.toggle('is-big', !!pos.big);
+    // HE7 — a SIDEWAYS seat: its plate / tag alignment, its cards' side, its bet's + D button's spots (layout-wide.js#wideSeatBox) — gone upright
+    const wb = pos.wbox;
+    for (const [a, v] of [['pl', wb && wb.pl], ['tl', wb && wb.tl], ['cs', wb && String(wb.cs)]]) { if (v) el.dataset[a] = v; else delete el.dataset[a]; }
+    for (const [p, v] of [['--bx', wb && wb.betAt[0]], ['--by', wb && wb.betAt[1]], ['--dlx', wb && wb.dealer[0]], ['--dly', wb && wb.dealer[1]]]) {
+      if (wb) el.style.setProperty(p, `${v.toFixed(1)}px`); else el.style.removeProperty(p);
+    }
     const avKey = `${p.avatar}|${p.color}|${pos.big}`;
     if (s.av !== avKey) { s.av = avKey; el.querySelector('.he-av').replaceChildren(avatar(p.avatar, p.color, pos.big ? 56 : 44)); }
     el.style.setProperty('--c', colorHex(p.color));
@@ -553,13 +621,14 @@ export function createView() {
     lab.textContent = won > 0 ? `${text ? `${text} · ` : ''}WINS ${fmt(won)}` : text;
     lab.hidden = !lab.textContent;
     lab.disabled = !mine;
+    root.classList.toggle('has-hl', !lab.hidden);   // (HE7: sideways your hand's name sits where the felt print does — the print gives way)
     els.hero.classList.toggle('is-winner', won > 0);
     // your own bet + the D button
     let bet = els.hero.querySelector('.he-bet');
     if (!bet) { bet = h('div.he-bet', h('canvas.he-stk'), h('span')); els.hero.append(bet, h('div.he-dealer', 'D')); }
     bet.hidden = !(run && x && x.bet > 0);
     bet.querySelector('span').textContent = x ? fmt(x.bet) : '';
-    if (!bet.hidden) chips(bet.querySelector('canvas'), x.bet, CHIP.hero, x.id);
+    if (!bet.hidden) chips(bet.querySelector('canvas'), x.bet, L && L.wide ? CHIP.heroWide : CHIP.hero, x.id);
     root.classList.toggle('has-mybet', !bet.hidden && !!(L && L.myBet.above));   // (the felt print gives way to your stack)
     els.hero.querySelector('.he-dealer').hidden = !(t && x && t.button === x.seat && t.hand > 0);
     els.hero.querySelector('.he-clock').hidden = !myTurn;
@@ -780,7 +849,7 @@ export function createView() {
     el.addEventListener('pointerdown', () => { down = true; });
     el.addEventListener('pointerup', () => { if (down) closeKo(); down = false; });
     els.ko = el;
-    root.append(el);
+    els.stage.append(el);
     vibrate([30, 50, 30]);
     koT = setTimeout(() => closeKo(), 4000);
   }

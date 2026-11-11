@@ -132,6 +132,8 @@ export const SEAT_BOX = {
   big: { main: [-58, -28, 58, 80], cards: [34, -16, 100, 26], bet: [-35, 92, 35, 112] },
 };
 export function seatRects(seat, ss) {
+  // (HE7 — a SIDEWAYS seat carries its own box: layout-wide.js#wideSeatBox)
+  if (seat.wbox) { const a = r => ({ x0: seat.x + r[0] * ss, y0: seat.y + r[1] * ss, x1: seat.x + r[2] * ss, y1: seat.y + r[3] * ss }); return { main: a(seat.wbox.main), cards: a(seat.wbox.cards), bet: a(seat.wbox.bet), tag: a(seat.wbox.tag) }; }
   const g = seat.side === 'top' ? (seat.big ? SEAT_BOX.big : SEAT_BOX.top) : SEAT_BOX.side;
   const flip = seat.side === 'right';
   const r = ([a, b, c, d]) => (flip ? [-c, b, -a, d] : [a, b, c, d]);
@@ -140,16 +142,19 @@ export function seatRects(seat, ss) {
 }
 /** the bet chip's centre (the motion: a bet flies emblem → here; the sweep flies here → the pot) */
 export function betSpot(seat, ss) {
+  if (seat.wbox) return { x: seat.x + seat.wbox.betAt[0] * ss, y: seat.y + seat.wbox.betAt[1] * ss };
   const b = seatRects(seat, ss).bet;
   return { x: seat.side === 'right' ? b.x1 - 10 * ss : seat.side === 'left' ? b.x0 + 10 * ss : (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 };
 }
 /** the cards' centre at a seat (the deal flies here; a fold's backs leave from here) */
 export function cardsSpot(seat, ss) {
   const c = seatRects(seat, ss).cards;
+  if (seat.wbox) return { x: seat.wbox.cs < 0 ? c.x1 - 18 * ss : seat.wbox.cs > 0 ? c.x0 + 18 * ss : (c.x0 + c.x1) / 2, y: (c.y0 + c.y1) / 2 };
   return { x: seat.side === 'right' ? c.x1 - 18 * ss : c.x0 + 18 * ss, y: (c.y0 + c.y1) / 2 };
 }
 /** the D button's centre at a seat (the deal flies from it) — css: .he-seat .he-dealer (18 pt) */
 export function dealerSpot(seat, ss) {
+  if (seat.wbox) return { x: seat.x + seat.wbox.dealer[0] * ss, y: seat.y + seat.wbox.dealer[1] * ss };
   const o = seat.side === 'top' ? (seat.big ? [-31, 13] : [-25, 13]) : seat.side === 'right' ? [-21, 17] : [21, 17];
   return { x: seat.x + o[0] * ss, y: seat.y + o[1] * ss };
 }

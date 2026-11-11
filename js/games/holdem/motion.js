@@ -19,6 +19,7 @@ const PERSP = 'perspective(700px)';
 export function createMotion(layer, view) {
   const anims = new Set(), timers = new Set(), tweens = [];
   let pills = new Set();   // (the winners whose "+n" already came in this run — it comes with their FIRST pot)
+  let koDue = null;        // (YOUR bust's KO card, while it waits for its moment — a snap shows it at once)
   const reduce = () => reducedMotion();
 
   function animate(el, frames, opts) {
@@ -161,10 +162,10 @@ export function createMotion(layer, view) {
     },
     level(s) { view.toast(`BLINDS UP · ${fmtN(s.sb)}/${fmtN(s.bb)}`); },
     headsUp() { view.moment('HEADS UP'); },
-    out(s) { if (s.id === view.me()) later(s.at + 300, () => view.ko(s)); },
+    out(s) { if (s.id === view.me()) { koDue = s; later(s.at + 300, () => { koDue = null; view.ko(s); }); } },
   };
   /** a seat's chips: 13 pt, ≤ 2 stacks (the rail's room); yours 15 pt, ≤ 3 (view.js#CHIP) — the ghost is the bet it becomes */
-  const chipKind = hero => (hero ? { d: 15, o: BET } : { d: 13 * (view.L() ? view.L().ss : 1), o: { ...BET, maxStacks: 2 } });
+  const chipKind = hero => (hero ? (view.L() && view.L().wide ? { d: 14, o: { ...BET, maxStacks: 2 } } : { d: 15, o: BET }) : { d: 13 * (view.L() ? view.L().ss : 1), o: { ...BET, maxStacks: 2 } });
   const fmtN = n => Math.round(n || 0).toLocaleString('en-US');
 
   /** run a timeline (motion-plan.js#schedule) over the painted state */
@@ -185,6 +186,7 @@ export function createMotion(layer, view) {
 
   /** a jump (a gap, a refresh, unmount): everything in flight stops, the holds let go — the state shows as it is */
   function cancel() {
+    koDue = null;
     for (const a of [...anims]) { try { a.cancel(); } catch { /* gone */ } }
     anims.clear();
     for (const t of timers) clearTimeout(t);
@@ -195,6 +197,17 @@ export function createMotion(layer, view) {
     view.award(null);
   }
   const busy = () => anims.size > 0 || tweens.length > 0;
+  /**
+   * HE7 — ROTATE ANY TIME: the layout changed under a running timeline (a turn, Safari's bars) → everything in flight SNAPS TO ITS END (the
+   * painted state is the end — the holds let go, the award line = the state's); a KO card still due shows now. Never a replay: the events
+   * stay seen, the sounds already planned keep their times.
+   */
+  function snap() {
+    const ko = koDue;
+    cancel();
+    koDue = null;
+    if (ko) view.ko(ko);
+  }
 
-  return { run, cancel, tick, busy, animate, flip };
+  return { run, cancel, snap, tick, busy, animate, flip };
 }

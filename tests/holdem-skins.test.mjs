@@ -25,7 +25,8 @@ test('THE SKINS: the three, one data shape each (nested too); NEON CASINO the de
     assert.ok(Number.isFinite(s.light.dir.x) && Number.isFinite(s.light.dir.y), `${id}: ONE light direction (the chips read it)`);
     assert.match(s.accent.rgb, /^\d+, \d+, \d+$/, `${id}: the accent's rgb (the glows)`);
     assert.ok(Array.isArray(s.living) && s.living.length, `${id}: living touches`);
-    for (const f of [s.felt.img, s.rail.img, s.back, s.backdrop.portrait, s.button.tex].filter(Boolean)) assert.ok(existsSync(`assets/holdem/${f}`), `${id}: ${f}`);
+    for (const f of [s.felt.img, s.rail.img, s.back, s.backdrop.portrait, s.backdrop.square, s.button.tex].filter(Boolean)) assert.ok(existsSync(`assets/holdem/${f}`), `${id}: ${f}`);
+    assert.ok(s.backdrop.sqY >= 0 && s.backdrop.sqY <= 1 && s.backdrop.sqDim >= 0 && s.backdrop.sqDim < 1, `${id}: the square's place + dim (HE7)`);
   }
   assert.equal(skinOf('nope').id, 'casino');
   assert.match(readFileSync('js/audio/settings.js', 'utf8'), /heSkin: 'casino'/, 'a per-phone setting');
@@ -35,7 +36,10 @@ test('ONLY THE CHOSEN SKIN LOADS: its variables + its preload name only its own 
   const css = readFileSync('css/holdem.css', 'utf8');
   for (const id of SKIN_IDS) {
     const v = skinVars(SKINS[id]), urls = Object.values(v).join(' ').match(/assets\/holdem\/[^")]+/g) || [];
-    for (const u of urls) assert.ok(skinAssets(SKINS[id]).some(a => a.endsWith(u.replace('assets/holdem/', ''))), `${id}: ${u} is its own`);
+    for (const u of urls) assert.ok([...skinAssets(SKINS[id]), ...skinAssets(SKINS[id], true)].some(a => a.endsWith(u.replace('assets/holdem/', ''))), `${id}: ${u} is its own`);
+    // HE7: upright the preload names the portrait backdrop, sideways the square — never both
+    assert.ok(skinAssets(SKINS[id]).some(a => a.endsWith(SKINS[id].backdrop.portrait)) && !skinAssets(SKINS[id]).some(a => a.endsWith(SKINS[id].backdrop.square)), `${id}: upright = the portrait backdrop`);
+    assert.ok(skinAssets(SKINS[id], true).some(a => a.endsWith(SKINS[id].backdrop.square)) && !skinAssets(SKINS[id], true).some(a => a.endsWith(SKINS[id].backdrop.portrait)), `${id}: sideways = the square`);
     for (const other of SKIN_IDS.filter(o => o !== id)) assert.ok(!urls.some(u => u.includes(`/${other}/`) || u.includes(`cardback-${other}`)), `${id}: names nothing of ${other}`);
     for (const k of Object.keys(v)) assert.ok(css.includes(`var(${k}`), `the CSS reads ${k}`);
     for (const k of SKINS[id].living) assert.match(css, new RegExp(`\\.he\\[data-skin='${id}'\\] \\.he-live-${k}`), `${id}: the ${k} touch's CSS`);
@@ -47,7 +51,10 @@ test('ONLY THE CHOSEN SKIN LOADS: its variables + its preload name only its own 
 
 test('EACH SKIN\'s art: baked + compressed (felt + rail + backdrop + the back + its wood ≤ 200 KB)', () => {
   for (const id of SKIN_IDS) {
-    const total = skinAssets(SKINS[id]).reduce((n, u) => n + statSync(`assets/holdem/${u.split('assets/holdem/')[1]}`).size, 0);
-    assert.ok(total < 200_000, `${id}: ${Math.round(total / 1024)} KB`);
+    for (const wide of [false, true]) {
+      const total = skinAssets(SKINS[id], wide).reduce((n, u) => n + statSync(`assets/holdem/${u.split('assets/holdem/')[1]}`).size, 0);
+      assert.ok(total < 200_000, `${id}${wide ? ' (sideways)' : ''}: ${Math.round(total / 1024)} KB`);
+    }
+    assert.ok(statSync(`assets/holdem/${SKINS[id].backdrop.square}`).size < 100_000, `${id}: the square backdrop < 100 KB (HE7)`);
   }
 });

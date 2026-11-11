@@ -62,7 +62,7 @@ export function preload() {
   const chips = ['red', 'green', 'black', 'purple', 'yellow', 'orange'].flatMap(c => [`chips/chip-${c}-top.webp`, `chips/chip-${c}-side.webp`]);   // (HE5: 36 KB)
   // (HE5: ONLY the chosen skin's art — this phone's settings.heSkin; NEON CASINO ≈ 70 KB)
   // (HE6: + THE REAL CARDS' court figures — ONLY this phone's deck's sprite, ~195 KB — + the card stock's grain, 1.4 KB)
-  const imgs = [...skinAssets(skinOf(settings.heSkin)), ...chips.map(f => new URL(`../../../assets/holdem/${f}`, import.meta.url).href),
+  const imgs = [...skinAssets(skinOf(settings.heSkin), typeof innerWidth === 'number' && innerWidth > innerHeight), ...chips.map(f => new URL(`../../../assets/holdem/${f}`, import.meta.url).href),
     courtUrl(settings.heDeck), new URL('../../../assets/holdem/cards/stock.webp', import.meta.url).href];
   return Promise.all([
     ...imgs.map(src => fetch(src).then(r => r.blob()).catch(() => null)),

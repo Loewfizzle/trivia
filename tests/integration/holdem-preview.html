@@ -73,11 +73,17 @@ const N = ASK === 'headsup' ? 2 : Math.max(2, Math.min(8, Number(q.get('n') || (
 const STATE = q.get('play') === '1' ? 'play' : ({ ledger: 'final', headsup: 'myturn', raised: 'flop', leaveafter: 'preflop', leavequeued: 'preflop' })[ASK] || ASK;
 const MODE = q.get('mode') === 'cash' || ['ledger', 'leave', 'leaveafter', 'leavequeued'].includes(ASK) ? 'cash' : 'tournament';
 const STAGED = ['sidepots', 'levelup', 'ko', 'out'].includes(STATE);
-const st = Number(q.get('st') ?? 47), sb = Number(q.get('sb') ?? 34);
+// (HE7: a phone ON ITS SIDE — wider than tall — has its safe areas left + right (the notch side + its twin) + the home bar below:
+//  47 / 47 / 21 by default; &sl=&sr= set them; a desktop-sized window (wider than 1000) none)
+const wide = innerWidth > innerHeight, desk = innerWidth > 1000;
+const st = Number(q.get('st') ?? (wide ? 0 : 47)), sb = Number(q.get('sb') ?? (desk ? 0 : wide ? 21 : 34));
+const sl = Number(q.get('sl') ?? (wide && !desk ? 47 : 0)), sr = Number(q.get('sr') ?? (wide && !desk ? 47 : 0));
 document.documentElement.style.setProperty('--safe-t', `${st}px`);
 document.documentElement.style.setProperty('--safe-b', `${sb}px`);
+document.documentElement.style.setProperty('--safe-l', `${sl}px`);
+document.documentElement.style.setProperty('--safe-r', `${sr}px`);
 const probeCss = document.createElement('style');
-probeCss.textContent = `.he-probe-t { height: ${st}px !important } .he-probe-b { height: ${sb}px !important }`;
+probeCss.textContent = `.he-probe-t { height: ${st}px !important } .he-probe-b { height: ${sb}px !important } .he-probe-l { width: ${sl}px !important } .he-probe-r { width: ${sr}px !important }`;
 document.head.append(probeCss);
 updateSettings({ heDeck: q.get('deck') === 'two' ? 'two' : 'four', heSkin: q.get('skin') || 'casino', musicOff: true, sfxOff: true });   // (HE6: &skin=casino|cabin|apartment)
 
