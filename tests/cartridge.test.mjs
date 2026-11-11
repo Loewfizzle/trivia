@@ -29,12 +29,12 @@ export const EXEMPT = Object.freeze(['cipher', 'signal', 'bluff', 'pulse', 'golf
  *  meet the whole contract like a playable game (THE DAILY MODULE opens them once a day, later) */
 export const DAILY_ONLY = Object.freeze(['password', 'coastclear']);
 /** HE3 — BEING BUILT: a GAMES row with playable: false + `preview: true` (no sign, never offered; a local emulator page may start it), NOT
- *  exempt: it meets the whole contract like a playable game. It leaves this list in the pass that makes it playable. */
-export const BUILDING = Object.freeze(['holdem']);
+ *  exempt: it meets the whole contract like a playable game. It leaves this list in the pass that makes it playable (HOLD'EM: HE10). */
+export const BUILDING = Object.freeze([]);
 const CHECKED = [...PLAYABLE, ...DAILY_ONLY, ...BUILDING];
 
 test('every registered game is PLAYABLE (and checked), DAILY-ONLY (checked, never in a room) or EXEMPT (hidden, frozen) — never neither', () => {
-  assert.deepEqual([...PLAYABLE].sort(), ['overclock', 'prism']);
+  assert.deepEqual([...PLAYABLE].sort(), ['holdem', 'overclock', 'prism']);   // (HE10: + HOLD'EM)
   for (const id of registered) assert.equal([PLAYABLE, DAILY_ONLY, EXEMPT, BUILDING].filter(l => l.includes(id)).length, 1, `${id}: exactly one of playable / daily-only / exempt / being built`);
   for (const id of BUILDING) { const g = GAMES.find(x => x.id === id); assert.ok(g && g.playable === false && g.preview === true && !g.sign, `${id}: a GAMES row, playable false, preview, NO sign (never offered)`); }
   for (const id of EXEMPT) assert.ok(!PLAYABLE.includes(id), `${id} is exempt — it isn't playable`);
@@ -113,5 +113,5 @@ test("THE BOOT BYTES: no game's logic in the title's static graph (scripts/boot-
   const { bootGraph } = await import('../scripts/boot-bytes.mjs');
   const g = bootGraph(), games = g.rows.filter(r => r.f.startsWith('js/games/') && !/\/(meta|registry|cartridge|lazy-view)\.js$|\/kit\/|^js\/games\/pulse\/clock\.js$/.test(r.f));   // (pulse/clock.js = the console's shared audio clock — audio/synced-songs.js)
   assert.deepEqual(games.map(r => r.f), [], "only the metas + the console's own game files at boot");
-  assert.ok(g.games < 31 * 1024, `js/games at boot: ${(g.games / 1024).toFixed(1)} KB`);
+  assert.ok(g.games < 34 * 1024, `js/games at boot: ${(g.games / 1024).toFixed(1)} KB`);
 });

@@ -10,7 +10,7 @@ import { bootGraph } from './boot-bytes.mjs';
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..');
 const STATIC = /(?:^|[\s;}])(?:import|export)\s+(?:[\w*{}\s,$]+\s+from\s+)?['"]([^'"]+)['"]/g;
 const deps = file => { const src = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1'); const out = []; for (const m of src.matchAll(STATIC)) { const s = m[1]; if (!s.startsWith('.') && !s.startsWith('/')) continue; out.push(s.startsWith('/') ? resolve(ROOT, '.' + s) : resolve(dirname(file), s)); } return out; };
-export const CARTRIDGES = ['overclock', 'prism'];   // (the playable ones — config.js GAMES[].playable)
+export const CARTRIDGES = ['overclock', 'prism', 'holdem'];   // (the playable ones — config.js GAMES[].playable; HE10: + HOLD'EM)
 export function graphOf(id) {
   const boot = new Set(bootGraph().rows.map(r => r.f)), seen = new Map(), todo = [`js/games/${id}/index.js`, `js/games/${id}/view.js`].map(f => resolve(ROOT, f));
   while (todo.length) { const f = todo.pop(); if (seen.has(f) || !existsSync(f)) continue; seen.set(f, readFileSync(f).length); for (const d of deps(f)) todo.push(d); }

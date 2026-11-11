@@ -20,6 +20,7 @@
 //   GAME_MODULES[id]   the LOADED cartridge or none   loadGame(id) → Promise<cartridge|null>   onGameLoaded(fn) → off()
 import * as overclockMeta from './overclock/meta.js';
 import * as prismMeta from './prism/meta.js';
+import * as holdemMeta from './holdem/meta.js';   // (HE10: HOLD'EM playable — its thin meta at boot, like every playable game)
 import { state } from '../store.js';
 import { unsealed } from './kit/seal.js';
 import { lazyImport } from '../ui/lazy-import.js';
@@ -31,10 +32,10 @@ const LOADERS = {
   gridlock: () => import('./gridlock/index.js'), stakes: () => import('./stakes/index.js'), rum: () => import('./rum/index.js'),
   password: () => import('./password/index.js'),   // (PW1 — DAILY-ONLY: never playable in a room; no meta at boot — the console never offers it)
   coastclear: () => import('./coastclear/index.js'),   // (CC1 — DAILY-ONLY, like THE PASSWORD)
-  holdem: () => import('./holdem/index.js'),   // (HE3 — BEING BUILT: playable false, no meta at boot — config.js `preview` starts it on a local emulator page only)
+  holdem: () => import('./holdem/index.js'),
 };
 export const GAME_IDS = Object.freeze(Object.keys(LOADERS));
-export const META = Object.freeze({ overclock: overclockMeta, prism: prismMeta });
+export const META = Object.freeze({ overclock: overclockMeta, prism: prismMeta, holdem: holdemMeta });
 export const GAME_MODULES = {};
 const pending = {}, loadedFns = new Set();
 export function loadGame(id) {

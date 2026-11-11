@@ -24,6 +24,7 @@ const SFX = process.env.SIZE ? `-${VW}x${VH}` : '';
 const ALL_GAMES = [
   ['overclock', { mode: 'quick' }],
   ['prism', { mode: 'battle' }],
+  ['holdem', { mode: 'tournament', speed: 'turbo' }],   // (HE10: ON for everyone — started here by a REGULAR host, no owner gate)
 ];
 const GAMES = ONLY_GAMES.length ? ALL_GAMES.filter(([id]) => ONLY_GAMES.includes(id)) : ALL_GAMES;
 const BAD = /\bnull\b|\bundefined\b|\bNaN\b|\[object Object\]/;
@@ -167,12 +168,13 @@ try {
     for (const id of ids) res.push(await host.evaluate(g => import('/js/host.js').then(m => m.startGame(g, {})), id));
     await sleep(600);
     const g = await evalIn(host, s => s.game ? s.game.id : null);
-    // (HE3: + HOLD'EM, being built — `preview`: never starts on a plain emulator page either, only where a link asks for it)
-    ok(ids.length === 11 && ids.includes('holdem') && res.every(r => r === false) && g === null, `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
+    // (HE10: HOLD'EM is playable now — the ten frozen games stay hidden)
+    ok(ids.length === 10 && !ids.includes('holdem') && res.every(r => r === false) && g === null, `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
     // (LOBBY 2.0 A: in City 2.0 the room is the live city — its GAMES sheet lists the games; City 1.0's lobby keeps its cards)
     let cards = await host.$$eval('.lobby-screen .game-card', els => els.map(e => e.dataset.theme));
     if (!cards.length && await host.$('.rdk-games')) { await host.evaluate(() => document.querySelector('.rdk-games').click()); await host.waitForSelector('.rc-games-sheet .rc-game', { timeout: 8000 }); cards = await host.$$eval('.rc-games-sheet .rc-game', els => els.map(e => e.dataset.game)); await host.evaluate(() => document.querySelector('.rc-games-sheet .sh-back').click()); await sleep(400); }
-    ok(cards.length === 2 && cards.includes('prism') && cards.includes('overclock'), `THE LOBBY: only the two playable games (${cards.join(', ')})`); }
+    ok(cards.length === 3 && cards.includes('prism') && cards.includes('overclock') && cards.includes('holdem'), `THE LOBBY: only the three playable games (${cards.join(', ')}) — HOLD'EM with no TEST tag`);
+    ok(!(await host.evaluate(() => [...document.querySelectorAll('.rc-game')].some(e => /\bTEST\b/.test(e.textContent)))), 'no TEST tag anywhere'); }
 
   // ---- each game: start, watch its opening screens on both phones, back to the lobby
   for (const [id, settings] of GAMES) {

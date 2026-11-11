@@ -374,7 +374,7 @@ G('cartridge', async () => {
     return out;
   })()`);
   const boot = r.$boot; delete r.$boot;
-  ok(boot.loaded <= 2 && boot.metas === 'overclock,prism', `THE LAZY LOGIC: a fresh room page holds only the playable games' METAS (${boot.metas}) — ${boot.loaded} cartridge(s) loaded before a game`);
+  ok(boot.loaded <= 2 && boot.metas === 'holdem,overclock,prism', `THE LAZY LOGIC: a fresh room page holds only the playable games' METAS (${boot.metas}) — ${boot.loaded} cartridge(s) loaded before a game`);
   // (PW1: a DAILY-ONLY cartridge — GAMES daily: true, never playable — is checked like a playable one, never counted as hidden)
   // (HE3: a game being BUILT — config.js `preview: true`, HOLD'EM — is checked like a playable one too)
   const play = Object.entries(r).filter(([, x]) => x.playable || x.daily || x.building), hidden = Object.entries(r).filter(([, x]) => !x.playable && !x.daily && !x.building);

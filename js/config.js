@@ -77,9 +77,9 @@ export const GAMES = [ // lobby order
   { id: 'cipher', name: 'CIPHER BREACH', theme: 'cipher', tag: 'WORD RACE', blurb: 'Same hidden word. Everyone races. Watch their boards light up.', playable: false },
   { id: 'signal', name: 'LAST SIGNAL', theme: 'signal', tag: 'TRIVIA ROYALE', blurb: '100 HP. Answer fast, strike a rival. Last one standing.', playable: false },
   { id: 'bluff', name: 'NEURAL BLUFF', theme: 'bluff', tag: 'BLUFF TRIVIA', blurb: 'Fake the truth. Spot the truth. The Ministry is watching.', playable: false },
-  // HE3 — HOLD'EM (docs/holdem.md): BEING BUILT — playable: false until Ben flips it (no sign, never offered); `preview: true` lets a LOCAL
-  // emulator page (localhost + ?emu) start it for the E2E + the passes' own play-tests (isPlayable below) — never the live site
-  { id: 'holdem', name: "HOLD'EM", theme: 'holdem', tag: 'TEXAS HOLD’EM · 2–8', blurb: 'Two cards each, five on the table. Bet, bluff or fold. Play chips only.', playable: false, preview: true },
+  // HOLD'EM (docs/holdem.md): HE10 (Nov 11 2026 — Ben, after the Fable review's fix pass) — ON FOR EVERYONE. No `sign` yet (its city sign + day
+  // face + THE BOARD's catalog are the city's — the MAILBOX note); the HE8 owner gate stays in the code for the next game being built
+  { id: 'holdem', name: "HOLD'EM", theme: 'holdem', tag: 'TEXAS HOLD’EM · 2–8', blurb: 'Two cards each, five on the table. Bet, bluff or fold. Play chips only.', playable: true },
 ];
 
 // PW1 — THE DAILIES: the DAILY-ONLY cartridges (docs/password.md). NOT in GAMES on purpose: GAMES is the lobby's list — it drives the city's

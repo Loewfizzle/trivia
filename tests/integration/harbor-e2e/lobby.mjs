@@ -150,7 +150,7 @@ G('room', async () => {
   await waitFor(q, "!!document.querySelector('.sh.options')", 'the options', 8000).catch(() => {});
   await ev(q, "document.querySelector('.sh.options .btn-primary').click()");
   const started = await waitFor(q, "window.__arcade.state.meta && window.__arcade.state.meta.status === 'playing'", 'the game starts', 15000).then(() => true, () => false);
-  ok(gs.n === 2 && gs.t === 'PICK A GAME' && started, `PLAY (the host): PICK A GAME (${gs.n} playable) → its options → INITIATE — today's start path (${started ? 'playing' : 'not started'})`);
+  ok(gs.n === 3 && gs.t === 'PICK A GAME' && started, `PLAY (the host): PICK A GAME (${gs.n} playable) → its options → INITIATE — today's start path (${started ? 'playing' : 'not started'})`);
   await A.ctx.close(); await B.ctx.close();
   log('room', 'done');
 });

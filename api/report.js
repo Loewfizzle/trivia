@@ -18,7 +18,7 @@ import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
 import { applyMatch } from './_lib/stats.js';
 import { bumpPlayed } from './_lib/activity.js';
-import { extractMatch, unreportable, REPORT_GAMES } from '../js/core/match-report.js';
+import { extractMatch, unreportable, REPORT_GAMES, DEALER_GAMES } from '../js/core/match-report.js';
 import { GAMES } from '../js/config.js';
 import { regradeBoards, computeRoundResults } from '../js/games/cipher/logic.js';
 import { holdemAction, clockNow } from './_lib/holdem-store.js';
@@ -69,7 +69,7 @@ export function cipherAgrees(game, boardsByRound, code) {
  * playable (a host could otherwise mint a win for a game nobody can start). On the LOCAL EMULATORS the frozen games' report checks keep
  * running behind the test switch `testReportAll` (server.test / progression.test / e2e-profiles set it — never honoured in production).
  */
-export const DEALER_GAMES = Object.freeze(['holdem']);
+export { DEALER_GAMES };
 export async function reportableGame(id) {
   if (typeof id !== 'string' || DEALER_GAMES.includes(id) || !REPORT_GAMES.includes(id)) return false;
   if (GAMES.some(g => g.id === id && g.playable)) return true;

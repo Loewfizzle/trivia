@@ -1,8 +1,9 @@
 # NEON SPEAKEASY — developer guide
 
-Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Twelve games — **ONLY TWO PLAYABLE** since WINDOWS
-(Nov 1 — the owner): PRISM DROP + OVERCLOCK (`js/config.js` GAMES[].playable is the one switch: the other ten are hidden everywhere a player
-could start them, their code + data + rules FROZEN, not deleted; `sign: true` = THE FIVE SIGNS in the city — the two + NEON PAR, HIGH STAKES,
+Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Thirteen games — **THREE PLAYABLE**: PRISM DROP +
+OVERCLOCK (since WINDOWS, Nov 1 — the owner) + HOLD'EM (HE10, Nov 11 — ON for everyone; no city sign / BOARD entry yet: the city's next pass)
+(`js/config.js` GAMES[].playable is the one switch: the other ten are hidden everywhere a player could start them, their code + data + rules
+FROZEN, not deleted; `sign: true` = THE FIVE SIGNS in the city — the two + NEON PAR, HIGH STAKES,
 GRIDLOCK "next on deck"). **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (CITY 1.0 OUT, Nov 5: City 1.0 deleted; an old `?city=1` / `?city=2` link lands on the Harbor;
 its code at the git tag `city-1.0-final`, a video + shots in `Downloads\NEON\museum`). Static site on Vercel
 (**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
@@ -239,8 +240,8 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   writes ONLY the changed parts in ONE multi-path update + `meta/activeAt` ≤ once a minute; a late publish is HEALED by the next call — never a whole-view
   transaction again); the cartridge's `step` only frames the match (`final` once the dealer's `rep` is in); the view renders from the table + its own
   `hole` node + `serverNow()`, the layout from ONE pure module (`holdem/layout.js` — no seat overlaps at 2–8: `tests/holdem-phone.test.mjs`); WHO POKES =
-  `logic.js#pokeIn`; the faces drawn in code (`card-art.js` — four colours, CLASSIC in Settings); BEING BUILT = `playable: false` + `preview: true` (starts
-  only on a local emulator page with `&preview=1` — config.js#isPlayable; docs/cartridge.md); `tests/integration/e2e-holdem.mjs` + `holdem-preview.html`.
+  `logic.js#pokeIn`; the faces drawn in code (`card-art.js` — four colours, CLASSIC in Settings); BEING BUILT (HE3–HE9) = `playable: false` + `preview: true`
+  (a local emulator page with `&preview=1`, and HE8's owner test — config.js#isPlayable; docs/cartridge.md) — PLAYABLE since HE10; `tests/integration/e2e-holdem.mjs` + `holdem-preview.html`.
 - **HOLD'EM's MOTION + THE END (HE4 — docs/holdem.md "THE MOTION" … "THE END SCREEN"):** ANIMATIONS COME FROM THE STATE — the view paints the state, the
   motion plays only the dealer's events this phone hasn't shown (`motion-plan.js#freshEvents`: numbered after the last shown, fresh ≤ 2.5 s, no gap — a
   refresh / a sleep / a gap = the state, never a replay), one timeline (`schedule` — the side pots smallest first, the main last; inside the dealer's pauses:
@@ -267,16 +268,22 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   EVERY sideways CSS rule scoped to `.he[data-orient='wide']` — THE PORTRAIT IS UNTOUCHED (prove it: `holdem-pixdiff.mjs` vs a worktree on :5174); a size
   change mid-motion SNAPS it (`motion.js#snap` — never a replay); the console's `#ns-turn` (TURN YOUR PHONE UPRIGHT) is hidden while `body.he-on`.
 - **HOLD'EM's TIMER + THE OWNER'S LIVE TEST + TOUGHNESS (HE8 — docs/holdem.md "HE8"):** YOUR clock upright = a bar on your plate's top edge (`.he-plate >
-  .he-clock`); THE OWNER'S LIVE TEST = the dealer's `start` takes a `playable: false` HOLD'EM ONLY from an ADMIN_PIDS host (`holdem-store.js#startOpen` — the
+  .he-clock`); THE OWNER'S LIVE TEST (until HE10 switched it on — the gate's code kept for the next game being built) = the dealer's `start` takes a `playable: false` HOLD'EM ONLY from an ADMIN_PIDS host (`holdem-store.js#startOpen` — the
   server's check; the emulators open unless `testHoldemGate`) + the owner's phone lists it as TEST (`config.js#setOwnerPhone` from the radio gate's `owner`
   yes, read ONLY by room-city.js — `tests/holdem-owner.test.mjs`); a tap = pressed at once + ONE move at a time until THIS table shows the answer (THE
   CATCH-UP — never `disabled: busy`); NO SIGNAL = the buttons wait (`offline()` in the render's signature); the wake lock = `wakelock.js#gameAwake` (seated
   in a live match only); THE FRAME LOOP SLEEPS when nothing moves (`wake()` — never an always-on rAF; proof `holdem-endurance.mjs`: 400 hands flat, 0 idle frames).
 - **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
-  `now`; a test greps — the screen — `view.js` + its `motion.js` — alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
+  `now`; a test greps — the screen — `view.js` + its `motion.js` + `sfx.js` — alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
   DEALER is the server (HE2: crypto randomness — never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /
   `seatView`; the sims scan every view); PLAY CHIPS ONLY — no money words ("CASH" = the mode's name); TURBO's level is 90 s, DEEP's 15 min, CASH has the shot clock too + AWAY = SAT OUT (the length study:
-  `node scripts/holdem-sim.mjs`); the test robots (`tests/fixtures/holdem-bots.mjs`) are never shipped. Its GAMES row is `playable: false` + `preview` (HE3).
+  `node scripts/holdem-sim.mjs`); the test robots (`tests/fixtures/holdem-bots.mjs`) are never shipped. Its GAMES row is `playable: true` (HE10; `preview` HE3–HE9).
+- **HOLD'EM's FIX PASS + SWITCH ON (HE10 — docs/holdem.md "HE10", the Fable review `Downloads/neon/holdem/FABLE-REVIEW.md`):** THE TRUE CHECK (pre `check`:
+  dropped by the dealer the moment anyone bets — `table.js#preVoid`; the toggles say exactly what they do); a HOLD'EM result ONLY from the dealer
+  (`api/report.js#reportableGame` refuses a `match-report.js#DEALER_GAMES` game + any non-playable one; `testReportAll` = the emulators' switch for the frozen
+  games' checks); a match COUNTS from 3 hands (tournament) / 10 hands + 5 min (CASH) — else `rep: 'short'` (`holdem-dealer.js#COUNTS`); what's due runs FIRST
+  on every op; a seat whose player left goes AWAY at once; the record + `hole/` deleted 8 s after the end; EV_KEEP 24 + no second `shown`; the podium waits
+  4.5 s (`logic.js#directorStep`); a missed run with an OLD start is history (`OLDEST_SLACK_MS`); SIT BACK DOWN with your chips; `assets/holdem/CREDITS.md`.
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,
@@ -398,7 +405,7 @@ package.json                                             only firebase-admin for
 css/base.css components.css screens.css title.css        tokens + themes, the design system (+ NEON GLASS), setup/lobby, the title
 css/kit.css                                              the match kit's default look (announcements, cards, Call the Winner, report)
 css/board.css admin.css                                  THE BOARD, the membership card, podium plaques + rank-up; the admin page
-css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent stakes rum) + css/chat.css
+css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent stakes rum holdem) + css/chat.css
 js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, colors, avatars, GAMES registry / the web config / init + db helpers + serverNow() + THE PARKED DATABASE (want / release)
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
 js/core/  room-logic.js hush.js lobby-song.js party.js rainbow.js marks.js palette.js neon-ramp.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js tube-path.js   PURE: room codes + host election, HUSH WORDS, the lobby song, PARTY NIGHTS, RAINBOWS, the games' neon marks + the tube alphabet, the palette + the light timeline, THE NEON COMES ALIVE's plan, seeded RNG, XOR+base64, game-night standings, room playlists, the real sun / moon / seasons / holidays / eclipses (sky.js), Open-Meteo + NOAA's Kp → the weather, the admin STATS, SVG → neon tubes; harbor-*.js: City 2.0 (below)
@@ -599,14 +606,14 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   → SKIPPED with "no display attached (a no-screen boot)", counted apart in the suite's last line (never a fail, never a silent pass); docs/testing.md.
 - **THE BASELINE GUARD:** `ONLY=perf` fails above 2× `tests/integration/perf-baseline.json` (`PERF_GUARD=only` ≈ 1.5 min; `PERF_BASELINE=write`
   only when a pass changes the cost on purpose — say so). A cache keyed per frame must hold its whole working set.
-- `node --test tests/*.test.mjs` — unit + whole-match simulations of all twelve games (the ten hidden ones' quick tests kept), no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
+- `node --test tests/*.test.mjs` — unit + whole-match simulations of all thirteen games (the ten hidden ones' quick tests kept), no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
 - `/api` on the emulators: `node --test server.test.mjs` (in tests/integration); the whole profile flow: `node e2e-profiles.mjs "<browser>" ./shots-profiles`.
 - Emulators (Java + Node): `cd tests/integration && npm install && npm run emulators`; rules: `node --test rules.test.mjs`;
   app: `node scripts/serve.mjs` → `http://localhost:5173/?emu` (`&slot=2`… for more players on one computer).
 - **CONN — the database sockets:** `node e2e-conn.mjs "<browser path>" ./shots-conn` (≈ 1.5 min; `MEASURE=1` = the table only, `LINE=1` = each
   state's reasons): 0 sockets on a parked title, 1 in a room, 0 after QUIT + the grace — run it after touching room / boot / firebase.js.
-- Smoke test first: `node e2e-smoke.mjs "<browser path>" ./shots` (two regular phones, the TWO PLAYABLE games started + a check that none of the ten hidden ones can start, no stray "null" — ≈ 30 s; `GAMES=cipher` = only those — the one-game check a City 2.0 pass runs after touching a shared file).
-- Per game (WINDOWS: only PRISM DROP + OVERCLOCK run now — the ten hidden games' long E2Es stop until each comes back): `node e2e-<id>.mjs "<browser path>" ./shots-<id>` (env `N=8 SHOTS=0 GPU=1 CPU=4 PERF=0/1 FAST=1`); previews without Firebase:
+- Smoke test first: `node e2e-smoke.mjs "<browser path>" ./shots` (two regular phones, the THREE PLAYABLE games started — HOLD'EM by a regular host, no owner gate — + a check that none of the ten hidden ones can start, no stray "null" — ≈ 30 s; `GAMES=cipher` = only those — the one-game check a City 2.0 pass runs after touching a shared file).
+- Per game (WINDOWS: only PRISM DROP + OVERCLOCK + HOLD'EM run now — the ten hidden games' long E2Es stop until each comes back): `node e2e-<id>.mjs "<browser path>" ./shots-<id>` (env `N=8 SHOTS=0 GPU=1 CPU=4 PERF=0/1 FAST=1`); previews without Firebase:
   `tests/integration/<id>-preview.html`.
 - RUMRUNNER's economy: `node scripts/sim-rum.mjs` (bot matches on the real rules, per length) before touching `js/games/rum/tuning.js`.
 - Lighthouse (mobile): `npx lighthouse "http://localhost:5173/?emu" --form-factor=mobile --chrome-path="<browser>"` (targets 98–99 / 100 / 100 / 100).

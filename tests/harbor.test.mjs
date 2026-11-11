@@ -415,7 +415,10 @@ import { MARKS, bladeWord } from '../js/core/marks.js';
 
 // (WINDOWS: the sign MECHANICS are tested on all twelve — a list that grows or shrinks fills more or fewer spots; THE FIVE SIGNS below)
 // (HE3: a game still being BUILT — config.js `preview: true`, HOLD'EM — joins the signs' tests the pass it becomes playable)
-const GAMES12 = GAMES.filter(g => !g.preview).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
+// (HE10: HOLD'EM went playable before the city dressed it — its sign + day face are the CITY's next pass (the MAILBOX note); until then the
+//  sign + day-face checks walk the twelve games the city already paints)
+const CITY_PENDING = ['holdem'];
+const GAMES12 = GAMES.filter(g => !g.preview && !CITY_PENDING.includes(g.id)).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
 const faceRect = (cam, t) => { const tr = t.tiers[0], [a, b] = project(cam, tr.x0, tr.y0 + tr.h, tr.z0), [c] = project(cam, tr.x1, 0, tr.z0); return { x: a, y: b, w: c - a, h: t.face.y - b }; };
 
 test('word towers (Part 3): both faces fully on screen, nothing nearer over them — the lighthouse, the wheel, the boats, the signs', () => {
@@ -1830,7 +1833,7 @@ test('DT2 — THE CLOUDS\' light: white by midday, gold low, coral + pink after 
 test('THE DAY PASS — the painted day faces: every game has one, and its letters stand out from its board (the glance test by day)', () => {
   const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
   const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-  for (const g of GAMES.filter(x => !x.preview)) {   // (HE3: a game being built gets its day face the pass it becomes playable)
+  for (const g of GAMES.filter(x => !x.preview && !CITY_PENDING.includes(x.id))) {   // (HE3: a game being built gets its day face the pass it becomes playable — HE10: HOLD'EM's is the city's next pass)
     assert.ok(DAY_PAINT[g.id], `${g.id} has a painted scheme`);
     const p = dayPaint(g);
     assert.ok(ratio(p.ink, p.face) >= 4.5, `${g.id}: letters ${ratio(p.ink, p.face).toFixed(1)}:1 on their board`);
@@ -3321,12 +3324,13 @@ test('9c — THE CENTREPIECE SHOW LIGHTING: the floods come on with the lamps (n
 });
 
 // ================================================================ WINDOWS — Group 0: ONLY TWO GAMES PLAYABLE + THE FIVE SIGNS (the owner, Nov 1)
-test('WINDOWS — only PRISM DROP + OVERCLOCK playable; the five sign games; every start path refuses a hidden game', async () => {
+test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM); the five sign games; every start path refuses a hidden game', async () => {
   const { readFileSync } = await import('node:fs');
   const { isPlayable } = await import('../js/config.js');
-  assert.deepEqual(GAMES.filter(g => g.playable).map(g => g.id).sort(), ['overclock', 'prism']);
+  const ON = ['holdem', 'overclock', 'prism'];
+  assert.deepEqual(GAMES.filter(g => g.playable).map(g => g.id).sort(), ON);
   assert.deepEqual(GAMES.filter(g => g.sign).map(g => g.id).sort(), ['golf', 'gridlock', 'overclock', 'prism', 'stakes']);
-  for (const g of GAMES) assert.equal(isPlayable(g.id), g.id === 'prism' || g.id === 'overclock', `${g.id}: playable ${isPlayable(g.id)}`);
+  for (const g of GAMES) assert.equal(isPlayable(g.id), ON.includes(g.id), `${g.id}: playable ${isPlayable(g.id)}`);
   assert.equal(isPlayable('nope'), false);
   // the start paths: host.js#startGame refuses a hidden game before anything is written (rematch goes through it);
   // HOW TO PLAY and the title's games sheet list only the playable ones; a sign tap on a next-on-deck game says COMING SOON

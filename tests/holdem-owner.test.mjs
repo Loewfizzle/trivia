@@ -13,26 +13,22 @@ function walk(dir, out = []) {
   return out;
 }
 
-test('a normal phone: HOLD’EM is not playable, not offered, not a test', () => {
-  setOwnerPhone(false);
+// HE10 (Nov 11 2026 — Ben): HOLD'EM IS ON FOR EVERYONE. The gate's code stays (for the next game being built) — and stops mattering for it:
+test('HE10 — HOLD’EM is ON: playable for every phone, never a TEST (the tag disappears), still no city sign (the city’s next pass)', () => {
   const row = GAMES.find(g => g.id === 'holdem');
-  assert.equal(row.playable, false, 'HOLD’EM still ships playable: false');
-  assert.equal(row.sign, undefined, 'no city sign');
-  assert.equal(isPlayable('holdem'), false);
-  assert.equal(isOwnerTest('holdem'), false);
-  for (const g of GAMES) assert.equal(isOwnerTest(g.id), false, g.id);
-});
-
-test('the owner’s phone: HOLD’EM (preview) is his TEST + startable; the other hidden games stay hidden; a playable game is never a TEST', () => {
-  setOwnerPhone(true);
-  try {
-    assert.equal(isOwnerTest('holdem'), true);
-    assert.equal(isPlayable('holdem'), true);
-    for (const g of GAMES.filter(x => !x.preview)) {
-      assert.equal(isOwnerTest(g.id), false, `${g.id} is never a TEST`);
-      assert.equal(isPlayable(g.id), !!g.playable, `${g.id} unchanged`);
-    }
-  } finally { setOwnerPhone(false); }
+  for (const owner of [false, true]) {
+    setOwnerPhone(owner);
+    try {
+      assert.equal(row.playable, true, 'HOLD’EM ships playable: true');
+      assert.equal(row.sign, undefined, 'no city sign yet');
+      assert.equal(isPlayable('holdem'), true);
+      assert.equal(isOwnerTest('holdem'), false, 'never a TEST once playable');
+      for (const g of GAMES) {
+        assert.equal(isOwnerTest(g.id), false, `${g.id} is never a TEST (no game is being built now)`);
+        assert.equal(isPlayable(g.id), !!g.playable, `${g.id}: the one switch`);
+      }
+    } finally { setOwnerPhone(false); }
+  }
 });
 
 test('only the radio gate sets it (an OWNER role — never the crew); only the room’s HOST game list reads it', () => {
@@ -47,7 +43,7 @@ test('only the radio gate sets it (an OWNER role — never the crew); only the r
   assert.match(rc, /'TEST'/);
 });
 
-test('the server gate is the one that counts: the dealer’s start refuses a non-owner host while HOLD’EM isn’t playable', () => {
+test('the server gate is the one that counts (kept for a game being built): the dealer’s start refuses a non-owner host while the game isn’t playable', () => {
   const s = src('api/_lib/holdem-store.js');
   assert.match(s, /op === 'start' && !\(await startOpen\(uid\)\)\) throw new ApiError\(403, 'not_open'/);
   assert.match(s, /if \(row && row\.playable\) return true;/);

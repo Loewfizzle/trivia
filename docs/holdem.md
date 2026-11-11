@@ -15,7 +15,7 @@ SCREEN B". HE4, Nov 10 2026 — THE TABLE SCREEN B (below: "THE MOTION", "THE SH
   clock, settles every pot. The host holds no cards and has no power over another player's seat.
 - **TOURNAMENT** (TURBO default · STANDARD · DEEP) and **CASH** (an open session). Showdown: everyone still in shows; a fold-win may SHOW.
 - The passes: HE1 engine + sims → HE2 the server dealer → HE3–HE4 the table screen → HE5–HE6 skins → HE7 sideways → HE8 E2E + polish →
-  HE9 Fable review → HE10 fixes. Live only when Ben flips its own `playable` switch.
+  HE9 Fable review → HE10 fixes + **ON for everyone** (Nov 11 2026 — its own `playable` switch, flipped once every finding was fixed + green).
 
 ## The files — THE ENGINE (`js/games/holdem/`'s seven rules files — all PURE: no DOM, no database, no clock, no Math.random)
 (The folder holds 28 modules: these seven are the rules; the phone's side — the cartridge, its PURE helpers `logic.js` · `layout.js` · `layout-wide.js` ·
@@ -789,7 +789,7 @@ p50 16.7 / p95 ≤ 16.8 ms in all three skins, upright + sideways) · holdem-rot
 - The SE on its side at 7–8 players: a 45–49 pt board. The desktop podium is the console's frame at its own size (not the stage's scale).
 - When it becomes playable: `scripts/build-preload-graph.mjs` (+ its CARTRIDGES list) — DONE in HE10; a day face + a sign scheme, THE BOARD's catalog — the CITY's (MAILBOX).
 
-## HE10 — THE FIX PASS (Nov 11 2026 — the Fable review, `Downloads\neon\holdem\FABLE-REVIEW.md`; Ben's decisions: docs/games/plan.md "HE10")
+## HE10 — THE FIX PASS + SWITCH ON (Nov 11 2026 — the Fable review, `Downloads\neon\holdem\FABLE-REVIEW.md`; Ben's decisions: docs/games/plan.md "HE10")
 - **THE TRUE CHECK (A1):** the pre-actions = CHECK / FOLD · CHECK · CALL ANY when nothing is owed, FOLD · CALL ANY facing a bet. `pre: 'check'` checks
   when free and is DROPPED by the dealer the moment anyone bets (`table.js#preVoid` — `advance` drops it at once, the toggle goes dark); it is refused
   while chips are owed. It never calls. Sideways the three take two rows (CHECK / FOLD across; CHECK | CALL ANY).
@@ -817,3 +817,7 @@ p50 16.7 / p95 ≤ 16.8 ms in all three skins, upright + sideways) · holdem-rot
   everywhere; Fabric030 = both felts (A47). The dead exports gone (A49). The preview: `&stress=1` (12-letter names, ×667 chips), `&short=1`.
 - **PROOF:** `tests/holdem-he10.test.mjs` (A1 · A3 · A4 · A5 · A6 · A7 · A9 · A13 · A14 · A15 · A16 · A18 · A35 · A41 · A42) + holdem-server's HE10 cases (A2 / B1,
   A7, A15, A16 on the emulators); every Fable repro re-run (scenarios, attack, race, fuzz, evcount, stale, prelabel, reflip).
+- **THE SWITCH (Group 7):** `config.js` holdem `playable: true` — every host sees + starts it (no TEST tag: `isOwnerTest` is false for a playable game; the
+  HE8 gate's code stays for the next game being built); `js/games/registry.js` imports its thin `meta.js` at boot; `preload-graph.js` (27 modules, 265 KB)
+  + index.html's BOOT PRELOAD regenerated; the smoke test starts HOLD'EM from a regular host. NOT here (the city's — the MAILBOX note): its city sign + day
+  face, THE BOARD's catalog entry (`tests/harbor.test.mjs#CITY_PENDING`, `profiles.test.mjs` skip it until then), B2 / B3 / B4 / B5.

@@ -2563,6 +2563,16 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - New assets: audio/holdem/ 356 KB · assets/holdem/chips/ 36 KB · assets/holdem/casino/ 66 KB (felt 52 · backdrop 12 · rail 1.6); removed felt-green.webp
   (14 KB) — net ≈ +444 KB. Still 8 functions; no rules change; HOLD'EM still playable: false.
 
+## HE10 — HOLD'EM: THE FIX PASS + SWITCH ON (Nov 11, 2026 — docs/holdem.md "HE10"; the decisions: docs/games/plan.md "HE10"; the review: Downloads/neon/holdem/FABLE-REVIEW.md)
+- Every PART A finding (A1–A49) + B1 fixed, HOLD'EM's pieces of B6–B8 done; each proved with Fable's own repros (scenarios, attack, race, fuzz, evcount,
+  stale, prelabel, reflip, sim) + tests/holdem-he10.test.mjs + holdem-server's HE10 cases.
+- Ben's decisions: A1 the TRUE CHECK (CHECK / FOLD · CHECK · CALL ANY), A7 the counting thresholds (rep 'short' + the end screen's quiet line), A18 SIT
+  BACK DOWN with your chips, A40 CASH's champion for the biggest winner, A46 only "a fresh 1,000 chips"; A17 the void path deleted.
+- THE SWITCH: config.js `playable: true` (no TEST tag — the gate's code kept), its thin meta at boot (js/games at boot 33.2 KB — the cap 31 → 34 KB),
+  preload-graph.js + the boot preload regenerated, the smoke test starts it from a regular host; the city's pieces (sign, day face, THE BOARD) → MAILBOX.
+- Measured: unit 1643 · rules 76 · /api 44 · dealer 17 · smoke 8/8 · e2e-holdem FAST 23 + FULL 52 (60 fps at 4× CPU, every skin, both orientations) +
+  TOUGH 18 · rotate + endurance ALL GOOD · a layout audit (33 states × 6 sizes × 3 skins) clean · the review shots: Downloads/neon/holdem/shots/he10.
+
 ## HE8 — HOLD'EM: YOUR TURN TIMER + THE OWNER'S LIVE TEST + REAL-WORLD TOUGHNESS + LONG NIGHTS (Nov 11, 2026 — docs/holdem.md "HE8"; the decisions: docs/games/plan.md "HE8")
 - YOUR TURN TIMER upright: a 4 pt bar across the top edge of your plate (the skin's accent), red-orange in your time bank, the plate pulsing softly the last 5 s
   with the tick; sideways keeps HE7's bar. (Since HE3 the upright bar had sat below the screen.)

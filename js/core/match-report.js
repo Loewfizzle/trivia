@@ -32,6 +32,9 @@ const STANDINGS = {
   stakes: stakesStandings, rum: rumStandings,
 };
 export const REPORT_GAMES = Object.keys(STANDINGS);
+/** HE10 (the Fable review's A2 / B1): the games THE SERVER DEALS ITSELF — their result exists only from the dealer's own record
+ *  (api/_lib/holdem-store.js#reportMatch); the shared report path (api/report.js) never credits them */
+export const DEALER_GAMES = Object.freeze(['holdem']);
 const num = v => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 const vals = o => Object.values(o || {});
 

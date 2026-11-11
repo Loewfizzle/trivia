@@ -8,7 +8,7 @@ import { RANKS, rankIndex, progress, matchXp } from '../js/core/ranks.js';
 import { isOffensive, boardName, nameKey, fold } from '../js/core/names.js';
 import { keyFromBytes, formatKey, normalizeKey, KEY_ALPHABET } from '../js/core/pkey.js';
 import { boardDef, careerBoards, recordBoards, primaryBoard, fmtValue, toSort, fromSort, better, BOARD_GAMES } from '../js/core/boards.js';
-import { extractMatch, maxPulseScore, maxSlipDistance, REPORT_GAMES, unreportable } from '../js/core/match-report.js';
+import { extractMatch, maxPulseScore, maxSlipDistance, REPORT_GAMES, DEALER_GAMES, unreportable } from '../js/core/match-report.js';
 import { finalGame, T0 } from './fixtures/finals.mjs';
 import { GAMES } from '../js/config.js';
 
@@ -95,7 +95,7 @@ test('restore keys: NEON-XXXX-XXXX-XXXX, no look-alikes, typed any way', () => {
 });
 
 test('board catalog: every game has WINS + WIN RATE; records, pulse songs, sort order', () => {
-  assert.deepEqual([...BOARD_GAMES].sort(), GAMES.filter(g => !g.preview).map(g => g.id).sort());   // (HE3: HOLD'EM, being built — its boards come with BOARD 2.0's HOLD'EM pass)
+  assert.deepEqual([...BOARD_GAMES].sort(), GAMES.filter(g => !g.preview && g.id !== 'holdem').map(g => g.id).sort());   // (HE3 / HE10: HOLD'EM — playable since HE10 — has no board yet: THE BOARD's catalog entry is the city's next pass, the MAILBOX note)
   for (const g of BOARD_GAMES) {
     const c = careerBoards(g);
     assert.equal(c[0].id, `${g}-wins`);
@@ -121,7 +121,7 @@ test('board catalog: every game has WINS + WIN RATE; records, pulse songs, sort 
 });
 
 test('every game reports its finished match: placings, wins, highlights, records', () => {
-  assert.deepEqual([...REPORT_GAMES].sort(), GAMES.filter(g => !g.preview).map(g => g.id).sort());   // (HE3: HOLD'EM's result is the SERVER DEALER's own — api/_lib/holdem-store.js#reportMatch, never extractMatch)
+  assert.deepEqual([...REPORT_GAMES].sort(), GAMES.filter(g => !g.preview && !DEALER_GAMES.includes(g.id)).map(g => g.id).sort());   // (HE3 / HE10: HOLD'EM's result is the SERVER DEALER's own — api/_lib/holdem-store.js#reportMatch, never extractMatch; api/report.js#DEALER_GAMES)
   const expectRec = { cipher: ['cipher-score', 'cipher-fast5'], overclock: ['overclock-std'], pulse: ['pulse-pulse1-normal'], golf: ['golf-par9'], slip: ['slip-dist'], stakes: ['stakes-chips', 'stakes-big'], rum: ['rum-f15'] };
   const expectC = { signal: 'el', bluff: 'fool', agent: 'esc', prism: 'ko', gridlock: 'sunk' };
   for (const id of REPORT_GAMES) {
