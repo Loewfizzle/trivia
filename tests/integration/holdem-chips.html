@@ -1,7 +1,8 @@
 <!doctype html>
 <!-- HOLD'EM (HE5) — THE REAL CHIPS, close up: the stacks (js/games/holdem/chip-art.js — the same code the table draws with) on the real felt
      at the table's sizes (13 / 15 pt) and bigger, every colour alone (the GREEN on green must read), bets, a big pot, a side-pot award's
-     shares. &zoom=2 = a magnified look (the art is drawn at the device's pixel ratio — judge at 1 on a phone, unzoomed). -->
+     shares. &zoom=2 = a magnified look (the art is drawn at the device's pixel ratio — judge at 1 on a phone, unzoomed). HE6: &skin=cabin|apartment =
+     that skin's felt, light + the chips' light direction (the green chips on both green felts, every colour on the teal). -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -13,7 +14,7 @@
 <link rel="stylesheet" href="../../css/holdem.css">
 <style>
   html, body { margin: 0; background: #06050a; color: #f4ead2; font-family: 'Chakra Petch', sans-serif; }
-  .felt { margin: 12px; padding: 14px 12px; border-radius: 18px; background: radial-gradient(70% 60% at 50% 40%, rgba(255, 220, 160, 0.12), rgba(0, 0, 0, 0.45) 100%), url('../../assets/holdem/casino/felt.webp') 0 0 / 256px 256px, #145a32; }
+  .felt { margin: 12px; padding: 14px 12px; border-radius: 18px; background: radial-gradient(70% 60% at 50% 40%, rgba(var(--he-light), var(--he-light-k)), rgba(0, 0, 0, 0.45) 100%), var(--he-felt-img) 0 0 / var(--he-felt-tile) var(--he-felt-tile), var(--he-felt-tint); }
   h3 { margin: 4px 2px 8px; font: 700 11px/1 'Chakra Petch'; letter-spacing: 0.16em; color: #ffd977; }
   .row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 18px; margin-bottom: 14px; }
   .it { display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -25,10 +26,14 @@
 <body>
 <div id="app"></div>
 <script type="module">
-import { loadChips, paintStacks } from '/js/games/holdem/chip-art.js';
+import { loadChips, paintStacks, setLight } from '/js/games/holdem/chip-art.js';
+import { skinOf, skinVars } from '/js/games/holdem/skins.js';
 import { BET, POT, COLORS } from '/js/games/holdem/chips.js';
 const q = new URLSearchParams(location.search);
 if (q.get('zoom')) document.body.style.zoom = q.get('zoom');
+const skin = skinOf(q.get('skin'));
+for (const [k, v] of Object.entries(skinVars(skin))) document.documentElement.style.setProperty(k, v);
+setLight(skin.light.dir);
 await loadChips();
 const app = document.getElementById('app');
 const fmt = n => n.toLocaleString('en-US');

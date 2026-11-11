@@ -1,10 +1,12 @@
 // HOLD'EM's look review (HE3): every preview state (tests/integration/holdem-preview.html) through shots.mjs --page, at the review sizes.
 //   node tests/integration/holdem-shots.mjs "<browser>" [--out ./shots-holdem] [--sizes 390x844,402x874,430x932] [--only myturn,flop] [--tag r1]
+//     [--skin casino,cabin,apartment]   (HE6: every state in each skin — &skin=<id> on the page, the skin in the shot's name)
 // (E2E_BASE = the server: a plain `node scripts/serve.mjs 5190` is enough — the preview needs no emulators.)
 import { spawnSync } from 'node:child_process';
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
 const browser = process.argv[2];
 const out = arg('out', './shots-holdem'), sizes = arg('sizes', '390x844,402x874,430x932'), tag = arg('tag', 'he');
+const skins = arg('skin', '') ? arg('skin').split(',') : [null];
 const STATES = [
   ['waiting', 'state=waiting&n=6'], ['myturn-8', 'state=myturn&n=8'], ['myturn-2', 'state=myturn&n=2'], ['preflop-6', 'state=preflop&n=6'],
   ['flop-5', 'state=flop&n=5'], ['turn-4', 'state=turn&n=4'], ['river-3', 'state=river&n=3'], ['allin-6', 'state=allin&n=6'],
@@ -18,10 +20,14 @@ const STATES = [
   // HE5 — LEAVE IS ALWAYS THERE (CASH) · an SE-height phone (no notch: the safe areas 20 / 0)
   ['he5-leaveafter-5', 'state=leaveafter&n=5'], ['he5-leavequeued-5', 'state=leavequeued&n=5'],
   ['he5-se-myturn-8', 'state=myturn&n=8&st=20&sb=0'], ['he5-se-allin-6', 'state=allin&n=6&st=20&sb=0'], ['he5-se-flop-5', 'state=flop&n=5&st=20&sb=0'],
+  // HE6 — THE REAL CARDS' proof (your number / face / ace cards, the board flop + river, an 8-player showdown)
+  ['he6-hand-num', 'state=myturn&n=4&hand=9h7h'], ['he6-hand-face', 'state=myturn&n=4&hand=KsQd'], ['he6-hand-ace', 'state=myturn&n=4&hand=AsJc'],
+  ['he6-showdown-8', 'state=showdown&n=8'],
 ];
 const only = arg('only', '') ? arg('only').split(',') : null;
-for (const [name, qs, wait] of STATES) {
+for (const skin of skins) for (const [name, qs, wait] of STATES) {
   if (only && !only.some(o => name.startsWith(o))) continue;
-  const r = spawnSync(process.execPath, ['tests/integration/shots.mjs', browser, '--page', `tests/integration/holdem-preview.html?${qs}`, '--sizes', sizes, '--name', `${tag}-${name}`, '--out', out, ...(wait ? ['--wait', String(wait)] : [])], { stdio: 'inherit', env: process.env });
+  const page = `tests/integration/holdem-preview.html?${qs}${skin ? `&skin=${skin}` : ''}`, nm = `${tag}${skin ? `-${skin}` : ''}-${name}`;
+  const r = spawnSync(process.execPath, ['tests/integration/shots.mjs', browser, '--page', page, '--sizes', sizes, '--name', nm, '--out', out, ...(wait ? ['--wait', String(wait)] : [])], { stdio: 'inherit', env: process.env });
   if (r.status) process.exitCode = r.status;
 }
