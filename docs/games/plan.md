@@ -286,3 +286,11 @@
 - ONE winner sound: HOLD'EM plays champion on the tournament's end (OWN_VICTORY_SOUND: true → the console's sting is skipped).
 - THE CHIPS = Grok's clay-chip art (6 colours, top + side), with three must-do fixes: a soft contact shadow + a thin rim / top-edge highlight on every chip (the GREEN chip must never vanish on green felt); lighting + a subtle sheen in code so they read as real clay; each chip's edge spots at a random offset + 0.5–1 pt jitter so a stack never looks like a barcode.
 - NEON CASINO = the first skin built to the full premium bar; the SKIN SYSTEM is built so COZY CABIN + CYBERPUNK APARTMENT (HE6) plug in as data + art, no new code paths.
+
+## HE6 — REAL CARDS + CABIN + APARTMENT + THE PICKER (Nov 10 2026)
+- REAL-LOOKING CARDS (Ben): the faces read as "digital" (one big index + one big suit) — they must look like REAL playing cards while staying readable. Art SOURCED: Byron Knoll's "Vector Playing Cards" (PUBLIC DOMAIN — verify the licence from the official source; credit anyway), recoloured to the FOUR-COLOUR deck (spades black, hearts red, diamonds blue, clubs green; the classic two-colour toggle keeps the classic colours), court figures included.
+  - YOUR TWO CARDS (big): FULL real faces — classic pip layouts (2–10), the real court art (J/Q/K), the index in BOTH corners (top-left + the rotated bottom-right) in a classic serif, card-stock paper (faint grain, warm off-white), thin border, rounded corners, a hair of edge thickness + a soft shadow.
+  - BOARD CARDS: the same real-card styling, readable at board size — the big classic-serif index in two corners + a centre suit (pips only where they still read), paper, border, edge + shadow.
+  - OPPONENTS' SHOWN CARDS (small): index + suit in the same style.
+- THE SKIN PICKER: ☰ → Settings → a "TABLE" row with three small live thumbnails (NEON CASINO · COZY CABIN · CYBERPUNK APARTMENT); tap = the table changes LIVE (even mid-hand), saved per phone; default NEON CASINO; only the chosen skin's assets load.
+- COZY CABIN + CYBERPUNK APARTMENT = data + art in HE5's skin system (no new code paths), each to NEON CASINO's bar.
