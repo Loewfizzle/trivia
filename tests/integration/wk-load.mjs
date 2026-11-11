@@ -29,6 +29,8 @@ const FONTS_MS = Number(opt('fonts-delay', 0)) || 0, SKY_MS = Number(opt('sky-de
 const FRESH = !!opt('fresh', false);   // (--fresh: a first visit — no nd:entered: TAP TO ENTER over the city)
 const SAFARI = !!opt('safari', false), WARM = !!opt('warm', false), SHOTS = opt('shots', '') || '', RUNS = Number(opt('runs', 1)) || 1;
 const SCENES = { day: 'when=2026-11-06T13:00&wx=clear', grey: 'when=2026-11-06T13:02&wx=overcast', night: 'when=2026-11-06T21:30&wx=clear' };
+// (HOLD'EM IN THE CITY: --date YYYY-MM-DD = the scenes on that day instead — a look review of a later day's signs + billboard)
+if (typeof opt('date', '') === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(opt('date', ''))) for (const k of Object.keys(SCENES)) SCENES[k] = SCENES[k].replace('2026-11-06', opt('date'));
 const sceneArg = String(opt('scene', 'grey')), barsArg = String(opt('bars', 'all'));
 const scenes = sceneArg === 'all' ? Object.keys(SCENES) : sceneArg.split(',');
 const BARS = ['pre', 'fade', 'after', 'late'];

@@ -474,7 +474,7 @@ A second way to bring your card to a device, beside the restore key (which stays
 
 ## BOARD 2.0 B — THE SCREENS (Nov 9 2026 — docs/harbor/passes/board-2b.md)
 - **THE BOARD's screens** (`js/board/view.js` — the app's screen, `/board`, the title's preview): THE TABS XP · DAILIES · OVERCLOCK · PRISM DROP
-  (`TABS`; opens on XP, THIS WEEK; ALL TIME on every tab; a game without a tab → XP); every row = the player's SLIM CARD through
+  (HOLD'EM IN THE CITY: + HOLD'EM — five on one row at 390, PRISM DROP's tab reads PRISM; see "THE HOLD'EM BOARD" below) (`TABS`; opens on XP, THIS WEEK; ALL TIME on every tab; a game without a tab → XP); every row = the player's SLIM CARD through
   `ui/strip-board.js` (the rank left, the score under the card with its unit — `unitOf`, ⋯ REPORT at the line's left, YOU framed + a YOU chip);
   YOUR card pinned at the foot with your exact rank (`ranks`) or "N MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3" (`mine`) — **PD-1 GROUP 0: ONLY while your
   own card is NOT on screen in the list** (one IntersectionObserver on your row, ≥ 60 % in view = on screen — `view.js#watchMine`; NO DOUBLE "YOU");
@@ -492,3 +492,13 @@ A second way to bring your card to a device, beside the restore key (which stays
   approved exception) · INVITE (a friend not in your room) or the friend button · ⋯ by `rel`. `limited` → the name + the emblem + "This member keeps
   their card private." (never says a block); /api down → the same from what the screen had. Your own name → YOUR CARD. The room's MAKE HOST + CREW
   rows ride under it. Proof: `e2e-profiles` 8b. **PD-1 GROUP 0: its backdrop is OPAQUE** (`css/player.css` — the list behind no longer shows through).
+
+## THE HOLD'EM BOARD (HOLD'EM IN THE CITY, Nov 11 2026 — docs/harbor/passes/holdem-city.md)
+- `holdem-tw` (`core/boards.js` — `GAME_BOARDS.holdem`, a career board with `tie: 'ko'`): **TOURNAMENT WINS** (pstats `g/gw.holdem.tw`), **KNOCKOUTS** the
+  tie-break (`ko`), then the EARLIER to reach it (`ra` — the moment the standing last moved, `progress.js#matchStep` from a row's `reach`). ONE sort value
+  (`boards.js#tieSort`: wins × 1e10 + min(KOs, 999) × 1e7 + the time left — seconds of the week for THIS WEEK, minutes since 2026 for ALL TIME); `tieOf` /
+  `fmtValue` 'twko' show "3 WINS · 5 KOs". Written by `lb.js#boardPaths` in the SAME update as the match's stats; a public row = `ROW_KEYS` only.
+- The counters ONLY from the dealer's record (`holdem-dealer.js#resultRows` → `match-report.js#holdemCounters`, bounded): a CASH session never counts, a
+  match under the dealer's `COUNTS` never reports. Each result keeps `ko` per profile — **THE BACK-FILL** (/admin → THE BOARDS) rebuilds the wins from
+  every counted tournament on record and the knockouts from the records that keep them (from this pass on); never lower than the live counters.
+- THE BOARD's HOLD'EM tab = this one board (`boards.js#tabBoards` — no RECORDS / CAREER switch) + its one-line explainer (`def.note`, `.bd-note`).

@@ -2635,3 +2635,17 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   busiest moment's 60 fps in each skin (p50 16.7 ms at 4× CPU, 8 seats, all three).
 - New assets: assets/holdem/cards/ 400 KB (courts-four 195 · courts-two 195 · stock 0.6 — a phone loads one sprite) · cabin/ 117 KB + its back 4.8 KB ·
   apartment/ 119 KB + its back 14 KB · the casino backdrop 12 → 28 KB — ≈ +672 KB in the repo. Still 8 functions; no rules change; HOLD'EM still playable: false.
+
+## HOLD'EM IN THE CITY (Nov 11, 2026 — docs/harbor/passes/holdem-city.md)
+- THE BILLBOARD → NOW OPEN: the timetable's `billboard.holdem` default is NOW OPEN from its `open` day (Nov 11 — HOLD'EM playable), COMING SOON before
+  it, so the billposter pastes the new sheet once; the owner's /admin switch still overrides.
+- HOLD'EM's SIGN + DAY FACE in GRIDLOCK's spot (THE FIVE SIGNS = PRISM DROP · OVERCLOCK · HOLD'EM + NEON PAR · HIGH STAKES; GRIDLOCK frozen as before).
+  Found: the slot rule counted HOLD'EM's apostrophe as a letter — it fitted no roof sign (GRIDLOCK never fitted one either: the billboard only); a
+  row now counts letters + is sized by the real advance (10.1–11.6 pt at 390–430). Night casino red (gold twinned HIGH STAKES), the day face gold
+  on felt; the speakeasy blade's weekly order puts HOLD'EM in GRIDLOCK's slot. `tests/harbor.test.mjs#CITY_PENDING` deleted.
+- THE BOARD's HOLD'EM TAB: `holdem-tw` — tournament wins, knockouts the tie-break, the earlier to reach it, one sort value from the dealer's own
+  record (CASH never; under 3 hands never); five tabs on one row at 390 (PRISM DROP's tab = PRISM); the back-fill from the records (knockouts kept
+  with each result from now on). Emulator proof: a counted TURBO → the winner's row + KOs; CASH → none; a tie → KOs decide; ROW_KEYS only.
+- HE9's shared fixes, every game: B2 (the corner buttons' tap area 42 → 44 — the padding box; the `tapfit` probe), B3 (the podium's action row
+  sticky at the foot + a fade + MORE BELOW; HOLD'EM's stop-gap gone), B4 (everyone tied = a draw: ALL TIED, 2nd-place night points, no win, no
+  banner plane; the server accepts the old entries; a partial tie unchanged). No rules change; 8 functions.

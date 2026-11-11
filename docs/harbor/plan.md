@@ -6542,3 +6542,7 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 - THE BUILD TABLE (Nov 11 evening, HOLD'EM IN THE CITY Step 0): LOAD FIX 5 ✅ (passes/load-fix-5.md); HOLD'EM IN THE CITY (this pass: THE BILLBOARD → NOW OPEN,
   HOLD'EM's SIGN + DAY FACE in GRIDLOCK's spot, THE BOARD's HOLD'EM TAB, HE9's B2 · B3 · B4 — nothing else) ← NOW; then FR7 + FR7 FIXES → THE LAUNCH (was "THE
   SWITCH-OVER") → SIDEWAYS.
+- HOLD'EM IN THE CITY DONE (Nov 11, night) — passes/holdem-city.md. THE BUILD TABLE: HOLD'EM IN THE CITY ✅ (THE BILLBOARD → NOW OPEN; HOLD'EM's SIGN + DAY
+  FACE in GRIDLOCK's spot — the slot rule counts a row's letters, the apostrophe rides along; THE BOARD's HOLD'EM TAB — tournament wins, KOs the tie-break,
+  from the dealer's record, the back-fill waits for the owner in /admin → THE BOARDS; HE9's B2 · B3 · B4 for every game; no rules change); FR7 (+ HE9's B5)
+  + FR7 FIXES ← NEXT → THE LAUNCH → SIDEWAYS.

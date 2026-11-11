@@ -602,6 +602,10 @@ load problem, not a flake to patch.
   **`ONLY=cameras`** (Chromium, 11 paths, three pages at a time — two on CI; ~85 s). `E2E_BASE=http://localhost:5174` = a worktree (the
   BEFORE run: 7 of 11 red on 13cd99a8). A NEW camera / box path = its `kind` in `kit/two-cameras.mjs#runPath` + its name in `ALL_PATHS`
   (+ the group's `WHAT` if the cloud should run it).
+- **THE CORNER BUTTONS' 44 PT (HOLD'EM IN THE CITY — B2):** **`ONLY=tapfit`** (the lobby job, ~15 s): every corner button's REAL hit area —
+  `kit/corner-probe.mjs` walks `elementFromPoint` out from each button's centre, a quarter point at a time — on the city, THE BOARD, PRISM DROP,
+  OVERCLOCK + the dailies' previews at 390 + 1440; under 44 × 44 fails (the old 4 pt `::after` read 42 — an absolute box's inset counts from
+  the padding box). A new screen with corner buttons = its preview in the group's `PAGES`.
 - **THE LOAD FIX (Nov 6) — THE BOOT IN WEBKIT:** `node tests/integration/wk-load.mjs [--scene day|grey|night|all] [--bars pre|fade|after|late|none|all]
   [--safari] [--warm] [--fresh] [--size WxH] [--shots DIR] [--log] [--frames --json out.json] [--fonts-delay ms] [--sky-delay ms] [--live]` — the
   real boot in Playwright's WebKit as an iPhone (402×874 @3), Safari's bar = the window's height 874 → 800 → 874 at a moment of the load

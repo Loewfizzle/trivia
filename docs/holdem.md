@@ -787,7 +787,7 @@ p50 16.7 / p95 ≤ 16.8 ms in all three skins, upright + sideways) · holdem-rot
 - The robots' length numbers are a guide; Ben's live test should re-check TURBO (90 s) + DEEP (15 min) with people.
 - The KO card shows only on a FRESH bust (a phone that slept through it lands on SPECTATING). (A bust in the match's last hand: HE10's A3 — the podium now waits 4.5 s for it.)
 - The SE on its side at 7–8 players: a 45–49 pt board. The desktop podium is the console's frame at its own size (not the stage's scale).
-- When it becomes playable: `scripts/build-preload-graph.mjs` (+ its CARTRIDGES list) — DONE in HE10; a day face + a sign scheme, THE BOARD's catalog — the CITY's (MAILBOX).
+- When it becomes playable: `scripts/build-preload-graph.mjs` (+ its CARTRIDGES list) — DONE in HE10; a day face + a sign scheme, THE BOARD's catalog — DONE in HOLD'EM IN THE CITY (below).
 
 ## HE10 — THE FIX PASS + SWITCH ON (Nov 11 2026 — the Fable review, `Downloads\neon\holdem\FABLE-REVIEW.md`; Ben's decisions: docs/games/plan.md "HE10")
 - **THE TRUE CHECK (A1):** the pre-actions = CHECK / FOLD · CHECK · CALL ANY when nothing is owed, FOLD · CALL ANY facing a bet. `pre: 'check'` checks
@@ -821,3 +821,17 @@ p50 16.7 / p95 ≤ 16.8 ms in all three skins, upright + sideways) · holdem-rot
   HE8 gate's code stays for the next game being built); `js/games/registry.js` imports its thin `meta.js` at boot; `preload-graph.js` (27 modules, 265 KB)
   + index.html's BOOT PRELOAD regenerated; the smoke test starts HOLD'EM from a regular host. NOT here (the city's — the MAILBOX note): its city sign + day
   face, THE BOARD's catalog entry (`tests/harbor.test.mjs#CITY_PENDING`, `profiles.test.mjs` skip it until then), B2 / B3 / B4 / B5.
+
+## HOLD'EM IN THE CITY (Nov 11 2026 — the city's pass: docs/harbor/passes/holdem-city.md)
+- **THE CITY**: the roof BILLBOARD says **NOW OPEN** (the timetable's default from Nov 11); HOLD'EM's **skyline SIGN** took GRIDLOCK's spot (`config.js`
+  `sign: true` — THE FIVE SIGNS = PRISM DROP · OVERCLOCK · HOLD'EM + NEON PAR · HIGH STAKES): a roof sign spelling HOLD'EM whole (the apostrophe tube),
+  its night tube casino red, its day face gold on felt with a cream keyline; on the speakeasy's painted blade in GRIDLOCK's weeks. A tap = its preview
+  + HOW TO PLAY, like the other playable signs.
+- **THE BOARD** (`core/boards.js` `holdem-tw`): **TOURNAMENT WINS** this week / all time, **KNOCKOUTS the tie-break**, then the earlier to reach it — one
+  sort value (`tieSort`), shown "3 WINS · 5 KOs". The counters come ONLY from the dealer's record: `holdem-dealer.js#resultRows` → `match-report.js#
+  holdemCounters` (bounded; CASH counts for neither; under `COUNTS` nothing reports); each result (`results/{key}`) keeps `ko` per profile for the
+  back-fill (/admin → THE BOARDS). Its tab on THE BOARD = its one board + "TOURNAMENTS ONLY (NOT CASH) · KOs BREAK A TIE". The generic `holdem-wins` /
+  `holdem-wr` boards still exist (the profile's game card), never on the tab.
+- **THE END SCREEN**: HE10's SCROLL FOR MORE replaced by the console's sticky BACK TO THE ROOM + MORE BELOW (B3, `ui/final.js`; HOLD'EM's backing
+  `--fin-bg: rgb(6, 5, 10)`); a CASH session where every net is equal = a draw on game night (B4 — 2 points each; no champion as before).
+- B5 (the host's END GAME / kick reach a HOLD'EM match) is FR7's.
