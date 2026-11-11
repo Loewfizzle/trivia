@@ -9,7 +9,7 @@ export const PERIODS = ['week', 'all'];
 export const MIN_WR_GAMES = 10;     // win rate shows only after this many games of that game
 
 const rec = (id, label, fmt, opts = {}) => ({ id, kind: 'record', label, fmt, dir: opts.dir || 1, short: opts.short || label, unit: opts.unit || '' });
-const car = (id, label, opts = {}) => ({ id, kind: 'career', label, fmt: opts.fmt || 'int', dir: 1, short: opts.short || label, stat: opts.stat, min: opts.min || 0 });
+const car = (id, label, opts = {}) => ({ id, kind: 'career', label, fmt: opts.fmt || 'int', dir: 1, short: opts.short || label, stat: opts.stat, min: opts.min || 0, ...(opts.tie ? { tie: opts.tie } : {}), ...(opts.note ? { note: opts.note } : {}), ...(opts.week ? { week: opts.week, all: opts.all || label } : {}) });
 
 // per game: records (pure skill) and career (activity + winning). `stat` = the career counter in pstats/g/{game}.
 export const GAME_BOARDS = {
@@ -32,6 +32,10 @@ export const GAME_BOARDS = {
   bluff: { records: [], career: [car('bluff-fool', 'PLAYERS FOOLED', { stat: 'fool', short: 'FOOLED' })] },
   rum: { records: [15, 20, 30].map(n => rec(`rum-f${n}`, `BIGGEST FORTUNE · ${n} DAYS`, 'int', { short: `${n} DAYS` })), career: [] },
   stakes: { records: [rec('stakes-chips', 'BEST FINAL STACK', 'int', { short: 'CHIPS' }), rec('stakes-big', 'BIGGEST SINGLE HAND', 'int', { short: 'WON' })], career: [] },
+  // HOLD'EM IN THE CITY (the owner, Nov 11): THE HOLD'EM BOARD = TOURNAMENT WINS (this week / all time), KNOCKOUTS the tie-break, then whoever
+  // reached it first — ONE sort value (tieSort). CASH never counts (no winner); only a COUNTED match (the dealer's COUNTS: 3+ hands) — the
+  // numbers ONLY from the dealer's own record (api/_lib/holdem-dealer.js#resultRows → match-report.js#holdemCounters). `tab`: what its tab shows.
+  holdem: { records: [], career: [car('holdem-tw', 'TOURNAMENT WINS', { stat: 'tw', tie: 'ko', fmt: 'twko', short: 'TOURNAMENT WINS', note: 'TOURNAMENTS ONLY (NOT CASH) · KOs BREAK A TIE' })], tab: ['holdem-tw'] },
 };
 export const BOARD_GAMES = Object.keys(GAME_BOARDS);
 // BOARD 2.0 A — THE OVERALL BOARDS (not under any game): `xp` = THE OVERALL BOARD — THIS WEEK = the XP earned since Monday 00:00 ET (pstats.xw),
@@ -63,8 +67,13 @@ export function recordBoards(game, songs = []) {
   return (GAME_BOARDS[game] && GAME_BOARDS[game].records) || [];
 }
 
-/** The board shown first for a game (title preview cards): its first record, else WINS. */
+/** The boards a game's tab on THE BOARD shows (null = its records + career, the RECORDS / CAREER switch) — HOLD'EM: its one board */
+export const tabBoards = game => (GAME_BOARDS[game] && GAME_BOARDS[game].tab ? GAME_BOARDS[game].tab.map(boardDef) : null);
+
+/** The board shown first for a game (title preview cards): its tab's board, else its first record, else WINS. */
 export function primaryBoard(game, songs = []) {
+  const tab = tabBoards(game);
+  if (tab && tab[0]) return tab[0];
   const recs = recordBoards(game, songs);
   return recs.find(b => b.diff === 'normal') || recs[0] || careerBoards(game)[0];
 }
@@ -83,6 +92,18 @@ export function boardDef(id) {
   return d ? { ...d, game } : null;
 }
 
+// THE TIE-BREAK SORT (HOLD'EM IN THE CITY): a career board with a `tie` stat ranks by its count, then the tie stat, then the EARLIER to reach
+// it — packed into ONE sort value (lb/{board}/{period}/{pid} orders by value): count × 1e10 + min(tie, 999) × 1e7 + (1e7 − 1 − when), where
+// `when` = seconds since the week began (THIS WEEK — under 604 800) or minutes since TIE_EPOCH (ALL TIME — ~19 years of room). Safe to 9e15.
+export const TIE_EPOCH = Date.UTC(2026, 0, 1);
+const TIE_W = 1e10, TIE_K = 1e7;
+export function tieSort(n, tie, at, { weekStart = null } = {}) {
+  if (!(n > 0)) return null;
+  const t = Number(at) || 0, when = weekStart != null ? Math.floor(Math.max(0, t - weekStart) / 1000) : Math.floor(Math.max(0, t - TIE_EPOCH) / 60000);
+  return Math.floor(n) * TIE_W + Math.min(999, Math.max(0, Math.floor(tie || 0))) * TIE_K + (TIE_K - 1 - Math.min(TIE_K - 1, when));
+}
+/** a tie-break sort value → { n, tie } (what the row shows) */
+export const tieOf = v => ({ n: Math.floor(v / TIE_W), tie: Math.floor((v % TIE_W) / TIE_K) });
 export const toSort = (def, value) => (def.dir === -1 ? -value : value);
 export const fromSort = (def, v) => (def.dir === -1 ? -v : v);
 /** Is `a` (display value) better than `b`? (b null = always) */
@@ -98,6 +119,7 @@ export function fmtValue(def, v) {
     case 'par': return v === 0 ? 'E' : v > 0 ? `+${v}` : `−${Math.abs(v)}`;
     case 'pct': return `${(v / 100).toFixed(1)}%`;
     case 'avg': return (v / 100).toFixed(1);   // (BOARD 2.0 A: a points board's ALL TIME — the average a day, stored × 100)
+    case 'twko': { const { n, tie } = tieOf(v); return `${num(n)} ${n === 1 ? 'WIN' : 'WINS'} · ${num(tie)} ${tie === 1 ? 'KO' : 'KOs'}`; }   // (HOLD'EM's board)
     default: return num(v);
   }
 }

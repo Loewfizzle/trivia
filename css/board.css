@@ -59,8 +59,9 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 .bd-sub::after { transform: scaleX(-1); }
 .bd-head-pad { display: none; }
 
-/* ---- BOARD 2.0 B — THE TABS: XP · DAILIES · OVERCLOCK · PRISM DROP, four even pills ---- */
-.bd-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; flex: none; }
+/* ---- BOARD 2.0 B — THE TABS: XP · DAILIES · OVERCLOCK · PRISM · HOLD'EM, five even pills on one row (HOLD'EM IN THE CITY: + HOLD'EM; PRISM DROP's
+   tab reads PRISM — five fit at 390 with no sideways scroll) ---- */
+.bd-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; flex: none; }
 .bd-tab {
   box-sizing: border-box; width: 100%; min-width: 0; height: 38px; display: inline-flex; align-items: center; justify-content: center; padding: 0 3px; border-radius: 999px;
   font: 700 10.5px/1 var(--font-ui); letter-spacing: clamp(0.02em, calc((100vw - 360px) * 0.004), 0.08em); color: var(--bd-dim); white-space: nowrap; overflow: hidden;
@@ -111,6 +112,9 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 .bd-plate { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-bottom: 10px; text-align: center; border-bottom: 1px solid var(--bd-line); }
 .bd-label { margin: 0; font: 900 14.5px/1.2 var(--font-display); letter-spacing: 0.18em; padding-left: 0.18em; color: #fff3dc; text-shadow: 0 0 14px color-mix(in srgb, var(--a1, #ffcf8a) 45%, transparent); }
 .bd-when { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.24em; color: var(--bd-faint); }
+/* HOLD'EM IN THE CITY: a board's one-line explainer (HOLD'EM: TOURNAMENTS ONLY · KNOCKOUTS BREAK A TIE · CASH DOESN'T COUNT) */
+.bd-note { max-width: 32em; font: 600 10px/1.35 var(--font-ui); letter-spacing: 0.08em; color: var(--bd-faint); }
+.bd-note:empty { display: none; }
 .bd-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(255, 214, 150, 0.2) transparent; }
 .bd-rows { position: relative; list-style: none; margin: 0; padding: 10px 12px 12px 6px; display: grid; gap: 12px; }
 

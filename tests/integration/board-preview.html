@@ -20,7 +20,7 @@
   { const u = new URLSearchParams(location.search); if (!u.get('labmarks')) { u.set('labmarks', 'all'); history.replaceState(null, '', '?' + u); } }
   import { createBoardView } from '/js/board/view.js';
   import { installEmblems } from '/js/ui/emblems.js';
-  import { boardDef } from '/js/core/boards.js';
+  import { boardDef, tieSort } from '/js/core/boards.js';
   import { rngFrom } from '/js/core/rng.js';
   import { AVATAR_IDS, COLORS } from '/js/config.js';
   const q = new URLSearchParams(location.search);
@@ -32,6 +32,9 @@
     const def = boardDef(b);
     const R = rngFrom(b + P);
     if (def.kind === 'overall') { let x = P === 'all' && def.allFmt ? 9410 : def.points ? 640 : 4860; return Array.from({ length: N }, (_, i) => { if (i) x = Math.max(def.points ? 10 : 20, x - (P === 'all' && def.allFmt ? 20 + ((i * 37) % 60) : 4 + ((i * 53) % (def.points ? 9 : 170)))); const me = i + 1 === MY; return me ? { id: 'b-me', n: ME.profile.n, a: ME.profile.a, c: ME.profile.c, cd: ME.profile.cd, l: 23, r: 2, rank: i + 1, v: x } : { id: `b${i}`, n: NAMES[i % NAMES.length].toUpperCase(), a: AVATAR_IDS[i % AVATAR_IDS.length], c: COLORS[(i * 3) % COLORS.length].id, cd: CARDS[i % CARDS.length], es: null, tb: null, g: null, l: Math.max(2, 64 - i), r: i < 3 ? 4 : i < 10 ? 3 : 2, rank: i + 1, v: x }; }); }
+    // (HOLD'EM IN THE CITY: THE HOLD'EM BOARD — tournament wins, then KOs, packed like the server's sort value)
+    if (def.fmt === 'twko') { let w = P === 'all' ? 41 : 7, k = 12; return Array.from({ length: N }, (_, i) => { if (i) { if (R() < 0.4) { w = Math.max(1, w - 1); k = 6 + Math.floor(R() * 8); } else k = Math.max(0, k - 1 - Math.floor(R() * 2)); } const me = i + 1 === MY, v = tieSort(w, k, Date.now() - (N - i) * 6e4);
+      return me ? { id: 'b-me', cd: ME.profile.cd, l: 23, n: ME.profile.n, t: ME.profile.t, a: ME.profile.a, c: ME.profile.c, r: ME.profile.r, rank: i + 1, v } : { id: `b${i}`, cd: CARDS[i % CARDS.length], l: 1 + Math.floor(R() * 60), n: NAMES[i % NAMES.length], a: AVATAR_IDS[i % AVATAR_IDS.length], c: COLORS[i % COLORS.length].id, rank: i + 1, v }; }); }
     let v = def.fmt === 'dist' ? 9400 : def.fmt === 'ms' ? 6100 : def.fmt === 'par' ? -9 : def.fmt === 'pct' ? 8200 : def.id.endsWith('-wins') ? 212 : 99_000;
     return Array.from({ length: N }, (_, i) => {
       const step = def.fmt === 'dist' ? 40 + R() * 120 : def.fmt === 'ms' ? 90 + R() * 200 : def.fmt === 'par' ? (R() < 0.3 ? 1 : 0) : def.fmt === 'pct' ? 30 + R() * 60 : def.kind === 'career' ? (R() < 0.6 ? 1 : 0) + (i < 10 ? 6 : 0) : 300 + R() * 900;
@@ -58,7 +61,7 @@
   const view = createBoardView({
     mode: pub ? 'public' : 'app',
     me: () => (q.has('anon') ? null : ME),
-    ranks: async bs => Object.fromEntries(bs.map(b => { const d = boardDef(b); if (q.has('empty')) return [b, { all: null, week: null, ...(d.points ? { mine: { avg: null, days: 0, need: 10 } } : {}) }]; if (d.points && q.has('days')) return [b, { all: null, week: { v: 212, rank: MY }, mine: { avg: 83.3, days: Number(q.get('days')), need: 10 } }]; return [b, { all: { v: d.allFmt ? 8330 : 4120, rank: q.has('far') ? 1342 : MY }, week: { v: d.points ? 212 : 4120, rank: q.has('far') ? 214 : MY }, ...(d.points ? { mine: { avg: 83.3, days: 14, need: 10 } } : {}) }]; })),
+    ranks: async bs => Object.fromEntries(bs.map(b => { const d = boardDef(b); if (q.has('empty')) return [b, { all: null, week: null, ...(d.points ? { mine: { avg: null, days: 0, need: 10 } } : {}) }]; if (d.points && q.has('days')) return [b, { all: null, week: { v: 212, rank: MY }, mine: { avg: 83.3, days: Number(q.get('days')), need: 10 } }]; return [b, { all: { v: d.fmt === 'twko' ? tieSort(9, 14, Date.now()) : d.allFmt ? 8330 : 4120, rank: q.has('far') ? 1342 : MY }, week: { v: d.fmt === 'twko' ? tieSort(2, 3, Date.now()) : d.points ? 212 : 4120, rank: q.has('far') ? 214 : MY }, ...(d.points ? { mine: { avg: 83.3, days: 14, need: 10 } } : {}) }]; })),
     onBack: () => {}, onProfile: () => {},
     onPlayer: who => console.log('PLAYER', JSON.stringify({ b: who.b, bid: who.bid })),
     initial: { game: q.get('g') || 'xp', cat: q.get('c') || undefined, period: q.get('p') || 'week' },

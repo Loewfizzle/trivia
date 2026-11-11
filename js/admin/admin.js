@@ -298,7 +298,7 @@ async function giveGift() {
 }
 
 // ---------------------------------------------------------------- BOARD 2.0 A — THE BOARDS' BACK-FILL
-const fillLine = p => `Week ${p.wk}: ${p.weekPlayers} player${p.weekPlayers === 1 ? '' : 's'} earned ${Number(p.weekXp).toLocaleString('en-US')} XP this week · ${p.players} profiles · ${p.days} daily-days read${p.pointsPlayers != null ? ` · ${p.pointsPlayers} with daily points` : ''}`;
+const fillLine = p => `Week ${p.wk}: ${p.weekPlayers} player${p.weekPlayers === 1 ? '' : 's'} earned ${Number(p.weekXp).toLocaleString('en-US')} XP this week · ${p.players} profiles · ${p.days} daily-days read${p.pointsPlayers != null ? ` · ${p.pointsPlayers} with daily points` : ''}${p.holdemPlayers != null ? ` · HOLD’EM: ${p.holdemWins} tournament win${p.holdemWins === 1 ? '' : 's'} for ${p.holdemPlayers} player${p.holdemPlayers === 1 ? '' : 's'}` : ''}`;
 async function boardsPreview() {
   const out = document.getElementById('ad-boards-out');
   const { backfill: dry } = await call('boardsBackfill');

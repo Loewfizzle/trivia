@@ -3,6 +3,8 @@
 //   · THE OVERALL BOARD — THIS WEEK rebuilt from the stored records (core/board-fill.js#rebuildWeekXp: every match's results/{key} + the week's
 //     daily runs re-paid through THE DAILY XP's rule); ALL TIME = each profile's total XP (pstats.xp — already exact);
 //   · (Group 2) DAILY POINTS — every counted daily result since the dailies went live, re-scored through the SAME pure table.
+//   · (HOLD'EM IN THE CITY) THE HOLD'EM BOARD — every counted HOLD'EM tournament on the dealer's record: the wins (+ the knockouts the
+//     records keep — from this pass on) into pstats g/gw.holdem (core/board-fill.js#holdemFromRecords + filledHoldem) → the holdem-tw rows.
 // Each player: ONE transaction on pstats/{pid} (the week counter = the larger of the live one and the rebuilt one; the points set from the
 // records), then their board rows from the stats (lb.js#boardPaths). A second run writes the same numbers.
 // PD-3 Group 0 — WHO GETS LISTED: the same run sets each profile's COUNTED PLAYS (pstats.cp) exactly from the records (core/board-fill.js#
@@ -12,7 +14,7 @@ import { ref, val } from './fb.js';
 import { boardPaths, hiddenOf, clearBoardCache } from './lb.js';
 import { OVERALL_IDS } from '../../js/core/boards.js';
 import { pointsFromRecords, pointsStep } from '../../js/core/daily-points.js';
-import { rebuildWeekXp, filledWeek, countedPlaysFromRecords } from '../../js/core/board-fill.js';
+import { rebuildWeekXp, filledWeek, countedPlaysFromRecords, holdemFromRecords, filledHoldem } from '../../js/core/board-fill.js';
 import { boardHidden } from '../../js/core/progress.js';
 import { minMatches } from './lb.js';
 import { weekKey } from '../../js/core/week.js';
@@ -54,7 +56,9 @@ export async function boardsBackfill({ confirm = false, now = Date.now() } = {})
   const profs = (await val('profiles')) || {};
   const listedNow = pids.filter(pid => !boardHidden(profs[pid], stats[pid], minMatches())).length;
   const listedAfter = pids.filter(pid => !boardHidden(profs[pid], { ...stats[pid], cp: plays[pid] || 0 }, minMatches())).length;
-  const preview = { wk, players: pids.length, weekPlayers: Object.keys(week).length, weekXp: Object.values(week).reduce((a, b) => a + b, 0), days: Object.values(daily).reduce((n, g) => n + Object.keys(g).length, 0), pointsPlayers, listedNow, listedAfter };
+  const hold = holdemFromRecords({ results: results || {}, wk });
+  const preview = { wk, players: pids.length, weekPlayers: Object.keys(week).length, weekXp: Object.values(week).reduce((a, b) => a + b, 0), days: Object.values(daily).reduce((n, g) => n + Object.keys(g).length, 0), pointsPlayers, listedNow, listedAfter,
+    holdemPlayers: Object.keys(hold).length, holdemWins: Object.values(hold).reduce((a, e) => a + e.all.tw, 0) };
   if (!confirm) return { done: false, preview };
   let rows = 0;
   for (const pid of pids) {
@@ -62,6 +66,7 @@ export async function boardsBackfill({ confirm = false, now = Date.now() } = {})
     const tx = await ref(`pstats/${pid}`).transaction(cur => {
       if (cur == null) return cur;   // (a transaction's first run may see null — never abort on it: the server retries with the real value)
       next = { ...cur, xw: filledWeek(cur.xw, week[pid] || 0, wk), cp: plays[pid] || 0 };
+      if (hold[pid]) Object.assign(next, filledHoldem(cur, hold[pid], wk));   // (HOLD'EM IN THE CITY: THE HOLD'EM BOARD from the records)
       // DAILY POINTS: rebuilt from every counted result on record, then any day + game the live counter already has that the read missed (a
       // finish during the run) — the same pure step, so a second run lands on the same numbers
       let dp = pointsFromRecords(daily, pid);

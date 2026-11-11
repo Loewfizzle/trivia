@@ -35,6 +35,16 @@ export const REPORT_GAMES = Object.keys(STANDINGS);
 /** HE10 (the Fable review's A2 / B1): the games THE SERVER DEALS ITSELF — their result exists only from the dealer's own record
  *  (api/_lib/holdem-store.js#reportMatch); the shared report path (api/report.js) never credits them */
 export const DEALER_GAMES = Object.freeze(['holdem']);
+/**
+ * HOLD'EM IN THE CITY — THE HOLD'EM BOARD's counters for one player of one match, from the DEALER's own record (holdem-dealer.js#resultRows —
+ * never a phone's claim), bounded: { tw: a TOURNAMENT win (0 | 1), ko: that player's knockouts (0 … players − 1) } — a CASH session counts for
+ * neither (no winner); `reach` = the board standing moved (the stats keep WHEN — core/progress.js#matchStep → boards.js#tieSort's tie-break).
+ */
+export function holdemCounters({ mode, win, kos, n }) {
+  if (mode !== 'tournament') return { tw: 0, ko: 0, reach: false };
+  const tw = win ? 1 : 0, ko = Math.max(0, Math.min(Math.max(0, (Number(n) || 0) - 1), Math.floor(Number(kos) || 0)));
+  return { tw, ko, reach: tw > 0 || ko > 0 };
+}
 const num = v => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 const vals = o => Object.values(o || {});
 

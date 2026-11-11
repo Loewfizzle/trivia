@@ -32,6 +32,11 @@ import { fromWire } from '../../js/games/holdem/wire.js';
 import { SHOT_MS, BANK_MS } from '../../js/games/holdem/structure.js';
 import { decide } from '../fixtures/holdem-bots.mjs';
 import { rngFrom } from '../../js/core/rng.js';
+import { boardQuery, ROW_KEYS } from '../../api/board.js';
+import { adminAction } from '../../api/admin.js';
+import { syncBoards, clearBoardCache } from '../../api/_lib/lb.js';
+import { tieOf, tieSort } from '../../js/core/boards.js';
+import { weekKey } from '../../js/core/week.js';
 
 const rules = readFileSync(fileURLToPath(new URL('../../database.rules.json', import.meta.url)), 'utf8');
 const NS = `${process.env.GCLOUD_PROJECT}-default-rtdb`;      // the namespace the server (fb.js) writes
@@ -251,6 +256,90 @@ for (const n of [2, 4, 8]) {
     console.log(`# holdem TURBO ${n}p: ${rec.m.hands} hands, ${T.calls} calls, ${T.scans} leak scans`);
   });
 }
+
+test("HOLD'EM IN THE CITY — THE HOLD'EM BOARD on the emulators: a counted TURBO → the winner's row (+ their KOs) written by the server with the result; a counted CASH session → no row; a tie on wins → KOs decide; the public row = ROW_KEYS only; THE BACK-FILL rebuilds it", async () => {
+  const wk = () => weekKey(clock);
+  // (1) a counted TURBO through the server
+  const uids = users(3, 'hb');
+  await profiles(uids);
+  const T = await new Table(uids, { seed: 'hboard', styles: { [uids[0]]: 'jammer', [uids[1]]: 'loose', [uids[2]]: 'maniac' } }).seed();
+  ok(await T.call(T.host, { holdem: 'start', mode: 'tournament', speed: 'turbo' }));
+  const p = await T.playToEnd({});
+  assert.ok(p.ended && p.rep === 'done', `counted (${p.rep})`);
+  const rec = await T.rec(), key = `${T.code}_${rec.id}`, res = await val(`results/${key}`);
+  const pidOf = async u => val(`uids/${u}`);
+  const wpid = await pidOf(p.winner);
+  const kosOf = Object.fromEntries(await Promise.all(Object.entries(rec.m.players).map(async ([u, x]) => [await pidOf(u), x.kos])));
+  for (const u of uids) {
+    const pid = await pidOf(u), st = await val(`pstats/${pid}`), row = await val(`lb/holdem-tw/${wk()}/${pid}`), all = await val(`lb/holdem-tw/all/${pid}`);
+    if (pid === wpid) {
+      assert.equal(st.g.holdem.tw, 1, 'the tournament win counted');
+      assert.deepEqual(tieOf(row), { n: 1, tie: kosOf[pid] }, 'the winner\'s row: 1 win + their knockouts');
+      assert.equal(all, row > 0 ? all : null);
+      assert.deepEqual(tieOf(all), { n: 1, tie: kosOf[pid] });
+    } else assert.equal(row, null, 'no tournament win → off the board');
+    assert.equal((res.ko || {})[pid] || 0, kosOf[pid] || 0, 'the result record keeps each profile\'s knockouts (the back-fill reads them)');
+  }
+  // the public row: ROW_KEYS only — never a pid, the key, the tag's digits or a member Nº
+  clearBoardCache();
+  const q = await boardQuery({ b: 'holdem-tw', p: 'week' }, clock);
+  const wname = p.winner.replace(/-/g, '').slice(0, 12).toUpperCase(), r0 = q.rows.find(r => r.n === wname);
+  assert.ok(r0, `the winner's public row (${q.rows.map(r => r.n)})`);
+  for (const r of q.rows) for (const k of Object.keys(r)) assert.ok(ROW_KEYS.includes(k), `public key ${k}`);
+  assert.ok(!JSON.stringify(q).includes(wpid), 'no profile id in the public answer');
+  assert.deepEqual(tieOf(r0.v), { n: 1, tie: kosOf[wpid] });
+
+  // (2) a COUNTED CASH session (10+ hands, 5+ minutes): the generic play counts, the HOLD'EM board never
+  const cu = users(2, 'hbc');
+  await profiles(cu);
+  const C = await new Table(cu, { seed: 'hbcash' }).seed();
+  ok(await C.call(C.host, { holdem: 'start', mode: 'cash' }));
+  let cp = await C.pub(), guard = 0;
+  while (cp.hand < 11 && ++guard < 3000) cp = await C.step();
+  clock += 6 * 60e3;
+  ok(await C.call(C.host, { holdem: 'endSession' }));
+  for (let i = 0; i < 400 && !((cp = await C.pub()).ended && cp.rep); i++) await C.step();
+  assert.equal(cp.rep, 'done', 'a counted CASH session');
+  for (const u of cu) {
+    const pid = await pidOf(u), st = await val(`pstats/${pid}`);
+    assert.equal(st.g.holdem.p, 1);
+    assert.ok(!st.g.holdem.tw && !(st.gw.holdem || {}).tw, 'no tournament win from CASH');
+    assert.equal(await val(`lb/holdem-tw/${wk()}/${pid}`), null, 'CASH → no row');
+  }
+
+  // (3) a tie on wins → the knockouts decide (the server's own rows, the server's own order)
+  const tu = users(2, 'hbt');
+  await profiles(tu);
+  const [ta, tb] = await Promise.all(tu.map(pidOf));
+  const base = st => ({ ...st, wk: wk(), g: { ...(st.g || {}), holdem: { p: 2, w: 1, tw: 1, ko: 0 } }, gw: { holdem: { p: 2, w: 1, tw: 1, ko: 0 } }, cp: 3 });
+  const sa = base((await val(`pstats/${ta}`)) || {}), sb = base((await val(`pstats/${tb}`)) || {});
+  sa.g.holdem = { ...sa.g.holdem, ko: 1, ra: clock - 60e3 }; sa.gw.holdem = { ...sa.gw.holdem, ko: 1, ra: clock - 60e3 };        // earlier, fewer KOs
+  sb.g.holdem = { ...sb.g.holdem, ko: 3, ra: clock }; sb.gw.holdem = { ...sb.gw.holdem, ko: 3, ra: clock };                       // later, more KOs
+  await ref('/').update({ [`pstats/${ta}`]: sa, [`pstats/${tb}`]: sb });
+  await syncBoards(ta, { now: clock }); await syncBoards(tb, { now: clock });
+  clearBoardCache();
+  const rows = (await boardQuery({ b: 'holdem-tw', p: 'week' }, clock)).rows, at = n => rows.findIndex(r => r.n === n.replace(/-/g, '').slice(0, 12).toUpperCase());
+  assert.ok(at(tu[1]) >= 0 && at(tu[0]) > at(tu[1]), `one win each: 3 KOs above 1 KO, though later (${rows.map(r => `${r.n} ${JSON.stringify(tieOf(r.v))}`)})`);
+  for (let i = 1; i < rows.length; i++) assert.ok(rows[i - 1].v >= rows[i].v, 'the public order = the sort value');
+  assert.ok(tieSort(1, 1, clock - 60e3, { weekStart: clock - 864e5 }) > tieSort(1, 1, clock, { weekStart: clock - 864e5 }), 'the same wins + KOs: the earlier first');
+
+  // (4) THE BACK-FILL (the owner's tap in /admin): a lost HOLD'EM counter + its rows rebuilt from the dealer's records
+  process.env.ADMIN_PIDS = `${wpid}`;
+  try {
+    await ref('/').update({ [`pstats/${wpid}/g/holdem/tw`]: null, [`pstats/${wpid}/g/holdem/ko`]: null, [`pstats/${wpid}/gw/holdem/tw`]: null, [`pstats/${wpid}/gw/holdem/ko`]: null, [`lb/holdem-tw/${wk()}/${wpid}`]: null, [`lb/holdem-tw/all/${wpid}`]: null });
+    const dry = (await adminAction(p.winner, { action: 'boardsBackfill' }, clock)).backfill;
+    assert.equal(dry.done, false);
+    assert.ok(dry.preview.holdemWins >= 1 && dry.preview.holdemPlayers >= 1, JSON.stringify(dry.preview));
+    assert.equal(await val(`lb/holdem-tw/${wk()}/${wpid}`), null, 'the preview writes nothing');
+    const run = (await adminAction(p.winner, { action: 'boardsBackfill', confirm: true }, clock)).backfill;
+    assert.equal(run.done, true);
+    assert.deepEqual(tieOf(await val(`lb/holdem-tw/${wk()}/${wpid}`)), { n: 1, tie: kosOf[wpid] }, 'back on the board, from the records');
+    for (const u of cu) assert.equal(await val(`lb/holdem-tw/${wk()}/${await pidOf(u)}`), null, 'CASH stays off');
+    const again = await val(`lb/holdem-tw/all/${wpid}`);
+    await adminAction(p.winner, { action: 'boardsBackfill', confirm: true }, clock);
+    assert.equal(await val(`lb/holdem-tw/all/${wpid}`), again, 'a second run writes the same numbers');
+  } finally { process.env.ADMIN_PIDS = ''; }
+});
 
 test('CASH: a late joiner, a rebuy, AWAY → SAT OUT → back, a leave, END SESSION mid-hand waits → THE LEDGER sums to 0', async () => {
   const uids = users(3, 'cash');

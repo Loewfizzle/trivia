@@ -303,6 +303,10 @@ export async function reportMatch(code, rec, now) {
   const { summary, ...rows } = ex;
   const outcomes = await applyMatch(key, rows, pids, now, { code, meta, win: { c: code, s: rec.m.startAt, e: rec.m.endAt || now } });
   await bumpPlayed('holdem', now).catch(() => {});
-  await ref(`results/${key}`).set({ st: 'done', at: now, g: 'holdem', mode: ex.mode, n: ex.n, src: 'dealer', by: 'dealer', o: outcomes });
+  // (HOLD'EM IN THE CITY: each profile's knockouts kept with the result — THE HOLD'EM BOARD's back-fill rebuilds from these records; the
+  //  dealer's own record is deleted 8 s after the end)
+  const ko = {};
+  for (const [u, r] of Object.entries(rows.rows || {})) if (pids[u] && r.c && r.c.ko) ko[pids[u]] = r.c.ko;
+  await ref(`results/${key}`).set({ st: 'done', at: now, g: 'holdem', mode: ex.mode, n: ex.n, src: 'dealer', by: 'dealer', o: outcomes, ...(Object.keys(ko).length ? { ko } : {}) });
   return 'done';
 }

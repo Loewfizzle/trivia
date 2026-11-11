@@ -65,3 +65,43 @@ export function filledWeek(cur, rebuilt, wk) {
   const live = cur && cur.wk === wk ? Number(cur.x) || 0 : 0;
   return { wk, x: Math.max(live, Math.round(rebuilt || 0)), bf: 1 };
 }
+
+/**
+ * HOLD'EM IN THE CITY — THE HOLD'EM BOARD rebuilt from the dealer's records (results/{key} with g 'holdem', src 'dealer': the outcome per
+ * profile + — since this pass — `ko` { pid: knockouts }; a CASH session (mode 'cash') never counts, a skipped outcome never counts). Records
+ * from before this pass have no `ko`: their tournament WINS rebuild exactly, their knockouts read 0 (the dealer's own record is deleted 8 s
+ * after a match). → { [pid]: { all: { tw, ko, ra }, week: { tw, ko, ra } | null } } — `ra` = the last record that moved the standing.
+ */
+export function holdemFromRecords({ results = {}, wk }) {
+  const out = {};
+  for (const r of Object.values(results || {})) {
+    if (!r || r.g !== 'holdem' || r.src !== 'dealer' || r.mode === 'cash' || !r.o || !(Number(r.at) > 0)) continue;
+    const at = Number(r.at), inWeek = weekKey(at) === wk;
+    for (const [pid, o] of Object.entries(r.o)) {
+      if (!o || o.skip) continue;
+      const tw = o.win ? 1 : 0, ko = Math.max(0, Math.min(Math.max(0, (Number(r.n) || 0) - 1), Math.floor(Number(r.ko && r.ko[pid]) || 0)));
+      if (!tw && !ko) continue;
+      const e = out[pid] ||= { all: { tw: 0, ko: 0, ra: 0 }, week: null };
+      e.all.tw += tw; e.all.ko += ko; e.all.ra = Math.max(e.all.ra, at);
+      if (inWeek) { const w = e.week ||= { tw: 0, ko: 0, ra: 0 }; w.tw += tw; w.ko += ko; w.ra = Math.max(w.ra, at); }
+    }
+  }
+  return out;
+}
+/** a player's HOLD'EM counters after the back-fill (g = all time, gw = this week while the stats' week is `wk`): the records' numbers —
+ *  never lower than the live ones (a match landing during the run is never lost); the rest of the counters untouched */
+export function filledHoldem(cur, fill, wk) {
+  const merge = (live, rb) => {
+    if (!rb) return live;
+    const x = { ...(live || {}) };
+    x.tw = Math.max(Number(x.tw) || 0, rb.tw); x.ko = Math.max(Number(x.ko) || 0, rb.ko); x.ra = Math.max(Number(x.ra) || 0, rb.ra);
+    if (!x.tw) delete x.tw;
+    if (!x.ko) delete x.ko;
+    return x;
+  };
+  const g = { ...((cur && cur.g) || {}) }, gw = { ...((cur && cur.gw) || {}) };
+  if (fill) g.holdem = merge(g.holdem, fill.all);
+  const weekOk = cur && cur.wk === wk;
+  if (fill && fill.week && weekOk) gw.holdem = merge(gw.holdem, fill.week);
+  return { g, gw };
+}

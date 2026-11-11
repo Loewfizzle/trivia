@@ -12,6 +12,7 @@
 import { createMatch, nextHand, act, rebuy, join, leave, endSession, sitBack, summary } from '../../js/games/holdem/match.js';
 import { legalActions, preAction, preVoid, running, seatById } from '../../js/games/holdem/table.js';
 import { publicView } from '../../js/games/holdem/views.js';
+import { holdemCounters } from '../../js/core/match-report.js';
 import { SPEEDS, DEFAULT_SPEED, MAX_SEATS, MIN_PLAYERS } from '../../js/games/holdem/structure.js';
 
 /** THE PAUSES (the server's clock): a run-out street every 1.5 s; the next hand ~3 s after a fold-win, ~6 s after a showdown. */
@@ -349,7 +350,14 @@ export function resultRows(rec) {
   }
   const n = Object.keys(rows).length;
   if (n < 2) return null;
-  for (const r of Object.values(rows)) { r.c = { p: 1, ...(r.win ? { w: 1 } : {}) }; r.rec = {}; }
+  for (const [id, r] of Object.entries(rows)) {
+    r.c = { p: 1, ...(r.win ? { w: 1 } : {}) }; r.rec = {};
+    // (HOLD'EM IN THE CITY — THE HOLD'EM BOARD: tournament wins + knockouts from THIS record, bounded — match-report.js#holdemCounters)
+    const hc = holdemCounters({ mode: rec.mode, win: r.win, kos: s.players[id] && s.players[id].kos, n });
+    if (hc.tw) r.c.tw = hc.tw;
+    if (hc.ko) r.c.ko = hc.ko;
+    if (hc.reach) r.reach = true;
+  }
   return { gid: 'holdem', n, solo: false, mode: rec.mode === 'cash' ? 'cash' : rec.speed, rows, rejected: [], summary: s };
 }
 

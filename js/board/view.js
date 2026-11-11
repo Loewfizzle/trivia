@@ -21,7 +21,7 @@ import { h } from '../ui/dom.js';
 import { avatar } from '../ui/components.js';
 import { emblem } from '../ui/emblems.js';
 import { GAMES, DAILIES } from '../config.js';
-import { boardDef, recordBoards, careerBoards, fmtValue, MIN_WR_GAMES } from '../core/boards.js';
+import { boardDef, recordBoards, careerBoards, tabBoards, fmtValue, MIN_WR_GAMES } from '../core/boards.js';
 import { POINT_DAILIES } from '../core/daily-points.js';
 import { weekEndsAt } from '../core/week.js';
 import { board as fetchBoard, reportRow } from '../profile/api.js';
@@ -35,11 +35,14 @@ export const GAME_LIGHT = {
   cipher: ['#3dff8b', '#00f0ff'], signal: ['#ff3355', '#ff8c1a'], slip: ['#ffc46b', '#5aa9ff'], prism: ['#9fe8ff', '#ff7ccb'],
   gridlock: ['#7fb2ff', '#ff8c1a'], overclock: ['#ffb627', '#ff2bd6'], golf: ['#2ff5d2', '#a66bff'], agent: ['#e6e9ef', '#ff3355'],
   pulse: ['#a374ff', '#00f0ff'], bluff: ['#efe6d2', '#d7262e'], stakes: ['#3fd49a', '#f2c869'], rum: ['#f0c75e', '#e0465f'],
+  holdem: ['#f2c14e', '#39d98a'],   // (HOLD'EM IN THE CITY: its casino gold + the felt)
 };
 const gameName = id => (GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || { name: String(id).toUpperCase() }).name;
-/** THE TABS (the owner, Nov 9): the overall XP board, the dailies' points, the two playable games */
-export const TABS = Object.freeze(['xp', 'dailies', 'overclock', 'prism']);
-const tabName = id => (id === 'xp' ? 'XP' : id === 'dailies' ? 'DAILIES' : gameName(id));
+/** THE TABS (the owner, Nov 9): the overall XP board, the dailies' points, the playable games (HOLD'EM IN THE CITY, Nov 11: + HOLD'EM —
+ *  FIVE tabs at 390 without a sideways scroll: PRISM DROP's tab reads PRISM) */
+export const TABS = Object.freeze(['xp', 'dailies', 'overclock', 'prism', 'holdem']);
+const TAB_NAMES = Object.freeze({ xp: 'XP', dailies: 'DAILIES', prism: 'PRISM' });
+const tabName = id => TAB_NAMES[id] || gameName(id);
 /** a deep link's / the title preview's game → its tab (a game without a tab → XP) */
 export const tabOf = g => (TABS.includes(g) ? g : g && String(g).startsWith('daily') ? 'dailies' : 'xp');
 const PAGE = 25, TOP = 10, MAX = 100;
@@ -63,7 +66,7 @@ export function unitOf(def, period) {
 /** the plate's two lines for a board + period */
 export function plateOf(def, period, now = Date.now(), ends = null) {
   if (!def) return { label: '', when: '' };
-  const label = def.kind === 'overall' ? (period === 'all' ? def.all : def.week) : def.label;
+  const label = def.kind === 'overall' || def.week ? (period === 'all' ? def.all : def.week) : def.label;
   let when;
   if (period === 'week') {
     const ms = Math.max(0, (ends || weekEndsAt(now)) - now);
@@ -105,13 +108,14 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   els.picks = h('div.bd-picks');
   els.label = h('h2.bd-label');
   els.when = h('span.bd-when');
+  els.note = h('span.bd-note');   // (HOLD'EM IN THE CITY: a board's one-line explainer — HOLD'EM's TOURNAMENTS ONLY …)
   els.scroll = h('div.bd-scroll');
   els.rows = h('ol.bd-rows');
   els.scroll.append(els.rows);
   els.sentinel = h('li.bd-sentinel', { 'aria-hidden': 'true' });
   els.me = h('div.bd-me');
   els.card = h('article.bd-card',
-    h('header.bd-card-head', h('div.bd-plate', els.label, els.when)),
+    h('header.bd-card-head', h('div.bd-plate', els.label, els.when, els.note)),
     els.scroll,
     els.me);
   const head = h('header.bd-head',
@@ -146,6 +150,8 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   function boardsNow() {
     if (S.tab === 'xp') return [boardDef('xp')];
     if (S.tab === 'dailies') return [{ ...boardDef('daily'), chip: 'ALL DAILIES' }, ...POINT_DAILIES.map(g => ({ ...boardDef(`daily-${g}`), chip: gameName(g) }))];
+    const own = tabBoards(S.tab);   // (HOLD'EM: its one board — no RECORDS / CAREER switch)
+    if (own) return own.filter(Boolean).map(b => ({ ...b, game: S.tab }));
     return S.cat === 'career' ? careerBoards(S.tab).map(b => ({ ...b, game: S.tab })) : recordBoards(S.tab).map(b => ({ ...b, game: S.tab }));
   }
   function renderTabs() {
@@ -164,8 +170,8 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     const sig = JSON.stringify([S.tab, S.cat, S.period, S.board]);
     if (sig === ctrlSig) return;
     ctrlSig = sig;
-    els.cat.hidden = !isGame();
-    if (isGame()) seg(els.cat, [{ v: 'records', l: 'RECORDS', off: !recordBoards(S.tab).length }, { v: 'career', l: 'CAREER' }], S.cat, v => { S.cat = v; S.board = null; boardSfx('tab'); refresh(); });
+    els.cat.hidden = !isGame() || !!tabBoards(S.tab);
+    if (isGame() && !tabBoards(S.tab)) seg(els.cat, [{ v: 'records', l: 'RECORDS', off: !recordBoards(S.tab).length }, { v: 'career', l: 'CAREER' }], S.cat, v => { S.cat = v; S.board = null; boardSfx('tab'); refresh(); });
     seg(els.period, [{ v: 'week', l: 'THIS WEEK' }, { v: 'all', l: 'ALL TIME' }], S.period, v => { S.period = v; boardSfx('tab'); refresh(); });
     const chips = list.length > 1 ? list.map(b => h('button.bd-chip', {
       type: 'button', class: b.id === S.board ? 'is-on' : '', onclick: () => { if (b.id !== S.board) { S.board = b.id; boardSfx('tab'); refresh(); } },
@@ -271,6 +277,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     const p = plateOf(def, S.period, Date.now(), S.ends);
     els.label.textContent = p.label;
     els.when.textContent = p.when;
+    els.note.textContent = (def && def.note) || '';
   }
 
   async function refresh() {

@@ -1530,11 +1530,11 @@ test('THE HOLD\'EM BILLBOARD switch: the default until set; OFF / NOW OPEN reach
   process.env.ADMIN_PIDS = `${owner.pid}`;
   try {
     let st = (await adminAction('u-hold-own', { action: 'billboardState' })).billboard;
-    assert.deepEqual([st.on, st.bar, st.set], [true, 'soon', false], 'never set: the timetable default (ON · COMING SOON)');
+    assert.deepEqual([st.on, st.bar, st.set], [true, 'open', false], 'never set: the timetable default (ON · NOW OPEN — HOLD\'EM IN THE CITY)');
     assert.equal((await cityLiveNow()).radio.base, null, 'the feed carries no switch → every phone uses the default');
     st = (await adminAction('u-hold-own', { action: 'billboardSet', on: false })).billboard;
     assert.equal(st.on, false);
-    assert.deepEqual((await cityLiveNow()).radio.base, { holdem: { on: false, bar: 'soon', since: st.since } });
+    assert.deepEqual((await cityLiveNow()).radio.base, { holdem: { on: false, bar: 'open', since: st.since } });
     st = (await adminAction('u-hold-own', { action: 'billboardSet', on: true, bar: 'open' })).billboard;
     assert.deepEqual([st.on, st.bar], [true, 'open']);
     assert.match(st.since, /^\d{4}-\d{2}-\d{2}$/, 'switched on: from today (Eastern)');

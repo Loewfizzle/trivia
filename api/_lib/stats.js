@@ -3,7 +3,7 @@
 // runs) that also records the match key (m/{key}), so a retry, a second reporter or a crash halfway can never count a match twice.
 import { ref, val } from './fb.js';
 import { boardPaths, overallPaths, hiddenOf, rankOf, clearBoardCache, matchCount, minMatches, syncBoards, playCount } from './lb.js';
-import { boardDef, toSort } from '../../js/core/boards.js';
+import { boardDef, toSort, GAME_BOARDS } from '../../js/core/boards.js';
 import { matchStep } from '../../js/core/progress.js';
 import { levelOf, emblemRank, LEVEL_REWARDS } from '../../js/core/levels.js';
 import { nextUnownedLevel } from '../../js/core/reset.js';
@@ -59,7 +59,7 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
     const played = playCount(stats);
     const listed = !prof.h && played >= minMatches();
     // ranks before the boards change (for "ENTERED THE TOP 10")
-    const watch = [...res.pbs.map(p => p.b), `${ex.gid}-wins`].filter((b, i, a) => a.indexOf(b) === i);
+    const watch = [...res.pbs.map(p => p.b), `${ex.gid}-wins`, ...((GAME_BOARDS[ex.gid] && GAME_BOARDS[ex.gid].tab) || [])].filter((b, i, a) => a.indexOf(b) === i);   // (HOLD'EM IN THE CITY: + a game's tab board)
     const before = {};
     if (listed) {
       await Promise.all(watch.map(async b => {

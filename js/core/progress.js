@@ -88,6 +88,8 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   const gamesToday = Object.keys(next.day.g).length;
   next.g[gid] = add(next.g[gid], row.c);
   next.gw[gid] = add(next.gw[gid], row.c);
+  // (HOLD'EM IN THE CITY: a tie-break board's WHEN — the moment this player's standing on it last moved: boards.js#tieSort, the earlier ranks higher)
+  if (row.reach) { next.g[gid].ra = now; next.gw[gid].ra = now; }
   const pbs = [];
   for (const [board, v] of Object.entries(row.rec || {})) {
     const def = boardDef(board);
