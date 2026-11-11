@@ -14,6 +14,7 @@ import { GAMES } from '../config.js';
 import { onOutcome, outcomeFor, matchKey } from './queue.js';
 import { boardSfx } from '../board/audio.js';
 import { settings } from '../audio/settings.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const reduced = () => !!settings.reducedFx || reducedMotion();
 // adds the class on the next frames (so the transition runs), with a timer fallback for a tab whose frames are paused
@@ -75,7 +76,7 @@ export function attachCallouts(code, game) {
     if (shown || destroyed || !o || o.none) return;
     shown = true;
     // (PROGRESSION A — RAINMAKER / SNOWED IN: a counted match → the server looks up the REAL weather where this phone is)
-    if (!o.skip) import('./events.js').then(m => m.progressEvent('weather', { again: true })).catch(() => {});
+    if (!o.skip) lazyImport(import('./events.js'), './events.js').then(m => m.progressEvent('weather', { again: true })).catch(() => {});
     // wait for the podium's crown (≈ 2.6 s after the podium appears)
     const wait = Math.max(0, 2900 - (performance.now() - t0));
     later(() => play(o), reduced() ? 0 : wait);
@@ -96,7 +97,7 @@ export function attachCallouts(code, game) {
   function openTheMoment(o) {
     const night = (state.night && Object.keys(state.night).length) || 1;
     const me = loadMe();
-    import('../progress/moment.js').then(m => { if (!destroyed) return m.openMoment(o, { game: game.id, match: night, name: (me && me.profile && me.profile.n) || '', avatar: me && me.profile && me.profile.a, color: me && me.profile && me.profile.c }).then(x => { moment = x; }); }).catch(() => {});
+    lazyImport(import('../progress/moment.js'), '../progress/moment.js').then(m => { if (!destroyed) return m.openMoment(o, { game: game.id, match: night, name: (me && me.profile && me.profile.n) || '', avatar: me && me.profile && me.profile.a, color: me && me.profile && me.profile.c }).then(x => { moment = x; }); }).catch(() => {});
   }
 
   function plaque(p) {
@@ -121,7 +122,7 @@ export function attachCallouts(code, game) {
     const gain = h('b', '+0');
     // (FRIENDS B — the owner's podium test: the WHOLE XP BOX is the way to your card (its YOUR CARD button gone — one clear button on the podium,
     //  BACK TO THE ROOM); a real <button>, so iOS sends the tap; the reason line WRAPS, never "NEW GAME TONI…")
-    const line = h('button.rc-xp', { type: 'button', style: { '--rk': RANK_COLORS[to.band.r] }, 'aria-label': 'Your card', onclick: () => import('../screens/profile.js').then(m => m.openCard()) },
+    const line = h('button.rc-xp', { type: 'button', style: { '--rk': RANK_COLORS[to.band.r] }, 'aria-label': 'Your card', onclick: () => lazyImport(import('../screens/profile.js'), '../screens/profile.js').then(m => m.openCard()) },
       emblem(to.band.r, 22),
       h('span.rc-xp-main',
         h('span.rc-xp-top', gain, h('span', ' XP'), h('span.rc-xp-parts', o.xp.parts.map(p => p.label).join(' · '))),

@@ -54,6 +54,7 @@ import { setServerShowcase } from '../../core/harbor-showcase.js';
 import { setOwnerMessages, setIntercomHead as setBillboardHead } from '../../core/harbor-billboard.js';
 import { setHoldem } from '../../core/harbor-holdem.js';
 import { intercomFeed, setIntercomBusy, setIntercomHead } from '../../audio/intercom.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 const FOLD_KEY = 'nd:hr-folds';   // (ATM-C: the long blocks the owner opened — remembered on this device)
 const ME_KEY = 'nd:hr-me', MODE_KEY = 'nd:hr-mode', ADMIN_KEY = 'nd:hr-admin', OPEN_KEY = 'nd:hr-open', DELAY_KEY = 'nd:hr-delay', RECENT_KEY = 'nd:hr-recent';
@@ -262,7 +263,7 @@ export function createRemote({ scene, api = apiCall }) {
     const ask = async () => { const r = await api('admin', { action: 'whoami' }); if (r.admin && r.pid) ss.set(ADMIN_KEY, { admin: true, pid: r.pid, at: Date.now() }); try { if (r.admin) localStorage.setItem('nd:adm', '1'); else if (r.pid) localStorage.removeItem('nd:adm'); } catch { /* fine */ } return r; };
     try {
       let r = await ask();
-      if (!r.pid) { try { const { syncMe } = await import('../../profile/me.js'); await syncMe(); } catch { /* fine */ } r = await ask(); }
+      if (!r.pid) { try { const { syncMe } = await lazyImport(import('../../profile/me.js'), '../../profile/me.js'); await syncMe(); } catch { /* fine */ } r = await ask(); }
       return !!r.admin;
     } catch { return false; }
   }

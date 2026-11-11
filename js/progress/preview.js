@@ -8,6 +8,7 @@ import { XP_AT, rewardsUpTo } from '../core/levels.js';
 import { dayOf, dayNum, streakDay } from '../core/streak.js';
 import { ITEMS } from '../core/items.js';
 import { setPctForTest } from './look.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 // (&name= — THE VAULT 1B: the longest names (NAME_MAX 12, e.g. WWWWWWWWWWWW / LOEWFIZZLE) on the card + the strips)
 const NAME = (() => { try { return (new URLSearchParams(location.search).get('name') || 'BEN').slice(0, 12).toUpperCase(); } catch { return 'BEN'; } })();
@@ -67,9 +68,9 @@ export async function preview(view, q = new URLSearchParams(), root = null, keep
   if (q.get('rm') === '1') document.documentElement.classList.add('pg-rm');
   const data = keep || sampleProfile(q);   // (2A: a wear in the preview repaints with the same sample — what it wears kept)
   // (the album: the preview's own prints — the &sgdemo links' — never the real album's)
-  try { (await import('../profile/album.js')).useAlbum('ns-album-preview'); } catch { /* polish */ }
+  try { (await lazyImport(import('../profile/album.js'), '../profile/album.js')).useAlbum('ns-album-preview'); } catch { /* polish */ }
   if (view === 'moment') {
-    const { openMoment } = await import('./moment.js');
+    const { openMoment } = await lazyImport(import('./moment.js'), './moment.js');
     const o = sampleOutcome(q);
     const m = await openMoment(o, { game: 'prism', match: 3, name: NAME, onClose: () => { if (!root) location.replace(location.pathname); } });
     if (q.get('at') === 'end' && m) m.skip();
@@ -77,22 +78,22 @@ export async function preview(view, q = new URLSearchParams(), root = null, keep
     return;
   }
   if (view === 'streak') {
-    const { openStreakCard } = await import('./streak-card.js');
+    const { openStreakCard } = await lazyImport(import('./streak-card.js'), './streak-card.js');
     window.__pg = { streak: await openStreakCard(data.stats.st) };
     return;
   }
   if (view === 'card' || view === 'profile') {
-    const { gildedCard } = await import('./card.js');
-    const { progressSections, customizeBar } = await import('./profile.js');
-    const { birthdayRow } = await import('./extras.js');
-    const { openStreakCard } = await import('./streak-card.js');
+    const { gildedCard } = await lazyImport(import('./card.js'), './card.js');
+    const { progressSections, customizeBar } = await lazyImport(import('./profile.js'), './profile.js');
+    const { birthdayRow } = await lazyImport(import('./extras.js'), './extras.js');
+    const { openStreakCard } = await lazyImport(import('./streak-card.js'), './streak-card.js');
     const host = root || h('div.pg-pv-in');
     if (!root) {
-      const { pgSheet } = await import('./look.js');
+      const { pgSheet } = await lazyImport(import('./look.js'), './look.js');
       await pgSheet();
       const shell = h('div.pg-pv', { role: 'dialog', 'aria-label': 'Membership card preview' }, h('div.pg-veil'), h('div.pg-pv-bar', { 'aria-hidden': 'true' }), h('button.pg-x', { type: 'button', 'aria-label': 'Close', onclick: () => shell.remove() }, '✕'), host);
       host.append(h('div.pg-pv-k', 'PREVIEW · A SAMPLE MEMBER'));
-      import('../ui/layers.js').then(L => L.takeLayer(shell, { min: 9000 })).catch(() => {});   // (SHELL 2.0 A — H2: on THE LAYER STACK)
+      lazyImport(import('../ui/layers.js'), '../ui/layers.js').then(L => L.takeLayer(shell, { min: 9000 })).catch(() => {});   // (SHELL 2.0 A — H2: on THE LAYER STACK)
       document.body.append(shell);
     }
     if (q.get('cards') === '1') {
@@ -105,7 +106,7 @@ export async function preview(view, q = new URLSearchParams(), root = null, keep
     }
     if ((view === 'profile' || !root) && q.get('cards') !== '1') host.append(birthdayRow(data, { preview: true }));
     // (THE VAULT 2B: &dress=1 — the DRESS screen open at once; &tab=emblem|glow|tube)
-    if (q.get('dress') === '1' && !window.__dressOpened) { window.__dressOpened = true; const D = await import('../vault/dress.js'); const d = D.openDress(data, { name: NAME, wear: async (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; if (slot === 'shape' && /^emb-sign-/.test(id || '')) { data.profile.a = id.slice(9); data.profile.es = null; return true; } data.profile[k] = id || null; return true; } }); if (q.get('tab')) { const b = d.el.querySelector(`[data-tab="${q.get('tab')}"]`); if (b) b.click(); } window.__dress = d; }
+    if (q.get('dress') === '1' && !window.__dressOpened) { window.__dressOpened = true; const D = await lazyImport(import('../vault/dress.js'), '../vault/dress.js'); const d = D.openDress(data, { name: NAME, wear: async (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; if (slot === 'shape' && /^emb-sign-/.test(id || '')) { data.profile.a = id.slice(9); data.profile.es = null; return true; } data.profile[k] = id || null; return true; } }); if (q.get('tab')) { const b = d.el.querySelector(`[data-tab="${q.get('tab')}"]`); if (b) b.click(); } window.__dress = d; }
     window.__pg = { host };
     return host;
   }

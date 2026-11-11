@@ -16,6 +16,7 @@ import { state } from '../store.js';
 import { api } from './api.js';
 import { loadMe } from '../identity.js';
 import { bandOf, XP_AT } from '../core/levels.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 let css = null;
 export function playerSheet() {
@@ -40,12 +41,12 @@ const queryOf = t => (t.pid ? { pid: t.pid } : t.b && t.bid ? { b: t.b, bid: t.b
 
 export async function openPlayer(target = {}, o = {}) {
   const row = target.row || o.row || {}, extra = (o.extra || target.extra || []).filter(Boolean);
-  if (isSelf(target)) { import('../screens/profile.js').then(m => m.openCard()).catch(() => {}); return null; }
+  if (isSelf(target)) { lazyImport(import('../screens/profile.js'), '../screens/profile.js').then(m => m.openCard()).catch(() => {}); return null; }
   const q = queryOf(target);
   if (!q) return null;
   if (open) open.close();
-  const [F, { pgSheet }] = await Promise.all([import('../vault/full.js'), import('../progress/look.js'), playerSheet()]);
-  await Promise.all([pgSheet(), import('../vault/strip.js').then(m => m.vaultSheet())]);
+  const [F, { pgSheet }] = await Promise.all([lazyImport(import('../vault/full.js'), '../vault/full.js'), lazyImport(import('../progress/look.js'), '../progress/look.js'), playerSheet()]);
+  await Promise.all([pgSheet(), lazyImport(import('../vault/strip.js'), '../vault/strip.js').then(m => m.vaultSheet())]);
   const name = String(row.n || row.name || '').toUpperCase();
   let surface = null, release = null, uncover = null, gone = false;
   const close = () => { if (gone) return; gone = true; if (surface) surface.destroy(); el.remove(); if (open && open.close === close) open = null; if (release) release(); if (uncover) uncover(); };
@@ -71,7 +72,7 @@ export async function openPlayer(target = {}, o = {}) {
 
   function paintLimited(line, c = {}) {
     stage.replaceChildren(h('div.pp-lim', h('span.pp-lim-emb'), h('b', String(c.n || name || 'MEMBER').toUpperCase()), h('span', line)));
-    import('../vault/emblem-art.js').then(E => { const s = stage.querySelector('.pp-lim-emb'); if (s) s.replaceChildren(E.emblemEl({ avatar: c.a || 'bolt', color: c.c || 'magenta', mode: 'quiet', size: 96 })); }).catch(() => {});
+    lazyImport(import('../vault/emblem-art.js'), '../vault/emblem-art.js').then(E => { const s = stage.querySelector('.pp-lim-emb'); if (s) s.replaceChildren(E.emblemEl({ avatar: c.a || 'bolt', color: c.c || 'magenta', mode: 'quiet', size: 96 })); }).catch(() => {});
     foot.replaceChildren(...extra.map(x => h('div.pp-extra', x)));
   }
 
@@ -81,20 +82,20 @@ export async function openPlayer(target = {}, o = {}) {
     let card;
     if (c.cd && await F.canShowFull(c.cd)) card = F.fullCardEl({ card: c.cd, who });
     else {
-      const { gildedCard } = await import('../progress/card.js');
+      const { gildedCard } = await lazyImport(import('../progress/card.js'), '../progress/card.js');
       card = gildedCard({ n: c.n, a: c.a, c: c.c, cd: c.cd || 'card-gilded', g: c.g, at: c.at, fd: c.fd, x: XP_AT[lv] || 0 }, {}, { card: c.cd || 'card-gilded' });
       const no = card.querySelector('.pg-card-no'); if (no) no.remove();   // (no member line on someone else's page)
     }
     if (gone) return;
     stage.replaceChildren(card);
-    if (card.classList.contains('vl-fc')) { const { createSurface } = await import('../fx/renderer.js'); if (gone) return; surface = createSurface(stage, { label: 'player' }); F.mountFull(surface, card, c.cd); }
+    if (card.classList.contains('vl-fc')) { const { createSurface } = await lazyImport(import('../fx/renderer.js'), '../fx/renderer.js'); if (gone) return; surface = createSurface(stage, { label: 'player' }); F.mountFull(surface, card, c.cd); }
     const band = bandOf(lv);
-    const flame = D.streak && D.streak.alive && D.streak.n ? await import('../progress/flame-art.js').then(m => h('span.pp-fl', { 'aria-label': `${D.streak.n}-day streak` }, m.flameArt('lit', 26), String(D.streak.n))).catch(() => null) : null;
+    const flame = D.streak && D.streak.alive && D.streak.n ? await lazyImport(import('../progress/flame-art.js'), '../progress/flame-art.js').then(m => h('span.pp-fl', { 'aria-label': `${D.streak.n}-day streak` }, m.flameArt('lit', 26), String(D.streak.n))).catch(() => null) : null;
     const lvBox = h('div.pp-lv', h('span.pp-lvn', h('small', 'LEVEL'), String(lv)), h('span.pp-band', h('b', D.band || band.name), h('span', band.line)), flame);
     const top = Array.isArray(D.top) ? D.top.slice(0, 3) : [];
     let meds = null;
     if (top.length) {
-      const { medal } = await import('../progress/trophies.js');
+      const { medal } = await lazyImport(import('../progress/trophies.js'), '../progress/trophies.js');
       meds = h('div.pp-meds', h('div.pp-h', 'RAREST ACHIEVEMENTS'), ...top.map(a => h('div.pp-med', { dataset: { id: a.id } }, medal({ id: a.id, group: a.group, item: a.item }, a.tier || 'common'), h('b', a.name || ''), h('em', pctText(a.pct)))));
     }
     foot.replaceChildren(lvBox, meds || '', actions(D), ...extra.map(x => h('div.pp-extra', x)));
@@ -114,14 +115,14 @@ export async function openPlayer(target = {}, o = {}) {
         try { const r = await api('profile', { action: 'friendInvite', pid, room: state.code }); sent = true; toast(`${D.card.n} is invited`, 'ok', { sub: r.sent ? 'A notification is on its way — and it waits on their card for 30 min.' : 'It waits on their card for 30 min.' }); }
         catch (e) { toast((e && e.message) || 'Couldn’t send the invite.', 'warn'); }
       } }));
-    } else import('./friends-ui.js').then(m => { if (!gone) slot.replaceChildren(m.friendButton(ft, { name: D.card.n })); }).catch(() => {});
+    } else lazyImport(import('./friends-ui.js'), './friends-ui.js').then(m => { if (!gone) slot.replaceChildren(m.friendButton(ft, { name: D.card.n })); }).catch(() => {});
     const dots = h('button.pp-dots', { type: 'button', 'aria-label': 'More', html: DOTS, onclick: () => openMore(D, ft, rel) });
     return h('div.pp-acts', slot, dots);
   }
 
   /** ⋯ → by `rel`: friend → REMOVE · BLOCK; none → ADD FRIEND · BLOCK; in → ACCEPT · BLOCK; out → CANCEL REQUEST · BLOCK; blocked → UNBLOCK */
   async function openMore(D, ft, rel) {
-    const [{ openPfSheet }, FR] = await Promise.all([import('./sheets.js'), import('./friends.js')]);
+    const [{ openPfSheet }, FR] = await Promise.all([lazyImport(import('./sheets.js'), './sheets.js'), lazyImport(import('./friends.js'), './friends.js')]);
     let s = null;
     const run = (kind, ok) => async () => { try { await FR.friendDo(kind, ft); if (ok) toast(ok, 'ok'); } catch (e) { toast((e && e.message) || 'Couldn’t do that.', 'warn'); } if (s) s.close(); if (kind === 'remove' || kind === 'block') close(); };
     const n = D.card.n;
@@ -139,6 +140,6 @@ export async function openPlayer(target = {}, o = {}) {
 /** the card-shaped skeleton: the emblem + the name the screen already had (a board row, a friend, a name tag) */
 function skeletonCard(row, name) {
   const emb = h('span.pp-sk-emb');
-  import('../vault/emblem-art.js').then(E => emb.replaceChildren(E.emblemEl({ avatar: row.a || row.avatar || 'bolt', color: row.c || row.color || 'magenta', mode: 'quiet', size: 34 }))).catch(() => {});
+  lazyImport(import('../vault/emblem-art.js'), '../vault/emblem-art.js').then(E => emb.replaceChildren(E.emblemEl({ avatar: row.a || row.avatar || 'bolt', color: row.c || row.color || 'magenta', mode: 'quiet', size: 34 }))).catch(() => {});
   return h('div.pp-sk', { 'aria-hidden': 'true' }, h('i.pp-sk-sheen'), h('div.pp-sk-plate', emb, h('b', name || ' ')));
 }

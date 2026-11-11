@@ -15,6 +15,7 @@ import { livePathsFor, liveKeyFor, onGameLoaded } from './games/registry.js';
 import { closeAll } from './ui/layers.js';
 import { watchRoomProfiles, stopRoomProfiles } from './profile/public.js';
 import { claimSeatFor, takeSeat, freeSeat, watchSeat, seatConflict } from './seat.js';
+import { lazyImport } from './ui/lazy-import.js';
 
 const R = code => `rooms/${code}`;
 // CONN: the database line is wanted while HOST / JOIN / a resume / an invite check runs ('join') and the whole time we're in a
@@ -125,7 +126,7 @@ function roomPushLater(code) {
   pushTimer = setTimeout(() => {
     pushTimer = null;
     if (state.code !== code || !state.players || !state.players[state.uid]) return;
-    import('./profile/api.js').then(m => m.api('admin', { action: 'radioRoomOpened', room: code, ...(testMode ? { silent: true } : {}) })).catch(() => {});   // (a TEST tab: silent)
+    lazyImport(import('./profile/api.js'), './profile/api.js').then(m => m.api('admin', { action: 'radioRoomOpened', room: code, ...(testMode ? { silent: true } : {}) })).catch(() => {});   // (a TEST tab: silent)
   }, ROOM_PUSH_MS);
 }
 
@@ -236,7 +237,7 @@ export const movedTo = () => lastMoved;
 function birthdayRoom(code) {
   let bd = null; try { bd = JSON.parse(localStorage.getItem('nd:bd') || 'null'); } catch { /* fine */ }
   if (!bd || !bd.m) return;
-  setTimeout(() => Promise.all([import('./core/birthday.js'), import('./profile/api.js')]).then(([B, A]) => {
+  setTimeout(() => Promise.all([lazyImport(import('./core/birthday.js'), './core/birthday.js'), lazyImport(import('./profile/api.js'), './profile/api.js')]).then(([B, A]) => {
     const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })();
     if (!B.isBirthdayOn(bd, serverNow(), tz)) return;
     return A.api('profile', { action: 'birthdayRoom', room: code, tz });
@@ -284,7 +285,7 @@ function enterRoom(code) {
   listen('radio', radio => {
     const all = Object.entries(radio || {}).map(([id, x]) => ({ id, ...(x || {}) }));
     const list = all.filter(x => x.kind === 'intercom');
-    if (list.length) import('./audio/intercom.js').then(m => m.intercomFeed('room', list)).catch(e => console.warn('[intercom]', e));
+    if (list.length) lazyImport(import('./audio/intercom.js'), './audio/intercom.js').then(m => m.intercomFeed('room', list)).catch(e => console.warn('[intercom]', e));
     // (LOBBY 2.0 B — the owner's ADD-ON: THE CREW's Blackbird "didn't fly". The server wrote the crew's / a favor's / the owner's LOBBY ONLY
     //  sky moments here all along, but only the intercom was ever played — the rest waited for the lobby to be the live city (LOBBY 2.0) and
     //  were never switched on. Now every phone IN the room hands them to its city (title.js → the remote's feed → scene-radio: each plays

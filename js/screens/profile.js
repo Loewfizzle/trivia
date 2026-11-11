@@ -28,6 +28,7 @@ import { memberLabel } from '../core/member.js';
 import { openPfSheet, closeAllPfSheets } from '../profile/sheets.js';
 import { friendsSection, frSheet } from '../profile/friends-ui.js';
 import { saveToPasswordsForm, keyFields, keyForm } from '../profile/keychain.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const HL = { gridlock: [['sunk', 'FLEETS SUNK'], ['w_classic', 'CLASSIC WINS'], ['w_salvo', 'SALVO WINS'], ['w_royale', 'ROYALE WINS'], ['w_arcade', 'ARCADE WINS']], agent: [['esc', 'ESCAPES'], ['spot', 'AGENTS CAUGHT']], signal: [['el', 'ELIMINATIONS']], bluff: [['fool', 'PLAYERS FOOLED']], prism: [['ko', 'KNOCKOUTS']] };
 const num = n => Math.round(n || 0).toLocaleString('en-US');
@@ -111,7 +112,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
     frSheet();
     // (SHELL 2.0 A — THE ONE LOOK: NEW KEY a small danger tube, its second tap the button itself red; the two account rows THE ROW)
     els.newKey = tubeButton('NEW KEY', { kind: 'danger', size: 'sm', cls: 'pf-newkey', confirm: 'TAP AGAIN — THE OLD KEY STOPS WORKING', onClick: onNewKey });
-    els.elsewhere = row({ icon: 'card', label: 'Use this card on another device', sub: 'Your card on a second phone, a computer or the Home Screen app', cls: 'pf-elsewhere', onClick: () => import('../profile/bring.js').then(B => B.openElsewhere()) });
+    els.elsewhere = row({ icon: 'card', label: 'Use this card on another device', sub: 'Your card on a second phone, a computer or the Home Screen app', cls: 'pf-elsewhere', onClick: () => lazyImport(import('../profile/bring.js'), '../profile/bring.js').then(B => B.openElsewhere()) });
     // (LOBBY 2.0 B — the owner, Nov 4 7:10 am: RESTORE must stand out — a bright neon-CYAN edge + glow, a cyan title, a small key icon; not gold:
     //  CUSTOMIZE stays the screen's one gold primary; USE THIS CARD ON ANOTHER DEVICE stays glass)
     els.restore = row({ icon: 'key', ic: '#3ff0ff', label: 'Restore your account', sub: 'Have a key from another device? Bring that card here', cls: 'pf-restore', onClick: openRestore });
@@ -146,7 +147,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
   // (THE SPEED PASS — the owner, Nov 4 6:28 pm: the ✎ beside the name on the card is GONE — CUSTOMIZE's EDIT USERNAME row is the one way in)
 
   // (SHELL 2.0 B1: opened from the ☰ menu → its ‹ BACK brings the menu back on top — settings-panel.js#backToMenu)
-  const toMenu = () => import('../ui/settings-panel.js').then(m => m.backToMenu()).catch(() => {});
+  const toMenu = () => lazyImport(import('../ui/settings-panel.js'), '../ui/settings-panel.js').then(m => m.backToMenu()).catch(() => {});
   function back() { closeAllPfSheets(); if (onBack) { onBack(); toMenu(); return; } try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); toMenu(); }
 
   function prevKeyRow() {
@@ -180,8 +181,8 @@ export function createView({ onBack = null, overlay = false } = {}) {
     };
     val.addEventListener('click', () => { shown = !shown; clearTimeout(timer); if (shown) { timer = setTimeout(() => { shown = false; paintT(); }, 20000); sfx('select'); } paintT(); });
     const acts = h('div.pf-kb-acts',
-      h('button.btn.btn-ghost.btn-sm', { type: 'button', 'data-act': 'copy', onclick: async () => { const B = await import('../profile/bring.js'); await B.copyKey(k, text); paintS(); } }, 'COPY'),
-      typeof navigator.share === 'function' ? h('button.btn.btn-ghost.btn-sm', { type: 'button', 'data-act': 'share', onclick: async () => { const B = await import('../profile/bring.js'); await B.shareKey(k); paintS(); } }, 'SHARE') : null);
+      h('button.btn.btn-ghost.btn-sm', { type: 'button', 'data-act': 'copy', onclick: async () => { const B = await lazyImport(import('../profile/bring.js'), '../profile/bring.js'); await B.copyKey(k, text); paintS(); } }, 'COPY'),
+      typeof navigator.share === 'function' ? h('button.btn.btn-ghost.btn-sm', { type: 'button', 'data-act': 'share', onclick: async () => { const B = await lazyImport(import('../profile/bring.js'), '../profile/bring.js'); await B.shareKey(k); paintS(); } }, 'SHARE') : null);
     // (FRIENDS A — SAVE TO PASSWORDS: a real login form — NAME#1234 + the key — so the phone's password manager keeps it + fills it on a new phone)
     const me0 = loadMe(), pp = me0 && me0.uid === state.uid && me0.profile ? me0.profile : null, nm = (pp && pp.n) || (loadProfile() || {}).name || 'MEMBER';
     const kc = saveToPasswordsForm({ user: pp && pp.t ? `${nm}#${pp.t}` : nm, key: k, onSaved: () => { setNotes({ saved: true }); paintS(); } });
@@ -239,7 +240,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
       return;
     }
     if (!m0 && !loadKey()) {
-      const go = h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => import('../profile/bring.js').then(B => B.openBring({ onDone: () => { paintKey(); paintLocal(); load(); } })) }, h('span', 'BRING YOUR CARD'));
+      const go = h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => lazyImport(import('../profile/bring.js'), '../profile/bring.js').then(B => B.openBring({ onDone: () => { paintKey(); paintLocal(); load(); } })) }, h('span', 'BRING YOUR CARD'));
       els.why.replaceChildren(h('div.pf-note', h('b', 'ALREADY A MEMBER?'), h('p', `Nothing is saved on this device yet (${location.host}) — your card wasn’t deleted. Bring it here with your key: your card works on all your devices at once.`), go));
       return;
     }
@@ -311,7 +312,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
       if (fullMounted) { fullMounted.destroy(); fullMounted = null; }
       els.card.replaceChildren(h('div.pf-card-blank', { 'aria-hidden': 'true', dataset: { card: cd } }));
     }
-    import('../vault/full.js').then(async F => {
+    lazyImport(import('../vault/full.js'), '../vault/full.js').then(async F => {
       const ok = await F.canShowFull(cd);
       if (n !== paintN || destroyed) return;
       if (!ok) { gilded(); return; }

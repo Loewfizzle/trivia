@@ -13,6 +13,7 @@ import { preloadSheets } from '../games/lazy-view.js';
 import { minPlayersOf } from '../games/cartridge.js';
 import { openHelp } from '../ui/help.js';
 import { prefetch } from '../audio/music.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 /** vertical single-choice list with a sub-line per choice (PULSE song picker) */
 export function optionList(choices, value, onChange) {
@@ -39,7 +40,7 @@ export function optionCards(choices, value, onChange) {
 
 export function openGameOptions(g, { meta = null, onClose = null } = {}) {
   const mod = metaOf(g.id);   // (SHELL 2.0 B1 — THE THIN META: the sheet reads it; the cartridge starts loading now, so INITIATE is quick)
-  import('../games/preload.js').then(P => P.wireGame(g.id)).catch(() => {});   // (FRIENDS C: the whole graph at once)
+  lazyImport(import('../games/preload.js'), '../games/preload.js').then(P => P.wireGame(g.id)).catch(() => {});   // (FRIENDS C: the whole graph at once)
   loadGame(g.id).catch(() => {});
   prefetch(mod.MUSIC);
   preloadSheets(g.id);   // its screen's stylesheets, so the match starts styled at once

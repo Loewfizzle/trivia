@@ -18,7 +18,9 @@ export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40,
   let upstream = to;
   // (fail: a RegExp — the first failN requests whose path matches are dropped, then it answers; stall: a RegExp — those never answer)
   let failRe = fail ? new RegExp(fail) : null, failLeft = failN, stallRe = stall ? new RegExp(stall) : null, stallLeft = stallN;
-  const st = { req: 0, n304: 0, drops: 0, bytes: 0, byPath: new Map() };
+  const st = { req: 0, n304: 0, drops: 0, bytes: 0, byPath: new Map(), ruled: 0, switchedAt: null };
+  let rules = [], switchOn = null;   // (LOAD FIX 4: deploy B's file rules + the switch armed on a request — set({ rules, switchOn }))
+  const rx = o => ({ ...o, re: new RegExp(o.re) });
   let busyUntil = 0;   // the shared line: when the last byte queued on it leaves
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const send = async (res, code, headers, body) => {
@@ -46,6 +48,9 @@ export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40,
     if (path === '/__line/stats') { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ upstream, req: st.req, n304: st.n304, drops: st.drops, kb: Math.round(st.bytes / 1024) })); return; }
     if (path === '/__line/set') { const q = new URL(req.url, 'http://x').searchParams; if (q.has('rtt')) rtt = +q.get('rtt'); if (q.has('mbps')) mbps = +q.get('mbps'); if (q.has('drop')) drop = +q.get('drop'); if (q.has('fail')) { failRe = q.get('fail') ? new RegExp(q.get('fail')) : null; failLeft = +(q.get('n') || 1); } if (q.has('stall')) stallRe = q.get('stall') ? new RegExp(q.get('stall')) : null; res.end(JSON.stringify({ rtt, mbps, drop, fail: String(failRe), failLeft, stall: String(stallRe) })); return; }
     st.req++; st.byPath.set(path, (st.byPath.get(path) || 0) + 1);
+    // (LOAD FIX 4 — THE DEPLOY LANDS ON A REQUEST: the first request matching switchOn.re moves the upstream + turns B's rules on BEFORE it is
+    //  answered — "the deploy happened right before this lazy import")
+    if (switchOn && switchOn.re.test(path)) { upstream = switchOn.to; rules = switchOn.rules || []; st.switchedAt = path; switchOn = null; if (log) console.log('SWITCH on', path); }
     const parts = []; req.on('data', d => parts.push(d));
     await new Promise(r => req.on('end', r));
     const isApi = path.startsWith('/api/');
@@ -56,6 +61,8 @@ export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40,
     try { up = await fetchUp(req, Buffer.concat(parts)); } catch (e) { res.writeHead(502); res.end(String(e)); return; }
     const headers = { ...up.headers }; delete headers['content-length']; delete headers['transfer-encoding']; delete headers['content-encoding']; delete headers.connection;
     if (mg && mg.n > 0 && up.status === 200 && mg.re.test(path)) { mg.n--; up.body = Buffer.from(up.body.toString('utf8').split(mg.from).join(mg.to)); if (log) console.log('MANGLE', path); }
+    // (LOAD FIX 4 — DEPLOY B's files: every answer matching a rule, while the rules are on — { re, prepend } or { re, from, to })
+    if (up.status === 200) for (const r of rules) if (r.re.test(path) && r.n !== 0) { if (r.n > 0) r.n--; const t = up.body.toString('utf8'); up.body = Buffer.from(r.prepend != null ? r.prepend + t : t.split(r.from).join(r.to)); st.ruled++; }
     if (!isApi && up.status === 200 && req.method === 'GET') {
       const etag = '"' + createHash('sha1').update(up.body).digest('hex').slice(0, 20) + '"';
       headers.etag = etag; headers['cache-control'] = 'public, max-age=0, must-revalidate'; delete headers.pragma; delete headers.expires;
@@ -66,8 +73,9 @@ export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40,
   });
   return new Promise(ok => server.listen(port, () => ok({
     port, close: () => new Promise(r => { server.closeAllConnections && server.closeAllConnections(); server.close(() => r()); }),
-    switchTo: u => { upstream = u; }, set: o => { if (o.rtt != null) rtt = o.rtt; if (o.mbps != null) mbps = o.mbps; if (o.drop != null) drop = o.drop; if ('fail' in o) { failRe = o.fail ? new RegExp(o.fail) : null; failLeft = o.failN || 1; } if ('mangle' in o) mg = o.mangle ? { ...o.mangle, re: new RegExp(o.mangle.re), n: o.mangle.n == null ? 1 : o.mangle.n } : null; if ('stall' in o) { stallRe = o.stall ? new RegExp(o.stall) : null; stallLeft = o.stallN == null ? Infinity : o.stallN; } },
-    stats: () => ({ upstream, req: st.req, n304: st.n304, drops: st.drops, kb: Math.round(st.bytes / 1024) }),
+    switchTo: u => { upstream = u; }, set: o => { if (o.rtt != null) rtt = o.rtt; if (o.mbps != null) mbps = o.mbps; if (o.drop != null) drop = o.drop; if ('fail' in o) { failRe = o.fail ? new RegExp(o.fail) : null; failLeft = o.failN || 1; } if ('mangle' in o) mg = o.mangle ? { ...o.mangle, re: new RegExp(o.mangle.re), n: o.mangle.n == null ? 1 : o.mangle.n } : null; if ('stall' in o) { stallRe = o.stall ? new RegExp(o.stall) : null; stallLeft = o.stallN == null ? Infinity : o.stallN; }
+      if ('rules' in o) rules = (o.rules || []).map(rx); if ('switchOn' in o) switchOn = o.switchOn ? { ...o.switchOn, re: new RegExp(o.switchOn.re), rules: (o.switchOn.rules || []).map(rx) } : null; },
+    stats: () => ({ upstream, req: st.req, n304: st.n304, drops: st.drops, kb: Math.round(st.bytes / 1024), ruled: st.ruled, switchedAt: st.switchedAt }),
   })));
 }
 

@@ -13,6 +13,7 @@ import { ACH } from '../core/achievements.js';
 import { ITEM, TIER_NAMES, KINDS } from '../core/items.js';
 import { pgSfx, pgPrefetch } from '../audio/progress-sfx.js';
 import { pgSheet, fanCrown, medal, flameIcon, reduced, num, pctFor, pctLine, cardVars, glowClass } from './look.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const PLACE = ['', '1ST PLACE', '2ND PLACE', '3RD PLACE'];
 const WORDS = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
@@ -39,20 +40,20 @@ export function itemSwatch(id, name = 'YOU', who = {}) {
   if (!it) return h('span.pg-sw');
   const tile = h('span.pg-sw', { class: `is-${it.kind}`, dataset: { item: id } });
   const fill = (load, make, fallback) => { if (fallback) tile.append(fallback); load().then(m => { const el = make(m); if (el) tile.replaceChildren(el); }).catch(() => { /* the fallback stays */ }); };
-  const sheet = () => import('../vault/sheet.js').then(S => S.vaultSheet());
+  const sheet = () => lazyImport(import('../vault/sheet.js'), '../vault/sheet.js').then(S => S.vaultSheet());
   const avatar = who.avatar || 'diamond', color = who.color || 'magenta';
   if (it.kind === 'card') {
     // (the palette first; the art once it's known to be approved — the same rule as every other place a card shows)
-    fill(() => Promise.all([import('../vault/strip.js'), import('../vault/approved.js').then(A => A.approvedIds()), sheet()]),
+    fill(() => Promise.all([lazyImport(import('../vault/strip.js'), '../vault/strip.js'), lazyImport(import('../vault/approved.js'), '../vault/approved.js').then(A => A.approvedIds()), sheet()]),
       ([S, ok]) => { const look = S.LOOKS[id]; return look && ok.has(id) ? h('span.pg-sw-card.is-art', { class: `vl-s-${look.mat} vl-fcm-${look.mat}` }, h('i.vl-mat')) : null; },
       h('span.pg-sw-card', { style: cardVars(id) }, h('i')));
   } else if (it.kind === 'emblem') {
-    fill(() => Promise.all([import('../vault/emblem-art.js'), sheet()]), ([E]) => (E.hasArt(id) ? E.emblemEl({ id, avatar, color, mode: 'lead', size: 42 }) : null), h('b.pg-sw-glyph', it.glyph || '◆'));
+    fill(() => Promise.all([lazyImport(import('../vault/emblem-art.js'), '../vault/emblem-art.js'), sheet()]), ([E]) => (E.hasArt(id) ? E.emblemEl({ id, avatar, color, mode: 'lead', size: 42 }) : null), h('b.pg-sw-glyph', it.glyph || '◆'));
   } else if (it.kind === 'glow') {
     const b = h('b', { class: glowClass(id) }, name.slice(0, 3));
-    fill(() => Promise.all([import('../vault/glows.js'), sheet()]), ([G]) => G.applyGlow(h('b', name.slice(0, 3)), id), b);
+    fill(() => Promise.all([lazyImport(import('../vault/glows.js'), '../vault/glows.js'), sheet()]), ([G]) => G.applyGlow(h('b', name.slice(0, 3)), id), b);
   } else if (it.kind === 'tube') {
-    fill(() => Promise.all([import('../vault/emblem-art.js'), sheet()]), ([E]) => E.emblemEl({ avatar, color, tube: id, mode: 'lead', size: 42 }), h('i'));
+    fill(() => Promise.all([lazyImport(import('../vault/emblem-art.js'), '../vault/emblem-art.js'), sheet()]), ([E]) => E.emblemEl({ avatar, color, tube: id, mode: 'lead', size: 42 }), h('i'));
   } else if (it.kind === 'flame') tile.append(flameIcon('lit', 30));
   else tile.append(h('b', '✦'));
   return tile;

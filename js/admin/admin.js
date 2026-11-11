@@ -15,6 +15,7 @@ import { levelLabel } from '../core/levels.js';
 import { GAMES } from '../config.js';
 import { GAME_LIGHT } from '../board/view.js';
 import { groupErrors, groupReports, filterGroups, countLine } from './groups.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const app = document.getElementById('app');
 const gameName = id => (GAMES.find(g => g.id === id) || { name: id }).name;
@@ -281,7 +282,7 @@ async function gifts(r) {
   const prev = document.getElementById('ad-gift-prev');
   if (prev && giftPick && (!giftPrev || giftPrev.id !== giftPick)) {
     if (giftPrev) giftPrev.m.destroy();
-    const S = await import('../vault/strip.js'); await S.vaultSheet();
+    const S = await lazyImport(import('../vault/strip.js'), '../vault/strip.js'); await S.vaultSheet();
     prev.replaceChildren(); const host = h('div.ad-gift-strip'); prev.append(host);
     giftPrev = { id: giftPick, m: S.mountStrips(host, [{ card: giftPick, name: 'PREVIEW', lv: 1 }]) };
   }
@@ -475,7 +476,7 @@ function renderStats() {
 // THE OUTAGE: today + the 6 days before, each a toggle (a second tap confirms)
 /** DFIX3 — a daily's spoiler-free score line (its thin meta — js/screens/daily.js reads it the same way) */
 const dyMetas = new Map();
-const dyMeta = id => { if (!dyMetas.has(id)) dyMetas.set(id, import(`../games/${id}/meta.js`).catch(() => ({}))); return dyMetas.get(id); };
+const dyMeta = id => { if (!dyMetas.has(id)) dyMetas.set(id, lazyImport(import(`../games/${id}/meta.js`), '../games/*/meta.js').catch(() => ({}))); return dyMetas.get(id); };
 /** DFIX3 — THE DAILIES' STATS block: per daily STARTED · FINISHED today + the last 7 days as small bars; TODAY'S PLAYERS with ADD FRIEND */
 async function dailyStats() {
   const box = document.getElementById('ad-dly-stats');
@@ -485,7 +486,7 @@ async function dailyStats() {
     const metas = Object.fromEntries(await Promise.all(S.dailies.map(async d => [d.id, await dyMeta(d.id)])));
     const line = (id, score) => { const m = metas[id]; return m && typeof m.scoreLine === 'function' ? m.scoreLine(score) : String(score); };
     const dl = k => `${+k.slice(5, 7)}/${+k.slice(7, 9)}`;
-    const { friendButton } = await import('../profile/friends-ui.js');
+    const { friendButton } = await lazyImport(import('../profile/friends-ui.js'), '../profile/friends-ui.js');
     const blocks = S.dailies.map(d => {
       const max = Math.max(1, ...d.days.map(x => x.started));
       return h('div.ad-block.ad-dly-g',
@@ -544,7 +545,7 @@ async function outages(r) {
   if (!row) return;
   try {
     r ||= await call('outages');
-    const { dayNum, dayOf } = await import('../core/streak.js');
+    const { dayNum, dayOf } = await lazyImport(import('../core/streak.js'), '../core/streak.js');
     const T = dayNum(r.today), on = r.outage || {};
     row.replaceChildren(...Array.from({ length: 7 }, (_, i) => {
       const d = dayOf(T - i), lit = !!on[d];

@@ -15,6 +15,7 @@ import { drawLaser } from './laser.js';
 import { rrect } from './renderer.js';
 import { bakeDpr, city } from './sg-kit.js';
 import { signLayout, drawTube, ignite, hum } from './sign-kit.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const LOOP = 10;
 const RED = { glow: '255,40,30', body: '#ff4636', core: '#fff0e6', glass: '#3a1412' };
@@ -103,7 +104,7 @@ const airSign = (bw, bh) => { const k = `${bw.toFixed(1)}:${bh.toFixed(1)}`; let
 
 /** the beat's phase now (0..1 through a beat) — the song's grid when one is playing, a steady 112 bpm else */
 function beatPhase(t) {
-  const B = city('beat', () => import('../audio/beat.js'));
+  const B = city('beat', () => lazyImport(import('../audio/beat.js'), '../audio/beat.js'));
   try {
     const s = B && B.beatSource ? B.beatSource() : null;
     if (s && s.bpm > 0) { const p = 60 / (s.grid ? s.grid.bpm : s.bpm); return fract((s.pos - ((s.grid && s.grid.t0) || 0)) / p); }

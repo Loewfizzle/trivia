@@ -29,6 +29,7 @@ import { bestFive } from './rank.js';
 import { faceSvg, cardName } from './card-art.js';
 import { dealer } from './index.js';
 import { SHOT_MS } from './structure.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 const BACK = new URL('../../../assets/holdem/cardback-casino.webp', import.meta.url).href;
 const fmt = n => Math.round(n || 0).toLocaleString('en-US');
@@ -68,7 +69,7 @@ export function createView() {
       return await dealer({ holdem: op, room: code(), ...(t ? { hand: t.hand } : {}), ...body });
     } catch (e) {
       // (409 stale / illegal, 429: the table moved on — the listener redraws; never a scary message)
-      if (e && e.status === 0) import('../../ui/toast.js').then(m => m.toast('NO SIGNAL — TRY AGAIN', 'warn', 2200)).catch(() => {});
+      if (e && e.status === 0) lazyImport(import('../../ui/toast.js'), '../../ui/toast.js').then(m => m.toast('NO SIGNAL — TRY AGAIN', 'warn', 2200)).catch(() => {});
       return null;
     } finally {
       busy = null;
@@ -111,7 +112,7 @@ export function createView() {
     els.board = h('div.he-board', { 'aria-label': 'The board' }, Array.from({ length: 5 }, () => h('div.he-slot')));
     els.hero = h('div.he-hero', h('div.he-hand'), h('div.he-plate', h('div.he-plate-l', h('b.he-you'), h('span.he-stack')),
       h('b.he-ytag'),
-      h('button.he-label', { type: 'button', onclick: () => import('./rankings.js').then(m => m.openRankings({ mark: myCat() })).catch(() => {}) }),
+      h('button.he-label', { type: 'button', onclick: () => lazyImport(import('./rankings.js'), './rankings.js').then(m => m.openRankings({ mark: myCat() })).catch(() => {}) }),
       h('div.he-clock', h('i'))));
     els.heroStack = els.hero.querySelector('.he-stack');
     els.actions = h('div.he-actions');
@@ -613,7 +614,7 @@ export function createView() {
   async function confirmLeave() {
     if (leaveSheet || !canLeave()) return;
     const x = mySeat();
-    const { openSheet } = await import('../../ui/sheet.js');
+    const { openSheet } = await lazyImport(import('../../ui/sheet.js'), '../../ui/sheet.js');
     const go = tubeButton('LEAVE THE TABLE', { kind: 'danger', block: true, onClick: () => { if (leaveSheet) leaveSheet.close(); send('leave'); } });
     const stay = tubeButton('STAY', { kind: 'ghost', block: true, onClick: () => { if (leaveSheet) leaveSheet.close(); } });
     leaveSheet = openSheet({ title: 'LEAVE THE TABLE?', cls: 'he-sheet', body: [

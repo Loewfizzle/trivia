@@ -27,6 +27,7 @@ import { weekEndsAt } from '../core/week.js';
 import { board as fetchBoard, reportRow } from '../profile/api.js';
 import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
 import { boardSfx } from './audio.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 // each tab's light: [key colour, second colour] (the tab's lit pill + the panel's glow)
 export const GAME_LIGHT = {
@@ -256,7 +257,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     ];
     // (FRIENDS A — ADD FRIEND on THE BOARD: the row's ⋯ = that player — ADD FRIEND (in the app, signed in; never on the public /board), then REPORT)
     const fr = h('div.bd-rep-fr');
-    if (!pub) import('../profile/friends-ui.js').then(F => { if (els.rep) fr.replaceChildren(F.friendButton({ b: def.id, bid: r.id }, { name: r.n })); }).catch(() => {});
+    if (!pub) lazyImport(import('../profile/friends-ui.js'), '../profile/friends-ui.js').then(F => { if (els.rep) fr.replaceChildren(F.friendButton({ b: def.id, bid: r.id }, { name: r.n })); }).catch(() => {});
     els.rep = openSheet({ title: pub ? 'REPORT' : String(r.n || '').toUpperCase(), kicker: `${els.label.textContent} · #${r.rank}`, cls: 'bd-rep', label: `${r.n}`, onClose: () => { els.rep = null; }, body: [
       h('div.bd-rep-who', avatar(r.a, r.c, 30), h('b', r.n)),
       fr,
@@ -306,7 +307,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     dropSurface();
     const [t, line] = emptyOf(def, S.period);
     const mark = h('span.bd-empty-mark');
-    import('../vault/emblem-art.js').then(E => mark.replaceChildren(E.emblemEl({ avatar: 'crown', color: 'yellow', mode: 'quiet', size: 84 }))).catch(() => mark.replaceChildren(emblem(0, 46, { mini: false })));
+    lazyImport(import('../vault/emblem-art.js'), '../vault/emblem-art.js').then(E => mark.replaceChildren(E.emblemEl({ avatar: 'crown', color: 'yellow', mode: 'quiet', size: 84 }))).catch(() => mark.replaceChildren(emblem(0, 46, { mini: false })));
     els.rows = h('ol.bd-rows', h('li.bd-empty', mark, h('b', t), line ? h('span', line) : null));
     els.scroll.replaceChildren(els.rows);
   }

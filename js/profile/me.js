@@ -12,6 +12,7 @@ import { state, setState } from '../store.js';
 import { firebaseReady } from '../firebase.js';
 import { formatKey, normalizeKey } from '../core/pkey.js';
 import { toast } from '../ui/toast.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 let syncing = null;
 let lastSig = '';
@@ -87,7 +88,7 @@ export function syncMe() {
 // in a room already? put the profile id on our player node so the lobby and chat can show the emblem and tag
 async function linkRoomSeat() {
   if (!state.code || !state.players[state.uid] || state.players[state.uid].pid === myPid()) return;
-  try { const { updateMyProfile } = await import('../room.js'); await updateMyProfile(loadProfile()); } catch { /* next join */ }
+  try { const { updateMyProfile } = await lazyImport(import('../room.js'), '../room.js'); await updateMyProfile(loadProfile()); } catch { /* next join */ }
 }
 
 /** Links this device to the profile a key belongs to. Throws ApiFail with a readable message. */
@@ -150,7 +151,7 @@ export async function setShown(on) {
 export async function fetchMe() {
   const r = await api('profile', { action: 'me' });
   store(r.pid, r.profile);
-  if (r.priv && typeof r.priv.cb === 'boolean') import('../ui/colorblind.js').then(m => m.adoptProfileCb(r.priv.cb)).catch(() => {});   // (SHELL 2.0 B1)
+  if (r.priv && typeof r.priv.cb === 'boolean') lazyImport(import('../ui/colorblind.js'), '../ui/colorblind.js').then(m => m.adoptProfileCb(r.priv.cb)).catch(() => {});   // (SHELL 2.0 B1)
   return r;
 }
 

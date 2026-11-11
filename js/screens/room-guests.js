@@ -20,11 +20,12 @@ import { sfx } from '../audio/sfx.js';
 import { nightStandings } from '../core/night.js';
 import { MAX_PLAYERS } from '../config.js';
 import { memberLabel } from '../core/member.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 export const ENTRANCE_MS = 3200;
 export async function openGuestList(ctx) {
   const [{ openPfSheet }, V, { FX }, { cardVars }, { approvedIds }, { isOneOfOne }, { lobbySfx }] = await Promise.all([
-    import('../profile/sheets.js'), import('../vault/strip.js'), import('../fx/index.js'), import('../progress/look.js'), import('../vault/approved.js'), import('../core/dev-cards.js'), import('../audio/lobby-sfx.js')]);
+    lazyImport(import('../profile/sheets.js'), '../profile/sheets.js'), lazyImport(import('../vault/strip.js'), '../vault/strip.js'), lazyImport(import('../fx/index.js'), '../fx/index.js'), lazyImport(import('../progress/look.js'), '../progress/look.js'), lazyImport(import('../vault/approved.js'), '../vault/approved.js'), lazyImport(import('../core/dev-cards.js'), '../core/dev-cards.js'), lazyImport(import('../audio/lobby-sfx.js'), '../audio/lobby-sfx.js')]);
   V.vaultSheet();
   let approved = new Set();
   const list = h('div.rg-list'), count = h('span.rg-count'), lockRow = h('div.rg-lock'), night = h('div.rg-night');
@@ -33,7 +34,7 @@ export async function openGuestList(ctx) {
   const leave = tubeButton('LEAVE ROOM', { kind: 'danger', block: true, cls: 'rg-leave', confirm: 'TAP AGAIN TO LEAVE', onClick: () => { sheet.close(); leaveRoom(); } });
   const surfHost = h('div.rg-strips');
   list.append(surfHost);
-  const surface = (await import('../fx/renderer.js')).createSurface(surfHost, { label: 'guests' });
+  const surface = (await lazyImport(import('../fx/renderer.js'), '../fx/renderer.js')).createSurface(surfHost, { label: 'guests' });
   const rows = new Map();     // uid → { el, sig, slot }
   let kickArmed = { uid: null, at: 0 }, first = true, lockBusy = false;
   // (CITY FIXES — the owner, Nov 8: THE GUEST LIST PAUSES THE CITY behind it — THE ROOM's OWN COST: 8 live strips + the full city at 4× CPU
@@ -66,7 +67,7 @@ export async function openGuestList(ctx) {
         const row = h('div.rg-row', { dataset: { uid }, class: `${off ? 'is-off' : ''}${uid === st.uid ? ' is-me' : ''}`, role: 'button', tabindex: '0', 'aria-label': `${p.name}${off ? ' — signal lost' : ''} — their card`,
           onclick: () => ctx.openCard(uid), onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ctx.openCard(uid); } } },
           el, off ? h('span.rg-off', 'SIGNAL LOST') : null, kick);
-        if (isOneOfOne(card) && real) import('../vault/dress.js').then(m => m.oneOfOne(el)).catch(() => {});
+        if (isOneOfOne(card) && real) lazyImport(import('../vault/dress.js'), '../vault/dress.js').then(m => m.oneOfOne(el)).catch(() => {});
         // THE JOIN ENTRANCE: a strip that wasn't in the list when it opened slides in at its FULL animation once, then the calm cut
         const fresh = !r && !first;
         if (r) { surface.remove(r.el.querySelector('.vl-strip')); r.el.replaceWith(row); }

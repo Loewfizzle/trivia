@@ -7,6 +7,7 @@ import { glow, stamp, sprite, wob } from './kit.js';
 import { drawLaser } from './laser.js';
 import { rrect } from './renderer.js';
 import { city, backdrop, skylineLayer, bakeDpr, stage } from './sg-kit.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const SKY = { sky: [[0, '#020611'], [0.4, '#04101a'], [0.62, '#062018'], [1, '#02060a']], stars: 34, starRgb: '225,240,255', starTo: 0.6, seed: 61,
   glow: [{ x: 0.5, y: 0.55, r: 0.7, rgb: '40,180,120', a: 0.18, sy: 0.4 }] };
@@ -30,7 +31,7 @@ const curtain = (u, tt, base, amp, ph, sp) => base + amp * Math.sin(u * 7 + tt *
 export default {
   id: 'sg-aurora', tier: 'legendary', bleed: 10, stillT: 5,
   draw(c, s, t, Q) {
-    const A = city('aurora', () => import('../screens/harbor/aurora.js'));
+    const A = city('aurora', () => lazyImport(import('../screens/harbor/aurora.js'), '../screens/harbor/aurora.js'));
     const S = stage(s), { w, h, full } = S, dpr = bakeDpr(Q), still = Q.still, rad = s.opts.radius || 12, tt = still ? 5 : t;
     c.save(); rrect(c, 0, 0, w, h, rad); c.clip();
     const water = full ? 0.74 : 0.9;

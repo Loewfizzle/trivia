@@ -15,6 +15,7 @@ import { serverNow } from '../firebase.js';
 import { cityClock } from '../core/city.js';
 import { bannerAt, bannerLines, winnersOf, champLines, backOf } from '../core/room-show.js';
 import { nightStandings } from '../core/night.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 export const PASS_MS = 30000;          // (a banner pass ≈ 30 s: past that, a late phone shows nothing)
 const WAIT_TRIES = 30, WAIT_MS = 2000; // (a legendary in the way: try again every 2 s for a minute, then skip)
@@ -22,7 +23,7 @@ const NIGHT_KEY = 'nd:night', CHAMP_MS = 12 * 3600e3;
 
 /** a game's name on the banner: its cartridge's BANNER_NAME (docs/cartridge.md), else the GAMES name */
 export async function bannerName(id) {
-  try { const R = await import('../games/registry.js'); const m = R.metaOf(id); if (m && m.BANNER_NAME) return m.BANNER_NAME; } catch { /* the name below */ }
+  try { const R = await lazyImport(import('../games/registry.js'), '../games/registry.js'); const m = R.metaOf(id); if (m && m.BANNER_NAME) return m.BANNER_NAME; } catch { /* the name below */ }
   const g = GAMES.find(x => x.id === id);
   return g ? g.name : String(id || '').toUpperCase();
 }

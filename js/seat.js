@@ -10,6 +10,7 @@
 import { dbRef, get, set, onValue, runTransaction, serverTimestamp } from './firebase.js';
 import { state } from './store.js';
 import { loadMe } from './identity.js';
+import { lazyImport } from './ui/lazy-import.js';
 
 /** this device's profile id (only when its link is for this slot's uid) */
 export const myPid = () => { const m = loadMe(); return m && m.uid === state.uid && m.pid ? m.pid : null; };
@@ -62,7 +63,7 @@ export function watchSeat(code, onMoved) {
 
 /** THE QUESTION: "You're already in room XXXX on another device" · MOVE HERE · CANCEL → true (move) | false */
 export async function askMoveHere(conflict) {
-  const [{ openPfSheet }, { h }] = await Promise.all([import('./profile/sheets.js'), import('./ui/dom.js')]);
+  const [{ openPfSheet }, { h }] = await Promise.all([lazyImport(import('./profile/sheets.js'), './profile/sheets.js'), lazyImport(import('./ui/dom.js'), './ui/dom.js')]);
   return new Promise(resolve => {
     let answer = false;
     const done = v => { answer = v; s.close(); };

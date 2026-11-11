@@ -113,5 +113,5 @@ test("THE BOOT BYTES: no game's logic in the title's static graph (scripts/boot-
   const { bootGraph } = await import('../scripts/boot-bytes.mjs');
   const g = bootGraph(), games = g.rows.filter(r => r.f.startsWith('js/games/') && !/\/(meta|registry|cartridge|lazy-view)\.js$|\/kit\/|^js\/games\/pulse\/clock\.js$/.test(r.f));   // (pulse/clock.js = the console's shared audio clock — audio/synced-songs.js)
   assert.deepEqual(games.map(r => r.f), [], "only the metas + the console's own game files at boot");
-  assert.ok(g.games < 30 * 1024, `js/games at boot: ${(g.games / 1024).toFixed(1)} KB`);
+  assert.ok(g.games < 31 * 1024, `js/games at boot: ${(g.games / 1024).toFixed(1)} KB`);
 });

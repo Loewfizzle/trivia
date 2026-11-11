@@ -47,6 +47,7 @@ import { neonPlan, neonState, neonNext, firstTapAnswer, createStartDetector } fr
 import { createDock, createDockWork, dressCorners, ICON } from './title-dock.js';
 import { createTaps } from './title-taps.js';
 import { createNeon } from './title-neon.js';
+import { lazyImport } from '../ui/lazy-import.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): THE city (CITY 1.0 OUT, Nov 5 — City 1.0 deleted; an old `?city=1` / `?city=2` link lands here).
 // No top-level await (iOS 14 can't parse one — the whole app would die, every game too): app.js holds the title on the boot screen until
 // harborReady settles. A failed load is tried 3 times (LOAD FIX 3), then the boot watchdog's one reload; after that → the title shows THE CITY COULDN'T LOAD + RELOAD
@@ -56,9 +57,17 @@ let visitAnswered = false;   // (ATM-A: the sign has answered a song this visit 
 const loadHarbor = () => import('./harbor/scene.js').then(m => { createHarbor = m.createHarbor; if (window.__boot) window.__boot.stage('the city’s module in'); });   // (LOAD FIX 3: the watchdog's stage)
 // (LOAD FIX 3 — THE BOOT SAFETY NET: three tries (1.5 s, then 3 s apart — the browser asks again only for the files that failed), then
 //  index.html's watchdog's ONE reload; THE CITY COULDN'T LOAD only once that reload was used — a flaky line used to end a load here)
-const tryHarbor = n => loadHarbor().catch(e => { console.warn(`harbor (try ${n})`, e); if (n >= 3) throw e; return new Promise(r => setTimeout(r, 1500 * n)).then(() => tryHarbor(n + 1)); });
+// (LOAD FIX 4 — Grok's boot audit #7: a LINK / parse error (a SyntaxError — two deploys' files met in the city's graph) is CACHED in the
+//  module map, so every retry failed the same and only cost 4.5 s, then the plain reload kept WebKit's cached copy. Now it is SKEW at once:
+//  no retries → the watchdog's skew path (the boot's files asked for afresh, then the ONE reload). A network failure keeps the 3 tries.)
+const linkError = e => !!e && (e.name === 'SyntaxError' || /does not provide an export|Importing binding name|ambiguous indirect export/i.test(String(e.message || '')));
+const tryHarbor = n => loadHarbor().catch(e => { console.warn(`harbor (try ${n})`, e); if (n >= 3 || linkError(e)) throw e; return new Promise(r => setTimeout(r, 1500 * n)).then(() => tryHarbor(n + 1)); });
 export const harborReady = tryHarbor(1)
-  .catch(e => { console.warn('harbor (gave up)', e); if (typeof window !== 'undefined' && window.__boot && window.__boot.reload && window.__boot.reload('the city’s module failed 3 times')) return new Promise(() => {}); })
+  .catch(e => {
+    console.warn('harbor (gave up)', e);
+    const skew = linkError(e);
+    if (typeof window !== 'undefined' && window.__boot && window.__boot.reload && window.__boot.reload(skew ? `a module of the city failed to link (two deploys’ files?) — ${e && e.message}` : 'the city’s module failed 3 times', { skew })) return new Promise(() => {});
+  })
   .finally(() => { harborSettled = true; });
 export const harborPending = () => !harborSettled;
 // THE LOAD FIX (Nov 6 — the owner's "pops in in chunks" + "a whole different screen flashes"): the boot screen (index.html #boot) stays over
@@ -364,19 +373,19 @@ export function createTitle() {
     if (inRoom && !roomUi && !roomLoading && scene) {
       roomLoading = true;
       dk.openJoin(false);
-      import('./room-city.js').then(m => {
+      lazyImport(import('./room-city.js'), './room-city.js').then(m => {
         roomLoading = false;
         if (destroyed || !st || !st.code || roomUi) return;
         roomUi = m.createRoomCity({ scene, sign: els.sign, dockHost: els.door.parentElement, lightFrom: roomLight });
         els.root.classList.add('is-room'); tap.wake();
         roomUi.update(st);
-        import('../profile/keypop.js').then(k => keyPopDot(k.keyPopState())).catch(() => {});
+        lazyImport(import('../profile/keypop.js'), '../profile/keypop.js').then(k => keyPopDot(k.keyPopState())).catch(() => {});
       }).catch(e => { roomLoading = false; console.warn('room', e); });
     }
     if (!inRoom && roomUi) {
       roomUi.destroy(); roomUi = null; els.root.classList.remove('is-room');
       // (LOBBY 2.0 B — THE NIGHT's CHAMPION: leaving after 2+ games — this phone's city flies LAST CALL — <the leader> WINS THE NIGHT)
-      if (scene) import('./room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-call', !!(st && st.code)); }).catch(() => {});
+      if (scene) lazyImport(import('./room-banner.js'), './room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-call', !!(st && st.code)); }).catch(() => {});
     }
     if (roomUi) roomUi.update(state);
     feedRoomRadio(state);
@@ -437,7 +446,7 @@ export function createTitle() {
     // (LOAD FIX 2: loaded AT ONCE, in the hidden frames before the reveal — its modules come with THE BOOT PRELOAD (build-boot-preload.mjs
     //  ENTRIES), so this is their evaluation only. Moved to 1.5 s after the reveal first, it evaluated IN VIEW: the harbor sightings
     //  group's capture caught a 100-ms frame. The reveal never waits for it unless a JUST ME state is stored for the tab (SP4))
-    const loadRemote = () => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) { remote = m.createRemote({ scene: () => scene }); liveRemote = remote; roomRadioSig = ''; feedRoomRadio(st); } }).catch(e => console.warn('preview panel', e)); };
+    const loadRemote = () => { if (!destroyed) lazyImport(import('./harbor/remote.js'), './harbor/remote.js').then(m => { if (!destroyed && scene) { remote = m.createRemote({ scene: () => scene }); liveRemote = remote; roomRadioSig = ''; feedRoomRadio(st); } }).catch(e => console.warn('preview panel', e)); };
     remoteT = setTimeout(loadRemote, 0);
 
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
@@ -652,7 +661,7 @@ export function createTitle() {
   function cityExtras(n = 0) {
     if (destroyed) return;
     if (!remote || !remote.localMoments) { if (n < 40) extrasT = setTimeout(() => cityExtras(n + 1), 500); return; }
-    Promise.all([import('../core/birthday.js'), import('../progress/extras.js'), import('../firebase.js')]).then(([B, X, F]) => {
+    Promise.all([lazyImport(import('../core/birthday.js'), '../core/birthday.js'), lazyImport(import('../progress/extras.js'), '../progress/extras.js'), lazyImport(import('../firebase.js'), '../firebase.js')]).then(([B, X, F]) => {
       if (destroyed || !remote) return;
       const srv = () => { try { return F.serverNow(); } catch { return Date.now(); } };
       let hand = null; try { hand = JSON.parse(sessionStorage.getItem('nd:local-moment') || 'null'); sessionStorage.removeItem('nd:local-moment'); } catch { /* fine */ }
@@ -671,7 +680,7 @@ export function createTitle() {
       try { localStorage.setItem('nd:bday-sky', key); } catch { /* fine */ }
       const at = srv() + 3500, name = (loadProfile() || {}).name || '';
       remote.localMoments([{ id: `bday-${key}`, jack: 'skywrite', at, until: at + 90e3, text: B.bdayText(name), colour: 'ff6fd0' }]);
-      import('../profile/events.js').then(m => m.progressEvent('birthday', { tz })).catch(() => {});
+      lazyImport(import('../profile/events.js'), '../profile/events.js').then(m => m.progressEvent('birthday', { tz })).catch(() => {});
     }).catch(e => console.warn('[city extras]', e));
   }
   // THE VAULT 1A — BRING YOUR CARD: a device with NOTHING saved (no key, no profile) is asked "ALREADY A MEMBER?" — the Home Screen app
@@ -681,7 +690,7 @@ export function createTitle() {
   function bringCard() {
     const q = new URLSearchParams(location.search), force = q.get('bringcard') === '1', chip = q.get('bringcard') === 'chip';
     if (!force && !chip && ['when', 'tz', 'force', 'wx', 'at', 'preview', 'sgdemo'].some(k => q.get(k))) return;
-    import('../profile/bring.js').then(B => {
+    lazyImport(import('../profile/bring.js'), '../profile/bring.js').then(B => {
       if (destroyed || (!force && !chip && !B.shouldOffer())) return;
       if (force || (!chip && B.standalone())) { bycT = setTimeout(() => { if (!destroyed && !document.querySelector('.sh, .modal')) B.openBring({ lead: true }); }, 900); return; }
       if (els.actions && !els.actions.querySelector('.byc-chip')) B.offerChip(els.actions);
@@ -690,7 +699,7 @@ export function createTitle() {
   function sightDemo() {
     const id = new URLSearchParams(location.search).get('sgdemo');
     if (!id || !scene || !scene.sightBoxes) return;
-    import('../progress/sighting.js').then(m => m.prewarm()).catch(() => {});
+    lazyImport(import('../progress/sighting.js'), '../progress/sighting.js').then(m => m.prewarm()).catch(() => {});
     // (THE VAULT 2B — the owner's ghost-ship check: the demo snapped ~2 s in, the ship still fading in at the edge → it waits until the
     //  legendary is FULLY VISIBLE: faded all the way in (a ≥ 0.85 — the ship's lantern flicker dips a little) + at least 70 % of it on
     //  screen (the ship enters from the right edge at ~½ pt a second on a phone: its whole hull can take minutes), held 0.9 s; the photo
@@ -704,7 +713,7 @@ export function createTitle() {
       if (!b) seenAt = 0; else if (!seenAt) seenAt = performance.now();
       if (b && performance.now() - seenAt > 900) {
         const sg = scene.sightTap(b.x, b.y);
-        if (sg) { sg.demo = true; sg.live = false; sg.seenA = b.a; sg.again = Math.max(0, Math.min(999, Number(new URLSearchParams(location.search).get('sgagain')) || 0)); import('../progress/sighting.js').then(m => m.onSighting(sg, { scene, reduced: reduced() })).catch(e => console.warn('[sighting]', e)); }
+        if (sg) { sg.demo = true; sg.live = false; sg.seenA = b.a; sg.again = Math.max(0, Math.min(999, Number(new URLSearchParams(location.search).get('sgagain')) || 0)); lazyImport(import('../progress/sighting.js'), '../progress/sighting.js').then(m => m.onSighting(sg, { scene, reduced: reduced() })).catch(e => console.warn('[sighting]', e)); }
         return;
       }
       sgDemoT = setTimeout(look, 200);
@@ -940,14 +949,14 @@ export function createTitle() {
     keyPopSoon(2600);
     friendsSoon(3400);   // (FRIENDS A — the requests badge on YOU + INVITES THAT WAIT: ONE /api call, never a socket)
     // (LOBBY 2.0 B — THE NIGHT's CHAMPION: the app closed during a night of 2+ games → LAST NIGHT'S CHAMPION: <them>, the next open within ~12 h, once)
-    setTimeout(() => { if (!destroyed && scene && !(st && st.code)) import('./room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-night', !!(st && st.code)); }).catch(() => {}); }, 4200);
+    setTimeout(() => { if (!destroyed && scene && !(st && st.code)) lazyImport(import('./room-banner.js'), './room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-night', !!(st && st.code)); }).catch(() => {}); }, 4200);
   }
   // LOBBY 2.0 A — THE SAVE-YOUR-KEY POP-UP (profile/keypop.js): a RETURNING player whose key isn't saved meets it once, on the city, a moment
   // after the reveal — never over a legendary (it waits); its YOU dot on the docks until the key is saved
   let keyPopT = 0, offKeyPop = null;
   function keyPopSoon(ms) {
     clearTimeout(keyPopT);
-    keyPopT = setTimeout(() => { if (!destroyed) import('../profile/keypop.js').then(k => { if (destroyed) return; k.maybeKeyPop({ why: 'open', busy: () => !!(scene && scene.legendBusy && scene.legendBusy()) }); keyPopDot(k.keyPopState()); if (!offKeyPop) offKeyPop = k.onKeyPop(keyPopDot); }).catch(() => {}); }, ms);
+    keyPopT = setTimeout(() => { if (!destroyed) lazyImport(import('../profile/keypop.js'), '../profile/keypop.js').then(k => { if (destroyed) return; k.maybeKeyPop({ why: 'open', busy: () => !!(scene && scene.legendBusy && scene.legendBusy()) }); keyPopDot(k.keyPopState()); if (!offKeyPop) offKeyPop = k.onKeyPop(keyPopDot); }).catch(() => {}); }, ms);
   }
   // FRIENDS A — THE BADGE (pending friend requests) on YOU + INVITES THAT WAIT (profile/invites.js: a friend's room → the card, after a match)
   let frT = 0, offFrB = null;
@@ -955,7 +964,7 @@ export function createTitle() {
     clearTimeout(frT);
     frT = setTimeout(() => {
       if (destroyed) return;
-      Promise.all([import('../profile/invites.js'), import('../profile/friends.js')]).then(([I, F]) => {
+      Promise.all([lazyImport(import('../profile/invites.js'), '../profile/invites.js'), lazyImport(import('../profile/friends.js'), '../profile/friends.js')]).then(([I, F]) => {
         if (destroyed) return;
         if (!offFrB) offFrB = F.onFriends(() => frBadge(F.pendingBadge()));
         I.checkInvites({ busy: () => !!(scene && scene.legendBusy && scene.legendBusy()) }).then(() => frBadge(F.pendingBadge())).catch(() => {});
@@ -966,7 +975,7 @@ export function createTitle() {
     for (const t of [els.youTab, roomUi && roomUi.dock && roomUi.dock.els.youTab]) {
       if (!t) continue;
       let b = t.querySelector(':scope > .fr-badge');
-      if (!b && n > 0) { import('../profile/friends-ui.js').then(m => m.frSheet()).catch(() => {}); b = h('i.fr-badge', { 'aria-hidden': 'true' }); t.append(b); }
+      if (!b && n > 0) { lazyImport(import('../profile/friends-ui.js'), '../profile/friends-ui.js').then(m => m.frSheet()).catch(() => {}); b = h('i.fr-badge', { 'aria-hidden': 'true' }); t.append(b); }
       if (b) { b.hidden = !(n > 0); b.textContent = n > 9 ? '9+' : String(n); }
       t.setAttribute('aria-description', n > 0 ? `${n} friend request${n > 1 ? 's' : ''} waiting` : '');
     }
@@ -986,7 +995,7 @@ export function createTitle() {
   function pgPreviewSoon(ms) {
     if (!pgPv) return;
     const v = pgPv; pgPv = null;
-    setTimeout(() => { if (!destroyed) import('../progress/preview.js').then(m => m.preview(v, new URLSearchParams(location.search))).catch(() => {}); }, ms);
+    setTimeout(() => { if (!destroyed) lazyImport(import('../progress/preview.js'), '../progress/preview.js').then(m => m.preview(v, new URLSearchParams(location.search))).catch(() => {}); }, ms);
   }
   if (pgPv) setTimeout(() => pgPreviewSoon(0), 4000);
   function clearZones() {

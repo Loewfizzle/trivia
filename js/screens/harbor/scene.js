@@ -160,6 +160,7 @@ import { mothmanAt } from '../../core/harbor-mothman.js';
 import { BB, bbChaseAt, soloNear, watcherStep } from '../../core/harbor-blackbird.js';
 import { jetLook } from './jets.js';
 import { holidayAt, holidaySeason, lightRules } from '../../core/harbor-holiday.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 // (C4c: the top tier's dpr is BAKE_CAP — 2, or the device's 3 under `&dpr=3`, the owner's look judgement only)
 // (PERF-B — FR5 C2b: the dpr + the bake's ms a frame are THE TIER TABLE's sceneDpr + bakeMs rows — tier 2's dpr is BAKE_CAP)
@@ -1271,7 +1272,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         localStorage.setItem(key, JSON.stringify(r.state));
         if (r.fire) bbWatchPend = 1;
         // (PROGRESSION A — PATIENCE PAYS: the server starts its own clock when the city is first seen, and checks its hour when this fires)
-        if (document.visibilityState === 'visible' || r.fire) import('../../profile/events.js').then(m => m.progressEvent(r.fire ? 'watch' : 'watchStart')).catch(() => {});
+        if (document.visibilityState === 'visible' || r.fire) lazyImport(import('../../profile/events.js'), '../../profile/events.js').then(m => m.progressEvent(r.fire ? 'watch' : 'watchStart')).catch(() => {});
       } catch { /* private mode: no reward */ }
     }
     if (bbWatchPend && !bb.on() && !(legends && legends.active())) { const hy = bbStrip(); if (bb.start('watcher', nowMs + (BB.tell + 1.5) * 1000, Math.random() < 0.5 ? 1 : -1, hy.y, { clipTop: hy.clip, clipBot: hy.clipBot })) bbWatchPend = 0; }
@@ -1930,7 +1931,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!off.has('no-rainbow')) bow.sky(c, fs);
     fw.draw(c, dt, S.motion);
     // 11a-1 — THE WITCH across the moon (+ her sparks); the bats' Halloween input for birds.js (sky.low, below)
-    if (!hsky && !hskyLoading && hskyWanted()) { hskyLoading = true; import('./ghostship.js').then(m => { if (!destroyed) hsky = m.createHalloweenSky(); }).catch(e => { hskyLoading = false; console.warn('[harbor] halloween sky', e); }); }
+    if (!hsky && !hskyLoading && hskyWanted()) { hskyLoading = true; lazyImport(import('./ghostship.js'), './ghostship.js').then(m => { if (!destroyed) hsky = m.createHalloweenSky(); }).catch(e => { hskyLoading = false; console.warn('[harbor] halloween sky', e); }); }
     fs.hween = null;
     if (hsky) { fs.hween = hsky.sky(c, hskyEnv({ t, dt, lanes: L.lanes, moonAt: fs.moonAt || null, safeTop: safeTopV })); if (hsky.busy()) fastUntil = Math.max(fastUntil, performance.now() + 200); }
     drawEvents(c, 'sky');
@@ -3015,7 +3016,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   setTapContext(() => ({ 'the city': shownAt < 0 ? 'not shown yet' : 'running', 'last frame ms': lastDt, 'a bake pending': !!(baker.pending || litBaker.pending || neon.pending) }));
   // C4c — THE PHONE BENCH (`&bench=1`, LAZY: bench.js): the heaviest scenes ~20 s each through the panel's own switch, measured; the report
   // on screen (COPY) + to /admin. Never without the flag; it starts on a tap. While it runs the panel's re-apply is held off (benchHold)
-  if (qp.get('bench') === '1') import('./bench.js').then(m => {
+  if (qp.get('bench') === '1') lazyImport(import('./bench.js'), './bench.js').then(m => {
     if (destroyed) return;
     bench = m.createBench({
       apply: p => applyRemote(p, {}),

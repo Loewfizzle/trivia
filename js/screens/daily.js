@@ -41,7 +41,7 @@ export function dailySheet() {
 const metas = new Map();
 /** a daily's THIN META (pure, tiny — its scoreLine): a test row has none (its score as a number) */
 function metaFor(id) {
-  if (!metas.has(id)) metas.set(id, import(`../games/${id}/meta.js`).catch(() => ({})));
+  if (!metas.has(id)) metas.set(id, lazyImport(import(`../games/${id}/meta.js`), '../games/*/meta.js').catch(() => ({})));
   return metas.get(id);
 }
 const META = {};
@@ -51,6 +51,7 @@ export const lineOf = (id, score) => { const m = META[id]; return m && typeof m.
 // ------------------------------------------------------------------------------------------------ the drawn pieces (no emoji, no pills)
 // (DFIX3 — THE PREMIUM TICKET: the art, the ADMITTED stamp + the serial live in js/daily/ticket-art.js, shared with SHARE TODAY's image)
 import { TICKET_ART, stampSvg, serialOf } from '../daily/ticket-art.js';
+import { lazyImport } from '../ui/lazy-import.js';
 export { TICKET_ART };
 const BACK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>';
 
@@ -246,7 +247,7 @@ function openScreen(tab0) {
   // DAILIES · ALL TIME on that daily). /api down → a quiet line, never a dead panel.
   function paintAllTime(t) {
     if (!pts && !ptsP) {
-      ptsP = import('../daily/contract.js').then(C => C.dailyPoints(((friends && friends.friends) || []).map(c => c.pid)))
+      ptsP = lazyImport(import('../daily/contract.js'), '../daily/contract.js').then(C => C.dailyPoints(((friends && friends.friends) || []).map(c => c.pid)))
         .then(r => { pts = r || { down: true }; }).catch(() => { pts = { down: true }; }).finally(() => { if (!gone) paint(); });
     }
     if (!pts) { els.body.append(h('p.dy-quiet', 'Counting up the averages…')); return; }
@@ -277,7 +278,7 @@ function openScreen(tab0) {
   /** EVERYONE's top 3 on a daily's ALL TIME board (the public rows — the slim card's own ids), loaded once a visit */
   function paintEvery(ev, board, d) {
     const got = every[board];
-    if (!got) { every[board] = 'loading'; import('../profile/api.js').then(A => A.board(board, 'all', { n: 3 })).then(r => { every[board] = (r && r.rows) || []; }).catch(() => { every[board] = []; }).finally(() => { if (!gone) paint(); }); }
+    if (!got) { every[board] = 'loading'; lazyImport(import('../profile/api.js'), '../profile/api.js').then(A => A.board(board, 'all', { n: 3 })).then(r => { every[board] = (r && r.rows) || []; }).catch(() => { every[board] = []; }).finally(() => { if (!gone) paint(); }); }
     if (!Array.isArray(got)) { ev.replaceWith(h('p.dy-quiet', '…')); return; }
     if (!got.length) { ev.replaceWith(h('p.dy-quiet', `Nobody is ranked yet — it takes ${MIN_DAYS} days of ${d.name}.`)); return; }
     ev.append(...got.map(r => h('li.lb-row.lb-strip.dy-crow', { dataset: { pid: r.id } }, h('span.lb-rank', ordinal(r.rank)),
@@ -330,7 +331,7 @@ function openScreen(tab0) {
   }
 
   const off = onToday(t => { today = t; paint(); });
-  import('../profile/friends.js').then(F => F.loadFriends()).then(f => { friends = f; if (!gone) paint(); }).catch(() => {});
+  lazyImport(import('../profile/friends.js'), '../profile/friends.js').then(F => F.loadFriends()).then(f => { friends = f; if (!gone) paint(); }).catch(() => {});
   paint();
   pidReady.then(() => { if (!gone) paint(); });
   loadToday({ fresh: true });
@@ -342,7 +343,7 @@ function openScreen(tab0) {
 }
 let pidMod = null;
 const pidNow = () => (pidMod ? pidMod.myPid() : null);
-const pidReady = import('../profile/me.js').then(m => { pidMod = m; }).catch(() => {});
+const pidReady = lazyImport(import('../profile/me.js'), '../profile/me.js').then(m => { pidMod = m; }).catch(() => {});
 /** a daily's ink on the ticket (its theme accent) — THE PASSWORD pink, COAST CLEAR cyan, else the house pink */
 /** DFIX3 — the one hint at the foot of SCORES while no friend sits at any table (the house small-caps style) */
 export const FOOT_HINT = 'ADD FRIENDS BY THEIR NAME TAG — THEIR SCORES LAND HERE';
@@ -354,7 +355,7 @@ async function play(id) {
   if (!pidNow()) {
     const p = loadProfile();
     if (!p || !p.name) { setState({ daily: null, view: 'setup', setupMode: 'edit' }); return; }
-    try { const m = await import('../profile/me.js'); pidMod = m; await m.syncMe(); } catch { /* the run says so */ }
+    try { const m = await lazyImport(import('../profile/me.js'), '../profile/me.js'); pidMod = m; await m.syncMe(); } catch { /* the run says so */ }
   }
   setState({ daily: { v: 'run', id } });
 }
@@ -362,7 +363,7 @@ async function play(id) {
 // ------------------------------------------------------------------------------------------------ SHARE TODAY
 async function shareToday(t) {
   try {
-    const m = await import('../daily/share-today.js');
+    const m = await lazyImport(import('../daily/share-today.js'), '../daily/share-today.js');
     const pub = pidMod && pidMod.myPublic ? pidMod.myPublic() : null;   // (DFIX3 — the streak flame on the share image: the profile's streak)
     await m.shareToday(t, lineOf, { streak: pub && Number(pub.s) > 0 ? Number(pub.s) : 0 });
   } catch (e) { console.warn('[daily share]', e); }
@@ -378,7 +379,7 @@ function openRun(id) {
   O.el.append(stage, back);
   document.body.dataset.theme = row.theme || id;
   (async () => {
-    const reg = await import('../games/registry.js');
+    const reg = await lazyImport(import('../games/registry.js'), '../games/registry.js');
     mod = await reg.loadGame(id);
     if (gone) return;
     const t = todayNow() || (await loadToday());
@@ -393,7 +394,7 @@ function openRun(id) {
   /** the hint has gone (the first number landed) → seen once per player (the server keeps it on the profile) */
   function hintSeen() {
     markLesson(id);
-    import('../profile/api.js').then(a => a.api('daily', { action: 'lesson', game: id })).catch(() => {});
+    lazyImport(import('../profile/api.js'), '../profile/api.js').then(a => a.api('daily', { action: 'lesson', game: id })).catch(() => {});
   }
   function mount(hint = null) {
     clear(stage);

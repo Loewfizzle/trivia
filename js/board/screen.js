@@ -3,6 +3,7 @@
 import { createBoardView } from './view.js';
 import { setState } from '../store.js';
 import { loadMe } from '../identity.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 export function createView() {
   let view = null, unsub = null, lastMe = '';
@@ -17,11 +18,11 @@ export function createView() {
       view = createBoardView({
         mode: 'app',
         me,
-        ranks: async boards => (await import('../profile/me.js')).myRanks(boards),
+        ranks: async boards => (await lazyImport(import('../profile/me.js'), '../profile/me.js')).myRanks(boards),
         onBack: () => { try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); },
         onProfile: () => setState({ view: 'profile' }),
         // (BOARD 2.0 B — a tap on a card = THE PLAYER PAGE (js/profile/player-page.js); your own card = YOUR CARD)
-        onPlayer: who => import('../profile/player-page.js').then(m => m.openPlayer(who)).catch(() => {}),
+        onPlayer: who => lazyImport(import('../profile/player-page.js'), '../profile/player-page.js').then(m => m.openPlayer(who)).catch(() => {}),
         initial: { game: st.boardGame || undefined, board: st.boardBoard || undefined, period: st.boardPeriod || undefined },
       });
       el.append(view.el);

@@ -12,6 +12,7 @@ import { primaryBoard, fmtValue } from '../core/boards.js';
 import { setState } from '../store.js';
 import { layersOpen } from '../ui/layers.js';
 import { reducedMotion } from '../ui/dom.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 /** createTaps(T) — moved out of title.js#createTitle by scripts/split-closure.mjs (no behaviour change): T carries the names it shares
  *  with that closure, live (getters + setters); what it returns, the closure reads as tap.<name>. */
@@ -61,7 +62,7 @@ export function createTaps(T) {
     const q = new URLSearchParams(location.search);
     if (traced < 3 && ['force', 'when', 'lgnow'].some(k => q.get(k))) {
       traced++;
-      import('../errlog.js').then(m => m.reportError(new Error(`SIGHTING TRACE (a preview link, not an error): ${JSON.stringify(tr)}`), 'sighting-trace')).catch(() => {});
+      lazyImport(import('../errlog.js'), '../errlog.js').then(m => m.reportError(new Error(`SIGHTING TRACE (a preview link, not an error): ${JSON.stringify(tr)}`), 'sighting-trace')).catch(() => {});
     }
   }
   function onCityTap(e) {
@@ -78,7 +79,7 @@ export function createTaps(T) {
     if (key && block) { sightTrace(e.down, key, `IGNORED — ${block}`); return; }
     const sg = key && T.scene.sightTap && T.scene.sightTap(x, y, { skip });
     if (sg) { sightTrace(e.down, sg.key, ''); }
-    if (sg) { import('../progress/sighting.js').then(m => m.onSighting(sg, { scene: T.scene, reduced: T.reduced() })).catch(e => console.warn('[sighting]', e)); return; }
+    if (sg) { lazyImport(import('../progress/sighting.js'), '../progress/sighting.js').then(m => m.onSighting(sg, { scene: T.scene, reduced: T.reduced() })).catch(e => console.warn('[sighting]', e)); return; }
     const r = T.logoRect();
     if (r && x >= r.x && x <= r.x + r.w && y >= r.y - 12 && y <= r.y + r.h + 12) { buzz(Math.max(0, Math.min(3, Math.floor((x - r.x) / r.w * 4)))); return; }
     const hit = T.scene.hit(x, y);
@@ -89,7 +90,7 @@ export function createTaps(T) {
     // THE STREET: knock on the speakeasy's door — a soft double knock, the peephole slides open, and the JOIN panel opens (a real
     // way in: enter the hush word), exactly like the JOIN ring. Reduced effects: no flash, the panel still opens.
     else if (hit.kind === 'door' && T.roomUi) { knock(); if (!T.reduced()) T.scene.knock(); }   // (LOBBY 2.0 A: in a room the door only knocks)
-    else if (hit.kind === 'door') { knock(); if (!T.reduced()) T.scene.knock(); T.dk.openJoin(true, true); import('../profile/events.js').then(m => m.progressEvent('knock')).catch(() => {}); }   // (PROGRESSION A: KNOCK KNOCK)
+    else if (hit.kind === 'door') { knock(); if (!T.reduced()) T.scene.knock(); T.dk.openJoin(true, true); lazyImport(import('../profile/events.js'), '../profile/events.js').then(m => m.progressEvent('knock')).catch(() => {}); }   // (PROGRESSION A: KNOCK KNOCK)
   }
   // a tapped letter: by night it stutters out, stays dark a moment and re-ignites like neon does; by day it sparks to life,
   // glows for a moment and flickers out again. One tap at a time per letter.
@@ -230,7 +231,7 @@ export function createTaps(T) {
       // (BOARD 2.0 B: THE BOARD's tabs are the two playable games — a sign of a game without a tab shows its top three, no link)
       g.playable !== false ? h('button.nd-pv-more', { type: 'button', onclick: () => { close(); setState({ view: 'board', boardGame: g.id, boardBoard: null, boardPeriod: null }); } }, 'SEE THE FULL BOARD ›') : null);
     const MEDALS = ['gold', 'silver', 'bronze'];
-    Promise.all([import('../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })), import('../ui/strip-board.js').then(m => m.stripKit().then(K => ({ ...m, K })))]).then(([d, SB]) => {
+    Promise.all([lazyImport(import('../profile/api.js'), '../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })), lazyImport(import('../ui/strip-board.js'), '../ui/strip-board.js').then(m => m.stripKit().then(K => ({ ...m, K })))]).then(([d, SB]) => {
       // (LOBBY 2.0 A — REAL USERNAMES: the rows carry the players' usernames; your own row, by your board id, is yours)
       // (BOARD 2.0 B — SLIM CARDS EVERYWHERE: each of the three = their slim card (ui/strip-board.js), the medal at the left, the score under it)
       const you = loadMe();
@@ -249,7 +250,7 @@ export function createTaps(T) {
     }).catch(() => { wrap.remove(); });
     const me = loadMe();
     if (me && me.pid) {
-      import('../profile/me.js').then(m => m.myRanks([def.id])).then(r => {
+      lazyImport(import('../profile/me.js'), '../profile/me.js').then(m => m.myRanks([def.id])).then(r => {
         const p = (loadMe() || {}).profile || {};
         const under = typeof p.m === 'number' && p.m < (p.mm || 3) && !p.h;   // BNAME: the 3-match floor
         const x = !under && r[def.id] && r[def.id].all;

@@ -8,12 +8,13 @@
 // An event that earned something says so: a quiet toast (ACHIEVEMENT · KNOCK KNOCK) + the achievement bell.
 import { api } from './api.js';
 import { myPid } from './me.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const sent = new Set();
 
 async function told(r) {
   try {
-    const [{ ACH }, { ITEM }, { toast }, { pgSfx }] = await Promise.all([import('../core/achievements.js'), import('../core/items.js'), import('../ui/toast.js'), import('../audio/progress-sfx.js')]);
+    const [{ ACH }, { ITEM }, { toast }, { pgSfx }] = await Promise.all([lazyImport(import('../core/achievements.js'), '../core/achievements.js'), lazyImport(import('../core/items.js'), '../core/items.js'), lazyImport(import('../ui/toast.js'), '../ui/toast.js'), lazyImport(import('../audio/progress-sfx.js'), '../audio/progress-sfx.js')]);
     const a = (r.ach || []).map(id => ACH[id]).filter(Boolean)[0];
     const it = !a && (r.items || []).map(id => ITEM[id]).filter(Boolean)[0];
     if (!a && !it) return;

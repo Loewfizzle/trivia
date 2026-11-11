@@ -32,6 +32,7 @@ import { settings, onSettings, PAGE_SILENT, setPageQuiet } from './audio/setting
 import { lazyView } from './games/lazy-view.js';
 import { startShow } from './core/room-show.js';
 import { debugTool, onDebugTools } from './ui/debug-tools.js';
+import { lazyImport, holdSkewReload } from './ui/lazy-import.js';
 // (LOAD FIX 3 — THE BOOT WATCHDOG, index.html: the app's whole static graph is in + running)
 if (window.__boot) window.__boot.stage('app');
 // (SHELL 2.0 B1: declared before anything can render — routeKey / paintLook run from the first render on; B2: + paintLook's + paintCrew's)
@@ -40,12 +41,12 @@ let lookMod = null, lookSun = null, lookSunAt = -1e9, lookOnNow = false, lookHoo
 let radioGate = null, crewSeen;
 
 // THE BOARD and the profile load only when opened (they're behind the title's buttons)
-const createBoardScreen = lazyView(() => import('./board/screen.js'));
-const createProfileScreen = lazyView(() => import('./screens/profile.js'));
+const createBoardScreen = lazyView(() => lazyImport(import('./board/screen.js'), './board/screen.js'));
+const createProfileScreen = lazyView(() => lazyImport(import('./screens/profile.js'), './screens/profile.js'));
 // profiles + the results queue: loaded once Firebase is up (never on the first paint)
 let profileMods = null;
 let diagLoaded = false;            // (the AUDIO panel's module: loaded once it was ever on — FP's live switch)
-const withProfile = () => (profileMods ||= Promise.all([import('./profile/me.js'), import('./profile/queue.js')]).then(([me, queue]) => ({ me, queue })));
+const withProfile = () => (profileMods ||= Promise.all([lazyImport(import('./profile/me.js'), './profile/me.js'), lazyImport(import('./profile/queue.js'), './profile/queue.js')]).then(([me, queue]) => ({ me, queue })));
 
 document.title = APP_NAME;
 const stage = $('#stage');
@@ -98,7 +99,7 @@ function paintLook(st) {
   applyLook();
 }
 async function applyLook() {
-  if (!lookMod) { try { lookMod = await import('./games/kit/look.js'); } catch { return; } }
+  if (!lookMod) { try { lookMod = await lazyImport(import('./games/kit/look.js'), './games/kit/look.js'); } catch { return; } }
   if (!lookHooked) { lookHooked = true; window.addEventListener(lookMod.LOOK_EVENT, () => { if (lookOnNow) applyLook(); }); setInterval(() => { if (lookOnNow) applyLook(); }, 60000); }
   if (lookLock) return;
   const choice = lookMod.currentLook();
@@ -207,12 +208,16 @@ onResume(() => { try { musicTick(); } catch (e) { console.warn('music', e); } })
 
 // DM2 — THE DAILY SCREENS (screens/daily.js — overlays over the city, driven by state.daily): loaded on the first ask
 const roomGameOn = st => !!(st.code && st.meta && st.meta.status === 'playing' && st.game && st.quit !== st.game.matchId);
+// (LOAD FIX 4 — THE SKEW WRAPPER's reload never lands in a match being PLAYED here: it waits for the room or the podium — ui/lazy-import.js; the
+//  rejoin brings the phone back. A match whose own cartridge couldn't load is no match on this phone — it would stay blank to the end — so that
+//  one reloads at once: the rejoin walks it back INTO the match.)
+holdSkewReload(() => roomGameOn(state) && state.game.phase !== 'final' && !!GAME_MODULES[state.game.id]);
 const dailyOn = st => !!(st.daily && !roomGameOn(st));
 let dailyMod = null;
 function paintDaily(st) {
   if (dailyMod) { dailyMod.syncDaily(st); return; }
   if (!st.daily) return;
-  import('./screens/daily.js').then(m => { dailyMod = m; m.syncDaily(state); }).catch(e => console.warn('[app] the dailies didn’t load', e));
+  lazyImport(import('./screens/daily.js'), './screens/daily.js').then(m => { dailyMod = m; m.syncDaily(state); }).catch(e => console.warn('[app] the dailies didn’t load', e));
 }
 
 // Which music track a state should hear. [track, fallbackIfMissing]
@@ -301,7 +306,7 @@ subscribe(st => {
   const back = lastStatus === 'playing' && s === 'lobby';
   lastStatus = s;
   // (LOBBY 2.0 A — THE SAVE-YOUR-KEY POP-UP: back from a counted match — a new player's first — profile/keypop.js; it waits while anything is up)
-  if (back) import('./profile/keypop.js').then(k => setTimeout(() => k.maybeKeyPop({ why: 'match' }), 1400)).catch(() => {});
+  if (back) lazyImport(import('./profile/keypop.js'), './profile/keypop.js').then(k => setTimeout(() => k.maybeKeyPop({ why: 'match' }), 1400)).catch(() => {});
 });
 // THE CARTRIDGE PLUG (LOBBY 2.0 B — docs/cartridge.md): a game's own quick replies on the chat's chips row while it's on screen
 let chipsFor = '';
@@ -309,14 +314,14 @@ subscribe(st => {
   const k = routeKey(st), id = k.startsWith('game:') ? k.split(':')[1] : '';
   if (id === chipsFor) return;
   chipsFor = id;
-  import('./games/cartridge.js').then(C => import('./chat/ui.js').then(m => m.setGameChips(C.chipsOf(metaOf(id))))).catch(() => {});
+  lazyImport(import('./games/cartridge.js'), './games/cartridge.js').then(C => lazyImport(import('./chat/ui.js'), './chat/ui.js').then(m => m.setGameChips(C.chipsOf(metaOf(id))))).catch(() => {});
 });
 // Room chat loads the first time we're in a room (never on the first paint): the in-game chat button.
 let chatInstalled = false;
 subscribe(st => {
   if (chatInstalled || !st.code) return;
   chatInstalled = true;
-  import('./chat/ui.js').then(m => m.installChatFab()).catch(e => { chatInstalled = false; console.warn('chat', e); });
+  lazyImport(import('./chat/ui.js'), './chat/ui.js').then(m => m.installChatFab()).catch(e => { chatInstalled = false; console.warn('chat', e); });
 });
 
 // ---- connection banner: "reconnecting…" while our own socket is down, "back online" when it returns ----
@@ -383,7 +388,7 @@ async function boot() {
   installColorBlind();
   // &debug=1: THE AUDIO DIAGNOSTIC (docs/audio.md#m3) — what the music is doing, on any screen; FP: or switched on from THE PREVIEW
   // PANEL → TOOLS → AUDIO PANEL on this device (ui/debug-tools.js: remembered, live on / off)
-  const syncDiag = () => { if (PAGE_SILENT) return; const on = debugTool('audio'); if (on || diagLoaded) import('./audio/diag.js').then(m => { diagLoaded = true; if (debugTool('audio')) m.mountAudioDiag(); else m.unmountAudioDiag(); }).catch(() => {}); };
+  const syncDiag = () => { if (PAGE_SILENT) return; const on = debugTool('audio'); if (on || diagLoaded) lazyImport(import('./audio/diag.js'), './audio/diag.js').then(m => { diagLoaded = true; if (debugTool('audio')) m.mountAudioDiag(); else m.unmountAudioDiag(); }).catch(() => {}); };
   syncDiag();
   onDebugTools(id => { if (id === 'audio') syncDiag(); });
   const fxClass = () => document.body.classList.toggle('reduced-fx', !!settings.reducedFx);
@@ -417,9 +422,9 @@ async function boot() {
   setState({ invite: inviteCode() });
   render(state);
   // (SHELL 2.0 B2 — THE MUSIC's IDLE CUTOFF: 5 h with no tap / key / scroll → the music fades + one message; never during a match in a room)
-  import('./audio/idle.js').then(m => m.startIdleCutoff({ inMatch: () => !!(state.code && state.game && state.meta && state.meta.status === 'playing'), say: line => toast(line, 'info', { ms: 24 * 3600e3 }) })).catch(() => {});
+  lazyImport(import('./audio/idle.js'), './audio/idle.js').then(m => m.startIdleCutoff({ inMatch: () => !!(state.code && state.game && state.meta && state.meta.status === 'playing'), say: line => toast(line, 'info', { ms: 24 * 3600e3 }) })).catch(() => {});
   // (SHELL 2.0 B2 — THE GIFT's REVEAL: a gift card given by the owner waits on the server → one light check once the title is up)
-  setTimeout(() => { import('./profile/gift-reveal.js').then(m => m.checkGift()).catch(() => {}); }, 6000);
+  setTimeout(() => { lazyImport(import('./profile/gift-reveal.js'), './profile/gift-reveal.js').then(m => m.checkGift()).catch(() => {}); }, 6000);
   // First-time visitors: show the title first, then start the Firebase SDK (~120 KB) once it has painted —
   // nothing on the title needs it (HOST/JOIN wait for firebaseReady). Returning players reconnect right away.
   if (!resuming) { await dismissBoot(); await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0))); }
@@ -449,7 +454,7 @@ async function boot() {
       const resumed = await resumeSession();
       if (resumed === 'ok') setState({ invite: '', rejoin: '' });   // (CITY 1.0 OUT — THE STUCK JOIN: a reload in a room left ?room= as an "invite" that filled JOIN after a LEAVE)
       else if (resumed === 'gone') setState({ inviteExpired: saved.code, invite: '', rejoin: '' });
-      else if (resumed === 'moved') { setState({ invite: '', rejoin: '' }); import('./room.js').then(m => toast(`You’re in room ${m.movedTo() || ''} on another device`, 'info', { ms: 5000, sub: 'Join here to move your seat.' })).catch(() => {}); }
+      else if (resumed === 'moved') { setState({ invite: '', rejoin: '' }); lazyImport(import('./room.js'), './room.js').then(m => toast(`You’re in room ${m.movedTo() || ''} on another device`, 'info', { ms: 5000, sub: 'Join here to move your seat.' })).catch(() => {}); }
       else if (resumed === 'idle') { setState({ invite: '', rejoin: '' }); toast('YOUR ROOM CLOSED AFTER AN HOUR WITHOUT A GAME', 'info', 5000); }
       // Couldn't reach the room (weak signal): keep the seat and offer a one-tap REJOIN on the title.
       else if (resumed === 'error') setState({ rejoin: saved.code });
@@ -475,7 +480,7 @@ async function boot() {
   dismissBoot();
   startHostLoop();
   // CITY CONTROLS A — THE RADIO: the server says who has one (radio-gate.js) — only then does anything load (City 2.0 only)
-  setTimeout(() => import('./screens/harbor/radio-gate.js').then(m => { radioGate = m.startRadioGate({ remote: harborRemote, roomCode: () => state.code || null }); paintCrew(state); }).catch(e => console.warn('radio', e)), 2500);
+  setTimeout(() => lazyImport(import('./screens/harbor/radio-gate.js'), './screens/harbor/radio-gate.js').then(m => { radioGate = m.startRadioGate({ remote: harborRemote, roomCode: () => state.code || null }); paintCrew(state); }).catch(e => console.warn('radio', e)), 2500);
   // Installable app: a network-first service worker (never caches Firebase traffic). Not on localhost/dev.
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !/^(localhost|127\.)/.test(location.hostname)) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});

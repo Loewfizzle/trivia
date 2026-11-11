@@ -143,7 +143,7 @@ test('THE GIFT TOOL: owner-only on the server (the admin gate), one profile ever
   assert.match(prof, /OWN = \[\.\.\.DEV_CARDS, \.\.\.OWNER_GIFTS\]/); assert.match(prof, /act: 'giftOwner'/);
   assert.match(prof, /case 'giftCheck':/); assert.match(prof, /case 'giftSeen':/);
   assert.match(rev, /h\('small', o\.n \? `GIFT \$\{o\.n\} OF \$\{o\.of\}` : 'A GIFT FROM THE HOUSE'\)/); assert.match(rev, /flip: true/);
-  assert.match(app, /import\('\.\/profile\/gift-reveal\.js'\)\.then\(m => m\.checkGift\(\)\)/);
+  assert.match(app, /lazyImport\(import\('\.\/profile\/gift-reveal\.js'\), '[^']*'\)\.then\(m => m\.checkGift\(\)\)/);   // (LOAD FIX 4: through the skew wrapper)
   assert.match(read('js/admin/admin.js'), /tubeButton\('GIVE', \{ kind: 'main', size: 'sm', cls: 'ad-btn ad-gift-go', confirm: 'TAP AGAIN TO GIVE'/);
 });
 

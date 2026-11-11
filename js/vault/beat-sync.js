@@ -4,11 +4,12 @@
 // (core/party.js: Fri + Sat, 8 pm – 2 am, this phone's time) with a song whose beat the city knows (audio/beat.js — a trusted grid, or
 // the song's tempo). Any other time the style glows slowly + steadily. It runs only while an emblem wears the style (a check every 1.5 s;
 // it stops itself when none is on the page) and only moves an animation that has drifted past 25 ms.
+import { lazyImport } from '../ui/lazy-import.js';
 let timer = 0, mods = null, last = { per: 0, on: false };
 
 export function beatSync() {
   if (timer || typeof document === 'undefined') return;
-  if (!mods) mods = Promise.all([import('../audio/beat.js'), import('../core/party.js')]).catch(() => null);
+  if (!mods) mods = Promise.all([lazyImport(import('../audio/beat.js'), '../audio/beat.js'), lazyImport(import('../core/party.js'), '../core/party.js')]).catch(() => null);
   timer = setInterval(tick, 1500);
   setTimeout(tick, 60);
 }

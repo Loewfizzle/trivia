@@ -26,6 +26,7 @@ import { rigSpots, normCentre, rigLevel, centreBox, centreActive, RIG } from '..
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { pieceCtx } from '../../core/harbor-light.js';
 import { createFloods, atCentreScale } from './floods.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 // (FP3a: THE TEST PIECE lives in props-test.js, loaded only when &force=centrepiece-test asks for it)
 let TEST_PIECE = null, testLoad = null;
 
@@ -152,7 +153,7 @@ export function createCentre() {
     /** &force=centrepiece-test (the scene, every frame) */
     test(on) {
       if (!!on !== testOn) { testOn = !!on; rev++; sprKey = ''; }
-      if (testOn && !TEST_PIECE && !testLoad) testLoad = import('./props-test.js').then(m => { TEST_PIECE = m.TEST_PIECE; if (cam) { TEST = normCentre({ piece: TEST_PIECE.piece, h: TEST_PIECE.h }, cap); rev++; sprKey = ''; } }).catch(() => { testLoad = null; });
+      if (testOn && !TEST_PIECE && !testLoad) testLoad = lazyImport(import('./props-test.js'), './props-test.js').then(m => { TEST_PIECE = m.TEST_PIECE; if (cam) { TEST = normCentre({ piece: TEST_PIECE.piece, h: TEST_PIECE.h }, cap); rev++; sprKey = ''; } }).catch(() => { testLoad = null; });
     },
     /** 8b's rule: an event stands on the inlay now (the cart stops short, the walkers go round) */
     active: () => centreActive(current()),

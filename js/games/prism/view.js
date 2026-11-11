@@ -38,6 +38,7 @@ import { beatPulse } from './sync.js';
 import { chooseMove } from './bot.js';
 import { prismLayout, panelCells } from './layout.js';
 import { buildFinal } from './victory.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 // native replaceChildren() prints a null argument as text — always go through this
@@ -1189,7 +1190,7 @@ export function createView() {
         const nm = e.target.closest('.pd-spec-name[data-pid]');
         if (!nm) return;
         const p = player(nm.dataset.uid);
-        import('../../profile/player-page.js').then(m => m.openPlayer({ pid: nm.dataset.pid, row: { n: p.name, a: p.avatar, c: p.color } })).catch(() => {});
+        lazyImport(import('../../profile/player-page.js'), '../../profile/player-page.js').then(m => m.openPlayer({ pid: nm.dataset.pid, row: { n: p.name, a: p.avatar, c: p.color } })).catch(() => {});
       });
       els.overlay.prepend(spec);
     }

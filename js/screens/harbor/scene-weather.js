@@ -18,6 +18,7 @@ import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, we
 import { climateWeather } from '../../core/climate.js';
 import { awningSnow } from './snow.js';
 import { galeK } from './galesea.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 // (scene.js's own module-level helpers this code uses — copied)
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -66,7 +67,7 @@ export function createSceneWeather(C) {
   const extrasT = setTimeout(() => {
     // (Part 6a: the planes + the birds are the Harbor's own now — screens/harbor/skyfx.js; the district's aircraft + wildlife
     // modules are no longer loaded here)
-    Promise.all([import('./weather-fx.js'), import('./frost.js')]).then(([a, f]) => {
+    Promise.all([lazyImport(import('./weather-fx.js'), './weather-fx.js'), lazyImport(import('./frost.js'), './frost.js')]).then(([a, f]) => {
       if (C.destroyed) return;
       C.wfx = a.createWeatherFx({ onFlash: ev => { if (C.S.onFlash) C.S.onFlash(ev); } }); C.frost = f.createFrost({ bold: true });
       C.wfx.resize(C.W, C.H, C.HZ);

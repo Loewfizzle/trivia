@@ -19,6 +19,7 @@ import { retryable, recordFinish, tickTurn, endActions, shareOrLine, NOT_RECORDE
 import { runDayKey } from '../../daily/clock.js';
 import { createApiJudge } from './judge.js';
 import { ccSfx, ccSfxBytes } from './sfx.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 export const LONG_MS = 380;           // a long-press = a buoy (in DIG mode)
 export const RIPPLE_MS = 30;          // the flood: one ring outward every 30 ms
@@ -500,7 +501,7 @@ export function createView() {
   /** SHARE (CC2 — share.js, lazy): an image with NO BOARD + the one line, through the share sheet */
   async function share() {
     const line = shareLine(view, dayKey());
-    return shareOrLine(async () => (await import('./share.js')).shareRun({ inputs: shareInputs(view, dayKey()), line, look: document.body.dataset.look || 'night' }), line);
+    return shareOrLine(async () => (await lazyImport(import('./share.js'), './share.js')).shareRun({ inputs: shareInputs(view, dayKey()), line, look: document.body.dataset.look || 'night' }), line);
   }
 
   const api = {

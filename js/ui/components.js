@@ -5,6 +5,7 @@ import { serverNow } from '../firebase.js';
 import { sfx } from '../audio/sfx.js';
 import { rankBadge } from './emblems.js';
 import { pubOf } from '../profile/public.js';
+import { lazyImport } from './lazy-import.js';
 
 // Player emblems: every avatar has its own silhouette (the frame belongs to the icon — ghost → arch, crown → pentagon,
 // wave → capsule…), so players are told apart by shape as well as colour, even tiny or colour-blind. Each is built
@@ -147,7 +148,7 @@ export function leaderboard(rows, players, { me, presence, stagger = 70 } = {}) 
   });
   if (rows.some(r => (r.prevScore ?? r.score) !== r.score)) setTimeout(() => sfx('shimmer'), 300);
   // (SHELL 2.0 A — ADD-ON: each row becomes the player's SLIM CARD — ui/strip-board.js, lazy; the plain row shows until then / if it can't)
-  if (rows.length) import('./strip-board.js').then(m => m.upgradeBoard(list, rows, players)).catch(() => {});
+  if (rows.length) lazyImport(import('./strip-board.js'), './strip-board.js').then(m => m.upgradeBoard(list, rows, players)).catch(() => {});
   return list;
 }
 

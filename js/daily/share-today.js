@@ -10,6 +10,7 @@
 import { shareFrame, sendShare } from './share.js';
 import { shareTodayLine, MAX_ROWS } from './today-logic.js';
 import { dateLineOf } from './ticket-art.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const LOOKS = {
   night: { bg0: '#05040c', bg1: '#140a24', ink: '#f6f2ff', dim: 'rgba(226,222,246,0.72)', sign: '#ff6fc8', glow: 'rgba(255,111,200,0.75)', rule: 'rgba(255,255,255,0.12)' },
@@ -18,14 +19,14 @@ const LOOKS = {
 const FONT_D = 'Orbitron, "Chakra Petch", system-ui, sans-serif', FONT_U = '"Chakra Petch", system-ui, sans-serif';
 /** the dailies whose OWN share card can paint a section: the module + its inputs from the server's share data */
 const SECTIONS = {
-  password: { load: () => Promise.all([import('../games/password/share.js'), import('../games/password/logic.js')]).then(([S, G]) => ({ S, input: s => ({ run: G.runFromShare(s) }), ok: s => !!G.runFromShare(s) })) },
-  coastclear: { load: () => import('../games/coastclear/share.js').then(S => ({ S, input: s => ({ inputs: s }), ok: s => !!s })) },
+  password: { load: () => Promise.all([lazyImport(import('../games/password/share.js'), '../games/password/share.js'), lazyImport(import('../games/password/logic.js'), '../games/password/logic.js')]).then(([S, G]) => ({ S, input: s => ({ run: G.runFromShare(s) }), ok: s => !!G.runFromShare(s) })) },
+  coastclear: { load: () => lazyImport(import('../games/coastclear/share.js'), '../games/coastclear/share.js').then(S => ({ S, input: s => ({ inputs: s }), ok: s => !!s })) },
 };
 
 /** the streak flame (js/progress/flame-art.js — the one flame everywhere) as a bitmap */
 async function flameImage(state, w) {
   try {
-    const { flameSvg } = await import('../progress/flame-art.js');
+    const { flameSvg } = await lazyImport(import('../progress/flame-art.js'), '../progress/flame-art.js');
     const s = new XMLSerializer().serializeToString(flameSvg(state, w));
     return new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(s)}`; });
   } catch { return null; }
@@ -117,7 +118,7 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
 export async function shareToday(today, lineOf, { streak = 0 } = {}) {
   const line = shareTodayLine(today, (id, s) => String(lineOf(id, s)).toLowerCase());
   let share = {};
-  try { const { dailyShare } = await import('./contract.js'); const r = await dailyShare(); share = (r && r.day === today.day && r.share) || {}; } catch { /* the sections fall back to the result lines */ }
+  try { const { dailyShare } = await lazyImport(import('./contract.js'), './contract.js'); const r = await dailyShare(); share = (r && r.day === today.day && r.share) || {}; } catch { /* the sections fall back to the result lines */ }
   const cv = await drawToday(today, lineOf, undefined, { streak, share });
   return sendShare(cv, { file: 'neon-speakeasy-dailies.png', line });
 }

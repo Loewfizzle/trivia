@@ -13,6 +13,7 @@ import { pubOf } from '../profile/public.js';
 import { levelOf } from '../core/levels.js';
 import { ITEM } from '../core/items.js';
 import { memberLabel } from '../core/member.js';
+import { lazyImport } from './lazy-import.js';
 
 let kitP = null;
 /** everything a slim-card list needs, loaded once a page: the vault's strips + looks, the effects, the plain palettes, the APPROVED set, the surface */
@@ -20,8 +21,8 @@ export function stripKit() {
   if (kitP) return kitP;
   kitP = (async () => {
     const [V, { FX }, { cardVars }, { approvedIds }, { createSurface }, { isOneOfOne }] = await Promise.all([
-      import('../vault/strip.js'), import('../fx/index.js'), import('../progress/look.js'), import('../vault/approved.js'), import('../fx/renderer.js'),
-      import('../core/dev-cards.js')]);
+      lazyImport(import('../vault/strip.js'), '../vault/strip.js'), lazyImport(import('../fx/index.js'), '../fx/index.js'), lazyImport(import('../progress/look.js'), '../progress/look.js'), lazyImport(import('../vault/approved.js'), '../vault/approved.js'), lazyImport(import('../fx/renderer.js'), '../fx/renderer.js'),
+      lazyImport(import('../core/dev-cards.js'), '../core/dev-cards.js')]);
     V.vaultSheet();
     let approved = new Set();
     try { approved = new Set((await approvedIds()) || []); } catch { /* the plain colours */ }
@@ -41,7 +42,7 @@ export function stripFor(K, pub, p = {}) {
   const lv = pub && pub.x != null ? levelOf(pub.x || 0) : (pub && pub.l) || levelOf(0);
   const el = K.V.stripEl({ card: real ? card : null, tier, plain: real ? null : K.cardVars(card), name: String((pub && pub.n) || p.name || '').toUpperCase(),
     lv, emblem: pub && pub.es, avatar: p.avatar || (pub && pub.a), color: p.color || (pub && pub.c), tube: pub && pub.tb, glow: pub && pub.g, no: pub ? memberLabel(pub.mn) : null });
-  if (K.isOneOfOne(card) && real) import('../vault/dress.js').then(m => m.oneOfOne(el)).catch(() => {});
+  if (K.isOneOfOne(card) && real) lazyImport(import('../vault/dress.js'), '../vault/dress.js').then(m => m.oneOfOne(el)).catch(() => {});
   return { el, card, real };
 }
 /** the card's motion on a shared surface — its effect, CALM, the strip's corner radius; a plain / still card adds nothing → the slot | null */

@@ -9,13 +9,14 @@ import { h } from '../ui/dom.js';
 import { api } from '../profile/api.js';
 import { BDAY_MONTHS, bdayLabel } from '../core/birthday.js';
 import { favorJacks } from '../core/harbor-radio.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 /** LOBBY 2.0 flips this: a favor fired for a room is SEEN only once the lobby is the live city — until then the button stays asleep */
 export const FAVOR_ROOMS_LIVE = false;
 /** the phone's own copy of the birthday (the title's skywrite reads it — no socket, no /api on the title) */
 export const rememberBirthday = bd => { try { if (bd && bd.m) localStorage.setItem('nd:bd', JSON.stringify({ m: bd.m, d: bd.d })); else localStorage.removeItem('nd:bd'); } catch { /* private mode */ } };
 export const storedBirthday = () => { try { const v = JSON.parse(localStorage.getItem('nd:bd') || 'null'); return v && v.m ? v : null; } catch { return null; } };
-const toastOf = (m, k) => import('../ui/toast.js').then(t => t.toast(m, k)).catch(() => {});
+const toastOf = (m, k) => lazyImport(import('../ui/toast.js'), '../ui/toast.js').then(t => t.toast(m, k)).catch(() => {});
 const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export function birthdayPanel(data, o = {}) {

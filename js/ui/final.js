@@ -17,6 +17,7 @@ import { pgSfx } from '../audio/progress-sfx.js';
 import { rankBadge } from './emblems.js';
 import { pubOf } from '../profile/public.js';
 import { metaOf } from '../games/registry.js';
+import { lazyImport } from './lazy-import.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 
@@ -32,7 +33,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   let rc = null, gone = false;
   const g = state.game;
   if (state.code && g && g.matchId && g.participants && g.participants[me]) {
-    import('../profile/callouts.js').then(m => { if (gone) return; rc = m.attachCallouts(state.code, g); rcSlot.append(rc.el); }).catch(() => {});
+    lazyImport(import('../profile/callouts.js'), '../profile/callouts.js').then(m => { if (gone) return; rc = m.attachCallouts(state.code, g); rcSlot.append(rc.el); }).catch(() => {});
   }
   // THE BODY: the game's own scene (finalScene) — or the console's podium
   const mod = g && metaOf(g.id);   // (the cartridge — loaded: its match just ended here)
@@ -53,8 +54,8 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     const pub = place === 1 ? pubOf(p) : null, cd = pub && pub.cd;
     // (FRIENDS A — tap ANY other player on the podium → their card with ADD FRIEND under it; your own winner's card as before)
     const other = r.uid !== state.uid && p.pid;
-    const openCard = other ? () => import('../profile/friends-ui.js').then(F => F.openTheirCard({ pid: p.pid, name: p.name, color: p.color, avatar: p.avatar, pub: pubOf(p) })).catch(() => {})
-      : cd ? () => import('../vault/full.js').then(F => F.openFullCard(cd, { name: p.name, lv: pub.x != null ? levelOf(pub.x) : 1, avatar: p.avatar, color: p.color, at: pub.at, pub })).catch(() => {}) : null;
+    const openCard = other ? () => lazyImport(import('../profile/friends-ui.js'), '../profile/friends-ui.js').then(F => F.openTheirCard({ pid: p.pid, name: p.name, color: p.color, avatar: p.avatar, pub: pubOf(p) })).catch(() => {})
+      : cd ? () => lazyImport(import('../vault/full.js'), '../vault/full.js').then(F => F.openFullCard(cd, { name: p.name, lv: pub.x != null ? levelOf(pub.x) : 1, avatar: p.avatar, color: p.color, at: pub.at, pub })).catch(() => {}) : null;
     podium.append(h(`div.pod.pod-${place}`, { style: { '--c': colorHex(p.color), '--d': `${delays[place]}ms` } },
       h('div.pod-who', openCard ? { role: 'button', tabindex: '0', 'aria-label': `${p.name}'s card`, onclick: openCard, onkeydown: e => { if (e.key === 'Enter') openCard(); } } : {}, avatar(p.avatar, p.color, place === 1 ? 64 : 46), fitName(h('div.pod-name', p.name, rankBadge(pubOf(p), { tag: false })), { min: 10 }),
         h('div.pod-score-wrap', scoreEl, scoreLabel ? h('small', scoreLabel) : null)),

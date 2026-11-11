@@ -11,6 +11,7 @@ import { glow, stamp, lick, rng, wob, smooth, sprite } from './kit.js';
 import { drawLaser } from './laser.js';
 import { rrect, fxDiag } from './renderer.js';
 import { city, backdrop, skylineLayer, bakeDpr, stage } from './sg-kit.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const arts = new Map();
 function art(B, key, R, scheme, light, dpr, kind) {
@@ -18,7 +19,7 @@ function art(B, key, R, scheme, light, dpr, kind) {
   if (!arts.has(k)) { if (arts.size > 16) arts.clear(); arts.set(k, B.balloonArt(R, scheme, light, dpr, kind)); }
   return arts.get(k);
 }
-const loadB = () => city('balloons', () => import('../screens/harbor/balloons.js'));
+const loadB = () => city('balloons', () => lazyImport(import('../screens/harbor/balloons.js'), '../screens/harbor/balloons.js'));
 /** a balloon's burner: a few tongues of flame up into the mouth + its warm halo (b 0..1) */
 function burner(c, x, y, R, b, t, still) {
   if (b < 0.02) return;

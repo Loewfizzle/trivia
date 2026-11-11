@@ -9,6 +9,7 @@ import { api } from './api.js';
 import { loadMe, saveMe } from '../identity.js';
 import { state, setState } from '../store.js';
 import { h } from '../ui/dom.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const inMatch = () => !!(state.game && state.meta && state.meta.status === 'playing');
 let checked = false;
@@ -38,7 +39,7 @@ export function playLine(line, done = 0, m = loadMe(), o = {}) {
 
 /** the reveal itself (also the lab's preview: who = { name, lv, … }); o.n / o.of = "GIFT n OF m" in a line; o.after = the next one */
 export async function revealGift(id, m = loadMe(), o = {}) {
-  const [{ openFullCard }, { levelOf }, { memberLabel }] = await Promise.all([import('../vault/full.js'), import('../core/levels.js'), import('../core/member.js')]);
+  const [{ openFullCard }, { levelOf }, { memberLabel }] = await Promise.all([lazyImport(import('../vault/full.js'), '../vault/full.js'), lazyImport(import('../core/levels.js'), '../core/levels.js'), lazyImport(import('../core/member.js'), '../core/member.js')]);
   const p = (m && m.profile) || {};
   const head = h('div.vl-gift-head', h('small', o.n ? `GIFT ${o.n} OF ${o.of}` : 'A GIFT FROM THE HOUSE'),
     o.n ? h('small.vl-gift-sub', 'FROM THE HOUSE') : '',

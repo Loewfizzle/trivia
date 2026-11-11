@@ -12,6 +12,7 @@ import { openSheet } from '../ui/sheet.js';
 import { h } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { loadKey, loadMe, loadNotes, saveNotes } from '../identity.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const DISMISS = 'nd:byc';
 /** the Home Screen app (iOS: navigator.standalone; everyone else: the display mode) */
@@ -116,13 +117,13 @@ export async function openBring({ lead = false, onDone = null } = {}) {
   await bringCss();
   last.opened = Date.now();
   // (FRIENDS A — the key field a password manager FILLS: "current-password" in a real form — SAVE TO PASSWORDS put it in the phone's keychain)
-  const { keyFields, keyForm } = await import('./keychain.js');
+  const { keyFields, keyForm } = await lazyImport(import('./keychain.js'), './keychain.js');
   const { wrap: field, input } = keyFields({ cls: 'byc-in', label: 'Your key' });
   const err = h('p.byc-err', { role: 'alert', hidden: true });
   const go = h('button.btn.btn-primary.btn-block.byc-go', { type: 'button', 'data-act': 'bring' }, 'BRING MY CARD');
   const app = standalone();
   // (FRIENDS B — SIGN IN WITH FACE ID: the passkey from any of your devices — the same join as the key)
-  const { passkeySignIn } = await import('./passkey-ui.js');
+  const { passkeySignIn } = await lazyImport(import('./passkey-ui.js'), './passkey-ui.js');
   const pk = passkeySignIn({ cls: 'byc-pk', onDone: r => { last.restored = r.pid; dismissOffer('done'); document.querySelectorAll('.byc-chip').forEach(c => c.remove()); toast(`Welcome back, ${String(r.profile.n || '')}`, 'ok', { ms: 4200, sub: 'This device joined your card.' }); close(); onDone && onDone(r); } });
   const { sheet, close } = sheetOf('byc-bring', 'Already a member? Bring your card',
     h('div.byc-k', 'ALREADY A MEMBER?'),
@@ -137,18 +138,18 @@ export async function openBring({ lead = false, onDone = null } = {}) {
     if (go.classList.contains('is-busy')) return;
     err.hidden = true; go.classList.add('is-busy'); go.textContent = 'CHECKING…';
     try {
-      const { restoreKey } = await import('./me.js');
+      const { restoreKey } = await lazyImport(import('./me.js'), './me.js');
       const r = await restoreKey(input.value, { onRetry: () => { go.textContent = 'WAKING THE SERVER…'; } });
       last.restored = r.pid;
       dismissOffer('done');
       document.querySelectorAll('.byc-chip').forEach(c => c.remove());
       toast(`Welcome back, ${String(r.profile.n || '')}`, 'ok', { ms: 4200, sub: 'This device joined your card.' });
-      import('../audio/sfx.js').then(m => m.sfx('join')).catch(() => {});
+      lazyImport(import('../audio/sfx.js'), '../audio/sfx.js').then(m => m.sfx('join')).catch(() => {});
       close(); onDone && onDone(r);
     } catch (e) {
       err.textContent = (e && e.message) || 'THAT KEY DIDN’T WORK';
       err.hidden = false;
-      if (e && e.status >= 400 && e.status < 500) import('../audio/sfx.js').then(m => m.sfx('invalid')).catch(() => {});
+      if (e && e.status >= 400 && e.status < 500) lazyImport(import('../audio/sfx.js'), '../audio/sfx.js').then(m => m.sfx('invalid')).catch(() => {});
     } finally { go.classList.remove('is-busy'); if (go.isConnected) go.textContent = 'BRING MY CARD'; }
   };
   go.addEventListener('click', run);

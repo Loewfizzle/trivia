@@ -20,6 +20,7 @@ import { serverNow } from '../../firebase.js';
 import { LETTERS } from '../../core/marks.js';
 import { standings, awardChips, finalBeats } from './logic.js';
 import { ocSfx } from './sfx.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 // ---------------------------------------------------------------------------------------------- THE NEON TUBE SIGN
 // the city's tube alphabet (core/marks.js — 10 × 14, single strokes) + digits and a few marks in the same hand
@@ -94,7 +95,7 @@ export function finalScene(el, game, state) {
     if (!still && !zero) setTimeout(() => { const n = el.querySelector('.oc-vic-solo-n'); if (n && n.isConnected) countUp(n, 0, mine.score, 1400); }, 700);
     // (A2: a 0 run never shows a personal-best line — the server keeps no board row for it)
     // NEW PERSONAL BEST — only from the server's own answer (OC5: QUICK + STANDARD solo runs each have a board; /api down = just the score)
-    if (!zero) import('../../profile/queue.js').then(Q => {
+    if (!zero) lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').then(Q => {
       const k = state && state.code ? Q.matchKey(state.code, game.matchId) : null;
       // (OC5: QUICK runs have their own board now — overclock-quick-solo; a run that didn't beat it shows YOUR BEST from the outcome's bests)
       const show = o => {

@@ -16,6 +16,7 @@ import { FR_WHY } from '../core/friends.js';
 import { state } from '../store.js';
 import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
 import { presenceOnline } from '../core/room-logic.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 let css = null;
 export function frSheet() {
@@ -73,17 +74,17 @@ export function friendButton(target, o = {}) {
 /** a player's card (the podium's tap): their full card when they wear an approved one, else the gilded card — ADD FRIEND under it */
 export async function openTheirCard({ pid, name, color, avatar: av, pub }) {
   // (BOARD 2.0 B: a player with a profile → THE PLAYER PAGE (the podium's tap); the card below only for a player with none)
-  if (pid) return import('./player-page.js').then(m => m.openPlayer({ pid, row: { ...(pub || {}), n: (pub && pub.n) || name, a: (pub && pub.a) || av, c: (pub && pub.c) || color } }));
+  if (pid) return lazyImport(import('./player-page.js'), './player-page.js').then(m => m.openPlayer({ pid, row: { ...(pub || {}), n: (pub && pub.n) || name, a: (pub && pub.a) || av, c: (pub && pub.c) || color } }));
   await frSheet();
   const foot = pid ? h('div.rc-foot.fr-foot', friendButton({ pid }, { name })) : null;
   if (pub && pub.cd && pub.cd !== 'card-gilded') {
     try {
-      const F = await import('../vault/full.js');
-      if (await F.canShowFull(pub.cd)) { const { levelOf } = await import('../core/levels.js'); const { memberLabel } = await import('../core/member.js');
+      const F = await lazyImport(import('../vault/full.js'), '../vault/full.js');
+      if (await F.canShowFull(pub.cd)) { const { levelOf } = await lazyImport(import('../core/levels.js'), '../core/levels.js'); const { memberLabel } = await lazyImport(import('../core/member.js'), '../core/member.js');
         F.openFullCard(pub.cd, { name: pub.n || name, lv: levelOf(pub.x || 0), avatar: pub.a || av, color: pub.c || color, at: pub.at, no: memberLabel(pub.mn), fd: !!pub.fd, shape: pub.es, tube: pub.tb, glow: pub.g, foot }); return; }
     } catch { /* the gilded card below */ }
   }
-  const { memberCard } = await import('../screens/profile.js');
+  const { memberCard } = await lazyImport(import('../screens/profile.js'), '../screens/profile.js');
   openPfSheet({ kicker: 'THEIR CARD', title: String(name || '').toUpperCase(), cls: 'rc-card-sheet', body: [memberCard(pub, { name, color, avatar: av }, pub ? pub.x : 0), foot] });
 }
 
@@ -152,7 +153,7 @@ function cardList(cs) {
   const list = h('ol.fr-cards');
   for (const c of cs) {
     list.append(h('li.fr-crow', { dataset: { pid: c.pid } }, h('div.fr-scard',
-      h('button.fr-open', { type: 'button', 'aria-label': `${c.n} — their card`, onclick: () => import('./player-page.js').then(m => m.openPlayer({ pid: c.pid, row: c })).catch(() => {}) }),
+      h('button.fr-open', { type: 'button', 'aria-label': `${c.n} — their card`, onclick: () => lazyImport(import('./player-page.js'), './player-page.js').then(m => m.openPlayer({ pid: c.pid, row: c })).catch(() => {}) }),
       h('div.fr-ssub',
         h('button.fr-dots', { type: 'button', 'aria-label': `More for ${c.n}`, html: '<svg viewBox="0 0 16 4" aria-hidden="true"><circle cx="2" cy="2" r="1.8"/><circle cx="8" cy="2" r="1.8"/><circle cx="14" cy="2" r="1.8"/></svg>', onclick: () => openMore(c) }),
         c.here ? h('span.fr-here', h('i.fr-dot', { 'aria-hidden': 'true' }), 'HERE') : null,
@@ -230,7 +231,7 @@ export function inviteFriendsBlock({ code, share, here = new Set() }) {
         : sent.has(c.pid) ? h('span.fr-tag', 'INVITED')
           : tubeButton('INVITE', { kind: 'secondary', size: 'sm', cls: 'fr-inv', onClick: async () => {
             try {
-              const { api } = await import('./api.js');
+              const { api } = await lazyImport(import('./api.js'), './api.js');
               const r = await api('profile', { action: 'friendInvite', pid: c.pid, room: code });
               sent.set(c.pid, r); paint(friendsNow());
               toast(`${c.n} is invited`, 'ok', { sub: r.sent ? 'A notification is on its way — and it waits on their card for 30 min.' : 'It waits on their card for 30 min — they’ll see it when they open the app.' });
@@ -268,7 +269,7 @@ export function pushRow() {
   async function turnOn() {
     paint(true, 'Turning on…', true);
     try {
-      const { api } = await import('./api.js');
+      const { api } = await lazyImport(import('./api.js'), './api.js');
       const st = await api('profile', { action: 'friendPush', op: 'state' });
       if (!st.key) throw new Error('Notifications aren’t set up on the server yet.');
       if ((await Notification.requestPermission()) !== 'granted') throw new Error('Notifications are blocked for this site — allow them in the phone’s settings.');
@@ -281,12 +282,12 @@ export function pushRow() {
   }
   async function turnOff() {
     paint(false, 'Turning off…', true);
-    try { const { api } = await import('./api.js'); const s = await curSub(); await api('profile', { action: 'friendPush', op: 'unsub', endpoint: s ? s.endpoint : undefined }); paint(false, 'Off — invites still wait on your card'); }
+    try { const { api } = await lazyImport(import('./api.js'), './api.js'); const s = await curSub(); await api('profile', { action: 'friendPush', op: 'unsub', endpoint: s ? s.endpoint : undefined }); paint(false, 'Off — invites still wait on your card'); }
     catch (e) { paint(false, (e && e.message) || 'Couldn’t reach the server'); }
   }
   paint(false, can ? 'Checking this phone…' : say);
   if (can) (async () => {
-    try { const s = await curSub(); const { api } = await import('./api.js'); const st = await api('profile', { action: 'friendPush', op: 'state', endpoint: s ? s.endpoint : undefined }); paint(!!st.mine, st.mine ? 'ON — a friend’s invite lands on this phone' : say); }
+    try { const s = await curSub(); const { api } = await lazyImport(import('./api.js'), './api.js'); const st = await api('profile', { action: 'friendPush', op: 'state', endpoint: s ? s.endpoint : undefined }); paint(!!st.mine, st.mine ? 'ON — a friend’s invite lands on this phone' : say); }
     catch { paint(false, say); }
   })();
   return slot;
@@ -295,13 +296,13 @@ export function pushRow() {
 // ------------------------------------------------------------------------------------------------ DM2 — YOUR TABLE (today, in short)
 function tableCard() {
   const el = h('div.fr-table', { 'aria-label': 'Your table', hidden: true });
-  Promise.all([import('../daily/today.js'), import('../daily/today-logic.js'), import('./me.js')]).then(([T, L, M]) => {
+  Promise.all([lazyImport(import('../daily/today.js'), '../daily/today.js'), lazyImport(import('../daily/today-logic.js'), '../daily/today-logic.js'), lazyImport(import('./me.js'), './me.js')]).then(([T, L, M]) => {
     const metas = {};
     const paint = async t => {
       if (!el.isConnected && el.dataset.on) { off(); return; }
       const ds = (t && t.dailies) || [];
       if (!ds.length) { el.hidden = true; return; }
-      await Promise.all(ds.map(async d => { if (!(d.id in metas)) metas[d.id] = await import(`../games/${d.id}/meta.js`).catch(() => ({})); }));
+      await Promise.all(ds.map(async d => { if (!(d.id in metas)) metas[d.id] = await lazyImport(import(`../games/${d.id}/meta.js`), '../games/*/meta.js').catch(() => ({})); }));
       const S = friendsNow(), names = Object.fromEntries(((S && S.friends) || []).map(c => [c.pid, String(c.n || 'FRIEND').toUpperCase()]));
       const me = { pid: M.myPid(), name: 'YOU' };
       const lines = ds.map(d => {
@@ -312,7 +313,7 @@ function tableCard() {
       });
       el.dataset.on = '1';
       el.replaceChildren(h('b.fr-th', 'YOUR TABLE · TODAY'), h('div.fr-tls', ...lines),
-        tubeButton('SEE SCORES', { kind: 'secondary', size: 'sm', cls: 'fr-tgo', onClick: () => import('../store.js').then(st => st.setState({ daily: { v: 'screen', tab: 'scores' } })) }));
+        tubeButton('SEE SCORES', { kind: 'secondary', size: 'sm', cls: 'fr-tgo', onClick: () => lazyImport(import('../store.js'), '../store.js').then(st => st.setState({ daily: { v: 'screen', tab: 'scores' } })) }));
       el.hidden = false;
     };
     const off = T.onToday(paint);

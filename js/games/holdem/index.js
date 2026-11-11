@@ -8,15 +8,16 @@ import { cleanSettings } from './meta.js';
 import { fromWire } from './wire.js';
 import { finished, ranksOf, finalRowsOf, finalSummaryOf } from './logic.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
-export const createView = lazyView(() => import('./view.js'), gameSheets('holdem'));
+export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('holdem'));
 
 /** the dealer's public table (the whole node — phones listen to it; the director reads `table`) */
 export const livePaths = () => ({ table: 'holdem' });
 
 /** THE DEALER's ops ride /api/report (still 8 functions) — the phone side (`api` = profile/api.js: the ID token, ApiFail on a refusal) */
 export async function dealer(body) {
-  const { api } = await import('../../profile/api.js');
+  const { api } = await lazyImport(import('../../profile/api.js'), '../../profile/api.js');
   return api('report', body, { timeout: 8000 });
 }
 

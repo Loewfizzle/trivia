@@ -17,6 +17,7 @@ import { MOOD_CHOICES, MOOD_LABEL, moodNow } from '../audio/mood.js';
 import { musicNeedsRescue } from '../audio/music.js';
 import { metaOf } from '../games/registry.js';
 import { lookLockOf } from '../games/cartridge.js';
+import { lazyImport } from './lazy-import.js';
 
 const GEAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 
@@ -72,7 +73,7 @@ function chatHostRows() {
   } });
   const clear = tubeButton('CLEAR CHAT', { kind: 'danger', block: true, confirm: 'TAP AGAIN TO CLEAR THE CHAT', onClick: () => {
     clear.firstChild.textContent = 'CLEARING…';
-    import('../chat/chat.js').then(m => m.clearChat()).then(() => { clear.firstChild.textContent = 'CHAT CLEARED'; });
+    lazyImport(import('../chat/chat.js'), '../chat/chat.js').then(m => m.clearChat()).then(() => { clear.firstChild.textContent = 'CHAT CLEARED'; });
   } });
   return [h('div.sh-sub', 'CHAT · HOST'), sw, clear];
 }
@@ -92,7 +93,7 @@ function gameLookRow() {
       h('span.set-hint.set-look-note', `${name} plays at ${lock}`));
   }
   const el = h('div.set-row.set-seg.set-look', h('span.label', 'GAME LOOK'));
-  import('../games/kit/look.js').then(LK => {
+  lazyImport(import('../games/kit/look.js'), '../games/kit/look.js').then(LK => {
     el.append(segmented(LK.LOOKS.map(v => ({ value: v, label: LK.LOOK_LABEL[v] })), LK.currentLook(), v => LK.saveLook(v)));
   }).catch(() => {});
   return el;
@@ -132,12 +133,12 @@ function open() {
     ...(playable('holdem') || (state.game && state.game.id === 'holdem') ? [
       h('div.sh-sub', 'HOLD’EM'),
       h('div.set-row.set-seg', h('span.label', 'CARD COLOURS'), segmented([{ value: 'four', label: 'FOUR' }, { value: 'two', label: 'CLASSIC' }], settings.heDeck || 'four', v => updateSettings({ heDeck: v })))] : []),
-    ...(playable('slip') ? [h('div.sh-sub', 'SLIPSTREAM'), row({ label: 'Your ride', onClick: () => { close(); const me = state.players && state.players[state.uid]; import('../games/slip/ride.js').then(m => m.openRidePicker({ color: colorHex(me ? me.color : 'cyan') })); } })] : []),
-    ...(playable('pulse') ? [h('div.sh-sub', 'PULSE'), toggle('Hit sounds', 'pulseHits'), row({ label: 'Recalibrate audio sync', onClick: () => { close(); import('../games/pulse/calibrate.js').then(m => m.openCalibration({ reason: 'PULSE · RECALIBRATE (DO THIS AFTER SWITCHING HEADPHONES)' })); } })] : []),
+    ...(playable('slip') ? [h('div.sh-sub', 'SLIPSTREAM'), row({ label: 'Your ride', onClick: () => { close(); const me = state.players && state.players[state.uid]; lazyImport(import('../games/slip/ride.js'), '../games/slip/ride.js').then(m => m.openRidePicker({ color: colorHex(me ? me.color : 'cyan') })); } })] : []),
+    ...(playable('pulse') ? [h('div.sh-sub', 'PULSE'), toggle('Hit sounds', 'pulseHits'), row({ label: 'Recalibrate audio sync', onClick: () => { close(); lazyImport(import('../games/pulse/calibrate.js'), '../games/pulse/calibrate.js').then(m => m.openCalibration({ reason: 'PULSE · RECALIBRATE (DO THIS AFTER SWITCHING HEADPHONES)' })); } })] : []),
     ...chatHostRows(),
     state.code ? h('div.set-room', h('span.label', 'HUSH WORD'), h('strong', state.code)) : null,
     h('div.sh-sub', 'ABOUT'),
-    row({ icon: 'credits', label: 'Credits', onClick: () => { import('./credits.js').then(m => m.openCredits()).catch(() => {}); } }),
+    row({ icon: 'credits', label: 'Credits', onClick: () => { lazyImport(import('./credits.js'), './credits.js').then(m => m.openCredits()).catch(() => {}); } }),
   ] });
 }
 
@@ -208,13 +209,13 @@ function installGameMenu() {
   menuBtn = h('button.menu-btn', { type: 'button', 'aria-label': 'Menu', 'aria-expanded': 'false', onclick: () => (menuPanel ? closeMenu() : openMenu()) },
     h('span.mb-bars', h('i'), h('i'), h('i')), dot, cueEl);
   document.body.append(menuBtn);
-  import('../chat/chat.js').then(m => {
+  lazyImport(import('../chat/chat.js'), '../chat/chat.js').then(m => {
     chatMod = m;
     const paintDot = () => { dot.hidden = !m.chat.unread || m.locked(); };   // (THE CHAT LOCK: no unread dot for a chat you can't open)
     m.onChat(paintDot);
     paintDot();
   }).catch(() => {});
-  import('../chat/ui.js').then(m => { chatUi = m; }).catch(() => {});
+  lazyImport(import('../chat/ui.js'), '../chat/ui.js').then(m => { chatUi = m; }).catch(() => {});
 }
 
 // THE ☰ MENU (SHELL 2.0 A — docs/harbor/refs/shell/shell-look.png): THE SHEET with big glass rows — Your card (your name on the right) ·
@@ -241,7 +242,7 @@ function openMenu() {
   // (SHELL 2.0 B1 — ‹ BACK ON EVERY NESTED SHEET, the owner 9:15 am: SHELL 2.0 A closed the menu before opening these, so they came up
   //  top-level with only an ×. HOW TO PLAY + SETTINGS now open ON the menu (‹ = back to it, × = everything); YOUR CARD is a full screen —
   //  the menu steps aside and the card's own ‹ BACK brings it back (backToMenu))
-  rows.push(row({ icon: 'card', label: 'Your card', value: myName(), cls: 'gm-card', onClick: () => { closeMenu(); menuReturn = true; if (inRoom) import('../screens/profile.js').then(m => m.openCard()); else setState({ view: 'profile' }); } }));
+  rows.push(row({ icon: 'card', label: 'Your card', value: myName(), cls: 'gm-card', onClick: () => { closeMenu(); menuReturn = true; if (inRoom) lazyImport(import('../screens/profile.js'), '../screens/profile.js').then(m => m.openCard()); else setState({ view: 'profile' }); } }));
   rows.push(row({ icon: 'help', ic: '#5fe3ff', label: 'How to play', cls: 'gm-help', onClick: () => { openHelp(playing ? state.game.id : undefined); } }));
   rows.push(row({ icon: 'settings', ic: '#b48cff', label: 'Settings', cls: 'gm-settings', onClick: () => { open(); } }));
   rows.push(row({ icon: 'sound', ic: '#4dff9a', label: 'Sound effects', cls: 'gm-sfx', on: !settings.sfxOff && !settings.muted, toggle: next => updateSettings(next ? { sfxOff: false, muted: false } : { sfxOff: true }) }));
@@ -249,7 +250,7 @@ function openMenu() {
   if (!playing) for (const render of menuExtras.values()) { let el = null; try { el = render({ close: closeMenu }); } catch { el = null; } if (el) rows.push(el); }
   if (playing) {
     rows.push(row({ icon: 'quit', ic: '#ffc23d', label: 'Quit to the room', sub: 'The others keep playing', cls: 'gm-quit', confirm: 'TAP AGAIN TO QUIT', onClick: () => { closeMenu(); setState({ quit: state.game.matchId }); toast('You left the game', 'info', { ms: 3200, sub: 'You’ll be dealt into the next one.' }); } }));
-    if (isHost()) rows.push(row({ icon: 'end', label: 'End game for everyone', danger: true, cls: 'gm-end', confirm: 'TAP AGAIN TO END IT', onClick: () => { closeMenu(); import('../host.js').then(m => m.backToLobby()); } }));
+    if (isHost()) rows.push(row({ icon: 'end', label: 'End game for everyone', danger: true, cls: 'gm-end', confirm: 'TAP AGAIN TO END IT', onClick: () => { closeMenu(); lazyImport(import('../host.js'), '../host.js').then(m => m.backToLobby()); } }));
   } else if (inRoom) {
     // (LOBBY 2.0 B — the owner's ADD-ON: LEAVE ROOM in the menu while in a room — red-edged, a second tap confirms; not during a match: QUIT first)
     rows.push(row({ icon: 'leave', label: 'Leave room', danger: true, cls: 'gm-leave', confirm: 'TAP AGAIN TO LEAVE', onClick: () => { closeMenu(); leaveRoom(); } }));

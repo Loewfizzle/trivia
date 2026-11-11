@@ -11,6 +11,7 @@ import { ITEM } from '../core/items.js';
 import { cardVars } from './look.js';
 import { emblemEl, hasArt } from '../vault/emblem-art.js';
 import { applyGlow } from '../vault/glows.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const dateOf = at => { if (!(at > 1e12)) return ''; const d = new Date(at); return `${MON[d.getMonth()]} ${d.getDate()}`; };   // (a real date only)
@@ -78,10 +79,10 @@ export function trophiesSection(data, o = {}) {
 
 /** THE TROPHY CASE — every trophy you hold, newest first (a pop-up over the profile; ‹ goes back to it) */
 export async function openTrophyCase(data, o = {}) {
-  const { openPfSheet } = await import('../profile/sheets.js');
+  const { openPfSheet } = await lazyImport(import('../profile/sheets.js'), '../profile/sheets.js');
   const s = data.stats || {}, now = o.now || Date.now(), held = heldNewest(s.ac);
   const list = h('div.pg-trs.pf-case', ...held.map(a => trophyRow(a, data, o, now)));
   const sh = openPfSheet({ kicker: `${held.length} EARNED · NEWEST FIRST`, title: 'THE TROPHY CASE', body: [h('p.sh-note', 'Tap a reward to equip it.'), list], cls: 'pf-case-sheet' });
-  import('./look.js').then(L => L.pctFor().then(P => { list.querySelectorAll('.pg-pct').forEach(x => { x.textContent = L.pctLine(P.a[x.dataset.a]); }); })).catch(() => {});
+  lazyImport(import('./look.js'), './look.js').then(L => L.pctFor().then(P => { list.querySelectorAll('.pg-pct').forEach(x => { x.textContent = L.pctLine(P.a[x.dataset.a]); }); })).catch(() => {});
   return sh;
 }

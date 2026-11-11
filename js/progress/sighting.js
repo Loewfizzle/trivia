@@ -18,6 +18,7 @@ import { claimSighting } from '../profile/sightings.js';
 import { SIGHTING, nth } from '../core/sightings.js';
 import { ITEM } from '../core/items.js';
 import { cardVars, pctFor, pctLine, reduced as reducedNow } from './look.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 /** the last moment this page (tests + &debug) */
 export const last = { tap: null, claim: null, snap: null, phase: null, phases: [], saved: null };
@@ -44,7 +45,7 @@ function sheet() {
 }
 /** warm the stylesheet + the sounds before the first tap needs them (the title calls it once a legendary is up) */
 // (THE VAULT 2A: the reveal's scene modules + css/vault.css load HERE, at the tap — never in the middle of the print's gestures)
-export function prewarm() { sheet(); import('../audio/progress-sfx.js').then(m => m.pgPrefetch(['flash', 'polaroid', 'card-reveal'])).catch(() => {}); import('../vault/full.js').then(() => import('../vault/sheet.js')).then(m => m.vaultSheet()).catch(() => {}); }
+export function prewarm() { sheet(); lazyImport(import('../audio/progress-sfx.js'), '../audio/progress-sfx.js').then(m => m.pgPrefetch(['flash', 'polaroid', 'card-reveal'])).catch(() => {}); lazyImport(import('../vault/full.js'), '../vault/full.js').then(() => lazyImport(import('../vault/sheet.js'), '../vault/sheet.js')).then(m => m.vaultSheet()).catch(() => {}); }
 
 /** the print's caption: the date + the time written by hand (the tap's own moment, on this phone's clock) */
 export function caption(t, tz) {
@@ -53,7 +54,7 @@ export function caption(t, tz) {
   catch { const x = new Date(t); d = { year: x.getFullYear(), month: x.getMonth() + 1, day: x.getDate(), hour: (x.getHours() % 12) || 12, minute: String(x.getMinutes()).padStart(2, '0'), dayPeriod: x.getHours() < 12 ? 'AM' : 'PM' }; }
   return { date: `${MONTHS[+d.month - 1]} ${+d.day}, ${d.year}`, time: `${d.hour}:${d.minute} ${String(d.dayPeriod || '').toLowerCase()}` };
 }
-const sfx = name => import('../audio/progress-sfx.js').then(m => m.pgSfx(name)).catch(() => {});
+const sfx = name => lazyImport(import('../audio/progress-sfx.js'), '../audio/progress-sfx.js').then(m => m.pgSfx(name)).catch(() => {});
 
 /** a polaroid element round a photo (a canvas, or an image URL) */
 export function polaroid(photo, cap, o = {}) {
@@ -139,7 +140,7 @@ let busy = null;
 export async function onSighting(sg, ctx = {}) {
   // (THE VAULT 1B — names only to owners: the owner's &sgdemo preview claims nothing, so its pair's names come from /api/admin — admins only;
   //  anyone else's preview shows the craft's plain name)
-  if (sg.demo) import('../profile/api.js').then(A => A.api('admin', { action: 'sightShow', id: sg.id })).catch(() => {});
+  if (sg.demo) lazyImport(import('../profile/api.js'), '../profile/api.js').then(A => A.api('admin', { action: 'sightShow', id: sg.id })).catch(() => {});
   last.tap = { id: sg.id, live: sg.live, demo: !!sg.demo, at: Date.now(), a: sg.seenA != null ? sg.seenA : null };
   // (the owner's preview: &sgdemo — the first time; + &sgagain=N — the Nth time: the corner print + its stamp)
   const claimP = sg.demo ? Promise.resolve(sg.again ? { state: 'again', r: { n: sg.again } } : { state: 'demo' }) : claimSighting({ id: sg.id, t: sg.t, tz: sg.tz, live: sg.live });
@@ -197,9 +198,9 @@ async function run(sg, ctx, claimP) {
   // never while the print slides (the owner's &sgdemo prints go to the PREVIEW album — ?preview=card shows them; never the real one)
   const savePhoto = () => {
     if (!photo) return;
-    const enc = () => import('../screens/harbor/snapshot.js').then(m => m.toJpeg(photo));
-    if (sg.demo && !sg.again) enc().then(b => b && import('../profile/album.js').then(a => { a.useAlbum('ns-album-preview'); return a.addPhoto({ id: sg.id, t: sg.t, n: 1, blob: b, w: photo.width }).finally(() => a.useAlbum('ns-album')); })).then(ok => { last.saved = !!ok; }).catch(() => { last.saved = false; });
-    else if (keep && st !== 'again' && !sg.demo) enc().then(b => b && import('../profile/album.js').then(a => a.addPhoto({ id: sg.id, t: sg.t, n, blob: b, w: photo.width }))).then(ok => { last.saved = !!ok; }).catch(() => { last.saved = false; });
+    const enc = () => lazyImport(import('../screens/harbor/snapshot.js'), '../screens/harbor/snapshot.js').then(m => m.toJpeg(photo));
+    if (sg.demo && !sg.again) enc().then(b => b && lazyImport(import('../profile/album.js'), '../profile/album.js').then(a => { a.useAlbum('ns-album-preview'); return a.addPhoto({ id: sg.id, t: sg.t, n: 1, blob: b, w: photo.width }).finally(() => a.useAlbum('ns-album')); })).then(ok => { last.saved = !!ok; }).catch(() => { last.saved = false; });
+    else if (keep && st !== 'again' && !sg.demo) enc().then(b => b && lazyImport(import('../profile/album.js'), '../profile/album.js').then(a => a.addPhoto({ id: sg.id, t: sg.t, n, blob: b, w: photo.width }))).then(ok => { last.saved = !!ok; }).catch(() => { last.saved = false; });
   };
   const again = st === 'counted' && !r.first || st === 'again';
   if (again || st === 'refused' || (!first && st !== 'queued' && st !== 'preview')) {
@@ -236,7 +237,7 @@ async function run(sg, ctx, claimP) {
 
 /** the reveal's emblem: its real art (js/vault/emblem-art.js) once the owner has APPROVED it in THE CARD LAB (or on his own preview) */
 function upgradeEmblem(box, id, preview) {
-  Promise.all([import('../vault/emblem-art.js'), import('../vault/approved.js')]).then(async ([E, A]) => {
+  Promise.all([lazyImport(import('../vault/emblem-art.js'), '../vault/emblem-art.js'), lazyImport(import('../vault/approved.js'), '../vault/approved.js')]).then(async ([E, A]) => {
     if (!E.hasArt(id)) return;
     if (!preview && !(await A.approvedIds()).has(id)) return;
     box.classList.add('is-art'); box.replaceChildren(E.emblemEl({ id, mode: 'lead', size: 72 }));
@@ -252,7 +253,7 @@ async function bigMoment(sg, { pol, chip, first, preview, still }) {
   // (THE VAULT 1C: the placeholder until the card's REAL scene is approved + in — then its scene, moving: js/vault/full.js#upgradeScene)
   const pairArt = pairCard(sg.id);
   let scene = null;
-  import('../vault/full.js').then(V => V.upgradeScene(pairArt, s.card, { label: 'reveal' })).then(r => { scene = r; }).catch(() => {});
+  lazyImport(import('../vault/full.js'), '../vault/full.js').then(V => V.upgradeScene(pairArt, s.card, { label: 'reveal' })).then(r => { scene = r; }).catch(() => {});
   // (THE VAULT 2B — the owner's reveal check: the two names on ONE line — both tiles the card's height, the art centred in it; the
   //  emblem = its REAL art (the city's own model's outline) once approved in THE CARD LAB — or on the owner's own &sgdemo preview —, the
   //  placeholder glyph until then)

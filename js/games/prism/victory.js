@@ -10,6 +10,7 @@ import { leaderboard, fmtNum } from '../../ui/components.js';
 import { colorHex } from '../../config.js';
 import { standings } from './logic.js';
 import { drawMini } from './board.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 const rushOf = game => !!(game && game.settings && game.settings.mode === 'rush');
@@ -73,7 +74,7 @@ export function finalScene(el, game, state) {
     const r = li && pick[[...list.children].indexOf(li)];
     const who = r && players[r.uid];
     if (!who || !who.pid) return;
-    import('../../profile/player-page.js').then(m => m.openPlayer({ pid: who.pid, row: { n: who.name, a: who.avatar, c: who.color } })).catch(() => {});
+    lazyImport(import('../../profile/player-page.js'), '../../profile/player-page.js').then(m => m.openPlayer({ pid: who.pid, row: { n: who.name, a: who.avatar, c: who.color } })).catch(() => {});
   });
   [...list.children].forEach((li, i) => { const who = players[pick[i].uid]; if (who && who.pid) { li.classList.add('is-open'); li.setAttribute('role', 'button'); li.setAttribute('aria-label', `${who.name} — their card`); } });
   el.append(moment, list);

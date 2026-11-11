@@ -8,6 +8,7 @@ import { xmasPrelude } from '../../core/harbor-xmas.js';
 import { litK } from '../../core/harbor-dark.js';
 import { paradeWindow, paradeUnits } from '../../core/harbor-parade.js';
 import { latchBig, holidayAt, halloweenPieces, dotdPieces, thanksgivingPieces, lightRules, titleHoliday } from '../../core/harbor-holiday.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 // (scene.js's own module-level helpers this code uses — copied)
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -30,7 +31,7 @@ export function createSceneHoliday(C) {
     const H = fw && C.HS.id !== 'halloween' ? { id: 'halloween', phase: 'build', stage: 1, down: 0, days: 30, eve: false } : fd && C.HS.id !== 'dotd' ? { id: 'dotd', phase: 'day', stage: 1, down: 0, days: 1, day: 0, eve: false } : ft && C.HS.id !== 'thanksgiving' ? { id: 'thanksgiving', phase: 'build', stage: 1, down: 0, days: 20, eve: false } : C.HS;
     const P = H === C.HS ? C.HP : H.id === 'halloween' ? { web: 1, spider: true, spider2: true } : H.id === 'thanksgiving' ? { wreath: 1 } : { sign: 1 };
     if (!C.dress) {
-      if (!C.dressLoading && (H.id === 'halloween' || H.id === 'dotd' || H.id === 'thanksgiving')) { C.dressLoading = true; import('./signdress.js').then(m => { if (!C.destroyed) C.dress = m.createSignDress(); }).catch(e => { C.dressLoading = false; console.warn('[harbor] sign dress', e); }); }
+      if (!C.dressLoading && (H.id === 'halloween' || H.id === 'dotd' || H.id === 'thanksgiving')) { C.dressLoading = true; lazyImport(import('./signdress.js'), './signdress.js').then(m => { if (!C.destroyed) C.dress = m.createSignDress(); }).catch(e => { C.dressLoading = false; console.warn('[harbor] sign dress', e); }); }
       return;
     }
     if (C.S.dressHost) C.dress.setHost(C.S.dressHost);
@@ -53,7 +54,7 @@ export function createSceneHoliday(C) {
     if (!C.L || !C.bakeTones || C.clock.force.has('no-holiday-props')) return [];
     const nowS = C.clock.now() / 1000, fp = C.clock.force.has('parade'), w = paradeWindow(nowS, { off: C.LK.local ? C.LK.local.off : 0, forceAt: fp ? C.forceAtOf('parade') : null });
     if (!w || nowS < w.T0 - 5) return [];
-    if (!C.parade) { if (!C.paradeLoading) { C.paradeLoading = true; import('./parade.js').then(m => { if (!C.destroyed) C.parade = m.createParade(); }).catch(e => { C.paradeLoading = false; console.warn('[harbor] parade', e); }); } return []; }
+    if (!C.parade) { if (!C.paradeLoading) { C.paradeLoading = true; lazyImport(import('./parade.js'), './parade.js').then(m => { if (!C.destroyed) C.parade = m.createParade(); }).catch(e => { C.paradeLoading = false; console.warn('[harbor] parade', e); }); } return []; }
     const k = `${Math.round(w.T0)}`; if (k !== C.paraKey) { C.paraKey = k; C.paraUnits = paradeUnits(w); }
     const wd = C.LK.windDir == null ? 250 : C.LK.windDir;
     return C.parade.items({ L: C.L, w, units: C.paraUnits, x0: C.L.speakeasy ? C.L.speakeasy.x1 - 2.6 : -20, t: nowS, T: C.bakeTones, dark: litK(C.DK, 'lamps'), dpr: C.dpr, fade: fadeIn,
@@ -71,7 +72,7 @@ export function createSceneHoliday(C) {
   function hpropsDraw(c, pass, fadeIn, lit) {
     const mon = C.clock.force.has('monarchs');
     if (!C.hprops) {
-      if (!C.hpropsLoading && (C.HS.id || mon || C.treeHeld)) { C.hpropsLoading = true; import('./holidayprops.js').then(m => { if (C.destroyed) return; C.hprops = m.createHolidayProps(); if (C.hprops.onHarvestModel) C.hprops.onHarvestModel(e => C.LOADLOG.add('note', `THE HARVEST MODEL (&prop=model): ${e.state}${e.why ? ` — ${e.why}` : ''}${e.ms ? ` (${e.ms} ms)` : ''}`)); }).catch(e => { C.hpropsLoading = false; console.warn('[harbor] holiday props', e); }); }
+      if (!C.hpropsLoading && (C.HS.id || mon || C.treeHeld)) { C.hpropsLoading = true; lazyImport(import('./holidayprops.js'), './holidayprops.js').then(m => { if (C.destroyed) return; C.hprops = m.createHolidayProps(); if (C.hprops.onHarvestModel) C.hprops.onHarvestModel(e => C.LOADLOG.add('note', `THE HARVEST MODEL (&prop=model): ${e.state}${e.why ? ` — ${e.why}` : ''}${e.ms ? ` (${e.ms} ms)` : ''}`)); }).catch(e => { C.hpropsLoading = false; console.warn('[harbor] holiday props', e); }); }
       return;
     }
     if ((!C.HS.id && !mon) || C.clock.force.has('no-holiday-props') || !C.bakeTones || !C.L) return;

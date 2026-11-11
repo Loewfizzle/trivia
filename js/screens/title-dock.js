@@ -8,6 +8,7 @@ import { state, setState } from '../store.js';
 import { loadProfile } from '../identity.js';
 import { firebaseReady } from '../firebase.js';
 import { createRoom, joinRoom, pendingResume } from '../room.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const tube = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="t">${d}</g><g class="c">${d}</g></svg>`;
 export const ICON = {
@@ -229,8 +230,8 @@ export function createDockWork(T) {
   // page comes back (a finish elsewhere, the 4 am turn). /api down or the switch off → hidden (the pill as it always was)
   let dailyOff = null, dailyDead = false, dailyHeld = null;
   function watchDaily() {
-    import('../daily/today.js').then(async T2 => {
-      const L = await import('../daily/today-logic.js');
+    lazyImport(import('../daily/today.js'), '../daily/today.js').then(async T2 => {
+      const L = await lazyImport(import('../daily/today-logic.js'), '../daily/today-logic.js');
       if (!dock || dailyDead) return;
       dailyHeld = T2.heldRun;
       const paint = t => {
@@ -243,7 +244,7 @@ export function createDockWork(T) {
         if (T.els.dyChip) T.els.dyChip.hidden = cs !== 'show';
         // the ☰ menu's row (THE DAILY SCREEN from anywhere outside a match — the room's way in): only while a daily is live
         const ds = L.dockState(t);
-        Promise.all([import('../ui/settings-panel.js'), import('../ui/components.js')]).then(([S, Cm]) => S.setMenuExtra('dailies', ds.show
+        Promise.all([lazyImport(import('../ui/settings-panel.js'), '../ui/settings-panel.js'), lazyImport(import('../ui/components.js'), '../ui/components.js')]).then(([S, Cm]) => S.setMenuExtra('dailies', ds.show
           ? ({ close }) => Cm.row({ icon: ICON.daily, ic: '#ff6fc8', label: 'The dailies', value: ds.state === 'waiting' ? `${ds.left} LEFT` : 'ALL DONE', cls: 'gm-dailies', onClick: () => { close(); setState({ daily: { v: 'screen' } }); } })
           : null)).catch(() => {});
       };

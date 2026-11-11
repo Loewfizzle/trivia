@@ -13,6 +13,7 @@ import { closeIdleRoom } from './room.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
 import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, loadGame, metaOf } from './games/registry.js';
 import { toast } from './ui/toast.js';
+import { lazyImport } from './ui/lazy-import.js';
 
 // SPEED PASS B — THE SECOND TAB's check (tests: e2e speed.mjs twotabs): this tab's own host writes — the beats + the director's steps
 export const hostStats = { beats: 0, steps: 0 };
@@ -25,7 +26,7 @@ let chatMod = null;
 let chatLoading = false;
 const withChat = fn => {
   if (chatMod) return fn(chatMod);
-  if (!chatLoading) { chatLoading = true; import('./chat/chat.js').then(m => { chatMod = m; }).catch(() => { chatLoading = false; }); }
+  if (!chatLoading) { chatLoading = true; lazyImport(import('./chat/chat.js'), './chat/chat.js').then(m => { chatMod = m; }).catch(() => { chatLoading = false; }); }
   return undefined;
 };
 
@@ -198,7 +199,7 @@ export function startGame(gameId, settings, { quick = false } = {}) {
   return p;
 }
 async function startGameNow(gameId, settings, quick = false) {
-  import('./games/preload.js').then(P => P.wireGame(gameId)).catch(() => {});   // (FRIENDS C — THE SLOW-3G START: its whole graph at once)
+  lazyImport(import('./games/preload.js'), './games/preload.js').then(P => P.wireGame(gameId)).catch(() => {});   // (FRIENDS C — THE SLOW-3G START: its whole graph at once)
   const mod = await loadGame(gameId).catch(() => null);   // (SHELL 2.0 B1 — THE LAZY LOGIC: the cartridge loads on the host's tap; FRIENDS C: its whole graph at once)
   if (!mod || !isHost()) return false;
   // (WINDOWS — ONLY TWO GAMES PLAYABLE: a hidden game never starts — not from a rematch, an invite, a stale link or the console)
@@ -258,7 +259,7 @@ function stampRefused(kind, e) {
   console.warn(kind, e);
   if (refusedSaid || !/permission/i.test(String(e && (e.code || e.message) || e))) return;
   refusedSaid = true;
-  import('./errlog.js').then(m => m.reportError(new Error(`ROOM STAMP REFUSED (${kind}) — the live database rules are older than the code: re-publish database.rules.json (meta/go, meta/back, rv)`), 'rules')).catch(() => {});
+  lazyImport(import('./errlog.js'), './errlog.js').then(m => m.reportError(new Error(`ROOM STAMP REFUSED (${kind}) — the live database rules are older than the code: re-publish database.rules.json (meta/go, meta/back, rv)`), 'rules')).catch(() => {});
 }
 const clearPlayerNodes = () => Object.fromEntries(ALL_PLAYER_NODES.map(n => [n, null]));
 // (OC1 — THE RULES-LAG: the nodes newer than the published rules, in a write of their own — a refusal here never stops a start or a return)

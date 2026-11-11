@@ -10,6 +10,7 @@ import { sanitizeName } from '../core/room-logic.js';
 import { NAME_MAX, COLORS, colorHex } from '../config.js';
 import { toast } from '../ui/toast.js';
 import { sfx } from '../audio/sfx.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 /** the name as it would be saved ('' = not a name) */
 export const cleanName = v => sanitizeName(v, NAME_MAX) || '';
@@ -21,16 +22,16 @@ export async function saveYou(patch) {
   const q = { ...(loadProfile() || {}), ...patch };
   saveProfile(q);
   sfx('lock');
-  if (state.code) import('../room.js').then(m => m.updateMyProfile(q)).catch(() => {});
+  if (state.code) lazyImport(import('../room.js'), '../room.js').then(m => m.updateMyProfile(q)).catch(() => {});
   try { window.dispatchEvent(new CustomEvent('ns:you', { detail: { ...patch } })); } catch { /* fine */ }
-  try { const m = await import('./me.js'); await m.syncMe(); } catch { /* the server catches up on the next visit */ }
+  try { const m = await lazyImport(import('./me.js'), './me.js'); await m.syncMe(); } catch { /* the server catches up on the next visit */ }
   return q;
 }
 
 /** THE SPEED PASS — ONE EDITOR, THE NAME + THE COLOUR (the owner, Nov 4 6:25 pm FINAL): CUSTOMIZE's one EDIT USERNAME row opens this sheet —
  *  the name field, the colour swatches under it, SAVE (only what changed is saved) → onDone({ name, color }, done) */
 export async function openYouEditor(onDone) {
-  const { openPfSheet } = await import('./sheets.js');
+  const { openPfSheet } = await lazyImport(import('./sheets.js'), './sheets.js');
   const q = loadProfile() || {};
   let pick = q.color, s = null;
   const input = h('input.input.input-name.pf-name-in', { type: 'text', maxLength: NAME_MAX, value: q.name || '', autocomplete: 'nickname', autocapitalize: 'off', spellcheck: false, 'aria-label': 'Your username' });

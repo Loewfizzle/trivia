@@ -15,8 +15,9 @@ import { loadBank, bankFor, BANK_TYPES } from './banks.js';
 import { loadLengths, answersFor } from '../cipher/words.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { sealGate, unsealed, mergeSealed } from '../kit/seal.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 // the view loads when a match of this game is on screen (keeps first paint light)
-export const createView = lazyView(() => import('./view.js'), gameSheets('overclock'));
+export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('overclock'));
 
 // boards = the progress (THE SEAL keeps the answers), marks = the per-answer combo marks (OC1), next = the after-challenge taps (OC1)
 export const livePaths = g => ({ boards: `oc/${g.matchId}/${g.ci || 0}`, marks: `ocm/${g.matchId}/${g.ci || 0}`, next: `ocnext/${g.matchId}/${g.ci || 0}` });
@@ -77,7 +78,7 @@ export function preload(opts = {}) {
   try { first = firstPool(opts); } catch { /* */ }
   const fonts = OC_FONT_FILES.map(f => fetch(new URL(`../../../assets/fonts/overclock/${f}.woff2`, import.meta.url)).then(r => r.arrayBuffer()).catch(() => null));
   return Promise.all([
-    import('./sfx.js').then(m => m.ocSfxBytes()).catch(() => null),
+    lazyImport(import('./sfx.js'), './sfx.js').then(m => m.ocSfxBytes()).catch(() => null),
     ...fonts,
     ...OC_CRACK_FILES.map(f => fetch(new URL(`../../../assets/overclock/${f}`, import.meta.url)).then(r => r.arrayBuffer()).catch(() => null)),
     ...OC_PRELOAD_BANKS.map(t => loadBank(t).catch(() => null)),

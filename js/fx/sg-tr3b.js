@@ -9,6 +9,7 @@ import { glow, stamp, rng, wob, clamp01, smooth, lerp } from './kit.js';
 import { drawLaser } from './laser.js';
 import { rrect, fxDiag } from './renderer.js';
 import { city, backdrop, skylineLayer, bakeDpr, stage, failing } from './sg-kit.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const LOOP = 10;
 // (the sky: a moonlit overcast behind the craft — the black triangle reads as a SILHOUETTE against it; the moon itself off the card, upper left)
@@ -40,7 +41,7 @@ function hull(L, len, dpr) {
 export default {
   id: 'sg-tr3b', tier: 'legendary', bleed: 10, stillT: 3.2,
   draw(c, s, t, Q) {
-    const L = city('legends', () => import('../screens/harbor/legends.js'));
+    const L = city('legends', () => lazyImport(import('../screens/harbor/legends.js'), '../screens/harbor/legends.js'));
     const S = stage(s), { w, h, full } = S, dpr = bakeDpr(Q), still = Q.still, rad = s.opts.radius || 12;
     const tt = still ? 3.2 : t, u = (tt % LOOP) / LOOP;
     c.save(); rrect(c, 0, 0, w, h, rad); c.clip();
@@ -150,4 +151,4 @@ function drawCraft(c, L, len, dpr, cx, cy, t, still, pulse, drain, Q, full = fal
   c.restore();
   c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
 }
-export const tr3bReady = () => !!city('legends', () => import('../screens/harbor/legends.js'));
+export const tr3bReady = () => !!city('legends', () => lazyImport(import('../screens/harbor/legends.js'), '../screens/harbor/legends.js'));

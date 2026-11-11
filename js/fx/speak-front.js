@@ -11,8 +11,9 @@
 // paints the city's REAL shadowboxer (screens/harbor/boxer.js — the window standard's bar) live in that pane, each frame.
 import { sprite } from './kit.js';
 import { city } from './sg-kit.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
-const load = () => Promise.all([import('../screens/harbor/speakeasy-geo.js'), import('../screens/harbor/speakeasy-bake.js'), import('../core/harbor-speakeasy.js'), import('../screens/harbor/window-rooms.js')]);
+const load = () => Promise.all([lazyImport(import('../screens/harbor/speakeasy-geo.js'), '../screens/harbor/speakeasy-geo.js'), lazyImport(import('../screens/harbor/speakeasy-bake.js'), '../screens/harbor/speakeasy-bake.js'), lazyImport(import('../core/harbor-speakeasy.js'), '../core/harbor-speakeasy.js'), lazyImport(import('../screens/harbor/window-rooms.js'), '../screens/harbor/window-rooms.js')]);
 /** the front's units: 11.2 across, the crest's top up */
 export const FRONT_W = 11.2;
 
@@ -58,7 +59,7 @@ export function front(k, dpr, o = {}) {
 // (core/harbor-boxer.js#boxerPreview: his round — combinations in the air, bursts on the bag, the bulb swinging), looped over his first
 // round's middle (a 160-s loop: the one cut back is rare + mid-move). Drawn in the front's wall units through the card's painter (the GL
 // look-alike or the 2D fallback), clipped to the glass. Reduced motion: one still pose in his guard.
-const loadBoxer = () => Promise.all([import('../screens/harbor/boxer.js'), import('../core/harbor-boxer.js'), import('../screens/harbor/window-rooms.js')]);
+const loadBoxer = () => Promise.all([lazyImport(import('../screens/harbor/boxer.js'), '../screens/harbor/boxer.js'), lazyImport(import('../core/harbor-boxer.js'), '../core/harbor-boxer.js'), lazyImport(import('../screens/harbor/window-rooms.js'), '../screens/harbor/window-rooms.js')]);
 /** the back room's glass in card px (F from front(); bx, by = where the bake is drawn) — the card's MOVING-PART box for its badge slot */
 export function boxerBox(F, bx, by) {
   const r = F && F.wins && F.wins.find(x => x.id === 'back');

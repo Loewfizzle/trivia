@@ -4,6 +4,7 @@
 // SHELL 2.0 B2: drop() / fresh() — the crew switch live (a stamp on the room: rooms/{CODE}/radioCrew/role/{uid}).
 import { api } from '../../profile/api.js';
 import { firebaseReady } from '../../firebase.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 const KEY = 'nd:rd-role', KEEP_MS = 6 * 3600e3;
 const ss = { get(k) { try { return JSON.parse(sessionStorage.getItem(k) || 'null'); } catch { return null; } }, set(k, v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, JSON.stringify(v)); } catch { /* fine */ } } };
@@ -28,7 +29,7 @@ export function startRadioGate(o) {
         const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/css/radio.css'; l.dataset.rd = '1';
         l.onload = l.onerror = () => res(true); setTimeout(() => res(true), 3000); document.head.append(l);
       });
-      const m = await import('./radio.js');
+      const m = await lazyImport(import('./radio.js'), './radio.js');
       const made = m.createRadio({ role, remote: o.remote, roomCode: o.roomCode, sheetsReady: css, onGone: () => { if (radio === made) { radio = null; ss.set(KEY, null); try { delete window.__radio; } catch { /* fine */ } } } });
       radio = made;
       try { window.__radio = radio; } catch { /* (tests: the desk's debug) */ }

@@ -12,6 +12,7 @@ import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { IMPLODE } from '../../core/harbor-tower.js';
 import { litK } from '../../core/harbor-dark.js';
 import { legendNear } from '../../core/harbor-legend.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 /** C: scene.js's state by getters (+ a setter where this code assigns it): baker, bakeTones, cam, clock, destroyed, DK, dpr, forceSince, L, laneKey, lastT9, legends=, legendsLoading=, legendWant=, linkGoAt=, linkTapAt=, LK, LOADLOG, lookTones, neon, pageClock, people, qp, remoteKey, shownAt, skyline, snd, speak, tier, TWS, W */
 export function createSceneLegend(C) {
@@ -54,7 +55,7 @@ export function createSceneLegend(C) {
   function needLegends() {
     if (C.legends || C.legendsLoading) return;
     C.legendsLoading = true;
-    import('./legends.js').then(m => {
+    lazyImport(import('./legends.js'), './legends.js').then(m => {
       if (C.destroyed) return;
       C.legends = m.createLegends({ clock: C.clock, qp: C.qp }); C.legends.setTier(C.tier);
       if (C.L) C.legends.layout(C.L, legendLayout());

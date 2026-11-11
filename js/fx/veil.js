@@ -5,6 +5,7 @@
 import { glow, stamp, sprite } from './kit.js';
 import { rrect } from './renderer.js';
 import { city } from './sg-kit.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 let bands = null;
 function strands(L) {
@@ -24,7 +25,7 @@ export default {
   id: 'veil', tier: 'rare', bleed: 0, stillT: 4,
   draw(c, s, t, Q) {
     const { w, h } = s, rad = s.opts.radius || 12, full = !!s.opts.full, tt = Q.still ? 4 : t;
-    const A = city('aurora', () => import('../screens/harbor/aurora.js'));
+    const A = city('aurora', () => lazyImport(import('../screens/harbor/aurora.js'), '../screens/harbor/aurora.js'));
     c.save(); rrect(c, 0, 0, w, h, rad); c.clip();
     c.globalCompositeOperation = 'lighter';
     if (!A) { stamp(c, glow('80,255,170', 0.1, 64), w * 0.6, h * 0.6, w, 0.25, h * 0.5); c.restore(); c.globalCompositeOperation = 'source-over'; return; }

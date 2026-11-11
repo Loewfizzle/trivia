@@ -26,6 +26,7 @@ import { reducedMotion } from '../ui/dom.js';
 import { closeAll } from '../ui/layers.js';
 import { startShow, fileInOrder, backShow, voteState, GO_DEAD_MS, goWaiting } from '../core/room-show.js';
 import { createRoomBanner } from './room-banner.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const rgbOf = id => { const x = colorHex(id).replace('#', ''); return [0, 2, 4].map(i => parseInt(x.slice(i, i + 2), 16)); };
 export const FRESH_MS = 12000;      // (a player who joined in the last 12 s walks in, even on a phone seeing the room for the first time)
@@ -40,8 +41,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   // (FRIENDS C — THE SLOW-3G START: the cartridges' module lists fetched now, in the lobby — the start then puts a whole graph on the wire at once)
   //  + THE LOBBY IS THE LOADING TIME: a few seconds in, the playable cartridges' graphs are WIRED (modulepreload — fetched + parsed, never run;
   //  the guests only learn the game at the start, and a slow line needs the lobby's wait) — not on a Save-Data line
-  const wireT = setTimeout(() => { if (navigator.connection && navigator.connection.saveData) return; Promise.all([import('../games/registry.js'), import('../games/preload.js')]).then(([R, P]) => { for (const id of Object.keys(R.META)) P.wireGame(id); }).catch(() => {}); }, (typeof window !== 'undefined' && window.__wireDelay) || 4000);   // (__wireDelay: the slow-3G E2E's hook)
-  import('../games/preload.js').catch(() => {});
+  const wireT = setTimeout(() => { if (navigator.connection && navigator.connection.saveData) return; Promise.all([lazyImport(import('../games/registry.js'), '../games/registry.js'), lazyImport(import('../games/preload.js'), '../games/preload.js')]).then(([R, P]) => { for (const id of Object.keys(R.META)) P.wireGame(id); }).catch(() => {}); }, (typeof window !== 'undefined' && window.__wireDelay) || 4000);   // (__wireDelay: the slow-3G E2E's hook)
+  lazyImport(import('../games/preload.js'), '../games/preload.js').catch(() => {});
   let st = state, destroyed = false, raf = 0, dock = null, lastRoster = '';
   const tags = new Map();            // uid → { el, emb, name, bubble, sig, nameUntil }
   const layer = h('div.rc-tags', { 'aria-label': 'The room' });
@@ -58,14 +59,14 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
       // (LOBBY 2.0 B — THE REMATCH RING: the host's tap = the same game + settings, everyone in (incl. late joiners — host.js#rematch); a
       //  guest's tap = their VOTE (again = take it back); nothing ever starts by itself)
       const vs = voteNow();
-      if (vs.on) { if (isHost()) { sfx('select'); import('../host.js').then(m => m.rematch()).catch(() => {}); } else toggleVote(vs); return; }
+      if (vs.on) { if (isHost()) { sfx('select'); lazyImport(import('../host.js'), '../host.js').then(m => m.rematch()).catch(() => {}); } else toggleVote(vs); return; }
       if (!isHost()) { toast(`Waiting for ${hostName()} to start`, 'info'); return; }
       sfx('select'); openGames(true);
     },
-    you: () => { sfx('select'); import('./profile.js').then(m => m.openCard()); },
+    you: () => { sfx('select'); lazyImport(import('./profile.js'), './profile.js').then(m => m.openCard()); },
     guests: () => { sfx('select'); openGuests(); },
     games: () => { sfx('select'); ngTapped(); openGames(isHost()); },
-    chat: () => { sfx('tap'); import('../chat/ui.js').then(m => m.openChat()); },
+    chat: () => { sfx('tap'); lazyImport(import('../chat/ui.js'), '../chat/ui.js').then(m => m.openChat()); },
     note: () => onNote(),
   });
   if (dockHost) dockHost.append(dock.els.door);
@@ -78,7 +79,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   // (the system share sheet needs the tap's own gesture — never after a network wait); the list is fetched when the room opens.
   let frMod = null;
   let offFr = null;
-  import('../profile/friends.js').then(m => { if (destroyed) return; frMod = m; offFr = m.onFriends(() => paintFriends()); m.loadFriends().then(() => paintFriends()).catch(() => {}); }).catch(() => {});
+  lazyImport(import('../profile/friends.js'), '../profile/friends.js').then(m => { if (destroyed) return; frMod = m; offFr = m.onFriends(() => paintFriends()); m.loadFriends().then(() => paintFriends()).catch(() => {}); }).catch(() => {});
   // (THE GREEN DOT — ONLINE STATUS = NONE everywhere else: a FRIEND here, in this room with you, online — a dot on their emblem)
   function paintFriends() {
     if (!frMod || destroyed) return;
@@ -90,9 +91,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const S = frMod && frMod.friendsNow();
     if (!S || !S.friends.length || invSheet) { shareLink(); return; }
     invited(true); closeHostCard(); paintDock();
-    import('../audio/lobby-sfx.js').then(m => m.lobbySfx('invite')).catch(() => {});
+    lazyImport(import('../audio/lobby-sfx.js'), '../audio/lobby-sfx.js').then(m => m.lobbySfx('invite')).catch(() => {});
     const here = new Set(Object.values(players()).map(p => p && p.pid).filter(Boolean));
-    Promise.all([import('../profile/friends-ui.js'), import('../profile/sheets.js')]).then(([F, { openPfSheet }]) => {
+    Promise.all([lazyImport(import('../profile/friends-ui.js'), '../profile/friends-ui.js'), lazyImport(import('../profile/sheets.js'), '../profile/sheets.js')]).then(([F, { openPfSheet }]) => {
       if (destroyed) return;
       invSheet = openPfSheet({ kicker: `THE HUSH WORD IS ${code()}`, title: 'INVITE', cls: 'fr-invite-sheet', body: F.inviteFriendsBlock({ code: code(), here, share: () => shareLink(true) }), onClose: () => { invSheet = null; } });
     }).catch(() => shareLink());
@@ -100,7 +101,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   async function shareLink(quiet = false) {
     invited(true); closeHostCard(); paintDock();
     const url = inviteUrl(), text = `Get in here — the hush word is ${code()}`;
-    if (!quiet) import('../audio/lobby-sfx.js').then(m => m.lobbySfx('invite')).catch(() => {});
+    if (!quiet) lazyImport(import('../audio/lobby-sfx.js'), '../audio/lobby-sfx.js').then(m => m.lobbySfx('invite')).catch(() => {});
     if (navigator.share) { try { await navigator.share({ title: APP_NAME, text, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
     try { await navigator.clipboard.writeText(url); toast('Invite link copied', 'ok', { sub: `The hush word is ${code()}.` }); } catch { toast(`The hush word is ${code()}`, 'info', 6000); }
   }
@@ -146,15 +147,15 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   let gamesOpen = null;
   async function openGames(asHost) {
     if (gamesOpen) return;
-    const { openPfSheet } = await import('../profile/sheets.js');
+    const { openPfSheet } = await lazyImport(import('../profile/sheets.js'), '../profile/sheets.js');
     const games = GAMES.filter(g => g.playable);
-    const { gameArt } = await import('../ui/game-art.js');
+    const { gameArt } = await lazyImport(import('../ui/game-art.js'), '../ui/game-art.js');
     const list = h('div.rc-games', ...games.map(g => h('button.rc-game', { type: 'button', dataset: { theme: g.theme, game: g.id }, onclick: () => {
       if (!asHost || !isHost()) { openHelp(g.id); return; }
       // (SHELL 2.0 B1: the options open ON the picker — ‹ = back to the games, × = both)
       // (the host picks ANOTHER game after a match: the REMATCH ring goes back to PLAY + every vote clears)
       if (st.meta && st.meta.back && st.meta.back.rm) dbUpdate(dbRef(`rooms/${code()}`), { 'meta/back/rm': false, rv: null }).catch(() => {});
-      import('./game-options.js').then(m => m.openGameOptions(g, { meta: st.meta }));
+      lazyImport(import('./game-options.js'), './game-options.js').then(m => m.openGameOptions(g, { meta: st.meta }));
     } }, h('span.rc-game-art', gameArt(g.id) || ''), h('span.rc-game-t', h('small', g.tag), h('b', g.name), h('span', g.blurb)), h('i.rc-game-go', '›'))));
     const s = openPfSheet({ kicker: asHost && isHost() ? 'YOU’RE THE HOST' : `${hostName().toUpperCase()} PICKS THE GAME`, title: asHost && isHost() ? 'PICK A GAME' : 'THE GAMES', cls: 'rc-games-sheet',
       body: [list, h('p.sh-note.is-small', asHost && isHost() ? 'Pick one, set it up, then INITIATE — everyone in the line is dealt in.' : 'Tap one to read how it plays while you wait.')],
@@ -172,7 +173,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     seen = new Set(Object.keys(players())); saveSeen(); paintDock();
     if (guestsUi) return;
     guestsUi = { pending: true };
-    import('./room-guests.js').then(m => m.openGuestList({ get st() { return st; }, openCard: openPlayerCard, onClose: () => { guestsUi = null; } })).then(g => { if (destroyed) { g.close(); return; } guestsUi = g; }).catch(e => { guestsUi = null; console.warn('guests', e); });
+    lazyImport(import('./room-guests.js'), './room-guests.js').then(m => m.openGuestList({ get st() { return st; }, openCard: openPlayerCard, onClose: () => { guestsUi = null; } })).then(g => { if (destroyed) { g.close(); return; } guestsUi = g; }).catch(e => { guestsUi = null; console.warn('guests', e); });
   }
 
   // ---------------------------------------------------------------- a player's card (a tap on their figure or their strip)
@@ -183,23 +184,23 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const p = players()[uid]; if (!p) return;
     popName(uid, TAP_NAME_MS);
     const pub = st.pub && p.pid ? st.pub[p.pid] : null;
-    const crew = uid !== st.uid ? await import('./crew-row.js').then(m => (m.isOwnerPhone() ? m.crewRow(uid) : null)).catch(() => null) : null;
+    const crew = uid !== st.uid ? await lazyImport(import('./crew-row.js'), './crew-row.js').then(m => (m.isOwnerPhone() ? m.crewRow(uid) : null)).catch(() => null) : null;
     // (SHELL 2.0 B2 — MAKE HOST: the host's phone, another player, in the room — the second tap confirms; offline → said, not offered)
     const mk = uid !== st.uid && isHost() && !(st.meta && st.meta.status === 'playing') ? makeHostRow(uid, p) : null;
     // (FRIENDS A — ADD FRIEND on any player's card: a request they accept; REQUESTED / FRIENDS once it's sent / taken)
-    const fb = uid !== st.uid && p.pid ? await import('../profile/friends-ui.js').then(m => m.friendButton({ pid: p.pid }, { name: p.name })).catch(() => null) : null;
+    const fb = uid !== st.uid && p.pid ? await lazyImport(import('../profile/friends-ui.js'), '../profile/friends-ui.js').then(m => m.friendButton({ pid: p.pid }, { name: p.name })).catch(() => null) : null;
     const foot = crew || mk || fb ? h('div.rc-foot', fb, mk, crew) : null;
     // (BOARD 2.0 B — THE PLAYER PAGE: another player with a profile → their page (the card, LV, the medals, the friend button, ⋯) with the room's
     //  own rows under it (MAKE HOST, the owner's CREW); you, or a player with no profile → the card as before)
-    if (uid !== st.uid && p.pid) { import('../profile/player-page.js').then(m => m.openPlayer({ pid: p.pid, row: { ...(pub || {}), n: (pub && pub.n) || p.name, a: (pub && pub.a) || p.avatar, c: (pub && pub.c) || p.color } }, { extra: mk || crew ? [h('div.rc-foot', mk, crew)] : [] })).catch(() => {}); return; }
+    if (uid !== st.uid && p.pid) { lazyImport(import('../profile/player-page.js'), '../profile/player-page.js').then(m => m.openPlayer({ pid: p.pid, row: { ...(pub || {}), n: (pub && pub.n) || p.name, a: (pub && pub.a) || p.avatar, c: (pub && pub.c) || p.color } }, { extra: mk || crew ? [h('div.rc-foot', mk, crew)] : [] })).catch(() => {}); return; }
     if (pub && pub.cd && pub.cd !== 'card-gilded') {
       try {
-        const F = await import('../vault/full.js');
-        if (await F.canShowFull(pub.cd)) { const { levelOf } = await import('../core/levels.js'); const { memberLabel } = await import('../core/member.js');
+        const F = await lazyImport(import('../vault/full.js'), '../vault/full.js');
+        if (await F.canShowFull(pub.cd)) { const { levelOf } = await lazyImport(import('../core/levels.js'), '../core/levels.js'); const { memberLabel } = await lazyImport(import('../core/member.js'), '../core/member.js');
           F.openFullCard(pub.cd, { name: pub.n || p.name, lv: levelOf(pub.x || 0), avatar: pub.a || p.avatar, color: pub.c || p.color, at: pub.at, no: memberLabel(pub.mn), fd: !!pub.fd, shape: pub.es, tube: pub.tb, glow: pub.g, foot }); return; }
       } catch { /* the gilded card below */ }
     }
-    const [{ openPfSheet }, { memberCard }] = await Promise.all([import('../profile/sheets.js'), import('./profile.js')]);
+    const [{ openPfSheet }, { memberCard }] = await Promise.all([lazyImport(import('../profile/sheets.js'), '../profile/sheets.js'), lazyImport(import('./profile.js'), './profile.js')]);
     openPfSheet({ kicker: uid === st.uid ? 'YOUR CARD' : 'THEIR CARD', title: String(p.name || '').toUpperCase(), cls: 'rc-card-sheet', body: [memberCard(pub, { name: p.name, color: p.color, avatar: p.avatar }, pub ? pub.x : 0), foot] });
   }
 
@@ -207,7 +208,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const online = isOnline(st.presence, uid);
     return row({ icon: 'crown', ic: '#ffd977', label: 'Make host', sub: online ? `${String(p.name || 'They').toUpperCase()} runs the room from here` : 'Offline — they need to be here', cls: 'rc-mkhost',
       attrs: online ? {} : { disabled: true }, confirm: online ? 'TAP AGAIN TO HAND OVER' : null,
-      onClick: online ? async () => { const r = await import('../room.js').then(m => m.makeHost(uid)); if (r !== true) toast(r, 'warn'); else closeAll(); } : null });
+      onClick: online ? async () => { const r = await lazyImport(import('../room.js'), '../room.js').then(m => m.makeHost(uid)); if (r !== true) toast(r, 'warn'); else closeAll(); } : null });
   }
 
   // ---------------------------------------------------------------- the tags over the heads (the emblem · the name · the typing bubble)
@@ -253,7 +254,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
         T.el.style.setProperty('--c', colorHex(p.color));
         T.el.setAttribute('aria-label', `${p.name}${uid === (st.meta && st.meta.hostId) ? ' (host)' : ''} — their card`);
         T.emb.replaceChildren(avatar(p.avatar, p.color, 18));
-        if (pub && pub.es) import('../vault/emblem-art.js').then(m => { if (T.sig !== sig || !m.hasArt(pub.es)) return; T.emb.replaceChildren(m.emblemEl({ id: pub.es, avatar: p.avatar, color: p.color, tube: pub.tb, mode: 'quiet' })); }).catch(() => {});
+        if (pub && pub.es) lazyImport(import('../vault/emblem-art.js'), '../vault/emblem-art.js').then(m => { if (T.sig !== sig || !m.hasArt(pub.es)) return; T.emb.replaceChildren(m.emblemEl({ id: pub.es, avatar: p.avatar, color: p.color, tube: pub.tb, mode: 'quiet' })); }).catch(() => {});
       }
     }
     // (a tag whose player left: kept while they walk off — the city still draws them — then removed in the frame loop)
@@ -299,7 +300,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
 
   // ---------------------------------------------------------------- the dock's state + the notes
   let chatMod = null, offChat = null;
-  import('../chat/chat.js').then(m => { if (destroyed) return; chatMod = m; offChat = m.onChat(() => { paintDock(); paintBubbles(); }); paintDock(); }).catch(() => {});
+  lazyImport(import('../chat/chat.js'), '../chat/chat.js').then(m => { if (destroyed) return; chatMod = m; offChat = m.onChat(() => { paintDock(); paintBubbles(); }); paintDock(); }).catch(() => {});
   function paintDock() {
     if (!dock || destroyed) return;
     const P = players(), me = P[st.uid] || {}, ids = Object.keys(P);
@@ -313,7 +314,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
       // OWN flag on its player node (players/{uid}/dy — js/daily/room-flag.js), read live from the mirrored room; was a 20 s poll of /api
       mid: ids.filter(u => u !== st.uid && P[u] && P[u].dy === true).length });
     // (this phone's own flag: a run held / open while in the room — kept honest on every room update, e.g. the join with a hold from before)
-    import('../daily/room-flag.js').then(m => { if (!destroyed) m.syncMidFlag(m.wantFlag(), st); }).catch(() => {});
+    lazyImport(import('../daily/room-flag.js'), '../daily/room-flag.js').then(m => { if (!destroyed) m.syncMidFlag(m.wantFlag(), st); }).catch(() => {});
   }
   function paintBubbles() {
     const ty = chatMod ? chatMod.chat.typing || {} : {}, now = serverNow();
@@ -366,7 +367,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const veil = h('div.rc-veil', { 'aria-hidden': 'true' });
     const tonight = h('div.rc-tonight', { 'aria-hidden': 'true' }, h('small.rc-tonight-k', 'TONIGHT'), h('div.rc-tonight-logo'));
     goFx = { m: ss.m, len: ss.len, veil, tonight };
-    import('../ui/tube-logo.js').then(T => {
+    lazyImport(import('../ui/tube-logo.js'), '../ui/tube-logo.js').then(T => {
       if (!goFx || goFx.m !== ss.m) return;
       const box = goFx.tonight.lastChild;
       box.innerHTML = T.gameLogoSvg(g, { id: `rcg-${g.id}`, lit: true, premium: true, tint: T.NEON_PINK });
@@ -380,13 +381,13 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     document.body.append(veil);
     document.body.classList.add('rc-going');
     // (the sign's own recorded neon — a dropout as NEON goes out, a catch as the game's sign ignites; only from the start itself, never a refresh)
-    if (age < 300 && !reducedMotion()) import('../audio/ambience.js').then(A => { A.neonDropout({ level: quick ? 0.45 : 0.7 }); goFx && (goFx.catchT = setTimeout(() => A.neonCatch({ level: 0.6, dur: 0.9 }), Math.max(0, (quick ? 120 : ss.sign + 150) - age))); }).catch(() => {});
+    if (age < 300 && !reducedMotion()) lazyImport(import('../audio/ambience.js'), '../audio/ambience.js').then(A => { A.neonDropout({ level: quick ? 0.45 : 0.7 }); goFx && (goFx.catchT = setTimeout(() => A.neonCatch({ level: 0.6, dur: 0.9 }), Math.max(0, (quick ? 120 : ss.sign + 150) - age))); }).catch(() => {});
     for (const gs of [gamesOpen, guestsUi]) if (gs && gs.close) gs.close();
     closeHostCard();
     closeAll();   // (FR6 FIXES A — B1: EVERY sheet + overlay on every phone — the profile, CUSTOMIZE, the full card, ☰, HOW TO PLAY…; never one over the match)
     // (THE CARTRIDGE PLUG — its loading: the walk inside is the console's loading time on EVERY phone — the view module + its sheets warm,
     //  the game's own preload (pools, sounds) runs; the city is still drawing, so nothing heavy is BUILT here — only fetched)
-    import('../games/preload.js').then(P => P.preloadGame(ss.g)).then(mod => { if (!mod) return;   // (FRIENDS C: the whole graph at once — never a waterfall)   // (SHELL 2.0 B1: every phone LOADS the cartridge here — the walk inside)
+    lazyImport(import('../games/preload.js'), '../games/preload.js').then(P => P.preloadGame(ss.g)).then(mod => { if (!mod) return;   // (FRIENDS C: the whole graph at once — never a waterfall)   // (SHELL 2.0 B1: every phone LOADS the cartridge here — the walk inside)
       if (mod.createView && mod.createView.warm) mod.createView.warm(); if (typeof mod.preload === 'function') { try { mod.preload({ settings: (st.meta && st.meta.settings && st.meta.settings[ss.g]) || mod.DEFAULT_SETTINGS || {}, host: isHost() }); } catch (e) { console.warn('preload', e); } } }).catch(() => {});
   }
   const diedSaid = new Set();
@@ -436,7 +437,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
       lastRoster = key;
       if (scene && scene.room) scene.room(list);
       // (a new guest: their name pops as they arrive; the friend's clink — room-guests / lobby-sfx — Group 2)
-      for (const q of list) if (before.size && !before.has(q.uid)) { popName(q.uid, NAME_MS + 6000); if (q.uid !== st.uid) import('../audio/lobby-sfx.js').then(m => m.lobbySfx('friend')).catch(() => {}); }
+      for (const q of list) if (before.size && !before.has(q.uid)) { popName(q.uid, NAME_MS + 6000); if (q.uid !== st.uid) lazyImport(import('../audio/lobby-sfx.js'), '../audio/lobby-sfx.js').then(m => m.lobbySfx('friend')).catch(() => {}); }
       if (!before.size) for (const q of list) if (q.fresh) popName(q.uid, NAME_MS + 8000);
     }
     if (scene && scene.hush) scene.hush(st.code);

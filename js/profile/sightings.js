@@ -6,6 +6,7 @@
 //   flushSightings() → the queued claims' answers (each that unlocked something says so: a toast)
 import { api } from './api.js';
 import { myPid } from './me.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const QKEY = 'nd:sg-q', QMAX = 20, QAGE = 12 * 3600e3;
 const readQ = () => { try { const v = JSON.parse(localStorage.getItem(QKEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
@@ -52,7 +53,7 @@ export function flushSightings() {
 /** a queued sighting that unlocked its pair later: a quiet toast + the bell (the reveal plays only live) */
 async function told(r, id) {
   try {
-    const [{ SIGHTING }, { toast }, { pgSfx }] = await Promise.all([import('../core/sightings.js'), import('../ui/toast.js'), import('../audio/progress-sfx.js')]);
+    const [{ SIGHTING }, { toast }, { pgSfx }] = await Promise.all([lazyImport(import('../core/sightings.js'), '../core/sightings.js'), lazyImport(import('../ui/toast.js'), '../ui/toast.js'), lazyImport(import('../audio/progress-sfx.js'), '../audio/progress-sfx.js')]);
     const s = SIGHTING[id];
     if (!s || !r.first) return;
     toast(`SPOTTED · ${s.name}`, 'ok', 4800);

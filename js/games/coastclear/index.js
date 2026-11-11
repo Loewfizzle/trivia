@@ -6,13 +6,14 @@ export * from './meta.js';
 import { emptyView } from './logic.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { result } from './daily.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 export { daily } from './daily.js';
 export { createApiJudge } from './judge.js';
 /** DFIX3 — THE ONE-TIME HINT (the owner, Nov 8: the practice harbor CUT): one line under the board on a player's FIRST COAST CLEAR only (config.js#DAILIES
  *  lesson: true; the DAILY screen's run host hands it in as state.hint and marks it seen on the server once the first number lands — pstats/{pid}/ls) */
 export const HINT = 'EACH NUMBER = SEARCHLIGHTS TOUCHING THAT SQUARE';
 
-export const createView = lazyView(() => import('./view.js'), gameSheets('coastclear'));
+export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('coastclear'));
 
 /** a room match of COAST CLEAR never starts (a DAILIES row); the shell a daily run lives in: one player, one run (its board on the server) */
 export async function start({ matchId, participants, now }) {

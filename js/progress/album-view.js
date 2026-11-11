@@ -6,6 +6,7 @@ import { takeLayer } from '../ui/layers.js';
 import { h } from '../ui/dom.js';
 import { ITEM } from '../core/items.js';
 import { cardVars, pctFor, pctLine } from './look.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 let sheetP = null;
@@ -40,7 +41,7 @@ export function albumSection(stats) {
 }
 /** the whole album in a pop-up (every sighting, newest first) */
 export async function openAlbumSheet(stats) {
-  const { openPfSheet } = await import('../profile/sheets.js');
+  const { openPfSheet } = await lazyImport(import('../profile/sheets.js'), '../profile/sheets.js');
   const own = ownedSightings(stats).sort((a, b) => b.at - a.at);
   return openPfSheet({ kicker: `${own.length} SPOTTED · NEWEST FIRST`, title: 'CITY SIGHTINGS', body: [albumGrid(own)], cls: 'pf-album-sheet' });
 }
@@ -59,10 +60,10 @@ function albumGrid(own) {
   });
   // this device's photos (IndexedDB — async; a tile keeps its card until its photo arrives); no photo here → the card's SCENE (THE VAULT 1C,
   // once approved — one surface each, only the tiles without a print)
-  Promise.all([import('../profile/album.js'), sheet()]).then(([A]) => A.photos().then(list => {
+  Promise.all([lazyImport(import('../profile/album.js'), '../profile/album.js'), sheet()]).then(([A]) => A.photos().then(list => {
     for (const T of tiles.values()) {
       const mine = list.filter(p => p.id === T.s.id).sort((a, b) => a.t - b.t);
-      if (!mine.length) { import('../vault/full.js').then(V => V.upgradeScene(T.ph, T.s.card, { label: 'album' })).catch(() => {}); continue; }
+      if (!mine.length) { lazyImport(import('../vault/full.js'), '../vault/full.js').then(V => V.upgradeScene(T.ph, T.s.card, { label: 'album' })).catch(() => {}); continue; }
       T.photos = mine;
       const first = mine.find(p => p.first) || mine[0];
       T.art.replaceChildren(print(A.photoUrl(first), capOf(first.t), T.tilt));
@@ -76,11 +77,11 @@ function albumGrid(own) {
 /** one sighting big: this device's print(s) — or its card + the date */
 async function openBig(s, T) {
   await sheet();
-  let A = null; try { A = await import('../profile/album.js'); } catch { /* fine */ }
+  let A = null; try { A = await lazyImport(import('../profile/album.js'), '../profile/album.js'); } catch { /* fine */ }
   const photos = (T && T.photos) || [];
   const show = h('div.sg-big-show');
   let scene = null;
-  const pick = p => { if (scene) { scene.surface.destroy(); scene = null; } const ph = p ? null : cardArt(s); show.replaceChildren(p ? print(A.photoUrl(p), capOf(p.t), -1.5) : ph); if (ph) import('../vault/full.js').then(V => V.upgradeScene(ph, s.card, { label: 'album-big' })).then(r => { scene = r; }).catch(() => {}); };
+  const pick = p => { if (scene) { scene.surface.destroy(); scene = null; } const ph = p ? null : cardArt(s); show.replaceChildren(p ? print(A.photoUrl(p), capOf(p.t), -1.5) : ph); if (ph) lazyImport(import('../vault/full.js'), '../vault/full.js').then(V => V.upgradeScene(ph, s.card, { label: 'album-big' })).then(r => { scene = r; }).catch(() => {}); };
   pick(photos[0] || null);
   const thumbs = photos.length > 1 ? h('div.sg-big-thumbs', ...photos.map(p => h('button.sg-big-th', { type: 'button', onclick: () => pick(p), 'aria-label': `the print from ${capOf(p.t).date}` }, h('img', { src: A.photoUrl(p), alt: '' })))) : null;
   const x = h('button.btn.btn-primary.sg-x', { type: 'button' }, 'CLOSE');

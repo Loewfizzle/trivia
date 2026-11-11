@@ -8,6 +8,7 @@
 // itself (the passkey lives in the phone's keychain — iCloud Keychain syncs it across Apple devices; a Windows / Android device uses the
 // iPhone by the browser's QR code). Every failure is a readable ApiFail-like error; a cancel says so quietly.
 import { api, ApiFail } from './api.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 export const passkeysOk = () => typeof window !== 'undefined' && !!window.PublicKeyCredential && !!navigator.credentials && window.isSecureContext !== false;
 export function pkWord() {
@@ -85,7 +86,7 @@ export async function signInWithPasskey({ onRetry } = {}) {
     if (e instanceof ApiFail && e.code === 'pk_unknown') { try { window.PublicKeyCredential.signalUnknownCredential && await window.PublicKeyCredential.signalUnknownCredential({ rpId: o.rpId, credentialId: cred.id }); } catch { /* fine */ } }
     throw e;
   }
-  const { adoptCard } = await import('./me.js');
+  const { adoptCard } = await lazyImport(import('./me.js'), './me.js');
   adoptCard(out, null);
   return out;
 }

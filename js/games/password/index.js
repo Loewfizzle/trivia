@@ -4,10 +4,11 @@
 export * from './meta.js';
 import { createRun, resultOf, scoreOf } from './logic.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 export { daily } from './daily.js';
 export { createApiJudge } from './judge.js';   // (DM2 — THE DAILY SCREEN's run host wraps it: it hears the start + the finish)
 
-export const createView = lazyView(() => import('./view.js'), gameSheets('password'));
+export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('password'));
 
 /** a room match of THE PASSWORD never starts (playable: false); the shell a daily run lives in: one player, one run (its words on the server) */
 export async function start({ matchId, participants, now }) {

@@ -5,6 +5,7 @@
 // body[data-look="day|night"] while a match is on screen; games draw NO switch of their own and READ the look live (CSS: body[data-look="day"]
 // …, JS: document.body.dataset.look + the 'ns-look' event). The city is untouched.
 //   LOOKS · LOOK_LABEL · savedLook() · saveLook(l) (fires 'ns-look') · resolveLook(choice, sunUp) → 'day' | 'night' · sunUpNow(ms)
+import { lazyImport } from '../../ui/lazy-import.js';
 export const LOOKS = Object.freeze(['auto', 'day', 'night']);
 export const LOOK_LABEL = Object.freeze({ auto: 'AUTO', day: 'DAY', night: 'NIGHT' });
 export const LOOK_EVENT = 'ns-look';
@@ -24,7 +25,7 @@ export const resolveLook = (choice, sunUp) => (choice === 'day' || choice === 'n
 /** is the sun up now at this phone's place? (core/sky.js — the city's own sun: its day + golden + dawn light) */
 export async function sunUpNow(ms) {
   try {
-    const S = await import('../../core/sky.js');
+    const S = await lazyImport(import('../../core/sky.js'), '../../core/sky.js');
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const L = S.look(ms, tz), w = L.w || {};
     return (w.day || 0) + (w.golden || 0) + (w.dawn || 0) >= 0.5;

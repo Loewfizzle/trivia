@@ -12,6 +12,7 @@ import { state } from '../store.js';
 import { notes, setNotes } from './me.js';
 
 import { keyPopDecide } from '../core/keypop.js';
+import { lazyImport } from '../ui/lazy-import.js';
 export { keyPopDecide };
 const matchesNow = () => { const m = loadMe(), n = notes(); const server = m && m.uid === state.uid && m.profile && typeof m.profile.m === 'number' ? m.profile.m : 0; return Math.max(server, n.games || 0); };
 export const keyPopState = () => { const n = notes(); return keyPopDecide({ key: loadKey(), saved: !!n.saved, kp: n.kp || null, matches: matchesNow() }); };
@@ -40,7 +41,7 @@ export function maybeKeyPop({ why = '', busy = null } = {}) {
 }
 
 async function show(why) {
-  const [{ openPfSheet }, { memberCard }, B, { h }] = await Promise.all([import('./sheets.js'), import('../screens/profile.js'), import('./bring.js'), import('../ui/dom.js')]);
+  const [{ openPfSheet }, { memberCard }, B, { h }] = await Promise.all([lazyImport(import('./sheets.js'), './sheets.js'), lazyImport(import('../screens/profile.js'), '../screens/profile.js'), lazyImport(import('./bring.js'), './bring.js'), lazyImport(import('../ui/dom.js'), '../ui/dom.js')]);
   if (open || keyPopState() !== 'show') return;
   B.bringCss();
   setNotes({ kp: 'shown' });   // (once: from here on, closing it any way = the dot until it's saved)

@@ -35,6 +35,7 @@ import { createIntercomDesk } from './radio-intercom.js';
 import { state as store, subscribe } from '../../store.js';
 import { avatar } from '../../ui/components.js';
 import { toast } from '../../ui/toast.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 const ORDER_KEY = 'nd:rd-order', AUD_KEY = 'nd:rd-aud', BAND_KEY = 'nd:rd-band';
 const ls = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fine */ } } };
@@ -106,7 +107,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   //  one he scheduled before a reload plays at its time; intercom.js keeps one copy per id)
   function feedIntercom() {
     const L = ((st && st.intercom) || []).filter(m => m.aud === 'me' && m.state !== 'stopped' && m.until > serverNow());
-    if (L.length) import('../../audio/intercom.js').then(m => m.intercomFeed('desk', L)).catch(() => {});
+    if (L.length) lazyImport(import('../../audio/intercom.js'), '../../audio/intercom.js').then(m => m.intercomFeed('desk', L)).catch(() => {});
   }
   async function act(body, okSound) {
     busy = true;
@@ -499,7 +500,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     sheet.scrollTop = keep;
   }
   async function face(id) {
-    if (!faces[id]) { try { const m = await import(id === 'program' ? './radio-program.js' : './radio-ledger.js'); faces[id] = m; } catch (e) { console.warn('[radio]', id, e); } }
+    if (!faces[id]) { try { const m = await lazyImport(import(id === 'program' ? './radio-program.js' : './radio-ledger.js'), 'id === program ? ./radio-program.js : ./radio-ledger.js'); faces[id] = m; } catch (e) { console.warn('[radio]', id, e); } }
     return faces[id];
   }
   // (CITY FIXES — THE TAP WATCH: the desk is never rebuilt under a finger — a poll / a timer / the intercom's headline suggestion (900 ms

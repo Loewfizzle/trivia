@@ -16,6 +16,7 @@ import { createApiJudge } from './judge.js';
 import { createDoors } from './doors.js';
 import { pwSfx, pwSfxBytes } from './sfx.js';
 import { createRun, applyGuess, canGuess, keyStates, scoreOf, doorOf, headline, failLine, fmtTime, shareLine, DOOR_NAMES, DOORS, GUESSES, WORD_LEN, HIT, NEAR } from './logic.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 export const FLIP_STEP_MS = 250;      // the tiles flip one by one, this far apart (the owner: ~0.25 s)
 export const FLIP_MS = 500;
@@ -247,7 +248,7 @@ export function createView() {
   /** SHARE (PW2 — share.js, lazy): the image + the one line; the plain line if the card can't be made */
   async function share() {
     const line = shareLine(run, runDayKey());
-    await shareOrLine(async () => (await import('./share.js')).shareRun({ run, line, look: document.body.dataset.look || 'night', root }), line);
+    await shareOrLine(async () => (await lazyImport(import('./share.js'), './share.js')).shareRun({ run, line, look: document.body.dataset.look || 'night', root }), line);
   }
 
   /** the run from the server (a mount, a resume, a re-sync after an out-of-step answer) */

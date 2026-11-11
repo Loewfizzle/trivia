@@ -4,6 +4,7 @@ import { gameArtSvg } from './game-art.js';
 import { h } from './dom.js';
 import { openSheet } from './sheet.js';
 import { GAMES } from '../config.js';
+import { lazyImport } from './lazy-import.js';
 
 // Each game: a one-line goal, then short scannable sections. Keep them phone-sized.
 const RULES = {
@@ -380,7 +381,7 @@ function body(id) {
         ? h('ul.help-legend', LEGEND.map(([s, ch, label]) => h('li', h('span.help-tile', { dataset: { s } }, ch), h('span', label))))
         : items === 'holdem-rankings'
           // (HE3 — the 10 hands best → worst, each with a tiny example: the cartridge's own sheet, loaded on the tap)
-          ? h('button.btn.btn-ghost.btn-sm.help-more', { type: 'button', onclick: () => import('../games/holdem/rankings.js').then(m => m.openRankings()).catch(() => {}) }, 'SEE THE HAND RANKINGS')
+          ? h('button.btn.btn-ghost.btn-sm.help-more', { type: 'button', onclick: () => lazyImport(import('../games/holdem/rankings.js'), '../games/holdem/rankings.js').then(m => m.openRankings()).catch(() => {}) }, 'SEE THE HAND RANKINGS')
           : h('ul.help-list', items.map(t => h('li', t))))),
   ];
 }

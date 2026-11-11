@@ -22,6 +22,7 @@ import * as overclockMeta from './overclock/meta.js';
 import * as prismMeta from './prism/meta.js';
 import { state } from '../store.js';
 import { unsealed } from './kit/seal.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const LOADERS = {
   cipher: () => import('./cipher/index.js'), signal: () => import('./signal/index.js'), overclock: () => import('./overclock/index.js'),
@@ -39,7 +40,7 @@ const pending = {}, loadedFns = new Set();
 export function loadGame(id) {
   if (GAME_MODULES[id]) return Promise.resolve(GAME_MODULES[id]);
   if (!LOADERS[id]) return Promise.resolve(null);
-  return (pending[id] ||= LOADERS[id]().then(m => {
+  return (pending[id] ||= lazyImport(LOADERS[id](), `games/${id}`).then(m => {   // (LOAD FIX 4: the skew wrapper)
     GAME_MODULES[id] = m;
     for (const fn of [...loadedFns]) { try { fn(id, m); } catch (e) { console.warn('[registry] onGameLoaded', e); } }
     return m;

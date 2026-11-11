@@ -23,6 +23,7 @@ import { gemEl } from './gems.js';
 import { isDevCard, isOneOfOne } from '../core/dev-cards.js';
 import { AVATAR_IDS } from '../config.js';
 import { memberLabel } from '../core/member.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const CARDS = LAB.filter(x => x.kind === 'card' && !x.gift);
 // SHELL 2.0 B2 — THE GIFT CARDS (1 OF 1): their own section, GIFTS (the owner picks; PREVIEW shows one on HIS card — nothing is granted here)
@@ -229,7 +230,7 @@ export function mountLab(root, o = {}) {
   //  nothing granted: /admin → GIFTS gives)
   function giftStage(stage, row, face, surface) {
     const els = cardStage(stage, row, face, surface);
-    const pv = h('button.vl-tab.vl-gift-pv', { type: 'button', onclick: () => import('../profile/gift-reveal.js').then(m => m.revealGift(row.item.id, undefined, { preview: true })).catch(() => {}) }, 'PREVIEW ON MY CARD ›');
+    const pv = h('button.vl-tab.vl-gift-pv', { type: 'button', onclick: () => lazyImport(import('../profile/gift-reveal.js'), '../profile/gift-reveal.js').then(m => m.revealGift(row.item.id, undefined, { preview: true })).catch(() => {}) }, 'PREVIEW ON MY CARD ›');
     stage.append(h('div.vl-gift-pvrow', pv, h('small', 'The full card as its owner meets it — “A gift from the house”. Nothing is given here: /admin → GIFTS.')));
     return els;
   }

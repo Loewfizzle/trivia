@@ -7,6 +7,7 @@ import { glow, stamp, puff, sprite, rng, wob, clamp01 } from './kit.js';
 import { drawLaser } from './laser.js';
 import { rrect, fxDiag } from './renderer.js';
 import { city, backdrop, bakeDpr, stage } from './sg-kit.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const BX0 = -4.5, BX1 = 38.5, BU0 = -1.6, BU1 = 31;          // (the ship's box in its own units — ghostship.js)
 const SKY = { sky: [[0, '#020807'], [0.3, '#061712'], [0.47, '#0e2f25'], [0.5, '#0a2019'], [0.62, '#04110d'], [1, '#010504']], stars: 16, starRgb: '210,255,230', starTo: 0.42, seed: 31,
@@ -46,7 +47,7 @@ function art(G, k, dpr) {
 export default {
   id: 'sg-ghost', tier: 'legendary', bleed: 10, stillT: 2.6,
   draw(c, s, t, Q) {
-    const G = city('ghostship', () => import('../screens/harbor/ghostship.js'));
+    const G = city('ghostship', () => lazyImport(import('../screens/harbor/ghostship.js'), '../screens/harbor/ghostship.js'));
     const S = stage(s), { w, h, full } = S, dpr = bakeDpr(Q), still = Q.still, rad = s.opts.radius || 12, tt = still ? 2.6 : t;
     c.save(); rrect(c, 0, 0, w, h, rad); c.clip();
     const horizon = full ? h * 0.47 : h * 0.72;

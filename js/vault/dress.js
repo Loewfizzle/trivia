@@ -33,6 +33,7 @@ import { cardVars } from '../progress/look.js';
 import { fitName } from '../ui/fit.js';
 import { colorHex } from '../config.js';
 import { openYouEditor } from '../profile/edit.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const SLOT = { card: 'card', emblem: 'shape', glow: 'glow', tube: 'tube' };
 const TABS = [['card', 'CARD'], ['emblem', 'EMBLEM'], ['glow', 'GLOW'], ['tube', 'TUBE']];
@@ -110,7 +111,7 @@ export function openDress(data, o = {}) {
   const pinBox = h('div.vl-dr-pinbox'), pin = h('div.vl-dr-pin.fx-host', pinBox);
   const pinSurf = tracked(pin, 'dress-pin');
   const paintPin = () => { pinSurf.clear(); pinBox.replaceChildren(wornStrip(pinSurf, W, who, approved)); pin.dataset.card = W.card; };
-  const view = () => (o.view ? o.view(W.card, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }) : import('./full.js').then(m => m.openFullCard(W.card, { ...who, shape: W.shape, tube: W.tube, glow: W.glow })));
+  const view = () => (o.view ? o.view(W.card, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }) : lazyImport(import('./full.js'), './full.js').then(m => m.openFullCard(W.card, { ...who, shape: W.shape, tube: W.tube, glow: W.glow })));
 
   // the tabs + the grid (one surface for the tiles, inside the scrolling list)
   const tabBtns = TABS.map(([k, label]) => h('button.vl-dr-tab', { type: 'button', role: 'tab', dataset: { tab: k }, 'aria-selected': String(k === tab), onclick: () => { if (tab !== k) { tab = k; paintGrid(); } } }, label));
@@ -143,7 +144,7 @@ export function openDress(data, o = {}) {
     const t = h('button.vl-dt', { type: 'button', class: `vl-dt-${tier}${on ? ' is-on' : ''}${it && isOneOfOne(id) ? ' is-one' : ''}${it ? '' : ' is-none'}`,
       dataset: { id: id || 'none', tier: it ? tier : '' }, 'aria-pressed': String(on), 'aria-label': `${on ? 'Equipped' : 'Equip'} ${label}${it ? ` (${isOneOfOne(id) ? ONE_OF_ONE : TIER_NAMES[tier]})` : ''}` },
       art, h('span.vl-dt-n', label), on ? h('i.vl-dt-on', { 'aria-hidden': 'true' }, '✓') : null);
-    press(t, () => wear(kind, id), kind === 'card' && it ? () => (o.view ? o.view(id, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }) : import('./full.js').then(m => m.openFullCard(id, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }))) : null);
+    press(t, () => wear(kind, id), kind === 'card' && it ? () => (o.view ? o.view(id, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }) : lazyImport(import('./full.js'), './full.js').then(m => m.openFullCard(id, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }))) : null);
     return t;
   }
   // THE SPEED PASS — EDIT USERNAME (the owner's FINAL, Nov 4 6:25 pm): ONE row at the VERY TOP of CUSTOMIZE — your name + its colour dot —

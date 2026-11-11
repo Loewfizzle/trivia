@@ -11,6 +11,7 @@ import { installAudio } from '../audio/engine.js';
 import { playMusic, registerTracks, setListProvider, musicDebug, musicNeedsRescue } from '../audio/music.js';
 import { loadMoodMusic, moodNow, nextForDevice } from '../audio/mood.js';
 import { settings, updateSettings, onSettings } from '../audio/settings.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const q = new URLSearchParams(location.search);
 function me() {
@@ -22,7 +23,7 @@ function me() {
 
 installEmblems();
 try { installAudio(); } catch { /* sound is polish */ }
-if (/[?&]debug=1(?:&|$)/.test(location.search)) import('../audio/diag.js').then(m => m.mountAudioDiag()).catch(() => {});
+if (/[?&]debug=1(?:&|$)/.test(location.search)) lazyImport(import('../audio/diag.js'), '../audio/diag.js').then(m => m.mountAudioDiag()).catch(() => {});
 // MOOD MUSIC here too (docs/audio.md): it can only start after the visitor's first tap (the audio engine unlocks on it);
 // the music button turns it on / off like in the app (same saved setting)
 loadMoodMusic().then(d => {

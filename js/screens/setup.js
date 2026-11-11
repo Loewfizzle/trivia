@@ -9,6 +9,7 @@ import { loadProfile, saveProfile } from '../identity.js';
 import { createRoom, joinRoom } from '../room.js';
 import { firebaseReady } from '../firebase.js';
 import { normalizeCode, sanitizeName } from '../core/room-logic.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 export function createSetup() {
   let profile, mode, busy = false;
@@ -70,7 +71,7 @@ export function createSetup() {
       h('div.form-cta', els.err = h('p.form-error', { role: 'alert', hidden: true }), els.go));
     renderPicks();
     // (THE VAULT 1A — BRING YOUR CARD: nothing saved on this device → a member brings their card instead of starting over)
-    import('../profile/bring.js').then(B => {
+    lazyImport(import('../profile/bring.js'), '../profile/bring.js').then(B => {
       if (!B.nothingSaved() || !els.byc) return;
       B.bringCss();
       els.byc.replaceChildren(h('button.byc-chip-go.setup-byc-go', { type: 'button', onclick: () => B.openBring({ onDone: r => { profile = { name: r.profile.n, color: r.profile.c || profile.color, avatar: r.profile.a || profile.avatar }; els.name.value = profile.name; renderPicks(); els.byc.replaceChildren(); } }) }, h('span', 'ALREADY A MEMBER?'), h('b', 'BRING YOUR CARD ›')));
@@ -107,7 +108,7 @@ export function createSetup() {
     }
     const p = { ...profile, name };
     saveProfile(p);
-    import('../profile/me.js').then(m => m.syncMe()).catch(() => {}); // the global profile follows (renames: once a day)
+    lazyImport(import('../profile/me.js'), '../profile/me.js').then(m => m.syncMe()).catch(() => {}); // the global profile follows (renames: once a day)
     if (mode === 'edit') { sfx('lock'); try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); return; }
     busy = true;
     els.go.classList.add('is-busy');

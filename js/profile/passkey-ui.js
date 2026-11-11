@@ -6,10 +6,11 @@ import { h } from '../ui/dom.js';
 import { tubeButton, row } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
 import { passkeysOk, pkWord, addPasskey, signInWithPasskey, removePasskey } from './passkey.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const day = t => { const d = new Date(t); return `${MON[d.getMonth()]} ${d.getDate()}`; };
-const sfx = n => import('../audio/sfx.js').then(m => m.sfx(n)).catch(() => {});
+const sfx = n => lazyImport(import('../audio/sfx.js'), '../audio/sfx.js').then(m => m.sfx(n)).catch(() => {});
 
 /** ACCOUNT → FACE ID SIGN-IN (list: me's pk — [{ h, n, at, u }]) */
 export function passkeyBlock({ list = [], onChange = null } = {}) {

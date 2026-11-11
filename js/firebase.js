@@ -14,7 +14,9 @@
 import { firebaseConfig } from './firebase-config.js';
 import { slot, useEmulator } from './identity.js';
 import { serverOffsetFrom } from './core/sync-math.js';
+import { noteDeploy } from './ui/lazy-import.js';
 import { isRefusal, pathShape } from './core/rules-lag.js';
+import { lazyImport } from './ui/lazy-import.js';
 
 const SDK = 'https://www.gstatic.com/firebasejs/11.10.0';
 let sdk = null;
@@ -36,7 +38,7 @@ function refused(op, r, patch, e) {
   if (REFUSED.has(shape) || REFUSED.size >= 6) return;
   REFUSED.add(shape);
   console.warn('[rules] refused:', shape);
-  import('./errlog.js').then(m => m.reportError(new Error(`RULES REFUSED ${shape} — the live database rules may be older than the code: re-publish database.rules.json`), 'rules')).catch(() => {});
+  lazyImport(import('./errlog.js'), './errlog.js').then(m => m.reportError(new Error(`RULES REFUSED ${shape} — the live database rules may be older than the code: re-publish database.rules.json`), 'rules')).catch(() => {});
 }
 /** the refusals this page has reported (tests + &debug) */
 export const refusals = () => [...REFUSED];
@@ -167,6 +169,7 @@ export async function syncTimeNoSocket(why = 'boot', o = {}) {
       const t1 = Date.now();
       if (!r.ok) { w.stop(); break; }
       const j = await r.json();
+      noteDeploy(j && j.v);   // (LOAD FIX 4: the first answer = the deploy this page loaded — ui/lazy-import.js)
       const net = await Promise.race([w.got, new Promise(res => setTimeout(() => res(null), 400))]); w.stop();
       const s = net || { t0, t1 };
       samples.push({ t0: s.t0, t1: s.t1, server: Number(j && j.t), net: !!net });

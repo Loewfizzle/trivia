@@ -3,6 +3,7 @@
 // effect) only when the owner has marked it APPROVE in THE CARD LAB — anything else keeps today's placeholder. The lab itself always
 // shows everything (it's where the marks are made). Profiles are polish: /api down → nothing new ships (the placeholders stand).
 import { ONE_OF_ONE_CARDS } from '../core/dev-cards.js';
+import { lazyImport } from '../ui/lazy-import.js';
 let marksP = null;
 // (the look previews on a LOCAL server only — localhost / 127.0.0.1 / a private LAN address (the Beelink's preview links on the owner's phone),
 //  never the live site: &labmarks=all = every lab item approved, so a preview page with no /api shows the real strips; DFIX2: &labmarks=<id,id,…>
@@ -12,7 +13,7 @@ const previewMarks = () => { try { return LOCAL_HOST.test(location.hostname) ? n
 export function labMarks() {
   if (marksP) return marksP;
   const pm = previewMarks();
-  if (pm === 'all') { marksP = import('./catalog.js').then(C => Object.fromEntries(C.LAB_IDS.map(id => [id, { m: 'approve' }]))); return marksP; }
+  if (pm === 'all') { marksP = lazyImport(import('./catalog.js'), './catalog.js').then(C => Object.fromEntries(C.LAB_IDS.map(id => [id, { m: 'approve' }]))); return marksP; }
   if (pm) { marksP = Promise.resolve(Object.fromEntries(pm.split(',').filter(Boolean).map(id => [id, { m: 'approve' }]))); return marksP; }
   marksP = fetch('/api/admin?lab=export', { cache: 'no-store' }).then(r => (r.ok ? r.json() : { marks: {} })).then(j => j.marks || {}).catch(() => ({}));
   return marksP;

@@ -10,6 +10,7 @@ import { api } from './api.js';
 import { myPid } from './me.js';
 import { setBadge } from './friends.js';
 import { frSheet } from './friends-ui.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 let card = null, waitT = 0, checking = null;
 const inMatch = () => !!(state.code && state.meta && state.meta.status === 'playing');
@@ -52,8 +53,8 @@ function show(x, next) {
   const join = tubeButton('JOIN', { kind: 'main', cls: 'fr-wait-join', onClick: async () => {
     close(true);
     // (the normal join: the title dock's knock — LOCK THE DOOR, kicked, a full room answer as for any join; a closed room says so)
-    const { setState } = await import('../store.js');
-    if (state.code) { try { const R = await import('../room.js'); await R.leaveRoom(); } catch { /* the join below still knocks */ } }
+    const { setState } = await lazyImport(import('../store.js'), '../store.js');
+    if (state.code) { try { const R = await lazyImport(import('../room.js'), '../room.js'); await R.leaveRoom(); } catch { /* the join below still knocks */ } }
     setState({ invite: x.room, autoJoin: x.room });   // (title.js knocks once it sees it — dk.join)
   } });
   const later = tubeButton('NOT NOW', { kind: 'secondary', cls: 'fr-wait-later', onClick: () => close(true) });

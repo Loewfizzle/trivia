@@ -9,6 +9,7 @@ import { lazyView, gameSheets } from '../lazy-view.js';
 import { markUsed } from '../kit/night.js';
 import { pickPaper } from './crayon.js';
 import { currentLook, resolveLook, sunUpNow } from '../kit/look.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 /** (PD-5A — THE HOST's SET) the look THIS phone resolves now: its THE GAME LOOK choice, AUTO = the real sun → 'day' | 'night' */
 async function lookNow(ms) {
@@ -16,7 +17,7 @@ async function lookNow(ms) {
   return resolveLook(choice, choice === 'auto' ? await sunUpNow(ms) : true);
 }
 
-export const createView = lazyView(() => import('./view.js'), gameSheets('prism'));
+export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('prism'));
 // the match plays its own songs (synced to the server clock, through a filter for the danger/duel effects)
 
 // (PFIX-B: + the attack queues — the director credits a KO only to a sender whose attack is really in the victim's queue)
