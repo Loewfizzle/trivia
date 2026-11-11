@@ -104,6 +104,8 @@
 @keyframes he-sweep { 0%, 55% { transform: translateX(-120%) skewX(-18deg); } 85%, 100% { transform: translateX(400%) skewX(-18deg); } }
 .he[data-tier='1'] .he-live, .he[data-tier='0'] .he-live { display: none; }
 @media (prefers-reduced-motion: reduce) { .he-live, .he-live::before, .he-live::after { animation: none !important; } }
+/* HE8 — LONG NIGHTS: a hidden page holds every living touch still (data-page — view.js#onVis); the loop + the level timer sleep too */
+.he[data-page='hidden'] .he-live, .he[data-page='hidden'] .he-live::before, .he[data-page='hidden'] .he-live::after { animation-play-state: paused; }
 .he-probe { position: absolute; left: 0; width: 1px; visibility: hidden; pointer-events: none; }
 .he-probe-t { top: 0; height: env(safe-area-inset-top, 0px); }
 .he-probe-b { bottom: 0; height: env(safe-area-inset-bottom, 0px); }
@@ -417,6 +419,7 @@
 .he-status[hidden] { display: none; }
 .he-hostbar { position: absolute; left: calc(var(--box-x) - 8px); top: calc(var(--box-y) - 2px); }
 .he-hostbar .btn { min-height: 36px; }
+.he-hostbar .btn::after { content: ''; position: absolute; inset: -4px -2px; }   /* (HE8: a 44 pt tap area round the 36 pt END SESSION) */
 .he-ending { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--he-dim); }
 
 /* RAISE: the slider panel — over the felt, ending above your cards */
@@ -690,6 +693,8 @@ body.he-on #ns-turn { display: none !important; }
   border-left: 0; padding: 0 9px; min-height: 0; line-height: 20px; border-radius: 7px; background: rgba(0, 0, 0, 0.45);
 }
 .he[data-orient='wide'] .he-hero.is-winner .he-label { background: var(--he-gold); padding: 0 9px; }
+.he[data-orient='wide'] .he-label::after { inset: -12px -6px; }   /* (HE8: your hand's name taps at 44 pt sideways too) */
+.he[data-orient='wide'] .he-plate { padding-top: 2px; padding-bottom: 2px; }   /* (HE8: the 26 pt the layout counts — layout-wide.js#plateH; at 30 it ran 2 pt off the SE) */
 .he[data-orient='wide'].has-hl .he-print { opacity: 0; }
 .he[data-orient='wide'] .he-hero .he-bet { flex-direction: column; align-items: center; gap: 1px; }
 .he[data-orient='wide'] .he-hero .he-bet > span { margin: 0; padding: 0 5px; font-size: 11.5px; line-height: 15px; }

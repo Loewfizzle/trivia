@@ -266,6 +266,12 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   (`stageOf` — one transform; the backdrop + the podium outside it) + the skin's SQUARE backdrop (`backdrop.square`, only sideways, only the chosen skin);
   EVERY sideways CSS rule scoped to `.he[data-orient='wide']` — THE PORTRAIT IS UNTOUCHED (prove it: `holdem-pixdiff.mjs` vs a worktree on :5174); a size
   change mid-motion SNAPS it (`motion.js#snap` — never a replay); the console's `#ns-turn` (TURN YOUR PHONE UPRIGHT) is hidden while `body.he-on`.
+- **HOLD'EM's TIMER + THE OWNER'S LIVE TEST + TOUGHNESS (HE8 — docs/holdem.md "HE8"):** YOUR clock upright = a bar on your plate's top edge (`.he-plate >
+  .he-clock`); THE OWNER'S LIVE TEST = the dealer's `start` takes a `playable: false` HOLD'EM ONLY from an ADMIN_PIDS host (`holdem-store.js#startOpen` — the
+  server's check; the emulators open unless `testHoldemGate`) + the owner's phone lists it as TEST (`config.js#setOwnerPhone` from the radio gate's `owner`
+  yes, read ONLY by room-city.js — `tests/holdem-owner.test.mjs`); a tap = pressed at once + ONE move at a time until THIS table shows the answer (THE
+  CATCH-UP — never `disabled: busy`); NO SIGNAL = the buttons wait (`offline()` in the render's signature); the wake lock = `wakelock.js#gameAwake` (seated
+  in a live match only); THE FRAME LOOP SLEEPS when nothing moves (`wake()` — never an always-on rAF; proof `holdem-endurance.mjs`: 400 hands flat, 0 idle frames).
 - **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
   `now`; a test greps — the screen — `view.js` + its `motion.js` — alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
   DEALER is the server (HE2: crypto randomness — never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /

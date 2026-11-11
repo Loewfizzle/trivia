@@ -193,6 +193,13 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   ≈ 40 s) · `holdem-pixdiff.mjs "<browser>" --a http://localhost:5174` (THE PORTRAIT UNCHANGED vs a worktree of the commit before) · `holdem-probe.mjs`
   · `holdem-shots.mjs --sizes 844x390,932x430,667x375,1440x900`. The FULL E2E: ROTATE MID-HAND, ONE WHOLE HAND SIDEWAYS at 8 (one a desktop) on real
   uncovered taps, the busiest moment SIDEWAYS in each skin — docs/holdem.md "HE7".
+- **HOLD'EM's OWNER'S LIVE TEST + TOUGHNESS + LONG NIGHTS (HE8):** npm test — `tests/holdem-owner.test.mjs` (only the owner's phone offers HOLD'EM · TEST; only the
+  radio gate sets it, only the room's host list reads it; the server gate's lines). The emulators: `holdem-server.test.mjs`'s HE8 case (the dealer's start
+  refuses a non-owner host while `playable: false` — the live rule switched on by `testHoldemGate`; the owner via ADMIN_PIDS / `testAdmins/{pid}`).
+  e2e-holdem FAST starts as THE OWNER'S LIVE TEST + checks THE WAKE LOCK; FULL adds THE TOUGHNESS (`TOUGH_ONLY=1 N=4` = the start + it alone, ≈ 2.5 min:
+  a slow line via CDP, `setOfflineMode` 10 s / 10 s on your turn / 40 s into the bank, a 30 s app switch, a counted wake-lock stub). Any local server:
+  `node tests/integration/holdem-endurance.mjs "<browser>" --hands 400` (THE ENDURANCE RUN at `&speed=12` ≈ 9 min — heap / DOM / listeners / canvases flat —
+  + THE IDLE PROOF: 0 animation frames on an idle table; `--hands 60` for a quick look). The preview: `&clk=` `&bank=1` (your timer), `&speed=K` (the demo).
 - **HOLD'EM's TABLE (HE3):** npm test — `tests/holdem-wire.test.mjs` (the parts round-trip, every diff, the bytes) + `tests/holdem-phone.test.mjs` (the
   phone's pure side + THE LAYOUT at 2–8 players on five phones). The look: `tests/integration/holdem-preview.html` (no Firebase — docs/holdem.md
   "THE PREVIEW") + `node tests/integration/holdem-shots.mjs "<browser>"`. The E2E (the emulators + `serve.mjs --emu`):

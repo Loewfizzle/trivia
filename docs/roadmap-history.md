@@ -2563,6 +2563,20 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - New assets: audio/holdem/ 356 KB · assets/holdem/chips/ 36 KB · assets/holdem/casino/ 66 KB (felt 52 · backdrop 12 · rail 1.6); removed felt-green.webp
   (14 KB) — net ≈ +444 KB. Still 8 functions; no rules change; HOLD'EM still playable: false.
 
+## HE8 — HOLD'EM: YOUR TURN TIMER + THE OWNER'S LIVE TEST + REAL-WORLD TOUGHNESS + LONG NIGHTS (Nov 11, 2026 — docs/holdem.md "HE8"; the decisions: docs/games/plan.md "HE8")
+- YOUR TURN TIMER upright: a 4 pt bar across the top edge of your plate (the skin's accent), red-orange in your time bank, the plate pulsing softly the last 5 s
+  with the tick; sideways keeps HE7's bar. (Since HE3 the upright bar had sat below the screen.)
+- THE OWNER'S LIVE TEST: the dealer's `start` accepts a `playable: false` HOLD'EM only from a host whose profile is in ADMIN_PIDS (`holdem-store.js#startOpen` —
+  the radio's owner test, server-side), else 403 `not_open`; the owner's phone (the radio gate's `owner` yes) shows HOLD'EM · TEST in his room's host list
+  only; guests play normally; nobody else sees a thing; results count (XP + the streak, the usual path). The emulators stay open unless `testHoldemGate`.
+- REAL-WORLD TOUGHNESS: pressed at once (pointerdown) + the sent button held pending until this phone's table shows the answer (THE CATCH-UP) — a double tap
+  sends once; pre-actions lit at once; the buttons wait while there's NO SIGNAL and come back ~0.6 s after the socket (was ~10 s); the screen kept awake only
+  while you're seated in a live match (`wakelock.js#gameAwake`).
+- LONG NIGHTS: the frame loop sleeps when nothing moves (0 frames on an idle table; the level countdown a 1 s timer; the living touches paused on a hidden
+  page); THE ENDURANCE RUN (400 hands × 8 players at ×12): heap 4.33 → 4.21 → 4.28 MB, listeners 132 → 95 → 127, canvases 18 → 10 → 15 — flat.
+- POLISH: every tap ≥ 44 pt (END SESSION, your hand's name sideways), the SE's plate on screen both ways, HOW TO PLAY + the rankings sheet in plain words.
+- Proof: holdem-server (14/14), e2e-holdem FAST (23/23) + TOUGH_ONLY (18/18) + FULL, holdem-endurance, holdem-pixdiff (only the timer strip + the SE plate).
+
 ## HE7 — HOLD'EM: THE SIDEWAYS VIEW + DESKTOP (Nov 11, 2026 — docs/holdem.md "HE7"; the decisions: docs/games/plan.md "HE7")
 - THE SIDEWAYS LAYOUT (`js/games/holdem/layout-wide.js`, PURE): wider than tall → a WIDE STADIUM; YOU at the bottom centre, the others fully evenly spaced by
   arc length round the rail; one seat block for every seat (plate + tag + cards + bet placed by a small search: on screen, off the column + the corner buttons,

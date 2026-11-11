@@ -5,7 +5,7 @@ LEAN WIRE + THE TABLE SCREEN A (below): a cartridge + the portrait table, playab
 `playable: false` + `preview: true` (never offered, no sign; only a local emulator page that asks — `&preview=1` — can start it). The owner's
 decisions: docs/games/plan.md "HOLD'EM — THE PLAN (Nov 10 2026)" + "HE1" + "HE2 — THE SERVER DEALER" + "HE3 — THE TABLE SCREEN A" + "HE4 — THE TABLE
 SCREEN B". HE4, Nov 10 2026 — THE TABLE SCREEN B (below: "THE MOTION", "THE SHOWDOWN", "KO + SPECTATING", "CASH: LEAVE + THE LEDGER", "THE END SCREEN"). HE5, Nov 10
-2026 — BEN'S FIXES + THE SOUNDS + THE REAL CHIPS + THE SKINS / NEON CASINO (below: "HE5").)*
+2026 — BEN'S FIXES + THE SOUNDS + THE REAL CHIPS + THE SKINS / NEON CASINO (below: "HE5"). HE6–HE7 below. HE8, Nov 11 2026 — YOUR TURN TIMER, THE OWNER'S LIVE TEST, REAL-WORLD TOUGHNESS, LONG NIGHTS (below: "HE8").)*
 
 ## The plan in short
 - Texas Hold'em (no-limit), 2–8 players, one phone each, **PLAY CHIPS ONLY** — chips reset every match, no bankroll, nothing buyable becomes
@@ -694,12 +694,86 @@ the hearth, the lamp; the apartment's rain + light sweep over the skyline window
 ### FOUND, NOT CHANGED (portrait must not change this pass)
 - **YOUR own clock bar in PORTRAIT is below the screen** (it rides in your plate at `--plate-y − --hand-y + 40` from the plate's top: y 880 on an 844
   phone) — since HE3 you never see your own shot clock drain upright (the seats' bars + the tick sound work; sideways it's the bar over the presets).
-  Ben's call for HE8: where it goes upright (over the presets as sideways, or a ring on your plate).
+  Ben's call for HE8: where it goes upright (over the presets as sideways, or a ring on your plate). **HE8: a bar across the top of your plate — "HE8".**
 
-## Flagged for HE8+
-- YOUR clock bar upright (above — "FOUND, NOT CHANGED").
-- The robots' length numbers are a guide; HE8's real play-tests should re-check TURBO (90 s) + DEEP (15 min) with people.
-- The KO card shows only on a FRESH bust (a phone that slept through it lands on SPECTATING); a bust in the match's last hand: its card over the podium
-  (on a desktop the podium sits over it — the stage is its own layer).
-- The SE on its side at 7–8 players: a 45–49 pt board (above). The desktop podium is the console's frame at its own size (not the stage's scale).
+## HE8 — YOUR TURN TIMER + THE OWNER'S LIVE TEST + REAL-WORLD TOUGHNESS + LONG NIGHTS (Nov 11 2026 — the decisions: docs/games/plan.md "HE8")
+Still 8 functions, no rules change, `playable: false` (for everyone but the owner's own room — below).
+
+### YOUR TURN TIMER (upright — the HE3 miss fixed)
+A bar across the TOP edge of YOUR plate (inside its rim, clear of the text — `.he-plate > .he-clock`, 4 pt, the skin's accent: gold · amber · cyan),
+draining over your 20 s from the table's `deadline` + `serverNow()` like every clock; **red-orange once it dips into your time bank** (`.is-bank`);
+**the last 5 s your plate pulses softly** with the existing tick (`.is-hurry` — `scale` + the ring's opacity; reduced motion = no pulse). Sideways
+keeps HE7's bar over the presets (the clock is the hero's child there, never the plate's). The preview: `&clk=<ms left>` + `&bank=1`.
+
+### THE OWNER'S LIVE TEST (Ben plays a real match on the live site while HOLD'EM is `playable: false`)
+- **THE SERVER DECIDES** (`api/_lib/holdem-store.js#startOpen`, on the dealer's `start` only): `playable: true` → any host; else the host's uid →
+  `uids/{uid}` (their profile) → **ADMIN_PIDS** — the same owner test as the radio's roles (`api/_lib/radio.js#roleOf`); anyone else → **403
+  `not_open`**, nothing written (a guest still gets `not_host` first). Never a client flag. On the LOCAL EMULATORS the table stays open (the E2E, the
+  passes' `&preview=1` play-tests) unless the test switch `testHoldemGate` is set — then the live rule runs (the owner = ADMIN_PIDS or
+  `testAdmins/{pid}`, as roleOf).
+- **THE OWNER'S PHONE** learns it from the radio's existing server check (`radioWho` → role `owner` → `config.js#setOwnerPhone` in
+  `screens/harbor/radio-gate.js` — never the crew): his room's HOST game list shows **HOLD'EM** with a small **TEST** tag (`isOwnerTest` — read ONLY
+  by `room-city.js`), and his host start passes `isPlayable`. The options sheet loads HOLD'EM's cartridge first (it has no thin meta at boot).
+  Guests in his room play normally (they never start it). Nobody else's lists, signs, THE BOARD, HOW TO PLAY, the city or any catalog changes —
+  `tests/holdem-owner.test.mjs` greps that only the radio gate sets it + only the room's host list reads it.
+- **RESULTS COUNT:** a TEST match is a real match — the dealer credits it through the same `applyMatch` path (XP, the streak, the counters, once
+  per player); no board yet (HOLD'EM has none). Flipping `playable: true` later simply opens it to all (the server gate + the list follow the one switch).
+- Proof: `holdem-server.test.mjs` (a normal host refused, a host with no profile refused, a guest `not_host`, the owner via ADMIN_PIDS starts and
+  his guests act, `testAdmins`, `playable: true` opens it) · e2e-holdem FAST starts the match AS the owner's live test (the gate on: the dealer
+  refuses the plain host, the owner's list shows HOLD'EM · TEST after the radio's yes, a guest's list unchanged).
+
+### REAL-WORLD TOUGHNESS (`view.js`)
+- **INSTANT FEEDBACK:** the control under your finger presses at once (`pointerdown` → `.is-press`, before any network — iOS's `:active` needs a
+  touch listener, so it's ours); the one you SENT stays pressed with a soft pending glow (`.is-sent`) until THIS phone's table shows the server's
+  answer (**THE CATCH-UP**: the answer's `seq` reached by the listener, ≤ 5 s); the others wait dimmed taking no taps (`.is-busy` — one move at a
+  time: a double tap sends ONCE). A PRE-ACTION is lit the moment you tap it (`preWant`) until your own node agrees (or the tap is refused). The old
+  `disabled: busy` buttons are gone: a re-render during a move had left them dead once the answer came back.
+- **NO SIGNAL:** your buttons wait (`.he.is-offline` — the browser's offline event or the console's `st.net === 'lost'`; part of the render's
+  signature, so the reconnect lights them at once — ~0.6 s after the socket is back, was ~10 s before the fix); the console's SIGNAL LOST banner
+  says why; the clock keeps draining from the server's numbers; the server's clock applies the bank + the timeout meanwhile; back online the phone
+  lands on the latest table — the events older than 2.5 s are history (no motion, no sound), only what's NEW plays (your turn's chime if the table
+  reached you). A move whose answer was lost says NO SIGNAL only while the table hasn't moved.
+- **APP SWITCH:** a hidden page animates + sounds nothing (as HE4); the console's engine fades + suspends the audio and resumes it on return / the
+  next tap (HOLD'EM's buffers re-decode for a rebuilt context — `sfx.js#decodeAll`).
+- **THE SCREEN STAYS AWAKE** while you're SEATED in a LIVE match (`wakelock.js#gameAwake` narrows the console's room rule): not OUT (spectating),
+  not LEFT, not AWAY / SAT OUT, not after the end; the browser drops the lock on a hidden page, it is taken again on return; nothing where the API
+  is missing.
+- Proof (e2e-holdem FULL, or `TOUGH_ONLY=1 N=4` alone ≈ 2.5 min): A SLOW LINE (300 ms + 400 kbps on one phone — a pre-action lit at once, CALL pressed
+  at once + an impatient double tap = ONE act, the slider + a preset), NO SIGNAL 10 s on someone else's turn + on your own (a tap sends nothing,
+  the bar keeps draining, back → a real tap acts), NO SIGNAL 40 s on your turn (back INSIDE the bank, ~9 s left by the server's clock, the bar red-orange,
+  then the server's timeout), a 30 s APP SWITCH (the latest table, nothing replayed, the audio suspended → running on a tap), THE WAKE LOCK (seated on,
+  busted off, the end off, LEFT off; given back on a hidden page + taken again — a counted stub of the API).
+
+### LONG NIGHTS
+- **THE FRAME LOOP SLEEPS:** it runs only while something moves — a turn's clock bar, the motion (a roll-up, or its timeline still to come:
+  `motion.js#pending`), the last 5 s' tick; otherwise no frames at all (`wake()` on every update + the page shown again) and the level line's
+  countdown is a 1 s timer (text only — `armLevel`). The living touches are CSS, paused on a hidden page (`.he[data-page='hidden']`).
+- **THE ENDURANCE RUN** (`node tests/integration/holdem-endurance.mjs "<browser>" --hands 400` — the preview's MOTION DEMO at `&speed=12`: the dealer's
+  clock AND the phone's ×12, the motion at its real durations so it overlaps + cancels like a fast table, a new match each time one ends; 8 players,
+  390 × 844, NEON CASINO) — **400 hands in 9 min**, sampled after a forced GC:
+
+  | | start (hand 20) | 100 | middle (200) | 300 | end (400) |
+  | --- | --- | --- | --- | --- | --- |
+  | JS heap | 4.33 MB | 4.06 | 4.21 | 4.28 | **4.28 MB** |
+  | DOM nodes (the table's) | 778 (410) | 400 (164) | 378 (150) | 698 (333) | 701 (380) |
+  | JS listeners | 132 | 129 | 95 | 171 | 127 |
+  | canvases (pixels) | 18 (0.7 MB) | 15 (0.6) | 10 (0.6) | 13 (0.7) | 15 (0.7 MB) |
+  | the motion's ghosts · running animations | 21 · 49 | 27 · 48 | 17 · 33 | 26 · 61 | 21 · 47 |
+
+  FLAT — the numbers follow the seats at the table (a match down to 2–3 players, then a fresh 8) and the motion in flight at the sample, never the
+  hands played. **THE IDLE PROOF:** a hand's end, a showdown on screen, the waiting table, CASH between hands, sideways: **0 animation frames in 3 s**
+  (the view's loop AND every `requestAnimationFrame` on the page counted); the podium: the table's loop asleep (the console's moving legendary
+  cards draw their own); a TURN draws its clock (~60 a second); the living touches 0 running on a hidden page.
+
+### THE POLISH
+- A probe of every button + text across 16 states × 390 / 430 / 844×390 / the SE both ways: every tap target ≥ 44 pt (END SESSION's 36 pt button got a
+  44 pt tap area; your hand's name sideways too), no clipped text, nothing off the screen (the SE upright: your plate ran 2–3 pt off → `layout.js#plate`
+  ≤ h − 38; the SE sideways: the plate ran 2 pt off → sideways it is the 26 pt `layout-wide.js` counts). HOW TO PLAY: the 20 s + the time bank, the
+  pre-actions, CASH's REBUY · LEAVE · the ledger, AWAY — one plain line each; the rankings sheet: A-2-3-4-5, ties.
+- THE PORTRAIT DIFF vs HE7 (`holdem-pixdiff.mjs`): only the new timer strip on your plate (your turn) + the SE plate; the rest at the noise floor.
+
+## Flagged for HE9+
+- The robots' length numbers are a guide; Ben's live test should re-check TURBO (90 s) + DEEP (15 min) with people.
+- The KO card shows only on a FRESH bust (a phone that slept through it lands on SPECTATING); a bust in the match's last hand: its card over the podium.
+- The SE on its side at 7–8 players: a 45–49 pt board. The desktop podium is the console's frame at its own size (not the stage's scale).
 - When it becomes playable: `scripts/build-preload-graph.mjs` (+ its CARTRIDGES list), a day face + a sign scheme, THE BOARD's catalog.

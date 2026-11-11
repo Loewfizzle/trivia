@@ -115,7 +115,13 @@ const presence = Object.fromEntries(uids.map(u => [u, { online: true, lastSeen: 
 // stacks busted → OUT + the re-spread), a fold-win; the blinds go up every &lv seconds (default 40); down to two → HEADS UP; a winner →
 // a new match. &ko=1 = you're one of the short stacks (the KO card → SPECTATING).
 const PLAY = q.get('play') === '1';
-const T0 = PLAY ? Date.now() : STAGED || STATE === 'spectate' ? Date.now() - 180_000 : Date.UTC(2026, 10, 10, 23, 0, 0);
+// (HE8 — LONG NIGHTS: &speed=K runs THE MOTION DEMO K× faster — the dealer's clock AND this phone's (window.__clock) — so an endurance run plays
+//  hundreds of hands in minutes; the motion keeps its real durations, so it overlaps + cancels the way a fast table does)
+const SPEED = PLAY ? Math.max(1, Math.min(30, Number(q.get('speed') || 1))) : 1;
+const PT0 = Date.now();
+const vnow = () => (SPEED > 1 ? PT0 + (Date.now() - PT0) * SPEED : Date.now());
+if (SPEED > 1) window.__clock = vnow;
+const T0 = PLAY ? PT0 : STAGED || STATE === 'spectate' ? Date.now() - 180_000 : Date.UTC(2026, 10, 10, 23, 0, 0);
 let now = T0;
 const rng = rngFrom(q.get('seed') || 'he3-preview');
 let rec = newRecord({ code: 'PVWX', uids, mode: MODE, now, rng });
@@ -277,11 +283,12 @@ window.__preview = { rec, pub, me, node };
 document.body.dataset.ready = '1';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const vsleep = ms => sleep(Math.max(8, ms / SPEED));   // (the demo's pauses, compressed by &speed)
 /** a new public table (+ your hole node) → the view, exactly as a phone gets the dealer's write */
 const publish = () => {
   rec.seq++;
   const p = publicOf(rec);
-  const n = { seq: rec.seq, at: Date.now(), ...nestWire(toWire(JSON.parse(JSON.stringify(p)))) };
+  const n = { seq: rec.seq, at: vnow(), ...nestWire(toWire(JSON.parse(JSON.stringify(p)))) };
   window.__fakePush(`hole/PVWX/${me}`, holeOf(rec, me));
   const live = { table: n };
   Object.assign(state, { live, game: { ...state.game, matchId: rec.id } });
@@ -316,8 +323,10 @@ if (PLAY) {
   const KO = q.get('ko') === '1';
   let shovers = [], lastHand = -1;
   const scene = () => T().hand % 3;            // 1 = a showdown · 2 = an all in with side pots · 0 = a fold-win
+  window.__preview.hands = 0;   // (HE8: every hand dealt in the demo, across its matches — the endurance run counts them)
   function onNewHand() {
     lastHand = T().hand;
+    window.__preview.hands++;
     shovers = [];
     if (scene() !== 2) return;
     // three short stacks (never you, unless &ko=1)
@@ -348,11 +357,11 @@ if (PLAY) {
   }
   (async () => {
     for (;;) {
-      await sleep(250);
-      now = Date.now();
+      await vsleep(250);
+      now = vnow();
       if (rec.m.ended) {
-        await sleep(4000);
-        now = Date.now();
+        await vsleep(4000);
+        now = vnow();
         rec = newRecord({ code: 'PVWX', uids, mode: MODE, now, rng, prevSeq: rec.seq });
         rec.m.levelMs = Math.max(10, Number(q.get('lv') || 40)) * 1000;
         advance(rec, now, rng); lastHand = -1;
@@ -362,8 +371,8 @@ if (PLAY) {
       }
       const l = L();
       if (l) {
-        await sleep(l.id === me ? 1400 : 850);
-        now = Date.now();
+        await vsleep(l.id === me ? 1400 : 850);
+        now = vnow();
         const [a, amt] = decide(l);
         try { applyOp(rec, 'act', l.id, { hand: T().hand, seq: rec.seq, action: a, ...(amt != null ? { amount: amt } : {}) }, { now, rng }); } catch (e) { try { applyOp(rec, 'act', l.id, { hand: T().hand, seq: rec.seq, action: l.canCheck ? 'check' : 'fold' }, { now, rng }); } catch { /* the next tick */ } }
         publish();

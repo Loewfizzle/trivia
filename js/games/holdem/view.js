@@ -53,7 +53,7 @@ const LEAVE_TEXT = { now: ['LEAVE', 'TABLE'], after: ['LEAVE', 'AFTER THIS HAND'
 export function createView() {
   let st = null, root = null, els = {}, L = null;           // L = the layout (layout.js) for the current size + seat count
   let pub = null, hole = null, holeOff = null, holeKey = '';
-  let raf = 0, ro = null, offSet = null, destroyed = false;
+  let raf = 0, ro = null, offSet = null, destroyed = false, levelT = 0, rafCount = 0;
   let pokeT = 0, pokeFor = '', pokeTries = 0, busy = null, slider = null;
   // HE8 — REAL-WORLD TOUGHNESS: the control under the finger (pressed at once) · YOUR pre-action as tapped, until your own node says it
   // (preWant — a lit toggle at once on a slow line) · this phone's wake-lock wish (seated in a live match)
@@ -209,7 +209,8 @@ export function createView() {
     offSet = onSettings(() => { applySkin(); lastSig = ''; render(); });
     watchHole();
     update(state);
-    raf = requestAnimationFrame(frame);
+    document.addEventListener('visibilitychange', onVis); onVis();
+    wake();
     installTestHook('__holdem', hook);
   }
 
@@ -241,6 +242,7 @@ export function createView() {
     paintFinal();
     schedulePoke();
     primed = true;
+    wake();
   }
 
   // THE PODIUM: the console's frame (ui/final.js) with HOLD'EM's rows (the director stored them) — its body = final.js#finalScene
@@ -262,7 +264,8 @@ export function createView() {
     destroyed = true;
     if (busy) clearTimeout(busy.capT);
     gameAwake(null);   // (HE8: back to the console's own wake rule)
-    cancelAnimationFrame(raf);
+    cancelAnimationFrame(raf); raf = 0; clearTimeout(levelT);
+    document.removeEventListener('visibilitychange', onVis);
     clearTimeout(pokeT); clearTimeout(showT); clearTimeout(koT);
     if (motion) motion.cancel();
     if (ro) ro.disconnect();
@@ -945,9 +948,28 @@ export function createView() {
   }
 
   // ------------------------------------------------------------------ the frame: the timer bars + the level line's seconds (transform / text only)
+  // HE8 — LONG NIGHTS: the loop runs ONLY while something moves — a turn's clock bar, the motion (a roll-up, or its timeline still to
+  // come), the last 5 s' tick. Nothing moving → no frames at all (wake() on every change: an update, a turn, the page shown again) and the
+  // level line's countdown is a 1 s timer (text only — armLevel). The living touches are CSS (paused on a hidden page: data-page).
+  function wake() { if (!raf && !destroyed) raf = requestAnimationFrame(frame); }
+  function armLevel() {
+    clearTimeout(levelT); levelT = 0;
+    if (destroyed || raf || !pub || document.hidden) return;
+    const txt = levelLine(pub, serverNow());
+    if (txt !== lastLevelTxt) { lastLevelTxt = txt; els.level.textContent = txt; }
+    if (!/^\d+:\d\d/.test(txt.split(' · ').pop())) return;   // (CASH, the end: no countdown — nothing to tick)
+    levelT = setTimeout(armLevel, 1000 - (serverNow() % 1000) + 8);
+  }
+  function onVis() {
+    if (!root) return;
+    root.dataset.page = document.hidden ? 'hidden' : 'shown';
+    if (document.hidden) { clearTimeout(levelT); levelT = 0; } else wake();
+  }
   function frame(now) {
+    raf = 0;
     if (destroyed) return;
-    raf = requestAnimationFrame(frame);
+    clearTimeout(levelT); levelT = 0;
+    rafCount++;
     const w0 = performance.now();
     if (lastFrame) { frames.push(now - lastFrame); if (frames.length > 240) frames.shift(); }
     lastFrame = now;
@@ -976,6 +998,8 @@ export function createView() {
     const wk = performance.now() - w0;
     work.push(wk); if (work.length > 240) work.shift();
     if (tiers) { tiers.sample(now, wk); tiers.tick(now); }
+    if (bar || sec || (motion && motion.pending())) raf = requestAnimationFrame(frame);
+    else { lastFrame = 0; armLevel(); }   // (asleep: the next change wakes it)
   }
 
   // ------------------------------------------------------------------ the E2E's hook (localhost / ?emu only)
@@ -988,6 +1012,7 @@ export function createView() {
     tier: () => (tiers ? tiers.get() : 2), setTier: t => tiers && tiers.set(t), skin: () => skinKey, fps: () => frames.slice(), work: () => work.slice(),
     sounds: () => played(), planned: () => planned(),
     seats: () => [...seatEls.keys()],
+    frames: () => rafCount, looping: () => !!raf,
     busy: () => (busy ? { op: busy.op, wait: busy.wait, sent: !!(busy.el && busy.el.classList.contains('is-sent')) } : null), awake: () => awake, preOn: () => preOn(),
   };
 

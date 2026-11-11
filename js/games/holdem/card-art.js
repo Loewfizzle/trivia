@@ -135,7 +135,7 @@ export const RANKINGS = [
   ['FOUR OF A KIND', 'Four of the same rank', ['Qs', 'Qh', 'Qd', 'Qc', '4d']],
   ['FULL HOUSE', 'Three of a kind + a pair', ['Js', 'Jh', 'Jc', '8d', '8s']],
   ['FLUSH', 'Any five of one suit', ['Ad', 'Td', '8d', '5d', '2d']],
-  ['STRAIGHT', 'Five in a row, any suits', ['Tc', '9d', '8s', '7h', '6c']],
+  ['STRAIGHT', 'Five in a row, any suits (A-2-3-4-5 counts)', ['Tc', '9d', '8s', '7h', '6c']],
   ['THREE OF A KIND', 'Three of the same rank', ['7s', '7d', '7c', 'Kh', '2s']],
   ['TWO PAIR', 'Two different pairs', ['Ks', 'Kd', '5c', '5h', '9s']],
   ['PAIR', 'Two of the same rank', ['As', 'Ah', 'Qd', '8c', '3h']],

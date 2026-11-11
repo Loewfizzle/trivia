@@ -87,7 +87,8 @@ export function tableLayout({ w, h, top = 0, bottom = 0, k = 0 }) {
     board: { y: boardY, card: boardCard, gap: 5 * s },
     presets, buttons, btn, myBet,
     hand: { y: handY, card: handCard },
-    plate: handY + handCard.h / 2 + 4 * s,
+    // (HE8: never past the screen's bottom — the SE with no home bar: 2–3 pt of your plate ran off; every other phone unchanged)
+    plate: Math.min(handY + handCard.h / 2 + 4 * s, h - 38),
   };
 }
 

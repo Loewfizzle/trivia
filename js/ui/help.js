@@ -232,11 +232,14 @@ RULES.holdem = {
     ['HOW A HAND GOES', [
       'Two players post the blinds, then everyone bets before the flop, after the flop (3 cards), after the turn (1) and after the river (1).',
       'On your turn: FOLD (give up the hand), CHECK or CALL (match the bet), or RAISE. The quick buttons bet a real amount in one tap.',
+      'You get 20 seconds, then a 30-second time bank. If time runs out you check — or fold when there’s a bet to call.',
+      'Not your turn yet? CHECK / FOLD or CALL ANY acts for you the moment it comes round.',
       'ALL IN = every chip you have. If someone is all in for less, the extra chips go into a SIDE POT they can’t win.',
     ]],
     ['THE MODES', [
       'TOURNAMENT — everyone starts even and the blinds climb; run out of chips and you’re out. Last one with chips wins.',
-      'CASH — fixed blinds, rebuy when you hit zero; the host ends it and the chips decide.',
+      'CASH — fixed blinds; REBUY 1,000 when you hit zero; LEAVE whenever you like (mid-hand: after it). The host’s END SESSION shows the ledger — who’s up, who’s down.',
+      'Miss two turns in a row and you’re AWAY — tap I’M BACK (in CASH: SIT BACK IN) to play again.',
     ]],
     ['WHAT BEATS WHAT', 'holdem-rankings'],
   ],

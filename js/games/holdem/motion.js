@@ -197,6 +197,8 @@ export function createMotion(layer, view) {
     view.award(null);
   }
   const busy = () => anims.size > 0 || tweens.length > 0;
+  /** HE8: the view's frame loop must run — a roll-up now, or the timeline's steps still to come (they may start one) */
+  const pending = () => tweens.length > 0 || timers.size > 0;
   /**
    * HE7 — ROTATE ANY TIME: the layout changed under a running timeline (a turn, Safari's bars) → everything in flight SNAPS TO ITS END (the
    * painted state is the end — the holds let go, the award line = the state's); a KO card still due shows now. Never a replay: the events
@@ -209,5 +211,5 @@ export function createMotion(layer, view) {
     if (ko) view.ko(ko);
   }
 
-  return { run, cancel, snap, tick, busy, animate, flip };
+  return { run, cancel, snap, tick, busy, pending, animate, flip };
 }

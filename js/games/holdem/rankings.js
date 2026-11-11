@@ -16,7 +16,7 @@ export function openRankings({ mark = null } = {}) {
     h('div.he-rk-t', h('b', name), h('small', line)),
     h('div.he-rk-cards', { html: cards.map(c => faceSvg(c, deck, 'mini')).join('') }))));
   open = openSheet({ title: 'HAND RANKINGS', kicker: 'BEST → WORST', cls: 'he-rk-sheet', theme: 'holdem', label: 'Hand rankings', body: [list,
-    h('p.he-rk-foot', 'Your best five cards count — any mix of your two and the five on the table.')], onClose: () => { open = null; } });
+    h('p.he-rk-foot', 'Your best five cards count — any mix of your two and the five on the table. Same hand? The next-best cards decide; a true tie splits the pot.')], onClose: () => { open = null; } });
   return open;
 }
 export const closeRankings = () => { if (open) open.close(); };
