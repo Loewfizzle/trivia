@@ -301,3 +301,9 @@
 - ROTATE ANY TIME: switching orientation mid-hand re-lays out instantly — no reload, no lost state, no replayed motion or sound; a motion in flight finishes in the new layout or snaps to its end.
 - DESKTOP / any wide window uses the SIDEWAYS layout scaled to the window (centred, a sensible max size), the skin's SQUARE backdrop filling the rest — no more phone column. A tall narrow window still gets portrait.
 - The skins' SQUARE backdrops (backdrop-casino.png / backdrop-cabin.png / backdrop-apartment.png from Downloads\grok\holdem\, compressed) are the sideways/desktop backdrops; only the chosen skin's loads.
+
+## HE8 — TIMER + OWNER'S LIVE TEST + TOUGHNESS (Nov 11 2026)
+- YOUR TURN TIMER (portrait): a gold bar across the TOP edge of your plate, draining over your 20 s; red-orange once it dips into your time bank; a soft plate pulse in the last 5 s (with the existing tick sound). Sideways keeps HE7's bar.
+- THE OWNER'S LIVE TEST: while HOLD'EM is playable: false, a room HOSTED BY THE OWNER (the site's existing admin/owner identity — server-verified, never a client flag) can start HOLD'EM on the live site; it shows in that host's game list with a small "TEST" tag; guests in that room play normally. For everyone else nothing changes: it appears nowhere, and the dealer's start REFUSES any non-owner host while the game isn't playable. Flipping playable: true later simply opens it to all.
+- REAL-WORLD TOUGHNESS: instant button feedback (pressed state at once, then the server's answer); a clean recovery after a lost signal mid-turn; sound resumes after an app switch; the SCREEN STAYS AWAKE (Wake Lock) while you're seated in a live match — released when you spectate, leave, the match ends, or the page hides.
+- LONG NIGHTS: memory stays flat over a long match; nothing animates or redraws while the table is idle (battery).
