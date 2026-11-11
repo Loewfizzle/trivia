@@ -6,6 +6,7 @@
        &state=waiting | myturn | preflop | flop | turn | river | allin | showdown | foldwin | away | slider | final   (default myturn)
           HE4:  headsup (n=2, the board centred) · raised (a flop at n=3/4 — the board raised) · split (a showdown that splits the pot) ·
                 sidepots (an all in → the run-out → 3 pots awarded one at a time, a short stack OUT) · levelup (BLINDS UP at the next deal) ·
+                HE5: leaveafter (CASH, you in a hand: LEAVE AFTER THIS HAND) · leavequeued (LEAVING AFTER THIS HAND · CANCEL)
                 ko (you bust → the KO card → SPECTATING) · spectate (after it — what a refresh shows) · out (an opponent busts: OUT, the fade,
                 the re-spread at the next deal) · leave (CASH: LEAVE TABLE's confirm) · ledger (CASH's end) · final (the tournament's end)
                 (sidepots / levelup / ko / out play their last step LIVE ~0.6 s after the page shows — the real motion, as a phone sees it)
@@ -68,8 +69,8 @@ if (!q.get('labmarks')) {
 }
 const ASK = q.get('state') || 'myturn';
 const N = ASK === 'headsup' ? 2 : Math.max(2, Math.min(8, Number(q.get('n') || (ASK === 'raised' ? 4 : 6))));
-const STATE = q.get('play') === '1' ? 'play' : ({ ledger: 'final', headsup: 'myturn', raised: 'flop' })[ASK] || ASK;
-const MODE = q.get('mode') === 'cash' || ASK === 'ledger' || ASK === 'leave' ? 'cash' : 'tournament';
+const STATE = q.get('play') === '1' ? 'play' : ({ ledger: 'final', headsup: 'myturn', raised: 'flop', leaveafter: 'preflop', leavequeued: 'preflop' })[ASK] || ASK;
+const MODE = q.get('mode') === 'cash' || ['ledger', 'leave', 'leaveafter', 'leavequeued'].includes(ASK) ? 'cash' : 'tournament';
 const STAGED = ['sidepots', 'levelup', 'ko', 'out'].includes(STATE);
 const st = Number(q.get('st') ?? 47), sb = Number(q.get('sb') ?? 34);
 document.documentElement.style.setProperty('--safe-t', `${st}px`);
@@ -200,6 +201,8 @@ if (STATE === 'myturn' || STATE === 'slider' || STATE === 'preflop') {
   else if (N > 3) { const o = T().seats[T().seats.length - 1]; if (o.id !== me && o.id !== l.id) { o.status = 'out'; o.stack = 0; o.cards = []; } }
   rec.seq++;
 }
+// HE5 — LEAVE AFTER THIS HAND queued by the dealer (the button: LEAVING AFTER THIS HAND · CANCEL)
+if (ASK === 'leavequeued') rec.lv = { [me]: T().hand };
 if (MODE === 'cash' && q.get('broke') === '1') { const x = T().seats.find(y => y.id === me); x.stack = 0; x.status = 'folded'; x.cards = []; }
 if (q.get('hand') && T().seats.find(x => x.id === me)) { const x = T().seats.find(y => y.id === me); const c = q.get('hand'); x.cards = [c.slice(0, 2), c.slice(2, 4)]; }
 // the clock: a few seconds into the turn (the bar part-drained)

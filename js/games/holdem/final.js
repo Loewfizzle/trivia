@@ -2,8 +2,8 @@
 // box, the card reveal); this draws the body — premium but calm, a short gold reveal, no confetti walls:
 //   TOURNAMENT — THE WINNER (their emblem, the name big in the casino gold, WINS HOLD'EM), then EVERY PLACE as the console's SLIM CARDS (1st … last,
 //                KOs · hands won under each), then two AWARD CHIPS from the server's record: BIGGEST POT (who + how much) · MOST KOs (who + n)
-//   CASH — THE LEDGER: one slim card per player who played, sorted by net (BOUGHT IN · FINAL under the card, the NET at its right end: + gold, − a
-//          dim red, 0 white); the foot: hands played · the biggest pot (who, how much). Chips only — no money signs anywhere.
+//   CASH — THE LEDGER: one slim card per player who played, sorted by net (BOUGHT IN · FINAL under the card, the NET at its right end (HE5: + green, − red, 0 white —
+//          the shared --good / --bad); the foot: hands played · the biggest pot (who, how much). Chips only — no money signs anywhere.
 // The rows + the numbers come from the console's game node (`game.rows` + `game.sum`, written by the director from the dealer's table — logic.js).
 // The body shows every place itself → el.dataset.podium = 'all' (the frame draws no list of its own).
 import { h } from '../../ui/dom.js';

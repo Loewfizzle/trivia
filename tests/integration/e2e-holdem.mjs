@@ -262,28 +262,34 @@ await H.run(async () => {
     ok(true, `REBUY: ${NAMES[rebought]} bought back in from 0 (the button)`);
   } else ok(false, 'REBUY: nobody went broke');
   await H.shotAll(nh, 'he-05-cash');
-  // HE4 — LEAVE TABLE: a guest's button (only between hands / sat out) + its confirm → the dealer's leave → SPECTATING; their chips in the ledger
+  // HE5 — LEAVE IS ALWAYS THERE: a guest in a running hand taps LEAVE AFTER THIS HAND → LEAVING… · CANCEL (queued by the dealer, they play on)
+  // → the hand ends → gone at the next deal → SPECTATING; their chips in the ledger
   let leftUid = null, leftName = '';
   {
     const gi = alive().filter(i => pages[i] !== nh);
     const end = Date.now() + 90000;
     let li = null;
     while (li == null && Date.now() < end) {
-      for (const i of alive()) if (!gi.includes(i) || i !== gi[0]) await moveOn(pages[i], 'passive');
-      if (await pages[gi[0]].evaluate(() => window.__holdem.leave()).catch(() => false)) li = gi[0];
-      else await moveOn(pages[gi[0]], 'passive');
+      if (await pages[gi[0]].evaluate(() => window.__holdem.leave() === 'after').catch(() => false)) li = gi[0];
+      else for (const i of alive()) await moveOn(pages[i], 'passive');
       await sleep(150);
     }
     if (li != null) {
       leftUid = await uidOf(pages[li]); leftName = NAMES[li];
       await pages[li].evaluate(() => document.querySelector('.he-leave').click());
-      await pages[li].waitForSelector('.sh .btn-danger', { timeout: 8000 }).catch(() => {});
+      for (let w = 0; w < 50 && (await pages[li].evaluate(() => window.__holdem.leave())) !== 'queued'; w++) await sleep(150);
+      const q = await pages[li].evaluate(() => window.__holdem.leave());
       await H.shot(pages[li], 'he-06-leave').catch(() => {});
-      await pages[li].evaluate(() => { const b = document.querySelector('.sh .btn-danger'); b && b.click(); });
-      await waitFor(nh, (s, id) => { const n = s.live.table; return n && n.p && n.p[id] && /"left":true/.test(n.p[id]); }, 'the leaver on the table', 20000, leftUid);
+      ok(q === 'queued', `LEAVE AFTER THIS HAND: ${leftName}'s tap queued it (the button: ${q})`);
+      const t0 = Date.now();
+      while (Date.now() - t0 < 60000) {
+        if (await nh.evaluate(id => { const n = window.__arcade.state.live.table; return !!(n && n.p && n.p[id] && /"left":true/.test(n.p[id])); }, leftUid)) break;
+        for (const i of alive()) await moveOn(pages[i], 'passive');
+        await sleep(200);
+      }
       await sleep(600);
-      ok(await pages[li].evaluate(() => window.__holdem.spectating()), `LEAVE TABLE: ${leftName} tapped LEAVE → the confirm → left the table, now SPECTATING`);
-    } else ok(false, 'LEAVE TABLE: the button never showed between hands');
+      ok(await pages[li].evaluate(() => window.__holdem.spectating()), `LEAVE AFTER THIS HAND: ${leftName} played the hand out, then left — now SPECTATING`);
+    } else ok(false, 'LEAVE: the button never offered LEAVE AFTER THIS HAND');
   }
   // END SESSION: the host's button, twice (the second tap confirms) → the session closes when the running hand ends
   await nh.evaluate(() => { const b = document.querySelector('.he-hostbar button'); b && b.click(); });

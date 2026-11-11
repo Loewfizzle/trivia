@@ -170,6 +170,38 @@ test('CASH via the dealer: sit (late join), AWAY → SAT OUT → back, rebuy, le
   assert.ok(r3.m.players.u2.leaving || r3.m.players.u2.left);
 });
 
+test('HE5 — LEAVE IS ALWAYS THERE (CASH): in a running hand LEAVE AFTER THIS HAND is queued (you play on), applied at the next deal\'s moment; a second tap cancels; between hands it is at once', () => {
+  const { rec, rng } = start(3, { mode: 'cash', seed: 'lvq' });
+  let now = T0 + 1;
+  const me = rec.m.table.seats.find(x => x.status === 'in').id;
+  op(rec, 'leave', me, { after: true }, now, rng);
+  assert.equal(seatById(rec.m.table, me).status, 'in', 'queued: still in the hand — no fold');
+  assert.equal(publicOf(rec).players[me].after, true, 'the public view says so (the button: LEAVING AFTER THIS HAND · CANCEL)');
+  op(rec, 'leave', me, { after: false }, now += 10, rng);
+  assert.equal(publicOf(rec).players[me].after, undefined, 'a second tap cancels');
+  op(rec, 'leave', me, { after: true }, now += 10, rng);
+  // play the hand out: the leaver plays too
+  while (running(rec.m.table)) { const L = legalActions(rec.m.table); if (!L) { advance(rec, now += PAUSE.street, rng); continue; } op(rec, 'act', L.id, { action: L.canCheck ? 'check' : 'call' }, now += 100, rng); }
+  assert.ok(seatById(rec.m.table, me), 'the hand is over: still seated while the result shows');
+  assert.ok(!rec.m.players[me].left);
+  const due = dueOf(rec);
+  assert.ok(due > now, 'the next deal\'s moment is due');
+  advance(rec, due, rng);
+  assert.ok(rec.m.players[me].left, 'gone at the next deal');
+  assert.ok(!rec.m.table.seats.some(x => x.id === me), 'not dealt in');
+  assert.equal(publicOf(rec).players[me].after, undefined);
+  assert.equal(rec.m.ledger, null, 'the session goes on');
+  // between hands: LEAVE leaves at once (the confirm is the phone's)
+  const { rec: r2, rng: g2 } = start(3, { mode: 'cash', seed: 'lvnow' });
+  let n2 = T0 + 1;
+  while (running(r2.m.table)) { const L = legalActions(r2.m.table); if (!L) { advance(r2, n2 += PAUSE.street, g2); continue; } op(r2, 'act', L.id, { action: 'fold' }, n2 += 100, g2); }
+  op(r2, 'leave', 'u3', { after: true }, n2 + 10, g2);
+  assert.ok(r2.m.players.u3.left, 'not in a running hand: at once');
+  // a tournament has no leaving
+  const { rec: r3, rng: g3 } = start(3, { seed: 'lvt' });
+  refused(() => op(r3, 'leave', 'u1', { after: true }, T0 + 1, g3), 'illegal');
+});
+
 test('THE TOURNAMENT to the end on the dealer: places → result rows (1st = the win), the public view never leaks along the way', () => {
   const { rec, rng } = start(4, { seed: 'tour', speed: 'turbo' });
   let now = T0 + 1, guard = 0;

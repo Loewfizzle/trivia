@@ -85,7 +85,8 @@ test('THE LAYOUT (HE4) at 375 / 390 / 402 / 430 wide + an SE-height phone, 2–8
           if (!A[a]) continue;
           assert.ok(!overlaps(A[a], B.board, 2), `${at}: seat ${i}.${a} × the board`);
           assert.ok(!overlaps(A[a], B.pot, 2), `${at}: seat ${i}.${a} × the pot`);
-          assert.ok(!overlaps(A[a], B.sides(1)[0]), `${at}: seat ${i}.${a} × a side pot`);
+          assert.ok(!overlaps(A[a], B.side), `${at}: seat ${i}.${a} × the side-pot line`);
+          assert.ok(!overlaps(A[a], B.myBet), `${at}: seat ${i}.${a} × your bet`);
           assert.ok(!overlaps(A[a], B.presets), `${at}: seat ${i}.${a} × the presets`);
         }
       });
@@ -94,6 +95,12 @@ test('THE LAYOUT (HE4) at 375 / 390 / 402 / 430 wide + an SE-height phone, 2–8
       B.seats.forEach((A, i) => { for (const k of ['main', 'cards', 'bet', 'tag']) if (A[k]) assert.ok(!overlaps(A[k], B.award), `${at}: seat ${i}.${k} × the award box`); });
       assert.ok(!overlaps(B.award, B.minisDone) && !overlaps(B.award, B.hand), `${at}: the award box above the between-hands buttons + your cards`);
       assert.ok(B.board.y1 + 2 <= B.presets.y0, `${at}: the presets below the board`);
+      // HE5 (Ben's HE4 review): ≥ 12 pt between the presets and the round buttons; YOUR bet on the felt above the presets, clear of the board
+      assert.ok(B.buttons.y0 - B.presets.y1 >= 12 - 1e-6, `${at}: ${(B.buttons.y0 - B.presets.y1).toFixed(1)} pt between the presets + the buttons`);
+      if (L.myBet.above) assert.ok(B.myBet.y1 <= B.presets.y0 && B.board.y1 + 2 <= B.myBet.y0, `${at}: your bet between the board + the presets`);
+      // (a short phone with 5–8 players: your bet LEFT of your cards, under FOLD — never on a button, never on your cards, on the felt)
+      else assert.ok(!overlaps(B.myBet, B.buttons) && B.myBet.x1 <= B.hand.x0 && B.myBet.x0 >= L.box.x + 16 * L.s, `${at}: your bet beside your cards`);
+      assert.ok(B.side.y1 <= B.pot.y0 + 1e-6 && !overlaps(B.side, B.board), `${at}: the side-pot line above the pot`);
       assert.ok(B.buttons.y1 <= B.hand.y0 + 4, `${at}: the buttons above your cards`);
       assert.ok(L.hand.card.w > L.board.card.w && L.hand.card.h > L.board.card.h, `${at}: your cards are the biggest thing`);
       assert.ok(L.plate + 30 <= h - bottom + 2, `${at}: your plate on screen`);
@@ -114,11 +121,11 @@ test('BEN’S PREVIEW FIXES (HE4): heads-up = the board centred between the oppo
   assert.ok(Math.abs(tableLayout({ w: 430, h: 932, top: 59, bottom: 34, k: 1 }).board.card.w - 64 * 1.08) < 8, 'heads-up: 64 pt + on a bigger phone');
   const y = k => tableLayout({ w: 390, h: 844, top: 47, bottom: 34, k }).board.y;
   assert.ok(y(2) < y(4) - 30 && y(3) < y(4) - 30, '3–4 players: the board raised toward the middle');
-  assert.ok(Math.abs(y(7) - (100 + 0.6 * 652)) < 1, '5–8: HE3’s place');
+  assert.ok(Math.abs(y(7) - (100 + 0.6 * 652)) < 3, '5–8: HE3’s place (HE5: within 2 pt — the action area’s room)');
   for (const k of [6, 7]) {
     const L = tableLayout({ w: 390, h: 844, top: 47, bottom: 34, k });
     const ys = L.seats.filter(q => q.side === 'left').map(q => q.y).sort((a, b) => a - b);
-    for (let i = 1; i < ys.length; i++) assert.ok(ys[i] - ys[i - 1] >= 80 * 1.18, `k=${k}: rows ${Math.round(ys[i] - ys[i - 1])} pt apart (HE3: 80)`);
+    for (let i = 1; i < ys.length; i++) assert.ok(ys[i] - ys[i - 1] >= 94, `k=${k}: rows ${Math.round(ys[i] - ys[i - 1])} pt apart (HE3: 80)`);
   }
 });
 

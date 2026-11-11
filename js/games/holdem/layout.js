@@ -11,13 +11,22 @@ import { seatSlots } from './logic.js';
 /** the design's anchors as fractions of the table box's height (390 × 844: the box = y 100 → 752, 652 tall) */
 export const Y = {
   top: 0.028,                       // the top seat's emblem centre (on the rail)
-  presets: 0.714, buttons: 0.8,     // the action area: the presets' centre + the round buttons' centre — always BELOW the board
-  hand: 0.95,                       // your two cards' centre (they overlap the bottom rail)
+  hand: 0.955,                      // your two cards' centre (they overlap the bottom rail; HE5: 0.95 → 0.955 — room for the action area)
 };
+/**
+ * HE5 — THE ACTION AREA, built UP from your cards (Ben's HE4 review: real breathing room): the round buttons (≥ 56 pt) a few pt above your
+ * cards, ≥ 12 pt of air, the presets (44 pt — the touch minimum), then YOUR BET's chip stack on the felt above them (never on a button).
+ * The board for 5–8 players rises only as much as that needs (HE3's 0.6 when the screen allows it).
+ */
+export const ACT = { gapHand: 4, gapPB: 12, preset: 44, gapBet: 3, bet: 18, gapBoard: 3, btn: 56 };
+/** the round buttons' gap (× s) — HE5: wider (HE4: 20) */
+export const BTN_GAP = 30;
 /** HE4 — the board's centre + its card width (pt at s = 1) by the number of OPPONENTS (k): heads-up · 3–4 players · 5–8 players */
 export const BOARD = { 1: { y: 0.44, w: 64 }, 2: { y: 0.54, w: 56 }, 3: { y: 0.55, w: 56 }, rest: { y: 0.6, w: 56 } };
 /** HE4 — the side rows (emblem centres, top → bottom) by k: from just under the top seat to just above the pot line (sideRowsPx) */
-export const ROWS = { 4: [0.16], 5: [0.16], 6: [0.128, 0.274], 7: [0.128, 0.274] };   // (the first row; the rows' count = its length + 1)
+export const ROWS = { 4: [0.16], 5: [0.16], 6: [0.11, 0.274], 7: [0.128, 0.274] };   // (HE5: k = 6's first row 0.128 → 0.11 — still on the rail's curve; the first row; the rows' count = its length + 1)
+/** HE5: the side rows never closer than a seat's block (94 pt × ss) */
+export const ROW_MIN = 94.5;
 export const DESIGN = { w: 390, h: 844, boxTop: 100, boxBottom: 752 };
 const CARD_RATIO = 78 / 56;
 
@@ -36,14 +45,34 @@ export function tableLayout({ w, h, top = 0, bottom = 0, k = 0 }) {
   const B = BOARD[k] || BOARD.rest;
   // (the five cards always fit inside the felt — the rail 16 · s each side: 64 pt heads-up on the bigger phones, a little less on a 390)
   const feltW = box.w - 32 * s, bw = Math.min(B.w * s, (feltW - 8 - 4 * 5 * s) / 5), boardCard = { w: bw, h: bw * CARD_RATIO };
-  const boardY = at(B.y);
-  const pot = boardY - boardCard.h / 2 - 17 * s;     // the POT line sits just above the board, wherever the board is
-  const ss = Math.min(1, s);
+  // HE5 — THE ACTION AREA from the bottom up (ACT): your cards → the buttons → 12 pt → the presets → your bet's stack
+  const handCard = { w: 78 * s, h: 108 * s }, handY = at(Y.hand);
+  const btn = Math.max(ACT.btn, ACT.btn * s);
+  const buttons = handY - handCard.h / 2 - ACT.gapHand * s - btn / 2;
+  const presets = buttons - btn / 2 - Math.max(ACT.gapPB, ACT.gapPB * s) - ACT.preset / 2;
+  let ss = Math.min(1, s);
   // the opponents: uniform + evenly spaced on the rail (logic.js#seatSlots); the side rows evenly between `first` and `last` (in px — the
   // seats' blocks are fixed sizes (× ss) while the band scales with the table, so the limits are the real pieces, not fractions)
   const slots = seatSlots(k);
   const topY = at(Y.top);
-  const rows = sideRowsPx(k, { at, ss, s, topY, pot, boardTop: boardY - boardCard.h / 2 });
+  // YOUR BET above the presets — unless that would squeeze the side rows closer than a seat's block (a short phone, 5–8 players): then it
+  // sits on the felt LEFT of your cards, under FOLD (still never on a button) and the board keeps the room
+  const place = (above, ss) => {
+    const myBet = above ? presets - ACT.preset / 2 - ACT.gapBet - ACT.bet / 2 : null;
+    const floor = above ? myBet - ACT.bet / 2 : presets - ACT.preset / 2;
+    const boardY = Math.min(at(B.y), floor - ACT.gapBoard - boardCard.h / 2);
+    const pot = boardY - boardCard.h / 2 - 17 * s;     // the POT line sits just above the board, wherever the board is
+    const rows = sideRowsPx(k, { at, ss, s, topY, pot, boardTop: boardY - boardCard.h / 2 });
+    const gap = rows.length > 1 ? rows[1] - rows[0] : Infinity;
+    return { myBet, boardY, pot, rows, gap };
+  };
+  let P = place(true, ss);
+  if (P.gap < ROW_MIN * ss) P = place(false, ss);
+  // (an SE-height phone with 8 at the table: the seats a hair smaller — never below 0.74 — rather than touching)
+  if (P.gap < ROW_MIN * ss) { ss = Math.max(0.74, Math.min(ss, P.gap / ROW_MIN)); P = place(false, ss); }
+  const { boardY, pot, rows } = P;
+  const myBet = P.myBet != null ? { x: box.x + box.w / 2, y: P.myBet, above: true }
+    : { x: box.x + box.w / 2 - handCard.w * 0.92 - 40, y: handY - 30 * s, above: false };
   let li = 0, ri = 0;
   const left = [...rows].reverse();
   const inset = 34 * Math.min(1, s + 0.1);                                        // a side seat's emblem centre from the box's edge (on the rail)
@@ -52,14 +81,13 @@ export function tableLayout({ w, h, top = 0, bottom = 0, k = 0 }) {
     if (q.side === 'left') return { x: box.x + inset, y: left[li++], side: 'left', big: false };
     return { x: box.x + box.w - inset, y: rows[ri++], side: 'right', big: false };
   });
-  const handCard = { w: 78 * s, h: 108 * s };
   return {
     s, ss, w, h, box, seats, k,                          // ss: a seat's block shrinks with a short table (never grows)
     pot,
     board: { y: boardY, card: boardCard, gap: 5 * s },
-    presets: at(Y.presets), buttons: at(Y.buttons),
-    hand: { y: at(Y.hand), card: handCard },
-    plate: at(Y.hand) + handCard.h / 2 + 4 * s,
+    presets, buttons, btn, myBet,
+    hand: { y: handY, card: handCard },
+    plate: handY + handCard.h / 2 + 4 * s,
   };
 }
 
@@ -73,12 +101,17 @@ export function sideRowsPx(k, { at, ss, s, topY, pot, boardTop }) {
   if (k === 3) return [at(0.3025)];
   const fr = ROWS[k];
   if (!fr) return [];
-  const last = Math.min(pot - 20 * s - 10.5 - 12 * ss - 2, boardTop - 72 * ss - 4);   // (4: the showdown's lift of a winning board card is 3 pt — css)
+  // (HE5: every side pot is ONE line just above the pot — potSideTop; a bottom-row bet ends 3 pt above it. 4: the showdown's lift of a
+  //  winning board card is 3 pt — css)
+  const last = Math.min(potSideTop(pot, s) - 3 - 12 * ss, boardTop - 72 * ss - 4);
   // with a top seat (5, 7) the first row tucks in just under its plate — its bet chip between the top seat's plate and the top seat's bet
   const first = k === 5 || k === 7 ? topY + 66 * ss : at(fr[0]);
   const n = fr.length + 1;
   return Array.from({ length: n }, (_, i) => first + (last - first) * (n === 1 ? 0 : i / (n - 1)));
 }
+
+/** HE5 — the pot pill (22 · s tall, centred on `pot`) + ONE side-pot line above it (14 · s, 2 pt apart): that line's top — no seat piece reaches below it */
+export const potSideTop = (pot, s) => pot - 11 * s - 2 - 14 * s;
 
 /** The side rows for k opponents (their ORDER — the left side listed bottom → top, clockwise from your left; the right top → bottom; 2–3: one row). */
 export function sideRows(k) {
@@ -127,10 +160,13 @@ export function blocks(L) {
   return {
     seats: L.seats.map(q => seatRects(q, L.ss)),
     pot: rect(cx, L.pot, 112 * s, 22 * s),                                   // "POT 12,345" (the main pot — the widest one)
-    sides: n => Array.from({ length: n }, (_, i) => rect(cx, L.pot - (i + 1) * 20 * s, 84, 17)),   // "SIDE 1 1,320", stacked above it
+    // HE5: every side pot on ONE line just above the pot, never wider than the pot ("SIDE 1,320 · 480" · "3 SIDE POTS · 2,140")
+    side: { x0: cx - 56 * s, x1: cx + 56 * s, y0: potSideTop(L.pot, s), y1: L.pot - 11 * s - 2 },
     board: rect(cx, L.board.y, bw, L.board.card.h),
-    presets: rect(cx, L.presets, 3 * 86 * s + 16, 46),
-    buttons: rect(cx, L.buttons, 3 * Math.max(56, 66 * s) + 2 * 20 * s, Math.max(56, 66 * s)),
+    presets: rect(cx, L.presets, 3 * 86 * s + 16, ACT.preset),
+    buttons: rect(cx, L.buttons, 3 * L.btn + 2 * BTN_GAP * s, L.btn),
+    // HE5: YOUR bet's chip stack + its amount, on the felt above the action area (never on a button)
+    myBet: rect(L.myBet.x, L.myBet.y, L.myBet.above ? 110 : 70, ACT.bet),
     hand: rect(cx, L.hand.y, L.hand.card.w * 1.84, L.hand.card.h),
     // (HE4: THE AWARD BOX under the board at a hand's end — the gold winning hand + a pot's line; the between-hands buttons on the buttons' row)
     award: { x0: L.box.x + 12, x1: L.box.x + L.box.w - 12, y0: L.board.y + L.board.card.h / 2 + 9 * s, y1: L.board.y + L.board.card.h / 2 + 9 * s + 50 * s },

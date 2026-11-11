@@ -35,6 +35,7 @@ const BACK = new URL('../../../assets/holdem/cardback-casino.webp', import.meta.
 const fmt = n => Math.round(n || 0).toLocaleString('en-US');
 const GHOST = { name: 'PLAYER', color: 'cyan', avatar: 'ghost' };
 const SHOW_MS = 4000;
+const LEAVE_TEXT = { now: ['LEAVE', 'TABLE'], after: ['LEAVE', 'AFTER THIS HAND'], queued: ['LEAVING', 'AFTER THIS HAND', 'CANCEL'] };
 
 export function createView() {
   let st = null, root = null, els = {}, L = null;           // L = the layout (layout.js) for the current size + seat count
@@ -121,7 +122,9 @@ export function createView() {
     els.award = h('div.he-awardbox', { 'aria-live': 'polite' });   // (the hand's end: the winning hand + each pot's line — under the board)         // THE MOTION's ghosts: over the felt, under your buttons + your cards
     els.toasts = h('div.he-toasts', { 'aria-live': 'polite' });
     // LEAVE TABLE (HE4 — Group 4, CASH): near your cards, only between hands (or while you're sat out); a confirm, then you spectate
-    els.leave = h('button.he-leave', { type: 'button', hidden: true, onclick: () => confirmLeave() }, h('b', 'LEAVE'), h('small', 'TABLE'));
+    // HE5 (Ben): ALWAYS there in CASH — LEAVE TABLE (between hands: a confirm, at once) · LEAVE AFTER THIS HAND (in a hand: the dealer
+    // queues it) · LEAVING AFTER THIS HAND · CANCEL (a second tap)
+    els.leave = h('button.he-leave', { type: 'button', hidden: true, onclick: () => tapLeave() });
     // (the safe areas, measured once per resize by two probes — never in the frame loop)
     els.probeT = h('i.he-probe.he-probe-t'); els.probeB = h('i.he-probe.he-probe-b');
     root.append(els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.award, els.fx, els.status, els.actions, els.hero, els.leave, els.toasts);
@@ -225,6 +228,9 @@ export function createView() {
     root.style.setProperty('--bc-h', `${L.board.card.h}px`);
     root.style.setProperty('--presets-y', `${L.presets}px`);
     root.style.setProperty('--buttons-y', `${L.buttons}px`);
+    root.style.setProperty('--btn', `${L.btn}px`);
+    root.style.setProperty('--mybet-x', `${L.myBet.x}px`);
+    root.style.setProperty('--mybet-y', `${L.myBet.y}px`);
     root.style.setProperty('--hand-y', `${L.hand.y}px`);
     root.style.setProperty('--hc-w', `${L.hand.card.w}px`);
     root.style.setProperty('--hc-h', `${L.hand.card.h}px`);
@@ -414,7 +420,7 @@ export function createView() {
       const collected = Math.max(0, t.seats.reduce((n, x) => n + (x.total || 0) - (x.bet || 0), 0) - hold.sweep);
       const side = running(t) ? sidePots(t) : [];
       sig = `R|${collected}|${side.map(p => p.amount).join(',')}`;
-      if (collected > 0) kids = [h('b', `POT ${fmt(collected)}`), ...side.slice(1).map(p => h('small', `${p.label} · ${fmt(p.amount)}`))];
+      if (collected > 0) kids = [h('b', `POT ${fmt(collected)}`), side.length > 1 ? h('small', sideLine(side.slice(1))) : null];
     }
     const ak = aw ? `${aw.line}|${aw.win}` : '';
     if (els.award.dataset.k !== ak) {
@@ -427,6 +433,8 @@ export function createView() {
     els.pot.replaceChildren(...kids.filter(Boolean));
   }
   const nameOf = id => who(id).name;
+  /** HE5 — every side pot on ONE line above the pot (layout.js#potSideTop — it never reaches a seat's bet): "SIDE 1,320 · 480", or "3 SIDE POTS · 2,140" */
+  const sideLine = list => { const a = `SIDE ${list.map(p => fmt(p.amount)).join(' · ')}`; return a.length <= 18 ? a : `${list.length} SIDE POTS · ${fmt(list.reduce((n, p) => n + p.amount, 0))}`; };
   /** the hand's main pot as an event-shaped row (its winners, its label; a fold-win says so) */
   const finalPot = t => { const p = t.result && (t.result.pots || [])[0]; return p ? { ...p, pot: 0, byFold: !!t.result.byFold } : null; };
 
@@ -476,7 +484,7 @@ export function createView() {
           : spec ? '<div class="he-spec">SPECTATING</div>' : '';
     }
     const run = t && running(t);
-    els.hero.classList.toggle('is-folded', !!(x && (x.status === 'folded' || x.status === 'out')));
+    els.hero.classList.toggle('is-folded', !spec && !!(x && (x.status === 'folded' || x.status === 'out')));   // (SPECTATING reads at full strength)
     const myTurn = !!(run && x && !t.runout && t.turn === x.seat);
     els.hero.classList.toggle('is-turn', myTurn);
     els.hero.style.setProperty('--c', colorHex(who(id).color));
@@ -499,6 +507,7 @@ export function createView() {
     if (!bet) { bet = h('div.he-bet', h('i.he-chip'), h('span')); els.hero.append(bet, h('div.he-dealer', 'D')); }
     bet.hidden = !(run && x && x.bet > 0);
     bet.querySelector('span').textContent = x ? fmt(x.bet) : '';
+    root.classList.toggle('has-mybet', !bet.hidden && !!(L && L.myBet.above));   // (the felt print gives way to your stack)
     els.hero.querySelector('.he-dealer').hidden = !(t && x && t.button === x.seat && t.hand > 0);
     els.hero.querySelector('.he-clock').hidden = !myTurn;
   }
@@ -527,9 +536,17 @@ export function createView() {
     // the seat's own buttons (between turns): SHOW · REBUY · SIT BACK · I'M BACK · TAKE A SEAT
     if (current() && !pub.ended) kids.push(...seatButtons(x, t));
     if (kids.some(k => k.classList.contains('he-minis'))) status = '';   // (a button of your own wins the line's spot)
-    const lv = canLeave();
-    if (els.leave.hidden === lv) els.leave.hidden = !lv;
-    if (!lv && leaveSheet) leaveSheet.close();
+    const lv = leaveState();
+    if (els.leave.dataset.k !== lv) {
+      els.leave.dataset.k = lv;
+      els.leave.hidden = !lv;
+      const [b, sm, em] = LEAVE_TEXT[lv] || [];
+      els.leave.replaceChildren(...(lv ? [h('b', b), h('small', sm), em ? h('em', em) : null].filter(Boolean) : []));
+      els.leave.setAttribute('aria-label', lv ? [b, sm, em].filter(Boolean).join(' ') : '');
+      els.leave.classList.toggle('is-queued', lv === 'queued');
+    }
+    const canLeaveNow = lv === 'now';
+    if (!canLeaveNow && leaveSheet) leaveSheet.close();
     if (els.status.textContent !== status) els.status.textContent = status;
     els.status.hidden = !status;
     // (THE TAP WATCH: a control is never rebuilt under a finger — only when what it says changed)
@@ -604,15 +621,26 @@ export function createView() {
     if (x && (x.away || x.status === 'sitout') && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('back') }, cash ? 'SIT BACK IN' : 'I’M BACK'));
     return out.length ? [h('div.he-minis', out)] : [];
   }
-  /** LEAVE shows for a CASH seat that isn't in a running hand: between hands, or sat out (the dealer's `leave` — your stack counts then) */
-  function canLeave() {
+  /**
+   * LEAVE (CASH, HE5 — always there while you're seated): 'now' = not in a running hand (between hands, sat out, folded) → a confirm, then
+   * at once (your stack counts then); 'after' = in the hand → LEAVE AFTER THIS HAND (the dealer queues it); 'queued' → the tap cancels.
+   */
+  function leaveState() {
     const t = table(), x = mySeat(), pl = ((pub && pub.players) || {})[me()];
-    if (!pub || pub.mode !== 'cash' || !current() || pub.ended || !x || (pl && (pl.left || pl.leaving))) return false;
-    return !(t && running(t)) || x.status === 'sitout';
+    if (!pub || pub.mode !== 'cash' || !current() || pub.ended || !x || (pl && (pl.left || pl.leaving))) return '';
+    if (pl && pl.after) return 'queued';
+    return t && running(t) && (x.status === 'in' || x.status === 'allin') ? 'after' : 'now';
+  }
+  function tapLeave() {
+    const k = leaveState();
+    vibrate(10);
+    if (k === 'now') confirmLeave();
+    else if (k === 'after') send('leave', { after: true });
+    else if (k === 'queued') send('leave', { after: false });
   }
   let leaveSheet = null;
   async function confirmLeave() {
-    if (leaveSheet || !canLeave()) return;
+    if (leaveSheet || leaveState() !== 'now') return;
     const x = mySeat();
     const { openSheet } = await lazyImport(import('../../ui/sheet.js'), '../../ui/sheet.js');
     const go = tubeButton('LEAVE THE TABLE', { kind: 'danger', block: true, onClick: () => { if (leaveSheet) leaveSheet.close(); send('leave'); } });
@@ -620,6 +648,7 @@ export function createView() {
     leaveSheet = openSheet({ title: 'LEAVE THE TABLE?', cls: 'he-sheet', body: [
       h('p.he-leave-p', `Your ${fmt(x ? x.stack : 0)} chips count in the ledger. You can watch the table — or sit back down with a new buy-in.`),
       h('div.he-leave-row', go, stay)], onClose: () => { leaveSheet = null; } });
+    if (leaveState() !== 'now' && leaveSheet) leaveSheet.close();   // (a hand was dealt while the sheet opened)
   }
   const lastDoneAt = t => { const e = [...(pub.ev || [])].reverse().find(v => v.t === 'pot' && v.hand === t.hand); return e ? e.at : null; };
 
@@ -635,7 +664,7 @@ export function createView() {
   // ------------------------------------------------------------------ THE MOTION's view of the table (motion.js) — positions from the layout
   const heroPos = what => {
     const cx = L.box.x + L.box.w / 2, hc = L.hand.card;
-    if (what === 'bet') return { x: cx, y: L.hand.y - hc.h / 2 - 10 };
+    if (what === 'bet') return { x: L.myBet.x, y: L.myBet.y };
     if (what === 'emblem') return { x: cx, y: L.plate + 14 };
     if (what === 'dealer') return { x: cx - hc.w - 5, y: L.hand.y };
     if (what === 'card0') return { x: cx - hc.w * 0.42, y: L.hand.y };
@@ -737,7 +766,7 @@ export function createView() {
   // ------------------------------------------------------------------ the E2E's hook (localhost / ?emu only)
   const hook = {
     pub: () => pub, hole: () => hole, layout: () => L,
-    ko: () => (els.ko ? els.ko.textContent : null), spectating: () => !!els.hero.querySelector('.he-spec'), leave: () => !els.leave.hidden,
+    ko: () => (els.ko ? els.ko.textContent : null), spectating: () => !!els.hero.querySelector('.he-spec'), leave: () => (els.leave.hidden ? '' : els.leave.dataset.k),
     motion: () => !!(motion && motion.busy()), award: () => awardNow && awardNow.line, potLine: () => els.pot.textContent + els.award.textContent,
     legal: () => { const t = table(); return t && running(t) ? legalActions(t) : null; },
     act: (action, amount) => act(action, amount), pre: kind => send('pre', { pre: kind }), op: (op, body) => send(op, body),

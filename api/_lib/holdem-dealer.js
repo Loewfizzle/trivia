@@ -5,7 +5,7 @@
 //
 //   THE RECORD (server-only — hrec/{CODE}, stored as one JSON string): { v, id (matchId), code, mode, speed, seq, m (the engine's
 //   match: the deck + every hole card), pre: { uid: { kind, hand, street } }, doneAt, revealAt, endingAt, ev: [the last public events,
-//   numbered n], evn, rep: null | 'done' | 'skipped' }
+//   numbered n], evn, rep: null | 'done' | 'skipped', lv: { uid: hand } (HE5 — LEAVE AFTER THIS HAND, queued) }
 //   THE PUBLIC VIEW (rooms/{CODE}/holdem — any signed-in reader): publicOf(rec, now) — the engine's publicView (no deck, no unshown
 //   card) + the match's public numbers + `due` (the next moment the server's clock makes something happen) + the recent events.
 //   A SEAT's PRIVATE VIEW (hole/{CODE}/{uid} — that uid only): holeOf(rec, uid) — { h: hand, c: [its 2 cards] | none, pre }.
@@ -56,7 +56,7 @@ export function newRecord({ code, uids, mode = 'tournament', speed, now, rng, pr
   const at = dealAt != null && dealAt > now ? dealAt : now;
   const m = createMatch({ mode, speed: sp || DEFAULT_SPEED, players: shuffled(ids, rng), now: at, stepRunout: true });
   const mid = matchIdOf(now, rng);
-  return { v: 1, id: id || mid, code, roomAt, mode, speed: m.speed, seq: prevSeq + 1, m, pre: {}, doneAt: null, revealAt: null, endingAt: null, dealAt: at, ev: [], evn: 0, rep: null };
+  return { v: 1, id: id || mid, code, roomAt, mode, speed: m.speed, seq: prevSeq + 1, m, pre: {}, doneAt: null, revealAt: null, endingAt: null, dealAt: at, ev: [], evn: 0, rep: null, lv: {} };
 }
 
 function note(rec, events) {
@@ -97,9 +97,12 @@ export function dueOf(rec) {
     if (t.runout) return (rec.revealAt || 0) + PAUSE.street;
     return t.deadline ?? null;
   }
-  if (!canDeal(m)) return null;
+  if (!canDeal(m)) return queuedLeaves(rec).length ? nextDealAt(rec) : null;
   return nextDealAt(rec);
 }
+
+/** HE5 — LEAVE AFTER THIS HAND: the CASH seats whose player queued a leave (applied when the hand is over — at the next deal's moment) */
+const queuedLeaves = rec => Object.keys(rec.lv || {});
 
 /** When the next hand may be dealt: the pause after the last one (and never before the match's first deal moment — HE3). */
 const nextDealAt = rec => Math.max(rec.dealAt || 0, (rec.doneAt ?? 0) + pauseOf(rec.m.table));
@@ -150,6 +153,16 @@ export function advance(rec, now, rng, { kicked = null } = {}) {
         continue;
       }
       break;
+    }
+    // HE5 — the queued LEAVE AFTER THIS HAND: the hand is over — they go at the next deal's moment (the showdown stays on screen until
+    // then), or at once when no next hand can be dealt
+    if (queuedLeaves(rec).length && (now >= nextDealAt(rec) || !canDeal(m))) {
+      for (const uid of queuedLeaves(rec)) {
+        delete rec.lv[uid];
+        if (m.players[uid] && !m.players[uid].left) engine(rec, mm => leave(mm, uid, now), now);
+      }
+      changed = true;
+      continue;
     }
     if (!canDeal(m) || now < nextDealAt(rec)) break;
     if (engine(rec, mm => nextHand(mm, { rng, now }), now).error) break;
@@ -217,7 +230,22 @@ export function applyOp(rec, op, uid, body, { now, rng, isHost = false, kicked =
     case 'poke': break;
     case 'rebuy': ok(engine(rec, mm => rebuy(mm, uid, now), now)); break;
     case 'back': ok(engine(rec, mm => sitBack(mm, uid, now), now)); break;
-    case 'leave': ok(engine(rec, mm => leave(mm, uid, now), now)); delete rec.pre[uid]; break;
+    case 'leave': {
+      // HE5 — LEAVE IS ALWAYS THERE (CASH): `after` = LEAVE AFTER THIS HAND — while you're IN the running hand it's QUEUED (you play it out;
+      // the dealer lets you go when it's over — advance); `after: false` cancels. Not in a running hand → you leave at once (as before).
+      if (body.after != null) {
+        if (rec.mode !== 'cash') refuse(409, 'illegal', 'Only a CASH game lets you leave.', { seq: rec.seq });
+        const x = seatById(t, uid), p = m.players[uid];
+        if (!x || !p || p.left) refuse(403, 'not_seated', 'You are not at this table.');
+        rec.lv = rec.lv || {};
+        if (!body.after) { delete rec.lv[uid]; break; }
+        if (running(t) && (x.status === 'in' || x.status === 'allin')) { rec.lv[uid] = t.hand; break; }
+      }
+      ok(engine(rec, mm => leave(mm, uid, now), now));
+      delete rec.pre[uid];
+      if (rec.lv) delete rec.lv[uid];
+      break;
+    }
     case 'sit': {
       // CASH: a late joiner takes a free seat (or a player who left comes back) — dealt in from the next hand
       if (kicked && kicked[uid]) refuse(403, 'kicked', 'You were removed from this room.');
@@ -248,7 +276,7 @@ export function publicOf(rec) {
   const m = rec.m, t = m.table;
   const { log, ...table } = publicView(t);
   const players = {};
-  for (const [id, p] of Object.entries(m.players)) players[id] = { seat: p.seat, buyins: p.buyins, rebuys: p.rebuys, hands: p.hands, won: p.won, kos: p.kos, left: !!p.left, leaving: !!p.leaving };
+  for (const [id, p] of Object.entries(m.players)) players[id] = { seat: p.seat, buyins: p.buyins, rebuys: p.rebuys, hands: p.hands, won: p.won, kos: p.kos, left: !!p.left, leaving: !!p.leaving, ...(rec.lv && rec.lv[id] != null ? { after: true } : {}) };
   return {
     v: 1, id: rec.id, mode: rec.mode, speed: rec.speed, seq: rec.seq, hand: t.hand,
     startAt: m.startAt, levelMs: m.levelMs, level: m.level,

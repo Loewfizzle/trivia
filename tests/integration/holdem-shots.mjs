@@ -15,6 +15,9 @@ const STATES = [
   ['he4-sidepots-6', 'state=sidepots&n=6', 7300], ['he4-levelup-5', 'state=levelup&n=5', 1300], ['he4-ko-6', 'state=ko&n=6', 6600],
   ['he4-spectate-6', 'state=spectate&n=6'], ['he4-out-6', 'state=out&n=6', 6300], ['he4-leave-5', 'state=leave&n=5', 900],
   ['he4-ledger-8', 'state=ledger&n=8', 3200], ['he4-final-8', 'state=final&n=8', 3200],
+  // HE5 — LEAVE IS ALWAYS THERE (CASH) · an SE-height phone (no notch: the safe areas 20 / 0)
+  ['he5-leaveafter-5', 'state=leaveafter&n=5'], ['he5-leavequeued-5', 'state=leavequeued&n=5'],
+  ['he5-se-myturn-8', 'state=myturn&n=8&st=20&sb=0'], ['he5-se-allin-6', 'state=allin&n=6&st=20&sb=0'], ['he5-se-flop-5', 'state=flop&n=5&st=20&sb=0'],
 ];
 const only = arg('only', '') ? arg('only').split(',') : null;
 for (const [name, qs, wait] of STATES) {

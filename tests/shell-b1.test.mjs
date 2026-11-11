@@ -131,7 +131,8 @@ test('THE SOLO LANE (the room): the host writes 0 night points for a room of one
 test('COLOUR-BLIND: --good / --close in :root, swapped under body[data-cb]; OVERCLOCK right / close read them; the setting + the profile copy', () => {
   const base = read('css/base.css'), oc = read('css/overclock.css');
   assert.match(base, /--good: #3dff8b; --close: #ffd23d;/);
-  assert.match(base, /body\[data-cb\] \{ --good: #3ea6ff; --close: #ff8f2e; \}/);
+  assert.match(base, /body\[data-cb\] \{ --good: #3ea6ff; --close: #ff8f2e; --bad: #ff8f2e; \}/);
+  assert.match(base, /--bad: #ff5468;/);   // (HE5: a loss / down — HOLD'EM's ledger; the colour-blind set swaps it too)
   for (const l of oc.split('\n').filter(l => /is-right|is-correct|is-ok\b/.test(l))) assert.doesNotMatch(l, /var\(--green\)|61, 255, 139/, `still its own green: ${l.slice(0, 80)}`);
   assert.match(oc, /\.oc-qc-close \{[^}]*border: 2px solid var\(--close\)/);   // (OC4: QUICK COUNT's off-by-one tile)
   assert.match(read('js/ui/settings-panel.js'), /toggle\('Colour-blind colours', 'colorBlind'\)/);
