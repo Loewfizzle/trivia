@@ -275,3 +275,14 @@
 - CASH gets a LEAVE TABLE button (between hands only, a confirm; your stack counts at leave).
 - The end screen's award chips: BIGGEST POT · MOST KOs (tournament) — computed from the server's record, shown only, no new cards/achievements.
 - Carried from the city chat (as written): THE MUSIC WARM-UP, SMALLER (the last group) — this pass's final push carries the [harbor] tag.
+
+## HE5 — SOUNDS + CHIPS + THE CASINO SKIN (Nov 10 2026)
+- Ben's review of HE4: SPECTATING is a straight, level label (no tilt, no slanted dashed box); the betting area gets real breathing room (≥ ~12 pt between the preset row and the round buttons, the buttons spaced wider, YOUR bet chip on the felt ABOVE the action area — never on a button); the LEDGER's net = GREEN when up, RED when down, white at 0 (the shared --good / --bad colour tokens so the COLOUR-BLIND setting still works; the + / − signs stay).
+- LEAVE TABLE (CASH) is ALWAYS available: between hands it leaves at once (confirm); during a hand you're in it becomes "LEAVE AFTER THIS HAND" (a server-side flag — the dealer applies it when the hand ends; tap again to cancel).
+- THE AMBIENT BEDS ARE CANCELLED (Ben): no beds anywhere; remove any unused bed stubs.
+- THE SOUNDS (Ben approved by ear on the audition page): the NEW real-recording set from Downloads\grok\holdem\sfx2\ (the MAIN picks — deal-b / chip-bet-b / all-in-b stay unused on Ben's PC): shuffle, deal, flip, fold, check, chip-bet, chip-raise, chip-stack, all-in, pot-win. KEPT from the first set (Downloads\grok\holdem\sfx\): your-turn, timer-tick, showdown, hand-win, knockout, blinds-up, champion.
+- THE BALANCE Ben approved: the new set played at +7 dB (gain ~2.2) vs the kept stings at 1.0, through a soft limiter (DynamicsCompressor) on the SFX bus; the DEALS at about HALF that (~−6 dB from the new set's level) with a little rate (±4 %) + volume variety so 16 in a row never sound robotic. Everything else at its normal level.
+- MUSIC = the LATE station (MUSIC: 'mood:late', already set in HE3) — no new music files.
+- ONE winner sound: HOLD'EM plays champion on the tournament's end (OWN_VICTORY_SOUND: true → the console's sting is skipped).
+- THE CHIPS = Grok's clay-chip art (6 colours, top + side), with three must-do fixes: a soft contact shadow + a thin rim / top-edge highlight on every chip (the GREEN chip must never vanish on green felt); lighting + a subtle sheen in code so they read as real clay; each chip's edge spots at a random offset + 0.5–1 pt jitter so a stack never looks like a barcode.
+- NEON CASINO = the first skin built to the full premium bar; the SKIN SYSTEM is built so COZY CABIN + CYBERPUNK APARTMENT (HE6) plug in as data + art, no new code paths.
