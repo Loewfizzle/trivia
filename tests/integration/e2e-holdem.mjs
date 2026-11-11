@@ -663,7 +663,9 @@ await H.run(async () => {
   await drive('passive', p => p.evaluate(() => window.__arcade.state.game && window.__arcade.state.game.phase === 'final'), 'END SESSION → the podium', { timeout: 120000, watch: nh });
   const cf = await pub(nh);
   const sum = (cf.ledger || []).reduce((n, r) => n + r.net, 0);
-  ok(cf.ended && cf.rep === 'done' && cf.ledger && sum === 0, `THE LEDGER: ${cf.ledger && cf.ledger.length} rows, Σ net = ${sum} (chips only)`);
+  // (HE10 — Ben's A7: a CASH session counts from 10 hands + 5 minutes — this one's result is 'done' or 'short' by exactly that rule)
+  const counted = cf.hands >= 10 && (cf.endAt || 0) - (cf.startAt || 0) >= 300_000;
+  ok(cf.ended && cf.rep === (counted ? 'done' : 'short') && cf.ledger && sum === 0, `THE LEDGER: ${cf.ledger && cf.ledger.length} rows, Σ net = ${sum} (chips only); ${cf.hands} hands → ${cf.rep}`);
   await soundCheck(nh, 'the host, the whole FULL run');
   await sleep(1500);
   const lg = await nh.evaluate(() => { const b = document.querySelector('.he-final .he-fs.is-cash'); return b && { rows: [...b.querySelectorAll('.he-fs-list > li')].map(li => li.textContent), foot: (b.querySelector('.he-fs-foot') || {}).textContent, money: /\$/.test(b.textContent) }; });
