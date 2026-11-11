@@ -358,7 +358,7 @@ async function dismissBoot() {
   // (FP3a — THE LOAD GATE: on ?city=2 the boot screen — the dark sky + the unlit sign — stays until the Harbor's module is in, so a
   // slow network never shows the bare shell between it and the title; ≤ 8 s, then the shell's own boot route covers the rest)
   // (THE LOAD FIX: ≤ 30 s — past 8 s the bare shell's grid used to show between it and the title: THE STRAY SCREEN on a slow network)
-  if (harborPending()) await Promise.race([harborReady, new Promise(r => setTimeout(r, 30000))]);
+  if (harborPending()) await Promise.race([harborReady, onScreenWait(30000)]);   // (LOAD FIX 4: time ON SCREEN)
   // THE LOAD FIX (Nov 6 — the owner's chunks + the whole different screen): on the title the boot screen stays until THE CITY's reveal
   // (title.js#cityShown — under it the city comes in at once), then ONE fade: the boot screen → the whole title + its city. Never THE
   // DARK TITLE (the sign + the dock over the black canvas) between them. The caller goes on at once (Firebase starts when it always did).
@@ -378,7 +378,9 @@ function holdBoot(el) {
   if (el.dataset.hold) return;
   el.dataset.hold = '1';
   // (≤ 9 s: past the title's own safety reveal; two frames so the city's first full frame is painted before the boot screen lifts)
-  Promise.race([cityShown(), new Promise(r => setTimeout(r, 9000))]).then(() => requestAnimationFrame(() => requestAnimationFrame(() => bootOut(el))));
+  // (LOAD FIX 4 — THE HIDDEN BOOT: 9 s ON SCREEN — iOS held this timer while the page was hidden and fired it at the return: the boot screen
+  //  lifted onto a half-built city)
+  Promise.race([cityShown(), onScreenWait(9000)]).then(() => requestAnimationFrame(() => requestAnimationFrame(() => bootOut(el))));
 }
 
 async function boot() {

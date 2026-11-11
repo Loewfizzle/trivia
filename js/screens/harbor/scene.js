@@ -122,6 +122,7 @@ import { createStill } from './still.js';
 import { createCabStand } from './cabstand.js';
 
 import { safeCtx, starvedCount, blurWorks, BAKE_CAP, canvasMb } from '../../ui/canvas-safe.js';
+import { onScreenSince } from '../../ui/onscreen.js';
 import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip, createDebugButton } from '../../ui/debug-strip.js';
 import { createReporter } from './report.js';
@@ -339,6 +340,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const spellOpts = () => [qp.get('text') || 'HELLO', { style: qp.get('style') || 'wipe', tower: qp.get('tower') || undefined }];
   let dbgFadeIn = 0; let spellBy = null;                             // who lit the current word: 'force' | an event's seed
   let raf = 0, last = 0, lastRaf = 0, running = false, destroyed = false, t0 = performance.now();
+  // (LOAD FIX 4 — THE HIDDEN BOOT, Grok's boot audit #6: the reveal's gates — REVEAL_MAX, WX_WAIT, FONT_WAIT, the rects' wait — count the
+  //  time ON SCREEN (ui/onscreen.js): the loop stops while the page is hidden, so nothing bakes; on the wall clock a phone locked or switched
+  //  to Messages mid-load came back with every gate expired → the city revealed half built, then popped in. The LOAD LOG keeps the wall clock.)
+  const up = onScreenSince();
   let drawn = 0, fastUntil = 0, fastWhy = '';      // BATTERY: the frames actually drawn; what keeps the city at 60 fps right now
   let shownClock = null;                   // (9c: the city's clock at THE REVEAL — a preview forced at the load starts here, not under the curtain)
   const heldBy = {};                        // (LOAD FIX 2: what held the reveal once its gates were open: first–last ms + how many frames)
@@ -718,7 +723,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // later (the re-layout), and the city + its windows would land late in the title's power-on
   // (POLISH 5: + the title's fonts — they swap in late and move the tagline: the first bake waits for them too (≤ FONT_WAIT) and the
   // title is measured again before it starts — one bake on the final rects, not three)
-  const waitRects = () => { const now = performance.now(); return (!S.textRects && now - t0 < 1200) || (shownAt < 0 && !fontsReady(now)); };
+  const waitRects = () => { const now = performance.now(); return (!S.textRects && up() < 1200) || (shownAt < 0 && !fontsReady(now)); };
   /** the title's rects measured now vs the camera's: did the dock or the tagline's foot move over 2 pt? */
   function rectsMoved() {
     measure();
@@ -2890,20 +2895,21 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (POLISH 5: + the weather — the answer this device kept, or the live ask answered, or WX_WAIT — the weather's effects in, the
   // clouds baked, and a tier step recorded during the load APPLIED HERE, while the city is still dark: nothing changes after)
   function tryReveal(now) {
-    if (wantStep && tier > 0 && now - t0 < REVEAL_MAX) { const w = wantStep; wantStep = null; stepWhy.push(w); LOADLOG.add('tier', `${tier} → ${tier - 1} before the reveal (${w})`); stepTier(tier - 1); return; }
+    const on = up();   // (LOAD FIX 4: the gates in time ON SCREEN)
+    if (wantStep && tier > 0 && on < REVEAL_MAX) { const w = wantStep; wantStep = null; stepWhy.push(w); LOADLOG.add('tier', `${tier} → ${tier - 1} before the reveal (${w})`); stepTier(tier - 1); return; }
     const ready = baker.bakes >= 1 && litBaker.bakes >= 1 && !baker.pending && !litBaker.pending && !wantBake && !wantBuild && !resizeT && now - lastResizeAt > 400 && (!L || lightKey() === litBaker.key);   // (SP4: + no lit re-bake wanted)
     const fonts = fontsReady(now);
-    const wx = clock.preview || clock.wx || weatherSettled() || now - t0 > WX_WAIT;
+    const wx = clock.preview || clock.wx || weatherSettled() || on > WX_WAIT;
     const cs = clouds.stats(), sky = extrasIn && (cs.ready || clock.force.has('no-clouds'));
-    const panel = !remoteStored || remoteApplied || now - t0 > WX_WAIT + 1500;   // (SP4: a stored JUST ME state lands before the reveal)
+    const panel = !remoteStored || remoteApplied || on > WX_WAIT + 1500;   // (SP4: a stored JUST ME state lands before the reveal)
     // (NIGHT-C: the party's SONGS — the dance breaks are planned on them (core/party-deck.js): in before the reveal, so a break never shifts
     // after it; a failed load gives up at REVEAL_MAX like everything else — the stand-in song clock then)
-    const songs = !!partyDeckNow() || now - t0 > REVEAL_MAX - 500;
+    const songs = !!partyDeckNow() || on > REVEAL_MAX - 500;
     // (THE LOAD FIX: a late reveal still waits — ≤ 2 s more — while the bake on hand stands at another camera than the city's now: a
     //  slow phone's first picture would be THE DOUBLED LETTERING from its first frame)
-    const late = now - t0 > REVEAL_MAX && !(baker.bakes >= 1 && bakeCamShown !== camSig && now - t0 < REVEAL_MAX + 2000);
+    const late = on > REVEAL_MAX && !(baker.bakes >= 1 && bakeCamShown !== camSig && on < REVEAL_MAX + 2000);
     // (SPEED PASS B — A2 (1): the people's first plan warmed one block a task in the dark — the city shown WITH them, never a pop-in)
-    const folk = (clock.force && clock.force.has && clock.force.has('no-people')) || !people.ready || people.ready() || now - t0 > REVEAL_MAX - 500;
+    const folk = (clock.force && clock.force.has && clock.force.has('no-people')) || !people.ready || people.ready() || on > REVEAL_MAX - 500;
     // (LOAD FIX 2: when each gate first opened — ms since the scene's start; the LOAD LOG's reveal line + loadProbe().gates)
     { const g = { bake: ready, fonts, wx, sky, panel, songs, folk }; for (const k in g) if (g[k] && gateAt[k] == null) gateAt[k] = Math.round(now - t0); }
     if (!(ready && fonts && wx && sky && panel && songs && folk) && !late) return;
@@ -2915,7 +2921,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     //  follows land a frame after the people are ready — so the board is synced HERE, first, and the reveal waits (bounded) for its traces)
     if (!late && L && !clock.force.has('no-people') && !clock.force.has('no-work')) {
       const tr = (people.crew && people.crew() || {}).traces || null;
-      if (!tr && now - t0 < REVEAL_MAX - 500) { heldAt("the workers' traces"); return; }
+      if (!tr && on < REVEAL_MAX - 500) { heldAt("the workers' traces"); return; }
       if (tr) boardSync(tr);
       // (BOARD 2.0 A — THE MONDAY BLADE: the facade's key reads the workers' traces (bladeMs — the Monday painters keep LAST week's blade until
       //  theirs is done); a memo taken before the traces came would bake this week's, then re-bake in view: forget it once, as they arrive)
@@ -2943,7 +2949,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let fontsIn = false, fontsAsked = false;
   function fontsReady(now) {
     if (fontsIn || typeof document === 'undefined' || !document.fonts) return true;
-    if (now - t0 > FONT_WAIT) { fontsIn = true; LOADLOG.add('fonts', `not all in after ${FONT_WAIT} ms: revealed on the fallbacks`); return true; }
+    if (up() > FONT_WAIT) { fontsIn = true; LOADLOG.add('fonts', `not all in after ${FONT_WAIT} ms: revealed on the fallbacks`); return true; }
     const fams = new Set(); try { document.fonts.forEach(f => fams.add(String(f.family).replace(/["']/g, ''))); } catch { return true; }
     if (!['Orbitron', 'Chakra Petch', 'JetBrains Mono'].every(f => fams.has(f))) return false;
     if (!fontsAsked) { fontsAsked = true; Promise.all(TITLE_FONTS.map(f => document.fonts.load(f))).then(() => { fontsIn = true; LOADLOG.add('fonts', 'the title faces loaded'); }, () => { fontsIn = true; }); }

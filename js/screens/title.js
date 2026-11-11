@@ -47,6 +47,7 @@ import { neonPlan, neonState, neonNext, firstTapAnswer, createStartDetector } fr
 import { createDock, createDockWork, dressCorners, ICON } from './title-dock.js';
 import { createTaps } from './title-taps.js';
 import { createNeon } from './title-neon.js';
+import { onScreenWait } from '../ui/onscreen.js';
 import { lazyImport } from '../ui/lazy-import.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): THE city (CITY 1.0 OUT, Nov 5 — City 1.0 deleted; an old `?city=1` / `?city=2` link lands here).
 // No top-level await (iOS 14 can't parse one — the whole app would die, every game too): app.js holds the title on the boot screen until
@@ -423,7 +424,7 @@ export function createTitle() {
     // so Safari's bars settling, the bakes and the fonts never show as a jump: dark → the city fades in, with the NEON sign)
     // (POLISH 5: City 2.0's canvas is the LARGE viewport — 100lvh — so a Safari tab's bars settling or sliding never resize it: the
     // city stays put under them (css/title.css .nd-scene.nd-lvh))
-    els.sceneWrap.classList.add('is-hold', 'nd-lvh'); els.holdT = setTimeout(reveal, 7500);   // (THE LOAD FIX: past the scene's own latest — REVEAL_MAX + its wait for one camera)
+    els.sceneWrap.classList.add('is-hold', 'nd-lvh'); onScreenWait(7500).then(reveal);   // (THE LOAD FIX: past the scene's own latest — REVEAL_MAX + its wait for one camera; LOAD FIX 4: ON SCREEN — reveal() is a no-op once revealed / gone)
     document.body.prepend(els.sceneWrap);
     // (City 2.0 starts every phone at tier 2 — iOS reports a capped core count, so the old guess put every iPhone at tier 1 while it
     // ran the Harbor in 1–3 ms; the Harbor's own step-down still protects a slow phone: docs/harbor.md#performance)
@@ -940,7 +941,6 @@ export function createTitle() {
   // keep the sign's light in the scene in sync with layout (resizes, the keyboard)
   /** FP3a: the scene's first full frame is ready (or the safety timer) — the canvas fades in from dark */
   function reveal() {
-    clearTimeout(els.holdT);
     if (destroyed || !els.sceneWrap || !els.sceneWrap.classList.contains('is-hold')) return;
     els.sceneWrap.classList.add(bootCovers() ? 'is-now' : 'is-reveal');   // (THE LOAD FIX: under the boot screen — no fade of its own: css/title.css .is-now)
     els.sceneWrap.classList.remove('is-hold');
@@ -1288,7 +1288,7 @@ export function createTitle() {
     document.body.style.removeProperty('--dk-tint');
     dressCorners(false);
     if (dk.dock) dk.dock.destroy();
-    clearTimeout(remoteT); clearTimeout(els.holdT);
+    clearTimeout(remoteT);
     if (remote) { remote.destroy(); remote = null; liveRemote = null; }
     const wrap = els.sceneWrap;
     captureBackdrop(els.canvas, scene.partyLight ? scene.partyLight() : null);   // the menus keep a still of the city (+ the party's light, which breathes on)
