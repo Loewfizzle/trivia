@@ -18,7 +18,8 @@
 export const SECONDS = {
   windows: 300, perf: 200, workers: 229, music: 207, legends: 189, weather: 183, holiday: 174, people: 161, neon: 159, heli: 141,
   panel: 126, freeze: 120, snow: 98, panelrows: 97, boxer: 83, party: 75, sounds: 72, tower: 68, motion: 66, tape: 58, partysync: 57,
-  load: 175, core: 46, life: 45, thanks: 45, streetparty: 40, wildlife: 39, quietbuilding: 39, promenade: 35, light: 35, mothman: 30,
+  load: 175, cameras: 120, core: 46,   // (LOAD FIX 5: cameras — NO TWO CAMERAS, ~75 s on the mini PC three pages at a time; two on the cloud: an estimate)
+  life: 45, thanks: 45, streetparty: 40, wildlife: 39, quietbuilding: 39, promenade: 35, light: 35, mothman: 30,
   speakeasy: 30, fireworks: 30, stations: 40, blackbird: 27, bench: 25, roofcrisp: 25, blackout: 25, dock: 23, sky: 18, water: 18,
   citylife: 14, doors: 14, skyline: 8, speaker: 8, flags: 5, harbor: 4, desktop: 90,   // (DESKTOP: an estimate — refresh from its first cloud run)
   radio: 85, crew: 70, progress: 45, sightings: 150, billboard: 60, room: 67, roomperf: 44, roomchat: 20, keypop: 41, roomfix: 42, gamestart: 44, citypause: 39, afterparty: 94, cartridge: 2, sololook: 45, crewsky: 27, leaveroom: 28, sheetstack: 31, oldrules: 32, sgfast: 60, gameflows: 39, oneseat: 28, playercard: 38, leavewave: 47, bannerfull: 47, hostcard: 53, newstart: 46, platefit: 15, cardfit: 40, stripfit: 15, youpage: 20, corners: 40, arrivals: 30, radiorest: 28, staleroom: 60, youcard: 40, guestring: 50, bannersky: 160, partyroom: 70, leaver: 95, hostleave: 70, fullcard: 25, twotabs: 35, startglass: 40, musiccache: 20, rebuild: 70, resizekeep: 25, stuckjoin: 90, shell: 20, citydown: 15, makehost: 60,   // (THE SPEED PASS — FR6 G8: the lobby / room2 / lobbyfix rows refreshed from LOBBY FIXES' cloud run 41931359670's own per-group seconds; SPEED PASS B: these speed rows were inside this comment — out now; the four new ones measured on the mini PC)   // (LOBBY 2.0 B: estimates from the mini PC)
@@ -33,7 +34,7 @@ export const CI_JOBS = {
   audio: ['music', 'harbor', 'dock', 'tape', 'roofcrisp', 'progress', 'gameflows', 'vault'],   // (SHELL 2.0 B2: vault LAST — a serial group)   // (FR6 FIXES A: gameflows — the console's flows B1 B2 B4 B6; room2 was at its cap)   // (THE VAULT 1A: vault — the lab's look page + the 8-legendary fps, beside progress)   // (PROGRESSION A: progress — the dock flame + the preview links, beside the dock)   // (NIGHT-C: roofcrisp — three pages at 3×; flags → perf for the room)   // (9a: tape moved here, legends → wild: room for the weather)
   show: ['neon', 'party', 'sky', 'life', 'quietbuilding', 'billboard'],   // (LOBBY 2.0 A: billboard — the cross-fade, ~60 s)   // (NIGHT-C: quietbuilding — the lightest)
   // (LOBBY 2.0 A: THE ROOM IN THE CITY's own job — two phones, a full room, ~3 min)
-  lobby: ['room', 'roomchat', 'keypop', 'roomperf', 'crewsky', 'oldrules'],   // (LOBBY 2.0 B: + crewsky + the serial oldrules, last)
+  lobby: ['room', 'roomchat', 'keypop', 'roomperf', 'crewsky', 'cameras', 'oldrules'],   // (LOAD FIX 5: cameras — NO TWO CAMERAS (harbor-e2e/city.mjs), the lightest job, before the serial oldrules)   // (LOBBY 2.0 B: + crewsky + the serial oldrules, last)
   // (LOBBY 2.0 B: its own job — the game start, the pause, after the match, the vote, the cartridge, Group 0 + the add-on)
   room2: ['roomfix', 'gamestart', 'citypause', 'afterparty', 'cartridge', 'leaveroom', 'sheetstack', 'sololook', 'makehost'],   // (SHELL 2.0 B2: + MAKE HOST)   // (SHELL 2.0 B1: + the solo room's look switch)
   // (LOBBY FIXES: its own job — the owner's real-phone test of the room, Nov 4)

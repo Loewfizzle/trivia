@@ -591,6 +591,17 @@ load problem, not a flake to patch.
   the clouds per frame after the reveal (`kit/load-probe.mjs#skyJudge`); exit 1 on a snap. **THE BOOT PRELOAD:** `node scripts/build-boot-preload.mjs`
   (`--check`) after a module's imports change — `tests/boot-preload.test.mjs` fails when index.html is stale; THE BOOT BUDGET:
   `tests/boot-budget.test.mjs` + the harbor `load` group (tests/integration/boot-budget.json).
+- **LOAD FIX 5 (Nov 11) — NO TWO CAMERAS:** `node tests/integration/wk-double.mjs [--paths all|a,b] [--shots DIR] [--json out.json] [--log]`
+  — Playwright's WebKit, 402 × 659 @3 (the owner's page between Safari's bars), his morning (Nov 11 8:30, fog); on the emulators +
+  `serve.mjs --emu`; ~5 min for the 21 paths (`kit/two-cameras.mjs` lists them: `box-pre@N` = the owner's DOUBLED CITY — the city's box grows
+  before the reveal with no window resize; `restore`, `bfcache`, `box-return`, `hours`, `hours-box`, `resize-hidden`, `wx-late`, `bars-*`,
+  `resize-post`, `tier`, `no-observer-*` …). Each path: EVERY frame (`kit/load-probe.mjs#CAM_REC` + `camJudge`) + a PIXEL look at its steady
+  moments (one copy of the billboard, EST. 1924, the blade) + one scene, one loop at the end; exit 1 on two cameras. The page's test
+  controls (installed before it mounts): `__box(h)` = the city's box by a style (NO window resize), `__hide(on)` = a faked visibility,
+  `__jump(ms)` = the clock (the path also shifts `/api/time`), `__page('pagehide' | 'pageshow', persisted)`. The same runner in the suite:
+  **`ONLY=cameras`** (Chromium, 11 paths, three pages at a time — two on CI; ~85 s). `E2E_BASE=http://localhost:5174` = a worktree (the
+  BEFORE run: 7 of 11 red on 13cd99a8). A NEW camera / box path = its `kind` in `kit/two-cameras.mjs#runPath` + its name in `ALL_PATHS`
+  (+ the group's `WHAT` if the cloud should run it).
 - **THE LOAD FIX (Nov 6) — THE BOOT IN WEBKIT:** `node tests/integration/wk-load.mjs [--scene day|grey|night|all] [--bars pre|fade|after|late|none|all]
   [--safari] [--warm] [--fresh] [--size WxH] [--shots DIR] [--log] [--frames --json out.json] [--fonts-delay ms] [--sky-delay ms] [--live]` — the
   real boot in Playwright's WebKit as an iPhone (402×874 @3), Safari's bar = the window's height 874 → 800 → 874 at a moment of the load

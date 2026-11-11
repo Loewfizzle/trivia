@@ -447,6 +447,30 @@ at 8, squeeze 0.66, people ~33 pt.)
   Also: no regex lookbehind (iOS 16.0–16.3 — the profanity filter), a core sheet failing TWICE → the watchdog's reload, the hang watch's full
   snapshot every 5 s, the service worker writing only changed copies (one per page, no throwaway query, ≤ 700), the load log 60 + 60 rows.
   Proof: the `load` group (THE REJOIN LIMIT, a sheet failed twice), `wk-skew.mjs`, `wk-hidden.mjs`, `sw-cache.mjs`. The reveal 1.32 s (unchanged).
+- **LOAD FIX 5 — THE DOUBLED CITY + NO TWO CAMERAS (Nov 11 — the owner's iPhone, the first open of the day: the billboard, EST. 1924 + the
+  blade each TWICE, for good; passes/load-fix-5.md):** the city's box is `100lvh` and can change with NO window `resize` (Safari settling its
+  large viewport while it reloads the tab it restores at launch). **THE BOX GATE** (`scene.js` — `boxSeen` / `boxOff` / `boxCheck` / `boxLook`):
+  ONE question on every path — *is the city BUILT for the box it is shown in?* — and ONE answer, the re-fit path that already existed
+  (`onResize` → the pin after the reveal → the debounced `build()` → `layout()` → `holdStart`). Who asks it: the layer's ResizeObserver
+  **from the first frame** (it returned before the reveal — the hole: the canvas stayed CSS cover-fitted 1.08× into the new box under the
+  crisp lettering, and nothing compared the two again); **the reveal** (`ready` needs a city built for its box + ONE last look in the frame
+  that would reveal; a late reveal waits ≤ 2 s more); **THE NET** — a look once a second + at every return to the screen (the loop
+  watchdog's interval, `visibilitychange`, `pageshow` — one layout read, never in a frame). LIKE FOR LIKE: the canvas's own box, only while
+  the stylesheet lays it out (a twice-failed `css/title.css` leaves the canvas's box following its buffer — never compared).
+  **THE HELD PICTURE'S SAFETY** (`HOLD_MAX` 4 s) counts time ON SCREEN (`ui/onscreen.js`): a camera change that landed while the tab was
+  hidden stays held, bakes under the picture and cuts once back (on the wall clock the first frame back let it go unbaked — ~2 s doubled).
+  **A NEW PATH THAT CHANGES THE CAMERA / THE BOX** (a new resize source, a new layer placed in px over the city) goes through `onResize` /
+  `layout()` — never its own canvas resize — and gets its row in `kit/two-cameras.mjs`.
+  **THE GUARD — NO TWO CAMERAS** (ONE runner, `tests/integration/kit/two-cameras.mjs`, both engines): every path that can change the camera,
+  the box or the bake — the box before the reveal (the owner's), shrinking, after the reveal, while hidden, a restored tab (BACK), a bfcache
+  return, a frozen tab resumed, hours hidden (the phone's + the server's clock +10 h), the viewport changing while hidden, the late weather,
+  Safari's bars, a resize, a tier step, a box no observer reported — each fails if ANY painted frame has the bake / the lit windows at another
+  camera's geometry than the city's now or the canvas CSS-fitted to a box it was not built for with no pin (`kit/load-probe.mjs#CAM_REC` +
+  `camJudge`), if the billboard's face / EST. 1924 / the blade has a second copy in the PIXELS at a steady moment (the crisp layer hidden
+  for one screenshot — `crisp.js` names its canvases, `data-item`), or if more than ONE scene / frame loop is alive (`loadProbe().live`).
+  **THE ONE COMMAND:** `node tests/integration/wk-double.mjs` (Safari's engine, 402 × 659 @3, the owner's morning — 21 paths, ~5 min;
+  `--paths a,b` `--shots DIR` `--log`); in the suite: the harbor **`cameras`** group (`ONLY=cameras`, Chromium, 11 paths three pages at a
+  time, ~85 s — the `lobby` job). Before the fix: 9 of 19 paths red in WebKit, 7 of 11 in the group. The reveal 1.32 s (unchanged).
 - **NOTHING IN THE SKY CHANGES BY A CUT AFTER THE REVEAL (LOAD FIX 2):** a cloud re-plan never frees a set on screen (a new field waits
   while a blend shows both sets; an unbaked incoming set is replaced while the old one keeps showing); every set after the reveal blends
   over 6 s (a late reveal's first set too); any new weather answer after the reveal blends the sky + the bake; a clock jump the real time
@@ -804,7 +828,8 @@ js/screens/harbor/*.js  js/core/harbor-*.js              CITY 2.0 — THE HARBOR
 js/core/climate.js harbor-loadlog.js                     PURE: the climate-aware weather fallback (48 cities' normals); THE LOAD LOG (&debug=1's load strip)
 js/core/city-sounds.js city-sounds-files.js js/audio/city-sound.js scripts/add-city-sfx.py audio/city/   THE CITY SOUNDS: 134 slots (116 filled) — docs/audio.md#the-city-sounds
 scripts/bake-model.mjs scripts/bake/ assets/city/ art/   THE BAKE TOOL: a 3D model → sprites at the city camera's real view, OFFLINE (three.js in Playwright, never on the site); art/ = sources (.vercelignore'd)
-js/ui/onscreen.js                                        LOAD FIX 4 — TIME ON SCREEN: ONE clock for the boot's waits (onScreenWait / onScreenSince — paused while hidden)
+js/ui/onscreen.js                                        LOAD FIX 4 — TIME ON SCREEN: ONE clock for the boot's waits (onScreenWait / onScreenSince — paused while hidden; LOAD FIX 5: + the held picture's safety)
+tests/integration/kit/two-cameras.mjs wk-double.mjs      LOAD FIX 5 — NO TWO CAMERAS: the ONE runner (every camera / box / bake path, frames + pixels) + its WebKit entry; the harbor `cameras` group drives it in Chromium
 js/ui/lazy-import.js                                     LOAD FIX 4 — THE SKEW WRAPPER: every dynamic import (lazyImport) — a new deploy → ONE reload (never mid-match)
 js/ui/canvas-safe.js                                     Safari-safe canvas helpers (safeCtx / ctx2d / blit / cssWidth / BAKE_CAP / canvasMb) — every Harbor context goes through it
 ```

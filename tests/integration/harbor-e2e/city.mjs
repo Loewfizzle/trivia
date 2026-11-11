@@ -938,6 +938,67 @@ async function loadFixChecks() {
   ok(!J.stray.n, `THE LOAD FIX — 4 THE STRAY SCREEN: the boot screen → the city, nothing between (no dark title, no other screen, no glitch, no bare shell; ${say(J.stray)})`);
   await ctx.close();
 }
+// ---- LOAD FIX 5 (Nov 11 — the owner's DOUBLED CITY: his iPhone, Safari, the first open of the day — the billboard, EST. 1924 + the blade
+// each TWICE, for good) — NO TWO CAMERAS: every path that can change the city's camera, its box or its bake, run for real at the owner's
+// page size (402 × 659 @3, his morning: Nov 11 8:30, fog) through ONE runner (../kit/two-cameras.mjs — the same one drives Safari's engine
+// in ../wk-double.mjs): the box before the reveal with no window resize (HIS), a restored tab (BACK), a bfcache return, a frozen tab
+// resumed, hours hidden + the box, the viewport changing while hidden, the late weather, Safari's bars, a tier step, a box no observer
+// reported. Each fails if ANY painted frame has the bake / the lit windows at another camera than the city's now, or the canvas CSS-fitted
+// to a box it was not built for with no pin (kit/load-probe.mjs#camJudge), if the billboard / EST. 1924 / the blade has a second copy in
+// the PIXELS at a steady moment, or if more than ONE scene / frame loop is alive.   ONLY=cameras (~75 s, three pages at a time)
+G('cameras', async () => {
+  const { runPath, PIXELS } = await import('../kit/two-cameras.mjs');
+  const br = await launch();
+  const hctx = await br.createBrowserContext(), helper = await hctx.newPage();
+  await helper.goto('about:blank');
+  const D = {
+    async open({ vh, inits, routes }) {
+      const ctx = await br.createBrowserContext(), p = await ctx.newPage();
+      const errs = []; p.on('pageerror', e => errs.push(e.message));
+      const VP = h => p.setViewport({ width: 402, height: h, deviceScaleFactor: 3, isMobile: true, hasTouch: true }).catch(() => {});
+      await VP(vh);
+      for (const [fn, arg] of inits) await p.evaluateOnNewDocument(fn, arg);
+      if (routes.length) {
+        await p.setRequestInterception(true);
+        p.on('request', async r => { const hit = routes.find(([re]) => re.test(r.url())); if (!hit) { r.continue().catch(() => {}); return; } const a = await hit[1](); r.respond({ status: a.status, contentType: 'application/json', headers: { 'cache-control': 'no-store' }, body: a.body }).catch(() => {}); });
+      }
+      return {
+        errors: errs,
+        ev: js => p.evaluate(js).catch(() => null),
+        goto: url => p.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 }),
+        vp: VP,
+        shot: async () => { try { return { png: Buffer.from(await p.screenshot({ type: 'png' })), k: 3 }; } catch { return null; } },
+        back: () => p.goBack({ waitUntil: 'domcontentloaded' }),
+        close: () => ctx.close(),
+      };
+    },
+    pixels: (a, b, boxes, k) => helper.evaluate(PIXELS, [a.toString('base64'), b.toString('base64'), boxes, k]),
+  };
+  const WHAT = {
+    'box-pre@250': "THE OWNER'S — the city's box 659 → 712 before the reveal, NO window resize",
+    'box-pre-shrink': 'the box 712 → 659 before the reveal',
+    restore: 'a RESTORED tab — away + BACK, the box growing as it comes back',
+    bfcache: 'a bfcache return — pagehide / hidden 6 s, the box grows, pageshow',
+    'box-return': 'a FROZEN tab resumed — hidden 6 s, the box grows as it is shown',
+    'hours-box': 'HOURS hidden — the clock +10 h (the morning → the night) + the box grows',
+    'resize-hidden': 'the viewport 659 → 712 while hidden 6 s (the camera really shifts)',
+    'wx-late': "the LATE WEATHER — yesterday's clear kept, the fog lands 2.5 s after the reveal",
+    'bars-late': "Safari's BARS — 659 → 712 → 659 after the reveal, the box pinned",
+    tier: 'a TIER STEP down + back up after the reveal',
+    'no-observer-pre': "a box change NO observer reported, before the reveal — the reveal's own look",
+  };
+  const names = Object.keys(WHAT), out = new Map();
+  // (three pages at a time — two on the cloud's 2-core machine; each path owns its page + its slot)
+  let next = 0;
+  const worker = async () => { while (next < names.length) { const i = next++, name = names[i]; let r = null; try { r = await runPath(D, name, { base: BASE, slot: `c${i}`, fast: true }); } catch (e) { r = { bad: true, line: `${name}: ${e && e.message}`, frames: { n: 0, seen: 0 }, pixels: [] }; } out.set(name, r); } };
+  await Promise.all(Array.from({ length: process.env.CI ? 2 : 3 }, worker));
+  for (const name of names) {
+    const r = out.get(name);
+    for (const m of r.errs || []) { errors.push(`cameras pageerror (${name}): ${m}`); log('cameras', 'PAGEERROR', m); }
+    ok(!r.bad, `NO TWO CAMERAS (LOAD FIX 5) — ${WHAT[name]}: ${r.line.replace(/^\S+\s+/, '')}`);
+  }
+  await hctx.close();
+});
 // ---- PART 8a: THE PROMENADE — the layout the owner approved, the season by the real date (+ forced), the lamps' pools baked into
 // the setts at night, the implied road (a car's headlights; off by the owner's flag)
 G('promenade', async () => {

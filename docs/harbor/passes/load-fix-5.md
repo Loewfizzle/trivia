@@ -143,3 +143,30 @@ is the held picture (or the pinned frame: the whole layer under one transform), 
   its own A-A noise 0.42 % (the crowd).
 - **The reveal time** (`boot-time.mjs`, Chromium, cold, 5 loads a side, three rounds): before 1308 · 1343 · 1323 ms → after 1357 · 1319 ·
   1297 ms — the same (LOAD FIX 4's 1.32 s).
+
+## Group 3 — THE GUARD: NO TWO CAMERAS
+
+ONE runner — `tests/integration/kit/two-cameras.mjs` (`runPath(driver, name)`: the page's test controls, the paths, the per-frame record,
+the pixel look, the verdict) — driven by BOTH engines:
+- **`node tests/integration/wk-double.mjs`** — Safari's engine (Playwright's WebKit, 402 × 659 @3, the owner's morning): all 21 paths,
+  ~5 min. `--paths a,b` · `--shots DIR` · `--json` · `--log` (the LOAD LOG's rows). Exit 1 on two cameras.
+- **the harbor `cameras` group** (`ONLY=cameras`; `harbor-e2e/city.mjs`, the `lobby` cloud job — the lightest) — Chromium, the 11 paths
+  the pass named (the box before the reveal — the owner's — + shrinking, a restored tab, a bfcache return, a frozen tab resumed, hours
+  hidden + the box, the viewport changing while hidden, the late weather, Safari's bars, a tier step, a box no observer reported), three
+  pages at a time (two on CI): **83 s, 11 / 11**.
+
+**What fails a path:** any painted frame (the city seen, not under a fully opaque held picture) with (a) the bake on screen / the one
+fading out / the lit windows at another camera's GEOMETRY than the city's now (W · H · the dock · the tagline's foot — the tier alone moves
+nothing), (b) the canvas CSS-fitted to a box it was not built for with no pin — read after the frame's observers ran, i.e. as PAINTED —
+or (c) more than one `.nd-scene` / main canvas / live scene / running loop / a doubled frame callback (`loadProbe().live` — a module-level
+count in scene.js); a PIXEL look at a steady moment (the same state before + after its two screenshots) where the billboard's face, EST.
+1924 or the blade has its copy in the city's own picture more than 3 pt from the crisp item; the picture not at rest at the end (built for
+its box, one scene, one loop); a page error; no reveal.
+
+**It is a guard** — the same group against the unfixed code (a worktree of 13cd99a8 on :5174, `E2E_BASE`): **4 / 11** — red on the owner's
+path (291 of 291 frames), shrinking (338 of 338), the restored tab (277 of 277), the bfcache return (31 frames), hours hidden + the box
+(35), the viewport while hidden (27), no observer (270 of 270); green on the four paths that were already right (a frozen tab resumed, the
+late weather, the bars, a tier step). WebKit before: 9 of 19 paths red (Group 1's table); after: **21 / 21**.
+
+docs: [harbor.md#performance](../../harbor.md#performance) (THE BOX GATE, the paths, the one command, "a new path that changes the camera"),
+docs/testing.md (the tool's flags + the page's test controls).
