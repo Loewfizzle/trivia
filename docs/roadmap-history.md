@@ -2562,3 +2562,24 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
   (known sounds, the gains, the spacing, champion once, no replay after a refresh).
 - New assets: audio/holdem/ 356 KB · assets/holdem/chips/ 36 KB · assets/holdem/casino/ 66 KB (felt 52 · backdrop 12 · rail 1.6); removed felt-green.webp
   (14 KB) — net ≈ +444 KB. Still 8 functions; no rules change; HOLD'EM still playable: false.
+
+## HE6 — HOLD'EM: REAL CARDS + COZY CABIN + CYBERPUNK APARTMENT + THE PICKER (Nov 10, 2026 — docs/holdem.md "HE6"; the decisions: docs/games/plan.md "HE6")
+- Group 0: the FULL 8-phone E2E re-run (its CASH LEAVE step crashed only with SHOTS=0 — `H.shot` returns nothing there; fixed); the casino backdrop re-exported at
+  860 × 1864 (29 KB — HE5's 645-wide export blurred the slots' lights into blocks). THE REAL CARDS: Byron Knoll's Vector Playing Cards (public domain — verified on
+  his blog + the Google Code record; his AS.svg NOT used: traced from another artist's work) — his pips in the classic layouts, his J/Q/K figures in their frame
+  (one sprite per deck, 195 KB each, the four-colour recolour: diamonds' red → blue, clubs' → green, the big pips the suit's ink); the corner index in BOTH corners
+  in Libre Baskerville (OFL) as paths; three sizes (your hand · the board · shown hands); the card stock (the skin's paper + a grain + an edge + a shadow).
+  scripts/build-holdem-cards.mjs + holdem-card-glyphs.py; tests/holdem-cards.test.mjs; tests/integration/holdem-cards.html.
+- Group 1: every look a skin FIELD → a CSS variable (the accent's rgb for every glow, the light's place, the print's glow, the betting line, the trim's LED, the
+  roll's sheen, a texture under the plates + buttons, CALL + FOLD, the backdrop's place) — NEON CASINO unchanged (diffed). COZY CABIN: forest-green felt under an
+  orange firelight pool from the lower left, cream print, polished walnut rail + brass trim, dark-wood plates + buttons with brass rims (the walnut's grain
+  stretched ×4.5 so it reads), amber accent, the plaid back, the backdrop's window moved left clear of the music button; the fire, the snow, the lamp.
+- Group 2: CYBERPUNK APARTMENT: near-black teal felt (q 80 — the weave survives), a glowing cyan print, a pink neon betting line, brushed metal rail + a cyan LED
+  edge, navy glass + glowing pink rims, cyan accent, the holographic back, the skyline window behind the table's top + the room's neon pillars pasted back at the
+  screen's edges; rain on the glass, a neon sign's flicker, a slow light sweep. Every state looked at in both new skins + 430 + 1440.
+- Group 3: THE PICKER (☰ → Settings → HOLD'EM → TABLE — picker.js, lazy: three CSS mini tables from the skins' own data, no thumbnail downloads; a tap = a live
+  switch, even mid-hand). The other skins' Wi-Fi + idle preload (optional) left out.
+- Group 4: 168 review shots (Downloads\neon\holdem\shots\he6-* — 14 states × 3 skins × 390 / 402 / 430 / 1440); the E2E's live skin switch mid-hand + the
+  busiest moment's 60 fps in each skin (p50 16.7 ms at 4× CPU, 8 seats, all three).
+- New assets: assets/holdem/cards/ 400 KB (courts-four 195 · courts-two 195 · stock 0.6 — a phone loads one sprite) · cabin/ 117 KB + its back 4.8 KB ·
+  apartment/ 119 KB + its back 14 KB · the casino backdrop 12 → 28 KB — ≈ +672 KB in the repo. Still 8 functions; no rules change; HOLD'EM still playable: false.

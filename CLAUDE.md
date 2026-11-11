@@ -253,6 +253,14 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   `chips.js` (PURE — the fewest in 6 colours, a seat ≤ 2 stacks) + `chip-art.js` (lit 3/4 stacks, cached, never per frame); A SKIN = ONE entry in `skins.js` + its art
   (`scripts/build-holdem-skin.py`) + its living touches' CSS — no skin code path, only its art loads, `settings.heSkin` per phone (HE6 adds two + the picker); the quality
   tiers drop the living touches first, then the light; THE ACTION AREA from your cards up (`layout.js#ACT`); LEAVE always in CASH (the dealer's queued `rec.lv`).
+- **HOLD'EM's REAL CARDS + THREE SKINS + THE PICKER (HE6 — docs/holdem.md "HE6"):** THE FACES = `card-art.js#faceSvg(code, deck, size)` — `full` (your hand) ·
+  `board` · `mini` — from the GENERATED `card-data.js` (`node scripts/build-holdem-cards.mjs`, sources in Downloads\neon\holdem\cards-src\): Byron Knoll's
+  PUBLIC-DOMAIN pips + court figures (one sprite PER DECK `assets/holdem/cards/courts-<deck>.webp` — only this phone's deck loads; his ace of spades is NEVER used —
+  ours is drawn in code) + Libre Baskerville's index glyphs as paths (OFL — never a loaded font); the STOCK is the view's (`.he-card` — the skin's `stock` + a grain);
+  the ink never changes with the skin. THE SKINS = NEON CASINO · COZY CABIN · CYBERPUNK APARTMENT — every look is a skin FIELD → a CSS variable (every accent glow
+  reads `--he-gold-rgb`; `tests/holdem-skins.test.mjs` checks the nested shape + that the CSS reads every variable); a skin's art baked by its row in
+  `scripts/build-holdem-skin.py` (backdrops 860 × 1864, compositions as `edit` steps). THE PICKER = ☰ → Settings → HOLD'EM → TABLE (`picker.js`, lazy — CSS mini tables
+  from the skins' data, no thumbnail downloads; a tap = `settings.heSkin`, live mid-hand).
 - **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
   `now`; a test greps — the screen — `view.js` + its `motion.js` — alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
   DEALER is the server (HE2: crypto randomness — never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /

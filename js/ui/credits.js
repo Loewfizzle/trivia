@@ -44,6 +44,11 @@ export const CREDITS = [
   //  required" — credited gladly); his pips + court figures, recoloured for the four-colour deck. His ace of spades is NOT used (traced from another
   //  artist's work, licence unknown) — ours is drawn in code. The corner indexes: Libre Baskerville's glyphs as paths (SIL OFL 1.1)
   { group: 'ART', title: 'Vector Playing Cards — HOLD’EM’s card faces (pips + court figures, recoloured)', by: 'Byron Knoll', licence: 'Public domain (released by the author)', link: 'https://github.com/notpeter/Vector-Playing-Cards' },
+  // HE6 — COZY CABIN + CYBERPUNK APARTMENT (Downloads/grok/holdem/credits.txt): the rails CC0 (credited as a courtesy); the backdrops + the backs
+  //  generated with Grok; compressed copies only ship (the felts are Fabric030, above)
+  { group: 'ART', title: 'american_walnut_veneer — HOLD’EM’s COZY CABIN rail + wood (recoloured)', by: 'Jenelle van Heerden / Poly Haven (https://polyhaven.com/a/american_walnut_veneer)', licence: 'CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)', link: 'https://polyhaven.com/a/american_walnut_veneer' },
+  { group: 'ART', title: 'Metal009 — HOLD’EM’s CYBERPUNK APARTMENT rail (recoloured)', by: 'ambientCG (https://ambientcg.com/a/Metal009)', licence: 'CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)', link: 'https://ambientcg.com/a/Metal009' },
+  { group: 'ART', title: 'HOLD’EM’s COZY CABIN + CYBERPUNK APARTMENT backdrops + card backs (AI-generated)', by: 'AI-generated with Grok', licence: 'Generated art — no CC licence claimed' },
   { group: 'TYPE', title: 'Libre Baskerville — HOLD’EM’s card indexes', by: 'Impallari Type (The Libre Baskerville Project Authors)', licence: 'SIL Open Font License 1.1 (https://openfontlicense.org)', link: 'https://github.com/impallari/Libre-Baskerville' },
   // HE5 — HOLD'EM's SOUNDS (Downloads/grok/holdem/sfx2/credits.txt + sfx/credits.txt). The three CC BY lines are REQUIRED — copied exactly.
   { group: 'HOLD’EM SOUNDS', title: 'The chip raise + the pot win', by: '"Clay Chips.flac" by ArtOrDie (https://freesound.org/people/ArtOrDie/sounds/170295/) - licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/); excerpted, filtered, faded and level-adjusted.', licence: 'CC BY 4.0', link: 'https://freesound.org/people/ArtOrDie/sounds/170295/' },

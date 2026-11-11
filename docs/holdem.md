@@ -327,7 +327,7 @@ line's seconds by text); WHO POKES = `logic.js#pokeIn`: the HOST 100 ms after `d
 a poke that changed nothing while the table still says it's due retries 0.7 s, 1.4 s … (8 at most, then the next update re-arms). A locked phone
 never blocks the table (the server's pre-actions + its clock).
 
-**THE CARD FACES** (`card-art.js` — one small SVG per card, crisp at 3×): the FOUR-COLOUR deck (spades black · hearts red · diamonds BLUE · clubs GREEN)
+**THE CARD FACES** (HE3's — HE6 made them REAL cards: see "THE REAL CARDS") (`card-art.js` — one small SVG per card, crisp at 3×): the FOUR-COLOUR deck (spades black · hearts red · diamonds BLUE · clubs GREEN)
 by default, ☰ → Settings → HOLD'EM → CARD COLOURS: FOUR · CLASSIC (`settings.heDeck`, this phone only); the suits are drawn paths (never a font
 glyph); a big corner index + a large suit; the casino back (`assets/holdem/cardback-casino.webp`, 240 × 336, from Downloads\grok\holdem — generated
 with Grok, credited). **THE RANKINGS SHEET** (`rankings.js` — your hand label, or HOW TO PLAY's link): the ten hands best → worst, a tiny example each.
@@ -492,7 +492,7 @@ skin's — `setLight`); (3) each chip its own ROTATION (a full-circumference ban
 amount's stacks: a bet in, the sweep, back, each winner's share of a pot). Close-ups: `tests/integration/holdem-chips.html` (every colour at 13 /
 15 pt on the felt, bets, a big pot, side-pot shares). `tests/holdem-chips.test.mjs`.
 
-### THE SKINS (Group 3 — `skins.js` PURE data; HE6 adds two)
+### THE SKINS (Group 3 — `skins.js` PURE data; HE6 adds two — see "HE6" below)
 **A SKIN = ONE DEFINITION in `skins.js#SKINS` + its art in `assets/holdem/<id>/` + its living touches' CSS** (`.he[data-skin='<id>'] .he-live-<k>`). The
 view consumes it through CSS variables (`skinVars`) + a few settings: the light direction (the chips), the card back, the backdrop, the living
 touches' list (the view makes one `.he-live-<k>` per entry) — NO skin-specific code path. A per-PHONE choice: `settings.heSkin` (the console's
@@ -506,7 +506,7 @@ variables + `skinAssets` → the preload name only its files). The shape:
   plate: { bg, rim, rimHi }, button: { glass, glassHi, rim, rimHi, rimLo },
   back, backdrop: { portrait, square (HE7's sideways), dim }, living: ['neon', 'haze', 'slots'] }
 ```
-**HE6 adds a skin**: bake its art (`scripts/build-holdem-skin.py` — add its rows: the felt + rail lit by their normal maps, the backdrop at phone
+**A new skin** (HE6 did two — the full recipe: "ADDING A 4TH SKIN" below): bake its art (`scripts/build-holdem-skin.py` — add its rows: the felt + rail lit by their normal maps, the backdrop at phone
 size), add its entry, add its living touches' CSS, + the picker (☰ → Settings → HOLD'EM, writing `settings.heSkin`). `tests/holdem-skins.test.mjs`
 checks every skin's shape, its files, its touches' CSS and that only its own files are named.
 
@@ -524,9 +524,94 @@ gold, YOUR plate's gold glow. The card back: `cardback-casino.webp` (HE3's — e
 · **0** the light layer plain too (the felt's texture alone). The cards + the text are SVG / DOM — crisp at 3× at every tier. prefers-reduced-motion:
 the living touches hold still. NEON CASINO's art in all: **~82 KB** (felt 52 + backdrop 12 + rail 1.6 + the back 15).
 
-## Flagged for HE6+
-- COZY CABIN + CYBERPUNK APARTMENT + the skin picker (HE6 — data + art + CSS, see "THE SKINS"), the sideways view (HE7 — `backdrop.square`).
-- On desktop the casino's backdrop fills the phone column only (the sides black) — HE7's sideways view owns the wide screen.
+## HE6 — REAL CARDS + COZY CABIN + CYBERPUNK APARTMENT + THE PICKER (Nov 10 2026 — the decisions: docs/games/plan.md "HE6")
+
+### THE REAL CARDS (Group 0 — `card-art.js` + the GENERATED `card-data.js`)
+Ben: the HE3 faces read as "digital" (one big index + one big suit). Now they are REAL playing cards, still readable on a phone:
+- **THE ART** — Byron Knoll's **"Vector Playing Cards"**, PUBLIC DOMAIN in the author's own words (his blog, Mar 2011: "I am releasing the images into
+  the public domain"; the Google Code record: "attribution is appreciated but not required" — credited in ☰ → CREDITS anyway). Downloaded from the GitHub
+  mirror (github.com/notpeter/Vector-Playing-Cards); the sources live on Ben's PC in `Downloads\neon\holdem\cards-src\` (+ its `SOURCE.txt`), never
+  shipped at full size (the court SVGs are 0.4–1.1 MB each). **His AS.svg is NOT used** — he says its art is traced from another artist's (Suzanne Tyson)
+  work, licence unknown — so the ace of spades is OUR OWN (a big spade in a fine engraved ring, drawn in code).
+- **WHAT SHIPS** (`node scripts/build-holdem-cards.mjs` — Chromium rasterises, `scripts/holdem-card-glyphs.py` extracts the glyphs):
+  - his four **PIP shapes** (from his 2-of-each-suit) → `card-data.js#PIP` (path + box + the aspect his cards draw them at), laid out in the CLASSIC pip
+    layouts in code (`card-art.js#LAYOUT` — the lower half's pips upside down);
+  - his twelve **COURT FIGURES** cropped to their frame (the frame line drawn in code — crisp) → ONE SPRITE PER DECK, `assets/holdem/cards/courts-four.webp`
+    + `courts-two.webp` (504 × 1088, rows s · h · d · c, columns J Q K, each tile 168 × 272 = 3× a hero card's frame; **~195 KB each — only this phone's
+    deck loads**, `index.js#preload` → `courtUrl(settings.heDeck)`). THE FOUR-COLOUR RECOLOUR: diamonds — the figure's red → blue (only the red: the
+    blue is the faces' line-work too, a swap turned the faces red); clubs — red → green; the big pips in the suit's ink (found by his pip path inside
+    each court SVG); the CLASSIC sprite = his robes + our ink on the pips;
+  - **THE CORNER INDEX** in a classic serif — **Libre Baskerville** (SIL OFL 1.1) at weight 700, its glyphs as PATHS (`card-data.js#GLYPH`, cap height
+    = 100): never a font the phone loads; the 10 condensed (0.8), J + Q a touch smaller (their descenders).
+- **THREE SIZES** (`faceSvg(code, deck, size)` — a 70 × 98 box, the view sizes it):
+  | size | where | what |
+  | --- | --- | --- |
+  | `full` | YOUR two cards | the index in BOTH corners (top-left + its twin rotated bottom-right), every pip, the court figure in its frame, our ace of spades |
+  | `board` | the board | a BIG index in two corners + one centre suit; a court's figure small between the indexes |
+  | `mini` | an opponent's shown hand · the rankings sheet | a big index + its suit, a big suit low-right |
+- **THE CARD STOCK** = the view's, not the face's (`.he-card` in css/holdem.css): the skin's paper colour (`skins.js#stock` — CASINO crisp white `#fbfaf6`,
+  CABIN warm ivory `#f7efde`, APARTMENT cool bright white `#fcfdff`) with a faint grain MULTIPLIED over it (`cards/stock.webp`, 128² near-white noise,
+  0.6 KB — made by the same build), rounded like the face's hairline, a HAIR OF EDGE under it (the card's thickness) + a soft shadow. The INK never
+  changes with the skin. The deal + the flip use the new faces as they are (the motion flips the real elements).
+- Close-ups: `tests/integration/holdem-cards.html` (`&deck=two`, `&skin=`, `&all=1` = all 52 in every size). `tests/holdem-cards.test.mjs`.
+
+### THE SKINS' NEW FIELDS (Group 1 — still ONE data shape, still no skin code path)
+HE6 turned every look that was a fixed casino colour into data → CSS variables (`skins.js#skinVars`; `tests/holdem-skins.test.mjs` checks the CSS reads
+every variable): `accent.lo` + `accent.rgb` (EVERY accent glow — the turn ring, your plate, the winners, the toasts, the end screen — reads
+`rgba(var(--he-gold-rgb), a)`; only the rankings sheet, a sheet outside the table, keeps its gold), `light.at` (where the pool sits), `print.glow`,
+`betline { color, glow }`, `rail.led` (a glow along the trim) + `rail.sheen` (the roll's highlight colour), `button.glassLo` + `button.glow` +
+`button.tex` (a texture under the plates + buttons — the cabin's wood), `button.call` + `button.fold` (THE MAIN button + FOLD as data), `stock`,
+`backdrop.pos` + `backdrop.size`, `thumb` (THE PICKER's mini table). NEON CASINO diffed after the refactor: only the trim's light edge + the plates'
+bottom rim moved (by a hair).
+
+### COZY CABIN (a mountain cabin card night by the fire)
+**THE LAYERS**: **THE BACKDROP** (`cabin/backdrop.webp` 860 × 1864, **51 KB** — the portrait original lifted ×1.18, its **WINDOW MOVED LEFT** + 0.86 smaller so
+its right edge sits at ~334 pt of a 390 phone, clear of the music button (342 pt) and of the level line; the logs it leaves filled from the same rows further
+left — `build-holdem-skin.py#move_window`), dim 0.06 · **THE LIVING TOUCHES**: the FIRE's glow flickers low-left (stepped opacity + a soft inner pulse), SNOW
+drifts past the window (two dot layers in the glass's box, transform only), the LAMP's warmth breathes top-left · **THE RAIL**: polished WALNUT
+(Poly Haven's american_walnut_veneer, CC0, lit by its normal map from the fire's side — `cabin/rail.webp` **2.2 KB**) with the roll's warm sheen · **THE
+TRIM**: a thin BRASS line · **THE FELT**: Fabric030 warmed to FOREST green (`cabin/felt.webp` **39 KB**) under a warm ORANGE firelight pool from the
+lower left (`light.at` 30 % 66 %) + a softer vignette (0.52); the print in CREAM · **THE PIECES**: DARK-WOOD plates + buttons (`cabin/wood.webp` **22 KB** — the
+same walnut, its even grain stretched ×4.5 so it reads at plate size) under a warm glass with BRASS rims, a brass / amber CALL, FOLD a muted red;
+AMBER accent `#f2a541` (your plate's glow, the winners, the clock) · the PLAID card back (`cardback-cabin.webp` **4.8 KB**) · warm ivory stock.
+
+### CYBERPUNK APARTMENT (a high-rise card table above a rainy neon city)
+**THE LAYERS**: **THE BACKDROP** (`apartment/backdrop.webp` 860 × 1864, **77 KB** — the square original CENTRE-CROPPED for portrait: its rainy skyline window
+behind the table's top; the room's cyan + pink neon PILLARS, which a centre crop cuts, pasted back at the screen's edges with soft inner edges —
+`build-holdem-skin.py#pillars` — so they glow in the slivers beside the table, their reflections on the floor), dim 0.1 · **THE LIVING TOUCHES**: RAIN
+streaks run down the glass (two angled streak layers, masked into drops), a NEON SIGN in the city flickers, a slow LIGHT SWEEP crosses the window ·
+**THE RAIL**: brushed dark METAL (ambientCG Metal009, CC0, lit by its normal map — `apartment/rail.webp` **1.7 KB**) · **THE TRIM**: a thin CYAN LED edge
+glowing both ways where the rail meets the felt (`rail.led`) · **THE FELT**: Fabric030 in near-black TEAL (`apartment/felt.webp` **40 KB** — q 80 + a stronger
+relief: at q 66 the weave compressed away) under a cool light pool + a strong vignette (0.82); the print GLOWING cyan; a thin PINK NEON betting line round
+the inner felt (its glow inside + out) · **THE PIECES**: navy-glass plates, every button dark glass with a glowing PINK rim (`button.glow`), CALL the brightest
+rim + its label cyan, FOLD a red-pink; CYAN accent `#3bd9ff` · the HOLOGRAPHIC card back (`cardback-apartment.webp` **14 KB**) · cool white stock.
+
+### THE PICKER (Group 3 — `picker.js`)
+☰ → Settings → HOLD'EM → **TABLE**: three small LIVE thumbnails — a mini table in each skin drawn in CSS from the skin's OWN data (the room's mood `thumb.room`,
+the rail + trim + LED, the felt + where its light sits, the betting line, the stock, the back's colour `thumb.back`, YOUR plate in the accent) — **so
+nothing of a skin you haven't chosen downloads** (no thumbnail images); the chosen one outlined + glowing in its accent. A tap = `settings.heSkin` (this
+phone only, default NEON CASINO) → `view.js#applySkin` on the settings' change: the variables, `data-skin`, the living touches, the chips' light (their
+cache cleared) — LIVE, even mid-hand during the motion (the backs re-key by their URL; no reload). `ui/settings-panel.js` loads the picker LAZILY (the
+boot graph never names a game); the picker injects its own small CSS (`hep-`) because the sheet can open where css/holdem.css isn't loaded. Preloading
+the other two skins on Wi-Fi + idle (optional in the plan) is left out: a switch loads ~120–140 KB on demand. The preview: `&settings=1`.
+
+### ADDING A 4TH SKIN
+1. Its art: a row in `scripts/build-holdem-skin.py#SKINS` (a function: `lit(...)` the felt + the rail by their normal maps from the skin's light, the
+   `backdrop(...)` at 860 × 1864 with any composition `edit`, an optional `wood.webp`-style texture, `cardback(...)` 240 × 336) → `assets/holdem/<id>/`.
+2. Its data: ONE entry in `skins.js#SKINS` with EVERY field the casino has (the test compares the nested shape) — `light.dir` matches the bake's light.
+3. Its living touches: `.he[data-skin='<id>'] .he-live-<k>` rules in css/holdem.css for each name in `living` (opacity / transform only; the tiers hide
+   `.he-live` at tier 1; reduced motion holds them still).
+4. `tests/holdem-skins.test.mjs` (≤ 200 KB of art, only its own files named, every variable read) + `holdem-shots.mjs --skin <id>` at 390 / 402 / 430 + 1440.
+   THE PICKER shows it by itself (a 4th thumbnail — the grid may want 2 × 2 then).
+
+### THE NUMBERS (HE6)
+New art: the cards **400 KB** in the repo (courts-four 195 + courts-two 195 + stock 0.6 — a phone loads ONE sprite), COZY CABIN **122 KB** (backdrop 51 +
+felt 39 + wood 22 + rail 2.2 + back 4.8), CYBERPUNK APARTMENT **133 KB** (backdrop 77 + felt 40 + rail 1.7 + back 14), the casino backdrop re-exported
+12 → **28 KB** (860 × 1864: HE5's 645-wide export blurred the slots' lights into blocks). Per phone: the chosen skin (82–133 KB) + one deck sprite (195 KB).
+
+## Flagged for HE7+
+- The sideways view (HE7 — `backdrop.square`; the cabin's square original has the big fireplace, the apartment's the whole window + both pillars).
+- On desktop the backdrop fills the phone column only (the sides black) — HE7's sideways view owns the wide screen.
 - The robots' length numbers are a guide; HE8's real play-tests should re-check TURBO (90 s) + DEEP (15 min) with people.
 - The KO card shows only on a FRESH bust (a phone that slept through it lands on SPECTATING); a bust in the match's last hand: its card over the podium.
 - When it becomes playable: `scripts/build-preload-graph.mjs` (+ its CARTRIDGES list), a day face + a sign scheme, THE BOARD's catalog.

@@ -182,6 +182,12 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   "<browser>"` (each file's lead-in + the busiest overlap through the limiter — exits 1 on a clip) · `node tests/integration/he-sound-demo.mjs "<browser>" [s]`
   (the motion demo on a REAL audio context: every planned cue started) · the chips close up: `tests/integration/holdem-chips.html`. The E2E checks the sound
   PLAN silently (`__holdem.planned()` — headless audio stays locked).
+- **HOLD'EM's REAL CARDS + SKINS + PICKER (HE6):** npm test — `tests/holdem-cards.test.mjs` (every card × size × deck, the pip counts, the court sprite of
+  the deck, our own ace of spades, only this deck's sprite preloaded) + `holdem-skins.test.mjs` (the three skins' nested shape, the CSS reads every variable, only
+  its own files, ≤ 200 KB each). The look: `tests/integration/holdem-cards.html` (the faces close up — `&deck=two`, `&skin=`, `&all=1`), `holdem-chips.html?skin=`,
+  the preview's `&skin=casino|cabin|apartment` + `&settings=1` (THE TABLE picker open) on every state, `holdem-shots.mjs --skin casino,cabin,apartment`. The FULL
+  E2E adds a LIVE SKIN SWITCH mid-hand on one phone (cabin → apartment → casino: the felt, the backs, the living touches, no reload, only skins' own files
+  fetched) + THE BUSIEST MOMENT's 60 fps in EACH skin.
 - **HOLD'EM's TABLE (HE3):** npm test — `tests/holdem-wire.test.mjs` (the parts round-trip, every diff, the bytes) + `tests/holdem-phone.test.mjs` (the
   phone's pure side + THE LAYOUT at 2–8 players on five phones). The look: `tests/integration/holdem-preview.html` (no Firebase — docs/holdem.md
   "THE PREVIEW") + `node tests/integration/holdem-shots.mjs "<browser>"`. The E2E (the emulators + `serve.mjs --emu`):
