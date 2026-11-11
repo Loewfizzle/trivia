@@ -11,6 +11,11 @@
 // + its three awards — the motion's ghosts, flips + roll-ups), and CASH's LEAVE TABLE (the button + its confirm) → the leaver in THE LEDGER.
 // HE7: FULL adds ROTATE MID-HAND (a phone turned sideways + back: the same hand + cards, no replay, an open slider closes, a real tap still
 // acts), ONE WHOLE HAND SIDEWAYS at 8 (one phone a 1440 × 900 desktop) on real, uncovered taps, and the busiest moment's 60 fps SIDEWAYS too.
+// HE8: FAST starts it as THE OWNER'S LIVE TEST (the live rule on: testHoldemGate — a normal host refused by the dealer, the owner's list shows
+// HOLD'EM · TEST, a guest's doesn't) + THE WAKE LOCK (seated → on, busted → off, the end → off). FULL adds THE TOUGHNESS (a slow line:
+// pressed at once, a double tap sends once, a pre-action lit at once; NO SIGNAL 10 s on someone else's turn + on your own, 40 s into your time
+// bank; an APP SWITCH of 30 s — the state, no replay, the sound back on a tap; the wake lock given back on a hidden page + taken again).
+// TOUGH_ONLY=1 = the start + THE TOUGHNESS alone (N=4 is enough).
 import { createHarness } from './kit/harness.mjs';
 import { GAIN } from '../../js/games/holdem/sfx.js';
 
@@ -19,6 +24,22 @@ const { pages, log, ok, sleep, waitFor, evalIn, G, alive, uids, NAMES } = H;
 const FAST = H.FAST;
 const N = FAST ? 3 : Number(process.env.N || 8);
 const CASH_ONLY = process.env.CASH_ONLY === '1';   // (the full path's CASH session alone — a quick re-check)
+const TOUGH_ONLY = process.env.TOUGH_ONLY === '1';   // (HE8: the start + THE TOUGHNESS alone)
+const DB = 'http://127.0.0.1:9000', NS = 'demo-arcade-default-rtdb';
+const dbPut = (path, v) => fetch(`${DB}/${path}.json?ns=${NS}`, { method: 'PUT', headers: { Authorization: 'Bearer owner' }, body: JSON.stringify(v) });
+const pidOf = async (p, i) => { for (let k = 0; k < 60; k++) { const m = await p.evaluate(sl => { try { return JSON.parse(localStorage.getItem(`na:${sl}:me`) || 'null'); } catch { return null; } }, `h${i}`).catch(() => null); if (m && m.pid) return m.pid; await sleep(400); } return null; };
+const awakeOf = p => p.evaluate(async () => { const w = await import('/js/wakelock.js'); return { view: window.__holdem ? window.__holdem.awake() : null, ...w.awakeState() }; }).catch(() => null);
+/** the games sheet as the room shows it on this phone (the dock's GAMES) → the game ids listed + which carry the TEST tag */
+async function gamesList(p) {
+  await p.evaluate(() => { const b = document.querySelector('.rdk-games'); if (b) b.click(); });
+  await p.waitForSelector('.rc-game', { timeout: 10000 }).catch(() => {});
+  await sleep(300);
+  const r = await p.evaluate(() => [...document.querySelectorAll('.rc-game')].map(b => ({ id: b.dataset.game, test: !!b.querySelector('.rc-game-test') })));
+  await p.evaluate(() => { document.querySelectorAll('.sh:not(.is-out) .sh-x, .sh:not(.is-out) .sh-close').forEach(e => e.click()); }).catch(() => {});
+  await p.keyboard.press('Escape').catch(() => {});
+  await sleep(400);
+  return r;
+}
 
 const pub = p => G(p, 'window.__holdem.pub()');
 const VIEW_UP = H.VIEW;   // (HE7: back upright — the harness's phone)
@@ -107,13 +128,216 @@ async function leakCheck(where) {
   return ok(true, `LEAK CHECK (${where}): every phone draws only its own cards + the board + the shown hands`);
 }
 
+// ------------------------------------------------------------------ HE8 — THE TOUGHNESS (FULL, or TOUGH_ONLY=1): real-world phones
+/** drive the others (check / call) until it's phone i's turn */
+const turnFor = (i, what, timeout = 150000) => drive('passive', async () => { const L = await G(pages[i], 'window.__holdem.legal()'); return !!L && L.id === (await uidOf(pages[i])); }, what, { timeout, skip: new Set([i]), watch: pages[i] });
+const centre = (p, sel) => p.evaluate(q => { const b = document.querySelector(q); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, sel);
+/** a phone's app switch: the page hidden / shown (visibilityState + hidden + the event — as iOS's) */
+const setHidden = (p, on) => p.evaluate(hid => { for (const [k, v] of [['visibilityState', hid ? 'hidden' : 'visible'], ['hidden', hid]]) Object.defineProperty(document, k, { configurable: true, get: () => v }); document.dispatchEvent(new Event('visibilitychange')); }, on);
+const playOn = async (ms, skip) => { const end = Date.now() + ms; while (Date.now() < end) { for (const i of alive()) if (!skip.has(i)) await moveOn(pages[i], 'passive'); await sleep(150); } };
+const barOf = p => p.evaluate(() => { const i = document.querySelector('.he-plate .he-clock > i'); const m = i && /scaleX\(([\d.]+)\)/.exec(i.style.transform); return m ? Number(m[1]) : null; });
+const audioOf = p => p.evaluate(() => import('/js/audio/engine.js').then(m => { const c = m.getContext(); return c ? c.state : 'none'; })).catch(() => 'err');
+const tapFelt = async p => { const c = await centre(p, '.he-print'); if (c) await p.mouse.click(c.x, c.y - 30); };
+
+async function toughness(host, used = new Set()) {
+  const seated = async i => { const x = await pub(pages[i]); const u = await uidOf(pages[i]); const s = x && x.table.seats.find(y => y.id === u); return !!s && s.status !== 'out' && !s.away; };
+  const guests = [];
+  for (const i of alive()) if (pages[i] !== host && !used.has(i) && (await seated(i))) guests.push(i);
+  if (guests.length < 2) { ok(false, `THE TOUGHNESS: not enough seated guests (${guests.length})`); return; }
+  const pick = k => guests[k % guests.length];
+  const [ga, gb, gc, gd] = [pick(0), pick(1), pick(2), pick(3)];
+  log('toughness on', NAMES[ga], NAMES[gb], NAMES[gc], NAMES[gd]);
+
+  // ---------------------------------------------------------------- A SLOW LINE (slow 3G-ish: 300 ms each way, 400 kbps) on one phone
+  {
+    const p = pages[ga];
+    const cdp = await p.target().createCDPSession();
+    await cdp.send('Network.enable');
+    await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 300, downloadThroughput: 51200, uploadThroughput: 51200 });
+    const sent = [];
+    const onReq = r => { if (r.method() === 'POST' && r.url().includes('/api/report')) { const m = /"holdem":"(\w+)"/.exec(r.postData() || ''); if (m && m[1] !== 'poke') sent.push(m[1]); } };
+    p.on('request', onReq);
+    // (1) a PRE-ACTION lit AT ONCE — before the server's answer, never a dead toggle
+    await drive('passive', () => p.evaluate(() => !!document.querySelector('.he-pres .he-pre') && !document.querySelector('.he-actions.is-busy')), `${NAMES[ga]}'s pre-actions`, { timeout: 120000, watch: p });
+    const pc = await centre(p, '.he-pres .he-pre');
+    await p.mouse.click(pc.x, pc.y);
+    const lit = await p.evaluate(() => ({ on: !!document.querySelector('.he-pres .he-pre.is-on'), real: (window.__holdem.hole() || {}).pre || null, busy: !!window.__holdem.busy() }));
+    await waitFor(p, () => !!((window.__holdem.hole() || {}).pre) || !document.querySelector('.he-pres'), 'the pre-action reached the server', 15000).catch(() => {});
+    ok(lit.on && !lit.real && lit.busy, `A SLOW LINE (300 ms + 400 kbps): ${NAMES[ga]}'s PRE-ACTION lit at once — before the server's answer (pending)`);
+    // (take it back, so the next turn is a real one)
+    if (await p.evaluate(() => !!document.querySelector('.he-pres .he-pre.is-on'))) {
+      await waitFor(p, () => !window.__holdem.busy(), 'the pre-action settled', 10000).catch(() => {});
+      const c2 = await centre(p, '.he-pres .he-pre.is-on'); if (c2) await p.mouse.click(c2.x, c2.y);
+      await waitFor(p, () => !window.__holdem.busy() && !((window.__holdem.hole() || {}).pre), 'the pre-action cleared', 10000).catch(() => {});
+    }
+    // (2) YOUR TURN: CALL / CHECK pressed at once, the impatient DOUBLE TAP sends once, the table catches up, nothing held after
+    await turnFor(ga, `${NAMES[ga]}'s turn on the slow line`);
+    const seq0 = (await pub(p)).seq;
+    const b = await centre(p, '.he-actions .he-buttons .he-call');
+    const n1 = sent.length;
+    const t0 = Date.now();
+    await p.mouse.click(b.x, b.y);
+    const fb = await p.evaluate(() => ({ sent: !!document.querySelector('.he-actions .he-call.is-sent'), busy: window.__holdem.busy(), dim: document.querySelector('.he-actions').classList.contains('is-busy') }));
+    await p.mouse.click(b.x, b.y);
+    await waitFor(p, (s, q) => window.__holdem.pub().seq > q && !window.__holdem.busy(), 'the move on the slow line', 25000, seq0).catch(async e => { log('slow-line diag', JSON.stringify({ seq0, fb, sent: sent.slice(n1), now: await p.evaluate(() => ({ seq: window.__holdem.pub().seq, busy: window.__holdem.busy(), legal: window.__holdem.legal(), me: window.__arcade.state.uid, net: window.__arcade.state.net })) })); throw e; });
+    const ms = Date.now() - t0;
+    await sleep(1200);
+    const acts = sent.slice(n1).filter(x => x === 'act').length;
+    const after = await p.evaluate(() => ({ busy: window.__holdem.busy(), dim: document.querySelector('.he-actions').classList.contains('is-busy'), sent: document.querySelectorAll('.he-actions .is-sent, .he-actions .is-press').length }));
+    ok(fb.sent && fb.busy && fb.dim && acts === 1 && !after.busy && !after.dim && !after.sent,
+      `A SLOW LINE: CALL / CHECK pressed AT ONCE (the pending look, ${ms} ms to the answer on this table), the impatient DOUBLE TAP sent ONCE (${acts} act), then caught up — nothing held, nothing dead`);
+    // (3) the next turn: RAISE's slider opens at once (no network) → BACK; a PRESET pressed at once → the table moves
+    await turnFor(ga, `${NAMES[ga]}'s next turn on the slow line`);
+    const sl = await p.evaluate(() => { const r = document.querySelector('.he-actions .he-raise'); if (!r || r.disabled) return null; r.click(); const open = !!document.querySelector('.he-slider'); const bk = document.querySelector('.he-slider .he-back-b'); if (bk) bk.click(); return open && !!document.querySelector('.he-actions .he-buttons .he-call'); });
+    const seq1 = (await pub(p)).seq;
+    const pr = (await centre(p, '.he-presets .he-preset')) || (await centre(p, '.he-actions .he-buttons .he-call'));
+    await p.mouse.click(pr.x, pr.y);
+    const fb2 = await p.evaluate(() => !!document.querySelector('.he-actions .is-sent'));
+    await waitFor(p, (s, q) => window.__holdem.pub().seq > q && !window.__holdem.busy(), 'the preset on the slow line', 25000, seq1);
+    ok((sl === null || sl === true) && fb2, `A SLOW LINE: RAISE's slider opened + closed at once (${sl === null ? 'no raise allowed' : 'no network'}), a PRESET pressed at once → the dealer moved on`);
+    await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    p.off('request', onReq);
+    await cdp.detach().catch(() => {});
+  }
+
+  // ---------------------------------------------------------------- NO SIGNAL 10 s on SOMEONE ELSE's turn → back: the right state, no replay
+  {
+    const p = pages[gb];
+    await drive('passive', () => p.evaluate(() => { const L = window.__holdem.legal(); return !!L && L.id !== window.__arcade.state.uid; }), 'someone else\'s turn', { timeout: 60000, watch: p });
+    await p.setOfflineMode(true);
+    await sleep(700);
+    const off = await p.evaluate(() => ({ he: document.querySelector('.he').classList.contains('is-offline'), net: document.getElementById('net').classList.contains('is-on') }));
+    await playOn(6000, new Set([gb]));
+    await sleep(3500);   // (a quiet moment before the signal comes back: anything that happened is > 2.5 s old — never replayed)
+    const hostSeq = (await pub(host)).seq, planned0 = await p.evaluate(() => window.__holdem.planned().length);
+    await p.setOfflineMode(false);
+    await waitFor(p, (s, q) => window.__holdem.pub().seq >= q && s.net === 'online' && !document.querySelector('.he.is-offline'), 'back online: caught up', 25000, hostSeq);
+    // (back: only what is NEW may sound / move — e.g. YOUR TURN if the table reached you meanwhile: the chime + the buttons rising, never the past)
+    const back = await p.evaluate(n0 => { const L = window.__holdem.legal(); return { motion: window.__holdem.motion(), planned: window.__holdem.planned().length, cues: window.__holdem.planned().slice(n0).map(c => c.name), mine: !!L && L.id === window.__arcade.state.uid, he: document.querySelector('.he').classList.contains('is-offline') }; }, planned0);
+    const still = (await pub(host)).seq === hostSeq;
+    log('no-signal diag', JSON.stringify({ off, back, still, planned0 }));
+    ok(off.he && off.net && !back.he && (!still || (back.cues.every(c => c === 'your-turn' && back.mine) && (!back.motion || back.mine))),
+      `NO SIGNAL 10 s on someone else's turn (${NAMES[gb]}): the console's SIGNAL LOST + the buttons waiting, then back on the table's latest (seq ${hostSeq}) — ${still ? (back.mine ? 'nothing replayed (only YOUR TURN — it reached you meanwhile)' : 'no motion, no sound replayed') : 'the table moved on meanwhile'}`);
+  }
+
+  // ---------------------------------------------------------------- NO SIGNAL 10 s on YOUR OWN turn: the clock keeps the server's truth; back → a real tap acts
+  {
+    const p = pages[gc];
+    await turnFor(gc, `${NAMES[gc]}'s turn (to lose the signal on)`);
+    await p.setOfflineMode(true);
+    const b1 = await barOf(p); await sleep(2000); const b2 = await barOf(p);
+    const c = await centre(p, '.he-actions .he-buttons .he-call');
+    if (c) await p.mouse.click(c.x, c.y);   // (a tap with no signal: waits, sends nothing)
+    const tapOff = await p.evaluate(() => window.__holdem.busy());
+    await sleep(7500);
+    await p.setOfflineMode(false);
+    const tOn = Date.now();
+    await waitFor(p, (s) => s.net === 'online', 'the socket back', 20000).catch(() => {});
+    log('socket back after', Date.now() - tOn, 'ms');
+    await waitFor(p, (s, q) => window.__holdem.pub().seq >= q && s.net === 'online' && !document.querySelector('.he.is-offline'), 'back online on its own turn', 20000, (await pub(host)).seq);
+    await sleep(500);
+    const mine = await p.evaluate(() => { const L = window.__holdem.legal(); return !!L && L.id === window.__arcade.state.uid; });
+    const seq0 = (await pub(p)).seq;
+    const how = mine ? await moveOn(p, 'tap') : null;
+    if (how) await waitFor(p, (s, q) => window.__holdem.pub().seq > q, 'the tap after the signal came back', 15000, seq0).catch(() => {});
+    log('own-turn diag', JSON.stringify({ b1, b2, tapOff, mine, how }));
+    ok(b1 != null && b2 != null && b2 < b1 - 0.05 && !tapOff && mine && how === 'tap' && (await pub(p)).seq > seq0,
+      `NO SIGNAL 10 s on ${NAMES[gc]}'s OWN turn: the bar kept draining from the server's numbers (${b1} → ${b2}), a tap sent nothing, back online still its turn → a REAL tap acted`);
+  }
+
+  // ---------------------------------------------------------------- NO SIGNAL 40 s on YOUR turn: the 20 s ran out → back INSIDE the time bank → the timeout
+  {
+    const p = pages[gd], u = await uidOf(p);
+    await turnFor(gd, `${NAMES[gd]}'s turn (40 s with no signal)`);
+    const hand = (await pub(p)).hand;
+    await p.setOfflineMode(true);
+    await sleep(40000);   // (the host pokes the 20 s deadline → the bank starts at the ORIGINAL deadline — the server's clock)
+    await p.setOfflineMode(false);
+    await waitFor(p, (s, q) => window.__holdem.pub().seq >= q && s.net === 'online', 'back online inside the bank', 20000, (await pub(host)).seq);
+    await sleep(400);
+    const v = await p.evaluate(async () => { const { serverNow } = await import('/js/firebase.js'); const t = window.__holdem.pub().table, me = window.__arcade.state.uid; const ck = document.querySelector('.he-plate .he-clock');
+      return { bank: !!t.bankOn, mine: (t.seats.find(x => x.seat === t.turn) || {}).id === me, left: Math.round(t.deadline - serverNow()), red: !!(ck && ck.classList.contains('is-bank') && !ck.hidden) }; });
+    const end = Date.now() + 25000;
+    let timedOut = false;
+    while (Date.now() < end && !timedOut) { const x = await pub(host); timedOut = (x.ev || []).some(e => e.t === 'timeout' && e.id === u && e.hand === hand); await sleep(800); }
+    ok(v.bank && v.mine && v.left > 2000 && v.left < 16000 && v.red && timedOut,
+      `NO SIGNAL 40 s on ${NAMES[gd]}'s turn: back INSIDE the time bank (${v.left} ms left by the server's clock, the bar red-orange), then the TIMEOUT applied by the server`);
+  }
+
+  // ---------------------------------------------------------------- AN APP SWITCH (30 s hidden): the state, no replay, the sound back on a tap
+  {
+    const p = pages[gb];
+    await tapFelt(p); await sleep(500);
+    const a0 = await audioOf(p);
+    await setHidden(p, true);
+    await playOn(26000, new Set([gb]));
+    await sleep(3500);
+    const a1 = await audioOf(p);
+    const hostSeq = (await pub(host)).seq, planned0 = await p.evaluate(() => window.__holdem.planned().length);
+    await setHidden(p, false);
+    await sleep(500);
+    const back = await p.evaluate(() => ({ motion: window.__holdem.motion(), planned: window.__holdem.planned().length, seq: window.__holdem.pub().seq }));
+    await tapFelt(p); await sleep(900);
+    const a2 = await audioOf(p);
+    const still = (await pub(host)).seq === hostSeq;
+    ok(back.seq >= hostSeq && (!still || (!back.motion && back.planned === planned0)) && (a0 !== 'running' || (a2 === 'running')),
+      `AN APP SWITCH (${NAMES[gb]}, 30 s hidden): back on the table's latest (seq ${back.seq}), ${still ? 'no motion + no sound replayed' : 'the table moved on'}; the audio ${a0} → ${a1} hidden → ${a2} after a tap`);
+  }
+
+  // ---------------------------------------------------------------- THE WAKE LOCK given back on a hidden page, taken again on return (a stub API: counted)
+  {
+    const p = pages[gc];
+    const r = await p.evaluate(async () => {
+      const log = window.__wl = { req: 0, rel: 0, live: null };
+      const fake = { request: async () => { log.req++; const ls = new Set(); const s = { type: 'screen', released: false, addEventListener: (k, f) => ls.add(f), removeEventListener: (k, f) => ls.delete(f), release: async () => { if (s.released) return; s.released = true; log.rel++; if (log.live === s) log.live = null; ls.forEach(f => f()); } }; log.live = s; return s; } };
+      Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: fake });
+      const w = await import('/js/wakelock.js');
+      w.gameAwake(false); w.gameAwake(window.__holdem.awake());   // (re-ask through the stub)
+      await new Promise(res => setTimeout(res, 100));
+      return { seated: window.__holdem.awake(), ...w.awakeState(), req: log.req };
+    });
+    await setHidden(p, true);
+    await p.evaluate(() => { if (window.__wl.live) window.__wl.live.release(); });   // (the browser drops it on a hidden page)
+    const hid = await awakeOf(p);
+    await setHidden(p, false);
+    await sleep(200);
+    const ret = await p.evaluate(async () => ({ ...(await import('/js/wakelock.js')).awakeState(), req: window.__wl.req }));
+    ok(r.seated && r.held && r.req === 1 && hid && !hid.held && ret.held && ret.req === 2,
+      `THE WAKE LOCK (${NAMES[gc]}, seated): held, given back on the hidden page, taken again on return (requests ${r.req} → ${ret.req})`);
+  }
+  await leakCheck('after the toughness');
+}
+
 await H.run(async () => {
   const host = await H.joinAll(N);
   log('room', H.code, N, 'phones');
 
   // ------------------------------------------------------------ the start: the walk inside, then the dealer's hand 1 on every phone
-  for (const p of pages) if (p) await p.evaluate(() => { window.__nsPreview = true; });   // (a game being built starts only where asked: config.js#isPlayable)
-  ok(await H.startGame(host, 'holdem', { mode: 'tournament', speed: 'turbo' }), 'the host starts HOLD\'EM (a local emulator page: `preview`)');
+  if (FAST) {
+    // ---------------------------------------------------------- HE8 — THE OWNER'S LIVE TEST (the live site's rule on the emulators: testHoldemGate)
+    await dbPut('testHoldemGate', true);
+    const gp = await pages[1].evaluate(async room => { const m = await import('/js/games/holdem/index.js'); try { await m.dealer({ holdem: 'start', room, mode: 'tournament' }); return 'started'; } catch (e) { return `${e.status} ${e.code}`; } }, H.code);
+    const hp = await host.evaluate(async room => { const m = await import('/js/games/holdem/index.js'); try { await m.dealer({ holdem: 'start', room, mode: 'tournament' }); return 'started'; } catch (e) { return `${e.status} ${e.code}`; } }, H.code);
+    const plainList = await gamesList(host);
+    const plainPlayable = await host.evaluate(() => import('/js/config.js').then(m => m.isPlayable('holdem')));
+    ok(gp === '403 not_host' && hp === '403 not_open' && !plainList.some(g => g.id === 'holdem') && !plainPlayable,
+      `THE OWNER'S LIVE TEST — a NORMAL host: the dealer refuses the start (${hp}; a guest: ${gp}), no HOLD'EM in the list (${plainList.map(g => g.id).join(' ')})`);
+    // the host becomes the OWNER (the emulators' owner list — the radio's server check, as on the live site's ADMIN_PIDS)
+    const opid = await pidOf(host, 0);
+    await dbPut(`testAdmins/${opid}`, true);
+    await host.evaluate(() => sessionStorage.clear());
+    await host.reload();
+    await waitFor(host, () => document.body.classList.contains('rd-owner') && !!window.__arcade.state.code && window.__arcade.state.meta && window.__arcade.state.meta.hostId === window.__arcade.state.uid, 'the owner\'s radio yes + back in the room as host', 40000);
+    await sleep(800);
+    const ownerList = await gamesList(host), guestList = await gamesList(pages[1]);
+    const hg = ownerList.find(g => g.id === 'holdem');
+    ok(!!hg && hg.test && ownerList.filter(g => g.test).length === 1 && !guestList.some(g => g.id === 'holdem' || g.test),
+      `THE OWNER'S LIST: HOLD'EM with its TEST tag (${ownerList.map(g => g.id + (g.test ? '·TEST' : '')).join(' ')}); a guest's list unchanged (${guestList.map(g => g.id).join(' ')})`);
+    ok(await H.startGame(host, 'holdem', { mode: 'tournament', speed: 'turbo' }), 'THE OWNER starts HOLD\'EM · TEST — the dealer checked him (no preview switch on any phone)');
+  } else {
+    for (const p of pages) if (p) await p.evaluate(() => { window.__nsPreview = true; });   // (a game being built starts only where asked: config.js#isPlayable)
+    ok(await H.startGame(host, 'holdem', { mode: 'tournament', speed: 'turbo' }), 'the host starts HOLD\'EM (a local emulator page: `preview`)');
+  }
   for (const i of alive()) await ready(pages[i], `${NAMES[i]}'s table`);
   await waitFor(host, s => s.live && s.live.table && s.live.table.m, 'the public table in the room');
   let p0 = await pub(host);
@@ -130,6 +354,11 @@ await H.run(async () => {
   const lv = await host.evaluate(() => document.querySelector('.he-level').textContent);
   ok(/^LVL 1 · BLINDS 10\/20 · \d:\d\d$/.test(lv), `the level line: "${lv}"`);
   await H.shotAll(host, 'he-01-start');
+  // HE8 — THE WAKE LOCK: every seated phone in a live match wants the screen on (the console's rule narrowed by the table's own)
+  const aw0 = await Promise.all(alive().map(i => awakeOf(pages[i])));
+  ok(aw0.every(a => a && a.view === true && a.wanted === true), `THE WAKE LOCK: every seated phone keeps its screen on (${aw0.map(a => (a && a.wanted ? 'ON' : 'off')).join(' ')})`);
+
+  if (TOUGH_ONLY) { await toughness(host); return; }
 
   if (FAST) {
     // ---------------------------------------------------------- FAST: a whole TURBO match at 3 — shoves to a winner, the podium, the room
@@ -146,6 +375,7 @@ await H.run(async () => {
     // (a bust in the match's LAST hand: the podium may come before its KO card — it still shows, over the table, for ~4 s)
     for (let k = 0; k < 30 && !koSeen; k++) { await watchKo(); await sleep(200); }
     ok(!!koSeen && /KNOCKED OUT/.test(koSeen.ko) && /(2ND|3RD) OF 3/.test(koSeen.ko) && /HAND/.test(koSeen.ko), `THE KO CARD on the busted phone: "${koSeen && koSeen.ko}"`);
+    if (koSeen) { const a = await awakeOf(pages[koSeen.i]); ok(a && a.view === false && a.wanted === false, `THE WAKE LOCK released on the busted phone (spectating: ${a && a.wanted ? 'still on' : 'off'})`); }
     const fin0 = await pub(host), lastHand = fin0.hand;
     const firstOut = [...(fin0.places || [])].sort((a, b) => b.place - a.place)[0];
     if (firstOut && firstOut.hand < lastHand) ok(!!(koSeen && koSeen.spec), 'then SPECTATING in its own area (the table played on)');
@@ -160,6 +390,9 @@ await H.run(async () => {
     const fs = await host.evaluate(() => { const b = document.querySelector('.he-final .final-body[data-game="holdem"]'); return b && { all: b.dataset.podium, win: (b.querySelector('.he-fs-name') || {}).textContent, rows: b.querySelectorAll('.he-fs-list > li').length, frameList: document.querySelectorAll('.he-final .final > .board-list').length, back: !!document.querySelector('.he-final .final-back') }; });
     ok(fs && fs.all === 'all' && fs.rows === 3 && fs.frameList === 0 && fs.back && !!fs.win, `THE END SCREEN: the console's frame + HOLD'EM's body — ${fs && fs.win} WINS HOLD'EM, every place as a slim card (${fs && fs.rows}), no second list`);
     await H.shotAll(host, 'he-09-final');
+    const awEnd = await Promise.all(alive().map(i => awakeOf(pages[i])));
+    ok(awEnd.every(a => a && a.view === false && a.wanted === false), `THE WAKE LOCK released on every phone at the match's end (${awEnd.map(a => (a && a.wanted ? 'ON' : 'off')).join(' ')})`);
+    await dbPut('testHoldemGate', null); await dbPut('testAdmins', null);
     for (const i of alive()) await soundCheck(pages[i], NAMES[i]);
     const champ = await host.evaluate(() => window.__holdem.planned().filter(c => c.name === 'champion').length);
     ok(champ === 1, `ONE winner sound: champion planned once on the podium (${champ}) — the console's sting skipped (OWN_VICTORY_SOUND)`);
@@ -342,6 +575,7 @@ await H.run(async () => {
     }
     ok(seen.bank && seen.out, `LOCKED: ${NAMES[lockI]}'s 20 s ran out → the TIME BANK → the auto check / fold (${Math.round((Date.now() - t0) / 1000)} s)`);
   } else ok(false, 'LOCKED: no guest turn came up');
+  await toughness(host, new Set(lockI != null ? [lockI] : []));
 
   // ------------------------------------------------------------ 60 fps at 4× CPU, 8 players on the rail
   if (process.env.PERF !== '0') await H.perfRun(pages[alive().find(i => pages[i] !== host)], { viewport: { width: 390, height: 844 }, tiers: [0], settle: 5000 });
@@ -416,6 +650,8 @@ await H.run(async () => {
       }
       await sleep(600);
       ok(await pages[li].evaluate(() => window.__holdem.spectating()), `LEAVE AFTER THIS HAND: ${leftName} played the hand out, then left — now SPECTATING`);
+      const la = await awakeOf(pages[li]);
+      ok(la && la.view === false && la.wanted === false, `THE WAKE LOCK released after ${leftName} LEFT the table (${la && la.wanted ? 'still on' : 'off'})`);
     } else ok(false, 'LEAVE: the button never offered LEAVE AFTER THIS HAND');
   }
   // END SESSION: the host's button, twice (the second tap confirms) → the session closes when the running hand ends

@@ -333,6 +333,23 @@
 .he-actions { position: absolute; inset: 0; pointer-events: none; }
 .he-actions > * { pointer-events: auto; }
 .he-actions.is-busy button { opacity: 0.55; }
+/* HE8 — INSTANT FEEDBACK: the control under your finger presses at once (.is-press — pointerdown, before any network); the one you sent stays
+   pressed with a soft pending glow (.is-sent) until this phone's table shows the server's answer; the others wait dimmed, taking no taps
+   (.is-busy — one move at a time). Scale + opacity only. */
+.he-actions button, .he-leave { transition: scale 0.07s ease-out; }
+.he-actions .is-press, .he-actions .is-sent, .he-leave.is-press { scale: 0.93; }
+.he-actions.is-busy button, .he-leave.is-busy { pointer-events: none; }
+.he-actions.is-busy button.is-sent, .he-leave.is-busy.is-sent { opacity: 1; }
+.he-actions .is-sent { position: relative; }
+.he-actions .is-sent::after, .he-leave.is-sent::after {
+  content: ''; position: absolute; inset: -4px; border-radius: inherit; pointer-events: none;
+  border: 2px solid rgba(var(--he-gold-rgb, 242, 193, 78), 0.9); box-shadow: 0 0 12px rgba(var(--he-gold-rgb, 242, 193, 78), 0.6);
+  animation: he-sent 0.9s ease-in-out infinite;
+}
+@keyframes he-sent { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+/* HE8 — NO SIGNAL: your buttons wait (the console's SIGNAL LOST banner says why); the table keeps its own clock from the server's numbers */
+.he.is-offline .he-actions > *, .he.is-offline .he-leave { opacity: 0.45; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .he-actions button, .he-leave { transition: none; } .he-actions .is-sent::after, .he-leave.is-sent::after { animation: none; opacity: 0.8; } }
 .he-presets, .he-actions > .he-buttons, .he-pres, .he-minis { position: absolute; left: var(--cx); transform: translate(-50%, -50%); display: flex; }
 .he-presets { top: var(--presets-y); gap: 8px; }
 .he-preset {

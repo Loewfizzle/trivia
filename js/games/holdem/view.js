@@ -29,6 +29,7 @@ import { createMotion } from './motion.js';
 import { bestFive } from './rank.js';
 import { faceSvg, cardName } from './card-art.js';
 import { dealer } from './index.js';
+import { gameAwake } from '../../wakelock.js';
 import { SHOT_MS } from './structure.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { soundPlan, tickSecond } from './sound-plan.js';
@@ -54,6 +55,9 @@ export function createView() {
   let pub = null, hole = null, holeOff = null, holeKey = '';
   let raf = 0, ro = null, offSet = null, destroyed = false;
   let pokeT = 0, pokeFor = '', pokeTries = 0, busy = null, slider = null;
+  // HE8 — REAL-WORLD TOUGHNESS: the control under the finger (pressed at once) · YOUR pre-action as tapped, until your own node says it
+  // (preWant — a lit toggle at once on a slow line) · this phone's wake-lock wish (seated in a live match)
+  let press = null, preWant = undefined, awake = null;
   const seatEls = new Map();
   const frames = [], work = [];
   let lastFrame = 0, lastLevelTxt = '', lastSig = '', showT = 0, finalView = null;
@@ -80,21 +84,50 @@ export function createView() {
 
   // ------------------------------------------------------------------ the dealer's ops (a refusal just waits for the redraw)
   async function send(op, body = {}) {
-    if (busy) return null;
+    if (busy) return null;   // (one move at a time: a double tap never sends twice)
+    if (offline()) { toastNoSignal(); return null; }
     const t = table();
-    busy = { op, at: Date.now() };
+    // HE8 — INSTANT FEEDBACK: the tapped control stays PRESSED (+ a pending glow) from the tap until this phone's table shows the server's answer
+    const el = press && performance.now() - press.at < 2000 && press.el.isConnected ? press.el : null;
+    const b = busy = { op, at: Date.now(), seq: pub ? pub.seq : null, el, wait: null, capT: 0 };
+    if (el) el.classList.add('is-sent');
     els.actions.classList.add('is-busy');
+    els.leave.classList.toggle('is-busy', op === 'leave');
+    let r = null;
     try {
-      return await dealer({ holdem: op, room: code(), ...(t ? { hand: t.hand } : {}), ...body });
+      r = await dealer({ holdem: op, room: code(), ...(t ? { hand: t.hand } : {}), ...body });
+      return r;
     } catch (e) {
-      // (409 stale / illegal, 429: the table moved on — the listener redraws; never a scary message)
-      if (e && e.status === 0) lazyImport(import('../../ui/toast.js'), '../../ui/toast.js').then(m => m.toast('NO SIGNAL — TRY AGAIN', 'warn', 2200)).catch(() => {});
+      // (409 stale / illegal, 429: the table moved on — the listener redraws; never a scary message. No signal: said only while the table
+      //  hasn't moved — a move whose answer was lost on the way back may still have landed)
+      if (e && e.status === 0 && (!pub || pub.seq === b.seq)) toastNoSignal();
       return null;
     } finally {
-      busy = null;
-      if (!destroyed) els.actions.classList.remove('is-busy');
+      // THE CATCH-UP: a move that changed the table holds the pressed look until this phone's table reaches the answer's seq (the listener —
+      // on a slow line it lands after the answer), never an enabled button on the old table; ≤ 5 s
+      if (busy === b && r && r.changed && r.seq != null && pub && pub.seq < r.seq && !destroyed) { b.wait = r.seq; b.capT = setTimeout(() => release(b), 5000); }
+      else release(b);
     }
   }
+  function release(b = busy) {
+    if (!b || busy !== b) return;
+    clearTimeout(b.capT);
+    if (b.el) b.el.classList.remove('is-sent', 'is-press');
+    busy = null;
+    if (!destroyed) { els.actions.classList.remove('is-busy'); els.leave.classList.remove('is-busy'); }
+  }
+  const onNet = () => { if (!destroyed && root) { lastSig = ''; render(); } };
+  const offline = () => !!(st && (st.net === 'lost' || (typeof navigator !== 'undefined' && navigator.onLine === false)));
+  const toastNoSignal = () => lazyImport(import('../../ui/toast.js'), '../../ui/toast.js').then(m => m.toast('NO SIGNAL — TRY AGAIN', 'warn', 2200)).catch(() => {});
+  // (the pressed look at the finger's touch-down — before any click, any network; iOS's :active needs a touch listener, so it's ours)
+  function onPress(e) {
+    const btn = e.target && e.target.closest ? e.target.closest('button') : null;
+    if (!btn || btn.disabled || busy) return;
+    if (press && press.el !== btn) press.el.classList.remove('is-press');
+    btn.classList.add('is-press');
+    press = { el: btn, at: performance.now() };
+  }
+  function onUnpress() { if (press && !press.el.classList.contains('is-sent')) press.el.classList.remove('is-press'); }
   const act = (action, amount) => { vibrate(12); slider = null; return send('act', { seq: pub.seq, action, ...(amount != null ? { amount } : {}) }); };
 
   // ------------------------------------------------------------------ THE POKE (WHO POKES — docs/holdem.md)
@@ -144,6 +177,10 @@ export function createView() {
     // HE5 (Ben): ALWAYS there in CASH — LEAVE TABLE (between hands: a confirm, at once) · LEAVE AFTER THIS HAND (in a hand: the dealer
     // queues it) · LEAVING AFTER THIS HAND · CANCEL (a second tap)
     els.leave = h('button.he-leave', { type: 'button', hidden: true, onclick: () => tapLeave() });
+    for (const x of [els.actions, els.leave]) {
+      x.addEventListener('pointerdown', onPress);
+      for (const k of ['pointerup', 'pointercancel', 'pointerleave']) x.addEventListener(k, onUnpress);
+    }
     // (the safe areas, measured once per resize by four probes — never in the frame loop; HE7: left + right for a phone on its side)
     els.probeT = h('i.he-probe.he-probe-t'); els.probeB = h('i.he-probe.he-probe-b');
     els.probeL = h('i.he-probe.he-probe-l'); els.probeR = h('i.he-probe.he-probe-r');
@@ -165,6 +202,7 @@ export function createView() {
     ro.observe(root);
     // (HE7: a rotation / Safari's bars — the observer sees most; these catch an iPhone that reports late)
     addEventListener('orientationchange', onTurn);
+    addEventListener('offline', onNet); addEventListener('online', onNet);   // (HE8: NO SIGNAL — the buttons wait at once, back at once)
     if (window.visualViewport) visualViewport.addEventListener('resize', onTurn);
     applySkin();
     tiers = createTiers({ apply: t => { root.dataset.tier = String(t); } });
@@ -193,8 +231,10 @@ export function createView() {
       } else if (moved && motion) motion.cancel();
       seenN = fr.seen;
     }
+    if (busy && busy.wait != null && pub && pub.seq >= busy.wait) release();   // (THE CATCH-UP: the answer is on this table now)
     watchHole();
     render();
+    paintAwake();
     if (steps.length && motion) motion.run(steps);
     // THE SOUNDS: the same fresh run, the same timeline — a sound lands with its animation (reduced motion keeps the sounds)
     if (steps.length) playCues(soundPlan(steps, { me: me(), rng: Math.random }));
@@ -220,11 +260,14 @@ export function createView() {
 
   function unmount() {
     destroyed = true;
+    if (busy) clearTimeout(busy.capT);
+    gameAwake(null);   // (HE8: back to the console's own wake rule)
     cancelAnimationFrame(raf);
     clearTimeout(pokeT); clearTimeout(showT); clearTimeout(koT);
     if (motion) motion.cancel();
     if (ro) ro.disconnect();
     removeEventListener('orientationchange', onTurn);
+    removeEventListener('offline', onNet); removeEventListener('online', onNet);
     if (window.visualViewport) visualViewport.removeEventListener('resize', onTurn);
     cancelAnimationFrame(turnRaf);
     if (els.screen) els.screen.classList.remove('he-screen');
@@ -366,7 +409,7 @@ export function createView() {
     if (!root || destroyed) return;
     const others = drawnOthers();
     if (!L || Math.min(7, others.length) !== seatCount()) { relayout(); if (!L) return; }
-    const sig = JSON.stringify([pub && pub.seq, pub && pub.id, hole, st.game && st.game.matchId, Object.keys(st.players || {}).length, st.meta && st.meta.hostId, deck(), !!slider, laySig]);
+    const sig = JSON.stringify([pub && pub.seq, pub && pub.id, hole, st.game && st.game.matchId, Object.keys(st.players || {}).length, st.meta && st.meta.hostId, deck(), !!slider, laySig, offline()]);   // (HE8: NO SIGNAL / back repaints the buttons at once)
     if (sig === lastSig) return;
     lastSig = sig;
     root.classList.toggle('is-waiting', !current());
@@ -646,6 +689,15 @@ export function createView() {
     els.hero.querySelector('.he-clock').hidden = !myTurn;
   }
 
+  // HE8 — THE SCREEN STAYS AWAKE while you're SEATED in a LIVE match (dealt in or waiting for the next deal — not OUT, not LEFT, not AWAY /
+  // SAT OUT); released when you spectate, leave, the match ends (the console releases it on a hidden page and asks again on return —
+  // wakelock.js); where the API is missing nothing happens
+  function paintAwake() {
+    const x = mySeat(), pl = ((pub && pub.players) || {})[me()];
+    const want = !!(pub && current() && !pub.ended && x && x.status !== 'out' && x.status !== 'sitout' && !x.away && !(pl && (pl.left || pl.leaving)));
+    if (want !== awake) { awake = want; gameAwake(want); }
+  }
+
   // ---- the action area: YOUR TURN · the pre-actions · the between-hands buttons
   function paintActions() {
     if (!root) return;
@@ -655,6 +707,7 @@ export function createView() {
     root.classList.toggle('is-myturn', yours);
     const kids = [];
     let status = '';
+    root.classList.toggle('is-offline', offline());   // (HE8: no signal — your buttons wait, the console's SIGNAL LOST banner says why)
     if (!current()) status = st.game && st.game.phase === 'final' ? '' : 'SHUFFLING UP…';
     else if (pub.ended) status = pub.rep ? 'THE GAME IS OVER' : 'COUNTING THE CHIPS…';
     else if (yours && slider) kids.push(sliderPanel(mine));
@@ -685,7 +738,7 @@ export function createView() {
     els.status.hidden = !status;
     // (THE TAP WATCH: a control is never rebuilt under a finger — only when what it says changed)
     const ak = JSON.stringify([yours && !slider ? [mine.presets, mine.canCheck, mine.callAmount, mine.callAllIn, mine.canRaise, mine.kind] : null, yours && !!slider,
-      !yours && run && x && x.status === 'in' ? [hole && hole.pre, hole && hole.h, t.bet, x.bet] : null, kids.filter(k => k.classList.contains('he-minis')).map(k => k.textContent)]);
+      !yours && run && x && x.status === 'in' ? [preOn(), hole && hole.h, t.bet, x.bet] : null, kids.filter(k => k.classList.contains('he-minis')).map(k => k.textContent)]);
     if (els.actions.dataset.k !== ak) {
       els.actions.dataset.k = ak;
       els.actions.replaceChildren(...kids);
@@ -703,14 +756,14 @@ export function createView() {
   function turnControls(Lg) {
     const t = table();
     const presets = h('div.he-presets', (Lg.presets || []).map(p => h('button.he-preset', {
-      type: 'button', dataset: { key: p.key }, disabled: !!busy,
+      type: 'button', dataset: { key: p.key },
       onclick: () => act(p.allin ? 'allin' : (t.bet === 0 ? 'bet' : 'raise'), p.allin ? null : p.to),
     }, h('b', p.label), h('small', fmt(p.to)))));
     const callLabel = Lg.canCheck ? ['CHECK'] : Lg.callAllIn ? ['ALL IN', fmt(Lg.callAmount)] : ['CALL', fmt(Lg.callAmount)];
     const buttons = h('div.he-buttons',
-      h('button.he-btn.he-fold', { type: 'button', disabled: !!busy, onclick: () => act('fold') }, h('b', 'FOLD')),
-      h('button.he-btn.he-raise', { type: 'button', disabled: !!busy || !Lg.canRaise, onclick: () => { slider = { to: Lg.minTo }; lastSig = ''; render(); } }, h('b', Lg.kind === 'bet' ? 'BET' : 'RAISE')),
-      h('button.he-btn.he-call', { type: 'button', disabled: !!busy, onclick: () => act(Lg.canCheck ? 'check' : Lg.callAllIn ? 'allin' : 'call') }, h('b', callLabel[0]), callLabel[1] ? h('small', callLabel[1]) : null));
+      h('button.he-btn.he-fold', { type: 'button', onclick: () => act('fold') }, h('b', 'FOLD')),
+      h('button.he-btn.he-raise', { type: 'button', disabled: !Lg.canRaise, onclick: () => { slider = { to: Lg.minTo }; lastSig = ''; render(); } }, h('b', Lg.kind === 'bet' ? 'BET' : 'RAISE')),
+      h('button.he-btn.he-call', { type: 'button', onclick: () => act(Lg.canCheck ? 'check' : Lg.callAllIn ? 'allin' : 'call') }, h('b', callLabel[0]), callLabel[1] ? h('small', callLabel[1]) : null));
     return [presets, buttons];
   }
 
@@ -730,12 +783,28 @@ export function createView() {
   }
 
   function preToggles() {
-    const on = hole && table() && hole.h === table().hand ? hole.pre || null : null;
+    const on = preOn();
     const t = table(), x = mySeat();
     const free = !!(t && x && x.bet >= t.bet);
-    const tog = (kind, label) => h(`button.he-pre${on === kind ? '.is-on' : ''}`, { type: 'button', 'aria-pressed': String(on === kind), disabled: !!busy,
-      onclick: () => send('pre', { pre: on === kind ? null : kind }) }, h('i'), h('b', label));
+    const tog = (kind, label) => h(`button.he-pre${on === kind ? '.is-on' : ''}`, { type: 'button', 'aria-pressed': String(on === kind),
+      onclick: () => tapPre(on === kind ? null : kind) }, h('i'), h('b', label));
     return h('div.he-pres', tog('checkfold', free ? 'CHECK / FOLD' : 'FOLD'), tog('callany', free ? 'CHECK' : 'CALL ANY'));
+  }
+
+  /** YOUR queued pre-action: as tapped (preWant — at once), until your own node (hole.pre, this hand) agrees; a new hand forgets the wish */
+  function preOn() {
+    const t = table(), real = hole && t && hole.h === t.hand ? hole.pre || null : null;
+    if (preWant && (!t || preWant.hand !== t.hand || preWant.kind === real)) preWant = undefined;
+    return preWant ? preWant.kind : real;
+  }
+  async function tapPre(kind) {
+    const t = table();
+    if (!t || busy) return;
+    vibrate(8);
+    preWant = { kind, hand: t.hand };
+    lastSig = ''; render();
+    const r = await send('pre', { pre: kind });
+    if (!r && preWant && preWant.kind === kind) { preWant = undefined; lastSig = ''; render(); }   // (refused / no signal: back to the truth)
   }
 
   function seatButtons(x, t) {
@@ -747,13 +816,13 @@ export function createView() {
     if (res && res.byFold && x && winOf(res, x.id) > 0 && !(Array.isArray(x.cards) && x.cards.length) && myCards()) {
       const age = serverNow() - (lastDoneAt(t) || serverNow());
       if (age < SHOW_MS) { clearTimeout(showT); showT = setTimeout(() => { lastSig = ''; render(); }, SHOW_MS - age + 50); }
-      if (age < SHOW_MS) out.push(h('button.he-mini', { type: 'button', disabled: !!busy, onclick: () => send('show') }, 'SHOW YOUR CARDS'));
+      if (age < SHOW_MS) out.push(h('button.he-mini', { type: 'button', onclick: () => send('show') }, 'SHOW YOUR CARDS'));
     }
-    if (cash && !x && !(pl && !pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('sit') }, 'TAKE A SEAT'));
-    if (cash && pl && pl.left) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('sit') }, 'SIT BACK DOWN'));
+    if (cash && !x && !(pl && !pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', onclick: () => send('sit') }, 'TAKE A SEAT'));
+    if (cash && pl && pl.left) out.push(h('button.he-mini.is-gold', { type: 'button', onclick: () => send('sit') }, 'SIT BACK DOWN'));
     // (between hands a busted seat still reads 'allin' until the next deal — the hand is over, so it may rebuy)
-    if (x && cash && x.stack === 0 && (!(t && running(t)) || (x.status !== 'in' && x.status !== 'allin')) && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('rebuy') }, 'REBUY 1,000'));
-    if (x && (x.away || x.status === 'sitout') && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', disabled: !!busy, onclick: () => send('back') }, cash ? 'SIT BACK IN' : 'I’M BACK'));
+    if (x && cash && x.stack === 0 && (!(t && running(t)) || (x.status !== 'in' && x.status !== 'allin')) && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', onclick: () => send('rebuy') }, 'REBUY 1,000'));
+    if (x && (x.away || x.status === 'sitout') && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', onclick: () => send('back') }, cash ? 'SIT BACK IN' : 'I’M BACK'));
     return out.length ? [h('div.he-minis', out)] : [];
   }
   /**
@@ -919,6 +988,7 @@ export function createView() {
     tier: () => (tiers ? tiers.get() : 2), setTier: t => tiers && tiers.set(t), skin: () => skinKey, fps: () => frames.slice(), work: () => work.slice(),
     sounds: () => played(), planned: () => planned(),
     seats: () => [...seatEls.keys()],
+    busy: () => (busy ? { op: busy.op, wait: busy.wait, sent: !!(busy.el && busy.el.classList.contains('is-sent')) } : null), awake: () => awake, preOn: () => preOn(),
   };
 
   return { mount, update, unmount };
