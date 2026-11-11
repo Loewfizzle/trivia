@@ -153,8 +153,9 @@ try {
   await sleep(700);
   const tabs = await host.$$eval('.help-tab, [role="tab"]', els => els.length).catch(() => 0);
   for (let k = 0; k < tabs; k++) {
-    await host.evaluate(n => { const t = document.querySelectorAll('.help-tab, [role="tab"]')[n]; if (t) t.click(); }, k);
+    const tid = await host.evaluate(n => { const t = document.querySelectorAll('.help-tab, [role="tab"]')[n]; if (t) t.click(); return t && t.dataset.id; }, k);
     await sleep(250);
+    if (tid === 'holdem') await host.screenshot({ path: `${OUT}smoke-help-holdem${SFX}.png` });   // (HE10 add-on: HOLD'EM's tile in HOW TO PLAY's tabs)
     await check(`help-${k}`);
   }
   await host.keyboard.press('Escape');
@@ -172,7 +173,7 @@ try {
     ok(ids.length === 10 && !ids.includes('holdem') && res.every(r => r === false) && g === null, `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
     // (LOBBY 2.0 A: in City 2.0 the room is the live city — its GAMES sheet lists the games; City 1.0's lobby keeps its cards)
     let cards = await host.$$eval('.lobby-screen .game-card', els => els.map(e => e.dataset.theme));
-    if (!cards.length && await host.$('.rdk-games')) { await host.evaluate(() => document.querySelector('.rdk-games').click()); await host.waitForSelector('.rc-games-sheet .rc-game', { timeout: 8000 }); cards = await host.$$eval('.rc-games-sheet .rc-game', els => els.map(e => e.dataset.game)); await host.evaluate(() => document.querySelector('.rc-games-sheet .sh-back').click()); await sleep(400); }
+    if (!cards.length && await host.$('.rdk-games')) { await host.evaluate(() => document.querySelector('.rdk-games').click()); await host.waitForSelector('.rc-games-sheet .rc-game', { timeout: 8000 }); await sleep(600); await host.evaluate(() => document.querySelectorAll('.sh-msgs, [class*="toast"]').forEach(e => e.remove())); await host.screenshot({ path: `${OUT}smoke-games${SFX}.png` }); /* (HE10 add-on: the three tiles — the hidden games' COMING SOON message cleared first) */ cards =await host.$$eval('.rc-games-sheet .rc-game', els => els.map(e => e.dataset.game)); await host.evaluate(() => document.querySelector('.rc-games-sheet .sh-back').click()); await sleep(400); }
     ok(cards.length === 3 && cards.includes('prism') && cards.includes('overclock') && cards.includes('holdem'), `THE LOBBY: only the three playable games (${cards.join(', ')}) — HOLD'EM with no TEST tag`);
     ok(!(await host.evaluate(() => [...document.querySelectorAll('.rc-game')].some(e => /\bTEST\b/.test(e.textContent)))), 'no TEST tag anywhere'); }
 

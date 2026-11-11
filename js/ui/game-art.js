@@ -307,7 +307,16 @@ ${glow('ha-glow', 1.8)}</defs>
 <g>${[0, 1, 2].map(i => `<ellipse cx="22" cy="${106 - i * 4.4}" rx="12" ry="4" fill="#0f6e48" stroke="#f4efe0" stroke-width="0.8" stroke-dasharray="2.6 2.2"/>`).join('')}</g>
 </svg>`;
 
-const ART = { rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
+// HOLD'EM (HE10 add-on — Ben): its OWN look — the casino's lit felt + the leather rail's gold trim, an A♠ + a K♥ in its real faces, the lit clay
+// chips — baked once into assets/holdem/tile.webp (216 px = the tile's 72 pt at 3×; `node scripts/build-holdem-tile.mjs` — the scene is
+// tests/integration/holdem-tile.html). The SVG only frames it (ids `hd-` — never HIGH STAKES' `ha-`): a hairline gold edge + a soft inner shade.
+const HOLDEM_TILE = new URL('../../assets/holdem/tile.webp', import.meta.url).href;
+const holdem = () => `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
+<radialGradient id="hd-shade" cx="0.5" cy="0.5" r="0.75"><stop offset="0.7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.35"/></radialGradient></defs>
+<image href="${HOLDEM_TILE}" x="0" y="0" width="120" height="120" preserveAspectRatio="xMidYMid slice"/>
+<rect width="120" height="120" fill="url(#hd-shade)"/></svg>`;
+
+const ART = { holdem, rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 
 /** Just the SVG (e.g. the How to Play tabs). */
 export const gameArtSvg = id => (ART[id] ? svgEl(ART[id]()) : null);

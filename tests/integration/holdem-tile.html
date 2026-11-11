@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- HOLD'EM's GAME TILE (HE10 add-on — Ben): the scene baked into assets/holdem/tile.webp by `node scripts/build-holdem-tile.mjs` (dev only — never shipped).
+     HOLD'EM's OWN look: the casino's lit felt + its leather rail with the gold trim, two of its real card faces (card-art.js — the `mini` faces: the
+     big serif rank + suit, made for ~30 pt cards, so A♠ + K♥ read at the tile's real 58–72 pt), the lit clay chips (chip-art.js#paintStacks).
+     The scene is 72 × 72 CSS px — the tile's biggest real size — shot at 3× (216 px). &bg=1 = a dark page round it (to look at it). -->
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  html, body { margin: 0; background: #000; }
+  #tile { position: relative; width: 72px; height: 72px; overflow: hidden; background: #0b3d22; }
+  .felt { position: absolute; inset: 0; background: url('/assets/holdem/casino/felt.webp') 0 0 / 54px 54px; }
+  .light { position: absolute; inset: 0; background: radial-gradient(circle at 45% 44%, rgba(255, 210, 130, 0.62), rgba(255, 180, 90, 0.2) 36%, rgba(0, 0, 0, 0) 62%),
+    radial-gradient(120% 120% at 45% 45%, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.55) 100%); }
+  /* the corner of the table: the leather rail round the top-left, its thin gold trim where it meets the felt */
+  .rail { position: absolute; left: -64px; top: -64px; width: 122px; height: 122px; border-radius: 50%; box-sizing: border-box;
+    border: 13px solid transparent; background: url('/assets/holdem/casino/rail.webp') 0 0 / 40px 40px border-box;
+    -webkit-mask: radial-gradient(circle, transparent 47px, #000 47.5px); mask: radial-gradient(circle, transparent 47px, #000 47.5px);
+    filter: brightness(0.78); }
+  .trim { position: absolute; left: -51px; top: -51px; width: 96px; height: 96px; border-radius: 50%; box-sizing: border-box;
+    border: 1.2px solid #f2c14e; box-shadow: 0 0 3px rgba(242, 193, 78, 0.65), inset 0 0 2px rgba(242, 193, 78, 0.5); }
+  .card { position: absolute; width: 27px; height: 38px; border-radius: 2.6px / 2.1px;
+    background: url('/assets/holdem/cards/stock.webp') 0 0 / 24px 24px, #fbf6ea; background-blend-mode: multiply;
+    box-shadow: inset 0 0.4px 0 rgba(255, 255, 255, 0.7), 0 0.5px 0 #b8ad95, 0 1px 0 rgba(64, 52, 34, 0.55), 0 2.5px 6px rgba(0, 0, 0, 0.55); }
+  .card > svg { display: block; width: 100%; height: 100%; }
+  .c1 { left: 13px; top: 17px; transform: rotate(-11deg); }
+  .c2 { left: 31px; top: 14px; transform: rotate(8deg); }
+  .chips { position: absolute; bottom: 4px; }
+  #k1 { left: 49px; } #k2 { left: 58px; bottom: 3px; } #k3 { left: 42px; bottom: 2px; }
+  body.bg { background: #111; padding: 20px; }
+</style></head>
+<body>
+<div id="tile"><div class="felt"></div><div class="light"></div><div class="rail"></div><div class="trim"></div>
+  <div class="card c1" id="c1"></div><div class="card c2" id="c2"></div><canvas class="chips" id="k3"></canvas><canvas class="chips" id="k1"></canvas><canvas class="chips" id="k2"></canvas></div>
+<script type="module">
+  import { faceSvg } from '/js/games/holdem/card-art.js';
+  import { loadChips, paintStacks, setLight } from '/js/games/holdem/chip-art.js';
+  if (new URLSearchParams(location.search).get('bg') === '1') document.body.classList.add('bg');
+  document.getElementById('c1').innerHTML = faceSvg('As', 'four', 'mini');
+  document.getElementById('c2').innerHTML = faceSvg('Kh', 'four', 'mini');
+  setLight({ x: -0.45, y: -0.9 });
+  await loadChips();
+  // three short stacks of the real clay chips: black ×4 (100s) · red ×3 (5s) · a purple pair (500s) in front
+  paintStacks(document.getElementById('k1'), 400, 11, { maxStacks: 1, maxPer: 6 }, 0);
+  paintStacks(document.getElementById('k2'), 15, 11, { maxStacks: 1, maxPer: 6 }, 1);
+  paintStacks(document.getElementById('k3'), 1000, 11, { maxStacks: 1, maxPer: 6 }, 2);
+  await document.fonts.ready;
+  await Promise.all([...document.images].map(i => i.decode().catch(() => null)));
+  document.body.dataset.ready = '1';
+</script>
+</body></html>
