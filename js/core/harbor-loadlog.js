@@ -38,9 +38,12 @@ export function visibleRow(r) {
  * the log. t0: the scene's start (performance.now()); now(): the clock (tests pass a fake).
  * add(kind, msg, extra?) → the row or null (after the window / over the cap); reveal(why, extra) marks the reveal.
  */
-export function createLoadLog(t0, { now = () => performance.now(), win = LOAD_LOG_MS, max = 90 } = {}) {
+// (LOAD FIX 4 — Grok's boot audit #13: ONE cap of 90 rows let a slow, chatty load in the dark — resizes, holds, tier notes — use them all up,
+//  and the post-reveal rows the load check exists for were DROPPED: a blind check. Now each side has its own allowance (before / after the
+//  reveal); the reveal row itself always goes in.)
+export function createLoadLog(t0, { now = () => performance.now(), win = LOAD_LOG_MS, before = 60, after = 60 } = {}) {
   const rows = [];
-  let shownAt = -1, dropped = 0;
+  let shownAt = -1, dropped = 0, nBefore = 0, nAfter = 0;
   const api = {
     rows,
     get shownAt() { return shownAt; },
@@ -49,8 +52,10 @@ export function createLoadLog(t0, { now = () => performance.now(), win = LOAD_LO
     open(t = now()) { return shownAt < 0 || t <= shownAt + win; },
     add(kind, msg, extra = null, t = now()) {
       if (!api.open(t)) return null;
-      if (rows.length >= max) { dropped++; return null; }
-      const r = { t: Math.round(t - t0), a: shownAt >= 0 ? Math.round(t - shownAt) : null, kind, msg, ...(extra || {}) };
+      const post = shownAt >= 0;
+      if (kind !== 'reveal' && (post ? nAfter >= after : nBefore >= before)) { dropped++; return null; }
+      if (kind !== 'reveal') { if (post) nAfter++; else nBefore++; }
+      const r = { t: Math.round(t - t0), a: post ? Math.round(t - shownAt) : null, kind, msg, ...(extra || {}) };
       rows.push(r);
       return r;
     },

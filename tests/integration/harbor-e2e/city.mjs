@@ -792,6 +792,7 @@ async function loadFix3Checks() {
     { name: 'a core module failed once (js/errlog.js)', re: /\/js\/errlog\.js$/, act: 'abort', reload: true },
     { name: 'THE VERSION SKEW once (js/config.js from another deploy — APP_NAME renamed)', re: /\/js\/config\.js$/, act: 'skew', reload: true, expectErr: /APP_NAME/ },
     { name: 'a core sheet failed once (css/title.css)', re: /\/css\/title\.css$/, act: 'abort', reload: false },
+    { name: 'a core sheet failed TWICE (css/title.css + its ?again= — LOAD FIX 4)', re: /\/css\/title\.css(\?again=\d+)?$/, act: 'abort', n: 2, reload: true },
     { name: '/api/sky + /api/time dead (every call)', re: /\/api\/(sky|time)/, act: 'abort', every: true, reload: false },
     { name: 'the fonts never load (Google’s fonts never answer)', re: /fonts\.(googleapis|gstatic)\.com/, act: 'stall', every: true, reload: false },
     { name: 'a city module never answers once (harbor/meteors.js)', re: /\/js\/screens\/harbor\/meteors\.js$/, act: 'stall', reload: true, report: true },
@@ -810,7 +811,7 @@ async function loadFix3Checks() {
     p.on('request', r => {
       const u = r.url();
       if (u.includes('/api/log') && r.method() === 'POST') { try { const b = JSON.parse(r.postData() || '{}'); if (b.p === 'report') reports.push(b.r.kind); } catch { /* fine */ } return r.respond({ status: 200, contentType: 'application/json', body: '{"kept":1}' }).catch(() => {}); }
-      if (c.re.test(u) && (c.every || hits++ === 0)) {
+      if (c.re.test(u) && (c.every || hits++ < (c.n || 1))) {
         if (c.act === 'abort') return r.abort('failed').catch(() => {});
         if (c.act === 'skew') return r.respond({ status: 200, contentType: 'text/javascript', body: cfg }).catch(() => {});
         return;   // (stall: never answered)

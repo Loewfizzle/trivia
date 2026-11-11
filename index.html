@@ -148,15 +148,18 @@
         + "setInterval(()=>{if(sent||vis!=='visible')return;const gap=Date.now()-last;if(gap<7000)return;sent=true;"
         + "post('hang','THE MAIN THREAD STOPPED ANSWERING for '+(gap/1000).toFixed(1)+' s while the page was visible (the music can keep playing — iOS plays it off the main thread).\\n'"
         + "+(mark?'The frame was last in: '+mark+' ('+((Date.now()-markAt)/1000).toFixed(1)+' s ago) — a hang there.\\n':'No frame marks (open the link with &debug=1 to name the part it hangs in).\\n')"
-        + "+'\\nThe last snapshot (taken ≤ 1 s before it stopped):\\n'+snap);},1000);";
+        + "+'\\nThe last snapshot (taken ≤ 5 s before it stopped):\\n'+snap);},1000);";
       hw = new Worker(URL.createObjectURL(new Blob([WK], { type: 'text/javascript' })));
       D.addEventListener('visibilitychange', function () { try { hw.postMessage({ t: 'vis', vis: D.visibilityState }); } catch (e) { /* polish */ } });
     } catch (e) { hw = null; }
-    var beatAt = 0;
+    // (LOAD FIX 4 — Grok's boot audit #10: the beat is CHEAP every second; the full snapshot — the city's whole report, or the boot's walk over
+    //  ~400 resource entries — is built + sent only every SNAP_MS, or at once after a stall (a gap > 1.5 s: the thread just came back), so a hang
+    //  report is at most ~5 s stale; the worker keeps the last snapshot it got)
+    var beatAt = 0, snapAt = 0, SNAP_MS = 5000;
     setInterval(function () {
-      var t = Date.now(), d = Math.min(t - lastT, 1000); lastT = t;
+      var t = Date.now(), gap = t - lastT, d = Math.min(gap, 1000); lastT = t;
       if (D.visibilityState === 'visible') vis += d;
-      if (hw && t - beatAt >= 1000) { beatAt = t; var s = ''; try { s = snapFn ? snapFn('hang') : bootSnap('THE BOOT (no city yet)'); } catch (e) { s = '(the snapshot failed: ' + (e && e.message) + ')'; } try { hw.postMessage({ t: 'beat', vis: D.visibilityState, snap: s }); } catch (e) { /* polish */ } }
+      if (hw && t - beatAt >= 1000) { beatAt = t; var s; if (t - snapAt >= SNAP_MS || gap > 1500) { snapAt = t; try { s = snapFn ? snapFn('hang') : bootSnap('THE BOOT (no city yet)'); } catch (e) { s = '(the snapshot failed: ' + (e && e.message) + ')'; } } try { hw.postMessage(s === undefined ? { t: 'beat', vis: D.visibilityState } : { t: 'beat', vis: D.visibilityState, snap: s }); } catch (e) { /* polish */ } }
       if (done || vis < LIMIT) return;
       if (!acted) {
         acted = 1; report('no reveal after ' + (LIMIT / 1000) + ' s on screen');
@@ -192,7 +195,7 @@
     window.__cssDone = function (l) { if (l) { if (l.__nsIn) return; l.__nsIn = 1; } if (++window.__css >= 4) { document.documentElement.classList.add('css-ready'); if (window.__bootPre) window.__bootPre(); } };   // (LOAD FIX 2: then THE BOOT PRELOAD; LOAD FIX 3: each sheet counted ONCE — WebKit fires a second load when the media flips print → all, so 4 came with a sheet still missing)
     // (LOAD FIX 3: a core sheet that FAILED is asked for once more before it counts — a failed one used to count as in: an unstyled title,
     //  dead to taps; a sheet that never answers keeps the boot screen up until THE BOOT WATCHDOG reloads)
-    window.__cssFail = function (l) { if (l.getAttribute('data-again')) { __cssDone(l); return; } var n = document.createElement('link'); n.rel = 'stylesheet'; n.media = 'print'; n.setAttribute('data-again', '1'); n.href = l.getAttribute('href') + '?again=' + Date.now(); n.onload = function () { n.media = 'all'; __cssDone(n); }; n.onerror = function () { __cssDone(n); }; l.parentNode.insertBefore(n, l.nextSibling); l.parentNode.removeChild(l); };
+    window.__cssFail = function (l) { if (l.getAttribute('data-again')) { __cssDone(l); return; } var n = document.createElement('link'); n.rel = 'stylesheet'; n.media = 'print'; n.setAttribute('data-again', '1'); n.href = l.getAttribute('href') + '?again=' + Date.now(); n.onload = function () { n.media = 'all'; __cssDone(n); }; n.onerror = function () { /* LOAD FIX 4 (Grok #12): failed TWICE = never counted as in — the boot screen holds, THE BOOT WATCHDOG reloads (as for a sheet that never answers) */ }; l.parentNode.insertBefore(n, l.nextSibling); l.parentNode.removeChild(l); };
   </script>
   <link rel="stylesheet" href="css/base.css" media="print" onload="this.media='all';__cssDone(this)" onerror="__cssFail(this)">
   <link rel="stylesheet" href="css/components.css" media="print" onload="this.media='all';__cssDone(this)" onerror="__cssFail(this)">

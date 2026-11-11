@@ -67,3 +67,38 @@ test('safeCtx: a refused context draws nothing, never throws, and is counted', a
   assert.equal(safeCtx(cv), real);
   assert.equal(starvedCount(), n0 + 2);
 });
+
+// LOAD FIX 4 — Grok's boot audit #5: the Harbor's floor is iOS 16 — what Safari 16.0 can't PARSE (a SyntaxError at the module's load: the city
+// dead on that phone) and a grep can catch. Checked: a regex LOOKBEHIND (Safari 16.4 — chat/logic.js's profanity filter had one, in the city's
+// graph), a class STATIC BLOCK (16.4), IMPORT ATTRIBUTES / ASSERTIONS (17.2 / never), the regex `v` flag (17).
+const codeOf = src => src.replace(/\/\*[\s\S]*?\*\//g, ' ').split('\n').map(l => l.replace(/^\s*\/\/.*$/, '')).join('\n');
+test('Safari 16.0 parses every module: no regex lookbehind, no static block, no import attributes, no regex v flag', () => {
+  const bad = [];
+  for (const f of FILES) {
+    const t = codeOf(readFileSync(f, 'utf8')), rel = relative(ROOT, f);
+    if (/\(\?<[=!]/.test(t)) bad.push(`${rel}: a regex lookbehind (Safari 16.4+)`);
+    if (/^\s*static\s*\{/m.test(t)) bad.push(`${rel}: a class static block (Safari 16.4+)`);
+    if (/\bfrom\s+['"][^'"]+['"]\s+(with|assert)\s*\{/.test(t) || /import\([^)]*,\s*\{\s*(with|assert)\b/.test(t)) bad.push(`${rel}: import attributes (Safari 17.2+)`);
+    if (/new RegExp\([^)]*,\s*['"`][a-z]*v[a-z]*['"`]\)/.test(t) || /[=(,:]\s*\/(?:[^/\\\n]|\\.)+\/[dgimsuy]*v[dgimsuy]*\b/.test(t)) bad.push(`${rel}: the regex v flag (Safari 17+)`);
+  }
+  assert.deepEqual(bad, []);
+});
+test('the profanity filter without lookbehind masks EXACTLY as the lookbehind one did (a corpus of edges)', async () => {
+  const { maskProfanity, hasProfanity } = await import('../js/chat/logic.js');
+  const src = readFileSync(join(ROOT, 'js', 'chat', 'logic.js'), 'utf8');
+  const words = Function(`return ${src.slice(src.indexOf('const WORDS = [') + 'const WORDS = '.length, src.indexOf('];', src.indexOf('const WORDS = [')) + 1)}`)();
+  const OLD = new RegExp(`(?<![\\p{L}\\p{N}_'’-])(?:${words.join('|')})(?![\\p{L}\\p{N}_'’-])`, 'giu');   // (node has lookbehind: the reference)
+  const oldMask = t => String(t).replace(OLD, w => w[0] + w.slice(1).replace(/[^\s]/g, '*'));
+  const roots = ['fuck', 'Fucking', 'shit', 'ass', 'asses', 'bitch', 'son of a bitch', 'piss', 'wtf', 'fuuuck', 'cunts', 'dumbass', 'ASSHOLE'];
+  const edges = ['', ' ', 'x', '-', "'", '’', '_', '1', '.', ',', '!', 'é', '\n', '(', '"'];
+  const innocent = ['Scunthorpe', 'assassin', 'class', 'cocktail', 'Dickens', 'therapist', 'Moby-Dick', "Hell's", 'passage', 'bass', 'mass-produced', 'shitake'];
+  const cases = [...innocent, 'what the fuck', 'fuck fuck', 'ass,ass', 'ass ass ass', 'a fuck-up', 'FUCK!', 'shit\nshit'];
+  for (const r of roots) for (const a of edges) for (const b of edges) cases.push(`${a}${r}${b}`, `go ${a}${r}${b} now`, `${r}${b}${r}`);
+  let hits = 0;
+  for (const c of cases) {
+    assert.equal(maskProfanity(c), oldMask(c), `the same mask for ${JSON.stringify(c)}`);
+    OLD.lastIndex = 0; const h = OLD.test(c); OLD.lastIndex = 0;
+    assert.equal(hasProfanity(c), h, `the same hit for ${JSON.stringify(c)}`); if (h) hits++;
+  }
+  assert.ok(cases.length > 2000 && hits > 300, `${cases.length} cases, ${hits} hits`);
+});

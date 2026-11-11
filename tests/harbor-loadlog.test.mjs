@@ -26,13 +26,23 @@ test('the load log: before the reveal nothing is visible; after it, a re-layout 
 
 test('the load log closes LOAD_LOG_MS after the reveal and caps its rows', () => {
   let t = 0;
-  const L = createLoadLog(0, { now: () => t, max: 5 });
+  const L = createLoadLog(0, { now: () => t, before: 5, after: 5 });
   t = 10; L.reveal('late', '');
   t = 10 + LOAD_LOG_MS + 1;
   assert.equal(L.add('layout', 'too late'), null);
   assert.equal(L.open(), false);
-  const M = createLoadLog(0, { now: () => 1, max: 2 });
+  const M = createLoadLog(0, { now: () => 1, before: 2 });
   M.add('note', 'a'); M.add('note', 'b'); assert.equal(M.add('note', 'c'), null); assert.equal(M.dropped, 1);
+  // (LOAD FIX 4 — Grok #13: a chatty load in the dark can't blind the check after the reveal — each side its own allowance; the reveal always in)
+  let u = 0;
+  const N = createLoadLog(0, { now: () => u, before: 60, after: 60 });
+  for (let i = 0; i < 200; i++) { u = i; N.add('resize', `dark ${i}`); }
+  u = 300; assert.ok(N.reveal('late', ''), 'the reveal row goes in over a full dark allowance');
+  u = 400; assert.ok(N.add('layout', 'a re-lay after the reveal'), 'a post-reveal row still lands');
+  assert.equal(N.visible().length, 1);
+  assert.equal(N.rows.filter(r => r.a == null).length, 60);
+  for (let i = 0; i < 80; i++) { u = 500 + i; N.add('note', `after ${i}`); }
+  assert.equal(N.rows.filter(r => r.a != null && r.kind !== 'reveal').length, 60);
   assert.equal(visibleRow({ kind: 'layout', a: null }), false);
 });
 

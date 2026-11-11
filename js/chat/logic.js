@@ -98,14 +98,17 @@ const WORDS = [
 ];
 // (left out on purpose — too often innocent: "dick" (Moby-Dick, Philip K. Dick), "chink" (in the armor), "cock")
 // A hyphen or apostrophe inside a word keeps it one word ("Moby-Dick", "Hell's").
-const RE = new RegExp(`(?<![\\p{L}\\p{N}_'’-])(?:${WORDS.join('|')})(?![\\p{L}\\p{N}_'’-])`, 'giu');
+// (LOAD FIX 4 — Grok's boot audit #5: NO LOOKBEHIND — Safari has it only from 16.4, and this regex is built at the module's top inside the
+//  city's graph (core/harbor-radio.js): on iOS 16.0–16.3 the city couldn't load at all. The word's left edge is CAPTURED instead (the start,
+//  or one character that can't be part of a word) and handed back unchanged — the same matches: chat.test.mjs + safari-floor.test.mjs)
+const RE = new RegExp(`(^|[^\\p{L}\\p{N}_'’-])(${WORDS.join('|')})(?![\\p{L}\\p{N}_'’-])`, 'giu');
 
 /** Does the text contain a word the filter would mask? (also used to keep crude trivia answers out) */
 export const hasProfanity = text => { RE.lastIndex = 0; const hit = RE.test(String(text)); RE.lastIndex = 0; return hit; };
 
 /** "what the fuck" -> "what the f***" (keeps the first letter and the length). */
 export function maskProfanity(text) {
-  return String(text).replace(RE, w => w[0] + w.slice(1).replace(/[^\s]/g, '*'));
+  return String(text).replace(RE, (m, edge, w) => edge + w[0] + w.slice(1).replace(/[^\s]/g, '*'));
 }
 
 // ---------------------------------------------------------------- presentation helpers

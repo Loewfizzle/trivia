@@ -49,3 +49,26 @@ test('the BOOT HANG report: a kind /api/log keeps + /admin names', () => {
 test('the service worker tries the network twice before its cache', () => {
   assert.match(read('sw.js'), /await net\(\)\.catch\(\(\) => new Promise\(r => setTimeout\(r, 250\)\)\.then\(net\)\)/);
 });
+
+// LOAD FIX 4 — GROK'S BOOT AUDIT, the small fixes (docs/harbor/passes/load-fix-4.md): the WebKit / Chromium proofs are the harbor load group
+// (a core sheet failed TWICE), tests/integration/sw-cache.mjs (the worker's writes + offline) and the pass log's hang-watch measure.
+test('#12 — a core sheet that fails TWICE never counts as in (the boot screen holds → the watchdog reloads)', () => {
+  const fail = html.slice(html.indexOf('window.__cssFail = function'), html.indexOf('</script>', html.indexOf('window.__cssFail = function')));
+  const retry = fail.slice(fail.indexOf("n.onerror"));
+  assert.ok(retry.length > 0 && !/n\.onerror = function \(\) \{ __cssDone/.test(retry), 'the retry\'s onerror counts nothing');
+  assert.match(fail, /n\.onload = function \(\) \{ n\.media = 'all'; __cssDone\(n\); \}/, 'a retry that loads still counts');
+});
+test('#10 — the hang watch beats cheaply; the full snapshot every SNAP_MS (5 s) or after a stall > 1.5 s', () => {
+  assert.match(html, /SNAP_MS = 5000/);
+  assert.match(html, /if \(t - snapAt >= SNAP_MS \|\| gap > 1500\) \{ snapAt = t;/);
+  assert.match(html, /taken ≤ 5 s before it stopped/);
+});
+test('#11 — the service worker writes a copy only when it changed, never a throwaway query, one copy of a page, a capped cache', () => {
+  const sw = read('sw.js');
+  assert.match(sw, /if \(old && sameCopy\(old, res\)\) \{ stats\.same\+\+; return; \}/);
+  assert.match(sw, /const keepable = url => \[\.\.\.url\.searchParams\.keys\(\)\]\.every\(k => k === 'v'\)/);
+  assert.match(sw, /req\.mode === 'navigate' \? `\$\{url\.origin\}\$\{url\.pathname\}`/);
+  assert.match(sw, /MAX_ENTRIES = \d+/);
+  assert.match(sw, /url\.pathname\.startsWith\('\/audio\/'\) \|\| url\.pathname\.startsWith\('\/api\/'\)/, 'never /api or /audio');
+  assert.match(sw, /url\.origin !== self\.location\.origin\) return/, 'same-origin only');
+});
