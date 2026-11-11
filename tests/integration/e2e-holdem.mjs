@@ -10,6 +10,7 @@
 // REFRESH in the MIDDLE of a pot award (the state, no replay), 60 fps at 4× CPU during THE BUSIEST MOMENT (the preview's 8-seat side-pot run-out
 // + its three awards — the motion's ghosts, flips + roll-ups), and CASH's LEAVE TABLE (the button + its confirm) → the leaver in THE LEDGER.
 import { createHarness } from './kit/harness.mjs';
+import { GAIN } from '../../js/games/holdem/sfx.js';
 
 const H = await createHarness({ name: 'holdem', slot: 'h', hook: '__holdem', sizes: [[390, 844], [402, 874], [430, 932]] });
 const { pages, log, ok, sleep, waitFor, evalIn, G, alive, uids, NAMES } = H;
@@ -20,6 +21,22 @@ const CASH_ONLY = process.env.CASH_ONLY === '1';   // (the full path's CASH sess
 const pub = p => G(p, 'window.__holdem.pub()');
 const hole = p => G(p, 'window.__holdem.hole()');
 const uidOf = p => evalIn(p, s => s.uid);
+// HE5 — THE SOUNDS, checked silently (headless audio stays locked — the PLAN is what's tested: sfx.js#planned): every cue a known sound at
+// its table gain (the deals 1.1 × 0.85–1.0, a blind 0.75 ×), the deals ≥ 110 ms apart, a shuffle before each run of deals (2 a player)
+async function soundCheck(page, who) {
+  const list = await page.evaluate(() => window.__holdem.planned()).catch(() => []);
+  const bad = list.filter(c => !(c.name in GAIN));
+  const off = list.filter(c => c.name === 'deal' ? !(c.gain >= GAIN.deal * 0.85 - 0.01 && c.gain <= GAIN.deal + 0.01 && c.rate >= 0.959 && c.rate <= 1.041)
+    : !(Math.abs(c.gain - GAIN[c.name]) < 0.01 || (c.name === 'chip-bet' && Math.abs(c.gain - GAIN[c.name] * 0.75) < 0.01)));
+  const deals = list.filter(c => c.name === 'deal').sort((a, b) => a.when - b.when);
+  let close = 0;
+  for (let i = 1; i < deals.length; i++) { const g = deals[i].when - deals[i - 1].when; if (g < 105 && g > -1) close++; }
+  const shuffles = list.filter(c => c.name === 'shuffle').length;
+  const n = name => list.filter(c => c.name === name).length;
+  ok(list.length > 0 && !bad.length && !off.length && !close && (shuffles === 0 || deals.length % 2 === 0),
+    `THE SOUNDS (${who}): ${list.length} cues planned — ${shuffles} shuffle · ${deals.length} deal · ${n('chip-bet') + n('chip-raise') + n('all-in')} chips · ${n('pot-win')} pot-win · ${n('your-turn')} your-turn · ${n('knockout')} knockout; every gain from the table${off.length ? ` (OFF: ${JSON.stringify(off.slice(0, 3))})` : ''}, the deals ≥ 110 ms apart${close ? ` (${close} too close)` : ''}`);
+  return list;
+}
 async function ready(p, what, timeout = 40000) {
   const end = Date.now() + timeout;
   while (Date.now() < end) { try { const v = await p.evaluate(() => !!(window.__holdem && window.__holdem.pub() && document.querySelector('.he-table'))); if (v) return true; } catch { /* reloading */ } await sleep(200); }
@@ -122,6 +139,9 @@ await H.run(async () => {
     const fs = await host.evaluate(() => { const b = document.querySelector('.he-final .final-body[data-game="holdem"]'); return b && { all: b.dataset.podium, win: (b.querySelector('.he-fs-name') || {}).textContent, rows: b.querySelectorAll('.he-fs-list > li').length, frameList: document.querySelectorAll('.he-final .final > .board-list').length, back: !!document.querySelector('.he-final .final-back') }; });
     ok(fs && fs.all === 'all' && fs.rows === 3 && fs.frameList === 0 && fs.back && !!fs.win, `THE END SCREEN: the console's frame + HOLD'EM's body — ${fs && fs.win} WINS HOLD'EM, every place as a slim card (${fs && fs.rows}), no second list`);
     await H.shotAll(host, 'he-09-final');
+    for (const i of alive()) await soundCheck(pages[i], NAMES[i]);
+    const champ = await host.evaluate(() => window.__holdem.planned().filter(c => c.name === 'champion').length);
+    ok(champ === 1, `ONE winner sound: champion planned once on the podium (${champ}) — the console's sting skipped (OWN_VICTORY_SOUND)`);
     await H.backToLobby(host);
     await waitFor(host, s => s.meta.status === 'lobby' && !s.game, 'back in the room', 30000);
     return;
@@ -138,6 +158,9 @@ await H.run(async () => {
   const after = await hole(pages[ri]);
   const pr = await pub(pages[ri]);
   ok(after && before && after.h === before.h && JSON.stringify(after.c) === JSON.stringify(before.c) && pr.hand === before.h, `REFRESH mid-hand: ${NAMES[ri]} is back on hand ${pr.hand} with the same ${after && after.c.join(' ')}`);
+  // HE5 — NO REPLAY after a refresh: the hand's deal + its bets are history (the dealer's ev) — the refreshed phone plans none of them
+  const rp = await pages[ri].evaluate(() => window.__holdem.planned());
+  ok(pr.hand === before.h ? !rp.some(c => c.name === 'deal' || c.name === 'shuffle') : true, `NO REPLAY: the refreshed phone replayed none of the hand's sounds (${rp.length} cue(s) since, all new: ${rp.map(c => c.name).join(' ') || 'none'})`);
 
   // ------------------------------------------------------------ one hand on the REAL buttons (CALL / CHECK taps) to its showdown
   const handA = (await pub(host)).hand;
@@ -270,8 +293,14 @@ await H.run(async () => {
     const end = Date.now() + 90000;
     let li = null;
     while (li == null && Date.now() < end) {
-      if (await pages[gi[0]].evaluate(() => window.__holdem.leave() === 'after').catch(() => false)) li = gi[0];
-      else for (const i of alive()) await moveOn(pages[i], 'passive');
+      // (the REBUY step's all-ins leave most seats broke — a CASH table waits for rebuys: every broke guest rebuys, so the hands go on)
+      for (const i of gi) {
+        const k = await pages[i].evaluate(async () => { const h = window.__holdem, p = h.pub(), me = window.__arcade.state.uid, x = p && p.table.seats.find(y => y.id === me);
+          if (x && x.stack === 0 && p.table.street === 'done') { await h.op('rebuy'); return 'rebuy'; } return h.leave(); }).catch(() => '');
+        if (process.env.DEBUG_LEAVE) log('leave?', NAMES[i], k);
+        if (k === 'after') { li = i; break; }
+      }
+      if (li == null) for (const i of alive()) await moveOn(pages[i], 'passive');
       await sleep(150);
     }
     if (li != null) {
@@ -299,6 +328,7 @@ await H.run(async () => {
   const cf = await pub(nh);
   const sum = (cf.ledger || []).reduce((n, r) => n + r.net, 0);
   ok(cf.ended && cf.rep === 'done' && cf.ledger && sum === 0, `THE LEDGER: ${cf.ledger && cf.ledger.length} rows, Σ net = ${sum} (chips only)`);
+  await soundCheck(nh, 'the host, the whole FULL run');
   await sleep(1500);
   const lg = await nh.evaluate(() => { const b = document.querySelector('.he-final .he-fs.is-cash'); return b && { rows: [...b.querySelectorAll('.he-fs-list > li')].map(li => li.textContent), foot: (b.querySelector('.he-fs-foot') || {}).textContent, money: /\$/.test(b.textContent) }; });
   const played = (cf.ledger || []).filter(r => r.hands > 0).length;
