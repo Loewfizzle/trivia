@@ -6528,3 +6528,17 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
   before the reveal with no window resize + nobody re-measured it — Safari reloading the restored tab at launch, by the numbers; THE BOX GATE on every
   path + the held picture's safety in on-screen time; THE GUARD — NO TWO CAMERAS; no look change, the reveal 1.32 s unchanged, no rules change);
   HOLD'EM IN THE CITY ← NEXT → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.
+
+## OWNER'S NOTES — NOV 11 (evening)
+
+- Nov 11 (the owner): "THE SWITCH-OVER" is renamed THE LAUNCH — City 2.0 has been the live city since CITY 1.0 OUT (Nov 5); THE LAUNCH = the step from testing with
+  friends to telling people: THE LAUNCH RESET (everyone back to LEVEL 1 — XP, levels, streaks — keeping every card + item earned), the repo goes PRIVATE (the beelink
+  becomes a self-hosted Actions runner) + THE RESEED (fresh daily answers), /board's link-preview image re-shot from the velvet board, and whatever FR7 flags as not
+  ready for strangers. (The nephew's 1-of-1 card is DONE — already given; not part of THE LAUNCH.)
+- Nov 11: LOAD FIX 5 shipped (the doubled city: the box gate + NO TWO CAMERAS). The owner checks it on his iPhone the next morning (Safari onto yesterday's tab).
+- Nov 11: HOLD'EM IN THE CITY = the owner's picks: the billboard NOW OPEN; HOLD'EM's sign + day face take GRIDLOCK's spot (five signs stay five; GRIDLOCK leaves
+  the skyline, its game frozen as before); THE BOARD's HOLD'EM tab = TOURNAMENT WINS THIS WEEK, knockouts the tie-break; B2 (44 pt corner buttons), B3 (the podium's
+  action row sticky + a scroll hint, every game), B4 (everyone tied = ALL TIED, nobody 1st — the screen matches the server).
+- THE BUILD TABLE (Nov 11 evening, HOLD'EM IN THE CITY Step 0): LOAD FIX 5 ✅ (passes/load-fix-5.md); HOLD'EM IN THE CITY (this pass: THE BILLBOARD → NOW OPEN,
+  HOLD'EM's SIGN + DAY FACE in GRIDLOCK's spot, THE BOARD's HOLD'EM TAB, HE9's B2 · B3 · B4 — nothing else) ← NOW; then FR7 + FR7 FIXES → THE LAUNCH (was "THE
+  SWITCH-OVER") → SIDEWAYS.
