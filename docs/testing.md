@@ -541,6 +541,15 @@ load problem, not a flake to patch.
 - `harbor-jobs.mjs`: the speed rows' seconds were inside a comment (so the cap check never saw them) — out now; the job split to stay < 10 min.
 - `tests/integration/bytes-probe.mjs` — a fresh visit's bytes (music / the rest) in its first 25 s.
 
+- **LOAD FIX 4 (Nov 10) — GROK'S BOOT AUDIT:** the harbor `load` group's **THE REJOIN LIMIT** (a refresh in a room with the database line dead
+  → the city + REJOIN in ≤ ~10 s, no reload; the line back → into the room by itself / by REJOIN) + THE BOOT SAFETY NET's **a core sheet failed
+  TWICE**. WebKit, each through THE LINE, on the emulators: `node tests/integration/wk-skew.mjs [--only a,b-radio,b-host,b-game,c] [--out DIR]`
+  (THE DEPLOY SKEW — starts its own deploy A :5176 / deploy B :5177 servers (`VERCEL_GIT_COMMIT_SHA`), the line's `switchOn` + `rules` = deploy
+  B's new export; `SKEW_ROOT=<tree>` serves another tree — the BEFORE run) · `node tests/integration/wk-hidden.mjs [--hides 5000,30000] [--runs 2]
+  [--plain 3]` (THE HIDDEN BOOT — the page hidden mid-bake: revealed 'ready' after the return, no change after) · `node tests/integration/sw-cache.mjs`
+  (the service worker: warm loads write nothing, no per-query copies, offline still loads — its counts on `postMessage('ns:sw-stats')`). Unit:
+  `tests/lazy-import.test.mjs` (no stray dynamic import), `tests/onscreen.test.mjs` (the gates on the on-screen clock), `safari-floor.test.mjs`
+  (no lookbehind / static block / import attributes / regex v flag + the filter's corpus), `boot-watchdog.test.mjs` (#10 #11 #12).
 - **LOAD FIX 3 (Nov 10) — THE FREEZE LOOP:** `node tests/integration/wk-freeze.mjs [--runs 30] [--cpu 3] [--rtt 40] [--mbps 40] [--sw]
   [--drop 0.02] [--fail RE] [--stall RE --stall-n 1] [--mangle RE --mangle-from A --mangle-to B] [--x-fail RE] [--x-stall RE] [--junk V] [--skew
   --upstream A --skew-to B] [--live] [--out DIR] [--json f]` — WebKit 402×874 @3, a cold + a warm load a run through THE LINE

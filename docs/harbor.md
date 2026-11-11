@@ -437,6 +437,16 @@ at 8, squeeze 0.66, people ~33 pt.)
   faults forced once → revealed + the first tap answered) + `tests/integration/wk-freeze.mjs` (WebKit, THE LINE — `kit/line-proxy.mjs`:
   Vercel's ETags, a phone's line, drop / fail / stall / mangle / the deploy switch) + `tests/boot-watchdog.test.mjs`. The reveal unchanged
   (1.33 s Chromium).
+- **LOAD FIX 4 — GROK'S BOOT AUDIT (Nov 10; passes/load-fix-4.md + the audit):** **THE REJOIN LIMIT** — the boot's uplink (the gstatic SDK, the
+  auth restore, the room resume) waits ≤ 8 s ON SCREEN, then the title + the city come up with REJOIN (the seat kept, the socket still trying); the
+  late resume = a normal rejoin; ONE attempt (`room.js#pendingResume` — a REJOIN tap joins it; `cancelResume` — a HOST / another JOIN wins).
+  **THE SKEW WRAPPER** — every dynamic import through `js/ui/lazy-import.js` (a link error / failed fetch → `/api/time`'s deploy id `v` vs the page's
+  first → changed = ONE reload per deploy, held while a match is played here; the same deploy = the caller's own handling); the city's graph:
+  a link error skips the 3 tries → `__boot.reload(why, { skew: true })` (the boot's files re-fetched, then the one reload). **THE BOOT'S GATES IN
+  VISIBLE TIME** (`js/ui/onscreen.js` — the scene's REVEAL_MAX / WX_WAIT / FONT_WAIT, the title's 7.5 s, app.js's 9 s + 30 s, the 8 s above).
+  Also: no regex lookbehind (iOS 16.0–16.3 — the profanity filter), a core sheet failing TWICE → the watchdog's reload, the hang watch's full
+  snapshot every 5 s, the service worker writing only changed copies (one per page, no throwaway query, ≤ 700), the load log 60 + 60 rows.
+  Proof: the `load` group (THE REJOIN LIMIT, a sheet failed twice), `wk-skew.mjs`, `wk-hidden.mjs`, `sw-cache.mjs`. The reveal 1.32 s (unchanged).
 - **NOTHING IN THE SKY CHANGES BY A CUT AFTER THE REVEAL (LOAD FIX 2):** a cloud re-plan never frees a set on screen (a new field waits
   while a blend shows both sets; an unbaked incoming set is replaced while the old one keeps showing); every set after the reveal blends
   over 6 s (a late reveal's first set too); any new weather answer after the reveal blends the sky + the bake; a clock jump the real time
@@ -633,6 +643,10 @@ one room), the banner's colour + passes, the words in the windows for a time win
 ## KNOWN ISSUES — OPEN (C4d, Oct 29 2026: one list; each pass's own section in its log keeps the history)
 
 **Open**
+- **LOAD FIX 4** (passes/load-fix-4.md): a refresh in a room on a dead line costs ~9 s before the city + REJOIN (8 s on screen + the bake); the page's
+  deploy id = its FIRST `/api/time` answer (~1.5 s in) — a deploy inside that window reports a later lazy link error instead of reloading (rare);
+  a match's VIEW failing to link while its cartridge loaded waits for the room / the podium (not seen — they preload together). PARKED from the
+  audit: #2 (Firebase + the profile call before the reveal — FR7 measures it on the iPhone) and #9 (the bare domain's 308 — the owner's Vercel).
 - **LOAD FIX 3** (passes/load-fix-3.md): a request that never answers costs 12 s + a reload before the city (the watchdog can't tell a stall
   from a slow phone sooner); a SECOND hang in the same tab without a reveal between gets TAP TO TRY AGAIN, not another reload. THE MUSIC ON THE
   TAP was measured in Chromium only (Playwright's Windows WebKit has no Web Audio) — the owner's iPhone judges Safari (HE4's slice warm-up: a
@@ -790,6 +804,8 @@ js/screens/harbor/*.js  js/core/harbor-*.js              CITY 2.0 — THE HARBOR
 js/core/climate.js harbor-loadlog.js                     PURE: the climate-aware weather fallback (48 cities' normals); THE LOAD LOG (&debug=1's load strip)
 js/core/city-sounds.js city-sounds-files.js js/audio/city-sound.js scripts/add-city-sfx.py audio/city/   THE CITY SOUNDS: 134 slots (116 filled) — docs/audio.md#the-city-sounds
 scripts/bake-model.mjs scripts/bake/ assets/city/ art/   THE BAKE TOOL: a 3D model → sprites at the city camera's real view, OFFLINE (three.js in Playwright, never on the site); art/ = sources (.vercelignore'd)
+js/ui/onscreen.js                                        LOAD FIX 4 — TIME ON SCREEN: ONE clock for the boot's waits (onScreenWait / onScreenSince — paused while hidden)
+js/ui/lazy-import.js                                     LOAD FIX 4 — THE SKEW WRAPPER: every dynamic import (lazyImport) — a new deploy → ONE reload (never mid-match)
 js/ui/canvas-safe.js                                     Safari-safe canvas helpers (safeCtx / ctx2d / blit / cssWidth / BAKE_CAP / canvasMb) — every Harbor context goes through it
 ```
 
@@ -997,6 +1013,7 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | OVERCLOCK CARDS | Nov 5 | [passes/overclock-cards.md](harbor/passes/overclock-cards.md) | REDLINE + PHOTO FINISH (Grok's art + js/fx/oc-cards.js — the needle, the laser) + their server-checked unlocks; the add-on: the after-match tiles, SOLO RUN, a solo run never hosts; no rules change |
 | BUZZED LIGHTYEAR | Nov 6 | [passes/buzzed-lightyear.md](harbor/passes/buzzed-lightyear.md) | the 1-of-1 gift card (the picture taken apart: the spiral fitted + turning behind him, the stars orbiting, the HIC! popping; the strip composed eyebrows → chin) + THE CARD TEXT STANDARD on every full card; the gift strip mapping fix |
 | THE LOAD FIX | Nov 6 | [passes/load-fix.md](harbor/passes/load-fix.md) | the owner's four load problems on his iPhone reproduced in WebKit (wk-load.mjs + kit/load-probe.mjs → four `load` checks) + fixed: the bars keep the city (no doubled lettering), ONE CAMERA ON SCREEN (hold, then cut), the boot screen holds until the city (ONE fade, never the dark title), the #net pill hidden from the first frame; no rules change |
+| LOAD FIX 4 | Nov 10 | [passes/load-fix-4.md](harbor/passes/load-fix-4.md) | GROK'S BOOT AUDIT (13 findings answered): THE REJOIN LIMIT, THE SKEW WRAPPER + the city's graph's skew path, the boot's gates in visible time, no lookbehind, a twice-failed sheet, the hang watch, the service worker, the load log; #2 + #9 parked; no rules change |
 | LOAD FIX 3 | Nov 10 | [passes/load-fix-3.md](harbor/passes/load-fix-3.md) | THE FREEZE found (one failed / stalled module request held the boot screen forever — the parent too) + THE BOOT SAFETY NET (THE BOOT WATCHDOG inline, the hang watch at boot, the sheets + the city's module retried, the one reload); the music ON the tap (1.7–2.4 → 0.09–0.17 s); THE APOSTROPHE TUBE (HOLD'EM); NO BLACK TILES (24 code-drawn cards' baked stills) |
 | LOAD FIX 2 | Nov 9 | [passes/load-fix-2.md](harbor/passes/load-fix-2.md) | the city loads fast again (THE BOOT CLOCK: nothing grew since Nov 6 — the waterfall, the song before a tap, THE LOOK TRAP; THE BOOT PRELOAD, the song at the first tap; 3.45 → 1.32 s Chromium, 2.75 → 2.2 s WebKit, the bytes halved) + the clouds never snap (no set dropped mid-blend, 6-s blends, the clock's jump absorbed); THE BOOT BUDGET + the sky guard |
 | FRIENDS B | Nov 8 | [passes/friends-b.md](harbor/passes/friends-b.md) | FACE ID / PASSKEY SIGN-IN (api/_lib/passkeys.js — server-only nodes, no rules change) + THE PODIUM (Grok's sounds, OWN_VICTORY_SOUND, the music with the frame, ACCENT, the XP box, the score under the cards, the list from 4th) + THE CARDS + THE SHELL (one gem shape, no step, the 150 ms fade, the dock lit by day, og.jpg, B5, B6) |

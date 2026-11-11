@@ -2517,6 +2517,21 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - THE SIMULATIONS (`tests/holdem-sim.test.mjs` + `tests/fixtures/holdem-bots.mjs` + `holdem-driver.mjs`): ≈ 30,000 robot hands a run with THE
   INVARIANTS after every action (≈ 7 s for all of HOLD'EM's tests). THE LENGTH STUDY (`scripts/holdem-sim.mjs`) → TURBO 2 min → 90 s.
 
+## LOAD FIX 4 — GROK'S BOOT AUDIT (Nov 10, 2026 evening — docs/harbor/passes/load-fix-4.md + load-fix-4/grok-audit.md)
+- THE REJOIN FREEZE (#1): a refresh in a room on a dead line held REJOINING YOUR ROOM forever (Firebase's get() has no time limit) → the watchdog's
+  reload → TAP TO TRY AGAIN. Now the boot's uplink waits ≤ 8 s ON SCREEN, then the city + REJOIN (the seat kept); the late resume walks in as a
+  normal rejoin; a REJOIN tap joins the same attempt, HOST / another JOIN cancels it. The load group: 9.1 s to the city + REJOIN, back in the room
+  0.5–1.8 s after the line returns.
+- THE DEPLOY SKEW (#7 + #8): the city's graph — a link error is skew at once (no 3 tries → the watchdog's re-fetch + ONE reload); THE SKEW WRAPPER
+  (`js/ui/lazy-import.js`) on every dynamic import (306 + the cartridges): a new deploy (`/api/time`'s `v`) → ONE reload per deploy, held while a
+  match is played here. WebKit (wk-skew.mjs): before 1/5 (THE CITY COULDN'T LOAD; the radio / the room screen / the cartridge silently gone),
+  after 5/5.
+- THE HIDDEN BOOT (#6): every reveal gate in VISIBLE time (`js/ui/onscreen.js`); WebKit (wk-hidden.mjs): hidden 5 s / 30 s mid-bake → revealed
+  'ready' after the return, no pop-in (before: a 'late' reveal + a crossfade; the boot screen lifted while hidden).
+- THE SMALL FIXES: #5 no regex lookbehind (the same masks on 2,000+ cases; the Safari-floor test widened); #12 a core sheet failing twice → the
+  watchdog's reload; #10 the hang watch's snapshot every 5 s (26 → 5 a 30 s); #11 the service worker writes only changed copies, one page copy, no
+  throwaway queries, a cap (warm loads: 0 writes; offline still loads); #13 the load log 60 + 60 rows. #2 + #9 parked; #3 + #4 were HE4's.
+
 ## LOAD FIX 3 — THE FREEZE + THE MUSIC ON THE TAP + THE APOSTROPHE TUBE + NO BLACK TILES (Nov 10, 2026 — docs/harbor/passes/load-fix-3.md)
 - THE FREEZE (the owner's iPhone: the site sometimes froze completely while loading): reproduced in WebKit through THE LINE (a proxy playing
   Vercel's caching + a phone's line + faults): ONE failed or never-answered request among the boot's ~310 module files held the boot screen

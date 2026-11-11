@@ -105,6 +105,10 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
     THE BOOT WATCHDOG (LOAD FIX 3): inline in index.html, ahead of every module (`window.__boot` — a module can't watch the graph it dies with):
     the graph failing → at once, no reveal in 12 s ON SCREEN → a BOOT HANG report to /admin + ONE reload (never a loop) + TAP TO TRY AGAIN; THE
     HANG WATCH starts there at boot (the scene only feeds it); proof: the `load` group's BOOT SAFETY NET + `wk-freeze.mjs` (docs/harbor.md#performance).
+    LOAD FIX 4 (Grok's boot audit): THE REJOIN LIMIT (the boot waits ≤ 8 s ON SCREEN for Firebase + the room, then the city + REJOIN — app.js#boot,
+    room.js#pendingResume / cancelResume: ONE attempt); EVERY dynamic import through THE SKEW WRAPPER (`lazyImport(import('./x.js'), 'x')` —
+    ui/lazy-import.js: a new deploy → ONE reload, never in a match being played; tests/lazy-import.test.mjs fails on a stray); the boot's gates
+    in VISIBLE time (ui/onscreen.js — never a plain setTimeout / wall-clock age for a boot wait); no regex lookbehind (safari-floor.test.mjs).
   - Debug + preview flags: `&debug=1` (strips at the TOP), `&dpr=3` (look only), `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary
     from a link waits for the reveal + a tap; `&lgnow=1` at once) — docs/harbor.md.
 - **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import
