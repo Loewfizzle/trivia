@@ -14,13 +14,13 @@ function walk(dir, out = []) {
 }
 
 // HE10 (Nov 11 2026 — Ben): HOLD'EM IS ON FOR EVERYONE. The gate's code stays (for the next game being built) — and stops mattering for it:
-test('HE10 — HOLD’EM is ON: playable for every phone, never a TEST (the tag disappears), still no city sign (the city’s next pass)', () => {
+test('HE10 — HOLD’EM is ON: playable for every phone, never a TEST (the tag disappears), its city sign since HOLD’EM IN THE CITY', () => {
   const row = GAMES.find(g => g.id === 'holdem');
   for (const owner of [false, true]) {
     setOwnerPhone(owner);
     try {
       assert.equal(row.playable, true, 'HOLD’EM ships playable: true');
-      assert.equal(row.sign, undefined, 'no city sign yet');
+      assert.equal(row.sign, true, 'its city sign (HOLD’EM IN THE CITY — GRIDLOCK’s spot)');
       assert.equal(isPlayable('holdem'), true);
       assert.equal(isOwnerTest('holdem'), false, 'never a TEST once playable');
       for (const g of GAMES) {

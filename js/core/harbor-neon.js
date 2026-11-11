@@ -906,7 +906,11 @@ export function nightKey(local) {
 export function fitsSpot(name, sp) {
   if (!sp || sp.kind === 'billboard') return true;
   const words = String(name || '').trim().split(/\s+/).filter(Boolean);
-  return words.length > 0 && words.length <= (sp.words || 1) && words.every(w => w.length <= (sp.cap || 99));
+  // (HOLD'EM IN THE CITY: a word's LETTERS count — the apostrophe tube is a third of a letter wide (marks.js#GLYPH_ADVANCE) and rides along;
+  //  the glance test's ≥ 10 pt is checked on the built sign — tests/harbor.test.mjs THE SLOT RULE)
+  //  — on a ROW; a vertical sign (a 'vbox': the blade, the panorama's) gives the apostrophe a full step, so there it counts as a letter
+  const count = w => (sp.type === 'vbox' ? w.length : w.replace(/['’]/g, '').length);
+  return words.length > 0 && words.length <= (sp.words || 1) && words.every(w => count(w) <= (sp.cap || 99));
 }
 const dayNo = key => { const m = /^(\d+)-(\d+)-(\d+)$/.exec(key || ''); return m ? Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000) : null; };
 /**

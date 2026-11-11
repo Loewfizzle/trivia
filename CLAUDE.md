@@ -1,10 +1,10 @@
 # NEON SPEAKEASY — developer guide
 
 Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Thirteen games — **THREE PLAYABLE**: PRISM DROP +
-OVERCLOCK (since WINDOWS, Nov 1 — the owner) + HOLD'EM (HE10, Nov 11 — ON for everyone; no city sign / BOARD entry yet: the city's next pass)
+OVERCLOCK (since WINDOWS, Nov 1 — the owner) + HOLD'EM (HE10, Nov 11 — ON for everyone; its city sign + THE BOARD's tab since HOLD'EM IN THE CITY)
 (`js/config.js` GAMES[].playable is the one switch: the other ten are hidden everywhere a player could start them, their code + data + rules
-FROZEN, not deleted; `sign: true` = THE FIVE SIGNS in the city — the two + NEON PAR, HIGH STAKES,
-GRIDLOCK "next on deck"). **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (CITY 1.0 OUT, Nov 5: City 1.0 deleted; an old `?city=1` / `?city=2` link lands on the Harbor;
+FROZEN, not deleted; `sign: true` = THE FIVE SIGNS in the city — the three + NEON PAR, HIGH STAKES "next on deck"; HOLD'EM took
+GRIDLOCK's spot Nov 11 — GRIDLOCK off the skyline, frozen as before; the slot rule counts LETTERS on a row, the apostrophe tube rides along). **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (CITY 1.0 OUT, Nov 5: City 1.0 deleted; an old `?city=1` / `?city=2` link lands on the Harbor;
 its code at the git tag `city-1.0-final`, a video + shots in `Downloads\NEON\museum`). Static site on Vercel
 (**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
 plus eight Vercel serverless functions in `/api` (profiles, server-checked results + HOLD'EM's dealer, THE BOARD, admin, errors from phones — `docs/profiles.md`; the daily contract — `docs/progression.md`; the live weather — `docs/title.md`; the server's clock for a parked title — `docs/audio.md`).

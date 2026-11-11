@@ -93,10 +93,10 @@ G('neon', async () => {
     ok(h.powerUp && h.powerUp.on === h.powerUp.of && h.power === 1, `THE POWER-UP at night: every light on (${h.powerUp && h.powerUp.on} of ${h.powerUp && h.powerUp.of}, tonight's sweep ${h.powerUp && h.powerUp.sweep})`);
     const scroll = await ev(N.page, "(() => { const hb = window.__district.harbor(); const okk = hb.spell('HAPPY BIRTHDAY SAMANTHA', { style: 'scroll' }); return okk && window.__district.harbor().windows.spelling; })()");
     ok(scroll && scroll.style === 'scroll' && scroll.towers[0] === 'wordA', `THE SCROLL: a long message tickers across ${scroll && scroll.towers}`);
-    await ev(N.page, "window.__district.harbor().moment('flash', { game: 'pulse' }), window.__district.harbor().billboard('bb-left', { game: 'gridlock' })");
+    await ev(N.page, "window.__district.harbor().moment('flash', { game: 'pulse' }), window.__district.harbor().billboard('bb-left', { game: 'stakes' })");
     await waitFor(N.page, 'window.__district.harbor().neon.moment.flash', 'the flash', 3000);
     const h2 = await ev(N.page, 'window.__district.harbor()');
-    ok(h2.neon.moment.flash && h2.neon.boards[0].show === 'GRIDLOCK', `MOMENTS + BILLBOARDS: a game's flash sweeps the skyline; a billboard shows ${h2.neon.boards[0].show}`);
+    ok(h2.neon.moment.flash && h2.neon.boards[0].show === 'HIGH STAKES', `MOMENTS + BILLBOARDS: a game's flash sweeps the skyline; a billboard shows ${h2.neon.boards[0].show}`);
     ok(h2.mem.mb + h2.neon.mb <= h2.mem.budget, `MEMORY (neon): the sprites ${h2.neon.mb} MB + the baked layers ${h2.mem.mb} MB ≤ ${h2.mem.budget}`);
     if (SHOTS) await N.page.screenshot({ path: `${OUT}part3-neon-390x844.png` });
     void sc;

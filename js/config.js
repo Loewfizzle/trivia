@@ -63,11 +63,12 @@ export const AVATAR_IDS = Object.keys(AVATARS);
 // THE GAMES (lobby order). WINDOWS (the owner, Nov 1): ONLY PRISM DROP + OVERCLOCK are PLAYABLE — `playable: false` HIDES a game
 // everywhere a player could start it (the lobby's picker, HOW TO PLAY, the title's games sheet, host.js#startGame refuses it — a rematch,
 // an invite or a stale link included); its code, data + rules stay, FROZEN. `sign: true` = on the city's game signs (THE FIVE SIGNS:
-// the two playable + NEON PAR, HIGH STAKES, GRIDLOCK "next on deck" — a tap on those says COMING SOON). A game comes back = playable: true.
+// the three playable — PRISM DROP, OVERCLOCK, HOLD'EM — + NEON PAR, HIGH STAKES "next on deck" — a tap on those says COMING SOON; HOLD'EM
+// IN THE CITY, Nov 11: HOLD'EM took GRIDLOCK's spot, GRIDLOCK left the skyline, its game frozen as before). A game comes back = playable: true.
 export const GAMES = [ // lobby order
   { id: 'rum', name: 'RUMRUNNER', theme: 'rum', tag: 'PROHIBITION TRADING', blurb: 'Buy low at the Docks, sell high Uptown. Dodge the feds. Pay Mr. Balboni. Richest at dawn wins.', playable: false },
   { id: 'stakes', name: 'HIGH STAKES', theme: 'stakes', tag: 'WAGER TRIVIA', blurb: 'See the category. Bet your chips. Then the question. Know what you know.', playable: false, sign: true },
-  { id: 'gridlock', name: 'GRIDLOCK', theme: 'gridlock', tag: 'FLEET BATTLE', blurb: 'Place your fleet. Call your shots. Last fleet standing.', playable: false, sign: true },
+  { id: 'gridlock', name: 'GRIDLOCK', theme: 'gridlock', tag: 'FLEET BATTLE', blurb: 'Place your fleet. Call your shots. Last fleet standing.', playable: false },
   { id: 'slip', name: 'SLIPSTREAM', theme: 'slip', tag: 'SURVIVAL RIDE', blurb: 'One seeded course, everyone at once. Dive, fly, flip. Last rider riding wins.', playable: false },
   { id: 'prism', name: 'PRISM DROP', theme: 'prism', tag: 'FALLING-BLOCK BATTLE', blurb: 'Clear lines to the beat. Bury your rivals in junk — or race the song.', playable: true, sign: true },
   { id: 'overclock', name: 'OVERCLOCK', theme: 'overclock', tag: 'MIND GAUNTLET', blurb: 'Rapid 30-second brain spikes. Live leaderboard.', playable: true, sign: true },
@@ -77,9 +78,9 @@ export const GAMES = [ // lobby order
   { id: 'cipher', name: 'CIPHER BREACH', theme: 'cipher', tag: 'WORD RACE', blurb: 'Same hidden word. Everyone races. Watch their boards light up.', playable: false },
   { id: 'signal', name: 'LAST SIGNAL', theme: 'signal', tag: 'TRIVIA ROYALE', blurb: '100 HP. Answer fast, strike a rival. Last one standing.', playable: false },
   { id: 'bluff', name: 'NEURAL BLUFF', theme: 'bluff', tag: 'BLUFF TRIVIA', blurb: 'Fake the truth. Spot the truth. The Ministry is watching.', playable: false },
-  // HOLD'EM (docs/holdem.md): HE10 (Nov 11 2026 — Ben, after the Fable review's fix pass) — ON FOR EVERYONE. No `sign` yet (its city sign + day
-  // face + THE BOARD's catalog are the city's — the MAILBOX note); the HE8 owner gate stays in the code for the next game being built
-  { id: 'holdem', name: "HOLD'EM", theme: 'holdem', tag: 'TEXAS HOLD’EM · 2–8', blurb: 'Two cards each, five on the table. Bet, bluff or fold. Play chips only.', playable: true },
+  // HOLD'EM (docs/holdem.md): HE10 (Nov 11 2026 — Ben, after the Fable review's fix pass) — ON FOR EVERYONE; its city sign + day face + THE
+  // BOARD's tab since HOLD'EM IN THE CITY (Nov 11); the HE8 owner gate stays in the code for the next game being built
+  { id: 'holdem', name: "HOLD'EM", theme: 'holdem', tag: 'TEXAS HOLD’EM · 2–8', blurb: 'Two cards each, five on the table. Bet, bluff or fold. Play chips only.', playable: true, sign: true },
 ];
 
 // PW1 — THE DAILIES: the DAILY-ONLY cartridges (docs/password.md). NOT in GAMES on purpose: GAMES is the lobby's list — it drives the city's

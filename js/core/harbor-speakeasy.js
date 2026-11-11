@@ -65,7 +65,7 @@ const WEEK = 7 * 864e5;
 /** the swap: Monday ~4 am Eastern (09:00 UTC — 4 am in winter, 5 am in summer: nobody watching) */
 export const AD_EPOCH = Date.UTC(2026, 0, 5, 9, 0);
 /** the rotation: one ad per game, each about every 12 weeks, neighbours in different colours */
-export const AD_ORDER = Object.freeze(['rum', 'golf', 'stakes', 'pulse', 'cipher', 'overclock', 'agent', 'slip', 'gridlock', 'bluff', 'prism', 'signal']);
+export const AD_ORDER = Object.freeze(['rum', 'golf', 'stakes', 'pulse', 'cipher', 'overclock', 'agent', 'slip', 'holdem', 'bluff', 'prism', 'signal', 'gridlock']);   // (HOLD'EM IN THE CITY: HOLD'EM in GRIDLOCK's slot — the five's weeks unchanged)
 export const adWeek = ms => Math.floor((ms - AD_EPOCH) / WEEK);
 // ------------------------------------------------------------------ SP5 — THE BLADE'S WEEKLY LOOK (the owner: never boring)
 /** Each Monday's repaint (the sign painters, 1–4 pm) changes THE GAME + THE LETTER COLOUR + THE LETTER STYLE + THE PANEL COLOUR; the

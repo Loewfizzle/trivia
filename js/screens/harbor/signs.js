@@ -12,7 +12,7 @@ import { tube, drawLit, drawGlass, sprite, bbox, mix, rgba } from './tubes.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 
 /** each game's sign colour (its accent; the same as the title's game tiles) */
-export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
+export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', holdem: '#ff5a64' };   // (HOLD'EM IN THE CITY: casino red — its chip's; gold would twin HIGH STAKES beside it)
 /**
  * THE NAME A SIGN SPELLS (DT1 — the owner: "never a shortened name anywhere"): the game's city name, whole — the two-word ones
  * with both words (HIGH STAKES, DOUBLE AGENT, NEON PAR: never "STAKES" or "AGENT"); the others their one-word sign name (the
@@ -44,6 +44,7 @@ export const DAY_PAINT = {
   overclock: { face: [222, 126, 40], ink: [34, 24, 22], edge: [250, 230, 190] },       // black on orange
   gridlock: { face: [34, 70, 150], ink: [248, 238, 214], edge: GOLD_LEAF },            // cream on royal blue
   slip: { face: [232, 174, 74], ink: [28, 38, 84], edge: [250, 236, 206] },            // navy on amber
+  holdem: { face: [20, 84, 52], ink: [240, 202, 108], edge: [250, 236, 206] },          // gold on casino felt, a cream keyline (its billboard's cream + gold)
 };
 // POLISH 4 — THE ROOF BILLBOARD's POSTERS (the owner: OVERCLOCK read amber-on-amber under the warm gooseneck lamps): a poster may not
 // stand on a warm orange / amber / gold field — under those lamps it blends; each game's poster gets a field that CONTRASTS with warm
@@ -113,21 +114,24 @@ function paintFace(x, sg, pt, day, sd, P) {
 // cabinet's edge, over the border tube, its glow out at the screen's edge). Letters keep ≥ 5 % of a cell between them (+ their own side bearings).
 const tubeWidthFor = lh => Math.max(0.55, Math.min(1.25, lh * 0.13));
 function lettersRow(text, x0, y0, w, h, { skew = 0 } = {}) {
-  const ch = [...text], n = Math.max(1, ch.length);
+  // (HOLD'EM IN THE CITY: the row is sized by its letters' real advance — the apostrophe tube a third of a cell, so HOLD'EM's letters keep the
+  //  glance test's 10 pt on a roof sign at 390; a name without one is laid out exactly as before)
+  const ch = [...text], n = Math.max(1, ch.length), na = Math.max(1, ch.reduce((a, c) => a + (c === "'" ? glyphAdvance(c) : 1), 0));
   const lay = lh => {
-    const s = lh / 14, lw = 10 * s, wa = w - tubeWidthFor(lh) - 0.3, gap = n > 1 ? Math.max(lw * 0.05, Math.min(lw * 0.35, (wa - n * lw) / (n - 1))) : 0;
+    const s = lh / 14, lw = 10 * s, wa = w - tubeWidthFor(lh) - 0.3, gap = n > 1 ? Math.max(lw * 0.05, Math.min(lw * 0.35, (wa - na * lw) / (n - 1))) : 0;
     const polys = [], cells = [];
     let ix0 = Infinity, ix1 = -Infinity, at = 0;
-    ch.forEach(c => {
+    ch.forEach((c, i) => {
       const d = LETTERS[c], lx = at;
-      at += (d ? glyphAdvance(c) * lw : lw * 0.45) + gap;   // (a space: under half a cell; LOAD FIX 3: the apostrophe a narrow one)
+      // (a space: under half a cell; LOAD FIX 3: the apostrophe a narrow one — HOLD'EM IN THE CITY: half a gap either side of it, its own cell's bearing does the rest)
+      at += (d ? glyphAdvance(c) * lw : lw * 0.45) + (c === "'" || ch[i + 1] === "'" ? gap * 0.5 : gap);
       if (!d) return;
       for (const p of flattenPath(d, s, lx, 0, 1)) { const q = skewP(p, skew, lh); polys.push(q); for (const [x] of q.pts) { if (x < ix0) ix0 = x; if (x > ix1) ix1 = x; } }
       cells.push(lx);
     });
     return { lh, s, lw, polys, cells, ix0, ix1 };
   };
-  let r = lay(Math.min(h, (w / n) * 1.4));
+  let r = lay(Math.min(h, (w / na) * 1.4));
   for (let k = 0; k < 3 && r.ix1 > r.ix0; k++) {
     const avail = w - tubeWidthFor(r.lh) - 0.3, inkW = r.ix1 - r.ix0;
     if (inkW <= avail) break;
