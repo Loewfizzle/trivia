@@ -39,6 +39,8 @@ export function optionCards(choices, value, onChange) {
 }
 
 export function openGameOptions(g, { meta = null, onClose = null } = {}) {
+  // (HE8 — a game with no thin meta at boot (HOLD'EM, the owner's TEST): its cartridge first — it carries the same options)
+  if (!metaOf(g.id)) { loadGame(g.id).then(m => { if (m) openGameOptions(g, { meta, onClose }); else toast('Couldn’t load the game — try again', 'warn'); }, () => toast('Couldn’t load the game — try again', 'warn')); return; }
   const mod = metaOf(g.id);   // (SHELL 2.0 B1 — THE THIN META: the sheet reads it; the cartridge starts loading now, so INITIATE is quick)
   lazyImport(import('../games/preload.js'), '../games/preload.js').then(P => P.wireGame(g.id)).catch(() => {});   // (FRIENDS C: the whole graph at once)
   loadGame(g.id).catch(() => {});

@@ -21,12 +21,13 @@ import { initializeTestEnvironment, assertFails } from '@firebase/rules-unit-tes
 import { ref as cref, get as cget } from 'firebase/database';
 import { ref, val, fb } from '../../api/_lib/fb.js';
 import { ApiError } from '../../api/_lib/http.js';
-import { holdemAction, setTestRng, setTestClock, forgetHoldemBudgets, CALLS, wireStats } from '../../api/_lib/holdem-store.js';
+import { holdemAction, startOpen, setTestRng, setTestClock, forgetHoldemBudgets, CALLS, wireStats } from '../../api/_lib/holdem-store.js';
 import { PAUSE } from '../../api/_lib/holdem-dealer.js';
 import reportHandler from '../../api/report.js';
 import { profileAction } from '../../api/profile.js';
 import { legalActions } from '../../js/games/holdem/table.js';
 import { publicView } from '../../js/games/holdem/views.js';
+import { GAMES } from '../../js/config.js';
 import { fromWire } from '../../js/games/holdem/wire.js';
 import { SHOT_MS, BANK_MS } from '../../js/games/holdem/structure.js';
 import { decide } from '../fixtures/holdem-bots.mjs';
@@ -492,6 +493,64 @@ test('HE3 — THE LEAN WIRE on the emulators: the console\'s start (its matchId,
   assert.equal(p.id, 'zzz999');
   assert.equal(p.mode, 'cash');
   assert.equal(p.table.seats.length, 4);
+});
+
+test("HE8 — THE OWNER'S LIVE TEST: while HOLD'EM is playable: false only a room HOSTED BY THE OWNER starts it (ADMIN_PIDS — the server's own check); a normal host is refused, a guest can't start it; guests at the owner's table play normally", async () => {
+  const row = GAMES.find(g => g.id === 'holdem');
+  assert.equal(row.playable, false, "HOLD'EM ships playable: false");
+  await ref('testHoldemGate').set(true);   // (the live site's rule on the emulators — without it a local table stays open for the E2E)
+  try {
+    // a NORMAL host (a real profile, not the owner): refused, nothing written
+    const plain = users(3, 'gate');
+    await profiles(plain);
+    const A = await new Table(plain, { seed: 'gate' }).seed();
+    A.cost = false;
+    const r = await A.call(A.host, { holdem: 'start', mode: 'tournament', speed: 'turbo' });
+    assert.equal(r.status, 403); assert.equal(r.error, 'not_open');
+    assert.equal(await val(`hrec/${A.code}`), null, 'no record');
+    assert.equal(await val(`rooms/${A.code}/holdem`), null, 'no table');
+    // a guest (not the host) still gets not_host first
+    assert.equal((await A.call(plain[1], { holdem: 'start', mode: 'tournament' })).error, 'not_host');
+    // a host with NO profile: refused too
+    const anon = users(2, 'gate-anon');
+    const N = await new Table(anon, { seed: 'gate-anon' }).seed();
+    N.cost = false;
+    assert.equal((await N.call(N.host, { holdem: 'start', mode: 'cash' })).error, 'not_open');
+
+    // THE OWNER hosts: his profile id in ADMIN_PIDS (the production path) → the match starts; a GUEST at his table acts normally
+    const own = users(3, 'owner');
+    await profiles(own);
+    const ownerPid = await val(`uids/${own[0]}`);
+    assert.ok(ownerPid, 'the owner has a profile');
+    assert.equal(await startOpen(own[0]), false, 'not the owner until ADMIN_PIDS names him');
+    process.env.ADMIN_PIDS = `someoneelse1,${ownerPid}`;
+    try {
+      assert.equal(await startOpen(own[0]), true);
+      assert.equal(await startOpen(own[1]), false, 'his guest is not the owner');
+      const O = await new Table(own, { seed: 'owner' }).seed();
+      O.cost = false;
+      assert.equal((await O.call(own[1], { holdem: 'start', mode: 'tournament' })).error, 'not_host', "a guest in his room can't start it");
+      ok(await O.call(O.host, { holdem: 'start', mode: 'tournament', speed: 'turbo' }));
+      let p = await O.pub();
+      assert.equal(p.hand, 1);
+      for (let i = 0; i < 12; i++) p = await O.step({ scanAs: own[2] });
+      assert.ok(O.calls > 12, "the guests act at the owner's table");
+    } finally { process.env.ADMIN_PIDS = ''; }
+
+    // the emulator-only owner (testAdmins/{pid} — the E2E's, as the radio's roleOf) counts too
+    const ta = users(2, 'tadmin');
+    await profiles(ta);
+    await ref(`testAdmins/${await val(`uids/${ta[0]}`)}`).set(true);
+    const TA = await new Table(ta, { seed: 'tadmin' }).seed();
+    TA.cost = false;
+    ok(await TA.call(TA.host, { holdem: 'start', mode: 'cash' }));
+
+    // playable: true (Ben's switch) opens it to EVERY host
+    row.playable = true;
+    try { assert.equal(await startOpen(plain[0]), true); assert.equal(await startOpen(anon[0]), true); } finally { row.playable = false; }
+  } finally { await ref('testHoldemGate').remove(); await ref('testAdmins').remove(); }
+  // without the test switch a local table stays open (the E2E's preview rooms)
+  assert.equal(await startOpen(users(1, 'open')[0]), true);
 });
 
 test('A KICKED player: refused at the table, their private node closed, and (CASH) their seat leaves on the next poke', async () => {

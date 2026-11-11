@@ -13,7 +13,7 @@ import { tapHandled } from '../ui/tapwatch.js';
 import { h } from '../ui/dom.js';
 import { avatar, row } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
-import { colorHex, GAMES, APP_NAME, ROOM_IDLE_WARN_MS } from '../config.js';
+import { colorHex, GAMES, APP_NAME, ROOM_IDLE_WARN_MS, isOwnerTest } from '../config.js';
 import { state, isHost, setState } from '../store.js';
 import { isOnline, idleLeft } from '../core/room-logic.js';
 import { roomOrder } from '../core/harbor-room.js';
@@ -148,7 +148,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   async function openGames(asHost) {
     if (gamesOpen) return;
     const { openPfSheet } = await lazyImport(import('../profile/sheets.js'), '../profile/sheets.js');
-    const games = GAMES.filter(g => g.playable);
+    const games = GAMES.filter(g => g.playable || (asHost && isOwnerTest(g.id)));   // (HE8 — THE OWNER'S LIVE TEST: a game being built, on the owner's host phone only)
     const { gameArt } = await lazyImport(import('../ui/game-art.js'), '../ui/game-art.js');
     const list = h('div.rc-games', ...games.map(g => h('button.rc-game', { type: 'button', dataset: { theme: g.theme, game: g.id }, onclick: () => {
       if (!asHost || !isHost()) { openHelp(g.id); return; }
@@ -156,7 +156,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
       // (the host picks ANOTHER game after a match: the REMATCH ring goes back to PLAY + every vote clears)
       if (st.meta && st.meta.back && st.meta.back.rm) dbUpdate(dbRef(`rooms/${code()}`), { 'meta/back/rm': false, rv: null }).catch(() => {});
       lazyImport(import('./game-options.js'), './game-options.js').then(m => m.openGameOptions(g, { meta: st.meta }));
-    } }, h('span.rc-game-art', gameArt(g.id) || ''), h('span.rc-game-t', h('small', g.tag), h('b', g.name), h('span', g.blurb)), h('i.rc-game-go', '›'))));
+    } }, h('span.rc-game-art', gameArt(g.id) || ''), h('span.rc-game-t', h('small', g.tag), h('b', g.name, isOwnerTest(g.id) ? h('em.rc-game-test', 'TEST') : null), h('span', g.blurb)), h('i.rc-game-go', '›'))));
     const s = openPfSheet({ kicker: asHost && isHost() ? 'YOU’RE THE HOST' : `${hostName().toUpperCase()} PICKS THE GAME`, title: asHost && isHost() ? 'PICK A GAME' : 'THE GAMES', cls: 'rc-games-sheet',
       body: [list, h('p.sh-note.is-small', asHost && isHost() ? 'Pick one, set it up, then INITIATE — everyone in the line is dealt in.' : 'Tap one to read how it plays while you wait.')],
       onClose: () => { gamesOpen = null; } });

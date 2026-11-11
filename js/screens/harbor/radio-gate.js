@@ -5,6 +5,7 @@
 import { api } from '../../profile/api.js';
 import { firebaseReady } from '../../firebase.js';
 import { lazyImport } from '../../ui/lazy-import.js';
+import { setOwnerPhone } from '../../config.js';
 
 const KEY = 'nd:rd-role', KEEP_MS = 6 * 3600e3;
 const ss = { get(k) { try { return JSON.parse(sessionStorage.getItem(k) || 'null'); } catch { return null; } }, set(k, v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, JSON.stringify(v)); } catch { /* fine */ } } };
@@ -23,6 +24,7 @@ export function startRadioGate(o) {
         try { const r = await api('admin', { action: 'radioWho' }); role = r && r.role ? r.role : null; } catch { role = null; }
         if (role) ss.set(KEY, { role, at: Date.now() });
       }
+      setOwnerPhone(role === 'owner');   // (HE8 — THE OWNER'S LIVE TEST: his room's game list offers HOLD'EM · TEST — config.js#isOwnerTest)
       if (!role) return null;
       const css = new Promise(res => {
         if (document.querySelector('link[data-rd]')) { res(true); return; }

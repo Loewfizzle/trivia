@@ -20,7 +20,8 @@
 // leaves the published `seq` behind the record's — the next call (any op, a poke included) sees it and writes the whole view (THE HEAL).
 import { randomInt } from 'node:crypto';
 import { ApiError } from './http.js';
-import { ref, val, emulated } from './fb.js';
+import { ref, val, emulated, adminPids } from './fb.js';
+import { GAMES } from '../../js/config.js';
 import { take } from './limit.js';
 import { noTiming } from './timing.js';
 import { pidOf } from './profiles.js';
@@ -40,6 +41,22 @@ export function setTestRng(fn) { testRng = emulated() ? fn : null; }
 export function setTestClock(fn) { testClock = emulated() ? fn : null; }
 const rngNow = () => (emulated() && testRng) || cryptoRng;
 export const clockNow = () => (emulated() && testClock ? testClock() : Date.now());
+
+/**
+ * HE8 — THE OWNER'S LIVE TEST: may this host START a match? While HOLD'EM's GAMES row is `playable: false` only a room HOSTED BY THE OWNER
+ * may (the host's uid → their profile id → ADMIN_PIDS — the same owner test as the radio's roles, api/_lib/radio.js#roleOf; never a client
+ * flag). `playable: true` opens it to every host. On the LOCAL EMULATORS (the E2E + the passes' play-tests on `&preview=1`) the table stays
+ * open, unless the test switch `testHoldemGate` is set — then the live rule runs (the owner = ADMIN_PIDS or `testAdmins/{pid}`, as roleOf).
+ */
+export async function startOpen(uid) {
+  const row = GAMES.find(g => g.id === 'holdem');
+  if (row && row.playable) return true;
+  const pid = await pidOf(uid);
+  if (pid && adminPids().includes(pid)) return true;
+  if (!emulated()) return false;
+  if (pid && (await val(`testAdmins/${pid}`))) return true;
+  return !(await val('testHoldemGate'));
+}
 
 // THE CALL BUDGET off the hot path (daily.js's DFIX3 pattern): a per-instance window decides at once; the shared rl/hd_{uid} count is
 // written behind it, and its refusal lifts the local count so a flood across warm instances still stops
@@ -78,7 +95,7 @@ function holdRef(r) {
 
 /**
  * ONE HOLD'EM CALL. uid = the verified caller (requireUser). → { ok, seq, hand, due, now, changed } — or an ApiError:
- * 400 bad_* · 403 not_in_room / kicked / not_host / not_seated · 404 no_match · 409 stale (+ seq, hand) / illegal / running · 429 slow_down.
+ * 400 bad_* · 403 not_in_room / kicked / not_host / not_open (HE8 — a non-owner host while HOLD'EM isn't playable) / not_seated · 404 no_match · 409 stale (+ seq, hand) / illegal / running · 429 slow_down.
  */
 export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
   body = body && typeof body === 'object' ? body : {};
@@ -114,6 +131,7 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
     if (kickedMap[uid]) throw new ApiError(403, 'kicked', 'You were removed from this room.');
     const isHost = hostId === uid;
     if (op === 'start' && !isHost) throw new ApiError(403, 'not_host', 'Only the host starts the game.');
+    if (op === 'start' && !(await startOpen(uid))) throw new ApiError(403, 'not_open', 'HOLD’EM is still being built — only the owner can open a test table.');
     const rng = rngNow();
 
     // ONE transaction on the server's record

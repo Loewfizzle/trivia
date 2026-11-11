@@ -95,7 +95,15 @@ export const DAILIES = [
 export const gameRow = id => GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || null;
 
 /** WINDOWS: can a match of this game start? (the one switch: GAMES[].playable) */
-export const isPlayable = id => !!GAMES.find(g => g.id === id && (g.playable || (g.preview && localPreview())));
+export const isPlayable = id => !!GAMES.find(g => g.id === id && (g.playable || (g.preview && (localPreview() || ownerPhone))));
+/** HE8 — THE OWNER'S LIVE TEST: this phone got the server's OWNER yes (the radio's gate — `radioWho`, ADMIN_PIDS: screens/harbor/radio-gate.js).
+ *  A game being built (`preview: true`, `playable: false`) then shows in HIS room's game list with a TEST tag and starts from his host phone —
+ *  only a convenience: the dealer's start checks the host is the owner itself (api/_lib/holdem-store.js#startOpen) and refuses everyone else.
+ *  Nobody else's lists, signs, THE BOARD or the city change. `playable: true` later simply opens it to all. */
+let ownerPhone = false;
+export const setOwnerPhone = on => { ownerPhone = !!on; };
+/** HE8: is this game offered to THIS phone only as the owner's TEST (built, not yet playable)? */
+export const isOwnerTest = id => ownerPhone && !!GAMES.find(g => g.id === id && !g.playable && g.preview);
 /** HE3 — a game still being built starts only on a LOCAL emulator page (localhost / 127.0.0.1 + ?emu) that asks for it: `&preview=1` in the
  *  host's link, or the E2E's own switch (window.__nsPreview) — a plain emulator page (the smoke test) still can't start it */
 function localPreview() {
