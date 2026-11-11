@@ -531,6 +531,7 @@ body.bd-on .help-btn, body.help-open .help-btn { display: none; }
 .set-row .range { grid-column: 1 / -1; }
 .set-row.set-seg .seg { justify-self: end; min-width: 0; }
 .set-row.set-seg .seg-btn { padding: 0 12px; }
+.set-row.set-table .set-pick { grid-column: 1 / -1; }   /* (HE6 — HOLD'EM's TABLE: the three mini tables under the label — games/holdem/picker.js) */
 /* MUSIC MOOD: AUTO + five moods in two rows of three (a phone's width fits no six-way segmented control) */
 .set-mood { grid-template-columns: 1fr; }
 .set-mood .set-mood-seg { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; justify-self: stretch; }

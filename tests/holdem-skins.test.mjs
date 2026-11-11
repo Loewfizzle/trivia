@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { existsSync, statSync, readFileSync } from 'node:fs';
 import { SKINS, SKIN_IDS, DEFAULT_SKIN, skinOf, skinVars, skinAssets } from '../js/games/holdem/skins.js';
 
-const KEYS = ['id', 'name', 'line', 'felt', 'rail', 'light', 'print', 'betline', 'accent', 'plate', 'button', 'back', 'stock', 'backdrop', 'living'];
+const KEYS = ['id', 'name', 'line', 'felt', 'rail', 'light', 'print', 'betline', 'accent', 'plate', 'button', 'back', 'stock', 'backdrop', 'living', 'thumb'];
 const shape = o => (o && typeof o === 'object' && !Array.isArray(o) ? Object.fromEntries(Object.keys(o).sort().map(k => [k, shape(o[k])])) : typeof o);
 
 test('THE SKINS: the three, one data shape each (nested too); NEON CASINO the default; an unknown id → the default', () => {

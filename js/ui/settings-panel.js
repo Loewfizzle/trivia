@@ -132,6 +132,7 @@ function open() {
     //  this phone only; shown while its match is on screen until it's playable)
     ...(playable('holdem') || (state.game && state.game.id === 'holdem') ? [
       h('div.sh-sub', 'HOLD’EM'),
+      tableRow(),
       h('div.set-row.set-seg', h('span.label', 'CARD COLOURS'), segmented([{ value: 'four', label: 'FOUR' }, { value: 'two', label: 'CLASSIC' }], settings.heDeck || 'four', v => updateSettings({ heDeck: v })))] : []),
     ...(playable('slip') ? [h('div.sh-sub', 'SLIPSTREAM'), row({ label: 'Your ride', onClick: () => { close(); const me = state.players && state.players[state.uid]; lazyImport(import('../games/slip/ride.js'), '../games/slip/ride.js').then(m => m.openRidePicker({ color: colorHex(me ? me.color : 'cyan') })); } })] : []),
     ...(playable('pulse') ? [h('div.sh-sub', 'PULSE'), toggle('Hit sounds', 'pulseHits'), row({ label: 'Recalibrate audio sync', onClick: () => { close(); lazyImport(import('../games/pulse/calibrate.js'), '../games/pulse/calibrate.js').then(m => m.openCalibration({ reason: 'PULSE · RECALIBRATE (DO THIS AFTER SWITCHING HEADPHONES)' })); } })] : []),
@@ -140,6 +141,15 @@ function open() {
     h('div.sh-sub', 'ABOUT'),
     row({ icon: 'credits', label: 'Credits', onClick: () => { lazyImport(import('./credits.js'), './credits.js').then(m => m.openCredits()).catch(() => {}); } }),
   ] });
+}
+
+// (HE6 — THE TABLE: HOLD'EM's skin picker — three live mini tables (games/holdem/picker.js, loaded lazily: the boot graph never names a game);
+//  a tap changes the table live, this phone only)
+function tableRow() {
+  const body = h('div.set-pick');
+  lazyImport(import('../games/holdem/picker.js'), '../games/holdem/picker.js')
+    .then(m => body.replaceChildren(m.tablePicker(settings.heSkin, id => updateSettings({ heSkin: id })))).catch(() => {});
+  return h('div.set-row.set-table', h('span.label', 'TABLE'), body);
 }
 
 function close() { if (sheet) sheet.close(); }

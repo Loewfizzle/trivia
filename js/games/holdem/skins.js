@@ -21,6 +21,7 @@
 //   stock     the card STOCK's paper colour (HE6 — the faces' ink never changes; only the paper's tint: crisp white · warm ivory · cool white)
 //   backdrop  { portrait, square, dim, pos, size }              behind the table (square = HE7), darkened by `dim`, placed by `pos` / `size`
 //   living    ['neon', 'haze', 'slots']                         the cheap living touches (opacity / transform only) — the FIRST thing the tiers drop
+//   thumb     { room, back }                                    THE PICKER's mini table (picker.js — CSS only: the room's mood + the back's colour)
 const ASSET = new URL('../../../assets/holdem/', import.meta.url).href;
 
 export const SKINS = Object.freeze({
@@ -41,6 +42,7 @@ export const SKINS = Object.freeze({
     back: 'cardback-casino.webp', stock: '#fbfaf6',
     backdrop: { portrait: 'casino/backdrop.webp', square: null, dim: 0.18, pos: 'center top', size: 'cover' },
     living: Object.freeze(['neon', 'haze', 'slots']),
+    thumb: { room: 'linear-gradient(180deg, rgba(255, 60, 170, 0.45) 0 3px, #0b0910 3px, #060509 70%, #120814)', back: '#7d1420' },
   }),
   cabin: Object.freeze({
     id: 'cabin', name: 'COZY CABIN', line: 'A mountain cabin card night by the fire',
@@ -59,6 +61,7 @@ export const SKINS = Object.freeze({
     back: 'cardback-cabin.webp', stock: '#f7efde',
     backdrop: { portrait: 'cabin/backdrop.webp', square: null, dim: 0.06, pos: 'center top', size: 'cover' },
     living: Object.freeze(['fire', 'snow', 'lamp']),
+    thumb: { room: 'radial-gradient(60% 30% at 0% 100%, rgba(255, 140, 50, 0.55), rgba(0, 0, 0, 0) 100%), repeating-linear-gradient(180deg, #2b1a0f 0 5px, #20130a 5px 7px)', back: '#7b1d1a' },
   }),
   apartment: Object.freeze({
     id: 'apartment', name: 'CYBERPUNK APARTMENT', line: 'A high-rise table above a rainy neon city',
@@ -77,6 +80,7 @@ export const SKINS = Object.freeze({
     back: 'cardback-apartment.webp', stock: '#fcfdff',
     backdrop: { portrait: 'apartment/backdrop.webp', square: null, dim: 0.1, pos: 'center top', size: 'cover' },
     living: Object.freeze(['rain', 'sign', 'sweep']),
+    thumb: { room: 'linear-gradient(90deg, rgba(59, 224, 255, 0.55) 0 2px, rgba(0, 0, 0, 0) 2px calc(100% - 2px), rgba(255, 79, 192, 0.55) calc(100% - 2px)), linear-gradient(180deg, #1a2350, #0a0f24 28%, #060912)', back: 'linear-gradient(135deg, #3be0ff, #8a4dff 50%, #ff4fc0)' },
   }),
 });
 export const SKIN_IDS = Object.freeze(Object.keys(SKINS));

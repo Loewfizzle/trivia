@@ -17,7 +17,7 @@
                           slider = myturn with the RAISE slider open · final = the podium (the console's frame + HOLD'EM's body)
        &mode=cash         a CASH table (BLINDS 5/10; away = SAT OUT; &broke=1 = your stack 0 → REBUY)
        &deck=two          the CLASSIC two-colour faces           &hand=AsKd   your two cards (the deck is rigged to deal them)
-       &skin=cabin        the table's skin (HE6): casino (the default) · cabin · apartment
+       &skin=cabin        the table's skin (HE6): casino (the default) · cabin · apartment   &settings=1  ☰ → Settings open (THE TABLE picker)
        &seed=x            another deal                            &host=0      you're not the host (no END SESSION in CASH)
        &st=47&sb=34       the safe areas (pt) — an iPhone 13/14 = 47 / 34 (the default), a 15/16 Pro = 62 / 34
      HE4 ADD-ON (Ben) — REAL SLIM CARDS: every fake player has a REAL public face, as a room player's profile (profiles/{pid} through
@@ -236,6 +236,14 @@ const view = createView();
 view.mount(document.getElementById('app'), state);
 if (STATE === 'slider') { await new Promise(r => setTimeout(r, 60)); document.querySelector('.he-raise')?.click(); }
 if (STATE === 'leave') { await new Promise(r => setTimeout(r, 120)); document.querySelector('.he-leave')?.click(); await new Promise(r => setTimeout(r, 400)); }
+// (HE6: &settings=1 = ☰ → Settings open over the table — THE TABLE picker; a tap there switches the skin live)
+if (q.get('settings')) {
+  const sp = await import('/js/ui/settings-panel.js');
+  sp.installSettingsPanel(); document.querySelector('.gear')?.click();
+  await new Promise(r => setTimeout(r, 500));
+  document.querySelector('.set-table')?.scrollIntoView({ block: 'center' });
+  await new Promise(r => setTimeout(r, 200));
+}
 await document.fonts.ready;
 await new Promise(r => setTimeout(r, 150));
 window.__preview = { rec, pub, me, node };
