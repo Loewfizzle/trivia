@@ -162,6 +162,33 @@ await H.run(async () => {
   const rp = await pages[ri].evaluate(() => window.__holdem.planned());
   ok(pr.hand === before.h ? !rp.some(c => c.name === 'deal' || c.name === 'shuffle') : true, `NO REPLAY: the refreshed phone replayed none of the hand's sounds (${rp.length} cue(s) since, all new: ${rp.map(c => c.name).join(' ') || 'none'})`);
 
+  // ------------------------------------------------------------ HE6: THE PICKER's LIVE SWITCH mid-hand on one phone — the table re-skins at once
+  // (no reload, the same hand + cards on screen), only the chosen skin's files are fetched, then back to NEON CASINO
+  {
+    const sp = pages[ri];
+    await sp.evaluate(() => { window.__heMark = Math.random(); window.__heFetched = []; new PerformanceObserver(l => { for (const e of l.getEntries()) window.__heFetched.push(e.name); }).observe({ type: 'resource', buffered: false }); });
+    const handBefore = (await pub(sp)).hand;
+    const res = [];
+    for (const id of ['cabin', 'apartment', 'casino']) {
+      await sp.evaluate(async sid => { const m = await import('/js/audio/settings.js'); m.updateSettings({ heSkin: sid }); }, id);
+      await waitFor(sp, (s, sid) => window.__holdem.skin() === sid && document.querySelector('.he').dataset.skin === sid, `the table re-skinned to ${id}`, 8000, id);
+      await sleep(900);
+      res.push(await sp.evaluate(sid => {
+        const root = document.querySelector('.he'), cs = getComputedStyle(root);
+        const backs = [...document.querySelectorAll('.he-backs .he-back')].map(b => b.getAttribute('src'));
+        return { id: sid, felt: cs.getPropertyValue('--he-felt-img').includes(`/${sid}/felt`), backs: backs.length === 0 || backs.every(u => u.includes(`cardback-${sid}`)),
+          live: root.querySelectorAll('.he-live').length, mark: !!window.__heMark, seats: document.querySelectorAll('.he-seat').length };
+      }, id));
+    }
+    const fetched = await sp.evaluate(() => window.__heFetched.filter(u => /assets\/holdem\//.test(u)));
+    const pr2 = await pub(sp);
+    const okAll = res.every(r => r.felt && r.backs && r.live > 0 && r.mark && r.seats === res[0].seats);
+    const strays = fetched.filter(u => !/(casino|cabin|apartment)\//.test(u) && !/cardback-(casino|cabin|apartment)/.test(u) && !/cards\/|chips\//.test(u));
+    ok(okAll && strays.length === 0 && (pr2.hand === handBefore || pr2.hand === handBefore + 1),
+      `LIVE SKIN SWITCH mid-hand (${NAMES[ri]}): ${res.map(r => r.id).join(' → ')} — the felt, the backs + the living touches each time, no reload, ${res[0].seats} seats throughout; fetched only the skins' own files (${fetched.length})`);
+    await H.cleanText(sp, 'the table after the skin switches', '.he');
+  }
+
   // ------------------------------------------------------------ one hand on the REAL buttons (CALL / CHECK taps) to its showdown
   const handA = (await pub(host)).hand;
   await drive('click', p => pub(p).then(x => x.hand > handA || x.table.street === 'done'), 'the hand to its end (taps)', { timeout: 120000, watch: host });
@@ -201,11 +228,11 @@ await H.run(async () => {
   }
 
   // ------------------------------------------------------------ HE4: 60 fps at 4× CPU in THE BUSIEST MOMENT (8 seats: the side-pot run-out + three awards)
-  if (process.env.PERF !== '0') {
+  if (process.env.PERF !== '0') for (const skin of ['casino', 'cabin', 'apartment']) {   // (HE6: in EACH skin — its living touches + its light on)
     const bctx = await H.browser.createBrowserContext(), bp = await bctx.newPage();
     await bp.setViewport({ width: 390, height: 844, deviceScaleFactor: process.env.GPU ? 2.75 : 1, isMobile: true, hasTouch: true });
     const cdp = await bp.target().createCDPSession();
-    await bp.goto(`${H.BASE}/tests/integration/holdem-preview.html?state=sidepots&n=8`);
+    await bp.goto(`${H.BASE}/tests/integration/holdem-preview.html?state=sidepots&n=8&skin=${skin}`);
     await bp.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 30000 });
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: H.CPU });
     await sleep(7400);   // (the run-out from ~0.6 s, the hands' awards ~4–7.4 s: the frames buffer = the last ~4 s — the river, the showdown, all three pots)
@@ -214,8 +241,8 @@ await H.run(async () => {
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     const s2 = [...f].sort((a, b) => a - b);
     const p50 = +(s2[Math.floor(s2.length * 0.5)] || 0).toFixed(1), p95 = +(s2[Math.floor(s2.length * 0.95)] || 0).toFixed(1);
-    log('busiest moment', JSON.stringify({ p50, p95, n: s2.length, busy }));
-    ok(p50 <= 17.5 && s2.length > 150, `PERF (the busiest moment, ${H.CPU}× CPU, 8 seats — the side-pot run-out + three awards): p50 ${p50} / p95 ${p95} ms over ${s2.length} frames`);
+    log('busiest moment', skin, JSON.stringify({ p50, p95, n: s2.length, busy }));
+    ok(p50 <= 17.5 && s2.length > 150, `PERF ${skin.toUpperCase()} (the busiest moment, ${H.CPU}× CPU, 8 seats — the side-pot run-out + three awards): p50 ${p50} / p95 ${p95} ms over ${s2.length} frames`);
     await bctx.close();
   }
 
