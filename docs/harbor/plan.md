@@ -6509,3 +6509,18 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
   polish → HE9 Fable review → HE10 fixes ← in its chat); LOAD FIX 4 (this pass: THE REJOIN FREEZE, THE DEPLOY SKEW, THE HIDDEN BOOT, THE SMALL FIXES — Grok's
   boot audit, nothing else) ← NOW; then HOLD'EM HE5 → … → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.
 - LOAD FIX 4 DONE (Nov 10, evening) — passes/load-fix-4.md. THE BUILD TABLE: LOAD FIX 4 ✅ (GROK'S BOOT AUDIT — every finding answered: THE REJOIN LIMIT (a refresh in a room on a dead line → the city + REJOIN in ~9 s, back in the room when the line returns), THE SKEW WRAPPER (every lazy import: a new deploy → ONE reload, never in a match being played) + the city's graph's skew path, the boot's gates in visible time, no regex lookbehind, a twice-failed sheet, the hang watch, the service worker, the load log; #2 + #9 parked; no rules change); HOLD'EM HE5 ← NEXT → HE6 → HE7 sideways → HE8 → HE9 Fable review → HE10 → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.
+
+## OWNER'S NOTES — NOV 11
+
+- Nov 11, 8:30 am (the owner, iPhone, Safari, the first open of the day, fog): THE CITY SHOWED TWICE — the billboard, EST. 1924 and the PRISM DROP blade sign
+  each doubled + offset (Downloads\NEON\doubled-city-2026-11-11-0830.png); the dock worked; not rotated. "Still having loading issues." → LOAD FIX 5, right after
+  HOLD'EM's HE10 (a bug on the live front page beats a hidden game's fixes).
+- Nov 11: HOLD'EM IS PLAYABLE (HE10). HOLD'EM IN THE CITY = the next city pass after LOAD FIX 5, the owner's picks (all the city chat's suggestions):
+  the roof BILLBOARD → NOW OPEN (painted in code — the lettering swapped); HOLD'EM's skyline SIGN + DAY FACE TAKES GRIDLOCK's "next on deck" spot (five signs stay
+  five); THE BOARD gets a HOLD'EM tab ranked by TOURNAMENT WINS THIS WEEK, knockouts the tie-break (five tabs at 390 — shorter labels if needed); HE9's B2 (the
+  corner buttons' tap area 42 → 44 pt on every screen), B3 (the podium's action row STICKY for every game + a scroll hint), B4 (everyone tied = ALL TIED, nobody
+  1st — the screen matches the server); `tests/harbor.test.mjs#CITY_PENDING` deleted there.
+- Nov 11: FR7 picks up HE9's B5 (the host's END GAME / kick reach a HOLD'EM match — awareness) + B7 (the shared docs' counts) if HOLD'EM IN THE CITY doesn't.
+- THE BUILD TABLE (Nov 11, LOAD FIX 5 Step 0): LOAD FIX 4 ✅ (passes/load-fix-4.md); HOLD'EM ✅ (HE1 → HE10 — PLAYABLE since HE10, Nov 11); LOAD FIX 5 (this
+  pass: THE DOUBLED CITY — two cameras on screen on the owner's iPhone: reproduce + find, the fix at the root, the NO TWO CAMERAS guard — nothing else) ← NOW;
+  then HOLD'EM IN THE CITY → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.
