@@ -32,6 +32,7 @@ export function finalScene(el, game, state) {
     // (the net's colour rides the row — the slim card upgrade keeps the row + its score element)
     [...list.children].forEach((li, i) => { const n = rows[i] && rows[i].score; li.dataset.net = n > 0 ? '+' : n < 0 ? '-' : '0'; });
     list.classList.add('he-fs-list');
+    list.style.setProperty('--he-rows', String(Math.ceil(rows.length / 2)));   // (HE7: sideways two columns — css)
     el.append(list);
     const b = sum.biggest;
     el.append(h('div.he-fs-foot', h('span', `${fmt(sum.hands)} HAND${sum.hands === 1 ? '' : 'S'} PLAYED`),
@@ -44,6 +45,7 @@ export function finalScene(el, game, state) {
     h('div.he-fs-wt', h('b.he-fs-name', w.name), h('small', 'WINS HOLD’EM'))));
   const list = leaderboard(rows, players, { me, stagger: 50 });
   list.classList.add('he-fs-list');
+  list.style.setProperty('--he-rows', String(Math.ceil(rows.length / 2)));     // (HE7: sideways two columns — css)
   el.append(list);
   const chips = [];
   if (sum.biggest) chips.push(chip('BIGGEST POT', fmt(sum.biggest.amount), names(sum.biggest.ids)));

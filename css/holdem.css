@@ -697,6 +697,23 @@ body.he-on .music-btn { right: calc(var(--safe-r) + 12px) !important; }
 .he[data-orient='wide'] .he-awardbox .he-winline { font-size: calc(12.5px * var(--s)); padding: 1px 9px; }
 .he[data-orient='wide'] .he-ko { left: var(--ko-x); width: var(--ko-w); }
 
+/* (AWAY mid-hand: I'M BACK sits ABOVE the two stacked pre-actions, never on them) */
+.he[data-orient='wide'] .he-actions:has(> .he-pres) > .he-minis { top: calc(var(--buttons-y) + var(--btn) / 2 - 98px - 8px); transform: translate(-50%, -100%); }
+
+/* THE END SCREEN + THE LEDGER sideways: the slim cards in TWO columns (1st–4th left, 5th–8th right) when the screen gives each a phone's strip
+   width — all 8 places in view; a narrower one (the SE on its side) keeps one column and scrolls */
+@media (min-width: 820px) {
+  .he[data-orient='wide'] .he-final .panel-full { max-width: 900px; }
+  .he[data-orient='wide'] .he-fs .he-fs-list.is-strips { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(var(--he-rows, 4), auto); grid-auto-flow: column; column-gap: 18px; }
+}
+/* (a short screen: the winner's line tighter, so the places come up into view) */
+.he[data-orient='wide'] .he-final { padding-top: calc(var(--safe-t) + 8px); }
+.he[data-orient='wide'] .he-fs { gap: 6px; }
+.he[data-orient='wide'] .he-fs-win { padding: 0; gap: 12px; }
+.he[data-orient='wide'] .he-fs-av { width: 46px; height: 46px; }
+.he[data-orient='wide'] .he-fs-av > * { width: 46px; height: 46px; }
+.he[data-orient='wide'] .he-fs-name { font-size: 22px; }
+
 /* DESKTOP: hover on the buttons (a pointer that hovers — never a phone's tap) */
 @media (hover: hover) {
   .he .he-btn:not(:disabled):hover, .he .he-preset:not(:disabled):hover, .he .he-pre:not(:disabled):hover, .he .he-mini:not(:disabled):hover, .he .he-leave:hover { filter: brightness(1.18); }

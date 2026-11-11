@@ -18,8 +18,11 @@
        &mode=cash         a CASH table (BLINDS 5/10; away = SAT OUT; &broke=1 = your stack 0 → REBUY)
        &deck=two          the CLASSIC two-colour faces           &hand=AsKd   your two cards (the deck is rigged to deal them)
        &skin=cabin        the table's skin (HE6): casino (the default) · cabin · apartment   &settings=1  ☰ → Settings open (THE TABLE picker)
+       &rankings=1        THE RANKINGS SHEET open (HE7)
        &seed=x            another deal                            &host=0      you're not the host (no END SESSION in CASH)
        &st=47&sb=34       the safe areas (pt) — an iPhone 13/14 = 47 / 34 (the default), a 15/16 Pro = 62 / 34
+       &sl=47&sr=47       HE7 — a window WIDER THAN TALL is the SIDEWAYS table (rotate the phone): its safe areas left / right (the notch) +
+                          below default to 47 / 47 / 21 (top 0); a window wider than 1000 = a desktop (none) — the stage scales the table
      HE4 ADD-ON (Ben) — REAL SLIM CARDS: every fake player has a REAL public face, as a room player's profile (profiles/{pid} through
      fake-firebase.js → profile/public.js#watchRoomProfiles → pubOf): a different APPROVED card each (two legendaries, the textured ZEBRA ·
      GLITTER BOMB · VELVET ROOM · MARBLE), their own emblem (shape + finish, a tube style) + name glow + a level — the page approves exactly that
@@ -249,6 +252,11 @@ if (q.get('settings')) {
   await new Promise(r => setTimeout(r, 500));
   document.querySelector('.set-table')?.scrollIntoView({ block: 'center' });
   await new Promise(r => setTimeout(r, 200));
+}
+// (HE7: &rankings=1 = THE RANKINGS SHEET open — your hand's name tapped)
+if (q.get('rankings')) {
+  (await import('/js/games/holdem/rankings.js')).openRankings({ mark: 'PAIR' });
+  await new Promise(r => setTimeout(r, 450));
 }
 await document.fonts.ready;
 await new Promise(r => setTimeout(r, 150));
