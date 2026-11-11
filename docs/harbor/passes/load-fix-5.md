@@ -186,6 +186,10 @@ docs/testing.md (the tool's flags + the page's test controls).
   ("a guest opens ALTO → ORCA · 2 players") — the 4-shard run's cross-talk, **20 / 20 alone**; not this pass.
 - **No look change at the other sizes** (`pixdiff.mjs --scenes night,noon`, vs 13cd99a8): 390 × 844 — 201 / 1358 px beyond the noise;
   430 × 932 — 76 / 3169; 1440 × 900 — 124 / 307; all in the promenade + road band (the walkers, the traffic — the usual residue).
+- **Cloud run 1 — the only one** (14178c24): `tests` ✅ (5 min 24 s) · `harbor` ✅ **15 / 15 jobs** (12 min 35 s) — the `cameras` group
+  11 / 11 on GitHub's 2-core machine (159.5 s, two pages at a time; the `lobby` job 48 / 48). Vercel BUILT 14178c24 (live).
+- **The servers:** the emulators + `serve.mjs --emu` (:5173) started by this pass STOPPED at the end; the worktree's (:5174) + the dailies'
+  test server (:5195) stopped earlier; Ben's :5190 (pid 21732, his own) checked + left running.
 - **The rules:** NOT changed — nothing to re-publish. Still 8 functions.
 
 **THE ADD-ON (the city chat, mid-pass) — HOLD'EM's STALE OWNER-GATE CHECKS.** `e2e-holdem FAST`'s two red checks tested HE8's OWNER-ONLY
