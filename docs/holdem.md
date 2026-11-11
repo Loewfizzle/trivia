@@ -293,7 +293,7 @@ The view renders ONLY from the database: the public table (`fromWire(live.table)
 - THE TABLE: a tall STADIUM ≈ x 18–372, y 100–752 (the header row above: 54 pt under the safe top; 58 pt under it for your plate) — a black rail with a
   thin gold line, the real green felt (`assets/holdem/felt-green.webp`, a 512² tile of ambientCG's Fabric030, CC0) + a vignette, a cream betting line,
   the quiet print NEON SPEAKEASY under the board. On a shorter phone everything scales with the table's height (`s`, 0.74–1.08); the seat blocks shrink
-  with it (`ss` ≤ 1). Desktop: the same column at phone width (the sideways layout = HE7).
+  with it (`ss` ≤ 1). Desktop: HE7's sideways table (a tall window keeps this one) — see "HE7".
 - THE SEATS (anchors at the emblem's centre): the top seat 0.028 of the table's height (on the rail). **HE4 (Ben's preview fixes):** the side rows are
   placed in PX (`layout.js#sideRowsPx` — the seats' blocks are fixed sizes × `ss`, the band scales with the table): from just under the top seat (5, 7:
   the row's bet between the top seat's plate and its bet) or 0.128 / 0.16 of the height (6 / 4) down to just above the pot line (its bet clear of a side
@@ -609,9 +609,97 @@ New art: the cards **400 KB** in the repo (courts-four 195 + courts-two 195 + st
 felt 39 + wood 22 + rail 2.2 + back 4.8), CYBERPUNK APARTMENT **133 KB** (backdrop 77 + felt 40 + rail 1.7 + back 14), the casino backdrop re-exported
 12 → **28 KB** (860 × 1864: HE5's 645-wide export blurred the slots' lights into blocks). Per phone: the chosen skin (82–133 KB) + one deck sprite (195 KB).
 
-## Flagged for HE7+
-- The sideways view (HE7 — `backdrop.square`; the cabin's square original has the big fireplace, the apartment's the whole window + both pillars).
-- On desktop the backdrop fills the phone column only (the sides black) — HE7's sideways view owns the wide screen.
+## HE7 — THE SIDEWAYS VIEW + DESKTOP (Nov 11 2026 — the decisions: docs/games/plan.md "HE7")
+Ben's exception for HOLD'EM: **wider than tall → the SIDEWAYS table**; a desktop / any wide window uses it too (scaled). The portrait table
+(`layout.js`, its CSS, its DOM) is untouched — proved pixel for pixel (`holdem-pixdiff.mjs`, below). Same game, same pieces; no rules, server or
+data change; still 8 functions, no rules change, `playable: false`.
+
+### THE SIDEWAYS LAYOUT (`layout-wide.js` — PURE, the same shape as `tableLayout` + `wide: true`)
+- **THE TABLE**: a WIDE STADIUM (rounded ends left / right) filling the screen LEFT of THE COLUMN — its emblems on the rail stay inside the safe
+  areas (the notch side + its twin), the table's top ~4 pt under the screen's top, its bottom rail under your cards. 844×390: ≈ 503 × 299.
+- **THE SEATS**: YOU at the bottom centre; the others **FULLY EVENLY SPACED BY ARC LENGTH** round the rail's middle line (`onStadium(…, i / N)`,
+  clockwise on screen — the bottom-left first; heads-up = straight across, top-centre). Every seat is ONE block (`wideSeatBox`): the emblem (44 pt
+  · heads-up 56) on the rail, the plate under it (`pl`: centred · `l` its left edge with the emblem's · `r` its right — a seat at an END keeps it
+  inward, a seat LEVEL WITH YOUR CARDS keeps it on its OUTER side so the felt by your cards is your bet's), the tag under the plate (`tl` — its
+  own alignment: a long "THREE OF A KIND" centres when the outer side runs off the screen), the cards beside the emblem (`cs` +1 right · −1 left · 0
+  above — toward the middle; outward for a seat level with your cards), the bet toward the board's centre on the nearest clear spot along that line
+  (then a little either side, up to ±1.7 rad), the D button on the emblem's edge away from the cards. The first choice that's on screen, off the
+  column + the corner buttons + your cards, clear of the seats already placed. A STRAIGHT-ACROSS seat's bet sits beside its plate when there's room
+  (the middle keeps the height — heads-up's big board), else under its tag.
+- **THE MIDDLE**: the side-pot line (3+ players) + the pot + the board, the BIGGEST board that fits between the seats and your hand's name (WBOARD:
+  heads-up 66 · 3–4 players 60 · 5–8 56 pt; the stack centred in the longest free band); **your hand's name ABOVE your cards** (a gold line on the
+  felt — still THE RANKINGS SHEET's button; the felt print gives way to it); YOUR two cards bottom-centre over the rail (64 × 89 at a 390-tall phone),
+  your plate under them (YOU · stack · ALL IN / OUT); **your bet** beside your cards, its chips over its amount (≤ 2 stacks, a 50 × 42 column).
+- **THE COLUMN** (the right, under the right thumb): the music button (the console's) at its top, the LEVEL LINE under it (two balanced lines when
+  long), BLINDS UP + END SESSION under that; low: LEAVE (CASH) · the status ("BO IS THINKING…") · YOUR CLOCK (a bar over the presets) · the
+  PRESETS (3 × 56 pt) above FOLD / RAISE / CALL (≥ 50 pt rounds, ≥ 12 pt between the rows); the SLIDER, the two PRE-ACTIONS (stacked), the
+  between-hands buttons (SHOW · REBUY · SIT BACK IN · I'M BACK — above the pre-actions when both show) all in the same place. Nothing over the board,
+  your cards or a seat.
+- **THE HAND'S END**: the award box ON THE POT'S SPOT above the board (heads-up one row, else two compact rows), as wide as the seats there allow;
+  a line too long for it shrinks to fit (never under the 10 pt minimum — measured only when it changes). THE KO CARD centred on the table.
+- **THE END SCREEN + THE LEDGER**: the slim cards in TWO columns (1st–4th · 5th–8th) when the screen gives each a phone strip's width
+  (`min-width: 820px`) + a tighter winner line → all 8 places in view on an 844×390 (the award chips + the console's buttons below scroll); the SE
+  on its side keeps ONE column and scrolls. The frame centred in a wide window.
+- **THE SEATS' SCALE** steps down (0.9·s → never below 0.78) only while something misfits or the board's cards are under 50 pt (`misfits` = 0 on
+  every phone). **The numbers** (board · your cards, pt): 844×390 50–66 · 63.8; 844×340 (Safari's bars) 50–64 · 58.8; 932×430 56–66 · 70.7;
+  874×402 54.5–66 · 65.9; **the SE** 667×375 46–59 · 64.9 and 667×320 45–60 · 55.4 — the ONE COMPROMISE: the SE at 7–8 players gets a 45–49 pt
+  board (its seats at 0.78–0.79); every iPhone since the X ≥ 50.
+- `tests/holdem-wide.test.mjs`: those six sizes × 2–8 players — no piece overlaps another (every seat's block, cards, bet, tag; the board, the pot,
+  the side line, your bet, cards, plate + name, the column, the corner buttons, the award box), the even spacing (measured along the track), the
+  sizes, THE STAGE, the motion's spots.
+
+### ROTATE ANY TIME
+The view picks the layout by aspect on every size change (a ResizeObserver + `orientationchange` + `visualViewport` resize — `onTurn`). A turn
+mid-hand: the layout swaps at once (no reload — the state is the same state); anything the motion has in flight **SNAPS TO ITS END**
+(`motion.js#snap` — the painted state is the end; a KO card still due shows now); the events stay seen, so nothing replays and no sound is planned
+by the turn (the sounds already planned keep their times); an open SLIDER closes; a sheet (☰, the rankings, LEAVE's confirm, THE TABLE picker)
+stays open — they're the console's centred sheets; YOUR CLOCK moves between your plate (upright) and the column (sideways). Safari's bars
+showing / hiding is the same path. **The console's TURN YOUR PHONE UPRIGHT card** (index.html `#ns-turn` — every phone held sideways) is hidden
+while HOLD'EM's table is up (`body.he-on #ns-turn` — Ben's exception; the room + the walk inside keep it).
+
+### DESKTOP (any wide window — `stageOf`)
+THE STAGE (`.he-stage`, every table piece inside it): a phone on its side = the screen itself (z 1); a wider window = the same sideways layout
+SCALED (one transform; every coordinate the motion uses stays the stage's): z = min(W / 900, H / 400), ≤ 2.4; the frame no flatter than 2 : 1 and
+no wider than 2.4 : 1, centred, 20 stage pt of air at the sides — 1440×900 → × 1.6 (frame 860 × 430), 1920×1080 → × 2.13, 1280×720 → × 1.42,
+2560×1440 → × 2.4. Outside it, at the window's size: THE SQUARE BACKDROP + the podium. A TALL desktop window keeps the portrait table (the room
+filling the window now — the end screen keeps the phone column's width). Hover: a brightness lift on the buttons (`@media (hover: hover)`). The
+screen spans the window (`.screen.he-screen` — no phone column) and the console's ☰ / music pin to the window's corners (`body.he-on`).
+
+### THE SQUARE BACKDROPS
+`assets/holdem/<skin>/square.webp` (`build-holdem-skin.py#square` — Ben's 2800² originals at 1280², WebP q 72; the cabin lifted × 1.18 like its
+portrait): **casino 19 KB · cabin 80 KB · apartment 31 KB (130 KB in all)**. Sideways the square is as wide as the window (`.he-sq`: its
+`backdrop.sqY` row at the window's top — casino 0.1 · cabin 0.16 · apartment 0; darkened by `sqDim`); **only the chosen skin's square loads**, and
+only sideways (the preload names it by the screen's shape — `skinAssets(skin, wide)`; upright the portrait backdrop). The living touches live in
+the square's box (upright `.he-sq` is `display: contents` — their places as before) and sit on their spots in the square art: the casino's ceiling
+neon, the slots' glow left + right, the floor haze; the cabin's snow in the window glass (the flakes tiled denser — a far bigger window), the fire on
+the hearth, the lamp; the apartment's rain + light sweep over the skyline window, its sign in the city. The tiers drop them first, as upright.
+
+### THE PREVIEW + THE CHECKS
+- `tests/integration/holdem-preview.html` honours the viewport: wider than tall = the sideways table. A REAL phone with a notch keeps its own safe
+  areas (turn it and the table turns); a computer's window gets the simulated iPhone's re-applied on every resize (sideways 47 / 47 / 21, an
+  SE-sized window < 700 wide none, a desktop-sized one none — `&st=&sb=&sl=&sr=` set them); `&rankings=1` = THE RANKINGS SHEET open.
+- `holdem-shots.mjs` at sideways + desktop sizes (the SE sizes one at a time); the review set `Downloads\neon\holdem\shots\he7-*` (17 states ×
+  3 skins × 844×390 · 932×430 · 667×375 · 1440×900 · 1920×1080 · 1280×720).
+- `holdem-rotate.mjs` (any local server): the MOTION DEMO turned sideways + back 10 times MID-MOTION — the layout follows, the motion snaps, no
+  sound planned by a turn, the seats where the layout says, the next events still play; a 1440×900 window (× 1.6) and back; no page error.
+- `holdem-pixdiff.mjs` (A = the commit before on :5174 in a worktree, B = the working tree): THE PORTRAIT UNCHANGED — held still (reduced motion,
+  the preview's clock), A-A = the noise floor, A-B must not exceed it. HE7: 10 states × 390×844 + 430×932 (casino) + 3 states at 402×874 in the
+  other two skins — every one at the floor (0 % but the end screen, whose animated legendary card moves ~3 %).
+- `holdem-probe.mjs`: an element's box + computed styles in the preview at a size (debugging a layout).
+- The FULL E2E (emulators): ROTATE MID-HAND (the same hand + cards, nothing in flight, no sound replayed; RAISE's slider open → turned → closed,
+  the buttons back; a REAL tap on CALL / CHECK sideways acts), ONE WHOLE HAND SIDEWAYS at 8 phones (one a 1440×900 desktop) on real taps, each
+  proved uncovered first (`elementFromPoint` — that is how the TURN YOUR PHONE card was found), the busiest moment's 60 fps SIDEWAYS in each skin
+  (p50 16.7 / p95 16.8 ms at 4× CPU, 8 seats).
+
+### FOUND, NOT CHANGED (portrait must not change this pass)
+- **YOUR own clock bar in PORTRAIT is below the screen** (it rides in your plate at `--plate-y − --hand-y + 40` from the plate's top: y 880 on an 844
+  phone) — since HE3 you never see your own shot clock drain upright (the seats' bars + the tick sound work; sideways it's the bar over the presets).
+  Ben's call for HE8: where it goes upright (over the presets as sideways, or a ring on your plate).
+
+## Flagged for HE8+
+- YOUR clock bar upright (above — "FOUND, NOT CHANGED").
 - The robots' length numbers are a guide; HE8's real play-tests should re-check TURBO (90 s) + DEEP (15 min) with people.
-- The KO card shows only on a FRESH bust (a phone that slept through it lands on SPECTATING); a bust in the match's last hand: its card over the podium.
+- The KO card shows only on a FRESH bust (a phone that slept through it lands on SPECTATING); a bust in the match's last hand: its card over the podium
+  (on a desktop the podium sits over it — the stage is its own layer).
+- The SE on its side at 7–8 players: a 45–49 pt board (above). The desktop podium is the console's frame at its own size (not the stage's scale).
 - When it becomes playable: `scripts/build-preload-graph.mjs` (+ its CARTRIDGES list), a day face + a sign scheme, THE BOARD's catalog.

@@ -261,6 +261,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   reads `--he-gold-rgb`; `tests/holdem-skins.test.mjs` checks the nested shape + that the CSS reads every variable); a skin's art baked by its row in
   `scripts/build-holdem-skin.py` (backdrops 860 × 1864, compositions as `edit` steps). THE PICKER = ☰ → Settings → HOLD'EM → TABLE (`picker.js`, lazy — CSS mini tables
   from the skins' data, no thumbnail downloads; a tap = `settings.heSkin`, live mid-hand).
+- **HOLD'EM's SIDEWAYS VIEW + DESKTOP (HE7 — docs/holdem.md "HE7"):** wider than tall = THE SIDEWAYS TABLE (`layout-wide.js` PURE — the seats evenly by
+  arc length round a wide stadium, THE COLUMN of actions on the right; `tests/holdem-wide.test.mjs`); a desktop / wide window = the same on THE STAGE
+  (`stageOf` — one transform; the backdrop + the podium outside it) + the skin's SQUARE backdrop (`backdrop.square`, only sideways, only the chosen skin);
+  EVERY sideways CSS rule scoped to `.he[data-orient='wide']` — THE PORTRAIT IS UNTOUCHED (prove it: `holdem-pixdiff.mjs` vs a worktree on :5174); a size
+  change mid-motion SNAPS it (`motion.js#snap` — never a replay); the console's `#ns-turn` (TURN YOUR PHONE UPRIGHT) is hidden while `body.he-on`.
 - **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
   `now`; a test greps — the screen — `view.js` + its `motion.js` — alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
   DEALER is the server (HE2: crypto randomness — never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /

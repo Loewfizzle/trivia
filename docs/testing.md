@@ -188,6 +188,11 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   the preview's `&skin=casino|cabin|apartment` + `&settings=1` (THE TABLE picker open) on every state, `holdem-shots.mjs --skin casino,cabin,apartment`. The FULL
   E2E adds a LIVE SKIN SWITCH mid-hand on one phone (cabin → apartment → casino: the felt, the backs, the living touches, no reload, only skins' own files
   fetched) + THE BUSIEST MOMENT's 60 fps in EACH skin.
+- **HOLD'EM's SIDEWAYS VIEW + DESKTOP (HE7):** npm test — `tests/holdem-wide.test.mjs` (6 sideways phone sizes × 2–8 players: no overlaps, the
+  even spacing, the sizes, THE STAGE). Any local server: `node tests/integration/holdem-rotate.mjs "<browser>"` (10 turns mid-motion, a desktop window,
+  ≈ 40 s) · `holdem-pixdiff.mjs "<browser>" --a http://localhost:5174` (THE PORTRAIT UNCHANGED vs a worktree of the commit before) · `holdem-probe.mjs`
+  · `holdem-shots.mjs --sizes 844x390,932x430,667x375,1440x900`. The FULL E2E: ROTATE MID-HAND, ONE WHOLE HAND SIDEWAYS at 8 (one a desktop) on real
+  uncovered taps, the busiest moment SIDEWAYS in each skin — docs/holdem.md "HE7".
 - **HOLD'EM's TABLE (HE3):** npm test — `tests/holdem-wire.test.mjs` (the parts round-trip, every diff, the bytes) + `tests/holdem-phone.test.mjs` (the
   phone's pure side + THE LAYOUT at 2–8 players on five phones). The look: `tests/integration/holdem-preview.html` (no Firebase — docs/holdem.md
   "THE PREVIEW") + `node tests/integration/holdem-shots.mjs "<browser>"`. The E2E (the emulators + `serve.mjs --emu`):

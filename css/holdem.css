@@ -626,7 +626,7 @@ body.he-on #ns-turn { display: none !important; }
   text-align: center; white-space: normal; text-wrap: balance; line-height: 17px; font-size: 12.5px; letter-spacing: 0.1em;
 }
 .he[data-orient='wide'] .he-toast { left: var(--act-x); top: calc(var(--level-y) + 44px); }
-.he[data-orient='wide'] .he-hostbar { left: var(--act-x); top: calc(var(--level-y) + 44px); transform: translateX(-50%); }
+.he[data-orient='wide'] .he-hostbar { left: var(--act-x); top: calc(var(--level-y) + 44px); transform: translateX(-50%); white-space: nowrap; }
 
 /* THE SEATS: one block for every seat — the emblem on the rail, the plate under it (centred · l = its left edge with the emblem's · r its
    right), the tag under the plate (its own alignment), the cards beside the emblem (cs 1 right · -1 left · 0 above), the bet + the D button

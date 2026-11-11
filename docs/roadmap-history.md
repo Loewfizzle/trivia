@@ -2563,6 +2563,20 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - New assets: audio/holdem/ 356 KB · assets/holdem/chips/ 36 KB · assets/holdem/casino/ 66 KB (felt 52 · backdrop 12 · rail 1.6); removed felt-green.webp
   (14 KB) — net ≈ +444 KB. Still 8 functions; no rules change; HOLD'EM still playable: false.
 
+## HE7 — HOLD'EM: THE SIDEWAYS VIEW + DESKTOP (Nov 11, 2026 — docs/holdem.md "HE7"; the decisions: docs/games/plan.md "HE7")
+- THE SIDEWAYS LAYOUT (`js/games/holdem/layout-wide.js`, PURE): wider than tall → a WIDE STADIUM; YOU at the bottom centre, the others fully evenly spaced by
+  arc length round the rail; one seat block for every seat (plate + tag + cards + bet placed by a small search: on screen, off the column + the corner buttons,
+  clear of everything); the biggest board that fits (50–66 pt on every iPhone since the X; the SE 45–60), your hand's name above your cards, your bet beside them;
+  THE COLUMN on the right (the level line under the music button; LEAVE · the status · your clock · the presets above FOLD / RAISE / CALL; the slider + the
+  pre-actions + the between-hands buttons there too); the award box on the pot's spot (it shrinks a long line to fit); the end screen + the ledger in two columns.
+- ROTATE ANY TIME: the layout swaps at once; the motion in flight snaps to its end (`motion.js#snap`); no replay, no sound from a turn; the slider closes; YOUR
+  clock moves between the plate and the column. The console's TURN YOUR PHONE UPRIGHT card hidden while HOLD'EM's table is up (found by the E2E's real taps).
+- DESKTOP: THE STAGE (`stageOf` — one transform, × 1.42–2.4, the frame 2–2.4 : 1, centred) + the skins' SQUARE backdrops (1280²: 19 / 80 / 31 KB) with their
+  living touches on the square art; hover on the buttons; a tall window keeps portrait. The screen full-width (no phone column), the corners at the window's.
+- Proof: `tests/holdem-wide.test.mjs`; `holdem-rotate.mjs`; `holdem-pixdiff.mjs` (the portrait unchanged pixel for pixel in all three skins); the FULL E2E
+  (rotate mid-hand, a whole 8-phone hand sideways with a desktop phone on real uncovered taps, 60 fps sideways in each skin — 41/41). Found + flagged for
+  HE8: your own clock bar upright has sat below the screen since HE3.
+
 ## HE6 — HOLD'EM: REAL CARDS + COZY CABIN + CYBERPUNK APARTMENT + THE PICKER (Nov 10, 2026 — docs/holdem.md "HE6"; the decisions: docs/games/plan.md "HE6")
 - Group 0: the FULL 8-phone E2E re-run (its CASH LEAVE step crashed only with SHOTS=0 — `H.shot` returns nothing there; fixed); the casino backdrop re-exported at
   860 × 1864 (29 KB — HE5's 645-wide export blurred the slots' lights into blocks). THE REAL CARDS: Byron Knoll's Vector Playing Cards (public domain — verified on
