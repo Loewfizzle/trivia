@@ -337,7 +337,7 @@ export async function radioPublic(now) {
     intercom: ics.filter(m => m.aud === 'everyone' && m.state !== 'stopped').map(m => icPublic(m.id, m)),
     board: b.map(x => ({ id: x.id, lines: x.lines, local: x.local, repeat: x.repeat, at: x.at, until: x.until, made: x.made })),
     showcase: SHOWCASE_LEVELS.includes(sc) ? sc : null,
-    // CITY FIXES + HOLD'EM — the roof board's BASE POSTER switch (/admin → THE BILLBOARD); null = the timetable's default (ON · COMING SOON)
+    // CITY FIXES + HOLD'EM — the roof board's BASE POSTER switch (/admin → THE BILLBOARD); null = the timetable's default (ON · NOW OPEN from its `open` day — HOLD'EM IN THE CITY)
     base: base && base.holdem ? { holdem: cleanHoldem(base.holdem) } : null,
   };
 }

@@ -3,7 +3,8 @@
 // the ad is on, and whether THE BILLPOSTER's daily change is skipped (yesterday + today both HOLD'EM — he pastes it ONCE, the first evening
 // it's on, then stays home). Every message still interrupts as before (the owner's radio messages, LOOK UP, FIREWORKS, PARTY, the Sunday
 // postcard — core/harbor-billboard.js#hintAt runs first); HOLD'EM only replaces the day's GAME.
-//   THE STATE: the timetable's row `billboard.holdem` is the DEFAULT (ON, COMING SOON, from its `since`) — the owner's switch (/admin →
+//   THE STATE: the timetable's row `billboard.holdem` is the DEFAULT (ON from its `since`; NOW OPEN from its `open` day — HOLD'EM IN THE CITY,
+//   Nov 11 — COMING SOON before it) — the owner's switch (/admin →
 //   THE BILLBOARD: api/_lib/radio.js#boardBase → city2/billboard → the cached GET /api/admin?live=1 → setHoldem) overrides it on every phone.
 //   &force=billboard-holdem (+ &holdem=open) previews it from TODAY on this phone (the billposter pastes it at his slot / &force=work-billposter).
 import { knob } from './harbor-schedule.js';
@@ -41,13 +42,16 @@ export function holdemState() {
   if (FORCE) return { on: true, bar: FORCE.bar, since: FORCE.since, src: 'force' };
   const D = knob('billboard.holdem');
   if (SERVER) return { on: SERVER.on, bar: SERVER.bar, since: SERVER.since || D.since, src: 'owner' };
-  return { on: D.on !== false, bar: D.bar === 'open' ? 'open' : 'soon', since: D.since, src: 'default' };
+  return { on: D.on !== false, bar: D.bar === 'open' ? 'open' : 'soon', since: D.since, open: KEY_RE.test(String(D.open || '')) ? D.open : null, src: 'default' };
 }
+/** PURE: the bar a day key shows — HOLD'EM IN THE CITY: the default is NOW OPEN from its `open` day key (COMING SOON on the days before it —
+ *  the past stays true + THE BILLPOSTER pastes the new sheet ONCE, at his slot on that day: the paste is the change, never a pop-in) */
+export const barOn = (S, dayKey) => (S.bar === 'open' && S.open && dayNum(dayKey) < dayNum(S.open) ? 'soon' : S.bar);
 /** the poster a board day key shows: 'holdem' | 'holdem-open' | null (the day's game) */
 export function holdemShow(dayKey) {
   const S = holdemState();
   if (!S.on || !dayKey || !KEY_RE.test(dayKey) || dayNum(dayKey) < dayNum(S.since)) return null;
-  return S.bar === 'open' ? 'holdem-open' : 'holdem';
+  return barOn(S, dayKey) === 'open' ? 'holdem-open' : 'holdem';
 }
 /** THE BILLPOSTER stays home on a day his change would paste the SAME poster (HOLD'EM over HOLD'EM) */
 export const holdemKeeps = dayKey => !!holdemShow(dayKey) && holdemShow(prevKey(dayKey)) === holdemShow(dayKey);

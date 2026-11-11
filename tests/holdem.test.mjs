@@ -11,18 +11,36 @@ import { dayChart } from '../js/core/harbor-daychart.js';
 const day0Of = key => Date.parse(`${key}T00:00:00-05:00`) / 1000;
 const reset = () => { setHoldemForce(null); setHoldem(null); };
 
-test('the default (no switch set): ON · COMING SOON from the timetable row\'s `since`; before it the day\'s game', () => {
+test('the default (no switch set): ON from the row\'s `since`, COMING SOON, NOW OPEN from its `open` day (HOLD\'EM IN THE CITY); before it the day\'s game', () => {
   reset();
   const D = knob('billboard.holdem');
   assert.equal(D.since, '2026-11-08');
+  assert.equal(D.bar, 'open');
+  assert.equal(D.open, '2026-11-11');
   assert.equal(holdemState().src, 'default');
   assert.equal(holdemShow('2026-11-07'), null, 'the day before: the game');
   assert.equal(holdemShow('2026-11-08'), 'holdem');
-  assert.equal(holdemShow('2026-12-01'), 'holdem', 'no end date — until the owner changes it');
+  assert.equal(holdemShow('2026-11-10'), 'holdem', 'COMING SOON up to the day before it opened');
+  assert.equal(holdemShow('2026-11-11'), 'holdem-open', 'NOW OPEN from the day HOLD\'EM went playable');
+  assert.equal(holdemShow('2026-12-01'), 'holdem-open', 'no end date — until the owner changes it');
   // (the city's own keys are NOT zero-padded — '2026-11-8': the same day; a text compare said "before" — the WebKit shot caught it)
   assert.equal(holdemShow('2026-11-8'), 'holdem');
   assert.equal(holdemShow('2026-11-7'), null);
-  assert.equal(holdemShow('2026-11-10'), 'holdem');
+});
+
+test('HOLD\'EM IN THE CITY: THE BILLPOSTER pastes NOW OPEN once (Nov 11 — the paste is the change), then stays home again', () => {
+  reset();
+  const kinds = key => workDay(key, { seed: 1924, day0: day0Of(key), off: -300 }).map(w => w.kind);
+  assert.equal(holdemKeeps('2026-11-10'), true, 'COMING SOON over COMING SOON: home');
+  assert.equal(holdemKeeps('2026-11-11'), false, 'COMING SOON → NOW OPEN: he comes');
+  assert.ok(kinds('2026-11-11').includes('billposter'));
+  for (const k of ['2026-11-12', '2026-11-20']) { assert.equal(holdemKeeps(k), true); assert.ok(!kinds(k).includes('billposter'), `${k}: no billposter`); }
+  // the owner's switch still overrides the default (and can turn it off)
+  setHoldem({ on: true, bar: 'soon', since: '2026-11-08' });
+  assert.equal(holdemShow('2026-11-20'), 'holdem');
+  setHoldem({ on: false });
+  assert.equal(holdemShow('2026-11-20'), null);
+  reset();
 });
 
 test('the owner\'s switch: OFF → the games back; NOW OPEN → the same poster, the other bar; a bad value = the default', () => {
@@ -70,7 +88,7 @@ test('the messages still interrupt: HOLD\'EM is no hint row; the day chart shows
   assert.ok(!billboardRows().some(r => r.id === 'billboard.holdem'), 'not in the hint queue (the hints run first, then the base)');
   const C = dayChart('2026-11-12', { seed: 1924 });
   const it = C.items.find(i => /BASE POSTER: TEXAS HOLD/.test(i.label));
-  assert.ok(it && /COMING SOON/.test(it.label) && /no billposter today/.test(it.label), it && it.label);
+  assert.ok(it && /NOW OPEN/.test(it.label) && /no billposter today/.test(it.label), it && it.label);
 });
 
 test('THE BOARD\'s REPEATED SWAPS: two of the owner\'s messages a second apart never blip the board back to the poster between them', async () => {
