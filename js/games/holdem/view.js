@@ -897,7 +897,12 @@ export function createView() {
     // THE TICK (HE5): the last 5 s of YOUR clock (the shot clock + your bank still to come) — one soft tick a second
     const mine = ck && activeBar && activeBar.classList.contains('he-clock') ? mySeat() : null;
     const sec = mine ? tickSecond((t.bankOn ? t.deadline : t.deadline + (mine.away ? 0 : mine.bank || 0)) - sn) : 0;
-    if (sec !== lastTick) { if (sec && primed) playSound('timer-tick'); lastTick = sec; }
+    if (sec !== lastTick) {
+      if (sec && primed) playSound('timer-tick');
+      // (HE8 — THE LAST 5 S: your plate pulses softly with the tick — css/holdem.css .is-hurry; reduced motion = no pulse)
+      if (!sec !== !lastTick) els.hero.classList.toggle('is-hurry', !!sec);
+      lastTick = sec;
+    }
     if (motion) motion.tick(now);
     const wk = performance.now() - w0;
     work.push(wk); if (work.length > 240) work.shift();

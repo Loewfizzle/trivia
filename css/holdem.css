@@ -315,6 +315,16 @@
 .he-hero.is-winner .he-label { color: var(--he-ink); background: var(--he-gold); border-radius: 6px; padding: 0 8px; border-left: 0; }
 .he-clock { left: 50%; width: 120px; transform: translateX(-50%); top: calc(var(--plate-y) - var(--hand-y) + 40px); }
 .he-clock[hidden], .he-sclock[hidden] { display: none; }
+/* HE8 — YOUR TURN TIMER upright: a gold bar across the TOP edge of your plate (inside its rim, clear of the text), draining over your 20 s;
+   red-orange in your time bank (.is-bank); the last 5 s your plate pulses softly with the tick (.is-hurry — scale + the ring's opacity only).
+   Sideways keeps HE7's bar over the presets (the clock is the hero's child there, never the plate's). */
+.he-plate > .he-clock { left: 11px; right: 11px; width: auto; top: 2px; height: 4px; transform: none; }
+.he-plate > .he-clock > i { box-shadow: none; }
+.he[data-orient='tall'] .he-hero.is-turn.is-hurry .he-plate { animation: he-hurry 1s ease-in-out infinite; }
+.he[data-orient='tall'] .he-hero.is-turn.is-hurry .he-plate::before { animation: he-hurry-ring 1s ease-in-out infinite; }
+@keyframes he-hurry { 0%, 100% { scale: 1; } 45% { scale: 1.045; } }
+@keyframes he-hurry-ring { 0%, 100% { opacity: 1; } 45% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .he[data-orient='tall'] .he-hero.is-hurry .he-plate, .he[data-orient='tall'] .he-hero.is-hurry .he-plate::before { animation: none; } }
 .he-hero .he-bet { left: calc(var(--mybet-x) - var(--cx)); top: calc(var(--mybet-y) - var(--hand-y)); transform: translate(-50%, -50%); }   /* HE5: on the felt above the presets (layout.js#myBet) — never on a button */
 .he.has-mybet .he-print { opacity: 0; }
 .he-hero .he-dealer { left: calc(var(--hc-w) * -1 - 14px); top: -9px; }

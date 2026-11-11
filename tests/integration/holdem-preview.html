@@ -226,7 +226,11 @@ if (MODE === 'cash' && q.get('broke') === '1') { const x = T().seats.find(y => y
 if (q.get('hand') && T().seats.find(x => x.id === me)) { const x = T().seats.find(y => y.id === me); const c = q.get('hand'); x.cards = [c.slice(0, 2), c.slice(2, 4)]; }
 // the clock: a few seconds into the turn (the bar part-drained)
 const t = T();
-if (!PLAY && !STAGED && STATE !== 'spectate') window.__clock = () => (t.deadline ? t.deadline - 12_500 : now + 400);
+// (HE8 — YOUR TURN TIMER: &clk=<ms left> holds the clock there; &bank=1 = the turn already in your time bank — the bar red-orange; with
+//  &clk ≤ 5000 the last 5 s: the plate's pulse)
+if (q.get('bank') === '1' && t.deadline) { const x = t.seats.find(y => y.seat === t.turn) || t.seats[t.turn]; t.bankFrom = t.deadline; t.deadline = t.bankFrom + (x.bank || 30_000); t.bankOn = true; x.bank = 0; }
+const CLK = q.get('clk') != null ? Number(q.get('clk')) : null;
+if (!PLAY && !STAGED && STATE !== 'spectate') window.__clock = () => (t.deadline ? t.deadline - (CLK != null ? CLK : 12_500) : now + 400);
 
 const pub = publicOf(rec);
 const node = { seq: rec.seq, at: now, ...nestWire(toWire(pub)) };
