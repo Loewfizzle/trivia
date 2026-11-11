@@ -137,4 +137,3 @@ export const playSound = (name, opts = {}) => playCues([{ name, at: 0, ...opts }
 /** the test hook: the cues that started on the audio context */
 export const played = () => log.slice();
 export const planned = () => plan.slice();
-export const clearPlayed = () => { log.length = 0; plan.length = 0; };

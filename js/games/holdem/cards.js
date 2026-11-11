@@ -37,4 +37,3 @@ export function cardInt(code) {
 
 export const intCard = n => RANKS[n >> 2] + SUITS[n & 3];
 export const rankOf = code => RANKS.indexOf(code[0]);
-export const suitOf = code => SUITS.indexOf(code[1]);

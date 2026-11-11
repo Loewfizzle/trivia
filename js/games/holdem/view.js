@@ -259,7 +259,7 @@ export function createView() {
     if (finalView) { if (finalView.refresh) finalView.refresh(); return; }
     const cash = g.endMode === 'cash';
     finalView = createFinal({ rows: Array.isArray(g.rows) ? g.rows : [], players: st.players || {}, me: me(), presence: st.presence, scoreLabel: cash ? 'NET' : '',
-      kicker: cash ? 'CASH · THE LEDGER' : 'TOURNAMENT · FINAL', winnerLine: nm => (cash ? `${nm} LEAVES WITH THE MOST` : `${nm} TAKES EVERY CHIP`) });
+      kicker: cash ? 'CASH · THE LEDGER' : 'TOURNAMENT · FINAL' });   // (the body names the winner — the frame's own WINNER line is hidden: css)
     els.final = h('div.he-final', finalView.el);
     root.append(els.final);
     root.classList.add('is-final');

@@ -139,12 +139,6 @@ export function othersInOrder(seats, me) {
   return [...list.slice(i + 1), ...list.slice(0, i)];
 }
 
-/** The pot shown above the board: everything bet this hand (the settled pots + the bets in front of the seats). */
-export function potOf(table) {
-  if (!table) return 0;
-  return (table.seats || []).reduce((n, x) => n + (x.total || 0), 0);
-}
-
 /** The side pots' labels once a street has settled them: [{ label: 'MAIN' | 'SIDE 1' …, amount }] (only when there is more than one). */
 export function sidePots(table) {
   const pots = (table && table.pots) || [];

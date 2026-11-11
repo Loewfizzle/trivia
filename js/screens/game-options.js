@@ -60,7 +60,8 @@ export function openGameOptions(g, { meta = null, onClose = null } = {}) {
     if (!o.choices.some(c => String(c.value) === String(settings[o.key]))) settings[o.key] = o.choices[0].value;
   }
   const est = h('span.est');
-  const renderEst = () => { const m = mod.estimateMinutes(settings); est.textContent = typeof m === 'string' ? m : `≈ ${m} MIN`; };   // (HE3: a word — HOLD'EM's CASH is "OPEN")
+  // (HE10: the connected count as an optional third argument — HOLD'EM's length depends on it; the other games ignore it)
+  const renderEst = () => { const m = mod.estimateMinutes(settings, undefined, { players }); est.textContent = typeof m === 'string' ? m : `≈ ${m} MIN`; };   // (HE3: a word — HOLD'EM's CASH is "OPEN")
   const startBtn = h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button' }, h('span', 'INITIATE'));
   let sheet = null;
   const close = () => { if (!sheet) return; const s = sheet; sheet = null; s.close(); };

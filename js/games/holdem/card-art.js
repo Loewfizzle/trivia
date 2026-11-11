@@ -13,8 +13,6 @@
 // HOLD'EM → CARD COLOURS: CLASSIC = the two-colour deck. The ink never changes with the skin (only the stock's tint does).
 import { GLYPH, PIP, COURT } from './card-data.js';
 
-const RANK_TXT = { T: '10', J: 'J', Q: 'Q', K: 'K', A: 'A' };
-export const rankText = r => RANK_TXT[r] || r;
 export const SUIT_NAME = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
 const FOUR = { s: '#15161c', h: '#d3202f', d: '#1d5fd6', c: '#14864a' };
 const TWO = { s: '#15161c', h: '#d3202f', d: '#d3202f', c: '#15161c' };

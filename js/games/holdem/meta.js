@@ -32,15 +32,21 @@ export const OPTIONS = [
     { value: 'cash', label: 'CASH', sub: 'Play chips · fixed blinds · rebuy at zero · the host ends it' },
   ] },
   { key: 'speed', label: 'SPEED', hint: 'TOURNAMENT ONLY', type: 'list', choices: [
-    { value: 'turbo', label: 'TURBO', sub: 'The blinds climb every 90 seconds · about 20 min' },
-    { value: 'standard', label: 'STANDARD', sub: 'Every 6 minutes · about 50 min' },
-    { value: 'deep', label: 'DEEP', sub: 'Every 15 minutes, bigger stacks · about 1 h 40' },
+    { value: 'turbo', label: 'TURBO', sub: 'The blinds climb every 90 seconds · 10–20 min' },
+    { value: 'standard', label: 'STANDARD', sub: 'Every 6 minutes · 30–55 min' },
+    { value: 'deep', label: 'DEEP', sub: 'Every 15 minutes, bigger stacks · 40 min – 2 h' },
   ] },
 ];
 
-/** THE LENGTH STUDY's medians at 6–8 players (docs/holdem.md): TURBO ~20, STANDARD ~50, DEEP ~100 min; CASH has no end time — "OPEN" */
-export function estimateMinutes(settings) {
+/**
+ * THE LENGTH STUDY's medians (docs/holdem.md) by the connected count (HE10 — A45: heads-up runs about half an 8-player table); no count
+ * (the title's sign) → 6–8 players. CASH has no end time — "OPEN".
+ */
+export const LENGTHS = { turbo: { 2: 11, 4: 15, 6: 19, 8: 20 }, standard: { 2: 31, 4: 41, 6: 46, 8: 54 }, deep: { 2: 42, 4: 67, 6: 95, 8: 111 } };
+export function estimateMinutes(settings, _, { players } = {}) {
   const s = cleanSettings(settings);
   if (s.mode === 'cash') return 'OPEN';
-  return { turbo: 20, standard: 50, deep: 100 }[s.speed];
+  const row = LENGTHS[s.speed], n = Number(players) || 7;
+  const at = n <= 2 ? 2 : n <= 4 ? 4 : n <= 6 ? 6 : 8;
+  return players ? row[at] : { turbo: 20, standard: 50, deep: 100 }[s.speed];
 }

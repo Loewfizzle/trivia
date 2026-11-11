@@ -219,7 +219,7 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
 /**
  * THE LEAN WIRE (HE3): ONE multi-path update — the public parts that changed since `prev` (prev null = the whole view, the node
  * replaced: a start or THE HEAL), every seat's private node that changed, and the room's meta/activeAt (at most once a minute — the
- * last stamp is remembered per warm instance). → the update's bytes.
+ * last stamp is remembered per warm instance).
  */
 async function publish(code, prev, next, now, { holes = true } = {}) {
   const rp = `rooms/${code}`, u = {};
@@ -242,7 +242,7 @@ async function publish(code, prev, next, now, { holes = true } = {}) {
   const wrote = !!(u[`${rp}/holdem`] || u[`${rp}/holdem/seq`] != null);
   const stamp = wrote && now - (ACTIVE.get(code) || 0) >= ACTIVE_EVERY_MS;
   if (stamp) u[`${rp}/meta/activeAt`] = now;
-  if (!Object.keys(u).length) return 0;
+  if (!Object.keys(u).length) return;
   await ref('/').update(u);
   if (stamp) { ACTIVE.set(code, now); if (ACTIVE.size > 2000) for (const k of [...ACTIVE.keys()].slice(0, 500)) ACTIVE.delete(k); }
   if (emulated() && wireStats.length < 20000) {                  // (HE10 — A19: the tests' byte accounting never runs in production)
@@ -250,11 +250,9 @@ async function publish(code, prev, next, now, { holes = true } = {}) {
     const kinds = [...new Set((next.ev || []).filter(e => !prev || e.n > (prev.evn || 0)).map(e => e.t))];
     wireStats.push({ kinds, diff: wireBytes(pubPart), full: wireBytes({ seq: next.seq, at: now, j: JSON.stringify(pubNext) }), whole: !prev });
   }
-  return wireBytes(u);
 }
 // (the last activeAt stamp per room, per warm instance — a cold instance stamps once more: one more stamp, never one fewer)
 const ACTIVE = new Map();
-export const forgetHoldemActive = () => ACTIVE.clear();
 
 /**
  * THE RESULT, ONCE: the match is over → its summary from the SERVER's OWN record goes through the server-checked path every room match

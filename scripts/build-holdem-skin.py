@@ -6,6 +6,7 @@
   backdrop.webp   the portrait backdrop (AI-generated with Grok) at 2× phone size (860 × 1864 — HE6: HE5's 645-wide export blurred the slots'
                   lights into blocks), its composition done here (a crop, a nudge, a lift)
   wood.webp       (optional) a small dark texture the plates + buttons are made of (COZY CABIN's wood)
+  (HE10) cardback-casino.webp + chips/ (the `chips` row) — every HOLD'EM image that ships is reproducible from Ben's originals
   square.webp     (HE7) the SQUARE original for the sideways view + desktop — the whole room, compressed (SQ px square: it's dim background
                   behind the table; the cards + text are what must be crisp)
 The light = the skin's ONE light direction (js/games/holdem/skins.js — <skin>.light.dir; the chips read the same one). Tileable in, tileable
@@ -18,7 +19,7 @@ from PIL import Image
 args = sys.argv[1:]
 SRC = args.pop(0) if args and os.path.isdir(args[0]) else os.path.expanduser(r'~\Downloads\grok\holdem')
 ONLY = set(args)
-ROOT = os.path.join(os.path.dirname(__file__), '..', 'assets', 'holdem')
+ROOT = os.environ.get('HE_OUT') or os.path.join(os.path.dirname(__file__), '..', 'assets', 'holdem')   # (HE_OUT: a dry run elsewhere)
 BD_W, BD_H = 860, 1864          # the portrait backdrop: 2× a 430 × 932 phone (it's background — the cards + text are what must be 3×)
 SQ = 1280                       # HE7: the square backdrop (a 1440-wide desktop shows it ≈ 1.1×, a phone on its side ≈ 0.7× its width at 1×)
 
@@ -74,6 +75,7 @@ def casino(out):
     lit('rail-leather.jpg', 'rail-leather-normal.png', 384, 1.6, L, os.path.join(out, 'rail.webp'), q=80)
     backdrop('backdrop-casino-portrait.png', os.path.join(out, 'backdrop.webp'))
     square('backdrop-casino.png', os.path.join(out, 'square.webp'))
+    cardback('cardback-casino.png', os.path.join(ROOT, 'cardback-casino.webp'))   # (HE10 — A47: HE3's casino back, now baked here too)
 
 
 def cardback(file, out, q=80):
@@ -140,7 +142,16 @@ def apartment(out):
     cardback('cardback-apartment.png', os.path.join(ROOT, 'cardback-apartment.webp'))
 
 
-SKINS = {'casino': casino, 'cabin': cabin, 'apartment': apartment}
+def chips(out):
+    """HE10 (A47): THE CHIPS (HE5 — AI-generated with Grok, Downloads\grok\holdem\chips\): six colours, a top (512² → 128²) + a side
+    (512 × 96 → 128 × 24) each, alpha kept — chip-art.js composes the stacks from them at their real size"""
+    d = os.path.join(ROOT, 'chips'); os.makedirs(d, exist_ok=True)
+    for c in ['red', 'green', 'black', 'purple', 'yellow', 'orange']:
+        for part, size in (('top', (128, 128)), ('side', (128, 24))):
+            Image.open(os.path.join(SRC, 'chips', f'chip-{c}-{part}.png')).convert('RGBA').resize(size, Image.LANCZOS).save(os.path.join(d, f'chip-{c}-{part}.webp'), 'WEBP', quality=86, method=6)
+
+
+SKINS = {'casino': casino, 'cabin': cabin, 'apartment': apartment, 'chips': chips}
 
 for sid, fn in SKINS.items():
     if ONLY and sid not in ONLY: continue

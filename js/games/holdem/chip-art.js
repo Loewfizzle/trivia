@@ -23,7 +23,6 @@ const dprOf = () => Math.min(3, Math.max(1, (typeof devicePixelRatio === 'number
 
 export function setLight(l) { if (l && (l.x !== LIGHT.x || l.y !== LIGHT.y)) { LIGHT = { x: l.x, y: l.y }; cache.clear(); art.version++; } }
 export const artVersion = () => art.version;
-export const chipsReady = () => art.ready;
 /** a callback when the art has loaded (the view repaints its bets) → unsubscribe */
 export function onChipsReady(fn) { art.listeners.add(fn); return () => art.listeners.delete(fn); }
 

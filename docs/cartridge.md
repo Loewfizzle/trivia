@@ -143,11 +143,13 @@ looked up in the site's files:
 ## A game BEING BUILT (HE3 — HOLD'EM)
 A cartridge between its first screen and its go-live: a `config.js` GAMES row with `playable: false` + `preview: true` and NO `sign` — never offered
 (the lobby's picker, the signs, HOW TO PLAY's tabs, THE BOARD all skip it), and `host.js#startGame` refuses it everywhere EXCEPT a LOCAL emulator page
-that asks (`localhost` / `127.0.0.1` + `?emu` + `&preview=1`, or the E2E's `window.__nsPreview` — `config.js#isPlayable`): the smoke test still proves
-it can't start on a plain one. It meets the WHOLE contract like a playable game (`tests/cartridge.test.mjs#BUILDING`, the harbor `cartridge` group);
+that asks (`localhost` / `127.0.0.1` + `?emu` + `&preview=1`, or the E2E's `window.__nsPreview` — `config.js#isPlayable`) — and (HE8 — THE OWNER'S
+LIVE TEST) the owner's own phone (`config.js#setOwnerPhone`, from the radio gate's server-checked `owner` yes; the server's start checks again): the smoke
+test still proves it can't start on a plain one. (HOLD'EM went playable in HE10 — the first game through this whole road.) It meets the WHOLE contract like a playable game (`tests/cartridge.test.mjs#BUILDING`, the harbor `cartridge` group);
 the tests that walk every GAMES row for the city / THE BOARD / the reports skip it until the pass that makes it playable gives it those.
 A server-dealt game (HOLD'EM): `start` asks the server and returns only the console's frame (`id`, `matchId`, `settings`, `participants`, `phase`); its
-`step` moves to `final` only once the server's own result is in, so the podium's usual report finds `results/{CODE}_{matchId}` already counted.
+`step` moves to `final` only once the server's own result is in, so the podium's usual report finds `results/{CODE}_{matchId}` already counted. HE10: such
+a game is listed in `api/report.js#DEALER_GAMES` — the shared report path never credits it (only the dealer's record does).
 
 ## The exempt list
 The ten HIDDEN games (WINDOWS, Nov 1 — cipher, signal, bluff, pulse, golf, agent, slip, gridlock, stakes, rum) are EXEMPT

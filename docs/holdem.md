@@ -17,7 +17,10 @@ SCREEN B". HE4, Nov 10 2026 — THE TABLE SCREEN B (below: "THE MOTION", "THE SH
 - The passes: HE1 engine + sims → HE2 the server dealer → HE3–HE4 the table screen → HE5–HE6 skins → HE7 sideways → HE8 E2E + polish →
   HE9 Fable review → HE10 fixes. Live only when Ben flips its own `playable` switch.
 
-## The files (`js/games/holdem/` — all PURE: no DOM, no database, no clock, no Math.random)
+## The files — THE ENGINE (`js/games/holdem/`'s seven rules files — all PURE: no DOM, no database, no clock, no Math.random)
+(The folder holds 28 modules: these seven are the rules; the phone's side — the cartridge, its PURE helpers `logic.js` · `layout.js` · `layout-wide.js` ·
+`wire.js` · `motion-plan.js` · `sound-plan.js` · `chips.js` · `skins.js`, and the screen `view.js` · `motion.js` · `sfx.js` · `card-art.js` · `chip-art.js` ·
+`picker.js` · `rankings.js` · `final.js` — is listed under "THE TABLE SCREEN" and HE4–HE8.)
 | file | what |
 | --- | --- |
 | `cards.js` | the 52 codes (`"As"`, `"Td"`, `"2c"`), `shuffleDeck(rng)` (Fisher–Yates on the INJECTED rng), code ↔ int |
@@ -174,16 +177,17 @@ uid is ALWAYS the caller — never a uid from the body):
 
 | op | body | who | what |
 | --- | --- | --- | --- |
-| `start` | `{ room, mode: 'tournament'\|'cash', speed? }` | the host | seats = the room's players (≤ 8, not kicked), in an order the server's randomness picks; the first button is the engine's rng pick; hand 1 dealt at once. Refused while a match runs — unless it is ABANDONED (its room was closed + the HUSH WORD reused, or < 2 of its seats are still in the room) |
+| `start` | `{ room, mode: 'tournament'\|'cash', speed?, matchId?, uids?, at? }` | the host (HE8: while `playable: false` only the owner — 403 `not_open`) | seats = the room's players (≤ 8, not kicked), in an order the server's randomness picks; the first button is the engine's rng pick; hand 1 dealt at once. Refused while a match runs — unless it is ABANDONED (its room was closed + the HUSH WORD reused, or < 2 of its seats are still in the room) |
 | `act` | `{ room, hand, seq, action, amount? }` | your seat | `fold` · `check` · `call` · `bet` / `raise` (TO `amount` — either word, the server picks by the table) · `allin`. `hand` + `seq` = the state the phone acted on: a stale or repeated tap → 409 `stale` with the current `seq` + `hand`, nothing written; an illegal one → 409 `illegal` (the engine's sentence) |
-| `pre` | `{ room, hand, pre: 'checkfold'\|'callany'\|null }` | your seat | your queued PRE-ACTION, kept on the SERVER: it fires the moment your turn arrives (your phone asleep or not); a new street / hand drops it (HE1's rule). Private: it never moves the public view |
+| `pre` | `{ room, hand, pre: 'checkfold'\|'check'\|'callany'\|null }` | your seat | your queued PRE-ACTION, kept on the SERVER: it fires the moment your turn arrives (your phone asleep or not); a new street / hand drops it (HE1's rule). HE10 (Ben's A1): `check` = a TRUE CHECK — refused while you owe chips, DROPPED the moment anyone bets (it never calls). Private: it never moves the public view |
 | `show` | `{ room, hand }` | the fold-winner | the optional SHOW, until the next deal |
-| `poke` | `{ room }` | anyone in the room | whatever is DUE by the server's own clock (below); nothing due → ONE tiny read (`hrec/{CODE}/due`), no transaction, no write |
-| `rebuy` · `back` · `leave` · `sit` | `{ room }` | you (CASH) | rebuy at zero · SIT BACK from AWAY / SAT OUT · leave (your stack counts then) · a LATE JOINER takes a free seat (dealt in next hand; a player who left may come back) |
-| `endSession` | `{ room, voidHand? }` | the host (CASH) | between hands: closes at once; mid-hand: closes when the hand ends. `voidHand: true` (every chip of the running hand back) is the FALLBACK only — refused (`too_soon`) until the end has waited 2 min |
+| `poke` | `{ room }` | anyone in the room | whatever is DUE by the server's own clock (below); nothing due → 5 small reads in parallel (the due, your seat in the room, your kick, the two seqs), no transaction, no write |
+| `rebuy` · `back` · `leave` · `sit` | `{ room }` (`leave`: `after?` — HE5's LEAVE AFTER THIS HAND, `false` cancels) | you (CASH) | rebuy at zero · SIT BACK from AWAY / SAT OUT · leave (your stack counts then) · a LATE JOINER takes a free seat (dealt in next hand; a player who left comes back WITH THE CHIPS THEY LEFT WITH — HE10, Ben's A18; at zero a fresh 1,000) |
+| `endSession` | `{ room }` | the host (CASH) | between hands: closes at once; mid-hand: closes when the hand ends (a second tap → 409 `ending`). HE10 (A17): the old "void the hand" fallback is gone — a hand always ends by itself, on the clock's timeouts at the latest |
 
 Answers: `{ ok, changed, seq, hand, due, now }` (`id` = the matchId on `start`). Refusals: 400 `bad_*` · 403 `not_in_room` / `kicked` / `not_host` /
-`not_seated` · 404 `no_match` · 409 `stale` / `illegal` / `running` / `too_soon` / `ending` · 429 `slow_down`.
+`not_open` / `not_seated` · 404 `no_match` · 409 `stale` / `illegal` / `running` / `ending` · 429 `slow_down`. HE10 (A14): what the server's clock made
+due runs FIRST on every op — a late tap never beats its own timeout, the time bank is charged from the deadline; a refusal after that catch-up still writes the caught-up table.
 
 **THE POKE — the server's clock decides, never a phone's.** Everything time-based happens when a phone pokes and the server's OWN `now` has
 passed the moment: a turn's deadline (the 20 s, then the time bank — a late poke still starts the bank at the ORIGINAL deadline), a run-out
@@ -213,8 +217,8 @@ view's `now`-corrected server time (`serverNow()`), never its own.
 
 **ONE CALL** = the budget (in memory; the shared `rl/hd_{uid}` count written behind it) → the room checks + the record + the public view loaded in
 parallel (both HELD in the SDK's cache by a listener for the call — DFIX3's trick: each transaction's first attempt sees the real value) → ONE
-transaction on `hrec/{CODE}` (a refusal writes nothing; a no-op writes nothing) → the public view's transaction + the changed private nodes in
-parallel → at the match's end, THE RESULT. Server-Timing: `auth · pre · load · tx;desc=attempts · write · report · total` (+ the region).
+transaction on `hrec/{CODE}` (a refusal writes nothing — unless the clock's catch-up moved the table first; a no-op writes nothing) → ONE multi-path
+update: the changed public parts (THE LEAN WIRE — HE3) + the changed private nodes → at the match's end, THE RESULT. Server-Timing: `auth · pre · load · tx;desc=attempts · write · report · total` (+ the region).
 
 **THE CALL BUDGET:** 900 calls / 10 min per uid (`holdem-store.js#CALLS`) — a fast 8-player table's host (every poke + their own acts) uses ~25 a
 minute; a flood gets cheap 429s.
@@ -232,7 +236,7 @@ own delete-the-whole-room close still takes it with the room); top-level `hole/{
 `hrec` has no rule (the root's deny). Proved in tests/integration/rules.test.mjs + read AS each phone in the full-match suite.
 
 **THE FREE-PLAN COST** (measured on the emulators — tests/integration/holdem-server.test.mjs prints it): ≈ **2–4 ms of function CPU a call** (an
-act ~2–3 ms, a poke that deals ~3–5 ms, a poke with nothing due ≈ 3 tiny reads); robot tables ran **6–7 calls a hand** — people, with more checks +
+act ~2–3 ms, a poke that deals ~3–5 ms, a poke with nothing due = 5 small reads in parallel); robot tables ran **6–7 calls a hand** — people, with more checks +
 calls, ~**12 a hand** (≈ 10 acts + the deal / run-out pokes). An 8-player TURBO (~21 hands, ~20 min) ≈ **250 calls, ~1 s of CPU**; an 8-player
 DEEP (~110 hands, ~2 h) ≈ **1,350 calls, ~5 s of CPU** — against Vercel Hobby's 1 M invocations + 4 h of active CPU a month that is ~4,000
 TURBO matches. **Firebase's download** (HE3 — THE LEAN WIRE): a call now downloads the record (~6 KB) to the function (+ two numbers) and only the
@@ -284,14 +288,15 @@ rooms/{CODE}/holdem = { seq, at,  m/{key}      every top-level field of the publ
 player count, so CASH shows it with the hint TOURNAMENT ONLY and ignores it; `estimateMinutes` ~20 / 50 / 100, CASH → the word "OPEN"; MIN 2, no SOLO;
 `LOOKS ['night']`; `CHAT_CHIPS` NICE HAND · NO WAY · WELL PLAYED · UNLUCKY; never chat-locked; `ACCENT` the casino gold `#f2c14e`; BANNER "HOLD'EM"; MUSIC
 the LATE station) · `index.js` (`start` = the dealer's start; `livePaths` = `{ table: 'holdem' }`; `step` = the console's frame only: once the dealer's
-table says `ended` AND `rep` (the result is in) → `final` with the places + the podium's rows, so the podium's report finds the dealer's result; `preload`
-= the felt + the card back, ~30 KB) · `logic.js` (the phone's PURE side: the ranks, the podium rows, the level line, WHO POKES, the seats' order) ·
+table says `ended` AND `rep` (the result is in) AND (HE10 — A3) 4.5 s have passed since the end → `final` with the places + the podium's rows, so the podium's
+report finds the dealer's result; `preload` = the 17 sounds (365 KB) + this phone's deck's court sprite (~199 KB) + the chips (36 KB) + the chosen skin's
+art (88–150 KB) ≈ 700–750 KB, about half the 1.5 MB budget) · `logic.js` (the phone's PURE side: the ranks, the podium rows, the level line, WHO POKES, the seats' order) ·
 `layout.js` (THE TABLE's numbers) · `view.js` (the screen) · `card-art.js` (the faces) · `rankings.js` (the sheet) · `final.js` (the podium body).
 The view renders ONLY from the database: the public table (`fromWire(live.table)`) + its own `hole/{CODE}/{uid}` (its own listener) + `serverNow()`.
 
 **THE LAYOUT** (`layout.js#tableLayout` — the design target 390 × 844; set once per resize by a ResizeObserver, never in a frame loop):
 - THE TABLE: a tall STADIUM ≈ x 18–372, y 100–752 (the header row above: 54 pt under the safe top; 58 pt under it for your plate) — a black rail with a
-  thin gold line, the real green felt (`assets/holdem/felt-green.webp`, a 512² tile of ambientCG's Fabric030, CC0) + a vignette, a cream betting line,
+  thin gold line, the real felt (`assets/holdem/<skin>/felt.webp`, a 512² tile of ambientCG's Fabric030, CC0 — lit + recoloured per skin) + a vignette, a cream betting line,
   the quiet print NEON SPEAKEASY under the board. On a shorter phone everything scales with the table's height (`s`, 0.74–1.08); the seat blocks shrink
   with it (`ss` ≤ 1). Desktop: HE7's sideways table (a tall window keeps this one) — see "HE7".
 - THE SEATS (anchors at the emblem's centre): the top seat 0.028 of the table's height (on the rail). **HE4 (Ben's preview fixes):** the side rows are
@@ -316,8 +321,8 @@ the board, the pot, a side pot or the presets at 375 / 390 / 402 / 430 + an SE h
 
 **THE CONTROLS:** your turn — the one-tap PRESETS with their real amounts (MIN · 3× · ALL IN before the flop, ½ POT · POT · ALL IN after — the
 engine's) + FOLD · RAISE (BET when nothing's bet) · CALL n / CHECK / ALL IN n; RAISE opens THE SLIDER (min → all in, the amount big, CONFIRM / BACK)
-above your cards. Not your turn — the PRE-ACTIONS (CHECK / FOLD · CALL ANY; FOLD · CHECK when it's free; `pre` → the server; lit while queued, a second
-tap clears) + "<NAME> IS THINKING…". Your own buttons between turns: SHOW YOUR CARDS (a fold-win, ~4 s), REBUY 1,000 (CASH at zero — between hands too),
+above your cards. Not your turn — the PRE-ACTIONS (HE10, Ben's A1: nothing owed → CHECK / FOLD · CHECK · CALL ANY — CHECK a TRUE check the dealer drops the moment anyone
+bets; a bet to face → FOLD · CALL ANY; `pre` → the server; lit while queued, a second tap clears) + "<NAME> IS THINKING…". Your own buttons between turns: SHOW YOUR CARDS (a fold-win, 2.6 s — HE10: inside the dealer's 3 s pause), REBUY 1,000 (CASH at zero — between hands too),
 SIT BACK IN / I'M BACK (AWAY · SAT OUT), TAKE A SEAT / SIT BACK DOWN (CASH: a late joiner / a leaver); the host's END SESSION (CASH, top-left, the
 second tap confirms). A refused tap (409 stale / illegal, 429) just waits for the redraw; no signal → "NO SIGNAL — TRY AGAIN". THE TAP WATCH: the
 controls are rebuilt only when what they say changed (never under a finger).
@@ -360,7 +365,7 @@ are HOLDS the view's ONE frame loop lets go of (`motion.tick` — text only). No
 
 | the dealer's event(s) | the motion (`BEAT` — every one ≤ ~0.5 s) |
 | --- | --- |
-| `dealt` | the backs fly from the button's D to each dealt seat, round by round (45 ms a card, 260 ms a flight); YOUR two fly in, then flip face up (a 3D flip, rotateY — the back on the reverse); your hand's name waits for the flip; HEADS UP (the table down to two: a word in the felt's middle) |
+| `dealt` | the backs fly from the button's D to each dealt seat, round by round (110 ms a card — HE5 — 260 ms a flight); YOUR two fly in, then flip face up (a 3D flip, rotateY — the back on the reverse); your hand's name waits for the flip; HEADS UP (the table down to two: a word in the felt's middle) |
 | `posted` · `called` · `bet` · `raised` · `allin` | a chip from the seat to its bet spot (the amount appears as it lands; several 110 ms apart); ALL IN = a stamp on the seat's tag (yours: the ALL IN on your plate) |
 | `street` (a new street) | every bet in front SWEEPS into the pot together (the POT number rolls up — the pot line = the chips COLLECTED), then the new cards flip (the flop 90 ms apart, a tiny settle); an all-in run-out: each street as the dealer reveals it |
 | `folded` | the seat's backs slide toward the middle + fade; the seat dims |
@@ -780,6 +785,35 @@ p50 16.7 / p95 ≤ 16.8 ms in all three skins, upright + sideways) · holdem-rot
 
 ## Flagged for HE9+
 - The robots' length numbers are a guide; Ben's live test should re-check TURBO (90 s) + DEEP (15 min) with people.
-- The KO card shows only on a FRESH bust (a phone that slept through it lands on SPECTATING); a bust in the match's last hand: its card over the podium.
+- The KO card shows only on a FRESH bust (a phone that slept through it lands on SPECTATING). (A bust in the match's last hand: HE10's A3 — the podium now waits 4.5 s for it.)
 - The SE on its side at 7–8 players: a 45–49 pt board. The desktop podium is the console's frame at its own size (not the stage's scale).
-- When it becomes playable: `scripts/build-preload-graph.mjs` (+ its CARTRIDGES list), a day face + a sign scheme, THE BOARD's catalog.
+- When it becomes playable: `scripts/build-preload-graph.mjs` (+ its CARTRIDGES list) — DONE in HE10; a day face + a sign scheme, THE BOARD's catalog — the CITY's (MAILBOX).
+
+## HE10 — THE FIX PASS (Nov 11 2026 — the Fable review, `Downloads\neon\holdem\FABLE-REVIEW.md`; Ben's decisions: docs/games/plan.md "HE10")
+- **THE TRUE CHECK (A1):** the pre-actions = CHECK / FOLD · CHECK · CALL ANY when nothing is owed, FOLD · CALL ANY facing a bet. `pre: 'check'` checks
+  when free and is DROPPED by the dealer the moment anyone bets (`table.js#preVoid` — `advance` drops it at once, the toggle goes dark); it is refused
+  while chips are owed. It never calls. Sideways the three take two rows (CHECK / FOLD across; CHECK | CALL ANY).
+- **THE RESULTS (A2 / B1 + A7):** a HOLD'EM result exists ONLY from the dealer's record (`src: 'dealer'`): `/api/report`'s room + snapshot paths refuse a
+  dealer game and any non-playable game (`api/report.js#reportableGame` — 409 `not_reportable`; the frozen games' checks run on the emulators behind the
+  emulator-only switch `testReportAll`); `reportMatch` overwrites a result under its key that isn't its own. A match COUNTS only after real play
+  (`holdem-dealer.js#COUNTS`: CASH ≥ 10 hands AND ≥ 5 min, a TOURNAMENT ≥ 3 hands) — else `rep: 'short'`, nothing credited, the end screen's quiet line.
+- **THE DEALER:** EV_KEEP 24 (A4 — the biggest call measured 18 events) + no second `shown` at the showdown for a hand the run-out turned up (A6); what's
+  due runs FIRST on every op (A14); a seat whose player left the room / was kicked goes AWAY at once (A15 — the dealer's own `{ type: 'away' }`; a CASH
+  kick still leaves); the record + `hole/{CODE}` deleted `CLEAN_AFTER_MS` (8 s) after the end — `dueOf` gives that one last moment — and a record from an
+  EARLIER room with the word (its `roomAt` ≠ the room's createdAt) is deleted, never advanced (A16); no void path (A17); SIT BACK DOWN with the chips you
+  left with (A18); `speed` must be a real key (A13); `wireStats` emulator-only (A19); the call budget's shared count in batches of 20 (A20).
+- **THE SCREEN:** the podium waits `FINAL_HOLD_MS` (4.5 s) after the end (A3 — `logic.js#directorStep`); a missed run whose OLDEST event is > 3.5 s old
+  is history (A5 — `OLDEST_SLACK_MS`); every seat's clock on its own plate's top edge (A8); the top seat's tag UNDER its plate once a hand is over
+  (A9 — `SEAT_BOX.top.tagDone`); the end screen tighter + solid + SCROLL FOR MORE when it overflows (A10); your bet hidden while the slider is open
+  (A11); the queued LEAVE on two lines sideways, anchored above your plate (A12); the level line two lines — the NEXT blinds + the countdown to them
+  (A25); folded / losing seats keep their text readable (A26); a 10 px floor for tags, pills, the D, bet amounts, side pots (A27); the first side row
+  takes 66–72 pt under the top seat (A28 — `FIRST_UNDER_TOP`); BLINDS UP on the level line (A31); the rest of A21–A34 + A43 (the orientation from the
+  first style pass; a skin switch keeps the old art until the new decodes). `estimateMinutes(settings, _, { players })` from THE LENGTH STUDY (A45).
+- **THE SOUNDS:** one KNOCKOUT a run (A35); scheduled sources tracked + stopped on a hidden page / a new match / unmount (A36); a failed load / decode
+  retried (A37); primed only with a table (A38); YOUR TURN at the run's last cue (A39); CASH's champion for the biggest winner (net > 0) only (A40, Ben);
+  `HE_SFX_REV` cache-bust (A41); the blinds at the approved gain, the first batch after an engine rebuild waits for its buffers, decode failures caught (A42).
+- **THE PAPERWORK:** `assets/holdem/CREDITS.md` (`node scripts/build-holdem-credits.mjs` — Ben's four credits.txt verbatim + a summary + Libre
+  Baskerville's OFL line); `scripts/build-holdem-skin.py`'s `chips` row + the casino back (every image that ships reproducible); "AI-generated with Grok"
+  everywhere; Fabric030 = both felts (A47). The dead exports gone (A49). The preview: `&stress=1` (12-letter names, ×667 chips), `&short=1`.
+- **PROOF:** `tests/holdem-he10.test.mjs` (A1 · A3 · A4 · A5 · A6 · A7 · A9 · A13 · A14 · A15 · A16 · A18 · A35 · A41 · A42) + holdem-server's HE10 cases (A2 / B1,
+  A7, A15, A16 on the emulators); every Fable repro re-run (scenarios, attack, race, fuzz, evcount, stale, prelabel, reflip).

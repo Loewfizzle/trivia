@@ -19,4 +19,3 @@ export function openRankings({ mark = null } = {}) {
     h('p.he-rk-foot', 'Your best five cards count — any mix of your two and the five on the table. Same hand? The next-best cards decide; a true tie splits the pot.')], onClose: () => { open = null; } });
   return open;
 }
-export const closeRankings = () => { if (open) open.close(); };
