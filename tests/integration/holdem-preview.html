@@ -10,7 +10,7 @@
                 ko (you bust → the KO card → SPECTATING) · spectate (after it — what a refresh shows) · out (an opponent busts: OUT, the fade,
                 the re-spread at the next deal) · leave (CASH: LEAVE TABLE's confirm) · ledger (CASH's end) · final (the tournament's end)
                 (sidepots / levelup / ko / out play their last step LIVE ~0.6 s after the page shows — the real motion, as a phone sees it)
-       &play=1            THE MOTION DEMO: a scripted table that plays on a loop (below)
+       &play=1            THE MOTION DEMO: a scripted table that plays on a loop (below) — HE5: WITH THE SOUNDS after a TAP FOR SOUND (&mute=1 silent)
                           myturn = your turn before the flop (after a raise) · preflop = someone else's turn (your pre-actions)
                           flop / turn / river = your turn on that street, facing a bet · allin = a multi-way all in, run out street by street
                           showdown = the river shown down · foldwin = everyone folded to you (SHOW) · away = you're AWAY (I'M BACK), a seat OUT
@@ -264,6 +264,18 @@ if (STAGED) {
   document.body.dataset.staged = '1';
 }
 
+// HE5 — THE SOUNDS in THE MOTION DEMO (the PRISM pattern): the engine's tap listeners (the first tap unlocks the audio, as in the app) + a
+// TAP FOR SOUND button; the effects on, the music off here (HOLD'EM's music is the console's LATE station). &mute=1 = silent, no button; a test
+// browser (navigator.webdriver) gets none unless &sound=1
+if (PLAY && q.get('mute') !== '1' && (!navigator.webdriver || q.get('sound') === '1')) {
+  (await import('/js/audio/engine.js')).installAudio();
+  updateSettings({ muted: false, sfxOff: false, musicOff: true });
+  const tap = document.createElement('button');
+  tap.textContent = 'TAP FOR SOUND';
+  tap.style.cssText = 'position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:10000;min-height:56px;padding:0 28px;border-radius:12px;border:2px solid #f2c14e;background:#120d04;color:#ffe7a6;font:700 18px "Chakra Petch",sans-serif;letter-spacing:.1em;box-shadow:0 0 22px rgba(242,193,78,.4)';
+  tap.addEventListener('click', () => { tap.remove(); });
+  document.body.append(tap);
+}
 if (PLAY) {
   const KO = q.get('ko') === '1';
   let shovers = [], lastHand = -1;

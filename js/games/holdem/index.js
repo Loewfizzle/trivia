@@ -9,6 +9,7 @@ import { fromWire } from './wire.js';
 import { finished, ranksOf, finalRowsOf, finalSummaryOf } from './logic.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { lazyImport } from '../../ui/lazy-import.js';
+import { fetchSounds } from './sfx.js';
 
 export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('holdem'));
 
@@ -52,11 +53,13 @@ export const finalRanks = game => (game && Array.isArray(game.ranks) ? game.rank
 
 export { finalScene } from './final.js';
 
-/** THE PRELOAD (≤ 1.5 MB — docs/cartridge.md): the felt + the card back (+ the faces' fonts): ~110 KB. Fetch, don't build. */
+/** THE PRELOAD (≤ 1.5 MB — docs/cartridge.md): the felt + the card back (+ the faces' fonts) + HE5's 17 sounds (~365 KB — decoded once at
+ *  the unlock). Fetch, don't build. */
 export function preload() {
   const imgs = ['felt-green.webp', 'cardback-casino.webp'].map(f => new URL(`../../../assets/holdem/${f}`, import.meta.url).href);
   return Promise.all([
     ...imgs.map(src => fetch(src).then(r => r.blob()).catch(() => null)),
+    fetchSounds().catch(() => null),
     document.fonts ? document.fonts.load('700 20px "Chakra Petch"').catch(() => null) : null,
   ]).catch(() => null);
 }

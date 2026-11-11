@@ -30,6 +30,8 @@ import { faceSvg, cardName } from './card-art.js';
 import { dealer } from './index.js';
 import { SHOT_MS } from './structure.js';
 import { lazyImport } from '../../ui/lazy-import.js';
+import { soundPlan, tickSecond } from './sound-plan.js';
+import { fetchSounds, decodeAll, playCues, playSound, played, planned } from './sfx.js';
 
 const BACK = new URL('../../../assets/holdem/cardback-casino.webp', import.meta.url).href;
 const fmt = n => Math.round(n || 0).toLocaleString('en-US');
@@ -47,6 +49,8 @@ export function createView() {
   let lastFrame = 0, lastLevelTxt = '', lastSig = '', showT = 0, finalView = null;
   // THE MOTION: the last event number this phone showed (null = the first look: nothing animates), what the awards / the sweep still hold back
   let seenN = null, seenMatch = '', motion = null, awardNow = null, turnKey = '';
+  // THE SOUNDS (HE5): primed after the first look (a mount / refresh plays nothing) · the last tick second · the podium's champion once
+  let primed = false, lastTick = 0, champ = false;
   const hold = { stack: {}, pot: 0, sweep: 0 };
   const posById = new Map();                                 // the drawn seats' anchors (the layout's) — the motion's start / end points
 
@@ -129,6 +133,7 @@ export function createView() {
     els.probeT = h('i.he-probe.he-probe-t'); els.probeB = h('i.he-probe.he-probe-b');
     root.append(els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.award, els.fx, els.status, els.actions, els.hero, els.leave, els.toasts);
     motion = createMotion(els.fx, motionView);
+    fetchSounds(); decodeAll();   // (the preload fetched the bytes; decoded once the audio is unlocked — a mount after the unlock decodes now)
     el.append(root);
     ro = new ResizeObserver(() => relayout(true));
     ro.observe(root);
@@ -160,8 +165,11 @@ export function createView() {
     watchHole();
     render();
     if (steps.length && motion) motion.run(steps);
+    // THE SOUNDS: the same fresh run, the same timeline — a sound lands with its animation (reduced motion keeps the sounds)
+    if (steps.length) playCues(soundPlan(steps, { me: me(), rng: Math.random }));
     paintFinal();
     schedulePoke();
+    primed = true;
   }
 
   // THE PODIUM: the console's frame (ui/final.js) with HOLD'EM's rows (the director stored them) — its body = final.js#finalScene
@@ -175,6 +183,8 @@ export function createView() {
     els.final = h('div.he-final', finalView.el);
     root.append(els.final);
     root.classList.add('is-final');
+    // ONE winner sound (HE5): the tournament's end → champion (OWN_VICTORY_SOUND — the console's sting is skipped); never on a refresh later on
+    if (!cash && !champ && primed && serverNow() - (g.phaseStartAt || 0) < 8000) { champ = true; playSound('champion'); }
   }
 
   function unmount() {
@@ -557,6 +567,7 @@ export function createView() {
       els.actions.replaceChildren(...kids);
       // YOUR TURN (HE4): the action row rises in — once per turn (a new turn = a new hand / street / bet to face), never under a finger
       const tk = yours && !slider ? `${t.hand}|${t.street}|${t.bet}|${x ? x.bet : 0}` : '';
+      if (tk && tk !== turnKey && primed) playSound('your-turn');
       if (tk && tk !== turnKey && motion && !reducedMotion()) {
         [...els.actions.querySelectorAll('.he-preset, .he-buttons > .he-btn')].forEach((b, i) =>
           motion.animate(b, [{ translate: '0px 16px', opacity: 0 }, { translate: '0px 0px', opacity: 1 }], { duration: 240, delay: i * 35 }));
@@ -759,6 +770,10 @@ export function createView() {
       if (i.style.transform !== tr) i.style.transform = tr;
       bar.classList.toggle('is-bank', ck.bank);
     }
+    // THE TICK (HE5): the last 5 s of YOUR clock (the shot clock + your bank still to come) — one soft tick a second
+    const mine = ck && activeBar && activeBar.classList.contains('he-clock') ? mySeat() : null;
+    const sec = mine ? tickSecond((t.bankOn ? t.deadline : t.deadline + (mine.away ? 0 : mine.bank || 0)) - sn) : 0;
+    if (sec !== lastTick) { if (sec && primed) playSound('timer-tick'); lastTick = sec; }
     if (motion) motion.tick(now);
     work.push(performance.now() - w0); if (work.length > 240) work.shift();
   }
@@ -771,6 +786,7 @@ export function createView() {
     legal: () => { const t = table(); return t && running(t) ? legalActions(t) : null; },
     act: (action, amount) => act(action, amount), pre: kind => send('pre', { pre: kind }), op: (op, body) => send(op, body),
     tier: () => 0, setTier: () => {}, fps: () => frames.slice(), work: () => work.slice(),
+    sounds: () => played(), planned: () => planned(),
     seats: () => [...seatEls.keys()],
   };
 

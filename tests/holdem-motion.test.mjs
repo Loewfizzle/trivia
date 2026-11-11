@@ -44,7 +44,7 @@ test('THE DEAL: one deal step + the blinds alongside it; your two flip once the 
   assert.equal(steps.filter(s => s.kind === 'deal').length, 1);
   assert.equal(steps.filter(s => s.kind === 'chip').length, 2);
   const flip = steps.find(s => s.kind === 'heroFlip');
-  assert.equal(flip.at, 2 * ids.length * BEAT.dealGap + BEAT.dealFly + BEAT.heroFlip);
+  assert.equal(flip.at, BEAT.dealLead + 2 * ids.length * BEAT.dealGap + BEAT.dealFly + BEAT.heroFlip);
   assert.ok(!steps.some(s => s.kind === 'headsUp'));
   const hu = schedule([ev(1, 'dealt', 0, { ids: ['a', 'b'], button: 'a', heads: true })], { heroId: 'zz', k: 3 });
   assert.ok(hu.some(s => s.kind === 'headsUp'), 'down to two → HEADS UP');
@@ -104,7 +104,7 @@ test('A WHOLE MATCH through the real dealer: every run of events a phone could s
   const rec = newRecord({ code: 'MOTN', uids, now, rng });
   advance(rec, now, rng);
   let seen = 0, hands = 0, longest = 0, awards = 0, prevBets = {};
-  const KNOWN = new Set(['deal', 'heroFlip', 'chip', 'sweep', 'board', 'fold', 'shown', 'award', 'back', 'level', 'headsUp', 'out']);
+  const KNOWN = new Set(['deal', 'heroFlip', 'chip', 'sweep', 'board', 'fold', 'shown', 'award', 'back', 'level', 'headsUp', 'out', 'check', 'rebuy']);
   for (let g = 0; g < 4000 && !rec.m.ended; g++) {
     const t = rec.m.table;
     if (running(t) && !t.runout) {

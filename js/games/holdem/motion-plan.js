@@ -10,7 +10,9 @@
 export const MAX_AGE_MS = 2500;
 /** the beats (ms) — every one ≤ ~0.5 s; the side-pot awards one after the other */
 export const BEAT = {
-  dealGap: 45, dealFly: 260, heroFlip: 60, flip: 320,     // the deal: a card every 45 ms, each flies 260 ms; your two flip 60 ms after the last lands
+  // the deal (HE5 — THE SOUNDS): the shuffle first (dealLead), then a card every 110 ms (each its own sound — never smeared), each flies
+  // 260 ms; your two flip 60 ms after the last lands (HE4: 45 ms a card, no lead)
+  dealLead: 450, dealGap: 110, dealFly: 260, heroFlip: 60, flip: 320,
   chip: 260, chipGap: 110,                                 // a bet's chip seat → its spot; several in one batch one after the other
   sweep: 380,                                              // the bets swept into the pot together
   boardGap: 90,                                            // the flop's three flip 90 ms apart
@@ -62,8 +64,10 @@ export function winLine(p) {
 /**
  * THE TIMELINE for a run of fresh events. ctx: { bets: { id: bet } (the bets in front of the seats on the table this phone last showed),
  * me, heroId, k (the opponents drawn before this run) }. → [{ at, kind, … }] (ms from now), in time order:
- *   chip { id, amount, allin }   a bet / call / raise / blind / all in: a chip seat → its spot (+ allin → the tag's stamp)
- *   deal { ids, button, heads }  the deal (its own stagger inside: BEAT.dealGap a card, round by round)   heroFlip { }  your two turn up
+ *   chip { id, amount, allin, t }   a bet / call / raise / blind / all in (t = the dealer's event — HE5: which chip sound): a chip seat → its spot (+ allin → the tag's stamp)
+ *   deal { ids, button, heads }  the deal (its own stagger inside: BEAT.dealGap a card, round by round — BEAT.dealLead after the hand's start:
+ *                                the shuffle)   heroFlip { }  your two turn up
+ *   check { id } · rebuy { id }   HE5: no motion — THE SOUNDS only (sound-plan.js)
  *   sweep { from: [{ id, amount }] }   every bet in front → the pot (the pot number rolls up)
  *   board { i, card }            a board card flips in (the flop three BEAT.boardGap apart)
  *   fold { id }                  the seat's backs slide to the middle + fade
@@ -93,19 +97,21 @@ export function schedule(list, ctx = {}) {
       case 'dealt': {
         pending = {};
         const n = (e.ids || []).length;
-        steps.push({ at: t, kind: 'deal', ids: e.ids || [], button: e.button, heads: !!e.heads });
+        steps.push({ at: t + BEAT.dealLead, kind: 'deal', ids: e.ids || [], button: e.button, heads: !!e.heads });
         if (e.heads && (ctx.k == null || ctx.k > 1)) steps.push({ at: t, kind: 'headsUp' });
-        if ((e.ids || []).includes(ctx.heroId)) steps.push({ at: t + 2 * n * BEAT.dealGap + BEAT.dealFly + BEAT.heroFlip, kind: 'heroFlip' });
+        if ((e.ids || []).includes(ctx.heroId)) steps.push({ at: t + BEAT.dealLead + 2 * n * BEAT.dealGap + BEAT.dealFly + BEAT.heroFlip, kind: 'heroFlip' });
         break;   // (the blinds' chips fly alongside the deal — the cursor stays)
       }
       case 'posted': case 'called': case 'bet': case 'raised': case 'allin': {
         const amount = e.amount || 0;
         if (e.t === 'posted') pending[e.id] = (pending[e.id] || 0) + amount;
         else pending[e.id] = e.to != null ? e.to : (pending[e.id] || 0) + amount;
-        if (amount > 0 || e.t === 'allin') { steps.push({ at: t, kind: 'chip', id: e.id, amount, allin: e.t === 'allin' || !!e.allin }); t += BEAT.chipGap; }
+        if (amount > 0 || e.t === 'allin') { steps.push({ at: t, kind: 'chip', id: e.id, amount, allin: e.t === 'allin' || !!e.allin, t: e.t }); t += BEAT.chipGap; }
         break;
       }
       case 'folded': steps.push({ at: t, kind: 'fold', id: e.id }); t += 80; break;
+      case 'checked': steps.push({ at: t, kind: 'check', id: e.id }); t += 80; break;
+      case 'rebuy': steps.push({ at: t, kind: 'rebuy', id: e.id }); break;
       case 'returned': steps.push({ at: t, kind: 'back', id: e.id, amount: e.amount || 0 }); if (pending[e.id]) pending[e.id] = Math.max(0, pending[e.id] - (e.amount || 0)); break;
       case 'street': {
         if (anyPending()) sweep();

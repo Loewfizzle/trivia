@@ -12,6 +12,8 @@ export const BANNER_NAME = "HOLD'EM";
 // NEON CASINO's gold (the podium frame's main tube); HOLD'EM's 3 skins (HE5–HE6) replace day / night: NIGHT only, the setting shows LOCKED
 export const ACCENT = '#f2c14e';
 export const LOOKS = ['night'];
+// HE5 — ONE winner sound: HOLD'EM plays its own CHAMPION at the tournament's end (sfx.js) — the console's podium sting is skipped
+export const OWN_VICTORY_SOUND = true;
 // the chat stays open the whole match (HE3 — the owner): its quick replies
 export const CHAT_CHIPS = ['NICE HAND', 'NO WAY', 'WELL PLAYED', 'UNLUCKY'];
 /** never locked — a card table talks */
