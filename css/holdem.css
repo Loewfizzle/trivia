@@ -589,6 +589,9 @@ i.he-ghost.he-chip { display: block; }
 .screen.he-screen { max-width: none; padding: 0; }
 body.he-on .menu-btn { left: calc(var(--safe-l) + 12px) !important; right: auto; }
 body.he-on .music-btn { right: calc(var(--safe-r) + 12px) !important; }
+/* HOLD'EM IS THE EXCEPTION (Ben, HE7): a phone held sideways gets the console's TURN YOUR PHONE UPRIGHT card everywhere else (index.html
+   #ns-turn) — never over HOLD'EM's table, which turns with it (the walk inside + the room before it keep the card) */
+body.he-on #ns-turn { display: none !important; }
 .he-probe-l { top: 0; left: 0; height: 1px; width: env(safe-area-inset-left, 0px); }
 .he-probe-r { top: 0; left: auto; right: 0; height: 1px; width: env(safe-area-inset-right, 0px); }
 
@@ -704,6 +707,9 @@ body.he-on .music-btn { right: calc(var(--safe-r) + 12px) !important; }
 
 /* THE END SCREEN + THE LEDGER sideways: the slim cards in TWO columns (1st–4th left, 5th–8th right) when the screen gives each a phone's strip
    width — all 8 places in view; a narrower one (the SE on its side) keeps one column and scrolls */
+/* (the frame centred in a wide window — and a TALL desktop window keeps the phone column's width, as before HE7; a phone is narrower: unchanged) */
+.he[data-orient='wide'] .he-final .panel-full { margin-inline: auto; }
+.he[data-orient='tall'] .he-final .panel-full { max-width: var(--maxw); margin-inline: auto; }
 @media (min-width: 820px) {
   .he[data-orient='wide'] .he-final .panel-full { max-width: 900px; }
   .he[data-orient='wide'] .he-fs .he-fs-list.is-strips { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(var(--he-rows, 4), auto); grid-auto-flow: column; column-gap: 18px; }

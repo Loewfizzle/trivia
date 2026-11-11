@@ -9,6 +9,8 @@
 // HE4: FAST also checks a BUST → THE KO CARD → SPECTATING on the busted phone + THE END SCREEN's body (every place as a slim card). FULL adds a
 // REFRESH in the MIDDLE of a pot award (the state, no replay), 60 fps at 4× CPU during THE BUSIEST MOMENT (the preview's 8-seat side-pot run-out
 // + its three awards — the motion's ghosts, flips + roll-ups), and CASH's LEAVE TABLE (the button + its confirm) → the leaver in THE LEDGER.
+// HE7: FULL adds ROTATE MID-HAND (a phone turned sideways + back: the same hand + cards, no replay, an open slider closes, a real tap still
+// acts), ONE WHOLE HAND SIDEWAYS at 8 (one phone a 1440 × 900 desktop) on real, uncovered taps, and the busiest moment's 60 fps SIDEWAYS too.
 import { createHarness } from './kit/harness.mjs';
 import { GAIN } from '../../js/games/holdem/sfx.js';
 
@@ -19,6 +21,7 @@ const N = FAST ? 3 : Number(process.env.N || 8);
 const CASH_ONLY = process.env.CASH_ONLY === '1';   // (the full path's CASH session alone — a quick re-check)
 
 const pub = p => G(p, 'window.__holdem.pub()');
+const VIEW_UP = H.VIEW;   // (HE7: back upright — the harness's phone)
 const hole = p => G(p, 'window.__holdem.hole()');
 const uidOf = p => evalIn(p, s => s.uid);
 // HE5 — THE SOUNDS, checked silently (headless audio stays locked — the PLAN is what's tested: sfx.js#planned): every cue a known sound at
@@ -43,8 +46,26 @@ async function ready(p, what, timeout = 40000) {
   const diag = await p.evaluate(() => { const s = window.__arcade.state; return JSON.stringify({ hook: !!window.__holdem, game: s.game && { id: s.game.id, phase: s.game.phase, m: s.game.matchId }, status: s.meta && s.meta.status, liveKeys: Object.keys(s.live || {}), table: !!(s.live && s.live.table), tm: s.live && s.live.table && Object.keys(s.live.table), screen: [...document.querySelectorAll('section.screen')].map(e => e.className + ':' + (e.firstElementChild && e.firstElementChild.className)).join(' | ') }); }).catch(e => String(e));
   throw new Error(`timeout: ${what} — ${diag}`);
 }
-/** one move for whoever's turn it is on this phone: 'shove' (all in when it can, else call / check) · 'passive' (check / call) · 'click' (the real buttons) */
+/** one move for whoever's turn it is on this phone: 'shove' (all in when it can, else call / check) · 'passive' (check / call) · 'click' (the real buttons)
+ *  · HE7 'tap' (a REAL tap at CALL / CHECK's centre — proved uncovered first: nothing of the table over it, in whatever layout the phone has) */
+const tapped = { n: 0, covered: [] };
 async function moveOn(p, policy) {
+  if (policy === 'tap') {
+    const at = await p.evaluate(() => {
+      const h = window.__holdem; if (!h) return null;
+      const L = h.legal(), me = window.__arcade.state.uid;
+      if (!L || L.id !== me) return null;
+      const b = document.querySelector('.he-actions .he-call'); if (!b) return null;
+      const r = b.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, top = document.elementFromPoint(x, y);
+      const desc = e => (e ? `${e.tagName}${e.id ? `#${e.id}` : ''}${typeof e.className === 'string' && e.className ? `.${e.className.trim().split(/\s+/).join('.')}` : ''}` : 'nothing');
+      return { x, y, free: !!top && (top === b || b.contains(top)), what: top ? `${desc(top)} in ${desc(top.parentElement)} in ${desc(top.parentElement && top.parentElement.parentElement)}` : 'nothing' };
+    }).catch(() => null);
+    if (!at) return null;
+    if (!at.free) { tapped.covered.push(at.what); return null; }
+    await p.mouse.click(at.x, at.y);
+    tapped.n++;
+    return 'tap';
+  }
   return p.evaluate(async pol => {
     const h = window.__holdem; if (!h) return null;
     const L = h.legal(), me = window.__arcade.state.uid;
@@ -189,6 +210,55 @@ await H.run(async () => {
     await H.cleanText(sp, 'the table after the skin switches', '.he');
   }
 
+  // ------------------------------------------------------------ HE7: ROTATE MID-HAND on one phone — the same hand + cards, nothing replayed, an open
+  // slider closes, and the action still works (a real tap on CALL / CHECK in the turned layout)
+  const SIDE = { width: 844, height: 390, deviceScaleFactor: 1, isMobile: true, hasTouch: true };
+  const DESK = { width: 1440, height: 900, deviceScaleFactor: 1, isMobile: false, hasTouch: false };
+  const orient = p => p.evaluate(() => { const r = document.querySelector('.he'); return r ? r.dataset.orient : null; });
+  const turnTo = async (p, v) => { await p.setViewport(v); await waitFor(p, (st, w) => { const r = document.querySelector('.he'); return !!r && r.dataset.orient === (w ? 'wide' : 'tall'); }, 'the table turned', 8000, v.width > v.height); };
+  {
+    const rp = pages[ri], myUid = await uidOf(rp);
+    const b0 = await rp.evaluate(() => ({ hand: window.__holdem.pub().hand, seq: window.__holdem.pub().seq, c: (window.__holdem.hole() || {}).c, planned: window.__holdem.planned().length, seats: document.querySelectorAll('.he-seat').length }));
+    await turnTo(rp, SIDE);
+    const b1 = await rp.evaluate(() => ({ hand: window.__holdem.pub().hand, seq: window.__holdem.pub().seq, c: (window.__holdem.hole() || {}).c, planned: window.__holdem.planned().length, seats: document.querySelectorAll('.he-seat').length, motion: window.__holdem.motion(), wide: !!window.__holdem.layout().wide }));
+    ok(b1.wide && b1.hand === b0.hand && JSON.stringify(b1.c) === JSON.stringify(b0.c) && b1.seats === b0.seats && !b1.motion && (b1.planned === b0.planned || b1.seq !== b0.seq),
+      `ROTATE MID-HAND (${NAMES[ri]}): sideways at once — hand ${b1.hand}, the same ${(b1.c || []).join(' ')}, ${b1.seats} seats, nothing in flight, no sound replayed (${b0.planned} → ${b1.planned} cues)`);
+    // its turn: RAISE opens the slider → turn back upright → the slider closes cleanly, the buttons back → a REAL tap on CALL / CHECK counts
+    await drive('passive', async () => { const L = await G(rp, 'window.__holdem.legal()'); return !!L && L.id === myUid; }, `${NAMES[ri]}'s turn`, { timeout: 120000, skip: new Set([ri]), watch: rp });
+    const canRaise = await rp.evaluate(() => { const b = document.querySelector('.he-actions .he-raise'); if (b && !b.disabled) { b.click(); return true; } return false; });
+    if (canRaise) await waitFor(rp, () => !!document.querySelector('.he-slider'), 'the slider open (sideways)', 5000);
+    await turnTo(rp, VIEW_UP);
+    const sl = await rp.evaluate(() => ({ slider: !!document.querySelector('.he-slider'), call: !!document.querySelector('.he-actions .he-buttons .he-call') }));
+    ok(!sl.slider && sl.call, `ROTATE with the slider open (${canRaise ? 'RAISE tapped' : 'no raise allowed — the buttons'}): upright again, the slider closed, FOLD / RAISE / CALL back`);
+    await turnTo(rp, SIDE);
+    const seq0 = (await pub(rp)).seq;
+    const how = await moveOn(rp, 'tap');
+    await waitFor(rp, (st, q) => window.__holdem.pub().seq > q, 'the tap reached the dealer', 10000, seq0).catch(() => {});
+    if (how !== 'tap') log('tap diag', how, JSON.stringify(tapped.covered.slice(-3)), JSON.stringify(await rp.evaluate(() => { const L = window.__holdem.legal(); const R = e => { const r = e && e.getBoundingClientRect(); return r ? [r.left, r.top, r.width, r.height].map(Math.round) : null; }; const he = document.querySelector('.he'); return { L: L && L.id, me: window.__arcade.state.uid, iw: innerWidth, ih: innerHeight, btn: R(document.querySelector('.he-actions .he-call')), he: R(he), par: he && R(he.parentElement), parCls: he && he.parentElement.className, sec: R(he && he.closest('section')), secCls: he && he.closest('section') && he.closest('section').className, stage: R(document.querySelector('.he-stage')), orient: he && he.dataset.orient }; })));
+    ok(how === 'tap' && (await pub(rp)).seq > seq0, `the action still works sideways: a REAL tap on CALL / CHECK (uncovered) → the dealer moved on`);
+    await turnTo(rp, VIEW_UP);
+  }
+
+  // ------------------------------------------------------------ HE7: ONE WHOLE HAND SIDEWAYS at ${N}: every phone on its side (844 × 390) — one a DESKTOP
+  // window (1440 × 900: the stage scaled) — played to its end on REAL taps (each CALL / CHECK proved uncovered first)
+  {
+    const di = alive().find(i => pages[i] !== host && i !== ri);
+    for (const i of alive()) await turnTo(pages[i], i === di ? DESK : SIDE);
+    const handS = (await pub(host)).hand;
+    // (from the next deal — a whole hand sideways)
+    await drive('passive', p => pub(p).then(x => x.hand > handS), 'the next deal', { timeout: 120000, watch: host });
+    const handW = (await pub(host)).hand;
+    tapped.n = 0; tapped.covered = [];
+    await drive('tap', p => pub(p).then(x => x.hand > handW || (x.hand === handW && x.table.street === 'done')), `hand ${handW} sideways (taps)`, { timeout: 150000, watch: host });
+    const sw = await Promise.all(alive().map(i => pages[i].evaluate(() => { const L = window.__holdem.layout(), st = getComputedStyle(document.querySelector('.he-stage')).transform; return { wide: !!L.wide, k: L.k, misfits: L.misfits, st, seats: document.querySelectorAll('.he-seat').length }; })));
+    ok(sw.every(x => x.wide && !x.misfits) && tapped.n > 0 && tapped.covered.length === 0, `A WHOLE HAND SIDEWAYS at ${N}: hand ${handW} to its end on ${tapped.n} real taps, every button uncovered, every table laid out clean (${sw.map(x => x.seats).join('/')} seats)`);
+    const dk = sw[alive().indexOf(di)];
+    ok(dk.wide && /^matrix\(1\.6/.test(dk.st), `DESKTOP 1440 × 900 (${NAMES[di]}): the sideways table on the stage, × 1.6 (${dk.st})`);
+    await leakCheck('the sideways hand');
+    if (H.SHOTS) for (const i of [ri, di]) await pages[i].screenshot({ path: `${H.OUT}he7-sideways-${NAMES[i]}.png` }).catch(() => {});
+    for (const i of alive()) await turnTo(pages[i], VIEW_UP);
+  }
+
   // ------------------------------------------------------------ one hand on the REAL buttons (CALL / CHECK taps) to its showdown
   const handA = (await pub(host)).hand;
   await drive('click', p => pub(p).then(x => x.hand > handA || x.table.street === 'done'), 'the hand to its end (taps)', { timeout: 120000, watch: host });
@@ -228,9 +298,10 @@ await H.run(async () => {
   }
 
   // ------------------------------------------------------------ HE4: 60 fps at 4× CPU in THE BUSIEST MOMENT (8 seats: the side-pot run-out + three awards)
-  if (process.env.PERF !== '0') for (const skin of ['casino', 'cabin', 'apartment']) {   // (HE6: in EACH skin — its living touches + its light on)
+  // (HE7: + SIDEWAYS — 844 × 390, the wide stadium — in each skin: the same busiest moment on the turned table)
+  if (process.env.PERF !== '0') for (const [skin, wide] of ['casino', 'cabin', 'apartment'].flatMap(k => [[k, false], [k, true]])) {   // (HE6: in EACH skin — its living touches + its light on)
     const bctx = await H.browser.createBrowserContext(), bp = await bctx.newPage();
-    await bp.setViewport({ width: 390, height: 844, deviceScaleFactor: process.env.GPU ? 2.75 : 1, isMobile: true, hasTouch: true });
+    await bp.setViewport({ width: wide ? 844 : 390, height: wide ? 390 : 844, deviceScaleFactor: process.env.GPU ? 2.75 : 1, isMobile: true, hasTouch: true });
     const cdp = await bp.target().createCDPSession();
     await bp.goto(`${H.BASE}/tests/integration/holdem-preview.html?state=sidepots&n=8&skin=${skin}`);
     await bp.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 30000 });
@@ -241,8 +312,8 @@ await H.run(async () => {
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     const s2 = [...f].sort((a, b) => a - b);
     const p50 = +(s2[Math.floor(s2.length * 0.5)] || 0).toFixed(1), p95 = +(s2[Math.floor(s2.length * 0.95)] || 0).toFixed(1);
-    log('busiest moment', skin, JSON.stringify({ p50, p95, n: s2.length, busy }));
-    ok(p50 <= 17.5 && s2.length > 150, `PERF ${skin.toUpperCase()} (the busiest moment, ${H.CPU}× CPU, 8 seats — the side-pot run-out + three awards): p50 ${p50} / p95 ${p95} ms over ${s2.length} frames`);
+    log('busiest moment', skin, wide ? 'sideways' : 'upright', JSON.stringify({ p50, p95, n: s2.length, busy }));
+    ok(p50 <= 17.5 && s2.length > 150, `PERF ${skin.toUpperCase()}${wide ? ' SIDEWAYS' : ''} (the busiest moment, ${H.CPU}× CPU, 8 seats — the side-pot run-out + three awards): p50 ${p50} / p95 ${p95} ms over ${s2.length} frames`);
     await bctx.close();
   }
 

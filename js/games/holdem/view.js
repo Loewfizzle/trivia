@@ -339,6 +339,7 @@ export function createView() {
     }
     lastSig = '';
     render();
+    fitAward();
   }
 
   let respread = null;
@@ -541,10 +542,21 @@ export function createView() {
       els.award.dataset.k = ak;
       els.award.replaceChildren(...(aw ? [aw.win ? h('em.he-winline', aw.win) : null, h('b.he-award', aw.line)].filter(Boolean) : []));
       root.classList.toggle('has-award', !!aw);
+      fitAward();
     }
     if (els.pot.dataset.k === sig) return;
     els.pot.dataset.k = sig;
     els.pot.replaceChildren(...kids.filter(Boolean));
+  }
+  /** HE7 — sideways the award box is as wide as the seats there allow (layout-wide.js#award): a line too long for it shrinks to fit (never under
+   *  the portrait's 10 pt minimum — then its end gives way). Measured only when the line changes or the layout does — never in the frame loop. */
+  function fitAward() {
+    for (const e of els.award.children) {
+      e.style.fontSize = '';
+      if (!L || !L.wide) continue;
+      const avail = e.clientWidth, need = e.scrollWidth;
+      if (avail && need > avail + 0.5) e.style.fontSize = `${Math.max(10, parseFloat(getComputedStyle(e).fontSize) * avail / need - 0.3).toFixed(2)}px`;
+    }
   }
   const nameOf = id => who(id).name;
   /** the pot: its stacks (THE CHIPS) + POT n — 5–8 players: 2 stacks (the pot's width between the side rows — layout.js#blocks().pot) */

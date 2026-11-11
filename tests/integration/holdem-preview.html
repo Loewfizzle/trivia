@@ -22,7 +22,8 @@
        &seed=x            another deal                            &host=0      you're not the host (no END SESSION in CASH)
        &st=47&sb=34       the safe areas (pt) — an iPhone 13/14 = 47 / 34 (the default), a 15/16 Pro = 62 / 34
        &sl=47&sr=47       HE7 — a window WIDER THAN TALL is the SIDEWAYS table (rotate the phone): its safe areas left / right (the notch) +
-                          below default to 47 / 47 / 21 (top 0); a window wider than 1000 = a desktop (none) — the stage scales the table
+                          below default to 47 / 47 / 21 (top 0); under 700 wide = an SE (none); wider than 1000 = a desktop (none — the
+                          stage scales the table). A real phone with a notch keeps its own (env()) — turn it and the table turns
      HE4 ADD-ON (Ben) — REAL SLIM CARDS: every fake player has a REAL public face, as a room player's profile (profiles/{pid} through
      fake-firebase.js → profile/public.js#watchRoomProfiles → pubOf): a different APPROVED card each (two legendaries, the textured ZEBRA ·
      GLITTER BOMB · VELVET ROOM · MARBLE), their own emblem (shape + finish, a tube style) + name glow + a level — the page approves exactly that
@@ -78,16 +79,24 @@ const MODE = q.get('mode') === 'cash' || ['ledger', 'leave', 'leaveafter', 'leav
 const STAGED = ['sidepots', 'levelup', 'ko', 'out'].includes(STATE);
 // (HE7: a phone ON ITS SIDE — wider than tall — has its safe areas left + right (the notch side + its twin) + the home bar below:
 //  47 / 47 / 21 by default; &sl=&sr= set them; a desktop-sized window (wider than 1000) none)
-const wide = innerWidth > innerHeight, desk = innerWidth > 1000;
-const st = Number(q.get('st') ?? (wide ? 0 : 47)), sb = Number(q.get('sb') ?? (desk ? 0 : wide ? 21 : 34));
-const sl = Number(q.get('sl') ?? (wide && !desk ? 47 : 0)), sr = Number(q.get('sr') ?? (wide && !desk ? 47 : 0));
-document.documentElement.style.setProperty('--safe-t', `${st}px`);
-document.documentElement.style.setProperty('--safe-b', `${sb}px`);
-document.documentElement.style.setProperty('--safe-l', `${sl}px`);
-document.documentElement.style.setProperty('--safe-r', `${sr}px`);
+// (a REAL phone with a notch — Ben's iPhone on the LAN — keeps its own safe areas (env(): right in both orientations, as you turn it);
+//  a computer / the test browser has none → the simulated iPhone's, re-applied on every resize — so turning a window turns the table)
+const realSafe = (() => { const p = document.createElement('i'); p.style.cssText = 'position:fixed;top:0;left:0;width:env(safe-area-inset-left,0px);height:env(safe-area-inset-top,0px);visibility:hidden';
+  document.documentElement.append(p); const r = p.offsetWidth + p.offsetHeight; p.remove(); return r > 0; })();
 const probeCss = document.createElement('style');
-probeCss.textContent = `.he-probe-t { height: ${st}px !important } .he-probe-b { height: ${sb}px !important } .he-probe-l { width: ${sl}px !important } .he-probe-r { width: ${sr}px !important }`;
 document.head.append(probeCss);
+function applySafe() {
+  const given = ['st', 'sb', 'sl', 'sr'].some(k => q.has(k));
+  if (realSafe && !given) return;
+  // (on its side: an iPhone 13/14's notch + home bar — an SE-sized window (< 700 wide) has neither; a desktop-sized one none)
+  const wide = innerWidth > innerHeight, flat = wide && (innerWidth > 1000 || innerWidth < 700);
+  const st = Number(q.get('st') ?? (wide ? 0 : 47)), sb = Number(q.get('sb') ?? (flat ? 0 : wide ? 21 : 34));
+  const sl = Number(q.get('sl') ?? (wide && !flat ? 47 : 0)), sr = Number(q.get('sr') ?? (wide && !flat ? 47 : 0));
+  for (const [k, v] of [['t', st], ['b', sb], ['l', sl], ['r', sr]]) document.documentElement.style.setProperty(`--safe-${k}`, `${v}px`);
+  probeCss.textContent = `.he-probe-t { height: ${st}px !important } .he-probe-b { height: ${sb}px !important } .he-probe-l { width: ${sl}px !important } .he-probe-r { width: ${sr}px !important }`;
+}
+applySafe();
+addEventListener('resize', applySafe);
 updateSettings({ heDeck: q.get('deck') === 'two' ? 'two' : 'four', heSkin: q.get('skin') || 'casino', musicOff: true, sfxOff: true });   // (HE6: &skin=casino|cabin|apartment)
 
 // the players: mixed name lengths (a 12-letter one), the real emblem styles

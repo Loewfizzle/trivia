@@ -25,9 +25,13 @@ const STATES = [
   ['he6-showdown-8', 'state=showdown&n=8'],
 ];
 const only = arg('only', '') ? arg('only').split(',') : null;
-for (const skin of skins) for (const [name, qs, wait] of STATES) {
+// (HE7: an SE size — 667 or 375 wide, or 375 / 320 tall on its side — has no notch: its own safe areas, one size a run)
+const seSize = s => /^(667x|375x)/.test(s);
+const groups = [sizes.split(',').filter(s => !seSize(s)).join(','), ...sizes.split(',').filter(seSize)].filter(Boolean);
+for (const skin of skins) for (const [name, qs, wait] of STATES) for (const sz of groups) {
   if (only && !only.some(o => name.startsWith(o))) continue;
-  const page = `tests/integration/holdem-preview.html?${qs}${skin ? `&skin=${skin}` : ''}`, nm = `${tag}${skin ? `-${skin}` : ''}-${name}`;
-  const r = spawnSync(process.execPath, ['tests/integration/shots.mjs', browser, '--page', page, '--sizes', sizes, '--name', nm, '--out', out, ...(wait ? ['--wait', String(wait)] : [])], { stdio: 'inherit', env: process.env });
+  const se = seSize(sz) && !/[?&]st=/.test(qs) && sz.startsWith('375x') ? '&st=20&sb=0' : '';   // (the SE on its side: the preview's own default)
+  const page = `tests/integration/holdem-preview.html?${qs}${skin ? `&skin=${skin}` : ''}${se}`, nm = `${tag}${skin ? `-${skin}` : ''}-${name}`;
+  const r = spawnSync(process.execPath, ['tests/integration/shots.mjs', browser, '--page', page, '--sizes', sz, '--name', nm, '--out', out, ...(wait ? ['--wait', String(wait)] : [])], { stdio: 'inherit', env: process.env });
   if (r.status) process.exitCode = r.status;
 }
