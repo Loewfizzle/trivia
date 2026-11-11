@@ -170,3 +170,39 @@ late weather, the bars, a tier step). WebKit before: 9 of 19 paths red (Group 1'
 
 docs: [harbor.md#performance](../../harbor.md#performance) (THE BOX GATE, the paths, the one command, "a new path that changes the camera"),
 docs/testing.md (the tool's flags + the page's test controls).
+
+## Group 4 — the end
+
+- **Docs:** this log; docs/harbor.md (#performance — THE BOX GATE + the guard + the one command; KNOWN ISSUES; the file map; the pass
+  INDEX), docs/testing.md, decisions.md (§1 + §13), ROADMAP.md + roadmap-history.md, plan.md's build table (LOAD FIX 5 ✅, HOLD'EM IN THE
+  CITY next), CLAUDE.md (one line under THE LOAD).
+- **THE BUSY-PC CHECK:** nothing running but the emulators + the two servers (17.8 GB free, the CPU at 4 %); the pre-fix worktree's server
+  (:5174) + the dailies' test server (:5195) stopped before the long runs; Ben's :5190 preview server left alone throughout.
+- **Locally (the mini PC):** the unit suite **1643 / 1643** · rules **76 / 76** (unchanged) · `/api` **44 / 44** · smoke **8 / 8** · CONN
+  clean (0 sockets parked, 1 in a room) · THE BASELINE GUARD **3 / 3** (0.98–1.17× the baseline) · `e2e-daily` **51 / 51** · `e2e-prism
+  FAST=1` **63 / 63** · `e2e-holdem FAST=1` **22 / 22** (after the add-on below; 21 / 23 before it) · the HOLD'EM dealer's suite **17 / 17**
+  · `wk-double.mjs` **21 / 21** (+ 5 / 5 at 402 × 874) · `wk-load.mjs` **12 / 12** · the FULL `e2e-harbor` suite **1247 / 1248** at 4 shards
+  (33 min; `cameras` 11 / 11 inside it, 106 s under the shards' load). The one red: the `crew` group's ROOM PUSH read another shard's room
+  ("a guest opens ALTO → ORCA · 2 players") — the 4-shard run's cross-talk, **20 / 20 alone**; not this pass.
+- **No look change at the other sizes** (`pixdiff.mjs --scenes night,noon`, vs 13cd99a8): 390 × 844 — 201 / 1358 px beyond the noise;
+  430 × 932 — 76 / 3169; 1440 × 900 — 124 / 307; all in the promenade + road band (the walkers, the traffic — the usual residue).
+- **The rules:** NOT changed — nothing to re-publish. Still 8 functions.
+
+**THE ADD-ON (the city chat, mid-pass) — HOLD'EM's STALE OWNER-GATE CHECKS.** `e2e-holdem FAST`'s two red checks tested HE8's OWNER-ONLY
+gate, retired when HE10 switched HOLD'EM on for everyone (the test file last changed before that switch). Now today's truth
+(`tests/integration/e2e-holdem.mjs`): a guest can't start it (403 `not_host`); a REGULAR host — no owner role, no preview switch — sees
+HOLD'EM in the list with no TEST tag and starts it, with the live rule's switch (`testHoldemGate`) ON to prove it changes nothing for a
+playable game → **22 / 22**. The gate's CODE is kept for the next game being built (`holdem-store.js#startOpen`, `config.js#isOwnerTest`);
+its proof: `tests/holdem-owner.test.mjs` (unchanged) + a THIRD stale check found on the way and fixed the same way —
+`tests/integration/holdem-server.test.mjs`'s HE8 test asserted "HOLD'EM ships playable: false" (16 / 17): it now checks today's truth
+first, then flips the row to `playable: false` IN ITS OWN PROCESS and runs the whole owner gate behind `testHoldemGate` (a normal host
+refused, the owner by ADMIN_PIDS, the emulators' `testAdmins`), restored at the end → **17 / 17**. Test files only — no HOLD'EM code touched.
+
+**Known issues** (also docs/harbor.md KNOWN ISSUES):
+- That iOS Safari moves the city's box during a restored tab's boot with no `resize` event is INFERRED from the owner's picture (built for
+  659 = the page between the bars, shown in 712) — proven in WebKit for the mechanism, not drivable from Playwright (no Safari bars; BACK
+  reloads). The owner's 3-step iPhone check is the confirmation.
+- A boot whose box moves reveals ~0.25–0.5 s later (the re-fit in the dark) — only that boot.
+- With NO ResizeObserver report at all (not seen) THE NET leaves ≤ 1 s of two cameras after the reveal, then the hold + the cut.
+- The held picture's 4 s safety still lets go unbaked after 4 s ON SCREEN (a re-bake that long: not seen — ~0.5 s here).
+- The `crew` group's room push under 4 shards (above). THE TV IS OFF (no display): the speed numbers are software compositing.

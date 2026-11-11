@@ -6524,3 +6524,7 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 - THE BUILD TABLE (Nov 11, LOAD FIX 5 Step 0): LOAD FIX 4 ✅ (passes/load-fix-4.md); HOLD'EM ✅ (HE1 → HE10 — PLAYABLE since HE10, Nov 11); LOAD FIX 5 (this
   pass: THE DOUBLED CITY — two cameras on screen on the owner's iPhone: reproduce + find, the fix at the root, the NO TWO CAMERAS guard — nothing else) ← NOW;
   then HOLD'EM IN THE CITY → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.
+- LOAD FIX 5 DONE (Nov 11) — passes/load-fix-5.md. THE BUILD TABLE: LOAD FIX 5 ✅ (THE DOUBLED CITY reproduced to the point in WebKit: the city's box moved
+  before the reveal with no window resize + nobody re-measured it — Safari reloading the restored tab at launch, by the numbers; THE BOX GATE on every
+  path + the held picture's safety in on-screen time; THE GUARD — NO TWO CAMERAS; no look change, the reveal 1.32 s unchanged, no rules change);
+  HOLD'EM IN THE CITY ← NEXT → FR7 + FR7 FIXES → THE SWITCH-OVER → SIDEWAYS.

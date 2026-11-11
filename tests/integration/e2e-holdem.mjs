@@ -11,8 +11,8 @@
 // + its three awards — the motion's ghosts, flips + roll-ups), and CASH's LEAVE TABLE (the button + its confirm) → the leaver in THE LEDGER.
 // HE7: FULL adds ROTATE MID-HAND (a phone turned sideways + back: the same hand + cards, no replay, an open slider closes, a real tap still
 // acts), ONE WHOLE HAND SIDEWAYS at 8 (one phone a 1440 × 900 desktop) on real, uncovered taps, and the busiest moment's 60 fps SIDEWAYS too.
-// HE8: FAST starts it as THE OWNER'S LIVE TEST (the live rule on: testHoldemGate — a normal host refused by the dealer, the owner's list shows
-// HOLD'EM · TEST, a guest's doesn't) + THE WAKE LOCK (seated → on, busted → off, the end → off). FULL adds THE TOUGHNESS (a slow line:
+// HE10 (LOAD FIX 5's add-on): FAST starts it as a REGULAR host — HOLD'EM IS ON FOR EVERYONE (in the list with no TEST tag, a guest can't start
+// it; the owner gate's code, kept for the next game being built, is proven by tests/holdem-owner.test.mjs) + HE8's THE WAKE LOCK (seated → on, busted → off, the end → off). FULL adds THE TOUGHNESS (a slow line:
 // pressed at once, a double tap sends once, a pre-action lit at once; NO SIGNAL 10 s on someone else's turn + on your own, 40 s into your time
 // bank; an APP SWITCH of 30 s — the state, no replay, the sound back on a tap; the wake lock given back on a hidden page + taken again).
 // TOUGH_ONLY=1 = the start + THE TOUGHNESS alone (N=4 is enough).
@@ -316,26 +316,19 @@ await H.run(async () => {
 
   // ------------------------------------------------------------ the start: the walk inside, then the dealer's hand 1 on every phone
   if (FAST) {
-    // ---------------------------------------------------------- HE8 — THE OWNER'S LIVE TEST (the live site's rule on the emulators: testHoldemGate)
+    // ---------------------------------------------------------- HE10 — HOLD'EM IS ON FOR EVERYONE (LOAD FIX 5's add-on, Nov 11: HE8's two
+    // OWNER-ONLY checks here went stale the moment HE10 switched HOLD'EM on — a normal host "refused", HOLD'EM · TEST only on the owner's list.
+    // Today's truth: a REGULAR host — no owner role, no preview switch — sees HOLD'EM with no TEST tag and starts it; a guest still can't.
+    // The owner gate's CODE is kept for the next game being built (api/_lib/holdem-store.js#startOpen, config.js#isOwnerTest) — its proof is
+    // tests/holdem-owner.test.mjs. The live rule's switch (testHoldemGate) is ON here on purpose: for a PLAYABLE game it must change nothing.)
     await dbPut('testHoldemGate', true);
     const gp = await pages[1].evaluate(async room => { const m = await import('/js/games/holdem/index.js'); try { await m.dealer({ holdem: 'start', room, mode: 'tournament' }); return 'started'; } catch (e) { return `${e.status} ${e.code}`; } }, H.code);
-    const hp = await host.evaluate(async room => { const m = await import('/js/games/holdem/index.js'); try { await m.dealer({ holdem: 'start', room, mode: 'tournament' }); return 'started'; } catch (e) { return `${e.status} ${e.code}`; } }, H.code);
-    const plainList = await gamesList(host);
-    const plainPlayable = await host.evaluate(() => import('/js/config.js').then(m => m.isPlayable('holdem')));
-    ok(gp === '403 not_host' && hp === '403 not_open' && !plainList.some(g => g.id === 'holdem') && !plainPlayable,
-      `THE OWNER'S LIVE TEST — a NORMAL host: the dealer refuses the start (${hp}; a guest: ${gp}), no HOLD'EM in the list (${plainList.map(g => g.id).join(' ')})`);
-    // the host becomes the OWNER (the emulators' owner list — the radio's server check, as on the live site's ADMIN_PIDS)
-    const opid = await pidOf(host, 0);
-    await dbPut(`testAdmins/${opid}`, true);
-    await host.evaluate(() => sessionStorage.clear());
-    await host.reload();
-    await waitFor(host, () => document.body.classList.contains('rd-owner') && !!window.__arcade.state.code && window.__arcade.state.meta && window.__arcade.state.meta.hostId === window.__arcade.state.uid, 'the owner\'s radio yes + back in the room as host', 40000);
-    await sleep(800);
-    const ownerList = await gamesList(host), guestList = await gamesList(pages[1]);
-    const hg = ownerList.find(g => g.id === 'holdem');
-    ok(!!hg && hg.test && ownerList.filter(g => g.test).length === 1 && !guestList.some(g => g.id === 'holdem' || g.test),
-      `THE OWNER'S LIST: HOLD'EM with its TEST tag (${ownerList.map(g => g.id + (g.test ? '·TEST' : '')).join(' ')}); a guest's list unchanged (${guestList.map(g => g.id).join(' ')})`);
-    ok(await H.startGame(host, 'holdem', { mode: 'tournament', speed: 'turbo' }), 'THE OWNER starts HOLD\'EM · TEST — the dealer checked him (no preview switch on any phone)');
+    const hostList = await gamesList(host), guestList = await gamesList(pages[1]);
+    const who = await host.evaluate(() => import('/js/config.js').then(m => ({ playable: m.isPlayable('holdem'), test: m.isOwnerTest('holdem'), owner: document.body.classList.contains('rd-owner'), preview: !!window.__nsPreview })));
+    const tags = l => l.map(g => g.id + (g.test ? '·TEST' : '')).join(' ');
+    ok(gp === '403 not_host' && hostList.some(g => g.id === 'holdem') && guestList.some(g => g.id === 'holdem') && ![...hostList, ...guestList].some(g => g.test) && who.playable && !who.test && !who.owner && !who.preview,
+      `HOLD'EM IS ON (HE10) — a guest can't start it (${gp}); a REGULAR host (no owner role, no preview switch): HOLD'EM in the list with no TEST tag (${tags(hostList)}); a guest's list the same (${tags(guestList)})`);
+    ok(await H.startGame(host, 'holdem', { mode: 'tournament', speed: 'turbo' }), 'a REGULAR host starts HOLD\'EM — the dealer takes it with the live rule\'s switch on (no owner, no preview switch on any phone)');
   } else {
     for (const p of pages) if (p) await p.evaluate(() => { window.__nsPreview = true; });   // (a game being built starts only where asked: config.js#isPlayable)
     ok(await H.startGame(host, 'holdem', { mode: 'tournament', speed: 'turbo' }), 'the host starts HOLD\'EM (a local emulator page: `preview`)');

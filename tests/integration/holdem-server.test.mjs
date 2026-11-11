@@ -579,11 +579,26 @@ test('HE3 — THE LEAN WIRE on the emulators: the console\'s start (its matchId,
   assert.equal(p.table.seats.length, 4);
 });
 
-test("HE8 — THE OWNER'S LIVE TEST: while HOLD'EM is playable: false only a room HOSTED BY THE OWNER starts it (ADMIN_PIDS — the server's own check); a normal host is refused, a guest can't start it; guests at the owner's table play normally", async () => {
+// (LOAD FIX 5's add-on, Nov 11: this test asserted "HOLD'EM ships playable: false" — stale since HE10 switched it on. Today's truth first —
+//  playable: every host starts it, the live rule's switch changes nothing — then THE GATE as HE10 kept it for the next game being built:
+//  the row flipped to playable: false IN THIS PROCESS (startOpen reads the same GAMES row), behind `testHoldemGate`, restored at the end.)
+test("HE10 — HOLD'EM IS ON: every host starts it (the live rule's switch changes nothing for a playable game) · HE8's OWNER GATE, kept for a game being built — while the row is playable: false only a room HOSTED BY THE OWNER starts it (ADMIN_PIDS — the server's own check); a normal host is refused, a guest can't start it; guests at the owner's table play normally", async () => {
   const row = GAMES.find(g => g.id === 'holdem');
-  assert.equal(row.playable, false, "HOLD'EM ships playable: false");
+  assert.equal(row.playable, true, "HOLD'EM is playable (HE10)");
   await ref('testHoldemGate').set(true);   // (the live site's rule on the emulators — without it a local table stays open for the E2E)
   try {
+    // TODAY: a normal host (a real profile, not the owner) starts it with the switch on; a guest still can't; a host with no profile is open too
+    { const reg = users(3, 'on');
+      await profiles(reg);
+      assert.equal(await startOpen(reg[0]), true, 'a regular host: open');
+      assert.equal(await startOpen(users(1, 'on-anon')[0]), true, 'a host with no profile: open');
+      const R = await new Table(reg, { seed: 'on' }).seed();
+      R.cost = false;
+      assert.equal((await R.call(reg[1], { holdem: 'start', mode: 'tournament' })).error, 'not_host', "a guest can't start it");
+      ok(await R.call(R.host, { holdem: 'start', mode: 'tournament', speed: 'turbo' }));
+      assert.equal((await R.pub()).hand, 1, 'the regular host’s match is dealt'); }
+    // THE GATE (a game being built): from here the row is playable: false — restored below
+    row.playable = false;
     // a NORMAL host (a real profile, not the owner): refused, nothing written
     const plain = users(3, 'gate');
     await profiles(plain);
@@ -632,9 +647,10 @@ test("HE8 — THE OWNER'S LIVE TEST: while HOLD'EM is playable: false only a roo
     // playable: true (Ben's switch) opens it to EVERY host
     row.playable = true;
     try { assert.equal(await startOpen(plain[0]), true); assert.equal(await startOpen(anon[0]), true); } finally { row.playable = false; }
-  } finally { await ref('testHoldemGate').remove(); await ref('testAdmins').remove(); }
-  // without the test switch a local table stays open (the E2E's preview rooms)
-  assert.equal(await startOpen(users(1, 'open')[0]), true);
+    await ref('testHoldemGate').remove(); await ref('testAdmins').remove();
+    // without the test switch a local table stays open (the E2E's preview rooms) — still with the row playable: false
+    assert.equal(await startOpen(users(1, 'open')[0]), true);
+  } finally { row.playable = true; await ref('testHoldemGate').remove(); await ref('testAdmins').remove(); }
 });
 
 test('A KICKED player: refused at the table, their private node closed, and (CASH) their seat leaves on the next poke', async () => {

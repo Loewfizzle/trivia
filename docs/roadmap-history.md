@@ -2563,6 +2563,20 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - New assets: audio/holdem/ 356 KB · assets/holdem/chips/ 36 KB · assets/holdem/casino/ 66 KB (felt 52 · backdrop 12 · rail 1.6); removed felt-green.webp
   (14 KB) — net ≈ +444 KB. Still 8 functions; no rules change; HOLD'EM still playable: false.
 
+## LOAD FIX 5 — THE DOUBLED CITY (Nov 11, 2026 — docs/harbor/passes/load-fix-5.md)
+- THE OWNER'S PICTURE (his iPhone, Safari, the first open of the day, fog): the HOLD'EM billboard, EST. 1924 and the PRISM DROP blade each TWICE.
+  Measured: the crisp lettering exactly where a 402 × 659 load puts it, the whole city canvas scaled 1.08× under it (712 / 659 — `object-fit:
+  cover` into a taller box). REPRODUCED to the point in WebKit: the city's `100lvh` box grows before the reveal with NO window resize.
+- THE CAUSES: (1) the layer's ResizeObserver (THE LOAD FIX) returned before the reveal, and nothing ever compared the canvas with its box again —
+  stable until a resize; (2) the held picture's 4 s safety counted the wall clock — a camera change while the tab was hidden let go on the
+  first frame back (~2 s doubled).
+- THE FIX (`js/screens/harbor/scene.js`): THE BOX GATE — the observer from the first frame, the reveal waits for a city built for its box (+ one
+  last look), a look once a second + at every return to the screen; like for like (the canvas's own box, only while the stylesheet lays it
+  out); every one through the one re-fit path (onResize → build → layout → holdStart). The hold's safety in time ON SCREEN (`ui/onscreen.js`).
+- THE GUARD — NO TWO CAMERAS: ONE runner (`tests/integration/kit/two-cameras.mjs` — every camera / box / bake path: frames + pixels + one
+  scene, one loop) for WebKit (`wk-double.mjs`: 9 of 19 red before → 21 / 21) and Chromium (the harbor `cameras` group: 4 / 11 before → 11 / 11).
+- No look change (pixdiff: the walkers' residue at 390 / 402 / 430 / 1440); the reveal 1.31 → 1.32 s; no rules change; still 8 functions.
+
 ## HE10 — HOLD'EM: THE FIX PASS + SWITCH ON (Nov 11, 2026 — docs/holdem.md "HE10"; the decisions: docs/games/plan.md "HE10"; the review: Downloads/neon/holdem/FABLE-REVIEW.md)
 - Every PART A finding (A1–A49) + B1 fixed, HOLD'EM's pieces of B6–B8 done; each proved with Fable's own repros (scenarios, attack, race, fuzz, evcount,
   stale, prelabel, reflip, sim) + tests/holdem-he10.test.mjs + holdem-server's HE10 cases.

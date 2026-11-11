@@ -667,6 +667,13 @@ one room), the banner's colour + passes, the words in the windows for a time win
 ## KNOWN ISSUES — OPEN (C4d, Oct 29 2026: one list; each pass's own section in its log keeps the history)
 
 **Open**
+- **LOAD FIX 5** (passes/load-fix-5.md): that iOS Safari really moves the city's box (its large viewport) during a restored tab's boot with no
+  `resize` event is INFERRED from the owner's picture (built for 659, shown in 712) — proven in WebKit for the mechanism, not drivable from
+  Playwright (no Safari bars; BACK reloads): the owner's 3-step iPhone check confirms it. A boot whose box moves reveals ~0.25–0.5 s later
+  (the re-fit in the dark). With NO ResizeObserver report at all (not seen) THE NET's once-a-second look leaves ≤ 1 s of two cameras after
+  the reveal, then the hold + the cut. The held picture's 4 s safety still lets go unbaked after 4 s ON SCREEN (a re-bake that long: not
+  seen — ~0.5 s here). The full local suite's one red — the `crew` group's room push reading another shard's room — is the 4-shard run's
+  cross-talk (20 / 20 alone).
 - **LOAD FIX 4** (passes/load-fix-4.md): a refresh in a room on a dead line costs ~9 s before the city + REJOIN (8 s on screen + the bake); the page's
   deploy id = its FIRST `/api/time` answer (~1.5 s in) — a deploy inside that window reports a later lazy link error instead of reloading (rare);
   a match's VIEW failing to link while its cartridge loaded waits for the room / the podium (not seen — they preload together). PARKED from the
@@ -1038,6 +1045,7 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | OVERCLOCK CARDS | Nov 5 | [passes/overclock-cards.md](harbor/passes/overclock-cards.md) | REDLINE + PHOTO FINISH (Grok's art + js/fx/oc-cards.js — the needle, the laser) + their server-checked unlocks; the add-on: the after-match tiles, SOLO RUN, a solo run never hosts; no rules change |
 | BUZZED LIGHTYEAR | Nov 6 | [passes/buzzed-lightyear.md](harbor/passes/buzzed-lightyear.md) | the 1-of-1 gift card (the picture taken apart: the spiral fitted + turning behind him, the stars orbiting, the HIC! popping; the strip composed eyebrows → chin) + THE CARD TEXT STANDARD on every full card; the gift strip mapping fix |
 | THE LOAD FIX | Nov 6 | [passes/load-fix.md](harbor/passes/load-fix.md) | the owner's four load problems on his iPhone reproduced in WebKit (wk-load.mjs + kit/load-probe.mjs → four `load` checks) + fixed: the bars keep the city (no doubled lettering), ONE CAMERA ON SCREEN (hold, then cut), the boot screen holds until the city (ONE fade, never the dark title), the #net pill hidden from the first frame; no rules change |
+| LOAD FIX 5 | Nov 11 | [passes/load-fix-5.md](harbor/passes/load-fix-5.md) | THE DOUBLED CITY (the owner's iPhone: the billboard, EST. 1924 + the blade twice) reproduced to the point in WebKit — the city's box moved before the reveal with no window resize; THE BOX GATE + the held picture's safety in on-screen time; THE GUARD — NO TWO CAMERAS (`kit/two-cameras.mjs`: `wk-double.mjs` + the `cameras` group); no look change, the reveal unchanged |
 | LOAD FIX 4 | Nov 10 | [passes/load-fix-4.md](harbor/passes/load-fix-4.md) | GROK'S BOOT AUDIT (13 findings answered): THE REJOIN LIMIT, THE SKEW WRAPPER + the city's graph's skew path, the boot's gates in visible time, no lookbehind, a twice-failed sheet, the hang watch, the service worker, the load log; #2 + #9 parked; no rules change |
 | LOAD FIX 3 | Nov 10 | [passes/load-fix-3.md](harbor/passes/load-fix-3.md) | THE FREEZE found (one failed / stalled module request held the boot screen forever — the parent too) + THE BOOT SAFETY NET (THE BOOT WATCHDOG inline, the hang watch at boot, the sheets + the city's module retried, the one reload); the music ON the tap (1.7–2.4 → 0.09–0.17 s); THE APOSTROPHE TUBE (HOLD'EM); NO BLACK TILES (24 code-drawn cards' baked stills) |
 | LOAD FIX 2 | Nov 9 | [passes/load-fix-2.md](harbor/passes/load-fix-2.md) | the city loads fast again (THE BOOT CLOCK: nothing grew since Nov 6 — the waterfall, the song before a tap, THE LOOK TRAP; THE BOOT PRELOAD, the song at the first tap; 3.45 → 1.32 s Chromium, 2.75 → 2.2 s WebKit, the bytes halved) + the clouds never snap (no set dropped mid-blend, 6-s blends, the clock's jump absorbed); THE BOOT BUDGET + the sky guard |

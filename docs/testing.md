@@ -196,7 +196,7 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
 - **HOLD'EM's OWNER'S LIVE TEST + TOUGHNESS + LONG NIGHTS (HE8):** npm test — `tests/holdem-owner.test.mjs` (only the owner's phone offers HOLD'EM · TEST; only the
   radio gate sets it, only the room's host list reads it; the server gate's lines). The emulators: `holdem-server.test.mjs`'s HE8 case (the dealer's start
   refuses a non-owner host while `playable: false` — the live rule switched on by `testHoldemGate`; the owner via ADMIN_PIDS / `testAdmins/{pid}`).
-  e2e-holdem FAST starts as THE OWNER'S LIVE TEST + checks THE WAKE LOCK; FULL adds THE TOUGHNESS (`TOUGH_ONLY=1 N=4` = the start + it alone, ≈ 2.5 min:
+  e2e-holdem FAST starts as a REGULAR host since HE10 switched HOLD'EM on (LOAD FIX 5's add-on: in the list with no TEST tag, a guest can't start it — the owner gate's own proof is `holdem-owner.test.mjs` + `holdem-server.test.mjs`, which flips the row to `playable: false` in-process) + checks THE WAKE LOCK; FULL adds THE TOUGHNESS (`TOUGH_ONLY=1 N=4` = the start + it alone, ≈ 2.5 min:
   a slow line via CDP, `setOfflineMode` 10 s / 10 s on your turn / 40 s into the bank, a 30 s app switch, a counted wake-lock stub). Any local server:
   `node tests/integration/holdem-endurance.mjs "<browser>" --hands 400` (THE ENDURANCE RUN at `&speed=12` ≈ 9 min — heap / DOM / listeners / canvases flat —
   + THE IDLE PROOF: 0 animation frames on an idle table; `--hands 60` for a quick look). The preview: `&clk=` `&bank=1` (your timer), `&speed=K` (the demo).

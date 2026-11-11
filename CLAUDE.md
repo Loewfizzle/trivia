@@ -110,6 +110,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
     room.js#pendingResume / cancelResume: ONE attempt); EVERY dynamic import through THE SKEW WRAPPER (`lazyImport(import('./x.js'), 'x')` —
     ui/lazy-import.js: a new deploy → ONE reload, never in a match being played; tests/lazy-import.test.mjs fails on a stray); the boot's gates
     in VISIBLE time (ui/onscreen.js — never a plain setTimeout / wall-clock age for a boot wait); no regex lookbehind (safari-floor.test.mjs).
+    LOAD FIX 5 (the owner's DOUBLED CITY, Nov 11): THE BOX GATE — EVERY camera / box change on EVERY path goes through the ONE gate
+    (scene.js#boxCheck / boxLook → onResize → build → layout → holdStart: the layer's ResizeObserver from the FIRST frame, the reveal waits for a
+    city built for its box, a look once a second + at every return; the held picture's safety in time ON SCREEN) — never a second canvas resize;
+    THE GUARD = NO TWO CAMERAS (`node tests/integration/wk-double.mjs` — WebKit, every path; the harbor `cameras` group; a new path = its row in
+    tests/integration/kit/two-cameras.mjs — docs/harbor.md#performance).
   - Debug + preview flags: `&debug=1` (strips at the TOP), `&dpr=3` (look only), `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary
     from a link waits for the reveal + a tap; `&lgnow=1` at once) — docs/harbor.md.
 - **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import
