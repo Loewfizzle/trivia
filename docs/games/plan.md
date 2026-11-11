@@ -307,3 +307,14 @@
 - THE OWNER'S LIVE TEST: while HOLD'EM is playable: false, a room HOSTED BY THE OWNER (the site's existing admin/owner identity — server-verified, never a client flag) can start HOLD'EM on the live site; it shows in that host's game list with a small "TEST" tag; guests in that room play normally. For everyone else nothing changes: it appears nowhere, and the dealer's start REFUSES any non-owner host while the game isn't playable. Flipping playable: true later simply opens it to all.
 - REAL-WORLD TOUGHNESS: instant button feedback (pressed state at once, then the server's answer); a clean recovery after a lost signal mid-turn; sound resumes after an app switch; the SCREEN STAYS AWAKE (Wake Lock) while you're seated in a live match — released when you spectate, leave, the match ends, or the page hides.
 - LONG NIGHTS: memory stays flat over a long match; nothing animates or redraws while the table is idle (battery).
+
+## HE10 — THE FIX PASS + SWITCH ON (Nov 11 2026)
+- Ben accepted the Fable review's recommendations. His decisions:
+  - A1: the free pre-action is a TRUE CHECK — it checks if nothing is owed and CANCELS ITSELF if anyone bets (it never calls); CALL ANY stays its own toggle, labelled CALL ANY. HOW TO PLAY + the docs say so.
+  - A7: a match COUNTS (XP / streak / wins) only after real play — CASH: ≥ 10 hands dealt AND ≥ 5 minutes; TOURNAMENT: ≥ 3 hands dealt. Below that the match ends normally but credits nothing (say so on the end screen in one quiet line).
+  - A18: CASH — LEAVE then SIT BACK DOWN in the same session sits you down with the chips you LEFT WITH (no fresh 1,000 while you have banked chips); the ledger stays Σ net = 0.
+  - A40: a CASH session's end plays CHAMPION for the session's biggest winner (net > 0); everyone else hears the end quietly. Still ONE winner sound.
+  - A46: keep the standard poker words (rebuy, bought in, net, the ledger, time bank, high-roller, bet, bluff); change only "a new buy-in" → "a fresh 1,000 chips".
+- A2 / B1: a HOLD'EM result exists ONLY from the dealer's own record (src: 'dealer'); the shared snapshot / room paths never credit a dealer game or a non-playable game.
+- A17: delete END SESSION's unused "void the hand" path (the hand ends by itself on timeouts).
+- When everything is fixed + green: HOLD'EM goes ON for everyone (config.js playable: true), the TEST tag disappears.
