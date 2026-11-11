@@ -147,7 +147,12 @@ city's scene started — `document.visibilityState` faked + a `visibilitychange`
 ISSUES; the file map); decisions.md; ROADMAP.md + roadmap-history; plan.md's build table; CLAUDE.md (one line under THE LOAD); docs/testing.md.
 
 **THE BUSY-PC CHECK:** before the full suite only the emulators + my `serve.mjs --emu` (:5173); 18.8 GB free. My other servers (the BEFORE tree
-:5174 + its worktree, wk-skew's :5176 / :5177, the DAILY_TEST server :5178) were stopped / removed first. (Ben's :5190 preview server wasn't running.)
+:5174 + its worktree, wk-skew's :5176 / :5177, the DAILY_TEST server :5178) were stopped / removed first. (Ben's :5190 preview server WAS up — the start's port check missed it; it was stopped by mistake in the very last cleanup with the
+emulators' leftover node, and restarted at once: a plain `node scripts/serve.mjs 5190`, left running.)
+
+**The cloud run** (08da24a2, the harbor tag): **tests ✅ + harbor ✅ — green first try.** Vercel BUILT 08da24a2 (the live `/api/time` answers
+`v: 08da24a22f9a`). **The servers:** every server this pass started is stopped (the emulators' Java + node, serve.mjs :5173, the BEFORE tree :5174
++ its worktree, wk-skew's :5176 / :5177, the DAILY_TEST server :5178, the lines); Ben's :5190 running.
 
 **The runs (locally, the mini PC):** the unit suite **1602 / 1602** · rules **76 / 76** (unchanged — nothing to re-publish) · `/api` **44 / 44** ·
 `e2e-profiles` **62 / 62** · smoke **6 / 6** (one red in the batch — "overclock on the guest" timed out when it ran straight after `server.test`
