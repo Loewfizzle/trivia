@@ -17,6 +17,7 @@
                           slider = myturn with the RAISE slider open · final = the podium (the console's frame + HOLD'EM's body)
        &mode=cash         a CASH table (BLINDS 5/10; away = SAT OUT; &broke=1 = your stack 0 → REBUY)
        &deck=two          the CLASSIC two-colour faces           &hand=AsKd   your two cards (the deck is rigged to deal them)
+       &skin=cabin        the table's skin (HE6): casino (the default) · cabin · apartment
        &seed=x            another deal                            &host=0      you're not the host (no END SESSION in CASH)
        &st=47&sb=34       the safe areas (pt) — an iPhone 13/14 = 47 / 34 (the default), a 15/16 Pro = 62 / 34
      HE4 ADD-ON (Ben) — REAL SLIM CARDS: every fake player has a REAL public face, as a room player's profile (profiles/{pid} through
@@ -78,7 +79,7 @@ document.documentElement.style.setProperty('--safe-b', `${sb}px`);
 const probeCss = document.createElement('style');
 probeCss.textContent = `.he-probe-t { height: ${st}px !important } .he-probe-b { height: ${sb}px !important }`;
 document.head.append(probeCss);
-updateSettings({ heDeck: q.get('deck') === 'two' ? 'two' : 'four', musicOff: true, sfxOff: true });
+updateSettings({ heDeck: q.get('deck') === 'two' ? 'two' : 'four', heSkin: q.get('skin') || 'casino', musicOff: true, sfxOff: true });   // (HE6: &skin=casino|cabin|apartment)
 
 // the players: mixed name lengths (a 12-letter one), the real emblem styles
 const NAMES = ['ALEX', 'MAXIMILIANOS', 'BO', 'GRACE', 'CHARLOTTE', 'ED', 'PENELOPE', 'JUN'];

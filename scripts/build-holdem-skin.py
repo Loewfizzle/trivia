@@ -63,7 +63,69 @@ def casino(out):
     backdrop('backdrop-casino-portrait.png', os.path.join(out, 'backdrop.webp'))
 
 
-SKINS = {'casino': casino}
+def cardback(file, out, q=80):
+    """a card back at 240 × 336 (3× the deal's biggest back; HE3's casino back is the same size)"""
+    Image.open(os.path.join(SRC, file)).convert('RGB').resize((240, 336), Image.LANCZOS).save(out, 'WEBP', quality=q, method=6)
+
+
+def move_window(im):
+    """COZY CABIN (Ben: "nudge it so its top-right WINDOW clears the music button"): the window (its frame + sill: x 948–1264, y 22–270 of the
+    1290 × 2796 portrait) moves LEFT + a touch smaller — its right edge at ~334 pt of a 390 phone, left of the music button's 342 — and the
+    logs it leaves are filled from the same rows further left (the logs run horizontally, so a row's copy is seamless)"""
+    im = im.copy()
+    box = (948, 22, 1264, 270)
+    win = im.crop(box)
+    im.paste(im.crop((box[0] - 330, box[1], box[2] - 330, box[3])), box[:2])          # the logs where the window was
+    k = 0.86; win = win.resize((int(win.width * k), int(win.height * k)), Image.LANCZOS)
+    right = int(334 / 390 * im.width)
+    im.paste(win, (right - win.width, 24))
+    return im
+
+
+def pillars(src_file):
+    """CYBERPUNK APARTMENT: the room's cyan + pink neon pillars stand at the square original's far edges (x 87–132 · 2669–2711 of 2800) — a
+    centre crop loses them; pasted back at the portrait's edges (soft inner edges) they glow in the slivers beside the table"""
+    full = Image.open(os.path.join(SRC, src_file)).convert('RGB')
+    def edit(im):
+        im = im.copy(); w, h = im.size; s = 140
+        for sx, dx, ramp_in in ((60, 0, False), (2600, w - s, True)):
+            strip = full.crop((sx, 0, sx + s, h))
+            a = np.ones((h, s), dtype=np.float32)
+            ramp = np.clip(np.linspace(0, 1, s) * (s / 40.0), 0, 1)                    # 40 px soft edge toward the middle
+            a *= (ramp[None, :] if ramp_in else ramp[::-1][None, :])
+            base = np.asarray(im.crop((dx, 0, dx + s, h))).astype(np.float32)
+            mix = base * (1 - a[..., None]) + np.asarray(strip).astype(np.float32) * a[..., None]
+            im.paste(Image.fromarray(mix.astype(np.uint8)), (dx, 0))
+        return im
+    return edit
+
+
+def cabin(out):
+    L = [-0.75, 0.55, 1.6]                     # the firelight: low, from the lower left
+    # the felt: the casino's green warmed toward FOREST green (less blue, a little red) — the fire's light does the rest
+    forest = lambda C: np.stack([C[..., 0] * 1.35 + 0.035, C[..., 1] * 0.86, C[..., 2] * 0.62], axis=-1)
+    lit('felt-green.jpg', 'felt-green-normal.png', 512, 1.1, L, os.path.join(out, 'felt.webp'), q=66, grade=forest)
+    lit('rail-walnut.jpg', 'rail-walnut-normal.png', 400, 1.25, L, os.path.join(out, 'rail.webp'), q=74)
+    # the plates' + buttons' wood: the same walnut, dark (the glass + the brass rims sit over it)
+    # (the veneer is even — std ≈ 4 of 255 — so its grain is stretched ×4.5, at 384 px + q 84: at 160 px + q 70 it was a flat brown)
+    lit('rail-walnut.jpg', 'rail-walnut-normal.png', 384, 1.8, L, os.path.join(out, 'wood.webp'), q=84,
+        grade=lambda C: np.clip((C - C.mean(axis=(0, 1))) * 4.5 + C.mean(axis=(0, 1)), 0, 1) * 0.6)
+    backdrop('backdrop-cabin-portrait.png', os.path.join(out, 'backdrop.webp'), lift=1.18, edit=move_window)
+    cardback('cardback-cabin.png', os.path.join(ROOT, 'cardback-cabin.webp'))
+
+
+def apartment(out):
+    L = [0.35, -0.9, 1.6]                      # a cool light from above, a little to the right
+    # (the near-black teal: q 80 + a stronger relief — at q 66 the weave compressed away)
+    lit('felt-teal.jpg', 'felt-teal-normal.png', 512, 1.5, L, os.path.join(out, 'felt.webp'), q=80)
+    lit('rail-metal.jpg', 'rail-metal-normal.png', 440, 1.2, L, os.path.join(out, 'rail.webp'), q=74)
+    # the square original, centre-cropped to the phone's shape: its skyline window shows above the table
+    half = 0.5 * (BD_W / BD_H)
+    backdrop('backdrop-apartment.png', os.path.join(out, 'backdrop.webp'), crop=(0.5 - half, 0, 0.5 + half, 1), edit=pillars('backdrop-apartment.png'))
+    cardback('cardback-apartment.png', os.path.join(ROOT, 'cardback-apartment.webp'))
+
+
+SKINS = {'casino': casino, 'cabin': cabin, 'apartment': apartment}
 
 for sid, fn in SKINS.items():
     if ONLY and sid not in ONLY: continue
