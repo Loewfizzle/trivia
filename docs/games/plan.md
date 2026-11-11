@@ -294,3 +294,10 @@
   - OPPONENTS' SHOWN CARDS (small): index + suit in the same style.
 - THE SKIN PICKER: ☰ → Settings → a "TABLE" row with three small live thumbnails (NEON CASINO · COZY CABIN · CYBERPUNK APARTMENT); tap = the table changes LIVE (even mid-hand), saved per phone; default NEON CASINO; only the chosen skin's assets load.
 - COZY CABIN + CYBERPUNK APARTMENT = data + art in HE5's skin system (no new code paths), each to NEON CASINO's bar.
+
+## HE7 — SIDEWAYS + DESKTOP (Nov 11 2026)
+- SIDEWAYS = Ben's exception for HOLD'EM: when the screen is wider than tall, the table becomes a WIDE STADIUM (rounded ends left/right) filling the screen; the 7 opponent seats FULLY EVENLY SPACED around the oval (no portrait compromise), YOU at the bottom centre; the board in the middle, the pot above it; your 2 cards bottom-centre over the rail with your plate; the action area (presets above FOLD / RAISE / CALL, the slider, the pre-actions, LEAVE) on the RIGHT, low, under the right thumb — never over the board, your cards or a seat.
+- HEADS-UP sideways: the opponent top-centre, the board big in the middle.
+- ROTATE ANY TIME: switching orientation mid-hand re-lays out instantly — no reload, no lost state, no replayed motion or sound; a motion in flight finishes in the new layout or snaps to its end.
+- DESKTOP / any wide window uses the SIDEWAYS layout scaled to the window (centred, a sensible max size), the skin's SQUARE backdrop filling the rest — no more phone column. A tall narrow window still gets portrait.
+- The skins' SQUARE backdrops (backdrop-casino.png / backdrop-cabin.png / backdrop-apartment.png from Downloads\grok\holdem\, compressed) are the sideways/desktop backdrops; only the chosen skin's loads.
