@@ -399,7 +399,7 @@ export function createView() {
     const bk = !shown && x.held ? backUrl() : '';
     if (backs.dataset.k !== bk) { backs.dataset.k = bk; backs.replaceChildren(...(bk ? [backImg(), backImg()] : [])); }
     const sk = shown ? `${shown.join('')}|${deck()}` : '';
-    if (sh.dataset.k !== sk) { sh.dataset.k = sk; sh.innerHTML = shown ? shown.map(c => `<div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck())}</div>`).join('') : ''; }
+    if (sh.dataset.k !== sk) { sh.dataset.k = sk; sh.innerHTML = shown ? shown.map(c => `<div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck(), 'mini')}</div>`).join('') : ''; }
     // the showdown's line under the plate: the hand label (gold for a winner) + WINS n
     const res = t && t.street === 'done' && t.result;
     const won = res ? winOf(res, x.id) : 0;
@@ -441,7 +441,7 @@ export function createView() {
       if (slot.dataset.k === k) return;
       slot.dataset.k = k;
       slot.classList.toggle('is-card', !!c);
-      slot.innerHTML = c ? `<div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck())}</div>` : '';
+      slot.innerHTML = c ? `<div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck(), 'board')}</div>` : '';
     });
     els.board.classList.toggle('is-big', seatCount() === 1);
     paintShowdown();
@@ -531,7 +531,7 @@ export function createView() {
     if (hand.dataset.k !== k) {
       hand.dataset.k = k;
       // (each card in its own wrapper: the wrapper holds the fan's tilt, the card inside flips — motion.js)
-      hand.innerHTML = cards ? cards.map(c => `<div class="he-hc"><div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck())}</div></div>`).join('')
+      hand.innerHTML = cards ? cards.map(c => `<div class="he-hc"><div class="he-card" data-c="${c}" title="${cardName(c)}">${faceSvg(c, deck(), 'full')}</div></div>`).join('')
         : showBacks ? `<div class="he-hc"><img class="he-back" src="${backUrl()}" alt=""></div><div class="he-hc"><img class="he-back" src="${backUrl()}" alt=""></div>`
           : spec ? '<div class="he-spec">SPECTATING</div>' : '';
     }

@@ -11,6 +11,7 @@ import { lazyView, gameSheets } from '../lazy-view.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { fetchSounds } from './sfx.js';
 import { skinOf, skinAssets } from './skins.js';
+import { courtUrl } from './card-art.js';
 import { settings } from '../../audio/settings.js';
 
 export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('holdem'));
@@ -60,7 +61,9 @@ export { finalScene } from './final.js';
 export function preload() {
   const chips = ['red', 'green', 'black', 'purple', 'yellow', 'orange'].flatMap(c => [`chips/chip-${c}-top.webp`, `chips/chip-${c}-side.webp`]);   // (HE5: 36 KB)
   // (HE5: ONLY the chosen skin's art — this phone's settings.heSkin; NEON CASINO ≈ 70 KB)
-  const imgs = [...skinAssets(skinOf(settings.heSkin)), ...chips.map(f => new URL(`../../../assets/holdem/${f}`, import.meta.url).href)];
+  // (HE6: + THE REAL CARDS' court figures — ONLY this phone's deck's sprite, ~195 KB — + the card stock's grain, 1.4 KB)
+  const imgs = [...skinAssets(skinOf(settings.heSkin)), ...chips.map(f => new URL(`../../../assets/holdem/${f}`, import.meta.url).href),
+    courtUrl(settings.heDeck), new URL('../../../assets/holdem/cards/stock.webp', import.meta.url).href];
   return Promise.all([
     ...imgs.map(src => fetch(src).then(r => r.blob()).catch(() => null)),
     fetchSounds().catch(() => null),

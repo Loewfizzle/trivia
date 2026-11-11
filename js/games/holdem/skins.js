@@ -12,6 +12,7 @@
 //   accent    { main, hi, ink }                                 what marks YOU + the winner (the stacks, the gold lines)
 //   plate     { bg, rim, rimHi }   button { glass, glassHi, rim, rimHi, rimLo }   the black glass + its rims
 //   back      the card back (every opponent's cards + the deal)
+//   stock     the card STOCK's paper colour (HE6 — the faces' ink never changes; only the paper's tint: crisp white · warm ivory · cool white)
 //   backdrop  { portrait, square, dim }                         behind the table (square = HE7's sideways view), darkened by `dim`
 //   living    ['neon', 'haze', 'slots']                         the cheap living touches (opacity / transform only) — the FIRST thing the tiers drop
 const ASSET = new URL('../../../assets/holdem/', import.meta.url).href;
@@ -26,7 +27,7 @@ export const SKINS = Object.freeze({
     accent: { main: '#f2c14e', hi: '#ffd977', ink: '#1a1204' },
     plate: { bg: 'rgba(9, 8, 6, 0.92)', rim: 'rgba(242, 193, 78, 0.5)', rimHi: 'rgba(255, 231, 166, 0.85)' },
     button: { glass: '#171209', glassHi: '#2a2216', rim: '#f2c14e', rimHi: '#ffe7a6', rimLo: '#7a5414' },
-    back: 'cardback-casino.webp',
+    back: 'cardback-casino.webp', stock: '#fbfaf6',
     backdrop: { portrait: 'casino/backdrop.webp', square: null, dim: 0.18 },
     living: Object.freeze(['neon', 'haze', 'slots']),
   }),
@@ -50,6 +51,7 @@ export function skinVars(skin) {
     '--he-gold': s.accent.main, '--he-gold-2': s.accent.hi, '--he-ink': s.accent.ink,
     '--he-plate': s.plate.bg, '--he-plate-rim': s.plate.rim, '--he-plate-rim-hi': s.plate.rimHi,
     '--he-glass': s.button.glass, '--he-glass-hi': s.button.glassHi, '--he-rim': s.button.rim, '--he-rim-hi': s.button.rimHi, '--he-rim-lo': s.button.rimLo,
+    '--he-stock': s.stock,
     '--he-backdrop': s.backdrop.portrait ? `url("${assetUrl(s.backdrop.portrait)}")` : 'none', '--he-backdrop-dim': String(s.backdrop.dim),
   };
 }

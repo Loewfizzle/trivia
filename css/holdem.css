@@ -219,7 +219,14 @@
 .he-board { position: absolute; left: var(--cx); top: var(--board-y); transform: translate(-50%, -50%); display: flex; gap: calc(5px * var(--s)); pointer-events: none; }
 .he-slot { width: var(--bc-w); height: var(--bc-h); border-radius: calc(6px * var(--s)); border: 1.5px dashed rgba(244, 234, 210, 0.22); }
 .he-slot.is-card { border-color: transparent; }
-.he-card { width: 100%; height: 100%; border-radius: 12%/9%; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5); }
+/* HE6 — THE REAL CARDS (card-art.js draws the ink): THE CARD STOCK = the skin's paper colour (--he-stock) with a faint grain multiplied over it
+   (assets/holdem/cards/stock.webp, 1.4 KB), the corners rounded like the face's hairline, a HAIR OF EDGE under it (the card's thickness) + a
+   soft shadow on the felt */
+.he-card {
+  width: 100%; height: 100%; border-radius: 7.7% / 5.5%;
+  background: url('../assets/holdem/cards/stock.webp') 0 0 / 64px 64px, var(--he-stock, #fbfaf6); background-blend-mode: multiply;
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.7), 0 0.75px 0 #b8ad95, 0 1.4px 0 rgba(64, 52, 34, 0.55), 0 3px 9px rgba(0, 0, 0, 0.42);
+}
 .he-card > svg { display: block; width: 100%; height: 100%; }
 .he-slot .he-card { width: var(--bc-w); height: var(--bc-h); }
 
@@ -361,7 +368,7 @@
 .he-rk-t b { display: block; font-size: 13px; letter-spacing: 0.06em; }
 .he-rk-t small { display: block; font-size: 12px; color: var(--text-dim); }
 .he-rk-cards { display: flex; }
-.he-rk-cards svg { width: 22px; height: 31px; }
+.he-rk-cards svg { width: 22px; height: 31px; border-radius: 2px; background: #fbfaf6; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }   /* (HE6: the stock — the face draws only ink) */
 .he-rk-cards svg + svg { margin-left: -6px; }
 .he-rk-foot { margin: 12px 2px 4px; font-size: 13px; color: var(--text-dim); }
 
@@ -437,7 +444,7 @@ i.he-ghost.he-chip { display: block; }
 .he-slot, .he-shown .he-card, .he-hc { transition: opacity 0.25s ease, translate 0.25s ease; }
 .he.is-showdown .he-slot.is-dim { opacity: 0.45; }
 .he.is-showdown .he-slot.is-win { translate: 0 calc(-3px * var(--s)); }   /* (3 pt: the bottom row's tag sits 4 pt above the board — layout.js#sideRowsPx) */
-.he.is-showdown .he-slot.is-win .he-card, .he.is-showdown .he-card.is-win { box-shadow: 0 0 0 2px var(--he-gold), 0 0 14px rgba(242, 193, 78, 0.6), 0 6px 14px rgba(0, 0, 0, 0.55); }
+.he.is-showdown .he-slot.is-win .he-card, .he.is-showdown .he-card.is-win { box-shadow: 0 0.75px 0 #b8ad95, 0 0 0 2px var(--he-gold), 0 0 14px rgba(242, 193, 78, 0.6), 0 6px 14px rgba(0, 0, 0, 0.55); }
 .he.is-showdown .he-shown .he-card.is-win { translate: 0 -4px; }
 .he.is-showdown .he-seat.is-lose { opacity: 0.55; }
 /* THE AWARD BOX (HE4 — Ben's split-pot shot): the hand's end — the winning hand in gold over the pot's line, UNDER the board (the band the

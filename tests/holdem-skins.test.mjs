@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { existsSync, statSync, readFileSync } from 'node:fs';
 import { SKINS, SKIN_IDS, DEFAULT_SKIN, skinOf, skinVars, skinAssets } from '../js/games/holdem/skins.js';
 
-const KEYS = ['id', 'name', 'line', 'felt', 'rail', 'light', 'print', 'accent', 'plate', 'button', 'back', 'backdrop', 'living'];
+const KEYS = ['id', 'name', 'line', 'felt', 'rail', 'light', 'print', 'accent', 'plate', 'button', 'back', 'stock', 'backdrop', 'living'];
 
 test('THE SKINS: one data shape each; NEON CASINO the default; an unknown id → the default', () => {
   assert.equal(DEFAULT_SKIN, 'casino');

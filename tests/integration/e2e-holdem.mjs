@@ -308,7 +308,7 @@ await H.run(async () => {
       await pages[li].evaluate(() => document.querySelector('.he-leave').click());
       for (let w = 0; w < 50 && (await pages[li].evaluate(() => window.__holdem.leave())) !== 'queued'; w++) await sleep(150);
       const q = await pages[li].evaluate(() => window.__holdem.leave());
-      await H.shot(pages[li], 'he-06-leave').catch(() => {});
+      await Promise.resolve(H.shot(pages[li], 'he-06-leave')).catch(() => {});
       ok(q === 'queued', `LEAVE AFTER THIS HAND: ${leftName}'s tap queued it (the button: ${q})`);
       const t0 = Date.now();
       while (Date.now() - t0 < 60000) {

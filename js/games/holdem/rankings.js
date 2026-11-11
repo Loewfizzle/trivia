@@ -14,7 +14,7 @@ export function openRankings({ mark = null } = {}) {
   const list = h('ol.he-rk', RANKINGS.map(([name, line, cards], i) => h(`li.he-rk-row${mark === name ? '.is-mine' : ''}`,
     h('span.he-rk-n', String(i + 1)),
     h('div.he-rk-t', h('b', name), h('small', line)),
-    h('div.he-rk-cards', { html: cards.map(c => faceSvg(c, deck)).join('') }))));
+    h('div.he-rk-cards', { html: cards.map(c => faceSvg(c, deck, 'mini')).join('') }))));
   open = openSheet({ title: 'HAND RANKINGS', kicker: 'BEST → WORST', cls: 'he-rk-sheet', theme: 'holdem', label: 'Hand rankings', body: [list,
     h('p.he-rk-foot', 'Your best five cards count — any mix of your two and the five on the table.')], onClose: () => { open = null; } });
   return open;

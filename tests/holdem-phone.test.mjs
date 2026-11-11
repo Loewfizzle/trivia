@@ -142,8 +142,7 @@ test('THE CARD FACES: four colours (spades black · hearts red · diamonds blue 
   assert.deepEqual(['s', 'h', 'd', 'c'].map(x => suitColor(x)), ['#15161c', '#d3202f', '#1d5fd6', '#14864a']);
   assert.equal(suitColor('d', 'two'), suitColor('h', 'two'));
   assert.equal(suitColor('c', 'two'), suitColor('s', 'two'));
-  assert.match(faceSvg('Td'), />10</);
-  assert.match(faceSvg('Td'), /#1d5fd6/);
+  assert.match(faceSvg('Td'), /#1d5fd6/);   // (HE6: the faces' full checks — tests/holdem-cards.test.mjs)
   assert.equal(RANKINGS.length, 10);
   const want = ['STRAIGHT FLUSH', 'STRAIGHT FLUSH', 'FOUR OF A KIND', 'FULL HOUSE', 'FLUSH', 'STRAIGHT', 'THREE OF A KIND', 'TWO PAIR', 'PAIR', 'HIGH CARD'];
   RANKINGS.forEach(([, , cards], i) => assert.equal(evaluate(cards).name, want[i], `${RANKINGS[i][0]}'s example`));

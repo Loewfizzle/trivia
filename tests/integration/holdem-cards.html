@@ -1,0 +1,60 @@
+<!doctype html>
+<!-- HOLD'EM (HE6) — THE REAL CARDS, close up: the faces (js/games/holdem/card-art.js — the same code the table draws with) on the real felt at
+     the table's sizes — YOUR hand (78 × 108 + the 430's ×1.08), the board (52 / 58 / 64 pt), a shown hand (30 × 42), the rankings sheet (22 × 31).
+     &deck=two = the CLASSIC colours · &skin=casino|cabin|apartment = that skin's card stock + felt · &all=1 = every card in every size ·
+     &zoom=2 = a magnified look (judge at 1 on a phone, unzoomed). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hold'em cards</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/holdem.css">
+<style>
+  html, body { margin: 0; background: #06050a; color: #f4ead2; font-family: 'Chakra Petch', sans-serif; }
+  .felt { margin: 10px; padding: 12px 10px; border-radius: 18px;
+    background: radial-gradient(70% 60% at 50% 40%, rgba(var(--he-light), var(--he-light-k)), rgba(0, 0, 0, 0.45) 100%), var(--he-felt-img) 0 0 / var(--he-felt-tile) var(--he-felt-tile), var(--he-felt-tint); }
+  h3 { margin: 2px 2px 8px; font: 700 11px/1 'Chakra Petch'; letter-spacing: 0.16em; color: #ffd977; }
+  .row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 8px; margin-bottom: 12px; }
+  .row.tight { gap: 4px; }
+  .hand { display: flex; }
+  .hand > .he-card:first-child { transform: rotate(-5deg) translateX(8%); }
+  .hand > .he-card:last-child { transform: rotate(5deg) translateX(-8%); }
+  .he-card { flex: none; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { faceSvg } from '/js/games/holdem/card-art.js';
+import { skinOf, skinVars } from '/js/games/holdem/skins.js';
+const q = new URLSearchParams(location.search);
+if (q.get('zoom')) document.body.style.zoom = q.get('zoom');
+const deck = q.get('deck') === 'two' ? 'two' : 'four', skin = skinOf(q.get('skin'));
+for (const [k, v] of Object.entries(skinVars(skin))) document.documentElement.style.setProperty(k, v);
+const app = document.getElementById('app');
+const card = (c, size, w, h) => `<div class="he-card" style="width:${w}px;height:${h}px">${faceSvg(c, deck, size)}</div>`;
+const felt = (title, html) => `<div class="felt"><h3>${title}</h3>${html}</div>`;
+const RANKS = 'AKQJT98765432', SUITS = 'shdc';
+const ALL = [...SUITS].flatMap(s => [...RANKS].map(r => r + s));
+let html = '';
+const hands = [['As', 'Kd'], ['Qh', 'Jc'], ['Tc', '9d'], ['7s', '2h'], ['Ks', 'Kh'], ['8c', '5d']];
+html += felt(`YOUR HAND · 78 × 108 · ${skin.name} · ${deck === 'two' ? 'CLASSIC' : 'FOUR-COLOUR'}`, `<div class="row">${hands.slice(0, 4).map(hh => `<div class="hand">${hh.map(c => card(c, 'full', 78, 108)).join('')}</div>`).join('')}</div>`
+  + `<h3>× 1.08 (a 430)</h3><div class="row">${hands.slice(3).map(hh => `<div class="hand">${hh.map(c => card(c, 'full', 84, 117)).join('')}</div>`).join('')}</div>`);
+const boards = [['Ah', 'Kc', 'Qd', 'Js', 'Td'], ['9c', '8d', '7h', '6s', '2c']];
+for (const w of [52, 58, 64]) html += felt(`THE BOARD · ${w} pt`, boards.map(b => `<div class="row tight">${b.map(c => card(c, 'board', w, Math.round(w * 1.4))).join('')}</div>`).join(''));
+html += felt('SHOWN HANDS · 30 × 42', `<div class="row">${[['As', 'Kd'], ['Qh', 'Jc'], ['Tc', '9d'], ['7s', '2h'], ['Kc', 'Ks']].map(hh => `<div class="row tight" style="gap:1px;margin:0">${hh.map(c => card(c, 'mini', 30, 42)).join('')}</div>`).join('')}</div>`
+  + `<h3>THE RANKINGS SHEET · 22 × 31</h3><div class="row tight">${['As', 'Ks', 'Qs', 'Js', 'Ts', '9h', '4d', '3c'].map(c => card(c, 'mini', 22, 31)).join('')}</div>`);
+if (q.get('all')) {
+  html += felt('EVERY CARD · FULL · 78 × 108', `<div class="row tight">${ALL.map(c => card(c, 'full', 78, 108)).join('')}</div>`);
+  html += felt('EVERY CARD · BOARD · 58', `<div class="row tight">${ALL.map(c => card(c, 'board', 58, 81)).join('')}</div>`);
+  html += felt('EVERY CARD · MINI · 30', `<div class="row tight">${ALL.map(c => card(c, 'mini', 30, 42)).join('')}</div>`);
+}
+app.innerHTML = html;
+await Promise.all([...document.images].map(i => i.decode().catch(() => null)));
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>
