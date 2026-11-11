@@ -771,8 +771,7 @@ keeps HE7's bar over the presets (the clock is the hero's child there, never the
   ≤ h − 38; the SE sideways: the plate ran 2 pt off → sideways it is the 26 pt `layout-wide.js` counts). HOW TO PLAY: the 20 s + the time bank, the
   pre-actions, CASH's REBUY · LEAVE · the ledger, AWAY — one plain line each; the rankings sheet: A-2-3-4-5, ties.
 - THE PORTRAIT DIFF vs HE7 (`holdem-pixdiff.mjs`): only the new timer strip on your plate (your turn) + the SE plate; the rest at the noise floor.
-- THE REVIEW SET: 555 shots (37 states × 3 skins × 390×844 · 430×932 · 844×390 · the SE both ways) + contact sheets in `Downloads
-eon\holdem\shots\he8-*`.
+- THE REVIEW SET: 555 shots (37 states × 3 skins × 390×844 · 430×932 · 844×390 · the SE both ways) + contact sheets in `Downloads/neon/holdem/shots/he8-*`.
 
 ### THE RUN (local, before the final push)
 unit 1629/1629 · rules 76/76 · /api 44/44 · dealer 14/14 · smoke 6/6 · e2e-holdem FAST 23/23 + FULL 52/52 (60 fps at 4× CPU, 8 seats, the busiest moment:
