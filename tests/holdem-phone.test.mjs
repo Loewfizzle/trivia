@@ -44,7 +44,9 @@ test('THE END: the podium only once the dealer says ended AND its result is in; 
 
 test('THE LEVEL LINE: TOURNAMENT = the level, the blinds, the time to the next level; CASH = its fixed blinds', () => {
   const pub = { mode: 'tournament', level: 2, startAt: 0, levelMs: 90_000, table: { sb: 25, bb: 50 } };
-  assert.equal(levelLine(pub, 2 * 90_000 + 48_000), 'LVL 3 · BLINDS 25/50 · 0:42');
+  assert.equal(levelLine(pub, 2 * 90_000 + 48_000), 'LVL 3 · BLINDS 25/50\nNEXT 50/100 IN 0:42');
+  // HE10 (A25): the clock passed the level mid-hand — the countdown never restarts under the old blinds: NEXT HAND names the new ones
+  assert.equal(levelLine(pub, 3 * 90_000 + 5_000), 'LVL 3 · BLINDS 25/50\nNEXT HAND · 50/100');
   assert.equal(levelLine({ mode: 'cash', table: {} }, 0), 'BLINDS 5/10');
 });
 

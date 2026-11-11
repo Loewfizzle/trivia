@@ -112,11 +112,13 @@
 
 /* the header: ☰ + music are the console's corners — the level line sits between them */
 .he-level {
-  position: absolute; top: calc(var(--safe-t) + 12px); left: var(--cb-room); right: var(--cb-room); height: 36px;
-  display: grid; place-items: center; white-space: nowrap; overflow: hidden;
-  font-family: var(--font-num); font-weight: 700; font-size: 13px; letter-spacing: 0.12em; color: var(--he-gold);
+  position: absolute; top: calc(var(--safe-t) + 10px); left: var(--cb-room); right: var(--cb-room); height: 34px;
+  display: grid; place-items: center; white-space: pre; overflow: hidden; text-align: center; line-height: 1.16;
+  font-family: var(--font-num); font-weight: 700; font-size: 11px; letter-spacing: 0.1em; color: rgba(var(--he-gold-rgb, 242, 193, 78), 0.86);
   text-shadow: 0 0 10px rgba(var(--he-gold-rgb, 242, 193, 78), 0.35);
 }
+/* (HE10 — A25: line 1 = the level + its blinds, bright; line 2 = the NEXT blinds + the countdown to them) */
+.he-level::first-line { font-size: 13px; letter-spacing: 0.12em; color: var(--he-gold); }
 
 /* THE TABLE: a tall stadium — the black rail with its thin gold line, the felt (+ a soft vignette), the cream betting line */
 .he-table { position: absolute; }
@@ -163,7 +165,10 @@
 /* THE SEATS — each an anchor at its emblem's centre (layout.js); its pieces placed around it */
 .he-seats { position: absolute; inset: 0; pointer-events: none; }
 .he-seat { position: absolute; width: 0; height: 0; transform: scale(var(--ss, 1)); transition: opacity 0.25s ease; }
-.he-seat.is-folded { opacity: 0.42; }
+/* HE10 (A26): a folded seat dims its emblem + cards + chips; its NAME + STACK stay readable (≥ 4.5 : 1 — the plate + tag at 0.8) */
+.he-seat.is-folded > :is(.he-av, .he-backs, .he-shown, .he-bet, .he-dealer) { opacity: 0.42; }
+.he-seat.is-folded > :is(.he-splate, .he-tag) { opacity: 0.8; }
+.he-seat > :is(.he-av, .he-backs, .he-shown, .he-bet, .he-dealer, .he-splate, .he-tag) { transition: opacity 0.25s ease; }
 .he-av { position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%; background: #0b0a08; box-shadow: 0 0 0 2px #0b0a08, 0 4px 12px rgba(0, 0, 0, 0.6); }
 .he-seat.is-big .he-av { left: -28px; top: -28px; width: 56px; height: 56px; }
 .he-av > * { display: block; }
@@ -190,7 +195,7 @@
   color: var(--he-ink); background: linear-gradient(180deg, var(--he-gold-2), var(--he-gold-lo)); box-shadow: 0 0 8px rgba(var(--he-gold-rgb, 242, 193, 78), 0.5); vertical-align: 1px; }
 .he-swon:empty, .he-swon[hidden] { display: none; }
 /* the top seat's plate: ≤ 100 pt (the side rows' shown cards tuck in beside it — layout.js#SEAT_BOX.top), a 12-letter name still whole */
-.he-seat[data-side='top']:not(.is-big) .he-splate { max-width: 100px; min-width: 64px; padding: 3px 5px 4px; }
+.he-seat[data-side='top']:not(.is-big) .he-splate { max-width: 100px; min-width: 64px; padding: 2px 5px 1px; }   /* (HE10 — A28: 4 pt shorter — the 8-player first row's bets met its foot) */
 .he-seat[data-side='top']:not(.is-big) .he-name { font-size: 11px; letter-spacing: 0; }
 .he-seat[data-side='top']:not(.is-big) .he-sline { white-space: normal; }
 .he-name { display: block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--he-cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -199,13 +204,19 @@
   position: absolute; top: 56px; left: 0; transform: translateX(-50%); white-space: nowrap;
   font-size: 10px; line-height: 11px; font-weight: 800; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 5px;
 }
+/* HE10 (A27): a seat is scaled by --ss (an SE: 0.74–0.82) — the tags, the "+n" pill + the D never render under 10 px */
+.he-seat .he-tag { font-size: max(10px, calc(10px / var(--ss, 1))); line-height: max(11px, calc(11px / var(--ss, 1))); padding-block: max(0px, calc(2px - (1 - var(--ss, 1)) * 8px)); }   /* (the box no taller than before) */
+.he-seat .he-swon { font-size: max(10.5px, calc(10px / var(--ss, 1))); }
+.he-seat .he-dealer { font-size: max(10px, calc(10px / var(--ss, 1))); }
 /* (HE4: the plate a fixed rhythm — 23 → ~55 — so the tag below it (57 → 72) never clips the stack line, the "+n" pill included) */
 .he-seat:not(.is-big) .he-splate { top: 23px; padding: 2px 7px 3px; }
 .he-seat:not(.is-big) .he-name { line-height: 13px; }
 .he-seat:not(.is-big):not([data-side='top']) .he-tag { top: 57px; }
 .he-seat.is-big .he-tag { top: 66px; }
-/* HE4: the top seat's tag sits LEFT of its plate (the side rows tuck in under the plate — layout.js#SEAT_BOX.top.tag) */
+/* HE4: while a hand runs the top seat's tag (FOLD · ALL IN) sits LEFT of its plate (the side rows' bets tuck in under the plate — layout.js#SEAT_BOX.top.tag);
+   HE10 (A9): once the hand is over (its hand name at the showdown) it drops UNDER its own plate — beside it, it read as the neighbour's hand */
 .he-seat[data-side='top']:not(.is-big) .he-tag { top: 30px; left: auto; right: 60px; transform: none; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+.he.is-done .he-seat[data-side='top']:not(.is-big) .he-tag { top: 57px; left: 0; right: auto; transform: translateX(-50%); }
 .he-seat[data-side='left'] .he-tag { left: -32px; transform: none; }
 .he-seat[data-side='right'] .he-tag { left: auto; right: -32px; transform: none; }
 .he-tag:empty { display: none; }
@@ -215,9 +226,8 @@
 .he-tag[data-kind='win'] { background: var(--he-gold); color: var(--he-ink); box-shadow: 0 0 12px rgba(var(--he-gold-rgb, 242, 193, 78), 0.55); }
 .he-seat.is-folded .he-tag[data-kind='grey'] { opacity: 1; }
 .he-sclock, .he-clock { position: absolute; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
-.he-sclock { top: 58px; left: -34px; width: 68px; }
-.he-seat[data-side='left'] .he-sclock { left: -32px; }
-.he-seat[data-side='right'] .he-sclock { left: auto; right: -32px; }
+/* HE10 (A8): a seat's clock rides ITS OWN PLATE's top edge (like yours, HE8) — never across the stack, whatever the plate's size or wrap */
+.he-splate > .he-sclock { left: 8px; right: 8px; top: 1px; width: auto; height: 3px; }
 .he-sclock > i, .he-clock > i { position: absolute; inset: 0; background: var(--he-gold); transform-origin: left center; will-change: transform; }
 .is-bank > i { background: #ff7a3a; }
 .he-backs, .he-shown { position: absolute; top: -20px; display: flex; }
@@ -253,6 +263,7 @@
 /* HE5 — THE REAL CHIPS (chip-art.js): the stacks on the felt, the AMOUNT beside them on its own small plate — always whole */
 .he-stk { display: block; flex: none; }
 .he-bet > span { padding: 1px 6px; border-radius: 7px; background: rgba(0, 0, 0, 0.62); line-height: 15px; margin-bottom: 2px; }
+.he-seat .he-bet > span { font-size: max(12px, calc(10px / var(--ss, 1))); }   /* (HE10 — A27: never under 10 px on a scaled-down seat) */
 .he-seat[data-side='right'] .he-bet { flex-direction: row-reverse; }
 .he-gchips { display: block; }
 .he-bet[hidden] { display: none; }
@@ -269,7 +280,7 @@
   display: flex; flex-direction: column-reverse; align-items: center; gap: 2px; white-space: nowrap; pointer-events: none;
 }
 .he-pot b { display: flex; align-items: flex-end; gap: 4px; font-family: var(--font-num); font-size: calc(16px * var(--s)); line-height: calc(18px * var(--s)); letter-spacing: 0.06em; color: var(--he-gold-2); padding: calc(2px * var(--s)) 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.5); }
-.he-pot small { font-family: var(--font-num); font-size: calc(10.5px * var(--s)); line-height: calc(14px * var(--s)); font-weight: 700; color: var(--he-cream); padding: 0 6px; border-radius: 6px; background: rgba(0, 0, 0, 0.45); max-width: calc(112px * var(--s)); overflow: hidden; text-overflow: ellipsis; }   /* HE5: every side pot on ONE line (layout.js#potSideTop) */
+.he-pot small { font-family: var(--font-num); font-size: max(10px, calc(10.5px * var(--s))); line-height: calc(14px * var(--s)); font-weight: 700; color: var(--he-cream); padding: 0 6px; border-radius: 6px; background: rgba(0, 0, 0, 0.45); max-width: calc(112px * var(--s)); overflow: hidden; text-overflow: ellipsis; }   /* HE5: every side pot on ONE line (layout.js#potSideTop) */
 .he-board { position: absolute; left: var(--cx); top: var(--board-y); transform: translate(-50%, -50%); display: flex; gap: calc(5px * var(--s)); pointer-events: none; }
 .he-slot { width: var(--bc-w); height: var(--bc-h); border-radius: calc(6px * var(--s)); border: 1.5px dashed rgba(244, 234, 210, 0.22); }
 .he-slot.is-card { border-color: transparent; }
@@ -402,6 +413,8 @@
 .he-pre b { font-size: 12.5px; letter-spacing: 0.06em; white-space: nowrap; }
 /* HE10 (A1): three toggles when nothing is owed (CHECK / FOLD · CHECK · CALL ANY) — tighter, so they fit the SE's 375 */
 .he-pres.is-three { gap: 6px; }
+/* HE10 (A11): YOUR bet steps aside while the raise slider is open (it sat inside the panel, between the amount and the track) */
+.he.has-slider .he-hero > .he-bet { visibility: hidden; }
 .he-pres.is-three .he-pre { padding: 0 10px; gap: 6px; }
 .he-pres.is-three .he-pre b { font-size: 11.5px; }
 .he-pres.is-three .he-pre i { width: 14px; height: 14px; }
@@ -424,7 +437,7 @@
 .he-status[hidden] { display: none; }
 .he-hostbar { position: absolute; left: calc(var(--box-x) - 8px); top: calc(var(--box-y) - 2px); }
 .he-hostbar .btn { min-height: 36px; }
-.he-hostbar .btn::after { content: ''; position: absolute; inset: -4px -2px; }   /* (HE8: a 44 pt tap area round the 36 pt END SESSION) */
+.he-hostbar .btn::after { content: ''; position: absolute; inset: -5px -3px; }   /* (HE8: a 44 pt tap area round the 36 pt END SESSION — HE10 (A30): measured from the padding box, so 5 pt past a 1 pt border = 44, not 42) */
 .he-ending { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--he-dim); }
 
 /* RAISE: the slider panel — over the felt, ending above your cards */
@@ -440,10 +453,22 @@
 .he-sl-row { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--he-dim); }
 .he-sl-range { flex: 1; height: 44px; accent-color: var(--he-gold); }
 .he-slider .he-buttons { display: flex; justify-content: center; gap: 24px; }
+/* HE10 (A32): an SE-height phone — the panel ~20 pt shorter, so its top edge stays under the bottom seats' plates + tags at 8 players */
+@media (max-height: 700px) and (orientation: portrait) {
+  .he:not([data-orient='wide']) .he-slider { padding: 7px 14px 9px; gap: 3px; }
+  .he:not([data-orient='wide']) .he-sl-amt { font-size: 26px; line-height: 1; }
+}
 
 /* THE PODIUM: the console's frame over the table */
-.he-final { position: absolute; inset: 0; z-index: 5; overflow-y: auto; touch-action: pan-y; background: rgba(6, 5, 10, 0.97);
-  padding: calc(var(--safe-t) + 14px) calc(var(--safe-r) + var(--gutter)) calc(var(--safe-b) + 20px) calc(var(--safe-l) + var(--gutter)); }
+.he-final { position: absolute; inset: 0; z-index: 5; overflow-y: auto; touch-action: pan-y; background: rgb(6, 5, 10);   /* (HE10 — A10: solid — the table no longer ghosts through) */
+  padding: calc(var(--safe-t) + 6px) calc(var(--safe-r) + var(--gutter)) calc(var(--safe-b) + 14px) calc(var(--safe-l) + var(--gutter)); }
+/* HE10 (A10): when the end screen still runs past the screen (an SE, sideways), a cue at its foot says so — it fades away at the bottom */
+.he-final.has-more::after {
+  content: 'SCROLL FOR MORE'; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; pointer-events: none; height: calc(var(--safe-b) + 46px);
+  display: grid; align-items: end; justify-items: center; padding-bottom: calc(var(--safe-b) + 8px);
+  font: 800 11px/1 var(--font-ui); letter-spacing: 0.22em; color: var(--he-gold);
+  background: linear-gradient(180deg, rgba(6, 5, 10, 0), rgb(6, 5, 10) 62%);
+}
 .he-final .panel-full { background: transparent; }
 .he.is-final :is(.he-actions, .he-status, .he-hostbar) { visibility: hidden; }
 
@@ -466,12 +491,13 @@
 .he-final .final:has(> .final-body[data-game='holdem']) > .winner { display: none; }
 /* premium but calm: the frame's confetti burst stays off for HOLD'EM — the winner's gold reveal is the moment */
 .he-final .final:has(> .final-body[data-game='holdem']) .burst, .he-final .final:has(> .final-body[data-game='holdem'])::before { display: none; }
-.he-fs { display: grid; gap: 10px; }
-.he-fs-win { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 4px 0 2px; animation: he-fs-in 0.6s cubic-bezier(.2, .8, .2, 1) both; }
-.he-fs-av { width: 58px; height: 58px; border-radius: 50%; box-shadow: 0 0 0 2px var(--he-gold), 0 0 22px rgba(var(--he-gold-rgb, 242, 193, 78), 0.45); }
+/* (HE10 — A10: tighter — 8 places + BACK TO THE ROOM fit a 390 × 844; the slim cards keep their size) */
+.he-fs { display: grid; gap: 6px; }
+.he-fs-win { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0; animation: he-fs-in 0.6s cubic-bezier(.2, .8, .2, 1) both; }
+.he-fs-av { width: 48px; height: 48px; border-radius: 50%; box-shadow: 0 0 0 2px var(--he-gold), 0 0 22px rgba(var(--he-gold-rgb, 242, 193, 78), 0.45); }
 .he-fs-wt { display: grid; gap: 2px; min-width: 0; }
 .he-fs-name {
-  font: 900 26px/1.05 var(--font-display); letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;
+  font: 900 24px/1.05 var(--font-display); letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;
   background: linear-gradient(180deg, var(--he-gold-2) 0%, var(--he-gold) 55%, var(--he-gold-lo) 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 0 10px rgba(var(--he-gold-rgb, 242, 193, 78), 0.35));
 }
@@ -493,13 +519,14 @@
 .he-fs-foot b { color: var(--he-gold); }
 /* the award chips: BIGGEST POT · MOST KOs */
 .he-fs-chips { display: flex; justify-content: center; gap: 10px; }
+.he-fs-short { margin: 0; text-align: center; font: 600 12px/1.35 var(--font-ui); letter-spacing: 0.02em; color: var(--text-faint); }   /* (HE10 — A7: the quiet line) */
 .he-fs-chip {
-  flex: 1 1 0; max-width: 170px; display: grid; justify-items: center; gap: 1px; padding: 7px 10px; border-radius: 12px; text-align: center;
+  flex: 1 1 0; max-width: 170px; display: grid; justify-items: center; gap: 0; padding: 4px 10px; border-radius: 12px; text-align: center;
   background: linear-gradient(180deg, rgba(var(--he-gold-rgb, 242, 193, 78), 0.12), rgba(var(--he-gold-rgb, 242, 193, 78), 0.04)); border: 1px solid rgba(var(--he-gold-rgb, 242, 193, 78), 0.55);
   animation: he-fs-in 0.5s 0.5s cubic-bezier(.2, .8, .2, 1) both;
 }
 .he-fs-chip small { font: 700 10px/1.2 var(--font-ui); letter-spacing: 0.16em; color: var(--he-gold); }
-.he-fs-chip b { font: 800 18px/1.1 var(--font-num); color: #fff; }
+.he-fs-chip b { font: 800 17px/1.1 var(--font-num); color: #fff; }
 .he-fs-chip span { font: 700 11px/1.2 var(--font-ui); letter-spacing: 0.04em; color: var(--text-dim); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (prefers-reduced-motion: reduce) { .he-fs-win, .he-fs-chip { animation: none; } }
 
@@ -536,7 +563,8 @@ i.he-ghost.he-chip { display: block; }
 .he.is-showdown .he-slot.is-win { translate: 0 calc(-3px * var(--s)); }   /* (3 pt: the bottom row's tag sits 4 pt above the board — layout.js#sideRowsPx) */
 .he.is-showdown .he-slot.is-win .he-card, .he.is-showdown .he-card.is-win { box-shadow: 0 0.75px 0 #b8ad95, 0 0 0 2px var(--he-gold), 0 0 14px rgba(var(--he-gold-rgb, 242, 193, 78), 0.6), 0 6px 14px rgba(0, 0, 0, 0.55); }
 .he.is-showdown .he-shown .he-card.is-win { translate: 0 -4px; }
-.he.is-showdown .he-seat.is-lose { opacity: 0.55; }
+.he.is-showdown .he-seat.is-lose > :is(.he-av, .he-backs, .he-shown) { opacity: 0.55; }
+.he.is-showdown .he-seat.is-lose > :is(.he-splate, .he-tag) { opacity: 0.85; }
 /* THE AWARD BOX (HE4 — Ben's split-pot shot): the hand's end — the winning hand in gold over the pot's line, UNDER the board (the band the
    buttons leave free then), never across the bottom row's seats; the between-hands buttons drop to the buttons' row; NEXT HAND… gives way */
 .he-awardbox {
@@ -544,6 +572,8 @@ i.he-ghost.he-chip { display: block; }
   display: flex; flex-direction: column; align-items: center; gap: 4px; white-space: nowrap; pointer-events: none; max-width: calc(var(--box-w) - 24px);
 }
 .he-awardbox:empty { display: none; }
+/* HE10 (A33): upright too, a line never runs off the felt — it shrinks to fit (view.js#fitAward, never under 10 pt), then its end gives way */
+.he-awardbox > * { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .he.is-done .he-minis { top: var(--buttons-y); }
 .he.has-award .he-status { visibility: hidden; }
 .he.has-award .he-print { opacity: 0; }   /* (the print never peeks out around the award box) */
@@ -553,10 +583,11 @@ i.he-ghost.he-chip { display: block; }
   background: linear-gradient(180deg, var(--he-gold-2), var(--he-gold-lo)); padding: 3px 10px; border-radius: 8px; box-shadow: 0 0 14px rgba(var(--he-gold-rgb, 242, 193, 78), 0.55);
 }
 
-/* BLINDS UP (under the level line) · HEADS UP (the felt's middle) — a short word, in + out by css, gone after */
+/* BLINDS UP (ON the level line — HE10 (A31): under it, it covered the top seat's emblem + cards at 6 + 8) · HEADS UP (the felt's middle) —
+   a short word, in + out by css, gone after */
 .he-toasts { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
 .he-toast {
-  position: absolute; left: 50%; top: calc(var(--safe-t) + 46px); translate: -50% 0; white-space: nowrap;
+  position: absolute; left: 50%; top: calc(var(--safe-t) + 30px); translate: -50% -50%; white-space: nowrap;
   font: 800 12px/1 var(--font-ui); letter-spacing: 0.14em; color: var(--he-ink); padding: 6px 12px; border-radius: 8px;
   background: linear-gradient(180deg, var(--he-gold-2), var(--he-gold-lo)); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 14px rgba(var(--he-gold-rgb, 242, 193, 78), 0.45);
   animation: he-toast 2.4s ease both;
@@ -580,7 +611,8 @@ i.he-ghost.he-chip { display: block; }
 
 /* LEAVE TABLE (CASH): a small button right of your cards (between hands / sat out) + its confirm sheet */
 .he-leave {
-  position: absolute; z-index: 3; left: calc(var(--cx) + var(--hc-w) * 0.95 + 12px); top: calc(var(--hand-y) + var(--hc-h) / 2 - 50px);
+  /* (HE10 — A12: anchored by its FOOT just above your plate — a taller LEAVING · AFTER THIS HAND · CANCEL never reaches it) */
+  position: absolute; z-index: 3; left: calc(var(--cx) + var(--hc-w) * 0.95 + 12px); top: calc(var(--plate-y) - 5px); transform: translateY(-100%);
   min-width: 64px; min-height: 44px; padding: 4px 10px; border-radius: 12px; cursor: pointer; display: grid; place-items: center; line-height: 1.1;
   background: rgba(7, 6, 5, 0.9); border: 1.5px solid rgba(255, 84, 104, 0.7); color: #ffd0d6;
 }
@@ -594,6 +626,10 @@ i.he-ghost.he-chip { display: block; }
 .he-leave-row { display: grid; gap: 10px; }
 
 /* THE KO CARD — full width over the middle of the table (never the whole table), ~4 s, a tap closes it */
+/* HE10 (A34): while the KO card is up, the award line under it steps away (it peeked out at the card's edges) */
+.he-stage:has(> .he-ko) .he-awardbox { visibility: hidden; }
+/* HE10 (A34): upright at 5–8 players your turn's presets sit over the felt print — it steps away rather than show half */
+.he.is-myturn:not([data-orient='wide']):is([data-k='4'], [data-k='5'], [data-k='6'], [data-k='7']) .he-print { opacity: 0; }
 .he-ko {
   position: absolute; z-index: 6; left: calc(var(--box-x) + 12px); width: calc(var(--box-w) - 24px); top: var(--board-y); translate: 0 -50%;
   display: grid; justify-items: center; gap: 6px; padding: 18px 16px 14px; border-radius: 18px; text-align: center; cursor: pointer;
@@ -660,7 +696,7 @@ body.he-on #ns-turn { display: none !important; }
   left: calc(var(--act-x) - var(--act-w) / 2); right: auto; width: var(--act-w); top: var(--level-y); height: auto; display: block;
   text-align: center; white-space: normal; text-wrap: balance; line-height: 17px; font-size: 12.5px; letter-spacing: 0.1em;
 }
-.he[data-orient='wide'] .he-toast { left: var(--act-x); top: calc(var(--level-y) + 44px); }
+.he[data-orient='wide'] .he-toast { left: var(--act-x); top: calc(var(--level-y) + 44px); translate: -50% 0; }
 .he[data-orient='wide'] .he-hostbar { left: var(--act-x); top: calc(var(--level-y) + 44px); transform: translateX(-50%); white-space: nowrap; }
 
 /* THE SEATS: one block for every seat — the emblem on the rail, the plate under it (centred · l = its left edge with the emblem's · r its
@@ -676,9 +712,6 @@ body.he-on #ns-turn { display: none !important; }
 .he[data-orient='wide'] .he-seat[data-tl='c'] .he-tag { left: 0; right: auto; transform: translateX(-50%); }
 .he[data-orient='wide'] .he-seat[data-tl='l'] .he-tag { left: -24px; right: auto; transform: none; }
 .he[data-orient='wide'] .he-seat[data-tl='r'] .he-tag { left: auto; right: -24px; transform: none; }
-.he[data-orient='wide'] .he-seat .he-sclock { top: 58px; left: -34px; right: auto; width: 68px; }
-.he[data-orient='wide'] .he-seat[data-pl='l'] .he-sclock { left: -24px; }
-.he[data-orient='wide'] .he-seat[data-pl='r'] .he-sclock { left: auto; right: -24px; }
 .he[data-orient='wide'] .he-seat[data-cs='1'] :is(.he-backs, .he-shown) { left: 24px; right: auto; top: -21px; transform: none; }
 .he[data-orient='wide'] .he-seat.is-big[data-cs='1'] :is(.he-backs, .he-shown) { left: 30px; }
 .he[data-orient='wide'] .he-seat[data-cs='-1'] :is(.he-backs, .he-shown) { left: auto; right: 24px; top: -21px; transform: none; }
@@ -723,13 +756,23 @@ body.he-on #ns-turn { display: none !important; }
   padding: 10px 10px 8px; gap: 6px;
 }
 .he[data-orient='wide'] .he-sl-amt { font-size: 26px; }
-.he[data-orient='wide'] .he-sl-row { gap: 6px; font-size: 10px; white-space: nowrap; }
+/* HE10 (A29): sideways the track takes the panel's whole width, MIN · ALL IN under its two ends (one line overflowed the column) */
+.he[data-orient='wide'] .he-sl-row { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; row-gap: 0; font-size: 10px; white-space: nowrap; }
+.he[data-orient='wide'] .he-sl-row > .he-sl-range { grid-column: 1 / -1; grid-row: 1; min-width: 0; width: 100%; height: 34px; }
+.he[data-orient='wide'] .he-sl-row > span:first-child { grid-row: 2; justify-self: start; }
+.he[data-orient='wide'] .he-sl-row > span:last-child { grid-row: 2; justify-self: end; }
+.he[data-orient='wide'] .he-confirm b { font-size: 10.5px; letter-spacing: 0.02em; }
 .he[data-orient='wide'] .he-slider .he-buttons { gap: 18px; }
 .he[data-orient='wide'] .he-leave {
   left: var(--act-x); top: var(--leave-y); transform: translate(-50%, -50%); max-width: var(--act-w); min-height: 44px;
   display: flex; align-items: baseline; justify-content: center; gap: 6px; padding: 4px 12px; white-space: nowrap;
 }
 .he[data-orient='wide'] .he-leave em { margin: 0; }
+/* HE10 (A12): LEAVING AFTER THIS HAND / CANCEL on two lines sideways (one line overflowed the column — the SE cut CANCEL's last letter) */
+.he[data-orient='wide'] .he-leave.is-queued { flex-wrap: wrap; white-space: normal; row-gap: 3px; column-gap: 5px; padding: 5px 10px; }
+.he[data-orient='wide'] .he-leave.is-queued > * { white-space: nowrap; }
+.he[data-orient='wide'] .he-leave.is-queued em { flex-basis: 100%; text-align: center; }
+.he[data-orient='wide']:has(.he-leave.is-queued:not([hidden])) .he-status { translate: 0 6px; }   /* (the two-line button is taller — the line under it steps down) */
 .he[data-orient='wide'] .he-leave[hidden] { display: none; }
 
 /* THE HAND'S END: the award box ON THE POT'S SPOT above the board (heads-up one row, else two compact rows) · the KO card centred on the table */
@@ -741,7 +784,11 @@ body.he-on #ns-turn { display: none !important; }
 
 /* (AWAY mid-hand: I'M BACK sits ABOVE the two stacked pre-actions, never on them) */
 .he[data-orient='wide'] .he-actions:has(> .he-pres) > .he-minis { top: calc(var(--buttons-y) + var(--btn) / 2 - 98px - 8px); transform: translate(-50%, -100%); }
-.he[data-orient='wide'] .he-actions:has(> .he-pres.is-three) > .he-minis { top: calc(var(--buttons-y) + var(--btn) / 2 - 150px - 8px); }
+/* HE10 (A1): sideways the three toggles take TWO rows (CHECK / FOLD across, then CHECK | CALL ANY) — HE7's two-toggle height, the column unchanged */
+.he[data-orient='wide'] .he-pres.is-three { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.he[data-orient='wide'] .he-pres.is-three > :first-child { grid-column: 1 / -1; }
+.he[data-orient='wide'] .he-pres.is-three .he-pre { padding: 0 6px; gap: 5px; min-width: 0; }
+.he[data-orient='wide'] .he-pres.is-three .he-pre b { font-size: 11px; letter-spacing: 0.04em; }
 
 /* THE END SCREEN + THE LEDGER sideways: the slim cards in TWO columns (1st–4th left, 5th–8th right) when the screen gives each a phone's strip
    width — all 8 places in view; a narrower one (the SE on its side) keeps one column and scrolls */

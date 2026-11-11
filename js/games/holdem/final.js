@@ -26,6 +26,8 @@ export function finalScene(el, game, state) {
   const name = id => (players[id] || GHOST).name;
   const names = ids => { const list = (ids || []).map(name); return list.length > 2 ? `${list.length} PLAYERS` : list.join(' & '); };
   el.classList.toggle('is-cash', cash);
+  // HE10 (Ben's A7): a match too short to count says so — one quiet line, nothing else changes
+  const short = game.short ? h('p.he-fs-short', cash ? 'Too short to count — a CASH session counts from 10 hands and 5 minutes.' : 'Too short to count — a tournament counts from 3 hands.') : null;
   if (cash) {
     el.append(h('div.he-fs-head', h('b', 'THE LEDGER')));
     const list = leaderboard(rows, players, { me, stagger: 50 });
@@ -37,11 +39,12 @@ export function finalScene(el, game, state) {
     const b = sum.biggest;
     el.append(h('div.he-fs-foot', h('span', `${fmt(sum.hands)} HAND${sum.hands === 1 ? '' : 'S'} PLAYED`),
       b ? h('span', 'BIGGEST POT ', h('b', fmt(b.amount)), ` · ${names(b.ids)}`) : null));
+    if (short) el.append(short);
     return;
   }
   const top = rows[0], w = players[top.uid] || GHOST;
   el.append(h('div.he-fs-win', { style: { '--c': colorHex(w.color) } },
-    h('div.he-fs-av', avatar(w.avatar, w.color, 58)),
+    h('div.he-fs-av', avatar(w.avatar, w.color, 48)),
     h('div.he-fs-wt', h('b.he-fs-name', w.name), h('small', 'WINS HOLD’EM'))));
   const list = leaderboard(rows, players, { me, stagger: 50 });
   list.classList.add('he-fs-list');
@@ -51,6 +54,7 @@ export function finalScene(el, game, state) {
   if (sum.biggest) chips.push(chip('BIGGEST POT', fmt(sum.biggest.amount), names(sum.biggest.ids)));
   if (sum.kos) chips.push(chip('MOST KOs', String(sum.kos.n), names(sum.kos.ids)));
   if (chips.length) el.append(h('div.he-fs-chips', chips));
+  if (short) el.append(short);
 }
 
 function chip(k, v, who) {

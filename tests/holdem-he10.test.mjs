@@ -219,3 +219,71 @@ test('A18: CASH — LEAVE then SIT BACK DOWN sits you down with the chips you LE
   assert.ok(!nextHand(m, { rng: rngFrom('x'), now: 5 }).error);
   assert.ok(act);
 });
+
+// ------------------------------------------------------------------------------------------------ A3 — the podium waits for the last hand
+test('A3: the director goes to the podium only FINAL_HOLD_MS after the match\'s end (pure — the same answer on a replay; a refresh later goes straight there)', async () => {
+  const { directorStep, FINAL_HOLD_MS } = await import('../js/games/holdem/logic.js');
+  const { toWire, nestWire, fromWire } = await import('../js/games/holdem/wire.js');
+  const step = (game, { now, live }) => directorStep(game, { now, pub: fromWire(live.table) });   // (= index.js#step)
+  const pub = { id: 'm1', mode: 'tournament', ended: true, rep: 'done', endAt: 10_000, places: [{ id: 'a', place: 1 }, { id: 'b', place: 2 }], players: { a: {}, b: {} }, table: { seats: [] }, ev: [] };
+  const live = { table: { seq: 9, ...nestWire(toWire(pub)) } };
+  const game = { phase: 'play', matchId: 'm1' };
+  assert.equal(step(game, { now: 10_000 + FINAL_HOLD_MS - 1, live }), null, 'the last hand plays first');
+  const f = step(game, { now: 10_000 + FINAL_HOLD_MS, live });
+  assert.equal(f.phase, 'final');
+  assert.deepEqual(step(game, { now: 10_000 + FINAL_HOLD_MS, live }), f, 'replay-safe');
+  assert.equal(f.short, false);
+  const short = step(game, { now: 99_999, live: { table: { seq: 9, ...nestWire(toWire({ ...pub, rep: 'short' })) } } });
+  assert.equal(short.short, true, 'A7: the end screen\'s quiet line');
+});
+
+// ------------------------------------------------------------------------------------------------ A5 — back from a lock while the table is busy
+test('A5: a phone back from a lock whose missed run is OLD at its start shows the state — never a squeezed burst (the newest event fresh is not enough)', async () => {
+  const { freshEvents, MAX_AGE_MS, OLDEST_SLACK_MS } = await import('../js/games/holdem/motion-plan.js');
+  const now = 100_000;
+  const run = ages => ages.map((a, i) => ({ n: 11 + i, t: 'called', at: now - a }));
+  // the stale.mjs case: 10 events from 24.8 s → 0.8 s old
+  const burst = run(Array.from({ length: 10 }, (_, i) => 24_800 - i * 2_667));
+  assert.deepEqual(freshEvents(burst, 10, now).list, []);
+  assert.equal(freshEvents(burst, 10, now).seen, 20);
+  // a normal run (everything within the window) still animates
+  assert.equal(freshEvents(run([900, 500, 100]), 10, now).list.length, 3);
+  // the edge: the oldest just inside MAX_AGE_MS + the slack
+  assert.equal(freshEvents(run([MAX_AGE_MS + OLDEST_SLACK_MS, 200]), 10, now).list.length, 2);
+  assert.equal(freshEvents(run([MAX_AGE_MS + OLDEST_SLACK_MS + 1, 200]), 10, now).list.length, 0);
+});
+
+// ------------------------------------------------------------------------------------------------ A9 — the top seat's hand name at the showdown
+test('A9: once a hand is over the top seat\'s tag sits UNDER its own plate — clear of every other seat\'s plate + cards (the bets are gone then), 3–8 players, every phone', async () => {
+  const { tableLayout, SEAT_BOX, overlaps } = await import('../js/games/holdem/layout.js');
+  for (const [w, h, top, bottom] of [[375, 667, 20, 0], [375, 812, 47, 34], [390, 844, 47, 34], [402, 874, 62, 34], [430, 932, 59, 34]]) {
+    for (let k = 2; k <= 7; k++) {
+      const L = tableLayout({ w, h, top, bottom, k });
+      const t = L.seats.find(q => q.side === 'top' && !q.big);
+      if (!t) continue;
+      const [a, b, c, d] = SEAT_BOX.top.tagDone, ss = L.ss;
+      const tag = { x0: t.x + a * ss, y0: t.y + b * ss, x1: t.x + c * ss, y1: t.y + d * ss };
+      for (const q of L.seats) {
+        if (q === t) continue;
+        const { seatRects } = await import('../js/games/holdem/layout.js');
+        const r = seatRects(q, ss);
+        assert.ok(!overlaps(tag, r.main) && !overlaps(tag, r.cards), `${w}×${h} k=${k}: the top tag meets a ${q.side} seat`);
+      }
+    }
+  }
+});
+
+// ------------------------------------------------------------------------------------------------ THE SOUNDS — A35 · A42 · A41
+test('A35 + A42: several busts in one run play ONE knockout; the blinds\' chips play at the approved gain (no extra 0.75)', async () => {
+  const { soundPlan } = await import('../js/games/holdem/sound-plan.js');
+  const steps = [{ at: 0, kind: 'chip', id: 'a', amount: 10, t: 'posted' }, { at: 900, kind: 'out', id: 'b' }, { at: 900, kind: 'out', id: 'c' }, { at: 900, kind: 'out', id: 'd' }];
+  const cues = soundPlan(steps, { me: 'z', rng: () => 0.5 });
+  assert.equal(cues.filter(c => c.name === 'knockout').length, 1);
+  assert.equal(cues.find(c => c.name === 'chip-bet').vol, undefined);
+});
+test('A41: the sounds carry a cache-bust (a replaced file never keeps its old sound for a week)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync('js/games/holdem/sfx.js', 'utf8');
+  assert.match(src, /export const HE_SFX_REV = \d+/);
+  assert.match(src, /\.mp3\?v=\$\{HE_SFX_REV\}/);
+});

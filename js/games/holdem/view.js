@@ -19,29 +19,31 @@ import { dbRef, onValue, serverNow } from '../../firebase.js';
 import { settings, onSettings } from '../../audio/settings.js';
 import { installTestHook, removeTestHook } from '../kit/hook.js';
 import { legalActions, running } from './table.js';
-import { handLabel, evaluate } from './rank.js';
+import { handLabel, evaluate, bestFive } from './rank.js';
 import { fromWire } from './wire.js';
 import { levelLine, othersInOrder, sidePots, clockOf, pokeIn, POKE_RETRY_MS, ordinal } from './logic.js';
 import { tableLayout, betSpot, cardsSpot, dealerSpot } from './layout.js';
 import { wideLayout, stageOf } from './layout-wide.js';
 import { freshEvents, schedule, drawnSeats, awardLine, winLine, winningCards } from './motion-plan.js';
 import { createMotion } from './motion.js';
-import { bestFive } from './rank.js';
 import { faceSvg, cardName } from './card-art.js';
 import { dealer } from './index.js';
 import { gameAwake } from '../../wakelock.js';
 import { SHOT_MS } from './structure.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { soundPlan, tickSecond } from './sound-plan.js';
-import { fetchSounds, decodeAll, playCues, playSound, played, planned } from './sfx.js';
+import { fetchSounds, decodeAll, playCues, playSound, played, planned, stopAll } from './sfx.js';
 import { loadChips, onChipsReady, paintStacks, artVersion, setLight } from './chip-art.js';
-import { skinOf, skinVars, assetUrl } from './skins.js';
+import { skinOf, skinVars, assetUrl, skinAssets } from './skins.js';
 import { createTiers } from '../kit/tiers.js';
 import { BET, POT } from './chips.js';
 
 const fmt = n => Math.round(n || 0).toLocaleString('en-US');
+/** a hand's category as the table names it — HE10 (A24): the ace-high straight flush is a ROYAL FLUSH (its rankings row lights too) */
+export const catName = e => (e && e.label === 'ROYAL FLUSH' ? 'ROYAL FLUSH' : e && e.name);
 const GHOST = { name: 'PLAYER', color: 'cyan', avatar: 'ghost' };
-const SHOW_MS = 4000;
+/** the fold-win's SHOW YOUR CARDS (HE10 — A22: under the dealer's 3 s fold pause, so a tap never meets the next deal) */
+const SHOW_MS = 2600;
 /** THE CHIPS (HE5): a chip's diameter (pt) + the stacks' caps by place — a seat's bet ≤ 2 stacks (the rail's room: the two bottom rows' bets
  *  nearly meet in the middle — the amount always whole), YOUR bet + the pot ≤ 3 (chips.js) */
 const CHIP = { seat: { d: 13, o: { ...BET, maxStacks: 2 } }, hero: { d: 15, o: BET }, pot: { d: 13, o: POT }, potTight: { d: 13, o: { ...POT, maxStacks: 2 } },
@@ -60,11 +62,11 @@ export function createView() {
   let press = null, preWant = undefined, awake = null;
   const seatEls = new Map();
   const frames = [], work = [];
-  let lastFrame = 0, lastLevelTxt = '', lastSig = '', showT = 0, finalView = null;
+  let lastFrame = 0, lastLevelTxt = '', lastSig = '', showT = 0, finalView = null, finalRo = null;
   // THE MOTION: the last event number this phone showed (null = the first look: nothing animates), what the awards / the sweep still hold back
   let seenN = null, seenMatch = '', motion = null, awardNow = null, turnKey = '';
   // THE SOUNDS (HE5): primed after the first look (a mount / refresh plays nothing) · the last tick second · the podium's champion once
-  let primed = false, lastTick = 0, champ = false, offChips = null;
+  let primed = false, lastTick = 0, champ = false, offChips = null, cueTail = 0;
   // THE SKIN (HE5 — skins.js: data → CSS variables + a few settings, live) + THE QUALITY TIERS (kit/tiers.js: the living touches drop first,
   // then the light layer; the cards are SVG — crisp at every tier)
   let skin = null, skinKey = '', tiers = null;
@@ -116,7 +118,7 @@ export function createView() {
     busy = null;
     if (!destroyed) { els.actions.classList.remove('is-busy'); els.leave.classList.remove('is-busy'); }
   }
-  const onNet = () => { if (!destroyed && root) { lastSig = ''; render(); } };
+  const onNet = () => { if (!destroyed && root) { lastSig = ''; render(); if (!offline()) { fetchSounds(); decodeAll(); } } };   // (HE10 — A37: a sound that failed to load retries)
   const offline = () => !!(st && (st.net === 'lost' || (typeof navigator !== 'undefined' && navigator.onLine === false)));
   const toastNoSignal = () => lazyImport(import('../../ui/toast.js'), '../../ui/toast.js').then(m => m.toast('NO SIGNAL — TRY AGAIN', 'warn', 2200)).catch(() => {});
   // (the pressed look at the finger's touch-down — before any click, any network; iOS's :active needs a touch listener, so it's ours)
@@ -154,7 +156,8 @@ export function createView() {
   // ------------------------------------------------------------------ mount / update / unmount
   function mount(el, state) {
     st = state;
-    root = h('div.he', { dataset: { msgUnder: '', tier: '2' } });
+    // (HE10 — A43: the orientation from the first style pass — a sideways mount never fetches the portrait backdrop)
+    root = h('div.he', { dataset: { msgUnder: '', tier: '2', orient: typeof innerWidth === 'number' && innerWidth > innerHeight ? 'wide' : 'tall' } });
     els.bd = h('div.he-bd', { 'aria-hidden': 'true' });
     els.level = h('div.he-level', { 'aria-live': 'off' });
     els.host = h('div.he-hostbar');
@@ -221,7 +224,7 @@ export function createView() {
     pub = fromWire(st.live && st.live.table);
     // THE MOTION: the events this phone hasn't shown — only fresh, only a whole run (a refresh / a sleep / a gap = the state as it is)
     let steps = [];
-    if (pub && pub.id !== seenMatch) { seenMatch = pub.id; seenN = null; if (motion) motion.cancel(); }
+    if (pub && pub.id !== seenMatch) { seenMatch = pub.id; seenN = null; if (motion) motion.cancel(); stopAll(); }   // (HE10 — A36: a new match never hears the old one's tail)
     if (pub) {
       const fr = freshEvents(pub.ev, seenN, serverNow());
       const moved = seenN != null && fr.seen > seenN;
@@ -233,15 +236,19 @@ export function createView() {
       seenN = fr.seen;
     }
     if (busy && busy.wait != null && pub && pub.seq >= busy.wait) release();   // (THE CATCH-UP: the answer is on this table now)
+    // THE SOUNDS: the same fresh run, the same timeline — a sound lands with its animation (reduced motion keeps the sounds). HE10 (A39): YOUR
+    // TURN waits for this run's LAST cue (the action that gave you the turn — on a deal, your cards turning up) — `cueTail` for the render
+    const cues = steps.length ? soundPlan(steps, { me: me(), rng: Math.random }) : [];
+    cueTail = cues.length ? cues[cues.length - 1].at : 0;
     watchHole();
     render();
+    cueTail = 0;
     paintAwake();
     if (steps.length && motion) motion.run(steps);
-    // THE SOUNDS: the same fresh run, the same timeline — a sound lands with its animation (reduced motion keeps the sounds)
-    if (steps.length) playCues(soundPlan(steps, { me: me(), rng: Math.random }));
+    if (cues.length) playCues(cues);
     paintFinal();
     schedulePoke();
-    primed = true;
+    if (pub) primed = true;   // (HE10 — A38: primed only once a TABLE was shown — a refresh's first update with no table stays silent)
     wake();
   }
 
@@ -256,8 +263,19 @@ export function createView() {
     els.final = h('div.he-final', finalView.el);
     root.append(els.final);
     root.classList.add('is-final');
-    // ONE winner sound (HE5): the tournament's end → champion (OWN_VICTORY_SOUND — the console's sting is skipped); never on a refresh later on
-    if (!cash && !champ && primed && serverNow() - (g.phaseStartAt || 0) < 8000) { champ = true; playSound('champion'); }
+    // HE10 (A10): SCROLL FOR MORE while the end screen runs past the screen (measured on a resize + a scroll only — never in a frame loop)
+    // (the console's frame is the scroller — ui/final.js's .final)
+    const sc = finalView.el.matches('.final') ? finalView.el : finalView.el.querySelector('.final') || els.final;
+    const more = () => { if (els.final) els.final.classList.toggle('has-more', sc.scrollHeight - sc.clientHeight - sc.scrollTop > 6); };
+    sc.addEventListener('scroll', more, { passive: true });
+    finalRo = new ResizeObserver(more);
+    finalRo.observe(sc); if (sc.firstElementChild) finalRo.observe(sc.firstElementChild);
+    setTimeout(more, 900);   // (the rows' stagger settles — the frame's own reveal)
+    // ONE winner sound (HE5): the tournament's end → champion (OWN_VICTORY_SOUND — the console's sting is skipped); never on a refresh later on.
+    // HE10 (Ben's A40): a CASH session's end → champion for its biggest winner (net > 0) only — everyone else hears the end quietly
+    const rows = Array.isArray(g.rows) ? g.rows : [];
+    const wins = !cash || rows.some(r => r.uid === me() && r.rank === 1 && (r.score || 0) > 0);
+    if (wins && !champ && primed && serverNow() - (g.phaseStartAt || 0) < 8000) { champ = true; playSound('champion'); }
   }
 
   function unmount() {
@@ -268,6 +286,7 @@ export function createView() {
     document.removeEventListener('visibilitychange', onVis);
     clearTimeout(pokeT); clearTimeout(showT); clearTimeout(koT);
     if (motion) motion.cancel();
+    stopAll();
     if (ro) ro.disconnect();
     removeEventListener('orientationchange', onTurn);
     removeEventListener('offline', onNet); removeEventListener('online', onNet);
@@ -280,14 +299,27 @@ export function createView() {
     if (holeOff) holeOff();
     removeTestHook('__holdem', hook);
     if (finalView) finalView.destroy();
+    if (finalRo) finalRo.disconnect();
     seatEls.clear();
     root && root.remove();
   }
 
-  /** the chosen skin → the root's CSS variables, data-skin, the backdrop's living touches, the chips' light — only when it changed */
+  /** the chosen skin → the root's CSS variables, data-skin, the backdrop's living touches, the chips' light — only when it changed. HE10 (A43):
+   *  a SWITCH keeps the old skin on screen until the new one's art has decoded (never a flat felt + blank backs mid-hand) */
+  let skinWant = '';
   function applySkin() {
     const sk = skinOf(settings.heSkin);
-    if (sk.id === skinKey) return;
+    if (sk.id === skinKey || sk.id === skinWant) return;
+    if (skinKey) {
+      skinWant = sk.id;
+      const wide = !!(L && L.wide);
+      Promise.all(skinAssets(sk, wide).map(u => { const im = new Image(); im.src = u; return (im.decode ? im.decode() : Promise.resolve()).catch(() => null); }))
+        .then(() => { if (destroyed || skinWant !== sk.id) return; skinWant = ''; setSkin(sk); lastSig = ''; render(); });
+      return;
+    }
+    setSkin(sk);
+  }
+  function setSkin(sk) {
     skin = sk; skinKey = sk.id;
     for (const [k, v] of Object.entries(skinVars(sk))) root.style.setProperty(k, v);
     root.dataset.skin = sk.id;
@@ -404,7 +436,7 @@ export function createView() {
   function myCat() {
     const c = myCards(), t = table();
     if (!c || !t || (t.board || []).length < 3) return null;
-    try { return evaluate([...c, ...t.board]).name; } catch { return null; }
+    try { return catName(evaluate([...c, ...t.board])); } catch { return null; }
   }
 
   // ------------------------------------------------------------------ render (from the state; DOM only where something changed)
@@ -472,7 +504,7 @@ export function createView() {
       let s = seatEls.get(x.id);
       if (!s) {
         s = { el: h('div.he-seat', h('div.he-av'), h('div.he-dealer', 'D'), h('div.he-backs'), h('div.he-shown'),
-          h('div.he-splate', h('b.he-name'), h('span.he-sline', h('span.he-sstack'), h('em.he-swon'))), h('div.he-tag'), h('div.he-sclock', h('i')), h('div.he-bet', h('canvas.he-stk'), h('span'))), av: '' };
+          h('div.he-splate', h('b.he-name'), h('span.he-sline', h('span.he-sstack'), h('em.he-swon')), h('div.he-sclock', h('i'))), h('div.he-tag'), h('div.he-bet', h('canvas.he-stk'), h('span'))), av: '' };
         s.stack = s.el.querySelector('.he-sstack');
         seatEls.set(x.id, s);
         els.seats.append(s.el);
@@ -507,7 +539,7 @@ export function createView() {
     const tag = x.status === 'out' ? 'OUT' : pl.left ? 'LEFT' : x.status === 'allin' ? 'ALL IN' : x.status === 'sitout' ? 'SAT OUT' : x.away ? 'AWAY' : x.status === 'folded' && run ? 'FOLD' : '';
     const tg = el.querySelector('.he-tag');
     tg.textContent = tag; tg.dataset.kind = tag === 'ALL IN' ? 'allin' : tag ? 'grey' : '';
-    el.querySelector('.he-dealer').hidden = !(t && t.button === x.seat && t.hand > 0);
+    el.querySelector('.he-dealer').hidden = !(t && t.button === x.seat && t.hand > 0 && x.status !== 'sitout');   // (HE10 — A34: never on a sat-out seat with no cards)
     // the cards: backs while held + unshown; face up once shown (the showdown, a SHOW)
     const shown = Array.isArray(x.cards) && x.cards.length ? x.cards : null;
     const backs = el.querySelector('.he-backs'), sh = el.querySelector('.he-shown');
@@ -544,7 +576,7 @@ export function createView() {
   /** "OUT · 5TH" — a busted seat's place (the match's places) */
   const placeText = id => { const p = ((pub && pub.places) || []).find(q => q.id === id); return p ? `OUT · ${ordinal(p.place)}` : 'OUT'; };
   const winOf = (res, id) => (res.pots || []).reduce((n, p) => n + (p.winners || []).filter(w => w.id === id).reduce((m, w) => m + (w.amount || 0), 0), 0);
-  const seatLabel = cards => { try { return cards.length >= 5 ? evaluate(cards).name : cards.length === 2 ? handLabel(cards) : ''; } catch { return ''; } };
+  const seatLabel = cards => { try { return cards.length >= 5 ? catName(evaluate(cards)) : cards.length === 2 ? handLabel(cards) : ''; } catch { return ''; } };
 
   // ---- the board + the pot
   function paintBoard() {
@@ -599,7 +631,7 @@ export function createView() {
   function fitAward() {
     for (const e of els.award.children) {
       e.style.fontSize = '';
-      if (!L || !L.wide) continue;
+      if (!L) continue;   // (HE10 — A33: upright too)
       const avail = e.clientWidth, need = e.scrollWidth;
       if (avail && need > avail + 0.5) e.style.fontSize = `${Math.max(10, parseFloat(getComputedStyle(e).fontSize) * avail / need - 0.3).toFixed(2)}px`;
     }
@@ -675,7 +707,7 @@ export function createView() {
     const res = t && t.street === 'done' && t.result;
     const won = res && x ? winOf(res, x.id) : 0;
     const all = cards ? [...cards, ...((t && t.board) || [])] : null;
-    const text = all ? (all.length >= 5 ? handLabel(all, true) : all.length >= 3 ? handLabel(all, true) : handLabel(cards)) : '';
+    const text = all ? (all.length >= 3 ? handLabel(all, true) : handLabel(cards)) : '';
     lab.textContent = won > 0 ? `${text ? `${text} · ` : ''}WINS ${fmt(won)}` : text;
     lab.hidden = !lab.textContent;
     lab.disabled = !mine;
@@ -707,7 +739,12 @@ export function createView() {
     const t = table(), x = mySeat(), run = t && running(t);
     const mine = run && !t.runout ? legalActions(t) : null;
     const yours = !!(mine && mine.id === me());
+    // HE10 (A21): the raise slider belongs to ONE turn — when it stops being yours (a move, the clock, a new street) it closes
+    const turnNow = yours ? `${t.hand}|${t.street}|${t.bet}` : '';
+    if (slider && (!yours || (slider.turn && slider.turn !== turnNow))) slider = null;
+    if (slider && !slider.turn) slider.turn = turnNow;
     root.classList.toggle('is-myturn', yours);
+    root.classList.toggle('has-slider', !!(yours && slider));   // (HE10 — A11: your bet steps aside while the slider is open)
     const kids = [];
     let status = '';
     root.classList.toggle('is-offline', offline());   // (HE8: no signal — your buttons wait, the console's SIGNAL LOST banner says why)
@@ -721,7 +758,7 @@ export function createView() {
       else if (mine) status = `${who(mine.id).name} IS THINKING…`;
     } else if (run) {
       status = t.runout ? 'RUNNING IT OUT…' : mine ? `${who(mine.id).name} IS THINKING…` : '';
-    } else if (t && t.street === 'done') status = t.hand > 0 ? 'NEXT HAND…' : '';
+    } else if (t && t.street === 'done') status = t.hand > 0 ? (pub.due == null ? 'WAITING FOR PLAYERS…' : 'NEXT HAND…') : '';   // (HE10 — A23: a CASH table that can't deal says so)
     else if (t && t.hand === 0) status = 'SHUFFLING UP…';
     // the seat's own buttons (between turns): SHOW · REBUY · SIT BACK · I'M BACK · TAKE A SEAT
     if (current() && !pub.ended) kids.push(...seatButtons(x, t));
@@ -747,7 +784,7 @@ export function createView() {
       els.actions.replaceChildren(...kids);
       // YOUR TURN (HE4): the action row rises in — once per turn (a new turn = a new hand / street / bet to face), never under a finger
       const tk = yours && !slider ? `${t.hand}|${t.street}|${t.bet}|${x ? x.bet : 0}` : '';
-      if (tk && tk !== turnKey && primed) playSound('your-turn');
+      if (tk && tk !== turnKey && primed) playSound('your-turn', { at: cueTail });
       if (tk && tk !== turnKey && motion && !reducedMotion()) {
         [...els.actions.querySelectorAll('.he-preset, .he-buttons > .he-btn')].forEach((b, i) =>
           motion.animate(b, [{ translate: '0px 16px', opacity: 0 }, { translate: '0px 0px', opacity: 1 }], { duration: 240, delay: i * 35 }));
@@ -962,13 +999,13 @@ export function createView() {
     if (destroyed || raf || !pub || document.hidden) return;
     const txt = levelLine(pub, serverNow());
     if (txt !== lastLevelTxt) { lastLevelTxt = txt; els.level.textContent = txt; }
-    if (!/^\d+:\d\d/.test(txt.split(' · ').pop())) return;   // (CASH, the end: no countdown — nothing to tick)
+    if (!/\d:\d\d/.test(txt.slice(-4))) return;   // (CASH, a level change waiting for the next hand, the end: no countdown — nothing to tick)
     levelT = setTimeout(armLevel, 1000 - (serverNow() % 1000) + 8);
   }
   function onVis() {
     if (!root) return;
     root.dataset.page = document.hidden ? 'hidden' : 'shown';
-    if (document.hidden) { clearTimeout(levelT); levelT = 0; } else wake();
+    if (document.hidden) { clearTimeout(levelT); levelT = 0; stopAll(); } else wake();   // (HE10 — A36: what was scheduled never plays late after a switch)
   }
   function frame(now) {
     raf = 0;

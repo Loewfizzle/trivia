@@ -19,7 +19,7 @@ export function soundPlan(steps, { me = null, rng } = {}) {
   const r = typeof rng === 'function' ? rng : () => 0.5;
   const cues = [];
   const add = (name, at, extra) => cues.push({ name, at: Math.max(0, Math.round(at)), ...extra });
-  let showdown = false, iWon = false;
+  let showdown = false, iWon = false, ko = false;
   for (const s of steps || []) {
     switch (s.kind) {
       case 'deal': {
@@ -36,7 +36,7 @@ export function soundPlan(steps, { me = null, rng } = {}) {
       case 'heroFlip': add('flip', s.at); break;
       case 'chip': {
         const name = s.allin ? 'all-in' : s.t === 'raised' ? 'chip-raise' : 'chip-bet';
-        add(name, s.at + BEAT.chip * 0.75, s.t === 'posted' ? { vol: 0.75 } : undefined);   // (the chip lands — the blinds a touch softer)
+        add(name, s.at + BEAT.chip * 0.75);   // (the chip lands — HE10 (A42): the blinds at the approved gain, no unapproved 0.75)
         break;
       }
       case 'check': add('check', s.at); break;
@@ -52,7 +52,7 @@ export function soundPlan(steps, { me = null, rng } = {}) {
         break;
       }
       case 'rebuy': if (s.id === me) add('chip-stack', s.at); break;
-      case 'out': add('knockout', s.at + 300); break;
+      case 'out': if (!ko) { ko = true; add('knockout', s.at + 300); } break;   // (HE10 — A35: ONE knockout a run — several busts at once never stack the sting)
       case 'level': add('blinds-up', s.at); break;
       default: break;
     }

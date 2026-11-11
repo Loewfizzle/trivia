@@ -8,6 +8,22 @@ export { DEFAULT_SETTINGS, chatLocked, cleanSettings } from './meta.js';
 /** The match is over AND its result is in (`rep`) — the console's podium may show (its report then finds results/{CODE}_{matchId}). */
 export const finished = pub => !!(pub && pub.ended && pub.rep);
 
+/** HE10 (A3): the podium waits this long after the match's end — the last hand's river, showdown, pots + KO card play first (≈ 1.4 s of
+ *  sound + motion; the KO card's 4 s mostly); a refresh later goes straight to the podium (the dealer's endAt + the host's server clock) */
+export const FINAL_HOLD_MS = 4_500;
+
+/**
+ * THE DIRECTOR (pure): the console's frame only. The dealer's table (`pub` — the wire read back) says the match is over + its result was
+ * sent (`rep`) + FINAL_HOLD_MS have passed since its end → the podium (the places + the rows stored, so finalRanks + the frame never
+ * re-read the table). `short` (HE10 — A7) = the dealer credited nothing (too short to count): the end screen says so in one quiet line.
+ */
+export function directorStep(game, { now, pub }) {
+  if (!game || game.phase !== 'play') return null;
+  if (!pub || pub.id !== game.matchId || !finished(pub)) return null;
+  if (now < (pub.endAt || 0) + FINAL_HOLD_MS) return null;
+  return { phase: 'final', phaseStartAt: now, ranks: ranksOf(pub), rows: finalRowsOf(pub), endMode: pub.mode, sum: finalSummaryOf(pub), short: pub.rep === 'short' };
+}
+
 /** GAME NIGHT's places: a TOURNAMENT's order of finish; CASH by net (ties share). → [{ uid, rank }] best first. */
 export function ranksOf(pub) {
   if (!pub) return [];
@@ -59,8 +75,9 @@ export function finalSummaryOf(pub) {
 export const ordinal = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'TH' : ['TH', 'ST', 'ND', 'RD'][n % 10] || 'TH'}`;
 
 /**
- * THE LEVEL LINE (the header): TOURNAMENT "LVL 3 · BLINDS 50/100 · 1:42" (the time to the next level — it applies from the next hand);
- * CASH "BLINDS 5/10". `now` = serverNow().
+ * THE LEVEL LINE (the header — TWO lines): TOURNAMENT "LVL 3 · BLINDS 50/100" over "NEXT 75/150 IN 1:42" (HE10 — A25: the countdown is
+ * ALWAYS to the blinds it names — a level change waits for the next hand, so once the clock has passed it the second line says
+ * "NEXT HAND · 75/150", never a countdown restarting under the old blinds); CASH "BLINDS 5/10". `now` = serverNow().
  */
 export function levelLine(pub, now) {
   if (!pub) return '';
@@ -68,18 +85,14 @@ export function levelLine(pub, now) {
   const t = pub.table || {};
   const lv = pub.level || 0;
   const sb = t.sb || blindsAt(lv).sb, bb = t.bb || blindsAt(lv).bb;
-  if (!pub.levelMs || pub.startAt == null) return `LVL ${lv + 1} · BLINDS ${fmt(sb)}/${fmt(bb)}`;
+  const head = `LVL ${lv + 1} · BLINDS ${fmt(sb)}/${fmt(bb)}`;
+  if (!pub.levelMs || pub.startAt == null) return head;
   const at = levelAt(pub.startAt, now, pub.levelMs);
-  const left = Math.max(0, pub.startAt + (at + 1) * pub.levelMs - now);
+  if (at > lv) { const n = blindsAt(at); return `${head}\nNEXT HAND · ${fmt(n.sb)}/${fmt(n.bb)}`; }
+  const n = blindsAt(lv + 1);
+  const left = Math.max(0, pub.startAt + (lv + 1) * pub.levelMs - now);
   const s = Math.ceil(left / 1000);
-  return `LVL ${lv + 1} · BLINDS ${fmt(sb)}/${fmt(bb)} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
-
-/** THE NEXT BLINDS while a level change waits for the next hand ("NEXT 75/150") — or null. */
-export function nextBlinds(pub, now) {
-  if (!pub || pub.mode === 'cash' || !pub.levelMs) return null;
-  const at = levelAt(pub.startAt, now, pub.levelMs);
-  return at > (pub.level || 0) ? blindsAt(at) : null;
+  return `${head}\nNEXT ${fmt(n.sb)}/${fmt(n.bb)} IN ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
 /**

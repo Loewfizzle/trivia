@@ -6,7 +6,7 @@
 export * from './meta.js';
 import { cleanSettings } from './meta.js';
 import { fromWire } from './wire.js';
-import { finished, ranksOf, finalRowsOf, finalSummaryOf } from './logic.js';
+import { directorStep, FINAL_HOLD_MS } from './logic.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { fetchSounds } from './sfx.js';
@@ -40,17 +40,10 @@ export async function start({ code, matchId, settings, participants, now }) {
 /** nothing to top up: the server deals (the pokes are every phone's — the view, on THE POKE's rule) */
 export function prepare() {}
 
-/**
- * THE DIRECTOR (pure): the console's frame only. The dealer's table says the match is over + its result was sent (`rep`) → the podium
- * (the places + the rows stored, so finalRanks + the frame never re-read the table).
- */
-export function step(game, { now, live }) {
-  if (!game || game.phase !== 'play') return null;
-  const pub = fromWire(live && live.table);
-  if (!pub || pub.id !== game.matchId || !finished(pub)) return null;
-  const ranks = ranksOf(pub);
-  return { phase: 'final', phaseStartAt: now, ranks, rows: finalRowsOf(pub), endMode: pub.mode, sum: finalSummaryOf(pub) };
-}
+/** THE DIRECTOR (pure — logic.js#directorStep): the console's frame only — the podium once the dealer's match is over, its result sent, and
+ *  (HE10 — A3) FINAL_HOLD_MS after its end */
+export const step = (game, ctx) => directorStep(game, { ...ctx, pub: fromWire(ctx && ctx.live && ctx.live.table) });
+export { FINAL_HOLD_MS };
 
 export const finalRanks = game => (game && Array.isArray(game.ranks) ? game.ranks.map(r => ({ uid: r.uid, rank: r.rank })) : []);
 

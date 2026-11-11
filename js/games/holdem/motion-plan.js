@@ -21,8 +21,12 @@ export const BEAT = {
   fold: 340, toast: 2400, headsUp: 1600, ko: 4000,
 };
 
+/** HE10 (A5): the OLDEST unseen event may be at most this much older than MAX_AGE_MS — a phone back from a lock while the table is busy
+ *  (its newest event fresh, its oldest 25 s old) shows the state, never a squeezed burst of everything it missed */
+export const OLDEST_SLACK_MS = 1000;
 /**
- * The events to animate: numbered after `seen`, all present (no gap), the newest ≤ MAX_AGE_MS old. → { list, seen } — `seen` = the newest
+ * The events to animate: numbered after `seen`, all present (no gap), the newest ≤ MAX_AGE_MS old AND the oldest ≤ MAX_AGE_MS +
+ * OLDEST_SLACK_MS old (HE10 — A5). → { list, seen } — `seen` = the newest
  * number either way (a stale or gapped run is skipped whole: the state already shows its end). `seen` null = the first look (a mount /
  * refresh): nothing animates.
  */
@@ -33,7 +37,7 @@ export function freshEvents(ev, seen, now, maxAge = MAX_AGE_MS) {
   const fresh = list.filter(e => e.n > seen);
   if (!fresh.length) return { list: [], seen: Math.max(seen, top) };
   const gap = fresh[0].n !== seen + 1;
-  const stale = !(now - (fresh[fresh.length - 1].at || 0) <= maxAge);
+  const stale = !(now - (fresh[fresh.length - 1].at || 0) <= maxAge) || !(now - (fresh[0].at || 0) <= maxAge + OLDEST_SLACK_MS);
   return { list: gap || stale ? [] : fresh, seen: top };
 }
 

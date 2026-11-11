@@ -248,7 +248,12 @@ function attempt({ w, h, top = 0, bottom = 0, left = 0, right = 0, k = 0, cb = 3
     q.betAt = at;
     placed.push(betRect(q, at));
   }
-  for (const q of seats) q.wbox = wideSeatBox({ ...q, bet: q.betAt });
+  for (const q of seats) {
+    q.wbox = wideSeatBox({ ...q, bet: q.betAt });
+    // HE10 (A34): the D button never past the screen's edge (the SE on its side, 4 players: the left seat's sat 3 pt off) — slid in along the emblem
+    const d = q.wbox.dealer, lo = left + 2 + 9 * ss, hi = w - right - 2 - 9 * ss, dx = q.x + d[0] * ss;
+    if (dx < lo) d[0] = (lo - q.x) / ss; else if (dx > hi) d[0] = (hi - q.x) / ss;
+  }
 
   // THE AWARD BOX (the hand's end — the winning hand + a pot's line) ON THE POT'S SPOT (the pot + the side-pot line give way to it then):
   // heads-up ONE row (no side pots), else two compact rows; as wide as the seats there allow

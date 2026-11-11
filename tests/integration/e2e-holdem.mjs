@@ -208,7 +208,9 @@ async function toughness(host, used = new Set()) {
     await sleep(700);
     const off = await p.evaluate(() => ({ he: document.querySelector('.he').classList.contains('is-offline'), net: document.getElementById('net').classList.contains('is-on') }));
     await playOn(6000, new Set([gb]));
-    await sleep(3500);   // (a quiet moment before the signal comes back: anything that happened is > 2.5 s old — never replayed)
+    // (HE10 — B8: back while the table is BUSY — the last moves only just made: the newest missed event fresh, the oldest ~6 s old — the
+    //  whole missed run is history (motion-plan.js#freshEvents, A5), never a squeezed burst)
+    await sleep(150);
     const hostSeq = (await pub(host)).seq, planned0 = await p.evaluate(() => window.__holdem.planned().length);
     await p.setOfflineMode(false);
     await waitFor(p, (s, q) => window.__holdem.pub().seq >= q && s.net === 'online' && !document.querySelector('.he.is-offline'), 'back online: caught up', 25000, hostSeq);
@@ -271,7 +273,7 @@ async function toughness(host, used = new Set()) {
     const a0 = await audioOf(p);
     await setHidden(p, true);
     await playOn(26000, new Set([gb]));
-    await sleep(3500);
+    await sleep(150);   // (HE10 — B8: back while the table is BUSY, not after a quiet moment)
     const a1 = await audioOf(p);
     const hostSeq = (await pub(host)).seq, planned0 = await p.evaluate(() => window.__holdem.planned().length);
     await setHidden(p, false);
@@ -352,7 +354,7 @@ await H.run(async () => {
   await leakCheck('hand 1');
   await H.cleanText(host, 'the table', '.he');
   const lv = await host.evaluate(() => document.querySelector('.he-level').textContent);
-  ok(/^LVL 1 · BLINDS 10\/20 · \d:\d\d$/.test(lv), `the level line: "${lv}"`);
+  ok(/^LVL 1 · BLINDS 10\/20\nNEXT 15\/30 IN \d:\d\d$/.test(lv), `the level line (HE10 — two lines: the next blinds + the countdown to them): ${JSON.stringify(lv)}`);
   await H.shotAll(host, 'he-01-start');
   // HE8 — THE WAKE LOCK: every seated phone in a live match wants the screen on (the console's rule narrowed by the table's own)
   const aw0 = await Promise.all(alive().map(i => awakeOf(pages[i])));

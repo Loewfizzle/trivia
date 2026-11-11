@@ -25,6 +25,9 @@ export const BTN_GAP = 30;
 export const BOARD = { 1: { y: 0.44, w: 64 }, 2: { y: 0.54, w: 56 }, 3: { y: 0.55, w: 56 }, rest: { y: 0.6, w: 56 } };
 /** HE4 — the side rows (emblem centres, top → bottom) by k: from just under the top seat to just above the pot line (sideRowsPx) */
 export const ROWS = { 4: [0.16], 5: [0.16], 6: [0.11, 0.274], 7: [0.128, 0.274] };   // (HE5: k = 6's first row 0.128 → 0.11 — still on the rail's curve; the first row; the rows' count = its length + 1)
+/** HE10 (A28): with a top seat, the first side row sits 66–72 pt (× ss) under it — as low as the rows' spacing allows (its bet chip ran 5 pt
+ *  into the top plate at 66) */
+export const FIRST_UNDER_TOP = [66, 72];
 /** HE5: the side rows never closer than a seat's block (94 pt × ss) */
 export const ROW_MIN = 94.5;
 export const DESIGN = { w: 390, h: 844, boxTop: 100, boxBottom: 752 };
@@ -105,9 +108,10 @@ export function sideRowsPx(k, { at, ss, s, topY, pot, boardTop }) {
   // (HE5: every side pot is ONE line just above the pot — potSideTop; a bottom-row bet ends 3 pt above it. 4: the showdown's lift of a
   //  winning board card is 3 pt — css)
   const last = Math.min(potSideTop(pot, s) - 3 - 12 * ss, boardTop - 72 * ss - 4);
-  // with a top seat (5, 7) the first row tucks in just under its plate — its bet chip between the top seat's plate and the top seat's bet
-  const first = k === 5 || k === 7 ? topY + 66 * ss : at(fr[0]);
+  // with a top seat (5, 7) the first row tucks in under its plate — HE10 (A9 / A28): under the top seat's TAG too (its bet chip clear of the
+  // plate + the tag, the top seat's own bet lower — SEAT_BOX.top)
   const n = fr.length + 1;
+  const first = k === 5 || k === 7 ? topY + Math.max(FIRST_UNDER_TOP[0] * ss, Math.min(FIRST_UNDER_TOP[1] * ss, last - (n - 1) * ROW_MIN * ss - topY)) : at(fr[0]);
   return Array.from({ length: n }, (_, i) => first + (last - first) * (n === 1 ? 0 : i / (n - 1)));
 }
 
@@ -129,7 +133,8 @@ export function sideRows(k) {
  */
 export const SEAT_BOX = {
   side: { main: [-32, -22, 84, 72], cards: [22, -21, 83, 22], bet: [66, -10, 136, 12] },          // (left; the right side mirrors x)
-  top: { main: [-50, -22, 50, 55], tag: [-170, 26, -60, 42], cards: [28, -16, 92, 26], bet: [-35, 86, 35, 106] },   // (HE4: its tag LEFT of the plate)
+  // (HE4: its tag LEFT of the plate while a hand runs — HE10 (A9): once the hand is over it drops UNDER the plate (`tagDone` — the bets are gone then))
+  top: { main: [-50, -22, 50, 55], tag: [-170, 26, -60, 42], tagDone: [-55, 56, 55, 72], cards: [28, -16, 92, 26], bet: [-35, 86, 35, 106] },
   big: { main: [-58, -28, 58, 80], cards: [34, -16, 100, 26], bet: [-35, 92, 35, 112] },
 };
 export function seatRects(seat, ss) {
