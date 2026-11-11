@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- HOLD'EM (HE5) — THE REAL CHIPS, close up: the stacks (js/games/holdem/chip-art.js — the same code the table draws with) on the real felt
+     at the table's sizes (13 / 15 pt) and bigger, every colour alone (the GREEN on green must read), bets, a big pot, a side-pot award's
+     shares. &zoom=2 = a magnified look (the art is drawn at the device's pixel ratio — judge at 1 on a phone, unzoomed). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hold'em chips</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/holdem.css">
+<style>
+  html, body { margin: 0; background: #06050a; color: #f4ead2; font-family: 'Chakra Petch', sans-serif; }
+  .felt { margin: 12px; padding: 14px 12px; border-radius: 18px; background: radial-gradient(70% 60% at 50% 40%, rgba(255, 220, 160, 0.12), rgba(0, 0, 0, 0.45) 100%), url('../../assets/holdem/felt-green.webp') 0 0 / 256px 256px, #145a32; }
+  h3 { margin: 4px 2px 8px; font: 700 11px/1 'Chakra Petch'; letter-spacing: 0.16em; color: #ffd977; }
+  .row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 18px; margin-bottom: 14px; }
+  .it { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .it small { font: 700 10px/1 'Chakra Petch'; letter-spacing: 0.08em; color: rgba(244, 234, 210, 0.75); }
+  .bet { display: flex; align-items: flex-end; gap: 3px; font: 700 12px 'Chakra Petch'; }
+  .bet span { padding: 1px 6px; border-radius: 7px; background: rgba(0, 0, 0, 0.62); line-height: 15px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { loadChips, paintStacks } from '/js/games/holdem/chip-art.js';
+import { BET, POT, COLORS } from '/js/games/holdem/chips.js';
+const q = new URLSearchParams(location.search);
+if (q.get('zoom')) document.body.style.zoom = q.get('zoom');
+await loadChips();
+const app = document.getElementById('app');
+const fmt = n => n.toLocaleString('en-US');
+const felt = (title, items) => {
+  const f = document.createElement('div'); f.className = 'felt';
+  f.innerHTML = `<h3>${title}</h3>`;
+  const row = document.createElement('div'); row.className = 'row';
+  for (const [amount, d, o, label, v] of items) {
+    const it = document.createElement('div'); it.className = 'it';
+    const bet = document.createElement('div'); bet.className = 'bet';
+    const cv = document.createElement('canvas');
+    paintStacks(cv, amount, d, o, v || 0);
+    const sp = document.createElement('span'); sp.textContent = fmt(amount);
+    bet.append(cv, sp);
+    const sm = document.createElement('small'); sm.textContent = label || `${d} PT`;
+    it.append(bet, sm); row.append(it);
+  }
+  f.append(row); app.append(f);
+};
+// every colour alone, at the table's sizes (12 = a seat's bet, 15 = yours) — the GREEN on green
+// (the most of each colour the fewest-chips rule ever stacks alone: 4 red · 3 green · 4 black · 1 purple · 4 yellow · 5+ orange)
+const one = { red: 20, green: 75, black: 400, purple: 500, yellow: 4000, orange: 25000 };
+felt('EVERY COLOUR · 13 PT (A SEAT)', COLORS.map(c => [one[c], 13, BET, c.toUpperCase()]));
+felt('EVERY COLOUR · 15 PT (YOURS)', COLORS.map(c => [one[c], 15, BET, c.toUpperCase()]));
+felt('BETS · A SEAT (13 PT, ≤ 2 STACKS) · YOURS (15 PT, ≤ 3)', [[20, 13, { ...BET, maxStacks: 2 }, 'BLIND'], [60, 13, { ...BET, maxStacks: 2 }], [175, 13, { ...BET, maxStacks: 2 }], [1560, 13, { ...BET, maxStacks: 2 }, 'SEAT 1,560'], [1560, 15, BET, 'YOURS 1,560'], [2340, 15, BET], [12500, 15, BET]]);
+felt('A BIG POT · SIDE-POT SHARES', [[4280, 13, POT, 'POT 4,280'], [18650, 13, POT, 'POT 18,650'], [1320, 13, POT, 'SIDE → BO', 1], [480, 13, POT, 'SIDE → ALEX', 2], [2400, 13, POT, 'MAIN → GRACE']]);
+felt('BIGGER (THE ART)', [[1500, 20, BET, '20 PT'], [6175, 20, BET, '20 PT'], [30, 20, BET, '20 PT']]);
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

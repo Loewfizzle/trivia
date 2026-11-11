@@ -56,7 +56,8 @@ export { finalScene } from './final.js';
 /** THE PRELOAD (≤ 1.5 MB — docs/cartridge.md): the felt + the card back (+ the faces' fonts) + HE5's 17 sounds (~365 KB — decoded once at
  *  the unlock). Fetch, don't build. */
 export function preload() {
-  const imgs = ['felt-green.webp', 'cardback-casino.webp'].map(f => new URL(`../../../assets/holdem/${f}`, import.meta.url).href);
+  const chips = ['red', 'green', 'black', 'purple', 'yellow', 'orange'].flatMap(c => [`chips/chip-${c}-top.webp`, `chips/chip-${c}-side.webp`]);   // (HE5: 36 KB)
+  const imgs = ['felt-green.webp', 'cardback-casino.webp', ...chips].map(f => new URL(`../../../assets/holdem/${f}`, import.meta.url).href);
   return Promise.all([
     ...imgs.map(src => fetch(src).then(r => r.blob()).catch(() => null)),
     fetchSounds().catch(() => null),

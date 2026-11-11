@@ -32,11 +32,17 @@ import { SHOT_MS } from './structure.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { soundPlan, tickSecond } from './sound-plan.js';
 import { fetchSounds, decodeAll, playCues, playSound, played, planned } from './sfx.js';
+import { loadChips, onChipsReady, paintStacks, artVersion } from './chip-art.js';
+import { BET, POT } from './chips.js';
 
 const BACK = new URL('../../../assets/holdem/cardback-casino.webp', import.meta.url).href;
 const fmt = n => Math.round(n || 0).toLocaleString('en-US');
 const GHOST = { name: 'PLAYER', color: 'cyan', avatar: 'ghost' };
 const SHOW_MS = 4000;
+/** THE CHIPS (HE5): a chip's diameter (pt) + the stacks' caps by place — a seat's bet ≤ 2 stacks (the rail's room: the two bottom rows' bets
+ *  nearly meet in the middle — the amount always whole), YOUR bet + the pot ≤ 3 (chips.js) */
+const CHIP = { seat: { d: 13, o: { ...BET, maxStacks: 2 } }, hero: { d: 15, o: BET }, pot: { d: 13, o: POT }, potTight: { d: 13, o: { ...POT, maxStacks: 2 } } };
+export { CHIP };
 const LEAVE_TEXT = { now: ['LEAVE', 'TABLE'], after: ['LEAVE', 'AFTER THIS HAND'], queued: ['LEAVING', 'AFTER THIS HAND', 'CANCEL'] };
 
 export function createView() {
@@ -50,7 +56,7 @@ export function createView() {
   // THE MOTION: the last event number this phone showed (null = the first look: nothing animates), what the awards / the sweep still hold back
   let seenN = null, seenMatch = '', motion = null, awardNow = null, turnKey = '';
   // THE SOUNDS (HE5): primed after the first look (a mount / refresh plays nothing) · the last tick second · the podium's champion once
-  let primed = false, lastTick = 0, champ = false;
+  let primed = false, lastTick = 0, champ = false, offChips = null;
   const hold = { stack: {}, pot: 0, sweep: 0 };
   const posById = new Map();                                 // the drawn seats' anchors (the layout's) — the motion's start / end points
 
@@ -133,7 +139,8 @@ export function createView() {
     els.probeT = h('i.he-probe.he-probe-t'); els.probeB = h('i.he-probe.he-probe-b');
     root.append(els.probeT, els.probeB, els.level, els.table, els.print, els.host, els.seats, els.pot, els.board, els.award, els.fx, els.status, els.actions, els.hero, els.leave, els.toasts);
     motion = createMotion(els.fx, motionView);
-    fetchSounds(); decodeAll();   // (the preload fetched the bytes; decoded once the audio is unlocked — a mount after the unlock decodes now)
+    fetchSounds(); decodeAll();
+    loadChips(); offChips = onChipsReady(() => { lastSig = ''; if (els.pot) els.pot.dataset.k = ''; render(); });   // (the preload fetched the bytes; decoded once the audio is unlocked — a mount after the unlock decodes now)
     el.append(root);
     ro = new ResizeObserver(() => relayout(true));
     ro.observe(root);
@@ -194,6 +201,7 @@ export function createView() {
     if (motion) motion.cancel();
     if (ro) ro.disconnect();
     if (offSet) offSet();
+    if (offChips) offChips();
     if (holeOff) holeOff();
     removeTestHook('__holdem', hook);
     if (finalView) finalView.destroy();
@@ -336,7 +344,7 @@ export function createView() {
       let s = seatEls.get(x.id);
       if (!s) {
         s = { el: h('div.he-seat', h('div.he-av'), h('div.he-dealer', 'D'), h('div.he-backs'), h('div.he-shown'),
-          h('div.he-splate', h('b.he-name'), h('span.he-sline', h('span.he-sstack'), h('em.he-swon'))), h('div.he-tag'), h('div.he-sclock', h('i')), h('div.he-bet', h('i.he-chip'), h('span'))), av: '' };
+          h('div.he-splate', h('b.he-name'), h('span.he-sline', h('span.he-sstack'), h('em.he-swon'))), h('div.he-tag'), h('div.he-sclock', h('i')), h('div.he-bet', h('canvas.he-stk'), h('span'))), av: '' };
         s.stack = s.el.querySelector('.he-sstack');
         seatEls.set(x.id, s);
         els.seats.append(s.el);
@@ -384,10 +392,19 @@ export function createView() {
     const bet = el.querySelector('.he-bet');
     bet.hidden = !(run && x.bet > 0);
     bet.querySelector('span').textContent = fmt(x.bet);
+    if (!bet.hidden) chips(bet.querySelector('canvas'), x.bet, CHIP.seat, x.id);
     const sw = el.querySelector('.he-swon'), wt = won > 0 && !run ? `+${fmt(won)}` : '';
     if (sw.textContent !== wt) sw.textContent = wt;
     const ck = el.querySelector('.he-sclock');
     ck.hidden = !turn;
+  }
+  /** a bet's / the pot's stacks into its canvas — only when the amount (or the size, or the art) changed: never per frame */
+  function chips(cv, amount, kind, id) {
+    if (!cv) return;
+    const k = `${amount}|${kind.d}|${kind.o.maxStacks}|${artVersion()}`;
+    if (cv.dataset.k === k) return;
+    cv.dataset.k = k;
+    paintStacks(cv, amount, kind.d, kind.o, id ? hashUid(id) % 3 : 0);
   }
   const backImg = () => h('img.he-back', { src: BACK, alt: '', draggable: 'false' });
   /** "OUT · 5TH" — a busted seat's place (the match's places) */
@@ -422,15 +439,15 @@ export function createView() {
     //  leave free at the hand's end, never across the bottom row's seats; the pot line itself keeps only "POT n")
     if (!t || !current()) sig = '';
     else if (res && awardNow) aw = { line: awardNow.line, win: awardNow.win };
-    else if (res && hold.pot > 0) { sig = `P|${hold.pot}`; kids = [h('b', `POT ${fmt(hold.pot)}`)]; }
+    else if (res && hold.pot > 0) { sig = `P|${hold.pot}`; kids = [potPill(hold.pot)]; }
     else if (res) {
       const p0 = finalPot(t);
       if (p0) aw = { line: awardLine(p0, nameOf, (res.pots || []).length > 1), win: winLine(p0) };
     } else {
       const collected = Math.max(0, t.seats.reduce((n, x) => n + (x.total || 0) - (x.bet || 0), 0) - hold.sweep);
       const side = running(t) ? sidePots(t) : [];
-      sig = `R|${collected}|${side.map(p => p.amount).join(',')}`;
-      if (collected > 0) kids = [h('b', `POT ${fmt(collected)}`), side.length > 1 ? h('small', sideLine(side.slice(1))) : null];
+      sig = `R|${collected}|${side.map(p => p.amount).join(',')}|${artVersion()}`;
+      if (collected > 0) kids = [potPill(collected), side.length > 1 ? h('small', sideLine(side.slice(1))) : null];
     }
     const ak = aw ? `${aw.line}|${aw.win}` : '';
     if (els.award.dataset.k !== ak) {
@@ -443,6 +460,12 @@ export function createView() {
     els.pot.replaceChildren(...kids.filter(Boolean));
   }
   const nameOf = id => who(id).name;
+  /** the pot: its stacks (THE CHIPS) + POT n — 5–8 players: 2 stacks (the pot's width between the side rows — layout.js#blocks().pot) */
+  function potPill(amount) {
+    const cv = h('canvas.he-stk');
+    chips(cv, amount, seatCount() >= 4 ? CHIP.potTight : CHIP.pot);
+    return h('b', cv, h('span', `POT ${fmt(amount)}`));
+  }
   /** HE5 — every side pot on ONE line above the pot (layout.js#potSideTop — it never reaches a seat's bet): "SIDE 1,320 · 480", or "3 SIDE POTS · 2,140" */
   const sideLine = list => { const a = `SIDE ${list.map(p => fmt(p.amount)).join(' · ')}`; return a.length <= 18 ? a : `${list.length} SIDE POTS · ${fmt(list.reduce((n, p) => n + p.amount, 0))}`; };
   /** the hand's main pot as an event-shaped row (its winners, its label; a fold-win says so) */
@@ -514,9 +537,10 @@ export function createView() {
     els.hero.classList.toggle('is-winner', won > 0);
     // your own bet + the D button
     let bet = els.hero.querySelector('.he-bet');
-    if (!bet) { bet = h('div.he-bet', h('i.he-chip'), h('span')); els.hero.append(bet, h('div.he-dealer', 'D')); }
+    if (!bet) { bet = h('div.he-bet', h('canvas.he-stk'), h('span')); els.hero.append(bet, h('div.he-dealer', 'D')); }
     bet.hidden = !(run && x && x.bet > 0);
     bet.querySelector('span').textContent = x ? fmt(x.bet) : '';
+    if (!bet.hidden) chips(bet.querySelector('canvas'), x.bet, CHIP.hero, x.id);
     root.classList.toggle('has-mybet', !bet.hidden && !!(L && L.myBet.above));   // (the felt print gives way to your stack)
     els.hero.querySelector('.he-dealer').hidden = !(t && x && t.button === x.seat && t.hand > 0);
     els.hero.querySelector('.he-clock').hidden = !myTurn;

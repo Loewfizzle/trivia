@@ -6,6 +6,8 @@
 // shows the state. prefers-reduced-motion = instant states (only the words: BLINDS UP, HEADS UP, the KO card).
 import { h, reducedMotion } from '../../ui/dom.js';
 import { BEAT, holdsOf, awardLine, winLine, winningCards } from './motion-plan.js';
+import { stackGhost } from './chip-art.js';
+import { BET, POT } from './chips.js';
 
 const BACK = new URL('../../../assets/holdem/cardback-casino.webp', import.meta.url).href;
 const PERSP = 'perspective(700px)';
@@ -45,10 +47,17 @@ export function createMotion(layer, view) {
   }
 
   // a GHOST: a card back or a chip that flies over the table (absolute in the layer, its own transform) and goes when it lands
-  function ghost(kind, from, to, { delay = 0, dur = BEAT.chip, w = 14, hh = 14, fade = false, s0 = 1, s1 = 1, r0 = 0, r1 = 0 } = {}) {
+  // HE5 — THE REAL CHIPS: a 'chip' ghost = the AMOUNT's stacks (chip-art.js — the same art as the bet it becomes), centred on the path
+  function ghost(kind, from, to, { delay = 0, dur = BEAT.chip, w = 14, hh = 14, fade = false, s0 = 1, s1 = 1, r0 = 0, r1 = 0, amount = 0, d = 12, o = BET } = {}) {
     if (!from || !to) return;
-    const el = kind === 'back' ? h('img.he-ghost.he-gback', { src: BACK, alt: '', draggable: 'false' }) : h('i.he-ghost.he-chip');
-    el.style.width = `${w}px`; el.style.height = `${hh}px`;
+    let el = null;
+    if (kind === 'back') el = h('img.he-ghost.he-gback', { src: BACK, alt: '', draggable: 'false' });
+    else {
+      const cv = amount > 0 ? stackGhost(amount, d, o) : null;
+      if (cv) { el = cv; el.className = 'he-ghost he-gchips'; w = parseFloat(cv.style.width); hh = parseFloat(cv.style.height); }
+      else el = h('i.he-ghost.he-chip');
+    }
+    if (!el.classList.contains('he-gchips')) { el.style.width = `${w}px`; el.style.height = `${hh}px`; }
     layer.append(el);
     const at = (p, s, r) => `translate(${(p.x - w / 2).toFixed(1)}px, ${(p.y - hh / 2).toFixed(1)}px) rotate(${r}deg) scale(${s})`;
     const a = animate(el, [
@@ -103,7 +112,7 @@ export function createMotion(layer, view) {
     },
     chip(s) {
       const hero = s.id === view.heroId();
-      ghost('chip', view.pos(s.id, 'emblem'), view.pos(s.id, 'bet'), { delay: s.at, dur: BEAT.chip, s0: 0.7 });
+      ghost('chip', view.pos(s.id, 'emblem'), view.pos(s.id, 'bet'), { delay: s.at, dur: BEAT.chip, s0: 0.7, amount: s.amount, ...chipKind(hero) });
       const seat = hero ? view.heroEl() : view.seatEl(s.id);
       const bet = seat && seat.querySelector(':scope > .he-bet');
       if (bet) appear(bet, s.at + BEAT.chip - 40, 100);
@@ -115,11 +124,11 @@ export function createMotion(layer, view) {
     sweep(s) {
       const to = view.potPos();
       let sum = 0;
-      s.from.forEach(({ id, amount }) => { sum += amount; ghost('chip', view.pos(id, 'bet'), to, { delay: s.at, dur: BEAT.sweep, s1: 0.8 }); });
+      s.from.forEach(({ id, amount }) => { sum += amount; ghost('chip', view.pos(id, 'bet'), to, { delay: s.at, dur: BEAT.sweep, s1: 0.8, amount, ...chipKind(id === view.heroId()) }); });
       view.hold.sweep += sum;
       roll(sum, 240, s.at + BEAT.sweep - 120, d => { view.hold.sweep = Math.max(0, view.hold.sweep - d); });
     },
-    back(s) { ghost('chip', view.pos(s.id, 'bet'), view.pos(s.id, 'emblem'), { delay: s.at, dur: BEAT.chip, s1: 0.7, fade: true }); },
+    back(s) { ghost('chip', view.pos(s.id, 'bet'), view.pos(s.id, 'emblem'), { delay: s.at, dur: BEAT.chip, s1: 0.7, fade: true, amount: s.amount, ...chipKind(s.id === view.heroId()) }); },
     board(s) {
       const slot = view.slot(s.i), card = slot && slot.querySelector('.he-card');
       flip(card, s.at);
@@ -143,7 +152,8 @@ export function createMotion(layer, view) {
       to.forEach((w, j) => {
         const sw = view.seatEl(w.id) && view.seatEl(w.id).querySelector('.he-swon');
         if (sw && !pills.has(w.id)) pills.add(w.id), animate(sw, [{ opacity: 0, scale: '1.6' }, { opacity: 1, scale: '1' }], { duration: 240, delay: s.at + BEAT.award - 80 });
-        for (let c = 0; c < 3; c++) ghost('chip', from, view.pos(w.id, 'emblem'), { delay: s.at + 120 + c * 50 + j * 40, dur: BEAT.award - 60, s1: 0.85 });
+        // (the pot's stacks to each winner — their share; a split pot = one stack set to each)
+        ghost('chip', from, view.pos(w.id, 'emblem'), { delay: s.at + 120 + j * 40, dur: BEAT.award - 60, s1: 0.85, amount: w.amount || p.amount, d: 13, o: POT });
         roll(w.amount || 0, 320, s.at + BEAT.award - 120, d => { view.hold.stack[w.id] = Math.max(0, (view.hold.stack[w.id] || 0) - d); });
       });
       roll(p.amount || 0, 280, s.at + 140, d => { view.hold.pot = Math.max(0, view.hold.pot - d); });
@@ -153,6 +163,8 @@ export function createMotion(layer, view) {
     headsUp() { view.moment('HEADS UP'); },
     out(s) { if (s.id === view.me()) later(s.at + 300, () => view.ko(s)); },
   };
+  /** a seat's chips: 13 pt, ≤ 2 stacks (the rail's room); yours 15 pt, ≤ 3 (view.js#CHIP) — the ghost is the bet it becomes */
+  const chipKind = hero => (hero ? { d: 15, o: BET } : { d: 13 * (view.L() ? view.L().ss : 1), o: { ...BET, maxStacks: 2 } });
   const fmtN = n => Math.round(n || 0).toLocaleString('en-US');
 
   /** run a timeline (motion-plan.js#schedule) over the painted state */
