@@ -53,6 +53,7 @@ await H.run(async () => {
   let blockApi = true;
   await p1.setRequestInterception(true);
   p1.on('request', r => { if (r.isInterceptResolutionHandled()) return; if (blockApi && r.url().includes('/api/')) r.abort('internetdisconnected'); else r.continue(); });
+  await ref('testReportAll').set(true);   // (HE10: CIPHER is frozen — reportable on the emulators only behind this switch, api/report.js#reportableGame)
   const game = finalGame('cipher', [uids[0], uids[1]], { matchId: `e2e${Date.now().toString(36).slice(-6)}` });
   game.phaseStartAt = Date.now(); game.phaseEndsAt = Date.now() + 60_000;
   const code = H.code;

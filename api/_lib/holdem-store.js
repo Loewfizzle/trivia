@@ -283,16 +283,18 @@ export async function reportMatch(code, rec, now) {
   const ex = resultRows(rec);
   if (!ex) return 'skipped';
   const key = `${code}_${rec.id}`;
+  // HE10 (A2): only the DEALER's own result counts as done — anything else under this key (a host's forged snapshot) is overwritten from the record
+  const mine = r => !!(r && r.st === 'done' && r.src === 'dealer');
   const done = await val(`results/${key}`);
-  if (done && done.st === 'done') return 'done';
+  if (mine(done)) return 'done';
   const claim = await ref(`results/${key}`).transaction(cur => {
-    if (cur && cur.st === 'done') return undefined;
+    if (mine(cur)) return undefined;
     if (cur && cur.st === 'busy' && now - (cur.at || 0) < 30_000) return undefined;
     return { st: 'busy', at: now, by: 'dealer' };
   });
   if (!claim.committed) {
     const cur = claim.snapshot.val();
-    if (cur && cur.st === 'done') return 'done';
+    if (mine(cur)) return 'done';
     throw new Error('being counted');
   }
   const [{ applyMatch }, { bumpPlayed }, { dedupePids }] = await Promise.all([import('./stats.js'), import('./activity.js'), import('../../js/core/progress.js')]);

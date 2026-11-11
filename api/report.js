@@ -13,12 +13,13 @@
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { readFileSync } from 'node:fs';
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
-import { ref, val } from './_lib/fb.js';
+import { ref, val, emulated } from './_lib/fb.js';
 import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
 import { applyMatch } from './_lib/stats.js';
 import { bumpPlayed } from './_lib/activity.js';
-import { extractMatch, unreportable } from '../js/core/match-report.js';
+import { extractMatch, unreportable, REPORT_GAMES } from '../js/core/match-report.js';
+import { GAMES } from '../js/config.js';
 import { regradeBoards, computeRoundResults } from '../js/games/cipher/logic.js';
 import { holdemAction, clockNow } from './_lib/holdem-store.js';
 import { timing } from './_lib/timing.js';
@@ -62,6 +63,19 @@ export function cipherAgrees(game, boardsByRound, code) {
   return true;
 }
 
+/**
+ * HE10 (Fable review A2 / B1 — THE RESULTS HOLE): which games this path may credit at all. NEVER a game THE SERVER DEALS ITSELF (HOLD'EM: its
+ * result exists only from the dealer's own record — src 'dealer', api/_lib/holdem-store.js#reportMatch) and never a game that isn't
+ * playable (a host could otherwise mint a win for a game nobody can start). On the LOCAL EMULATORS the frozen games' report checks keep
+ * running behind the test switch `testReportAll` (server.test / progression.test / e2e-profiles set it — never honoured in production).
+ */
+export const DEALER_GAMES = Object.freeze(['holdem']);
+export async function reportableGame(id) {
+  if (typeof id !== 'string' || DEALER_GAMES.includes(id) || !REPORT_GAMES.includes(id)) return false;
+  if (GAMES.some(g => g.id === id && g.playable)) return true;
+  return emulated() && !!(await val('testReportAll'));
+}
+
 export async function processReport(uid, body, now = Date.now()) {
   const code = String(body.code || '');
   const matchId = String(body.matchId || '');
@@ -73,6 +87,10 @@ export async function processReport(uid, body, now = Date.now()) {
   if (done && done.st === 'done') return { ok: true, status: 'done', outcome: myPid ? (done.o && done.o[myPid]) || null : null };
 
   const [game, night, players, meta] = await Promise.all([val(`rooms/${code}/game`), val(`rooms/${code}/night/${matchId}`), val(`rooms/${code}/players`), val(`rooms/${code}/meta`)]);
+  // HE10 (A2 / B1): a dealer's game or a game nobody can start is never credited here — on either path (the room's game, the snapshot's night)
+  for (const gid of [game && game.matchId === matchId ? game.id : null, night && night.g].filter(v => v != null)) {
+    if (!(await reportableGame(gid))) throw new ApiError(409, 'not_reportable', DEALER_GAMES.includes(gid) ? 'The dealer reports this game itself.' : 'This game can’t be counted.');
+  }
   // the night record is required, with its time (the server's clock): no record, no match; too old (or from the future), no match
   if (!night || typeof night.at !== 'number') throw new ApiError(409, 'unverifiable', 'This match has no record in its room.');
   if (now - night.at > MAX_AGE_MS) throw new ApiError(409, 'too_old');

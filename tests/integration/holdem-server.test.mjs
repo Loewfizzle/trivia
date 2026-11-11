@@ -23,7 +23,7 @@ import { ref, val, fb } from '../../api/_lib/fb.js';
 import { ApiError } from '../../api/_lib/http.js';
 import { holdemAction, startOpen, setTestRng, setTestClock, forgetHoldemBudgets, CALLS, wireStats } from '../../api/_lib/holdem-store.js';
 import { PAUSE } from '../../api/_lib/holdem-dealer.js';
-import reportHandler from '../../api/report.js';
+import reportHandler, { processReport } from '../../api/report.js';
 import { profileAction } from '../../api/profile.js';
 import { legalActions } from '../../js/games/holdem/table.js';
 import { publicView } from '../../js/games/holdem/views.js';
@@ -346,6 +346,38 @@ test('HE10 — A15 + A7 + A16 on the emulators: a seat whose player left the roo
   assert.equal(after.due, null);
   assert.ok(after.ended, 'the table itself stays (the podium reads it)');
   ok(await T.call(T.host, { holdem: 'start', mode: 'tournament', speed: 'turbo' }), 'a new start still works');
+});
+
+test('HE10 — A2 / B1 (THE RESULTS HOLE): a host can no longer mint a HOLD\'EM result — never dealt, or over a real match; a frozen game is refused too; the dealer overwrites any result that isn\'t its own', async () => {
+  const uids = users(2, 'frg');
+  await profiles(uids);
+  const T = await new Table(uids, { seed: 'forge', styles: { [uids[0]]: 'jammer', [uids[1]]: 'jammer' } }).seed();
+  const rejectsCode = async (p, code) => { try { await p; assert.fail('expected a refusal'); } catch (e) { assert.ok(e instanceof ApiError, e.message); assert.equal(e.code, code); } };
+  // (a) never dealt: the host's own night record + a snapshot → refused, nothing written
+  await ref(`rooms/${T.code}/night/fake01`).set({ g: 'holdem', p: { [uids[0]]: 3, [uids[1]]: 2 }, at: clock });
+  await ref('testReportAll').set(true);   // (even with the frozen games' test switch on: a dealer's game is never this path's)
+  await rejectsCode(processReport(uids[0], { code: T.code, matchId: 'fake01', snap: { matchId: 'fake01' } }, clock), 'not_reportable');
+  assert.equal(await val(`results/${T.code}_fake01`), null);
+  // a frozen game (not playable) with the switch OFF → refused on the snapshot path
+  await ref('testReportAll').set(false);
+  await ref(`rooms/${T.code}/night/fake02`).set({ g: 'cipher', p: { [uids[0]]: 3, [uids[1]]: 2 }, at: clock });
+  await rejectsCode(processReport(uids[0], { code: T.code, matchId: 'fake02', snap: { matchId: 'fake02' } }, clock), 'not_reportable');
+  // … and on the room path (the room's own game node)
+  await ref(`rooms/${T.code}/game`).set({ id: 'cipher', matchId: 'fake02', phase: 'final', participants: { [uids[0]]: true, [uids[1]]: true } });
+  await rejectsCode(processReport(uids[0], { code: T.code, matchId: 'fake02' }, clock), 'not_reportable');
+  await ref(`rooms/${T.code}/game`).remove();
+  // (b) a real match: the host forges night/{the dealer's matchId} mid-match → refused; a leftover non-dealer result under the key is overwritten
+  ok(await T.call(T.host, { holdem: 'start', mode: 'tournament', speed: 'turbo', matchId: 'realm1' }));
+  await ref(`rooms/${T.code}/night/realm1`).set({ g: 'holdem', p: { [uids[0]]: 3, [uids[1]]: 2 }, at: clock });
+  await rejectsCode(processReport(uids[0], { code: T.code, matchId: 'realm1', snap: { matchId: 'realm1' } }, clock), 'not_reportable');
+  await ref(`results/${T.code}_realm1`).set({ st: 'done', at: clock, g: 'holdem', src: 'snap', by: uids[0], o: {} });   // (a pre-HE10 forgery)
+  const p = await T.playToEnd({});
+  const res = await val(`results/${T.code}_realm1`);
+  if (p.rep === 'done') {
+    assert.equal(res.src, 'dealer', 'the dealer\'s own result replaced the forgery');
+    const winPid = await val(`uids/${p.winner}`);
+    assert.equal((await val(`pstats/${winPid}`)).g.holdem.w, 1, 'the real winner has the win');
+  } else assert.equal(p.rep, 'short');
 });
 
 test('HE10 — A16: a record left by an EARLIER room with the same word is never advanced — a poke from the new room deletes it', async () => {

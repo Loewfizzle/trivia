@@ -27,7 +27,7 @@ import { extractMatch } from '../../js/core/match-report.js';
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
 const DAY = 86_400_000;
 const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress', 'radio', 'testAdmins', 'gplay', 'pfr'];
-before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); });
+before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); await ref('testReportAll').set(true); });   // (HE10: frozen games reportable on the emulators only — api/report.js#reportableGame)
 after(async () => { await deleteApp(fb().app); });
 
 const ensure = (uid, name, at = NOW - 7 * 86_400_000) => profileAction(uid, { action: 'ensure', name, avatar: 'bolt', color: 'cyan' }, '', at);

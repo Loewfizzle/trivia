@@ -43,6 +43,7 @@ const NODES = ['pkc', 'pkx', 'pkch', 'profiles', 'uids', 'pstats', 'ppriv', 'pke
 
 before(async () => {
   await ref('/').update(Object.fromEntries(NODES.map(n => [n, null])));
+  await ref('testReportAll').set(true);   // (HE10: the frozen games' report checks keep running — an emulator-only switch, api/report.js#reportableGame)
 });
 after(async () => { await deleteApp(fb().app); });
 
