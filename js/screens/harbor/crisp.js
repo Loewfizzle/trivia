@@ -45,7 +45,7 @@ export function createCrisp() {
     const x0 = Math.floor(Math.min(...cs.map(p => p[0]))), y0 = Math.floor(Math.min(...cs.map(p => p[1]))), x1 = Math.ceil(Math.max(...cs.map(p => p[0]))), y1 = Math.ceil(Math.max(...cs.map(p => p[1])));
     const geo = `${x0}|${y0}|${x1}|${y1}|${dpr}|${T.a.toFixed(4)}|${T.d.toFixed(4)}|${T.e.toFixed(1)}|${T.f.toFixed(1)}`;
     const z = it.z || 1;
-    if (!I || !I.a.isConnected || I.host !== host) { if (I) drop(it.id); I = { a: mkCv(z), b: null, key: null, geo: '', host, xfFrom: 0, xf: 0, op: -1, opB: -1 }; items.set(it.id, I); }
+    if (!I || !I.a.isConnected || I.host !== host) { if (I) drop(it.id); I = { a: mkCv(z), b: null, key: null, geo: '', host, xfFrom: 0, xf: 0, op: -1, opB: -1 }; items.set(it.id, I); I.a.dataset.item = it.id; }   // (LOAD FIX 5: its name on the canvas — the NO TWO CAMERAS guard's pixel check picks the lettering by it)
     const place = cv => {
       cv.width = Math.max(1, (x1 - x0) * dpr); cv.height = Math.max(1, (y1 - y0) * dpr);
       Object.assign(cv.style, { left: `${x0}px`, top: `${y0}px`, width: `${x1 - x0}px`, height: `${y1 - y0}px` });
@@ -60,7 +60,7 @@ export function createCrisp() {
     if (geo !== I.geo) { I.geo = geo; place(I.a); paint(I.a); I.key = it.key; if (I.b) { I.b.remove(); I.b = null; } }
     else if (it.key !== I.key) {
       // a new look: the old canvas stays under, the new one fades in over xfade ms (the city's own crossfade)
-      if (it.xfade > 0) { if (!I.b) { I.b = mkCv(z); I.b.style.zIndex = String(z); } const t = I.a; I.a = I.b; I.b = t; host.append(I.a); place(I.a); I.xfFrom = now; I.xf = it.xfade; I.op = -1; }
+      if (it.xfade > 0) { if (!I.b) { I.b = mkCv(z); I.b.style.zIndex = String(z); I.b.dataset.item = it.id; } const t = I.a; I.a = I.b; I.b = t; host.append(I.a); place(I.a); I.xfFrom = now; I.xf = it.xfade; I.op = -1; }
       paint(I.a); I.key = it.key;
     }
     const a = Math.max(0, Math.min(1, it.alpha == null ? 1 : it.alpha));

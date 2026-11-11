@@ -133,3 +133,63 @@ export function skyJudge(F) {
   const planAt = F.filter((f, i) => i && f[1] !== F[i - 1][1]).map(f => f[0]);
   return { snaps, plans, planAt, jumps: F.length ? F[F.length - 1][7] : 0 };
 }
+
+// LOAD FIX 5 — NO TWO CAMERAS (the owner's DOUBLED CITY, Nov 11: the city's box grew before the reveal with no window resize — the canvas
+// stayed CSS-fitted to a box it was not built for, the crisp lettering did not: every sign twice, for good). CAM_REC (an init script, a
+// plain function) records EVERY frame for the whole run — not only the load: what the eye gets of the city, the held picture, the size the
+// city was BUILT for vs its canvas's box now, the resize pin, the cameras (now · the bake on screen · the one fading out · the lit
+// windows'), the crisp canvases, and how many scenes / main canvases / frame loops are alive. camJudge(frames) → the frames with TWO
+// CAMERAS ON SCREEN. `window.__cam.mark(label)` stamps the run's steps into the record.
+export function CAM_REC() {
+  if (window.__cam) return;
+  const F = [], marks = [], t0 = performance.now();
+  const eff = el => { if (!el || !el.isConnected) return 0; let o = 1; for (let e = el; e && e.nodeType === 1; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.display === 'none') return 0; if (e === el && cs.visibility === 'hidden') return 0; o *= +cs.opacity; if (o < 0.005) return 0; } return o; };
+  const r2 = v => Math.round(v * 100) / 100;
+  const tick = () => {
+    const now = performance.now();
+    let hb = null; try { hb = window.__district && window.__district.loadProbe ? window.__district.loadProbe() : null; } catch { /* mounting */ }
+    const wraps = document.querySelectorAll('.nd-scene'), wrap = wraps[0] || null, cv = wrap && wrap.querySelector('canvas:not([class])');
+    const boot = document.getElementById('boot'), show = 1 - (boot ? eff(boot) : 0);
+    const f = { t: Math.round(now - t0), shown: !!(hb && hb.shown), city: r2((wrap ? eff(wrap) : 0) * show), scenes: wraps.length, mains: wrap ? wrap.querySelectorAll('canvas:not([class])').length : 0, vis: document.visibilityState };
+    if (hb && cv && hb.W) {
+      const hc = wrap.querySelector('canvas.hc-hold');
+      f.built = [Math.round(hb.W * 10) / 10, Math.round(hb.H * 10) / 10];
+      f.pinned = !!cv.style.width || !!wrap.style.transform;
+      f.box = [cv.clientWidth, cv.clientHeight];
+      f.host = [wrap.clientWidth, wrap.clientHeight];
+      f.holdOp = hc ? r2(eff(hc)) : 0; f.hold = hb.hold || 0;
+      f.cams = hb.cams || null;
+      f.crisp = wrap.querySelectorAll('canvas.hc-crisp').length;
+      f.live = hb.live || null;
+      // (a box the city wasn't built for, read in a rAF: the scene pins it in a ResizeObserver — AFTER the frame callbacks, BEFORE the paint.
+      //  What was PAINTED is read once the frame is over: a task later)
+      if (!f.pinned && (Math.abs(f.box[0] - f.built[0]) > 1 || Math.abs(f.box[1] - f.built[1]) > 1)) setTimeout(() => { try { const h2 = window.__district.loadProbe(); f.pinned = !!cv.style.width || !!wrap.style.transform; f.box = [cv.clientWidth, cv.clientHeight]; f.built = [Math.round(h2.W * 10) / 10, Math.round(h2.H * 10) / 10]; f.holdOp = Math.max(f.holdOp, (() => { const c2 = wrap.querySelector('canvas.hc-hold'); return c2 ? r2(eff(c2)) : 0; })()); f.late = 1; } catch { /* gone */ } }, 0);
+    }
+    if (F.length < 20000) F.push(f);
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  window.__cam = { frames: F, marks, mark: label => { marks.push({ t: Math.round(performance.now() - t0), label }); }, dump: () => ({ frames: F, marks }) };
+}
+
+/** the frames with TWO CAMERAS ON SCREEN → { n, what, at, kinds }: the city seen (> 2 %) and not under a fully opaque held picture, while
+ *  (a) the bake on screen / the one fading out / the lit windows stand at another camera's GEOMETRY than the city's now (the tier alone
+ *  moves nothing), (b) the city's canvas is CSS-fitted to a box it was not built for with no resize pin (the crisp lettering + every
+ *  framed layer stay at the built camera), or (c) more than one scene / main canvas / frame loop is alive */
+export function camJudge(F) {
+  const out = { n: 0, what: '', at: [], kinds: {}, frames: (F || []).length, seen: 0 };
+  const geo = s => (s ? String(s).split('|').slice(0, 4).join('|') : null);
+  const add = (f, kind, why) => { out.n++; out.kinds[kind] = (out.kinds[kind] || 0) + 1; if (out.at.length < 5) { out.at.push(f.t); out.what += `${out.what ? '; ' : ''}${f.t} ms ${why}`; } };
+  for (const f of F || []) {
+    if (f.scenes > 1 || f.mains > 1) { add(f, 'scenes', `${f.scenes} scenes / ${f.mains} main canvases in the page`); continue; }
+    if (f.live && (f.live.scenes > 1 || f.live.loops > 1)) { add(f, 'scenes', `${f.live.scenes} live scenes · ${f.live.loops} frame loops`); continue; }
+    if (!(f.city > 0.02) || !f.built) continue;
+    out.seen++;
+    if (f.holdOp >= 0.995) continue;   // (a held picture covers the city: one picture, the last one seen)
+    const c = f.cams;
+    if (c && c.now && ((c.baked && geo(c.baked) !== geo(c.now)) || (c.prev && geo(c.prev) !== geo(c.now)))) add(f, 'bake', `the bake at another camera (${c.prev ? `${c.prev} + ` : ''}${c.baked} → ${c.now})`);
+    else if (c && (c.litGeo === false || (c.litGeo == null && c.lit === false))) add(f, 'lit', `the lit windows at another camera (${c.now})`);
+    else if (!f.pinned && (Math.abs(f.box[0] - f.built[0]) > 1 || Math.abs(f.box[1] - f.built[1]) > 1)) add(f, 'fit', `the city built for ${f.built.join('×')} shown CSS-fitted in a ${f.box.join('×')} box, no pin (${f.crisp} crisp canvases at the built camera)`);
+  }
+  return out;
+}
