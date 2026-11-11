@@ -1,10 +1,14 @@
 // THE PODIUM's FRAME (SHELL 2.0 A — review-6.md D8, agreed with the Overclock chat): the CONSOLE owns the end-of-match screen's frame — the
 // kicker + the WINNER line, the XP box (profile/callouts.js) with the end-of-round moment's order after it ("already yours" / the next unlock,
-// THE CARD REVEAL), and ONE button: BACK TO THE ROOM, THE NEON TUBE's main, RIGHT UNDER THE XP BOX (docs/harbor/refs/shell/podium-back.png —
-// in view without scrolling at 390). No other rematch / lobby buttons here: the rematch vote + NEW GAME live in the room's dock.
+// THE CARD REVEAL), and ONE button: BACK TO THE ROOM, THE NEON TUBE's main (docs/harbor/refs/shell/podium-back.png). HOLD'EM IN THE CITY —
+// B3 (HE9's Fable review: with 8 slim cards it was cut at 390 × 844, below the fold on the SE / sideways): THE ACTION ROW IS STICKY at the
+// screen's foot — ALWAYS ON SCREEN, every game — the frame's last piece (under the XP box when nothing follows it), over a solid backing
+// (--fin-bg: a game whose podium isn't the console's dark panel sets its own), with a soft fade + a small MORE BELOW cue while the cards run
+// past the fold (measured on a scroll + a resize only; the cue goes once scrolled). No other rematch / lobby buttons here: the rematch vote +
+// NEW GAME live in the room's dock.
 // A game draws its own BODY inside the frame by exporting finalScene(el, game, state) from its module (OVERCLOCK's "OVERCLOCKED", the
 // tube-sign name, the 2-1-3 podium, award chips, SOLO's NEW PERSONAL BEST); without it, the console's default podium rise (3rd, 2nd, 1st).
-// The full leaderboard follows the button.
+// The full leaderboard follows the XP box; the button stays at the foot.
 import { levelOf } from '../core/levels.js';
 import { fitName } from './fit.js';
 import { h, vibrate, reducedMotion } from './dom.js';
@@ -18,6 +22,7 @@ import { rankBadge } from './emblems.js';
 import { pubOf } from '../profile/public.js';
 import { metaOf } from '../games/registry.js';
 import { lazyImport } from './lazy-import.js';
+import { isAllTied } from '../core/night.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 
@@ -66,9 +71,11 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   });
   const winner = rows[0] && (players[rows[0].uid] || GHOST);
   const tied = rows.filter(r => r.rank === 1).length > 1;
+  // (HOLD'EM IN THE CITY — B4: EVERYONE TIED = ALL TIED — nobody 1st: no winner sting, no burst; the night gives a draw — core/night.js#isAllTied)
+  const allTied = isAllTied(rows);
   // (SHELL 2.0 B1 — THE SOLO LANE: a room of one — no winner, no placing: SOLO RUN + the score; a game's own finalScene shows its solo body)
   const solo = !!(g && Object.keys(g.participants || {}).length === 1);
-  const word = solo ? 'SOLO RUN' : tied ? 'DEADLOCK' : 'WINNER';
+  const word = solo ? 'SOLO RUN' : allTied ? 'ALL TIED' : tied ? 'DEADLOCK' : 'WINNER';
   // ONE button for everyone: the host's tap brings the whole room back (THE WALK BACK OUT); a guest's walks them back alone (the others
   // stay on the podium — the same as ☰ → QUIT TO THE ROOM)
   const back = h('button.btn.btn-primary.btn-block.final-back', { type: 'button', onclick: () => {
@@ -76,7 +83,9 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     if (isHost()) { back.classList.add('is-busy'); Promise.resolve(backToLobby()).catch(err => { back.classList.remove('is-busy'); toast('Couldn’t go back', 'err', { sub: String((err && err.message) || err) }); }); return; }
     if (state.game && state.game.matchId) setState({ quit: state.game.matchId });
   } }, h('span', 'BACK TO THE ROOM'));
-  const actions = h('div.final-actions', back);
+  // (B3: the cue above the sticky button — a drawn chevron + MORE BELOW, shown only while the frame scrolls on and you haven't scrolled yet)
+  const more = h('div.final-more', { 'aria-hidden': 'true' }, h('i.final-chev'), h('span', 'MORE BELOW'));
+  const actions = h('div.final-actions', more, back);
   let hostShown = null;
   function refresh() { hostShown = isHost(); back.dataset.host = hostShown ? '1' : '0'; }
   refresh();
@@ -85,16 +94,28 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   //  SCORED) → the whole list)
   //  (HE4: a body that shows EVERY place itself — HOLD'EM's places / ledger as slim cards — says el.dataset.podium = 'all' → no list here)
   const top3 = !body || body.dataset.podium !== 'none';
-  const listRows = body && body.dataset.podium === 'all' ? [] : top3 ? rows.slice(3) : rows;
-  const el = h('div.panel-full.final', solo ? { class: 'is-solo' } : null,
+  const listRows0 = body && body.dataset.podium === 'all' ? [] : top3 ? rows.slice(3) : rows;
+  const listRows = allTied ? listRows0.map(r => ({ ...r, rank: '=' })) : listRows0;   // (B4: everyone level — '=' for all, nobody 01)
+  const el = h('div.panel-full.final', solo ? { class: 'is-solo' } : allTied ? { class: 'is-alltied' } : null,
     h('div.sheet-kicker', kicker),
     h('div.winner', h('div.winner-title', { 'data-text': word, class: tied ? 'is-tied' : null }, word),
-      h('div.winner-name', solo ? `${winner ? winner.name : ''}${rows[0] && rows[0].score != null ? ` · ${rows[0].scoreText || rows[0].score}` : ''}`.toUpperCase() : tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),
+      h('div.winner-name', solo ? `${winner ? winner.name : ''}${rows[0] && rows[0].score != null ? ` · ${rows[0].scoreText || rows[0].score}` : ''}`.toUpperCase() : allTied ? 'NOBODY TAKES FIRST' : tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),
     body || podium,
     rcSlot,
-    actions,
     extra,
-    listRows.length ? leaderboard(listRows, players, { me, presence, stagger: 60 }) : null);
+    listRows.length ? leaderboard(listRows, players, { me, presence, stagger: 60 }) : null,
+    actions);
+  // (B3: is there more below the fold? — on a scroll + whenever the frame or a piece of it changes size: the XP box lands late, the rows
+  //  stagger in; never in a frame loop)
+  const measure = () => {
+    if (gone) return;
+    el.classList.toggle('has-more', el.scrollHeight - el.clientHeight - el.scrollTop > 6);
+    if (el.scrollTop > 12) el.classList.add('is-scrolled');
+  };
+  el.addEventListener('scroll', measure, { passive: true });
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null;
+  if (ro) { ro.observe(el); for (const c of el.children) ro.observe(c); }
+  const mt = setTimeout(measure, 900);
   // (FRIENDS B — THE END SCREEN TAKES THE GAME'S COLOUR: the cartridge's ACCENT tints the frame's main tube; missing = the pink)
   if (mod && typeof mod.ACCENT === 'string' && /^#[0-9a-f]{6}$/i.test(mod.ACCENT)) { el.classList.add('has-accent'); el.style.setProperty('--fin', mod.ACCENT); }
   // (FRIENDS B — B2: THE VICTORY MUSIC waits for the BODY: app.js#musicFor plays the podium music once this frame is on screen — never during
@@ -104,10 +125,11 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     el.classList.add('crowned');
     // (FRIENDS B — the winner sting = THE PODIUM SOUNDS' xylophone flourish (was the synth arpeggio); a cartridge with OWN_VICTORY_SOUND
     //  plays its own — OVERCLOCK's fanfare — so the console stays quiet: never two winner sounds — B2)
+    if (allTied) return;   // (B4: a draw — no winner sting, no buzz, no confetti)
     if (!(mod && mod.OWN_VICTORY_SOUND)) pgSfx('victory');
     if (rows[0] && rows[0].uid === me) vibrate([40, 60, 40, 60, 120]);
     const c = rows[0] && players[rows[0].uid];
     burst(el, [c ? colorHex(c.color) : '#3dff8b', '#f3ff3a', '#ff2bd6', '#00f0ff'], 48);
   }, reducedMotion() ? 0 : 2500);
-  return { el, refresh, destroy() { gone = true; clearTimeout(t); cancelers.forEach(c => c()); if (rc) rc.destroy(); } };
+  return { el, refresh, destroy() { gone = true; clearTimeout(t); clearTimeout(mt); if (ro) ro.disconnect(); cancelers.forEach(c => c()); if (rc) rc.destroy(); } };
 }

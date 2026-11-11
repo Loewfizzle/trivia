@@ -478,7 +478,7 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd .lb-row.is-first { border-color: rgba(255, 255, 255, 0.5); border-left-color: var(--c); }
 .pd .is-first .lb-rank { color: #fff; }
 .pd .lb-delta { color: #bfe9ff; }
-.pd-final .panel-full { background: transparent; }
+.pd-final .panel-full { background: transparent; --fin-bg: rgb(3, 4, 10); }   /* (B3: the sticky BACK TO THE ROOM's backing — the night podium's) */
 /* THE PODIUM BODY (PD-1 — victory.js#finalScene, inside the console's frame): the winner's last board frozen beside one line, then the top 3
    as the console's slim cards (a name → THE PLAYER PAGE). Today's look — PD-3 / PD-4 restyle it. */
 .pd-fs { display: flex; flex-direction: column; gap: 14px; }
@@ -692,6 +692,7 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd[data-look='crayon'] .pd-spec-p.is-ko i { color: #b8253d; }
 /* THE PODIUM's body (the console's frame keeps its own look — slim cards are cards): the winning board on a paper card */
 .pd[data-look='crayon'] .pd-final { background: color-mix(in srgb, var(--pd-paper) 72%, transparent); }
+.pd[data-look='crayon'] .pd-final .panel-full { --fin-bg: var(--pd-paper); --fin-cue: var(--pd-ink); }   /* (B3: by day the paper + its ink for MORE BELOW) */
 .pd[data-look='crayon'] .pd-fs-moment { border-left: 4px solid var(--c); border-radius: 8px; }
 .pd[data-look='crayon'] .pd-fs-frame { background: var(--pd-paper); box-shadow: inset 0 0 0 1.5px var(--pd-pencil); }
 .pd[data-look='crayon'] .pd-fs-line small { color: var(--pd-ink); opacity: 0.85; }

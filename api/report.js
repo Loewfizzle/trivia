@@ -24,7 +24,7 @@ import { regradeBoards, computeRoundResults } from '../js/games/cipher/logic.js'
 import { holdemAction, clockNow } from './_lib/holdem-store.js';
 import { timing } from './_lib/timing.js';
 
-const NIGHT_POINTS = { 1: 3, 2: 2, 3: 1 };   // host.js — what a placing is worth on the game-night board
+import { nightPoints, isAllTied } from '../js/core/night.js';   // (B4: what a placing is worth on the game-night board — the ONE rule the host writes with)
 const MAX_AGE_MS = 6 * 3600_000;
 
 let pulseCounts = null;
@@ -42,8 +42,10 @@ export function placingsOnly(night) {
   const p = night.p || {}, uids = Object.keys(p);
   const rankOf = pts => (pts === 3 ? 1 : pts === 2 ? 2 : pts === 1 ? 3 : uids.filter(u => p[u] > 0).length + 1);
   const n = uids.length, firsts = uids.filter(u => p[u] === 3).length;
+  // (HOLD'EM IN THE CITY — B4: a FULL TIE's entry gives everyone the same points — 2 each since B4, 3 each before: every one rank 1, no win)
+  const allTie = n >= 2 && p[uids[0]] > 0 && uids.every(u => p[u] === p[uids[0]]);
   const rows = {};
-  for (const u of uids) { const rank = rankOf(p[u]); const win = rank === 1 && firsts < n; rows[u] = { rank, win, c: { p: 1, ...(win ? { w: 1 } : {}) }, rec: {} }; }
+  for (const u of uids) { const rank = allTie ? 1 : rankOf(p[u]); const win = !allTie && rank === 1 && firsts < n; rows[u] = { rank, win, c: { p: 1, ...(win ? { w: 1 } : {}) }, rec: {} }; }
   return { gid: night.g, n, mode: null, rows, rejected: [] };
 }
 
@@ -103,7 +105,12 @@ export async function processReport(uid, body, now = Date.now()) {
     try { ex = extractMatch(game, { pulseCounts: loadPulseCounts() }); } catch (e) { throw new ApiError(409, 'unverifiable', e.message); }
     // the placings the host computed must be the night record's
     // (SHELL 2.0 B1 — THE SOLO LANE: a room of one earns no night points — the host writes 0)
-    const agree = Object.entries(ex.rows).every(([u, r]) => (ex.solo ? 0 : NIGHT_POINTS[r.rank] || 0) === ((night.p || {})[u] || 0)) && Object.keys(night.p || {}).every(u => ex.rows[u]);
+    // (HOLD'EM IN THE CITY — B4: a FULL TIE is a draw — 2 each (core/night.js#nightPoints); a phone still on the code before B4 wrote 3 each —
+    //  accepted too, so no result is lost while the room updates)
+    const ranks = Object.entries(ex.rows).map(([u, r]) => ({ uid: u, rank: r.rank })), want = nightPoints(ranks, { solo: ex.solo });
+    const old = !ex.solo && isAllTied(ranks) ? Object.fromEntries(ranks.map(r => [r.uid, 3])) : null;
+    const same = w => ranks.every(r => (w[r.uid] || 0) === ((night.p || {})[r.uid] || 0));
+    const agree = (same(want) || (old && same(old))) && Object.keys(night.p || {}).every(u => ex.rows[u]);
     if (!agree) throw new ApiError(409, 'mismatch', 'The placings don’t match the room.');
     if (game.id === 'cipher' && !cipherAgrees(game, await val(`rooms/${code}/boards/${matchId}`), code)) throw new ApiError(409, 'mismatch', 'The results don’t match the players’ boards.');
   } else if (body.snap && typeof body.snap === 'object' && body.snap.matchId === matchId) {

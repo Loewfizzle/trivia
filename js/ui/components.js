@@ -136,7 +136,7 @@ export function leaderboard(rows, players, { me, presence, stagger = 70 } = {}) 
       class: [r.uid === me ? 'is-me' : '', r.rank === 1 ? 'is-first' : '', move ? `move-${move}` : ''].join(' '),
       style: { '--c': colorHex(p.color), '--i': i, animationDelay: `${i * stagger}ms` },
     },
-    h('span.lb-rank', String(r.rank).padStart(2, '0')),
+    h('span.lb-rank', typeof r.rank === 'number' ? String(r.rank).padStart(2, '0') : String(r.rank)),   // (B4: a full tie's level mark '=' as it is)
     avatar(p.avatar, p.color, 30),
     h('span.lb-name', p.name, rankBadge(pubOf(p)), presence && presence[r.uid] && presence[r.uid].online === false ? h('span.lb-lost', ' ⌁') : null,
       r.note ? h('small.lb-note', r.note) : null),

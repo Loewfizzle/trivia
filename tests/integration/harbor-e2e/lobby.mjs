@@ -285,3 +285,27 @@ G('keypop', async () => {
     if (SHOTS) await p.screenshot({ path: `${OUT}lobby-keypop-room.png` });
     await Q.ctx.close(); }
 });
+
+// ================================================================ HOLD'EM IN THE CITY — B2: THE CORNER BUTTONS' 44 PT (HE9's Fable review)
+// ☰ + the music button (+ THE BOARD's ‹, the daily's ‹) on the city, THE BOARD, the games and the dailies at 390 + 1440: the REAL hit area,
+// probed by elementFromPoint (kit/corner-probe.mjs) — 44 × 44 or more on every one; the old 4 pt inset (measured from the padding box) read 42
+G('tapfit', async () => {
+  const { PROBE, CORNER_SEL } = await import('../kit/corner-probe.mjs');
+  const { launch, BASE } = await import('./kit.mjs');
+  const br = await launch();
+  const PAGES = [['THE CITY', 'tests/integration/title-preview.html'], ['THE BOARD', 'tests/integration/board-preview.html?mode=app&g=holdem'],
+    ['PRISM DROP', 'tests/integration/prism-preview.html'], ['OVERCLOCK', 'tests/integration/overclock-preview.html'], ['THE DAILY', 'tests/integration/daily-preview.html'],
+    ['COAST CLEAR', 'tests/integration/coastclear-preview.html'], ['THE PASSWORD', 'tests/integration/password-preview.html']];
+  for (const [w, h] of [[390, 844], [1440, 900]]) for (const [name, url] of PAGES) {
+    const ctx = await br.createBrowserContext(), p = await ctx.newPage();
+    try {
+      await p.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 900, hasTouch: w < 900 });
+      await p.goto(`${BASE}/${url}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      const sel = JSON.stringify(CORNER_SEL.join(','));
+      await waitFor(p, `[...document.querySelectorAll(${sel})].some(e => e.getBoundingClientRect().width > 0)`, `${name}'s corner buttons`, 20000).catch(() => {});
+      await sleep(600);   // (a sheet's or a screen's entry settles — the probe reads where a finger lands)
+      const got = await p.evaluate(PROBE, CORNER_SEL);
+      ok(got.length >= 1 && got.every(x => x.w >= 44 && x.h >= 44), `B2 — THE CORNER BUTTONS' TAP AREA ≥ 44 × 44 pt · ${name} ${w}×${h}: ${got.map(x => `${x.sel} ${x.w}×${x.h}${x.covered ? ' (covered)' : ''}`).join(' · ') || 'none found'}`);
+    } finally { await ctx.close(); }
+  }
+});

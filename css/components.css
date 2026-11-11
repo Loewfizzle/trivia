@@ -594,6 +594,29 @@ body.bd-on .help-btn, body.help-open .help-btn { display: none; }
 .sheet.options { max-height: 92dvh; overflow-y: auto; }
 
 .final-actions { display: flex; flex-direction: column; gap: 10px; }
+/* HOLD'EM IN THE CITY — B3: THE ACTION ROW STICKY AT THE FOOT (every game — ui/final.js): the frame's last piece, stuck to the screen's bottom
+   edge while the cards run on, over a solid backing (--fin-bg — the console's dark panel; a game whose podium sits on its own look sets it)
+   that runs down through the safe area; a soft fade above it + MORE BELOW while there's more under the fold (.has-more), the cue gone once
+   you scroll (.is-scrolled) */
+.panel-full.final { padding-bottom: 0; --fin-bg: rgb(4, 6, 17); }
+.final > .final-actions {
+  position: sticky; bottom: 0; z-index: 3; flex: none;
+  padding: 8px 0 calc(var(--safe-b) + 18px); background: var(--fin-bg);
+}
+.final > .final-actions::before {
+  content: ''; position: absolute; left: calc(-1 * var(--gutter)); right: calc(-1 * var(--gutter)); bottom: 100%; height: 34px; pointer-events: none;
+  background: linear-gradient(180deg, transparent, var(--fin-bg)); opacity: 0; transition: opacity 0.25s;
+}
+.final > .final-actions::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(-1 * var(--gutter)); right: calc(-1 * var(--gutter)); z-index: -1; background: var(--fin-bg); }
+.final.has-more > .final-actions::before { opacity: 1; }
+.final-more {
+  position: absolute; left: 0; right: 0; top: 6px; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 7px; pointer-events: none;
+  font: 800 10.5px/1 var(--font-ui); letter-spacing: 0.22em; color: var(--fin-cue, var(--text-dim)); opacity: 0; transition: opacity 0.25s;
+}
+.final-chev { width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+.final.has-more:not(.is-scrolled) .final-more { opacity: 1; }
+.final.has-more:not(.is-scrolled) > .final-actions { padding-top: 26px; }   /* (the cue sits on the solid backing, never over a card) */
+@media (prefers-reduced-motion: reduce) { .final > .final-actions::before, .final-more { transition: none; } }
 
 /* "DEADLOCK" is longer than "WINNER": keep it inside a phone-width screen */
 .winner-title.is-tied { font-size: clamp(30px, 10.5vw, 54px); letter-spacing: 0.08em; }
@@ -922,7 +945,8 @@ body.nd-glass .bar { padding-right: 44px; }   /* (OC8 — split corners: only th
 .menu-btn { display: none; position: fixed; z-index: 70; width: var(--cb); height: var(--cb); border-radius: 50%; place-items: center; color: rgba(236, 240, 255, 0.94); background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%), rgba(12, 14, 34, 0.62); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 5px 15px rgba(0, 0, 0, 0.32); transition: transform 0.12s var(--ease); }
 .music-btn { width: var(--cb); height: var(--cb); }
 .music-btn svg { width: 16px; height: 16px; }
-.menu-btn::after, .music-btn::after { content: ''; position: absolute; inset: calc((var(--cb) - 44px) / 2); }   /* the 44 pt tap area */
+.menu-btn::after, .music-btn::after { content: ''; position: absolute; inset: calc((var(--cb) - 44px) / 2 - 1px); }   /* the 44 pt tap area (HOLD'EM IN THE CITY — B2: an
+   absolute box's inset is measured from the PADDING box — inside the 1 pt border, 34 pt — so 5 pt past it, never 4: it was 42 × 42; checked live by the harbor `corners` group) */
 .menu-btn:active { transform: scale(0.92); }
 .mb-bars { display: grid; gap: 3.5px; width: 15px; }
 .mb-bars i { display: block; height: 1.75px; border-radius: 1px; background: currentColor; transition: transform 0.2s var(--ease), opacity 0.2s; }
@@ -1218,6 +1242,9 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 
 /* SHELL 2.0 B1 — THE SOLO LANE's podium (ui/final.js: a room of one): SOLO RUN, the player + the score — no place number, no "1" block */
 .final.is-solo .pod-block span { visibility: hidden; }
+/* B4 — ALL TIED: nobody 1st — the console's podium levels its three steps (the 2nd's height) + drops the place numbers */
+.final.is-alltied .pod-block span { visibility: hidden; }
+.final.is-alltied .pod .pod-block { height: 92px; }   /* (all three at the 2nd's height — nobody on the top step) */
 .final.is-solo .winner-title { letter-spacing: 0.18em; }
 
 /* SHELL 2.0 B2 — MAKE HOST: the host's row on a player's card (+ the owner's CREW row under it) — room-city.js#makeHostRow */

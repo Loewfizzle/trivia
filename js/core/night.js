@@ -24,3 +24,19 @@ export function nightStandings(night, players = {}) {
   if (leaders.length === 1) leaders[0].leader = true;
   return rows;
 }
+
+/**
+ * HOLD'EM IN THE CITY — B4 (HE9's Fable review: everyone tied → the podium + game night ranked all 1st while the server credits no win):
+ * a FULL TIE = 2+ players, every one ranked 1st. ONE rule for every game: the podium says ALL TIED (nobody 1st — no winner sting, no
+ * banner plane), and on the game-night table it is a DRAW — everyone takes 2nd-place points, nobody 1st's (so nobody a night "win"); the
+ * server credits every one rank 1, no win (api/report.js#placingsOnly reads such an entry back the same). A PARTIAL tie (two share 1st,
+ * others below) stays as it was: both 1st, 3 points each, both a win.
+ */
+export const NIGHT_POINTS = Object.freeze({ 1: 3, 2: 2, 3: 1 });
+export const isAllTied = rows => Array.isArray(rows) && rows.length >= 2 && rows.every(r => r && r.rank === 1);
+/** ranks [{ uid, rank }] → { uid: night points } (a solo run: 0 — THE SOLO LANE; a full tie: everyone 2nd-place points) */
+export function nightPoints(ranks, { solo = false } = {}) {
+  const tie = isAllTied(ranks), p = {};
+  for (const r of ranks || []) p[r.uid] = solo ? 0 : tie ? NIGHT_POINTS[2] : NIGHT_POINTS[r.rank] || 0;
+  return p;
+}

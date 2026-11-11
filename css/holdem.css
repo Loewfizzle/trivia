@@ -462,14 +462,8 @@
 /* THE PODIUM: the console's frame over the table */
 .he-final { position: absolute; inset: 0; z-index: 5; overflow-y: auto; touch-action: pan-y; background: rgb(6, 5, 10);   /* (HE10 — A10: solid — the table no longer ghosts through) */
   padding: calc(var(--safe-t) + 6px) calc(var(--safe-r) + var(--gutter)) calc(var(--safe-b) + 14px) calc(var(--safe-l) + var(--gutter)); }
-/* HE10 (A10): when the end screen still runs past the screen (an SE, sideways), a cue at its foot says so — it fades away at the bottom */
-.he-final.has-more::after {
-  content: 'SCROLL FOR MORE'; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; pointer-events: none; height: calc(var(--safe-b) + 46px);
-  display: grid; align-items: end; justify-items: center; padding-bottom: calc(var(--safe-b) + 8px);
-  font: 800 11px/1 var(--font-ui); letter-spacing: 0.22em; color: var(--he-gold);
-  background: linear-gradient(180deg, rgba(6, 5, 10, 0), rgb(6, 5, 10) 62%);
-}
-.he-final .panel-full { background: transparent; }
+/* (HE10 (A10)'s SCROLL FOR MORE stop-gap → the console's own: HOLD'EM IN THE CITY — B3, the sticky BACK TO THE ROOM + MORE BELOW (ui/final.js)) */
+.he-final .panel-full { background: transparent; --fin-bg: rgb(6, 5, 10); }
 .he.is-final :is(.he-actions, .he-status, .he-hostbar) { visibility: hidden; }
 
 /* waiting for the dealer (the walk inside, a refresh before the table arrives) */

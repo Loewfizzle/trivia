@@ -121,6 +121,14 @@ export function finalScene(el, game, state) {
     kids.push(
       h('div.oc-vic-stamp.is-none', h('span.oc-vic-stamp-glow', { 'aria-hidden': 'true' }), h('b', 'NOBODY SCORED')),
       h('div.oc-vic-solo.is-none', h('b.oc-vic-solo-n', '0'), h('span.oc-vic-solo-k', 'POINTS')));
+  } else if (top.length >= 2 && top.length === rows.length) {
+    // ALL TIED (HOLD'EM IN THE CITY — B4): everyone level at the top — nobody 1st: the stamp + the shared score, no names on the sign, no
+    // fanfare, no podium step (the console's results list shows everyone)
+    el.dataset.podium = 'none';
+    kids.push(
+      h('div.oc-vic-stamp.is-tied', h('span.oc-vic-stamp-glow', { 'aria-hidden': 'true' }), h('b', 'ALL TIED')),
+      h('div.oc-vic-score', score, h('span', 'PTS EACH')));
+    if (!still) setTimeout(() => { if (el.isConnected) countUp(score, 0, rows[0] ? rows[0].score : 0, 1300); }, 900);
   } else {
     const names = winners.map(r => ({ text: p(r.uid).name, color: colorHex(p(r.uid).color) }));
     kids.push(

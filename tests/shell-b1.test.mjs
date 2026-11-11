@@ -121,9 +121,10 @@ test('THE SOLO LANE (the XP): small (less than a LOST multiplayer match), capped
 });
 test('THE SOLO LANE (the room): the host writes 0 night points for a room of one (no banner, no champion); the server expects 0', () => {
   const host = read('js/host.js'), rep = read('api/report.js');
-  assert.match(host, /p\[r\.uid\] = solo \? 0 : NIGHT_POINTS\[r\.rank\] \|\| 0;/);
+  // (HOLD'EM IN THE CITY — B4: the host + the server through the ONE rule — core/night.js#nightPoints: a solo run 0, a full tie a draw)
+  assert.match(host, /nightPoints\(ranks, \{ solo \}\)/);
   assert.match(host, /mod\.nightBonus && !solo/);
-  assert.match(rep, /\(ex\.solo \? 0 : NIGHT_POINTS\[r\.rank\] \|\| 0\)/);
+  assert.match(rep, /nightPoints\(ranks, \{ solo: ex\.solo \}\)/);
 });
 
 // ---- THE ROOM's LOOK SWITCH → SHELL 2.0 B2's GAME LOOK (a Settings row, no lock): tests/shell-b2.test.mjs

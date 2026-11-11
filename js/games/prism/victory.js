@@ -77,7 +77,9 @@ export function finalScene(el, game, state) {
     lazyImport(import('../../profile/player-page.js'), '../../profile/player-page.js').then(m => m.openPlayer({ pid: who.pid, row: { n: who.name, a: who.avatar, c: who.color } })).catch(() => {});
   });
   [...list.children].forEach((li, i) => { const who = players[pick[i].uid]; if (who && who.pid) { li.classList.add('is-open'); li.setAttribute('role', 'button'); li.setAttribute('aria-label', `${who.name} — their card`); } });
-  el.append(moment, list);
+  // (B4: everyone tied — nobody won, so no WINNING BOARD: the top cards alone)
+  const tie = rows.length >= 2 && rows.every(r => r.rank === 1);
+  el.append(...(tie ? [list] : [moment, list]));
 }
 
 /** the console's podium frame (ui/final.js) with PRISM's rows → its body comes from finalScene (index.js) */

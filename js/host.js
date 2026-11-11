@@ -14,6 +14,7 @@ import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './confi
 import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, loadGame, metaOf } from './games/registry.js';
 import { toast } from './ui/toast.js';
 import { lazyImport } from './ui/lazy-import.js';
+import { nightPoints } from './core/night.js';
 
 // SPEED PASS B — THE SECOND TAB's check (tests: e2e speed.mjs twotabs): this tab's own host writes — the beats + the director's steps
 export const hostStats = { beats: 0, steps: 0 };
@@ -143,7 +144,7 @@ function direct(now) {
 }
 
 // Points toward the room's game-night leaderboard for finishing 1st / 2nd / 3rd.
-export const NIGHT_POINTS = { 1: 3, 2: 2, 3: 1 };
+export { NIGHT_POINTS } from './core/night.js';   // (B4: the table + the full-tie rule live in core/night.js#nightPoints)
 
 // Turns a director step into one atomic room update: game/* paths, optional room-level
 // side writes ($room), and the night-scoreboard entry when a match reaches its podium.
@@ -158,10 +159,9 @@ function roomPatch(game, step) {
     const p = {};
     const n = {};
     const solo = Object.keys(finished.participants || {}).length === 1;   // (SHELL 2.0 B1 — THE SOLO LANE: no night points, no banner, no champion)
-    for (const r of mod.finalRanks(finished)) {
-      p[r.uid] = solo ? 0 : NIGHT_POINTS[r.rank] || 0;
-      n[r.uid] = (state.players[r.uid] && state.players[r.uid].name) || 'GHOST';
-    }
+    const ranks = mod.finalRanks(finished);
+    Object.assign(p, nightPoints(ranks, { solo }));   // (B4: a FULL TIE = a draw — everyone 2nd-place points, nobody 1st's)
+    for (const r of ranks) n[r.uid] = (state.players[r.uid] && state.players[r.uid].name) || 'GHOST';
     const entry = { g: game.id, at: serverTimestamp(), p, n };
     // bonus points that aren't a placing (PRISM DROP's Call the Winner): added to the total, never a win
     const b = mod.nightBonus && !solo ? mod.nightBonus(finished) : null;

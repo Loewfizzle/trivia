@@ -264,14 +264,7 @@ export function createView() {
     els.final = h('div.he-final', finalView.el);
     root.append(els.final);
     root.classList.add('is-final');
-    // HE10 (A10): SCROLL FOR MORE while the end screen runs past the screen (measured on a resize + a scroll only — never in a frame loop)
-    // (the console's frame is the scroller — ui/final.js's .final)
-    const sc = finalView.el.matches('.final') ? finalView.el : finalView.el.querySelector('.final') || els.final;
-    const more = () => { if (els.final) els.final.classList.toggle('has-more', sc.scrollHeight - sc.clientHeight - sc.scrollTop > 6); };
-    sc.addEventListener('scroll', more, { passive: true });
-    finalRo = new ResizeObserver(more);
-    finalRo.observe(sc); if (sc.firstElementChild) finalRo.observe(sc.firstElementChild);
-    setTimeout(more, 900);   // (the rows' stagger settles — the frame's own reveal)
+    // (HE10 (A10)'s SCROLL FOR MORE → the console's sticky BACK TO THE ROOM + MORE BELOW — HOLD'EM IN THE CITY B3, ui/final.js)
     // ONE winner sound (HE5): the tournament's end → champion (OWN_VICTORY_SOUND — the console's sting is skipped); never on a refresh later on.
     // HE10 (Ben's A40): a CASH session's end → champion for its biggest winner (net > 0) only — everyone else hears the end quietly
     const rows = Array.isArray(g.rows) ? g.rows : [];

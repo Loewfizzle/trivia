@@ -116,12 +116,15 @@ test('THE CARDS: the full card wears the tier gem in its top-right corner; a 1-o
   assert.doesNotMatch(read('css/vault.css'), /\.vl-tier\b/);
 });
 
-test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the XP box → ONE button BACK TO THE ROOM (the tube main) → the board', () => {
+test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the XP box → the board → ONE button BACK TO THE ROOM (the tube main), STICKY at the foot (B3)', () => {
   const f = read('js/ui/final.js');
-  assert.match(f, /body \|\| podium,\n\s+rcSlot,\n\s+actions,\n\s+extra,\n\s+listRows\.length \? leaderboard\(listRows/);
+  // (HOLD'EM IN THE CITY — B3: the action row is the frame's LAST piece, STICKY at the screen's foot — always on screen; MORE BELOW while it scrolls on)
+  assert.match(f, /body \|\| podium,\n\s+rcSlot,\n\s+extra,\n\s+listRows\.length \? leaderboard\(listRows, players, \{ me, presence, stagger: 60 \}\) : null,\n\s+actions\);/);
+  assert.match(read('css/components.css'), /\.final > \.final-actions \{\n\s+position: sticky; bottom: 0;/);
+  assert.match(f, /el\.classList\.toggle\('has-more', el\.scrollHeight - el\.clientHeight - el\.scrollTop > 6\)/);
   // (FRIENDS B — B4: the body shows 1st–3rd → the list from 4th; a body with NO podium says so; B2: OWN_VICTORY_SOUND skips the sting;
   //  the music waits for the frame (state.podium); the game's ACCENT on the frame)
-  assert.match(f, /const listRows = body && body\.dataset\.podium === 'all' \? \[\] : top3 \? rows\.slice\(3\) : rows;/);   // (HE4: a body with every place → no list)
+  assert.match(f, /const listRows0 = body && body\.dataset\.podium === 'all' \? \[\] : top3 \? rows\.slice\(3\) : rows;/);   // (HE4: a body with every place → no list)
   assert.match(f, /if \(!\(mod && mod\.OWN_VICTORY_SOUND\)\) pgSfx\('victory'\);/);
   assert.match(f, /setState\(\{ podium: g\.matchId \}\)/);
   assert.match(read('js/app.js'), /const podium = st\.game\.phase === 'final' && st\.podium === st\.game\.matchId;/);
