@@ -171,6 +171,8 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   DAILY CEILING** — past 20 counted room matches an Eastern day a match pays 0 XP + moves no board (`core/progress.js#matchStep`, `CEILING_LINE`);
   **THE RESET EPOCH** — THE PROGRESS RESET stamps `progress/resetAt`, the back-fill rebuilds only after it (`core/board-fill.js#sinceReset`); **END
   GAME THROUGH THE DEALER** — HOLD'EM's ☰ END GAME = the dealer's `endGame` (places by chips from 3 hands, else NO RESULT — `match.js#endTournament`).
+  Add-ons: **`api()` under ONE time limit** (token + fetch + body — a lock waiting on it always lets go; HOLD'EM's move lock + its 10 s release);
+  **THE LOST LOOK** — a canvas iOS discarded in the background (a lost context / the bake's blank sentinel) → the dark held → the one re-fit path (docs/harbor.md#performance).
 - **A game's podium music:** `FINAL_MUSIC` in its index.js (HIGH STAKES: `victory1` = victory.mp3); default the victory playlist.
 - **OVERCLOCK (OC1 — docs/overclock.md):** QUICK default; THE ROOM's NIGHT MEMORY = the host deals the whole match at `start({ used })` (`overclock/deal.js`), each challenge marks its keys as it opens; the after-challenge skip (`ocnext`, ≥ 3 s, everyone connected); the combo (`ocm` → `game/combo`); NIGHT only (`LOOKS`); its timings are the owner's — pinned by `tests/overclock-oc1.test.mjs`; mid-game standings = LIGHT rows, never the slim cards. OC2: THE ROUND WIN is ONE rule (`logic.js#roundWin` —
   the highest + not shared; the server's REDLINE calls it; stored as `game/rw`); the after-challenge screen + the final run in BEATS inside the

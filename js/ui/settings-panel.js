@@ -209,6 +209,7 @@ let menuBtn = null, menuPanel = null, chatMod = null, chatUi = null, cueEl = nul
 // that way it's not taking up anything on my screen"): the Harbor's preview panel registers its ADMIN row here (admins only), and
 // while a preview is on, a small coloured dot on ☰ says so (JUST ME green, EVERYONE pink) — never a forced city mistaken for the real one
 const menuExtras = new Map();
+const EXTRA_ORDER = id => ({ lab: 1, adminpage: 2, admin: 3 }[id] || 0);
 /** a row for the menu's bottom: render({ close }) → an element (or null), or null to remove it */
 export function setMenuExtra(id, render) { if (render) menuExtras.set(id, render); else menuExtras.delete(id); }
 /** the cue on ☰: 'me' | 'all' | null */
@@ -257,7 +258,9 @@ function openMenu() {
   rows.push(row({ icon: 'settings', ic: '#b48cff', label: 'Settings', cls: 'gm-settings', onClick: () => { open(); } }));
   rows.push(row({ icon: 'sound', ic: '#4dff9a', label: 'Sound effects', cls: 'gm-sfx', on: !settings.sfxOff && !settings.muted, toggle: next => updateSettings(next ? { sfxOff: false, muted: false } : { sfxOff: true }) }));
   // (9d: the registered extras — THE LAB, ADMIN, the CITY PREVIEW (admins only, after the server said so) — outside a game)
-  if (!playing) for (const render of menuExtras.values()) { let el = null; try { el = render({ close: closeMenu }); } catch { el = null; } if (el) rows.push(el); }
+  // (FR7 FIXES A: a FIXED order — the players' rows first, the admins' LAB · ADMIN · the CITY PREVIEW always last; they used to show in the
+  //  order their /api answers came back, so the DAILIES row could land under the admin row)
+  if (!playing) for (const [, render] of [...menuExtras.entries()].sort((a, b) => EXTRA_ORDER(a[0]) - EXTRA_ORDER(b[0]))) { let el = null; try { el = render({ close: closeMenu }); } catch { el = null; } if (el) rows.push(el); }
   if (playing) {
     rows.push(row({ icon: 'quit', ic: '#ffc23d', label: 'Quit to the room', sub: 'The others keep playing', cls: 'gm-quit', confirm: 'TAP AGAIN TO QUIT', onClick: () => { closeMenu(); setState({ quit: state.game.matchId }); toast('You left the game', 'info', { ms: 3200, sub: 'You’ll be dealt into the next one.' }); } }));
     if (isHost()) {

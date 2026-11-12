@@ -123,3 +123,33 @@ shard load (FR7-A's F line); `ONLY=sightings,perf` alone 23 / 23, THE BASELINE G
 
 **NOT DONE (said plainly):** C4 (the room list — unprovable on the emulator: Group 4); C5's two whole-tree `/api` reads (FR7 FIXES B); PD2's tighter
 `RUSH_PACE.margin` (it wants a fresh `sim-prism-rush.mjs` — FR7 FIXES B). Nothing else from the prompt's list was left; nothing outside it was started.
+
+## ADD-ONS (the city chat, Nov 12 — after the pass's main push; the pass's last groups)
+
+**THE FROZEN BUTTONS (HOLD'EM — a player's real match: mid-game no action button answered, the ☰ menu did, a refresh fixed it).** The cause, as
+the city chat read it: `view.js#send` held the lock (`.he-actions.is-busy`) until `dealer()` settled, and `api()` awaited Firebase's `getIdToken()`
+(an HOURLY refresh over the network) with no limit before the 8 s abort started — and the abort was cleared before `res.json()`. Fixed:
+`profile/api.js#api` = ONE limit around token + fetch + body (`withLimit` → ApiFail(0, 'offline'), like a lost line; the boot's wait for Firebase
+stays outside it) + the abort now covers the body; HOLD'EM's lock has a SAFETY RELEASE (`logic.js#SAFE_RELEASE_MS` 10 s from the tap — a late answer
+stays harmless: the seq / 409 rules). Proof: `e2e-holdem` THE TOUGHNESS "THE FROZEN BUTTONS" — a stalled token refresh (the emulators' switch
+`window.__stallIdToken`) → the lock lets go in ~9 s, nothing sent; a stalled answer body → ~9 s, the move sent ONCE and landed; then a real tap acts
+(21 / 21) + unit "ADD-ON — THE FROZEN BUTTONS". **THE AUDIT — every lock a network answer releases:** HOLD'EM's move lock (fixed: the limit + the
+release); THE PASSWORD's guess lock + its resume lock, COAST CLEAR's in-flight dig queue (`flying` + its retry loop), the dailies' `today` call — all
+through `api()`, so now bounded by its limit (each retries / says NO SIGNAL as before). OVERCLOCK's + PRISM DROP's locks are local timers (their
+database writes are fire-and-forget) — none waits on the network.
+
+**THE BLANK CITY AFTER BEING AWAY (a tester's iPhone, Nov 12 — `Downloads\NEON\blank-city-after-away-2026-11-12.jpg`).** THE LOST LOOK —
+docs/harbor.md#performance: every canvas through `ui/canvas-safe.js` watched (the 2D `contextlost` / `contextrestored` + `anyLost()`), the bake's
+SENTINEL pixel checked on every return; a loss → the dark held → the ONE re-fit path (build → layout → the bakers re-planned, the sky re-painted) →
+ONE cut; the effect library (THE VAULT's cards) drops its sprites + gives a lost surface a fresh canvas (`fx/renderer.js#fxLost`). Proof:
+`kit/two-cameras.mjs` path `lost-hidden` (WebKit `wk-double.mjs`: 167 canvases wiped while hidden → whole again in 518 ms, one camera, one scene;
+the same run with the look switched off: "whole again NEVER") — NO TWO CAMERAS green; the harbor `cameras` group runs the path in Chromium.
+
+**The add-ons' runs (local, the mini PC):** the unit suite 1,673 / 1,673 · smoke 8 / 8 · `e2e-daily` 53 / 53 · `e2e-holdem FAST=1` 22 / 22 + its
+TOUGHNESS 21 / 21 (THE FROZEN BUTTONS) · `e2e-coastclear` 38 / 38 · `e2e-password` 40 / 40 · `wk-double` lost-hidden + plain (WebKit) · the full
+`e2e-harbor` 1,257 / 1,262 — the reds: THE ROOM's OWN COST + the VAULT / SPEED lobbies at 4× CPU (load timing under the 4 shards — `ONLY=panel,roomperf,vault`
+alone: green) and **9d THE ADMIN ROW** — real: the ☰ menu's extra rows showed in the order their `/api` answers came back, so the DAILIES row could land
+under the admin row; now a FIXED order (`settings-panel.js#EXTRA_ORDER` — the admins' rows last; `shell.test` follows) → `ONLY=panel` 41 / 41 · the
+`cameras` group with `lost-hidden` in Chromium 12 / 12. **No third cloud run** (the pass's two were used — the ci tag's early deploy + the harbor
+tag's final push): the add-ons went up with the deploy tag only.
+

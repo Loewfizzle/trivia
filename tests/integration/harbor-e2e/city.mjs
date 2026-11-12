@@ -14,8 +14,8 @@ async function panelSection() {
   await waitFor(O.page, 'window.__district.remote() && window.__district.remote().debug().admin', 'the admin panel ready', 10000);
   await tap(O.page, '.menu-btn');
   await waitFor(O.page, '!!document.querySelector(".gm-adm .sh-row") && document.querySelector(".gm .sh-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000);
-  const adm = await ev(O.page, `(() => { const a = document.querySelector('.gm-adm'), b = a.querySelector('.sh-row').getBoundingClientRect(); return { last: a === a.parentNode.lastElementChild || !!a.nextElementSibling && a.nextElementSibling.classList.contains('gm-leave'), h: b.height, txt: a.textContent, pill: !!document.querySelector('.hr-pill'), cue: !document.querySelector('.menu-btn .mb-cue').hidden }; })()`);
-  ok(adm.last && adm.h >= 44 && /City preview/i.test(adm.txt) && !adm.pill && !adm.cue, `9d THE ADMIN ROW: the ☰ menu's last row (${Math.round(adm.h)} pt, "${adm.txt}"), no TEST pill on the screen, no cue while nothing is on`);
+  const adm = await ev(O.page, `(() => { const a = document.querySelector('.gm-adm'), b = a.querySelector('.sh-row').getBoundingClientRect(); return { last: a === a.parentNode.lastElementChild || !!a.nextElementSibling && a.nextElementSibling.classList.contains('gm-leave'), h: b.height, txt: a.textContent, pill: !!document.querySelector('.hr-pill'), cue: !document.querySelector('.menu-btn .mb-cue').hidden, after: a.nextElementSibling ? a.nextElementSibling.className : null }; })()`);
+  ok(adm.last && adm.h >= 44 && /City preview/i.test(adm.txt) && !adm.pill && !adm.cue, `9d THE ADMIN ROW: the ☰ menu's last row (${Math.round(adm.h)} pt, "${adm.txt}"), no TEST pill on the screen, no cue while nothing is on ${adm.last && !adm.pill && !adm.cue ? '' : JSON.stringify({ last: adm.last, pill: adm.pill, cue: adm.cue, after: adm.after })}`);
   // THE VAULT 2C — THE LAB in the ☰ menu (admins only: the same yes as ADMIN) → /lab
   const lab = await ev(O.page, `(() => { const b = document.querySelector('.gm-lab'); return b ? { txt: b.textContent, h: b.getBoundingClientRect().height } : null; })()`);
   ok(lab && /The Lab/i.test(lab.txt) && lab.h >= 44, `THE VAULT 2C — THE LAB in the ☰ menu for an admin ("${lab && lab.txt}", ${lab ? Math.round(lab.h) : 0} pt)`);
@@ -986,6 +986,7 @@ G('cameras', async () => {
     'bars-late': "Safari's BARS — 659 → 712 → 659 after the reveal, the box pinned",
     tier: 'a TIER STEP down + back up after the reveal',
     'no-observer-pre': "a box change NO observer reported, before the reveal — the reveal's own look",
+    'lost-hidden': 'FR7 FIXES A — THE BLANK CITY: every canvas wiped while hidden (iOS discarding them) → whole again by itself in ~1 s',
   };
   const names = Object.keys(WHAT), out = new Map();
   // (three pages at a time — two on the cloud's 2-core machine; each path owns its page + its slot)
