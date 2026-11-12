@@ -19,7 +19,7 @@ import { rngFrom } from '../../core/rng.js';
 import { tierVal } from '../../core/harbor-tiers.js';
 import { promenadeSolids } from '../../core/harbor-solids.js';
 import { workFx } from './snowfx.js';
-import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP, strideLen, drawOfrenda, setFolkWind } from './folk.js';
+import { lookOf, entryRain, RAIN_GEAR_MIN, drawFolk, drawDog, drawLeash, rigOf, STEP, strideLen, drawOfrenda, setFolkWind } from './folk.js';
 import { drawBus } from './bus.js';
 import { createVehicles, UNDERGLOW } from './vehicles.js';
 import { beaconOf, drawBeacon } from './raid.js';
@@ -131,11 +131,14 @@ export function createPeople() {
   // (FR6 FIXES A: a look is chosen from the weather's STEADY wind (env.windLook), never the per-frame gust field (env.wind) — a gust
   //  crossing the hold-your-hat line re-rolled the look every few frames: the dogs flashed colours)
   const lookWind = (env) => (env.windLook != null ? env.windLook : env.wind || 0);
+  // (FR7 FIXES B — THE RAIN A WALKER CAME IN WITH: the gear is decided at the visit's start, never flipped in view — folk.js#entryRain)
+  const rainOf = entryRain();
   const lookFor = (mem, env) => {
-    const key = `${mem.vid}|${mem.m.seed}|${mem.m.role}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${lookWind(env) > 10 ? 1 : 0}|${env.snow > 0.2 ? 1 : 0}${env.cold ? 1 : 0}|${mem.party ? 1 : 0}|${mem.coat ? mem.coat.join() : ''}|${mem.hween ? 'H' : ''}|${env.holCarry || ''}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
+    const rain0 = rainOf(`${mem.vid}|${mem.m.seed}`, env.rain);
+    const key = `${mem.vid}|${mem.m.seed}|${mem.m.role}|${env.season}|${rain0 >= RAIN_GEAR_MIN ? rain0 : 0}|${lookWind(env) > 10 ? 1 : 0}|${env.snow > 0.2 ? 1 : 0}${env.cold ? 1 : 0}|${mem.party ? 1 : 0}|${mem.coat ? mem.coat.join() : ''}|${mem.hween ? 'H' : ''}|${env.holCarry || ''}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
     let lk = looks.get(key);
     // (11a-1: the holidays' people carry their costume / instrument / role on the member — core/harbor-people.js#totVisit, #procVisit)
-    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: env.rain, wind: lookWind(env), snow: env.snow, cold: env.cold, role: mem.m.role, sit, m: mem.m, hween: !!mem.hween, hcarry: env.holCarry || null });
+    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: rain0, wind: lookWind(env), snow: env.snow, cold: env.cold, role: mem.m.role, sit, m: mem.m, hween: !!mem.hween, hcarry: env.holCarry || null });
       // (POLISH 5 — the line prototype: the COAT in the player's colour — a long coat, the colour a touch deep so it reads as cloth)
       if (mem.coat) { lk = { ...lk, coat: 'long', dress: lk.woman ? 'day' : null, cols: { ...lk.cols, coat: mem.coat.map(v => Math.round(v * 0.82)), dress: mem.coat.map(v => Math.round(v * 0.82)) } }; }
       looks.set(key, lk); if (looks.size > 160) looks.delete(looks.keys().next().value); }

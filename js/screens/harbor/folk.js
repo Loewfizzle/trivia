@@ -72,6 +72,34 @@ const WORKWEAR = {
  * 'cloche' | 'newsboy' | 'boater' | 'flatcap' | 'top' | null), cols: { coat, legs, hat, skin, hair, scarf?, dress?, shirt }, carry
  * ('case' | 'pail' | 'purse' | 'papers' | null), jog }. r: the member's own random; o: { season, party, night, role }.
  */
+/**
+ * UMBRELLAS IN THE RAIN (FR7 FIXES B — the owner, Nov 12: "it rains and nobody has an umbrella" — light drizzle, 0.22, sat under the old
+ * 0.3 line): the share carrying something GROWS with the rain. Nothing under RAIN_GEAR_MIN (0.12); light drizzle (0.22) ≈ 1 in 3 umbrellas;
+ * real rain (≥ RAIN_GEAR_FULL, 0.3) ≈ 3 in 4 — exactly as before (the same draws: a look in real rain is unchanged); of the rest, newspapers
+ * over the head + COLLARS UP fill in. PURE → { umbrella, paper (of those without one), collar (of those with neither) } — each a chance.
+ */
+export const RAIN_GEAR_MIN = 0.12, RAIN_GEAR_FULL = 0.3;
+export function rainGear(rain) {
+  const k = clamp01(((Number(rain) || 0) - RAIN_GEAR_MIN) / (RAIN_GEAR_FULL - RAIN_GEAR_MIN));
+  return { umbrella: 0.74 * Math.pow(k, 1.3), paper: 0.65 * k, collar: k > 0 ? 0.45 + 0.35 * k : 0 };
+}
+/**
+ * THE RAIN A WALKER CAME IN WITH (FR7 FIXES B — THE PEOPLE RULE): a person's rain gear is decided by the rain when their VISIT starts and
+ * never changes in view (the look's key used to carry `rain > 0.3` — everyone on the promenade flipped to umbrellas at once when the rain
+ * crossed the line). → (key, rainNow) → that visit's rain (rounded to 0.02), remembered the first time the visit is asked; bounded. PURE-ish
+ * (its own Map): people.js#lookFor.
+ */
+export function entryRain(max = 600) {
+  const seen = new Map();
+  return (key, rain) => {
+    if (seen.has(key)) return seen.get(key);
+    const v = Math.round(Math.max(0, Number(rain) || 0) * 50) / 50;
+    seen.set(key, v);
+    if (seen.size > max) seen.delete(seen.keys().next().value);
+    return v;
+  };
+}
+
 export function lookOf(name, seed, o = {}) {
   const r = rngFrom(seed), season = o.season || 'autumn', cold = season === 'winter' || season === 'autumn' || !!o.cold, summer = season === 'summer' && !o.cold;
   const party = !!o.party, role = o.role || 'lead';
@@ -132,8 +160,12 @@ export function lookOf(name, seed, o = {}) {
   L.h = L.hh || (L.kid ? 0.72 : name === 'doorman' ? 1.1 : (L.woman ? 0.95 : 1.02) * (0.95 + r() * 0.08));
   // (9a: mostly BLACK umbrellas, a few colours — readable as shapes; without one, some hold a NEWSPAPER over the head; in a strong wind a
   // hand goes to the hat)
-  L.umbrella = (o.rain || 0) > 0.3 && !L.jog && r() < 0.74 ? pick(r, [[28, 28, 34], [28, 28, 34], [30, 30, 36], [26, 24, 30], [150, 36, 42], [44, 62, 110], [190, 150, 54], [80, 50, 96]]) : null;
-  L.paper = (o.rain || 0) > 0.3 && !L.umbrella && !L.jog && !kid && r() < 0.65;
+  // (FR7 FIXES B — UMBRELLAS IN THE RAIN: the chances from rainGear — from the drizzle up; at ≥ 0.3 the same draws as before)
+  const wet = (o.rain || 0) >= RAIN_GEAR_MIN, gear = rainGear(o.rain);
+  L.umbrella = wet && !L.jog && r() < gear.umbrella ? pick(r, [[28, 28, 34], [28, 28, 34], [30, 30, 36], [26, 24, 30], [150, 36, 42], [44, 62, 110], [190, 150, 54], [80, 50, 96]]) : null;
+  L.paper = wet && !L.umbrella && !L.jog && !kid && r() < gear.paper;
+  // (collars up: their OWN stream of the seed — a new draw on `r` would shift every later one, the stride + a gust's hand on the hat)
+  if (wet && !L.umbrella && !L.paper && L.coat && L.coat !== 'none' && !L.collar) { const rc = rngFrom(`collar|${seed}`); L.collar = rc() < gear.collar; }
   L.holdHat = (o.wind || 0) > 10 && !!L.hat && !L.umbrella && !L.paper && r() < 0.6;
   // 9b — WINTER: in the real cold (≤ 4 °C) the kids get a short coat + a cap too; while snow falls it settles on the hats + the shoulders
   // (never on an umbrella's holder — the umbrella keeps it off)

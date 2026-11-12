@@ -102,3 +102,37 @@ test('THE TWO-TAB HANG — every wait on a store is bounded: the worker\'s copie
 
 // (idbAnswers' behaviour — a silent IndexedDB, a new + a returning player still signed in — is proven in WebKit: tests/integration/wk-twotabs.mjs;
 //  js/firebase.js reads `location` at load, so it isn't imported here)
+
+test('UMBRELLAS IN THE RAIN — the share grows with the rain: none under 0.12, ~1 in 3 at drizzle (0.22), ~3 in 4 in real rain; newspapers + collars fill in', async () => {
+  const { lookOf, rainGear, RAIN_GEAR_MIN } = await import('../js/screens/harbor/folk.js');
+  assert.equal(RAIN_GEAR_MIN, 0.12);
+  assert.equal(rainGear(0.1).umbrella, 0);
+  assert.ok(Math.abs(rainGear(0.22).umbrella - 1 / 3) < 0.03, `drizzle: ${rainGear(0.22).umbrella.toFixed(3)}`);
+  assert.equal(rainGear(0.3).umbrella, 0.74); assert.equal(rainGear(0.8).umbrella, 0.74);
+  const share = (rain, n = 3000) => {
+    let u = 0, p = 0, c = 0, all = 0;
+    for (let i = 0; i < n; i++) { const L = lookOf('walker', 1000 + i, { season: 'autumn', rain }); if (L.jog) continue; all++; if (L.umbrella) u++; else if (L.paper) p++; else if (L.collar) c++; }
+    return { u: u / all, p: p / all, c: c / all, any: (u + p + c) / all };
+  };
+  const dry = share(0), drz = share(0.22), wet = share(0.5);
+  assert.equal(dry.any, 0, 'dry: nobody');
+  assert.ok(drz.u > 0.27 && drz.u < 0.4, `drizzle 0.22: umbrellas ${(drz.u * 100).toFixed(0)} % (about 1 in 3)`);
+  assert.ok(drz.p > 0.05 && drz.c > 0.05, `drizzle: newspapers ${(drz.p * 100).toFixed(0)} % + collars up ${(drz.c * 100).toFixed(0)} % filling in`);
+  assert.ok(wet.u > 0.68 && wet.u < 0.8, `real rain: umbrellas ${(wet.u * 100).toFixed(0)} % (about 3 in 4, as today)`);
+  // real rain: the SAME look as before the change (the umbrella / newspaper draws unchanged; the collars on their own stream)
+  for (let i = 0; i < 300; i++) {
+    const a = lookOf('walker', 5000 + i, { season: 'autumn', rain: 0.5, wind: 12 }), b = lookOf('walker', 5000 + i, { season: 'autumn', rain: 0.9, wind: 12 });
+    assert.deepEqual([a.umbrella, a.paper, a.holdHat, a.stride, a.dog], [b.umbrella, b.paper, b.holdHat, b.stride, b.dog], `seed ${5000 + i}: the same draws at any real-rain level`);
+  }
+});
+
+test('UMBRELLAS IN THE RAIN — THE PEOPLE RULE: a walker\'s rain gear is fixed when their visit starts — the rain crossing a line never changes anyone in view', async () => {
+  const { entryRain } = await import('../js/screens/harbor/folk.js');
+  const rainOf = entryRain();
+  assert.equal(rainOf('v1|7', 0.05), 0.06);   // (rounded to 0.02)
+  assert.equal(rainOf('v1|7', 0.6), 0.06, 'the same visit: the rain it came in with, whatever the rain does now');
+  assert.equal(rainOf('v2|7', 0.6), 0.6, 'a NEW visit (a walker entering now): today\'s rain');
+  const people = fs.readFileSync('js/screens/harbor/people.js', 'utf8');
+  assert.ok(!/env\.rain > 0\.3/.test(people), 'the look key no longer flips everyone at the 0.3 line');
+  assert.match(people, /const rain0 = rainOf\(`\$\{mem\.vid\}\|\$\{mem\.m\.seed\}`, env\.rain\)/);
+});
