@@ -800,3 +800,8 @@ number pill; the streak lives on YOU, the member card, the round-end line + the 
 (AUTO · DAY · NIGHT, per device, any match, no lock — docs/match-kit.md); a player's card in the room carries the host's **Make host** row (+ the
 owner's CREW row); the title is the stage of THE GIFT's reveal (6 s after it is up — profile/gift-reveal.js); the page's music fades after 5 h idle
 (audio/idle.js); the link-preview image is now the Harbor at night under NEON (assets/og.jpg — og.png is gone — `shots.mjs --sizes og`).
+
+## FR7 FIXES B — UMBRELLAS IN THE RAIN (Nov 12)
+The share carrying something grows with the rain (`folk.js#rainGear`): none under 0.12, light drizzle (0.22) ≈ 1 in 3 umbrellas, real rain (≥ 0.3)
+≈ 3 in 4 with the same draws as before; newspapers + collars up fill in (the collar on its own seeded stream). A walker's gear is decided by the rain
+when THEIR visit started (`folk.js#entryRain` — THE PEOPLE RULE: nobody's look flips in view). `&force=drizzle` shows them.

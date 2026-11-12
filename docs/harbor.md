@@ -389,6 +389,12 @@ at 8, squeeze 0.66, people ~33 pt.)
   apart agree; lanes, budget, heavy, rarity, `when()`, forced.
 
 ## Performance
+- **THE EDGE CACHE + ONE COPY PER DEPLOY (FR7 FIXES B, Nov 12 — docs/harbor/passes/fr7-fixes-b.md):** `/js` `/css` `/assets` are cached 5 min at the edge (+ stale-while-revalidate a day — `vercel.json`); the service worker keeps ONE COPY PER DEPLOY: each
+page load asks `/api/time` for the build id — the same build → every static file from the worker's own copy (a warm visit: 356 → 15 requests in WebKit);
+a new build → a fresh cache filled from the network (never the HTTP cache: a copy is only ever the network's, in its own build); no build id → as before.
+A copy is handed to the page `no-cache` (WebKit's memory cache asks the worker again — never an older deploy's module). Every wait on Cache Storage is
+bounded (0.8 s; the activation's clean-up 2 s) — Safari's storage can stop answering with two tabs open (THE TWO-TAB HANG). Proof: `wk-edge.mjs`,
+`wk-twotabs.mjs`, the `load` group (THE WATCHDOG's WAY OUT).
 - **THE LOAD GATE (FP3a, FREV B1 — the iPhone's "shrinks, enlarges, snaps" on load):** the city is held DARK until its first full frame
   is ready and revealed with ONE fade; Safari's bar changes in the load window are coalesced into one build; a baked layer is never
   stretched; no tier step during load. The detail: FP3a §5 below; tested by the `load` group (the `city` job). POLISH 5: THE LOAD LOG

@@ -6601,3 +6601,7 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
   FR7-B's HOLD'EM leftovers); FR7 FIXES B (this pass: "the launch + the plumbing" — THE LAUNCH's code, THE EDGE REQUESTS, the deploy + the repo size, the
   private-repo workflow ready but not switched on, the two owner notes, A's leftovers + the tests + the stale docs, the NICE lines) ← NOW; then THE LAUNCH →
   SIDEWAYS; THE PRIVATE FLIP = later, when people come.
+- FR7 FIXES B DONE (Nov 12, evening) — passes/fr7-fixes-b.md. THE BUILD TABLE: FR7 FIXES B ✅ (THE LAUNCH's code + docs/launch.md, THE EDGE CACHE, the
+  frozen songs out of deploys, the repo's growth stopped, the private-repo workflow ready, THE TWO-TAB HANG, the umbrellas, the leftovers + tests +
+  docs, three NICE lines; the owner's ADD-ONS: A SEAT IS NOT A PLAY, SIGHTINGS NEED THE CITY OPEN, the probe of Firebase's databases + the watchdog's
+  way out; no rules change) → THE LAUNCH ← NEXT (the owner's taps: docs/launch.md) → SIDEWAYS; THE PRIVATE FLIP later.

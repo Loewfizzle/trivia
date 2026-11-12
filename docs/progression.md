@@ -482,3 +482,10 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
   keeps a same-day profile from ranking, scoring or earning (the reveal it sees is the price). No code.
 - **COAST CLEAR — THE ROOM'S PAUSE DOESN'T COUNT** (decision 4): a pause THE ROOM WINS forces (checked by the server) is a room pause (`p.r`) — outside
   `MAX_PAUSES` / `PAUSE_CAP_MS`, under its own safety bound (12 a run, 3 h stopped in all): "YOUR DAILY IS SAVED" is true through a long HOLD'EM match.
+
+## FR7 FIXES B (Nov 12 — docs/harbor/passes/fr7-fixes-b.md)
+- **The reset:** `cp` (counted plays) is a reset field now (`core/reset.js#RESET_STATS` — the dry run's line names them); the freezes held survive into
+  the first play after it (`core/streak.js`); the founder sweep runs only while the window is open.
+- **SIGHTINGS NEED THE CITY OPEN:** a SKY claim counts only inside the server's city-open stamp `ppriv/{pid}/co` (`core/sightings.js#cityOpenAt` /
+  `#openStep` — written by `radioHello`, the visible city's own ~2-minute call, + a hello on coming back on screen); `QUEUE_MS` 12 h → 15 min. A speed
+  bump, not a seal (a script keeping the hello going still can). The radio's claims keep their own record.

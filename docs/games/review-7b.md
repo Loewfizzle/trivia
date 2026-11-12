@@ -2,6 +2,8 @@
 
 **FR7 FIXES A (Nov 12 — docs/harbor/passes/fr7-fixes-a.md): FIXED — PD1, OC1, DY1, DY2 in `12916c2e` (deployed early); PD3 (the rules) + PD4–PD7, OC3, HE1, HE2, DY5–DY7, the decisions (OC2 → HOST-GRADED, HE3 → THE DAILY CEILING, DY3, DY4 accepted, B1 → END GAME through the dealer) in this pass's later commits. NOT DONE: PD2's tighter `RUSH_PACE.margin` (FR7 FIXES B).**
 
+**FR7 FIXES B (Nov 12 — docs/harbor/passes/fr7-fixes-b.md): FIXED — PD2's margin (3 → 2.8 from a fresh 24-run sim), the test lines (a no-WebGL PRISM mount, perfRun pinned to the night look, the FAST `short`; the reload-then-chip + STANDARD bound were FR7 FIXES A's). NOT DONE (dropped for time): the SOLO SURVIVAL time, the combo marks after a refresh, the cut ticket name.**
+
 Fresh eyes on PRISM DROP, OVERCLOCK, HOLD'EM, THE PASSWORD and COAST CLEAR (+ THE DAILY MODULE's shared kit) at commit `43903efc` (Step 0's
 plan line, committed on its own). Nothing but this file and Step 0 was written — no code, no tests, no config, no data, no rules. **THE LIVE
 SITE was not opened at all** (not even read): everything ran on the mini PC — my own emulators + `DAILY_TEST=1 serve.mjs --emu`, Chromium 1248.

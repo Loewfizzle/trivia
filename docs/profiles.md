@@ -522,3 +522,12 @@ A second way to bring your card to a device, beside the restore key (which stays
   friend; the friends list's REQUESTS (in + out) + the blocked go through `publicName` too (`api/_lib/friends.js`). The friends + the recent players keep
   their names (you saw them in your room).
 - **THE INITIATE GUARD** (FR7-A B2): `host.js#startGameNow` refuses a start while the room's game runs and isn't at its podium (`core/room-logic.js#gameRunning`).
+
+## FR7 FIXES B (Nov 12 — docs/harbor/passes/fr7-fixes-b.md)
+- **THE PROGRESS RESET** now also clears COUNTED PLAYS (`cp` — the owner: a veteran is listed again after 3 counted plays, like everyone; the back-fill
+  counts plays only after THE RESET EPOCH), carries every freeze a player holds into the new streak (`core/streak.js`), and sweeps FOUNDING MEMBER
+  only while the founder window is OPEN. The owner's steps: `docs/launch.md`.
+- **A SEAT IS NOT A PLAY** (`api/report.js#PROOF_TREES`): every credited uid needs its OWN node of the match in that room (PRISM's board; any OVERCLOCK
+  challenge's board / combo marks / sealed picks) — dropped BEFORE THE REAL PLAYER COUNT; the walk back to the room keeps those nodes (+ the seal) for a
+  late report (`games/registry.js#PROOF_NODE_LIST`); HOLD'EM = the dealer, untouched.
+- `/admin` STATS + the radio's open rooms: the LIVE rooms through the index (`api/_lib/rooms-live.js`), never the whole rooms tree.

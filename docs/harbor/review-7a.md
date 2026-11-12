@@ -4,6 +4,8 @@
 
 **FR7 FIXES A (Nov 12 — docs/harbor/passes/fr7-fixes-a.md): FIXED — E1 (THE RESET EPOCH) in `6d6c9a81`; C2 (→ THE DAILY CEILING), C3, C5's caps (C4 NOT DONE — unprovable on the emulator, see the log) (the shapes a rule can bound), B1 (END GAME through the dealer), B2's INITIATE guard + the HOLD'EM poke, C6 in this pass's later commits. Left for FR7 FIXES B / THE LAUNCH: D1–D4, E2–E4, the tests + docs lines, C5's two whole-tree /api reads.**
 
+**FR7 FIXES B (Nov 12 — docs/harbor/passes/fr7-fixes-b.md): FIXED — E2 (the freezes carried), E3 (the founder sweep only while open), E4 (`cp` reset — the owner), the og image (+ www), D2 (THE EDGE CACHE: a warm visit 356 → 15 requests), D3 (the frozen songs out of deploys: 299 → 232.5 MiB), D4 (the growth stopped; the rewrite = THE PRIVATE FLIP), D1 (the private-repo workflow — ready, switched by the visibility; NO runner — the owner), C5's two whole-tree reads, the F tests (smoke filter, the four /api suites in the cloud, `crew`, the FAST `short`, the vault's ?emu + the WebKit guard), the stale docs, the NICE lines HOST at the 101st / the 425 back-off / radioWho's NO. THE LAUNCH CHECKLIST → docs/launch.md. Still open: C4 (unprovable on the emulator).**
+
 Fresh eyes on the city + the console at commit `99c61ace` (Step 0's two docs committed on their own: plan.md "OWNER'S NOTES — NOV 11 (night)"
 + decisions.md). Nothing but this file and Step 0 was written — no code, no tests, no config, no data. THE LIVE SITE was only READ: one warm
 load of the title with the test flag on (`LIVE=1`, `&test=1` — no profile, no member Nº, no room) and plain GETs of public static files; no
