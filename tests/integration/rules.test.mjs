@@ -875,6 +875,8 @@ function prismRoom(game = {}) {
   room.meta.status = 'playing';
   room.players.p3 = { name: 'THREE', color: 'green', avatar: 'hex', joinedAt: 3 };
   room.game = { id: 'prism', matchId: 'm1', phase: 'play', settings: { mode: 'battle' }, participants: { host: true, p2: true, p3: true }, playStartAt: now() - 60_000, ...game };
+  // (FR7 FIXES A — PD3: each board saved with its pieces — an attack's `i` is checked against the sender's sv/n)
+  room.prism = { m1: Object.fromEntries(['host', 'p2', 'p3'].map(u => [u, { st: 'play', at: now(), sv: { b: '', n: 40, st: [40, 0, 0, 0] } }])) };
   return r;
 }
 const pnode = (extra = {}) => ({ st: 'play', at: serverTimestamp(), b: '1111000000', h: 1, p: '3,0,4,18', sc: 120, ln: 1, lv: 1, mc: 0, se: 0, pd: 0, best: 'single', tg: 'p3', ...extra });
@@ -901,17 +903,17 @@ test('prism junk: only from yourself, to another live participant, during a batt
   await seed(prismRoom());
   const Q = `${R}/prismq/m1`;
   const atk = (from, extra = {}) => ({ f: from, n: 2, g: 4, at: serverTimestamp(), ...extra });
-  await assertSucceeds(set(ref(db('p2'), `${Q}/p3/p2-1`), atk('p2')));
-  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-1`), atk('p2')), 'written once');
-  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-2`), atk('host')), 'cannot forge the sender');
-  await assertFails(set(ref(db('p2'), `${Q}/p2/p2-3`), atk('p2')), 'not at yourself');
-  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-4`), atk('p2', { n: 99 })), 'at most 30 rows');
-  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-5`), atk('p2', { g: 10 })), 'gap column 0-9');
-  await assertFails(set(ref(db('outsider'), `${Q}/p3/outsider-6`), atk('outsider')));
+  await assertSucceeds(set(ref(db('p2'), `${Q}/p3/p2-1`), atk('p2', { i: 1 })));
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-1`), atk('p2', { i: 1 })), 'written once');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-2`), atk('host', { i: 2 })), 'cannot forge the sender');
+  await assertFails(set(ref(db('p2'), `${Q}/p2/p2-3`), atk('p2', { i: 3 })), 'not at yourself');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-4`), atk('p2', { i: 4, n: 99  })), 'at most 30 rows');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-5`), atk('p2', { i: 5, g: 10  })), 'gap column 0-9');
+  await assertFails(set(ref(db('outsider'), `${Q}/p3/outsider-6`), atk('outsider', { i: 6 })));
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/out/p2`), { at: now(), place: 3, rem: 2 }));
-  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-7`), atk('p2')), 'knocked out players can\'t attack');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-7`), atk('p2', { i: 7 })), 'knocked out players can\'t attack');
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/settings/mode`), 'rush'));
-  await assertFails(set(ref(db('p3'), `${Q}/host/p3-8`), atk('p3')), 'no attacks in Score Rush');
+  await assertFails(set(ref(db('p3'), `${Q}/host/p3-8`), atk('p3', { i: 8 })), 'no attacks in Score Rush');
 });
 
 // PFIX-B (FABLE REVIEW findings 6 + 7) — THE CHEAP BOUNDS: every forged write the review proved ALLOWED is refused; the honest writes still go
@@ -988,26 +990,26 @@ test('PFIX-B prism junk: the server\'s clock, ONE attack per piece, neither side
   await seed(prismRoom());
   const Q = `${R}/prismq/m1`;
   const atk = (from, extra = {}) => ({ f: from, n: 2, g: 4, at: serverTimestamp(), ...extra });
-  await assertSucceeds(set(ref(db('p2'), `${Q}/p3/p2-14`), atk('p2')), 'an attack keyed by its piece');
-  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-15`), atk('p2', { at: now() - 59_000 })), 'back-dated (due at once) — refused');
+  await assertSucceeds(set(ref(db('p2'), `${Q}/p3/p2-14`), atk('p2', { i: 14 })), 'an attack keyed by its piece');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-15`), atk('p2', { i: 15, at: now() - 59_000  })), 'back-dated (due at once) — refused');
   await assertFails(set(ref(db('p2'), `${Q}/p3/-NpushKey`), atk('p2')), 'a push key — not one per piece');
-  await assertFails(set(ref(db('p2'), `${Q}/p3/p3-16`), atk('p2')), 'a key in someone else\'s name');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p3-16`), atk('p2', { i: 16 })), 'a key in someone else\'s name');
   await assertFails(set(ref(db('p2'), `${Q}/p3/p2-x`), atk('p2')), 'the piece is a number');
   // the target already out — on its own board, or in the director's record
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/prism/m1/p3`), { st: 'out', at: now() }));
-  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-17`), atk('p2')), 'at a target whose board says out');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-17`), atk('p2', { i: 17 })), 'at a target whose board says out');
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/prism/m1/p3`), null));
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/out/p3`), { at: now(), place: 3, rem: 2 }));
-  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-18`), atk('p2')), 'at a target the director put out');
-  await assertSucceeds(set(ref(db('p2'), `${Q}/host/p2-18`), atk('p2')), 'the one still standing can still be hit');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-18`), atk('p2', { i: 18 })), 'at a target the director put out');
+  await assertSucceeds(set(ref(db('p2'), `${Q}/host/p2-18`), atk('p2', { i: 18 })), 'the one still standing can still be hit');
   // the sender's own board says out (before the director's next tick)
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/prism/m1/p2`), { st: 'out', at: now() }));
-  await assertFails(set(ref(db('p2'), `${Q}/host/p2-19`), atk('p2')), 'from a board that says out');
+  await assertFails(set(ref(db('p2'), `${Q}/host/p2-19`), atk('p2', { i: 19 })), 'from a board that says out');
   // the countdown + SURVIVAL — still refused
   await seed(prismRoom({ phase: 'count' }));
-  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-20`), atk('p2')), 'not in the countdown');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-20`), atk('p2', { i: 20 })), 'not in the countdown');
   await seed(prismRoom({ settings: { mode: 'survival' } }));
-  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-21`), atk('p2')), 'not in SURVIVAL');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-21`), atk('p2', { i: 21 })), 'not in SURVIVAL');
 });
 
 test('prism call the winner: once, only when out, within the window, a live player', async () => {
@@ -1414,4 +1416,83 @@ test('HE2 — HOLD\'EM: a kicked player reads nothing new — their own private 
   await assertFails(get(ref(db('p3'), `hole/${CODE}/p3`)), 'kicked → their cards closed');
   await assertFails(get(ref(db('p3'), `hole/${CODE}/p2`)));
   await assertSucceeds(get(ref(db('p2'), `hole/${CODE}/p2`)), 'the others are untouched');
+});
+
+// ====================================================================================== FR7 FIXES A — Group 4: THE RULES PASS (one re-publish)
+test('FR7 FIXES A — C3: meta/activeAt is required + never in the future (a room nobody could delete, all 798 hush words held)', async () => {
+  const meta = (extra = {}) => ({ hostId: 'h1', status: 'lobby', createdAt: serverTimestamp(), activeAt: serverTimestamp(), hostBeat: serverTimestamp(), ...extra });
+  await assertSucceeds(set(ref(db('h1'), 'rooms/WXYZ/meta'), meta()), 'the honest create (every stamp the server\'s now)');
+  await assertFails(set(ref(db('h2'), 'rooms/WXYA/meta'), meta({ hostId: 'h2', activeAt: 4102444800000 })), 'an activeAt in 2100');
+  const { activeAt: _a, ...noActive } = meta({ hostId: 'h3' }); void _a;
+  await assertFails(set(ref(db('h3'), 'rooms/WXYB/meta'), noActive), 'no activeAt at all');
+  await assertFails(update(ref(db('h1'), 'rooms/WXYZ/meta'), { activeAt: now() + 3600_000 }), 'pushed into the future later');
+  await assertSucceeds(update(ref(db('h1'), 'rooms/WXYZ/meta'), { activeAt: serverTimestamp() }), 'the host\'s stamp at the server\'s now');
+});
+
+// (FR7 FIXES A — C4 NOT DONE: the emulator never evaluates `query.endAt` as a comparable value (number or string — probed), so a "stale rooms
+// only" rule can't be proved here; an unproved rule could break the idle sweep on the live database. docs/harbor/passes/fr7-fixes-a.md)
+
+test('FR7 FIXES A — C5: what a rule CAN cap — the night record\'s shape, settings + the night memory\'s entries', async () => {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.status = 'playing';
+  await seed(r);
+  const N = `${R}/night/m9`;
+  await assertSucceeds(set(ref(db('host'), N), { g: 'prism', at: serverTimestamp(), p: { host: 3, p2: 2 }, n: { host: 'HOST', p2: 'TWO' }, b: { p2: 1 } }), 'the honest record');
+  await assertFails(set(ref(db('host'), `${R}/night/m8`), { g: 'prism', at: serverTimestamp(), p: { host: 99 } }), 'night points 0–3');
+  await assertFails(set(ref(db('host'), `${R}/night/m8`), { g: 'prism', at: serverTimestamp(), p: { host: 3 }, junk: 'x'.repeat(5000) }), 'no extra fields');
+  await assertFails(set(ref(db('host'), `${R}/night/m8`), { g: 'prism', at: serverTimestamp(), p: { host: 3 }, n: { host: 'x'.repeat(200) } }), 'a name ≤ 24');
+  await assertSucceeds(update(ref(db('host'), `${R}/meta/settings`), { overclock: { mode: 'quick' }, holdem: { mode: 'tournament', speed: 'turbo' } }), 'the honest settings');
+  await assertSucceeds(update(ref(db('host'), `${R}/meta/settings`), { signal: { hp: 100, cats: { 0: 'music' } } }), 'a list one level down');
+  await assertFails(update(ref(db('host'), `${R}/meta/settings`), { prism: { mode: 'x'.repeat(5000) } }), 'a value ≤ 64');
+  await assertFails(update(ref(db('host'), `${R}/meta/settings`), { prism: { a: { b: { c: 1 } } } }), 'no deeper nesting');
+  await assertSucceeds(update(ref(db('host'), `${R}/meta/used/overclock`), { 'tv-123': true }), 'the night memory');
+  await assertFails(update(ref(db('host'), `${R}/meta/used/overclock`), { ['k'.repeat(100)]: true }), 'a key ≤ 64');
+});
+
+test('FR7 FIXES A — PD3: an attack\'s key = the sender + its piece `i`, and `i` ≤ the sender\'s saved pieces + 15 — no board, no attacks', async () => {
+  await seed(prismRoom());
+  const Q = `${R}/prismq/m1`;
+  const atk = (i, extra = {}) => ({ f: 'p2', n: 3, g: 4, at: serverTimestamp(), i, ...extra });
+  await assertSucceeds(set(ref(db('p2'), `${Q}/p3/p2-41`), atk(41)), 'a real piece (the save says 40 — a save trails a fast player)');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-42`), atk(41)), 'the key and its i must agree');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-56`), atk(56)), 'past the saved pieces + 15');
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-30`), { f: 'p2', n: 3, g: 4, at: serverTimestamp() }), 'no i (an old phone) — refused once re-published (its fallback is THE OLD RULES only)');
+  // the review's repro: a participant with NO board writes 200 attacks — refused from the first
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/prism/m1/p2`), null));
+  await assertFails(set(ref(db('p2'), `${Q}/p3/p2-0`), atk(0)), 'no board, no attacks');
+});
+
+test('FR7 FIXES A — OC2 + HOST-GRADED: `doneAt` only together with `done`; the sealed picks `a` (≤ 400)', async () => {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.status = 'playing';
+  r.rooms[CODE].game = { id: 'overclock', matchId: 'm3', ci: 2, ck: '2', phase: 'play', participants: { host: true, p2: true } };
+  await seed(r);
+  const B = `${R}/oc/m3/2/p2`;
+  await assertFails(set(ref(db('p2'), B), { p: 0, ok: 0, n: 3, done: false, at: serverTimestamp(), doneAt: serverTimestamp() }), 'the review\'s kept stamp: a doneAt at the start, not done');
+  await assertSucceeds(set(ref(db('p2'), B), { p: 1, ok: 1, n: 3, done: false, at: serverTimestamp() }));
+  await assertSucceeds(set(ref(db('p2'), B), { p: 3, ok: 3, n: 3, done: true, at: serverTimestamp(), doneAt: serverTimestamp() }), 'the honest finish');
+  const O = `seal/${CODE}/oc/m3/2/p2`;
+  await assertSucceeds(update(ref(db('p2'), O), { a: '[3,1,0]', at: serverTimestamp() }), 'the picks, sealed');
+  await assertFails(update(ref(db('p2'), O), { a: 'x'.repeat(401), at: serverTimestamp() }), 'picks ≤ 400');
+  await assertFails(get(ref(db('host'), O)), 'the host reads them only after the unseal');
+});
+
+test('FR7 FIXES A — THE RULES-LAG: on THE RULES AS PUBLISHED (the old rules) every new write keeps a working fallback', async () => {
+  const old = await initializeTestEnvironment({ projectId: 'demo-oldrules-fr7a', database: { rules: readFileSync(fileURLToPath(new URL('../fixtures/rules-live.json', import.meta.url)), 'utf8'), host: '127.0.0.1', port: 9000 } });
+  try {
+    const odb = uid => old.authenticatedContext(uid).database();
+    const oseed = data => old.withSecurityRulesDisabled(ctx => set(ref(ctx.database()), data));
+    // OVERCLOCK: the board + the envelope land; the picks (their own write) are refused alone → the host keeps the phones' ok
+    const r = lobbyRoom();
+    r.rooms[CODE].meta.status = 'playing';
+    r.rooms[CODE].game = { id: 'overclock', matchId: 'm3', ci: 2, ck: '2', phase: 'play', participants: { host: true, p2: true } };
+    await oseed(r);
+    await assertSucceeds(update(ref(odb('p2'), '/'), { [`${R}/oc/m3/2/p2`]: { p: 1, ok: 1, n: 3, done: false, at: serverTimestamp() }, [`seal/${CODE}/oc/m3/2/p2/g`]: 5, [`seal/${CODE}/oc/m3/2/p2/at`]: serverTimestamp() }), 'the board + the envelope, one path a field');
+    await assertFails(update(ref(odb('p2'), `seal/${CODE}/oc/m3/2/p2`), { a: '[1]', at: serverTimestamp() }), 'the picks: refused on the old rules (alone)');
+    // PRISM: an attack with `i` refused; the same attack without it lands (view.js#sendAttack's retry)
+    await oseed(prismRoom());
+    const atk = { f: 'p2', n: 2, g: 4, at: serverTimestamp() };
+    await assertFails(set(ref(odb('p2'), `${R}/prismq/m1/p3/p2-12`), { ...atk, i: 12 }));
+    await assertSucceeds(set(ref(odb('p2'), `${R}/prismq/m1/p3/p2-12`), atk), 'the fallback lands');
+  } finally { await old.cleanup(); }
 });
