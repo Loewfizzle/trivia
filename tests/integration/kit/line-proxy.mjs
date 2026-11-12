@@ -10,15 +10,33 @@
 // Used by tests/integration/wk-freeze.mjs (it starts one itself). Never shipped; local only.
 import { createServer, request } from 'node:http';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
-export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40, mbps = 40, drop = 0, log = false, fail = null, failN = 1, stall = null, stallN = Infinity, mangle = null } = {}) {
+/** vercel.json's header rules that set Cache-Control → [{ re, value }] (Vercel's `source` → a RegExp: `(.*)` as is, the rest literal) */
+export function vercelCacheRules(file = new URL('../../../vercel.json', import.meta.url)) {
+  const cfg = JSON.parse(readFileSync(file, 'utf8'));
+  return (cfg.headers || []).flatMap(r => {
+    const h = (r.headers || []).find(x => x.key.toLowerCase() === 'cache-control');
+    if (!h) return [];
+    const re = new RegExp('^' + r.source.split('(.*)').map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('(.*)') + '$');
+    return [{ re, value: h.value }];
+  });
+}
+/** the Cache-Control Vercel sends for a path (the first rule that names one), else null */
+export const cacheFor = (rules, path) => { const r = rules.find(x => x.re.test(path)); return r ? r.value : null; };
+
+export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40, mbps = 40, drop = 0, log = false, fail = null, failN = 1, stall = null, stallN = Infinity, mangle = null, prod = false, build = null } = {}) {
+  // (FR7 FIXES B — THE EDGE CACHE: prod = Vercel's OWN Cache-Control per path from vercel.json's header rules (the static default
+  //  `public, max-age=0, must-revalidate` where no rule names one) — a browser then keeps /js /css /assets for 5 min like a phone does;
+  //  build = the deploy's build id the line adds to /api/time's answer (`v`, as Vercel's VERCEL_GIT_COMMIT_SHA) — set({ build }) = A DEPLOY)
+  let prodRules = prod ? vercelCacheRules() : null, buildId = build;
   // (mangle: { re, from, to, n } — the first n answers for a path matching re have `from` replaced by `to`: ANOTHER DEPLOY's copy of a file —
   //  e.g. an export renamed, so its importers fail to link: THE VERSION SKEW)
   let mg = mangle ? { ...mangle, re: new RegExp(mangle.re), n: mangle.n == null ? 1 : mangle.n } : null;
   let upstream = to;
   // (fail: a RegExp — the first failN requests whose path matches are dropped, then it answers; stall: a RegExp — those never answer)
   let failRe = fail ? new RegExp(fail) : null, failLeft = failN, stallRe = stall ? new RegExp(stall) : null, stallLeft = stallN;
-  const st = { req: 0, n304: 0, drops: 0, bytes: 0, byPath: new Map(), ruled: 0, switchedAt: null };
+  const st = { req: 0, n304: 0, drops: 0, bytes: 0, byPath: new Map(), ruled: 0, switchedAt: null, edge: 0, api: 0 };
   let rules = [], switchOn = null;   // (LOAD FIX 4: deploy B's file rules + the switch armed on a request — set({ rules, switchOn }))
   const rx = o => ({ ...o, re: new RegExp(o.re) });
   let busyUntil = 0;   // the shared line: when the last byte queued on it leaves
@@ -54,6 +72,7 @@ export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40,
     const parts = []; req.on('data', d => parts.push(d));
     await new Promise(r => req.on('end', r));
     const isApi = path.startsWith('/api/');
+    st.edge++; if (isApi) st.api++;
     if (stallRe && stallLeft > 0 && stallRe.test(path)) { stallLeft--; if (log) console.log('STALL', path); return; }   // (never answers: the socket stays open)
     if (failRe && failLeft > 0 && failRe.test(path) && req.method === 'GET') { failLeft--; st.drops++; if (log) console.log('FAIL', path); await wait(rtt); req.socket.destroy(); return; }
     if (!isApi && drop > 0 && Math.random() < drop && req.method === 'GET') { st.drops++; if (log) console.log('DROP', path); await wait(rtt); req.socket.destroy(); return; }
@@ -65,17 +84,18 @@ export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40,
     if (up.status === 200) for (const r of rules) if (r.re.test(path) && r.n !== 0) { if (r.n > 0) r.n--; const t = up.body.toString('utf8'); up.body = Buffer.from(r.prepend != null ? r.prepend + t : t.split(r.from).join(r.to)); st.ruled++; }
     if (!isApi && up.status === 200 && req.method === 'GET') {
       const etag = '"' + createHash('sha1').update(up.body).digest('hex').slice(0, 20) + '"';
-      headers.etag = etag; headers['cache-control'] = 'public, max-age=0, must-revalidate'; delete headers.pragma; delete headers.expires;
+      headers.etag = etag; headers['cache-control'] = (prodRules && cacheFor(prodRules, path)) || 'public, max-age=0, must-revalidate'; delete headers.pragma; delete headers.expires;
       if (req.headers['if-none-match'] === etag) { st.n304++; await send(res, 304, { etag, 'cache-control': headers['cache-control'] }, null); return; }
     }
+    if (path === '/api/time' && buildId && up.status === 200) { try { const j = JSON.parse(up.body.toString('utf8')); j.v = buildId; up.body = Buffer.from(JSON.stringify(j)); } catch { /* as it came */ } }
     headers['content-length'] = up.body.length;
     await send(res, up.status, headers, up.body);
   });
   return new Promise(ok => server.listen(port, () => ok({
     port, close: () => new Promise(r => { server.closeAllConnections && server.closeAllConnections(); server.close(() => r()); }),
     switchTo: u => { upstream = u; }, set: o => { if (o.rtt != null) rtt = o.rtt; if (o.mbps != null) mbps = o.mbps; if (o.drop != null) drop = o.drop; if ('fail' in o) { failRe = o.fail ? new RegExp(o.fail) : null; failLeft = o.failN || 1; } if ('mangle' in o) mg = o.mangle ? { ...o.mangle, re: new RegExp(o.mangle.re), n: o.mangle.n == null ? 1 : o.mangle.n } : null; if ('stall' in o) { stallRe = o.stall ? new RegExp(o.stall) : null; stallLeft = o.stallN == null ? Infinity : o.stallN; }
-      if ('rules' in o) rules = (o.rules || []).map(rx); if ('switchOn' in o) switchOn = o.switchOn ? { ...o.switchOn, re: new RegExp(o.switchOn.re), rules: (o.switchOn.rules || []).map(rx) } : null; },
-    stats: () => ({ upstream, req: st.req, n304: st.n304, drops: st.drops, kb: Math.round(st.bytes / 1024), ruled: st.ruled, switchedAt: st.switchedAt }),
+      if ('rules' in o) rules = (o.rules || []).map(rx); if ('build' in o) buildId = o.build; if ('prod' in o) prodRules = o.prod ? vercelCacheRules() : null; if ('switchOn' in o) switchOn = o.switchOn ? { ...o.switchOn, re: new RegExp(o.switchOn.re), rules: (o.switchOn.rules || []).map(rx) } : null; },
+    stats: () => ({ upstream, req: st.req, n304: st.n304, drops: st.drops, kb: Math.round(st.bytes / 1024), ruled: st.ruled, switchedAt: st.switchedAt, edge: st.edge, api: st.api }),
   })));
 }
 

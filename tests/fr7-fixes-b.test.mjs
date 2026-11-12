@@ -63,3 +63,25 @@ test('the link previews: both pages on the PRIMARY host (www — the bare domain
   assert.ok(img.length <= 300 * 1024, `og-board.jpg ${Math.round(img.length / 1024)} KB ≤ 300`);
   assert.deepEqual(jpegSize(img), { w: 1200, h: 630 });
 });
+
+test('D2 — THE EDGE CACHE: /js /css /assets 5 min at the edge (+ stale-while-revalidate); the HTML, sw.js, /api, /audio, /data untouched', () => {
+  const cfg = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+  const cc = src => { const r = cfg.headers.find(x => x.source === src); const h = r && r.headers.find(x => x.key === 'Cache-Control'); return h ? h.value : null; };
+  for (const d of ['js', 'css', 'assets']) assert.equal(cc(`/${d}/(.*)`), 'public, max-age=300, stale-while-revalidate=86400', d);
+  assert.equal(cc('/sw.js'), 'no-cache, no-store, must-revalidate', 'the worker itself is never cached');
+  assert.equal(cc('/data/(.*)'), 'public, max-age=0, must-revalidate');
+  assert.match(cc('/audio/(.*)'), /max-age=604800/);
+  assert.ok(!cfg.headers.some(r => /^\/(api|index|\(\.\*\))/.test(r.source) && r.headers.some(h => h.key === 'Cache-Control')), 'no Cache-Control rule on the HTML / the catch-all / /api');
+});
+
+test('D2 — the worker: ONE COPY PER DEPLOY by the build id; the network path as before; never /api or /audio; a page\'s copy handed over no-cache', () => {
+  const sw = fs.readFileSync('sw.js', 'utf8');
+  assert.match(sw, /fetch\('\/api\/time', \{ cache: 'no-store'/, 'the build id from /api/time, never cached');
+  assert.match(sw, /const BUILD_PREFIX = 'na-b-'/);
+  assert.match(sw, /if \(!v\) return \{ mode: 'net', cache: CACHE \}/, 'no build id → exactly as before');
+  assert.match(sw, /if \(held !== v\)[\s\S]{0,200}caches\.delete\(k\)/, 'a new build drops the old build\'s cache');
+  assert.match(sw, /return toPage\(hit\)/, 'a copy is handed over no-cache (WebKit\'s memory cache then asks the worker, never an older deploy\'s copy)');
+  assert.match(sw, /fetch\(req, \{ cache: 'no-cache' \}\)/, 'the network fetch never reads the HTTP cache — a copy is only ever kept from the network in its own build');
+  assert.match(sw, /url\.pathname\.startsWith\('\/audio\/'\) \|\| url\.pathname\.startsWith\('\/api\/'\)/);
+  assert.match(sw, /return req\.mode === 'navigate' \? res : toPage\(res\)/, 'the HTML always from the network, as it came');
+});
