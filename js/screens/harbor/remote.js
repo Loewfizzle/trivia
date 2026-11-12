@@ -247,7 +247,8 @@ export function createRemote({ scene, api = apiCall }) {
   const hello = () => { clearTimeout(helloT); if (destroyed) return; if (document.visibilityState === 'visible' && api) api('admin', { action: 'radioHello' }).catch(() => {}); helloT = setTimeout(hello, 120e3 * (0.9 + Math.random() * 0.2)); };
   firebaseReady.then(() => { if (!destroyed && !TEST_PANEL) helloT = setTimeout(hello, 4000); }).catch(() => {});
   // (FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: back on screen = a hello at once — the server's city-open stamp starts again then, not ~2 min later)
-  const helloBack = () => { if (!destroyed && !TEST_PANEL && document.visibilityState === 'visible' && helloT) hello(); };
+  //  (1.5 s after the return — never inside the city's own re-fit at that moment: wk-double's resize-hidden caught a frame's work there)
+  const helloBack = () => { if (!destroyed && !TEST_PANEL && document.visibilityState === 'visible' && helloT) { clearTimeout(helloT); helloT = setTimeout(hello, 1500); } };
   document.addEventListener('visibilitychange', helloBack);
 
   // ---------------------------------------------------------------- the owner's pill (admins only)
