@@ -85,3 +85,20 @@ test('D2 — the worker: ONE COPY PER DEPLOY by the build id; the network path a
   assert.match(sw, /url\.pathname\.startsWith\('\/audio\/'\) \|\| url\.pathname\.startsWith\('\/api\/'\)/);
   assert.match(sw, /return req\.mode === 'navigate' \? res : toPage\(res\)/, 'the HTML always from the network, as it came');
 });
+
+test('THE TWO-TAB HANG — every wait on a store is bounded: the worker\'s copies, its build record, its activation; the sign-in\'s IndexedDB', () => {
+  const sw = fs.readFileSync('sw.js', 'utf8');
+  const act = sw.slice(sw.indexOf("addEventListener('activate'"), sw.indexOf("addEventListener('fetch'"));
+  assert.match(act, /await within\(\(async \(\) => \{[\s\S]*caches\.keys\(\)[\s\S]*\}\)\(\), ACTIVATE_STORE_MS, null\);\s*await self\.clients\.claim\(\)/, 'the activation\'s clean-up bounded, then the claim');
+  assert.match(sw, /within\(caches\.open\(M\.cache\)\.then\(c => c\.match\(key\)\), STORE_WAIT_MS, null\)/, 'a copy\'s read bounded');
+  assert.match(sw, /if \(held === undefined\) return \{ mode: 'net', cache: CACHE \}/, 'a silent store = the network');
+  const fb = fs.readFileSync('js/firebase.js', 'utf8');
+  assert.match(fb, /const idbOk = await idbP;\s*if \(!idbOk\) hideIdb\(\);\s*app = sdk\.initializeApp/, 'the probe decides BEFORE the SDK\'s app (its heartbeat opens IndexedDB)');
+  assert.match(fb, /persistence: idbOk \? \[sdk\.browserLocalPersistence, sdk\.indexedDBLocalPersistence\] : \[sdk\.browserLocalPersistence\]/);
+  const html = fs.readFileSync('index.html', 'utf8');
+  assert.match(html, /new BroadcastChannel\('ns-tabs'\)/, 'the other tabs counted by a BroadcastChannel (never a socket)');
+  assert.match(html, /' · other tabs open: ' \+ otherTabs\(\)/, 'the BOOT HANG report names the count');
+});
+
+// (idbAnswers' behaviour — a silent IndexedDB, a new + a returning player still signed in — is proven in WebKit: tests/integration/wk-twotabs.mjs;
+//  js/firebase.js reads `location` at load, so it isn't imported here)

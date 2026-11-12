@@ -87,6 +87,16 @@
     var W = window, D = document, LIMIT = 12000, RK = 'ns:boot-re', T0 = Date.now(), errs = [], stage = 'html', vis = 0, lastT = T0, done = false, sent = false, acted = 0, snapFn = null, hw = null, did = '';
     try { performance.setResourceTimingBufferSize(1500); } catch (e) { /* old browser */ }   // (250 by default — a boot asks for ~400 files: the report's "never arrived" needs them all)
     var ms = function () { return Math.round(Date.now() - T0); };
+    // (FR7 FIXES B — THE TWO-TAB HANG: how many OTHER tabs of the site answered — a BroadcastChannel ping, never a socket; a tab Safari froze
+    //  in the background answers only when it wakes — the BOOT HANG report says the count)
+    var tabs = {}, tabId = Math.random().toString(36).slice(2);
+    try {
+      var bc = new BroadcastChannel('ns-tabs');
+      bc.onmessage = function (e) { var m = e.data || {}; if (!m.id || m.id === tabId) return; if (m.t === 'bye') { delete tabs[m.id]; return; } tabs[m.id] = 1; if (m.t === 'ping') try { bc.postMessage({ t: 'here', id: tabId }); } catch (x) { /* closed */ } };
+      bc.postMessage({ t: 'ping', id: tabId });
+      W.addEventListener('pagehide', function () { try { bc.postMessage({ t: 'bye', id: tabId }); } catch (x) { /* fine */ } });
+    } catch (e) { /* no BroadcastChannel: the count says '?' */ }
+    var otherTabs = function () { if (typeof BroadcastChannel === 'undefined') return '?'; var n = 0; for (var k in tabs) n++; return n; };
     var note = function (s) { if (errs.length < 14) errs.push(ms() + ' ms · ' + String(s).slice(0, 260)); };
     var cssIn = function () { return D.documentElement.classList.contains('css-ready'); };
     function bootSnap(why) {
@@ -99,7 +109,8 @@
         + '\nModules: ' + pre.length + ' in the boot preload' + (W.__bootPre && W.__bootPre.done ? ' (asked for)' : ' (NOT asked for yet)') + ' · never arrived: ' + open.length + (open.length ? ' — ' + open.slice(0, 30).join(' ') : '')
         + '\nErrors: ' + (errs.length ? '\n  ' + errs.join('\n  ') : 'none caught')
         + '\nThe phone: ' + screen.width + '×' + screen.height + ' @' + (W.devicePixelRatio || 1) + ' · online ' + nav.onLine + (c && c.effectiveType ? ' · ' + c.effectiveType : '')
-        + ' · service worker ' + (nav.serviceWorker && nav.serviceWorker.controller ? 'in control' : 'none') + ' · reloaded by the watchdog before: ' + (prevReload() ? 'yes' : 'no');
+        + ' · service worker ' + (nav.serviceWorker && nav.serviceWorker.controller ? 'in control' : 'none') + ' · reloaded by the watchdog before: ' + (prevReload() ? 'yes' : 'no')
+        + ' · other tabs open: ' + otherTabs();
     }
     function prevReload() { try { return !!W.sessionStorage.getItem(RK); } catch (e) { return false; } }
     function post(kind, text) { try { fetch('/api/log', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, keepalive: true, body: JSON.stringify({ p: 'report', r: { kind: kind, text: text.slice(0, 20000) } }) }).catch(function () {}); } catch (e) { /* polish */ } }
@@ -175,7 +186,8 @@
       watching: function () { return !!hw; },
       reload: function (why, o) { if (done || prevReload()) return false; acted = 2; note('the app asked: ' + why); report(why); if (o && o.skew) { did += 'the modules re-fetched; '; refresh().then(reloadOnce); } else reloadOnce(); return true; },   // (true = the one reload is on its way; LOAD FIX 4: { skew } = the city's graph failed to LINK — its files asked for afresh first)
       refresh: refresh,                                                      // (LOAD FIX 4: the boot's files asked for afresh — ui/lazy-import.js before its skew reload)
-      text: bootSnap, errors: function () { return errs.slice(); }, get stageNow() { return stage; }
+      text: bootSnap, errors: function () { return errs.slice(); }, get stageNow() { return stage; },
+      tabs: otherTabs                                                        // (FR7 FIXES B: the other tabs of the site that answered)
     };
   })();
   </script>

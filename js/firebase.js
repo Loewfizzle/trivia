@@ -82,19 +82,48 @@ let readyResolve;
 /** Resolves once Firebase is initialized and signed in. */
 export const firebaseReady = new Promise(r => { readyResolve = r; });
 
+/** FR7 FIXES B — a page whose IndexedDB doesn't answer: the SDK sees none (its checks are `typeof indexedDB`) — this page only */
+function hideIdb() { try { Object.defineProperty(globalThis, 'indexedDB', { value: undefined, configurable: true, writable: true }); } catch { /* polish */ } }
+/** FR7 FIXES B — does IndexedDB answer at all? (open + close a tiny probe database within `ms`; false on a hang, an error or no IndexedDB) */
+export const IDB_PROBE_MS = 1500;
+export function idbAnswers(ms = IDB_PROBE_MS, idb = typeof indexedDB !== 'undefined' ? indexedDB : null) {
+  if (!idb) return Promise.resolve(false);
+  return new Promise(res => {
+    let done = false;
+    const end = ok => { if (!done) { done = true; clearTimeout(t); res(ok); } };
+    const t = setTimeout(() => end(false), ms);
+    try {
+      const rq = idb.open('ns-probe');
+      rq.onsuccess = () => { try { rq.result.close(); } catch { /* fine */ } end(true); };
+      rq.onerror = () => end(false);
+      rq.onblocked = () => end(false);
+    } catch { end(false); }
+  });
+}
+
 // Each identity slot is a separately named Firebase app, so its anonymous user
 // is persisted under its own key — that's what lets several tabs be different players.
 export async function initFirebase(onConnectedChange) {
+  const idbP = idbAnswers(IDB_PROBE_MS);   // (FR7 FIXES B: beside the SDK's import — a healthy IndexedDB answers in a few ms)
   const [appMod, authMod, dbMod] = await Promise.all([
     import(`${SDK}/firebase-app.js`), import(`${SDK}/firebase-auth.js`), import(`${SDK}/firebase-database.js`),
   ]);
   sdk = { ...appMod, ...authMod, ...dbMod };
+  const idbOk = await idbP;
+  if (!idbOk) hideIdb();
   app = sdk.initializeApp(config, slot === '1' ? '[DEFAULT]' : `slot-${slot}`);
   // C4d (FR4 B2): localStorage FIRST. With IndexedDB first, Firebase Auth polled it every 800 ms for the life of every tab — 75 storage
   // transactions a minute, a parked title too (a storage-process wake every 0.8 s on a phone). The IndexedDB persistence stays in the
   // list so a player saved there before is MIGRATED (Firebase reads it once, moves the user to localStorage, removes it there): the
   // same uid, the same seat + profile — proven in Chromium + WebKit on the emulators (C4d), each slot's named app keeping its own user.
-  auth = sdk.initializeAuth(app, { persistence: [sdk.browserLocalPersistence, sdk.indexedDBLocalPersistence] });
+  // FR7 FIXES B — THE TWO-TAB HANG (the owner's iPhone: STEPPING INSIDE stuck after Safari came back with two tabs of the site open; closing
+  // both fixed it): Safari's IndexedDB can stop answering until every tab of the site is closed (its storage process went while Safari was in
+  // the background) — and Firebase opens IndexedDB at sign-in (Auth's migration store + the app's heartbeat, read before every sign-in
+  // request), so the sign-in waited FOREVER (HOST / JOIN with it; wk-twotabs.mjs reproduced it with the store stubbed silent). Now the probe
+  // decides first: IndexedDB answers within IDB_PROBE_MS → as before; it doesn't → this page hides IndexedDB from the SDK (hideIdb) and
+  // signs in on localStorage alone (where every player has been since C4d) — the same uid, never a stuck sign-in.
+  auth = sdk.initializeAuth(app, { persistence: idbOk ? [sdk.browserLocalPersistence, sdk.indexedDBLocalPersistence] : [sdk.browserLocalPersistence] });
+  if (!idbOk) console.warn(`[firebase] IndexedDB didn’t answer in ${IDB_PROBE_MS} ms — the sign-in on localStorage alone`);
   db = sdk.getDatabase(app);
   if (useEmulator) {
     sdk.connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });

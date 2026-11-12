@@ -43,6 +43,11 @@ async function keep(key, res, name = CACHE) {
 }
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
+// (FR7 FIXES B — THE TWO-TAB HANG: Safari's storage process can stop answering after Safari sat in the background with two tabs of the site
+//  open — an open / match on Cache Storage then NEVER settles until every tab is closed. Every wait on it here is bounded: past STORE_WAIT_MS
+//  the file comes from the network, as before; a page never waits on a stuck store)
+const STORE_WAIT_MS = 800, ACTIVATE_STORE_MS = 2000;
+const within = (p, ms, dflt) => Promise.race([Promise.resolve(p).catch(() => dflt), wait(ms).then(() => dflt)]);
 /** a file handed to a page this worker controls: `no-cache` — the page's own memory cache (WebKit's) then always asks the worker again
  *  (free: no network) instead of keeping it fresh 5 min by the edge header, which reused an OLDER deploy's module after a deploy on a
  *  reload (wk-edge.mjs caught it: the new HTML, the old config.js); the edge header stays for a page the worker doesn't control yet */
@@ -60,7 +65,8 @@ async function buildNow() {
     return j && typeof j.v === 'string' && /^[0-9a-z]{4,40}$/i.test(j.v) ? j.v : null;
   } catch { return null; }
 }
-async function heldBuild() { try { const r = await (await caches.open(META)).match('/__build'); return r ? (await r.text()) || null : null; } catch { return null; } }
+const SILENT = { silent: true };   // (within's answer when the store didn't — never a real value)
+async function heldBuild() { try { const r = await within(caches.open(META).then(c => c.match('/__build')), STORE_WAIT_MS, SILENT); if (r === SILENT) return undefined; return r ? (await within(r.text(), STORE_WAIT_MS, '')) || null : null; } catch { return undefined; } }
 /** a page load's mode: the same build as the copies held → 'build' (its copies); a new one → 'build' on a FRESH cache; none → 'net' */
 async function modeFor() {
   const v = await buildNow();
@@ -68,11 +74,14 @@ async function modeFor() {
   if (!v) return { mode: 'net', cache: CACHE };
   const name = BUILD_PREFIX + v;
   const held = await heldBuild();
+  if (held === undefined) return { mode: 'net', cache: CACHE };   // (the store isn't answering: the network, as before)
   if (held !== v) {
     stats.fresh++;
     try {
-      for (const k of await caches.keys()) if (k.startsWith(BUILD_PREFIX) && k !== name) await caches.delete(k);
-      await (await caches.open(META)).put('/__build', new Response(v));
+      await within((async () => {
+        for (const k of await caches.keys()) if (k.startsWith(BUILD_PREFIX) && k !== name) await caches.delete(k);
+        await (await caches.open(META)).put('/__build', new Response(v));
+      })(), STORE_WAIT_MS * 2, null);
     } catch { /* polish: the network path still works */ }
   }
   return { mode: 'build', cache: name };
@@ -80,10 +89,15 @@ async function modeFor() {
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => {
+  // (FR7 FIXES B — THE TWO-TAB HANG: every fetch of every page this worker controls WAITS until its activation ends — a clean-up stuck on a
+  //  store that stopped answering held them all: the boot's modules never came, STEPPING INSIDE forever. The clean-up gets ACTIVATE_STORE_MS,
+  //  then the worker takes over anyway; whatever it didn't clean waits for the next activation)
   event.waitUntil((async () => {
-    for (const key of await caches.keys()) if (key !== CACHE && key !== META && !key.startsWith(BUILD_PREFIX)) await caches.delete(key);
-    // (LOAD FIX 4: the pile an older worker left — throwaway queries + a copy per page query — goes, then the cap)
-    try { const c = await caches.open(CACHE); for (const r of await c.keys()) { const u = new URL(r.url); if (u.search && !keepable(u)) { await c.delete(r); stats.trimmed++; } } await trim(c); } catch { /* polish */ }
+    await within((async () => {
+      for (const key of await caches.keys()) if (key !== CACHE && key !== META && !key.startsWith(BUILD_PREFIX)) await caches.delete(key);
+      // (LOAD FIX 4: the pile an older worker left — throwaway queries + a copy per page query — goes, then the cap)
+      try { const c = await caches.open(CACHE); for (const r of await c.keys()) { const u = new URL(r.url); if (u.search && !keepable(u)) { await c.delete(r); stats.trimmed++; } } await trim(c); } catch { /* polish */ }
+    })(), ACTIVATE_STORE_MS, null);
     await self.clients.claim();
   })());
 });
@@ -109,7 +123,7 @@ self.addEventListener('fetch', event => {
       if (p) M = await Promise.race([p, wait(BUILD_WAIT_MS + 300).then(() => M)]).catch(() => M);
       // BUILD MODE: this deploy's own copy — no request leaves the phone
       if (M.mode === 'build') {
-        try { const hit = await (await caches.open(M.cache)).match(key); if (hit) { stats.hits++; stats.mode = 'build'; return toPage(hit); } } catch { /* the network */ }
+        try { const hit = await within(caches.open(M.cache).then(c => c.match(key)), STORE_WAIT_MS, null); if (hit) { stats.hits++; stats.mode = 'build'; return toPage(hit); } } catch { /* the network */ }
         stats.misses++;
       }
     }
@@ -124,8 +138,8 @@ self.addEventListener('fetch', event => {
       }
       return req.mode === 'navigate' ? res : toPage(res);
     } catch {
-      const cached = (M.mode === 'build' && key ? await caches.match(key) : null) || await caches.match(req, { ignoreSearch: req.mode === 'navigate' || !keepable(url) });
-      return cached ? (req.mode === 'navigate' ? cached : toPage(cached)) : (req.mode === 'navigate' ? caches.match('/') : Response.error());
+      const cached = (M.mode === 'build' && key ? await within(caches.match(key), STORE_WAIT_MS, null) : null) || await within(caches.match(req, { ignoreSearch: req.mode === 'navigate' || !keepable(url) }), STORE_WAIT_MS, null);
+      return cached ? (req.mode === 'navigate' ? cached : toPage(cached)) : (req.mode === 'navigate' ? within(caches.match('/'), STORE_WAIT_MS, null).then(r => r || Response.error()) : Response.error());
     }
   })());
 });
