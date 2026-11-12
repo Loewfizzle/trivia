@@ -289,7 +289,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   CATCH-UP — never `disabled: busy`); NO SIGNAL = the buttons wait (`offline()` in the render's signature); the wake lock = `wakelock.js#gameAwake` (seated
   in a live match only); THE FRAME LOOP SLEEPS when nothing moves (`wake()` — never an always-on rAF; proof `holdem-endurance.mjs`: 400 hands flat, 0 idle frames).
 - **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
-  `now`; a test greps — the screen — `view.js` + its `motion.js` + `sfx.js` — alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
+  `now`; a test greps — the screen — `view.js` + its `motion.js` + `sfx.js` + `bet-slider.js` — alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
   DEALER is the server (HE2: crypto randomness — never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /
   `seatView`; the sims scan every view); PLAY CHIPS ONLY — no money words ("CASH" = the mode's name); TURBO's level is 90 s, DEEP's 15 min, CASH has the shot clock too + AWAY = SAT OUT (the length study:
   `node scripts/holdem-sim.mjs`); the test robots (`tests/fixtures/holdem-bots.mjs`) are never shipped. Its GAMES row is `playable: true` (HE10; `preview` HE3–HE9).
@@ -299,6 +299,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   games' checks); a match COUNTS from 3 hands (tournament) / 10 hands + 5 min (CASH) — else `rep: 'short'` (`holdem-dealer.js#COUNTS`); what's due runs FIRST
   on every op; a seat whose player left goes AWAY at once; the record + `hole/` deleted 8 s after the end; EV_KEEP 24 + no second `shown`; the podium waits
   4.5 s (`logic.js#directorStep`); a missed run with an OLD start is history (`OLDEST_SLACK_MS`); SIT BACK DOWN with your chips; `assets/holdem/CREDITS.md`.
+- **HOLD'EM's BET SLIDER (HE11 — docs/holdem.md "HE11"):** a custom control (`holdem/bet-slider.js` — pointer capture, transform only, never rebuilt under a finger, CONFIRM one-shot) on THE BET STEPS (`holdem/bet-steps.js` PURE: the smallest round unit ≥ the small blind giving ≤ 60 stops; min + ALL IN exact, ALL IN only the last slice — `tests/holdem-bet-steps.test.mjs`, `wk-holdem-slider.mjs`).
 - **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
   actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
   remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,

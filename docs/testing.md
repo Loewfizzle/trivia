@@ -200,6 +200,10 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   a slow line via CDP, `setOfflineMode` 10 s / 10 s on your turn / 40 s into the bank, a 30 s app switch, a counted wake-lock stub). Any local server:
   `node tests/integration/holdem-endurance.mjs "<browser>" --hands 400` (THE ENDURANCE RUN at `&speed=12` ≈ 9 min — heap / DOM / listeners / canvases flat —
   + THE IDLE PROOF: 0 animation frames on an idle table; `--hands 60` for a quick look). The preview: `&clk=` `&bank=1` (your timer), `&speed=K` (the demo).
+- **HOLD'EM's BET SLIDER + FR7-B's leftovers (HE11):** npm test — `tests/holdem-bet-steps.test.mjs` (THE BET STEPS over every stack × level) +
+  `tests/holdem-he11.test.mjs`; the emulators: `holdem-server.test.mjs`'s HE11 cases. Any local server (WebKit — `~/wk` Playwright):
+  `E2E_BASE=http://localhost:<port> node tests/integration/wk-holdem-slider.mjs` (a drag across at 402 × 874 @3, − / +, a preset, HOLD, CONFIRM once —
+  the preview's /api stubbed on the page: `window.__fakeToken` makes fake-firebase's `idToken` resolve). `holdem-shots.mjs --only slider-8`.
 - **HOLD'EM's TABLE (HE3):** npm test — `tests/holdem-wire.test.mjs` (the parts round-trip, every diff, the bytes) + `tests/holdem-phone.test.mjs` (the
   phone's pure side + THE LAYOUT at 2–8 players on five phones). The look: `tests/integration/holdem-preview.html` (no Firebase — docs/holdem.md
   "THE PREVIEW") + `node tests/integration/holdem-shots.mjs "<browser>"`. The E2E (the emulators + `serve.mjs --emu`):

@@ -231,7 +231,7 @@ it: 18 / 18) and the 400-hand endurance run.
 - **FR7-A's B1 stands** (END GAME drops a HOLD'EM match with nothing; `hrec` + `hole` left). One refinement: even a NORMALLY finished
   match leaves `hrec/{CODE}` + `hole/{CODE}` when no phone still has the table up 8 s after the end (the clean-up is a poke). Default
   deny — litter, not a leak.
-- NICE · S each — a big blind all in for LESS than the small blind still shows the small blind FOLD / CALL (`table.js:96` `s.bet =
+- NICE · S each — **ALL FIXED in HE11 (docs/holdem.md "HE11"; the 9-player start seats the first 8; the leftover record swept by the next start)** — a big blind all in for LESS than the small blind still shows the small blind FOLD / CALL (`table.js:96` `s.bet =
   s.bb` is the nominal blind): CALL is right and refunds itself, but FOLD, the clock or an AWAY seat forfeits a pot it had already covered
   (REPRODUCED pure: blinds 100 / 200, a 40-chip big blind → `byFold bb` instead of a showdown; chips conserved); HE10's "AWAY at once"
   waits for the next FULL dealer call (`holdem-store.js:124–130`: a poke that isn't due returns before the leavers are read — a kicked

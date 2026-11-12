@@ -851,3 +851,53 @@ p50 16.7 / p95 ≤ 16.8 ms in all three skins, upright + sideways) · holdem-rot
 * Nov 12 (a real play-test): THE BET SLIDER "jumps and skips around — not smooth". The cause (read in view.js#sliderPanel): iPhone Safari's built-in range input (a small thumb, a thin track), steps of up to one big blind / ≤ ~40 positions counted from the min raise (odd amounts), and the last step snapping to ALL IN. → A CUSTOM SLIDER: smooth, round amounts, − / + for fine steps, a light tick per step, ALL IN only at the very end.
 * Nov 12: a player's action buttons froze mid-match (☰ still worked, a refresh fixed it) — FIXED in FR7 FIXES A's add-on (api() under one time limit + the 10 s release).
 * Nov 12: FR7-B's HOLD'EM NICE lines ride HE11.
+
+## HE11 — THE NEW BET SLIDER + FR7-B's HOLD'EM leftovers (Nov 12 2026)
+ONLY what the brief listed: the slider (the owner's play-test) + the eight NICE lines of `docs/games/review-7b.md` "## HOLD'EM" (HE1 + HE2 were
+FR7 FIXES A's). No database rules change. Still 8 functions.
+
+### THE BET SLIDER (`bet-slider.js` the control · `bet-steps.js` PURE — replaces `sliderPanel`'s `<input type=range>`)
+- **THE STEP RULE (`bet-steps.js#betStops`):** the UNIT = the smallest ROUND number (5 · 10 · 20 · 25 · 50 · 100 · 200 · 250 · 500 · 1,000 …) that
+  is ≥ the small blind (never under 5; a 15 small blind → 20) and leaves the track ≤ 60 stops. The stops = the minimum raise EXACTLY, every
+  multiple of the unit strictly between, ALL IN EXACTLY. Two round units in a row are never more than ×2 apart → 30–60 stops whenever the span
+  allows (a short stack: fewer — every unit). Each stop owns an EQUAL slice of the track: ALL IN is the last slice only, never "within a step".
+  (TURBO 1,500 at 10 / 20, min 100 → 25s: 100 · 125 · 150 … 1,475 · ALL IN 1,500 = 57 stops.)
+- **THE CONTROL:** − amount + on top (− / + = one stop; HOLD = repeat — 380 ms, then 150 ms easing to 45 ms a stop), a FAT TRACK (44 pt tall,
+  the panel's width) you grab ANYWHERE — `setPointerCapture`, the thumb jumps to the finger and follows it, the amount on its stop; at the lift
+  the thumb settles on the stop (0.12 s, none with reduced motion); the thumb + the fill on `transform` only, the travel from a ResizeObserver
+  (the track's left edge read ONCE per touch); `touch-action: none` on the track + − / + only. Each move applied in its `pointermove` (a phone
+  sends one a frame — a rAF on top added a frame of lag, and headless WebKit never fired it). Then BACK · the PRESETS (MIN · 3× · ½ POT · POT ·
+  ALL IN — they SET the slider; the one matching the amount lit) · CONFIRM. A haptic tick per stop where the phone has one (`vibrate(4)`, ≥ 28 ms
+  apart — iPhone Safari has none: never required). The keyboard: ← → / Home / End on the track (role slider, aria values).
+- **KEPT:** one turn (HE10 A21 — closes when the turn moves), BACK + CONFIRM, the panel's place (above your cards; THE COLUMN sideways: the
+  presets row over BACK · CONFIRM), your bet hidden while open (A11), every colour a skin variable (the thumb = the CALL button's own glass).
+  THE TAP WATCH: built once per open — `view.js#sliderPanel` reuses it while the action key holds; `destroy()` (its observer + timers) when it goes.
+- **CONFIRM IS ONE-SHOT:** a second tap while the move is on its way / answered before the table moved sends nothing (the WebKit test caught a
+  double send against a quiet stub); a move that didn't go (no signal, a refusal) re-arms it.
+- **PROOF:** `tests/holdem-bet-steps.test.mjs` (every stack × blind level in TURBO / DEEP / CASH: min + ALL IN exact, round, 30–60, a slow drag
+  visits every stop once); `node tests/integration/wk-holdem-slider.mjs` (WebKit 402 × 874 @3 on the preview — `E2E_BASE` = any plain serve.mjs:
+  a drag across = 57 stops, monotonic, none skipped, ALL IN only at the end, the page never scrolled, − − + one stop each, a preset sets it, HOLD +
+  repeats, CONFIRM sends the shown amount ONCE — 13 / 13); 4× CPU while dragging (touch, Chromium): p50 16.7 / p95 16.7–16.8 ms in all three
+  skins + sideways. Screens at 375 × 667 / 390 / 402 / 430 upright, 874 × 402 + 667 × 375 sideways, 1440 × 900, in all three skins.
+
+### FR7-B's HOLD'EM leftovers — each FIXED + its test (`tests/holdem-he11.test.mjs`; the database half in `holdem-server.test.mjs` "HE11")
+1. **The short big blind** — FIXED in `table.js#progress`: ONE seat left who can act, already covering every other live seat's bet (they're all
+   all in), has nobody to match — the street closes (a big blind all in for less than the small blind, heads-up → a SHOWDOWN, never a FOLD / the
+   clock / AWAY forfeiting a pot it covered). HE1's rule stands while another seat can still act (they call the FULL big blind — the brief's
+   "the facing bet = what was really posted" would have reversed that tested rule; this keeps it and closes exactly the forfeit). Test HE11-1.
+2. **AWAY on the very next poke** — FIXED: the record carries a WATCH list (`hrec/{CODE}/w` = `holdem-dealer.js#watchOf`: the seats a leave / a
+   kick would still change); the CHEAP poke reads the room's players + kicked (≤ 8 small rows, in parallel) and takes the full path when one of
+   them is gone. A poke with nobody gone stays cheap. Tests HE11-2 + the emulators.
+3. **One poke at a match's end** — FIXED in `logic.js#pokeIn`: due 0 (a result to send) = the host at once, a guest only 2–3 s later. Test HE11-3.
+4. **THE HEAL heals the private cards** — FIXED (`holdem-store.js`): a heal rewrites `hole/{CODE}` whole with the public view. The emulators.
+5. **No SAT OUT flash; SIT BACK IN only when it works** — FIXED: `logic.js#seatTag` (SAT OUT only for a seat really sat out — AWAY in CASH; a
+   'sitout' seat waiting for its first deal = no tag — every seat before hand 1) + `logic.js#backOffered` (I'M BACK / SIT BACK IN only for an
+   AWAY seat — what `table.js` `back` accepts); your seat waiting for its first deal reads DEALT IN NEXT HAND on the status line. Test HE11-5.
+6. **9 in the room** — the simpler honest one: the dealer SEATS THE FIRST 8 by when they joined (`holdem-store.js` start), the rest see
+   SPECTATING; the host's phone says "Hold’em seats 8 — n will watch" (`logic.js#watchersLine`, a message in sentence case). The emulators.
+7. **The SE at an 8-player showdown** — FIXED in `layout.js`: the short-phone squeeze (only where your bet already moved beside your cards) keeps
+   `ROW_AIR` (4 pt) between two side seats' blocks (WebKit measured 1.3–2.5 pt from a hand tag to the next seat's emblem + cards; now ≥ 3 pt at
+   375 × 667 with and without a status bar). Changes ONLY 8-player tables on 375 × 667, 375 × 812 + 393 × 852 (ss −4 %); 390 / 402 / 430 untouched.
+   `holdem-phone.test.mjs` adds the SE with no insets; test HE11-7.
+8. **The leftover record** — CONFIRMED + proved: FR7 FIXES A's host poke cleans up from the room; any record a match left (nobody poked 8 s
+   after its end) is replaced by the next `start` in that room, and `hole/{CODE}` rewritten whole — the old seats' nodes gone. The emulators.
