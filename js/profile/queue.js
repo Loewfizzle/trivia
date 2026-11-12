@@ -57,6 +57,7 @@ function done(k) {
 
 const backoff = n => Math.min(5 * 60_000, 2500 * 2 ** n);
 
+const SETTLE_MAX_MS = 60_000;
 export async function flush(force = false) {
   if (busy) return;
   busy = true;
@@ -76,7 +77,8 @@ export async function flush(force = false) {
         // unreachable / busy / not final yet: try again later (sooner while the match is still settling)
         const q = loadQueue();
         const x = q.find(y => y.k === item.k);
-        if (x) { x.n += 1; x.next = Date.now() + (e.status === 425 ? 2000 : backoff(x.n)); saveQueue(q); }
+        // (FR7 FIXES B — FR7-A's NICE line: "still settling" (425) was retried every 2 s for up to 5 h — now 2, 4, 8 … s, at most 60 s)
+        if (x) { x.n += 1; x.next = Date.now() + (e.status === 425 ? Math.min(SETTLE_MAX_MS, 2000 * 2 ** Math.max(0, x.n - 1)) : backoff(x.n)); saveQueue(q); }
       }
     }
   } finally {

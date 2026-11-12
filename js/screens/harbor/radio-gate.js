@@ -1,6 +1,6 @@
 // CITY CONTROLS A — THE RADIO's GATE: asks the server (radioWho — the role per profile: the owner = ADMIN_PIDS, THE CREW) once the app is
 // up; ONLY a yes loads radio.js + css/radio.css and puts the corner button on the page — nobody else ever gets it, not even in the DOM.
-// A yes is remembered for the tab (6 h — never a "no": a profile restored later asks again on 'nd:me'). City 2.0 only (app.js).
+// A yes is remembered for the tab (6 h); a NO too since FR7 FIXES B — for that profile only (a profile restored later asks again on 'nd:me'). City 2.0 only (app.js).
 // SHELL 2.0 B2: drop() / fresh() — the crew switch live (a stamp on the room: rooms/{CODE}/radioCrew/role/{uid}).
 import { api } from '../../profile/api.js';
 import { firebaseReady } from '../../firebase.js';
@@ -10,7 +10,7 @@ import { setOwnerPhone } from '../../config.js';
 const KEY = 'nd:rd-role', KEEP_MS = 6 * 3600e3;
 const ss = { get(k) { try { return JSON.parse(sessionStorage.getItem(k) || 'null'); } catch { return null; } }, set(k, v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, JSON.stringify(v)); } catch { /* fine */ } } };
 
-let radio = null, starting = null;
+let radio = null, starting = null, lastPid = null;
 /** start the gate: { remote () → the title's preview remote (or null), roomCode () → the room this phone is in (or null) } */
 export function startRadioGate(o) {
   const tryIt = async () => {
@@ -19,10 +19,15 @@ export function startRadioGate(o) {
       let role = null;
       const c = ss.get(KEY);
       if (c && c.role && c.at > Date.now() - KEEP_MS) role = c.role;
-      if (!role) {
+      // (FR7 FIXES B — FR7-A's NICE line: a NO is remembered too — for the tab, for THAT profile: every non-crew phone asked on every boot.
+      //  A profile change on this tab (a restore, a first link — 'nd:me' with another pid) asks again; the crew switch's `fresh` clears it)
+      const no = !role && c && c.no && c.at > Date.now() - KEEP_MS && c.pid === lastPid;
+      if (!role && !no) {
         await firebaseReady;
-        try { const r = await api('admin', { action: 'radioWho' }); role = r && r.role ? r.role : null; } catch { role = null; }
+        let answered = false;
+        try { const r = await api('admin', { action: 'radioWho' }); role = r && r.role ? r.role : null; answered = true; } catch { role = null; }
         if (role) ss.set(KEY, { role, at: Date.now() });
+        else if (answered) ss.set(KEY, { no: true, pid: lastPid, at: Date.now() });   // (a lost call is never remembered as a NO)
       }
       setOwnerPhone(role === 'owner');   // (HE8 — THE OWNER'S LIVE TEST: his room's game list offers HOLD'EM · TEST — config.js#isOwnerTest)
       if (!role) return null;
@@ -39,7 +44,7 @@ export function startRadioGate(o) {
     })().catch(e => { console.warn('[radio] gate', e); return null; }).finally(() => { starting = null; });
     return starting;
   };
-  window.addEventListener('nd:me', () => { if (!radio) tryIt(); });
+  window.addEventListener('nd:me', e => { lastPid = (e && e.detail && e.detail.pid) || null; if (!radio) tryIt(); });
   tryIt();
   // (SHELL 2.0 B2 — THE CREW SWITCH LIVE: the owner flipped this player's CREW — app.js#paintCrew: ON → ask the server again now (no cached
   //  answer); OFF → the radio goes at once (its button, its panel if open))

@@ -152,3 +152,16 @@ test("PD2 — SCORE RUSH's tighter margin (3 → 2.8, from a fresh sim): a run 3
   assert.ok(maxRushScore(400, 141.8) >= 2.5 * 285_228, 'prism3: still ≥ 2.5 × the best run');
   assert.ok(maxRushScore(400, 126.7) >= 2.5 * 248_202, 'prism4: still ≥ 2.5 × the best run');
 });
+
+test('the NICE lines (FR7-A): HOST raced against 20 s with a plain line (one attempt at a time); a 425 backs off to 60 s; a radioWho NO remembered per profile', () => {
+  const dock = fs.readFileSync('js/screens/title-dock.js', 'utf8');
+  assert.match(dock, /const HOST_WAIT_MS = 20_000;/);
+  assert.match(dock, /hostP = hostP \|\| createRoom\(p\)\.finally\(\(\) => \{ hostP = null; \}\);\s*await Promise\.race\(\[hostP, new Promise\(\(_, rej\) => setTimeout\(\(\) => rej\(new Error\('city-full'\)\), HOST_WAIT_MS\)\)\]\);/);
+  assert.match(dock, /if \(\/city-full\/\.test\(m\)\) return 'The city’s full tonight — try again in a minute\.';/);
+  const q = fs.readFileSync('js/profile/queue.js', 'utf8');
+  assert.match(q, /e\.status === 425 \? Math\.min\(SETTLE_MAX_MS, 2000 \* 2 \*\* Math\.max\(0, x\.n - 1\)\)/);
+  assert.match(q, /const SETTLE_MAX_MS = 60_000;/);
+  const gate = fs.readFileSync('js/screens/harbor/radio-gate.js', 'utf8');
+  assert.match(gate, /else if \(answered\) ss\.set\(KEY, \{ no: true, pid: lastPid, at: Date\.now\(\) \}\);/, 'a NO remembered (never a lost call)');
+  assert.match(gate, /const no = !role && c && c\.no && c\.at > Date\.now\(\) - KEEP_MS && c\.pid === lastPid;/, '… for that profile only');
+});

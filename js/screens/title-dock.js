@@ -10,6 +10,9 @@ import { firebaseReady } from '../firebase.js';
 import { createRoom, joinRoom, pendingResume } from '../room.js';
 import { lazyImport } from '../ui/lazy-import.js';
 
+// (FR7 FIXES B: HOST's create raced against this — at the database's 101st connection it never answers; one attempt at a time)
+const HOST_WAIT_MS = 20_000;
+let hostP = null;
 const tube = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="t">${d}</g><g class="c">${d}</g></svg>`;
 export const ICON = {
   join: tube('<path d="M5.4 21.2V4.7c0-.8.6-1.4 1.4-1.4h10.4c.8 0 1.4.6 1.4 1.4v16.5"/><path d="M5.4 3.6l8 1.5v15.3l-8 .8"/><path d="M3.2 21.2h17.6"/><circle cx="11.5" cy="12.9" r=".55"/>'),
@@ -371,7 +374,11 @@ export function createDockWork(T) {
     T.els.host.setAttribute('aria-busy', 'true');
     try {
       await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
-      await createRoom(p);
+      // (FR7 FIXES B — FR7-A's NICE line: at the database's 101st connection (the free plan's line) the room's create never answers and HOST
+      //  spun with no word — it is raced against HOST_WAIT_MS with a plain line. The attempt itself runs on (ONE at a time: a second tap joins
+      //  the same one — never two rooms); a late success still walks into the room)
+      hostP = hostP || createRoom(p).finally(() => { hostP = null; });
+      await Promise.race([hostP, new Promise((_, rej) => setTimeout(() => rej(new Error('city-full')), HOST_WAIT_MS))]);
       setState({ invite: '', rejoin: '' });
     } catch (e) {
       T.busy = false;
@@ -421,6 +428,7 @@ export function createDockWork(T) {
     if (/door’s locked/i.test(m)) return m;
     if (/other device/i.test(m)) return m;   // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: CANCEL on MOVE HERE)
     if (/wrong words/i.test(m)) return m;
+    if (/city-full/.test(m)) return 'The city’s full tonight — try again in a minute.';
     if (/full/i.test(m)) return `That room is full — 8 players is the limit.`;
     if (/removed you/i.test(m)) return 'The host removed you from that room.';
     if (/permission|network|unavailable|offline/i.test(m)) return 'Couldn’t reach the game servers. Check your connection and try again.';
