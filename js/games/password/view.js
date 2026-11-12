@@ -123,7 +123,8 @@ export function createView() {
     const word = typed;
     pwSfx('submit');
     try {
-      const resp = await judge.guess(word);
+      // (DY2: the guess's place in the run goes with it — a retry of a lost answer gets the first answer back, never counted twice)
+      const resp = await judge.guess(word, run.doors.reduce((n, d) => n + d.guesses.length, 0));
       if (gone) return;
       const r = doorOf(run).guesses.length;
       const was = run;

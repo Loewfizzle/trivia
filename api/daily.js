@@ -156,19 +156,33 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       const day = dayOfCall(body, now);
       const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
       if (!cart.judged || typeof cart.judge !== 'function') throw new ApiError(400, 'bad_action', 'This daily has no such move.');
-      const [startedAt, result, data] = await Promise.all([val(`${base}/s/${pid}`), val(`${base}/r/${pid}`), cart.load ? cart.load(day, now) : null]);
+      // (FR7 FIXES A — DY2: with the guess's place `k`, the record is read too — a REPEAT of a guess whose answer was lost is answered from it,
+      // nothing written; an old phone sends no k = the old path)
+      const k = body.k == null ? null : body.k;
+      const [startedAt, result, data, rec0] = await Promise.all([val(`${base}/s/${pid}`), val(`${base}/r/${pid}`), cart.load ? cart.load(day, now) : null,
+        k != null ? val(`${base}/p/${pid}`) : null]);
       if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
-      if (result != null) throw new ApiError(409, 'finished', 'Today’s run is done.');
       // the word's spelling first — refused before anything is written (no cost); then the guess inside ONE transaction on the record
       const pre = cart.judge({ record: null, word: body.word, day, startedAt, now, data });
       if (pre.refused === 'not_a_word') throw new ApiError(422, 'not_a_word', 'Not in the word list.');
-      let out = null, refused = null;
+      if (k != null) {
+        const a = cart.judge({ record: rec0, word: body.word, k, day, startedAt, now, data });
+        if (a.again) return { day, ...a.again, again: true };
+        if (a.refused === 'out_of_step') throw new ApiError(409, 'out_of_step', 'That guess is out of step.');
+      }
+      if (result != null) throw new ApiError(409, 'finished', 'Today’s run is done.');
+      let out = null, refused = null, again = false;
       const tx = await ref(`${base}/p/${pid}`).transaction(cur => {
-        const r = cart.judge({ record: cur, word: body.word, day, startedAt, now, data });
+        // (a first attempt on an empty cache sees null: judged without k, so it never aborts there — the SDK retries on the real value)
+        const r = cart.judge({ record: cur, word: body.word, k: cur == null ? null : k, day, startedAt, now, data });
+        if (r.again) { again = true; refused = null; out = r.again; return undefined; }
+        again = false;
         if (r.refused) { refused = r.refused; out = null; return undefined; }
         refused = null; out = r.resp;
         return r.record;
       });
+      if (again && out) return { day, ...out, again: true };
+      if (refused === 'out_of_step') throw new ApiError(409, 'out_of_step', 'That guess is out of step.');
       if (!tx.committed || !out) throw new ApiError(409, refused === 'done' ? 'finished' : refused === 'closed' ? 'closed' : 'refused', refused === 'done' ? 'Today’s run is done.' : 'That door is closed.');
       return { day, ...out };
     }

@@ -274,3 +274,39 @@ test('DFIX1 — the abuse checks: a made-up day, two days back, tomorrow, a day 
   await rejects(dailyAction('pw-wes', { action: 'guess', game: 'password', word: { w: 'ABOUT' } }, TURN + 63e3), 422, 'not_a_word');
   await rejects(dailyAction('pw-wes', { action: 'guess', game: { id: 'password' } }, TURN + 63e3), 404, 'no_daily');
 });
+
+// FR7 FIXES A — DY2 (FR7-B's MUST-FIX): a guess whose answer is LOST is never counted twice — the guess carries its place `k`; a repeat is
+// answered from the record (nothing written); a different word on a filled row → out_of_step; an old phone (no k) keeps the old path
+const GK = (uid, word, k, at) => dailyAction(uid, { action: 'guess', game: 'password', word, k }, at);
+test('FR7 FIXES A — DY2: THE GUESS IS IDEMPOTENT — a retry after a lost answer is the same answer, never guess n + 1', async () => {
+  await ensure('pw-dy2', 'Dee');
+  const day = streakDay(NOW), [W1, W2] = await wordsFor(day), miss = blank([W1, W2]);
+  await S('pw-dy2', NOW);
+  const pid = await val('uids/pw-dy2'), recOf = () => val(`dly/password/${day}/p/${pid}`);
+  const a = await GK('pw-dy2', miss, 0, NOW + 1e3);
+  assert.equal(a.n, 1);
+  // the answer was lost on the way back; ENTER again → the SAME answer, the record unchanged
+  const before = JSON.stringify(await recOf());
+  const b = await GK('pw-dy2', miss, 0, NOW + 2e3);
+  assert.equal(b.again, true); assert.equal(b.n, 1); assert.deepEqual(b.marks, a.marks);
+  assert.equal(JSON.stringify(await recOf()), before, 'nothing written');
+  // a different word on that row = out of step (the phone resyncs); a k past the end too
+  await rejects(GK('pw-dy2', W1, 0, NOW + 3e3), 409, 'out_of_step');
+  await rejects(GK('pw-dy2', W1, 5, NOW + 3e3), 409, 'out_of_step');
+  // the lost answer that OPENED THE FRONT DOOR: the retry is that answer, never guess 1 of THE BACK ROOM
+  const open = await GK('pw-dy2', W1, 1, NOW + 4e3);
+  assert.equal(open.next, 1);
+  const again = await GK('pw-dy2', W1, 1, NOW + 5e3);
+  assert.equal(again.again, true); assert.equal(again.next, 1); assert.equal(again.word, W1);
+  const s = await S('pw-dy2', NOW + 6e3);
+  assert.deepEqual(s.run.doors[1].guesses, [], 'THE BACK ROOM untouched');
+  // the finishing guess, lost and retried: the same done + finish time; then finish scores 3 (never 4)
+  const fin = await GK('pw-dy2', W2, 2, NOW + 7e3);
+  const fin2 = await GK('pw-dy2', W2, 2, NOW + 8e3);
+  assert.equal(fin2.again, true); assert.equal(fin2.done, true); assert.equal(fin2.finishedAt, fin.finishedAt);
+  assert.equal((await F('pw-dy2', NOW + 9e3)).score, 3);
+  // an old phone (no k): the old path — a second SLATE is a second guess (accepted as before)
+  await ensure('pw-old', 'Old'); await S('pw-old', NOW);
+  await G('pw-old', miss, NOW + 1e3); const o2 = await G('pw-old', miss, NOW + 2e3);
+  assert.equal(o2.n, 2, 'no k = the old path (kept for a phone on the old script)');
+});

@@ -28,14 +28,14 @@ import { syncMidFlag, wantFlag } from '../daily/room-flag.js';
 import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
 
 // ------------------------------------------------------------------------------------------------ the sheet + each daily's thin meta
-let css = null;
+let css = null, cssReady = false;
 export function dailySheet() {
   if (css) return css;
   css = new Promise(res => {
     if (document.querySelector('link[data-dy]')) { res(); return; }
     const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/css/daily.css'; l.dataset.dy = '1';
     l.onload = () => res(); l.onerror = () => res(); document.head.append(l); setTimeout(res, 2500);
-  });
+  }).then(() => { cssReady = true; });
   return css;
 }
 const metas = new Map();
@@ -92,6 +92,7 @@ function roomWins(st) {
 }
 /** THE ROOM WINS' banner: its own strip over the walk inside (~3.6 s) — never THE MESSAGE (the game start's own messages would replace it) */
 export function banner() {
+  dailySheet();   // (FR7 FIXES A — DY1: the banner can be the first daily thing a fresh page shows)
   const old = document.querySelector('.dy-banner'); if (old) old.remove();
   const el = h('div.dy-banner', { role: 'status', 'aria-live': 'assertive' }, h('span.dy-banner-ic', { html: TICKET_SVG, 'aria-hidden': 'true' }), h('b', ROOM_BANNER));
   document.body.append(el);
@@ -109,7 +110,11 @@ onCloseAll(() => {
 
 /** a full-screen overlay: the layer stack (Esc / the system back = ‹), the city held under it */
 function overlay(cls, onBack) {
+  // FR7 FIXES A — DY1: EVERY overlay loads the sheet itself (RESUME YOUR DAILY on a fresh page opens a RUN with no SCREEN before it — the run
+  // mounted transparent over the title), and stays invisible until the sheet is in (never an unstyled frame)
+  const sheet = dailySheet();
   const el = h(`section.screen.screen-in.dy-overlay.${cls}`, { role: 'dialog', 'aria-modal': 'true' });
+  if (!cssReady) { el.style.visibility = 'hidden'; sheet.then(() => { el.style.visibility = ''; }); }
   document.body.append(el);
   const release = takeLayer(null, { close: onBack });   // (the ONE Esc; the overlay keeps its own z — css/daily.css — under every sheet + toast)
   const unhold = holdCity();

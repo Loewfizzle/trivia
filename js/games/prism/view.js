@@ -13,6 +13,7 @@ import { settings, onSettings } from '../../audio/settings.js';
 import { getContext } from '../../audio/engine.js';
 import { hashString, rngFrom } from '../../core/rng.js';
 import { showCall as kitCall, createAnnouncer } from '../kit/index.js';
+import { installTestHook, removeTestHook } from '../kit/hook.js';
 import * as E from './engine.js';
 import {
   songAt, songStarts, battleLevel, suddenRows, suddenGap, junkDelay, autoTarget, attackersOf,
@@ -277,7 +278,7 @@ export function createView() {
     board = fx = nfx = light = world = page = rail = input = calls = finalView = null;
     eng = null;
     document.body.classList.remove('pd-on', 'pd-duel');
-    if (window.__prism && window.__prism.view === api) delete window.__prism;
+    if (hook) { removeTestHook('__prism', hook); hook = null; }
   }
 
   // ================================================================ state updates (cheap: mark + apply)
@@ -1456,8 +1457,11 @@ export function createView() {
 
   // ================================================================ test hook
   const api = { mount, update, unmount };
+  // FR7 FIXES A (PD1): installed ONLY on a test page (the kit's testMode — the emulators, localhost, the /tests/ previews), never on the
+  // live site: the hook's bot() is a perfect robot player that plays through the real engine (honest-looking writes no bound catches).
+  let hook = null;
   function setupTestHook() {
-    window.__prism = {
+    hook = installTestHook('__prism', {
       view: api,
       engine: () => eng,
       act: a => act(a),
@@ -1510,7 +1514,7 @@ export function createView() {
       look: () => ({ look, dayWarm, pal: pal.id, paper: paper ? paper.id : null, light: !!light, lit: light ? light.effects + light.count : 0, size: light ? light.size : null, visible: els.light.style.visibility !== 'hidden', warm: warmPx === (board && board.px), crayonBusy: !!(board && board.crayonBusy) }),
       freeze: ms => light && light.freeze(ms),
       fire: (kind, o = {}) => fireFx(kind, o),
-    };
+    });
   }
 
   return api;

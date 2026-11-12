@@ -19,7 +19,8 @@ export function loadValid() {
 export function createApiJudge() {
   let valid = null;
   loadValid().then(v => { valid = v; });
-  const judge = createDailyJudge(GAME_ID, { moves: { guess: word => ({ word: cleanWord(word) }) } });
+  // (FR7 FIXES A — DY2: `k` = the guess's place in the run — a retry after a lost answer is answered from the server's record, never a 2nd guess)
+  const judge = createDailyJudge(GAME_ID, { moves: { guess: (word, k) => ({ word: cleanWord(word), ...(Number.isInteger(k) ? { k } : {}) }) } });
   judge.canType = w => { const c = cleanWord(w); return !!c && (!valid || valid.has(c)); };
   return judge;
 }

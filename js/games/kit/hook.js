@@ -1,7 +1,9 @@
 // Match kit — the per-game test hook (`window.__slip`, `window.__gridlock`…) the E2E suites drive.
 // The hook is only installed on `?emu` pages or localhost; a game's view calls installTestHook in mount and
 // removeTestHook in unmount (only its own hook is removed, so a second mount never clobbers a newer one).
-export const testMode = () => typeof location !== 'undefined' && (/[?&]emu\b/.test(location.search) || location.hostname === 'localhost');
+// (FR7 FIXES A: + any page under /tests/ — the no-Firebase previews, opened from the owner's phone on 192.168.x; /tests is never deployed —
+// .vercelignore — so the live site has no such page.)
+export const testMode = () => typeof location !== 'undefined' && (/[?&]emu\b/.test(location.search) || location.hostname === 'localhost' || location.pathname.startsWith('/tests/'));
 
 export function installTestHook(name, api, { always = false } = {}) {
   if (!always && !testMode()) return null;

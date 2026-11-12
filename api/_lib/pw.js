@@ -14,7 +14,7 @@ import { dayWords, freezeSchedule, extendSchedule, reconcileSchedule, reorderAft
 import { dailySecret } from './daily-secret.js';
 import { streakDay, dayOf } from '../../js/core/streak.js';
 import { SCHEDULE_EPOCH } from './pw-day.js';
-import { runView, serverGuess, recordOf, canGuess, cleanWord, replay, shareRunOf, SCORE_MIN, SCORE_MAX } from '../../js/games/password/logic.js';
+import { runView, serverGuess, recordOf, canGuess, cleanWord, replay, shareRunOf, guessAgain, SCORE_MIN, SCORE_MAX } from '../../js/games/password/logic.js';
 
 const DATA = new URL('../_data/pw/', import.meta.url);
 let lists = null;
@@ -114,10 +114,17 @@ export const PW_DAILY = {
   load: (day, now) => pwDay(day, now),
   /** a resume: the record → what the phone may see */
   resume: ({ record, day, startedAt, data }) => viewOf(record, day, { startedAt, data }),
-  /** ONE guess, judged inside a transaction on the record (two taps at once can't both be guess n) → { record, resp } or a refusal */
-  judge({ record, word, day, startedAt, now, data }) {
+  /** ONE guess, judged inside a transaction on the record (two taps at once can't both be guess n) → { record, resp } or a refusal.
+   *  FR7 FIXES A — DY2, THE GUESS IS IDEMPOTENT: `k` = the guess's place in the run (0-based, both doors together — the phone's count of what it
+   *  has seen). A REPEAT (k already in the record, the same word: its answer was lost on the way back) → { again: resp } — answered FROM THE
+   *  RECORD, nothing written; a k the record doesn't match → 'out_of_step' (the phone resyncs). No k (an old phone) = the old path. */
+  judge({ record, word, k, day, startedAt, now, data }) {
     const g = cleanWord(word);
     if (!g || !isWord(g)) return { refused: 'not_a_word' };      // (no cost: nothing is written)
+    if (k != null) {
+      const a = guessAgain(record, g, k, wordsOf(day, data), { startedAt });
+      if (a) return a;
+    }
     const run = viewOf(record, day, { startedAt, data });
     const why = canGuess(run);
     if (why) return { refused: why };                             // 'done' | 'closed'

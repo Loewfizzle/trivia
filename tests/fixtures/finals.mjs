@@ -27,6 +27,8 @@ export function finalGame(id, uids, opts = {}) {
     }
     case 'overclock': return {
       ...base, settings: { mode: opts.mode || 'standard' }, total: opts.mode === 'quick' ? 6 : 12,
+      // (FR7 FIXES A — OC1: a real order; the STANDARD bound checks each result against its type's ceiling)
+      order: ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'timeline', 'closest'].slice(0, opts.mode === 'quick' ? 6 : 12),
       results: Object.fromEntries(Array.from({ length: opts.mode === 'quick' ? 6 : 12 }, (_, ci) => [ci, byRank(uids, i => ({ pts: opts.ocPts != null && i === 0 ? opts.ocPts : 150 - i * 20, ok: 1, parts: 1 }))])),
     };
     case 'bluff': return { ...base, settings: { mode: 'standard' }, rounds: 3, results: Object.fromEntries([0, 1, 2].map(r => [r, byRank(uids, i => ({ pts: 1500 - i * 300, truth: true, fooled: i === 0 ? 2 : 0, likes: 0 }))])) };

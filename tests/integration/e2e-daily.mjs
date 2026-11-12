@@ -236,8 +236,15 @@ await H.run(async () => {
   await waitFor(A.page, `(() => { const c = document.querySelector('.nd-dychip'); return c && !c.hidden; })()`, 'RESUME YOUR DAILY', 40000);
   ok(true, 'back in the room: RESUME YOUR DAILY');
   if (H.SHOTS) await H.shotAll(A.page, 'dy-06-chip');
+  // FR7 FIXES A — DY1 (FR7-B's MUST-FIX): a FRESH PAGE (iOS dropped the tab, a refresh) → the chip → the run opens STYLED — it used to mount
+  // transparent over the title (css/daily.css was linked only by THE DAILY SCREEN, which a chip never opens)
+  await A.page.reload();
+  await waitFor(A.page, `!document.getElementById('boot') && !!window.__arcade && window.__arcade.state.code === '${code}' && (() => { const c = document.querySelector('.nd-dychip'); return c && !c.hidden; })()`, 'the chip after a reload', 60000);
+  ok(true, 'a fresh page in the room: RESUME YOUR DAILY again');
   await click(A.page, '.nd-dychip');
   await waitFor(A.page, `!!window.__coastclear && window.__coastclear.ready() && !!document.querySelector('.dy-run .cc-board')`, 'the run again', 20000);
+  const styled = await ev(A.page, `(() => { const o = getComputedStyle(document.querySelector('.dy-run')); return { bg: o.getPropertyValue('--dy-bg-0').trim(), pos: o.position, vis: o.visibility, back: !!document.querySelector('.dy-run .dy-back') }; })()`);
+  ok(/^#[0-9a-f]{6}$/i.test(styled.bg) && styled.pos !== 'static' && styled.vis === 'visible' && styled.back, `DY1: the run on a fresh page opens STYLED (${JSON.stringify(styled)})`);
   for (let i = 0; i < 40; i++) { rec = await val(`dly/coastclear/${day}/p/${A.pid}`); if (rec && pausesOf(rec).at == null) break; await sleep(200); }
   ok(rec && pausesOf(rec).at == null && pausesOf(rec).n === 1, 'RESUMED exactly where it was — the clock running again (+15 s for the one pause)');
   ok(await ev(A.page, `!(document.querySelector('.nd-dychip') || {}).hidden === false || document.querySelector('.nd-dychip').hidden`), 'the chip gone once the run is open');

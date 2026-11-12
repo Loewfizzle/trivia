@@ -123,6 +123,27 @@ export function runView(record, answers, { day, uid, startedAt } = {}) {
   if (record && record.e && run.done) run.finishedAt = Number(record.e) || run.finishedAt;
   return run;
 }
+/**
+ * FR7 FIXES A — DY2, THE GUESS IS IDEMPOTENT (PURE): a guess's place `k` (0-based, both doors together) against the stored record →
+ *   null                       = a new guess at the end (judge it as usual)
+ *   { again: resp }            = the k-th stored guess IS this word — its answer was lost on the way back: rebuilt by replaying the record's
+ *                                first k guesses (the caller writes NOTHING)
+ *   { refused: 'out_of_step' } = k isn't a whole number, is past the end, or names a different word (the phone resyncs)
+ */
+export function guessAgain(record, word, k, answers, { startedAt = 0 } = {}) {
+  const n = Number(k), w = cleanWord(word);
+  if (!Number.isInteger(n) || n < 0 || n > DOORS * GUESSES || !w) return { refused: 'out_of_step' };
+  const g = (record && record.g) || {};
+  const all = [];
+  for (let di = 0; di < DOORS; di++) for (const x of (Array.isArray(g[di]) ? g[di] : Object.values(g[di] || {}))) all.push({ di, w: x });
+  if (n === all.length) return null;
+  if (n > all.length || cleanWord(all[n].w) !== w) return { refused: 'out_of_step' };
+  const before = { g: {} };
+  for (const x of all.slice(0, n)) (before.g[x.di] ||= []).push(x.w);
+  const { run: next, resp } = serverGuess(runView(before, answers, { startedAt }), w, answers, record && record.e);
+  if (resp.done) resp.finishedAt = (record && record.e) || next.finishedAt;
+  return { again: resp };
+}
 /** what the server stores of a run (the words only — never a mark, never an answer) */
 export const recordOf = run => ({ g: Object.fromEntries(run.doors.map((d, i) => [i, d.guesses.slice()]).filter(([, g]) => g.length)), ...(run.done ? { e: run.finishedAt } : {}) });
 

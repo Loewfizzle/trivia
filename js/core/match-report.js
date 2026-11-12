@@ -91,7 +91,6 @@ export function maxRushScore(lines, seconds) {
 /** CIPHER: the most one round can score. */
 const cipherRoundMax = len => 100 + 25 * Math.max(0, len - 5) + 100 + 20 * MAX_GUESSES;
 export const CIPHER_MIN_SOLVE_MS = 1500;
-const OC_CHALLENGE_MAX = 2 * (160 + 60 + 60);
 
 // ------------------------------------------------------------------ per-game extras
 function cipherExtra(game, uid, out) {
@@ -155,30 +154,38 @@ function overclockExtra(game, uid, out, row, ctx, win) {
   // (logic.js#ptsCeiling — the most its ok / parts could score, ×2 on the last) + the order six real skill challenges (never DUMB LUCK alone)
   // → rec 'overclock-quick' (the solo lane maps it to overclock-quick-solo); anything a real QUICK run can't reach is refused
   if (uids.length === 1 && mode === 'quick' && num(game.total) === OC_MODES.quick && Object.keys(res).length === OC_MODES.quick) {
-    const ord = Array.isArray(order) ? order : Object.values(order || {});
-    let bad = ord.length !== OC_MODES.quick || !ord.every(t => OC_SKILL_TYPES.includes(t));
-    let total = 0;
-    for (let ci = 0; ci < OC_MODES.quick && !bad; ci++) {
-      const x = res[ci] && res[ci][uid];
-      const p = num(x && x.pts);
-      if (!x || p < 0 || !Number.isInteger(p) || p > ocPtsCeiling(ord[ci], num(x.ok), num(x.parts), ci === OC_MODES.quick - 1)) bad = true;
-      total += p;
-    }
-    if (!bad && total > ocMatchMax(ord)) bad = true;
+    const bad = !ocRunPlausible(game, uid, OC_MODES.quick, false);
     if (bad) out.rejected.push({ uid, board: 'overclock-quick-solo', v: row.score });
     // (OC8 — B1, THE FABLE REVIEW: a phone left on the table wrote a 0 to the board + "NEW PERSONAL BEST") a run that scored nothing — no
     // answered part, a total of 0 — is never a record (not a cheat either: just nothing to keep)
-    else if (total > 0 && Object.values(res).some(rr => num(rr && rr[uid] && rr[uid].ok) > 0)) out.rec['overclock-quick'] = row.score;
+    else if (Object.values(res).some(rr => num(rr && rr[uid] && rr[uid].pts) > 0) && Object.values(res).some(rr => num(rr && rr[uid] && rr[uid].ok) > 0)) out.rec['overclock-quick'] = row.score;
   }
   if (mode !== 'standard' || num(game.total) !== OC_MODES.standard) return;
-  let bad = false;
-  for (const ci of Object.keys(game.results || {})) {
-    const p = num(game.results[ci] && game.results[ci][uid] && game.results[ci][uid].pts);
-    if (p < 0 || p > OC_CHALLENGE_MAX) bad = true;
-  }
   if (Object.keys(game.results || {}).length !== OC_MODES.standard) return; // not every challenge played
-  if (bad) out.rejected.push({ uid, board: 'overclock-std', v: row.score });
+  // (FR7 FIXES A — OC1: the STANDARD boards took 560 a challenge, 6,720 a match, where a perfect match is 2,080 — now THE SCORING TABLE's
+  // own bound, the QUICK board's: each result an integer ≤ ptsCeiling(type, ok, parts, last), the order real, the total ≤ matchMax)
+  if (!ocRunPlausible(game, uid, OC_MODES.standard, uids.length > 1)) out.rejected.push({ uid, board: 'overclock-std', v: row.score });
   else if (uids.length > 1 || num(row.score) > 0) out.rec['overclock-std'] = row.score;   // (B1: a SOLO run of 0 is never a record)
+}
+
+/** OVERCLOCK's plausibility bound for a whole run (OC5's QUICK solo check; FR7 FIXES A made STANDARD take it too): `total` results, the order
+ *  `total` real types (DUMB LUCK only with 2+ players — `luck` — at most once, never last), each result an integer inside THE SCORING TABLE
+ *  (logic.js#ptsCeiling: the most its ok / parts could score, ×2 on the last), the sum ≤ matchMax(order) */
+export function ocRunPlausible(game, uid, total, luck) {
+  const res = (game && game.results) || {};
+  const ord = Array.isArray(game && game.order) ? game.order : Object.values((game && game.order) || {});
+  if (ord.length !== total) return false;
+  if (!ord.every(t => OC_SKILL_TYPES.includes(t) || (luck && t === OC_LUCK))) return false;
+  if (ord.filter(t => t === OC_LUCK).length > 1 || ord[total - 1] === OC_LUCK) return false;
+  let sum = 0;
+  for (let ci = 0; ci < total; ci++) {
+    const x = res[ci] && res[ci][uid];
+    if (!x) continue;   // (a challenge this player sat out — 0)
+    const p = Number(x.pts);
+    if (!Number.isInteger(p) || p < 0 || p > ocPtsCeiling(ord[ci], num(x.ok), num(x.parts), ci === total - 1)) return false;
+    sum += p;
+  }
+  return sum <= ocMatchMax(ord);
 }
 
 function bluffExtra(game, uid, out) {
