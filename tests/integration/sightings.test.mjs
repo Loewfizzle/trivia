@@ -34,7 +34,15 @@ function firstLegend(kind) {
   for (let i = 0; i < 200; i++) { const dt = new Date(Date.UTC(2026, 10, 1) + i * 864e5), y = dt.getUTCFullYear(), m = dt.getUTCMonth() + 1, d = dt.getUTCDate(); const L = legendsTonight(y, m, d, 'high').find(x => x.kind === kind); if (L) return evMs(y, m, d, L.h); }
   throw new Error(kind);
 }
-const claim = (uid, id, t, now = t + 2000, extra = {}) => profileAction(uid, { action: 'sighting', id, t, tz: TZ, ipTz: TZ, ...extra }, '', now);
+/** FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: a real tap comes from a city on screen, whose ~2-minute hello (radioAction 'radioHello' — the
+ *  server's own city-open stamp) covers it; `closed: true` = a claim with no city open */
+const { radioAction } = await import('../../api/_lib/radio.js');
+const cityOpen = async (uid, at) => radioAction(await val(`uids/${uid}`), uid, { action: 'radioHello' }, at);
+const claim = async (uid, id, t, now = t + 2000, extra = {}) => {
+  const { closed, ...rest } = extra;
+  if (!closed) await cityOpen(uid, t - 1000);
+  return profileAction(uid, { action: 'sighting', id, t, tz: TZ, ipTz: TZ, ...rest }, '', now);
+};
 
 test('CITY SIGHTINGS: a tap the timetable agrees with counts ONCE per appearance + unlocks the MATCHED PAIR; a forged one never', async () => {
   const at = firstLegend('ufo');
@@ -159,4 +167,22 @@ test('CALL IN A FAVOR: no token → refused; a token fires one crew jack for the
   // (FR6 FIXES A: THIS favor's own record — radio/fired keeps the earlier RADIO test's owner moment too, so [0] read the wrong one)
   const rec = await val(`radio/fired/${r.moment.id}`);
   assert.equal(rec.role, 'favor'); assert.equal(rec.sight, false, 'never a sighting');
+});
+
+// FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN (the owner's add-on): a SKY claim needs the server's own city-open stamp (the visible city's
+// hello) around its t; QUEUE_MS 12 h → 15 min. A speed bump, not a seal (a script keeping the hello going still can).
+test('FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: no open-city stamp → refused; 20 min late → refused; a real tap → granted', async () => {
+  const at = firstLegend('ufo');
+  await ensure('sg-open', 'OPENER', at - 864e5);
+  assert.equal((await claim('sg-open', 'ufo', at + 4000, at + 6000, { closed: true })).why, 'closed', 'no city open → refused');
+  await cityOpen('sg-open', at - 600e3);   // (a city open 10 min BEFORE, closed since — its stamp doesn't reach t)
+  assert.equal((await claim('sg-open', 'ufo', at + 4000, at + 6000, { closed: true })).why, 'closed', "an old opening doesn't cover it");
+  assert.equal((await claim('sg-open', 'ufo', at + 4000, at + 4000 + 20 * 60e3)).why, 'stale', '20 min late → refused');
+  const r = await claim('sg-open', 'ufo', at + 4000);
+  assert.ok(r.ok && r.counted, `a real tap with the city open → granted (${JSON.stringify(r).slice(0, 80)})`);
+  // the stamp itself: one opening while the hellos keep coming, a new one after a gap (the previous kept)
+  const pid = await val('uids/sg-open');
+  await cityOpen('sg-open', at + 120e3); await cityOpen('sg-open', at + 240e3);
+  const co = await val(`ppriv/${pid}/co`);
+  assert.ok(co.b === at + 240e3 && co.a === at + 3000, `one opening kept alive (${JSON.stringify(co)})`);
 });

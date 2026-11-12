@@ -37,7 +37,20 @@ export const SIGHTING = Object.freeze(Object.fromEntries(SIGHTINGS.map(s => [s.i
 export const SIGHTING_IDS = Object.freeze(SIGHTINGS.map(s => s.id));
 
 /** a tap may reach the server this late (a queued claim — /api was down, the phone offline) */
-export const QUEUE_MS = 12 * 3600e3;
+export const QUEUE_MS = 15 * 60e3;   // (FR7 FIXES B — the owner's add-on: 12 h → 15 min — a real tap's claim goes at once; a dead spot queues it briefly)
+/**
+ * FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN (the owner's add-on, Grok's second opinion): a SKY claim counts only while a SERVER-WRITTEN
+ * "city open" stamp covers its t — ppriv/{pid}/co = { a, b, p } (the opening the visible city's own ~2-minute hello keeps alive: a = its first
+ * hello, b = its latest; p = the opening before it), written by /api/admin radioHello (api/_lib/radio.js#hello — a call the city already
+ * makes; no new function, no new poll). A SPEED BUMP, not a seal: a script that keeps the hello going still can — it only stops a claim
+ * made with no city open at all. The radio's moments keep their own record (radio/fired). OPEN_LEAD_MS before the first hello (it goes ~4 s
+ * after the boot), OPEN_TRAIL_MS after the latest (the next is ≤ ~132 s away).
+ */
+export const OPEN_LEAD_MS = 30e3, OPEN_TRAIL_MS = 150e3, CITY_GAP_MS = 210e3;
+/** PURE: did a city-open stamp cover t? */
+export const cityOpenAt = (open, t) => [open, open && open.p].some(w => !!w && Number.isFinite(w.a) && Number.isFinite(w.b) && t >= w.a - OPEN_LEAD_MS && t <= w.b + OPEN_TRAIL_MS);
+/** PURE: the stamp after a hello at `now` — the same opening while the hellos keep coming (≤ CITY_GAP_MS apart), else a new one */
+export const openStep = (cur, now) => (cur && Number.isFinite(cur.b) && now >= cur.b && now - cur.b <= CITY_GAP_MS ? { a: cur.a, b: now, p: cur.p || null } : { a: now, b: now, p: cur && Number.isFinite(cur.a) ? { a: cur.a, b: cur.b } : null });
 /** a tap's own lag: the claim's clock vs the server's (ahead), a frame + a finger before the window opens, the fade after it closes */
 export const AHEAD_MS = 15e3, LEAD_MS = 3e3, TRAIL_MS = 8e3;
 /** the phone's zone vs the IP's: a carrier's IP is often a zone off — further than this and the claim's place is not the player's */
@@ -156,7 +169,7 @@ export function radioWindows(id, t, fired, { tz, rooms = [] } = {}) {
 /**
  * IS THE CLAIM TRUE? claim { id, t, tz } · ctx { now, ipTz (the IP's zone | null), place, level, kp, fired, rooms, watchStart } →
  *   { ok: true, via: 'sky' | 'radio', key (one per appearance — the server counts it once), day (the radio's once-a-day key) }
- *   { ok: false, why: 'unknown' | 'future' | 'stale' | 'tz' | 'place' | 'crew' | 'preview' | 'not_on_screen' }
+ *   { ok: false, why: 'unknown' | 'future' | 'stale' | 'tz' | 'place' | 'closed' | 'crew' | 'preview' | 'not_on_screen' }
  */
 export function verifySighting(claim, ctx = {}) {
   const c = claim || {}, now = ctx.now;
@@ -169,6 +182,7 @@ export function verifySighting(claim, ctx = {}) {
   if (ctx.ipTz && validZone(ctx.ipTz) && Math.abs(localParts(t, c.tz).off - localParts(t, ctx.ipTz).off) > ZONE_SLACK_MIN) return { ok: false, why: 'place' };
   const inW = w => t >= w.a - LEAD_MS && t <= w.b + TRAIL_MS;
   const sky = skyWindows(c.id, t, { tz: c.tz, place: ctx.place, level: ctx.level, kp: ctx.kp, watchStart: ctx.watchStart }).find(inW);
+  if (sky && !cityOpenAt(ctx.open, t)) return { ok: false, why: 'closed' };   // (FR7 FIXES B: no city open then — a speed bump, not a seal)
   if (sky) return { ok: true, via: 'sky', key: `${c.id}:${sky.key}` };
   const radio = radioWindows(c.id, t, ctx.fired, { tz: c.tz, rooms: ctx.rooms || [] }).filter(inW);
   const owner = radio.find(w => w.role === 'owner' && w.sight && w.aud !== 'me');

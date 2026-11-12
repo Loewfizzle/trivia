@@ -32,7 +32,8 @@ function findLegend(kind, from = [2026, 11, 1]) {
   }
   throw new Error(`no ${kind}`);
 }
-const claim = (id, t, extra = {}) => verifySighting({ id, t, tz: TZ }, { now: t + 1500, ipTz: TZ, place: GR, level: 'high', ...extra });
+// (FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: a real tap comes with the server's city-open stamp around t — `open`; pass open: null for none)
+const claim = (id, t, extra = {}) => verifySighting({ id, t, tz: TZ }, { now: t + 1500, ipTz: TZ, place: GR, level: 'high', open: { a: t - 60e3, b: t }, ...extra });
 
 test('every sighting has its row, its LEGENDARIES id, its MATCHED PAIR in the catalog (legendary card + emblem)', () => {
   assert.deepEqual([...SIGHTING_IDS].sort(), [...LEGENDARIES].sort());
@@ -70,8 +71,10 @@ test('FORGED: a time in the future, a stale queue, a bad zone, a zone far from t
   assert.equal(verifySighting({ id: 'ufo', t: at + 3000, tz: 'Asia/Tokyo' }, { now: at + 4000, ipTz: TZ }).why, 'place');
   assert.equal(verifySighting({ id: 'ufo', t: at + 3000, tz: 'America/Chicago' }, { now: at + 4000, ipTz: TZ }).ok, false, 'Chicago\'s UFO is an hour later');
   assert.equal(verifySighting({ id: 'moon', t: at, tz: TZ }, { now: at }).why, 'unknown');
-  // a QUEUED claim (offline) within the queue's 12 h still counts
-  assert.equal(verifySighting({ id: 'ufo', t: at + 3000, tz: TZ }, { now: at + 6 * 3600e3, ipTz: TZ }).ok, true);
+  // a QUEUED claim (offline) within the queue's 15 min (FR7 FIXES B: was 12 h) still counts — the city open then
+  assert.equal(verifySighting({ id: 'ufo', t: at + 3000, tz: TZ }, { now: at + 10 * 60e3, ipTz: TZ, open: { a: at, b: at + 3000 } }).ok, true);
+  assert.equal(verifySighting({ id: 'ufo', t: at + 3000, tz: TZ }, { now: at + 20 * 60e3, ipTz: TZ, open: { a: at, b: at + 3000 } }).why, 'stale', '20 min late');
+  assert.equal(verifySighting({ id: 'ufo', t: at + 3000, tz: TZ }, { now: at + 4000, ipTz: TZ }).why, 'closed', 'no city-open stamp');
 });
 
 test('A &force= / &lgnow= PREVIEW never counts: the timetable says nothing was there', () => {

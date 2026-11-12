@@ -25,6 +25,7 @@ import { cleanHoldem } from '../../js/core/harbor-holdem.js';
 import { ApiError } from './http.js';
 import { ref, val, adminPids, emulated } from './fb.js';
 import { liveRoomsRead } from './rooms-live.js';
+import { openStep } from '../../js/core/sightings.js';
 import { knob } from '../../js/core/harbor-schedule.js';
 import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY, radioHolder, parseTag, cleanWords } from '../../js/core/harbor-radio.js';
 import { nameKey } from '../../js/core/names.js';
@@ -212,8 +213,10 @@ export async function cityCount(now) {
   if (Object.keys(gone).length) await ref('here').update(gone);
   return n;
 }
-export async function hello(uid, now) {
+export async function hello(uid, now, me = null) {
   if (/^[A-Za-z0-9]{10,40}$/.test(uid)) await ref('/').update({ [`here/${uid}`]: now, [`radio/visits/${dayKey(now)}/${uid}`]: true });   // (THE LEDGER's visitors a day: an estimate — a visible city)
+  // (FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: the profile's city-open stamp, server-written — core/sightings.js#openStep / #cityOpenAt)
+  if (me && /^[-_A-Za-z0-9]{6,40}$/.test(me)) await ref(`ppriv/${me}/co`).transaction(cur => openStep(cur, now)).catch(() => {});
   return { ok: true };
 }
 
@@ -274,7 +277,7 @@ async function state(me, role, uid, body, now) {
 
 /** the radio's actions (adminAction routes every 'radio…' action here BEFORE its admin-only gate: the crew may use some) */
 export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
-  if (body.action === 'radioHello') return hello(uid, now);
+  if (body.action === 'radioHello') return hello(uid, now, me);
   // CC-B — "A ROOM JUST OPENED": any signed-in host tells the server its room is open (the server checks it + notifies the owner once)
   if (body.action === 'radioRoomOpened') return roomOpened(me, uid, body, now);
   const role = await roleOf(me);

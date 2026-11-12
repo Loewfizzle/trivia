@@ -42,18 +42,19 @@ export async function claimSighting(pid, uid, body, o = {}, now = Date.now()) {
   if (!row) return { ok: false, why: 'unknown' };
   const place = o.place !== undefined ? o.place : (o.placeOf && o.req ? o.placeOf(o.req) : null);
   const ipTz = o.ipTz !== undefined ? o.ipTz : header(o.req, 'x-vercel-ip-timezone');
-  const [level, kp, fired, watchStart] = await Promise.all([
+  const [level, kp, fired, watchStart, open] = await Promise.all([
     val('city2/showcase').catch(() => null),
     id === 'aurora' && o.kpNow ? o.kpNow({ now }).catch(() => null) : null,
     row.jacks.length && Number.isFinite(t) ? firedNear(t).catch(() => []) : [],
     id === 'blackbird' ? val(`ppriv/${pid}/ws`).catch(() => null) : null,
+    val(`ppriv/${pid}/co`).catch(() => null),   // (FR7 FIXES B: the city-open stamp — radio.js#hello)
   ]);
   // the rooms the player is in (only the rooms a fired moment named)
   const rooms = [];
   for (const code of new Set((fired || []).filter(f => f.aud === 'room' && f.room).map(f => f.room))) {
     if (await val(`rooms/${code}/players/${uid}`).catch(() => null)) rooms.push(code);
   }
-  const v = verifySighting({ id, t, tz }, { now, ipTz, place, level: typeof level === 'string' ? level : null, kp, fired, rooms, watchStart });
+  const v = verifySighting({ id, t, tz }, { now, ipTz, place, level: typeof level === 'string' ? level : null, kp, fired, rooms, watchStart, open });
   if (!v.ok) return { ok: false, why: v.why };
   // the same appearance tapped again is still that ONE sighting (a reaction, never a second count)
   const stats0 = () => val(`pstats/${pid}/pa`).catch(() => null);

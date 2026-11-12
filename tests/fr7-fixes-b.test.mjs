@@ -178,3 +178,17 @@ test('A SEAT IS NOT A PLAY — the walk back keeps the proof nodes + the seal (a
   assert.match(rep, /if \(!\(players && players\[u\]\) \|\| !playedIt\(u\)\) delete ex\.rows\[u\];/, 'every credited uid needs its own proof');
   assert.match(rep, /const real = realPlayers\(named\.filter\(playedIt\), players, known\)\.length;/, 'dropped BEFORE the count');
 });
+
+test('SIGHTINGS NEED THE CITY OPEN — the stamp\'s rules (PURE): one opening while the hellos keep coming, the previous kept; covers t with a lead + a trail; QUEUE_MS 15 min', async () => {
+  const { cityOpenAt, openStep, QUEUE_MS, OPEN_LEAD_MS, OPEN_TRAIL_MS, CITY_GAP_MS } = await import('../js/core/sightings.js');
+  assert.equal(QUEUE_MS, 15 * 60e3);
+  let co = openStep(null, 1_000_000);
+  co = openStep(co, 1_120_000); co = openStep(co, 1_240_000);
+  assert.deepEqual([co.a, co.b], [1_000_000, 1_240_000], 'one opening');
+  const later = openStep(co, 1_240_000 + CITY_GAP_MS + 1);
+  assert.equal(later.a, 1_240_000 + CITY_GAP_MS + 1); assert.deepEqual(later.p, { a: 1_000_000, b: 1_240_000 }, 'the previous opening kept');
+  assert.ok(cityOpenAt(later, 1_100_000), 'a t in the previous opening');
+  assert.ok(cityOpenAt(co, 1_000_000 - OPEN_LEAD_MS) && !cityOpenAt(co, 1_000_000 - OPEN_LEAD_MS - 1));
+  assert.ok(cityOpenAt(co, 1_240_000 + OPEN_TRAIL_MS) && !cityOpenAt(co, 1_240_000 + OPEN_TRAIL_MS + 1));
+  assert.equal(cityOpenAt(null, 5), false, 'no stamp → closed');
+});

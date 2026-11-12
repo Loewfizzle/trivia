@@ -246,6 +246,9 @@ export function createRemote({ scene, api = apiCall }) {
   let helloT = 0;
   const hello = () => { clearTimeout(helloT); if (destroyed) return; if (document.visibilityState === 'visible' && api) api('admin', { action: 'radioHello' }).catch(() => {}); helloT = setTimeout(hello, 120e3 * (0.9 + Math.random() * 0.2)); };
   firebaseReady.then(() => { if (!destroyed && !TEST_PANEL) helloT = setTimeout(hello, 4000); }).catch(() => {});
+  // (FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: back on screen = a hello at once — the server's city-open stamp starts again then, not ~2 min later)
+  const helloBack = () => { if (!destroyed && !TEST_PANEL && document.visibilityState === 'visible' && helloT) hello(); };
+  document.addEventListener('visibilitychange', helloBack);
 
   // ---------------------------------------------------------------- the owner's pill (admins only)
   // (PERF-A — FR5 E2 + Grok: a "no" was pinned 6 h in the tab — asked before this login was linked to its profile, it stayed after a key
@@ -1008,7 +1011,7 @@ export function createRemote({ scene, api = apiCall }) {
       if (cd) clearInterval(cd.iv);
       if (play) clearTimeout(play.timer);
       if (unsub) { try { unsub(); } catch { /* fine */ } release('admin'); }
-      clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis); window.removeEventListener('nd:me', onMe);
+      clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis); document.removeEventListener('visibilitychange', helloBack); window.removeEventListener('nd:me', onMe);
       if (bar) bar.remove();
       if (sheet) sheet.remove(); if (hrRelease) { hrRelease(); hrRelease = null; }
       setMenuExtra('admin', null); setMenuExtra('adminpage', null); setMenuExtra('lab', null); setMenuCue(null);
