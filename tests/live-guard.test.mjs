@@ -49,3 +49,25 @@ test('THE TEST FLAG: a test tab makes no profile (no member Nº), keeps the flag
   assert.match(room, /testMode \? \{ silent: true \}/, 'the room push says silent');
   assert.match(radio, /body\.silent === true\) return \{ ok: true, sent: 0, silent: true \}/, 'the server honours it');
 });
+
+// FR7 FIXES B — FR7-A F: the PLAYWRIGHT (WebKit) launchers too — the puppeteer patch doesn't reach them. Each guards its own pages or goes
+// through THE LINE (kit/line-proxy.mjs), whose upstream is guarded; and a WebKit page on the app itself carries ?emu (the vault's no-tap
+// sighting signed in on the PRODUCTION project without it)
+test('every WebKit (Playwright) launcher guards its pages or goes through the guarded line; an app page carries ?emu', () => {
+  const files = [];
+  const walk = dir => { for (const e of readdirSync(new URL(dir, root), { withFileTypes: true })) {
+    if (e.name === 'node_modules' || e.name.startsWith('shots')) continue;
+    const p = `${dir}${e.name}`;
+    if (e.isDirectory()) walk(`${p}/`); else if (/\.mjs$/.test(e.name)) files.push(p);
+  } };
+  walk('tests/integration/');
+  const wk = files.filter(f => /webkit\.launch\(/.test(read(f)));
+  assert.ok(wk.length >= 10, `${wk.length} WebKit launchers`);
+  const bad = wk.filter(f => { const s = read(f); return !/guardUrl\(/.test(s) && !/startLine\(/.test(s); });
+  assert.deepEqual(bad, [], `unguarded WebKit launchers: ${bad.join(', ')}`);
+  const line = read('tests/integration/kit/line-proxy.mjs');
+  assert.match(line, /to = guardUrl\(to, 'THE LINE'\)/, 'the line guards its upstream');
+  assert.match(line, /switchTo: u => \{ upstream = guardUrl\(u, 'THE LINE'\); \}/);
+  const vault = read('tests/integration/harbor-e2e/vault.mjs');
+  assert.ok(!/goto\([^)]*\$\{BASE\}\/\?(?!emu)/.test(vault), 'the vault\'s WebKit page on the app carries ?emu');
+});

@@ -14,6 +14,7 @@
 //   GLOWS tab's 14 glows, DRESS YOUR CARD (the profile's one panel + the dress screen's tabs + tier-edged tiles, the widest name whole) and
 //   DRESS YOUR CARD BY FINGER (real taps wear an emblem · a glow · a card on the pinned strip at once, VIEW FULL ›, a long-press → the full card).
 import { existsSync } from 'node:fs';
+import { guardUrl } from '../kit/live-guard.mjs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -254,7 +255,7 @@ G('vault', async () => {
       const p = await ctx.newPage();
       const E = js => p.evaluate(js);
       const scrollDown = async (max, n) => { for (let i = 0; i < n && (await E('Math.round(scrollY)')) < max - 1; i++) { await p.keyboard.press('PageDown'); await p.waitForTimeout(250); } return E('Math.round(scrollY)'); };
-      await p.goto(`${BASE}/tests/integration/vault-preview.html?view=strips`);
+      await p.goto(guardUrl(`${BASE}/tests/integration/vault-preview.html?view=strips`, 'vault (WebKit)'));
       await p.waitForFunction('!!(document.body.dataset.ready && window.__lab)', null, { timeout: 60000 });
       const max = await E('document.scrollingElement.scrollHeight - innerHeight');
       await p.touchscreen.tap(392, 400);   // (the empty gutter: focus the page, nothing marked)
@@ -414,7 +415,8 @@ G('vault', async () => {
         const ctx = await b.newContext({ viewport: { width: 402, height: 874 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
         await ctx.addInitScript(() => { try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('na:sh:profile', JSON.stringify({ name: 'BEN', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ } });
         const p = await ctx.newPage();
-        await p.goto(`${BASE}/?when=2026-11-03T22:00&force=ufo&lgnow=1`);
+        // (FR7 FIXES B — FR7-A F: ?emu — without it this localhost page signed in anonymously on the PRODUCTION project, three users a run)
+        await p.goto(guardUrl(`${BASE}/?emu&slot=wkv&when=2026-11-03T22:00&force=ufo&lgnow=1`, 'vault (WebKit)'));
         const t0 = Date.now(); let fired = false, tapped = false, box = null;
         while (Date.now() - t0 < (mode === 'none' ? 14000 : 9000)) {
           const r = await p.evaluate(() => import('/js/progress/sighting.js').then(m => ({ tap: !!m.last.tap, dom: !!document.querySelector('.sg-fly, .sg-modal, .sg-flash'), box: window.__district && window.__district.sightBoxes ? window.__district.sightBoxes().find(x => x.id === 'ufo') || null : null }))).catch(() => ({}));

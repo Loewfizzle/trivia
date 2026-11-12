@@ -152,3 +152,8 @@ test('THE PRIVATE-REPO WORKFLOW — private: the harbor workflow never runs on a
   assert.match(t, /if \[ "\$PRIVATE_REPO" != "true" \]; then\n\s+node e2e-conn\.mjs[^\n]*\n\s+SHOTS=0 node e2e-presence\.mjs[^\n]*\n\s+fi/);
   for (const f of ['harbor.yml', 'tests.yml']) assert.match(read(f), /^permissions:\n {2}contents: read$/m, `${f}: read-only token`);
 });
+test('FR7 FIXES B — the cloud runs the /api suites of everything live (both dailies, FRIENDS, HOLD\'EM\'s dealer) before any page opens', () => {
+  const t = read('tests.yml');
+  const step = t.slice(t.indexOf("emulators:exec"), t.indexOf('e2e-smoke.mjs'));
+  for (const f of ['rules', 'server', 'daily-module', 'password', 'coastclear', 'friends', 'holdem-server']) assert.match(step, new RegExp(`node --test ${f}\.test\.mjs`), f);
+});

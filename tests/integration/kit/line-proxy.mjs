@@ -11,6 +11,7 @@
 import { createServer, request } from 'node:http';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { guardUrl } from './live-guard.mjs';
 
 /** vercel.json's header rules that set Cache-Control → [{ re, value }] (Vercel's `source` → a RegExp: `(.*)` as is, the rest literal) */
 export function vercelCacheRules(file = new URL('../../../vercel.json', import.meta.url)) {
@@ -30,6 +31,9 @@ export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40,
   //  `public, max-age=0, must-revalidate` where no rule names one) — a browser then keeps /js /css /assets for 5 min like a phone does;
   //  build = the deploy's build id the line adds to /api/time's answer (`v`, as Vercel's VERCEL_GIT_COMMIT_SHA) — set({ build }) = A DEPLOY)
   let prodRules = prod ? vercelCacheRules() : null, buildId = build;
+  // (FR7 FIXES B — FR7-A F: THE LIVE-SITE GUARD on the line's upstream too — every WebKit test that goes through the line (sw-cache, wk-hidden,
+  //  wk-skew, wk-edge, wk-twotabs …) can only reach a local server unless LIVE=1 on purpose)
+  to = guardUrl(to, 'THE LINE');
   // (mangle: { re, from, to, n } — the first n answers for a path matching re have `from` replaced by `to`: ANOTHER DEPLOY's copy of a file —
   //  e.g. an export renamed, so its importers fail to link: THE VERSION SKEW)
   let mg = mangle ? { ...mangle, re: new RegExp(mangle.re), n: mangle.n == null ? 1 : mangle.n } : null;
@@ -61,7 +65,7 @@ export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40,
   });
   const server = createServer(async (req, res) => {
     const path = req.url.split('?')[0];
-    if (path === '/__line/switch') { upstream = new URL(req.url, 'http://x').searchParams.get('to') || upstream; res.end(JSON.stringify({ upstream })); return; }
+    if (path === '/__line/switch') { const nu = new URL(req.url, 'http://x').searchParams.get('to'); try { if (nu) upstream = guardUrl(nu, 'THE LINE'); } catch (e) { res.writeHead(403); res.end(String(e.message)); return; } res.end(JSON.stringify({ upstream })); return; }
     if (path === '/__line/paths') { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(Object.fromEntries(st.byPath))); st.byPath.clear(); return; }
     if (path === '/__line/stats') { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ upstream, req: st.req, n304: st.n304, drops: st.drops, kb: Math.round(st.bytes / 1024) })); return; }
     if (path === '/__line/set') { const q = new URL(req.url, 'http://x').searchParams; if (q.has('rtt')) rtt = +q.get('rtt'); if (q.has('mbps')) mbps = +q.get('mbps'); if (q.has('drop')) drop = +q.get('drop'); if (q.has('fail')) { failRe = q.get('fail') ? new RegExp(q.get('fail')) : null; failLeft = +(q.get('n') || 1); } if (q.has('stall')) stallRe = q.get('stall') ? new RegExp(q.get('stall')) : null; res.end(JSON.stringify({ rtt, mbps, drop, fail: String(failRe), failLeft, stall: String(stallRe) })); return; }
@@ -93,7 +97,7 @@ export function startLine({ port = 5181, to = 'http://localhost:5173', rtt = 40,
   });
   return new Promise(ok => server.listen(port, () => ok({
     port, close: () => new Promise(r => { server.closeAllConnections && server.closeAllConnections(); server.close(() => r()); }),
-    switchTo: u => { upstream = u; }, set: o => { if (o.rtt != null) rtt = o.rtt; if (o.mbps != null) mbps = o.mbps; if (o.drop != null) drop = o.drop; if ('fail' in o) { failRe = o.fail ? new RegExp(o.fail) : null; failLeft = o.failN || 1; } if ('mangle' in o) mg = o.mangle ? { ...o.mangle, re: new RegExp(o.mangle.re), n: o.mangle.n == null ? 1 : o.mangle.n } : null; if ('stall' in o) { stallRe = o.stall ? new RegExp(o.stall) : null; stallLeft = o.stallN == null ? Infinity : o.stallN; }
+    switchTo: u => { upstream = guardUrl(u, 'THE LINE'); }, set: o => { if (o.rtt != null) rtt = o.rtt; if (o.mbps != null) mbps = o.mbps; if (o.drop != null) drop = o.drop; if ('fail' in o) { failRe = o.fail ? new RegExp(o.fail) : null; failLeft = o.failN || 1; } if ('mangle' in o) mg = o.mangle ? { ...o.mangle, re: new RegExp(o.mangle.re), n: o.mangle.n == null ? 1 : o.mangle.n } : null; if ('stall' in o) { stallRe = o.stall ? new RegExp(o.stall) : null; stallLeft = o.stallN == null ? Infinity : o.stallN; }
       if ('rules' in o) rules = (o.rules || []).map(rx); if ('build' in o) buildId = o.build; if ('prod' in o) prodRules = o.prod ? vercelCacheRules() : null; if ('switchOn' in o) switchOn = o.switchOn ? { ...o.switchOn, re: new RegExp(o.switchOn.re), rules: (o.switchOn.rules || []).map(rx) } : null; },
     stats: () => ({ upstream, req: st.req, n304: st.n304, drops: st.drops, kb: Math.round(st.bytes / 1024), ruled: st.ruled, switchedAt: st.switchedAt, edge: st.edge, api: st.api }),
   })));

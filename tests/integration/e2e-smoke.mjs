@@ -19,14 +19,21 @@ const ONLY_GAMES = (process.env.GAMES || '').split(',').filter(Boolean);
 // (SIZE=402x874: the phones' size, default 390x844; MENU=1: one more shot of each game with its ☰ menu open — the corner's look)
 const [VW, VH] = String(process.env.SIZE || '390x844').split('x').map(Number);
 const SFX = process.env.SIZE ? `-${VW}x${VH}` : '';
-// (WINDOWS, Nov 1 — ONLY TWO GAMES PLAYABLE: PRISM DROP + OVERCLOCK; the other ten are hidden + frozen, their smoke rows gone — host.js
-// refuses to start a hidden game. A game coming back after the switch-over adds its row here again.)
+// (WINDOWS, Nov 1 → HE10, Nov 11 — THREE GAMES PLAYABLE: PRISM DROP + OVERCLOCK + HOLD'EM; the other ten are hidden + frozen, their smoke rows
+// gone — host.js refuses to start a hidden game. A game coming back adds its row here again.)
 const ALL_GAMES = [
   ['overclock', { mode: 'quick' }],
   ['prism', { mode: 'battle' }],
   ['holdem', { mode: 'tournament', speed: 'turbo' }],   // (HE10: ON for everyone — started here by a REGULAR host, no owner gate)
 ];
 const GAMES = ONLY_GAMES.length ? ALL_GAMES.filter(([id]) => ONLY_GAMES.includes(id)) : ALL_GAMES;
+// (FR7 FIXES B — FR7-A F: `GAMES=cipher` — the docs' old example — started NOTHING and passed. A filter that names no playable game is a
+//  mistake: say which ids exist and stop RED, never a green run that proved nothing)
+const unknown = ONLY_GAMES.filter(id => !ALL_GAMES.some(([g]) => g === id));
+if (ONLY_GAMES.length && (!GAMES.length || unknown.length)) {
+  console.error(`e2e-smoke: GAMES=${ONLY_GAMES.join(',')} — ${unknown.join(', ') || 'nothing'} isn't a playable game here (${ALL_GAMES.map(([g]) => g).join(' · ')}): nothing would start`);
+  process.exit(2);
+}
 const BAD = /\bnull\b|\bundefined\b|\bNaN\b|\[object Object\]/;
 const t0 = Date.now();
 const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);

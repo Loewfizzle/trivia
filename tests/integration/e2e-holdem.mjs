@@ -428,7 +428,10 @@ await H.run(async () => {
     const hands = (await pub(host)).hands;
     ok(hands >= 1, `the match ran ${hands} hand(s) to a winner`);
     const fin = await pub(host);
-    ok(fin.ended && fin.rep === 'done' && fin.winner, `the dealer ended it (winner ${fin.winner}), its result sent (${fin.rep})`);
+    // (FR7 FIXES B — FR7-A F: HE10 made a TOURNAMENT count only from 3 hands — the FAST bots sometimes shove out in 1–2 → 'short', by the rule;
+    //  the check follows the rule, as the CASH ledger's does, never "the bots' luck")
+    const tCounted = (fin.hands || hands) >= 3;
+    ok(fin.ended && fin.rep === (tCounted ? 'done' : 'short') && fin.winner, `the dealer ended it (winner ${fin.winner}), its result ${tCounted ? 'sent' : 'not counted — under 3 hands'} (${fin.rep}, ${fin.hands || hands} hands)`);
     const g = await evalIn(host, s => s.game);
     ok(Array.isArray(g.ranks) && g.ranks.length === 3 && g.ranks[0].uid === fin.winner, `the podium's places from the dealer (${JSON.stringify(g.ranks)})`);
     for (const i of alive()) await pages[i].waitForSelector('.he-final .he-fs', { timeout: 15000 }).catch(() => {});

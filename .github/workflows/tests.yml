@@ -69,6 +69,9 @@ jobs:
           key: firebase-emulators-${{ hashFiles('tests/integration/package-lock.json') }}
       - name: Let Chrome use its sandbox (Ubuntu 24.04 restricts user namespaces)
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      # (FR7 FIXES B — FR7-A F: + the four /api suites of what is LIVE — both dailies, FRIENDS, HOLD'EM's dealer + its LEAK SCAN; each its own
+      #  node --test, one after another, before any page opens: friends.test's intercom case goes red beside an open page, holdem-server wants
+      #  the emulators to itself)
       - name: Rules, /api, the smoke test, the database connections (CONN) and presence (a refresh mid-round) on the emulators
         working-directory: tests/integration
         env:
@@ -85,6 +88,10 @@ jobs:
             node --test vault-2b.test.mjs
             node --test vault-2c.test.mjs
             node --test daily-module.test.mjs
+            node --test password.test.mjs
+            node --test coastclear.test.mjs
+            node --test friends.test.mjs
+            node --test holdem-server.test.mjs
             (cd ../.. && node scripts/serve.mjs --emu > /tmp/serve.log 2>&1 &)
             for i in $(seq 1 30); do curl -sf http://localhost:5173/ > /dev/null && break; sleep 1; done
             node e2e-smoke.mjs "$CHROME" ./shots

@@ -416,6 +416,10 @@ async function perfRun(p) {
   const cdp = await p.target().createCDPSession();
   await p.setViewport({ ...VIEW, deviceScaleFactor: process.env.GPU ? 2.75 : 1 });
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
+  // (FR7 FIXES B — FR7-B's perfRun line: THE GAME LOOK PINNED to NIGHT — by day a calm phone CLIMBS 0 → 3 by design (tiers.js#stepTier), so a
+  //  morning run read tier 0 back as 3 and the check went red on the test, not the game; night = the costliest look, measured as meant)
+  await P(p, "import('/js/games/kit/look.js').then(m => m.saveLook('night'))");
+  await P(p, "new Promise(r => setTimeout(r, 600))");
   const perf = [];
   for (const t of [3, 2, 1, 0]) {   // (PD-3: four tiers — the light steps down first, the board's 3× last)
     await P(p, `window.__prism.setTier(${t})`);

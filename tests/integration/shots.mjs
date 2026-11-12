@@ -37,6 +37,7 @@
 // Each shot gets its own browser context (no profile leaking between shots). Files: <scene>-<w>x<h>[-<crop>].png
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { guardUrl } from './kit/live-guard.mjs';   // (FR7 FIXES B: the --wk path's guard)
 
 const argv = process.argv.slice(2);
 const BROWSER = argv[0];
@@ -183,7 +184,7 @@ if (PAGE && process.argv.includes('--wk')) {
     const ctx = await wb.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: DSF || 3, isMobile: true, hasTouch: true });
     const p = await ctx.newPage();
     p.on('pageerror', e => console.log('PAGEERROR', e.message));
-    await p.goto(`${BASE}/${String(PAGE).replace(/^\/+/, '')}`);
+    await p.goto(guardUrl(`${BASE}/${String(PAGE).replace(/^\/+/, '')}`, 'shots --wk'));   // (FR7 FIXES B: THE LIVE-SITE GUARD on the WebKit path too)
     await p.waitForFunction(() => document.body && document.body.dataset.ready, null, { timeout: 60000 }).catch(() => {});
     await sleep(opt('wait', 0) ? WAIT : 1200);
     // (OC8: --js on a WebKit --page too — open an app screen (setup, the profile, THE BOARD) before the shot, as the Chromium --page does)
