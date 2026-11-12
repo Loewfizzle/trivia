@@ -149,7 +149,10 @@ async function seedRoom(id, uids, at, hostUid = uids[0]) {
   const night = { g: id, at, p: {}, n: {} };
   for (const [u, r] of Object.entries(ex.rows)) { night.p[u] = NIGHTPTS[r.rank] || 0; night.n[u] = u.toUpperCase(); }
   await ref(`rooms/${code}`).set({ meta: { hostId: hostUid, status: 'playing', createdAt: at, activeAt: at },
-    players: Object.fromEntries(uids.map((u, i) => [u, { name: u.toUpperCase(), color: 'cyan', avatar: 'bolt', joinedAt: i }])), game, night: { [game.matchId]: night } });
+    players: Object.fromEntries(uids.map((u, i) => [u, { name: u.toUpperCase(), color: 'cyan', avatar: 'bolt', joinedAt: i }])), game, night: { [game.matchId]: night },
+    // (FR7 FIXES B — A SEAT IS NOT A PLAY: each player's own node of the match, as a real match leaves it)
+    ...(id === 'prism' ? { prism: { [game.matchId]: Object.fromEntries(uids.map(u => [u, { st: 'out', at }])) } } : {}),
+    ...(id === 'overclock' ? { oc: { [game.matchId]: { 0: Object.fromEntries(uids.map(u => [u, { done: true, doneAt: at }])) } } } : {}) });
   return { code, matchId: game.matchId };
 }
 
