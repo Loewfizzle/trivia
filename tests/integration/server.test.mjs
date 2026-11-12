@@ -617,6 +617,16 @@ test('THE PROGRESS RESET: a backup + FOUNDING MEMBER first, progress + THE BOARD
     assert.ok(pa.x === 0 && pa.l === 1 && pa.r === 0 && pa.m === 0 && pa.mn === mnA && pa.cd === 'card-founder' && pa.n === 'Resetter', 'the profile: level 1, rank 0 — name, Nº, the equipped card kept');
     assert.ok(sb.it['card-founder'] && (await val(`profiles/${b.pid}/fd`)) === true, 'FOUNDING MEMBER stamped on b BEFORE the wipe');
     assert.equal(await val('lb'), null, 'THE BOARD is empty');
+    // FR7 FIXES A — E1, THE RESET EPOCH: the reset stamped it; a BACK-FILL pressed after the reset rebuilds nothing from before it (the old wins,
+    // this week's XP stay gone — they used to come back for LEVEL 1 players)
+    const epoch = await val('progress/resetAt');
+    assert.ok(epoch > 0, 'the reset stamped progress/resetAt');
+    const bf = await adminAction('u-rsown', { action: 'boardsBackfill', confirm: true });
+    assert.equal(bf.backfill ? bf.backfill.preview.resetAt : (bf.preview || {}).resetAt, epoch, 'the back-fill reads the epoch (its preview says so)');
+    const sa2 = await val(`pstats/${a.pid}`);
+    assert.ok(!(sa2.xw && sa2.xw.x), `this week's XP stays 0 after the back-fill (${JSON.stringify(sa2.xw)})`);
+    assert.equal(await val(`lb/xp/week/${a.pid}`) || null, null, 'no pre-reset XP back on THE BOARD');
+    assert.equal(await val(`lb/slip-wins/all/${a.pid}`) || null, null, 'no pre-reset win back on THE BOARD');
     // RE-CLIMBING: a new match after the reset re-grants nothing a player already owns, and the tease names a level whose reward isn't owned
     tick(DAY);
     const room2 = await seedRoom('slip', ['u-rsa', 'u-rsb'], { dist: 7000 }, { 'u-rsa': 'Resetter', 'u-rsb': 'Other' });
@@ -634,6 +644,7 @@ test('THE PROGRESS RESET: a backup + FOUNDING MEMBER first, progress + THE BOARD
     await rejects(adminAction('u-rsown', { action: 'progressRestore', stamp: r.stamp, confirm: true, typed: 'yes' }), 400, 'type_restore');
     await adminAction('u-rsown', { action: 'progressRestore', stamp: r.stamp, confirm: true, typed: 'RESTORE' });
     assert.ok((await val(`pstats/${a.pid}/xp`)) === before.xp && (await val(`profiles/${a.pid}/x`)) === before.xp && (await val(`lb/slip-wins/all/${a.pid}`)) === 5, 'restored: XP + THE BOARD back');
+    assert.equal(await val('progress/resetAt'), null, 'restored: THE RESET EPOCH back to what it was before that reset (none)');
     assert.ok((await val(`pstats/${b.pid}/it/card-founder`)), 'a restore never takes an item away (b keeps the founder card it got)');
     const acts = Object.values((await val('audit')) || {}).map(x => x.act);
     assert.ok(acts.filter(x => x === 'progressReset').length === 2 && acts.includes('progressRestore'), 'audited');

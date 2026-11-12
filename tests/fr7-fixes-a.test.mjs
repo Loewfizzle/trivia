@@ -105,3 +105,31 @@ test('DY2: THE PASSWORD\'s guess is IDEMPOTENT — a retry of a lost answer gets
   assert.match(read('api/daily.js'), /a\.again/);
   assert.match(read('js/games/password/view.js'), /judge\.guess\(word, run\.doors\.reduce/);
 });
+
+test('E1: THE RESET EPOCH — the back-fill rebuilds the boards only from what came after THE LAUNCH RESET', async () => {
+  const { sinceReset, rebuildWeekXp, holdemFromRecords } = await import('../js/core/board-fill.js');
+  const { weekKey } = await import('../js/core/week.js');
+  const T = Date.UTC(2026, 10, 12, 15), wk = weekKey(T);
+  const results = {
+    old: { at: T - 3600e3, g: 'holdem', src: 'dealer', n: 2, o: { p1: { win: true, xp: { gain: 70 } } } },
+    new: { at: T + 60e3, g: 'prism', n: 2, o: { p1: { xp: { gain: 40 } } } },
+    bare: { o: { p1: { xp: { gain: 999 } } } },
+  };
+  const daily = { password: { d20261112: { r: { p1: 7, p2: 9 }, s: { p1: T - 7200e3, p2: T + 5e3 }, x: {} } } };
+  // no epoch = everything (the boards as before)
+  const all = sinceReset({ results, daily }, 0);
+  assert.equal(Object.keys(all.results).length, 3);
+  assert.equal(rebuildWeekXp({ results: all.results, daily: all.daily, live: ['password'], wk }).p1, 70 + 40 + 15 + 10, 'the match, the match, the daily + THE SWEEP');
+  // the reset at T: only the new match + p2's run (started after)
+  const S = sinceReset({ results, daily }, T);
+  assert.deepEqual(Object.keys(S.results), ['new']);
+  assert.deepEqual(S.daily, { password: { d20261112: { r: { p2: 9 }, s: daily.password.d20261112.s, x: {} } } });
+  assert.equal(rebuildWeekXp({ results: S.results, daily: S.daily, live: ['password'], wk }).p1, 40, 'p1: only the match after the reset');
+  assert.deepEqual(holdemFromRecords({ results: S.results, wk }), {}, 'the pre-reset tournament win stays gone');
+  assert.equal(results.old.at, T - 3600e3, 'the inputs untouched');
+  // the server wiring: the reset stamps the epoch in its update, the back-fill reads it, a restore puts the old one back
+  const reset = read('api/_lib/reset.js'), fill = read('api/_lib/board-fill.js');
+  assert.match(reset, /'progress\/resetAt': now/);
+  assert.match(reset, /'progress\/resetAt': B\.ra \|\| null/);
+  assert.match(fill, /sinceReset\(\{ results: allResults/);
+});

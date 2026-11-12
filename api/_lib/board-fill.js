@@ -14,7 +14,7 @@ import { ref, val } from './fb.js';
 import { boardPaths, hiddenOf, clearBoardCache } from './lb.js';
 import { OVERALL_IDS } from '../../js/core/boards.js';
 import { pointsFromRecords, pointsStep } from '../../js/core/daily-points.js';
-import { rebuildWeekXp, filledWeek, countedPlaysFromRecords, holdemFromRecords, filledHoldem } from '../../js/core/board-fill.js';
+import { rebuildWeekXp, filledWeek, countedPlaysFromRecords, holdemFromRecords, filledHoldem, sinceReset } from '../../js/core/board-fill.js';
 import { boardHidden } from '../../js/core/progress.js';
 import { minMatches } from './lb.js';
 import { weekKey } from '../../js/core/week.js';
@@ -24,6 +24,8 @@ import { openDailies } from './dailies.js';
 
 /** the first daily-day the back-fill reads (the dailies' share epoch — nothing was played before it) */
 export const DAILY_FROM = 'd20261101';
+/** FR7 FIXES A — E1: THE RESET EPOCH's node (server-only by the root deny) — stamped by THE LAUNCH RESET, restored by a RESTORE */
+export const RESET_AT = 'progress/resetAt';
 
 /** every day key from `from` to `to` (inclusive) */
 export function daysBetween(from, to) {
@@ -48,17 +50,20 @@ export async function readDaily(games, now) {
 export async function boardsBackfill({ confirm = false, now = Date.now() } = {}) {
   await openDailies(now).catch(() => {});
   const live = todaysDailies(), wk = weekKey(now);
-  const [results, stats, daily] = await Promise.all([val('results'), val('pstats'), readDaily(live, now)]);
+  const [allResults, stats, allDaily, resetAt] = await Promise.all([val('results'), val('pstats'), readDaily(live, now), val(RESET_AT)]);
+  // FR7 FIXES A — E1, THE RESET EPOCH: the boards rebuild only from what came after THE LAUNCH RESET (core/board-fill.js#sinceReset); who is
+  // listed (COUNTED PLAYS) still reads every record
+  const { results, daily } = sinceReset({ results: allResults || {}, daily: allDaily }, resetAt);
   const week = rebuildWeekXp({ results: results || {}, daily, live, wk });
   const pids = Object.keys(stats || {});
   const pointsPlayers = pids.filter(pid => pointsFromRecords(daily, pid)).length;
-  const plays = countedPlaysFromRecords({ results: results || {}, daily });
+  const plays = countedPlaysFromRecords({ results: allResults || {}, daily: allDaily });
   const profs = (await val('profiles')) || {};
   const listedNow = pids.filter(pid => !boardHidden(profs[pid], stats[pid], minMatches())).length;
   const listedAfter = pids.filter(pid => !boardHidden(profs[pid], { ...stats[pid], cp: plays[pid] || 0 }, minMatches())).length;
   const hold = holdemFromRecords({ results: results || {}, wk });
   const preview = { wk, players: pids.length, weekPlayers: Object.keys(week).length, weekXp: Object.values(week).reduce((a, b) => a + b, 0), days: Object.values(daily).reduce((n, g) => n + Object.keys(g).length, 0), pointsPlayers, listedNow, listedAfter,
-    holdemPlayers: Object.keys(hold).length, holdemWins: Object.values(hold).reduce((a, e) => a + e.all.tw, 0) };
+    holdemPlayers: Object.keys(hold).length, holdemWins: Object.values(hold).reduce((a, e) => a + e.all.tw, 0), resetAt: Number(resetAt) || 0 };
   if (!confirm) return { done: false, preview };
   let rows = 0;
   for (const pid of pids) {

@@ -60,6 +60,26 @@ export function countedPlaysFromRecords({ results = {}, daily = {} }) {
   return out;
 }
 
+/**
+ * FR7 FIXES A — E1, THE RESET EPOCH: THE LAUNCH RESET (api/_lib/reset.js) stamps `progress/resetAt`; the back-fill rebuilds THE BOARDS only from
+ * what came AFTER it — a match record with `at` ≥ the epoch, a daily run whose START is ≥ the epoch — so a back-fill pressed after the reset
+ * never puts the old wins, daily points or this week's XP back. (COUNTED PLAYS — who is listed — still read every record: E4 is the owner's.)
+ * No epoch (never reset) = everything, as before. PURE: → { results, daily } (new objects; the inputs untouched)
+ */
+export function sinceReset({ results = {}, daily = {} }, epoch) {
+  const e = Number(epoch) || 0;
+  if (!e) return { results: results || {}, daily: daily || {} };
+  const R = {};
+  for (const [k, r] of Object.entries(results || {})) if (r && Number(r.at) >= e) R[k] = r;
+  const D = {};
+  for (const [game, days] of Object.entries(daily || {})) for (const [day, d] of Object.entries(days || {})) {
+    const r = {};
+    for (const [pid, score] of Object.entries((d && d.r) || {})) if (Number(d.s && d.s[pid]) >= e) r[pid] = score;
+    if (Object.keys(r).length) ((D[game] ||= {})[day] = { ...d, r });
+  }
+  return { results: R, daily: D };
+}
+
 /** a player's week counter after the back-fill: the larger of the live counter (same week) and the rebuilt sum — never lower */
 export function filledWeek(cur, rebuilt, wk) {
   const live = cur && cur.wk === wk ? Number(cur.x) || 0 : 0;

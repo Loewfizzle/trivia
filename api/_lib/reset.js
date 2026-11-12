@@ -46,14 +46,16 @@ export async function progressReset({ confirm = false, typed = '', me = null, no
   const stamp = `b${now}`;
   const prof = {};
   for (const [pid, p] of Object.entries(S0.profiles)) if (p) prof[pid] = Object.fromEntries(PROFILE_FIELDS.filter(k => p[k] != null).map(k => [k, p[k]]));
-  await ref(`backups/${stamp}`).set({ at: now, by: me, profiles: preview.profiles, s: S0.stats, p: prof, lb: S0.lb, pn: S0.pn, pa: S0.pa });
+  const ra0 = await val('progress/resetAt');   // (FR7 FIXES A — E1: the epoch before this reset, so a RESTORE puts it back)
+  await ref(`backups/${stamp}`).set({ at: now, by: me, profiles: preview.profiles, s: S0.stats, p: prof, lb: S0.lb, pn: S0.pn, pa: S0.pa, ra: ra0 || null });
   const all = Object.keys((await val('backups')) || {}).sort();
   if (all.length > BACKUP_KEEP) await ref('backups').update(Object.fromEntries(all.slice(0, all.length - BACKUP_KEEP).map(k => [k, null])));
   // 2. FOUNDING MEMBER FIRST
   const founders = await founderSweep(now);
   // 3. THE RESET (read again: the sweep just granted cards)
   const stats = (await val('pstats')) || {};
-  const patch = { lb: null, 'pcount/n': null, 'pcount/a': null };
+  // (FR7 FIXES A — E1: THE RESET EPOCH — the back-fill rebuilds the boards only from after it; in the SAME update as the reset)
+  const patch = { lb: null, 'pcount/n': null, 'pcount/a': null, 'progress/resetAt': now };
   for (const [pid, s] of Object.entries(stats)) {
     const next = resetStats(s);
     for (const k of RESET_STATS) patch[`pstats/${pid}/${k}`] = next && next[k] !== undefined ? next[k] : null;
@@ -76,7 +78,7 @@ export async function progressRestore({ stamp, confirm = false, typed = '' } = {
   if (!confirm) return { done: false, stamp, profiles: B.profiles || 0 };
   if (typed !== 'RESTORE') throw new ApiError(400, 'type_restore', 'Type RESTORE to confirm.');
   const [cur, profs] = await Promise.all([val('pstats').then(v => v || {}), val('profiles').then(v => v || {})]);
-  const patch = { lb: B.lb || null, 'pcount/n': B.pn || null, 'pcount/a': B.pa || null };
+  const patch = { lb: B.lb || null, 'pcount/n': B.pn || null, 'pcount/a': B.pa || null, 'progress/resetAt': B.ra || null };
   // (only profiles that still exist — one removed since the backup (TEST PLAYERS) never comes back as a half node)
   for (const [pid, s] of Object.entries(B.s || {})) {
     if (!profs[pid]) continue;
