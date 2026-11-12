@@ -629,7 +629,8 @@ G('shell', async () => {
   ok(lb === 'BOARD · GAMES · YOU' || lb === 'DAILY · BOARD · GAMES · YOU', `THE TITLE DOCK's LABELS: ${lb}`);
   if (SHOTS) await p.screenshot({ path: `${OUT}shell-message-390.png` });
   await Q.ctx.close();
-  // ---- THE PODIUM's FRAME (the results preview: no Firebase): BACK TO THE ROOM right under the XP box, in view without scrolling at 390
+  // ---- THE PODIUM's FRAME (the results preview: no Firebase): BACK TO THE ROOM in view without scrolling at 390 — HOLD'EM IN THE CITY B3: the
+  //      frame's LAST piece (below the XP box, after the board), in a row STICKY at the screen's foot
   const { launch } = await import('./kit.mjs');
   const ctx = await (await launch()).createBrowserContext(), q = await ctx.newPage();
   await q.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
@@ -638,8 +639,8 @@ G('shell', async () => {
   for (let i = 0; i < 6 && await ev(q, "!!document.querySelector('.pg-moment')"); i++) { await ev(q, "(() => { const b = document.querySelector('.pg-moment .pg-btn'); if (b) b.click(); })()"); await sleep(700); }
   await sleep(600);
   const pd = await ev(q, `(() => { const b = document.querySelector('.final-back'), x = document.querySelector('.final .rc-slot'), r = b.getBoundingClientRect(), xr = x ? x.getBoundingClientRect() : null, lb = document.querySelector('.final .board-list');
-    return { inView: r.bottom <= innerHeight && r.top >= 0, under: !!(xr && r.top >= xr.bottom - 1 && r.top - xr.bottom < 80), beforeBoard: !!(lb && (b.compareDocumentPosition(lb) & 4)), main: b.classList.contains('btn-primary'), n: document.querySelectorAll('.final button.btn').length, h: Math.round(r.height), top: Math.round(r.top) }; })()`);
-  ok(pd.inView && pd.under && pd.beforeBoard && pd.main && pd.h >= 54, `THE PODIUM's FRAME (390): BACK TO THE ROOM — the tube main (${pd.main}) at ${pd.top} pt, right under the XP box (${pd.under}), in view (${pd.inView}), before the board (${pd.beforeBoard}); ${pd.n} tube(s) on the podium`);
+    return { inView: r.bottom <= innerHeight && r.top >= 0, under: !!(xr && r.top >= xr.bottom - 1), afterBoard: !!(lb && (b.compareDocumentPosition(lb) & 2)), sticky: getComputedStyle(b.parentElement).position === 'sticky', main: b.classList.contains('btn-primary'), n: document.querySelectorAll('.final button.btn').length, h: Math.round(r.height), top: Math.round(r.top) }; })()`);
+  ok(pd.inView && pd.under && pd.afterBoard && pd.sticky && pd.main && pd.h >= 54, `THE PODIUM's FRAME (390): BACK TO THE ROOM — the tube main (${pd.main}) at ${pd.top} pt, below the XP box (${pd.under}), in view (${pd.inView}), after the board (${pd.afterBoard}), sticky at the foot (${pd.sticky}); ${pd.n} tube(s) on the podium`);
   // ---- THE ADD-ON: the results rows = the players' SLIM CARDS (the winner's on top), on ONE shared effect surface
   const sb = await ev(q, `(() => { const l = document.querySelector('.final .board-list'), rows = [...l.querySelectorAll('.lb-row')];
     return { strips: l.classList.contains('is-strips'), n: rows.filter(r => r.querySelector('.vl-strip')).length, rows: rows.length, first: (rows[0].querySelector('.vl-name') || {}).textContent, rank: rows[0].querySelector('.lb-rank').textContent,

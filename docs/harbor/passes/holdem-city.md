@@ -108,5 +108,17 @@ build table line; decisions.md: the current line, THE LAUNCH row (was SWITCH + S
   → TO HOLD'EM).
 - THE LOCAL RUN: see "The run" below. Repo / deploy: + ~1.4 MB of shots in docs (not deployed — `.vercelignore`); no new assets on the site.
 
-## The run (local, the mini PC)
-(filled in at the end of the pass)
+## The run (local, the mini PC — my own fresh emulators + serve.mjs; Ben's :5190 left alone)
+- unit **1653 of 1653** (+ holdem-board 6, podium-tie 3) · rules **76 of 76** · `/api` server.test **44 of 44** · progression **10 of 10** ·
+  holdem-server **18 of 18** (run alone) · smoke **8 of 8** · CONN clean · e2e-profiles **142 of 142** · e2e-daily **51 of 51** (it needs the
+  app's server with `DAILY_TEST=1` — its header says so; the first try without it timed out on the DAILY button) · e2e-prism FAST **61 of 61** ·
+  e2e-holdem FAST **22 of 22** (a first run saw a 2-hand shove-out end `short` under HE10's 3-hand rule — the bots' luck, not this pass) ·
+  OVERCLOCK `e2e-oc-new` **75 of 75** (8 phones to the podium — there is no e2e-overclock.mjs) · THE BASELINE GUARD **3 of 3** (1.17× / 1.16× /
+  0.92×) · `wk-double.mjs` **21 of 21** (0 with two cameras) · `wk-load.mjs --date 2026-11-12` night + day 402×874 @3: 8 loads, 0 problems
+  (`g2/webkit-{night,day}-402x874x3.png` — the red HOLD'EM roof sign + NOW OPEN).
+- THE FULL e2e-harbor suite: **1258 of 1262**. The four: (1) the `shell` group's PODIUM check still wanted BACK TO THE ROOM right under the XP box
+  + before the board — B3 moved it on purpose: the check now asks below the XP box, after the board, sticky, in view (green); (2–4) `panel`'s
+  9d ADMIN ROW, `roomperf`'s ROOM's OWN COST, `sightings`' capture hitch — the full run happened while my app server still had `DAILY_TEST=1`
+  on (from the daily E2E: a live test daily in the ☰ menu + the dock); with the plain server the three groups are **54 of 54**.
+- No look change outside the named places: the city's skyline differs on purpose (the five signs' rotation now holds HOLD'EM; the billboard);
+  B2 is invisible (the tap area); B3 + B4 are the podium's named changes. No rules change; still 8 functions.
