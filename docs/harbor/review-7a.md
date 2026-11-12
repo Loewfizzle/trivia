@@ -1,5 +1,7 @@
 # CITY 2.0 — REVIEW #7, PART A (FR7-A, read-only, Nov 11 2026: THE CITY + THE CONSOLE — "ready for strangers?")
 
+**Must-fix 1 FIXED in `678395fe`** (Nov 12 — C1, THE REAL PLAYER COUNT: the forged report now answers `unverifiable`; B2's "a solo run reported by snapshot is a WIN" went with it — docs/profiles.md).
+
 Fresh eyes on the city + the console at commit `99c61ace` (Step 0's two docs committed on their own: plan.md "OWNER'S NOTES — NOV 11 (night)"
 + decisions.md). Nothing but this file and Step 0 was written — no code, no tests, no config, no data. THE LIVE SITE was only READ: one warm
 load of the title with the test flag on (`LIVE=1`, `&test=1` — no profile, no member Nº, no room) and plain GETs of public static files; no
