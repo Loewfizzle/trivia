@@ -604,7 +604,7 @@ test('THE PROGRESS RESET: a backup + FOUNDING MEMBER first, progress + THE BOARD
     await rejects(adminAction('u-rsa', { action: 'progressReset' }), 403, 'not_admin');
     const dry = await adminAction('u-rsown', { action: 'progressReset' });
     assert.equal(dry.done, false); assert.ok(dry.preview.profiles >= 3 && dry.preview.xp >= before.xp && dry.preview.items === 0, `the preview (${dry.line})`);
-    assert.match(dry.line, /profiles · [\d,]+ XP · \d+ board records? · \d+ achievements? · \d+ streaks? will be reset; 0 items removed/);
+    assert.match(dry.line, /profiles · [\d,]+ XP · \d+ board records? · \d+ achievements? · \d+ streaks? · \d+ counted plays? will be reset; 0 items removed/);   // (FR7 FIXES B — E4: + the counted plays)
     assert.ok((await val(`pstats/${a.pid}/xp`)) > 0 && (await val('backups')) == null, 'the preview wrote nothing');
     await rejects(adminAction('u-rsown', { action: 'progressReset', confirm: true, typed: 'reset please' }), 400, 'type_reset');
     const r = await adminAction('u-rsown', { action: 'progressReset', confirm: true, typed: 'RESET' });
@@ -650,6 +650,34 @@ test('THE PROGRESS RESET: a backup + FOUNDING MEMBER first, progress + THE BOARD
     const acts = Object.values((await val('audit')) || {}).map(x => x.act);
     assert.ok(acts.filter(x => x === 'progressReset').length === 2 && acts.includes('progressRestore'), 'audited');
   } finally { process.env.ADMIN_PIDS = ''; await ref('audit').remove(); await ref('backups').remove(); }
+});
+
+// FR7 FIXES B — E3: THE FOUNDER WINDOW CLOSED → a later reset sweeps nobody (it used to hand FOUNDING MEMBER to everyone who played since);
+// E4: the reset clears COUNTED PLAYS (the profile's `m` + pstats.cp)
+test('FR7 FIXES B — E3 + E4: a reset after FOUNDING MEMBER closed grants no new card; counted plays go to 0', async () => {
+  const own = await ensure('u-e3own', 'Boss3'), late = await ensure('u-e3late', 'Latecomer');
+  await ensure('u-e3o', 'Other3');
+  await ref('progress/founder').set({ open: false, at: clock, by: own.pid });
+  const { clearFounderCache } = await import('../../api/_lib/founder.js');
+  clearFounderCache();
+  const room = await seedRoom('slip', ['u-e3late', 'u-e3o'], { dist: 7000 }, { 'u-e3late': 'Latecomer', 'u-e3o': 'Other3' });
+  assert.equal((await report('u-e3late', room)).status, 'counted'); tick();
+  await ref(`pstats/${late.pid}/it/card-founder`).remove(); await ref(`profiles/${late.pid}/fd`).remove();   // (whatever path stamped it: gone)
+  await ref(`pstats/${late.pid}/cp`).set(7);
+  process.env.ADMIN_PIDS = `${own.pid}`;
+  try {
+    const dry = await adminAction('u-e3own', { action: 'progressReset' });
+    assert.match(dry.line, /counted plays? will be reset/, `the dry run lists the counted plays (${dry.line})`);
+    const r = await adminAction('u-e3own', { action: 'progressReset', confirm: true, typed: 'RESET' });
+    assert.ok(r.done, 'reset done');
+    assert.equal(r.founders, 0, 'no founder sweep while the window is closed');
+    assert.equal(await val(`pstats/${late.pid}/it/card-founder`), null, 'the latecomer did NOT get FOUNDING MEMBER');
+    assert.equal(await val(`pstats/${late.pid}/cp`), null, 'COUNTED PLAYS cleared');
+    assert.equal(await val(`profiles/${late.pid}/m`), 0, 'the profile\'s count 0');
+  } finally {
+    process.env.ADMIN_PIDS = ''; await ref('progress/founder').remove(); clearFounderCache();
+    await ref('audit').remove(); await ref('backups').remove(); await ref('progress/resetAt').remove();
+  }
 });
 
 // LOBBY FIXES — ONE PROFILE, ONE SEAT + ONE ACCOUNT, ONE ROOM: whatever a client does, the server credits a profile once per match (its

@@ -63,7 +63,7 @@ export function countedPlaysFromRecords({ results = {}, daily = {} }) {
 /**
  * FR7 FIXES A — E1, THE RESET EPOCH: THE LAUNCH RESET (api/_lib/reset.js) stamps `progress/resetAt`; the back-fill rebuilds THE BOARDS only from
  * what came AFTER it — a match record with `at` ≥ the epoch, a daily run whose START is ≥ the epoch — so a back-fill pressed after the reset
- * never puts the old wins, daily points or this week's XP back. (COUNTED PLAYS — who is listed — still read every record: E4 is the owner's.)
+ * never puts the old wins, daily points or this week's XP back — nor the COUNTED PLAYS (FR7 FIXES B — E4, the owner: the reset clears `cp`).
  * No epoch (never reset) = everything, as before. PURE: → { results, daily } (new objects; the inputs untouched)
  */
 export function sinceReset({ results = {}, daily = {} }, epoch) {

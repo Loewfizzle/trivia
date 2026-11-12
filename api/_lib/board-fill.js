@@ -51,13 +51,13 @@ export async function boardsBackfill({ confirm = false, now = Date.now() } = {})
   await openDailies(now).catch(() => {});
   const live = todaysDailies(), wk = weekKey(now);
   const [allResults, stats, allDaily, resetAt] = await Promise.all([val('results'), val('pstats'), readDaily(live, now), val(RESET_AT)]);
-  // FR7 FIXES A — E1, THE RESET EPOCH: the boards rebuild only from what came after THE LAUNCH RESET (core/board-fill.js#sinceReset); who is
-  // listed (COUNTED PLAYS) still reads every record
+  // FR7 FIXES A — E1, THE RESET EPOCH: the boards rebuild only from what came after THE LAUNCH RESET (core/board-fill.js#sinceReset); FR7 FIXES
+  // B — E4 (the owner): COUNTED PLAYS too — the reset clears `cp`, so who is listed counts only the plays after it
   const { results, daily } = sinceReset({ results: allResults || {}, daily: allDaily }, resetAt);
   const week = rebuildWeekXp({ results: results || {}, daily, live, wk });
   const pids = Object.keys(stats || {});
   const pointsPlayers = pids.filter(pid => pointsFromRecords(daily, pid)).length;
-  const plays = countedPlaysFromRecords({ results: allResults || {}, daily: allDaily });
+  const plays = countedPlaysFromRecords({ results: results || {}, daily });
   const profs = (await val('profiles')) || {};
   const listedNow = pids.filter(pid => !boardHidden(profs[pid], stats[pid], minMatches())).length;
   const listedAfter = pids.filter(pid => !boardHidden(profs[pid], { ...stats[pid], cp: plays[pid] || 0 }, minMatches())).length;

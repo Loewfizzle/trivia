@@ -26,7 +26,7 @@ test('every reward stays: items (the 1-of-1s + FOUNDING MEMBER), favors, the cou
 test('a second reset changes nothing; the preview line; the next level with a reward NOT owned', () => {
   const once = resetStats(S);
   assert.deepEqual(resetStats(once), once, 'idempotent');
-  assert.deepEqual(resetCost(once), { xp: 0, records: 0, achievements: 0, streak: 0, items: 0 });
+  assert.deepEqual(resetCost(once), { xp: 0, records: 0, achievements: 0, streak: 0, plays: 0, items: 0 });   // (FR7 FIXES B — E4: + plays)
   assert.equal(previewLine({ profiles: 46, xp: 12340, records: 9, achievements: 31, streaks: 4, items: 0 }), '46 profiles · 12,340 XP · 9 board records · 31 achievements · 4 streaks will be reset; 0 items removed');
   const L = [{ lvl: 3, item: 'a' }, { lvl: 5, item: 'b' }, { lvl: 8, item: 'c' }];
   assert.equal(nextUnownedLevel(L, 1, { a: 1, b: 1 }), 8, 'levels 3 + 5 already owned → the tease names 8');

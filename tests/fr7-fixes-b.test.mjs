@@ -1,0 +1,65 @@
+// FR7 FIXES B — "the launch + the plumbing" (Nov 12 — docs/harbor/passes/fr7-fixes-b.md): each finding's unit test (each failed before its fix)
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { streakPlay, FREEZE } from '../js/core/streak.js';
+import { resetStats, resetCost, previewLine, RESET_STATS } from '../js/core/reset.js';
+import { boardHidden, countedPlays } from '../js/core/progress.js';
+import { countedPlaysFromRecords, sinceReset } from '../js/core/board-fill.js';
+
+test('E2 — the freezes a player holds survive THE PROGRESS RESET: a new run starts with them (capped at the hold limit)', () => {
+  const day = 'd20261113';
+  const after = resetStats({ xp: 900, st: { n: 12, d: 'd20261110', b: 14, f: 2, h: {} } });
+  assert.deepEqual(after.st, { f: 2 }, 'the reset keeps the freezes');
+  const { st } = streakPlay(after.st, day);
+  assert.equal(st.f, 2, 'the first play after the reset keeps 2 freezes (it used to be 0)');
+  assert.equal(st.n, 1, 'a new run');
+  assert.equal(streakPlay({ f: 9 }, day).st.f, FREEZE.hold, 'capped at the hold limit');
+  assert.equal(streakPlay(null, day).st.f, 0, 'a brand-new player: none');
+  assert.equal(streakPlay({ f: 'x' }, day).st.f, 0, 'garbage → 0');
+});
+
+test('E4 — the reset clears COUNTED PLAYS: the boards\' 3-play floor applies again; the dry run lists them', () => {
+  assert.ok(RESET_STATS.includes('cp'), 'cp is a reset field');
+  const vet = { xp: 5000, cp: 40, g: { prism: { p: 30, w: 9 } }, it: { 'card-founder': 1 } };
+  const prof = { n: 'Vet' };
+  assert.equal(boardHidden(prof, vet, 3), false, 'listed before');
+  const after = resetStats(vet);
+  assert.equal(after.cp, undefined, 'cp gone');
+  assert.equal(countedPlays(after), 0, 'no counted plays (the estimate from `g` is gone too)');
+  assert.equal(boardHidden(prof, after, 3), 'matches', 'off the boards until 3 counted plays again');
+  assert.deepEqual(after.it, vet.it, 'items kept');
+  assert.equal(resetCost(vet).plays, 40, 'the cost names the counted plays');
+  assert.match(previewLine({ profiles: 2, xp: 10, records: 0, achievements: 0, streaks: 0, plays: 41, items: 0 }), /· 41 counted plays will be reset; 0 items removed$/);
+  // the back-fill counts only the plays after THE RESET EPOCH (it used to read every record)
+  const results = { a: { at: 100, n: 2, o: { P: {}, Q: {} } }, b: { at: 900, n: 2, o: { P: {} } } };
+  const since = sinceReset({ results, daily: {} }, 500);
+  assert.deepEqual(countedPlaysFromRecords(since), { P: 1 }, 'only the post-reset match counts');
+});
+
+import fs from 'node:fs';
+/** a JPEG's { w, h } from its SOF marker */
+function jpegSize(buf) {
+  let i = 2;
+  while (i < buf.length) {
+    if (buf[i] !== 0xff) return null;
+    const m = buf[i + 1], len = buf.readUInt16BE(i + 2);
+    if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { h: buf.readUInt16BE(i + 5), w: buf.readUInt16BE(i + 7) };
+    i += 2 + len;
+  }
+  return null;
+}
+test('the link previews: both pages on the PRIMARY host (www — the bare domain is a 308), /board\'s image re-shot (1200×630 JPEG ≤ 300 KB, a new ?v=)', () => {
+  for (const f of ['index.html', 'board.html']) {
+    const html = fs.readFileSync(f, 'utf8');
+    for (const prop of ['og:url', 'og:image', 'twitter:image']) {
+      const m = html.match(new RegExp(`(?:property|name)="${prop}" content="([^"]+)"`));
+      assert.ok(m, `${f}: ${prop}`);
+      assert.match(m[1], /^https:\/\/www\.neonspeakeasy\.com\//, `${f}: ${prop} on www (no 308 hop) — ${m[1]}`);
+    }
+  }
+  const board = fs.readFileSync('board.html', 'utf8');
+  assert.ok(!/og-board\.jpg\?v=1\b/.test(board), 'the board image\'s cache key bumped past v=1 (the old bar picture)');
+  const img = fs.readFileSync('assets/og-board.jpg');
+  assert.ok(img.length <= 300 * 1024, `og-board.jpg ${Math.round(img.length / 1024)} KB ≤ 300`);
+  assert.deepEqual(jpegSize(img), { w: 1200, h: 630 });
+});

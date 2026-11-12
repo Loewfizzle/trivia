@@ -64,7 +64,10 @@ export function streakPlay(st0, day, outage = null) {
   const s = st0 && st0.d ? { n: st0.n || 1, d: st0.d, b: st0.b || st0.n || 1, f: st0.f || 0, fn: st0.fn || FREEZE.first, h: { ...(st0.h || {}) }, w: st0.w || null, wm: st0.wm || null } : null;
   const D = dayNum(day);
   if (!s) {
-    const st = { n: 1, d: day, b: 1, f: 0, fn: FREEZE.first, h: { [day]: 1 }, w: null, wm: null };
+    // (FR7 FIXES B — E2: a streak with no run yet may still HOLD freezes — THE PROGRESS RESET keeps `st = { f }`, "a freeze is a reward" —
+    // so a new run starts with them, capped at the hold limit; they used to vanish at the first play after the reset)
+    const f = Math.max(0, Math.min(FREEZE.hold, Math.floor(Number(st0 && st0.f) || 0)));
+    const st = { n: 1, d: day, b: 1, f, fn: FREEZE.first, h: { [day]: 1 }, w: null, wm: null };
     ev.first = true;
     return { st, ev };
   }

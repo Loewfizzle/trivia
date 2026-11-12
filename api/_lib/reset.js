@@ -4,7 +4,8 @@
 //       boards (lb entries) }, line } — nothing written. confirm true + typed === 'RESET':
 //       1. THE BACKUP — backups/{stamp}: every profile's whole pstats + its profile's progress fields, lb/, pcount/n + pcount/a (server only:
 //          no rule reads it; ~a few KB a player — the free plan's 1 GB holds thousands of them); the newest BACKUP_KEEP kept
-//       2. FOUNDING MEMBER FIRST — founderSweep(): every player who qualifies gets the card BEFORE anything is wiped (never costs anyone it)
+//       2. FOUNDING MEMBER FIRST — founderSweep(): every player who qualifies gets the card BEFORE anything is wiped (never costs anyone it) —
+//          ONLY while the founder window is OPEN (FR7 FIXES B — E3: closed = no sweep)
 //       3. THE RESET — pstats/{pid} = resetStats(…), profiles/{pid}/{x,l,r,s,sd,m}, lb/ removed, pcount/n + pcount/a removed (the
 //          achievements' "X% have this" start again; pcount/i — the items' — stays: everyone keeps them)
 //     → { done, stamp, preview, line, founders }. A second run is harmless (everything is already at zero; a new small backup).
@@ -13,7 +14,7 @@
 //       backup's merged in — a restore never takes an item away)
 import { ref, val } from './fb.js';
 import { resetStats, resetProfile, resetCost, previewLine, RESET_STATS } from '../../js/core/reset.js';
-import { founderSweep } from './founder.js';
+import { founderSweep, founderOpen, clearFounderCache } from './founder.js';
 import { clearBoardCache } from './lb.js';
 import { ApiError } from './http.js';
 
@@ -26,12 +27,12 @@ async function snapshot() {
 }
 
 function previewOf(S) {
-  const p = { profiles: 0, xp: 0, records: 0, achievements: 0, streaks: 0, items: 0, boards: 0 };
+  const p = { profiles: 0, xp: 0, records: 0, achievements: 0, streaks: 0, plays: 0, items: 0, boards: 0 };
   for (const pid of Object.keys(S.profiles)) {
     if (!S.profiles[pid] || !S.profiles[pid].n) continue;
     p.profiles++;
     const c = resetCost(S.stats[pid]);
-    p.xp += c.xp; p.records += c.records; p.achievements += c.achievements; p.streaks += c.streak ? 1 : 0;
+    p.xp += c.xp; p.records += c.records; p.achievements += c.achievements; p.streaks += c.streak ? 1 : 0; p.plays += c.plays || 0;
   }
   for (const periods of Object.values(S.lb || {})) for (const rows of Object.values(periods || {})) p.boards += Object.keys(rows || {}).length;
   return p;
@@ -50,8 +51,10 @@ export async function progressReset({ confirm = false, typed = '', me = null, no
   await ref(`backups/${stamp}`).set({ at: now, by: me, profiles: preview.profiles, s: S0.stats, p: prof, lb: S0.lb, pn: S0.pn, pa: S0.pa, ra: ra0 || null });
   const all = Object.keys((await val('backups')) || {}).sort();
   if (all.length > BACKUP_KEEP) await ref('backups').update(Object.fromEntries(all.slice(0, all.length - BACKUP_KEEP).map(k => [k, null])));
-  // 2. FOUNDING MEMBER FIRST
-  const founders = await founderSweep(now);
+  // 2. FOUNDING MEMBER FIRST — only while THE FOUNDER WINDOW is OPEN (FR7 FIXES B — E3: a reset after the window closed must never hand the
+  //    card to everyone who played since; the window's switch is read fresh, never the 30 s cache)
+  clearFounderCache();
+  const founders = (await founderOpen(now)) ? await founderSweep(now) : 0;
   // 3. THE RESET (read again: the sweep just granted cards)
   const stats = (await val('pstats')) || {};
   // (FR7 FIXES A — E1: THE RESET EPOCH — the back-fill rebuilds the boards only from after it; in the SAME update as the reset)
