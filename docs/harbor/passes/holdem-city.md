@@ -122,3 +122,9 @@ build table line; decisions.md: the current line, THE LAUNCH row (was SWITCH + S
   on (from the daily E2E: a live test daily in the ☰ menu + the dock); with the plain server the three groups are **54 of 54**.
 - No look change outside the named places: the city's skyline differs on purpose (the five signs' rotation now holds HOLD'EM; the billboard);
   B2 is invisible (the tap area); B3 + B4 are the podium's named changes. No rules change; still 8 functions.
+- **THE CLOUD RUN** (3a1ee17a, the harbor tag): the harbor's 15 jobs **GREEN**; Vercel BUILT; the `tests` workflow RED — its unit job has no
+  `firebase-admin`, and the two new unit tests reached `api/report.js` / `api/_lib/lb.js` (→ `fb.js`). Fixed by moving the pure pieces where the
+  unit tests can reach them: `placingsOnly` → `core/night.js` (api/report.js re-exports it), the career board's value → `core/boards.js#careerValue`
+  (lb.js calls it) — no behaviour change. Proved with a resolve hook that blocks `firebase-admin` (the two files 9 of 9; `api/report.js` itself
+  blocked = the hook works); unit 1653/1653; on fresh emulators /api 44/44, progression 10/10, holdem-server 18/18. The second (last) cloud run:
+  the ci tag on that fix.

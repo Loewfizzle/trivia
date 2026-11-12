@@ -5,8 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { nightPoints, isAllTied, nightStandings, NIGHT_POINTS } from '../js/core/night.js';
-import { placingsOnly } from '../api/report.js';
+import { nightPoints, isAllTied, nightStandings, NIGHT_POINTS, placingsOnly } from '../js/core/night.js';   // (placingsOnly: api/report.js re-exports it — the CI unit job has no firebase-admin)
 import { winnersOf, bannerLines } from '../js/core/room-show.js';
 
 test('the rule: a full tie = a draw (2 each, nobody 1st); a partial tie stays 3 + 3; a solo run 0; a clear winner as ever', () => {

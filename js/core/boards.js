@@ -104,6 +104,15 @@ export function tieSort(n, tie, at, { weekStart = null } = {}) {
 }
 /** a tie-break sort value → { n, tie } (what the row shows) */
 export const tieOf = v => ({ n: Math.floor(v / TIE_W), tie: Math.floor((v % TIE_W) / TIE_K) });
+/** a CAREER board's sort value from a player's counters for one period (s = pstats g/{game} or gw/{game}; null = off the board) — the server's
+ *  writer (api/_lib/lb.js#boardPaths) and the unit tests both read it. `weekStart` = THIS WEEK's start (a tie-break board's WHEN). */
+export function careerValue(def, s, { weekStart = null } = {}) {
+  if (!s) return null;
+  if (def.stat === 'wr') return (s.p || 0) >= MIN_WR_GAMES ? winRate(s.w || 0, s.p) : null;
+  const n = s[def.stat] || 0;
+  if (def.tie) return n > 0 ? tieSort(n, s[def.tie] || 0, s.ra || 0, { weekStart }) : null;   // (HOLD'EM IN THE CITY: count, tie stat, the earlier)
+  return n > 0 ? n : null;
+}
 export const toSort = (def, value) => (def.dir === -1 ? -value : value);
 export const fromSort = (def, v) => (def.dir === -1 ? -v : v);
 /** Is `a` (display value) better than `b`? (b null = always) */

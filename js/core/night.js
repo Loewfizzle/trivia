@@ -40,3 +40,16 @@ export function nightPoints(ranks, { solo = false } = {}) {
   for (const r of ranks || []) p[r.uid] = solo ? 0 : tie ? NIGHT_POINTS[2] : NIGHT_POINTS[r.rank] || 0;
   return p;
 }
+
+/** the night record's placings → a match with no numbers (api/report.js's snapshot path — moved here, PURE, in HOLD'EM IN THE CITY): 3/2/1
+ *  points = 1st/2nd/3rd, 0 = after the podium */
+export function placingsOnly(night) {
+  const p = night.p || {}, uids = Object.keys(p);
+  const rankOf = pts => (pts === 3 ? 1 : pts === 2 ? 2 : pts === 1 ? 3 : uids.filter(u => p[u] > 0).length + 1);
+  const n = uids.length, firsts = uids.filter(u => p[u] === 3).length;
+  // (HOLD'EM IN THE CITY — B4: a FULL TIE's entry gives everyone the same points — 2 each since B4, 3 each before: every one rank 1, no win)
+  const allTie = n >= 2 && p[uids[0]] > 0 && uids.every(u => p[u] === p[uids[0]]);
+  const rows = {};
+  for (const u of uids) { const rank = allTie ? 1 : rankOf(p[u]); const win = !allTie && rank === 1 && firsts < n; rows[u] = { rank, win, c: { p: 1, ...(win ? { w: 1 } : {}) }, rec: {} }; }
+  return { gid: night.g, n, mode: null, rows, rejected: [] };
+}

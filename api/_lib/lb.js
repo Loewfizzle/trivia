@@ -11,7 +11,7 @@
 //   room match or a counted daily finish; never a solo run (PD-3 Group 0 — core/progress.js#countedPlays).
 import { createHmac } from 'node:crypto';
 import { ref, val, fb } from './fb.js';
-import { BOARD_GAMES, boardDef, careerBoards, toSort, winRate, MIN_WR_GAMES, fromSort, GAME_BOARDS, tieSort } from '../../js/core/boards.js';
+import { BOARD_GAMES, boardDef, careerBoards, toSort, winRate, MIN_WR_GAMES, fromSort, GAME_BOARDS, careerValue } from '../../js/core/boards.js';
 import { houseNick, BOARD_MIN_MATCHES } from '../../js/core/nicknames.js';
 import { isOffensive } from '../../js/core/names.js';
 import { levelOf } from '../../js/core/levels.js';
@@ -60,14 +60,8 @@ export function boardPaths(pid, stats, { hidden = false, now = Date.now(), only 
     const week = thisWeek && stats.gw && stats.gw[game];
     if (!all && !week) continue;
     for (const def of careerBoards(game)) {
-      const v = (s, eligible, weekStart = null) => {
-        if (!s) return null;
-        if (def.stat === 'wr') return (s.p || 0) >= MIN_WR_GAMES ? winRate(s.w || 0, s.p) : null;
-        const n = s[def.stat] || 0;
-        // (HOLD'EM IN THE CITY: a tie-break board — the count, then the tie stat, then the earlier to reach it: ONE sort value)
-        if (def.tie) return eligible && n > 0 ? tieSort(n, s[def.tie] || 0, s.ra || 0, { weekStart }) : null;
-        return eligible && n > 0 ? n : null;
-      };
+      // (HOLD'EM IN THE CITY: the value is core/boards.js#careerValue — PURE, the unit tests read it; a tie-break board = ONE sort value)
+      const v = (s, eligible, weekStart = null) => (eligible ? careerValue(def, s, { weekStart }) : null);
       put(def.id, 'all', v(all, true));
       if (thisWeek) put(def.id, wk, v(week, true, weekEndsAt(now) - 7 * 864e5));
     }

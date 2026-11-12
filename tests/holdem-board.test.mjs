@@ -11,11 +11,17 @@ import { rngFrom } from '../js/core/rng.js';
 import { boardDef, careerBoards, tabBoards, primaryBoard, tieSort, tieOf, fmtValue, BOARD_GAMES, GOAL_GAMES } from '../js/core/boards.js';
 import { holdemCounters } from '../js/core/match-report.js';
 import { matchStep } from '../js/core/progress.js';
-import { boardPaths } from '../api/_lib/lb.js';
+import { careerValue } from '../js/core/boards.js';   // (lb.js#boardPaths writes exactly this — the CI unit job has no firebase-admin, the emulator test proves the write)
 import { weekKey, weekEndsAt } from '../js/core/week.js';
 import { holdemFromRecords, filledHoldem } from '../js/core/board-fill.js';
 import { readFileSync } from 'node:fs';
 
+// (lb.js#boardPaths for THE HOLD'EM BOARD, as it writes it: ALL TIME from g.holdem, THIS WEEK from gw.holdem while the stats' week is now's)
+const boardPaths = (pid, s, { now }) => {
+  const def = boardDef('holdem-tw'), wk = weekKey(now), out = { [`lb/holdem-tw/all/${pid}`]: careerValue(def, s && s.g && s.g.holdem) };
+  if (s && s.wk === wk) out[`lb/holdem-tw/${wk}/${pid}`] = careerValue(def, s.gw && s.gw.holdem, { weekStart: weekEndsAt(now) - 7 * 864e5 });
+  return out;
+};
 const T0 = Date.UTC(2026, 10, 11, 23);   // a Wednesday evening, Eastern
 const weekStart = weekEndsAt(T0) - 7 * 864e5;
 
