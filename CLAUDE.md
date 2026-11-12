@@ -163,6 +163,9 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 - **THE RULES-LAG (FR6 FIXES A):** every database write goes through `firebase.js#write` (a refusal is reported to /admin, ids masked — never silent); a pass that changes `database.rules.json` fails `tests/rules-live.test.mjs` until its ack names the change, and its summary's FIRST line says RE-PUBLISH + how (docs/testing.md "THE RULES-LAG"); a feature on a new rule keeps a fallback that works on the old one.
 - **Anti-cheat never depends on the code being secret** (the owner, Oct 28 — the repo stays PUBLIC until just before the launch): the
   server checks + replays every result itself (`/api`), the secrets live only in Vercel's env (the service-account key, the pepper).
+- **THE REAL PLAYER COUNT (FR7-A's C1, Nov 12):** anything the server PAYS BY A COUNT takes that count from what it can verify, never from
+  the length of a host-written list — `api/report.js`: the match's names with a seat (`players/{uid}`) or a server-known account, ≤ 8;
+  > 16 names refused; one real player = a solo run, never a win (docs/profiles.md; `server.test.mjs` "FR7-A C1").
 - **A game's podium music:** `FINAL_MUSIC` in its index.js (HIGH STAKES: `victory1` = victory.mp3); default the victory playlist.
 - **OVERCLOCK (OC1 — docs/overclock.md):** QUICK default; THE ROOM's NIGHT MEMORY = the host deals the whole match at `start({ used })` (`overclock/deal.js`), each challenge marks its keys as it opens; the after-challenge skip (`ocnext`, ≥ 3 s, everyone connected); the combo (`ocm` → `game/combo`); NIGHT only (`LOOKS`); its timings are the owner's — pinned by `tests/overclock-oc1.test.mjs`; mid-game standings = LIGHT rows, never the slim cards. OC2: THE ROUND WIN is ONE rule (`logic.js#roundWin` —
   the highest + not shared; the server's REDLINE calls it; stored as `game/rw`); the after-challenge screen + the final run in BEATS inside the

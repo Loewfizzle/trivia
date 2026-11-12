@@ -10,6 +10,14 @@
 // PLACINGS ONLY, from the night record (never a client's game blob — no records, no scores); CIPHER's results must agree with the
 // players' own signed boards (re-graded from their guesses); and a uid with no profile is never given one here (each phone makes
 // its own when it joins — js/profile/me.js).
+// FR7-A's C1 (Nov 12 — THE REAL PLAYER COUNT): the XP a win / a 2nd place pays grows with the PLAYER COUNT, and that count came from
+// host-written data (the night record's names on the snapshot path, game.participants on the room path) with no cap — one anonymous
+// user wrote a 5,001-name record and took 30,089 XP (LEVEL 1 → 77) in ONE call. Now, on BOTH paths: a record naming more than
+// MAX_REPORT_NAMES is refused before any work; the count paid on = the match's names that are REAL PLAYERS — a seat in the room
+// (players/{uid}, which only that uid can write) or, for a player who left after the match, an account this server knows (uids/{uid} —
+// server-written) — never above MAX_PLAYERS; a record with ONE real player is a SOLO run (the solo lane's small capped XP, never a
+// win — and only for a game that plays solo). HOLD'EM (the dealer's own record), the dailies (a fixed XP a daily) and the solo lane
+// (a fixed XP, 4 a day) never took a count from a phone.
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { readFileSync } from 'node:fs';
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
@@ -18,8 +26,8 @@ import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
 import { applyMatch } from './_lib/stats.js';
 import { bumpPlayed } from './_lib/activity.js';
-import { extractMatch, unreportable, REPORT_GAMES, DEALER_GAMES } from '../js/core/match-report.js';
-import { GAMES } from '../js/config.js';
+import { extractMatch, unreportable, REPORT_GAMES, DEALER_GAMES, SOLO_OK } from '../js/core/match-report.js';
+import { GAMES, MAX_PLAYERS } from '../js/config.js';
 import { regradeBoards, computeRoundResults } from '../js/games/cipher/logic.js';
 import { holdemAction, clockNow } from './_lib/holdem-store.js';
 import { timing } from './_lib/timing.js';
@@ -69,6 +77,16 @@ export async function reportableGame(id) {
   return emulated() && !!(await val('testReportAll'));
 }
 
+/**
+ * FR7-A's C1 — THE REAL PLAYER COUNT (PURE). A match record may NAME at most MAX_REPORT_NAMES players (twice a full room — the join
+ * cap is the client's, so a racing 9th seat still reports; a forged list is refused before the server does any work on it).
+ * realPlayers: the names that count — seated in the room, or an account the server knows (a player who left after the match).
+ * asSoloRow: what one real player alone is paid as — the solo lane's row (no win, no placing, no records, no award flags).
+ */
+export const MAX_REPORT_NAMES = MAX_PLAYERS * 2;
+export const realPlayers = (names, seated, known) => names.filter(u => !!((seated && seated[u]) || (known && known[u])));
+export const asSoloRow = row => ({ rank: (row && row.rank) || 1, win: false, solo: true, c: { p: 1 }, rec: {} });
+
 export async function processReport(uid, body, now = Date.now()) {
   const code = String(body.code || '');
   const matchId = String(body.matchId || '');
@@ -88,6 +106,10 @@ export async function processReport(uid, body, now = Date.now()) {
   if (!night || typeof night.at !== 'number') throw new ApiError(409, 'unverifiable', 'This match has no record in its room.');
   if (now - night.at > MAX_AGE_MS) throw new ApiError(409, 'too_old');
   if (night.at > now + 60_000) throw new ApiError(409, 'unverifiable', 'The match record is from the future.');
+  // (FR7-A's C1: a record naming more players than a room can ever hold is refused BEFORE anything is extracted from it)
+  const inRoom = !!(game && game.matchId === matchId);
+  const named = inRoom ? Object.keys(game.participants || {}) : Object.keys(night.p || {});
+  if (named.length > MAX_REPORT_NAMES || Object.keys(night.p || {}).length > MAX_REPORT_NAMES) throw new ApiError(409, 'unverifiable', 'Too many players for one match.');
   let ex, src = 'room';
   if (game && game.matchId === matchId) {
     if (game.phase !== 'final') throw new ApiError(425, 'not_final', 'The match is still running.');
@@ -114,6 +136,18 @@ export async function processReport(uid, body, now = Date.now()) {
   // credit only uids with a SEAT in the room (players/{uid}) — a name in night.n is not a player
   for (const u of Object.keys(ex.rows)) if (!(players && players[u])) delete ex.rows[u];
   if (!ex.rows[uid]) throw new ApiError(403, 'not_in_match');
+  // FR7-A's C1 — THE REAL PLAYER COUNT: what a win / a place pays grows with the player count, so the count is the match's REAL players
+  // (never the length of a host-written list): seated in the room, or — a player who left after the match — an account the server
+  // knows; never above a full room. ONE real player = a solo run: the solo lane's row (no win), only for a game that plays solo.
+  const known = {};
+  await Promise.all(named.filter(u => !(players && players[u])).map(async u => { if (await pidOf(u)) known[u] = true; }));
+  const real = realPlayers(named, players, known).length;
+  if (real < 2 && !ex.solo) {
+    if (!SOLO_OK[ex.gid]) throw new ApiError(409, 'unverifiable', 'This match had no second player.');
+    ex.rows = { [uid]: asSoloRow(ex.rows[uid]) };
+    ex.solo = true;
+  }
+  ex.n = ex.solo ? 1 : Math.min(MAX_PLAYERS, real);
 
   // one processor at a time (a stuck claim expires); pstats/m keeps it exactly-once even if two overlap
   const claim = await ref(`results/${key}`).transaction(cur => {

@@ -83,6 +83,16 @@ unconfigured the app behaves as it always did (no tags, no emblems, results wait
 - **Exactly once:** `results/{code}_{matchId}` is claimed by a transaction (a stuck claim expires after 30 s); each player's update is
   one transaction on `pstats/{pid}` that also records `m/{key}` — retries, the other phones and a crash halfway never double count.
   A player can't be credited two matches within `MATCH_GAP_MS` (default 45 s; a real match takes minutes) — a forged room can't farm.
+- **THE REAL PLAYER COUNT (FR7-A's C1, Nov 12 — docs/harbor/review-7a.md):** a win / a 2nd place pays more with more players, and the
+  count used to be the LENGTH of a host-written list (the night record's names on the snapshot path, `game.participants` on the room
+  path) — one anonymous user wrote a 5,001-name record and took 30,089 XP (level 1 → 77) in one call. Now, on BOTH paths
+  (`api/report.js`): a record naming more than `MAX_REPORT_NAMES` (16 — twice a full room) is refused (409 `unverifiable`) before
+  anything is extracted; the count = the match's names that are REAL PLAYERS — a seat in the room (`players/{uid}`, written only by
+  that uid) or, for a player who left after the match, an account the server knows (`uids/{uid}`) — never above `MAX_PLAYERS` (8); a
+  record with ONE real player is paid as a SOLO run (`asSoloRow`: the solo lane's XP, no win, no records, no award flags — so a solo
+  run reported by snapshot is no longer a win), and refused for a game that doesn't play solo. Only seated players are CREDITED, as
+  before. HOLD'EM (the dealer's own record), the dailies (a fixed XP a daily) and the solo lane (a fixed XP, 4 a day) never took a
+  count from a phone. `server.test.mjs` "FR7-A C1": the forgery on both paths, a real 2- and 8-player match paid by the formula.
 - The answer (`outcome`: XP gained + parts, rank from/to, personal bests, ranks before/after on the boards that changed) is stored
   in `results/{key}/o/{pid}`, so every phone gets its own, even the ones whose report arrived second.
 

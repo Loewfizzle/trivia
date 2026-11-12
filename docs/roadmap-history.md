@@ -2649,3 +2649,15 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - HE9's shared fixes, every game: B2 (the corner buttons' tap area 42 → 44 — the padding box; the `tapfit` probe), B3 (the podium's action row
   sticky at the foot + a fade + MORE BELOW; HOLD'EM's stop-gap gone), B4 (everyone tied = a draw: ALL TIED, 2nd-place night points, no win, no
   banner plane; the server accepts the old entries; a partial tie unchanged). No rules change; 8 functions.
+
+## FR7-A's MUST-FIX 1 — THE REAL PLAYER COUNT (Nov 12, 2026 — docs/harbor/review-7a.md C1; docs/profiles.md)
+- THE HOLE (FR7-A, reproduced on the emulators): `/api/report` paid a win by the PLAYER COUNT, and took the count from host-written data
+  with no cap — the snapshot path from the night record's names (`core/night.js#placingsOnly`), the room path from `game.participants`.
+  One anonymous user, one room of its own, a 5,001-name night record, one call → 30,089 XP, level 1 → 77 (two calls: level 100).
+- THE FIX (`api/report.js`, both paths): more than 16 names → refused before any work; the count = the names with a seat in the room or
+  a server-known account (a player who left), never above 8; one real player → a solo run (the solo lane's 15 XP, 4 a day, never a win —
+  which also ends "a solo run reported by snapshot is a WIN"), refused for a game that doesn't play solo. The dealer, the dailies and
+  the solo lane were checked: none takes a count from a phone.
+- PROOF: the review's repro now answers `unverifiable` (level 1, 0 XP); its ghost-opponent control pays 15 XP, no win; `server.test.mjs`
+  "FR7-A C1" (the forgery on both paths; a real 2-player win 95 XP and an 8-player win 131 XP, each player paid by the formula; the
+  snapshot path; a leaver still counts). No rules change; 8 functions; no client change.

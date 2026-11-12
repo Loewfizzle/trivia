@@ -1366,6 +1366,111 @@ test('THE SOLO LANE: a solo OVERCLOCK counts once, small XP, no win; 3 night poi
   tick();
 });
 
+// FR7-A's C1 (Nov 12) — THE REAL PLAYER COUNT (api/report.js): the XP of a win / a 2nd place grows with the player count, and the count came
+// from a host-written list with no cap — the review's repro: ONE anonymous user, a night record with 5,001 names, one snapshot report →
+// 30,089 XP, LEVEL 1 → 77. Now the count = the match's REAL players (a seat in the room, or an account the server knows for one who left),
+// never above a full room; a record naming more than MAX_REPORT_NAMES is refused; ONE real player = a solo run (the solo lane, never a win).
+test('FR7-A C1 — THE REAL PLAYER COUNT: the 5,001-name forgery is refused; ghosts never raise the pay (both paths); a real 2- and 8-player match pays exactly as before', async () => {
+  const { matchXp, SOLO_XP, XP } = await import('../../js/core/ranks.js');
+  const { MAX_REPORT_NAMES } = await import('../../api/report.js');
+  const seat = (u, i = 0) => ({ name: u.toUpperCase(), color: 'cyan', avatar: 'bolt', joinedAt: i });
+  /** a room its "host" wrote by hand: only the host seated, a night record of its own making (the snapshot path's whole input) */
+  const forge = async (uid, code, m, p, g = 'prism') => {
+    await ref(`rooms/${code}`).set({ meta: { hostId: uid, status: 'lobby', createdAt: clock, activeAt: clock }, players: { [uid]: seat(uid) }, night: { [m]: { g, at: clock, p } } });
+    return { code, matchId: m };
+  };
+  const snapOf = room => ({ matchId: room.matchId });
+  const levelOf = async u => (await val(`profiles/${await val(`uids/${u}`)}`)).l || 1;   // (a profile with no XP yet carries no level: LEVEL 1)
+
+  // 1. THE REVIEW's REPRO, as it was run: one user, 5,001 names, one call → refused; nothing paid
+  await ensure('u-fg1', 'FORGER');
+  const big = { 'u-fg1': 3 };
+  for (let i = 0; i < 5000; i++) big[`f${i}`] = 0;
+  const A = await forge('u-fg1', 'FRGA', 'm01', big);
+  await rejects(report('u-fg1', A, clock, snapOf(A)), 409, 'unverifiable');
+  assert.equal((await stats('u-fg1'))?.xp || 0, 0, 'the 5,001-name record paid nothing');
+  assert.equal(await levelOf('u-fg1'), 1, 'still LEVEL 1');
+  // 2. the most names a record may carry (16), all but the caller ghosts (no seat, no account): ONE real player → a SOLO RUN — the honest amount
+  const p16 = { 'u-fg1': 3 };
+  for (let i = 0; i < MAX_REPORT_NAMES - 1; i++) p16[`gh${i}`] = i === 0 ? 2 : i === 1 ? 1 : 0;
+  const B = await forge('u-fg1', 'FRGB', 'm02', p16);
+  const rb = await report('u-fg1', B, clock, snapOf(B));
+  assert.equal(rb.status, 'counted');
+  assert.equal(rb.outcome.win, false, 'ghosts are nobody to beat: never a win');
+  assert.equal(rb.outcome.n, 1, 'the count = the real players');
+  assert.equal(rb.outcome.xp.gain, SOLO_XP, `the forgery pays a solo run's XP (${rb.outcome.xp.gain})`);
+  assert.deepEqual((await stats('u-fg1')).g.prism, { p: 1 }, 'a played game, no win on the career board');
+  assert.equal(await levelOf('u-fg1'), 1, 'still LEVEL 1');
+  // …and a game that doesn't play solo is refused outright (nobody else was there)
+  tick();
+  const B2 = await forge('u-fg1', 'FRGC', 'm03', { 'u-fg1': 3, ghost: 2 }, 'bluff');
+  await rejects(report('u-fg1', B2, clock, snapOf(B2)), 409, 'unverifiable');
+  // 3. THE ROOM PATH, the same forgery: a "final" with eight participants, seven of them nobody (their seats never existed)
+  await ensure('u-fg2', 'FORGERTWO');
+  const ghosts = ['gx1', 'gx2', 'gx3', 'gx4', 'gx5', 'gx6', 'gx7'];
+  const C = await seedRoom('prism', ['u-fg2', ...ghosts]);
+  for (const g of ghosts) await ref(`rooms/${C.code}/players/${g}`).set(null);
+  const rc = await report('u-fg2', C);
+  assert.equal(rc.status, 'counted');
+  assert.equal(rc.outcome.win, false);
+  assert.equal(rc.outcome.n, 1);
+  assert.equal(rc.outcome.xp.gain, SOLO_XP, `the room path pays the same honest amount (${rc.outcome.xp.gain})`);
+  assert.equal((await stats('u-fg2')).g.prism.w, undefined, 'no win');
+  // …and a participants list past the cap is refused before anything is extracted
+  const C2 = await seedRoom('prism', ['u-fg2', ...Array.from({ length: MAX_REPORT_NAMES }, (_, i) => `gy${i}`)]);
+  await rejects(report('u-fg2', C2, clock + 5 * 60e3), 409, 'unverifiable');
+
+  // 4. REAL MATCHES PAY EXACTLY AS BEFORE — every player's XP = the formula on the real count (fresh profiles: first game today, no PB XP)
+  const paid = async (room, uids, n, by = uids[0], snap) => {
+    const r = await report(by, room, clock, snap);
+    assert.equal(r.status, 'counted');
+    const o = (await val(`results/${room.code}_${room.matchId}`)).o;
+    let wins = 0;
+    for (const u of uids) {
+      const x = o[await val(`uids/${u}`)];
+      assert.ok(x && !x.skip, `${u} was credited`);
+      assert.equal(x.n, n, `${u}: the count is ${n}`);
+      assert.equal(x.xp.gain, matchXp({ rank: x.rank, win: x.win, n, firstToday: true, gamesToday: 1 }).total, `${u} (rank ${x.rank}) is paid by the formula on ${n} players`);
+      if (x.win) wins++;
+    }
+    assert.equal(wins, 1, 'one winner');
+    return Object.values(o);
+  };
+  const two = ['u-rp1', 'u-rp2'];
+  for (const u of two) await ensure(u, u.slice(2).toUpperCase());
+  const o2 = await paid(await seedRoom('prism', two), two, 2);
+  assert.equal(o2.find(x => x.win).xp.gain, XP.played + XP.win + XP.newGame, 'a 2-player win: 95 XP, as before');
+  const eight = Array.from({ length: 8 }, (_, i) => `u-r8${i}`);
+  for (const u of eight) await ensure(u, `EIGHT${i8(u)}`);
+  const o8 = await paid(await seedRoom('prism', eight), eight, 8);
+  assert.equal(o8.find(x => x.win).xp.gain, XP.played + XP.win + 6 * XP.winPerExtra + XP.newGame, 'an 8-player win: 131 XP, as before');
+  assert.equal(o8.find(x => x.rank === 2).xp.gain, XP.played + XP.second + 5 * XP.secondPerExtra + XP.newGame, 'its 2nd place: 90 XP, as before');
+  // the snapshot path too (the room moved on before the report): a real 2-player match, placings only — the same win
+  const snap2 = ['u-rs1', 'u-rs2'];
+  for (const u of snap2) await ensure(u, u.slice(2).toUpperCase());
+  const S = await seedRoom('prism', snap2);
+  await ref(`rooms/${S.code}/game`).set(null);
+  const os = await paid(S, snap2, 2, snap2[0], snapOf(S));
+  assert.equal(os.find(x => x.win).xp.gain, XP.played + XP.win + XP.newGame, 'the snapshot path: a 2-player win pays the same 95');
+  // a player who LEFT after the match (no seat now, an account the server knows) still counts: the winner of three keeps the 3-player win
+  const three = ['u-rl1', 'u-rl2', 'u-rl3'];
+  for (const u of three) await ensure(u, u.slice(2).toUpperCase());
+  const L = await seedRoom('prism', three);
+  await ref(`rooms/${L.code}/players/u-rl3`).set(null);
+  const ol = await paid(L, ['u-rl1', 'u-rl2'], 3);
+  assert.equal(ol.find(x => x.win).xp.gain, XP.played + XP.win + XP.winPerExtra + XP.newGame, 'the leaver still counts: a 3-player win');
+  assert.equal(ol.length, 2, 'the leaver is not credited (no seat) — as before');
+  // 5. a SOLO run reported by snapshot (BACK TO THE ROOM before the report landed) is a solo run, never a win
+  await ensure('u-fg3', 'SOLOSNAP');
+  const SS = await forge('u-fg3', 'FRGD', 'm05', { 'u-fg3': 0 }, 'overclock');
+  const rs = await report('u-fg3', SS, clock, snapOf(SS));
+  assert.equal(rs.outcome.win, false, 'a solo snapshot is never a win');
+  assert.equal(rs.outcome.xp.gain, SOLO_XP);
+  assert.deepEqual((await stats('u-fg3')).g.overclock, { p: 1 });
+  tick();
+});
+const i8 = u => 'ABCDEFGH'[Number(u.slice(-1))];
+
 // SHELL 2.0 B2 — THE GIFT TOOL (api/_lib/gifts.js): the owner GIVES a 1-of-1 card to a name tag — server-granted (the item, equipped, a
 // reveal waiting), audited; ONE PROFILE EVER (a second give refused, whoever asks); a non-owner refused; THE OWNER's OWN CARD never
 // giftable — granted to the owner (ADMIN_PIDS) on 'me', refused to anyone else on 'style'
