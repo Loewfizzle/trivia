@@ -30,6 +30,8 @@ export const ROWS = { 4: [0.16], 5: [0.16], 6: [0.11, 0.274], 7: [0.128, 0.274] 
 export const FIRST_UNDER_TOP = [66, 72];
 /** HE5: the side rows never closer than a seat's block (94 pt × ss) */
 export const ROW_MIN = 94.5;
+/** HE11: the air between two side seats' blocks when the short-phone squeeze runs (pt — the SE at 8 players) */
+export const ROW_AIR = 4;
 export const DESIGN = { w: 390, h: 844, boxTop: 100, boxBottom: 752 };
 const CARD_RATIO = 78 / 56;
 
@@ -71,8 +73,13 @@ export function tableLayout({ w, h, top = 0, bottom = 0, k = 0 }) {
   };
   let P = place(true, ss);
   if (P.gap < ROW_MIN * ss) P = place(false, ss);
-  // (an SE-height phone with 8 at the table: the seats a hair smaller — never below 0.74 — rather than touching)
-  if (P.gap < ROW_MIN * ss) { ss = Math.max(0.74, Math.min(ss, P.gap / ROW_MIN)); P = place(false, ss); }
+  // (an SE-height phone with 8 at the table: the seats a hair smaller — never below 0.74 — rather than touching. HE11 (FR7-B's NICE): with
+  //  ROW_AIR between two side seats — a showdown's hand tag sat 1–2 pt off the next seat's emblem + cards on the SE, in WebKit's text metrics
+  //  a touch; the squeeze runs until the rows (which move with ss) hold the air. A phone that never squeezes is untouched)
+  if (P.myBet == null) for (let i = 0; i < 4 && P.gap < (ROW_MIN + ROW_AIR) * ss; i++) {
+    ss = Math.max(0.74, Math.min(ss, P.gap / (ROW_MIN + ROW_AIR)));
+    P = place(false, ss);
+  }
   const { boardY, pot, rows } = P;
   const myBet = P.myBet != null ? { x: box.x + box.w / 2, y: P.myBet, above: true }
     : { x: box.x + box.w / 2 - handCard.w * 0.92 - 40, y: handY - 30 * s, above: false };

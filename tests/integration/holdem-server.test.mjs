@@ -437,6 +437,70 @@ test('HE10 — A15 + A7 + A16 on the emulators: a seat whose player left the roo
   ok(await T.call(T.host, { holdem: 'start', mode: 'tournament', speed: 'turbo' }), 'a new start still works');
 });
 
+test("HE11 — FR7-B's leftovers on the emulators: a seat whose player LEFT goes AWAY on the very next POKE (not the next full call); THE HEAL also heals a seat's private cards lost with a publish right after a DEAL", async () => {
+  const uids = users(3, 'h11');
+  const T = await new Table(uids, { seed: 'h11' }).seed();
+  ok(await T.call(T.host, { holdem: 'start', mode: 'tournament', speed: 'turbo' }));
+  let p = await T.pub();
+  assert.equal(p.hand, 1);
+  // 2: nothing is due (the clock hasn't moved) — the player to act leaves the room → a plain POKE (the cheap path) still puts them AWAY
+  const L = legalActions(p.table);
+  assert.ok(p.due > clock, 'nothing due yet');
+  await ref(`rooms/${T.code}/players/${L.id}`).remove();
+  T.gone.add(L.id);
+  const other = uids.find(u => u !== L.id && u !== T.host) || T.host;
+  const r = ok(await T.call(other, { holdem: 'poke' }));
+  assert.equal(r.changed, true, 'the poke took the full path');
+  p = await T.pub();
+  assert.ok(p.table.seats.find(x => x.id === L.id).away, 'AWAY on the very next poke');
+  assert.notEqual(legalActions(p.table)?.id, L.id, 'no longer the one to act');
+  // (and a poke with nobody gone stays cheap: nothing written)
+  const seq0 = p.seq;
+  const r2 = ok(await T.call(other, { holdem: 'poke' }));
+  assert.equal(r2.changed, false);
+  assert.equal((await T.pub()).seq, seq0);
+  // 4: a publish lost right after a DEAL — the view one behind AND a seat's private node missing → the next poke heals BOTH
+  const keep = uids.find(u => u !== L.id);
+  const cards = (await T.hole(keep)).c;
+  assert.equal(cards.length, 2);
+  await ref('/').update({ [`hole/${T.code}/${keep}`]: null, [`rooms/${T.code}/holdem/seq`]: p.seq - 1 });
+  const r3 = ok(await T.call(other, { holdem: 'poke' }));
+  assert.equal(r3.changed, false, 'nothing new — a heal');
+  assert.deepEqual((await T.hole(keep)).c, cards, 'the two cards of that seat are back');
+  assert.equal((await T.pub()).seq, p.seq, 'the view healed');
+  await T.refreshCheck(keep);
+});
+
+test('HE11 — 9 in the room (a join race): the start SEATS THE FIRST 8 by when they joined, the 9th watches (never a silent 409 too_many)', async () => {
+  const uids = users(9, 'h11n');
+  const T = await new Table(uids, { seed: 'h11n' }).seed();
+  const r = ok(await T.call(T.host, { holdem: 'start', mode: 'tournament', speed: 'turbo', uids }));
+  assert.ok(r.seq != null);
+  const p = await T.pub();
+  assert.equal(p.table.seats.length, 8, 'eight seats');
+  assert.ok(!p.table.seats.some(x => x.id === uids[8]), 'the last to join watches');
+  assert.equal(await T.hole(uids[8]), null, 'no cards for the watcher');
+  ok(await T.call(uids[8], { holdem: 'poke' }), 'the watcher may still poke the table');
+});
+
+test('HE11 — an ended match nobody poked 8 s after (the clean-up never ran): the NEXT start in that room sweeps the old record + every old private node', async () => {
+  const uids = users(3, 'h11s');
+  const T = await new Table(uids, { seed: 'h11s' }).seed();
+  ok(await T.call(T.host, { holdem: 'start', mode: 'cash' }));
+  ok(await T.call(T.host, { holdem: 'endSession' }));
+  let p;
+  for (let i = 0; i < 60 && !((p = await T.pub()).ended && p.rep); i++) await T.step();
+  const old = await T.rec();
+  assert.ok(old && old.m.ended, 'over, its record still there (nobody poked at the clean-up moment)');
+  assert.ok(await T.hole(uids[2]), 'the third seat still has its private node');
+  // a new start with two of the three — the console's connected players
+  ok(await T.call(T.host, { holdem: 'start', mode: 'tournament', speed: 'turbo', uids: uids.slice(0, 2) }));
+  const rec = await T.rec();
+  assert.notEqual(rec.id, old.id, 'the record is the new match');
+  assert.equal(await T.hole(uids[2]), null, 'the old match left no private node behind');
+  assert.deepEqual(Object.keys((await val(`hole/${T.code}`)) || {}).sort(), uids.slice(0, 2).sort(), 'only the new seats');
+});
+
 test('HE10 — A2 / B1 (THE RESULTS HOLE): a host can no longer mint a HOLD\'EM result — never dealt, or over a real match; a frozen game is refused too; the dealer overwrites any result that isn\'t its own', async () => {
   const uids = users(2, 'frg');
   await profiles(uids);

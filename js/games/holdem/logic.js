@@ -1,7 +1,7 @@
 // HOLD'EM — THE CARTRIDGE's pure logic (HE3): the director's end, the podium's rows, the level line, WHO POKES, the seats' places on the
 // portrait table. The RULES are the engine's (table.js · match.js — HE1) and run on the SERVER (the dealer — HE2); this is the phone's side.
 // No DOM, no database, no clock (`now` comes in = serverNow()). tests/holdem-phone.test.mjs.
-import { blindsAt, levelAt, CASH } from './structure.js';
+import { blindsAt, levelAt, CASH, MAX_SEATS } from './structure.js';
 // (THE THIN META: one source — the console's values live in meta.js)
 export { DEFAULT_SETTINGS, chatLocked, cleanSettings } from './meta.js';
 
@@ -98,15 +98,37 @@ export function levelLine(pub, now) {
 /**
  * WHO POKES (docs/holdem.md — HE2's rule, HE3 builds it): the HOST pokes ~100 ms after `due`; any other phone only when the table is
  * still stuck ~2 s after it (+ its own 0–1 s jitter) — a dead host costs one or two extra calls, never eight. → ms to wait, or null
- * (nothing timed). `due` = 0 → now (a result still to send).
+ * (nothing timed). `due` = 0 (a result still to send) → the host at once, a guest after its 2–3 s.
  */
 export const HOST_POKE_MS = 100;
 export const GUEST_POKE_MS = 2000;
 export function pokeIn({ due, now, host, jitter = 0 }) {
   if (due == null) return null;
+  // HE11 (FR7-B's NICE): due 0 = "a result still to send" — the HOST now, a guest only if it's still there 2–3 s later (it was every phone
+  // at once: up to 8 calls for one job)
+  if (due === 0) return host ? 0 : GUEST_POKE_MS + Math.max(0, Math.min(1000, jitter));
   const at = due + (host ? HOST_POKE_MS : GUEST_POKE_MS + Math.max(0, Math.min(1000, jitter)));
   return Math.max(0, at - now);
 }
+/** HE11: the host's line when the room holds more than the table seats (a join race) — the dealer seats the first 8; null otherwise */
+export const watchersLine = n => (n > MAX_SEATS ? `Hold’em seats ${MAX_SEATS} — ${n - MAX_SEATS} will watch` : null);
+
+/**
+ * A SEAT's TAG (PURE — HE11): OUT · LEFT · ALL IN · SAT OUT · AWAY · FOLD. SAT OUT only for a seat that IS sat out (CASH: AWAY = SAT OUT);
+ * a 'sitout' seat that isn't away is only waiting for its first deal (every seat before hand 1, a CASH seat taken mid-hand) → no tag.
+ * x = the public seat, pl = its player's public row, run = a hand is running.
+ */
+export function seatTag(x, pl, run) {
+  if (!x) return '';
+  if (x.status === 'out') return 'OUT';
+  if (pl && pl.left) return 'LEFT';
+  if (x.status === 'allin') return 'ALL IN';
+  if (x.away) return x.status === 'sitout' ? 'SAT OUT' : 'AWAY';
+  return x.status === 'folded' && run ? 'FOLD' : '';
+}
+/** I'M BACK / SIT BACK IN (PURE — HE11): offered exactly when the dealer takes it (table.js `back` — an AWAY seat), never a silent 409. */
+export const backOffered = (x, pl) => !!(x && x.away && !(pl && pl.left));
+
 /** A poke that changed nothing while the table still says it's due: back off (the server's clock is a little behind ours). */
 export const POKE_RETRY_MS = 700;
 /** FR7 FIXES A — THE FROZEN BUTTONS: a move's lock (view.js#send) is released by this long after the tap, whatever the network does */

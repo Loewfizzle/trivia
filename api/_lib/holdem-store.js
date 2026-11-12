@@ -25,8 +25,9 @@ import { GAMES } from '../../js/config.js';
 import { take } from './limit.js';
 import { noTiming } from './timing.js';
 import { pidOf } from './profiles.js';
-import { DealerError, newRecord, applyOp, advance, dueOf, publicOf, holeOf, seatUids, resultRows, abandoned, cleanAt, counts } from './holdem-dealer.js';
+import { DealerError, newRecord, applyOp, advance, dueOf, publicOf, holeOf, seatUids, resultRows, abandoned, cleanAt, counts, watchOf } from './holdem-dealer.js';
 import { toWire, wireDiff, nestWire, wireBytes } from '../../js/games/holdem/wire.js';
+import { MAX_SEATS } from '../../js/games/holdem/structure.js';
 
 export const OPS = ['start', 'act', 'pre', 'show', 'poke', 'rebuy', 'back', 'leave', 'sit', 'endSession', 'endGame'];   // (FR7 FIXES A: + endGame — the host's END GAME)
 
@@ -118,15 +119,19 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
   if (!budget(uid, now)) throw new ApiError(429, 'slow_down', 'Too many moves — wait a moment.');
   T.mark('pre');
   const recPath = `hrec/${code}`, rp = `rooms/${code}`;
-  const member = async () => (await ref(`${rp}/players/${uid}`).once('value')).exists();
 
   // THE POKE's cheap path: nothing due by the server's clock → 5 small reads in parallel, no write
   if (op === 'poke') {
-    const [due, inRoom, kickedMe, recSeq, pubSeq] = await Promise.all([val(`${recPath}/due`), member(), val(`${rp}/kicked/${uid}`), val(`${recPath}/seq`), val(`${rp}/holdem/seq`)]);
+    // (HE11: the room's players + kicked maps — ≤ 8 small rows — and the record's WATCH list, so a seat whose player left / was kicked
+    //  goes AWAY on the very next poke, never "the next full call")
+    const [due, playersRaw, kickedRaw, recSeq, pubSeq, watch] = await Promise.all([val(`${recPath}/due`), val(`${rp}/players`), val(`${rp}/kicked`),
+      val(`${recPath}/seq`), val(`${rp}/holdem/seq`), val(`${recPath}/w`)]);
     T.mark('load');
-    if (!inRoom || kickedMe) throw new ApiError(403, 'not_in_room', 'Only someone in the room can poke the table.');
+    const players = playersRaw && typeof playersRaw === 'object' ? playersRaw : {}, kickedMap = kickedRaw && typeof kickedRaw === 'object' ? kickedRaw : {};
+    if (!players[uid] || kickedMap[uid]) throw new ApiError(403, 'not_in_room', 'Only someone in the room can poke the table.');
+    const leaver = Array.isArray(watch) && watch.some(id => !players[id] || kickedMap[id]);
     // (THE HEAL: a published view behind the record → the full path below rewrites it)
-    if ((due == null || now < due) && (recSeq == null || recSeq === pubSeq)) return { ok: true, changed: false, due: due ?? null, now };
+    if (!leaver && (due == null || now < due) && (recSeq == null || recSeq === pubSeq)) return { ok: true, changed: false, due: due ?? null, now };
   }
 
   const recRef = ref(recPath);
@@ -172,7 +177,9 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
           if (prev && !left && !abandoned(prev, { roomAt, players, kicked: kickedMap })) throw new DealerError(409, 'running', 'A game is already running at this table.', { seq: prev.seq });
           // seats = the room's players, not kicked — HE3: only those the console names (its connected players) when it names them
           const want = Array.isArray(body.uids) ? new Set(body.uids.map(String)) : null;
-          const uids = Object.keys(players || {}).filter(u => !kickedMap[u] && (!want || want.has(u))).sort((a, b) => ((players[a] || {}).joinedAt || 0) - ((players[b] || {}).joinedAt || 0));
+          // (HE11 — FR7-B's NICE: two joins racing at 7 can make 9 in a room — the table SEATS THE FIRST 8 by when they joined, the rest
+          //  watch; it was a 409 `too_many` with no word on screen. The host's phone says it — index.js#start)
+          const uids = Object.keys(players || {}).filter(u => !kickedMap[u] && (!want || want.has(u))).sort((a, b) => ((players[a] || {}).joinedAt || 0) - ((players[b] || {}).joinedAt || 0)).slice(0, MAX_SEATS);
           const at = Number.isFinite(body.at) ? Math.min(now + START_AHEAD_MS, Math.max(now, body.at)) : now;
           const id = MATCH_ID.test(String(body.matchId || '')) ? String(body.matchId) : null;
           rec = newRecord({ code, uids, mode: body.mode, speed: body.speed, now, rng, prevSeq: prev ? prev.seq : 0, roomAt: roomAt ?? null, dealAt: at, id });
@@ -193,7 +200,7 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
       const j = JSON.stringify(rec);
       if (cur && cur.j === j) return undefined;                    // nothing changed (a poke a moment early, a repeat) → nothing written
       next = rec;
-      return { j, seq: rec.seq, due: dueOf(rec), id: rec.id, ended: !!rec.m.ended, at: now };
+      return { j, seq: rec.seq, due: dueOf(rec), id: rec.id, ended: !!rec.m.ended, at: now, w: watchOf(rec) };
     }, undefined, false);
     T.mark('tx', attempts);
     if (gone && tx.committed) {
@@ -205,9 +212,10 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
     }
     const changed = !!(tx.committed && next);
     let rec = changed ? next : prev;
-    // THE HEAL: the published view is behind (an out-of-order publish) → this call writes it whole
+    // THE HEAL: the published view is behind (an out-of-order publish) → this call writes it whole — the seats' private nodes too (HE11:
+    // a publish lost right after a DEAL left that seat with no cards for the hand)
     if (changed) { await publish(code, op === 'start' || !prev || pubSeq !== prev.seq ? null : prev, next, now); T.mark('write'); }
-    else if (rec && pubSeq !== rec.seq) { await publish(code, null, rec, now, { holes: false }); T.mark('write'); }
+    else if (rec && pubSeq !== rec.seq) { await publish(code, null, rec, now); T.mark('write'); }
     if (refused) throw asApi(refused);
     // the match is over and its result not yet sent (this call ended it, or an earlier try failed — the poke retries: due = now)
     if (rec && rec.m.ended && !rec.rep) { rec = await settleReport(code, rec, now); T.mark('report'); }

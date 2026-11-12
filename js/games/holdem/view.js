@@ -21,7 +21,7 @@ import { installTestHook, removeTestHook } from '../kit/hook.js';
 import { legalActions, running } from './table.js';
 import { handLabel, evaluate, bestFive } from './rank.js';
 import { fromWire } from './wire.js';
-import { levelLine, othersInOrder, sidePots, clockOf, pokeIn, POKE_RETRY_MS, SAFE_RELEASE_MS, ordinal } from './logic.js';
+import { levelLine, othersInOrder, sidePots, clockOf, pokeIn, POKE_RETRY_MS, SAFE_RELEASE_MS, ordinal, seatTag, backOffered } from './logic.js';
 import { tableLayout, betSpot, cardsSpot, dealerSpot } from './layout.js';
 import { wideLayout, stageOf } from './layout-wide.js';
 import { freshEvents, schedule, drawnSeats, awardLine, winLine, winningCards } from './motion-plan.js';
@@ -537,7 +537,9 @@ export function createView() {
     // HE4: busted THIS hand → OUT, then the seat fades (css: a delayed transition — a refresh paints it faded at once); gone at the next deal
     el.classList.toggle('is-busted', x.status === 'out');
     const pl = (pub.players || {})[x.id] || {};
-    const tag = x.status === 'out' ? 'OUT' : pl.left ? 'LEFT' : x.status === 'allin' ? 'ALL IN' : x.status === 'sitout' ? 'SAT OUT' : x.away ? 'AWAY' : x.status === 'folded' && run ? 'FOLD' : '';
+    // (HE11: SAT OUT only for a seat that IS sat out — AWAY in CASH. A 'sitout' seat that isn't away is only waiting for its first deal —
+    //  every seat before hand 1, a CASH seat taken mid-hand: no tag; it flashed SAT OUT on every seat at every match start)
+    const tag = seatTag(x, pl, run);
     const tg = el.querySelector('.he-tag');
     tg.textContent = tag; tg.dataset.kind = tag === 'ALL IN' ? 'allin' : tag ? 'grey' : '';
     el.querySelector('.he-dealer').hidden = !(t && t.button === x.seat && t.hand > 0 && x.status !== 'sitout');   // (HE10 — A34: never on a sat-out seat with no cards)
@@ -761,6 +763,8 @@ export function createView() {
       status = t.runout ? 'RUNNING IT OUT…' : mine ? `${who(mine.id).name} IS THINKING…` : '';
     } else if (t && t.street === 'done') status = t.hand > 0 ? (pub.due == null ? 'WAITING FOR PLAYERS…' : 'NEXT HAND…') : '';   // (HE10 — A23: a CASH table that can't deal says so)
     else if (t && t.hand === 0) status = 'SHUFFLING UP…';
+    // (HE11: your seat waits for its first deal — a CASH seat taken mid-hand — the line says so; nothing to tap)
+    if (current() && !pub.ended && x && x.status === 'sitout' && !x.away && x.stack > 0 && t && t.hand > 0) status = 'DEALT IN NEXT HAND';
     // the seat's own buttons (between turns): SHOW · REBUY · SIT BACK · I'M BACK · TAKE A SEAT
     if (current() && !pub.ended) kids.push(...seatButtons(x, t));
     if (kids.some(k => k.classList.contains('he-minis'))) status = '';   // (a button of your own wins the line's spot)
@@ -868,7 +872,9 @@ export function createView() {
     if (cash && pl && pl.left) out.push(h('button.he-mini.is-gold', { type: 'button', onclick: () => send('sit') }, 'SIT BACK DOWN'));
     // (between hands a busted seat still reads 'allin' until the next deal — the hand is over, so it may rebuy)
     if (x && cash && x.stack === 0 && (!(t && running(t)) || (x.status !== 'in' && x.status !== 'allin')) && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', onclick: () => send('rebuy') }, 'REBUY 1,000'));
-    if (x && (x.away || x.status === 'sitout') && !(pl && pl.left)) out.push(h('button.he-mini.is-gold', { type: 'button', onclick: () => send('back') }, cash ? 'SIT BACK IN' : 'I’M BACK'));
+    // (HE11: offered only when the dealer takes it — an AWAY seat. A seat waiting for its first deal isn't away: no button — the status line
+    //  says DEALT IN NEXT HAND — never a SIT BACK IN whose tap is a silent 409)
+    if (backOffered(x, pl)) out.push(h('button.he-mini.is-gold', { type: 'button', onclick: () => send('back') }, cash ? 'SIT BACK IN' : 'I’M BACK'));
     return out.length ? [h('div.he-minis', out)] : [];
   }
   /**

@@ -6,7 +6,7 @@
 export * from './meta.js';
 import { cleanSettings } from './meta.js';
 import { fromWire } from './wire.js';
-import { directorStep, FINAL_HOLD_MS, hostPoke } from './logic.js';
+import { directorStep, FINAL_HOLD_MS, hostPoke, watchersLine } from './logic.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { fetchSounds } from './sfx.js';
@@ -34,6 +34,9 @@ export async function start({ code, matchId, settings, participants, now }) {
   const s = cleanSettings(settings);
   const uids = Object.keys(participants || {});
   await dealer({ holdem: 'start', room: code, mode: s.mode, ...(s.mode === 'tournament' ? { speed: s.speed } : {}), matchId, uids, at: now });
+  // (HE11: more than 8 in the room — a join race — the dealer seats the first 8 who joined; the host's phone says so, the rest see SPECTATING)
+  const watch = watchersLine(uids.length);
+  if (watch) lazyImport(import('../../ui/toast.js'), '../../ui/toast.js').then(m => m.toast(watch, 'info', 5000)).catch(() => {});
   return { id: 'holdem', matchId, settings: s, participants, phase: 'play', phaseStartAt: now, startAt: now };
 }
 

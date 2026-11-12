@@ -93,7 +93,7 @@ export function startHand(state, { rng, deck, now = 0, sb, bb } = {}) {
   emit(s, events, now, { t: 'dealt', ids: order.map(x => x.id), button: seatAt(s, s.button).id, sb: s.sb, bb: s.bb, heads: dealt.length === 2 });
   post(s, events, now, seatAt(s, s.sbSeat), s.sb, 'small');
   post(s, events, now, seatAt(s, s.bbSeat), s.bb, 'big');
-  s.bet = s.bb;
+  s.bet = s.bb;   // (a short big blind: the others still call the FULL big blind — HE1's rule; HE11's lone-seat close is in progress())
   s.minRaise = s.bb;
   progress(s, events, now, s.bbSeat);
   return { state: s, events };
@@ -351,7 +351,10 @@ function progress(s, events, now, from) {
     if (live.length === 1) return winByFold(s, events, now, live[0]);
     const canAct = s.seats.filter(CAN_ACT);
     const need = canAct.filter(x => needsAct(s, x));
-    if (need.length === 0 || (canAct.length === 1 && canAct[0].bet >= s.bet)) {
+    // HE11 (FR7-B's NICE): ONE seat left who can act, already covering every other live seat's bet (they're all in — e.g. a big blind all in
+    // for LESS than the small blind, heads-up) has nobody to match: the street closes, never a FOLD that forfeits a pot it already covered.
+    // (With another seat still to act the full big blind stands — HE1's rule.)
+    if (need.length === 0 || (canAct.length === 1 && canAct[0].bet >= Math.min(s.bet, Math.max(0, ...live.filter(x => x !== canAct[0]).map(x => x.bet))))) {
       if (closeStreet(s, events, now) === 'over') return;
       from = s.button;
       continue;

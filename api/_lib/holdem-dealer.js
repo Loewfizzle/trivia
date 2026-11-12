@@ -115,6 +115,23 @@ export function dueOf(rec) {
   return nextDealAt(rec);
 }
 
+/**
+ * HE11 (FR7-B's NICE — "AWAY at once" waited for a FULL call): the seats a leave / a kick would still change (seated, not out, not gone;
+ * a TOURNAMENT seat not AWAY yet — a CASH seat until it leaves). Stored beside the record (`hrec/{CODE}/w`) so the CHEAP poke can tell,
+ * from the room's players + kicked, that it must take the full path. → [uid] (empty once the match is over)
+ */
+export function watchOf(rec) {
+  if (!rec || rec.m.ended) return [];
+  const out = [];
+  for (const x of rec.m.table.seats) {
+    const p = rec.m.players[x.id];
+    if (!p || p.left || p.leaving || x.status === 'out') continue;
+    if (x.away && rec.mode !== 'cash') continue;
+    out.push(x.id);
+  }
+  return out;
+}
+
 /** HE10 (A16): when a finished match's record + private nodes may go (its result sent) — null while it isn't finished */
 export const cleanAt = rec => (rec && rec.m.ended && rec.rep ? (rec.m.endAt || 0) + CLEAN_AFTER_MS : null);
 

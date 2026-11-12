@@ -72,7 +72,7 @@ test('THE SEATS: uniform + evenly spaced — the top seat alone heads-up, 3 down
 });
 
 test('THE LAYOUT (HE4) at 375 / 390 / 402 / 430 wide + an SE-height phone, 2–8 players: no piece overlaps another (every seat’s block, its cards + bet, the pot + a side pot, the board, the presets) — the board above the presets, the buttons above your cards, your cards the biggest', () => {
-  const phones = [[375, 812, 47, 34], [390, 844, 47, 34], [402, 874, 62, 34], [430, 932, 59, 34], [375, 667, 20, 0]];
+  const phones = [[375, 812, 47, 34], [390, 844, 47, 34], [402, 874, 62, 34], [430, 932, 59, 34], [375, 667, 20, 0], [375, 667, 0, 0]];   // (HE11: + the SE with no insets at all — a test browser's)
   for (const [w, h, top, bottom] of phones) {
     for (let k = 1; k <= 7; k++) {
       const L = tableLayout({ w, h, top, bottom, k }), B = blocks(L), at = `${w}×${h} k=${k}`;
