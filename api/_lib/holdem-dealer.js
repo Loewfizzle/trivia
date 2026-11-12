@@ -9,7 +9,7 @@
 //   THE PUBLIC VIEW (rooms/{CODE}/holdem — any signed-in reader): publicOf(rec, now) — the engine's publicView (no deck, no unshown
 //   card) + the match's public numbers + `due` (the next moment the server's clock makes something happen) + the recent events.
 //   A SEAT's PRIVATE VIEW (hole/{CODE}/{uid} — that uid only): holeOf(rec, uid) — { h: hand, c: [its 2 cards] | none, pre }.
-import { createMatch, nextHand, act, rebuy, join, leave, endSession, sitBack, summary } from '../../js/games/holdem/match.js';
+import { createMatch, nextHand, act, rebuy, join, leave, endSession, endTournament, sitBack, summary } from '../../js/games/holdem/match.js';
 import { legalActions, preAction, preVoid, running, seatById } from '../../js/games/holdem/table.js';
 import { publicView } from '../../js/games/holdem/views.js';
 import { holdemCounters } from '../../js/core/match-report.js';
@@ -222,7 +222,17 @@ export function abandoned(rec, { roomAt, players, kicked }) {
  * `advanced: true` so the store still writes the caught-up table (and only the op is refused). (`start` is newRecord + advance — the store.)
  */
 export function applyOp(rec, op, uid, body, { now, rng, isHost = false, kicked = null, gone = null } = {}) {
+  // FR7 FIXES A — HE1: a tap is judged against the table the player SAW. What's due runs first (HE10's A14) — but when that catch-up moved
+  // the hand, the street, the seat to act or the bet (your clock ran out and you were auto-checked, everyone else acted by themselves, the
+  // next card came and the turn is yours again — all in this one call), the tap was meant for a table that is gone: 409 stale, never a bet
+  // you didn't mean on a street you never saw. (`seq` only moves after the op — it couldn't tell.)
+  const sawOf = () => { const t = rec.m.table; return `${t.hand}|${t.street}|${t.turn}|${t.bet}`; };
+  const saw = sawOf();
   const ran = advance(rec, now, rng, { kicked, gone });
+  if (op === 'act' && ran && sawOf() !== saw) {
+    const t = rec.m.table;
+    throw Object.assign(new DealerError(409, 'stale', 'The table moved on.', { seq: rec.seq, hand: t.hand }), { advanced: true });
+  }
   try { opOn(rec, op, uid, body, { now, isHost, kicked }); } catch (e) {
     if (e instanceof DealerError && ran) e.advanced = true;
     throw e;
@@ -300,6 +310,16 @@ function opOn(rec, op, uid, body, { now, isHost, kicked }) {
       // (HE10 — A17: no "void the hand" — a pending end waits for the hand, which always ends by itself)
       if (m.ending) refuse(409, 'ending', 'The session ends when this hand is over.', { seq: rec.seq });
       ok(engine(rec, mm => endSession(mm, now), now));
+      break;
+    }
+    case 'endGame': {
+      // FR7 FIXES A — END GAME (decision 5): the host's ☰ END GAME goes THROUGH THE DEALER — a tournament ends now, placed by chip count
+      // (match.js#endTournament), credited from its 3 hands like any end (else 'short'); CASH = END SESSION (the ledger)
+      if (!isHost) refuse(403, 'not_host', 'Only the host can end the game.');
+      if (m.ended) refuse(409, 'ended', 'The game is already over.', { seq: rec.seq });
+      if (rec.mode === 'cash') { if (!m.ending) ok(engine(rec, mm => endSession(mm, now), now)); break; }
+      ok(engine(rec, mm => endTournament(mm, now), now));
+      rec.doneAt = now;
       break;
     }
     default: refuse(400, 'bad_action', 'No such move.');

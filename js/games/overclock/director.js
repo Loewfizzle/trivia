@@ -91,7 +91,7 @@ export function nextStep(game, ctx) {
         if (!allDone && now < ends + PLAY_GRACE_MS) return null;
       }
       const last = game.ci >= game.total - 1;
-      const res = computeResults(game, ctx.boards || {});
+      const res = computeResults(game, ctx.boards || {}, ctx.graded || null);   // (FR7 FIXES A: HOST-GRADED — index.js#gradeRoom)
       const patch = {
         phase: last ? 'final' : 'standings',
         phaseStartAt: now,

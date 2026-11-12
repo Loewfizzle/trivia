@@ -106,8 +106,10 @@ export function applyMove(board, counts, state, mv) {
   };
   if (mv.kind === 'dig') {
     const i = mv.cell;
-    if (st.open.has(i)) return { st: state, cells: [[i, st.open.get(i)]], lit: [], changed: false };
-    if (st.lit.includes(i)) return { st: state, cells: [], lit: [], changed: false };
+    // (FR7 FIXES A — DY6: a REPEAT dig — its first answer lost on the way back — answers the cell's WHOLE flood (every cell of it is open:
+    // the first dig opened them) / the light again, never just the tapped cell: the phone was left showing 1 cell where the server opened 33)
+    if (st.open.has(i)) return { st: state, cells: flood(board, counts, i).filter(([c]) => st.open.has(c)).map(([c]) => [c, st.open.get(c)]), lit: [], changed: false };
+    if (st.lit.includes(i)) return { st: state, cells: [], lit: [i], changed: false };
     dig(i);
   } else if (mv.kind === 'chord') {
     const i = mv.cell, n = st.open.get(i);
@@ -127,11 +129,23 @@ export function applyMove(board, counts, state, mv) {
  *  refused (409 pause_limit) and the clock keeps running; an open pause stops counting at the 20-minute total (the time past it runs on the clock) */
 export const MAX_PAUSES = 3;
 export const PAUSE_CAP_MS = 20 * 60_000;
-/** the pauses of a record, normalised */
+/** FR7 FIXES A — the owner's decision 4 (Nov 12): a pause THE ROOM WINS forces (the server checked the room really started a game — api/daily.js)
+ *  does NOT count toward the caps above — a HOLD'EM match runs 20–100 minutes and "YOUR DAILY IS SAVED" must be true. Only a pause the player
+ *  chooses counts. The room's own pauses keep a generous safety bound (a run can't be frozen for a day): ROOM_MAX_PAUSES a run, the stopped
+ *  time ≤ ROOM_PAUSE_CAP_MS in all. `p.r` = how many of the pauses were the room's. */
+export const ROOM_MAX_PAUSES = 12;
+export const ROOM_PAUSE_CAP_MS = 3 * 60 * 60_000;
+/** the pauses of a record, normalised (r = the room's pauses among n) */
 export const pausesOf = rec => {
   const p = (rec && rec.p) || {};
-  return { n: Math.max(0, Math.floor(Number(p.n) || 0)), ms: Math.max(0, Number(p.ms) || 0), at: Number.isFinite(Number(p.at)) && p.at != null ? Number(p.at) : null };
+  const n = Math.max(0, Math.floor(Number(p.n) || 0));
+  return { n, ms: Math.max(0, Number(p.ms) || 0), at: Number.isFinite(Number(p.at)) && p.at != null ? Number(p.at) : null, r: Math.min(n, Math.max(0, Math.floor(Number(p.r) || 0))) };
 };
+/** the stopped-time cap a record's pauses run under: the room's (any room pause in it) or the player's */
+export const pauseCapMs = p => (p.r > 0 ? ROOM_PAUSE_CAP_MS : PAUSE_CAP_MS);
+/** may one more pause go in? (room = the server verified THE ROOM WINS) */
+const canPause = (p, room) => (room ? p.r < ROOM_MAX_PAUSES && p.ms < ROOM_PAUSE_CAP_MS : p.n - p.r < MAX_PAUSES && p.ms < PAUSE_CAP_MS);
+const packP = p => ({ n: p.n, ms: p.ms, ...(p.r ? { r: p.r } : {}), ...(p.at != null ? { at: p.at } : {}) });
 /** rebuild the state from a record's moves (the server's every call + the replay) → { st, ok } — ok false = a move no run makes */
 export function stateOf(board, record, counts = countsOf(board)) {
   let st = freshState(board, counts), ok = true;
@@ -153,7 +167,7 @@ export function runView(record, board, { startedAt = 0 } = {}) {
     w: board.w, h: board.h, lights: board.lights.length,
     open: [...st.open.entries()], lit: st.lit.slice(), spots: Math.min(MAX_SPOTS, st.lit.length),
     done: st.done, out: st.out, startedAt: (record && record.st) || startedAt, finishedAt: (record && record.e) || null,
-    paused: p.at != null, pausedAt: p.at, pausedMs: p.ms, pauses: p.n,
+    paused: p.at != null, pausedAt: p.at, pausedMs: p.ms, pauses: p.n, pauseCap: pauseCapMs(p),   // (FR7 FIXES A: the room's own cap — decision 4)
     ...(st.done ? { reveal: board.lights.slice() } : {}),
   };
 }
@@ -165,11 +179,12 @@ const cloneRec = r => ({ st: r.st, mv: (Array.isArray(r.mv) ? r.mv : Object.valu
 function unpause(rec, now) {
   const p = pausesOf(rec);
   if (p.at == null) return false;
-  rec.p = { n: p.n, ms: Math.min(Math.max(PAUSE_CAP_MS, p.ms), p.ms + Math.max(0, now - p.at)) };
+  const cap = pauseCapMs(p);
+  rec.p = packP({ n: p.n, r: p.r, ms: Math.min(Math.max(cap, p.ms), p.ms + Math.max(0, now - p.at)), at: null });
   return true;
 }
-/** has an open pause used up the 20-minute total by `now`? */
-const pastCap = (p, now) => p.at != null && p.ms + Math.max(0, now - p.at) >= PAUSE_CAP_MS;
+/** has an open pause used up its total (20 minutes; a room's: ROOM_PAUSE_CAP_MS) by `now`? */
+const pastCap = (p, now) => p.at != null && p.ms + Math.max(0, now - p.at) >= pauseCapMs(p);
 
 /**
  * THE SERVER's ONE ACTION on a record (inside ONE transaction) → { record (to write — null = nothing changed), resp } | { refused, status }
@@ -187,8 +202,8 @@ export function serverAct(board, record, action, args = {}, now = 0) {
       if (p.at != null && !pastCap(p, now)) return { record: null, resp: { paused: true, pauses: p.n, pausedMs: p.ms, already: true } };
       // an open pause past the 20-minute total: the clock went on at the cap — closed now (written), the pause refused
       if (p.at != null) { unpause(rec, now); return { refused: 'pause_limit', status: 409, record: rec }; }
-      if (p.n >= MAX_PAUSES || p.ms >= PAUSE_CAP_MS) return { refused: 'pause_limit', status: 409 };
-      rec.p = { n: p.n + 1, ms: p.ms, at: now };
+      if (!canPause(p, !!args.room)) return { refused: 'pause_limit', status: 409 };
+      rec.p = packP({ n: p.n + 1, r: p.r + (args.room ? 1 : 0), ms: p.ms, at: now });
       return { record: rec, resp: { paused: true, pauses: p.n + 1, pausedMs: p.ms } };
     }
     if (p.at == null) return { record: null, resp: { paused: false, pauses: p.n, pausedMs: p.ms, already: true } };
@@ -230,7 +245,7 @@ export function replay(record, board, { startedAt } = {}) {
   if (!ok || !st.done) return null;
   if (!record.e || record.o !== st.out || !(record.e >= st0)) return null;
   const p = pausesOf(record);
-  if (p.at != null || p.ms > record.e - st0 || p.n > MAX_PAUSES || p.ms > PAUSE_CAP_MS) return null;
+  if (p.at != null || p.ms > record.e - st0 || p.n - p.r > MAX_PAUSES || p.r > ROOM_MAX_PAUSES || p.ms > pauseCapMs(p)) return null;
   const ms = record.e - st0 - p.ms;
   const spots = Math.min(MAX_SPOTS, st.lit.length), safeLeft = safeCount(board) - st.open.size;
   return { out: st.out, spots, pauses: p.n, ms, safeLeft, moves, score: scoreOf({ out: st.out, ms, spots, pauses: p.n, safeLeft }) };
@@ -266,7 +281,7 @@ export function foldAnswer(view, resp) {
 export function clockMs(view, serverNow) {
   if (!view || !view.startedAt) return 0;
   const end = view.finishedAt || serverNow;
-  const open = view.paused && view.pausedAt ? Math.min(Math.max(0, serverNow - view.pausedAt), Math.max(0, PAUSE_CAP_MS - (view.pausedMs || 0))) : 0;   // (the cap: past it the clock runs)
+  const open = view.paused && view.pausedAt ? Math.min(Math.max(0, serverNow - view.pausedAt), Math.max(0, (view.pauseCap || PAUSE_CAP_MS) - (view.pausedMs || 0))) : 0;   // (the cap: past it the clock runs)
   const run = Math.max(0, end - view.startedAt - (view.pausedMs || 0) - open);
   return run + 1000 * (SPOT_S * (view.spots || 0) + PAUSE_S * (view.pauses || 0));
 }

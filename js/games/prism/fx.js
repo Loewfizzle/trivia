@@ -3,6 +3,9 @@
 // the particle count is capped per quality tier, and it does nothing at all when idle.
 import { crumbSprite } from './crayon-art.js';
 const shardCache = new Map();
+/** FR7 FIXES A — PD7: the shards' sprites dropped with the board's (view.js#dropCaches) */
+export function clearShards() { for (const c of shardCache.values()) { c.width = 0; c.height = 0; } shardCache.clear(); }
+export const shardCount = () => shardCache.size;
 
 function shardSprite(color, size) {
   const key = `${color}|${size}`;

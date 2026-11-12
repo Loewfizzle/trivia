@@ -19,6 +19,15 @@ export const CHAT_CHIPS = ['NICE HAND', 'NO WAY', 'WELL PLAYED', 'UNLUCKY'];
 /** never locked — a card table talks */
 export const chatLocked = () => false;
 
+// FR7 FIXES A — END GAME (decision 5): the confirm's line from the public table (m/mode · m/hands · m/ended) — index.js#endGame
+export const END_HANDS = 3;
+export function endGameLine(node) {
+  const get = k => { try { return JSON.parse(node && node.m && node.m[k]); } catch { return null; } };
+  if (!node || !node.m || get('ended')) return null;
+  if (get('mode') === 'cash') return 'Ends the session · the ledger · XP from 10 hands';
+  return (Number(get('hands')) || 0) >= END_HANDS ? 'Places by chip count · XP for everyone' : `Under ${END_HANDS} hands — NO RESULT for anyone`;
+}
+
 export function cleanSettings(s = {}) {
   const mode = MODES.includes(s.mode) ? s.mode : DEFAULT_SETTINGS.mode;
   const speed = SPEED_KEYS.includes(s.speed) ? s.speed : DEFAULT_SETTINGS.speed;

@@ -29,7 +29,8 @@ export const CC_DAILY = {
   /** a resume: the record → what the phone may see (the opening even before the first move) */
   resume: ({ record, startedAt, data }) => runView(record || newRecord(startedAt), data, { startedAt }),
   /** ONE move inside a transaction on the record → { record (null = nothing changed), resp } | { refused, status } */
-  act: ({ action, body, record, startedAt, now, data }) => serverAct(data, record || newRecord(startedAt), action, { cell: body && body.cell, buoys: body && body.buoys }, now),
+  // (FR7 FIXES A — decision 4: `room` = the server's own check that THE ROOM WINS — api/daily.js — never a phone's claim)
+  act: ({ action, body, record, startedAt, now, data, room = false }) => serverAct(data, record || newRecord(startedAt), action, { cell: body && body.cell, buoys: body && body.buoys, room: !!room }, now),
   /** THE SCORE from the server's record — the phone's `result` is ignored; null = not finished / a record no run makes */
   verify(seed, result, { startedAt, record, data } = {}) {
     if (!record || !data) return null;

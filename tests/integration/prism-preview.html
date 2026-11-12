@@ -133,6 +133,12 @@ if (show === 'ko' || show === 'spec') {
   boards[me] = { st: 'out', b: '1'.repeat(10) + '0123456789'.repeat(12), h: 14 };
   if (mode === 'battle') game.ko[uids[1]] = (game.ko[uids[1]] || 0) + 1;
 }
+// (FR7 FIXES A — PD4: &state=away = out by the DIRECTOR while this phone was locked — no node of its own (&node=1: a saved board, never 'out'))
+if (show === 'away') {
+  const left = uids.slice(1).filter(u => !game.out[u]).length;
+  game.out[me] = { place: left + 1, away: true, at: now - 40_000, rem: left };
+  if (q.get('node') === '1') boards[me] = { st: 'play', b: '1'.repeat(10) + '0123456789'.repeat(6), h: 7 };
+}
 // (PD-2: a leader in danger while spectating — the second board high)
 if (show === 'spec' && boards[uids[2]]) { const o = E.createEngine({ seed: 'danger', mode }); E.insertJunk(o, 15, 4); boards[uids[2]] = { ...boards[uids[2]], b: E.boardString(o), h: 15 }; }
 if (show === 'final') {

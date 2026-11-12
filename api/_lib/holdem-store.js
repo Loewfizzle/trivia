@@ -28,7 +28,7 @@ import { pidOf } from './profiles.js';
 import { DealerError, newRecord, applyOp, advance, dueOf, publicOf, holeOf, seatUids, resultRows, abandoned, cleanAt, counts } from './holdem-dealer.js';
 import { toWire, wireDiff, nestWire, wireBytes } from '../../js/games/holdem/wire.js';
 
-export const OPS = ['start', 'act', 'pre', 'show', 'poke', 'rebuy', 'back', 'leave', 'sit', 'endSession'];
+export const OPS = ['start', 'act', 'pre', 'show', 'poke', 'rebuy', 'back', 'leave', 'sit', 'endSession', 'endGame'];   // (FR7 FIXES A: + endGame — the host's END GAME)
 
 /** THE CALL BUDGET (per uid): a fast 8-player table's host pokes + acts ≈ 25 calls a minute — 900 / 10 min leaves room; a flood → 429. */
 export const CALLS = { max: 900, windowMs: 10 * 60_000 };
@@ -132,7 +132,7 @@ export async function holdemAction(uid, body, now = clockNow(), T = noTiming) {
   const recRef = ref(recPath);
   const recHold = holdRef(recRef);
   try {
-    const needHost = op === 'start' || op === 'endSession';
+    const needHost = op === 'start' || op === 'endSession' || op === 'endGame';
     // (HE3: only the published view's NUMBER is read — never the view itself: the lean wire writes parts, the heal compares numbers.
     //  HE10: the room's players on every full call (≤ 8 small rows — A15: a seat whose player left the room goes AWAY at once) + the room's
     //  createdAt (A16: a record from an earlier room with the same word is never advanced))

@@ -13,7 +13,8 @@ const H = 3600e3, DAY = 864e5;
 const row = (rank, n, f) => ({ rank, win: rank === 1, c: { p: 1, ...(rank === 1 ? { w: 1 } : {}) }, rec: {}, ...(f ? { f } : {}) });
 let K = 0;
 /** one counted match on the real step → { s, r } */
-const play = (s, { at = T0, gid = 'prism', rank = 2, n = 4, f, ctx = {} } = {}) => { const r = matchStep(s, { key: `R_${K++}`, gid, row: row(rank, n, f), n, now: at, ctx }); assert.ok(!r.skip, r.skip); return { s: r.next, r }; };
+// (FR7 FIXES A: these runs pack many matches into one day — THE DAILY CEILING lifted here only)
+const play = (s, { at = T0, gid = 'prism', rank = 2, n = 4, f, ctx = {} } = {}) => { const r = matchStep(s, { key: `R_${K++}`, gid, row: row(rank, n, f), n, now: at, ctx, ceiling: Infinity }); assert.ok(!r.skip, r.skip); return { s: r.next, r }; };
 const has = (s, id) => !!(s.ac && s.ac[id]);
 
 test('thirty-two of them (OVERCLOCK CARDS added REDLINE + PHOTO FINISH; PW2 KEYHOLE + SAFECRACKER), the owner\'s names, every one unlocking a real item, ids unique', () => {

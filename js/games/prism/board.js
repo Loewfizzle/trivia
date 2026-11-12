@@ -293,7 +293,10 @@ export function sprite(size, kind, t) {
   }
   return s;
 }
-export const clearSprites = () => sprites.clear();
+// (FR7 FIXES A — PD7: the sprite caches are dropped a minute after a match's screen goes — view.js#dropCaches; their pixels freed at once)
+const dropMap = (m => { for (const c of m.values()) if (c && typeof c.width === 'number') { c.width = 0; c.height = 0; } m.clear(); });
+export const clearSprites = () => { dropMap(sprites); dropMap(neonSprites); };
+export const spriteCount = () => sprites.size + neonSprites.size;
 
 // ---------------------------------------------------------------- THE LOOKS' DRAWING HOOKS (PD-2)
 // A look = how the board's own pieces are drawn, behind one interface (the owner's LOOK SYSTEM — PD-3 night / PD-4 day add theirs; the engine

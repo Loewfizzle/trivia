@@ -22,17 +22,27 @@ import {
 import { ghostBands, incomingTag } from './incoming.js';
 import { loadSong, beatClock } from './songs.js';
 import { createWorlds, WORLDS } from './worlds.js';
-import { createBoardView, drawPiece, drawMini, JEWEL } from './board.js';
+import { createBoardView, drawPiece, drawMini, JEWEL, clearSprites, spriteCount } from './board.js';
 import { neonPalette } from './neon.js';
 import { createLight } from './light.js';
 import { createNeonFx, preClear, holdMs, endsHold } from './neonfx.js';
 import { holidayNow, withHoliday } from './holiday.js';
 import { tierOf, TOP_TIER, stepTier } from './tiers.js';
+import { capProbeSaysCapped, CAP_PROBE_MS, CAP_WORK_MS, quantile } from '../kit/tiers.js';
 import { paperOf, CRAYON } from './crayon.js';
-import { warmCrayon, toothMaskURL, warmTooth } from './crayon-art.js';
+import { warmCrayon, toothMaskURL, warmTooth, clearCrayon, crayonCount } from './crayon-art.js';
 import { createPage, warmDay } from './page.js';
 import { createRail } from './rail.js';
-import { createFx } from './fx.js';
+import { createFx, clearShards, shardCount } from './fx.js';
+
+// FR7 FIXES A — PD7 (FR7-A's A3): the sprite caches (the neon + glass sprites, the crayon drawings + tooth, the shards — 19–26 MB on a 3× phone)
+// lived for the page's life; a NEW cell size (a rotation, the lowest tier) added a whole set. Now they go DROP_MS after a match's screen goes —
+// cancelled by the next mount, so a rematch never redraws them. (Module-level: each match makes a new view.)
+export const DROP_MS = 60_000;
+let dropT = 0;
+let attackNoIdx = false;   // (FR7 FIXES A — PD3: set once the live rules refuse an attack's `i` — the rules-lag fallback, for this page)
+export function dropCaches() { clearTimeout(dropT); dropT = 0; clearSprites(); clearCrayon(); clearShards(); }
+export const cacheCount = () => spriteCount() + crayonCount() + shardCount();
 import { attachInput } from './input.js';
 import { createSongPlayer, createSynth, createHeardBeat } from './audio.js';
 import { beatPulse } from './sync.js';
@@ -103,6 +113,7 @@ export function createView() {
   let callOpen = false;
   let lastSpec = null;
   let tierUpBlocked = -1;  // a tier that already failed this match is not retried
+  let capProbe = null, capped = false;   // (FR7 FIXES A — PD6: a step down is a probe; a phone capped at 30 Hz is not a slow one)
   let goodSince = 0;
   const workTimes = [];      // CPU time per frame (dt alone can't show headroom on a 60 Hz screen)
   const rec = { on: false, f: [], w: [] };   // (PD-3) the speed run's recorder: every frame of a window (the 90-frame rings above are the tier logic's)
@@ -164,6 +175,7 @@ export function createView() {
 
   // ================================================================ mount
   function mount(el, state) {
+    clearTimeout(dropT); dropT = 0;   // (PD7: a rematch keeps the caches the last match drew)
     st = state;
     game = state.game;
     seenOut = { ...(game.out || {}) };   // (PD-2: a refresh mid-match never re-announces the knockouts that already happened)
@@ -250,6 +262,7 @@ export function createView() {
 
   function unmount() {
     destroyed = true;
+    clearTimeout(dropT); dropT = setTimeout(dropCaches, DROP_MS);   // (PD7: the caches go a minute after the match's screen)
     cancelAnimationFrame(raf);
     if (input) input.destroy();
     if (qRef) { off(qRef); qRef = null; }
@@ -356,6 +369,17 @@ export function createView() {
       koShownAt = 1;   // (a refresh after the KO: no card again — straight to the call / spectating)
       if (node.b) E.loadBoard(eng, node.b);
       eng.over = true; restored = true;
+      showKO();
+      return;
+    }
+    // FR7 FIXES A — PD4: out by the DIRECTOR (AWAY / SIGNAL LOST — the phone was locked, the tab dropped) before this screen mounted: `seenOut`
+    // already holds it, so watchMatch never shows the card — the board sat dead (no card, no call, never spectating; with no node, an empty
+    // board SLAM did nothing on). The same as a self-reported out, with or without a node — but the card SHOWS (they never saw why).
+    if (game.out && game.out[me()] && !rush()) {
+      if (node && node.b) E.loadBoard(eng, node.b);
+      else if (node && node.sv) E.restore(eng, node.sv);
+      eng.over = true; eng.cur = null; restored = true;
+      E.takeEvents(eng);
       showKO();
       return;
     }
@@ -544,8 +568,15 @@ export function createView() {
     // back AFTER the clear. (No piece index — a preview's scripted clear — the old push key.)
     const atk = { f: me(), n: Math.min(30, n), g: gap, at: serverTimestamp() };
     const base = `rooms/${st.code}/prismq/${game.matchId}/${target}`;
+    // FR7 FIXES A — PD3: the attack carries its piece number `i` — the rules tie the key to it and it to the sender's saved pieces (no board,
+    // no attacks). THE RULES-LAG fallback: rules older than this pass refuse the field — the same attack once more without it; when THAT
+    // lands (the old rules), this page stops sending it (attackNoIdx)
+    if (Number.isInteger(i) && !attackNoIdx) atk.i = i;
     const w = Number.isInteger(i) ? dbSet(dbRef(`${base}/${me()}-${i}`), atk) : push(dbRef(base), atk);
-    if (w && w.catch) w.catch(e => console.warn('attack', e && e.message));
+    if (w && w.catch) w.catch(e => {
+      if (atk.i != null && /permission/i.test(String((e && (e.code || e.message)) || ''))) { const { i: _i, ...old } = atk; void _i; dbSet(dbRef(`${base}/${me()}-${i}`), old).then(() => { attackNoIdx = true; }, x => console.warn('attack', x && x.message)); return; }
+      console.warn('attack', e && e.message);
+    });
     pubForce = true;
     // the target's rail tile flashes; a light rings out from it
     const card = rail && rail.hit(target);
@@ -698,6 +729,13 @@ export function createView() {
     if (frameTimes.length > 90) frameTimes.shift();
     if (tierCool > 0) { tierCool--; return; }
     if (tierLocked) return;
+    // (PD6 — the city's rule, kit/tiers.js: CAP_PROBE_MS after a step down, frames no faster = the phone's CAP (iOS Low Power Mode) → back to
+    // the tier it left, and frame timing alone never steps it down again this mount — only real work does)
+    if (capProbe && performance.now() - capProbe.at > CAP_PROBE_MS && frameTimes.length >= 20) {
+      const back = capProbe.from;
+      if (capProbeSaysCapped(capProbe.p50, quantile(frameTimes, 0.5))) { capped = true; capProbe = null; tierUpBlocked = -1; setTier(back); tierCool = 30; frameTimes.length = 0; goodSince = 0; return; }
+      capProbe = null;
+    }
     // (PFIX-B — finding 10: judged on 90 frames OR ~1.5 s of them, whichever comes first — a phone at 15 fps is judged in 1.5 s, not 6)
     if (document.visibilityState !== 'visible') return;
     if (frameTimes.length < 90 && (frameTimes.length < 20 || frameTimes.reduce((a, b) => a + b, 0) < 1500)) return;
@@ -705,7 +743,11 @@ export function createView() {
     const p75 = s[Math.floor(s.length * 0.75)];
     // (PFIX-B: by day a step goes straight to the tier that changes what the day look draws — tiers.js#stepTier)
     const down = stepTier(tier, -1, look);
-    if (p75 > 19.5 && down !== tier) { tierUpBlocked = tier; setTier(down); tierCool = 30; frameTimes.length = 0; goodSince = 0; return; }
+    if (p75 > 19.5 && down !== tier) {
+      if (capped && quantile(workTimes, 0.75) <= CAP_WORK_MS) return;
+      if (!capped && !capProbe) capProbe = { from: tier, p50: quantile(frameTimes, 0.5), at: performance.now() };
+      tierUpBlocked = tier; setTier(down); tierCool = 30; frameTimes.length = 0; goodSince = 0; return;
+    }
     // plenty of headroom for ~4 s: try one tier up again (never back to one that already struggled)
     const w = [...workTimes].sort((a, b) => a - b)[Math.floor(workTimes.length * 0.75)] || 99;
     const up = stepTier(tier, 1, look);
@@ -848,7 +890,9 @@ export function createView() {
     }
     // (PD-3) the light layer: the falling piece's spill + every running effect (nothing when idle — the canvas hides itself)
     if (nfx && look === 'neon') {
-      light.setReduced(reduced());
+      // (FR7 FIXES A — PD5: no WebGL — Lockdown Mode, a blocklisted GPU — = no light layer: this line threw every frame, before drawHud,
+      // so HOLD + NEXT were never drawn)
+      if (light) light.setReduced(reduced());
       nfx.frame(t, eng, { live: !!(eng && game.phase === 'play' && !(game.out && game.out[me()])), reduced: reduced() });
     }
     drawHud();

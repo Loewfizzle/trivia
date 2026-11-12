@@ -6,6 +6,8 @@
 // Challenges are generated locally from the room seed; each challenge's screen lives in ui/<type>.js and the reveal
 // panels in reveals.js. Progress (parts done / correct) is written to oc/{match}/{ci}/{uid} after every step so a
 // refresh resumes mid-challenge.
+import { HOST_GRADED, packPicks } from './grade.js';
+import { scopedApi } from './ui/scoped.js';
 import { h, clear, pulseClass, reducedMotion } from '../../ui/dom.js';
 import { avatar, countUp, leaderboard, fmtNum } from '../../ui/components.js';
 import { createFinal } from '../../ui/final.js';
@@ -321,8 +323,13 @@ export function createView() {
     if (done) data.doneAt = serverTimestamp();
     const path = `oc/${game.matchId}/${game.ci}/${me()}`;
     const w = { [`rooms/${st.code}/${path}`]: data };
-    if (chal.extra && Object.keys(chal.extra).length) w[`seal/${st.code}/${path}`] = { ...chal.extra, at: serverTimestamp() };
+    // (FR7 FIXES A: the envelope's fields one path each — the picks below never wiped by the next write)
+    if (chal.extra && Object.keys(chal.extra).length) { for (const [k, v] of Object.entries(chal.extra)) w[`seal/${st.code}/${path}/${k}`] = v; w[`seal/${st.code}/${path}/at`] = serverTimestamp(); }
     dbUpdate(dbRef(), w).catch(() => toast('TOO LATE — CHALLENGE CLOSED', 'err'));
+    // HOST-GRADED (grade.js): the picks sealed for the host's grade — their OWN write, so rules older than FR7 FIXES A refuse only this (the
+    // host then keeps the phones' own ok — index.js#gradeRoom), never the board above
+    const a = HOST_GRADED.includes(chal.spec.type) ? packPicks(chal.local.picks) : null;
+    if (a) dbUpdate(dbRef(`seal/${st.code}/${path}`), { a, at: serverTimestamp() }).catch(() => {});
     // THE COMBO's marks (logic.js#comboFold) — its OWN write: on rules older than OC1 it's refused alone, the board above still lands
     const s = marksString();
     if (s) dbUpdate(dbRef(`rooms/${st.code}/ocm/${game.matchId}/${game.ci}/${me()}`), { s, at: serverTimestamp() }).catch(() => {});
@@ -385,7 +392,7 @@ export function createView() {
       h('div.ch-hero-text', h('b', info.name), h('small', isFinal ? 'FINAL · DOUBLE POINTS' : `CHALLENGE ${game.ci + 1} OF ${game.total}`)),
       els.pips));
     paintPips();
-    const ui = SCREENS[s.type](s, api);
+    const ui = SCREENS[s.type](s, apiFor(chal));
     if (s.type === 'closest') els.pips.hidden = true; // no hint before the reveal
     chal.ui = ui;
     els.stage.append(ui.el);
@@ -426,6 +433,8 @@ export function createView() {
     now: () => serverNow(),
     pickHorse: lane => pickHorse(lane),
   };
+  /** FR7 FIXES A — OC3: each challenge screen gets ITS OWN api (ui/scoped.js) — its writes are no-ops once its challenge isn't current */
+  const apiFor = own => scopedApi(api, own, () => chal === own);
   /** DUMB LUCK: a pick = the board's EXISTING fields (p = lane + 1 · n = 6 · ok 0 · not done) — changeable until the gate closes; no rules change */
   function pickHorse(lane) {
     const game = g();

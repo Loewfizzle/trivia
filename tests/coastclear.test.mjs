@@ -117,7 +117,7 @@ test('THE SERVER: dig → only opened cells; idempotent digs; the pause stops th
   const free = serverAct(B, rec, 'dig', { cell: 9 }, T + 2000);
   assert.equal(free.record, null, 'a repeated dig writes nothing'); assert.equal(free.resp.already, true); assert.deepEqual(free.resp.cells, [[9, 2]]);
   const free2 = serverAct(B, rec, 'dig', { cell: 0 }, T + 2000);
-  assert.equal(free2.record, null); assert.deepEqual(free2.resp.cells, [[0, 0]], 'an opening cell: free, its own number');
+  assert.equal(free2.record, null); assert.deepEqual(free2.resp.cells.map(c => c[0]).sort((a, b) => a - b), [0, 1, 2, 5, 6, 7, 10, 11, 12], 'an opening cell: free — its whole flood back (FR7 FIXES A — DY6: a lost flood answer re-sent in full)');
   // pause → resume
   const p = serverAct(B, rec, 'pause', {}, T + 10_000); rec = p.record;
   assert.equal(rec.p.n, 1); assert.equal(rec.p.at, T + 10_000);

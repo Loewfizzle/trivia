@@ -9,7 +9,7 @@
 //   createView() → { mount(el, state), update(state), unmount() }   state.game = the run shell (daily.create / start) · state.judge = a judge
 //   (the preview's fake; default THE API JUDGE — judge.js) · window.__password = the test hook (the preview + the E2E)
 import { h, clear, reducedMotion } from '../../ui/dom.js';
-import { recordFinish, tickTurn, endActions, fitTitle, shareOrLine, NOT_RECORDED } from '../../daily/end.js';
+import { recordFinish, tickTurn, endActions, fitTitle, shareOrLine, NOT_RECORDED, retryable } from '../../daily/end.js';
 import { runDayKey as dayKeyOf } from '../../daily/clock.js';
 import { createKeyboard } from '../kit/keyboard.js';
 import { createApiJudge } from './judge.js';
@@ -253,12 +253,21 @@ export function createView() {
   }
 
   /** the run from the server (a mount, a resume, a re-sync after an out-of-step answer) */
+  // FR7 FIXES A — DY7: a resume in a dead spot showed the local EMPTY shell with the keys unlocked — the next word landed as guess n + 1 under
+  // rows nobody saw. Now the keys stay locked until the server's run is in, and a lost answer is retried (RECONNECTING), as COAST CLEAR does.
+  let synced = false;
   async function resync() {
     let r;
     busy = true; if (kb) kb.lock(true);   // (the keys wait for the server's run — the hook says busy meanwhile)
-    try { r = await judge.start(); } catch (e) { busy = false; if (!gone) { note('NO SIGNAL · TRY AGAIN', true); kb.lock(!!canGuess(run)); } return false; }
+    try { r = await judge.start(); } catch (e) {
+      busy = false;
+      if (gone) return false;
+      if (retryable(e)) { note('RECONNECTING', true); if (kb) kb.lock(true); busy = true; await wait(1500); busy = false; return gone ? false : resync(); }
+      note('NO SIGNAL · TRY AGAIN', true); kb.lock(!synced || !!canGuess(run)); return false;
+    }
     busy = false;
     if (gone) return false;
+    synced = true;
     startedAt = r.startedAt || startedAt;
     day = r.day || day;
     if (Number.isFinite(r.now)) offset = r.now - Date.now();

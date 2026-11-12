@@ -13,6 +13,7 @@ import { h, clear, reducedMotion } from '../ui/dom.js';
 import { tubeButton } from '../ui/components.js';
 import { sfx } from '../audio/sfx.js';
 import { state, setState } from '../store.js';
+import { retryWhile } from '../daily/retry.js';
 import { serverNow } from '../firebase.js';
 import { loadProfile } from '../identity.js';
 import { takeLayer, onCloseAll } from '../ui/layers.js';
@@ -441,7 +442,16 @@ function openRun(id) {
     day: () => day,
     isDone: () => done,
     /** THE ROOM WINS: COAST CLEAR's clock stops on the server (the room really started a game — checked there); THE PASSWORD has no clock */
-    pause(code) { if (inner && typeof inner.pause === 'function') inner.pause(code).catch(() => {}); },
+    // (FR7 FIXES A — DY5: sent ONCE, a failed pause was silent — the banner said SAVED while COAST CLEAR's clock ran through the match. Now
+    // retried with a back-off for as long as THAT room is still playing — js/daily/retry.js#retryWhile; the run's close doesn't stop it)
+    pause(code) {
+      if (!inner || typeof inner.pause !== 'function') return;
+      const j = inner;
+      // (the first try always goes — THE GAME START's closeAll comes at the go stamp, BEFORE the room says 'playing'; the retries while that
+      // room is starting or playing)
+      let first = true;
+      retryWhile(() => j.pause(code), { alive: () => { if (first) { first = false; return true; } return state.code === code && !!state.meta && (state.meta.status === 'playing' || !!state.meta.go); } }).catch(() => {});
+    },
     close() {
       gone = true; timers.forEach(clearTimeout);
       try { if (view) view.unmount(); } catch (e) { console.warn('[daily run] unmount', e); }

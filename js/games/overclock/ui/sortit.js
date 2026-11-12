@@ -20,7 +20,7 @@ export default function uiSortIt(s, api) {
   let i = chal.p;
   let busy = true;
   let card = null;
-  let timer = 0;
+  let timer = 0, dealT = 0, dead = false;   // (FR7 FIXES A — OC3: the deal's own timers, cleared + dead once the screen goes)
   let drag = null;
   const plate = (k, label) => h(`div.oc-st-side.is-${k ? 'r' : 'l'}`, { 'aria-hidden': 'true' }, h('span.oc-st-side-glass'), h('span.oc-st-side-glow'), h('i.oc-st-side-arrow'), h('b', label));
   const sideL = plate(0, s.left), sideR = plate(1, s.right);
@@ -41,7 +41,7 @@ export default function uiSortIt(s, api) {
     wrap.style.setProperty('--lean-r', r.toFixed(2));
   };
   const deal = () => {
-    if (chal.done || i >= s.cards.length) return;
+    if (dead || chal.done || i >= s.cards.length) return;
     // the leaving card (if any) keeps flying on its own layer; the rest of the deck is dealt fresh
     for (const el of [...deck.children]) if (!el.classList.contains('is-out')) el.remove();
     if (i + 1 < s.cards.length) deck.prepend(h('div.oc-st-card.is-back', h('div.oc-st-face', h('span.oc-st-glass'))));
@@ -57,7 +57,7 @@ export default function uiSortIt(s, api) {
   };
   const flashEdge = (k, cls) => { const e = k ? edgeR : edgeL; e.classList.remove('is-land', 'is-bad'); void e.offsetWidth; e.classList.add(cls); };
   const commit = (side, from = 0) => {
-    if (busy || chal.done || !card) return;
+    if (dead || busy || chal.done || !card) return;
     busy = true;
     clearTimeout(timer);
     tach.stop();
@@ -87,7 +87,7 @@ export default function uiSortIt(s, api) {
     i += 1;
     api.step(sortOk(loc.right, loc.wrong), i, ok ? 'ok' : 'miss', i >= s.cards.length, 600);
     paintCount();
-    if (i < s.cards.length) setTimeout(deal, 230);
+    if (i < s.cards.length) { clearTimeout(dealT); dealT = setTimeout(deal, 230); }
   };
   const springBack = () => { if (card) { card.classList.remove('is-drag'); card.style.transform = ''; } lean(0); };
   wrap.addEventListener('pointerdown', e => {
@@ -125,6 +125,6 @@ export default function uiSortIt(s, api) {
   };
   wrap.append(h('div.oc-st-sides', sideL, sideR), count, h('div.oc-st-table', edgeL, deck, edgeR), h('div.oc-st-window', tach.el), hint);
   paintCount();
-  setTimeout(deal, 300);
-  return { el: wrap, destroy() { clearTimeout(timer); tach.destroy(); api.key = null; } };
+  dealT = setTimeout(deal, 300);
+  return { el: wrap, destroy() { dead = true; clearTimeout(timer); clearTimeout(dealT); tach.destroy(); api.key = null; } };
 }

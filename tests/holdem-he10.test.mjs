@@ -124,10 +124,11 @@ test('A14: a tap after the shot clock runs FIRST through the clock — inside th
   const x = seatById(rec.m.table, L.id);
   assert.equal(x.bank, BANK_MS - 12_000, 'charged 12 s of the bank');
   assert.ok(rec.ev.some(e => e.t === 'timebank' && e.id === L.id));
-  // past the bank: the clock folds them first, the tap is refused — but the caught-up table is kept (`advanced`)
+  // past the bank: the clock folds them first, the tap is refused — but the caught-up table is kept (`advanced`). (FR7 FIXES A — HE1: refused as
+  // 'stale' — the catch-up moved the table the tap was meant for; the phone treats both alike: the listener redraws)
   const { rec: r2, rng: g2 } = start(3, { seed: 'late2' });
   const L2 = legalActions(r2.m.table), dl2 = r2.m.table.deadline;
-  const e = refused(() => op(r2, 'act', L2.id, { action: 'call' }, dl2 + BANK_MS + 1000, g2), 'illegal');
+  const e = refused(() => op(r2, 'act', L2.id, { action: 'call' }, dl2 + BANK_MS + 1000, g2), 'stale');
   assert.equal(e.advanced, true);
   assert.equal(seatById(r2.m.table, L2.id).status, 'folded');
   assert.equal(seatById(r2.m.table, L2.id).bank, 0);

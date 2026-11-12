@@ -1,6 +1,7 @@
 // OVERCLOCK module entry (see games/registry.js for the contract).
 import { createGame, nextStep } from './director.js';
 import { DEFAULT_SETTINGS, MODES, standings as ocStandings } from './logic.js';
+import { gradeRoom as gradeRoomOf } from './grade.js';
 // (SHELL 2.0 B1 — THE THIN META: the console's pieces — OPTIONS, estimateMinutes, MUSIC, the banner, the chat's lock, LOOKS — from meta.js)
 export * from './meta.js';
 // OC7 — NO LIVE TRIVIA SERVICE: TRIVIA LIGHTNING deals from OVERCLOCK's OWN bank (data/oc/trivia.json — banks.js), like every other pool.
@@ -128,6 +129,7 @@ export const step = (game, { code, now, live, online }) => {
     boards: mergeSealed(live.boards, live.seal_boards),
     marks: live.marks || {},
     next: live.next || {},
+    graded: gradeRoom(game, live, ck),
   }), { node: 'oc', key: ck, phase: 'play' });
   if (patch && game.phase === 'play' && patch.phase && patch.phase !== 'play' && unsealed(game, 'oc', ck)) {
     const rv = {};
@@ -140,6 +142,18 @@ export const step = (game, { code, now, live, online }) => {
   }
   return patch;
 };
+
+/**
+ * FR7 FIXES A — HOST-GRADED (grade.js; the owner's decision 1): after PENCILS DOWN (the unseal) the host rebuilds the dealt challenge — the
+ * same generate() every phone ran — and grades each player's sealed picks → { uid: ok } (the director's computeResults takes the min with
+ * the phone's own). Picks (`a`) are sealed only on rules that know them: no envelope in the room with `a` = the old rules → null (the phones'
+ * ok stands — the fallback until the re-publish); once one has them, a missing one grades as no answers. TIMELINE + CLOSEST CALL grade from
+ * the order / the guess every phone has always sealed. A pool not loaded on this phone yet → loads it, the phones' ok this once.
+ */
+export function gradeRoom(game, live, ck = String((game && game.ci) || 0)) {
+  if (!game || !unsealed(game, 'oc', ck)) return null;
+  return gradeRoomOf(game, live, { bank: t => { if (!BANK_TYPES.includes(t)) return {}; const b = bankFor(t); if (!b) loadBank(t).catch(() => {}); return b || null; } });
+}
 
 export const finalRanks = game => ocStandings(game).map(r => ({ uid: r.uid, rank: r.rank }));
 

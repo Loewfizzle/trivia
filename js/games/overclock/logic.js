@@ -1,4 +1,5 @@
 // OVERCLOCK — pure scoring / order / standings.
+import { humanFloorMs } from './grade.js';
 import { rngFrom, shuffle } from '../../core/rng.js';
 import { TYPES, SKILL_TYPES, CATEGORY, partsFor, SORT_FULL, COMPASS_SCRIPT_MS } from './challenges.js';
 import { LUCK, dlOf, dlResults, dlTickets, DL_MAX, LONG_SHOT } from './luck.js';
@@ -139,24 +140,34 @@ export function challengeScore({ parts, ok, doneAt, startAt, final, type, closes
   return (base + speed) * (final ? 2 : 1);
 }
 
-export function computeResults(game, boards) {
+/** FR7 FIXES A — HOST-GRADED (grade.js): `graded` = { uid: ok } from the host's re-grade of the sealed picks — the phone's own ok can only
+ *  LOWER it (min); THE HUMAN FLOOR — a finish faster than a person could (grade.js#humanFloorMs) earns no speed bonus and marks the result
+ *  `fl` (no REDLINE — match-report.js) */
+export function computeResults(game, boards, graded = null) {
   const type = game.order[game.ci];
   // DUMB LUCK: the winning tickets get their horse's payout (the stored draw — game/dl/{ci}), everyone else 0
   if (type === LUCK) return dlResults(game, game.ci, dlOf(game, game.ci));
   const parts = partsFor(type, levelOf(game.ci, game.total));
   const final = game.ci === game.total - 1;
   const out = {};
-  const okOf = uid => Math.min(parts, Math.max(0, Number(((boards && boards[uid]) || {}).ok) || 0));
+  const okOf = uid => {
+    const own = Math.min(parts, Math.max(0, Number(((boards && boards[uid]) || {}).ok) || 0));
+    const g = graded && graded[uid] != null ? Math.min(parts, Math.max(0, Number(graded[uid]) || 0)) : null;
+    return g == null ? own : Math.min(own, g);
+  };
   // Closest Call: the closest guess (highest credit — credit falls with the relative error) earns the bonus; ties share it
   const top = type === 'closest' ? Math.max(0, ...Object.keys(game.participants || {}).map(okOf)) : 0;
   // (OC8 — A12, THE FABLE REVIEW: alone, you were always "the closest in the room" → +60 on every solo run) SOLO: the bonus only for a DEAD ON
   // guess — full credit, within 5 % (challenges.js#closestCredit — the same rule the achievement reads)
   const solo = Object.keys(game.participants || {}).length === 1;
+  const floor = humanFloorMs(type, parts);
   for (const uid of Object.keys(game.participants || {})) {
     const b = (boards && boards[uid]) || {};
     const ok = okOf(uid);
     const closest = type === 'closest' && top > 0 && ok === top && (!solo || ok >= parts);
-    out[uid] = { pts: challengeScore({ parts, ok, doneAt: b.done ? b.doneAt : undefined, startAt: game.playStartAt, final, type, closest }), ok, parts };
+    const doneAt = b.done && typeof b.doneAt === 'number' ? b.doneAt : undefined;
+    const fl = doneAt != null && doneAt - (game.playStartAt || 0) < floor;
+    out[uid] = { pts: challengeScore({ parts, ok, doneAt: fl ? undefined : doneAt, startAt: game.playStartAt, final, type, closest }), ok, parts, ...(fl ? { fl: 1 } : {}) };
   }
   return out;
 }

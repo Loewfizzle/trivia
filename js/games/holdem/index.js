@@ -6,7 +6,7 @@
 export * from './meta.js';
 import { cleanSettings } from './meta.js';
 import { fromWire } from './wire.js';
-import { directorStep, FINAL_HOLD_MS } from './logic.js';
+import { directorStep, FINAL_HOLD_MS, hostPoke } from './logic.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { fetchSounds } from './sfx.js';
@@ -37,8 +37,23 @@ export async function start({ code, matchId, settings, participants, now }) {
   return { id: 'holdem', matchId, settings: s, participants, phase: 'play', phaseStartAt: now, startAt: now };
 }
 
-/** nothing to top up: the server deals (the pokes are every phone's — the view, on THE POKE's rule) */
-export function prepare() {}
+/** FR7 FIXES A — END GAME (decision 5): the host's ☰ END GAME → the dealer ends the match (a tournament placed by chip count, CASH = END
+ *  SESSION); the podium follows as at any end (the director). Throws on a refusal / no signal — the menu says so (never a silent wipe). */
+export async function endGame({ code }) {
+  return dealer({ holdem: 'endGame', room: code });
+}
+
+/** nothing to top up: the server deals. The pokes are every phone's — the view, on THE POKE's rule — and (FR7 FIXES A — HE2) the HOST's from
+ *  the room too: a host with no table on screen (QUIT TO THE ROOM, busted out) pokes on its own tick (logic.js#hostPoke), so the timed steps
+ *  never wait for a guest's 2–3 s. A mounted table (`.he`) pokes itself — never twice. */
+let lastPoke = null;
+export function prepare(game, ctx = {}) {
+  if (!ctx.host || !game || game.id !== 'holdem' || (game.phase !== 'play' && game.phase !== 'final') || !ctx.code || typeof document === 'undefined') return;
+  if (document.querySelector('.he')) return;
+  const r = hostPoke({ pub: fromWire(ctx.live && ctx.live.table), now: Number(ctx.now) || 0, last: lastPoke });
+  lastPoke = r.last;
+  if (r.poke) dealer({ holdem: 'poke', room: ctx.code }).catch(() => {});
+}
 
 /** THE DIRECTOR (pure — logic.js#directorStep): the console's frame only — the podium once the dealer's match is over, its result sent, and
  *  (HE10 — A3) FINAL_HOLD_MS after its end */

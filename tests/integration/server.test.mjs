@@ -232,6 +232,17 @@ test('offensive names never reach a board (a house nickname stands in), and may 
   const row = b.rows.find(r => r.id === p.profile.bid);
   assert.equal(row.n, houseNick(p.profile.bid).n);
   assert.ok(!JSON.stringify(b).toLowerCase().includes('sh1t'), 'the typed name is nowhere in the response');
+  // FR7 FIXES A — C6: tapping that row (THE PLAYER PAGE) + a FRIEND REQUEST from that name — the house nickname there too (was: the raw name)
+  const pg = await profileAction('u-nice', { action: 'player', b: 'slip-dist', bid: p.profile.bid }, '', clock + 5);
+  assert.equal(pg.card.n, houseNick(p.profile.bid).n, 'the player page: the house nickname');
+  assert.ok(!JSON.stringify(pg).toLowerCase().includes('sh1t'));
+  await profileAction('u-rude', { action: 'friendAdd', pid: (await val('uids/u-nice')) }, '', clock + 6);
+  const fl = await profileAction('u-nice', { action: 'friends' }, '', clock + 7);
+  const req = (fl.in || (fl.friends && fl.friends.in) || []).find(c => c.bid === p.profile.bid);
+  assert.ok(req, `the request arrived (${JSON.stringify(Object.keys(fl))})`);
+  assert.equal(req.n, houseNick(p.profile.bid).n, 'a request from a rude name: the house nickname');
+  const self = await profileAction('u-rude', { action: 'player', pid: (await val('uids/u-rude')) }, '', clock + 8);
+  assert.equal(self.card.n, 'sh1tlord', 'the player themself still sees their own name');
   // renamed a moment ago, but leaving an offensive name is always allowed
   const r = await profileAction('u-rude', { action: 'rename', name: 'Polite' }, '', clock + 10);
   assert.equal(r.profile.n, 'Polite');
@@ -1468,9 +1479,18 @@ test('FR7-A C1 — THE REAL PLAYER COUNT: the 5,001-name forgery is refused; gho
   for (const u of three) await ensure(u, u.slice(2).toUpperCase());
   const L = await seedRoom('prism', three);
   await ref(`rooms/${L.code}/players/u-rl3`).set(null);
+  // (FR7 FIXES A — decision 6: the leaver's proof = their OWN board of THIS match in THIS room — only they could write it, only in play)
+  await ref(`rooms/${L.code}/prism/${L.matchId}/u-rl3`).set({ st: 'out', at: clock });
   const ol = await paid(L, ['u-rl1', 'u-rl2'], 3);
   assert.equal(ol.find(x => x.win).xp.gain, XP.played + XP.win + XP.winPerExtra + XP.newGame, 'the leaver still counts: a 3-player win');
   assert.equal(ol.length, 2, 'the leaver is not credited (no seat) — as before');
+  // FR7 FIXES A — decision 6: a record naming a REAL but ABSENT account (it exists — it never sat in this match) pays nothing for it
+  const three2 = ['u-rq1', 'u-rq2', 'u-rq3'];
+  for (const u of three2) await ensure(u, u.slice(2).toUpperCase());
+  const Q = await seedRoom('prism', three2);
+  await ref(`rooms/${Q.code}/players/u-rq3`).set(null);   // (no seat, no board of this match: only an account that exists)
+  const oq = await paid(Q, ['u-rq1', 'u-rq2'], 2);
+  assert.equal(oq.find(x => x.win).xp.gain, XP.played + XP.win + XP.newGame, 'an account with no proof of THIS match: a 2-player win (95), never 3');
   // 5. a SOLO run reported by snapshot (BACK TO THE ROOM before the report landed) is a solo run, never a win
   await ensure('u-fg3', 'SOLOSNAP');
   const SS = await forge('u-fg3', 'FRGD', 'm05', { 'u-fg3': 0 }, 'overclock');

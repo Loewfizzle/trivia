@@ -85,6 +85,17 @@ export async function reportableGame(id) {
  */
 export const MAX_REPORT_NAMES = MAX_PLAYERS * 2;
 export const realPlayers = (names, seated, known) => names.filter(u => !!((seated && seated[u]) || (known && known[u])));
+/**
+ * FR7 FIXES A — the owner's decision 6: a player who LEFT counts only with proof they sat in THAT room for THAT match — never just an
+ * account that exists. The proof = a node of that match only THAT uid could write in that room (the rules: their own uid, phase-gated, during
+ * the match — PRISM's board, OVERCLOCK's first challenge's board / its combo marks). A game with no such node here (the dealer's HOLD'EM
+ * reports itself) → a leaver is not counted. PURE: → the room-relative paths to look for.
+ */
+export const PROOF_PATHS = Object.freeze({
+  prism: (m, u) => [`prism/${m}/${u}`],
+  overclock: (m, u) => [`oc/${m}/0/${u}`, `ocm/${m}/0/${u}`],
+});
+export const proofPaths = (gid, matchId, uid) => (PROOF_PATHS[gid] ? PROOF_PATHS[gid](matchId, uid) : []);
 export const asSoloRow = row => ({ rank: (row && row.rank) || 1, win: false, solo: true, c: { p: 1 }, rec: {} });
 
 export async function processReport(uid, body, now = Date.now()) {
@@ -139,8 +150,12 @@ export async function processReport(uid, body, now = Date.now()) {
   // FR7-A's C1 — THE REAL PLAYER COUNT: what a win / a place pays grows with the player count, so the count is the match's REAL players
   // (never the length of a host-written list): seated in the room, or — a player who left after the match — an account the server
   // knows; never above a full room. ONE real player = a solo run: the solo lane's row (no win), only for a game that plays solo.
+  // (decision 6: a leaver = an account the server knows AND their own node of THIS match in THIS room — report.js#PROOF_PATHS)
   const known = {};
-  await Promise.all(named.filter(u => !(players && players[u])).map(async u => { if (await pidOf(u)) known[u] = true; }));
+  await Promise.all(named.filter(u => !(players && players[u])).map(async u => {
+    if (!(await pidOf(u))) return;
+    for (const p of proofPaths(ex.gid, matchId, u)) if ((await val(`rooms/${code}/${p}`)) != null) { known[u] = true; return; }
+  }));
   const real = realPlayers(named, players, known).length;
   if (real < 2 && !ex.solo) {
     if (!SOLO_OK[ex.gid]) throw new ApiError(409, 'unverifiable', 'This match had no second player.');

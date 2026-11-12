@@ -88,7 +88,7 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
       }));
     }
     outcomes[pid] = {
-      gid: ex.gid, rank: row.rank, win: row.win, n: ex.n,
+      gid: ex.gid, rank: row.rank, win: row.win, n: ex.n, ...(res.capped ? { cap: true } : {}),   // (FR7 FIXES A — THE DAILY CEILING: played, paid nothing)
       xp: { gain: res.xp.total, parts: res.xp.parts, from: res.from, to: stats.xp },
       rk: { from: r0, to: r1 }, lv: res.lv, items: res.items, ach: res.ach, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1, st: stats.st || null, sev: res.streak.ev,
       // (OC5 — the all-time best of each record this match counted for: a SOLO run that didn't beat it still shows "YOUR BEST" — victory.js)

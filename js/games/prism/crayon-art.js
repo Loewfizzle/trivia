@@ -487,7 +487,10 @@ export function warmCrayon(size, budgetMs = 4) {
   for (const k of ['incoming', 'ihot']) if (!cache.has(`${size}|${k}|0|0`)) crayonSprite(size, k, 0);
   return true;
 }
-export const clearCrayon = () => cache.clear();
+// (FR7 FIXES A — PD7: dropped with the board's sprites — view.js#dropCaches; the pixels freed at once)
+const dropMap = (m => { for (const c of m.values()) if (c && typeof c.width === 'number') { c.width = 0; c.height = 0; } m.clear(); });
+export const clearCrayon = () => { dropMap(cache); dropMap(tooth); toothJobs.clear(); };
+export const crayonCount = () => cache.size + tooth.size;
 
 /** the tooth as a CSS MASK (a data URL — opaque where the crayon stays, see-through where it skipped): the day look's crayon lettering */
 let maskUrl = '';

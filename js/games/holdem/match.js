@@ -219,6 +219,32 @@ function removeSeat(m, id, events, now) {
 }
 
 /**
+ * FR7 FIXES A — END GAME (the owner's decision 5): the host ends a TOURNAMENT before it's won. The places by CHIP COUNT — a hand in progress
+ * is VOIDED (every seat keeps what it had before it: its stack + what it put in this hand), more chips = the better place, equal stacks SHARE
+ * it; the players already out keep their places. The match ends now; the dealer credits it like any end (from COUNTS' 3 hands — else
+ * 'short', no result). PURE.
+ */
+export function endTournament(match, now = 0) {
+  if (match.mode !== 'tournament') return fail(match, 'only a tournament ends this way');
+  if (match.ended) return fail(match, 'the match is over');
+  const m = copy(match), t = m.table, events = [];
+  const placed = new Set((m.places || []).map(p => p.id));
+  const alive = t.seats.filter(x => x.status !== 'out' && !placed.has(x.id));
+  const chips = x => (Number(x.stack) || 0) + (Number(x.total) || 0);
+  for (const x of alive) { x.stack = chips(x); x.total = 0; x.bet = 0; x.status = 'in'; }
+  Object.assign(t, { street: 'done', turn: null, deadline: null, bankOn: false, bankFrom: null, pots: [], runout: false, result: { ended: true, pots: [] } });
+  m.places = m.places || [];
+  for (const x of alive) {
+    const place = 1 + alive.filter(o => chips(o) > chips(x)).length;
+    m.places.push({ id: x.id, place, hand: t.hand, by: [], end: true });
+  }
+  const firsts = alive.filter(x => chips(x) === Math.max(...alive.map(chips)));
+  Object.assign(m, { ended: true, endAt: now, winner: firsts.length === 1 ? firsts[0].id : null, ending: false });
+  events.push({ t: 'ended', ...now0(m, now), winner: m.winner, by: 'host' });
+  return { match: m, events };
+}
+
+/**
  * END SESSION (CASH, the host): between hands it closes at once; mid-hand it closes when that hand ends (HE10 — A17: the unused "void the
  * hand" fallback is gone: a hand always ends by itself, on the shot clock's timeouts at the latest).
  */

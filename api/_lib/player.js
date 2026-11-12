@@ -72,7 +72,9 @@ export async function playerAnswer(uid, body = {}, now = Date.now()) {
   if (rel !== 'self' && (p.h || ban || theirsBlock)) return { rel: theirsBlock && rel !== 'blocked' ? 'none' : rel, limited: true, card: { n: name, a: p.a, c: p.c, es: p.es || null } };
   return {
     rel,
-    card: { n: p.n, a: p.a, c: p.c, l: p.l, r: p.r || 0, cd: p.cd || null, g: p.g || null, tb: p.tb || null, es: p.es || null, at: p.at || 0, fd: !!p.fd },
+    // (FR7 FIXES A — C6: the rude-name filter on THE PLAYER PAGE too — THE BOARD showed the HOUSE NICKNAME, a tap on the row the raw name;
+    //  the real name only for the player themself + their friends)
+    card: { n: rel === 'self' || rel === 'friend' ? p.n : publicName(id0, p.n), a: p.a, c: p.c, l: p.l, r: p.r || 0, cd: p.cd || null, g: p.g || null, tb: p.tb || null, es: p.es || null, at: p.at || 0, fd: !!p.fd },
     band: bandOf(p.l || 1).name,
     streak: flameOf(p.s, p.sd, now),
     top,

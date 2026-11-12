@@ -6,7 +6,7 @@ import { ref, val } from './fb.js';
 import { ApiError } from './http.js';
 import { take } from './limit.js';
 import { isPid, publicProfile } from './profiles.js';
-import { boardId, topRows } from './lb.js';
+import { boardId, topRows, publicName } from './lb.js';
 import { boardDef } from '../../js/core/boards.js';
 import { FR, FR_WHY, friendStep, relOf, fresh, suggestions, recentPatch, inviteLive } from '../../js/core/friends.js';
 import { sendPush, okEndpoint, vapid } from './push.js';
@@ -37,7 +37,11 @@ export async function friendsState(pid, now = Date.now()) {
   for (const k of ['in', 'out']) for (const p of Object.keys(A[k] || {})) if (!X[k][p]) gone[`pfr/${pid}/${k}/${p}`] = null;
   if (Object.keys(gone).length) await ref('/').update(gone);
   const sug = suggestions(A, pid, now);
-  const [friends0, inn, out, blocked, recent] = await Promise.all([cards(X.f), cards(X.in), cards(X.out), cards(X.b), cards(X.rp, sug)]);
+  const [friends0, inn0, out0, blocked0, recent] = await Promise.all([cards(X.f), cards(X.in), cards(X.out), cards(X.b), cards(X.rp, sug)]);
+  // (FR7 FIXES A — C6: a REQUEST is a stranger's name — a throwaway named anything could friendAdd any board row: the rude-name filter's HOUSE
+  //  NICKNAME on the requests + the blocked, as THE BOARD shows it; your friends + the players you shared a room with keep their names)
+  const nick = list => list.map(c => ({ ...c, n: publicName(c.bid, c.n) }));
+  const inn = nick(inn0), out = nick(out0), blocked = nick(blocked0);
   // (BOARD 2.0 B — THE FRIENDS LIST as slim cards, by THIS WEEK's XP: each FRIEND's week counter (pstats/{pid}/xw — the OVERALL board's own number), the
   //  friends only — never a request, a block or a suggestion; the existing read, no new function)
   //  (PD-1 GROUP 0: a friend who OPTED OUT of the public boards — profiles/{pid}/h — is out of this number too: wx null, only they see their own)

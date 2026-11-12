@@ -67,7 +67,7 @@ export function grant(next, ids, now) {
  * owner marked), ctx (the achievements' facts the server knows: { hosted, roomKey, party, hourET, holiday, friends, founderOpen }) } →
  * { skip } | { next, pbs, xp, from, prevStats, wk, lv: { from, to }, streak: { n, ev }, items: [ids new to this player], ach: [ids] }
  */
-export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, outage = null, ctx = {} }) {
+export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, outage = null, ctx = {}, ceiling = DAILY_CEILING }) {   // (ceiling: the server always takes the default — a simulation of many matches in one day lifts it)
   const s = s0 || {};
   if (s.m && s.m[key]) return { skip: 'counted' };
   if (s.last && now - s.last < gap && now >= s.last) return { skip: 'too_soon' };
@@ -78,10 +78,16 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   //  at once from two devices — is never credited; `ctx.win` = { c: the room, s: its start, e: its end }, the last OV_KEEP windows kept)
   if (overlaps(s.ov, ctx.win)) return { skip: 'overlap' };
   const wk = weekKey(now), dk = dayKey(now);
+  // FR7 FIXES A — THE DAILY CEILING (the owner's decision 2, Nov 12 — the win farms, FR7-A C2 + FR7-B HE3): past DAILY_CEILING counted ROOM
+  // matches in a day (all games together; the day = dayKey, Eastern) a match still plays + shows its podium, but pays 0 XP, moves no board
+  // (no win, no record, no counter) and earns nothing; the 45 s gap stays. A real game night never meets it. Solo runs have their own cap.
+  const roomsToday = s.day && s.day.k === dk ? Number(s.day.n) || 0 : 0;
+  if (n !== 1 && roomsToday >= ceiling) return ceilingStep(s, { key, now, dk, wk, ctx, roomsToday });
   const next = { ...s, g: { ...(s.g || {}) }, b: { ...(s.b || {}) }, m: { ...(s.m || {}) } };
   if (next.wk !== wk) { next.wk = wk; next.gw = {}; next.gs = {}; } else { next.gw = { ...(s.gw || {}) }; next.gs = { ...(s.gs || {}) }; }
-  next.day = s.day && s.day.k === dk ? { k: dk, g: { ...(s.day.g || {}) }, ...(s.day.so ? { so: s.day.so } : {}) } : { k: dk, g: {} };
+  next.day = s.day && s.day.k === dk ? { k: dk, g: { ...(s.day.g || {}) }, ...(s.day.so ? { so: s.day.so } : {}), ...(s.day.n ? { n: s.day.n } : {}) } : { k: dk, g: {} };
   const solo = n === 1;   // (SHELL 2.0 B1 — THE SOLO LANE: a room of one)
+  if (!solo) next.day.n = roomsToday + 1;   // (THE DAILY CEILING's count)
   next.cp = countedPlays(s) + (solo ? 0 : 1);   // (PD-3 Group 0 — WHO GETS LISTED: a room match counts, a solo run never)
   const firstToday = !next.day.g[gid];
   next.day.g[gid] = 1;
@@ -131,6 +137,20 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   const aw = awardAll(next, now, { founderOpen: !!ctx.founderOpen });
   items.push(...aw.items);
   return { next, pbs, xp, from, prevStats: s, wk, lv, items, ach: aw.ach, streak: { n: next.st.n, ev: streak.ev } };
+}
+
+/** THE DAILY CEILING (FR7 FIXES A): counted room matches a profile is PAID for in a day (Eastern) — the 21st on plays for nothing */
+export const DAILY_CEILING = 20;
+export const CEILING_LINE = 'TODAY’S LIMIT · XP AGAIN AFTER 4 AM';
+/** the step for a match past THE DAILY CEILING (PURE): counted (never twice — `m`), the gap's clock, today's count — and nothing else */
+function ceilingStep(s, { key, now, dk, wk, ctx, roomsToday }) {
+  const next = { ...s, m: { ...(s.m || {}), [key]: now }, last: now, day: { ...(s.day || {}), k: dk, g: { ...((s.day && s.day.g) || {}) }, n: roomsToday + 1 } };
+  if (ctx.win) next.ov = [...(Array.isArray(s.ov) ? s.ov : []), cleanWin(ctx.win)].slice(-OV_KEEP);
+  const keys = Object.keys(next.m);
+  if (keys.length > KEEP_KEYS) keys.sort((a, b) => next.m[a] - next.m[b]).slice(0, keys.length - KEEP_KEYS).forEach(k => delete next.m[k]);
+  const lvl = levelOf(s.xp || 0);
+  return { next, pbs: [], xp: { total: 0, parts: [{ k: 'ceiling', label: CEILING_LINE, v: 0 }] }, from: s.xp || 0, prevStats: s, wk, lv: { from: lvl, to: lvl }, items: [], ach: [],
+    streak: { n: (s.st && s.st.n) || 1, ev: {} }, capped: true };
 }
 
 /** LOBBY FIXES — ONE ACCOUNT, ONE ROOM: how many counted matches' windows a profile keeps (pstats.ov) */

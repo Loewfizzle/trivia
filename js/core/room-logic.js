@@ -101,3 +101,11 @@ export function sanitizeName(name, max = 12) {
 export function sanitizeAvatar(id) {
   return AVATAR_IDS.includes(id) ? id : AVATAR_IDS[0];
 }
+
+/**
+ * FR7 FIXES A (FR7-A B2) — THE INITIATE GUARD (PURE): a host who QUIT TO THE ROOM (a PRISM KO, a HOLD'EM bust) could INITIATE a new game over the
+ * match everyone else was still playing — they were pulled out and it had no result. A start is refused while the room's game runs and isn't
+ * at its podium ('final' — a REMATCH from the podium still starts). → true = refuse
+ */
+export const gameRunning = (meta, game) => !!(meta && meta.status === 'playing' && game && game.phase && game.phase !== 'final');
+export const GAME_ON_LINE = 'A GAME IS STILL ON — WAIT FOR ITS END';

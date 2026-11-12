@@ -8,8 +8,9 @@ import { easternParts } from '../core/week.js';
 import { streakDay } from '../core/streak.js';
 import { msToTurn, fmtCountdown } from './clock.js';
 
-/** an error worth another try (no signal, the server's own trouble) — never a refusal */
-export const retryable = e => !e || e.status === 0 || e.status >= 500 || e.code === 'offline' || e.code === 'http';
+// (an error worth another try — js/daily/retry.js, PURE: the shared rule)
+import { retryable } from './retry.js';
+export { retryable };
 
 /** the score to the server: up to `tries` times, backed off by `wait` (the view's — it never resolves once the view is gone) → { ok, resp } */
 export async function recordFinish(finish, { wait, alive = () => true, tries = 4 } = {}) {

@@ -15,7 +15,7 @@ import { openSheet } from './sheet.js';
 import { loadProfile } from '../identity.js';
 import { MOOD_CHOICES, MOOD_LABEL, moodNow } from '../audio/mood.js';
 import { musicNeedsRescue } from '../audio/music.js';
-import { metaOf } from '../games/registry.js';
+import { metaOf, loadGame } from '../games/registry.js';
 import { lookLockOf } from '../games/cartridge.js';
 import { lazyImport } from './lazy-import.js';
 
@@ -260,7 +260,16 @@ function openMenu() {
   if (!playing) for (const render of menuExtras.values()) { let el = null; try { el = render({ close: closeMenu }); } catch { el = null; } if (el) rows.push(el); }
   if (playing) {
     rows.push(row({ icon: 'quit', ic: '#ffc23d', label: 'Quit to the room', sub: 'The others keep playing', cls: 'gm-quit', confirm: 'TAP AGAIN TO QUIT', onClick: () => { closeMenu(); setState({ quit: state.game.matchId }); toast('You left the game', 'info', { ms: 3200, sub: 'You’ll be dealt into the next one.' }); } }));
-    if (isHost()) rows.push(row({ icon: 'end', label: 'End game for everyone', danger: true, cls: 'gm-end', confirm: 'TAP AGAIN TO END IT', onClick: () => { closeMenu(); lazyImport(import('../host.js'), '../host.js').then(m => m.backToLobby()); } }));
+    if (isHost()) {
+      // (FR7 FIXES A — decision 5: a game whose result is the SERVER's (HOLD'EM's dealer) ends THROUGH it — the confirm says what happens:
+      //  places by chips, or NO RESULT under its hands; the podium follows. Every other game: the console's END GAME, as before)
+      const meta = metaOf(state.game.id) || {};
+      const line = typeof meta.endGameLine === 'function' ? meta.endGameLine(state.live && state.live.table) : null;
+      const viaGame = () => loadGame(state.game.id).then(mod => mod.endGame({ code: state.code }))
+        .catch(e => toast(e && e.code === 'ended' ? 'The game is already over' : 'Could not end it — try again', 'err'));
+      rows.push(row({ icon: 'end', label: 'End game for everyone', sub: line || undefined, danger: true, cls: 'gm-end', confirm: line ? 'TAP AGAIN — END IT NOW' : 'TAP AGAIN TO END IT',
+        onClick: () => { closeMenu(); if (line) viaGame(); else lazyImport(import('../host.js'), '../host.js').then(m => m.backToLobby()); } }));
+    }
   } else if (inRoom) {
     // (LOBBY 2.0 B — the owner's ADD-ON: LEAVE ROOM in the menu while in a room — red-edged, a second tap confirms; not during a match: QUIT first)
     rows.push(row({ icon: 'leave', label: 'Leave room', danger: true, cls: 'gm-leave', confirm: 'TAP AGAIN TO LEAVE', onClick: () => { closeMenu(); leaveRoom(); } }));

@@ -141,7 +141,8 @@ function overclockExtra(game, uid, out, row, ctx, win) {
     // REDLINE — sweep: a QUICK match, every challenge played (all 6 results), this player ALONE on top of every one (strictly the most, > 0)
     const quick = game.settings && game.settings.mode === 'quick' && num(game.total) === OC_MODES.quick && Object.keys(res).length === OC_MODES.quick;
     // (OC2: THE ROUND WIN is ONE rule — overclock/logic.js#roundWin, the same the game's ROUND WINNER banner + ROUND WINS use)
-    if (quick && Object.values(res).every(rr => { const r = ocRoundWin(rr, uids); return r.kind === 'win' && r.uid === uid; })) (out.f ||= {}).sweep = 1;
+    // (FR7 FIXES A: a result the host marked `fl` — finished faster than a person could — never earns REDLINE)
+    if (quick && Object.values(res).every(rr => { const r = ocRoundWin(rr, uids); return r.kind === 'win' && r.uid === uid && !(rr[uid] && rr[uid].fl); })) (out.f ||= {}).sweep = 1;
     // PHOTO FINISH — photo: the win, ALONE in first, by exactly one point over second (any mode)
     if (win && row.rank === 1) { const me = tot(uid), next = Math.max(...uids.filter(u => u !== uid).map(tot)); if (me - next === 1) (out.f ||= {}).photo = 1; }
     // THE HORSESHOE (OC5) — horseshoe: this player BACKED THE WINNER of a DUMB LUCK race — the server REPLAYS the race from the room's record

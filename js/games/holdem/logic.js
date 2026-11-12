@@ -109,6 +109,20 @@ export function pokeIn({ due, now, host, jitter = 0 }) {
 }
 /** A poke that changed nothing while the table still says it's due: back off (the server's clock is a little behind ours). */
 export const POKE_RETRY_MS = 700;
+/**
+ * FR7 FIXES A — HE2 (FR7-A's B2), THE HOST POKES FROM THE ROOM TOO (PURE): a host who QUIT TO THE ROOM (or busted out and went back) has no
+ * table on screen — no view, no poke — and keeps beating, so nobody takes over: every timed step ran 2–3 s late for everyone. The cartridge's
+ * prepare() (the host's 250 ms tick) asks this: the table's due moment + the host's 100 ms → poke; the same due again only after a back-off
+ * (POKE_RETRY_MS × tries, ≤ 8 tries — the view's own rule). → { poke, last } (`last` = { key, at, tries } to keep for the next tick).
+ */
+export function hostPoke({ pub, now, last = null }) {
+  if (!pub || pub.due == null) return { poke: false, last };   // (an ended match's due = its clean-up: poked too — no record left behind)
+  if (pokeIn({ due: pub.due, now, host: true }) > 0) return { poke: false, last };
+  const key = `${pub.seq}|${pub.due}`;
+  if (!last || last.key !== key) return { poke: true, last: { key, at: now, tries: 0 } };
+  if (last.tries >= 8 || now < last.at + POKE_RETRY_MS * (last.tries + 1)) return { poke: false, last };
+  return { poke: true, last: { key, at: now, tries: last.tries + 1 } };
+}
 
 /**
  * THE SEATS ON THE RAIL (portrait — HE3's layout, docs/holdem.md "THE TABLE SCREEN"): the opponents in TABLE ORDER clockwise from your

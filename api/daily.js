@@ -220,7 +220,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
           attempts++; outs = [];
           let rec = cur;
           for (const mv of list) {
-            const r = cart.act({ action: mv.a, body: mv, record: rec, day, startedAt, now, data });
+            const r = cart.act({ action: mv.a, body: mv, record: rec, day, startedAt, now, data, room: !!room });
             if (r.refused) outs.push({ refused: r.refused, status: r.status || 409 });
             else outs.push({ resp: r.resp });
             if (r.record) rec = r.record;                          // (a refusal may still close a pause — the record it hands back is kept)

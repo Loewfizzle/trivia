@@ -8,7 +8,7 @@ import { dbRef, update, remove, runTransaction, serverTimestamp, serverNow } fro
 import { startOf, newMatchId, GO_ORPHAN_MS, goWaiting } from './core/room-show.js';
 import { minPlayersOf, rematchSettingsOf } from './games/cartridge.js';
 import { state, isHost, onlineMap } from './store.js';
-import { shouldClaimHost, isOnline, roomIdle } from './core/room-logic.js';
+import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
 import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, loadGame, metaOf } from './games/registry.js';
@@ -131,7 +131,7 @@ function direct(now) {
   if (!mod) { loadGame(game.id).catch(() => {}); return; }   // (SHELL 2.0 B1: a new host / a refresh — the cartridge loads, the next tick directs)
   // Only decide with player data that belongs to the current step.
   if (state.liveKey !== liveKeyFor(game)) return;
-  mod.prepare(game, { code: state.code, host: true }); // e.g. word lists / trivia top-ups on a freshly promoted host
+  mod.prepare(game, { code: state.code, host: true, now, live: state.live }); // e.g. word lists / trivia top-ups on a freshly promoted host (FR7 FIXES A: + the clock + the room's live data — HOLD'EM's host poke)
   const step = mod.step(game, { code: state.code, now, live: state.live, online: onlineMap() });
   if (!step) return;
   // (THE SEAL: an unseal is a step of its own inside a phase — the director's real step follows it at once, not 3 s later)
@@ -204,6 +204,8 @@ async function startGameNow(gameId, settings, quick = false) {
   if (!mod || !isHost()) return false;
   // (WINDOWS — ONLY TWO GAMES PLAYABLE: a hidden game never starts — not from a rematch, an invite, a stale link or the console)
   if (!isPlayable(gameId)) { toast('COMING SOON', 'info'); return false; }
+  // (FR7 FIXES A — B2: THE INITIATE GUARD — never a new game over the match the room is still playing; core/room-logic.js#gameRunning)
+  if (gameRunning(state.meta, state.game)) { toast(GAME_ON_LINE, 'err'); return false; }
   const participants = {};
   for (const uid of Object.keys(state.players)) if (isOnline(state.presence, uid)) participants[uid] = true;
   const min = minPlayersOf(mod, MIN_PLAYERS);   // (THE CARTRIDGE PLUG: MIN_PLAYERS above the app's, or SOLO = 1)
