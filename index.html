@@ -84,7 +84,7 @@
        TAP TO TRY AGAIN. The hang watch: a tiny worker beating from here (the city's scene feeds it its snapshot later — harbor/report.js). -->
   <script>
   (function () {
-    var W = window, D = document, LIMIT = 12000, RK = 'ns:boot-re', T0 = Date.now(), errs = [], stage = 'html', vis = 0, lastT = T0, done = false, sent = false, acted = 0, snapFn = null, hw = null, did = '';
+    var W = window, D = document, LIMIT = 12000, RK = 'ns:boot-re', T0 = Date.now(), errs = [], stage = 'html', vis = 0, lastT = T0, done = false, sent = false, acted = 0, snapFn = null, hw = null, did = '', armedAt = -1, WAYOUT = 6000;
     try { performance.setResourceTimingBufferSize(1500); } catch (e) { /* old browser */ }   // (250 by default — a boot asks for ~400 files: the report's "never arrived" needs them all)
     var ms = function () { return Math.round(Date.now() - T0); };
     // (FR7 FIXES B — THE TWO-TAB HANG: how many OTHER tabs of the site answered — a BroadcastChannel ping, never a socket; a tab Safari froze
@@ -127,7 +127,10 @@
       if (prevReload()) { did += 'TAP TO TRY AGAIN (the one reload was used); '; offerTap(); return; }
       try { W.sessionStorage.setItem(RK, String(Date.now())); } catch (e) { did += 'TAP TO TRY AGAIN (no session storage); '; offerTap(); return; }
       did += 'ONE reload; '; try { W.sessionStorage.setItem('ns:boot-did', stage + ' · ' + did + errs.join(' / ')); } catch (e) { /* fine */ }   // (what the reloaded page's tests read)
-      setTimeout(function () { location.reload(); }, 350);   // (the report's keepalive fetch goes first)
+      // (FR7 FIXES B — THE WATCHDOG ALWAYS ENDS IN A WAY OUT: a reload armed by ANY path that hasn't taken the page away 6 s ON SCREEN later
+      //  (a reload that never happens, a frozen navigation) → TAP TO TRY AGAIN, whatever `acted` says; __bootReloadStub = the tests' seam)
+      if (armedAt < 0) armedAt = vis;
+      setTimeout(function () { if (W.__bootReloadStub) W.__bootReloadStub(); else location.reload(); }, 350);   // (the report's keepalive fetch goes first)
     }
     // (THE VERSION SKEW — a module that fails to LINK = two deploys' files in one load: the reload alone kept the cached copy (WebKit), so
     //  every module of the boot is asked for afresh from the network first — at most 4 s — and only then the one reload)
@@ -171,6 +174,7 @@
       var t = Date.now(), gap = t - lastT, d = Math.min(gap, 1000); lastT = t;
       if (D.visibilityState === 'visible') vis += d;
       if (hw && t - beatAt >= 1000) { beatAt = t; var s; if (t - snapAt >= SNAP_MS || gap > 1500) { snapAt = t; try { s = snapFn ? snapFn('hang') : bootSnap('THE BOOT (no city yet)'); } catch (e) { s = '(the snapshot failed: ' + (e && e.message) + ')'; } } try { hw.postMessage(s === undefined ? { t: 'beat', vis: D.visibilityState } : { t: 'beat', vis: D.visibilityState, snap: s }); } catch (e) { /* polish */ } }
+      if (!done && armedAt >= 0 && vis - armedAt >= WAYOUT) { did += 'TAP TO TRY AGAIN (the reload never came); '; armedAt = -2; offerTap(); }
       if (done || vis < LIMIT) return;
       if (!acted) {
         acted = 1; report('no reveal after ' + (LIMIT / 1000) + ' s on screen');

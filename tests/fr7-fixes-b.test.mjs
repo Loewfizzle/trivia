@@ -94,9 +94,13 @@ test('THE TWO-TAB HANG — every wait on a store is bounded: the worker\'s copie
   assert.match(sw, /within\(caches\.open\(M\.cache\)\.then\(c => c\.match\(key\)\), STORE_WAIT_MS, null\)/, 'a copy\'s read bounded');
   assert.match(sw, /if \(held === undefined\) return \{ mode: 'net', cache: CACHE \}/, 'a silent store = the network');
   const fb = fs.readFileSync('js/firebase.js', 'utf8');
-  assert.match(fb, /const idbOk = await idbP;\s*if \(!idbOk\) hideIdb\(\);\s*app = sdk\.initializeApp/, 'the probe decides BEFORE the SDK\'s app (its heartbeat opens IndexedDB)');
+  assert.match(fb, /const idbOk = await idbP;\s*if \(!idbOk\) \{\s*hideIdb\(\);[\s\S]{0,400}?\}\s*app = sdk\.initializeApp/, 'the probe decides BEFORE the SDK\'s app (its heartbeat opens IndexedDB)');
   assert.match(fb, /persistence: idbOk \? \[sdk\.browserLocalPersistence, sdk\.indexedDBLocalPersistence\] : \[sdk\.browserLocalPersistence\]/);
+  // (Grok's second opinion: probe what the SDK opens NEXT, never creating a database by an upgrade)
+  assert.match(fb, /export const IDB_PROBE_DBS = Object\.freeze\(\['firebaseLocalStorageDb', 'firebase-heartbeat-database'\]\);/);
+  assert.match(fb, /rq\.onupgradeneeded = \(\) => \{ fresh = true; try \{ rq\.transaction\.abort\(\);/);
   const html = fs.readFileSync('index.html', 'utf8');
+  assert.match(html, /if \(!done && armedAt >= 0 && vis - armedAt >= WAYOUT\) \{[^}]*offerTap\(\); \}/, 'an armed reload that never came → TAP TO TRY AGAIN');
   assert.match(html, /new BroadcastChannel\('ns-tabs'\)/, 'the other tabs counted by a BroadcastChannel (never a socket)');
   assert.match(html, /' · other tabs open: ' \+ otherTabs\(\)/, 'the BOOT HANG report names the count');
 });

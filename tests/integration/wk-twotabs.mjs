@@ -40,6 +40,11 @@ await ctx.addInitScript(() => {
       IDBFactory.prototype.open = () => ({ set onsuccess(f) {}, set onerror(f) {}, set onblocked(f) {}, set onupgradeneeded(f) {}, addEventListener() {}, removeEventListener() {} });
       if (window.CacheStorage) { CacheStorage.prototype.open = never; CacheStorage.prototype.match = never; CacheStorage.prototype.keys = never; }
     }
+    // (FR7 FIXES B — Grok's second opinion: ONLY Auth's own database is silent — every other open answers, the probe of the old kind passed)
+    if (sessionStorage.getItem('tt:stuckAuth') === '1') {
+      const open0 = IDBFactory.prototype.open;
+      IDBFactory.prototype.open = function (name, ...rest) { return name === 'firebaseLocalStorageDb' ? { set onsuccess(f) {}, set onerror(f) {}, set onblocked(f) {}, set onupgradeneeded(f) {}, addEventListener() {}, removeEventListener() {} } : open0.call(this, name, ...rest); };
+    }
   } catch { /* fine */ }
 });
 const A = await ctx.newPage();
@@ -78,6 +83,14 @@ const signed = await waitFor(B, SIGNED_IN, 20000);
 const warned = await B.evaluate("1").then(() => true);
 ok(s1.up && signed && warned, `3. THE STUCK STORE (IndexedDB + Cache Storage never answer): B reached the city in ${(s1.ms / 1000).toFixed(1)} s and SIGNED IN (${signed}) — the sign-in used to wait on IndexedDB forever`);
 await B.evaluate("sessionStorage.removeItem('tt:stuck')");
+// 3b. ONLY firebaseLocalStorageDb silent (the rest of IndexedDB answers): the probe opens what the SDK opens → the city, signed in, a HOST works
+await B.evaluate("sessionStorage.setItem('tt:stuckAuth', '1')");
+const sa = await load("B with Auth's database silent", () => B.reload());
+const signedA = await waitFor(B, SIGNED_IN, 20000);
+const hosted = signedA && await B.evaluate("import('/js/firebase.js').then(f => f.firebaseReady).then(() => import('/js/room.js')).then(m => m.createRoom({ name: 'TWOTAB', color: 'cyan', avatar: 'bolt' })).then(() => import('/js/store.js')).then(s => s.state.code || null)").catch(e => 'ERR ' + e.message);
+ok(sa.up && signedA && typeof hosted === 'string' && /^[A-Z]{4,}/.test(hosted), `3b. ONLY Auth's database silent: the city in ${(sa.ms / 1000).toFixed(1)} s, signed in (${signedA}), HOST made room ${hosted}`);
+if (typeof hosted === 'string' && !hosted.startsWith('ERR')) await B.evaluate("import('/js/room.js').then(m => m.leaveRoom && m.leaveRoom())").catch(() => {});
+await B.evaluate("sessionStorage.removeItem('tt:stuckAuth')");
 // 4. A HUNG BOOT in a fresh tab C (B closed — WebKit's RELOAD reuses its memory cache, so a stalled module never stalls a reload; a new
 //    tab asks again) → THE BOOT WATCHDOG → TAP TO TRY AGAIN + the report names the other tab (A)
 await B.close();

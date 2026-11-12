@@ -836,6 +836,25 @@ async function loadFix3Checks() {
       `THE BOOT SAFETY NET (LOAD FIX 3) — ${c.name}: ${up ? `revealed at ${(revealMs / 1000).toFixed(1)} s` : 'NEVER REVEALED — the boot screen held'}${nav === 'reload' ? ' after THE WATCHDOG’s ONE reload' : ''}, the first tap ${tapped ? 'answered (BOARD)' : 'DEAD'}${c.report ? ` · the BOOT HANG report ${reports.includes('boot') ? 'sent' : 'NOT sent'}` : ''}`);
     await ctx.close();
   }
+  // FR7 FIXES B — THE WATCHDOG ALWAYS ENDS IN A WAY OUT (Grok's second opinion): a reload ARMED (here by __boot.reload) that never takes the
+  // page away (the reload stubbed to do nothing — a frozen navigation) → TAP TO TRY AGAIN 6 s on screen later, whatever `acted` says
+  {
+    const ctx = await (await launch()).createBrowserContext();
+    const p = await ctx.newPage();
+    await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await p.evaluateOnNewDocument(() => { try { localStorage.setItem('nd:entered', '1'); } catch { /* fine */ } window.__bootReloadStub = () => { window.__reloadAsked = (window.__reloadAsked || 0) + 1; }; });
+    await p.setRequestInterception(true);
+    p.on('request', r => { const u = r.url(); if (u.includes('/api/log') && r.method() === 'POST') return r.respond({ status: 200, contentType: 'application/json', body: '{"kept":1}' }).catch(() => {}); if (/\/js\/screens\/harbor\/scene\.js$/.test(u)) return; r.continue().catch(() => {}); });
+    p.goto(`${BASE}/?emu&slot=l3w&when=2026-11-06T13:02&wx=overcast${GR}&city=2`, { timeout: 60000 }).catch(() => {});
+    await waitFor(p, '!!(window.__boot && window.__boot.reload)', 'the watchdog', 20000).catch(() => {});
+    await sleep(1500);
+    const t0 = Date.now();
+    const armed = await ev(p, "window.__boot.reload('the test: a reload that never comes')");
+    const tap = await waitFor(p, "(() => { const s = document.querySelector('#boot .boot-status'); return !!s && /TAP TO TRY AGAIN/.test(s.textContent); })()", 'TAP TO TRY AGAIN', 15000).then(() => true).catch(() => false);
+    const asked = await ev(p, 'window.__reloadAsked || 0');
+    ok(armed === true && asked >= 1 && tap, `THE WATCHDOG's WAY OUT (FR7 FIXES B): a reload armed (${armed}) that never came (asked ${asked}×) → TAP TO TRY AGAIN in ${((Date.now() - t0) / 1000).toFixed(1)} s${tap ? '' : ' — NEVER'}`);
+    await ctx.close();
+  }
 }
 // LOAD FIX 2 (Nov 9 — the owner's iPhone: "slow to load, EVERY time" + the clouds SNAPPED then faded to a different cloud after the reveal):
 //   THE BOOT BUDGET — the real boot (cold, 402×874 @3): the requests + the bytes on the wire before the reveal under

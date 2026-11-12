@@ -84,21 +84,28 @@ export const firebaseReady = new Promise(r => { readyResolve = r; });
 
 /** FR7 FIXES B — a page whose IndexedDB doesn't answer: the SDK sees none (its checks are `typeof indexedDB`) — this page only */
 function hideIdb() { try { Object.defineProperty(globalThis, 'indexedDB', { value: undefined, configurable: true, writable: true }); } catch { /* polish */ } }
-/** FR7 FIXES B — does IndexedDB answer at all? (open + close a tiny probe database within `ms`; false on a hang, an error or no IndexedDB) */
+/** FR7 FIXES B — does IndexedDB answer? (Grok's second opinion: probe what the SDK opens NEXT — Auth's firebaseLocalStorageDb + the app's
+ *  firebase-heartbeat-database — each with NO version (never an upgrade: a database that doesn't exist yet is never created here — its
+ *  creation is aborted, which is an answer too), all in parallel within `ms`. ANY one silent / blocked / erroring → false. */
 export const IDB_PROBE_MS = 1500;
-export function idbAnswers(ms = IDB_PROBE_MS, idb = typeof indexedDB !== 'undefined' ? indexedDB : null) {
-  if (!idb) return Promise.resolve(false);
+export const IDB_PROBE_DBS = Object.freeze(['firebaseLocalStorageDb', 'firebase-heartbeat-database']);
+function idbOne(idb, name) {
   return new Promise(res => {
-    let done = false;
-    const end = ok => { if (!done) { done = true; clearTimeout(t); res(ok); } };
-    const t = setTimeout(() => end(false), ms);
+    let fresh = false;
     try {
-      const rq = idb.open('ns-probe');
-      rq.onsuccess = () => { try { rq.result.close(); } catch { /* fine */ } end(true); };
-      rq.onerror = () => end(false);
-      rq.onblocked = () => end(false);
-    } catch { end(false); }
+      const rq = idb.open(name);
+      rq.onupgradeneeded = () => { fresh = true; try { rq.transaction.abort(); } catch { /* the error below still answers */ } };
+      rq.onsuccess = () => { try { rq.result.close(); } catch { /* fine */ } res(true); };
+      rq.onerror = e => { if (fresh) { try { e.preventDefault(); } catch { /* fine */ } res(true); } else res(false); };
+      rq.onblocked = () => res(false);
+    } catch { res(false); }
   });
+}
+export function idbAnswers(ms = IDB_PROBE_MS, idb = typeof indexedDB !== 'undefined' ? indexedDB : null, names = IDB_PROBE_DBS) {
+  if (!idb) return Promise.resolve(false);
+  let t;
+  const limit = new Promise(r => { t = setTimeout(() => r(false), ms); });
+  return Promise.race([Promise.all(names.map(n => idbOne(idb, n))).then(all => all.every(Boolean)), limit]).then(ok => { clearTimeout(t); return ok; });
 }
 
 // Each identity slot is a separately named Firebase app, so its anonymous user
@@ -110,7 +117,11 @@ export async function initFirebase(onConnectedChange) {
   ]);
   sdk = { ...appMod, ...authMod, ...dbMod };
   const idbOk = await idbP;
-  if (!idbOk) hideIdb();
+  if (!idbOk) {
+    hideIdb();
+    // (hidden or not, a page whose IndexedDB didn't answer signs in on localStorage alone — never with indexedDBLocalPersistence)
+    if (typeof indexedDB !== 'undefined' && indexedDB) console.warn('[firebase] IndexedDB could not be hidden from the SDK — the sign-in on localStorage alone anyway');
+  }
   app = sdk.initializeApp(config, slot === '1' ? '[DEFAULT]' : `slot-${slot}`);
   // C4d (FR4 B2): localStorage FIRST. With IndexedDB first, Firebase Auth polled it every 800 ms for the life of every tab — 75 storage
   // transactions a minute, a parked title too (a storage-process wake every 0.8 s on a phone). The IndexedDB persistence stays in the
