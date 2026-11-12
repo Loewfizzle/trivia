@@ -753,6 +753,45 @@ test('FR7 FIXES B — A SEAT IS NOT A PLAY: a seated guest who wrote nothing get
   tick();
 });
 
+// FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF (Grok's honest-player review): match A ends, the host starts a REMATCH (B), and A's
+// report lands late through the snapshot path — the room keeps A's proof nodes (host.js#pruneProofs keeps the previous match), so everyone in A
+// is credited
+test('FR7 FIXES B — a REMATCH started before A's report landed: A still credits everyone (its proof kept)', async () => {
+  const { XP } = await import('../../js/core/ranks.js');
+  await ensure('u-rm1', 'REMONE'); await ensure('u-rm2', 'REMTWO');
+  const A = await seedRoom('prism', ['u-rm1', 'u-rm2']);
+  // the rematch: a new match B is running; A's game blob is gone, its night record + its proof nodes stay
+  const B = finalGame('prism', ['u-rm1', 'u-rm2'], {}); B.matchId = 'mB' + A.matchId.slice(2); B.phase = 'play';
+  await ref(`rooms/${A.code}`).update({ game: B, 'meta/status': 'playing', [`prism/${B.matchId}`]: { 'u-rm1': { st: 'play', at: clock } } });
+  const r = await report('u-rm2', A, clock, { matchId: A.matchId });
+  assert.equal(r.status, 'counted', `A counted after the rematch began (${r.status})`);
+  const o = (await val(`results/${A.code}_${A.matchId}`)).o;
+  assert.ok(o[await val('uids/u-rm1')] && o[await val('uids/u-rm2')], 'everyone in A credited');
+  const win = Object.values(o).find(x => x.win);
+  assert.ok(win && win.n === 2 && win.xp.gain === XP.played + XP.win + XP.newGame, 'a 2-player win, never a solo run');
+  tick();
+});
+
+// FR7 FIXES B — PRESENT = PROVEN (Grok's honest-player review): a phone in the match writes its own node the moment play starts (OVERCLOCK: its
+// board at each challenge's open — view.js; PRISM: its board's save while its frames run) — a present-but-silent player is credited (a loss) and
+// never turns the other's win into a solo run; a seated guest whose phone never entered play still gets nothing
+test('FR7 FIXES B — PRESENT = PROVEN: a player who never taps is a counted loss; the other's 2-player WIN stands (OVERCLOCK + PRISM DROP)', async () => {
+  const { XP } = await import('../../js/core/ranks.js');
+  for (const [g, silent] of [['overclock', { 0: { p: 0, ok: 0, n: 3, done: false, at: clock } }], ['prism', { st: 'play', at: clock, sc: 0, ln: 0 }]]) {
+    const a = `u-pp${g[0]}1`, b = `u-pp${g[0]}2`;
+    await ensure(a, `PRES${g[0].toUpperCase()}A`); await ensure(b, `PRES${g[0].toUpperCase()}B`);
+    const R = await seedRoom(g, [a, b], { noProof: [b] });
+    if (g === 'overclock') await ref(`rooms/${R.code}/oc/${R.matchId}/0/${b}`).set(silent[0]);
+    else await ref(`rooms/${R.code}/prism/${R.matchId}/${b}`).set(silent);
+    const r = await report(a, R);
+    const o = (await val(`results/${R.code}_${R.matchId}`)).o;
+    const ob = o[await val(`uids/${b}`)];
+    assert.ok(r.outcome.win && r.outcome.n === 2 && r.outcome.xp.gain === XP.played + XP.win + XP.newGame, `${g}: the winner keeps a 2-player WIN (${JSON.stringify(r.outcome && r.outcome.xp)})`);
+    assert.ok(ob && !ob.skip && !ob.win, `${g}: the silent player is a counted loss`);
+    tick();
+  }
+});
+
 // LOBBY FIXES — ONE PROFILE, ONE SEAT + ONE ACCOUNT, ONE ROOM: whatever a client does, the server credits a profile once per match (its
 // WORSE seat) and never for a match that overlaps one it already counted in ANOTHER room
 test('ONE ACCOUNT, ONE ROOM: one profile in two seats is credited once (the worse); two rooms at once — the second never counts', async () => {

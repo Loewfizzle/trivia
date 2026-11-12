@@ -1496,3 +1496,17 @@ test('FR7 FIXES A — THE RULES-LAG: on THE RULES AS PUBLISHED (the old rules) e
     await assertSucceeds(set(ref(odb('p2'), `${R}/prismq/m1/p3/p2-12`), atk), 'the fallback lands');
   } finally { await old.cleanup(); }
 });
+
+// FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF: the host may delete ONE match's proof node (prism / oc / ocm / {m}) — a new start keeps
+// the previous match's for a late report; nobody else may; a write that isn't a delete is refused
+test('FR7 FIXES B — the host deletes ONE match\'s proof node (prism / oc / ocm), keeping the others; a guest never', async () => {
+  const proof = { prism: { mA: { p2: { st: 'out', at: 1 } }, mZ: { p2: { st: 'out', at: 1 } } }, oc: { mA: { 0: { p2: { done: true } } }, mZ: { 0: { p2: { done: true } } } }, ocm: { mZ: { 0: { p2: '1' } } } };
+  await seed(lobbyRoom(proof));
+  for (const n of ['prism', 'oc', 'ocm']) {
+    await assertFails(update(ref(db('p2'), `${R}`), { [`${n}/mZ`]: null }), `a guest deletes ${n}/mZ`);
+    await assertSucceeds(update(ref(db('host'), `${R}`), { [`${n}/mZ`]: null }), `the host deletes ${n}/mZ`);
+    await assertFails(set(ref(db('host'), `${R}/${n}/mA`), { x: 1 }), `the host writes into ${n}/mA`);
+  }
+  const left = await env.withSecurityRulesDisabled(ctx => get(ref(ctx.database(), `${R}/prism`)));
+  assert.ok(left.val().mA && !left.val().mZ, 'the previous match kept, the older one gone');
+});

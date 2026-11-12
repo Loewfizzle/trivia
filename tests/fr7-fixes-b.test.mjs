@@ -157,14 +157,16 @@ test('the NICE lines (FR7-A): HOST raced against 20 s with a plain line (one att
   assert.match(gate, /const no = !role && c && c\.no && c\.at > Date\.now\(\) - KEEP_MS && c\.pid === lastPid;/, '… for that profile only');
 });
 
-test('A SEAT IS NOT A PLAY — the walk back keeps the proof nodes + the seal (a late report still finds them); the next start wipes them', () => {
+test('A SEAT IS NOT A PLAY — the walk back keeps the proof nodes; A RE-START KEEPS THE LAST MATCH\'s (every older match pruned, best effort)', async () => {
   const host = fs.readFileSync('js/host.js', 'utf8');
   assert.match(fs.readFileSync('js/games/registry.js', 'utf8'), /export const PROOF_NODE_LIST = Object\.freeze\(\['prism', 'oc', 'ocm'\]\);/);
   const back = host.slice(host.indexOf('export async function backToLobby'), host.indexOf('/** TESTS: backToLobby'));
   assert.match(back, /\.\.\.clearPlayerNodes\(true\)/, 'the walk back keeps them');
-  assert.ok(!/wipeSeal\(/.test(back), 'the seal stays until the next start');
-  const start = host.slice(0, host.indexOf('export async function backToLobby'));
-  assert.match(start, /wipeSeal\(state\.code\);\s*await update\(dbRef\(`rooms\/\$\{state\.code\}`\), \{[\s\S]*?\.\.\.clearPlayerNodes\(\),/, 'the next start wipes everything, as before');
+  const start = host.slice(host.indexOf('async function startGameNow'), host.indexOf('async function pruneProofs'));
+  assert.match(start, /\.\.\.clearPlayerNodes\(true\),/, 'the start keeps them out of its atomic clear');
+  assert.match(start, /pruneProofs\(state\.code, \[prevM, matchId\]\);/, 'then every match but the previous + the new one is pruned');
+  const { staleProofPaths } = await import('../js/core/room-logic.js');
+  assert.deepEqual(staleProofPaths({ prism: { A: {}, B: {}, Z: {} }, oc: { B: {}, Y: {} }, ocm: null }, ['B', 'C']), { 'prism/A': null, 'prism/Z': null, 'oc/Y': null });
   const rep = fs.readFileSync('api/report.js', 'utf8');
   assert.match(rep, /if \(!\(players && players\[u\]\) \|\| !playedIt\(u\)\) delete ex\.rows\[u\];/, 'every credited uid needs its own proof');
   assert.match(rep, /const real = realPlayers\(named\.filter\(playedIt\), players, known\)\.length;/, 'dropped BEFORE the count');
@@ -182,4 +184,23 @@ test('SIGHTINGS NEED THE CITY OPEN — the stamp\'s rules (PURE): one opening wh
   assert.ok(cityOpenAt(co, 1_000_000 - OPEN_LEAD_MS) && !cityOpenAt(co, 1_000_000 - OPEN_LEAD_MS - 1));
   assert.ok(cityOpenAt(co, 1_240_000 + OPEN_TRAIL_MS) && !cityOpenAt(co, 1_240_000 + OPEN_TRAIL_MS + 1));
   assert.equal(cityOpenAt(null, 5), false, 'no stamp → closed');
+});
+
+test('PRESENT = PROVEN — an OVERCLOCK phone writes its own board when a challenge opens (never over one that exists; never DUMB LUCK\'s)', () => {
+  const v = fs.readFileSync('js/games/overclock/view.js', 'utf8');
+  assert.match(v, /if \(!boardsNow\(game\)\[me\(\)\] && game\.phase === 'play' && game\.order\[game\.ci\] !== LUCK && chal\.parts >= 1\) \{\s*dbUpdate\(dbRef\(`rooms\/\$\{st\.code\}\/oc\/\$\{game\.matchId\}\/\$\{game\.ci\}\/\$\{me\(\)\}`\), \{ p: 0, ok: 0, n: Math\.min\(12, chal\.parts\), done: false, at: serverTimestamp\(\) \}\)/);
+});
+
+test('THE QUEUE + THE STAMP AGREE — the gap = the queue (15 min); a hello after 5 silent minutes extends the opening; the phone keeps a no_stamp', async () => {
+  const { openStep, cityOpenAt, stampBehind, CITY_GAP_MS, QUEUE_MS } = await import('../js/core/sightings.js');
+  assert.ok(CITY_GAP_MS >= QUEUE_MS);
+  let co = openStep(null, 0); co = openStep(co, 60e3); co = openStep(co, 60e3 + 5 * 60e3);
+  assert.deepEqual([co.a, co.b], [0, 360e3], 'one opening across the silence');
+  assert.ok(cityOpenAt(co, 60e3 + 4 * 60e3), 'a tap at minute 4 of the silence is covered');
+  assert.ok(stampBehind(null, 5) && stampBehind({ a: 0, b: 0 }, 10 * 60e3) && !stampBehind(co, 300e3));
+  const q = fs.readFileSync('js/profile/sightings.js', 'utf8');
+  assert.match(q, /QAGE = 15 \* 60e3;/, 'the phone keeps a claim as long as the server takes it');
+  assert.match(q, /if \(retryLater\(r\)\) \{ writeQ\(\[\.\.\.readQ\(\), c\]\); return \{ state: 'queued', r \}; \}/, 'a no_stamp answer is kept');
+  assert.match(q, /window\.addEventListener\('online', \(\) => \{ flushSightings\(\)/, 'flushed when back online');
+  assert.match(fs.readFileSync('js/screens/harbor/remote.js', 'utf8'), /api\('admin', \{ action: 'radioHello' \}\)\.then\(afterHello/, 'flushed after the city\'s hello');
 });

@@ -8,7 +8,10 @@ import { api } from './api.js';
 import { myPid } from './me.js';
 import { lazyImport } from '../ui/lazy-import.js';
 
-const QKEY = 'nd:sg-q', QMAX = 20, QAGE = 12 * 3600e3;
+// (FR7 FIXES B: QAGE = core/sightings.js#QUEUE_MS — 15 min; a 'no_stamp' answer (the server's city-open stamp hasn't caught up) is KEPT +
+//  retried: on 'online', after the city's next hello (harbor/remote.js), the next claim)
+const QKEY = 'nd:sg-q', QMAX = 20, QAGE = 15 * 60e3;
+const retryLater = r => !!(r && r.ok === false && r.why === 'no_stamp');
 const readQ = () => { try { const v = JSON.parse(localStorage.getItem(QKEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
 const writeQ = q => { try { localStorage.setItem(QKEY, JSON.stringify(q.slice(-QMAX))); } catch { /* private mode: lost — polish */ } };
 
@@ -24,6 +27,7 @@ export async function claimSighting({ id, t, tz, live = true }) {
   if (!myPid()) { writeQ([...readQ(), c]); return { state: 'queued' }; }
   try {
     const r = await send(c);
+    if (retryLater(r)) { writeQ([...readQ(), c]); return { state: 'queued', r }; }
     flushSightings().catch(() => {});
     if (!r || !r.ok) return { state: 'refused', r };
     return { state: r.counted ? 'counted' : 'again', r };
@@ -41,7 +45,7 @@ export function flushSightings() {
     if (!q.length || !myPid()) { writeQ(q); return []; }
     const left = [], out = [];
     for (const c of q) {
-      try { const r = await send(c); out.push(r); if (r && r.counted && r.items && r.items.length) told(r, c.id); }
+      try { const r = await send(c); if (retryLater(r)) { left.push(c); continue; } out.push(r); if (r && r.counted && r.items && r.items.length) told(r, c.id); }
       catch (e) { if (keepFor(e)) left.push(c); }
     }
     writeQ(left);
@@ -60,3 +64,5 @@ async function told(r, id) {
     pgSfx('achievement');
   } catch { /* polish */ }
 }
+// (FR7 FIXES B: back online → the queue goes)
+if (typeof window !== 'undefined') window.addEventListener('online', () => { flushSightings().catch(() => {}); });

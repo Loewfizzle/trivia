@@ -109,3 +109,13 @@ export function sanitizeAvatar(id) {
  */
 export const gameRunning = (meta, game) => !!(meta && meta.status === 'playing' && game && game.phase && game.phase !== 'final');
 export const GAME_ON_LINE = 'A GAME IS STILL ON — WAIT FOR ITS END';
+/**
+ * FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF (the owner, Grok's honest-player review): a queued report can land after a REMATCH
+ * started, so a new start clears the proof nodes (games/registry.js#PROOF_NODE_LIST) of every match EXCEPT the ones in `keep` (the previous
+ * match + the new one). PURE: trees = { node: { matchId: … } } → { 'node/matchId': null } for each stale match.
+ */
+export function staleProofPaths(trees, keep = []) {
+  const k = new Set(keep.filter(Boolean)), out = {};
+  for (const [node, t] of Object.entries(trees || {})) if (t && typeof t === 'object') for (const m of Object.keys(t)) if (!k.has(m)) out[`${node}/${m}`] = null;
+  return out;
+}

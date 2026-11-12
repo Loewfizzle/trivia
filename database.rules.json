@@ -259,6 +259,7 @@
         "oc": {
           ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
           "$match": {
+            ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
             "$c": {
               "$uid": {
                 ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'overclock' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/ck').val() === $c && root.child('rooms/' + $code + '/game/phase').val() === 'play' && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && !(data.child('done').val() === true) && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists()",
@@ -303,6 +304,7 @@
         "ocm": {
           ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
           "$match": {
+            ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
             "$c": {
               "$uid": {
                 ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'overclock' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/ck').val() === $c && root.child('rooms/' + $code + '/game/phase').val() === 'play' && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists()",
@@ -696,6 +698,7 @@
         "prism": {
           ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
           "$match": {
+            ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
             "$uid": {
               ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'prism' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && (root.child('rooms/' + $code + '/game/phase').val() === 'play' || (root.child('rooms/' + $code + '/game/phase').val() === 'count' && now >= root.child('rooms/' + $code + '/game/playStartAt').val() - 2000) || (root.child('rooms/' + $code + '/game/phase').val() === 'end' && root.child('rooms/' + $code + '/game/settings/mode').val() === 'rush')) && (root.child('rooms/' + $code + '/game/settings/mode').val() !== 'rush' || !root.child('rooms/' + $code + '/game/endAt').exists() || now <= root.child('rooms/' + $code + '/game/endAt').val() + 4000) && data.child('st').val() !== 'out' && !root.child('rooms/' + $code + '/game/out/' + $uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists()",
               ".validate": "newData.hasChildren(['st', 'at'])",

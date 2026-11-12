@@ -4,11 +4,11 @@
 //
 // Nothing here keeps game state locally — every decision is re-derived from the
 // mirrored database state on each tick, so any client can take over at any time.
-import { dbRef, update, remove, runTransaction, serverTimestamp, serverNow } from './firebase.js';
+import { dbRef, update, remove, get, runTransaction, serverTimestamp, serverNow } from './firebase.js';
 import { startOf, newMatchId, GO_ORPHAN_MS, goWaiting } from './core/room-show.js';
 import { minPlayersOf, rematchSettingsOf } from './games/cartridge.js';
 import { state, isHost, onlineMap } from './store.js';
-import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE } from './core/room-logic.js';
+import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE, staleProofPaths } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
 import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, PROOF_NODE_LIST, loadGame, metaOf } from './games/registry.js';
@@ -226,17 +226,20 @@ async function startGameNow(gameId, settings, quick = false) {
   if (!created) { update(dbRef(`rooms/${state.code}/meta`), { go: null }).catch(() => {}); toast('COULD NOT START — TRY AGAIN', 'err'); return false; }
   const { $room, ...game } = created;
   inflight = { sig: '', at: 0 };
+  // (FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF: the match that just ended — still on the podium, or the room's walk-back stamp)
+  const prevM = (state.game && state.game.matchId) || (state.meta && state.meta.back && state.meta.back.m) || null;
   wipeSeal(state.code);
   await update(dbRef(`rooms/${state.code}`), {
     game: { ...game, go: serverTimestamp() },   // (the start's stamp in the match's own write too — core/room-show.js#goOf: the show never waits on a rules re-publish)
     ...($room || {}),
-    ...clearPlayerNodes(),
+    ...clearPlayerNodes(true),
     'meta/status': 'playing',
     'meta/activeAt': serverTimestamp(),
     'meta/hostBeat': serverTimestamp(),
     [`meta/settings/${gameId}`]: settings,
   });
-  clearNewNodes(state.code);
+  clearNewNodes(state.code, true);
+  pruneProofs(state.code, [prevM, matchId]);
   withChat(m => m.announceStart(gameId, matchId));
   return true;
 }
@@ -273,6 +276,18 @@ const clearPlayerNodes = (keepProof = false) => Object.fromEntries(ALL_PLAYER_NO
 const clearNewNodes = (code, keepProof = false) => { if (code) update(dbRef(`rooms/${code}`), Object.fromEntries(NEW_PLAYER_NODES.filter(n => !(keepProof && PROOF_NODES.has(n))).map(n => [n, null]))).catch(() => {}); };
 // THE SEAL's envelopes (seal/{CODE}, outside the room) go with the player nodes at a match's start + end
 const wipeSeal = code => { if (code) remove(dbRef(`seal/${code}`)).catch(() => {}); };
+
+// (FR7 FIXES B: every OTHER match's proof nodes go — best effort, in a write of their own: on rules before this pass's re-publish the host may
+//  delete only a whole node, so this is refused and they stay until the room itself is deleted — the fallback)
+async function pruneProofs(code, keep) {
+  if (!code) return;
+  try {
+    const trees = {};
+    await Promise.all(PROOF_NODE_LIST.map(async n => { const v = (await get(dbRef(`rooms/${code}/${n}`))).val(); if (v) trees[n] = v; }));
+    const gone = staleProofPaths(trees, keep);
+    if (Object.keys(gone).length) await update(dbRef(`rooms/${code}`), gone).catch(() => {});
+  } catch { /* polish: the room's deletion cleans the rest */ }
+}
 
 export async function backToLobby() {
   if (!isHost() || !state.code) return;

@@ -46,7 +46,11 @@ export const QUEUE_MS = 15 * 60e3;   // (FR7 FIXES B — the owner's add-on: 12 
  * made with no city open at all. The radio's moments keep their own record (radio/fired). OPEN_LEAD_MS before the first hello (it goes ~4 s
  * after the boot), OPEN_TRAIL_MS after the latest (the next is ≤ ~132 s away).
  */
-export const OPEN_LEAD_MS = 30e3, OPEN_TRAIL_MS = 150e3, CITY_GAP_MS = 210e3;
+// (Grok's honest-player review: THE QUEUE + THE STAMP AGREE — CITY_GAP_MS = QUEUE_MS: a hello after an outage of up to 15 min EXTENDS the
+//  same opening, so a tap in the gap is covered; a claim the stamp hasn't reached yet answers 'no_stamp' — the phone keeps it and retries)
+export const OPEN_LEAD_MS = 30e3, OPEN_TRAIL_MS = 150e3, CITY_GAP_MS = QUEUE_MS;
+/** PURE: the stamp hasn't reached t yet (no stamp at all, or t after its latest hello's reach) — a RETRY, never a refusal */
+export const stampBehind = (open, t) => !open || !Number.isFinite(open.b) || t > open.b + OPEN_TRAIL_MS;
 /** PURE: did a city-open stamp cover t? */
 export const cityOpenAt = (open, t) => [open, open && open.p].some(w => !!w && Number.isFinite(w.a) && Number.isFinite(w.b) && t >= w.a - OPEN_LEAD_MS && t <= w.b + OPEN_TRAIL_MS);
 /** PURE: the stamp after a hello at `now` — the same opening while the hellos keep coming (≤ CITY_GAP_MS apart), else a new one */
@@ -169,7 +173,7 @@ export function radioWindows(id, t, fired, { tz, rooms = [] } = {}) {
 /**
  * IS THE CLAIM TRUE? claim { id, t, tz } · ctx { now, ipTz (the IP's zone | null), place, level, kp, fired, rooms, watchStart } →
  *   { ok: true, via: 'sky' | 'radio', key (one per appearance — the server counts it once), day (the radio's once-a-day key) }
- *   { ok: false, why: 'unknown' | 'future' | 'stale' | 'tz' | 'place' | 'closed' | 'crew' | 'preview' | 'not_on_screen' }
+ *   { ok: false, why: 'unknown' | 'future' | 'stale' | 'tz' | 'place' | 'closed' | 'no_stamp' (retry) | 'crew' | 'preview' | 'not_on_screen' }
  */
 export function verifySighting(claim, ctx = {}) {
   const c = claim || {}, now = ctx.now;
@@ -182,7 +186,7 @@ export function verifySighting(claim, ctx = {}) {
   if (ctx.ipTz && validZone(ctx.ipTz) && Math.abs(localParts(t, c.tz).off - localParts(t, ctx.ipTz).off) > ZONE_SLACK_MIN) return { ok: false, why: 'place' };
   const inW = w => t >= w.a - LEAD_MS && t <= w.b + TRAIL_MS;
   const sky = skyWindows(c.id, t, { tz: c.tz, place: ctx.place, level: ctx.level, kp: ctx.kp, watchStart: ctx.watchStart }).find(inW);
-  if (sky && !cityOpenAt(ctx.open, t)) return { ok: false, why: 'closed' };   // (FR7 FIXES B: no city open then — a speed bump, not a seal)
+  if (sky && !cityOpenAt(ctx.open, t)) return { ok: false, why: stampBehind(ctx.open, t) ? 'no_stamp' : 'closed' };   // (FR7 FIXES B: no city open then — a speed bump, not a seal; 'no_stamp' = the phone retries)
   if (sky) return { ok: true, via: 'sky', key: `${c.id}:${sky.key}` };
   const radio = radioWindows(c.id, t, ctx.fired, { tz: c.tz, rooms: ctx.rooms || [] }).filter(inW);
   const owner = radio.find(w => w.role === 'owner' && w.sight && w.aud !== 'me');

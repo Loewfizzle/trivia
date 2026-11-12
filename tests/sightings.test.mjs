@@ -74,7 +74,8 @@ test('FORGED: a time in the future, a stale queue, a bad zone, a zone far from t
   // a QUEUED claim (offline) within the queue's 15 min (FR7 FIXES B: was 12 h) still counts — the city open then
   assert.equal(verifySighting({ id: 'ufo', t: at + 3000, tz: TZ }, { now: at + 10 * 60e3, ipTz: TZ, open: { a: at, b: at + 3000 } }).ok, true);
   assert.equal(verifySighting({ id: 'ufo', t: at + 3000, tz: TZ }, { now: at + 20 * 60e3, ipTz: TZ, open: { a: at, b: at + 3000 } }).why, 'stale', '20 min late');
-  assert.equal(verifySighting({ id: 'ufo', t: at + 3000, tz: TZ }, { now: at + 4000, ipTz: TZ }).why, 'closed', 'no city-open stamp');
+  assert.equal(verifySighting({ id: 'ufo', t: at + 3000, tz: TZ }, { now: at + 4000, ipTz: TZ }).why, 'no_stamp', 'no city-open stamp yet → a retry');
+  assert.equal(verifySighting({ id: 'ufo', t: at + 3000, tz: TZ }, { now: at + 4000, ipTz: TZ, open: { a: at + 600e3, b: at + 700e3 } }).why, 'closed', 'a tap before the opening → closed');
 });
 
 test('A &force= / &lgnow= PREVIEW never counts: the timetable says nothing was there', () => {

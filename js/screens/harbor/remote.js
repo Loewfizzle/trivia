@@ -244,7 +244,11 @@ export function createRemote({ scene, api = apiCall }) {
   setIntercomHead(lines => setBillboardHead(lines));
   // THE NIXIE's count (an estimate until Vercel Analytics): a visible city says hello every ~2 min (no socket — the API)
   let helloT = 0;
-  const hello = () => { clearTimeout(helloT); if (destroyed) return; if (document.visibilityState === 'visible' && api) api('admin', { action: 'radioHello' }).catch(() => {}); helloT = setTimeout(hello, 120e3 * (0.9 + Math.random() * 0.2)); };
+  // (FR7 FIXES B — THE QUEUE + THE STAMP AGREE: after a hello the server's city-open stamp covers now — a sighting queued meanwhile goes;
+  //  the queue's module is loaded only when something waits in it)
+  const sgQueued = () => { try { return (localStorage.getItem('nd:sg-q') || '[]').length > 2; } catch { return false; } };
+  const afterHello = () => { if (sgQueued()) lazyImport(import('../../profile/sightings.js'), '../../profile/sightings.js').then(m => m.flushSightings()).catch(() => {}); };
+  const hello = () => { clearTimeout(helloT); if (destroyed) return; if (document.visibilityState === 'visible' && api) api('admin', { action: 'radioHello' }).then(afterHello, () => {}); helloT = setTimeout(hello, 120e3 * (0.9 + Math.random() * 0.2)); };
   firebaseReady.then(() => { if (!destroyed && !TEST_PANEL) helloT = setTimeout(hello, 4000); }).catch(() => {});
   // (FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: back on screen = a hello at once — the server's city-open stamp starts again then, not ~2 min later)
   //  (1.5 s after the return — never inside the city's own re-fit at that moment: wk-double's resize-hidden caught a frame's work there)

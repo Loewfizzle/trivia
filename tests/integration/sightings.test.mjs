@@ -174,9 +174,11 @@ test('CALL IN A FAVOR: no token → refused; a token fires one crew jack for the
 test('FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: no open-city stamp → refused; 20 min late → refused; a real tap → granted', async () => {
   const at = firstLegend('ufo');
   await ensure('sg-open', 'OPENER', at - 864e5);
-  assert.equal((await claim('sg-open', 'ufo', at + 4000, at + 6000, { closed: true })).why, 'closed', 'no city open → refused');
-  await cityOpen('sg-open', at - 600e3);   // (a city open 10 min BEFORE, closed since — its stamp doesn't reach t)
-  assert.equal((await claim('sg-open', 'ufo', at + 4000, at + 6000, { closed: true })).why, 'closed', "an old opening doesn't cover it");
+  assert.equal((await claim('sg-open', 'ufo', at + 4000, at + 6000, { closed: true })).why, 'no_stamp', 'no city open yet → not counted (the phone retries)');
+  // a city that opened LATER than the tap (its first hello 20 min after) — the tap was in no opening: closed
+  await ensure('sg-late', 'LATER', at - 864e5);
+  await cityOpen('sg-late', at + 20 * 60e3);
+  assert.equal((await claim('sg-late', 'ufo', at + 4000, at + 6000, { closed: true })).why, 'closed', 'before the opening → refused');
   assert.equal((await claim('sg-open', 'ufo', at + 4000, at + 4000 + 20 * 60e3)).why, 'stale', '20 min late → refused');
   const r = await claim('sg-open', 'ufo', at + 4000);
   assert.ok(r.ok && r.counted, `a real tap with the city open → granted (${JSON.stringify(r).slice(0, 80)})`);
@@ -185,4 +187,29 @@ test('FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: no open-city stamp → refus
   await cityOpen('sg-open', at + 120e3); await cityOpen('sg-open', at + 240e3);
   const co = await val(`ppriv/${pid}/co`);
   assert.ok(co.b === at + 240e3 && co.a === at + 3000, `one opening kept alive (${JSON.stringify(co)})`);
+});
+
+// FR7 FIXES B — THE QUEUE + THE STAMP AGREE (Grok's honest-player review): a hello after an outage of up to 15 min EXTENDS the same opening;
+// a claim the stamp hasn't reached answers 'no_stamp' (the phone keeps it) and is granted once the hellos catch up
+test('FR7 FIXES B — THE QUEUE + THE STAMP AGREE: hellos stop for 5 min, a tap at minute 4 → granted once they resume; a claim before the first hello → granted after it', async () => {
+  const at = firstLegend('ufo');
+  // (a) the hellos stop for 5 minutes; a tap at minute 4; the claim answered 'no_stamp' (kept), then the hellos resume → granted
+  await ensure('sg-gap', 'GAPPER', at - 864e5);
+  await cityOpen('sg-gap', at - 60e3);                        // (the city open; the last hello a minute before the legend)
+  const t = at - 60e3 + 4 * 60e3;                             // (the tap at minute 4 of the silence — still inside the UFO's pass? use its window)
+  const tap = Math.min(t, at + 4000);
+  const first = await claim('sg-gap', 'ufo', at + 4000, at + 4000 + 4 * 60e3, { closed: true });
+  assert.ok(first.why === 'no_stamp' || first.ok, `the claim before the hellos resume: kept for a retry (${JSON.stringify(first).slice(0, 60)})`);
+  await cityOpen('sg-gap', at - 60e3 + 5 * 60e3);              // (the hellos resume after 5 minutes — the SAME opening, extended)
+  const again = await claim('sg-gap', 'ufo', at + 4000, at + 5 * 60e3 + 2000, { closed: true });
+  assert.ok(again.ok && again.counted, `granted once the hellos resumed (${JSON.stringify(again).slice(0, 80)}; tap ${tap})`);
+  const co = await val(`ppriv/${await val('uids/sg-gap')}/co`);
+  assert.equal(co.a, at - 60e3, 'one opening across the 5-minute silence');
+  // (b) a claim BEFORE the first hello → 'no_stamp' (kept) → the first hello → granted
+  await ensure('sg-first', 'FIRSTER', at - 864e5);
+  const pre = await claim('sg-first', 'ufo', at + 4000, at + 5000, { closed: true });
+  assert.equal(pre.why, 'no_stamp', 'before the first hello: not refused — retried');
+  await cityOpen('sg-first', at + 8000);
+  const post = await claim('sg-first', 'ufo', at + 4000, at + 9000, { closed: true });
+  assert.ok(post.ok && post.counted, `granted after the first hello (${JSON.stringify(post).slice(0, 80)})`);
 });

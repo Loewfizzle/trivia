@@ -1,4 +1,4 @@
 {
- "hash": "1e7284b8b880ca57",
- "line": "RULES CHANGED: rooms/{CODE}/meta (activeAt required + never in the future — C3; settings + used entries bounded — C5), rooms/{CODE}/night/{m} (its shape bounded — C5), rooms/{CODE}/prismq (an attack's key = the sender + its piece number i, i <= the sender's saved pieces + 15 — PD3), rooms/{CODE}/oc (doneAt only with done — OC2), seal/{CODE}/oc (the sealed picks a — HOST-GRADED OVERCLOCK) — RE-PUBLISH database.rules.json in the Firebase console (Realtime Database → Rules → paste the whole file → Publish); until then the old rules run and every change keeps its fallback"
+ "hash": "0bdac1287e45a674",
+ "line": "RULES CHANGED: rooms/{CODE}/prism/{m}, rooms/{CODE}/oc/{m}, rooms/{CODE}/ocm/{m} — the host may delete ONE match's node (A SEAT IS NOT A PLAY: a new start keeps the previous match's proof for a late report) — RE-PUBLISH database.rules.json in the Firebase console (Realtime Database → Rules → paste the whole file → Publish); until then the old rules run: the old matches' nodes stay until the room is deleted (the fallback)"
 }

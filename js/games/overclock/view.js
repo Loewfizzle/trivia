@@ -246,6 +246,12 @@ export function createView() {
       const mine = boardsNow(game)[me()] || {}, env = ownSealed(game);
       chal = { key, spec, parts: spec.parts, p: mine.p || 0, ok: mine.ok || 0, done: !!mine.done, ui: null, marks: [], times: [], extra: {}, local: {} };
       for (const f of ['w', 'o', 'g', 'rw']) if (env[f] != null) chal.extra[f] = env[f]; else if (mine[f] != null) chal.extra[f] = mine[f];
+      // (FR7 FIXES B — PRESENT = PROVEN: a phone in the challenge writes its OWN board the moment it opens — { p 0 · not done } — so a player who
+      //  is there but never taps still counts (a last place, never "nobody"), and the other player's win is never turned into a solo run —
+      //  api/report.js#PROOF_TREES. Never over a board that exists (a refresh keeps its progress); DUMB LUCK's board is its pick: not there)
+      if (!boardsNow(game)[me()] && game.phase === 'play' && game.order[game.ci] !== LUCK && chal.parts >= 1) {
+        dbUpdate(dbRef(`rooms/${st.code}/oc/${game.matchId}/${game.ci}/${me()}`), { p: 0, ok: 0, n: Math.min(12, chal.parts), done: false, at: serverTimestamp() }).catch(() => {});
+      }
       clear(els.stage);
       if (chal.done) showDone();
       else mountChallenge(game);
