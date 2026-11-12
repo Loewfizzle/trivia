@@ -680,6 +680,26 @@ test('FR7 FIXES B — E3 + E4: a reset after FOUNDING MEMBER closed grants no ne
   }
 });
 
+// FR7 FIXES B — FR7-A C5: /admin's STATS + the radio's open rooms read the LIVE rooms through the index (activeAt in the last hour, bounded),
+// never the whole rooms tree — a dead room (or a fat one) left behind is never read
+test('FR7 FIXES B — C5: the live rooms by the index — a stale room and the bound', async () => {
+  const { liveRoomsRead } = await import('../../api/_lib/rooms-live.js');
+  const { openRooms } = await import('../../api/_lib/radio.js');
+  const now = clock;
+  await ref('rooms').update({
+    LIVA: { meta: { hostId: 'u1', status: 'lobby', createdAt: now - 60_000, activeAt: now - 60_000 }, players: { u1: { name: 'A' } }, presence: { u1: { online: true, c: { k: true } } } },
+    LIVB: { meta: { hostId: 'u2', status: 'playing', createdAt: now - 600_000, activeAt: now - 300_000 }, players: { u2: { name: 'B' }, u3: { name: 'C' } }, game: { id: 'prism' } },
+    OLDD: { meta: { hostId: 'u4', status: 'lobby', createdAt: now - 9e6, activeAt: now - 5e6 }, players: { u4: { name: 'D' } }, game: { big: 'x'.repeat(50_000) } },
+  });
+  try {
+    const live = await liveRoomsRead(now);
+    assert.ok(live.LIVA && live.LIVB && !live.OLDD, `only the live rooms (${Object.keys(live).join(', ')})`);
+    assert.ok(Object.keys(await liveRoomsRead(now, { max: 1 })).length === 1, 'bounded');
+    const open = (await openRooms(now)).map(r => r.code);
+    assert.ok(open.includes('LIVA') && open.includes('LIVB') && !open.includes('OLDD'), `the radio's open rooms (${open.join(', ')})`);
+  } finally { await ref('rooms').update({ LIVA: null, LIVB: null, OLDD: null }); }
+});
+
 // LOBBY FIXES — ONE PROFILE, ONE SEAT + ONE ACCOUNT, ONE ROOM: whatever a client does, the server credits a profile once per match (its
 // WORSE seat) and never for a match that overlaps one it already counted in ANOTHER room
 test('ONE ACCOUNT, ONE ROOM: one profile in two seats is credited once (the worse); two rooms at once — the second never counts', async () => {

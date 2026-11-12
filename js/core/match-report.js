@@ -74,7 +74,7 @@ export const RUSH_MAX_S = 241;
  *  (RUSH_PACE.pps pieces a second). The best runs clear ≈ lps lines a second and score ≈ ppl points per line per level (SCORE RUSH's level =
  *  1 + lines / 10, so a run of L lines scores ≈ ppl × (L + L² / 20)); the bound = margin × that. Pinned by tests/profiles.test.mjs (it runs the
  *  sim: the bound ≥ 2.5 × the best run of every song). */
-export const RUSH_PACE = Object.freeze({ pps: 4, lps: 1.4, ppl: 130, margin: 3 });
+export const RUSH_PACE = Object.freeze({ pps: 4, lps: 1.4, ppl: 130, margin: 2.8 });   // (FR7 FIXES B — PD2: 3 → 2.8 from a fresh sim, Nov 12 — `sim-prism-rush.mjs 24 4`: the best runs rise with more seeds (prism4's 248,202 at 24 runs); 2.8 keeps every song's best ≥ 2.5× under the bound with ~5 % to spare — 2.65× on prism4, the tightest)
 const curve = L => L + (L * L) / 20;
 /** the most lines a SCORE RUSH of `sec` seconds clears: rush has no junk, so 0.4 lines a piece, at 6¼ pieces a second (+ 20) */
 export const maxRushLines = sec => Math.ceil(2.5 * Math.min(sec, RUSH_MAX_S) + 20);

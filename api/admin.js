@@ -79,6 +79,7 @@ import { streakDay, dayNum, dayOf } from '../js/core/streak.js';
 import { dailyOf as dailyOfCart } from '../js/core/daily.js';
 import { radioAction, radioPublic, clipOf } from './_lib/radio.js';
 import { labMarks, labMark, labExport, LAB_CACHE, LAB_TEXT, LAB_CHANGES } from './_lib/lab.js';
+import { liveRoomsRead } from './_lib/rooms-live.js';
 import { listTestPlayers, removeTestPlayers } from './_lib/testplayers.js';
 import { progressReset, progressBackups, progressRestore } from './_lib/reset.js';
 import { boardsBackfill } from './_lib/board-fill.js';
@@ -167,7 +168,7 @@ async function resetBoard(pid, b, now) {
 let statsCache = null;
 async function stats(now, fresh = false) {
   if (!fresh && statsCache && Math.abs(now - statsCache.at) < 30_000) return statsCache.data;
-  const [results, profiles, rooms, gplay] = await Promise.all([val('results'), val('profiles'), val('rooms'), activity(now)]);
+  const [results, profiles, rooms, gplay] = await Promise.all([val('results'), val('profiles'), liveRoomsRead(now), activity(now)]);   // (FR7 FIXES B — C5: the live rooms by the index, never the whole tree)
   const data = summarize({ results: results || {}, profiles: profiles || {}, rooms: rooms || {}, gplay, now });
   statsCache = { at: now, data };
   return data;

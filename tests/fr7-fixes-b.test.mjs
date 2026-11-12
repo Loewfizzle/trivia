@@ -37,6 +37,7 @@ test('E4 — the reset clears COUNTED PLAYS: the boards\' 3-play floor applies a
 });
 
 import fs from 'node:fs';
+import { execSync } from 'node:child_process';
 /** a JPEG's { w, h } from its SOF marker */
 function jpegSize(buf) {
   let i = 2;
@@ -135,4 +136,19 @@ test('UMBRELLAS IN THE RAIN — THE PEOPLE RULE: a walker\'s rain gear is fixed 
   const people = fs.readFileSync('js/screens/harbor/people.js', 'utf8');
   assert.ok(!/env\.rain > 0\.3/.test(people), 'the look key no longer flips everyone at the 0.3 line');
   assert.match(people, /const rain0 = rainOf\(`\$\{mem\.vid\}\|\$\{mem\.m\.seed\}`, env\.rain\)/);
+});
+
+test('C5 — no /api code reads the WHOLE rooms tree (the live rooms come through the index: api/_lib/rooms-live.js)', () => {
+  const files = execSync('git ls-files api', { encoding: 'utf8' }).split('\n').filter(f => f.endsWith('.js'));
+  for (const f of files) assert.ok(!/val\(\s*['"`]rooms['"`]\s*\)/.test(fs.readFileSync(f, 'utf8')), `${f} reads the whole rooms tree`);
+  assert.match(fs.readFileSync('api/_lib/rooms-live.js', 'utf8'), /orderByChild\('meta\/activeAt'\)\.startAt\(now - within\)\.limitToLast\(max\)/);
+});
+
+test("PD2 — SCORE RUSH's tighter margin (3 → 2.8, from a fresh sim): a run 3× the sim's best on prism3 is refused now; every best run still ≥ 2.5× under it", async () => {
+  const { maxRushScore, RUSH_PACE } = await import('../js/core/match-report.js');
+  assert.equal(RUSH_PACE.margin, 2.8);
+  // (the sim, Nov 12 — node scripts/sim-prism-rush.mjs 24 4: prism3 141.8 s best 285,228; prism4 126.7 s best 248,202 — the tightest)
+  assert.ok(maxRushScore(400, 141.8) < 3 * 285_228, `prism3: the bound ${maxRushScore(400, 141.8)} < 3 × its best (it was 866,377)`);
+  assert.ok(maxRushScore(400, 141.8) >= 2.5 * 285_228, 'prism3: still ≥ 2.5 × the best run');
+  assert.ok(maxRushScore(400, 126.7) >= 2.5 * 248_202, 'prism4: still ≥ 2.5 × the best run');
 });

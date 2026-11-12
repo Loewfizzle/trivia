@@ -24,6 +24,7 @@
 import { cleanHoldem } from '../../js/core/harbor-holdem.js';
 import { ApiError } from './http.js';
 import { ref, val, adminPids, emulated } from './fb.js';
+import { liveRoomsRead } from './rooms-live.js';
 import { knob } from '../../js/core/harbor-schedule.js';
 import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY, radioHolder, parseTag, cleanWords } from '../../js/core/harbor-radio.js';
 import { nameKey } from '../../js/core/names.js';
@@ -194,7 +195,7 @@ async function dial(me, role, body) {
 
 /** the open rooms (the AUDIENCE knob's ONE ROOM — the owner): hush word, players, lobby / game */
 export async function openRooms(now) {
-  const rooms = (await val('rooms')) || {}, out = [];
+  const rooms = await liveRoomsRead(now), out = [];   // (FR7 FIXES B — C5: the live rooms by the index, never the whole tree)
   for (const [code, r] of Object.entries(rooms)) {
     if (!r || !r.meta || !/^[A-Z]{4}$/.test(code)) continue;
     const pres = r.presence || {}, players = Object.keys(r.players || {});
