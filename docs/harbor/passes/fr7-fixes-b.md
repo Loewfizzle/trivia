@@ -170,7 +170,14 @@ in a worktree on :5174, the same server); with this pass's return-moment hello i
 COPY, **3 of the worker's own reached the network** (FR7-A measured 328 on the live site), + the page itself, 4 `/api` calls and Google's fonts +
 Firebase (not Vercel's) — **≈ 8 edge requests a warm visit**, 1 KB on the wire, the reveal 1.35 s (FR7-A: 1.84 s).
 
-**Known issues:** the `resize-hidden` pixel flake (above); the SIGHTINGS photo check under the 4-shard load (FR7-A's F); `assets/og.jpg` still shows
+**THE CLOUD (the final push `8a37a88d` — the harbor tag on its top commit, ONE cloud run, the repo still PUBLIC: both workflows ran, as before):**
+`tests` **GREEN** (unit + rules / the /api suites — the four new ones included — / smoke / CONN / presence). `harbor` **14 / 15 jobs green; `legend` RED
+on ONE check (76 / 77)** — the same SIGHTINGS photo-at-the-tap check as the local full run: the fireball 90 % in the photo (the check wants ≥ 0.9; it
+prints a rounded number). Nothing in this pass touches that path (sight-react, the snapshot, the fireball unchanged since FR6 FIXES A); `ONLY=sgfast`
+alone at the final code: 4 / 4, the craft 100 % in the photo every time. It misses only under load (the 4-shard run, the cloud's 2-core runner).
+Not re-run (the rule: never a cloud run to confirm a flake). Vercel BUILT `8a37a88d72b1`.
+
+**Known issues:** the SIGHTINGS fast-photo check under load (the cloud's `legend` job — above); the `resize-hidden` pixel flake (above); the SIGHTINGS photo check under the 4-shard load (FR7-A's F); `assets/og.jpg` still shows
 GRIDLOCK's sign; the link previews' text says "twelve party games"; C4 (the room list) open; three NICE lines (Group 7).
 
 **Servers:** my emulators (fresh twice), `serve.mjs --emu` on :5173 and the base / plain servers on :5174 / :5175 (the bisect) — all STOPPED at the end;
