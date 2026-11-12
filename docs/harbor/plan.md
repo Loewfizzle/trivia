@@ -6579,3 +6579,25 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 - FR7 FIXES A DONE (Nov 12) — passes/fr7-fixes-a.md. THE BUILD TABLE: FR7 FIXES A ✅ (the must-fixes 1–4 deployed early + THE RESET EPOCH; the games' bugs;
   the owner's six decisions — HOST-GRADED OVERCLOCK, THE DAILY CEILING, DY4 accepted, COAST CLEAR's room pause, END GAME through the dealer, the leaver's
   proof; ONE rules re-publish; the console's four); FR7 FIXES B (the launch + the plumbing) ← NEXT → THE LAUNCH → SIDEWAYS.
+
+## OWNER'S NOTES — NOV 12 (afternoon)
+
+- Nov 12 (the owner): FR7 FIXES A ✅ (rules re-published), HE11 ✅ (the new bet slider + FR7-B's HOLD'EM leftovers).
+- Nov 12 — THE LAUNCH IS SPLIT IN TWO:
+  1. THE LAUNCH (soon, after FR7 FIXES B): the PROGRESS RESET to Level 1 (cards + items kept), FOUNDING MEMBER closed, then telling people. The repo stays PUBLIC.
+  2. THE PRIVATE FLIP (later — only once people are really coming): the repo goes private, the history rewrite (the size), THE RESEED, the workflow switch.
+     Anti-cheat never depends on the code being secret, so nothing waits on it.
+- Nov 12 — THE OWNER'S DECISIONS for FR7 FIXES B (all the city chat's recommendations):
+  1. E4: counted plays (`cp`) ARE reset at THE LAUNCH — a veteran is listed on the boards again after 3 counted plays, like everyone.
+  2. D2: `/js` `/css` `/assets` cached at the edge ≤ 5 min (+ stale-while-revalidate), the service worker on the default cache mode, busted by the build id —
+     ≤ 5 min of an older file after a deploy is accepted.
+  3. D3: the ten frozen games' songs left OUT of deploys (only those no live playlist / mood station / lobby song uses) — they come back with their game.
+  4. D4: stop the repo's growth NOW (pass screenshots small or out of git); the history rewrite waits for THE PRIVATE FLIP.
+  5. D1: NO self-hosted runner on the beelink. Once private, the cloud runs only the light tests workflow on a final push; the cloud Harbor run is dropped (the
+     full Harbor suite runs locally before every final push, as now). Built now, switched by the repo's own visibility — nothing changes while public.
+- Nov 12 — two owner notes: (a) the boot sometimes hangs on STEPPING INSIDE after going back to Safari + refreshing while TWO TABS of the site were open (closing
+  both fixed it; not reproduced on one tab); (b) it rains in the city and nobody has an umbrella — light drizzle (0.22) is under the 0.3 line.
+- THE BUILD TABLE (Nov 12 afternoon, FR7 FIXES B Step 0): FR7 FIXES A ✅ (passes/fr7-fixes-a.md; ONE rules re-publish — done); HE11 ✅ (the new bet slider +
+  FR7-B's HOLD'EM leftovers); FR7 FIXES B (this pass: "the launch + the plumbing" — THE LAUNCH's code, THE EDGE REQUESTS, the deploy + the repo size, the
+  private-repo workflow ready but not switched on, the two owner notes, A's leftovers + the tests + the stale docs, the NICE lines) ← NOW; then THE LAUNCH →
+  SIDEWAYS; THE PRIVATE FLIP = later, when people come.
