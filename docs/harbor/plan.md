@@ -6556,3 +6556,23 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
   "ready for strangers?"; the report = docs/harbor/review-7a.md; no code, tests, config or data changed) ← NOW; then FR7-B (the three games + the two dailies, read-only) →
   FR7 FIXES (from both reports) → THE LAUNCH → SIDEWAYS.
 - THE BUILD TABLE (Nov 12, FR7-B Step 0): FR7-A ✅ (docs/harbor/review-7a.md; its Must-fix 1 — THE REAL PLAYER COUNT — already fixed in 678395fe); FR7-B (this pass: REVIEW #7, PART B — read-only, THE THREE GAMES + THE TWO DAILIES, "ready for strangers?"; the report = docs/games/review-7b.md; no code, tests, config or data changed) ← NOW; then FR7 FIXES (from both reports) → THE LAUNCH → SIDEWAYS.
+
+## OWNER'S NOTES — NOV 12
+
+- Nov 12 (the owner): FR7's two reviews are in (docs/harbor/review-7a.md, docs/games/review-7b.md). FR7-A's C1 (a forged report paid unlimited XP) was hot-fixed the same
+  morning (678395fe — THE REAL PLAYER COUNT). HOLD'EM: ready. PRISM DROP, OVERCLOCK, THE PASSWORD, COAST CLEAR: nearly (one small must-fix each).
+- Nov 12 — THE OWNER'S DECISIONS (the one question "what must the boards + rare cards be worth once strangers play?" — answered: STOP THE CHEAP, OBVIOUS CHEATS NOW;
+  no heavy machinery — a full server replay only after THE LAUNCH, and only if strangers take the boards seriously):
+  1. SELF-REPORTED SCORES: the CHEAP BOUNDS now (PRISM DROP's margin + flags, OVERCLOCK's time floor + `doneAt` only with `done`, the attack's number) + OVERCLOCK's
+     answers GRADED BY THE HOST (never the phone that answered — a cheater must be the host). The real replay: after THE LAUNCH, if ever.
+  2. THE WIN FARMS (FR7-A C2 + FR7-B HE3): A DAILY CEILING per player — after ~20 COUNTED room matches a day (all games together), more matches still play but pay no XP
+     and add no board win; the 45 s match gap stays. A real game night never meets it.
+  3. THE DAILIES' LEARN-ON-A-THROWAWAY (DY4): ACCEPTED (every daily word game has it; THE THROWAWAY GATE already keeps the throwaway from scoring) — written down, no code.
+  4. COAST CLEAR's PAUSE CAP vs a long HOLD'EM (DY3): a pause THE ROOM WINS forces does NOT count toward the cap (only a pause the player chooses does).
+  5. END GAME on a HOLD'EM match (FR7-A B1): END GAME FINISHES the match through the dealer — places by chip count, credited if it reached 3 hands (else no result,
+     said in the confirm) — after a confirm tap; never a silent wipe.
+  6. (the city chat, from the hotfix) THE REAL PLAYER COUNT's "server-known account for someone who left" must be proved IN THAT ROOM for THAT match (a seat it held
+     during the match), never just an account that exists.
+- THE BUILD TABLE (Nov 12, FR7 FIXES A Step 0): FR7-A ✅ (docs/harbor/review-7a.md; + its C1 hotfix ✅ 678395fe — THE REAL PLAYER COUNT); FR7-B ✅ (docs/games/review-7b.md);
+  FR7 FIXES A (this pass: "what a stranger or a player can hit" — the must-fixes + an early deploy, the games' real bugs, the owner's six decisions, ONE rules re-publish,
+  the console's four) ← NOW; then FR7 FIXES B (the launch + the plumbing) → THE LAUNCH → SIDEWAYS.
