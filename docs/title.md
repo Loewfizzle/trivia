@@ -799,4 +799,4 @@ number pill; the streak lives on YOU, the member card, the round-end line + the 
 **SHELL 2.0 B2** (Nov 5 — docs/harbor/passes/shell-b2.md): the room dock lost B1's sun / moon tube above PLAY — THE GAME LOOK is a row in ☰ → Settings
 (AUTO · DAY · NIGHT, per device, any match, no lock — docs/match-kit.md); a player's card in the room carries the host's **Make host** row (+ the
 owner's CREW row); the title is the stage of THE GIFT's reveal (6 s after it is up — profile/gift-reveal.js); the page's music fades after 5 h idle
-(audio/idle.js); the link-preview image is now the Harbor at night under NEON (assets/og.png, `shots.mjs --sizes og`).
+(audio/idle.js); the link-preview image is now the Harbor at night under NEON (assets/og.jpg — og.png is gone — `shots.mjs --sizes og`).

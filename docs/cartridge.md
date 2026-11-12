@@ -43,7 +43,7 @@ Also, outside index.js: its row in `config.js` GAMES (`name`, `theme`, `playable
 - **THE GAME START**: the sign powers down → its tube logo lights under TONIGHT → the two lines file in → the push through the door; its
   view mounts when that ends. **THE CITY PAUSE**: while it's on screen the city is GONE (it draws nothing, its sounds stop, its canvases —
   ~66 MB at 3× — are freed); the city comes back caught up after. A game never needs to know about the city: an iPhone never holds both.
-- **The corner** (☰ menu: CHAT, HOW TO PLAY, SETTINGS, QUIT TO LOBBY, the host's END GAME — and music on / off), the chat (its own lock +
+- **The corner** (☰ menu: CHAT, HOW TO PLAY, SETTINGS, QUIT TO THE ROOM, the host's END GAME — and music on / off), the chat (its own lock +
   chips through the plug), toasts, the match kit's pieces (`docs/match-kit.md`).
 - **The end**: the podium (`ui/final.js#createFinal` — the game passes its rows), the results → XP, levels, the streak, cards, THE BOARD
   through `/api` (`core/match-report.js` — the server checks + replays; the game never writes a score), then BACK TO THE ROOM → the walk back
@@ -168,13 +168,13 @@ The rules every cartridge keeps. The Overclock chat reads this page before each 
 **D1 — THE THIN META + LAZY LOGIC.** A cartridge is TWO files the console sees:
 - `js/games/<id>/meta.js`: what the console reads BEFORE a match. It's PURE and tiny, with NO imports (the test fails on one): `DEFAULT_SETTINGS`,
   `OPTIONS`, `estimateMinutes`, `MUSIC` / `FINAL_MUSIC`, `MIN_PLAYERS` / `SOLO`, `BANNER_NAME`, `CHAT_CHIPS`, `chatLocked`, `NO_INTERCOM`,
-  `LOOKS` (OC1), `daily: { on }` (`cartridge.js#META_KEYS`). `games/registry.js` imports ONLY the metas at boot (`META`, `metaOf(id)`).
+  `LOOKS` (OC1) (`cartridge.js#META_KEYS`; a daily's `daily: { on }` is NOT in META_KEYS — dailies live in `config.js#DAILIES`). `games/registry.js` imports ONLY the metas at boot (`META`, `metaOf(id)`).
 - `js/games/<id>/index.js` = THE CARTRIDGE: `export * from './meta.js'` plus `start`, `prepare`, `step`, `livePaths`, `finalRanks`, `finalScene`,
   `sealed`, `rematchSettings`, `daily.create`, `feats`, `createView`. It loads ON DEMAND (`registry.js#loadGame(id)`): the host's tap
   awaits it, every phone loads it during the walk inside (`room-city.js`, with the view's warm + the preload), and a refresh mid-match
   waits for it (`app.js` shows the walk inside or the boot screen, then the game; `room.js` watches its live paths once it lands).
 - logic.js / index.js take the meta's values FROM meta.js: one source (the test compares them).
-- PROOF: the title's static graph `node scripts/boot-bytes.mjs` went from 2,067 KB / 160 modules (297 KB of js/games) to 1,770 KB / 109 modules
+- PROOF: the title's static graph `node scripts/boot-bytes.mjs` went from 2,067 KB / 160 modules (297 KB of js/games) to 1,770 KB / 109 modules (Nov 11, FR7-A: 1,906 KB / 117 modules — re-measure with the same script)
   (25 KB: the two metas + the console's own game files). `tests/cartridge.test.mjs` fails on any game's logic in the boot graph.
   (`core/match-report.js` was never in the PHONE's boot graph: only `/api/report` + the stats import it, server-side.)
 

@@ -7,7 +7,7 @@ unconfigured the app behaves as it always did (no tags, no emblems, results wait
 ## The pieces
 | where | what |
 | --- | --- |
-| `api/*.js` | Vercel serverless functions (Node, firebase-admin): `profile`, `report`, `board`, `admin`. `api/_lib/` is shared code (not routes). |
+| `api/*.js` | Vercel serverless functions (Node, firebase-admin) — EIGHT: `profile`, `report`, `board`, `admin`, `log`, `sky`, `time`, `daily`. `api/_lib/` is shared code (not routes). |
 | `js/core/` | PURE, shared by server, app and tests: `week.js` (Eastern week/day keys), `ranks.js` (RANKS, XP), `names.js` (board-name filter, tags), `pkey.js` (restore keys), `boards.js` (the board catalog, sort values, formatting), `match-report.js` (what a finished match means per game + plausibility). |
 | `js/profile/` | the client: `api.js` (fetch + ID token), `me.js` (this device's profile, sync, restore, key), `queue.js` (results queue), `public.js` (live public profiles of the room's players), `callouts.js` (podium plaques + rank-up). |
 | `js/board/` | THE BOARD: `scene.js` (the bar, Canvas 2D), `view.js` (the shared board UI), `screen.js` (app route), `public.js` (`/board`), `audio.js` (its SFX). |

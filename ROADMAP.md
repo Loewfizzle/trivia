@@ -5,15 +5,15 @@
 > Harbor version is a later look job).
 > It was NEURAL ARCADE until October 2026.
 
-NEON SPEAKEASY — *your friends are already inside.* One web app, twelve games, 2–8 players, each on their own phone — same room or different cities.
+NEON SPEAKEASY — *your friends are already inside.* One web app, thirteen games (three playable now + two dailies), 2–8 players, each on their own phone — same room or different cities.
 A host creates a room (its HUSH WORD — a common 4-letter word), friends join, the host picks a game. After a match everyone
 returns to the same lobby (or the host hits REMATCH) without anyone rejoining.
 
 Hosted at **neonspeakeasy.com** (since Oct 2026; games.loewfizzle.com and trivia.loewfizzle.com permanently redirect here) (Vercel, static, deployed from GitHub `Loewfizzle/trivia`).
-Backend: Firebase Realtime Database + Anonymous Auth, and four Vercel serverless functions (`/api`, firebase-admin) for profiles,
+Backend: Firebase Realtime Database + Anonymous Auth, and eight Vercel serverless functions (`/api`, firebase-admin) for profiles,
 server-verified results and THE BOARD.
 
-## The games — all twelve are playable
+## The games — thirteen built, three playable (PRISM DROP · OVERCLOCK · HOLD'EM; the other ten frozen) + two dailies
 
 | # | Game | Style | Identity | Status |
 |---|------|-------|----------|--------|

@@ -1151,7 +1151,7 @@ The legendary events (docs/harbor/passes/part-6b.md) report their state through 
   it as the LCP element.
 - Service worker registers only on https non-localhost. It is network-first with cache fallback, skips cross-origin,
   `/audio/` and range requests. Bump `CACHE` in `sw.js` only if you need to purge old offline copies.
-- Link previews use absolute URLs to `https://neonspeakeasy.com/assets/og.png?v=2` — update if the domain changes, and bump `?v=` when
+- Link previews use absolute URLs on the PRIMARY host (FR7 FIXES B — the bare domain answers 308 → www): `https://www.neonspeakeasy.com/assets/og.jpg?v=4` — update if the domain changes, and bump `?v=` when
   the image changes (iMessage / WhatsApp / Slack cache previews by URL).
 - The icons + the preview image were rendered from City 1.0's scene (`render-assets.mjs` + `brand.html` — retired with it, CITY 1.0 OUT,
   Nov 5; the images stay in `assets/`). A Harbor version = a later look job. `assets/icon.svg` is the tube N on night blue.

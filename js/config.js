@@ -60,7 +60,7 @@ export const AVATARS = {
 export const AVATAR_IDS = Object.keys(AVATARS);
 
 // Game registry metadata (UI + availability). Logic lives in js/games/<id>/.
-// THE GAMES (lobby order). WINDOWS (the owner, Nov 1): ONLY PRISM DROP + OVERCLOCK are PLAYABLE — `playable: false` HIDES a game
+// THE GAMES (lobby order). WINDOWS (the owner, Nov 1): ONLY PRISM DROP + OVERCLOCK are PLAYABLE (+ HOLD'EM since HE10, Nov 11) — `playable: false` HIDES a game
 // everywhere a player could start it (the lobby's picker, HOW TO PLAY, the title's games sheet, host.js#startGame refuses it — a rematch,
 // an invite or a stale link included); its code, data + rules stay, FROZEN. `sign: true` = on the city's game signs (THE FIVE SIGNS:
 // the three playable — PRISM DROP, OVERCLOCK, HOLD'EM — + NEON PAR, HIGH STAKES "next on deck" — a tap on those says COMING SOON; HOLD'EM

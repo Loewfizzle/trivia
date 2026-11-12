@@ -2,7 +2,7 @@
 
 Every test suite in detail: unit + simulation, emulators, the smoke test, each game's E2E and its flags, previews, Lighthouse.
 
-**WINDOWS (Nov 1) — THE TRIMMED SUITES.** Only PRISM DROP + OVERCLOCK are playable (the owner): the smoke test starts those two (+ checks that
+**WINDOWS (Nov 1) — THE TRIMMED SUITES.** Only the playable games run — PRISM DROP + OVERCLOCK, + HOLD'EM since HE10 (Nov 11): the smoke test starts those three (+ checks that
 none of the ten hidden games can start — host.js#startGame refuses them) — ≈ 30 s locally (was ≈ 2 min); `e2e-presence` + `e2e-conn` (the cloud's
 tests job) play OVERCLOCK (were LAST SIGNAL / CIPHER); the ten hidden games' long E2Es (`e2e-cipher`… `e2e-rum`) don't run until a game
 comes back; their quick unit tests stay in `node --test tests/*.test.mjs`. **CITY 1.0 OUT (Nov 5): City 1.0 is DELETED** — its
@@ -82,7 +82,7 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
 - **A FLICKER, MEASURED** (SHELL 2.0 B2): `shots.mjs --cast <ms>` saves every painted frame; `tests/integration/cast-flicker.mjs "<browser>" <dir>`
   cuts each frame's sky into a 12 × 4 grid and reports the frame-to-frame jumps + the FLICKERS (a cell that jumps and comes straight back).
 - **THE LINK-PREVIEW IMAGE**: `node tests/integration/shots.mjs "<browser>" --preview --city 2 --scenes og=2026-06-12T22:30 --sizes og --idle` →
-  copy to `assets/og.png` (1200 × 630) + bump its `?v=` in index.html.
+  copy to `assets/og.jpg` (1200 × 630, JPEG ≤ 300 KB — og.png is gone) + bump its `?v=` in index.html. /board's: `node scripts/seed-og-board.mjs` (made-up rows on the emulators) → `node tests/integration/og-board-shot.mjs "<browser>"` → `assets/og-board.jpg` + its `?v=` in board.html (FR7 FIXES B).
 - **THE 20-CYCLE MEMORY CHECK reads the heap WITHOUT V8's compiled code** (ATM-A — `harbor-e2e/kit.mjs#heapNoCode`): heap snapshots at cycle 2 vs 20
   showed +6.2 MB of JIT code (1,098 InstructionStreams — it grows with how long + how fast the page ran: +4.3 MB here, +6.4 in the cloud on the same
   build) against +0.35 MB of JS objects; the check takes a snapshot (a full GC first) and counts every node but `code` — objects, strings, closures,
