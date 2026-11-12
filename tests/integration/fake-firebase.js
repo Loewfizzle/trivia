@@ -43,7 +43,8 @@ export const getDb = () => null;
 export const dbRef = path => ({ path });
 // (OC5: a preview may FREEZE the server clock — window.__clock() — to hold a moving moment still for a screenshot)
 export const serverNow = () => (typeof window !== 'undefined' && typeof window.__clock === 'function' ? window.__clock() : Date.now());
-export const idToken = () => Promise.reject(new Error('preview: no sign-in'));
+// (HE11: a test that stubs /api itself sets window.__fakeToken — wk-holdem-slider.mjs counts the dealer's calls; otherwise no sign-in)
+export const idToken = () => (typeof window !== 'undefined' && window.__fakeToken ? Promise.resolve(window.__fakeToken) : Promise.reject(new Error('preview: no sign-in')));
 // (9f: CONN's parked-database API — the previews never open a socket: wanting / releasing the line does nothing; the title-preview
 // page threw "does not provide an export named 'release'" from CONN on, so every look preview + title-perf.mjs were down)
 export const GRACE_MS = 30000, HIDDEN_MS = 120000;

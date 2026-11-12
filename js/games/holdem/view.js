@@ -37,6 +37,7 @@ import { loadChips, onChipsReady, paintStacks, artVersion, setLight } from './ch
 import { skinOf, skinVars, assetUrl, skinAssets } from './skins.js';
 import { createTiers } from '../kit/tiers.js';
 import { BET, POT } from './chips.js';
+import { betSlider } from './bet-slider.js';
 
 const fmt = n => Math.round(n || 0).toLocaleString('en-US');
 /** a hand's category as the table names it — HE10 (A24): the ace-high straight flush is a ROYAL FLUSH (its rankings row lights too) */
@@ -56,7 +57,7 @@ export function createView() {
   let st = null, root = null, els = {}, L = null;           // L = the layout (layout.js) for the current size + seat count
   let pub = null, hole = null, holeOff = null, holeKey = '';
   let raf = 0, ro = null, offSet = null, destroyed = false, levelT = 0, rafCount = 0;
-  let pokeT = 0, pokeFor = '', pokeTries = 0, busy = null, slider = null;
+  let pokeT = 0, pokeFor = '', pokeTries = 0, busy = null, slider = null, sliderCtl = null;
   // HE8 — REAL-WORLD TOUGHNESS: the control under the finger (pressed at once) · YOUR pre-action as tapped, until your own node says it
   // (preWant — a lit toggle at once on a slow line) · this phone's wake-lock wish (seated in a live match)
   let press = null, preWant = undefined, awake = null;
@@ -298,6 +299,7 @@ export function createView() {
     if (holeOff) holeOff();
     removeTestHook('__holdem', hook);
     if (finalView) finalView.destroy();
+    if (sliderCtl) { sliderCtl.destroy(); sliderCtl = null; }
     if (finalRo) finalRo.disconnect();
     seatEls.clear();
     root && root.remove();
@@ -780,6 +782,7 @@ export function createView() {
       !yours && run && x && x.status === 'in' ? [preOn(), hole && hole.h, t.bet, x.bet] : null, kids.filter(k => k.classList.contains('he-minis')).map(k => k.textContent)]);
     if (els.actions.dataset.k !== ak) {
       els.actions.dataset.k = ak;
+      if (sliderCtl && !kids.includes(sliderCtl.el)) { sliderCtl.destroy(); sliderCtl = null; }   // (HE11: the bet slider's observer + timers go with it)
       els.actions.replaceChildren(...kids);
       // YOUR TURN (HE4): the action row rises in — once per turn (a new turn = a new hand / street / bet to face), never under a finger
       const tk = yours && !slider ? `${t.hand}|${t.street}|${t.bet}|${x ? x.bet : 0}` : '';
@@ -806,19 +809,20 @@ export function createView() {
     return [presets, buttons];
   }
 
+  // RAISE / BET: THE BET SLIDER (HE11 — bet-slider.js; its stops: bet-steps.js). Built once per open — paintActions keeps it while the
+  // action key holds (THE TAP WATCH: never rebuilt under a finger); the amount lives in `slider.to` (a rotation closes the slider anyway).
   function sliderPanel(Lg) {
     const t = table();
-    const step = Math.max(1, Math.min(t.bb || 10, Math.round((Lg.maxTo - Lg.minTo) / 40) || 1));
-    let to = Math.max(Lg.minTo, Math.min(Lg.maxTo, slider.to || Lg.minTo));
-    const amount = h('b.he-sl-amt', fmt(to));
-    const sub = h('small.he-sl-sub');
-    const range = h('input.he-sl-range', { type: 'range', min: String(Lg.minTo), max: String(Lg.maxTo), step: String(step), value: String(to), 'aria-label': 'Raise to' });
-    const show = () => { amount.textContent = fmt(to); sub.textContent = to >= Lg.maxTo ? 'ALL IN' : `${Lg.kind === 'bet' ? 'BET' : 'RAISE TO'} ${fmt(to)}`; };
-    range.addEventListener('input', () => { to = Number(range.value); if (Lg.maxTo - to < step) to = Lg.maxTo; slider.to = to; show(); });
-    show();
-    const confirm = h('button.he-btn.he-call.he-confirm', { type: 'button', onclick: () => act(to >= Lg.maxTo ? 'allin' : Lg.kind, to >= Lg.maxTo ? null : to) }, h('b', 'CONFIRM'));
-    const back = h('button.he-btn.he-fold.he-back-b', { type: 'button', onclick: () => { slider = null; lastSig = ''; render(); } }, h('b', 'BACK'));
-    return h('div.he-slider', h('div.he-sl-top', amount, sub), h('div.he-sl-row', h('span', 'MIN'), range, h('span', 'ALL IN')), h('div.he-buttons', back, confirm));
+    if (sliderCtl && sliderCtl.el.isConnected && sliderCtl.key === slider.turn) return sliderCtl.el;
+    if (sliderCtl) sliderCtl.destroy();
+    sliderCtl = betSlider({
+      minTo: Lg.minTo, maxTo: Lg.maxTo, sb: t.sb, value: slider.to || Lg.minTo, kind: Lg.kind, presets: Lg.presets, fmt,
+      onValue: v => { if (slider) slider.to = v; },
+      onConfirm: (to, allin) => act(allin ? 'allin' : Lg.kind, allin ? null : to),
+      onBack: () => { slider = null; lastSig = ''; render(); },
+    });
+    sliderCtl.key = slider.turn;
+    return sliderCtl.el;
   }
 
   function preToggles() {
@@ -1049,6 +1053,7 @@ export function createView() {
     ko: () => (els.ko ? els.ko.textContent : null), spectating: () => !!els.hero.querySelector('.he-spec'), leave: () => (els.leave.hidden ? '' : els.leave.dataset.k),
     motion: () => !!(motion && motion.busy()), award: () => awardNow && awardNow.line, potLine: () => els.pot.textContent + els.award.textContent,
     legal: () => { const t = table(); return t && running(t) ? legalActions(t) : null; },
+    table: () => table(), slider: () => (sliderCtl && sliderCtl.el.isConnected ? { value: sliderCtl.value(), stops: sliderCtl.stops.slice() } : null),   // (HE11)
     act: (action, amount) => act(action, amount), pre: kind => send('pre', { pre: kind }), op: (op, body) => send(op, body),
     tier: () => (tiers ? tiers.get() : 2), setTier: t => tiers && tiers.set(t), skin: () => skinKey, fps: () => frames.slice(), work: () => work.slice(),
     sounds: () => played(), planned: () => planned(),

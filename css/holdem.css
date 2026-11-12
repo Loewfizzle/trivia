@@ -440,24 +440,65 @@
 .he-hostbar .btn::after { content: ''; position: absolute; inset: -5px -3px; }   /* (HE8: a 44 pt tap area round the 36 pt END SESSION — HE10 (A30): measured from the padding box, so 5 pt past a 1 pt border = 44, not 42) */
 .he-ending { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--he-dim); }
 
-/* RAISE: the slider panel — over the felt, ending above your cards */
+/* RAISE: the slider panel — over the felt, ending above your cards. HE11 — THE BET SLIDER (js/games/holdem/bet-slider.js): − amount +, a fat
+   track you grab anywhere (the thumb + the fill on transform only), then BACK · the presets · CONFIRM. Every colour a skin variable. */
 .he-slider {
   position: absolute; left: calc(var(--box-x) + 14px); width: calc(var(--box-w) - 28px);
   bottom: calc(100% - var(--hand-y) + var(--hc-h) / 2 + 10px);
-  padding: 12px 14px 14px; border-radius: 16px; display: grid; gap: 8px;
+  padding: 10px 12px 12px; border-radius: 16px; display: grid; gap: 6px;
   background: rgba(7, 6, 5, 0.96); border: 1.5px solid var(--he-gold); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
 }
-.he-sl-top { display: flex; align-items: baseline; justify-content: center; gap: 10px; }
-.he-sl-amt { font-family: var(--font-num); font-size: 30px; color: var(--he-gold-2); }
-.he-sl-sub { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: var(--he-dim); }
-.he-sl-row { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--he-dim); }
-.he-sl-range { flex: 1; height: 44px; accent-color: var(--he-gold); }
-.he-slider .he-buttons { display: flex; justify-content: center; gap: 24px; }
-/* HE10 (A32): an SE-height phone — the panel ~20 pt shorter, so its top edge stays under the bottom seats' plates + tags at 8 players */
-@media (max-height: 700px) and (orientation: portrait) {
-  .he:not([data-orient='wide']) .he-slider { padding: 7px 14px 9px; gap: 3px; }
-  .he:not([data-orient='wide']) .he-sl-amt { font-size: 26px; line-height: 1; }
+.he-sl-top { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; }
+.he-sl-read { display: grid; justify-items: center; gap: 2px; line-height: 1; min-width: 0; }
+.he-sl-amt { font-family: var(--font-num); font-size: 30px; line-height: 1; color: var(--he-gold-2); white-space: nowrap; }
+.he-sl-sub { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--he-dim); white-space: nowrap; }
+.he-slider.is-allin .he-sl-sub { color: var(--he-cream); }
+.he-sl-step {
+  position: relative; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none; background: rgba(7, 6, 5, 0.9); border: 1.5px solid rgba(244, 234, 210, 0.45);
 }
+.he-sl-step::before, .he-sl-step.is-plus::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 16px; height: 2.5px; margin: -1.25px 0 0 -8px; border-radius: 2px; background: var(--he-cream);
+}
+.he-sl-step.is-plus::after { transform: rotate(90deg); }
+.he-sl-step.is-held { border-color: var(--he-gold); background: rgba(var(--he-gold-rgb, 242, 193, 78), 0.18); }
+.he-sl-step:disabled { opacity: 0.35; cursor: default; }
+.he-sl-track { position: relative; height: 44px; touch-action: none; cursor: pointer; -webkit-user-select: none; user-select: none; outline: none; }
+.he-sl-track:focus-visible { outline: 2px solid var(--he-gold-2); outline-offset: 2px; border-radius: 10px; }
+.he-sl-rail {
+  position: absolute; left: 0; right: 0; top: 50%; height: 10px; margin-top: -5px; border-radius: 5px; overflow: hidden;
+  background: rgba(244, 234, 210, 0.12); box-shadow: inset 0 0 0 1px rgba(244, 234, 210, 0.22);
+}
+.he-sl-fill {
+  position: absolute; inset: 0; transform-origin: 0 50%; transform: scaleX(0); will-change: transform;
+  background: linear-gradient(90deg, var(--he-gold-lo), var(--he-gold-2));
+}
+.he-sl-thumb {
+  position: absolute; left: 0; top: 50%; width: 30px; height: 30px; margin-top: -15px; border-radius: 50%; will-change: transform;
+  border: 2px solid var(--he-call-rim-hi, #fff4d0);
+  background: radial-gradient(70% 45% at 50% 18%, rgba(255, 255, 255, var(--he-call-shine, 0.5)), rgba(255, 255, 255, 0) 100%),
+    radial-gradient(120% 90% at 32% 22%, var(--he-call-hi, #ffe9a8), var(--he-call-mid, #e2a92f) 62%, var(--he-call-lo, #b07a1c));
+  box-shadow: 0 0 10px var(--he-call-glow, rgba(var(--he-gold-rgb, 242, 193, 78), 0.35)), 0 3px 8px rgba(0, 0, 0, 0.6);
+}
+/* the settle onto a stop after the lift (a short ease) — none while a finger drags, none with reduced motion */
+.he-sl-thumb, .he-sl-fill { transition: transform 0.12s ease-out; }
+.he-slider.is-drag :is(.he-sl-thumb, .he-sl-fill), .he-slider.is-still :is(.he-sl-thumb, .he-sl-fill) { transition: none; }
+.he-slider.is-one .he-sl-track { cursor: default; }
+.he-sl-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.he-sl-pres { flex: 1; min-width: 0; display: flex; justify-content: center; gap: 6px; }
+.he-sl-pre {
+  flex: 1 1 0; min-width: 0; max-width: 66px; height: 44px; padding: 0 2px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+  font: 800 11px var(--font-ui); letter-spacing: 0.02em; color: var(--he-cream);
+  background: rgba(7, 6, 5, 0.9); border: 1.5px solid rgba(244, 234, 210, 0.4);
+}
+.he-sl-pre.is-on { border-color: var(--he-gold); color: var(--he-gold-2); box-shadow: 0 0 10px rgba(var(--he-gold-rgb, 242, 193, 78), 0.4); }
+/* HE10 (A32): an SE-height phone — the panel shorter, so its top edge stays under the bottom seats' plates + tags at 8 players */
+@media (max-height: 700px) and (orientation: portrait) {
+  .he:not([data-orient='wide']) .he-slider { padding: 6px 12px 8px; gap: 2px; }
+  .he:not([data-orient='wide']) .he-sl-amt { font-size: 26px; }
+  .he:not([data-orient='wide']) .he-sl-track { height: 40px; }
+}
+@media (prefers-reduced-motion: reduce) { .he-sl-thumb, .he-sl-fill { transition: none; } }
 
 /* THE PODIUM: the console's frame over the table */
 .he-final { position: absolute; inset: 0; z-index: 5; overflow-y: auto; touch-action: pan-y; background: rgb(6, 5, 10);   /* (HE10 — A10: solid — the table no longer ghosts through) */
@@ -750,13 +791,14 @@ body.he-on #ns-turn { display: none !important; }
   padding: 10px 10px 8px; gap: 6px;
 }
 .he[data-orient='wide'] .he-sl-amt { font-size: 26px; }
-/* HE10 (A29): sideways the track takes the panel's whole width, MIN · ALL IN under its two ends (one line overflowed the column) */
-.he[data-orient='wide'] .he-sl-row { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; row-gap: 0; font-size: 10px; white-space: nowrap; }
-.he[data-orient='wide'] .he-sl-row > .he-sl-range { grid-column: 1 / -1; grid-row: 1; min-width: 0; width: 100%; height: 34px; }
-.he[data-orient='wide'] .he-sl-row > span:first-child { grid-row: 2; justify-self: start; }
-.he[data-orient='wide'] .he-sl-row > span:last-child { grid-row: 2; justify-self: end; }
+/* HE11: sideways the foot takes two rows — the presets across, then BACK · CONFIRM */
+.he[data-orient='wide'] .he-sl-top { grid-template-columns: 44px 1fr 44px; gap: 4px; }
+.he[data-orient='wide'] .he-sl-foot { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; row-gap: 6px; }
+.he[data-orient='wide'] .he-sl-foot > .he-back-b { justify-self: end; }
+.he[data-orient='wide'] .he-sl-foot > .he-confirm { justify-self: start; }
+.he[data-orient='wide'] .he-sl-foot > .he-sl-pres { grid-column: 1 / -1; grid-row: 1; }
+.he[data-orient='wide'] .he-sl-pre { max-width: none; }
 .he[data-orient='wide'] .he-confirm b { font-size: 10.5px; letter-spacing: 0.02em; }
-.he[data-orient='wide'] .he-slider .he-buttons { gap: 18px; }
 .he[data-orient='wide'] .he-leave {
   left: var(--act-x); top: var(--leave-y); transform: translate(-50%, -50%); max-width: var(--act-w); min-height: 44px;
   display: flex; align-items: baseline; justify-content: center; gap: 6px; padding: 4px 12px; white-space: nowrap;
