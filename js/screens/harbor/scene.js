@@ -121,7 +121,7 @@ import { createStormDeck } from './stormdeck.js';
 import { createStill } from './still.js';
 import { createCabStand } from './cabstand.js';
 
-import { safeCtx, starvedCount, blurWorks, BAKE_CAP, canvasMb } from '../../ui/canvas-safe.js';
+import { safeCtx, starvedCount, blurWorks, BAKE_CAP, canvasMb, anyLost, onCanvasLost, reportLost, purgeForTest } from '../../ui/canvas-safe.js';
 import { onScreenSince } from '../../ui/onscreen.js';
 import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip, createDebugButton } from '../../ui/debug-strip.js';
@@ -478,6 +478,52 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     boxRead(r.width, r.height);
     return boxCheck(why);
   }
+
+  // FR7 FIXES A — THE BLANK CITY AFTER BEING AWAY (a tester's iPhone, Nov 12: back to a tab that sat in the background — blank sky, black
+  // ground; the crisp lettering + the DOM signs still there; a refresh fixed it): iOS can discard a canvas's backing store in the background.
+  // THE LOST LOOK — on every return (visible / pageshow / focus — the wake path) and on a context-lost event: a watched context reports lost
+  // (canvas-safe.js#anyLost) OR the bake's SENTINEL — one painted pixel of a finished bake, recorded once a bake (the once-a-second look, never
+  // in a frame) — reads blank → THE ONE RE-FIT PATH: the dark held over the city (holdStart with a dark picture: the old one IS the blank),
+  // the sky + every layer re-painted (build → layout → the bakers re-planned), the hold lets go when the new bake is in — ONE cut, never a
+  // half-painted city. reportLost tells the rest (the effect library drops its sprites). At most once every LOST_GAP_MS.
+  const LOST_GAP_MS = 5000;
+  let sentinel = null, lostAt = -1e9;
+  const lostLog = { n: 0, why: '', at: 0, checks: 0 };
+  /** the sentinel: an opaque pixel near the bottom middle of a finished bake (the ground / the quay — painted in every look) */
+  function pickSentinel() {
+    if (baker.pending || fadeFrom >= 0 || holdOn) return;
+    if (sentinel && sentinel.bakes === baker.bakes) return;
+    sentinel = null;
+    for (const name of ['near', 'road', 'stage', 'harbor', 'far']) {
+      const g = baker.group(name); if (!g || !g.ready || !g.cur || !g.cur.width || !g.cur.height) continue;
+      const x = Math.floor(g.cur.width / 2), y = g.cur.height - 2;
+      try { const d = safeCtx(g.cur).getImageData(x, y, 1, 1).data; if (d[3] > 200) { sentinel = { name, cv: g.cur, x, y, bakes: baker.bakes }; return; } } catch { /* a lost context reads nothing */ }
+    }
+  }
+  /** the sentinel still painted? (false = its pixel reads blank — the backing store went) */
+  function sentinelLost() {
+    if (!sentinel) return false;
+    const g = baker.group(sentinel.name); if (!g || g.cur !== sentinel.cv || baker.bakes !== sentinel.bakes) return false;
+    try { return safeCtx(g.cur).getImageData(sentinel.x, sentinel.y, 1, 1).data[3] < 10; } catch { return true; }
+  }
+  /** the look itself (a return, a lost event): never before the reveal (the boot paints everything anyway), never in a frame */
+  function lostLook(why) {
+    if (destroyed || shownAt < 0 || !W || document.visibilityState !== 'visible') return false;
+    lostLog.checks++;
+    const lost = anyLost() ? 'a context lost' : sentinelLost() ? 'the bake read blank' : '';
+    if (!lost) return false;
+    const now = performance.now();
+    if (now - lostAt < LOST_GAP_MS) return false;
+    lostAt = now; lostLog.n++; lostLog.why = `${lost} (${why})`; lostLog.at = Math.round(now);
+    LOADLOG.add('lost', `${lost} (${why}): the dark held, the city re-painted through the one re-fit path`);
+    sentinel = null;
+    if (!holdOn && canvas.width && canvas.height) { const pic = document.createElement('canvas'); pic.width = canvas.width; pic.height = canvas.height; const x = safeCtx(pic, { alpha: false }); x.fillStyle = '#05060c'; x.fillRect(0, 0, pic.width, pic.height); holdStart(`a lost canvas — ${lost}`, pic); }
+    skyKey = ''; lookAt = 0; skyMix.sky = null;           // (the sky + its merged stars painted again)
+    wantBuild = `a lost canvas (${lost})`;               // (the frame: measure → build → layout → the bakers re-planned: everything re-baked)
+    reportLost(`the city: ${lost}`);
+    return true;
+  }
+  const offLost = onCanvasLost(why => { if (/lost|restored/.test(why) && !/^the city/.test(why) && document.visibilityState === 'visible') setTimeout(() => lostLook(why), 0); });
 
   let lastResizeAt = -1e9, wantBuild = false, wantStep = null, revealWhy = '';
   const stepWhy = [];
@@ -2885,9 +2931,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const RETURN_GRACE = 3000;
   function returnGrace() { tierHold = Math.max(tierHold, performance.now() + RETURN_GRACE); frames.length = 0; cool = Math.max(cool, 30); returns++; }
   let returns = 0;
-  const onVis = () => { if (document.visibilityState === 'visible') { bigRelatch = true; smRelatch = true; returnGrace(); wakeLoop('visible'); boxLook('back on screen'); } else { hiddenAt = performance.now(); stop(); } };   // (11a-2: back from the background — the big holiday pieces may change now)
-  const onShow = () => { bigRelatch = true; smRelatch = true; returnGrace(); wakeLoop('pageshow'); if (document.visibilityState === 'visible') boxLook('a pageshow'); }, onFocus = () => wakeLoop('focus'), onTapWake = () => wakeLoop('tap');
-  const watchdog = setInterval(() => { wakeLoop('watchdog'); if (document.visibilityState === 'visible') boxLook('the once-a-second look'); }, 1000);   // (LOAD FIX 5: + THE BOX GATE's look)
+  const onVis = () => { if (document.visibilityState === 'visible') { bigRelatch = true; smRelatch = true; returnGrace(); wakeLoop('visible'); boxLook('back on screen'); lostLook('back on screen'); } else { hiddenAt = performance.now(); stop(); } };   // (11a-2: back from the background — the big holiday pieces may change now)
+  const onShow = () => { bigRelatch = true; smRelatch = true; returnGrace(); wakeLoop('pageshow'); if (document.visibilityState === 'visible') { boxLook('a pageshow'); lostLook('a pageshow'); } }, onFocus = () => { wakeLoop('focus'); lostLook('focus'); }, onTapWake = () => wakeLoop('tap');
+  const watchdog = setInterval(() => { wakeLoop('watchdog'); if (document.visibilityState === 'visible') { boxLook('the once-a-second look'); pickSentinel(); } }, 1000);   // (FR7 FIXES A: + the bake's sentinel, once a bake)   // (LOAD FIX 5: + THE BOX GATE's look)
   let resizeT = 0, relayT = 0, laneKey = '';
   // (a resize that changed nothing — iOS fires one on the way back from the home screen — never re-bakes the city)
   // (FP3a: in the load window a height-only change under 25 % — Safari's bars settling — waits for the LAST one + 400 ms; a width
@@ -3005,7 +3051,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   /** the sky about to be repainted after the reveal: the old one kept to fade out over it (slow when the weather changed it) */
   function holdSky(now) {
-    if (shownAt < 0 || !skyCv.width) return;
+    if (shownAt < 0 || !skyCv.width || holdOn) return;   // (FR7 FIXES A: under a held picture / the held dark nothing crossfades)
     const src = skyMix.sky && skyMix.cv.width === skyCv.width && skyMix.cv.height === skyCv.height ? skyMix.cv : skyCv;
     if (!skyPrev) skyPrev = document.createElement('canvas');
     if (skyPrev.width !== src.width || skyPrev.height !== src.height) { skyPrev.width = src.width; skyPrev.height = src.height; }
@@ -3217,6 +3263,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, punch: PT.punch || 0, safe: PT.safe || null, safeK: PT.safeK == null ? null : +PT.safeK.toFixed(3), pulse: PT.pulse || pulseGain(null), pulsePeak: +roPulse.toFixed(3),beatU: PT.beatU, beatT: PT.beatT, bpm: hbeat.bpm, rate: PT.rate, locked: +hbeat.locked.toFixed(2), src: hbeat.src, bar: PT.bar, beatIdx: PT.beatIdx, beatsF: +hbeat.beats.toFixed(3), songPos: PT.songPos == null ? null : +PT.songPos.toFixed(4), level: +hbeat.level.toFixed(2), live: hbeat.live, hits: { ...hbeat.hits }, swell: PT.swell, wave: PT.wave, plan: PT.plan ? { ...PT.plan } : null, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: +beamK.toFixed(3), show: { ...neon.show() } }),
     finale: () => startFinale(),
     /** 8a — THE LOOP: running, ms since its last frame, frames drawn, the watchdog's restarts (stalls: 'running' with no frame) + why */
+    /** FR7 FIXES A — THE LOST LOOK: { n, why, at, checks, sentinel } · purge(): TESTS — wipe every watched canvas as iOS would (no event) */
+    lost: () => ({ ...lostLog, sentinel: sentinel ? sentinel.name : null, bakes: baker.bakes, holdOn }),
+    purge: () => purgeForTest(),
     loop: () => ({ running, ago: Math.round(performance.now() - seenAt), drawn, drawnAt: last, failStop, ...loopLog, at: Math.round(loopLog.at), wx: WXS ? WXS.state : null, wxBeds: snd.weatherBeds() }),
     /** 8a (test hook): what the watchdog does now (why: 'visible' | 'pageshow' | 'focus' | 'tap' | 'watchdog') → true = restarted */
     wakeLoop: why => wakeLoop(why),
@@ -3329,6 +3378,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       stop(); LIVE.delete(liveMe);
       clearTimeout(resizeT); clearTimeout(relayT); clearTimeout(extrasT);
       document.removeEventListener('visibilitychange', onVis);
+      offLost();
       window.removeEventListener('pageshow', onShow); window.removeEventListener('focus', onFocus); window.removeEventListener('pointerdown', onTapWake, { capture: true }); clearInterval(watchdog);
       window.removeEventListener('vl-cover', onCover);
       window.removeEventListener('resize', onResize); if (boxRO) { try { boxRO.disconnect(); } catch { /* fine */ } } try { if (dprMq) dprMq.removeEventListener('change', onDpr); } catch { /* fine */ }

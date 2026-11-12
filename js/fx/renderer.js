@@ -21,9 +21,10 @@
 // particles stamped from sprites); (2) WHILE A FINGER SCROLLS nothing redraws (the canvas is a layer: it scrolls with the page for free)
 // and the effects' clock pauses, resuming where it stopped; (3) the guard never trades quality for nothing: a step down that doesn't
 // make the frames faster is undone and the tier held (the cost wasn't the canvas's pixels). fxDiag = THE DIAGNOSTICS ROW's switches.
-import { ctx2d } from '../ui/canvas-safe.js';
+import { ctx2d, onCanvasLost, anyLost } from '../ui/canvas-safe.js';
 import { tierVal } from '../core/harbor-tiers.js';
 import { glPainter } from './gl.js';
+import { forget } from './kit.js';
 
 const surfaces = new Set();
 let raf = 0, lastT = 0, tier = 2, forced = null;
@@ -283,4 +284,19 @@ export function kick() {
   if (raf || typeof requestAnimationFrame === 'undefined') return;
   raf = requestAnimationFrame(frame);
 }
-if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { lastT = 0; if (!document.hidden) { for (const S of surfaces) S.dirty = true; kick(); } });
+// FR7 FIXES A — THE BLANK CITY AFTER BEING AWAY: iOS can discard a canvas's backing store in the background. On a loss (a context-lost
+// event, the city's own blank-bake report — canvas-safe.js#onCanvasLost — or a lost context found on the way back) every baked sprite is
+// dropped (they paint again on use), a surface whose GPU / 2D context went gets a FRESH canvas (a canvas keeps its first context), and
+// everything repaints
+function fxLost() {
+  forget('');
+  for (const S of surfaces) {
+    let gone = false;
+    try { gone = (S.gl && S.gl.lost) || (S.c && typeof S.c.isContextLost === 'function' && S.c.isContextLost()); } catch { gone = true; }
+    if (gone) canvasFor(S);
+    S.dirty = true;
+  }
+  kick();
+}
+onCanvasLost(() => fxLost());
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { lastT = 0; if (!document.hidden) { if (anyLost() || [...surfaces].some(S => S.gl && S.gl.lost)) fxLost(); for (const S of surfaces) S.dirty = true; kick(); } });

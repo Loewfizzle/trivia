@@ -33,7 +33,10 @@ export function blit(c, img, sx, sy, sw, sh, dx, dy, dw, dh) {
 /** a canvas's 2D context, or null (iOS out of canvas memory) — never throws */
 export function ctx2d(cv, o) {
   track(cv);
-  try { return cv.getContext('2d', o) || null; } catch { return null; }
+  let x = null;
+  try { x = cv.getContext('2d', o) || null; } catch { x = null; }
+  if (x) watchLoss(cv, x);
+  return x;
 }
 
 /** PART 10 — a canvas's WebGL2 context (the fireworks' GPU engine), or null — never throws; counted by canvasMb like the 2D ones */
@@ -50,6 +53,48 @@ function track(cv) {
   if (!cv || !seen || typeof WeakRef !== 'function' || seen.has(cv)) return;
   seen.add(cv); tracked.add(new WeakRef(cv));
 }
+
+// FR7 FIXES A — THE BLANK CITY AFTER BEING AWAY (a tester's iPhone, Nov 12: back to a tab that sat in the background, the city's painted
+// layers were GONE — blank sky, black ground — while the crisp lettering + the DOM signs stayed; a refresh fixed it). iOS can discard a
+// canvas's backing store while the page is in the background. Every canvas whose 2D context goes through here is WATCHED: the 2D
+// `contextlost` / `contextrestored` events (Safari 17+, Chrome) + `isContextLost()` (anyLost — asked on every return) — and a loss the
+// browser never reports is found by the scene's own sentinel pixel (scene.js#lostLook) and REPORTED here (reportLost). Whoever paints
+// a cache listens (onCanvasLost): the city re-fits through its one gate, the effect library drops its sprites.
+const ctxOf = typeof WeakMap === 'function' ? new WeakMap() : null, watched = typeof WeakSet === 'function' ? new WeakSet() : null;
+const lostFns = new Set();
+let lostN = 0;
+function watchLoss(cv, x) {
+  if (!ctxOf || !watched || watched.has(cv)) return;
+  watched.add(cv); ctxOf.set(cv, x);
+  try {
+    cv.addEventListener('contextlost', () => { lostN++; emitLost('a context lost'); });
+    cv.addEventListener('contextrestored', () => emitLost('a context restored'));
+  } catch { /* an OffscreenCanvas / a stub: nothing to listen to */ }
+}
+function emitLost(why) { for (const fn of [...lostFns]) { try { fn(why); } catch (e) { console.warn('[canvas lost]', e); } } }
+/** subscribe to a lost (or restored-blank) canvas → unsubscribe */
+export function onCanvasLost(fn) { lostFns.add(fn); return () => lostFns.delete(fn); }
+/** a loss found by its owner (the sentinel's blank pixel — the browser never said): every cache-holder hears it */
+export function reportLost(why) { lostN++; emitLost(why); }
+/** how many losses so far (events + reports) */
+export const lostCount = () => lostN;
+/** any watched 2D context lost right now? (cheap enough for a return to the screen — never in a frame) */
+export function anyLost() {
+  if (!ctxOf) return false;
+  for (const r of tracked) {
+    const cv = r.deref(); if (!cv) { tracked.delete(r); continue; }
+    const x = ctxOf.get(cv);
+    try { if (x && typeof x.isContextLost === 'function' && x.isContextLost()) return true; } catch { /* fine */ }
+  }
+  return false;
+}
+/** TESTS — a background purge as iOS does it, with no event: every watched 2D canvas's pixels wiped (its size set again) */
+export function purgeForTest() {
+  let n = 0;
+  for (const r of tracked) { const cv = r.deref(); if (!cv || !(ctxOf && ctxOf.has(cv)) || !cv.width) continue; const w = cv.width; cv.width = 0; cv.width = w; n++; }
+  return n;
+}
+
 /** the live canvases' pixel memory now (MB) + their count — the honest total */
 export function canvasMb() {
   let b = 0, n = 0;
@@ -85,7 +130,7 @@ export function safeCtx(cv, o) {
   track(cv);
   let x = null;
   try { x = cv.getContext('2d', o) || null; } catch { x = null; }
-  if (x) return x;
+  if (x) { watchLoss(cv, x); return x; }
   starved++;
   return nullCtx(cv);
 }

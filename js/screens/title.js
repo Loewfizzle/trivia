@@ -1224,6 +1224,8 @@ export function createTitle() {
       neonWarmSounds: () => neon.neonWarmSounds,                                   // (City 2.0: the warm-up's last-30-s flickers)
       neon: () => { const p = neon.neonPlanV; return { stage: neon.neonStage, letters: [...els.sign.querySelectorAll('.ndl')].map(l => l.classList.contains('on')), signs: neon.neonNow().signs, plan: p && { startAt: p.startAt, catchAt: p.catchAt, clearAt: p.clearAt, endAt: p.endAt, offFrom: p.offFrom, offTo: p.offTo, reduced: p.reduced }, now: scene && scene.now() }; },
       party: () => (scene ? scene.party() : null),
+      lost: () => (scene && scene.lost ? scene.lost() : null),                // (FR7 FIXES A: THE LOST LOOK — n, why, the sentinel)
+      purge: () => (scene && scene.purge ? scene.purge() : 0),                // (TESTS: a background purge, as iOS does it)
       loop: () => (scene && scene.loop ? scene.loop() : null),                // (8a: the city's frame loop — running, ms since its last frame, the watchdog's restarts)
       report: () => (scene && scene.report ? scene.report() : null),        // (9e: City 2.0's report snapshot + the hang watch)
       rainbow: () => (scene && scene.rainbow ? scene.rainbow() : null),

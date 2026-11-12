@@ -482,3 +482,21 @@ test('ADD-ON — THE FROZEN BUTTONS: api() has ONE limit around token + fetch + 
   assert.equal(e.code, 'offline');
   assert.match(a, /export function withLimit\(p, ms\) \{/, 'api.js runs exactly this race');
 });
+
+// ---------------------------------------------------------------------------------------------------- ADD-ON — THE BLANK CITY AFTER BEING AWAY
+test('ADD-ON — THE LOST LOOK: every canvas through canvas-safe is watched; a loss reaches its subscribers; the city + the effect library listen', async () => {
+  const cs = await import('../js/ui/canvas-safe.js');
+  const heard = [];
+  const off = cs.onCanvasLost(w => heard.push(w));
+  const n0 = cs.lostCount();
+  cs.reportLost('a test');
+  assert.deepEqual(heard, ['a test']); assert.equal(cs.lostCount(), n0 + 1);
+  off(); cs.reportLost('after'); assert.equal(heard.length, 1, 'unsubscribed');
+  assert.equal(cs.anyLost(), false, 'nothing lost here');
+  const sc = read('js/screens/harbor/scene.js');
+  assert.match(sc, /lostLook\('back on screen'\)/); assert.match(sc, /lostLook\('a pageshow'\)/); assert.match(sc, /lostLook\('focus'\)/);
+  assert.match(sc, /wantBuild = `a lost canvas/, 'the ONE re-fit path');
+  assert.match(sc, /holdStart\(`a lost canvas/, 'the dark held — one cut');
+  assert.match(read('js/fx/renderer.js'), /onCanvasLost\(\(\) => fxLost\(\)\)/);
+  assert.ok(read('tests/integration/kit/two-cameras.mjs').includes("'lost-hidden'"), 'the WebKit path');
+});

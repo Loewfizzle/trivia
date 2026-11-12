@@ -24,9 +24,11 @@
 //   tier             a tier step down 3 s after the reveal, back up 3 s later
 //   no-observer-pre  the box grows before the reveal and NO ResizeObserver reports it (the layer's observer stubbed out): the reveal's own look
 //   no-observer-post the same 3 s after the reveal: THE NET — the once-a-second look re-fits it (two cameras for ≤ 1.5 s, never for good)
+//   lost-hidden      FR7 FIXES A — THE BLANK CITY: hidden 6 s, every canvas's pixels WIPED while hidden (iOS discarding the backing stores — no
+//                    event), then shown: the city comes back WHOLE by itself within ~1 s (the dark held, the one re-fit path), no refresh
 import { CAM_REC, camJudge } from './load-probe.mjs';
 
-export const ALL_PATHS = ['plain', 'box-pre@50', 'box-pre@250', 'box-pre@600', 'box-pre-shrink', 'box-post', 'box-hidden', 'resize-hidden', 'box-return', 'bfcache', 'restore', 'hours', 'hours-box', 'wx-late', 'bars-pre', 'bars-after', 'bars-late', 'resize-post', 'tier', 'no-observer-pre', 'no-observer-post'];
+export const ALL_PATHS = ['plain', 'box-pre@50', 'box-pre@250', 'box-pre@600', 'box-pre-shrink', 'box-post', 'box-hidden', 'resize-hidden', 'box-return', 'bfcache', 'restore', 'hours', 'hours-box', 'wx-late', 'bars-pre', 'bars-after', 'bars-late', 'resize-post', 'tier', 'no-observer-pre', 'no-observer-post', 'lost-hidden'];
 const GR = '&tz=America/Detroit&at=42.96,-85.67';
 const OWNER = `when=2026-11-11T08:30&wx=fog${GR}`;   // (his morning)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -157,6 +159,26 @@ export async function runPath(D, name, o = {}) {
     if (kind === 'bfcache') await ev("window.__page('pageshow', true)");
     await mark('shown again'); await sleep(250); await look('0.25 s after the return'); await sleep(700); await look('1 s after the return');
   }
+  let lostLine = '', lostBad = false;
+  if (kind === 'lost-hidden') {
+    // (the ground band's light, read from the city's own canvas: a whole city vs a blank one)
+    const band = () => ev("(() => { const c = document.querySelector('.nd-scene canvas:not([class])'); if (!c || !c.width) return -1; const x = c.getContext('2d'); let s = 0, n = 0; for (const fy of [0.72, 0.8, 0.88]) { const d = x.getImageData(0, Math.floor(c.height * fy), c.width, 1).data; for (let i = 0; i < d.length; i += 4 * 8) { s += (d[i] + d[i + 1] + d[i + 2]) / 3; n++; } } return n ? s / n : -1; })()");
+    await sleep(2300);
+    const before = await band();
+    await mark('hidden'); await ev('window.__hide(true)'); await sleep(500);
+    const wiped = await ev('window.__district.purge()');
+    await mark(`every canvas wiped while hidden (${wiped})`);
+    await sleep(6000);
+    await ev('window.__hide(false)'); await mark('shown again');
+    let backMs = -1;
+    const t1 = Date.now();
+    for (let k = 0; k < 40; k++) { await sleep(50); const L0 = await ev('window.__district.lost()'); const b = await band(); if (L0 && L0.n >= 1 && !L0.holdOn && b >= before * 0.6) { backMs = Date.now() - t1; break; } }
+    const L1 = await ev('window.__district.lost()');
+    await look('1 s after the return');
+    const after = await band();
+    lostBad = !(backMs >= 0 && backMs <= 1500 && L1 && L1.n >= 1);
+    lostLine = ` · THE LOST LOOK: ${wiped} canvases wiped · ${L1 ? `seen ${L1.n}× (${L1.why})` : 'no probe'} · the ground band ${before.toFixed(1)} → ${after.toFixed(1)} · whole again ${backMs >= 0 ? `in ${backMs} ms` : 'NEVER (≤ 2 s)'}`;
+  }
   if (kind === 'restore') {
     await sleep(2300); await mark('away'); await P.goto(`${BASE}/404.html`).catch(() => {}); await sleep(1500);
     const back = P.back().catch(() => {});
@@ -180,9 +202,9 @@ export async function runPath(D, name, o = {}) {
   const pxBad = checks.filter(c => c.off.length);
   // (the picture at rest: built for its box, ONE scene, ONE loop, not left held)
   const rest = info && info.built && info.box && Math.abs(info.built[0] - info.box[0]) <= 1 && Math.abs(info.built[1] - info.box[1]) <= 1 && (!info.live || (info.live.scenes === 1 && info.live.loops === 1 && !info.live.dup));
-  const bad = !ok || J.n > 0 || pxBad.length > 0 || errs.length > 0 || !rest || !J.seen;
+  const bad = !ok || J.n > 0 || pxBad.length > 0 || errs.length > 0 || !rest || !J.seen || lostBad;
   const restored = kind === 'restore' && info ? (info.ps && info.ps.some(Boolean) ? 'the bfcache (pageshow persisted)' : 'RELOADED on BACK') : '';
-  const line = `${name.padEnd(16)} reveal ${ok ? `${revealAt} ms` : 'NEVER'} · frames ${J.seen} seen: ${J.n ? `✗ ${J.n} with TWO CAMERAS (${Object.entries(J.kinds).map(([k, v]) => `${k} ${v}`).join(', ')}) — ${J.what}` : '✓ one camera'} · pixels ${checks.length} looks: ${pxBad.length ? `✗ ${pxBad.map(c => `${c.label}: ${c.off.join('; ')}`).join(' | ')}` : '✓ one copy'}${info ? ` · built ${info.built && info.built.map(Math.round).join('×')} in a ${info.box && info.box.join('×')} box${info.live ? ` · ${info.live.scenes} scene, ${info.live.loops} loop` : ''} · holds ${info.holds}` : ' · NO PROBE'}${restored ? ` · ${restored}` : ''}${net ? ` · ${net}` : ''}${errs.length ? ` · errors: ${errs[0]}` : ''}`;
+  const line = `${name.padEnd(16)} reveal ${ok ? `${revealAt} ms` : 'NEVER'} · frames ${J.seen} seen: ${J.n ? `✗ ${J.n} with TWO CAMERAS (${Object.entries(J.kinds).map(([k, v]) => `${k} ${v}`).join(', ')}) — ${J.what}` : '✓ one camera'} · pixels ${checks.length} looks: ${pxBad.length ? `✗ ${pxBad.map(c => `${c.label}: ${c.off.join('; ')}`).join(' | ')}` : '✓ one copy'}${info ? ` · built ${info.built && info.built.map(Math.round).join('×')} in a ${info.box && info.box.join('×')} box${info.live ? ` · ${info.live.scenes} scene, ${info.live.loops} loop` : ''} · holds ${info.holds}` : ' · NO PROBE'}${restored ? ` · ${restored}` : ''}${net ? ` · ${net}` : ''}${lostLine}${errs.length ? ` · errors: ${errs[0]}` : ''}`;
   await P.close();
   return { name, ok, revealAt, bad, frames: J, pixels: checks, info, errs, marks: Dm ? Dm.marks : [], net, restored, line, pics };
 }
