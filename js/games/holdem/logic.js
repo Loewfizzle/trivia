@@ -109,6 +109,8 @@ export function pokeIn({ due, now, host, jitter = 0 }) {
 }
 /** A poke that changed nothing while the table still says it's due: back off (the server's clock is a little behind ours). */
 export const POKE_RETRY_MS = 700;
+/** FR7 FIXES A — THE FROZEN BUTTONS: a move's lock (view.js#send) is released by this long after the tap, whatever the network does */
+export const SAFE_RELEASE_MS = 10_000;
 /**
  * FR7 FIXES A — HE2 (FR7-A's B2), THE HOST POKES FROM THE ROOM TOO (PURE): a host who QUIT TO THE ROOM (or busted out and went back) has no
  * table on screen — no view, no poke — and keeps beating, so nobody takes over: every timed step ran 2–3 s late for everyone. The cartridge's

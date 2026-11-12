@@ -21,7 +21,7 @@ import { installTestHook, removeTestHook } from '../kit/hook.js';
 import { legalActions, running } from './table.js';
 import { handLabel, evaluate, bestFive } from './rank.js';
 import { fromWire } from './wire.js';
-import { levelLine, othersInOrder, sidePots, clockOf, pokeIn, POKE_RETRY_MS, ordinal } from './logic.js';
+import { levelLine, othersInOrder, sidePots, clockOf, pokeIn, POKE_RETRY_MS, SAFE_RELEASE_MS, ordinal } from './logic.js';
 import { tableLayout, betSpot, cardsSpot, dealerSpot } from './layout.js';
 import { wideLayout, stageOf } from './layout-wide.js';
 import { freshEvents, schedule, drawnSeats, awardLine, winLine, winningCards } from './motion-plan.js';
@@ -91,7 +91,10 @@ export function createView() {
     const t = table();
     // HE8 — INSTANT FEEDBACK: the tapped control stays PRESSED (+ a pending glow) from the tap until this phone's table shows the server's answer
     const el = press && performance.now() - press.at < 2000 && press.el.isConnected ? press.el : null;
-    const b = busy = { op, at: Date.now(), seq: pub ? pub.seq : null, el, wait: null, capT: 0 };
+    const b = busy = { op, at: Date.now(), seq: pub ? pub.seq : null, el, wait: null, capT: 0, safeT: 0 };
+    // FR7 FIXES A — THE FROZEN BUTTONS: a SAFETY RELEASE — the lock never outlives SAFE_RELEASE_MS from the tap, whatever the network does (a
+    // stalled answer kept every action button dead until a refresh); a late answer stays harmless (the seq / 409 rules), the table redraws
+    b.safeT = setTimeout(() => release(b), SAFE_RELEASE_MS);
     if (el) el.classList.add('is-sent');
     els.actions.classList.add('is-busy');
     els.leave.classList.toggle('is-busy', op === 'leave');
@@ -112,7 +115,9 @@ export function createView() {
     }
   }
   function release(b = busy) {
-    if (!b || busy !== b) return;
+    if (!b) return;
+    clearTimeout(b.safeT);
+    if (busy !== b) return;
     clearTimeout(b.capT);
     if (b.el) b.el.classList.remove('is-sent', 'is-press');
     busy = null;
@@ -274,7 +279,7 @@ export function createView() {
 
   function unmount() {
     destroyed = true;
-    if (busy) clearTimeout(busy.capT);
+    if (busy) { clearTimeout(busy.capT); clearTimeout(busy.safeT); }
     gameAwake(null);   // (HE8: back to the console's own wake rule)
     cancelAnimationFrame(raf); raf = 0; clearTimeout(levelT);
     document.removeEventListener('visibilitychange', onVis);

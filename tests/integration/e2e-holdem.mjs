@@ -200,6 +200,56 @@ async function toughness(host, used = new Set()) {
     await cdp.detach().catch(() => {});
   }
 
+  // ---------------------------------------------------------------- FR7 FIXES A — THE FROZEN BUTTONS (a player's real match: mid-game no action
+  // button answered until a refresh): (1) a STALLED TOKEN REFRESH (Firebase's hourly getIdToken never answers — the emulators' switch
+  // window.__stallIdToken) → the tap's lock lets go within ~10 s, nothing sent; (2) a STALLED BODY (the answer's body never ends — the move DID land)
+  // → the lock lets go within ~10 s, the move sent ONCE; then a real tap acts
+  {
+    const p = pages[ga];
+    const sent = [];
+    const onReq = r => { if (r.method() === 'POST' && r.url().includes('/api/report')) { const m = /"holdem":"(\w+)"/.exec(r.postData() || ''); if (m && m[1] !== 'poke') sent.push(m[1]); } };
+    p.on('request', onReq);
+    const tapCall = async () => { const b = await centre(p, '.he-actions .he-buttons .he-call'); await p.mouse.click(b.x, b.y); };
+    // (1) the token refresh never answers
+    await turnFor(ga, `${NAMES[ga]}'s turn — a stalled token`);
+    await p.evaluate(() => { window.__stallIdToken = true; });
+    const n0 = sent.length, t0 = Date.now();
+    await tapCall();
+    const held = await p.evaluate(() => !!window.__holdem.busy());
+    await waitFor(p, () => !window.__holdem.busy() && !document.querySelector('.he-actions').classList.contains('is-busy'), 'the lock let go (stalled token)', 13000);
+    const ms1 = Date.now() - t0;
+    await p.evaluate(() => { window.__stallIdToken = false; });
+    ok(held && ms1 <= 11000 && sent.length === n0, `THE FROZEN BUTTONS — a stalled token refresh: the lock held, then let go by itself in ${ms1} ms (≤ ~10 s), nothing sent (${sent.length - n0})`);
+    // (2) the answer's BODY never ends (the move reaches the dealer; its answer is lost on the way back)
+    if (!(await p.evaluate(() => { const L = window.__holdem.legal(); return !!L && L.id === window.__arcade.state.uid; }))) await turnFor(ga, `${NAMES[ga]}'s turn — a stalled body`);
+    await p.evaluate(() => {
+      const real = window.fetch;
+      window.__realFetch = real;
+      window.fetch = async (url, o) => {
+        const r = await real(url, o);
+        if (String(url).includes('/api/report') && /"holdem":"act"/.test((o && o.body) || '')) return new Response(new ReadableStream({ start() { /* never ends */ } }), { status: 200, headers: { 'content-type': 'application/json' } });
+        return r;
+      };
+    });
+    const seqB = (await pub(p)).seq, n1 = sent.length, t1 = Date.now();
+    await tapCall();
+    await sleep(400);
+    await tapCall().catch(() => {});   // (the impatient second tap while held: never a second send)
+    await waitFor(p, () => !window.__holdem.busy() && !document.querySelector('.he-actions').classList.contains('is-busy'), 'the lock let go (stalled body)', 13000);
+    const ms2 = Date.now() - t1;
+    await p.evaluate(() => { window.fetch = window.__realFetch; });
+    const acts = sent.slice(n1).filter(x => x === 'act').length;
+    await waitFor(p, (s0, q) => window.__holdem.pub().seq > q, 'the landed move on the table', 15000, seqB).catch(() => {});
+    ok(ms2 <= 11000 && acts === 1, `THE FROZEN BUTTONS — a stalled answer body: the lock let go in ${ms2} ms, the move sent ONCE (${acts} act) and landed (the table moved on)`);
+    // (3) the buttons work again: the next turn's real tap acts
+    await turnFor(ga, `${NAMES[ga]}'s next turn after the stalls`);
+    const seqC = (await pub(p)).seq;
+    await tapCall();
+    await waitFor(p, (s0, q) => window.__holdem.pub().seq > q && !window.__holdem.busy(), 'a real tap after the stalls', 20000, seqC);
+    ok(true, 'THE FROZEN BUTTONS: the next real tap acts — the buttons never stay dead');
+    p.off('request', onReq);
+  }
+
   // ---------------------------------------------------------------- NO SIGNAL 10 s on SOMEONE ELSE's turn → back: the right state, no replay
   {
     const p = pages[gb];

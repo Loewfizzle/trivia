@@ -17,29 +17,43 @@ const TIMEOUT = 9000;
 async function fetchJson(url, opts = {}) {
   const ctl = typeof AbortController === 'function' ? new AbortController() : null;
   const t = ctl ? setTimeout(() => ctl.abort(), opts.timeout || TIMEOUT) : 0;
-  let res;
+  let res, body = null;
   try {
     res = await fetch(url, { ...opts, signal: ctl ? ctl.signal : undefined });
   } catch (e) {
+    clearTimeout(t);
     throw new ApiFail(0, 'offline', 'Couldn’t reach the server.');
-  } finally { clearTimeout(t); }
-  let body = null;
-  try { body = await res.json(); } catch { body = null; }
+  }
+  // (FR7 FIXES A — THE FROZEN BUTTONS: the abort covers the BODY too — the timer was cleared before res.json(), so a body that stalled hung the call)
+  try { body = await res.json(); } catch { body = null; } finally { clearTimeout(t); }
+  if (!body && ctl && ctl.signal.aborted) throw new ApiFail(0, 'offline', 'Couldn’t reach the server.');
   if (!res.ok || !body) throw new ApiFail(body ? res.status : (res.status === 404 ? 0 : res.status), (body && body.error) || 'http', (body && body.message) || `HTTP ${res.status}`, body || {});
   // THE VAULT 1B — NAMES ONLY TO OWNERS: the server sends display rows only for what this player owns / just earned → the registries
   if (body.show) { registerItems(body.show.items); registerAchievements(body.show.ach); try { localStorage.setItem('ns:show', JSON.stringify(mergeShow(body.show))); } catch { /* fine */ } }
   return body;
 }
 
-/** Authenticated POST to /api/<name> (opts.timeout: ms — the restore's retries wait longer). */
+/** FR7 FIXES A — THE FROZEN BUTTONS: ONE time limit around a whole step — `p` settles, or ApiFail(0, 'offline') after `ms` (like a lost line). */
+export function withLimit(p, ms) {
+  let t = 0;
+  const cap = new Promise((_, rej) => { t = setTimeout(() => rej(new ApiFail(0, 'offline', 'Couldn’t reach the server.')), ms); });
+  return Promise.race([p, cap]).finally(() => clearTimeout(t));
+}
+
+/** Authenticated POST to /api/<name> (opts.timeout: ms — the restore's retries wait longer). FR7 FIXES A — THE FROZEN BUTTONS: the ID token
+ *  (Firebase's getIdToken — an HOURLY refresh over the network), the fetch and the body under ONE limit — a stalled token refresh (a weak line,
+ *  a locked phone, iOS pausing the tab) used to hang the call forever, and with it every lock that waits on it (HOLD'EM's action buttons). The
+ *  boot's wait for Firebase stays outside it (a slow phone's boot is never cut short). */
 export async function api(name, body, opts = {}) {
   await firebaseReady;
-  const token = await idToken();
-  return fetchJson(`/api/${name}`, {
-    method: 'POST', timeout: opts.timeout,
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-    body: JSON.stringify(body || {}),
-  });
+  return withLimit((async () => {
+    const token = await idToken();
+    return fetchJson(`/api/${name}`, {
+      method: 'POST', timeout: opts.timeout,
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify(body || {}),
+    });
+  })(), (opts.timeout || TIMEOUT) + 1000);
 }
 
 const cache = new Map();

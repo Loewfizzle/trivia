@@ -466,3 +466,19 @@ test('B2 — the SOLO snapshot win: FIXED with C1 (678395fe — server.test "FR7
   assert.match(read('api/_lib/player.js'), /n: rel === 'self' \|\| rel === 'friend' \? p\.n : publicName\(id0, p\.n\)/);
   assert.match(read('api/_lib/friends.js'), /const inn = nick\(inn0\), out = nick\(out0\), blocked = nick\(blocked0\);/);
 });
+
+// ---------------------------------------------------------------------------------------------------- ADD-ON — THE FROZEN BUTTONS (HOLD'EM)
+test('ADD-ON — THE FROZEN BUTTONS: api() has ONE limit around token + fetch + body; HOLD\'EM\'s move lock lets go within SAFE_RELEASE_MS whatever happens', async () => {
+  const a = read('js/profile/api.js');
+  assert.match(a, /return withLimit\(\(async \(\) => \{\n\s+const token = await idToken\(\);/, 'the token refresh is inside the limit');
+  assert.match(a, /try \{ body = await res\.json\(\); \} catch \{ body = null; \} finally \{ clearTimeout\(t\); \}/, 'the abort covers the body');
+  const { SAFE_RELEASE_MS } = await import('../js/games/holdem/logic.js');
+  assert.ok(SAFE_RELEASE_MS <= 10_000);
+  const v = read('js/games/holdem/view.js');
+  assert.match(v, /b\.safeT = setTimeout\(\(\) => release\(b\), SAFE_RELEASE_MS\);/);
+  // the limit's behaviour (the same race api() runs): a step that never settles → offline after the limit
+  const withLimit = (p, ms) => { let t = 0; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(Object.assign(new Error('offline'), { status: 0, code: 'offline' })), ms); })]).finally(() => clearTimeout(t)); };
+  const e = await withLimit(new Promise(() => {}), 30).catch(x => x);
+  assert.equal(e.code, 'offline');
+  assert.match(a, /export function withLimit\(p, ms\) \{/, 'api.js runs exactly this race');
+});
