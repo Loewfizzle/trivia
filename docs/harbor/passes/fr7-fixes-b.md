@@ -152,4 +152,21 @@ stamp rules; the older sighting tests now open the city first. No rules change (
    ANSWERING" report during a boot; the hang watch already reports that case.
 
 ## The end
-(the final runs, the push, the live count — below)
+
+**Local, on the mini PC (my own emulators + `serve.mjs --emu`, `DAILY_TEST=1` for the dailies; Ben's :5190 left alone), after every group + add-on:**
+the unit suite 1,707 / 1,707 · rules 81 / 81 · `/api`: `server.test` 48 / 48, `sightings` 6 / 6, `progression` 10 / 10, `password` 10 / 10,
+`coastclear` 14 / 14, `friends` 8 / 8, `daily-module` 18 / 18, `lab` 2 / 2, `vault-2b` 3 / 3, `vault-2c` 3 / 3, `holdem-server` (alone) 21 / 21 ·
+`e2e-profiles` 142 / 142 (first, on fresh emulators) · smoke 8 / 8 · CONN 21 / 21 · `e2e-daily` 53 / 53 · `e2e-prism FAST=1` 63 / 63 · `e2e-oc-2`
+(N = 4 — OVERCLOCK has no FAST path) 27 / 27 · `e2e-holdem FAST=1` 22 / 22 · `wk-load` 4 loads / 0 problems · `wk-freeze` 60 loads / 0 freezes ·
+`wk-edge` 6 / 6 · `wk-twotabs` 7 / 7 · `prism-nowebgl` 3 / 3 · `sw-cache` 3 / 3 · THE BASELINE GUARD 1.13× / 1.08× / 1.00× (≤ 2×) · `ONLY=load` 34 / 34 ·
+**the FULL `e2e-harbor` 1,263 / 1,264 (~33 min, 4 shards)** — the one red the SIGHTINGS photo-at-the-tap check under the shard load (FR7-A's F line);
+`ONLY=sightings` alone 11 / 11, twice.
+**`wk-double`: 21 / 22 once — `resize-hidden`.** Measured: its 0.25 s pixel check fails ~1 in 5 on the pass's STARTING code too (2 / 10 at `8777f625`
+in a worktree on :5174, the same server); with this pass's return-moment hello it went to ~3 in 5, so that hello now waits 1.5 s after the return
+(`13decb84`) → 2 / 6, the old rate. A pre-existing flake of that check, not a second camera (every frame: one camera).
+
+**Known issues:** the `resize-hidden` pixel flake (above); the SIGHTINGS photo check under the 4-shard load (FR7-A's F); `assets/og.jpg` still shows
+GRIDLOCK's sign; the link previews' text says "twelve party games"; C4 (the room list) open; three NICE lines (Group 7).
+
+**Servers:** my emulators (fresh twice), `serve.mjs --emu` on :5173 and the base / plain servers on :5174 / :5175 (the bisect) — all STOPPED at the end;
+Ben's :5190 left running.
