@@ -512,6 +512,7 @@ test('THE RULES-LAG: the nodes newer than the published rules (ocm, ocnext) are 
   for (const n of NEW_PLAYER_NODES) assert.ok(!ALL_PLAYER_NODES.includes(n), `${n} stays out of the atomic clear`);
   for (const n of ALL_PLAYER_NODES) assert.ok(n in live, `${n} is in the rules as published (a delete of an unknown path would refuse the whole start)`);
   const host = readFileSync('js/host.js', 'utf8');
-  assert.ok(host.includes('const clearNewNodes = code =>') && /clearNewNodes = code =>.*\.catch\(\(\) => \{\}\)/.test(host), 'best effort');
-  assert.equal((host.match(/clearNewNodes\((state\.)?code\)/g) || []).length, 2, 'at the start + the return');
+  // (FR7 FIXES B — A SEAT IS NOT A PLAY: the return keeps the proof nodes — `clearNewNodes(code, true)`)
+  assert.ok(host.includes('const clearNewNodes = (code, keepProof = false) =>') && /clearNewNodes = \(code, keepProof = false\) =>.*\.catch\(\(\) => \{\}\)/.test(host), 'best effort');
+  assert.equal((host.match(/clearNewNodes\((state\.)?code(, true)?\)/g) || []).length, 2, 'at the start + the return');
 });

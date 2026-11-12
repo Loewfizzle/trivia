@@ -96,6 +96,27 @@ export const PROOF_PATHS = Object.freeze({
   overclock: (m, u) => [`oc/${m}/0/${u}`, `ocm/${m}/0/${u}`],
 });
 export const proofPaths = (gid, matchId, uid) => (PROOF_PATHS[gid] ? PROOF_PATHS[gid](matchId, uid) : []);
+/**
+ * FR7 FIXES B — A SEAT IS NOT A PLAY (the owner's add-on, Grok's second opinion): EVERY credited uid — seated or not — needs its OWN node of
+ * THIS match in THIS room. ANY own node counts: PRISM DROP's board (prism/{m}/{u}); OVERCLOCK's board of ANY challenge (oc/{m}/{ci}/{u}), its
+ * combo marks (ocm/{m}/{ci}/{u}) or its sealed picks (seal/{CODE}/oc/{m}/{key}/{u}) — a player who sat out challenge 0 but played the rest
+ * still counts. The rooms where they live (PURE) → { room: [room-relative trees], seal: [seal-relative trees] }; a game with none here (the
+ * dealer's HOLD'EM reports itself; the frozen games) → null = the seat rule as before.
+ */
+export const PROOF_TREES = Object.freeze({
+  prism: m => ({ room: [`prism/${m}`], seal: [] }),
+  overclock: m => ({ room: [`oc/${m}`, `ocm/${m}`], seal: [`oc/${m}`] }),
+});
+/** PURE: the uids a match's trees prove — prism's tree is { uid: board }; OVERCLOCK's { ci | key: { uid: … } } */
+export function provenUids(gid, trees) {
+  const out = new Set();
+  for (const t of trees || []) {
+    if (!t || typeof t !== 'object') continue;
+    if (gid === 'prism') { for (const u of Object.keys(t)) out.add(u); continue; }
+    for (const per of Object.values(t)) if (per && typeof per === 'object') for (const u of Object.keys(per)) out.add(u);
+  }
+  return out;
+}
 export const asSoloRow = row => ({ rank: (row && row.rank) || 1, win: false, solo: true, c: { p: 1 }, rec: {} });
 
 export async function processReport(uid, body, now = Date.now()) {
@@ -144,8 +165,16 @@ export async function processReport(uid, body, now = Date.now()) {
   } else {
     throw new ApiError(409, 'unverifiable', 'This match can’t be checked against its room any more.');
   }
-  // credit only uids with a SEAT in the room (players/{uid}) — a name in night.n is not a player
-  for (const u of Object.keys(ex.rows)) if (!(players && players[u])) delete ex.rows[u];
+  // FR7 FIXES B — A SEAT IS NOT A PLAY: the uids this match's own nodes prove (null = a game with no proof here: the seat rule as before)
+  let proven = null;
+  if (PROOF_TREES[ex.gid]) {
+    const T = PROOF_TREES[ex.gid](matchId);
+    const trees = await Promise.all([...T.room.map(p => val(`rooms/${code}/${p}`)), ...T.seal.map(p => val(`seal/${code}/${p}`))]);
+    proven = provenUids(ex.gid, trees);
+  }
+  const playedIt = u => !proven || proven.has(u);
+  // credit only uids with a SEAT in the room (players/{uid}) — a name in night.n is not a player — AND (FR7 FIXES B) their own proof
+  for (const u of Object.keys(ex.rows)) if (!(players && players[u]) || !playedIt(u)) delete ex.rows[u];
   if (!ex.rows[uid]) throw new ApiError(403, 'not_in_match');
   // FR7-A's C1 — THE REAL PLAYER COUNT: what a win / a place pays grows with the player count, so the count is the match's REAL players
   // (never the length of a host-written list): seated in the room, or — a player who left after the match — an account the server
@@ -154,9 +183,11 @@ export async function processReport(uid, body, now = Date.now()) {
   const known = {};
   await Promise.all(named.filter(u => !(players && players[u])).map(async u => {
     if (!(await pidOf(u))) return;
+    if (proven) { if (proven.has(u)) known[u] = true; return; }
     for (const p of proofPaths(ex.gid, matchId, u)) if ((await val(`rooms/${code}/${p}`)) != null) { known[u] = true; return; }
   }));
-  const real = realPlayers(named, players, known).length;
+  // (FR7 FIXES B: a name without its own proof is dropped BEFORE the count — one real player left = the solo rule, as before)
+  const real = realPlayers(named.filter(playedIt), players, known).length;
   if (real < 2 && !ex.solo) {
     if (!SOLO_OK[ex.gid]) throw new ApiError(409, 'unverifiable', 'This match had no second player.');
     ex.rows = { [uid]: asSoloRow(ex.rows[uid]) };

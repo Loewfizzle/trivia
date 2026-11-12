@@ -165,3 +165,16 @@ test('the NICE lines (FR7-A): HOST raced against 20 s with a plain line (one att
   assert.match(gate, /else if \(answered\) ss\.set\(KEY, \{ no: true, pid: lastPid, at: Date\.now\(\) \}\);/, 'a NO remembered (never a lost call)');
   assert.match(gate, /const no = !role && c && c\.no && c\.at > Date\.now\(\) - KEEP_MS && c\.pid === lastPid;/, '… for that profile only');
 });
+
+test('A SEAT IS NOT A PLAY — the walk back keeps the proof nodes + the seal (a late report still finds them); the next start wipes them', () => {
+  const host = fs.readFileSync('js/host.js', 'utf8');
+  assert.match(fs.readFileSync('js/games/registry.js', 'utf8'), /export const PROOF_NODE_LIST = Object\.freeze\(\['prism', 'oc', 'ocm'\]\);/);
+  const back = host.slice(host.indexOf('export async function backToLobby'), host.indexOf('/** TESTS: backToLobby'));
+  assert.match(back, /\.\.\.clearPlayerNodes\(true\)/, 'the walk back keeps them');
+  assert.ok(!/wipeSeal\(/.test(back), 'the seal stays until the next start');
+  const start = host.slice(0, host.indexOf('export async function backToLobby'));
+  assert.match(start, /wipeSeal\(state\.code\);\s*await update\(dbRef\(`rooms\/\$\{state\.code\}`\), \{[\s\S]*?\.\.\.clearPlayerNodes\(\),/, 'the next start wipes everything, as before');
+  const rep = fs.readFileSync('api/report.js', 'utf8');
+  assert.match(rep, /if \(!\(players && players\[u\]\) \|\| !playedIt\(u\)\) delete ex\.rows\[u\];/, 'every credited uid needs its own proof');
+  assert.match(rep, /const real = realPlayers\(named\.filter\(playedIt\), players, known\)\.length;/, 'dropped BEFORE the count');
+});

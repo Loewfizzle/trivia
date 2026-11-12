@@ -52,6 +52,12 @@ const NIGHT = { 1: 3, 2: 2, 3: 1 };
 let codeN = 0;
 const nextCode = () => { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; codeN++; return `T${A[Math.floor(codeN / 24) % 24]}${A[codeN % 24]}Z`; };
 
+/** FR7 FIXES B: the nodes only each player writes in a real match (api/report.js#PROOF_TREES) */
+function proofNodes(id, m, uids) {
+  if (id === 'prism') return { prism: { [m]: Object.fromEntries(uids.map(u => [u, { st: 'out', at: clock, sc: 1 }])) } };
+  if (id === 'overclock') return { oc: { [m]: { 1: Object.fromEntries(uids.map(u => [u, { done: true, doneAt: clock }])) } } };
+  return {};
+}
 /** Seeds a room whose match just finished; returns { code, matchId, game }. */
 async function seedRoom(id, uids, opts = {}, names = {}) {
   const code = opts.code || nextCode();
@@ -69,6 +75,9 @@ async function seedRoom(id, uids, opts = {}, names = {}) {
     game,
     night: { [game.matchId]: night },
     ...(boards ? { boards: { [game.matchId]: boards } } : {}),
+    // (FR7 FIXES B — A SEAT IS NOT A PLAY: each player's OWN node of the match, as a real match leaves it; opts.noProof = the uids that wrote
+    //  nothing — a forged seat)
+    ...proofNodes(id, game.matchId, uids.filter(u => !(opts.noProof || []).includes(u))),
   });
   return { code, matchId: game.matchId, game };
 }
@@ -700,6 +709,50 @@ test('FR7 FIXES B — C5: the live rooms by the index — a stale room and the b
   } finally { await ref('rooms').update({ LIVA: null, LIVB: null, OLDD: null }); }
 });
 
+// FR7 FIXES B — A SEAT IS NOT A PLAY (the owner's add-on — Grok's second opinion): EVERY credited uid needs its OWN node of THIS match in
+// THIS room (api/report.js#PROOF_TREES) — a seat alone is nothing
+test('FR7 FIXES B — A SEAT IS NOT A PLAY: a seated guest who wrote nothing gets nothing (no 2-player win for the host); a real match as before; challenge 0 skipped still counts', async () => {
+  const { SOLO_XP, XP } = await import('../../js/core/ranks.js');
+  // a host-forged PRISM final naming a SEATED guest who never wrote a board → the guest gets nothing, the host a solo run (never a win)
+  await ensure('u-sp1', 'SEATHOST'); await ensure('u-sp2', 'SEATGUEST');
+  const F = await seedRoom('prism', ['u-sp1', 'u-sp2'], { noProof: ['u-sp2'] }, { 'u-sp1': 'SEATHOST', 'u-sp2': 'SEATGUEST' });
+  const rf = await report('u-sp1', F);
+  assert.equal(rf.status, 'counted');
+  assert.equal(rf.outcome.win, false, 'no 2-player win for the host');
+  assert.equal(rf.outcome.n, 1, 'the real count: 1');
+  assert.equal(rf.outcome.xp.gain, SOLO_XP, "the solo run's XP");
+  const o = (await val(`results/${F.code}_${F.matchId}`)).o;
+  assert.equal(o[await val('uids/u-sp2')], undefined, 'the seated guest who wrote nothing: not credited');
+  const rg = await report('u-sp2', F).catch(e => ({ refused: e.status }));
+  assert.ok(rg.refused === 403 || (rg.outcome == null), `the guest's own report: nothing (${JSON.stringify(rg).slice(0, 80)})`);
+  tick();
+  // a real 2-player match: both credited, a 2-player win — as before
+  await ensure('u-sr1', 'REALONE'); await ensure('u-sr2', 'REALTWO');
+  const R = await seedRoom('prism', ['u-sr1', 'u-sr2']);
+  const rr = await report('u-sr1', R);
+  const or = (await val(`results/${R.code}_${R.matchId}`)).o;
+  assert.ok(or[await val('uids/u-sr1')] && or[await val('uids/u-sr2')], 'both credited');
+  assert.equal(rr.outcome.win, true); assert.equal(rr.outcome.xp.gain, XP.played + XP.win + XP.newGame, '95 XP, as before');
+  tick();
+  // OVERCLOCK: a player who sat out challenge 0 but played challenge 2 (its combo marks only) still counts
+  await ensure('u-so1', 'OCONE'); await ensure('u-so2', 'OCTWO');
+  const O = await seedRoom('overclock', ['u-so1', 'u-so2'], { noProof: ['u-so2'] });
+  await ref(`rooms/${O.code}/ocm/${O.matchId}/2/u-so2`).set('110');
+  const ro = await report('u-so1', O);
+  const oo = (await val(`results/${O.code}_${O.matchId}`)).o;
+  assert.ok(oo[await val('uids/u-so2')] && !oo[await val('uids/u-so2')].skip, 'challenge 0 skipped, challenge 2 played: credited');
+  assert.equal(ro.outcome.n, 2, 'a 2-player match');
+  tick();
+  // …and its SEALED picks alone count too
+  await ensure('u-sq1', 'SEALONE'); await ensure('u-sq2', 'SEALTWO');
+  const Q = await seedRoom('overclock', ['u-sq1', 'u-sq2'], { noProof: ['u-sq2'] });
+  await ref(`seal/${Q.code}/oc/${Q.matchId}/k3/u-sq2`).set({ a: '1' });
+  const rq = await report('u-sq1', Q);
+  assert.equal(rq.outcome.n, 2, 'the sealed picks of a later challenge prove the play');
+  await ref(`seal/${Q.code}`).remove();
+  tick();
+});
+
 // LOBBY FIXES — ONE PROFILE, ONE SEAT + ONE ACCOUNT, ONE ROOM: whatever a client does, the server credits a profile once per match (its
 // WORSE seat) and never for a match that overlaps one it already counted in ANOTHER room
 test('ONE ACCOUNT, ONE ROOM: one profile in two seats is credited once (the worse); two rooms at once — the second never counts', async () => {
@@ -1201,11 +1254,12 @@ test('CITY CONTROLS A — THE RADIO: roles per action, the dark, one at a time, 
 });
 
 
+// (FR7 FIXES B: the room has its activeAt — every room has had one since FR7 FIXES A's C3 rule; STATS reads the live rooms by it — C5)
 test('admin stats: live rooms, games, players and busiest times from the real nodes', async () => {
   const boss = await ensure('u-statboss', 'StatBoss');
   await rejects(adminAction('u-statboss', { action: 'stats' }), 403, 'not_admin');
   const now = Date.now();
-  await ref('rooms/STAT').set({ meta: { hostId: 'u-s1', status: 'playing', createdAt: now - 600_000 }, players: { 'u-s1': { name: 'A' }, 'u-s2': { name: 'B' } }, presence: { 'u-s1': { online: true }, 'u-s2': { online: true } }, game: { id: 'golf', phase: 'play' } });
+  await ref('rooms/STAT').set({ meta: { hostId: 'u-s1', status: 'playing', createdAt: now - 600_000, activeAt: now - 60_000 }, players: { 'u-s1': { name: 'A' }, 'u-s2': { name: 'B' } }, presence: { 'u-s1': { online: true }, 'u-s2': { online: true } }, game: { id: 'golf', phase: 'play' } });
   process.env.ADMIN_PIDS = boss.pid;
   try {
     const S = await adminAction('u-statboss', { action: 'stats', fresh: true }, now);
@@ -1436,7 +1490,8 @@ test('FR7-A C1 — THE REAL PLAYER COUNT: the 5,001-name forgery is refused; gho
   const seat = (u, i = 0) => ({ name: u.toUpperCase(), color: 'cyan', avatar: 'bolt', joinedAt: i });
   /** a room its "host" wrote by hand: only the host seated, a night record of its own making (the snapshot path's whole input) */
   const forge = async (uid, code, m, p, g = 'prism') => {
-    await ref(`rooms/${code}`).set({ meta: { hostId: uid, status: 'lobby', createdAt: clock, activeAt: clock }, players: { [uid]: seat(uid) }, night: { [m]: { g, at: clock, p } } });
+    // (FR7 FIXES B: the caller's own node of the match — what a real player leaves; the ghosts have none)
+    await ref(`rooms/${code}`).set({ meta: { hostId: uid, status: 'lobby', createdAt: clock, activeAt: clock }, players: { [uid]: seat(uid) }, night: { [m]: { g, at: clock, p } }, ...proofNodes(g, m, [uid]) });
     return { code, matchId: m };
   };
   const snapOf = room => ({ matchId: room.matchId });
@@ -1525,7 +1580,7 @@ test('FR7-A C1 — THE REAL PLAYER COUNT: the 5,001-name forgery is refused; gho
   // FR7 FIXES A — decision 6: a record naming a REAL but ABSENT account (it exists — it never sat in this match) pays nothing for it
   const three2 = ['u-rq1', 'u-rq2', 'u-rq3'];
   for (const u of three2) await ensure(u, u.slice(2).toUpperCase());
-  const Q = await seedRoom('prism', three2);
+  const Q = await seedRoom('prism', three2, { noProof: ['u-rq3'] });
   await ref(`rooms/${Q.code}/players/u-rq3`).set(null);   // (no seat, no board of this match: only an account that exists)
   const oq = await paid(Q, ['u-rq1', 'u-rq2'], 2);
   assert.equal(oq.find(x => x.win).xp.gain, XP.played + XP.win + XP.newGame, 'an account with no proof of THIS match: a 2-player win (95), never 3');

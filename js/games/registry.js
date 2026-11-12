@@ -77,5 +77,7 @@ export function liveKeyFor(game) {
 // take the whole write down (OC1: OVERCLOCK's combo marks + READY taps). They're keyed by the match, so a leftover never leaks into the next.
 // Once the owner has re-published, a later pass may move them into ALL_PLAYER_NODES.
 export const NEW_PLAYER_NODES = ['ocm', 'ocnext'];
+// (FR7 FIXES B: a play's proof — report.js#PROOF_TREES; kept at the walk back, wiped at the next start)
+export const PROOF_NODE_LIST = Object.freeze(['prism', 'oc', 'ocm']);
 // Every player-writable node any game uses; wiped when a match starts or ends.
 export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes', 'pulse', 'golf', 'agclue', 'agready', 'agpin', 'agvote', 'agguess', 'prism', 'prismq', 'prismcall', 'slip', 'slipcall', 'glready', 'glshot', 'glres', 'glcall', 'hslock', 'rrpub'];

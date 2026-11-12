@@ -11,7 +11,7 @@ import { state, isHost, onlineMap } from './store.js';
 import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
-import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, loadGame, metaOf } from './games/registry.js';
+import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, PROOF_NODE_LIST, loadGame, metaOf } from './games/registry.js';
 import { toast } from './ui/toast.js';
 import { lazyImport } from './ui/lazy-import.js';
 import { nightPoints } from './core/night.js';
@@ -263,15 +263,20 @@ function stampRefused(kind, e) {
   refusedSaid = true;
   lazyImport(import('./errlog.js'), './errlog.js').then(m => m.reportError(new Error(`ROOM STAMP REFUSED (${kind}) — the live database rules are older than the code: re-publish database.rules.json (meta/go, meta/back, rv)`), 'rules')).catch(() => {});
 }
-const clearPlayerNodes = () => Object.fromEntries(ALL_PLAYER_NODES.map(n => [n, null]));
+// FR7 FIXES B — A SEAT IS NOT A PLAY (the owner's add-on): the server credits a player only with their OWN node of the match (api/report.js#
+// PROOF_PATHS — PRISM's board, OVERCLOCK's boards / combo marks / sealed picks). A report can land AFTER the room is back (the snapshot path —
+// a solo run tapped through before /api answered, a queued retry), so the walk back KEEPS those nodes (+ the seal); the NEXT match's start
+// wipes them as before (they are keyed by the match: nothing leaks into it)
+const PROOF_NODES = new Set(PROOF_NODE_LIST);   // (games/registry.js — the console names no game)
+const clearPlayerNodes = (keepProof = false) => Object.fromEntries(ALL_PLAYER_NODES.filter(n => !(keepProof && PROOF_NODES.has(n))).map(n => [n, null]));
 // (OC1 — THE RULES-LAG: the nodes newer than the published rules, in a write of their own — a refusal here never stops a start or a return)
-const clearNewNodes = code => { if (code) update(dbRef(`rooms/${code}`), Object.fromEntries(NEW_PLAYER_NODES.map(n => [n, null]))).catch(() => {}); };
+const clearNewNodes = (code, keepProof = false) => { if (code) update(dbRef(`rooms/${code}`), Object.fromEntries(NEW_PLAYER_NODES.filter(n => !(keepProof && PROOF_NODES.has(n))).map(n => [n, null]))).catch(() => {}); };
 // THE SEAL's envelopes (seal/{CODE}, outside the room) go with the player nodes at a match's start + end
 const wipeSeal = code => { if (code) remove(dbRef(`seal/${code}`)).catch(() => {}); };
 
 export async function backToLobby() {
   if (!isHost() || !state.code) return;
-  wipeSeal(state.code);
+  // (FR7 FIXES B: the seal + the proof nodes stay until the next start — a late report still finds them)
   const g = state.game;
   // (LOBBY 2.0 B — AFTER THE MATCH: the walk back out, THE WINNER's BANNER PLANE + the REMATCH ring all read this stamp — core/room-show.js.
   //  Written FIRST (the room still 'playing': nothing shows yet), so every phone has it when the room comes back; its own write — a room on
@@ -280,9 +285,9 @@ export async function backToLobby() {
   //  The RULES-LAG fallback stays: a refusal (rules without meta/back) → the old two writes, the second alone always gets the room back)
   const code = state.code;
   const stamp = { 'meta/go': null, 'meta/back': g && g.matchId ? { at: serverTimestamp(), m: g.matchId, g: g.id, rm: isPlayable(g.id) } : null, rv: null };
-  const back = { game: null, ...clearPlayerNodes(), 'meta/status': 'lobby', 'meta/activeAt': serverTimestamp() };
+  const back = { game: null, ...clearPlayerNodes(true), 'meta/status': 'lobby', 'meta/activeAt': serverTimestamp() };
   backWrites.n++;
-  clearNewNodes(code);
+  clearNewNodes(code, true);
   try { await update(dbRef(`rooms/${code}`), { ...stamp, ...back }); return; } catch (e) { backWrites.fallback++; stampRefused('back', e); }
   await update(dbRef(`rooms/${code}`), stamp).catch(() => {});
   await update(dbRef(`rooms/${code}`), back).catch(e => console.warn('lobby', e));
