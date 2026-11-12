@@ -6555,3 +6555,4 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 - THE BUILD TABLE (Nov 11 night, FR7-A Step 0): HOLD'EM IN THE CITY ✅ (passes/holdem-city.md); FR7-A (this pass: REVIEW #7, PART A — read-only, THE CITY + THE CONSOLE,
   "ready for strangers?"; the report = docs/harbor/review-7a.md; no code, tests, config or data changed) ← NOW; then FR7-B (the three games + the two dailies, read-only) →
   FR7 FIXES (from both reports) → THE LAUNCH → SIDEWAYS.
+- THE BUILD TABLE (Nov 12, FR7-B Step 0): FR7-A ✅ (docs/harbor/review-7a.md; its Must-fix 1 — THE REAL PLAYER COUNT — already fixed in 678395fe); FR7-B (this pass: REVIEW #7, PART B — read-only, THE THREE GAMES + THE TWO DAILIES, "ready for strangers?"; the report = docs/games/review-7b.md; no code, tests, config or data changed) ← NOW; then FR7 FIXES (from both reports) → THE LAUNCH → SIDEWAYS.
