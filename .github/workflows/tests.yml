@@ -5,6 +5,10 @@
 # nothing (the laptop runs the unit suite before every push anyway). Pull requests + Run workflow by hand (`gh workflow run tests`) always run.
 # Nothing here needs a secret — everything runs against the local Firebase emulators. docs/testing.md "GitHub checks".
 name: tests
+# FR7 FIXES B — THE PRIVATE-REPO WORKFLOW (D1, the owner: no self-hosted runner): PUBLIC (now) = exactly as before. PRIVATE (after THE
+# PRIVATE FLIP) = this LIGHT workflow is the only cloud run on a pass's final push (either tag — harbor.yml skips itself), and its
+# integration job runs unit → rules → /api → smoke (CONN + presence only while public: they run locally before every final push).
+# tests/workflows.test.mjs evaluates both branches.
 
 on:
   # (FR6 FIXES A, G5: NO path filter on push — a `paths-ignore` drops a docs-only push BEFORE `if:` reads the tag, so a pass whose tagged
@@ -19,6 +23,9 @@ on:
 concurrency:
   group: tests-${{ github.ref }}-${{ (github.event_name != 'push' || contains(github.event.head_commit.message, '[ci]') || contains(join(github.event.commits.*.message, ' '), '[ci]') || contains(github.event.head_commit.message, '[harbor]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')) && 'full' || 'skip' }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   unit:
@@ -66,6 +73,7 @@ jobs:
         working-directory: tests/integration
         env:
           CHROME: /usr/bin/google-chrome
+          PRIVATE_REPO: ${{ github.event.repository.private }}
         run: |
           npx firebase emulators:exec --only database,auth --project demo-arcade --config ../../firebase.json '
             set -e
@@ -80,8 +88,10 @@ jobs:
             (cd ../.. && node scripts/serve.mjs --emu > /tmp/serve.log 2>&1 &)
             for i in $(seq 1 30); do curl -sf http://localhost:5173/ > /dev/null && break; sleep 1; done
             node e2e-smoke.mjs "$CHROME" ./shots
-            node e2e-conn.mjs "$CHROME" ./shots
-            SHOTS=0 node e2e-presence.mjs "$CHROME" ./shots-presence
+            if [ "$PRIVATE_REPO" != "true" ]; then
+              node e2e-conn.mjs "$CHROME" ./shots
+              SHOTS=0 node e2e-presence.mjs "$CHROME" ./shots-presence
+            fi
           '
       - name: Smoke-test screenshots (on failure)
         if: failure()

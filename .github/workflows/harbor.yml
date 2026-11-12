@@ -9,6 +9,10 @@
 #   • a newer FULL run cancels an older full run (a skipped push never cancels a full run); npm + emulator downloads cached; no screenshots
 #     unless a check fails.
 name: harbor
+# FR7 FIXES B — THE PRIVATE-REPO WORKFLOW (D1, the owner: no self-hosted runner): the job reads the repo's OWN VISIBILITY. PUBLIC (now) =
+# exactly as before. PRIVATE (after THE PRIVATE FLIP) = a push never runs it (the full Harbor suite runs on the mini PC before every final
+# push, as now — a private repo's 2,000 free minutes can't carry ~125 a run); `gh workflow run harbor` by hand still does.
+# tests/workflows.test.mjs evaluates both branches.
 
 on:
   # FR6 FIXES A (G5): NO path filter on push. GitHub evaluates `paths:` on the WHOLE push's diff and creates NO run at all when nothing
@@ -26,13 +30,17 @@ on:
         options: [all, audio, show, city, perf, street, wild, legend, holiday, windows, models, lobby, room2, lobbyfix, lobbyfix2, speed]
 
 concurrency:
-  group: harbor-${{ github.ref }}-${{ (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[harbor]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')) && 'full' || 'skip' }}
+  group: harbor-${{ github.ref }}-${{ (github.event_name == 'workflow_dispatch' || (!github.event.repository.private && (contains(github.event.head_commit.message, '[harbor]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')))) && 'full' || 'skip' }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   harbor:
     # (the pass's final push only: a commit message in the push carries [harbor]; or Run workflow by hand)
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[harbor]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')
+    # (FR7 FIXES B: a PRIVATE repo's push never runs it — by hand only)
+    if: github.event_name == 'workflow_dispatch' || (!github.event.repository.private && (contains(github.event.head_commit.message, '[harbor]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')))
     name: e2e-harbor · ${{ matrix.job }}
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -126,3 +126,29 @@ test('the evaluator itself: the OLD harbor rule + its path filter really dropped
   const glob = (g) => new RegExp('^' + g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '§').replace(/\*/g, '[^/]*').replace(/§/g, '.*') + '$');
   assert.equal(oldPaths.some(g => glob(g).test('docs/harbor/passes/lobby-2b.md')), false);
 });
+
+// FR7 FIXES B — THE PRIVATE-REPO WORKFLOW (D1, the owner: no self-hosted runner): the workflows read the repo's OWN visibility. PUBLIC =
+// exactly as before; PRIVATE = a pass's final push runs only the LIGHT tests workflow (unit → rules → /api → smoke), the harbor workflow
+// skips itself on a push (by hand still runs it).
+const vis = (ev, priv) => ({ ...ev, event: { ...ev.event, repository: { private: priv } } });
+test('THE PRIVATE-REPO WORKFLOW — public: exactly as before (both workflows, both tags)', () => {
+  const h = read('harbor.yml'), t = read('tests.yml');
+  for (const ev of [B2_FINAL, HARBOR_DEEP]) { assert.equal(runs(h, vis(ev, false)), true); assert.equal(runs(t, vis(ev, false)), true); }
+  assert.equal(runs(t, vis(CI_PASS, false)), true);
+  assert.equal(runs(h, vis(UNTAGGED_CODE, false)), false);
+  assert.equal(evaluate(group(h), { github: vis(B2_FINAL, false) }), 'full');
+});
+test('THE PRIVATE-REPO WORKFLOW — private: the harbor workflow never runs on a push (by hand it does); the light tests workflow does', () => {
+  const h = read('harbor.yml'), t = read('tests.yml');
+  assert.equal(runs(h, vis(B2_FINAL, true)), false, 'a harbor-tagged push of a PRIVATE repo: no cloud Harbor run');
+  assert.equal(runs(h, vis(HARBOR_DEEP, true)), false);
+  assert.equal(runs(h, vis(DISPATCH, true)), true, 'gh workflow run harbor still works');
+  assert.equal(evaluate(group(h), { github: vis(B2_FINAL, true) }), 'skip', 'a skipped push never cancels a by-hand run');
+  assert.equal(runs(t, vis(B2_FINAL, true)), true, 'the harbor tag runs the LIGHT tests workflow instead');
+  assert.equal(runs(t, vis(CI_PASS, true)), true);
+  assert.equal(runs(t, vis(UNTAGGED_CODE, true)), false, 'an untagged push still skips');
+  // the light set: CONN + presence only while public (the step's shell reads the visibility)
+  assert.match(t, /PRIVATE_REPO: \$\{\{ github\.event\.repository\.private \}\}/);
+  assert.match(t, /if \[ "\$PRIVATE_REPO" != "true" \]; then\n\s+node e2e-conn\.mjs[^\n]*\n\s+SHOTS=0 node e2e-presence\.mjs[^\n]*\n\s+fi/);
+  for (const f of ['harbor.yml', 'tests.yml']) assert.match(read(f), /^permissions:\n {2}contents: read$/m, `${f}: read-only token`);
+});

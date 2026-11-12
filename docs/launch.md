@@ -120,4 +120,16 @@ time offered, and **Production** to about a week (enough to roll back; Vercel al
 
 ## THE MINUTES ONCE PRIVATE (D1 — from FR7 FIXES B)
 
-(filled in Group 4 — see below)
+The owner's decision: NO self-hosted runner. The two workflows read the repo's own visibility (`github.event.repository.private`), so the
+switch happens BY ITSELF at the flip — nothing to edit:
+- **PUBLIC (now):** exactly as before — a pass's final push runs `tests` (either tag) + `harbor` (the harbor tag). Public minutes are free.
+- **PRIVATE:** a final push runs ONLY the light `tests` workflow (unit → rules → /api → smoke; CONN + presence skipped — they run on the mini
+  PC). `harbor` never runs on a push (its ~125 billed minutes a run would eat the month in a few days); the full Harbor suite runs locally
+  before every final push, as it does now. `gh workflow run harbor` still runs it by hand (~125 minutes — only when it's worth it).
+
+**The estimate (measured Nov 12):** a `tests` run bills **~11 minutes** (two jobs: unit 3.5 min + rules / /api / smoke 6 min, each rounded up;
+FR7 FIXES B's four more /api suites add about a minute, the skipped CONN + presence take about one off). A private Free repo gets **2,000
+minutes a month** → **~180 runs ≈ 6 final pushes a day**. The pace of Nov 8–12 was 6–11 full runs a day (two or three passes a day, each with
+an early deploy) = **~2,000–3,600 a month — over the line at that pace.** After the flip: one tagged final push per pass (the early hotfix
+pushes with the deploy tag only — they run nothing), and ≤ 5 a day stays inside (~1,650). GitHub → Settings → Billing → Actions shows the
+month so far.
