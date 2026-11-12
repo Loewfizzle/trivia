@@ -12,7 +12,7 @@
 // Runs on the emulators + scripts/serve.mjs --emu (E2E_BASE for another port, e.g. a worktree on :5174). LIVE=1 + --base
 // https://neonspeakeasy.com = a READ-ONLY timing of the live site (the guard adds &test=1: no profile, no member Nº — never a room).
 //
-//   node tests/integration/boot-time.mjs "<browser>" [--runs 3] [--cpu 4] [--net wifi|4g|none] [--warm] [--trace] [--live]
+//   node tests/integration/boot-time.mjs "<browser>" [--runs 3] [--cpu 4] [--net wifi|4g|none] [--warm [--prime N]] [--trace] [--live]
 //                                       [--scene day|night|grey] [--json out.json] [--tap 0] [--size 402x874] [--log]
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
@@ -24,6 +24,7 @@ const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : (ar
 const BASE = String(opt('base', process.env.E2E_BASE || 'http://localhost:5173'));
 const [W, H] = String(opt('size', '402x874')).split('x').map(Number);
 const RUNS = Number(opt('runs', 3)) || 1, CPU = Number(opt('cpu', 0)) || 0, WARM = !!opt('warm', false), TRACE = !!opt('trace', false);
+const PRIME = Math.max(1, Number(opt('prime', 1)) || 1);
 const LIVE = !!opt('live', false), TAP = String(opt('tap', '1')) !== '0', LOG = !!opt('log', false);
 // (the lines: a home Wi-Fi ≈ 30 ms to the edge + ~50 Mbps; 4G ≈ 70 ms + 9 Mbps — per request, as Chromium applies it)
 const NETS = { wifi: { latency: 30, down: 50e6, up: 10e6 }, '4g': { latency: 70, down: 9e6, up: 3e6 }, '3g': { latency: 150, down: 1.6e6, up: 0.75e6 } };
@@ -166,7 +167,9 @@ for (let i = 0; i < RUNS; i++) {
   const page = await ctx.newPage();
   await page.setViewport({ width: W, height: H, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
   await page.evaluateOnNewDocument(INIT);
-  if (WARM) { await oneLoad(ctx, page, 'prime'); await sleep(1500); }
+  // (FR7 FIXES B: --prime N — the loads before the measured warm one; THE EDGE CACHE's worker fills its build's copy on its FIRST controlled load,
+  //  so a true warm visit is the third: --prime 2)
+  if (WARM) for (let k = 0; k < PRIME; k++) { await oneLoad(ctx, page, 'prime'); await sleep(1500); }
   const r = await oneLoad(ctx, page, WARM ? 'warm' : 'cold');
   results.push(r);
   await ctx.close();

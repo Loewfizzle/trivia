@@ -165,6 +165,11 @@ the unit suite 1,707 / 1,707 · rules 81 / 81 · `/api`: `server.test` 48 / 48, 
 in a worktree on :5174, the same server); with this pass's return-moment hello it went to ~3 in 5, so that hello now waits 1.5 s after the return
 (`13decb84`) → 2 / 6, the old rate. A pre-existing flake of that check, not a second camera (every frame: one camera).
 
+**THE LIVE COUNT (after the final deploy — build `8a37a88d72b1`, Vercel BUILT; ONE read-only run, `LIVE=1` + `&test=1` — no profile, no room:
+`boot-time.mjs --live --warm --prime 2`, Chromium 402×874 @3):** a warm visit → 338 requests before the reveal, 320 answered by the worker FROM ITS
+COPY, **3 of the worker's own reached the network** (FR7-A measured 328 on the live site), + the page itself, 4 `/api` calls and Google's fonts +
+Firebase (not Vercel's) — **≈ 8 edge requests a warm visit**, 1 KB on the wire, the reveal 1.35 s (FR7-A: 1.84 s).
+
 **Known issues:** the `resize-hidden` pixel flake (above); the SIGHTINGS photo check under the 4-shard load (FR7-A's F); `assets/og.jpg` still shows
 GRIDLOCK's sign; the link previews' text says "twelve party games"; C4 (the room list) open; three NICE lines (Group 7).
 
