@@ -23,3 +23,17 @@ docs/harbor/ref
 /shots*
 /.github
 node_modules
+
+# FR7 FIXES B — D3 (the owner, Nov 12): THE FROZEN SONGS OUT OF DEPLOYS — the ten frozen games' own songs; no live playlist, mood
+# station (City 2.0's decks), lobby song, podium or daily plays them (tests/frozen-songs.test.mjs fails if one does). They come back WITH
+# THEIR GAME: delete that game's lines here in the pass that switches it back on. (CIPHER · LAST SIGNAL · BLUFF · NEON PAR · DOUBLE AGENT +
+# GRIDLOCK · HIGH STAKES · RUMRUNNER · SLIP · PULSE)
+/audio/music/cipher-breach.mp3
+/audio/music/last-signal.mp3
+/audio/music/neural-bluff.mp3
+/audio/music/golf-*.mp3
+/audio/music/spy[123].mp3
+/audio/music/high[123].mp3
+/audio/music/run[1234].mp3
+/audio/music/slip[1-8].mp3
+/audio/pulse

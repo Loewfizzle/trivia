@@ -55,3 +55,19 @@ art/city-sfx/radio/*.flac
 scripts/oc-pools/cache/wp-raw/
 # OC7: Wiktionary's entry titles (31 MB — MISSING LINK's phrase check reads it; the verdicts are committed in scripts/oc-pools/cache/phrases.json)
 scripts/oc-pools/cache/wikt-raw/
+
+# FR7 FIXES B — D4 (the owner, Nov 12): THE REPO's GROWTH STOPPED — a pass's screenshots stay ON THE PC, out of git (they were ~20 MB a day
+# of the repo's growth: 570 MB on GitHub, the 1 GB line in ~3 weeks). Shoot into the pass's folder as before (docs/harbor/passes/<pass>/…)
+# or shots.mjs's default (./shots-review/): nothing there is committed. The ones already committed stay until THE PRIVATE FLIP's history
+# rewrite (docs/launch.md). A picture a doc MUST carry for the owner = a JPEG at 1×, ≤ 150 KB, added on purpose (git add -f) and named in
+# the pass log. tests/repo-growth.test.mjs fails on a new one past those lines.
+docs/harbor/passes/**/*.png
+docs/harbor/passes/**/*.jpg
+docs/harbor/passes/**/*.jpeg
+docs/harbor/passes/**/*.webp
+docs/harbor/passes/**/*.gif
+docs/games/**/*.png
+docs/games/**/*.jpg
+docs/games/**/*.jpeg
+docs/games/**/*.webp
+/screenshots/

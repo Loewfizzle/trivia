@@ -96,7 +96,27 @@ THE RESEED.
 
 ## THE REPO's GROWTH RULE (D4 — from FR7 FIXES B)
 
-(filled in Group 3 — see below)
+**Measured Nov 12:** GitHub says the repo is **573,690 KB (~560 MiB)**; the local clone after `git gc` packs to **549 MiB**. What it is made of
+(every version ever committed): the music ~307 MB (most of it the songs at the tip — ~253 MB), pictures ~173 MB PNG + 15 MB JPEG (the pass
+screenshots under `docs/` ~112 MB of it, `screenshots/` ~50 MB), the docs' text ~40 MB, the 3D models ~20 MB. It grew ~20 MB a day in
+the last two weeks — mostly pass screenshots. GitHub's recommended line is 1 GB.
+
+**THE RULE (from FR7 FIXES B on):**
+1. **A pass's screenshots stay on the PC.** `.gitignore` keeps every picture under `docs/harbor/passes/`, `docs/games/` and
+   `screenshots/` out of git (a pass still shoots into its folder or `./shots-review/` — `shots.mjs`'s default — and the files stay there
+   for the owner; nothing there is committed). `tests/repo-growth.test.mjs` fails on a new big one.
+2. **A picture a doc must carry** (rare — the owner's mocks under `docs/harbor/refs/`, a card's art) = a JPEG at 1×, ≤ 150 KB, added on
+   purpose (`git add -f`) and named in the pass log.
+3. **Music is the rest of the size** — each new song adds its ~3 MB to the history forever (a replaced song: its old version stays too).
+   Replace a song only when it matters; the history rewrite at THE PRIVATE FLIP drops the old versions.
+4. **The history rewrite** waits for THE PRIVATE FLIP (above): it drops every committed screenshot + the old versions of big files —
+   estimated ~560 → ~300 MB on GitHub.
+
+**THE DEPLOY'S SIZE (D3):** `node scripts/deploy-size.mjs` — **299.1 → 232.5 MiB** (1,612 → 1,583 files) once the ten frozen games' songs
+left the deploys (`.vercelignore` — they come back with their game; `tests/frozen-songs.test.mjs`).
+**Vercel → Settings → Deployment Retention** (the owner sets it — a pass can't see it): at ~10 tagged deploys a day × 232 MiB, the 10 GB
+of deployment storage holds ~4 days of deploys if nothing is pruned. Set **Canceled**, **Errored** and **Pre-Production** to the shortest
+time offered, and **Production** to about a week (enough to roll back; Vercel always keeps the current one).
 
 ## THE MINUTES ONCE PRIVATE (D1 — from FR7 FIXES B)
 
