@@ -6546,3 +6546,12 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
   FACE in GRIDLOCK's spot — the slot rule counts a row's letters, the apostrophe rides along; THE BOARD's HOLD'EM TAB — tournament wins, KOs the tie-break,
   from the dealer's record, the back-fill waits for the owner in /admin → THE BOARDS; HE9's B2 · B3 · B4 for every game; no rules change); FR7 (+ HE9's B5)
   + FR7 FIXES ← NEXT → THE LAUNCH → SIDEWAYS.
+
+## OWNER'S NOTES — NOV 11 (night)
+
+- Nov 11 (the owner): FR7 is SPLIT in two read-only reviews on Fable so each reads deep — FR7-A = THE CITY + THE CONSOLE (boot, rooms, profiles, cards, THE BOARD, progression,
+  the radio, /admin, the 8 /api functions, the rules, the service worker, the free plans, THE LAUNCH's needs); FR7-B = THE THREE GAMES (PRISM DROP · OVERCLOCK · HOLD'EM) + THE
+  TWO DAILIES (THE PASSWORD · COAST CLEAR). Then ONE FR7 FIXES from both reports (split in two passes if it runs past ~5 h). The question for both: what isn't ready for strangers.
+- THE BUILD TABLE (Nov 11 night, FR7-A Step 0): HOLD'EM IN THE CITY ✅ (passes/holdem-city.md); FR7-A (this pass: REVIEW #7, PART A — read-only, THE CITY + THE CONSOLE,
+  "ready for strangers?"; the report = docs/harbor/review-7a.md; no code, tests, config or data changed) ← NOW; then FR7-B (the three games + the two dailies, read-only) →
+  FR7 FIXES (from both reports) → THE LAUNCH → SIDEWAYS.
