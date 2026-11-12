@@ -846,3 +846,8 @@ p50 16.7 / p95 ≤ 16.8 ms in all three skins, upright + sideways) · holdem-rot
   409 `stale` (`advanced` — the caught-up table still written); a tap inside your time bank still counts.
 - **HE2 — THE HOST POKES FROM THE ROOM**: `index.js#prepare` (the host's 250 ms tick) pokes when no table is mounted (`logic.js#hostPoke` — due + 100 ms,
   the view's back-off, ≤ 8 tries; an ended match's clean-up too) — a host who quit to the room no longer slows every timed step 2–3 s.
+
+## HE11 — the owner's notes (Nov 12)
+* Nov 12 (a real play-test): THE BET SLIDER "jumps and skips around — not smooth". The cause (read in view.js#sliderPanel): iPhone Safari's built-in range input (a small thumb, a thin track), steps of up to one big blind / ≤ ~40 positions counted from the min raise (odd amounts), and the last step snapping to ALL IN. → A CUSTOM SLIDER: smooth, round amounts, − / + for fine steps, a light tick per step, ALL IN only at the very end.
+* Nov 12: a player's action buttons froze mid-match (☰ still worked, a refresh fixed it) — FIXED in FR7 FIXES A's add-on (api() under one time limit + the 10 s release).
+* Nov 12: FR7-B's HOLD'EM NICE lines ride HE11.
