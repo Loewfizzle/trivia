@@ -232,17 +232,7 @@ test('offensive names never reach a board (a house nickname stands in), and may 
   const row = b.rows.find(r => r.id === p.profile.bid);
   assert.equal(row.n, houseNick(p.profile.bid).n);
   assert.ok(!JSON.stringify(b).toLowerCase().includes('sh1t'), 'the typed name is nowhere in the response');
-  // FR7 FIXES A — C6: tapping that row (THE PLAYER PAGE) + a FRIEND REQUEST from that name — the house nickname there too (was: the raw name)
-  const pg = await profileAction('u-nice', { action: 'player', b: 'slip-dist', bid: p.profile.bid }, '', clock + 5);
-  assert.equal(pg.card.n, houseNick(p.profile.bid).n, 'the player page: the house nickname');
-  assert.ok(!JSON.stringify(pg).toLowerCase().includes('sh1t'));
-  await profileAction('u-rude', { action: 'friendAdd', pid: (await val('uids/u-nice')) }, '', clock + 6);
-  const fl = await profileAction('u-nice', { action: 'friends' }, '', clock + 7);
-  const req = (fl.in || (fl.friends && fl.friends.in) || []).find(c => c.bid === p.profile.bid);
-  assert.ok(req, `the request arrived (${JSON.stringify(Object.keys(fl))})`);
-  assert.equal(req.n, houseNick(p.profile.bid).n, 'a request from a rude name: the house nickname');
-  const self = await profileAction('u-rude', { action: 'player', pid: (await val('uids/u-rude')) }, '', clock + 8);
-  assert.equal(self.card.n, 'sh1tlord', 'the player themself still sees their own name');
+  // (FR7 FIXES A — C6: THE PLAYER PAGE + a FRIEND REQUEST — in "THE PLAYER PAGE" test below: they need players with cards)
   // renamed a moment ago, but leaving an offensive name is always allowed
   const r = await profileAction('u-rude', { action: 'rename', name: 'Polite' }, '', clock + 10);
   assert.equal(r.profile.n, 'Polite');
@@ -1806,6 +1796,21 @@ test('BOARD 2.0 A — the rows\' slim-card data (no forbidden key) + THE PLAYER 
   await profileAction('u-pp-s', { action: 'friendAccept', pid: v.pid }, '', later);
   const fr = await P({ id: s.pid });
   assert.equal(fr.rel, 'friend'); assert.equal(fr.top.length, 3);
+  // FR7 FIXES A — C6: a rude username on THE PLAYER PAGE = its HOUSE NICKNAME for a stranger; the player themself + a friend see the name
+  await ref(`profiles/${s.pid}/n`).set('sh1tlord'); forgetPlayers();
+  const rude = await profileAction('u-pp-k', { action: 'player', pid: s.pid }, '', later);
+  assert.equal(rude.card.n, houseNick(boardId(s.pid)).n, 'a stranger: the house nickname');
+  assert.ok(!JSON.stringify(rude).toLowerCase().includes('sh1t'));
+  assert.equal((await P({ id: s.pid })).card.n, 'sh1tlord', 'a friend: the name');
+  assert.equal((await profileAction('u-pp-s', { action: 'player', pid: s.pid }, '', later)).card.n, 'sh1tlord', 'the player themself: the name');
+  // …and a FRIEND REQUEST from that name: the house nickname in the other player's list
+  await profileAction('u-pp-s', { action: 'friendAdd', pid: k.pid }, '', later);
+  const fl = await profileAction('u-pp-k', { action: 'friends' }, '', later);
+  const req = (fl.in || []).find(c => c.pid === s.pid);
+  assert.ok(req, 'the request arrived');
+  assert.equal(req.n, houseNick(boardId(s.pid)).n, 'a request from a rude name: the house nickname');
+  await profileAction('u-pp-k', { action: 'friendDecline', pid: s.pid }, '', later).catch(() => {});
+  await ref(`profiles/${s.pid}/n`).set('STAR'); forgetPlayers();
   // a hidden player → only what a room shows (name + emblem), no card, no achievements
   await profileAction('u-pp-h', { action: 'show', on: false }, '', later);
   forgetPlayers();

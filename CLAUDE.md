@@ -166,6 +166,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 - **THE REAL PLAYER COUNT (FR7-A's C1, Nov 12):** anything the server PAYS BY A COUNT takes that count from what it can verify, never from
   the length of a host-written list — `api/report.js`: the match's names with a seat (`players/{uid}`) or a server-known account, ≤ 8;
   > 16 names refused; one real player = a solo run, never a win (docs/profiles.md; `server.test.mjs` "FR7-A C1").
+- **FR7 FIXES A (Nov 12 — docs/harbor/passes/fr7-fixes-a.md):** **HOST-GRADED OVERCLOCK** — the phones seal their picks (`seal/…/a`), the host
+  re-grades them after the unseal (`overclock/grade.js`; the phone's `ok` only lowers it; THE HUMAN FLOOR → no speed bonus + `fl`, no REDLINE); **THE
+  DAILY CEILING** — past 20 counted room matches an Eastern day a match pays 0 XP + moves no board (`core/progress.js#matchStep`, `CEILING_LINE`);
+  **THE RESET EPOCH** — THE PROGRESS RESET stamps `progress/resetAt`, the back-fill rebuilds only after it (`core/board-fill.js#sinceReset`); **END
+  GAME THROUGH THE DEALER** — HOLD'EM's ☰ END GAME = the dealer's `endGame` (places by chips from 3 hands, else NO RESULT — `match.js#endTournament`).
 - **A game's podium music:** `FINAL_MUSIC` in its index.js (HIGH STAKES: `victory1` = victory.mp3); default the victory playlist.
 - **OVERCLOCK (OC1 — docs/overclock.md):** QUICK default; THE ROOM's NIGHT MEMORY = the host deals the whole match at `start({ used })` (`overclock/deal.js`), each challenge marks its keys as it opens; the after-challenge skip (`ocnext`, ≥ 3 s, everyone connected); the combo (`ocm` → `game/combo`); NIGHT only (`LOOKS`); its timings are the owner's — pinned by `tests/overclock-oc1.test.mjs`; mid-game standings = LIGHT rows, never the slim cards. OC2: THE ROUND WIN is ONE rule (`logic.js#roundWin` —
   the highest + not shared; the server's REDLINE calls it; stored as `game/rw`); the after-challenge screen + the final run in BEATS inside the

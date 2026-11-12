@@ -194,3 +194,12 @@ REAL: the rules, the server judging + the record + the schedule + the list, the 
 reveal, the end screen, the sounds, the share card, the rewards (server-awarded; their art in THE LAB waiting for the owner's marks — only approved
 art ships), the E2E. NOT BUILT (THE DAILY MODULE): the way in (no lobby row, no sign — `config.js#DAILIES`, not GAMES), the banner, the pause, the
 RESUME chip, the rankings, the streak hooks, the switch-over (+ `PW_EPOCH` set to the first live day).
+
+## FR7 FIXES A (Nov 12 2026 — docs/harbor/passes/fr7-fixes-a.md)
+- **DY2 — THE GUESS IS IDEMPOTENT**: a guess carries `k` = its place in the run (0-based, both doors). A repeat (the answer lost on the way back — the
+  9 s abort, a weak line) is answered FROM THE RECORD (`logic.js#guessAgain` — the first k guesses replayed), nothing written: never guess n + 1, never
+  guess 1 of THE BACK ROOM; a different word on a filled row → 409 `out_of_step` (the phone resyncs). A phone with no `k` = the old path.
+- **DY7 — A RESUME IN A DEAD SPOT**: the keys stay locked until the server's run is in; a lost `start` retries (RECONNECTING). The preview's
+  `&deadstart=N` = the first N starts lost.
+- **DY1** (both dailies): every daily overlay loads `css/daily.css` itself (RESUME YOUR DAILY on a fresh page opened unstyled).
+- **DY4**: learn-on-a-throwaway ACCEPTED (docs/progression.md "FR7 FIXES A").

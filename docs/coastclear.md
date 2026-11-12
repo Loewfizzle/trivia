@@ -246,3 +246,10 @@ resume, the screen + the night look, the instant feel (press, pipelining, the ri
 E2E. PLACEHOLDER: the end (time + spots only). NOT BUILT (CC2): the lighthouse win + the caught screen + the share, the DAY harbor + the live swap
 (`LOOKS` is night-only now), the sounds, LIGHTHOUSE + GHOST RUN. NOT BUILT (THE DAILY MODULE): the way in, the banner, the pause call + the RESUME chip,
 the rankings, the streak hooks, the switch-over.
+
+## FR7 FIXES A (Nov 12 2026 — docs/harbor/passes/fr7-fixes-a.md)
+- **THE ROOM'S PAUSE DOESN'T COUNT** (the owner's decision 4): a pause the server verified as THE ROOM WINS is a ROOM pause (`p.r` in the record) —
+  outside the player caps (`MAX_PAUSES` 3, `PAUSE_CAP_MS` 20 min), under its own bound (`ROOM_MAX_PAUSES` 12, `ROOM_PAUSE_CAP_MS` 3 h); the phone's
+  clock reads the record's cap (`runView#pauseCap`). `api/daily.js` passes its own room check to the cartridge's `act` — never the phone's claim.
+- **DY5**: the room's pause is retried (1, 2, 4 … 30 s) while that room starts / plays (`js/daily/retry.js#retryWhile`), never sent once.
+- **DY6**: a REPEAT dig (its first answer lost) answers the cell's WHOLE flood; a light dug again answers `lit: [i]`.

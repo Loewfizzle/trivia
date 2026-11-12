@@ -835,3 +835,14 @@ p50 16.7 / p95 ≤ 16.8 ms in all three skins, upright + sideways) · holdem-rot
 - **THE END SCREEN**: HE10's SCROLL FOR MORE replaced by the console's sticky BACK TO THE ROOM + MORE BELOW (B3, `ui/final.js`; HOLD'EM's backing
   `--fin-bg: rgb(6, 5, 10)`); a CASH session where every net is equal = a draw on game night (B4 — 2 points each; no champion as before).
 - B5 (the host's END GAME / kick reach a HOLD'EM match) is FR7's.
+
+## FR7 FIXES A (Nov 12 2026 — docs/harbor/passes/fr7-fixes-a.md)
+- **END GAME THROUGH THE DEALER** (the owner's decision 5 — FR7-A B1): the host's ☰ END GAME on a HOLD'EM match calls the cartridge's `endGame` → the
+  dealer op `endGame` (host only; still 8 functions): a TOURNAMENT ends now, placed by CHIP COUNT (`match.js#endTournament` — a hand in progress VOIDED:
+  every seat keeps what it had before it; equal stacks share a place; the players already out keep theirs), credited exactly like any end from its 3
+  hands (`settleReport` → `applyMatch`, once) — under 3 hands `short`, NO RESULT; CASH = END SESSION (the ledger). The ☰ row's confirm says which
+  (`meta.js#endGameLine` — from the public table's parts). The record + `hole/` go 8 s after the end as at any end. Never the old silent wipe.
+- **HE1 — THE TABLE YOU SAW**: `holdem-dealer.js#applyOp` — an `act` whose catch-up (HE10's A14) moved the hand / street / seat to act / bet is refused
+  409 `stale` (`advanced` — the caught-up table still written); a tap inside your time bank still counts.
+- **HE2 — THE HOST POKES FROM THE ROOM**: `index.js#prepare` (the host's 250 ms tick) pokes when no table is mounted (`logic.js#hostPoke` — due + 100 ms,
+  the view's back-off, ≤ 8 tries; an ended match's clean-up too) — a host who quit to the room no longer slows every timed step 2–3 s.

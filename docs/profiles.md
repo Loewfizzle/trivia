@@ -512,3 +512,13 @@ A second way to bring your card to a device, beside the restore key (which stays
   match under the dealer's `COUNTS` never reports. Each result keeps `ko` per profile — **THE BACK-FILL** (/admin → THE BOARDS) rebuilds the wins from
   every counted tournament on record and the knockouts from the records that keep them (from this pass on); never lower than the live counters.
 - THE BOARD's HOLD'EM tab = this one board (`boards.js#tabBoards` — no RECORDS / CAREER switch) + its one-line explainer (`def.note`, `.bd-note`).
+
+## FR7 FIXES A (Nov 12 2026 — docs/harbor/passes/fr7-fixes-a.md)
+- **THE REAL PLAYER COUNT, IN THAT ROOM** (the owner's decision 6): a player who LEFT after the match counts toward the pay only with their OWN node of
+  THAT match in THAT room (`api/report.js#PROOF_PATHS` — PRISM's board `prism/{m}/{uid}`, OVERCLOCK's first challenge's board / combo marks): only that
+  uid could write it, only in play. An account that merely exists pays nothing (`server.test` "FR7-A C1").
+- **THE DAILY CEILING** + **THE RESET EPOCH**: docs/progression.md "FR7 FIXES A".
+- **THE NAMES** (FR7-A C6): THE PLAYER PAGE (`api/_lib/player.js`) shows a rude username as its HOUSE NICKNAME unless you are that player or their
+  friend; the friends list's REQUESTS (in + out) + the blocked go through `publicName` too (`api/_lib/friends.js`). The friends + the recent players keep
+  their names (you saw them in your room).
+- **THE INITIATE GUARD** (FR7-A B2): `host.js#startGameNow` refuses a start while the room's game runs and isn't at its podium (`core/room-logic.js#gameRunning`).

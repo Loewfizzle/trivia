@@ -1006,3 +1006,18 @@ The owner's decisions, in order:
 - Proof: `Downloads/NEON/overclock/shots/oc-clash-addon/` — `final-play` (word 1) · `final-right` (word 2, the colours re-rolled) · `final-wrong` (the crack + the
   right word's green outline) · `final-answer` (THE ANSWER review), each at 390 / 402 / 430 (Chromium) + `final-wk-play` / `final-wk-right` (WebKit, the three
   widths). The no-sideways guard (Color Clash 12 / 12; the full guard in the pass's run) + e2e-oc-2.
+
+## HOST-GRADED (FR7 FIXES A, Nov 12 2026 — the owner's decision 1; docs/harbor/passes/fr7-fixes-a.md)
+The phone still grades itself for its OWN screen (green / red, the pips, the combo) — the POINTS are the HOST's: each phone seals its per-part PICKS
+(`seal/{CODE}/oc/{m}/{ci}/{uid}/a` — the JSON of the picks THE ANSWER keeps, ≤ 400; their OWN write beside the board, so rules older than this pass
+refuse only them) and after PENCILS DOWN the host rebuilds the dealt challenge (`challenges.js#generate`) and grades them (`grade.js#gradeRoom` →
+`computeResults(game, boards, graded)` — the phone's `ok` can only LOWER it). No envelope in the room with picks = the old rules → the phones' `ok`
+(the fallback); once picks are live, a missing envelope grades as no answers. TIMELINE + CLOSEST CALL grade from the order / guess every phone already
+sealed. **Host-graded:** trivia, true or false, quick math, pattern lock, spellcheck, color clash, odd one out, quick count, sort it, timeline, closest
+call. **Still the phone's (no pick to grade — accepted):** signal lock, memory, unscramble, missing link, higher or lower, compass, rewire (DUMB LUCK =
+the host's draw). **THE HUMAN FLOOR** (`grade.js#humanFloorMs` — 350 ms a part; CLOSEST 1.5 s, TIMELINE 2 s, SORT IT + HIGHER OR LOWER 3 s): a finish
+under it earns no speed bonus and marks the result `fl` (never REDLINE). The rules: `doneAt` only together with `done === true` (the stamp kept from
+the start is gone). **The honest limit:** a challenge's right answers are on every phone (built there, so it's instant) — a guest who reads them out of
+their own phone and writes the right picks still scores them; the closer is server-dealt answers (after THE LAUNCH, if ever). OC3 (the same pass):
+each challenge screen gets ITS OWN api (`ui/scoped.js`) — a removed screen's writes go nowhere; SORT IT's deal timers die with it. OC1: the STANDARD
+boards take THE SCORING TABLE's bound (`match-report.js#ocRunPlausible` — QUICK solo's).

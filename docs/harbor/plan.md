@@ -6576,3 +6576,6 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
 - THE BUILD TABLE (Nov 12, FR7 FIXES A Step 0): FR7-A ✅ (docs/harbor/review-7a.md; + its C1 hotfix ✅ 678395fe — THE REAL PLAYER COUNT); FR7-B ✅ (docs/games/review-7b.md);
   FR7 FIXES A (this pass: "what a stranger or a player can hit" — the must-fixes + an early deploy, the games' real bugs, the owner's six decisions, ONE rules re-publish,
   the console's four) ← NOW; then FR7 FIXES B (the launch + the plumbing) → THE LAUNCH → SIDEWAYS.
+- FR7 FIXES A DONE (Nov 12) — passes/fr7-fixes-a.md. THE BUILD TABLE: FR7 FIXES A ✅ (the must-fixes 1–4 deployed early + THE RESET EPOCH; the games' bugs;
+  the owner's six decisions — HOST-GRADED OVERCLOCK, THE DAILY CEILING, DY4 accepted, COAST CLEAR's room pause, END GAME through the dealer, the leaver's
+  proof; ONE rules re-publish; the console's four); FR7 FIXES B (the launch + the plumbing) ← NEXT → THE LAUNCH → SIDEWAYS.

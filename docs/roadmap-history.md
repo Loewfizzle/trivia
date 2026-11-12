@@ -2661,3 +2661,15 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 - PROOF: the review's repro now answers `unverifiable` (level 1, 0 XP); its ghost-opponent control pays 15 XP, no win; `server.test.mjs`
   "FR7-A C1" (the forgery on both paths; a real 2-player win 95 XP and an 8-player win 131 XP, each player paid by the formula; the
   snapshot path; a leaver still counts). No rules change; 8 functions; no client change.
+
+## FR7 FIXES A — what a stranger or a player can hit (Nov 12, 2026 — docs/harbor/passes/fr7-fixes-a.md)
+- Group 1 (the must-fixes): PD1 PRISM's test hook only on test pages; OC1 STANDARD = THE SCORING TABLE's bound; DY1 every daily overlay loads its
+  sheet; DY2 THE PASSWORD's guess idempotent (`k`) — deployed early (`12916c2e`); E1 THE RESET EPOCH (`6d6c9a81`).
+- Group 2 (the games' bugs): PD4 the dead board, PD5 no WebGL, PD6 a 30 Hz cap is not a slow phone, PD7 the caches dropped; OC3 a challenge screen's own
+  api + SORT IT's timers; HE1 a late tap → stale, HE2 the host pokes from the room; DY5 the room pause retried, DY6 a repeat dig = its whole flood, DY7
+  the resume locked + retried.
+- Group 3 (the owner's decisions): HOST-GRADED OVERCLOCK + THE HUMAN FLOOR; THE DAILY CEILING (20); DY4 accepted; COAST CLEAR's room pause outside the
+  caps; END GAME through the dealer; THE REAL PLAYER COUNT's leaver proved in that room.
+- Group 4 (ONE rules re-publish): C3 activeAt, C4 the room list = stale rooms only, C5's caps, PD3 the attack's number, OC2 doneAt with done, the
+  sealed picks — each with a fallback on the old rules.
+- Group 5: the INITIATE guard, the solo snapshot (C1), the names on THE PLAYER PAGE + a request.

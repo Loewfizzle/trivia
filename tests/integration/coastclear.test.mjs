@@ -336,39 +336,32 @@ test('DFIX1 — the 4 am turn: start 3:58, a dig, a PAUSE at 3:59 → RESUME at 
   await rejects(AD('cc-tom', 'pause', t + 3000, 'd20261203'), 400, 'bad_day');
 });
 
-test('DFIX1 — THE PAUSE CAPS on the server: 3 pauses a run, then 409 pause_limit with the clock running; 20 minutes in all; an open pause past it closed at the cap', async () => {
+test('DFIX1 → FR7 FIXES A (decision 4) — THE PAUSE CAPS on the server: a ROOM pause (THE ROOM WINS) is outside the player caps — 12 a run, 3 h stopped in all', async () => {
   const MIN = 60_000;
-  // the count
+  const { ROOM_MAX_PAUSES, ROOM_PAUSE_CAP_MS } = await import('../../js/games/coastclear/logic.js');
+  // the count: a 4th room pause is accepted (was: 409 after 3); the 13th is refused with the clock running
   await ensure('cc-pam', 'Pam');
   await A('cc-pam', 'start', NOW);
-  for (let k = 0; k < 3; k++) {
-    assert.equal((await A('cc-pam', 'pause', NOW + (2 * k + 1) * MIN)).pauses, k + 1);
+  for (let k = 0; k < ROOM_MAX_PAUSES; k++) {
+    assert.equal((await A('cc-pam', 'pause', NOW + (2 * k + 1) * MIN)).pauses, k + 1, `room pause ${k + 1}`);
     await A('cc-pam', 'resume', NOW + (2 * k + 2) * MIN);
   }
-  const e = await rejects(A('cc-pam', 'pause', NOW + 7 * MIN), 409, 'pause_limit');
+  const e = await rejects(A('cc-pam', 'pause', NOW + 30 * MIN), 409, 'pause_limit');
   assert.match(e.message, /clock is running/);
   const P = `dly/coastclear/${day}/p/${await pidOf('cc-pam')}`;
   let rec = await val(P);
-  assert.equal(rec.p.n, 3); assert.equal(rec.p.ms, 3 * MIN); assert.equal(rec.p.at ?? null, null, 'a refused pause never stops the clock');
-  // the total: an open pause past 20 minutes — the next call (a pause) closes it AT THE CAP and is refused
+  assert.equal(rec.p.n, ROOM_MAX_PAUSES); assert.equal(rec.p.r, ROOM_MAX_PAUSES); assert.equal(rec.p.at ?? null, null, 'a refused pause never stops the clock');
+  // the total: a 60-minute HOLD'EM match stops the whole hour (was: 20 minutes); past 3 h an open pause closes at the cap
   await ensure('cc-ron', 'Ron');
   await A('cc-ron', 'start', NOW);
   await A('cc-ron', 'pause', NOW + MIN);
-  await rejects(A('cc-ron', 'pause', NOW + 30 * MIN), 409, 'pause_limit');
+  await A('cc-ron', 'resume', NOW + 61 * MIN);
   rec = await val(`dly/coastclear/${day}/p/${await pidOf('cc-ron')}`);
-  assert.equal(rec.p.ms, 20 * MIN); assert.equal(rec.p.at ?? null, null, 'auto-resumed: the clock runs from the cap');
-  await rejects(A('cc-ron', 'pause', NOW + 31 * MIN), 409, 'pause_limit');
-  // a DIG after a long pause resumes at the cap; the finish counts the time past it
-  await ensure('cc-sal', 'Sal');
-  await A('cc-sal', 'start', NOW);
-  await A('cc-sal', 'pause', NOW + 1000);
-  const { last, t } = await digAll('cc-sal', day, NOW + 1000 + 45 * MIN);
-  assert.equal(last.done, true);
-  rec = await val(`dly/coastclear/${day}/p/${await pidOf('cc-sal')}`);
-  assert.equal(rec.p.ms, 20 * MIN);
-  const f = await A('cc-sal', 'finish', t + 1000);
-  assert.equal(f.score, Math.round((rec.e - NOW - 20 * MIN) / 1000) + 15);
-  assert.ok(f.score > 25 * 60, `the 25 minutes past the cap ran on the clock (${f.score})`);
+  assert.equal(rec.p.ms, 60 * MIN, 'the whole hour stopped');
+  await A('cc-ron', 'pause', NOW + 62 * MIN);
+  await rejects(A('cc-ron', 'pause', NOW + 62 * MIN + ROOM_PAUSE_CAP_MS), 409, 'pause_limit');
+  rec = await val(`dly/coastclear/${day}/p/${await pidOf('cc-ron')}`);
+  assert.equal(rec.p.ms, ROOM_PAUSE_CAP_MS); assert.equal(rec.p.at ?? null, null, 'auto-resumed at the cap: the clock runs from it');
 });
 
 test('DFIX1 — clean errors: a GUESS sent to COAST CLEAR (it owns no guess) → 400 bad_action, never a 500', async () => {

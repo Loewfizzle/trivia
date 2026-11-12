@@ -468,3 +468,17 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
   (`paintDoor` — no door names on the combined card; BESIDE the grid for a run over 3 rows); COAST CLEAR's result + big time a centred pair, the
   searchlights ~2× under them. THE BAR: at a 360-px downscale the grid colours, the time, the streak line + the address read
   (`daily-probe.mjs SHARE_ONLY=1` saves both sizes; docs/harbor/passes/pd-4.md).
+
+## FR7 FIXES A (Nov 12 2026 — docs/harbor/passes/fr7-fixes-a.md; the owner's decisions: plan.md "OWNER'S NOTES — NOV 12")
+- **THE DAILY CEILING** (decision 2 — the win farms, FR7-A C2 + FR7-B HE3): `core/progress.js#matchStep` — past `DAILY_CEILING` (20) counted ROOM
+  matches in an Eastern day (all games together; `pstats.day.n`) a match is still counted once (`m`, the 45 s gap's clock) but pays 0 XP and moves no
+  board (no win, no record, no counter, no counted play) — the end-of-round moment's ONE line `CEILING_LINE` ("TODAY'S LIMIT · XP AGAIN AFTER 4 AM");
+  the outcome carries `cap: true`. A solo run (its own cap, 4 a day) and the dailies (DAILY XP) are separate. A real game night never meets it.
+- **THE RESET EPOCH** (FR7-A E1): THE PROGRESS RESET stamps `progress/resetAt` (server-only — the root deny) in its own update; the backup keeps the
+  epoch before it and a RESTORE puts that back. THE BACK-FILL rebuilds THE BOARDS only from what came after it (`core/board-fill.js#sinceReset` — a
+  match record with `at` ≥ the epoch, a daily run STARTED ≥ it); its preview says "only since THE RESET of …". COUNTED PLAYS (who is listed) still read
+  every record — E4 (veterans listed again at once) stays the owner's decision. The back-fill may now be pressed before OR after the reset.
+- **DY4 — LEARN IT ON A THROWAWAY, PLAY IT FOR REAL: ACCEPTED** (decision 3): every same-for-everyone daily word game has it; THE THROWAWAY GATE already
+  keeps a same-day profile from ranking, scoring or earning (the reveal it sees is the price). No code.
+- **COAST CLEAR — THE ROOM'S PAUSE DOESN'T COUNT** (decision 4): a pause THE ROOM WINS forces (checked by the server) is a room pause (`p.r`) — outside
+  `MAX_PAUSES` / `PAUSE_CAP_MS`, under its own safety bound (12 a run, 3 h stopped in all): "YOUR DAILY IS SAVED" is true through a long HOLD'EM match.

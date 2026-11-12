@@ -380,3 +380,12 @@ the last strong beat, the key, `lufs` / `tp` / `check` in the song's JSON; `writ
 4. `node --test tests/prism.test.mjs`; look at it in `prism-preview.html?world=…`; play a Score Rush (`?emu`, two slots).
 5. Commit `audio/music/prism*.mp3` + `data/prism/` and push.
 
+## FR7 FIXES A (Nov 12 2026 — docs/harbor/passes/fr7-fixes-a.md)
+- **PD1**: the test hook (`window.__prism` — its `bot()` is a perfect robot) installs only on a test page (`kit/hook.js#testMode`: `?emu`, localhost,
+  a `/tests/` preview — never deployed), never on the live site.
+- **PD3** (a rules change): an attack carries its piece number `i`; the key = `{uid}-{i}` and `i` ≤ the sender's saved pieces + 15 — no board, no
+  attacks. The rules-lag fallback: refused on the old rules → the same attack once more without `i` (the page stops sending it once that lands).
+- **PD4** an out by the director (AWAY / SIGNAL LOST) before the screen mounted → the KO card, the call, spectating (the preview's `&state=away`).
+  **PD5** no WebGL: no throw, HOLD + NEXT drawn. **PD6** A CAPPED FRAME RATE IS NOT A SLOW PHONE (the city's probe — `kit/tiers.js`). **PD7** the
+  sprite caches go `DROP_MS` (60 s) after the match's screen (a rematch keeps them).
+- Not changed: `RUSH_PACE.margin` (it wants a fresh `sim-prism-rush.mjs` against the tighter number — FR7 FIXES B).
