@@ -388,6 +388,19 @@ at 8, squeeze 0.66, people ~33 pt.)
   parade-length events of 8 in the promenade) never pops an event in or drops one, and matches a fresh replay; anchors a day
   apart agree; lanes, budget, heavy, rarity, `when()`, forced.
 
+## THE TRI-VISION (Nov 12 night — passes/jaywalk-cards.md Group 2)
+The speakeasy's roof board TURNS between TWO posters — face A HOLD'EM (`core/harbor-holdem.js`, NOW OPEN) ↔ face B JAYWALK (`screens/harbor/jaywalk-art.js`,
+COMING SOON; NOW OPEN from its open day). **THE CLOCK** (`core/harbor-trivision.js`, PURE): two turns a chapter of every[0] + every[1] s (105 s) — at 0
+and at 45 + 15 × h(chapter) (an integer hash) — so every gap is 45–60 s and every phone shows the same face at the same server moment; the timetable's
+`billboard.trivision` { every, turn 1.2, slats 12, force 8 } + `billboard.jaywalk` { on, since, open: null }; THE GOLDEN TABLE's `billboard.trivision`;
+THE DAY CHART's row. **THE TURN** (scene.js `triFrame` / `drawTri`): the board's content swaps at once under the slats (no cross-fade); the slats —
+three-faced prisms turning 120°, rippling left → right over 1.2 s — on THE CRISP LAYER (`roofboard-tri`, z 4; the city's canvas without a crisp
+layer) from the billposter's own pre-render (`neon.boardArt` → `workers.js#sheetArt`), ONCE per look at a turn's start; a quiet click (`radio-tick`);
+reduced motion = a cut; a message holds the board as before. **THE WINDOW RULE**: JAYWALK's module + art load only after the reveal; until then
+HOLD'EM; the first JAYWALK face arrives by a turn. **THE BILLPOSTER** stays home while it turns (`triKeeps`). **THE OWNER's SWITCH**: /admin → THE
+BILLBOARD's JAYWALK row (ON / OFF · NOW OPEN · an OPEN DAY) → `city2/billboard.jaywalk` → the cached feed. `&force=billboard-jaywalk` (+ `&jaywalk=open`),
+`&force=trivision` (a turn every 8 s). Proof: `tests/trivision.test.mjs` + the harbor `trivision` group (two pages, one face).
+
 ## Performance
 
 **THE CITY's LONG NIGHT (Nov 12 night — passes/jaywalk-cards.md Group 4):** the city is destroyed + rebuilt on every room / game / menu trip
@@ -1075,6 +1088,7 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | OVERCLOCK CARDS | Nov 5 | [passes/overclock-cards.md](harbor/passes/overclock-cards.md) | REDLINE + PHOTO FINISH (Grok's art + js/fx/oc-cards.js — the needle, the laser) + their server-checked unlocks; the add-on: the after-match tiles, SOLO RUN, a solo run never hosts; no rules change |
 | BUZZED LIGHTYEAR | Nov 6 | [passes/buzzed-lightyear.md](harbor/passes/buzzed-lightyear.md) | the 1-of-1 gift card (the picture taken apart: the spiral fitted + turning behind him, the stars orbiting, the HIC! popping; the strip composed eyebrows → chin) + THE CARD TEXT STANDARD on every full card; the gift strip mapping fix |
 | THE LOAD FIX | Nov 6 | [passes/load-fix.md](harbor/passes/load-fix.md) | the owner's four load problems on his iPhone reproduced in WebKit (wk-load.mjs + kit/load-probe.mjs → four `load` checks) + fixed: the bars keep the city (no doubled lettering), ONE CAMERA ON SCREEN (hold, then cut), the boot screen holds until the city (ONE fade, never the dark title), the #net pill hidden from the first frame; no rules change |
+| JAYWALK CARDS + THE TRI-VISION | Nov 12–13 | [passes/jaywalk-cards.md](harbor/passes/jaywalk-cards.md) | JAYWALK's three cards (dormant until its pass 6); THE TRI-VISION (the roof board turns HOLD'EM ↔ JAYWALK every 45–60 s); THE LOBBY GETS IT LIVE (EVERYONE's intercom + sky moments 10 s after FIRE, live in every open room); THE CITY's LONG NIGHT (the teardown misses — WebKit's peak 457 → 266 canvases); THE ERRORS GROUP (the black helicopter, stale-host writes, bots out of /admin, two lost taps); Vercel Web Analytics after the reveal; no rules change |
 | HOLD'EM IN THE CITY | Nov 11 | [passes/holdem-city.md](harbor/passes/holdem-city.md) | THE BILLBOARD → NOW OPEN (the timetable's default from Nov 11 — the billposter's one paste); HOLD'EM's skyline SIGN + DAY FACE in GRIDLOCK's spot (THE FIVE SIGNS = PRISM DROP · OVERCLOCK · HOLD'EM + NEON PAR · HIGH STAKES; the slot rule counts a row's letters — the apostrophe tube rides along; night casino red, the day face gold on felt); THE BOARD's HOLD'EM TAB (TOURNAMENT WINS, KOs the tie-break, the earlier — one sort value from the dealer's record; five tabs at 390; the back-fill); HE9's B2 (44 pt corner tap areas — the `tapfit` probe), B3 (the podium's sticky BACK TO THE ROOM + MORE BELOW), B4 (everyone tied = a draw: ALL TIED, 2nd-place night points, no win); no rules change |
 | LOAD FIX 5 | Nov 11 | [passes/load-fix-5.md](harbor/passes/load-fix-5.md) | THE DOUBLED CITY (the owner's iPhone: the billboard, EST. 1924 + the blade twice) reproduced to the point in WebKit — the city's box moved before the reveal with no window resize; THE BOX GATE + the held picture's safety in on-screen time; THE GUARD — NO TWO CAMERAS (`kit/two-cameras.mjs`: `wk-double.mjs` + the `cameras` group); no look change, the reveal unchanged |
 | LOAD FIX 4 | Nov 10 | [passes/load-fix-4.md](harbor/passes/load-fix-4.md) | GROK'S BOOT AUDIT (13 findings answered): THE REJOIN LIMIT, THE SKEW WRAPPER + the city's graph's skew path, the boot's gates in visible time, no lookbehind, a twice-failed sheet, the hang watch, the service worker, the load log; #2 + #9 parked; no rules change |

@@ -2703,3 +2703,20 @@ The owner's Vercel dashboard: **Edge Requests 1M / 1M** on the Hobby plan (an ac
 - Tests: unit 1,713 + `tests/cdn-hotfix.test.mjs`; `wk-edge` 6 / 6, `wk-twotabs` 7 / 7, `sw-cache` 3 / 3, `wk-load` 0 problems, smoke 8 / 8, CONN 21 / 21,
   `sightings.test.mjs` 7 / 7 (THE QUEUE + THE STAMP AGREE's silence now 10 min, the tap at minute 7 — past the new trail), `server.test.mjs` 50 / 50,
   harbor `panel,panelrows,sightings,radio,crew,radiorest` 163 / 163.
+
+## JAYWALK CARDS + THE TRI-VISION + THE CITY's LONG NIGHT + THE ERRORS GROUP + THE LOBBY GETS IT LIVE (Nov 12–13, 2026 — docs/harbor/passes/jaywalk-cards.md)
+
+A city pass, six groups, ONE deployment, no rules change, still 8 functions:
+- **THE JAYWALK CARDS**: SONIC BOOM + CLOSE ENCOUNTER (rare), RIGHT OF WAY (legendary) — Grok's approved masters + FX plates built like REDLINE +
+  PHOTO FINISH (`scripts/build-jaywalk-cards.mjs`, the owner's two marks baked; `js/fx/jw-cards.js` + PURE `jw-specs.js`); lab n 217–222 (NEW); the
+  unlocks DORMANT — the marked place for JAYWALK pass 6 in `api/_lib/catalog.js`.
+- **THE TRI-VISION**: the roof board turns HOLD'EM NOW OPEN ↔ JAYWALK COMING SOON every 45–60 s (the PURE clock `core/harbor-trivision.js` — two turns
+  a 105-s chapter, the same face on every phone; the slats on the crisp layer from the billposter's pre-rendered faces; the first JAYWALK face by a
+  turn; the billposter stays home); JAYWALK's poster painted in code over Grok's art (lazy after the reveal); the owner's JAYWALK row in /admin.
+- **THE LOBBY GETS IT LIVE**: EVERYONE's intercom + EVERYONE's / the city's sky moments 10 s after FIRE (was 50 / 45 s), every open room's copy over
+  its own socket (the poll's + the room's = one moment), STOP reaching the copies, THE CLIP AHEAD.
+- **THE CITY's LONG NIGHT**: every module the scene creates destroyed in `scene.js#destroy()`, its canvases freed at once (`freeCanvases`); the
+  backdrop's ONE still; the title halts the city at once. WebKit, 30 trips: the peak of live canvases 457 → 266, its MB 79 → 62.
+- **THE ERRORS GROUP**: the black helicopter's lights out of drawHeli's drawn path (the ReferenceError), stale-host writes = "no longer the host"
+  (never the re-publish alarm), bots out of /admin (both ends), the SCORES tab + the full card's CLOSE (0 lost taps in WebKit).
+- **VERCEL WEB ANALYTICS**: Vercel's plain script after the page is up (index / board / 404), never the boot; ~2 requests a visit.

@@ -6628,3 +6628,6 @@ OWNER'S NOTES — NOV 12 (night, after THE CDN HOTFIX)
 - THE BUILD TABLE (Nov 12 night, the JAYWALK CARDS pass's Step 0): THE CDN HOTFIX ✅ (ea86257b); THIS PASS — JAYWALK CARDS + THE TRI-VISION + THE CITY's
   LONG NIGHT + THE ERRORS GROUP + THE LOBBY GETS IT LIVE + VERCEL WEB ANALYTICS (passes/jaywalk-cards.md) ← NOW; then FR7 FIXES C (THE ONE DAY LINE) →
   PLAY NOW + WHO'S ON → THE POOL FIXES + THE SLIDER → JAYWALK's passes; THE LAUNCH (the owner's taps) whenever he's ready.
+- JAYWALK CARDS + THE TRI-VISION DONE (Nov 13) — passes/jaywalk-cards.md. THE BUILD TABLE: the pass ✅ (JAYWALK's three cards dormant until its pass 6;
+  THE TRI-VISION; THE LOBBY GETS IT LIVE; THE CITY's LONG NIGHT; THE ERRORS GROUP; Vercel Web Analytics; no rules change) → FR7 FIXES C (THE ONE DAY LINE) ← NEXT →
+  PLAY NOW + WHO'S ON → THE POOL FIXES + THE SLIDER → JAYWALK's passes.

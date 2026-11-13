@@ -745,3 +745,16 @@ COAST CLEAR's two collectibles, awarded by the SERVER from its own record of the
 - **THE ONE MOVING COMMON:** FIRST KO moves (the owner's PD-5B spec — mostly at rest, the burst every 7.5 s); every other common stays still
   (`tests/vault.test.mjs#COMMON_MOVES`).
 - **A NEW item in THE LAB stays v1 with no LAB_CHANGES line** — it shows NEW; a version bump + a change line are for an item already marked (`vault-2c.test.mjs`).
+
+## JAYWALK's CARDS — SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY (Nov 12 night — docs/harbor/passes/jaywalk-cards.md Group 1)
+Built step for step like REDLINE + PHOTO FINISH (passes/overclock-cards.md): Grok's approved masters + five FX plates (copies in
+`art/jaywalk-cards/src/`, the USE files only) → `assets/vault/jw/` by `scripts/build-jaywalk-cards.mjs` (the plates as LIGHT WITH ALPHA, cropped to
+their light + halved — `jw-specs.js#PLATES`; the owner's marks baked: RIGHT OF WAY's cap-strap lettering painted out, CLOSE ENCOUNTER's trails faded in
+the lower-left corner, fx-hop's first third cleared). THE MOTION on the shared surface (`js/fx/jw-cards.js`; the numbers + timing PURE in
+`js/fx/jw-specs.js` — `ringAt`, `hopAt`): SONIC BOOM (rare) — the burners on both plumes + THE RING bursting out of the vapor cone every 4 s with a
+flash, the city's lights dipping; CLOSE ENCOUNTER (rare) — the beam's pulse + sway, its pool, a sheen up the cars' trails (30 slices, never over the
+plate's corner); RIGHT OF WAY (legendary — he leads) — the hop drawing on + the puff at his hip every 5 s, the runway chase, THE BORDER LASER in hot
+pink. The strips zoomed out + set right (each hero ≈ 0.78 across — THE SLIM-CARD LONG-NAME STANDARD), the full cards' art at 80 % by its width
+(`jwMap`, crop[3] 'w'); SONIC BOOM's strip gem gets REDLINE's dark backing. Lab n 217 → 222, v1 (NEW — no LAB_V bump: a bump would show CHANGED);
+the credit "JAYWALK — card art + billboard art". **No unlock yet** — no achievement names them (`tests/jaywalk-cards.test.mjs`); JAYWALK's pass 6
+adds the three A(…) rows at the marked comment in `api/_lib/catalog.js` (beside the OVERCLOCK ones) + empties `vault-2b.test.mjs`'s DORMANT list.

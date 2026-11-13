@@ -400,6 +400,18 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   THE GAME LOOK = `body[data-look]` (`kit/look.js` — ☰ → Settings, per device, any match, NO lock: games read it LIVE, draw no switch of their own).
 - **THE TAP WATCH (CITY FIXES — docs/title.md "THE SHELL"):** `js/ui/tapwatch.js` ALWAYS ON — a lost first tap → /admin (LOST TAP) + THE RESCUE; never re-render a control under a finger (`afterTap` + rebuild only on a change), every `:hover` behind `@media (hover: hover)` (a test greps), a pop-up on its way out takes no taps; THE SCREEN AT REST = a tappable fade (`.is-idle`), then rest (`.is-rest`), never under a layer.
 - **THE HOLD'EM BILLBOARD (CITY FIXES):** the roof board's BASE POSTER (`core/harbor-holdem.js` — the timetable's `billboard.holdem` default — NOW OPEN from its `open` day, 2026-11-11 (HOLD'EM IN THE CITY; COMING SOON before it, the billposter's ONE paste is the change), the owner's /admin → THE BILLBOARD switch through the cached feed, `&force=billboard-holdem`); the messages still interrupt; the billposter pastes it once then stays home; painted in code (`holdem-art.js` + GENERATED path lettering — `scripts/build-holdem-art.mjs`); the board itself ~15 % bigger (`harbor-layout.js#BILLBOARD_SCALE`).
+- **JAYWALK CARDS + THE TRI-VISION (Nov 12–13 — docs/harbor/passes/jaywalk-cards.md):** **THE JAYWALK CARDS** = SONIC BOOM · CLOSE ENCOUNTER (rare) +
+  RIGHT OF WAY (legendary), built like REDLINE (`fx/jw-cards.js` + PURE `jw-specs.js`), lab n 217–222 — DORMANT until JAYWALK pass 6 (its marked place in
+  `api/_lib/catalog.js`). **THE TRI-VISION**: the roof board TURNS HOLD'EM ↔ JAYWALK every 45–60 s by ONE PURE clock (`core/harbor-trivision.js` — the same
+  face on every phone; `billboard.trivision` + `billboard.jaywalk` rows; the slats on the crisp layer, the first JAYWALK face BY A TURN, the billposter
+  stays home; /admin → THE BILLBOARD's JAYWALK row). **THE LOBBY GETS IT LIVE**: EVERYONE's intercom + EVERYONE's / the city's sky moments start 10 s
+  after FIRE and the server ALSO writes each into every OPEN room's `rooms/{CODE}/radio` (STOP / CLEAR / moves reach the copies; a room phone merges the
+  poll's + the room's copy by id — played once; THE CLIP AHEAD); a phone only on the city = its 5-min check-in. **THE ANALYTICS LOADER**: Vercel's plain
+  script injected AFTER the page is up (`ui/analytics.js` — index after the reveal, board, 404; never the boot, localhost, the emulators, `&test=1`,
+  previews or robots; the worker passes `/_vercel/*`). **THE LONG NIGHT's RULE**: every module the scene creates is destroyed in `scene.js#destroy()`
+  — its canvases freed AT ONCE (`ui/canvas-safe.js#freeCanvases`); the title halts the city at once, its teardown after the fade (proof: harbor
+  `longnight` + `wk-longnight.mjs`). **THE ERRORS GROUP**: robots never report (`core/bot-ua.js` — the phone + `api/log.js`); a room write refused just
+  after losing the host = "no longer the host", never the re-publish alarm (`firebase.js#setHostGone`).
 - **HOLD'EM IN THE CITY (Nov 11 — docs/harbor/passes/holdem-city.md):** HOLD'EM's skyline sign in GRIDLOCK's spot (a ROW's slot rule counts LETTERS — the apostrophe
   tube rides along, a vertical sign counts it; `signs.js#lettersRow` sized by the real advance; night casino red, the day face gold on felt). THE HOLD'EM BOARD
   `holdem-tw` = TOURNAMENT WINS, KOs the tie-break, then the earlier — ONE sort value (`boards.js#tieSort`), the counters ONLY from the dealer's record
