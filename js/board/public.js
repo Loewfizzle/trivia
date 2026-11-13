@@ -50,3 +50,5 @@ document.getElementById('app').append(view.el);
 view.start();
 window.__board = { state: () => view.state(), pick: (g, c, p) => view.pick(g, c, p), music: () => musicDebug() };
 requestAnimationFrame(() => document.documentElement.classList.add('bd-ready'));
+// VERCEL WEB ANALYTICS (Nov 12 night): Vercel's script AFTER the board's first paint — never in the page's head (ui/analytics.js)
+setTimeout(() => lazyImport(import('../ui/analytics.js'), '../ui/analytics.js').then(m => m.loadAnalytics()).catch(() => {}), 1500);

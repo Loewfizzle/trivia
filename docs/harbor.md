@@ -396,6 +396,11 @@ at 8, squeeze 0.66, people ~33 pt.)
 teardown after the 420-ms fade — never a frame after the unmount. A NEW module with canvases = a destroy that frees them + its call in destroy()
 (`tests/longnight.test.mjs`). Proof: the harbor `longnight` group (Chromium) + `tests/integration/wk-longnight.mjs` (WebKit, 30 + 10 trips — the night's
 peak of live canvases 457 → 266, its MB 79 → 62).
+- **VERCEL WEB ANALYTICS in the CDN budget (Nov 12 night — passes/jaywalk-cards.md Group 6):** the owner turned Web Analytics on (Vercel PRO, a $30
+budget) — Vercel's plain script, loaded AFTER the page is up (`js/ui/analytics.js`: the title after THE CITY's reveal, THE BOARD after its first paint,
+the 404 on load; never localhost / the emulators / `&test=1` / previews / robots; the worker never keeps `/_vercel/*`). It adds **~2 requests a
+visit** (the script + its page-view beacon) beside THE CDN HOTFIX's numbers (a warm visit 15 requests, the idle polls every 5 min from a tab on
+screen + focused) — one page view a load (a single-page app; no custom events).
 - **THE EDGE CACHE — DEFERRED to THE LAUNCH (FR7 FIXES B, Nov 12 — the owner checks every deploy on his iPhone at once):** today the worker is
 network-first + `no-cache` (every file re-asked on a repeat visit — 356 requests warm, measured) and `/js` `/css` `/assets` carry no cache header. The
 built + proven change (5 min at the edge + the worker's ONE COPY PER DEPLOY by `/api/time`'s build id — 15 requests warm) ships with THE LAUNCH:

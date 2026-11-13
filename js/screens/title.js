@@ -948,6 +948,8 @@ export function createTitle() {
     pgPreviewSoon(600);
     keyPopSoon(2600);
     friendsSoon(3400);   // (FRIENDS A — the requests badge on YOU + INVITES THAT WAIT: ONE /api call, never a socket)
+    // (VERCEL WEB ANALYTICS — Nov 12 night: Vercel's script AFTER THE CITY's reveal, once a page — never in THE BOOT BUDGET: ui/analytics.js)
+    setTimeout(() => lazyImport(import('../ui/analytics.js'), '../ui/analytics.js').then(m => m.loadAnalytics()).catch(() => {}), 2000);
     // (LOBBY 2.0 B — THE NIGHT's CHAMPION: the app closed during a night of 2+ games → LAST NIGHT'S CHAMPION: <them>, the next open within ~12 h, once)
     setTimeout(() => { if (!destroyed && scene && !(st && st.code)) lazyImport(import('./room-banner.js'), './room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-night', !!(st && st.code)); }).catch(() => {}); }, 4200);
   }

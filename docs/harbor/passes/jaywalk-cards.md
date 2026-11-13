@@ -158,3 +158,17 @@ Built step for step like REDLINE + PHOTO FINISH (passes/overclock-cards.md Group
    counted lost → CLOSE acts on its OWN pointer-up (a primary press lifting on it — `tapHandled()`, the CUSTOMIZE tiles' way), the click stays for the
    keyboard, `close()` runs once. Proof: `ENGINE=webkit e2e-taps.mjs` (`DAILY_TEST=1` server) — a full card's CLOSE tapped as it opens 6 / 6, the SCORES
    tab 6 / 6 (its tap area 44 pt), the watch counted 0 LOST TAP — 24 / 24.
+
+## Group 6 — VERCEL WEB ANALYTICS (the script tag — no build step)
+- **The loader** (`js/ui/analytics.js`): Vercel's PLAIN script (`window.va` queue + `<script defer src="/_vercel/insights/script.js">`, never the npm
+  package), injected AFTER the page is up — the title after THE CITY's reveal (`title.js#reveal`, 2 s later, once a page), THE BOARD after its first
+  paint (`board/public.js`), the 404 on load (a plain-script copy of the gate — THE WRONG DOOR has no modules). Only those three pages (never admin /
+  lab / daychart / a preview). The gate (PURE `analyticsAllowed`): skipped on localhost (+ `*.localhost`, `*.test`), the emulators (`?emu`), `&test=1`,
+  every `tests/` page and robots (`navigator.webdriver`, a bot UA — `core/bot-ua.js`). One page view a load (a single-page app; no custom events).
+- **Never the boot**: the module is a dynamic import (`lazyImport`) — not in THE BOOT PRELOAD (`index.html` unchanged by it), `boot-budget.json`
+  unchanged. **The service worker** passes `/_vercel/*` straight through like `/api` (never kept).
+- **The CDN budget**: ~2 requests a visit (the script + its beacon) — noted beside THE CDN HOTFIX's numbers in docs/harbor.md.
+- **Proof**: `tests/analytics.test.mjs` (the gate; the three pages; nothing in a page's head; not in the boot preload; the worker); a real check on this
+  machine with a non-local host name mapped to 127.0.0.1 (robots' flags masked): THE BOARD + the 404 each request `/_vercel/insights/script.js` once
+  (`window.va` set); `&test=1` + localhost request nothing. The title's loader is the same call, after the reveal (its page talks to Firebase — not
+  driven on a non-local host).

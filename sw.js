@@ -106,7 +106,8 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith('/audio/') || url.pathname.startsWith('/api/') || req.headers.has('range')) return;
+  // (VERCEL WEB ANALYTICS, Nov 12 night: /_vercel/* — the analytics' script + beacon — passes straight through like /api, never kept)
+  if (url.pathname.startsWith('/audio/') || url.pathname.startsWith('/api/') || url.pathname.startsWith('/_vercel/') || req.headers.has('range')) return;
   // (FR7 FIXES B — a page load decides its mode ONCE, in parallel with its HTML; its files wait for it ≤ BUILD_WAIT_MS)
   let modeP = null;
   if (req.mode === 'navigate') {

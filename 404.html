@@ -110,6 +110,12 @@
   <nav class="wd-mean" id="wd-mean" hidden aria-label="Did you mean"><p>DID YOU MEAN</p></nav>
   <p class="wd-foot">Knock at the right door: neonspeakeasy.com</p>
 </main>
+<!-- VERCEL WEB ANALYTICS (Nov 12 night): Vercel's script, injected after the page has loaded — a plain script (THE WRONG DOOR has no modules), the
+     same gate as js/ui/analytics.js (skipped locally, on the emulators, &test=1 and for robots) — never a tag in the head -->
+<script>addEventListener('load', function () { try { var h = location.hostname, q = location.search, ua = navigator.userAgent || '';
+  if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(h) || /\.(localhost|test)$/.test(h) || /[?&]emu\b|[?&]test=1\b/.test(q) || navigator.webdriver || /HeadlessChrome|\bHeadless\b|Lighthouse|PageSpeed|vercel(?:bot|-screenshot)|\bbot\b|bot\/|crawler|spider/i.test(ua)) return;
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  var e = document.createElement('script'); e.defer = true; e.src = '/_vercel/insights/script.js'; document.head.appendChild(e); } catch (x) { /* polish */ } });</script>
 <script>
 // DID YOU MEAN — plain script, no imports. A near miss of our routes (≤ 2 edits, case-insensitive), a hush word's room link; the admin
 // doors only on a device the app already told it's an admin (localStorage nd:adm — a hint the app writes after the server's yes).
