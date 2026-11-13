@@ -178,7 +178,9 @@ CPU, one NO TWO CAMERAS path (a box change before the reveal) — the first two 
 alone **25 / 25**. `wk-edge` = THE LAUNCH's proof (its checks fail on today's worker by design — Group 2).
 
 **The cloud:** the pass's first final push (`8a37a88d`, with THE EDGE CACHE still in) — `tests` GREEN, `harbor` 14 / 15 jobs (`legend`: the fast-photo
-check under load — 4 / 4 alone). The second (this one, after the deferral + the honest-player fixes): the summary below. Vercel deploys it.
+check under load — 4 / 4 alone). The second (`eff0248d`, after the deferral + the honest-player fixes): `tests` **GREEN**; `harbor` 14 / 15 jobs — `street`: 63 / 63 checks passed, its
+`freeze` group died on a 30 s navigation timeout on the runner (`ONLY=freeze` locally 36 / 36, twice; green in both local full runs). Not re-run (the
+rule). Vercel BUILT `eff0248d28a6` — live: today's worker (no per-deploy copy), `/js` answers `max-age=0` (no edge cache).
 
 **Known issues:** the shard-load timing checks above (green alone); `resize-hidden`'s pixel flake (pre-existing rate); `assets/og.jpg` still shows
 GRIDLOCK's sign; the link previews' text says "twelve party games"; C4 (the room list) open; three NICE lines (Group 7).
