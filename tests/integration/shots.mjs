@@ -127,6 +127,9 @@ const SCENE = {
   'pn-shelf': ['2026-11-10T20:30', { act: 'shelf' }], 'pn-prism': ['2026-11-10T20:30', { act: 'card', game: 'prism' }],
   'pn-overclock': ['2026-11-10T20:30', { act: 'card', game: 'overclock' }], 'pn-holdem': ['2026-11-10T20:30', { act: 'card', game: 'holdem' }],
   'pn-podium': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism' }],
+  // (the owner's add-on: SHARE YOUR RUN — the card drawn on the phone, shown at Messages size + full; a real PRISM DROP run by the test bot, night + day)
+  'pn-share-night': ['2026-11-10T20:30', { act: 'share-card', game: 'prism', look: 'night' }], 'pn-share-day': ['2026-11-10T13:30', { act: 'share-card', game: 'prism', look: 'day' }],
+  'pn-share-oc': ['2026-11-10T20:30', { act: 'share-card', game: 'overclock', look: 'night' }], 'pn-share-oc-day': ['2026-11-10T13:30', { act: 'share-card', game: 'overclock', look: 'day' }],
   // CITY 2.0 — SKY POLISH (Oct 23 2026): the owner's review list (--sizes 402x874 --crop sky,skyl3,skym,skyr3); sp-plane: a forced
   // airliner with its contrail; sp-cirrus / sp-veil: the high cloud by its height (&wx=cirrus / &wx=veil — the moon's 22° halo)
   'sp-morn': ['2026-10-22T09:00'], 'sp-noon': ['2026-10-22T12:30'], 'sp-cloudy': ['2026-10-22T13:00', { qs: 'wx=clouds' }],
@@ -343,6 +346,27 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   if (o.act === 'shelf' || o.act === 'card') {
     await p.evaluate(() => document.querySelector('.nd-tab-play').click()); await p.waitForSelector('.nd-shelf-sheet.is-in .nd-shelf-row'); await sleep(450);
     if (o.act === 'card') { await p.evaluate(g => document.querySelector(`.nd-shelf-row[data-game="${g}"]`).click(), o.game); await p.waitForSelector(`.nd-card-sheet.is-in .nd-card[data-game="${o.game}"]`); await sleep(650); }
+  }
+  if (o.act === 'share-card') {
+    await p.evaluate(l => { try { localStorage.setItem('ns:look', l); } catch { /* fine */ } }, o.look || 'auto');
+    if (o.game === 'prism') {
+      await p.evaluate(() => import('/js/host.js').then(m => m.playSolo('prism', { settings: { mode: 'survival' } })));
+      await p.waitForFunction(() => { const s = window.__arcade.state; return s.game && s.game.phase === 'play' && window.__prism && window.__prism.engine && window.__prism.engine() && window.__prism.engine().cur; }, { timeout: 40000 });
+      await p.evaluate(() => window.__prism.bot({ skill: 0.85, every: 90, seed: 71 })); await sleep(14000);
+      await p.evaluate(async () => { const s = window.__arcade.state, f = await import('/js/firebase.js'), g = s.game, n = f.serverNow(), sh = (g.endAt || n + 1) - n + 2000; const patch = {}; for (const k of ['songStartAt', 'playStartAt', 'endAt', 'startAt', 'at']) if (typeof g[k] === 'number') patch[k] = g[k] - sh; await f.update(f.dbRef('rooms/' + s.code + '/game'), patch); }).catch(() => {});
+      await p.waitForSelector('.final .final-solo', { timeout: 90000 }); await sleep(1500);
+    }
+    await p.evaluate(async ([game, forced]) => {
+      const S = window.__arcade.state, look = game === 'prism' ? (document.body.dataset.look === 'day' ? 'day' : 'night') : forced, K = await import('/js/games/kit/share-run.js');
+      let cv;
+      if (game === 'prism') { const m = await import('/js/games/prism/share.js'); const node = S.live && S.live.boards && S.live.boards[S.uid]; cv = K.drawRunCard(m.prismRunCard(S.game, { uid: S.uid, name: (S.players[S.uid] || {}).name, board: node && node.b, look }), m.drawBoardMiddle); }
+      else { const m = await import('/js/games/overclock/share.js'); const res = {}; [1, 1, 0, 1, 1, 1].forEach((ok, i) => { res[i] = { me: { pts: ok ? 240 + i * 37 : 0, ok: !!ok } }; }); cv = K.drawRunCard(m.ocRunCard({ order: [1, 2, 3, 4, 5, 6], results: res, participants: { me: true }, settings: { mode: 'quick' } }, { uid: 'me', name: 'AVA', look }), m.drawScoreMiddle); }
+      const url = cv.toDataURL('image/png');
+      const o = document.createElement('div'); o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#fff;display:flex;gap:18px;align-items:flex-start;justify-content:center;padding:70px 12px;font:15px system-ui;color:#000';
+      o.innerHTML = `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><div style="background:#e9e9eb;border-radius:18px;padding:8px 14px">my run 👇</div><img src="${url}" style="width:236px;border-radius:18px"><div style="background:#0b84ff;color:#fff;border-radius:18px;padding:8px 14px;max-width:236px">${'neonspeakeasy.com'}</div></div><img src="${url}" class="full" style="width:min(46vw, 560px);border-radius:8px;box-shadow:0 0 0 1px #ccc">`;
+      document.body.append(o);
+    }, [o.game, o.look || 'night']);
+    await sleep(800);
   }
   if (o.act === 'solo-podium') {
     await p.evaluate(g => import('/js/host.js').then(m => m.playSolo(g)), o.game);

@@ -83,6 +83,9 @@ export function preload() {
 export const step = (game, { now, live, online }) => nextStep(game, { now, online, presence: state.presence, players: state.players, live });
 
 export const finalRanks = game => standings(game).map(r => ({ uid: r.uid, rank: r.rank }));
+// PLAY NOW's add-on — SHARE YOUR RUN: the console's solo podium offers SHARE when a cartridge has this (a lazy share.js draws the card ON THE
+// PHONE through the kit's frame — js/games/kit/share-run.js) → 'shared' | 'saved' | 'copied' | 'none' | 'failed'
+export const shareRun = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state));
 export const nightBonus = bonus;
 
 // (PD-1 — THE CONSOLE'S PODIUM: PRISM draws only the BODY inside the console's frame — docs/cartridge.md D8)

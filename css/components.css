@@ -626,6 +626,9 @@ body.bd-on .help-btn, body.help-open .help-btn { display: none; }
 /* PLAY NOW — a SOLO room's foot: PLAY AGAIN (the pink MAIN) over BACK TO THE CITY (the secondary tube), both full width, ≥ 48 pt */
 .final-solo { display: flex; flex-direction: column; gap: 10px; flex: none; }
 .final-solo .btn { min-height: 48px; }
+/* (the owner's add-on: SHARE beside the way out — two equal tubes under PLAY AGAIN) */
+.final-row { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 10px; }
+.final-row .btn { padding-left: 8px; padding-right: 8px; font-size: 13px; letter-spacing: 0.14em; }
 /* FRIENDS B — THE END SCREEN TAKES THE GAME'S COLOUR: a cartridge's ACCENT (--fin, set by ui/final.js) re-lights the frame's main tube in the
    game's colour (OVERCLOCK = molten orange); without one it stays THE NEON TUBE's pink */
 .final.has-accent .final-back { --tc: var(--fin); --tcore: color-mix(in srgb, var(--fin) 16%, #fff); --tg: color-mix(in srgb, var(--fin) 55%, transparent); --tg2: color-mix(in srgb, var(--fin) 30%, transparent); text-shadow: 0 0 10px color-mix(in srgb, var(--fin) 55%, transparent); }

@@ -7,7 +7,7 @@
 //   friends  PRISM DROP's card → PLAY WITH FRIENDS → a normal room (unlocked, not solo) with PRISM DROP's options open
 //   holdem   HOLD'EM's card: no PLAY NOW — "Needs 2+ players" + PLAY WITH FRIENDS (the main) → a room with HOLD'EM's options open
 //   sign     a tap on the PRISM DROP sign in the skyline → PRISM DROP's card
-//   node tests/integration/e2e-playnow.mjs [--browser webkit|chromium] [--base http://localhost:5173] [--only solo,friends,holdem,sign] [--shots DIR]
+//   node tests/integration/e2e-playnow.mjs [--browser webkit|chromium] [--base http://localhost:5173] [--only solo,one,friends,holdem,sign] [--shots DIR]
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -82,6 +82,19 @@ try {
     const foot = await P.ev("({ again: !!document.querySelector('.final .final-again'), city: !!document.querySelector('.final .final-city'), back: !!document.querySelector('.final .final-back'), solo: document.querySelector('.final').classList.contains('is-solo') })");
     ok(foot.again && foot.city && !foot.back, `the solo podium's foot: PLAY AGAIN + BACK TO THE CITY, no BACK TO THE ROOM (${JSON.stringify(foot)})`);
     await P.shot('solo-podium');
+    // (the owner's add-on: SHARE YOUR RUN — the tube on the solo podium; a tap draws the card ON THE PHONE (no share sheet in a test browser →
+    //  the image saved); no /api call, no error)
+    { const api0 = []; const onReq = r => { if (r.url().includes('/api/')) api0.push(r.url()); }; P.p.on('request', onReq);
+      const has = await P.ev("!!document.querySelector('.final .final-share')");
+      // (the phone's share sheet stood in for: it receives the IMAGE + the line — a desktop / headless sheet would never answer)
+      await P.ev("(() => { window.__shared = null; navigator.canShare = () => true; navigator.share = async d => { window.__shared = { files: (d.files || []).map(f => ({ n: f.name, t: f.type, s: f.size })), text: d.text }; }; })()");
+      await P.ev("document.querySelector('.final .final-share').click()").catch(() => {});
+      const done = await P.waitFor("!!window.__shared && !document.querySelector('.final .final-share.is-busy')", 8000);
+      const sh = await P.ev('window.__shared');
+      ok(!!sh && sh.files.length === 1 && sh.files[0].t === 'image/png' && sh.files[0].s > 10000 && /neonspeakeasy\.com/.test(sh.text || ''), `the share sheet gets ONE image (${sh && sh.files[0] ? `${sh.files[0].n}, ${Math.round(sh.files[0].s / 1024)} KB` : 'none'}) + the line with the site ("${sh && sh.text}")`);
+      const bad = await P.ev("[...document.querySelectorAll('.toast, .tm')].some(t => /Couldn.t draw/.test(t.textContent))").catch(() => false);
+      P.p.off('request', onReq);
+      ok(has && done && !bad && !api0.some(u => !/\/api\/(time|log|admin)/.test(u)), `SHARE YOUR RUN on the solo podium: drawn on the phone (${has ? 'the tube' : 'NO tube'}, ${done ? 'done' : 'stuck'}${bad ? ', FAILED' : ''}) — no new /api call`); }
     // PLAY AGAIN → a new run, the solo start again
     const m1 = st.m, ta = Date.now();
     await P.ev("document.querySelector('.final .final-again').click()");
@@ -102,6 +115,28 @@ try {
     const L = await P.ev('window.__arcade.line()');
     ok(parked, `the database line PARKED after the grace (the grace 4 s here — 30 s live) — 0 sockets (wants: ${L.wants.join(', ') || 'none'}, parked ${L.parked})${parked ? '' : ` — touches ${L.touches} from ${JSON.stringify(L.touchFrom).slice(0, 200)} · ${JSON.stringify(L.log.slice(-6)).slice(0, 500)}`}`);
     ok(P.errs.length === 0, `no page error (${P.errs.slice(0, 2).join(' | ') || 'none'})`);
+    await P.ctx.close();
+  }
+  if (!ONLY.length || ONLY.includes('one')) {
+    // (the owner's add-on: ALONE IN A ROOM — the old way: HOST → a room of one → its podium offers PLAY AGAIN (the quick start) beside BACK TO
+    //  THE ROOM, + SHARE)
+    const P = await phone('lonely');
+    await P.ev("document.querySelector('.nd-hostbtn').click()");
+    if (!await P.waitFor(`!!(${S}.code && ${S}.meta && ${S}.meta.hostId === ${S}.uid && window.__arcade.state.presence && Object.keys(${S}.players || {}).length === 1)`, 20000)) ok(false, 'a room of one');
+    await sleep(1200);
+    await P.ev("import('/js/host.js').then(m => m.startGame('prism', { mode: 'rush' }))");
+    await P.waitFor(`${S}.game && (${S}.game.phase === 'count' || ${S}.game.phase === 'play')`, 20000);
+    await sleep(1500);
+    if (!await endRun(P)) ok(false, 'the room of one reached its podium');
+    await sleep(800);
+    const foot = await P.ev("({ again: !!document.querySelector('.final .final-again'), back: !!document.querySelector('.final .final-back'), city: !!document.querySelector('.final .final-city'), share: !!document.querySelector('.final .final-share') })");
+    ok(foot.again && foot.back && !foot.city && foot.share, `a ROOM OF ONE's podium: PLAY AGAIN + BACK TO THE ROOM + SHARE (${JSON.stringify(foot)})`);
+    await P.shot('one-podium');
+    const m1 = await P.ev(`${S}.game.matchId`);
+    await P.ev("document.querySelector('.final .final-again').click()");
+    const again = await P.waitFor(`!!(${S}.game && ${S}.game.matchId !== ${JSON.stringify(m1)} && /^q/.test(${S}.game.matchId))`, 15000);
+    ok(again, 'PLAY AGAIN in a room of one → the same game again, THE QUICK START (a q… match)');
+    await P.ev("import('/js/room.js').then(m => m.leaveRoom())"); await sleep(800);
     await P.ctx.close();
   }
   if (!ONLY.length || ONLY.includes('friends')) {

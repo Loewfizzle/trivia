@@ -85,24 +85,38 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   } }, h('span', 'BACK TO THE ROOM'));
   // (B3: the cue above the sticky button — a drawn chevron + MORE BELOW, shown only while the frame scrolls on and you haven't scrolled yet)
   const more = h('div.final-more', { 'aria-hidden': 'true' }, h('i.final-chev'), h('span', 'MORE BELOW'));
-  // (PLAY NOW — a SOLO room's foot: PLAY AGAIN (the same game + options, THE SOLO START) + BACK TO THE CITY (the solo room closed like a QUIT);
-  //  no REMATCH VOTE, no banner plane, no night standings for one. Read through host.js's hub — this lazy chunk imports no new export)
+  // (PLAY NOW — a SOLO run's foot. PLAY NOW's private room: PLAY AGAIN (the same game + options, THE SOLO START) + BACK TO THE CITY (the room
+  //  closed like a QUIT); THE OWNER's ADD-ON (Nov 13 noon) — a ROOM OF ONE (the old "open a room and play alone"): PLAY AGAIN (the quick start)
+  //  + BACK TO THE ROOM. Both: SHARE YOUR RUN when the cartridge draws one (mod.shareRun — PRISM DROP, OVERCLOCK: an image made ON THE PHONE).
+  //  No REMATCH VOTE, no banner plane, no night standings for one. Read through host.js's hub — this lazy chunk imports no new export.)
   const PN = globalThis.__nsPlayNow;
   const soloRoom = !!(PN && PN.isSolo && PN.isSolo());
+  const oneRoom = !soloRoom && !!PN && solo && isHost() && Object.keys(players || {}).length === 1;
   let foot = back;
-  if (soloRoom) {
-    const busy = b => b.classList.contains('is-busy');
+  if (soloRoom || oneRoom) {
+    const busy = b => !!b && b.classList.contains('is-busy');
+    let leave = null;
     const again = h('button.btn.btn-primary.btn-block.final-again', { type: 'button', onclick: () => {
       if (busy(again) || busy(leave)) return;
       again.classList.add('is-busy');
       Promise.resolve(PN.again()).then(ok => { if (!ok) again.classList.remove('is-busy'); }, () => again.classList.remove('is-busy'));
     } }, h('span', 'PLAY AGAIN'));
-    const leave = h('button.btn.btn-ghost.btn-block.final-city', { type: 'button', onclick: () => {
+    leave = soloRoom ? h('button.btn.btn-ghost.btn-block.final-city', { type: 'button', onclick: () => {
       if (busy(again) || busy(leave)) return;
       leave.classList.add('is-busy');
       Promise.resolve(PN.leave()).catch(() => leave.classList.remove('is-busy'));
-    } }, h('span', 'BACK TO THE CITY'));
-    foot = h('div.final-solo', again, leave);
+    } }, h('span', 'BACK TO THE CITY')) : back;
+    const canShare = !!(mod && typeof mod.shareRun === 'function' && g && g.participants && g.participants[me]);
+    const share = canShare ? h('button.btn.btn-ghost.btn-block.final-share', { type: 'button', onclick: () => {
+      if (busy(share)) return;
+      share.classList.add('is-busy');
+      Promise.resolve(mod.shareRun(g, state)).then(how => {
+        if (how === 'saved') toast('Your run is saved', 'ok', { sub: 'The image is in your downloads.' });
+        else if (how === 'copied') toast('Link copied', 'ok', { sub: 'The image is saved too.' });
+        else if (how === 'failed') toast('Couldn’t draw the image', 'warn');
+      }, () => toast('Couldn’t draw the image', 'warn')).finally(() => share.classList.remove('is-busy'));
+    } }, h('span', 'SHARE')) : null;
+    foot = h('div.final-solo', again, share ? h('div.final-row', share, leave) : leave);
   }
   const actions = h('div.final-actions', more, foot);
   let hostShown = null;

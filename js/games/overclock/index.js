@@ -156,6 +156,9 @@ export function gradeRoom(game, live, ck = String((game && game.ci) || 0)) {
 }
 
 export const finalRanks = game => ocStandings(game).map(r => ({ uid: r.uid, rank: r.rank }));
+// PLAY NOW's add-on — SHARE YOUR RUN: the console's solo podium offers SHARE when a cartridge has this (a lazy share.js draws the card ON THE
+// PHONE through the kit's frame — js/games/kit/share-run.js) → 'shared' | 'saved' | 'copied' | 'none' | 'failed'
+export const shareRun = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state));
 
 // THE DAILY PLUG-IN (OC5 — SHIPS OFF; docs/cartridge.md D2): the server-picked, sealed DAY SET in → today's six (a solo QUICK run, fully
 // deterministic, never DUMB LUCK) · one try a day (resumeKey) · ONE comparable score out (result + the server's replay) — daily.js
