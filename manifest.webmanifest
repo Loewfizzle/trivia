@@ -1,7 +1,7 @@
 {
   "name": "Neon Speakeasy",
-  "short_name": "Speakeasy",
-  "description": "Ten neon multiplayer party games for 2–8 players. One phone each — same room or across cities.",
+  "short_name": "Neon Speakeasy",
+  "description": "Neon multiplayer party games for 2–8 players. One phone each — same room or across cities.",
   "id": "/",
   "start_url": "/?source=pwa",
   "scope": "/",
