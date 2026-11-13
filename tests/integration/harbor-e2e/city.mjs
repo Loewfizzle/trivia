@@ -1000,6 +1000,7 @@ G('cameras', async () => {
     bfcache: 'a bfcache return — pagehide / hidden 6 s, the box grows, pageshow',
     'box-return': 'a FROZEN tab resumed — hidden 6 s, the box grows as it is shown',
     'hours-box': 'HOURS hidden — the clock +10 h (the morning → the night) + the box grows',
+    'hours-dusk@16:40': 'FR7 FIXES C2 — HOURS hidden, the +10 h landing at 4:40 pm on Nov 13 (the cloud’s red: the crisp roof poster drew the bake STARTED over the city’s LANDED one)',
     'resize-hidden': 'the viewport 659 → 712 while hidden 6 s (the camera really shifts)',
     'wx-late': "the LATE WEATHER — yesterday's clear kept, the fog lands 2.5 s after the reveal",
     'bars-late': "Safari's BARS — 659 → 712 → 659 after the reveal, the box pinned",

@@ -18,6 +18,8 @@
 //   restore          a tab RESTORED for real: away to another page + BACK (a reload or the bfcache — said in the line), the box growing as it comes back
 //   hours            hidden 6 s while the clock (the phone's AND the server's) jumps +10 h (the morning → the night), then shown
 //   hours-box        the same + the box grows while hidden
+//   hours-dusk[@HH:MM] FR7 FIXES C2 — hours-box with the clock SET so the +10 h lands at HH:MM Grand Rapids time on Nov 13 (default 17:20 — its
+//                    sunset: the cloud's red landed there — the return crosses the dusk: the lamps, the tubes, the boards' night faces)
 //   wx-late          the real clock: yesterday's CLEAR kept on this device, today's FOG lands 2.5 s after the reveal
 //   bars-pre|after|late   Safari's bars as a real window resize (659 → 712 → 659) with the box pinned at the large viewport
 //   resize-post      the whole viewport 659 → 712 after the reveal (no pinned box: a rotation-like re-layout)
@@ -28,14 +30,14 @@
 //                    event), then shown: the city comes back WHOLE by itself within ~1 s (the dark held, the one re-fit path), no refresh
 import { CAM_REC, camJudge } from './load-probe.mjs';
 
-export const ALL_PATHS = ['plain', 'box-pre@50', 'box-pre@250', 'box-pre@600', 'box-pre-shrink', 'box-post', 'box-hidden', 'resize-hidden', 'box-return', 'bfcache', 'restore', 'hours', 'hours-box', 'wx-late', 'bars-pre', 'bars-after', 'bars-late', 'resize-post', 'tier', 'no-observer-pre', 'no-observer-post', 'lost-hidden'];
+export const ALL_PATHS = ['plain', 'box-pre@50', 'box-pre@250', 'box-pre@600', 'box-pre-shrink', 'box-post', 'box-hidden', 'resize-hidden', 'box-return', 'bfcache', 'restore', 'hours', 'hours-box', 'hours-dusk', 'wx-late', 'bars-pre', 'bars-after', 'bars-late', 'resize-post', 'tier', 'no-observer-pre', 'no-observer-post', 'lost-hidden'];
 const GR = '&tz=America/Detroit&at=42.96,-85.67';
 const OWNER = `when=2026-11-11T08:30&wx=fog${GR}`;   // (his morning)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // (the page's test controls, installed before it mounts: the city's box by a style — a box change with NO window resize, what a late /
 //  changed 100lvh is; a faked visibility — neither engine can background a tab; a clock that can jump; pagehide / pageshow as events)
-export const INIT = ([h0, kept, noRO, slot]) => {
+export const INIT = ([h0, kept, noRO, slot, start]) => {
   // (no-observer: the city's layer is never reported by a ResizeObserver — every other observer works)
   if (noRO && window.ResizeObserver) { const RO = window.ResizeObserver; window.ResizeObserver = class extends RO { observe(el, o) { if (el && el.classList && el.classList.contains('nd-scene')) return; super.observe(el, o); } }; }
   try { localStorage.setItem('nd:entered', '1'); localStorage.setItem(`na:${slot}:profile`, JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); if (kept) localStorage.setItem('nd:wx', kept); } catch { /* fine */ }
@@ -47,7 +49,7 @@ export const INIT = ([h0, kept, noRO, slot]) => {
   Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => fake || 'visible' });
   Object.defineProperty(document, 'hidden', { configurable: true, get: () => fake === 'hidden' });
   window.__hide = on => { fake = on ? 'hidden' : null; document.dispatchEvent(new Event('visibilitychange')); };
-  const RD = Date; let off = 0;
+  const RD = Date; let off = start || 0;
   // eslint-disable-next-line no-global-assign
   Date = class extends RD { constructor(...a) { if (a.length) super(...a); else super(RD.now() + off); } static now() { return RD.now() + off; } };
   window.__jump = ms => { off += ms; };
@@ -99,11 +101,14 @@ export async function runPath(D, name, o = {}) {
   const FAIR = { ...base, cloud: 0.15, kind: 'clear', layers: { hi: 0.15, lo: 0.05, mid: 0.05 }, opaque: 0.1 };
   const FOG = { ...base, code: 45, vis: 180, fog: 1, dense: true, cloud: 1, kind: 'fog', layers: { hi: 0.05, lo: 1, mid: 0.2 }, opaque: 0.9 };
   const MIN = 60e3;
-  let shownWall = 0, jump = 0;
+  // (hours-dusk: the phone's + the server's clocks start where the +10 h lands at the given local time — EST on Nov 13 = UTC − 5)
+  const dusk = kind === 'hours-dusk', duskAt = String(atArg || '17:20').split(':').map(Number);
+  const startOff = dusk ? Date.UTC(2026, 10, 13, duskAt[0] + 5, duskAt[1] || 0) - 10 * 3600e3 - Date.now() : 0;
+  let shownWall = 0, jump = startOff;
   const routes = [];
   if (/^hours/.test(kind)) routes.push([/\/api\/time/, async () => ({ status: 200, body: JSON.stringify({ t: Date.now() + jump }) })]);   // (the server's clock moved with the phone's)
   if (live) routes.push([/\/api\/sky/, async () => { while (!shownWall) await sleep(40); const w = shownWall + 2500 - Date.now(); if (w > 0) await sleep(w); return { status: 200, body: JSON.stringify({ ...FOG, at: Date.now() - 2 * MIN }) }; }]);
-  const P = await D.open({ vh: VH, inits: [[INIT, [h0, live ? JSON.stringify({ ...FAIR, at: Date.now() - 33 * MIN, got: Date.now() - 33 * MIN }) : '', /^no-observer/.test(kind), slot]], [CAM_REC, null]], routes });
+  const P = await D.open({ vh: VH, inits: [[INIT, [h0, live ? JSON.stringify({ ...FAIR, at: Date.now() - 33 * MIN, got: Date.now() - 33 * MIN }) : '', /^no-observer/.test(kind), slot, startOff]], [CAM_REC, null]], routes });
   const raw = `${BASE}/?emu&slot=${slot}&${live ? '' : realClock ? `wx=fog${GR}&` : `${OWNER}&`}city=2`;
   const url = o.guard ? o.guard(raw) : raw;
   const ev = P.ev;
@@ -118,20 +123,28 @@ export async function runPath(D, name, o = {}) {
   // (the owner's three: the billboard's face, EST. 1924, the blade — lettering the city paints under its crisp copy; a window scene / a
   //  light has nothing under it. crisp.js names its canvases: data-item)
   const BOXES = "(() => { const w = document.querySelector('.nd-scene'); if (!w) return []; const seen = new Set(), out = []; for (const c of w.querySelectorAll('canvas.hc-crisp')) { const cs = getComputedStyle(c); if (cs.display === 'none' || +cs.opacity < 0.5 || !/^(roofboard|datestone|blade-board)$/.test(c.dataset.item || '')) continue; const r = c.getBoundingClientRect(), k = [r.left, r.top, r.width, r.height].map(Math.round).join(','); if (seen.has(k) || r.width < 16 || r.height < 12) continue; seen.add(k); out.push({ x: r.left, y: r.top, w: r.width, h: r.height }); } return out; })()";
+  // (FR7 FIXES C2: THE BOARD's OWN CROSS-FADE — a message's spell starting / ending swaps the roof board with a 0.9-s dissolve (LOBBY 2.0 A:
+  //  the old board's copy fades OUT on the crisp layer over the new one). A look inside it reads that deliberate copy as "the item's copy
+  //  elsewhere" (seen: hours-dusk@12:12 — STREET PARTY's spell ending 5 s after the return). The look waits it out (≤ 1.5 s) and a dissolve
+  //  that starts between its two shots makes it unsteady — the frames check still watches every frame of it.)
+  //  The same for THE TRI-VISION's turn (live from Nov 12: its slats on the crisp layer turn the board between two faces for ~1 s — a look on a
+  //  real clock can land in one).
+  const xfOn = async () => !!(await ev("(() => { const D = window.__district; const x = D && D.boardXf ? D.boardXf() : null, t = D && D.tri ? D.tri() : null; return !!((x && x.a > 0) || (t && t.turn)); })()"));
   const look = async label => {
     for (let n = 0; n < 3; n++) {
+      await waitFor(async () => !(await xfOn()), 1500);
       const s0 = await state();
       const boxes = (await ev(BOXES)) || [];
       const a = await P.shot();
       await ev("(() => { const s = document.createElement('style'); s.id = 'w5-nocrisp'; s.textContent = 'canvas.hc-crisp { opacity: 0 !important; }'; document.head.append(s); })()");
       const b = await P.shot();
       await ev("(() => { const s = document.getElementById('w5-nocrisp'); if (s) s.remove(); })()");
-      if (!a || !b || (await state()) !== s0) { await sleep(120); continue; }
+      if (!a || !b || (await state()) !== s0 || await xfOn()) { await sleep(120); continue; }
       const px = boxes.length ? await D.pixels(a.png, b.png, boxes, a.k) : [];
       // (a second copy: the city's own picture of the item sits more than 3 pt from the crisp item, and matches there clearly better than at it)
       const off = px.filter(p => p.contrast > 6 && Math.hypot(p.dx, p.dy) > 3 && p.s < 0.75 * p.s00);
       checks.push({ label, boxes: px.length, off: off.map(p => `${p.box[2]}×${p.box[3]} item: its copy ${p.dx},${p.dy} pt away`) });
-      pics.push({ label, png: a.png });
+      pics.push({ label, png: a.png, bare: b.png, px, diag: o.diag ? await ev(o.diag) : null });   // (bare: the same moment without the crisp layer — cr-double.mjs saves both)
       return;
     }
     checks.push({ label: `${label} (unsteady: mid-transition — the frames check's)`, boxes: 0, off: [] });
@@ -150,7 +163,7 @@ export async function runPath(D, name, o = {}) {
   if (kind === 'box-post') { await sleep(2300); await mark(`the box ${h0} → ${h1}`); await ev(`window.__box(${h1})`); await sleep(350); await look('0.35 s after the box grew'); }
   if (kind === 'box-hidden' || kind === 'resize-hidden' || kind === 'box-return' || kind === 'bfcache' || /^hours/.test(kind)) {
     await sleep(2300); await mark('hidden'); if (kind === 'bfcache') await ev("window.__page('pagehide', true)"); await ev('window.__hide(true)'); await sleep(500);
-    if (/^hours/.test(kind)) { jump = 10 * 3600e3; await ev('window.__jump(10 * 3600e3)'); await mark('the clock +10 h'); }
+    if (/^hours/.test(kind)) { jump = startOff + 10 * 3600e3; await ev('window.__jump(10 * 3600e3)'); await mark('the clock +10 h'); }
     if (kind === 'resize-hidden') { await P.vp(GROW); await mark('the viewport 659 → 712 while hidden'); }
     else if (kind !== 'hours' && kind !== 'box-return') { await ev(`window.__box(${h1})`); await mark(`the box ${h0} → ${h1} while hidden`); }
     await sleep(6000);

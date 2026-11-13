@@ -1205,6 +1205,7 @@ export function createTitle() {
       tiering: () => (scene && scene.tiering ? scene.tiering() : null),
       speakCtx: () => (scene && scene.speakCtx ? scene.speakCtx() : null),   // (WIN2: the facade's bake context — the washer swap's proof)
       boardXf: () => (scene && scene.boardXf ? scene.boardXf() : null),
+      boardCrisp: () => (scene && scene.boardCrisp ? scene.boardCrisp() : null),   // (FR7 FIXES C2: the roof board's crisp copy vs the bake on screen)
       tri: () => (scene && scene.tri ? scene.tri() : null),   // (THE TRI-VISION — e2e lobby.mjs 'trivision')
       roomBanner: () => (roomUi && roomUi.banner ? roomUi.banner() : null),   // (LOBBY 2.0 B: THE WINNER's BANNER — e2e lobby2.mjs)
       bannerOn: () => !!(scene && scene.bannerOn && scene.bannerOn()),

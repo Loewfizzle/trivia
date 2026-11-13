@@ -987,14 +987,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const crew = pplLive ? people.crew() : null, busy = !!(crew && crew.works && crew.works.some(w => /paint|billpost|bulb|lamp|wash|repair|sign/.test(w))) ||   // (the works up on the facade / the board; never the doorman at his post)
        !!(crew && crew.traces && (crew.traces.blade || (crew.traces.board && crew.traces.board.pasting)));
     liveWinCrisp(c, off, fadeIn, true, dt, busy);   // (NIGHT-C: the live windows at 3× — a worker at the facade sends them back to the city's)
-    const SNB2 = snowNow() ? SN : null, cp = SNB2 && !clock.force.has('no-snowcaps') ? capFor('stage', bakeTones, SNB2) : null;
-    const xf2 = fadeMs, bk = baker.key, game = speakCtx().game;
-    const day = clamp01((TW.day || 0) + 0.8 * (TW.gold || 0)), dk = smooth(0.25, 0.65, day);   // (the date stone + the roof poster: by day — at night later passes light the facade)
+    // (FR7 FIXES C2: the city's lettering on the crisp layer follows the bake ON SCREEN — its key, its tones, its look's day — never the one baking)
+    const T9 = liveTones || bakeTones, TW9 = liveTW || TW;
+    const SNB2 = snowNow() ? SN : null, cp = SNB2 && !clock.force.has('no-snowcaps') ? capFor('stage', T9, SNB2) : null;
+    const xf2 = fadeMs, bk = shownKey || baker.key, game = speakCtx().game;
+    const day = clamp01((TW9.day || 0) + 0.8 * (TW9.gold || 0)), dk = smooth(0.25, 0.65, day);   // (the date stone + the roof poster: by day — at night later passes light the facade)
     if (!busy && !off.has('no-speakeasy') && L.speakeasy) {
       const G = speakGeo(L), K = G.K;
-      if (game) { const r = bladeGeo(G).rect; crisp.show(c, { id: 'blade-board', z: 1, box: { x: r.x - K * 0.6, y: r.y - 6, w: r.w + K * 0.9, h: r.h + 8 }, key: `${bk}|${game.id}|${game.style ? game.style.key : ''}`, xfade: xf2, alpha: fadeIn, draw: x => { bladeStep(L, bakeTones, speakCtx())(x); if (cp) cp(x); } }); }
+      if (game) { const r = bladeGeo(G).rect; crisp.show(c, { id: 'blade-board', z: 1, box: { x: r.x - K * 0.6, y: r.y - 6, w: r.w + K * 0.9, h: r.h + 8 }, key: `${bk}|${game.id}|${game.style ? game.style.key : ''}`, xfade: xf2, alpha: fadeIn, draw: x => { bladeStep(L, T9, speakCtx())(x); if (cp) cp(x); } }); }
       if (dk > 0.01) { const [ax, ay] = G.front(5.6 - DATE.hw - 0.1, DATE.v1 + 0.1), [bx2, by2] = G.front(5.6 + DATE.hw + 0.1, DATE.v0 - 0.1);
-        crisp.show(c, { id: 'datestone', z: 1, box: { x: ax, y: ay - 4, w: bx2 - ax, h: by2 - ay + 4 }, key: bk, xfade: xf2, alpha: fadeIn * dk, draw: x => { const [ox, oy] = G.front(0, 0); x.save(); wallMap(x, ox, oy, K); paintDateStone(x, speakMats(bakeTones), 5.6); x.restore(); if (cp) cp(x); } }); }
+        crisp.show(c, { id: 'datestone', z: 1, box: { x: ax, y: ay - 4, w: bx2 - ax, h: by2 - ay + 4 }, key: bk, xfade: xf2, alpha: fadeIn * dk, draw: x => { const [ox, oy] = G.front(0, 0); x.save(); wallMap(x, ox, oy, K); paintDateStone(x, speakMats(T9), 5.6); x.restore(); if (cp) cp(x); } }); }
     }
     // PROM — THE STILL PIECES SHARP: the two benches at the phone's full dpr IN THEIR PLACE in the layering — the overlay re-draws whoever
     // stands in front of the bench (people.js#redrawOver), so a walker still passes in front of it (the flat paving — the compass, the
@@ -1023,7 +1025,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const fr9 = neon.fresh(), freshNow = !!(fr9 && fr9.rev > freshDone);
     const rb = !busy && dk > 0.01 && !freshNow ? (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak') : null;
     if (rb && rb.rect) { const R0 = rb.rect, ck = rb.content ? `${rb.content.title}|${rb.content.sub}` : rb.id;
-      crisp.show(c, { id: 'roofboard', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${bk}|${ck}`, xfade: xf2, alpha: fadeIn * dk, draw: x => { x.beginPath(); x.rect(R0.x, R0.y, R0.w, R0.h); x.clip(); rb.dayDraw(x, bakeTones); } }); }
+      crisp.show(c, { id: 'roofboard', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${bk}|${ck}`, xfade: xf2, alpha: fadeIn * dk, draw: x => { x.beginPath(); x.rect(R0.x, R0.y, R0.w, R0.h); x.clip(); rb.dayDraw(x, T9); } }); }
     // CITY CONTROLS A — THE BILLBOARD's MESSAGES CRISP AT NIGHT (the owner's SCHED review: a hint, the Sunday postcard, a typed message at
     // the phone's FULL dpr): the lamp-lit poster face on the crisp layer, at the city's own lamp level for the board (a game's poster stays
     // in the city's canvas — only the messages, the lettering the eye reads)
@@ -1667,7 +1669,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       stage: ok([...promenadeSteps(L, T), ...(SNB ? [...groundSteps(L, T, SNB), shadowsStep(L, T)] : []), ...signalSteps(L, T), ...furnitureSteps(L, T, it => it.z >= L.speakeasy.z0 && it.z > L.speakeasy.side.z), ...speakeasySteps(L, T, speakCtx(), { blade: false }), SNB ? speakStep(L, T, SNB) : null, ...furnitureSteps(L, T, it => (it.z >= L.speakeasy.z0 && it.z <= L.speakeasy.side.z) || floorTree(it)), bladeStep(L, T, speakCtx()), cap('stage')]),   // (FP: the blade in front of the curb trees beside the side wall)
       front: ok([...furnitureSteps(L, T, it => it.z < L.speakeasy.z0, it => (floorTree(it) ? crownCut(it.tree) : null)), cap('front')]),
     });
-    bakeTones = T;
+    bakeTones = T; bakeTW = TW;
   }
   // PROM — A TREE OUT ON THE FLOOR (the framing maple moved back to z 42 — walkers pass in front of it AND behind it): the whole tree in the
   // stage layer (under the walkers: anyone in front covers its trunk), its CROWN again in the front layer — everything above the head of a
@@ -1675,6 +1677,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const floorTree = it => !!(it.tree && it.z < L.speakeasy.z0 && it.z > FOLK.zMin);
   const crownCut = t => project(cam, t.x, BODY_H * 1.04, t.z - 0.85)[1];
   let bakeTones = null, liveTones = null, wantBake = false;
+  // (FR7 FIXES C2 — the cloud's NO TWO CAMERAS red at a return across hours: `bakeTones` / `baker.key` are the bake STARTED, the city's canvas
+  //  shows the one LANDED; the crisp copies of the city's own lettering — the roof poster, the date stone, the blade — drew the started one at
+  //  once: for the whole re-bake the crisp poster was a day face over the city's lamp-lit night board. They follow the LANDED bake now:
+  //  its key, its tones, its look's day weights — switching with the city's own crossfade, never ahead of it)
+  let bakeTW = null, liveTW = null, shownKey = null;
   const revOfBake = new Map();                    // (8b1: the neon's content rev each bake was started with — bakeKey → rev)
   const camOfBake = new Map();                    // (THE LOAD FIX: bakeKey → the camera it was laid out for)
   let bakeCamShown = null, bakeCamPrev = null;    // (THE LOAD FIX: the camera of the bake on screen + the one fading out under it)
@@ -1970,7 +1977,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (baker.pump(shownAt < 0 ? Math.max(22, TIERS[tier].bakeMs * 3 + 2) : holdOn ? TIERS[tier].bakeMs * 3 + 2 : TIERS[tier].bakeMs)) {
       if (shownAt < 0 || holdOn) baker.settle(); else fadeFrom = now;   // (before the reveal nothing shows: a bake swaps in at once, no crossfade; THE LOAD FIX: nor under a held picture)
       bakeCamPrev = bakeCamShown; bakeCamShown = camOfBake.get(baker.key) || null;   // (THE LOAD FIX: the camera on screen — the probe)
-      liveTones = bakeTones;
+      liveTones = bakeTones; liveTW = bakeTW; shownKey = baker.key;
       if (DEBUG) console.info('[harbor] baked', baker.key, `${baker.busyMs.toFixed(1)} ms in total`, baker.mem());
     }
     // the lit windows bake behind it (never in the same frame as a facade step: the frame's budget is shared); a new light key
@@ -2340,7 +2347,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (8b1 — THE BOARD SWAP AT ONCE: a billboard just changed (the billposter, the API) — its new board painted over the baked one in the
     // baked look's tones until a bake carrying that change has landed AND its crossfade is over (the crossfade lays the OLD layer under
     // the new one — without this the old poster came back for a second); the night poster is live already)
-    { const fr = neon.fresh(), landed = fr && (revOfBake.get(baker.key) ?? -1) >= fr.rev;
+    // (FR7 FIXES C2: "landed" = the bake ON SCREEN carries the swap — the one merely STARTED with it let the crisp poster show a new hint over
+    //  the city's old board for the whole re-bake: the second red the hours return found)
+    { const fr = neon.fresh(), landed = fr && (revOfBake.get(shownKey || baker.key) ?? -1) >= fr.rev;
       if (fr && landed && xf >= 1) freshDone = Math.max(freshDone, fr.rev);
       if (fr && fr.rev > freshDone && bakeTones && fadeIn > 0) {
         // (a bake canvas's fresh text state — the screen's own may carry another align / spacing from earlier painters)
@@ -3348,6 +3357,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     speakCtx: () => { const v = speakCtx(); return { key: v.key, hushLit: !!v.hushLit }; },   // (WIN2: the facade's bake context — the washer swap)
     // (THE TRI-VISION's state for the tests: the face on show, the clock's, the turn now, what the board holds)
     tri: () => { const C = triClock(clock.now() / 1000, triKnobs(), triForce()); return { shown: tri.shown, clock: C.face, n: C.n, at: C.at, lastN: tri.lastN, ready: !!tri.jw, warmed: tri.warmed, turn: tri.turn ? { id: tri.turn.id, game: tri.turn.game, u: triU() } : null, board: neon.boardGame(BOARD_ID), turns: triTurns }; },
+    // (FR7 FIXES C2: the roof board's crisp copy vs the bake on screen — the swap's rev, the bake started / landed, the crisp items up)
+    boardCrisp: () => { const fr = neon.fresh(), rb = (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak'); return { rev: fr ? fr.rev : 0, freshDone, started: String(baker.key || '').slice(-24), shown: String(shownKey || '').slice(-24), revStarted: revOfBake.get(baker.key) ?? null, revShown: revOfBake.get(shownKey) ?? null, pending: baker.pending, fading: fadeFrom >= 0, content: rb && rb.content ? `${rb.content.title || ''}|${rb.content.sub || ''}|${rb.content.lines ? rb.content.lines.join('/') : ''}` : null, game: neon.boardGame(BOARD_ID), crisp: crisp.debug().items.filter(i => /^roofboard/.test(i.id)).map(i => `${i.id}:${i.op}`) }; },
     boardXf: () => ({ n: bxf.n, a: +boardXfA().toFixed(3), ms: bxf.ms, layer: crisp.on ? 'crisp' : 'city', rev: (neon.fresh() || {}).rev || 0, show: bxf.shown }),   // (CITY FIXES: + the board's rebuild count — one swap per real change)   // (LOBBY 2.0 A: the billboard's cross-fade — swaps faded, the old copy's alpha now)
     tiering: () => ({ tier, dprTier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), why: stepWhy.slice(), wantStep, manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())), grace: TIER_GRACE, heavy: heavyNow(performance.now()), judge: lastJudge, slowN, sinceReveal: shownAt < 0 ? null : +((performance.now() - shownAt) / 1000).toFixed(1) }),
     cost: () => costs.slice(),
