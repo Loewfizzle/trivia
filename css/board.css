@@ -379,6 +379,11 @@ body.reduced-fx .bd-sk-card::after, body.reduced-fx .bd-play-sheen, body.reduced
 .rc-plaque.is-top10 .rc-n, .rc-plaque.is-world .rc-n, .rc-plaque.is-week .rc-n { text-shadow: 0 0 12px rgba(140, 220, 255, 0.7); }
 .rc-xp { width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(12, 10, 24, 0.72); border: 1px solid color-mix(in srgb, var(--rk) 35%, transparent); opacity: 0; transform: translateY(8px); transition: opacity 0.5s var(--ease), transform 0.6s var(--ease); }
 .rc-xp.is-in { opacity: 1; transform: none; }
+/* PD-6 ADD-ON — THE SOLO PODIUM SAYS WHAT IT PAID (profile/callouts.js#soloLine, the server's count): ONE plain line under the score — no pill,
+   the podium's small type; a fade in (opacity only), none under reduced motion */
+.rc-solo { margin: 0; text-align: center; font: 700 11px/1.35 var(--font-mono); letter-spacing: 0.16em; color: var(--text-dim); opacity: 0; transition: opacity 0.5s var(--ease); }
+.rc-solo.is-in { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .rc-solo { transition: none; } }
 .rc-xp-main { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .rc-xp-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px; row-gap: 4px; min-width: 0; font: 700 10px/1 var(--font-mono); letter-spacing: 0.16em; color: var(--text-dim); }
 .rc-xp-top b { font: 700 16px/1 var(--font-num); color: var(--rk); letter-spacing: 0; text-shadow: 0 0 10px color-mix(in srgb, var(--rk) 60%, transparent); }

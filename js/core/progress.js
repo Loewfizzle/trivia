@@ -6,7 +6,7 @@
 //                   gd (the week whose goal was paid), it{item: at} (THE VAULT — owned items, server-granted only), st (THE STREAK —
 //                   core/streak.js), fv (FAVOR tokens held — PROGRESSION B spends them), xw (BOARD 2.0 A — the XP earned THIS WEEK: { wk, x }) … }
 import { boardDef, better, BOARD_GAMES, GOAL_GAMES } from './boards.js';
-import { matchXp, soloXp, weeklyGoal, goalProgress, GOAL_XP } from './ranks.js';
+import { matchXp, soloXp, weeklyGoal, goalProgress, GOAL_XP, SOLO_DAY_XP } from './ranks.js';
 import { levelOf, rewardsBetween, rewardsUpTo } from './levels.js';
 import { SIGN_EMBLEMS } from './items.js';
 import { weekKey } from './week.js';
@@ -158,7 +158,9 @@ export function matchStep(s0, { key, gid, row, n, now, at = now, gap = DEFAULT_G
   if (ctx.holiday && SEASONAL[ctx.holiday]) items.push(...grant(next, [SEASONAL[ctx.holiday]], now));
   const aw = awardAll(next, now, { founderOpen: !!ctx.founderOpen });
   items.push(...aw.items);
-  return { next, pbs, xp, from, prevStats: s, wk, lv, items, ach: aw.ach, streak: { n: next.st.n, ev: streak.ev } };
+  // (PD-6 ADD-ON — THE SOLO PODIUM SAYS WHAT IT PAID: a solo run's place in the streak day's solo count — n = this run's count (1 = the first),
+  //  max = the runs that pay — the server's outcome carries it as `so`; the phone never computes it)
+  return { next, pbs, xp, from, prevStats: s, wk, lv, items, ach: aw.ach, streak: { n: next.st.n, ev: streak.ev }, ...(solo ? { solo: { n: day.so, max: SOLO_DAY_XP } } : {}) };
 }
 
 /** THE DAILY CEILING (FR7 FIXES A): counted room matches a profile is PAID for in a streak day (4 am Eastern) — the 21st on plays for nothing */

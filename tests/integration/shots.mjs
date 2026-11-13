@@ -127,6 +127,12 @@ const SCENE = {
   'pn-shelf': ['2026-11-10T20:30', { act: 'shelf' }], 'pn-prism': ['2026-11-10T20:30', { act: 'card', game: 'prism' }],
   'pn-overclock': ['2026-11-10T20:30', { act: 'card', game: 'overclock' }], 'pn-holdem': ['2026-11-10T20:30', { act: 'card', game: 'holdem' }],
   'pn-podium': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism' }],
+  // (PD-6 — THE SOLO PODIUM FITS: the podium AS IT LANDS (no scroll) — Safari WITH its toolbars = --sizes 390x650,402x690,430x746 (no --safe):
+  //  PRISM DROP's solo (night + day, SCORE RUSH + SURVIVAL), OVERCLOCK's solo, a ROOM OF ONE (HOST → play alone); the multiplayer podium untouched)
+  'pd6-pod': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism', top: 1 }], 'pd6-pod-day': ['2026-11-10T13:30', { act: 'solo-podium', game: 'prism', top: 1 }],
+  'pd6-pod-surv': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism', top: 1, mode: 'survival' }],
+  'pd6-pod-oc': ['2026-11-10T20:30', { act: 'solo-podium', game: 'overclock', top: 1 }], 'pd6-pod-oc-day': ['2026-11-10T13:30', { act: 'solo-podium', game: 'overclock', top: 1 }],
+  'pd6-pod-one': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism', top: 1, one: 1 }],
   'wo-sheet': ['2026-11-10T20:30', { act: 'whos-on' }], 'wo-sheet-4': ['2026-11-10T20:30', { act: 'whos-on', long: 1 }],   // (THE POOL FIXES Group 3: WHO'S ON — two rows, the city + a room, a fake answer)
   // (THE ROOM NOTE — the owner's add-on, Nov 13: a guest in a room while PRISM DROP is on (stepped out: the one-line WATCH pill + its ×) · the
   //  host's room 8 minutes from its idle close (the pill, no ×) — needs serve.mjs --emu + the emulators; the room built through the emulator's REST)
@@ -424,12 +430,25 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     await sleep(800);
   }
   if (o.act === 'solo-podium') {
-    await p.evaluate(g => import('/js/host.js').then(m => m.playSolo(g)), o.game);
-    await p.waitForFunction(() => { const s = window.__arcade.state; return s.game && (s.game.phase === 'play' || s.game.phase === 'count'); }, { timeout: 30000 });
+    const settings = o.mode ? { mode: o.mode } : null;
+    if (o.one) {   // (PD-6: a ROOM OF ONE — HOST → the room → start alone)
+      await p.evaluate(() => document.querySelector('.nd-hostbtn').click());
+      await p.waitForFunction(() => { const s = window.__arcade.state; return s.code && s.meta && s.meta.hostId === s.uid && Object.keys(s.players || {}).length === 1; }, { timeout: 30000 });
+      await sleep(1200);
+      await p.evaluate(([g, st]) => import('/js/host.js').then(m => m.startGame(g, st || { mode: 'rush' })), [o.game, settings]);
+    } else await p.evaluate(([g, st]) => import('/js/host.js').then(m => m.playSolo(g, st ? { settings: st } : {})), [o.game, settings]);
+    await p.waitForFunction(() => { const s = window.__arcade.state; return s.game && s.game.phase && s.game.phase !== 'final'; }, { timeout: 30000 });
     await sleep(2500);
-    await p.evaluate(async () => { const s = window.__arcade.state, f = await import('/js/firebase.js'), g = s.game, n = f.serverNow(), sh = (g.endAt || n) - n + 2000; const patch = {}; for (const k of ['songStartAt', 'playStartAt', 'endAt', 'startAt', 'at']) if (typeof g[k] === 'number') patch[k] = g[k] - sh; await f.update(f.dbRef('rooms/' + s.code + '/game'), patch); });
+    if (o.game === 'prism') {   // (a real board for YOUR LAST BOARD: the test bot plays ~14 s; SURVIVAL then tops out)
+      await p.waitForFunction(() => window.__prism && window.__prism.engine && window.__prism.engine() && window.__prism.engine().cur, { timeout: 40000 });
+      await p.evaluate(() => window.__prism.bot({ skill: 0.85, every: 90, seed: 71 })); await sleep(14000);
+      if (o.mode === 'survival') { await p.evaluate(() => { window.__prism.stopBot(); window.__prism.topOut(); }); }
+    }
+    if (o.game === 'prism' && o.mode !== 'survival') await p.evaluate(async () => { const s = window.__arcade.state, f = await import('/js/firebase.js'), g = s.game, n = f.serverNow(), sh = (g.endAt || n) - n + 2000; const patch = {}; for (const k of ['songStartAt', 'playStartAt', 'endAt', 'startAt', 'at']) if (typeof g[k] === 'number') patch[k] = g[k] - sh; await f.update(f.dbRef('rooms/' + s.code + '/game'), patch); });
+    else await p.evaluate(async () => { const s = window.__arcade.state, f = await import('/js/firebase.js'); await f.update(f.dbRef('rooms/' + s.code + '/game'), { phase: 'final', ci: s.game.ci || 0, phaseStartAt: f.serverNow() - 120000 }); });   // (OVERCLOCK: straight to its podium — no answers = its NOBODY SCORED / a 0 run)
     await p.waitForSelector('.final .final-solo', { timeout: 60000 }); await sleep(3200);
-    await p.evaluate(() => { const f = document.querySelector('.final'); if (f) f.scrollTop = f.scrollHeight; }); await sleep(400);
+    if (!o.top) { await p.evaluate(() => { const f = document.querySelector('.final'); if (f) f.scrollTop = f.scrollHeight; }); await sleep(400); }
+    console.log(`  ${name} ${w}x${h}:`, JSON.stringify(await p.evaluate(() => { const f = document.querySelector('.final'); const a = f && f.querySelector('.final-actions'); const r = el => el && el.getBoundingClientRect(); return f && { more: f.classList.contains('has-more'), over: Math.round(f.scrollHeight - f.clientHeight), actTop: Math.round(r(a).top), vh: innerHeight }; })));
   }
   if (o.act === 'sun') { await p.evaluate(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }); await sleep(300); }
   // (POL4: --js "<expression>": run in the page before the shot — e.g. "__district.harbor().speakeasy.power(0)")

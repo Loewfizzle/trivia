@@ -58,7 +58,10 @@ export function finalScene(el, game, state) {
   const moment = h('div.pd-fs-moment', { style: { '--c': colorHex(w.color) } });
   if (str) {
     const c = h('canvas.pd-fs-board', { 'aria-hidden': 'true' });
-    drawMini(c, str, null, { cell: 8, look: document.body.dataset.look === 'day' ? 'crayon' : 'neon' });   // (PD-3: the night look's tubes; PD-4: the day's crayon)
+    // (PD-6 — THE SOLO PODIUM FITS: a solo run on a short screen (Safari with its toolbars) draws the board at 7-pt cells — 140 pt tall, not 160 —
+    //  so the board, the slim card + its score line sit above the foot; read once here, never in a frame loop)
+    const short = soloOf(game) && typeof innerHeight === 'number' && innerHeight < 760;
+    drawMini(c, str, null, { cell: short ? 7 : 8, look: document.body.dataset.look === 'day' ? 'crayon' : 'neon' });   // (PD-3: the night look's tubes; PD-4: the day's crayon)
     moment.append(h('div.pd-fs-frame', c));
   }
   moment.append(h('div.pd-fs-line',

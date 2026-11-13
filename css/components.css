@@ -1254,6 +1254,13 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .final.is-alltied .pod-block span { visibility: hidden; }
 .final.is-alltied .pod .pod-block { height: 92px; }   /* (all three at the 2nd's height — nobody on the top step) */
 .final.is-solo .winner-title { letter-spacing: 0.18em; }
+/* PD-6 — THE SOLO PODIUM FITS (the owner: in Safari WITH its toolbars the hero title pushed the card under MORE BELOW): a SOLO RUN's title is a
+   HEADING, not a hero — one line, a step above the kicker; the frame's gaps a touch tighter. The multiplayer podium is untouched (.is-solo only) */
+.final.is-solo { gap: 12px; }
+.final.is-solo .winner { min-height: 0; line-height: 1; }
+.final.is-solo .winner-title, body.chat-fab-on .final.is-solo .winner-title { font-size: 22px; letter-spacing: 0.24em; white-space: nowrap; text-shadow: 0 0 14px rgba(243, 255, 58, 0.45); }
+.final.is-solo .winner-name { margin-top: 4px; }
+.final.is-solo > .final-actions { margin-top: auto; }   /* (it all fits now: the foot still sits at the screen's foot, never mid-screen) */
 
 /* SHELL 2.0 B2 — MAKE HOST: the host's row on a player's card (+ the owner's CREW row under it) — room-city.js#makeHostRow */
 .rc-foot { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 420px; margin: 12px auto 0; }

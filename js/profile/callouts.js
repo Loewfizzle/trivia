@@ -15,6 +15,7 @@ import { onOutcome, outcomeFor, matchKey } from './queue.js';
 import { boardSfx } from '../board/audio.js';
 import { settings } from '../audio/settings.js';
 import { lazyImport } from '../ui/lazy-import.js';
+import { soloXpText } from '../core/solo-line.js';
 
 const reduced = () => !!settings.reducedFx || reducedMotion();
 // adds the class on the next frames (so the transition runs), with a timer fallback for a tab whose frames are paused
@@ -85,8 +86,12 @@ export function attachCallouts(code, game) {
   function play(o) {
     const list = plaquesFor(o);
     const step = reduced() ? 120 : 650;
+    // (PD-6 ADD-ON — THE SOLO PODIUM SAYS WHAT IT PAID: a solo run's outcome carries the server's count `so` → ONE plain line under the score,
+    //  first, in place of the XP box (the podium fits in Safari with its toolbars); an outcome without it (an older server) shows no line)
+    const sl = soloLine(o);
+    if (sl) { el.append(sl); turnOn(sl, 'is-in'); }
     list.forEach((p, i) => later(() => plaque(p), i * step));
-    if (o.xp && o.xp.gain) later(() => xpLine(o), list.length * step + 150);
+    if (o.xp && o.xp.gain && !sl) later(() => xpLine(o), list.length * step + 150);
     // PROGRESSION A — THE END-OF-ROUND MOMENT right after the podium (the crown + the board's plaques): the XP, the level (its level-up +
     // unlocks), the streak, the tease, the achievements — every phone its own; CONTINUE comes back here (REMATCH / LOBBY as today).
     // (it replaces the old RANK UP overlay: a new band is the moment's level-up now)
@@ -98,6 +103,13 @@ export function attachCallouts(code, game) {
     const night = (state.night && Object.keys(state.night).length) || 1;
     const me = loadMe();
     lazyImport(import('../progress/moment.js'), '../progress/moment.js').then(m => { if (!destroyed) return m.openMoment(o, { game: game.id, match: night, name: (me && me.profile && me.profile.n) || '', avatar: me && me.profile && me.profile.a, color: me && me.profile && me.profile.c }).then(x => { moment = x; }); }).catch(() => {});
+  }
+
+  /** the solo line: "+15 XP · SOLO RUN · 3 OF 4 TODAY" while it pays, "TODAY’S SOLO XP DONE · MORE AT 4 AM" once it doesn't — null without the
+   *  server's count (or a skipped / capped outcome) */
+  function soloLine(o) {
+    const t = soloXpText(o);
+    return t ? h('p.rc-solo', { dataset: { paid: o.xp && o.xp.gain ? '1' : '0' } }, t) : null;
   }
 
   function plaque(p) {

@@ -37,7 +37,7 @@ export const outageDays = async () => (await val('streak/outage')) || {};
 /**
  * ex: core/match-report.js#extractMatch output; pids: { uid: pid }. at = THE MATCH TIME (THE ONE DAY LINE — the server-stamped finish:
  * night.at / the dealer's end; clamped to ≤ now) — the streak day, the week, the ceiling + the boards' week are the match's, never the report's.
- * → { pid: outcome } where outcome = { gid, rank, win, xp{gain, parts, from, to}, rk{from, to}, pbs[], ranks[], skip? }
+ * → { pid: outcome } where outcome = { gid, rank, win, xp{gain, parts, from, to}, rk{from, to}, pbs[], ranks[], skip?, so?{n, max} (a solo run) }
  */
 export async function applyMatch(key, ex, pids, now = Date.now(), room = null, at = now) {
   at = Math.min(Number(at) || now, now);
@@ -93,6 +93,7 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null, a
     }
     outcomes[pid] = {
       gid: ex.gid, rank: row.rank, win: row.win, n: ex.n, ...(res.capped ? { cap: true } : {}),   // (FR7 FIXES A — THE DAILY CEILING: played, paid nothing)
+      ...(res.solo ? { so: res.solo } : {}),   // (PD-6 ADD-ON: a solo run's count today { n, max } — the solo podium's XP line reads it, never a guess)
       xp: { gain: res.xp.total, parts: res.xp.parts, from: res.from, to: stats.xp },
       rk: { from: r0, to: r1 }, lv: res.lv, items: res.items, ach: res.ach, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1, st: stats.st || null, sev: res.streak.ev,
       // (OC5 — the all-time best of each record this match counted for: a SOLO run that didn't beat it still shows "YOUR BEST" — victory.js)

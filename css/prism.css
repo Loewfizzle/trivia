@@ -707,7 +707,7 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 /* the console's frame on paper: its kicker + the winner line in dark pencil-grey marker (the night's glitch halves off) */
 .pd[data-look='crayon'] .pd-final .winner-title { font-family: var(--pd-marker); font-weight: 400; color: var(--pd-ink); text-shadow: 2px 3px 0 color-mix(in srgb, var(--pd-ink) 14%, transparent); }
 .pd[data-look='crayon'] .pd-final .winner-title::before, .pd[data-look='crayon'] .pd-final .winner-title::after { display: none; }
-.pd[data-look='crayon'] .pd-final :is(.winner-name, .sheet-kicker) { color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-final :is(.winner-name, .sheet-kicker, .rc-solo) { color: var(--pd-ink); }   /* (PD-6: + the solo XP line) */
 /* the results rows: the slim cards lie straight on the paper (no dark row behind them); the place, the note + the score in ink */
 .pd[data-look='crayon'] .pd-final .lb-row { background: color-mix(in srgb, var(--pd-paper) 70%, transparent); border: 1.5px solid var(--pd-pencil-2); border-left: 4px solid var(--c); }
 .pd[data-look='crayon'] .pd-final .lb-row.lb-strip { background: none; border: 0; }
