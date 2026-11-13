@@ -1336,7 +1336,11 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   previews or robots; the worker passes `/_vercel/*`). **THE LONG NIGHT's RULE**: every module the scene creates is destroyed in `scene.js#destroy()`
   — its canvases freed AT ONCE (`ui/canvas-safe.js#freeCanvases`); the title halts the city at once, its teardown after the fade (proof: harbor
   `longnight` + `wk-longnight.mjs`). **THE ERRORS GROUP**: robots never report (`core/bot-ua.js` — the phone + `api/log.js`); a room write refused just
-  after losing the host = "no longer the host", never the re-publish alarm (`firebase.js#setHostGone`).
+  after losing the host = "no longer the host", never the re-publish alarm (`firebase.js#setHostGone`). **THE CHAT FALSE ALARM** (Nov 13): no chat
+  write once out of the room (`chat.js#mayWrite` → `chat/logic.js#canChat`, the leave read through the `globalThis.__nsRoomGone` hub); one already on
+  its way = "no longer in the room", quiet (`room.js#leftRoom` → `firebase.js#setRoomGone` → `core/rules-lag.js#quietRoomRefusal`; tests/errors-group).
+  **THE FIRST TAP** (Nov 13): every dock button (title + room) acts on its own pointer-up, its press at once (`.is-press`), its work one frame
+  later (`ui/tapwatch.js#pressTap`); proof `wk-docktap.mjs` (WebKit, a cold load, ONE tap each, the rescue off).
 
 ### HOLD'EM IN THE CITY
 

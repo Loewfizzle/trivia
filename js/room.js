@@ -1,7 +1,7 @@
 // Room lifecycle: create / join / resume / leave / kick, live mirroring and presence.
 import {
   dbRef, get, set, update, remove, onValue, onDisconnect, serverTimestamp, serverNow,
-  query, orderByChild, endAt, limitToFirst, runTransaction, want, release, expectRefusal } from './firebase.js';
+  query, orderByChild, endAt, limitToFirst, runTransaction, want, release, expectRefusal, setRoomGone } from './firebase.js';
 import { state, setState } from './store.js';
 import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe, testMode } from './identity.js';
 import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence, isOnline, isSoloMeta, soloCode } from './core/room-logic.js';
@@ -438,6 +438,11 @@ function stopListening() {
 // screens/room-city.js reads it as the room's figures go) · leavingCode: a leave in flight (its own players event is not a disconnect)
 let lastExit = null, leavingCode = null;
 export const exitHow = () => lastExit;
+// THE CHAT FALSE ALARM (Nov 13 — /admin's errors): a room / chat write the rules refuse once this phone is no longer in that room (it left or is
+// leaving, the host removed it, the room closed) is the leave's race — firebase.js logs it quietly, "no longer in the room", never the alarm
+export const leftRoom = code => !!code && (state.code !== code || leavingCode === code || !!(state.kicked && state.uid && state.kicked[state.uid]));
+setRoomGone(leftRoom);
+globalThis.__nsRoomGone = leftRoom;   // (the hub the lazy chat reads before every write — js/chat/chat.js#mayWrite)
 export function exitRoom(reason, kind = 'warn', { keepSeat = false, how = 'closed' } = {}) {
   const code = state.code;
   lastExit = { code, how };

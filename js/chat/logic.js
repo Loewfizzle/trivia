@@ -143,3 +143,12 @@ export function unreadCount(msgs, me, lastRead) {
 
 /** Same sender within 3 minutes of their previous line → drawn as one group. */
 export const continues = (prev, m) => !!(prev && m.u && prev.u === m.u && !prev.s && m.at - prev.at < 180_000);
+// THE CHAT FALSE ALARM (the owner's /admin errors, Nov 13): no chat write once this phone is out of the room. PURE: may this phone write to room
+// `code`'s chat now? — the room it's in, still one of its players, not removed by the host, not leaving (`gone` = room.js#leftRoom through the
+// `globalThis.__nsRoomGone` hub: a leave in flight keeps the player row in the state until exitRoom). A host line also needs `host`.
+export function canChat(st, code, { gone = false, host = false } = {}) {
+  if (!st || !code || gone || st.code !== code || !st.uid) return false;
+  if (!st.players || !st.players[st.uid]) return false;
+  if (st.kicked && st.kicked[st.uid]) return false;
+  return !host || !!(st.meta && st.meta.hostId === st.uid);
+}

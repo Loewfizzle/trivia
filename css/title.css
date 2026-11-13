@@ -620,9 +620,9 @@ body.reduced-fx .nd-xb-tw { animation: none; }
   content: ''; position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle, color-mix(in srgb, var(--ic) 24%, transparent), transparent 70%); opacity: 0; transition: opacity 0.4s ease;
 }
-.nd-tab:active::before { opacity: 1; transition-duration: 0.05s; }
+.nd-tab:active::before, .nd-tab.is-press::before { opacity: 1; transition-duration: 0.05s; }   /* (.is-press: THE FIRST TAP — ui/tapwatch.js#pressTap, at the pointerdown) */
 .nd-tab-ic { display: grid; place-items: center; width: 28px; height: 28px; transition: transform 0.18s var(--ease); }
-.nd-tab:active .nd-tab-ic { transform: scale(0.88); transition-duration: 0.08s; }
+.nd-tab:active .nd-tab-ic, .nd-tab.is-press .nd-tab-ic { transform: scale(0.88); transition-duration: 0.08s; }
 /* the neon line icons: a tube in the item's colour with a thin white-hot core, glowing softly */
 .nd-tab-ic svg, .nd-cic svg { width: 27px; height: 27px; overflow: visible; fill: none; stroke-linecap: round; stroke-linejoin: round;
   filter: drop-shadow(0 0 2.2px color-mix(in srgb, var(--ic) 85%, transparent)) drop-shadow(0 0 7px color-mix(in srgb, var(--ic) 42%, transparent)); }
@@ -685,7 +685,7 @@ body.reduced-fx .nd-xb-tw { animation: none; }
   transition: transform 0.18s var(--ease), --hg1 1.4s ease, --hg2 1.4s ease, --hg3 1.4s ease, --hg4 1.4s ease,
     --hb1 1.4s ease, --hb2 1.4s ease, --hb3 1.4s ease, --hb4 1.4s ease, --hc1 1.4s ease, --hc2 1.4s ease, --hc3 1.4s ease, --hc4 1.4s ease, --hk 2.4s ease;
 }
-.nd-ringbtn:active { transform: scale(0.94); transition-duration: 0.08s; --hk: 1.3; }
+.nd-ringbtn:active, .nd-ringbtn.is-press { transform: scale(0.94); transition-duration: 0.08s; --hk: 1.3; }
 /* NIGHT-B — THE STREET SPILL (core/harbor-streetparty.js): while a dance break's dancers stand in the street behind the dock, its glass goes
    a touch darker behind JOIN, HOST + the pill (an opacity fade only — scene.js toggles body.nd-spill once a break) so they read over the
    dancers; the dock at rest shows them fully */
@@ -782,7 +782,7 @@ body.nd-spill .nd-bar-glass::after { opacity: 1; }
 .nd-actions.is-join .nd-tab-ind { opacity: 1; transform: none; }
 /* by day: LIT (FRIENDS B — the owner: every footer button lit day + night), a touch softer than at night so the daylight scene stays calm */
 .nd-actions.is-daylit .nd-ringbtn { --hk: 0.85; }
-.nd-actions.is-daylit .nd-ringbtn:active { --hk: 1; }
+.nd-actions.is-daylit .nd-ringbtn:active, .nd-actions.is-daylit .nd-ringbtn.is-press { --hk: 1; }
 .nd-actions.is-daylit .nd-hring .hr-g2 { opacity: 0.5; }
 .nd-actions.is-daylit .nd-hring .hr-g1 { opacity: 0.85; }
 .nd-actions.is-daylit .nd-ringbtn.is-lit .nd-host-label { text-shadow: 0 0 2px var(--hb1), 0 0 7px color-mix(in srgb, var(--hg1) 60%, transparent); }
@@ -954,12 +954,12 @@ body.nd-on .music-btn.is-off::before { border-color: #ffd6e0; box-shadow: 0 0 1.
 /* ---- Reduced effects: no breathing, no press animations beyond simple fades ---- */
 @media (prefers-reduced-motion: reduce) {
   .nd-ringbtn.is-lit .nd-hglow { animation: none; }
-  .nd-ringbtn:active, .nd-tab:active .nd-tab-ic, .nd-rejoin-btn:active, .nd-go:active { transform: none; }
+  .nd-ringbtn:active, .nd-ringbtn.is-press, .nd-tab:active .nd-tab-ic, .nd-tab.is-press .nd-tab-ic, .nd-rejoin-btn:active, .nd-go:active { transform: none; }
   .nd-drops::before, .nd-drops::after { animation: none; display: none; } .nd-bar.is-flash .nd-strike { animation: none; }
   .nd-box.is-filled { animation: none; }
 }
 body.reduced-fx .nd-ringbtn.is-lit .nd-hglow { animation: none; }
-body.reduced-fx .nd-ringbtn:active, body.reduced-fx .nd-tab:active .nd-tab-ic, body.reduced-fx .nd-rejoin-btn:active, body.reduced-fx .nd-go:active { transform: none; }
+body.reduced-fx .nd-ringbtn:active, body.reduced-fx .nd-ringbtn.is-press, body.reduced-fx .nd-tab:active .nd-tab-ic, body.reduced-fx .nd-tab.is-press .nd-tab-ic, body.reduced-fx .nd-rejoin-btn:active, body.reduced-fx .nd-go:active { transform: none; }
 body.reduced-fx .nd-drops::before, body.reduced-fx .nd-drops::after { animation: none; display: none; }
 body.reduced-fx .nd-box.is-filled { animation: none; }
 @media (max-height: 700px) { .nd-bar.nd-flank { --disc: 70px; --pill-h: 54px; } .nd-box, .nd-go { height: 50px; } }

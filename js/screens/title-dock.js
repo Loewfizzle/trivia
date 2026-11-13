@@ -1,7 +1,7 @@
 // THE FLANK — the title's dock (docs/title.md): [ JOIN ring ] [ glass pill: (DAILY ·) BOARD · PLAY · YOU ] [ HOST ring ], the JOIN panel
 // above it, REJOIN / notes, and the title's two corner buttons dressed as tubes of the sign. This module owns the markup, the
 // rings and the lighting; title.js owns the behaviour (what JOIN, HOST, BOARD… do) and passes it in as handlers.
-import { afterTap } from '../ui/tapwatch.js';
+import { afterTap, pressTap } from '../ui/tapwatch.js';
 import { h } from '../ui/dom.js';
 import { sfx } from '../audio/sfx.js';
 import { state, setState } from '../store.js';
@@ -73,8 +73,10 @@ export function createDock(on) {
   let destroyed = false;
   // (SHELL 2.0 A — the owner: THE TITLE DOCK gets LABELS under its icons like the room dock — the same font, size, colours + spacing:
   //  the room dock's .rdk-tab + .rdk-lbl)
-  const tab = (cls, aria, icon, label, onclick) => h(`button.nd-tab.rdk-tab.${cls}`, { type: 'button', 'aria-label': aria, onclick },
-    h('span.nd-tab-ic', { html: icon }), h('span.rdk-lbl', { 'aria-hidden': 'true' }, label));
+  // (THE FIRST TAP, Nov 13 — /admin's LOST TAP on the dock after a cold load on iOS: every dock button acts on its OWN pointer-up, its press shown
+  //  at once, its work one frame later — ui/tapwatch.js#pressTap; the click stays for the keyboard. room-dock.js wires its own tabs the same way)
+  const tab = (cls, aria, icon, label, onclick) => pressTap(h(`button.nd-tab.rdk-tab.${cls}`, { type: 'button', 'aria-label': aria },
+    h('span.nd-tab-ic', { html: icon }), h('span.rdk-lbl', { 'aria-hidden': 'true' }, label)), onclick);
   // DM2 — DAILY (the left-most icon): hidden until today's answer says a daily is live (THE GO-LIVE SWITCH off → the pill's 3 old icons, as
   // before); WAITING = bright + a gentle pulse + a count badge; ALL DONE = the dock's own style + a small drawn check (setDaily)
   els.dailyTab = tab('nd-tab-daily', 'Today’s dailies', ICON.daily, 'DAILY', on.daily);
@@ -85,11 +87,11 @@ export function createDock(on) {
   els.gamesTab = tab('nd-tab-play.nd-tab-games.nd-link-games', 'Play a game', ICON.play, 'PLAY', on.games);   // (PLAY NOW: GAMES → PLAY — THE GAMES SHELF)
   els.youTab = tab('nd-tab-you.nd-me', 'Your membership card', ICON.guest, 'YOU', on.you);
   // a ring: a dark glass disc, the neon tube ring, its word inside; its slot carries its colours (the reflection wears them too)
-  const ring = (cls, id, word, aria, onclick) => h(`button.nd-ringbtn.${cls}`, { type: 'button', 'aria-label': aria, onclick, dataset: { multi: '0' } },
+  const ring = (cls, id, word, aria, onclick) => pressTap(h(`button.nd-ringbtn.${cls}`, { type: 'button', 'aria-label': aria, dataset: { multi: '0' } },
     h('span.nd-hdisc'),
     h('span.nd-hglow', { 'aria-hidden': 'true' }),
     h('span.nd-hring-wrap', { 'aria-hidden': 'true', html: ringSvg(id) }),
-    h('span.nd-host-label', { 'aria-hidden': 'true' }, word));
+    h('span.nd-host-label', { 'aria-hidden': 'true' }, word)), onclick);
   // (els.joinTab: the JOIN control, whatever it looks like — title.js's openJoin / outsideDown use it)
   els.joinTab = ring('nd-joinring.nd-joinbtn.nd-tab-join', 'ndj', 'JOIN', 'Join a room', on.join);
   // a tap on a dark ring (by day) gives it a brief glow: it feels alive and plainly tappable
@@ -126,8 +128,8 @@ export function createDock(on) {
   els.rejoin = h('div.nd-rejoin');
   // DM2 — THE ROOM WINS: after a room's game took a phone out of its daily, RESUME YOUR DAILY floats above the dock (the title + the room) until
   // the run is opened again or finished (a drawn ticket + the words; modest corners — no pill)
-  els.dyChip = h('button.nd-dychip', { type: 'button', hidden: true, onclick: () => on.resumeDaily && on.resumeDaily() },
-    h('span.nd-dychip-ic', { 'aria-hidden': 'true', html: ICON.daily }), h('span.nd-dychip-t', 'RESUME YOUR DAILY'));
+  els.dyChip = pressTap(h('button.nd-dychip', { type: 'button', hidden: true },
+    h('span.nd-dychip-ic', { 'aria-hidden': 'true', html: ICON.daily }), h('span.nd-dychip-t', 'RESUME YOUR DAILY')), () => on.resumeDaily && on.resumeDaily());
   els.note = h('button.nd-note', { type: 'button', role: 'status', 'aria-live': 'polite', onclick: on.note });
   const el = h('section.nd-actions', h('div.nd-dk', h('div.nd-above', els.note, els.dyChip, els.rejoin), els.jpanel, els.door));
 
@@ -186,6 +188,7 @@ export function createDock(on) {
 
   return {
     el, els, ringColors, light, all, ringOn, ringSet, setDaily,
+    pressTap,   // (room-dock.js wires its own tabs through this — never a new import of the boot graph from a lazy chunk)
     ringLit: () => lit,
     resetRing: () => { lit = false; },
     tabs, corners,

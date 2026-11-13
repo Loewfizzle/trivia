@@ -56,5 +56,6 @@ export const lineInfo = () => ({ net: 'parked', wants: [], parked: true, started
 export const refusals = () => [];
 export const hostRefusals = () => [];
 export function setHostGone() {}
+export function setRoomGone() {}   // (THE CHAT FALSE ALARM: room.js registers which room this phone left)
 export function expectRefusal() {}
 export async function syncTimeNoSocket() { return null; }   // (/api/time's offset — the previews keep the page's own clock)

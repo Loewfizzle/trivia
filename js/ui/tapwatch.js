@@ -109,6 +109,45 @@ export const fingerDown = () => !!press;
 export function tapHandled() { if (press) { press.handled = true; } else if (lastUp && performance.now() - lastUp.at < RESCUE_MS + 50) lastUp.p.handled = true; }
 let lastUp = null;
 
+// THE FIRST TAP (the owner's /admin errors, Nov 13 — the LOST TAP on the city's dock right after a cold load, on iOS): a dock button acts on its
+// OWN pointer-up — a primary press that lifts ON it (not a long-press, not a drag) — never waiting for the `click` iOS may not send while the
+// first frames are busy. Its press shows AT ONCE (`is-press` at the pointerdown — css/title.css, beside :active); the work (a lazy import, a
+// sheet built, a screen switched) runs ONE FRAME later (requestAnimationFrame), so the lift paints the press first. The click stays for the
+// keyboard / a screen reader and a pointer this never saw; one tap runs `fn` ONCE (a click right after the pointer-up took it is ignored).
+const TOOK_MS = 800;
+export function pressTap(el, fn) {
+  if (!el || typeof fn !== 'function') return el;
+  let down = null, tookAt = -1e9;
+  const run = e => {
+    const go = () => { try { fn(e); } catch (err) { console.warn('[tap]', err); } };
+    if (typeof requestAnimationFrame === 'function' && document.visibilityState !== 'hidden') requestAnimationFrame(go); else setTimeout(go, 0);
+  };
+  const lift = () => { down = null; el.classList.remove('is-press'); };
+  el.addEventListener('pointerdown', e => {
+    if (e.isPrimary === false || (e.pointerType === 'mouse' && e.button !== 0) || el.disabled) return;
+    down = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() };
+    el.classList.add('is-press');
+  });
+  el.addEventListener('pointerup', e => {
+    const d = down; lift();
+    if (!d || e.pointerId !== d.id || el.disabled) return;
+    if (performance.now() - d.t > LONG_MS || Math.hypot(e.clientX - d.x, e.clientY - d.y) > SLOP) return;
+    const r = el.getBoundingClientRect();
+    if (e.clientX < r.left - 8 || e.clientX > r.right + 8 || e.clientY < r.top - 8 || e.clientY > r.bottom + 8) return;
+    tookAt = performance.now();
+    tapHandled();
+    run(e);
+  });
+  el.addEventListener('pointercancel', lift);
+  el.addEventListener('lostpointercapture', () => { if (down) el.classList.remove('is-press'); });
+  el.addEventListener('click', e => {
+    if (performance.now() - tookAt < TOOK_MS) return;   // (the pointer-up already took this tap)
+    run(e);
+  });
+  el.dataset.pressTap = '1';
+  return el;
+}
+
 function onDown(e) {
   try {
     if (e.isPrimary === false) return;

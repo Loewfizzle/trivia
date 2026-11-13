@@ -13,9 +13,14 @@ import { liveKeyFor, GAME_MODULES, metaOf } from '../games/registry.js';
 import { GAMES } from '../config.js';
 import { sfx } from '../audio/sfx.js';
 import { vibrate } from '../ui/dom.js';
-import { chatLocked, cleanText, unreadCount, KEEP, CLIENT_GAP_MS, TYPING_IDLE_MS } from './logic.js';
+import { chatLocked, cleanText, unreadCount, canChat, KEEP, CLIENT_GAP_MS, TYPING_IDLE_MS } from './logic.js';
 
 const C = code => `chats/${code}`;
+// THE CHAT FALSE ALARM (Nov 13): every write asks first — still in THIS room, still a player, not removed, not leaving (room.js#leftRoom, read
+// through its hub: a lazy chunk never imports a boot-graph module for a new export); a refusal that slips through anyway (the write already on
+// its way) is logged quietly by firebase.js as "no longer in the room", never the re-publish alarm
+const roomGone = code => { try { const f = globalThis.__nsRoomGone; return typeof f === 'function' && !!f(code); } catch { return false; } };
+export const mayWrite = (code, host = false) => canChat(state, code, { gone: roomGone(code), host });
 export const chat = {
   code: null,
   msgs: [],            // sorted by `at`: { k, u?, t?, s?, x?, at }
@@ -46,6 +51,7 @@ subscribe(st => {
 function attach(code) {
   unsubs.forEach(u => u());
   unsubs = [];
+  clearTimeout(typingTimer); typingSince = 0;   // (THE CHAT FALSE ALARM: the last room's typing timer never writes after the room is gone)
   Object.assign(chat, { code, msgs: [], loaded: false, typing: {}, unread: 0, denied: false });
   chat.outbox = new Map();
   typingArmed = '';
@@ -105,7 +111,7 @@ function notify(fresh) {
 export function send(text, retryKey = null) {
   const t = cleanText(text);
   if (!t) return 'empty';
-  if (!chat.code || !state.uid) return 'off';
+  if (!chat.code || !state.uid || !mayWrite(chat.code)) return 'off';
   const now = Date.now();
   if (now - lastSendAt < CLIENT_GAP_MS) return 'slow';
   lastSendAt = now;
@@ -130,7 +136,7 @@ export const discard = k => { chat.outbox.delete(k); emit('outbox'); };
 
 // ---------------------------------------------------------------- typing indicator
 export function typingPing() {
-  if (!chat.code || !state.uid) return;
+  if (!chat.code || !state.uid || !mayWrite(chat.code)) return;
   const path = `${C(chat.code)}/typing/${state.uid}`;
   if (typingArmed !== chat.code) { typingArmed = chat.code; onDisconnect(dbRef(path)).remove().catch(() => {}); }
   const now = Date.now();
@@ -142,19 +148,20 @@ export function stopTyping() {
   clearTimeout(typingTimer);
   if (!typingSince || !chat.code || !state.uid) return;
   typingSince = 0;
+  if (!mayWrite(chat.code)) return;
   remove(dbRef(`${C(chat.code)}/typing/${state.uid}`)).catch(() => {});
 }
 
 // ---------------------------------------------------------------- host: system lines, pruning, clearing
 const SYS_MAX = 80;
 export function system(kind, text, key = null) {
-  if (!state.code || !isHost()) return Promise.resolve();
+  if (!state.code || !isHost() || !mayWrite(state.code, true)) return Promise.resolve();
   const k = key || push(dbRef(`${C(state.code)}/m`)).key;
   return set(dbRef(`${C(state.code)}/m/${k}`), { s: kind, x: String(text).slice(0, SYS_MAX), at: serverTimestamp() }).catch(() => {});
 }
 
 export async function clearChat() {
-  if (!state.code || !isHost()) return;
+  if (!state.code || !isHost() || !mayWrite(state.code, true)) return;
   await remove(dbRef(`${C(state.code)}/m`)).catch(e => console.warn('clear chat', e));
   await system('clear', 'The host cleared the chat');
 }
@@ -213,10 +220,12 @@ export function hostTick() {
 }
 
 async function prune(oldestKeptAt) {
-  const snap = await get(query(dbRef(`${C(state.code)}/m`), orderByChild('at'), endAt(oldestKeptAt - 1), limitToFirst(200)));
+  const code = state.code;
+  const snap = await get(query(dbRef(`${C(code)}/m`), orderByChild('at'), endAt(oldestKeptAt - 1), limitToFirst(200)));
   const patch = {};
   snap.forEach(c => { patch[`m/${c.key}`] = null; });
-  if (Object.keys(patch).length) await update(dbRef(C(state.code)), patch);
+  // (THE CHAT FALSE ALARM: the read took a moment — still this room's host? else the next host prunes)
+  if (Object.keys(patch).length && mayWrite(code, true)) await update(dbRef(C(code)), patch);
 }
 
 /** Host: announce a new match (called from host.js#startGame). */

@@ -40,8 +40,11 @@ export function createRoomDock(on) {
   E.host.append(E.pips, E.votes, E.mid);
   // (SHELL 2.0 B2: B1's LOOK SWITCH above PLAY is gone — the owner: "more confusing than helpful" → ☰ → Settings → Game look)
   // the pill: YOU · GUESTS · GAMES · CHAT, a tiny label under each icon
-  const tab = (cls, aria, icon, label, onclick) => h(`button.nd-tab.rdk-tab.${cls}`, { type: 'button', 'aria-label': aria, onclick },
-    h('span.nd-tab-ic', { html: icon }), h('span.rdk-lbl', { 'aria-hidden': 'true' }, label), h('i.rdk-dot', { 'aria-hidden': 'true', hidden: true }));
+  // (THE FIRST TAP, Nov 13: the dock's own pointer-up path — title-dock.js hands its pressTap over on the dock it returns; an older title-dock
+  //  without it → the plain click, as before)
+  const wire = (el, fn) => (typeof d.pressTap === 'function' ? d.pressTap(el, fn) : (el.onclick = fn, el));
+  const tab = (cls, aria, icon, label, onclick) => wire(h(`button.nd-tab.rdk-tab.${cls}`, { type: 'button', 'aria-label': aria },
+    h('span.nd-tab-ic', { html: icon }), h('span.rdk-lbl', { 'aria-hidden': 'true' }, label), h('i.rdk-dot', { 'aria-hidden': 'true', hidden: true })), onclick);
   E.youTab = tab('nd-tab-you.rdk-you', 'Your card', ICON.guest, 'YOU', on.you);
   E.guestsTab = tab('rdk-guests', 'The guest list', RICON.guests, 'GUESTS', on.guests);
   E.gamesTab = tab('nd-tab-games.rdk-games', 'The games', ICON.games, 'GAMES', on.games);

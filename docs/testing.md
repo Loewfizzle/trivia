@@ -645,6 +645,9 @@ load problem, not a flake to patch.
   402×874 @3, touch) — on the emulators + `serve.mjs --emu`; `N=20` taps a control (YOU / BOARD 6, HOST 8, LOCK 10), each with a random
   disturbance at a random moment; THE TAP TABLE at the end (landed · lost · rescued); a tap that hit a still-moving sheet elsewhere is an
   AIM miss (the watch's `lastDown()` names what it pressed), never counted as lost. ≈ 6 min Chromium, ≈ 9 min WebKit.
+- **THE FIRST TAP (Nov 13):** `node tests/integration/wk-docktap.mjs [--base URL] [--only title,room]` (Playwright's WebKit from `~/wk`, 402×874 @3,
+  touch, THE RESCUE OFF; the emulators + `serve.mjs --emu`) — each title dock button (JOIN · BOARD · PLAY · YOU · HOST, + DAILY when live) in its
+  own COLD load, ONE tap at the reveal → it opens; then the room dock (INVITE · PLAY · YOU · GUESTS · GAMES · CHAT) one tap each. ≈ 2 min.
 - The board's rebuild count: `__district.boardXf().rev` (+ `show`). THE BLACK HELICOPTER's per-frame heading + its pass's frame rate: harbor `heli`.
 - The HOLD'EM look: `shots.mjs --preview --city 2 --qs "force=billboard-holdem" --crop bill` (+ `&holdem=open`; the paste:
   `force=billboard-holdem,work-billposter&speed=20 --wait 34000`).

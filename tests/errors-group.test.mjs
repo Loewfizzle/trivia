@@ -7,6 +7,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { isBotUA, dropAsBot, quietBot } from '../js/core/bot-ua.js';
+import { quietRoomRefusal, roomOfPath, QUIET_HOST, QUIET_ROOM } from '../js/core/rules-lag.js';
+import { canChat } from '../js/chat/logic.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const fnBody = (src, name) => { const i = src.indexOf(`function ${name}(`); let d = 0, j = src.indexOf('{', i); for (let k = j; k < src.length; k++) { if (src[k] === '{') d++; else if (src[k] === '}' && !--d) return src.slice(j, k + 1); } return ''; };
@@ -21,8 +23,8 @@ test('THE BLACK HELICOPTER: drawHeli names no variable of drawModel\'s (black ·
 
 test('STALE-HOST WRITES: a room / chat write refused while this phone has JUST lost the host = "no longer the host" (quiet), never the alarm; the host writes check again first', () => {
   const fb = read('js/firebase.js'), host = read('js/host.js'), lm = read('js/audio/lobby-music.js');
-  assert.match(fb, /if \(\/\^\\\/\?\(rooms\|chats\)\\\/\/\.test\(refPath\(r\)\)\) \{ setTimeout\(\(\) => \{ if \(safeGone\(\)\) \{/, 'a room write waits HOST_SETTLE_MS, then asks');
-  assert.match(fb, /console\.info\('\[rules\] no longer the host/);
+  assert.match(fb, /if \(\/\^\\\/\?\(rooms\|chats\)\\\/\/\.test\(refPath\(r\)\)\) \{ setTimeout\(\(\) => \{ const quiet = quietRoomRefusal\(refPath\(r\), \{ hostGone: safeGone, roomGone \}\); if \(quiet\) \{/, 'a room write waits HOST_SETTLE_MS, then asks');
+  assert.match(fb, /console\.info\(`\[rules\] \$\{quiet\} — a write refused after/);
   assert.match(host, /setHostGone\(lostHostRecently\);/);
   assert.match(host, /if \(isHost\(\)\) \{\n    wasHostAt = Date\.now\(\); wasHostCode = state\.code;/);
   assert.match(host, /if \(!isHost\(\)\) return;   \/\/ \(THE ERRORS GROUP: checked again right before the write\)/, 'the beat');
@@ -78,4 +80,48 @@ test('the previews\' fake firebase.js carries every export the real one has (a m
   const SKIP = new Set(['IDB_PROBE_DBS', 'IDB_PROBE_MS', 'idbAnswers']);   // (the boot's IndexedDB probe — firebase.js's own, never imported by a page module)
   const missing = [...real].filter(n => !fake.has(n) && !SKIP.has(n));
   assert.deepEqual(missing, [], `tests/integration/fake-firebase.js lacks: ${missing.join(', ')}`);
+});
+
+// THE CHAT FALSE ALARM (the owner's /admin errors, Nov 13): a chat write refused because this phone had LEFT the room rang the re-publish alarm.
+// (1) no chat write once out of the room (chat.js#mayWrite → chat/logic.js#canChat before every send / typing ping / host line / prune);
+// (2) one that slips through (already on its way) = a quiet "no longer in the room" (core/rules-lag.js#quietRoomRefusal; room.js#leftRoom says which)
+test('THE CHAT FALSE ALARM: no chat write out of the room; a refusal after leaving is "no longer in the room" (quiet), a real rules-lag still the alarm', () => {
+  // (1) canChat — PURE
+  const st = { code: 'MINT', uid: 'u1', players: { u1: {}, u2: {} }, kicked: {}, meta: { hostId: 'u1' } };
+  assert.equal(canChat(st, 'MINT'), true, 'in the room');
+  assert.equal(canChat(st, 'MINT', { host: true }), true, 'the host');
+  assert.equal(canChat({ ...st, meta: { hostId: 'u2' } }, 'MINT', { host: true }), false, 'lost the host: no host line');
+  assert.equal(canChat({ ...st, meta: { hostId: 'u2' } }, 'MINT'), true, '…a player line still fine');
+  assert.equal(canChat(st, 'MINT', { gone: true }), false, 'leaving (room.js#leftRoom — the player row is still in the state)');
+  assert.equal(canChat({ ...st, code: null }, 'MINT'), false, 'left');
+  assert.equal(canChat({ ...st, code: 'SAGE' }, 'MINT'), false, 'another room now');
+  assert.equal(canChat({ ...st, players: { u2: {} } }, 'MINT'), false, 'no longer a player');
+  assert.equal(canChat({ ...st, kicked: { u1: true } }, 'MINT'), false, 'removed by the host');
+  assert.equal(canChat({ ...st, uid: null }, 'MINT'), false); assert.equal(canChat(st, null), false); assert.equal(canChat(null, 'MINT'), false);
+  // (2) quietRoomRefusal — PURE
+  assert.equal(roomOfPath('/chats/MINT/m/-Nabc'), 'MINT'); assert.equal(roomOfPath('rooms/MINT/meta'), 'MINT'); assert.equal(roomOfPath('profiles/p1'), null);
+  const left = new Set(['MINT']);
+  const ctx = { hostGone: () => false, roomGone: code => left.has(code) };
+  assert.equal(quietRoomRefusal('/chats/MINT/typing/u1', ctx), QUIET_ROOM);
+  assert.equal(quietRoomRefusal('/chats/MINT', ctx), QUIET_ROOM, 'a send (the room\'s chat node: m + rate)');
+  assert.equal(quietRoomRefusal('/rooms/MINT/players/u1', ctx), QUIET_ROOM);
+  assert.equal(quietRoomRefusal('/chats/SAGE/m/-Nabc', ctx), null, 'a room this phone is IN: a real refusal = the alarm');
+  assert.equal(quietRoomRefusal('/profiles/p1', ctx), null, 'not a room path: the alarm');
+  assert.equal(quietRoomRefusal('/chats/SAGE/m/-Nabc', { ...ctx, hostGone: () => true }), QUIET_HOST, 'the hand-off first');
+  assert.equal(quietRoomRefusal('/chats/MINT', { hostGone: () => { throw new Error('x'); }, roomGone: () => true }), QUIET_ROOM, 'a predicate that throws is skipped');
+  assert.equal(quietRoomRefusal('/chats/MINT'), null, 'nothing registered: the alarm');
+  // the wiring
+  const fb = read('js/firebase.js'), room = read('js/room.js'), chat = read('js/chat/chat.js');
+  assert.match(fb, /export function setRoomGone\(fn\)/);
+  assert.match(room, /export const leftRoom = code => !!code && \(state\.code !== code \|\| leavingCode === code \|\| !!\(state\.kicked && state\.uid && state\.kicked\[state\.uid\]\)\);/);
+  assert.match(room, /setRoomGone\(leftRoom\);\nglobalThis\.__nsRoomGone = leftRoom;/);
+  assert.doesNotMatch(chat, /from '\.\.\/room\.js'/, 'the lazy chat reads the hub, never a new export of the boot graph');
+  assert.match(chat, /export const mayWrite = \(code, host = false\) => canChat\(state, code, \{ gone: roomGone\(code\), host \}\);/);
+  for (const [fn, re] of [['send', /if \(!chat\.code \|\| !state\.uid \|\| !mayWrite\(chat\.code\)\) return 'off';/], ['typingPing', /if \(!chat\.code \|\| !state\.uid \|\| !mayWrite\(chat\.code\)\) return;/],
+    ['stopTyping', /if \(!mayWrite\(chat\.code\)\) return;/], ['system', /!mayWrite\(state\.code, true\)\) return Promise\.resolve\(\);/], ['prune', /mayWrite\(code, true\)\) await update/]]) assert.match(fnBody(chat, fn), re, fn);
+  assert.match(fnBody(chat, 'attach'), /clearTimeout\(typingTimer\); typingSince = 0;/, 'the last room\'s typing timer stops with it');
+  // every chat write sits in a guarded function: send · typingPing · stopTyping · system · clearChat · prune (+ the emulator-only test hook's raw write)
+  const writes = [...chat.matchAll(/\b(set|update|remove)\(dbRef\(/g)].length;
+  assert.equal(writes, 7, `${writes} write calls in chat.js — a new one needs its mayWrite guard (+ this count)`);
+  assert.match(read('tests/integration/fake-firebase.js'), /export function setRoomGone\(\) \{\}/);
 });
