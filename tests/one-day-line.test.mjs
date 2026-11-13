@@ -11,7 +11,7 @@ import { weekKey, weekEndsAt, dayKey } from '../js/core/week.js';
 import { msToTurn } from '../js/daily/clock.js';
 import { matchStep, payXp, playDay, DAILY_CEILING, dailyStep } from '../js/core/progress.js';
 import { overallValues } from '../js/core/overall.js';
-import { needsRetry, mergeOutcomes } from '../api/_lib/stats.js';
+import { needsRetry, mergeOutcomes } from '../api/_lib/retry.js';   // (FR7 FIXES C2: the PURE file — stats.js reaches fb.js → firebase-admin, which the cloud's unit job doesn't install)
 
 const H = 3600e3;
 const ET = (y, m, d, h, mi, off) => Date.UTC(y, m - 1, d, h + off, mi);   // an Eastern wall clock (off = 5 EST · 4 EDT) → ms

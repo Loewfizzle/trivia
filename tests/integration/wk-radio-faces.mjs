@@ -11,6 +11,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { readFileSync, mkdirSync } from 'node:fs';
+import { guardUrl } from './kit/live-guard.mjs';   // (NEVER THE LIVE SITE: a non-local --base throws unless LIVE=1)
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1]; };
@@ -48,7 +49,7 @@ async function run(name, stale) {
   const waitFor = async (js, ms) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await p.evaluate(js)) return true; } catch { /* navigating */ } await sleep(100); } return false; };
   const UP = '!!(window.__district && window.__district.harbor() && window.__district.harbor().shown)';
   try {
-    await p.goto(`${BASE}/?emu&slot=${slot}&when=2026-11-03T21:00&city=2`);
+    await p.goto(guardUrl(`${BASE}/?emu&slot=${slot}&when=2026-11-03T21:00&city=2`, 'wk-radio-faces.mjs'));
     if (!await waitFor(UP, 40000)) { ok(false, `${name}: the city up`); return; }
     let pid = null;
     for (let i = 0; i < 60 && !pid; i++) { pid = await p.evaluate(async () => { const m = await import('/js/profile/api.js'); try { return (await m.api('admin', { action: 'whoami' })).pid; } catch { return null; } }); if (!pid) await sleep(500); }

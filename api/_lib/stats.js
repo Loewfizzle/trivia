@@ -17,16 +17,8 @@ import { noteRecent } from './friends.js';
 // one match per player per this long — a real match takes minutes; this stops a forged room from farming wins
 export const MIN_MATCH_GAP_MS = Number(process.env.MATCH_GAP_MS ?? 45_000);
 const step = (stats, key, gid, row, n, now, at, outage, ctx) => matchStep(stats, { key, gid, row, n, now, at, gap: MIN_MATCH_GAP_MS, outage, ctx });
-/** THE ONE DAY LINE (FR7 FIXES C — M4): an outcome that must be tried again (the 45 s gap's `too_soon`, a transaction that didn't commit) — the
- *  result is then NOT done: the caller answers 425 + retryAfter and keeps the outcomes so far (a retry skips the credited ones as 'counted') */
-export const RETRY_SKIPS = Object.freeze(['too_soon', 'busy']);
-export const needsRetry = outcomes => Object.values(outcomes || {}).some(o => o && RETRY_SKIPS.includes(o.skip));
-/** the outcomes of this try over the ones kept from an earlier try: a player credited before (now skipped 'counted') keeps the earlier one */
-export function mergeOutcomes(prev, now) {
-  const out = { ...(prev || {}) };
-  for (const [pid, o] of Object.entries(now || {})) if (!(o && o.skip === 'counted' && out[pid] && !out[pid].skip)) out[pid] = o;
-  return out;
-}
+// THE ONE DAY LINE's retry rules live in ./retry.js (PURE — the unit suite reads them without firebase-admin); re-exported here
+export { RETRY_SKIPS, needsRetry, mergeOutcomes } from './retry.js';
 
 /** The facts the achievements need that only the server knows (the room's meta, the clock, the other players). */
 function factsFor(uid, ex, pids, now, room) {
