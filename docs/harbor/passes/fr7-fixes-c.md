@@ -68,3 +68,29 @@ The detail: docs/harbor.md "THANKSGIVING's SIGN — THE MAPLE LEAVES + THE GOLD 
   7 s): the day's new leaves fade in over ~2.7 s (the largest single-frame change 16 % of the whole) — no pop.
 - **Proof:** unit (`harbor-holiday` — the stages Nov 14 → 27, gold from Mon 4 am, two more years; the golden table); the harbor `thanks` group 14/14
   (Nov 20 leaves ¾ behind the tubes, Nov 24 full + gold, the force on Nov 1 + IN season Nov 16) + `holiday` + `panelrows` (81/81 together).
+
+## Group 4 — THE SMALL ONES (+ the owner's JAYWALK add-on)
+
+1. **THE LEDGER: NOW PLAYING** — one line under the NIXIE row: `NOW PLAYING · <source> · <file> · m:ss left` / `MUSIC OFF` (`js/audio/now-playing.js` —
+   the room's lobby song, else the station / the party deck on the server clock, else the plain player; `music.js#musicFileOf` the one new export).
+   From the engine's own state — no poll, no /api; refreshed once a second only while the LEDGER face is on the page (its timer ends itself when
+   the face leaves). Seen in the harbor `radio` group: "NOW PLAYING · STATION · EVENING · c2-evening7.mp3 · 0:35 left".
+2. **THE SWITCHES THAT HANG OFF THEIR PANEL** — the cause: THE CREW INTERCOM's lever sits in a flex row with a long label; the row SHRANK the lever (112 →
+   74 pt at 390) while its knob's travel stayed 62 pt — the knob ended at 390 pt, the card's padding at 361. Fix (`css/radio.css`): the lever never
+   shrinks (`flex: 0 0 auto`, 112 pt), the label wraps, the row centres. Every switch checked: the radio's levers are `.rd-lever` (THE LEDGER's crew
+   intercom + A ROOM JUST OPENED; the DESK's mic card when it shows) — /admin has NO pill switches (its ON / OFF are buttons). **THE GUARD**: the harbor
+   `radio` group's SWITCH FIT — at 390, all three faces, every lever OFF and ON: the knob inside its lever, the lever inside its panel's padding, 44 pt
+   tall. **Proved**: with the fix taken out it FAILS on exactly the owner's case (`{"face":"LEDGER","id":"Crew intercom","on":true,"lever":[285,359],
+   "knob":[354,390],"panel":[30,361]}`); with it, 52 / 52.
+3. **THE STALE COUNT** — nothing stale left in the link previews: index.html's description / og / twitter text + manifest.webmanifest already read
+   "Neon multiplayer party games for 2–8 players. One phone each …" (FR7 FIXES B fixed the pages' text); board.html + 404.html name no count; the
+   in-app counts are computed from GAMES. Changed: one stale code comment (title.js — "12 PARTY GAMES"). og.jpg's GRIDLOCK sign left (the owner
+   remakes it).
+4. **THE JAYWALK POSTER READABLE** (the owner's ADD-ON, his iPhone Nov 13 3:12 am). Before (390, measured from the old layout): JAYWALK 5.5 pt vs HOLD'EM
+   10.3, COMING SOON 3.3 vs NOW OPEN 5.9, squeezed into the art's left half. Now (`jaywalk-art.js` rebuilt): the face in HOLD'EM's own poster box —
+   JAYWALK across ~92 % (cap 0.235 H = HOLD'EM's), white-hot pink, a heavy dark outline + drop; COMING SOON on a SOLID hot-pink band (0.145 H ≥ NOW OPEN's
+   0.135 H); the art re-cropped tight on the kid (right of centre, between the word + the band) + the headlights, lifted (gamma 0.72, contrast 1.12,
+   saturation 1.28) → `billboard.webp` 848 × 448, 40.5 KB. **The live board's caps (pt)**: 390 — JAYWALK 10.5 ≥ 10.3, the band 6.3 ≥ 5.9; 402 — 10.8 ≥ 10.6,
+   6.5 ≥ 6.1; 430 — 11.6 ≥ 11.3, 7.0 ≥ 6.5. Proof: `tests/trivision.test.mjs` (four board sizes, both bars) + the harbor `trivision` group (12 / 12 with
+   `billboard`). Shots: `fr7-fixes-c/jw-before2/` → `jw-after2/side-by-side.png` (night + day × 390 / 402 / 430), `jw-after2/turn-sheet.png` (a burst
+   through the turns), `jw-after2/cast/` (the full-screen cast). Nothing else on the board changed (`holdem-art.js` only gained the pure `holdemCaps`).

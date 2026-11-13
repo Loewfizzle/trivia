@@ -212,6 +212,8 @@ function applyDirectVolume() {
 }
 onSettings(applyDirectVolume);
 /** the output the music is on: 'direct' (iOS's own pipeline) or 'web' (a voice through the graph) */
+/** FR7 FIXES C — THE LEDGER's NOW PLAYING: a track id → its file's URL (a mood song 'm:<id>' → its own file) */
+export const musicFileOf = id => (String(id || '').startsWith('m:') ? musicUrl(String(id).slice(2)) : FILES[id] ? urlFor(id) : String(id || ''));
 export const musicOut = () => (current && current.voice && current.voice.direct ? 'direct' : 'web');
 // which output a song starts on now: the direct element while the graph is dead (if it may play), else a voice
 // (APP FIXES — Grok 3.4: + 'interrupted' + stuck: engine.js#graphDead — a call / Siri no longer leaves the song on a graph that can't sound)

@@ -256,6 +256,42 @@ G('radio', async () => {
   await shotFace(O.page, 'ledger');
   const led = await ev(O.page, `({ nix: document.querySelectorAll('.rd-big3 .rd-nixie').length, rows: document.querySelectorAll('.rd-lg').length, bars: document.querySelectorAll('.rd-chart > div').length })`);
   ok(led.nix === 3 && led.rows >= 6 && led.bars === 7, `RADIO: THE LEDGER — 3 nixies, TODAY's rows (${led.rows}), THIS WEEK's 7 bars`);
+  // (FR7 FIXES C — NOW PLAYING under the nixies: what THIS phone plays — the engine's own state; MUSIC OFF / nothing sounding are honest answers here)
+  { const npx = await ev(O.page, `(() => { const e = document.querySelector('.rd-big3 + .rd-np'); return e ? { t: e.textContent, w: Math.round(e.getBoundingClientRect().width), sw: e.scrollWidth, cw: e.clientWidth } : null; })()`);
+    ok(npx && /^NOW PLAYING · (MUSIC OFF|nothing sounding|.+ · .+)/.test(npx.t) && npx.sw <= npx.cw + 1, `RADIO: THE LEDGER's NOW PLAYING under the nixies ("${npx && npx.t}")`); }
+  // ---- FR7 FIXES C — THE SWITCHES INSIDE THEIR PANELS (the owner's iPhone, Nov 13: THE CREW INTERCOM's knob hung half outside THE LEDGER's card):
+  // at 390 (the owner's own slot, a page of its own — a resize rebuilds the city + closes the radio), on every face, every lever + its knob —
+  // OFF and ON (the class flipped for the measure only, no server call) — inside its panel's padding, 44 pt tall
+  { const S = await open({ slot: 'rdsw', qs: 'when=2026-11-03T21:00', view: [390, 844] });
+    await harborUp(S.page);
+    { const spid = await pidOf(S.page); await dbPut(`testAdmins/${spid}`, true); await ev(S.page, 'sessionStorage.clear()'); await S.page.reload(); await harborUp(S.page); }
+    await waitFor(S.page, '!!document.querySelector(".rd-btn")', 'the radio button at 390', 20000);
+    await ev(S.page, `document.querySelector('.rd-btn').click()`);
+    await waitFor(S.page, '!!document.querySelector(".rd-modal.is-in .rd-jack")', 'the desk at 390', 10000);
+    const fit = () => ev(S.page, `(() => { const out = [];
+      for (const l of document.querySelectorAll('.rd-modal .rd-lever')) {
+        if (!l.getClientRects().length) continue;
+        const panel = l.closest('.rd-paper, .rd-sec, .rd-card') || l.parentElement, arm = l.querySelector('.rd-lever-arm'), had = l.classList.contains('is-on');
+        for (const on of [false, true]) {
+          l.classList.toggle('is-on', on); arm.style.transition = 'none';
+          const P = panel.getBoundingClientRect(), cs = getComputedStyle(panel), a = arm.getBoundingClientRect(), b = l.getBoundingClientRect();
+          const x0 = P.left + parseFloat(cs.paddingLeft) - 0.5, x1 = P.right - parseFloat(cs.paddingRight) + 0.5;
+          out.push({ id: (l.getAttribute('aria-label') || l.textContent || '').trim().slice(0, 18), on, ok: b.left >= x0 && b.right <= x1 && a.left >= b.left - 0.5 && a.right <= b.right + 0.5 && b.height >= 44,
+            lever: [Math.round(b.left), Math.round(b.right)], knob: [Math.round(a.left), Math.round(a.right)], panel: [Math.round(x0), Math.round(x1)], h: Math.round(b.height) });
+        }
+        l.classList.toggle('is-on', had); arm.style.transition = '';
+      }
+      return out; })()`);
+    const all = [];
+    for (const face of ['DESK', 'PROGRAM', 'LEDGER']) {
+      await ev(S.page, `(() => { const b = [...document.querySelectorAll('.rd-bb')].find(x => x.textContent.trim() === '${face}'); if (b) b.click(); return !!b; })()`); await sleep(1500);
+      if (face === 'LEDGER') await waitFor(S.page, '!!document.querySelector(".rd-crewic .rd-lever")', 'THE LEDGER\'s levers', 10000).catch(() => {});
+      for (const r of await fit()) all.push({ face, ...r });
+    }
+    await shotFace(S.page, 'ledger-390');
+    const bad = all.filter(r => !r.ok);
+    ok(all.length >= 4 && all.some(r => r.face === 'LEDGER') && !bad.length, `RADIO: THE SWITCH FIT at 390 — ${all.length / 2} lever(s) on the three faces, OFF + ON, every knob inside its lever, every lever inside its panel, 44 pt tall (${bad.length ? JSON.stringify(bad) : all.map(r => `${r.face}:${r.id}`).filter((v, i, a) => a.indexOf(v) === i).join(' · ')})`);
+    await S.ctx.close(); }
   // ---- PROGRESSION A — THE FOUNDER WINDOW on THE LEDGER: OPEN by default; a tap arms it, a second tap CLOSES it (the server, audited);
   // the same two taps reopen it (the test leaves it open)
   { const sw = () => ev(O.page, `(() => { const b = document.querySelector('.rd-fsw'); return b ? { state: b.querySelector('.rd-fsw-state').textContent, armed: b.classList.contains('is-armed'), h: b.getBoundingClientRect().height } : null; })()`);

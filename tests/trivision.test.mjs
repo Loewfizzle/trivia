@@ -98,14 +98,23 @@ test('the scene: the tri-vision\'s pieces (the warm after the reveal, the swap u
   assert.doesNotMatch(art, /FontFace|@font-face|fonts\.googleapis/, 'no font load — the lettering is path data');
 });
 
-test('the poster\'s words: COMING SOON ~60 % of JAYWALK\'s height, both on the art\'s black left (clear of the kid), never stretched', async () => {
-  const { wordsOf, coverOf } = await import('../js/screens/harbor/jaywalk-art.js').catch(() => ({}));
-  if (!wordsOf) return;   // (a runtime without the DOM's Path2D at import: the browser suite covers it)
-  for (const R of [{ x: 0, y: 0, w: 70, h: 38 }, { x: 10, y: 5, w: 150, h: 81 }, { x: 0, y: 0, w: 300, h: 166 }]) {
-    const W = wordsOf(R, 'soon'), C = coverOf(R);
-    assert.ok(Math.abs(W.bc / W.jc - 0.6) < 1e-9, 'COMING SOON 60 % of JAYWALK');
-    assert.ok(W.cx + W.zw / 2 <= W.kidL, 'the words end left of the kid');
-    assert.ok(Math.abs(C.dw / C.dh - 2) < 1e-9 && C.dw >= R.w - 1e-9 && C.dh >= R.h - 1e-9, 'COVER — the art\'s own 2 : 1');
+test('THE JAYWALK POSTER READS (FR7 FIXES C — the owner, Nov 13): in HOLD\'EM\'s own poster box, JAYWALK\'s cap ≥ HOLD\'EM\'s, its band\'s words ≥ NOW OPEN\'s, the word ~92 % of the width, the art never stretched', async () => {
+  const { wordsOf, coverOf, capsOf, JW_ASPECT } = await import('../js/screens/harbor/jaywalk-art.js').catch(() => ({}));
+  const { holdemCaps, POSTER_ASPECT } = await import('../js/screens/harbor/holdem-art.js').catch(() => ({}));
+  if (!wordsOf || !holdemCaps) return;   // (a runtime without the DOM's Path2D at import: the browser suite covers it)
+  const { JW_GLYPHS: G } = await import('../js/screens/harbor/jaywalk-glyphs.js');
+  assert.equal(JW_ASPECT, POSTER_ASPECT, 'the same poster box as HOLD\'EM');
+  for (const R of [{ x: 0, y: 0, w: 70, h: 38 }, { x: 10, y: 5, w: 85, h: 46 }, { x: 0, y: 0, w: 150, h: 81 }, { x: 0, y: 0, w: 300, h: 166 }]) {
+    for (const bar of ['soon', 'open']) {
+      const J = capsOf(R, bar), Hc = holdemCaps(R, 'open');
+      assert.ok(J.word >= Hc.word - 1e-9, `JAYWALK ${J.word.toFixed(2)} ≥ HOLD'EM ${Hc.word.toFixed(2)} pt (${R.w} wide)`);
+      assert.ok(J.bar >= Hc.bar - 1e-9, `the band ${J.bar.toFixed(2)} ≥ NOW OPEN ${Hc.bar.toFixed(2)} pt`);
+      const W = wordsOf(R, bar), ww = G.jaywalk.w * W.jc / G.jaywalk.cap;
+      assert.ok(ww >= W.B.W * 0.78 && ww <= W.B.W * 0.95, `JAYWALK across ~80–92 % of the poster (${(ww / W.B.W * 100).toFixed(0)} %)`);
+      assert.ok(W.jb < W.bandY && W.bb <= R.y + R.h + 1e-9, 'the word above the band, the band\'s words inside the board');
+    }
+    const C = coverOf(R);
+    assert.ok(Math.abs(C.dw / C.dh - 848 / 448) < 1e-9 && C.dw >= R.w - 1e-9 && C.dh >= R.h - 1e-9, 'COVER — the art\'s own 848 : 448');
   }
 });
 

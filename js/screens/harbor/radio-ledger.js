@@ -9,6 +9,7 @@ import { h } from '../../ui/dom.js';
 import { avatar } from '../../ui/components.js';
 import { jackDef } from '../../core/harbor-radio.js';
 import { pushPaper } from './radio-push.js';
+import { nowPlayingText } from '../../audio/now-playing.js';
 
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 let memo = null;   // { at, data } — 30 s
@@ -17,6 +18,14 @@ function nixie(n, d = 3) { return h('span.rd-nixie', ...String(Math.max(0, Math.
 
 export function paint({ api, now }) {
   const holder = h('div.rd-paperwrap', h('section.rd-paper', h('h4', 'TODAY'), h('p.rd-hint', 'Reading the ledger…')));
+  // FR7 FIXES C — NOW PLAYING (the owner, Nov 13): what THIS phone is playing, under the NIXIE row — from the audio engine's own state (no poll,
+  // no /api); refreshed once a second ONLY while this face is on screen (the timer ends itself once the ledger leaves the page)
+  const np = h('p.rd-np', { 'aria-live': 'off' }, nowPlayingText());
+  const npT = setInterval(() => {
+    if (!holder.isConnected) { clearInterval(npT); return; }
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    const t = nowPlayingText(); if (np.textContent !== t) np.textContent = t;
+  }, 1000);
   const fill = L => {
     const T = L.today, wk = L.week || [], max = Math.max(1, ...wk.map(x => x.visits + x.games));
     holder.replaceChildren(
@@ -24,6 +33,7 @@ export function paint({ api, now }) {
         h('div', nixie(L.now.here), h('small', 'IN THE CITY')),
         h('div', nixie(L.now.rooms), h('small', 'ROOMS OPEN')),
         h('div', nixie(L.now.games), h('small', 'GAMES ON'))),
+      np,
       h('section.rd-paper', h('h4', 'TODAY', h('em', 'since midnight · Eastern')),
         h('div.rd-lg', h('span', 'Visitors', h('small', 'an estimate')), h('b', String(T.visitors))),
         h('div.rd-lg', h('span', 'New players'), h('b', String(T.newPlayers))),

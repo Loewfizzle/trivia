@@ -1,7 +1,12 @@
 // THE TRI-VISION (Nov 12 night — docs/harbor/passes/jaywalk-cards.md) — JAYWALK's ROOF POSTER: Grok's approved billboard.png (a copy in
-// art/jaywalk-billboard/src/ — never the original; 1280 × 640) → assets/city/jaywalk/billboard.webp (halved — the board is ~70 pt wide on a phone,
-// ~200 on a desktop: 640 px covers both at 3×), with the owner's mark BAKED: the dark square patch on the back of the kid's cap (the snapback's
-// opening — x 926 → 972, y 162 → 191) painted out to plain cap pink (each column between the pink above + the strap below).
+// art/jaywalk-billboard/src/ — never the original; 1280 × 640) → assets/city/jaywalk/billboard.webp, with the owner's mark BAKED: the dark square
+// patch on the back of the kid's cap (the snapback's opening — x 926 → 972, y 162 → 191) painted out to plain cap pink (each column between the
+// pink above + the strap below).
+// FR7 FIXES C (the owner's iPhone, Nov 13 — "can't even see what this billboard says"): RE-CROPPED TIGHT on the kid + the car's headlights at the
+// POSTER's own 848 : 448 (HOLD'EM's box — js/screens/harbor/jaywalk-art.js): the source window CROP (x 144 → 1280, 600 tall from y −73 — the night
+// sky above the image's top continued from its own top rows) puts the kid right of centre (~0.65 across), his cap just under JAYWALK, the headlights
+// at the right; then LIFTED (a gamma lift, contrast round the mid-tones, the saturation up — the neon street + the hoodie brighter, the blacks kept
+// black) so under the billboard's lamps it glows like the HOLD'EM face.
 // + THE LETTERING as path data (like scripts/build-holdem-art.mjs — no font load on the site): JAYWALK in BUNGEE (a blocky display face — the
 // voxel look) + COMING SOON / NOW OPEN in POPPINS BOLD (HOLD'EM's bar) — Google Fonts, SIL OFL 1.1 → js/screens/harbor/jaywalk-glyphs.js (GENERATED).
 //   node scripts/build-jaywalk-billboard.mjs "<chromium>"      (needs scripts/serve.mjs on :5173 for the art; the fonts from GitHub, dev only)
@@ -43,14 +48,33 @@ const art = await page.evaluate(async () => {
     }
   }
   x.putImageData(d, X0, Y0);
-  const h = document.createElement('canvas'); h.width = img.width / 2; h.height = img.height / 2; const hx = h.getContext('2d'); hx.imageSmoothingQuality = 'high'; hx.drawImage(c, 0, 0, h.width, h.height);
-  return { url: h.toDataURL('image/webp', 0.86), changed, w: h.width, h: h.height };
+  // ---- FR7 FIXES C: the crop (the poster's 848 : 448 — CROP in source px; above y 0 = the image's own top rows, stretched: dark night sky)
+  const CROP = { x: 144, y: -73, w: 1136, h: 600 }, OW = 848, OH = 448;
+  const o = document.createElement('canvas'); o.width = OW; o.height = OH; const ox = o.getContext('2d'); ox.imageSmoothingQuality = 'high';
+  const k = OW / CROP.w, topH = Math.max(0, -CROP.y) * k;
+  if (topH > 0) ox.drawImage(c, CROP.x, 0, CROP.w, 3, 0, 0, OW, topH + 1);
+  ox.drawImage(c, CROP.x, Math.max(0, CROP.y), CROP.w, CROP.h - Math.max(0, -CROP.y), 0, topH, OW, OH - topH);
+  // ---- the LIFT: a gamma lift (the shadows opened), contrast round the mid-tones, saturation × 1.28 — blacks stay black (the floor kept)
+  const od = ox.getImageData(0, 0, OW, OH), q = od.data;
+  for (let i = 0; i < q.length; i += 4) {
+    let r = q[i] / 255, g = q[i + 1] / 255, b = q[i + 2] / 255;
+    r = Math.pow(r, 0.72); g = Math.pow(g, 0.72); b = Math.pow(b, 0.72);
+    const con = v => Math.max(0, Math.min(1, (v - 0.5) * 1.12 + 0.5 + 0.02));
+    r = con(r); g = con(g); b = con(b);
+    const L = 0.299 * r + 0.587 * g + 0.114 * b, sat = 1.28;
+    r = L + (r - L) * sat; g = L + (g - L) * sat; b = L + (b - L) * sat;
+    const floor = v => Math.max(0, Math.min(1, v));
+    q[i] = floor(r) * 255; q[i + 1] = floor(g) * 255; q[i + 2] = floor(b) * 255;
+  }
+  ox.putImageData(od, 0, 0);
+  return { url: o.toDataURL('image/webp', 0.86), changed, w: OW, h: OH };
 });
 fs.mkdirSync(new URL('../assets/city/jaywalk/', import.meta.url), { recursive: true });
 const buf = Buffer.from(art.url.split(',')[1], 'base64');
 fs.writeFileSync(new URL('../assets/city/jaywalk/billboard.webp', import.meta.url), buf);
 console.log(`billboard.webp ${art.w} × ${art.h}  ${(buf.length / 1024).toFixed(1)} KB · the cap patch: ${art.changed} px repainted`);
-// ---- the lettering
+// ---- the lettering (--art-only: the art alone — the glyphs unchanged, no font download)
+if (process.argv.includes('--art-only')) { await browser.close(); process.exit(0); }
 await page.addScriptTag({ url: 'https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js' });
 const out = await page.evaluate(async (FONTS, WORDS) => {
   const fonts = {};

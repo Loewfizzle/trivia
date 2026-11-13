@@ -400,6 +400,12 @@ reduced motion = a cut; a message holds the board as before. **THE WINDOW RULE**
 HOLD'EM; the first JAYWALK face arrives by a turn. **THE BILLPOSTER** stays home while it turns (`triKeeps`). **THE OWNER's SWITCH**: /admin → THE
 BILLBOARD's JAYWALK row (ON / OFF · NOW OPEN · an OPEN DAY) → `city2/billboard.jaywalk` → the cached feed. `&force=billboard-jaywalk` (+ `&jaywalk=open`),
 `&force=trivision` (a turn every 8 s). Proof: `tests/trivision.test.mjs` + the harbor `trivision` group (two pages, one face).
+**THE JAYWALK POSTER READS (FR7 FIXES C, Nov 13 — the owner's iPhone: "can't even see what this billboard says"):** the face is laid out in HOLD'EM's own
+poster box (848 : 448 fitted inside the board — `jaywalk-art.js#boxOf`): JAYWALK ~92 % of its width (Bungee is wide — that is what HOLD'EM's cap
+takes) with a HEAVY dark outline + a drop, white-hot pink; COMING SOON / NOW OPEN on a SOLID hot-pink band across the foot; the art RE-CROPPED on the
+kid + the headlights at the poster's own shape + LIFTED (`scripts/build-jaywalk-billboard.mjs --art-only`). THE RULE: `jaywalk-art.js#capsOf(R)` ≥
+`holdem-art.js#holdemCaps(R)` — the unit test on four board sizes + the harbor `trivision` group on the LIVE board at 390 / 402 / 430 (Nov 13: JAYWALK
+10.5 / 10.8 / 11.6 pt ≥ HOLD'EM 10.3 / 10.6 / 11.3; the band 6.3 / 6.5 / 7.0 ≥ NOW OPEN 5.9 / 6.1 / 6.5 — it was 5.5 + 3.3 pt at 390).
 
 ## Performance
 

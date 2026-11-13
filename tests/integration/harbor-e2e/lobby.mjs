@@ -68,6 +68,16 @@ G('trivision', async () => {
     else await sleep(900);
   }
   ok(same && same.a.shown === same.b.shown && same.a.board === same.b.board && same.a.clock === same.a.shown, `TWO PAGES, ONE FACE: turn ${same && same.a.n} — A shows ${same && same.a.board}, B ${same && same.b.board} (the clock's face ${same && same.a.clock})`);
+  // FR7 FIXES C — THE JAYWALK POSTER READS (the owner, Nov 13): on the LIVE board at 390 / 402 / 430, JAYWALK's lettering ≥ HOLD'EM's (the word's cap
+  // + the band's words vs NOW OPEN — the faces' own layout functions on the board's real rect, in pt)
+  { const C = await open({ slot: 'tvc', qs, view: [430, 932] }); await harborUp(C.page);
+    const capsOn = p => ev(p, "(async () => { const b = window.__district.harbor().neon.boards[0]; if (!b || !b.rect) return null; const R = b.rect; const J = await import('/js/screens/harbor/jaywalk-art.js'), H = await import('/js/screens/harbor/holdem-art.js'); return { w: +R.w.toFixed(1), h: +R.h.toFixed(1), jw: J.capsOf(R, 'soon'), he: H.holdemCaps(R, 'open') }; })()");
+    const rows = [];
+    for (const [phone, p] of [[390, B.page], [402, A.page], [430, C.page]]) { const c = await capsOn(p); if (c) rows.push({ phone, ...c }); }
+    const f = v => v.toFixed(1);
+    ok(rows.length === 3 && rows.every(r => r.jw.word >= r.he.word - 0.01 && r.jw.bar >= r.he.bar - 0.01),
+      `THE JAYWALK POSTER READS — the lettering's cap height in pt, JAYWALK ≥ HOLD'EM: ${rows.map(r => `${r.phone}: JAYWALK ${f(r.jw.word)} ≥ HOLD'EM ${f(r.he.word)} · COMING SOON ${f(r.jw.bar)} ≥ NOW OPEN ${f(r.he.bar)} (the board ${r.w}×${r.h})`).join(' | ')}`);
+    await C.ctx.close(); }
   await A.ctx.close(); await B.ctx.close();
   // reduced motion: a cut at the turn — no slats
   { const R = await open({ slot: 'tvr', qs, view: [402, 874], init: RM }); await harborUp(R.page);

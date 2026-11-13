@@ -89,4 +89,11 @@ export function paintHoldem(x, R, bar = 'soon', sd = 0) {
   x.fillStyle = pg; x.fillRect(R.x, R.y, R.w, R.h);
   x.restore();
 }
+/** FR7 FIXES C — the face's lettering heights in R (pt): HOLD'EM's cap + COMING SOON / NOW OPEN's — the JAYWALK face's yardstick (its words ≥ these:
+ *  jaywalk-art.js#capsOf; the harbor billboard check + tests/trivision.test.mjs). The same numbers paintHoldem uses. */
+export function holdemCaps(R, bar = 'soon') {
+  const G = GLYPHS; let W = R.w, H = R.w / POSTER_ASPECT; if (H > R.h) { H = R.h; W = R.h * POSTER_ASPECT; }
+  const g = bar === 'open' ? G.open : G.soon;
+  return { word: Math.min(H * 0.235, (W * 0.84) / (G.holdem.w / G.holdem.cap)), bar: Math.min(H * 0.135, (W * 0.86) / (g.w / g.cap)) };
+}
 export { CREAM, CREAM_D };

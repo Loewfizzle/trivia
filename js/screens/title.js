@@ -1021,7 +1021,7 @@ export function createTitle() {
   function textRects() {
     const box = el => { if (!el) return null; const r = restRect(el); return r.width && r.height ? { x: r.left, y: r.top, w: r.width, h: r.height } : null; };
     const neon = logoRect(), word = box(els.sign.querySelector('.nd-word')), tag = box(els.sign.querySelector('.nd-tag'));
-    // (sub: a first visit's "12 PARTY GAMES · ONE PHONE EACH" under the tagline — the rainbow keeps under it too)
+    // (sub: a first visit's "<n> PARTY GAMES · ONE PHONE EACH" under the tagline (the count from GAMES — never a fixed number) — the rainbow keeps under it too)
     // (DT1: + glyphs — SPEAKEASY's own letters, without the word's decorative rules: City 2.0's dark halo hugs them)
     return neon && word && tag ? { neon, word, tag, sub: box(els.sign.querySelector('.nd-sub')), glyphs: box(els.sign.querySelector('.nd-word-g')) } : null;
   }
