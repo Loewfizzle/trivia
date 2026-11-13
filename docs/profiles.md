@@ -478,6 +478,9 @@ A second way to bring your card to a device, beside the restore key (which stays
   from YOUR list; `top` = the TOP 3 RAREST achievements they hold WITH their names — **THE APPROVED EXCEPTION** to ITEM NAMES ONLY TO OWNERS (the
   owner, Nov 9: only those 3, only on this answer — `tests/vault-names.test.mjs` allows exactly `api/_lib/player.js`); hidden / banned /
   opted-out / blocked-you → `limited` (the name + the emblem). Never stats, the best game, matches, wins. 120 a uid / 10 min; cached 30 s.
+  **CARD NAMES YOU CAN SEE** (the owner, Nov 13 — the second approved exception): `card.cn` = the name of the card they WEAR only
+  (`api/_lib/catalog.js#wornCardName(p.cd)`), so their full card (`vault/full.js` — `who.cardName`) is never blank on your phone; no other item's
+  name rides on it (`tests/vault-names.test.mjs` + `server.test.mjs` + `e2e-profiles.mjs` 8b (f)).
 - **`/api/daily points`** → YOUR + YOUR TABLE's daily points (`{ week, all, avg, days }` a board — your friends list only).
 - **THE BACK-FILL** (`/admin` → THE BOARDS → PREVIEW → BACK-FILL NOW — `boardsBackfill`, admins only, audited, idempotent): THIS WEEK's XP from the
   match records + the week's daily runs; DAILY POINTS from every counted result since the dailies went live. The owner runs it ONCE after the deploy.

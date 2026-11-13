@@ -2039,8 +2039,22 @@ test('BOARD 2.0 A — the rows\' slim-card data (no forbidden key) + THE PLAYER 
   assert.deepEqual(st.top.map(t => t.id), ['kingpin', 'full-house', 'the-regular']);
   assert.deepEqual(st.top.map(t => t.pct), [3, 3, 10]);
   assert.ok(st.top.every(t => t.name && t.name !== t.id && t.group && t.tier), JSON.stringify(st.top));
-  assert.deepEqual(Object.keys(st.card).sort(), ['a', 'at', 'c', 'cd', 'es', 'fd', 'g', 'l', 'n', 'r', 'tb'].sort());
+  assert.deepEqual(Object.keys(st.card).sort(), ['a', 'at', 'c', 'cd', 'cn', 'es', 'fd', 'g', 'l', 'n', 'r', 'tb'].sort());
   assert.equal(st.card.cd, 'card-sg-btc'); assert.ok(st.band && st.streak && typeof st.streak.alive === 'boolean');
+  // CARD NAMES YOU CAN SEE (the owner, Nov 13): the WORN card's name rides along (`cn`) — a stranger's full card is never blank — and NO other
+  // item's name: not the emblem / tube / glow they wear, not an un-equipped card they own, not a card nobody here owns (the catalog stays server-only)
+  const { ITEM_ROWS } = await import('../../api/_lib/catalog.js');
+  const IN = Object.fromEntries(ITEM_ROWS.map(x => [x.id, x.name]));
+  assert.equal(st.card.cn, IN['card-sg-btc'], 'the worn card name');
+  {
+    await ref(`pstats/${s.pid}/it`).update({ 'card-velvet': 1, 'card-sg-ufo': 2 });   // owned, NOT worn
+    forgetPlayers();
+    const again = JSON.stringify(await P({ b: 'xp', bid: boardId(s.pid) }));
+    const leaks = ITEM_ROWS.filter(x => x.name && x.name !== st.card.cn && x.name !== st.band && !st.top.some(t => t.name === x.name) && again.includes(`"${x.name}"`)).map(x => x.name);
+    assert.deepEqual(leaks, [], 'no un-equipped / unearned item name on the answer');
+    for (const id of ['card-velvet', 'card-sg-ufo', 'tube-gold', 'glow-neon']) assert.ok(IN[id] && !again.includes(`"${IN[id]}"`), `${id}'s name never leaves the server`);   // (emb-sg-btc shares the card's name)
+    await ref(`pstats/${s.pid}/it`).update({ 'card-velvet': null, 'card-sg-ufo': null });
+  }
   const sd = JSON.stringify(st);
   for (const bad of [s.pid, s.profile.t, 'pid', '"mn"', '"key"', '"xp"', '"g":{', 'wins', 'stats']) assert.ok(!sd.includes(bad), `the answer never carries ${bad}`);
   // by pid (a friend / a room player) + the RELATIONSHIP from YOUR list: request sent → friend

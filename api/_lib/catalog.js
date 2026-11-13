@@ -344,6 +344,10 @@ export function achDisplayOf(ids) {
   for (const id of ids || []) { const a = AROW[id]; if (a) out[id] = { name: a.name, group: a.group, item: a.item, line: a.line }; }
   return out;
 }
+/** CARD NAMES YOU CAN SEE (the owner, Nov 13 — the second APPROVED EXCEPTION): the EQUIPPED card's display name, for THE PLAYER PAGE's answer
+ *  only (api/_lib/player.js — `card.cn`), so someone else's full card never shows a blank name. A CARD id only (never an emblem / tube / glow,
+ *  never an unknown id) → its name, else null. Everything else stays owner-only (tests/vault-names.test.mjs allows exactly this one field). */
+export const wornCardName = id => { const x = ROW[id]; return x && x.kind === 'card' && x.name ? x.name : null; };
 /** a stats object's owned + held → { items, ach } (the profile's 'me') */
 export function displayForStats(st) {
   const s = st || {};

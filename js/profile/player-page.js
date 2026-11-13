@@ -78,7 +78,7 @@ export async function openPlayer(target = {}, o = {}) {
 
   async function paintCard(D) {
     const c = D.card, lv = c.l || 1;
-    const who = { name: c.n, lv, avatar: c.a, color: c.c, shape: c.es, tube: c.tb, glow: c.g, at: c.at, fd: !!c.fd };
+    const who = { name: c.n, lv, avatar: c.a, color: c.c, shape: c.es, tube: c.tb, glow: c.g, at: c.at, fd: !!c.fd, cardName: c.cn || '' };   // (cn: the WORN card's name — CARD NAMES YOU CAN SEE)
     let card;
     if (c.cd && await F.canShowFull(c.cd)) card = F.fullCardEl({ card: c.cd, who });
     else {

@@ -1,11 +1,14 @@
 // BOARD 2.0 A — THE PLAYER PAGE's DATA: POST /api/profile { action: 'player', pid } | { action: 'player', b, bid } (THE BOARD's opaque row id + its
 // board — the row on screen) | { action: 'player', id } (either) → ONE answer BOARD 2.0 B draws the page from (js/core/player.js — the owner's list):
-//   { rel, card: { n, a, c, l, r, cd, g, tb, es, at, fd }, band, streak: { n, alive }, top: [{ id, name, group, item, tier, pct }], limited? }
+//   { rel, card: { n, a, c, l, r, cd, g, tb, es, at, fd, cn }, band, streak: { n, alive }, top: [{ id, name, group, item, tier, pct }], limited? }
 //   rel = friend · out (request sent) · in (request received) · blocked (you blocked them) · none · self — from YOUR list only (pfr/{you}; theirs is
 //   read on the server to see whether THEY blocked you, never returned).
 //   THE APPROVED EXCEPTION to ITEM NAMES ONLY TO OWNERS (the owner, Nov 9): `top` = the player's TOP 3 RAREST achievements (the lowest X% of players —
 //   pcount/; a tie → the newest) WITH their names — only these 3, only here, only ones that player holds (tests/vault-names.test.mjs allows exactly
 //   this). Never: a pid, the key, the tag's digits, the member Nº, stats, the best game, matches, wins.
+//   CARD NAMES YOU CAN SEE (the owner, Nov 13 — the second approved exception): `card.cn` = the name of the card they WEAR (catalog.js#wornCardName —
+//   the worn card only; the profile's `cd` is server-written by `style`, which checks the player owns it), so their full card's name is never blank on
+//   your phone (vault/full.js reads `who.cardName`). No other item's name — un-equipped, unearned, the catalog — ever rides on this answer.
 //   A hidden / banned / opted-out player, or one who BLOCKED you → `limited: true` + only what a room already shows (the name + the emblem); no card.
 //   Signed-in only (the caller's ID token); rate-limited (PLAYER_LIMIT a uid per 10 min); each player's part cached PLAYER_TTL per warm instance.
 import { ref, val } from './fb.js';
@@ -14,7 +17,7 @@ import { take } from './limit.js';
 import { isPid, publicProfile, pidOf } from './profiles.js';
 import { topRows, publicName, boardId } from './lb.js';
 import { ownerCounts, pctOf } from './owners.js';
-import { ACH_ROWS, ITEM_ROWS } from './catalog.js';
+import { ACH_ROWS, ITEM_ROWS, wornCardName } from './catalog.js';
 import { boardDef, OVERALL_IDS } from '../../js/core/boards.js';
 import { relOf } from '../../js/core/friends.js';
 import { bandOf } from '../../js/core/levels.js';
@@ -74,7 +77,7 @@ export async function playerAnswer(uid, body = {}, now = Date.now()) {
     rel,
     // (FR7 FIXES A — C6: the rude-name filter on THE PLAYER PAGE too — THE BOARD showed the HOUSE NICKNAME, a tap on the row the raw name;
     //  the real name only for the player themself + their friends)
-    card: { n: rel === 'self' || rel === 'friend' ? p.n : publicName(id0, p.n), a: p.a, c: p.c, l: p.l, r: p.r || 0, cd: p.cd || null, g: p.g || null, tb: p.tb || null, es: p.es || null, at: p.at || 0, fd: !!p.fd },
+    card: { n: rel === 'self' || rel === 'friend' ? p.n : publicName(id0, p.n), a: p.a, c: p.c, l: p.l, r: p.r || 0, cd: p.cd || null, g: p.g || null, tb: p.tb || null, es: p.es || null, at: p.at || 0, fd: !!p.fd, cn: wornCardName(p.cd) },
     band: bandOf(p.l || 1).name,
     streak: flameOf(p.s, p.sd, now),
     top,

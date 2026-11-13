@@ -526,6 +526,27 @@ await H.run(async () => {
     await ppClose(p0);
     await p2.evaluate(() => import('/js/profile/me.js').then(m => m.setShown(true)));
     await p0.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'title' })));
+    // (f) CARD NAMES YOU CAN SEE (the owner, Nov 13): ALICE wears a card BOB's phone has never been told the name of (he doesn't own it) — THE PLAYER
+    //  PAGE's answer carries its name (`card.cn`, the worn card only) and the full card prints it; without it the name was blank
+    {
+      const cd0 = await val(`profiles/${me0.pid}/cd`), it0 = await val(`pstats/${me0.pid}/it/card-velvet`);
+      await ref(`pstats/${me0.pid}/it/card-velvet`).set(1);
+      await ref(`profiles/${me0.pid}/cd`).set('card-velvet');
+      const look = () => p1.evaluate(async pid => {
+        const { api } = await import('/js/profile/api.js'), F = await import('/js/vault/full.js'), I = await import('/js/core/items.js');
+        const d = await api('profile', { action: 'player', pid });
+        const nm = el => ((el.querySelector('.vl-fc-card') || {}).textContent || '').trim();
+        const c = d.card || {};
+        return { cd: c.cd, cn: c.cn || null, known: !!(I.ITEM['card-velvet'] && I.ITEM['card-velvet'].name), served: nm(F.fullCardEl({ card: 'card-velvet', who: { name: 'ALICE', cardName: c.cn } })), bare: nm(F.fullCardEl({ card: 'card-velvet', who: { name: 'ALICE' } })), json: JSON.stringify(d) };
+      }, me0.pid);
+      let r = await look();
+      for (let i = 0; i < 25 && r.cd !== 'card-velvet'; i++) { await sleep(2000); r = await look(); }   // (the server keeps a player's own part 30 s)
+      ok(r.cd === 'card-velvet' && !r.known && !r.bare, `BOB's phone doesn't know the card's name on its own (${JSON.stringify({ cd: r.cd, known: r.known, bare: r.bare })})`);
+      ok(r.cn === 'VELVET ROOM' && r.served === 'VELVET ROOM', `CARD NAMES YOU CAN SEE: the answer names the WORN card and the full card prints it (${r.cn} / ${r.served})`);
+      ok(!/SILVER CHROME|EMERALD & BRASS|NEON GLASS/.test(r.json), '…and no other item\'s name rides on the answer');
+      await ref(`profiles/${me0.pid}/cd`).set(cd0 == null ? null : cd0);
+      await ref(`pstats/${me0.pid}/it/card-velvet`).set(it0 == null ? null : it0);
+    }
   }
 
   // ---- 9. the public page, for anyone

@@ -132,6 +132,9 @@ function tierBadge(t, dev) {
 export const ART_SIGHTINGS = new Set(['card-sg-btc']);
 export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const look = LOOKS[card] || LOOKS['card-brushed'], t = tier || tierOf(card), lv = who.lv || 1;
+  // (CARD NAMES YOU CAN SEE — the owner, Nov 13: on SOMEONE ELSE's card this phone doesn't know the name (ITEM NAMES ONLY TO OWNERS) — THE PLAYER
+  //  PAGE's answer serves the WORN card's name (api/_lib/player.js `card.cn`) → `who.cardName`; your own cards keep their registry name)
+  const cname = nameOf(card) || (typeof who.cardName === 'string' ? who.cardName : '');
   // (a sighting card keeps its own layout — the title + the spot line, the plate at the foot — EXCEPT one rebuilt on premium art, laid out like
   //  every other full card: THE BTC CARD — the owner's approved mock mock-btc-v1: the top line, the plate mid-left, MEMBER SINCE + the name)
   const sighting = /^card-sg-/.test(card) && !ART_SIGHTINGS.has(card);
@@ -152,17 +155,17 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
       : h('span.vl-fc-house', { dataset: who.no ? { short: `№ ${who.no}` } : {} }, who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), tierBadge(t, dev))),
     // (CARD FIXES — the owner: NO FOUNDER PILL on any GIFT card; elsewhere vault/layout.js sets it a clear gap under the top line)
     who.fd && !sighting && badge.slot === 'pill' && !isGiftCard(card) ? h('span.vl-fc-fd', 'FOUNDER') : null,
-    sighting ? h('div.vl-fc-title', { class: nameOf(card).length > 18 ? 'is-long' : '' }, h('b', nameOf(card)), h('small', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : null,
+    sighting ? h('div.vl-fc-title', { class: cname.length > 18 ? 'is-long' : '' }, h('b', cname), h('small', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : null,
     plate,
     // (BOARD 2.0 A: a sighting rebuilt on premium art keeps the SIGHTING's title + spot line — the printed name in the sighting's glow with the spot
     //  line under it, at the foot: vault/layout.js keeps the plate clear of them, the balloon's hero box above them)
     h('div.vl-fc-foot', h('span.vl-fc-since', h('em.vl-fc-rank', isDevCard(card) ? `DEV · ${bandOf(lv).name}` : bandOf(lv).name), h('small', 'MEMBER SINCE'), h('b', sinceOf(who.at))),
-      sighting ? null : ART_SIGHTINGS.has(card) ? h('span.vl-fc-card.vl-fc-sgt', h('b', nameOf(card)), h('small.vl-fc-spot', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : h('span.vl-fc-card', nameOf(card))),
+      sighting ? null : ART_SIGHTINGS.has(card) ? h('span.vl-fc-card.vl-fc-sgt', h('b', cname), h('small.vl-fc-spot', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : h('span.vl-fc-card', cname)),
     // FOUNDING MEMBER (THE VAULT 2A): the member's REAL number, stamped in gold — a numbered first edition (+ MEMBER SINCE moves in)
     card === 'card-founder' ? h('div.vl-fc-stamp', h('small', 'FOUNDING MEMBER'), h('b', who.no != null ? `№ ${who.no}` : '№ —'), h('em', `SINCE ${sinceOf(who.at)}`)) : null,
     t === 'legendary' ? h('i.vl-fc-brackets', { 'aria-hidden': 'true' }, h('i'), h('i')) : null,
     h('i.vl-frame', { 'aria-hidden': 'true' }));
-  el.setAttribute('aria-label', `${nameOf(card)} (${dev ? ONE_OF_ONE : TIER_NAMES[t] || t}) — ${name}, level ${lv}`);
+  el.setAttribute('aria-label', `${cname} (${dev ? ONE_OF_ONE : TIER_NAMES[t] || t}) — ${name}, level ${lv}`);
   return watchFull(el);   // (CARD FIXES — THE CARD's LAYOUT: nothing overlaps, the plate off the hero — vault/layout.js)
 }
 

@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { ITEM_ROWS, ACH_ROWS, LEVEL_REWARD_ROWS, withShow, displayOf, displayForStats } from '../api/_lib/catalog.js';
+import { ITEM_ROWS, ACH_ROWS, LEVEL_REWARD_ROWS, withShow, displayOf, displayForStats, wornCardName } from '../api/_lib/catalog.js';
 import { LAB_TEXT } from '../api/_lib/lab-text.js';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -74,4 +74,29 @@ test('THE SHOW: a response describes exactly the ids it carries — an outcome\'
   assert.deepEqual(Object.keys(me.ach), ['house-warming']);
   assert.deepEqual(withShow({ ok: true }), { ok: true }, 'nothing to describe → no show');
   assert.deepEqual(displayOf(['nope', 'card-sg-tr3b']), { 'card-sg-tr3b': displayOf(['card-sg-tr3b'])['card-sg-tr3b'] });
+});
+
+// CARD NAMES YOU CAN SEE (the owner, Nov 13 — the SECOND approved exception): someone else's full card showed a BLANK name (DimeTime's BUZZED
+// LIGHTYEAR) — this phone never had it. THE PLAYER PAGE's answer now carries EXACTLY ONE more name: `card.cn`, the card the player WEARS
+// (catalog.js#wornCardName(p.cd)); vault/full.js reads it as `who.cardName`. Nothing else: never another item, never an emblem / tube / glow's
+// name through it, never an unknown id; the answer reads no other item name (server.test.mjs proves the live answer carries no un-equipped one).
+test('CARD NAMES YOU CAN SEE — the player answer names the WORN card only (one field, `cn`); an unearned / un-equipped / non-card id gives nothing', () => {
+  const cards = ITEM_ROWS.filter(x => x.kind === 'card');
+  assert.ok(cards.length > 20);
+  for (const c of cards) assert.equal(wornCardName(c.id), c.name, `${c.id}`);
+  for (const x of ITEM_ROWS.filter(y => y.kind !== 'card')) assert.equal(wornCardName(x.id), null, `${x.id} (a ${x.kind}) is never named through it`);
+  for (const bad of [null, undefined, '', 'nope', 'card-nope', '__proto__', 'constructor', 'toString']) assert.equal(wornCardName(bad), null, String(bad));
+  const src = readFileSync(join(ROOT, 'api/_lib/player.js'), 'utf8');
+  // exactly ONE use, on the WORN card id, as `cn` on the card
+  assert.deepEqual(src.match(/wornCardName\([^)]*\)/g).filter(m => !/^wornCardName\(\)$/.test(m)), ['wornCardName(p.cd)']);
+  assert.match(src, /\bcn: wornCardName\(p\.cd\)/);
+  // the item rows are read for nothing but a top achievement's TIER (never a name): IROW[...].name never appears
+  assert.ok(!/IROW\[[^\]]*\]\)?\s*(\|\|\s*\{\}\))?\.name/.test(src), 'no item name read off IROW');
+  assert.ok(!/displayOf|withShow|displayForStats/.test(src), 'no display rows on the player answer');
+  // the limited answer (hidden / banned / blocked) carries no card → no name
+  assert.match(src, /limited: true, card: \{ n: name, a: p\.a, c: p\.c, es: p\.es \|\| null \} \}/);
+  // the phone: the served name only fills a BLANK (your own registry name first)
+  const full = readFileSync(join(ROOT, 'js/vault/full.js'), 'utf8');
+  assert.match(full, /const cname = nameOf\(card\) \|\| \(typeof who\.cardName === 'string' \? who\.cardName : ''\)/);
+  assert.match(readFileSync(join(ROOT, 'js/profile/player-page.js'), 'utf8'), /cardName: c\.cn \|\| ''/);
 });
