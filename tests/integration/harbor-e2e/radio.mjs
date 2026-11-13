@@ -326,6 +326,16 @@ G('radio', async () => {
     const still = t.LEDGER == null ? await ev(F.page, `(document.querySelector('.rd-paperwrap') || {}).textContent || ''`) : '';
     ok(t.DESK != null && t.PROGRAM != null && t.LEDGER != null, `RADIO: THE FACES PAINT on a phone holding an older music.js — DESK ${t.DESK} ms · PROGRAM ${t.PROGRAM} ms (after the retry) · LEDGER ${t.LEDGER} ms (nixies + NOW PLAYING + TODAY)${still ? ` — still "${still.slice(0, 60)}"` : ''}`);
     await shotFace(F.page, 'faces-stale');
+    // ---- PLAY NOW — WHO'S ON: IN THE CITY on THE LEDGER is a door → THE SHEET with who's online now — the owner's own row (a slim card ·
+    //      THE CITY · now); the list is the SERVER's (the owner ROLE checked)
+    { await ev(F.page, "import('/js/profile/api.js').then(m => m.api('admin', { action: 'radioHello', w: { k: 'city' } }))").catch(() => {});
+      await ev(F.page, `document.querySelector('.rd-who').click()`);
+      const me = await ev(F.page, "(() => { try { return JSON.parse(localStorage.getItem('na:rdfp:profile') || '{}').name || ''; } catch { return ''; } })()");
+      await waitFor(F.page, '!!document.querySelector(".wo-sheet.is-in .wo-row")', 'the WHO IS ON sheet', 10000).catch(() => {});
+      const rows = await ev(F.page, `[...document.querySelectorAll('.wo-sheet .wo-row')].map(x => ({ t: (x.textContent || '').replace(/\s+/g, ' ').trim(), k: x.dataset.k }))`).catch(() => []);
+      const mine = rows.find(r => me && r.t.toUpperCase().includes(String(me).toUpperCase()));
+      ok(!!mine && /THE CITY/.test(mine.t) && /now|min ago/.test(mine.t), `WHO'S ON: IN THE CITY → THE SHEET — the owner's own row (${mine ? mine.t : `none of ${rows.length}: ${rows.map(r => r.t).join(' | ').slice(0, 160)}`})`);
+      await shotFace(F.page, 'whos-on'); }
     await F.ctx.close(); }
   // ---- PROGRESSION A — THE FOUNDER WINDOW on THE LEDGER: OPEN by default; a tap arms it, a second tap CLOSES it (the server, audited);
   // the same two taps reopen it (the test leaves it open)

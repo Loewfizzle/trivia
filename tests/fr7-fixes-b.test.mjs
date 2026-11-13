@@ -217,5 +217,5 @@ test('THE QUEUE + THE STAMP AGREE — the gap = the queue (15 min); a hello afte
   assert.match(q, /QAGE = 15 \* 60e3;/, 'the phone keeps a claim as long as the server takes it');
   assert.match(q, /if \(retryLater\(r\)\) \{ writeQ\(\[\.\.\.readQ\(\), c\]\); return \{ state: 'queued', r \}; \}/, 'a no_stamp answer is kept');
   assert.match(q, /window\.addEventListener\('online', \(\) => \{ flushSightings\(\)/, 'flushed when back online');
-  assert.match(fs.readFileSync('js/screens/harbor/remote.js', 'utf8'), /api\('admin', \{ action: 'radioHello' \}\)\.then\(afterHello/, 'flushed after the city\'s hello');
+  assert.match(fs.readFileSync('js/screens/harbor/remote.js', 'utf8'), /api\('admin', \{ action: 'radioHello', w: whereNow\(\) \}\)\.then\(afterHello/, 'flushed after the city\'s hello');
 });

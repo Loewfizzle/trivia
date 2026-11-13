@@ -18,7 +18,7 @@ test('the preview panel / radio feed poll: 5 min (not 45 s), only visible + focu
 
 test('the city\'s hello: 5 min (not 2), only on screen; back on screen still says hello (≥ 60 s since the last)', () => {
   assert.match(remote, /const HELLO_MS = 300e3, HELLO_BACK_MS = 60e3;/);
-  assert.match(remote, /if \(onScreen\(\) && api\) \{ helloAt = Date\.now\(\); api\('admin', \{ action: 'radioHello' \}\)\.then\(afterHello/);
+  assert.match(remote, /if \(onScreen\(\) && api\) \{ helloAt = Date\.now\(\); api\('admin', \{ action: 'radioHello', w: whereNow\(\) \}\)\.then\(afterHello/, 'PLAY NOW — WHO IS ON: the same hello carries where the phone is (no new call)');
   assert.match(remote, /helloT = setTimeout\(hello, HELLO_MS \* \(0\.9 \+ Math\.random\(\) \* 0\.2\)\)/);
   assert.match(remote, /const helloBack = \(\) => \{ if \(!destroyed && !TEST_PANEL && onScreen\(\) && helloT && Date\.now\(\) - helloAt >= HELLO_BACK_MS\) \{ clearTimeout\(helloT\); helloT = setTimeout\(hello, 1500\); \} \};/);
   assert.ok(!/120e3 \* \(0\.9/.test(remote), 'the old ~2-min hello is gone');

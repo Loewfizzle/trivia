@@ -1255,3 +1255,16 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 /* SHELL 2.0 B2 — MAKE HOST: the host's row on a player's card (+ the owner's CREW row under it) — room-city.js#makeHostRow */
 .rc-foot { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 420px; margin: 12px auto 0; }
 .rc-foot .sh-row[disabled] { opacity: 0.55; }
+
+/* ---- PLAY NOW — WHO'S ON (ui/whos-on.js: the LEDGER's sheet + /admin STATS): a slim card a row, WHERE + the last check-in beside it ---- */
+.wo-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 10px; position: relative; }
+.wo-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.wo-card { min-width: 0; }
+.wo-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; max-width: 46vw; }
+.wo-where { font: 800 11px/1.25 var(--font-ui); letter-spacing: 0.12em; color: var(--text); }
+.wo-row[data-k='room'] .wo-where, .wo-row[data-k='solo'] .wo-where { color: #ffb3e6; }
+.wo-row[data-k='daily'] .wo-where { color: #9ff3d4; }
+.wo-ago { font: 600 11px/1 var(--font-num); letter-spacing: 0.06em; color: var(--text-dim); }
+.wo-wait { padding: 14px 0; font: 600 13px/1.4 var(--font-ui); color: var(--text-dim); text-align: center; }
+.wo-guests { margin: 4px 0 6px; font: 700 12px/1.4 var(--font-ui); letter-spacing: 0.06em; color: var(--text-dim); }
+.wo-stamp { margin: 0; font: 600 10.5px/1.4 var(--font-mono); letter-spacing: 0.08em; color: var(--text-faint); }

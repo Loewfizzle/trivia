@@ -2086,3 +2086,56 @@ test('BOARD 2.0 A — the rows\' slim-card data (no forbidden key) + THE PLAYER 
   for (const n of names) assert.ok(!others.includes(n), `"${n}" only on the player page`);
   tick();
 });
+
+// PLAY NOW — Group 2: WHO'S ON (api/_lib/radio.js#whosOnNow — the owner's live list; the radio's LEDGER + /admin STATS): built by the SERVER from
+// here/ (the ~5-min hello now says WHERE: the city / a daily), the LIVE rooms (exact — online members) and the daily's own record (started, no
+// score); each person as THE BOARD shows them (no pid / key / tag digits); guests only counted; the crew + a nobody refused
+test('PLAY NOW — WHO\'S ON: the city + a room + a solo run + a daily, sorted; guests on one line; the owner only; no private field', async () => {
+  const { streakDay } = await import('../../js/core/streak.js');
+  await ref('/').update({ here: null, 'radio/crew': null });
+  const own = await ensure('uWhoOwn00001', 'WhoOwner'), ava = await ensure('uWhoAva00001', 'WhoAva'), ben = await ensure('uWhoBen00001', 'WhoBen');
+  const cat = await ensure('uWhoCat00001', 'WhoCat'), dan = await ensure('uWhoDan00001', 'WhoDan'), crew = await ensure('uWhoCrew0001', 'WhoCrew');
+  const now = Date.now(), day = streakDay(now);
+  try {
+    // the hellos, through the real action: AVA in the city, CAT on THE PASSWORD (its record: started, no score), a guest (no profile) in the city
+    await adminAction('uWhoAva00001', { action: 'radioHello', w: { k: 'city' } }, now - 120e3);
+    await adminAction('uWhoCat00001', { action: 'radioHello', w: { k: 'daily', d: 'password' } }, now - 30e3);
+    await adminAction('uWhoGuest001', { action: 'radioHello', w: { k: 'city' } }, now - 10e3);
+    await adminAction('uWhoOld00001', { action: 'radioHello', w: { k: 'city' } }, now - 20 * 60e3);   // (outside the window — never listed)
+    assert.deepEqual(await val('here/uWhoAva00001'), { at: now - 120e3, pid: ava.pid, w: { k: 'city' } }, 'here/{uid} = { at, pid, w }');
+    await ref(`dly/password/${day}/s/${cat.pid}`).set(now - 90e3);
+    // a ROOM (BEN, online, PRISM DROP playing) + a SOLO run (DAN, OVERCLOCK) — from the rooms themselves
+    const live = { v: 2, c: { k1: now } };
+    await ref('rooms/WHOA').set({ meta: { hostId: 'uWhoBen00001', status: 'playing', createdAt: now - 600e3, activeAt: now - 60e3, hostBeat: now }, players: { 'uWhoBen00001': { name: 'WhoBen', pid: ben.pid } }, presence: { 'uWhoBen00001': live }, game: { id: 'prism' } });
+    await ref('rooms/QZXJ').set({ meta: { hostId: 'uWhoDan00001', status: 'playing', createdAt: now - 300e3, activeAt: now - 30e3, hostBeat: now, locked: true, settings: { solo: { on: true, g: 'overclock' } } }, players: { 'uWhoDan00001': { name: 'WhoDan', pid: dan.pid } }, presence: { 'uWhoDan00001': live }, game: { id: 'overclock' } });
+    // refused: a nobody + THE CREW (the owner only — ROLES.whoson)
+    await rejects(adminAction('uWhoAva00001', { action: 'radioWhosOn' }, now), 403, 'not_radio');
+    await ref(`radio/crew/${crew.pid}`).set({ at: now });
+    await rejects(adminAction('uWhoCrew0001', { action: 'radioWhosOn' }, now), 403, 'not_owner');
+    process.env.ADMIN_PIDS = own.pid;
+    const L = await adminAction('uWhoOwn00001', { action: 'radioWhosOn' }, now);
+    const by = Object.fromEntries(L.rows.map(r => [r.card.n, r]));
+    assert.deepEqual(L.rows.map(r => r.card.n), ['WhoDan', 'WhoBen', 'WhoCat', 'WhoAva'], 'sorted: the rooms (a solo run + ROOM WHOA) first, then the dailies, then the city');
+    assert.equal(L.rows.length, 4, `four with a card (${L.rows.map(r => r.card.n).join(', ')})`);
+    assert.deepEqual(by.WhoBen.where, { k: 'room', code: 'WHOA', g: 'prism', p: 'playing' });
+    assert.deepEqual(by.WhoDan.where, { k: 'solo', g: 'overclock' });
+    assert.deepEqual(by.WhoCat.where, { k: 'daily', d: 'password' });
+    assert.deepEqual(by.WhoAva.where, { k: 'city' });
+    assert.equal(by.WhoAva.at, now - 120e3, 'the last check-in');
+    assert.deepEqual(L.guests, { city: 1, rooms: 0, daily: 0, n: 1 }, 'the guest counted on one line, never listed');
+    // no private field: a row = the slim card's public fields + where + at — never a pid, a key, a uid, tag digits
+    const txt = JSON.stringify(L);
+    for (const p of [own, ava, ben, cat, dan]) assert.ok(!txt.includes(p.pid), 'no pid');
+    assert.ok(!/uWho/.test(txt), 'no uid');
+    for (const r of L.rows) { assert.deepEqual(Object.keys(r).sort(), ['at', 'card', 'where']); for (const k of Object.keys(r.card)) assert.ok(['id', 'n', 'a', 'c', 'r', 'l', 'cd', 'es', 'tb', 'g'].includes(k), k); }
+    // CAT finished the daily → back to THE CITY; the city count (THE NIXIE) reads the new shape
+    await ref(`dly/password/${day}/r/${cat.pid}`).set(1234);
+    const L2 = await adminAction('uWhoOwn00001', { action: 'radioWhosOn' }, now);
+    assert.deepEqual(L2.rows.find(r => r.card.n === 'WhoCat').where, { k: 'city' }, 'a finished daily = the city');
+    const { cityCount } = await import('../../api/_lib/radio.js');
+    assert.equal(await cityCount(now), 3, 'THE NIXIE: AVA, CAT, the guest (the 20-min-old hello dropped)');
+  } finally {
+    process.env.ADMIN_PIDS = '';
+    await ref('/').update({ here: null, 'radio/crew': null, 'rooms/WHOA': null, 'rooms/QZXJ': null, [`dly/password/${day}`]: null });
+  }
+});

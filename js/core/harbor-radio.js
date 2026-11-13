@@ -27,11 +27,11 @@ export const jackDef = id => { if (!JMAP) JMAP = new Map(jacks().map(j => [j.id,
 
 /** THE ROLES — what each may do (CC-B adds the crew's UI + the grant; the table is here now) */
 export const ROLES = Object.freeze({
-  owner: Object.freeze({ id: 'owner', label: 'THE OWNER', audiences: AUDIENCES, dial: true, queue: true, stats: true, stopAny: true, clearAll: true, limited: false, sightings: true }),
-  crew: Object.freeze({ id: 'crew', label: 'THE CREW', audiences: Object.freeze(['room']), dial: false, queue: false, stats: false, stopAny: false, clearAll: false, limited: true, sightings: false }),
+  owner: Object.freeze({ id: 'owner', label: 'THE OWNER', audiences: AUDIENCES, dial: true, queue: true, stats: true, stopAny: true, clearAll: true, limited: false, sightings: true, whoson: true }),
+  crew: Object.freeze({ id: 'crew', label: 'THE CREW', audiences: Object.freeze(['room']), dial: false, queue: false, stats: false, stopAny: false, clearAll: false, limited: true, sightings: false, whoson: false }),
   // PROGRESSION B — CALL IN A FAVOR: a player's earned FAVOR token fires ONE of the crew's jacks for THE ROOM THEY'RE IN (the crew's limits;
   // never a sighting; one token a moment, spent only when the server accepts it — api/_lib/favors.js)
-  favor: Object.freeze({ id: 'favor', label: 'A FAVOR', audiences: Object.freeze(['room']), dial: false, queue: false, stats: false, stopAny: false, clearAll: false, limited: true, sightings: false }),
+  favor: Object.freeze({ id: 'favor', label: 'A FAVOR', audiences: Object.freeze(['room']), dial: false, queue: false, stats: false, stopAny: false, clearAll: false, limited: true, sightings: false, whoson: false }),
 });
 /** may `role` use this jack? (the owner: every one; the crew: the rows marked crew — never the billboard, party, dance, the dial) */
 export function roleJack(role, jackId) {

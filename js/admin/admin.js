@@ -468,11 +468,22 @@ function timesBlock() {
     h('p.ad-note', 'Each square is an hour; brighter = more matches finished then.'));
 }
 
+// PLAY NOW — WHO'S ON on /admin → STATS: the LEDGER's list (ui/whos-on.js — ONE builder), made once and kept across the stats' re-renders;
+// it refreshes every 30 s only while this page is on screen (the server checks the owner ROLE; an admin who isn't the radio's owner reads
+// "The owner only.")
+let whoBlock = null;
+function whoSection() {
+  const sec = h('section.ad-who', h('h3.ad-h3', 'WHO’S ON', h('small', ' · online now')));
+  if (whoBlock) sec.append(whoBlock.el);
+  else lazyImport(import('../ui/whos-on.js'), '../ui/whos-on.js').then(m => { whoBlock = whoBlock || m.whosOnBlock({ api }); if (!whoBlock.el.isConnected) sec.append(whoBlock.el); }).catch(() => {});
+  return sec;
+}
 function renderStats() {
   const box = document.getElementById('ad-stats-b2');
   if (!box || !S) return;
   { const c = cardOf('ad-stats'); if (c) c.count(`${S.totals.matches.toLocaleString()} matches`); }
   box.replaceChildren(
+    whoSection(),
     h('div.ad-stats-grid', gamesBlock(), playersBlock(), dailyBlock(), growthBlock(), timesBlock()),
     // (FR7 FIXES C2 — THE SUPPORTED FLOOR: one quiet line — browsers below it were told to update; never a BOOT HANG in the reports)
     h('p.ad-note.ad-old', `old browsers: ${(S.oldBrowsers && S.oldBrowsers.n) || 0}${S.oldBrowsers && S.oldBrowsers.last ? ` · last ${new Date(S.oldBrowsers.last).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''} — below the supported floor (Chrome 92 · Firefox 90 · Safari / iOS 16): shown “too old”, never a BOOT HANG`));

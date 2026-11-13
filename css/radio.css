@@ -208,10 +208,14 @@ body.rd-open { overflow: hidden; }
 .rd-wk div small { display: block; font: 600 16px/1 var(--font-num); margin-top: 4px; letter-spacing: 0; }
 .rd-wk div.party { background: #5a1424; color: #ffd98a; }
 .rd-big3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.rd-big3 > div { border-radius: 12px; padding: 10px 4px; text-align: center; background: linear-gradient(180deg, rgba(26, 18, 11, 0.95), rgba(14, 10, 6, 0.95)); box-shadow: inset 0 0 0 1px var(--rd-lo); }
+.rd-big3 > div, .rd-big3 > .rd-who { border-radius: 12px; padding: 10px 4px; text-align: center; background: linear-gradient(180deg, rgba(26, 18, 11, 0.95), rgba(14, 10, 6, 0.95)); box-shadow: inset 0 0 0 1px var(--rd-lo); }
 .rd-big3 .rd-nixie { justify-content: center; margin-bottom: 7px; }
 .rd-big3 .rd-nixie span { width: 21px; height: 30px; font-size: 19px; }
 .rd-big3 small { font: 700 8.5px/1.2 var(--font-ui); letter-spacing: 0.14em; color: var(--rd-dim); }
+/* PLAY NOW — WHO'S ON: IN THE CITY is a door (a tap → the owner's live list) — the same tile, an amber ring + a › that say "tap me" */
+.rd-big3 > .rd-who { display: block; width: 100%; min-height: 44px; border: 0; font: inherit; color: inherit; cursor: pointer; box-shadow: inset 0 0 0 1.5px var(--rd-au); }
+.rd-big3 > .rd-who small { color: var(--rd-hi); }
+.rd-big3 > .rd-who:active { transform: scale(0.97); }
 .rd-lg { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 0; border-bottom: 1px dotted rgba(90, 20, 36, 0.28); font: 500 13px/1.3 var(--font-ui); color: #2a1a0a; }
 .rd-lg:last-child { border-bottom: 0; }
 .rd-lg b { font: 700 15px/1 var(--font-num); color: #5a1424; }

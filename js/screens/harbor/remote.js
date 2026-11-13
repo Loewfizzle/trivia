@@ -264,7 +264,10 @@ export function createRemote({ scene, api = apiCall }) {
   //  the queue's module is loaded only when something waits in it)
   const sgQueued = () => { try { return (localStorage.getItem('nd:sg-q') || '[]').length > 2; } catch { return false; } };
   const afterHello = () => { if (sgQueued()) lazyImport(import('../../profile/sightings.js'), '../../profile/sightings.js').then(m => m.flushSightings()).catch(() => {}); };
-  const hello = () => { clearTimeout(helloT); if (destroyed) return; if (onScreen() && api) { helloAt = Date.now(); api('admin', { action: 'radioHello' }).then(afterHello, () => {}); } helloT = setTimeout(hello, HELLO_MS * (0.9 + Math.random() * 0.2)); };
+  // (PLAY NOW — WHO'S ON: the hello says where this phone is — a room (the server reads which from the rooms), a daily run, or the city.
+  //  The app's state through its hub (window.__arcade — app.js), never a new import: no new call, the same ~5-min hello)
+  const whereNow = () => { try { const s = (window.__arcade && window.__arcade.state) || {}; if (s.code) return { k: 'room' }; if (s.daily && s.daily.v === 'run' && s.daily.id) return { k: 'daily', d: String(s.daily.id) }; } catch { /* the city */ } return { k: 'city' }; };
+  const hello = () => { clearTimeout(helloT); if (destroyed) return; if (onScreen() && api) { helloAt = Date.now(); api('admin', { action: 'radioHello', w: whereNow() }).then(afterHello, () => {}); } helloT = setTimeout(hello, HELLO_MS * (0.9 + Math.random() * 0.2)); };
   firebaseReady.then(() => { if (!destroyed && !TEST_PANEL) helloT = setTimeout(hello, 4000); }).catch(() => {});
   // (FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: back on screen = a hello at once — the server's city-open stamp starts again then, not ~5 min later)
   //  (1.5 s after the return — never inside the city's own re-fit at that moment: wk-double's resize-hidden caught a frame's work there)

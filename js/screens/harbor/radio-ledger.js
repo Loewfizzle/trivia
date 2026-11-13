@@ -10,6 +10,8 @@ import { avatar } from '../../ui/components.js';
 import { jackDef } from '../../core/harbor-radio.js';
 import { pushPaper } from './radio-push.js';
 import { nowPlayingText } from '../../audio/now-playing.js';
+import { openSheet } from '../../ui/sheet.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 let memo = null;   // { at, data } — 30 s
@@ -34,7 +36,9 @@ export function paint({ api, now }) {
     const T = L.today, wk = L.week || [], max = Math.max(1, ...wk.map(x => x.visits + x.games));
     holder.replaceChildren(
       h('div.rd-big3',
-        h('div', nixie(L.now.here), h('small', 'IN THE CITY')),
+        // (PLAY NOW — WHO'S ON: IN THE CITY is a door — a tap → who's online now (the owner's list; ui/whos-on.js — the server refuses anyone else))
+        h('button.rd-who', { type: 'button', 'aria-label': `${L.now.here} in the city — who's on`, onclick: () => lazyImport(import('../../ui/whos-on.js'), '../../ui/whos-on.js').then(m => m.openWhosOn({ api, openSheet })).catch(() => {}) },
+          nixie(L.now.here), h('small', 'IN THE CITY ›')),
         h('div', nixie(L.now.rooms), h('small', 'ROOMS OPEN')),
         h('div', nixie(L.now.games), h('small', 'GAMES ON'))),
       np,

@@ -31,6 +31,9 @@ import { knob } from '../../js/core/harbor-schedule.js';
 import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY, radioHolder, parseTag, cleanWords } from '../../js/core/harbor-radio.js';
 import { nameKey } from '../../js/core/names.js';
 import { presenceOnline } from '../../js/core/room-logic.js';
+import { whosOn as whosOnList, hereEntry, cleanWhere } from '../../js/core/whos-on.js';
+import { streakDay, dayNum, dayOf } from '../../js/core/streak.js';
+import { publicRow } from './lb.js';
 import { take } from './limit.js';
 /** THE ROOM PUSH's limits (FR6 FIXES A, C4): per sender an hour, and in all an hour */
 export const PUSH_LIMITS = Object.freeze({ perUid: 1, perHour: 10 });
@@ -220,15 +223,37 @@ export async function openRooms(now) {
   }
   return out.sort((a, b) => b.online - a.online || a.code.localeCompare(b.code));
 }
+/** PLAY NOW — WHO'S ON (the owner only — ROLES.whoson; the LEDGER's IN THE CITY + /admin STATS): who's online now, built on the server from
+ *  here/ (the hellos: the city, a daily), the live rooms (exact) and the daily's own record; each person as THE BOARD shows them (their slim
+ *  card's public fields — publicRow: no pid, no key, no tag digits) + where + the last check-in; guests only counted */
+export async function whosOnNow(now = Date.now()) {
+  const [here, rooms] = await Promise.all([val('here'), liveRoomsRead(now)]);
+  const today = streakDay(now), prev = dayOf(dayNum(today) - 1), asks = new Map();
+  // (the daily's own record: a run started today — or yesterday's, still open — with no score yet)
+  const H = Object.values(here || {}).map(hereEntry).filter(e => e && e.pid && e.at > now - HERE_MS && e.w && e.w.k === 'daily');
+  await Promise.all(H.map(async e => {
+    const d = cleanWhere(e.w).d; if (!d || !isPid(e.pid)) return;
+    const [s, r, s0, r0] = await Promise.all([val(`dly/${d}/${today}/s/${e.pid}`), val(`dly/${d}/${today}/r/${e.pid}`), val(`dly/${d}/${prev}/s/${e.pid}`), val(`dly/${d}/${prev}/r/${e.pid}`)]);
+    asks.set(`${e.pid}|${d}`, !!((s && r == null) || (!s && s0 && r0 == null)));
+  }));
+  const L = whosOnList({ here: here || {}, rooms: rooms || {}, now, hereMs: HERE_MS, midDaily: (pid, d) => !!asks.get(`${pid}|${d}`) });
+  const profs = await Promise.all(L.rows.map(r => val(`profiles/${r.pid}`)));
+  const rows = L.rows.map((r, i) => (profs[i] ? { card: publicRow(r.pid, profs[i]), where: r.where, at: r.at } : null)).filter(Boolean);
+  return { now, rows, guests: L.guests, window: HERE_MS };
+}
+
 /** THE NIXIE: people in the city now (an estimate — visible titles say hello every ~5 min) + in rooms */
 export async function cityCount(now) {
   const here = (await val('here')) || {}, gone = {};
-  let n = 0; for (const [u, t] of Object.entries(here)) { if (t > now - HERE_MS) n++; else gone[u] = null; }
+  let n = 0; for (const [u, v] of Object.entries(here)) { const e = hereEntry(v); if (e && e.at > now - HERE_MS) n++; else gone[u] = null; }   // (PLAY NOW: { at, pid, w } — the old bare time read too)
   if (Object.keys(gone).length) await ref('here').update(gone);
   return n;
 }
-export async function hello(uid, now, me = null) {
-  if (/^[A-Za-z0-9]{10,40}$/.test(uid)) await ref('/').update({ [`here/${uid}`]: now, [`radio/visits/${dayKey(now)}/${uid}`]: true });   // (THE LEDGER's visitors a day: an estimate — a visible city)
+export async function hello(uid, now, me = null, w = null) {
+  // (PLAY NOW — WHO'S ON: the hello also says WHERE the phone is — the city / a daily (a room is read from the rooms themselves) — and whose
+  //  phone it is (the profile, server-known); no new call: the same ~5-min hello)
+  const pid = me && isPid(me) ? me : null;
+  if (/^[A-Za-z0-9]{10,40}$/.test(uid)) await ref('/').update({ [`here/${uid}`]: { at: now, ...(pid ? { pid } : {}), w: cleanWhere(w) }, [`radio/visits/${dayKey(now)}/${uid}`]: true });   // (THE LEDGER's visitors a day: an estimate — a visible city)
   // (FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: the profile's city-open stamp, server-written — core/sightings.js#openStep / #cityOpenAt)
   if (me && /^[-_A-Za-z0-9]{6,40}$/.test(me)) await ref(`ppriv/${me}/co`).transaction(cur => openStep(cur, now)).catch(() => {});
   return { ok: true };
@@ -291,12 +316,13 @@ async function state(me, role, uid, body, now) {
 
 /** the radio's actions (adminAction routes every 'radio…' action here BEFORE its admin-only gate: the crew may use some) */
 export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
-  if (body.action === 'radioHello') return hello(uid, now, me);
+  if (body.action === 'radioHello') return hello(uid, now, me, body.w);
   // CC-B — "A ROOM JUST OPENED": any signed-in host tells the server its room is open (the server checks it + notifies the owner once)
   if (body.action === 'radioRoomOpened') return roomOpened(me, uid, body, now);
   const role = await roleOf(me);
   if (body.action === 'radioWho') return { role };
   need(!!role, 'not_radio', 'This profile has no radio.');
+  if (body.action === 'radioWhosOn') { need(rolePower(role, 'whoson'), 'not_owner'); return whosOnNow(now); }
   switch (body.action) {
     case 'radioState': return state(me, role, uid, body, now);
     case 'radioCrewSet': return crewSet(me, role, body, now);
