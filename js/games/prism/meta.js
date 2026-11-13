@@ -5,6 +5,8 @@ export const MIN_PLAYERS = 2;
 // (PD-2 — THE SOLO LANE: one player may start SCORE RUSH or SURVIVAL; BATTLE needs 2 — cleanSettings(s, players))
 export const SOLO = true;
 export const SOLO_MODES = ['rush', 'survival'];
+// (PD-6: the card's solo tubes — THE DROP stays a daily)
+export const SOLO_RUNS = [{ mode: 'rush', label: 'SCORE RUSH', sub: 'ONE SONG' }, { mode: 'survival', label: 'SURVIVAL', sub: 'UNTIL YOU TOP OUT' }];
 
 export const MUSIC = null;                 // (the songs are the music)
 export const BANNER_NAME = 'PRISM DROP';

@@ -16,9 +16,11 @@ export function createSetup() {
   let els = {};
 
   let game = null;   // (PLAY NOW: the game the card was for — 'solo' plays it after; 'host' opens the room with it picked)
+  let soloWant = null;   // (PD-6: the solo button's settings — { mode })
   function mount(el, st) {
     mode = st.setupMode;
     game = st.setupGame || null;
+    soloWant = st.setupSolo || null;   // (PD-6: the GAME CARD's solo button that sent a guest here — its mode)
     const saved = loadProfile() || {};
     // THE VAULT 2C — ONE EMBLEM SYSTEM, ONE PLACE: the shape is picked here ONCE (sign-up — nothing saved on this device yet); afterwards it
     // changes only in CUSTOMIZE (the profile's CUSTOMIZE YOUR CARD). EDIT PROFILE = the name + the colour.
@@ -113,7 +115,7 @@ export function createSetup() {
     lazyImport(import('../profile/me.js'), '../profile/me.js').then(m => m.syncMe()).catch(() => {}); // the global profile follows (renames: once a day)
     if (mode === 'edit') { sfx('lock'); try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); return; }
     // (PLAY NOW — a guest's first PLAY NOW: the name saved, then straight into the solo run — host.js#playSolo opens its own room)
-    if (mode === 'solo' && game) { sfx('lock'); setState({ view: 'title', setupGame: null }); lazyImport(import('../host.js'), '../host.js').then(m => m.playSolo(game)).catch(() => {}); return; }
+    if (mode === 'solo' && game) { const want = soloWant; sfx('lock'); setState({ view: 'title', setupGame: null, setupSolo: null }); lazyImport(import('../host.js'), '../host.js').then(m => m.playSolo(game, want ? { settings: want } : {})).catch(() => {}); return; }   // (PD-6: the solo button's mode kept)
     busy = true;
     els.go.classList.add('is-busy');
     els.go.firstChild.textContent = mode === 'host' ? 'ALLOCATING…' : 'CONNECTING…';

@@ -7,6 +7,7 @@
 //   friends  PRISM DROP's card → PLAY WITH FRIENDS → a normal room (unlocked, not solo) with PRISM DROP's options open
 //   holdem   HOLD'EM's card: no PLAY NOW — "Needs 2+ players" + PLAY WITH FRIENDS (the main) → a room with HOLD'EM's options open
 //   sign     a tap on the PRISM DROP sign in the skyline → PRISM DROP's card
+//   (PD-6: the solo case also checks BOTH solo tubes, PLAY AGAIN keeping the mode, and the podium's XP line — runs 1, 3, 4 pay; the 5th says DONE)
 //   node tests/integration/e2e-playnow.mjs [--browser webkit|chromium] [--base http://localhost:5173] [--only solo,one,friends,holdem,sign] [--shots DIR]
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
@@ -58,15 +59,34 @@ async function endRun(P) {
   return P.waitFor(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.final .final-actions')`, 60000);
 }
 
+// PD-6 ADD-ON: the solo podium's XP line (the server's outcome — it lands a moment after the podium)
+const LINE = "(document.querySelector('.final .rc-solo') || {}).textContent || ''";
+const soloLine = (P, want) => P.waitFor(`${LINE} === ${JSON.stringify(want)} && !document.querySelector('.final .rc-xp')`, 75000);   // (a run within 45 s of the last credit waits for the server's retryAfter — M4)
+/** the test bot plays a few seconds (a run the server can verify) · a SURVIVAL run to its podium (topOut) */
+async function botPlays(P, ms = 8000) {
+  await P.waitFor('!!(window.__prism && window.__prism.engine && window.__prism.engine() && window.__prism.engine().cur)', 30000);
+  await P.ev('window.__prism.bot({ skill: 0.85, every: 90, seed: 7 })'); await sleep(ms);
+  await P.ev('window.__prism.stopBot()');
+}
+async function topOut(P) {   // (a REAL top-out the server's replay accepts: a careless bot dropping fast — never injected rows)
+  await P.waitFor('!!(window.__prism && window.__prism.engine && window.__prism.engine() && window.__prism.engine().cur)', 30000);
+  await sleep(1500);
+  await P.ev('window.__prism.bot({ skill: 0, every: 40, seed: 3 })');
+  const end = await P.waitFor(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.final .final-actions')`, 90000);
+  await P.ev('window.__prism && window.__prism.stopBot && window.__prism.stopBot()').catch(() => {});
+  return end;
+}
+
 try {
   if (!ONLY.length || ONLY.includes('solo')) {
     const P = await phone('soloist');
     await openCard(P, 'prism');
-    const btns = await P.ev("[...document.querySelectorAll('.nd-card-actions .btn')].map(b => b.dataset.act + ':' + b.textContent.trim() + ':' + b.className)");
-    ok(btns.length === 2 && /^solo:PLAY NOW:.*btn-primary/.test(btns[0]) && /^friends:PLAY WITH FRIENDS:.*btn-ghost/.test(btns[1]), `PRISM DROP's card: PLAY NOW (the pink MAIN) + PLAY WITH FRIENDS (${btns.join(' | ')})`);
+    // (PD-6 — TWO SOLO BUTTONS: PRISM DROP's SOLO_RUNS → SCORE RUSH · ONE SONG (the pink MAIN) + SURVIVAL · UNTIL YOU TOP OUT (plain) + PLAY WITH FRIENDS)
+    const btns = await P.ev("[...document.querySelectorAll('.nd-card-actions .btn')].map(b => [b.dataset.act, b.dataset.mode || '', (b.querySelector('span') || b).textContent.trim(), (b.querySelector('small') || {}).textContent || '', /btn-primary/.test(b.className) ? 'MAIN' : 'plain'].join(':'))");
+    ok(btns.length === 3 && btns[0] === 'solo:rush:SCORE RUSH:ONE SONG:MAIN' && btns[1] === 'solo:survival:SURVIVAL:UNTIL YOU TOP OUT:plain' && btns[2] === 'friends::PLAY WITH FRIENDS::plain', `PRISM DROP's card: SCORE RUSH · ONE SONG (the pink MAIN) + SURVIVAL · UNTIL YOU TOP OUT + PLAY WITH FRIENDS (${btns.join(' | ')})`);
     await P.shot('card-prism');
     const t0 = Date.now();
-    await P.ev("document.querySelector('.nd-card-solo').click()");
+    await P.ev("document.querySelector('.nd-card-solo[data-mode=\"rush\"]').click()");
     const live = await P.waitFor(`(() => { const s = ${S}; const go = s.meta && s.meta.go; return !!(s.game && s.game.id === 'prism' && (s.game.phase === 'count' || s.game.phase === 'play') && go && go.m === s.game.matchId && window.__arcade.serverNow() >= go.at + 2000); })()`, 15000);
     const ms = Date.now() - t0;
     const st = await P.ev(`(() => { const s = ${S}; return { code: s.code, locked: !!(s.meta && s.meta.locked), solo: !!(s.meta && s.meta.settings && s.meta.settings.solo && s.meta.settings.solo.on), m: s.game && s.game.matchId, mode: s.game && s.game.settings && s.game.settings.mode, url: location.href, host: s.meta && s.meta.hostId === s.uid }; })()`);
@@ -76,11 +96,15 @@ try {
     const hushE = await dbGet(`hush/${st.code}`);
     ok(!HUSH.has(st.code) && !shown.inText && !shown.inUrl && hushE == null, `its code is no hush word (${HUSH.has(st.code) ? 'IS ONE' : 'not one'}), never on screen (${shown.inText}) or in the address bar (${shown.inUrl}), no hush/ entry`);
     await P.shot('solo-playing');
+    await botPlays(P);   // (PD-6: a run the server can verify — the XP line needs a counted run)
     // the end: the podium's foot
     if (!await endRun(P)) ok(false, 'the run reached its podium');
     await sleep(800);
     const foot = await P.ev("({ again: !!document.querySelector('.final .final-again'), city: !!document.querySelector('.final .final-city'), back: !!document.querySelector('.final .final-back'), solo: document.querySelector('.final').classList.contains('is-solo') })");
     ok(foot.again && foot.city && !foot.back, `the solo podium's foot: PLAY AGAIN + BACK TO THE CITY, no BACK TO THE ROOM (${JSON.stringify(foot)})`);
+    // (PD-6 ADD-ON — THE SOLO PODIUM SAYS WHAT IT PAID: the server's outcome → ONE line under the score, in place of the XP box)
+    ok(await soloLine(P, '+15 XP · SOLO RUN · 1 OF 4 TODAY'), `a paying solo run: "${await P.ev(LINE)}" (want +15 XP · SOLO RUN · 1 OF 4 TODAY), no XP box (${await P.ev("!document.querySelector('.final .rc-xp')")})`);
+    if (process.env.PN_DEBUG) console.log('   outcomes:', await P.ev("JSON.stringify(Object.keys(sessionStorage).filter(k => k.startsWith('rc:')).map(k => sessionStorage.getItem(k).slice(0, 300)))"), await P.ev("JSON.stringify(Object.keys(localStorage).filter(k => /queue|report|done/i.test(k)).map(k => k + '=' + localStorage.getItem(k).slice(0, 200)))"));
     await P.shot('solo-podium');
     // (the owner's add-on: SHARE YOUR RUN — the tube on the solo podium; a tap draws the card ON THE PHONE (no share sheet in a test browser →
     //  the image saved); no /api call, no error)
@@ -101,9 +125,11 @@ try {
     // (the walk is over when the server clock passes the start's stamp + THE SOLO START's 2 s)
     const again = await P.waitFor(`(() => { const s = ${S}; const go = s.meta && s.meta.go; return !!(s.game && s.game.matchId !== ${JSON.stringify(m1)} && /^s/.test(s.game.matchId) && (s.game.phase === 'count' || s.game.phase === 'play') && go && go.m === s.game.matchId && window.__arcade.serverNow() >= go.at + 2000); })()`, 15000);
     ok(again && Date.now() - ta <= 4000, `PLAY AGAIN → a new run, THE SOLO START again — playing ${Date.now() - ta} ms after the tap`);
+    ok(await P.ev(`${S}.game.settings.mode`) === 'rush', `PLAY AGAIN keeps the mode (${await P.ev(`${S}.game.settings.mode`)})`);
+    await botPlays(P);   // (counted too — the day's 2nd solo run)
     // BACK TO THE CITY from the second podium
     if (!await endRun(P)) ok(false, 'the second run reached its podium');
-    await sleep(600);
+    ok(await soloLine(P, '+15 XP · SOLO RUN · 2 OF 4 TODAY'), `the day's 2nd solo run: "${await P.ev(LINE)}"`);
     const code = await P.ev(`${S}.code`);
     await P.ev("document.querySelector('.final .final-city').click()");
     const gone = await P.waitFor(`!${S}.code && ${S}.view === 'title'`, 15000);
@@ -114,6 +140,30 @@ try {
     const parked = await P.waitFor("(() => { const l = window.__arcade.line(); return !l.wants.includes('room') && l.parked; })()", 30000);
     const L = await P.ev('window.__arcade.line()');
     ok(parked, `the database line PARKED after the grace (the grace 4 s here — 30 s live) — 0 sockets (wants: ${L.wants.join(', ') || 'none'}, parked ${L.parked})${parked ? '' : ` — touches ${L.touches} from ${JSON.stringify(L.touchFrom).slice(0, 200)} · ${JSON.stringify(L.log.slice(-6)).slice(0, 500)}`}`);
+    // (PD-6 — the SECOND tube: SURVIVAL lands in a solo room with its mode; PLAY AGAIN keeps it; the day's 3rd + 4th runs pay, the 5th says DONE)
+    await openCard(P, 'prism');
+    await P.ev("document.querySelector('.nd-card-solo[data-mode=\"survival\"]').click()");
+    const sv = await P.waitFor(`(() => { const s = ${S}; return !!(s.game && s.game.id === 'prism' && /^s/.test(s.game.matchId || '') && (s.game.phase === 'count' || s.game.phase === 'play')); })()`, 15000);
+    const sst = await P.ev(`(() => { const s = ${S}; return { solo: !!(s.meta && s.meta.settings && s.meta.settings.solo && s.meta.settings.solo.on), locked: !!(s.meta && s.meta.locked), mode: s.game && s.game.settings && s.game.settings.mode }; })()`);
+    ok(sv && sst.solo && sst.locked && sst.mode === 'survival', `SURVIVAL's tube → a private solo room in SURVIVAL (${JSON.stringify(sst)})`);
+    const lines = [];
+    for (let run = 3; run <= 5; run++) {
+      if (!await topOut(P)) { ok(false, `solo run ${run} reached its podium`); break; }
+      const want = run <= 4 ? `+15 XP · SOLO RUN · ${run} OF 4 TODAY` : 'TODAY’S SOLO XP DONE · MORE AT 4 AM';
+      const got = await soloLine(P, want);
+      if (!got && process.env.PN_DEBUG) console.log('   outcomes:', await P.ev("JSON.stringify(Object.keys(sessionStorage).filter(k => k.startsWith('rc:')).map(k => k + ' ' + sessionStorage.getItem(k).slice(0, 90)))"), await P.ev("JSON.stringify(Object.keys(localStorage).filter(k => /:rq|queue|rdone/i.test(k)).map(k => k + '=' + localStorage.getItem(k).slice(0, 300)))"), await P.ev(`JSON.stringify({ m: ${S}.game.matchId, code: ${S}.code, ph: ${S}.game.phase })`));
+      if (!got && process.env.PN_DEBUG) console.log('   again:', await P.ev(`import('/js/profile/api.js').then(m => m.api('report', { code: ${S}.code, matchId: ${S}.game.matchId })).then(r => JSON.stringify(r).slice(0, 200), e => 'ERR ' + e.status + ' ' + e.code + ' ' + e.message)`), await P.ev(`import('/js/firebase.js').then(f => f.get(f.dbRef('rooms/' + ${S}.code + '/night/' + ${S}.game.matchId))).then(x => JSON.stringify(x.val()))`).catch(e => 'night ' + e.message));
+      lines.push(await P.ev(LINE));
+      if (run === 5) await P.shot('solo-podium-5th');
+      if (!got || run === 5) { ok(got, `solo run ${run} of the day: "${lines[lines.length - 1]}" (want "${want}")`); if (!got) break; continue; }
+      const m0 = await P.ev(`${S}.game.matchId`);
+      await P.ev("document.querySelector('.final .final-again').click()");
+      await P.waitFor(`(() => { const s = ${S}; return !!(s.game && s.game.matchId !== ${JSON.stringify(m0)} && (s.game.phase === 'count' || s.game.phase === 'play')); })()`, 15000);
+      if (run === 3) ok(await P.ev(`${S}.game.settings.mode`) === 'survival', 'PLAY AGAIN after SURVIVAL keeps SURVIVAL');
+    }
+    ok(lines.length === 3 && lines[0].endsWith('3 OF 4 TODAY') && lines[1].endsWith('4 OF 4 TODAY'), `the 3rd + 4th runs pay (${lines.slice(0, 2).join(' | ')})`);
+    await P.ev("document.querySelector('.final .final-city') && document.querySelector('.final .final-city').click()").catch(() => {});
+    await P.waitFor(`!${S}.code`, 15000);
     ok(P.errs.length === 0, `no page error (${P.errs.slice(0, 2).join(' | ') || 'none'})`);
     await P.ctx.close();
   }

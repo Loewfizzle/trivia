@@ -221,6 +221,9 @@ html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3,
 .nd-card .nd-pv-meta { margin-bottom: 16px; }
 .nd-card-actions { display: flex; flex-direction: column; gap: 10px; margin: 0 auto 10px; max-width: 420px; }
 .nd-card-actions .btn { min-height: 52px; }
+/* (PD-6 — TWO SOLO BUTTONS: a solo tube's small line under its label — SCORE RUSH / ONE SONG, SURVIVAL / UNTIL YOU TOP OUT) */
+.nd-card-actions .btn.has-sub { flex-direction: column; gap: 3px; padding-top: 8px; padding-bottom: 8px; }
+.nd-card-sub { display: block; font: 700 10.5px/1.1 var(--font-mono); letter-spacing: 0.18em; opacity: 0.82; }
 .nd-card-note { margin: 2px 0 4px; font: 700 13px/1.4 var(--font-ui); letter-spacing: 0.06em; color: var(--text-dim); }
 .nd-card .nd-pv-actions { max-width: 420px; margin: 0 auto 12px; align-items: center; }
 .nd-card-help { min-height: 44px; padding: 0 14px; border: 0; background: none; font: 800 12px/1 var(--font-ui); letter-spacing: 0.22em; color: var(--text-dim); }

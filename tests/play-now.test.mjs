@@ -13,11 +13,11 @@ import * as holdem from '../js/games/holdem/meta.js';
 const read = f => readFileSync(f, 'utf8');
 
 test('THE GAME CARD\'s buttons: by SOLO, in a room, host / guest', () => {
-  assert.deepEqual(cardActions({ solo: true }), { main: { id: 'solo', label: 'PLAY NOW' }, second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null }, 'a SOLO game: PLAY NOW the pink MAIN, PLAY WITH FRIENDS second');
-  assert.deepEqual(cardActions({ solo: false }), { main: { id: 'friends', label: 'PLAY WITH FRIENDS' }, second: null, note: 'Needs 2+ players' }, 'HOLD\'EM: no PLAY NOW, one quiet line');
+  assert.deepEqual(cardActions({ solo: true }), { main: { id: 'solo', label: 'PLAY NOW' }, more: [], second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null }, 'a SOLO game: PLAY NOW the pink MAIN, PLAY WITH FRIENDS second');
+  assert.deepEqual(cardActions({ solo: false }), { main: { id: 'friends', label: 'PLAY WITH FRIENDS' }, more: [], second: null, note: 'Needs 2+ players' }, 'HOLD\'EM: no PLAY NOW, one quiet line');
   for (const solo of [true, false]) {
-    assert.deepEqual(cardActions({ solo, inRoom: true, host: true }), { main: { id: 'pick', label: 'PICK THIS GAME' }, second: null, note: null }, 'the host in a room: PICK THIS GAME (no PLAY NOW in a room)');
-    assert.deepEqual(cardActions({ solo, inRoom: true, host: false }), { main: null, second: null, note: 'The host picks the game' }, 'a guest');
+    assert.deepEqual(cardActions({ solo, inRoom: true, host: true }), { main: { id: 'pick', label: 'PICK THIS GAME' }, more: [], second: null, note: null }, 'the host in a room: PICK THIS GAME (no PLAY NOW in a room)');
+    assert.deepEqual(cardActions({ solo, inRoom: true, host: false }), { main: null, more: [], second: null, note: 'The host picks the game' }, 'a guest');
   }
   // the three playable games' cards
   assert.equal(prism.SOLO, true); assert.equal(overclock.SOLO, true); assert.ok(!holdem.SOLO, 'HOLD\'EM has no SOLO → no PLAY NOW');
@@ -84,9 +84,9 @@ test('the solo room: flagged at its first write, locked once seated, no hush wor
 test('PLAY NOW → playSolo: the room, this phone its host + online, the default solo options, THE SOLO START; a failed start closes it', () => {
   const host = read('js/host.js');
   const fn = host.slice(host.indexOf('async function playSoloNow'), host.indexOf('// (PLAY NOW — the podium'));
-  assert.match(fn, /setState\(\{ view: 'setup', setupMode: 'solo', setupGame: gameId \}\)/, 'a guest without a name sets one up first');
+  assert.match(fn, /setState\(\{ view: 'setup', setupMode: 'solo', setupGame: gameId, setupSolo: settings \|\| null \}\)/, 'a guest without a name sets one up first');
   assert.match(fn, /await createSoloRoom\(prof, gameId\)/);
-  assert.match(fn, /startGame\(gameId, settings \|\| soloSettings\(meta\), \{ solo: true \}\)/);
+  assert.match(fn, /startGame\(gameId, soloSettings\(meta, settings\), \{ solo: true \}\)/);
   assert.match(fn, /if \(!ok\) \{ await leaveRoom\(\)/);
   assert.match(host, /const kind = solo \|\| isSoloMeta\(state\.meta\) \? 'solo' : quick;/, 'every start in a solo room is THE SOLO START (PLAY AGAIN too)');
   assert.match(host, /globalThis\.__nsPlayNow = Object\.freeze\(\{ isSolo: \(\) => isSoloMeta\(state\.meta\), again: \(\) => rematch\(\), leave: \(\) => leaveRoom\(\) \}\)/);
@@ -108,4 +108,31 @@ test('the dock\'s GAMES → PLAY (same spot, 4 icons the max); the signs + the b
   const sc = read('js/screens/harbor/scene.js');
   assert.match(sc, /\{ const bs = bladeHit\(x, y\); if \(bs\) return bs; \}/);
   assert.match(sc, /if \(dr && x >= dr\.x && x <= dr\.x \+ dr\.w && y >= dr\.y && y <= dr\.y \+ dr\.h\) return null;/, 'the door\'s knock wins over the blade');
+});
+
+// PD-6 — TWO SOLO BUTTONS (general): a cartridge's SOLO_RUNS → one tube per entry, the first the pink MAIN; no list → the single PLAY NOW
+test('PD-6 TWO SOLO BUTTONS: no list / one / two — each a solo run with its mode; in a room nothing changes', () => {
+  const one = [{ mode: 'rush', label: 'SCORE RUSH', sub: 'ONE SONG' }];
+  const two = [...one, { mode: 'survival', label: 'SURVIVAL', sub: 'UNTIL YOU TOP OUT' }];
+  assert.deepEqual(cardActions({ solo: true, runs: null }).main, { id: 'solo', label: 'PLAY NOW' }, 'no list: the single PLAY NOW');
+  assert.deepEqual(cardActions({ solo: true, runs: one }), { main: { id: 'solo', label: 'SCORE RUSH', sub: 'ONE SONG', mode: 'rush' }, more: [], second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null });
+  const t = cardActions({ solo: true, runs: two });
+  assert.deepEqual([t.main.label, ...t.more.map(a => a.label), t.second.label], ['SCORE RUSH', 'SURVIVAL', 'PLAY WITH FRIENDS'], 'the first the MAIN, then the rest, then PLAY WITH FRIENDS');
+  assert.deepEqual(t.more[0], { id: 'solo', label: 'SURVIVAL', sub: 'UNTIL YOU TOP OUT', mode: 'survival' });
+  assert.equal(cardActions({ solo: false, runs: two }).main.id, 'friends', 'a list on a game that is not SOLO is ignored');
+  assert.equal(cardActions({ solo: true, runs: two, inRoom: true, host: true }).main.id, 'pick', 'in a room: PICK THIS GAME as ever');
+  // PRISM DROP's list (THE DROP — the planned daily — never a button here); OVERCLOCK keeps the single PLAY NOW
+  assert.deepEqual(prism.SOLO_RUNS, two);
+  assert.ok(!('SOLO_RUNS' in overclock), 'OVERCLOCK lists none — the single PLAY NOW');
+  assert.ok(!prism.SOLO_RUNS.some(r => /drop/i.test(r.label + r.mode)), 'THE DROP stays a daily');
+  // each button's mode through the one-player rules (soloSettings(meta, want)) — never a mode one player can't play
+  assert.equal(soloSettings(prism, { mode: 'survival' }).mode, 'survival');
+  assert.equal(soloSettings(prism, { mode: 'rush' }).mode, 'rush');
+  assert.equal(soloSettings(prism, { mode: 'battle' }).mode, 'rush', 'BATTLE alone → SCORE RUSH');
+  // the card draws them + passes the mode; host.js cleans it; a guest's setup keeps it
+  const taps = read('js/screens/title-taps.js');
+  assert.match(taps, /cardActions\(\{ solo: m\.solo, runs: m\.runs/);
+  assert.match(taps, /playSolo\(g\.id, mode \? \{ settings: \{ mode \} \} : \{\}\)/);
+  assert.match(read('js/host.js'), /startGame\(gameId, soloSettings\(meta, settings\), \{ solo: true \}\)/);
+  assert.match(read('js/screens/setup.js'), /m\.playSolo\(game, want \? \{ settings: want \} : \{\}\)/);
 });

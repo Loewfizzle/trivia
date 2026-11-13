@@ -206,9 +206,10 @@ export function createTaps(T) {
   function meta(g) {
     const mod = metaOf(g.id) || {};
     const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0), solo = mod.SOLO === true;
+    const runs = solo && Array.isArray(mod.SOLO_RUNS) ? mod.SOLO_RUNS : null;   // (PD-6 — TWO SOLO BUTTONS: the cartridge's solo list, from its meta)
     let mins = null;
     try { mins = mod.estimateMinutes ? mod.estimateMinutes(mod.DEFAULT_SETTINGS || {}) : null; } catch { mins = null; }
-    return { solo, players: `${playersLine(solo, min, MAX_PLAYERS)} PLAYERS`, mins: mins ? `≈ ${Math.round(mins)} MIN` : null };
+    return { solo, runs, players: `${playersLine(solo, min, MAX_PLAYERS)} PLAYERS`, mins: mins ? `≈ ${Math.round(mins)} MIN` : null };
   }
   /** the game's neon mark as a small inline SVG (the row's icon) — its own tubes, its own colours */
   function markSvg(g) {
@@ -236,15 +237,23 @@ export function createTaps(T) {
     const m = meta(g);
     let sheet = null;
     const close = () => { if (sheet) sheet.close(); };
-    const A = cardActions({ solo: m.solo, inRoom: !!state.code, host: isHost() });
-    const act = id => () => {
-      if (id === 'solo') { close(); playSolo(g.id); return; }
+    const A = cardActions({ solo: m.solo, runs: m.runs, inRoom: !!state.code, host: isHost() });
+    const act = (id, mode = null) => () => {
+      if (id === 'solo') { close(); playSolo(g.id, mode ? { settings: { mode } } : {}); return; }   // (PD-6: a solo button's mode)
       if (id === 'friends') { close(); friends(g); return; }
       if (id === 'pick') { close(); pick(g); }
     };
+    // (PD-6 — TWO SOLO BUTTONS: one THE NEON TUBE per solo run — the first the ONE pink MAIN, the rest plain; its `sub` the small line under the
+    //  label; each carries its mode (data-mode))
+    const tube = (a, kind) => {
+      const b = tubeButton(a.label, { kind, block: true, onClick: act(a.id, a.mode), cls: `nd-card-${a.id}${a.sub ? ' has-sub' : ''}`, attrs: { dataset: a.mode ? { act: a.id, mode: a.mode } : { act: a.id } } });
+      if (a.sub) b.append(h('small.nd-card-sub', a.sub));
+      return b;
+    };
     const actions = h('div.nd-card-actions',
-      A.main ? tubeButton(A.main.label, { kind: 'main', block: true, onClick: act(A.main.id), cls: `nd-card-${A.main.id}`, attrs: { dataset: { act: A.main.id } } }) : null,
-      A.second ? tubeButton(A.second.label, { kind: 'secondary', block: true, onClick: act(A.second.id), cls: `nd-card-${A.second.id}`, attrs: { dataset: { act: A.second.id } } }) : null,
+      A.main ? tube(A.main, 'main') : null,
+      ...(A.more || []).map(a => tube(a, 'secondary')),
+      A.second ? tube(A.second, 'secondary') : null,
       A.note ? h('p.nd-card-note', A.note) : null);
     const art = gameArtSvg(g.id);
     // (SHELL 2.0 A: THE SHEET — the game's name its title, its tag the small line)

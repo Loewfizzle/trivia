@@ -75,6 +75,13 @@ test('checkCartridge: a complete module passes; a missing piece, a wrong type, a
   const { MUSIC, ...noMusic } = ok; void MUSIC;
   assert.match(checkCartridge('t', noMusic).join(), /MUSIC/);
   assert.match(checkCartridge('t', ok, { marks: {} }).join(), /no tube mark/);
+  // (PD-6 — TWO SOLO BUTTONS: SOLO_RUNS accepted on a SOLO game; its shape + a one-player mode checked)
+  const solo = { ...ok, SOLO: true, DEFAULT_SETTINGS: { mode: 'a' }, OPTIONS: [], cleanSettings: (st, n) => ({ mode: n === 1 && st.mode === 'team' ? 'a' : st.mode }) };
+  assert.deepEqual(checkCartridge('t', { ...solo, SOLO_RUNS: [{ mode: 'a', label: 'ALPHA', sub: 'ONE SONG' }, { mode: 'b', label: 'BETA' }] }), []);
+  assert.match(checkCartridge('t', { ...solo, SOLO: undefined, SOLO_RUNS: [{ mode: 'a', label: 'ALPHA' }] }).join(), /SOLO_RUNS — SOLO only/);
+  assert.match(checkCartridge('t', { ...solo, SOLO_RUNS: [{ mode: 'team', label: 'TEAM' }] }).join(), /SOLO_RUNS — SOLO only/);
+  assert.match(checkCartridge('t', { ...solo, SOLO_RUNS: [{ label: 'NO MODE' }] }).join(), /SOLO_RUNS — SOLO only/);
+  assert.match(checkCartridge('t', { ...solo, SOLO_RUNS: {} }).join(), /SOLO_RUNS \(optional\) must be a array/);
 });
 
 test('what the console reads through the plug: the minimum (MIN_PLAYERS above the app\'s, SOLO = 1), the chips, the rematch\'s settings', () => {
@@ -113,5 +120,6 @@ test("THE BOOT BYTES: no game's logic in the title's static graph (scripts/boot-
   const { bootGraph } = await import('../scripts/boot-bytes.mjs');
   const g = bootGraph(), games = g.rows.filter(r => r.f.startsWith('js/games/') && !/\/(meta|registry|cartridge|lazy-view)\.js$|\/kit\/|^js\/games\/pulse\/clock\.js$/.test(r.f));   // (pulse/clock.js = the console's shared audio clock — audio/synced-songs.js)
   assert.deepEqual(games.map(r => r.f), [], "only the metas + the console's own game files at boot");
-  assert.ok(g.games < 34 * 1024, `js/games at boot: ${(g.games / 1024).toFixed(1)} KB`);
+  // (PD-6 — a NAMED raise, 34 → 36 KB: the contract's SOLO_RUNS check + PRISM DROP's solo list, +0.9 KB — 67 bytes of headroom was left; still no game logic)
+  assert.ok(g.games < 36 * 1024, `js/games at boot: ${(g.games / 1024).toFixed(1)} KB`);
 });

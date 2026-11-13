@@ -264,7 +264,7 @@ async function startGameNow(gameId, settings, quick = false) {
 // ever (the streak + a small capped XP, never a counted play). A guest without a name sets one up first (setup's 'solo' mode comes back here).
 // A start that fails closes the solo room (never a code left on screen). → true once the match is written.
 let soloRun = null;
-export function playSolo(gameId, { settings = null } = {}) {
+export function playSolo(gameId, { settings = null } = {}) {   // (PD-6: settings = a SOLO_RUNS button's { mode } — over the one-player defaults)
   if (soloRun) return soloRun;
   const p = playSoloNow(gameId, settings);
   soloRun = p; p.finally(() => { if (soloRun === p) soloRun = null; });
@@ -273,7 +273,7 @@ export function playSolo(gameId, { settings = null } = {}) {
 const until = (fn, ms) => new Promise(res => { if (fn()) { res(true); return; } let off = null; const t = setTimeout(() => { if (off) off(); res(false); }, ms); off = subscribe(() => { if (fn()) { clearTimeout(t); if (off) off(); res(true); } }); });
 async function playSoloNow(gameId, settings) {
   const prof = loadProfile();
-  if (!prof || !prof.name) { setState({ view: 'setup', setupMode: 'solo', setupGame: gameId }); return false; }
+  if (!prof || !prof.name) { setState({ view: 'setup', setupMode: 'solo', setupGame: gameId, setupSolo: settings || null }); return false; }   // (PD-6: the button's mode rides along)
   if (!isPlayable(gameId)) { toast('COMING SOON', 'info'); return false; }
   if (state.code && !isSoloMeta(state.meta)) { toast('You’re in a room — the host picks the game', 'info'); return false; }
   try {
@@ -283,7 +283,7 @@ async function playSoloNow(gameId, settings) {
     const ready = await until(() => !!state.code && isHost() && !!(state.players && state.players[state.uid]) && isOnline(state.presence, state.uid), 8000);
     if (!ready) throw new Error('network');
     const meta = metaOf(gameId) || await loadGame(gameId).catch(() => null);
-    const ok = await startGame(gameId, settings || soloSettings(meta), { solo: true });
+    const ok = await startGame(gameId, soloSettings(meta, settings), { solo: true });   // (PD-6: the button's mode, cleaned for one player)
     if (!ok) { await leaveRoom().catch(() => {}); return false; }
     return true;
   } catch (e) {

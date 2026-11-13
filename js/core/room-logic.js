@@ -25,20 +25,26 @@ export function soloCode(hushWords = [], rand = Math.random) {
   for (let i = 0; i < 64; i++) { const c = generateCode(rand); if (!hw.has(c)) return c; }
   return generateCode(rand);
 }
-/** PURE: THE GAME CARD's buttons → { main: { id, label } | null, second: { id, label } | null, note } — id: 'solo' (PLAY NOW, one tap) ·
- *  'friends' (PLAY WITH FRIENDS = HOST with the game picked) · 'pick' (PICK THIS GAME — the host, in a room). In a room: the host picks, a guest
- *  is told who does; a SOLO game: PLAY NOW is the pink MAIN, PLAY WITH FRIENDS the second; no SOLO: PLAY WITH FRIENDS is the MAIN + one line */
-export function cardActions({ solo = false, inRoom = false, host = false } = {}) {
-  if (inRoom) return host ? { main: { id: 'pick', label: 'PICK THIS GAME' }, second: null, note: null } : { main: null, second: null, note: 'The host picks the game' };
-  if (solo) return { main: { id: 'solo', label: 'PLAY NOW' }, second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null };
-  return { main: { id: 'friends', label: 'PLAY WITH FRIENDS' }, second: null, note: 'Needs 2+ players' };
+/** PURE: THE GAME CARD's buttons → { main: { id, label, sub?, mode? } | null, more: [the other solo runs], second: { id, label } | null, note } —
+ *  id: 'solo' (a solo run, one tap) · 'friends' (PLAY WITH FRIENDS = HOST with the game picked) · 'pick' (PICK THIS GAME — the host, in a room).
+ *  In a room: the host picks, a guest is told who does; a SOLO game: PLAY NOW is the pink MAIN, PLAY WITH FRIENDS the second; no SOLO: PLAY WITH
+ *  FRIENDS is the MAIN + one line. PD-6 — TWO SOLO BUTTONS (general): `runs` = the cartridge's SOLO_RUNS list ([{ mode, label, sub }]) → ONE
+ *  action per entry — the FIRST the pink MAIN, the rest in `more` (plain tubes), each carrying its mode; no list → the single PLAY NOW */
+export function cardActions({ solo = false, runs = null, inRoom = false, host = false } = {}) {
+  if (inRoom) return host ? { main: { id: 'pick', label: 'PICK THIS GAME' }, more: [], second: null, note: null } : { main: null, more: [], second: null, note: 'The host picks the game' };
+  const list = solo && Array.isArray(runs) ? runs.filter(r => r && typeof r.mode === 'string' && typeof r.label === 'string') : [];
+  const run = r => ({ id: 'solo', label: r.label, sub: typeof r.sub === 'string' ? r.sub : null, mode: r.mode });
+  if (list.length) return { main: run(list[0]), more: list.slice(1).map(run), second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null };
+  if (solo) return { main: { id: 'solo', label: 'PLAY NOW' }, more: [], second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null };
+  return { main: { id: 'friends', label: 'PLAY WITH FRIENDS' }, more: [], second: null, note: 'Needs 2+ players' };
 }
 /** PURE: a game's players line on the shelf + the card — 'SOLO · 2–8' or '2–8' */
 export const playersLine = (solo, min, max) => `${solo ? 'SOLO · ' : ''}${Math.max(2, Number(min) || 2)}–${max}`;
-/** PURE: the settings a one-player room plays with by default — the cartridge's own (cleanSettings for one player: PRISM DROP → SCORE RUSH;
- *  OVERCLOCK → QUICK) */
-export function soloSettings(meta) {
-  const d = (meta && meta.DEFAULT_SETTINGS) || {};
+/** PURE: the settings a one-player room plays with — the cartridge's own defaults (cleanSettings for one player: PRISM DROP → SCORE RUSH;
+ *  OVERCLOCK → QUICK), with `want` over them (PD-6: a SOLO_RUNS button's { mode }) — always through cleanSettings(…, 1), so a run never starts in
+ *  a mode one player can't play */
+export function soloSettings(meta, want = null) {
+  const d = { ...((meta && meta.DEFAULT_SETTINGS) || {}), ...(want && typeof want === 'object' ? want : {}) };
   try { return meta && typeof meta.cleanSettings === 'function' ? meta.cleanSettings({ ...d }, 1) : { ...d }; } catch { return { ...d }; }
 }
 
