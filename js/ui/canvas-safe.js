@@ -7,6 +7,38 @@
 //                    source rect to the image and moves the destination to match — the same picture in both.
 //   getContext       iOS caps the canvas memory of a page; past it, getContext('2d') returns null (and every draw throws).
 //                    ctx2d() returns null instead of throwing, for a sprite that must never take the frame down with it.
+// PLAY NOW — 0d: THE SUPPORTED FLOOR is iOS / Safari 15.4 — the one thing the code needs that 15.4 lacks is the canvas `roundRect` (Safari
+// 16.0 · Chrome 99 · Firefox 112; ~56 calls in the city + the games, unguarded). This fills it in where it's missing — the spec's radii
+// (a number, a {x, y} point, or a list of 1–4: [all] · [tl+br, tr+bl] · [tl, tr+bl, br] · [tl, tr, br, bl]), each corner clamped like the
+// real one (scaled down together when two corners overrun a side), a negative w / h drawn the other way. Never touches a browser that has it.
+/** PURE: the spec's radii → [tl, tr, br, bl] (numbers) for a w × h box */
+export function roundRadii(w, h, radii) {
+  const n = r => { const v = r && typeof r === 'object' ? Number(r.x) : Number(r); return Number.isFinite(v) && v > 0 ? v : 0; };
+  const L = Array.isArray(radii) ? radii.map(n) : [n(radii)];
+  const [tl, tr, br, bl] = L.length >= 4 ? L.slice(0, 4) : L.length === 3 ? [L[0], L[1], L[2], L[1]] : L.length === 2 ? [L[0], L[1], L[0], L[1]] : [L[0] || 0, L[0] || 0, L[0] || 0, L[0] || 0];
+  const W = Math.abs(w), H = Math.abs(h);
+  const f = Math.min(1, W / ((tl + tr) || 1), W / ((bl + br) || 1), H / ((tl + bl) || 1), H / ((tr + br) || 1));
+  return [tl * f, tr * f, br * f, bl * f];
+}
+function roundRectFill(x, y, w, h, radii = 0) {
+  if (![x, y, w, h].every(Number.isFinite)) return;
+  let [tl, tr, br, bl] = roundRadii(w, h, radii);
+  if (w < 0) { x += w; w = -w; [tl, tr, br, bl] = [tr, tl, bl, br]; }
+  if (h < 0) { y += h; h = -h; [tl, tr, br, bl] = [bl, br, tr, tl]; }
+  this.moveTo(x + tl, y);
+  this.lineTo(x + w - tr, y); if (tr) this.arcTo(x + w, y, x + w, y + tr, tr);
+  this.lineTo(x + w, y + h - br); if (br) this.arcTo(x + w, y + h, x + w - br, y + h, br);
+  this.lineTo(x + bl, y + h); if (bl) this.arcTo(x, y + h, x, y + h - bl, bl);
+  this.lineTo(x, y + tl); if (tl) this.arcTo(x, y, x + tl, y, tl);
+  this.closePath();
+  this.moveTo(x, y);
+}
+if (typeof globalThis !== 'undefined') {
+  for (const C of [globalThis.CanvasRenderingContext2D, globalThis.OffscreenCanvasRenderingContext2D, globalThis.Path2D]) {
+    try { if (C && C.prototype && typeof C.prototype.roundRect !== 'function') Object.defineProperty(C.prototype, 'roundRect', { value: roundRectFill, configurable: true, writable: true }); } catch { /* a frozen prototype: nothing to do */ }
+  }
+}
+
 let blurOk = null;
 /** does `ctx.filter = 'blur(…)'` really blur here? (once, by its pixels) */
 export function blurWorks() {

@@ -1130,7 +1130,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (THE TRI-VISION's state — its functions below workBoard; declared up here: boardSync reads it)
   let jaywalkForced = false;
   const benchK = new Map(), BENCH_XF_S = 0.25;   // (THE BENCH OVER THE TAXI: each bench overlay's own fade, 1 = shown)
-  const tri = { shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null };
+  const tri = { shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null, fails: 0, retryAt: 0 };
+  // (PLAY NOW — 0c: THE ROOF BOARD STOPPED TURNING — a poster art that failed to load ONCE (a refresh on a blip) left `warmed` set and the art
+  //  never asked again: HOLD'EM alone for the life of the page. Now a failed art / painter is retried — 3 s, 15 s, 1 min, then every 5 min — and
+  //  reported to /admin (the first failure + the fourth))
+  const triWarmFailed = what => {
+    tri.warmed = false; tri.fails++;
+    tri.retryAt = performance.now() + [3e3, 15e3, 60e3, 300e3][Math.min(tri.fails - 1, 3)];
+    if (tri.fails === 1 || tri.fails === 4) reportError(new Error(`THE TRI-VISION: JAYWALK's ${what} failed to load (try ${tri.fails}) — the board stays on HOLD'EM until it does`), 'trivision art');
+  };
   const triTurns = [];
   const boardWant = (key, l) => {
     if (!holdemForced && clock.force.has('billboard-holdem') && LK.local) { holdemForced = true; const dk = workDayOf(clock.now() / 1000, LK.local.off || 0); setHoldemForce({ since: clock.force.has('work-billposter') ? dk.key : workDayOf(clock.now() / 1000 - 86400, LK.local.off || 0).key, bar: qp.get('holdem') === 'open' ? 'open' : 'soon' }); }   // (up all day; with &force=work-billposter from TODAY — the paste to watch)
@@ -1260,7 +1268,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function triFacesNow(key) {
     if (!jaywalkForced && (clock.force.has('billboard-jaywalk') || clock.force.has('trivision')) && LK.local) { jaywalkForced = true; setJaywalkForce({ since: workDayOf(clock.now() / 1000 - 86400, LK.local.off || 0).key, bar: qp.get('jaywalk') === 'open' ? 'open' : 'soon' }); }
     const F = key ? triFaces(key) : null;
-    if (F && !tri.warmed && shownAt >= 0) { tri.warmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jw = m; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }); }).catch(() => { tri.warmed = false; }); }   // (the poster's module + its art: AFTER the reveal — never the boot graph)
+    if (F && !tri.warmed && shownAt >= 0 && performance.now() >= tri.retryAt) { tri.warmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jw = m; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (!destroyed) triWarmFailed(`poster art (${why})`); }); }).catch(e => { if (!destroyed) triWarmFailed(`painter (${(e && e.message) || e})`); }); }   // (the poster's module + its art: AFTER the reveal — never the boot graph)
     return F && tri.jw ? F : null;
   }
   /** every frame (boardSync): the clock's turn → a turn from the face on show to the clock's (never a pop-in) → the faces [A, B], or null */
@@ -3356,7 +3364,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** NEON PASS 5: the tiering's state (capped: the phone's frame-rate cap it found, Hz; probe: a step down being tried) */
     speakCtx: () => { const v = speakCtx(); return { key: v.key, hushLit: !!v.hushLit }; },   // (WIN2: the facade's bake context — the washer swap)
     // (THE TRI-VISION's state for the tests: the face on show, the clock's, the turn now, what the board holds)
-    tri: () => { const C = triClock(clock.now() / 1000, triKnobs(), triForce()); return { shown: tri.shown, clock: C.face, n: C.n, at: C.at, lastN: tri.lastN, ready: !!tri.jw, warmed: tri.warmed, turn: tri.turn ? { id: tri.turn.id, game: tri.turn.game, u: triU() } : null, board: neon.boardGame(BOARD_ID), turns: triTurns }; },
+    tri: () => { const C = triClock(clock.now() / 1000, triKnobs(), triForce()); return { shown: tri.shown, clock: C.face, n: C.n, at: C.at, lastN: tri.lastN, ready: !!tri.jw, warmed: tri.warmed, fails: tri.fails, turn: tri.turn ? { id: tri.turn.id, game: tri.turn.game, u: triU() } : null, board: neon.boardGame(BOARD_ID), turns: triTurns }; },
     // (FR7 FIXES C2: the roof board's crisp copy vs the bake on screen — the swap's rev, the bake started / landed, the crisp items up)
     boardCrisp: () => { const fr = neon.fresh(), rb = (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak'); return { rev: fr ? fr.rev : 0, freshDone, started: String(baker.key || '').slice(-24), shown: String(shownKey || '').slice(-24), revStarted: revOfBake.get(baker.key) ?? null, revShown: revOfBake.get(shownKey) ?? null, pending: baker.pending, fading: fadeFrom >= 0, content: rb && rb.content ? `${rb.content.title || ''}|${rb.content.sub || ''}|${rb.content.lines ? rb.content.lines.join('/') : ''}` : null, game: neon.boardGame(BOARD_ID), crisp: crisp.debug().items.filter(i => /^roofboard/.test(i.id)).map(i => `${i.id}:${i.op}`) }; },
     boardXf: () => ({ n: bxf.n, a: +boardXfA().toFixed(3), ms: bxf.ms, layer: crisp.on ? 'crisp' : 'city', rev: (neon.fresh() || {}).rev || 0, show: bxf.shown }),   // (CITY FIXES: + the board's rebuild count — one swap per real change)   // (LOBBY 2.0 A: the billboard's cross-fade — swaps faded, the old copy's alpha now)

@@ -24,12 +24,13 @@ const ART_DROP = 0.08;
 let img = null, ready = false, paths = null;
 const P = () => paths || (paths = Object.fromEntries(Object.entries(JW_GLYPHS).map(([k, g]) => [k, { ...g, p: typeof Path2D === 'function' ? new Path2D(g.d) : null }])));
 /** load the poster (once; after the reveal — the scene calls it when the tri-vision is wanted); `onReady` when it has decoded */
-export function warmJaywalk(onReady) {
+export function warmJaywalk(onReady, onFail) {
   if (ready) { if (onReady) onReady(); return; }
   if (img || typeof Image === 'undefined') return;
-  img = new Image(); img.decoding = 'async';
-  img.onload = () => { const done = () => { ready = true; if (onReady) onReady(); }; if (img.decode) img.decode().then(done, done); else done(); };
-  img.onerror = () => { img = null; };   // (a missing file: the board stays on HOLD'EM — the next warm tries again)
+  const me = img = new Image(); img.decoding = 'async';
+  img.onload = () => { const done = () => { ready = true; if (onReady) onReady(); }; if (me.decode) me.decode().then(done, done); else done(); };
+  // (a missing file / a blip: the board stays on HOLD'EM — PLAY NOW 0c: the scene asks again on a backoff + reports it; never left for good)
+  img.onerror = () => { if (img === me) img = null; if (onFail) onFail('the image failed'); };
   img.src = SRC;
 }
 export const jaywalkReady = () => ready;

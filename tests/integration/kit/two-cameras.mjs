@@ -20,7 +20,8 @@
 //   hours-box        the same + the box grows while hidden
 //   hours-dusk[@HH:MM] FR7 FIXES C2 — hours-box with the clock SET so the +10 h lands at HH:MM Grand Rapids time on Nov 13 (default 17:20 — its
 //                    sunset: the cloud's red landed there — the return crosses the dusk: the lamps, the tubes, the boards' night faces)
-//   wx-late          the real clock: yesterday's CLEAR kept on this device, today's FOG lands 2.5 s after the reveal
+//   wx-late[@HH:MM]  the real clock (or both clocks set to HH:MM Grand Rapids time, Nov 13): yesterday's CLEAR kept on this device, today's
+//                    FOG lands 2.5 s after the reveal
 //   bars-pre|after|late   Safari's bars as a real window resize (659 → 712 → 659) with the box pinned at the large viewport
 //   resize-post      the whole viewport 659 → 712 after the reveal (no pinned box: a rotation-like re-layout)
 //   tier             a tier step down 3 s after the reveal, back up 3 s later
@@ -103,12 +104,14 @@ export async function runPath(D, name, o = {}) {
   const MIN = 60e3;
   // (hours-dusk: the phone's + the server's clocks start where the +10 h lands at the given local time — EST on Nov 13 = UTC − 5)
   const dusk = kind === 'hours-dusk', duskAt = String(atArg || '17:20').split(':').map(Number);
-  const startOff = dusk ? Date.UTC(2026, 10, 13, duskAt[0] + 5, duskAt[1] || 0) - 10 * 3600e3 - Date.now() : 0;
+  // (PLAY NOW 0f: wx-late@HH:MM — the LATE WEATHER with both clocks set to HH:MM Grand Rapids time on Nov 13: the cloud's red landed at 10:16)
+  const wxAt = live && atArg ? String(atArg).split(':').map(Number) : null;
+  const startOff = dusk ? Date.UTC(2026, 10, 13, duskAt[0] + 5, duskAt[1] || 0) - 10 * 3600e3 - Date.now() : wxAt ? Date.UTC(2026, 10, 13, wxAt[0] + 5, wxAt[1] || 0) - Date.now() : 0;
   let shownWall = 0, jump = startOff;
   const routes = [];
-  if (/^hours/.test(kind)) routes.push([/\/api\/time/, async () => ({ status: 200, body: JSON.stringify({ t: Date.now() + jump }) })]);   // (the server's clock moved with the phone's)
-  if (live) routes.push([/\/api\/sky/, async () => { while (!shownWall) await sleep(40); const w = shownWall + 2500 - Date.now(); if (w > 0) await sleep(w); return { status: 200, body: JSON.stringify({ ...FOG, at: Date.now() - 2 * MIN }) }; }]);
-  const P = await D.open({ vh: VH, inits: [[INIT, [h0, live ? JSON.stringify({ ...FAIR, at: Date.now() - 33 * MIN, got: Date.now() - 33 * MIN }) : '', /^no-observer/.test(kind), slot, startOff]], [CAM_REC, null]], routes });
+  if (/^hours/.test(kind) || wxAt) routes.push([/\/api\/time/, async () => ({ status: 200, body: JSON.stringify({ t: Date.now() + jump }) })]);   // (the server's clock moved with the phone's)
+  if (live) routes.push([/\/api\/sky/, async () => { while (!shownWall) await sleep(40); const w = shownWall + 2500 - Date.now(); if (w > 0) await sleep(w); return { status: 200, body: JSON.stringify({ ...FOG, at: Date.now() + jump - 2 * MIN }) }; }]);
+  const P = await D.open({ vh: VH, inits: [[INIT, [h0, live ? JSON.stringify({ ...FAIR, at: Date.now() + startOff - 33 * MIN, got: Date.now() + startOff - 33 * MIN }) : '', /^no-observer/.test(kind), slot, startOff]], [CAM_REC, null]], routes });
   const raw = `${BASE}/?emu&slot=${slot}&${live ? '' : realClock ? `wx=fog${GR}&` : `${OWNER}&`}city=2`;
   const url = o.guard ? o.guard(raw) : raw;
   const ev = P.ev;

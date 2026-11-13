@@ -87,7 +87,12 @@ test('THE RIPPLE: the slats turn left → right inside the turn; each a prism go
 
 test('the scene: the tri-vision\'s pieces (the warm after the reveal, the swap under the slats, the crisp z 4, reduced motion = a cut, the click quiet)', () => {
   const sc = readFileSync(new URL('../js/screens/harbor/scene.js', import.meta.url), 'utf8');
-  assert.match(sc, /if \(F && !tri\.warmed && shownAt >= 0\) \{ tri\.warmed = true; lazyImport\(import\('\.\/jaywalk-art\.js'\)/, 'the poster module + its art load only after the reveal (never the boot graph)');
+  assert.match(sc, /if \(F && !tri\.warmed && shownAt >= 0 && performance\.now\(\) >= tri\.retryAt\) \{ tri\.warmed = true; lazyImport\(import\('\.\/jaywalk-art\.js'\)/, 'the poster module + its art load only after the reveal (never the boot graph)');
+  // (PLAY NOW 0c — THE ROOF BOARD STOPPED TURNING: a failed art / painter is asked again on a backoff + reported, never left for good)
+  assert.match(sc, /tri\.retryAt = performance\.now\(\) \+ \[3e3, 15e3, 60e3, 300e3\]\[Math\.min\(tri\.fails - 1, 3\)\]/);
+  assert.match(sc, /m\.warmJaywalk\(\(\) => \{[^}]*\}, why => \{ if \(!destroyed\) triWarmFailed\(/);
+  assert.match(sc, /reportError\(new Error\(`THE TRI-VISION: JAYWALK's \$\{what\} failed to load/);
+  assert.match(readFileSync('js/screens/harbor/jaywalk-art.js', 'utf8'), /img\.onerror = \(\) => \{ if \(img === me\) img = null; if \(onFail\) onFail\('the image failed'\); \};/);
   const signs = readFileSync(new URL('../js/screens/harbor/signs.js', import.meta.url), 'utf8');
   assert.doesNotMatch(signs + sc, /^import [^\n]*jaywalk-art\.js/m, 'no static import of the poster');
   assert.match(sc, /if \(tri\.lastN == null\) \{ tri\.lastN = C\.n; return F; \}/, 'the first frame it is up starts no turn (THE WINDOW RULE)');

@@ -481,7 +481,7 @@ activation 2 s, the offline reads 0.8 s) — Safari's storage can stop answering
   (1.33 s Chromium).
 - **THE SUPPORTED FLOOR + THE HAND RELOAD (FR7 FIXES C2's add-on, Nov 13 — the owner's /admin: two BOOT HANGs at 5:54 am from a BOT, "Mac Chrome 83"
   (2020), macOS 10.14, 800×600 @1, app.js failing in 7 ms; and his own iPhone's hang sent NO report — he reloaded before the 12 s):**
-  **THE FLOOR** = Chrome 92 · Firefox 90 · Safari / iOS 16 (what the code needs: `Array#at` + logical assignment; the Harbor's written iOS 16) —
+  **THE FLOOR** = Chrome 92 · Firefox 90 · Safari / iOS **15.4** since PLAY NOW 0d (C2 set iOS 16 — see THE SUPPORTED FLOOR below) —
   `js/core/browser-floor.js` (PURE — the server's) + its ES5 twin INLINE in the watchdog (an old engine runs that script), kept in step by
   `tests/safari-floor.test.mjs` (one table of real UAs through both; every iOS browser judged by its iOS version; an UNKNOWN browser is never
   old). Below it: the boot screen's plain line "This browser is too old for NEON SPEAKEASY — try a current Safari or Chrome." (16 px, readable),
@@ -494,6 +494,7 @@ activation 2 s, the offline reads 0.8 s) — Safari's storage can stop answering
   **`bootfloor`** group (the `lobby` job: the bot's own UA past 12 s — the line, no app, no reload, no BOOT HANG, counted once; a boot held 5.8 s →
   reloaded by hand → the report, once) + `server.test` "old browsers" + `tests/boot-watchdog.test.mjs` (every inline script PARSES — a newline
   slipped into one of its strings during this pass, caught).
+
 - **LOAD FIX 4 — GROK'S BOOT AUDIT (Nov 10; passes/load-fix-4.md + the audit):** **THE REJOIN LIMIT** — the boot's uplink (the gstatic SDK, the
   auth restore, the room resume) waits ≤ 8 s ON SCREEN, then the title + the city come up with REJOIN (the seat kept, the socket still trying); the
   late resume = a normal rejoin; ONE attempt (`room.js#pendingResume` — a REJOIN tap joins it; `cancelResume` — a HOST / another JOIN wins).
@@ -578,6 +579,26 @@ activation 2 s, the offline reads 0.8 s) — Safari's storage can stop answering
   browser's own work (style, layout, paint, compile ~1 s at 4×). `core/sky.js#localParts` (Intl formatToParts, ~60 ms at 4×) is
   the biggest JS item in both; caching its formatter did not help (the parts call dominates) and was not kept. City 2.0 never
   blocks the first frame on the city.
+
+
+### THE SUPPORTED FLOOR
+
+PLAY NOW 0d (Nov 13): **iOS / Safari 15.4 · Chrome 92 · Firefox 90** — the LOWEST that runs the app, checked feature by feature (never block a
+browser that works; C2's iOS 16 turned away iPhones on 15.4–15.8):
+
+| what the code uses | Safari | Chrome | Firefox | how |
+| --- | --- | --- | --- | --- |
+| `Array#at`, `structuredClone`, BroadcastChannel, CSS `:has` + `dvh`, `:focus-visible` | 15.4 | 92 | 90 | **sets the floor** |
+| logical assignment, optional chaining, class fields, top-level await (banned anyway) | 14–15 | ≤ 92 | ≤ 90 | under the floor |
+| canvas `roundRect` (~56 calls, unguarded) | 16.0 | 99 | 112 | **FILLED IN** — `ui/canvas-safe.js` (the 2D context + Path2D, the spec's radii) |
+| `createConicGradient` · `requestIdleCallback` · `OffscreenCanvas` · Web Push · wake lock | 16.1 · none · 16.4 · 16.4 · 16.4 | | | guarded where used |
+| CSS `color-mix()` (274) · `@property` (23) · `text-wrap` | 16.2 · 16.4 · 17.5 | 111 · 85 · 114 | 113 · 128 · 121 | the LOOK only (a declaration dropped) |
+| regex lookbehind · class static blocks · import attributes · regex `v` | 16.4 · 16.4 · 17.2 · 17 | | | never used (`tests/safari-floor.test.mjs`) |
+
+Proof: `tests/safari-floor.test.mjs` (the UA table — iOS 15.3 old · 15.4 / 15.4.1 / 15.8 / 16 / 17 not; Chrome 91 / 92; Instagram on 15.4 not,
+Facebook on 15.2 old; Mac Safari 15.3 / 15.4; the fill's radii); `tests/integration/wk-floor.mjs` (WebKit with `roundRect` + the 16.x APIs TAKEN
+AWAY before any script: the city up + 8 s with no page error — the shipped build never reached its reveal that way; `&oldua=` 15.4 → the city,
+15.3 → "too old").
 
 ## Stubs — to come in Part N
 | API / piece | Part 1 | built in |

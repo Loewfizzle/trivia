@@ -112,12 +112,24 @@ const UAS = [
   ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36', false, 'Chrome 92 (the floor)'],
   ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.7 Mobile/15E148 Safari/604.1', false, "the owner's iPhone (iOS 18.7)"],
   ['Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1', false, 'iOS 16.0'],
-  ['Mozilla/5.0 (iPhone; CPU iPhone OS 15_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.6 Mobile/15E148 Safari/604.1', true, 'iOS 15.8'],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 15_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.6 Mobile/15E148 Safari/604.1', false, 'iOS 15.8 (PLAY NOW 0d: the floor is 15.4)'],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Mobile/15E148 Safari/604.1', false, 'iOS 15.4 (the floor)'],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 15_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Mobile/15E148 Safari/604.1', false, 'iOS 15.4.1'],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 15_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Mobile/15E148 Safari/604.1', true, 'iOS 15.3.1'],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 15_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Mobile/15E148 Safari/604.1', true, 'iOS 15.3'],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1', true, 'iOS 14.8'],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1', false, 'iOS 17.0'],
+  ['Mozilla/5.0 (iPad; CPU OS 15_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Mobile/15E148 Safari/604.1', false, 'iPadOS 15.5'],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/19E241 Instagram 230.0.0.17.117 (iPhone12,1; iOS 15_4; en_US; en-US; scale=2.00; 828x1792; 362124467)', false, 'Instagram in-app on iOS 15.4'],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 15_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/19C56 [FBAN/FBIOS;FBDV/iPhone13,2;FBMD/iPhone;FBSN/iOS;FBSV/15.2;FBSS/3;FBID/phone;FBLC/en_US;FBOP/5]', true, 'Facebook in-app on iOS 15.2'],
   ['Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/126.0.6478.54 Mobile/15E148 Safari/604.1', false, 'Chrome on iOS 17'],
-  ['Mozilla/5.0 (iPhone; CPU iPhone OS 15_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/126.0.6478.54 Mobile/15E148 Safari/604.1', true, 'Chrome on iOS 15 (WebKit decides)'],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 15_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/126.0.6478.54 Mobile/15E148 Safari/604.1', false, 'Chrome on iOS 15.7 (WebKit decides)'],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/126.0.6478.54 Mobile/15E148 Safari/604.1', true, 'Chrome on iOS 15.1 (WebKit decides)'],
   ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22B83 [FBAN/FBIOS;FBAV/490.0]', false, 'Facebook in-app on iOS 18'],
   ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1', false, 'an iPad asking for the desktop site'],
-  ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6 Safari/605.1.15', true, 'Mac Safari 15.6'],
+  ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6 Safari/605.1.15', false, 'Mac Safari 15.6'],
+  ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Safari/605.1.15', true, 'Mac Safari 15.3'],
+  ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Safari/605.1.15', false, 'Mac Safari 15.4'],
   ['Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', false, 'Mac Safari 17.5'],
   ['Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0', true, 'Firefox 89'],
   ['Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0', false, 'Firefox 132'],
@@ -146,8 +158,38 @@ test('THE SUPPORTED FLOOR: the PURE + the INLINE copy agree on real browsers (th
 test('THE SUPPORTED FLOOR covers what the code needs (Array#at → Chrome 92 / Firefox 90; the Harbor\'s iOS 16) + the inline copy is ES5', async () => {
   const { FLOOR } = await import('../js/core/browser-floor.js');
   const usesAt = FILES.some(f => /\.at\(-?\w/.test(readFileSync(f, 'utf8')));
-  if (usesAt) assert.ok(FLOOR.chrome >= 92 && FLOOR.firefox >= 90 && FLOOR.safari >= 15 && FLOOR.ios >= 15, 'Array#at needs Chrome 92 · Firefox 90 · Safari 15.4');
-  assert.ok(FLOOR.ios >= 16 && FLOOR.safari >= 16, "the Harbor's written floor: iOS 16");
+  const { verNum } = await import('../js/core/browser-floor.js');
+  if (usesAt) assert.ok(FLOOR.chrome >= 92 && FLOOR.firefox >= 90 && verNum(FLOOR.safari) >= 1504 && verNum(FLOOR.ios) >= 1504, 'Array#at needs Chrome 92 · Firefox 90 · Safari 15.4');
+  // (PLAY NOW 0d: the floor is the LOWEST that runs the app — 15.4; never higher without a feature that needs it)
+  assert.equal(FLOOR.ios, '15.4'); assert.equal(FLOOR.safari, '15.4');
+  // what 15.4 lacks + the code uses must be filled in: the canvas roundRect (Safari 16 · Chrome 99 · Firefox 112)
+  const usesRound = FILES.some(f => /\.roundRect\(/.test(readFileSync(f, 'utf8')));
+  if (usesRound) assert.match(readFileSync(join(ROOT, 'js/ui/canvas-safe.js'), 'utf8'), /typeof C\.prototype\.roundRect !== 'function'\) Object\.defineProperty\(C\.prototype, 'roundRect'/, 'roundRect filled in below Safari 16');
   const { src } = inlineFloor();
   assert.doesNotMatch(src, /=>|\bconst\b|\blet\b|`|\?\.|\?\?/, 'the inline floor is ES5 (an old engine runs it)');
+});
+
+test('THE SUPPORTED FLOOR: the roundRect fill draws the spec shape (radii forms, the clamp, a negative box) — Safari 15.4–15.8', async () => {
+  const { roundRadii } = await import('../js/ui/canvas-safe.js');
+  assert.deepEqual(roundRadii(100, 40, 8), [8, 8, 8, 8]);
+  assert.deepEqual(roundRadii(100, 40, [4, 8]), [4, 8, 4, 8], '[tl+br, tr+bl]');
+  assert.deepEqual(roundRadii(100, 40, [1, 2, 3]), [1, 2, 3, 2], '[tl, tr+bl, br]');
+  assert.deepEqual(roundRadii(100, 40, [1, 2, 3, 4]), [1, 2, 3, 4]);
+  assert.deepEqual(roundRadii(100, 40, { x: 6, y: 6 }), [6, 6, 6, 6], 'a DOMPoint-like radius');
+  assert.deepEqual(roundRadii(100, 10, 20), [5, 5, 5, 5], 'two corners over a side: scaled down together');
+  assert.deepEqual(roundRadii(-100, -40, 8), [8, 8, 8, 8], 'a negative box keeps its radii');
+  assert.deepEqual(roundRadii(10, 10, -3), [0, 0, 0, 0], 'a negative radius = a square corner (never throws)');
+  // the fill on a context that lacks it: the path a real one would trace (corners via arcTo, closed)
+  const calls = [];
+  const fake = { moveTo: (...a) => calls.push(['m', ...a]), lineTo: (...a) => calls.push(['l', ...a]), arcTo: (...a) => calls.push(['a', ...a]), closePath: () => calls.push(['z']) };
+  class Ctx {}
+  globalThis.CanvasRenderingContext2D = Ctx;
+  const mod = await import('../js/ui/canvas-safe.js?fill');
+  void mod;
+  assert.equal(typeof Ctx.prototype.roundRect, 'function', 'filled in where missing');
+  Ctx.prototype.roundRect.call(fake, 0, 0, 20, 10, 2);
+  assert.equal(calls.filter(c => c[0] === 'a').length, 4, 'four rounded corners');
+  assert.deepEqual(calls[0], ['m', 2, 0]);
+  assert.ok(calls.some(c => c[0] === 'z'), 'closed');
+  delete globalThis.CanvasRenderingContext2D;
 });

@@ -261,7 +261,14 @@ G('people', async () => {
     // C4b — THE CROSSWALK DIMMER (the owner: "you can see people and see the white stripes, just so you can see it's a crosswalk"): down the
     // crossing's middle, the stripes ≥ 2× the asphalt between them, the gaps dark (never washed grey), the stripes pale — never clipped white
     { await waitFor(Q.page, `!${P}.pending && !${P}.fading && ${P}.lightAudit().crossing > 0.8`, 'the crossing lit', 20000).catch(() => {}); await sleep(600);
-      const sr = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const b = ${P}.promenade.stripes, cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, x = cv.getContext('2d');
+      // (PLAY NOW 0e — A REAL ZEBRA's "date-dependent" red: the 22:30 BUS pulls away through the crossing in the first second after the reveal
+      //  (x 7.1 → 12.6; the far stripes 112 → 202 once it's past) — a faster boot read the zebra under the bus's body: 2 or 4 bars, the near ones
+      //  exact. The stripes are judged on a frame with the crossing CLEAR (no bus within 7 u of it, frontBusy() false — a car, the cab stand,
+      //  the front stage — in the same frame); a busy frame is read again once it has gone, never counted)
+      let sr = null;
+      for (let tries = 0; tries < 6; tries++) {
+        await waitFor(Q.page, '!window.__district.frontBusy() && window.__district.harbor().people.buses.every(b => Math.abs(b.x - window.__district.harbor().promenade.crossX) > 7)', 'the crossing clear of the traffic', 45000).catch(() => {});
+        sr = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const b = ${P}.promenade.stripes, cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, x = cv.getContext('2d');
         const cx = Math.round((b[0][0] + b[1][0]) / 2 * k), y0 = Math.round(Math.min(b[0][1], b[1][1]) * k), y1 = Math.round(Math.max(b[0][1], b[1][1]) * k), d = x.getImageData(cx - 6, y0, 13, y1 - y0).data, rows = [];
         for (let r = 0; r < y1 - y0; r++) { let s = 0; for (let c = 0; c < 13; c++) { const i = (r * 13 + c) * 4; s += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]; } rows.push(s / 13); }
         const so = [...rows].sort((a, b) => a - b), n = so.length, t = Math.max(1, Math.floor(n / 3)), lo = so.slice(0, t).reduce((a, b) => a + b, 0) / t, hi = so.slice(-t).reduce((a, b) => a + b, 0) / t;
@@ -272,11 +279,15 @@ G('people', async () => {
         pk.forEach((p, j) => { const vl = j ? Math.min(...rows.slice(pk[j - 1], p + 1)) : Math.min(...rows.slice(0, p + 1)), vr = j < pk.length - 1 ? Math.min(...rows.slice(p, pk[j + 1] + 1)) : Math.min(...rows.slice(p)), th = (rows[p] + Math.max(vl, vr)) / 2;
           let n = 0; for (let i = p; i >= 0 && rows[i] >= th; i--) n++; for (let i = p + 1; i < rows.length && rows[i] >= th; i++) n++; bars.push(n);
           if (j < pk.length - 1) { const seg = rows.slice(p, pk[j + 1] + 1), v = Math.min(...seg), t2 = (v + Math.min(rows[p], rows[pk[j + 1]])) / 2; gaps.push(seg.filter(x => x < t2).length); } });
-        res({ lo: +lo.toFixed(1), hi: +hi.toFixed(1), max: +so[n - 1].toFixed(1), bars, gaps }); }))`);
+        res({ lo: +lo.toFixed(1), hi: +hi.toFixed(1), max: +so[n - 1].toFixed(1), bars, gaps, rows: rows.map(v => Math.round(v)).join(','), box: b, k, cx, y0, y1, busy: !(!window.__district.frontBusy() && window.__district.harbor().people.buses.every(b => Math.abs(b.x - window.__district.harbor().promenade.crossX) > 7)) }); }))`);
+        if (!sr.busy) break;
+      }
+      if (process.env.ZEBRA_DEBUG) { const who = await ev(Q.page, `${P}.people.rigs().filter(r => r.fx > ${P}.promenade.stripes[0][0] - 20 && r.fx < ${P}.promenade.stripes[1][0] + 20 && r.fy > ${P}.promenade.stripes[0][1] - 30 && r.fy < ${P}.promenade.stripes[1][1] + 40).map(r => ({ id: r.id, role: r.role, kind: r.kind, pose: r.pose, fx: Math.round(r.fx), fy: Math.round(r.fy), H: Math.round(r.H) }))`).catch(e => String(e));
+        console.log('ZEBRA_DEBUG rigs on the crossing:', JSON.stringify(who)); await Q.page.screenshot({ path: 'shots-harbor/zebra-debug.png' }).catch(() => {}); }
       // NIGHT-C — A REAL ZEBRA (the owner, Oct 30: ~8 thin stripes read as one grey block): FIVE bars down the crossing's middle, the dark gaps
       // between them about as deep as the bars (each gap within ½–2× its neighbour bar's depth on screen, perspective and all)
       { const ok5 = sr.bars.length === 5 && sr.gaps.length === 4 && sr.gaps.every((g, i) => g >= 0.5 * sr.bars[i + 1] && g <= 2 * sr.bars[i]);
-        ok(ok5, `NIGHT-C A REAL ZEBRA: ${sr.bars.length} bars (device px, near → far ${[...sr.bars].reverse().join(' / ')}) with gaps ${[...sr.gaps].reverse().join(' / ')} — five wide bars, each gap about a bar deep`); }
+        ok(ok5, `NIGHT-C A REAL ZEBRA: ${sr.bars.length} bars (device px, near → far ${[...sr.bars].reverse().join(' / ')}) with gaps ${[...sr.gaps].reverse().join(' / ')} — five wide bars, each gap about a bar deep${ok5 ? '' : ` [the profile ${sr.rows} · the box ${JSON.stringify(sr.box)} k ${sr.k} cx ${sr.cx} y ${sr.y0}–${sr.y1}]`}`); }
       ok(sr.hi >= 2 * sr.lo && sr.hi > 60 && sr.lo < 70 && sr.max < 235, `C4b THE CROSSWALK DIMMER: the stripes ${sr.hi} vs the gaps ${sr.lo} (× ${(sr.hi / Math.max(1, sr.lo)).toFixed(2)}, ≥ 2), the brightest ${sr.max} (< 235: never clipped white)`); }
     const lum = id => ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const h = ${P}, c = h.people.cars.find(o => o.id === ${JSON.stringify(id)}); if (!c || !c.at) return res(null);
       const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, d = cv.getContext('2d').getImageData(Math.round((c.at[0] - 6) * k), Math.round((c.at[1] - 3) * k), Math.round(12 * k), Math.round(6 * k)).data;
@@ -331,10 +342,14 @@ G('people', async () => {
     //  city drew over its bench shows; before the fix the sharp bench sat over the car here)
     const box = await ev(p, `(() => { const st = ${P}.promenade.still.sprites.find(x => /street/.test(x.id)); return st ? st.box : null; })()`);
     const clip = box ? { x: box.x, y: box.y, width: box.w, height: box.h } : null;
+    // (PLAY NOW 0f — the cloud's red: the overlay WAS out (opacity −1) but the two shots, ~1 s apart on a slow machine, caught the waiter boarding
+    //  (mean diff 9.84). The city's frame loop is HELD for the pair (vl-cover — the full card's pause): the same frame twice, only the overlays differ)
+    await ev(p, "new Promise(r => { window.dispatchEvent(new CustomEvent('vl-cover', { detail: true })); requestAnimationFrame(() => requestAnimationFrame(r)); })");
     const A = clip ? await p.screenshot({ encoding: 'base64', clip }) : null;
     await ev(p, "document.querySelectorAll('canvas.hc-crisp[data-item^=\"still-\"]').forEach(c => { c.dataset.vis = c.style.visibility; c.style.visibility = 'hidden'; })");
     const B = clip ? await p.screenshot({ encoding: 'base64', clip }) : null;
     await ev(p, "document.querySelectorAll('canvas.hc-crisp[data-item^=\"still-\"]').forEach(c => { c.style.visibility = c.dataset.vis || ''; })");
+    await ev(p, "window.dispatchEvent(new CustomEvent('vl-cover', { detail: false }))");
     const S = A && B ? await ev(p, `Promise.all(['${A}', '${B}'].map(b => new Promise(r => { const im = new Image(); im.onload = () => { const o = document.createElement('canvas'); o.width = im.width; o.height = im.height; const x = o.getContext('2d'); x.drawImage(im, 0, 0); r(x.getImageData(0, 0, im.width, im.height).data); }; im.src = 'data:image/png;base64,' + b; })))
       .then(([a, b]) => { let d = 0, n = 0; for (let i = 0; i < a.length; i += 16) { d += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]); n++; } return { n, mean: +(d / n / 3).toFixed(2) }; })`) : null;
     const opAt = await ev(p, opOf), front = await ev(p, `import('/js/screens/harbor/occluders.js').then(m => m.vehiclesNow().length)`);
