@@ -1020,6 +1020,64 @@ G('cameras', async () => {
   }
   await hctx.close();
 });
+// ---- FR7 FIXES C2 — THE SUPPORTED FLOOR + THE HAND RELOAD (the owner's /admin, Nov 13: two BOOT HANGs from a bot's "Mac Chrome 83"; his own
+// iPhone's hang sent NO report — he reloaded before 12 s). (a) a browser BELOW THE FLOOR (the bot's own UA): the boot screen's plain "too old"
+// line, nothing of the app runs, no BOOT HANG (nor a reload / TAP TO TRY AGAIN) past the 12 s, ONE 'old' count (logstats/old); (b) a boot held
+// (title.js never answers) ≥ 5 s on screen, then RELOADED BY HAND → the next boot sends "THE LAST BOOT DIDN'T FINISH … by hand at n s, stage …" once.
+G('bootfloor', async () => {
+  const DB = 'http://127.0.0.1:9000', NS = 'ns=demo-arcade-default-rtdb', AUTH = { Authorization: 'Bearer owner' };
+  const get = async path => (await fetch(`${DB}/${path}.json?${NS}`, { headers: AUTH })).json();
+  const del = path => fetch(`${DB}/${path}.json?${NS}`, { method: 'DELETE', headers: AUTH });
+  const clearRl = async re => { const rl = (await fetch(`${DB}/rl.json?${NS}&shallow=true`, { headers: AUTH }).then(r => r.json())) || {}; for (const k of Object.keys(rl)) if (re.test(k)) await del(`rl/${k}`); };
+  const BOT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36';
+  const br = await launch();
+  // ---- (a) THE OLD BROWSER
+  { await del('logstats/old'); await clearRl(/^old_ip_/);
+    const ctx = await br.createBrowserContext(), p = await ctx.newPage();
+    await p.setUserAgent(BOT); await p.setViewport({ width: 800, height: 600, deviceScaleFactor: 1 });
+    await p.evaluateOnNewDocument(() => { try { sessionStorage.setItem('t:navs', String(Number(sessionStorage.getItem('t:navs') || 0) + 1)); } catch { /* fine */ } });
+    const t0b = Date.now();
+    await p.goto(`${BASE}/?emu&slot=bf1&city=2`);
+    await waitFor(p, "!!(document.getElementById('boot') && document.getElementById('boot').dataset.old)", 'the old browser line', 8000).catch(() => {});
+    const a = await ev(p, "({ txt: (document.querySelector('#boot .boot-status') || {}).textContent || '', old: !!(window.__boot && window.__boot.old), app: !!document.querySelector('.nd-scene canvas, .nd-actions'), fs: parseFloat(getComputedStyle(document.querySelector('#boot .boot-status')).fontSize) })");
+    if (SHOTS) await p.screenshot({ path: `${OUT}bootfloor-old-800x600.png` });
+    // past the watchdog's 12 s on screen: still the same page, no reload, no TAP TO TRY AGAIN
+    await sleep(Math.max(0, 13500 - (Date.now() - t0b)));
+    const b = await ev(p, "({ navs: Number(sessionStorage.getItem('t:navs') || 0), retry: !!document.getElementById('boot').dataset.retry, re: sessionStorage.getItem('ns:boot-re'), txt: (document.querySelector('#boot .boot-status') || {}).textContent || '', app: !!document.querySelector('.nd-scene canvas, .nd-actions') })");
+    await sleep(800);
+    const log = Object.values((await get('phonelog')) || {}), cnt = await get('logstats/old');
+    const hang = log.filter(r => r.kind === 'boot' && /Chrome\/83/.test(r.ua || ''));
+    ok(/too old for NEON SPEAKEASY — try a current Safari or Chrome/.test(a.txt) && a.old && !a.app && a.fs >= 15, `THE SUPPORTED FLOOR — the bot's Mac Chrome 83: "${a.txt}" (${a.fs} px) on the boot screen, the app never ran (${a.app})`);
+    ok(b.navs === 1 && !b.retry && !b.re && b.txt === a.txt && !b.app && !hang.length && cnt && cnt.n === 1, `THE SUPPORTED FLOOR — past 12 s: no reload (${b.navs} load), no TAP TO TRY AGAIN, NO BOOT HANG (${hang.length}), counted ONCE as an old browser (logstats/old ${cnt && cnt.n})`);
+    await ctx.close(); }
+  // ---- (b) THE HAND RELOAD: the boot held (title.js never answers), 5 s on screen, then the owner's reload
+  { await clearRl(/^rep_(ip|day)_/);
+    const ctx = await br.createBrowserContext(), p = await ctx.newPage();
+    await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await p.evaluateOnNewDocument(() => { try { localStorage.setItem('nd:entered', '1'); } catch { /* fine */ } });
+    let hold = true; const held = [];
+    await p.setRequestInterception(true);
+    p.on('request', r => { if (hold && /\/js\/screens\/title\.js(\?|$)/.test(r.url())) { held.push(r); return; }   /* (never answered: the boot hangs) */ r.continue().catch(() => {}); });
+    const before = Object.keys((await get('phonelog')) || {});
+    p.goto(`${BASE}/?emu&slot=bf2&city=2`, { timeout: 60000 }).catch(() => {});   // (never awaited: the held module keeps the load from finishing)
+    await waitFor(p, '!!window.__boot', 'the watchdog', 10000);
+    await sleep(5600);
+    const stage = await ev(p, 'window.__boot && window.__boot.stageNow');
+    hold = false;   // (the held request is left as it is — the reload itself ends it, as on the phone)
+    await p.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+    await harborUp(p).catch(() => {});
+    let rep = null;
+    for (let i = 0; i < 30 && !rep; i++) { await sleep(300); const all = (await get('phonelog')) || {}; rep = Object.entries(all).filter(([k]) => !before.includes(k)).map(([, v]) => v).find(v => v.kind === 'boot' && /THE LAST BOOT DIDN’T FINISH/.test(v.text)); }
+    const again = Object.values((await get('phonelog')) || {}).filter(v => v.kind === 'boot' && /THE LAST BOOT DIDN’T FINISH/.test(v.text) && !before.includes(v)).length;
+    const m = rep && /by hand at ([\d.]+) s on screen[^,]*, stage (\S+)/.exec(rep.text);
+    ok(!!m && +m[1] >= 4 && +m[1] <= 8 && /Modules:/.test(rep.text), `THE HAND RELOAD — the next boot sent "${rep ? rep.text.split('\n')[0].slice(0, 120) : 'NOTHING'}" (the stage then: ${stage}; the snapshot inside: ${rep ? /Modules:/.test(rep.text) : false})`);
+    // (once: a further reload of the now-revealed page sends nothing more)
+    await p.reload({ waitUntil: 'domcontentloaded' }).catch(() => {}); await harborUp(p).catch(() => {}); await sleep(1200);
+    const n2 = Object.entries((await get('phonelog')) || {}).filter(([k, v]) => !before.includes(k) && v.kind === 'boot' && /THE LAST BOOT DIDN’T FINISH/.test(v.text)).length;
+    ok(n2 === 1, `THE HAND RELOAD — sent ONCE (${n2}); a revealed boot leaves no record`);
+    void again;
+    await ctx.close(); }
+});
 // ---- PART 8a: THE PROMENADE — the layout the owner approved, the season by the real date (+ forced), the lamps' pools baked into
 // the setts at night, the implied road (a car's headlights; off by the owner's flag)
 G('promenade', async () => {

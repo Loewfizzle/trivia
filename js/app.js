@@ -33,6 +33,9 @@ import { lazyView } from './games/lazy-view.js';
 import { startShow } from './core/room-show.js';
 import { debugTool, onDebugTools } from './ui/debug-tools.js';
 import { lazyImport, holdSkewReload } from './ui/lazy-import.js';
+// (FR7 FIXES C2 — THE SUPPORTED FLOOR: a browser below it keeps the boot screen's plain "too old" line — index.html's watchdog; the app stops
+//  HERE, before anything renders or listens: a below-floor engine that still parsed the code would otherwise half-run under that line)
+if (window.__boot && window.__boot.old) throw new Error('NEON SPEAKEASY: this browser is below the supported floor — the boot screen says so');
 // (LOAD FIX 3 — THE BOOT WATCHDOG, index.html: the app's whole static graph is in + running)
 if (window.__boot) window.__boot.stage('app');
 // (SHELL 2.0 B1: declared before anything can render — routeKey / paintLook run from the first render on; B2: + paintLook's + paintCrew's)
@@ -384,6 +387,8 @@ function holdBoot(el) {
 }
 
 async function boot() {
+  // (FR7 FIXES C2 — THE SUPPORTED FLOOR: a browser below it keeps the boot screen's plain "too old" line — index.html's watchdog; nothing runs)
+  if (window.__boot && window.__boot.old) return;
   watchLayers();   // (LOBBY 2.0 B — ONE SHEET STACK: every pop-up opens on top of whatever opened it — ui/layers.js)
   installAudio();
   installSettingsPanel();

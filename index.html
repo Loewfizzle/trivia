@@ -87,6 +87,48 @@
     var W = window, D = document, LIMIT = 12000, RK = 'ns:boot-re', T0 = Date.now(), errs = [], stage = 'html', vis = 0, lastT = T0, done = false, sent = false, acted = 0, snapFn = null, hw = null, did = '', armedAt = -1, WAYOUT = 6000;
     try { performance.setResourceTimingBufferSize(1500); } catch (e) { /* old browser */ }   // (250 by default — a boot asks for ~400 files: the report's "never arrived" needs them all)
     var ms = function () { return Math.round(Date.now() - T0); };
+    // FR7 FIXES C2 — THE SUPPORTED FLOOR (the owner's /admin, Nov 13: two BOOT HANGs from a bot's "Mac Chrome 83"): a browser below the floor
+    // (Chrome 92 · Firefox 90 · Safari / iOS 16 — js/core/browser-floor.js is the PURE twin; tests/safari-floor.test.mjs keeps the two in step)
+    // gets a plain "too old" line on the boot screen, is counted ONCE a session ("old browsers: n" on /admin's STATS) and NEVER reports a
+    // BOOT HANG. An unknown browser is never old. ES5 on purpose: an old engine runs this script.
+    var FLOOR = { chrome: 92, firefox: 90, safari: 16, ios: 16 };
+    function floorOf(ua) {
+      var s = String(ua || ''), m;
+      var v = function (name, n, f) { return n > 0 ? { old: n < f, name: name, v: n, floor: f } : null; };
+      if (/iPhone|iPad|iPod/.test(s) && (m = s.match(/OS (\d+)[_.]\d/))) return v('iOS', +m[1], FLOOR.ios);
+      if (/Macintosh/.test(s) && /Mobile\//.test(s) && (m = s.match(/Version\/(\d+)/))) return v('iOS', +m[1], FLOOR.ios);
+      if ((m = s.match(/Firefox\/(\d+)/))) return v('Firefox', +m[1], FLOOR.firefox);
+      if ((m = s.match(/(?:Chrome|Chromium)\/(\d+)/))) return v('Chrome', +m[1], FLOOR.chrome);
+      if (/Safari\//.test(s) && (m = s.match(/Version\/(\d+)/))) return v('Safari', +m[1], FLOOR.safari);
+      return null;
+    }
+    var OLD = (function () { try { var q = /[?&]oldua=([^&]*)/.exec(location.search); var f = floorOf(q ? decodeURIComponent(q[1]) : navigator.userAgent); return f && f.old ? f : null; } catch (e) { return null; } })();   // (&oldua=<a UA>: the tests' + the owner's preview of the screen)
+    var OLD_TEXT = 'This browser is too old for NEON SPEAKEASY — try a current Safari or Chrome.';
+    function showOld() {
+      var b = D.getElementById('boot'); if (!b) { D.addEventListener('DOMContentLoaded', showOld); return; }
+      if (b.dataset.old) return; b.dataset.old = '1'; b.classList.remove('out'); b.style.opacity = '1'; b.setAttribute('aria-label', OLD_TEXT);
+      var st = b.querySelector('.boot-status');
+      if (st) { st.textContent = OLD_TEXT; st.setAttribute('role', 'alert'); st.style.cssText = 'animation:none;opacity:1;padding:0 28px;font:600 16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.02em;color:#e8eaff;text-transform:none'; }
+    }
+    // THE HAND RELOAD (FR7 FIXES C2 — the owner's own iPhone hang this morning sent NO report: he reloaded before the 12 s): the boot's state is
+    // kept in sessionStorage as it goes (each stage, every second, at pagehide); the NEXT boot in this tab finds a boot that never revealed and
+    // sends "THE LAST BOOT DIDN'T FINISH" ONCE (a boot ≥ 4 s on screen — a quick reload is no hang; never when the watchdog already reported)
+    var LASTK = 'ns:boot-last', HAND_MS = 4000;
+    try {
+      var prevB = W.sessionStorage.getItem(LASTK);
+      if (prevB) {
+        W.sessionStorage.removeItem(LASTK);
+        var P0 = JSON.parse(prevB);
+        if (P0 && !P0.sent && !OLD && P0.vis >= HAND_MS) setTimeout(function () { post('boot', 'THE LAST BOOT DIDN’T FINISH — reloaded (or left) by hand at ' + (P0.vis / 1000).toFixed(1) + ' s on screen (' + (P0.ms / 1000).toFixed(1) + ' s after it began), stage ' + P0.stage + '\n' + (P0.text || '(no snapshot)')); }, 0);
+      }
+    } catch (e) { /* no session storage: no record */ }
+    var lastText = '';
+    function keepLast(full) {
+      if (done || OLD) return;
+      try { if (full) lastText = bootSnap('THE LAST BOOT, as it was'); W.sessionStorage.setItem(LASTK, JSON.stringify({ vis: vis, ms: ms(), stage: stage, sent: sent, text: lastText })); } catch (e) { /* full / none */ }
+    }
+    function dropLast() { try { W.sessionStorage.removeItem(LASTK); } catch (e) { /* fine */ } }
+    W.addEventListener('pagehide', function () { keepLast(true); });
     // (FR7 FIXES B — THE TWO-TAB HANG: how many OTHER tabs of the site answered — a BroadcastChannel ping, never a socket; a tab Safari froze
     //  in the background answers only when it wakes — the BOOT HANG report says the count)
     var tabs = {}, tabId = Math.random().toString(36).slice(2);
@@ -114,7 +156,11 @@
     }
     function prevReload() { try { return !!W.sessionStorage.getItem(RK); } catch (e) { return false; } }
     function post(kind, text) { try { fetch('/api/log', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, keepalive: true, body: JSON.stringify({ p: 'report', r: { kind: kind, text: text.slice(0, 20000) } }) }).catch(function () {}); } catch (e) { /* polish */ } }
-    function report(why) { if (sent) return; sent = true; post('boot', bootSnap('THE BOOT HUNG — ' + why)); }
+    function oldOnce(why) {
+      try { if (W.sessionStorage.getItem('ns:old-sent')) return; W.sessionStorage.setItem('ns:old-sent', '1'); } catch (e) { /* once a load then */ }
+      post('old', 'AN OLD BROWSER (' + OLD.name + ' ' + OLD.v + ' < ' + OLD.floor + ') — told to update' + (why ? ' · ' + why : ''));
+    }
+    function report(why) { if (sent) return; sent = true; if (OLD) { oldOnce(why); return; } post('boot', bootSnap('THE BOOT HUNG — ' + why)); keepLast(false); }
     function offerTap() {
       var b = D.getElementById('boot'); if (!b || b.dataset.retry) return;
       b.dataset.retry = '1'; b.style.pointerEvents = 'auto'; b.classList.remove('out');
@@ -126,7 +172,7 @@
     function reloadOnce() {
       if (prevReload()) { did += 'TAP TO TRY AGAIN (the one reload was used); '; offerTap(); return; }
       try { W.sessionStorage.setItem(RK, String(Date.now())); } catch (e) { did += 'TAP TO TRY AGAIN (no session storage); '; offerTap(); return; }
-      did += 'ONE reload; '; try { W.sessionStorage.setItem('ns:boot-did', stage + ' · ' + did + errs.join(' / ')); } catch (e) { /* fine */ }   // (what the reloaded page's tests read)
+      did += 'ONE reload; '; dropLast(); try { W.sessionStorage.setItem('ns:boot-did', stage + ' · ' + did + errs.join(' / ')); } catch (e) { /* fine */ }   // (what the reloaded page's tests read)
       // (FR7 FIXES B — THE WATCHDOG ALWAYS ENDS IN A WAY OUT: a reload armed by ANY path that hasn't taken the page away 6 s ON SCREEN later
       //  (a reload that never happens, a frozen navigation) → TAP TO TRY AGAIN, whatever `acted` says; __bootReloadStub = the tests' seam)
       if (armedAt < 0) armedAt = vis;
@@ -139,7 +185,7 @@
       try { ps.push(fetch('js/app.js', { cache: 'reload' })); for (var i = 0; i < l.length; i++) ps.push(fetch('js/' + l[i] + '.js', { cache: 'reload' }).catch(function () {})); } catch (e) { return Promise.resolve(); }
       return Promise.race([Promise.all(ps.map(function (p) { return p.catch(function () {}); })), new Promise(function (r) { setTimeout(r, 4000); })]);
     }
-    function fatal(why, skew) { if (done || acted >= 2) return; acted = 2; note('FATAL: ' + why); report(why); if (skew && !prevReload()) { did += 'the modules re-fetched; '; refresh().then(reloadOnce); } else reloadOnce(); }
+    function fatal(why, skew) { if (done || acted >= 2) return; acted = 2; note('FATAL: ' + why); report(why); if (OLD) { showOld(); return; } if (skew && !prevReload()) { did += 'the modules re-fetched; '; refresh().then(reloadOnce); } else reloadOnce(); }
     addEventListener('error', function (e) {
       var t = e.target;
       if (t && t !== W && t.tagName) {
@@ -169,11 +215,13 @@
     // (LOAD FIX 4 — Grok's boot audit #10: the beat is CHEAP every second; the full snapshot — the city's whole report, or the boot's walk over
     //  ~400 resource entries — is built + sent only every SNAP_MS, or at once after a stall (a gap > 1.5 s: the thread just came back), so a hang
     //  report is at most ~5 s stale; the worker keeps the last snapshot it got)
-    var beatAt = 0, snapAt = 0, SNAP_MS = 5000;
+    var beatAt = 0, snapAt = 0, SNAP_MS = 5000, keptAt = 0, lastFull = 0;
     setInterval(function () {
       var t = Date.now(), gap = t - lastT, d = Math.min(gap, 1000); lastT = t;
       if (D.visibilityState === 'visible') vis += d;
       if (hw && t - beatAt >= 1000) { beatAt = t; var s; if (t - snapAt >= SNAP_MS || gap > 1500) { snapAt = t; try { s = snapFn ? snapFn('hang') : bootSnap('THE BOOT (no city yet)'); } catch (e) { s = '(the snapshot failed: ' + (e && e.message) + ')'; } } try { hw.postMessage(s === undefined ? { t: 'beat', vis: D.visibilityState } : { t: 'beat', vis: D.visibilityState, snap: s }); } catch (e) { /* polish */ } }
+      if (!done && t - keptAt >= 1000) { keptAt = t; keepLast(!lastText || t - lastFull >= SNAP_MS); if (t - lastFull >= SNAP_MS) lastFull = t; }
+      if (OLD) return;   // (an old browser: its screen says so — no hang report, no reload, no TAP TO TRY AGAIN)
       if (!done && armedAt >= 0 && vis - armedAt >= WAYOUT) { did += 'TAP TO TRY AGAIN (the reload never came); '; armedAt = -2; offerTap(); }
       if (done || vis < LIMIT) return;
       if (!acted) {
@@ -182,9 +230,11 @@
         if (ok) did += 'revealed what was ready; '; else reloadOnce();
       } else if (acted === 1 && vis > LIMIT + 6000) { acted = 2; note('still no reveal 6 s after the watchdog’s reveal'); reloadOnce(); }
     }, 250);
+    if (OLD) { showOld(); oldOnce('at the boot'); }
     W.__boot = {
-      stage: function (s) { stage = s; },                                    // ('app' · 'title' · 'city' — app.js / title.js / scene.js)
-      revealed: function () { if (!done) { done = true; try { W.sessionStorage.removeItem(RK); } catch (e) { /* fine */ } } },   // (the boot screen lifted — a later hang may reload again)
+      stage: function (s) { stage = s; keepLast(false); },                  // ('app' · 'title' · 'city' — app.js / title.js / scene.js)
+      revealed: function () { if (!done) { done = true; dropLast(); try { W.sessionStorage.removeItem(RK); } catch (e) { /* fine */ } } },
+      old: OLD, floorOf: floorOf,                                            // (FR7 FIXES C2: below the supported floor → app.js stops; the test's seam)   // (the boot screen lifted — a later hang may reload again)
       snap: function (fn) { snapFn = fn; },                                  // (the city's own snapshot for the hang watch — harbor/report.js; null = the boot's)
       mark: function (m) { if (hw) try { hw.postMessage({ t: 'mark', m: m }); } catch (e) { /* polish */ } },
       watching: function () { return !!hw; },

@@ -1144,6 +1144,25 @@ test('error log: grouped by error, rate-limited, readable and clearable by admin
   } finally { process.env.ADMIN_PIDS = ''; }
 });
 
+// ---- FR7 FIXES C2 — THE SUPPORTED FLOOR: a below-floor browser's BOOT HANG (the bot's Mac Chrome 83) + its own 'old' note are COUNTED
+// (logstats/old — /admin's STATS line), never stored as reports; a current browser's BOOT HANG is stored as before; ≤ 3 an hour per IP
+test('old browsers: counted on one line, never a BOOT HANG; a current browser still reports', async () => {
+  await ref('/').update({ phonelog: null, rl: null, logstats: null });
+  const now = Date.UTC(2026, 10, 13, 10, 54);
+  const bot = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36';
+  const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.7 Mobile/15E148 Safari/604.1';
+  assert.equal(await logReport({ p: 'report', r: { kind: 'boot', text: 'THE BOOT HUNG — the app’s module graph failed to load' } }, { ip: '7.7.7.1', ua: bot, now }), 1);
+  assert.equal(await logReport({ p: 'report', r: { kind: 'old', text: 'AN OLD BROWSER (Chrome 83 < 92)' } }, { ip: '7.7.7.1', ua: bot, now: now + 1 }), 1);
+  assert.equal(await val('phonelog'), null, 'nothing stored as a report');
+  assert.deepEqual(await val('logstats/old'), { n: 2, last: now + 1 });
+  let more = 0; for (let i = 0; i < 5; i++) more += await logReport({ r: { kind: 'old', text: 'x' } }, { ip: '7.7.7.1', ua: bot, now: now + 10 + i });
+  assert.equal(more, 1, '3 an hour per IP');
+  assert.equal(await logReport({ p: 'report', r: { kind: 'boot', text: 'THE BOOT HUNG — no reveal after 12 s on screen' } }, { ip: '7.7.7.2', ua: iphone, now }), 1);
+  const all = Object.values(await val('phonelog'));
+  assert.equal(all.length, 1); assert.equal(all[0].kind, 'boot');
+  await ref('/').update({ phonelog: null, rl: null, logstats: null });
+});
+
 // ---- 9e — SEND REPORT + the hang watch (api/log.js#logReport) and the admin's view of them
 test('phone reports: stored as plain text, rate-limited, newest 40 kept, admins only', async () => {
   await ref('/').update({ phonelog: null, rl: null });

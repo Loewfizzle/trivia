@@ -72,3 +72,17 @@ test('#11 — the service worker writes a copy only when it changed, never a thr
   assert.match(sw, /url\.pathname\.startsWith\('\/audio\/'\) \|\| url\.pathname\.startsWith\('\/api\/'\)/, 'never /api or /audio');
   assert.match(sw, /url\.origin !== self\.location\.origin\) return/, 'same-origin only');
 });
+
+// FR7 FIXES C2 — a newline slipped into one of the watchdog's strings once (an edit script): EVERY inline classic script in the page must PARSE —
+// a broken watchdog is no watchdog (and THE SUPPORTED FLOOR + THE HAND RELOAD live in it)
+test('every inline <script> in index.html parses; the floor + the hand-reload record are wired', async () => {
+  const vm = await import('node:vm');
+  const bad = [];
+  for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) { try { new vm.Script(m[1]); } catch (e) { bad.push(`${e.message}: ${m[1].slice(0, 60)}`); } }
+  assert.deepEqual(bad, []);
+  assert.match(html, /if \(OLD\) \{ showOld\(\); oldOnce\('at the boot'\); \}/, 'a browser below the floor: the line at once + one count');
+  assert.match(html, /function report\(why\) \{ if \(sent\) return; sent = true; if \(OLD\) \{ oldOnce\(why\); return; \}/, 'never a BOOT HANG from an old browser');
+  assert.match(html, /W\.addEventListener\('pagehide', function \(\) \{ keepLast\(true\); \}\)/, 'the record kept as the page goes (a hand reload)');
+  assert.match(html, /revealed: function \(\) \{ if \(!done\) \{ done = true; dropLast\(\);/, 'a revealed boot leaves no record');
+  assert.match(read('js/app.js'), /if \(window\.__boot && window\.__boot\.old\) throw new Error\(/, 'app.js stops at its top below the floor');
+});

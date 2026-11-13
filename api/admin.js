@@ -173,6 +173,8 @@ async function stats(now, fresh = false) {
   if (!fresh && statsCache && Math.abs(now - statsCache.at) < 30_000) return statsCache.data;
   const [results, profiles, rooms, gplay] = await Promise.all([val('results'), val('profiles'), liveRoomsRead(now), activity(now)]);   // (FR7 FIXES B — C5: the live rooms by the index, never the whole tree)
   const data = summarize({ results: results || {}, profiles: profiles || {}, rooms: rooms || {}, gplay, now });
+  // (FR7 FIXES C2 — THE SUPPORTED FLOOR: browsers below it, counted by api/log.js — never a BOOT HANG)
+  try { const o = await val('logstats/old'); data.oldBrowsers = { n: (o && o.n) || 0, last: (o && o.last) || null }; } catch { data.oldBrowsers = { n: 0, last: null }; }
   statsCache = { at: now, data };
   return data;
 }

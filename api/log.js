@@ -13,13 +13,14 @@ import { route, send, readBody, clientIp } from './_lib/http.js';
 import { ref, fb } from './_lib/fb.js';
 import { pruneLogsIfDue } from './_lib/prune.js';
 import { dropAsBot } from '../js/core/bot-ua.js';
+import { tooOld } from '../js/core/browser-floor.js';
 
 export const LOG_LIMITS = { perRequest: 10, ipPerHour: 40, perDay: 3000, maxBody: 32_000 };
 // 9e — SEND REPORT (the &debug=1 strip's button) + THE HANG WATCH (a worker that reports when the page's main thread stops answering —
 // js/hangwatch.js): POST /api/log { p: 'report', r: { kind: 'tap' | 'hang' | 'stall', text } } → phonelog/{push} { at, kind, text, ua, d,
 // b, v } — plain text the owner reads (+ screenshots) on /admin. 8 an hour per IP, 120 a day in all, the newest 40 kept.
 export const REPORT_LIMITS = { ipPerHour: 8, perDay: 120, keep: 40, text: 24_000 };
-const REPORT_KINDS = ['tap', 'hang', 'stall', 'bench', 'lost', 'boot'];   // (C4c: 'bench' — THE PHONE BENCH's report, &bench=1; CITY FIXES: 'lost' — THE TAP WATCH; LOAD FIX 3: 'boot' — THE BOOT WATCHDOG's BOOT HANG, index.html)
+const REPORT_KINDS = ['tap', 'hang', 'stall', 'bench', 'lost', 'boot', 'old'];   // (FR7 FIXES C2: 'old' — a browser below THE SUPPORTED FLOOR, COUNTED, never stored)   // (C4c: 'bench' — THE PHONE BENCH's report, &bench=1; CITY FIXES: 'lost' — THE TAP WATCH; LOAD FIX 3: 'boot' — THE BOOT WATCHDOG's BOOT HANG, index.html)
 // CITY FIXES — THE TAP WATCH's LOST TAPS (js/ui/tapwatch.js — always on, ≤ 1 a minute + ≤ 20 a day per device): their OWN buckets, so a burst
 // of lost taps never eats the hang watch's + SEND REPORT's; the newest REPORT_KEEP kept PER KIND (prune.js) — never pushing a hang out
 export const LOST_LIMITS = { ipPerHour: 20, perDay: 400, text: 4000 };
@@ -34,6 +35,9 @@ export function cleanReport(r) {
 export async function logReport(body, { ip = '', ua = '', now = Date.now() } = {}) {
   const r = cleanReport(body && body.r);
   if (!r) return 0;
+  // FR7 FIXES C2 — THE SUPPORTED FLOOR (the owner's /admin: two BOOT HANGs from a bot's "Mac Chrome 83"): a browser below it is COUNTED on one
+  // quiet line ("old browsers: n" — /admin's STATS), never a BOOT HANG — its own 'old' note, or a 'boot' report from a below-floor UA (an old page)
+  if (r.kind === 'old' || (r.kind === 'boot' && tooOld(ua))) return countOld({ ip, now });
   const lost = r.kind === 'lost', pre = lost ? 'lost' : 'rep', L = lost ? LOST_LIMITS : REPORT_LIMITS;
   if (lost) r.text = r.text.slice(0, LOST_LIMITS.text);
   let n = await take(`${pre}_ip_${ipKey(ip)}`, 1, L.ipPerHour, 3600_000, now);
@@ -45,6 +49,14 @@ export async function logReport(body, { ip = '', ua = '', now = Date.now() } = {
 }
 
 const str = (x, n) => String(x == null ? '' : x).slice(0, n);
+
+/** THE SUPPORTED FLOOR's count: logstats/old { n, last } (≤ 3 an hour per IP — a bot's reloads can't run it up). Returns 1 counted, 0 not. */
+export const OLD_LIMITS = { ipPerHour: 3 };
+async function countOld({ ip = '', now = Date.now() } = {}) {
+  if (!(await take(`old_ip_${ipKey(ip)}`, 1, OLD_LIMITS.ipPerHour, 3600_000, now))) return 0;
+  await ref('logstats/old').transaction(cur => ({ n: ((cur && cur.n) || 0) + 1, last: now }));
+  return 1;
+}
 
 /** PURE: which device and browser a user agent is (coarse, for counting). */
 export function deviceOf(ua = '') {

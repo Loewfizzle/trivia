@@ -473,7 +473,9 @@ function renderStats() {
   if (!box || !S) return;
   { const c = cardOf('ad-stats'); if (c) c.count(`${S.totals.matches.toLocaleString()} matches`); }
   box.replaceChildren(
-    h('div.ad-stats-grid', gamesBlock(), playersBlock(), dailyBlock(), growthBlock(), timesBlock()));
+    h('div.ad-stats-grid', gamesBlock(), playersBlock(), dailyBlock(), growthBlock(), timesBlock()),
+    // (FR7 FIXES C2 — THE SUPPORTED FLOOR: one quiet line — browsers below it were told to update; never a BOOT HANG in the reports)
+    h('p.ad-note.ad-old', `old browsers: ${(S.oldBrowsers && S.oldBrowsers.n) || 0}${S.oldBrowsers && S.oldBrowsers.last ? ` · last ${new Date(S.oldBrowsers.last).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''} — below the supported floor (Chrome 92 · Firefox 90 · Safari / iOS 16): shown “too old”, never a BOOT HANG`));
 }
 
 // THE OUTAGE: today + the 6 days before, each a toggle (a second tap confirms)
