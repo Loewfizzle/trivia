@@ -1,4 +1,5 @@
-// HOLD'EM — THE BET STEPS (HE11, PURE: no DOM, no clock): the stops of the custom bet slider (bet-slider.js).
+// HOLD'EM — THE BET STEPS (HE11, PURE: no DOM, no clock): the stops of the custom bet slider (bet-slider.js) + its CONFIRM LOCK and
+// ONE-POINTER rule (the end of this file).
 //
 // THE RULE: the slider's UNIT is the smallest ROUND number (5 · 10 · 20 · 25 · 50 · 100 · 200 · 250 · 500 · 1,000 …) that is at least
 // the small blind (never under 5) and leaves the track at most MAX_STOPS stops. The stops = the minimum raise EXACTLY, every multiple
@@ -80,3 +81,30 @@ export function stepFrom(stops, value, dir) {
   for (let i = stops.length - 1; i >= 0; i--) if (stops[i] < value) return stops[i];
   return stops[0];
 }
+
+// THE CONFIRM LOCK (bet-slider.js — the slider's review, Nov 13): CONFIRM locks the WHOLE panel (the track, − / +, the presets, BACK,
+// CONFIRM itself) until the table answers. The view closes the panel when the state moves (HE10 A21 — the turn is no longer yours);
+// the lock opens again only if it didn't: the move was refused / never went (no signal) → at once; the dealer said yes but this phone's
+// table hasn't moved → after LOCK_GRACE_MS (the view's own catch-up cap); nothing heard at all → LOCK_MAX_MS from the tap (the view's
+// SAFE_RELEASE_MS — logic.js). Each CONFIRM is numbered: a late answer to an older one never opens a newer lock.
+export const LOCK_GRACE_MS = 5000;
+export const LOCK_MAX_MS = 10_000;
+export const LOCK_OPEN = { lock: 'open', n: 0 };
+
+/**
+ * confirmLock(gate, ev) → { gate, send } — PURE. gate = { lock: 'open' | 'sent' | 'answered', n }; ev = { type: 'tap' } |
+ * { type: 'ok' | 'fail' | 'timeout', n }. A tap on an open panel → 'sent' (n + 1) + send: true; any other tap sends nothing.
+ * 'ok' (the dealer said yes) → 'answered' (still locked — the state closes the panel); 'fail' / 'timeout' → 'open'. An event for an
+ * older CONFIRM (n ≠ gate.n) changes nothing.
+ */
+export function confirmLock(gate, ev) {
+  const g = gate || LOCK_OPEN, type = ev && ev.type;
+  if (type === 'tap') return g.lock === 'open' ? { gate: { lock: 'sent', n: g.n + 1 }, send: true } : { gate: g, send: false };
+  if (!ev || ev.n !== g.n || g.lock === 'open') return { gate: g, send: false };
+  if (type === 'ok') return { gate: g.lock === 'sent' ? { lock: 'answered', n: g.n } : g, send: false };
+  if (type === 'fail' || type === 'timeout') return { gate: { lock: 'open', n: g.n }, send: false };
+  return { gate: g, send: false };
+}
+
+/** THE ONE POINTER: may this pointer act on the slider? Only when no finger owns it, or it IS the owner (a second finger never moves it). */
+export const pointerMay = (owner, pointerId) => owner == null || owner === pointerId;

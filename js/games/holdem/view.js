@@ -136,7 +136,8 @@ export function createView() {
     press = { el: btn, at: performance.now() };
   }
   function onUnpress() { if (press && !press.el.classList.contains('is-sent')) press.el.classList.remove('is-press'); }
-  const act = (action, amount) => { vibrate(12); slider = null; return send('act', { seq: pub.seq, action, ...(amount != null ? { amount } : {}) }); };
+  const move = (action, amount) => { vibrate(12); return send('act', { seq: pub.seq, action, ...(amount != null ? { amount } : {}) }); };
+  const act = (action, amount) => { slider = null; return move(action, amount); };
 
   // ------------------------------------------------------------------ THE POKE (WHO POKES — docs/holdem.md)
   function schedulePoke() {
@@ -822,8 +823,11 @@ export function createView() {
     sliderCtl = betSlider({
       minTo: Lg.minTo, maxTo: Lg.maxTo, sb: t.sb, value: slider.to || Lg.minTo, kind: Lg.kind, presets: Lg.presets, fmt,
       onValue: v => { if (slider) slider.to = v; },
-      onConfirm: (to, allin) => act(allin ? 'allin' : Lg.kind, allin ? null : to),
+      // (the slider's CONFIRM LOCK: the panel stays up + locked until the state answers — the turn moves on and A21 closes it; a refusal /
+      //  no signal opens it again — so CONFIRM keeps `slider`, unlike the one-tap buttons' act())
+      onConfirm: (to, allin) => move(allin ? 'allin' : Lg.kind, allin ? null : to),
       onBack: () => { slider = null; lastSig = ''; render(); },
+      lockMaxMs: SAFE_RELEASE_MS,
     });
     sliderCtl.key = slider.turn;
     return sliderCtl.el;

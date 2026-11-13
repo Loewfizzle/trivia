@@ -874,6 +874,17 @@ FR7 FIXES A's). No database rules change. Still 8 functions.
   THE TAP WATCH: built once per open — `view.js#sliderPanel` reuses it while the action key holds; `destroy()` (its observer + timers) when it goes.
 - **CONFIRM IS ONE-SHOT:** a second tap while the move is on its way / answered before the table moved sends nothing (the WebKit test caught a
   double send against a quiet stub); a move that didn't go (no signal, a refusal) re-arms it.
+- **THE HARDENING (Nov 13 — the slider's review):** THE CONFIRM LOCK (`bet-steps.js#confirmLock`, PURE + numbered — a late answer never opens
+  a newer lock): CONFIRM locks the WHOLE panel (track, − / +, presets, BACK, CONFIRM) and the panel STAYS UP (view.js's CONFIRM keeps `slider`
+  — `move()`, not `act()`) until the state answers: the turn moves on → A21 closes it; a refusal / no signal → open at once; a yes this table
+  never showed → open after `LOCK_GRACE_MS` 5 s; silence → `LOCK_MAX_MS` (= SAFE_RELEASE_MS 10 s). No CSS: `.is-locked` + `aria-busy` /
+  `aria-disabled` only (the action row's is-busy + CONFIRM's pressed glow are the look). THE ONE POINTER (`pointerMay`): one finger owns the
+  slider (a drag or a held − / +) — a second finger never moves the thumb or steps. A held − / + CAPTURES its pointer and stops on its own
+  pointerup / pointercancel / lostpointercapture, the window's `blur`, the page going hidden, CONFIRM — its blur / visibilitychange listeners
+  live only as long as the hold (a drag lets go the same way). Proof: `tests/holdem-bet-steps.test.mjs` (the gate) + `wk-holdem-slider.mjs` 26 / 26
+  (a hold + blur / + hidden stops at once, its listeners removed; second fingers mid-drag / mid-hold; a 409 opens the lock; a double tap +
+  a triple click = ONE act; the lock opens by itself). (Playwright counts `aria-disabled` as disabled — a test's second tap on a locked
+  CONFIRM needs `force: true`, or it waits for the lock to open.)
 - **PROOF:** `tests/holdem-bet-steps.test.mjs` (every stack × blind level in TURBO / DEEP / CASH: min + ALL IN exact, round, 30–60, a slow drag
   visits every stop once); `node tests/integration/wk-holdem-slider.mjs` (WebKit 402 × 874 @3 on the preview — `E2E_BASE` = any plain serve.mjs:
   a drag across = 57 stops, monotonic, none skipped, ALL IN only at the end, the page never scrolled, − − + one stop each, a preset sets it, HOLD +

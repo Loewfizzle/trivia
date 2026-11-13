@@ -3,7 +3,7 @@
 // amount between them round, 30–60 stops whenever the span allows (fewer only when the small blind can't be split finer).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { betStops, betUnit, baseUnit, valueAt, posOf, stepFrom, MAX_STOPS, MIN_STOPS } from '../js/games/holdem/bet-steps.js';
+import { betStops, betUnit, baseUnit, valueAt, posOf, stepFrom, MAX_STOPS, MIN_STOPS, confirmLock, pointerMay, LOCK_OPEN, LOCK_GRACE_MS, LOCK_MAX_MS } from '../js/games/holdem/bet-steps.js';
 import { SPEEDS, CASH, blindsAt, MAX_SEATS } from '../js/games/holdem/structure.js';
 
 const ROUND = new Set();
@@ -85,4 +85,51 @@ test('a short stack: one stop (ALL IN), or every small blind when the span is sh
   assert.equal(s.unit, 10);
   assert.deepEqual(s.stops, [40, 50, 60, 70, 80, 90, 100, 110, 120, 130]);
   assert.equal(betUnit(40, 130, 15), 20, 'a 15 small blind → 20s');
+});
+
+// THE CONFIRM LOCK + THE ONE POINTER (the slider's review, Nov 13 — bet-slider.js runs them; wk-holdem-slider.mjs proves them in WebKit)
+test('THE CONFIRM LOCK: one send per open panel; a refusal opens it, a yes holds it, a timeout always opens it, a stale answer never does', () => {
+  let r = confirmLock(LOCK_OPEN, { type: 'tap' });
+  assert.equal(r.send, true, 'the first CONFIRM sends');
+  assert.deepEqual(r.gate, { lock: 'sent', n: 1 });
+  const sent = r.gate;
+  for (let i = 0; i < 5; i++) {
+    r = confirmLock(sent, { type: 'tap' });
+    assert.equal(r.send, false, 'a second tap while sent sends nothing');
+    assert.equal(r.gate, sent);
+  }
+  // a refusal / no signal → open at once, and the next tap sends (n + 1)
+  r = confirmLock(sent, { type: 'fail', n: 1 });
+  assert.equal(r.gate.lock, 'open');
+  r = confirmLock(r.gate, { type: 'tap' });
+  assert.equal(r.send, true);
+  assert.equal(r.gate.n, 2);
+  // a late answer to the FIRST confirm never touches the second
+  assert.equal(confirmLock(r.gate, { type: 'fail', n: 1 }).gate, r.gate);
+  assert.equal(confirmLock(r.gate, { type: 'timeout', n: 1 }).gate, r.gate);
+  // the dealer said yes → still locked (answered); taps still send nothing; the grace timeout opens it
+  const ans = confirmLock(r.gate, { type: 'ok', n: 2 }).gate;
+  assert.deepEqual(ans, { lock: 'answered', n: 2 });
+  assert.equal(confirmLock(ans, { type: 'tap' }).send, false, 'answered, the table not yet moved: no second send');
+  assert.equal(confirmLock(ans, { type: 'ok', n: 2 }).gate, ans);
+  assert.equal(confirmLock(ans, { type: 'timeout', n: 2 }).gate.lock, 'open', 'the grace / cap timeout opens it — it never sticks');
+  // the cap opened it before the answer came: the late yes / no changes nothing (never re-locks an open panel)
+  const open = confirmLock({ lock: 'sent', n: 3 }, { type: 'timeout', n: 3 }).gate;
+  assert.equal(open.lock, 'open');
+  assert.equal(confirmLock(open, { type: 'ok', n: 3 }).gate, open);
+  assert.equal(confirmLock(open, { type: 'fail', n: 3 }).gate, open);
+  // junk in: nothing changes, nothing sent
+  assert.equal(confirmLock(ans, null).gate, ans);
+  assert.equal(confirmLock(ans, { type: 'what', n: 2 }).send, false);
+  assert.equal(confirmLock(undefined, { type: 'tap' }).send, true, 'no gate yet = open');
+  assert.ok(LOCK_GRACE_MS > 0 && LOCK_MAX_MS >= LOCK_GRACE_MS);
+});
+
+test('THE ONE POINTER: only the owning finger acts; a free slider takes any', () => {
+  assert.equal(pointerMay(null, 7), true);
+  assert.equal(pointerMay(undefined, 1), true);
+  assert.equal(pointerMay(1, 1), true);
+  assert.equal(pointerMay(1, 2), false, 'a second finger never moves the thumb');
+  assert.equal(pointerMay(0, 0), true, 'pointerId 0 (a mouse in some engines) is a real owner');
+  assert.equal(pointerMay(0, 1), false);
 });
