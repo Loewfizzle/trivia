@@ -47,6 +47,7 @@ async function visit(label, url = URL0) {
   p = await ctx.newPage();
   p.on('pageerror', e => errors.push(String(e && e.message || e)));
   p.on('console', m => { if (/\[skew\]|SyntaxError|does not provide|Importing a module script failed/.test(m.text())) mixed.push(m.text()); });
+  if (process.env.PATHS) await fetch('http://localhost:5186/__line/paths').catch(() => {});   // (PATHS=1: each visit's /api paths printed)
   const s0 = line.stats(), e0 = errors.length, t0 = Date.now();
   await p.goto(url);
   const up = await waitFor(p, REVEALED, 40000);
@@ -55,6 +56,7 @@ async function visit(label, url = URL0) {
   const s1 = line.stats(), sw = await p.evaluate(STATS).catch(() => null);
   const v = { label, up, revealMs: ms, edge: s1.edge - s0.edge, api: s1.api - s0.api, static: (s1.edge - s0.edge) - (s1.api - s0.api), n304: s1.n304 - s0.n304, kb: s1.kb - s0.kb, errors: errors.slice(e0), sw };
   visits.push(v);
+  if (process.env.PATHS) { const ps = await fetch('http://localhost:5186/__line/paths').then(r => r.json()).catch(() => ({})); console.log('   /api:', Object.entries(ps).filter(([k]) => k.startsWith('/api')).map(([k, n]) => `${k} ×${n}`).join(' · ')); }
   console.log(`${label.padEnd(26)} reveal ${(ms / 1000).toFixed(2)} s · ${v.edge} requests reached the edge (${v.static} static · ${v.api} /api · ${v.n304} answered 304) · ${v.kb} KB${sw ? ` · the worker: mode ${sw.mode}, ${sw.hits} from its copy, ${sw.net} from the network` : ' · no worker yet'}`);
   return v;
 }

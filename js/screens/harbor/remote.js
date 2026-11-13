@@ -293,7 +293,10 @@ export function createRemote({ scene, api = apiCall }) {
       return !!r.admin;
     } catch { return false; }
   }
-  const onMe = () => { if (destroyed || admin) return; checkAdmin().then(a => { if (a && !destroyed && !admin) adminOn(); }).catch(() => {}); };
+  // (PLAY NOW: ONE whoami at a time — the profile's 'nd:me' landing while the first check was still out asked the server twice a visit)
+  let adminAsk = null;
+  const checkAdminOnce = () => adminAsk || (adminAsk = checkAdmin().finally(() => { adminAsk = null; }));
+  const onMe = () => { if (destroyed || admin) return; checkAdminOnce().then(a => { if (a && !destroyed && !admin) adminOn(); }).catch(() => {}); };
   window.addEventListener('nd:me', onMe);
   const adminOn = () => Promise.resolve(true).then(() => {
     if (destroyed) return false;
@@ -317,7 +320,7 @@ export function createRemote({ scene, api = apiCall }) {
     if (liveNext && !cd) countdown('all', liveNext.startAt, R.describe(liveNext.state));
     paintChip(); paintCd();
   });
-  checkAdmin().then(a => { if (a && !destroyed && !admin) adminOn(); }).catch(() => {});
+  checkAdminOnce().then(a => { if (a && !destroyed && !admin) adminOn(); }).catch(() => {});
   const effective = () => (!R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : '');
   /** "10/27 22:30" (the state's clock) or what it forces, short */
   const nowWords = st => (st && st.when ? `${+st.when.slice(5, 7)}/${+st.when.slice(8, 10)} ${st.when.slice(11, 16)}` : R.describe(st).slice(0, 30));

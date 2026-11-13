@@ -34,10 +34,13 @@ test('the server windows follow the 5-min hello: the NIXIE 6 min, the sightings\
   assert.ok(cityOpenAt(co, 330e3 + 320e3) && !stampBehind(co, 330e3 + 320e3), 'a tap 5 min 20 s after the latest hello: covered, answered at once');
 });
 
-test('THE EDGE CACHE is live again (reverted early): /js /css /assets 5 min at the edge; the worker one copy per deploy', () => {
+test('THE EDGE CACHE is live again (reverted early): /assets 5 min at the edge; /js + /css revalidate (ONE BUILD PER PAGE); the worker one copy per deploy', () => {
   const cfg = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
   const cc = src => { const r = cfg.headers.find(x => x.source === src); const h = r && r.headers.find(x => x.key === 'Cache-Control'); return h ? h.value : null; };
-  for (const d of ['js', 'css', 'assets']) assert.equal(cc(`/${d}/(.*)`), 'public, max-age=300, stale-while-revalidate=86400', d);
+  assert.equal(cc('/assets/(.*)'), 'public, max-age=300, stale-while-revalidate=86400');
+  // (PLAY NOW — Group 0a: the code's stale-while-revalidate let a load the worker didn't control boot on a day-old music.js beside a new
+  //  file; a warm visit is the worker's (no request leaves the phone) — the header only reaches an uncontrolled load: 5 min fresh, never a day-old copy)
+  for (const d of ['js', 'css']) assert.equal(cc(`/${d}/(.*)`), 'public, max-age=300', d);
   const sw = fs.readFileSync('sw.js', 'utf8');
   assert.match(sw, /const BUILD_PREFIX = 'na-b-'/);
   assert.match(sw, /const STORE_WAIT_MS = 800, ACTIVATE_STORE_MS = 2000;/, 'the two-tab bounds kept');

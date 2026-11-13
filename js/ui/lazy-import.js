@@ -15,6 +15,14 @@ let busy = null;            // the one check running
 
 /** the deploy id this page loaded with — the FIRST /api/time answer (later ones are what's live now) */
 export function noteDeploy(v) { if (bootV === undefined) bootV = v == null || v === '' ? null : String(v); }
+let workerV = false;        // PLAY NOW — Group 0a: the build the worker serves this page from (its pin) — truer than /api/time's first answer
+
+/** PURE: the page's answer to the worker's ns:build-gone → { mix, reload } (a match on screen = mix now, the reload after; a reload already
+ *  done for that deploy = mix, never a loop; no session storage = mix — it couldn't stop a loop) */
+export function goneAnswer({ holding, reloadedFor, live }) {
+  if (reloadedFor === undefined || (live && reloadedFor === live)) return { mix: true, reload: false };
+  return holding ? { mix: true, reload: true } : { mix: false, reload: true };
+}
 /** app.js: () → true while a match is on screen (the reload waits for the room / the podium) */
 export function holdSkewReload(fn) { hold = typeof fn === 'function' ? fn : () => false; }
 
@@ -46,12 +54,12 @@ async function liveDeploy() {
 }
 const readRK = () => { try { return sessionStorage.getItem(RK); } catch { return undefined; } };
 
-function checkSkew(e, tag) {
+function checkSkew(e, tag, known) {
   if (busy || typeof location === 'undefined') return busy;
   busy = (async () => {
-    const live = await liveDeploy();
+    const live = known || await liveDeploy();
     const done = readRK();
-    const v = skewVerdict(bootV == null ? null : bootV, live, done);
+    const v = known ? (done === live ? 'done' : 'reload') : skewVerdict(bootV == null ? null : bootV, live, done);
     if (v !== 'reload' || done === undefined) {   // (no session storage: never reload — it couldn't stop a loop)
       if (v === 'reload') console.warn(`[skew] ${tag}: deploy ${bootV} → ${live}, but no session storage — no reload`);
       busy = null; return false;
@@ -67,5 +75,24 @@ function checkSkew(e, tag) {
   return busy;
 }
 
+// PLAY NOW — Group 0a: ONE BUILD PER PAGE (sw.js) — the worker tells this page its build (ns:build) and asks before it leaves it
+// (ns:build-gone: the network moved to another deploy and this page wants a file its build's copy doesn't hold). The answer: no match on
+// screen → `mix: false` + ONE reload now (the file is refused — the page is leaving); a match on screen → `mix: true` (the network's files
+// until the podium) + the reload once the match is over (holdSkewReload); a reload already made for that deploy → `mix: true`, no loop.
+const sw = typeof navigator !== 'undefined' && navigator.serviceWorker;
+if (sw && typeof sw.addEventListener === 'function') {
+  sw.addEventListener('message', ev => {
+    const d = ev.data;
+    if (!d || typeof d !== 'object') return;
+    if (d.t === 'ns:build') { if (d.v) { workerV = String(d.v); if (bootV === undefined || bootV !== workerV) bootV = workerV; } return; }
+    if (d.t !== 'ns:build-gone') return;
+    const a = goneAnswer({ holding: !!hold(), reloadedFor: readRK(), live: d.live ? String(d.live) : null });
+    if (bootV === undefined || bootV !== d.v) bootV = d.v ? String(d.v) : bootV;
+    try { if (!d.tell && ev.source) ev.source.postMessage({ t: 'ns:build-gone-ans', mix: a.mix }); else if (d.tell && a.mix && sw.controller) sw.controller.postMessage({ t: 'ns:build-gone-ans', mix: true }); } catch { /* the worker's own timeout answers */ }
+    if (a.reload) checkSkew(new Error(`this page's build ${d.v} is gone (live ${d.live})`), 'one build per page', d.live ? String(d.live) : null);
+  });
+  try { if (sw.controller) sw.controller.postMessage({ t: 'ns:build?' }); } catch { /* polish */ }
+}
+
 /** the test hook (tests/lazy-import.test.mjs + the skew E2E) */
-export const skewDebug = () => ({ page: bootV === undefined ? undefined : bootV, reloadedFor: readRK(), checking: !!busy });
+export const skewDebug = () => ({ page: bootV === undefined ? undefined : bootV, worker: workerV || null, reloadedFor: readRK(), checking: !!busy });

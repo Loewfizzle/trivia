@@ -68,7 +68,8 @@ test('the link previews: both pages on the PRIMARY host (www — the bare domain
 test('D2 — THE EDGE CACHE: /js /css /assets 5 min at the edge (+ stale-while-revalidate); the HTML, sw.js, /api, /audio, /data untouched', () => {
   const cfg = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
   const cc = src => { const r = cfg.headers.find(x => x.source === src); const h = r && r.headers.find(x => x.key === 'Cache-Control'); return h ? h.value : null; };
-  for (const d of ['js', 'css', 'assets']) assert.equal(cc(`/${d}/(.*)`), 'public, max-age=300, stale-while-revalidate=86400', d);
+  assert.equal(cc('/assets/(.*)'), 'public, max-age=300, stale-while-revalidate=86400');
+  for (const d of ['js', 'css']) assert.equal(cc(`/${d}/(.*)`), 'public, max-age=300', `${d} (PLAY NOW — ONE BUILD PER PAGE: no stale-while-revalidate)`);
   assert.equal(cc('/sw.js'), 'no-cache, no-store, must-revalidate', 'the worker itself is never cached');
   assert.equal(cc('/data/(.*)'), 'public, max-age=0, must-revalidate');
   assert.match(cc('/audio/(.*)'), /max-age=604800/);
@@ -79,8 +80,9 @@ test('D2 — the worker: ONE COPY PER DEPLOY by the build id; the network path a
   const sw = fs.readFileSync('sw.js', 'utf8');
   assert.match(sw, /fetch\('\/api\/time', \{ cache: 'no-store'/, 'the build id from /api/time, never cached');
   assert.match(sw, /const BUILD_PREFIX = 'na-b-'/);
-  assert.match(sw, /if \(!v\) return \{ mode: 'net', cache: CACHE \}/, 'no build id → exactly as before');
-  assert.match(sw, /if \(held !== v\)[\s\S]{0,200}caches\.delete\(k\)/, 'a new build drops the old build\'s cache');
+  assert.match(sw, /if \(!v\) return \{ mode: 'net', cache: CACHE, v: null \}/, 'no build id → exactly as before');
+  assert.match(sw, /if \(held !== v\)[\s\S]{0,200}dropUnpinned\(name\)/, 'a new build drops the old build\'s cache (once no page is on it)');
+  assert.match(sw, /k !== name && !keepC\.has\(k\)\) await caches\.delete\(k\)/);
   assert.match(sw, /return toPage\(hit\)/, 'a copy is handed over no-cache (WebKit\'s memory cache then asks the worker, never an older deploy\'s copy)');
   assert.match(sw, /fetch\(req, \{ cache: 'no-cache' \}\)/, 'the network fetch never reads the HTTP cache — a copy is only ever kept from the network in its own build');
   assert.match(sw, /url\.pathname\.startsWith\('\/audio\/'\) \|\| url\.pathname\.startsWith\('\/api\/'\)/);
@@ -92,7 +94,7 @@ test('THE TWO-TAB HANG — every wait on a store is bounded: the worker\'s copie
   const act = sw.slice(sw.indexOf("addEventListener('activate'"), sw.indexOf("addEventListener('fetch'"));
   assert.match(act, /await within\(\(async \(\) => \{[\s\S]*caches\.keys\(\)[\s\S]*\}\)\(\), ACTIVATE_STORE_MS, null\);\s*await self\.clients\.claim\(\)/, 'the activation\'s clean-up bounded, then the claim');
   assert.match(sw, /within\(caches\.open\(M\.cache\)\.then\(c => c\.match\(key\)\), STORE_WAIT_MS, null\)/, 'a copy\'s read bounded');
-  assert.match(sw, /if \(held === undefined\) return \{ mode: 'net', cache: CACHE \}/, 'a silent store = the network');
+  assert.match(sw, /if \(held === undefined\) return \{ mode: 'net', cache: CACHE, v: null \}/, 'a silent store = the network');
   const fb = fs.readFileSync('js/firebase.js', 'utf8');
   assert.match(fb, /const idbOk = await idbP;\s*if \(!idbOk\) \{\s*hideIdb\(\);[\s\S]{0,400}?\}\s*app = sdk\.initializeApp/, 'the probe decides BEFORE the SDK\'s app (its heartbeat opens IndexedDB)');
   assert.match(fb, /persistence: idbOk \? \[sdk\.browserLocalPersistence, sdk\.indexedDBLocalPersistence\] : \[sdk\.browserLocalPersistence\]/);
