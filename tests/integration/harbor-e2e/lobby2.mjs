@@ -731,3 +731,91 @@ G('makehost', async () => {
       `THE ERRORS GROUP's add-on — the host leaves while the only other player is offline: no RULES REFUSED (${JSON.stringify(rep.alarm)} / ${errs.length}; quiet: ${JSON.stringify(rep.quiet)}); the room carries on with them (${room ? Object.keys(room).length : 0} player)`); }
   await B.ctx.close();
 });
+
+// ---- THE ROOM NOTE (the owner's add-on, Nov 13 1:38 pm — a friend's room GULF while PRISM DROP was on, his iPhone at 390: the two-line "… IS ON —
+// TAP TO WATCH (you're dealt into the next one)" slab over the promenade read as a stuck message): ONE LINE, a slim pill just above the dock, a ×
+// (44 pt) that hides it until the NEXT match (per match id, kept through a refresh), the pill's body still opens the watch + says "you're dealt
+// into the next one" ONCE a match; the idle note the same look, NO × (core/room-note.js, room-city.js#paintNotes). Real touches (tapAt).
+const noteOf = p => ev(p, "(() => { const r = window.__district && window.__district.room && window.__district.room(); return r ? r.note : null; })()");
+const noteBox = p => ev(p, `(() => { const R = e => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom, w: b.width, h: b.height }; };
+  const pill = R(document.querySelector('.rc-note')), x = document.querySelector('.rc-note-x'), xb = x && !x.hidden ? R(x) : null, body = R(document.querySelector('.rc-note-t'));
+  const hits = (b, sel) => { if (!b) return null; const cx = (b.l + b.r) / 2, cy = (b.t + b.b) / 2; return [[-21, -21], [21, -21], [-21, 21], [21, 21]].every(([dx, dy]) => { const e = document.elementFromPoint(cx + dx, cy + dy); return !!(e && e.closest(sel)); }); };
+  const tall = body ? [-21, 21].every(dy => { const e = document.elementFromPoint((body.l + body.r) / 2, (body.t + body.b) / 2 + dy); return !!(e && e.closest('.rc-note-t')); }) : false;
+  const over = (a, b) => !!(a && b && a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b);
+  const others = ['.rdk-dock', '.menu-btn', '.music-btn', '.nd-joinring', '.rdk-play'].map(s => [s, R(document.querySelector(s))]);
+  return { pill, words: R(document.querySelector('.rc-note-w')), x: xb, x44: hits(xb, '.rc-note-x'), tall, dockTop: R(document.querySelector('.rdk-dock')).t,
+    hitsOn: others.filter(([, b]) => over(pill, b)).map(([s]) => s), vw: innerWidth, title: !!document.querySelector('.title-screen:not(.screen-out)') }; })()`);
+G('roomnote', async () => {
+  const { Q: A, p, code } = await hostRoom('rna', [390, 844]);
+  const { Q: B, p: q } = await joinRoom('rnb', code, [390, 844]);
+  await settledRoom(p, 2, 40000).catch(() => {});
+  const matchOn = page => waitFor(page, "window.__arcade.state.meta && window.__arcade.state.meta.status === 'playing' && !!window.__arcade.state.game && !document.querySelector('.title-screen:not(.screen-out)')", 'the match on screen', 25000);
+  const quitTo = async page => { const m = await ev(page, 'window.__arcade.state.game.matchId'); await ev(page, `import('/js/store.js').then(S => S.setState({ quit: '${m}' }))`); await waitFor(page, '!!(window.__district && window.__district.room && window.__district.room())', 'back on the city', 25000); await sleep(800); return m; };   // (the ☰ QUIT TO THE ROOM's own write)
+  await startOC(p);
+  await matchOn(q);
+  // ---- 1. LIVE: ONE line, just above the dock, nothing it collides with
+  const m1 = await quitTo(q);
+  await waitFor(q, "(() => { const n = window.__district.room().note; return n && n.on && n.kind === 'live'; })()", 'the WATCH note', 10000).catch(() => {});
+  await sleep(500);
+  const n1 = await noteOf(q), g1 = await noteBox(q);
+  ok(n1 && n1.on && n1.text === 'OVERCLOCK IS ON · TAP TO WATCH' && g1.words && g1.words.h < 20 && g1.pill.h <= 40,
+    `THE ROOM NOTE — LIVE: ONE line "${n1 && n1.text}" (its words ${g1.words && Math.round(g1.words.h)} pt tall, the pill ${g1.pill && Math.round(g1.pill.h)} pt) — no "(you're dealt into the next one)" on it`);
+  ok(g1.pill && g1.pill.b <= g1.dockTop && g1.dockTop - g1.pill.b <= 30 && g1.pill.l >= 8 && g1.pill.r <= g1.vw - 8 && !g1.hitsOn.length,
+    `THE ROOM NOTE — a slim pill sized to its words JUST ABOVE THE DOCK (${Math.round(g1.dockTop - g1.pill.b)} pt over it, ${Math.round(g1.pill.w)} of ${g1.vw} pt wide) — touching nothing (${g1.hitsOn.join(', ') || 'no dock, ring or corner button'})`);
+  ok(g1.x && g1.x44 && g1.tall, `THE ROOM NOTE — the × answers a 44 × 44 pt finger (${g1.x44}), the pill's body a 44 pt tall one (${g1.tall})`);
+  if (SHOTS) await q.screenshot({ path: `${OUT}roomnote-live.png` });
+  // ---- 2. THE ×: hides it (this match), the watch NOT opened; stored per match id; the 2 s repaint never brings it back
+  const xc = await ev(q, "(() => { const b = document.querySelector('.rc-note-x').getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; })()");
+  await tapAt(q, xc[0] + 6, xc[1] + 4);   // (off the glyph, inside the 44 pt area)
+  await waitFor(q, '!window.__district.room().note.on', 'the note hidden', 4000).catch(() => {});
+  await sleep(2600);
+  const h1 = { note: await noteOf(q), quit: await ev(q, 'window.__arcade.state.quit'), key: await ev(q, "localStorage.getItem('nd:note-x')"), title: (await noteBox(q)).title };
+  ok(h1.note && !h1.note.on && h1.quit === m1 && h1.key === `${code}:${m1}` && h1.title,
+    `THE ROOM NOTE — the × hides it until the next match (on: ${h1.note && h1.note.on}, still in the city: ${h1.title}, the watch not opened: ${h1.quit === m1}; stored "${h1.key}")`);
+  // ---- 3. A REFRESH keeps it hidden (only the stored key can: the page's memory is new) — back in the room, stepped out of the same match
+  await q.reload(); await waitFor(q, `window.__arcade.state.code === '${code}' && !!window.__arcade.state.game`, 'B back in the room', 30000);
+  await matchOn(q).catch(() => {});
+  await quitTo(q); await sleep(2400);
+  const h2 = await noteOf(q);
+  ok(h2 && !h2.on, `THE ROOM NOTE — after a REFRESH the same match's note stays hidden (on: ${h2 && h2.on})`);
+  // ---- 4. THE NEXT MATCH brings it back; its body opens the watch + THE MESSAGE "you're dealt into the next one" ONCE a match
+  await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+  await waitFor(p, onTitle, 'A back on the city', 15000); await waitFor(q, "window.__arcade.state.meta.status !== 'playing'", 'B: the match over', 15000);
+  await sleep(1500);
+  await startOC(p);
+  await matchOn(q);
+  const m2 = await quitTo(q);
+  await waitFor(q, "(() => { const n = window.__district.room().note; return n && n.on && n.kind === 'live'; })()", 'the WATCH note again', 10000).catch(() => {});
+  const n2 = await noteOf(q);
+  ok(m2 !== m1 && n2 && n2.on && n2.x, `THE ROOM NOTE — the NEXT match (${m2 !== m1 ? 'a new match id' : 'THE SAME MATCH ID'}) brings it back, its × with it (on: ${n2 && n2.on})`);
+  const said = page => ev(page, "[...document.querySelectorAll('.sh-msgs .sh-msg:not(.is-out)')].map(x => x.textContent).join(' | ')");
+  await tap(q, '.rc-note-t');
+  await matchOn(q).catch(() => {});
+  await waitFor(q, "[...document.querySelectorAll('.sh-msgs .sh-msg')].some(x => /Watching/.test(x.textContent))", 'the message', 5000).catch(() => {});
+  const w1 = { quit: await ev(q, 'window.__arcade.state.quit'), msg: await said(q) };
+  ok(w1.quit === null && /Watching Overclock|Watching OVERCLOCK/i.test(w1.msg) && /dealt into the next one/i.test(w1.msg),
+    `THE ROOM NOTE — the pill's body opens the WATCH (quit: ${w1.quit}) + THE MESSAGE says it once: "${w1.msg.replace(/\s+/g, ' ').slice(0, 80)}"`);
+  if (SHOTS) await q.screenshot({ path: `${OUT}roomnote-watching.png` });
+  await sleep(4800);
+  await quitTo(q);
+  await waitFor(q, "(() => { const n = window.__district.room().note; return n && n.on; })()", 'the note once more', 8000).catch(() => {});
+  await tap(q, '.rc-note-t'); await matchOn(q).catch(() => {}); await sleep(1800);
+  const w2 = await said(q);
+  ok(!/Watching/i.test(w2), `THE ROOM NOTE — a second watch of the same match says nothing more (${w2 ? `"${w2.slice(0, 50)}"` : 'no message'})`);
+  // ---- 5. IDLE: the same one-line pill, NO × — the host keeps it open with a tap; a guest is told a game keeps it open
+  await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+  await waitFor(p, onTitle, 'A back on the city', 15000); await waitFor(q, onTitle, 'B back on the city', 15000);
+  await dbPatch(`rooms/${code}/meta`, { activeAt: Date.now() - 52 * 60000 });
+  await waitFor(p, "(() => { const n = window.__district.room().note; return n && n.on && n.kind === 'idle'; })()", 'the idle note (host)', 8000).catch(() => {});
+  await waitFor(q, "(() => { const n = window.__district.room().note; return n && n.on && n.kind === 'idle'; })()", 'the idle note (guest)', 8000).catch(() => {});
+  await sleep(600);
+  const iA = await noteOf(p), iB = await noteOf(q), gA = await noteBox(p);
+  ok(iA && iA.on && !iA.x && /^ROOM CLOSES IN 8 MIN · TAP TO KEEP IT OPEN$/.test(iA.text) && iB && iB.on && !iB.x && /^ROOM CLOSES IN 8 MIN · A GAME KEEPS IT OPEN$/.test(iB.text) && gA.words && gA.words.h < 20 && !gA.x && !gA.hitsOn.length,
+    `THE ROOM NOTE — IDLE: one line, NO × — the host "${iA && iA.text}", a guest "${iB && iB.text}" (${gA.words && Math.round(gA.words.h)} pt tall; touching ${gA.hitsOn.join(', ') || 'nothing'})`);
+  if (SHOTS) await p.screenshot({ path: `${OUT}roomnote-idle.png` });
+  await tap(p, '.rc-note-t');
+  await waitFor(p, '!window.__district.room().note.on', 'kept open', 8000).catch(() => {});
+  const k = { a: await noteOf(p), msg: await said(p) };
+  ok(k.a && !k.a.on && /kept open/i.test(k.msg), `THE ROOM NOTE — the host's tap keeps the room open (the note gone: ${k.a && !k.a.on}; "${k.msg.slice(0, 50)}")`);
+  await A.ctx.close(); await B.ctx.close();
+});

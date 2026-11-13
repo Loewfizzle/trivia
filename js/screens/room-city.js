@@ -6,10 +6,12 @@
 //     pops the name + opens their card); the name pops briefly as they arrive; a lost-signal guest lies down (dimmed, the emblem dimmed);
 //   · THE ROOM DOCK (room-dock.js): INVITE · YOU · GUESTS · GAMES · CHAT · PLAY / WAITING FOR <HOST>;
 //   · the sheets: GUESTS (the guest list — room-guests.js), GAMES / PLAY (the playable games → game-options.js), INVITE (the share sheet);
-//   · the notes above the dock: the room closing soon (host: KEEP OPEN), a match on that this phone stepped out of (WATCH).
+//   · THE ROOM NOTE above the dock (one line, a slim pill — core/room-note.js): the room closing soon (host: KEEP OPEN), a match on that this
+//     phone stepped out of (WATCH, + a × until the next match).
 // EACH PHONE KEEPS ITS OWN CITY (its sky, sun, weather, its local-time events); the ROOM's things are the same on every phone — all of
 // them derived from rooms/{CODE} (players, presence, meta, kicked): a refresh / a rejoin / a host change = everyone back in place.
-import { tapHandled } from '../ui/tapwatch.js';
+import { tapHandled, afterTap } from '../ui/tapwatch.js';
+import { roomNote, noteHideKey, NOTE_HIDE_KEY } from '../core/room-note.js';
 import { h } from '../ui/dom.js';
 import { avatar, row } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
@@ -36,6 +38,19 @@ export const FRESH_MS = 12000;      // (a player who joined in the last 12 s wal
 //  lies down a moment later)
 export const LOST_GRACE_MS = 1500;
 const NAME_MS = 4200, TAP_NAME_MS = 3000;
+// (THE ROOM NOTE — kept across the room screen's rebuilds (the city pauses for a match): the match whose × this page tapped (storage blocked)
+//  + the matches whose watch already said "you're dealt into the next one")
+let hideMem = null;
+const watchSaid = new Set();
+/** THE MESSAGE once the watch is on screen (the city steps aside first — never a message left floating where the dock was) */
+function sayWatching(name) {
+  let n = 0;
+  const go = () => {
+    if (document.body.classList.contains('nd-on') && ++n < 20) { setTimeout(go, 150); return; }
+    if (state.code && state.game && state.meta && state.meta.status === 'playing') toast(name ? `Watching ${name}` : 'Watching the game', 'info', { ms: 4200, sub: 'You’re dealt into the next one.' });
+  };
+  setTimeout(go, 150);
+}
 
 export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   // (FRIENDS C — THE SLOW-3G START: the cartridges' module lists fetched now, in the lobby — the start then puts a whole graph on the wire at once)
@@ -70,7 +85,6 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     guests: () => { sfx('select'); openGuests(); },
     games: () => { sfx('select'); ngTapped(); openGames(isHost()); },
     chat: () => { sfx('tap'); lazyImport(import('../chat/ui.js'), '../chat/ui.js').then(m => m.openChat()); },
-    note: () => onNote(),
   });
   if (dockHost) dockHost.append(dock.els.door);
   // (PLAY NOW — PLAY WITH FRIENDS: the card's game PRESELECTED — once this phone hosts its fresh room, the options sheet opens on that game)
@@ -330,23 +344,48 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const ty = chatMod ? chatMod.chat.typing || {} : {}, now = serverNow();
     for (const [uid, T] of tags) { const on = uid !== st.uid && ty[uid] && now - ty[uid] < 6000; if (T.el.classList.contains('is-typing') !== !!on) T.el.classList.toggle('is-typing', !!on); }
   }
-  let noteKind = '';
-  function paintNotes() {
-    const note = dockHost && dockHost.closest('.nd-actions') ? dockHost.closest('.nd-actions').querySelector('.nd-note') : null;
-    if (!note || !st.meta) return;
-    const live = st.meta.status === 'playing' && st.game && st.quit === st.game.matchId;
-    const left = idleLeft(st.meta, serverNow()), idle = !live && left <= ROOM_IDLE_WARN_MS;
-    let text = '', kind = '';
-    if (live) { const g = GAMES.find(x => x.id === st.game.id); text = `${g ? g.name : 'A GAME'} IS ON — TAP TO WATCH (you’re dealt into the next one)`; kind = 'live'; }
-    else if (idle) { const m = Math.max(1, Math.ceil(left / 60000)); text = isHost() ? `ROOM CLOSES IN ${m} MIN — TAP TO KEEP IT OPEN` : `ROOM CLOSES IN ${m} MIN — A GAME KEEPS IT OPEN`; kind = 'idle'; }
-    noteKind = kind;
-    if (note.textContent !== text) note.textContent = text;
-    note.dataset.kind = kind ? 'warn' : '';
-    note.classList.toggle('is-on', !!text);
+  // THE ROOM NOTE (the owner's add-on, Nov 13 1:38 pm — core/room-note.js): ONE LINE in a slim pill sized to its words, just above the dock
+  // (css/title.css .rc-note — the room's own; the title's .nd-note steps aside in a room). LIVE: "<GAME> IS ON · TAP TO WATCH" + a × (44 pt)
+  // that hides it until the NEXT match (per match id, localStorage — a refresh keeps it; storage blocked → this page's memory); the pill's
+  // body still opens the watch, and the first watch of a match says "you're dealt into the next one" (THE MESSAGE, once). IDLE: "ROOM CLOSES
+  // IN n MIN · …" — no × (the host must see it). Taps through the dock's own pointer-up path (title-dock.js hands its pressTap over — this
+  // lazy chunk imports no new export); a repaint waits for a finger on the pill to land (ui/tapwatch.js#afterTap — never under a finger).
+  const wire = (el, fn) => (dock && typeof dock.pressTap === 'function' ? dock.pressTap(el, fn) : (el.addEventListener('click', fn), el));
+  const noteWords = h('span.rc-note-w');
+  const noteBody = wire(h('button.rc-note-t', { type: 'button' }, h('i.rc-note-dot', { 'aria-hidden': 'true' }), noteWords), () => onNote());
+  const noteX = wire(h('button.rc-note-x', { type: 'button', 'aria-label': 'Hide this until the next game', hidden: true },
+    h('span', { 'aria-hidden': 'true', html: '<svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6"/></svg>' })), () => hideNote());
+  const noteEl = h('div.rc-note', { role: 'status', 'aria-live': 'polite' }, noteBody, noteX);
+  { const above = dockHost && dockHost.querySelector('.nd-above'); if (above) above.prepend(noteEl); }
+  let noteKind = '', noteSig = '';
+  const readHide = () => { try { return localStorage.getItem(NOTE_HIDE_KEY); } catch { return null; } };
+  function paintNotes() { afterTap(paintNotesNow); }
+  function paintNotesNow() {
+    if (destroyed || !st.meta) return;
+    const g = st.game || null, mid = (g && g.matchId) || '', gm = g && GAMES.find(x => x.id === g.id), key = noteHideKey(code(), mid);
+    const n = roomNote({ status: st.meta.status, matchId: mid, gameName: gm ? gm.name : '', quit: st.quit, left: idleLeft(st.meta, serverNow()),
+      warnMs: ROOM_IDLE_WARN_MS, host: isHost(), code: code(), hidden: key && hideMem === key ? hideMem : readHide() });
+    noteKind = n.kind;
+    const sig = `${n.kind}|${n.text}|${n.close ? 1 : 0}`;
+    if (sig === noteSig) return;
+    noteSig = sig;
+    if (n.text) { noteWords.textContent = n.text; noteEl.dataset.kind = n.kind; noteX.hidden = !n.close; }   // (fading out: the last words stay)
+    noteEl.classList.toggle('is-on', !!n.text);
+  }
+  function hideNote() {
+    const key = noteHideKey(code(), st.game && st.game.matchId);
+    if (!key || noteKind !== 'live') return;
+    hideMem = key;
+    try { localStorage.setItem(NOTE_HIDE_KEY, key); } catch { /* this page's memory holds it */ }
+    sfx('tap');
+    paintNotesNow();
   }
   function onNote() {
-    if (noteKind === 'live') setState({ quit: null });
-    else if (noteKind === 'idle' && isHost()) dbUpdate(dbRef(`rooms/${code()}/meta`), { activeAt: serverTimestamp() }).then(() => toast('ROOM KEPT OPEN FOR ANOTHER HOUR', 'ok')).catch(() => toast('COULD NOT REACH THE ROOM', 'err'));
+    if (noteKind === 'live') {
+      const m = st.game && st.game.matchId, gm = st.game && GAMES.find(x => x.id === st.game.id);
+      setState({ quit: null });
+      if (m && !watchSaid.has(m)) { watchSaid.add(m); sayWatching(gm ? gm.name : ''); }
+    } else if (noteKind === 'idle' && isHost()) dbUpdate(dbRef(`rooms/${code()}/meta`), { activeAt: serverTimestamp() }).then(() => toast('ROOM KEPT OPEN FOR ANOTHER HOUR', 'ok')).catch(() => toast('COULD NOT REACH THE ROOM', 'err'));
   }
   const noteT = setInterval(() => { if (!destroyed) { paintNotes(); paintBubbles(); paintDock(); startFx(); } }, 2000);   // (+ FR6 FIXES A: a start past its time ends on the clock, not on a state change)   // (+ the dock: the REMATCH ring comes up on the clock)
 
@@ -470,7 +509,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     vote: () => voteNow(),
     banner: () => banner.debug(),
     hostCard: () => (hostCard ? { text: hostCard.el.textContent } : null),
-    debug: () => ({ tags: [...tags.keys()], roster: roster(), seen: seen ? [...seen] : null, hits: Object.fromEntries([...tags].map(([u, T]) => [u, T.hit && { x0: Math.round(T.hit.x0), x1: Math.round(T.hit.x1), y0: Math.round(T.hit.y0), y1: Math.round(T.hit.y1) }])) }),
+    debug: () => ({ tags: [...tags.keys()], roster: roster(), seen: seen ? [...seen] : null,
+      note: { kind: noteKind, on: noteEl.classList.contains('is-on'), text: noteWords.textContent, x: !noteX.hidden },   // (THE ROOM NOTE — the tests' read)
+      hits: Object.fromEntries([...tags].map(([u, T]) => [u, T.hit && { x0: Math.round(T.hit.x0), x1: Math.round(T.hit.x1), y0: Math.round(T.hit.y0), y1: Math.round(T.hit.y1) }])) }),
     nearestAt,
     destroy() {
       destroyed = true; clearTimeout(wireT); cancelAnimationFrame(raf); clearInterval(noteT); clearTimeout(graceT); closeHostCard(); if (offChat) offChat(); if (offFr) offFr(); if (invSheet) invSheet.close(); banner.destroy();
@@ -480,7 +521,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
       if (scene && scene.room) { const x = exitHow(); scene.room(null, { me: st.uid, wave: !!(x && x.how === 'leave') }); }
       if (scene && scene.hush) scene.hush(null);
       clearTimeout(pickT);
-      layer.remove(); document.body.classList.remove('rc-on', 'rc-solo');
+      layer.remove(); noteEl.remove(); document.body.classList.remove('rc-on', 'rc-solo');
       if (dock) { dock.els.door.remove(); dock.destroy(); }
       if (guestsUi && guestsUi.close) guestsUi.close();
       if (gamesOpen) gamesOpen.close();

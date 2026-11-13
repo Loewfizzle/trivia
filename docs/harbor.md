@@ -812,7 +812,13 @@ one-day AMBER tubes with them. Now:
 ## KNOWN ISSUES — OPEN (C4d, Oct 29 2026: one list; each pass's own section in its log keeps the history)
 
 **Open**
-- **NO TWO CAMERAS · HOURS hidden AT SUNSET** (found by JAYWALK CARDS' cloud run, Nov 13 — passes/jaywalk-cards.md "The cloud"): the `cameras` group's
+- **THE HOLD LETS GO BEFORE A SLOW RE-BAKE LANDS (4× CPU)** (THE POOL FIXES 0e, Nov 13 — docs/games/passes/pool-fixes.md): `hours-dusk@16:40` at
+  a 4× CPU throttle (the reveal ~7 s — twice the cloud's) goes red on the FRAMES check, before and after 0e's paint-order fix: the re-bake for the
+  new camera starts while the page is hidden (nothing bakes hidden), lands ~5.3 s after the return, and the hold's safety `HOLD_MAX` (4 s on screen)
+  lets go first — the old camera shows ~1–2 s, then the late bake crossfades. Green at 1× + 2× (the cloud today); a slow phone could see it. The fix
+  (keep holding while the bake is still making progress, with a hard cap) is a TIMING CALL for the owner — not made.
+- **NO TWO CAMERAS · HOURS hidden AT SUNSET** — **CAUSE FOUND + FIXED by THE POOL FIXES 0e** (crisp.js: same-z crisp copies stack in the city's
+  paint order — the roof board's day face had been left over its lamp-lit copy); kept here until a cloud run confirms. (found by JAYWALK CARDS' cloud run, Nov 13 — passes/jaywalk-cards.md "The cloud"): the `cameras` group's
   `hours-box` path (hidden 6 s, the clock +10 h, the box grows) fails its 0.25-s look ONLY when the return lands at Grand Rapids' sunset — the roof
   board's 86×48 crisp copy vs the city's picture 17–27, −48 pt apart. **Older than that pass** (the pre-pass commit fails the same with the clock placed
   at sunset — a temporary offset in `kit/two-cameras.mjs`' INIT + its `/api/time` route); every other wall time passes. The cloud ran at 2 am Eastern
@@ -1225,6 +1231,15 @@ SIGN ignites in the NEON pink at 0.56 s (tube by tube — `room-city.js#tubeDela
 fade at 4.3 s. **QUICK** (a same-game REMATCH — `host.js#rematch`) = 3.0 s — the sign lit at once, the walk-in at 0.25 s, the fade at 2.35 s. The
 kind rides in the match id (`q…` — `startKind`); the game's clock = the tap + the start's length. No camera push, no layout read; reduced motion =
 the lit sign + the fade. Look runs: `tests/integration/room2-look.mjs` (the beats at 300 / 900 / 1250 / 2300 / 4000 / 4700 ms + the quick start).
+
+### THE ROOM NOTE (the owner's add-on, Nov 13 — the two-line "… IS ON — TAP TO WATCH (you're dealt into the next one)" slab read as a stuck message)
+ONE LINE in a slim pill sized to its words, 14 pt above the dock (`.rc-note` in the `.nd-above` slot — css/title.css; lifted over the PLAY ring's
+MID-DAILY / REMATCH pill; the title's own `.nd-note` steps aside in a room). **LIVE** "<GAME> IS ON · TAP TO WATCH" + a × (44 × 44 pt) that hides it
+until the NEXT match (`nd:note-x` = `CODE:matchId` in localStorage — a refresh keeps it; storage blocked → the page's memory); the pill's body opens
+the watch + THE MESSAGE "Watching <GAME> · You're dealt into the next one" ONCE a match. **IDLE** "ROOM CLOSES IN n MIN · TAP TO KEEP IT OPEN" (the
+host) / "· A GAME KEEPS IT OPEN" (a guest) — the same pill, NO × (the host must see it). The words: `core/room-note.js` (PURE —
+`tests/room-note.test.mjs`); `room-city.js#paintNotes` taps through the dock's pressTap (never a new import in this lazy chunk), repaints through
+`afterTap`. E2E: the harbor group `roomnote` (job lobbyfix); shots: `rn-watch`, `rn-idle`, `rn-idle-mid` (+ `-day`) in `shots.mjs`.
 
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 

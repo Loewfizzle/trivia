@@ -1034,7 +1034,37 @@ body.rc-solo .rdk-dock { visibility: hidden !important; pointer-events: none !im
 .rdk-play.rdk-wait { filter: saturate(0) brightness(0.62); }
 .rdk-play.rdk-wait .rdk-w1 { font-size: 0.64em; letter-spacing: 0.06em; }   /* (THE SPEED PASS: WAITING / FOR HOST both inside the ring's tube) */
 .rdk-play.rdk-wait .rdk-w2 { font: 800 8px/1 var(--font-ui); letter-spacing: 0.08em; white-space: nowrap; color: rgba(240, 236, 250, 0.9); max-width: 64px; text-align: center; }
-.nd.is-room .nd-note { cursor: pointer; }
+/* THE ROOM NOTE (the owner's add-on, Nov 13 — room-city.js#paintNotes, core/room-note.js): ONE LINE in a slim pill sized to its words, just
+   above the dock (the .nd-above slot — never across the promenade): LIVE "<GAME> IS ON · TAP TO WATCH" + a × (44 pt) until the next match;
+   IDLE "ROOM CLOSES IN n MIN · …", no ×. The title's own .nd-note steps aside in a room. Opacity + transform only; tokens only. */
+.nd.is-room .nd-note { display: none !important; }
+/* (in a room the slot sits closer to the dock — the pill reads as the dock's own line; lifted over the PLAY ring's MID-DAILY / REMATCH pill) */
+.nd.is-room .nd-above { bottom: calc(100% + 14px); }
+.nd.is-room .nd-dk:has(.rdk-mid:not([hidden]), .rdk-votes:not([hidden])) .nd-above { bottom: calc(100% + 52px); }
+.rc-note { position: relative; display: flex; align-items: stretch; max-width: calc(100vw - 32px); height: 34px; border-radius: 999px;
+  background: color-mix(in srgb, var(--dk-tint) 42%, color-mix(in srgb, var(--bg-0) 88%, transparent));
+  border: 1px solid var(--line-2); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 10%, transparent), 0 8px 20px color-mix(in srgb, var(--bg-0) 55%, transparent);
+  opacity: 0; transform: translateY(6px); visibility: hidden; transition: opacity 0.3s ease, transform 0.35s var(--ease), visibility 0s linear 0.35s; }
+.rc-note.is-on { opacity: 1; transform: none; visibility: visible; transition: opacity 0.3s ease, transform 0.35s var(--ease), visibility 0s; }
+.rc-note[data-kind='idle'] { border-color: color-mix(in srgb, var(--magenta) 42%, transparent); }
+.rc-note-t, .rc-note-x { position: relative; display: flex; align-items: center; margin: 0; border: 0; background: none; color: var(--text); cursor: pointer;
+  -webkit-tap-highlight-color: transparent; border-radius: 999px; }
+.rc-note-t { gap: 8px; min-width: 0; padding: 0 15px 0 13px; font: 700 11.5px/1 var(--font-ui); letter-spacing: 0.09em; white-space: nowrap; }
+.rc-note-w { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.rc-note-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.rc-note[data-kind='idle'] .rc-note-dot { background: var(--magenta); box-shadow: 0 0 6px var(--magenta); }
+.rc-note:has(.rc-note-x:not([hidden])) .rc-note-t { padding-right: 6px; }
+.rc-note-x { flex: none; justify-content: center; width: 32px; padding: 0 2px 0 0; color: var(--text-dim); }
+.rc-note-x[hidden] { display: none; }
+.rc-note-x::before { content: ''; position: absolute; left: 0; top: 7px; bottom: 7px; width: 1px; background: var(--line-2); }
+.rc-note-x svg { width: 12px; height: 12px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+/* the tap areas: the pill's body 44 pt tall, the × 44 × 44 pt (an invisible box round each — the pill itself stays slim) */
+/* (the pill's 34 pt includes its 1 pt border: the buttons are 32 pt tall → 6 pt over + under = 44; the × 32 wide → 6 pt each side) */
+.rc-note-t::after { content: ''; position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; }
+.rc-note-x::after { content: ''; position: absolute; left: -6px; right: -6px; top: -6px; bottom: -6px; }
+.rc-note-t:active, .rc-note-t.is-press, .rc-note-x:active, .rc-note-x.is-press { background: color-mix(in srgb, var(--text) 9%, transparent); }
+.rc-note-x:active, .rc-note-x.is-press { color: var(--text); }
+@media (prefers-reduced-motion: reduce) { .rc-note, .rc-note.is-on { transform: none; transition: opacity 0.2s ease, visibility 0s linear 0.2s; } .rc-note.is-on { transition: opacity 0.2s ease, visibility 0s; } }
 
 /* THE TAGS over the players' heads: the emblem (the bold marker), the name (on arrival + on a tap), the typing bubble — transform only */
 .rc-tags { position: fixed; inset: 0; z-index: 3; pointer-events: none; }

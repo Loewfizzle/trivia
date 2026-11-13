@@ -27,8 +27,16 @@ the current decisions: `docs/harbor/decisions.md`. The fact-check reviews (read-
   (≤ 700 ms, ≤ 10 px) ONE frame later; click kept for keyboard / screen readers (ignored 800 ms after a pointer took the tap). Every title-dock + room-dock
   button. Proof: `tests/integration/wk-docktap.mjs` (WebKit 402×874 @3, touch, the tap watch's rescue OFF) — a cold load, ONE tap on each dock button,
   each opens (JOIN · BOARD · PLAY · YOU · HOST, then the room's INVITE · PLAY · YOU · GUESTS · GAMES · CHAT); 27 / 27.
-- **0e PLAY NOW's cloud reds**: `tests` ✅; `harbor` ❌ ×1 — NO TWO CAMERAS at `hours-dusk@16:40` ("the end: 86×48 item: its copy 27,-48 pt away") —
-  see "0e" below.
+- **0e PLAY NOW's cloud reds** (`582ffb18`): `tests` ✅; `harbor` ❌ ×1 — NO TWO CAMERAS at `hours-dusk@16:40` ("the end: 86×48 item: its copy
+  27,-48 pt away"). The 86×48 item = the crisp ROOF POSTER. **The cause:** its two crisp copies share z 1 (the day face + its lamp-lit copy over it)
+  and `crisp.js` stacked same-z canvases by HISTORY (a new canvas or a crossfade went to the top of the host): a return landing at dusk made the lit
+  copy first (in the dark) and the day face after → the DAY face over the LIT one. **The fix:** same-z items stack in the order the city shows them
+  each frame (a restack only when that order changes; a crossfade's new canvas right over its old one). **Evidence** (`cr-double --diag-all`): the
+  roof poster's own-place mismatch ~26 in 5 / 5 old runs at 2× CPU (plain 8.4–8.6) → 10.5–10.9 (HOLD'EM) / 6.9–7.0 (JAYWALK); the cloud's exact red
+  line was NOT reproduced locally (it fires when another offset happens to match 25 % better — pixel chance at ~26). After: Chromium cr-double 6 / 6
+  (2×) + 1× green, WebKit wk-double 6 / 6, harbor `cameras` 13 / 13, `cameras` + `windows` 72 / 72, `roofcrisp` + `billboard` + `trivision` 15 / 15.
+  The check unchanged. **Found, not fixed:** a 4× CPU red on the frames check (the hold's HOLD_MAX lets go before a re-bake started while hidden
+  lands) — docs/harbor.md KNOWN ISSUES (a timing call for the owner). PLAY NOW 0f's `wx-late` red is not explained by this (no lit copy at 10:16).
 
 ## Group 1 — THE POOL FIXES
 

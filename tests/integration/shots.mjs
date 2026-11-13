@@ -128,6 +128,11 @@ const SCENE = {
   'pn-overclock': ['2026-11-10T20:30', { act: 'card', game: 'overclock' }], 'pn-holdem': ['2026-11-10T20:30', { act: 'card', game: 'holdem' }],
   'pn-podium': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism' }],
   'wo-sheet': ['2026-11-10T20:30', { act: 'whos-on' }], 'wo-sheet-4': ['2026-11-10T20:30', { act: 'whos-on', long: 1 }],   // (THE POOL FIXES Group 3: WHO'S ON — two rows, the city + a room, a fake answer)
+  // (THE ROOM NOTE — the owner's add-on, Nov 13: a guest in a room while PRISM DROP is on (stepped out: the one-line WATCH pill + its ×) · the
+  //  host's room 8 minutes from its idle close (the pill, no ×) — needs serve.mjs --emu + the emulators; the room built through the emulator's REST)
+  'rn-watch': ['2026-11-10T20:30', { act: 'room-note', kind: 'live' }], 'rn-watch-day': ['2026-11-10T13:30', { act: 'room-note', kind: 'live' }],
+  'rn-idle': ['2026-11-10T20:30', { act: 'room-note', kind: 'idle' }], 'rn-idle-day': ['2026-11-10T13:30', { act: 'room-note', kind: 'idle' }],
+  'rn-idle-mid': ['2026-11-10T20:30', { act: 'room-note', kind: 'idle', mid: 1 }],   // (+ a guest mid-daily: the PLAY ring's MID-DAILY line — the pill lifts over it)
   'pn-shelf-day': ['2026-11-10T13:30', { act: 'shelf' }], 'pn-overclock-day': ['2026-11-10T13:30', { act: 'card', game: 'overclock' }],   // (THE POOL FIXES 0a: OVERCLOCK's icon by day)
   // (the owner's add-on: SHARE YOUR RUN — the card drawn on the phone, shown at Messages size + full; a real PRISM DROP run by the test bot, night + day)
   'pn-share-night': ['2026-11-10T20:30', { act: 'share-card', game: 'prism', look: 'night' }], 'pn-share-day': ['2026-11-10T13:30', { act: 'share-card', game: 'prism', look: 'day' }],
@@ -363,6 +368,39 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       W.openWhosOn({ api: async () => ({ rows, guests: { n: 1, city: 1, rooms: 0, daily: 0 }, now }), openSheet: S.openSheet });
     }, o);
     await p.waitForSelector('.wo-sheet.is-in .wo-row'); await sleep(900);
+  }
+  // (THE ROOM NOTE: live = this phone a GUEST of a room whose match it stepped out of (quit = the match, set BEFORE the match lands — never the
+  //  game screen); idle = this phone HOSTS, the room's activeAt pushed back 52 min (ROOM CLOSES IN 8 MIN). The pill read from the room's debug)
+  if (o.act === 'room-note') {
+    const DBH = 'http://127.0.0.1:9000/', NS = '?ns=demo-arcade-default-rtdb';
+    const rest = (method, path, v) => fetch(`${DBH}${path}.json${NS}`, { method, headers: { Authorization: 'Bearer owner', 'content-type': 'application/json' }, body: JSON.stringify(v) });
+    const now = Date.now();
+    let code;
+    if (o.kind === 'live') {
+      code = Array.from({ length: 4 }, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)]).join('');
+      await rest('PUT', `rooms/${code}`, { meta: { hostId: 'shhost', status: 'lobby', createdAt: now, activeAt: now },
+        players: { shhost: { name: 'DIME TIME', color: 'cyan', avatar: 'crown', joinedAt: now - 60000, ln: 'L' } },
+        presence: { shhost: { online: true, lastSeen: now, v: 2, c: { k0: true } } } });
+      await p.evaluate(c => Promise.all([import('/js/room.js'), import('/js/identity.js')]).then(([R, I]) => R.joinRoom(c, I.loadProfile())), code);
+    } else await p.evaluate(() => document.querySelector('.nd-hostbtn').click());
+    await p.waitForFunction(() => window.__arcade.state.code && window.__district.room && window.__district.room(), { timeout: 20000 });
+    code = await p.evaluate(() => window.__arcade.state.code);
+    if (o.kind === 'live') {
+      await p.evaluate(() => import('/js/store.js').then(m => m.setState({ quit: 'shm1' })));
+      await rest('PATCH', `rooms/${code}`, { 'meta/status': 'playing', 'meta/hostBeat': now + 3600e3, game: { id: 'prism', matchId: 'shm1', phase: 'play', participants: { shhost: true } } });
+    } else {
+      if (o.mid) await rest('PATCH', `rooms/${code}`, { 'players/shmid': { name: 'KIM', color: 'yellow', avatar: 'star', joinedAt: now - 30000, ln: 'R', dy: true }, 'presence/shmid': { online: true, lastSeen: now, v: 2, c: { k1: true } } });
+      await rest('PATCH', `rooms/${code}/meta`, { activeAt: now - 52 * 60000 });
+    }
+    await p.waitForFunction(() => { const r = window.__district.room(); return r && r.note && r.note.on; }, { timeout: 15000 }).catch(() => console.log(`${name} ${w}x${h}: the room note never came up`));
+    if (o.kind !== 'live') {   // (the host's hush-word card: any press away closes it)
+      await sleep(400);
+      const left = await p.evaluate(() => { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return new Promise(r => setTimeout(() => r(!!document.querySelector('.rc-hostcard:not(.is-out)')), 500)); }).catch(e => String(e));
+      if (left) console.log(`${name} ${w}x${h}: the host card stayed (${left})`);
+    }
+    await sleep(1600);
+    console.log(`${name} ${w}x${h}: ${JSON.stringify(await p.evaluate(() => { const r = window.__district.room().note, e = document.querySelector('.rc-note'), b = e.getBoundingClientRect(), d = document.querySelector('.rdk-dock').getBoundingClientRect(), x = document.querySelector('.rc-note-x'), xb = x && !x.hidden ? x.getBoundingClientRect() : null;
+      return { ...r, pill: [Math.round(b.left), Math.round(b.top), Math.round(b.width), Math.round(b.height)], dockTop: Math.round(d.top), gap: Math.round(d.top - b.bottom), lines: Math.round(document.querySelector('.rc-note-w').getBoundingClientRect().height), x: xb ? [Math.round(xb.width), Math.round(xb.height)] : null }; }))}`);
   }
   if (o.act === 'share-card') {
     await p.evaluate(l => { try { localStorage.setItem('ns:look', l); } catch { /* fine */ } }, o.look || 'auto');
