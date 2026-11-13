@@ -1,6 +1,6 @@
 // PRISM DROP preview screenshots + frame timing (no Firebase) — PD-1: prism-preview.html mounts the REAL view.
 //   node tests/integration/prism-shots.mjs "<browser path>" ./shots-prism [cpu throttle, default 1]
-//   env: SETS=look,states,worlds (default look,states)  SIZES=390x844,402x874,430x932,1440x900  PERF=0 (skip the timing)  GPU=1  DSF=3
+//   env: SETS=look,states,worlds,pd6 (default look,states)  NOSAFE=1 (no safe areas: Safari with its toolbars)  SIZES=390x844,402x874,430x932,1440x900  PERF=0 (skip the timing)  GPU=1  DSF=3
 //        WAIT=ms before a shot   Q="&extra=1" added to every preview URL   ONLY=name,name (shoot only those)
 // Needs scripts/serve.mjs running on :5173. Each phone size gets its real safe areas (iPhone 13/14 · 15/16 Pro · Pro Max).
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
@@ -129,6 +129,13 @@ const SHOTS = {
     'd-rush': 'look=day&paper=coloring&n=5&stack=10&rush=1',
     'd-reduced-clear4': { q: 'look=day&paper=notepad&n=5&stack=12&reduced=1', js: 'window.__prism.fire("clear", { lines: 4 })', w: 120 },
   },
+  // PD-6 — THE SPARE-WIDTH COLUMN (SIZES=390x650,402x690,430x746 NOSAFE=1 = Safari WITH its toolbars; the default sizes = a home-screen app): solo,
+  // 5 + 7 opponents, LEFT, BUTTONS, a duel, both looks, the slam down
+  pd6: {
+    'c-solo': 'solo=1&mode=rush&stack=8', 'c-play5': 'n=5&stack=10', 'c-play7': 'n=7&stack=10', 'c-left': 'n=5&stack=10&slam=left',
+    'c-buttons': 'n=5&stack=10&scheme=buttons', 'c-duel': 'n=3&stack=10&state=duel', 'c-down': 'n=5&stack=10&down=1', 'c-hit': 'n=5&stack=10&hit=1',
+    'c-day5': 'look=day&paper=notepad&n=5&stack=10', 'c-day-left': 'look=day&paper=graph&n=7&stack=10&slam=left',
+  },
   // PD-4 — THE DAY LOOK: the crayon sheet (every drawing on each paper — one size), then the game's own day screens
   sheet: Object.fromEntries(['notepad', 'graph', 'construction', 'coloring'].map(p => [`sheet-${p}`, { page: 'prism-crayon-sheet.html', q: `paper=${p}`, w: 400 }])),
 };
@@ -150,7 +157,7 @@ for (const set of sets) {
       page.on('pageerror', e => errors.push(`${name}@${width}: ${e.message}`));
       const desk = width >= 900;
       await page.setViewport({ width, height, deviceScaleFactor: desk ? 1 : DSF, isMobile: !desk, hasTouch: !desk });
-      const [st, sb] = desk ? [0, 0] : (SAFE[width] || [47, 34]);
+      const [st, sb] = desk || process.env.NOSAFE === '1' ? [0, 0] : (SAFE[width] || [47, 34]);   // (PD-6: NOSAFE=1 = Safari with its toolbars — no insets)
       const html = (typeof spec === 'object' && spec.page) || 'prism-preview.html';   // (PD-4: an entry may name another page — the crayon sheet)
       // (PD-4: 'load' + a bounded wait for the network to settle — the podium's card system keeps a request open on a serve without /api)
       await page.goto(`${BASE}/tests/integration/${html}?${qs}&st=${st}&sb=${sb}${EXTRA}`, { waitUntil: 'load' });

@@ -246,6 +246,10 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd-tile-ini { position: relative; font-family: var(--font-display); font-weight: 900; font-size: 15px; line-height: 1; color: #fff; text-shadow: 0 0 8px var(--c), 0 1px 2px rgba(0, 0, 0, 0.9); }
 .pd-tile-rank { position: absolute; top: 3px; left: 3px; font-family: var(--font-num); font-weight: 700; font-size: 9px; line-height: 1; color: #fff; }
 .pd-tile-rank:empty { display: none; }
+/* (PD-6 — a wide column's tiles: the initial + the rank + KO a step bigger, as wide as the column) */
+.pd.is-wide .pd-tile-ini { font-size: 19px; }
+.pd.is-wide .pd-tile-rank { font-size: 10px; top: 4px; left: 5px; }
+.pd.is-wide .pd-tile-ko { font-size: 10px; }
 .pd-tile-ko { display: none; position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font-family: var(--font-display); font-weight: 900; font-size: 9px; letter-spacing: 0.06em; color: #ff9fb2; }
 .pd-tile.is-ko { opacity: 0.55; border-color: #555b6a; }
 .pd-tile.is-ko .pd-tile-fill { background: rgba(70, 75, 90, 0.6); }
@@ -266,6 +270,8 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd-slam { position: relative; flex: none; height: var(--slamA, 50px); display: flex; align-items: flex-end; justify-content: flex-end; margin-right: calc((var(--railW, 34px) - var(--slamD, 40px)) / 2 - 3px); }   /* (SLAM is wider than the rail: it leans OUT into the screen margin, never toward the board) */
 .pd[data-slam='left'] .pd-slam { justify-content: flex-start; margin-right: 0; margin-left: calc((var(--railW, 34px) - var(--slamD, 40px)) / 2 - 3px); }
 .pd[data-scheme='buttons'] .pd-slam, .pd.is-spectating .pd-slam { display: none; }
+/* (PD-6 — THE SPARE-WIDTH COLUMN: the column is wider than SLAM → SLAM centred at its foot, both settings) */
+.pd.is-wide .pd-slam, .pd.is-wide[data-slam='left'] .pd-slam { justify-content: center; margin: 0; }
 .pd-slam-b {
   position: relative;
   width: var(--slamD, 40px);
