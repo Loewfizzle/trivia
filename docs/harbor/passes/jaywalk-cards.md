@@ -209,3 +209,16 @@ Built step for step like REDLINE + PHOTO FINISH (passes/overclock-cards.md Group
   (ea86257b, checked in a worktree) — deterministic, the same with no people / cars; the cloud's street job passed it on Nov 12 → this machine or the
   date, not this pass. Left for the next city pass (the cloud run says which).
 - JAYWALK's cards show their art only once you APPROVE them in THE LAB (the rule for every card).
+
+## The close — the local run (the beelink, the final code)
+- **Unit** 1738 / 1738 · **rules** 82 / 82 (`database.rules.json` unchanged — nothing to re-publish) · **`/api`** 51 / 51 · **smoke** 8 / 8 · **CONN**
+  clean · **sw-cache** 3 / 3 · **wk-edge** 6 / 6 · **wk-load** 4 loads, 0 with a problem · **boot-time** the reveal 1344 ms · 345 requests · 2731 KB
+  (inside THE BOOT BUDGET; THE BOOT PRELOAD 304 → 307 modules of 310 — the PURE tri-vision clock, the bot check, the occluder list: no budget raise).
+- **THE FULL HARBOR SUITE** (4 shards, nothing else on the machine, ~33 min): **1277 / 1282**. The five + `snow`'s bake timeout, each re-run ALONE:
+  `rebuild` ✓ (the worst task 897 ms — was 1597 under the shards' load) · `roomperf` ✓ (36.4 → 36.4 ms while seven walk in) · `sightings` ✓ (worst frame
+  66.6 ms) · `snow` 25 / 25 · `longnight` 3 / 3 + `people`'s THE BENCH OVER THE TAXI ✓ — these two were MY new checks' measures, too twitchy under load:
+  the bench's tolerance 1.5 → 4 (**proved still discriminating**: with the fix turned OFF the check fails — the overlay at opacity 1, mean diff 12.97;
+  with it on 1.1–1.8) and the long night's memory read as the MB FLOOR (a sample swings ~10 MB while a bake's crossfade holds two layers; a leak raises
+  the floor). `people`'s zebra: red alone, green in the full run — flaky (Known issues).
+- **My servers**: the emulators (database + auth) + `serve.mjs --emu` on 5173, started fresh at the pass's start (an earlier pass's emulators stopped
+  first), stopped at the end; the plain preview server on 5190 left up (the owner's preview links).

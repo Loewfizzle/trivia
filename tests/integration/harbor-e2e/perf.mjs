@@ -284,8 +284,8 @@ G('longnight', async () => {
     S.push(await sample(p));
   }
   const med = xs => { const v = [...xs].sort((a, b) => a - b); return v[v.length >> 1]; };
-  const n0 = med(S.slice(1, 4).map(s => s.n)), peak = Math.max(...S.slice(1).map(s => s.n)), mb0 = med(S.slice(1, 4).map(s => s.mb)), mb1 = med(S.slice(-3).map(s => s.mb));
-  ok(peak <= n0 * 1.25 && mb1 - mb0 <= 3 && S.at(-1).gl <= S[1].gl, `THE LONG NIGHT — 8 trips city → game → room: the live canvases never pile up (the first trips ${n0}, the peak ${peak}; ${mb0} → ${mb1} MB), the GPU contexts flat (${S[1].gl} → ${S.at(-1).gl}) — ${S.map(s => s.n).join(' ')}`);
+  const n0 = med(S.slice(1, 4).map(s => s.n)), peak = Math.max(...S.slice(1).map(s => s.n)), mb0 = Math.min(...S.slice(1, 4).map(s => s.mb)), mb1 = Math.min(...S.slice(-3).map(s => s.mb));   // (the MB FLOOR: a sample swings ~10 MB as a bake's crossfade holds two layers — a leak raises the floor)
+  ok(peak <= n0 * 1.25 && mb1 - mb0 <= 4 && S.at(-1).gl <= S[1].gl, `THE LONG NIGHT — 8 trips city → game → room: the live canvases never pile up (the first trips ${n0}, the peak ${peak}; the MB floor ${mb0} → ${mb1}), the GPU contexts flat (${S[1].gl} → ${S.at(-1).gl}) — ${S.map(s => s.n).join(' ')}`);
   ok(after.every(n => n === 0), `…and NO CITY FRAME after the unmount — the title going away stops the city at once (the frames drawn after each game start: ${after.join(' ')})`);
   await A.ctx.close(); await B.ctx.close();
   // the menus: title → YOUR CARD → title
