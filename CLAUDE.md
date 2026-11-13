@@ -174,16 +174,17 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   GAME THROUGH THE DEALER** — HOLD'EM's ☰ END GAME = the dealer's `endGame` (places by chips from 3 hands, else NO RESULT — `match.js#endTournament`).
   Add-ons: **`api()` under ONE time limit** (token + fetch + body — a lock waiting on it always lets go; HOLD'EM's move lock + its 10 s release);
   **THE LOST LOOK** — a canvas iOS discarded in the background (a lost context / the bake's blank sentinel) → the dark held → the one re-fit path (docs/harbor.md#performance).
-- **FR7 FIXES B (Nov 12 — docs/harbor/passes/fr7-fixes-b.md):** **THE EDGE CACHE** — `/js` `/css` `/assets` 5 min at the edge; the worker keeps ONE COPY PER
-  DEPLOY by `/api/time`'s build id (same build → its own copy, no request; a new one → a fresh cache from the network, never the HTTP cache; a copy handed
-  over `no-cache`; every Cache Storage wait bounded — `sw.js`; proof `wk-edge.mjs`, `wk-twotabs.mjs`). **THE FROZEN SONGS OUT OF DEPLOYS** — `.vercelignore`
-  drops the ten frozen games' songs (a game coming back deletes its lines; `tests/frozen-songs.test.mjs` guards every live playlist + station). **THE
-  PRIVATE-REPO WORKFLOW** — both workflows read the repo's visibility (public = as before; private = the light `tests` only, `harbor` by hand). **THE
-  LAUNCH + THE PRIVATE FLIP = docs/launch.md** (the owner's steps; pass screenshots stay out of git — `tests/repo-growth.test.mjs`). **A SEAT IS NOT A
-  PLAY** — a credited uid needs its OWN node of the match (`api/report.js#PROOF_TREES`; the walk back keeps them: `games/registry.js#PROOF_NODE_LIST`).
-  **SIGHTINGS NEED THE CITY OPEN** — a sky claim only inside the server's `ppriv/{pid}/co` (radioHello), `QUEUE_MS` 15 min. THE TWO-TAB HANG: the boot
-  probes Firebase's own IndexedDB databases before the SDK (`firebase.js#idbAnswers` — silent → hidden, localStorage alone); THE WATCHDOG ALWAYS ENDS IN A
-  WAY OUT (an armed reload that never came → TAP TO TRY AGAIN); the BOOT HANG report's "other tabs open: n".
+- **FR7 FIXES B (Nov 12 — docs/harbor/passes/fr7-fixes-b.md):** **THE EDGE CACHE is DEFERRED to THE LAUNCH** (the owner: he checks every deploy on
+  his iPhone at once) — `docs/launch.md` step 8 = `git revert` of the commit "THE EDGE CACHE out" + its proof (`wk-edge.mjs`); until then the worker is
+  network-first + `no-cache` and `/js` `/css` `/assets` carry no cache header. **THE FROZEN SONGS OUT OF DEPLOYS** — `.vercelignore` drops the ten frozen
+  games' songs (a game coming back deletes its lines; `tests/frozen-songs.test.mjs` guards every live playlist + station). **THE PRIVATE-REPO WORKFLOW** —
+  both workflows read the repo's visibility (public = as before; private = the light `tests` only, `harbor` by hand). **THE LAUNCH + THE PRIVATE FLIP =
+  docs/launch.md** (pass screenshots stay out of git — `tests/repo-growth.test.mjs`). **A SEAT IS NOT A PLAY** — a credited uid needs its OWN node of the
+  match (`api/report.js#PROOF_TREES`); PRESENT = PROVEN (OVERCLOCK writes its board at each challenge's open; PRISM saves while its frames run); the walk
+  back keeps the proof nodes and a RE-START KEEPS THE LAST MATCH's (`host.js#pruneProofs` — the host deletes ONE match's node: a rules row). **SIGHTINGS
+  NEED THE CITY OPEN** — a sky claim only inside the server's `ppriv/{pid}/co` (radioHello); the gap = the queue = 15 min; `no_stamp` = the phone retries.
+  THE TWO-TAB HANG: the boot probes Firebase's own IndexedDB databases before the SDK (`firebase.js#idbAnswers` — silent → hidden, localStorage alone);
+  every Cache Storage wait in the worker bounded; THE WATCHDOG ALWAYS ENDS IN A WAY OUT; the BOOT HANG report's "other tabs open: n".
 - **A game's podium music:** `FINAL_MUSIC` in its index.js (HIGH STAKES: `victory1` = victory.mp3); default the victory playlist.
 - **OVERCLOCK (OC1 — docs/overclock.md):** QUICK default; THE ROOM's NIGHT MEMORY = the host deals the whole match at `start({ used })` (`overclock/deal.js`), each challenge marks its keys as it opens; the after-challenge skip (`ocnext`, ≥ 3 s, everyone connected); the combo (`ocm` → `game/combo`); NIGHT only (`LOOKS`); its timings are the owner's — pinned by `tests/overclock-oc1.test.mjs`; mid-game standings = LIGHT rows, never the slim cards. OC2: THE ROUND WIN is ONE rule (`logic.js#roundWin` —
   the highest + not shared; the server's REDLINE calls it; stored as `game/rw`); the after-challenge screen + the final run in BEATS inside the

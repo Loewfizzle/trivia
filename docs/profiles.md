@@ -531,3 +531,7 @@ A second way to bring your card to a device, beside the restore key (which stays
   challenge's board / combo marks / sealed picks) — dropped BEFORE THE REAL PLAYER COUNT; the walk back to the room keeps those nodes (+ the seal) for a
   late report (`games/registry.js#PROOF_NODE_LIST`); HOLD'EM = the dealer, untouched.
 - `/admin` STATS + the radio's open rooms: the LIVE rooms through the index (`api/_lib/rooms-live.js`), never the whole rooms tree.
+- **THE HONEST PLAYERS (FR7 FIXES B's urgent add-on):** PRESENT = PROVEN — an OVERCLOCK phone writes its own board at each challenge's open, PRISM saves
+  while its frames run, so a present-but-silent player is a counted loss (never a solo run for the other); A RE-START KEEPS THE LAST MATCH's PROOF
+  (`host.js#pruneProofs` — every other match's nodes pruned, best effort; a rules row lets the host delete one match's node). A host can still fake the
+  RESULT of a match the victim really played (the accepted host trust) — never credit one they weren't in.

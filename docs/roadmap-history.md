@@ -2676,10 +2676,10 @@ The dailies went live (Nov 8); Ben's first plays on his iPhone + two /admin fixe
 
 ## FR7 FIXES B — the launch + the plumbing (Nov 12, 2026 — docs/harbor/passes/fr7-fixes-b.md)
 THE LAUNCH's code (E2 the freezes carried into the new streak, E3 the founder sweep only while the window is open, E4 `cp` reset), /board's link
-preview re-shot from the real velvet board + both pages' og tags on www, docs/launch.md (THE LAUNCH + THE PRIVATE FLIP). THE EDGE CACHE: /js /css
-/assets 5 min at the edge + the worker's ONE COPY PER DEPLOY (WebKit, a warm visit 356 → 15 requests, 7.2 MB → 260 KB). THE FROZEN SONGS OUT OF DEPLOYS
+preview re-shot from the real velvet board + both pages' og tags on www, docs/launch.md (THE LAUNCH + THE PRIVATE FLIP). THE EDGE CACHE (/js /css
+/assets 5 min at the edge + the worker's ONE COPY PER DEPLOY — a warm visit 356 → 15 requests in WebKit) built, proven, then DEFERRED to THE LAUNCH (the owner) — docs/launch.md step 8. THE FROZEN SONGS OUT OF DEPLOYS
 (299.1 → 232.5 MiB). The repo's growth stopped (pass screenshots out of git; GitHub ~560 MiB). THE PRIVATE-REPO WORKFLOW (switched by the visibility).
 THE TWO-TAB HANG (a silent Safari store never holds a boot or a sign-in; the watchdog's way out; "other tabs open: n"). Umbrellas from the drizzle,
 fixed at a visit's start. C5's whole-tree reads → the index; PD2's margin 3 → 2.8. The tests (smoke filter, four /api suites in the cloud, crew,
 the FAST short, the WebKit live guard, no-WebGL PRISM, perfRun's look). NICE: HOST at the 101st connection, the 425 back-off, radioWho's NO. ADD-ONS:
-A SEAT IS NOT A PLAY, SIGHTINGS NEED THE CITY OPEN, the probe of Firebase's own databases. No rules change. NOT DONE: C4; three NICE lines.
+A SEAT IS NOT A PLAY (+ the honest-player fixes: present = proven, a re-start keeps the last match's proof), SIGHTINGS NEED THE CITY OPEN (the queue + the stamp agree), the probe of Firebase's own databases. RULES CHANGED (the host deletes one match's proof node — re-publish). NOT DONE: C4; three NICE lines.

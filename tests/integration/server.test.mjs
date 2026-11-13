@@ -756,7 +756,7 @@ test('FR7 FIXES B — A SEAT IS NOT A PLAY: a seated guest who wrote nothing get
 // FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF (Grok's honest-player review): match A ends, the host starts a REMATCH (B), and A's
 // report lands late through the snapshot path — the room keeps A's proof nodes (host.js#pruneProofs keeps the previous match), so everyone in A
 // is credited
-test('FR7 FIXES B — a REMATCH started before A's report landed: A still credits everyone (its proof kept)', async () => {
+test("FR7 FIXES B — a REMATCH started before A's report landed: A still credits everyone (its proof kept)", async () => {
   const { XP } = await import('../../js/core/ranks.js');
   await ensure('u-rm1', 'REMONE'); await ensure('u-rm2', 'REMTWO');
   const A = await seedRoom('prism', ['u-rm1', 'u-rm2']);
@@ -775,7 +775,7 @@ test('FR7 FIXES B — a REMATCH started before A's report landed: A still credit
 // FR7 FIXES B — PRESENT = PROVEN (Grok's honest-player review): a phone in the match writes its own node the moment play starts (OVERCLOCK: its
 // board at each challenge's open — view.js; PRISM: its board's save while its frames run) — a present-but-silent player is credited (a loss) and
 // never turns the other's win into a solo run; a seated guest whose phone never entered play still gets nothing
-test('FR7 FIXES B — PRESENT = PROVEN: a player who never taps is a counted loss; the other's 2-player WIN stands (OVERCLOCK + PRISM DROP)', async () => {
+test("FR7 FIXES B — PRESENT = PROVEN: a player who never taps is a counted loss; the other's 2-player WIN stands (OVERCLOCK + PRISM DROP)", async () => {
   const { XP } = await import('../../js/core/ranks.js');
   for (const [g, silent] of [['overclock', { 0: { p: 0, ok: 0, n: 3, done: false, at: clock } }], ['prism', { st: 'play', at: clock, sc: 0, ln: 0 }]]) {
     const a = `u-pp${g[0]}1`, b = `u-pp${g[0]}2`;

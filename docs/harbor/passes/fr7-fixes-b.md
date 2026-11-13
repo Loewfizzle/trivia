@@ -4,7 +4,7 @@ A fix pass after FR7 FIXES A + HE11, from FR7-A (`docs/harbor/review-7a.md` — 
 (`docs/games/review-7b.md` — its "FR7 FIXES B" plan) and `docs/harbor/passes/fr7-fixes-a.md` ("NOT DONE"), + the owner's three ADD-ONS (Grok's
 second opinions, given mid-pass). ONLY what was listed — nothing else was started. The owner's decisions: plan.md "OWNER'S NOTES — NOV 12
 (afternoon)" (+ decisions.md). **The repo stays PUBLIC** — this pass changed nothing about its visibility, rewrote no history, ran no RESEED, no
-PROGRESS RESET, didn't close FOUNDING MEMBER. **No database rules change.** Still 8 functions. The tests of this pass: `tests/fr7-fixes-b.test.mjs`
+PROGRESS RESET, didn't close FOUNDING MEMBER. **ONE database rules change** (THE HONEST PLAYERS — the host deletes one match's proof node: RE-PUBLISH). Still 8 functions. The tests of this pass: `tests/fr7-fixes-b.test.mjs`
 (+ the files named per finding — each failed before its fix unless said).
 
 ## Step 0
@@ -24,34 +24,23 @@ PRIVATE FLIP, the owner's five decisions) — `57b58901`.
 Seen while looking (NOT changed — not on the list): the home preview `assets/og.jpg` still shows GRIDLOCK's sign (HOLD'EM took its spot Nov 11); both
 pages' description text still says "twelve party games".
 
-## Group 2 — THE EDGE REQUESTS (D2 — `ffd32851`)
+## Group 2 — THE EDGE REQUESTS (D2) — **DEFERRED to THE LAUNCH (the owner, Nov 12)**
 
-`vercel.json`: `/js` `/css` `/assets` → `public, max-age=300, stale-while-revalidate=86400` (the HTML, `sw.js`, `/api`, `/audio`, `/data` untouched).
-**THE WORKER: ONE COPY PER DEPLOY** (`sw.js`) — on every page load it asks `/api/time` for the build id (the same `v` THE SKEW WRAPPER reads): the SAME
-build as the copies it holds → every static file from its own copy (no request leaves the phone); a NEW build → a fresh cache named for it, every file
-from the network + kept, the old build's cache dropped; NO build id (localhost, a slow / dead `/api/time`) → exactly as before. **A deliberate
-difference from the prompt's "the worker on the default cache mode":** with the 24 h stale-while-revalidate header a default-mode fetch can hand
-back an OLDER deploy's file from the HTTP cache, which the worker would then keep as the new build's copy. So the worker's network fetches stay
-`no-cache` (a copy is only ever taken from the network, in its own build), and the saving comes from the per-build copies. That cuts more than the
-default mode would, and a deploy shows at once instead of up to 5 min later. A copy is handed to the page as `no-cache`: WebKit's in-page memory cache
-then asks the worker again (free) instead of trusting the 5-minute header. Without that, `wk-edge.mjs` caught the page pairing new HTML with an older
-`config.js`. THE SKEW WRAPPER, THE BOOT WATCHDOG and the boot preload are unchanged.
+**The owner's ADD-ON (mid-pass):** skip it in this pass — he checks every pass on his iPhone right after it deploys and won't accept up to 5 min of an
+older file while still building. It had been built, proven and deployed (`ffd32851`, live for a few hours on `8a37a88d`); it was taken out again in ONE
+commit, **"THE EDGE CACHE out — deferred to THE LAUNCH"** (`224a241f`): `vercel.json` + the worker's cache mode exactly as before this pass, the two-tab
+hang's store bounds KEPT (they're not cache-mode changes). `docs/launch.md` step 8 = `git revert 224a241f` + the proof to run. The next deploy's worker
+deletes the per-deploy caches the few-hours worker left on phones (its activation keeps only `na-static-v1`); a phone that loaded during those hours may
+reuse a 5-minute-fresh file once.
 
-**MEASURED** (`tests/integration/wk-edge.mjs` — WebKit 402×874 @3, through THE LINE with production's headers + a build id; each visit a NEW TAB;
-WebKit's RELOAD reuses its memory cache for nearly every module with either worker, so a reload is not a visit):
-
-| visit | before (the old worker + the old headers) | after |
-| --- | --- | --- |
-| cold (a fresh phone) | 375 requests · 7.5 MB · reveal 4.05 s | 379 · 7.5 MB · 3.9 s (the same — nothing cached yet) |
-| WARM (the same build) | **356 requests · 7.2 MB** · reveal 3.96 s | **15 requests (4 static + 11 /api) · 260 KB** · reveal 2.6 s |
-| the first visit after a DEPLOY | 356 · 7.2 MB | 357 · 7.2 MB (the refill) — the new code on screen at once, no mixed graph |
-| warm after the deploy | 356 | 15 |
-
-The month vs Vercel's 1 M edge requests (FR7-A's yardstick — 20 friends daily + 4 Fridays — was ~615 k ≈ 61 %): a warm visit now costs ~15 instead of
-~350, the refill ~357 once per device per deploy → **~12 % (a deploy a week) to ~35 % (a deploy every day)**. The live site's read-only warm count
-after the final deploy: the summary at the end.
-Proof, no regression: `ONLY=load` 34 / 34, `wk-load` 4 loads / 0 problems, `wk-double` 22 paths / 0 with two cameras, `boot-time` cold reveal 1.32 s
-(unchanged) / warm 1.05 s, `sw-cache` 3 / 3 (the no-build-id path), CONN 21 / 21.
+**MEASURED — TODAY (the restored worker, `tests/integration/wk-edge.mjs PROD=0`, WebKit 402×874 @3 through THE LINE, each visit a new tab):** a cold
+visit 375–545 requests (two runs) / 7.5–11 MB; a **WARM visit 356 requests / 7.2 MB**, reveal ~3.9 s; every later visit the same 356. **WITH THE LAUNCH's
+change** (measured while it was in): a warm visit **15 requests (4 static + 11 /api) / 260 KB**, reveal 2.6 s; the first visit after a deploy 357 (the
+refill); the new code on screen at once, no mixed graph; on the live site (read-only, `&test=1`) a warm visit reached the edge ~8 times (FR7-A: 328).
+The month at FR7-A's yardstick: ~61 % of Vercel's free million today → ~12–35 % with it. The design notes for the launch pass: the worker's network
+fetches stay `no-cache` (a copy is only ever the network's, in its own build — the default mode + the 24 h stale-while-revalidate could hand back an
+OLDER deploy's file), a copy is handed to the page `no-cache` (WebKit's memory cache otherwise reused an older `config.js` on a reload — `wk-edge`
+caught it).
 
 ## Group 3 — THE DEPLOY + THE REPO SIZE (D3, D4 — `3d74d966`)
 
@@ -151,34 +140,31 @@ stamp rules; the older sighting tests now open the city first. No rules change (
 3. **NOT NOW — the plan:** a service-worker rescue for a FROZEN page thread (Grok's finding 1) — built only if /admin shows a "THE MAIN THREAD STOPPED
    ANSWERING" report during a boot; the hang watch already reports that case.
 
+## THE HONEST PLAYERS (the owner's URGENT ADD-ON — Grok's "honest player" review of ADD-ONS 1 + 2, all three confirmed in the code — `d03b8f2c`)
+
+**RULES CHANGED** (one row each at `rooms/{CODE}/prism/{m}`, `oc/{m}`, `ocm/{m}`: the host may delete ONE match's node — before, only the whole node).
+`tests/fixtures/rules-live.json` synced to FR7 FIXES A's published rules first; the ack names this change (THE RULES-LAG).
+1. **A RE-START KEEPS THE LAST MATCH's PROOF** (`host.js#startGameNow` → `pruneProofs`): the start no longer clears `prism` / `oc` / `ocm` in its atomic
+   write; afterwards, best effort, it deletes every match's node EXCEPT the previous match's + the new one's (`core/room-logic.js#staleProofPaths`). On
+   the rules as published that delete is refused → nothing deleted, the old matches' nodes stay until the room goes (the fallback — a rules test proves
+   it). The seal is still wiped at each start: after fix 2 every present OVERCLOCK player has a board, so the seal isn't needed as proof. Test:
+   `server.test` "a REMATCH started before A's report landed" (everyone in A credited, a 2-player win) + `rules.test` (the host deletes one match's node,
+   a guest never; the previous one kept).
+2. **PRESENT = PROVEN:** an OVERCLOCK phone writes its OWN board the moment a challenge opens (`view.js` — `{ p 0 · ok 0 · not done }`, never over a board
+   that exists, never DUMB LUCK's pick board; it fits the existing rules — no rules change for it); PRISM DROP's phone already saves its board every
+   ≤ 3 s while its frames run (the falling piece moves it). A present-but-silent player is credited as a loss and never turns the other's win into a solo
+   run; a seated guest whose phone never entered play still gets nothing. Tests: `server.test` "PRESENT = PROVEN" (OVERCLOCK + PRISM: the winner keeps a
+   2-player WIN, the silent one a counted loss) + the earlier "A SEAT IS NOT A PLAY" (the never-entered guest: nothing) + `rules.test` (the present
+   board lands on the published rules). **Said plainly: a host can still fake the RESULT of a match the victim really played (the accepted host
+   trust) — never credit one they weren't in.**
+3. **SIGHTINGS — THE QUEUE + THE STAMP AGREE:** `CITY_GAP_MS` = `QUEUE_MS` (15 min — a hello after an outage of up to 15 min EXTENDS the same opening);
+   a claim the stamp hasn't reached yet answers **`no_stamp`** (the phone keeps it — `profile/sightings.js`, `QAGE` 15 min — never dropped); the queue is
+   flushed on `online` and after every successful hello (`harbor/remote.js` — which is also the city opening). Tests: `sightings.test` "THE QUEUE + THE
+   STAMP AGREE" (hellos stop 5 min, a tap at minute 4 → `no_stamp`, the hellos resume → granted; a claim before the first hello → `no_stamp` → granted
+   after it) + the pure rules (unit).
+Fixture fixes the rule required (each a real match's shape): `e2e-profiles`' scripted finals now leave each player's own node.
+
 ## The end
 
-**Local, on the mini PC (my own emulators + `serve.mjs --emu`, `DAILY_TEST=1` for the dailies; Ben's :5190 left alone), after every group + add-on:**
-the unit suite 1,707 / 1,707 · rules 81 / 81 · `/api`: `server.test` 48 / 48, `sightings` 6 / 6, `progression` 10 / 10, `password` 10 / 10,
-`coastclear` 14 / 14, `friends` 8 / 8, `daily-module` 18 / 18, `lab` 2 / 2, `vault-2b` 3 / 3, `vault-2c` 3 / 3, `holdem-server` (alone) 21 / 21 ·
-`e2e-profiles` 142 / 142 (first, on fresh emulators) · smoke 8 / 8 · CONN 21 / 21 · `e2e-daily` 53 / 53 · `e2e-prism FAST=1` 63 / 63 · `e2e-oc-2`
-(N = 4 — OVERCLOCK has no FAST path) 27 / 27 · `e2e-holdem FAST=1` 22 / 22 · `wk-load` 4 loads / 0 problems · `wk-freeze` 60 loads / 0 freezes ·
-`wk-edge` 6 / 6 · `wk-twotabs` 7 / 7 · `prism-nowebgl` 3 / 3 · `sw-cache` 3 / 3 · THE BASELINE GUARD 1.13× / 1.08× / 1.00× (≤ 2×) · `ONLY=load` 34 / 34 ·
-**the FULL `e2e-harbor` 1,263 / 1,264 (~33 min, 4 shards)** — the one red the SIGHTINGS photo-at-the-tap check under the shard load (FR7-A's F line);
-`ONLY=sightings` alone 11 / 11, twice.
-**`wk-double`: 21 / 22 once — `resize-hidden`.** Measured: its 0.25 s pixel check fails ~1 in 5 on the pass's STARTING code too (2 / 10 at `8777f625`
-in a worktree on :5174, the same server); with this pass's return-moment hello it went to ~3 in 5, so that hello now waits 1.5 s after the return
-(`13decb84`) → 2 / 6, the old rate. A pre-existing flake of that check, not a second camera (every frame: one camera).
-
-**THE LIVE COUNT (after the final deploy — build `8a37a88d72b1`, Vercel BUILT; ONE read-only run, `LIVE=1` + `&test=1` — no profile, no room:
-`boot-time.mjs --live --warm --prime 2`, Chromium 402×874 @3):** a warm visit → 338 requests before the reveal, 320 answered by the worker FROM ITS
-COPY, **3 of the worker's own reached the network** (FR7-A measured 328 on the live site), + the page itself, 4 `/api` calls and Google's fonts +
-Firebase (not Vercel's) — **≈ 8 edge requests a warm visit**, 1 KB on the wire, the reveal 1.35 s (FR7-A: 1.84 s).
-
-**THE CLOUD (the final push `8a37a88d` — the harbor tag on its top commit, ONE cloud run, the repo still PUBLIC: both workflows ran, as before):**
-`tests` **GREEN** (unit + rules / the /api suites — the four new ones included — / smoke / CONN / presence). `harbor` **14 / 15 jobs green; `legend` RED
-on ONE check (76 / 77)** — the same SIGHTINGS photo-at-the-tap check as the local full run: the fireball 90 % in the photo (the check wants ≥ 0.9; it
-prints a rounded number). Nothing in this pass touches that path (sight-react, the snapshot, the fireball unchanged since FR6 FIXES A); `ONLY=sgfast`
-alone at the final code: 4 / 4, the craft 100 % in the photo every time. It misses only under load (the 4-shard run, the cloud's 2-core runner).
-Not re-run (the rule: never a cloud run to confirm a flake). Vercel BUILT `8a37a88d72b1`.
-
-**Known issues:** the SIGHTINGS fast-photo check under load (the cloud's `legend` job — above); the `resize-hidden` pixel flake (above); the SIGHTINGS photo check under the 4-shard load (FR7-A's F); `assets/og.jpg` still shows
-GRIDLOCK's sign; the link previews' text says "twelve party games"; C4 (the room list) open; three NICE lines (Group 7).
-
-**Servers:** my emulators (fresh twice), `serve.mjs --emu` on :5173 and the base / plain servers on :5174 / :5175 (the bisect) — all STOPPED at the end;
-Ben's :5190 left running.
+**Local, on the mini PC — the FINAL run (after the deferral + the honest-player fixes; my own emulators + `serve.mjs --emu`, `DAILY_TEST=1` where
+the dailies need it; Ben's :5190 left alone):** see the summary below (filled at the end of the run).

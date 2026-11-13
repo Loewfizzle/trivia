@@ -489,3 +489,5 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
 - **SIGHTINGS NEED THE CITY OPEN:** a SKY claim counts only inside the server's city-open stamp `ppriv/{pid}/co` (`core/sightings.js#cityOpenAt` /
   `#openStep` — written by `radioHello`, the visible city's own ~2-minute call, + a hello on coming back on screen); `QUEUE_MS` 12 h → 15 min. A speed
   bump, not a seal (a script keeping the hello going still can). The radio's claims keep their own record.
+- **THE QUEUE + THE STAMP AGREE (the urgent add-on):** `CITY_GAP_MS` = `QUEUE_MS` = 15 min (a hello after an outage extends the same opening); a claim the
+  stamp hasn't reached answers `no_stamp` — the phone keeps it (`profile/sightings.js`, 15 min) and retries on `online` + after the city's next hello.

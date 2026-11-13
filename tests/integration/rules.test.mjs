@@ -1477,23 +1477,22 @@ test('FR7 FIXES A — OC2 + HOST-GRADED: `doneAt` only together with `done`; the
   await assertFails(get(ref(db('host'), O)), 'the host reads them only after the unseal');
 });
 
-test('FR7 FIXES A — THE RULES-LAG: on THE RULES AS PUBLISHED (the old rules) every new write keeps a working fallback', async () => {
-  const old = await initializeTestEnvironment({ projectId: 'demo-oldrules-fr7a', database: { rules: readFileSync(fileURLToPath(new URL('../fixtures/rules-live.json', import.meta.url)), 'utf8'), host: '127.0.0.1', port: 9000 } });
+// (FR7 FIXES A's fallbacks were proved on the rules before its re-publish; those rules are published now — tests/fixtures/rules-live.json —
+//  so THE RULES-LAG case is FR7 FIXES B's: on the rules as published the per-match prune is refused — nothing deleted, the fallback — and
+//  everything else this pass writes already lands: OVERCLOCK's present board at a challenge's open)
+test('FR7 FIXES B — THE RULES-LAG: on THE RULES AS PUBLISHED the per-match prune is refused (nothing deleted); the present board lands', async () => {
+  const old = await initializeTestEnvironment({ projectId: 'demo-oldrules-fr7b', database: { rules: readFileSync(fileURLToPath(new URL('../fixtures/rules-live.json', import.meta.url)), 'utf8'), host: '127.0.0.1', port: 9000 } });
   try {
     const odb = uid => old.authenticatedContext(uid).database();
     const oseed = data => old.withSecurityRulesDisabled(ctx => set(ref(ctx.database()), data));
-    // OVERCLOCK: the board + the envelope land; the picks (their own write) are refused alone → the host keeps the phones' ok
-    const r = lobbyRoom();
+    const r = lobbyRoom({ prism: { mA: { p2: { st: 'out', at: 1 } }, mZ: { p2: { st: 'out', at: 1 } } } });
     r.rooms[CODE].meta.status = 'playing';
     r.rooms[CODE].game = { id: 'overclock', matchId: 'm3', ci: 2, ck: '2', phase: 'play', participants: { host: true, p2: true } };
     await oseed(r);
-    await assertSucceeds(update(ref(odb('p2'), '/'), { [`${R}/oc/m3/2/p2`]: { p: 1, ok: 1, n: 3, done: false, at: serverTimestamp() }, [`seal/${CODE}/oc/m3/2/p2/g`]: 5, [`seal/${CODE}/oc/m3/2/p2/at`]: serverTimestamp() }), 'the board + the envelope, one path a field');
-    await assertFails(update(ref(odb('p2'), `seal/${CODE}/oc/m3/2/p2`), { a: '[1]', at: serverTimestamp() }), 'the picks: refused on the old rules (alone)');
-    // PRISM: an attack with `i` refused; the same attack without it lands (view.js#sendAttack's retry)
-    await oseed(prismRoom());
-    const atk = { f: 'p2', n: 2, g: 4, at: serverTimestamp() };
-    await assertFails(set(ref(odb('p2'), `${R}/prismq/m1/p3/p2-12`), { ...atk, i: 12 }));
-    await assertSucceeds(set(ref(odb('p2'), `${R}/prismq/m1/p3/p2-12`), atk), 'the fallback lands');
+    await assertFails(update(ref(odb('host'), R), { 'prism/mZ': null }), 'the per-match prune: refused on the published rules (host.js#pruneProofs is best effort)');
+    const left = (await get(ref(odb('host'), `${R}/prism`))).val();
+    assert.ok(left.mA && left.mZ, 'nothing deleted — the old match stays until the room goes (the fallback)');
+    await assertSucceeds(update(ref(odb('p2'), `${R}/oc/m3/2/p2`), { p: 0, ok: 0, n: 3, done: false, at: serverTimestamp() }), "PRESENT = PROVEN: the board at the challenge's open lands on the published rules");
   } finally { await old.cleanup(); }
 });
 
@@ -1507,6 +1506,6 @@ test('FR7 FIXES B — the host deletes ONE match\'s proof node (prism / oc / ocm
     await assertSucceeds(update(ref(db('host'), `${R}`), { [`${n}/mZ`]: null }), `the host deletes ${n}/mZ`);
     await assertFails(set(ref(db('host'), `${R}/${n}/mA`), { x: 1 }), `the host writes into ${n}/mA`);
   }
-  const left = await env.withSecurityRulesDisabled(ctx => get(ref(ctx.database(), `${R}/prism`)));
-  assert.ok(left.val().mA && !left.val().mZ, 'the previous match kept, the older one gone');
+  const left = (await get(ref(db('host'), `${R}/prism`))).val();
+  assert.ok(left.mA && !left.mZ, 'the previous match kept, the older one gone');
 });

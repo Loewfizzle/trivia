@@ -647,7 +647,7 @@ load problem, not a flake to patch.
 - **PASS SCREENSHOTS STAY ON THE PC** (D4): `.gitignore` keeps every picture under `docs/harbor/passes/`, `docs/games/`, `screenshots/` out of git —
   shoot into the pass's folder or `shots.mjs`'s default `./shots-review/` as before; a picture a doc must carry = a JPEG at 1×, ≤ 150 KB, `git add -f`,
   named in the pass log (`tests/repo-growth.test.mjs`).
-- New scripts: `wk-edge.mjs` (THE EDGE CACHE — the requests a visit sends, cold / warm / after a deploy, WebKit through THE LINE with production's
+- New scripts: `wk-edge.mjs` (THE EDGE CACHE's proof for THE LAUNCH — its checks fail on today's worker BY DESIGN until docs/launch.md step 8 ships; its counts are today's numbers — the requests a visit sends, cold / warm / after a deploy, WebKit through THE LINE with production's
   headers `prod` + a build id `build`; each visit a NEW TAB — WebKit's reload reuses its memory cache), `wk-twotabs.mjs` (THE TWO-TAB HANG — two pages
   on one context, a stuck store, a hung boot's TAP TO TRY AGAIN + "other tabs open"), `prism-nowebgl.mjs` (PRISM DROP with WebGL off, 390 / 402 / 430),
   `og-board-shot.mjs` (+ `scripts/seed-og-board.mjs` — /board's link preview from made-up rows), `scripts/deploy-size.mjs`.

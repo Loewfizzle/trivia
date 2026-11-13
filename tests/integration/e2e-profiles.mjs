@@ -535,10 +535,19 @@ await H.run(async () => {
     const ocFinal = (pts, parts = Object.keys(pts[0])) => ({ id: 'overclock', matchId: `e2eoc${Date.now().toString(36).slice(-6)}`, phase: 'final', phaseStartAt: Date.now(), phaseEndsAt: Date.now() + 60_000,
       participants: Object.fromEntries(parts.map(u => [u, true])), settings: { mode: 'quick' }, total: 6, ci: 5, order: ['trivia', 'truefalse', 'math', 'pattern', 'count', 'trivia'],
       results: Object.fromEntries(pts.map((r, ci) => [ci, Object.fromEntries(Object.entries(r).map(([u, v]) => [u, { pts: v, ok: v > 0 ? 1 : 0, parts: 1 }]))])) });
+    // (FR7 FIXES B — A SEAT IS NOT A PLAY: a real match leaves each player's OWN node — the board at a challenge's open / PRISM's save; this
+    //  scripted final writes them as the phones would, before the final lands)
+    const proveAll = async (g) => {
+      for (const u of Object.keys(g.participants || {})) {
+        if (g.id === 'overclock') await ref(`rooms/${H.code}/oc/${g.matchId}/0/${u}`).set({ p: 0, ok: 0, n: 1, done: false, at: Date.now() });
+        if (g.id === 'prism') await ref(`rooms/${H.code}/prism/${g.matchId}/${u}`).set({ st: 'out', at: Date.now() });
+      }
+    };
     const playOc = async (g, names, label) => {
       await sleep(2500);   // (BOB's own report of the last match lands first — a reset under a running transaction aborts it)
       for (const pid of [me0.pid, me1.pid]) await ref(`pstats/${pid}/last`).set(null);   // (the server's 45-s gap between counted matches)
       await H.backToLobby(p0).catch(() => {}); await sleep(800);
+      await proveAll(g);
       const solo = Object.keys(g.participants).length === 1;   // (a SOLO run's night points are 0 — the host writes them so; the server checks)
       const pl = Object.fromEntries(Object.keys(g.participants).map((u, i) => [u, solo ? 0 : 3 - i]));
       await p0.evaluate(async (c, gm, nm, p) => { const fb = await import('/js/firebase.js'); await fb.update(fb.dbRef(`rooms/${c}`), { game: gm, 'meta/status': 'playing', [`night/${gm.matchId}`]: { g: gm.id, at: fb.serverTimestamp(), p, n: nm } }); }, H.code, g, names, pl);
@@ -644,6 +653,7 @@ await H.run(async () => {
       await sleep(2500);
       for (const pid of [me0.pid, me1.pid]) await ref(`pstats/${pid}/last`).set(null);
       await H.backToLobby(p0).catch(() => {}); await sleep(800);
+      await proveAll(g);
       await p0.evaluate(async (c, gm, nm, pp) => { const fb = await import('/js/firebase.js'); await fb.update(fb.dbRef(`rooms/${c}`), { game: gm, 'meta/status': 'playing', [`night/${gm.matchId}`]: { g: gm.id, at: fb.serverTimestamp(), p: pp, n: nm } }); }, H.code, g, Object.fromEntries(Object.keys(g.participants).map(u => [u, names[u]])), pl);
     };
     const b1 = { xp: await val(`pstats/${me0.pid}/xp`), p: await val(`pstats/${me0.pid}/g/overclock/p`), so: await val(`pstats/${me0.pid}/day/so`) };

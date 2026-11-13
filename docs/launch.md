@@ -36,11 +36,34 @@ sweep) and **with no room live**.
      needed.)
 7. **Known after the reset:** the "X% of players have this" line on an item reads high for a while (the player count starts again from
    zero, the item counts don't) — it settles as people play. A player's level rewards are never granted twice on the re-climb.
-8. **Tell people.** The links: https://www.neonspeakeasy.com (the city) · https://www.neonspeakeasy.com/board (THE BOARD — its link preview
+8. **THE EDGE CACHE — a pass ships it WITH THE LAUNCH** (FR7-A's D2; the owner, Nov 12: deferred until he stops checking every deploy on his
+   iPhone the moment it lands — today every repeat visit re-asks Vercel for every file, each one an edge request). Ask the city chat for
+   "THE EDGE CACHE from docs/launch.md"; the pass does exactly this:
+   - **The code — already written + proven, then taken out (FR7 FIXES B):** `git log --oneline --grep "THE EDGE CACHE out"` names ONE commit;
+     `git revert <that sha>` puts it back as it was:
+     - `vercel.json`: `/js/(.*)`, `/css/(.*)`, `/assets/(.*)` → `Cache-Control: public, max-age=300, stale-while-revalidate=86400` (the HTML,
+       `sw.js`, `/api`, `/audio`, `/data` untouched);
+     - `sw.js` — ONE COPY PER DEPLOY: on every page load the worker asks `/api/time` for the build id (`v` — the commit, the same number THE SKEW
+       WRAPPER reads); the SAME build as the copies it holds → every static file from its own copy (no request leaves the phone); a NEW build →
+       a fresh cache named `na-b-<v>`, every file from the network (`cache: 'no-cache'` — never the HTTP cache, so a copy is only ever the
+       network's, in its own build) + kept, the old build's cache dropped; NO build id (localhost, a slow / dead `/api/time`) → exactly as today.
+       A copy is handed to the page `no-cache` (WebKit's memory cache then asks the worker again — never an older deploy's module). Every Cache
+       Storage wait bounded (0.8 s → the network).
+     - The trade the owner accepts at launch: a phone that had the site open in the last 5 min may see the previous deploy's files once
+       (only a page the worker doesn't control yet — the worker itself switches at the next page load).
+   - **The proof to run (local, the emulators):** `node tests/integration/wk-edge.mjs` 6 / 6 (cold · the worker's first load · WARM ≤ 10 static
+     requests · a DEPLOY: the new code at once, no mixed graph · one build cache); `node tests/integration/wk-twotabs.mjs` 7 / 7;
+     `node tests/integration/sw-cache.mjs` 3 / 3; `ONLY=load` (the `load` group); `wk-load.mjs`, `wk-double.mjs`, `boot-time.mjs` (no regression);
+     `e2e-conn.mjs`; the unit test that pins it (bring back FR7 FIXES B's "D2 — THE EDGE CACHE" + "D2 — the worker" cases — in the same revert).
+   - **The numbers (measured in FR7 FIXES B with that code, WebKit, each visit a new tab):** TODAY a cold visit 375 requests / 7.5 MB, a WARM
+     visit **356 / 7.2 MB**; WITH IT a warm visit **15 (4 static + 11 /api) / 260 KB**, the first visit after a deploy 357 (the refill); on the live
+     site (Nov 12, the few hours it was deployed) a warm visit reached the edge ~8 times. The month at FR7-A's yardstick: ~61 % of Vercel's free
+     million → ~12–35 %.
+9. **Tell people.** The links: https://www.neonspeakeasy.com (the city) · https://www.neonspeakeasy.com/board (THE BOARD — its link preview
    is the velvet board since FR7 FIXES B).
-9. **The weekly watch** (five numbers, Mondays): Vercel → Usage → **Edge Requests** + **Fast Data Transfer**; Firebase → Realtime Database →
+10. **The weekly watch** (five numbers, Mondays): Vercel → Usage → **Edge Requests** + **Fast Data Transfer**; Firebase → Realtime Database →
    Usage → **peak connections** (the free line is 100) · **downloads** · **storage**; GitHub → the repo's size (Settings → the top) while
-   public. FR7 FIXES B's estimate for a month of 20 friends daily + 4 Fridays: see "THE EDGE REQUESTS" in
+   public. The edge requests today vs with THE EDGE CACHE (step 8): FR7 FIXES B's numbers in
    `docs/harbor/passes/fr7-fixes-b.md`.
 
 ## 2. THE PRIVATE FLIP (later — the PC + GitHub + /admin — ~1 hour)

@@ -1,4 +1,6 @@
-// FR7 FIXES B — THE EDGE CACHE (FR7-A D2): how many requests reach Vercel per visit, in Safari's engine (Playwright's WebKit, 402×874 @3),
+// FR7 FIXES B — THE EDGE CACHE (FR7-A D2) — DEFERRED to THE LAUNCH (docs/launch.md step 8): this is ITS PROOF. On today's worker its checks
+// fail BY DESIGN (every warm file re-asked); its printed counts are today's numbers (PROD=0 = today's headers).
+// how many requests reach Vercel per visit, in Safari's engine (Playwright's WebKit, 402×874 @3),
 // through THE LINE with PRODUCTION's headers (vercel.json — kit/line-proxy.mjs `prod`) and a deploy's BUILD ID on /api/time (`build`):
 //   1. COLD — a fresh phone (sw.js registered by the test: localhost skips it), the city to its reveal + the late files
 //   2. the worker's first load (it takes the page over: a fresh build cache, filled)

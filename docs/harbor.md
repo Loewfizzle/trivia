@@ -389,12 +389,11 @@ at 8, squeeze 0.66, people ~33 pt.)
   apart agree; lanes, budget, heavy, rarity, `when()`, forced.
 
 ## Performance
-- **THE EDGE CACHE + ONE COPY PER DEPLOY (FR7 FIXES B, Nov 12 — docs/harbor/passes/fr7-fixes-b.md):** `/js` `/css` `/assets` are cached 5 min at the edge (+ stale-while-revalidate a day — `vercel.json`); the service worker keeps ONE COPY PER DEPLOY: each
-page load asks `/api/time` for the build id — the same build → every static file from the worker's own copy (a warm visit: 356 → 15 requests in WebKit);
-a new build → a fresh cache filled from the network (never the HTTP cache: a copy is only ever the network's, in its own build); no build id → as before.
-A copy is handed to the page `no-cache` (WebKit's memory cache asks the worker again — never an older deploy's module). Every wait on Cache Storage is
-bounded (0.8 s; the activation's clean-up 2 s) — Safari's storage can stop answering with two tabs open (THE TWO-TAB HANG). Proof: `wk-edge.mjs`,
-`wk-twotabs.mjs`, the `load` group (THE WATCHDOG's WAY OUT).
+- **THE EDGE CACHE — DEFERRED to THE LAUNCH (FR7 FIXES B, Nov 12 — the owner checks every deploy on his iPhone at once):** today the worker is
+network-first + `no-cache` (every file re-asked on a repeat visit — 356 requests warm, measured) and `/js` `/css` `/assets` carry no cache header. The
+built + proven change (5 min at the edge + the worker's ONE COPY PER DEPLOY by `/api/time`'s build id — 15 requests warm) ships with THE LAUNCH:
+docs/launch.md step 8 (`git revert` of "THE EDGE CACHE out"; proof `wk-edge.mjs`). Every Cache Storage wait in today's worker is bounded (the
+activation 2 s, the offline reads 0.8 s) — Safari's storage can stop answering with two tabs open (THE TWO-TAB HANG; `wk-twotabs.mjs`).
 - **THE LOAD GATE (FP3a, FREV B1 — the iPhone's "shrinks, enlarges, snaps" on load):** the city is held DARK until its first full frame
   is ready and revealed with ONE fade; Safari's bar changes in the load window are coalesced into one build; a baked layer is never
   stretched; no tier step during load. The detail: FP3a §5 below; tested by the `load` group (the `city` job). POLISH 5: THE LOAD LOG
