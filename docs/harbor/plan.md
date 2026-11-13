@@ -6654,3 +6654,16 @@ OWNER'S NOTES — NOV 13 (after JAYWALK CARDS + THE TRI-VISION)
 - FR7 FIXES C DONE (Nov 13) — passes/fr7-fixes-c.md. THE BUILD TABLE: FR7 FIXES C ✅ (THE CLAUDE.md DIET 106 → 29 KB; THE ONE DAY LINE — all 9 of Grok's findings;
   THANKSGIVING's MAPLE LEAVES + THE GOLD WEEK; NOW PLAYING; the radio's switches; THE JAYWALK POSTER readable; no rules change) → PLAY NOW + WHO'S ON ← NEXT →
   THE POOL FIXES + THE SLIDER → JAYWALK's passes; THE LAUNCH (a Monday just after 4 am ET — docs/launch.md) whenever the owner taps.
+
+## OWNER'S NOTES — NOV 13 7 am (FR7 FIXES C live on his iPhone)
+
+```
+OWNER'S NOTES — NOV 13 7 am (FR7 FIXES C live on his iPhone)
+- The radio → LEDGER no longer opens: it sits on "Tuning in…" forever (it worked before FR7 FIXES C — NOW PLAYING is the new code there).
+- THE MAPLE LEAVES behind NEON: "it's hard to tell these are leaves" — on the phone they read as a dark brown fuzzy halo, not leaves.
+- THE JAYWALK POSTER: still not readable on the phone — "JAYWALK needs a different font or something".
+- The cloud's two reds after FR7 FIXES C: tests/one-day-line.test.mjs can't load in the cloud (firebase-admin), and NO TWO CAMERAS at the sunset return.
+```
+- THE BUILD TABLE (Nov 13, FR7 FIXES C2's Step 0): FR7 FIXES C ✅ (live — the LEDGER stuck on "Tuning in…", the leaves a brown halo, JAYWALK still unreadable, two
+  cloud reds); THIS PASS — FR7 FIXES C2: THE LEDGER WON'T OPEN + THE LEAVES READ AS LEAVES + THE JAYWALK POSTER + THE TWO CLOUD REDS (passes/fr7-fixes-c2.md)
+  ← NOW; then PLAY NOW + WHO'S ON → THE POOL FIXES + THE SLIDER → JAYWALK's passes; THE LAUNCH (the owner's taps) whenever he's ready.
