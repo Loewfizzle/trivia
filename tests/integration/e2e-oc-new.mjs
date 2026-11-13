@@ -145,6 +145,9 @@ try {
       let out = null;
       for (let k = 0; k < sp.items.length; k++) {
         for (let w = 0; w < 40 && !document.querySelector('.tf-btn:not(.is-locked)'); w++) await wait(25);
+        // (THE HUMAN FLOOR — FR7 FIXES A, grade.js#humanFloorMs: a finish faster than a person could earns NO speed bonus — 8 statements = 2.8 s;
+        //  the bots tapped every ~360 ms and landed ON the floor (pts 100). A person's pause before the last answer keeps the finish human)
+        if (k === sp.items.length - 1) await wait(700);
         const truth = sp.items[k].truth, pickTrue = k === miss ? !truth : truth;
         const b = document.querySelector(pickTrue ? '.tf-true:not(.is-locked)' : '.tf-false:not(.is-locked)');
         if (k === probe + 1 && out) {
@@ -226,6 +229,9 @@ try {
   await press(pages[1], '.oc-tl-row', correct[2]);
   await press(pages[1], '.oc-tl-row', correct[3]);
   ok(await pages[1].evaluate(() => !document.querySelector('.oc-tl-lock').disabled), 'TIMELINE: LOCK IT IN lights once all four are numbered');
+  // (THE HUMAN FLOOR: TIMELINE's is 2 s from the start — BOB's bot locked in faster than a person reads four cards, so no speed bonus (pts 100):
+  //  he takes a human beat before LOCK IT IN, well inside the 30-s window)
+  await sleep(2500);
   await click(pages[1], '.oc-tl-lock');
   await sleep(500);
   await shotBoth(pages[1], 'o-06-timeline-result');
