@@ -3,7 +3,7 @@
 // 8P's (bus.js, through people.js), the motorcar FP2's (motorcar.js); 8b's traffic plugs in beside them.
 import { project, groundY } from '../../core/harbor-layout.js';
 import { rgb, shade, mix } from './shapes.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, freeCanvases } from '../../ui/canvas-safe.js';
 
 export function roadSteps(L, T) {
   const cam = L.cam, r = L.road, rail = L.rail;
@@ -119,6 +119,8 @@ export function createCrossLight() {
     return true;
   }
   return {
+    /** THE LONG NIGHT: its canvas freed at the city's teardown */
+    destroy() { freeCanvases(cv); cv = null; key = ''; },
     draw(c, L, k, dpr = 2) {
       if (!L || !L.crosswalk || !L.road || !(k > 0.005)) return;
       const kk = `${L.cam.W}x${L.cam.H}|${dpr}|${L.crosswalk.x0.toFixed(2)}`;

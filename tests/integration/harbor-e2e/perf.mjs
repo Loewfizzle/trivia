@@ -255,3 +255,50 @@ G('tower', async () => {
     ok(p95 < 0.006, `9g THE CRANE NEVER PULSES: the lattice's ink frame to frame within ${(p95 * 100).toFixed(2)} % of its trend (p95; BNAME's blend: 1.2 %) over ${Math.abs(ink.deg[ink.deg.length - 1] - ink.deg[0]).toFixed(1)}° of the swing`);
     await Q.ctx.close(); }
 });
+
+// ---- THE CITY's LONG NIGHT (Nov 12 night — docs/harbor/passes/jaywalk-cards.md Group 4): the city is destroyed + rebuilt on every room / game /
+// menu trip (THE CITY PAUSE) — what its teardown missed grew over a long night. Chromium's twin of `wk-longnight.mjs` (WebKit — 30 + 10 trips, the
+// pass log's before → after): 8 trips city → game → room (the host's startGame + backToLobby) + 6 trips title → YOUR CARD → title — the memory
+// guard's live canvases never pile up (the night's PEAK ≤ 1.25 × the first trips'), the MB flat, the live GPU contexts flat; and the title going
+// away STOPS the city at once — NOT ONE city frame drawn after the unmount (the scene's own rAF callback counted).
+const GL_COUNT = { fn: () => {
+  const made = []; const orig = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (type, ...r) { const c = orig.call(this, type, ...r); if (c && /webgl/.test(String(type)) && !made.some(x => x.deref() === c)) made.push(new WeakRef(c)); return c; };
+  window.__glLive = () => made.filter(x => { const c = x.deref(); return c && !c.isContextLost(); }).length;
+  window.__cityFrames = 0; const raf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = cb => raf(t => { if (cb && cb.name === 'frame' && /LOADLOG/.test(String(cb))) window.__cityFrames++; cb(t); });
+}, arg: null };
+G('longnight', async () => {
+  const L2 = await import('./lobby2.mjs');
+  const { Q: A, p, code } = await L2.hostRoom('lna', [402, 874], { init: GL_COUNT });
+  const { Q: B } = await L2.joinRoom('lnb', code);
+  await L2.settledRoom(p, 2, 40000).catch(() => {}); await sleep(2000);
+  const sample = x => ev(x, "import('/js/ui/canvas-safe.js').then(m => { const c = m.canvasMb(); return { n: c.n, mb: +c.mb.toFixed(1), gl: window.__glLive ? window.__glLive() : -1 }; })");
+  const S = [await sample(p)], after = [];
+  for (let i = 1; i <= 8; i++) {
+    await L2.startOC(p);
+    await waitFor(p, `!(${L2.onTitle})`, `trip ${i}: the game`, 12000);
+    const f0 = await ev(p, 'window.__cityFrames'); await sleep(900); after.push((await ev(p, 'window.__cityFrames')) - f0);   // (the title's 420-ms fade is over by now)
+    await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+    await waitFor(p, L2.onTitle, `trip ${i}: back`, 12000); await harborUp(p); await sleep(1800);
+    S.push(await sample(p));
+  }
+  const med = xs => { const v = [...xs].sort((a, b) => a - b); return v[v.length >> 1]; };
+  const n0 = med(S.slice(1, 4).map(s => s.n)), peak = Math.max(...S.slice(1).map(s => s.n)), mb0 = med(S.slice(1, 4).map(s => s.mb)), mb1 = med(S.slice(-3).map(s => s.mb));
+  ok(peak <= n0 * 1.25 && mb1 - mb0 <= 3 && S.at(-1).gl <= S[1].gl, `THE LONG NIGHT — 8 trips city → game → room: the live canvases never pile up (the first trips ${n0}, the peak ${peak}; ${mb0} → ${mb1} MB), the GPU contexts flat (${S[1].gl} → ${S.at(-1).gl}) — ${S.map(s => s.n).join(' ')}`);
+  ok(after.every(n => n === 0), `…and NO CITY FRAME after the unmount — the title going away stops the city at once (the frames drawn after each game start: ${after.join(' ')})`);
+  await A.ctx.close(); await B.ctx.close();
+  // the menus: title → YOUR CARD → title
+  const C = await open({ slot: 'lnc', qs: `${NIGHT}&wx=clear`, view: [402, 874], init: GL_COUNT }), q = C.page;
+  await harborUp(q); await sleep(1500);
+  const M = [await sample(q)];
+  for (let i = 1; i <= 6; i++) {
+    await ev(q, "import('/js/store.js').then(m => m.setState({ view: 'profile' }))"); await waitFor(q, "!document.querySelector('.nd-scene')", `menu ${i}`, 10000); await sleep(600);
+    await ev(q, "import('/js/store.js').then(m => m.setState({ view: 'title' }))"); await harborUp(q); await sleep(1500);
+    M.push(await sample(q));
+  }
+  const m0 = med(M.slice(1, 4).map(s => s.n)), mpeak = Math.max(...M.slice(1).map(s => s.n));
+  ok(mpeak <= m0 * 1.25 && M.at(-1).gl <= M[1].gl, `THE LONG NIGHT — 6 trips title → YOUR CARD → title: canvases ${M.map(s => s.n).join(' ')} (peak ${mpeak} vs ${m0}), GPU contexts ${M[1].gl} → ${M.at(-1).gl}`);
+  log('longnight', `trips ${JSON.stringify(S)} · menus ${JSON.stringify(M)}`);
+  await C.ctx.close();
+});

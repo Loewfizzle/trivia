@@ -27,7 +27,7 @@ import { danceMoves, drawWands } from './wands.js';
 import { createDanceClock, stepDanceClock } from '../../core/harbor-dance.js';
 import { drawCart, propShadow } from './props.js';
 import { pieceCtx, LIGHT } from '../../core/harbor-light.js';
-import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP, freeCanvases } from '../../ui/canvas-safe.js';
 import { lightField, lightSources, castShadow, hiddenLamps, lightMode } from '../../core/harbor-light.js';
 import { crossLightOf, crossPools, poolFall, CROSS, LENS } from './road.js';
 import { frontProfile } from './strings.js';
@@ -944,6 +944,6 @@ export function createPeople() {
       members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), y: +(m.s.y || 0).toFixed(2), sp: m.sp ? 1 : 0, dance: m.s.dance || null, pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),
       doors: { ...(now.doors || {}) }, cart: now.cart ? { on: !!now.cart.on, parked: !!now.cart.parked, x: +(now.cart.x || 0).toFixed(2) } : null, dance: { ...(now.dance || {}) }, dancers: now.members.filter(m => m.kind === 'dancer').length, watchers: now.members.filter(m => m.kind === 'watcher').length,
       roofMembers: roofNow.members.map(m => ({ kind: m.kind, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })), map: M ? { nodes: M.nodes, rects: M.rects.length } : null }),
-    destroy() { cache.clear(); roofCache.clear(); looks.clear(); },
+    destroy() { freeCanvases(cache, roofCache, looks); cache.clear(); roofCache.clear(); looks.clear(); kit.destroy(); },   // (THE LONG NIGHT: their canvases + the cars' freed at once)   // (THE LONG NIGHT: their canvases freed at once)
   };
 }

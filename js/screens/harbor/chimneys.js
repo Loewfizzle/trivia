@@ -7,7 +7,7 @@
 // 'near' = the speakeasy's chimney (after its roof).
 import { project } from '../../core/harbor-layout.js';
 import { winHash } from '../../core/harbor-windows.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, freeCanvases } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -37,6 +37,8 @@ export function createChimneys() {
   }
   return {
     SMOKE,
+    /** THE LONG NIGHT: the puffs freed at the city's teardown */
+    destroy() { freeCanvases(sprites); sprites.clear(); stacks = []; },
     layout(L) {
       stacks = [];
       const cam = L.cam;

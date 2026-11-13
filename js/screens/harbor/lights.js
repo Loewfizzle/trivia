@@ -17,7 +17,7 @@ import { project } from '../../core/harbor-layout.js';
 import { SPOTS, towerRoofSign } from '../../core/harbor-neon.js';
 import { fog } from './tones.js';
 import { skyItems } from './skyline.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, freeCanvases } from '../../ui/canvas-safe.js';
 
 const WARM = [[255, 214, 158], [255, 205, 136], [255, 226, 186], [255, 193, 120], [255, 234, 204]];
 const COOL = [[166, 214, 255], [190, 226, 255], [206, 222, 255]];
@@ -528,6 +528,8 @@ export function createLights() {
 
   return {
     layout, set, draw, drawWave, beacons: drawBeacons,
+    /** THE LONG NIGHT: the spell's sprite + the dark faces + the sets' canvases freed at the city's teardown */
+    destroy() { dropSpell('destroy'); freeCanvases(faceDark, sets); faceDark.clear(); sets.clear(); },
     /** PART 7b: the late TVs' level now (0..1: scene.js — ~10 pm → ~3 am, eased in + out) */
     lateTv(k) { lateK = Math.max(0, Math.min(1, k || 0)); },
     lateTvs: () => lateTvs.map(w => ({ rect: w.rect.map(v => +v.toFixed(1)) })), beaconList: () => beacons.map(b => ({ x: +b.x.toFixed(1), y: +b.y.toFixed(1), id: b.id, tallest: !!b.tallest })),

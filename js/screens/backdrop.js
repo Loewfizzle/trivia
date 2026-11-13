@@ -5,8 +5,10 @@
 import { createBeatClock, advanceBeat } from '../core/party.js';
 import { beatSource } from '../audio/beat.js';
 import { settings } from '../audio/settings.js';
+import { ctx2d } from '../ui/canvas-safe.js';
 
-let snap = null;      // canvas holding the still
+let snap = null;      // canvas holding the still — THE CITY's LONG NIGHT (Nov 12 night): ONE canvas, reused on every title exit (it was a fresh one each
+                      // time, the old still never zeroed), through ctx2d (the memory guard counts it)
 let light = null;     // PARTY NIGHTS: the party's light alone (breathes over the still)
 let loop = 0;
 const bc = createBeatClock();
@@ -17,9 +19,10 @@ export function captureBackdrop(canvas, partyLight = null) {
   try {
     if (!canvas || !canvas.width) return;
     const s = Math.min(1, 1100 / Math.max(canvas.width, canvas.height));
-    const c = document.createElement('canvas');
-    c.width = Math.round(canvas.width * s); c.height = Math.round(canvas.height * s);
-    c.getContext('2d').drawImage(canvas, 0, 0, c.width, c.height);
+    const c = snap || document.createElement('canvas');
+    c.width = Math.round(canvas.width * s); c.height = Math.round(canvas.height * s);   // (a new size clears it — the old still's pixels gone with it)
+    const x = ctx2d(c); if (!x) return;
+    x.drawImage(canvas, 0, 0, c.width, c.height);
     snap = c;
     light = partyLight || null;
     if (el) paint();
@@ -29,9 +32,9 @@ export function captureBackdrop(canvas, partyLight = null) {
 function paint() {
   const cv = el.querySelector('canvas:not(.nd-bd-light)');
   cv.width = snap.width; cv.height = snap.height;
-  cv.getContext('2d').drawImage(snap, 0, 0);
+  const x = ctx2d(cv); if (x) x.drawImage(snap, 0, 0);
   const lc = el.querySelector('.nd-bd-light');
-  if (light) { lc.width = light.width; lc.height = light.height; lc.getContext('2d').drawImage(light, 0, 0); lc.hidden = false; breathe(); }
+  if (light) { lc.width = light.width; lc.height = light.height; { const lx = ctx2d(lc); if (lx) lx.drawImage(light, 0, 0); } lc.hidden = false; breathe(); }
   else { lc.hidden = true; cancelAnimationFrame(loop); loop = 0; }
   el.classList.add('is-on');
 }

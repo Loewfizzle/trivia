@@ -1297,6 +1297,8 @@ export function createTitle() {
     captureBackdrop(els.canvas, scene.partyLight ? scene.partyLight() : null);   // the menus keep a still of the city (+ the party's light, which breathes on)
     const sc = scene;
     scene = null;
+    // (THE CITY's LONG NIGHT: the city STOPS at once — its frame loop + timers — the last frame under the fade; its teardown after it)
+    if (sc && sc.halt) sc.halt();
     wrap.classList.add('is-out');
     setTimeout(() => { sc && sc.destroy(); wrap.remove(); }, 420);
     if (window.__district) delete window.__district;

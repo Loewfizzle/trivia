@@ -26,7 +26,7 @@
 //                  is over the sign); the sign's band is a place they CROSS (its rows squeezed: never hovering over the letters)
 // Positions are a function of the time since the event began (every phone sees the same sky): a slow drift with the real wind
 // (a crossing takes most of the event), a gentle rise and fall. Sprites per balloon per light; the flame + the glow live.
-import { safeCtx, ctx2d } from '../../ui/canvas-safe.js';
+import { safeCtx, ctx2d, freeCanvases } from '../../ui/canvas-safe.js';
 import { tierVal } from '../../core/harbor-tiers.js';
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -598,6 +598,7 @@ export function createBalloons() {
     cur = { at: o.at, list, dir: o.windSign || 1, dur, festival: fest, box, fast: o.fast ? FAST : 1, fadeAt: o.fade ? performance.now() : null };
   }
   function stop() { if (cur) for (const b of cur.list) if (b.art) { b.art.cv.width = 0; b.art.glow.width = 0; } cur = null; freeFronts(); }
+  function destroy() { stop(); freeCanvases(flameDot); }   // (THE LONG NIGHT: + the flame's dot)
 
   return {
     resize(w) { W = w; K = Math.max(0.9, Math.min(1.35, w / 402)); },
@@ -751,6 +752,6 @@ export function createBalloons() {
     /** the burner's sound follows the burns you SEE: { id (a counter: a new burn), pan } */
     burn: () => ({ id: burnId, pan: burnPan }),
     debug: () => (cur ? { n: cur.list.length, at: cur.at, dir: cur.dir, dur: cur.dur, fast: cur.fast, festival: cur.festival, kinds: cur.list.map(b => b.kind), order: [...cur.list].sort((p, q) => p.launch - q.launch).map(b => b.kind), launches: cur.list.map(b => (b.climb ? +b.launch.toFixed(1) : null)), burns: burnId, boxes: cur.list.map(b => (b.box ? b.box.map(v => Math.round(v)) : null)), front: cur.list.map(b => !!b.shownFront), near: cur.list.map(b => +b.near.toFixed(2)), overlays: fronts.size } : null),
-    destroy: stop,
+    destroy,
   };
 }

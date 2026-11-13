@@ -122,7 +122,7 @@ import { createStormDeck } from './stormdeck.js';
 import { createStill } from './still.js';
 import { createCabStand } from './cabstand.js';
 
-import { safeCtx, starvedCount, blurWorks, BAKE_CAP, canvasMb, anyLost, onCanvasLost, reportLost, purgeForTest } from '../../ui/canvas-safe.js';
+import { safeCtx, starvedCount, blurWorks, BAKE_CAP, canvasMb, anyLost, onCanvasLost, reportLost, purgeForTest, freeCanvases } from '../../ui/canvas-safe.js';
 import { onScreenSince } from '../../ui/onscreen.js';
 import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip, createDebugButton } from '../../ui/debug-strip.js';
@@ -3453,6 +3453,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, cams: { now: camSig, baked: bakeCamShown, prev: fadeFrom >= 0 ? bakeCamPrev : null, lit: litBaker.key ? litBaker.key.includes(`|${camSig}|`) : null }, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
+    /** THE CITY's LONG NIGHT (Nov 12 night): the title going away STOPS the city AT ONCE — the frame loop + every timer (the last frame stays on
+     *  screen under the 420-ms fade-out) — destroy() follows after the fade; never a frame drawn after the unmount */
+    halt() { destroyed = true; stop(); clearTimeout(resizeT); clearTimeout(relayT); clearTimeout(extrasT); clearInterval(watchdog); },
     destroy() {
       try { bb.destroy(); } catch { /* fine */ }
       try { moth.destroy(); } catch { /* fine */ }
@@ -3470,6 +3473,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (window.visualViewport) window.visualViewport.removeEventListener('resize', onVV);
       if (document.fonts && document.fonts.removeEventListener) document.fonts.removeEventListener('loadingdone', onFonts);
       baker.destroy(); litBaker.destroy(); wild.destroy(); for (const d of Object.values(dark.g)) d.cv.width = d.cv.height = 0; freeFront(); sky.destroy(); if (legends) legends.destroy(); snd.destroy(); roadLight.destroy(); leaves.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); speak.destroy(); centre.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();
+      // THE CITY's LONG NIGHT (Nov 12 night — Grok's review, every item checked in the code): what the teardown missed — the GPU fireworks (their
+      // context lost: fireworks.js#free) + the 2D fallback's sprites, the people's caches, the gale's sea, the raid's light, the chimneys' puffs,
+      // the lit windows' sprites, the tower's, the crossing's light, the billposter's sheets + the blade's repaint, the board's cross-fade copy,
+      // THE TRI-VISION's faces — every module the scene creates is destroyed here
+      for (const m of [people, galeSea, raidFx, fw, fwx, chimneys, lights, towerFx, crossLit]) { try { if (m && m.destroy) m.destroy(); } catch { /* fine */ } }
+      freeCanvases(tri.art, bxf.cv, sheetV, bladeV); tri.art.clear(); tri.turn = null; bxf.cv = null; sheetV = bladeV = null;
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       if (haloSp) haloSp.cv.width = 0;
       still.destroy(); cabStand.destroy(); crisp.destroy(); fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); waterFog.destroy(); fogD.destroy(); stormDeck.destroy(); wetGround.destroy(); glassWx.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();

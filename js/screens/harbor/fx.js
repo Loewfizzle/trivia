@@ -5,7 +5,7 @@
 // Particle counts are capped per quality tier; Reduced effects (motion 0) stops what moves (the palette still applies).
 // Rare moments (bats, the sleigh, single shooting stars) are scheduled with long, random gaps — or forced by the preview.
 
-import { safeCtx } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
+import { safeCtx, freeCanvases } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
@@ -407,7 +407,7 @@ export function createFx() {
       return null;
     },
     debug: () => ({ ufo: ufo ? ufo.st : null, cat: cat ? (cat.at ? 'here' : 'placed') : null, snow: snow.length, bats: !!bats, witch: !!witch, meteors: meteors.length, sleigh: !!sleigh, lights: lights ? lights.length : 0, sparks: fwx.count() }),
-    destroy() { for (const c of sprites.values()) { c.width = 0; c.height = 0; } sprites.clear(); },
+    destroy() { for (const c of sprites.values()) { c.width = 0; c.height = 0; } sprites.clear(); try { fwx.destroy(); } catch { /* fine */ } },   // (THE LONG NIGHT: + the holiday fireworks' GPU context)
   };
 
   // ---------------------------------------------------------------- Christmas lights, baked

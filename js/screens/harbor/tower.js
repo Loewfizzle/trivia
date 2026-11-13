@@ -14,7 +14,7 @@
 // Phone first: every piece a clear silhouette + one bright accent (the beacon, the work lights, the flashes, the beams).
 import { project, roofline } from '../../core/harbor-layout.js';
 import { TOWER_ID, implosionAt, IMPLODE } from '../../core/harbor-tower.js';
-import { safeCtx, blit } from '../../ui/canvas-safe.js';
+import { safeCtx, blit, freeCanvases } from '../../ui/canvas-safe.js';
 import { skyBlock } from './blocks.js';
 import { beaconPulse } from './lights.js';
 import { craneModel, drawCrane, craneAsked } from './crane-model.js';
@@ -272,6 +272,8 @@ export function createTowerFx() {
 
   return {
     layout,
+    /** THE LONG NIGHT: every sprite + the bulb strings + the old building's ghost freed at the city's teardown */
+    destroy() { freeCanvases(glowSp, dustSp, warmSp, redSp, bulbs, ghost, front); glowSp = dustSp = warmSp = redSp = null; bulbs = ghost = null; bulbKey = ''; },
     /** f: { st (core/harbor-tower.js), T (the bake's tones: the old building's sprite), dpr, night (0..1), t (s), motion, power (the legendary's / blackout's 0..1), logo (the sign's rect), fade, wind } */
     draw(c, f) {
       const st = f.st;

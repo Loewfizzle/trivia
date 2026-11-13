@@ -101,3 +101,32 @@ Built step for step like REDLINE + PHOTO FINISH (passes/overclock-cards.md Group
   `crew` + `radio`: **THE LOBBY GETS IT LIVE** — both lobby phones have EVERYONE's moment 141 / 149 ms after FIRE (its start 10.1 s ahead), the poll's
   copy + the room's = 1 moment, STOP reached the room; **the intercom in a lobby** — two room phones 0 ms apart, 0 ms from its time, the clip fetched
   ahead; FRIENDS C's own sync check (EVERYONE stamped 10 s) — `radio, crew, radiorest, panel` **117 / 117**.
+
+## Group 4 — THE CITY's LONG NIGHT (memory — Grok's review, every item checked in the code)
+- **The misses** (each verified): `scene.js#destroy()` never called the GPU fireworks' destroy (`fireworks.js#free` — the context lost) nor the
+  2D fallback's, nor `people` / `galeSea` / `raidFx`'s (each had one). **The sweep** of every `create…()` in scene.js + its cuts found more modules
+  holding canvases with NO destroy at all: the 2D fireworks' sprites, the chimneys' puffs, the lit windows' sprites (the spell + the dark faces +
+  the sets), the tower's sprites + bulb strings + ghost, the crossing's light — each got one; and modules whose destroy left canvases: the people's
+  cars (`kit.destroy()`), the stars' glows, the speakeasy's door-light + awning masks, the holiday fireworks' GPU context (fx.js), the balloons'
+  flame dot, the crisp layer's dropped items (zeroed as they go). The scene's own: THE TRI-VISION's faces, the board's cross-fade copy, the
+  billposter's sheets + the blade's repaint. **ONE rule now**: every module the scene creates is destroyed in `scene.js#destroy()`, and a module's
+  teardown frees its canvases AT ONCE (`ui/canvas-safe.js#freeCanvases` — WebKit keeps a dropped canvas's pixels until its next GC).
+- **The backdrop**: ONE still canvas reused on every title exit (it was a fresh one each time, the old never zeroed), through `ctx2d` (counted).
+- **The title's teardown**: the city STOPS at once (`scene.halt()` — the frame loop + every timer; the last frame stays under the 420-ms fade),
+  `destroy()` after the fade — not one city frame after the unmount (the harbor `longnight` group counts the scene's own rAF callbacks: 0 0 0 0 0 0 0 0).
+- **How it was found**: a canvas-maker census (each canvas tagged with the file:line that made it; the live ones — pixels, not in the page — grouped
+  after N trips): in WebKit after 5 menu trips the crisp layer (+31), the people's cars (+20), the speakeasy (+15), the stars (+10)… piled up until a
+  GC; after the fixes 237 → 223 with nothing left growing but the title's own two.
+- **Before → after** — `node tests/integration/wk-longnight.mjs --trips 30 --menus 10` (WebKit, 402 × 874 @3, the emulators):
+
+  | | before | after |
+  | --- | --- | --- |
+  | 30 trips city → game → room — the night's PEAK of live canvases | 457 (trip 15) | 266 |
+  | — the MB at the peak / the median, trips 2–6 → the last five | 79.4 / 66.6 → 63.6 (a GC sawtooth) | 62.2 / 61.7 → 61.9 |
+  | 10 trips title → YOUR CARD → title — the peak / the median first → last | 382 / 287 → 338 | 268 / 237 → 247 |
+  | the live GPU contexts | 0 → 0 | 0 → 0 |
+
+  (The GPU fireworks only exist during a show, so a plain night's GPU count is 0 either way — their context is now lost at the teardown.)
+- **Tests**: `tests/longnight.test.mjs` (freeCanvases; every module destroyed; halt before the delayed destroy; ONE backdrop still) · the harbor group
+  **`longnight`** (the `perf` job, before the serial `perf`): 8 city-pause trips + 6 menu trips — the peak ≤ 1.25 × the first trips', the MB flat,
+  the GPU flat, 0 city frames after the unmount — 3 / 3 · `citypause, cameras, tower, perf` 38 / 38 (THE BASELINE GUARD 0.79–1.23×).

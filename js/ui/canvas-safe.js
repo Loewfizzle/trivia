@@ -147,6 +147,22 @@ export const BAKE_CAP = (() => { try { return typeof location !== 'undefined' &&
 // sign's overlays then paid a whole page layout per frame). One read the first time, then a ResizeObserver keeps it.
 const cssW = new WeakMap();
 /** the canvas's CSS width (px), cached per canvas */
+/** THE CITY's LONG NIGHT (Nov 12 night): a module's teardown frees its canvases AT ONCE — each zeroed (its backing store gone now, not at the next
+ *  GC: a long night of city → room → game trips on an iPhone; the memory guard's count drops with it). Takes canvases, { cv | canvas | sv } holders,
+ *  Maps, Sets, arrays and plain objects of them (two levels deep) — anything else is ignored. */
+export function freeCanvases(...vals) {
+  const seen = new Set();
+  const zero = c => { if (c && typeof c === 'object' && 'width' in c && 'height' in c && typeof c.getContext === 'function') { try { c.width = 0; c.height = 0; } catch { /* fine */ } return true; } return false; };
+  const walk = (v, d) => {
+    if (!v || typeof v !== 'object' || seen.has(v)) return; seen.add(v);
+    if (zero(v)) return;
+    for (const k of ['cv', 'canvas', 'sv', 'ang', 'glow', 'blank', 'fresh']) if (v[k]) zero(v[k]);
+    if (d <= 0) return;
+    const kids = v instanceof Map ? [...v.values()] : v instanceof Set || Array.isArray(v) ? [...v] : Object.getPrototypeOf(v) === Object.prototype ? Object.values(v) : [];
+    for (const x of kids) walk(x, d - 1);
+  };
+  for (const v of vals) walk(v, 2);
+}
 export function cssWidth(cv) {
   if (!cv) return 0;
   let e = cssW.get(cv);

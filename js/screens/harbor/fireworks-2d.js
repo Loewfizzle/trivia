@@ -3,7 +3,7 @@
 // glowing trails, a soft haze of its colour catching the clouds, then a slow, glittering, drifting fade. Everything is a
 // pre-rendered sprite drawn additively; particle counts are capped per quality tier (tier 0 keeps the shape, drops the trails
 // and the glitter). Its light on the city (light()) is read by the scene and painted onto the buildings and the wet street.
-import { safeCtx } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
+import { safeCtx, freeCanvases } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
 const TAU = Math.PI * 2;
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
@@ -63,6 +63,8 @@ export function createFireworks({ onBurst = null } = {}) {
   }
 
   return {
+    /** THE LONG NIGHT: the sprites freed at the city's teardown */
+    destroy() { freeCanvases(sprites); sprites.clear(); rockets = []; sparks = []; blooms = []; },
     setTier(t) { tier = Math.max(0, Math.min(2, t | 0)); },
     launch,
     /** draw everything, advanced by dt ms (motion 0: nothing moves — the caller shows a still swell instead) */

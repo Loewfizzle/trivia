@@ -77,7 +77,7 @@ export function createCrisp() {
     I.seen = frameN;
     return true;
   }
-  function drop(id) { const I = items.get(id); if (!I) return; I.a.remove(); if (I.b) I.b.remove(); items.delete(id); }
+  function drop(id) { const I = items.get(id); if (!I) return; I.a.remove(); if (I.b) I.b.remove(); I.a.width = I.a.height = 0; if (I.b) I.b.width = I.b.height = 0; items.delete(id); }   // (THE LONG NIGHT: zeroed as it goes — WebKit keeps a dropped canvas's pixels until a GC)
   /** after the frame: an item not shown this frame hides (and is freed after ~2 s unseen) */
   function end() {
     for (const [id, I] of items) {

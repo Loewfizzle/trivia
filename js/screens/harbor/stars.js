@@ -5,7 +5,7 @@
 // projected facing south (north in the Southern Hemisphere). Rendered into an offscreen canvas every 20 s (the sky turns
 // 15°/hour: the change is far too small to see) and when the screen or the look changes; a frame just draws that canvas.
 
-import { safeCtx } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
+import { safeCtx, freeCanvases } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
 import { planetsAt } from '../../core/sky.js';
 
 const D = Math.PI / 180;
@@ -169,7 +169,7 @@ export function createStars() {
       c.globalAlpha = 1;
     },
     planets: () => planets.map(p => p.name),
-    destroy() { if (cv) { cv.width = cv.height = 0; cv = null; key = ''; } },
+    destroy() { if (cv) { cv.width = cv.height = 0; cv = null; key = ''; } freeCanvases(glowCache); glowCache.clear(); },   // (THE LONG NIGHT: + the glows)
   };
   function drawPlanets(c, a, camY) {
     if (a <= 0.02) return;
