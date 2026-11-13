@@ -581,6 +581,19 @@ activation 2 s, the offline reads 0.8 s) — Safari's storage can stop answering
   blocks the first frame on the city.
 
 
+### ONE DEPLOY AT A TIME
+
+PLAY NOW's Group 0a (the owner, Nov 13 — STANDING: a phone NEVER runs two deploys' code at once). **The rule in the worker (`sw.js`):** every page
+is PINNED to the build it booted on (clientId → build, in memory + META `/__pins`; a page it never saw boot is adopted by the live build at its
+first file); EVERY `/js` + `/css` file of that page — the boot graph and every lazy chunk, any time later — comes from THAT build's copy; a miss
+reaches the network ONLY while the network is still that build (an `/api/time` answer ≤ `LIVE_FRESH_MS` 3 s old) and each burst of misses is
+checked again once it settles (`VERIFY_MS` 2.5 s — a deploy mid-burst = those copies dropped + the page told); **the build gone** → the page is
+asked (`ns:build-gone`, `ui/lazy-import.js#goneAnswer`): no match on screen = ONE reload (THE SKEW WRAPPER's guard) + the file refused; a match on
+screen = `mix` (the network's files until the podium, then the reload). An old build's cache stays while a page is on it; the page learns its
+build from the worker. `vercel.json`: `/js` + `/css` `max-age=300`, **no stale-while-revalidate** (a load the worker doesn't control never boots on
+a day-old file). THE STALE-MODULE RULE still holds (a lazy chunk reads a hub for a new export). Proof: `tests/integration/wk-onebuild.mjs`
+(WebKit + Chromium — build B published under an open A page), `wk-edge` (a warm visit ≤ 15 requests), `tests/one-build.test.mjs`.
+
 ### THE SUPPORTED FLOOR
 
 PLAY NOW 0d (Nov 13): **iOS / Safari 15.4 · Chrome 92 · Firefox 90** — the LOWEST that runs the app, checked feature by feature (never block a
@@ -1185,6 +1198,7 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | BUZZED LIGHTYEAR | Nov 6 | [passes/buzzed-lightyear.md](harbor/passes/buzzed-lightyear.md) | the 1-of-1 gift card (the picture taken apart: the spiral fitted + turning behind him, the stars orbiting, the HIC! popping; the strip composed eyebrows → chin) + THE CARD TEXT STANDARD on every full card; the gift strip mapping fix |
 | THE LOAD FIX | Nov 6 | [passes/load-fix.md](harbor/passes/load-fix.md) | the owner's four load problems on his iPhone reproduced in WebKit (wk-load.mjs + kit/load-probe.mjs → four `load` checks) + fixed: the bars keep the city (no doubled lettering), ONE CAMERA ON SCREEN (hold, then cut), the boot screen holds until the city (ONE fade, never the dark title), the #net pill hidden from the first frame; no rules change |
 | JAYWALK CARDS + THE TRI-VISION | Nov 12–13 | [passes/jaywalk-cards.md](harbor/passes/jaywalk-cards.md) | JAYWALK's three cards (dormant until its pass 6); THE TRI-VISION (the roof board turns HOLD'EM ↔ JAYWALK every 45–60 s); THE LOBBY GETS IT LIVE (EVERYONE's intercom + sky moments 10 s after FIRE, live in every open room); THE CITY's LONG NIGHT (the teardown misses — WebKit's peak 457 → 266 canvases); THE ERRORS GROUP (the black helicopter, stale-host writes, bots out of /admin, two lost taps); Vercel Web Analytics after the reveal; no rules change |
+| PLAY NOW + WHO'S ON | Nov 13 | [passes/play-now.md](harbor/passes/play-now.md) | ONE DEPLOY AT A TIME (the worker pins every page to its build; no SWR on the code); THE ROOF BOARD's art retried; THE SUPPORTED FLOOR → iOS 15.4 (+ the roundRect fill); A REAL ZEBRA's bus; the C2 cloud reds; PLAY NOW (the dock's PLAY, the shelf, the card, the solo room + THE SOLO START); WHO'S ON (the LEDGER + /admin); no rules change |
 | FR7 FIXES C2 | Nov 13 | [passes/fr7-fixes-c2.md](harbor/passes/fr7-fixes-c2.md) | THE LEDGER opens again (NOW PLAYING imports nothing; TAP TO RETRY + the report); THE LEAVES READ AS LEAVES (27 big leaves in a ring); THE JAYWALK POSTER in Bowlby One on a calm panel; the two cloud reds (the unit test off firebase-admin; the crisp lettering follows the bake ON SCREEN) |
 | FR7 FIXES C | Nov 13 | [passes/fr7-fixes-c.md](harbor/passes/fr7-fixes-c.md) | THE CLAUDE.md DIET (106 → 29 KB, nothing lost); THE ONE DAY LINE (Grok's progression + calendar review — 4 MUSTs + 5 SHOULDs); THANKSGIVING's MAPLE LEAVES + THE GOLD WEEK (the wreath retired; the sign forces full any day); THE LEDGER's NOW PLAYING; the radio's switches inside their panels; THE JAYWALK POSTER readable; no rules change |
 | HOLD'EM IN THE CITY | Nov 11 | [passes/holdem-city.md](harbor/passes/holdem-city.md) | THE BILLBOARD → NOW OPEN (the timetable's default from Nov 11 — the billposter's one paste); HOLD'EM's skyline SIGN + DAY FACE in GRIDLOCK's spot (THE FIVE SIGNS = PRISM DROP · OVERCLOCK · HOLD'EM + NEON PAR · HIGH STAKES; the slot rule counts a row's letters — the apostrophe tube rides along; night casino red, the day face gold on felt); THE BOARD's HOLD'EM TAB (TOURNAMENT WINS, KOs the tie-break, the earlier — one sort value from the dealer's record; five tabs at 390; the back-fill); HE9's B2 (44 pt corner tap areas — the `tapfit` probe), B3 (the podium's sticky BACK TO THE ROOM + MORE BELOW), B4 (everyone tied = a draw: ALL TIED, 2nd-place night points, no win); no rules change |

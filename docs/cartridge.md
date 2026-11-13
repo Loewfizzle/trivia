@@ -230,6 +230,26 @@ city chat first (a new rule).
 clock: every phone in the room gets the same song at the same place (`audio/party-music.js#stationCue`), and the menu song plays until the
 decks have loaded. The console already owns the unlock-on-tap + the one mute.
 
+**PLAY NOW — A SOLO RUN IN ONE TAP (Nov 13, docs/harbor/passes/play-now.md).** A `SOLO: true` game's CARD (the dock's PLAY → THE GAMES SHELF →
+its card; a skyline sign; the blade) offers PLAY NOW = `host.js#playSolo(gameId)`: THE SOLO ROOM (`room.js#createSoloRoom` — a private one-seat
+room: `meta.settings.solo = { on, g }`, LOCKED once its one seat is taken (the rules refuse a player write into a locked room), its code 4 random
+letters that are NOT a hush word (`core/room-logic.js#soloCode`) — never on screen / in the URL / rested / listed / pushed) → this phone its host +
+online → the cartridge's ONE-PLAYER defaults (`soloSettings(meta)` = `cleanSettings(DEFAULT_SETTINGS, 1)` — PRISM DROP: SCORE RUSH, OVERCLOCK:
+QUICK) → THE SOLO START (`core/room-show.js#START.solo`, ~2 s, the match id's leading `s` — every start in a solo room, PLAY AGAIN too). A cartridge
+needs NOTHING new: its normal `start()` / podium run; the podium's foot reads PLAY AGAIN + BACK TO THE CITY through host.js's hub
+(`globalThis.__nsPlayNow` — the console's `ui/final.js`). THE SOLO LANE below is unchanged (the streak + a small capped XP, never a counted play).
+A game WITHOUT `SOLO` shows PLAY WITH FRIENDS (a normal room, the game picked) + "Needs 2+ players"; JAYWALK gets PLAY NOW by `SOLO: true` alone.
+**THE SOLO FOOT + SHARE YOUR RUN (the owner's add-on, Nov 13 noon).** The console's podium (`ui/final.js`) gives a SOLO RUN its own foot: PLAY
+NOW's room → PLAY AGAIN + BACK TO THE CITY; a ROOM OF ONE (the old "open a room and play alone") → PLAY AGAIN (the quick start) + BACK TO THE ROOM.
+Both add **SHARE** when the cartridge exports **`shareRun(game, state)`** (optional; PRISM DROP + OVERCLOCK — a lazy `share.js`): it builds the card's
+inputs from the result's PUBLIC fields through `js/games/kit/share-run.js#runCard` (the one gate — never a pid / uid / key / tag digits) and draws
+its own MIDDLE (PRISM DROP: the published final board via `drawMini`, night tubes / the day's crayon; OVERCLOCK: the score) on the kit's 1080 × 1350
+frame (the sign, the game + mode, the name, the result, the site) through `ctx2d` — ON THE PHONE, no server, no new /api call — then
+`js/daily/share.js#sendShare` (the image + "My <GAME> run — <result> · https://neonspeakeasy.com" through the share sheet; no file sharing → the line +
+the image saved). → 'shared' | 'saved' | 'copied' | 'none' | 'failed'. Tests: `tests/share-run.test.mjs`, `e2e-playnow.mjs` (solo + one), `shots.mjs
+--scenes pn-share-night,pn-share-day,pn-share-oc,pn-share-oc-day` (the card at Messages size + full).
+
+
 **THE SOLO LANE (D3) + THE GAME LOOK.** `SOLO: true` lets ONE player start it (`minPlayersOf` → 1). A room of one plays it end to end and
 it counts for the STREAK + a SMALL, CAPPED XP (docs/profiles.md "THE SOLO LANE"). THE GAME LOOK (SHELL 2.0 B2 — ☰ → Settings → AUTO / DAY /
 NIGHT, per device, any match, no lock: `games/kit/look.js` + `body[data-look]`) is the console's: a game draws NO switch of its own, it

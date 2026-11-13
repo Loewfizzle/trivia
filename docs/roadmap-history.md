@@ -2740,6 +2740,20 @@ The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept th
 district" in code (the `nd-` class prefix, the `window.__district` test hook). `ROADMAP.md` lists what shipped and what is next.
 **Keep this file, ROADMAP.md (one line per shipped feature; the detail goes in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
 
+## PLAY NOW + WHO'S ON (+ GROUP 0: ONE DEPLOY AT A TIME) (Nov 13, 2026 — docs/harbor/passes/play-now.md)
+
+- **ONE DEPLOY AT A TIME:** the worker (`sw.js`) pins every page to the build it booted on (memory + META /__pins); every /js + /css file of the page
+  — the boot graph and every lazy chunk, any time later — from THAT build; a miss reaches the network only while it's still that build (≤ 3 s
+  answer + a check after each burst); the build gone → the page asked: ONE reload (never mid-match — a match keeps the network's files until the
+  podium); an old build's cache kept while a page is on it; /js + /css max-age 300, no stale-while-revalidate. Proof: wk-onebuild (WebKit + Chromium).
+- **The C2 leftovers:** the boot reports carry the worker's counts (0b — /admin not readable here; inconclusive); the roof board's JAYWALK art retried +
+  reported (0c — a failed load left HOLD'EM up for the page's life); THE SUPPORTED FLOOR → iOS / Safari 15.4 + a canvas `roundRect` fill (0d); A REAL
+  ZEBRA read under the 22:30 bus (0e); the cloud's BENCH OVER THE TAXI + DANCERS' ARMS timing, the radio's double face load (0f).
+- **PLAY NOW:** the dock's PLAY → THE GAMES SHELF (a row a game) → THE GAME CARD (PLAY NOW · PLAY WITH FRIENDS · PICK THIS GAME · "Needs 2+ players"
+  · HOW TO PLAY · THE BOARD's top three); the skyline signs + the blade open it. THE SOLO ROOM: locked once seated, flagged, a non-hush code never
+  shown or rested, never listed; THE SOLO START ~2 s; the podium's PLAY AGAIN + BACK TO THE CITY. e2e-playnow 13 / 13 in both engines.
+- **WHO'S ON:** the LEDGER's IN THE CITY + /admin STATS → the owner's live list from here/ (the hello's `w`), the live rooms and the daily's record.
+
 ## FR7 FIXES C2 — THE LEDGER WON'T OPEN + THE LEAVES READ AS LEAVES + THE JAYWALK POSTER + THE TWO CLOUD REDS (Nov 13, 2026 — docs/harbor/passes/fr7-fixes-c2.md)
 
 - **THE LEDGER WOULDN'T OPEN** ("Tuning in…" forever on the owner's iPhone): reproduced in WebKit — a page holding the previous deploy's

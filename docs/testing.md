@@ -172,6 +172,12 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   (no emulators). The emulators need Java: on the mini PC Temurin 21 is on the PATH (the old laptop's own JRE lived at
   `~/.cache/neural-arcade/jre/jdk-21.0.12.1+1-jre/bin`).
 - **HOLD'EM (HE1):** `node --test tests/holdem-rank.test.mjs tests/holdem-table.test.mjs tests/holdem-match.test.mjs tests/holdem-sim.test.mjs` (≈ 7 s — the 2.6 M-hand proof, rigged hands, matches, ≈ 30,000 robot hands of invariants); the length study `node scripts/holdem-sim.mjs` (not in npm test) — docs/holdem.md.
+- **PLAY NOW's checks (Nov 13 — docs/harbor/passes/play-now.md; the emulators + `serve.mjs --emu`; Playwright from `~/wk`):**
+  `e2e-playnow.mjs [--browser webkit|chromium] [--only solo,friends,holdem,sign]` (the shelf → the card → a solo run in one tap → PLAY AGAIN → BACK TO
+  THE CITY + the parked line; PLAY WITH FRIENDS; HOLD'EM's card; a sign tap — `&conngrace=4000`) · `wk-onebuild.mjs [--browser …]` (ONE DEPLOY AT
+  A TIME: build B published under an open A page, THE LINE's own ports 5187 / 5188) · `wk-trivision.mjs [--only plain,reload,hidden,artfail]`
+  (the roof board on a PLAIN load; `HIDE_MIN=` shortens the 10-min hidden case) · `wk-floor.mjs` (iOS 15.4's missing APIs taken away) ·
+  `wk-edge.mjs` takes `PATHS=1` (each visit's /api paths). `kit/two-cameras.mjs`: `wx-late@HH:MM` (the LATE WEATHER at a set clock).
 - **HOLD'EM's DEALER (HE2):** `tests/holdem-dealer.test.mjs` (npm test — the pure core) + on the emulators (database + auth), RUN ALONE (it loads the
   real rules into the server's namespace `demo-arcade-default-rtdb` to read AS each phone): `cd tests/integration && node --test holdem-server.test.mjs`
   (≈ 2 min — whole matches through `holdemAction`, THE LEAK SCAN every step, the cost line `# holdem cost` + `# holdem bytes`). The seeded rng + clock

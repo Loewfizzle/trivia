@@ -609,6 +609,21 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
 - **Files:** `js/screens/title-dock.js` (the markup, the rings, `ringColors`, the lighting, `dressCorners`); `title.js` keeps the
   behaviour (JOIN / HOST / the panel) and hands it in. **Look preview without Firebase:** `tests/integration/title-preview.html`.
 
+## PLAY — THE GAMES SHELF + THE GAME CARD (PLAY NOW, Nov 13 — docs/harbor/passes/play-now.md)
+
+- THE FLANK's GAMES became **PLAY** (same spot, `ICON.play` — a play-triangle tube; `.nd-tab-play`, still `.nd-tab-games`): `[ JOIN ] [ DAILY ·
+  BOARD · PLAY · YOU ] [ HOST ]` — 4 icons, the max, unchanged.
+- **THE GAMES SHELF** (`title-taps.js#shelf`, THE SHEET): the playable games, ONE ROW each (THE ROW — the game's neon mark as its icon, the name,
+  "solo · 2–8" / "2–8", "≈ N min").
+- **THE GAME CARD** (`title-taps.js#gameCard`, THE SHEET — nested ‹ to the shelf; it replaced the old preview): the art, the one line, the players +
+  minutes chips, the actions (`core/room-logic.js#cardActions`): PLAY NOW (the pink MAIN, SOLO games) + PLAY WITH FRIENDS (the secondary tube;
+  the MAIN without SOLO + "Needs 2+ players"); in a room: PICK THIS GAME (the host) / "The host picks the game" (a guest); HOW TO PLAY a quiet
+  link; THE BOARD's top three. PLAY WITH FRIENDS = the dock's HOST with the game kept in `sessionStorage nd:pick` → the room opens its options.
+- **THE SIGNS open the card** (`title-taps.js#onCityTap`): a playable game's sign or the speakeasy's blade (`scene.js#bladeHit` — this week's
+  game; never over the door); a hidden game's sign says COMING SOON. NEON SPEAKEASY's own gestures (a letter's tap, THE RACE, THE SURGE) are on
+  the logo's letters and answered BEFORE any city hit — a card never steals them.
+- Shots: `shots.mjs --scenes pn-shelf,pn-prism,pn-overclock,pn-holdem,pn-podium`.
+
 ## THE REAL SUN (Oct 19, 2026) — `harbor/sun.js` (replaced fx.js's low-sun glow)
 - **On load (Oct 20):** the title hands the scene the sign's text boxes as soon as it's laid out (not only after the intro), so a
   phone's sun is placed while the city powers on, and it fades in over ~0.9 s wherever it first lands (a load, a new layout) —

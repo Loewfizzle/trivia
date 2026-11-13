@@ -536,6 +536,17 @@ A second way to bring your card to a device, beside the restore key (which stays
   (`host.js#pruneProofs` — every other match's nodes pruned, best effort; a rules row lets the host delete one match's node). A host can still fake the
   RESULT of a match the victim really played (the accepted host trust) — never credit one they weren't in.
 
+## WHO'S ON (PLAY NOW's Group 2, Nov 13 — docs/harbor/passes/play-now.md)
+
+The owner's live list — the radio's LEDGER (a tap on IN THE CITY → THE SHEET) and /admin → STATS, ONE builder (`js/ui/whos-on.js`): each person's
+SLIM CARD (`ui/strip-board.js`, THE BOARD's public fields — `lb.js#publicRow`: never a pid / key / tag digits) · WHERE (THE CITY · ROOM CODE · GAME
+(IN THE LOBBY) · SOLO · GAME · THE DAILY · NAME) · the last check-in; rooms → dailies → the city; one row an account (two devices = one);
+guests counted on one line. **The data, no new idle poll:** the city's ~5-min `radioHello` carries `w` ({ k: city | daily, d }); the server keeps
+`here/{uid}` = `{ at, pid, w }` (THE NIXIE reads the old bare time too); a room's members from the LIVE rooms (online, exact — the phone never
+names its room); a daily confirmed by its own record (`dly/{game}/{day}/s` set, `r` not). Built by the SERVER (`api/_lib/radio.js#whosOnNow`,
+the PURE core `js/core/whos-on.js`) on the owner's ask (`radioWhosOn` — `ROLES.whoson`: the owner only; the crew + everyone else 403), refreshed
+every 30 s ONLY while it is open + on screen. Tests: `server.test` (WHO'S ON), `tests/whos-on.test.mjs`, the harbor `radio` group.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
