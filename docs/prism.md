@@ -390,6 +390,30 @@ the last strong beat, the key, `lufs` / `tp` / `check` in the song's JSON; `writ
   sprite caches go `DROP_MS` (60 s) after the match's screen (a rematch keeps them).
 - Not changed: `RUSH_PACE.margin` (it wants a fresh `sim-prism-rush.mjs` against the tighter number — FR7 FIXES B).
 
+## PD-6 (Nov 13 2026 — docs/games/passes/pd-6.md)
+- **THE SPARE-WIDTH COLUMN** (`layout.js`, PURE): HEIGHT-bound (Safari WITH its toolbars — 20 square rows can't get wider without getting taller)
+  → the board at the 12-pt margin, the spare width to the rail + SLAM column: `railW` = the spare, 34 → `COL_MAX` 72 pt (device pixels); SLAM =
+  the column − `SLAM_PAD` (10), between today's 40 and `SLAM_MAX` 56 pt, CENTRED at the column's foot (`.pd.is-wide`); the tiles as wide as the
+  column (initial 19 px); a duel tile's board up to 5-pt cells. WIDTH-bound (a home-screen app / fullscreen / a desktop's `MAX_CELL`) = PD-1's
+  34-pt rail + today's SLAM exactly (`L.wide` false). LEFT mirrors it; BUTTONS: the bar shrinks the board as before, the rail takes the column.
+  | screen | cell | column | SLAM |
+  | --- | --- | --- | --- |
+  | 390 × 650 (Safari, the owner's screenshot) | 29 | 68 | 56 |
+  | 402 × 690 (Safari) | 31 | 60 | 50 |
+  | 430 × 746 (Safari) | 33.67 | 61.33 | 51 |
+  | 390 / 402 / 430 home-screen app (safe areas) | 32.33 / 33.33 / 36.33 | 34 | 40 |
+  The plan said SLAM = column − 16: on the real Safari columns (60–68 pt) that left SLAM ~45 pt, not the ~56 asked for — −10 gives 50–56.
+- **THE SOLO PODIUM** (`victory.js`): a solo run on a screen under 760 pt draws YOUR LAST BOARD at 7-pt cells (140 pt, not 160) — with the
+  console's solo heading (ui/final.js `.is-solo`) it all fits above the foot in Safari with its toolbars.
+- **TWO SOLO BUTTONS**: `meta.js#SOLO_RUNS` — SCORE RUSH · ONE SONG (the pink MAIN) + SURVIVAL · UNTIL YOU TOP OUT (docs/cartridge.md). THE DROP
+  (the planned daily) is never a card button.
+- **THE SLAM's WEIGHT**: `audio.js#hard` — the thump 100 → 32 Hz over 0.28 s (was 130 → 42, 0.22), gain 0.23; the tonic pluck darker + longer; a
+  soft tonic an octave up (0.035) so a phone speaker feels the low note. **THE BOARD KICK** (`view.js#kick`): a 2.5-pt dip + a −0.5-pt spring
+  back over 0.12 s — a Web Animation on `.pd-board` (+ the night look's `.pd-light` in step), transform only, no reflow; OFF under Reduced
+  effects + prefers-reduced-motion (the old `.pd-thud` CSS dip — restarted with a forced reflow, the light left behind — is gone). Test hook:
+  `__prism.kicks()`. 60 fps at 4× CPU with SLAM spammed: `prism-shots.mjs` `PERF_SETS=slam`.
+- No "TIME!" moment at a SCORE RUSH song's end (the owner). Look review: `prism-shots.mjs` `SETS=pd6` (+ `NOSAFE=1 SIZES=390x650,402x690,430x746`).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

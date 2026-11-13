@@ -239,6 +239,16 @@ QUICK) → THE SOLO START (`core/room-show.js#START.solo`, ~2 s, the match id's 
 needs NOTHING new: its normal `start()` / podium run; the podium's foot reads PLAY AGAIN + BACK TO THE CITY through host.js's hub
 (`globalThis.__nsPlayNow` — the console's `ui/final.js`). THE SOLO LANE below is unchanged (the streak + a small capped XP, never a counted play).
 A game WITHOUT `SOLO` shows PLAY WITH FRIENDS (a normal room, the game picked) + "Needs 2+ players"; JAYWALK gets PLAY NOW by `SOLO: true` alone.
+**TWO SOLO BUTTONS (PD-6, Nov 13 — the plan's `solo` list, exported as `SOLO_RUNS`: a capital like every meta export, beside the `SOLO` switch).**
+A SOLO cartridge's `meta.js` may list `SOLO_RUNS = [{ mode, label, sub }]` (1–3; `label` ≤ 16, `sub` ≤ 24; each `mode` one ONE player can play —
+`cleanSettings({ mode }, 1)` keeps it; checked by `checkCartridge`). THE GAME CARD draws ONE THE NEON TUBE per entry — the FIRST the pink MAIN, the
+rest plain, the `sub` the small line under the label — then PLAY WITH FRIENDS (`core/room-logic.js#cardActions({ runs })` → `main` + `more`).
+Each tube = `host.js#playSolo(game, { settings: { mode } })`, cleaned through `soloSettings(meta, want)`; a guest's name setup keeps the mode
+(`setupSolo`); PLAY AGAIN replays the same settings. No list → the single PLAY NOW (OVERCLOCK). PRISM DROP: SCORE RUSH · ONE SONG + SURVIVAL ·
+UNTIL YOU TOP OUT. A daily is never a card button. Tests: `play-now.test`, `cartridge.test`, `e2e-playnow.mjs` solo (both tubes, the modes).
+**THE SOLO PODIUM (PD-6).** `ui/final.js` `.is-solo`: SOLO RUN is a heading (22 px, one line), the gaps 12, the foot at the screen's foot — the body,
+the slim card + its score line fit above it with no MORE BELOW in Safari with its toolbars (390 / 402 / 430). The multiplayer podium is untouched
+(pixel-identical). Under the score: ONE line of what the run PAID, from the SERVER's outcome only (`so` — docs/progression.md "THE SOLO LANE").
 **THE SOLO FOOT + SHARE YOUR RUN (the owner's add-on, Nov 13 noon).** The console's podium (`ui/final.js`) gives a SOLO RUN its own foot: PLAY
 NOW's room → PLAY AGAIN + BACK TO THE CITY; a ROOM OF ONE (the old "open a room and play alone") → PLAY AGAIN (the quick start) + BACK TO THE ROOM.
 Both add **SHARE** when the cartridge exports **`shareRun(game, state)`** (optional; PRISM DROP + OVERCLOCK — a lazy `share.js`): it builds the card's

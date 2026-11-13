@@ -127,6 +127,11 @@ the worker + the skew changes left it the same; `remote.js` now asks one whoami 
   the game · mode line deepened on the day's paper, the name + the result bigger; the haze under the sign filled the whole card (a hard edge
   showed behind OVERCLOCK's score).
 
+## PD-6 (Nov 13 — docs/games/passes/pd-6.md)
+THE GAME CARD draws a cartridge's `SOLO_RUNS` (PRISM DROP: SCORE RUSH · ONE SONG the MAIN + SURVIVAL · UNTIL YOU TOP OUT; OVERCLOCK keeps PLAY
+NOW); the solo podium's title is a heading + the foot fits with no MORE BELOW in Safari with its toolbars; the solo podium says what it paid
+(the server's `so`). Found on the way: a report that beat the host's night record was refused for good — now 425, retried.
+
 ## The close — local runs (the beelink; my own servers: fresh emulators + `serve.mjs --emu` on :5173 — restarted after the `/api` change —
 ## a `DAILY_TEST` server on :5179 for e2e-daily; a worktree of `68ef0fc3` on :5174 for the BEFORE runs)
 

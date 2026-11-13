@@ -271,6 +271,15 @@ for the stack) with Clear / Clear all; entries quiet for 30 days are pruned.
   else to vote). The podium says **SOLO RUN** + the player + the score (`ui/final.js` — a game's own `finalScene` draws its solo body).
 - Proof: `tests/shell-b1.test.mjs` (the pure steps: credited once, capped a day, never a placing) + `server.test.mjs` (THE SOLO LANE on the
   emulators) + the harbor's `sololook` group (OVERCLOCK starts with one player).
+- **THE SOLO PODIUM SAYS WHAT IT PAID (PD-6 add-on, Nov 13):** the step returns a solo run's place in the streak day's solo count; the outcome
+  carries it as `so` = `{ n, max }` (`api/_lib/stats.js#applyMatch` — the same response, no new call). The podium's callouts slot draws ONE
+  plain line from it under the score, in place of the XP box: `+15 XP · SOLO RUN · 3 OF 4 TODAY` while it pays, `TODAY'S SOLO XP DONE · MORE
+  AT 4 AM` once it doesn't (`js/core/solo-line.js#soloXpText` — PURE). No outcome yet / skipped / an older server = NO line (never a guess). A run
+  within 45 s of the last credit waits for the server's retryAfter (M4), so its line lands that much later. Tests: `tests/solo-line.test.mjs`,
+  `e2e-playnow.mjs` solo (runs 1–4 pay, the 5th says DONE).
+- **A REPORT BEFORE ITS NIGHT RECORD (PD-6):** a phone reports the moment its match ends; the host's `final` step writes `night/{matchId}` a
+  beat later. While the room's game IS that match, a missing record = **425 `not_final`** (the queue retries), never the 409 that sealed the
+  run uncredited (every SURVIVAL solo top-out in the e2e). `server.test` "PD-6: a report BEFORE the night record…".
 - **COLOUR-BLIND on the profile**: `ppriv/{pid}/cb` (private, server-written — `/api/profile` action `prefs`), returned in `priv.cb`. A device
   that never chose for itself adopts it.
 
