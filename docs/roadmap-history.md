@@ -2739,3 +2739,19 @@ plus eight Vercel serverless functions in `/api` (profiles, server-checked resul
 The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept their names and the title's city is still "the
 district" in code (the `nd-` class prefix, the `window.__district` test hook). `ROADMAP.md` lists what shipped and what is next.
 **Keep this file, ROADMAP.md (one line per shipped feature; the detail goes in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
+
+## FR7 FIXES C — THE CLAUDE.md DIET + THE ONE DAY LINE + THANKSGIVING's MAPLE LEAVES + THE SMALL ONES (Nov 13, 2026 — docs/harbor/passes/fr7-fixes-c.md)
+
+- **THE CLAUDE.md DIET**: CLAUDE.md 106.5 KB → ~29 KB — one line per standing rule; every per-pass paragraph moved VERBATIM to the doc that owns its
+  area ("THE RULES FROM CLAUDE.md (moved Nov 13)" in 17 docs); `scripts/claude-md-coverage.mjs` = 0 missing; `tests/claude-md-size.test.mjs` fails above 40 KB.
+- **THE ONE DAY LINE** (Grok's review, 4 MUSTs + 5 SHOULDs — all real, all fixed): M1 the match time (night.at / the dealer's end) + the pre-reset
+  refusal on both paths + the queue never drops by its own clock; M2 the ceiling / bonuses / solo cap on the streak day + a capped match marks the
+  streak; M3 the 4:00 am line on the wall clock (DST-right; `week.js#turnAt`); M4 a gap-skipped report waits (425 + retryAfter, the queue resends);
+  S1 the week from Monday 4 am (`xw.p` for a late match of the week before); S2 PENTHOUSE re-ranks a closed day (only adds); S3 WIN IT BACK pays
+  milestones only above the lost run; S4 a pre-reset daily start isn't paid + the back-fill's `cp` = max(live, rebuilt); S5 the reset's freezes show.
+  docs/launch.md: THE RESET MORNING (a Monday just after 4 am ET, Grok's order).
+- **THANKSGIVING's SIGN**: the harvest wreath + swags + the one-day amber RETIRED → a bank of Grok's real maple leaves BEHIND the letters
+  (`leafbank.js`, one atlas, baked once per look, lit by the tubes at night, filling in Nov 15 → 22 with a 2 s fade across 4 am) + THE GOLD WEEK (gold
+  neon by night, gold glass by day, Mon → Thanksgiving night); every holiday sign force shows its full look any day, in season too.
+- **THE SMALL ONES**: THE LEDGER's NOW PLAYING; the radio's switches inside their panels (+ the SWITCH FIT guard); the stale count checked (nothing
+  stale left); THE JAYWALK POSTER readable (the owner's add-on — JAYWALK ≥ HOLD'EM's cap, the band ≥ NOW OPEN, measured on the live board).

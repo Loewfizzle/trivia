@@ -6651,3 +6651,6 @@ OWNER'S NOTES — NOV 13 (after JAYWALK CARDS + THE TRI-VISION)
 - THE BUILD TABLE (Nov 13, FR7 FIXES C's Step 0): JAYWALK CARDS + THE TRI-VISION ✅ (the crew intercom's switch still hangs off the LEDGER); THIS PASS —
   FR7 FIXES C: THE CLAUDE.md DIET + THE ONE DAY LINE + THANKSGIVING's MAPLE LEAVES + THE GOLD WEEK + THE SMALL ONES (passes/fr7-fixes-c.md) ← NOW; then
   PLAY NOW + WHO'S ON → THE POOL FIXES + THE SLIDER → JAYWALK's passes; THE LAUNCH (the owner's taps, a Monday just after 4 am ET) whenever he's ready.
+- FR7 FIXES C DONE (Nov 13) — passes/fr7-fixes-c.md. THE BUILD TABLE: FR7 FIXES C ✅ (THE CLAUDE.md DIET 106 → 29 KB; THE ONE DAY LINE — all 9 of Grok's findings;
+  THANKSGIVING's MAPLE LEAVES + THE GOLD WEEK; NOW PLAYING; the radio's switches; THE JAYWALK POSTER readable; no rules change) → PLAY NOW + WHO'S ON ← NEXT →
+  THE POOL FIXES + THE SLIDER → JAYWALK's passes; THE LAUNCH (a Monday just after 4 am ET — docs/launch.md) whenever the owner taps.

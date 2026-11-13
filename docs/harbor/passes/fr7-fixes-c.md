@@ -94,3 +94,21 @@ The detail: docs/harbor.md "THANKSGIVING's SIGN — THE MAPLE LEAVES + THE GOLD 
    6.5 ≥ 6.1; 430 — 11.6 ≥ 11.3, 7.0 ≥ 6.5. Proof: `tests/trivision.test.mjs` (four board sizes, both bars) + the harbor `trivision` group (12 / 12 with
    `billboard`). Shots: `fr7-fixes-c/jw-before2/` → `jw-after2/side-by-side.png` (night + day × 390 / 402 / 430), `jw-after2/turn-sheet.png` (a burst
    through the turns), `jw-after2/cast/` (the full-screen cast). Nothing else on the board changed (`holdem-art.js` only gained the pure `holdemCaps`).
+
+## The close — local runs (the beelink, my own servers: fresh emulators + `serve.mjs --emu` on :5173 + a `DAILY_TEST=1` one on :5176)
+
+| suite | result |
+| --- | --- |
+| unit `node --test tests/*.test.mjs` | 1757 / 1757 (+ `one-day-line` 17, the size guard, the poster + harvest tests) |
+| rules `rules.test.mjs` | 82 / 82 (no rules change) |
+| `/api` `server.test.mjs` | 53 / 53 (+ M1 match time, the pre-reset refusal on both paths, M4 425 + the resend; `progress` now wiped at the suite's start; the reset tests press RESET on the test's clock) |
+| the dealer `holdem-server.test.mjs` (alone) | 21 / 21 |
+| `daily-module.test.mjs` | 20 / 20 (+ S2, S4) |
+| `e2e-profiles` | 144 / 144 (+ the 5.5 h queue item SENT, the 425 resend) — a first run with `SHOTS=0` died on a passkey sheet click's timing (64 / 64 before it); with shots it ran whole |
+| `e2e-daily` (`DAILY_TEST=1` server) | 53 / 53 |
+| smoke | 8 / 8 |
+| CONN | 21 / 21 |
+| **FULL `e2e-harbor`** (4 shards, ~34 min, nothing else busy) | **1295 / 1297** — the two reds both timing checks: SIGHTINGS' capture hitch (green alone: compose 7.1 ms, median 16.8 ms) + THE ROOM's OWN COST at 4× CPU (alone: red 41 → 45.2 standing, red 42.9 → 46.3, then GREEN 36.2 → 35.6 — the base swings 36 → 43 ms run to run on this machine; its date is Oct 21, nothing of this pass in its frame; the last pass measured 36.4). The long night's MB floor a warning as before. |
+
+The cloud: the harbor tag on the final push's top commit (one deployment) — its result in the summary.
+All my servers stopped at the end (the emulators, `serve.mjs` :5173 + :5176); the owner's :5190 preview left running.
