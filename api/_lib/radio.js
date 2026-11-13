@@ -212,6 +212,7 @@ export async function openRooms(now) {
   const rooms = await liveRoomsRead(now), out = [];   // (FR7 FIXES B — C5: the live rooms by the index, never the whole tree)
   for (const [code, r] of Object.entries(rooms)) {
     if (!r || !r.meta || !/^[A-Z]{4}$/.test(code)) continue;
+    if (r.meta.settings && r.meta.settings.solo && r.meta.settings.solo.on === true) continue;   // (PLAY NOW: a solo room is never listed)
     const pres = r.presence || {}, players = Object.keys(r.players || {});
     const online = players.filter(u => { const p = pres[u]; return p && (p.c ? Object.keys(p.c).length > 0 : p.online); }).length;
     if (!(r.meta.activeAt > now - 3600e3 || r.meta.createdAt > now - 3600e3)) continue;

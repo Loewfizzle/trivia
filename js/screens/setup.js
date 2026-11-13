@@ -15,8 +15,10 @@ export function createSetup() {
   let profile, mode, busy = false;
   let els = {};
 
+  let game = null;   // (PLAY NOW: the game the card was for — 'solo' plays it after; 'host' opens the room with it picked)
   function mount(el, st) {
     mode = st.setupMode;
+    game = st.setupGame || null;
     const saved = loadProfile() || {};
     // THE VAULT 2C — ONE EMBLEM SYSTEM, ONE PLACE: the shape is picked here ONCE (sign-up — nothing saved on this device yet); afterwards it
     // changes only in CUSTOMIZE (the profile's CUSTOMIZE YOUR CARD). EDIT PROFILE = the name + the colour.
@@ -55,12 +57,12 @@ export function createSetup() {
     }
     els.preview = h('div.preview');
     els.go = h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick: submit },
-      h('span', mode === 'host' ? 'CREATE ROOM' : mode === 'edit' ? 'SAVE' : 'CONNECT'));
+      h('span', mode === 'host' ? 'CREATE ROOM' : mode === 'solo' ? 'PLAY NOW' : mode === 'edit' ? 'SAVE' : 'CONNECT'));
 
     el.append(
       h('header.bar',
         h('button.icon-btn', { type: 'button', 'aria-label': 'Back', onclick: () => { try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); } }, '‹'),
-        h('div.bar-title', mode === 'host' ? 'HOST // NEW ROOM' : mode === 'edit' ? 'PROFILE // EDIT' : 'JOIN // ENTER CODE')),
+        h('div.bar-title', mode === 'host' ? 'HOST // NEW ROOM' : mode === 'solo' ? 'SOLO // PLAY NOW' : mode === 'edit' ? 'PROFILE // EDIT' : 'JOIN // ENTER CODE')),
       h('div.form',
         els.byc = h('div.setup-byc'),
         mode === 'join' ? h('label.field', h('span.label', 'HUSH WORD'), els.code) : null,
@@ -110,12 +112,15 @@ export function createSetup() {
     saveProfile(p);
     lazyImport(import('../profile/me.js'), '../profile/me.js').then(m => m.syncMe()).catch(() => {}); // the global profile follows (renames: once a day)
     if (mode === 'edit') { sfx('lock'); try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); return; }
+    // (PLAY NOW — a guest's first PLAY NOW: the name saved, then straight into the solo run — host.js#playSolo opens its own room)
+    if (mode === 'solo' && game) { sfx('lock'); setState({ view: 'title', setupGame: null }); lazyImport(import('../host.js'), '../host.js').then(m => m.playSolo(game)).catch(() => {}); return; }
     busy = true;
     els.go.classList.add('is-busy');
     els.go.firstChild.textContent = mode === 'host' ? 'ALLOCATING…' : 'CONNECTING…';
     try {
       // Firebase loads in the background while the title screen is up; wait for it here if needed.
       await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
+      if (mode === 'host' && game) { try { sessionStorage.setItem('nd:pick', game); } catch { /* the host picks by hand */ } }   // (PLAY WITH FRIENDS)
       if (mode === 'host') await createRoom(p);
       else await joinRoom(code, p);
       setState({ invite: '' });

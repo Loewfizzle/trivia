@@ -4,7 +4,7 @@ import {
   query, orderByChild, endAt, limitToFirst, runTransaction, want, release, expectRefusal } from './firebase.js';
 import { state, setState } from './store.js';
 import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe, testMode } from './identity.js';
-import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence, isOnline } from './core/room-logic.js';
+import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence, isOnline, isSoloMeta, soloCode } from './core/room-logic.js';
 import { MAX_PLAYERS, ROOM_TTL_MS, NAME_MAX } from './config.js';
 import { pickLine } from './core/room-lines.js';
 import { hushCandidates, staleHush, claimFirst, missCooldown, recentMisses } from './core/hush.js';
@@ -114,6 +114,37 @@ export const createRoom = joining(async profile => {
   return code;
 });
 
+// PLAY NOW — THE SOLO ROOM (the GAME CARD's PLAY NOW — host.js#playSolo): a PRIVATE one-seat room — LOCKED from its first write, flagged
+// meta.settings.solo.on (+ the game), its code 4 random letters that are NOT a hush word (core/room-logic.js#soloCode): never shown (no
+// ?room= in the address bar, the REJOIN offer says RESUME), never "A ROOM JUST OPENED", never listed (the radio's rooms skip it), and its
+// close writes NO hush/ entry — the hush-word pool is untouched. ONE ACCOUNT, ONE ROOM holds: claimSeatFor (MOVE HERE on a second device).
+const SOLO_LS = 'na:solo';
+/** is a saved room code this phone's solo room? (the title's REJOIN offer says RESUME — never the code) */
+export const soloRejoin = code => { try { return !!code && localStorage.getItem(SOLO_LS) === code; } catch { return false; } };
+async function claimSolo(code, gameId) {
+  const meta = { hostId: state.uid, status: 'lobby', createdAt: serverTimestamp(), activeAt: serverTimestamp(), hostBeat: serverTimestamp(),
+    settings: { solo: { on: true, g: String(gameId || '').slice(0, 16) } } };
+  const res = await runTransaction(dbRef(`${R(code)}/meta`), cur => (cur == null ? meta : undefined), { applyLocally: false });
+  return !!(res && res.committed && res.snapshot.exists() && res.snapshot.child('hostId').val() === state.uid);
+}
+export const createSoloRoom = joining(async (profile, gameId) => {
+  cancelResume();
+  await claimSeatFor(null);
+  const words = await loadHushWords().catch(() => []);
+  let code = null;
+  for (let i = 0; i < 6 && !code; i++) { const c = soloCode(words); if (await claimSolo(c, gameId)) code = c; }
+  if (!code) throw new Error('COULDN’T START — CHECK YOUR CONNECTION AND TRY AGAIN');
+  try { localStorage.setItem(SOLO_LS, code); } catch { /* the offer then shows the code — never worse than before */ }
+  await Promise.all(ROOM_SIDE_NODES.map(n => remove(dbRef(`${n}/${code}`)).catch(() => {})));   // (a stale secret under a reused code: gone, all at once)
+  await takeSeat(code);
+  await writePlayer(code, profile, {});
+  // (LOCKED once its one seat is taken — the rules refuse even the host's own first player write into a locked room; the code is 4 random
+  //  letters nobody has seen, so the instant before the lock is closed to everyone in practice)
+  await update(dbRef(`${R(code)}/meta`), { locked: true }).catch(() => {});
+  enterRoom(code, { solo: true });
+  return code;
+});
+
 // CC-B — "A ROOM JUST OPENED": tell the server (it checks the room is ours + new + still open with its host online, then pushes to the
 // owner's phone if he turned it on) — fire and forget: /api down or unconfigured changes nothing. FR6 FIXES A (the owner, Nov 4: pushes for
 // rooms that were empty when he went): asked ROOM_PUSH_MS after the room opened, and only if this phone is STILL in it — a room opened +
@@ -137,9 +168,13 @@ function cleanupHush(hush, now) {
 
 // Closes a room: rooms/{code} goes, and hush/{code} remembers when (that word rests for 24 h). The rules only accept the
 // hush entry together with the room's own deletion. If they refuse it (rules not yet published), the room still closes.
-async function closeRoom(code) {
-  try { await update(dbRef(), { [R(code)]: null, [`hush/${code}`]: { closedAt: serverTimestamp() } }); }
-  catch { await remove(dbRef(R(code))); }
+async function closeRoom(code, solo = false) {
+  // (PLAY NOW: a solo room rests no word — its code was never a hush word, and the pool stays untouched)
+  if (solo) await remove(dbRef(R(code)));
+  else {
+    try { await update(dbRef(), { [R(code)]: null, [`hush/${code}`]: { closedAt: serverTimestamp() } }); }
+    catch { await remove(dbRef(R(code))); }
+  }
   for (const n of ROOM_SIDE_NODES) await remove(dbRef(`${n}/${code}`)).catch(() => {});
 }
 
@@ -242,11 +277,11 @@ function birthdayRoom(code) {
     return A.api('profile', { action: 'birthdayRoom', room: code, tz });
   }).catch(() => {}), 3000);
 }
-function enterRoom(code) {
+function enterRoom(code, { solo = false } = {}) {
   want('room');
   stopListening();
   saveSession(code);
-  setUrlRoom(code);
+  if (!solo && !soloRejoin(code)) setUrlRoom(code);   // (PLAY NOW: a solo room's code never in the address bar)
   seen = { meta: false, self: false };
   setState({ ...EMPTY_ROOM, code, view: 'room' });
   const base = R(code);
@@ -408,6 +443,7 @@ export function exitRoom(reason, kind = 'warn', { keepSeat = false, how = 'close
   lastExit = { code, how };
   leavingCode = null;
   if (code && !keepSeat) freeSeat(code);   // (LOBBY FIXES — the seat goes back with the room: only while it's still this device's)
+  if (code && soloRejoin(code)) { try { localStorage.removeItem(SOLO_LS); } catch { /* fine */ } }
   clearTimeout(pushTimer); pushTimer = null;   // (FR6 FIXES A: a room left before its push was asked never pings)
   closeAll();   // (FR6 FIXES A — B7: a kick / a closed room closes every sheet + the profile overlay over the title)
   stopListening();
@@ -439,7 +475,7 @@ export async function leaveRoom({ keepSeat = false, reason = null, heir: given =
           try { await update(dbRef(`${R(code)}/meta`), { hostId: heir, hostBeat: serverTimestamp() }); } catch (e) { console.info('hand-off refused: the heir is offline', e && e.message); }
         }
       } else {
-        await closeRoom(code); // last one out turns off the lights
+        await closeRoom(code, isSoloMeta(state.meta)); // last one out turns off the lights
         exitRoom(reason, 'info', { keepSeat, how: 'leave' });
         return;
       }
@@ -481,7 +517,7 @@ export async function updateMyProfile(profile) {
 
 // Best effort: the rules allow it for the host, or anyone once the room is idle (no game for ROOM_IDLE_MS).
 async function deleteRoom(code) {
-  try { await closeRoom(code); } catch { /* not allowed / offline: the session is dropped anyway */ }
+  try { await closeRoom(code, isSoloMeta(state.meta)); } catch { /* not allowed / offline: the session is dropped anyway */ }
 }
 
 // An hour without a game (host.js tick): close it for everyone, or at least leave it ourselves.

@@ -9,7 +9,12 @@ import { metaOf } from '../games/registry.js';
 import { gameArtSvg } from '../ui/game-art.js';
 import { h } from '../ui/dom.js';
 import { primaryBoard, fmtValue } from '../core/boards.js';
-import { setState } from '../store.js';
+import { setState, state, isHost } from '../store.js';
+import { tubeButton, row } from '../ui/components.js';
+import { cardActions, playersLine } from '../core/room-logic.js';
+import { markFor } from '../core/marks.js';
+import { playSolo } from '../host.js';
+import { dbRef, update as dbUpdate } from '../firebase.js';
 import { layersOpen } from '../ui/layers.js';
 import { reducedMotion } from '../ui/dom.js';
 import { lazyImport } from '../ui/lazy-import.js';
@@ -84,7 +89,10 @@ export function createTaps(T) {
     if (r && x >= r.x && x <= r.x + r.w && y >= r.y - 12 && y <= r.y + r.h + 12) { buzz(Math.max(0, Math.min(3, Math.floor((x - r.x) / r.w * 4)))); return; }
     const hit = T.scene.hit(x, y);
     if (!hit) return;
-    if (hit.kind === 'sign') { const g = GAMES.find(x => x.id === hit.id); if (g && !g.playable) { toast(`${g.name} — coming soon`, 'info'); return; } sfx('select'); openHelp(hit.id); }   // (WINDOWS — THE FIVE SIGNS: next on deck = a quiet COMING SOON)
+    // (PLAY NOW — THE SKYLINE SIGNS open the game's CARD (the playable games' signs + the speakeasy's PRISM DROP blade — scene.hit). The split:
+    //  THE SIGN's own gestures (a letter's tap, THE RACE, THE SURGE) live on NEON SPEAKEASY's letters — answered above (logoRect), before
+    //  any city hit; a game sign is only ever a city hit, so a card never steals them)
+    if (hit.kind === 'sign') { const g = GAMES.find(x => x.id === hit.id); if (g && !g.playable) { toast(`${g.name} — coming soon`, 'info'); return; } if (g) gameCard(g); }   // (WINDOWS — THE FIVE SIGNS: next on deck = a quiet COMING SOON)
     else if (hit.kind === 'ufo') sfx('portal');
     else if (hit.kind === 'cat') sfx('key');
     // THE STREET: knock on the speakeasy's door — a soft double knock, the peephole slides open, and the JOIN panel opens (a real
@@ -194,31 +202,76 @@ export function createTaps(T) {
     if (Math.hypot(e.clientX - mouseAt[0], e.clientY - mouseAt[1]) > 24) { mouseAt = [e.clientX, e.clientY]; if (quickIdle && !T.els.root.classList.contains('is-idle')) return; wake(); armIdle(); }
   }
 
+  /** a game's shelf / card facts: { solo, players ('SOLO · 2–8 PLAYERS' | '2–8 PLAYERS'), mins ('≈ 4 MIN' | null) } */
   function meta(g) {
     const mod = metaOf(g.id) || {};
-    const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0);
+    const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0), solo = mod.SOLO === true;
     let mins = null;
     try { mins = mod.estimateMinutes ? mod.estimateMinutes(mod.DEFAULT_SETTINGS || {}) : null; } catch { mins = null; }
-    return { players: `${min}–${MAX_PLAYERS} PLAYERS`, mins: mins ? `≈ ${Math.round(mins)} MIN` : null };
+    return { solo, players: `${playersLine(solo, min, MAX_PLAYERS)} PLAYERS`, mins: mins ? `≈ ${Math.round(mins)} MIN` : null };
+  }
+  /** the game's neon mark as a small inline SVG (the row's icon) — its own tubes, its own colours */
+  function markSvg(g) {
+    const m = markFor(g);
+    const tubes = ((m && m.tubes) || []).map(t => `<path d="${t.d}" style="stroke:${t.col};fill:none;stroke-width:7;stroke-linecap:round;stroke-linejoin:round"/>`).join('');
+    return `<svg viewBox="0 0 100 100" aria-hidden="true" class="nd-shelf-mark">${tubes}</svg>`;
   }
 
-  function preview(g) {
+  // PLAY NOW — THE GAMES SHELF (the dock's PLAY): the playable games, ONE ROW each (THE ROW — the game's neon mark, its name, "solo · 2–8" /
+  // "2–8", the minutes) → a tap opens that game's CARD on top (nested: ‹ back to the shelf)
+  function shelf() {
+    sfx('select');
+    const games = GAMES.filter(g => g.playable);
+    openSheet({ title: 'PLAY', kicker: 'PICK A GAME', cls: 'nd-shelf-sheet', label: 'Play a game', body: [
+      h('div.nd-shelf', ...games.map(g => { const m = meta(g); return row({ icon: markSvg(g), label: g.name, sub: [m.players.replace(' PLAYERS', ''), m.mins].filter(Boolean).join(' · ').toLowerCase(), ic: T.ACC[g.id] || '#d6f0ff', cls: 'nd-shelf-row', attrs: { dataset: { game: g.id } }, onClick: () => gameCard(g) }); })),
+      h('p.sh-note.is-small', 'One phone each. Solo games play right now — or bring friends.')] });
+  }
+
+  // PLAY NOW — THE GAME CARD (THE SHEET): the game's art + name, ONE line on what it is, its players + minutes, HOW TO PLAY; the actions
+  // (core/room-logic.js#cardActions): a SOLO game → PLAY NOW (the pink MAIN: a solo run in one tap — host.js#playSolo) + PLAY WITH FRIENDS (a
+  // normal room, the game picked); no SOLO (HOLD'EM) → PLAY WITH FRIENDS the MAIN + "Needs 2+ players". In a room: the host's PICK THIS GAME
+  // (the room's own path — its options, then INITIATE); a guest is told the host picks. Then THE BOARD's top three, as the preview had.
+  function gameCard(g) {
     sfx('select');
     const m = meta(g);
     let sheet = null;
     const close = () => { if (sheet) sheet.close(); };
+    const A = cardActions({ solo: m.solo, inRoom: !!state.code, host: isHost() });
+    const act = id => () => {
+      if (id === 'solo') { close(); playSolo(g.id); return; }
+      if (id === 'friends') { close(); friends(g); return; }
+      if (id === 'pick') { close(); pick(g); }
+    };
+    const actions = h('div.nd-card-actions',
+      A.main ? tubeButton(A.main.label, { kind: 'main', block: true, onClick: act(A.main.id), cls: `nd-card-${A.main.id}`, attrs: { dataset: { act: A.main.id } } }) : null,
+      A.second ? tubeButton(A.second.label, { kind: 'secondary', block: true, onClick: act(A.second.id), cls: `nd-card-${A.second.id}`, attrs: { dataset: { act: A.second.id } } }) : null,
+      A.note ? h('p.nd-card-note', A.note) : null);
     const art = gameArtSvg(g.id);
-    // (SHELL 2.0 A: THE SHEET — the game's name its title, its tag the small line; HOW TO PLAY the one tube)
-    sheet = openSheet({ title: g.name, kicker: g.tag, cls: 'nd-preview-sheet', theme: g.theme, label: g.name, body: [
-      h('div.nd-preview', { style: { '--acc': T.ACC[g.id] || '#d6f0ff' } },
+    // (SHELL 2.0 A: THE SHEET — the game's name its title, its tag the small line)
+    sheet = openSheet({ title: g.name, kicker: g.tag, cls: 'nd-preview-sheet nd-card-sheet', theme: g.theme, label: g.name, body: [
+      h('div.nd-preview.nd-card', { style: { '--acc': T.ACC[g.id] || '#d6f0ff' }, dataset: { game: g.id } },
         h('div.nd-pv-art', art),
         h('div.nd-pv-body',
           h('p.nd-pv-blurb', g.blurb),
-          h('div.nd-pv-meta', h('span', m.players), m.mins ? h('span', m.mins) : null, h('span', 'ONE PHONE EACH')),
-          topThree(g, () => close())),
+          h('div.nd-pv-meta', h('span', m.players), m.mins ? h('span', m.mins) : null)),
+        actions,
         h('div.nd-pv-actions',
-          h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); openHelp(g.id); } }, h('span', 'HOW TO PLAY'))))] });
+          h('button.nd-card-help', { type: 'button', onclick: () => { close(); openHelp(g.id); } }, h('span', 'HOW TO PLAY'), h('i', { 'aria-hidden': 'true' }, ' ›'))),   // (a quiet link — the two PLAY actions lead)
+        topThree(g, () => close()))] });
   }
+  /** PLAY WITH FRIENDS = HOST with this game PRESELECTED: a normal room (a hush word, THE ROOM IN THE CITY), the host's options sheet opens on it */
+  function friends(g) {
+    try { sessionStorage.setItem('nd:pick', g.id); } catch { /* the room still opens — the host picks by hand */ }
+    if (T.dk && T.dk.host) T.dk.host(); else setState({ view: 'setup', setupMode: 'host', setupGame: g.id });
+  }
+  /** PICK THIS GAME (the host, in a room): the room's own path — the REMATCH ring cleared if it was up, the game's options → INITIATE */
+  function pick(g) {
+    if (!isHost()) { toast('The host picks the game', 'info'); return; }
+    if (state.code && state.meta && state.meta.back && state.meta.back.rm) dbUpdate(dbRef(`rooms/${state.code}`), { 'meta/back/rm': false, rv: null }).catch(() => {});
+    lazyImport(import('./game-options.js'), './game-options.js').then(M => M.openGameOptions(g, { meta: state.meta })).catch(() => {});
+  }
+  // (the old name — the games' tiles + the signs opened this; THE GAME CARD replaces it)
+  const preview = gameCard;
 
   // the game's top three on THE BOARD (its first record, else its wins) and your own rank there
   function topThree(g, close) {
@@ -274,6 +327,8 @@ export function createTaps(T) {
     get onWake() { return onWake; },
     get onWakeClick() { return onWakeClick; },
     get preview() { return preview; },
+    get gameCard() { return gameCard; },
+    get shelf() { return shelf; },
     get quickIdle() { return quickIdle; },
     get wake() { return wake; },
   };

@@ -14,6 +14,34 @@ export function generateCode(rand = Math.random) {
   return s;
 }
 
+// PLAY NOW — THE SOLO ROOM (docs/cartridge.md "PLAY NOW"): a PRIVATE one-seat room behind the GAME CARD's PLAY NOW — LOCKED, flagged
+// meta.settings.solo.on (the rules take any settings key; `meta` itself refuses a new one — no rules change), its code 4 random letters that
+// are NOT a hush word: never shown anywhere, never resting a word of the pool (its close writes no hush/ entry).
+/** is this room a SOLO room (PLAY NOW)? */
+export const isSoloMeta = meta => !!(meta && meta.settings && meta.settings.solo && meta.settings.solo.on === true);
+/** a solo room's code: 4 random letters, never one of the hush words (the pool stays untouched) */
+export function soloCode(hushWords = [], rand = Math.random) {
+  const hw = new Set((Array.isArray(hushWords) ? hushWords : []).map(w => String(w).toUpperCase()));
+  for (let i = 0; i < 64; i++) { const c = generateCode(rand); if (!hw.has(c)) return c; }
+  return generateCode(rand);
+}
+/** PURE: THE GAME CARD's buttons → { main: { id, label } | null, second: { id, label } | null, note } — id: 'solo' (PLAY NOW, one tap) ·
+ *  'friends' (PLAY WITH FRIENDS = HOST with the game picked) · 'pick' (PICK THIS GAME — the host, in a room). In a room: the host picks, a guest
+ *  is told who does; a SOLO game: PLAY NOW is the pink MAIN, PLAY WITH FRIENDS the second; no SOLO: PLAY WITH FRIENDS is the MAIN + one line */
+export function cardActions({ solo = false, inRoom = false, host = false } = {}) {
+  if (inRoom) return host ? { main: { id: 'pick', label: 'PICK THIS GAME' }, second: null, note: null } : { main: null, second: null, note: 'The host picks the game' };
+  if (solo) return { main: { id: 'solo', label: 'PLAY NOW' }, second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null };
+  return { main: { id: 'friends', label: 'PLAY WITH FRIENDS' }, second: null, note: 'Needs 2+ players' };
+}
+/** PURE: a game's players line on the shelf + the card — 'SOLO · 2–8' or '2–8' */
+export const playersLine = (solo, min, max) => `${solo ? 'SOLO · ' : ''}${Math.max(2, Number(min) || 2)}–${max}`;
+/** PURE: the settings a one-player room plays with by default — the cartridge's own (cleanSettings for one player: PRISM DROP → SCORE RUSH;
+ *  OVERCLOCK → QUICK) */
+export function soloSettings(meta) {
+  const d = (meta && meta.DEFAULT_SETTINGS) || {};
+  try { return meta && typeof meta.cleanSettings === 'function' ? meta.cleanSettings({ ...d }, 1) : { ...d }; } catch { return { ...d }; }
+}
+
 // Normalizes user input; returns null unless it is 4 letters. Any A–Z: hush words use every letter (I and O too), and the
 // old random codes (no I / O) are A–Z as well, so rooms made before HUSH WORDS still join.
 export function normalizeCode(input) {

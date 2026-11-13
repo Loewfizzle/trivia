@@ -4,13 +4,14 @@
 //
 // Nothing here keeps game state locally — every decision is re-derived from the
 // mirrored database state on each tick, so any client can take over at any time.
-import { dbRef, update, remove, get, runTransaction, serverTimestamp, serverNow } from './firebase.js';
+import { dbRef, update, remove, get, runTransaction, serverTimestamp, serverNow, firebaseReady } from './firebase.js';
 import { startOf, newMatchId, GO_ORPHAN_MS, goWaiting } from './core/room-show.js';
 import { minPlayersOf, rematchSettingsOf } from './games/cartridge.js';
-import { state, isHost, onlineMap } from './store.js';
+import { state, isHost, onlineMap, setState, subscribe } from './store.js';
 import { setHostGone, expectRefusal } from './firebase.js';
-import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE, staleProofPaths } from './core/room-logic.js';
-import { closeIdleRoom } from './room.js';
+import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE, staleProofPaths, isSoloMeta, soloSettings } from './core/room-logic.js';
+import { closeIdleRoom, createSoloRoom, leaveRoom } from './room.js';
+import { loadProfile } from './identity.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
 import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, PROOF_NODE_LIST, loadGame, metaOf } from './games/registry.js';
 import { toast } from './ui/toast.js';
@@ -202,11 +203,13 @@ export function onlineCount() {
 // ring, INITIATE, the podium's REMATCH) gets the SAME promise while a start is in flight, and through the walk inside after it (START_MS):
 // a second tap during the show is the same start, never a second match.
 let starting = null;
-export function startGame(gameId, settings, { quick = false } = {}) {
+export function startGame(gameId, settings, { quick = false, solo = false } = {}) {
   if (starting) return starting;
-  const p = startGameNow(gameId, settings, quick);
+  // (PLAY NOW: a SOLO room's every start is THE SOLO START — the match id's leading 's', ~2 s — core/room-show.js#START.solo)
+  const kind = solo || isSoloMeta(state.meta) ? 'solo' : quick;
+  const p = startGameNow(gameId, settings, kind);
   starting = p;
-  p.then(ok => setTimeout(() => { if (starting === p) starting = null; }, ok ? startOf(quick ? 'q' : '').len : 0), () => { if (starting === p) starting = null; });
+  p.then(ok => setTimeout(() => { if (starting === p) starting = null; }, ok ? startOf(kind === 'solo' ? 's' : kind ? 'q' : '').len : 0), () => { if (starting === p) starting = null; });
   return p;
 }
 async function startGameNow(gameId, settings, quick = false) {
@@ -223,7 +226,7 @@ async function startGameNow(gameId, settings, quick = false) {
   if (Object.keys(participants).length < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return false; }
   // (LOBBY FIXES — THE NEW GAME START: a same-game REMATCH's id starts with 'q' = the QUICK start (~3 s, the sign already lit); every other
   //  start is the FULL one (~5 s) — core/room-show.js#startKind: every phone reads the kind from the stamp's match id)
-  const matchId = newMatchId(quick);
+  const matchId = newMatchId(quick);   // (quick: false = the full start · true = a rematch's · 'solo' = THE SOLO START)
   // (LOBBY 2.0 B — THE GAME START: the start's stamp goes up FIRST — every phone begins the walk inside at the host's tap, while this phone
   //  prepares the match (a question bank, a song); the game's OWN clock starts when the walk ends (START_MS later): a cartridge's start()
   //  gets the moment its match begins, never the tap — docs/cartridge.md. The stamp also ends the last match's walk-out, its REMATCH ring +
@@ -254,6 +257,44 @@ async function startGameNow(gameId, settings, quick = false) {
   withChat(m => m.announceStart(gameId, matchId));
   return true;
 }
+
+// PLAY NOW — A SOLO RUN IN ONE TAP (THE GAME CARD's PLAY NOW; docs/cartridge.md "PLAY NOW"): the room machinery with no lobby — a PRIVATE
+// one-seat room (room.js#createSoloRoom: locked, never listed, no hush word shown or rested) → this phone its host + online → the cartridge's
+// default one-player settings (PRISM DROP: SCORE RUSH · OVERCLOCK: QUICK — or the card's OPTIONS) → THE SOLO START (~2 s). THE SOLO LANE as
+// ever (the streak + a small capped XP, never a counted play). A guest without a name sets one up first (setup's 'solo' mode comes back here).
+// A start that fails closes the solo room (never a code left on screen). → true once the match is written.
+let soloRun = null;
+export function playSolo(gameId, { settings = null } = {}) {
+  if (soloRun) return soloRun;
+  const p = playSoloNow(gameId, settings);
+  soloRun = p; p.finally(() => { if (soloRun === p) soloRun = null; });
+  return p;
+}
+const until = (fn, ms) => new Promise(res => { if (fn()) { res(true); return; } let off = null; const t = setTimeout(() => { if (off) off(); res(false); }, ms); off = subscribe(() => { if (fn()) { clearTimeout(t); if (off) off(); res(true); } }); });
+async function playSoloNow(gameId, settings) {
+  const prof = loadProfile();
+  if (!prof || !prof.name) { setState({ view: 'setup', setupMode: 'solo', setupGame: gameId }); return false; }
+  if (!isPlayable(gameId)) { toast('COMING SOON', 'info'); return false; }
+  if (state.code && !isSoloMeta(state.meta)) { toast('You’re in a room — the host picks the game', 'info'); return false; }
+  try {
+    lazyImport(import('./games/preload.js'), './games/preload.js').then(P => P.wireGame(gameId)).catch(() => {});   // (the cartridge's graph, at once)
+    await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
+    if (!state.code) await createSoloRoom(prof, gameId);
+    const ready = await until(() => !!state.code && isHost() && !!(state.players && state.players[state.uid]) && isOnline(state.presence, state.uid), 8000);
+    if (!ready) throw new Error('network');
+    const meta = metaOf(gameId) || await loadGame(gameId).catch(() => null);
+    const ok = await startGame(gameId, settings || soloSettings(meta), { solo: true });
+    if (!ok) { await leaveRoom().catch(() => {}); return false; }
+    return true;
+  } catch (e) {
+    if (state.code && isSoloMeta(state.meta)) await leaveRoom().catch(() => {});
+    toast(/network/i.test(String(e && e.message)) ? 'COULDN’T START — CHECK YOUR CONNECTION' : String((e && e.message) || 'COULDN’T START'), 'err');
+    return false;
+  }
+}
+// (PLAY NOW — the podium's foot in a solo room (ui/final.js — a lazy chunk: it reads THIS hub, never a new export — THE STALE-MODULE RULE):
+//  PLAY AGAIN = the same game + settings, THE SOLO START again · BACK TO THE CITY = the solo room closed like a QUIT, the walk back out)
+if (typeof globalThis !== 'undefined') globalThis.__nsPlayNow = Object.freeze({ isSolo: () => isSoloMeta(state.meta), again: () => rematch(), leave: () => leaveRoom() });
 
 // Same game, same settings, everyone currently connected (late joiners included).
 // (LOBBY 2.0 B — THE REMATCH RING: back in the room the match is gone (game: null) — the game it replays is meta/back's)

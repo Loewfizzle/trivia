@@ -1632,6 +1632,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return ms;
   }
   const pplLive0 = () => !clock.force.has('no-people') && !clock.force.has('no-work');
+  /** PLAY NOW — THE BLADE AS A SIGN: the speakeasy's vertical blade names this week's game (the ghost ad) — a tap on it = that game's sign
+   *  (title-taps.js → its CARD). Never over the door (the knock wins there); no speakeasy (a force) → nothing */
+  function bladeHit(x, y) {
+    if (!L || clock.force.has('no-speakeasy') || !speak.bladeRect) return null;
+    const br = speak.bladeRect(), dr = L.door && L.door.rect;
+    if (!br || x < br.x - 4 || x > br.x + br.w + 4 || y < br.y - 4 || y > br.y + br.h + 4) return null;
+    if (dr && x >= dr.x && x <= dr.x + dr.w && y >= dr.y && y <= dr.y + dr.h) return null;
+    const g = speakCtx().game;
+    return g ? { kind: 'sign', id: g.id, sign: 'blade', rect: br } : null;
+  }
   function speakCtx() {
     const now = performance.now();
     // (LOBBY 2.0 A — the memo is also keyed to the CITY's clock: a JUST ME time jump applied before the reveal used to bake the facade
@@ -3285,6 +3295,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (f) return { kind: f };
       const sg = neon.hit(x, y);
       if (sg) return sg;
+      { const bs = bladeHit(x, y); if (bs) return bs; }   // (PLAY NOW: the speakeasy's blade — the game it names → its card)
       // the harbor (Part 5; Part 12's eggs): the lighthouse (3 taps: the beam spins), a boat, the wheel
       if (L && beam.hit(x, y)) return { kind: 'lighthouse', spun: beam.tap() };
       const bt = L && boats.hit(x, y);
@@ -3300,7 +3311,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** DESKTOP Group 4 — THE HOVER (a mouse only, title.js#onCityHover): what a click here would answer, asked with NO side effects (no
      *  spin, no sound, no 60-fps boost) → { kind, rect? (pt: a game sign or the door — the glow's box) } | null */
     hover(x, y) {
-      const sg = neon.hit(x, y); if (sg) return { kind: 'sign', rect: sg.rect || null };
+      const sg = neon.hit(x, y) || bladeHit(x, y); if (sg) return { kind: 'sign', rect: sg.rect || null };
       const r = L && L.door.rect; if (r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { kind: 'door', rect: r };
       if (L && (beam.hit(x, y) || boats.hit(x, y) || wheel.hit(x, y))) return { kind: 'harbor' };
       return null;

@@ -123,6 +123,10 @@ const SCENE = {
   'tr-bud': ['2026-04-16T11:00'], 'tr-bloom': ['2026-05-05T11:00'], 'tr-early': ['2026-10-01T11:00'], 'tr-late': ['2026-11-15T11:00'],
   // (7a §0: the title's ☰ menu open — the split corners: it drops from the top-left)
   'menu-open': ['2026-10-22T22:00', { act: 'menu' }],
+  // PLAY NOW (Nov 13): the dock's PLAY → THE GAMES SHELF; each game's CARD; a solo run's podium foot (PLAY AGAIN + BACK TO THE CITY)
+  'pn-shelf': ['2026-11-10T20:30', { act: 'shelf' }], 'pn-prism': ['2026-11-10T20:30', { act: 'card', game: 'prism' }],
+  'pn-overclock': ['2026-11-10T20:30', { act: 'card', game: 'overclock' }], 'pn-holdem': ['2026-11-10T20:30', { act: 'card', game: 'holdem' }],
+  'pn-podium': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism' }],
   // CITY 2.0 — SKY POLISH (Oct 23 2026): the owner's review list (--sizes 402x874 --crop sky,skyl3,skym,skyr3); sp-plane: a forced
   // airliner with its contrail; sp-cirrus / sp-veil: the high cloud by its height (&wx=cirrus / &wx=veil — the moon's 22° halo)
   'sp-morn': ['2026-10-22T09:00'], 'sp-noon': ['2026-10-22T12:30'], 'sp-cloudy': ['2026-10-22T13:00', { qs: 'wx=clouds' }],
@@ -335,6 +339,19 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     if (o.scroll) { await p.evaluate(k => { const s = document.querySelector('.hr-sheet'); s.scrollTop = (s.scrollHeight - s.clientHeight) * k; }, o.scroll); await sleep(200); }
   }
   if (o.act === 'menu') { await p.click('.menu-btn'); await p.waitForSelector('.gm .sh-panel'); await sleep(500); }
+  // (PLAY NOW: the shelf · a card (the shelf → its row) · a solo run played to its podium — the clock pushed past its end)
+  if (o.act === 'shelf' || o.act === 'card') {
+    await p.evaluate(() => document.querySelector('.nd-tab-play').click()); await p.waitForSelector('.nd-shelf-sheet.is-in .nd-shelf-row'); await sleep(450);
+    if (o.act === 'card') { await p.evaluate(g => document.querySelector(`.nd-shelf-row[data-game="${g}"]`).click(), o.game); await p.waitForSelector(`.nd-card-sheet.is-in .nd-card[data-game="${o.game}"]`); await sleep(650); }
+  }
+  if (o.act === 'solo-podium') {
+    await p.evaluate(g => import('/js/host.js').then(m => m.playSolo(g)), o.game);
+    await p.waitForFunction(() => { const s = window.__arcade.state; return s.game && (s.game.phase === 'play' || s.game.phase === 'count'); }, { timeout: 30000 });
+    await sleep(2500);
+    await p.evaluate(async () => { const s = window.__arcade.state, f = await import('/js/firebase.js'), g = s.game, n = f.serverNow(), sh = (g.endAt || n) - n + 2000; const patch = {}; for (const k of ['songStartAt', 'playStartAt', 'endAt', 'startAt', 'at']) if (typeof g[k] === 'number') patch[k] = g[k] - sh; await f.update(f.dbRef('rooms/' + s.code + '/game'), patch); });
+    await p.waitForSelector('.final .final-solo', { timeout: 60000 }); await sleep(3200);
+    await p.evaluate(() => { const f = document.querySelector('.final'); if (f) f.scrollTop = f.scrollHeight; }); await sleep(400);
+  }
   if (o.act === 'sun') { await p.evaluate(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }); await sleep(300); }
   // (POL4: --js "<expression>": run in the page before the shot — e.g. "__district.harbor().speakeasy.power(0)")
   if (opt('js', '')) { await p.evaluate(String(opt('js'))); await sleep(400); }

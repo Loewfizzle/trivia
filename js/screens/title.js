@@ -26,7 +26,7 @@ import { setState } from '../store.js';
 import { slot, loadProfile, useEmulator, loadMe } from '../identity.js';
 import { rankBadge, emblem, RANK_COLORS } from '../ui/emblems.js';
 import { primaryBoard, fmtValue } from '../core/boards.js';
-import { createRoom, joinRoom } from '../room.js';
+import { createRoom, joinRoom, soloRejoin } from '../room.js';
 import { firebaseReady } from '../firebase.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
@@ -1106,18 +1106,9 @@ export function createTitle() {
     }, 20000 + Math.random() * 20000);
   }
 
-  // ------------------------------------------------------------------ the games (a sheet; the city's billboards show them too)
-  function openGames() {
-    sfx('select');
-    const games = GAMES.filter(g => g.playable);
-    // (SHELL 2.0 A: THE SHEET)
-    const sheet = openSheet({ title: 'THE GAMES', kicker: `${games.length} party games · ${MIN_PLAYERS}–${MAX_PLAYERS} players · one phone each`, cls: 'nd-games-sheet', label: 'The games', body: [
-      h('div.nd-games',
-        h('div.nd-games-grid', ...games.map(g => h('button.nd-gtile', {
-          type: 'button', dataset: { id: g.id, theme: g.theme }, style: { '--acc': ACC[g.id] || '#d6f0ff' },
-          onclick: () => { sheet.close(); tap.preview(g); },
-        }, gameArt(g.id) || h('div.gc-glyph'), h('span.nd-gtile-n', g.name), h('span.nd-gtile-t', g.tag)))))] });
-  }
+  // ------------------------------------------------------------------ the games: PLAY NOW — THE GAMES SHELF (the dock's PLAY; title-taps.js#shelf:
+  // one row a game → its GAME CARD with PLAY NOW / PLAY WITH FRIENDS)
+  function openGames() { tap.shelf(); }
   // (title-taps.js: moved out by scripts/split-closure.mjs — T carries the names it shares with this closure, live)
   const tap = createTaps({
     get ACC() { return ACC; },
@@ -1172,8 +1163,10 @@ export function createTitle() {
       els.youTab.classList.add('is-guest');
     }
     if (els.sub) els.sub.hidden = !!(p && p.name);
-    if ((state.rejoin || '') !== els.rejoinCode) els.rejoin.replaceChildren(...(state.rejoin ? [h('button.nd-rejoin-btn', { type: 'button', 'aria-label': `Rejoin room ${state.rejoin}`, onclick: () => dk.join(state.rejoin, true) },
-      h('i.nd-rejoin-dot', { 'aria-hidden': 'true' }), h('span.nd-rejoin-l', 'REJOIN'), ' ', h('b.nd-rejoin-c', state.rejoin))] : []));
+    // (PLAY NOW: a solo run's room says RESUME — its code is never shown)
+    const soloRj = soloRejoin(state.rejoin);
+    if ((state.rejoin || '') !== els.rejoinCode) els.rejoin.replaceChildren(...(state.rejoin ? [h('button.nd-rejoin-btn', { type: 'button', 'aria-label': soloRj ? 'Resume your solo run' : `Rejoin room ${state.rejoin}`, onclick: () => dk.join(state.rejoin, true) },
+      h('i.nd-rejoin-dot', { 'aria-hidden': 'true' }), h('span.nd-rejoin-l', soloRj ? 'RESUME' : 'REJOIN'), ' ', h('b.nd-rejoin-c', soloRj ? 'SOLO RUN' : state.rejoin))] : []));
     els.rejoinCode = state.rejoin || '';
     els.rejoin.hidden = !state.rejoin;
     if (state.invite && !els.code.value) {

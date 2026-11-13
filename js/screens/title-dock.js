@@ -1,4 +1,4 @@
-// THE FLANK — the title's dock (docs/title.md): [ JOIN ring ] [ glass pill: (DAILY ·) BOARD · GAMES · YOU ] [ HOST ring ], the JOIN panel
+// THE FLANK — the title's dock (docs/title.md): [ JOIN ring ] [ glass pill: (DAILY ·) BOARD · PLAY · YOU ] [ HOST ring ], the JOIN panel
 // above it, REJOIN / notes, and the title's two corner buttons dressed as tubes of the sign. This module owns the markup, the
 // rings and the lighting; title.js owns the behaviour (what JOIN, HOST, BOARD… do) and passes it in as handlers.
 import { afterTap } from '../ui/tapwatch.js';
@@ -18,6 +18,8 @@ export const ICON = {
   join: tube('<path d="M5.4 21.2V4.7c0-.8.6-1.4 1.4-1.4h10.4c.8 0 1.4.6 1.4 1.4v16.5"/><path d="M5.4 3.6l8 1.5v15.3l-8 .8"/><path d="M3.2 21.2h17.6"/><circle cx="11.5" cy="12.9" r=".55"/>'),
   board: tube('<path d="M7.6 3.8h8.8v4.4a4.4 4.4 0 0 1-8.8 0z"/><path d="M7.6 5.4H5.3v.9a3 3 0 0 0 2.8 3M16.4 5.4h2.3v.9a3 3 0 0 1-2.8 3"/><path d="M12 12.6v3.5"/><path d="M8.6 20.4h6.8M9.7 20.4l.7-4.3h3.2l.7 4.3"/>'),
   games: tube('<rect x="4" y="4" width="6.8" height="6.8" rx="1.9"/><rect x="13.2" y="4" width="6.8" height="6.8" rx="1.9"/><rect x="4" y="13.2" width="6.8" height="6.8" rx="1.9"/><rect x="13.2" y="13.2" width="6.8" height="6.8" rx="1.9"/>'),
+  // PLAY NOW — PLAY (the FLANK's GAMES, same spot): a rounded play triangle in one tube
+  play: tube('<path d="M8.3 5.3v13.4c0 .8.9 1.3 1.6.8l9.6-6.7c.6-.4.6-1.2 0-1.6L9.9 4.5c-.7-.5-1.6 0-1.6.8z"/>'),
   // DM2 — DAILY: a drawn ticket (no emoji): the stub notched on both sides, its perforation a row of short tube dashes
   daily: tube('<path d="M3.6 6.6h16.8v3a2.4 2.4 0 0 0 0 4.8v3H3.6v-3a2.4 2.4 0 0 0 0-4.8z"/><path d="M15.2 7.9v1.3M15.2 11.35v1.3M15.2 14.8v1.3"/><path d="M7 10.2h4.6M7 13.8h3.2"/>'),
   guest: tube('<path d="M12 2.7l7.9 4.55v9.5L12 21.3l-7.9-4.55v-9.5z"/><circle cx="12" cy="10.1" r="2.5"/><path d="M7.7 16.4c1-2.2 2.5-3.3 4.3-3.3s3.3 1.1 4.3 3.3"/>'),
@@ -80,7 +82,7 @@ export function createDock(on) {
   els.dailyTab.append(h('span.nd-dy-pulse', { 'aria-hidden': 'true' }), h('span.nd-dy-n', { 'aria-hidden': 'true' }),
     h('span.nd-dy-ok', { 'aria-hidden': 'true', html: '<svg viewBox="0 0 12 12"><path d="M2.6 6.3l2.2 2.2 4.6-4.9"/></svg>' }));
   els.boardTab = tab('nd-tab-board', 'The Board', ICON.board, 'BOARD', on.board);
-  els.gamesTab = tab('nd-tab-games.nd-link-games', 'The games', ICON.games, 'GAMES', on.games);
+  els.gamesTab = tab('nd-tab-play.nd-tab-games.nd-link-games', 'Play a game', ICON.play, 'PLAY', on.games);   // (PLAY NOW: GAMES → PLAY — THE GAMES SHELF)
   els.youTab = tab('nd-tab-you.nd-me', 'Your membership card', ICON.guest, 'YOU', on.you);
   // a ring: a dark glass disc, the neon tube ring, its word inside; its slot carries its colours (the reflection wears them too)
   const ring = (cls, id, word, aria, onclick) => h(`button.nd-ringbtn.${cls}`, { type: 'button', 'aria-label': aria, onclick, dataset: { multi: '0' } },
@@ -441,6 +443,7 @@ export function createDockWork(T) {
     get dockAll() { return dockAll; },
     get dockLight() { return dockLight; },
     get fitKeyboard() { return fitKeyboard; },
+    get host() { return host; },
     get join() { return join; },
     get note() { return note; },
     get noteT() { return noteT; },

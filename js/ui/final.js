@@ -85,7 +85,26 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   } }, h('span', 'BACK TO THE ROOM'));
   // (B3: the cue above the sticky button — a drawn chevron + MORE BELOW, shown only while the frame scrolls on and you haven't scrolled yet)
   const more = h('div.final-more', { 'aria-hidden': 'true' }, h('i.final-chev'), h('span', 'MORE BELOW'));
-  const actions = h('div.final-actions', more, back);
+  // (PLAY NOW — a SOLO room's foot: PLAY AGAIN (the same game + options, THE SOLO START) + BACK TO THE CITY (the solo room closed like a QUIT);
+  //  no REMATCH VOTE, no banner plane, no night standings for one. Read through host.js's hub — this lazy chunk imports no new export)
+  const PN = globalThis.__nsPlayNow;
+  const soloRoom = !!(PN && PN.isSolo && PN.isSolo());
+  let foot = back;
+  if (soloRoom) {
+    const busy = b => b.classList.contains('is-busy');
+    const again = h('button.btn.btn-primary.btn-block.final-again', { type: 'button', onclick: () => {
+      if (busy(again) || busy(leave)) return;
+      again.classList.add('is-busy');
+      Promise.resolve(PN.again()).then(ok => { if (!ok) again.classList.remove('is-busy'); }, () => again.classList.remove('is-busy'));
+    } }, h('span', 'PLAY AGAIN'));
+    const leave = h('button.btn.btn-ghost.btn-block.final-city', { type: 'button', onclick: () => {
+      if (busy(again) || busy(leave)) return;
+      leave.classList.add('is-busy');
+      Promise.resolve(PN.leave()).catch(() => leave.classList.remove('is-busy'));
+    } }, h('span', 'BACK TO THE CITY'));
+    foot = h('div.final-solo', again, leave);
+  }
+  const actions = h('div.final-actions', more, foot);
   let hostShown = null;
   function refresh() { hostShown = isHost(); back.dataset.host = hostShown ? '1' : '0'; }
   refresh();

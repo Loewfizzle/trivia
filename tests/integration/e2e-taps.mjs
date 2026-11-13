@@ -111,7 +111,7 @@ try {
 
   // ---- THE TITLE
   await tapTest(A, 'JOIN (the hush word panel)', '.nd-tab-join', { land: "document.querySelector('.nd-actions').classList.contains('is-join')", reset: async () => { await A.p.evaluate("document.querySelector('.nd-tab-join').click()"); await A.wait("!document.querySelector('.nd-actions').classList.contains('is-join')", 3000); } });
-  await tapTest(A, 'GAMES (the sheet)', '.nd-tab-games', { land: "!!document.querySelector('.sh.is-in')", reset: () => closeSheets(A) });
+  await tapTest(A, 'PLAY (the shelf)', '.nd-tab-play', { land: "!!document.querySelector('.sh.is-in')", reset: () => closeSheets(A) });
   await tapTest(A, '☰ (the menu)', '.menu-btn', { land: "!!document.querySelector('.sh.gm.is-in')", reset: () => closeSheets(A) });
   // a sheet's row WHILE THE SHEET IS STILL SLIDING IN (≤ 320 ms after it opened)
   await tapTest(A, '☰ → SETTINGS (tapped while the menu slides in)', '.sh.gm .gm-settings', {
@@ -140,7 +140,7 @@ try {
     const c = await centre(A, '.nd-tab-join'); await A.tap(c.x, c.y); await sleep(500);
     ok(await A.p.evaluate("!document.body.classList.contains('nd-idle') && !document.querySelector('.nd-actions').classList.contains('is-join')"), `${ENGINE} — at REST (faded out) the waking tap only wakes the dock`); }
   // a pop-up open → the screen never goes to rest under it (the radio, CUSTOMIZE, a full card… — THE LAYER STACK)
-  { await A.p.evaluate("document.querySelector('.nd-tab-games').click()"); await A.wait("!!document.querySelector('.sh.is-in')", 3000);
+  { await A.p.evaluate("document.querySelector('.nd-tab-play').click()"); await A.wait("!!document.querySelector('.sh.is-in')", 3000);
     await A.p.evaluate(() => window.__district.idle()); await sleep(300);
     ok(await A.p.evaluate("!document.body.classList.contains('nd-idle')"), `${ENGINE} — never at rest while a pop-up is open`); await closeSheets(A); }
 

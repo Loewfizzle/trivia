@@ -51,6 +51,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   const code = () => st.code || '';
   const players = () => st.players || {};
   const hostName = () => ((players()[st.meta && st.meta.hostId] || {}).name || 'the host');
+  // (PLAY NOW — a SOLO room (meta.settings.solo.on — read from the room's own data, no import): no hush word on the door, no host card,
+  //  no invite; its lobby is only the instant before THE SOLO START)
+  const soloRoom = () => !!(st.meta && st.meta.settings && st.meta.settings.solo && st.meta.settings.solo.on === true);
 
   // ---------------------------------------------------------------- the dock
   dock = createRoomDock({
@@ -70,6 +73,13 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     note: () => onNote(),
   });
   if (dockHost) dockHost.append(dock.els.door);
+  // (PLAY NOW — PLAY WITH FRIENDS: the card's game PRESELECTED — once this phone hosts its fresh room, the options sheet opens on that game)
+  const pickT = setTimeout(() => {
+    let id = null; try { id = sessionStorage.getItem('nd:pick'); sessionStorage.removeItem('nd:pick'); } catch { /* fine */ }
+    const g = id && GAMES.find(x => x.id === id && x.playable);
+    if (!g || destroyed || !isHost() || soloRoom()) return;
+    lazyImport(import('./game-options.js'), './game-options.js').then(m => { if (!destroyed) m.openGameOptions(g, { meta: st.meta }); }).catch(() => {});
+  }, 700);
   if (sign) setTimeout(() => { if (!destroyed) dock.ringColors(sign, true); }, 60);
 
   // ---------------------------------------------------------------- INVITE (everyone)
@@ -120,7 +130,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     el.classList.add('is-out'); setTimeout(() => el.remove(), reducedMotion() ? 0 : 320);
   }
   function maybeHostCard() {
-    if (hostCard || destroyed || !isHost() || !st.meta || !code()) return;
+    if (hostCard || destroyed || !isHost() || !st.meta || !code() || soloRoom()) return;
     const P = players(), mine = Object.keys(P).length === 1 && P[st.uid];
     const fresh = st.meta.createdAt && serverNow() - st.meta.createdAt < 20000;
     if (!mine || !fresh || flag(`rc:hc:${code()}`)) return;
@@ -363,7 +373,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     if (goFx && goFx.m === ss.m) return;
     if (goFx) endFx();
     const g = GAMES.find(x => x.id === ss.g) || { id: ss.g, name: ss.g };
-    const age = Math.round(ss.age), quick = ss.kind === 'quick';
+    const age = Math.round(ss.age), quick = ss.kind === 'quick' || ss.kind === 'solo';   // (PLAY NOW: THE SOLO START — the sign lit at once, the short walk)
     const veil = h('div.rc-veil', { 'aria-hidden': 'true' });
     const tonight = h('div.rc-tonight', { 'aria-hidden': 'true' }, h('small.rc-tonight-k', 'TONIGHT'), h('div.rc-tonight-logo'));
     goFx = { m: ss.m, len: ss.len, veil, tonight };
@@ -440,7 +450,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
       for (const q of list) if (before.size && !before.has(q.uid)) { popName(q.uid, NAME_MS + 6000); if (q.uid !== st.uid) lazyImport(import('../audio/lobby-sfx.js'), '../audio/lobby-sfx.js').then(m => m.lobbySfx('friend')).catch(() => {}); }
       if (!before.size) for (const q of list) if (q.fresh) popName(q.uid, NAME_MS + 8000);
     }
-    if (scene && scene.hush) scene.hush(st.code);
+    if (scene && scene.hush) scene.hush(soloRoom() ? null : st.code);   // (PLAY NOW: a solo room's code is never on the door)
+    document.body.classList.toggle('rc-solo', soloRoom());   // (its dock stays out of sight for the instant before the start — css/screens.css)
     maybeHostCard();
     if (hostCard && Object.keys(players()).length > 1) closeHostCard();   // (a guest arrived: the card has done its job)
     startFx();
@@ -468,7 +479,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
       // (SPEED PASS B: out of the room only YOUR figure leaves the promenade — waving only on a LEAVE; the others carry on inside)
       if (scene && scene.room) { const x = exitHow(); scene.room(null, { me: st.uid, wave: !!(x && x.how === 'leave') }); }
       if (scene && scene.hush) scene.hush(null);
-      layer.remove(); document.body.classList.remove('rc-on');
+      clearTimeout(pickT);
+      layer.remove(); document.body.classList.remove('rc-on', 'rc-solo');
       if (dock) { dock.els.door.remove(); dock.destroy(); }
       if (guestsUi && guestsUi.close) guestsUi.close();
       if (gamesOpen) gamesOpen.close();

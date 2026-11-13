@@ -16,17 +16,22 @@ import { roomOrder } from './harbor-room.js';
 export const START = Object.freeze({
   full: Object.freeze({ len: 5000, sign: 560, walkAt: 1500, fadeAt: 4300 }),
   quick: Object.freeze({ len: 3000, sign: 0, walkAt: 250, fadeAt: 2350 }),
+  // (PLAY NOW — THE SOLO START: a solo room's every start — the sign lights at once + a ~2 s walk inside, straight into the game)
+  solo: Object.freeze({ len: 2000, sign: 0, walkAt: 200, fadeAt: 1450 }),
 });
 /** the LONGEST start (the safety limits read it) */
 export const START_MS = START.full.len;
-/** THE START's KIND from the match id: the host marks a same-game rematch's id with a leading 'q' (host.js#newMatchId) — the meta/go stamp's
- *  fields are fixed by the published rules, its `m` is not, and game.go's fallback carries the same id: every phone, every rules version */
-export const startKind = m => (typeof m === 'string' && m[0] === 'q' ? 'quick' : 'full');
+/** THE START's KIND from the match id: the host marks a same-game rematch's id with a leading 'q' (host.js#newMatchId), a SOLO room's start
+ *  with a leading 's' (PLAY NOW) — the meta/go stamp's fields are fixed by the published rules, its `m` is not, and game.go's fallback carries
+ *  the same id: every phone, every rules version */
+export const startKind = m => (typeof m !== 'string' ? 'full' : m[0] === 'q' ? 'quick' : m[0] === 's' ? 'solo' : 'full');
 export const startOf = m => START[startKind(m)];
-/** a new match id: 'q' + 5 for a same-game rematch (the quick start), otherwise never a leading 'q' */
-export function newMatchId(quick = false, rnd = Math.random) {
-  let id = ''; while (id.length < 6) { const c = Math.floor(rnd() * 36).toString(36); if (id.length || quick || c !== 'q') id += c; }
-  return quick ? `q${id.slice(1)}` : id;
+/** a new match id: 'q' + 5 for a same-game rematch (the quick start), 's' + 5 for a solo room's start (`kind` 'solo'), otherwise never a
+ *  leading 'q' or 's' */
+export function newMatchId(kind = false, rnd = Math.random) {
+  const lead = kind === 'solo' ? 's' : kind ? 'q' : '';
+  let id = ''; while (id.length < 6) { const c = Math.floor(rnd() * 36).toString(36); if (id.length || lead || (c !== 'q' && c !== 's')) id += c; }
+  return lead ? `${lead}${id.slice(1)}` : id;
 }
 /** the file-in's stagger: the host first, then the lines alternating (L0 R0 L1 R1 …), one every IN_GAP s */
 export const IN_GAP = 0.16;

@@ -214,6 +214,26 @@ html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3,
 .nd-pv-meta span { padding: 6px 10px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; color: #eef1ff; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; }
 .nd-pv-actions { display: flex; flex-direction: column; gap: 6px; }
 
+/* ---- PLAY NOW — THE GAME CARD (title-taps.js#gameCard): the art, the line, players + minutes, then the actions — PLAY NOW (the pink MAIN) /
+   PLAY WITH FRIENDS / PICK THIS GAME, one quiet line when there's no PLAY NOW — then HOW TO PLAY + THE BOARD's top three ---- */
+.nd-card .nd-pv-art { width: 120px; height: 120px; margin-bottom: 12px; }
+.nd-card .nd-pv-blurb { margin-bottom: 12px; }
+.nd-card .nd-pv-meta { margin-bottom: 16px; }
+.nd-card-actions { display: flex; flex-direction: column; gap: 10px; margin: 0 auto 10px; max-width: 420px; }
+.nd-card-actions .btn { min-height: 52px; }
+.nd-card-note { margin: 2px 0 4px; font: 700 13px/1.4 var(--font-ui); letter-spacing: 0.06em; color: var(--text-dim); }
+.nd-card .nd-pv-actions { max-width: 420px; margin: 0 auto 12px; align-items: center; }
+.nd-card-help { min-height: 44px; padding: 0 14px; border: 0; background: none; font: 800 12px/1 var(--font-ui); letter-spacing: 0.22em; color: var(--text-dim); }
+.nd-card-help span { border-bottom: 1px solid rgba(214, 240, 255, 0.35); padding-bottom: 3px; }
+@media (hover: hover) { .nd-card-help:hover { color: var(--text); } }
+
+/* ---- PLAY NOW — THE GAMES SHELF (the dock's PLAY): one ROW a game, its neon mark bigger than a line icon */
+.nd-shelf { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.nd-shelf-row .sh-row-ic { width: 44px; height: 44px; }
+.nd-shelf-row .sh-row-ic svg.nd-shelf-mark { width: 40px; height: 40px; stroke-width: 7; }
+.nd-shelf-row .sh-row-l b { font-family: var(--font-display); letter-spacing: 0.08em; }
+.nd-shelf-row .sh-row-l small { font-family: var(--font-num); letter-spacing: 0.08em; }
+
 /* ---- small sign (lobby header) ---- */
 /* a lit sign's rare flicker (lobby.js toggles .off on one letter, like the title does with .on) */
 .nd-logo.is-lit .ndl.off .ndl-light { opacity: 0.08; }
@@ -995,6 +1015,8 @@ body.reduced-fx .nd-box.is-filled { animation: none; }
 /* the title's own dock steps aside for the room's (THE FLANK restyled — the same rings, glass + tubes) */
 .nd.is-room .nd-flank:not(.rdk-dock), .nd.is-room .nd-jpanel, .nd.is-room .nd-rejoin, .nd.is-room .nd-sub { display: none !important; }
 .nd:not(.is-room) .rdk-dock { display: none !important; }
+/* PLAY NOW — a SOLO room's dock: out of sight for the instant before THE SOLO START (room-city.js#rc-solo) — no INVITE, no code */
+body.rc-solo .rdk-dock { visibility: hidden !important; pointer-events: none !important; }
 /* the pill: four icons, a tiny label under each */
 .rdk-pill { gap: 2px; }
 .rdk-tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 52px; min-height: 52px; padding: 4px 4px 3px; }

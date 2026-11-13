@@ -101,7 +101,7 @@ test('THE ☰ MENU = the approved rows: Your card · How to play · Settings · 
 
 test('THE TITLE DOCK: labels under its icons (the room dock\'s) + NO STREAK on it at all (SHELL 2.0 B1 — the other flames stay)', () => {
   const d = read('js/screens/title-dock.js');
-  for (const l of ["'BOARD', on.board", "'GAMES', on.games", "'YOU', on.you"]) assert.ok(d.includes(l), l);
+  for (const l of ["'BOARD', on.board", "'PLAY', on.games", "'YOU', on.you"]) assert.ok(d.includes(l), l);
   assert.match(d, /h\('span\.rdk-lbl', \{ 'aria-hidden': 'true' \}, label\)/);
   for (const f of ['js/screens/title-dock.js', 'js/screens/title.js', 'js/progress/preview.js', 'css/progress.css']) assert.doesNotMatch(read(f), /streakPill|paintDockFlame|pg-dock|pg-pill|flameBadge/, f);
   assert.ok(!existsSync(new URL('../js/progress/flame.js', import.meta.url)), 'the dock badge\'s painter is gone');
