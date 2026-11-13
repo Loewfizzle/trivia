@@ -708,6 +708,11 @@ one room), the banner's colour + passes, the words in the windows for a time win
 ## KNOWN ISSUES — OPEN (C4d, Oct 29 2026: one list; each pass's own section in its log keeps the history)
 
 **Open**
+- **NO TWO CAMERAS · HOURS hidden AT SUNSET** (found by JAYWALK CARDS' cloud run, Nov 13 — passes/jaywalk-cards.md "The cloud"): the `cameras` group's
+  `hours-box` path (hidden 6 s, the clock +10 h, the box grows) fails its 0.25-s look ONLY when the return lands at Grand Rapids' sunset — the roof
+  board's 86×48 crisp copy vs the city's picture 17–27, −48 pt apart. **Older than that pass** (the pre-pass commit fails the same with the clock placed
+  at sunset — a temporary offset in `kit/two-cameras.mjs`' INIT + its `/api/time` route); every other wall time passes. The cloud ran at 2 am Eastern
+  (+ 10 h = sunset). Not yet known: whether a real phone shows a doubled board for ~0.25 s on a return at dusk, or only the check's picture reads it.
 - **THE LOST LOOK** (FR7 FIXES A's add-on — passes/fr7-fixes-a.md): proved in WebKit with the canvases WIPED while hidden (no event); a real iPhone's own discard (which canvases, whether Safari fires `contextlost` for a 2D canvas there) is unconfirmed until it happens again — the sentinel catches it either way. After the re-paint the FOG's drift re-forms over a few seconds (thinner for a moment).
 - **LOAD FIX 5** (passes/load-fix-5.md): that iOS Safari really moves the city's box (its large viewport) during a restored tab's boot with no
   `resize` event is INFERRED from the owner's picture (built for 659, shown in 712) — proven in WebKit for the mechanism, not drivable from

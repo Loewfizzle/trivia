@@ -2,7 +2,7 @@
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=perf, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { OUT, CPU, BUDGET_MS, log, sleep, ok, okT, ON_CI, skipCI, GR, GUARD_SCENES, NIGHT, open, ev, waitFor, tapAt, harborUp, settled, heapNoCode, G, launchReal, closeReal, displayFps } from './kit.mjs';
+import { OUT, CPU, BUDGET_MS, log, sleep, ok, okT, ON_CI, skipCI, warnings, GR, GUARD_SCENES, NIGHT, open, ev, waitFor, tapAt, harborUp, settled, heapNoCode, G, launchReal, closeReal, displayFps } from './kit.mjs';
 
 G('perf', async () => {
   // ---- WIN2 — THE QUALITY STEP: a CALM LOAD on a mid phone profile (2x CPU) — 30 s after the reveal, NO tier step: nothing is judged in
@@ -285,7 +285,10 @@ G('longnight', async () => {
   }
   const med = xs => { const v = [...xs].sort((a, b) => a - b); return v[v.length >> 1]; };
   const n0 = med(S.slice(1, 4).map(s => s.n)), peak = Math.max(...S.slice(1).map(s => s.n)), mb0 = Math.min(...S.slice(1, 4).map(s => s.mb)), mb1 = Math.min(...S.slice(-3).map(s => s.mb));   // (the MB FLOOR: a sample swings ~10 MB as a bake's crossfade holds two layers — a leak raises the floor)
-  ok(peak <= n0 * 1.25 && mb1 - mb0 <= 4 && S.at(-1).gl <= S[1].gl, `THE LONG NIGHT — 8 trips city → game → room: the live canvases never pile up (the first trips ${n0}, the peak ${peak}; the MB floor ${mb0} → ${mb1}), the GPU contexts flat (${S[1].gl} → ${S.at(-1).gl}) — ${S.map(s => s.n).join(' ')}`);
+  // (the MB floor is SAID, not judged — measured Nov 13: in Chromium it never told the fix from no fix (the pre-pass code 64.1 → 64.5, the fix 64.2 →
+  //  66.1) and the cloud's 2-core runner drifted 59.8 → 64.4 on the fixed code; the WebKit run is the MB proof — wk-longnight.mjs: 79 → 62 at the peak)
+  if (mb1 - mb0 > 4) { warnings.push(`[warning] THE LONG NIGHT's MB floor rose ${mb0} → ${mb1} over 8 trips (said, not judged — wk-longnight.mjs is the MB proof)`); log('WARN', `the long night's MB floor ${mb0} → ${mb1}`); }
+  ok(peak <= n0 * 1.25 && S.at(-1).gl <= S[1].gl, `THE LONG NIGHT — 8 trips city → game → room: the live canvases never pile up (the first trips ${n0}, the peak ${peak}; the MB floor ${mb0} → ${mb1}), the GPU contexts flat (${S[1].gl} → ${S.at(-1).gl}) — ${S.map(s => s.n).join(' ')}`);
   ok(after.every(n => n === 0), `…and NO CITY FRAME after the unmount — the title going away stops the city at once (the frames drawn after each game start: ${after.join(' ')})`);
   await A.ctx.close(); await B.ctx.close();
   // the menus: title → YOUR CARD → title

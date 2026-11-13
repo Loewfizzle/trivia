@@ -209,6 +209,7 @@ Built step for step like REDLINE + PHOTO FINISH (passes/overclock-cards.md Group
   (ea86257b, checked in a worktree) — deterministic, the same with no people / cars; the cloud's street job passed it on Nov 12 → this machine or the
   date, not this pass. Left for the next city pass (the cloud run says which).
 - JAYWALK's cards show their art only once you APPROVE them in THE LAB (the rule for every card).
+- **NO TWO CAMERAS · HOURS hidden AT SUNSET** (the cloud's red, below): older than this pass — docs/harbor.md KNOWN ISSUES.
 
 ## The close — the local run (the beelink, the final code)
 - **Unit** 1738 / 1738 · **rules** 82 / 82 (`database.rules.json` unchanged — nothing to re-publish) · **`/api`** 51 / 51 · **smoke** 8 / 8 · **CONN**
@@ -222,3 +223,16 @@ Built step for step like REDLINE + PHOTO FINISH (passes/overclock-cards.md Group
   the floor). `people`'s zebra: red alone, green in the full run — flaky (Known issues).
 - **My servers**: the emulators (database + auth) + `serve.mjs --emu` on 5173, started fresh at the pass's start (an earlier pass's emulators stopped
   first), stopped at the end; the plain preview server on 5190 left up (the owner's preview links).
+
+## The cloud (a2ac9a20 — the one tagged push, ONE deployment)
+- **tests**: red on `e2e-presence` (the challenge after BOB's refresh didn't close in 20 s) — **checked locally, not re-run in the cloud**: 12 / 12, twice,
+  on fresh emulators → a cloud-timing flake (no presence / host code it reads changed in a way that path takes).
+- **harbor**: 13 / 15 jobs green; two reds, both checked locally:
+  - `perf` — MY new LONG NIGHT check's MB floor (59.8 → 64.4 on the 2-core runner vs the 4-MB line; the canvases flat 244 → 254, 0 city frames after an
+    unmount). Measured: in Chromium the MB floor never told the fix from no fix (the PRE-PASS code 64.1 → 64.5 — its canvases 248 → 285, inside the
+    1.25× line too); what separates them is NO CITY FRAME AFTER THE UNMOUNT (pre-pass 10–16 a trip, now 0). So the MB floor is now SAID as a warning,
+    not judged (`perf.mjs`); the MB proof stays WebKit's `wk-longnight.mjs` (79 → 62 at the peak). Re-run alone: 3 / 3.
+  - `lobby` — NO TWO CAMERAS · HOURS hidden: reproduced locally, then traced to the WALL CLOCK — it fails only when the +10-h return lands at sunset, and
+    the PRE-PASS commit fails it the same (Known issues). A guess that it was the tri-vision's slats at an old camera was tested and DROPPED (with the
+    guess's fix turned off, the slats never showed beside the board after a re-layout — the resize path already clears them): no code for an unshown cause.
+- The follow-up commit (the perf check + these notes) is untagged: no second deployment; the second cloud run = `gh workflow run harbor -f job=perf`.
