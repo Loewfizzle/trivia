@@ -41,10 +41,17 @@ const NOT_HOST = new Set(), HOST_SETTLE_MS = 2500;
 export function setHostGone(fn) { hostGone = typeof fn === 'function' ? fn : () => false; }
 /** the refusals put down to a host hand-off (tests) */
 export const hostRefusals = () => [...NOT_HOST];
+// (+ the add-on: an EXPECTED refusal — the leaving host's hand-off to an heir the rules refuse, a host claim the rules refuse — is said by its
+//  caller BEFORE the write: expectRefusal(path, label, ms) → a refusal of a write under that path inside ms is that quiet label, never the alarm)
+const EXPECT = [];
+export function expectRefusal(path, label, ms = 6000) { EXPECT.push({ path: String(path).replace(/^\/?/, '/'), label, until: Date.now() + ms }); while (EXPECT.length > 12) EXPECT.shift(); }
+const expected = p => { const now = Date.now(); for (let i = EXPECT.length - 1; i >= 0; i--) { const x = EXPECT[i]; if (x.until < now) { EXPECT.splice(i, 1); continue; } if (p.startsWith(x.path)) return x.label; } return null; };
 function refused(op, r, patch, e) {
   if (!isRefusal(e)) return;
   const keys = patch && typeof patch === 'object' && !Array.isArray(patch) && op === 'update' ? Object.keys(patch).slice(0, 4).map(pathShape) : [];
   const shape = `${op} ${pathShape(refPath(r))}${keys.length ? ` {${keys.join(', ')}}` : ''}`;
+  const ex = expected(refPath(r));
+  if (ex) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${ex}:`, shape); } return; }
   if (/^\/?(rooms|chats)\//.test(refPath(r))) { setTimeout(() => { if (safeGone()) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info('[rules] no longer the host — a write refused after the hand-off:', shape); } return; } report(shape); }, HOST_SETTLE_MS); return; }
   report(shape);
 }

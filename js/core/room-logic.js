@@ -80,10 +80,12 @@ export function shouldClaimHost({ meta, players, presence, now, me }) {
   return gone >= HOST_TIMEOUT_MS + rank * HOST_CANDIDATE_STAGGER_MS;
 }
 
-// Who should inherit host when the host leaves voluntarily.
+// Who should inherit host when the host leaves voluntarily — ONLY a player ONLINE NOW (a live connection): the rules take a hand-off only to a live,
+// online player (MAKE HOST's rule), so an offline heir is no heir (THE ERRORS GROUP's add-on, Nov 12 night: the old fallback to the first player
+// wrote a hand-off the rules had to refuse — a false RULES REFUSED). null → no hand-off: the others claim the empty seat the usual way.
 export function nextHost({ players, presence, exclude }) {
   const order = playerOrder(players).filter(uid => uid !== exclude);
-  return order.find(uid => isOnline(presence, uid)) || order[0] || null;
+  return order.find(uid => isOnline(presence, uid)) || null;
 }
 
 // Pick a free color (prefer the requested one).

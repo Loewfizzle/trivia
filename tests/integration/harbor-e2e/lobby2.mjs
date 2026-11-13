@@ -717,5 +717,17 @@ G('makehost', async () => {
   await waitFor(B.page, "!!document.querySelector('.rc-mkhost')", 'the row on an offline player', 10000).catch(() => {});
   const off = await ev(B.page, "(() => { const b = document.querySelector('.rc-mkhost'); return b ? { dis: b.disabled, txt: b.textContent } : null; })()");
   ok(!guestRow && off && off.dis && /offline/i.test(off.txt), `MAKE HOST: the old host (a guest now) is offered nothing (${!guestRow}); an OFFLINE player's card says so, not offered (${JSON.stringify(off)})`);
+  // THE ERRORS GROUP's add-on (the owner's /admin, Nov 12 10:24 pm — rooms/*/meta {hostId, hostBeat} ×2: the leaving host's HAND-OFF to an offline heir):
+  // the host LEAVES while the only other player is offline → no hand-off written (nextHost picks only a player online now), no RULES REFUSED report,
+  // and the room carries on (the offline player's seat stays — they claim it the usual way when they're back)
+  { await ev(B.page, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(300);
+    await ev(B.page, "import('/js/room.js').then(m => m.leaveRoom())");
+    await waitFor(B.page, '!window.__arcade.state.code', 'B left', 10000).catch(() => {});
+    await sleep(3200);   // (firebase.js HOST_SETTLE_MS)
+    const rep = await ev(B.page, "import('/js/firebase.js').then(F => ({ alarm: F.refusals(), quiet: F.hostRefusals() }))");
+    const errs = await ev(B.page, "import('/js/errlog.js').then(m => m.recentErrors().map(e => e.m || '').filter(t => /RULES REFUSED/.test(t)))");
+    const room = await (await fetch(`${DBH}/rooms/${code}/players.json?ns=${NS}`, { headers: { Authorization: 'Bearer owner' } })).json().catch(() => null);
+    ok(!rep.alarm.some(x => /rooms\/\*\/meta/.test(x)) && errs.length === 0 && room && room[hostUid] && !room[twoUid],
+      `THE ERRORS GROUP's add-on — the host leaves while the only other player is offline: no RULES REFUSED (${JSON.stringify(rep.alarm)} / ${errs.length}; quiet: ${JSON.stringify(rep.quiet)}); the room carries on with them (${room ? Object.keys(room).length : 0} player)`); }
   await B.ctx.close();
 });

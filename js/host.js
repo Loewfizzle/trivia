@@ -8,7 +8,7 @@ import { dbRef, update, remove, get, runTransaction, serverTimestamp, serverNow 
 import { startOf, newMatchId, GO_ORPHAN_MS, goWaiting } from './core/room-show.js';
 import { minPlayersOf, rematchSettingsOf } from './games/cartridge.js';
 import { state, isHost, onlineMap } from './store.js';
-import { setHostGone } from './firebase.js';
+import { setHostGone, expectRefusal } from './firebase.js';
 import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE, staleProofPaths } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
@@ -121,6 +121,7 @@ export async function claimHost(oldHost) {
     //  still in flight when this phone left the room committed after it: the claim stands down the moment the room is no longer this phone's)
     const here = () => state.code === code && !!(state.players && state.players[state.uid]);
     if (!here()) return;
+    expectRefusal(`rooms/${code}/meta`, 'host claim refused: the host is still alive');   // (THE ERRORS GROUP's add-on: an expected refusal — quiet)
     const res = await runTransaction(dbRef(`rooms/${code}/meta/hostId`), cur => (!here() ? undefined : cur === oldHost || cur == null ? state.uid : undefined));
     if (res.committed && res.snapshot.val() === state.uid && here()) {
       myClaim = { code, at: Date.now() };   // (SPEED PASS B: this phone's own claim says its own line — watchHand stays quiet)

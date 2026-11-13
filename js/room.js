@@ -1,8 +1,7 @@
 // Room lifecycle: create / join / resume / leave / kick, live mirroring and presence.
 import {
   dbRef, get, set, update, remove, onValue, onDisconnect, serverTimestamp, serverNow,
-  query, orderByChild, endAt, limitToFirst, runTransaction, want, release,
-} from './firebase.js';
+  query, orderByChild, endAt, limitToFirst, runTransaction, want, release, expectRefusal } from './firebase.js';
 import { state, setState } from './store.js';
 import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe, testMode } from './identity.js';
 import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence, isOnline } from './core/room-logic.js';
@@ -432,8 +431,13 @@ export async function leaveRoom({ keepSeat = false, reason = null, heir: given =
       if (given || others.length) {
         const heir = given || nextHost({ players: state.players, presence: state.presence, exclude: uid });
         // (SHELL 2.0 B2 — the rules take a hand-off only to a live, online player (MAKE HOST's rule): an offline heir is refused — then this
-        //  phone still leaves; the others claim the empty seat the usual way)
-        try { await update(dbRef(`${R(code)}/meta`), { hostId: heir, hostBeat: serverTimestamp() }); } catch (e) { console.warn('hand-off refused', e && e.message); }
+        //  phone still leaves; the others claim the empty seat the usual way. THE ERRORS GROUP's add-on: nextHost picks ONLY a player online NOW
+        //  (nobody online → no hand-off written); a refusal the rules still make (the heir's socket dropped in the instant) is EXPECTED — a quiet
+        //  'hand-off refused: the heir is offline', never the re-publish alarm)
+        if (heir) {
+          expectRefusal(`${R(code)}/meta`, 'hand-off refused: the heir is offline');
+          try { await update(dbRef(`${R(code)}/meta`), { hostId: heir, hostBeat: serverTimestamp() }); } catch (e) { console.info('hand-off refused: the heir is offline', e && e.message); }
+        }
       } else {
         await closeRoom(code); // last one out turns off the lights
         exitRoom(reason, 'info', { keepSeat, how: 'leave' });

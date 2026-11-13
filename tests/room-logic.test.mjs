@@ -74,7 +74,7 @@ test('host and non-members never claim', () => {
 test('nextHost prefers online players in join order', () => {
   const presence = { p2: { online: false }, p3: { online: true }, p4: { online: true } };
   assert.equal(nextHost({ players, presence, exclude: 'host' }), 'p3');
-  assert.equal(nextHost({ players, presence: {}, exclude: 'host' }), 'p2');
+  assert.equal(nextHost({ players, presence: {}, exclude: 'host' }), null, 'nobody online: no heir (the rules would refuse an offline one — the others claim the usual way)');
   assert.equal(nextHost({ players: { host: {} }, presence: {}, exclude: 'host' }), null);
 });
 
