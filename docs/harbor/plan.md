@@ -6631,3 +6631,23 @@ OWNER'S NOTES — NOV 12 (night, after THE CDN HOTFIX)
 - JAYWALK CARDS + THE TRI-VISION DONE (Nov 13) — passes/jaywalk-cards.md. THE BUILD TABLE: the pass ✅ (JAYWALK's three cards dormant until its pass 6;
   THE TRI-VISION; THE LOBBY GETS IT LIVE; THE CITY's LONG NIGHT; THE ERRORS GROUP; Vercel Web Analytics; no rules change) → FR7 FIXES C (THE ONE DAY LINE) ← NEXT →
   PLAY NOW + WHO'S ON → THE POOL FIXES + THE SLIDER → JAYWALK's passes.
+
+## OWNER'S NOTES — NOV 13 (after JAYWALK CARDS + THE TRI-VISION)
+
+```
+OWNER'S NOTES — NOV 13 (after JAYWALK CARDS + THE TRI-VISION)
+- JAYWALK CARDS + THE TRI-VISION reviewed on the iPhone: all good EXCEPT THE CREW INTERCOM's ON switch on the radio's LEDGER face — the pink pill runs
+  to the panel's edge and its white knob hangs HALF OUTSIDE the card (still broken after that pass).
+- CLAUDE.md is 106 KB — every pass pays to read it and rules get buried. THE CLAUDE.md DIET: about a third of the size, nothing lost, a size guard.
+- THE ONE DAY LINE: Grok's PROGRESSION + CALENDAR review (Nov 12, honest players) — 4 MUSTs + 5 SHOULDs, all fixed here, before THE LAUNCH (the Level 1
+  reset + telling people, a MONDAY a few minutes after 4 am ET). The review's reset-morning order goes into docs/launch.md.
+- THANKSGIVING's SIGN (the owner, Nov 13: "the wreath looks terrible"): the harvest wreath + the wheat swags are RETIRED. NEW: the NEON sign's tubes turn
+  GOLD for Thanksgiving week, and a bank of red / orange / yellow / gold MAPLE LEAVES sits BEHIND the letters (Grok's real leaves — approved). The leaves
+  fill in day by day from ~Nov 15, full by Sun Nov 22; gold Mon Nov 23 → Thanksgiving night. The preview link must show it any day.
+- THE LEDGER gets NOW PLAYING (the song this phone is playing — the file names are fine, no titles yet).
+- Vercel is on PRO now (Nov 12) with a $30 budget; the CDN hotfix holds.
+- Known, parked: a foldable unfolded (Motorola Razr) stutters a little — no data yet (the bench wasn't finished); nothing to do this pass.
+```
+- THE BUILD TABLE (Nov 13, FR7 FIXES C's Step 0): JAYWALK CARDS + THE TRI-VISION ✅ (the crew intercom's switch still hangs off the LEDGER); THIS PASS —
+  FR7 FIXES C: THE CLAUDE.md DIET + THE ONE DAY LINE + THANKSGIVING's MAPLE LEAVES + THE GOLD WEEK + THE SMALL ONES (passes/fr7-fixes-c.md) ← NOW; then
+  PLAY NOW + WHO'S ON → THE POOL FIXES + THE SLIDER → JAYWALK's passes; THE LAUNCH (the owner's taps, a Monday just after 4 am ET) whenever he's ready.
