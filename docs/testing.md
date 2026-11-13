@@ -761,6 +761,9 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   real content ≤ 3 s, plain + with a STALE `music.js` (its `musicFileOf` export taken away — the owner's phone). The shipped `be8c156c` fails the stale case.
 - `node tests/integration/cr-double.mjs "<chromium>" --paths hours-dusk@16:40,… [--repeat N] [--shots DIR] [--diag JS]` — NO TWO CAMERAS paths in
   Chromium on their own (wk-double.mjs's twin); `--shots` keeps a red look's picture, its crisp-less twin and the PIXELS json.
+  (Nov 13, the paint-order fix: `--cpu N` = CDP CPU throttle (the cloud ≈ 2); `--diag-all` prints EVERY look's match per crisp item — `s` at
+  its best offset / `s00` at its own place: a crisp item that matches the city sits at s00 ≈ 4–11; ≈ 26 = a different picture over the city —
+  + the marks and the first bad frames of a red run; `--shots-all` keeps every look; `hours-dusk@HH:MM:SS` sets the landing to the second.)
 - `tests/now-playing.test.mjs` (NOW PLAYING imports nothing; the hub's order) · `tests/leafbank.test.mjs` (the ring's numbers).
 - THE CLOUD's UNIT JOB has no root node_modules: a unit test never imports a file that reaches `api/_lib/fb.js` (firebase-admin) — check by running
   the unit suite once with `node_modules` renamed away.

@@ -106,7 +106,7 @@ export async function runPath(D, name, o = {}) {
   const dusk = kind === 'hours-dusk', duskAt = String(atArg || '17:20').split(':').map(Number);
   // (PLAY NOW 0f: wx-late@HH:MM — the LATE WEATHER with both clocks set to HH:MM Grand Rapids time on Nov 13: the cloud's red landed at 10:16)
   const wxAt = live && atArg ? String(atArg).split(':').map(Number) : null;
-  const startOff = dusk ? Date.UTC(2026, 10, 13, duskAt[0] + 5, duskAt[1] || 0) - 10 * 3600e3 - Date.now() : wxAt ? Date.UTC(2026, 10, 13, wxAt[0] + 5, wxAt[1] || 0) - Date.now() : 0;
+  const startOff = dusk ? Date.UTC(2026, 10, 13, duskAt[0] + 5, duskAt[1] || 0, duskAt[2] || 0) - 10 * 3600e3 - Date.now() : wxAt ? Date.UTC(2026, 10, 13, wxAt[0] + 5, wxAt[1] || 0) - Date.now() : 0;
   let shownWall = 0, jump = startOff;
   const routes = [];
   if (/^hours/.test(kind) || wxAt) routes.push([/\/api\/time/, async () => ({ status: 200, body: JSON.stringify({ t: Date.now() + jump }) })]);   // (the server's clock moved with the phone's)

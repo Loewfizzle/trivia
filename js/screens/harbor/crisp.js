@@ -15,10 +15,16 @@ import { ctx2d, cssWidth } from '../../ui/canvas-safe.js';
 export function createCrisp() {
   const items = new Map();   // id → { a, b (the two canvases: a = current, b = the one fading out), key, css, M, shownAt, op, z, xf }
   let dpr = 1, on = false, frameN = 0, host = null;
+  // THE PAINT ORDER (the cloud's NO TWO CAMERAS red at the hours return, Nov 13 — "86×48 item: its copy 27,-48 pt away"): items at the SAME z
+  // stack in the order the city SHOWS them each frame (its own paint order — the roof board's day face, then its lamp-lit copy over it, like
+  // the city's bake + nightS), never by history. Before, a new canvas (or a crossfade's) went to the TOP of the host: a return at dusk that
+  // first showed the lit copy (the night) and the day face only later (or any re-bake's crossfade of the day face) left the DAY face over the
+  // LIT one — a different board over the city's for as long as both were up. order = this frame's ids as shown; restack = fix the DOM in end().
+  const order = []; let seq = 0, restack = false;
 
   /** per frame, before the items: the context the city draws in + the tier → whether the layer is worth it here */
   function begin(c, tier, wanted = true) {
-    frameN++;
+    frameN++; seq = 0;
     host = c && c.canvas && c.canvas.parentElement;
     const dev = (typeof window !== 'undefined' && window.devicePixelRatio) || 1, cw = (c && c.canvas && cssWidth(c.canvas)) || 1, canvasDpr = c && c.canvas ? c.canvas.width / cw : dev;
     // (9e — THE BLADE STAYS SHARP AT EVERY TIER: the owner's Day of the Dead night at 20 % battery stepped down to tier 0 and the blade went
@@ -45,7 +51,10 @@ export function createCrisp() {
     const x0 = Math.floor(Math.min(...cs.map(p => p[0]))), y0 = Math.floor(Math.min(...cs.map(p => p[1]))), x1 = Math.ceil(Math.max(...cs.map(p => p[0]))), y1 = Math.ceil(Math.max(...cs.map(p => p[1])));
     const geo = `${x0}|${y0}|${x1}|${y1}|${dpr}|${T.a.toFixed(4)}|${T.d.toFixed(4)}|${T.e.toFixed(1)}|${T.f.toFixed(1)}`;
     const z = it.z || 1;
-    if (!I || !I.a.isConnected || I.host !== host) { if (I) drop(it.id); I = { a: mkCv(z), b: null, key: null, geo: '', host, xfFrom: 0, xf: 0, op: -1, opB: -1 }; items.set(it.id, I); I.a.dataset.item = it.id; }   // (LOAD FIX 5: its name on the canvas — the NO TWO CAMERAS guard's pixel check picks the lettering by it)
+    if (!I || !I.a.isConnected || I.host !== host) { if (I) drop(it.id); I = { a: mkCv(z), b: null, key: null, geo: '', host, xfFrom: 0, xf: 0, op: -1, opB: -1 }; items.set(it.id, I); I.a.dataset.item = it.id; restack = true; }   // (LOAD FIX 5: its name on the canvas — the NO TWO CAMERAS guard's pixel check picks the lettering by it)
+    I.z = z;
+    if (order[seq] !== it.id) { order[seq] = it.id; restack = true; }
+    seq++;
     const place = cv => {
       cv.width = Math.max(1, (x1 - x0) * dpr); cv.height = Math.max(1, (y1 - y0) * dpr);
       Object.assign(cv.style, { left: `${x0}px`, top: `${y0}px`, width: `${x1 - x0}px`, height: `${y1 - y0}px` });
@@ -60,7 +69,7 @@ export function createCrisp() {
     if (geo !== I.geo) { I.geo = geo; place(I.a); paint(I.a); I.key = it.key; if (I.b) { I.b.remove(); I.b = null; } }
     else if (it.key !== I.key) {
       // a new look: the old canvas stays under, the new one fades in over xfade ms (the city's own crossfade)
-      if (it.xfade > 0) { if (!I.b) { I.b = mkCv(z); I.b.style.zIndex = String(z); I.b.dataset.item = it.id; } const t = I.a; I.a = I.b; I.b = t; host.append(I.a); place(I.a); I.xfFrom = now; I.xf = it.xfade; I.op = -1; }
+      if (it.xfade > 0) { if (!I.b) { I.b = mkCv(z); I.b.style.zIndex = String(z); I.b.dataset.item = it.id; } const t = I.a; I.a = I.b; I.b = t; I.b.after(I.a); restack = true; place(I.a); I.xfFrom = now; I.xf = it.xfade; I.op = -1; }   // (the new look just over the old one — in ITS place in the stack, never to the top of it: see end())
       paint(I.a); I.key = it.key;
     }
     const a = Math.max(0, Math.min(1, it.alpha == null ? 1 : it.alpha));
@@ -80,6 +89,18 @@ export function createCrisp() {
   function drop(id) { const I = items.get(id); if (!I) return; I.a.remove(); if (I.b) I.b.remove(); I.a.width = I.a.height = 0; if (I.b) I.b.width = I.b.height = 0; items.delete(id); }   // (THE LONG NIGHT: zeroed as it goes — WebKit keeps a dropped canvas's pixels until a GC)
   /** after the frame: an item not shown this frame hides (and is freed after ~2 s unseen) */
   function end() {
+    // (THE PAINT ORDER: only on a frame whose order changed — a new item, a crossfade, an item in or out; a sibling move keeps the pixels)
+    if (restack) {
+      restack = false;
+      const top = new Map();   // z → the canvas on top of that z so far
+      for (let i = 0; i < seq; i++) {
+        const I = items.get(order[i]); if (!I || I.seen !== frameN) continue;
+        const lo = I.b || I.a, prev = top.get(I.z);
+        if (prev && prev !== lo && !(prev.compareDocumentPosition(lo) & 4)) prev.after(lo);   // (4: lo FOLLOWS prev)
+        if (I.b && !(I.b.compareDocumentPosition(I.a) & 4)) I.b.after(I.a);
+        top.set(I.z, I.a);
+      }
+    }
     for (const [id, I] of items) {
       if (I.seen === frameN) continue;
       if (I.a.style.display !== 'none') { I.a.style.display = 'none'; if (I.b) I.b.style.display = 'none'; }

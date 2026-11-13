@@ -21,6 +21,7 @@ const D = {
     const errs = []; p.on('pageerror', e => errs.push(e.message));
     const VP = h => p.setViewport({ width: 402, height: h, deviceScaleFactor: 3, isMobile: true, hasTouch: true }).catch(() => {});
     await VP(vh);
+    if (Number(opt('cpu', 0)) > 1) { const cdp = await p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(opt('cpu', 0)) }); }   // (--cpu N: the cloud's slower runner)
     for (const [fn, arg] of inits) await p.evaluateOnNewDocument(fn, arg);
     if (routes.length) {
       await p.setRequestInterception(true);
@@ -42,7 +43,9 @@ const results = [];
 for (let i = 0; i < N; i++) for (const name of PATHS) {
   const r = await runPath(D, name, { base: BASE, slot: `cd${i}`, fast: true, diag: opt('diag', '') || null, guard: u => guardUrl(u, 'cr-double.mjs') });
   console.log(`${r.bad ? 'FAIL' : 'OK  '} ${r.line}`);
-  if (SHOTS && r.bad) { mkdirSync(SHOTS, { recursive: true }); r.pics.forEach((p, j) => { const f = `${SHOTS}/${name.replace(/[@:]/g, '-')}-${i}-${j}`; writeFileSync(`${f}.png`, p.png); if (p.bare) writeFileSync(`${f}-bare.png`, p.bare); writeFileSync(`${f}.json`, JSON.stringify({ label: p.label, px: p.px, diag: p.diag })); }); }
+  if (argv.includes('--diag-all')) for (const p of r.pics) console.log(`   · ${p.label}: ${p.px.map(q => `${q.box[2]}×${q.box[3]}@${q.box[0]},${q.box[1]} best ${q.dx},${q.dy} s ${q.s}/${q.s00}`).join(' | ')} · ${p.diag || ''}`);   // (every look's match + the --diag answer, red or not)
+  if (argv.includes('--diag-all') && r.bad) console.log(`   · the marks: ${(r.marks || []).map(m => `${Math.round(m.t)} ${m.label}`).join(' · ')} · the bad frames from ${r.frames.at.join(', ')} ms`);
+  if (SHOTS && (r.bad || argv.includes("--shots-all"))) { mkdirSync(SHOTS, { recursive: true }); r.pics.forEach((p, j) => { const f = `${SHOTS}/${name.replace(/[@:]/g, '-')}-${i}-${j}`; writeFileSync(`${f}.png`, p.png); if (p.bare) writeFileSync(`${f}-bare.png`, p.bare); writeFileSync(`${f}.json`, JSON.stringify({ label: p.label, px: p.px, diag: p.diag })); }); }
   delete r.pics; results.push(r);
 }
 await br.close();
