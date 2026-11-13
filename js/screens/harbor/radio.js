@@ -513,8 +513,14 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     console.warn('[radio]', id, e);
     try { reportError(e instanceof Error ? e : new Error(String(e)), `radio-${id}`); } catch { /* reporting never throws */ }
   }
+  // (PLAY NOW: ONE load of a face at a time — a poll's re-render while the first import was still out started a SECOND one; its answer
+  //  could land after the first failed and hide the failure (a face that half-loaded twice). A second ask now waits on the first.)
+  const faceP = { program: null, ledger: null };
   async function face(id) {
-    if (!faces[id]) { try { const m = await importFace(id, faceTries[id]); if (!m || typeof m.paint !== 'function') throw new Error(`radio-${id}.js has no paint()`); faces[id] = m; faceErr[id] = null; } catch (e) { faceFailed(id, e); } }
+    if (!faces[id]) {
+      if (!faceP[id]) faceP[id] = (async () => { try { const m = await importFace(id, faceTries[id]); if (!m || typeof m.paint !== 'function') throw new Error(`radio-${id}.js has no paint()`); faces[id] = m; faceErr[id] = null; } catch (e) { faceFailed(id, e); } })().finally(() => { faceP[id] = null; });
+      await faceP[id];
+    }
     return faces[id];
   }
   /** a face's paint, guarded: its nodes, or null (the error reported + the retry shown) */

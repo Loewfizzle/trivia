@@ -457,9 +457,12 @@ G('people', async () => {
 // round the lead at 28 px/s, 3× the body's speed, on the planner's shared distance: now the lead's own ~11), the pace + cadence in the human range, and the city at 60 fps while anyone walks
 // ('people' in rate.fast — the 30 ↔ 60 flips were the owner's afternoon stutter); the dancers' arms never jump (the hand's angle about
 // the shoulder: never over 1 rad between two frames closer than 60 ms, and under 20 rad/s at the p99 — the hand's angle carries the bend + the foreshortening too).
+// (PLAY NOW 0f — the cloud's "THE DANCERS' ARMS NEVER JUMP: 1 jump": each drawn frame was stamped with the SAMPLER's time, not the frame's
+//  own draw time — on a slow machine a late sample beside a prompt one made a normal swing read as 1 rad in a short frame. A frame is now
+//  timed by the city's own draw (loop().drawnAt); the rule is unchanged)
 const motionTrace = secs => `new Promise(res => { const D = window.__district, out = [], t0 = performance.now();
   (function loop() { const h = D.harbor(), lp = D.loop();
-    out.push({ t: performance.now(), drawn: lp ? lp.drawn : 0, fast: h.rate ? h.rate.fast : '', rigs: h.people.rigs().map(r => ({ id: r.id + '|' + r.role, kind: r.kind, pose: r.pose, hd: r.hd || 0, y: r.y || 0, v: r.v, fx: r.fx, fy: r.fy, H: r.H, feet: r.feet, planted: r.planted, heel: r.heel, hands: r.hands, shs: r.shs })) });
+    out.push({ t: lp && typeof lp.drawnAt === 'number' ? lp.drawnAt : performance.now(), drawn: lp ? lp.drawn : 0, fast: h.rate ? h.rate.fast : '', rigs: h.people.rigs().map(r => ({ id: r.id + '|' + r.role, kind: r.kind, pose: r.pose, hd: r.hd || 0, y: r.y || 0, v: r.v, fx: r.fx, fy: r.fy, H: r.H, feet: r.feet, planted: r.planted, heel: r.heel, hands: r.hands, shs: r.shs })) });
     if (performance.now() - t0 < ${secs * 1000}) requestAnimationFrame(loop); else res(out); })(); })`;
 function motionReport(frames) {
   const D = []; for (let i = 1; i < frames.length; i++) if (frames[i].drawn !== frames[i - 1].drawn) D.push(frames[i]);
