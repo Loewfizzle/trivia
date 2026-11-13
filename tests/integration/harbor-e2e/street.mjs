@@ -315,6 +315,34 @@ G('people', async () => {
     ok(done.fareFrames > 30 && done.fareListed >= done.fareFrames - 2 && done.rose && done.last && Math.hypot(done.rose.x - done.last.sat.x, done.rose.z - done.last.sat.z) < 0.05,
       `PART 10 THE CAB PICKUP's MIDDLE: he rises where he sat (${done.rose ? `${done.rose.x}, ${done.rose.z}` : '—'} vs ${done.last && done.last.sat ? `${done.last.sat.x}, ${done.last.sat.z}` : '—'}); drawn ${done.fareFrames} frames, ${done.fareListed} of them re-drawn over the bench's sharp overlay`);
     await Q.ctx.close(); }
+  // ---- THE BENCH OVER THE TAXI (Nov 12 night — the owner's friend: the taxi drew UNDER the cab stand's bench). At 3× (THE CRISP LAYER on): while
+  // the taxi stands in front of the bench its sharp overlay is FADED OUT — the composite over the overlap = the city's own canvas (the car drawn over
+  // the bench in depth order), never the overlay; back once the taxi has gone (occluders.js + scene.js#crispTick)
+  { const Q = await open({ slot: 'pp-cab3', qs: `when=2026-09-15T21:30${GR}&wx=clear&force=cabstand`, view: [402, 874], dpr: 3 }), p = Q.page;
+    await harborUp(p);
+    await waitFor(p, `${P}.people.members.some(m => m.kind === 'cabwait' && m.pose === 'sit')`, 'a waiter at the cab stand', 40000).catch(() => {});
+    await sleep(4500); await ev(p, 'window.__district.idle()');
+    await waitFor(p, `!!${P}.promenade.cabTaxi.run`, 'the taxi pulling up', 15000).catch(() => {});
+    const opOf = "(() => { const c = document.querySelector('canvas.hc-crisp[data-item=\"still-street\"]'); return c ? (c.style.display === 'none' ? 0 : +(c.style.opacity === '' ? 1 : c.style.opacity)) : -1; })()";
+    // (the stop: the taxi stands still for the boarding — sample there)
+    await waitFor(p, `(() => { const r = ${P}.promenade.cabTaxi.run; return r && performance.now() / 1000 > r.tA + 0.4; })()`, 'the taxi at its stop', 12000).catch(() => {});
+    await sleep(500);
+    // (the composite AS IS vs the same instant with the bench overlays HIDDEN — equal over the bench = nothing of the overlay is on top: the car the
+    //  city drew over its bench shows; before the fix the sharp bench sat over the car here)
+    const box = await ev(p, `(() => { const st = ${P}.promenade.still.sprites.find(x => /street/.test(x.id)); return st ? st.box : null; })()`);
+    const clip = box ? { x: box.x, y: box.y, width: box.w, height: box.h } : null;
+    const A = clip ? await p.screenshot({ encoding: 'base64', clip }) : null;
+    await ev(p, "document.querySelectorAll('canvas.hc-crisp[data-item^=\"still-\"]').forEach(c => { c.dataset.vis = c.style.visibility; c.style.visibility = 'hidden'; })");
+    const B = clip ? await p.screenshot({ encoding: 'base64', clip }) : null;
+    await ev(p, "document.querySelectorAll('canvas.hc-crisp[data-item^=\"still-\"]').forEach(c => { c.style.visibility = c.dataset.vis || ''; })");
+    const S = A && B ? await ev(p, `Promise.all(['${A}', '${B}'].map(b => new Promise(r => { const im = new Image(); im.onload = () => { const o = document.createElement('canvas'); o.width = im.width; o.height = im.height; const x = o.getContext('2d'); x.drawImage(im, 0, 0); r(x.getImageData(0, 0, im.width, im.height).data); }; im.src = 'data:image/png;base64,' + b; })))
+      .then(([a, b]) => { let d = 0, n = 0; for (let i = 0; i < a.length; i += 16) { d += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]); n++; } return { n, mean: +(d / n / 3).toFixed(2) }; })`) : null;
+    const opAt = await ev(p, opOf), front = await ev(p, `import('/js/screens/harbor/occluders.js').then(m => m.vehiclesNow().length)`);
+    await waitFor(p, `(() => { const c = ${P}.promenade.cabTaxi; return !c.run; })()`, 'the taxi gone', 25000).catch(() => {});
+    await sleep(900);
+    const opAfter = await ev(p, opOf);
+    ok(opAt < 0.05 && S && S.mean < 1.5 && opAfter > 0.9, `THE BENCH OVER THE TAXI: with the taxi in front the bench's sharp overlay is out (opacity ${opAt}; −1 = faded + freed) — the composite over the bench the same with the overlays hidden (mean diff ${S && S.mean} over ${S && S.n} samples): the car the city drew in front shows; the overlay back once it has gone (${opAfter})`);
+    void front; await Q.ctx.close(); }
   // ---- midday (a Thursday): people out on the promenade, inside the cap, on screen + never under the dock; THE HUSH SIGN says OPEN
   { const Q = await open({ slot: 'pp1', qs: `when=2026-10-22T12:30${GR}`, view: [402, 874] });
     await harborUp(Q.page); await settle(Q.page);

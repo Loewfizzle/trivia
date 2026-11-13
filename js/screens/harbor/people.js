@@ -12,6 +12,7 @@
 // a distant laugh from a pair chatting now and then, the cart's bell, the lobby line's murmur, the rooftop party's bed, the bus, the
 // speakeasy's doors (6b: filled), the dance circle (6b: the wands' swish on big moves, the watchers' clapping, a rare whoop).
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
+import { reportVehicle } from './occluders.js';
 import { project } from '../../core/harbor-layout.js';
 import { FOLK, folkMap, folkAt, folkWarmSteps, roofAt, linePlaces, linePlaces2, lineRect, capByTier, planVisit, visitAt, route, pathLen, doorLeg, DOOR } from '../../core/harbor-people.js';
 import { roomSlots, roomRects, uidSeed, arriveSide } from '../../core/harbor-room.js';
@@ -476,6 +477,7 @@ export function createPeople() {
       if (it.x) { c.save(); it.x.draw(c); c.restore(); continue; }   // (8b1 wildlife)
       if (it.b) {
         const box = drawBus(c, cam, { ...it.b, dist: it.b.xNow - it.b.xc + 40, seed: it.b.id.length, riders: 2 }, E);
+        if (box) reportVehicle(box.x, box.y, box.w, box.h, it.b.z);   // (THE BENCH OVER THE TAXI — occluders.js)
         // (FP3b: whoever is in its doorway — stepping up in / down out — through the open door, clipped to it)
         const rs = items.filter(m => riding.has(m) && inBus(m, it.b)).sort((a, b) => b.s.z - a.s.z);
         if (box && box.door && rs.length) { c.save(); c.beginPath(); c.rect(box.door.x, box.door.y, box.door.w, box.door.h); c.clip(); for (const m of rs) drawFolk(c, cam, { s: m.s, L: lookFor(m, env) }, { ...E, yUp: m.s.y || 0 }); c.restore(); }
@@ -550,6 +552,7 @@ export function createPeople() {
     const cam = L.cam, sp = cam.F / car.z, [cx, gy] = project(cam, car.x, 0, car.z), T = env.T || {}, night = clamp01(env.dark || 0), pw = env.power == null ? 1 : clamp01(env.power);
     const look = night > 0.5 ? 'night' : (T.gold || 0) > (T.day || 0) ? 'golden' : 'day', len = car.len * sp;
     if (cx + len < -10 || cx - len > cam.W + 10) return;
+    reportVehicle(cx - len / 2, gy - 2.2 * sp, len, 2.6 * sp, car.z);   // (THE BENCH OVER THE TAXI — occluders.js: the body's box, generous)
     // the contact shadow (the body keeps the light off the road between its wheels)
     c.save(); c.globalAlpha = (env.fade == null ? 1 : env.fade) * (0.42 - 0.12 * night); c.fillStyle = 'rgb(14,12,24)';
     c.beginPath(); c.ellipse(cx, gy - 0.05 * sp, len * 0.5, Math.max(1, 0.32 * sp), 0, 0, Math.PI * 2); c.fill(); c.restore();

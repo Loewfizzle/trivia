@@ -5,6 +5,7 @@
 // the rails, the tail lamp's red on the ground; by day its soft contact shadow + the sun's cast shadow; the street lamps' light on its
 // body (the kit's 'lamp' look, by how near a lamp it rolls). Only the wheels turn live (the kit); the body rides the cobbles.
 // Where + when: roadlight.js (core/harbor-promenade.js#carAt — the implied road's pass on the city's clock); only while the dock rests.
+import { reportVehicle } from './occluders.js';
 import { groundY } from '../../core/harbor-layout.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { sunShadow } from '../../core/harbor-light.js';
@@ -36,6 +37,7 @@ export function createMotorcar() {
       const len = M.len * sp, x0 = cx - len / 2, x1 = cx + len / 2;
       last = { x: cx, y: gy, w: len, h: M.h * sp, z: car.z, dir, look, top: gy - M.h * sp, model: id };
       if (x1 < -40 || x0 > cam.W + 40 || o.k <= 0.004) return;
+      reportVehicle(x0, gy - M.h * sp - 0.5 * sp, len, M.h * sp + 0.9 * sp, car.z);   // (THE BENCH OVER THE TAXI: a bench's sharp overlay steps aside — occluders.js)
       c.save(); c.globalAlpha = o.k;
       // ---- on the ground first: the shadows (by day the sun's, always a soft contact shade under the body)
       if (!dark) dark = glowSprite('14,12,26', 0.55);

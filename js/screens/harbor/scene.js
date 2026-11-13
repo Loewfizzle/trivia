@@ -66,6 +66,7 @@ import { litSteps, createLights, newMeta } from './lights.js';
 import { rayStrength, drawRays } from './rays.js';
 import { searchlightStep, drawBeams } from './searchlights.js';
 import { cabinetCut, setJaywalkPainter } from './signs.js';
+import { vehiclesReset, vehicleInFront } from './occluders.js';
 
 import { quaySteps, drawQuayLamps, quayLampSprite } from './quay.js';
 import { createNeon, nightKey } from './neon.js';
@@ -982,7 +983,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const liveCrispDebug = () => [...winK].map(([id, k]) => ({ id, k: +k.toFixed(3) }));
   function crispTick(c, off, fadeIn, pplLive, crispOn, dt) {
     roofCrisp(c, off, fadeIn, crispOn, dt);
-    if (!crispOn) { liveWinCrisp(c, off, fadeIn, false, dt, false); crisp.end(); return; }
+    if (!crispOn) { liveWinCrisp(c, off, fadeIn, false, dt, false); crisp.end(); vehiclesReset(); return; }
     const crew = pplLive ? people.crew() : null, busy = !!(crew && crew.works && crew.works.some(w => /paint|billpost|bulb|lamp|wash|repair|sign/.test(w))) ||   // (the works up on the facade / the board; never the doorman at his post)
        !!(crew && crew.traces && (crew.traces.blade || (crew.traces.board && crew.traces.board.pasting)));
     liveWinCrisp(c, off, fadeIn, true, dt, busy);   // (NIGHT-C: the live windows at 3× — a worker at the facade sends them back to the city's)
@@ -1005,10 +1006,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // overlays crossfade out (never a pop: smooth on the precipitation's own blend) and the city's bench under them — drawn before the
     // rain, so it falls over it — shows; they come back when it stops)
     const wet9 = 1 - smooth(0.03, 0.15, Math.max(LK.rain || 0, LK.snow || 0, WXS ? WXS.snow || 0 : 0));
+    // (THE BENCH OVER THE TAXI — Nov 12 night: a VEHICLE nearer than the bench over its box (occluders.js — the cab stand's taxi, the street's
+    //  traffic, the buses, the raid's car) → that bench's overlay crossfades out (~0.25 s) so the city's own bench — in its right depth order —
+    //  shows; back once the car has passed. The alpha is the crisp item's opacity: the key never changes for it — no repaint per frame)
     if (!off.has('no-promenade') && !off.has('no-still-crisp') && L.bench) for (const sp of still.sprites(L, bakeTones, crisp.dpr, PWQ)) {
       const ok9 = pplLive ? people.overKey(sp.box, sp.z) : '';
-      if (wet9 < 0.01) continue;
-      crisp.show(c, { id: sp.id, z: 0, box: sp.box, key: `${sp.key}|${ok9}|v${veil9}`, xfade: 0, alpha: fadeIn * wet9, draw: x => { x.drawImage(sp.cv, sp.box.x, sp.box.y, sp.box.w, sp.box.h); if (pplLive) people.redrawOver(x, sp.box, sp.z);
+      const car9 = vehicleInFront(sp.box, sp.z), f0 = benchK.get(sp.id) ?? (car9 ? 0 : 1), f9 = Math.max(0, Math.min(1, f0 + (car9 ? -1 : 1) * Math.min(0.1, dt / 1000) / BENCH_XF_S));
+      benchK.set(sp.id, f9);
+      if (wet9 < 0.01 || f9 < 0.01) continue;
+      crisp.show(c, { id: sp.id, z: 0, box: sp.box, key: `${sp.key}|${ok9}|v${veil9}`, xfade: 0, alpha: fadeIn * wet9 * (f9 * f9 * (3 - 2 * f9)), draw: x => { x.drawImage(sp.cv, sp.box.x, sp.box.y, sp.box.w, sp.box.h); if (pplLive) people.redrawOver(x, sp.box, sp.z);
         if (veil9 > 0) { x.save(); x.globalCompositeOperation = 'source-atop'; x.fillStyle = `rgba(4,4,26,${(0.54 * veil9).toFixed(3)})`; x.fillRect(sp.box.x, sp.box.y, sp.box.w, sp.box.h); x.restore(); } } });
     }
     // the roof board's poster face (by day: at night its lamps light it live in the city's canvas, softly — the crisp copy fades out at dusk)
@@ -1030,6 +1036,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (rbN && rbN.rect) { const R0 = rbN.rect, aN = Math.min(1, neon.boardNightA ? neon.boardNightA(rbN.id) : 0);
       if (aN > 0.01) crisp.show(c, { id: 'roofboard-msg', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${rbN.content.lines ? rbN.content.lines.join('|') : rbN.content.poster ? `poster:${rbN.content.poster}` : `game:${rbN.content.title}`}|${rbN.content.art || ''}|${rbN.dead}|${crisp.dpr}`, xfade: 0, alpha: fadeIn * aN, draw: x => rbN.nightPoster(x, crisp.dpr, 1) }); }
     { const u = tri.turn ? triU() : null; if (u != null && tri.turn) { const R0 = tri.turn.R; crisp.show(c, { id: 'roofboard-tri', z: 4, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `tri${tri.turn.id}|${Math.round(u * 600)}`, xfade: 0, alpha: fadeIn, draw: x => drawTri(x, u, crisp.dpr) }); } }   // (THE TRI-VISION's slats — over every poster copy)
+    vehiclesReset();   // (THE BENCH OVER THE TAXI: this frame's vehicles read — the next frame reports afresh)
     { const a = boardXfA(); if (a > 0.004 && bxf.box) crisp.show(c, { id: 'roofboard-xf', z: 3, box: bxf.box, key: `xf${bxf.n}`, xfade: 0, alpha: a * fadeIn, draw: x => x.drawImage(bxf.cv, bxf.box.x, bxf.box.y, bxf.box.w, bxf.box.h) }); }
     crisp.end();
   }
@@ -1120,6 +1127,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let holdemForced = false;
   // (THE TRI-VISION's state — its functions below workBoard; declared up here: boardSync reads it)
   let jaywalkForced = false;
+  const benchK = new Map(), BENCH_XF_S = 0.25;   // (THE BENCH OVER THE TAXI: each bench overlay's own fade, 1 = shown)
   const tri = { shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null };
   const triTurns = [];
   const boardWant = (key, l) => {
