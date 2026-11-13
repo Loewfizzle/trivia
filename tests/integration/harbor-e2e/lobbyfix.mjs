@@ -626,7 +626,7 @@ G('shell', async () => {
   // ---- the dock's labels
   const lb = await ev(p, "[...document.querySelectorAll('.nd-actions .nd-tab:not([hidden]) .rdk-lbl')].map(x => x.textContent).join(' · ')");
   // (DM2: DAILY leads the pill while a daily is live — the test server's DAILY_TEST; hidden otherwise)
-  ok(lb === 'BOARD · GAMES · YOU' || lb === 'DAILY · BOARD · GAMES · YOU', `THE TITLE DOCK's LABELS: ${lb}`);
+  ok(lb === 'BOARD · PLAY · YOU' || lb === 'DAILY · BOARD · PLAY · YOU', `THE TITLE DOCK's LABELS: ${lb}`);
   if (SHOTS) await p.screenshot({ path: `${OUT}shell-message-390.png` });
   await Q.ctx.close();
   // ---- THE PODIUM's FRAME (the results preview: no Firebase): BACK TO THE ROOM in view without scrolling at 390 — HOLD'EM IN THE CITY B3: the

@@ -462,13 +462,13 @@ G('people', async () => {
 //  timed by the city's own draw (loop().drawnAt); the rule is unchanged)
 const motionTrace = secs => `new Promise(res => { const D = window.__district, out = [], t0 = performance.now();
   (function loop() { const h = D.harbor(), lp = D.loop();
-    out.push({ t: lp && typeof lp.drawnAt === 'number' ? lp.drawnAt : performance.now(), drawn: lp ? lp.drawn : 0, fast: h.rate ? h.rate.fast : '', rigs: h.people.rigs().map(r => ({ id: r.id + '|' + r.role, kind: r.kind, pose: r.pose, hd: r.hd || 0, y: r.y || 0, v: r.v, fx: r.fx, fy: r.fy, H: r.H, feet: r.feet, planted: r.planted, heel: r.heel, hands: r.hands, shs: r.shs })) });
+    out.push({ t: performance.now(), td: lp && typeof lp.drawnAt === 'number' ? lp.drawnAt : performance.now(), drawn: lp ? lp.drawn : 0, fast: h.rate ? h.rate.fast : '', rigs: h.people.rigs().map(r => ({ id: r.id + '|' + r.role, kind: r.kind, pose: r.pose, hd: r.hd || 0, y: r.y || 0, v: r.v, fx: r.fx, fy: r.fy, H: r.H, feet: r.feet, planted: r.planted, heel: r.heel, hands: r.hands, shs: r.shs })) });
     if (performance.now() - t0 < ${secs * 1000}) requestAnimationFrame(loop); else res(out); })(); })`;
 function motionReport(frames) {
   const D = []; for (let i = 1; i < frames.length; i++) if (frames[i].drawn !== frames[i - 1].drawn) D.push(frames[i]);
   const med = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
   const pct = (a, q) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(s.length * q))]; };
-  const by = new Map(); for (const f of D) for (const r of f.rigs) { if (!by.has(r.id)) by.set(r.id, []); by.get(r.id).push({ t: f.t, ...r }); }
+  const by = new Map(); for (const f of D) for (const r of f.rigs) { if (!by.has(r.id)) by.set(r.id, []); by.get(r.id).push({ t: f.t, td: f.td, ...r }); }
   const walkers = [], dancers = [];
   for (const [id, seq] of by) {
     const sp = [], slide = [], slideT = [], ang = [], hs = []; let plants = 0, walkT = 0, jump = 0, prevA = null, maxRs = 0, wandsT = null;
@@ -478,11 +478,12 @@ function motionReport(frames) {
       // after a NORMAL-length frame (the runner's 50–100 ms pacing made dt < 0.06 itself an accident: a short frame after a long one)
       const dt0 = i > 1 ? (a.t - seq[i - 2].t) / 1000 : 1;
       if (a.pose === 'wands' && b.pose === 'wands') {
+        const dtD = ((b.td != null ? b.td : b.t) - (a.td != null ? a.td : a.t)) / 1000;   // (the arms: timed by the city's own draws — the cloud's lone "jump")
         if (wandsT == null) wandsT = a.t;
         const settled = b.t - wandsT >= 1000 && dt0 > 0 && dt0 < 0.06;
         const an = [0, 1].map(k => Math.atan2(b.hands[k][1] - b.shs[k][1], b.hands[k][0] - b.shs[k][0])), ln = [0, 1].map(k => Math.hypot(b.hands[k][1] - b.shs[k][1], b.hands[k][0] - b.shs[k][0]));
         // (an arm pointing at / away from us mid-spin projects to a 1–2 px stub — its screen angle means nothing: skipped under 0.12 heights)
-        if (prevA) for (let k = 0; k < 2; k++) { if (ln[k] < 0.12 || prevA.ln[k] < 0.12) continue; let d = an[k] - prevA[k].a; d = Math.atan2(Math.sin(d), Math.cos(d)); ang.push(Math.abs(d) / dt); if (settled && dt < 0.06 && Math.abs(d) > 1) jump++; if (Math.abs(d) / dt > maxRs) maxRs = Math.abs(d) / dt; }
+        if (prevA) for (let k = 0; k < 2; k++) { if (ln[k] < 0.12 || prevA.ln[k] < 0.12) continue; let d = an[k] - prevA[k].a; d = Math.atan2(Math.sin(d), Math.cos(d)); if (!(dtD > 0)) continue; ang.push(Math.abs(d) / dtD); if (settled && dtD < 0.06 && Math.abs(d) > 1) jump++; if (Math.abs(d) / dtD > maxRs) maxRs = Math.abs(d) / dtD; }
         prevA = { ...an.map((v, k) => ({ a: v, ln: ln[k] })), ln }; continue;
       }
       prevA = null; wandsT = null;

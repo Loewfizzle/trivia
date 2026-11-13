@@ -334,7 +334,8 @@ G('radio', async () => {
       await waitFor(F.page, '!!document.querySelector(".wo-sheet.is-in .wo-row")', 'the WHO IS ON sheet', 10000).catch(() => {});
       const rows = await ev(F.page, `[...document.querySelectorAll('.wo-sheet .wo-row')].map(x => ({ t: (x.textContent || '').replace(/\s+/g, ' ').trim(), k: x.dataset.k }))`).catch(() => []);
       const mine = rows.find(r => me && r.t.toUpperCase().includes(String(me).toUpperCase()));
-      ok(!!mine && /THE CITY/.test(mine.t) && /now|min ago/.test(mine.t), `WHO'S ON: IN THE CITY → THE SHEET — the owner's own row (${mine ? mine.t : `none of ${rows.length}: ${rows.map(r => r.t).join(' | ').slice(0, 160)}`})`);
+      ok(!!mine && /THE CITY|ROOM [A-Z]{4}|SOLO|THE DAILY/.test(mine.t) && /now|min ago/.test(mine.t),   // (where: the city — or a room, when another page of the same account sits in one: one account = one row, a room first)
+         `WHO'S ON: IN THE CITY → THE SHEET — the owner's own row (${mine ? mine.t : `none of ${rows.length}: ${rows.map(r => r.t).join(' | ').slice(0, 160)}`})`);
       await shotFace(F.page, 'whos-on'); }
     await F.ctx.close(); }
   // ---- PROGRESSION A — THE FOUNDER WINDOW on THE LEDGER: OPEN by default; a tap arms it, a second tap CLOSES it (the server, audited);
