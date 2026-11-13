@@ -1,0 +1,72 @@
+JAYWALK rooftop billboard poster
+NEON SPEAKEASY  —  12 Nov 2026, America/Detroit
+Art created with Grok
+Free only. Built-in Grok Imagine (GenerateImage). AI-generated, not CC0.
+
+DESTINATION
+  C:\Users\benja\Downloads\grok\jaywalk\billboard\   (Beelink)
+  Worked in /workspace/neon/jaywalk/billboard/
+
+SIZE AND CROP
+  Generated native 16:9 at 1280×720, then cropped (never stretched) to
+  1280×640 (2:1). Crop window: (0, 0, 1280, 640) — 80 px removed from
+  the bottom only, to keep the skyline and a 73 px margin above the cap
+  while leaving 80 px under the lowest sneaker (y=560). The kid's
+  horizontal position is unchanged by the crop.
+
+GENERATIONS (3 of 4 allowed)
+  1. take 1 — strong layout and likeness, but faint lettering on the
+     snapback cap strap (same class of mark as the earlier right-of-way
+     card). Not delivered.
+  2. take 2 — same scene with a PLAIN cap strap. Delivered as
+     billboard.png (USE).
+  3. take 3 — attempted to inset the car from the right edge, but the
+     generator added black pillarbox bars on both sides. Not delivered.
+  Character reference: /workspace/neon/jaywalk/cards/right-of-way.png
+  No worthy backup was kept (take 1 has cap text; take 3 is letterboxed).
+
+WHICH TO USE
+  billboard.png  — 1280×640, the only delivered poster.
+
+QA (measured on the cropped 1280×640 deliverable)
+  Kid position: pink-hoodie/cap/sneaker blob, x 52.0–87.9%,
+    mean 72.6%, luminance-weighted 73.6%  (target 65–75%: YES, high end)
+    y 11.4–87.5%  (head top y=73, lowest sneaker y=560)
+  Left 45% mean L 0.60 vs rest 22.55  (ratio 0.026) — dark and calm: YES
+    max L in the left 45% is 66 (dim skyline bleed only)
+  Character match to right-of-way.png: strong — same toy proportions
+    (big head, short body), backwards pink cap, hot-pink hoodie,
+    pink-and-white sneakers, mid-hop pose, same face style. Scene is
+    a wet night CITY STREET (asphalt, lane marks) rather than a runway,
+    as asked. Voxel car with headlights and pink + electric-blue trails
+    sit just behind him; neon city glow behind.
+  Cap strap (take 2, zoomed): plain pink, no readable lettering.
+  Neon signs: abstract colour blocks; a couple are vaguely glyph-like
+    (a magenta block left of the cap, a magenta block on the right) but
+    not readable words or logos.
+  Edges: left and top are clear. Pink and blue light trails reach the
+    right edge (max L 255 in the right 6–8%). Bottom is wet asphalt;
+    some trail reflection remains in the lower band (max L 195) but the
+    kid, car body and shadow are fully inside.
+
+CANDID MISSES
+  1. Light trails (and their glow) touch the right edge. A third take
+     tried to pull them in and was rejected for pillarbox bars.
+  2. Kid x is 72.6–73.6%, inside 65–75% but at the high end.
+  3. A few background neon blocks are letter-like, not clean empty
+     rectangles. None are readable copy.
+  4. No backup file. Take 1's cap-strap lettering would have failed
+     the no-text rule; take 3 was unusable.
+
+PREVIEW
+  preview-billboard.jpg — the clean deliverable on top (labeled
+  DELIVERABLE, no text in the art) and a clearly marked PREVIEW ONLY
+  mock with "JAYWALK — COMING SOON" in the left 45% zone. The mock
+  lettering is not in billboard.png; in-game type is added in code.
+
+FILES + SHA256
+  billboard.png            1280x640   682144 bytes
+    27c9aa10386653924aa4969179fe1d17e602e59446ad9b4ecf449d524508cd63
+  preview-billboard.jpg    1336x1600  445386 bytes
+    21e96daed21ac251e5dff45c808b0002235591ac87c18424ed37701bb16a9f03
+  notes.txt                (this file; hash computed after write)

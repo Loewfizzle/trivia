@@ -11,6 +11,7 @@ import { mothmanNight } from '../../js/core/harbor-mothman.js';
 import { patrolDay } from '../../js/core/harbor-heli.js';
 import { createScheduler, HARBOR_EVENTS, SLOT_MS } from '../../js/core/harbor-events.js';
 import { setHoldem } from '../../js/core/harbor-holdem.js';
+import { turnsBetween, triKnobs } from '../../js/core/harbor-trivision.js';
 import { workDay, bulbOut, lampFault, boardLampOut, bootlegNight, dayOf } from '../../js/core/harbor-workers.js';
 import { dayPlan, edgeMoods, edgeShades, bossDayPlan, parkedNight, quietNight, bedtimes, windowParty, eyesNights, legendNights } from '../../js/core/harbor-moments.js';
 import { scenesTonight, shadesNight } from '../../js/core/harbor-scenes.js';
@@ -94,6 +95,8 @@ export const SYSTEMS = {
     const S = createScheduler(HARBOR_EVENTS, t => { const sp = sunPosition(t, z.lat, z.lon); return { ms: t, force: new Set(), night: sp.el < -6, el: sp.el, az: sp.az, month: new Date(t).getUTCMonth() + 1, south: false, heli: () => false }; }, { seed, anchor: (D.day0 - 86400) * 1000 });
     const seen = new Map(); for (let ms = D.day0 * 1000; ms < (D.day0 + 86400) * 1000; ms += SLOT_MS) for (const e of S.at(ms).active) if (!seen.has(`${e.id}|${e.start}`)) seen.set(`${e.id}|${e.start}`, [e.id, e.start, e.end]);
     return [...seen.values()]; },
+  // (THE TRI-VISION, Nov 12 night — a NEW system: the roof board's turn times, the first two hours of each day (its clock is pure on the server time))
+  'billboard.trivision': (D, z, seed) => turnsBetween(D.day0, D.day0 + 7200, { ...triKnobs(), seed }).map(t => Math.round(t * 1000)),
   'workers.day': (D, z, seed) => workDay(D.wkey, { seed, day0: D.day0, off: D.off }),
   'workers.faults': (D, z, seed) => [bulbOut(D.wkey, D.day0, { seed }), lampFault(D.wkey, D.day0, { seed }), boardLampOut(D.wkey, D.day0, { seed }), bootlegNight(D.wkey, { seed })],
   'windows.day': (D, z, seed) => (SAMPLE(D) ? dayPlan(D.key, { seed }) : undefined),

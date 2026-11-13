@@ -1813,6 +1813,32 @@ test('THE HOLD\'EM BILLBOARD switch: the default until set; OFF / NOW OPEN reach
   } finally { process.env.ADMIN_PIDS = ''; await ref('city2/billboard').remove(); }
 });
 
+// THE TRI-VISION — JAYWALK's switch (/admin → THE BILLBOARD): the default until set; ON / OFF · NOW OPEN · an OPEN DAY reach the public feed beside
+// HOLD'EM's (one never wipes the other); audited; a non-admin refused
+test('THE TRI-VISION: JAYWALK\'s switch — the default, an open day, OFF; HOLD\'EM\'s switch beside it kept; a non-admin refused', async () => {
+  const { cityLiveNow } = await import('../../api/admin.js');
+  await ref('city2/billboard').remove();
+  const owner = await ensure('u-jw-own', 'JwOwner'); await ensure('u-jw-x', 'Stranger2');
+  process.env.ADMIN_PIDS = `${owner.pid}`;
+  try {
+    const r0 = await adminAction('u-jw-own', { action: 'billboardState' });
+    assert.deepEqual([r0.jaywalk.on, r0.jaywalk.bar, r0.jaywalk.open, r0.jaywalk.set], [true, 'soon', null, false], 'never set: the timetable default (ON · COMING SOON, no open day)');
+    let st = (await adminAction('u-jw-own', { action: 'billboardJaywalk', on: true, bar: 'soon', open: '2026-12-01' })).jaywalk;
+    assert.deepEqual([st.on, st.bar, st.open], [true, 'soon', '2026-12-01']);
+    assert.deepEqual((await cityLiveNow()).radio.base.jaywalk, { on: true, bar: 'soon', open: '2026-12-01', since: st.since }, 'the feed carries it');
+    await adminAction('u-jw-own', { action: 'billboardSet', on: false });
+    const base = (await cityLiveNow()).radio.base;
+    assert.equal(base.holdem.on, false); assert.equal(base.jaywalk.open, '2026-12-01', 'HOLD\'EM\'s switch never wipes JAYWALK\'s');
+    st = (await adminAction('u-jw-own', { action: 'billboardJaywalk', on: false, open: '' })).jaywalk;
+    assert.deepEqual([st.on, st.open], [false, null], 'OFF + the open day cleared');
+    assert.equal((await cityLiveNow()).radio.base.holdem.on, false, 'and JAYWALK\'s never wipes HOLD\'EM\'s');
+    st = (await adminAction('u-jw-own', { action: 'billboardJaywalk', on: true, bar: 'open', open: 'not-a-day' })).jaywalk;
+    assert.deepEqual([st.on, st.bar, st.open], [true, 'open', null], 'NOW OPEN; a bad day ignored');
+    assert.ok(Object.values((await val('audit')) || {}).filter(a => a.act === 'billboardJaywalk').length >= 3, 'every switch audited');
+    await assert.rejects(adminAction('u-jw-x', { action: 'billboardJaywalk', on: false }), 'a non-admin is refused');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('city2/billboard').remove(); }
+});
+
 test('CITY FIXES — THE TAP WATCH on the server: LOST TAP is its own kind with its own buckets; the log keeps the newest per kind', async () => {
   const { LOST_LIMITS } = await import('../../api/log.js'); const { prunePlan, REPORT_KEEP } = await import('../../api/_lib/prune.js'); const { groupReports } = await import('../../js/admin/groups.js');
   assert.deepEqual(cleanReport({ kind: 'lost', text: 'A LOST TAP' }), { kind: 'lost', text: 'A LOST TAP' });

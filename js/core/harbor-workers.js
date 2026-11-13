@@ -17,6 +17,7 @@
 // then its itinerary in core/harbor-crew.js#PLAN[kind] (+ a look in folk.js#lookOf, props in screens/harbor/workers.js). Its preview:
 // &force=work-<kind> (one every few minutes, any day) + a row in core/harbor-remote.js's WORKERS category.
 import { holdemKeeps } from './harbor-holdem.js';
+import { triKeeps } from './harbor-trivision.js';
 import { rngFrom, hashString } from './rng.js';
 import { partyAt, partyAtT } from './harbor-moments.js';
 import { XMAS, blackFriday } from './harbor-xmas.js';
@@ -126,7 +127,8 @@ export function workDay(key, ctx = {}) {
     if (holidayOff(key)) continue;
     const u = r();
     // (CITY FIXES + HOLD'EM: THE BILLPOSTER stays home while the roof board keeps HOLD'EM — his draw is taken first, so no other show moves)
-    if (kind === 'billposter' && holdemKeeps(key)) continue;
+    // (THE TRI-VISION: … and while the board TURNS between HOLD'EM + JAYWALK — the turning board is the motion, no paste)
+    if (kind === 'billposter' && (holdemKeeps(key) || triKeeps(key))) continue;
     const at = S.at != null ? S.at : S.win[0] + u * (S.win[1] - S.win[0]);
     want.push({ kind, S, t0: day0 + at * H, fixed: S.at != null });
   }

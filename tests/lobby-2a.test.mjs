@@ -140,7 +140,7 @@ test('THE BILLBOARD CROSS-FADES (opacity only; reduced motion a quick fade; noth
   const s = read('js/screens/harbor/scene.js');
   assert.match(s, /const BXF_MS = 900, BXF_RM_MS = 250;/);
   assert.match(s, /function boardSnap\(\) \{\n    if \(shownAt < 0\) return;/);
-  assert.match(s, /if \(showKey !== bxf\.shown\) \{ boardSnap\(\); bxf\.shown = showKey; \}/, 'a fade only when what the board shows changes (a re-layout of the same message is no swap)');
+  assert.match(s, /if \(showKey !== bxf\.shown\) \{ if \(tri\.swap && !hint\) tri\.swap = false; else boardSnap\(\); bxf\.shown = showKey; \}/, 'a fade only when what the board shows changes (a re-layout of the same message is no swap; THE TRI-VISION: its turn swaps under the slats — no fade)');
   assert.match(s, /id: 'roofboard-xf', z: 3/);
   assert.match(s, /Math\.abs\(cms - speakMemo\.cms\) < 60e3/, 'the facade memo keyed to the city clock (the holiday-night jump)');
   assert.match(read('js/screens/harbor/neon.js'), /let envD = dil\.get\(dr\); if \(!envD\) \{ envD = dilate\(env, dr\); dil\.set\(dr, envD\); \}/);

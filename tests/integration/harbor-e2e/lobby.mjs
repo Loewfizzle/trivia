@@ -39,6 +39,45 @@ G('billboard', async () => {
   log('billboard', 'done');
 });
 
+// ---- THE TRI-VISION (Nov 12 night — core/harbor-trivision.js): the roof board turns HOLD'EM ↔ JAYWALK by THE CITY TIMETABLE's clock — two pages on
+// the live clock show the SAME face at the same server moment; the first JAYWALK face arrives BY A TURN (the board held HOLD'EM until JAYWALK's art
+// had decoded — never a pop-in); the slats run on the crisp layer; reduced motion = a cut. &force=trivision = a turn every 8 s.
+G('trivision', async () => {
+  const qs = 'wx=clear&force=trivision,no-hints';
+  const A = await open({ slot: 'tva', qs, view: [402, 874], dpr: 3 }), B = await open({ slot: 'tvb', qs, view: [390, 844] });
+  await Promise.all([harborUp(A.page), harborUp(B.page)]);
+  const tri = p => ev(p, 'window.__district.tri()');
+  const t0 = await tri(A.page);
+  ok(t0 && t0.shown === 0 && (t0.board === 'holdem-open' || t0.board === 'holdem'), `THE TRI-VISION — at the reveal the board shows HOLD'EM (face A: ${t0 && t0.board}), JAYWALK's art warming after it (warmed ${t0 && t0.warmed})`);
+  await waitFor(A.page, '(() => { const t = window.__district.tri(); return t && t.turns.length >= 1; })()', 'a turn', 30000).catch(() => {});
+  const t1 = await tri(A.page), first = t1.turns[0];
+  ok(first && /^holdem/.test(first.from) && /^jaywalk/.test(first.to), `the first JAYWALK face arrives BY A TURN (${first ? `${first.from} → ${first.to}` : 'no turn'}; JAYWALK's art ready: ${t1.ready})`);
+  // mid-turn: the slats on the crisp layer (an iPhone's 3×), then the board holds the new face
+  await waitFor(A.page, '(() => { const t = window.__district.tri(); return t && t.turn && t.turn.u > 0.1 && t.turn.u < 0.9; })()', 'mid-turn', 20000).catch(() => {});
+  const mid = await ev(A.page, "(() => { const t = window.__district.tri(); const cv = [...document.querySelectorAll('canvas.hc-crisp')].length; return { u: t.turn && t.turn.u, cv }; })()");
+  ok(mid.u > 0 && mid.u < 1 && mid.cv > 0, `the slats turn on the crisp layer (u ${mid.u && mid.u.toFixed(2)}, ${mid.cv} crisp canvases)`);
+  await waitFor(A.page, '(() => { const t = window.__district.tri(); return t && !t.turn && t.shown === t.clock && t.board === (t.turns.at(-1) || {}).to; })()', 'the turn lands', 10000).catch(() => {});
+  const t2 = await tri(A.page);
+  ok(!t2.turn && t2.board === (t2.turns.at(-1) || {}).to, `after the turn the board HOLDS the new face (${t2.board}) — the overlay gone once its bake landed`);
+  // the same face at the same server moment on two pages (B joins the clock at its own next turn)
+  await waitFor(B.page, '(() => { const t = window.__district.tri(); return t && t.turns.length >= 1 && !t.turn; })()', 'B turned', 30000).catch(() => {});
+  let same = null;
+  for (let i = 0; i < 6 && !same; i++) {
+    const [a, b] = await Promise.all([tri(A.page), tri(B.page)]);
+    if (!a.turn && !b.turn && a.n === b.n) same = { a, b };
+    else await sleep(900);
+  }
+  ok(same && same.a.shown === same.b.shown && same.a.board === same.b.board && same.a.clock === same.a.shown, `TWO PAGES, ONE FACE: turn ${same && same.a.n} — A shows ${same && same.a.board}, B ${same && same.b.board} (the clock's face ${same && same.a.clock})`);
+  await A.ctx.close(); await B.ctx.close();
+  // reduced motion: a cut at the turn — no slats
+  { const R = await open({ slot: 'tvr', qs, view: [402, 874], init: RM }); await harborUp(R.page);
+    await waitFor(R.page, '(() => { const t = window.__district.tri(); return t && t.ready && t.lastN != null && t.shown !== 0; })()', 'a cut', 30000).catch(() => {});
+    const r = await tri(R.page);
+    ok(r.shown !== 0 && !r.turns.length && !r.turn, `reduced motion: a CUT at the turn (the face ${r.board}, no slats: ${r.turns.length} turns drawn)`);
+    await R.ctx.close(); }
+  log('trivision', 'done');
+});
+
 // ---- LOBBY 2.0 A — THE ROOM IN THE CITY (room-city.js · people.js · core/harbor-room.js + room-lines.js): HOST → the live city stays, the
 // players in TWO LINES OF 4 at the door (the host first), walking in from the edge, the same on two phones, a refresh = in place, lost
 // signal = down + up again, a leave waves off, a kick walks off, the lines are SOLIDS, the room dock (INVITE for all, PLAY host-only +

@@ -22,6 +22,7 @@
 //                         state); radio/clips/{id} the clip itself (base64 — served by GET /api/admin?clip=<id>, cached a minute); both
 //                         pruned after `keep` s (an hour); a lobby's copy at rooms/{CODE}/radio/{id} (kind 'intercom')
 import { cleanHoldem } from '../../js/core/harbor-holdem.js';
+import { cleanJaywalk } from '../../js/core/harbor-trivision.js';
 import { ApiError } from './http.js';
 import { ref, val, adminPids, emulated } from './fb.js';
 import { liveRoomsRead } from './rooms-live.js';
@@ -342,7 +343,8 @@ export async function radioPublic(now) {
     board: b.map(x => ({ id: x.id, lines: x.lines, local: x.local, repeat: x.repeat, at: x.at, until: x.until, made: x.made })),
     showcase: SHOWCASE_LEVELS.includes(sc) ? sc : null,
     // CITY FIXES + HOLD'EM — the roof board's BASE POSTER switch (/admin → THE BILLBOARD); null = the timetable's default (ON · NOW OPEN from its `open` day — HOLD'EM IN THE CITY)
-    base: base && base.holdem ? { holdem: cleanHoldem(base.holdem) } : null,
+    // (THE TRI-VISION: + JAYWALK's switch — the roof board's second face: ON / OFF · COMING SOON / NOW OPEN · its OPEN DAY)
+    base: base && (base.holdem || base.jaywalk) ? { ...(base.holdem ? { holdem: cleanHoldem(base.holdem) } : {}), ...(base.jaywalk ? { jaywalk: cleanJaywalk(base.jaywalk) } : {}) } : null,
   };
 }
 

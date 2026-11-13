@@ -14,6 +14,7 @@ import { partyNight, danceBreaks } from './harbor-streetparty.js';
 import { raidEvening, RAID } from './harbor-raid.js';
 import { hintsAt } from './harbor-billboard.js';
 import { holdemShow, holdemKeeps } from './harbor-holdem.js';
+import { triFaces, turnsBetween, triKnobs } from './harbor-trivision.js';
 import { holidayAt, ghostShipTimes, GHOST_LEN } from './harbor-holiday.js';
 import { paradeWindow } from './harbor-parade.js';
 import { mixNow } from './harbor-people.js';
@@ -87,6 +88,9 @@ export function dayChart(dateKey, o = {}) {
   // CITY FIXES + HOLD'EM — THE BASE POSTER: the roof board shows HOLD'EM instead of the day's game (the board turns over at the billposter's
   // ~5 pm paste — none while it keeps HOLD'EM); the hints above still take their spells over it
   { const hs = holdemShow(key); if (hs) items.push({ cat: 'billboard', h0: DAY_FROM, h1: DAY_TO, label: `THE BILLBOARD's BASE POSTER: TEXAS HOLD’EM · ${hs === 'holdem-open' ? 'NOW OPEN' : 'COMING SOON'}${holdemKeeps(key) ? ' (no billposter today)' : ' (pasted at ~5 pm)'}`, big: false }); }
+  // THE TRI-VISION — the roof board turns HOLD'EM ↔ JAYWALK all day (every 45–60 s by the timetable's clock); the hints still take their spells
+  { const F = triFaces(key); if (F) { const K = triKnobs(), d0 = day0, n = turnsBetween(d0 + DAY_FROM * 3600, d0 + DAY_TO * 3600, K).length;
+    items.push({ cat: 'billboard', h0: DAY_FROM, h1: DAY_TO, label: `THE TRI-VISION: the roof board turns ${F[0] === 'holdem-open' ? 'HOLD’EM NOW OPEN' : 'HOLD’EM COMING SOON'} ↔ JAYWALK ${F[1] === 'jaywalk-open' ? 'NOW OPEN' : 'COMING SOON'} — ${n} turns (every ${K.every[0]}–${K.every[1]} s; no billposter)`, big: false }); } }
   items.sort((a, b) => a.h0 - b.h0 || (b.big - a.big));
   const summary = [
     `${['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][dow]} ${key}${party ? ' · A PARTY NIGHT' : ''}${hol && hol.id ? ` · ${hol.label}` : ''} · THE SHOWCASE ${lv.toUpperCase()}`,

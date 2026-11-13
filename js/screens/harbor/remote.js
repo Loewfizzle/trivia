@@ -54,6 +54,7 @@ import { setMenuExtra, setMenuCue } from '../../ui/settings-panel.js';
 import { setServerShowcase } from '../../core/harbor-showcase.js';
 import { setOwnerMessages, setIntercomHead as setBillboardHead } from '../../core/harbor-billboard.js';
 import { setHoldem } from '../../core/harbor-holdem.js';
+import { setJaywalk } from '../../core/harbor-trivision.js';
 import { intercomFeed, setIntercomBusy, setIntercomHead } from '../../audio/intercom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 
@@ -245,6 +246,7 @@ export function createRemote({ scene, api = apiCall }) {
     setServerShowcase(r.showcase || null);
     setOwnerMessages(Array.isArray(r.board) ? r.board : []);
     setHoldem(r.base && r.base.holdem);   // (CITY FIXES + HOLD'EM: the owner's /admin switch — absent = the timetable's default, ON)
+    setJaywalk(r.base && r.base.jaywalk);   // (THE TRI-VISION: JAYWALK's switch — absent = the timetable's default: ON, COMING SOON)
     feedRadio();
     // CC-B — THE INTERCOM to EVERYONE: the city's copy (audio/intercom.js decides when — a title phone plays it as it arrives)
     intercomFeed('feed', Array.isArray(r.intercom) ? r.intercom : [], r.stopped || []);

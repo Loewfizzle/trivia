@@ -439,6 +439,8 @@ export function billboardContent(show, games) {
   if (show && show.lines) return { title: show.lines.join(' '), lines: show.lines, art: show.art || null, sub: '', game: null, bg: [236, 222, 190], ink: [30, 22, 26], acc: show.acc || [214, 40, 60] };
   // (CITY FIXES + HOLD'EM: the roof board's BASE POSTER — core/harbor-holdem.js; painted by holdem-art.js, COMING SOON or NOW OPEN)
   if (show && (show.game === 'holdem' || show.game === 'holdem-open')) return { title: 'HOLD’EM', sub: show.game === 'holdem-open' ? 'NOW OPEN' : 'COMING SOON', poster: show.game, bar: show.game === 'holdem-open' ? 'open' : 'soon', game: null, lines: null, bg: [31, 50, 99], ink: [239, 228, 198], acc: [198, 50, 59] };
+  // (THE TRI-VISION: the roof board's second face — JAYWALK's poster, painted by jaywalk-art.js, COMING SOON or NOW OPEN)
+  if (show && (show.game === 'jaywalk' || show.game === 'jaywalk-open')) return { title: 'JAYWALK', sub: show.game === 'jaywalk-open' ? 'NOW OPEN' : 'COMING SOON', poster: show.game, bar: show.game === 'jaywalk-open' ? 'open' : 'soon', game: null, lines: null, bg: [3, 2, 8], ink: [255, 61, 180], acc: [255, 61, 180] };
   const g = games.find(x => x.id === (show && show.game)) || null;
   if (g) { const acc = accOf(g); return { title: g.name, sub: g.tag || '', game: g, bg: mix(acc, [30, 18, 40], 0.78), ink: mix(acc, [255, 246, 226], 0.35), acc }; }
   return { title: (show && show.title) || 'NEON SPEAKEASY', sub: (show && show.sub) || 'YOUR FRIENDS ARE ALREADY INSIDE', game: null, bg: (show && show.bg) || [40, 22, 48], ink: (show && show.ink) || [255, 214, 120], acc: (show && show.acc) || [255, 46, 151] };
@@ -577,6 +579,11 @@ function hintPoster(x, R, content, pt, sd, FONT, SQ) {
   const f1 = fit(a, R.h * 0.4), f2 = Math.min(f1 * 0.8, fit(b, R.h * 0.3));
   line(a, f1, R.y + R.h * 0.5); line(b, f2, R.y + R.h * 0.86);
 }
+// THE TRI-VISION: JAYWALK's painter arrives with its art, AFTER the reveal (screens/harbor/jaywalk-art.js — lazy: never in the boot graph); until
+// then the board never shows JAYWALK (core/harbor-trivision.js waits for it), and a stray call paints the poster's black ground
+let JW_PAINT = null;
+export function setJaywalkPainter(f) { JW_PAINT = typeof f === 'function' ? f : null; }
+const paintJaywalk = (x, R, bar, sd) => { if (JW_PAINT) JW_PAINT(x, R, bar, sd); else { x.fillStyle = '#030208'; x.fillRect(R.x, R.y, R.w, R.h); } };
 export function buildBillboard(spot, content, ctx) {
   const R = spot.rect, dpr = ctx.dpr, dun = spot.mount === 'speak', lamps = gooseneckLamps(R, dun ? 5 : 4);
   // (8b1: a burnt-out gooseneck — ctx.dead, its index — throws no light until the billposter fixes it; its shade still hangs there)
@@ -587,7 +594,7 @@ export function buildBillboard(spot, content, ctx) {
   const SQ = 0.8;                                               // (the name's condensed hand: 80 % width)
   // THE POSTER (the same art by day + night; sd: the sun's side for the paint's shadows, 0 at night)
   const poster = (x, sd) => {
-    if (content.poster) { paintHoldem(x, R, content.bar, sd); return; }   // (CITY FIXES + HOLD'EM: its own painted poster)
+    if (content.poster) { (String(content.poster).startsWith('jaywalk') ? paintJaywalk : paintHoldem)(x, R, content.bar, sd); return; }   // (CITY FIXES + HOLD'EM: its own painted poster · THE TRI-VISION: JAYWALK's)
     const pt = posterPaint(content.game, content.acc);
     x.fillStyle = rgba(pt.face); x.fillRect(R.x, R.y, R.w, R.h);
     if (content.lines) { hintPoster(x, R, content, pt, sd, FONT, SQ); return; }
