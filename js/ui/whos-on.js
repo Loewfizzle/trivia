@@ -22,25 +22,25 @@ export function whosOnBlock({ api }) {
   const foot = h('p.wo-guests');
   const stamp = h('p.wo-stamp');
   const el = h('div.wo', list, foot, stamp);
-  let dead = false, t = 0, surface = null, busy = false;
+  let dead = false, t = 0, busy = false;
   async function refresh() {
     if (dead || busy) return;
     busy = true;
     try {
       const [d, SB] = await Promise.all([api('admin', { action: 'radioWhosOn' }), lazyImport(import('./strip-board.js'), './strip-board.js').then(m => m.stripKit().then(K => ({ ...m, K })))]);
       if (dead) return;
-      if (surface) { try { surface.destroy(); } catch { /* fine */ } surface = null; }
       const rows = (d && d.rows) || [];
       list.classList.toggle('is-strips', rows.length > 0);
+      list.classList.add('is-still');
       if (!rows.length) list.replaceChildren(h('li.wo-wait', 'Nobody with a card is on right now.'));
       else {
-        const strips = [];
         list.replaceChildren(...rows.map(r => {
-          const st = SB.stripFor(SB.K, r.card); strips.push(st);
+          const st = SB.stripFor(SB.K, r.card);
           return h('li.wo-row', { dataset: { k: r.where && r.where.k } }, h('div.wo-card', st.el), h('div.wo-meta', h('b.wo-where', ...whereParts(whereLine(r.where, NAMES))), h('small.wo-ago', agoLine(r.at, d.now))));
         }));
-        surface = SB.K.createSurface(list, { label: 'whos-on' });
-        strips.forEach((st, i) => SB.stripFx(SB.K, surface, st, i + 1));
+        // (THE POOL FIXES add-on 3 — the owner's call: STATIC CARDS here, no animation — no effect surface, so each strip shows its BAKED
+        //  STILL (vault/stills.js: a card drawn in code reads as its still wherever no effect paints it) or its CSS art; .is-still stops every
+        //  CSS animation inside the list. Cheaper + faster to open)
       }
       const g = guestLine(d && d.guests);
       foot.textContent = g || '';
@@ -57,7 +57,7 @@ export function whosOnBlock({ api }) {
     if (onScreen()) refresh();
     t = setTimeout(tick, WHO_REFRESH_MS);
   };
-  function destroy() { dead = true; clearTimeout(t); if (surface) { try { surface.destroy(); } catch { /* fine */ } surface = null; } }
+  function destroy() { dead = true; clearTimeout(t); }
   refresh();
   t = setTimeout(tick, WHO_REFRESH_MS);
   return { el, refresh, destroy };

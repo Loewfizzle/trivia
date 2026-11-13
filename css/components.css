@@ -1265,12 +1265,14 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
    (--wo-meta-w — the longest place part, "THE PASSWORD", on one line) and every card takes the SAME rest of the row: the card used to be what
    the place text left over (a short "THE CITY · now" stretched one card and squeezed its place into a sliver). Never a narrow FIXED card: a slim
    card keeps 124 px on its right for its hero (THE HERO-SPOT RULE — vault/hero.js), so under ~240 px its name had no room ("BEN" → B / E / N)) */
-.wo-row { --wo-meta-w: 100px; display: grid; grid-template-columns: minmax(0, 1fr) var(--wo-meta-w); align-items: center; gap: 12px; }
+.wo-row { --wo-meta-w: 92px; display: grid; grid-template-columns: minmax(0, 1fr) var(--wo-meta-w); align-items: center; gap: 10px; }
 .wo-card { min-width: 0; }
 @media (min-width: 700px) { .wo-row { --wo-meta-w: 168px; } }
 .wo-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; min-width: 0; }
 .wo-where { font: 800 11px/1.3 var(--font-ui); letter-spacing: 0.07em; color: var(--text); }
-.wo-part { white-space: nowrap; }
+.wo-part { display: inline-block; }   /* (a line breaks BETWEEN parts; a part wraps at its own spaces only when it alone is too wide — "THE / PASSWORD", never a sliver) */
+/* STATIC CARDS (the owner's call — add-on 3): nothing in the list moves (an emblem's tube style, a gem's glint, a 1-of-1's dressing) */
+.wo-list.is-still *, .wo-list.is-still *::before, .wo-list.is-still *::after { animation: none !important; transition: none !important; }
 .wo-row[data-k='room'] .wo-where, .wo-row[data-k='solo'] .wo-where { color: #ffb3e6; }
 .wo-row[data-k='daily'] .wo-where { color: #9ff3d4; }
 .wo-ago { font: 600 11px/1 var(--font-num); letter-spacing: 0.06em; color: var(--text-dim); }

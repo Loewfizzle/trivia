@@ -27,6 +27,13 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-tag.is-hidden { color: #ffe0a0; border-color: rgba(255, 200, 100, 0.5); }
 .ad-tag.is-bad { color: #ffc2cf; border-color: rgba(255, 110, 140, 0.55); }
 .ad-who { display: flex; align-items: center; gap: 14px; }
+/* WHO'S ON on STATS (ui/whos-on.js): a BLOCK — the heading on its own line, then the full-width rows (one card width + the place column), the
+   footnote under them (THE POOL FIXES add-on 3 — it used to borrow .ad-who's flex row) */
+.ad-whoson { display: block; margin: 0 0 14px; }
+.ad-whoson > .ad-h3 { margin: 0 0 10px; }
+.ad-whoson > .wo { width: 100%; max-width: 640px; }
+/* (on a phone the admin card's 16-px padding left the slim card 222 px — under the ~232 its name needs beside its hero spot: the list takes 8 px of it back) */
+@media (max-width: 699px) { .ad-whoson > .wo { width: calc(100% + 16px); max-width: none; margin-inline: -8px; } }
 .ad-who > div { flex: 1; min-width: 0; }
 .ad-who-n { display: flex; gap: 8px; align-items: baseline; font: 700 22px/1.2 var(--font-ui); }
 .ad-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }

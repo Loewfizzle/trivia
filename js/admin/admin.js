@@ -402,7 +402,8 @@ function tabs(key, opts, rerender) {
 function gamesBlock() {
   const G = S.games;
   const src = view.games === 'today' ? (G.today || {}) : view.games === 'week' ? G.week : view.games === '30' ? G.last30 : G.all;
-  const rows = GAMES.map(g => ({ id: g.id, n: src[g.id] || 0 })).sort((a, b) => b.n - a.n);
+  // (THE POOL FIXES add-on 3: the PLAYABLE games + any game that has plays in this period — never the ten frozen games at 0)
+  const rows = GAMES.map(g => ({ id: g.id, n: src[g.id] || 0, on: !!g.playable })).filter(r => r.on || r.n > 0).sort((a, b) => b.n - a.n);
   const max = Math.max(1, ...rows.map(r => r.n));
   const total = rows.reduce((a, r) => a + r.n, 0);
   return h('div.ad-block',
@@ -473,7 +474,9 @@ function timesBlock() {
 // "The owner only.")
 let whoBlock = null;
 function whoSection() {
-  const sec = h('section.ad-who', h('h3.ad-h3', 'WHO’S ON', h('small', ' · online now')));
+  // (THE POOL FIXES add-on 3: it was section.ad-who — the PLAYER block's class, a flex ROW: the heading floated beside a list squeezed into the
+  //  right half, "DIME TIME" broke letter by letter — now its own class, laid out like the LEDGER's sheet: the heading on its line, full-width rows)
+  const sec = h('section.ad-whoson', h('h3.ad-h3', 'WHO’S ON', h('small', ' · online now')));
   if (whoBlock) sec.append(whoBlock.el);
   else lazyImport(import('../ui/whos-on.js'), '../ui/whos-on.js').then(m => { whoBlock = whoBlock || m.whosOnBlock({ api }); if (!whoBlock.el.isConnected) sec.append(whoBlock.el); }).catch(() => {});
   return sec;
