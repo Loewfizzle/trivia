@@ -167,4 +167,20 @@ Fixture fixes the rule required (each a real match's shape): `e2e-profiles`' scr
 ## The end
 
 **Local, on the mini PC — the FINAL run (after the deferral + the honest-player fixes; my own emulators + `serve.mjs --emu`, `DAILY_TEST=1` where
-the dailies need it; Ben's :5190 left alone):** see the summary below (filled at the end of the run).
+the dailies need it; Ben's :5190 left alone):** the unit suite 1,708 / 1,708 · rules 82 / 82 · `/api`: `server.test` 50 / 50, `sightings` 7 / 7,
+`progression` 10 / 10, `holdem-server` (alone) 21 / 21, `password` 10 / 10, `coastclear` 14 / 14, `friends` 8 / 8, `daily-module` 18 / 18, `lab` 2 / 2,
+`vault-2b` 3 / 3, `vault-2c` 3 / 3 · `e2e-profiles` 142 / 142 (first, fresh emulators, the dailies off — with `DAILY_TEST=1` its PROFILE check is the
+known false red) · smoke 8 / 8 · CONN 21 / 21 · `e2e-daily` 53 / 53 · `e2e-prism FAST=1` 63 / 63 · `e2e-oc-2` (N = 4) 27 / 27 · `e2e-holdem FAST=1`
+22 / 22 · `wk-load` 4 loads / 0 problems · `wk-freeze` 60 loads / 0 freezes · `wk-twotabs` 7 / 7 · `prism-nowebgl` 3 / 3 · `ONLY=load` 34 / 34 · THE
+BASELINE GUARD 1.15× / ≤ 2× (3 / 3) · `wk-double` 21 / 22 (`resize-hidden`'s 0.25 s pixel look — ~1 in 5 at the pass's START too: 2 / 10 at
+`8777f625`, measured) · **the FULL `e2e-harbor` 1,261 / 1,264** (~33 min, 4 shards) — the reds: SIGHTINGS' capture hitch, THE ROOM's OWN COST at 4×
+CPU, one NO TWO CAMERAS path (a box change before the reveal) — the first two FR7-A's known shard-load timing checks; `ONLY=cameras,sightings,roomperf`
+alone **25 / 25**. `wk-edge` = THE LAUNCH's proof (its checks fail on today's worker by design — Group 2).
+
+**The cloud:** the pass's first final push (`8a37a88d`, with THE EDGE CACHE still in) — `tests` GREEN, `harbor` 14 / 15 jobs (`legend`: the fast-photo
+check under load — 4 / 4 alone). The second (this one, after the deferral + the honest-player fixes): the summary below. Vercel deploys it.
+
+**Known issues:** the shard-load timing checks above (green alone); `resize-hidden`'s pixel flake (pre-existing rate); `assets/og.jpg` still shows
+GRIDLOCK's sign; the link previews' text says "twelve party games"; C4 (the room list) open; three NICE lines (Group 7).
+
+**Servers:** my emulators + `serve.mjs` (:5173) and the bisect's :5174 / :5175 — all STOPPED at the end; Ben's :5190 left running.
