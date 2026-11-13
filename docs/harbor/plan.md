@@ -6605,3 +6605,26 @@ CITY FIXES + HOLD'EM DONE (Nov 8, ~11:30 pm ET; 2362126b live; rules NOT changed
   frozen songs out of deploys, the repo's growth stopped, the private-repo workflow ready, THE TWO-TAB HANG, the umbrellas, the leftovers + tests +
   docs, three NICE lines; the owner's ADD-ONS: A SEAT IS NOT A PLAY, SIGHTINGS NEED THE CITY OPEN, the probe of Firebase's databases + the watchdog's
   way out + the honest-player fixes; RULES CHANGED — re-publish) → THE LAUNCH ← NEXT (the owner's taps: docs/launch.md) → SIDEWAYS; THE PRIVATE FLIP later.
+
+## OWNER'S NOTES — NOV 12 (night, after THE CDN HOTFIX)
+
+```
+OWNER'S NOTES — NOV 12 (night, after THE CDN HOTFIX)
+- VERCEL: the account is on PRO now (Nov 12 — Hobby was about to pause on CDN requests); a $30 spend budget. The hotfix stays (the edge cache back,
+  the city's idle polls at 5 min, nothing from a hidden tab). Vercel Web Analytics is ENABLED on the project — the site needs Vercel's script tag.
+- JAYWALK CARDS (approved art, Downloads\grok\jaywalk\cards\): SONIC BOOM · rare (sonic-boom.png), CLOSE ENCOUNTER · rare (close-encounter.png),
+  RIGHT OF WAY · legendary (right-of-way.png) + the FX plates in cards\fx\ (fx-afterburner, fx-shockring, fx-beam, fx-trails, fx-hop — the USE
+  files, never the -b backups). Built like REDLINE + PHOTO FINISH. The UNLOCKS stay DORMANT — JAYWALK's own pass 6 wires them from the server's
+  replay of a run (it names the feat flags).
+- THE TRI-VISION BILLBOARD: the roof board turns between TWO posters — HOLD'EM NOW OPEN ↔ JAYWALK COMING SOON — every 45–60 s, the slats turning
+  like a real tri-vision sign. JAYWALK says NOW OPEN from its open day (not known yet — the owner sets it in /admin). Only those two faces. The
+  owner's messages + the city's hints still interrupt as before. JAYWALK's poster art: Downloads\grok\jaywalk\billboard\billboard.png (approved),
+  the words painted in code on its black left.
+- THE INTERCOM + THE SKY MOMENTS IN A LOBBY (the owner: "the intercom is for a fun gag on people in the lobby — I don't want them waiting 5 min"):
+  EVERYONE's intercom + EVERYONE's / the city's sky moments start 10 s after FIRE; every phone IN A ROOM gets them LIVE over the room's own
+  socket (lobby or mid-match — the intercom's play-over-games option keeps working); a phone only on the city may miss one (its 5-min check-in).
+- QUEUED NEXT (not this pass): FR7 FIXES C (THE ONE DAY LINE) → PLAY NOW + WHO'S ON → THE POOL FIXES + THE SLIDER → JAYWALK's passes.
+```
+- THE BUILD TABLE (Nov 12 night, the JAYWALK CARDS pass's Step 0): THE CDN HOTFIX ✅ (ea86257b); THIS PASS — JAYWALK CARDS + THE TRI-VISION + THE CITY's
+  LONG NIGHT + THE ERRORS GROUP + THE LOBBY GETS IT LIVE + VERCEL WEB ANALYTICS (passes/jaywalk-cards.md) ← NOW; then FR7 FIXES C (THE ONE DAY LINE) →
+  PLAY NOW + WHO'S ON → THE POOL FIXES + THE SLIDER → JAYWALK's passes; THE LAUNCH (the owner's taps) whenever he's ready.
