@@ -601,9 +601,10 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   EFFECTS, QUIT TO THE ROOM, host END GAME — settings-panel.js#openMenu), music on/off TOP-RIGHT (music only, effects stay), level — never stacked;
   ONE shared rule in components.css ("SPLIT ON EVERY SCREEN"); both are 36 pt circles (`--cb`) with an invisible 44 pt tap area (`::after`) +
   safe-area insets. Every header makes room on BOTH sides: `var(--cb-room)` (the button + its 12 pt inset + 8 pt of air) — the left for ☰ (a title /
-  a back button never under it: `.bar`, `.game-head`, OVERCLOCK's header, PRISM DROP's top line, THE BOARD's back + emblem, the podium's kicker),
+  a back button never under it: `.bar`, `.game-head`, OVERCLOCK's header, PRISM DROP's top line, the podium's kicker),
   the right for the music; announcements stay clear of both. A long title SHRINKS to fit (OVERCLOCK: view.js#fitName — never wraps, never clips).
-  The profile keeps its own rule (no ☰ — BACK takes the top-left corner). On a desktop the games' buttons sit at the phone column's corners; the
+  The profile + THE BOARD (the app's + /board — THE BOARD's TOP REDONE, Nov 12) keep their own rule (no ☰ — ‹ BACK takes the top-left corner, the
+  corner button's size + its 44 pt tap area; THE BOARD's title on its own row under the corner row at every height — guard: harbor `tapfit`). On a desktop the games' buttons sit at the phone column's corners; the
   title + the room (`body.nd-on`), setup (`nd-glass`) + THE BOARD (`bd-on`) pin them to the SCREEN's corners. (☰ → Settings holds THE GAME LOOK:
   AUTO · DAY · NIGHT — SHELL 2.0 B2.) A full-width game (`.screen.<x>-screen { max-width: none }`) must pin BOTH corners to the screen's edges
   (`.menu-btn { left: calc(var(--safe-l) + 12px) }` + `.music-btn { right: calc(var(--safe-r) + 12px) }`) — the frozen gridlock / slip / stakes / rum

@@ -805,3 +805,9 @@ owner's CREW row); the title is the stage of THE GIFT's reveal (6 s after it is 
 The share carrying something grows with the rain (`folk.js#rainGear`): none under 0.12, light drizzle (0.22) ≈ 1 in 3 umbrellas, real rain (≥ 0.3)
 ≈ 3 in 4 with the same draws as before; newspapers + collars up fill in (the collar on its own seeded stream). A walker's gear is decided by the rain
 when THEIR visit started (`folk.js#entryRain` — THE PEOPLE RULE: nobody's look flips in view). `&force=drizzle` shows them.
+
+### THE BOARD's corners (THE BOARD's TOP REDONE, Nov 12 night — passes/jaywalk-cards.md)
+THE BOARD follows THE PROFILE's rule: **no ☰** — ‹ BACK alone in the TOP-LEFT corner (fixed: the corner button's 36 pt + its inset + the 44 pt tap
+area — `css/board.css .bd-back`), the music TOP-RIGHT as everywhere; `body.bd-on .menu-btn` hidden (`css/components.css`). The title "THE BOARD" sits on
+its own row under the corner row at every height (Safari's ~660 pt with its bars once squeezed it over the tabs), the five tabs on one row. The app's
+board and the public `/board` alike. Guard: the harbor `tapfit` group (390 · 390 × 664 · 402 · 430 · 1440).

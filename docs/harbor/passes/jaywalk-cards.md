@@ -172,3 +172,40 @@ Built step for step like REDLINE + PHOTO FINISH (passes/overclock-cards.md Group
   machine with a non-local host name mapped to 127.0.0.1 (robots' flags masked): THE BOARD + the 404 each request `/_vercel/insights/script.js` once
   (`window.va` set); `&test=1` + localhost request nothing. The title's loader is the same call, after the reveal (its page talks to Firebase — not
   driven on a non-local host).
+
+## THE ADD-ONS (the owner, Nov 12 night — the pass's last group)
+1. **THE BENCH OVER THE TAXI** (the owner's friend): the two benches' sharp overlays on THE CRISP LAYER re-drew only the PEOPLE in front of them, so a
+   taxi at THE CAB STAND drew UNDER the bench. Now every vehicle reports its screen box + depth this frame (`screens/harbor/occluders.js` — from
+   `motorcar.js#draw`: the cab stand's taxi, the front street's traffic, the raid's car; from `people.js`: the back road's cars + the buses — the box the
+   drawer already worked out, no layout read); a bench with a NEARER vehicle over its box eases its overlay to 0 over 0.25 s (the alpha = the crisp
+   item's opacity — the key never changes, no repaint), the city's own bench — already in depth order — shows; back once the car has passed (the rain's
+   wet9 way). The walkers' `redrawOver` unchanged. The water bench: nothing vehicle-shaped passes in front of it on any layout (the front street is
+   below it on screen) — the same rule covers it if one ever does. Proof: the harbor `people` group at 3× — the taxi at its stop → the overlay out and
+   the composite over the bench the same with the overlays hidden (mean diff 1.12 over 5,792 samples) → back to 1 once it has gone; a `--cast` burst
+   (`jaywalk-cards/taxi/`, the sheet `taxi-cast-sheet.png`): the taxi's body + roof sign over the bench as it pulls up, no pop.
+2. **THE INSTALLED APP's NAME**: `manifest.webmanifest` short_name "Speakeasy" → **"Neon Speakeasy"** + `index.html`'s apple-mobile-web-app-title to
+   match; the stale descriptions ("Ten neon…", "twelve party games") → count-free ("Neon multiplayer party games for 2–8 players. One phone each…") in
+   the manifest + index / board's meta, og + twitter tags. **The labels** (measured with stand-in fonts — SF Pro isn't on this machine): an iPhone's
+   home screen (~74 pt under the icon, 12 pt SF Pro) ≈ **"Neon Speak…" / "Neon Speake…"**; Android's wider cells usually show **"Neon Speakeasy"** whole
+   or "Neon Speakea…". Already-installed icons keep the old name until the phone refreshes the web app (Android: Chrome on its own within a day or so;
+   iPhone: only by removing + re-adding it to the Home Screen).
+3. **THE HAND-OFF's FALSE ALARM** (/admin 10:24 pm — rooms/*/meta {hostId, hostBeat} ×2): `core/room-logic.js#nextHost` fell back to the first player
+   even when nobody was online, so the leaving host wrote a hand-off the rules must refuse. Now: an heir ONLY from players online now (else no hand-off
+   written — the others claim the usual way); an EXPECTED refusal is said by its caller before the write (`firebase.js#expectRefusal` — the hand-off:
+   "hand-off refused: the heir is offline"; `host.js#claimHost`: "host claim refused: the host is still alive") → a quiet line, never the re-publish
+   alarm. Proof: harbor `makehost` — the host leaves while the only other player is offline → no RULES REFUSED, the room carries on with them;
+   `leaver` + `hostleave` green.
+4. **THE BOARD's TOP REDONE** (the owner's iPhone at 390): **no ☰** on THE BOARD (THE PROFILE's rule) — ‹ BACK alone, fixed in the top-left corner (the
+   corner button's 36 pt + inset + 44 pt tap area), the music top-right as before; app + `/board`. **The title over the tabs** — the cause: on a phone's
+   Safari the page is ~660 pt tall (its bars), which tripped `@media (max-height: 700px)`: the title's grid row was 6 px and "THE BOARD" spilled over the
+   tabs (reproduced at 390 × 664 — `board-top/before-top-390x664.png`) → that row is auto; the title on its own row at every height, the five tabs on one
+   row. **Guard**: harbor `tapfit` — the title box vs the tab row vs the corner buttons at 390 · 390 × 664 · 402 · 430 · 1440, app + public — 24 / 24.
+   Shots: `board-top/before-*` → `after-*` (390 · 390 × 664 · 1440), `after-top-390.png`, `desk-before-after.png`.
+   **Found on the way**: the previews' fake `firebase.js` lacked the new exports — every look preview (THE CITY's included) failed to load — fixed + a
+   unit test that the fake carries every real export (it also found `syncTimeNoSocket` missing, from before).
+
+## Known issues
+- **NIGHT-C A REAL ZEBRA** (the harbor `people` group's first check — 4 bars, not 5): fails on THIS machine today **on the pre-pass commit too**
+  (ea86257b, checked in a worktree) — deterministic, the same with no people / cars; the cloud's street job passed it on Nov 12 → this machine or the
+  date, not this pass. Left for the next city pass (the cloud run says which).
+- JAYWALK's cards show their art only once you APPROVE them in THE LAB (the rule for every card).
