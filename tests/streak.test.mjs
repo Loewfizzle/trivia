@@ -49,7 +49,7 @@ test('WIN IT BACK: 3 plays within 3 days of coming back restores the run — onc
   assert.ok(r.ev.offer); assert.equal(r.st.w.k, 1); assert.equal(r.st.n, 1);
   r = streakPlay(r.st, D(8));
   r = streakPlay(r.st, D(9));
-  assert.deepEqual(r.ev.restored, { n: 5 + 2 });       // the lost 5 + the two nights played since
+  assert.deepEqual(r.ev.restored, { n: 5 + 2, lost: 5 });   // the lost 5 + the two nights played since (FR7 FIXES C: + the run it restores)
   assert.equal(r.st.n, 7); assert.equal(r.st.w, null); assert.equal(r.st.wm, 'm202611');
   assert.equal(r.st.h[D(6)], 4, 'the broken days count as won back');
   // a second break the same month: no offer

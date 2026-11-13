@@ -9,8 +9,8 @@ import { boardDef, better, BOARD_GAMES, GOAL_GAMES } from './boards.js';
 import { matchXp, soloXp, weeklyGoal, goalProgress, GOAL_XP } from './ranks.js';
 import { levelOf, rewardsBetween, rewardsUpTo } from './levels.js';
 import { SIGN_EMBLEMS } from './items.js';
-import { weekKey, dayKey } from './week.js';
-import { streakDay, streakPlay, dayNum, dayOf } from './streak.js';
+import { weekKey } from './week.js';
+import { streakDay, streakPlay, dayNum, dayOf, dayStartAt } from './streak.js';
 import { noteMatch, noteEvent, awardAll } from './achievements.js';
 import { todaysDailies, sweptDay, dailyXp, SWEEP_XP } from './daily.js';
 import { pointsStep } from './daily-points.js';
@@ -26,8 +26,19 @@ export const KEEP_KEYS = 60;
 export function payXp(next, from, gain, now) {
   const g = Math.max(0, Math.round(gain || 0)), wk = weekKey(now);
   next.xp = (from || 0) + g;
-  const xw = next.xw && next.xw.wk === wk ? next.xw : null;
-  next.xw = { ...(xw || {}), wk, x: ((xw && xw.x) || 0) + g };
+  // THE ONE DAY LINE (FR7 FIXES C — S1): `now` = the PLAY's time (a match's MATCH TIME, a daily's run day), so a late payment can belong to
+  // the week BEFORE the counter's — xw keeps that one week back as `p` ({ wk, x }): a Sunday-night match credited on Monday lands on its own
+  // week's board, never on the new week's, and never wipes the new week's count
+  const cur = next.xw && next.xw.wk ? next.xw : null;
+  if (cur && wk < cur.wk) {
+    const p = cur.p && cur.p.wk === wk ? cur.p : null;
+    if (!cur.p || cur.p.wk <= wk) next.xw = { ...cur, p: { wk, x: ((p && p.x) || 0) + g } };
+    return next;
+  }
+  const same = cur && cur.wk === wk ? cur : null;
+  const back = same ? same.p : cur && cur.x > 0 ? { wk: cur.wk, x: cur.x } : null;
+  next.xw = { ...(same || {}), wk, x: ((same && same.x) || 0) + g, ...(back ? { p: back } : {}) };
+  if (!back) delete next.xw.p;
   return next;
 }
 /** the XP a stats object earned in the week of `now` (0 when its counter is from another week) */
@@ -67,8 +78,12 @@ export function grant(next, ids, now) {
  * owner marked), ctx (the achievements' facts the server knows: { hosted, roomKey, party, hourET, holiday, friends, founderOpen }) } →
  * { skip } | { next, pbs, xp, from, prevStats, wk, lv: { from, to }, streak: { n, ev }, items: [ids new to this player], ach: [ids] }
  */
-export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, outage = null, ctx = {}, ceiling = DAILY_CEILING }) {   // (ceiling: the server always takes the default — a simulation of many matches in one day lifts it)
+export function matchStep(s0, { key, gid, row, n, now, at = now, gap = DEFAULT_GAP_MS, outage = null, ctx = {}, ceiling = DAILY_CEILING }) {   // (ceiling: the server always takes the default — a simulation of many matches in one day lifts it)
   const s = s0 || {};
+  // THE ONE DAY LINE (FR7 FIXES C — M1): `at` = the MATCH TIME (the server-stamped finish — night.at / the dealer's end; ≤ now, inside the
+  // server's 6 h cap): the streak day, the week, THE DAILY CEILING, NEW GAME TONIGHT + VARIETY and the boards' week are ITS — never the report's
+  // (a Friday-night match reported at 4:30 am used to land on Saturday). `now` stays the report's clock: the 45 s gap, the keys' order.
+  at = Math.min(Number(at) || now, now);
   if (s.m && s.m[key]) return { skip: 'counted' };
   if (s.last && now - s.last < gap && now >= s.last) return { skip: 'too_soon' };
   // (THE CARD PASS — B1: AN EMPTY SOLO RUN NEVER COUNTS — nothing answered, nothing scored: no solo XP, no streak, no solo-lane count;
@@ -77,25 +92,32 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: a match that OVERLAPS one already counted from ANOTHER room — the same profile seated in two rooms
   //  at once from two devices — is never credited; `ctx.win` = { c: the room, s: its start, e: its end }, the last OV_KEEP windows kept)
   if (overlaps(s.ov, ctx.win)) return { skip: 'overlap' };
-  const wk = weekKey(now), dk = dayKey(now);
+  const wk = weekKey(at), dk = streakDay(at);
   // FR7 FIXES A — THE DAILY CEILING (the owner's decision 2, Nov 12 — the win farms, FR7-A C2 + FR7-B HE3): past DAILY_CEILING counted ROOM
-  // matches in a day (all games together; the day = dayKey, Eastern) a match still plays + shows its podium, but pays 0 XP, moves no board
-  // (no win, no record, no counter) and earns nothing; the 45 s gap stays. A real game night never meets it. Solo runs have their own cap.
-  const roomsToday = s.day && s.day.k === dk ? Number(s.day.n) || 0 : 0;
-  if (n !== 1 && roomsToday >= ceiling) return ceilingStep(s, { key, now, dk, wk, ctx, roomsToday });
+  // matches in a day (all games together) a match still plays + shows its podium, but pays 0 XP, moves no board (no win, no record, no
+  // counter) and earns nothing; the 45 s gap stays. A real game night never meets it. Solo runs have their own cap.
+  // (THE ONE DAY LINE — M2: the day = THE STREAK DAY of the match time — the ceiling, NEW GAME TONIGHT, VARIETY + the solo cap turn at 4 am,
+  //  never at midnight; the day before keeps its own counters as `pd`, so a late report for it is capped + counted on ITS day)
+  const box = dayBox(s, dk);
+  const roomsToday = Number(box.n) || 0;
+  if (n !== 1 && roomsToday >= ceiling) return ceilingStep(s, { key, now, dk, wk, ctx, box, outage });
   const next = { ...s, g: { ...(s.g || {}) }, b: { ...(s.b || {}) }, m: { ...(s.m || {}) } };
-  if (next.wk !== wk) { next.wk = wk; next.gw = {}; next.gs = {}; } else { next.gw = { ...(s.gw || {}) }; next.gs = { ...(s.gs || {}) }; }
-  next.day = s.day && s.day.k === dk ? { k: dk, g: { ...(s.day.g || {}) }, ...(s.day.so ? { so: s.day.so } : {}), ...(s.day.n ? { n: s.day.n } : {}) } : { k: dk, g: {} };
+  // (S1: a match of the week BEFORE the stats' week — a late report across the Monday 4 am line — never resets this week's counters)
+  const oldWeek = !!(s.wk && wk < s.wk);
+  if (oldWeek) { next.gw = { ...(s.gw || {}) }; next.gs = { ...(s.gs || {}) }; }
+  else if (next.wk !== wk) { next.wk = wk; next.gw = {}; next.gs = {}; } else { next.gw = { ...(s.gw || {}) }; next.gs = { ...(s.gs || {}) }; }
+  const day = { k: dk, g: { ...(box.g || {}) }, ...(box.so ? { so: box.so } : {}), ...(box.n ? { n: box.n } : {}) };
   const solo = n === 1;   // (SHELL 2.0 B1 — THE SOLO LANE: a room of one)
-  if (!solo) next.day.n = roomsToday + 1;   // (THE DAILY CEILING's count)
+  if (!solo) day.n = roomsToday + 1;   // (THE DAILY CEILING's count)
   next.cp = countedPlays(s) + (solo ? 0 : 1);   // (PD-3 Group 0 — WHO GETS LISTED: a room match counts, a solo run never)
-  const firstToday = !next.day.g[gid];
-  next.day.g[gid] = 1;
-  const gamesToday = Object.keys(next.day.g).length;
+  const firstToday = !day.g[gid];
+  day.g[gid] = 1;
+  const gamesToday = Object.keys(day.g).length;
+  putDay(next, s, day);
   next.g[gid] = add(next.g[gid], row.c);
-  next.gw[gid] = add(next.gw[gid], row.c);
+  if (!oldWeek) next.gw[gid] = add(next.gw[gid], row.c);
   // (HOLD'EM IN THE CITY: a tie-break board's WHEN — the moment this player's standing on it last moved: boards.js#tieSort, the earlier ranks higher)
-  if (row.reach) { next.g[gid].ra = now; next.gw[gid].ra = now; }
+  if (row.reach) { next.g[gid].ra = at; if (!oldWeek) next.gw[gid].ra = at; }
   const pbs = [];
   for (const [board, v] of Object.entries(row.rec || {})) {
     const def = boardDef(board);
@@ -105,18 +127,18 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
     const prevAll = old ? old.a : null;
     const prevWeek = old && old.wk === wk ? old.w : null;
     if (better(def, v, prevAll)) { b.a = v; pbs.push({ b: board, v, prev: prevAll, first: prevAll == null }); }
-    if (better(def, v, prevWeek)) { b.w = v; b.wk = wk; }
+    if (!(old && old.wk && wk < old.wk) && better(def, v, prevWeek)) { b.w = v; b.wk = wk; }   // (S1: an older week's record never replaces this week's)
     next.b[board] = b;
   }
-  const xp = solo ? soloXp(next.day.so || 0) : matchXp({ rank: row.rank, win: row.win, n, pbs: pbs.filter(p => !p.first).length, firstToday, gamesToday });
-  if (solo) { next.day.so = (next.day.so || 0) + 1; next.gs[gid] = (next.gs[gid] || 0) + 1; }   // (CITY FIXES: the week's solo plays — never the goal)
+  const xp = solo ? soloXp(day.so || 0) : matchXp({ rank: row.rank, win: row.win, n, pbs: pbs.filter(p => !p.first).length, firstToday, gamesToday });
+  if (solo) { day.so = (day.so || 0) + 1; if (!oldWeek) next.gs[gid] = (next.gs[gid] || 0) + 1; }   // (CITY FIXES: the week's solo plays — never the goal)
   // (PROGRESSION A: NO streak XP — the owner kept Grok's "streaks pay in milestones"; the old +10 % a night is gone)
   // the weekly goal: paid once, the match that completes it
   const goal = weeklyGoal(wk, GOAL_GAMES);
-  if (!solo && next.gd !== wk && goalProgress(goal, next.gw, next.gs).done) { xp.parts.push({ k: 'goal', label: 'WEEKLY GOAL', v: GOAL_XP }); xp.total += GOAL_XP; next.gd = wk; }
+  if (!solo && !oldWeek && next.gd !== wk && goalProgress(goal, next.gw, next.gs).done) { xp.parts.push({ k: 'goal', label: 'WEEKLY GOAL', v: GOAL_XP }); xp.total += GOAL_XP; next.gd = wk; }
   const from = s.xp || 0;
-  payXp(next, from, xp.total, now);   // (BOARD 2.0 A: + this week's XP — THE OVERALL BOARD)
-  next.last = now;
+  payXp(next, from, xp.total, at);   // (BOARD 2.0 A: + this week's XP — THE OVERALL BOARD; THE ONE DAY LINE: the MATCH's week)
+  next.last = Math.max(Number(s.last) || 0, now);
   next.m[key] = now;
   if (ctx.win) next.ov = [...(Array.isArray(s.ov) ? s.ov : []), cleanWin(ctx.win)].slice(-OV_KEEP);
   const keys = Object.keys(next.m);
@@ -127,7 +149,7 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   // (THE VAULT 2C: the 12 sign-up shapes back-filled into `it` don't make a first match look like a returning one — the level rewards up to here)
   const had = s.it && Object.keys(s.it).some(id => !SIGN_EMBLEMS.includes(id));
   const items = grant(next, had ? rewardsBetween(lv.from, lv.to) : rewardsUpTo(lv.to), now);
-  const streak = playDay(next, now, outage);
+  const streak = playDay(next, now, outage, dk);   // (THE ONE DAY LINE — M1: the MATCH's streak day)
   items.push(...streak.items);
   // THE ACHIEVEMENTS: the match into the counters, then the award engine (+ FOUNDER while the window is open)
   next.pa = noteMatch(s.pa, { gid, rank: solo ? 0 : row.rank, win: !solo && row.win, n, night: next.st.d, flags: row.f, hosted: !!ctx.hosted, roomKey: ctx.roomKey || null,
@@ -139,18 +161,40 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   return { next, pbs, xp, from, prevStats: s, wk, lv, items, ach: aw.ach, streak: { n: next.st.n, ev: streak.ev } };
 }
 
-/** THE DAILY CEILING (FR7 FIXES A): counted room matches a profile is PAID for in a day (Eastern) — the 21st on plays for nothing */
+/** THE DAILY CEILING (FR7 FIXES A): counted room matches a profile is PAID for in a streak day (4 am Eastern) — the 21st on plays for nothing */
 export const DAILY_CEILING = 20;
 export const CEILING_LINE = 'TODAY’S LIMIT · XP AGAIN AFTER 4 AM';
-/** the step for a match past THE DAILY CEILING (PURE): counted (never twice — `m`), the gap's clock, today's count — and nothing else */
-function ceilingStep(s, { key, now, dk, wk, ctx, roomsToday }) {
-  const next = { ...s, m: { ...(s.m || {}), [key]: now }, last: now, day: { ...(s.day || {}), k: dk, g: { ...((s.day && s.day.g) || {}) }, n: roomsToday + 1 } };
+/**
+ * THE ONE DAY LINE (M2) — the day's counters of streak day `dk`: `day` = the newest day's ({ k, g, so?, n? }), `pd` = the day before it (kept
+ * so a late report for yesterday is capped + counted on ITS day — never on today's, never reset today's). → the box for `dk` (a copy) — empty
+ * for a new day.
+ */
+function dayBox(s, dk) {
+  const cur = s.day && s.day.k ? s.day : null, prev = s.pd && s.pd.k ? s.pd : null;
+  const hit = cur && cur.k === dk ? cur : prev && prev.k === dk ? prev : null;
+  return hit ? { ...hit, g: { ...(hit.g || {}) } } : { k: dk, g: {} };
+}
+/** the day's counters back into next: a newer day moves the old `day` to `pd`; an older day (a late report) only ever writes `pd` */
+function putDay(next, s, box) {
+  const cur = s.day && s.day.k ? s.day : null;
+  if (!cur || box.k === cur.k) { next.day = box; return; }
+  if (box.k > cur.k) { next.day = box; next.pd = cur; return; }
+  next.day = cur;
+  if (!(s.pd && s.pd.k && s.pd.k > box.k)) next.pd = box;
+}
+/** the step for a match past THE DAILY CEILING (PURE): counted (never twice — `m`), the gap's clock, the day's count, THE STREAK (M2: a
+ *  capped match still marks the night — 0 XP, no board, no counted play, no item) — and nothing else */
+function ceilingStep(s, { key, now, dk, wk, ctx, box, outage }) {
+  const next = { ...s, m: { ...(s.m || {}), [key]: now }, last: Math.max(Number(s.last) || 0, now) };
+  putDay(next, s, { ...box, k: dk, n: (Number(box.n) || 0) + 1 });
   if (ctx.win) next.ov = [...(Array.isArray(s.ov) ? s.ov : []), cleanWin(ctx.win)].slice(-OV_KEEP);
   const keys = Object.keys(next.m);
   if (keys.length > KEEP_KEYS) keys.sort((a, b) => next.m[a] - next.m[b]).slice(0, keys.length - KEEP_KEYS).forEach(k => delete next.m[k]);
   const lvl = levelOf(s.xp || 0);
-  return { next, pbs: [], xp: { total: 0, parts: [{ k: 'ceiling', label: CEILING_LINE, v: 0 }] }, from: s.xp || 0, prevStats: s, wk, lv: { from: lvl, to: lvl }, items: [], ach: [],
-    streak: { n: (s.st && s.st.n) || 1, ev: {} }, capped: true };
+  // (the streak's own milestones are cosmetic + FAVOR — a capped night is still a night played: they come as on any other play)
+  const streak = playDay(next, now, outage, dk);
+  return { next, pbs: [], xp: { total: 0, parts: [{ k: 'ceiling', label: CEILING_LINE, v: 0 }] }, from: s.xp || 0, prevStats: s, wk, lv: { from: lvl, to: lvl }, items: streak.items, ach: [],
+    streak: { n: next.st.n, ev: streak.ev }, capped: true };
 }
 
 /** LOBBY FIXES — ONE ACCOUNT, ONE ROOM: how many counted matches' windows a profile keeps (pstats.ov) */
@@ -271,7 +315,7 @@ export function dailyStep(s0, { game, day, now, top = 100, rank = null, n = 0, h
   dl.days = days;
   const newest = Object.keys(days).sort().pop();
   dl.day = { k: newest, ...days[newest] };
-  payXp(next, from, xp.total, now);   // (BOARD 2.0 A: + this week's XP — THE OVERALL BOARD)
+  payXp(next, from, xp.total, Math.min(now, dayStartAt(day)));   // (BOARD 2.0 A: + this week's XP — THE ONE DAY LINE, S1: on the RUN's week, like its points)
   const lv = { from: levelOf(from), to: levelOf(next.xp) };
   const items = lv.to > lv.from ? grant(next, rewardsBetween(lv.from, lv.to), now) : [];
   next.dl = dl;

@@ -4,7 +4,6 @@
 // A game keeps its own headline, numbers and picture (its classes keep its prefix — `pw-` / `cc-`).
 import { h } from '../ui/dom.js';
 import { tubeButton } from '../ui/components.js';
-import { easternParts } from '../core/week.js';
 import { streakDay } from '../core/streak.js';
 import { msToTurn, fmtCountdown } from './clock.js';
 
@@ -27,7 +26,7 @@ export async function recordFinish(finish, { wait, alive = () => true, tries = 4
 export function tickTurn(el, { now, day, open, next, alive = () => true }) {
   const paint = () => {
     const t = now();
-    el.textContent = day() < streakDay(t) ? open : `${next} ${fmtCountdown(msToTurn(easternParts(t), t % 1000))}`;
+    el.textContent = day() < streakDay(t) ? open : `${next} ${fmtCountdown(msToTurn(t))}`;
   };
   paint();
   const id = setInterval(() => { if (!alive()) clearInterval(id); else paint(); }, 1000);

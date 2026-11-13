@@ -498,6 +498,60 @@ test('DFIX2 OPTIONAL — the day\'s first start while the database hiccups → 5
 // BOARD 2.0 A — DAILY POINTS over /api: a counted PASSWORD in two → 100 points on THE RUN's day, THE DAILIES' BOARDS (THIS WEEK; ALL TIME only
 // from 10 days — YOUR average still returned by `ranks`); a repeat finish writes nothing; a same-day profile earns none (THE THROWAWAY GATE —
 // g-crack above); THE BACK-FILL re-scores the stored results to the same numbers
+test('FR7 FIXES C — S2: a counting finish on a day ALREADY CLOSED re-ranks it once more (the late 50th finisher opens PENTHOUSE) — it only ever ADDS', async () => {
+  const T = NOW + 60 * DAY, day = streakDay(T), next = dayOf(dayNum(day) + 1), after = dayStartAt(next) + 60e3;
+  forgetClosed();
+  const pids = [];
+  for (let i = 1; i <= 49; i++) {
+    const uid = `s2-${i}`; await ensure(uid, `Late${i}`); pids.push(await pidOf(uid));
+    const s = await D(uid, { action: 'start', game: 'test' }, T + i * 1000);
+    const g = FAKE_DAILY.target(s.seed), off = 500, guess = g + off <= 999 ? g + off : g - off;
+    await D(uid, { action: 'finish', game: 'test', result: { guess } }, T + i * 1000 + 500);
+  }
+  // the 50th starts at 3:59 am (the day's last minute) …
+  await ensure('s2-late', 'Latecomer');
+  const lateStart = await D('s2-late', { action: 'start', game: 'test' }, dayStartAt(next) - 60e3);
+  assert.equal(lateStart.day, day);
+  // … the first call after 4 am closes the day with 49 counting finishers: nobody wins
+  await D('s2-1', { action: 'today' }, after);
+  const c0 = await val(`dly/test/${day}/c`);
+  assert.equal(c0.st, 'done'); assert.equal(c0.n, 49); assert.equal(c0.w, undefined);
+  // … then the 50th finishes on ITS day (a run keeps its own day) with the best score: the day re-ranks — 50 finishers, the winner granted
+  const f = await D('s2-late', { action: 'finish', game: 'test', day, result: { guess: FAKE_DAILY.target(lateStart.seed) } }, after + 120e3);
+  assert.equal(f.counted, true);
+  const c1 = await val(`dly/test/${day}/c`);
+  assert.equal(c1.n, 50); assert.deepEqual(c1.w, [await pidOf('s2-late')]);
+  const won = await val(`pstats/${await pidOf('s2-late')}`);
+  assert.equal(won.dl.ph, 1, 'PENTHOUSE granted');
+  // a re-rank never takes one away: a better score than the winner's can't exist on the fake (1000 is the top), so a recount simply keeps him
+  const { recloseDay } = await import('../../api/_lib/daily-close.js');
+  const again = await recloseDay({ game: 'test', day, now: after + 200e3 });
+  assert.deepEqual(again.added, []); assert.deepEqual(again.winners, [await pidOf('s2-late')]);
+  assert.equal((await val(`pstats/${await pidOf('s2-late')}`)).dl.ph, 1, 'granted once');
+  // a day not closed yet is left to its close
+  assert.equal(await recloseDay({ game: 'test', day: dayOf(dayNum(day) + 400), now: after }), null);
+});
+
+test('FR7 FIXES C — S4: a daily STARTED BEFORE THE PROGRESS RESET and finished after it is not paid (no streak, no XP, no points, out of the day\'s count)', async () => {
+  const T = NOW + 70 * DAY, R = T + 10 * 60e3;
+  await ensure('s4-a', 'Straddle'); await ensure('s4-b', 'After');
+  const pa = await pidOf('s4-a');
+  const before = await val(`pstats/${pa}`);
+  const sa = await D('s4-a', { action: 'start', game: 'test' }, R - 60e3);
+  await ref('progress/resetAt').set(R);
+  try {
+    const f = await D('s4-a', { action: 'finish', game: 'test', result: { guess: FAKE_DAILY.target(sa.seed) } }, R + 60e3);
+    assert.equal(f.pre, true); assert.equal(f.counted, false); assert.equal(f.outcome, null);
+    const s = await val(`pstats/${pa}`);
+    assert.deepEqual(s, before, 'the stats untouched');
+    assert.equal(await val(`dly/test/${streakDay(R)}/x/${pa}`), 1, 'out of the day\'s histogram + PENTHOUSE');
+    // a run started after the reset is paid as usual
+    const sb = await D('s4-b', { action: 'start', game: 'test' }, R + 2 * 60e3);
+    const fb2 = await D('s4-b', { action: 'finish', game: 'test', result: { guess: FAKE_DAILY.target(sb.seed) } }, R + 3 * 60e3);
+    assert.equal(fb2.counted, true); assert.ok(fb2.outcome && fb2.outcome.xp.total > 0);
+  } finally { await ref('progress/resetAt').remove(); }
+});
+
 test('BOARD 2.0 A — DAILY POINTS: the server\'s score → points, the boards, YOUR average under 10 days, a repeat, THE BACK-FILL', async () => {
   const { weekOfDay, dailyPoints } = await import('../../js/core/daily-points.js');
   const d = streakDay(NOW), at = NOW + 60e3, wk = weekOfDay(d);

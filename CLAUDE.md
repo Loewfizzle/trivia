@@ -112,6 +112,8 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 **Profiles, progression, THE BOARD** (→ docs/progression.md, docs/profiles.md — both (moved))
 - PROGRESSION: XP, levels, the streak, items, achievements, FOUNDER are written by the SERVER only (one transaction through the PURE steps in
   `core/progress.js`); collections show ONLY what a player owns; board ids use dashes (`cipher-score`), never dots.
+- THE ONE DAY LINE (FR7 FIXES C): every match / daily is credited by its MATCH TIME on the 4 am America/New_York streak day — the streak, the
+  week, the ceiling, NEW GAME TONIGHT, the boards; nothing before `progress/resetAt` is paid → docs/progression.md#the-one-day-line.
 - EVERY XP PAYMENT through `core/progress.js#payXp` + its board row in the SAME update; DAILY POINTS = ONE table (`core/daily-points.js`).
 - THE DAILY CEILING (20 counted room matches a streak day); THE RESET EPOCH (`progress/resetAt`); HOST-GRADED OVERCLOCK → docs/progression.md (moved).
 - THE BOARD shows REAL USERNAMES (a rude one → its HOUSE NICKNAME, `api/_lib/lb.js#publicName`) — never a pid / key / tag digits; listed from

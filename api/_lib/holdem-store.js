@@ -285,32 +285,46 @@ async function settleReport(code, rec, now) {
 
 /** → 'done' | 'skipped' (fewer than 2 who played) | 'short' (HE10 — A7: too short to count). Exactly once by the results claim + pstats m/{key}. */
 export async function reportMatch(code, rec, now) {
-  if (!counts(rec)) return 'short';
-  const ex = resultRows(rec);
-  if (!ex) return 'skipped';
   const key = `${code}_${rec.id}`;
   // HE10 (A2): only the DEALER's own result counts as done — anything else under this key (a host's forged snapshot) is overwritten from the record
   const mine = r => !!(r && r.st === 'done' && r.src === 'dealer');
+  // THE ONE DAY LINE (FR7 FIXES C — M1): credited by the MATCH TIME — the dealer's own end (≤ now); a match that ended BEFORE THE PROGRESS
+  // RESET is never paid in the new epoch (sealed done, the table's end screen as a 'skipped' one) — checked first, before anything is counted
+  const at = Math.min(Number(rec.m && rec.m.endAt) || now, now);
+  const resetAt = Number(await val('progress/resetAt')) || 0;
+  if (resetAt > 0 && at < resetAt) {
+    if (!mine(await val(`results/${key}`))) await ref(`results/${key}`).set({ st: 'done', at: now, g: 'holdem', src: 'dealer', by: 'dealer', pre: 1, o: {} });
+    return 'skipped';
+  }
+  if (!counts(rec)) return 'short';
+  const ex = resultRows(rec);
+  if (!ex) return 'skipped';
   const done = await val(`results/${key}`);
-  if (mine(done)) return 'done';
+  if (mine(done)) return done.pre ? 'skipped' : 'done';
   const claim = await ref(`results/${key}`).transaction(cur => {
     if (mine(cur)) return undefined;
     if (cur && cur.st === 'busy' && now - (cur.at || 0) < 30_000) return undefined;
-    return { st: 'busy', at: now, by: 'dealer' };
+    return { st: 'busy', at: now, by: 'dealer', ...(cur && cur.o && cur.src === 'dealer' ? { o: cur.o } : {}) };   // (M4: an earlier try's outcomes kept)
   });
   if (!claim.committed) {
     const cur = claim.snapshot.val();
     if (mine(cur)) return 'done';
     throw new Error('being counted');
   }
-  const [{ applyMatch }, { bumpPlayed }, { dedupePids }] = await Promise.all([import('./stats.js'), import('./activity.js'), import('../../js/core/progress.js')]);
+  const [{ applyMatch, needsRetry, mergeOutcomes }, { bumpPlayed }, { dedupePids }] = await Promise.all([import('./stats.js'), import('./activity.js'), import('../../js/core/progress.js')]);
+  const tried = claim.snapshot.val() || {};
   const pids = {};
   await Promise.all(Object.keys(ex.rows).map(async u => { const pid = await pidOf(u); if (pid) pids[u] = pid; }));
   dedupePids(ex.rows, pids);
   const meta = await val(`rooms/${code}/meta`);
   const { summary, ...rows } = ex;
-  const outcomes = await applyMatch(key, rows, pids, now, { code, meta, win: { c: code, s: rec.m.startAt, e: rec.m.endAt || now } });
-  await bumpPlayed('holdem', now).catch(() => {});
+  const outcomes = mergeOutcomes(tried.o, await applyMatch(key, rows, pids, now, { code, meta, win: { c: code, s: rec.m.startAt, e: rec.m.endAt || now } }, at));
+  // (M4: a player the gap skipped / a transaction that didn't commit → NOT done: the outcomes kept, rec.rep stays unset → the next poke tries again)
+  if (needsRetry(outcomes)) {
+    await ref(`results/${key}`).set({ st: 'retry', at: now, g: 'holdem', src: 'dealer', by: 'dealer', o: outcomes });
+    throw new Error('retry: a player to count again');
+  }
+  if (!tried.o) await bumpPlayed('holdem', now).catch(() => {});
   // (HOLD'EM IN THE CITY: each profile's knockouts kept with the result — THE HOLD'EM BOARD's back-fill rebuilds from these records; the
   //  dealer's own record is deleted 8 s after the end)
   const ko = {};

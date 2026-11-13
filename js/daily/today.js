@@ -6,7 +6,6 @@
 import { api } from '../profile/api.js';
 import { serverNow } from '../firebase.js';
 import { streakDay } from '../core/streak.js';
-import { easternParts } from '../core/week.js';
 import { msToTurn } from './clock.js';
 import { dayTurned } from './today-logic.js';
 
@@ -59,7 +58,7 @@ function armTurn() {
   if (typeof setTimeout !== 'function') return;
   clearTimeout(turnT);
   const t = serverNow();
-  turnT = setTimeout(turnNow, Math.min(2 ** 31 - 1, msToTurn(easternParts(t), t % 1000) + 1500));
+  turnT = setTimeout(turnNow, Math.min(2 ** 31 - 1, msToTurn(t) + 1500));
 }
 /** the day turned (the timer, the screen's countdown at zero, a test): the answer re-read now */
 export function turnNow() { if (!cache) return Promise.resolve(null); at = 0; return loadToday({ fresh: true }); }

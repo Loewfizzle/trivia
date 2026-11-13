@@ -83,7 +83,9 @@ export function sinceReset({ results = {}, daily = {} }, epoch) {
 /** a player's week counter after the back-fill: the larger of the live counter (same week) and the rebuilt sum — never lower */
 export function filledWeek(cur, rebuilt, wk) {
   const live = cur && cur.wk === wk ? Number(cur.x) || 0 : 0;
-  return { wk, x: Math.max(live, Math.round(rebuilt || 0)), bf: 1 };
+  // (THE ONE DAY LINE: the week before — xw.p, a late payment's — is kept as it was)
+  const p = cur && cur.wk === wk ? cur.p : cur && cur.wk && cur.wk < wk && cur.x > 0 ? { wk: cur.wk, x: cur.x } : null;
+  return { wk, x: Math.max(live, Math.round(rebuilt || 0)), bf: 1, ...(p ? { p } : {}) };
 }
 
 /**

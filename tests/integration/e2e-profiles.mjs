@@ -51,8 +51,16 @@ await H.run(async () => {
   await p0.evaluate(s => localStorage.setItem(`na:${s}:pnotes`, JSON.stringify({ games: 2 })), slotOf(0));
   // BOB can't reach the results server when the podium appears (his game connection is fine): his report waits
   let blockApi = true;
+  let tooSoon = 0, reportHits = 0;   // (FR7 FIXES C — M4's cue + the report requests counted)
   await p1.setRequestInterception(true);
-  p1.on('request', r => { if (r.isInterceptResolutionHandled()) return; if (blockApi && r.url().includes('/api/')) r.abort('internetdisconnected'); else r.continue(); });
+  p1.on('request', r => {
+    if (r.isInterceptResolutionHandled()) return;
+    if (blockApi && r.url().includes('/api/')) return r.abort('internetdisconnected');
+    // (FR7 FIXES C — M4: the server's "count it in a moment" answer, played once on cue — the queue must keep the report + resend after retryAfter)
+    if (tooSoon > 0 && r.url().includes('/api/report') && r.method() === 'POST') { tooSoon--; reportHits++; return r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: false, code: 'too_soon', retry: true, retryAfter: 1500 }) }); }
+    if (r.url().includes('/api/report') && r.method() === 'POST') reportHits++;
+    r.continue();
+  });
   await ref('testReportAll').set(true);   // (HE10: CIPHER is frozen — reportable on the emulators only behind this switch, api/report.js#reportableGame)
   const game = finalGame('cipher', [uids[0], uids[1]], { matchId: `e2e${Date.now().toString(36).slice(-6)}` });
   game.phaseStartAt = Date.now(); game.phaseEndsAt = Date.now() + 60_000;
@@ -125,9 +133,15 @@ await H.run(async () => {
   await sleep(1500);
   ok((await p1.evaluate(s => (JSON.parse(localStorage.getItem(`na:${s}:rq`) || '[]')).length, slotOf(1))) === 1, 'BOB\'s report waits in the queue while the server is unreachable');
   ok(!(await p1.$('.pg-moment')) && !!(await p1.$('.final')), '/api down: no end-of-round moment — the podium exactly as before (profiles are polish)');
-  blockApi = false;
+  // (FR7 FIXES C — THE ONE DAY LINE, M1: the queue never drops a report by its OWN clock — an item 5.5 h old (the old cut-off was 5 h, under the
+  //  server's 6 h) is still SENT; M4: the server's 425 "too soon" keeps it in the queue + resends it after retryAfter)
+  await p1.evaluate(s => { const q = JSON.parse(localStorage.getItem(`na:${s}:rq`) || '[]'); for (const x of q) x.at -= 5.5 * 3600e3; localStorage.setItem(`na:${s}:rq`, JSON.stringify(q)); }, slotOf(1));
+  blockApi = false; tooSoon = 1; reportHits = 0;
   await p1.evaluate(() => import('/js/profile/queue.js').then(m => m.flush(true)));
+  const waiting = await p1.evaluate(s => JSON.parse(localStorage.getItem(`na:${s}:rq`) || '[]'), slotOf(1));
+  ok(reportHits === 1 && waiting.length === 1 && waiting[0].w === 1 && waiting[0].next > Date.now() - 500, `M1 + M4: a 5.5 h old report is SENT (not dropped by the phone's clock), and "too soon" keeps it queued for a resend (hits ${reportHits}, w ${waiting[0] && waiting[0].w})`);
   await p1.waitForFunction(s => !(JSON.parse(localStorage.getItem(`na:${s}:rq`) || '[]')).length, { timeout: 20000 }, slotOf(1));
+  ok(reportHits >= 2, `M4: the queue resent it by itself after retryAfter (${reportHits} sends)`);
   ok(true, 'BOB\'s queued report was delivered once he was back');
   await p1.waitForSelector('.rc-plaque, .rc-xp', { timeout: 15000 }).catch(() => {});
   ok(await p1.$('.rc-xp'), 'BOB gets his own outcome on his podium');

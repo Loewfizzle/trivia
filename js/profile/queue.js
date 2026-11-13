@@ -12,8 +12,11 @@ import { loadQueue, saveQueue, loadDone, saveDone } from '../identity.js';
 import { firebaseReady } from '../firebase.js';
 import { countMatch, applyOutcome } from './me.js';
 
-const MAX_AGE = 5 * 3600_000;
+// THE ONE DAY LINE (FR7 FIXES C — M1): the queue never drops a report by ITS OWN clock (it used to at 5 h — under the server's 6 h cap: a phone
+// offline 10 pm → 9 am lost its match). An item goes only on the server's answer (`too_old`, `before_reset`, counted …).
 const SNAP_MAX = 250_000;
+/** M4 — at most this many "count it in a moment" (425 + retryAfter) answers for one report: bounded, never a loop */
+export const RETRY_MAX = 8;
 const listeners = new Set();
 const outcomes = new Map();
 let timer = 0;
@@ -64,11 +67,12 @@ export async function flush(force = false) {
   try {
     await firebaseReady;
     for (const item of loadQueue()) {
-      if (Date.now() - item.at > MAX_AGE) { done(item.k); continue; }
       if (!force && item.next > Date.now()) continue;
       try {
         const r = await api('report', { code: item.code, matchId: item.matchId, snap: item.snap || undefined });
-        if (r.ok === false && r.retry) throw Object.assign(new Error(r.code), { status: 425 });   // still settling: soon
+        // (M4: "count it in a moment" — a player of this match was credited < 45 s ago: resend after the server's retryAfter, at most RETRY_MAX times)
+        if (r.ok === false && r.retry && r.retryAfter > 0 && (item.w || 0) < RETRY_MAX) throw Object.assign(new Error(r.code), { status: 425, after: Math.min(5 * 60_000, r.retryAfter) });
+        if (r.ok === false && r.retry && !(r.retryAfter > 0)) throw Object.assign(new Error(r.code), { status: 425 });   // still settling: soon
         done(item.k);
         deliver(item.k, r.ok === false ? { none: true, error: r.code } : r.outcome || { none: true });
       } catch (e) {
@@ -78,7 +82,8 @@ export async function flush(force = false) {
         const q = loadQueue();
         const x = q.find(y => y.k === item.k);
         // (FR7 FIXES B — FR7-A's NICE line: "still settling" (425) was retried every 2 s for up to 5 h — now 2, 4, 8 … s, at most 60 s)
-        if (x) { x.n += 1; x.next = Date.now() + (e.status === 425 ? Math.min(SETTLE_MAX_MS, 2000 * 2 ** Math.max(0, x.n - 1)) : backoff(x.n)); saveQueue(q); }
+        if (x && e.after) { x.w = (x.w || 0) + 1; x.next = Date.now() + e.after + Math.round(Math.random() * 1500); saveQueue(q); }
+        else if (x) { x.n += 1; x.next = Date.now() + (e.status === 425 ? Math.min(SETTLE_MAX_MS, 2000 * 2 ** Math.max(0, x.n - 1)) : backoff(x.n)); saveQueue(q); }
       }
     }
   } finally {

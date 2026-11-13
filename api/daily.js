@@ -43,7 +43,7 @@ import { bumpOwners } from './_lib/owners.js';
 import { take } from './_lib/limit.js';
 import { dailySeed, openDailies, pickDay } from './_lib/dailies.js';
 import { roomStarted, midDaily } from './_lib/daily-room.js';
-import { closeDays } from './_lib/daily-close.js';
+import { closeDays, recloseDay } from './_lib/daily-close.js';
 import { dailyOf, bucketOf, standing, todayView, todaysDailies, dailyRow, BAND_MIN } from '../js/core/daily.js';
 import { streakDay, dayNum, dayOf, dayStartAt, countsOn } from '../js/core/streak.js';
 import { dailyStep } from '../js/core/progress.js';
@@ -242,8 +242,11 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
     case 'finish': {
       const day = dayOfCall(body, now);
       const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
-      const [startedAt, createdAt] = await Promise.all([val(`${base}/s/${pid}`), createdAtOf(pid)]);
+      const [startedAt, createdAt, resetAt] = await Promise.all([val(`${base}/s/${pid}`), createdAtOf(pid), val('progress/resetAt')]);
       if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
+      // THE ONE DAY LINE (FR7 FIXES C — S4): a run STARTED BEFORE THE PROGRESS RESET is never paid in the new epoch (like a match that finished
+      // before it): its score is kept for the player, out of the day's histogram + PENTHOUSE (as a non-counting one), and no stats step runs
+      const preReset = Number(resetAt) > 0 && Number(startedAt) < Number(resetAt);
       // a JUDGED daily scores from the server's own record — the phone's result is never read (an unfinished run: come back when it's done)
       const record = cart.judged ? await val(`${base}/p/${pid}`) : null;
       if (cart.judged && !(record && record.e)) throw new ApiError(409, 'not_done', 'Finish the run first.');
@@ -251,7 +254,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       const score = cart.verify(await dailySeed(cart.id, day), cart.judged ? null : body.result, { startedAt, now, record, day, data });
       if (typeof score !== 'number' || !Number.isFinite(score)) throw new ApiError(422, 'refused', 'That result doesn’t check out.');
       // DM1 — THE THROWAWAY GATE: does this profile's result COUNT on this day?
-      const counts = countsOn(createdAt, day);
+      const counts = countsOn(createdAt, day) && !preReset;
       // ONE official try: the first finish is the score (a retry gets the stored one back)
       const claim = await ref(`${base}/r/${pid}`).transaction(cur => (cur != null ? undefined : score));
       const kept = claim.snapshot.val();
@@ -279,7 +282,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       // BOARD 2.0 A — DAILY POINTS from the KEPT score (the server's own — never the phone's claim), a COUNTED result only
       const points = counts ? dailyPoints(cart.id, kept) : null;
       let cur0 = null;
-      await ref(`pstats/${pid}`).transaction(cur => { cur0 = cur; res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, rank: stand.better + 1, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts, points }); return res.skip ? undefined : res.next; });
+      if (!preReset) await ref(`pstats/${pid}`).transaction(cur => { cur0 = cur; res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, rank: stand.better + 1, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts, points }); return res.skip ? undefined : res.next; });
       if (res && !res.skip) {
         const st = res.next.st, xp = res.next.xp || 0;
         // (BOARD 2.0 A — THE OVERALL BOARD in the SAME update as the XP: listed like every board — the 3-match floor, the opt-out, the admin's hide)
@@ -292,7 +295,9 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         await bumpOwners(res.items, !(res.next.g && Object.keys(res.next.g).length) && res.dl.n === 1, res.ach).catch(() => {});
         if (res.next.fd) await ref(`profiles/${pid}/fd`).set(true);
       }
-      return { day, score: kept, again: !claim.committed, counted: counts, ...(counts ? {} : { countsFrom: dayStartAt(dayOf(dayNum(streakDay(Number(createdAt) || now)) + 1)) }),
+      // THE ONE DAY LINE (S2): a counting finish on a day already CLOSED (the run crossed 4 am) re-ranks it once more — it can only ADD a PENTHOUSE
+      if (counts && claim.committed && day !== today) await recloseDay({ game: cart.id, day, now }).catch(e => console.warn('reclose', e && e.message));
+      return { day, score: kept, again: !claim.committed, counted: counts, ...(preReset ? { pre: true } : {}), ...(counts || preReset ? {} : { countsFrom: dayStartAt(dayOf(dayNum(streakDay(Number(createdAt) || now)) + 1)) }),
         stand: { n: stand.n, pct: stand.pct, top: Math.round(stand.top * 10) / 10, band: stand.band ? stand.band.name : null },
         outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach, xp: res.xp, lv: res.lv, swept: res.swept, run: res.swept && res.dl.sr ? res.dl.sr.n : 0, points: res.points } : null };
     }

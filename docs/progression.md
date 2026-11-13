@@ -492,6 +492,50 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
 - **THE QUEUE + THE STAMP AGREE (the urgent add-on):** `CITY_GAP_MS` = `QUEUE_MS` = 15 min (a hello after an outage extends the same opening); a claim the
   stamp hasn't reached answers `no_stamp` — the phone keeps it (`profile/sightings.js`, 15 min) and retries on `online` + after the city's next hello.
 
+## THE ONE DAY LINE (FR7 FIXES C, Nov 13 — Grok's PROGRESSION + CALENDAR review, Nov 12, honest players; docs/harbor/passes/fr7-fixes-c.md)
+
+ONE line for everything a play is credited on: **the 4:00 AM America/New_York streak day of the play's OWN time.**
+
+- **THE 4 AM LINE IS WALL CLOCK (M3):** `core/week.js#turnAt(dk)` = the instant 4:00 am Eastern reads on that date (08:00 UTC in summer
+  time, 09:00 in winter; on a DST day the one whose clock really reads 4:00 — it always exists, the clocks change at 2 am); `turnDay(ms)` /
+  `core/streak.js#streakDay` = the day of an instant against it; `dayStartAt = turnAt`. The old `dayKey(ms − 4 h)` turned at 5:00 am EDT the
+  day the clocks spring forward (Sun Mar 14 2027: 4–5 am still Saturday) and at 3:00 am EST the day they fall back (Nov 1 2026 · Nov 7 2027).
+  The dailies' countdown (`js/daily/clock.js#msToTurn(instant)`) + THE 4 AM TURN (`today.js#armTurn`) = the next day's start − now.
+  Tests: `tests/one-day-line.test.mjs` (every half hour midnight → 6:30 am on Nov 1 2026, Mar 14 2027, Nov 7 2027 + two plain days; the table
+  re-run in child processes with `TZ=UTC`, `TZ=America/Los_Angeles` and TZ unset).
+- **A MATCH IS CREDITED BY ITS MATCH TIME (M1):** `api/report.js` passes `at = min(night.at, now)` (night.at is the rules' `=== now` — the
+  server's stamp when the host wrote `final`); the dealer passes `min(rec.m.endAt, now)`. `api/_lib/stats.js#applyMatch(key, ex, pids, now,
+  room, at)` → `core/progress.js#matchStep({ …, now, at })`: the streak day, the week, THE DAILY CEILING, NEW GAME TONIGHT + VARIETY, the solo
+  cap, the tie-break time, the achievements' facts (hour, party, holiday) and every board path are the MATCH's; `now` stays the report's clock
+  for the 45 s gap + the keys' order. **A match that finished before `progress/resetAt` is refused** on BOTH paths, before anything is counted:
+  `results/{key}` sealed `{ st: 'done', pre: 1 }` (never retried), the phone told `status: 'before_reset'` (no outcome — quiet); the dealer's
+  table gets `rep: 'skipped'`. **The phone's queue** (`js/profile/queue.js`) no longer drops a report by its own clock (it did at 5 h — under
+  the server's 6 h: a phone offline 10 pm → 9 am lost its match); an item goes only on the server's answer (`too_old`, `before_reset`, counted).
+- **TWO DAY BOXES (M1 + M2):** `pstats.day` = the newest streak day's counters `{ k, g, so?, n? }`, `pstats.pd` = the day before's (a late report
+  for yesterday is capped + counted on ITS day — never resets today's; `pd` is in `reset.js#RESET_STATS`).
+- **THE CEILING + THE BONUSES ON THE STREAK DAY (M2):** THE DAILY CEILING, NEW GAME TONIGHT (+25), VARIETY (+10) + the solo cap turn at 4 am, not
+  midnight; **a capped match still marks the streak** (`ceilingStep` calls `playDay` — 0 XP, no board, no counted play, the streak's own
+  milestones as on any play).
+- **A REPORT THE GAP SKIPPED WAITS (M4):** an outcome skipped `too_soon` (or a transaction that didn't commit — `stats.js#RETRY_SKIPS`) means the
+  result is NOT done: `results/{key}` = `{ st: 'retry', o }` (the outcomes so far — a claim keeps them; `stats.js#mergeOutcomes` keeps a credited
+  player's first outcome over its 'counted' skip), the phone gets `{ ok: false, code: 'too_soon', retry: true, retryAfter }` (425) and the queue
+  resends after it (+ a little jitter; at most `RETRY_MAX` 8 — bounded, never a loop). The dealer: the same record, `rep` left unset → the next poke.
+- **THE WEEK TURNS WITH THE DAY (S1):** `core/week.js#weekKey` = the Monday of the 4 am day — a week runs **Monday 4:00 am → Monday 4:00 am
+  Eastern** (it was Monday 00:00 while the streak + the dailies stayed on Sunday until 4 am); `weekEndsAt` = the next Monday 4 am. So the weekly
+  goal, `gw` / `gs`, `xw`, the weekly records + the weekly board paths are the match's week; a match of the week BEFORE the stats' week (a late
+  report across the line) never resets this week's counters, never replaces this week's record, and its XP goes to **`xw.p`** (the week before,
+  `{ wk, x }` — `payXp`; `core/overall.js` writes its board row too). A daily's XP is paid on its RUN's week (`payXp(…, dayStartAt(day))`), like
+  its points (`daily-points.js#weekOfDay`).
+- **PENTHOUSE RE-RANKS A CLOSED DAY (S2):** a COUNTING finish on a day already closed (a run started before 4 am, finished after the close ran)
+  calls `api/_lib/daily-close.js#recloseDay` — the day's counting finishers ranked once more; `penthouseStep` is idempotent, the marker's `w` the
+  UNION: it can only ADD a PENTHOUSE (the late 50th finisher opening the day), never take one away.
+- **WIN IT BACK PAYS ONLY ABOVE THE LOST RUN (S3):** `streak.js#finish` — on a restore the milestones are those between the LOST run (`ev.restored.lost`)
+  and the new length; a 100+ night run broken + won back no longer pays its milestones (+ a second FAVOR) again.
+- **A DAILY STARTED BEFORE THE RESET (S4):** `api/daily.js` finish — a start before `progress/resetAt` is not paid (no stats step, out of the
+  day's histogram + PENTHOUSE as a non-counting result; the answer says `pre: true`); THE BACK-FILL sets `cp` = max(live, rebuilt)
+  (`api/_lib/board-fill.js`), as `filledWeek` / `filledHoldem` already did — so the back-fill is safe any time after the reset.
+- **THE RESET's FREEZES SHOW (S5):** `streakView` reads `st.f` with no `st.d` (THE PROGRESS RESET keeps `st = { f }`), capped at the hold limit.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

@@ -24,7 +24,7 @@ import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, emulated } from './_lib/fb.js';
 import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
-import { applyMatch } from './_lib/stats.js';
+import { applyMatch, needsRetry, mergeOutcomes, MIN_MATCH_GAP_MS } from './_lib/stats.js';
 import { bumpPlayed } from './_lib/activity.js';
 import { extractMatch, unreportable, REPORT_GAMES, DEALER_GAMES, SOLO_OK } from '../js/core/match-report.js';
 import { GAMES, MAX_PLAYERS } from '../js/config.js';
@@ -34,6 +34,8 @@ import { timing } from './_lib/timing.js';
 
 import { nightPoints, isAllTied, placingsOnly } from '../js/core/night.js';   // (B4: what a placing is worth on the game-night board — the ONE rule the host writes with)
 const MAX_AGE_MS = 6 * 3600_000;
+export const REPORT_MAX_AGE_MS = MAX_AGE_MS;   // (the phone's queue keeps an item at least this long — js/profile/queue.js)
+const RESET_AT = 'progress/resetAt';   // (THE RESET EPOCH — api/_lib/reset.js stamps it)
 
 let pulseCounts = null;
 function loadPulseCounts() {
@@ -127,9 +129,9 @@ export async function processReport(uid, body, now = Date.now()) {
   const key = `${code}_${matchId}`;
   const myPid = await pidOf(uid);
   const done = await val(`results/${key}`);
-  if (done && done.st === 'done') return { ok: true, status: 'done', outcome: myPid ? (done.o && done.o[myPid]) || null : null };
+  if (done && done.st === 'done') return { ok: true, status: done.pre ? 'before_reset' : 'done', outcome: myPid ? (done.o && done.o[myPid]) || null : null };
 
-  const [game, night, players, meta] = await Promise.all([val(`rooms/${code}/game`), val(`rooms/${code}/night/${matchId}`), val(`rooms/${code}/players`), val(`rooms/${code}/meta`)]);
+  const [game, night, players, meta, resetAt] = await Promise.all([val(`rooms/${code}/game`), val(`rooms/${code}/night/${matchId}`), val(`rooms/${code}/players`), val(`rooms/${code}/meta`), val(RESET_AT)]);
   // HE10 (A2 / B1): a dealer's game or a game nobody can start is never credited here — on either path (the room's game, the snapshot's night)
   for (const gid of [game && game.matchId === matchId ? game.id : null, night && night.g].filter(v => v != null)) {
     if (!(await reportableGame(gid))) throw new ApiError(409, 'not_reportable', DEALER_GAMES.includes(gid) ? 'The dealer reports this game itself.' : 'This game can’t be counted.');
@@ -138,6 +140,14 @@ export async function processReport(uid, body, now = Date.now()) {
   if (!night || typeof night.at !== 'number') throw new ApiError(409, 'unverifiable', 'This match has no record in its room.');
   if (now - night.at > MAX_AGE_MS) throw new ApiError(409, 'too_old');
   if (night.at > now + 60_000) throw new ApiError(409, 'unverifiable', 'The match record is from the future.');
+  // THE ONE DAY LINE (FR7 FIXES C — M1): a match is credited by its MATCH TIME — the server-stamped finish (night.at — the rules: === now),
+  // clamped to ≤ now — and one that FINISHED BEFORE THE PROGRESS RESET is never paid in the new epoch: sealed done (never retried), the phone
+  // told quietly ('before_reset' — no outcome, no message)
+  const at = Math.min(night.at, now);
+  if (Number(resetAt) > 0 && at < Number(resetAt)) {
+    await ref(`results/${key}`).transaction(cur => (cur && cur.st === 'done' ? undefined : { st: 'done', at: now, pre: 1, by: uid, o: {} }));
+    return { ok: true, status: 'before_reset', outcome: null };
+  }
   // (FR7-A's C1: a record naming more players than a room can ever hold is refused BEFORE anything is extracted from it)
   const inRoom = !!(game && game.matchId === matchId);
   const named = inRoom ? Object.keys(game.participants || {}) : Object.keys(night.p || {});
@@ -199,7 +209,7 @@ export async function processReport(uid, body, now = Date.now()) {
   const claim = await ref(`results/${key}`).transaction(cur => {
     if (cur && cur.st === 'done') return undefined;
     if (cur && cur.st === 'busy' && now - (cur.at || 0) < 30_000) return undefined;
-    return { st: 'busy', at: now, by: uid };
+    return { st: 'busy', at: now, by: uid, ...(cur && cur.o ? { o: cur.o } : {}) };   // (M4: the outcomes of an earlier try are kept)
   });
   if (!claim.committed) {
     const cur = claim.snapshot.val();
@@ -214,8 +224,16 @@ export async function processReport(uid, body, now = Date.now()) {
   //  device never farms a better one; the match's window goes with it — ONE ACCOUNT, ONE ROOM: progress.js#overlaps)
   dedupePids(ex.rows, pids);
   const win = { c: code, s: (game && game.matchId === matchId && Number(game.go)) || night.at, e: night.at };
-  const outcomes = await applyMatch(key, ex, pids, now, { code, meta, win });
-  await bumpPlayed(ex.gid, now).catch(e => console.warn('activity', e && e.message));
+  const tried = claim.snapshot.val() || {};
+  const outcomes = mergeOutcomes(tried.o, await applyMatch(key, ex, pids, now, { code, meta, win }, at));
+  // THE ONE DAY LINE (FR7 FIXES C — M4): a player skipped by the 45 s gap (two queued matches flushed seconds apart) or a transaction that didn't
+  // commit is NOT sealed done — the result waits ('retry', the outcomes so far kept) and the phone is told 425 + retryAfter; the next try credits
+  // the rest (the credited ones skip as 'counted' — exactly once by pstats m/{key})
+  if (needsRetry(outcomes)) {
+    await ref(`results/${key}`).set({ st: 'retry', at: now, g: ex.gid, by: uid, o: outcomes });
+    throw new ApiError(425, 'too_soon', 'Counting it in a moment.', { retryAfter: MIN_MATCH_GAP_MS + 2000 });
+  }
+  if (!tried.o) await bumpPlayed(ex.gid, now).catch(e => console.warn('activity', e && e.message));
   await ref(`results/${key}`).set({ st: 'done', at: now, g: ex.gid, mode: ex.mode || null, n: ex.n, src, by: uid, rej: ex.rejected.length || null, o: outcomes });
   if (ex.rejected.length) console.warn('rejected records', key, JSON.stringify(ex.rejected));
   return { ok: true, status: 'counted', outcome: outcomes[pids[uid]] || null, rejected: ex.rejected.filter(r => r.uid === uid).map(r => r.board) };
@@ -243,6 +261,6 @@ export default route(['POST'], async (req, res) => {
     send(res, 200, withShow(await processReport(uid, body)));
   } catch (e) {
     if (!(e instanceof ApiError) || e.status >= 500 || e.status === 401) throw e;
-    send(res, 200, { ok: false, code: e.code, retry: e.status === 425 || e.status === 429, message: e.message });
+    send(res, 200, { ok: false, code: e.code, retry: e.status === 425 || e.status === 429, message: e.message, ...(e.extra && e.extra.retryAfter ? { retryAfter: e.extra.retryAfter } : {}) });
   }
 });

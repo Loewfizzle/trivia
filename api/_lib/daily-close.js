@@ -36,6 +36,36 @@ export async function closeDays({ games, now = Date.now() }) {
   return out;
 }
 
+/**
+ * THE ONE DAY LINE (FR7 FIXES C — S2): a COUNTING finish that lands on a day ALREADY CLOSED (a run started before 4 am, finished after — the
+ * close ran on the first call after the turn and left it out) RE-RANKS that day ONCE more: penthouseStep is idempotent (m/ph_<game>_<day>), so
+ * this can only ADD a PENTHOUSE (the late 50th finisher opening the day, a late better score), never take one away — the marker's winners are
+ * the UNION. A day not closed yet is left to its close. → { game, day, reranked, n, winners (all of them), added } | null (not closed)
+ */
+export async function recloseDay({ game, day, now = Date.now() }) {
+  const base = `dly/${game}/${day}`;
+  const cur = await val(`${base}/c`);
+  if (!cur || cur.st !== 'done') return null;
+  const [scores, gated] = await Promise.all([val(`${base}/r`), val(`${base}/x`)]);
+  const counting = {};
+  for (const [pid, v] of Object.entries(scores || {})) if (!(gated && gated[pid])) counting[pid] = v;
+  const cart = dailyOf(game);
+  const now1 = penthouseWinners(counting, (cart && cart.better) || 'high');
+  const had = new Set(Array.isArray(cur.w) ? cur.w : []);
+  const added = now1.filter(pid => !had.has(pid));
+  if (added.length) {
+    const fOpen = await founderOpen(now).catch(() => false);
+    for (const pid of added) {
+      let got = null;
+      await ref(`pstats/${pid}`).transaction(s => { got = penthouseStep(s, { game, day, now, founderOpen: fOpen }); return got.skip ? undefined : got.next; });
+      if (got && !got.skip) await bumpOwners(got.items, false, got.ach).catch(() => {});
+    }
+  }
+  const w = [...had, ...added], n = Object.keys(counting).length;
+  await ref(`${base}/c`).update({ n, ...(w.length ? { w } : {}), ra: now });
+  return { game, day, reranked: true, n, winners: w, added };
+}
+
 /** one day of one daily: claim its marker, rank its counting finishers, grant the winners → { game, day, closed, n, winners } */
 export async function closeDay({ game, day, now = Date.now() }) {
   const base = `dly/${game}/${day}`;

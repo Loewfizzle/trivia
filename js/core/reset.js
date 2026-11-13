@@ -14,7 +14,7 @@ import { levelOf, emblemRank } from './levels.js';
 import { countedPlays } from './progress.js';
 
 /** the progress fields of pstats/{pid} that the reset clears */
-export const RESET_STATS = Object.freeze(['xp', 'xw', 'dp', 'g', 'gw', 'wk', 'b', 'day', 'gd', 'pa', 'ac', 'dl', 'st', 'cp']);   // (BOARD 2.0 A: + xw — this week's XP, dp — the daily points; FR7 FIXES B — E4, the owner: + cp — COUNTED PLAYS: a veteran is listed again after 3 counted plays, like everyone)
+export const RESET_STATS = Object.freeze(['xp', 'xw', 'dp', 'g', 'gw', 'wk', 'b', 'day', 'pd', 'gd', 'pa', 'ac', 'dl', 'st', 'cp']);   // (FR7 FIXES C: + pd — the day before's counters, THE ONE DAY LINE)   // (BOARD 2.0 A: + xw — this week's XP, dp — the daily points; FR7 FIXES B — E4, the owner: + cp — COUNTED PLAYS: a veteran is listed again after 3 counted plays, like everyone)
 
 /** one player's stats after the reset (null stays null) */
 export function resetStats(s) {

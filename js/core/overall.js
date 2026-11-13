@@ -10,6 +10,7 @@ import { POINT_DAILIES, pointsValues } from './daily-points.js';
 export function overallValues(stats, now) {
   const s = stats || {}, pos = v => (v > 0 ? v : null), wk = weekKey(now);
   const xw = s.xw && s.xw.x > 0 ? { [s.xw.wk]: s.xw.x } : {};
+  if (s.xw && s.xw.p && s.xw.p.wk && s.xw.p.x > 0) xw[s.xw.p.wk] = s.xw.p.x;   // (THE ONE DAY LINE: the week before, kept for a late payment)
   const out = { xp: { all: pos(s.xp || 0), week: pos(weekXp(s, now)), weeks: xw } };
   for (const g of [null, ...POINT_DAILIES]) {
     const v = pointsValues(s.dp, g);

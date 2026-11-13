@@ -18,7 +18,6 @@ import { serverNow } from '../firebase.js';
 import { loadProfile } from '../identity.js';
 import { takeLayer, onCloseAll } from '../ui/layers.js';
 import { holdCity } from '../ui/city-hold.js';
-import { easternParts } from '../core/week.js';
 import { streakDay } from '../core/streak.js';
 import { dailyRow } from '../core/daily.js';
 import { msToTurn, fmtCountdown } from '../daily/clock.js';
@@ -323,7 +322,7 @@ function openScreen(tab0) {
     let turned = false;
     const draw = () => {
       if (!els.next || !els.next.isConnected) return;
-      const t = serverNow(), ms = msToTurn(easternParts(t), t % 1000);
+      const t = serverNow(), ms = msToTurn(t);
       els.next.textContent = `NEW DAILIES IN ${fmtCountdown(ms)}`;
       // DFIX2 (finding 4): the countdown reaching zero turns the screen over itself — a fresh `today` (the tickets back to PLAY), no reload
       if (ms <= 1000 && !turned) { turned = true; turnNow(); }

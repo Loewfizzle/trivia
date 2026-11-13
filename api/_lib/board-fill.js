@@ -60,7 +60,9 @@ export async function boardsBackfill({ confirm = false, now = Date.now() } = {})
   const plays = countedPlaysFromRecords({ results: results || {}, daily });
   const profs = (await val('profiles')) || {};
   const listedNow = pids.filter(pid => !boardHidden(profs[pid], stats[pid], minMatches())).length;
-  const listedAfter = pids.filter(pid => !boardHidden(profs[pid], { ...stats[pid], cp: plays[pid] || 0 }, minMatches())).length;
+  // (FR7 FIXES C — S4: COUNTED PLAYS = the larger of the live count + the rebuilt one — a back-fill never takes a counted play away)
+  const cpOf = (cur, pid) => Math.max(Number(cur && cur.cp) || 0, plays[pid] || 0);
+  const listedAfter = pids.filter(pid => !boardHidden(profs[pid], { ...stats[pid], cp: cpOf(stats[pid], pid) }, minMatches())).length;
   const hold = holdemFromRecords({ results: results || {}, wk });
   const preview = { wk, players: pids.length, weekPlayers: Object.keys(week).length, weekXp: Object.values(week).reduce((a, b) => a + b, 0), days: Object.values(daily).reduce((n, g) => n + Object.keys(g).length, 0), pointsPlayers, listedNow, listedAfter,
     holdemPlayers: Object.keys(hold).length, holdemWins: Object.values(hold).reduce((a, e) => a + e.all.tw, 0), resetAt: Number(resetAt) || 0 };
@@ -70,7 +72,7 @@ export async function boardsBackfill({ confirm = false, now = Date.now() } = {})
     let next = null;
     const tx = await ref(`pstats/${pid}`).transaction(cur => {
       if (cur == null) return cur;   // (a transaction's first run may see null — never abort on it: the server retries with the real value)
-      next = { ...cur, xw: filledWeek(cur.xw, week[pid] || 0, wk), cp: plays[pid] || 0 };
+      next = { ...cur, xw: filledWeek(cur.xw, week[pid] || 0, wk), cp: cpOf(cur, pid) };
       if (hold[pid]) Object.assign(next, filledHoldem(cur, hold[pid], wk));   // (HOLD'EM IN THE CITY: THE HOLD'EM BOARD from the records)
       // DAILY POINTS: rebuilt from every counted result on record, then any day + game the live counter already has that the read missed (a
       // finish during the run) — the same pure step, so a second run lands on the same numbers

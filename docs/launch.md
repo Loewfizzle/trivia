@@ -5,14 +5,31 @@ NOTES — NOV 12 (afternoon)"): **THE LAUNCH** comes first and the repo stays PU
 really coming. Nothing here was run by a pass — every step is a tap or a command for the owner. Anti-cheat never depends on the code
 being secret (the server checks + replays every result), so nothing in THE LAUNCH waits on THE PRIVATE FLIP.
 
-What the code already does for you (FR7 FIXES A + B): the reset stamps THE RESET EPOCH (a back-fill pressed later never brings old wins
+What the code already does for you (FR7 FIXES A + B + C): the reset stamps THE RESET EPOCH (a back-fill pressed later never brings old wins
 back), carries every freeze a player holds into their new streak, clears COUNTED PLAYS (a veteran is listed on the boards again after 3
 counted plays, like everyone), and gives FOUNDING MEMBER to nobody new once the window is closed.
 
 ## 1. THE LAUNCH (the phone + /admin — ~15 minutes)
 
-Pick a morning: the reset goes **just after 4 am Eastern** (the streak day turns at 4 am — a reset mid-day wipes a half-done day's
-sweep) and **with no room live**.
+### THE RESET MORNING — the order (Grok's PROGRESSION + CALENDAR review, Nov 12; written in FR7 FIXES C)
+
+**A MONDAY, a few minutes after 4:00 am Eastern** — never 12–3:59 am (that is still SUNDAY's day: the streak, the dailies, the ceiling +
+since FR7 FIXES C the WEEK all turn at 4:00 am Eastern wall clock — THE ONE DAY LINE), never mid-week (Monday 4 am is when the weekly goal,
+THIS WEEK's boards + XP-this-week start fresh anyway — a mid-week reset leaves a half week).
+
+1. **Open the dailies once** (the DAILY screen on your phone) — the first call after 4 am runs yesterday's CLOSE (PENTHOUSE for Sunday's
+   final finishers), so Sunday is settled before the reset.
+2. **Nobody mid-daily** — a run started before the reset and finished after it is not paid (FR7 FIXES C — S4), so wait out anyone you know
+   is playing (/admin → THE DAILIES → TODAY'S PLAYERS).
+3. **ROOMS OPEN = 0** — the radio's LEDGER (step 2 below). A match that finishes before the reset and is reported after it is never paid
+   (M1) — nobody should be mid-match.
+4. **PREVIEW = 0 items removed** (/admin → Progress reset → PREVIEW — step 3 below).
+5. **RESET** (type `RESET` → CONFIRM — step 4 below; write the backup stamp down).
+6. **Close the FOUNDER window AT ONCE** (step 5 below).
+7. **Check on a fresh tab** (step 6 below) — the freezes you held now SHOW on the streak card before your first play (FR7 FIXES C — S5).
+8. **Only then tell people.**
+
+The taps in detail:
 
 1. **The day before — clean up (optional).** /admin → **Test players** → FROM THE FIRST → review the pre-ticked rows (test-looking names,
    no nights played) → PREVIEW → CONFIRM. Nothing is removed without CONFIRM. (Real friends are never pre-ticked by a 0-nights rule alone.)
@@ -32,8 +49,9 @@ sweep) and **with no room live**.
    - Your streak: 0 days, but the freezes you held are still there (the streak card).
    - THE BOARD (`/board`): every tab empty ("be the first") — the XP board, DAILIES, OVERCLOCK, PRISM, HOLD'EM.
    - The radio's LEDGER: FOUNDER WINDOW closed, the holders' count.
-   - (/admin → **The boards** → PREVIEW is now safe to press at any time — THE RESET EPOCH: it only rebuilds from after the reset. It isn't
-     needed.)
+   - (/admin → **The boards** → PREVIEW + CONFIRM are safe to press at any time — THE RESET EPOCH: it only rebuilds from after the reset;
+     since FR7 FIXES C (S4) it never takes a COUNTED PLAY away (the larger of the live count + the rebuilt one) and a daily STARTED before the
+     reset is never paid, so the live numbers + the rebuilt ones agree. It isn't needed.)
 7. **Known after the reset:** the "X% of players have this" line on an item reads high for a while (the player count starts again from
    zero, the item counts don't) — it settles as people play. A player's level rewards are never granted twice on the re-climb.
 8. **THE EDGE CACHE — ✅ DONE EARLY (THE CDN HOTFIX, Nov 12, the same evening):** Vercel's dashboard showed the free plan's edge requests at

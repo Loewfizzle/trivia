@@ -39,7 +39,7 @@ const NOW = Date.UTC(2026, 9, 14, 23, 0, 0);       // Wed 2026-10-14, 7 pm Easte
 const DAY = 86_400_000;
 let clock = NOW;
 const tick = (ms = 60_000) => (clock += ms);
-const NODES = ['pkc', 'pkx', 'pkch', 'profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'errlog', 'wx', 'phonelog', 'flags', 'members', 'seats'];
+const NODES = ['pkc', 'pkx', 'pkch', 'profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'errlog', 'wx', 'phonelog', 'flags', 'members', 'seats', 'progress'];
 
 before(async () => {
   await ref('/').update(Object.fromEntries(NODES.map(n => [n, null])));
@@ -366,9 +366,56 @@ test('offline retries and every phone reporting never count a match twice', asyn
   assert.equal((await stats('u-q1')).xp, xp);
   // a forged room that "finishes" a second match moments later doesn't count for the same player
   const quick = await seedRoom('bluff', uids);
-  const q = await report('u-q1', quick, clock + 6000);
-  assert.equal(q.outcome.skip, 'too_soon');
-  assert.equal((await stats('u-q1')).g.bluff.p, 1);
+  // (FR7 FIXES C — M4: "too soon" is no longer sealed DONE — the report waits: 425 + retryAfter, the outcomes so far kept; a resend after the
+  //  gap credits it, exactly once)
+  const e = await report('u-q1', quick, clock + 6000).then(() => null, x => x);
+  assert.equal(e && e.status, 425); assert.equal(e.code, 'too_soon'); assert.ok(e.extra.retryAfter >= 20000);
+  assert.equal((await val(`results/${quick.code}_${quick.matchId}`)).st, 'retry');
+  assert.equal((await stats('u-q1')).g.bluff.p, 1, 'not counted yet');
+  const r2 = await report('u-q1', quick, clock + 6000 + e.extra.retryAfter);
+  assert.equal(r2.status, 'counted');
+  assert.equal((await stats('u-q1')).g.bluff.p, 2, 'counted on the resend');
+  const o = (await val(`results/${quick.code}_${quick.matchId}`)).o;
+  assert.ok(Object.values(o).every(x => !x.skip), "every player's outcome kept (the first try's + the resend's)");
+  for (const u of uids) assert.equal((await stats(u)).g.bluff.p, 2, `${u} counted once for the second match`);
+  clock += 6000 + e.extra.retryAfter;
+  tick();
+});
+
+test('FR7 FIXES C — THE ONE DAY LINE (M1): a match is credited by its MATCH TIME — a Friday 11:30 pm match reported at 4:30 am lands on Friday', async () => {
+  const uids = ['u-odl1', 'u-odl2'];
+  for (const u of uids) await ensure(u, u.slice(2).toUpperCase());
+  const save = clock;
+  clock = Date.UTC(2026, 10, 14, 4, 30);                         // Fri Nov 13 2026, 11:30 pm EST — the match finishes
+  const room = await seedRoom('bluff', uids);
+  const r = await report('u-odl1', room, Date.UTC(2026, 10, 14, 9, 30));   // Sat 4:30 am EST — the phone was offline
+  assert.equal(r.status, 'counted');
+  const st = (await stats('u-odl1')).st;
+  assert.equal(st.d, 'd20261113', 'the streak marks FRIDAY (the report came after 4 am)');
+  assert.equal((await stats('u-odl1')).day.k, 'd20261113');
+  clock = save + 10 * 60_000;
+});
+
+test("FR7 FIXES C — THE ONE DAY LINE (M1): a match that FINISHED BEFORE THE PROGRESS RESET is never paid — /api/report AND the dealer's path", async () => {
+  const uids = ['u-pre1', 'u-pre2'];
+  for (const u of uids) await ensure(u, u.slice(2).toUpperCase());
+  const room = await seedRoom('bluff', uids);                     // finished at `clock`
+  const before = await stats('u-pre1');
+  await ref('progress/resetAt').set(clock + 60_000);              // the reset pressed a minute later
+  try {
+    const r = await report('u-pre1', room, clock + 120_000);
+    assert.equal(r.status, 'before_reset'); assert.equal(r.outcome, null);
+    const res = await val(`results/${room.code}_${room.matchId}`);
+    assert.equal(res.st, 'done'); assert.equal(res.pre, 1, 'sealed — never retried');
+    assert.deepEqual(await stats('u-pre1'), before, 'nothing paid');
+    assert.equal((await report('u-pre2', room, clock + 180_000)).status, 'before_reset', 'the other phone told the same, quietly');
+    // the dealer: a HOLD'EM match whose own end is before the epoch → 'skipped', sealed
+    const { reportMatch } = await import('../../api/_lib/holdem-store.js');
+    const st = await reportMatch('HPRE', { id: 'mpre1', m: { endAt: clock + 30_000, startAt: clock - 600_000 } }, clock + 120_000);
+    assert.equal(st, 'skipped');
+    const hr = await val('results/HPRE_mpre1');
+    assert.equal(hr.pre, 1); assert.equal(hr.src, 'dealer');
+  } finally { await ref('progress/resetAt').remove(); await ref('results/HPRE_mpre1').remove(); }
   tick();
 });
 
@@ -616,7 +663,7 @@ test('THE PROGRESS RESET: a backup + FOUNDING MEMBER first, progress + THE BOARD
     assert.match(dry.line, /profiles · [\d,]+ XP · \d+ board records? · \d+ achievements? · \d+ streaks? · \d+ counted plays? will be reset; 0 items removed/);   // (FR7 FIXES B — E4: + the counted plays)
     assert.ok((await val(`pstats/${a.pid}/xp`)) > 0 && (await val('backups')) == null, 'the preview wrote nothing');
     await rejects(adminAction('u-rsown', { action: 'progressReset', confirm: true, typed: 'reset please' }), 400, 'type_reset');
-    const r = await adminAction('u-rsown', { action: 'progressReset', confirm: true, typed: 'RESET' });
+    const r = await adminAction('u-rsown', { action: 'progressReset', confirm: true, typed: 'RESET' }, clock);   // (FR7 FIXES C: the reset on the test's clock — a match after it is after it)
     assert.ok(r.done && /^b\d+$/.test(r.stamp) && r.founders >= 1, `done (backup ${r.stamp}, ${r.founders} founder cards first)`);
     const bk = await val(`backups/${r.stamp}`);
     assert.ok(bk && bk.s[a.pid].xp === before.xp && bk.lb && bk.p[a.pid].x === before.xp, 'THE BACKUP holds the progress as it was');
@@ -645,7 +692,7 @@ test('THE PROGRESS RESET: a backup + FOUNDING MEMBER first, progress + THE BOARD
     assert.ok(o && !(o.items || []).some(id => itA[id]), `no owned reward re-granted (${JSON.stringify(o && o.items)})`);
     assert.ok(o && (o.nx === null || LEVEL_REWARDS.some(x => x.lvl === o.nx && !itA[x.item])), `the tease: level ${o && o.nx} — a reward not owned yet`);
     // a second run: harmless
-    const r2 = await adminAction('u-rsown', { action: 'progressReset', confirm: true, typed: 'RESET' });
+    const r2 = await adminAction('u-rsown', { action: 'progressReset', confirm: true, typed: 'RESET' }, clock);
     assert.ok(r2.done && r2.preview.items === 0 && !(await val(`pstats/${a.pid}/xp`)) && (await val(`profiles/${a.pid}/x`)) === 0, 'a second run: only the new progress goes (the re-climb), never an item');
     assert.deepEqual((await val(`pstats/${a.pid}`)).it, itA, '…and still takes no item');
     const bl = await adminAction('u-rsown', { action: 'progressBackups' });
@@ -677,7 +724,7 @@ test('FR7 FIXES B — E3 + E4: a reset after FOUNDING MEMBER closed grants no ne
   try {
     const dry = await adminAction('u-e3own', { action: 'progressReset' });
     assert.match(dry.line, /counted plays? will be reset/, `the dry run lists the counted plays (${dry.line})`);
-    const r = await adminAction('u-e3own', { action: 'progressReset', confirm: true, typed: 'RESET' });
+    const r = await adminAction('u-e3own', { action: 'progressReset', confirm: true, typed: 'RESET' }, clock);
     assert.ok(r.done, 'reset done');
     assert.equal(r.founders, 0, 'no founder sweep while the window is closed');
     assert.equal(await val(`pstats/${late.pid}/it/card-founder`), null, 'the latecomer did NOT get FOUNDING MEMBER');

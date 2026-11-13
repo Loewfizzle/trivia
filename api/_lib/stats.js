@@ -16,7 +16,17 @@ import { noteRecent } from './friends.js';
 
 // one match per player per this long — a real match takes minutes; this stops a forged room from farming wins
 export const MIN_MATCH_GAP_MS = Number(process.env.MATCH_GAP_MS ?? 45_000);
-const step = (stats, key, gid, row, n, now, outage, ctx) => matchStep(stats, { key, gid, row, n, now, gap: MIN_MATCH_GAP_MS, outage, ctx });
+const step = (stats, key, gid, row, n, now, at, outage, ctx) => matchStep(stats, { key, gid, row, n, now, at, gap: MIN_MATCH_GAP_MS, outage, ctx });
+/** THE ONE DAY LINE (FR7 FIXES C — M4): an outcome that must be tried again (the 45 s gap's `too_soon`, a transaction that didn't commit) — the
+ *  result is then NOT done: the caller answers 425 + retryAfter and keeps the outcomes so far (a retry skips the credited ones as 'counted') */
+export const RETRY_SKIPS = Object.freeze(['too_soon', 'busy']);
+export const needsRetry = outcomes => Object.values(outcomes || {}).some(o => o && RETRY_SKIPS.includes(o.skip));
+/** the outcomes of this try over the ones kept from an earlier try: a player credited before (now skipped 'counted') keeps the earlier one */
+export function mergeOutcomes(prev, now) {
+  const out = { ...(prev || {}) };
+  for (const [pid, o] of Object.entries(now || {})) if (!(o && o.skip === 'counted' && out[pid] && !out[pid].skip)) out[pid] = o;
+  return out;
+}
 
 /** The facts the achievements need that only the server knows (the room's meta, the clock, the other players). */
 function factsFor(uid, ex, pids, now, room) {
@@ -33,10 +43,12 @@ function factsFor(uid, ex, pids, now, room) {
 export const outageDays = async () => (await val('streak/outage')) || {};
 
 /**
- * ex: core/match-report.js#extractMatch output; pids: { uid: pid }.
+ * ex: core/match-report.js#extractMatch output; pids: { uid: pid }. at = THE MATCH TIME (THE ONE DAY LINE — the server-stamped finish:
+ * night.at / the dealer's end; clamped to ≤ now) — the streak day, the week, the ceiling + the boards' week are the match's, never the report's.
  * → { pid: outcome } where outcome = { gid, rank, win, xp{gain, parts, from, to}, rk{from, to}, pbs[], ranks[], skip? }
  */
-export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
+export async function applyMatch(key, ex, pids, now = Date.now(), room = null, at = now) {
+  at = Math.min(Number(at) || now, now);
   const outcomes = {};
   const outage = await outageDays().catch(() => ({}));
   const fOpen = await founderOpen(now).catch(() => false);
@@ -45,7 +57,7 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
     if (!pid) return;
     let res = null;
     const tx = await ref(`pstats/${pid}`).transaction(cur => {
-      res = step(cur, key, ex.gid, row, ex.n, now, outage, { ...factsFor(uid, ex, pids, now, room), founderOpen: fOpen, win: (room && room.win) || null });
+      res = step(cur, key, ex.gid, row, ex.n, now, at, outage, { ...factsFor(uid, ex, pids, at, room), founderOpen: fOpen, win: (room && room.win) || null });
       return res.skip ? undefined : res.next;
     });
     if (!tx.committed || !res || res.skip) {
@@ -64,13 +76,13 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
     if (listed) {
       await Promise.all(watch.map(async b => {
         const def = boardDef(b);
-        const old = boardPaths(pid, res.prevStats, { now, only: ex.gid });
+        const old = boardPaths(pid, res.prevStats, { now: at, only: ex.gid });
         const oa = old[`lb/${b}/all/${pid}`], ow = old[`lb/${b}/${res.wk}/${pid}`];
-        before[b] = { all: oa != null ? await rankOf(b, 'all', oa, now) : null, week: ow != null ? await rankOf(b, res.wk, ow, now) : null, def };
+        before[b] = { all: oa != null ? await rankOf(b, 'all', oa, at) : null, week: ow != null ? await rankOf(b, res.wk, ow, at) : null, def };
       }));
     }
     const r0 = emblemRank(res.from), r1 = emblemRank(stats.xp);
-    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/l`]: levelOf(stats.xp), [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, [`profiles/${pid}/sd`]: (stats.st && stats.st.d) || null, [`profiles/${pid}/m`]: played, ...boardPaths(pid, stats, { hidden: !listed, now, only: ex.gid }), ...overallPaths(pid, stats, { hidden: hiddenOf(prof, stats), now }) };   // (BOARD 2.0 A: THE OVERALL BOARD in the same update as the XP)
+    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/l`]: levelOf(stats.xp), [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, [`profiles/${pid}/sd`]: (stats.st && stats.st.d) || null, [`profiles/${pid}/m`]: played, ...boardPaths(pid, stats, { hidden: !listed, now: at, only: ex.gid }), ...overallPaths(pid, stats, { hidden: hiddenOf(prof, stats), now: at }) };   // (BOARD 2.0 A: THE OVERALL BOARD in the same update as the XP)
     await ref('/').update(patch);
     // "X% OF PLAYERS HAVE THIS": the owners' counts (best effort — a count is display only)
     await bumpOwners(res.items, !matchCount(res.prevStats), res.ach).catch(e => console.warn('owners', e && e.message));
@@ -79,12 +91,12 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
     if (listed && playCount(res.prevStats) < minMatches()) await syncBoards(pid, { now });
     const ranks = [];
     if (listed) {
-      const paths = boardPaths(pid, stats, { now, only: ex.gid });
+      const paths = boardPaths(pid, stats, { now: at, only: ex.gid });
       await Promise.all(watch.map(async b => {
         const va = paths[`lb/${b}/all/${pid}`], vw = paths[`lb/${b}/${res.wk}/${pid}`];
         if (va == null && vw == null) return;
-        ranks.push({ b, all: { rank: await rankOf(b, 'all', va, now), prev: before[b] ? before[b].all : null },
-          week: { rank: await rankOf(b, res.wk, vw, now), prev: before[b] ? before[b].week : null } });
+        ranks.push({ b, all: { rank: await rankOf(b, 'all', va, at), prev: before[b] ? before[b].all : null },
+          week: { rank: await rankOf(b, res.wk, vw, at), prev: before[b] ? before[b].week : null } });
       }));
     }
     outcomes[pid] = {

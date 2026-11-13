@@ -16,19 +16,20 @@ const manifest = JSON.parse(readFileSync('data/pulse/manifest.json', 'utf8'));
 const pulseCounts = Object.fromEntries(manifest.songs.map(s => [s.id, s.counts]));
 const U = ['ua', 'ub', 'uc', 'ud'];
 
-test('weeks start Monday 00:00 Eastern, across both DST changes', () => {
-  // Sun 2026-10-18 23:59 EDT = Mon 03:59 UTC → still the week of Mon 10-12
-  assert.equal(weekKey(Date.UTC(2026, 9, 19, 3, 59)), 'w20261012');
-  // Mon 2026-10-19 00:00 EDT = 04:00 UTC → the new week
-  assert.equal(weekKey(Date.UTC(2026, 9, 19, 4, 0)), 'w20261019');
-  // after DST ends (Nov 1): Mon 2026-11-02 00:00 EST = 05:00 UTC
-  assert.equal(weekKey(Date.UTC(2026, 10, 2, 4, 59)), 'w20261026');
-  assert.equal(weekKey(Date.UTC(2026, 10, 2, 5, 0)), 'w20261102');
-  // spring forward (Mar 8 2026): Mon 2026-03-09 00:00 EDT = 04:00 UTC
-  assert.equal(weekKey(Date.UTC(2026, 2, 9, 3, 59)), 'w20260302');
-  assert.equal(weekKey(Date.UTC(2026, 2, 9, 4, 0)), 'w20260309');
-  assert.equal(weekEndsAt(Date.UTC(2026, 9, 14, 12)), Date.UTC(2026, 9, 19, 4, 0));
-  assert.equal(weekEndsAt(Date.UTC(2026, 9, 30, 12)), Date.UTC(2026, 10, 2, 5, 0));
+test('weeks start MONDAY 4:00 AM Eastern (THE ONE DAY LINE — S1), across both DST changes', () => {
+  // Mon 2026-10-19 00:00 EDT (04:00 UTC) is still last week now — the week turns with the streak day, at 4 am
+  assert.equal(weekKey(Date.UTC(2026, 9, 19, 4, 0)), 'w20261012');
+  // Mon 2026-10-19 03:59 EDT = 07:59 UTC → still the week of Mon 10-12; 04:00 EDT = 08:00 UTC → the new week
+  assert.equal(weekKey(Date.UTC(2026, 9, 19, 7, 59)), 'w20261012');
+  assert.equal(weekKey(Date.UTC(2026, 9, 19, 8, 0)), 'w20261019');
+  // after DST ends (Nov 1): Mon 2026-11-02 04:00 EST = 09:00 UTC
+  assert.equal(weekKey(Date.UTC(2026, 10, 2, 8, 59)), 'w20261026');
+  assert.equal(weekKey(Date.UTC(2026, 10, 2, 9, 0)), 'w20261102');
+  // spring forward (Mar 8 2026): Mon 2026-03-09 04:00 EDT = 08:00 UTC
+  assert.equal(weekKey(Date.UTC(2026, 2, 9, 7, 59)), 'w20260302');
+  assert.equal(weekKey(Date.UTC(2026, 2, 9, 8, 0)), 'w20260309');
+  assert.equal(weekEndsAt(Date.UTC(2026, 9, 14, 12)), Date.UTC(2026, 9, 19, 8, 0));
+  assert.equal(weekEndsAt(Date.UTC(2026, 9, 30, 12)), Date.UTC(2026, 10, 2, 9, 0));
   assert.equal(dayKey(Date.UTC(2026, 9, 19, 3, 59)), 'd20261018');
   // a year end: Thu 2027-01-01 is in the week of Mon 2026-12-28
   assert.equal(weekKey(Date.UTC(2027, 0, 1, 15)), 'w20261228');

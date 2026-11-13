@@ -9,9 +9,9 @@
 //   st = { n (the run, days played), d ('d20261102' — the last day played), b (best), f (freezes held), fn (the run length that earns the
 //          next freeze), h { day: 1 played · 2 frozen · 3 outage · 4 won back } (the last 15 days), w (a WIN IT BACK in progress:
 //          { n: the run lost, B: the break day, s: the day they came back, k: plays so far }) | null, wm ('m202611' — the month one was won back) }
-import { dayKey } from './week.js';
+import { turnDay, turnAt, DAY_TURN_H } from './week.js';
 
-export const DAY_TURN_H = 4;
+export { DAY_TURN_H };
 export const FREEZE = { first: 3, every: 7, hold: 2 };
 export const WIN_BACK = { plays: 3, days: 3 };
 // (THE VAULT 1B — NAMES ONLY TO OWNERS: WHICH items each milestone gives is the server's — api/_lib/catalog.js → registerMilestoneItems)
@@ -28,20 +28,18 @@ export const MILESTONES = [
 export function registerMilestoneItems(map) { for (const m of MILESTONES) if (map[m.n]) m.items = [...map[m.n]]; }
 const KEEP_DAYS = 15;
 
-/** The streak day of an instant: the Eastern date, turning at 4 am ('d20261102' from Nov 2 4:00 am to Nov 3 3:59 am). */
-export const streakDay = ms => dayKey(ms - DAY_TURN_H * 3600_000);
+/** The streak day of an instant: the Eastern date, turning at 4:00 AM America/New_York WALL CLOCK ('d20261102' from Nov 2 4:00 am to Nov 3
+ *  3:59 am) — THE ONE DAY LINE (FR7 FIXES C, M3): it was `dayKey(ms − 4 h)`, which turned at 5 am the day the clocks spring forward and at
+ *  3 am the day they fall back (core/week.js#turnDay). */
+export const streakDay = ms => turnDay(ms);
 /** 'd20261102' ↔ a day number (days since 1970) — plain calendar arithmetic. */
 export const dayNum = dk => { const s = String(dk); return Math.round(Date.UTC(+s.slice(1, 5), +s.slice(5, 7) - 1, +s.slice(7, 9)) / 864e5); };
 export const dayOf = num => { const d = new Date(num * 864e5); const p = x => String(x).padStart(2, '0'); return `d${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}`; };
 /** DM1 — THE THROWAWAY GATE (PURE — moved from api/daily.js, PD-3 Group 0): a profile made at `createdAt` counts on `day` only if it existed before
  *  that day's 4 am Eastern start (no creation time = an old profile = counts) */
 export const countsOn = (createdAt, day) => !(Number(createdAt) > 0) || Number(createdAt) < dayStartAt(day);
-/** DM1 — the INSTANT a streak day starts: its 4 am Eastern (08:00 UTC in summer time, 09:00 UTC in winter — DST-safe: the clocks change at 2 am) */
-export function dayStartAt(dk) {
-  const base = dayNum(dk) * 864e5;
-  for (const h of [8, 9]) { const t = base + h * 3600e3; if (streakDay(t) === dk && streakDay(t - 1) !== dk) return t; }
-  return base + 9 * 3600e3;
-}
+/** DM1 — the INSTANT a streak day starts: its 4:00 am America/New_York wall clock (core/week.js#turnAt — THE ONE DAY LINE) */
+export const dayStartAt = dk => turnAt(dk);
 const monthOf = dk => `m${String(dk).slice(1, 7)}`;
 /** The weekday of a streak day (0 = Monday … 6 = Sunday). */
 export const weekdayOf = dk => (new Date(dayNum(dk) * 864e5).getUTCDay() + 6) % 7;
@@ -115,7 +113,7 @@ function winBackPlay(s, D, ev) {
     for (let m = dayNum(w.B); m < w.s; m++) { const mk = dayOf(m); if (!s.h[mk]) s.h[mk] = 4; }
     s.n = w.n + s.n;
     s.wm = monthOf(dayOf(D));
-    ev.restored = { n: s.n };
+    ev.restored = { n: s.n, lost: w.n };
     s.w = null;
   }
 }
@@ -124,8 +122,10 @@ function finish(s, prevN, day, ev) {
   if (!s.h[day]) s.h[day] = 1;
   while (s.n >= s.fn) { if (s.f < FREEZE.hold) { s.f++; ev.freezes++; } s.fn += FREEZE.every; }
   s.b = Math.max(s.b || 0, s.n);
-  // milestones: the run passing them (a WIN IT BACK can pass several at once); a broken run starting over passes nothing new it had
-  ev.milestones = milestonesBetween(ev.broke ? 0 : prevN, s.n).filter(m => !(ev.broke && m.n <= 1));
+  // milestones: the run passing them; a broken run starting over passes nothing new it had. A WIN IT BACK restores the LOST run — only what
+  // lies ABOVE it counts (FR7 FIXES C — S3: a 100+ night run broken + won back paid its milestones — + a second FAVOR — all over again)
+  const from = ev.restored ? Math.max(prevN, ev.restored.lost || 0) : ev.broke ? 0 : prevN;
+  ev.milestones = milestonesBetween(from, s.n).filter(m => !(ev.broke && m.n <= 1));
   s.h = prune(s.h, day);
   return { st: s, ev };
 }
@@ -140,7 +140,9 @@ export function streakView(st, today, outage = null) {
   const isOut = d => !!outage && (outage instanceof Set ? outage.has(d) : !!outage[d]);
   const T = dayNum(today);
   const s = st && st.d ? st : null;
-  let state = 'out', n = 0, freezes = s ? s.f || 0 : 0, winBack = null;
+  // (FR7 FIXES C — S5: THE PROGRESS RESET keeps `st = { f }` — no run, the freezes held; the card shows them before the first play, capped
+  //  at the hold limit like streakPlay — they used to read 0 until then)
+  let state = 'out', n = 0, freezes = s ? s.f || 0 : Math.max(0, Math.min(FREEZE.hold, Math.floor(Number(st && st.f) || 0))), winBack = null;
   const h = { ...((s && s.h) || {}) };
   if (s) {
     const L = dayNum(s.d);

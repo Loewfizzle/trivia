@@ -33,14 +33,16 @@ test('payXp — the total + this week\'s counter; a new week starts at 0', () =>
   assert.equal(weekXp(s, t), 0, 'last week\'s counter reads 0 once the week turned');
 });
 
-for (const [name, sun, mon] of [
-  ['a plain week (Nov 15 → 16, EST)', ET(2026, 11, 15, 23, 59, 5), ET(2026, 11, 16, 0, 0, 5)],
-  ['THE FALL DST WEEK (DST ends Sun Nov 1 2 am → Mon Nov 2, EST)', ET(2026, 11, 1, 23, 59, 5), ET(2026, 11, 2, 0, 0, 5)],
-  ['THE SPRING DST WEEK (DST starts Sun Mar 8 → Mon Mar 9, EDT)', ET(2026, 3, 8, 23, 59, 4), ET(2026, 3, 9, 0, 0, 4)],
+// (THE ONE DAY LINE — S1, FR7 FIXES C: the week turns at MONDAY 4:00 AM ET with the streak day — Sunday night until 4 am is still the old week)
+for (const [name, sun, mon, midnight] of [
+  ['a plain week (Nov 16, EST)', ET(2026, 11, 16, 3, 59, 5), ET(2026, 11, 16, 4, 0, 5), ET(2026, 11, 16, 0, 0, 5)],
+  ['THE FALL DST WEEK (DST ends Sun Nov 1 2 am → Mon Nov 2, EST)', ET(2026, 11, 2, 3, 59, 5), ET(2026, 11, 2, 4, 0, 5), ET(2026, 11, 2, 0, 0, 5)],
+  ['THE SPRING DST WEEK (DST starts Sun Mar 8 → Mon Mar 9, EDT)', ET(2026, 3, 9, 3, 59, 4), ET(2026, 3, 9, 4, 0, 4), ET(2026, 3, 9, 0, 0, 4)],
 ]) {
-  test(`THE WEEK ROLLOVER — Sunday 23:59 → Monday 00:00 ET: ${name}`, () => {
+  test(`THE WEEK ROLLOVER — Monday 3:59 → 4:00 am ET: ${name}`, () => {
     assert.notEqual(weekKey(sun), weekKey(mon));
-    assert.equal(weekKey(sun), weekKey(sun - 6 * 86400e3 + 60e3), 'Sunday 23:59 is still the week that began Monday 00:00');
+    assert.equal(weekKey(midnight), weekKey(sun), 'Monday 00:00 is still last week — the week turns at 4 am');
+    assert.equal(weekKey(sun), weekKey(sun - 6 * 86400e3), 'Monday 3:59 is still the week that began last Monday 4:00');
     let s = matchStep(null, { key: 'a', gid: 'overclock', row: row(1), n: 4, now: sun, gap: 0 }).next;
     const sunX = s.xw.x;
     assert.ok(sunX > 0 && s.xw.wk === weekKey(sun));
@@ -100,7 +102,7 @@ test('THE BACK-FILL — this week rebuilt from the match records + the week\'s d
   const g = rebuildWeekXp({ results: {}, daily: { password: { [day]: { r: { p9: 9 }, s: { p9: t }, x: { p9: 1 } } }, coastclear: { [day]: { r: { p9: 99 }, s: { p9: t }, x: { p9: 1 } } } }, live: ['password', 'coastclear'], wk });
   assert.equal(g.p9, 30);
   assert.deepEqual(filledWeek({ wk, x: 300 }, 200, wk), { wk, x: 300, bf: 1 }, 'the live counter wins when larger (a payment during the run)');
-  assert.deepEqual(filledWeek({ wk: 'w20261102', x: 300 }, 200, wk), { wk, x: 200, bf: 1 }, 'last week\'s counter is not this week\'s');
+  assert.deepEqual(filledWeek({ wk: 'w20261102', x: 300 }, 200, wk), { wk, x: 200, bf: 1, p: { wk: 'w20261102', x: 300 } }, 'last week\'s counter is not this week\'s (kept as the week before — THE ONE DAY LINE)');
 });
 
 // THE GREP: every XP payment goes through payXp; every server file that writes a profile's XP also writes THE OVERALL BOARD (overallPaths) —
