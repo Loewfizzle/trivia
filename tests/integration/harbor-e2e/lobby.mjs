@@ -347,4 +347,31 @@ G('tapfit', async () => {
       ok(got.length >= 1 && got.every(x => x.w >= 44 && x.h >= 44), `B2 — THE CORNER BUTTONS' TAP AREA ≥ 44 × 44 pt · ${name} ${w}×${h}: ${got.map(x => `${x.sel} ${x.w}×${x.h}${x.covered ? ' (covered)' : ''}`).join(' · ') || 'none found'}`);
     } finally { await ctx.close(); }
   }
+  // THE BOARD's TOP REDONE (the owner's iPhone at 390, Nov 12 — "the whole top is messed up"): NO ☰ on THE BOARD (THE PROFILE's rule — ‹ BACK alone in
+  // the top-left corner), the title on its own row, the five tabs on ONE row — the title box, the tab row + the corner buttons never overlap, at the
+  // phones' widths (+ 390 × 664: Safari with its bars) and the desktop, on the app's board + the public /board
+  for (const [w, h] of [[390, 844], [390, 664], [402, 874], [430, 932], [1440, 900]]) for (const mode of ['app', 'public']) {
+    const ctx = await br.createBrowserContext(), p = await ctx.newPage();
+    try {
+      await p.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 900, hasTouch: w < 900 });
+      await p.goto(`${BASE}/tests/integration/board-preview.html?mode=${mode}&g=holdem`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await waitFor(p, "!!document.querySelector('.bd-tabs .bd-tab') && !!document.querySelector('.bd-name')", 'the board', 20000).catch(() => {});
+      await sleep(700);
+      const g = await p.evaluate(() => {
+        const R = el => { if (!el) return null; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden' ? { x: r.left, y: r.top, w: r.width, h: r.height } : null; };
+        const rg = document.createRange(), nm = document.querySelector('.bd-name'); rg.selectNodeContents(nm); const tr = rg.getBoundingClientRect();
+        const tabs = [...document.querySelectorAll('.bd-tabs .bd-tab')].map(R).filter(Boolean);
+        return { title: { x: tr.left, y: tr.top, w: tr.width, h: tr.height }, row: R(document.querySelector('.bd-tabs')), tops: [...new Set(tabs.map(t => Math.round(t.y)))], n: tabs.length,
+          corners: [['back', R(document.querySelector('.bd-back'))], ['music', R(document.querySelector('.music-btn'))], ['menu', R(document.querySelector('.menu-btn'))]].filter(c => c[1]) };
+      });
+      const hit = (a, b) => a && b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+      const bad = [];
+      if (hit(g.title, g.row)) bad.push('the title over the tabs');
+      for (const [k, c] of g.corners) { if (k === 'menu') bad.push('a ☰ on THE BOARD'); if (hit(c, g.title)) bad.push(`${k} over the title`); if (hit(c, g.row)) bad.push(`${k} over the tabs`); }
+      if (g.tops.length !== 1 || g.n !== 5) bad.push(`the tabs on ${g.tops.length} rows (${g.n})`);
+      const back = g.corners.find(c => c[0] === 'back');
+      if (!back || back[1].x > 20 || back[1].y > 24) bad.push(`‹ BACK not in the corner (${back ? `${Math.round(back[1].x)}, ${Math.round(back[1].y)}` : 'none'})`);
+      ok(!bad.length, `THE BOARD's TOP · ${mode} ${w}×${h}: the title (${Math.round(g.title.y)}–${Math.round(g.title.y + g.title.h)}) above the tabs (${g.row ? Math.round(g.row.y) : '—'}, one row of ${g.n}), ‹ BACK in the corner, no ☰${bad.length ? ` — ${bad.join(' · ')}` : ''}`);
+    } finally { await ctx.close(); }
+  }
 });

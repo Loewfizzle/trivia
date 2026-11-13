@@ -51,3 +51,10 @@ export const GRACE_MS = 30000, HIDDEN_MS = 120000;
 export function want() {}
 export function release() {}
 export const lineInfo = () => ({ net: 'parked', wants: [], parked: true, started: false, offset: 0, touches: 0, touchFrom: [], log: [] });
+// (FR6 FIXES A's one write path + THE ERRORS GROUP, Nov 12 night — js/firebase.js's refusal reporter: the stale-host rule + the expected refusals.
+//  The previews write nothing that can be refused — no-ops, so a page importing room.js / host.js loads here too)
+export const refusals = () => [];
+export const hostRefusals = () => [];
+export function setHostGone() {}
+export function expectRefusal() {}
+export async function syncTimeNoSocket() { return null; }   // (/api/time's offset — the previews keep the page's own clock)

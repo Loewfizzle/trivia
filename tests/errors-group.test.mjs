@@ -71,3 +71,11 @@ test('THE LOST TAPS: the SCORES tab\'s tap area 44 pt + every answer\'s repaint 
   assert.match(f, /xb\.addEventListener\('pointerup', e => \{/); assert.match(f, /tapHandled\(\); close\(\);/);
   assert.match(f, /const close = \(\) => \{ if \(closed\) return; closed = true;/, 'close() runs once (the pointer-up + the click)');
 });
+
+test('the previews\' fake firebase.js carries every export the real one has (a missing one = every look preview down — found with expectRefusal)', () => {
+  const names = src => new Set([...src.matchAll(/^export (?:async )?(?:function\*?|const|let|class) ([A-Za-z_$][\w$]*)/gm)].map(m => m[1]).concat([...src.matchAll(/^export const ([A-Za-z_$][\w$]*)\s*=.*?, ([A-Za-z_$][\w$]*)\s*=/gm)].flatMap(m => [m[1], m[2]])));
+  const real = names(read('js/firebase.js')), fake = names(read('tests/integration/fake-firebase.js'));
+  const SKIP = new Set(['IDB_PROBE_DBS', 'IDB_PROBE_MS', 'idbAnswers']);   // (the boot's IndexedDB probe — firebase.js's own, never imported by a page module)
+  const missing = [...real].filter(n => !fake.has(n) && !SKIP.has(n));
+  assert.deepEqual(missing, [], `tests/integration/fake-firebase.js lacks: ${missing.join(', ')}`);
+});

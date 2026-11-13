@@ -1042,6 +1042,8 @@ body.nd-on .music-btn, body.nd-on[data-theme] .music-btn { right: calc(var(--saf
 .nd-hover.on { opacity: 1; }
 /* LOBBY 2.0 A - THE PROFILE header (the owner 2C review): only BACK + the music mute; the menu button leaves the corner on the profile */
 body.pf-on .menu-btn { display: none !important; }
+/* (THE BOARD's TOP REDONE — the owner's iPhone, Nov 12: THE BOARD follows THE PROFILE's rule — no ☰, ‹ BACK takes the top-left corner: css/board.css) */
+body.bd-on .menu-btn { display: none !important; }
 /* (OC8 — split corners: with no ☰ on the profile, BACK takes the top-left corner itself) */
 body.pf-on .bar { padding-left: 0; }
 

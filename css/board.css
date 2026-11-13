@@ -38,9 +38,12 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 }
 
 /* ---- the header: back, the title in neon over Art Deco rules (PD-1 GROUP 0: the emblem button is gone — the bar = ☰ · ‹ · the music) ---- */
-.bd-head { position: relative; display: grid; grid-template-columns: 44px 1fr; grid-template-rows: 44px auto; align-items: center; padding-right: 0; }
+/* (THE BOARD's TOP REDONE — the owner's iPhone at 390, Nov 12: "the whole top is messed up": NO ☰ on THE BOARD (THE PROFILE's rule) — ‹ BACK alone in
+   the TOP-LEFT corner, the corner button's size + inset + its 44 pt tap area, the music TOP-RIGHT as before; the title ALWAYS on its own row under the
+   corner row (a phone's Safari is ~660 pt tall with its bars: the old max-height rule squeezed that row to 6 px and the title spilled over the tabs)) */
+.bd-head { position: relative; display: grid; grid-template-columns: 1fr; grid-template-rows: 44px auto; align-items: center; padding-right: 0; }
 .bd-back {
-  grid-row: 1; grid-column: 1; position: relative; width: var(--cb, 36px); height: var(--cb, 36px); display: grid; place-items: center; border-radius: 50%;
+  position: fixed; z-index: 70; top: calc(var(--safe-t) + 10px); left: calc(var(--safe-l) + 12px); margin: 0; width: var(--cb, 36px); height: var(--cb, 36px); display: grid; place-items: center; border-radius: 50%;
   color: rgba(255, 240, 220, 0.9); font: 400 25px/1 var(--font-ui); text-decoration: none; padding-bottom: 3px; box-sizing: border-box;
   background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 60%), rgba(20, 12, 16, 0.55);
   border: 1px solid rgba(255, 230, 200, 0.18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 18px rgba(0, 0, 0, 0.35);
@@ -217,9 +220,7 @@ button.bd-open:focus-visible { outline: 2px solid var(--bd-gold); outline-offset
 }
 /* phones: the corner buttons (music, settings) own the top row, the title sits under it */
 @media (max-width: 899px) {
-  /* (OC8 — split on every screen: ☰ owns the top-LEFT corner now — BACK + your emblem start right of it) */
-  .bd-head { grid-template-columns: calc(44px + var(--cb-room) - 16px) 1fr; }
-  .bd-back { margin-left: calc(var(--cb-room) - 16px); }
+  /* (THE BOARD's TOP REDONE: ‹ BACK owns the top-left corner — fixed — the corner row stays clear for it + the music) */
   .bd-head { grid-template-rows: 44px auto; }
   /* (PD-1 GROUP 0: THE BOARD's title on its OWN row, clear air under the corner row — never touching ☰ · ‹ · the music) */
   .bd-title { grid-row: 2; padding-top: 0; margin-top: 12px; }
@@ -230,9 +231,8 @@ button.bd-open:focus-visible { outline: 2px solid var(--bd-gold); outline-offset
   .bd-kicker { display: none; }
   .bd-name { margin-top: 2px; font-size: 26px; }
   .bd-sub { display: none; }
-  .bd-title { padding-top: 6px; }
-  .bd-head { grid-template-rows: 44px 6px; }
-  .bd-title { margin-top: 8px; }
+  .bd-title { padding-top: 0; margin-top: 2px; }
+  .bd-head { grid-template-rows: 40px auto; }   /* (THE BOARD's TOP REDONE: the title's row is AUTO here too — never the 6-px squeeze that spilled it over the tabs) */
 }
 
 /* ---- reduced effects ---- */
