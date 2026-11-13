@@ -2740,6 +2740,20 @@ The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept th
 district" in code (the `nd-` class prefix, the `window.__district` test hook). `ROADMAP.md` lists what shipped and what is next.
 **Keep this file, ROADMAP.md (one line per shipped feature; the detail goes in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
 
+## THE POOL FIXES + THE SLIDER + OVERCLOCK'S NEW ICON (Nov 13, 2026 — docs/games/passes/pool-fixes.md)
+
+- **OVERCLOCK'S ICON:** the neon mark + the game card's art in OVERDRIVE's palette — the dial's sweep blue, its redline + the bolt orange, the needle
+  white-hot — on the shelf, the card, THE BOARD's tab, the city's signs + drones (SIGN_ACC orange, clear of HOLD'EM's red).
+- **CARD NAMES YOU CAN SEE:** THE PLAYER PAGE's answer carries the WORN card's name (`card.cn`) — the one named exception to ITEM NAMES ONLY TO OWNERS.
+- **THE CHAT FALSE ALARM** (no chat write after leaving / losing host; a refusal on a room left logged quietly) · **THE DOCK'S FIRST TAP** (pressTap:
+  pointerdown shows, pointerup acts a frame later — wk-docktap 27 / 27).
+- **THE POOL FIXES:** the three fact-check reviews, every flag FIXED / DROPPED / NOT A BUG at its SOURCE (written rows, hand files,
+  `hand/pool-fixes.mjs` — one fix per fact, shared by every pool); THE 8 POOL RULES as checks in the build (`pool-rules.mjs` + `kidsafe.mjs`) and in
+  `tests/overclock-pool-rules.test.mjs`; every pool above its floor. THE PASSWORD: befit · cupid · kudos · owlet cut through the build (1,398); the
+  pick an HMAC-keyed schedule (not predictable); a list edit keeps tomorrow's pair (KEEP_AHEAD).
+- **THE HOLD'EM SLIDER:** − / + with pointer capture, stopping on lift / cancel / blur / hidden; one finger; THE CONFIRM LOCK until the state answers.
+- **WHO'S ON — ONE CARD WIDTH:** the place + time column fixed, every slim card the same rest of the row; the place line breaks only between its parts.
+
 ## PLAY NOW + WHO'S ON (+ GROUP 0: ONE DEPLOY AT A TIME) (Nov 13, 2026 — docs/harbor/passes/play-now.md)
 
 - **ONE DEPLOY AT A TIME:** the worker (`sw.js`) pins every page to the build it booted on (memory + META /__pins); every /js + /css file of the page
