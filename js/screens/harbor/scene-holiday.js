@@ -54,7 +54,7 @@ export function createSceneHoliday(C) {
       return;
     }
     if (C.S.dressHost) leaves.setHost(C.S.dressHost);
-    leaves.frame({ k, day: 1 - clamp01(1 - (C.LK.w.day || 0) - 0.5 * (C.LK.w.golden || 0)), lit: C.signLive(), cols: P && P.gold ? DRESS_COLS.thanksgiving : PINK4,
+    leaves.frame({ k, day: 1 - clamp01(1 - (C.LK.w.day || 0) - 0.5 * (C.LK.w.golden || 0)), lit: C.signLive(), gold: !!(P && P.gold), cols: P && P.gold ? DRESS_COLS.thanksgiving : PINK4,
       dpr: tierVal('dressDpr', C.dprTier) / 10, tier: C.tier, motion: !!C.S.motion });
   }
   function destroyLeaves() { if (leaves) { try { leaves.destroy(); } catch { /* fine */ } } leaves = null; leavesLoading = false; }

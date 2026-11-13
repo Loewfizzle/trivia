@@ -1,12 +1,14 @@
 // FR7 FIXES C — THANKSGIVING's SIGN: THE MAPLE LEAVES (the owner, Nov 13 — "the wreath looks terrible": the harvest wreath + the wheat swags
-// RETIRED). A dense bank of REAL maple leaves (Grok's — the atlas assets/city/thanksgiving/leaves.webp, built by scripts/build-thanksgiving-leaves.mjs)
-// BEHIND the NEON letters: a loose wide oval hugging the four letters, thickest behind the middle (E–O), thinning at the edges — never in front of
-// a tube, never over SPEAKEASY. In LOGO UNITS (ui/logo.js: the letters in 0..332 × 0..100, y down).
-//   THE LAYOUT   ONE seeded layout (the same on every phone — PURE: leafLayout()), each leaf ~24–42 pt on the phone, all 12 leaves used, turned ±40°;
-//                its ORDER centre-out: the bank fills in over the build-up (core/harbor-holiday.js#thanksLeaves — the timetable's `thanksgiving.leaves`)
-//   THE BAKE     the leaves up now drawn ONCE into a canvas (safeCtx) per look — never leaf by leaf per frame: NIGHT = lit by the tubes (the sign's
-//                own light field — signdress.js#lightField: near a tube warm + bright, further back a deep warm red-brown, never olive / green /
-//                black) + a soft dark halo just round the tubes (the letters read over the bank); DAY = the leaves in daylight, natural colours
+// RETIRED). REAL maple leaves (Grok's — the atlas assets/city/thanksgiving/leaves.webp, built by scripts/build-thanksgiving-leaves.mjs) BEHIND
+// the NEON letters — never in front of a tube, never over SPEAKEASY. In LOGO UNITS (ui/logo.js: the letters in 0..332 × 0..100, y down).
+// FR7 FIXES C2 — THE LEAVES READ AS LEAVES (the owner's iPhone, Nov 13 7 am: "it's hard to tell these are leaves" — 92 small leaves, overlapped,
+// darkened at night, most inside the letters = a dark brown fuzzy halo): FEWER, BIGGER leaves in a RING round the letters, their real colours.
+//   THE LAYOUT   ONE seeded layout (the same on every phone — PURE: leafLayout()): ~27 leaves, each ~40–58 pt at 390, each covered ≤ 30 % by the
+//                others (its five points + stem whole), most of each OUTSIDE the letters (above, below, in the gaps, past both N's), clear of
+//                SPEAKEASY + the corner buttons' row; its ORDER centre-out: the bank fills in over the build-up (core/harbor-holiday.js#thanksLeaves)
+//   THE BAKE     the leaves up now drawn ONCE into a canvas (safeCtx) per look — never leaf by leaf per frame: NIGHT = their real colours lit warm
+//                by the tubes (signdress.js#lightField — the nearest brightest, the furthest ≥ ~55 % of daylight: NIGHT_FLOOR) + a SMOOTH dark
+//                halo hugging the tubes (blurred, baked — the letters read over the bank: measured ≥ a plain night's); DAY = natural colours
 //   THE LAYER    a box INSIDE the logo's wrap at z-index −1: behind the tubes + their glow (the wrap is a stacking context — title.css), in front of
 //                the sky; day ↔ night = the two canvases' opacity (the compositor); a new day's leaves FADE IN over `fadeS` (a new bake laid over
 //                the old one, then the old freed) — never a pop, the first showing too (the atlas loads after the reveal)
@@ -21,42 +23,101 @@ import { lightField } from './signdress.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const lerp = (a, b, t) => a + (b - a) * t;
 /** the bank's box in logo units (the SVG's viewBox is −26 −30 384 160): wide of the letters, never down to the SPEAKEASY word */
-export const BANK_BOX = Object.freeze({ x0: -108, y0: -76, x1: 440, y1: 138 });
+export const BANK_BOX = Object.freeze({ x0: -108, y0: -86, x1: 440, y1: 138 });
 const VB = { x: -26, y: -30, w: 384 };
-/** the oval the leaves sit in: its middle behind E–O, a loose wide hug of the four letters */
-export const OVAL = Object.freeze({ cx: 166, cy: 50, rx: 206, ry: 72, yMin: -44, yMax: 106 });
-export const LEAF_N = 92;
+/** the letters' boxes (logo units: N · E · O · N — ui/logo.js) — the leaves sit AROUND these, never packed inside a letter */
+export const LETTER_BOXES = Object.freeze([[0, 64], [92, 154], [176, 240], [268, 332]].map(([x0, x1]) => Object.freeze({ x0, x1, y0: 0, y1: 100 })));
+/** FR7 FIXES C2 — THE RING (the owner's iPhone, Nov 13 7 am: "it's hard to tell these are leaves" — 92 small leaves overlapped into a brown
+ *  halo): a rounded band AROUND + BEHIND the four letters — above them, below them (clear of SPEAKEASY), in the gaps between, out past
+ *  both N's — the reference's spread (leaves-bank-ref.png), wider + taller than the first bank */
+export const RING = Object.freeze({ cx: 166, cy: 46, ax: 206, top: -36, bottom: 104, p: 3.2 });
+/** the leaves' size, logo units (the long side): ~43–58 pt at 390 (0.833 pt a unit there — measured); the bottom row a touch smaller (SPEAKEASY) */
+export const LEAF_S = Object.freeze({ min: 52, max: 70, low: [48, 54] });
+/** the overlap rule: the share of a leaf's body any other leaves may cover (each maple shape stays whole) */
+export const MAX_COVER = 0.3;
+/** a leaf's body as a disc (the maple's five lobes fill ~ a disc of 0.4 × its long side) */
+export const bodyR = s => 0.4 * s;
+/** the lowest a leaf's body may reach (SPEAKEASY's top ≈ 134 logo units) */
+export const FLOOR_Y = 128;
+/** the highest a leaf's picture may reach (the corner buttons' row sits just above the sign on a phone) */
+export const CEIL_Y = -62;
+export const LEAF_N = 30;
+/** the gap a new leaf wants to its nearest neighbour, as a share of their radii (−0.3 = a light overlap) */
+const GAP = -0.4;
 /** the tubes' gold for THE GOLD WEEK (the light the night's leaves are lit by — css/title.css .sg-thanksgiving) */
 export const GOLD = Object.freeze([255, 190, 58]);
 const ATLAS = '/assets/city/thanksgiving/leaves';
+/** the night's multiply for a leaf far from every tube (warm, ≥ ~55 % of its daylight: never brown / olive / black) */
+export const NIGHT_FLOOR = Object.freeze([0.66, 0.56, 0.46]);
 
-/** PURE — the seeded bank: [{ x, y, s (the long side, logo units), rot (rad), flip, leaf (0..11), order (0..1, centre-out), z }] */
+/** PURE — the area two discs share (radii a, b; centres d apart) */
+export function discOverlap(a, b, d) {
+  if (d >= a + b) return 0;
+  if (d <= Math.abs(a - b)) return Math.PI * Math.min(a, b) ** 2;
+  const a2 = a * a, b2 = b * b;
+  const al = Math.acos((d * d + a2 - b2) / (2 * d * a)), be = Math.acos((d * d + b2 - a2) / (2 * d * b));
+  return a2 * (al - Math.sin(2 * al) / 2) + b2 * (be - Math.sin(2 * be) / 2);
+}
+/** PURE — the share of a leaf's body (a disc at x, y, radius r) inside the letters' boxes (a 9 × 9 sample grid) */
+export function insideLetters(x, y, r) {
+  let n = 0, inn = 0;
+  for (let i = 0; i < 9; i++) for (let j = 0; j < 9; j++) {
+    const u = (i / 8) * 2 - 1, v = (j / 8) * 2 - 1;
+    if (u * u + v * v > 1) continue;
+    n++;
+    const px = x + u * r, py = y + v * r;
+    if (LETTER_BOXES.some(B => px >= B.x0 && px <= B.x1 && py >= B.y0 && py <= B.y1)) inn++;
+  }
+  return n ? inn / n : 0;
+}
+/** PURE — the share of leaf i's body the others cover (the sum of the pairwise overlaps — conservative: ignores who's on top) */
+export function coverOf(L, i) {
+  const A = L[i], ra = bodyR(A.s);
+  let c = 0;
+  for (let j = 0; j < L.length; j++) if (j !== i) c += discOverlap(ra, bodyR(L[j].s), Math.hypot(L[j].x - A.x, L[j].y - A.y));
+  return c / (Math.PI * ra * ra);
+}
+/** the ring's own "radius" of a point (1 = on the band's outer edge; a superellipse — a rounded box) */
+function ringE(x, y) {
+  const ay = y < RING.cy ? RING.cy - RING.top : RING.bottom - RING.cy;
+  return (Math.abs(x - RING.cx) / RING.ax) ** RING.p + (Math.abs(y - RING.cy) / ay) ** RING.p;
+}
+
+/** PURE — the seeded bank: [{ x, y, s (the long side, logo units), rot (rad), flip, leaf (0..11), order (0..1, centre-out), z }] —
+ *  FEWER, BIGGER leaves (~30 of ~43–58 pt at 390), each covered ≤ 30 % by the others, most of each OUTSIDE the letters, none over SPEAKEASY.
+ *  The bank GROWS: of a few hundred seeded tries the one nearest a light overlap with its closest neighbour (GAP) — even, touching, never mush. */
 export function leafLayout(n = LEAF_N) {
-  const R = rngFrom(hashString('thanks|maple-bank'));
+  const R = rngFrom(hashString('thanks|maple-ring|c2'));
   const out = [];
-  let tries = 0;
-  // the leaves' kinds: all 12, each used about the same (a shuffled deck, dealt again when empty) — the reds + the golds balanced
   let deck = [];
   const deal = () => { if (!deck.length) { deck = [...Array(12).keys()]; for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; } } return deck.pop(); };
-  while (out.length < n && tries < 20000) {
-    tries++;
-    const x = lerp(OVAL.cx - OVAL.rx * 1.2, OVAL.cx + OVAL.rx * 1.2, R()), y = lerp(OVAL.yMin, OVAL.yMax, R());
-    const ex = (x - OVAL.cx) / OVAL.rx, ey = (y - OVAL.cy) / OVAL.ry, e2 = ex * ex + ey * ey;
-    // the rim WAVES (a few lobes round the oval — never a straight top edge) + a few stragglers past it: no hard boundary
-    const wave = 1 + 0.1 * Math.sin(Math.atan2(ey, ex) * 5 + 1.3) + 0.05 * Math.sin(Math.atan2(ey, ex) * 9 + 0.4), e = Math.sqrt(e2) / wave;
-    if (e > 1.08) continue;
-    // thickest behind the middle (E–O), thinning naturally to the ends + the rim
-    const dens = Math.exp(-1.15 * ex * ex - 1.4 * ey * ey) * (e < 0.75 ? 1 : e < 1 ? 1 - 0.6 * (e - 0.75) / 0.25 : 0.4 * (1.08 - e) / 0.08);
-    if (R() > dens) continue;
-    const mid = Math.exp(-1.6 * ex * ex - 1.2 * ey * ey);
-    const s = lerp(31, 46, mid) * (0.86 + 0.28 * R());                 // (~24–42 pt on a 390 phone: the PHONE-FIRST rule — it reads as a maple leaf)
-    // a little room round each (loose overlap, never a clump of ten on one spot)
-    if (out.some(o => Math.hypot(o.x - x, o.y - y) < 0.33 * (o.s + s) / 2)) continue;
-    // (an edge leaf always touches the bank — never a lone floater off its end)
-    if (e > 0.9 && !out.some(o => Math.hypot(o.x - x, o.y - y) < 0.8 * (o.s + s) / 2)) continue;
-    out.push({ x, y, s, rot: (R() * 2 - 1) * 0.7, flip: R() < 0.4, leaf: deal(), order: e + 0.18 * R(), z: R() });
+  const fits = c => {
+    const r = bodyR(c.s);
+    if (c.y + r > FLOOR_Y || c.y - 0.45 * c.s < CEIL_Y) return false;
+    if (ringE(c.x, c.y) > 1) return false;
+    if (insideLetters(c.x, c.y, r) > 0.45) return false;
+    const L = [...out, c];
+    if (coverOf(L, L.length - 1) > MAX_COVER) return false;
+    for (let i = 0; i < out.length; i++) if (coverOf(L, i) > MAX_COVER) return false;
+    return true;
+  };
+  for (let guard = 0; out.length < n && guard < n * 4; guard++) {
+    let best = null, bestD = -Infinity;
+    for (let t = 0; t < 400; t++) {
+      const x = RING.cx + (R() * 2 - 1) * RING.ax, y = RING.top + R() * (RING.bottom - RING.top);
+      const low = y > 86, s = low ? lerp(LEAF_S.low[0], LEAF_S.low[1], R()) : lerp(LEAF_S.min, LEAF_S.max, R());
+      const c = { x, y, s };
+      if (!fits(c)) continue;
+      // (the closest neighbour's gap, as a share of the radii: a light overlap — ~ −0.3 r — packs the ring with every shape still whole)
+      const g = out.length ? Math.min(...out.map(o => (Math.hypot(o.x - x, o.y - y) - bodyR(o.s) - bodyR(s)) / ((bodyR(o.s) + bodyR(s)) / 2))) : 0;
+      const score = -Math.abs(g - GAP);
+      if (score > bestD) { bestD = score; best = c; }
+    }
+    if (!best) break;
+    out.push({ ...best, rot: (R() * 2 - 1) * 0.6, flip: R() < 0.4, leaf: deal(), z: R() });
   }
-  // the build-up's order: centre-out (rank → 0..1)
+  // the build-up's order: centre-out (from behind E–O to the ends), a little seeded jitter
+  for (const o of out) o.order = Math.hypot((o.x - RING.cx) / RING.ax, (o.y - RING.cy) / (RING.bottom - RING.top)) + 0.12 * R();
   const byOrder = [...out].sort((a, b) => a.order - b.order);
   byOrder.forEach((o, i) => { o.order = (i + 0.5) / byOrder.length; });
   return out.sort((a, b) => a.z - b.z);
@@ -124,18 +185,19 @@ export function createLeafBank() {
       tx.globalCompositeOperation = 'source-over'; tx.drawImage(atlas.img, rx, ry, rw, rh, 0, 0, pw, ph);
       let mul;
       if (night) {
-        // NIGHT: the tubes' light at the leaf — near a tube warm + bright, further back a deep warm red-brown (the floor keeps red: never olive)
-        const li = light.at(L.x, L.y), t = Math.pow(clamp01(li.i / 1.5), 1.25);
-        const lc = [0.5 + 0.42 * li.r / 255, 0.5 + 0.42 * li.g / 255, 0.5 + 0.42 * li.b / 255];
-        const floor = [0.3, 0.155, 0.1];
-        mul = [lerp(floor[0], lc[0], t), lerp(floor[1], lc[1] * 0.97, t), lerp(floor[2], lc[2] * 0.9, t)];
+        // NIGHT (FR7 FIXES C2 — the owner: "a dark brown fuzzy halo"): the leaves keep their REAL colours, lit warm by the tubes — the nearest
+        // brightest, a GENTLE falloff: the furthest ≥ ~55 % of their daylight (NIGHT_FLOOR), never brown / olive / black
+        const li = light.at(L.x, L.y), t = Math.pow(clamp01(li.i / 1.2), 0.8);
+        const lc = [0.86 + 0.14 * li.r / 255, 0.8 + 0.16 * li.g / 255, 0.68 + 0.2 * li.b / 255];
+        mul = [lerp(NIGHT_FLOOR[0], lc[0], t), lerp(NIGHT_FLOOR[1], lc[1], t), lerp(NIGHT_FLOOR[2], lc[2], t)];
       } else mul = [0.98, 0.95, 0.9];                                   // (DAY: daylight — the leaves' own colours, a touch of warmth)
       tx.globalCompositeOperation = 'multiply'; tx.fillStyle = `rgb(${Math.round(mul[0] * 255)},${Math.round(mul[1] * 255)},${Math.round(mul[2] * 255)})`; tx.fillRect(0, 0, pw, ph);
       tx.globalCompositeOperation = 'destination-in'; tx.drawImage(atlas.img, rx, ry, rw, rh, 0, 0, pw, ph);
       x.save();
       x.translate(L.x, L.y); x.rotate(L.rot); if (L.flip) x.scale(-1, 1);
       // the overlap shading: a soft darkening cast down onto the leaf beneath (the canvas shadow — baked once)
-      x.shadowColor = night ? 'rgba(14,4,0,0.62)' : 'rgba(46,22,6,0.34)'; x.shadowBlur = 5 * dpr * kk; x.shadowOffsetX = 0.9 * dpr * kk; x.shadowOffsetY = 2.2 * dpr * kk;
+      // (C2: lighter — the shapes stay crisp; the old night shadow helped turn the bank into mush)
+      x.shadowColor = night ? 'rgba(14,4,0,0.4)' : 'rgba(46,22,6,0.3)'; x.shadowBlur = 4 * dpr * kk; x.shadowOffsetX = 0.8 * dpr * kk; x.shadowOffsetY = 2 * dpr * kk;
       x.drawImage(tmp, -w / 2, -hgt / 2, w, hgt);
       x.restore();
     }
@@ -146,9 +208,15 @@ export function createLeafBank() {
       x.save();
       x.globalCompositeOperation = 'source-atop';
       x.lineCap = 'round'; x.lineJoin = 'round';
-      for (const [wd, a] of [[22, 0.35], [14, 0.6], [8, 1]]) {
-        x.strokeStyle = night ? `rgba(16,6,2,${(haloA * a).toFixed(3)})` : `rgba(40,22,10,${(haloA * a).toFixed(3)})`; x.lineWidth = wd;
-        for (const P of tubePaths()) { x.beginPath(); P.forEach(([px, py], i) => (i ? x.lineTo(px, py) : x.moveTo(px, py))); x.stroke(); }
+      // (C2: a SMOOTH fall-off — the old stepped strokes read as dark brown outlines round every letter: each pass is now a blurred
+      //  stroke's SHADOW (the stroke itself drawn far off the canvas, its shadow brought back — a gaussian, baked once), dark next to the
+      //  tube, gone ~14 pt out where the leaves' own colour takes over; measured: the cores vs what's beside them ≥ a plain night's)
+      const OFF = 4000;
+      for (const [wd, blur, a] of HALO_PASSES) {
+        x.shadowColor = night ? `rgba(16,6,2,${(haloA * a).toFixed(3)})` : `rgba(40,22,10,${(haloA * a).toFixed(3)})`;
+        x.shadowBlur = blur * sc; x.shadowOffsetX = -OFF * sc; x.shadowOffsetY = 0;
+        x.strokeStyle = '#000'; x.lineWidth = wd;
+        for (const P of tubePaths()) { x.beginPath(); P.forEach(([px, py], i) => (i ? x.lineTo(px + OFF, py) : x.moveTo(px + OFF, py))); x.stroke(); }
       }
       x.restore();
     }
@@ -174,11 +242,11 @@ export function createLeafBank() {
     // which looks are needed: night under, day over (twilight: both)
     const looks = [...(day < 0.98 ? ['night'] : []), ...(day > 0.02 ? ['day'] : [])];
     const cols = (env.cols || [GOLD, GOLD, GOLD, GOLD]).map(c => c.join(',')).join('|');
-    const key = `${Math.round(k * 1000)}|${looks.join('+')}|${cols}|${wpx.toFixed(1)}|${dpr}`;
+    const key = `${Math.round(k * 1000)}|${looks.join('+')}|${cols}|${env.gold ? 'g' : 'p'}|${wpx.toFixed(1)}|${dpr}`;
     if (key !== curKey) {
       const t0 = performance.now();
       if (LF.cols !== cols) { LF.cols = cols; LF.f = lightField(env.cols || [GOLD, GOLD, GOLD, GOLD]); }
-      const o = { dpr, light: LF.f, halo: knobHalo().night, haloDay: knobHalo().day };
+      const o = { dpr, light: LF.f, halo: env.gold ? knobHalo().night : knobHalo().pink, haloDay: knobHalo().day };
       const same = layers.length && layers.every(l => l.k === Math.round(k * 1000));   // (only the looks / the size changed: no fade — swap)
       const fresh = looks.map(look => ({ look, k: Math.round(k * 1000), cv: bake(look, k, o) }));
       // night first (under), day over it
@@ -199,7 +267,7 @@ export function createLeafBank() {
     if (d === dayOp && l === litOp) return;
     dayOp = d; litOp = l;
     for (const L of layers) {
-      const op = L.look === 'day' ? (layers.some(o => o.look === 'night') ? d : 1) : (0.38 + 0.62 * l);
+      const op = L.look === 'day' ? (layers.some(o => o.look === 'night') ? d : 1) : (0.72 + 0.28 * l);   // (C2: a dimmer sign still shows the leaves' colours — never a faint ghost)
       L.cv.style.transition = fadeMs ? `opacity ${fadeMs}ms ease-in-out` : 'none';
       if (fadeMs) { void L.cv.offsetWidth; }                                   // (the fade starts from 0: one style flush, only at a bake)
       L.cv.style.opacity = op.toFixed(3);
@@ -213,7 +281,11 @@ export function createLeafBank() {
 }
 
 /** the halo's strength (the timetable doesn't time it: a look constant, measured — night / day) */
-const knobHalo = () => ({ night: 0.72, day: 0.4 });
+// (C2: the GOLD tubes over yellow + gold leaves need the strong halo — measured; the PINK build-up nights have the hue contrast already
+//  (Nov 18: 7.0 : 1 with the strong halo, 8.5 without the bank) and the strong halo turned their middle leaves dark: a lighter one there)
+const knobHalo = () => ({ night: 0.95, pink: 0.4, day: 0.6 });
+/** the halo's passes: [the stroke's full width, its blur (logo units), strength] — a wide soft one, then a tight dark one */
+const HALO_PASSES = [[28, 18, 1], [18, 9, 1], [10, 4, 1]];
 
 let PATHS = null;
 /** the letters' tube centrelines (logo units) */
