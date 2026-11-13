@@ -137,6 +137,10 @@ export async function processReport(uid, body, now = Date.now()) {
     if (!(await reportableGame(gid))) throw new ApiError(409, 'not_reportable', DEALER_GAMES.includes(gid) ? 'The dealer reports this game itself.' : 'This game can’t be counted.');
   }
   // the night record is required, with its time (the server's clock): no record, no match; too old (or from the future), no match
+  // (PD-6 — found by the solo XP line's e2e: a phone reports the moment its match ends; the host's `final` step writes the night record a beat
+  //  later — a report that came first was refused for good (409), and that run was NEVER credited (SURVIVAL's solo top-outs every time). While
+  //  the room's game IS this match, a missing record = still settling: 425, the queue retries (2, 4, 8 … s))
+  if (!night && game && game.matchId === matchId) throw new ApiError(425, 'not_final', 'The match record is still being written.');
   if (!night || typeof night.at !== 'number') throw new ApiError(409, 'unverifiable', 'This match has no record in its room.');
   if (now - night.at > MAX_AGE_MS) throw new ApiError(409, 'too_old');
   if (night.at > now + 60_000) throw new ApiError(409, 'unverifiable', 'The match record is from the future.');

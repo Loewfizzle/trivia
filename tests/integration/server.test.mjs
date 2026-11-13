@@ -276,6 +276,19 @@ test('opt-out: off the boards, stats still count, ranks still known privately; b
   tick();
 });
 
+test('PD-6: a report BEFORE the night record is written (the phone first, the host a beat later) = 425 still settling, then counted — never lost', async () => {
+  await ensure('u-pd6a', 'PDSA'); await ensure('u-pd6b', 'PDSB');
+  const early = await seedRoom('bluff', ['u-pd6a', 'u-pd6b']);
+  const rec = await val(`rooms/${early.code}/night/${early.matchId}`);
+  await ref(`rooms/${early.code}/night/${early.matchId}`).set(null);
+  await rejects(report('u-pd6a', early), 425, 'not_final');
+  await ref(`rooms/${early.code}/night/${early.matchId}`).set(rec);
+  assert.equal((await report('u-pd6a', early)).status, 'counted', 'the retry after the record lands counts');
+  // the room moved on and no record at all: still refused for good
+  await rejects(processReport('u-pd6a', { code: early.code, matchId: 'gone1' }, clock), 409, 'unverifiable');
+  tick();
+});
+
 test('forged and impossible reports are refused; the match itself still counts', async () => {
   await ensure('u-f1', 'FONE'); await ensure('u-f2', 'FTWO');
   await rejects(processReport('u-x', { code: 'nope', matchId: 'm1' }, clock), 400, 'bad_match');
