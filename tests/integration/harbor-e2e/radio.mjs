@@ -6,6 +6,7 @@
 import { BASE, log, sleep, ok, okT, open, ev, waitFor, harborUp, dbPut, G, SHOTS, OUT } from './kit.mjs';
 // (SHELL 2.0 B1: each face shot top + bottom — the neon desk's look review)
 const shotFace = async (p, name) => { if (!SHOTS) return; await sleep(500); await p.screenshot({ path: `${OUT}radio-${name}.png` }); await p.evaluate(() => { const s = document.querySelector('.rd-sheet'); if (s) s.scrollTop = s.scrollHeight; }); await sleep(300); await p.screenshot({ path: `${OUT}radio-${name}-end.png` }); await p.evaluate(() => { const s = document.querySelector('.rd-sheet'); if (s) s.scrollTop = 0; }); };
+import { readFileSync } from 'node:fs';
 import * as RD from '../../../js/core/harbor-radio.js';
 import * as RD_IC from '../../../js/core/radio-intercom.js';
 
@@ -292,6 +293,40 @@ G('radio', async () => {
     const bad = all.filter(r => !r.ok);
     ok(all.length >= 4 && all.some(r => r.face === 'LEDGER') && !bad.length, `RADIO: THE SWITCH FIT at 390 — ${all.length / 2} lever(s) on the three faces, OFF + ON, every knob inside its lever, every lever inside its panel, 44 pt tall (${bad.length ? JSON.stringify(bad) : all.map(r => `${r.face}:${r.id}`).filter((v, i, a) => a.indexOf(v) === i).join(' · ')})`);
     await S.ctx.close(); }
+  // ---- FR7 FIXES C2 — THE FACES PAINT (the owner's iPhone, Nov 13 7 am: radio → LEDGER sat on "Tuning in…" forever): a phone holding an OLDER
+  // music.js (the deploy before FR7 FIXES C: no `musicFileOf` export) — the shipped LEDGER imported the players through NOW PLAYING and never
+  // linked ("Importing binding name 'musicFileOf' is not found"). Now: DESK → PROGRAM → LEDGER each paints its REAL content within 3 s on that
+  // phone (the LEDGER: nixies + NOW PLAYING + TODAY). And a face whose file FAILS (THE PROGRAM's first fetch a 503) shows "Couldn't open … TAP
+  // TO RETRY" + reports it (errlog's ring); one tap = a fresh import → the face. (WebKit's twin: tests/integration/wk-radio-faces.mjs — the
+  // shipped build fails its stale case.)
+  { const STALE = readFileSync(new URL('../../../js/audio/music.js', import.meta.url), 'utf8').replace(/export const musicFileOf\b/, 'const musicFileOf');
+    let progFails = 1; const seen = [];
+    const F = await open({ slot: 'rdfp', qs: 'when=2026-11-03T21:00', view: [390, 844], intercept: u => {
+      if (/\/js\/audio\/music\.js(\?|$)/.test(u)) return { status: 200, contentType: 'text/javascript', body: STALE };
+      if (/\/js\/screens\/harbor\/radio-program\.js/.test(u)) seen.push(u.replace(/^.*\//, ''));
+      if (/\/js\/screens\/harbor\/radio-program\.js$/.test(u) && progFails > 0) { progFails--; return { status: 503, contentType: 'text/plain', body: 'down' }; }
+      return null; } });
+    await harborUp(F.page);
+    { const fpid = await pidOf(F.page); await dbPut(`testAdmins/${fpid}`, true); await ev(F.page, 'sessionStorage.clear()'); await F.page.reload(); await harborUp(F.page); }
+    await waitFor(F.page, '!!document.querySelector(".rd-btn")', 'the radio button (stale music.js)', 20000);
+    await ev(F.page, `document.querySelector('.rd-btn').click()`);
+    const t = {}, paints = async (js, ms = 3000) => { const t0 = Date.now(); try { await waitFor(F.page, js, 'a face', ms); return Date.now() - t0; } catch { return null; } };
+    t.DESK = await paints('!!document.querySelector(".rd-modal.is-in .rd-jack")');
+    await ev(F.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'PROGRAM').click()`);
+    const retry = await paints('!!document.querySelector(".rd-paperwrap[data-face=program] .rd-retry")', 8000);
+    const retryTxt = await ev(F.page, `(document.querySelector('.rd-retry') || {}).textContent || ''`);
+    const progTxt = retryTxt ? '' : await ev(F.page, `(document.querySelector('.rd-paperwrap') || {}).textContent || ''`);
+    const reported = await ev(F.page, `import('/js/errlog.js').then(m => m.recentErrors().some(e => /radio-program/.test(e.m)))`);
+    ok(retry != null && /Couldn.t open the program — TAP TO RETRY/.test(retryTxt) && reported, `RADIO: a face that fails to load → "${retryTxt}" + reported to /admin (errlog: ${reported})${retryTxt ? '' : ` — the face showed "${String(progTxt).slice(0, 60)}", requests ${seen.join(' ')}`}`);
+    if (!retryTxt) { await F.ctx.close(); throw new Error('the retry never showed'); }
+    await ev(F.page, `document.querySelector('.rd-retry').click()`);
+    t.PROGRAM = await paints('!!document.querySelector(".rd-paperwrap[data-face=program] .rd-paper")');
+    await ev(F.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'LEDGER').click()`);
+    t.LEDGER = await paints('(() => { const w = document.querySelector(".rd-paperwrap[data-face=ledger]"); return !!(w && w.querySelector(".rd-big3 .rd-nixie") && /^NOW PLAYING · /.test((w.querySelector(".rd-np") || {}).textContent || "") && [...w.querySelectorAll(".rd-paper h4")].some(e => /^TODAY/.test(e.textContent))); })()');
+    const still = t.LEDGER == null ? await ev(F.page, `(document.querySelector('.rd-paperwrap') || {}).textContent || ''`) : '';
+    ok(t.DESK != null && t.PROGRAM != null && t.LEDGER != null, `RADIO: THE FACES PAINT on a phone holding an older music.js — DESK ${t.DESK} ms · PROGRAM ${t.PROGRAM} ms (after the retry) · LEDGER ${t.LEDGER} ms (nixies + NOW PLAYING + TODAY)${still ? ` — still "${still.slice(0, 60)}"` : ''}`);
+    await shotFace(F.page, 'faces-stale');
+    await F.ctx.close(); }
   // ---- PROGRESSION A — THE FOUNDER WINDOW on THE LEDGER: OPEN by default; a tap arms it, a second tap CLOSES it (the server, audited);
   // the same two taps reopen it (the test leaves it open)
   { const sw = () => ev(O.page, `(() => { const b = document.querySelector('.rd-fsw'); return b ? { state: b.querySelector('.rd-fsw-state').textContent, armed: b.classList.contains('is-armed'), h: b.getBoundingClientRect().height } : null; })()`);

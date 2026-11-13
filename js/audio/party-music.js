@@ -228,3 +228,15 @@ export function partyMusicDebug() {
   return { lat, speaker: Math.round(speakerLead() * 1000), kind: T.tl.kind, station: T.tl.kind === 'station' ? T.tl.mood : null, song: s ? s.id : null, at: s ? +(T.cityMs / 1000 - s.t0).toFixed(2) : null, dur: s ? s.dur : null, left: s ? +(s.t1 - T.cityMs / 1000).toFixed(1) : null,
     riding: !!(last && last.riding), synced: !!(player && player.now()), claims: partyClaims(), heard: partyNow(), own: (() => { const n = nowPlaying(); return n ? { id: n.id, at: n.at } : null; })(), player: player ? player.debug() : null };
 }
+// FR7 FIXES C2 — NOW PLAYING's reader on the ONE shared hub (audio/now-playing.js imports no player: a stale copy can never break THE LEDGER)
+try {
+  const H = globalThis.__nsNowPlaying || (globalThis.__nsNowPlaying = {});
+  const base = u => String(u || '').split('?')[0].split('/').pop() || null;
+  const MOOD = { late: 'LATE NIGHT', morning: 'MORNING', day: 'DAY', evening: 'EVENING', party: 'PARTY' };
+  H.party = () => {
+    const p = partyMusicDebug();
+    if (!p || !p.song || !(p.synced || p.riding)) return null;
+    const source = p.kind === 'station' ? `STATION · ${MOOD[p.station] || String(p.station || '').toUpperCase()}` : p.kind === 'dance' ? 'THE DANCE BREAK' : 'THE PARTY DECK';
+    return { source, file: base(musicUrl(p.song)), left: p.left != null ? Math.max(0, p.left) : null };
+  };
+} catch { /* polish */ }

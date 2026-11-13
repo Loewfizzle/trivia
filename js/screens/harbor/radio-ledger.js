@@ -20,11 +20,15 @@ export function paint({ api, now }) {
   const holder = h('div.rd-paperwrap', h('section.rd-paper', h('h4', 'TODAY'), h('p.rd-hint', 'Reading the ledger…')));
   // FR7 FIXES C — NOW PLAYING (the owner, Nov 13): what THIS phone is playing, under the NIXIE row — from the audio engine's own state (no poll,
   // no /api); refreshed once a second ONLY while this face is on screen (the timer ends itself once the ledger leaves the page)
-  const np = h('p.rd-np', { 'aria-live': 'off' }, nowPlayingText());
+  // (FR7 FIXES C2: NOW PLAYING can never stop the ledger — its text never throws, and the 1 s tick is wrapped: an error = "NOW PLAYING · —")
+  const npLine = () => { try { return nowPlayingText(); } catch { return 'NOW PLAYING · —'; } };
+  const np = h('p.rd-np', { 'aria-live': 'off' }, npLine());
   const npT = setInterval(() => {
-    if (!holder.isConnected) { clearInterval(npT); return; }
-    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
-    const t = nowPlayingText(); if (np.textContent !== t) np.textContent = t;
+    try {
+      if (!holder.isConnected) { clearInterval(npT); return; }
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      const t = npLine(); if (np.textContent !== t) np.textContent = t;
+    } catch { clearInterval(npT); }
   }, 1000);
   const fill = L => {
     const T = L.today, wk = L.week || [], max = Math.max(1, ...wk.map(x => x.visits + x.games));

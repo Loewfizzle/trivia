@@ -98,3 +98,14 @@ export function lobbyNow() { const n = player ? player.now() : null; return n ? 
 export function stopLobbyMusic() { handed = false; if (player) { player.stop(); player = null; playingId = null; } }
 export function lobbyMusicDebug() { return player ? { id: playingId, ...player.debug() } : null; }
 void firebaseReady;
+// FR7 FIXES C2 — NOW PLAYING's reader on the ONE shared hub (audio/now-playing.js imports no player: a stale copy can never break THE LEDGER)
+try {
+  const H = globalThis.__nsNowPlaying || (globalThis.__nsNowPlaying = {});
+  const base = u => String(u || '').split('?')[0].split('/').pop() || null;
+  H.lobby = () => {
+    const l = lobbyNow();
+    if (!l || !l.id) return null;
+    const d = lobbyMusicDebug() || {}, dur = Number(d.dur) || 0;
+    return { source: 'THE ROOM’S SONG', file: base(musicUrl(l.id)), left: dur ? Math.max(0, dur - l.at) : null };
+  };
+} catch { /* polish */ }

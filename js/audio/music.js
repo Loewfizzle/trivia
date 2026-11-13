@@ -743,3 +743,15 @@ onVisibility(v => {
   }
 });
 setInterval(watchLoop, 200);
+// FR7 FIXES C2 — NOW PLAYING's reader on the ONE shared hub (audio/now-playing.js imports no player: a stale copy can never break THE LEDGER)
+try {
+  const H = globalThis.__nsNowPlaying || (globalThis.__nsNowPlaying = {});
+  const base = u => String(u || '').split('?')[0].split('/').pop() || null;
+  H.off = () => !!(settings.musicOff || settings.muted || !(settings.music > 0));
+  H.music = () => {
+    const m = musicDebug(), np = nowPlaying();
+    if (!m || !m.playing || !m.health || !m.health.sounding) return null;
+    const id = String(m.playing), dur = Number(m.dur) || 0, at = np ? np.at : Number(m.at) || 0;
+    return { source: id.startsWith('m:') ? 'MOOD MUSIC' : m.list ? String(m.list).toUpperCase() : 'MUSIC', file: base(musicFileOf(id)), left: dur ? Math.max(0, dur - at) : null };
+  };
+} catch { /* polish */ }

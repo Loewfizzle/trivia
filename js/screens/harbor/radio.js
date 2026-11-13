@@ -36,6 +36,7 @@ import { state as store, subscribe } from '../../store.js';
 import { avatar } from '../../ui/components.js';
 import { toast } from '../../ui/toast.js';
 import { lazyImport } from '../../ui/lazy-import.js';
+import { reportError } from '../../errlog.js';
 
 const ORDER_KEY = 'nd:rd-order', AUD_KEY = 'nd:rd-aud', BAND_KEY = 'nd:rd-band';
 const ls = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fine */ } } };
@@ -496,12 +497,34 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     if (!holder || holder.dataset.face !== band || !m) { render(); return; }
     if (band === 'ledger') return;   // (the ledger keeps its own 30-s memo + its own in-place fills: nothing to repaint on a poll)
     const keep = sheet.scrollTop;
-    holder.replaceChildren(...m.paint(paperArgs()));
+    const nodes = paintFace(band, m);
+    holder.replaceChildren(...(nodes || [faceRetry(band)]));
     sheet.scrollTop = keep;
   }
+  // FR7 FIXES C2 — THE LEDGER WOULDN'T OPEN (the owner's iPhone, Nov 13 7 am: "Tuning in…" forever — a failed import was only console.warn'd):
+  // a face whose import OR paint fails shows "Couldn't open the … — TAP TO RETRY" (one tap = one fresh import, ?again=N past the module map's
+  // cached failure) and the error is REPORTED to /admin (errlog.js#reportError, once per face + message)
+  const faceErr = { program: null, ledger: null }, faceTries = { program: 0, ledger: 0 };
+  const importFace = (id, n) => (id === 'program'
+    ? (n ? lazyImport(import(`./radio-program.js?again=${n}`), './radio-program.js') : lazyImport(import('./radio-program.js'), './radio-program.js'))
+    : (n ? lazyImport(import(`./radio-ledger.js?again=${n}`), './radio-ledger.js') : lazyImport(import('./radio-ledger.js'), './radio-ledger.js')));
+  function faceFailed(id, e) {
+    faceErr[id] = e || new Error('the face failed');
+    console.warn('[radio]', id, e);
+    try { reportError(e instanceof Error ? e : new Error(String(e)), `radio-${id}`); } catch { /* reporting never throws */ }
+  }
   async function face(id) {
-    if (!faces[id]) { try { const m = await lazyImport(import(id === 'program' ? './radio-program.js' : './radio-ledger.js'), 'id === program ? ./radio-program.js : ./radio-ledger.js'); faces[id] = m; } catch (e) { console.warn('[radio]', id, e); } }
+    if (!faces[id]) { try { const m = await importFace(id, faceTries[id]); if (!m || typeof m.paint !== 'function') throw new Error(`radio-${id}.js has no paint()`); faces[id] = m; faceErr[id] = null; } catch (e) { faceFailed(id, e); } }
     return faces[id];
+  }
+  /** a face's paint, guarded: its nodes, or null (the error reported + the retry shown) */
+  function paintFace(id, m) {
+    try { const out = m.paint(paperArgs()); return Array.isArray(out) ? out : [out]; } catch (e) { faces[id] = null; faceFailed(id, e); return null; }
+  }
+  function faceRetry(id) {
+    const what = id === 'program' ? 'the program' : 'the ledger';
+    return h('button.rd-hint.rd-retry', { type: 'button', dataset: { retry: id }, onclick: () => { faceErr[id] = null; faceTries[id]++; faces[id] = null; render(); } },
+      `Couldn’t open ${what} — TAP TO RETRY`);
   }
   // (CITY FIXES — THE TAP WATCH: the desk is never rebuilt under a finger — a poll / a timer / the intercom's headline suggestion (900 ms
   //  after the release — o.render) used to replace the SEND button between the touch + the lift: iOS then drops the click. It waits for the
@@ -513,10 +536,15 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     if (band === 'desk' || !isOwner) kids.push(...desk());
     else {
       // (a loaded face paints SYNCHRONOUSLY — a "Tuning in…" placeholder for a frame used to clamp the kept scroll to the top: the jump)
-      const loaded = faces[band];
-      const holder = h('div.rd-paperwrap', { dataset: { face: band } }, ...(loaded ? loaded.paint(paperArgs()) : [h('p.rd-hint', 'Tuning in…')]));
+      const id = band, loaded = faces[id], painted = loaded ? paintFace(id, loaded) : null;
+      const holder = h('div.rd-paperwrap', { dataset: { face: id } }, ...(painted || [faceErr[id] ? faceRetry(id) : h('p.rd-hint', 'Tuning in…')]));
       kids.push(holder);
-      if (!loaded) face(band).then(m => { if (!m || !sheet || !holder.isConnected) return; const keep = sheet.scrollTop; holder.replaceChildren(...m.paint(paperArgs())); sheet.scrollTop = keep; });
+      if (!painted && !faceErr[id]) face(id).then(m => {
+        if (!sheet || !holder.isConnected) return;
+        const nodes = m ? paintFace(id, m) : null, keep = sheet.scrollTop;
+        holder.replaceChildren(...(nodes || [faceRetry(id)]));
+        sheet.scrollTop = keep;
+      }).catch(e => { faceFailed(id, e); if (holder.isConnected) holder.replaceChildren(faceRetry(id)); });
     }
     const keep = sheet.scrollTop;
     sheet.replaceChildren(...kids.filter(Boolean));

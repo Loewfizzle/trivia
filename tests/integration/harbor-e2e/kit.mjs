@@ -84,7 +84,7 @@ export const launch = async () => {
 const NET_NOISE = /auth\/network-request-failed|WebSocket connection to .* failed|FIREBASE WARNING: .*(?:websocket|transport|connection)/i;
 let curGroup = '';
 // (cpu: N× slower from the page's first byte — CDP throttling set before the navigation; DESKTOP: partysync's PS_CPU diagnostic)
-export async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profile = true, dpr = 0, cores = 0, init = null, wait = true, cpu = 0, real = false } = {}) {
+export async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profile = true, dpr = 0, cores = 0, init = null, wait = true, cpu = 0, real = false, intercept = null } = {}) {
   const ctx = await (await (real ? launchReal() : launch())).createBrowserContext();
   const p = await ctx.newPage();
   const files = [];
@@ -102,6 +102,9 @@ export async function open({ slot = 'h', qs = '', city = true, view = [390, 844]
     try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('nd:byc', 'test'); if (prof) localStorage.setItem(`na:${slotName}:profile`, JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
   }, slot, profile);
   if (cpu > 1) { const cd = await p.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: cpu }); }
+  // (FR7 FIXES C2: `intercept(url)` → a response ({ status, contentType, body }) to answer a request with instead of the server — a stale
+  //  module from an older deploy, a failed fetch — or null: the server, as always)
+  if (intercept) { await p.setRequestInterception(true); p.on('request', r => { let m = null; try { m = intercept(r.url()); } catch { /* the server */ } if (m) r.respond(m).catch(() => {}); else r.continue().catch(() => {}); }); }
   await p.goto(`${BASE}/?emu&slot=${slot}&${qs}${city ? '&city=2' : ''}`);
   await waitFor(p, wait ? '!!window.__district && window.__district.phase().done' : '!!window.__district', `title ${slot}`, 25000);
   return { ctx, page: p, files };
