@@ -127,6 +127,7 @@ const SCENE = {
   'pn-shelf': ['2026-11-10T20:30', { act: 'shelf' }], 'pn-prism': ['2026-11-10T20:30', { act: 'card', game: 'prism' }],
   'pn-overclock': ['2026-11-10T20:30', { act: 'card', game: 'overclock' }], 'pn-holdem': ['2026-11-10T20:30', { act: 'card', game: 'holdem' }],
   'pn-podium': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism' }],
+  'wo-sheet': ['2026-11-10T20:30', { act: 'whos-on' }], 'wo-sheet-4': ['2026-11-10T20:30', { act: 'whos-on', long: 1 }],   // (THE POOL FIXES Group 3: WHO'S ON — two rows, the city + a room, a fake answer)
   'pn-shelf-day': ['2026-11-10T13:30', { act: 'shelf' }], 'pn-overclock-day': ['2026-11-10T13:30', { act: 'card', game: 'overclock' }],   // (THE POOL FIXES 0a: OVERCLOCK's icon by day)
   // (the owner's add-on: SHARE YOUR RUN — the card drawn on the phone, shown at Messages size + full; a real PRISM DROP run by the test bot, night + day)
   'pn-share-night': ['2026-11-10T20:30', { act: 'share-card', game: 'prism', look: 'night' }], 'pn-share-day': ['2026-11-10T13:30', { act: 'share-card', game: 'prism', look: 'day' }],
@@ -347,6 +348,21 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   if (o.act === 'shelf' || o.act === 'card') {
     await p.evaluate(() => document.querySelector('.nd-tab-play').click()); await p.waitForSelector('.nd-shelf-sheet.is-in .nd-shelf-row'); await sleep(450);
     if (o.act === 'card') { await p.evaluate(g => document.querySelector(`.nd-shelf-row[data-game="${g}"]`).click(), o.game); await p.waitForSelector(`.nd-card-sheet.is-in .nd-card[data-game="${o.game}"]`); await sleep(650); }
+  }
+  // (WHO'S ON — the REAL sheet (ui/whos-on.js) on a fake owner's answer: BEN in the city, DIME TIME in a room; every card ONE width)
+  if (o.act === 'whos-on') {
+    await p.evaluate(async o => {
+      const [W, S] = await Promise.all([import('/js/ui/whos-on.js'), import('/js/ui/sheet.js')]);
+      const now = Date.now();
+      const rows = [
+        { card: { id: 'b1', n: 'BEN', l: 41, cd: 'card-closeencounter', es: null, a: null, c: '#ff4fa3' }, where: { k: 'city' }, at: now - 20e3 },
+        { card: { id: 'b2', n: 'DIME TIME', l: 17, cd: 'card-gift-buzzed', es: null, a: null, c: '#36e6ff' }, where: { k: 'room', code: 'GULF', g: 'prism', p: 'playing' }, at: now - 120e3 },
+        ...(o.long ? [{ card: { id: 'b3', n: 'ALEXANDRIA12', l: 9, cd: 'card-gilded' }, where: { k: 'daily', d: 'password' }, at: now - 200e3 },
+          { card: { id: 'b4', n: 'KIM', l: 3, cd: 'card-midnight' }, where: { k: 'solo', g: 'overclock' }, at: now - 40e3 }] : []),
+      ];
+      W.openWhosOn({ api: async () => ({ rows, guests: { n: 1, city: 1, rooms: 0, daily: 0 }, now }), openSheet: S.openSheet });
+    }, o);
+    await p.waitForSelector('.wo-sheet.is-in .wo-row'); await sleep(900);
   }
   if (o.act === 'share-card') {
     await p.evaluate(l => { try { localStorage.setItem('ns:look', l); } catch { /* fine */ } }, o.look || 'auto');

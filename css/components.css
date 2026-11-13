@@ -1261,10 +1261,16 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 
 /* ---- PLAY NOW — WHO'S ON (ui/whos-on.js: the LEDGER's sheet + /admin STATS): a slim card a row, WHERE + the last check-in beside it ---- */
 .wo-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 10px; position: relative; }
-.wo-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+/* (THE POOL FIXES — the owner's 1:21 pm add-on: ONE card width + one place column for every row. The PLACE + TIME column is the FIXED one
+   (--wo-meta-w — the longest place part, "THE PASSWORD", on one line) and every card takes the SAME rest of the row: the card used to be what
+   the place text left over (a short "THE CITY · now" stretched one card and squeezed its place into a sliver). Never a narrow FIXED card: a slim
+   card keeps 124 px on its right for its hero (THE HERO-SPOT RULE — vault/hero.js), so under ~240 px its name had no room ("BEN" → B / E / N)) */
+.wo-row { --wo-meta-w: 100px; display: grid; grid-template-columns: minmax(0, 1fr) var(--wo-meta-w); align-items: center; gap: 12px; }
 .wo-card { min-width: 0; }
-.wo-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; max-width: 46vw; }
-.wo-where { font: 800 11px/1.25 var(--font-ui); letter-spacing: 0.12em; color: var(--text); }
+@media (min-width: 700px) { .wo-row { --wo-meta-w: 168px; } }
+.wo-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; min-width: 0; }
+.wo-where { font: 800 11px/1.3 var(--font-ui); letter-spacing: 0.07em; color: var(--text); }
+.wo-part { white-space: nowrap; }
 .wo-row[data-k='room'] .wo-where, .wo-row[data-k='solo'] .wo-where { color: #ffb3e6; }
 .wo-row[data-k='daily'] .wo-where { color: #9ff3d4; }
 .wo-ago { font: 600 11px/1 var(--font-num); letter-spacing: 0.06em; color: var(--text-dim); }

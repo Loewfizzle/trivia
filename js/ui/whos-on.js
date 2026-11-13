@@ -13,6 +13,9 @@ export const WHO_REFRESH_MS = 30e3;
 const NAMES = Object.fromEntries([...GAMES, ...DAILIES].map(g => [g.id, g.name]));
 const onScreen = () => { try { return document.visibilityState === 'visible' && (typeof document.hasFocus !== 'function' || document.hasFocus()); } catch { return true; } };
 
+// (THE POOL FIXES — the owner's 1:21 pm add-on: the place line breaks only BETWEEN its parts — "ROOM GULF ·" / "PRISM DROP", never "PRISM" / "DROP")
+const whereParts = line => String(line).split(' · ').flatMap((t, i, all) => [h('span.wo-part', i < all.length - 1 ? `${t} ·` : t), i < all.length - 1 ? ' ' : null]).filter(Boolean);
+
 /** the list block → { el, refresh, destroy } — api: profile/api.js#api */
 export function whosOnBlock({ api }) {
   const list = h('ol.wo-list', { 'aria-live': 'polite' }, h('li.wo-wait', 'Asking the city…'));
@@ -34,7 +37,7 @@ export function whosOnBlock({ api }) {
         const strips = [];
         list.replaceChildren(...rows.map(r => {
           const st = SB.stripFor(SB.K, r.card); strips.push(st);
-          return h('li.wo-row', { dataset: { k: r.where && r.where.k } }, h('div.wo-card', st.el), h('div.wo-meta', h('b.wo-where', whereLine(r.where, NAMES)), h('small.wo-ago', agoLine(r.at, d.now))));
+          return h('li.wo-row', { dataset: { k: r.where && r.where.k } }, h('div.wo-card', st.el), h('div.wo-meta', h('b.wo-where', ...whereParts(whereLine(r.where, NAMES))), h('small.wo-ago', agoLine(r.at, d.now))));
         }));
         surface = SB.K.createSurface(list, { label: 'whos-on' });
         strips.forEach((st, i) => SB.stripFx(SB.K, surface, st, i + 1));
