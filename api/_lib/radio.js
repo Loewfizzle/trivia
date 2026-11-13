@@ -14,7 +14,7 @@
 //                         LOBBY (core/harbor-radio.js#radioHolder): the server writes the hand-over + the ask, the room's phones see them
 //   rooms/{CODE}/radio/{id}  a room's moments (its phones listen on the room's socket — ~1–2 s)
 //   city2/showcase        the TUNING WINDOW's level (every phone reads it through GET /api/admin?live=1, with the city's moments)
-//   here/{uid}            THE NIXIE's count: a visible title says hello every ~2 min (an ESTIMATE until Vercel Analytics)
+//   here/{uid}            THE NIXIE's count: a visible title says hello every ~5 min (THE CDN HOTFIX, Nov 12 — was ~2) (an ESTIMATE until Vercel Analytics)
 //   radio/presets/{id}    CC-B — PRESETS (the owner's saved combos: { name, steps: [{ kind: 'fire' | 'board', body }], at }) — one jack each
 //   radio/push/{on, subs/{hash}, sent/{CODE}}  CC-B — "A ROOM JUST OPENED": the owner's push switch, his phones' Web Push subscriptions
 //                         (api/_lib/push.js), a room notified once
@@ -41,7 +41,7 @@ import { cleanIntercom, icPublic, icLen, canUnsend, IC_WHY, icWhen } from '../..
 import { setFounder, founderState } from './founder.js';
 import { dayKey } from '../../js/core/week.js';
 
-const HERE_MS = 180e3;
+const HERE_MS = 360e3;   // (THE CDN HOTFIX: the hello every ~5 min (≤ 5.5) → 6 min — was 3 for the ~2-min hello)
 const tzOffAt = (ms, tz) => { try { const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' }).formatToParts(new Date(ms)).map(x => [x.type, x.value])); return Math.round((Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - Math.floor(ms / 60e3) * 60e3) / 60e3); } catch { return 0; } };
 
 /** the caller's role: 'owner' (ADMIN_PIDS) · 'crew' (radio/crew/{pid}) · null */
@@ -206,7 +206,7 @@ export async function openRooms(now) {
   }
   return out.sort((a, b) => b.online - a.online || a.code.localeCompare(b.code));
 }
-/** THE NIXIE: people in the city now (an estimate — visible titles say hello every ~2 min) + in rooms */
+/** THE NIXIE: people in the city now (an estimate — visible titles say hello every ~5 min) + in rooms */
 export async function cityCount(now) {
   const here = (await val('here')) || {}, gone = {};
   let n = 0; for (const [u, t] of Object.entries(here)) { if (t > now - HERE_MS) n++; else gone[u] = null; }

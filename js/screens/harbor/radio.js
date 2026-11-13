@@ -277,7 +277,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       const j = RD.jackDef(m.jack), ph = RD.phaseOf(m, now), label = j ? j.label : m.jack, words = m.text ? `“${m.text}”` : '';
       const where = m.aud === 'room' ? `lobby only ${m.room || ''}` : RD.AUD_LABEL[m.aud].toLowerCase();
       const sub = ph === 'run' ? `${words ? `${words} · ` : ''}${where}${m.mine ? '' : ' · fired by the crew'}`
-        : m.at - now > (m.aud === 'room' ? 4000 : 60000) ? `waiting its turn — at ${RD.clockIn(m.at)}` : m.aud === 'room' ? 'the lobby in ~2 s' : m.aud === 'me' ? 'on this phone now' : 'the whole city within ~45 s';
+        : m.at - now > (m.aud === 'room' ? 4000 : 60000) ? `waiting its turn — at ${RD.clockIn(m.at)}` : m.aud === 'room' ? 'the lobby in ~2 s' : m.aud === 'me' ? 'on this phone now' : 'the whole city within ~5 min';
       return h('div.rd-strip', { class: ph === 'run' ? 'is-run' : 'is-q', dataset: { id: m.id } },
         h('i.rd-lamp'),
         h('div', h('b', `${label} · ${ph === 'run' ? `RUNNING ${mmss((now - m.at) / 1000)}` : 'ON ITS WAY'}`), h('small', sub)),

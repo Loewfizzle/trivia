@@ -559,9 +559,9 @@ sheet on the owner's phone — on that phone only (JUST ME) or on every phone on
 or listens to any of it (the E2E checks: no `remote.js` request, no pill, no listener without the flag).
 
 **CONN (Oct 28) — EVERYONE WITHOUT A SOCKET:** the free database plan allows 100 simultaneous connections, so a visitor on the title no
-longer listens to `city2/live`. Every NON-admin phone polls `GET /api/admin?live=1` (edge-cached 15 s; `remote.js#poll`, every ~45 s
-while the page is visible, at once when it comes back) — an EVERYONE preview reaches the other phones within about a minute (~30 s on
-average), the DELAY's startAt still lines them up (`serverNow()` keeps the last known offset per device while the database is parked).
+longer listens to `city2/live`. Every NON-admin phone polls `GET /api/admin?live=1` (edge-cached 15 s; `remote.js#poll`, every ~5 min
+while the page is visible AND focused — THE CDN HOTFIX, Nov 12: was ~45 s; at once when it comes back if the last read is ≥ 60 s old) — an
+EVERYONE preview (+ a radio moment, the intercom, the billboard's messages) reaches the other phones within ~5 min (~2.5 min on average), the DELAY's startAt still lines them up (`serverNow()` keeps the last known offset per device while the database is parked).
 Each answer carries the server time it was read (`at`); an older answer (a cached copy after a newer one) is ignored. An ADMIN keeps the
 live listener (`want('admin')`, from the moment `whoami` says so until the title goes; parked like any tab after 2 min hidden) — SEND
 and its countdown are instant on the owner's phone. The E2E reads every 1.5 s under `?emu`.

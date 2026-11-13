@@ -2683,3 +2683,23 @@ THE TWO-TAB HANG (a silent Safari store never holds a boot or a sign-in; the wat
 fixed at a visit's start. C5's whole-tree reads → the index; PD2's margin 3 → 2.8. The tests (smoke filter, four /api suites in the cloud, crew,
 the FAST short, the WebKit live guard, no-WebGL PRISM, perfRun's look). NICE: HOST at the 101st connection, the 425 back-off, radioWho's NO. ADD-ONS:
 A SEAT IS NOT A PLAY (+ the honest-player fixes: present = proven, a re-start keeps the last match's proof), SIGHTINGS NEED THE CITY OPEN (the queue + the stamp agree), the probe of Firebase's own databases. RULES CHANGED (the host deletes one match's proof node — re-publish). NOT DONE: C4; three NICE lines.
+
+## THE CDN HOTFIX — Vercel's edge requests over the free limit (Nov 12, 2026)
+
+The owner's Vercel dashboard: **Edge Requests 1M / 1M** on the Hobby plan (an account over a limit can be paused). Same evening, no rules change:
+- **THE EDGE CACHE live early** (docs/launch.md step 8): `git revert` of "THE EDGE CACHE out" (224a241f) — the worker's ONE COPY PER DEPLOY by the
+  build id (a new deploy still shows at once) + `/js` `/css` `/assets` `public, max-age=300, stale-while-revalidate=86400`; THE TWO-TAB HANG's
+  bounds kept (every Cache Storage wait ≤ 0.8 s, the activation ≤ 2 s). `wk-edge.mjs` 6 / 6 (WebKit, production headers, each visit a new tab):
+  cold 395 · the worker's first load 356 · **WARM 15 (4 static + 11 /api), was 356** · a deploy 356 (the refill, the new code at once) · warm after it 15.
+- **The city's idle polls cut** (`js/screens/harbor/remote.js` — each call is an edge request): the preview / radio feed `GET /api/admin?live=1`
+  45 s → **5 min**, `radioHello` ~2 → **~5 min**, both only from a tab VISIBLE + FOCUSED (`onScreen`); back on screen re-asks only when the last
+  call is ≥ 60 s old (the hello still comes back on screen — SIGHTINGS NEED THE CITY OPEN). The server follows the hello: THE NIXIE's window
+  (`api/_lib/radio.js#HERE_MS`) 3 → 6 min, the sightings' city-open trail (`core/sightings.js#OPEN_TRAIL_MS`) 150 → 360 s (a tap just before the
+  next hello answered at once, not `no_stamp`); the gap = the queue = 15 min unchanged. An open city: ~80 + 30 + 4 (weather) ≈ **114 → 28 calls an
+  hour** (≈ 2,700 → 670 a day for one phone left open on the city).
+- **The trade:** an EVERYONE radio moment / intercom / billboard message / preview reaches a visitor's phone within ~5 min (was ~45 s); the owner's
+  own phone listens live (at once). The intercom's EVERYONE lead stays 50 s and the radio's city lead 45 s — a phone that reads it later joins
+  mid-way or misses a short one (raising those leads to ~5.5 min is the owner's call).
+- Tests: unit 1,713 + `tests/cdn-hotfix.test.mjs`; `wk-edge` 6 / 6, `wk-twotabs` 7 / 7, `sw-cache` 3 / 3, `wk-load` 0 problems, smoke 8 / 8, CONN 21 / 21,
+  `sightings.test.mjs` 7 / 7 (THE QUEUE + THE STAMP AGREE's silence now 10 min, the tap at minute 7 — past the new trail), `server.test.mjs` 50 / 50,
+  harbor `panel,panelrows,sightings,radio,crew,radiorest` 163 / 163.

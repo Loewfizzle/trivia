@@ -40,15 +40,15 @@ export const SIGHTING_IDS = Object.freeze(SIGHTINGS.map(s => s.id));
 export const QUEUE_MS = 15 * 60e3;   // (FR7 FIXES B — the owner's add-on: 12 h → 15 min — a real tap's claim goes at once; a dead spot queues it briefly)
 /**
  * FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN (the owner's add-on, Grok's second opinion): a SKY claim counts only while a SERVER-WRITTEN
- * "city open" stamp covers its t — ppriv/{pid}/co = { a, b, p } (the opening the visible city's own ~2-minute hello keeps alive: a = its first
+ * "city open" stamp covers its t — ppriv/{pid}/co = { a, b, p } (the opening the visible city's own ~5-minute hello keeps alive: a = its first
  * hello, b = its latest; p = the opening before it), written by /api/admin radioHello (api/_lib/radio.js#hello — a call the city already
  * makes; no new function, no new poll). A SPEED BUMP, not a seal: a script that keeps the hello going still can — it only stops a claim
  * made with no city open at all. The radio's moments keep their own record (radio/fired). OPEN_LEAD_MS before the first hello (it goes ~4 s
- * after the boot), OPEN_TRAIL_MS after the latest (the next is ≤ ~132 s away).
+ * after the boot), OPEN_TRAIL_MS after the latest (the next is ≤ ~330 s away — THE CDN HOTFIX, Nov 12: the hello ~2 → ~5 min, the trail 150 → 360 s).
  */
 // (Grok's honest-player review: THE QUEUE + THE STAMP AGREE — CITY_GAP_MS = QUEUE_MS: a hello after an outage of up to 15 min EXTENDS the
 //  same opening, so a tap in the gap is covered; a claim the stamp hasn't reached yet answers 'no_stamp' — the phone keeps it and retries)
-export const OPEN_LEAD_MS = 30e3, OPEN_TRAIL_MS = 150e3, CITY_GAP_MS = QUEUE_MS;
+export const OPEN_LEAD_MS = 30e3, OPEN_TRAIL_MS = 360e3, CITY_GAP_MS = QUEUE_MS;
 /** PURE: the stamp hasn't reached t yet (no stamp at all, or t after its latest hello's reach) — a RETRY, never a refusal */
 export const stampBehind = (open, t) => !open || !Number.isFinite(open.b) || t > open.b + OPEN_TRAIL_MS;
 /** PURE: did a city-open stamp cover t? */

@@ -174,9 +174,13 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   GAME THROUGH THE DEALER** — HOLD'EM's ☰ END GAME = the dealer's `endGame` (places by chips from 3 hands, else NO RESULT — `match.js#endTournament`).
   Add-ons: **`api()` under ONE time limit** (token + fetch + body — a lock waiting on it always lets go; HOLD'EM's move lock + its 10 s release);
   **THE LOST LOOK** — a canvas iOS discarded in the background (a lost context / the bake's blank sentinel) → the dark held → the one re-fit path (docs/harbor.md#performance).
-- **FR7 FIXES B (Nov 12 — docs/harbor/passes/fr7-fixes-b.md):** **THE EDGE CACHE is DEFERRED to THE LAUNCH** (the owner: he checks every deploy on
-  his iPhone at once) — `docs/launch.md` step 8 = `git revert` of the commit "THE EDGE CACHE out" + its proof (`wk-edge.mjs`); until then the worker is
-  network-first + `no-cache` and `/js` `/css` `/assets` carry no cache header. **THE FROZEN SONGS OUT OF DEPLOYS** — `.vercelignore` drops the ten frozen
+- **FR7 FIXES B (Nov 12 — docs/harbor/passes/fr7-fixes-b.md):** **THE EDGE CACHE is LIVE AGAIN** (THE CDN HOTFIX, Nov 12 — Vercel's free edge
+  requests at 1M / 1M: `docs/launch.md` step 8 run early — the revert of "THE EDGE CACHE out"): the worker keeps ONE COPY PER DEPLOY by the build id
+  (`/api/time`'s `v`; a new deploy shows at once) + `/js` `/css` `/assets` carry `max-age=300, stale-while-revalidate`; proof `wk-edge.mjs` 6 / 6 (a warm
+  visit 15 requests, was 356). **THE CITY'S IDLE POLLS (THE CDN HOTFIX — every call = an edge request):** the preview / radio feed `GET /api/admin?live=1`
+  every 5 min + `radioHello` every 5 min, ONLY from a tab on screen AND focused (`remote.js#onScreen`), a return re-asks only after 60 s; the NIXIE's
+  window (`radio.js#HERE_MS`) + the sightings' trail (`sightings.js#OPEN_TRAIL_MS`) 6 min to match — a new idle poll = a decision a pass names
+  (`tests/cdn-hotfix.test.mjs`). **THE FROZEN SONGS OUT OF DEPLOYS** — `.vercelignore` drops the ten frozen
   games' songs (a game coming back deletes its lines; `tests/frozen-songs.test.mjs` guards every live playlist + station). **THE PRIVATE-REPO WORKFLOW** —
   both workflows read the repo's visibility (public = as before; private = the light `tests` only, `harbor` by hand). **THE LAUNCH + THE PRIVATE FLIP =
   docs/launch.md** (pass screenshots stay out of git — `tests/repo-growth.test.mjs`). **A SEAT IS NOT A PLAY** — a credited uid needs its OWN node of the

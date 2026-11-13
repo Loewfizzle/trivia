@@ -36,9 +36,15 @@ sweep) and **with no room live**.
      needed.)
 7. **Known after the reset:** the "X% of players have this" line on an item reads high for a while (the player count starts again from
    zero, the item counts don't) — it settles as people play. A player's level rewards are never granted twice on the re-climb.
-8. **THE EDGE CACHE — a pass ships it WITH THE LAUNCH** (FR7-A's D2; the owner, Nov 12: deferred until he stops checking every deploy on his
-   iPhone the moment it lands — today every repeat visit re-asks Vercel for every file, each one an edge request). Ask the city chat for
-   "THE EDGE CACHE from docs/launch.md"; the pass does exactly this:
+8. **THE EDGE CACHE — ✅ DONE EARLY (THE CDN HOTFIX, Nov 12, the same evening):** Vercel's dashboard showed the free plan's edge requests at
+   **1M / 1M** (a Hobby account over a limit can be PAUSED), so the step below ran at once instead of at the launch: the revert of "THE EDGE CACHE
+   out" (the worker's ONE COPY PER DEPLOY + the 5-min edge header on /js /css /assets — the two-tab bounds kept) + the city's idle polls cut (the
+   preview / radio feed `GET /api/admin?live=1` 45 s → 5 min, `radioHello` ~2 → ~5 min, both only from a tab on screen AND focused; the NIXIE's
+   window 3 → 6 min, the sightings' city-open trail 150 → 360 s to match). The trade the owner accepted for the launch is live now: a phone
+   that had the site open in the last 5 min may see the previous deploy's files ONCE on his iPhone check (a second open shows the new one).
+   Nothing left to do here at the launch. (The original text, kept for the record:) FR7-A's D2; the owner, Nov 12: deferred until he stops
+   checking every deploy on his iPhone the moment it lands — every repeat visit re-asked Vercel for every file, each one an edge request.
+   The pass did exactly this:
    - **The code — already written + proven, then taken out (FR7 FIXES B):** `git log --oneline --grep "THE EDGE CACHE out"` names ONE commit;
      `git revert <that sha>` puts it back as it was:
      - `vercel.json`: `/js/(.*)`, `/css/(.*)`, `/assets/(.*)` → `Cache-Control: public, max-age=300, stale-while-revalidate=86400` (the HTML,
@@ -63,8 +69,8 @@ sweep) and **with no room live**.
    is the velvet board since FR7 FIXES B).
 10. **The weekly watch** (five numbers, Mondays): Vercel → Usage → **Edge Requests** + **Fast Data Transfer**; Firebase → Realtime Database →
    Usage → **peak connections** (the free line is 100) · **downloads** · **storage**; GitHub → the repo's size (Settings → the top) while
-   public. The edge requests today vs with THE EDGE CACHE (step 8): FR7 FIXES B's numbers in
-   `docs/harbor/passes/fr7-fixes-b.md`.
+   public. The edge requests before vs with THE EDGE CACHE (step 8, live since THE CDN HOTFIX): FR7 FIXES B's numbers in
+   `docs/harbor/passes/fr7-fixes-b.md` + the hotfix's in ROADMAP / `docs/roadmap-history.md` "THE CDN HOTFIX".
 
 ## 2. THE PRIVATE FLIP (later — the PC + GitHub + /admin — ~1 hour)
 

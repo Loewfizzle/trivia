@@ -1,7 +1,8 @@
 // CITY 2.0 — THE PREVIEW PANEL: the owner's test remote (docs/harbor.md#the-preview-panel). ?city=2 only: title.js imports this
 // module after the city's first paint, never on the default city.
 //   everyone on ?city=2   reads city2/live (server-written: /api/admin cityLive / cityClear) — CONN (Oct 28): through the cached
-//                         GET /api/admin?live=1 about once a minute while the city is visible (no database socket; ≲ 1 min to arrive);
+//                         GET /api/admin?live=1 every ~5 min while the city is visible + focused (no database socket; ≲ 5 min to arrive —
+//                         THE CDN HOTFIX, Nov 12: each poll is one of Vercel's free million edge requests);
 //                         admins keep the live listener (firebase.js#want('admin')) — and plays
 //                         its state in sync from its startAt (the scene's remote(): the clock runs from there, a sky piece's
 //                         first flight starts there) until CLEAR or `until`; then the real city again. A node whose startAt is
@@ -106,9 +107,15 @@ const navType = () => { try { const e = performance.getEntriesByType('navigation
 let linkChecked = false;
 let cssReady = null;             // (the panel's stylesheet, loaded once a page: the pill waits for it)
 // (test-only: the panel without an admin profile — the previews and the emulator E2E; never on the real site's pages)
-// CONN: how often a visitor re-reads EVERYONE's node (the /api answer is edge-cached 15 s: a preview arrives within ~1 min, ~30 s on
-// average); the emulator E2E reads every 1.5 s
-const POLL_MS = typeof location !== 'undefined' && /[?&]emu(?:[=&]|$)/.test(location.search) ? 1500 : 45_000;
+// CONN: how often a visitor re-reads EVERYONE's node (the /api answer is edge-cached 15 s); the emulator E2E reads every 1.5 s.
+// THE CDN HOTFIX (Nov 12 — Vercel's edge requests hit the free 1M): 45 s → 5 MIN, only while the tab is VISIBLE + FOCUSED; coming back on
+// screen polls at once only when the last read is older than BACK_MIN_MS (an app switch every few seconds never re-asks). A preview /
+// a radio moment / the intercom reaches a visitor's phone within ~5 min (the owner's own phone listens live — at once)
+const EMU_POLL = typeof location !== 'undefined' && /[?&]emu(?:[=&]|$)/.test(location.search);
+const POLL_MS = EMU_POLL ? 1500 : 300_000;
+const BACK_MIN_MS = EMU_POLL ? 0 : 60_000;
+/** THE CDN HOTFIX: a poll / a hello only from a tab on screen AND focused (a desktop window behind another app never asks) */
+export const onScreen = () => { try { return document.visibilityState === 'visible' && (typeof document.hasFocus !== 'function' || document.hasFocus()); } catch { return false; } };
 const TEST_PANEL = typeof location !== 'undefined' && /[?&]panel=1(?:&|$)/.test(location.search)
   && (location.pathname.includes('/tests/') || /[?&]emu(?:[=&]|$)/.test(location.search));
 
@@ -178,9 +185,9 @@ export function createRemote({ scene, api = apiCall }) {
   // EVERYONE's node (only the server writes it). A startAt still ahead (the DELAY) waits: the phone keeps what it shows until then —
   // the owner's phone counts it down beside the pill.
   // CONN: everyone reads it through the cached GET /api/admin?live=1 (no database socket on the title: the free plan's 100 connections)
-  // about once a minute while the page is visible; an ADMIN listens live (want('admin') — the panel sends + sees it at once). Each
+  // every ~5 min while the page is visible + focused (THE CDN HOTFIX); an ADMIN listens live (want('admin') — the panel sends + sees it at once). Each
   // answer carries the server time it was read (`at`): an older one (a cached poll after a newer answer) is ignored.
-  let liveSeen = -Infinity, pollT = 0, pollOn = true;
+  let liveSeen = -Infinity, pollT = 0, pollOn = true, polledAt = -Infinity;
   function onLiveNode(v, at) {
     if (destroyed || !(at >= liveSeen)) return;
     liveSeen = at;
@@ -200,7 +207,8 @@ export function createRemote({ scene, api = apiCall }) {
   async function poll() {
     clearTimeout(pollT); pollT = 0;
     if (destroyed || !pollOn) return;
-    if (document.visibilityState === 'visible') {
+    if (onScreen()) {
+      polledAt = Date.now();
       try {
         const r = await fetch('/api/admin?live=1', { headers: { Accept: 'application/json' } });
         if (r.ok) { const j = await r.json(); if (j && Number.isFinite(j.at)) { onLiveNode(j.live || null, j.at); onRadio(j.radio || null, j.at); } }
@@ -208,8 +216,10 @@ export function createRemote({ scene, api = apiCall }) {
     }
     if (!destroyed && pollOn && !pollT) pollT = setTimeout(poll, POLL_MS * (0.9 + Math.random() * 0.2));
   }
-  const onVis = () => { if (document.visibilityState === 'visible' && pollOn) poll(); };
+  // (back on screen / focused: a read at once only when the last one is older than BACK_MIN_MS — the timer carries on otherwise)
+  const onVis = () => { if (pollOn && onScreen() && Date.now() - polledAt >= BACK_MIN_MS) poll(); };
   document.addEventListener('visibilitychange', onVis);
+  window.addEventListener('focus', onVis);
   poll();
   function listenLive() {
     // (CITY CONTROLS A: the polls go on for THE RADIO's part — the listener's answers still win for city2/live: onLiveNode ignores an
@@ -242,18 +252,24 @@ export function createRemote({ scene, api = apiCall }) {
   // (the intercom waits for a legendary's own audio; its headline goes up on the speakeasy's billboard while it plays)
   setIntercomBusy(() => { const sc = scene(); return !!(sc && sc.legendBusy && sc.legendBusy()); });
   setIntercomHead(lines => setBillboardHead(lines));
-  // THE NIXIE's count (an estimate until Vercel Analytics): a visible city says hello every ~2 min (no socket — the API)
+  // THE NIXIE's count (an estimate until Vercel Analytics): a visible + focused city says hello every ~5 min (no socket — the API; THE CDN
+  // HOTFIX, Nov 12: was ~2 min — the server's NIXIE window + the sightings' city-open trail follow it: api/_lib/radio.js#HERE_MS,
+  // core/sightings.js#OPEN_TRAIL_MS)
+  const HELLO_MS = 300e3, HELLO_BACK_MS = 60e3;
+  let helloAt = -Infinity;
   let helloT = 0;
   // (FR7 FIXES B — THE QUEUE + THE STAMP AGREE: after a hello the server's city-open stamp covers now — a sighting queued meanwhile goes;
   //  the queue's module is loaded only when something waits in it)
   const sgQueued = () => { try { return (localStorage.getItem('nd:sg-q') || '[]').length > 2; } catch { return false; } };
   const afterHello = () => { if (sgQueued()) lazyImport(import('../../profile/sightings.js'), '../../profile/sightings.js').then(m => m.flushSightings()).catch(() => {}); };
-  const hello = () => { clearTimeout(helloT); if (destroyed) return; if (document.visibilityState === 'visible' && api) api('admin', { action: 'radioHello' }).then(afterHello, () => {}); helloT = setTimeout(hello, 120e3 * (0.9 + Math.random() * 0.2)); };
+  const hello = () => { clearTimeout(helloT); if (destroyed) return; if (onScreen() && api) { helloAt = Date.now(); api('admin', { action: 'radioHello' }).then(afterHello, () => {}); } helloT = setTimeout(hello, HELLO_MS * (0.9 + Math.random() * 0.2)); };
   firebaseReady.then(() => { if (!destroyed && !TEST_PANEL) helloT = setTimeout(hello, 4000); }).catch(() => {});
-  // (FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: back on screen = a hello at once — the server's city-open stamp starts again then, not ~2 min later)
+  // (FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: back on screen = a hello at once — the server's city-open stamp starts again then, not ~5 min later)
   //  (1.5 s after the return — never inside the city's own re-fit at that moment: wk-double's resize-hidden caught a frame's work there)
-  const helloBack = () => { if (!destroyed && !TEST_PANEL && document.visibilityState === 'visible' && helloT) { clearTimeout(helloT); helloT = setTimeout(hello, 1500); } };
+  //  (THE CDN HOTFIX: only when the last hello is older than HELLO_BACK_MS — the stamp's trail still covers a quick app switch)
+  const helloBack = () => { if (!destroyed && !TEST_PANEL && onScreen() && helloT && Date.now() - helloAt >= HELLO_BACK_MS) { clearTimeout(helloT); helloT = setTimeout(hello, 1500); } };
   document.addEventListener('visibilitychange', helloBack);
+  window.addEventListener('focus', helloBack);
 
   // ---------------------------------------------------------------- the owner's pill (admins only)
   // (PERF-A — FR5 E2 + Grok: a "no" was pinned 6 h in the tab — asked before this login was linked to its profile, it stayed after a key
@@ -1016,7 +1032,7 @@ export function createRemote({ scene, api = apiCall }) {
       if (cd) clearInterval(cd.iv);
       if (play) clearTimeout(play.timer);
       if (unsub) { try { unsub(); } catch { /* fine */ } release('admin'); }
-      clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis); document.removeEventListener('visibilitychange', helloBack); window.removeEventListener('nd:me', onMe);
+      clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis); document.removeEventListener('visibilitychange', helloBack); window.removeEventListener('focus', onVis); window.removeEventListener('focus', helloBack); window.removeEventListener('nd:me', onMe);
       if (bar) bar.remove();
       if (sheet) sheet.remove(); if (hrRelease) { hrRelease(); hrRelease = null; }
       setMenuExtra('admin', null); setMenuExtra('adminpage', null); setMenuExtra('lab', null); setMenuCue(null);

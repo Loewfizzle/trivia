@@ -191,18 +191,19 @@ test('FR7 FIXES B — SIGHTINGS NEED THE CITY OPEN: no open-city stamp → refus
 
 // FR7 FIXES B — THE QUEUE + THE STAMP AGREE (Grok's honest-player review): a hello after an outage of up to 15 min EXTENDS the same opening;
 // a claim the stamp hasn't reached answers 'no_stamp' (the phone keeps it) and is granted once the hellos catch up
-test('FR7 FIXES B — THE QUEUE + THE STAMP AGREE: hellos stop for 5 min, a tap at minute 4 → granted once they resume; a claim before the first hello → granted after it', async () => {
+test('FR7 FIXES B — THE QUEUE + THE STAMP AGREE: hellos stop for 10 min, a tap at minute 7 (past the 6-min trail — THE CDN HOTFIX) → granted once they resume; a claim before the first hello → granted after it', async () => {
   const at = firstLegend('ufo');
-  // (a) the hellos stop for 5 minutes; a tap at minute 4; the claim answered 'no_stamp' (kept), then the hellos resume → granted
+  // (a) the hellos stop for 10 minutes; a tap at minute 7 (past OPEN_TRAIL_MS, 6 min since THE CDN HOTFIX's ~5-min hello); the claim answered
+  //     'no_stamp' (kept), then the hellos resume → granted
   await ensure('sg-gap', 'GAPPER', at - 864e5);
-  await cityOpen('sg-gap', at - 240e3);                       // (the city open; then its hellos STOP — the tap comes at minute 4 of the silence)
+  await cityOpen('sg-gap', at - 420e3);                       // (the city open; then its hellos STOP — the tap comes at minute 7 of the silence)
   const first = await claim('sg-gap', 'ufo', at + 4000, at + 6000, { closed: true });
   assert.equal(first.why, 'no_stamp', `the claim during the silence: kept for a retry, never refused (${JSON.stringify(first).slice(0, 60)})`);
-  await cityOpen('sg-gap', at - 240e3 + 5 * 60e3);             // (the hellos resume after 5 minutes — the SAME opening, extended)
-  const again = await claim('sg-gap', 'ufo', at + 4000, at - 240e3 + 5 * 60e3 + 2000, { closed: true });
+  await cityOpen('sg-gap', at - 420e3 + 10 * 60e3);            // (the hellos resume after 10 minutes — the SAME opening, extended)
+  const again = await claim('sg-gap', 'ufo', at + 4000, at - 420e3 + 10 * 60e3 + 2000, { closed: true });
   assert.ok(again.ok && again.counted, `granted once the hellos resumed (${JSON.stringify(again).slice(0, 80)})`);
   const co = await val(`ppriv/${await val('uids/sg-gap')}/co`);
-  assert.equal(co.a, at - 240e3, 'one opening across the 5-minute silence');
+  assert.equal(co.a, at - 420e3, 'one opening across the 10-minute silence');
   // (b) a claim BEFORE the first hello → 'no_stamp' (kept) → the first hello → granted
   await ensure('sg-first', 'FIRSTER', at - 864e5);
   const pre = await claim('sg-first', 'ufo', at + 4000, at + 5000, { closed: true });
