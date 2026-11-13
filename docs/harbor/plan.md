@@ -6691,3 +6691,27 @@ OWNER'S NOTES — NOV 13 10 am (after FR7 FIXES C2)
 - THE BUILD TABLE (Nov 13, PLAY NOW's Step 0): FR7 FIXES C2 ✅ (live); THIS PASS — PLAY NOW + WHO'S ON (+ GROUP 0: ONE DEPLOY AT A TIME, the C2 leftovers:
   the random boot hang, the roof board stuck on HOLD'EM, the floor to iOS 15.4, A REAL ZEBRA, the C2 cloud reds) (passes/play-now.md) ← NOW → THE POOL FIXES +
   THE SLIDER → JAYWALK's passes; THE LAUNCH whenever the owner taps.
+
+## OWNER'S NOTES — NOV 13 1 pm (PLAY NOW live on his iPhone)
+
+```
+OWNER'S NOTES — NOV 13 1 pm (PLAY NOW live on his iPhone)
+- PLAY NOW works: PRISM DROP solo in 2–3 s. The SHARE image is beautiful — keep it as is.
+- The games shelf under PLAY: the three neon icons look amazing, BUT OVERCLOCK's is still the OLD look (gold / pink). It must be
+  OVERCLOCK's new OVERDRIVE look — BLUE + ORANGE — everywhere its icon shows.
+- CARD NAMES: show the EQUIPPED card's name on someone else's card (player page / THE BOARD). Unearned item names stay hidden
+  from non-owners (the catalog, the lab, the collection).
+- The fact-check reviews of the OVERCLOCK banks + the daily password answers are in Downloads\NEON\pool-fixes\ — fix what's real.
+```
+```
+ADD-ON (the owner, Nov 13 1:21 pm — WHO'S ON on his iPhone at 390, the LEDGER → IN THE CITY sheet)
+- The slim cards are DIFFERENT WIDTHS — BEN's (the UFO card) runs almost to the sheet's right edge and squeezes "THE CITY · now" into a
+  narrow column, while DIME TIME's is shorter with room for "ROOM GULF · PRISM DROP / 2 min ago". Every slim card in WHO'S ON gets ONE
+  fixed width (through ui/strip-board.js — never a second strip system), so the place + time column lines up the same for every row and
+  never wraps into a sliver. Check the /admin STATS list the same way. Shots at 390 / 402 / 430 with 2 rows; one refine pass.
+  → this pass's LAST group (THE PIPELINE), before its final test run + push.
+```
+- THE BUILD TABLE (Nov 13, THE POOL FIXES' Step 0): PLAY NOW + WHO'S ON ✅ (live — PRISM DROP solo in 2–3 s, the SHARE image kept as is);
+  THIS PASS — THE POOL FIXES + THE SLIDER + OVERCLOCK'S NEW ICON (+ GROUP 0: the icon in OVERDRIVE's blue + orange, CARD NAMES YOU CAN SEE,
+  the chat false alarm, the dock's first tap on iOS, PLAY NOW's cloud reds; GROUP 3: WHO'S ON's slim cards one width — the 1:21 pm add-on)
+  (docs/games/passes/pool-fixes.md) ← NOW → JAYWALK's passes; THE LAUNCH whenever the owner taps.
