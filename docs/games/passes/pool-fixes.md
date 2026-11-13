@@ -193,3 +193,51 @@ cut-off either way: RULE 6's table holds no year for it) · Acadia 1919 · Dell 
 See `docs/holdem.md` "THE BET SLIDER": − / + with pointer capture, the repeat stopping on pointerup / pointercancel / lostpointercapture / window blur /
 visibilitychange; THE ONE POINTER; THE CONFIRM LOCK (`bet-steps.js#confirmLock`, pure + numbered). Proof: unit 14 / 14, `e2e-holdem` FAST 22 / 22, WebKit
 `wk-holdem-slider.mjs` 26 / 26 (hold + blur and hold + hidden stop at once; CONFIRM twice = ONE act; a second finger changes nothing).
+
+## Group 3 — WHO'S ON: ONE CARD WIDTH (the owner's 1:21 pm add-on — `59bdf458`, refined in `e308c6ca`)
+- The card column was what the place text left over → a short "THE CITY · now" stretched one card and squeezed its place into a sliver. Now the
+  **PLACE + TIME column is the fixed one** (`--wo-meta-w` 92 px on a phone, 168 on /admin's desktop) and every slim card takes the SAME rest of the row
+  (`ui/strip-board.js` as ever); a place part (`whos-on.js#whereParts`, inline-blocks) breaks only between parts, or at its own spaces when it alone is
+  too wide ("THE / PASSWORD" — never a sliver).
+- **Why not a fixed narrow CARD** (the first refine pass): a slim card keeps 124 px for its hero (THE HERO-SPOT RULE — `vault/hero.js`), so a 208-px
+  card left the name 12 px ("BEN" → B / E / N). The names need ~232 px of card at a phone width.
+- Shots: `shots.mjs` `wo-sheet` (the city + a room) + `wo-sheet-4` (+ a daily, a solo run, a 12-letter name) at 390 / 402 / 430 / 1440.
+
+## ADD-ON 2 — THE ROOM NOTE, ONE LINE (the owner, Nov 13 1:38 pm — `0c886b8e`)
+- "PRISM DROP IS ON · TAP TO WATCH" — a slim pill sized to its words, 14 pt above the dock (52 pt when a mid-daily / rematch label sits over PLAY),
+  its own `.rc-note` (the title's shared `.nd-note` hidden in a room — it could outlive the room before); a **×** (44 × 44 pt) hides it until the NEXT
+  match (per match id, `localStorage nd:note-x` = `CODE:matchId`, survives a refresh); the body opens the watch, and the FIRST watch of a match says
+  once in a toast "Watching PRISM DROP · You're dealt into the next one". The idle note (ROOM CLOSES IN n MIN · TAP TO KEEP IT OPEN / · A GAME
+  KEEPS IT OPEN) — the same pill, no ×. Pure: `js/core/room-note.js`; taps through `dock.pressTap`, repaints through `afterTap`.
+- Proof: unit `room-note` 4 / 4; the harbor group `roomnote` 10 / 10 (in the `lobbyfix` job) + afterparty, gameflows, tapfit, corners, roomfix — 73 / 73;
+  shots `rn-watch` / `-day`, `rn-idle` / `-day`, `rn-idle-mid` at 390 / 402 / 430 (+ 1440), two refine passes.
+
+## ADD-ON 3 — THE BOARD's LOST TAP + WHO'S ON in /admin + STATIC CARDS + GAMES PLAYED (the owner, Nov 13 1:41–2:10 pm)
+1. **THE BOARD's LOST TAP** (`83f19405`): the cause — ANOTHER tab's switch landing during the press (the previous tab's late / rescue click):
+   `pickTab` rebuilt every tab button, so the HOLD'EM button under the finger was a new node at the lift and Safari sent no click (the owner's list of
+   re-rendered elements = that one call chain's order). Now the tabs, the period switch, RECORDS / CAREER and the picks are built ONCE (selected state
+   in place); the plate's text set only when changed; every rows swap through `tapwatch.js#afterTap`. Proof: `tests/integration/wk-board-taps.mjs`
+   (WebKit 402×874 @3, touch, the rescue OFF, /api/board 300 ms late; per tab: finger down → another tab's switch + a period flip + both answers land →
+   finger up): 9 / 21 on the old code (the watch's report = the owner's list) → 22 / 22 — 0 lost taps, the SAME nodes at the end as at the load.
+2. **WHO'S ON in /admin STATS** (`e308c6ca`): the section had the PLAYER block's class (`.ad-who` — a flex ROW): the heading floated beside a list
+   squeezed into the right half. Now `.ad-whoson` — the heading on its line, full-width rows, the footnote under them (on a phone the list takes 8 px of
+   the card's padding back — the card's name room). Shots: `admin-probe.mjs` `STATS=1` (the WHO'S ON answer stubbed in the browser) at 390 / 402 / 430
+   (+ 1440): cards 238 / 250 / 278 px, one width a list.
+3. **STATIC CARDS** in both lists: no effect surface — each strip its BAKED STILL / its CSS art (`vault/stills.js` — NO BLACK TILES); `.is-still` stops
+   every CSS animation in the list (0 animations measured).
+4. **GAMES PLAYED**: the playable games + any game with plays in the period (the frozen ten at 0 gone).
+
+## The close — the local runs (the mini PC, fresh emulators + `serve.mjs --emu`, nothing else busy)
+| suite | result |
+| --- | --- |
+| unit `node --test tests/*.test.mjs` | 1813 / 1813 |
+| rules · /api `server.test` · the dealer | 82 / 82 (no rules change) · 55 / 55 · 21 / 21 |
+| e2e-profiles (first, on the fresh emulators) | 147 / 147 |
+| smoke | 8 / 8 |
+| e2e-holdem FAST · wk-holdem-slider | 21 / 21 · 26 / 26 |
+| e2e-oc-new · e2e-oc-2 (N=4) | 75 / 75 (after the HUMAN FLOOR pacing fix — `67a8008b`; the same 2 reds on cfb7eb0b) · 27 / 27 |
+| e2e-daily · e2e-password (a DAILY_TEST server on :5179) | 53 / 53 · 40 / 40 |
+| e2e-oc-2 + the others above + the FULL e2e-harbor (4 shards + the tails, ~35 min) | **1313 / 1315** — each red checked: SIGHTINGS "the capture never hitches" (worst frame 116.7 ms vs the 100-ms bar, the frames' median 33.4 ms under the 4-shard load) and THE DANCERS' ARMS NEVER JUMP (1 jump in 310 frames) — both groups re-run alone ×2: 18 / 18 and 18 / 18 (median 16.7 ms, worst 66.7–83.3 ms; 0 jumps). Neither group's code was touched by this pass; both read the load, not a change here — left as found (no tolerance widened), noted for the cloud run. |
+
+**Rules: NOT CHANGED** (`database.rules.json` untouched since cfb7eb0b; rules 82 / 82) — no re-publish. **All the pass's servers stopped at the end** (the
+emulators, `serve.mjs --emu` :5173, the DAILY_TEST :5179, the BEFORE worktree's :5174; the owner's :5190 preview left running).
