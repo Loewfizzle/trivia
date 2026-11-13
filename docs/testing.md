@@ -746,3 +746,14 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   `tests/integration/<id>-preview.html`.
 - RUMRUNNER's economy: `node scripts/sim-rum.mjs` (bot matches on the real rules, per length) before touching `js/games/rum/tuning.js`.
 - Lighthouse (mobile): `npx lighthouse "http://localhost:5173/?emu" --form-factor=mobile --chrome-path="<browser>"` (targets 98–99 / 100 / 100 / 100).
+
+## FR7 FIXES C2 (Nov 13) — the new commands
+- `node tests/integration/wk-radio-faces.mjs [--base URL --root TREE] [--only plain,stale]` — WebKit as the owner: DESK → PROGRAM → LEDGER each paints its
+  real content ≤ 3 s, plain + with a STALE `music.js` (its `musicFileOf` export taken away — the owner's phone). The shipped `be8c156c` fails the stale case.
+- `node tests/integration/cr-double.mjs "<chromium>" --paths hours-dusk@16:40,… [--repeat N] [--shots DIR] [--diag JS]` — NO TWO CAMERAS paths in
+  Chromium on their own (wk-double.mjs's twin); `--shots` keeps a red look's picture, its crisp-less twin and the PIXELS json.
+- `tests/now-playing.test.mjs` (NOW PLAYING imports nothing; the hub's order) · `tests/leafbank.test.mjs` (the ring's numbers).
+- THE CLOUD's UNIT JOB has no root node_modules: a unit test never imports a file that reaches `api/_lib/fb.js` (firebase-admin) — check by running
+  the unit suite once with `node_modules` renamed away.
+- Known local flake (both trees, the harbor `cameras` group at three pages at a time): `no-observer-pre` red ~1 run in 3 ("fit … 85 ms after the
+  reveal"); green alone 8/8.

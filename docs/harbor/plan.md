@@ -6667,3 +6667,11 @@ OWNER'S NOTES — NOV 13 7 am (FR7 FIXES C live on his iPhone)
 - THE BUILD TABLE (Nov 13, FR7 FIXES C2's Step 0): FR7 FIXES C ✅ (live — the LEDGER stuck on "Tuning in…", the leaves a brown halo, JAYWALK still unreadable, two
   cloud reds); THIS PASS — FR7 FIXES C2: THE LEDGER WON'T OPEN + THE LEAVES READ AS LEAVES + THE JAYWALK POSTER + THE TWO CLOUD REDS (passes/fr7-fixes-c2.md)
   ← NOW; then PLAY NOW + WHO'S ON → THE POOL FIXES + THE SLIDER → JAYWALK's passes; THE LAUNCH (the owner's taps) whenever he's ready.
+- THE ADD-ON (the owner's /admin, Nov 13, during FR7 FIXES C2): the 2 BOOT HANGs at 5:54 am are a BOT — "Mac Chrome 83" (2020) on macOS 10.14, an 800×600 @1
+  window, app.js failing in 7 ms. A browser BELOW THE SUPPORTED FLOOR = UNSUPPORTED: the boot screen's plain "This browser is too old for NEON SPEAKEASY — try a
+  current Safari or Chrome", NOT a BOOT HANG (counted on one quiet line, "old browsers: n", in /admin's stats); real current browsers still report every hang.
+  + the owner's own iPhone hang this morning sent NO report (he reloaded before 12 s): the watchdog records the boot's state at each stage in sessionStorage,
+  the NEXT boot sends "the last boot didn't finish (reloaded by hand at n s, stage …)" once.
+- FR7 FIXES C2 DONE (Nov 13) — passes/fr7-fixes-c2.md. THE BUILD TABLE: FR7 FIXES C2 ✅ (THE LEDGER opens again — NOW PLAYING imports nothing, TAP TO RETRY + the
+  report; THE LEAVES READ AS LEAVES — 27 big leaves in a ring; THE JAYWALK POSTER in Bowlby One on a calm panel; the two cloud reds; THE SUPPORTED FLOOR + THE HAND
+  RELOAD; no rules change) → PLAY NOW + WHO'S ON ← NEXT → THE POOL FIXES + THE SLIDER → JAYWALK's passes; THE LAUNCH whenever the owner taps.

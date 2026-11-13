@@ -1755,3 +1755,13 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   `setPageQuiet(on, reason)` — each reason holds the quiet on its own); never during a match in a room.
 - `sfx(name)` for the shared synth effects; games with their own palette ship a `createSfx()` in `audio.js` (soft, quiet, felt not heard).
 - Audio must be unlocked by a gesture (iOS); the engine retries resumes on every tap and after app switches.
+
+## NOW PLAYING — THE HUB (FR7 FIXES C2, Nov 13)
+THE LEDGER's NOW PLAYING line (`js/audio/now-playing.js`) imports NOTHING. The owner's iPhone showed why: the first version imported `music.js`,
+`party-music.js` + `lobby-music.js` into the LEDGER's lazy chunk; a page holding the previous deploy's `music.js` (cached — the edge header's
+stale-while-revalidate) then failed to link the new file ("Importing binding name 'musicFileOf' is not found") and the LEDGER sat on "Tuning in…".
+Now each player registers its reader on ONE shared object when it loads — `globalThis.__nsNowPlaying` = { off, lobby, party, music }, each
+() → { source, file, left } | null — and `nowPlayingNow(hub)` asks them in order (MUSIC OFF · the room's song · the station / deck · the plain player);
+a player that never registered = "NOW PLAYING · —". The rule (CLAUDE.md, THE STALE-MODULE RULE): a lazy chunk reads the boot graph through a hub,
+never a new export. radio.js: a face (PROGRAM / LEDGER) whose import or paint fails shows "Couldn't open … — TAP TO RETRY" (one fresh import,
+`?again=N`) and reports to /admin (`errlog.js#reportError`, `radio-ledger` / `radio-program`).

@@ -406,6 +406,12 @@ takes) with a HEAVY dark outline + a drop, white-hot pink; COMING SOON / NOW OPE
 kid + the headlights at the poster's own shape + LIFTED (`scripts/build-jaywalk-billboard.mjs --art-only`). THE RULE: `jaywalk-art.js#capsOf(R)` ≥
 `holdem-art.js#holdemCaps(R)` — the unit test on four board sizes + the harbor `trivision` group on the LIVE board at 390 / 402 / 430 (Nov 13: JAYWALK
 10.5 / 10.8 / 11.6 pt ≥ HOLD'EM 10.3 / 10.6 / 11.3; the band 6.3 / 6.5 / 7.0 ≥ NOW OPEN 5.9 / 6.1 / 6.5 — it was 5.5 + 3.3 pt at 390).
+**A FACE THAT READS (FR7 FIXES C2, Nov 13 7 am — "JAYWALK needs a different font or something"):** Bungee's thin pink + white blocks blurred at
+~10 pt over the busy art. Now JAYWALK + the band in **BOWLBY ONE** (a heavy, wide grotesque — the tallest caps for their width of eight heavy faces
+tried, `fr7-fixes-c2/jw-fonts.png`; path data from `scripts/build-jaywalk-billboard.mjs`, the art byte-identical), JAYWALK ~94 % of the box,
+WHITE-HOT with a hot-pink edge + a THICK dark outline + a drop (no glow blur); on **A CALM PANEL** — a solid dark band across the poster's top to just
+under the word (`wordsOf().panelY`), a fine pink rule under it — with the art drawn below it (`ART_DROP`: the kid's cap + the headlights under the
+panel, never behind the word). Live at 390: JAYWALK 10.4 ≥ HOLD'EM 10.3 pt, COMING SOON 6.2 ≥ NOW OPEN 5.9.
 
 ## Performance
 
@@ -473,6 +479,21 @@ activation 2 s, the offline reads 0.8 s) — Safari's storage can stop answering
   faults forced once → revealed + the first tap answered) + `tests/integration/wk-freeze.mjs` (WebKit, THE LINE — `kit/line-proxy.mjs`:
   Vercel's ETags, a phone's line, drop / fail / stall / mangle / the deploy switch) + `tests/boot-watchdog.test.mjs`. The reveal unchanged
   (1.33 s Chromium).
+- **THE SUPPORTED FLOOR + THE HAND RELOAD (FR7 FIXES C2's add-on, Nov 13 — the owner's /admin: two BOOT HANGs at 5:54 am from a BOT, "Mac Chrome 83"
+  (2020), macOS 10.14, 800×600 @1, app.js failing in 7 ms; and his own iPhone's hang sent NO report — he reloaded before the 12 s):**
+  **THE FLOOR** = Chrome 92 · Firefox 90 · Safari / iOS 16 (what the code needs: `Array#at` + logical assignment; the Harbor's written iOS 16) —
+  `js/core/browser-floor.js` (PURE — the server's) + its ES5 twin INLINE in the watchdog (an old engine runs that script), kept in step by
+  `tests/safari-floor.test.mjs` (one table of real UAs through both; every iOS browser judged by its iOS version; an UNKNOWN browser is never
+  old). Below it: the boot screen's plain line "This browser is too old for NEON SPEAKEASY — try a current Safari or Chrome." (16 px, readable),
+  app.js stops at its top (`throw` — nothing renders under the line), no reload, no TAP TO TRY AGAIN, **never a BOOT HANG** — ONE `old` note a
+  session → `api/log.js` COUNTS it (`logstats/old` { n, last }, ≤ 3 an hour per IP; a below-floor UA's `boot` report is counted too, never
+  stored) → /admin's STATS: one quiet line "old browsers: n". Preview any day: `?oldua=<a user agent>`. **THE HAND RELOAD:** the watchdog keeps
+  the boot's state in sessionStorage as it goes (`ns:boot-last` — each stage, every second, the full snapshot every 5 s + at `pagehide`); the NEXT
+  boot in the tab finds a boot that never revealed ≥ 4 s on screen and sends ONE `boot` report "THE LAST BOOT DIDN'T FINISH — reloaded (or left)
+  by hand at n s on screen …, stage …" + its snapshot; a revealed boot / the watchdog's own report + reload leave no record. Proof: the harbor
+  **`bootfloor`** group (the `lobby` job: the bot's own UA past 12 s — the line, no app, no reload, no BOOT HANG, counted once; a boot held 5.8 s →
+  reloaded by hand → the report, once) + `server.test` "old browsers" + `tests/boot-watchdog.test.mjs` (every inline script PARSES — a newline
+  slipped into one of its strings during this pass, caught).
 - **LOAD FIX 4 — GROK'S BOOT AUDIT (Nov 10; passes/load-fix-4.md + the audit):** **THE REJOIN LIMIT** — the boot's uplink (the gstatic SDK, the
   auth restore, the room resume) waits ≤ 8 s ON SCREEN, then the title + the city come up with REJOIN (the seat kept, the socket still trying); the
   late resume = a normal rejoin; ONE attempt (`room.js#pendingResume` — a REJOIN tap joins it; `cancelResume` — a HOST / another JOIN wins).
@@ -508,6 +529,13 @@ activation 2 s, the offline reads 0.8 s) — Safari's storage can stop answering
   **THE ONE COMMAND:** `node tests/integration/wk-double.mjs` (Safari's engine, 402 × 659 @3, the owner's morning — 21 paths, ~5 min;
   `--paths a,b` `--shots DIR` `--log`); in the suite: the harbor **`cameras`** group (`ONLY=cameras`, Chromium, 11 paths three pages at a
   time, ~85 s — the `lobby` job). Before the fix: 9 of 19 paths red in WebKit, 7 of 11 in the group. The reveal 1.32 s (unchanged).
+  **THE CRISP LETTERING FOLLOWS THE BAKE ON SCREEN (FR7 FIXES C2 — the cloud's red at the hours return):** `baker.key` / `bakeTones` are the
+  bake STARTED; the city's canvas shows the one LANDED. The crisp copies of the city's own lettering (the roof poster, the date stone, the blade)
+  use `shownKey` + `liveTones` + `liveTW` (set where a bake lands) and the fresh-board gate asks the landed bake — never ahead of the picture
+  (THE TRI-VISION, live from Nov 12, kept the board's face across a return, so nothing else hid the crisp poster while the city re-baked).
+  `hours-dusk@HH:MM` = hours-box with the clock set so the +10 h lands at HH:MM on Nov 13 (in the group at 16:40); a look waits out the board's
+  own 0.9-s dissolve + a tri-vision turn (deliberate copies). Any path in Chromium alone: `node tests/integration/cr-double.mjs "<chromium>"
+  --paths a,b [--repeat N] [--shots DIR] [--diag "window.__district.boardCrisp()"]`.
 - **NOTHING IN THE SKY CHANGES BY A CUT AFTER THE REVEAL (LOAD FIX 2):** a cloud re-plan never frees a set on screen (a new field waits
   while a blend shows both sets; an unbaked incoming set is replaced while the old one keeps showing); every set after the reveal blends
   over 6 s (a late reveal's first set too); any new weather answer after the reveal blends the sky + the bake; a clock jump the real time
@@ -726,6 +754,15 @@ one-day AMBER tubes with them. Now:
   (`knobHalo` — measured: the tubes' contrast over the full bank 3.4:1, the plain sign without leaves 3.5–4.4:1); DAY = natural colours + a
   lighter halo; day ↔ night = the two canvases' opacity. Loaded ONLY in the season / by the force, the atlas after the reveal (never THE BOOT
   BUDGET); destroyed with the scene (`sceneHoliday.destroyLeaves` — THE LONG NIGHT's RULE). Debug: `__district.harbor().leaves`.
+- **FR7 FIXES C2 — THE LEAVES READ AS LEAVES** (the owner's iPhone, Nov 13 7 am: "it's hard to tell these are leaves" — the 92-leaf bank read
+  as a dark brown fuzzy halo): `leafLayout()` now = ~27 leaves, ~40–58 pt at 390 (`LEAF_S` 52–70 logo units, the bottom row 48–54; 0.833 pt a unit
+  at 390, measured), in a RING (`RING` — a rounded band round the four letters: above, below — clear of SPEAKEASY (`FLOOR_Y`) — in the gaps, past
+  both N's; under the corner row (`CEIL_Y`)); each leaf covered ≤ 30 % by the others (`MAX_COVER`, disc bodies `bodyR` = 0.4 × the long side),
+  ≤ 45 % of each inside the letters' boxes (mean ~25 %); the bank GROWS by a light-overlap rule (each new leaf the try nearest −0.4 r from its
+  neighbour). NIGHT: the real colours lit warm (`NIGHT_FLOOR` [0.66, 0.56, 0.46] far from the tubes, the layer ≥ 72 % opaque); the halo is a
+  SMOOTH blurred shadow (`HALO_PASSES`, baked) — 0.95 in the gold week, 0.4 on the pink nights (they have the hue contrast), 0.6 by day.
+  Measured (tube cores vs 5–14 pt beside them, the median): gold night 4.7 : 1 (a plain night 4.4–5.2), pink nights 4.5–5.2, day 4.5–4.8 (a
+  plain day 4.0–4.3). `tests/leafbank.test.mjs` pins the numbers.
 - **THE BUILD-UP** = the timetable row `thanksgiving.leaves` (`core/harbor-holiday.js#thanksLeaves` — days from Thanksgiving: `from` −11 → `full` −4,
   whole days from `turnH` 4 am the city's local clock: Nov 15 2026 ⅛ of the bank … Sun Nov 22 all of it, centre-out). A new day's leaves FADE IN
   over `fadeS` 2 s if the city is open across the 4 am line (a new bake laid over the old one — the cast in the pass log: no pop), at the next
@@ -1127,6 +1164,7 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | BUZZED LIGHTYEAR | Nov 6 | [passes/buzzed-lightyear.md](harbor/passes/buzzed-lightyear.md) | the 1-of-1 gift card (the picture taken apart: the spiral fitted + turning behind him, the stars orbiting, the HIC! popping; the strip composed eyebrows → chin) + THE CARD TEXT STANDARD on every full card; the gift strip mapping fix |
 | THE LOAD FIX | Nov 6 | [passes/load-fix.md](harbor/passes/load-fix.md) | the owner's four load problems on his iPhone reproduced in WebKit (wk-load.mjs + kit/load-probe.mjs → four `load` checks) + fixed: the bars keep the city (no doubled lettering), ONE CAMERA ON SCREEN (hold, then cut), the boot screen holds until the city (ONE fade, never the dark title), the #net pill hidden from the first frame; no rules change |
 | JAYWALK CARDS + THE TRI-VISION | Nov 12–13 | [passes/jaywalk-cards.md](harbor/passes/jaywalk-cards.md) | JAYWALK's three cards (dormant until its pass 6); THE TRI-VISION (the roof board turns HOLD'EM ↔ JAYWALK every 45–60 s); THE LOBBY GETS IT LIVE (EVERYONE's intercom + sky moments 10 s after FIRE, live in every open room); THE CITY's LONG NIGHT (the teardown misses — WebKit's peak 457 → 266 canvases); THE ERRORS GROUP (the black helicopter, stale-host writes, bots out of /admin, two lost taps); Vercel Web Analytics after the reveal; no rules change |
+| FR7 FIXES C2 | Nov 13 | [passes/fr7-fixes-c2.md](harbor/passes/fr7-fixes-c2.md) | THE LEDGER opens again (NOW PLAYING imports nothing; TAP TO RETRY + the report); THE LEAVES READ AS LEAVES (27 big leaves in a ring); THE JAYWALK POSTER in Bowlby One on a calm panel; the two cloud reds (the unit test off firebase-admin; the crisp lettering follows the bake ON SCREEN) |
 | FR7 FIXES C | Nov 13 | [passes/fr7-fixes-c.md](harbor/passes/fr7-fixes-c.md) | THE CLAUDE.md DIET (106 → 29 KB, nothing lost); THE ONE DAY LINE (Grok's progression + calendar review — 4 MUSTs + 5 SHOULDs); THANKSGIVING's MAPLE LEAVES + THE GOLD WEEK (the wreath retired; the sign forces full any day); THE LEDGER's NOW PLAYING; the radio's switches inside their panels; THE JAYWALK POSTER readable; no rules change |
 | HOLD'EM IN THE CITY | Nov 11 | [passes/holdem-city.md](harbor/passes/holdem-city.md) | THE BILLBOARD → NOW OPEN (the timetable's default from Nov 11 — the billposter's one paste); HOLD'EM's skyline SIGN + DAY FACE in GRIDLOCK's spot (THE FIVE SIGNS = PRISM DROP · OVERCLOCK · HOLD'EM + NEON PAR · HIGH STAKES; the slot rule counts a row's letters — the apostrophe tube rides along; night casino red, the day face gold on felt); THE BOARD's HOLD'EM TAB (TOURNAMENT WINS, KOs the tie-break, the earlier — one sort value from the dealer's record; five tabs at 390; the back-fill); HE9's B2 (44 pt corner tap areas — the `tapfit` probe), B3 (the podium's sticky BACK TO THE ROOM + MORE BELOW), B4 (everyone tied = a draw: ALL TIED, 2nd-place night points, no win); no rules change |
 | LOAD FIX 5 | Nov 11 | [passes/load-fix-5.md](harbor/passes/load-fix-5.md) | THE DOUBLED CITY (the owner's iPhone: the billboard, EST. 1924 + the blade twice) reproduced to the point in WebKit — the city's box moved before the reveal with no window resize; THE BOX GATE + the held picture's safety in on-screen time; THE GUARD — NO TWO CAMERAS (`kit/two-cameras.mjs`: `wk-double.mjs` + the `cameras` group); no look change, the reveal unchanged |

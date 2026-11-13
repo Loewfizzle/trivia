@@ -2740,6 +2740,24 @@ The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept th
 district" in code (the `nd-` class prefix, the `window.__district` test hook). `ROADMAP.md` lists what shipped and what is next.
 **Keep this file, ROADMAP.md (one line per shipped feature; the detail goes in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
 
+## FR7 FIXES C2 — THE LEDGER WON'T OPEN + THE LEAVES READ AS LEAVES + THE JAYWALK POSTER + THE TWO CLOUD REDS (Nov 13, 2026 — docs/harbor/passes/fr7-fixes-c2.md)
+
+- **THE LEDGER WOULDN'T OPEN** ("Tuning in…" forever on the owner's iPhone): reproduced in WebKit — a page holding the previous deploy's
+  `music.js` linked the new lazy `radio-ledger.js` → `now-playing.js` → `musicFileOf` ("Importing binding name … not found"); radio.js only
+  console.warn'd it. NOW PLAYING imports NOTHING (the players register readers on one hub, `globalThis.__nsNowPlaying`); its paint + tick never
+  throw; a face whose import or paint fails shows "Couldn't open … — TAP TO RETRY" (a fresh import) + reports to /admin. Guards: the harbor
+  `radio` group's FACES PAINT (a stale music.js + a failed PROGRAM fetch) + `wk-radio-faces.mjs` (WebKit — the shipped build fails its stale case).
+- **THE LEAVES READ AS LEAVES**: 92 small leaves → 27 at ~40–58 pt in a RING round NEON (each ≤ 30 % covered, most of each outside the letters),
+  their real colours at night (the far floor ~58 % of daylight), a smooth baked halo (strong in the gold week, light on the pink nights).
+- **THE JAYWALK POSTER**: Bowlby One (heavy, wide — path data), white-hot with a pink edge + a thick dark outline, on a calm dark panel with the
+  art below it; JAYWALK's cap 10.4 ≥ HOLD'EM's 10.3 pt at 390.
+- **THE TWO CLOUD REDS**: `one-day-line.test.mjs` imports the PURE `api/_lib/retry.js` (the unit suite green with the root node_modules hidden);
+  NO TWO CAMERAS at the hours return — the tri-vision (live from Nov 12) left the crisp roof poster up while the city re-baked, and the crisp
+  copies drew the bake STARTED: they follow the bake ON SCREEN now (`shownKey` / `liveTones` / `liveTW`); `hours-dusk@HH:MM` + `cr-double.mjs`.
+- **THE SUPPORTED FLOOR + THE HAND RELOAD** (the add-on — two BOOT HANGs were a bot's Mac Chrome 83; the owner's own hang sent nothing):
+  Chrome 92 · Firefox 90 · Safari / iOS 16 (`js/core/browser-floor.js` + the inline twin); below it a plain "too old" line, counted on /admin STATS
+  ("old browsers: n"), never a BOOT HANG; a boot ended by a hand reload is reported by the next boot ("THE LAST BOOT DIDN'T FINISH …").
+
 ## FR7 FIXES C — THE CLAUDE.md DIET + THE ONE DAY LINE + THANKSGIVING's MAPLE LEAVES + THE SMALL ONES (Nov 13, 2026 — docs/harbor/passes/fr7-fixes-c.md)
 
 - **THE CLAUDE.md DIET**: CLAUDE.md 106.5 KB → ~29 KB — one line per standing rule; every per-pass paragraph moved VERBATIM to the doc that owns its
