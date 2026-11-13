@@ -48,7 +48,7 @@ test('WHEN a phone plays it: the lobby TOGETHER, the city\'s feed late, a game h
   assert.equal(D(m.until + 1, { source: 'desk' }), 'skip', "the owner's own phone too");
   assert.equal(D(at - 3000, { source: 'feed', prep: 4000 }), 'play', 'PREP: begun a few seconds early (the sound scheduled for `at`)');
   assert.equal(D(at - 5000, { source: 'feed', prep: 4000 }), 'wait');
-  assert.equal(K.lead.everyone, 50, "EVERYONE stamped ~50 s ahead (the city's ~45 s poll has it by then)");
+  assert.equal(K.lead.everyone, 10, 'EVERYONE stamped 10 s ahead (THE LOBBY GETS IT LIVE — every open lobby has it live; the city at its 5-min check-in)');
   assert.equal(D(at + 100, { inGame: true }), 'hold', 'WAIT FOR THE LOBBY: in a game it holds');
   assert.equal(D(at + 20 * 60e3, { held: true }), 'play', 'back in the lobby within the hour: it plays');
   assert.equal(D(at + (K.keep + 10) * 1000, { held: true }), 'skip', 'after the hour: dropped');

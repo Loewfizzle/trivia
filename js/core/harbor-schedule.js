@@ -438,23 +438,28 @@ export const SCHEDULE = Object.freeze([
   // lane (ONE at a time per lane: 'legend' · 'words' · 'show'; 'free' = no queue; a legend + a show never overlap), start (how the city
   // plays it ONCE: 'legend:<kind>' · 'flyby' · 'blackbird' · 'fireworks' · 'words' · 'banner' · 'balloons' · 'lightning' · 'hold:<force id>'
   // = held on for len), crew (THE CREW's desk has it), limit (the crew's per-night count it draws on) }
-  // radio: lead (s from FIRE to the start: a room ~2 s; the whole city ~45 s — the phones' cached poll; JUST ME at once), gap (s between two in
+  // radio: lead (s from FIRE to the start: a room ~2 s; EVERYONE / the city 10 s — THE LOBBY GETS IT LIVE (Nov 12 night): every OPEN ROOM gets its own
+  // copy over the room's socket (live, lobby or mid-match), a phone only on the city picks it up at its 5-min check-in (a long one joins mid-way, a
+  // short one may be over); JUST ME at once), gap (s between two in
   // a lane), darkEl (the sun's elevation that is "after dark"), home (where the server judges the dark: the owner's city), words (the letters a
   // message may have), queueMax, crew: THE CREW (CC-B grants it): cap (friends), cooldown (s after a moment ends), perNight (each limit's
   // count a ROOM may fire a night), nightFrom (the local hour a "night" starts for the counts)
   { id: 'radio', trigger: 'event', status: 'live', src: 'core/harbor-radio.js + api/admin.js#radio', what: 'THE RADIO: the owner fires the city’s moments (the jacks below), the server checks the role + the rules + writes the queue + the audit log; phones play each one ONCE at its start',
-    knobs: { lead: { me: 0.6, room: 2, city: 45 }, gap: 4, darkEl: -6, home: { lat: 42.96, lon: -85.67, tz: 'America/Detroit' }, words: 24, queueMax: 12, keep: 172800,
+    knobs: { lead: { me: 0.6, room: 2, city: 10 }, gap: 4, darkEl: -6, home: { lat: 42.96, lon: -85.67, tz: 'America/Detroit' }, words: 24, queueMax: 12, keep: 172800,
       crew: { cap: 10, cooldown: 60, nightFrom: 12, perNight: { legend: 3, words: 10, fireworks: 3, lightning: 10, lights: 10, beams: 10, balloons: 10 } } } },
   // CITY CONTROLS B — THE INTERCOM (docs/harbor/passes/city-controls-b.md): the owner's voice → every phone. maxS the longest recording (s), maxKB
   // the clip's size cap (KB — ~48 kbps × 30 s ≈ 180 KB), lead (s from SEND to the start: a lobby's phones start TOGETHER), keep (s the clip lives
-  // on the server — a phone in a game holds it this long), unsend (s the UNSEND button stays — "until every phone would have it": the ~45 s
-  // poll), late (s past its end a title phone still plays one that arrived late), duck (the music's level under the voice), head (letters)
+  // on the server — a phone in a game holds it this long), unsend (s the UNSEND button stays — every room has it live; a city phone's 5-min
+  // check-in may still find it stopped), late (s past its end a title phone still plays one that arrived late), duck (the music's level under the voice), head (letters)
   { id: 'radio.intercom', trigger: 'event', status: 'live', src: 'core/radio-intercom.js + api/_lib/radio.js#intercom + audio/intercom.js', what: 'THE INTERCOM: the owner records up to `maxS` s → PLAY BACK · SEND · DISCARD; the chime → the music ducks → the voice through a 1920s PA → the chime; JUST ME · LOBBY ONLY · EVERYONE; WAIT FOR THE LOBBY or not; UNSEND for `unsend` s',
     // (FRIENDS A — THE CREW INTERCOM: `crew` = the crew's hold-to-talk in THEIR OWN ROOM, behind the owner's master switch (radio/crewIc, default OFF):
     //  ≤ maxS s a clip, perNight clips a room a night; the clips go after `keep` like the owner's)
     // (FRIENDS C — THE INTERCOM IN SYNC: EVERYONE's `lead` 2 → 50 s — every phone (the city's ~45 s poll, every lobby, the owner's own) starts it
     //  at that one moment on the server clock; `late` (150 s from the top) retired — a late phone joins mid-way: core/radio-intercom.js#icDecide)
-    knobs: { maxS: 30, minS: 0.6, maxKB: 600, kbps: 48, lead: { me: 0.5, room: 2.5, everyone: 50 }, keep: 3600, unsend: 60, duck: 0.2, head: 24, crew: { maxS: 15, perNight: 4 } } },
+    // (THE LOBBY GETS IT LIVE — the owner, Nov 12 night: "the intercom is for a fun gag on people in the lobby — I don't want them waiting 5 min":
+    //  EVERYONE's `lead` 50 → 10 s — every open lobby's copy (rooms/{CODE}/radio, live over the room's socket) plays it on time, the clip fetched
+    //  the moment the row lands; a phone only on the city plays it if its 5-min check-in lands before the end (mid-way), else never)
+    knobs: { maxS: 30, minS: 0.6, maxKB: 600, kbps: 48, lead: { me: 0.5, room: 2.5, everyone: 10 }, keep: 3600, unsend: 60, duck: 0.2, head: 24, crew: { maxS: 15, perNight: 4 } } },
   { id: 'radio.skywrite', trigger: 'event', status: 'live', src: 'core/harbor-radio.js#startOf + screens/harbor/scene-radio.js', jack: { id: 'skywrite', label: 'SKYWRITE', order: 1, card: 'words', dark: false, len: 80, lane: 'words', start: 'words', crew: true, limit: 'words', note: 'skytyped in the smoke colour you pick by day, the drone show after dark (in your colours)' }, what: 'THE RADIO’s SKYWRITE: up to 24 letters' },
   { id: 'radio.banner', trigger: 'event', status: 'live', src: 'core/harbor-radio.js#startOf', jack: { id: 'banner', label: 'BANNER', order: 2, card: 'words', dark: false, len: 70, lane: 'words', start: 'banner', crew: true, limit: 'words', note: 'the banner plane towing your words' }, what: 'THE RADIO’s BANNER: up to 24 letters' },
   { id: 'radio.searchlights', trigger: 'event', status: 'live', src: 'core/harbor-radio.js#startOf', jack: { id: 'lights', label: 'LIGHTS', order: 4, card: 'fire', dark: true, len: 180, lane: 'free', start: 'hold:searchlights', crew: true, limit: 'lights', note: 'the searchlights sweeping the sky (3 min)' }, what: 'THE RADIO’s SEARCHLIGHTS' },

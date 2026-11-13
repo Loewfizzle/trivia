@@ -81,3 +81,23 @@ Built step for step like REDLINE + PHOTO FINISH (passes/overclock-cards.md Group
 - **Tests**: `tests/trivision.test.mjs` (9) · `server.test.mjs` "THE TRI-VISION: JAYWALK's switch" · the harbor group **`trivision`** (the `show` job): at the
   reveal HOLD'EM; the first JAYWALK face arrives BY A TURN (holdem-open → jaywalk); the slats on the crisp layer at 3×; the board holds the new face
   after; TWO PAGES, ONE FACE at the same server moment; reduced motion = a cut — 6 / 6 · `billboard` + `load` green (45 / 45 with trivision).
+
+## Group 3 — THE LOBBY GETS IT LIVE (the intercom + the sky moments, 10 s)
+- **The leads** (THE CITY TIMETABLE): `radio.lead.city` 45 → **10 s**, `radio.intercom.lead.everyone` 50 → **10 s** (the knob comments say the new rule:
+  a room = live + 10 s, the city = the 5-min check-in). The desk's countdown is the moment's own `at` — it reads ON AIR IN 10 with no code change.
+- **The server** (`api/_lib/radio.js#fire`): an EVERYONE / city moment is ALSO written into every OPEN room's `rooms/{CODE}/radio/{id}` (the LOBBY ONLY
+  moments' public shape — `publicMoment`; the open rooms = `openRooms` — the live rooms' index, idle > 1 h left out), the codes kept on the queue's
+  record (`m.rooms`) → STOP + CLEAR ALL + the planner's moves update the copies — only rooms still open (`liveCopies`: a write to a closed room's path
+  would make a stray node there — unsend's rule). EVERYONE's intercom was already copied into every open lobby (CC-B) — now 10 s ahead.
+- **The phone**: no new socket, no new poll — the room's socket (`want('room')`) already mirrors `rooms/{CODE}/radio` → `state.roomRadio` → the
+  remote's feed, merged by id with the poll's copy → ONE moment, played ONCE (`scene-radio.js`). THE CLIP AHEAD (`audio/intercom.js#clipOf`): a room phone
+  fetches the clip the moment the row lands (the log's first line "clip fetched ahead"); the player decodes those bytes (a slice — `decodeAudioData`
+  detaches). A phone only on the city: its 5-min check-in (mid-way, or missed).
+- **No database-rule change** (`rooms/{CODE}/radio` is server-written).
+- **A NOTE ON THE LOCAL SERVER**: `scripts/serve.mjs` caches the `/api` modules from its start — the first harbor run still showed the 45 / 50 s
+  leads; restarting serve.mjs (mine) fixed it (as OVERCLOCK CARDS' log warned).
+- **Tests**: `server.test.mjs` (the city's 10 s; a banner to EVERYONE → copies in a lobby, a room mid-match + RDIO, none in a room idle 2 h, STOP →
+  every copy stopped, a room closed since never gets a stray node; EVERYONE's intercom at T + 10 s) · `radio-intercom.test.mjs` (lead 10) · harbor
+  `crew` + `radio`: **THE LOBBY GETS IT LIVE** — both lobby phones have EVERYONE's moment 141 / 149 ms after FIRE (its start 10.1 s ahead), the poll's
+  copy + the room's = 1 moment, STOP reached the room; **the intercom in a lobby** — two room phones 0 ms apart, 0 ms from its time, the clip fetched
+  ahead; FRIENDS C's own sync check (EVERYONE stamped 10 s) — `radio, crew, radiorest, panel` **117 / 117**.

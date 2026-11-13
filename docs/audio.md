@@ -601,7 +601,11 @@ own audio (it waits). PLAY BACK on the owner's review card plays the take throug
 
 **THE INTERCOM IN SYNC (FRIENDS C, Nov 8 — the owner: two phones in one house heard it at different moments):** EVERY phone plays it at ONE
 moment, its `at` on the SERVER clock (`serverNow` — the parked title has no socket: `/api/time`'s offset). EVERYONE is stamped `lead.everyone`
-= 50 s ahead (the city's ~45 s poll + the 15 s edge cache have it by then), LOBBY ONLY 2.5 s (unchanged), JUST ME 0.5 s. A phone that has it
+= **10 s** ahead (**THE LOBBY GETS IT LIVE**, Nov 12 night — the owner: "the intercom is for a fun gag on people in the lobby — I don't want them
+waiting 5 min"; FRIENDS C had 50 s for the old ~45 s poll): every OPEN LOBBY's copy (`rooms/{CODE}/radio`, live over the room's own socket —
+lobby or mid-match, the play-over-games option unchanged) plays it on time, **THE CLIP AHEAD** (`audio/intercom.js#clipOf`: a room phone fetches the
+clip the moment the row lands — ~10 s — the player uses those bytes); a phone only on the city plays it if its 5-min check-in lands before the end
+(mid-way), else never. LOBBY ONLY 2.5 s (unchanged), JUST ME 0.5 s. A phone that has it
 begins up to 4 s early (`audio/intercom.js` PREP_MS — the clip fetched + decoded) and SCHEDULES the chime on the audio clock for `at` (the
 headline + the duck go up with it); a phone that learns of it late JOINS MID-WAY (`late` = now − at) until its end, then skips it — never from
 the top out of step (`core/radio-intercom.js#icDecide`); a phone that held it through a game plays it from the top. `intercomDebug().starts`

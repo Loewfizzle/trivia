@@ -1218,13 +1218,13 @@ test('CITY CONTROLS A — THE RADIO: roles per action, the dark, one at a time, 
       assert.equal(st.role, 'owner'); assert.ok(st.jacks.length >= 14 && st.jacks.some(j => j.id === 'billboard') && !st.jacks.some(j => j.id === 'yacht'));
       const ufo = st.jacks.find(j => j.id === 'ufo'); assert.equal(ufo.run.ok, false); assert.match(ufo.run.note, /AFTER DARK ONLY — AT \d/); }
     await rejects(adminAction('u-radioboss', { action: 'radioFire', jack: 'ufo', aud: 'everyone' }, DAY_T), 409, 'cant_now');
-    // by night: on its way (AMBER) for the city's ~45 s lead; the next legendary WAITS its turn; a skywrite (another lane) doesn't
+    // by night: on its way (AMBER) for the city's 10 s lead (THE LOBBY GETS IT LIVE — was ~45 s); the next legendary WAITS its turn; a skywrite (another lane) doesn't
     const a = (await adminAction('u-radioboss', { action: 'radioFire', jack: 'ufo', aud: 'everyone' }, NIGHT_T)).moment;
-    assert.equal(a.at, NIGHT_T + 45_000); assert.equal(a.until, a.at + 40_000); assert.equal(a.state, 'q');
+    assert.equal(a.at, NIGHT_T + 10_000); assert.equal(a.until, a.at + 40_000); assert.equal(a.state, 'q');
     const b = (await adminAction('u-radioboss', { action: 'radioFire', jack: 'tr3b', aud: 'everyone' }, NIGHT_T + 1000)).moment;
     assert.equal(b.at, a.until + 4000, 'the second legendary waits its turn');
     const w = (await adminAction('u-radioboss', { action: 'radioFire', jack: 'skywrite', aud: 'everyone', text: 'happy birthday', colour: '2ee6ff' }, NIGHT_T + 2000)).moment;
-    assert.equal(w.at, NIGHT_T + 2000 + 45_000, 'a sky message is its own lane'); assert.equal(w.text, 'HAPPY BIRTHDAY');
+    assert.equal(w.at, NIGHT_T + 2000 + 10_000, 'a sky message is its own lane'); assert.equal(w.text, 'HAPPY BIRTHDAY');
     await rejects(adminAction('u-radioboss', { action: 'radioFire', jack: 'banner', aud: 'everyone', text: 'what the fuck' }, NIGHT_T), 400, 'words_words');
     await rejects(adminAction('u-radioboss', { action: 'radioFire', jack: 'banner', aud: 'everyone', text: 'X'.repeat(30) }, NIGHT_T), 400, 'words_long');
     await rejects(adminAction('u-radioboss', { action: 'radioFire', jack: 'nope', aud: 'everyone' }, NIGHT_T), 400, 'bad_jack');
@@ -1246,6 +1246,25 @@ test('CITY CONTROLS A — THE RADIO: roles per action, the dark, one at a time, 
     // BNAME: none of the room's players' typed names in the sky
     await rejects(adminAction('u-radioboss', { action: 'radioFire', jack: 'banner', aud: 'room', room: 'RDIO', text: 'HI JESSICA' }, NIGHT_T), 400, 'words_name');
     assert.deepEqual((await adminAction('u-radioboss', { action: 'radioRooms' }, NIGHT_T)).rooms.find(r => r.code === 'RDIO'), { code: 'RDIO', players: 1, online: 0, status: 'lobby', game: null });
+    // THE LOBBY GETS IT LIVE (Nov 12 night): EVERYONE's moment ALSO into every OPEN room (the LOBBY ONLY shape) — 10 s ahead; STOP reaches the copies
+    await ref('rooms/LIVA').set({ meta: { hostId: 'h1', status: 'lobby', createdAt: NIGHT_T, activeAt: NIGHT_T }, players: { h1: { name: 'A', color: 'cyan', avatar: 'bolt', joinedAt: 1 } } });
+    await ref('rooms/LIVB').set({ meta: { hostId: 'h2', status: 'playing', createdAt: NIGHT_T, activeAt: NIGHT_T }, players: { h2: { name: 'B', color: 'cyan', avatar: 'bolt', joinedAt: 1 } } });
+    await ref('rooms/OLDR').set({ meta: { hostId: 'h3', status: 'lobby', createdAt: NIGHT_T - 7200e3, activeAt: NIGHT_T - 7200e3 }, players: { h3: { name: 'C', color: 'cyan', avatar: 'bolt', joinedAt: 1 } } });
+    const cw = (await adminAction('u-radioboss', { action: 'radioFire', jack: 'banner', aud: 'everyone', text: 'game night' }, NIGHT_T + 3000)).moment;
+    { const A = await val(`rooms/LIVA/radio/${cw.id}`), B = await val(`rooms/LIVB/radio/${cw.id}`), R0 = await val(`rooms/RDIO/radio/${cw.id}`);
+      assert.ok(A && B && R0, 'every open room has its copy (a lobby + a room mid-match + RDIO)');
+      { const pm = (await import('../../js/core/harbor-radio.js')).publicMoment(cw.id, await val(`radio/q/${cw.id}`)), id = pm.id; delete pm.id; for (const k of Object.keys(pm)) if (pm[k] == null) delete pm[k];   // (the database keeps no nulls; the id is the key)
+        assert.ok(id === cw.id); assert.deepEqual({ ...A, id: undefined }, { ...pm, id: undefined }, "the LOBBY ONLY moments' public shape"); }
+      assert.equal(A.at, cw.at); assert.ok(cw.at >= NIGHT_T + 3000 + 10_000, `never sooner than the 10 s lead (behind the words lane's skywrite here: +${cw.at - NIGHT_T - 3000} ms)`);
+      assert.equal(await val('rooms/OLDR/radio'), null, 'a room idle > 1 h gets none');
+      assert.ok(!JSON.stringify(A).includes(boss.pid), 'no profile id in the copies'); }
+    await adminAction('u-radioboss', { action: 'radioStop', id: cw.id }, NIGHT_T + 4000);
+    for (const code of ['LIVA', 'LIVB', 'RDIO']) { const x = await val(`rooms/${code}/radio/${cw.id}`); assert.equal(x.state, 'stopped', `${code}: STOP reached the copy`); assert.ok(x.until <= NIGHT_T + 4000); }
+    await ref('rooms/LIVB').remove();
+    const cw2 = (await adminAction('u-radioboss', { action: 'radioFire', jack: 'skywrite', aud: 'everyone', text: 'hello', colour: '2ee6ff' }, NIGHT_T + 4500)).moment;
+    await adminAction('u-radioboss', { action: 'radioStop', id: cw2.id }, NIGHT_T + 4600);
+    assert.equal(await val('rooms/LIVB'), null, 'a room closed since: STOP never writes a stray node there');
+    await ref('rooms/LIVA').remove(); await ref('rooms/OLDR').remove();
     // STOP + CLEAR ALL
     await adminAction('u-radioboss', { action: 'radioStop', id: b.id }, NIGHT_T + 5000);
     assert.equal((await val(`radio/q/${b.id}`)).state, 'stopped');
@@ -1393,6 +1412,7 @@ test('CITY CONTROLS B: the intercom, the crew, presets + the room push — every
     await rejects(adminAction('u-ccbboss', { action: 'radioIntercom', aud: 'everyone', mime: 'audio/mp4', dur: 99, b64: clip }, T), 400, 'bad_length');
     const ev = (await adminAction('u-ccbboss', { action: 'radioIntercom', aud: 'everyone', mime: 'audio/webm;codecs=opus', dur: 3, b64: clip, wait: false }, T)).intercom;
     assert.equal((await val(`rooms/CCBA/radio/${ev.id}`)).wait, false, 'EVERYONE: every open lobby gets its copy');
+    assert.equal(ev.at, T + 10_000, 'EVERYONE 10 s after SEND (THE LOBBY GETS IT LIVE — was 50 s)'); assert.equal((await val(`rooms/CCBA/radio/${ev.id}`)).at, T + 10_000);
     { const { cityLiveNow } = await import('../../api/admin.js'); const r = await cityLiveNow(T + 1000); assert.ok(r.radio.intercom.some(m => m.id === ev.id) && !r.radio.intercom.some(m => m.id === ic.id), 'the city feed: EVERYONE only'); }
     await adminAction('u-ccbboss', { action: 'radioUnsend', id: ev.id }, T + 5000);
     { const { clipOf } = await import('../../api/_lib/radio.js'); assert.equal(await clipOf(ev.id, T + 6000), null, 'UNSEND: the clip gone'); assert.equal((await val(`rooms/CCBA/radio/${ev.id}`)).state, 'stopped'); }

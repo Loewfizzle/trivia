@@ -179,7 +179,7 @@ G('radio', async () => {
     for (const id of [r.ok && r.r.intercom.id, e.ok && e.r.intercom.id].filter(Boolean)) await call(O.page, { action: 'radioUnsend', id });
     await ev(P.page, `import('/js/room.js').then(m => m.leaveRoom()).catch(() => {})`); await P.ctx.close(); }
   // ---- FRIENDS C — THE INTERCOM IN SYNC (the owner, Nov 5: two phones in one house heard it at different moments): EVERYONE is stamped
-  // ~50 s ahead on the server clock (the one sent above: never played — unsent long before its time); two WATCHING phones given the city's
+  // 10 s ahead (THE LOBBY GETS IT LIVE — was ~50 s) on the server clock (the one sent above: never played — unsent long before its time); two WATCHING phones given the city's
   // copy start a REAL clip at the same moment (< 150 ms apart — each fetched, decoded + scheduled it on its own audio clock); a phone that
   // learns of it LATE joins mid-way (its start = the same `at`), never from the top. (A JUST ME clip fed as the city's copy on those pages:
   // nothing goes out to the other shards' phones.)
@@ -200,7 +200,7 @@ G('radio', async () => {
     await feed(W[2]);
     await waitFor(W[2].page, `import('/js/audio/intercom.js').then(x => x.intercomDebug().log.some(l => l.id === '${id}' && /^playing/.test(l.what)))`, 'the late phone', 10000).catch(() => {});
     const [a, b, c] = [await startOf(W[0]), await startOf(W[1]), await startOf(W[2])];
-    ok(Math.abs(lead - 50) < 2 && a.s && b.s && Math.abs(a.s - b.s) < 150 && Math.abs(a.s - at) < 150 && a.log.some(w => /^playing/.test(w)) && b.log.some(w => /^playing/.test(w)),
+    ok(Math.abs(lead - 10) < 2 && a.s && b.s && Math.abs(a.s - b.s) < 150 && Math.abs(a.s - at) < 150 && a.log.some(w => /^playing/.test(w)) && b.log.some(w => /^playing/.test(w)),
       `THE INTERCOM IN SYNC (FRIENDS C): EVERYONE stamped ${lead} s ahead; two phones start the clip together — ${a.s && b.s ? Math.abs(a.s - b.s) : '?'} ms apart, ${a.s ? a.s - at : '?'} ms from its time (${a.log.join(' · ')} | ${b.log.join(' · ')})`);
     ok(c.s && Math.abs(c.s - at) < 250 && c.log.some(w => /^playing .*late/.test(w)), `THE INTERCOM IN SYNC (FRIENDS C): a phone told 3 s late joins MID-WAY on the same timeline (start ${c.s ? c.s - at : '?'} ms from its time: ${c.log.join(' · ')})`);
     for (const P of W) await P.ctx.close();
@@ -448,6 +448,36 @@ G('crew', async () => {
     const inD = await waitFor(D.page, `(() => { const r = window.__district.radio && window.__district.radio(); return !!(r && r.moments.some(m => m.id === '${id}')); })()`, 'D has it', 10000).then(() => true, () => false);
     ok(inC && inD && !(await seen(O.page)), `CREW → THE LOBBY: the crew's moment reaches EVERY phone in the lobby (C ${inC}, D ${inD}) — never outside it (the owner, not in it yet: ${await seen(O.page)})`);
   }
+  // THE LOBBY GETS IT LIVE (Nov 12 night): the owner's EVERYONE moment reaches the lobby's phones over the ROOM's socket within ~2 s of FIRE (10 s
+  // before its start); the city's poll copy + the room's = ONE moment on the phone (merged by id — played once). (STOPPED before its start: the other
+  // shards' open rooms got a copy too — none of them plays it)
+  { const t0 = Date.now(), f3 = await call(O.page, { action: 'radioFire', jack: 'banner', aud: 'everyone', text: 'LIVE LOBBY' });
+    const id = f3.ok && f3.r.moment.id, has = `(() => { const r = window.__district.radio && window.__district.radio(); return !!(r && r.moments.some(m => m.id === '${id}')); })()`;
+    const tC = await waitFor(C.page, has, 'C hears it', 6000).then(() => Date.now() - t0, () => null);
+    const tD = await waitFor(D.page, has, 'D hears it', 6000).then(() => Date.now() - t0, () => null);
+    await ev(C.page, 'window.__district.remote && window.__district.remote() && window.__district.remote().radioNow()').catch(() => {});   // (the city's poll copy as well)
+    await sleep(1500);
+    const n = await ev(C.page, `(window.__district.radio().moments || []).filter(m => m.id === '${id}').length`);
+    const lead = f3.ok ? (f3.r.moment.at - t0) / 1000 : null;
+    if (id) await call(O.page, { action: 'radioStop', id });
+    const stC = await waitFor(C.page, `(() => { const r = window.__district.radio(); const m = r && r.moments.find(x => x.id === '${id}'); return !m || m.state === 'stopped'; })()`, 'C sees the STOP', 6000).then(() => true, () => false);
+    ok(f3.ok && tC != null && tC < 2500 && tD != null && tD < 2500 && n === 1 && lead >= 9 && stC,
+      `THE LOBBY GETS IT LIVE: EVERYONE's moment on both lobby phones ${tC} / ${tD} ms after FIRE (its start ${lead && lead.toFixed(1)} s ahead), the poll's copy + the room's = ${n} moment, STOP reached the room (${stC})`); }
+  // …and THE INTERCOM on two ROOM phones: EVERYONE's room copy (stamped 10 s ahead) starts on both together; the clip fetched the moment the row lands
+  // (THE CLIP AHEAD). (A JUST ME clip fed as the room's copy on these two pages — nothing goes out to the other shards' phones)
+  { const fs = await import('node:fs'), mp3 = fs.readFileSync(new URL('../../../audio/city/boxer-combo_4.mp3', import.meta.url)).toString('base64');
+    const s = await call(O.page, { action: 'radioIntercom', aud: 'me', mime: 'audio/mpeg', dur: 1, b64: mp3, head: '' }), id = s.ok && s.r.intercom.id;
+    for (const P of [C, D]) { await P.page.keyboard.press('Shift'); await waitFor(P.page, `import('/js/audio/engine.js').then(m => m.isUnlocked())`, 'the audio unlocked', 8000).catch(() => {}); }
+    const t0 = await ev(C.page, `import('/js/firebase.js').then(m => m.serverNow())`), at = Math.round(t0 + 10000);
+    const m = { ...(s.ok ? s.r.intercom : {}), aud: 'everyone', wait: true, at, until: at + RD_IC.icLen(1) * 1000, made: t0, state: 'q' };
+    const feed = P => ev(P.page, `import('/js/audio/intercom.js').then(x => { x.intercomFeed('room', [${JSON.stringify(m)}]); return true; })`);
+    await feed(C); await sleep(700); await feed(D);
+    const startOf = P => ev(P.page, `import('/js/audio/intercom.js').then(x => ({ s: x.intercomDebug().starts['${id}'] || null, log: x.intercomDebug().log.filter(l => l.id === '${id}').map(l => l.what) }))`);
+    for (const P of [C, D]) await waitFor(P.page, `import('/js/audio/intercom.js').then(x => x.intercomDebug().log.some(l => l.id === '${id}' && /^(playing|done|could)/.test(l.what)))`, 'the clip scheduled', 16000).catch(() => {});
+    const [a, b] = [await startOf(C), await startOf(D)];
+    ok(a.s && b.s && Math.abs(a.s - b.s) < 150 && Math.abs(a.s - at) < 150 && a.log[0] === 'clip fetched ahead' && b.log[0] === 'clip fetched ahead' && a.log.some(w => /^playing/.test(w)) && b.log.some(w => /^playing/.test(w)),
+      `THE LOBBY GETS IT LIVE — THE INTERCOM in a lobby: two room phones start it together ${a.s && b.s ? Math.abs(a.s - b.s) : '?'} ms apart, ${a.s ? a.s - at : '?'} ms from its time 10 s after SEND (${a.log.join(' · ')} | ${b.log.join(' · ')})`);
+    if (id) await call(O.page, { action: 'radioUnsend', id }); }
   await ev(C.page, `window.__radio.open()`); await waitFor(C.page, '!!document.querySelector(".rd-modal.is-in .rd-jack")', 'the crew desk in the lobby', 10000);
   await ev(C.page, `window.__radio.refresh()`); await sleep(400);
   { const l = await ev(C.page, `(document.querySelector('.rd-jack[data-jack="lightning"]') || {}).dataset.lamp`); ok(l === 'grey', `CREW: the cooldown greys the jack (${l})`); }

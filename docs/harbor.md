@@ -566,6 +566,16 @@ Each answer carries the server time it was read (`at`); an older answer (a cache
 live listener (`want('admin')`, from the moment `whoami` says so until the title goes; parked like any tab after 2 min hidden) — SEND
 and its countdown are instant on the owner's phone. The E2E reads every 1.5 s under `?emu`.
 
+**THE LOBBY GETS IT LIVE (Nov 12 night — passes/jaywalk-cards.md Group 3):** THE RADIO's EVERYONE / city moments start **10 s** after FIRE
+(`radio.lead.city` 45 → 10; the intercom's `lead.everyone` 50 → 10) and the server ALSO writes each into every OPEN room's `rooms/{CODE}/radio/{id}`
+(the LOBBY ONLY moments' public shape — `api/_lib/radio.js#fire`; the rooms kept on the queue's record as `rooms`, so STOP / CLEAR ALL / the planner's
+moves update the copies — only rooms still open: a closed room's path is never written). A phone IN a room gets it live over its room socket (lobby
+or mid-match — no new socket, no new poll; a phone on the title stays parked); its feed merges the poll's copy + the room's by id (`remote.js#feedRadio`)
+→ ONE moment, played once (`scene-radio.js`). A phone only on the city picks it up at its 5-min check-in (a long moment joins mid-way, a short one
+may be over). While a match is on screen the city is paused — a sky moment shows only for the room's phones in the lobby. Proof: the harbor `crew`
+group (both lobby phones ~150 ms after FIRE; the poll + the room = 1 moment; the intercom on two room phones 0 ms apart, the clip fetched ahead) +
+`server.test.mjs` (copies in two open rooms, none in a room idle > 1 h, STOP reaches them, never a stray node in a room closed since).
+
 **C2 (Oct 25) — REWORKED** (the owner: "very busy and unorganized"; the old sheet's notes below still hold for the registry, the sync
 and the server): **FULL SCREEN** (inside the safe areas; a centred 820 px sheet on desktop). Pinned at the top: the title + a coloured
 line — **JUST ME — ONLY THIS PHONE** (green) / **EVERYONE — EVERY PHONE ON CITY 2** (pink; the mode's colour also on the sheet's edge,
@@ -717,13 +727,13 @@ one room), the banner's colour + passes, the words in the windows for a time win
   The desktop RE-FIT hitch (~0.3–0.4 s once a window resize settles — the city rebuilt in one task; a desktop pass slices it). (e2e-chat drove
   City 1.0's lobby strip — retired with it, CITY 1.0 OUT; the room chat: the harbor `roomchat` group.) Not seen on a real iPhone yet: the chat's slide on the real keyboard, the room's figures at 3×.
 - **CITY CONTROLS B** (passes/city-controls-b.md): THE CREW's + LOBBY ONLY's sky moments — PLAYING since LOBBY 2.0 B's add-on (they were written
-  to rooms/{CODE}/radio but never handed to the city); the intercom to EVERYONE reaches title phones within ~45 s (lobbies ~2 s, together); headless WebKit has no
+  to rooms/{CODE}/radio but never handed to the city); the intercom to EVERYONE reaches title phones at their ~5-min check-in, mid-way or not at all (lobbies live, 10 s ahead, together — THE LOBBY GETS IT LIVE); headless WebKit has no
   MediaRecorder — the owner checks HOLD TO TALK on the iPhone; UNSEND can't pull a clip a phone already fetched (≤ 60 s at the edge); the room
   push needs the Home Screen app on iOS + the VAPID env vars. LOAD WEATHER's "JUST ME jump into a holiday night" check — FIXED in LOBBY 2.0 A (the facade's
   blade memo keyed to the city clock: it re-baked in view 4 s after the reveal). THE CLOUD: harbor run 2 red on the intercom
   lobby check's sign-in race (fixed after, green locally — the next pass's run confirms).
 - **CITY CONTROLS A** (passes/city-controls-a.md): ONE ROOM + THE CREW play once LOBBY 2.0 puts the live city in the lobby (the owner's answer);
-  the city's fired moments reach other phones within ~45 s (the cached poll); headless WebKit draws no backdrop blur (a darker wash) — the
+  the city's fired moments reach the lobbies live, 10 s ahead (THE LOBBY GETS IT LIVE) + title phones at their ~5-min check-in; headless WebKit draws no backdrop blur (a darker wash) — the
   owner confirms the blur + the display face's weight on the phone; the night billboard message on the crisp layer is a touch brighter.
 - **SCHED** (passes/sched.md): A PHONE HELD SIDEWAYS shows the TURN YOUR PHONE UPRIGHT card (index.html) — the proper sideways camera
   comes with TV mode after the switch-over (then the card comes off). A dial change mid-evening keeps the fireworks' memo of that evening's

@@ -7,7 +7,7 @@
 //                 feed + every open lobby's node)
 //   WAIT          WAIT FOR THE LOBBY (default): a phone in a running game holds it until it's back in the lobby / the title (≤ `keep`);
 //                 DON'T WAIT: it plays at once over the game (its music ducked) — a game that exports NO_INTERCOM still holds it
-//   TOGETHER      EVERY phone starts it at ONE moment on the server clock (`at` — EVERYONE's stamped ~50 s ahead: FRIENDS C); a late phone
+//   TOGETHER      EVERY phone starts it at ONE moment on the server clock (`at` — EVERYONE's stamped 10 s ahead: THE LOBBY GETS IT LIVE, Nov 12 night; FRIENDS C had ~50 s); a late phone
 //                 joins mid-way (a lobby phone more than 4 s late skips it), a held one plays from the top
 //   THE HEADLINE  ON THE BILLBOARD: ≤ `head` letters (the radio's word rules: the profanity filter, BNAME) on the speakeasy's billboard while
 //                 the voice plays (two lines of ≤ 12 — the board's own)
@@ -94,7 +94,7 @@ export function icPublic(id, m) {
  * early this phone may begin — the clip fetched + decoded, the sound SCHEDULED for `at` on the audio clock; 0 = at `at`) }
  * → 'play' · 'wait' (not yet — ask again) · 'hold' (in a game: until the lobby / the title) · 'skip' (never)
  * FRIENDS C — THE INTERCOM IN SYNC (the owner, Nov 5: two phones in one house heard it at different moments): EVERY phone plays it at ONE
- * moment, its `at` on the SERVER clock (EVERYONE: stamped `lead.everyone` s ahead — the city's ~45 s poll has it by then); a phone that
+ * moment, its `at` on the SERVER clock (EVERYONE: stamped `lead.everyone` s ahead — 10 s since THE LOBBY GETS IT LIVE: every open lobby has it live; a city phone's 5-min check-in joins mid-way or misses it); a phone that
  * learns of it late JOINS MID-WAY (audio/intercom.js: `late` = now − at) up to its end, then skips it — never from the top out of step.
  * Only a phone that HELD it through a game plays it from the top (by design: WAIT FOR THE LOBBY).
  */

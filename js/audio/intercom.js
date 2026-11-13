@@ -2,8 +2,9 @@
 // sound in the app that MEANS something — still polish: a locked / muted / blocked engine plays nothing, the headline still goes up, nothing
 // breaks. Three ways in, one player:
 //   'room'  a lobby's node rooms/{CODE}/radio (room.js — the room's socket, ~1–2 s): LOBBY ONLY + EVERYONE's lobby copy — the lobby's
-//           phones start it TOGETHER at its `at` on the server clock
-//   'feed'  the city's cached GET (screens/harbor/remote.js, ~45 s): EVERYONE on the title
+//           phones start it TOGETHER at its `at` on the server clock (EVERYONE 10 s after SEND — THE LOBBY GETS IT LIVE, Nov 12 night; THE CLIP
+//           AHEAD: a room phone fetches the clip the moment the row lands, so nothing waits at the start)
+//   'feed'  the city's cached GET (screens/harbor/remote.js — its 5-min check-in): EVERYONE on the title, mid-way if it lands before the end
 //   'desk'  the owner's own phone (screens/harbor/radio-intercom.js): at once
 // THE SOUND (Web Audio, into the SFX bus — the Effects slider + Mute): the VIBRAPHONE CHIME → the music DUCKS → the voice through a tinny
 // 1920s PA (band-limited 320 Hz – 3.4 kHz, a presence bump, a touch of drive, the soft CRACKLE under it, a short SLAP ECHO off the
@@ -39,12 +40,26 @@ export function setIntercomBusy(fn) { busyFn = typeof fn === 'function' ? fn : (
 /** the harbor's billboard: (lines | null) → the headline up while the voice plays (core/harbor-billboard.js#setIntercomHead) */
 export function setIntercomHead(fn) { headFn = typeof fn === 'function' ? fn : null; }
 
+// THE CLIP AHEAD (THE LOBBY GETS IT LIVE): id → the clip's bytes (a promise) — fetched when a ROOM's row lands (~10 s before it starts), used by
+// the player; a few kept (the newest)
+const clips = new Map();
+function clipOf(id) {
+  let p = clips.get(id);
+  if (!p) {
+    p = fetch(`/api/admin?clip=${encodeURIComponent(id)}`).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`clip ${r.status}`))));
+    p.catch(() => clips.delete(id));
+    clips.set(id, p);
+    while (clips.size > 6) clips.delete(clips.keys().next().value);
+  }
+  return p;
+}
 /** feed the moments a source knows (the WHOLE list it has now — gone ids from that source are forgotten unless held) */
 export function intercomFeed(source, list, stopped = []) {
   const ids = new Set();
   for (const m of list || []) {
     if (!m || m.kind !== 'intercom' || !m.id) continue;
     ids.add(m.id);
+    if (source === 'room' && !played.has(m.id) && m.state !== 'stopped' && !known.has(m.id)) { clipOf(m.id); note(m.id, 'clip fetched ahead'); }   // (THE CLIP AHEAD)
     const k = known.get(m.id);
     if (k) { k.m = { ...k.m, ...m }; if (rank(source) > rank(k.source)) k.source = source; }
     else known.set(m.id, { m, source, held: false });
@@ -146,7 +161,7 @@ export function playAnnouncement(m, o = {}) {
   const begin = ms => { headT = setTimeout(() => { if (!h.stopped) showHead(true); }, Math.max(0, ms)); starts[id] = Math.round(now$() + ms); };
   const silent = () => { const late = lateNow(), len = icLen(m.dur || 3) * 1000; begin(-late * 1000); endT = setTimeout(() => finish('done (silent — audio locked or off)'), Math.max(0, len - late * 1000)); return h; };
   if (!c || !bus || !isUnlocked() || !audible()) return silent();
-  const clip = o.local ? Promise.resolve(o.local).then(b => (b instanceof Blob ? b.arrayBuffer() : b)) : fetch(`/api/admin?clip=${encodeURIComponent(id)}`).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`clip ${r.status}`))));
+  const clip = o.local ? Promise.resolve(o.local).then(b => (b instanceof Blob ? b.arrayBuffer() : b)) : clipOf(id);   // (THE CLIP AHEAD: a room's clip is already on its way)
   Promise.all([clip.then(ab => decode(c, ab.slice ? ab.slice(0) : ab)), chime(c)]).then(([voice, ch]) => {
     if (h.stopped) return;
     const late = lateNow(), t0 = c.currentTime + (o.at != null ? 0 : 0.05) - late;

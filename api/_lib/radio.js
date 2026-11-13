@@ -107,10 +107,17 @@ async function fire(me, role, uid, body, now) {
   const m = { ...m0, text: req.text, colour: req.colour, show: req.show, dance: req.dance, local: req.local, at: P.at, until: P.at + lenOf(req) * 1000, made: now, state: 'q' };
   const up = { [`radio/q/${id}`]: m };
   for (const mv of P.moved) up[`radio/q/${mv.id}/at`] = mv.at, up[`radio/q/${mv.id}/until`] = mv.until;
-  if (req.aud === 'room') {
-    up[`rooms/${req.room}/radio/${id}`] = publicMoment(id, m);
-    for (const mv of P.moved) { const x = Q.find(y => y.id === mv.id); if (x && x.aud === 'room') { up[`rooms/${x.room}/radio/${mv.id}/at`] = mv.at; up[`rooms/${x.room}/radio/${mv.id}/until`] = mv.until; } }
+  if (req.aud === 'room') up[`rooms/${req.room}/radio/${id}`] = publicMoment(id, m);
+  // THE LOBBY GETS IT LIVE (Nov 12 night): EVERYONE's / the city's moment ALSO into every OPEN room (the same public shape the LOBBY ONLY ones use)
+  // — its phones get it live over the room's own socket (lobby or mid-match), 10 s ahead; the poll's copy + the room's = ONE moment (merged by id,
+  // played once — scene-radio.js); `rooms` kept on the queue's record so STOP / CLEAR ALL / the planner's moves reach the copies
+  const wide = req.aud === 'everyone' || req.aud === 'city', open = wide || P.moved.length ? new Set((await openRooms(now)).map(r => r.code)) : new Set();
+  if (wide) {
+    m.rooms = [...open];
+    up[`radio/q/${id}`] = m;
+    for (const code of m.rooms) up[`rooms/${code}/radio/${id}`] = publicMoment(id, m);
   }
+  for (const mv of P.moved) { const x = Q.find(y => y.id === mv.id); if (x) for (const code of copiesOf(x)) if (x.aud === 'room' || open.has(code)) { up[`rooms/${code}/radio/${mv.id}/at`] = mv.at; up[`rooms/${code}/radio/${mv.id}/until`] = mv.until; } }   // (a closed room's copy is left alone)
   up[`radio/fired/${id}`] = { jack: m.jack, at: m.at, until: m.until, len: lenOf(req), made: now, local: m.local || null, aud: m.aud, room: m.room || null, role, by: me, sight: role === 'owner' && m.aud !== 'me' };   // (PROGRESSION B: + until / len / made / local — core/sightings.js#radioWindows reads them)
   if ((role === 'crew' || role === 'favor') && limPath) {
     const lg = (await val(limPath)) || {}, j = jackDef(m.jack);
@@ -121,6 +128,11 @@ async function fire(me, role, uid, body, now) {
   await audit(me, 'radioFire', { b: words(m).slice(0, 140), role, aud: m.aud });
   return { moment: { id, ...m, wait: P.wait } };
 }
+
+/** the rooms holding a copy of a queued moment: a LOBBY ONLY moment's room, or EVERYONE's / the city's copies (THE LOBBY GETS IT LIVE) */
+function copiesOf(m) { return m.aud === 'room' ? (m.room ? [m.room] : []) : Array.isArray(m.rooms) ? m.rooms.filter(c => /^[A-Z]{4}$/.test(c)) : []; }
+/** …only those still open (a write to a closed room's path would make a stray node there — unsend's rule) */
+async function liveCopies(m) { const out = []; for (const code of copiesOf(m)) if (await val(`rooms/${code}/meta`)) out.push(code); return out; }
 
 /** PROGRESSION B — CALL IN A FAVOR: fire ONE crew jack for the caller's room as role 'favor' (the token: api/_lib/favors.js) */
 export async function favorMoment(me, uid, body, now = Date.now()) { return fire(me, 'favor', uid, { ...body, aud: 'room' }, now); }
@@ -133,7 +145,7 @@ async function stop(me, role, body, now) {
   if (!m) throw new ApiError(404, 'no_moment');
   need(rolePower(role, 'stopAny') || m.by === me, 'not_yours', 'You can stop your own moments only.');
   const up = { [`radio/q/${id}/state`]: 'stopped', [`radio/q/${id}/until`]: Math.min(m.until, now) };
-  if (m.aud === 'room' && m.room) { up[`rooms/${m.room}/radio/${id}/state`] = 'stopped'; up[`rooms/${m.room}/radio/${id}/until`] = Math.min(m.until, now); }
+  for (const code of await liveCopies(m)) { up[`rooms/${code}/radio/${id}/state`] = 'stopped'; up[`rooms/${code}/radio/${id}/until`] = Math.min(m.until, now); }   // (a LOBBY ONLY moment's room + THE LOBBY GETS IT LIVE's copies)
   await ref('/').update(up);
   await audit(me, 'radioStop', { b: words(m).slice(0, 140), role });
   return { ok: true };
@@ -145,7 +157,7 @@ async function clearAll(me, role, now) {
   const Q = await queue(now), up = {};
   for (const m of Q) if (m.by === me && (m.state === 'q' || m.state === 'run')) {
     up[`radio/q/${m.id}/state`] = 'stopped'; up[`radio/q/${m.id}/until`] = Math.min(m.until, now);
-    if (m.aud === 'room' && m.room) { up[`rooms/${m.room}/radio/${m.id}/state`] = 'stopped'; up[`rooms/${m.room}/radio/${m.id}/until`] = Math.min(m.until, now); }
+    for (const code of await liveCopies(m)) { up[`rooms/${code}/radio/${m.id}/state`] = 'stopped'; up[`rooms/${code}/radio/${m.id}/until`] = Math.min(m.until, now); }
   }
   up['radio/board'] = null;
   await ref('/').update(up);
