@@ -495,6 +495,12 @@ A second way to bring your card to a device, beside the restore key (which stays
   with air under the buttons; the four tabs EQUAL (the selected one changes colour + fill only; the letter-spacing shrinks to fit, never a wrap); the top 10 built + SHOW
   ALL (pages as they scroll in, ≤ 100), ONE fx surface; A FRESH WEEK / NO ONE RANKED YET / THE BOARD IS DARK designed; the background = BLACK VELVET
   + GOLD DECO (the owner's pick — CSS + one SVG sunburst). The title's preview: the top three as slim cards. Proof: `board-preview.html`.
+- **THE BOARD'S TAPS (the owner's LOST TAP on the HOLD'EM tab, Nov 13 — THE TAP WATCH):** a tab switch landing while a finger was down on another tab
+  (a previous tap's late / rescued click) REBUILT every tab button, the switches and the picks → the button under the finger was a new node at the lift,
+  iOS sent no click. Now the tabs, THIS WEEK / ALL TIME, RECORDS / CAREER and every row of picks are BUILT ONCE (`view.js#makeSeg` / `#chipRow`) and only
+  their state changes in place (classes, aria, `hidden`); the rows list (it holds controls) is swapped through `swapRows` → `ui/tapwatch.js#afterTap`
+  (never under a finger); the plate's text set only when it changed. Proof: `tests/integration/wk-board-taps.mjs` (WebKit 402×874 @3, THE RESCUE OFF,
+  the real /board on the emulators: each tab pressed while another tab's switch + a period flip + their answers land — mouse + touch — and a row's ⋯).
 - **THE FRIENDS LIST** (YOU → FRIENDS — `profile/friends-ui.js#cardList`): SLIM CARDS, friends IN YOUR ROOM first (HERE — the only presence), then
   by THIS WEEK's XP (the friends answer's `wx` = `pstats/{pid}/xw` of each FRIEND only — never a request, a block or a suggestion; **PD-1: a friend who
   OPTED OUT of the public boards (`profiles/{pid}/h`) gets `wx: null` — no number under their card, sorted as 0; only they see their own**); the line under

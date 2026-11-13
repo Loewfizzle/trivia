@@ -11,7 +11,9 @@
 // drawn in CSS + one SVG sunburst, nothing animates.
 // THE SPEED RULES: only the top 10 cards are built (SHOW ALL builds the rest, the pages after it as they scroll in), ONE fx surface for the list
 // (every strip CALM — fx/renderer.js draws only the slots on screen), the city is not running behind (the board is its own screen); a tab
-// switch rebuilds the list only (the controls are rebuilt only when their own state changes — THE TAP WATCH).
+// switch rebuilds the list only. THE TAP WATCH (the owner's LOST TAP on the HOLD'EM tab, Nov 13): the tabs, the switches and the picks are
+// built ONCE — a tab / period / board change paints their state IN PLACE (classes, aria, hidden), never a new node under a finger; the rows
+// list (it holds controls) is swapped only when no finger is down (swapRows → ui/tapwatch.js#afterTap). tests/integration/wk-board-taps.mjs.
 //
 //   createBoardView({ mode: 'app' | 'public', me: () => ({ pid, profile }) | null, ranks: (boards) => Promise<{…}>,
 //                     onBack, onProfile, onPlay, onPlayer({ b, bid, row }), initial: { game | tab, cat, period, board } })
@@ -28,6 +30,7 @@ import { board as fetchBoard, reportRow } from '../profile/api.js';
 import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
 import { boardSfx } from './audio.js';
 import { lazyImport } from '../ui/lazy-import.js';
+import { afterTap } from '../ui/tapwatch.js';
 
 // each tab's light: [key colour, second colour] (the tab's lit pill + the panel's glow)
 export const GAME_LIGHT = {
@@ -138,13 +141,43 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
         h('a.bd-play', { href: '/', onclick: e => { if (onPlay) { e.preventDefault(); onPlay(); } } }, h('span.bd-play-sheen'), h('span.bd-play-l', 'PLAY NOW')),
         h('span.bd-cta-line', 'Party games · one phone each · no signup')) : null));
 
-  // ------------------------------------------------------------------ controls (rebuilt only when their own state changes)
+  // ------------------------------------------------------------------ controls — BUILT ONCE, their state painted IN PLACE (THE TAP WATCH — the
+  // owner's LOST TAP, Nov 13: a tab switch landing while a finger was down on another tab REBUILT every tab button, so the one under the finger
+  // was a new node at the lift and iOS sent no click). The tabs, the two switches and every set of picks keep their nodes for the page's life;
+  // a change only flips classes / aria / disabled / hidden. tests/integration/wk-board-taps.mjs.
   let ctrlSig = '';
-  function seg(holder, opts, value, onPick) {
-    holder.replaceChildren(...opts.map(o => h('button.bd-seg-b', {
-      type: 'button', role: 'tab', 'aria-selected': String(o.v === value), disabled: o.off || null,
-      class: o.v === value ? 'is-on' : '', onclick: () => { if (o.v !== value) onPick(o.v); },
-    }, o.l)));
+  /** a segmented switch: its buttons built once (`opts` fixed), the value + each one's `off` set in place; a tap reads the value AT the tap */
+  function makeSeg(holder, opts, onPick) {
+    let value = null;
+    const btns = opts.map(o => h('button.bd-seg-b', { type: 'button', role: 'tab', 'aria-selected': 'false', onclick: () => { if (o.v !== value) onPick(o.v); } }, o.l));
+    holder.replaceChildren(...btns);
+    return {
+      set(v, off = {}) {
+        value = v;
+        opts.forEach((o, i) => {
+          const b = btns[i], on = o.v === v;
+          b.classList.toggle('is-on', on);
+          b.setAttribute('aria-selected', String(on));
+          b.disabled = !!off[o.v];
+        });
+      },
+    };
+  }
+  const catSeg = makeSeg(els.cat, [{ v: 'records', l: 'RECORDS' }, { v: 'career', l: 'CAREER' }], v => { S.cat = v; S.board = null; boardSfx('tab'); refresh(); });
+  const periodSeg = makeSeg(els.period, [{ v: 'week', l: 'THIS WEEK' }, { v: 'all', l: 'ALL TIME' }], v => { S.period = v; boardSfx('tab'); refresh(); });
+  /** the picks: ONE row of chips per list of boards (a tab, a game's RECORDS / CAREER), built the first time it shows, then only shown / hidden */
+  const chipRows = new Map();   // key → { row, chips: Map(boardId → button) }
+  function chipRow(key, list) {
+    let r = chipRows.get(key);
+    if (!r) {
+      const chips = new Map(list.map(b => [b.id, h('button.bd-chip', {
+        type: 'button', onclick: () => { if (b.id !== S.board) { S.board = b.id; boardSfx('tab'); refresh(); } },
+      }, b.chip || b.short || b.label)]));
+      r = { row: h('div.bd-chips', { hidden: true }, ...chips.values()), chips };
+      chipRows.set(key, r);
+      els.picks.append(r.row);   // (an append — never a node under a finger replaced)
+    }
+    return r;
   }
   const isGame = () => S.tab !== 'xp' && S.tab !== 'dailies';
   function boardsNow() {
@@ -154,14 +187,19 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     if (own) return own.filter(Boolean).map(b => ({ ...b, game: S.tab }));
     return S.cat === 'career' ? careerBoards(S.tab).map(b => ({ ...b, game: S.tab })) : recordBoards(S.tab).map(b => ({ ...b, game: S.tab }));
   }
+  const tabBtns = TABS.map(id => {
+    const [a1, a2] = GAME_LIGHT[id] || ['#fff', '#fff'];
+    return h('button.bd-tab', {
+      type: 'button', 'aria-pressed': 'false', style: { '--a1': a1, '--a2': a2 }, dataset: { id }, onclick: () => pickTab(id),
+    }, h('span', tabName(id)));
+  });
+  els.tabs.append(...tabBtns);
   function renderTabs() {
-    els.tabs.replaceChildren(...TABS.map(id => {
-      const [a1, a2] = GAME_LIGHT[id] || ['#fff', '#fff'];
-      return h('button.bd-tab', {
-        type: 'button', class: id === S.tab ? 'is-on' : '', 'aria-pressed': String(id === S.tab),
-        style: { '--a1': a1, '--a2': a2 }, dataset: { id }, onclick: () => pickTab(id),
-      }, h('span', tabName(id)));
-    }));
+    TABS.forEach((id, i) => {
+      const on = id === S.tab;
+      tabBtns[i].classList.toggle('is-on', on);
+      tabBtns[i].setAttribute('aria-pressed', String(on));
+    });
   }
   function renderControls() {
     if (isGame()) { const rec = recordBoards(S.tab).length > 0; if (!S.cat || (S.cat === 'records' && !rec)) S.cat = rec ? 'records' : 'career'; }
@@ -171,13 +209,15 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     if (sig === ctrlSig) return;
     ctrlSig = sig;
     els.cat.hidden = !isGame() || !!tabBoards(S.tab);
-    if (isGame() && !tabBoards(S.tab)) seg(els.cat, [{ v: 'records', l: 'RECORDS', off: !recordBoards(S.tab).length }, { v: 'career', l: 'CAREER' }], S.cat, v => { S.cat = v; S.board = null; boardSfx('tab'); refresh(); });
-    seg(els.period, [{ v: 'week', l: 'THIS WEEK' }, { v: 'all', l: 'ALL TIME' }], S.period, v => { S.period = v; boardSfx('tab'); refresh(); });
-    const chips = list.length > 1 ? list.map(b => h('button.bd-chip', {
-      type: 'button', class: b.id === S.board ? 'is-on' : '', onclick: () => { if (b.id !== S.board) { S.board = b.id; boardSfx('tab'); refresh(); } },
-    }, b.chip || b.short || b.label)) : [];
-    els.picks.replaceChildren(...(chips.length ? [h('div.bd-chips', ...chips)] : []));
-    els.picks.hidden = !chips.length;
+    if (isGame() && !tabBoards(S.tab)) catSeg.set(S.cat, { records: !recordBoards(S.tab).length });
+    periodSeg.set(S.period);
+    const want = list.length > 1 ? chipRow(`${S.tab}|${isGame() && !tabBoards(S.tab) ? S.cat : ''}`, list) : null;
+    for (const r of chipRows.values()) {
+      const show = r === want;
+      if (r.row.hidden === show) r.row.hidden = !show;
+      if (show) for (const [id, b] of r.chips) b.classList.toggle('is-on', id === S.board);
+    }
+    els.picks.hidden = !want;
   }
   function relight() {
     const [a1, a2] = GAME_LIGHT[S.tab] || ['#f2c869', '#ff7ccb'];
@@ -273,12 +313,17 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       h('button.btn.btn-text.btn-block.bd-rep-b.is-cancel', { type: 'button', onclick: closeReport }, 'CANCEL')] });
   }
 
+  // (a text set only when it changed: the answer's repaint of the same plate replaces nothing)
+  const setText = (el, t) => { if (el.textContent !== t) el.textContent = t; };
   function paintPlate(def) {
     const p = plateOf(def, S.period, Date.now(), S.ends);
-    els.label.textContent = p.label;
-    els.when.textContent = p.when;
-    els.note.textContent = (def && def.note) || '';
+    setText(els.label, p.label);
+    setText(els.when, p.when);
+    setText(els.note, (def && def.note) || '');
   }
+  /** THE ROWS hold controls (a card → THE PLAYER PAGE, the ⋯, SHOW ALL, TRY AGAIN): the list is swapped only when no finger is down
+   *  (ui/tapwatch.js#afterTap — right after that tap's click), and only if this refresh is still the latest */
+  const swapRows = (token, fn) => afterTap(() => { if (token === S.token && !destroyed) fn(); });
 
   async function refresh() {
     renderControls();
@@ -287,8 +332,8 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     paintPlate(def);
     const token = ++S.token;
     S.rows = []; S.more = false; S.all = false;
-    if (!def) { empty(def); paintMe(null, null); return; }
-    skeleton();
+    if (!def) { swapRows(token, () => empty(def)); paintMe(null, null); return; }
+    swapRows(token, skeleton);
     paintMe(def, 'loading');
     cascadeSound = true;
     try {
@@ -297,15 +342,17 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       K = kit;
       S.rows = data.rows || []; S.more = !!data.more; S.ends = data.ends || null;
       paintPlate(def);
-      renderRows(def, true);
+      swapRows(token, () => renderRows(def, true));
     } catch (e) {
       if (token !== S.token || destroyed) return;
-      dropSurface();
-      els.rows = h('ol.bd-rows', h('li.bd-empty.is-error',
-        h('b', 'THE BOARD IS DARK RIGHT NOW'),
-        h('span', 'The games still work — results are saved and land here when the lights come back.'),
-        h('button.bd-retry', { type: 'button', onclick: () => refresh() }, 'TRY AGAIN')));
-      els.scroll.replaceChildren(els.rows);
+      swapRows(token, () => {
+        dropSurface();
+        els.rows = h('ol.bd-rows', h('li.bd-empty.is-error',
+          h('b', 'THE BOARD IS DARK RIGHT NOW'),
+          h('span', 'The games still work — results are saved and land here when the lights come back.'),
+          h('button.bd-retry', { type: 'button', onclick: () => refresh() }, 'TRY AGAIN')));
+        els.scroll.replaceChildren(els.rows);
+      });
     }
     loadMe(def, token);
   }
