@@ -8,6 +8,7 @@
 // Checked: tests/shell-b2.test.mjs (the band + the gem's corner) + harbor-e2e/lobbyfix.mjs 'platefit' (the live plate at 390 / 402 / 430).
 import { GIFT_SPECS } from '../fx/gift-specs.js';
 import { OC_SPECS, OC_AH } from '../fx/oc-specs.js';
+import { JW_SPECS, jwMap } from '../fx/jw-specs.js';
 import { PW_SPECS, PW_AH } from '../fx/pw-specs.js';
 import { CC_SPECS, CC_AH } from '../fx/cc-specs.js';
 import { DM_SPECS, DM_AH } from '../fx/dm-specs.js';
@@ -51,6 +52,11 @@ for (const [id, S] of Object.entries(OC_SPECS)) {
   const k = Math.max(SW / AW, SH / OC_AH), ox = (SW - AW * k) * S.strip[0] / 100, oy = (SH - OC_AH * k) * S.strip[1] / 100, [x, y, w, h] = S.hero;
   const y0 = Math.max(0, (oy + y * k) / SH), y1 = Math.min(1, (oy + (y + h) * k) / SH);
   HERO[id] = Object.freeze([[(ox + x * k) / SW, y0, (w * k) / SW, Math.max(0.05, y1 - y0)]]);
+}
+// (JAYWALK CARDS: the vapor cone + the engines · the saucer's belly + the beam's top · the kid — 1280 × 720, through the strip's own zoomed crop)
+for (const [id, S] of Object.entries(JW_SPECS)) {
+  const M = jwMap(SW, SH, S.strip), [x, y, w, h] = S.hero, y0 = Math.max(0, (M.oy + y * M.k) / SH), y1 = Math.min(1, (M.oy + (y + h) * M.k) / SH);
+  HERO[id] = Object.freeze([[(M.ox + x * M.k) / SW, y0, (w * M.k) / SW, Math.max(0.05, y1 - y0)]]);
 }
 // (PW2 — THE PASSWORD's card: the wheel + the open door's gold — its art 1280 × 720 too)
 for (const [id, S] of Object.entries(PW_SPECS)) {

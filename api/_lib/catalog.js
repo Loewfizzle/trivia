@@ -64,6 +64,11 @@ export const ITEM_ROWS = [
   // OVERCLOCK CARDS (Nov 5 night — the owner's two OVERCLOCK cards; the art Grok's, the motion js/fx/oc-cards.js): unlocked by the achievements below
   C('card-redline', 'REDLINE', 'legendary', '#050507', '#ffb27a', '#ff6a1a', 'Six for six. Pinned in the red.'),
   C('card-photofinish', 'PHOTO FINISH', 'rare', '#060608', '#9fd8ff', '#2ea8ff', 'Won by a nose. One point.'),
+  // JAYWALK CARDS (Nov 12 night — Grok's art assets/vault/jw/, the motion js/fx/jw-cards.js): NOTHING grants these yet — JAYWALK's pass 6 adds the
+  // three achievements below (beside the OVERCLOCK ones) from the server's replay of a run
+  C('card-sonicboom', 'SONIC BOOM', 'rare', '#04030a', '#ffb27a', '#8a6bff', 'Faster than the noise.'),
+  C('card-closeencounter', 'CLOSE ENCOUNTER', 'rare', '#030806', '#b8ffd9', '#3dff9a', 'They came. You crossed anyway.'),
+  C('card-rightofway', 'RIGHT OF WAY', 'legendary', '#05040c', '#9fd0ff', '#ff2fa8', 'The whole runway. All yours.'),
   // PW2 — THE PASSWORD's card (Grok's vault door — the art assets/vault/pw/, the motion js/fx/pw-cards.js): both doors in six guesses or fewer
   C('card-safecracker', 'SAFECRACKER', 'rare', '#070a1c', '#ffd27a', '#ff4fd8', 'Both doors in six. The vault was never locked to you.'),
   // CC2 — COAST CLEAR's card (Grok's speedboat — the art assets/vault/cc/, the motion js/fx/cc-cards.js): a clear with zero spots at or under GHOST_S
@@ -233,6 +238,8 @@ export const ACH_ROWS = [
   // a phone sends): `sweep` = alone on top of every challenge of a QUICK match (≥ 2 players) · `photo` = the win alone by exactly one point
   A('redline', 'REDLINE', 'overclock', 'card-redline', 'Every challenge of a Quick match.', (s, p) => !!(p.gf && p.gf['overclock-sweep']), { game: 'overclock' }),
   A('photo-finish', 'PHOTO FINISH', 'overclock', 'card-photofinish', 'Won by a single point.', (s, p) => !!(p.gf && p.gf['overclock-photo']), { game: 'overclock' }),
+  // JAYWALK pass 6 — the three feat flags from the server's replay → these cards (card-sonicboom · card-closeencounter · card-rightofway): ONE A(…)
+  // row each here, { game: 'jaywalk' }, + GAME_ACHIEVEMENTS.jaywalk (js/core/achievements.js) — until then nothing grants them (tests/jaywalk-cards.test.mjs)
   // OC5 — `horseshoe` = backed the winner of a DUMB LUCK race (2+ players — the server replays the race from the room's record)
   A('horseshoe', 'HORSESHOE', 'overclock', 'emb-horseshoe', 'Backed the winning horse.', (s, p) => !!(p.gf && p.gf['overclock-horseshoe']), { game: 'overclock' }),
   // PD-5B — PRISM DROP's cards: the flags come from the room's OWN record of the match (core/match-report.js#prismExtra — never a number a

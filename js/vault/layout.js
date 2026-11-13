@@ -15,6 +15,7 @@ import { GIFT_SPECS } from '../fx/gift-specs.js';
 import { refit } from '../ui/fit.js';
 import { artMap } from '../fx/gift.js';
 import { OC_SPECS, ocMap } from '../fx/oc-specs.js';
+import { JW_SPECS, jwMap } from '../fx/jw-specs.js';
 import { PW_SPECS, pwMap } from '../fx/pw-specs.js';
 import { CC_SPECS, ccMap } from '../fx/cc-specs.js';
 import { DM_SPECS, dmMap } from '../fx/dm-specs.js';
@@ -30,6 +31,8 @@ export function heroBox(card, w, h) {
   if (S && (S.heroFull || S.hero)) { const M = artMap(w, h, S.full || [50, 50]), [x, y, bw, bh] = S.heroFull || S.hero; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
   const O = OC_SPECS[card];   // (OVERCLOCK CARDS — their 1280 × 720 art)
   if (O) { const M = ocMap(w, h, O.full), [x, y, bw, bh] = O.heroFull; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
+  const J = JW_SPECS[card];   // (JAYWALK CARDS — 1280 × 720, the full card's art set right at 80 % by its width)
+  if (J) { const M = jwMap(w, h, J.full), [x, y, bw, bh] = J.heroFull; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
   const P = PW_SPECS[card];   // (PW2 — THE PASSWORD's card: 1280 × 720 too)
   if (P) { const M = pwMap(w, h, P.full), [x, y, bw, bh] = P.heroFull; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
   const Q = CC_SPECS[card];   // (CC2 — COAST CLEAR's card: 1280 × 720 too)

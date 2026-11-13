@@ -1,0 +1,123 @@
+JAYWALK player-card art
+NEON SPEAKEASY  —  12 Nov 2026, America/Detroit
+Free only. Built-in Grok Imagine (GenerateImage). AI-generated, not CC0.
+
+DESTINATION
+  C:\Users\benja\Downloads\grok\jaywalk\cards\   (Beelink)
+  Worked in /workspace/neon/jaywalk/cards/
+
+SIZE
+  Brief asked 1536×1024 landscape, or the closest native wide size.
+  The tool's closest wide native is 16:9 at 1280×720. All six card PNGs
+  are 1280×720 RGB. Converted from the tool's JPEG to PNG with no
+  resize, no upscale, no crop, no stretch. preview-sheet.jpg is 1352×3655.
+
+GENERATIONS (6 of 6 allowed)
+  1. sonic-boom take 1        → delivered as sonic-boom-b.png
+  2. close-encounter take 1   → delivered as close-encounter-b.png
+  3. right-of-way take 1      → delivered as right-of-way.png   (USE)
+  4. sonic-boom take 2        → delivered as sonic-boom.png     (USE)
+  5. close-encounter take 2   → delivered as close-encounter.png (USE)
+  6. right-of-way take 2      → delivered as right-of-way-b.png
+  Style references: jaywalk skyline-night.png (1, 2, 4, 5) and
+  jaywalk-night-2.png (3); later backups referenced their own first takes.
+
+WHICH TO USE
+  sonic-boom.png        take 2 — left third is quiet; city stays on the right
+  close-encounter.png   take 2 — adds the required cars and road trails
+  right-of-way.png      take 1 — complete costume (pink/white sneakers);
+                                 better hop pose. Tiny cap-strap lettering,
+                                 flagged below. If that text is a deal-breaker,
+                                 use right-of-way-b.png (plain cap, but the
+                                 sneakers are gone — dark block shoes).
+
+QA  (Rec.709 luminance; left third = x 0–33%; subject = brightness-weighted
+     centroid of tighter bright/saturated pixels; edge band = 6%)
+
+  sonic-boom.png
+    Subject x ≈ 71.6%  y ≈ 51.4%   (middle-to-right: YES)
+    Mid-band energy peak at 55.3% is the shock/vapor; body/plumes sit right.
+    Left-third mean L 1.1  vs rest 18.3  (ratio 0.059) — dark and quiet: YES
+    Slim band y38–62 left L 1.0 vs rest 33.8
+    Edges: afterburner plumes reach the right edge (max L 244 in the right 6%).
+           Tiny stars make max L high on the top/left 6% but those are not
+           important subject. Bottom edge is calm water.
+
+  close-encounter.png
+    Subject x ≈ 68.3%  y ≈ 62.1%   (middle-to-right: YES)
+    Left-third mean L 0.7  vs rest 20.6  (ratio 0.036) — mostly dark: YES,
+    BUT pink/cyan car trails enter the left third at x ≈ 20.9%, in the
+    lower-right corner of that third. Upper and mid left third stay empty
+    and are fine for a name plate. Slim band y38–62 left L 0.0 vs rest 33.3
+    Edges: saucer trails come within ~15 px (1.2%) of the right edge.
+           Bottom 6% has wet-road glow / trail residual (max L 181).
+
+  right-of-way.png
+    Subject x ≈ 70.6–70.8%  y ≈ 57–60%   (middle-to-right: YES)
+    Left-third mean L 0.2  vs rest 22.9  (ratio 0.010) — excellent quietness
+    Slim band y38–62 left L 0.3 vs rest 28.3
+    Toy proportions: YES — big head, short body, chibi face, not Minecraft
+    Costume: hot-pink hoodie, backwards cap, pink/white sneakers, mid-hop
+             with a soft shadow under him; blue runway lights; skyline behind
+    Edges: skyline / runway lights reach the right 6% (max L 250).
+           Bottom 6% has runway marks and the warm shadow glow (max L 142).
+
+  Backups (for comparison; same 1280×720):
+    sonic-boom-b.png       left/rest L 2.5 / 20.7  (ratio 0.119) — city lights
+                           sit in the lower left third, which is why take 2 won
+    close-encounter-b.png  left/rest L 3.2 / 25.1  (ratio 0.128) — city in the
+                           left third; no cars on the road; trails come off the
+                           saucer only
+    right-of-way-b.png     left/rest L ~0.0 / 18.3 — still a great layout and
+                           a plain cap, but the sneakers were lost
+
+CANDID MISSES
+  1. Native size is 1280×720, not 1536×1024. Closest wide size the tool makes.
+  2. SONIC BOOM plane is only mildly voxel. Tails and engine blocks have a
+     stepped, cubic read; the fuselage is closer to a detailed 3D Blackbird
+     than to chunky little cubes. City is more clearly voxel. Take 2 was
+     asked to push the voxel look and did not really move it.
+  3. SONIC BOOM afterburner plumes touch the right edge (violates “nothing
+     important at the edges”).
+  4. CLOSE ENCOUNTER car trails enter the left third at x ≈ 21% (lower
+     corner only). The saucer also still trails pink/cyan off its right lip,
+     which was not requested.
+  5. CLOSE ENCOUNTER take 1 (the backup) missed the cars entirely.
+  6. RIGHT OF WAY take 1 (the recommended use file) has very small lettering
+     on the snapback cap strap, readable in a tight zoom as something like
+     “WIKI & WE”. It is not readable at phone-card size, but it is text, and
+     the brief forbids text. Background neon stays abstract colour blocks;
+     a couple of signs are letter-like but not clearly readable words.
+  7. RIGHT OF WAY take 2 (backup) removed the cap lettering but also lost
+     the sneakers (dark block shoes instead of the pink/white pair).
+  8. Voxel city neon in all three is blocky and unused as copy, but a few
+     signs are vaguely glyph-like (not readable logos or words).
+
+NO TEXT / LOGOS / WATERMARKS
+  No typography, UI, watermarks or brand marks on sonic-boom or
+  close-encounter (use or backup). right-of-way.png has the cap-strap
+  lettering noted above. right-of-way-b.png does not.
+
+PREVIEW
+  preview-sheet.jpg — the three USE images with a left-third line, a
+  magenta slim-strip window (y 38–62%, full width) and a gold taller
+  full-card window (y 6–94%, full width), plus the extracted slim strip
+  under each, and a backups row. Crop windows are samples for layout
+  QA, not final in-game crops.
+
+FILES + SHA256
+  sonic-boom.png           1280x720   437227 bytes
+    f59a073a2291ba4c0dad5d44278a7bcd77d23a4f4a0229a668c3c1925943f6f7
+  sonic-boom-b.png         1280x720   592995 bytes
+    692edf85874fce18365a5b0f1f3932f6a9c353dc2d43dba879b2a67ad0f0859a
+  close-encounter.png      1280x720   585355 bytes
+    f79ca77807cc8c1c0604e3061e3ce5019fa96c08111ca404310c5698007e0e46
+  close-encounter-b.png    1280x720   735204 bytes
+    3153f77921ffc5d87ea8ebd3170ed31e538130ad6374e88c5eae2c8289e31097
+  right-of-way.png         1280x720   741276 bytes
+    fcd67c582156b2eee662a968748215ac82dc98fe0b7423828f99dfc298ff583f
+  right-of-way-b.png       1280x720   662609 bytes
+    c710a00d2f40b4fa6c7250e6539af44c8c34b67956785d6b494c99fc52c13c93
+  preview-sheet.jpg        1352x3655  946363 bytes
+    f3b22f7d6d725bb0accec842365562cda117ade6ef97550d7830798f71d27d5a
+  notes.txt                (this file; hash computed after write)

@@ -100,6 +100,10 @@ export const LOOKS = Object.freeze({
   // OVERCLOCK CARDS (Nov 5 night): Grok's art = the material (css/vault.css .vl-s-oc-*), the game's layers = js/fx/oc-cards.js
   'card-redline': { mat: 'oc-redline', fx: 'ocRedline' },
   'card-photofinish': { mat: 'oc-photofinish', fx: 'ocPhoto' },
+  // JAYWALK CARDS (Nov 12 night): Grok's art = the material (css/vault.css .vl-s-jw-*), the game's layers = js/fx/jw-cards.js
+  'card-sonicboom': { mat: 'jw-sonicboom', fx: 'jwSonic' },
+  'card-closeencounter': { mat: 'jw-closeencounter', fx: 'jwClose' },
+  'card-rightofway': { mat: 'jw-rightofway', fx: 'jwRight' },
   // PW2 — THE PASSWORD's card: Grok's art = the material (css/vault.css .vl-s-pw-*), the game's layers = js/fx/pw-cards.js
   'card-safecracker': { mat: 'pw-safecracker', fx: 'pwSafe' },
   // CC2 — COAST CLEAR's card: Grok's art = the material (css/vault.css .vl-s-cc-*), the game's layers = js/fx/cc-cards.js

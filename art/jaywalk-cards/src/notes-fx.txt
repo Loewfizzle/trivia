@@ -1,0 +1,191 @@
+JAYWALK player-card FX plates
+NEON SPEAKEASY  —  12 Nov 2026, America/Detroit
+Card art created with Grok
+Free only. Built-in Grok Imagine (GenerateImage). AI-generated, not CC0.
+
+DESTINATION
+  C:\Users\benja\Downloads\grok\jaywalk\cards\fx\   (Beelink)
+  Worked in /workspace/neon/jaywalk/cards/fx/
+  Existing card art in the parent folder was not modified.
+
+SIZE
+  All six FX PNGs are 1280×720 RGB (the tool's native 16:9). No stretch,
+  no upscale, no crop. JPEG → post-process → PNG.
+
+GENERATIONS (6 of 8 allowed)
+  1. fx-afterburner take 1   → delivered as fx-afterburner-b.png
+  2. fx-shockring take 1     → delivered as fx-shockring.png      (USE)
+  3. fx-beam take 1          → delivered as fx-beam.png           (USE)
+  4. fx-trails take 1        → delivered as fx-trails-b.png
+  5. fx-afterburner take 2   → delivered as fx-afterburner.png    (USE)
+  6. fx-trails take 2        → delivered as fx-trails.png         (USE)
+  Colour references: sonic-boom.png (afterburner, shockring) and
+  close-encounter.png (beam, trails). Backups referenced their first takes.
+  Shockring and beam first takes passed QA, so they were not regenerated.
+
+WHICH TO USE
+  fx-afterburner.png   take 2 — one right-pointing plume, white-hot → orange
+                       → violet-blue, five clear shock diamonds plus a faint
+                       sixth in the blue tail (closer than take 1's ~7)
+  fx-shockring.png     take 1 — thin white-lavender face-on ring, radial
+                       streaks, center empty (r 0–120 px is exact black
+                       before and after post)
+  fx-beam.png          take 1 — tall green-white cone, narrow top, wide
+                       bottom, vertical rays, glowing pool at the base
+  fx-trails.png        take 2 — seven distinct hot-pink / electric-blue
+                       streaks, clearly converging to the right. One over
+                       the 4–6 ask, but a much better match than take 1
+                       (three primary parallel streaks). If a strict 4–6
+                       count matters more than convergence, use fx-trails-b.png.
+
+POST-PROCESSING (not a new generation; applied to every plate and backup)
+  1. Gentle black-point / levels: per-pixel factor = smoothstep(4, 14) on
+     the max RGB channel, so values ≤4 crush to 0 and values ≥14 are left
+     alone. The effect itself is not otherwise brightened, recoloured or
+     reshaped.
+  2. Soft edge feather / vignette: smoothstep of distance-to-nearest-edge
+     over 6% of the short side (~43 px), so all four edges fade to pure
+     black and additive compositing adds nothing at the frame.
+  After post, every plate has border 1/8/16 px meanRGB = 0.000 and
+  maxRGB = 0.
+
+BACKGROUND STATS AFTER POST  (border meanRGB / maxRGB)
+  fx-afterburner.png     1px 0.000 / 0    8px 0.000 / 0    16px 0.000 / 0
+                         exact #000 = 87.0% of pixels
+  fx-afterburner-b.png   1px 0.000 / 0    8px 0.000 / 0    16px 0.000 / 0
+                         exact #000 = 86.1%
+  fx-shockring.png       1px 0.000 / 0    8px 0.000 / 0    16px 0.000 / 0
+                         exact #000 = 84.4%
+  fx-beam.png            1px 0.000 / 0    8px 0.000 / 0    16px 0.000 / 0
+                         exact #000 = 82.7%
+  fx-trails.png          1px 0.000 / 0    8px 0.000 / 0    16px 0.000 / 0
+                         exact #000 = 76.7%
+  fx-trails-b.png        1px 0.000 / 0    8px 0.000 / 0    16px 0.000 / 0
+                         exact #000 = 88.3%
+
+QA
+  All four use plates: effect only, no plane / saucer / city / ground /
+  stars / objects / text / logos. Effects are centered in the frame
+  (afterburner is slightly left-weighted because the white-hot core sits
+  at the left of a right-pointing plume; lum-centroid ~45% x, box-center
+  ~54% x). Soft falloff, nothing in the 16 px border after post.
+
+  Afterburner (use): 5 clear diamonds + 1 faint in the tail.
+  Shockring (use): center empty and black; ring roughly centered
+  (lum-centroid 50.1% x, 47.9% y).
+  Beam (use): cone width ~5% at the top, ~29% near the base. The tip and
+  pool sit close to the top/bottom (content L>8 starts ~35 px from the
+  top and ~30 px from the bottom) and are gently faded by the 43 px
+  edge feather; the 16 px border is still pure black.
+  Trails (use): 7 streaks (4 pink, 3 blue), converging — left vertical
+  span ~387 px, right span ~201 px.
+
+CANDID MISSES
+  1. Afterburner use file has five clear shock diamonds plus a faint
+     sixth in the blue tail, not a clean 4–5. Take 1 (the backup) has
+     about seven and is worse on the count.
+  2. Trails use file has 7 distinct streaks, one over the 4–6 request.
+     Take 1 (the backup) has 3 primary parallel streaks and does not
+     really converge.
+  3. The afterburner is a single isolated plume, as asked; the card art
+     itself has two engine plumes. Placement / duplication is for code.
+  4. Additive preview composites are a straight centered overlay, not
+     aligned to the card's existing flame, ring, beam or trails. They
+     are QA only (box: /workspace/neon/jaywalk/cards/fx/_preview/).
+
+PREVIEW
+  preview-sheet.jpg — each use plate alone + the same plate added over
+  its matching card, plus a backups row. Additive composites also live
+  on the box under _preview/ and were not copied to the Beelink folder
+  as finished assets.
+
+FILES + SHA256
+  fx-afterburner.png       1280x720   105197 bytes
+    09d2deab3bf2ef1c764e03aae08a3474f679904232cbac2b87ae1822447256b2
+  fx-afterburner-b.png     1280x720   108180 bytes
+    b65dcf2294617d6c021ff014e8fb306978f8346c90bcef365cf2a974bfd171e9
+  fx-shockring.png         1280x720   202784 bytes
+    6d2d9337fa01c195baf3a7b349e7a764a77146a5b082a48897294557a157e336
+  fx-beam.png              1280x720   108334 bytes
+    f097ca8a05c5dba92e5bbdc2e6c66339bfeaed9c25f9a91a07da2ddb91191ec4
+  fx-trails.png            1280x720   229625 bytes
+    8c1d2e6370f2cfdf05d3a6dac44c97c25f61d8a462801720d366c92671e8644b
+  fx-trails-b.png          1280x720    84581 bytes
+    87eafe89bee7bd5e9f701cd5443ff9a173f4f1d9350bd52c90f519de6ce22716
+  preview-sheet.jpg        1484x2476  514784 bytes
+    a3264b0907df39003d16006a9b029ebedba323113578d5b27de430c7e6f96d62
+  notes.txt                (this file; hash computed after write)
+
+=======  FX-HOP  (added 12 Nov 2026)  =======
+
+fx-hop.png — neon speed arc for RIGHT OF WAY. Same pipeline as the
+plates above. Card art created with Grok.
+
+GENERATIONS (3 of 4 allowed for this plate)
+  1. take 1  — clean arc, sparkles, 2 streaks; path ended ~80% x
+               (past the kid). Kept only as an unused raw.
+  2. take 2  — better pink-white landing puff; same too-far-right path.
+               Delivered as fx-hop-b.png (backup).
+  3. take 3  — path shifted left. Delivered as fx-hop.png (USE).
+  Colour/style reference: right-of-way.png and the prior hop takes.
+  Existing plates and card art were not modified.
+
+WHICH TO USE
+  fx-hop.png    take 3 — smooth hop arc from lower-left (start 11.6% x,
+                78.8% y), peak at 48.0% x, 32.8% y, landing puff at
+                59.4% x, 45.8% y (L>8 end 64.8% x). Hot pink spine,
+                magenta tail, sparkles, 2 parallel motion streaks,
+                soft pink-white puff at the right end.
+  fx-hop-b.png  take 2 — slightly punchier puff, but the puff sits at
+                80.3% x (L>8 end 86.3%), past the kid. Use only if you
+                want to slide it in code.
+
+POST-PROCESSING
+  Identical to the earlier plates: smoothstep black-point 4–14 on the
+  max RGB channel, then a 6% short-side (~43 px) edge feather.
+  After post, both hop plates have border 1/8/16 px meanRGB = 0.000
+  and maxRGB = 0.
+
+BACKGROUND STATS AFTER POST  (border meanRGB / maxRGB)
+  fx-hop.png     1px 0.000 / 0    8px 0.000 / 0    16px 0.000 / 0
+                 exact #000 = 89.1% of pixels
+  fx-hop-b.png   1px 0.000 / 0    8px 0.000 / 0    16px 0.000 / 0
+                 exact #000 = 88.6%
+
+QA
+  Effect only: no kid, runway, city, ground, stars, objects, text or
+  logos on either plate. Soft falloff; 16 px borders are pure black.
+  Streak count: 2 faint parallel companions (brief asked 2–3). Sparkles
+  present. Puff is a soft pink-white glow (near-puff RGB 255,234,252).
+  Tail colour (take 3, 15.9% x) RGB (110, 2, 55) — magenta, not clearly
+  violet. Mid spine is hot pink (247, 86, 194).
+  Edge clearance (use, post, L>8): left 149 px, right 450, top 213,
+  bottom 152. The left tail at 11.6% is inside the frame; the 43 px
+  feather slightly softens it and does not eat the puff.
+
+CANDID MISSES
+  1. The use-file puff sits at 59.4% x (content ends 64.8%), short of
+     the 68–72% target where the kid is. A centered additive overlay
+     still meets the kid's trailing left hip and reads as a hop trail
+     arriving at him. The backup overshoots to ~80% and passes through
+     him toward the right edge.
+  2. The tail fades to magenta, not a distinct magenta-violet.
+  3. Two parallel motion streaks, not a clear third.
+  4. Take 1 was not delivered (nearly the same path as take 2 with a
+     weaker tapered tip instead of a puff).
+
+PREVIEW
+  preview-hop.jpg — use plate alone + additive over right-of-way.png,
+  with the backup in a smaller row. Additive composites also live on
+  the box at /workspace/neon/jaywalk/cards/fx/_preview/
+  (fx-hop-over-card.png, fx-hop-b-over-card.png). The earlier
+  preview-sheet.jpg was left unchanged.
+
+FILES + SHA256
+  fx-hop.png               1280x720   122503 bytes
+    7ba4ded92954d7e1d19a747a8fca21a9383fb9ea46b9751f65075eef033c4647
+  fx-hop-b.png             1280x720   126143 bytes
+    4ce27fa8b78da7d12f25b65f346e01a476a03a9903af921723c49c944021d642
+  preview-hop.jpg          1866x1083  274708 bytes
+    f3a60e224f1c4fdf61cd7182b2c9fc5deacd4a9864d3bcf5807e59c1aa0182b9
+  notes.txt                (this file; hash computed after write)

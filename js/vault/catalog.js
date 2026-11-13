@@ -269,6 +269,16 @@ LAB.push(
   { id: 'full-card-perfect-clear', kind: 'full', of: 'card-perfect-clear', tier: 'rare', n: 215 },
   { id: 'full-card-comeback', kind: 'full', of: 'card-comeback', tier: 'epic', n: 216 },
 );
+// JAYWALK CARDS (Nov 12 night) — JAYWALK's three player cards (Grok's art + the game's layers — js/fx/jw-cards.js); NOTHING grants them yet
+// (JAYWALK's pass 6 wires the unlocks from the server's replay of a run) — the strips, then their full cards
+LAB.push(
+  { id: 'card-sonicboom', kind: 'card', tier: 'rare', n: 217 },
+  { id: 'card-closeencounter', kind: 'card', tier: 'rare', n: 218 },
+  { id: 'card-rightofway', kind: 'card', tier: 'legendary', n: 219 },
+  { id: 'full-card-sonicboom', kind: 'full', of: 'card-sonicboom', tier: 'rare', n: 220 },
+  { id: 'full-card-closeencounter', kind: 'full', of: 'card-closeencounter', tier: 'rare', n: 221 },
+  { id: 'full-card-rightofway', kind: 'full', of: 'card-rightofway', tier: 'legendary', n: 222 },
+);
 // THE CARD PASS — B7: OVERCLOCK's lucky emblem (OC5 shipped it with a placeholder glyph) — its real neon art
 LAB.push({ id: 'emb-horseshoe', kind: 'emblem', tier: 'uncommon', n: 208, fin: 'neon' });
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));

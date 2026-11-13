@@ -116,6 +116,8 @@ export const CREDITS = [
   // OVERCLOCK CARDS (Nov 5 night — art/oc-cards/src/notes.txt): xAI's terms ask for "Created with Grok" wherever the art is shown
   // THE BTC CARD (Nov 8 — art/btc-card/src/notes.txt): Grok's ₿ balloon master + two FX plates; xAI's terms ask for the attribution
   { group: 'ART', title: 'The ₿ balloon card — card art', by: 'Card art created with Grok (Grok Imagine, xAI)', licence: 'AI-generated — xAI terms of service (attributed as their brand guidelines ask)', link: 'https://x.ai/legal/faq' },
+  // JAYWALK (Nov 12 night — art/jaywalk-cards/src/notes.txt + art/jaywalk-billboard/src/notes.txt): the three cards + the roof board's poster
+  { group: 'ART', title: 'JAYWALK — card art + billboard art', by: 'Card art created with Grok (Grok Imagine, xAI)', licence: 'AI-generated — xAI terms of service (attributed as their brand guidelines ask)', link: 'https://grok.com/imagine' },
   { group: 'ART', title: 'REDLINE + PHOTO FINISH — card art', by: 'Card art created with Grok (Grok Imagine, xAI)', licence: 'AI-generated — xAI terms of service (attributed as their brand guidelines ask)', link: 'https://grok.com/imagine' },
   // THE CARD PASS (Nov 7 — art/gifts/src/fallout-notes-v2.txt: xAI's terms ask for the attribution) — the wasteland cards + the Mostar background
   { group: 'ART', title: 'Two wasteland gift cards — card art', by: 'Card art generated with Grok Imagine (xAI)', licence: 'AI-generated — xAI terms of service (attributed as their brand guidelines ask)', link: 'https://grok.com/imagine' },
