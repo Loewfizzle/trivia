@@ -107,9 +107,8 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
   opacity: 0.45;
 }
 .pd-board-c { position: absolute; left: 0; top: 0; display: block; }
-.pd-board.pd-thud { animation: pd-thud 0.16s ease-out; }
 .pd-board.pd-pulse { animation: pd-pulse 0.42s cubic-bezier(0.2, 0.8, 0.2, 1); }
-@keyframes pd-thud { 40% { transform: translateY(2px); } }
+/* (PD-6: the slam's dip is THE BOARD KICK — a Web Animation in view.js#kick; the old .pd-thud CSS dip is gone) */
 @keyframes pd-pulse { 30% { transform: scale(1.018); } }
 .pd-board-over { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; pointer-events: none; }
 .pd-ko { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 22px 16px; min-width: 62%; box-sizing: border-box; background: rgba(5, 6, 14, 0.84); border: 1px solid rgba(255, 120, 150, 0.5); border-radius: 16px; box-shadow: 0 0 34px rgba(255, 70, 110, 0.28); animation: pd-ko-in 0.5s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
@@ -724,7 +723,7 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 body.pd-duel .pd-mode { letter-spacing: 0.2em; }
 
 @media (prefers-reduced-motion: reduce) {
-  .pd-board.pd-pulse, .pd-board.pd-thud { animation: none; }
+  .pd-board.pd-pulse { animation: none; }
   .pd-ann, .pd-title, .pd-count-n b, .pd-count-song, .pd-ko { animation-duration: 0.01s; }
   .pd-callout .pd-ann-in, .pd-tip, .pd-inc-tag { animation-duration: 0.01s; }
   .pd-tile-hit, .pd-tile-fill { animation-duration: 0.01s; transition: none; }

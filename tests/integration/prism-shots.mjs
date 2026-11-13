@@ -193,12 +193,15 @@ if (process.env.PERF !== '0') {
     await page.waitForNetworkIdle({ idleTime: 300, timeout: 8000 }).catch(() => {});
     await page.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 20000 }).catch(() => {});
     await sleep(1500);
+    // (PD-6 — THE BOARD KICK: PERF_SETS=slam — SLAM spammed (a hard drop every 180 ms, the kick + the light layer moving each time) over the bot)
+    if (set === 'slam') await page.evaluate(() => { window.__slamT = setInterval(() => { try { window.__prism.fire('slam'); } catch { /* the board refills */ } }, 180); });
     await page.evaluate(lock => { if (lock && window.__prism.lockTier) window.__prism.lockTier(true); if (window.__prism.record) window.__prism.record(true); }, process.env.PERF_AUTO !== '1');   // (PD-2's view on :5174 has neither — the A/B)
     await sleep(Number(process.env.PERF_MS || 5000));
     const r = await page.evaluate(() => { const x = window.__prism.record ? window.__prism.record(false) : { f: window.__prism.fps(), w: window.__prism.work() }; const lk = window.__prism.look ? window.__prism.look() : {}; return { w: x.w, f: x.f, tier: window.__prism.tier(), dpr: window.__prism.layout().dpr, px: window.__prism.layout().px, light: lk.size ? lk.size.join('x') : '-' }; });
+    if (set === 'slam') r.kicks = await page.evaluate(() => (window.__prism.kicks ? window.__prism.kicks().n : null));
     const s = [...r.f].sort((a, b) => a - b);
     const pct = p => (s.length ? +s[Math.min(s.length - 1, Math.floor(s.length * p))].toFixed(1) : 0);
-    report.push({ set, tier, after: r.tier, boardDpr: r.dpr, cellPx: r.px, frames: s.length, p50: pct(0.5), p75: pct(0.75), p95: pct(0.95), cpuP75: r.w.length ? +[...r.w].sort((a, b) => a - b)[Math.floor(r.w.length * 0.75)].toFixed(2) : null, cpuP95: r.w.length ? +[...r.w].sort((a, b) => a - b)[Math.floor(r.w.length * 0.95)].toFixed(2) : null, light: r.light, fps: s.length ? +(1000 / (s.reduce((a, b) => a + b, 0) / s.length)).toFixed(1) : 0 });
+    report.push({ set, tier, after: r.tier, boardDpr: r.dpr, cellPx: r.px, frames: s.length, p50: pct(0.5), p75: pct(0.75), p95: pct(0.95), cpuP75: r.w.length ? +[...r.w].sort((a, b) => a - b)[Math.floor(r.w.length * 0.75)].toFixed(2) : null, cpuP95: r.w.length ? +[...r.w].sort((a, b) => a - b)[Math.floor(r.w.length * 0.95)].toFixed(2) : null, light: r.light, ...(r.kicks != null ? { kicks: r.kicks } : {}), fps: s.length ? +(1000 / (s.reduce((a, b) => a + b, 0) / s.length)).toFixed(1) : 0 });
     await page.close();
   }
   console.table(report);

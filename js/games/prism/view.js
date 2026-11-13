@@ -459,7 +459,7 @@ export function createView() {
         case 'hard':
           hardThisBatch = true;
           synth.play('hard');
-          if (!reduced()) bump(els.boardWrap, 'pd-thud');
+          kick();
           break;
         case 'lock':
           if (!hardThisBatch) synth.play('lock');
@@ -1441,6 +1441,25 @@ export function createView() {
     setTimeout(() => el.remove(), 320);
   }
 
+  // PD-6 — THE BOARD KICK (THE SLAM's WEIGHT — iPhone Safari can't vibrate, so the sound + this carry it): on a slam's impact the board + its
+  // frame dip KICK_PT and spring back (~0.12 s) — a Web Animation on the board's OWN layer (transform only, on the compositor: no reflow, no
+  // layout change, never the world); the night look's light layer moves with it, so the glow never slides off the board. OFF under Reduced
+  // effects + prefers-reduced-motion. (Was: a 2 px CSS dip restarted with a forced reflow — the light stayed behind.)
+  const KICK_PT = 2.5;
+  const KICK = [
+    { transform: 'translateY(0)', easing: 'cubic-bezier(0.2, 0.9, 0.3, 1)' },
+    { transform: `translateY(${KICK_PT}px)`, offset: 0.28, easing: 'cubic-bezier(0.3, 0, 0.3, 1)' },
+    { transform: 'translateY(-0.5px)', offset: 0.68, easing: 'ease-out' },
+    { transform: 'translateY(0)' },
+  ];
+  let kicks = [], kickCount = 0;
+  function kick() {
+    if (reduced() || !els.boardWrap || typeof els.boardWrap.animate !== 'function') return;
+    for (const k of kicks) { try { k.cancel(); } catch { /* gone */ } }
+    kicks = [els.boardWrap, look === 'neon' && els.light && els.light.style.visibility !== 'hidden' ? els.light : null].filter(Boolean)
+      .map(el => el.animate(KICK, { duration: 120 }));
+    kickCount++;
+  }
   function bump(el, cls) {
     el.classList.remove(cls);
     void el.offsetWidth;
@@ -1512,6 +1531,7 @@ export function createView() {
       act: a => act(a),
       bot: (opts = {}) => { bot = { skill: opts.skill ?? 0.9, every: opts.every ?? 60, next: 0, rnd: rngFrom(`${me()}:${opts.seed || 1}`) }; },
       stopBot: () => { bot = null; },
+      kicks: () => ({ n: kickCount, running: kicks.filter(k => k.playState === 'running').length }),   // (PD-6: THE BOARD KICK — the tests)
       collapseHold: on => { holdOn = !!on; },   // (PD-5B: false = the old look — the rows collapse at once, the burst over the rows that dropped in)
       topOut: () => { if (eng) { E.insertJunk(eng, 40, 0); handleEvents(); } },
       junk: (n = 1, gap = 0) => { if (eng) { E.insertJunk(eng, n, gap); handleEvents(); } },

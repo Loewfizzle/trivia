@@ -445,11 +445,16 @@ export function createSynth() {
       record('lock', [m]);
     },
     hard() {
+      // (PD-6 — THE SLAM's WEIGHT: a slightly heavier, deeper thud — the thump starts + ends lower (130 → 42 Hz was; 100 → 32 now) with a touch
+      //  more body (a longer fall), the tonic pluck darker + longer; and a SOFT tonic an octave up, so a phone speaker (nothing much under
+      //  ~100 Hz) still feels the weight — the low note implied. Still the song's key (note()), still under a clear (0.085 a note) — felt more
+      //  than heard)
       const at = ctx.currentTime + 0.002;
-      thump(at, { gain: 0.2 });
-      const m = note(0, 2);
-      pluck(m, at, { gain: 0.1, dur: 0.22, bright: 700, rev: 0.08 });
-      record('hard', [m]);
+      thump(at, { gain: 0.23, from: 100, to: 32, dur: 0.28 });
+      const m = note(0, 2), m3 = note(0, 3);
+      pluck(m, at, { gain: 0.1, dur: 0.3, bright: 520, rev: 0.08 });
+      pluck(m3, at + 0.004, { gain: 0.035, dur: 0.16, bright: 900, rev: 0.06 });
+      record('hard', [m, m3]);
     },
     hold() {
       const m = note(4, 6, true);
