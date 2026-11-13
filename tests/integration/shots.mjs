@@ -127,6 +127,7 @@ const SCENE = {
   'pn-shelf': ['2026-11-10T20:30', { act: 'shelf' }], 'pn-prism': ['2026-11-10T20:30', { act: 'card', game: 'prism' }],
   'pn-overclock': ['2026-11-10T20:30', { act: 'card', game: 'overclock' }], 'pn-holdem': ['2026-11-10T20:30', { act: 'card', game: 'holdem' }],
   'pn-podium': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism' }],
+  'pn-shelf-day': ['2026-11-10T13:30', { act: 'shelf' }], 'pn-overclock-day': ['2026-11-10T13:30', { act: 'card', game: 'overclock' }],   // (THE POOL FIXES 0a: OVERCLOCK's icon by day)
   // (the owner's add-on: SHARE YOUR RUN — the card drawn on the phone, shown at Messages size + full; a real PRISM DROP run by the test bot, night + day)
   'pn-share-night': ['2026-11-10T20:30', { act: 'share-card', game: 'prism', look: 'night' }], 'pn-share-day': ['2026-11-10T13:30', { act: 'share-card', game: 'prism', look: 'day' }],
   'pn-share-oc': ['2026-11-10T20:30', { act: 'share-card', game: 'overclock', look: 'night' }], 'pn-share-oc-day': ['2026-11-10T13:30', { act: 'share-card', game: 'overclock', look: 'day' }],

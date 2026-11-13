@@ -33,7 +33,7 @@ import { lazyImport } from '../ui/lazy-import.js';
 export const GAME_LIGHT = {
   xp: ['#f2c869', '#ff7ccb'], dailies: ['#ff7ccb', '#5aa9ff'],
   cipher: ['#3dff8b', '#00f0ff'], signal: ['#ff3355', '#ff8c1a'], slip: ['#ffc46b', '#5aa9ff'], prism: ['#9fe8ff', '#ff7ccb'],
-  gridlock: ['#7fb2ff', '#ff8c1a'], overclock: ['#ffb627', '#ff2bd6'], golf: ['#2ff5d2', '#a66bff'], agent: ['#e6e9ef', '#ff3355'],
+  gridlock: ['#7fb2ff', '#ff8c1a'], overclock: ['#ff6a1a', '#2e8bff'], golf: ['#2ff5d2', '#a66bff'], agent: ['#e6e9ef', '#ff3355'],
   pulse: ['#a374ff', '#00f0ff'], bluff: ['#efe6d2', '#d7262e'], stakes: ['#3fd49a', '#f2c869'], rum: ['#f0c75e', '#e0465f'],
   holdem: ['#f2c14e', '#39d98a'],   // (HOLD'EM IN THE CITY: its casino gold + the felt)
 };

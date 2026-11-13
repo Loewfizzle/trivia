@@ -4,30 +4,35 @@ import { h, svgEl } from './dom.js';
 
 const glow = (id, sd = 1.6) => `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${sd}"/></filter>`;
 
-// OVERCLOCK: a rev gauge pushed into the red, amber → magenta
+// OVERCLOCK: a rev gauge pushed into the redline — in OVERDRIVE's look (THE POOL FIXES 0a, the owner Nov 13: BLUE + ORANGE, from
+// css/overclock.css: --oc-cool #2e8bff the dial's sweep, --oc-hot #ff6a1a / --oc-hot-2 #ff9a4d the redline + the needle + the bolt,
+// --oc-white-hot #fff6ee the cores, --oc-carbon #0a0c11 the dark) — the same silhouette as before, only the colours + the cool → hot split
 function overclock() {
   const cx = 60, cy = 64, r = 44;
   const pt = (deg, rad) => [cx + rad * Math.cos(deg * Math.PI / 180), cy - rad * Math.sin(deg * Math.PI / 180)].map(v => v.toFixed(1));
-  const [sx, sy] = pt(210, r), [ex, ey] = pt(-30, r);
+  const [sx, sy] = pt(210, r), [ex, ey] = pt(-30, r), [rx, ry] = pt(80, r);
   let ticks = '';
   for (let a = 210; a >= -30; a -= 20) {
     const [x1, y1] = pt(a, r - 11), [x2, y2] = pt(a, r - (a % 60 === 30 ? 5 : 8));
-    ticks += `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${a < 40 ? '#ff6bd8' : '#ffd27a'}" stroke-width="${a % 60 === 30 ? 1.6 : 1}" opacity="0.85"/>`;
+    ticks += `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${a < 80 ? '#ff9a4d' : '#8cc0ff'}" stroke-width="${a % 60 === 30 ? 1.6 : 1}" opacity="0.9"/>`;
   }
   const [nx, ny] = pt(18, r - 6);
   return `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
-<radialGradient id="oa-bg" cx="0.5" cy="0.55" r="0.75"><stop offset="0" stop-color="#2a1236"/><stop offset="1" stop-color="#07040f"/></radialGradient>
-<linearGradient id="oa-arc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffb627"/><stop offset="0.6" stop-color="#ff7a5c"/><stop offset="1" stop-color="#ff2bd6"/></linearGradient>
+<radialGradient id="oa-bg" cx="0.5" cy="0.55" r="0.75"><stop offset="0" stop-color="#11233d"/><stop offset="1" stop-color="#0a0c11"/></radialGradient>
 ${glow('oa-glow', 2.2)}</defs>
 <rect width="120" height="120" fill="url(#oa-bg)"/>
-<path d="M${sx} ${sy}A${r} ${r} 0 1 1 ${ex} ${ey}" fill="none" stroke="#2a1a3c" stroke-width="8" stroke-linecap="round"/>
-<path d="M${sx} ${sy}A${r} ${r} 0 1 1 ${ex} ${ey}" fill="none" stroke="url(#oa-arc)" stroke-width="7" stroke-linecap="round" filter="url(#oa-glow)" opacity="0.85"/>
-<path d="M${sx} ${sy}A${r} ${r} 0 1 1 ${ex} ${ey}" fill="none" stroke="url(#oa-arc)" stroke-width="3.2" stroke-linecap="round"/>
+<path d="M${sx} ${sy}A${r} ${r} 0 1 1 ${ex} ${ey}" fill="none" stroke="#18202e" stroke-width="8" stroke-linecap="round"/>
+<path d="M${sx} ${sy}A${r} ${r} 0 0 1 ${rx} ${ry}" fill="none" stroke="#2e8bff" stroke-width="7" stroke-linecap="round" filter="url(#oa-glow)" opacity="0.85"/>
+<path d="M${rx} ${ry}A${r} ${r} 0 0 1 ${ex} ${ey}" fill="none" stroke="#ff6a1a" stroke-width="7" stroke-linecap="round" filter="url(#oa-glow)" opacity="0.9"/>
+<path d="M${sx} ${sy}A${r} ${r} 0 0 1 ${rx} ${ry}" fill="none" stroke="#2e8bff" stroke-width="3.2" stroke-linecap="round"/>
+<path d="M${rx} ${ry}A${r} ${r} 0 0 1 ${ex} ${ey}" fill="none" stroke="#ff6a1a" stroke-width="3.2" stroke-linecap="round"/>
+<path d="M${sx} ${sy}A${r} ${r} 0 0 1 ${rx} ${ry}" fill="none" stroke="#cfe4ff" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
+<path d="M${rx} ${ry}A${r} ${r} 0 0 1 ${ex} ${ey}" fill="none" stroke="#fff6ee" stroke-width="1" stroke-linecap="round" opacity="0.75"/>
 ${ticks}
-<path d="M${cx} ${cy}L${nx} ${ny}" stroke="#ff2bd6" stroke-width="3.4" stroke-linecap="round" filter="url(#oa-glow)"/>
-<path d="M${cx} ${cy}L${nx} ${ny}" stroke="#fff3fb" stroke-width="1.6" stroke-linecap="round"/>
-<circle cx="${cx}" cy="${cy}" r="5.5" fill="#1a0f22" stroke="#ffb627" stroke-width="1.6"/>
-<path d="M63 82l-8 14h6l-4 12 11-17h-6l4-9z" fill="#ffd27a" filter="url(#oa-glow)"/><path d="M63 82l-8 14h6l-4 12 11-17h-6l4-9z" fill="#fff6dc"/></svg>`;
+<path d="M${cx} ${cy}L${nx} ${ny}" stroke="#ff6a1a" stroke-width="3.6" stroke-linecap="round" filter="url(#oa-glow)"/>
+<path d="M${cx} ${cy}L${nx} ${ny}" stroke="#fff6ee" stroke-width="1.6" stroke-linecap="round"/>
+<circle cx="${cx}" cy="${cy}" r="5.5" fill="#0a0c11" stroke="#ff9a4d" stroke-width="1.6"/>
+<path d="M63 82l-8 14h6l-4 12 11-17h-6l4-9z" fill="#ff6a1a" filter="url(#oa-glow)"/><path d="M63 82l-8 14h6l-4 12 11-17h-6l4-9z" fill="#fff6ee"/></svg>`;
 }
 
 // PULSE: a neon highway running into a violet horizon, notes riding it

@@ -12,7 +12,7 @@ import { tube, drawLit, drawGlass, sprite, bbox, mix, rgba } from './tubes.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 
 /** each game's sign colour (its accent; the same as the title's game tiles) */
-export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', holdem: '#ff5a64' };   // (HOLD'EM IN THE CITY: casino red — its chip's; gold would twin HIGH STAKES beside it)
+export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ff6a1a', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', holdem: '#ff5a64' };   // (HOLD'EM IN THE CITY: casino red — its chip's; gold would twin HIGH STAKES beside it)
 /**
  * THE NAME A SIGN SPELLS (DT1 — the owner: "never a shortened name anywhere"): the game's city name, whole — the two-word ones
  * with both words (HIGH STAKES, DOUBLE AGENT, NEON PAR: never "STAKES" or "AGENT"); the others their one-word sign name (the

@@ -24,11 +24,14 @@ export const MARKS = {
     { d: 'M38 26 Q30 37 38 48 M62 26 Q70 37 62 48', col: '#ff8aa0' },
     { d: 'M28 16 Q15 37 28 58 M72 16 Q85 37 72 58', col: '#ff4466' },
   ] },
-  // OVERCLOCK: a gauge with its needle pinned, a bolt beneath
+  // OVERCLOCK: a gauge with its needle pinned, a bolt beneath — in OVERDRIVE's look (THE POOL FIXES 0a, the owner Nov 13: blue + orange,
+  // css/overclock.css --oc-cool / --oc-hot / --oc-white-hot): the dial's sweep COOL BLUE, its redline + the bolt HOT ORANGE, the needle white-hot
+  // (the same silhouette as before — the old one-tube arc split where the redline starts, so the split reads at a glance)
   overclock: { blade: 'OVERCLOCK', tubes: [
-    { d: 'M18 68 A33 33 0 1 1 82 68', col: '#ffb627' },
-    { d: 'M50 58 L69 36', col: '#fff1c9' },
-    { d: 'M55 64 L46 77 H55 L48 90', col: '#ffe14d' },
+    { d: 'M18 68 A33 33 0 0 1 55.7 27.4', col: '#2e8bff' },
+    { d: 'M55.7 27.4 A33 33 0 0 1 82 68', col: '#ff6a1a' },
+    { d: 'M50 58 L69 36', col: '#fff6ee' },
+    { d: 'M55 64 L46 77 H55 L48 90', col: '#ff6a1a' },
   ] },
   // PULSE: a violet waveform
   pulse: { blade: 'PULSE', tubes: [
