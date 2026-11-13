@@ -1022,6 +1022,29 @@ their own phone and writes the right picks still scores them; the closer is serv
 each challenge screen gets ITS OWN api (`ui/scoped.js`) — a removed screen's writes go nowhere; SORT IT's deal timers die with it. OC1: the STANDARD
 boards take THE SCORING TABLE's bound (`match-report.js#ocRunPlausible` — QUICK solo's).
 
+## THE POOL RULES (THE POOL FIXES, Nov 13 2026 — docs/games/passes/pool-fixes.md)
+The owner's fact-check reviews of every bank (Downloads\NEON\pool-fixes\) → every flag verified + fixed at a SOURCE (never a built file), and
+**8 builder rules that are CHECKS** — `scripts/oc-pools/pool-rules.mjs` + `kidsafe.mjs`, run by `build.mjs` on every row (a row that breaks one is
+dropped + counted in the build log) and again on every shipped + reserved item by `tests/overclock-pool-rules.test.mjs`:
+1. **MISSING LINK joins are REAL compounds / phrases (both halves)** — `falseCompound`: a join that reads as a prefix + word or word + suffix at a
+   different cut (RE·START, TAPER·ED) is out unless read by hand (`COMPOUND_OK`); `FALSE_COMPOUNDS` always out (LEGEND, HAMMOCK, REINFORCE …).
+2. **US-ONLY joins + spellings** — `notAmerican`: `BRITISH_ONLY` (COASTGUARD, COTTON WOOL, POWER POINT, PLUGHOLE, BOUNCY CASTLE …); a one-word join
+   must be in the American dictionary (en_US) or a hand-read `ENABLE_US_OK` word.
+3. **Irregular plurals in `accept`** — `irregularPlurals` (MEN, FLIES, KNIVES — real words only); plus THE ONE-ANSWER RULE made side-aware
+   (`otherAnswers`: any other en_US word that joins all three clues on their own sides — a phrase only where the puzzle's clue is a phrase) +
+   `hand/pool-fixes.mjs#ML_ACCEPT_ADD` where the dictionaries can't confirm a join (SOFT, WRITING, WARD, BALL, HIGH).
+4. **THE KID-SAFE FILTER on every bank** — `kidsafe.mjs#unsafeIn` (whole words / phrases: titles, names, slang, slurs — the review's finds +
+   relatives) on every text incl. MISSING LINK's JOINS + SPELLCHECK's wrong options, and THE PASSWORD's answers (scripts/pw-words/build.mjs).
+5. **"Came out" = the RELEASE year** — `hand/pool-fixes.mjs#FACT_FIX` (the deliveries, the opening; never the unveil, the founding, the start of work),
+   applied ONCE in `parts/20-wd-hl.mjs` before the stat is shared, so every pool reading it gets the fix.
+6. **A national park's year = its NATIONAL PARK designation** — `NP_YEAR` is the ONLY source of a park's year (a park not in it ships none).
+7. **A shared title carries its YEAR** — `sharedTitleNoYear` reads each template's title slot (`SHARED_TITLES` for screen + games, `SHARED_BOOKS`,
+   `SHARED_PAINTINGS`); the T/F + trivia makers write "the 2009 film Sherlock Holmes"; a decade question about one is out (its year IS the answer).
+8. **An area / height names its MEASURE** — `measureMissing` / `compareMeasureMissing`: CLOSEST CALL "the total area of …, including water" /
+   "the surface area" / "to its architectural top" (skyscrapers) / "to its tip" (towers); TRIVIA's comparisons "by total area", "above sea level".
+The pools after the fixes (party + reserve): T/F 1,993 · H/L 43 stats · 1,123 · TIMELINE 18 · 494 · SORT IT 176 · TRIVIA 3,727 · CLOSEST CALL 887 ·
+MISSING LINK 971 · SPELLCHECK 1,556 — every one above its floor (`tests/overclock-content.test.mjs`).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

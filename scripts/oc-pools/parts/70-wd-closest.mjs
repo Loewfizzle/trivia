@@ -10,6 +10,7 @@ import { numeric } from '../wdq.mjs';
 import { STAT_EXCLUDE, PEOPLE_EXCLUDE } from '../hand/wd-exclude.mjs';
 import { CC_EXCLUDE, CC_EXCLUDE_LABELS, LIVED_EXCLUDE, DIST_US, DIST_WORLD } from '../hand/oc7-exclude.mjs';
 import { OC8_SPAN_OUT, OC8_SPAN_KEEP } from '../hand/oc8-exclude.mjs';
+import { CC_LABEL_FIX } from '../hand/pool-fixes.mjs';
 
 const THE = new Set(['United States', 'United Kingdom', 'Netherlands', 'Philippines', 'Bahamas', 'Gambia', 'Dominican Republic', 'Czech Republic',
   'Central African Republic', 'Maldives', 'Marshall Islands', 'Solomon Islands', 'United Arab Emirates', 'Comoros', 'Seychelles',
@@ -56,13 +57,16 @@ export default async function closestWikidata(ctx) {
 
   // ---------------------------------------------------------------- from OC6's lists (ctx.wd — parts/20: famous, cleaned, excluded, metric)
   for (const x of keep('peak', top((W['mountain-height'] || []).filter(ex('mountain-height')), 110))) add('peak', 'GEOGRAPHY', [x.q], `How high is ${x.label} above sea level, in feet?`, x.v, 'm');
-  for (const id of ['skyscraper-height', 'tower-height']) for (const x of keep('tall', top((W[id] || []).filter(ex(id)), 80))) add('tall', 'LANDMARKS', [x.q], `How tall is ${theThing(x.label)}, in feet?`, x.v, 'm');
-  for (const x of keep('country-area', top(W['country-area'] || [], 130))) add('country-area', 'GEOGRAPHY', [x.q], `How big is ${theCountry(x.label)}, in square miles?`, x.v, 'km2');
-  for (const x of W['state-area'] || []) add('state-area', 'U.S.A.', [x.q], `How big is the state of ${x.label}, in square miles?`, x.v, 'km2');
-  for (const x of keep('island-area', top(W['island-area'] || [], 60))) add('island-area', 'GEOGRAPHY', [x.q], `How big is ${island(x.label)}, in square miles?`, x.v, 'km2');
-  for (const x of keep('lake-area', top(W['lake-area'] || [], 50))) add('lake-area', 'GEOGRAPHY', [x.q], `How big is ${theThing(x.label)}, in square miles?`, x.v, 'km2');
+  // (THE POOL FIXES — RULE 8: a height / an area NAMES ITS MEASURE: a skyscraper to its ARCHITECTURAL TOP (Wikidata's height — the Willis
+  //  Tower's 1,450 ft, not 1,729 to the antennas), a tower TO ITS TIP (the Eiffel Tower's 330 m includes its antenna); a country / state / park
+  //  its TOTAL area INCLUDING WATER (Wikidata's + the Census's figure — Hawaii's land area is 41% less), a lake its SURFACE area)
+  for (const [id, to] of [['skyscraper-height', 'to its architectural top'], ['tower-height', 'to its tip']]) for (const x of keep('tall', top((W[id] || []).filter(ex(id)), 80))) add('tall', 'LANDMARKS', [x.q], `How tall is ${theThing(x.label)} ${to}, in feet?`, x.v, 'm');
+  for (const x of keep('country-area', top(W['country-area'] || [], 130))) add('country-area', 'GEOGRAPHY', [x.q], `What is the total area of ${CC_LABEL_FIX[x.q] || theCountry(x.label)}, including water, in square miles?`, x.v, 'km2');
+  for (const x of W['state-area'] || []) add('state-area', 'U.S.A.', [x.q], `What is the total area of the state of ${x.label}, including water, in square miles?`, x.v, 'km2');
+  for (const x of keep('island-area', top(W['island-area'] || [], 60))) add('island-area', 'GEOGRAPHY', [x.q], `What is the total area of ${island(x.label)}, in square miles?`, x.v, 'km2');
+  for (const x of keep('lake-area', top(W['lake-area'] || [], 50))) add('lake-area', 'GEOGRAPHY', [x.q], `What is the surface area of ${theThing(x.label)}, in square miles?`, x.v, 'km2');
   for (const x of keep('lake-depth', top(W['lake-depth'] || [], 40))) add('lake-depth', 'GEOGRAPHY', [x.q], `How deep is ${theThing(x.label)} at its deepest point, in feet?`, x.v, 'm');
-  for (const x of keep('park-area', top(W['park-area'] || [], 60))) add('park-area', 'U.S.A.', [x.q], `How big is ${x.label}, in square miles?`, x.v, 'km2');
+  for (const x of keep('park-area', top(W['park-area'] || [], 60))) add('park-area', 'U.S.A.', [x.q], `What is the total area of ${x.label}, in square miles?`, x.v, 'km2');
   for (const x of keep('atomic', top(W['element-number'] || [], 70))) add('atomic', 'SCIENCE', [x.q], `What is the atomic number of ${x.label.toLowerCase()}?`, x.v, '');
   for (const x of W['state-pop'] || []) add('state-pop', 'U.S.A.', [x.q], `How many people lived in the state of ${x.label} at the 2020 census?`, x.v, 'people');
 
@@ -83,7 +87,7 @@ export default async function closestWikidata(ctx) {
   // ---------------------------------------------------------------- BRIDGES — the MAIN SPAN (one measured number), never the total length
   const spans = await numeric('cc-bridge-span', { cls: BRIDGES, prop: 'P2787', minSl: 18, not: ['wdt:P576'] });
   // (OC8: the London Bridge — which one? — and the Rialto out; the famous spans only)
-  for (const x of keep('span', top(spans.filter(s => !OC8_SPAN_OUT.includes(s.label)), OC8_SPAN_KEEP))) add('span', 'LANDMARKS', [x.q], `How long is the main span of ${theThing(x.label)}, in feet?`, x.v, 'm');
+  for (const x of keep('span', top(spans.filter(s => !OC8_SPAN_OUT.includes(s.label)), OC8_SPAN_KEEP))) add('span', 'LANDMARKS', [x.q], `How long is the main span of ${CC_LABEL_FIX[x.q] || theThing(x.label)}, in feet?`, x.v, 'm');
 
   // ---------------------------------------------------------------- HOW LONG THEY LIVED — famous people, both dates to the day, a natural death
   // (no politicians, rulers, soldiers, clerics — OC6's rule; no violent death; born 1600+ so both calendars agree)

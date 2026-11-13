@@ -43,7 +43,12 @@ export const COMPARE_STEMS = ['wide', 'nice', 'safe', 'late', 'low', 'old', 'new
 // candidate in at the tail), so a rebuild gives exactly this list. The MEAN words (taunt, snide, sneer …) + the GLOOMY ones (gaunt, eerie, dingy) STAY.
 export const ADULT_VOCAB = `banal trite pithy terse tepid stoic acrid adage chide croon drawl elude ensue feign feint flout foray frond gaffe gamut gauzy gavel heady leery levee lurch mosey moxie parch plait preen primp qualm segue shirk shuck sidle skimp skulk splay spurn strew taupe tinge trope wield fjord`.split(/\s+/).filter(Boolean);
 
+// THE POOL FIXES (Nov 13 — the fact-check review of the answers, each verified): cut WITH the reviewer's cuts (after the pick) —
+//   befit (a formal verb most players only know from "as befits"), cupid (players read it as the god's NAME), kudos (ends in -S and reads as
+//   the plural of "kudo" — the game's -S rule), owlet (one of the two rarest words in the list — hard to reach from letter clues)
+export const POOL_FIXES_CUTS = ['befit', 'cupid', 'kudos', 'owlet'];
+
 // words the plural rule would wrongly cut (an -s that isn't a plural)
-export const KEEP_S = ['chaos', 'atlas', 'ethos', 'kudos', 'bonus', 'focus', 'virus', 'lotus', 'minus', 'genus', 'opus', 'basis', 'oasis', 'crisis',
+export const KEEP_S = ['chaos', 'atlas', 'ethos', 'bonus', 'focus', 'virus', 'lotus', 'minus', 'genus', 'opus', 'basis', 'oasis', 'crisis',
   'tennis', 'canvas', 'chess', 'dress', 'press', 'cross', 'glass', 'grass', 'brass', 'class', 'bliss', 'floss', 'gloss', 'moss', 'guess', 'bless',
   'amiss', 'abyss', 'alias', 'arras'];

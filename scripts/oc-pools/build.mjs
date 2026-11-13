@@ -21,6 +21,8 @@ import { HERE, ROOT, writeRows, norm, bannedIn, isReserve, hash36, TF_MAX, LABEL
 import { stats as wdStats } from './wikidata.mjs';
 import { hlFair, tlFair, TRIVIA_CATS, TRIVIA_LEVELS, ML_SIDES, mlJoined, closestAnswer } from '../../js/games/overclock/challenges.js';
 import { US_UNITS } from '../../js/games/overclock/units.js';
+import { unsafeIn, mlBreaks, irregularPlurals, otherAnswers, sharedTitleNoYear, measureMissing, compareMeasureMissing } from './pool-rules.mjs';
+import { REVIEW_DROP, REVIEW_DROP_TEXT, SORT_CARD_DROP, CC_VALUE_FIX, REAL_WORDS, ML_ACCEPT_ADD } from './hand/pool-fixes.mjs';
 
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const ctx = { tf: [], hl: [], tl: [], so: [], tv: [], cc: [], ml: [], sp: [], log: [], dropped: {} };
@@ -37,6 +39,24 @@ for (const f of parts) {
   console.log(`${f}: ${POOLS.filter(k => ctx[k].length > before[k]).map(k => `+${ctx[k].length - before[k]} ${k}`).join(' · ') || 'nothing'}`);
 }
 
+// ---------------------------------------------------------------- THE POOL FIXES (Nov 13 — hand/pool-fixes.mjs): the review's drops (by id, or a
+// written row by its text — a copy can't come back), SORT IT's stray cards, CLOSEST CALL's running-time fixes — before THE RULES
+const dropText = new Map(Object.entries(REVIEW_DROP_TEXT).map(([t, why]) => [norm(t), why]));
+for (const pool of POOLS) {
+  ctx[pool] = ctx[pool].filter(r => {
+    const why = REVIEW_DROP[r.id] || dropText.get(norm(r.q || r.t || ''));
+    if (why) { drop(pool, 'the review', `${r.id}: ${why}`); return false; }
+    return true;
+  });
+}
+for (const s of ctx.so) {
+  const out = new Set([...(SORT_CARD_DROP['*'] || []), ...(SORT_CARD_DROP[s.id] || [])].map(norm));
+  const n = s.L.length + s.R.length;
+  s.L = s.L.filter(x => !out.has(norm(x))); s.R = s.R.filter(x => !out.has(norm(x)));
+  if (s.L.length + s.R.length < n) drop('so', 'the review (a card)', `${s.id} −${n - s.L.length - s.R.length}`);
+}
+for (const r of ctx.cc) if (CC_VALUE_FIX[r.id]) { ctx.log.push(`  POOL FIXES: ${r.id} → ${CC_VALUE_FIX[r.id][0]} (${CC_VALUE_FIX[r.id][1]})`); r.value = CC_VALUE_FIX[r.id][0]; }
+
 // ---------------------------------------------------------------- THE RULES (a row that breaks one is dropped + counted — the test checks again)
 const texts = new Map();   // normalised text → where (no duplicates within or across pools)
 const claim = (text, where, pool) => {
@@ -46,7 +66,9 @@ const claim = (text, where, pool) => {
   texts.set(k, where);
   return true;
 };
-const clean = s => !bannedIn(s).length;
+// THE ALL-AGES RULE (single words) + THE KID-SAFE FILTER (THE POOL FIXES rule 4 — titles, names, slang, slurs: kidsafe.mjs) on every text
+const kidHits = new Set();
+const clean = s => { if (bannedIn(s).length) return false; if (unsafeIn(s).length) { kidHits.add(`${unsafeIn(s).join('+')}: ${s}`); return false; } return true; };
 
 const tf = [];
 const tfIds = new Set();
@@ -55,6 +77,7 @@ for (const r of ctx.tf) {
   if (r.t.length > TF_MAX || r.f.length > TF_MAX) { drop('tf', 'too long', r.t); continue; }
   if (!clean(r.t) || !clean(r.f)) { drop('tf', 'all-ages', r.t); continue; }
   if (norm(r.t) === norm(r.f)) { drop('tf', 'twins equal', r.t); continue; }
+  if (sharedTitleNoYear(r.t) || sharedTitleNoYear(r.f)) { drop('tf', 'rule 7 (a shared title without its year)', r.t); continue; }
   if (!r.src) { drop('tf', 'no source', r.t); continue; }
   if (!claim(r.t, `tf:${r.id}`, 'tf') || !claim(r.f, `tf:${r.id}`, 'tf')) continue;
   tfIds.add(r.id);
@@ -118,6 +141,8 @@ for (const r of uniq(ctx.tv, 'tv', r => r.q)) {
   if (!Array.isArray(r.w) || r.w.length !== 3 || all.some(x => typeof x !== 'string' || !x.trim() || x.length > A_MAX)) { drop('tv', 'answers', r.q); continue; }
   if (all.some((x, i) => all.some((y, j) => j > i && aliasOf(x, y)))) { drop('tv', 'answers alike', `${r.q} [${all.join(' / ')}]`); continue; }
   if (![r.q, ...all].every(clean)) { drop('tv', 'all-ages', r.q); continue; }
+  if (sharedTitleNoYear(r.q)) { drop('tv', 'rule 7 (a shared title without its year)', r.q); continue; }
+  if (compareMeasureMissing(r.q)) { drop('tv', 'rule 8 (the measure unnamed)', r.q); continue; }
   if (!r.src) { drop('tv', 'no source', r.q); continue; }
   if (!claim(r.same ? `${r.q} :: ${r.a}` : r.q, `tv:${r.id}`, 'tv')) continue;
   tv.push({ id: r.id, cat: r.cat, d: r.d, q: r.q, a: r.a, w: r.w, src: r.src });
@@ -134,6 +159,7 @@ for (const r of uniq(ctx.cc, 'cc', r => r.q)) {
   const { answer } = closestAnswer(r.unit, r.value);
   if (!(answer > 0) || String(Math.round(answer)).length > 9) { drop('cc', 'answer out of the pad', `${r.q} = ${answer}`); continue; }
   if (!clean(r.q)) { drop('cc', 'all-ages', r.q); continue; }
+  if (measureMissing(r.q, r.unit, String(r.id).split('-')[1])) { drop('cc', 'rule 8 (the measure unnamed)', r.q); continue; }
   if (!r.src) { drop('cc', 'no source', r.q); continue; }
   if (!claim(r.q, `cc:${r.id}`, 'cc')) continue;
   cc.push({ id: r.id, cat: r.cat, q: r.q, value: r.value, unit: r.unit, src: r.src });
@@ -149,10 +175,14 @@ for (const r of ctx.ml.filter(r => (ID.test(String(r.id)) ? true : (drop('ml', '
   if (new Set(r.clues.map(c => c[0])).size !== 3 || r.clues.some(c => c[0] === r.answer)) { drop('ml', 'clues repeat', r.answer); continue; }
   if (r.clues.some(c => mlJoined(c[0], r.answer, c[1], c[2] || '').length > ML_JOIN_MAX)) { drop('ml', 'join too long', r.answer); continue; }
   if (![r.answer, ...r.clues.map(c => c[0])].every(clean)) { drop('ml', 'all-ages', r.answer); continue; }
+  const breaks = mlBreaks({ clues: r.clues, answer: r.answer });
+  if (breaks.length) { drop('ml', breaks[0].split(' — ')[0], `${r.answer}: ${breaks.join(' · ')}`); continue; }
   if (mlAnswers.has(r.answer)) { drop('ml', 'answer used', r.answer); continue; }
   if (!r.src) { drop('ml', 'no source', r.answer); continue; }
   mlAnswers.add(r.answer);
-  ml.push({ id: r.id, clues: r.clues.map(c => [c[0], c[1], c[2] || '']), answer: r.answer, accept: (r.accept || []).filter(x => WORD.test(x)), src: r.src });
+  // (RULE 3 — the answer's irregular plural + every other word that joins all three clues, each on its side: accepted too)
+  const accept = [...new Set([...(r.accept || []), ...irregularPlurals(r.answer), ...otherAnswers(r.clues, r.answer), ...(ML_ACCEPT_ADD[r.id] || [])])].filter(x => WORD.test(x) && x !== r.answer && x.length <= ML_WORD_MAX).sort();
+  ml.push({ id: r.id, clues: r.clues.map(c => [c[0], c[1], c[2] || '']), answer: r.answer, accept, src: r.src });
 }
 const LOWER = /^[a-z]+$/;
 const sp = [];
@@ -162,6 +192,7 @@ for (const r of uniq(ctx.sp, 'sp', r => r.right)) {
   if (!Array.isArray(r.wrong) || r.wrong.length !== 3 || !all.every(x => LOWER.test(x) && x.length <= SP_MAX) || new Set(all).size !== 4) { drop('sp', 'shape', r.right); continue; }
   if (!Array.isArray(r.hard) || !r.hard.length || !r.hard.every(i => Number.isInteger(i) && i >= 0 && i < r.right.length)) { drop('sp', 'hard letters', r.right); continue; }
   if (!all.every(clean)) { drop('sp', 'all-ages', r.right); continue; }
+  if (r.wrong.some(w => REAL_WORDS.has(w))) { drop('sp', 'a wrong option is a real word (the review)', r.right); continue; }
   if (spWords.has(r.right)) { drop('sp', 'duplicate', r.right); continue; }
   if (!r.src) { drop('sp', 'no source', r.right); continue; }
   spWords.add(r.right);
@@ -249,3 +280,4 @@ console.log(`SPELLCHECK      ${sp.length} words (party ${spP.length} · reserve 
 console.log(`wikidata: ${wdStats.cached} cached · ${wdStats.fetched} fetched`);
 for (const [pool, d] of Object.entries(ctx.dropped)) console.log(`dropped ${pool}: ${Object.entries(d).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
 for (const l of ctx.log) console.log(l);
+if (kidHits.size) console.log(`THE KID-SAFE FILTER (rule 4) kept out ${kidHits.size}: ${[...kidHits].slice(0, 12).join(' · ')}${kidHits.size > 12 ? ' …' : ''}`);

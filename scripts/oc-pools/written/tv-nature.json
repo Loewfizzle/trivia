@@ -23,7 +23,7 @@
 ["What is the longest river in the United States?","The Missouri River","The Mississippi|The Colorado|The Ohio","h","Missouri River","longest river"],
 ["What is the largest island in the world?","Greenland","Australia|Borneo|Madagascar","e","Greenland","largest island"],
 ["What is the saltiest large body of water, where people float easily?","The Dead Sea","The Red Sea|The Caspian Sea|The Black Sea","m","Dead Sea","salt"],
-["What is the largest volcano on Earth by area?","Mauna Loa","Mount Fuji|Mount Etna|Kilauea","h","Mauna Loa","largest"],
+["What is the largest active volcano on Earth?","Mauna Loa","Mount Fuji|Mount Etna|Kilauea","h","Mauna Loa","largest"],
 ["Which famous volcano buried the Roman town of Pompeii?","Mount Vesuvius","Mount Etna|Stromboli|Mount Olympus","e","Mount Vesuvius","Pompeii"],
 ["Which mountain range runs along the west of South America?","The Andes","The Rockies|The Alps|The Himalayas","e","Andes","South America"],
 ["Which mountain range has Mount Everest?","The Himalayas","The Andes|The Alps|The Urals","e","Himalayas","Everest"],
@@ -99,5 +99,5 @@
 ["Which national park was the first in the world, in 1872?","Yellowstone","Yosemite|Grand Canyon|Zion","m","Yellowstone National Park","first national park"],
 ["Half Dome and El Capitan are rock formations in which park?","Yosemite","Zion|Yellowstone|Glacier","m","Yosemite National Park","Half Dome"],
 ["Which U.S. national park is in Florida's wetlands?","The Everglades","Big Cypress|Acadia|Biscayne","e","Everglades National Park","Florida"],
-["What is the largest canyon in the United States?","The Grand Canyon","Bryce Canyon|Zion Canyon|Hells Canyon","m","Grand Canyon","canyon"]
+["Which famous Arizona canyon did the Colorado River carve?","The Grand Canyon","Bryce Canyon|Zion Canyon|Hells Canyon","m","Grand Canyon","canyon"]
 ]}

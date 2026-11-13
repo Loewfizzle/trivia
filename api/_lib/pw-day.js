@@ -81,9 +81,12 @@ export function extendSchedule(rec, list, pepper, idx) {
   }
   return { ...rec, s, c };
 }
-/** the list changed: keep every word up to (and including) day `idx`'s pair; skip removed words after it; new words join at the end */
+/** THE POOL FIXES (Nov 13 — the owner: a list edit changes no answer already played, nor TODAY's or TOMORROW's): a reconcile keeps
+ *  KEEP_AHEAD days past `idx` too — a removed word already scheduled for tomorrow still plays tomorrow (the phones' "tomorrow" is fixed) */
+export const KEEP_AHEAD = 1;
+/** the list changed: keep every word up to (and including) day `idx + KEEP_AHEAD`'s pair; skip removed words after it; new words join at the end */
 export function reconcileSchedule(rec, list, pepper, idx) {
-  const now = new Set(up(list)), keepN = Math.max(0, Math.min(rec.s.length, 2 * (idx + 1)));
+  const now = new Set(up(list)), keepN = Math.max(0, Math.min(rec.s.length, 2 * (idx + 1 + KEEP_AHEAD)));
   const kept = rec.s.slice(0, keepN), rest = rec.s.slice(keepN).filter(w => now.has(w));
   const seen = new Set(rec.s);
   const fresh = up(orderFor(up(list).filter(w => !seen.has(w)), pepper, `add:${listHash(list)}`));

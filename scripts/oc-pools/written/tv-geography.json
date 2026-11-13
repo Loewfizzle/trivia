@@ -25,7 +25,7 @@
 ["What are the five Great Lakes, in a memory word?","HOMES","CLEAR|LAKES|WATER","e","Great Lakes","HOMES"],
 ["Which Great Lake is the smallest by area?","Lake Ontario","Lake Erie|Lake Huron|Lake Michigan","m","Lake Ontario","smallest"],
 ["Which Great Lake is the shallowest?","Lake Erie","Lake Ontario|Lake Michigan|Lake Superior","h","Lake Erie","shallowest"],
-["What is the largest lake in the United States that is all inside one state?","Lake Michigan","Lake Tahoe|Great Salt Lake|Lake Okeechobee","h","Lake Michigan","entirely within"],
+["What is the largest lake entirely within the United States?","Lake Michigan","Lake Tahoe|Great Salt Lake|Lake Okeechobee","h","Lake Michigan","entirely within"],
 ["Which U.S. state has the Great Salt Lake?","Utah","Nevada|Idaho|Wyoming","e","Great Salt Lake","Utah"],
 ["Which two states share Lake Tahoe?","California and Nevada","Oregon and Nevada|Utah and Nevada|California and Oregon","m","Lake Tahoe","California&Nevada"],
 ["What is the deepest lake in the United States?","Crater Lake","Lake Tahoe|Lake Superior|Lake Chelan","m","Crater Lake","deepest lake in the United States"],

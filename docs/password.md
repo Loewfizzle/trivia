@@ -204,6 +204,16 @@ RESUME chip, the rankings, the streak hooks, the switch-over (+ `PW_EPOCH` set t
 - **DY1** (both dailies): every daily overlay loads `css/daily.css` itself (RESUME YOUR DAILY on a fresh page opened unstyled).
 - **DY4**: learn-on-a-throwaway ACCEPTED (docs/progression.md "FR7 FIXES A").
 
+## THE POOL FIXES (Nov 13 2026 — docs/games/passes/pool-fixes.md)
+- **The review's four cut** — befit · cupid · kudos · owlet (`scripts/pw-words/blocklist.mjs#POOL_FIXES_CUTS`, applied with the reviewer's cuts;
+  `kudos` left `KEEP_S`) + THE KID-SAFE FILTER (`scripts/oc-pools/kidsafe.mjs`) in the build → **1,398 answers** (a 699-day cycle). No
+  `count_1w.txt` on the machine → `node scripts/pw-words/build.mjs --recut` (the build's own final step on the built list — the output a full rebuild
+  gives when only cuts are added).
+- **The pick is NOT predictable from the file's (alphabetical) order** — THE FROZEN SCHEDULE is an HMAC-keyed shuffle by THE DAILY SECRET; proven on
+  the real list by `tests/pool-fixes-password.test.mjs`.
+- **A list edit keeps TOMORROW's pair** — `pw-day.js#KEEP_AHEAD` (1): `reconcileSchedule` keeps every word through day `idx + 1`, so a cut word
+  already on tomorrow still plays tomorrow; the day after slides up (no reshuffle, the past + today untouched as before).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

@@ -37,7 +37,7 @@ test('DFIX1 — the ADULT-VOCABULARY cut is out (and in the build\'s list, so a 
   assert.deepEqual(LIST.words.filter(w => ADULT_VOCAB.includes(w)), []);
   for (const w of ['banal', 'trite', 'pithy', 'terse', 'fjord', 'segue']) assert.ok(!LIST.words.includes(w), w);
   for (const w of ['taunt', 'snide', 'sneer', 'spite', 'catty', 'dorky', 'inane', 'vapid', 'gaunt', 'eerie', 'dingy']) assert.ok(LIST.words.includes(w), `${w} stays (the owner's call)`);
-  assert.match(readFileSync(join(ROOT, 'scripts/pw-words/build.mjs'), 'utf8'), /\.\.\.ADULT_VOCAB\]/, 'the build applies the cut with the reviewer\'s');
+  assert.match(readFileSync(join(ROOT, 'scripts/pw-words/build.mjs'), 'utf8'), /\.\.\.ADULT_VOCAB\b/, 'the build applies the cut with the reviewer\'s');
 });
 
 test('DFIX1 — THE SCHEDULE on the REAL list: two different words every day, no word twice in a whole cycle (701 days)', () => {

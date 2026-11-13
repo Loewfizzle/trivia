@@ -12,6 +12,7 @@ import { seeded, shuffled, hash36, norm, aliasOf, Q_MAX, A_MAX } from '../lib.mj
 import { TF_EXCLUDE, STAT_EXCLUDE, PEOPLE_EXCLUDE } from '../hand/wd-exclude.mjs';
 import { TV_EXCLUDE_LABELS, TV_EXCLUDE_IDS, TITLE_FIX, NAME_FIX, DISSOLVED, TRANSCONTINENTAL, US_AMBIGUOUS, COMPOSERS, EVERYDAY_ELEMENTS, CC_EXCLUDE_LABELS,
   INVENTIONS_OK, STORIES_OK, SITES_OK, ISLANDS_OK, ATHLETES_OUT } from '../hand/oc7-exclude.mjs';
+import { isShared } from '../pool-rules.mjs';
 import { SPORT_PLAYER, ATHLETE_ALSO, DIRECTOR_FAME, INVENTOR_FAME, OC8_TV_IDS, CUP_SINCE, INSTRUMENT_CUT, INVENTION_OUT, NO_THE, FAMOUS_COUNTRIES } from '../hand/oc8-exclude.mjs';
 // (OC8 — the fame filter for places: a capital / continent / language question ASKS about a country Americans know by name; the wrong answers
 // may still be any of its neighbours)
@@ -202,11 +203,11 @@ export default async function wikidataTrivia(ctx) {
     }
   };
   await makers('author', 'books', 'tv-authors', { cls: ['Q7725634', 'Q8261', 'Q47461344', 'Q571'], prop: 'P50', date: 'P577', minSl: 45, keep: 170,
-    exclude: STAT_EXCLUDE['novel-year'], since: 1600, famous: 70 }, w => `Who wrote ${w.label}?`, 60);
+    exclude: STAT_EXCLUDE['novel-year'], since: 1600, famous: 70 }, w => `Who wrote ${w.label}${isShared(w.label, 'book') && w.y ? ` (${w.y})` : ''}?`, 60);
   await makers('director', 'screen', 'tv-directors', { cls: ['Q11424', 'Q202866'], prop: 'P57', date: 'P577', minSl: 55, where: FILM_OK, keep: 220,
     exclude: STAT_EXCLUDE['film-year'], famous: 90, fame: 'tv-director-fame', minFame: DIRECTOR_FAME }, w => `Who directed the movie ${w.label}${w.y ? ` (${w.y})` : ''}?`, 20);
   await makers('painter', 'art', 'tv-painters', { cls: ['Q3305213'], prop: 'P170', date: 'P571', minSl: 35, keep: 90, exclude: STAT_EXCLUDE['painting-year'], atLeast: 38 },
-    w => `Who painted ${w.label}?`, 120);
+    w => `Who painted ${w.label}${isShared(w.label, 'painting') && w.y ? ` (${w.y})` : ''}?`, 120);
   await makers('composer', 'music', 'tv-composers2', { cls: ['Q105543609', 'Q1344'], prop: 'P86', date: 'P577', minSl: 30, keep: 90, only: COMPOSERS,
     generic: /^(Symphony|Piano|Concerto|Violin|Cello|Sonata|String|Mass|Requiem|Te Deum|Magnificat|Stabat|Prelude|Nocturne|Étude|Etude|Waltz|Ballade|Mazurka|Polonaise|Impromptu|Fugue|Overture|Suite|Cantata|Serenade|Rhapsody|Fantasia|Variations|Trio|Quartet|Quintet|Opus|No\.|Op\.|BWV|K\.)/ },
     w => `Who composed ${w.label}?`, 120);
@@ -301,15 +302,15 @@ export default async function wikidataTrivia(ctx) {
     }
     void what;
   };
-  compare('mountain-height', 'peak', 'Which of these mountains is the highest?', 'geography', 18, x => x, 'peak');
-  compare('country-area', 'country', 'Which of these countries is the largest by area?', 'geography', 40, The, 'country-area');
-  compare('island-area', 'island', 'Which of these islands is the largest?', 'geography', 12, x => x, 'island-area');
-  compare('skyscraper-height', 'building', 'Which of these skyscrapers is the tallest?', 'world', 10, x => x, 'tall');
-  compare('state-area', 'state', 'Which of these U.S. states is the largest by area?', 'geography', 32);
+  compare('mountain-height', 'peak', 'Which of these mountains is the highest above sea level?', 'geography', 18, x => x, 'peak');
+  compare('country-area', 'country', 'Which of these countries is the largest by total area?', 'geography', 40, The, 'country-area');
+  compare('island-area', 'island', 'Which of these islands is the largest by area?', 'geography', 12, x => x, 'island-area');
+  compare('skyscraper-height', 'building', 'Which of these skyscrapers is the tallest to its architectural top?', 'world', 10, x => x, 'tall');
+  compare('state-area', 'state', 'Which of these U.S. states is the largest by total area?', 'geography', 32);
   compare('state-pop', 'state', 'Which of these states had the most people in 2020?', 'geography', 32);
-  compare('lake-area', 'lake', 'Which of these lakes is the largest?', 'geography', 8, x => x, 'lake-area');
+  compare('lake-area', 'lake', 'Which of these lakes is the largest by surface area?', 'geography', 8, x => x, 'lake-area');
   compare('uscity-pop', 'city', 'Which of these U.S. cities had the most people in 2020?', 'geography', 25, x => x, null);
-  compare('park-area', 'park', 'Which of these national parks is the largest?', 'geography', 15, x => x, 'park-area');
+  compare('park-area', 'park', 'Which of these national parks is the largest by total area?', 'geography', 15, x => x, 'park-area');
 
   // ---------------------------------------------------------------- THE OFFICIAL LANGUAGE (one official language only; the English-speaking big
   // four left out — the U.S. has no official language in law, two careful people could argue the U.K.'s)
@@ -448,7 +449,12 @@ export default async function wikidataTrivia(ctx) {
     if (!(SPORT_PLAYER[SPORT[r.s]] || []).some(o => occ.has(o)) || ATHLETE_ALSO.some(o => occ.has(o))) continue;
     const a = SPORT[r.s];
     const pool = Object.values(SPORT).filter(x => x !== a);
-    add('athlete', 'sports', [q], `Which sport is ${r.label} famous for?`, a, pick(pool, 3), r.sl);
+    // (THE POOL FIXES: "Soccer" with "Football" as a wrong answer = two right answers to most of the world — Neymar, Buffon: the other code
+    //  swapped for the first sport not on the card; no new random draw, so every other card deals as before)
+    const twin = { Soccer: 'Football', Football: 'Soccer' }[a];
+    const w0 = pick(pool, 3);
+    const w = w0.map(x => (x === twin ? ['Tennis', 'Golf', 'Swimming', 'Boxing', 'Cycling'].find(y => y !== a && !w0.includes(y)) : x));
+    add('athlete', 'sports', [q], `Which sport is ${r.label} famous for?`, a, w, r.sl);
   }
   const INSTR = { Q6607: 'Guitar', Q5994: 'Piano', Q8355: 'Violin', Q11404: 'Drums', Q8338: 'Trumpet', Q9798: 'Saxophone', Q8371: 'Cello', Q46185: 'Bass guitar' };
   const mus = await wd('tv-instruments', both(`SELECT ?item ?label ?i ?sl WHERE { VALUES ?i { ${Object.keys(INSTR).map(s => `wd:${s}`).join(' ')} } ?item wdt:P1303 ?i ;
@@ -467,8 +473,12 @@ export default async function wikidataTrivia(ctx) {
   // ---------------------------------------------------------------- U.S. PRESIDENTS: who took office in a year (the ones before 1990 — history)
   const pres = [...groupBy(oc6('president-start'), 'item')].map(([q, rs]) => ({ q, label: rs[0].label, y: Math.min(...rs.map(r => r.v)), sl: rs[0].sl }))
     .filter(p => p.y < 1990 && !/ Jr\.$/.test(p.label));
+  // (THE POOL FIXES: a president who was IN OFFICE during year Y — sworn in for another term then, or the one who died / left — is never a wrong
+  //  answer to "who became president in Y": in office = took office ≤ Y and the next president took office ≥ Y)
+  const byStart = pres.slice().sort((a, b) => a.y - b.y);
+  const inOffice = (o, y) => { const i = byStart.indexOf(o); const next = byStart.slice(i + 1).find(x => x.y > o.y); return o.y <= y && (!next || next.y >= y); };
   for (const p of pres) {
-    const others = pres.filter(o => o.q !== p.q).sort((a, b) => Math.abs(a.y - p.y) - Math.abs(b.y - p.y)).slice(0, 6);
+    const others = pres.filter(o => o.q !== p.q && !inOffice(o, p.y)).sort((a, b) => Math.abs(a.y - p.y) - Math.abs(b.y - p.y)).slice(0, 6);
     if (others.length < 3) continue;
     add('president', 'us', [p.q], `Who became president of the United States in ${p.y}?`, p.label, pick(others, 3).map(o => o.label), p.sl);
   }

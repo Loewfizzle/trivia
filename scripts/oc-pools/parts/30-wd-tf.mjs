@@ -8,6 +8,8 @@ import { seeded, shuffled, TF_MAX } from '../lib.mjs';
 import { TF_EXCLUDE, STAT_EXCLUDE, PEOPLE_EXCLUDE } from '../hand/wd-exclude.mjs';
 import { CC_EXCLUDE_LABELS } from '../hand/oc7-exclude.mjs';
 import { DIRECTOR_FAME, TF_MOUNTAIN_FAME, MAKER_FIX } from '../hand/oc8-exclude.mjs';
+import { isShared, sharedTitleNoYear } from '../pool-rules.mjs';
+import { REVIEW_DROP } from '../hand/pool-fixes.mjs';
 
 // (OC8: 85 → 70 — the fame filter took the data half from ~1,240 to ~830 pairs; no template over ~8.5 % of it, as ever)
 export const TEMPLATE_CAP = 70;
@@ -138,13 +140,16 @@ export default async function wikidataTF(ctx) {
     }
   };
   const W0 = ctx.wd || {};
+  // (THE POOL FIXES — RULE 7: a SHARED TITLE carries its year — "The 2009 film Sherlock Holmes was directed by Guy Ritchie.", never the bare
+  //  title another famous work shares (the 1992 Aladdin, the 1951 Alice in Wonderland))
+  const T = (w, kind, cap) => (isShared(w.label, { film: 'screen', book: 'book', painting: 'painting' }[kind]) && w.y ? `${cap ? 'The' : 'the'} ${w.y} ${kind} ${w.label}` : w.label);
   await makers('painter', 'history', 'tf-painters', ['Q3305213'], 35, 'P170', 'P571', 80,
-    (j, w, o) => vary(j, [[`${w.byl} painted ${w.label}.`, `${o.byl} painted ${w.label}.`], [`${w.label} was painted by ${w.byl}.`, `${w.label} was painted by ${o.byl}.`]]), '', W0['painting-year']);
+    (j, w, o) => vary(j, [[`${w.byl} painted ${T(w, 'painting')}.`, `${o.byl} painted ${T(w, 'painting')}.`], [`${T(w, 'painting', 1)} was painted by ${w.byl}.`, `${T(w, 'painting', 1)} was painted by ${o.byl}.`]]), '', W0['painting-year']);
   await makers('author', 'pop', 'tf-authors', ['Q7725634', 'Q8261', 'Q47461344'], 45, 'P50', 'P577', 60,
-    (j, w, o) => vary(j, [[`${w.byl} wrote ${w.label}.`, `${o.byl} wrote ${w.label}.`], [`${w.label} was written by ${w.byl}.`, `${w.label} was written by ${o.byl}.`]]),
+    (j, w, o) => vary(j, [[`${w.byl} wrote ${T(w, 'book')}.`, `${o.byl} wrote ${T(w, 'book')}.`], [`${T(w, 'book', 1)} was written by ${w.byl}.`, `${T(w, 'book', 1)} was written by ${o.byl}.`]]),
     '?item wdt:P7937 wd:Q8261 .', W0['novel-year']);
   await makers('director', 'pop', 'tf-film-directors', ['Q11424', 'Q202866'], 70, 'P57', 'P577', 12,
-    (j, w, o) => vary(j, [[`${w.byl} directed ${w.label}.`, `${o.byl} directed ${w.label}.`], [`${w.label} was directed by ${w.byl}.`, `${w.label} was directed by ${o.byl}.`]]),
+    (j, w, o) => vary(j, [[`${w.byl} directed ${T(w, 'film')}.`, `${o.byl} directed ${T(w, 'film')}.`], [`${T(w, 'film', 1)} was directed by ${w.byl}.`, `${T(w, 'film', 1)} was directed by ${o.byl}.`]]),
     'VALUES ?rating { wd:Q18665330 wd:Q18665334 wd:Q18665339 } ?item wdt:P1657 ?rating . MINUS { ?item wdt:P1657 wd:Q18665344 . }',
     [...(W0['film-year'] || []), ...(W0['animated-year'] || [])]);
   await makers('performer', 'pop', 'tf-albums', ['Q482994'], 40, 'P175', 'P577', 10,
@@ -255,7 +260,10 @@ export default async function wikidataTF(ctx) {
   // ---------------------------------------------------------------- the cap (no template over ~8%), deterministic order
   let total = 0;
   for (const [tpl, rows] of [...out.entries()].sort()) {
-    const keep = shuffled(seeded(`oc6-tf-cap:${tpl}`), rows).slice(0, TEMPLATE_CAP);
+    // (THE POOL FIXES: the review's drops + RULE 7 — a shared title without its year — leave BEFORE the cap, so the cap refills from good rows
+    //  and the build's own checks find nothing here; the build still checks both)
+    const ok = rows.filter(r => !REVIEW_DROP[r.id] && !sharedTitleNoYear(r.t) && !sharedTitleNoYear(r.f));
+    const keep = shuffled(seeded(`oc6-tf-cap:${tpl}`), ok.length === rows.length ? rows : ok).slice(0, TEMPLATE_CAP);
     ctx.tf.push(...keep);
     total += keep.length;
     ctx.log.push(`  data T/F ${tpl}: ${keep.length} of ${rows.length}`);

@@ -17,7 +17,8 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BLOCK_SUB, BLOCK_WORD, KIDSAFE, COMPARE_STEMS, KEEP_S, ADULT_VOCAB } from './blocklist.mjs';
+import { BLOCK_SUB, BLOCK_WORD, KIDSAFE, COMPARE_STEMS, KEEP_S, ADULT_VOCAB, POOL_FIXES_CUTS } from './blocklist.mjs';
+import { unsafeIn } from '../oc-pools/kidsafe.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const HERE = fileURLToPath(new URL('./', import.meta.url));
@@ -28,7 +29,10 @@ export const LEN = 5;
 
 const freqFile = process.argv.slice(2).find(a => !a.startsWith('--'));
 const onlyCandidates = process.argv.includes('--candidates');
-if (!freqFile) { console.error('usage: node scripts/pw-words/build.mjs <count_1w.txt> [--candidates]'); process.exit(1); }
+// --recut (THE POOL FIXES): no count_1w.txt on the machine — the build's own FINAL STEP (the cuts + THE KID-SAFE FILTER + the sort + the
+// typeable check) applied to the list as built: the same output a full rebuild gives when only cuts were added (DFIX1's precedent)
+const recut = process.argv.includes('--recut');
+if (!freqFile && !recut) { console.error('usage: node scripts/pw-words/build.mjs <count_1w.txt> [--candidates] | --recut'); process.exit(1); }
 
 const gz = f => gunzipSync(readFileSync(join(DICT, f))).toString('utf8');
 const enable = new Set(gz('enable1.txt.gz').split(/\r?\n/).map(w => w.trim()).filter(Boolean));
@@ -36,7 +40,7 @@ const dicLines = gz('en_US.dic.gz').split(/\r?\n/).slice(1);
 const stems = new Set(dicLines.map(l => l.split('/')[0]).filter(Boolean));
 const lowerStems = new Set([...stems].filter(w => /^[a-z]+$/.test(w)));
 const isWord = w => lowerStems.has(w);
-const freq = readFileSync(freqFile, 'utf8').split(/\r?\n/).map(l => l.split('\t')[0]).filter(Boolean);
+const freq = recut ? [] : readFileSync(freqFile, 'utf8').split(/\r?\n/).map(l => l.split('\t')[0]).filter(Boolean);
 
 const blocked = new Set([...BLOCK_WORD, ...KIDSAFE]);
 const isBlocked = w => blocked.has(w) || BLOCK_SUB.some(s => w.includes(s)) || w.startsWith('sex');
@@ -56,6 +60,7 @@ export function reject(w) {
 }
 
 const picked = [], seen = new Set(), why = {};
+if (recut) picked.push(...JSON.parse(readFileSync(join(OUT, 'answers.json'), 'utf8')).words);
 for (const w of freq) {
   if (w.length !== LEN || seen.has(w)) continue;
   seen.add(w);
@@ -74,8 +79,9 @@ if (onlyCandidates) {
 // without them, so no list ships unreviewed
 const cutFiles = ['cuts.json', 'cuts-tail.json'].map(f => join(HERE, f));
 for (const f of cutFiles) if (!existsSync(f)) { console.error(`${f} is missing — run --candidates, have THE REVIEWER cut the list, then build`); process.exit(1); }
-const cuts = new Set([...cutFiles.flatMap(f => JSON.parse(readFileSync(f, 'utf8')).cut.map(w => String(w).toLowerCase())), ...ADULT_VOCAB]);   // (+ DFIX1's adult-vocabulary cut)
-const words = picked.filter(w => !cuts.has(w)).sort();
+const cuts = new Set([...cutFiles.flatMap(f => JSON.parse(readFileSync(f, 'utf8')).cut.map(w => String(w).toLowerCase())), ...ADULT_VOCAB, ...POOL_FIXES_CUTS]);   // (+ DFIX1's adult-vocabulary cut + THE POOL FIXES' four)
+// THE KID-SAFE FILTER (THE POOL FIXES rule 4 — scripts/oc-pools/kidsafe.mjs: the one every OVERCLOCK bank passes too)
+const words = picked.filter(w => !cuts.has(w) && !unsafeIn(w).length).sort();
 const valid = JSON.parse(readFileSync(join(ROOT, 'data/words/valid-5.json'), 'utf8'));
 const validSet = new Set(valid.match(/.{5}/g));
 const missing = words.filter(w => !validSet.has(w));

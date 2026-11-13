@@ -33,7 +33,7 @@
 ["Which chess piece moves in an L shape?","The knight","The bishop|The rook|The queen","e","Knight (chess)","L"],
 ["Which is the most powerful piece in chess?","The queen","The king|The rook|The knight","e","Queen (chess)","most powerful"],
 ["What is it called when a king is trapped and the game ends in chess?","Checkmate","Stalemate|Check|Castling","e","Checkmate","checkmate"],
-["How many squares are on a checkers board?","64","100|81|49","m","Checkers","8×8|64"],
+["How many squares are on an American checkers board?","64","100|81|49","m","Checkers","8×8|64"],
 ["What game has players buy property like Boardwalk and Park Place?","Monopoly","The Game of Life|Clue|Risk","e","Monopoly (game)","Boardwalk"],
 ["How much money do you collect for passing GO in Monopoly?","$200","$100|$500|$50","e","Monopoly (game)","200"],
 ["What is the most expensive property on the U.S. Monopoly board?","Boardwalk","Park Place|Marvin Gardens|Pennsylvania Avenue","m","Monopoly (game)","Boardwalk"],

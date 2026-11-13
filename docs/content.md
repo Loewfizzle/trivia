@@ -136,6 +136,13 @@ doesn't confirm is DROPPED, never kept on trust — fix the fact (or the proof, 
 - Written rows reworded: the Four Corners ("Where do Arizona, Utah, Colorado and New Mexico all meet?"), Roblox, the earthquake + watercolor wrongs.
 - The content test's floors follow the deliberate cuts (each line says why).
 
+### THE POOL RULES + THE REVIEW's FIXES (THE POOL FIXES, Nov 13 — docs/overclock.md "THE POOL RULES")
+A fact-check finding is fixed at its SOURCE: a written row in `written/*.json` / a hand file, or — when the builder can't express it at its source —
+`hand/pool-fixes.mjs` (a wrong Wikidata value `FACT_FIX` / `CC_VALUE_FIX`, a park's year `NP_YEAR`, a shared title, a reasoned drop `REVIEW_DROP` /
+`REVIEW_DROP_TEXT`, a stray SORT IT card, a label, a second MISSING LINK answer, a real word the dictionaries miss). The 8 rules (`pool-rules.mjs` +
+`kidsafe.mjs`) are checks the build runs; `tests/overclock-pool-rules.test.mjs` re-checks every item. To add a kid-safe term: `kidsafe.mjs#KIDSAFE`
+(every bank + THE PASSWORD pick it up on the next build).
+
 ## HUSH WORDS (room codes)
 The room code is a common 4-letter word, the HUSH WORD. Source: `scripts/hushwords/words.txt` (one block per letter);
 `node scripts/build-hushwords.mjs` checks it and writes `data/hushwords.json` (sorted), or lists every problem and writes

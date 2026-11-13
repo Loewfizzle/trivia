@@ -8,6 +8,7 @@ import { STAT_EXCLUDE, cleanLabel, PEOPLE_EXCLUDE } from '../hand/wd-exclude.mjs
 import { hash36 } from '../lib.mjs';
 import { CC_EXCLUDE_LABELS } from '../hand/oc7-exclude.mjs';
 import { OC8_CUT, OC8_ONLY, OC8_OUT, OC8_KEEP, FAMOUS_COUNTRIES } from '../hand/oc8-exclude.mjs';
+import { FACT_FIX, NP_YEAR, STAT_DROP } from '../hand/pool-fixes.mjs';
 
 // OC8 (THE FABLE REVIEW) — THE FAME FILTER, TIGHTENED (hand/oc8-exclude.mjs): OC7's by-hand OBSCURE lists (read for CLOSEST CALL) now apply to
 // the same stats here too; the stats sitelinks can't rank keep ONLY the items Americans know; the rest keep a smaller top-n; the country stats
@@ -212,6 +213,13 @@ export default async function wikidataHL(ctx) {
     const keep = OC8_KEEP[id] ?? keep0;
     items = labelled(top(labelled(items, l => cleanLabel(id, l)), keep));
     if (items.length !== was) ctx.log.push(`  OC8: ${id} ${was} → ${items.length} (the fame filter)`);
+    // THE POOL FIXES (Nov 13 — hand/pool-fixes.mjs): the review's verified value fixes (RULE 5 — "came out" = the release), a stray item out,
+    // and RULE 6 — a NATIONAL PARK's year is its national-park designation, from NP_YEAR ONLY (a park not in it ships no year) — here, ONCE,
+    // before the list is shared: every pool that reads this stat (H/L, TIMELINE, CLOSEST CALL, T/F, TRIVIA's comparisons, SORT IT) gets the fix
+    const fixes = FACT_FIX[id] || {}, out = STAT_DROP[id] || {};
+    items = items.filter(x => !out[x.q]).map(x => (fixes[x.q] ? { ...x, v: fixes[x.q][0] } : x));
+    if (id === 'park-year') items = items.filter(x => NP_YEAR[x.q]).map(x => ({ ...x, v: NP_YEAR[x.q] }));
+    for (const x of items) if (fixes[x.q]) ctx.log.push(`  POOL FIXES: ${id} ${x.label} → ${fixes[x.q][0]} (${fixes[x.q][1]})`);
     (ctx.wd ||= {})[id] = items;      // (the data-built TRUE OR FALSE + SORT IT read these — parts/30, 40)
     // a year stat big enough feeds TIMELINE too — each item to ONE of the two
     const tl = TIMELINE[id] && items.length >= 30 ? TIMELINE[id] : null;
