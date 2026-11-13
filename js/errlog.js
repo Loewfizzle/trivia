@@ -4,6 +4,7 @@
 // survives the page closing). No names, ids or room codes are sent — only the message, where in our code, and which
 // screen was up. Installed by importing it (first import of js/app.js and js/board/public.js, so it sees boot errors).
 
+import { quietBot } from './core/bot-ua.js';
 const MAX_PER_PAGE = 8;
 const SEND_AFTER_MS = 1500;
 
@@ -87,9 +88,13 @@ function remember(e) {
 /** Which screen is up (no ids): 'title', 'lobby', 'game:golf/play'… — set by the page's entry module. */
 export function setErrorContext(fn, pageName) { where = fn; if (pageName) page = pageName; }
 
+// THE ERRORS GROUP (Nov 12 night): BOTS OUT OF /admin — a robot browser (navigator.webdriver, HeadlessChrome, Vercel's screenshot robot, Lighthouse)
+// sends nothing; a local / emulator page still does (the tests' own reports). The server drops them too (api/log.js — an old cached page).
+const BOT = (() => { try { return quietBot({ ua: navigator.userAgent, webdriver: navigator.webdriver, host: location.hostname, search: location.search }); } catch { return false; } })();
 function flush() {
   clearTimeout(timer); timer = 0;
   if (!queue.length) return;
+  if (BOT) { queue = []; return; }
   const body = JSON.stringify({ p: page, e: queue });
   queue = [];
   try {

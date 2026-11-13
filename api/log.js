@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto';
 import { route, send, readBody, clientIp } from './_lib/http.js';
 import { ref, fb } from './_lib/fb.js';
 import { pruneLogsIfDue } from './_lib/prune.js';
+import { dropAsBot } from '../js/core/bot-ua.js';
 
 export const LOG_LIMITS = { perRequest: 10, ipPerHour: 40, perDay: 3000, maxBody: 32_000 };
 // 9e — SEND REPORT (the &debug=1 strip's button) + THE HANG WATCH (a worker that reports when the page's main thread stops answering —
@@ -112,6 +113,9 @@ export default route(['POST', 'GET'], async (req, res) => {
   if (Number(req.headers['content-length'] || 0) > LOG_LIMITS.maxBody) { send(res, 413, { error: 'too_large' }); return; }
   const body = await readBody(req);
   const meta = { ip: clientIp(req), ua: String(req.headers['user-agent'] || ''), now: Date.now() };
+  // THE ERRORS GROUP (Nov 12 night): BOTS OUT OF /admin — HeadlessChrome, Vercel's screenshot robot, Lighthouse… dropped here too (an old cached
+  // page still sends); never a real phone's (js/core/bot-ua.js)
+  if (dropAsBot(meta.ua, process.env)) { send(res, 200, { kept: 0, bot: true }); return; }
   const kept = body && body.p === 'report' ? await logReport(body, meta) : await logErrors(body, meta);
   // (FR6 FIXES A — C8: a write prunes the logs + the rate-limit buckets, at most once an hour — never waiting for /admin)
   if (kept) await pruneLogsIfDue(meta.now).catch(e => console.warn('prune', e && e.message));

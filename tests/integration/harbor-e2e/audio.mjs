@@ -1039,6 +1039,28 @@ G('heli', async () => {
     const w = `THE BLACK HELICOPTER's PASS at 1×: ${r.fps} fps (p50), ${r.slow} % of frames over 20 ms`;
     if (disp.attached) okT(r.fps >= 55 && r.slow < 5, w); else skipNoDisplay(w, disp.reason);
     await Q.ctx.close(); }
+  // THE ERRORS GROUP (Nov 12 night — /admin, ×6 "ReferenceError: Can't find variable: black"): the black helicopter's own lights had landed in
+  // drawHeli's DRAWN-chopper path, where `black` (+ th, lerpP, lamp) are drawModel's — so the plain patrol threw every frame it flew without its
+  // model. Proof: (1) the plain patrol forced with its model's files BLOCKED (the drawn path) — no error reported, it draws; (2) the black one
+  // flown through its pass — no error; its own lights (the strobe, the nav lights) now drawn on its model.
+  { const Q = await open({ slot: 'hdrw', qs: `when=2026-11-03T22:10${GR}&wx=clear`, view: [402, 874] }), p = Q.page;
+    await harborUp(p);
+    await p.setRequestInterception(true);
+    p.on('request', r => (/\/assets\/city\/(heli|blackhelo)\//.test(r.url()) ? r.abort() : r.continue()));
+    await ev(p, `(() => { const u = new URL(location.href); u.searchParams.set('force', 'helicopter'); location.href = u.href; })()`);
+    await sleep(1500); await harborUp(p);
+    await waitFor(p, '(() => { try { const u = window.__district.harbor().heli.up; return !!(u && !u.off && !u.black); } catch { return false; } })()', 'the patrol on screen', 40000).catch(() => {});
+    await sleep(4000);
+    const r = await ev(p, `import('/js/errlog.js').then(m => ({ errs: m.recentErrors().map(e => e.m || '').filter(t => /black|heli|air\.js/i.test(t)), up: (() => { try { const u = window.__district.harbor().heli.up; return u ? { off: !!u.off, model: !!u.model } : null; } catch { return null; } })() }))`);
+    ok(r && r.up && !r.up.model && r.errs.length === 0, `THE ERRORS GROUP — the plain patrol WITHOUT its model (the drawn chopper): it flies, no error (${JSON.stringify(r && r.up)}; errors: ${JSON.stringify(r && r.errs)})`);
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'hblk2', qs: `when=2026-11-03T22:10${GR}&wx=clear&force=blackhelo`, view: [402, 874] }), p = Q.page;
+    await harborUp(p);
+    await waitFor(p, '(() => { try { const u = window.__district.harbor().heli.up; return !!(u && u.black && u.model && !u.off); } catch { return false; } })()', 'the black helicopter on its model', 60000).catch(() => {});
+    await sleep(12000);
+    const errs = await ev(p, `import('/js/errlog.js').then(m => m.recentErrors().map(e => e.m || '').filter(t => /black|heli|air\.js|ReferenceError/i.test(t)))`);
+    ok(Array.isArray(errs) && errs.length === 0, `THE ERRORS GROUP — &force=blackhelo flown through its pass: no error (${JSON.stringify(errs)})`);
+    await Q.ctx.close(); }
 });
 
 // ================================================================ NIGHT-C — THE ROOF SIGNS AT 3× (ONLY=roofcrisp; the `audio` cloud job — the

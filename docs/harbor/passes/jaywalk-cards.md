@@ -130,3 +130,31 @@ Built step for step like REDLINE + PHOTO FINISH (passes/overclock-cards.md Group
 - **Tests**: `tests/longnight.test.mjs` (freeCanvases; every module destroyed; halt before the delayed destroy; ONE backdrop still) · the harbor group
   **`longnight`** (the `perf` job, before the serial `perf`): 8 city-pause trips + 6 menu trips — the peak ≤ 1.25 × the first trips', the MB flat,
   the GPU flat, 0 city frames after the unmount — 3 / 3 · `citypause, cameras, tower, perf` 38 / 38 (THE BASELINE GUARD 0.79–1.23×).
+
+## Group 5 — THE ERRORS GROUP (from the owner's /admin, Nov 12)
+1. **THE BLACK HELICOPTER** (`ReferenceError: Can't find variable: black` ×6): FRIENDS C had written the black helicopter's own lights (the port /
+   starboard nav lights, the double strobe, the beacon) + their reflections on the harbor into `air.js#drawHeli`'s DRAWN-chopper path — where
+   `black`, `th`, `lerpP`, `lamp` are drawModel's. The black one always flies as its model (it returns before that path), so its lights never showed,
+   and the PLAIN patrol threw every frame it flew without its model (the model's files not yet in / failed). Moved into `drawModel` (its variables,
+   `black = !!heli.black`); drawHeli keeps the drawn chopper's plain lights. Proof: the harbor `heli` group — the plain patrol forced with its
+   model's files BLOCKED flies with no error; `&force=blackhelo` flown through its pass with no error — 29 / 29; `tests/errors-group.test.mjs`
+   checks drawHeli names none of drawModel's variables.
+2. **STALE-HOST WRITES** (RULES REFUSED on `meta/hostBeat`, `meta/lm`, a chat system line — a false re-publish alarm): a phone that LOST the host
+   keeps writing for a beat (sent before the new hostId reached it). Both ends: `firebase.js` — a refused room / chat write waits `HOST_SETTLE_MS`
+   (2.5 s — the new hostId lands a beat after the refusal) and, if this phone has just lost the host (`host.js#lostHostRecently` — host within the
+   last 15 s, not now; wired by `setHostGone`), is a quiet console line "no longer the host" (`hostRefusals()`), never the alarm; the host's writes
+   check again right before writing (the beat, the director's patch, the lobby song from the LIVE store). Proof: the harbor `makehost` group — the
+   old host's writes RACING the hand-off are refused + put down as "no longer the host", no RULES REFUSED report; `oldrules` (a real rules-lag on a
+   host that IS the host) still reports — it now waits for the settle.
+3. **BOTS OUT OF /admin** (HeadlessChrome, Vercel's screenshot robot, Lighthouse — the "Linux" stalls + BOOT HANGs): ONE PURE check
+   (`js/core/bot-ua.js`): the phone (`errlog.js`) sends nothing from a robot browser (`navigator.webdriver` or a bot UA) unless it's a local /
+   emulator page; the server (`api/log.js`) drops a bot's error or report when DEPLOYED (`VERCEL_ENV` — an old cached page can't send one; a local
+   server keeps the test browsers' reports). Real UA strings in the unit test: Safari iOS, Chrome iOS + Android, Samsung, a CUBOT model, Facebook's
+   in-app browser, Edge, Firefox, desktop Safari — never dropped.
+4. **THE LOST TAPs** (rescued by THE TAP WATCH): **`dy-scope-b`** (TODAY'S SCORES' tab) — 34 pt tall → a 44-pt tap area (an invisible `::after`, the
+   corner buttons' way) + the cause: an ANSWER landing (today, the friends, a board's rows) repainted the whole body, rebuilding the tab under the
+   finger → every answer's repaint now waits for the tap (`afterTap`); a tap's own repaint stays at once. **`vl-full-x`** (a full card's CLOSE) — the
+   card's opening work (the fx surface's first frames, the art's decode, the fit) keeps the main thread busy a moment: the click came late / was
+   counted lost → CLOSE acts on its OWN pointer-up (a primary press lifting on it — `tapHandled()`, the CUSTOMIZE tiles' way), the click stays for the
+   keyboard, `close()` runs once. Proof: `ENGINE=webkit e2e-taps.mjs` (`DAILY_TEST=1` server) — a full card's CLOSE tapped as it opens 6 / 6, the SCORES
+   tab 6 / 6 (its tap area 44 pt), the watch counted 0 LOST TAP — 24 / 24.

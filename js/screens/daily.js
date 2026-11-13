@@ -53,6 +53,7 @@ export const lineOf = (id, score) => { const m = META[id]; return m && typeof m.
 // (DFIX3 — THE PREMIUM TICKET: the art, the ADMITTED stamp + the serial live in js/daily/ticket-art.js, shared with SHARE TODAY's image)
 import { TICKET_ART, stampSvg, serialOf } from '../daily/ticket-art.js';
 import { lazyImport } from '../ui/lazy-import.js';
+import { afterTap } from '../ui/tapwatch.js';
 export { TICKET_ART };
 const BACK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>';
 
@@ -254,7 +255,7 @@ function openScreen(tab0) {
   function paintAllTime(t) {
     if (!pts && !ptsP) {
       ptsP = lazyImport(import('../daily/contract.js'), '../daily/contract.js').then(C => C.dailyPoints(((friends && friends.friends) || []).map(c => c.pid)))
-        .then(r => { pts = r || { down: true }; }).catch(() => { pts = { down: true }; }).finally(() => { if (!gone) paint(); });
+        .then(r => { pts = r || { down: true }; }).catch(() => { pts = { down: true }; }).finally(() => { if (!gone) repaint(); });
     }
     if (!pts) { els.body.append(h('p.dy-quiet', 'Counting up the averages…')); return; }
     for (const d of t.dailies) {
@@ -284,7 +285,7 @@ function openScreen(tab0) {
   /** EVERYONE's top 3 on a daily's ALL TIME board (the public rows — the slim card's own ids), loaded once a visit */
   function paintEvery(ev, board, d) {
     const got = every[board];
-    if (!got) { every[board] = 'loading'; lazyImport(import('../profile/api.js'), '../profile/api.js').then(A => A.board(board, 'all', { n: 3 })).then(r => { every[board] = (r && r.rows) || []; }).catch(() => { every[board] = []; }).finally(() => { if (!gone) paint(); }); }
+    if (!got) { every[board] = 'loading'; lazyImport(import('../profile/api.js'), '../profile/api.js').then(A => A.board(board, 'all', { n: 3 })).then(r => { every[board] = (r && r.rows) || []; }).catch(() => { every[board] = []; }).finally(() => { if (!gone) repaint(); }); }
     if (!Array.isArray(got)) { ev.replaceWith(h('p.dy-quiet', '…')); return; }
     if (!got.length) { ev.replaceWith(h('p.dy-quiet', `Nobody is ranked yet — it takes ${MIN_DAYS} days of ${d.name}.`)); return; }
     ev.append(...got.map(r => h('li.lb-row.lb-strip.dy-crow', { dataset: { pid: r.id } }, h('span.lb-rank', ordinal(r.rank)),
@@ -336,10 +337,14 @@ function openScreen(tab0) {
     try { sfx('win'); } catch { /* polish */ }
   }
 
-  const off = onToday(t => { today = t; paint(); });
-  lazyImport(import('../profile/friends.js'), '../profile/friends.js').then(F => F.loadFriends()).then(f => { friends = f; if (!gone) paint(); }).catch(() => {});
+  // (THE ERRORS GROUP, Nov 12 night — /admin's LOST TAP on TODAY'S SCORES' tab `dy-scope-b`: an ANSWER that lands (today, the friends, a board)
+  //  repainted the whole body — the tab rebuilt under the finger, its click on a detached button. Every repaint an answer asks for waits for the
+  //  tap to land (ui/tapwatch.js#afterTap — the shared layer's rule); a tap's own repaint stays at once)
+  const repaint = () => afterTap(() => { if (!gone) paint(); });
+  const off = onToday(t => { today = t; repaint(); });
+  lazyImport(import('../profile/friends.js'), '../profile/friends.js').then(F => F.loadFriends()).then(f => { friends = f; if (!gone) repaint(); }).catch(() => {});
   paint();
-  pidReady.then(() => { if (!gone) paint(); });
+  pidReady.then(() => { if (!gone) repaint(); });
   loadToday({ fresh: true });
   return {
     setTab(t) { if (t !== tab) { tab = t; paint(); } },

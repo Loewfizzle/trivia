@@ -8,6 +8,7 @@ import { dbRef, update, remove, get, runTransaction, serverTimestamp, serverNow 
 import { startOf, newMatchId, GO_ORPHAN_MS, goWaiting } from './core/room-show.js';
 import { minPlayersOf, rematchSettingsOf } from './games/cartridge.js';
 import { state, isHost, onlineMap } from './store.js';
+import { setHostGone } from './firebase.js';
 import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE, staleProofPaths } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
@@ -37,6 +38,12 @@ export function startHostLoop() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') tick(); });
 }
 
+// THE ERRORS GROUP (Nov 12 night): when this phone last WAS the host — a write refused within HOST_GONE_MS of losing it is the hand-off's
+// race (firebase.js#setHostGone: "no longer the host"), never a rules-lag; the host loop itself stops at the next tick (isHost() is false)
+const HOST_GONE_MS = 15_000;
+let wasHostAt = 0, wasHostCode = null;
+export const lostHostRecently = () => !!wasHostCode && Date.now() - wasHostAt < HOST_GONE_MS && !(state.code === wasHostCode && isHost());
+setHostGone(lostHostRecently);
 function tick() {
   // (PERF-A — Grok 5.4: the same player open in two tabs ran two host loops; the tab that yields (identity.js#watchDuplicateTabs) is idle)
   if (state.dupTab) return;
@@ -48,6 +55,7 @@ function tick() {
   if (roomIdle(state.meta, now - (isHost() ? 0 : 90_000))) { closeIdleRoom(); return; }
   watchHand();
   if (isHost()) {
+    wasHostAt = Date.now(); wasHostCode = state.code;
     beat(now);
     clearDeadStart(now);
     if (state.meta.status === 'playing' && state.game) direct(now);
@@ -100,6 +108,7 @@ function beat(now) {
   // only a running game keeps the room alive (an idle lobby closes after ROOM_IDLE_MS)
   if (state.meta.status === 'playing' && now - lastActive > 10 * 60_000) { lastActive = now; patch.activeAt = serverTimestamp(); }
   hostStats.beats++;
+  if (!isHost()) return;   // (THE ERRORS GROUP: checked again right before the write)
   update(dbRef(`rooms/${state.code}/meta`), patch).catch(() => {});
 }
 
@@ -140,6 +149,7 @@ function direct(now) {
   inflight = { sig, at: now };
   hostStats.steps++;
   if (step.lobby) { backToLobby(); return; }
+  if (!isHost()) return;   // (THE ERRORS GROUP: a newer hostId may have landed during the step)
   update(dbRef(`rooms/${state.code}`), roomPatch(game, step)).catch(e => { inflight.sig = ''; console.warn('director', e); });
 }
 

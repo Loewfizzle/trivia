@@ -30,6 +30,7 @@ import { embTier } from './strip.js';
 import { isDevCard, isOneOfOne, ONE_OF_ONE } from '../core/dev-cards.js';
 import { isGiftCard } from '../core/gift-cards.js';
 import { gemEl } from './gems.js';
+import { tapHandled } from '../ui/tapwatch.js';
 import { takeLayer, onCloseAll } from '../ui/layers.js';
 
 /** the full card's id in THE CARD LAB (its own mark: a strip can be approved before its full card) */
@@ -231,12 +232,27 @@ export async function openFullCard(id, who = {}) {
     card = fullCardEl({ card: id, who, spotted: who.spotted || null });
   } else card = gildedCard({ ...(who.pub || {}), n: who.name, a: who.avatar, c: who.color, cd: id }, {}, { card: id });
   let release = null, uncover = null;
-  const close = () => { if (surface) surface.destroy(); el.remove(); open = null; if (release) release(); if (uncover) { uncover(); uncover = null; } if (who.onClose) try { who.onClose(); } catch { /* fine */ } };
+  let closed = false;
+  const close = () => { if (closed) return; closed = true; if (surface) surface.destroy(); el.remove(); open = null; if (release) release(); if (uncover) { uncover(); uncover = null; } if (who.onClose) try { who.onClose(); } catch { /* fine */ } };
   const stage = h('div.vl-full-stage', card);
   // (LOBBY FIXES: `who.foot` — a row under the card, e.g. the owner's CREW switch on a room player's card)
   // (SHELL 2.0 B2 — THE GIFT's reveal: `who.head` above the card (the gift line), `who.flip` = the card flips in; `who.onClose`)
   if (who.flip) box.classList.add('vl-full-flip');
-  box.append(who.head || '', stage, who.foot || '', h('button.vl-full-x', { type: 'button', 'aria-label': 'Close', onclick: close }, who.closeWord || 'CLOSE'));
+  // (THE ERRORS GROUP, Nov 12 night — /admin's LOST TAP on `vl-full-x`: the card's opening work (the fx surface's first frames, the art's decode, the
+  //  layout's fit) keeps the main thread busy for a moment — the button's `click` came late (past the tap watch's 350 ms) or the press was counted
+  //  lost while a late layout nudged it. CLOSE acts on its OWN pointer-up now (a primary press that lifts ON it, not a long-press — the CUSTOMIZE
+  //  tiles' way: ui/tapwatch.js#tapHandled), the click stays for the keyboard; close() runs once)
+  const xb = h('button.vl-full-x', { type: 'button', 'aria-label': 'Close', onclick: close }, who.closeWord || 'CLOSE');
+  let xDown = 0;
+  xb.addEventListener('pointerdown', e => { if (e.isPrimary !== false) xDown = performance.now(); });
+  xb.addEventListener('pointerup', e => {
+    if (e.isPrimary === false || !xDown || performance.now() - xDown > 700) { xDown = 0; return; }
+    xDown = 0;
+    const r = xb.getBoundingClientRect();
+    if (e.clientX < r.left - 8 || e.clientX > r.right + 8 || e.clientY < r.top - 8 || e.clientY > r.bottom + 8) return;
+    tapHandled(); close();
+  });
+  box.append(who.head || '', stage, who.foot || '', xb);
   // (THE VAULT 2B: a backdrop click in its first 350 ms is the finger that opened it lifting — a long-press — never a close)
   const born = performance.now();
   const el = h('div.vl-full', { role: 'dialog', 'aria-modal': 'true', 'aria-label': nameOf(id), onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);

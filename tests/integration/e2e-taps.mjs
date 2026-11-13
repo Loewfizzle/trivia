@@ -144,6 +144,26 @@ try {
     await A.p.evaluate(() => window.__district.idle()); await sleep(300);
     ok(await A.p.evaluate("!document.body.classList.contains('nd-idle')"), `${ENGINE} — never at rest while a pop-up is open`); await closeSheets(A); }
 
+  // ---- THE ERRORS GROUP (Nov 12 night — /admin's LOST TAPs, rescued by the watch): a FULL CARD's CLOSE (`vl-full-x` — the card's opening work kept the
+  //      main thread busy: a late click) + TODAY'S SCORES' tab (`dy-scope-b` — 34 pt + an answer's repaint rebuilt it under the finger). Each tapped
+  //      at a random moment, right after it appears: every first tap lands + the watch counts NOTHING lost (its rescue never needed)
+  { const lost0 = (await A.p.evaluate('window.__tapwatch.stats()')).lost;
+    await tapTest(A, 'a FULL CARD → CLOSE (tapped as it opens)', '.vl-full-x', { n: Math.min(N, 8), settle: 300,
+      before: async () => { await A.p.evaluate(() => import('/js/vault/full.js').then(m => m.openFullCard('card-gilded', { name: 'TPA' }))); await A.wait("!!document.querySelector('.vl-full .vl-full-x')", 6000); await sleep(120); },
+      land: "!document.querySelector('.vl-full')", landMs: 3000 });
+    await A.p.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));
+    const scoresUp = await A.wait("!!document.querySelector('.dy-scope-b')", 15000);
+    if (scoresUp) {
+      await tapTest(A, "TODAY'S SCORES → ALL TIME ↔ TODAY (the tab)", '.dy-scope-b:not(.is-on)', { n: Math.min(N, 8), settle: 400,
+        before: async () => { await A.p.evaluate(() => { window.__twScope = (document.querySelector('.dy-scope-b.is-on') || {}).textContent || ''; }); },
+        land: "((document.querySelector('.dy-scope-b.is-on') || {}).textContent || '') !== window.__twScope", landMs: 3000 });
+      const box = await A.p.evaluate(() => { const b = document.querySelector('.dy-scope-b'); const r = b.getBoundingClientRect(), a = getComputedStyle(b, '::after'); return { h: Math.round(r.height), tap: Math.round(r.height + parseFloat(a.top) * -1 + parseFloat(a.bottom) * -1) }; });
+      ok(box.tap >= 44, `${ENGINE} — TODAY'S SCORES' tab: its TAP AREA ${box.tap} pt (the tab ${box.h} pt — an invisible ::after)`);
+    } else ok(false, `${ENGINE} — TODAY'S SCORES opened (the dailies answered)`);
+    await A.p.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: null }))); await sleep(500);
+    const lost1 = (await A.p.evaluate('window.__tapwatch.stats()')).lost;
+    ok(lost1 - lost0 === 0, `${ENGINE} — THE ERRORS GROUP's two controls: the tap watch counted ${lost1 - lost0} LOST TAP (none rescued)`); }
+
   // ---- HOST + THE ROOM
   await tapTest(A, 'HOST', '.nd-hostbtn', { n: Math.min(N, 8), landMs: 12000, land: "!!(window.__arcade.state.code && window.__district.room())",
     reset: async i => { if (i < Math.min(N, 8) - 1) { await A.p.evaluate(() => import('/js/room.js').then(m => m.leaveRoom())); await A.wait("!window.__arcade.state.code && !document.querySelector('.title-screen.is-room')", 15000); await sleep(1500); } } });

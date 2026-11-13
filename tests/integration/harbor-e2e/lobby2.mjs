@@ -582,6 +582,8 @@ G('oldrules', async () => {
     const sign = await Promise.all([p, q].map(x => waitFor(x, "!!document.querySelector('.nd-sign.rc-go .rc-tonight')", 6000).then(() => true, () => false)));
     const walk = await Promise.all([p, q].map(x => waitFor(x, '(() => { const r = window.__district.room(); return !!(r && r.people.some(y => y.goIn)); })()', 4000).then(() => true, () => false)));
     // (FR6 FIXES A — G6: the refusal is REPORTED through the one write path — once per path shape, ids masked — never silent)
+    // (THE ERRORS GROUP: a room write's refusal is reported after firebase.js#HOST_SETTLE_MS — this phone is still the host: the alarm)
+    await waitFor(p, "import('/js/firebase.js').then(F => F.refusals().length > 0)", 'the refusal reported', 6000).catch(() => {});
     const rep = await ev(p, "import('/js/firebase.js').then(F => F.refusals())");
     ok(rep.some(x => x.startsWith('update rooms/*/meta')) && !rep.some(x => x.includes(code)), `THE ONE WRITE PATH: the refused stamp was REPORTED to /admin (${rep.join(' · ')}) — no room code in it`);
     ok(/PERMISSION_DENIED/i.test(refused) && sign.every(Boolean) && walk.every(Boolean), `THE OLD RULES (meta/go refused: ${refused.slice(0, 30)}): THE GAME START still runs on BOTH phones — the sign + the game's logo (${sign}), the walk inside (${walk})`);
@@ -694,6 +696,14 @@ G('makehost', async () => {
   const hostNow = [await ev(p, "import('/js/store.js').then(m => m.isHost())"), await ev(B.page, "import('/js/store.js').then(m => m.isHost())")];
   ok(row && /Make host/i.test(row.txt) && row.h >= 44 && !row.dis && /TAP AGAIN/i.test(armed), `MAKE HOST: the host taps TWO → "${row && row.txt}" at the foot of their card (${row && row.h} pt); the first tap arms it ("${armed}")`);
   ok(hostNow[0] === false && hostNow[1] === true && new RegExp(`${twoName} is the host now`, 'i').test(sA) && /YOU.RE THE HOST NOW/i.test(sB) && !/is the host now/i.test(sB), `MAKE HOST: the second tap hands it over — the host is TWO on both phones (old ${hostNow[0]}, new ${hostNow[1]}); A says "${sA.slice(0, 60)}", B says "${sB.slice(0, 60)}"`);
+  // THE ERRORS GROUP (Nov 12 night — /admin's false RULES REFUSED on meta/hostBeat, meta/lm, a chat line): the old host's writes RACING the hand-off
+  // (sent as if it were still the host) are refused by the rules — and reported as "no longer the host" (a quiet line), never the re-publish alarm
+  { const race = await ev(p, `import('/js/firebase.js').then(F => Promise.all([F.update(F.dbRef('rooms/${code}/meta'), { hostBeat: F.serverTimestamp() }), F.update(F.dbRef('rooms/${code}/meta/lm'), { m: 'lmrace', t0: 1, songs: ['x'], sd: [1000] })].map(x => x.then(() => 'written', e => String(e.message || e)))))`);
+    await sleep(3200);   // (firebase.js HOST_SETTLE_MS — the refusal's check waits for the new hostId on this phone)
+    const rep = await ev(p, "import('/js/firebase.js').then(F => ({ alarm: F.refusals(), quiet: F.hostRefusals() }))");
+    const errs = await ev(p, "import('/js/errlog.js').then(m => m.recentErrors().map(e => e.m || '').filter(t => /RULES REFUSED/.test(t)))");
+    ok(race.every(r => /PERMISSION_DENIED/i.test(r)) && !rep.alarm.some(x => /^update rooms\/\*\/meta/.test(x)) && rep.quiet.some(x => /^update rooms\/\*\/meta/.test(x)) && errs.length === 0,
+      `THE ERRORS GROUP — the old host's writes racing the hand-off: refused (${race.map(r => r.slice(0, 17)).join(' · ')}) + put down as "no longer the host" (${rep.quiet.join(' · ')}) — no RULES REFUSED report (${JSON.stringify(rep.alarm)} / ${errs.length})`); }
   // the old host (a guest now): no MAKE HOST on TWO's card
   await ev(p, "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"); await sleep(400);
   await tapCard(p, twoUid); await sleep(1200);

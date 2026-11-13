@@ -13,6 +13,7 @@ import { createSyncedSongs } from './synced-songs.js';
 import { musicUrl } from './music-url.js';
 import { getMusicBus } from './engine.js';
 import { serverNow, dbRef, update, firebaseReady } from '../firebase.js';
+import { state as store } from '../store.js';
 import { songStarts, XF_MS } from '../core/playlist.js';
 import { moodNow, songsFor, durOf, loadMoodMusic } from './mood.js';
 import { nowPlaying, handoffFade } from './music.js';
@@ -44,6 +45,7 @@ function pick(lm, mood) {
 /** Host duty (called from the lobby while this phone is the host): start or extend the room's queue. */
 function hostDuty(st, now) {
   if (now - lastHostWrite < 1500) return;
+  if (!(store.meta && store.meta.hostId === store.uid)) return;   // (THE ERRORS GROUP: the LIVE store's host, right before the write — never a stale snapshot's)
   const lm = st.meta.lm;
   const starts = lm && lm.songs && lm.songs.length ? songStarts({ songStartAt: lm.t0, songs: lm.songs, sd: lm.sd }) : [];
   const end = starts.length ? starts[starts.length - 1] + lm.sd[lm.sd.length - 1] : 0;

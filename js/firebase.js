@@ -31,10 +31,25 @@ const REFUSED = new Set();
 function refPath(r) {
   try { const u = new URL(String(r)); return decodeURIComponent(u.pathname); } catch { return ''; }
 }
+// THE ERRORS GROUP (Nov 12 night — /admin's RULES REFUSED at 8:07 / 8:16 / 8:29 on meta/hostBeat, meta/lm, a chat system line): a phone that LOST the
+// host keeps writing for a beat (its writes left before the new hostId reached it) — the rules refuse them, rightly. That is not a rules-lag: a
+// room / chat write refused while this phone has JUST lost the host (host.js#lostHostRecently — set at boot) is a quiet console line, "no longer
+// the host", never the re-publish alarm. The check waits HOST_SETTLE_MS (the new hostId lands on this phone a beat after the refusal).
+let hostGone = () => false;
+const NOT_HOST = new Set(), HOST_SETTLE_MS = 2500;
+/** host.js: () => true while this phone was the host moments ago and isn't now */
+export function setHostGone(fn) { hostGone = typeof fn === 'function' ? fn : () => false; }
+/** the refusals put down to a host hand-off (tests) */
+export const hostRefusals = () => [...NOT_HOST];
 function refused(op, r, patch, e) {
   if (!isRefusal(e)) return;
   const keys = patch && typeof patch === 'object' && !Array.isArray(patch) && op === 'update' ? Object.keys(patch).slice(0, 4).map(pathShape) : [];
   const shape = `${op} ${pathShape(refPath(r))}${keys.length ? ` {${keys.join(', ')}}` : ''}`;
+  if (/^\/?(rooms|chats)\//.test(refPath(r))) { setTimeout(() => { if (safeGone()) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info('[rules] no longer the host — a write refused after the hand-off:', shape); } return; } report(shape); }, HOST_SETTLE_MS); return; }
+  report(shape);
+}
+const safeGone = () => { try { return !!hostGone(); } catch { return false; } };
+function report(shape) {
   if (REFUSED.has(shape) || REFUSED.size >= 6) return;
   REFUSED.add(shape);
   console.warn('[rules] refused:', shape);

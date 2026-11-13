@@ -659,25 +659,10 @@ export function createAir() {
     const tx = -L * 0.6, ty = -L * 0.06;
     c.fillStyle = rgb(rc, 0.3); c.beginPath(); c.arc(tx, ty, L * 0.085, 0, TAU); c.fill();
     // the lights at night: the red beacon on the boom, the nav lights, a white tail light
-    const lightA = black ? Math.max(0.55, clamp01((look.dark + look.golden * 0.3) * 1.3)) : clamp01((look.dark + look.golden * 0.3) * 1.3);
-    const refl = [];
-    if (black) {
-      // FRIENDS C — THE BLACK HELICOPTER's LIGHTS (small but readable at ~100 pt): the RED nav light on its LEFT (port) + the GREEN on its
-      // RIGHT (starboard) — the near side bright, the far side dimmer as it turns toward us — a WHITE STROBE double-flash every 1.2 s, the
-      // red anti-collision BEACON on top; each mirrored faintly on the harbor below (refl)
-      c.globalCompositeOperation = 'lighter';
-      const r = 3.4 * K * Math.max(1, (L * sc) / (28 * K)) ** 0.55, cs0 = Math.cos(th), sn0 = Math.abs(Math.sin(th));
-      const [nx, ny] = P(lerpP('nose')), [lx, ly] = P(lamp), [bx2, by2] = P(lerpP('beacon')), [tlx, tly] = P(lerpP('tailLight'));
-      const navX = nx * 0.55 + lx * 0.45, navY = ny * 0.55 + ly * 0.45;
-      const near = cs0 >= 0 ? [60, 255, 140] : [255, 50, 60], far = cs0 >= 0 ? [255, 50, 60] : [60, 255, 140];
-      const bk = s.motion ? Math.max(0, Math.sin(t * TAU / 1.1)) ** 3 : 0.5, ph = s.motion ? t % 1.2 : 0.3, strobe = ph < 0.06 || (ph > 0.17 && ph < 0.23) ? 1 : 0;
-      c.globalAlpha = lightA * 0.95; c.drawImage(glow(...near), navX - r, navY - r, r * 2, r * 2); refl.push([navX, navY, near, 0.95]);
-      if (sn0 > 0.15) { const fx = navX - Math.sign(cs0 || 1) * r * 1.1 * sn0; c.globalAlpha = lightA * 0.5 * sn0; c.drawImage(glow(...far), fx - r * 0.8, navY - r * 0.8, r * 1.6, r * 1.6); refl.push([fx, navY, far, 0.4 * sn0]); }
-      c.globalAlpha = lightA * bk; c.drawImage(glow(255, 40, 50), bx2 - r * 1.5, by2 - r * 1.5, r * 3, r * 3); refl.push([bx2, by2, [255, 40, 50], bk]);
-      if (strobe) { c.globalAlpha = lightA; c.drawImage(glow(255, 255, 255), tlx - r * 2.2, tly - r * 2.2, r * 4.4, r * 4.4); c.drawImage(glow(255, 255, 255), lx - r * 1.4, ly - r * 1.4, r * 2.8, r * 2.8); refl.push([tlx, tly, [255, 255, 255], 1]); }
-      c.globalAlpha = lightA * 0.85; c.drawImage(glow(240, 246, 255), lx - r * 0.9, ly - r * 0.9, r * 1.8, r * 1.8);
-      c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-    } else if (lightA > 0.03) {
+    // (FRIENDS C's black-helicopter lights live in drawModel — the black one is ALWAYS the model; THE ERRORS GROUP, Nov 12 night: this path read
+    //  `black` — a variable of drawModel's — and threw "Can't find variable: black" every frame the plain patrol flew without its model)
+    const lightA = clamp01((look.dark + look.golden * 0.3) * 1.3);
+    if (lightA > 0.03) {
       c.globalCompositeOperation = 'lighter';
       const bk = s.motion ? Math.max(0, Math.sin(t * TAU / 1.1)) ** 3 : 0.5, r = 3.2 * K * Math.max(1, L / (28 * K)) ** 0.6;   // (SKY-A: a bigger craft, bigger lights)
       // (6b: at night it reads by its lights — the searchlight's lamp under its belly, a warm cockpit glow)
@@ -688,14 +673,6 @@ export function createAir() {
       c.globalAlpha = lightA * 0.6; c.drawImage(glow(255, 255, 255), tx - L * 0.03 - r * 0.8, ty - r * 0.8, r * 1.6, r * 1.6);
     }
     c.restore();
-    // (FRIENDS C — the black one's lights on the harbor: a soft vertical streak under each, as far below the water's face as the light is
-    //  above it — only on the water, faint)
-    if (refl.length && lastWater && lastWater.waterY > lastWater.waterTop) {
-      const ws = Math.min(lastWater.waterY, p.y + L * sc * 1.1), r = 3.4 * K * Math.max(1, (L * sc) / (28 * K)) ** 0.55;
-      c.save(); c.beginPath(); c.rect(0, lastWater.waterTop, W, lastWater.waterY - lastWater.waterTop + 18 * K); c.clip(); c.globalCompositeOperation = 'lighter';
-      for (const [rx, ry0, col, a] of refl) { const wy = p.y + ry0, yr = ws + (ws - wy) * 0.55; if (yr < lastWater.waterTop) continue; c.globalAlpha = 0.22 * a * lightA; c.drawImage(glow(...col), p.x + rx - r * 0.9, yr - r * 3, r * 1.8, r * 6); }
-      c.restore();
-    }
     // (the belly's lamp on screen: the beam's start)
     const bx = L * 0.08 * sc * yw, by = L * 0.12 * sc, cs = Math.cos(p.pitch || 0), sn = Math.sin(p.pitch || 0);
     return { x: p.x + bx * cs - by * sn, y: p.y + bx * sn + by * cs, cx: p.x, cy: p.y, dir: p.dir, hover: p.hover, e, sc, yaw: +yw.toFixed(2), behind: !!p.behind, look: p.look || null, stop: p.stop || null };
@@ -748,8 +725,25 @@ export function createAir() {
     c.fillStyle = rgb(rc, 0.32); c.beginPath(); c.ellipse(tx, ty, Math.max(0.6, tr * Math.abs(Math.cos(th))), tr, 0, 0, TAU); c.fill();
     // THE LIGHTS at night: the searchlight's lamp under the belly, the red beacon on the engine deck, the nav light on the near side (green
     // flying right, red flying left), the white tail light
-    const lightA = clamp01((look.dark + look.golden * 0.3) * 1.3);
-    if (lightA > 0.03) {
+    const lightA = black ? Math.max(0.55, clamp01((look.dark + look.golden * 0.3) * 1.3)) : clamp01((look.dark + look.golden * 0.3) * 1.3);
+    const refl = [];
+    if (black) {
+      // FRIENDS C — THE BLACK HELICOPTER's LIGHTS (small but readable at ~100 pt): the RED nav light on its LEFT (port) + the GREEN on its
+      // RIGHT (starboard) — the near side bright, the far side dimmer as it turns toward us — a WHITE STROBE double-flash every 1.2 s, the
+      // red anti-collision BEACON on top; each mirrored faintly on the harbor below (refl)
+      c.globalCompositeOperation = 'lighter';
+      const r = 3.4 * K * Math.max(1, (L * sc) / (28 * K)) ** 0.55, cs0 = Math.cos(th), sn0 = Math.abs(Math.sin(th));
+      const [nx, ny] = P(lerpP('nose')), [lx, ly] = P(lamp), [bx2, by2] = P(lerpP('beacon')), [tlx, tly] = P(lerpP('tailLight'));
+      const navX = nx * 0.55 + lx * 0.45, navY = ny * 0.55 + ly * 0.45;
+      const near = cs0 >= 0 ? [60, 255, 140] : [255, 50, 60], far = cs0 >= 0 ? [255, 50, 60] : [60, 255, 140];
+      const bk = s.motion ? Math.max(0, Math.sin(t * TAU / 1.1)) ** 3 : 0.5, ph = s.motion ? t % 1.2 : 0.3, strobe = ph < 0.06 || (ph > 0.17 && ph < 0.23) ? 1 : 0;
+      c.globalAlpha = lightA * 0.95; c.drawImage(glow(...near), navX - r, navY - r, r * 2, r * 2); refl.push([navX, navY, near, 0.95]);
+      if (sn0 > 0.15) { const fx = navX - Math.sign(cs0 || 1) * r * 1.1 * sn0; c.globalAlpha = lightA * 0.5 * sn0; c.drawImage(glow(...far), fx - r * 0.8, navY - r * 0.8, r * 1.6, r * 1.6); refl.push([fx, navY, far, 0.4 * sn0]); }
+      c.globalAlpha = lightA * bk; c.drawImage(glow(255, 40, 50), bx2 - r * 1.5, by2 - r * 1.5, r * 3, r * 3); refl.push([bx2, by2, [255, 40, 50], bk]);
+      if (strobe) { c.globalAlpha = lightA; c.drawImage(glow(255, 255, 255), tlx - r * 2.2, tly - r * 2.2, r * 4.4, r * 4.4); c.drawImage(glow(255, 255, 255), lx - r * 1.4, ly - r * 1.4, r * 2.8, r * 2.8); refl.push([tlx, tly, [255, 255, 255], 1]); }
+      c.globalAlpha = lightA * 0.85; c.drawImage(glow(240, 246, 255), lx - r * 0.9, ly - r * 0.9, r * 1.8, r * 1.8);
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+    } else if (lightA > 0.03) {
       c.globalCompositeOperation = 'lighter';
       const bk = s.motion ? Math.max(0, Math.sin(t * TAU / 1.1)) ** 3 : 0.5, r = 3.2 * K * Math.max(1, (L * sc) / (28 * K)) ** 0.6;
       const [lx, ly] = P(lamp), [bx2, by2] = P(lerpP('beacon')), [nx, ny] = P(lerpP('nose')), [tlx, tly] = P(lerpP('tailLight'));
@@ -760,6 +754,14 @@ export function createAir() {
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     }
     c.restore();
+    // (FRIENDS C — the black one's lights on the harbor: a soft vertical streak under each, as far below the water's face as the light is
+    //  above it — only on the water, faint)
+    if (refl.length && lastWater && lastWater.waterY > lastWater.waterTop) {
+      const ws = Math.min(lastWater.waterY, p.y + L * sc * 1.1), r = 3.4 * K * Math.max(1, (L * sc) / (28 * K)) ** 0.55;
+      c.save(); c.beginPath(); c.rect(0, lastWater.waterTop, W, lastWater.waterY - lastWater.waterTop + 18 * K); c.clip(); c.globalCompositeOperation = 'lighter';
+      for (const [rx, ry0, col, a] of refl) { const wy = p.y + ry0, yr = ws + (ws - wy) * 0.55; if (yr < lastWater.waterTop) continue; c.globalAlpha = 0.22 * a * lightA; c.drawImage(glow(...col), p.x + rx - r * 0.9, yr - r * 3, r * 1.8, r * 6); }
+      c.restore();
+    }
     // (the belly's lamp on screen: the beam's start — the drawn craft's own point (within a couple of pt of the model's lamp): every planner +
     // clearance check sees the same geometry as before)
     const yw = Math.cos(th), lx0 = L * 0.08 * sc * yw, ly0 = L * 0.12 * sc, cs = Math.cos(pitch), sn = Math.sin(pitch);
