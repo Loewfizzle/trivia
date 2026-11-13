@@ -6675,3 +6675,19 @@ OWNER'S NOTES — NOV 13 7 am (FR7 FIXES C live on his iPhone)
 - FR7 FIXES C2 DONE (Nov 13) — passes/fr7-fixes-c2.md. THE BUILD TABLE: FR7 FIXES C2 ✅ (THE LEDGER opens again — NOW PLAYING imports nothing, TAP TO RETRY + the
   report; THE LEAVES READ AS LEAVES — 27 big leaves in a ring; THE JAYWALK POSTER in Bowlby One on a calm panel; the two cloud reds; THE SUPPORTED FLOOR + THE HAND
   RELOAD; no rules change) → PLAY NOW + WHO'S ON ← NEXT → THE POOL FIXES + THE SLIDER → JAYWALK's passes; THE LAUNCH whenever the owner taps.
+
+## OWNER'S NOTES — NOV 13 10 am (after FR7 FIXES C2)
+
+```
+OWNER'S NOTES — NOV 13 10 am (after FR7 FIXES C2)
+- THE LEDGER broke because the phone ran a MIX OF TWO DEPLOYS' FILES (an old cached music.js + the new ledger). C2 fixed that spot; the
+  general risk stays — a phone must never run two deploys' code at once (Group 0).
+- PLAY NOW (decided Nov 12, a friend's complaint: "to play solo you have to start your own room"): the dock's GAMES → PLAY; a GAME CARD for each
+  game with PLAY NOW (solo, one tap) + PLAY WITH FRIENDS (a normal room, the game picked); the skyline signs open the game card.
+- WHO'S ON (decided Nov 12): tap IN THE CITY on the radio's LEDGER (and /admin STATS) → who's online now: slim card · where (the city / a room's
+  code + game / a daily) · last check-in; guests on one line; owner only.
+- The intercom + sky moments for phones ONLY on the city (the 5-min check-in) stay as they are — the owner cares about the lobby gag, which is live.
+```
+- THE BUILD TABLE (Nov 13, PLAY NOW's Step 0): FR7 FIXES C2 ✅ (live); THIS PASS — PLAY NOW + WHO'S ON (+ GROUP 0: ONE DEPLOY AT A TIME, the C2 leftovers:
+  the random boot hang, the roof board stuck on HOLD'EM, the floor to iOS 15.4, A REAL ZEBRA, the C2 cloud reds) (passes/play-now.md) ← NOW → THE POOL FIXES +
+  THE SLIDER → JAYWALK's passes; THE LAUNCH whenever the owner taps.
