@@ -15,7 +15,7 @@ import { raidEvening, RAID } from './harbor-raid.js';
 import { hintsAt } from './harbor-billboard.js';
 import { holdemShow, holdemKeeps } from './harbor-holdem.js';
 import { triFaces, turnsBetween, triKnobs } from './harbor-trivision.js';
-import { holidayAt, ghostShipTimes, GHOST_LEN } from './harbor-holiday.js';
+import { holidayAt, ghostShipTimes, GHOST_LEN, thanksLeaves } from './harbor-holiday.js';
 import { paradeWindow } from './harbor-parade.js';
 import { mixNow } from './harbor-people.js';
 import { sunPosition } from './sky.js';
@@ -80,6 +80,10 @@ export function dayChart(dateKey, o = {}) {
   { const rd = raidEvening(key, { seed, off, day0 }); if (rd) add('raid', H(rd.t0), H(rd.t0 + RAID.cap), 'THE RAID (the convoy, the lights cut)', true); }
   // THE HOLIDAYS (the day's state, the ghost ship, the parade)
   const hol = holidayAt({ y, m, d, h: 20, mi: 0, s: 0 });
+  // (FR7 FIXES C — THANKSGIVING's SIGN, the timetable's `thanksgiving.leaves`: the maple leaves' day + THE GOLD WEEK, from the 4 am line)
+  { const tl = thanksLeaves(hol), K = knob('thanksgiving.leaves');
+    if (tl && tl.leaves > 0) add('holiday', K.turnH, 24 + K.turnH, `THE MAPLE LEAVES · ${Math.round(tl.leaves * 100)} %`);
+    if (tl && tl.gold) add('holiday', K.turnH, 24 + K.turnH, 'THE GOLD WEEK · THE SIGN IN GOLD'); }
   if (m === 10 && d === 31) for (const gh of ghostShipTimes(y)) add('holiday', gh, gh + GHOST_LEN / 3600, 'THE GHOST SHIP', true, { legend: true });   // (THE VAULT 1C: a legendary sighting — its tier on THE PROGRAM)
   { const pw = paradeWindow(day0 + 12 * 3600, { off }); if (pw) add('holiday', H(pw.T0), H(pw.T1), 'THE THANKSGIVING PARADE', true); }
   // THE BILLBOARD's hints (each one's window — it shows its spell every few minutes inside it)

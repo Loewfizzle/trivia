@@ -36,6 +36,8 @@ export const CREDITS = [
   // HE3 — HOLD'EM's table: the felt (ambientCG Fabric030, CC0 — recoloured, no attribution required, credited as a courtesy) + the casino card
   //  back (generated with Grok) — Downloads/grok/holdem/credits.txt; only the compressed copies in assets/holdem/ ship
   { group: 'ART', title: 'Fabric030 — HOLD’EM’s felts: the green + the teal (recoloured)', by: 'ambientCG (https://ambientcg.com/a/Fabric030)', licence: 'CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)', link: 'https://ambientcg.com/a/Fabric030' },
+  // (FR7 FIXES C — THANKSGIVING's SIGN: the 12 maple leaves behind NEON — Downloads/grok/thanksgiving-sign/notes.txt; only the atlas ships)
+  { group: 'ART', title: 'Thanksgiving maple leaves', by: 'Created with Grok (Grok Imagine, xAI)', licence: 'Generated art — no CC licence claimed' },
   { group: 'ART', title: 'HOLD’EM’s casino card back (AI-generated)', by: 'AI-generated with Grok', licence: 'Generated art — no CC licence claimed' },
   // HE5 — NEON CASINO's rail + backdrop + the clay chips (Downloads/grok/holdem/credits.txt + chips/credits.txt); compressed copies only ship
   { group: 'ART', title: 'Leather026 — HOLD’EM’s black leather rail (recoloured)', by: 'ambientCG (https://ambientcg.com/a/Leather026)', licence: 'CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)', link: 'https://ambientcg.com/a/Leather026' },

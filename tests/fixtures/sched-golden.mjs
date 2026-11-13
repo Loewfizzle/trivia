@@ -16,7 +16,7 @@ import { workDay, bulbOut, lampFault, boardLampOut, bootlegNight, dayOf } from '
 import { dayPlan, edgeMoods, edgeShades, bossDayPlan, parkedNight, quietNight, bedtimes, windowParty, eyesNights, legendNights } from '../../js/core/harbor-moments.js';
 import { scenesTonight, shadesNight } from '../../js/core/harbor-scenes.js';
 import { boxerNight } from '../../js/core/harbor-boxer.js';
-import { holidayAt, ghostShipTimes, processionAt, GHOST_LEN } from '../../js/core/harbor-holiday.js';
+import { holidayAt, ghostShipTimes, processionAt, GHOST_LEN, thanksLeaves } from '../../js/core/harbor-holiday.js';
 import { towerAt } from '../../js/core/harbor-tower.js';
 import { xmasPrelude } from '../../js/core/harbor-xmas.js';
 import { paradeWindow } from '../../js/core/harbor-parade.js';
@@ -108,6 +108,8 @@ export const SYSTEMS = {
   'showcase.legends': D => ['high', 'normal', 'low'].map(lv => legendsTonight(D.y, D.m, D.d, lv)),
   'showcase.medium': D => (SAMPLE(D) ? mediumDay(D.wkey, D.day0, D.dow) : undefined),
   'holiday': D => [12, 21].map(h => { const x = holidayAt(lcOf(D, h)); return x ? JSON.parse(JSON.stringify(x)) : null; }),
+  // (FR7 FIXES C — THANKSGIVING's MAPLE LEAVES + THE GOLD WEEK: the timetable's `thanksgiving.leaves` — added on purpose, ONLY this row's key written)
+  'thanksgiving.leaves': D => (D.m === 11 ? [3, 5, 21].map(h => thanksLeaves(holidayAt(lcOf(D, h)))) : undefined),
   'holiday.ghost': D => (D.d === 1 && D.m === 1 ? ghostShipTimes(D.y) : undefined),
   'holiday.procession': D => processionAt(lcOf(D, 20), 17.6),
   'tower': D => towerAt(lcOf(D, 12)),

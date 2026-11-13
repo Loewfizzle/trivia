@@ -15,7 +15,8 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** C: scene.js's state by getters (+ a setter where this code assigns it): bakeTones, bigClock=, bigHeld=, bigRelatch=, bigWall=, cam, clock, DEBUG, destroyed, DK, dpr, dprTier, dress=, dressLoading=, duskDay=, duskH=, forceAtOf, HL=, HP=, hprops=, hpropsLoading=, hpropsMs=, HR=, HS=, HZ, L, lastSignLv=, LB, legendPow, LK, lkMs, LOADLOG, nowT, parade=, paradeLoading=, paraKey=, paraUnits=, pokeLog, propModelNow, PWQ, rects, S, signLive, snd, tier, treeHeld=, W, WF, WXS, XP=, zap */
 export function createSceneHoliday(C) {
-  const DRESS_COLS = { halloween: [[255, 122, 18], [155, 61, 255], [255, 122, 18], [155, 61, 255]], dotd: [[255, 166, 42], [255, 46, 151], [255, 166, 42], [255, 46, 151]], thanksgiving: [[255, 160, 64], [255, 160, 64], [255, 160, 64], [255, 160, 64]] };
+  const DRESS_COLS = { halloween: [[255, 122, 18], [155, 61, 255], [255, 122, 18], [155, 61, 255]], dotd: [[255, 166, 42], [255, 46, 151], [255, 166, 42], [255, 46, 151]], thanksgiving: [[255, 190, 58], [255, 190, 58], [255, 190, 58], [255, 190, 58]] };   // (FR7 FIXES C — THE GOLD WEEK's tubes)
+  const PINK4 = [[255, 46, 151], [255, 46, 151], [255, 46, 151], [255, 46, 151]];
   // WIN2 — THE SPIDERS' WORLD: the SPEAKEASY word's tubes in LOGO units (the sign's viewBox: -26 -30 384 …; logoRect() is the SVG's
   // rect inset 7 % / 18 %), and the letters' middles for a poke's x
   const LOGO_VB = { x: -26, y: -30, w: 384 }, LETTER_X = [32, 128, 208, 300];
@@ -27,11 +28,14 @@ export function createSceneHoliday(C) {
   }
   function pokeDress(ev) { if (!C.dress || !C.dress.scare) return 0; const x = ev.x != null ? ev.x : ev.letter != null ? LETTER_X[Math.max(0, Math.min(3, ev.letter | 0))] : null; const n = C.dress.scare({ kind: ev.kind || 'poke', x, k: ev.k }); C.pokeLog.push({ t: +C.nowT.toFixed(1), kind: ev.kind, x, n }); if (C.pokeLog.length > 12) C.pokeLog.shift(); return n; }
   function dressTick(t) {
-    const fw = C.clock.force.has('sign-web'), fd = C.clock.force.has('sign-dotd'), ft = C.clock.force.has('sign-thanks');   // (11a-2: &force=sign-thanks — the harvest wreath, any day)
-    const H = fw && C.HS.id !== 'halloween' ? { id: 'halloween', phase: 'build', stage: 1, down: 0, days: 30, eve: false } : fd && C.HS.id !== 'dotd' ? { id: 'dotd', phase: 'day', stage: 1, down: 0, days: 1, day: 0, eve: false } : ft && C.HS.id !== 'thanksgiving' ? { id: 'thanksgiving', phase: 'build', stage: 1, down: 0, days: 20, eve: false } : C.HS;
-    const P = H === C.HS ? C.HP : H.id === 'halloween' ? { web: 1, spider: true, spider2: true } : H.id === 'thanksgiving' ? { wreath: 1 } : { sign: 1 };
+    const fw = C.clock.force.has('sign-web'), fd = C.clock.force.has('sign-dotd'), ft = C.clock.force.has('sign-thanks');   // (&force=sign-thanks — the maple leaves + the gold tubes, any day)
+    // (FR7 FIXES C — A SIGN FORCE ALWAYS SHOWS THE FULL LOOK: it used to fall back to the real calendar while it WAS that holiday's season — the
+    //  preview link showed no leaves before ~Nov 15, a half web early in October; now the force wins, in season or not)
+    const H = fw ? { id: 'halloween', phase: 'build', stage: 1, down: 0, days: 30, eve: false } : fd ? { id: 'dotd', phase: 'day', stage: 1, down: 0, days: 1, day: 0, eve: false } : ft ? { id: 'thanksgiving', phase: 'build', stage: 1, down: 0, days: 20, eve: false } : C.HS;
+    const P = H === C.HS ? C.HP : H.id === 'halloween' ? { web: 1, spider: true, spider2: true } : H.id === 'thanksgiving' ? { leaves: 1, gold: true } : { sign: 1 };
+    leavesTick(t, H, P);
     if (!C.dress) {
-      if (!C.dressLoading && (H.id === 'halloween' || H.id === 'dotd' || H.id === 'thanksgiving')) { C.dressLoading = true; lazyImport(import('./signdress.js'), './signdress.js').then(m => { if (!C.destroyed) C.dress = m.createSignDress(); }).catch(e => { C.dressLoading = false; console.warn('[harbor] sign dress', e); }); }
+      if (!C.dressLoading && (H.id === 'halloween' || H.id === 'dotd')) { C.dressLoading = true; lazyImport(import('./signdress.js'), './signdress.js').then(m => { if (!C.destroyed) C.dress = m.createSignDress(); }).catch(e => { C.dressLoading = false; console.warn('[harbor] sign dress', e); }); }
       return;
     }
     if (C.S.dressHost) C.dress.setHost(C.S.dressHost);
@@ -40,6 +44,21 @@ export function createSceneHoliday(C) {
     C.dress.frame({ holiday: H, pieces: P, t, motion: !!C.S.motion, tier: C.tier, dpr: C.dpr, dressDpr: tierVal('dressDpr', C.dprTier) / 10, signLit: C.signLive(), word: wordLogo(), letterCols: C.HR && C.HR.sign && H === C.HS ? DRESS_COLS[C.HR.sign] || null : null,
       dark: clamp01(1 - (C.LK.w.day || 0) - 0.5 * (C.LK.w.golden || 0)), wind: C.WXS ? C.WXS.gust || 0 : (C.LK.wind == null ? 3 : C.LK.wind) });
   }
+  // FR7 FIXES C — THANKSGIVING's MAPLE LEAVES behind NEON (screens/harbor/leafbank.js — lazy: loaded in the season / by the force only; its atlas
+  // after the reveal, never in THE BOOT BUDGET); the module is this closure's — destroyLeaves() frees it (scene.js#destroy: THE LONG NIGHT's RULE)
+  let leaves = null, leavesLoading = false;
+  function leavesTick(t, H, P) {
+    const k = H && H.id === 'thanksgiving' && P ? P.leaves || 0 : 0;
+    if (!leaves) {
+      if (k > 0 && !leavesLoading) { leavesLoading = true; lazyImport(import('./leafbank.js'), './leafbank.js').then(m => { if (!C.destroyed) leaves = m.createLeafBank(); }).catch(e => { leavesLoading = false; console.warn('[harbor] leaf bank', e); }); }
+      return;
+    }
+    if (C.S.dressHost) leaves.setHost(C.S.dressHost);
+    leaves.frame({ k, day: 1 - clamp01(1 - (C.LK.w.day || 0) - 0.5 * (C.LK.w.golden || 0)), lit: C.signLive(), cols: P && P.gold ? DRESS_COLS.thanksgiving : PINK4,
+      dpr: tierVal('dressDpr', C.dprTier) / 10, tier: C.tier, motion: !!C.S.motion });
+  }
+  function destroyLeaves() { if (leaves) { try { leaves.destroy(); } catch { /* fine */ } } leaves = null; leavesLoading = false; }
+  const leavesDebug = () => (leaves ? leaves.debug() : null);
   const dressDebug = () => (C.dress ? C.dress.debug() : null);
   const hskyWanted = () => C.HS.id === 'halloween' || C.clock.force.has('ghost-ship') || C.clock.force.has('witch') || C.clock.force.has('bats');
   // (11a-2 — THE WITCH WAS CHOPPY (the owner's phone): LK.local carries WHOLE seconds, refreshed only with the look — her pass (+ the ghost
@@ -103,10 +122,12 @@ export function createSceneHoliday(C) {
     // (11a-2: + THANKSGIVING — City 1.0's calendar keeps it 'full' Wed → Fri: the Harbor's sign was amber on Black Friday)
     if (C.LK.holiday && (C.LK.holiday.id === 'halloween' || C.LK.holiday.id === 'thanksgiving')) C.LK.holiday = null;
     C.LK.c2holiday = titleHoliday(C.HS);
+    // (FR7 FIXES C: &force=sign-thanks = the FULL look — the gold tubes too, any day)
+    if (C.clock.force.has('sign-thanks')) { C.LK.c2holiday = { id: 'thanksgiving', full: true, k: 1, c2: true }; C.HR = { ...C.HR, sign: 'thanksgiving', signLight: '#ffc23a' }; }
     // (the windows' scenes plan by the hour: they read the DAY's stage — noon's — so a plan never shifts mid-hour; eve flips once)
     if (C.HS.id && lc) { const hd = holidayAt({ y: lc.y, m: lc.m, d: lc.d, h: 12, mi: 0 }), pd = hd.id === 'halloween' ? halloweenPieces(hd) : null;
       C.HL = { id: C.HS.id, stage: Math.round((hd.id === C.HS.id ? hd.stage : C.HS.stage) * 100) / 100, eve: !!C.HS.eve, w: pd ? Math.round(pd.windows * 10) / 10 : 1, ofrendas: C.HP && C.HP.ofrendas != null ? C.HP.ofrendas : 0 };
       if (C.HS.id === 'halloween' && C.HS.eve) C.HL.w = 1; } else C.HL = null;
   }
-  return { dressDebug, dressTick, holidayTick, hpropsDraw, hpropsItems, hskyEnv, hskyWanted, paraSound, paradeItems, pokeDress };
+  return { destroyLeaves, leavesDebug, dressDebug, dressTick, holidayTick, hpropsDraw, hpropsItems, hskyEnv, hskyWanted, paraSound, paradeItems, pokeDress };
 }

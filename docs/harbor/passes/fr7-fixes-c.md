@@ -40,3 +40,31 @@ Every finding checked against the code first — all nine were real, all fixed:
 
 THE RESET MORNING (Grok's order) → `docs/launch.md` §1 (a MONDAY a few minutes after 4 am ET); the back-fill line re-checked (true after S4).
 No rules change (the new fields — `pd`, `xw.p`, `results/{key}.st: 'retry' / pre` — are server-written under the root deny).
+
+## Group 3 — THANKSGIVING's SIGN: THE MAPLE LEAVES + THE GOLD WEEK (the wreath + the swags RETIRED)
+
+The detail: docs/harbor.md "THANKSGIVING's SIGN — THE MAPLE LEAVES + THE GOLD WEEK".
+- **The art:** `art/thanksgiving-sign/src/` (copies of Downloads\grok\thanksgiving-sign) → `scripts/build-thanksgiving-leaves.mjs` → ONE atlas
+  `assets/city/thanksgiving/leaves.webp` (680×510, 86 KB) + `leaves.json`. The source matte turned out HARD (no partial-alpha edge pixels — Grok's
+  "bold matte"), its outermost ring a dark OLIVE: the key (alpha from greenness) + the un-mix + `g ≤ r`, then the rim's three rings RE-COLOURED
+  from the leaf's own colour inside (ring 1 at a low alpha) — the olive outline gone, the thin stems kept. QA at 4× on dark AND light
+  (`fr7-fixes-c/leaves-qa-{dark,light}-4x.png`): 0 green-cast pixels; looked at, leaf by leaf. (A first try ERODED ring 1 — it cut leaf 1's stem; undone.)
+- **The bank:** `screens/harbor/leafbank.js` (the old `dress-thanksgiving.js` deleted; `signdress.js` lost its `thanks` piece). ONE seeded layout,
+  92 leaves, ~24–42 pt at 390, centre-out order; baked once per look + stage; behind the tubes (`.nd-leafbank` z −1 in the wrap — the harbor
+  `thanks` group checks it). Its timetable row `thanksgiving.leaves` { from −11, full −4, gold −3, turnH 4, fadeS 2 }; THE DAY CHART rows; the golden
+  table + that one key.
+- **THE GOLD WEEK:** Mon Nov 23 4 am → Fri Nov 27 4 am (`thanksLeaves().gold` → `titleHoliday().full`): the gold neon by night, GOLD GLASS by day
+  (new: `.nd-sign.sg-thanksgiving.is-day` — the day's tubes were clear glass first). The one-day amber retired.
+- **The forces:** every holiday sign force shows the FULL look in or out of season (`&force=sign-thanks` was the reported bug: no leaves before
+  Nov 15); the panel rows' hints say so.
+- **THE NEON STAYS READABLE — measured** (WCAG luminance, the tube cores vs the 90th / 50th percentile of what sits ~5–14 pt outside them; 390 / 402 /
+  430): NIGHT with the full bank + the halo **3.4 : 1** median (a plain night, no leaves, Nov 14: 3.5–4.4 : 1); DAY gold glass over the bank 3.4 : 1
+  median / 1.7 : 1 against the brightest 10 % (a plain day's clear glass over sky: 4.4–5.5 / 1.7–2.1) — the day halo raised 0.22 → 0.4 for that.
+- **The look reviews** (the shots: `docs/harbor/passes/fr7-fixes-c/` — git-ignored): review1 = the calendar at 390 / 402 / 430 / 1440 (Nov 15 · 18 · 22,
+  Nov 24 night + day, the homecoming party Nov 25 9 pm, Thanksgiving night Nov 26 7:30 pm — `review1/sheet-390.png`, `sheet-1440.png`); refine 1:
+  the night bank too bright under the tubes (the O + E lost their edge over yellow) → the far leaves darker + the halo 0.5 → 0.72; the day tubes
+  clear glass → GOLD glass; refine 2: the bank's top edge a straight band → a waving rim + fewer, attached stragglers; the leaves 28–48 pt → 24–42 pt;
+  one lone floater off the right end → an edge leaf must touch the bank (review3–5). **The cast** (`cast/` — Nov 18 3:59:51, every painted frame for
+  7 s): the day's new leaves fade in over ~2.7 s (the largest single-frame change 16 % of the whole) — no pop.
+- **Proof:** unit (`harbor-holiday` — the stages Nov 14 → 27, gold from Mon 4 am, two more years; the golden table); the harbor `thanks` group 14/14
+  (Nov 20 leaves ¾ behind the tubes, Nov 24 full + gold, the force on Nov 1 + IN season Nov 16) + `holiday` + `panelrows` (81/81 together).

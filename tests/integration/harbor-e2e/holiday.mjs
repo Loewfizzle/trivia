@@ -288,18 +288,29 @@ G('thanks', async () => {
     ok(h && h.model && h.modelState && /png \(webp error\)/.test(h.modelState.why) && ro && /^(local|[0-9a-f]{7}) · t\d/.test(ro.head) && row && /^harvest: MODEL \(loaded .*png \(webp error\)/.test(row),
       `THE HARVEST MODEL WITHOUT ITS WEBPS (an iPhone's failed decode): drawn from the PNGs (model ${h && h.model}, ${h && h.modelState ? `${h.modelState.state}: ${h.modelState.why}` : 'no state'}); the readout's first line "${ro ? ro.head.slice(0, 28) : 'none'}…", its row "${row || 'none'}"`);
     await Q.ctx.close(); }
-  // ---- NOV 10: a third of the way — bales, corn stalks round the lamp posts, the spots' pumpkins; no harvest display, no wreath yet
+  // ---- NOV 10: a third of the way — bales, corn stalks round the lamp posts, the spots' pumpkins; no harvest display, no maple leaves yet
   { const Q = await page('tg-n10', '2026-11-10T21:00');
     const h = await ev(Q.page, `${P}.holiday`), d = await ev(Q.page, `${P}.dress`);
-    ok(h.state.id === 'thanksgiving' && h.state.phase === 'build' && h.pieces.bales && h.pieces.stalks && h.pieces.spots >= 1 && !h.pieces.harvest && !(h.pieces.wreath > 0) && !h.pieces.giant && (await sign(Q)) === '',
-      `NOV 10 — THE BUILD-UP: stage ${h.state.stage.toFixed(2)}, bales ${h.pieces.bales}, stalks ${h.pieces.stalks}, spots ${h.pieces.spots}, harvest ${h.pieces.harvest}, wreath ${h.pieces.wreath}, the sign ${(await sign(Q)) || 'its own'}`);
+    ok(h.state.id === 'thanksgiving' && h.state.phase === 'build' && h.pieces.bales && h.pieces.stalks && h.pieces.spots >= 1 && !h.pieces.harvest && !(h.pieces.leaves > 0) && !h.pieces.giant && (await sign(Q)) === '',
+      `NOV 10 — THE BUILD-UP: stage ${h.state.stage.toFixed(2)}, bales ${h.pieces.bales}, stalks ${h.pieces.stalks}, spots ${h.pieces.spots}, harvest ${h.pieces.harvest}, leaves ${h.pieces.leaves}, the sign ${(await sign(Q)) || 'its own'}`);
     void d; await Q.ctx.close(); }
-  // ---- NOV 20: the harvest display on the centre circle, the wreath going up on the sign
+  // ---- NOV 20: the harvest display on the centre circle, THE MAPLE LEAVES filling in behind NEON (FR7 FIXES C — the wreath retired)
   { const Q = await page('tg-n20', '2026-11-20T21:00');
-    await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.dress.pieces.includes('thanks')`, 'the wreath on the sign', 15000).catch(() => {});
-    const h = await ev(Q.page, `${P}.holiday`), d = await ev(Q.page, `${P}.dress`);
-    ok(h.pieces.harvest && h.pieces.wreath > 0.4 && d && d.pieces.includes('thanks'), `NOV 20 — THE HARVEST DISPLAY + THE WREATH: harvest ${h.pieces.harvest}, wreath ${h.pieces.wreath.toFixed(2)} (${d ? d.pieces.join(',') : 'no dressing'})`);
+    await waitFor(Q.page, `${P}.leaves && ${P}.leaves.on`, 'the maple leaves behind the sign', 15000).catch(() => {});
+    const h = await ev(Q.page, `${P}.holiday`), lv = await ev(Q.page, `${P}.leaves`);
+    const behind = await ev(Q.page, `(() => { const b = document.querySelector('.nd-leafbank'); if (!b) return null; const w = b.parentElement; return { z: getComputedStyle(b).zIndex, wrapZ: getComputedStyle(w).zIndex, first: w.firstElementChild === b, inWrap: w.classList.contains('nd-logo-wrap') }; })()`);
+    ok(h.pieces.harvest && h.pieces.leaves > 0.6 && h.pieces.leaves < 0.9 && !h.pieces.gold && lv && lv.on && lv.layers.every(l => Math.abs(l.k - h.pieces.leaves) < 0.01),
+      `NOV 20 — THE HARVEST DISPLAY + THE MAPLE LEAVES: harvest ${h.pieces.harvest}, leaves ${h.pieces.leaves.toFixed(2)} (baked ${lv ? lv.layers.map(l => `${l.look} ${l.k}`).join(' + ') : 'none'}), the tubes not gold yet`);
+    ok(behind && behind.inWrap && behind.z === '-1' && behind.wrapZ !== 'auto', `the leaves BEHIND the tubes: inside the logo's wrap (a stacking context — z ${behind && behind.wrapZ}) at z ${behind && behind.z}`);
     await Q.ctx.close(); }
+  // ---- NOV 24 (the gold week) + &force=sign-thanks on Nov 1 (out of season): the FULL bank + the gold tubes
+  for (const [name, when, qs] of [['tg-gold', '2026-11-24T21:00', ''], ['tg-force', '2026-11-01T21:00', '&force=sign-thanks'], ['tg-force-in', '2026-11-16T21:00', '&force=sign-thanks']]) {   // (Nov 16: IN season — the force used to fall back to the calendar's few leaves)
+    const Q = await page(name, when, qs);
+    await waitFor(Q.page, `${P}.leaves && ${P}.leaves.on`, 'the full bank', 15000).catch(() => {});
+    const lv = await ev(Q.page, `${P}.leaves`), gold = await ev(Q.page, `!!document.querySelector('.nd-sign.sg-thanksgiving')`);
+    ok(lv && lv.on && lv.layers.every(l => l.k === 1) && gold, `${name === 'tg-gold' ? 'NOV 24 — THE GOLD WEEK' : name === 'tg-force-in' ? '&force=sign-thanks IN SEASON (Nov 16)' : '&force=sign-thanks on NOV 1'}: every leaf up (${lv ? lv.layers.map(l => l.k).join(',') : 'none'}), the tubes gold ${gold}`);
+    await Q.ctx.close();
+  }
   // ---- NOV 25, 10 pm: THE HOMECOMING — a party night on a Wednesday (the show on, the dance's circle round the harvest display)
   { const Q = await page('tg-wed', '2026-11-25T22:01:30');
     await waitFor(Q.page, 'window.__district.party().on > 0.5', 'the party on', 20000).catch(() => {});

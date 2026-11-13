@@ -173,6 +173,13 @@ export const SCHEDULE = Object.freeze([
       // DAY OF THE DEAD: the procession `after` h past sunset for `len_min`; the monarchs from `monarchs[0]` h until `monarchs[1]` h before dusk
       dotd: { procession: { after: 1 / 6, len_min: 70 }, monarchs: [9.5, 0.5], monarch: { slot: 600, len: 22, chance: 0.75 } },   // (monarch: a ten-minute slot carries one at `chance`, ~`len` s across)
     } },
+  // FR7 FIXES C — THANKSGIVING's SIGN (the owner, Nov 13: the harvest wreath + the wheat swags RETIRED): a bank of real MAPLE LEAVES behind the NEON
+  // letters fills in day by day, centre-out — the first on day `from`, all of them on day `full` (days from Thanksgiving: −11 = the Sunday 11 days
+  // before → Nov 15 2026; −4 = the Sunday before → Nov 22) — each day's new leaves from the `turnH` line (4 am, the city's local clock), fading in
+  // over `fadeS` s if the city is open across it; THE GOLD WEEK = the sign's tubes GOLD from day `gold` (−3 = the Monday of Thanksgiving week) at
+  // `turnH` to the holiday's end (4 am the Friday after — the leaves come down with it)
+  { id: 'thanksgiving.leaves', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js#thanksLeaves + screens/harbor/leafbank.js', what: 'THANKSGIVING’s SIGN: the maple leaves behind NEON fill in from `from` to `full` (days from Thanksgiving, at `turnH`), new ones fade in over `fadeS` s; THE GOLD WEEK — the tubes gold from `gold` to the holiday’s end',
+    knobs: { from: -11, full: -4, gold: -3, turnH: 4, fadeS: 2 } },
   { id: 'workers', trigger: 'clock', status: 'live', src: 'core/harbor-workers.js', what: 'the workers\' day (milk 6:00, newsboy 7:00, barber 8:30, the beat cop 9 am + 9 pm…)',
     knobs: { shows: {
       // ~5:30 the street sweeper — a 1920s "white wing" with his broom + can cart; a wet streak left drying on the cobbles

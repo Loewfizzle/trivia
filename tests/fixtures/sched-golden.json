@@ -1776,5 +1776,11 @@
   "America/Detroit|7|2027-10": "3ecf10861edcc467",
   "Europe/Berlin|1924|2027-10": "3ecf10861edcc467",
   "Europe/Berlin|7|2027-10": "3ecf10861edcc467"
+ },
+ "thanksgiving.leaves": {
+  "America/Detroit|1924|2026-11": "0645b356f4fdf3a1",
+  "America/Detroit|7|2026-11": "0645b356f4fdf3a1",
+  "Europe/Berlin|1924|2026-11": "0645b356f4fdf3a1",
+  "Europe/Berlin|7|2026-11": "0645b356f4fdf3a1"
  }
 }

@@ -32,6 +32,20 @@ export const HOLIDAY_TABLE = Object.freeze(knob('holidays').table.map(r => Objec
 export function thanksgivingDay(y) { const dow = new Date(Date.UTC(y, 10, 1)).getUTCDay(); return 1 + ((4 - dow + 7) % 7) + 21; }
 
 /**
+ * FR7 FIXES C — THANKSGIVING's SIGN (PURE): the MAPLE LEAVES behind NEON + THE GOLD WEEK from the state (H = holidayAt()) and the timetable row
+ * `thanksgiving.leaves` → { leaves (0..1 — the share of the bank up: whole days, (D − from + 1) / (full − from + 1)), day (the leaf day: days from
+ * Thanksgiving, turning at `turnH`), gold (the tubes gold) } | null (not the season). Never earlier than Nov 15-ish, all of them by the Sunday
+ * before, gold from the Monday of the week — the same on every phone (the city's local clock).
+ */
+export function thanksLeaves(H) {
+  if (!H || H.id !== 'thanksgiving' || !(H.day > 0)) return null;
+  const K = knob('thanksgiving.leaves'), R = HOLIDAY_TABLE[2];
+  // days since Thanksgiving's local midnight (H.days counts from the build-up's first day, Nov R.build[1])
+  const fromTg = H.days - (H.day - R.build[1]), D = Math.floor(fromTg - K.turnH / 24);
+  return { leaves: clamp01((D - K.from + 1) / (K.full - K.from + 1)), day: D, gold: D >= K.gold };
+}
+
+/**
  * holidayAt(lc) → the state. lc: { y, m, d, h, mi, s? } local.
  */
 export function holidayAt(lc) {
@@ -162,8 +176,8 @@ export function latchBig(held, now, relatch = false) {
  *   bales    straw bales on the spots (from ~Nov 6) · spots: 0..3 the set pieces on them (1 a pumpkin, 2 + gourds, 3 + a second pumpkin)
  *   stalks   cornstalk bundles round the compass (PROM: no lampposts) (from ~Nov 8)
  *   harvest  THE HARVEST DISPLAY on the centre circle (from ~Nov 13)
- *   wreath   0..1 the NEON sign's harvest wreath + garland going up (wheat → oak leaves → gourds → the bulbs; from ~Nov 15)
- *   amber    the sign's tubes amber (the day itself)
+ *   leaves   0..1 the MAPLE LEAVES behind the NEON letters (FR7 FIXES C — from ~Nov 15, all by the Sunday before; thanksLeaves)
+ *   gold     THE GOLD WEEK: the sign's tubes gold (the Monday of the week → the holiday's end)
  *   raker    someone raking leaves by day (Nov 4 → ~22)
  *   cider    the chestnut cart also sells hot cider (the whole build-up)
  *   geese    the V's crossing more often (×) · party: the Wednesday's homecoming party night · parade: Thanksgiving morning
@@ -177,8 +191,10 @@ export function thanksgivingPieces(H, o = {}) {
     spots: s < 0.09 ? 0 : s < 0.28 ? 1 : s < 0.5 ? 2 : 3,
     stalks: s >= 0.18 || day,
     harvest: s >= 0.42 || day,
-    wreath: day ? 1 : clamp01((s - 0.5) / 0.42),
-    amber: day,
+    // (FR7 FIXES C — the harvest wreath + its swags RETIRED: THE MAPLE LEAVES behind NEON (`leaves` 0..1) + THE GOLD WEEK (`gold` — the tubes;
+    //  the one-day AMBER went with it) — thanksLeaves(), the timetable's `thanksgiving.leaves`)
+    leaves: (thanksLeaves(H) || { leaves: 0 }).leaves,
+    gold: !!(thanksLeaves(H) || {}).gold,
     raker: days < TG.raker.days && hr > TG.raker.from && hr < TG.raker.to && !day,
     cider: true,
     geese: 2.2,
@@ -267,9 +283,12 @@ export function lightRules(H, o = {}) {
     const p = dotdPieces(H, o) || {};
     if (p.warm > 0.5) { out.sign = 'dotd'; out.signLight = '#ffa62a'; out.strings = p.up > 0.5 ? 'dotd' : null; out.wheel = p.up > 0.5 ? 'dotd' : null; }
   } else if (H.id === 'thanksgiving') {
-    // (the day: the sign's tubes AMBER, the skyline's lit windows warm + amber, the roof's strings a warm harvest gold; the build-up's last
-    // week the wheel in harvest colours of an evening)
-    if (H.phase === 'day') { out.sign = 'thanksgiving'; out.signLight = '#ffa040'; out.strings = 'harvest'; out.windowTint = [255, 214, 160]; out.windowTintK = 0.9 * dark; }
+    // (FR7 FIXES C — THE GOLD WEEK: the sign's tubes GOLD from the Monday of the week to the end (it was the day itself, amber); the day: the
+    // skyline's lit windows warm + amber, the roof's strings a warm harvest gold (unchanged); the build-up's last week the wheel in harvest
+    // colours of an evening)
+    const L = thanksLeaves(H);
+    if (L && L.gold) { out.sign = 'thanksgiving'; out.signLight = '#ffc23a'; }
+    if (H.phase === 'day') { out.strings = 'harvest'; out.windowTint = [255, 214, 160]; out.windowTintK = 0.9 * dark; }
     if (H.phase === 'day' || H.stage > 0.8) out.wheel = 'harvest';
   }
   return out;
@@ -280,7 +299,7 @@ export function titleHoliday(H) {
   if (!H || !H.id) return null;
   if (H.id === 'halloween') return { id: 'halloween', full: H.phase !== 'build', k: H.phase === 'build' ? 0.3 + 0.45 * H.stage : 1, c2: true };
   if (H.id === 'dotd') return { id: 'dotd', full: H.phase !== 'down', k: H.stage * (1 - H.down), c2: true };
-  if (H.id === 'thanksgiving') return { id: 'thanksgiving', full: H.phase === 'day', k: H.phase === 'day' ? 1 : 0.3 + 0.5 * H.stage, c2: true };
+  if (H.id === 'thanksgiving') { const g = !!(thanksLeaves(H) || {}).gold; return { id: 'thanksgiving', full: g, k: g ? 1 : 0.3 + 0.5 * H.stage, c2: true }; }   // (FR7 FIXES C: `full` = THE GOLD WEEK's tubes)
   return null;
 }
 

@@ -392,7 +392,11 @@ body.reduced-fx .nd-word-p { animation: none !important; opacity: 0 !important; 
 .sg-nye .ndl { --g: #ffc24a; --b: #ffdb8a; --c: #fffaf0; }
 .sg-valentine .ndl { --g: #ff2e6e; --b: #ff6a98; --c: #fff0f5; }
 .sg-stpatrick .ndl { --g: #18e070; --b: #5dff9e; --c: #f0fff6; }
-.sg-thanksgiving .ndl { --g: #ff8a1e; --b: #ffb050; --c: #fff6e6; }
+.sg-thanksgiving .ndl { --g: #ffb21e; --b: #ffcf5a; --c: #fffbea; }   /* (FR7 FIXES C — THE GOLD WEEK: a warm gold neon, white-hot core; was the one-day amber) */
+/* (FR7 FIXES C — THE GOLD WEEK by day: GOLD GLASS over the maple leaves — the unlit tubes' body + core tinted gold, the rim a warm bronze) */
+.nd-sign.sg-thanksgiving.is-day .nd-logo .ndl-glass { stroke: rgba(92, 58, 14, 0.7); }
+.nd-sign.sg-thanksgiving.is-day .nd-logo .ndl:not(.on) .ndl-body { stroke: rgba(255, 204, 92, 0.72); }
+.nd-sign.sg-thanksgiving.is-day .nd-logo .ndl:not(.on) .ndl-core { stroke: #ffd04a; stroke-opacity: 0.8; }
 .sg-easter .ndl-1 { --g: #ff8ad0; --b: #ffb3e0; --c: #fff5fb; } .sg-easter .ndl-2 { --g: #8ad8ff; --b: #b8e8ff; --c: #f5fbff; }
 .sg-easter .ndl-3 { --g: #b48aff; --b: #d2b8ff; --c: #faf5ff; } .sg-easter .ndl-4 { --g: #ffd86a; --b: #ffe7a0; --c: #fffbf0; }
 .sg-july4 .ndl-1, .sg-july4 .ndl-4 { --g: #ff2e44; --b: #ff5a6a; --c: #fff0f0; }

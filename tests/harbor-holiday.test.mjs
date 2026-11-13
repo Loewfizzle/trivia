@@ -149,16 +149,26 @@ test('11a-2 — BIG PIECES CHANGE OFF-CAMERA (latchBig): held while watching, ch
   assert.ok(BIG_KEYS.includes('giant') && BIG_KEYS.includes('harvest'));
 });
 
-test('11a-2 — THE NOVEMBER BUILD-UP grows day by day: mums first, the bales, the corn stalks, the spots\' pumpkins, the harvest display, the wreath; the day itself amber + the parade in the morning; the raker by day until ~Nov 22; the trees held at peak colour', async () => {
+test('11a-2 — THE NOVEMBER BUILD-UP grows day by day: mums first, the bales, the corn stalks, the spots\' pumpkins, the harvest display, the maple leaves (FR7 FIXES C); the gold week + the parade in the morning; the raker by day until ~Nov 22; the trees held at peak colour', async () => {
   const { holidayAt, thanksgivingPieces, holidaySeason } = await import('../js/core/harbor-holiday.js');
   const at = (d, h = 12) => { const H = holidayAt({ y: 2026, m: 11, d, h, mi: 0 }); return { H, P: thanksgivingPieces(H, { hour: h }) }; };
   let prev = null;
-  for (let d = 4; d <= 25; d++) { const { P } = at(d); if (prev) for (const k of ['mums', 'spots', 'wreath']) assert.ok(P[k] >= prev[k], `${k} never shrinks (Nov ${d})`); if (prev) for (const k of ['bales', 'stalks', 'harvest']) if (prev[k]) assert.ok(P[k], `${k} stays (Nov ${d})`); prev = P; }
-  assert.ok(at(4).P.mums >= 1 && !at(4).P.bales && !at(4).P.harvest && at(4).P.wreath === 0, 'Nov 4: the first mums only');
+  for (let d = 4; d <= 25; d++) { const { P } = at(d); if (prev) for (const k of ['mums', 'spots', 'leaves']) assert.ok(P[k] >= prev[k], `${k} never shrinks (Nov ${d})`); if (prev) for (const k of ['bales', 'stalks', 'harvest']) if (prev[k]) assert.ok(P[k], `${k} stays (Nov ${d})`); prev = P; }
+  assert.ok(at(4).P.mums >= 1 && !at(4).P.bales && !at(4).P.harvest && at(4).P.leaves === 0, 'Nov 4: the first mums only');
   assert.ok(at(14).P.harvest && at(14).P.stalks && at(14).P.bales, 'mid-November: the harvest display stands');
-  assert.ok(at(25, 21).P.party && at(25, 21).P.wreath === 1, 'the Wednesday: the homecoming party, the wreath complete');
-  assert.ok(at(26, 9).P.parade && at(26, 9).P.amber && !at(26, 14).P.parade, 'the day: the parade in the morning, amber tubes');
+  assert.ok(at(25, 21).P.party && at(25, 21).P.leaves === 1 && at(25, 21).P.gold, 'the Wednesday: the homecoming party on the gold tubes, every leaf up');
+  assert.ok(at(26, 9).P.parade && at(26, 9).P.gold && !at(26, 14).P.parade, 'the day: the parade in the morning, the gold tubes');
   assert.ok(at(10, 11).P.raker && !at(10, 18).P.raker && !at(24, 11).P.raker, 'the raker: late mornings until ~Nov 22');
+  // FR7 FIXES C — THE MAPLE LEAVES fill in Nov 15 → 22 (whole days, from 4 am), THE GOLD WEEK from Mon Nov 23 4 am to the end (Fri 4 am)
+  assert.equal(at(14, 23).P.leaves, 0, 'none before Nov 15');
+  assert.equal(at(15, 3).P.leaves, 0, 'Nov 15 before 4 am: still none');
+  assert.ok(at(15, 5).P.leaves > 0 && at(15, 5).P.leaves < 0.2, 'Nov 15 from 4 am: the first few');
+  assert.ok(at(18, 21).P.leaves > 0.4 && at(18, 21).P.leaves < 0.6, 'Nov 18: about half');
+  assert.equal(at(22, 5).P.leaves, 1, 'Sun Nov 22: the full bank');
+  assert.ok(!at(22, 21).P.gold && !at(23, 3).P.gold && at(23, 5).P.gold && at(26, 23).P.gold, 'gold from Mon Nov 23 at 4 am');
+  assert.equal(holidayAt({ y: 2026, m: 11, d: 27, h: 5, mi: 0 }).id, null, 'down with the season (Fri 4 am)');
+  const { thanksLeaves } = await import('../js/core/harbor-holiday.js');
+  for (const y of [2027, 2028]) { const tg = (await import('../js/core/harbor-holiday.js')).thanksgivingDay(y), L = thanksLeaves(holidayAt({ y, m: 11, d: tg - 4, h: 12, mi: 0 })); assert.ok(L.leaves === 1 && !L.gold, `${y}: full on the Sunday before`); }
   assert.deepEqual(holidaySeason(at(24).H, 'winter', 0.05), { season: 'autumn', phase: 0.62 }, 'the trees at their peak colour on Thanksgiving week');
   assert.deepEqual(holidaySeason(holidayAt({ y: 2026, m: 12, d: 5, h: 12, mi: 0 }), 'winter', 0.1), { season: 'winter', phase: 0.1 }, 'after: the real season');
 });

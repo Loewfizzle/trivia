@@ -95,6 +95,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE LONG NIGHT's RULE: every module the scene creates is destroyed in scene.js#destroy(), its canvases freed at once (`ui/canvas-safe.js#freeCanvases`).
 - THE CITY'S IDLE POLLS: every call = an edge request — only from a tab on screen AND focused, ≥ 5 min; a new idle poll = a named decision (`tests/cdn-hotfix.test.mjs`) → docs/launch.md (moved).
 - Debug + preview flags: `&debug=1`, `&dpr=3`, `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary waits for the reveal + a tap; `&lgnow=1` at once).
+- A holiday SIGN FORCE (`&force=sign-*`) shows the FULL look any day, in season too; THANKSGIVING = the maple leaves BEHIND the letters + THE GOLD WEEK (`leafbank.js`) → docs/harbor.md.
 - THE TRI-VISION: the roof board turns HOLD'EM ↔ JAYWALK by ONE pure clock (`core/harbor-trivision.js`) → docs/harbor.md (moved).
 
 **The console + the room** (→ docs/harbor.md (moved), docs/cartridge.md, docs/title.md)

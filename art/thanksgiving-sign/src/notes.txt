@@ -1,0 +1,102 @@
+THANKSGIVING MAPLE LEAVES
+NEON SPEAKEASY  —  13 Nov 2026, America/Detroit
+Art created with Grok
+Free only. Built-in Grok Imagine (GenerateImage) + local Python/PIL/OpenCV
+compositing (chroma key, despill, grid and bank layout). AI-generated, not CC0.
+No paid tools, no trials.
+
+DESTINATION
+  C:\Users\benja\Downloads\grok\thanksgiving-sign\   (Beelink)
+  Worked in /workspace/neon/thanksgiving-sign/
+
+HOW THEY WERE MADE
+  Grok Imagine cannot make 2048×1536 natively (max wide size is 1280×720),
+  so nothing was stretched up from a single sheet render. Six 1280×720
+  images were generated, each with TWO large, widely spaced sugar-maple
+  leaves on a flat chroma-green background. Leaves were chroma-keyed
+  (not rembg), despilled so G never exceeds R, hardened to a bold matte,
+  and placed on an exact #00FF00 canvas.
+
+GENERATIONS (6 of 8 allowed)
+  gen1  deep crimson + bright scarlet, both face-on
+  gen2  burnt orange (face-on) + pumpkin orange (slightly turned)
+  gen3  golden yellow + amber, both face-on
+  gen4  blended red→gold (face-on) + blended crimson→orange (face-on)
+  gen5  deep crimson (turned) + pumpkin orange (turned)
+  gen6  amber gold (slightly turned) + blended scarlet→gold (slightly turned)
+  Two generations left unused. No backup sheet or bank: all 12 extracted
+  leaves passed QA, so no -b files.
+
+1) leaves-sheet.png
+  Size: 2048×1536 RGB PNG
+  Grid: 4 columns × 3 rows, cells 512×512 (2048/4 and 1536/3). Each leaf
+  is scaled so its longer side is 400 px and is centred in its cell with
+  at least 56 px of #00FF00 margin; no leaf touches a cell edge or another
+  leaf. Background pixels outside the leaves are exact (0,255,0).
+  (A 512×384 cell would have been too short for a ~400 px-tall maple,
+  so the natural 512×512 tiling of 2048×1536 was used.)
+
+  Index is row-major, left to right, top to bottom:
+
+  #   source   colour / angle                                      src span  scale
+  01  gen1-L   deep crimson, face-on                                 481 px   0.832× down
+  02  gen1-R   bright scarlet red, face-on                           483 px   0.828× down
+  03  gen4-L   blended: red edge → orange mid → golden centre, face-on
+                                                                     478 px   0.837× down
+  04  gen4-R   blended: deep crimson edge → burnt orange centre, face-on
+                                                                     478 px   0.837× down
+  05  gen2-L   burnt orange, face-on                                 479 px   0.835× down
+  06  gen2-R   pumpkin orange, slightly turned                       480 px   0.833× down
+  07  gen5-R   pumpkin orange, turned                                397 px   1.008× up
+  08  gen5-L   deep crimson, turned                                  390 px   1.026× up
+  09  gen3-L   golden yellow, face-on                                409 px   0.978× down
+  10  gen3-R   amber / honey gold, face-on                           390 px   1.026× up
+  11  gen6-L   rich amber gold, slightly turned                      409 px   0.978× down
+  12  gen6-R   blended: scarlet edge → pumpkin → gold centre, slightly turned
+                                                                     413 px   0.969× down
+
+  Three leaves were upscaled, all by ≤ 2.6% (390 or 397 → 400). The
+  others were downscaled from ~478–483 px sources.
+
+  QA: no leaf touches its cell; 1 px sheet border is exact #00FF00;
+  green-hue pixels inside leaves = 0.000% after despill. Silhouettes
+  still read clearly at a 40 px test (about 30 pt). No text, neon,
+  letters, frame or watermark.
+
+2) leaves-bank-ref.png
+  Size: 2048×788 RGB PNG  (2.599 : 1, about 2.6 : 1)
+  Reference only — composited from the same 12 extracted leaves (40
+  instances: each leaf once, plus repeats at other rotations, flips
+  and scales) in a loose overlapping oval on exact #00FF00. The real
+  in-game bank should be built from the sheet in code.
+  Cloud aspect ≈ 2.48; 28 px canvas border is exact #00FF00;
+  green-hue in leaves = 0.000%.
+
+PREVIEW
+  preview-leaves.jpg — both images keyed over dark navy, for review
+  only (labels are in the preview, not in the deliverable art).
+
+FLAGS / CANDID MISSES
+  1. The leaves are more photographic than “painterly-realistic”.
+     Veins, curl and texture are there, but they read as photos of
+     maple leaves, not painted ones.
+  2. “A few turned / slightly curled”: several leaves are rotated or
+     lightly angled (06, 07, 08, 11, 12). None is a strong three-quarter
+     curl; the turn is modest.
+  3. gen1’s source background was a darker green (about 1,139,5), not
+     #00FF00. It keyed cleanly; a few leftover olive edge pixels were
+     despilled (G clamped to R) before compositing.
+  4. A few stems are a slightly deeper gold or red than the blade
+     (especially 09 and 10). They are warm, not brown/dead, and not green.
+  5. gen6-L (11) has a more mottled, slightly dry-looking surface. It is
+     still amber-gold, not a brown dead leaf.
+  6. No backup files. Two of eight generations were left unused.
+
+FILES + SHA256
+  leaves-sheet.png         2048x1536  1684854 bytes
+    5c4e8a248afce495af4e38c66dd991c851f640ce35c63ec4032355ef8b43bb26
+  leaves-bank-ref.png      2048x788   1613248 bytes
+    e49f14892209fcbf5e4510ed69311d78605ca9da7f5e4588fcf315d4128f8766
+  preview-leaves.jpg       2120x2530  1182718 bytes
+    16c4e42e65abb85162040b5db4f158360151ef40a69d0c702109060088229ff6
+  notes.txt                (this file; hash computed after write)

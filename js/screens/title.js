@@ -320,7 +320,7 @@ function xmasWireSvg(vb, COLS, back, front, swags, bulbs, k) {
 
 // the colour each holiday's sign throws on the haze and the wet street
 // the dock's neon line icons, each drawn twice: the tube (its colour, glowing) and a thin white-hot core on top
-const SIGN_LIGHT = { dotd: '#ffa62a', halloween: '#ff8a2a', christmas: '#ff3048', nye: '#ffd27a', valentine: '#ff4f8a', stpatrick: '#3dff8b', easter: '#c9a2ff', thanksgiving: '#ffa040', july4: '#5a8cff' };
+const SIGN_LIGHT = { dotd: '#ffa62a', halloween: '#ff8a2a', christmas: '#ff3048', nye: '#ffd27a', valentine: '#ff4f8a', stpatrick: '#3dff8b', easter: '#c9a2ff', thanksgiving: '#ffc23a', july4: '#5a8cff' };
 
 /** CITY CONTROLS A: the title's preview remote while it lives (the radio plays its desk's moments through it) */
 let liveRemote = null;
