@@ -535,3 +535,54 @@ A second way to bring your card to a device, beside the restore key (which stays
   while its frames run, so a present-but-silent player is a counted loss (never a solo run for the other); A RE-START KEEPS THE LAST MATCH's PROOF
   (`host.js#pruneProofs` — every other match's nodes pruned, best effort; a rules row lets the host delete one match's node). A host can still fake the
   RESULT of a match the victim really played (the accepted host trust) — never credit one they weren't in.
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table row
+
+| `docs/profiles.md` | profiles, name tags + keys, FRIENDS (the list, invites that wait, SAVE TO PASSWORDS, the crew intercom), `/api`, result reporting, THE BOARD, XP ranks + steps, streaks, the weekly goal, mastery, THE VAULT (card finishes, name glows), emblems, `/board`, `/admin`, the Vercel setup |
+
+### Profiles are polish too
+
+- **Profiles are polish too:** joining and playing must work with `/api` down or unconfigured (no tags, no emblems, results queue). ONE CARD ON ALL YOUR DEVICES (THE VAULT 1A): a device with nothing saved is asked ALREADY A MEMBER? BRING YOUR CARD (docs/profiles.md).
+
+### THE BOARD shows REAL USERNAMES
+
+- **THE BOARD shows REAL USERNAMES (LOBBY 2.0 A, Nov 3 — reverses BNAME's house nicknames):** a public row (`/api/board`, its CDN copy,
+  `/board`, the title's preview) = an opaque board id + the player's USERNAME — never a profile id, the key or the tag's digits; a name the
+  filter calls rude shows as its HOUSE NICKNAME (`api/_lib/lb.js#publicName`, `js/core/nicknames.js`); REPORT + /admin's rename / hide stay;
+  a report pushes the owner (`api/board.js` → `radio.js#notifyOwner`). `profiles/{pid}` is readable one at a time by signed-in users, never
+  as a list. A profile is listed from its 3rd COUNTED PLAY (a room match or a counted daily — never a solo run; `core/progress.js#countedPlays`, PD-3). docs/profiles.md "REAL USERNAMES".
+
+### Anti-cheat + THE REAL PLAYER COUNT
+
+- **Anti-cheat never depends on the code being secret** (the owner, Oct 28 — the repo stays PUBLIC until just before the launch): the
+  server checks + replays every result itself (`/api`), the secrets live only in Vercel's env (the service-account key, the pepper).
+- **THE REAL PLAYER COUNT (FR7-A's C1, Nov 12):** anything the server PAYS BY A COUNT takes that count from what it can verify, never from
+  the length of a host-written list — `api/report.js`: the match's names with a seat (`players/{uid}`) or a server-known account, ≤ 8;
+  > 16 names refused; one real player = a solo run, never a win (docs/profiles.md; `server.test.mjs` "FR7-A C1").
+
+### FRIENDS A + FRIENDS B
+
+- **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
+  actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
+  remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,
+  the badge on YOU, ADD FRIEND on name tags, the INVITE sheet); INVITES THAT WAIT (a push + the card — `profile/invites.js`, one /api call, never a
+  socket); YOUR TABLE = `today` reads the friends list (≤ 12); THE CREW INTERCOM behind the owner's switch (`radio/crewIc`, default OFF); SAVE TO
+  PASSWORDS (`profile/keychain.js` — a real credential form; the key goes nowhere new).
+- **FRIENDS B (docs/harbor/passes/friends-b.md):** FACE ID / PASSKEY SIGN-IN (`api/_lib/passkeys.js` — actions on api/profile.js, still 8 functions;
+  `@simplewebauthn/server` 13.3.3 for /api ONLY; RP ID neonspeakeasy.com + localhost off production; `pkc` / `pkx` / `pkch` server-only by the
+  root deny — no rule names them; user verification REQUIRED, one live challenge per device per kind, used once; sign-ins share the restore key's
+  limit + `linkDevice`; the RESTORE KEY STAYS the fallback; the phone side hand-written in `js/profile/passkey.js` — docs/profiles.md "PASSKEYS").
+  THE PODIUM: Grok's podium sounds (`pg-*.mp3`, `PG_REV` busts the cache) + the console's winner sting; a cartridge's `OWN_VICTORY_SOUND` skips it;
+  the podium music waits for the FRAME (`state.podium`); `ACCENT` colours the frame; the results list from 4th; the score under each slim card;
+  the whole XP box opens your card. THE TIER GEM = ONE SHAPE (`vault/gems.js`); the screen change = a 150 ms fade (no glitch); the dock lit by day;
+  the link preview `assets/og.jpg` (JPEG ≤ 300 KB — og.png gone); game toasts under the header (`toast.js#gameTop`, `[data-msg-under]`).
+
+### BOARD 2.0 A + B
+
+- **BOARD 2.0 A (Nov 9 — docs/harbor/passes/board-2a.md):** EVERY XP PAYMENT through `core/progress.js#payXp` (+ `pstats.xw` — THE OVERALL BOARD `xp`; a test greps for a stray `.xp =`) and its board row in the SAME update as the XP (`lb.js#overallPaths`); DAILY POINTS = ONE pure table (`core/daily-points.js` — a row per daily; the server's stored score only) → `daily` / `daily-<game>` boards; a public row = `api/board.js#ROW_KEYS` (+ the slim card's ids — never a pid / tag / member Nº); THE PLAYER PAGE = `/api/profile player` (the top 3 achievement NAMES — the owner's ONE approved exception: `api/_lib/player.js` only); the BACK-FILL = /admin → THE BOARDS (the owner's tap).
+- **BOARD 2.0 B (Nov 9 — docs/harbor/passes/board-2b.md):** THE BOARD = slim cards (`ui/strip-board.js` only) on BLACK VELVET + GOLD DECO, tabs `board/view.js#TABS` (XP · DAILIES · OVERCLOCK · PRISM · HOLD'EM — HOLD'EM IN THE CITY: five on one row at 390, PRISM DROP's tab reads PRISM); THE PLAYER PAGE = `profile/player-page.js#openPlayer` (tap ANY name — reads only `/api/profile player`, through THE COVER); a full card's art has ITS OWN layout (`.vl-fcm-*` — never the strip's zoom) and its map says the same (`full: [x, y, z, 'w']`); SHARE TODAY = each daily's `share.js#paintSection` (the same pieces as its own card — `share-same.html` proves it) + `today { share }` (spoiler-free, the tap only).

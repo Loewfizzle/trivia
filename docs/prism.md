@@ -389,3 +389,54 @@ the last strong beat, the key, `lufs` / `tp` / `check` in the song's JSON; `writ
   **PD5** no WebGL: no throw, HOLD + NEXT drawn. **PD6** A CAPPED FRAME RATE IS NOT A SLOW PHONE (the city's probe — `kit/tiers.js`). **PD7** the
   sprite caches go `DROP_MS` (60 s) after the match's screen (a rematch keeps them).
 - Not changed: `RUSH_PACE.margin` (it wants a fresh `sim-prism-rush.mjs` against the tighter number — FR7 FIXES B).
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### PRISM DROP (PD-1 … PFIX-B)
+
+- **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists). PD-1 (Nov 9 — docs/prism.md "THE LAYOUT"; the
+  rework plan: docs/games/plan.md): THE MAX BOARD's sizes are ONE pure module (`prism/layout.js` — the real safe areas, the cell snapped to device
+  pixels, the board at the FULL 3×), HOLD + NEXT inside the board's corners, the other players on THE SLIM RAIL (`rail.js`), SLAM = the red push
+  button at the rail's foot (LEFT mirrors it); the podium = the console's frame + `victory.js#finalScene` (PRISM draws no frame, no report table);
+  `prism-preview.html` mounts the REAL view (`prism-shots.mjs`). PD-2 (Nov 9 — docs/prism.md): AUTO-TARGET is ONE pure rule (`logic.js#autoTarget` —
+  the most recent attacker still alive, else a random opponent kept while valid; no button, no setting); incoming junk = THE RISING GHOST ROWS
+  (`incoming.js` PURE + the look's hook `board.js#LOOKS` — the engine's attack math + delays untouched; an occupied cell only tinted, never
+  covered; no red bar); callouts on the kit's announcer (`fit`); KO card → Call the Winner (the kit's `ring`) → SPECTATE (names → THE PLAYER PAGE
+  only there); SURVIVAL (the seeded 10 s → 4 s rows, `survivalRows`) + SOLO (`SOLO: true` — SCORE RUSH + SURVIVAL; BATTLE needs 2: a CHOICE's
+  `when(players)` in the options sheet + `cleanSettings(s, players)`); the results carry `ko` / `pc` / `dz` / `t` for PD-5's cards. PD-3 (Nov 9 — docs/prism.md "THE NIGHT
+  LOOK"): THE GAME LOOK picks the board's look LIVE (`view.js#watchLook` — day = the glass placeholder until PD-4, night = THE NEON TUBES,
+  `board.js#neonSprite`); each piece keeps its COLOUR FAMILY in every world (`neon.js` PURE — `tests/prism-neon.test.mjs`); every MOVING light is the
+  LIGHT LAYER's (`light.js` — one low-res WebGL canvas above the board, pure added light + a GPU bloom; never a full-res 2D blur, never the board
+  copied to a texture: measured); effects short, never over the stack or the incoming rows; FOUR TIERS (`tiers.js`) — the light steps down FIRST,
+  the board's 3× LAST. PD-4 (Nov 9 — docs/prism.md "THE CRAYON LOOK"): DAY = THE CRAYON LOOK (the glass look retired as the day look); the crayons keep
+  the night's COLOUR FAMILIES + read on every paper (`crayon.js` PURE — `tests/prism-crayon.test.mjs`); every crayon drawing PRE-DRAWN once (`crayon-art.js`
+  — never a stroke per frame; warmed in slices); THE PAPER = the HOST's deal per match (`game.pp` — `crayon.js#pickPaper`, the night's memory: a rotation,
+  never twice in a row — the same page on every phone); the page + the world doodle = ONE canvas redrawn only on a change (`page.js`), the WebGL world
+  skipped by day; the papers (CC0) + Permanent Marker (Apache 2.0) load ONLY when the day look shows (`page.js#warmDay`). PD-5A (Nov 9 — docs/prism.md "THE TWO SETS" + "THE BEAT FIX"): EVERY beat-timed
+  thing (visuals, the countdown, the musical SFX, the finale) reads `view.js#songClock` = THE HEARD BEAT (`sync.js` PURE — the sounding voice's clock − SPEAKER
+  DELAY − an unreported iPhone speaker − the measured lead; the SFX on the song's own clock), never `serverNow()` beside it; the lead = the city's
+  listener + estimator, bounded ±60 ms (kicks off the beats → the grid alone); QUICK START = `synced-songs.js` `quick` (slices from the stream's start, the
+  swap on one sample; a cue-in streams from ~0.5 s before its cue — ONE Range request placed by `game.ff`, `bufferT0` = a buffer's file time); TWO SETS — NIGHT `prism1-5` (unchanged) + DAY `prismd1-5` (`look: 'day'`, hand-set worlds, cue-ins), the HOST's look at
+  `start` = `game.set` (every phone plays it), DAY's playlist in the night's memory (`meta/used/prism/dn<N>`); a day song = `build-prism.py --day`
+  (it STOPS a song off its measured BPM by > 0.1, drifting or on the half-beats — never a guess). PD-5B (Nov 9 — docs/harbor/passes/pd-5b.md): THE THREE CARDS'
+  flags from the room's own record (`match-report.js#prismExtra` — `firstko` · `pc` · `comeback`; PRISM's `comeback` never raises COMEBACK KID), the art
+  DRAWN IN CODE (`fx/pd-cards.js` + PURE `pd-specs.js`; the material = its baked still frame — `scripts/build-pd-cards.mjs` after an art edit); FIRST KO is
+  the ONE moving common (`vault.test.mjs#COMMON_MOVES`); THE BURST BEFORE THE COLLAPSE (the neon board holds the pre-clear stack until the burst —
+  `neonfx.js#preClear`; the game never waits); THE HOLIDAY HOOK = `holiday.js` (one row a holiday — empty now). PFIX-A (Nov 10 — docs/prism.md
+  "PFIX-A", the review's `PFIX-A:` lines): THE LOCK = every move / turn after the first touch-down spends a reset, spent → the next touch-down
+  locks AT ONCE (`engine.js` — the lowest CELL counts); AWAY = a board silent ≥ 30 s in play is out, credited to nobody (`director.js`; the
+  view's save = the heartbeat + a save on hidden / pagehide); a DOUBLE KO = the one out LAST wins (`director.js#outOrder`); an attack's key =
+  `{uid}-{piece}` + the board saved in the same frame (a refresh never attacks twice — the receiver orders by `at`); AUTO-TARGET forgets
+  after 20 s (`TARGET_MEMORY_MS`); THE NIGHT GAIN (`build-prism.py --night-gain` → the manifest's `gain`, per voice through
+  `synced-songs.js#levelOf`); THE TEARDOWN — `unmount()` destroys + zeroes everything `mount()` made, ONE reverb a page, `ui/fit.js`'s
+  late-font list is WEAK (a podium no longer pins a match's screen; proof `e2e-prism-leak.mjs`). PFIX-B (Nov 10 — docs/prism.md "PFIX-B" —
+  THE ANTI-CHEAT RULES A PASS MUST KEEP): the board node `prism/{m}/{uid}` is written only in PLAY (+ GO − 2 s, + SCORE RUSH's end ≤ endAt + 4 s),
+  FROZEN once out (own `st` or `game/out`), `at` = the server's now, `sv` CLOSED + bounded by the play clock (a new saved field = its rule row +
+  a rules test, or every save is refused); the view writes only inside that window (`logic.js#boardWritable` — keep the two in step); an attack's
+  key = `{uid}-{piece}` (one a piece), `at` = now, never at / from a board that's out, the receiver's queue ≤ `QUEUE_MAX` 40; a KO counts only with
+  the sender's attack in the victim's queue (`creditedBy`, 20 s); the award flags only from plausible numbers (`prismExtra` — `pn` in the
+  results); SCORE RUSH's bound = the SIM's (`scripts/sim-prism-rush.mjs` — re-run it after a scoring change); by day the tiers step 3 → 0
+  (`tiers.js#stepTier`); the ghost rows = the first 12 to land.

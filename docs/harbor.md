@@ -1118,3 +1118,128 @@ SIGN ignites in the NEON pink at 0.56 s (tube by tube — `room-city.js#tubeDela
 fade at 4.3 s. **QUICK** (a same-game REMATCH — `host.js#rematch`) = 3.0 s — the sign lit at once, the walk-in at 0.25 s, the fade at 2.35 s. The
 kind rides in the match id (`q…` — `startKind`); the game's clock = the tap + the start's length. No camera push, no layout read; reduced motion =
 the lit sign + the fade. Look runs: `tests/integration/room2-look.mjs` (the beats at 300 / 900 / 1250 / 2300 / 4000 / 4700 ms + the quick start).
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table rows (harbor + decisions)
+
+| `docs/harbor.md` (+ `docs/harbor/passes/`, one log a pass — its INDEX) | **CITY 2.0 — THE HARBOR** (`?city=2`): the bible — size rules, camera + layout, bakes + memory, lanes, budgets, THE FILE MAP, KNOWN ISSUES, the standing rules' full text |
+| `docs/harbor/decisions.md` | the owner's CURRENT City 2.0 decisions (short; `docs/harbor/plan.md` = the dated archive) — **read first in a Harbor pass**; Step 0 updates it |
+
+### Phone first, unzoomed + Desktop comes free
+
+- **Phone first, unzoomed (the owner's standing rule, Oct 27):** window scenes + people (and everything else) must READ ON THE PHONE AS-IS,
+  UNZOOMED. Before building a detail, check it against its real size on the iPhone (a speakeasy window is ~40 pt wide); a detail that
+  can't be seen there (fingers, a figure in the dark behind, small props, crust textures) is NOT built — make it bigger, bolder, a clear
+  silhouette + one bright accent, or drop it. Judge every look review at 390 / 402 / 430 without zooming in.
+- **Desktop comes free (the owner, Nov 1–2 — DESKTOP):** every feature, holiday + event is built + judged for the PHONE only; a desktop, an iPad
+  sideways or a phone sideways get it through the shared city + THE DESKTOP CAMERA (core/harbor-layout.js#DESK) — never a desktop-only piece
+  or a second version. EVERY pass checks ONE desktop size (1440×900: shots.mjs `--sizes pass`) beside the three phone widths + fixes what
+  breaks there; sideways + iPad only in a desktop pass + FR6 (`--sizes desk-pass`). docs/harbor.md#the-camera--the-layout-part-1-numbers.
+
+### City 2.0 — its standing rules (as they stood)
+
+- **City 2.0 (THE city) — its standing rules, one line each** (the full text: docs/harbor.md#city-20-in-claudemd--the-full-text; the
+  owner's CURRENT decisions: **docs/harbor/decisions.md** — read it before a Harbor pass; plan.md is the archive):
+  - THE WINDOW RULE: every window moment enters by its own motion or the blind cycle (core/harbor-moments.js#ENTERS_BY_MOTION).
+  - THE WINDOW STANDARD (the owner, Oct 31): the shadowboxer + the boss's TV room are the bar for every window scene — one real light in the room, its shadows, smooth eased motion, that quality.
+  - THE PEOPLE RULE: nobody appears or vanishes in view on the promenade (core/harbor-witness.js#rejoinVisits, people.js#guard).
+  - THE SOLIDS: every solid thing on the promenade is ONE registry (core/harbor-solids.js) — every walk goes round it.
+  - NO LAMPPOSTS: the implied lamps; the light in ONE pure module (core/harbor-light.js; NEW light default, `&light=old` for A/B).
+  - NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold); every vehicle planner reads it.
+  - THE WIND IS ONE STATE (core/harbor-wind.js → scene.js#WF once a frame): anything that moves in the wind reads it (gusts roll from upwind).
+  - THE BEAT: the lights follow the song's grid; a TRUSTED GRID ALWAYS PUNCHES; the kicks only calibrate the lead (core/harbor-beat.js).
+  - 3D only as BAKED sprites (scripts/bake-model.mjs); lettering nothing passes in front of → THE CRISP LAYER (crisp.js).
+  - Every force flag has a panel row (core/harbor-remote.js; tests/harbor-remote.test.mjs greps for strays).
+  - Every canvas through `safeCtx` / `ctx2d` (ui/canvas-safe.js) — counted by the memory guard; a new canvas needs no registration.
+  - THE CITY TIMETABLE (core/harbor-schedule.js) holds EVERY timed thing (SCHED moved the older systems in; tests/harbor-sched-strays.test.mjs
+    fails on a stray time in a planner; THE GOLDEN TABLE — tests/fixtures/sched-golden.mjs — proves a move changed nothing). THE SHOWCASE DIAL
+    (core/harbor-showcase.js — `showcase`, HIGH now) shapes the legendaries + the medium tier; the billboard's hints = the `billboard.*` queue;
+    THE DAY CHART (/daychart + /admin) shows any day from the planners; THE TIER TABLE (core/harbor-tiers.js) every NEW per-phone number.
+  - THE WINDOW SCENES ARE TIMETABLE ROWS (WINDOWS, Nov 1): scene.<id> (window, hours, nights, rarity, glow; `rotate: true` = seeded slots — the
+    bookie) read by core/harbor-scenes.js; a NEW scene = its row + core/harbor-<id>.js + its painter in windows.js#SCENE_PAINT; after hours the
+    scene rooms + the edge windows keep their SHADES DOWN glowing in their colour, lights out one at a time 2–4 am (windows.shades); the old
+    scenes RETIRED behind windows.old / &force=old-windows (core/harbor-moments.js#RETIRED).
+  - THE RADIO (CITY CONTROLS A — docs/harbor/passes/city-controls-a.md): the owner's controls; a row with a `jack` in the timetable = a jack
+    on the desk; the SERVER checks the ROLE per action (core/harbor-radio.js#ROLES: owner · crew) + writes + audits every moment; a fired
+    moment plays ONCE (scene-radio.js), never the preview panel's loop; only a server yes loads the radio (radio-gate.js). CC-B: THE INTERCOM
+    (the owner's voice: audio/intercom.js — the clip an hour via /api, held in a game) + THE CREW (granted by the owner; ONE RADIO PER LOBBY —
+    core/harbor-radio.js#radioHolder; their sky moments dormant until LOBBY 2.0) + PRESETS + the room push (api/_lib/push.js, VAPID env vars).
+  - THE LOAD (THE LOAD FIX, Nov 6 — docs/harbor.md#performance): the boot screen holds until THE CITY's reveal (ONE fade; its unlit sign =
+    the title's spot — keep index.html #boot + title.css .nd-sign in step); ONE CAMERA ON SCREEN (scene.js#holdStart: a re-layout after the
+    reveal holds the picture, then cuts — never the old bake under the new signs, never a dissolve); proof: wk-load.mjs + the `load` group.
+    THE BOOT BUDGET (LOAD FIX 2): what loads before the reveal is budgeted (tests/integration/boot-budget.json — raising it = a decision a pass
+    names); THE BOOT PRELOAD = index.html's GENERATED list (`node scripts/build-boot-preload.mjs` after a module's imports change); no audio
+    before a tap; after the reveal nothing in the sky changes by a cut (clouds.js); measure: `boot-time.mjs` (docs/harbor.md#performance).
+    THE BOOT WATCHDOG (LOAD FIX 3): inline in index.html, ahead of every module (`window.__boot` — a module can't watch the graph it dies with):
+    the graph failing → at once, no reveal in 12 s ON SCREEN → a BOOT HANG report to /admin + ONE reload (never a loop) + TAP TO TRY AGAIN; THE
+    HANG WATCH starts there at boot (the scene only feeds it); proof: the `load` group's BOOT SAFETY NET + `wk-freeze.mjs` (docs/harbor.md#performance).
+    LOAD FIX 4 (Grok's boot audit): THE REJOIN LIMIT (the boot waits ≤ 8 s ON SCREEN for Firebase + the room, then the city + REJOIN — app.js#boot,
+    room.js#pendingResume / cancelResume: ONE attempt); EVERY dynamic import through THE SKEW WRAPPER (`lazyImport(import('./x.js'), 'x')` —
+    ui/lazy-import.js: a new deploy → ONE reload, never in a match being played; tests/lazy-import.test.mjs fails on a stray); the boot's gates
+    in VISIBLE time (ui/onscreen.js — never a plain setTimeout / wall-clock age for a boot wait); no regex lookbehind (safari-floor.test.mjs).
+    LOAD FIX 5 (the owner's DOUBLED CITY, Nov 11): THE BOX GATE — EVERY camera / box change on EVERY path goes through the ONE gate
+    (scene.js#boxCheck / boxLook → onResize → build → layout → holdStart: the layer's ResizeObserver from the FIRST frame, the reveal waits for a
+    city built for its box, a look once a second + at every return; the held picture's safety in time ON SCREEN) — never a second canvas resize;
+    THE GUARD = NO TWO CAMERAS (`node tests/integration/wk-double.mjs` — WebKit, every path; the harbor `cameras` group; a new path = its row in
+    tests/integration/kit/two-cameras.mjs — docs/harbor.md#performance).
+  - Debug + preview flags: `&debug=1` (strips at the TOP), `&dpr=3` (look only), `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary
+    from a link waits for the reveal + a tap; `&lgnow=1` at once) — docs/harbor.md.
+
+### THE ROOM IN THE CITY + MAKE HOST + ONE ACCOUNT, ONE ROOM
+
+- **THE ROOM IN THE CITY (LOBBY 2.0 A + B):** in City 2.0 THE OLD LOBBY SCREEN IS RETIRED — the room lives in the city from the join to the podium
+  and back (the old lobby screen + lobby.js went with City 1.0 — CITY 1.0 OUT). LOBBY 2.0 B: THE GAME START (meta/go — LOBBY FIXES: the game's own pink sign lights, the walk inside, a fade — 5 s FULL / 3 s for a same-game REMATCH, the kind in the match id,
+  `core/room-show.js`), THE CITY PAUSE (a match on screen = the city destroyed + rebuilt after), the walk back out + THE WINNER's BANNER PLANE (meta/back
+  — `screens/room-banner.js`), THE REMATCH VOTE (rooms/{CODE}/rv/{uid}), ONE SHEET STACK (`ui/layers.js` — every pop-up opens on top); docs/harbor/passes/lobby-2b.md.
+  A City 2.0 room's waiting part IS the live city — app.js routes it to the title (never reloaded);
+  `screens/room-city.js` (+ room-dock / room-guests / game-options) puts the players in TWO LINES OF 4 at the door (`core/harbor-room.js` +
+  `room-lines.js` — derived from rooms/{CODE}; each keeps their line: `players/{uid}/ln`); docs/harbor/passes/lobby-2a.md (+ B's hand-off).
+- **MAKE HOST + THE CREW SWITCH LIVE (SHELL 2.0 B2):** the host hands the room on from a player's card (`room.js#makeHost` — in the room, to an
+  ONLINE player; the rule validates `meta/hostId` → a live, online, unkicked player; `meta/hostBy` → both phones say it); the owner's CREW switch on a
+  card stamps `rooms/{CODE}/radioCrew/role/{uid}` → that phone's radio loads / goes at once (`radio-gate.js#fresh` / `drop`).
+- **ONE ACCOUNT, ONE ROOM (LOBBY FIXES):** a profile holds ONE seat in ONE live room (`seats/{pid}` — `js/seat.js`: MOVE HERE · CANCEL on the second device); the SERVER credits a profile once per match (the worse seat) and never for two overlapping matches (`core/progress.js#overlaps`). Your NAME + COLOUR are edited at the top of CUSTOMIZE YOUR CARD only (`js/profile/edit.js`).
+
+### FRIENDS C
+
+- **FRIENDS C (docs/harbor/passes/friends-c.md):** a fired radio one-shot plays ONCE per tab (`scene-radio.js` — `nd:rd-seen`; a hold comes back);
+  THE INTERCOM plays on every phone at ONE server-clock moment (EVERYONE 50 s ahead; scheduled on the audio clock; late = mid-way, never from the
+  top); the show (flyby / air show / missing man) draws AFTER every weather layer (`skyfx.js#showOver`) — no show moment hidden by weather;
+  THE BLACK HELICOPTER = the medium tier's night helicopter pass (`air.js#blackPlan`, `scripts/bake/blackhelo.mjs`, a jack + `&force=blackhelo`);
+  a cartridge's whole module graph is preloaded at once (`js/games/preload.js` + the GENERATED `preload-graph.js` — `node scripts/build-preload-graph.mjs`
+  after a game's imports change; a test fails when stale), the lobby wires the playable ones 4 s in.
+
+### THE HOLD'EM BILLBOARD (CITY FIXES)
+
+- **THE HOLD'EM BILLBOARD (CITY FIXES):** the roof board's BASE POSTER (`core/harbor-holdem.js` — the timetable's `billboard.holdem` default — NOW OPEN from its `open` day, 2026-11-11 (HOLD'EM IN THE CITY; COMING SOON before it, the billposter's ONE paste is the change), the owner's /admin → THE BILLBOARD switch through the cached feed, `&force=billboard-holdem`); the messages still interrupt; the billposter pastes it once then stays home; painted in code (`holdem-art.js` + GENERATED path lettering — `scripts/build-holdem-art.mjs`); the board itself ~15 % bigger (`harbor-layout.js#BILLBOARD_SCALE`).
+
+### JAYWALK CARDS + THE TRI-VISION
+
+- **JAYWALK CARDS + THE TRI-VISION (Nov 12–13 — docs/harbor/passes/jaywalk-cards.md):** **THE JAYWALK CARDS** = SONIC BOOM · CLOSE ENCOUNTER (rare) +
+  RIGHT OF WAY (legendary), built like REDLINE (`fx/jw-cards.js` + PURE `jw-specs.js`), lab n 217–222 — DORMANT until JAYWALK pass 6 (its marked place in
+  `api/_lib/catalog.js`). **THE TRI-VISION**: the roof board TURNS HOLD'EM ↔ JAYWALK every 45–60 s by ONE PURE clock (`core/harbor-trivision.js` — the same
+  face on every phone; `billboard.trivision` + `billboard.jaywalk` rows; the slats on the crisp layer, the first JAYWALK face BY A TURN, the billposter
+  stays home; /admin → THE BILLBOARD's JAYWALK row). **THE LOBBY GETS IT LIVE**: EVERYONE's intercom + EVERYONE's / the city's sky moments start 10 s
+  after FIRE and the server ALSO writes each into every OPEN room's `rooms/{CODE}/radio` (STOP / CLEAR / moves reach the copies; a room phone merges the
+  poll's + the room's copy by id — played once; THE CLIP AHEAD); a phone only on the city = its 5-min check-in. **THE ANALYTICS LOADER**: Vercel's plain
+  script injected AFTER the page is up (`ui/analytics.js` — index after the reveal, board, 404; never the boot, localhost, the emulators, `&test=1`,
+  previews or robots; the worker passes `/_vercel/*`). **THE LONG NIGHT's RULE**: every module the scene creates is destroyed in `scene.js#destroy()`
+  — its canvases freed AT ONCE (`ui/canvas-safe.js#freeCanvases`); the title halts the city at once, its teardown after the fade (proof: harbor
+  `longnight` + `wk-longnight.mjs`). **THE ERRORS GROUP**: robots never report (`core/bot-ua.js` — the phone + `api/log.js`); a room write refused just
+  after losing the host = "no longer the host", never the re-publish alarm (`firebase.js#setHostGone`).
+
+### HOLD'EM IN THE CITY
+
+- **HOLD'EM IN THE CITY (Nov 11 — docs/harbor/passes/holdem-city.md):** HOLD'EM's skyline sign in GRIDLOCK's spot (a ROW's slot rule counts LETTERS — the apostrophe
+  tube rides along, a vertical sign counts it; `signs.js#lettersRow` sized by the real advance; night casino red, the day face gold on felt). THE HOLD'EM BOARD
+  `holdem-tw` = TOURNAMENT WINS, KOs the tie-break, then the earlier — ONE sort value (`boards.js#tieSort`), the counters ONLY from the dealer's record
+  (`match-report.js#holdemCounters` — CASH never counts), the row in the same update as the stats; its tab = its one board (`boards.js#tabBoards`); the
+  back-fill = /admin → THE BOARDS (`core/board-fill.js#holdemFromRecords` — each result keeps `ko` from this pass on).
+  **B2:** every corner button's TAP AREA is 44 × 44 — an absolute `::after`'s inset counts from the PADDING box (− the 1 pt border); the harbor `tapfit`
+  group probes the real hit area (`kit/corner-probe.mjs`). **B3:** THE PODIUM's BACK TO THE ROOM is the frame's last piece, STICKY at the screen's foot
+  (`ui/final.js` — every game; `--fin-bg` = its solid backing, a game whose podium sits on its own look sets it) + MORE BELOW while it scrolls on.
+  **B4:** EVERYONE TIED = a DRAW for every game (`core/night.js#nightPoints`): ALL TIED on the podium (no sting / banner plane), game night 2nd-place points
+  each, the server rank 1 + no win (the room check accepts the old 3 each too); a PARTIAL tie unchanged (3 + a win each).

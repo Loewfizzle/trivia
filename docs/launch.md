@@ -162,3 +162,30 @@ minutes a month** → **~180 runs ≈ 6 final pushes a day**. The pace of Nov 8�
 an early deploy) = **~2,000–3,600 a month — over the line at that pace.** After the flip: one tagged final push per pass (the early hotfix
 pushes with the deploy tag only — they run nothing), and ≤ 5 a day stays inside (~1,650). GitHub → Settings → Billing → Actions shows the
 month so far.
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table row
+
+| `docs/launch.md` | **THE LAUNCH** (the reset, FOUNDING MEMBER closed, telling people — the repo stays public) + **THE PRIVATE FLIP** (later: the history rewrite's commands, private, THE RESEED) — the owner's steps; the repo's growth rule; the minutes once private |
+
+### FR7 FIXES B (the whole bullet)
+
+- **FR7 FIXES B (Nov 12 — docs/harbor/passes/fr7-fixes-b.md):** **THE EDGE CACHE is LIVE AGAIN** (THE CDN HOTFIX, Nov 12 — Vercel's free edge
+  requests at 1M / 1M: `docs/launch.md` step 8 run early — the revert of "THE EDGE CACHE out"): the worker keeps ONE COPY PER DEPLOY by the build id
+  (`/api/time`'s `v`; a new deploy shows at once) + `/js` `/css` `/assets` carry `max-age=300, stale-while-revalidate`; proof `wk-edge.mjs` 6 / 6 (a warm
+  visit 15 requests, was 356). **THE CITY'S IDLE POLLS (THE CDN HOTFIX — every call = an edge request):** the preview / radio feed `GET /api/admin?live=1`
+  every 5 min + `radioHello` every 5 min, ONLY from a tab on screen AND focused (`remote.js#onScreen`), a return re-asks only after 60 s; the NIXIE's
+  window (`radio.js#HERE_MS`) + the sightings' trail (`sightings.js#OPEN_TRAIL_MS`) 6 min to match — a new idle poll = a decision a pass names
+  (`tests/cdn-hotfix.test.mjs`). **THE FROZEN SONGS OUT OF DEPLOYS** — `.vercelignore` drops the ten frozen
+  games' songs (a game coming back deletes its lines; `tests/frozen-songs.test.mjs` guards every live playlist + station). **THE PRIVATE-REPO WORKFLOW** —
+  both workflows read the repo's visibility (public = as before; private = the light `tests` only, `harbor` by hand). **THE LAUNCH + THE PRIVATE FLIP =
+  docs/launch.md** (pass screenshots stay out of git — `tests/repo-growth.test.mjs`). **A SEAT IS NOT A PLAY** — a credited uid needs its OWN node of the
+  match (`api/report.js#PROOF_TREES`); PRESENT = PROVEN (OVERCLOCK writes its board at each challenge's open; PRISM saves while its frames run); the walk
+  back keeps the proof nodes and a RE-START KEEPS THE LAST MATCH's (`host.js#pruneProofs` — the host deletes ONE match's node: a rules row). **SIGHTINGS
+  NEED THE CITY OPEN** — a sky claim only inside the server's `ppriv/{pid}/co` (radioHello); the gap = the queue = 15 min; `no_stamp` = the phone retries.
+  THE TWO-TAB HANG: the boot probes Firebase's own IndexedDB databases before the SDK (`firebase.js#idbAnswers` — silent → hidden, localStorage alone);
+  every Cache Storage wait in the worker bounded; THE WATCHDOG ALWAYS ENDS IN A WAY OUT; the BOOT HANG report's "other tabs open: n".

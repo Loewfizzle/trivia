@@ -256,3 +256,25 @@ reads the look LIVE (a change mid-game re-themes the screen at once). Right / cl
 - **The score is in the line under each slim card** (`ui/strip-board.js`): the game's `note` on the left ("3 KO · 2 SENT · 1 BADGES"), the score at
   the right end in the number font — never over the card.
 - **The music** waits for the frame; **the sound** — `OWN_VICTORY_SOUND`; **the colour** — `ACCENT` (the table above).
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table row
+
+| `docs/cartridge.md` | **THE CARTRIDGE PLUG** (LOBBY 2.0 B) + **THE CONTRACT** (SHELL 2.0 B1 — the thin meta + the lazy cartridge, the preload budget, the kit, READY, the night path, mood music, the solo lane, "what plugs where"): what a game EXPORTS + what the console GIVES it (`js/games/cartridge.js` — checked by `tests/cartridge.test.mjs`): `start({ now })` = the match begins after the walk inside, its own chat lock, banner name, preload, the DAILY plug-in (ships OFF) — the console never names a game |
+
+### THE CONTRACT (SHELL 2.0 B1)
+
+- **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
+  music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:
+  `tests/cartridge.test.mjs` checks the boot graph, `node scripts/boot-bytes.mjs`); only `start` is async, `step` pure + seeded; `prepare` host-only,
+  `preload` every phone ≤ 1.5 MB; the kit in `js/games/kit/` (prefix `gk-`, READY = `kit/ready.js`); the night's memory = `meta/used/{gameId}`
+  (`kit/night.js`); `MUSIC: 'mood:<mood>'` = that station in sync; `SOLO: true` → THE SOLO LANE (the streak + a small capped XP, never a win);
+  THE GAME LOOK = `body[data-look]` (`kit/look.js` — ☰ → Settings, per device, any match, NO lock: games read it LIVE, draw no switch of their own).
+
+### A game's podium music
+
+- **A game's podium music:** `FINAL_MUSIC` in its index.js (HIGH STAKES: `victory1` = victory.mp3); default the victory playlist.

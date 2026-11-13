@@ -758,3 +758,34 @@ pink. The strips zoomed out + set right (each hero ≈ 0.78 across — THE SLIM-
 (`jwMap`, crop[3] 'w'); SONIC BOOM's strip gem gets REDLINE's dark backing. Lab n 217 → 222, v1 (NEW — no LAB_V bump: a bump would show CHANGED);
 the credit "JAYWALK — card art + billboard art". **No unlock yet** — no achievement names them (`tests/jaywalk-cards.test.mjs`); JAYWALK's pass 6
 adds the three A(…) rows at the marked comment in `api/_lib/catalog.js` (beside the OVERCLOCK ones) + empties `vault-2b.test.mjs`'s DORMANT list.
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table row
+
+| `docs/vault.md` | THE VAULT (1A–2A, Nov 3; 1C: THE ONE TIER PALETTE `core/rarity.js`, the 8 SIGHTING CARDS from the city's own models `js/fx/sg-*.js`, the held-back cards; 2A: the 3 held cards + THE EMBLEM SYSTEM — `js/vault/emblem-art.js` (a shape + a finish as composited SVG layers), tube styles, name glows `js/vault/glows.js`, the picker's style rows, the lab's EMBLEMS + GLOWS tabs, THE PROMINENCE RULE as the budget): the CARDS' ART — THE CARD LAB (`/lab`: the owner's APPROVE · FIX · CUT; `docs/vault-lab-marks.md` = his marks, read FIRST in a VAULT pass), THE EFFECT LIBRARY (`js/fx/` — ONE shared renderer, never a canvas per card; how a new effect / card / emblem plugs in), the slim strips (SLIM FIRST), the tiers, THE PROMINENCE RULE, THE BAR |
+
+### The card + emblem rules (THE VAULT 1B–2C, THE GIFT CARDS, THE CARD LAYOUT RULE, …)
+
+- **EMBLEMS + GLOWS MOVE ON THE COMPOSITOR (THE VAULT 2A):** an emblem's every moving part is its own HTML-wrapped layer (`js/vault/emblem-art.js` — never a CSS animation on an SVG element: it repaints every frame), transform + opacity only; THE PROMINENCE RULE is the budget (a legendary card leads: its emblem + name glow hold still).
+- **THE VAULT 2B:** DRESS YOUR CARD is the profile's wardrobe (`js/vault/dress.js`); a MEMBER Nº is `profiles/{pid}/mn` (server-only — the owner Nº 0001; never the tag's digits); the two DEV cards are the owner's only (`js/core/dev-cards.js` — granted + checked by the server); a card that shows THE SPEAKEASY draws the city's own front (`js/fx/speak-front.js`).
+- **A FULL CARD ON TOP HOLDS EVERYTHING BEHIND IT (THE SPEED PASS B):** every full card opens through `vault/full.js#openFullCard` — the fx surfaces behind held (`fx/renderer.js#fxCover`), every CSS animation outside it paused (`body.vl-covered`), the city's frames held; a new pop-up that shows a full card goes through it (docs/vault.md "THE COVER").
+- **THE GIFT CARDS (SHELL 2.0 B2 — docs/vault.md "THE GIFT TIER"):** 1-of-1 cards (`core/gift-cards.js`; `dev-cards.js#isOneOfOne` = dev or gift: the
+  rainbow gem + 1 OF 1), given ONLY by the owner's `/admin → GIFTS` (`api/_lib/gifts.js`: `gifts/{card}` = ONE PROFILE EVER, equipped, a reveal —
+  `profile/gift-reveal.js`); the owner's own one (OWNER_GIFTS) granted on 'me' like the dev cards, never giftable. THE GIFT QUEUE (THE CARD PASS): gifts wait in a LINE (`ppriv/{pid}/gq` — server-only), the reveal plays one card at a time ("GIFT n OF m"). Their art = the material
+  (`assets/vault/gift/` — `scripts/build-gift-art.mjs`), their motion = ONE engine (`fx/gift.js` + the layers as data in `fx/gift-specs.js`).
+- **THE CARD LAYOUT RULE (CARD FIXES — docs/vault.md):** a full card's pieces never overlap + its plate keeps off the card's HERO (`js/vault/layout.js` — one
+  ResizeObserver; a gift's `heroFull` in gift-specs.js, any other card's in `FULL_HERO`); the plate hugs its text — ONE clean rounded box, NO step
+  (FRIENDS B dropped both kinds — `strip.js#layStep` keeps only the hero cap); NO FOUNDER pill on a gift card; a full card's plate = NAME + LV n (THE RANK = a gold line above MEMBER SINCE; DEV · <RANK>); the strip's dev line reads DEV. **THE CARD TEXT STANDARD** (Nov 6 — docs/vault.md): every full card's top line, bottom-left block + printed name = a minimum size + a soft glass wash (a ::before) + a dark edge — never a card's own text treatment unless the owner approves one (BRUH).
+- **THE SLIM-CARD LONG-NAME STANDARD (THE CARD PASS, Nov 7 — docs/vault.md):** the longest name = `NAME_MAX` (12); a NEW strip's hero centred 0.75–0.85 across
+  (move a strip right by zooming its crop out: `strip: [100, py, z]`); every strip with a hero caps its plate there (`strip.js#heroRoom`); harbor `stripfit` checks
+  every strip with `'W'.repeat(NAME_MAX)` + MAXIMILIANOS at 390. FX plates (light on black) ship as LIGHT WITH ALPHA — the effect canvas is transparent.
+- **THE HERO-SPOT RULE (SHELL 2.0 B2):** a strip's main feature middle → middle-right (its centre ≥ 0.60 across), clear of the plate + the gem —
+  a NEW focal card = its row in `js/vault/hero.js` (checked live at 390 / 402 / 430: harbor `platefit`).
+- **NO BLACK TILES (LOAD FIX 3 — docs/vault.md):** a card DRAWN IN CODE = a baked still as its material (`js/vault/stills.js` + `node scripts/build-card-stills.mjs`),
+  shown only where its effect isn't painting (`fx/renderer.js` marks `.fx-on`); a new one = its STILLS row (`tests/card-stills.test.mjs`).
+- **THE VAULT 2C:** the strip's tier mark is THE TIER GEM (`js/vault/gems.js` — no words; the dev cards' DEV GEM); a pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES` (it shows CHANGED in THE LAB 2.0); the 12 sign-up shapes are commons everyone owns (`core/items.js#SIGN_EMBLEMS`) — the shape changes only in CUSTOMIZE; an unknown path gets THE WRONG DOOR (`404.html` — keep vercel.json free of rewrites).
+- **ITEM NAMES ONLY TO OWNERS (THE VAULT 1B):** the catalog (names, lines, achievements, what each level / milestone gives, the lab's names) lives in `api/_lib/catalog.js` + `lab-text.js` (never served); a phone gets display rows only for what it owns (`withShow` → the /api wrapper registers them). A new item = its row there. `tests/vault-names.test.mjs` fails on a leak.

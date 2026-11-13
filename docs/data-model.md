@@ -344,3 +344,127 @@ ppriv/{pid}/gift: { id, at }        ← the reveal waiting ("A gift from the hou
 ## members/ (THE VAULT 2B — server only)
 `members: { next, filled, claim }` — the MEMBER NUMBER counter (`next` = the next number; only moves forward), when the one-time back-fill ran, its
 claim. Nobody reads or writes it but the server (the rules' default deny). Each profile's own number: `profiles/{pid}/mn` (api/_lib/members.js).
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The data model block (as it stood)
+
+## Data model (the shared core; every node and every game's `game` shape: `docs/data-model.md`)
+```
+rooms/{CODE}/       ← CODE = the HUSH WORD (a common 4-letter word; docs/content.md); hush/{WORD}: { closedAt } rests it 24 h after closing
+  meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, locked?, settings/{gameId}: {...}, go?, back? }   ← locked: LOCK THE DOOR; go / back: LOBBY 2.0 B's start + end stamps
+  rv/{uid}:  matchId                                         ← THE REMATCH VOTE: your own vote, while meta/back.rm
+  players/{uid}:  { name, color, avatar, joinedAt, pid?, ln?, dy? }    ← written by that player only (pid: their own profile id only, while seats/{pid} is theirs; dy: DFIX2's MID-DAILY flag)
+  presence/{uid}: { online, lastSeen, v: 2, c: { connId } } ← ONE CHILD PER CONNECTION (APP FIXES): online = any c child left
+  kicked/{uid}:   true                                       ← host only
+  game:      host-only; per-game shape; totals are always DERIVED from results (never stored) so a replayed step can't double-score
+  night/{matchId}:   { g, p: { uid: 3|2|1|0 }, n: { uid: name }, b?: { uid: bonus }, at }  ← host; game-night scoreboard
+  <game nodes>/{matchId}/…/{uid}                              ← a player's own data for the current step, phase-gated by the rules
+chats/{CODE}/   fleets/{CODE}/   glsonar/{CODE}/   spy/{CODE}/   hsbet/{CODE}/   rrp/{CODE}/   seal/{CODE}/   hole/{CODE}/   ← top level: rooms/{CODE} is readable by any signed-in user, these are not (seal = THE SEAL: a round's secrets; hole = HOLD'EM's own two cards — HE2; hrec/{CODE} = the dealer's record, server only)
+city2/live      ← CITY 2.0's PREVIEW PANEL for EVERYONE (server-written via /api/admin; admins listen live, every other phone reads the cached GET /api/admin?live=1; docs/harbor.md)
+seats/{pid} (the profile's own devices — ONE ACCOUNT, ONE ROOM)  profiles/{pid} (signed-in, one at a time)  uids/{uid} (own)  pstats/{pid} (owner)  lb/ results/ ppriv/ pkeys/ tags/ rl/ audit/ flags/ (server only)   ← docs/profiles.md
+```
+Rules of thumb: a player writes only under their own uid; anything secret (fleets, agent cards) lives outside `rooms/`; the host
+wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfuscate.js`) what must not be readable in plain sight.
+
+### Multiplayer mechanics (as they stood)
+
+## Multiplayer mechanics
+- **THE PARKED DATABASE (CONN, Oct 28 — the free plan's 100 SIMULTANEOUS connections):** anonymous sign-in still runs at boot, but the
+  Realtime Database socket opens only when wanted: `firebase.js#want(reason)` / `release(reason)` (reference-counted by reason — `'join'`
+  while HOST / JOIN / a resume / an invite check runs, `'room'` from `enterRoom` to `exitRoom`, `'admin'` for the preview panel's live
+  listener). Once nothing wants it, it goes offline after a 30 s grace; a tab hidden 2 min with no room parks too — NEVER while in a room
+  (presence, onDisconnect + host election need the socket: a locked phone in a game behaves exactly as before). `dbRef()` with nothing
+  wanting the line wakes it for a grace by itself (`'touch'`), so an unlisted caller never hangs — but a new feature that reads the
+  database OUTSIDE a room must `want()` / `release()` its own reason. `state.net` = `parked` · `waking` · `online` · `lost`: only `lost`
+  shows the SIGNAL LOST banner (a parked title is never "offline"). `serverNow()` keeps the last offset per device while parked.
+  City 2.0's EVERYONE preview reaches non-admins through the edge-cached `GET /api/admin?live=1` (polled ~45 s while visible), never a
+  socket. THE BOARD + /admin are /api only. Proof: `tests/integration/e2e-conn.mjs` (the sockets in every state; in the cloud's tests job).
+- **Identity:** anonymous Firebase user per *slot*. Each slot is a separately-named Firebase app, so its
+  auth persists independently. Phones are slot 1.
+- **Rejoin:** `localStorage na:{slot}:session` holds the room code. On boot `resumeSession()` re-enters the
+  room (re-adding the player node if it vanished). Boards/score come back from the DB.
+- **Presence — ONE CHILD PER CONNECTION** (APP FIXES, Nov 1 — Grok 5.1: a refresh's OLD socket's late onDisconnect marked the player
+  offline for the rest of the match): each `.info/connected` = true adds `presence/{uid}/c/{connId}` with `onDisconnect().remove()` (registered
+  before the child exists), then `{ online: true, lastSeen, v: 2 }`, then an `onDisconnect().update({online:false,lastSeen})` (registered after
+  the node exists — the server checks it against the node as it is). Online = any `c` child (`core/room-logic.js#presenceOnline`); every
+  reader goes through `normalizePresence` (store.state.presence keeps `{ online, lastSeen }`). The room code is captured before the first
+  await; while connected the client HEALS its own child (≤ every 5 s, a timed retry); leaving drops it. Proof: `e2e-presence.mjs` (the
+  cloud's tests job). Offline players remain in the room as "SIGNAL LOST". The director doesn't wait for offline players.
+- **Host migration (`core/room-logic.js#shouldClaimHost`):** host considered gone if its player node is gone,
+  or (in the lobby) its presence has no connection for ≥ 10 s, or — during a game — `meta.hostBeat` (every 2 s) is ≥ 10 s stale: while a
+  game runs the BEAT ALONE decides (a fresh beat blocks a claim whatever presence says; a stale one deposes a frozen phone whose socket
+  looks online). Online players in join order claim with a stagger (+4 s per rank) via a transaction on `meta/hostId`; the rules check
+  the same (10 s, the beat during a game, the claimer a live online player — not the stagger); `joinedAt` is set once at server time.
+  A KICK stops every game write + presence (the rules want a live `players/{uid}` + no `kicked/{uid}`).
+- **Director:** `host.js` ticks every 250 ms; if host, calls `module.prepare()` (asset/trivia top-ups, private host duties) and
+  `module.step(game, {code, now, live, online})`, writing the returned patch. A per-transition in-flight guard prevents duplicate writes.
+  A step may carry `$room: { 'meta/used/…': true }` side writes (stripped and written in the same atomic room update). When a step
+  enters `final`, `host.js` writes `night/{matchId}` from `module.finalRanks(game)` (+ `module.nightBonus(game)` → `b`).
+- **Per-game minimum:** a module may export `MIN_PLAYERS` (DOUBLE AGENT: 4). An option with `when(onlineCount)` only shows/applies when true.
+- **Idle rooms close after an hour without a game** (`ROOM_IDLE_MS`); `meta/activeAt` is stamped when a game starts / returns to the
+  lobby and every 10 min while one runs. The lobby warns for the last 10 min (host: KEEP OPEN). Rules let anyone delete a room idle > 1 h.
+- **Rematch / late joiners:** `rematch()` (host.js) restarts the same game with `meta.settings[gameId]` and every
+  connected player — late joiners (who spectate the running game) are dealt in automatically.
+- **Live player data:** each module's `livePaths(game)` names the player-written paths for the current step.
+  `room.js` mirrors them into `state.live` and sets `state.liveKey` only once all have loaded.
+  Directors and views must check `liveKey` before trusting `live` (a refresh must never look like "no progress").
+- **Privacy pattern** (GRIDLOCK, DOUBLE AGENT, HIGH STAKES — whose host may read the hidden bets only once the phase is `show`; RUMRUNNER — private day logs the host reads only at night, and the server replays the whole city from the books): secrets in a top-level node readable by the owner (+ the host when it must act);
+  the owner's client does the private computation and publishes only the public result; the host falls back after a few seconds
+  or at once when the owner is offline; a rules test proves another player cannot read it. GRIDLOCK's results + sonar answers are
+  written by the HOST only (it reads the fleets — a target could have answered "miss"). **THE SEAL** (APP FIXES — `games/kit/seal.js`,
+  docs/data-model.md): a round's player-written SECRETS (BLUFF lies + votes, LAST SIGNAL answers, OVERCLOCK answers) live in
+  `seal/{CODE}/{node}/{m}/{key}/{uid}` (owner-only), the room keeps `{ done, at }`; when the round closes the director writes
+  `game/unseal/{node} = key` (PENCILS DOWN: no more writes, the host alone may read) — a module opts in with `export const sealed`;
+  `sealGate` turns its director's "leave the phase" into "unseal first".
+
+### The file layout (as it stood)
+
+## File layout (top level; each game's files are listed in its doc)
+```
+index.html / sw.js / manifest.webmanifest / assets/     shell, service worker (network-first, same-origin static only, never /api), PWA, icons + og.jpg (+ og-board.jpg — /board's)
+board.html admin.html                                    THE BOARD for anyone (/board, og-board.jpg) and the admin page (/admin)
+api/ profile.js report.js board.js admin.js log.js sky.js time.js daily.js + _lib/   Vercel functions (firebase-admin): profiles, checked results, boards, moderation, errors + reports from phones (9e: SEND REPORT / the hang watch), live weather (+ NOAA's Kp), the server's clock (time.js: no imports, no-store)
+package.json                                             only firebase-admin for /api (npm install at the root for local /api)
+css/base.css components.css screens.css title.css        tokens + themes, the design system (+ NEON GLASS), setup/lobby, the title
+css/kit.css                                              the match kit's default look (announcements, cards, Call the Winner, report)
+css/board.css admin.css                                  THE BOARD, the membership card, podium plaques + rank-up; the admin page
+css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent stakes rum holdem) + css/chat.css
+js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, colors, avatars, GAMES registry / the web config / init + db helpers + serverNow() + THE PARKED DATABASE (want / release)
+js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
+js/core/  room-logic.js hush.js lobby-song.js party.js rainbow.js marks.js palette.js neon-ramp.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js tube-path.js   PURE: room codes + host election, HUSH WORDS, the lobby song, PARTY NIGHTS, RAINBOWS, the games' neon marks + the tube alphabet, the palette + the light timeline, THE NEON COMES ALIVE's plan, seeded RNG, XOR+base64, game-night standings, room playlists, the real sun / moon / seasons / holidays / eclipses (sky.js), Open-Meteo + NOAA's Kp → the weather, the admin STATS, SVG → neon tubes; harbor-*.js: City 2.0 (below)
+          week.js ranks.js names.js nicknames.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, THE HOUSE NICKNAMES (BNAME), keys, board catalog, per-game results
+js/profile/ api.js me.js queue.js public.js callouts.js events.js sheets.js keypop.js passkey.js passkey-ui.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques (→ the end-of-round moment), the achievements' events
+js/fx/ renderer.js gl.js kit.js index.js + one file per effect (gift.js + gift-specs.js: the gift cards' one engine + their layers)   THE EFFECT LIBRARY (THE VAULT 1A — docs/vault.md): ONE shared renderer (surfaces + slots) drawing through THE GL PAINTER (gl.js — WebGL2, a 2D look-alike: iOS rasterises a 2D canvas on the CPU call by call; 1B) with the 2D canvas as the fallback, the baked sprites, the effects
+js/vault/ catalog.js strip.js emblems.js lab.js lab-views.js approved.js hero.js + css/vault.css + lab.html (/lab)   THE VAULT: the slim strips, the test emblems, THE CARD LAB (admins only, + its GIFTS), only-approved-ships, THE HERO-SPOT RULE
+js/progress/ moment.js streak-card.js card.js profile.js flame-art.js look.js preview.js album-view.js extras.js sighting.js trophies.js + css/progress.css   PROGRESSION's screens (docs/progression.md; lazy): the end-of-round moment + level-up, the streak card, THE GILDED CARD + the profile's sections, the dock's flame, ?preview=
+js/core/ levels.js streak.js items.js achievements.js daily.js progress.js   PURE (server + client): PROGRESSION — the curve, the streak, the items, the 33 achievements + the award engine, the daily contract, the server's steps · js/daily/contract.js (a daily's /api calls)
+js/board/ view.js screen.js public.js audio.js  THE BOARD (scene.js = the old bar, shipped nowhere since BOARD 2.0 B): the board UI, app route, /board entry, its SFX
+js/admin/admin.js                                        the /admin page
+js/ui/    dom.js components.js final.js logo.js tube-logo.js game-art.js settings-panel.js help.js credits.js toast.js emblems.js debug-tools.js debug-strip.js word-neon.js   h(), the design system, the podium, the sign + City 2.0's SPEAKEASY tubes, game logos + lobby art, gear + settings, HOW TO PLAY, CREDITS (ADD A CREDIT = one entry in credits.js#CREDITS), toasts, emblems, the &debug=1 strips
+js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood.js lobby-music.js party-music.js beat.js diag.js tape-stop.js   prefs, the AudioContext + buses, music + playlists, SFX, ambience, songs on the server clock, MOOD MUSIC, the lobby's + City 2.0's PARTY song in sync (core/party-deck.js), the beat, the AUDIO panel, THE TAPE STOP (a decoded slice on a buffer source — the song element's playbackRate is NEVER changed: iOS stalls it). Session 'playback' with the music on, 'ambient' off; a dead graph hands the song to a plain <audio> (THE DIRECT PATH) — docs/audio.md
+js/core/mp3-slice.js tape-math.js                        PURE: an MP3's frames → a byte slice in song time; the tape's rate schedule + its exact integral (docs/audio.md#the-tape-stop-in-web-audio)
+js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / High Stakes / Bluff — never Overclock since OC7)
+js/screens/ title.js title-neon.js title-taps.js title-dock.js setup.js profile.js backdrop.js   the front door in four files (the mount + the sequence · THE NEON COMES ALIVE + the race + the music's answer · the living city's taps · THE FLANK + its work — docs/title.md), name/avatar, the membership card, the menus' still of the city
+js/screens/ room-city.js room-dock.js room-guests.js game-options.js room-banner.js   LOBBY 2.0 A + B — THE ROOM IN THE CITY (the roster → the city, the tags, the room dock, the guest list, the game's options, the game start, the banner + the champion; core/harbor-room.js + room-lines.js + room-show.js PURE)
+js/games/cartridge.js  js/ui/layers.js                   THE CARTRIDGE PLUG (the contract + checkCartridge — docs/cartridge.md) · ONE SHEET STACK (every pop-up takes the next layer)
+js/screens/harbor/ js/core/harbor-*.js + its sounds, bakes, canvas helpers   CITY 2.0 — THE HARBOR (?city=2): every file in docs/harbor.md#the-file-map (scene.js + its cuts: scene-fireworks / legend / holiday / weather / party / perf / panel)
+js/daychart/  daychart.html                         THE DAY CHART (SCHED): the city's day + year from the planners — /daychart + a card in /admin (admins only)
+js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / the chat sheet + in-game button
+js/games/registry.js lazy-view.js                        id → module (the contract), ALL_PLAYER_NODES; lazy view + stylesheet loading
+js/errlog.js                                             errors from players' phones → /api/log → /admin (first import of app.js + board/public.js)
+js/games/kit/                                            THE MATCH KIT: moments (announcer + cards), call, results, tiers, hook   → docs/match-kit.md
+js/games/<id>/  logic.js director.js index.js view.js (+ scene/audio/…)   PURE rules / PURE state machine / contract + host duties / the screen
+data/     trivia bluff oc words agent pulse prism slip    the banks and song analyses (formats in docs/content.md and each game's doc)
+data/hushwords.json  scripts/hushwords/                  HUSH WORDS (room codes): built + checked by scripts/build-hushwords.mjs (docs/content.md)
+audio/music/*.mp3  audio/pulse/*.mp3                     music (≤ 4 MB each; bump music.js#REV when replacing a file), PULSE songs; `c2-*.mp3` = the owner's City 2.0 mood songs (112 kbps, −16 LUFS)
+audio/sfx/neon-*.wav  audio/weather/*.mp3                 City 2.0's recorded neon (scripts/build-neon-sfx.py; docs/audio.md), the thunder
+scripts/  serve.mjs build-*.{mjs,py} add-city2-music.py validate-holes.mjs sim-gridlock.mjs split-closure.mjs   local server (:5173, `--emu` also runs /api on the emulators), THE CLOSURE SPLITTER (a run of a big closure → its own file, names rewired through live accessors — CITY 1.0 OUT; dev only), builders (build-synth-sfx.py: city sounds SYNTHESIZED — the hydrant's spray, the periscope's sonar ping — then imported by add-city-sfx.py; add-city2-music.py: the one command that imports the owner's mood folders), the NEON PAR hole bot, GRIDLOCK balance sim
+database.rules.json                                      RTDB rules — paste into the Firebase console after every change
+tests/*.test.mjs                                         unit + whole-match simulations (node --test, no deps)
+tests/integration/  kit/harness.mjs e2e-*.mjs harbor-e2e/ (the Harbor suite: kit + one file per cloud job) title-perf.mjs pixdiff.mjs rules.test.mjs server.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, /api tests, no-Firebase look previews
+tests/fixtures/finals.mjs                                finished matches of every game (profile/board tests)
+```

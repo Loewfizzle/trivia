@@ -491,3 +491,72 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
   bump, not a seal (a script keeping the hello going still can). The radio's claims keep their own record.
 - **THE QUEUE + THE STAMP AGREE (the urgent add-on):** `CITY_GAP_MS` = `QUEUE_MS` = 15 min (a hello after an outage extends the same opening); a claim the
   stamp hasn't reached answers `no_stamp` — the phone keeps it (`profile/sightings.js`, 15 min) and retries on `online` + after the city's next hello.
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table row
+
+| `docs/progression.md` | PROGRESSION (A + B, Nov 2): levels 1–100, the streak + freezes + WIN IT BACK, the items + THE LEVEL REWARDS, the 41 achievements + the award engine, the daily contract (`/api/daily`), FOUNDER, the end-of-round moment, the Gilded card + profile, THE BIG FLAME, `?preview=`; CITY SIGHTINGS (the tap → the reaction → the real polaroid → the pair, server-verified; a NEW legendary plugs in there), THE ALBUM, BIRTHDAYS, CALL IN A FAVOR |
+
+### PROGRESSION
+
+- **PROGRESSION (docs/progression.md):** XP, levels, the streak, items, achievements, X% counts + FOUNDER are written by the SERVER only (one
+  transaction per match / daily / event through the PURE steps in `core/progress.js`); collections show ONLY what a player owns (no ???, no totals).
+  Clients never write boards, stats, XP or ranks (server-only in the rules); board ids use dashes (`cipher-score`), never dots.
+
+### FR7 FIXES A (the whole bullet — HOST-GRADED OVERCLOCK, THE DAILY CEILING, THE RESET EPOCH, END GAME THROUGH THE DEALER, the add-ons)
+
+- **FR7 FIXES A (Nov 12 — docs/harbor/passes/fr7-fixes-a.md):** **HOST-GRADED OVERCLOCK** — the phones seal their picks (`seal/…/a`), the host
+  re-grades them after the unseal (`overclock/grade.js`; the phone's `ok` only lowers it; THE HUMAN FLOOR → no speed bonus + `fl`, no REDLINE); **THE
+  DAILY CEILING** — past 20 counted room matches an Eastern day a match pays 0 XP + moves no board (`core/progress.js#matchStep`, `CEILING_LINE`);
+  **THE RESET EPOCH** — THE PROGRESS RESET stamps `progress/resetAt`, the back-fill rebuilds only after it (`core/board-fill.js#sinceReset`); **END
+  GAME THROUGH THE DEALER** — HOLD'EM's ☰ END GAME = the dealer's `endGame` (places by chips from 3 hands, else NO RESULT — `match.js#endTournament`).
+  Add-ons: **`api()` under ONE time limit** (token + fetch + body — a lock waiting on it always lets go; HOLD'EM's move lock + its 10 s release);
+  **THE LOST LOOK** — a canvas iOS discarded in the background (a lost context / the bake's blank sentinel) → the dark held → the one re-fit path (docs/harbor.md#performance).
+
+### THE DAILIES — DFIX1 + THE DAILY MODULE (DM1, DM2, DFIX2, DFIX3)
+
+- **THE DAILIES — DFIX1 (FABLE REVIEW #1's fix pass — docs/games/review-dailies-1.md):** A RUN KEEPS ITS OWN DAY — every daily call after `start` carries the
+  `day` it returned (`js/daily/run-day.js`; the server takes today's or yesterday's with a start there — `api/daily.js#dayOfCall`), so a run crossing 4 am
+  Eastern finishes on its day; COAST CLEAR's PAUSE CAPS (3 a run, 20 min in all — `logic.js#MAX_PAUSES` / `PAUSE_CAP_MS`); ONE daily sound engine with THE
+  FIRST-TAP CATCH (`js/daily/sfx.js` — a game's sfx.js is its table); a move a daily doesn't own → 400, never a 500. Left for THE DAILY MODULE: the throwaway
+  gate (a daily counts only for a profile older than that day's 4 am), the IP limit on new profiles, the shared `js/daily/` kit, the schedule freeze.
+- **THE DAILY MODULE — DM1: THE ENGINE (docs/progression.md "THE DAILY MODULE"):** PLUG-AND-PLAY — `config.js#DAILIES` is the ONE list (no fixed count
+  anywhere: THE SWEEP = every daily on `core/daily.js#todaysDailies`, the DAILY XP 15 a daily capped by the list, `today`'s rows); a new daily = its cartridge
+  (+ its server half in `api/_lib/dailies.js#SERVER_CARTS`) + ONE row. THE 4 AM PICKER stores each day once; THE PASSWORD's FROZEN SCHEDULE + every stored day +
+  THE DAILY SECRET live ONLY in the database (`dsched/`, `dly/…/b`, `dsecret/` — never a committed file: `tests/daily-secrets.test.mjs`); every day comes from
+  THE DAILY SECRET, NEVER the pepper. THE THROWAWAY GATE (a result counts only for a profile made before that day's 4 am Eastern — `counted`), 20 new profiles
+  a day per IP, 400 daily calls / 10 min. THE ROOM WINS (a pause only for a room that really started a game). The phone side on the kit (`js/daily/` — never a
+  copy in a game). THE GO-LIVE SWITCH = /admin → THE DAILIES (owner-only, ANY time — OFF). **THE RESEED: /admin → THE DAILIES → RESEED** (DM2 ADD-ON — SERVER-SIDE:
+  no service-account key on the owner's PC; PREVIEW = the dry run, RESEED NOW on a second tap; `api/admin.js` `dailyReseed`, audited) — a fresh daily secret from
+  the NEXT 4 am: today + the past untouched (run it when the repo goes private). `scripts/dailies-reseed.mjs` = the emulators + tests only.
+- **THE DAILY MODULE — DM2: THE SCREENS (docs/progression.md "DM2"):** THE FLANK's DAILY (left-most — `[ JOIN ] [ DAILY · BOARD · GAMES · YOU ] [ HOST ]`, 4 icons =
+  the max; hidden while no daily is live; WAITING + the count / ALL DONE + a check; answers the sign's last N); THE DAILY SCREEN + a daily's RUN are OVERLAYS over
+  the city driven by `state.daily` (`js/screens/daily.js` + `css/daily.css`, prefix `dy-`; app.js#paintDaily — the city held through the counted `ui/city-hold.js`):
+  TODAY (THE SWEEP meter, ticket rows, SHARE TODAY, the 4 am countdown) · SCORES (YOUR TABLE + the everyone line from 50; ALL TIME hidden until BOARD 2.0); ONE
+  `today` answer shared (`js/daily/today.js`; the rules PURE in `today-logic.js`); a daily's thin meta gives `scoreLine(score)` (spoiler-free). THE ROOM WINS on
+  screen: the game start's closeAll = the banner (`.dy-banner`, never a toast) + the run HELD (+ COAST CLEAR paused) → RESUME YOUR DAILY above the dock; the host's
+  "N PLAYERS ARE MID-DAILY" above PLAY. A daily's first-time LESSON = its row's `lesson` + `createLesson` (COAST CLEAR's PRACTICE HARBOR — `coastclear/lesson.js`;
+  seen once per player: `pstats/{pid}/ls`). The rewards: the +10 SWEEP bonus, PERFECT WEEK = 7 sweeps IN A ROW (`dl.sr`), PENTHOUSE = rank ≤ max(1, ⌊n/100⌋) from
+  50 counting finishers (`core/daily.js#isPenthouse`) — its card THE DIAL is DRAWN IN CODE (`fx/ph-dial.js` + pure `ph-specs.js`). Proof: `e2e-daily.mjs`.
+- **THE DAILY MODULE — DFIX2 (FABLE REVIEW #2's fix pass — docs/progression.md "DFIX2", docs/games/review-dailies-2.md):** EACH DAY KEEPS ITS OWN COUNTERS
+  (`dl.days` — a run that crossed 4 am never wipes the other day's sweep); PENTHOUSE is decided at THE DAY'S CLOSE (`api/_lib/daily-close.js` — the first
+  `start` / `today` after 4 am closes yesterday ONCE against its final counting finishers; `progress.js#penthouseStep`, never at finish time); `pickDay` reads
+  THE DAILY SECRET afresh for a new day (a reseed before 4 am can't leak the old key); THE 4 AM TURN (`today.js#armTurn` — the dock + the screen re-read, no
+  reload); THE RESUME CHIP only while its run is resumable (`chipState`); THE MID-DAILY FLAG `rooms/{CODE}/players/{uid}/dy` (own node, boolean — the host's
+  line reads it, NO poll; a rules change); THE ROOM WINS needs 2+ players (`MIN_PARTY`); a cold day's start → 503 `busy`. **SLIM CARDS EVERYWHERE A PLAYER
+  LIST SHOWS** (the owner, Nov 8): SCORES → YOUR TABLE = the finishers' slim cards through `ui/strip-board.js`'s `stripKit` / `stripFor` / `stripFx` (never a
+  second strip system; one surface a panel; the rank left, the score under at the right end, YOU a drawn frame, STILL TO PLAY one line, top 5 + you + SHOW ALL n).
+- **THE DAILY MODULE — DFIX3 (THE DAILIES' FIRST-PLAY FIXES, Nov 8 — the dailies LIVE; docs/progression.md "DFIX3", docs/coastclear.md "The dig path"):**
+  THE DIG PATH = TWO database waits (the budget in memory, the pid memoised, the record HELD in the SDK's cache for the call → ONE transaction attempt —
+  `tx;desc="1"` in `Server-Timing` on every /api/daily answer) + COALESCED MOVES (`moves { list }` — the taps a phone queued while an answer was in
+  flight go out together; `view.js#enqueue`), the functions pinned to **cle1** (`vercel.json` regions — check the deploy); THE ONE-TIME HINT replaces
+  the practice harbor (a row's `lesson: true` + the cartridge's `HINT` string → `state.hint`; seen = `pstats/{pid}/ls`); THE PREMIUM TICKET (paper =
+  `assets/daily/paper-grain.webp` CC0, the punched stub, the serial Nº MMDD, the drawn ADMITTED stamp + its stamp-down — `js/daily/ticket-art.js`
+  shared with SHARE TODAY's image, which is rebuilt from the same ticket + the streak flame; `drawToday` is async); TODAY CENTRED by auto margins;
+  /admin → THE DAILIES' STATS + TODAY'S PLAYERS (ADD FRIEND = the existing `friendButton`) + BACK TO THE CITY; SCORES: YOUR FRAME on the strip's own box,
+  the foot hint once, a table of one = the card alone; THE FADE ON LEAVING in the SHARED audio engine (ONE MASTER gain — a ramp on the audio clock, THEN
+  the suspend; back = resume + a ramp up; docs/audio.md) — never suspend a context hard again.

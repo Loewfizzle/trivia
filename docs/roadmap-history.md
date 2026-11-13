@@ -2720,3 +2720,22 @@ A city pass, six groups, ONE deployment, no rules change, still 8 functions:
 - **THE ERRORS GROUP**: the black helicopter's lights out of drawHeli's drawn path (the ReferenceError), stale-host writes = "no longer the host"
   (never the re-publish alarm), bots out of /admin (both ends), the SCORES tab + the full card's CLOSE (0 lost taps in WebKit).
 - **VERCEL WEB ANALYTICS**: Vercel's plain script after the page is up (index / board / 404), never the boot; ~2 requests a visit.
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The intro (what the app is)
+
+Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Thirteen games — **THREE PLAYABLE**: PRISM DROP +
+OVERCLOCK (since WINDOWS, Nov 1 — the owner) + HOLD'EM (HE10, Nov 11 — ON for everyone; its city sign + THE BOARD's tab since HOLD'EM IN THE CITY)
+(`js/config.js` GAMES[].playable is the one switch: the other ten are hidden everywhere a player could start them, their code + data + rules
+FROZEN, not deleted; `sign: true` = THE FIVE SIGNS in the city — the three + NEON PAR, HIGH STAKES "next on deck"; HOLD'EM took
+GRIDLOCK's spot Nov 11 — GRIDLOCK off the skyline, frozen as before; the slot rule counts LETTERS on a row, the apostrophe tube rides along). **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (CITY 1.0 OUT, Nov 5: City 1.0 deleted; an old `?city=1` / `?city=2` link lands on the Harbor;
+its code at the git tag `city-1.0-final`, a video + shots in `Downloads\NEON\museum`). Static site on Vercel
+(**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
+plus eight Vercel serverless functions in `/api` (profiles, server-checked results + HOLD'EM's dealer, THE BOARD, admin, errors from phones — `docs/profiles.md`; the daily contract — `docs/progression.md`; the live weather — `docs/title.md`; the server's clock for a parked title — `docs/audio.md`).
+The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept their names and the title's city is still "the
+district" in code (the `nd-` class prefix, the `window.__district` test hook). `ROADMAP.md` lists what shipped and what is next.
+**Keep this file, ROADMAP.md (one line per shipped feature; the detail goes in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**

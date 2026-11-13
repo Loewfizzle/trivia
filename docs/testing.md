@@ -653,3 +653,96 @@ load problem, not a flake to patch.
   `og-board-shot.mjs` (+ `scripts/seed-og-board.mjs` — /board's link preview from made-up rows), `scripts/deploy-size.mjs`.
 - The smoke's `GAMES=` names only playable games (`overclock` · `prism` · `holdem`) — anything else stops red. THE LINE's upstream + every WebKit launcher
   go through THE LIVE-SITE GUARD. `e2e-profiles` first, on fresh emulators (its board-row check reads the first other row).
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table row
+
+| `docs/testing.md` | running / writing tests: emulators, smoke test, each game's E2E and its env flags, previews, Lighthouse |
+
+### NEVER THE LIVE SITE + THE RULES-LAG (FR6 FIXES A)
+
+- **NEVER THE LIVE SITE (FR6 FIXES A):** tests + repros run on the emulators — `kit/live-guard.mjs` refuses a non-local page unless `LIVE=1` on purpose (then `&test=1`: no profile, no member Nº, a silent room push); docs/testing.md "THE LIVE-SITE GUARD".
+- **THE RULES-LAG (FR6 FIXES A):** every database write goes through `firebase.js#write` (a refusal is reported to /admin, ids masked — never silent); a pass that changes `database.rules.json` fails `tests/rules-live.test.mjs` until its ack names the change, and its summary's FIRST line says RE-PUBLISH + how (docs/testing.md "THE RULES-LAG"); a feature on a new rule keeps a fallback that works on the old one.
+
+### Look previews without Firebase
+
+- **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import
+  map that swaps `js/firebase.js` for `tests/integration/fake-firebase.js` (see gridlock-preview.html). Iterate screens there in
+  seconds; run the E2E once the look is right.
+
+### Working efficiently (as it stood)
+
+## Working efficiently (what cost the most in past sessions)
+- **Edits:** use the Edit tool or a script file in the scratchpad. Never put code with backticks, `$` or `\b` inside an inline
+  `node -e "…"` / heredoc — the shell mangles it and the repair costs more than the edit.
+- **Names:** a view's own `update(state)` shadows Firebase's `update` — import it as `dbUpdate` (RUMRUNNER lost its DONE writes to this; the
+  failure was silent because the view's update() just returned).
+- **Tests, in order:** `node --test tests/*.test.mjs` (seconds) → the game's `FAST=1` E2E (≈ 2 min) → the full suite once before
+  committing. Don't re-run a 20-minute suite to check one fix. Run E2E suites with absolute paths and from `tests/integration`.
+  The title + the city run in the HARBOR suite by group while iterating: `ONLY=core,dock,neon` (comma-separated; ~30–130 s a group);
+  the whole suite once before the commit. Untouched areas need no E2E at all (a game → its own). (CITY 1.0 OUT retired e2e-title / e2e-sky.)
+- **Look reviews:** `node tests/integration/shots.mjs "<browser>" --scenes night,day,halloween --sizes phones --crop dock` (scenes,
+  size sets, Grand Rapids by default, crops of the dock / corner buttons / sign; `--cast <ms>` = every painted frame, the true frame
+  burst for a flicker). Never write a one-off screenshot script again —
+  add a scene or a crop preset to shots.mjs instead. "No look change" = `tests/integration/pixdiff.mjs` (A/B against a worktree on
+  :5174, a noise floor); City 2.0's speed gate = `title-perf.mjs --ab` (a relative A/B in one run; absolute budgets are warnings).
+- **Design rules that may conflict** (e.g. "visible at sunrise" vs "never over the letters" vs "a round arch" on a skyline with tall
+  towers): check feasibility first — a few lines in node against the real numbers — and ask the owner which rule wins BEFORE
+  building. Discovering the conflict through rounds of screenshots cost the most time of anything in Oct 2026.
+- **Waits in tests:** wait for the actual condition (`waitFor(page, js)`), never a fixed sleep "to be safe"; a fixed pause only
+  for something that is itself timed (a measurement window, a colour sampled mid-blend).
+- **Line endings:** LF everywhere (`.gitattributes`); a CRLF working copy breaks exact-match edits.
+- **A new game = rules first.** Pure `logic.js` + `director.js` with a whole-match simulation test before any pixel; then the view on the
+  match kit; then one distinctive screen, reviewed at three sizes.
+- Run `git status` before committing: stage the files of this task only (other work may be in the tree).
+
+### Testing (the short version, as it stood)
+
+## Testing (the short version; every suite and flag: `docs/testing.md`)
+- **YOUR OWN SERVERS (the owner, FRIENDS B):** every pass starts its OWN fresh local servers (the emulators + `scripts/serve.mjs --emu`) — a server
+  left from an earlier pass is stopped first (FRIENDS A's emulators were still up at FRIENDS B's start: "port taken") — and STOPS every server it
+  started as its LAST step (the emulators' Java + node, serve.mjs, any preview); the summary says so.
+- **THE BUILD MACHINE IS THE MINI PC** (the owner, Oct 30: "do more tests, do things locally"): a Beelink SER8, Windows 11, **32 GB**, Java (Temurin 21)
+  → the emulators run HERE. Before EVERY final push run LOCALLY: the unit suite, the rules + `/api` tests, the smoke test (`GAMES=…` for a shared
+  file) AND the FULL `e2e-harbor` suite (a City 2.0 pass) — the cloud run then CONFIRMS instead of discovers. Measured on it: unit ≈ 30 s (PERF-A's split), rules ≈ 27 s,
+  smoke `GAMES=overclock` ≈ 30 s (an id that isn't playable stops RED — FR7 FIXES B), one harbor group ≈ 30–130 s, THE FULL HARBOR SUITE ≈ 33 min at 4 shards (~1,262 checks — FR7-A) (the default since PERF-A; PERF-B: the windows group 3 pages at a time — the shards end at ~690–890 s; ~800 checks; the machine's peak ~13 GB of 32 — models.md). **Run the full suite with nothing
+  else busy** (no model bakes, no shot bursts beside it: under that load every group timed out "the harbor baked" — MODELS). Browser tests run
+  OUTSIDE Claude Code's sandbox (its private AppData copy can't launch Chromium); THE GPU PIN (SHELL 2.0 B1): booted with no display, the kit pins the Radeon by its LUID — speed checks all red together → `node tests/integration/gpu-check.mjs "<browser>"` first (docs/testing.md); EVERY browser script imports puppeteer from
+  `tests/integration/kit/puppeteer.mjs` (muted; on Windows software compositing — the TV runs at 29 Hz and headless Chromium followed it to ~30 fps): the local, uncommitted rule in `.claude/settings.local.json`
+  (`node tests/integration/e2e-*`, `shots.mjs`, `title-perf.mjs`, `pixdiff.mjs` — run them from the repo root with those paths). Chromium:
+  `C:\Users\benja\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe`. The laptop is retired (a backup).
+- **GitHub checks** (unit → rules → /api → smoke, on the emulators) run **only on a pass's FINAL push** (SP6, the owner's CLOUD MINUTES, Oct 27):
+  a game / app pass tags that push's commit **`[ci]`**, a City 2.0 pass **`[harbor]`** (which runs both workflows); pull requests + `gh workflow run tests`
+  always run; every other push shows a skipped run (0 minutes) — run the unit suite locally before every push. Next to the Vercel deploy, never
+  blocking it. Budget: ≈ 136 billed cloud minutes a pass while PUBLIC (FR7-A's count: tests ≈ 11, the harbor's 15 jobs ≈ 125); once PRIVATE only the tests workflow runs (THE PRIVATE-REPO WORKFLOW — docs/launch.md). Look at `gh run list` after pushing; a red ✗ is a broken main to fix first. Errors from real phones: `/admin`.
+- **VERCEL DEPLOYS ONLY TAGGED PUSHES** (the owner's DEPLOYMENT STORAGE, Oct 27: Hobby's 10 GB went at ~300 MB a deploy on every push):
+  `vercel.json#ignoreCommand` builds only when the push's **LAST commit message** carries **`[harbor]`**, **`[ci]`** or **`[deploy]`**
+  (unlike the GitHub checks, which read every commit of the push) — so a pass makes ONE deployment: its FINAL push carries its tag (as above)
+  ON THE TOP COMMIT; anything that must go live mid-pass (a hotfix, a docs-only fix the site shows) goes up with **`[deploy]`** (deploys, runs no
+  cloud tests). Every other push shows "Canceled by Ignored Build Step" on Vercel — main stays live on the last tagged deploy.
+  `.vercelignore` keeps everything no page or `/api` loads out of the deploy (docs, screenshots, tests, scripts, shots*, art) — a deploy ≈ 232 MiB since FR7 FIXES B (`node scripts/deploy-size.mjs`; the frozen games' songs left out),
+  ~255 MB of it the music; a new top-level folder the site loads must NOT match it. Never write a tag in square brackets in a message that
+  isn't meant to fire it (a message that NAMES the tags fires them all — write "the ci / harbor / deploy tags").
+- **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, 15 parallel jobs — THE SPEED PASS added `speed`): the FULL `e2e-harbor` suite runs only on a pass's FINAL push
+  (the harbor tag in a commit message — whatever the push touched, docs-only included: no path filter since FR6 FIXES A, `tests/workflows.test.mjs`) or `gh workflow run harbor` (`-f job=street`). **At most TWO cloud runs a pass**;
+  never re-run to confirm a flake. A new test group: its `G()` in `tests/integration/harbor-e2e/<job>.mjs` + its name in exactly one job in
+  `harbor-jobs.mjs`. Locally (the mini PC): the touched groups (`ONLY=…`) while working, the FULL suite once before the final push. Full text: docs/harbor.md.
+- **THE DISPLAY CHECK (SHELL 2.0 B2 — no dummy HDMI plug):** a REAL-COMPOSITOR speed check asks `kit/puppeteer.mjs#displayAttached()` — no display
+  → SKIPPED with "no display attached (a no-screen boot)", counted apart in the suite's last line (never a fail, never a silent pass); docs/testing.md.
+- **THE BASELINE GUARD:** `ONLY=perf` fails above 2× `tests/integration/perf-baseline.json` (`PERF_GUARD=only` ≈ 1.5 min; `PERF_BASELINE=write`
+  only when a pass changes the cost on purpose — say so). A cache keyed per frame must hold its whole working set.
+- `node --test tests/*.test.mjs` — unit + whole-match simulations of all thirteen games (the ten hidden ones' quick tests kept), no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
+- `/api` on the emulators: `node --test server.test.mjs` (in tests/integration); the whole profile flow: `node e2e-profiles.mjs "<browser>" ./shots-profiles`.
+- Emulators (Java + Node): `cd tests/integration && npm install && npm run emulators`; rules: `node --test rules.test.mjs`;
+  app: `node scripts/serve.mjs` → `http://localhost:5173/?emu` (`&slot=2`… for more players on one computer).
+- **CONN — the database sockets:** `node e2e-conn.mjs "<browser path>" ./shots-conn` (≈ 1.5 min; `MEASURE=1` = the table only, `LINE=1` = each
+  state's reasons): 0 sockets on a parked title, 1 in a room, 0 after QUIT + the grace — run it after touching room / boot / firebase.js.
+- Smoke test first: `node e2e-smoke.mjs "<browser path>" ./shots` (two regular phones, the THREE PLAYABLE games started — HOLD'EM by a regular host, no owner gate — + a check that none of the ten hidden ones can start, no stray "null" — ≈ 30 s; `GAMES=cipher` = only those — the one-game check a City 2.0 pass runs after touching a shared file).
+- Per game (WINDOWS: only PRISM DROP + OVERCLOCK + HOLD'EM run now — the ten hidden games' long E2Es stop until each comes back): `node e2e-<id>.mjs "<browser path>" ./shots-<id>` (env `N=8 SHOTS=0 GPU=1 CPU=4 PERF=0/1 FAST=1`); previews without Firebase:
+  `tests/integration/<id>-preview.html`.
+- RUMRUNNER's economy: `node scripts/sim-rum.mjs` (bot matches on the real rules, per length) before touching `js/games/rum/tuning.js`.
+- Lighthouse (mobile): `npx lighthouse "http://localhost:5173/?emu" --form-factor=mobile --chrome-path="<browser>"` (targets 98–99 / 100 / 100 / 100).

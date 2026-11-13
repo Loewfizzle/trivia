@@ -901,3 +901,71 @@ FR7 FIXES A's). No database rules change. Still 8 functions.
    `holdem-phone.test.mjs` adds the SE with no insets; test HE11-7.
 8. **The leftover record** — CONFIRMED + proved: FR7 FIXES A's host poke cleans up from the room; any record a match left (nobody poked 8 s
    after its end) is replaced by the next `start` in that room, and `hole/{CODE}` rewritten whole — the old seats' nodes gone. The emulators.
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table row
+
+| `docs/holdem.md` | **HOLD'EM** (HE1 — Texas Hold'em, 2–8, PLAY CHIPS ONLY; the PURE engine `js/games/holdem/`; HE3 — THE LEAN WIRE + THE TABLE SCREEN; its GAMES row `playable: true, sign: true` since HE10): the rule choices, the state + event shapes, the privacy views, THE LENGTH STUDY, the dealer, the table's layout + the poke on the phone + the preview; read it before a HOLD'EM pass |
+
+### HOLD'EM (HE1–HE11)
+
+- **HOLD'EM's DEALER (HE2 — docs/holdem.md "THE DEALER"):** THE SERVER IS THE DEALER on `POST /api/report { holdem: <op> }` (still 8 functions;
+  `api/_lib/holdem-dealer.js` PURE + `holdem-store.js`): crypto randomness (no secret, no env var), the deck + every card ONLY in `hrec/{CODE}` (one
+  JSON string — default deny), the public table `rooms/{CODE}/holdem` (no client write), a seat's cards `hole/{CODE}/{uid}` (that uid only, never
+  kicked); ONE transaction a call; everything timed happens on a POKE by the server's own clock (`dueOf` — never a phone's clock or claim); nobody
+  acts for another seat (the host only starts + ends CASH); stale / double taps → 409 + the seq; the result credited from the server's record
+  (`applyMatch`, exactly once); upcoming run-out cards never written where a phone reads (the engine's `stepRunout`). The emulator suite's LEAK SCAN
+  reads AS a phone at every step (`tests/integration/holdem-server.test.mjs` — run it alone).
+- **HOLD'EM's TABLE (HE3 — docs/holdem.md "THE LEAN WIRE" + "THE TABLE SCREEN"):** the public table = THE LEAN WIRE's parts (`holdem/wire.js` — the dealer
+  writes ONLY the changed parts in ONE multi-path update + `meta/activeAt` ≤ once a minute; a late publish is HEALED by the next call — never a whole-view
+  transaction again); the cartridge's `step` only frames the match (`final` once the dealer's `rep` is in); the view renders from the table + its own
+  `hole` node + `serverNow()`, the layout from ONE pure module (`holdem/layout.js` — no seat overlaps at 2–8: `tests/holdem-phone.test.mjs`); WHO POKES =
+  `logic.js#pokeIn`; the faces drawn in code (`card-art.js` — four colours, CLASSIC in Settings); BEING BUILT (HE3–HE9) = `playable: false` + `preview: true`
+  (a local emulator page with `&preview=1`, and HE8's owner test — config.js#isPlayable; docs/cartridge.md) — PLAYABLE since HE10; `tests/integration/e2e-holdem.mjs` + `holdem-preview.html`.
+- **HOLD'EM's MOTION + THE END (HE4 — docs/holdem.md "THE MOTION" … "THE END SCREEN"):** ANIMATIONS COME FROM THE STATE — the view paints the state, the
+  motion plays only the dealer's events this phone hasn't shown (`motion-plan.js#freshEvents`: numbered after the last shown, fresh ≤ 2.5 s, no gap — a
+  refresh / a sleep / a gap = the state, never a replay), one timeline (`schedule` — the side pots smallest first, the main last; inside the dealer's pauses:
+  nothing waits on it), played by `motion.js` (WAAPI transform / opacity, ghosts in `.he-fx` under your buttons + cards, roll-ups as holds); the board by the
+  player count + the side rows in px (`layout.js#blocks` = every piece's rectangle, the CSS's offsets — keep them in step); a busted seat to its hand's end
+  (`drawnSeats`), the re-spread at the next deal; THE KO CARD only on a fresh bust; CASH's LEAVE between hands / sat out; THE LEDGER + THE END SCREEN = the
+  console's slim cards, the body says `podium = 'all'` (`ui/final.js`), the numbers from the server's record (`game.sum`).
+- **HOLD'EM's SOUNDS + CHIPS + SKINS (HE5 — docs/holdem.md "HE5"):** THE SOUNDS from the MOTION's own timeline (`sound-plan.js` PURE — never a replay) through
+  `sfx.js` (decoded once, HOLD'EM's own limiter + TRIM → the SFX bus; THE GAIN TABLE new 2.2 · stings 1.0 · deals 1.1 ±4 %; champion = `OWN_VICTORY_SOUND`); THE CHIPS =
+  `chips.js` (PURE — the fewest in 6 colours, a seat ≤ 2 stacks) + `chip-art.js` (lit 3/4 stacks, cached, never per frame); A SKIN = ONE entry in `skins.js` + its art
+  (`scripts/build-holdem-skin.py`) + its living touches' CSS — no skin code path, only its art loads, `settings.heSkin` per phone (HE6 adds two + the picker); the quality
+  tiers drop the living touches first, then the light; THE ACTION AREA from your cards up (`layout.js#ACT`); LEAVE always in CASH (the dealer's queued `rec.lv`).
+- **HOLD'EM's REAL CARDS + THREE SKINS + THE PICKER (HE6 — docs/holdem.md "HE6"):** THE FACES = `card-art.js#faceSvg(code, deck, size)` — `full` (your hand) ·
+  `board` · `mini` — from the GENERATED `card-data.js` (`node scripts/build-holdem-cards.mjs`, sources in Downloads\neon\holdem\cards-src\): Byron Knoll's
+  PUBLIC-DOMAIN pips + court figures (one sprite PER DECK `assets/holdem/cards/courts-<deck>.webp` — only this phone's deck loads; his ace of spades is NEVER used —
+  ours is drawn in code) + Libre Baskerville's index glyphs as paths (OFL — never a loaded font); the STOCK is the view's (`.he-card` — the skin's `stock` + a grain);
+  the ink never changes with the skin. THE SKINS = NEON CASINO · COZY CABIN · CYBERPUNK APARTMENT — every look is a skin FIELD → a CSS variable (every accent glow
+  reads `--he-gold-rgb`; `tests/holdem-skins.test.mjs` checks the nested shape + that the CSS reads every variable); a skin's art baked by its row in
+  `scripts/build-holdem-skin.py` (backdrops 860 × 1864, compositions as `edit` steps). THE PICKER = ☰ → Settings → HOLD'EM → TABLE (`picker.js`, lazy — CSS mini tables
+  from the skins' data, no thumbnail downloads; a tap = `settings.heSkin`, live mid-hand).
+- **HOLD'EM's SIDEWAYS VIEW + DESKTOP (HE7 — docs/holdem.md "HE7"):** wider than tall = THE SIDEWAYS TABLE (`layout-wide.js` PURE — the seats evenly by
+  arc length round a wide stadium, THE COLUMN of actions on the right; `tests/holdem-wide.test.mjs`); a desktop / wide window = the same on THE STAGE
+  (`stageOf` — one transform; the backdrop + the podium outside it) + the skin's SQUARE backdrop (`backdrop.square`, only sideways, only the chosen skin);
+  EVERY sideways CSS rule scoped to `.he[data-orient='wide']` — THE PORTRAIT IS UNTOUCHED (prove it: `holdem-pixdiff.mjs` vs a worktree on :5174); a size
+  change mid-motion SNAPS it (`motion.js#snap` — never a replay); the console's `#ns-turn` (TURN YOUR PHONE UPRIGHT) is hidden while `body.he-on`.
+- **HOLD'EM's TIMER + THE OWNER'S LIVE TEST + TOUGHNESS (HE8 — docs/holdem.md "HE8"):** YOUR clock upright = a bar on your plate's top edge (`.he-plate >
+  .he-clock`); THE OWNER'S LIVE TEST (until HE10 switched it on — the gate's code kept for the next game being built) = the dealer's `start` takes a `playable: false` HOLD'EM ONLY from an ADMIN_PIDS host (`holdem-store.js#startOpen` — the
+  server's check; the emulators open unless `testHoldemGate`) + the owner's phone lists it as TEST (`config.js#setOwnerPhone` from the radio gate's `owner`
+  yes, read ONLY by room-city.js — `tests/holdem-owner.test.mjs`); a tap = pressed at once + ONE move at a time until THIS table shows the answer (THE
+  CATCH-UP — never `disabled: busy`); NO SIGNAL = the buttons wait (`offline()` in the render's signature); the wake lock = `wakelock.js#gameAwake` (seated
+  in a live match only); THE FRAME LOOP SLEEPS when nothing moves (`wake()` — never an always-on rAF; proof `holdem-endurance.mjs`: 400 hands flat, 0 idle frames).
+- **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
+  `now`; a test greps — the screen — `view.js` + its `motion.js` + `sfx.js` + `bet-slider.js` — alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
+  DEALER is the server (HE2: crypto randomness — never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /
+  `seatView`; the sims scan every view); PLAY CHIPS ONLY — no money words ("CASH" = the mode's name); TURBO's level is 90 s, DEEP's 15 min, CASH has the shot clock too + AWAY = SAT OUT (the length study:
+  `node scripts/holdem-sim.mjs`); the test robots (`tests/fixtures/holdem-bots.mjs`) are never shipped. Its GAMES row is `playable: true` (HE10; `preview` HE3–HE9).
+- **HOLD'EM's FIX PASS + SWITCH ON (HE10 — docs/holdem.md "HE10", the Fable review `Downloads/neon/holdem/FABLE-REVIEW.md`):** THE TRUE CHECK (pre `check`:
+  dropped by the dealer the moment anyone bets — `table.js#preVoid`; the toggles say exactly what they do); a HOLD'EM result ONLY from the dealer
+  (`api/report.js#reportableGame` refuses a `match-report.js#DEALER_GAMES` game + any non-playable one; `testReportAll` = the emulators' switch for the frozen
+  games' checks); a match COUNTS from 3 hands (tournament) / 10 hands + 5 min (CASH) — else `rep: 'short'` (`holdem-dealer.js#COUNTS`); what's due runs FIRST
+  on every op; a seat whose player left goes AWAY at once; the record + `hole/` deleted 8 s after the end; EV_KEEP 24 + no second `shown`; the podium waits
+  4.5 s (`logic.js#directorStep`); a missed run with an OLD start is history (`OLDEST_SLACK_MS`); SIT BACK DOWN with your chips; `assets/holdem/CREDITS.md`.
+- **HOLD'EM's BET SLIDER (HE11 — docs/holdem.md "HE11"):** a custom control (`holdem/bet-slider.js` — pointer capture, transform only, never rebuilt under a finger, CONFIRM one-shot) on THE BET STEPS (`holdem/bet-steps.js` PURE: the smallest round unit ≥ the small blind giving ≤ 60 stops; min + ALL IN exact, ALL IN only the last slice — `tests/holdem-bet-steps.test.mjs`, `wk-holdem-slider.mjs`).

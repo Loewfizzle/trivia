@@ -253,3 +253,20 @@ the rankings, the streak hooks, the switch-over.
   clock reads the record's cap (`runView#pauseCap`). `api/daily.js` passes its own room check to the cartridge's `act` — never the phone's claim.
 - **DY5**: the room's pause is retried (1, 2, 4 … 30 s) while that room starts / plays (`js/daily/retry.js#retryWhile`), never sent once.
 - **DY6**: a REPEAT dig (its first answer lost) answers the cell's WHOLE flood; a light dug again answers `lit: [i]`.
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table row
+
+| `docs/coastclear.md` | **COAST CLEAR** (CC1 — a DAILY-ONLY, SERVER-JUDGED Minesweeper-type, ships OFF: the no-guess maker + solver `api/_lib/cc-board.js` + `cc-solve.js`; the board only on the server, `/api/daily` dig / chord / pause / resume; the instant feel) |
+
+### COAST CLEAR (CC1 + CC2)
+
+- **COAST CLEAR (CC1 + CC2 — docs/coastclear.md):** CC2: BOTH LOOKS (the sunny harbor — its gradient tokens registered with `@property` so the look crossfades live), GETTING SPOTTED (WAAPI beams on `.cc-fx`, the screen counts a spot when its beam LANDS — `shownSpots`), THE END SCREENS (the lighthouse / CAUGHT, the finished harbor — the server's `reveal` only once a run is over), the share card draws ONLY `logic.js#shareInputs` (NO BOARD — a test proves it), THE FIRST-TAP CATCH in `sfx.js` (iOS: a sound held ≤ 400 ms until the tap's unlock runs), LIGHTHOUSE + GHOST RUN from the server's record (`cc.js#flags`, `GHOST_S` 50 by `scripts/sim-coastclear.mjs`). CC1: the second DAILY-ONLY cartridge (`config.js#DAILIES`); THE SERVER KEEPS THE BOARD (`dly/coastclear/{day}/b`, built
+  once a day from the pepper, NO-GUESS — `api/_lib/cc-solve.js` proves every board; never served) and answers every move — a judged cartridge's `moves` go
+  through `api/daily.js`'s generic path (ONE transaction each, never aborting on a transaction's first null; a repeat writes nothing); a phone gets only
+  the cells it opened; buoys are the phone's alone; the clock = server time (+30 s a spot, +15 s a pause — THE DAILY MODULE calls pause); NO PILLS,
+  drawn searchlights + buoy, every colour a `--cc-*` token; `LOOKS: ['day', 'night']` since CC2.

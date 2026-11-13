@@ -1731,3 +1731,27 @@ loops + recorded neon, the intercom, the party / station songs, the lobby song a
 - WHICH SOUND WHEN comes from the motion's own timeline (sound-plan.js PURE — fresh events only: a refresh never replays a sound); the deals
   110 ms apart (the motion deals at that pace too); YOUR TURN / the 5-second TICK / CHAMPION (OWN_VICTORY_SOUND) from the view.
 - The motion demo (`holdem-preview.html?play=1`) plays them after TAP FOR SOUND; `tests/integration/he-sound-demo.mjs` = the demo on a real context.
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table row
+
+| `docs/audio.md` | music, playlists, SFX, the audio engine; loading, PWA, service worker, link previews |
+
+### Audio (the short version, as it stood)
+
+## Audio (the short version; everything else in `docs/audio.md`)
+- **MOOD MUSIC** (docs/audio.md): menu screens play the time-of-day mood (`audio/mood.js`, songs in `data/mood-music.json`, built by
+  `scripts/build-mood-music.py`; the owner adds songs as late3/morn1/day1/eve1/party1… in ~/Downloads → "add the new mood songs");
+  a lobby plays one synced song for the room (`audio/lobby-music.js`, `meta/lm`, the host's clock); City 2.0's party nights play the PARTY deck on the server clock — every phone the same song (`audio/party-music.js`, docs/audio.md#the-party-song-in-sync). CLASSIC in settings = the old playlist.
+  **CITY 2.0 MUSIC**: its own day + decks (`core/city-mood.js`, `city2` in `data/mood-music.json`); new songs → `scripts/add-city2-music.py` (docs/audio.md#city-20-music). SKY-B: every mood is a RADIO STATION on the server clock — the same song on every phone (`audio/party-music.js#stationOf`; docs/audio.md#the-radio-stations).
+- `playMusic(id, fallback)` is driven by `app.js` from state (mood / menu playlist on title/setup/lobby, `module.MUSIC` in a game, `'victory'` on
+  the podium). Same track = no-op. `PLAYLISTS` (menu, victory, spy, gridlock…) play several tracks with crossfades; `setPlaylist(id, ids)`
+  for a seeded per-room order; `duckMusic(level, s)` and `filterMusic(hz, s)` for moments. Songs on the server clock: `audio/synced-songs.js`.
+- **THE IDLE CUTOFF (SHELL 2.0 B2):** 5 h with no tap / key / scroll → the music fades + "Music paused — tap to bring it back" (`audio/idle.js`;
+  `setPageQuiet(on, reason)` — each reason holds the quiet on its own); never during a match in a room.
+- `sfx(name)` for the shared synth effects; games with their own palette ship a `createSfx()` in `audio.js` (soft, quiet, felt not heard).
+- Audio must be unlocked by a gesture (iOS); the engine retries resumes on every tap and after app switches.

@@ -1,40 +1,36 @@
 # NEON SPEAKEASY — developer guide
 
-Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Thirteen games — **THREE PLAYABLE**: PRISM DROP +
-OVERCLOCK (since WINDOWS, Nov 1 — the owner) + HOLD'EM (HE10, Nov 11 — ON for everyone; its city sign + THE BOARD's tab since HOLD'EM IN THE CITY)
-(`js/config.js` GAMES[].playable is the one switch: the other ten are hidden everywhere a player could start them, their code + data + rules
-FROZEN, not deleted; `sign: true` = THE FIVE SIGNS in the city — the three + NEON PAR, HIGH STAKES "next on deck"; HOLD'EM took
-GRIDLOCK's spot Nov 11 — GRIDLOCK off the skyline, frozen as before; the slot rule counts LETTERS on a row, the apostrophe tube rides along). **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (CITY 1.0 OUT, Nov 5: City 1.0 deleted; an old `?city=1` / `?city=2` link lands on the Harbor;
-its code at the git tag `city-1.0-final`, a video + shots in `Downloads\NEON\museum`). Static site on Vercel
-(**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
-plus eight Vercel serverless functions in `/api` (profiles, server-checked results + HOLD'EM's dealer, THE BOARD, admin, errors from phones — `docs/profiles.md`; the daily contract — `docs/progression.md`; the live weather — `docs/title.md`; the server's clock for a parked title — `docs/audio.md`).
-The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept their names and the title's city is still "the
-district" in code (the `nd-` class prefix, the `window.__district` test hook). `ROADMAP.md` lists what shipped and what is next.
-**Keep this file, ROADMAP.md (one line per shipped feature; the detail goes in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
+Mobile-first multiplayer party games (2–8 players, one phone each). Thirteen games, **THREE PLAYABLE**: PRISM DROP, OVERCLOCK, HOLD'EM
+(`js/config.js` GAMES[].playable is the one switch — the other ten are hidden everywhere, their code + data + rules FROZEN, not deleted;
+`sign: true` = THE FIVE SIGNS in the city). Two DAILY-ONLY games (THE PASSWORD, COAST CLEAR) live in `config.js#DAILIES`, never GAMES.
+**CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (City 1.0 deleted Nov 5; its code at the tag `city-1.0-final`). Static site on Vercel
+(**neonspeakeasy.com**) + Firebase Realtime Database + Anonymous Auth + eight Vercel functions in `/api` (profiles, server-checked results +
+HOLD'EM's dealer, THE BOARD, admin, errors, the dailies, the weather, the clock). In code the city is still "the district" (`nd-` prefix,
+`window.__district`). The full intro: docs/roadmap-history.md (moved). `ROADMAP.md` = what shipped + what is next.
 
-This file is the short version. The deep-dives live in `docs/` — read the one you need, when you need it:
+**THIS FILE IS THE SHORT GUIDE (THE CLAUDE.md DIET, Nov 13):** ≤ 40 KB (`tests/claude-md-size.test.mjs`). A pass adds AT MOST ONE line here per
+new standing rule; its detail goes in the doc that owns the area. "(moved)" after a doc = its section **THE RULES FROM CLAUDE.md (moved Nov 13)** —
+the full text this file used to hold, verbatim (`scripts/claude-md-coverage.mjs` proves nothing was lost). **Keep this file, ROADMAP.md (one line
+per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
 
 | doc | read it when you touch |
 | --- | --- |
-| `docs/match-kit.md` | **any real-time game** (the shared HUD pieces + the E2E harness) — read this before building or changing a game |
-| `docs/cartridge.md` | **THE CARTRIDGE PLUG** (LOBBY 2.0 B) + **THE CONTRACT** (SHELL 2.0 B1 — the thin meta + the lazy cartridge, the preload budget, the kit, READY, the night path, mood music, the solo lane, "what plugs where"): what a game EXPORTS + what the console GIVES it (`js/games/cartridge.js` — checked by `tests/cartridge.test.mjs`): `start({ now })` = the match begins after the walk inside, its own chat lock, banner name, preload, the DAILY plug-in (ships OFF) — the console never names a game |
-| `docs/data-model.md` | the database: every node, every game's `game` shape, rules |
-| `docs/testing.md` | running / writing tests: emulators, smoke test, each game's E2E and its env flags, previews, Lighthouse |
+| `docs/match-kit.md` | **any real-time game** (the shared HUD + the E2E harness) — before building or changing a game; the add-a-game checklist |
+| `docs/cartridge.md` | THE CARTRIDGE PLUG + THE CONTRACT: what a game exports + what the console gives it (`js/games/cartridge.js`) |
+| `docs/data-model.md` | the database (every node, every game's `game` shape, rules), the multiplayer mechanics in full, the full file layout |
+| `docs/testing.md` | running / writing tests: emulators, smoke, each E2E + its flags, previews, Lighthouse, THE RULES-LAG, the live-site guard |
 | `docs/audio.md` | music, playlists, SFX, the audio engine; loading, PWA, service worker, link previews |
-| `docs/title.md` | the title screen (its four files — title.js, title-neon, title-taps, title-dock), the logo, the menu, LIVING CITY (time of day, seasons, holidays, sky events, the real sun + solar eclipses; `?when=&tz=&at=&force=`), PARTY NIGHTS (Fri / Sat on the beat), RAINBOWS (after real rain), THE STREET (lamps, trees, buses, the stop light; the people, the speakeasy's door + the knock), the dock, the screen at rest, the easter eggs |
-| `docs/harbor.md` (+ `docs/harbor/passes/`, one log a pass — its INDEX) | **CITY 2.0 — THE HARBOR** (`?city=2`): the bible — size rules, camera + layout, bakes + memory, lanes, budgets, THE FILE MAP, KNOWN ISSUES, the standing rules' full text |
-| `docs/harbor/decisions.md` | the owner's CURRENT City 2.0 decisions (short; `docs/harbor/plan.md` = the dated archive) — **read first in a Harbor pass**; Step 0 updates it |
-| `docs/progression.md` | PROGRESSION (A + B, Nov 2): levels 1–100, the streak + freezes + WIN IT BACK, the items + THE LEVEL REWARDS, the 41 achievements + the award engine, the daily contract (`/api/daily`), FOUNDER, the end-of-round moment, the Gilded card + profile, THE BIG FLAME, `?preview=`; CITY SIGHTINGS (the tap → the reaction → the real polaroid → the pair, server-verified; a NEW legendary plugs in there), THE ALBUM, BIRTHDAYS, CALL IN A FAVOR |
-| `docs/vault.md` | THE VAULT (1A–2A, Nov 3; 1C: THE ONE TIER PALETTE `core/rarity.js`, the 8 SIGHTING CARDS from the city's own models `js/fx/sg-*.js`, the held-back cards; 2A: the 3 held cards + THE EMBLEM SYSTEM — `js/vault/emblem-art.js` (a shape + a finish as composited SVG layers), tube styles, name glows `js/vault/glows.js`, the picker's style rows, the lab's EMBLEMS + GLOWS tabs, THE PROMINENCE RULE as the budget): the CARDS' ART — THE CARD LAB (`/lab`: the owner's APPROVE · FIX · CUT; `docs/vault-lab-marks.md` = his marks, read FIRST in a VAULT pass), THE EFFECT LIBRARY (`js/fx/` — ONE shared renderer, never a canvas per card; how a new effect / card / emblem plugs in), the slim strips (SLIM FIRST), the tiers, THE PROMINENCE RULE, THE BAR |
-| `docs/launch.md` | **THE LAUNCH** (the reset, FOUNDING MEMBER closed, telling people — the repo stays public) + **THE PRIVATE FLIP** (later: the history rewrite's commands, private, THE RESEED) — the owner's steps; the repo's growth rule; the minutes once private |
-| `docs/chat.md` | room chat (data, locks per game, system lines, profanity filter) |
-| `docs/content.md` | adding questions / puzzles / words to any bank; rebuilding word lists |
-| `docs/profiles.md` | profiles, name tags + keys, FRIENDS (the list, invites that wait, SAVE TO PASSWORDS, the crew intercom), `/api`, result reporting, THE BOARD, XP ranks + steps, streaks, the weekly goal, mastery, THE VAULT (card finishes, name glows), emblems, `/board`, `/admin`, the Vercel setup |
-| `docs/overclock.md` | **OVERCLOCK** — the OVERDRIVE rebuild's plan (7 passes, the owner's decisions) + each pass's decisions + log; read it before an Overclock pass |
-| `docs/coastclear.md` | **COAST CLEAR** (CC1 — a DAILY-ONLY, SERVER-JUDGED Minesweeper-type, ships OFF: the no-guess maker + solver `api/_lib/cc-board.js` + `cc-solve.js`; the board only on the server, `/api/daily` dig / chord / pause / resume; the instant feel) |
-| `docs/password.md` | **THE PASSWORD** (PW1 — a DAILY-ONLY, SERVER-JUDGED Wordle-type, ships OFF: `config.js#DAILIES`, never GAMES; `/api/daily` `guess`; the list build + THE REVIEWER; the kit keyboard's `setKeyStates`) · the owner's game decisions: `docs/games/plan.md` |
-| `docs/holdem.md` | **HOLD'EM** (HE1 — Texas Hold'em, 2–8, PLAY CHIPS ONLY; the PURE engine `js/games/holdem/`; HE3 — THE LEAN WIRE + THE TABLE SCREEN; its GAMES row `playable: true, sign: true` since HE10): the rule choices, the state + event shapes, the privacy views, THE LENGTH STUDY, the dealer, the table's layout + the poke on the phone + the preview; read it before a HOLD'EM pass |
-| `docs/pulse.md` `docs/golf.md` `docs/prism.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that game |
+| `docs/title.md` | the title (title.js, title-neon, title-taps, title-dock), LIVING CITY, THE STREET, the dock, THE SHELL (the design system) |
+| `docs/harbor.md` (+ `docs/harbor/passes/` — its INDEX) | **CITY 2.0 — THE HARBOR**: the bible — size rules, camera, bakes, budgets, THE FILE MAP, KNOWN ISSUES |
+| `docs/harbor/decisions.md` | the owner's CURRENT City 2.0 decisions — **read first in a Harbor pass**; Step 0 updates it (`plan.md` = the dated archive) |
+| `docs/progression.md` | PROGRESSION (levels, the streak, items, achievements, THE ONE DAY LINE), the daily contract + THE DAILY MODULE, SIGHTINGS |
+| `docs/vault.md` | THE VAULT: the cards' art, THE CARD LAB (`docs/vault-lab-marks.md` = the owner's marks, read FIRST), `js/fx/`, emblems, gems |
+| `docs/launch.md` | **THE LAUNCH** (THE RESET MORNING, FOUNDING MEMBER) + **THE PRIVATE FLIP** — the owner's steps; the edge cache |
+| `docs/profiles.md` | profiles, keys, FRIENDS, passkeys, `/api`, result reporting, THE BOARD, `/board`, `/admin`, the Vercel setup |
+| `docs/chat.md` · `docs/content.md` | room chat · adding questions / puzzles / words to any bank |
+| `docs/overclock.md` · `docs/prism.md` · `docs/holdem.md` | the three playable games (read before a pass on one) |
+| `docs/password.md` · `docs/coastclear.md` | the two dailies (`docs/games/plan.md` = the owner's game decisions) |
+| `docs/pulse.md` `docs/golf.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that frozen game |
 
 ## Ground rules
 - **No build step.** Plain HTML/CSS/ES modules. No npm deps in the shipped site (the root `package.json` only gives the `/api`
@@ -48,630 +44,206 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   `nextStep(game, ctx)` director; any client that becomes host continues from the DB.
 - **Timers use server time** (`serverNow()` = `Date.now() + .info/serverTimeOffset`). Never `Date.now()` for game timing.
 - **60fps:** animate only `transform` and `opacity`. Static glows are fine; never animate box-shadow/filters on many elements.
-  Never read layout (getBoundingClientRect / clientWidth) in a frame loop — sizes come from ResizeObservers (`ui/canvas-safe.js#cssWidth`: 9f found the crisp layer reading clientWidth every frame — a whole page layout per frame while the sign restyles). Everything respects `prefers-reduced-motion`.
+  Never read layout (getBoundingClientRect / clientWidth) in a frame loop — sizes come from ResizeObservers (`ui/canvas-safe.js#cssWidth`).
+  Everything respects `prefers-reduced-motion`.
 - Mobile: `100dvh`, safe-area insets, inputs ≥ 16px, touch targets ≥ 44px. No zoom: `body { touch-action: pan-x pan-y }` +
   iOS `gesturestart` block (the viewport meta deliberately has no `user-scalable=no` — Lighthouse penalizes it).
 - **Taps on plain page areas** (a canvas, an empty div): listen to pointerdown + pointerup, never `click` — iOS Safari does not
-  send `click` to elements it doesn't consider clickable (the title's city taps worked on desktop and silently did nothing on iPhone).
+  send `click` to elements it doesn't consider clickable.
 - Contrast: all text ≥ 4.5:1 on its background (`--text-faint` is the dimmest allowed text color).
 - The app name is `APP_NAME` in `js/config.js` (plus `<title>`/meta tags in `index.html`).
-- **Audio is polish, never a dependency.** Everything must work silently: missing files, locked iOS audio, muted. SFX stay quiet — felt more than heard after 20 minutes.
+- **Audio is polish, never a dependency.** Everything must work silently: missing files, locked iOS audio, muted. SFX stay quiet.
 - **Visual review:** every new screen gets screenshot-reviewed at 390×844 and 412×915 (plus 1440×900 for anything shown on desktop)
   with at least two refine passes, three for a new game. Look at the screenshots; the data passing is not the screen looking right.
-- **Phone first, unzoomed (the owner's standing rule, Oct 27):** window scenes + people (and everything else) must READ ON THE PHONE AS-IS,
-  UNZOOMED. Before building a detail, check it against its real size on the iPhone (a speakeasy window is ~40 pt wide); a detail that
-  can't be seen there (fingers, a figure in the dark behind, small props, crust textures) is NOT built — make it bigger, bolder, a clear
-  silhouette + one bright accent, or drop it. Judge every look review at 390 / 402 / 430 without zooming in.
-- **Desktop comes free (the owner, Nov 1–2 — DESKTOP):** every feature, holiday + event is built + judged for the PHONE only; a desktop, an iPad
-  sideways or a phone sideways get it through the shared city + THE DESKTOP CAMERA (core/harbor-layout.js#DESK) — never a desktop-only piece
-  or a second version. EVERY pass checks ONE desktop size (1440×900: shots.mjs `--sizes pass`) beside the three phone widths + fixes what
-  breaks there; sideways + iPad only in a desktop pass + FR6 (`--sizes desk-pass`). docs/harbor.md#the-camera--the-layout-part-1-numbers.
-- **Class names:** prefix new CSS classes per feature (`nd-`, `ndl-`, `pd-`, `da-`, `gl-`…). A bare `.nl-hi` once collided with
-  Overclock's number line and shoved the logo's highlights sideways.
-- **Presentation tech:** Canvas 2D (+ a WebGL fragment shader for a sky/world) unless 3D *is* the game (RUMRUNNER's city diorama is three.js, but it is a backdrop and a map: every button, price and card is DOM over it). Every polish pass on a three.js
-  scene costs several times a 2D one, and a tilted 3D board on a phone fights readability and tap targets (GRIDLOCK Part 1 shipped
-  on three.js, failed the play-test and was rebuilt flat in Canvas 2D a week later — straight-on, labels inside the frame, one board up).
-- **The title has one too:** `tests/integration/title-preview.html` (the real title; `shots.mjs --preview`).
-- **City 2.0 (THE city) — its standing rules, one line each** (the full text: docs/harbor.md#city-20-in-claudemd--the-full-text; the
-  owner's CURRENT decisions: **docs/harbor/decisions.md** — read it before a Harbor pass; plan.md is the archive):
-  - THE WINDOW RULE: every window moment enters by its own motion or the blind cycle (core/harbor-moments.js#ENTERS_BY_MOTION).
-  - THE WINDOW STANDARD (the owner, Oct 31): the shadowboxer + the boss's TV room are the bar for every window scene — one real light in the room, its shadows, smooth eased motion, that quality.
-  - THE PEOPLE RULE: nobody appears or vanishes in view on the promenade (core/harbor-witness.js#rejoinVisits, people.js#guard).
-  - THE SOLIDS: every solid thing on the promenade is ONE registry (core/harbor-solids.js) — every walk goes round it.
-  - NO LAMPPOSTS: the implied lamps; the light in ONE pure module (core/harbor-light.js; NEW light default, `&light=old` for A/B).
-  - NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold); every vehicle planner reads it.
-  - THE WIND IS ONE STATE (core/harbor-wind.js → scene.js#WF once a frame): anything that moves in the wind reads it (gusts roll from upwind).
-  - THE BEAT: the lights follow the song's grid; a TRUSTED GRID ALWAYS PUNCHES; the kicks only calibrate the lead (core/harbor-beat.js).
-  - 3D only as BAKED sprites (scripts/bake-model.mjs); lettering nothing passes in front of → THE CRISP LAYER (crisp.js).
-  - Every force flag has a panel row (core/harbor-remote.js; tests/harbor-remote.test.mjs greps for strays).
-  - Every canvas through `safeCtx` / `ctx2d` (ui/canvas-safe.js) — counted by the memory guard; a new canvas needs no registration.
-  - THE CITY TIMETABLE (core/harbor-schedule.js) holds EVERY timed thing (SCHED moved the older systems in; tests/harbor-sched-strays.test.mjs
-    fails on a stray time in a planner; THE GOLDEN TABLE — tests/fixtures/sched-golden.mjs — proves a move changed nothing). THE SHOWCASE DIAL
-    (core/harbor-showcase.js — `showcase`, HIGH now) shapes the legendaries + the medium tier; the billboard's hints = the `billboard.*` queue;
-    THE DAY CHART (/daychart + /admin) shows any day from the planners; THE TIER TABLE (core/harbor-tiers.js) every NEW per-phone number.
-  - THE WINDOW SCENES ARE TIMETABLE ROWS (WINDOWS, Nov 1): scene.<id> (window, hours, nights, rarity, glow; `rotate: true` = seeded slots — the
-    bookie) read by core/harbor-scenes.js; a NEW scene = its row + core/harbor-<id>.js + its painter in windows.js#SCENE_PAINT; after hours the
-    scene rooms + the edge windows keep their SHADES DOWN glowing in their colour, lights out one at a time 2–4 am (windows.shades); the old
-    scenes RETIRED behind windows.old / &force=old-windows (core/harbor-moments.js#RETIRED).
-  - THE RADIO (CITY CONTROLS A — docs/harbor/passes/city-controls-a.md): the owner's controls; a row with a `jack` in the timetable = a jack
-    on the desk; the SERVER checks the ROLE per action (core/harbor-radio.js#ROLES: owner · crew) + writes + audits every moment; a fired
-    moment plays ONCE (scene-radio.js), never the preview panel's loop; only a server yes loads the radio (radio-gate.js). CC-B: THE INTERCOM
-    (the owner's voice: audio/intercom.js — the clip an hour via /api, held in a game) + THE CREW (granted by the owner; ONE RADIO PER LOBBY —
-    core/harbor-radio.js#radioHolder; their sky moments dormant until LOBBY 2.0) + PRESETS + the room push (api/_lib/push.js, VAPID env vars).
-  - THE LOAD (THE LOAD FIX, Nov 6 — docs/harbor.md#performance): the boot screen holds until THE CITY's reveal (ONE fade; its unlit sign =
-    the title's spot — keep index.html #boot + title.css .nd-sign in step); ONE CAMERA ON SCREEN (scene.js#holdStart: a re-layout after the
-    reveal holds the picture, then cuts — never the old bake under the new signs, never a dissolve); proof: wk-load.mjs + the `load` group.
-    THE BOOT BUDGET (LOAD FIX 2): what loads before the reveal is budgeted (tests/integration/boot-budget.json — raising it = a decision a pass
-    names); THE BOOT PRELOAD = index.html's GENERATED list (`node scripts/build-boot-preload.mjs` after a module's imports change); no audio
-    before a tap; after the reveal nothing in the sky changes by a cut (clouds.js); measure: `boot-time.mjs` (docs/harbor.md#performance).
-    THE BOOT WATCHDOG (LOAD FIX 3): inline in index.html, ahead of every module (`window.__boot` — a module can't watch the graph it dies with):
-    the graph failing → at once, no reveal in 12 s ON SCREEN → a BOOT HANG report to /admin + ONE reload (never a loop) + TAP TO TRY AGAIN; THE
-    HANG WATCH starts there at boot (the scene only feeds it); proof: the `load` group's BOOT SAFETY NET + `wk-freeze.mjs` (docs/harbor.md#performance).
-    LOAD FIX 4 (Grok's boot audit): THE REJOIN LIMIT (the boot waits ≤ 8 s ON SCREEN for Firebase + the room, then the city + REJOIN — app.js#boot,
-    room.js#pendingResume / cancelResume: ONE attempt); EVERY dynamic import through THE SKEW WRAPPER (`lazyImport(import('./x.js'), 'x')` —
-    ui/lazy-import.js: a new deploy → ONE reload, never in a match being played; tests/lazy-import.test.mjs fails on a stray); the boot's gates
-    in VISIBLE time (ui/onscreen.js — never a plain setTimeout / wall-clock age for a boot wait); no regex lookbehind (safari-floor.test.mjs).
-    LOAD FIX 5 (the owner's DOUBLED CITY, Nov 11): THE BOX GATE — EVERY camera / box change on EVERY path goes through the ONE gate
-    (scene.js#boxCheck / boxLook → onResize → build → layout → holdStart: the layer's ResizeObserver from the FIRST frame, the reveal waits for a
-    city built for its box, a look once a second + at every return; the held picture's safety in time ON SCREEN) — never a second canvas resize;
-    THE GUARD = NO TWO CAMERAS (`node tests/integration/wk-double.mjs` — WebKit, every path; the harbor `cameras` group; a new path = its row in
-    tests/integration/kit/two-cameras.mjs — docs/harbor.md#performance).
-  - Debug + preview flags: `&debug=1` (strips at the TOP), `&dpr=3` (look only), `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary
-    from a link waits for the reveal + a tap; `&lgnow=1` at once) — docs/harbor.md.
-- **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import
-  map that swaps `js/firebase.js` for `tests/integration/fake-firebase.js` (see gridlock-preview.html). Iterate screens there in
-  seconds; run the E2E once the look is right.
-- **Profiles are polish too:** joining and playing must work with `/api` down or unconfigured (no tags, no emblems, results queue). ONE CARD ON ALL YOUR DEVICES (THE VAULT 1A): a device with nothing saved is asked ALREADY A MEMBER? BRING YOUR CARD (docs/profiles.md).
-- **EMBLEMS + GLOWS MOVE ON THE COMPOSITOR (THE VAULT 2A):** an emblem's every moving part is its own HTML-wrapped layer (`js/vault/emblem-art.js` — never a CSS animation on an SVG element: it repaints every frame), transform + opacity only; THE PROMINENCE RULE is the budget (a legendary card leads: its emblem + name glow hold still).
-- **THE VAULT 2B:** DRESS YOUR CARD is the profile's wardrobe (`js/vault/dress.js`); a MEMBER Nº is `profiles/{pid}/mn` (server-only — the owner Nº 0001; never the tag's digits); the two DEV cards are the owner's only (`js/core/dev-cards.js` — granted + checked by the server); a card that shows THE SPEAKEASY draws the city's own front (`js/fx/speak-front.js`).
-- **A FULL CARD ON TOP HOLDS EVERYTHING BEHIND IT (THE SPEED PASS B):** every full card opens through `vault/full.js#openFullCard` — the fx surfaces behind held (`fx/renderer.js#fxCover`), every CSS animation outside it paused (`body.vl-covered`), the city's frames held; a new pop-up that shows a full card goes through it (docs/vault.md "THE COVER").
-- **THE GIFT CARDS (SHELL 2.0 B2 — docs/vault.md "THE GIFT TIER"):** 1-of-1 cards (`core/gift-cards.js`; `dev-cards.js#isOneOfOne` = dev or gift: the
-  rainbow gem + 1 OF 1), given ONLY by the owner's `/admin → GIFTS` (`api/_lib/gifts.js`: `gifts/{card}` = ONE PROFILE EVER, equipped, a reveal —
-  `profile/gift-reveal.js`); the owner's own one (OWNER_GIFTS) granted on 'me' like the dev cards, never giftable. THE GIFT QUEUE (THE CARD PASS): gifts wait in a LINE (`ppriv/{pid}/gq` — server-only), the reveal plays one card at a time ("GIFT n OF m"). Their art = the material
-  (`assets/vault/gift/` — `scripts/build-gift-art.mjs`), their motion = ONE engine (`fx/gift.js` + the layers as data in `fx/gift-specs.js`).
-- **THE CARD LAYOUT RULE (CARD FIXES — docs/vault.md):** a full card's pieces never overlap + its plate keeps off the card's HERO (`js/vault/layout.js` — one
-  ResizeObserver; a gift's `heroFull` in gift-specs.js, any other card's in `FULL_HERO`); the plate hugs its text — ONE clean rounded box, NO step
-  (FRIENDS B dropped both kinds — `strip.js#layStep` keeps only the hero cap); NO FOUNDER pill on a gift card; a full card's plate = NAME + LV n (THE RANK = a gold line above MEMBER SINCE; DEV · <RANK>); the strip's dev line reads DEV. **THE CARD TEXT STANDARD** (Nov 6 — docs/vault.md): every full card's top line, bottom-left block + printed name = a minimum size + a soft glass wash (a ::before) + a dark edge — never a card's own text treatment unless the owner approves one (BRUH).
-- **THE SLIM-CARD LONG-NAME STANDARD (THE CARD PASS, Nov 7 — docs/vault.md):** the longest name = `NAME_MAX` (12); a NEW strip's hero centred 0.75–0.85 across
-  (move a strip right by zooming its crop out: `strip: [100, py, z]`); every strip with a hero caps its plate there (`strip.js#heroRoom`); harbor `stripfit` checks
-  every strip with `'W'.repeat(NAME_MAX)` + MAXIMILIANOS at 390. FX plates (light on black) ship as LIGHT WITH ALPHA — the effect canvas is transparent.
-- **THE HERO-SPOT RULE (SHELL 2.0 B2):** a strip's main feature middle → middle-right (its centre ≥ 0.60 across), clear of the plate + the gem —
-  a NEW focal card = its row in `js/vault/hero.js` (checked live at 390 / 402 / 430: harbor `platefit`).
-- **NO BLACK TILES (LOAD FIX 3 — docs/vault.md):** a card DRAWN IN CODE = a baked still as its material (`js/vault/stills.js` + `node scripts/build-card-stills.mjs`),
-  shown only where its effect isn't painting (`fx/renderer.js` marks `.fx-on`); a new one = its STILLS row (`tests/card-stills.test.mjs`).
-- **THE VAULT 2C:** the strip's tier mark is THE TIER GEM (`js/vault/gems.js` — no words; the dev cards' DEV GEM); a pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES` (it shows CHANGED in THE LAB 2.0); the 12 sign-up shapes are commons everyone owns (`core/items.js#SIGN_EMBLEMS`) — the shape changes only in CUSTOMIZE; an unknown path gets THE WRONG DOOR (`404.html` — keep vercel.json free of rewrites).
-- **ITEM NAMES ONLY TO OWNERS (THE VAULT 1B):** the catalog (names, lines, achievements, what each level / milestone gives, the lab's names) lives in `api/_lib/catalog.js` + `lab-text.js` (never served); a phone gets display rows only for what it owns (`withShow` → the /api wrapper registers them). A new item = its row there. `tests/vault-names.test.mjs` fails on a leak.
-- **PROGRESSION (docs/progression.md):** XP, levels, the streak, items, achievements, X% counts + FOUNDER are written by the SERVER only (one
-  transaction per match / daily / event through the PURE steps in `core/progress.js`); collections show ONLY what a player owns (no ???, no totals).
-  Clients never write boards, stats, XP or ranks (server-only in the rules); board ids use dashes (`cipher-score`), never dots.
-- **THE BOARD shows REAL USERNAMES (LOBBY 2.0 A, Nov 3 — reverses BNAME's house nicknames):** a public row (`/api/board`, its CDN copy,
-  `/board`, the title's preview) = an opaque board id + the player's USERNAME — never a profile id, the key or the tag's digits; a name the
-  filter calls rude shows as its HOUSE NICKNAME (`api/_lib/lb.js#publicName`, `js/core/nicknames.js`); REPORT + /admin's rename / hide stay;
-  a report pushes the owner (`api/board.js` → `radio.js#notifyOwner`). `profiles/{pid}` is readable one at a time by signed-in users, never
-  as a list. A profile is listed from its 3rd COUNTED PLAY (a room match or a counted daily — never a solo run; `core/progress.js#countedPlays`, PD-3). docs/profiles.md "REAL USERNAMES".
-- **THE ROOM IN THE CITY (LOBBY 2.0 A + B):** in City 2.0 THE OLD LOBBY SCREEN IS RETIRED — the room lives in the city from the join to the podium
-  and back (the old lobby screen + lobby.js went with City 1.0 — CITY 1.0 OUT). LOBBY 2.0 B: THE GAME START (meta/go — LOBBY FIXES: the game's own pink sign lights, the walk inside, a fade — 5 s FULL / 3 s for a same-game REMATCH, the kind in the match id,
-  `core/room-show.js`), THE CITY PAUSE (a match on screen = the city destroyed + rebuilt after), the walk back out + THE WINNER's BANNER PLANE (meta/back
-  — `screens/room-banner.js`), THE REMATCH VOTE (rooms/{CODE}/rv/{uid}), ONE SHEET STACK (`ui/layers.js` — every pop-up opens on top); docs/harbor/passes/lobby-2b.md.
-  A City 2.0 room's waiting part IS the live city — app.js routes it to the title (never reloaded);
-  `screens/room-city.js` (+ room-dock / room-guests / game-options) puts the players in TWO LINES OF 4 at the door (`core/harbor-room.js` +
-  `room-lines.js` — derived from rooms/{CODE}; each keeps their line: `players/{uid}/ln`); docs/harbor/passes/lobby-2a.md (+ B's hand-off).
-- **MAKE HOST + THE CREW SWITCH LIVE (SHELL 2.0 B2):** the host hands the room on from a player's card (`room.js#makeHost` — in the room, to an
-  ONLINE player; the rule validates `meta/hostId` → a live, online, unkicked player; `meta/hostBy` → both phones say it); the owner's CREW switch on a
-  card stamps `rooms/{CODE}/radioCrew/role/{uid}` → that phone's radio loads / goes at once (`radio-gate.js#fresh` / `drop`).
-- **ONE ACCOUNT, ONE ROOM (LOBBY FIXES):** a profile holds ONE seat in ONE live room (`seats/{pid}` — `js/seat.js`: MOVE HERE · CANCEL on the second device); the SERVER credits a profile once per match (the worse seat) and never for two overlapping matches (`core/progress.js#overlaps`). Your NAME + COLOUR are edited at the top of CUSTOMIZE YOUR CARD only (`js/profile/edit.js`).
-- **NEVER THE LIVE SITE (FR6 FIXES A):** tests + repros run on the emulators — `kit/live-guard.mjs` refuses a non-local page unless `LIVE=1` on purpose (then `&test=1`: no profile, no member Nº, a silent room push); docs/testing.md "THE LIVE-SITE GUARD".
-- **THE RULES-LAG (FR6 FIXES A):** every database write goes through `firebase.js#write` (a refusal is reported to /admin, ids masked — never silent); a pass that changes `database.rules.json` fails `tests/rules-live.test.mjs` until its ack names the change, and its summary's FIRST line says RE-PUBLISH + how (docs/testing.md "THE RULES-LAG"); a feature on a new rule keeps a fallback that works on the old one.
-- **Anti-cheat never depends on the code being secret** (the owner, Oct 28 — the repo stays PUBLIC until just before the launch): the
-  server checks + replays every result itself (`/api`), the secrets live only in Vercel's env (the service-account key, the pepper).
-- **THE REAL PLAYER COUNT (FR7-A's C1, Nov 12):** anything the server PAYS BY A COUNT takes that count from what it can verify, never from
-  the length of a host-written list — `api/report.js`: the match's names with a seat (`players/{uid}`) or a server-known account, ≤ 8;
-  > 16 names refused; one real player = a solo run, never a win (docs/profiles.md; `server.test.mjs` "FR7-A C1").
-- **FR7 FIXES A (Nov 12 — docs/harbor/passes/fr7-fixes-a.md):** **HOST-GRADED OVERCLOCK** — the phones seal their picks (`seal/…/a`), the host
-  re-grades them after the unseal (`overclock/grade.js`; the phone's `ok` only lowers it; THE HUMAN FLOOR → no speed bonus + `fl`, no REDLINE); **THE
-  DAILY CEILING** — past 20 counted room matches an Eastern day a match pays 0 XP + moves no board (`core/progress.js#matchStep`, `CEILING_LINE`);
-  **THE RESET EPOCH** — THE PROGRESS RESET stamps `progress/resetAt`, the back-fill rebuilds only after it (`core/board-fill.js#sinceReset`); **END
-  GAME THROUGH THE DEALER** — HOLD'EM's ☰ END GAME = the dealer's `endGame` (places by chips from 3 hands, else NO RESULT — `match.js#endTournament`).
-  Add-ons: **`api()` under ONE time limit** (token + fetch + body — a lock waiting on it always lets go; HOLD'EM's move lock + its 10 s release);
-  **THE LOST LOOK** — a canvas iOS discarded in the background (a lost context / the bake's blank sentinel) → the dark held → the one re-fit path (docs/harbor.md#performance).
-- **FR7 FIXES B (Nov 12 — docs/harbor/passes/fr7-fixes-b.md):** **THE EDGE CACHE is LIVE AGAIN** (THE CDN HOTFIX, Nov 12 — Vercel's free edge
-  requests at 1M / 1M: `docs/launch.md` step 8 run early — the revert of "THE EDGE CACHE out"): the worker keeps ONE COPY PER DEPLOY by the build id
-  (`/api/time`'s `v`; a new deploy shows at once) + `/js` `/css` `/assets` carry `max-age=300, stale-while-revalidate`; proof `wk-edge.mjs` 6 / 6 (a warm
-  visit 15 requests, was 356). **THE CITY'S IDLE POLLS (THE CDN HOTFIX — every call = an edge request):** the preview / radio feed `GET /api/admin?live=1`
-  every 5 min + `radioHello` every 5 min, ONLY from a tab on screen AND focused (`remote.js#onScreen`), a return re-asks only after 60 s; the NIXIE's
-  window (`radio.js#HERE_MS`) + the sightings' trail (`sightings.js#OPEN_TRAIL_MS`) 6 min to match — a new idle poll = a decision a pass names
-  (`tests/cdn-hotfix.test.mjs`). **THE FROZEN SONGS OUT OF DEPLOYS** — `.vercelignore` drops the ten frozen
-  games' songs (a game coming back deletes its lines; `tests/frozen-songs.test.mjs` guards every live playlist + station). **THE PRIVATE-REPO WORKFLOW** —
-  both workflows read the repo's visibility (public = as before; private = the light `tests` only, `harbor` by hand). **THE LAUNCH + THE PRIVATE FLIP =
-  docs/launch.md** (pass screenshots stay out of git — `tests/repo-growth.test.mjs`). **A SEAT IS NOT A PLAY** — a credited uid needs its OWN node of the
-  match (`api/report.js#PROOF_TREES`); PRESENT = PROVEN (OVERCLOCK writes its board at each challenge's open; PRISM saves while its frames run); the walk
-  back keeps the proof nodes and a RE-START KEEPS THE LAST MATCH's (`host.js#pruneProofs` — the host deletes ONE match's node: a rules row). **SIGHTINGS
-  NEED THE CITY OPEN** — a sky claim only inside the server's `ppriv/{pid}/co` (radioHello); the gap = the queue = 15 min; `no_stamp` = the phone retries.
-  THE TWO-TAB HANG: the boot probes Firebase's own IndexedDB databases before the SDK (`firebase.js#idbAnswers` — silent → hidden, localStorage alone);
-  every Cache Storage wait in the worker bounded; THE WATCHDOG ALWAYS ENDS IN A WAY OUT; the BOOT HANG report's "other tabs open: n".
-- **A game's podium music:** `FINAL_MUSIC` in its index.js (HIGH STAKES: `victory1` = victory.mp3); default the victory playlist.
-- **OVERCLOCK (OC1 — docs/overclock.md):** QUICK default; THE ROOM's NIGHT MEMORY = the host deals the whole match at `start({ used })` (`overclock/deal.js`), each challenge marks its keys as it opens; the after-challenge skip (`ocnext`, ≥ 3 s, everyone connected); the combo (`ocm` → `game/combo`); NIGHT only (`LOOKS`); its timings are the owner's — pinned by `tests/overclock-oc1.test.mjs`; mid-game standings = LIGHT rows, never the slim cards. OC2: THE ROUND WIN is ONE rule (`logic.js#roundWin` —
-  the highest + not shared; the server's REDLINE calls it; stored as `game/rw`); the after-challenge screen + the final run in BEATS inside the
-  owner's times (`resultBeats` / `finalBeats`, from the phase start); the victory BODY = `victory.js#finalScene`; the combo cues stay in the
-  header band (never over the play area, never a tap taken); MAKE 24 cut (18 types). OC3: NO SIDEWAYS SCROLL, EVER — every Overclock panel
-  `overflow-x: hidden`, anything that moves past the edges in a clip of its own (guard: `tests/integration/e2e-oc-sideways.mjs`, 390 / 402 /
-  430); the typing challenges on the kit's pads — NO input element, never the system keyboard (a computer's keyboard still types into them);
-  Pattern Lock's first sequence in a match is easy (its own seeded stream); the hard ones' demos ride the rules card (`kit/slam.js` `demo`). OC3B: Spellcheck, Higher or Lower, Timeline, Sort It rebuilt (no rule or timing change — HIGHER OR LOWER is asked as "is the hidden one higher or lower", the same winner; the screens' step times pinned by `tests/overclock-oc3b.test.mjs`); Missing Link's joins are a neutral lit tube (never an arrow); never name a state `.is-hidden` (components.css hides it). OC4: THE REAL-GLASS CRACK (`crack.js` — a real CC-BY 3.0 photo, credited in ☰ → CREDITS +
-  `assets/overclock/CREDITS.md`; every wrong answer, at the tap point) + Rewire, Memory, Color Clash, Odd One Out (FOUR FAMILIES — `odd.js`, dealt
-  around the night memory), Quick Count, Signal Lock, Compass rebuilt; QUICK COUNT's EXACT FLASH (the clock starts once the shapes have painted —
-  `count.js#afterPaint`, pinned by `tests/overclock-oc4.test.mjs`); on the new buttons right = green, wrong = red + cracked, NO ✓ / ✕ (the owner);
-  Rewire's prefix is `oc-wire-` (`oc-rw-` = the round winner). COLOR CLASH (the owner's add-ons, Nov 7): the answers are COLOR WORDS in four different text colours (a derangement — none its own), always TAP THE TEXT COLOR (`challenges.js#clashAnswer`; no "tap the word" rule), never "ink" on screen. OC5: DUMB LUCK = the 19th challenge (`luck.js` PURE — honest odds, equal-EV
-  payouts 20 × (n + 1), the draw AFTER the lock stored once in `game/dl/{ci}`, the race a pure script; at most once, never last, never solo or
-  the daily — `buildOrder(…, { luck })`); a pick rides the board's existing fields (no rules change); its screen `ui/dumbluck.js` (prefix
-  `oc-dl-`; the horses = `horse-frames.js`, GENERATED by `scripts/build-dl-horses.py` from Muybridge's frames); THE HORSESHOE = the server flag
-  `overclock-horseshoe`; THE QUICK SOLO BOARD `overclock-quick-solo` (bounded by `logic.js#ptsCeiling`); the daily plug-in `daily.js` (OFF —
-  the server-picked `daySet` in, one comparable score out). OC6: TRUE OR FALSE · HIGHER OR LOWER · TIMELINE · SORT IT are BUILT pools — never
-  edit `data/oc/{truefalse,higherlower,timeline,sortit}.json` by hand: `node scripts/oc-pools/build.mjs` (Wikidata CC0 with a committed cache +
-  the fame filter in every query; written statements each confirmed by their Wikipedia article or DROPPED; docs/content.md "THE POOL BUILD");
-  values METRIC in the data, US units on screen (`units.js`); STABLE IDS (deals + the night memory key on them, never an index); TIMELINE = theme
-  pools (four dealt, 10+ years apart); THE DAILY RESERVE (~20% of each, SERVER-ONLY in `api/_data/oc-reserve/` — never served, never dealt in a
-  party; `daily.js#dayContent` = what a phone sees + the server's answers; docs/cartridge.md D2); `tests/overclock-content.test.mjs` checks it all.
-  OC7: TRIVIA LIGHTNING · CLOSEST CALL · MISSING LINK · SPELLCHECK are BUILT pools too (never edit `data/oc/{trivia,closest,missinglink,spellcheck}.json`
-  by hand) — OVERCLOCK's OWN TRIVIA BANK (no live trivia service, no question bank in the room; `js/trivia/` + `data/trivia/fallback.json` stay
-  UNCHANGED for LAST SIGNAL · HIGH STAKES · BLUFF — hash-pinned by `tests/overclock-oc7.test.mjs`); every deal + the night memory by id (`tv-` `cc-`
-  `ml-` `sp-`); MISSING LINK records each clue's SIDE (the answer screen + the demo show the WHOLE word, the link lit) and every join is a real word
-  (Hunspell en_US / ENABLE) or a Wiktionary phrase; SPELLCHECK is American (the right word in Hunspell en_US — SCOWL; no wrong one a word in
-  en_US / en_GB / ENABLE; `hard` = the common slip, the answer's underlines).
-- **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists). PD-1 (Nov 9 — docs/prism.md "THE LAYOUT"; the
-  rework plan: docs/games/plan.md): THE MAX BOARD's sizes are ONE pure module (`prism/layout.js` — the real safe areas, the cell snapped to device
-  pixels, the board at the FULL 3×), HOLD + NEXT inside the board's corners, the other players on THE SLIM RAIL (`rail.js`), SLAM = the red push
-  button at the rail's foot (LEFT mirrors it); the podium = the console's frame + `victory.js#finalScene` (PRISM draws no frame, no report table);
-  `prism-preview.html` mounts the REAL view (`prism-shots.mjs`). PD-2 (Nov 9 — docs/prism.md): AUTO-TARGET is ONE pure rule (`logic.js#autoTarget` —
-  the most recent attacker still alive, else a random opponent kept while valid; no button, no setting); incoming junk = THE RISING GHOST ROWS
-  (`incoming.js` PURE + the look's hook `board.js#LOOKS` — the engine's attack math + delays untouched; an occupied cell only tinted, never
-  covered; no red bar); callouts on the kit's announcer (`fit`); KO card → Call the Winner (the kit's `ring`) → SPECTATE (names → THE PLAYER PAGE
-  only there); SURVIVAL (the seeded 10 s → 4 s rows, `survivalRows`) + SOLO (`SOLO: true` — SCORE RUSH + SURVIVAL; BATTLE needs 2: a CHOICE's
-  `when(players)` in the options sheet + `cleanSettings(s, players)`); the results carry `ko` / `pc` / `dz` / `t` for PD-5's cards. PD-3 (Nov 9 — docs/prism.md "THE NIGHT
-  LOOK"): THE GAME LOOK picks the board's look LIVE (`view.js#watchLook` — day = the glass placeholder until PD-4, night = THE NEON TUBES,
-  `board.js#neonSprite`); each piece keeps its COLOUR FAMILY in every world (`neon.js` PURE — `tests/prism-neon.test.mjs`); every MOVING light is the
-  LIGHT LAYER's (`light.js` — one low-res WebGL canvas above the board, pure added light + a GPU bloom; never a full-res 2D blur, never the board
-  copied to a texture: measured); effects short, never over the stack or the incoming rows; FOUR TIERS (`tiers.js`) — the light steps down FIRST,
-  the board's 3× LAST. PD-4 (Nov 9 — docs/prism.md "THE CRAYON LOOK"): DAY = THE CRAYON LOOK (the glass look retired as the day look); the crayons keep
-  the night's COLOUR FAMILIES + read on every paper (`crayon.js` PURE — `tests/prism-crayon.test.mjs`); every crayon drawing PRE-DRAWN once (`crayon-art.js`
-  — never a stroke per frame; warmed in slices); THE PAPER = the HOST's deal per match (`game.pp` — `crayon.js#pickPaper`, the night's memory: a rotation,
-  never twice in a row — the same page on every phone); the page + the world doodle = ONE canvas redrawn only on a change (`page.js`), the WebGL world
-  skipped by day; the papers (CC0) + Permanent Marker (Apache 2.0) load ONLY when the day look shows (`page.js#warmDay`). PD-5A (Nov 9 — docs/prism.md "THE TWO SETS" + "THE BEAT FIX"): EVERY beat-timed
-  thing (visuals, the countdown, the musical SFX, the finale) reads `view.js#songClock` = THE HEARD BEAT (`sync.js` PURE — the sounding voice's clock − SPEAKER
-  DELAY − an unreported iPhone speaker − the measured lead; the SFX on the song's own clock), never `serverNow()` beside it; the lead = the city's
-  listener + estimator, bounded ±60 ms (kicks off the beats → the grid alone); QUICK START = `synced-songs.js` `quick` (slices from the stream's start, the
-  swap on one sample; a cue-in streams from ~0.5 s before its cue — ONE Range request placed by `game.ff`, `bufferT0` = a buffer's file time); TWO SETS — NIGHT `prism1-5` (unchanged) + DAY `prismd1-5` (`look: 'day'`, hand-set worlds, cue-ins), the HOST's look at
-  `start` = `game.set` (every phone plays it), DAY's playlist in the night's memory (`meta/used/prism/dn<N>`); a day song = `build-prism.py --day`
-  (it STOPS a song off its measured BPM by > 0.1, drifting or on the half-beats — never a guess). PD-5B (Nov 9 — docs/harbor/passes/pd-5b.md): THE THREE CARDS'
-  flags from the room's own record (`match-report.js#prismExtra` — `firstko` · `pc` · `comeback`; PRISM's `comeback` never raises COMEBACK KID), the art
-  DRAWN IN CODE (`fx/pd-cards.js` + PURE `pd-specs.js`; the material = its baked still frame — `scripts/build-pd-cards.mjs` after an art edit); FIRST KO is
-  the ONE moving common (`vault.test.mjs#COMMON_MOVES`); THE BURST BEFORE THE COLLAPSE (the neon board holds the pre-clear stack until the burst —
-  `neonfx.js#preClear`; the game never waits); THE HOLIDAY HOOK = `holiday.js` (one row a holiday — empty now). PFIX-A (Nov 10 — docs/prism.md
-  "PFIX-A", the review's `PFIX-A:` lines): THE LOCK = every move / turn after the first touch-down spends a reset, spent → the next touch-down
-  locks AT ONCE (`engine.js` — the lowest CELL counts); AWAY = a board silent ≥ 30 s in play is out, credited to nobody (`director.js`; the
-  view's save = the heartbeat + a save on hidden / pagehide); a DOUBLE KO = the one out LAST wins (`director.js#outOrder`); an attack's key =
-  `{uid}-{piece}` + the board saved in the same frame (a refresh never attacks twice — the receiver orders by `at`); AUTO-TARGET forgets
-  after 20 s (`TARGET_MEMORY_MS`); THE NIGHT GAIN (`build-prism.py --night-gain` → the manifest's `gain`, per voice through
-  `synced-songs.js#levelOf`); THE TEARDOWN — `unmount()` destroys + zeroes everything `mount()` made, ONE reverb a page, `ui/fit.js`'s
-  late-font list is WEAK (a podium no longer pins a match's screen; proof `e2e-prism-leak.mjs`). PFIX-B (Nov 10 — docs/prism.md "PFIX-B" —
-  THE ANTI-CHEAT RULES A PASS MUST KEEP): the board node `prism/{m}/{uid}` is written only in PLAY (+ GO − 2 s, + SCORE RUSH's end ≤ endAt + 4 s),
-  FROZEN once out (own `st` or `game/out`), `at` = the server's now, `sv` CLOSED + bounded by the play clock (a new saved field = its rule row +
-  a rules test, or every save is refused); the view writes only inside that window (`logic.js#boardWritable` — keep the two in step); an attack's
-  key = `{uid}-{piece}` (one a piece), `at` = now, never at / from a board that's out, the receiver's queue ≤ `QUEUE_MAX` 40; a KO counts only with
-  the sender's attack in the victim's queue (`creditedBy`, 20 s); the award flags only from plausible numbers (`prismExtra` — `pn` in the
-  results); SCORE RUSH's bound = the SIM's (`scripts/sim-prism-rush.mjs` — re-run it after a scoring change); by day the tiers step 3 → 0
-  (`tiers.js#stepTier`); the ghost rows = the first 12 to land.
-- **HOLD'EM's DEALER (HE2 — docs/holdem.md "THE DEALER"):** THE SERVER IS THE DEALER on `POST /api/report { holdem: <op> }` (still 8 functions;
-  `api/_lib/holdem-dealer.js` PURE + `holdem-store.js`): crypto randomness (no secret, no env var), the deck + every card ONLY in `hrec/{CODE}` (one
-  JSON string — default deny), the public table `rooms/{CODE}/holdem` (no client write), a seat's cards `hole/{CODE}/{uid}` (that uid only, never
-  kicked); ONE transaction a call; everything timed happens on a POKE by the server's own clock (`dueOf` — never a phone's clock or claim); nobody
-  acts for another seat (the host only starts + ends CASH); stale / double taps → 409 + the seq; the result credited from the server's record
-  (`applyMatch`, exactly once); upcoming run-out cards never written where a phone reads (the engine's `stepRunout`). The emulator suite's LEAK SCAN
-  reads AS a phone at every step (`tests/integration/holdem-server.test.mjs` — run it alone).
-- **HOLD'EM's TABLE (HE3 — docs/holdem.md "THE LEAN WIRE" + "THE TABLE SCREEN"):** the public table = THE LEAN WIRE's parts (`holdem/wire.js` — the dealer
-  writes ONLY the changed parts in ONE multi-path update + `meta/activeAt` ≤ once a minute; a late publish is HEALED by the next call — never a whole-view
-  transaction again); the cartridge's `step` only frames the match (`final` once the dealer's `rep` is in); the view renders from the table + its own
-  `hole` node + `serverNow()`, the layout from ONE pure module (`holdem/layout.js` — no seat overlaps at 2–8: `tests/holdem-phone.test.mjs`); WHO POKES =
-  `logic.js#pokeIn`; the faces drawn in code (`card-art.js` — four colours, CLASSIC in Settings); BEING BUILT (HE3–HE9) = `playable: false` + `preview: true`
-  (a local emulator page with `&preview=1`, and HE8's owner test — config.js#isPlayable; docs/cartridge.md) — PLAYABLE since HE10; `tests/integration/e2e-holdem.mjs` + `holdem-preview.html`.
-- **HOLD'EM's MOTION + THE END (HE4 — docs/holdem.md "THE MOTION" … "THE END SCREEN"):** ANIMATIONS COME FROM THE STATE — the view paints the state, the
-  motion plays only the dealer's events this phone hasn't shown (`motion-plan.js#freshEvents`: numbered after the last shown, fresh ≤ 2.5 s, no gap — a
-  refresh / a sleep / a gap = the state, never a replay), one timeline (`schedule` — the side pots smallest first, the main last; inside the dealer's pauses:
-  nothing waits on it), played by `motion.js` (WAAPI transform / opacity, ghosts in `.he-fx` under your buttons + cards, roll-ups as holds); the board by the
-  player count + the side rows in px (`layout.js#blocks` = every piece's rectangle, the CSS's offsets — keep them in step); a busted seat to its hand's end
-  (`drawnSeats`), the re-spread at the next deal; THE KO CARD only on a fresh bust; CASH's LEAVE between hands / sat out; THE LEDGER + THE END SCREEN = the
-  console's slim cards, the body says `podium = 'all'` (`ui/final.js`), the numbers from the server's record (`game.sum`).
-- **HOLD'EM's SOUNDS + CHIPS + SKINS (HE5 — docs/holdem.md "HE5"):** THE SOUNDS from the MOTION's own timeline (`sound-plan.js` PURE — never a replay) through
-  `sfx.js` (decoded once, HOLD'EM's own limiter + TRIM → the SFX bus; THE GAIN TABLE new 2.2 · stings 1.0 · deals 1.1 ±4 %; champion = `OWN_VICTORY_SOUND`); THE CHIPS =
-  `chips.js` (PURE — the fewest in 6 colours, a seat ≤ 2 stacks) + `chip-art.js` (lit 3/4 stacks, cached, never per frame); A SKIN = ONE entry in `skins.js` + its art
-  (`scripts/build-holdem-skin.py`) + its living touches' CSS — no skin code path, only its art loads, `settings.heSkin` per phone (HE6 adds two + the picker); the quality
-  tiers drop the living touches first, then the light; THE ACTION AREA from your cards up (`layout.js#ACT`); LEAVE always in CASH (the dealer's queued `rec.lv`).
-- **HOLD'EM's REAL CARDS + THREE SKINS + THE PICKER (HE6 — docs/holdem.md "HE6"):** THE FACES = `card-art.js#faceSvg(code, deck, size)` — `full` (your hand) ·
-  `board` · `mini` — from the GENERATED `card-data.js` (`node scripts/build-holdem-cards.mjs`, sources in Downloads\neon\holdem\cards-src\): Byron Knoll's
-  PUBLIC-DOMAIN pips + court figures (one sprite PER DECK `assets/holdem/cards/courts-<deck>.webp` — only this phone's deck loads; his ace of spades is NEVER used —
-  ours is drawn in code) + Libre Baskerville's index glyphs as paths (OFL — never a loaded font); the STOCK is the view's (`.he-card` — the skin's `stock` + a grain);
-  the ink never changes with the skin. THE SKINS = NEON CASINO · COZY CABIN · CYBERPUNK APARTMENT — every look is a skin FIELD → a CSS variable (every accent glow
-  reads `--he-gold-rgb`; `tests/holdem-skins.test.mjs` checks the nested shape + that the CSS reads every variable); a skin's art baked by its row in
-  `scripts/build-holdem-skin.py` (backdrops 860 × 1864, compositions as `edit` steps). THE PICKER = ☰ → Settings → HOLD'EM → TABLE (`picker.js`, lazy — CSS mini tables
-  from the skins' data, no thumbnail downloads; a tap = `settings.heSkin`, live mid-hand).
-- **HOLD'EM's SIDEWAYS VIEW + DESKTOP (HE7 — docs/holdem.md "HE7"):** wider than tall = THE SIDEWAYS TABLE (`layout-wide.js` PURE — the seats evenly by
-  arc length round a wide stadium, THE COLUMN of actions on the right; `tests/holdem-wide.test.mjs`); a desktop / wide window = the same on THE STAGE
-  (`stageOf` — one transform; the backdrop + the podium outside it) + the skin's SQUARE backdrop (`backdrop.square`, only sideways, only the chosen skin);
-  EVERY sideways CSS rule scoped to `.he[data-orient='wide']` — THE PORTRAIT IS UNTOUCHED (prove it: `holdem-pixdiff.mjs` vs a worktree on :5174); a size
-  change mid-motion SNAPS it (`motion.js#snap` — never a replay); the console's `#ns-turn` (TURN YOUR PHONE UPRIGHT) is hidden while `body.he-on`.
-- **HOLD'EM's TIMER + THE OWNER'S LIVE TEST + TOUGHNESS (HE8 — docs/holdem.md "HE8"):** YOUR clock upright = a bar on your plate's top edge (`.he-plate >
-  .he-clock`); THE OWNER'S LIVE TEST (until HE10 switched it on — the gate's code kept for the next game being built) = the dealer's `start` takes a `playable: false` HOLD'EM ONLY from an ADMIN_PIDS host (`holdem-store.js#startOpen` — the
-  server's check; the emulators open unless `testHoldemGate`) + the owner's phone lists it as TEST (`config.js#setOwnerPhone` from the radio gate's `owner`
-  yes, read ONLY by room-city.js — `tests/holdem-owner.test.mjs`); a tap = pressed at once + ONE move at a time until THIS table shows the answer (THE
-  CATCH-UP — never `disabled: busy`); NO SIGNAL = the buttons wait (`offline()` in the render's signature); the wake lock = `wakelock.js#gameAwake` (seated
-  in a live match only); THE FRAME LOOP SLEEPS when nothing moves (`wake()` — never an always-on rAF; proof `holdem-endurance.mjs`: 400 hands flat, 0 idle frames).
-- **HOLD'EM (HE1 — docs/holdem.md):** the engine is PURE + DETERMINISTIC (`js/games/holdem/` — never Math.random or a clock: an injected rng +
-  `now`; a test greps — the screen — `view.js` + its `motion.js` + `sfx.js` + `bet-slider.js` — alone reads clocks), plain JSON, every call returns a NEW state (`{ state | match, events, error }` — a refusal = the same object back); THE
-  DEALER is the server (HE2: crypto randomness — never KEY_PEPPER) — the deck + unshown hole cards never reach a phone (`views.js#publicView` /
-  `seatView`; the sims scan every view); PLAY CHIPS ONLY — no money words ("CASH" = the mode's name); TURBO's level is 90 s, DEEP's 15 min, CASH has the shot clock too + AWAY = SAT OUT (the length study:
-  `node scripts/holdem-sim.mjs`); the test robots (`tests/fixtures/holdem-bots.mjs`) are never shipped. Its GAMES row is `playable: true` (HE10; `preview` HE3–HE9).
-- **HOLD'EM's FIX PASS + SWITCH ON (HE10 — docs/holdem.md "HE10", the Fable review `Downloads/neon/holdem/FABLE-REVIEW.md`):** THE TRUE CHECK (pre `check`:
-  dropped by the dealer the moment anyone bets — `table.js#preVoid`; the toggles say exactly what they do); a HOLD'EM result ONLY from the dealer
-  (`api/report.js#reportableGame` refuses a `match-report.js#DEALER_GAMES` game + any non-playable one; `testReportAll` = the emulators' switch for the frozen
-  games' checks); a match COUNTS from 3 hands (tournament) / 10 hands + 5 min (CASH) — else `rep: 'short'` (`holdem-dealer.js#COUNTS`); what's due runs FIRST
-  on every op; a seat whose player left goes AWAY at once; the record + `hole/` deleted 8 s after the end; EV_KEEP 24 + no second `shown`; the podium waits
-  4.5 s (`logic.js#directorStep`); a missed run with an OLD start is history (`OLDEST_SLACK_MS`); SIT BACK DOWN with your chips; `assets/holdem/CREDITS.md`.
-- **HOLD'EM's BET SLIDER (HE11 — docs/holdem.md "HE11"):** a custom control (`holdem/bet-slider.js` — pointer capture, transform only, never rebuilt under a finger, CONFIRM one-shot) on THE BET STEPS (`holdem/bet-steps.js` PURE: the smallest round unit ≥ the small blind giving ≤ 60 stops; min + ALL IN exact, ALL IN only the last slice — `tests/holdem-bet-steps.test.mjs`, `wk-holdem-slider.mjs`).
-- **FRIENDS A (docs/harbor/passes/friends-a.md, docs/profiles.md "FRIENDS A"):** the friends list = `pfr/{pid}` (server-written via `/api/profile`
-  actions, its OWNER reads it — never another player); every change through the PURE `core/friends.js#friendStep` (REQUEST → ACCEPT; quiet decline +
-  remove; BLOCK swallows their requests); ONLINE STATUS = NONE (only the green dot on a friend IN THE ROOM WITH YOU); NO DOCK TAB (the profile card,
-  the badge on YOU, ADD FRIEND on name tags, the INVITE sheet); INVITES THAT WAIT (a push + the card — `profile/invites.js`, one /api call, never a
-  socket); YOUR TABLE = `today` reads the friends list (≤ 12); THE CREW INTERCOM behind the owner's switch (`radio/crewIc`, default OFF); SAVE TO
-  PASSWORDS (`profile/keychain.js` — a real credential form; the key goes nowhere new).
-- **FRIENDS B (docs/harbor/passes/friends-b.md):** FACE ID / PASSKEY SIGN-IN (`api/_lib/passkeys.js` — actions on api/profile.js, still 8 functions;
-  `@simplewebauthn/server` 13.3.3 for /api ONLY; RP ID neonspeakeasy.com + localhost off production; `pkc` / `pkx` / `pkch` server-only by the
-  root deny — no rule names them; user verification REQUIRED, one live challenge per device per kind, used once; sign-ins share the restore key's
-  limit + `linkDevice`; the RESTORE KEY STAYS the fallback; the phone side hand-written in `js/profile/passkey.js` — docs/profiles.md "PASSKEYS").
-  THE PODIUM: Grok's podium sounds (`pg-*.mp3`, `PG_REV` busts the cache) + the console's winner sting; a cartridge's `OWN_VICTORY_SOUND` skips it;
-  the podium music waits for the FRAME (`state.podium`); `ACCENT` colours the frame; the results list from 4th; the score under each slim card;
-  the whole XP box opens your card. THE TIER GEM = ONE SHAPE (`vault/gems.js`); the screen change = a 150 ms fade (no glitch); the dock lit by day;
-  the link preview `assets/og.jpg` (JPEG ≤ 300 KB — og.png gone); game toasts under the header (`toast.js#gameTop`, `[data-msg-under]`).
-- **FRIENDS C (docs/harbor/passes/friends-c.md):** a fired radio one-shot plays ONCE per tab (`scene-radio.js` — `nd:rd-seen`; a hold comes back);
-  THE INTERCOM plays on every phone at ONE server-clock moment (EVERYONE 50 s ahead; scheduled on the audio clock; late = mid-way, never from the
-  top); the show (flyby / air show / missing man) draws AFTER every weather layer (`skyfx.js#showOver`) — no show moment hidden by weather;
-  THE BLACK HELICOPTER = the medium tier's night helicopter pass (`air.js#blackPlan`, `scripts/bake/blackhelo.mjs`, a jack + `&force=blackhelo`);
-  a cartridge's whole module graph is preloaded at once (`js/games/preload.js` + the GENERATED `preload-graph.js` — `node scripts/build-preload-graph.mjs`
-  after a game's imports change; a test fails when stale), the lobby wires the playable ones 4 s in.
-- **THE PASSWORD (PW1 — docs/password.md):** a DAILY-ONLY cartridge lives in `config.js#DAILIES` (never GAMES — GAMES is the lobby's list: the city's signs, HOW TO PLAY,
-  THE BOARD, the reports); THE SERVER JUDGES EVERY GUESS (`api/_lib/pw.js` + `pw-day.js`: the answers in `api/_data/pw/` — never served, a door's word only
-  once it closes; the schedule from the pepper, never the date); the list is BUILT + REVIEWED (`scripts/pw-words/`, never edited by hand); no ✓ / ✕ / ⌫
-  glyphs as icons in the game (drawn SVG); every colour a `--pw-*` token. THE PASSWORD answers `/api/daily` only while THE GO-LIVE SWITCH is on (DM1) or under `DAILY_TEST=1`.
-  PW2 (Nov 7): THE FRONT DOOR → THE BACK ROOM (never "THE DOOR"); NO PILLS on the dailies (drawn objects or plain type; a button's radius modest); THE DRAWN DOORS
-  (`password/doors.js`), THE DOOR REVEAL, THE END SCREEN (WELCOME IN · LOCKED OUT — the owner's ADD-ON; the block under the doors, the space at the foot), BOTH LOOKS as
-  tokens (`body[data-look="day"]` retokens; the music follows the look — `index.js#musicFor`, app.js re-renders on a look change), the sounds (`sfx.js`), THE SHARE CARD
-  (`share.js`, marks only), THE REWARDS awarded by the SERVER from its record (`pw.js#flags` → `dailyStep({ flags })` → KEYHOLE · the ≤ 6 card; `scripts/sim-password.mjs`).
-- **COAST CLEAR (CC1 + CC2 — docs/coastclear.md):** CC2: BOTH LOOKS (the sunny harbor — its gradient tokens registered with `@property` so the look crossfades live), GETTING SPOTTED (WAAPI beams on `.cc-fx`, the screen counts a spot when its beam LANDS — `shownSpots`), THE END SCREENS (the lighthouse / CAUGHT, the finished harbor — the server's `reveal` only once a run is over), the share card draws ONLY `logic.js#shareInputs` (NO BOARD — a test proves it), THE FIRST-TAP CATCH in `sfx.js` (iOS: a sound held ≤ 400 ms until the tap's unlock runs), LIGHTHOUSE + GHOST RUN from the server's record (`cc.js#flags`, `GHOST_S` 50 by `scripts/sim-coastclear.mjs`). CC1: the second DAILY-ONLY cartridge (`config.js#DAILIES`); THE SERVER KEEPS THE BOARD (`dly/coastclear/{day}/b`, built
-  once a day from the pepper, NO-GUESS — `api/_lib/cc-solve.js` proves every board; never served) and answers every move — a judged cartridge's `moves` go
-  through `api/daily.js`'s generic path (ONE transaction each, never aborting on a transaction's first null; a repeat writes nothing); a phone gets only
-  the cells it opened; buoys are the phone's alone; the clock = server time (+30 s a spot, +15 s a pause — THE DAILY MODULE calls pause); NO PILLS,
-  drawn searchlights + buoy, every colour a `--cc-*` token; `LOOKS: ['day', 'night']` since CC2.
-- **THE DAILIES — DFIX1 (FABLE REVIEW #1's fix pass — docs/games/review-dailies-1.md):** A RUN KEEPS ITS OWN DAY — every daily call after `start` carries the
-  `day` it returned (`js/daily/run-day.js`; the server takes today's or yesterday's with a start there — `api/daily.js#dayOfCall`), so a run crossing 4 am
-  Eastern finishes on its day; COAST CLEAR's PAUSE CAPS (3 a run, 20 min in all — `logic.js#MAX_PAUSES` / `PAUSE_CAP_MS`); ONE daily sound engine with THE
-  FIRST-TAP CATCH (`js/daily/sfx.js` — a game's sfx.js is its table); a move a daily doesn't own → 400, never a 500. Left for THE DAILY MODULE: the throwaway
-  gate (a daily counts only for a profile older than that day's 4 am), the IP limit on new profiles, the shared `js/daily/` kit, the schedule freeze.
-- **THE DAILY MODULE — DM1: THE ENGINE (docs/progression.md "THE DAILY MODULE"):** PLUG-AND-PLAY — `config.js#DAILIES` is the ONE list (no fixed count
-  anywhere: THE SWEEP = every daily on `core/daily.js#todaysDailies`, the DAILY XP 15 a daily capped by the list, `today`'s rows); a new daily = its cartridge
-  (+ its server half in `api/_lib/dailies.js#SERVER_CARTS`) + ONE row. THE 4 AM PICKER stores each day once; THE PASSWORD's FROZEN SCHEDULE + every stored day +
-  THE DAILY SECRET live ONLY in the database (`dsched/`, `dly/…/b`, `dsecret/` — never a committed file: `tests/daily-secrets.test.mjs`); every day comes from
-  THE DAILY SECRET, NEVER the pepper. THE THROWAWAY GATE (a result counts only for a profile made before that day's 4 am Eastern — `counted`), 20 new profiles
-  a day per IP, 400 daily calls / 10 min. THE ROOM WINS (a pause only for a room that really started a game). The phone side on the kit (`js/daily/` — never a
-  copy in a game). THE GO-LIVE SWITCH = /admin → THE DAILIES (owner-only, ANY time — OFF). **THE RESEED: /admin → THE DAILIES → RESEED** (DM2 ADD-ON — SERVER-SIDE:
-  no service-account key on the owner's PC; PREVIEW = the dry run, RESEED NOW on a second tap; `api/admin.js` `dailyReseed`, audited) — a fresh daily secret from
-  the NEXT 4 am: today + the past untouched (run it when the repo goes private). `scripts/dailies-reseed.mjs` = the emulators + tests only.
-- **THE DAILY MODULE — DM2: THE SCREENS (docs/progression.md "DM2"):** THE FLANK's DAILY (left-most — `[ JOIN ] [ DAILY · BOARD · GAMES · YOU ] [ HOST ]`, 4 icons =
-  the max; hidden while no daily is live; WAITING + the count / ALL DONE + a check; answers the sign's last N); THE DAILY SCREEN + a daily's RUN are OVERLAYS over
-  the city driven by `state.daily` (`js/screens/daily.js` + `css/daily.css`, prefix `dy-`; app.js#paintDaily — the city held through the counted `ui/city-hold.js`):
-  TODAY (THE SWEEP meter, ticket rows, SHARE TODAY, the 4 am countdown) · SCORES (YOUR TABLE + the everyone line from 50; ALL TIME hidden until BOARD 2.0); ONE
-  `today` answer shared (`js/daily/today.js`; the rules PURE in `today-logic.js`); a daily's thin meta gives `scoreLine(score)` (spoiler-free). THE ROOM WINS on
-  screen: the game start's closeAll = the banner (`.dy-banner`, never a toast) + the run HELD (+ COAST CLEAR paused) → RESUME YOUR DAILY above the dock; the host's
-  "N PLAYERS ARE MID-DAILY" above PLAY. A daily's first-time LESSON = its row's `lesson` + `createLesson` (COAST CLEAR's PRACTICE HARBOR — `coastclear/lesson.js`;
-  seen once per player: `pstats/{pid}/ls`). The rewards: the +10 SWEEP bonus, PERFECT WEEK = 7 sweeps IN A ROW (`dl.sr`), PENTHOUSE = rank ≤ max(1, ⌊n/100⌋) from
-  50 counting finishers (`core/daily.js#isPenthouse`) — its card THE DIAL is DRAWN IN CODE (`fx/ph-dial.js` + pure `ph-specs.js`). Proof: `e2e-daily.mjs`.
-- **THE DAILY MODULE — DFIX2 (FABLE REVIEW #2's fix pass — docs/progression.md "DFIX2", docs/games/review-dailies-2.md):** EACH DAY KEEPS ITS OWN COUNTERS
-  (`dl.days` — a run that crossed 4 am never wipes the other day's sweep); PENTHOUSE is decided at THE DAY'S CLOSE (`api/_lib/daily-close.js` — the first
-  `start` / `today` after 4 am closes yesterday ONCE against its final counting finishers; `progress.js#penthouseStep`, never at finish time); `pickDay` reads
-  THE DAILY SECRET afresh for a new day (a reseed before 4 am can't leak the old key); THE 4 AM TURN (`today.js#armTurn` — the dock + the screen re-read, no
-  reload); THE RESUME CHIP only while its run is resumable (`chipState`); THE MID-DAILY FLAG `rooms/{CODE}/players/{uid}/dy` (own node, boolean — the host's
-  line reads it, NO poll; a rules change); THE ROOM WINS needs 2+ players (`MIN_PARTY`); a cold day's start → 503 `busy`. **SLIM CARDS EVERYWHERE A PLAYER
-  LIST SHOWS** (the owner, Nov 8): SCORES → YOUR TABLE = the finishers' slim cards through `ui/strip-board.js`'s `stripKit` / `stripFor` / `stripFx` (never a
-  second strip system; one surface a panel; the rank left, the score under at the right end, YOU a drawn frame, STILL TO PLAY one line, top 5 + you + SHOW ALL n).
-- **THE DAILY MODULE — DFIX3 (THE DAILIES' FIRST-PLAY FIXES, Nov 8 — the dailies LIVE; docs/progression.md "DFIX3", docs/coastclear.md "The dig path"):**
-  THE DIG PATH = TWO database waits (the budget in memory, the pid memoised, the record HELD in the SDK's cache for the call → ONE transaction attempt —
-  `tx;desc="1"` in `Server-Timing` on every /api/daily answer) + COALESCED MOVES (`moves { list }` — the taps a phone queued while an answer was in
-  flight go out together; `view.js#enqueue`), the functions pinned to **cle1** (`vercel.json` regions — check the deploy); THE ONE-TIME HINT replaces
-  the practice harbor (a row's `lesson: true` + the cartridge's `HINT` string → `state.hint`; seen = `pstats/{pid}/ls`); THE PREMIUM TICKET (paper =
-  `assets/daily/paper-grain.webp` CC0, the punched stub, the serial Nº MMDD, the drawn ADMITTED stamp + its stamp-down — `js/daily/ticket-art.js`
-  shared with SHARE TODAY's image, which is rebuilt from the same ticket + the streak flame; `drawToday` is async); TODAY CENTRED by auto margins;
-  /admin → THE DAILIES' STATS + TODAY'S PLAYERS (ADD FRIEND = the existing `friendButton`) + BACK TO THE CITY; SCORES: YOUR FRAME on the strip's own box,
-  the foot hint once, a table of one = the card alone; THE FADE ON LEAVING in the SHARED audio engine (ONE MASTER gain — a ramp on the audio clock, THEN
-  the suspend; back = resume + a ramp up; docs/audio.md) — never suspend a context hard again.
-- **BOARD 2.0 A (Nov 9 — docs/harbor/passes/board-2a.md):** EVERY XP PAYMENT through `core/progress.js#payXp` (+ `pstats.xw` — THE OVERALL BOARD `xp`; a test greps for a stray `.xp =`) and its board row in the SAME update as the XP (`lb.js#overallPaths`); DAILY POINTS = ONE pure table (`core/daily-points.js` — a row per daily; the server's stored score only) → `daily` / `daily-<game>` boards; a public row = `api/board.js#ROW_KEYS` (+ the slim card's ids — never a pid / tag / member Nº); THE PLAYER PAGE = `/api/profile player` (the top 3 achievement NAMES — the owner's ONE approved exception: `api/_lib/player.js` only); the BACK-FILL = /admin → THE BOARDS (the owner's tap).
-- **BOARD 2.0 B (Nov 9 — docs/harbor/passes/board-2b.md):** THE BOARD = slim cards (`ui/strip-board.js` only) on BLACK VELVET + GOLD DECO, tabs `board/view.js#TABS` (XP · DAILIES · OVERCLOCK · PRISM · HOLD'EM — HOLD'EM IN THE CITY: five on one row at 390, PRISM DROP's tab reads PRISM); THE PLAYER PAGE = `profile/player-page.js#openPlayer` (tap ANY name — reads only `/api/profile player`, through THE COVER); a full card's art has ITS OWN layout (`.vl-fcm-*` — never the strip's zoom) and its map says the same (`full: [x, y, z, 'w']`); SHARE TODAY = each daily's `share.js#paintSection` (the same pieces as its own card — `share-same.html` proves it) + `today { share }` (spoiler-free, the tap only).
-- **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
-  music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:
-  `tests/cartridge.test.mjs` checks the boot graph, `node scripts/boot-bytes.mjs`); only `start` is async, `step` pure + seeded; `prepare` host-only,
-  `preload` every phone ≤ 1.5 MB; the kit in `js/games/kit/` (prefix `gk-`, READY = `kit/ready.js`); the night's memory = `meta/used/{gameId}`
-  (`kit/night.js`); `MUSIC: 'mood:<mood>'` = that station in sync; `SOLO: true` → THE SOLO LANE (the streak + a small capped XP, never a win);
-  THE GAME LOOK = `body[data-look]` (`kit/look.js` — ☰ → Settings, per device, any match, NO lock: games read it LIVE, draw no switch of their own).
-- **THE TAP WATCH (CITY FIXES — docs/title.md "THE SHELL"):** `js/ui/tapwatch.js` ALWAYS ON — a lost first tap → /admin (LOST TAP) + THE RESCUE; never re-render a control under a finger (`afterTap` + rebuild only on a change), every `:hover` behind `@media (hover: hover)` (a test greps), a pop-up on its way out takes no taps; THE SCREEN AT REST = a tappable fade (`.is-idle`), then rest (`.is-rest`), never under a layer.
-- **THE HOLD'EM BILLBOARD (CITY FIXES):** the roof board's BASE POSTER (`core/harbor-holdem.js` — the timetable's `billboard.holdem` default — NOW OPEN from its `open` day, 2026-11-11 (HOLD'EM IN THE CITY; COMING SOON before it, the billposter's ONE paste is the change), the owner's /admin → THE BILLBOARD switch through the cached feed, `&force=billboard-holdem`); the messages still interrupt; the billposter pastes it once then stays home; painted in code (`holdem-art.js` + GENERATED path lettering — `scripts/build-holdem-art.mjs`); the board itself ~15 % bigger (`harbor-layout.js#BILLBOARD_SCALE`).
-- **JAYWALK CARDS + THE TRI-VISION (Nov 12–13 — docs/harbor/passes/jaywalk-cards.md):** **THE JAYWALK CARDS** = SONIC BOOM · CLOSE ENCOUNTER (rare) +
-  RIGHT OF WAY (legendary), built like REDLINE (`fx/jw-cards.js` + PURE `jw-specs.js`), lab n 217–222 — DORMANT until JAYWALK pass 6 (its marked place in
-  `api/_lib/catalog.js`). **THE TRI-VISION**: the roof board TURNS HOLD'EM ↔ JAYWALK every 45–60 s by ONE PURE clock (`core/harbor-trivision.js` — the same
-  face on every phone; `billboard.trivision` + `billboard.jaywalk` rows; the slats on the crisp layer, the first JAYWALK face BY A TURN, the billposter
-  stays home; /admin → THE BILLBOARD's JAYWALK row). **THE LOBBY GETS IT LIVE**: EVERYONE's intercom + EVERYONE's / the city's sky moments start 10 s
-  after FIRE and the server ALSO writes each into every OPEN room's `rooms/{CODE}/radio` (STOP / CLEAR / moves reach the copies; a room phone merges the
-  poll's + the room's copy by id — played once; THE CLIP AHEAD); a phone only on the city = its 5-min check-in. **THE ANALYTICS LOADER**: Vercel's plain
-  script injected AFTER the page is up (`ui/analytics.js` — index after the reveal, board, 404; never the boot, localhost, the emulators, `&test=1`,
-  previews or robots; the worker passes `/_vercel/*`). **THE LONG NIGHT's RULE**: every module the scene creates is destroyed in `scene.js#destroy()`
-  — its canvases freed AT ONCE (`ui/canvas-safe.js#freeCanvases`); the title halts the city at once, its teardown after the fade (proof: harbor
-  `longnight` + `wk-longnight.mjs`). **THE ERRORS GROUP**: robots never report (`core/bot-ua.js` — the phone + `api/log.js`); a room write refused just
-  after losing the host = "no longer the host", never the re-publish alarm (`firebase.js#setHostGone`).
-- **HOLD'EM IN THE CITY (Nov 11 — docs/harbor/passes/holdem-city.md):** HOLD'EM's skyline sign in GRIDLOCK's spot (a ROW's slot rule counts LETTERS — the apostrophe
-  tube rides along, a vertical sign counts it; `signs.js#lettersRow` sized by the real advance; night casino red, the day face gold on felt). THE HOLD'EM BOARD
-  `holdem-tw` = TOURNAMENT WINS, KOs the tie-break, then the earlier — ONE sort value (`boards.js#tieSort`), the counters ONLY from the dealer's record
-  (`match-report.js#holdemCounters` — CASH never counts), the row in the same update as the stats; its tab = its one board (`boards.js#tabBoards`); the
-  back-fill = /admin → THE BOARDS (`core/board-fill.js#holdemFromRecords` — each result keeps `ko` from this pass on).
-  **B2:** every corner button's TAP AREA is 44 × 44 — an absolute `::after`'s inset counts from the PADDING box (− the 1 pt border); the harbor `tapfit`
-  group probes the real hit area (`kit/corner-probe.mjs`). **B3:** THE PODIUM's BACK TO THE ROOM is the frame's last piece, STICKY at the screen's foot
-  (`ui/final.js` — every game; `--fin-bg` = its solid backing, a game whose podium sits on its own look sets it) + MORE BELOW while it scrolls on.
-  **B4:** EVERYONE TIED = a DRAW for every game (`core/night.js#nightPoints`): ALL TIED on the podium (no sting / banner plane), game night 2nd-place points
-  each, the server rank 1 + no win (the room check accepts the old 3 each too); a PARTIAL tie unchanged (3 + a win each).
-- **COLOUR-BLIND (SHELL 2.0 B1):** right / close = the shared tokens `--good` / `--close` (css/base.css) — never a game's own greens / golds;
-  SETTINGS → "Colour-blind colours" sets `body[data-cb]` (blue / orange; per device + the profile — `ui/colorblind.js`). Right / close are
-  NEVER shown by colour alone — a shape / a mark too. The city is not affected.
+- **PHONE FIRST, UNZOOMED (the owner):** everything must READ ON THE PHONE AS-IS at 390 / 402 / 430 — a detail that can't be seen there is
+  NOT built (bigger, bolder, a clear silhouette + one bright accent, or drop it) → docs/harbor.md (moved).
+- **DESKTOP COMES FREE:** built + judged for the PHONE only; desktop / iPad / sideways get it through THE DESKTOP CAMERA
+  (`core/harbor-layout.js#DESK`) — never a desktop-only piece; every pass checks 1440×900 (`--sizes pass`) → docs/harbor.md (moved).
+- **Class names:** prefix new CSS classes per feature (`nd-`, `pd-`, `gl-`…) — a bare `.nl-hi` once collided across features.
+- **Presentation tech:** Canvas 2D (+ a WebGL shader for a sky/world) unless 3D *is* the game; a three.js backdrop keeps every button DOM
+  over it (GRIDLOCK's 3D board failed its play-test) → docs/match-kit.md (moved).
+- **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view through an import map that swaps
+  `js/firebase.js` for `tests/integration/fake-firebase.js`; the title's = `tests/integration/title-preview.html` (`shots.mjs --preview`).
+- **Profiles are polish too:** joining + playing work with `/api` down (no tags, results queue) → docs/profiles.md (moved).
+- **Design rules that may conflict:** check feasibility with the real numbers + ask the owner which rule wins BEFORE building.
+
+## Standing rules by area — one line each (the full text: the doc named)
+
+**City 2.0** (the bible `docs/harbor.md`; the full standing-rule text: docs/harbor.md (moved) + #city-20-in-claudemd--the-full-text)
+- THE WINDOW RULE: every window moment enters by its own motion or the blind cycle (`core/harbor-moments.js#ENTERS_BY_MOTION`).
+- THE WINDOW STANDARD: the shadowboxer + the boss's TV room are the bar — one real light, its shadows, smooth eased motion.
+- THE PEOPLE RULE: nobody appears or vanishes in view on the promenade (`core/harbor-witness.js#rejoinVisits`, people.js#guard).
+- THE SOLIDS: every solid thing on the promenade is ONE registry (`core/harbor-solids.js`) — every walk goes round it.
+- NO LAMPPOSTS: the implied lamps; the light in ONE pure module (`core/harbor-light.js`; `&light=old` for A/B).
+- NO TRAFFIC DURING THE LEGENDARIES (`core/harbor-legend.js#trafficHold`); every vehicle planner reads it.
+- THE WIND IS ONE STATE (`core/harbor-wind.js` → scene.js#WF once a frame): anything that moves in the wind reads it.
+- THE BEAT: the lights follow the song's grid; a TRUSTED GRID ALWAYS PUNCHES; the kicks only calibrate the lead (`core/harbor-beat.js`).
+- 3D only as BAKED sprites (`scripts/bake-model.mjs`); lettering nothing passes in front of → THE CRISP LAYER (crisp.js).
+- Every force flag has a panel row (`core/harbor-remote.js`; `tests/harbor-remote.test.mjs`). Every canvas through `safeCtx` / `ctx2d` (ui/canvas-safe.js).
+- THE CITY TIMETABLE (`core/harbor-schedule.js`) holds EVERY timed thing (`tests/harbor-sched-strays.test.mjs`; THE GOLDEN TABLE
+  `tests/fixtures/sched-golden.mjs` proves a move changed nothing); THE SHOWCASE DIAL, THE DAY CHART (/daychart), THE TIER TABLE (`core/harbor-tiers.js`) for every NEW per-phone number.
+- THE WINDOW SCENES ARE TIMETABLE ROWS: a NEW scene = its `scene.<id>` row + `core/harbor-<id>.js` + its painter in windows.js#SCENE_PAINT.
+- THE RADIO: a timetable row with a `jack` = a jack on the desk; the SERVER checks the ROLE per action (`core/harbor-radio.js#ROLES`); a fired
+  moment plays ONCE; only a server yes loads the radio (radio-gate.js); ONE RADIO PER LOBBY.
+- THE LOAD: the boot screen holds until THE CITY's reveal (ONE fade — keep index.html #boot + title.css .nd-sign in step); ONE CAMERA ON SCREEN;
+  THE BOOT BUDGET (`tests/integration/boot-budget.json` — raising it = a named decision); THE BOOT PRELOAD = `node scripts/build-boot-preload.mjs`
+  after a module's imports change; no audio before a tap → docs/harbor.md#performance.
+- THE BOOT WATCHDOG (inline in index.html, `window.__boot` — ONE reload, never a loop); THE REJOIN LIMIT (≤ 8 s on screen); EVERY dynamic import
+  through THE SKEW WRAPPER (`lazyImport(import('./x.js'), 'x')` — `tests/lazy-import.test.mjs`); boot gates in VISIBLE time (ui/onscreen.js); no regex lookbehind.
+- THE BOX GATE: every camera / box change through ONE gate (scene.js#boxCheck) — never a second canvas resize; NO TWO CAMERAS (`wk-double.mjs`;
+  a new path = its row in `tests/integration/kit/two-cameras.mjs`).
+- THE LONG NIGHT's RULE: every module the scene creates is destroyed in scene.js#destroy(), its canvases freed at once (`ui/canvas-safe.js#freeCanvases`).
+- THE CITY'S IDLE POLLS: every call = an edge request — only from a tab on screen AND focused, ≥ 5 min; a new idle poll = a named decision (`tests/cdn-hotfix.test.mjs`) → docs/launch.md (moved).
+- Debug + preview flags: `&debug=1`, `&dpr=3`, `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary waits for the reveal + a tap; `&lgnow=1` at once).
+- THE TRI-VISION: the roof board turns HOLD'EM ↔ JAYWALK by ONE pure clock (`core/harbor-trivision.js`) → docs/harbor.md (moved).
+
+**The console + the room** (→ docs/harbor.md (moved), docs/cartridge.md, docs/title.md)
+- THE ROOM IN THE CITY: the old lobby screen is RETIRED — the room lives in the city from the join to the podium (`screens/room-city.js`,
+  `core/harbor-room.js`, `core/room-show.js`); ONE SHEET STACK (`ui/layers.js` — every pop-up opens on top).
+- MAKE HOST (`room.js#makeHost` — to an ONLINE player); ONE ACCOUNT, ONE ROOM (`seats/{pid}` — `js/seat.js`); NAME + COLOUR edited only at the top of CUSTOMIZE YOUR CARD.
+- THE CONTRACT: a game = `meta.js` (PURE, no imports) + its cartridge `index.js` loaded ON DEMAND (`games/registry.js#loadGame` — never a static
+  game import); `preload` ≤ 1.5 MB; the kit in `js/games/kit/` (prefix `gk-`) → docs/cartridge.md (moved).
+- A cartridge's module graph is preloaded (`js/games/preload.js` + the GENERATED `preload-graph.js` — `node scripts/build-preload-graph.mjs` after a game's imports change).
+- A game's podium music = `FINAL_MUSIC` in its index.js; THE GAME LOOK = `body[data-look]` (`kit/look.js`) — games read it LIVE, no switch of their own.
+- THE TAP WATCH (`js/ui/tapwatch.js`, always on): never re-render a control under a finger; every `:hover` behind `@media (hover: hover)` → docs/title.md (moved).
+- COLOUR-BLIND: right / close = `--good` / `--close` only, NEVER by colour alone (a shape / mark too); `body[data-cb]` → docs/title.md (moved).
+- EVERYONE TIED = a DRAW for every game (`core/night.js#nightPoints`); every corner button's tap area 44 × 44 (harbor `tapfit`).
+
+**Profiles, progression, THE BOARD** (→ docs/progression.md, docs/profiles.md — both (moved))
+- PROGRESSION: XP, levels, the streak, items, achievements, FOUNDER are written by the SERVER only (one transaction through the PURE steps in
+  `core/progress.js`); collections show ONLY what a player owns; board ids use dashes (`cipher-score`), never dots.
+- EVERY XP PAYMENT through `core/progress.js#payXp` + its board row in the SAME update; DAILY POINTS = ONE table (`core/daily-points.js`).
+- THE DAILY CEILING (20 counted room matches a streak day); THE RESET EPOCH (`progress/resetAt`); HOST-GRADED OVERCLOCK → docs/progression.md (moved).
+- THE BOARD shows REAL USERNAMES (a rude one → its HOUSE NICKNAME, `api/_lib/lb.js#publicName`) — never a pid / key / tag digits; listed from
+  the 3rd COUNTED PLAY (`core/progress.js#countedPlays`); a public row = `api/board.js#ROW_KEYS`.
+- THE REAL PLAYER COUNT: anything the server PAYS BY A COUNT takes it from what it can verify (`api/report.js`); A SEAT IS NOT A PLAY (`PROOF_TREES`).
+- Anti-cheat never depends on the code being secret: the server checks + replays every result; secrets only in Vercel's env.
+- ITEM NAMES ONLY TO OWNERS (`api/_lib/catalog.js` + `lab-text.js`, never served; `tests/vault-names.test.mjs`).
+- FRIENDS: `pfr/{pid}` server-written, its owner reads it (`core/friends.js#friendStep`); PASSKEYS (`api/_lib/passkeys.js`, the RESTORE KEY stays the fallback) → docs/profiles.md (moved).
+- SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS — only through `ui/strip-board.js` (never a second strip system).
+
+**THE VAULT** (→ docs/vault.md (moved))
+- EMBLEMS + GLOWS MOVE ON THE COMPOSITOR (`js/vault/emblem-art.js` — never a CSS animation on an SVG element); THE PROMINENCE RULE is the budget.
+- A FULL CARD ON TOP HOLDS EVERYTHING BEHIND IT — every full card through `vault/full.js#openFullCard`.
+- THE CARD LAYOUT RULE (`js/vault/layout.js`) + THE CARD TEXT STANDARD; THE SLIM-CARD LONG-NAME STANDARD (`NAME_MAX` 12); THE HERO-SPOT RULE (`js/vault/hero.js`).
+- NO BLACK TILES: a card drawn in code = a baked still (`js/vault/stills.js` + `node scripts/build-card-stills.mjs`).
+- THE GIFT CARDS: 1-of-1, given ONLY by the owner's `/admin → GIFTS`; the DEV cards the owner's only (`js/core/dev-cards.js`); a MEMBER Nº is server-only.
+- A pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES`.
+- An unknown path gets THE WRONG DOOR (`404.html` — keep vercel.json free of rewrites).
+
+**The dailies** (→ docs/progression.md (moved), docs/password.md, docs/coastclear.md)
+- A daily = its cartridge + ONE row in `config.js#DAILIES` (+ its server half in `api/_lib/dailies.js#SERVER_CARTS`) — PLUG-AND-PLAY, no fixed count.
+- THE SERVER JUDGES every guess / move; answers + boards + THE DAILY SECRET live ONLY in the database (`tests/daily-secrets.test.mjs`) — never the pepper.
+- A RUN KEEPS ITS OWN DAY (`js/daily/run-day.js`); THE THROWAWAY GATE; the phone side on the kit (`js/daily/` — never a copy in a game).
+- THE GO-LIVE SWITCH + THE RESEED = /admin → THE DAILIES (owner-only); NO PILLS on the dailies; every colour a `--pw-*` / `--cc-*` token.
+
+**The games** (read the game's doc before a pass on it)
+- OVERCLOCK: its timings are the owner's (pinned by tests); NO SIDEWAYS SCROLL, EVER; right = green, wrong = red + cracked, NO ✓ / ✕; the
+  pools are BUILT (never edit `data/oc/*.json` by hand — `node scripts/oc-pools/build.mjs`) → docs/overclock.md (moved).
+- PRISM DROP: never the words "Tetris", "tetromino" or "T-spin"; THE ANTI-CHEAT RULES A PASS MUST KEEP (the board node's write window) → docs/prism.md (moved).
+- HOLD'EM: the engine PURE + DETERMINISTIC; THE SERVER IS THE DEALER (the deck only in `hrec/{CODE}`); PLAY CHIPS ONLY — no money words;
+  ANIMATIONS COME FROM THE STATE; THE PORTRAIT IS UNTOUCHED by sideways CSS → docs/holdem.md (moved).
+
+**Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
+- NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).
+- THE RULES-LAG: every write through `firebase.js#write`; a rules change fails `tests/rules-live.test.mjs` until its ack names it, and the pass
+  summary's FIRST line says RE-PUBLISH + how; a feature on a new rule keeps a fallback that works on the old one.
+- THE EDGE CACHE is live (one copy per deploy); THE FROZEN SONGS OUT OF DEPLOYS (`.vercelignore`); pass screenshots stay out of git (`tests/repo-growth.test.mjs`).
 
 ## Working efficiently (what cost the most in past sessions)
 - **Edits:** use the Edit tool or a script file in the scratchpad. Never put code with backticks, `$` or `\b` inside an inline
   `node -e "…"` / heredoc — the shell mangles it and the repair costs more than the edit.
-- **Names:** a view's own `update(state)` shadows Firebase's `update` — import it as `dbUpdate` (RUMRUNNER lost its DONE writes to this; the
-  failure was silent because the view's update() just returned).
+- **Names:** a view's own `update(state)` shadows Firebase's `update` — import it as `dbUpdate` (RUMRUNNER lost its DONE writes to this).
 - **Tests, in order:** `node --test tests/*.test.mjs` (seconds) → the game's `FAST=1` E2E (≈ 2 min) → the full suite once before
   committing. Don't re-run a 20-minute suite to check one fix. Run E2E suites with absolute paths and from `tests/integration`.
-  The title + the city run in the HARBOR suite by group while iterating: `ONLY=core,dock,neon` (comma-separated; ~30–130 s a group);
-  the whole suite once before the commit. Untouched areas need no E2E at all (a game → its own). (CITY 1.0 OUT retired e2e-title / e2e-sky.)
-- **Look reviews:** `node tests/integration/shots.mjs "<browser>" --scenes night,day,halloween --sizes phones --crop dock` (scenes,
-  size sets, Grand Rapids by default, crops of the dock / corner buttons / sign; `--cast <ms>` = every painted frame, the true frame
-  burst for a flicker). Never write a one-off screenshot script again —
-  add a scene or a crop preset to shots.mjs instead. "No look change" = `tests/integration/pixdiff.mjs` (A/B against a worktree on
-  :5174, a noise floor); City 2.0's speed gate = `title-perf.mjs --ab` (a relative A/B in one run; absolute budgets are warnings).
-- **Design rules that may conflict** (e.g. "visible at sunrise" vs "never over the letters" vs "a round arch" on a skyline with tall
-  towers): check feasibility first — a few lines in node against the real numbers — and ask the owner which rule wins BEFORE
-  building. Discovering the conflict through rounds of screenshots cost the most time of anything in Oct 2026.
-- **Waits in tests:** wait for the actual condition (`waitFor(page, js)`), never a fixed sleep "to be safe"; a fixed pause only
-  for something that is itself timed (a measurement window, a colour sampled mid-blend).
-- **Line endings:** LF everywhere (`.gitattributes`); a CRLF working copy breaks exact-match edits.
-- **A new game = rules first.** Pure `logic.js` + `director.js` with a whole-match simulation test before any pixel; then the view on the
-  match kit; then one distinctive screen, reviewed at three sizes.
+  The city runs in the HARBOR suite by group while iterating: `ONLY=core,dock,neon`; the whole suite once before the commit.
+- **Look reviews:** `node tests/integration/shots.mjs "<browser>" --scenes night,day,halloween --sizes phones --crop dock` (`--cast <ms>` = every
+  painted frame). Never write a one-off screenshot script — add a scene or crop preset to shots.mjs. "No look change" = `tests/integration/pixdiff.mjs`
+  (A/B against a worktree on :5174); City 2.0's speed gate = `title-perf.mjs --ab`.
+- **Waits in tests:** wait for the actual condition (`waitFor(page, js)`), never a fixed sleep "to be safe".
+- **Line endings:** LF everywhere (`.gitattributes`). **A new game = rules first** (pure `logic.js` + `director.js` + a whole-match simulation before any pixel).
 - Run `git status` before committing: stage the files of this task only (other work may be in the tree).
 
-## File layout (top level; each game's files are listed in its doc)
+## File layout (top level — the full map: docs/data-model.md (moved); the city's: docs/harbor.md#the-file-map; each game's: its doc)
 ```
-index.html / sw.js / manifest.webmanifest / assets/     shell, service worker (network-first, same-origin static only, never /api), PWA, icons + og.jpg (+ og-board.jpg — /board's)
-board.html admin.html                                    THE BOARD for anyone (/board, og-board.jpg) and the admin page (/admin)
-api/ profile.js report.js board.js admin.js log.js sky.js time.js daily.js + _lib/   Vercel functions (firebase-admin): profiles, checked results, boards, moderation, errors + reports from phones (9e: SEND REPORT / the hang watch), live weather (+ NOAA's Kp), the server's clock (time.js: no imports, no-store)
-package.json                                             only firebase-admin for /api (npm install at the root for local /api)
-css/base.css components.css screens.css title.css        tokens + themes, the design system (+ NEON GLASS), setup/lobby, the title
-css/kit.css                                              the match kit's default look (announcements, cards, Call the Winner, report)
-css/board.css admin.css                                  THE BOARD, the membership card, podium plaques + rank-up; the admin page
-css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent stakes rum holdem) + css/chat.css
-js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, colors, avatars, GAMES registry / the web config / init + db helpers + serverNow() + THE PARKED DATABASE (want / release)
-js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
-js/core/  room-logic.js hush.js lobby-song.js party.js rainbow.js marks.js palette.js neon-ramp.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js tube-path.js   PURE: room codes + host election, HUSH WORDS, the lobby song, PARTY NIGHTS, RAINBOWS, the games' neon marks + the tube alphabet, the palette + the light timeline, THE NEON COMES ALIVE's plan, seeded RNG, XOR+base64, game-night standings, room playlists, the real sun / moon / seasons / holidays / eclipses (sky.js), Open-Meteo + NOAA's Kp → the weather, the admin STATS, SVG → neon tubes; harbor-*.js: City 2.0 (below)
-          week.js ranks.js names.js nicknames.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, THE HOUSE NICKNAMES (BNAME), keys, board catalog, per-game results
-js/profile/ api.js me.js queue.js public.js callouts.js events.js sheets.js keypop.js passkey.js passkey-ui.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques (→ the end-of-round moment), the achievements' events
-js/fx/ renderer.js gl.js kit.js index.js + one file per effect (gift.js + gift-specs.js: the gift cards' one engine + their layers)   THE EFFECT LIBRARY (THE VAULT 1A — docs/vault.md): ONE shared renderer (surfaces + slots) drawing through THE GL PAINTER (gl.js — WebGL2, a 2D look-alike: iOS rasterises a 2D canvas on the CPU call by call; 1B) with the 2D canvas as the fallback, the baked sprites, the effects
-js/vault/ catalog.js strip.js emblems.js lab.js lab-views.js approved.js hero.js + css/vault.css + lab.html (/lab)   THE VAULT: the slim strips, the test emblems, THE CARD LAB (admins only, + its GIFTS), only-approved-ships, THE HERO-SPOT RULE
-js/progress/ moment.js streak-card.js card.js profile.js flame-art.js look.js preview.js album-view.js extras.js sighting.js trophies.js + css/progress.css   PROGRESSION's screens (docs/progression.md; lazy): the end-of-round moment + level-up, the streak card, THE GILDED CARD + the profile's sections, the dock's flame, ?preview=
-js/core/ levels.js streak.js items.js achievements.js daily.js progress.js   PURE (server + client): PROGRESSION — the curve, the streak, the items, the 33 achievements + the award engine, the daily contract, the server's steps · js/daily/contract.js (a daily's /api calls)
-js/board/ view.js screen.js public.js audio.js  THE BOARD (scene.js = the old bar, shipped nowhere since BOARD 2.0 B): the board UI, app route, /board entry, its SFX
-js/admin/admin.js                                        the /admin page
-js/ui/    dom.js components.js final.js logo.js tube-logo.js game-art.js settings-panel.js help.js credits.js toast.js emblems.js debug-tools.js debug-strip.js word-neon.js   h(), the design system, the podium, the sign + City 2.0's SPEAKEASY tubes, game logos + lobby art, gear + settings, HOW TO PLAY, CREDITS (ADD A CREDIT = one entry in credits.js#CREDITS), toasts, emblems, the &debug=1 strips
-js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood.js lobby-music.js party-music.js beat.js diag.js tape-stop.js   prefs, the AudioContext + buses, music + playlists, SFX, ambience, songs on the server clock, MOOD MUSIC, the lobby's + City 2.0's PARTY song in sync (core/party-deck.js), the beat, the AUDIO panel, THE TAPE STOP (a decoded slice on a buffer source — the song element's playbackRate is NEVER changed: iOS stalls it). Session 'playback' with the music on, 'ambient' off; a dead graph hands the song to a plain <audio> (THE DIRECT PATH) — docs/audio.md
-js/core/mp3-slice.js tape-math.js                        PURE: an MP3's frames → a byte slice in song time; the tape's rate schedule + its exact integral (docs/audio.md#the-tape-stop-in-web-audio)
-js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / High Stakes / Bluff — never Overclock since OC7)
-js/screens/ title.js title-neon.js title-taps.js title-dock.js setup.js profile.js backdrop.js   the front door in four files (the mount + the sequence · THE NEON COMES ALIVE + the race + the music's answer · the living city's taps · THE FLANK + its work — docs/title.md), name/avatar, the membership card, the menus' still of the city
-js/screens/ room-city.js room-dock.js room-guests.js game-options.js room-banner.js   LOBBY 2.0 A + B — THE ROOM IN THE CITY (the roster → the city, the tags, the room dock, the guest list, the game's options, the game start, the banner + the champion; core/harbor-room.js + room-lines.js + room-show.js PURE)
-js/games/cartridge.js  js/ui/layers.js                   THE CARTRIDGE PLUG (the contract + checkCartridge — docs/cartridge.md) · ONE SHEET STACK (every pop-up takes the next layer)
-js/screens/harbor/ js/core/harbor-*.js + its sounds, bakes, canvas helpers   CITY 2.0 — THE HARBOR (?city=2): every file in docs/harbor.md#the-file-map (scene.js + its cuts: scene-fireworks / legend / holiday / weather / party / perf / panel)
-js/daychart/  daychart.html                         THE DAY CHART (SCHED): the city's day + year from the planners — /daychart + a card in /admin (admins only)
-js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / the chat sheet + in-game button
-js/games/registry.js lazy-view.js                        id → module (the contract), ALL_PLAYER_NODES; lazy view + stylesheet loading
-js/errlog.js                                             errors from players' phones → /api/log → /admin (first import of app.js + board/public.js)
-js/games/kit/                                            THE MATCH KIT: moments (announcer + cards), call, results, tiers, hook   → docs/match-kit.md
-js/games/<id>/  logic.js director.js index.js view.js (+ scene/audio/…)   PURE rules / PURE state machine / contract + host duties / the screen
-data/     trivia bluff oc words agent pulse prism slip    the banks and song analyses (formats in docs/content.md and each game's doc)
-data/hushwords.json  scripts/hushwords/                  HUSH WORDS (room codes): built + checked by scripts/build-hushwords.mjs (docs/content.md)
-audio/music/*.mp3  audio/pulse/*.mp3                     music (≤ 4 MB each; bump music.js#REV when replacing a file), PULSE songs; `c2-*.mp3` = the owner's City 2.0 mood songs (112 kbps, −16 LUFS)
-audio/sfx/neon-*.wav  audio/weather/*.mp3                 City 2.0's recorded neon (scripts/build-neon-sfx.py; docs/audio.md), the thunder
-scripts/  serve.mjs build-*.{mjs,py} add-city2-music.py validate-holes.mjs sim-gridlock.mjs split-closure.mjs   local server (:5173, `--emu` also runs /api on the emulators), THE CLOSURE SPLITTER (a run of a big closure → its own file, names rewired through live accessors — CITY 1.0 OUT; dev only), builders (build-synth-sfx.py: city sounds SYNTHESIZED — the hydrant's spray, the periscope's sonar ping — then imported by add-city-sfx.py; add-city2-music.py: the one command that imports the owner's mood folders), the NEON PAR hole bot, GRIDLOCK balance sim
-database.rules.json                                      RTDB rules — paste into the Firebase console after every change
-tests/*.test.mjs                                         unit + whole-match simulations (node --test, no deps)
-tests/integration/  kit/harness.mjs e2e-*.mjs harbor-e2e/ (the Harbor suite: kit + one file per cloud job) title-perf.mjs pixdiff.mjs rules.test.mjs server.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, /api tests, no-Firebase look previews
-tests/fixtures/finals.mjs                                finished matches of every game (profile/board tests)
+index.html sw.js manifest.webmanifest assets/   shell, service worker (network-first, same-origin static, never /api), PWA, icons, og.jpg
+board.html admin.html lab.html daychart.html 404.html   /board, /admin, /lab, /daychart, THE WRONG DOOR
+api/ (8 functions) + api/_lib/ + api/_data/      profile report board admin log sky time daily — firebase-admin, server-only data
+css/  base components screens title kit board admin vault progress daily chat + <game>.css   tokens, THE SHELL, screens, games
+js/config.js firebase-config.js firebase.js      APP_NAME, GAMES + DAILIES / the web config / init + db helpers + serverNow() + want/release
+js/identity.js store.js room.js host.js app.js seat.js wakelock.js errlog.js   slots / state / rooms + presence / the host loop / the router
+js/core/          PURE (server + client): room logic, progress, streak, week, levels, items, achievements, boards, match-report, harbor-*.js
+js/screens/       title (+ -neon -taps -dock), room-city / -dock / -guests / game-options / room-banner, daily, harbor/ (THE city)
+js/ui/ js/audio/ js/profile/ js/progress/ js/vault/ js/fx/ js/board/ js/admin/ js/chat/ js/daily/ js/daychart/ js/trivia/
+js/games/registry.js cartridge.js preload.js kit/ <id>/   the contract, THE MATCH KIT, each game (logic.js director.js meta.js index.js view.js)
+data/ audio/ scripts/ database.rules.json        banks + analyses, music + sfx, builders + serve.mjs (:5173, `--emu`), the RTDB rules
+tests/*.test.mjs  tests/integration/  tests/fixtures/   unit + sims (node --test), E2E + harbor suite + rules + /api tests + previews
 ```
 
 ## Data model (the shared core; every node and every game's `game` shape: `docs/data-model.md`)
 ```
 rooms/{CODE}/       ← CODE = the HUSH WORD (a common 4-letter word; docs/content.md); hush/{WORD}: { closedAt } rests it 24 h after closing
-  meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, locked?, settings/{gameId}: {...}, go?, back? }   ← locked: LOCK THE DOOR; go / back: LOBBY 2.0 B's start + end stamps
-  rv/{uid}:  matchId                                         ← THE REMATCH VOTE: your own vote, while meta/back.rm
-  players/{uid}:  { name, color, avatar, joinedAt, pid?, ln?, dy? }    ← written by that player only (pid: their own profile id only, while seats/{pid} is theirs; dy: DFIX2's MID-DAILY flag)
-  presence/{uid}: { online, lastSeen, v: 2, c: { connId } } ← ONE CHILD PER CONNECTION (APP FIXES): online = any c child left
+  meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, locked?, settings/{gameId}: {...}, go?, back? }
+  rv/{uid}:  matchId                                         ← THE REMATCH VOTE
+  players/{uid}:  { name, color, avatar, joinedAt, pid?, ln?, dy? }    ← written by that player only
+  presence/{uid}: { online, lastSeen, v: 2, c: { connId } } ← ONE CHILD PER CONNECTION: online = any c child left
   kicked/{uid}:   true                                       ← host only
   game:      host-only; per-game shape; totals are always DERIVED from results (never stored) so a replayed step can't double-score
   night/{matchId}:   { g, p: { uid: 3|2|1|0 }, n: { uid: name }, b?: { uid: bonus }, at }  ← host; game-night scoreboard
   <game nodes>/{matchId}/…/{uid}                              ← a player's own data for the current step, phase-gated by the rules
-chats/{CODE}/   fleets/{CODE}/   glsonar/{CODE}/   spy/{CODE}/   hsbet/{CODE}/   rrp/{CODE}/   seal/{CODE}/   hole/{CODE}/   ← top level: rooms/{CODE} is readable by any signed-in user, these are not (seal = THE SEAL: a round's secrets; hole = HOLD'EM's own two cards — HE2; hrec/{CODE} = the dealer's record, server only)
-city2/live      ← CITY 2.0's PREVIEW PANEL for EVERYONE (server-written via /api/admin; admins listen live, every other phone reads the cached GET /api/admin?live=1; docs/harbor.md)
-seats/{pid} (the profile's own devices — ONE ACCOUNT, ONE ROOM)  profiles/{pid} (signed-in, one at a time)  uids/{uid} (own)  pstats/{pid} (owner)  lb/ results/ ppriv/ pkeys/ tags/ rl/ audit/ flags/ (server only)   ← docs/profiles.md
+chats/ fleets/ glsonar/ spy/ hsbet/ rrp/ seal/ hole/ {CODE}   ← top level, NOT readable like rooms/ (seal = THE SEAL; hole = HOLD'EM's cards; hrec/ server only)
+city2/live  seats/{pid}  profiles/{pid}  uids/{uid}  pstats/{pid}  lb/ results/ ppriv/ pkeys/ tags/ rl/ audit/ flags/ (server only)  ← docs/profiles.md
 ```
-Rules of thumb: a player writes only under their own uid; anything secret (fleets, agent cards) lives outside `rooms/`; the host
-wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfuscate.js`) what must not be readable in plain sight.
+Rules of thumb: a player writes only under their own uid; anything secret lives outside `rooms/`; the host wipes `ALL_PLAYER_NODES`
+(registry.js) at match start/end; obfuscate (`core/obfuscate.js`) what must not be readable in plain sight.
 
-## Multiplayer mechanics
-- **THE PARKED DATABASE (CONN, Oct 28 — the free plan's 100 SIMULTANEOUS connections):** anonymous sign-in still runs at boot, but the
-  Realtime Database socket opens only when wanted: `firebase.js#want(reason)` / `release(reason)` (reference-counted by reason — `'join'`
-  while HOST / JOIN / a resume / an invite check runs, `'room'` from `enterRoom` to `exitRoom`, `'admin'` for the preview panel's live
-  listener). Once nothing wants it, it goes offline after a 30 s grace; a tab hidden 2 min with no room parks too — NEVER while in a room
-  (presence, onDisconnect + host election need the socket: a locked phone in a game behaves exactly as before). `dbRef()` with nothing
-  wanting the line wakes it for a grace by itself (`'touch'`), so an unlisted caller never hangs — but a new feature that reads the
-  database OUTSIDE a room must `want()` / `release()` its own reason. `state.net` = `parked` · `waking` · `online` · `lost`: only `lost`
-  shows the SIGNAL LOST banner (a parked title is never "offline"). `serverNow()` keeps the last offset per device while parked.
-  City 2.0's EVERYONE preview reaches non-admins through the edge-cached `GET /api/admin?live=1` (polled ~45 s while visible), never a
-  socket. THE BOARD + /admin are /api only. Proof: `tests/integration/e2e-conn.mjs` (the sockets in every state; in the cloud's tests job).
-- **Identity:** anonymous Firebase user per *slot*. Each slot is a separately-named Firebase app, so its
-  auth persists independently. Phones are slot 1.
-- **Rejoin:** `localStorage na:{slot}:session` holds the room code. On boot `resumeSession()` re-enters the
-  room (re-adding the player node if it vanished). Boards/score come back from the DB.
-- **Presence — ONE CHILD PER CONNECTION** (APP FIXES, Nov 1 — Grok 5.1: a refresh's OLD socket's late onDisconnect marked the player
-  offline for the rest of the match): each `.info/connected` = true adds `presence/{uid}/c/{connId}` with `onDisconnect().remove()` (registered
-  before the child exists), then `{ online: true, lastSeen, v: 2 }`, then an `onDisconnect().update({online:false,lastSeen})` (registered after
-  the node exists — the server checks it against the node as it is). Online = any `c` child (`core/room-logic.js#presenceOnline`); every
-  reader goes through `normalizePresence` (store.state.presence keeps `{ online, lastSeen }`). The room code is captured before the first
-  await; while connected the client HEALS its own child (≤ every 5 s, a timed retry); leaving drops it. Proof: `e2e-presence.mjs` (the
-  cloud's tests job). Offline players remain in the room as "SIGNAL LOST". The director doesn't wait for offline players.
-- **Host migration (`core/room-logic.js#shouldClaimHost`):** host considered gone if its player node is gone,
-  or (in the lobby) its presence has no connection for ≥ 10 s, or — during a game — `meta.hostBeat` (every 2 s) is ≥ 10 s stale: while a
-  game runs the BEAT ALONE decides (a fresh beat blocks a claim whatever presence says; a stale one deposes a frozen phone whose socket
-  looks online). Online players in join order claim with a stagger (+4 s per rank) via a transaction on `meta/hostId`; the rules check
-  the same (10 s, the beat during a game, the claimer a live online player — not the stagger); `joinedAt` is set once at server time.
-  A KICK stops every game write + presence (the rules want a live `players/{uid}` + no `kicked/{uid}`).
-- **Director:** `host.js` ticks every 250 ms; if host, calls `module.prepare()` (asset/trivia top-ups, private host duties) and
-  `module.step(game, {code, now, live, online})`, writing the returned patch. A per-transition in-flight guard prevents duplicate writes.
-  A step may carry `$room: { 'meta/used/…': true }` side writes (stripped and written in the same atomic room update). When a step
-  enters `final`, `host.js` writes `night/{matchId}` from `module.finalRanks(game)` (+ `module.nightBonus(game)` → `b`).
-- **Per-game minimum:** a module may export `MIN_PLAYERS` (DOUBLE AGENT: 4). An option with `when(onlineCount)` only shows/applies when true.
-- **Idle rooms close after an hour without a game** (`ROOM_IDLE_MS`); `meta/activeAt` is stamped when a game starts / returns to the
-  lobby and every 10 min while one runs. The lobby warns for the last 10 min (host: KEEP OPEN). Rules let anyone delete a room idle > 1 h.
-- **Rematch / late joiners:** `rematch()` (host.js) restarts the same game with `meta.settings[gameId]` and every
-  connected player — late joiners (who spectate the running game) are dealt in automatically.
-- **Live player data:** each module's `livePaths(game)` names the player-written paths for the current step.
-  `room.js` mirrors them into `state.live` and sets `state.liveKey` only once all have loaded.
-  Directors and views must check `liveKey` before trusting `live` (a refresh must never look like "no progress").
-- **Privacy pattern** (GRIDLOCK, DOUBLE AGENT, HIGH STAKES — whose host may read the hidden bets only once the phase is `show`; RUMRUNNER — private day logs the host reads only at night, and the server replays the whole city from the books): secrets in a top-level node readable by the owner (+ the host when it must act);
-  the owner's client does the private computation and publishes only the public result; the host falls back after a few seconds
-  or at once when the owner is offline; a rules test proves another player cannot read it. GRIDLOCK's results + sonar answers are
-  written by the HOST only (it reads the fleets — a target could have answered "miss"). **THE SEAL** (APP FIXES — `games/kit/seal.js`,
-  docs/data-model.md): a round's player-written SECRETS (BLUFF lies + votes, LAST SIGNAL answers, OVERCLOCK answers) live in
-  `seal/{CODE}/{node}/{m}/{key}/{uid}` (owner-only), the room keeps `{ done, at }`; when the round closes the director writes
-  `game/unseal/{node} = key` (PENCILS DOWN: no more writes, the host alone may read) — a module opts in with `export const sealed`;
-  `sealGate` turns its director's "leave the phase" into "unseal first".
+## Multiplayer mechanics (the full text: docs/data-model.md (moved))
+- **THE PARKED DATABASE:** the socket opens only when wanted — `firebase.js#want(reason)` / `release(reason)`; a feature that reads the database
+  OUTSIDE a room must `want()` / `release()` its own reason; never parked while in a room. `state.net`: only `lost` shows SIGNAL LOST.
+- **Identity + rejoin:** an anonymous Firebase user per *slot* (phones are slot 1); `localStorage na:{slot}:session` → `resumeSession()`.
+- **Presence — ONE CHILD PER CONNECTION** (`presence/{uid}/c/{connId}`; every reader through `normalizePresence`). Offline players stay as "SIGNAL LOST".
+- **Host migration** (`core/room-logic.js#shouldClaimHost`): in a game the `meta.hostBeat` (every 2 s, stale ≥ 10 s) ALONE decides; claims staggered by join order.
+- **Director:** `host.js` ticks every 250 ms → `module.prepare()` + `module.step(game, ctx)`; a step may carry `$room` side writes; `final` writes `night/{matchId}`.
+- **Live player data:** `livePaths(game)` → `state.live`; directors + views check `state.liveKey` before trusting `live`.
+- **THE SEAL** (`games/kit/seal.js`): a round's secrets in `seal/{CODE}/…` until `game/unseal`; the privacy pattern for hidden data — docs/data-model.md.
+- Idle rooms close after an hour without a game (`ROOM_IDLE_MS`); `rematch()` deals late joiners in; `MIN_PLAYERS` + an option's `when(onlineCount)`.
 
 ## Audio (the short version; everything else in `docs/audio.md`)
-- **MOOD MUSIC** (docs/audio.md): menu screens play the time-of-day mood (`audio/mood.js`, songs in `data/mood-music.json`, built by
-  `scripts/build-mood-music.py`; the owner adds songs as late3/morn1/day1/eve1/party1… in ~/Downloads → "add the new mood songs");
-  a lobby plays one synced song for the room (`audio/lobby-music.js`, `meta/lm`, the host's clock); City 2.0's party nights play the PARTY deck on the server clock — every phone the same song (`audio/party-music.js`, docs/audio.md#the-party-song-in-sync). CLASSIC in settings = the old playlist.
-  **CITY 2.0 MUSIC**: its own day + decks (`core/city-mood.js`, `city2` in `data/mood-music.json`); new songs → `scripts/add-city2-music.py` (docs/audio.md#city-20-music). SKY-B: every mood is a RADIO STATION on the server clock — the same song on every phone (`audio/party-music.js#stationOf`; docs/audio.md#the-radio-stations).
-- `playMusic(id, fallback)` is driven by `app.js` from state (mood / menu playlist on title/setup/lobby, `module.MUSIC` in a game, `'victory'` on
-  the podium). Same track = no-op. `PLAYLISTS` (menu, victory, spy, gridlock…) play several tracks with crossfades; `setPlaylist(id, ids)`
-  for a seeded per-room order; `duckMusic(level, s)` and `filterMusic(hz, s)` for moments. Songs on the server clock: `audio/synced-songs.js`.
-- **THE IDLE CUTOFF (SHELL 2.0 B2):** 5 h with no tap / key / scroll → the music fades + "Music paused — tap to bring it back" (`audio/idle.js`;
-  `setPageQuiet(on, reason)` — each reason holds the quiet on its own); never during a match in a room.
-- `sfx(name)` for the shared synth effects; games with their own palette ship a `createSfx()` in `audio.js` (soft, quiet, felt not heard).
-- Audio must be unlocked by a gesture (iOS); the engine retries resumes on every tap and after app switches.
+- MOOD MUSIC (`audio/mood.js`); City 2.0's stations play on the server clock — every phone the same song (`audio/party-music.js#stationOf`).
+- `playMusic(id, fallback)` driven by `app.js` from state; `sfx(name)` for the shared effects; a game's own palette in its `createSfx()`.
+- THE IDLE CUTOFF (`audio/idle.js`) — never during a match. Audio is unlocked by a gesture (iOS); the engine retries on every tap.
+- New songs: `scripts/add-city2-music.py` (City 2.0) — bump `music.js#REV` when replacing a file; never change a song element's playbackRate.
 
-## Design system
-- Tokens in `css/base.css :root`: backgrounds `--bg-0..3`, `--text/-dim/-faint`, neon `--cyan --magenta --yellow --green --red --orange --violet`,
-  per-game `--accent --accent-2 --accent-ink --accent-soft --accent-glow`, fonts `--font-display` (Orbitron),
-  `--font-ui` (Chakra Petch), `--font-mono` (JetBrains Mono), `--font-num` (Chakra Petch — use for all numbers; Orbitron's 0 looks like a block).
-- Game identity: `body[data-theme=<id>]` (set automatically while a game runs) re-maps the accent tokens; the lobby card takes them too.
-- **THE SHELL (SHELL 2.0 A — ONE LOOK EVERYWHERE; components.css "THE SHELL"; docs/title.md#the-shell--one-look-everywhere-shell-20-a-nov-5--docsharborpassesshell-amd-the-mocks-docsharborrefsshell): four parts,
-  ONE builder each — a screen never keeps its own copy (tests/shell.test.mjs fails on one):**
-  - **THE NEON TUBE** = every action button (`tubeButton()` / `.btn.btn-primary|-ghost|-danger .btn-sm .btn-block`): a lit tube, ONE pink MAIN a
-    screen, SECONDARY cool white, DANGER red, the second tap to confirm turns the button itself red (`confirm:` / `confirmTap()`), static glow.
-  - **THE SHEET** = every pop-up (`ui/sheet.js#openSheet`): solid, a handle, the small spaced title, ‹ when nested + ×; on THE LAYER STACK — the
-    ONE Esc (`ui/layers.js`) closes the top; a pop-up never listens for Escape (`takeLayer(el, { close, min })` for a full-screen tool).
-  - **THE ROW** = lists + menus (`row()` + `ICONS`): 56 pt glass, a neon line icon, label, value, ›, the pink switch for a toggle.
-  - **THE MESSAGE** = `toast(text, kind, ms | { ms, sub })`: one at a time, above the dock (in a game under the corner), a neon tube by colour,
-    sentence case. Gold is a vault / card accent only (the gems, the frames) — never a button.
-- Other components (`js/ui/components.js`): `.panel`, `.chip` (+ `avatar()`), `.tag-host/.tag-you/.tag-lost`, `createTimer({ticks})`,
-  `leaderboard()` (its rows become the players' SLIM CARDS — ui/strip-board.js), `countUp()`, `segmented()`, `chips()`, `burst()`,
-  `createFinal()` (ui/final.js — THE PODIUM's FRAME: the console's; a game's body via `finalScene(el, game, state)`), `.game-head`.
-- **NEON GLASS** (components.css): the panels, inputs, tags, leaderboard rows + podium keep the glass language; the buttons, sheets, rows +
-  messages are THE SHELL's. (The frozen games' own `.modal` sheets keep the old base until each comes back.)
-- **Player emblems** (`avatar(id, color, size)`): 12 shapes built like the neon sign; size with `--s`. Preview: `tests/integration/avatars-preview.html`.
-- Game screens fill `.screen` with `overflow: hidden`. **THE CORNER BUTTONS ARE SPLIT ON EVERY SCREEN** (OC8 — the owner's ADD-ON, Nov 7: "every
-  screen = the main page"): ☰ menu TOP-LEFT (THE SHEET of rows: CHAT — hidden while the game locks chat — YOUR CARD, HOW TO PLAY, SETTINGS, SOUND
-  EFFECTS, QUIT TO THE ROOM, host END GAME — settings-panel.js#openMenu), music on/off TOP-RIGHT (music only, effects stay), level — never stacked;
-  ONE shared rule in components.css ("SPLIT ON EVERY SCREEN"); both are 36 pt circles (`--cb`) with an invisible 44 pt tap area (`::after`) +
-  safe-area insets. Every header makes room on BOTH sides: `var(--cb-room)` (the button + its 12 pt inset + 8 pt of air) — the left for ☰ (a title /
-  a back button never under it: `.bar`, `.game-head`, OVERCLOCK's header, PRISM DROP's top line, the podium's kicker),
-  the right for the music; announcements stay clear of both. A long title SHRINKS to fit (OVERCLOCK: view.js#fitName — never wraps, never clips).
-  The profile + THE BOARD (the app's + /board — THE BOARD's TOP REDONE, Nov 12) keep their own rule (no ☰ — ‹ BACK takes the top-left corner, the
-  corner button's size + its 44 pt tap area; THE BOARD's title on its own row under the corner row at every height — guard: harbor `tapfit`). On a desktop the games' buttons sit at the phone column's corners; the
-  title + the room (`body.nd-on`), setup (`nd-glass`) + THE BOARD (`bd-on`) pin them to the SCREEN's corners. (☰ → Settings holds THE GAME LOOK:
-  AUTO · DAY · NIGHT — SHELL 2.0 B2.) A full-width game (`.screen.<x>-screen { max-width: none }`) must pin BOTH corners to the screen's edges
-  (`.menu-btn { left: calc(var(--safe-l) + 12px) }` + `.music-btn { right: calc(var(--safe-r) + 12px) }`) — the frozen gridlock / slip / stakes / rum
-  files still pin the old stacked pair (fix each when it comes back) — otherwise on desktop the buttons stay at the phone column's edge and land on
-  the game's panels. Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
+## Design system (the full text: docs/title.md (moved) + "THE SHELL")
+- Tokens in `css/base.css :root` (`--bg-0..3`, `--text/-dim/-faint`, the neons, per-game `--accent*`); fonts `--font-display` (Orbitron),
+  `--font-ui` (Chakra Petch), `--font-mono`, `--font-num` (use for all numbers). `body[data-theme=<id>]` re-maps the accents in a game.
+- **THE SHELL — ONE builder each, a screen never keeps its own copy (`tests/shell.test.mjs`):** THE NEON TUBE = every button (`tubeButton()`,
+  ONE pink MAIN a screen) · THE SHEET = every pop-up (`ui/sheet.js#openSheet`, the ONE Esc in `ui/layers.js`) · THE ROW (`row()` + `ICONS`) ·
+  THE MESSAGE (`toast()`). Gold is a vault / card accent only — never a button.
+- **THE CORNER BUTTONS ARE SPLIT ON EVERY SCREEN:** ☰ TOP-LEFT, music TOP-RIGHT, 36 pt with a 44 pt tap area; every header makes room with
+  `var(--cb-room)`; a full-width game pins BOTH to the screen's edges. Helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
 
-## Adding a game (checklist)
-1. **Rules:** `js/games/<id>/logic.js` + `director.js` (pure) → `createGame()` and `nextStep(game, ctx)`; a `tests/<id>.test.mjs` with
-   whole-match simulations (2 and 8 players, host-migration replay = the same step twice gives the same patch) **before any UI**.
-2. **Contract:** `index.js` exporting what `registry.js` lists (start, prepare, step, livePaths, MUSIC, DEFAULT_SETTINGS, OPTIONS,
-   estimateMinutes, finalRanks, nightBonus?, MIN_PLAYERS?) and `createView = lazyView(() => import('./view.js'), gameSheets('<id>'))` (its sheet loads with its screen — anything two games share goes in components.css); register it; add player
-   nodes to `ALL_PLAYER_NODES`; `GAMES` in `js/config.js`; `css/<id>.css` + `<link>` in `index.html`; lobby art in `ui/game-art.js`;
-   rules in `ui/help.js`; a theme in `css/base.css`; a music id or playlist in `audio/music.js`; THE BOARD: its standings + records in
-   `js/core/match-report.js` (with plausibility bounds), its boards in `js/core/boards.js`, its colours in `js/board/view.js#GAME_LIGHT`; its neon mark + blade word for the title city's signs in `js/core/marks.js`.
-3. **View on the match kit** (`docs/match-kit.md`): announcer, cards, Call the Winner, the report, tiers, the test hook. The view renders
-   purely from `state` (`mount/update/unmount`); write only your own node; check `liveKey`.
-4. **Rules file:** `database.rules.json` (own data only, phase/round-gated) + cases in `tests/integration/rules.test.mjs`. **Remind the owner
-   to re-publish the rules in the Firebase console.**
-5. **E2E on the harness:** `tests/integration/e2e-<id>.mjs` with a `FAST=1` path (2 players, 2 min) and the full path (8 players, host killed,
-   refresh, offline player, late joiner, Call the Winner, finish, rematch, frame pacing at 4× CPU). Add it to the smoke test's game list.
-6. **Screens** at 390×844, 412×915, 1440×900: three refine passes, looked at, before calling it done. Update ROADMAP.md, this file's
-   counts, and write `docs/<id>.md`.
+## Adding a game (the full checklist: docs/match-kit.md (moved))
+1. **Rules:** pure `logic.js` + `director.js` + `tests/<id>.test.mjs` whole-match sims (2 + 8 players, a replayed step = the same patch) BEFORE any UI.
+2. **Contract:** `meta.js` + `index.js` (docs/cartridge.md), registered; `ALL_PLAYER_NODES`; `GAMES` in config.js; its css, art, help, theme, music,
+   THE BOARD's standings (`core/match-report.js` with plausibility bounds) + boards (`core/boards.js`), its neon mark (`core/marks.js`).
+3. **View on the match kit** (`docs/match-kit.md`) — renders purely from `state`, writes only its own node, checks `liveKey`.
+4. **Rules file** + cases in `tests/integration/rules.test.mjs` — remind the owner to re-publish.
+5. **E2E** `tests/integration/e2e-<id>.mjs` (`FAST=1` + the full path); add it to the smoke test. 6. **Screens** at three sizes, three refine passes; docs.
 
-## Testing (the short version; every suite and flag: `docs/testing.md`)
-- **YOUR OWN SERVERS (the owner, FRIENDS B):** every pass starts its OWN fresh local servers (the emulators + `scripts/serve.mjs --emu`) — a server
-  left from an earlier pass is stopped first (FRIENDS A's emulators were still up at FRIENDS B's start: "port taken") — and STOPS every server it
-  started as its LAST step (the emulators' Java + node, serve.mjs, any preview); the summary says so.
-- **THE BUILD MACHINE IS THE MINI PC** (the owner, Oct 30: "do more tests, do things locally"): a Beelink SER8, Windows 11, **32 GB**, Java (Temurin 21)
-  → the emulators run HERE. Before EVERY final push run LOCALLY: the unit suite, the rules + `/api` tests, the smoke test (`GAMES=…` for a shared
-  file) AND the FULL `e2e-harbor` suite (a City 2.0 pass) — the cloud run then CONFIRMS instead of discovers. Measured on it: unit ≈ 30 s (PERF-A's split), rules ≈ 27 s,
-  smoke `GAMES=overclock` ≈ 30 s (an id that isn't playable stops RED — FR7 FIXES B), one harbor group ≈ 30–130 s, THE FULL HARBOR SUITE ≈ 33 min at 4 shards (~1,262 checks — FR7-A) (the default since PERF-A; PERF-B: the windows group 3 pages at a time — the shards end at ~690–890 s; ~800 checks; the machine's peak ~13 GB of 32 — models.md). **Run the full suite with nothing
-  else busy** (no model bakes, no shot bursts beside it: under that load every group timed out "the harbor baked" — MODELS). Browser tests run
-  OUTSIDE Claude Code's sandbox (its private AppData copy can't launch Chromium); THE GPU PIN (SHELL 2.0 B1): booted with no display, the kit pins the Radeon by its LUID — speed checks all red together → `node tests/integration/gpu-check.mjs "<browser>"` first (docs/testing.md); EVERY browser script imports puppeteer from
-  `tests/integration/kit/puppeteer.mjs` (muted; on Windows software compositing — the TV runs at 29 Hz and headless Chromium followed it to ~30 fps): the local, uncommitted rule in `.claude/settings.local.json`
-  (`node tests/integration/e2e-*`, `shots.mjs`, `title-perf.mjs`, `pixdiff.mjs` — run them from the repo root with those paths). Chromium:
-  `C:\Users\benja\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe`. The laptop is retired (a backup).
-- **GitHub checks** (unit → rules → /api → smoke, on the emulators) run **only on a pass's FINAL push** (SP6, the owner's CLOUD MINUTES, Oct 27):
-  a game / app pass tags that push's commit **`[ci]`**, a City 2.0 pass **`[harbor]`** (which runs both workflows); pull requests + `gh workflow run tests`
-  always run; every other push shows a skipped run (0 minutes) — run the unit suite locally before every push. Next to the Vercel deploy, never
-  blocking it. Budget: ≈ 136 billed cloud minutes a pass while PUBLIC (FR7-A's count: tests ≈ 11, the harbor's 15 jobs ≈ 125); once PRIVATE only the tests workflow runs (THE PRIVATE-REPO WORKFLOW — docs/launch.md). Look at `gh run list` after pushing; a red ✗ is a broken main to fix first. Errors from real phones: `/admin`.
-- **VERCEL DEPLOYS ONLY TAGGED PUSHES** (the owner's DEPLOYMENT STORAGE, Oct 27: Hobby's 10 GB went at ~300 MB a deploy on every push):
-  `vercel.json#ignoreCommand` builds only when the push's **LAST commit message** carries **`[harbor]`**, **`[ci]`** or **`[deploy]`**
-  (unlike the GitHub checks, which read every commit of the push) — so a pass makes ONE deployment: its FINAL push carries its tag (as above)
-  ON THE TOP COMMIT; anything that must go live mid-pass (a hotfix, a docs-only fix the site shows) goes up with **`[deploy]`** (deploys, runs no
-  cloud tests). Every other push shows "Canceled by Ignored Build Step" on Vercel — main stays live on the last tagged deploy.
-  `.vercelignore` keeps everything no page or `/api` loads out of the deploy (docs, screenshots, tests, scripts, shots*, art) — a deploy ≈ 232 MiB since FR7 FIXES B (`node scripts/deploy-size.mjs`; the frozen games' songs left out),
-  ~255 MB of it the music; a new top-level folder the site loads must NOT match it. Never write a tag in square brackets in a message that
-  isn't meant to fire it (a message that NAMES the tags fires them all — write "the ci / harbor / deploy tags").
-- **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, 15 parallel jobs — THE SPEED PASS added `speed`): the FULL `e2e-harbor` suite runs only on a pass's FINAL push
-  (the harbor tag in a commit message — whatever the push touched, docs-only included: no path filter since FR6 FIXES A, `tests/workflows.test.mjs`) or `gh workflow run harbor` (`-f job=street`). **At most TWO cloud runs a pass**;
-  never re-run to confirm a flake. A new test group: its `G()` in `tests/integration/harbor-e2e/<job>.mjs` + its name in exactly one job in
-  `harbor-jobs.mjs`. Locally (the mini PC): the touched groups (`ONLY=…`) while working, the FULL suite once before the final push. Full text: docs/harbor.md.
-- **THE DISPLAY CHECK (SHELL 2.0 B2 — no dummy HDMI plug):** a REAL-COMPOSITOR speed check asks `kit/puppeteer.mjs#displayAttached()` — no display
-  → SKIPPED with "no display attached (a no-screen boot)", counted apart in the suite's last line (never a fail, never a silent pass); docs/testing.md.
-- **THE BASELINE GUARD:** `ONLY=perf` fails above 2× `tests/integration/perf-baseline.json` (`PERF_GUARD=only` ≈ 1.5 min; `PERF_BASELINE=write`
-  only when a pass changes the cost on purpose — say so). A cache keyed per frame must hold its whole working set.
-- `node --test tests/*.test.mjs` — unit + whole-match simulations of all thirteen games (the ten hidden ones' quick tests kept), no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
-- `/api` on the emulators: `node --test server.test.mjs` (in tests/integration); the whole profile flow: `node e2e-profiles.mjs "<browser>" ./shots-profiles`.
-- Emulators (Java + Node): `cd tests/integration && npm install && npm run emulators`; rules: `node --test rules.test.mjs`;
-  app: `node scripts/serve.mjs` → `http://localhost:5173/?emu` (`&slot=2`… for more players on one computer).
-- **CONN — the database sockets:** `node e2e-conn.mjs "<browser path>" ./shots-conn` (≈ 1.5 min; `MEASURE=1` = the table only, `LINE=1` = each
-  state's reasons): 0 sockets on a parked title, 1 in a room, 0 after QUIT + the grace — run it after touching room / boot / firebase.js.
-- Smoke test first: `node e2e-smoke.mjs "<browser path>" ./shots` (two regular phones, the THREE PLAYABLE games started — HOLD'EM by a regular host, no owner gate — + a check that none of the ten hidden ones can start, no stray "null" — ≈ 30 s; `GAMES=cipher` = only those — the one-game check a City 2.0 pass runs after touching a shared file).
-- Per game (WINDOWS: only PRISM DROP + OVERCLOCK + HOLD'EM run now — the ten hidden games' long E2Es stop until each comes back): `node e2e-<id>.mjs "<browser path>" ./shots-<id>` (env `N=8 SHOTS=0 GPU=1 CPU=4 PERF=0/1 FAST=1`); previews without Firebase:
-  `tests/integration/<id>-preview.html`.
-- RUMRUNNER's economy: `node scripts/sim-rum.mjs` (bot matches on the real rules, per length) before touching `js/games/rum/tuning.js`.
-- Lighthouse (mobile): `npx lighthouse "http://localhost:5173/?emu" --form-factor=mobile --chrome-path="<browser>"` (targets 98–99 / 100 / 100 / 100).
+## Testing (the short version; every suite + flag: `docs/testing.md` (moved))
+- **YOUR OWN SERVERS:** every pass starts its OWN fresh emulators + `scripts/serve.mjs --emu` (a leftover stopped first) and STOPS every server
+  it started as its LAST step (the summary says so).
+- **THE BUILD MACHINE IS THE MINI PC** (Beelink SER8, 32 GB, Java): before EVERY final push run LOCALLY the unit suite, the rules + `/api` tests,
+  the smoke test AND the FULL `e2e-harbor` suite (a City 2.0 pass) with nothing else busy. Browser tests run OUTSIDE the sandbox; every browser
+  script imports puppeteer from `tests/integration/kit/puppeteer.mjs`. Chromium: `C:\Users\benja\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe`.
+- **GitHub checks + the harbor cloud run only on a pass's FINAL push** — the top commit tagged `[ci]` (a game / app pass) or `[harbor]` (a city
+  pass); at most TWO cloud runs a pass, never re-run to confirm a flake. A new harbor group: its `G()` + its name in exactly one job in `harbor-jobs.mjs`.
+- **VERCEL DEPLOYS ONLY TAGGED PUSHES:** the LAST commit message of the push carries `[harbor]`, `[ci]` or `[deploy]` (a mid-pass hotfix) — ONE
+  deployment a pass. Never write a tag in square brackets in a message not meant to fire it (write "the ci / harbor / deploy tags").
+- Unit: `node --test tests/*.test.mjs`. Rules: `node --test rules.test.mjs`; `/api`: `node --test server.test.mjs` (both in tests/integration,
+  on the emulators: `npm run emulators`). Smoke: `node e2e-smoke.mjs "<browser>" ./shots` (`GAMES=…`). Sockets: `e2e-conn.mjs`. Per game:
+  `e2e-<id>.mjs` (`FAST=1`). `ONLY=perf` = THE BASELINE GUARD. App: `node scripts/serve.mjs` → `http://localhost:5173/?emu`.
 
 ## Firebase setup notes
 - Console → Build → Realtime Database (create), Authentication → Sign-in method → **Anonymous: enable**.

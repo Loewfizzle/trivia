@@ -203,3 +203,23 @@ RESUME chip, the rankings, the streak hooks, the switch-over (+ `PW_EPOCH` set t
   `&deadstart=N` = the first N starts lost.
 - **DY1** (both dailies): every daily overlay loads `css/daily.css` itself (RESUME YOUR DAILY on a fresh page opened unstyled).
 - **DY4**: learn-on-a-throwaway ACCEPTED (docs/progression.md "FR7 FIXES A").
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table row
+
+| `docs/password.md` | **THE PASSWORD** (PW1 — a DAILY-ONLY, SERVER-JUDGED Wordle-type, ships OFF: `config.js#DAILIES`, never GAMES; `/api/daily` `guess`; the list build + THE REVIEWER; the kit keyboard's `setKeyStates`) · the owner's game decisions: `docs/games/plan.md` |
+
+### THE PASSWORD (PW1 + PW2)
+
+- **THE PASSWORD (PW1 — docs/password.md):** a DAILY-ONLY cartridge lives in `config.js#DAILIES` (never GAMES — GAMES is the lobby's list: the city's signs, HOW TO PLAY,
+  THE BOARD, the reports); THE SERVER JUDGES EVERY GUESS (`api/_lib/pw.js` + `pw-day.js`: the answers in `api/_data/pw/` — never served, a door's word only
+  once it closes; the schedule from the pepper, never the date); the list is BUILT + REVIEWED (`scripts/pw-words/`, never edited by hand); no ✓ / ✕ / ⌫
+  glyphs as icons in the game (drawn SVG); every colour a `--pw-*` token. THE PASSWORD answers `/api/daily` only while THE GO-LIVE SWITCH is on (DM1) or under `DAILY_TEST=1`.
+  PW2 (Nov 7): THE FRONT DOOR → THE BACK ROOM (never "THE DOOR"); NO PILLS on the dailies (drawn objects or plain type; a button's radius modest); THE DRAWN DOORS
+  (`password/doors.js`), THE DOOR REVEAL, THE END SCREEN (WELCOME IN · LOCKED OUT — the owner's ADD-ON; the block under the doors, the space at the foot), BOTH LOOKS as
+  tokens (`body[data-look="day"]` retokens; the music follows the look — `index.js#musicFor`, app.js re-renders on a look change), the sounds (`sfx.js`), THE SHARE CARD
+  (`share.js`, marks only), THE REWARDS awarded by the SERVER from its record (`pw.js#flags` → `dailyStep({ flags })` → KEYHOLE · the ≤ 6 card; `scripts/sim-password.mjs`).

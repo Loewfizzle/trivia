@@ -811,3 +811,68 @@ THE BOARD follows THE PROFILE's rule: **no ☰** — ‹ BACK alone in the TOP-L
 area — `css/board.css .bd-back`), the music TOP-RIGHT as everywhere; `body.bd-on .menu-btn` hidden (`css/components.css`). The title "THE BOARD" sits on
 its own row under the corner row at every height (Safari's ~660 pt with its bars once squeezed it over the tabs), the five tabs on one row. The app's
 board and the public `/board` alike. Guard: the harbor `tapfit` group (390 · 390 × 664 · 402 · 430 · 1440).
+
+## THE RULES FROM CLAUDE.md (moved Nov 13)
+
+THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
+is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, not back into CLAUDE.md.
+
+### The doc table row
+
+| `docs/title.md` | the title screen (its four files — title.js, title-neon, title-taps, title-dock), the logo, the menu, LIVING CITY (time of day, seasons, holidays, sky events, the real sun + solar eclipses; `?when=&tz=&at=&force=`), PARTY NIGHTS (Fri / Sat on the beat), RAINBOWS (after real rain), THE STREET (lamps, trees, buses, the stop light; the people, the speakeasy's door + the knock), the dock, the screen at rest, the easter eggs |
+
+### THE TAP WATCH (CITY FIXES)
+
+- **THE TAP WATCH (CITY FIXES — docs/title.md "THE SHELL"):** `js/ui/tapwatch.js` ALWAYS ON — a lost first tap → /admin (LOST TAP) + THE RESCUE; never re-render a control under a finger (`afterTap` + rebuild only on a change), every `:hover` behind `@media (hover: hover)` (a test greps), a pop-up on its way out takes no taps; THE SCREEN AT REST = a tappable fade (`.is-idle`), then rest (`.is-rest`), never under a layer.
+
+### COLOUR-BLIND (SHELL 2.0 B1)
+
+- **COLOUR-BLIND (SHELL 2.0 B1):** right / close = the shared tokens `--good` / `--close` (css/base.css) — never a game's own greens / golds;
+  SETTINGS → "Colour-blind colours" sets `body[data-cb]` (blue / orange; per device + the profile — `ui/colorblind.js`). Right / close are
+  NEVER shown by colour alone — a shape / a mark too. The city is not affected.
+
+### The title's preview
+
+- **The title has one too:** `tests/integration/title-preview.html` (the real title; `shots.mjs --preview`).
+
+### Class names
+
+- **Class names:** prefix new CSS classes per feature (`nd-`, `ndl-`, `pd-`, `da-`, `gl-`…). A bare `.nl-hi` once collided with
+  Overclock's number line and shoved the logo's highlights sideways.
+
+### Design system (as it stood)
+
+## Design system
+- Tokens in `css/base.css :root`: backgrounds `--bg-0..3`, `--text/-dim/-faint`, neon `--cyan --magenta --yellow --green --red --orange --violet`,
+  per-game `--accent --accent-2 --accent-ink --accent-soft --accent-glow`, fonts `--font-display` (Orbitron),
+  `--font-ui` (Chakra Petch), `--font-mono` (JetBrains Mono), `--font-num` (Chakra Petch — use for all numbers; Orbitron's 0 looks like a block).
+- Game identity: `body[data-theme=<id>]` (set automatically while a game runs) re-maps the accent tokens; the lobby card takes them too.
+- **THE SHELL (SHELL 2.0 A — ONE LOOK EVERYWHERE; components.css "THE SHELL"; docs/title.md#the-shell--one-look-everywhere-shell-20-a-nov-5--docsharborpassesshell-amd-the-mocks-docsharborrefsshell): four parts,
+  ONE builder each — a screen never keeps its own copy (tests/shell.test.mjs fails on one):**
+  - **THE NEON TUBE** = every action button (`tubeButton()` / `.btn.btn-primary|-ghost|-danger .btn-sm .btn-block`): a lit tube, ONE pink MAIN a
+    screen, SECONDARY cool white, DANGER red, the second tap to confirm turns the button itself red (`confirm:` / `confirmTap()`), static glow.
+  - **THE SHEET** = every pop-up (`ui/sheet.js#openSheet`): solid, a handle, the small spaced title, ‹ when nested + ×; on THE LAYER STACK — the
+    ONE Esc (`ui/layers.js`) closes the top; a pop-up never listens for Escape (`takeLayer(el, { close, min })` for a full-screen tool).
+  - **THE ROW** = lists + menus (`row()` + `ICONS`): 56 pt glass, a neon line icon, label, value, ›, the pink switch for a toggle.
+  - **THE MESSAGE** = `toast(text, kind, ms | { ms, sub })`: one at a time, above the dock (in a game under the corner), a neon tube by colour,
+    sentence case. Gold is a vault / card accent only (the gems, the frames) — never a button.
+- Other components (`js/ui/components.js`): `.panel`, `.chip` (+ `avatar()`), `.tag-host/.tag-you/.tag-lost`, `createTimer({ticks})`,
+  `leaderboard()` (its rows become the players' SLIM CARDS — ui/strip-board.js), `countUp()`, `segmented()`, `chips()`, `burst()`,
+  `createFinal()` (ui/final.js — THE PODIUM's FRAME: the console's; a game's body via `finalScene(el, game, state)`), `.game-head`.
+- **NEON GLASS** (components.css): the panels, inputs, tags, leaderboard rows + podium keep the glass language; the buttons, sheets, rows +
+  messages are THE SHELL's. (The frozen games' own `.modal` sheets keep the old base until each comes back.)
+- **Player emblems** (`avatar(id, color, size)`): 12 shapes built like the neon sign; size with `--s`. Preview: `tests/integration/avatars-preview.html`.
+- Game screens fill `.screen` with `overflow: hidden`. **THE CORNER BUTTONS ARE SPLIT ON EVERY SCREEN** (OC8 — the owner's ADD-ON, Nov 7: "every
+  screen = the main page"): ☰ menu TOP-LEFT (THE SHEET of rows: CHAT — hidden while the game locks chat — YOUR CARD, HOW TO PLAY, SETTINGS, SOUND
+  EFFECTS, QUIT TO THE ROOM, host END GAME — settings-panel.js#openMenu), music on/off TOP-RIGHT (music only, effects stay), level — never stacked;
+  ONE shared rule in components.css ("SPLIT ON EVERY SCREEN"); both are 36 pt circles (`--cb`) with an invisible 44 pt tap area (`::after`) +
+  safe-area insets. Every header makes room on BOTH sides: `var(--cb-room)` (the button + its 12 pt inset + 8 pt of air) — the left for ☰ (a title /
+  a back button never under it: `.bar`, `.game-head`, OVERCLOCK's header, PRISM DROP's top line, the podium's kicker),
+  the right for the music; announcements stay clear of both. A long title SHRINKS to fit (OVERCLOCK: view.js#fitName — never wraps, never clips).
+  The profile + THE BOARD (the app's + /board — THE BOARD's TOP REDONE, Nov 12) keep their own rule (no ☰ — ‹ BACK takes the top-left corner, the
+  corner button's size + its 44 pt tap area; THE BOARD's title on its own row under the corner row at every height — guard: harbor `tapfit`). On a desktop the games' buttons sit at the phone column's corners; the
+  title + the room (`body.nd-on`), setup (`nd-glass`) + THE BOARD (`bd-on`) pin them to the SCREEN's corners. (☰ → Settings holds THE GAME LOOK:
+  AUTO · DAY · NIGHT — SHELL 2.0 B2.) A full-width game (`.screen.<x>-screen { max-width: none }`) must pin BOTH corners to the screen's edges
+  (`.menu-btn { left: calc(var(--safe-l) + 12px) }` + `.music-btn { right: calc(var(--safe-r) + 12px) }`) — the frozen gridlock / slip / stakes / rum
+  files still pin the old stacked pair (fix each when it comes back) — otherwise on desktop the buttons stay at the phone column's edge and land on
+  the game's panels. Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
