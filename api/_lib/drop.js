@@ -9,11 +9,11 @@
 //   finish           → the WHOLE log (its chunks) replayed ONCE → ONE score: tenths × 1000 + lines (`better: 'high'`)
 //   THE PRUNE (THE ADD-ON): once the day's board is final (2 days on — the run window over, every run settled) only the TOP runs keep their
 //   record + log (PRUNE_KEEP), for KEEP_LOG_DAYS; everyone else keeps the score row (s + r). From the day's own keys — never a profile scan.
-//   dly/drop/{day}/p/{pid} = the small record (drop-judge.js) · dly/drop/{day}/l/{pid}/{offset} = the log's chunks (server-only — the rules'
+//   dly/drop/{day}/p/{pid} = the small record (drop-judge.js) · dly/drop/{day}/l/{pid}/{offset}_{length} = the log's chunks (server-only — the rules'
 //   default deny). Registered by dailies.js like the others: THE GO-LIVE SWITCH + its row's `on` (OFF in THE DROP A) or DAILY_TEST=1.
 import { ref, val } from './fb.js';
 import { dailySeed } from './dailies.js';   // (a cycle — dailies.js lists this cartridge; the seed is only read inside a call)
-import { act, begin, clockOf, judgeFinish, joinChunks, abandoned, abandon, CHUNK_MAX } from '../../js/games/prism/drop-judge.js';
+import { act, begin, clockOf, judgeFinish, joinChunks, abandoned, abandon, storable, chunkKey, CHUNK_MAX } from '../../js/games/prism/drop-judge.js';
 import { tenthsOf, replay } from '../../js/games/prism/drop.js';
 import { boardString } from '../../js/games/prism/engine.js';
 import { dropInputs } from '../../js/games/drop/share.js';
@@ -41,12 +41,15 @@ export const DROP_DAILY = {
   load: day => dropDay(day),
   /** a start on the record (inside a transaction): the first makes it, a later one is a RESUME (drop-judge.js#begin) */
   begin: ({ record, startedAt, now }) => begin(record, { startedAt, now }),
-  /** the chunk is written BEFORE the move's transaction, keyed by its offset (the finish reads only what the checked length covers) */
-  stash({ body, base, pid }) {
+  /** the chunk is written BEFORE the move's transaction (the finish reads only what the checked length covers). PFIX-3 (FABLE REVIEW 2 — M2,
+   *  S1): the api reads the RECORD FIRST and hands it in — a chunk is stored only for a run in flight, when the judge would take it now
+   *  (drop-judge.js#storable: at ≤ the checked length, inside LOG_MAX, on the clock), keyed by its offset AND its length, so a shorter chunk
+   *  never replaces a longer one; a profile with no run stores NOTHING. → the paths to write | null (not stored — the move is told: `ns`) */
+  stash({ body, base, pid, record, now }) {
     const add = body && typeof body.add === 'string' ? body.add : '';
     const at = Number(body && body.at);
-    if (!add || add.length > CHUNK_MAX || !Number.isInteger(at) || at < 0) return null;
-    return { [`${base}/l/${pid}/${at}`]: add };
+    if (!add || add.length > CHUNK_MAX || !storable(record, body, { now })) return null;
+    return { [`${base}/l/${pid}/${chunkKey(at, add)}`]: add };
   },
   /** what the phone gets: the seed + the run so far (its log put back together — the phone replays it to the checkpoint) */
   async resume({ record, data, now, base, pid }) {

@@ -213,17 +213,22 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       const recRef = ref(`${base}/p/${pid}`), hold = () => {};
       recRef.on('value', hold);
       let outs = [], attempts = 0;
-      // (THE DROP A — a cartridge's `stash`: the upload's own data written beside the record, in parallel with the reads — THE DROP's log chunk,
-      //  keyed by its offset; the record's checked length decides what the finish ever reads of it)
-      const stash = !batch && cart.stash ? cart.stash({ body, base, pid }) : null;
       try {
-        const [, startedAt, data, room] = await Promise.all([
+        const [rec0, startedAt, data, room] = await Promise.all([
           new Promise((res, rej) => recRef.once('value', s => res(s.val()), rej)),
           val(`${base}/s/${pid}`), cart.load ? cart.load(day, now) : null,
-          body.action === 'pause' ? roomStarted({ uid, pid, code: body.room, now }) : null,
-          stash ? ref('/').update(stash) : null]);
+          body.action === 'pause' ? roomStarted({ uid, pid, code: body.room, now }) : null]);
         T.mark('load');
         if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
+        // (THE DROP A — a cartridge's `stash`: the upload's own data written beside the record — THE DROP's log chunk. PFIX-3 (FABLE REVIEW 2 —
+        //  M2, S1): the RECORD IS READ FIRST — a chunk is stored only for a run in flight, when its judge would take it (never from a profile
+        //  with no run, never a shorter chunk over a longer one); a chunk that was NOT stored is marked `ns`, so the move never counts a log
+        //  the store doesn't hold (the record moved in between → the phone sends it again))
+        if (!batch && cart.stash && typeof body.add === 'string' && body.add) {
+          const stash = cart.stash({ body, base, pid, record: rec0, now });
+          if (stash) await ref('/').update(stash); else list[0].ns = 1;
+          T.mark('stash');
+        }
         // DM1 — THE ROOM WINS: a pause only for a room that really started a game (the clock keeps running otherwise)
         if (body.action === 'pause' && !room) throw new ApiError(409, 'no_room_game', 'The clock only stops when your room starts a game.');
         await recRef.transaction(cur => {

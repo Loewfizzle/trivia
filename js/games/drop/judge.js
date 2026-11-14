@@ -11,7 +11,7 @@ export function createApiJudge() {
   const j = createDailyJudge(GAME_ID, { moves: {
     checkpoint: body => body,
     ppause: body => body,
-    pause: room => ({ ...(drv && drv.chunk ? drv.chunk() : {}), ...(room ? { room } : {}) }),
+    pause: room => ({ ...(drv ? (drv.roomChunk ? drv.roomChunk() : drv.chunk ? drv.chunk() : {}) : {}), ...(room ? { room } : {}) }),
     resume: () => ({}),
   } });
   /** the run's driver (view.js) — THE ROOM WINS' pause carries its freshest chunk */

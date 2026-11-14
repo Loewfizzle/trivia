@@ -189,4 +189,66 @@ await H.run(async () => {
   ok(sc != null && Math.floor(sc / 1000) === Math.round(rc.t / 100), `scored at that time (${sc})`);
   await sizes(C.page, 'drop-06-away-end');
   await C.ctx.close();
+
+  // ================================================================ 7. PFIX-3 — NO HONEST RUN LOST (FABLE REVIEW 2: M1, M2, M3)
+  const E = await openApp('dre', 'RACER');
+  await ref(`ppriv/${E.pid}/at`).set(WEEK_AGO);
+  await ref('/').update(Object.fromEntries(['s', 'r', 'p', 'l', 'x'].map(k => [`dly/drop/${day}/${k}/${E.pid}`, null])));
+  await openRun(E.page);
+  await waitFor(E.page, '!!window.__drop && window.__drop.state().k > 300', 'the third phone\'s run', 30000);
+  await E.page.evaluate(() => window.__drop.bot({ every: 110 }));
+  await sleep(2500);
+  const recE = () => val(`dly/drop/${day}/p/${E.pid}`);
+  // M1 — PAUSE tapped while a checkpoint is uploading: the server MUST hold the pause (it used to say PAUSED with the clock running)
+  const m1 = await E.page.evaluate(() => { window.__drop.send(); const flying = window.__drop.state().flying; window.__drop.pause(); return { flying, paused: window.__drop.state().paused }; });
+  ok(m1.flying && m1.paused, 'M1: PAUSE tapped while a checkpoint is in flight — frozen at the tap');
+  await waitFor(E.page, 'window.__drop.state().paused && window.__drop.state().pzOk', 'M1: the pause confirmed by the server', 8000);
+  const k1 = (await st(E.page)).k, r1 = await recE();
+  ok(r1.pz && r1.pz.at != null && r1.pz.n === 1 && r1.k === k1, `M1: the SERVER paused, its chunk carried to the tap's tick (pauses used ${r1.pz && r1.pz.n}, tick ${r1.k} = ${k1})`);
+  await sleep(6000);
+  await E.page.evaluate(() => document.querySelector('.dr-card .btn').click());
+  await waitFor(E.page, '!window.__drop.state().paused', 'M1: RESUME', 8000);
+  await sleep(1000);
+  const k1b = (await st(E.page)).k;
+  ok(k1b > k1 && k1b - k1 < 120 * 3, `M1: RESUME goes on from the tap — no fast-forward through the pause (${((k1b - k1) / 120).toFixed(2)} s of play 1 s after RESUME; it was the whole pause)`);
+  // M2 — the page hides while a checkpoint is uploading: paused, 27 s away, the run goes on
+  await sleep(1500);
+  await E.page.evaluate(() => { window.__drop.send(); });
+  await setHidden(E.page, true);
+  await waitFor(E.page, 'window.__drop.state().paused && window.__drop.state().away && window.__drop.state().pzOk', 'M2: the hide paused the run though an upload was in flight', 8000);
+  const k2 = (await st(E.page)).k, r2 = await recE();
+  ok(r2.pz && r2.pz.at != null && r2.pz.n === 2 && r2.k === k2 && !r2.e, `M2: the SERVER paused (pauses used ${r2.pz && r2.pz.n}), the log up to the hide in (tick ${r2.k} = ${k2})`);
+  await sleep(27000);                                                       // (27 s away — past the 20 s bound that ended the run before)
+  await setHidden(E.page, false);
+  await sleep(600);
+  ok(/PAUSED · 1 LEFT/.test(await E.page.evaluate(() => document.querySelector('.dr-card').innerText.replace(/\s+/g, ' '))), 'M2: back after 27 s — PAUSED · 1 LEFT');
+  await E.page.evaluate(() => document.querySelector('.dr-card .btn').click());
+  await waitFor(E.page, '!window.__drop.state().paused', 'M2: RESUME', 8000);
+  await sleep(2500);
+  const s2 = await st(E.page), r2b = await recE();
+  ok(!s2.ended && !r2b.e && s2.k > k2 && s2.k - k2 < 120 * 5, `M2: the run goes on from the hide (${((s2.k - k2) / 120).toFixed(2)} s of play 2.5 s after RESUME) — not ended late`);
+  // M3 — the hide's pause call NEVER ARRIVES: asked again on the return (27 s later) = a backdated pause, the run goes on
+  await E.page.evaluate(() => window.__drop.lose(true));
+  await setHidden(E.page, true);
+  await sleep(800);
+  const s3 = await st(E.page), r3 = await recE();
+  ok(s3.paused && s3.away && !s3.pzOk && !(r3.pz && r3.pz.at != null), 'M3: the hide\'s call was lost — the phone frozen + unconfirmed, the server not paused');
+  await sleep(26000);
+  await E.page.evaluate(() => window.__drop.lose(false));
+  const back3 = Date.now();
+  await setHidden(E.page, false);
+  await waitFor(E.page, 'window.__drop.state().paused && window.__drop.state().pzOk', 'M3: the return asked again — paused', 8000);
+  const r3b = await recE();
+  ok(!r3b.e && r3b.pz && r3b.pz.n === 3 && r3b.k === s3.k, `M3: a pause was left → the run is NOT ended (pauses used ${r3b.pz && r3b.pz.n}; the log up to the hide in — tick ${r3b.k} = ${s3.k})`);
+  ok(back3 - r3b.pz.at > 24000, `M3: the pause is backdated to the hide (${((back3 - r3b.pz.at) / 1000).toFixed(1)} s back)`);
+  await E.page.evaluate(() => document.querySelector('.dr-card .btn').click());
+  await waitFor(E.page, '!window.__drop.state().paused', 'M3: RESUME', 8000);
+  await sleep(2500);
+  const s3b = await st(E.page), r3c = await recE();
+  ok(!s3b.ended && !r3c.e && s3b.k > s3.k && s3b.k - s3.k < 120 * 5, `M3: the run goes on from the hide's tick (${((s3b.k - s3.k) / 120).toFixed(2)} s of play 2.5 s after RESUME)`);
+  await E.page.evaluate(() => window.__drop.bot({ every: 150, dumb: true }));
+  await waitFor(E.page, 'window.__drop.state().finished || !!window.__drop.state().refused', 'the third phone\'s run topped out + was scored', 90000);
+  const eE = await st(E.page), scE = await val(`dly/drop/${day}/r/${E.pid}`);
+  ok(!eE.refused && eE.result && eE.result.score === scE && Math.floor(scE / 1000) === Math.round(eE.t / 100), `after a pause in flight, a hide in flight and a lost hide the whole run is scored (${scE})`);
+  await E.ctx.close();
 });

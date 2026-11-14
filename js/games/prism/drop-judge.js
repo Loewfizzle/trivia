@@ -7,7 +7,9 @@
 //                              pz: { n (player pauses used), ms (their time, closed), at? (an open pause's start), kd? 'p' | 'r', rf? (a refresh) },
 //                              rz (closed room-pause time), e? 1 (ended) + o ('fin' (the phone's top-out / THE END) | 'abandoned' | 'late' |
 //                              'pause_over'), fa (the end's server time) }   ≈ 250 bytes
-//   dly/drop/{day}/l/{pid}/{offset} = a log CHUNK (written once, keyed by where it starts — a repeat overwrites itself; the finish reads them)
+//   dly/drop/{day}/l/{pid}/{offset}_{length} = a log CHUNK (PFIX-3: keyed by where it starts AND how far it reaches — a SHORTER chunk can
+//     never replace a longer one from the same offset; stored only for a run in flight, when the judge would take it — `storable`; the join
+//     still reads the old `{offset}` keys)
 //   (THE PRUNE — api/_lib/drop.js#prune: once the day's board is final, only the top runs keep their record + log, for 7 days)
 //
 // THE CLOCK: the engine time a real-time run is at = now − go − every pause (the server's own stamps). Each upload's tick must be inside
@@ -15,6 +17,14 @@
 // motion (or a finish that arrived late) → the run is ENDED at its real-time bound (the last checkpoint + MAX_TAIL_MS of play, never more).
 // PAUSES: 3 PLAYER pauses a run, 20 min in all (a refresh / a resume costs one — no checkpoint save-scumming); a ROOM pause (THE ROOM WINS —
 // the api checks the room) uses none of the 3 (its own ROOM_MAX_MS). While paused only `resume` (or another pause call) is answered.
+// PFIX-3 — NO HONEST RUN LOST (FABLE REVIEW 2's M1–M3; docs/prism.md "THE DROP — the pause + chunk rules"):
+//   · ONE GROWING LOG: a chunk that starts at or before the checked length and reaches it carries the missing tail (an answer lost, two
+//     uploads from one offset) — the overlap is already checked, the tail is taken; only a chunk that brings nothing in step is a `resync`
+//   · A PAUSE NEVER WAITS ON ITS CHUNK: a ppause / pause whose chunk is out of step STILL pauses (`resync: true` + the pause's clock — the phone
+//     re-sends the chunk later)
+//   · A PLAYER PAUSE STANDS AT THE BOARD's MOMENT: it is stamped at its chunk's tick (backdated by the time the call took), so the clock never
+//     runs ahead of the board on RESUME; a ppause that arrives FAR behind the clock (the hide's call was lost — it would end the run `late`)
+//     with a pause left = that same backdated pause, one of the 3, inside the 20 minutes (the refresh's rule — `begin`)
 import { replay, scoreOf, ticksOf, tickTime, COUNT_MS, END_TICK, LOG_MAX, DROP_END_MS, CODES } from './drop.js';
 
 export const PAUSES = 3;
@@ -79,14 +89,22 @@ export function upload(rec, body, { now }) {
   const add = body && typeof body.add === 'string' ? body.add : '';
   const at = Number(body && body.at), k = Number(body && body.k);
   if (!Number.isInteger(k) || k < 0 || k > END_TICK) return { refused: 'bad_upload', status: 400 };
-  if (add.length > CHUNK_MAX || rec.len + add.length > LOG_MAX) return { refused: 'too_big', status: 422 };
+  if (add.length > CHUNK_MAX) return { refused: 'too_big', status: 422 };
   if (!LOG_CHARS.test(add)) return { refused: 'bad_log', status: 422 };
-  if (at !== rec.len) return { resync: true };
+  // (PFIX-3 — ONE GROWING LOG: in step = at the checked length, or starting before it and reaching it at a tick not behind the record's — then
+  //  only the TAIL past the checked length is new; anything else brings nothing the record can take → resync)
+  const inStep = at === rec.len || (Number.isInteger(at) && at >= 0 && at < rec.len && at + add.length >= rec.len && k >= rec.k);
+  if (!inStep) return { resync: true };
+  const tail = at === rec.len ? add : add.slice(rec.len - at);
+  if (rec.len + tail.length > LOG_MAX) return { refused: 'too_big', status: 422 };
   if (k < rec.k) return { refused: 'out_of_order', status: 409 };
-  if (k === rec.k && !add && !body.fin) return { record: null };           // (nothing new — free)
+  if (k === rec.k && !tail && !body.fin) return { record: null };          // (nothing new — free)
   const due = dueMs(rec, now);
   if (tickTime(k) > due + FAST_TOL_MS) return { refused: 'too_early', status: 422 };
-  const len = rec.len + add.length;
+  // (PFIX-3: `ns` — the api could NOT store this chunk (the record moved between its read and this transaction): never count a log the store
+  //  doesn't hold — the phone sends it again)
+  if (tail && body.ns) return { resync: true };
+  const len = rec.len + tail.length;
   // (THE DROP B — AWAY WITH NO PAUSE LEFT: the phone was hidden past the bound with its 3 pauses spent — it says so (`aw`) and the server checks
   //  it against ITS clock: the time since the last checkpoint really is past SLOW_TOL_MS → the same end as a slowed run, at the last checkpoint
   //  + MAX_TAIL_MS of play. Ending your own run early is only ever a loss — the replay still stops at the cut)
@@ -100,6 +118,20 @@ export function upload(rec, body, { now }) {
   if (body.fin) next = end(next, 'fin', now);
   return { record: next, resp: { k, len, ...(next.e ? { e: 1, o: next.o } : {}) } };
 }
+
+/** PFIX-3 — THE CHUNK STORE's GATE (api/_lib/drop.js#stash — the record READ FIRST): a chunk is stored only for a run in flight that is not
+ *  paused, when the judge would take it now and it brings something new — so a profile with no run stores nothing, a chunk the clock refuses
+ *  stores nothing, and a run's stored log stays inside LOG_MAX (S1) */
+export function storable(rec, body, { now }) {
+  if (!rec || rec.e || isPaused(rec) || !Number.isInteger(rec.len)) return false;
+  const add = body && typeof body.add === 'string' ? body.add : '';
+  const at = Number(body && body.at);
+  if (!add || !Number.isInteger(at) || at < 0 || at > rec.len || at + add.length <= rec.len || at + add.length > LOG_MAX) return false;
+  const u = upload(rec, { ...body, ns: 0 }, { now });
+  return !!(u && u.record);
+}
+/** the chunk's key in the store: where it starts + how far it reaches (a shorter chunk from the same offset is another key) */
+export const chunkKey = (at, add) => `${at}_${add.length}`;
 
 /**
  * ONE move (api/daily.js's generic path — inside a transaction on the record):
@@ -122,24 +154,43 @@ export function act({ action, body, record, now, seed, room = false }) {
     if (action === 'checkpoint') return { refused: 'paused', status: 409 };
     return answer(rec);
   }
+  const due = dueMs(rec, now), pz0 = pzOf(rec);
+  /** a PLAYER pause that starts `gap` ms back still fits: one of the 3, inside the 20 minutes */
+  const fits = gap => (pz0.n || 0) < PAUSES && (pz0.ms || 0) < PAUSE_MS && (pz0.ms || 0) + gap <= PAUSE_MS;
   // the chunk first (a pause carries the log up to the tap — the freshest checkpoint)
+  let resync = false, board = null;      // board = the engine time the phone's board stands at, when its chunk was in step
   if (body && (body.add || body.k != null)) {
-    const u = upload(rec, body, { now });
-    if (u.resync) return { record: null, resp: { resync: true, len: rec.len, k: rec.k, ...clockOf(rec, now) } };
-    if (u.refused) return u;
-    if (u.record) rec = u.record;
-    if (rec.e) return answer(rec);
+    let u = upload(rec, body, { now });
+    if (u.resync) {
+      if (action === 'checkpoint') return { record: null, resp: { resync: true, len: rec.len, k: rec.k, ...clockOf(rec, now) } };
+      resync = true;                     // (PFIX-3 — M2 / S2: a pause never waits on its chunk — it is granted below, the phone re-sends the log)
+    } else {
+      // PFIX-3 — M3, THE LOST HIDE: a ppause far behind the clock would END the run `late` — with a pause left it is the pause the phone asked
+      // for when it hid, arriving late: the chunk is judged at the BOARD's own moment (never ahead, never behind), the pause backdated to it
+      if (action === 'ppause' && u.record && u.record.e && u.record.o === 'late' && !body.fin && !body.aw) {
+        const gap = due - tickTime(Number(body.k));
+        if (fits(gap)) { const u2 = upload(rec, body, { now: now - gap }); if (u2.record && !u2.record.e) u = { record: { ...u2.record, ca: now }, resp: u2.resp }; }
+      }
+      if (u.refused) return u;
+      if (u.record) rec = u.record;
+      if (rec.e) return answer(rec);
+      board = tickTime(Number(body.k));
+    }
   }
   if (action === 'checkpoint') return answer(rec);
-  const pz = pzOf(rec);
+  const pz = pzOf(rec), extra = resync ? { resync: true } : {};
   if (action === 'ppause') {
-    if ((pz.n || 0) >= PAUSES || (pz.ms || 0) >= PAUSE_MS) return rec === record ? { refused: 'pause_limit', status: 409 } : { record: rec, resp: { ...answer(rec).resp, refusedPause: 'pause_limit' } };
-    return answer({ ...rec, pz: { ...pz, n: (pz.n || 0) + 1, at: now, kd: 'p' } });
+    if ((pz.n || 0) >= PAUSES || (pz.ms || 0) >= PAUSE_MS) return rec === record ? { refused: 'pause_limit', status: 409 } : { record: rec, resp: { ...answer(rec, extra).resp, refusedPause: 'pause_limit' } };
+    // the pause STANDS AT THE BOARD's MOMENT: its chunk's tick; with no chunk in step, the record's own point once the clock is past the
+    // slow bound of it (else the next upload would end the run late) — backdated only while it fits the 20 minutes
+    const want = Math.max(0, board != null ? due - board : (due - rec.t > SLOW_TOL_MS ? due - rec.t : 0));
+    const gap = fits(want) ? want : 0;
+    return answer({ ...rec, pz: { ...pz, n: (pz.n || 0) + 1, at: now - gap, kd: 'p' } }, extra);
   }
   // THE ROOM WINS (DM1): free — its own cap
   if (!room) return { refused: 'no_room_game', status: 409 };
   if ((rec.rz || 0) >= ROOM_MAX_MS) return { refused: 'pause_limit', status: 409 };
-  return answer({ ...rec, pz: { ...pz, at: now, kd: 'r' } });
+  return answer({ ...rec, pz: { ...pz, at: now, kd: 'r' } }, extra);
 }
 
 /**
@@ -193,11 +244,12 @@ export function judgeFinish(rec, log, { seed }) {
   return { score: scoreOf(R.t, R.lines), t: R.t, lines: R.lines, ms };
 }
 
-/** the chunks (dly/drop/{day}/l/{pid} = { [offset]: chunk }) → the log the record covers, put back in order | null. Every chunk an honest phone
- *  sends is a piece of ONE growing log, so a resend at an old offset may be LONGER (its answer was lost, the log had grown): the join takes,
- *  at each point, the chunk reaching furthest, and cuts the result at the CHECKED length (anything past it was never checked) */
+/** the chunks (dly/drop/{day}/l/{pid} = { [offset_length]: chunk } — PFIX-3; an older run's `{ [offset]: chunk }` reads the same) → the log
+ *  the record covers, put back in order | null. Every chunk an honest phone sends is a piece of ONE growing log, so a resend at an old offset
+ *  may be LONGER (its answer was lost, the log had grown): the join takes, at each point, the chunk reaching furthest, and cuts the result at
+ *  the CHECKED length (anything past it was never checked) */
 export function joinChunks(chunks, len) {
-  const list = Object.entries(chunks || {}).map(([k, v]) => [Number(k), v]).filter(([o, v]) => Number.isInteger(o) && o >= 0 && typeof v === 'string' && v.length);
+  const list = Object.entries(chunks || {}).map(([k, v]) => [Number(String(k).split('_')[0]), v]).filter(([o, v]) => Number.isInteger(o) && o >= 0 && typeof v === 'string' && v.length);
   let s = '';
   while (s.length < len) {
     let best = null;

@@ -9,7 +9,12 @@
 //   · THE DROP B — HIDING THE PAGE (a call, the lock, an app switch) = an AUTOMATIC PLAYER PAUSE (one of the 3, server-timed, sent with keepalive);
 //     back on the page the board stays hidden behind RESUME (PAUSED · 2 LEFT). No pause left → the run keeps its clock: back within SLOW_TOL_MS
 //     it catches up; later → it ends at the hide's checkpoint + MAX_TAIL_MS of play (the phone says `aw`, the server checks it on its own clock)
-//   · THE ROOM WINS: the daily screen's pause (judge.pause(room)) carries the freshest chunk (judge.bind)
+//   · THE ROOM WINS: the daily screen's pause (judge.pause(room)) carries the freshest chunk (judge.bind) — and the run's close then sends NO
+//     checkpoint behind it (PFIX-3 — S2: two uploads from one offset raced)
+//   · PFIX-3 — A PAUSE IS ONLY A PAUSE ONCE THE SERVER HOLDS IT (FABLE REVIEW 2's M1–M3): a tap's pause waits for the upload in flight; the
+//     hide's goes at once with keepalive (a page going away may never get a second chance — the server takes both orders); an answer with no
+//     pause (`pa`), or no answer, is NEVER "paused": the phone stays frozen + UNCONFIRMED and asks again (the return, `online`, the RESUME tap
+//     — the server backdates the pause to the board's tick, so nothing is lost); RESUME never goes out before the pause is confirmed
 //   · THE END: the top-out (or THE END at 8:00) → the final upload → judge.finish() → the score's line
 // Plain + functional (THE DROP B brings the ticket, the share, the polish).
 import { h } from '../../ui/dom.js';
@@ -82,10 +87,13 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     run.log = R.ok ? R0.log : '';
   } else run = createDropRun(R0.seed);
   let go = R0.go, pm = R0.pm || 0, pausedAt = R0.pa != null ? R0.pa : null, kind = R0.kd || null, left = R0.left ?? 3;
-  let sent = R0.len || 0, flying = false, lastCk = 0, ended = !!R0.e, finished = false, result = null, refused = null;
-  // (THE DROP B: away = the open pause is a HIDE's; pzOk = the server has confirmed it; hid = a hide with no pause left { at, k }; holding = the
-  //  away end's upload in flight — the run stands still until the server answers)
-  let away = false, pzOk = false, hid = null, holding = false;
+  let sent = R0.len || 0, flights = 0, lastCk = 0, ended = !!R0.e, finished = false, result = null, refused = null;
+  // (THE DROP B: away = the open pause is a HIDE's; pzOk = the server has confirmed it (a run that comes back paused is the server's own);
+  //  hid = a hide with no pause left { at, k }; holding = the away end's upload in flight — the run stands still until the server answers.
+  //  PFIX-3: asking = the pause's call in flight (one at a time), resuming = a RESUME tap in flight, roomAsked = THE ROOM WINS' pause went out)
+  let away = false, pzOk = R0.pa != null, hid = null, holding = false, asking = null, resuming = false, roomAsked = false;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let lost = false;                                                              // (the tests' hook only: calls that never leave the phone)
   const hiddenNow = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
   // (a reload: the server's resume cost one pause (`refresh`) — or THE DROP B: the reload's own pagehide already paused it (one of the 3) and the
   //  start resumed into that pause; either way the run is back at its latest checkpoint, one pause used — the same one line)
@@ -98,11 +106,13 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     left: () => left,
     /** the freshest chunk (a pause carries it — THE ROOM WINS' too) */
     chunk() { if (!holding && !hiddenNow() && pausedAt == null) stepTo(run, target()); return chunkNow(); },
+    /** THE ROOM WINS' pause (judge.js): the freshest chunk — and the close that follows sends no checkpoint from the same offset (S2) */
+    roomChunk() { roomAsked = true; return D.chunk(); },
     input(code) { if (pausedAt != null || ended) return 'noop'; const r = input(run, code); if (r === 'ok') hintGo(); return r; },
     frame,
     attach,
     stop,
-    state: () => ({ k: run.k, t: run.k * TICK, lines: run.eng.lines, over: run.over, sent, len: run.log.length, paused: pausedAt != null, kind, left, ended, finished, result, refused, refresh, away, pzOk, holding }),
+    state: () => ({ k: run.k, t: run.k * TICK, lines: run.eng.lines, over: run.over, sent, len: run.log.length, paused: pausedAt != null, kind, left, ended, finished, result, refused, refresh, away, pzOk, holding, flying: flights > 0 }),
   };
   judge.bind && judge.bind(D);
   function target() { return Math.floor((clock() - go - pm) / TICK); }
@@ -115,31 +125,35 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     if (bot && !run.over) runBot();
     if (els.hint && run.k * TICK >= HINT_MS) hintGo();
     if (run.over) { ended = true; finish(); return; }
-    if (!flying && clock() - lastCk >= CK_MS) send();
+    if (!flights && clock() - lastCk >= CK_MS) send().catch(() => {});
   }
+  /** ONE upload (a checkpoint, or the chunk a pause carries). One at a time — null when another is in flight; only the hide's keepalive call
+   *  (`ka`) goes beside one. The server's checked length is the truth for `sent` (PFIX-3: two answers may land in either order) */
   async function send(action = 'checkpoint', ka = false, body0 = null) {
-    if (flying && !ka) return null;
-    flying = true;
+    if (flights && !ka) return null;
+    flights++;
     const b = body0 || D.chunk(), body = ka ? { ...b, $ka: 1 } : b;
     try {
+      if (lost) throw Object.assign(new Error('lost'), { status: 0, code: 'offline' });
       const r = await judge[action](body);
       took(r);
-      if (r.resync) sent = r.len; else sent = body.at + body.add.length;
+      if (r.resync) sent = r.len; else sent = Math.max(sent, Number.isInteger(r.len) ? r.len : body.at + body.add.length);
       lastCk = clock();
       if (r.e && !ended) { ended = true; finish(); }
       return r;
     } catch (e) {
       if (e && e.status === 422) refused = e.code || 'refused';
-      if (e && e.code === 'paused') { pausedAt = clock(); paint(); }
+      // (the server holds a pause this phone didn't know of — a pause call that landed after the phone gave up on it: shown, RESUME ends it)
+      if (e && e.code === 'paused') { if (pausedAt == null) { pausedAt = clock(); kind = 'p'; away = false; } pzOk = true; paint(); }
       lastCk = clock();
       throw e;
-    } finally { flying = false; }
+    } finally { flights--; }
   }
   async function finish() {
     paint();
     for (let i = 0; i < 6 && !finished; i++) {
       try {
-        while (flying) await new Promise(r => setTimeout(r, 100));
+        while (flights) await sleep(100);
         if (sent < run.log.length || run.over) { const b = D.chunk(); const r = await judge.checkpoint(b).catch(e => (e && e.code === 'finished' ? { e: 1 } : Promise.reject(e))); if (r && !r.resync) sent = b.at + b.add.length; else if (r && r.resync) { sent = r.len; continue; } }
         result = await judge.finish();
         finished = true;
@@ -150,40 +164,62 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     }
     paint();
   }
+  /** PAUSE (the tap): frozen at once; the server's pause asked AFTER the upload in flight (M1) — never "paused" on no answer */
   async function pause() {
     if (pausedAt != null || ended || left <= 0) return;
     stepTo(run, target());
-    const body = chunkNow();
-    pausedAt = clock(); kind = 'p'; away = false; left = Math.max(0, left - 1);   // (frozen at the tap; the server's stamp + count land a beat later)
+    if (run.over) return;                                                        // (the tap's tick ended the run — the next frame finishes it)
+    pausedAt = clock(); kind = 'p'; away = false; pzOk = false; left = Math.max(0, left - 1);   // (frozen at the tap; the server's stamp + count land a beat later)
     paint();
-    try { const r = await send('ppause', false, body); if (r && r.pa == null) { pausedAt = null; kind = null; } else pzOk = true; paint(); }   // (the server's answer: its count of pauses left)
-    catch (e) { if (e && e.code === 'paused') pzOk = true; else { pausedAt = null; kind = null; left += 1; paint(); } }
+    await askPause();
+  }
+  /**
+   * PFIX-3 — ask the server for the pause this phone already shows. ONE call at a time; a tap's / a return's waits for the upload in flight (its
+   * answer moves `sent` — two uploads from one offset never race); the hide's (`ka`) goes at once with keepalive. → true = the server holds it.
+   *   pa in the answer (or 409 paused) → confirmed · no pause granted (the limit) → the phone un-pauses: a hide becomes a no-pause hide ·
+   *   no answer → still frozen + unconfirmed: asked again by the return, `online` and the RESUME tap (the server backdates it to this chunk's tick)
+   */
+  function askPause(ka = false) {
+    if (asking && !ka) return asking;
+    const p = (async () => {
+      if (!ka) while (flights) await sleep(40);
+      if (pausedAt == null || ended) return false;
+      if (pzOk) return true;
+      const at0 = pausedAt;
+      try {
+        const r = await send('ppause', ka, chunkNow());
+        if (!r || r.e) return false;                                             // (null: another upload slipped in — asked again; e: the run ended there)
+        if (r.pa != null) { pzOk = true; paint(); return true; }
+        noPause(at0);                                                            // (the server granted none — its count of pauses left is in the answer)
+        return false;
+      } catch (e) {
+        if (e && e.code === 'paused') { pzOk = true; paint(); return true; }
+        if (e && e.code === 'pause_limit') { left = 0; noPause(at0); return false; }
+        if (e && (e.code === 'finished' || e.code === 'done')) { if (!ended) { ended = true; finish(); } return false; }
+        return false;                                                            // (no signal: unconfirmed — the phone stays frozen and asks again)
+      }
+    })();
+    if (!ka) { asking = p; p.finally(() => { if (asking === p) asking = null; }); }
+    return p;
+  }
+  /** the server granted no pause: the clock was never stopped — a hide goes on as a no-pause hide from its moment, a tap just plays on */
+  function noPause(at0) {
+    const wasAway = away;
+    pausedAt = null; kind = null; away = false; pzOk = false;
+    paint();
+    if (wasAway) { hid = { at: at0, k: run.k }; if (!hiddenNow()) back(); }
   }
   /** THE DROP B — the page hid with a pause left: an automatic PLAYER pause (keepalive — it lands though the page is going) */
-  async function hidePause() {
-    const at = clock(), body = chunkNow();
-    pausedAt = at; kind = 'p'; away = true; pzOk = false; left = Math.max(0, left - 1);
+  function hidePause() {
+    pausedAt = clock(); kind = 'p'; away = true; pzOk = false; left = Math.max(0, left - 1);
     paint();
-    try {
-      const r = await send('ppause', true, body);
-      if (r && r.pa != null) pzOk = true;
-      else if (r && !r.e) { pausedAt = null; kind = null; away = false; hid = { at, k: run.k }; if (!hiddenNow()) back(); }   // (no pause granted — a no-pause hide)
-      paint();
-    } catch (e) {
-      if (e && e.code === 'paused') pzOk = true;
-      else if (e && e.code === 'pause_limit') { pausedAt = null; kind = null; away = false; left = 0; hid = { at, k: run.k }; paint(); if (!hiddenNow()) back(); }
-      /* else unconfirmed — the return asks again */
-    }
+    askPause(true);
   }
   /** THE DROP B — back on the page */
   function back() {
     if (ended) return;
-    if (pausedAt != null && away && !pzOk) {
-      // (the hide's pause never got its answer — asked again; already paused = a free repeat; no pause granted → a no-pause hide from then)
-      const at = pausedAt;
-      send('ppause', false, chunkNow()).then(r => { if (r && r.pa != null) pzOk = true; else if (r && !r.e) { pausedAt = null; kind = null; away = false; hid = { at, k: run.k }; back(); } paint(); }).catch(e => { if (e && e.code === 'paused') pzOk = true; else if (e && e.code === 'pause_limit') { pausedAt = null; kind = null; away = false; left = 0; hid = { at, k: run.k }; paint(); back(); } });
-      return;
-    }
+    // (a pause the server never confirmed — the hide's call was lost, or a tap's answer never came: asked again; the server backdates it)
+    if (pausedAt != null && kind === 'p' && !pzOk) { askPause(); return; }
     if (!hid) return;
     const gap = clock() - hid.at, k0 = hid.k;
     hid = null;
@@ -192,14 +228,23 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     holding = true;
     stepTo(run, Math.min(target(), k0 + ticksOf(MAX_TAIL_MS)));
     paint();
-    send('checkpoint', false, { ...chunkNow(), aw: 1 }).then(() => { holding = false; paint(); }).catch(() => { holding = false; paint(); });
+    const tail = async () => { while (flights) await sleep(40); return send('checkpoint', false, { ...chunkNow(), aw: 1 }); };
+    tail().then(() => { holding = false; paint(); }).catch(() => { holding = false; paint(); });
   }
+  /** RESUME: only on a pause the server HOLDS (an unconfirmed one is confirmed first — else the clock would have run through it: M1) */
   async function resume() {
-    try { const r = await judge.resume(); took(r); pausedAt = null; kind = null; away = false; paint(); if (r.e) { ended = true; finish(); } } catch (e) { console.warn('[drop] resume', e); }
+    if (resuming || pausedAt == null || ended) return;
+    resuming = true;
+    try {
+      if (kind === 'p' && !pzOk && !(await askPause())) return;                  // (still no answer: the card stays — tap again when the signal is back)
+      const r = await judge.resume(); took(r); pausedAt = null; kind = null; away = false; pzOk = false; paint(); if (r.e) { ended = true; finish(); }
+    } catch (e) { console.warn('[drop] resume', e); } finally { resuming = false; }
   }
   // THE ADD-ON (the cost check) + THE DROP B: the page hiding / the phone locking / leaving = an AUTOMATIC PLAYER PAUSE while one is left (it
   // carries the run's freshest chunk — a refresh resumes there); none left = a checkpoint, the clock running
   function gone() {
+    // (PFIX-3: a tap's pause still waiting for its answer when the page goes → asked again now, with keepalive)
+    if (!ended && pausedAt != null && kind === 'p' && !pzOk) { askPause(true); return; }
     if (ended || pausedAt != null || hid || holding) return;
     stepTo(run, target());                                                       // (the run up to the moment the page went)
     if (run.over) return;
@@ -208,8 +253,10 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
   }
   function onVis() { if (document.visibilityState === 'hidden') gone(); else back(); }
   const onHide = () => gone();
+  const onLine = () => { if (!hiddenNow()) back(); };                            // (the signal is back: an unconfirmed pause is asked again)
   document.addEventListener('visibilitychange', onVis);
   window.addEventListener('pagehide', onHide);
+  window.addEventListener('online', onLine);
 
   // ---- the view's places: the PAUSE control at the rail's top, the paused / the end card over the board
   function attach({ root, rail, overlay }) {
@@ -265,7 +312,9 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
   function stop() {
     document.removeEventListener('visibilitychange', onVis);
     window.removeEventListener('pagehide', onHide);
-    if (!ended && pausedAt == null) send().catch(() => {});
+    window.removeEventListener('online', onLine);
+    // (PFIX-3 — S2: never right behind THE ROOM WINS' pause — it carries this very chunk, and the two raced from one offset)
+    if (!ended && pausedAt == null && !roomAsked) send().catch(() => {});
     if (hook) { removeTestHook('__drop', hook); hook = null; }
   }
   // ---- the tests' bot (window.__drop.bot — never a player's): a key every `every` ms toward its placement
@@ -288,7 +337,8 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     hint: () => !!(els.hint && !els.hint.classList.contains('is-gone')),
     shared: () => shared,
     show: () => back(),
-    send: () => send(),
+    send: () => send().catch(() => null),
+    lose: (on = true) => { lost = !!on; },          // (the tests: the next calls never leave the phone — a lost hide)
     log: () => run.log,
   });
   return D;

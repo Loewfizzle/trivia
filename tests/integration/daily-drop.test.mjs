@@ -335,3 +335,92 @@ test('THE PRUNE (the cost check): once a day\'s board is final, only the top run
   assert.equal(Object.keys((await val(`${base}/r`)) || {}).length, 14, 'the score rows stay');
   assert.equal(await val(`${base}/pr`), 2);
 });
+
+// ---------------------------------------------------------------- PFIX-3 — NO HONEST RUN LOST (FABLE REVIEW 2: M2, M3, S1)
+test('PFIX-3 — THE CHUNK STORE over /api: a SHORTER chunk after a longer one from the same offset never makes a hole (M2 order B + the timed-out checkpoint) → the finish still scores; a chunk from a profile with NO run is never stored (S1)', async () => {
+  await ensure('dr-m2', 'DropMtwo');
+  const pid = await pidOf('dr-m2');
+  // S1: no run yet — 5 refused uploads store NOTHING
+  for (let i = 0; i < 5; i++) await rejects(D('dr-m2', { action: 'checkpoint', game: 'drop', at: i * 24_000, add: 'L'.repeat(24_000), k: 10 }, NOW + 20 * 60e3), 409, 'not_started');
+  assert.equal(await val(`dly/drop/${streakDay(NOW)}/l/${pid}`), null, 'a profile with no run stores no chunk');
+  const s = await D('dr-m2', { action: 'start', game: 'drop' }, NOW + 20 * 60e3);
+  const P = phone('dr-m2', s);
+  P.now = s.run.go;
+  await P.play(8e3);
+  // junk that the judge would not take is not stored either: past the checked length · ahead of the clock
+  const r0 = await D('dr-m2', { ...P.body('checkpoint'), at: 9000, add: 'L'.repeat(100) }, P.now);
+  assert.equal(r0.resync, true);
+  await rejects(D('dr-m2', { ...P.body('checkpoint'), add: 'L'.repeat(50), k: P.run.k + 120 * 60 }, P.now), 422, 'too_early');
+  assert.equal(await val(`dly/drop/${P.day}/l/${pid}`), null, 'nothing stored for a chunk the judge refuses');
+  // M2 order B: the checkpoint in flight (shorter) + the hide's pause (longer) from the SAME offset — the pause lands first
+  const ck = P.body('checkpoint');
+  for (let i = 0; i < 60; i++) { P.now += 16; P.frame(); }
+  const pz = P.body('ppause');
+  assert.equal(pz.at, ck.at); assert.ok(pz.add.length > ck.add.length, 'the pause carries more');
+  const p = await D('dr-m2', pz, P.now);
+  assert.ok(p.pa != null);
+  await rejects(D('dr-m2', ck, P.now + 50), 409, 'paused');
+  let chunks = await val(`dly/drop/${P.day}/l/${pid}`);
+  assert.deepEqual(Object.keys(chunks), [`${pz.at}_${pz.add.length}`], 'ONE chunk, keyed by offset + length — the shorter one never replaced it');
+  P.sent = pz.at + pz.add.length;
+  P.now += 5e3;
+  P.pm = (await D('dr-m2', { action: 'resume', game: 'drop', day: P.day }, P.now)).pm;
+  // order A: the checkpoint lands first, the pause's longer chunk from the same offset is in step (its tail taken)
+  await P.play(3e3);
+  const ck2 = P.body('checkpoint');
+  for (let i = 0; i < 60; i++) { P.now += 16; P.frame(); }
+  const pz2 = P.body('ppause');
+  await D('dr-m2', ck2, P.now);
+  const p2 = await D('dr-m2', pz2, P.now + 30);
+  assert.ok(p2.pa != null && !p2.resync, 'paused, in step');
+  assert.equal(p2.len, pz2.at + pz2.add.length);
+  P.sent = p2.len;
+  P.now += 5e3;
+  P.pm = (await D('dr-m2', { action: 'resume', game: 'drop', day: P.day }, P.now)).pm;
+  // S1b: a checkpoint that timed out on the phone lands AFTER its longer retry
+  await P.play(2e3);
+  const short = P.body('checkpoint');
+  for (let i = 0; i < 120; i++) { P.now += 16; P.frame(); }
+  await P.send();
+  const z = await D('dr-m2', short, P.now + 40);
+  assert.equal(z.resync, true, 'the late, shorter chunk brings nothing');
+  chunks = await val(`dly/drop/${P.day}/l/${pid}`);
+  assert.ok(!Object.keys(chunks).includes(`${short.at}_${short.add.length}`), '… and is not stored');
+  await P.play(10 * 60e3);
+  assert.ok(P.run.over);
+  await P.send();
+  const f = await D('dr-m2', { action: 'finish', game: 'drop', day: P.day }, P.now + 500);
+  assert.equal(f.score, scoreOf(P.run.k * TICK, P.run.eng.lines), 'the finish scores the whole run — no hole in the log');
+  // a finished run stores nothing more
+  await rejects(D('dr-m2', { action: 'checkpoint', game: 'drop', day: P.day, at: P.sent, add: 'LLLL', k: P.run.k }, P.now + 900), 409, 'finished');
+  const after = await val(`dly/drop/${P.day}/l/${pid}`);
+  assert.deepEqual(Object.keys(after).sort(), Object.keys(await val(`dly/drop/${P.day}/l/${pid}`)).sort());
+  assert.ok(!Object.keys(after).some(k => k.endsWith('_4') && k.startsWith(`${P.sent}_`)), 'nothing stored after the end');
+});
+
+test('PFIX-3 — THE LOST HIDE over /api (M3): the hide\'s pause call never arrived — asked again 60 s later with pauses left = a BACKDATED pause (one of the 3), the run goes on from the hide\'s tick and scores past it', async () => {
+  await ensure('dr-m3', 'DropMthree');
+  const pid = await pidOf('dr-m3');
+  const s = await D('dr-m3', { action: 'start', game: 'drop' }, NOW + 40 * 60e3);
+  const P = phone('dr-m3', s);
+  P.now = s.run.go;
+  await P.play(55e3);
+  const k0 = P.run.k, body = P.body('ppause');                                 // the page hides at 55 s — this call is LOST
+  P.now += 60e3;
+  const p = await D('dr-m3', body, P.now);                                      // the return asks again
+  assert.ok(p.pa != null && !p.e, 'paused — NOT ended late');
+  assert.equal(p.left, PAUSES - 1, 'one of the 3');
+  const rec = await val(`dly/drop/${P.day}/p/${pid}`);
+  assert.equal(rec.k, k0); assert.ok(!rec.e);
+  assert.ok(Math.abs(rec.pz.at - (P.now - 60e3)) < 30, 'the pause is backdated to the hide');
+  P.sent = body.at + body.add.length;
+  P.now += 4e3;
+  P.pm = (await D('dr-m3', { action: 'resume', game: 'drop', day: P.day }, P.now)).pm;
+  assert.ok(Math.abs(P.tick() - k0) <= 1, 'RESUME: the board is exactly where it hid');
+  await P.play(10 * 60e3);
+  assert.ok(P.run.over);
+  await P.send();
+  const f = await D('dr-m3', { action: 'finish', game: 'drop', day: P.day }, P.now + 500);
+  assert.equal(f.score, scoreOf(P.run.k * TICK, P.run.eng.lines));
+  assert.ok(P.run.k * TICK > 55e3, 'the run went on past the hide');
+});
