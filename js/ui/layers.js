@@ -35,11 +35,22 @@ export const layersOpen = () => open.length;
  *   layers   how many pop-ups / overlays are open on THE LAYER STACK (layersOpen() — every sheet, the dailies' screen + runs, CUSTOMIZE, a
  *            full card, the player page, the album, the radio, a streak card, a sighting's photo)
  *   held     the city is HELD under a full-screen overlay (ui/city-hold.js — the DAILY screen, a full card, the guests' screen)
- *   inCity   the touch began on an element inside the city's OWN root (false = on something another screen put on <body>: an overlay still
- *            fading out after it left the stack, a game's screen, a banner)
+ *   inCity   the touch began ON THE CITY (touchInCity below — false = on something another screen put on <body>: a game's screen, a banner)
  * → true = the touch belongs to the screen on top: the city's taps, sightings, billboards, door and hover all ignore it.
  */
 export function cityCovered({ layers = 0, held = false, inCity = true } = {}) { return layers > 0 || !!held || !inCity; }
+/**
+ * DID THE TOUCH BEGIN ON THE CITY? — PURE (PFIX-3 — FABLE REVIEW 2's C1: the first rule asked only `root.contains(target)`, and the title's
+ * root is a COLUMN (560 px; 1180 px on a big screen) while the city's canvas fills the whole window on <body> — so on a desktop, an iPad and
+ * a phone held sideways every touch BESIDE the column landed on #stage and counted as "a screen on top": the door, the signs out there, the
+ * sightings and the hover were dead). The city is: the title's root and everything in it · the root's ANCESTORS (#stage, <body> — the bare
+ * page beside the column) · the scene's own wrap (the canvas on <body>). An element another screen put on <body> is none of the three.
+ */
+export function touchInCity(t, root, wrap) {
+  if (!t) return false;
+  const has = (a, b) => !!(a && b && typeof a.contains === 'function' && a.contains(b));
+  return has(root, t) || has(t, root) || has(wrap, t);
+}
 export const layerDebug = () => ({ z, open: open.length, top: open.length ? open[open.length - 1].el.className : null, esc: escN });
 
 // THE ONE Esc: the top layer's own close (a layer taken without one — a watched .modal — gets its backdrop's click, the way a tap outside

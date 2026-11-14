@@ -396,4 +396,113 @@ await H.run(async () => {
   const [soloRec, soloStart] = await Promise.all([val(`dly/coastclear/${day}/p/${C.pid}`), val(`dly/coastclear/${day}/s/${C.pid}`)]);
   ok(!!soloStart && (!soloRec || (pausesOf(soloRec).at == null && pausesOf(soloRec).n === 0)), `a room of ONE (${soloCode}): the run is held, but the server refused the pause — the clock runs (record ${soloRec ? JSON.stringify(pausesOf(soloRec)) : 'untouched'})`);
   await C.ctx.close(); await A.ctx.close();
+
+  // ================================================================ 9. PFIX-3 — C1, THE CITY's EDGES (FABLE REVIEW 2): wider than a phone held upright
+  // (SKINS 2B's tap-guard counted only the title's ROOT as the city — a 560 / 1180 px column — so on a desktop, an iPad and a phone held
+  //  sideways every tap BESIDE it was "a screen on top": the door, the signs out there, the hover — dead. The city = the root, its ancestors,
+  //  the scene's wrap (ui/layers.js#touchInCity). REAL input at each size, on points BESIDE the column only: the door → JOIN, a game's sign →
+  //  its card, the mouse → the pointer; and with the DAILY screen up the very same points stay silent — the guard still holds out there.)
+  {
+    const W = await openApp('dyw', 'WIDER');
+    const pg = W.page;
+    const beside = kind => pg.evaluate(async kind => {
+      const root = document.querySelector('.title-screen.nd');
+      if (!root || !window.__district || !window.__district.hit) return null;
+      const r = root.getBoundingClientRect(), out = [];
+      const { GAMES } = await import('/js/config.js'), play = new Set(GAMES.filter(g => g.playable).map(g => g.id));
+      for (let y = 30; y < innerHeight - 12; y += 6) for (let x = 6; x < innerWidth - 6; x += 6) {
+        if (x >= r.left - 3 && x <= r.right + 3) continue;                    // (BESIDE the title's column only)
+        const h = window.__district.hit(x, y);
+        if (!h || h.kind !== kind) continue;
+        const e = document.elementFromPoint(x, y);
+        if (e && !root.contains(e) && !e.closest('button, a, input, label, .nd-actions, .menu-btn, .music-btn, .nd-corner')) out.push([x, y, h.id || kind, kind !== 'sign' || play.has(h.id)]);
+      }
+      return { col: [Math.round(r.left), Math.round(r.right)], pts: out };
+    }, kind);
+    const mid = pts => pts[Math.floor(pts.length / 2)];
+    for (const V of [
+      // (the SIDEWAYS framing with a fine pointer — a short wide window. A real PHONE held sideways shows the console's TURN YOUR PHONE UPRIGHT
+      //  card over everything (index.html #ns-turn — the owner's Nov 2 rule): its own case below)
+      { name: '844 × 390 (the sideways framing, mouse)', view: { width: 844, height: 390, deviceScaleFactor: 1, isMobile: false, hasTouch: false }, touch: false, need: ['door'] },
+      { name: '820 × 1180 (an iPad, touch)', view: { width: 820, height: 1180, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, touch: true, need: ['sign'] },
+      { name: '1440 × 900 (a desktop, mouse)', view: { width: 1440, height: 900, deviceScaleFactor: 1, isMobile: false, hasTouch: false }, touch: false, need: ['door'] },
+    ]) {
+      await pg.setViewport(V.view);
+      await pg.reload();
+      await waitFor(pg, `!document.getElementById('boot') && !!window.__arcade && !!window.__district && !!document.querySelector('.title-screen.nd')`, `${V.name}: the title`, 40000);
+      // (the city's own hit map must have landed at this size — the door is always on it)
+      await waitFor(pg, `(() => { for (let y = 30; y < innerHeight; y += 8) for (let x = 6; x < innerWidth; x += 8) { const h = window.__district.hit(x, y); if (h && h.kind === 'door') return true; } return false; })()`, `${V.name}: the city's hit map`, 30000);
+      const tapAt = async (x, y) => { if (V.touch) await pg.touchscreen.tap(x, y); else await pg.mouse.click(x, y); };
+      /** tap until the city answers (its opening timeline may still be running right after the load) */
+      const until = async (x, y, js) => { for (let i = 0; i < 14; i++) { await tapAt(x, y); if (await pg.waitForFunction(js, { timeout: 700, polling: 50 }).then(() => true).catch(() => false)) return true; } return false; };
+      const door = await beside('door'), sign = await beside('sign');
+      for (const k of V.need) ok((k === 'door' ? door : sign).pts.length > 0, `${V.name}: the ${k} lies BESIDE the title's column (x ${door.col[0]}–${door.col[1]}; ${(k === 'door' ? door : sign).pts.length} points out there)`);
+      if (door.pts.length) {
+        const [x, y] = mid(door.pts);
+        ok(!(await pg.evaluate((x, y) => window.__district.covered(document.elementFromPoint(x, y)), x, y)), `${V.name}: beside the column, nothing open → NOT covered (the touch is the city's)`);
+        if (!V.touch) {
+          await pg.mouse.move(x - 3, y - 3); await pg.mouse.move(x, y);
+          const hov = await pg.waitForFunction(() => document.querySelector('.title-screen.nd').classList.contains('nd-hovering'), { timeout: 8000, polling: 50 }).then(() => true).catch(() => false);
+          ok(hov, `${V.name}: the mouse over the door at [${x}, ${y}] → the pointer + the glow`);
+        }
+        ok(await until(x, y, `document.querySelector('.nd-actions').classList.contains('is-join')`), `${V.name}: the door at [${x}, ${y}] → JOIN opens`);
+        await pg.evaluate(() => { if (document.querySelector('.nd-actions').classList.contains('is-join')) document.querySelector('.nd-tab-join').click(); });
+        await waitFor(pg, `!document.querySelector('.nd-actions').classList.contains('is-join')`, `${V.name}: JOIN closed`, 6000);
+      }
+      // (a sign of a playable game opens its card; one of a game still to come answers with its COMING SOON message — either way the city answered)
+      const soon = sign.pts.filter(p => !p[3]);
+      sign.pts = sign.pts.filter(p => p[3]);
+      if (!sign.pts.length && soon.length) {
+        const [x, y, id] = mid(soon);
+        ok(await until(x, y, `[...document.querySelectorAll('.sh-msgs b')].some(t => /coming soon/i.test(t.textContent))`), `${V.name}: ${id}'s sign at [${x}, ${y}] (a game still to come) → its COMING SOON message`);
+      }
+      if (sign.pts.length) {
+        const [x, y, id] = mid(sign.pts);
+        ok(await until(x, y, `!!document.querySelector('.nd-card-sheet')`), `${V.name}: ${id}'s sign at [${x}, ${y}] → its card opens`);
+        await pg.keyboard.press('Escape');
+        await waitFor(pg, `!document.querySelector('.nd-card-sheet')`, `${V.name}: the card closed`, 6000);
+        await sleep(400);
+        // the guard still holds out there: the DAILY screen up → the same point is silent
+        await pg.evaluate(() => { window.__pops = 0; window.__popObs = new MutationObserver(l => { for (const m of l) for (const n of m.addedNodes) if (n.nodeType === 1 && n.matches('.sh, .modal, .sheet')) window.__pops++; }); window.__popObs.observe(document.body, { childList: true }); });
+        await pg.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen' } })));
+        await waitFor(pg, `!!document.querySelector('.dy-overlay.dy-screen')`, `${V.name}: the DAILY screen`, 15000);
+        const plain = await pg.evaluate((x, y) => { const e = document.elementFromPoint(x, y); return !!(e && e.closest('.dy-overlay') && !e.closest('button, a, input, label')); }, x, y);
+        if (plain) { for (let i = 0; i < 3; i++) { await tapAt(x, y); await sleep(150); } }
+        await sleep(400);
+        const quiet = await pg.evaluate(() => ({ pops: window.__pops, card: !!document.querySelector('.nd-card-sheet'), daily: !!document.querySelector('.dy-screen') }));
+        ok(plain ? quiet.pops === 0 && !quiet.card && quiet.daily : quiet.daily, `${V.name}: the DAILY screen up → the same point is silent (${plain ? `${quiet.pops} pop-ups` : 'a button sits there — not tapped'})`);
+        await pg.evaluate(() => { window.__popObs.disconnect(); return import('/js/store.js').then(m => m.setState({ daily: null })); });
+        await waitFor(pg, `!document.querySelector('.dy-overlay')`, `${V.name}: the DAILY screen closed`, 8000);
+      }
+    }
+    // A REAL PHONE HELD SIDEWAYS (844 × 390, touch): the TURN YOUR PHONE UPRIGHT card is the screen on top — it owns every touch; the door's
+    // own point stays silent under it (before SKINS 2B's guard a tap went THROUGH the card and opened JOIN behind it)
+    await pg.setViewport({ width: 844, height: 390, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await pg.reload();
+    await waitFor(pg, `!document.getElementById('boot') && !!window.__arcade && !!window.__district && !!document.querySelector('.title-screen.nd')`, 'the phone held sideways: the title', 40000);
+    await waitFor(pg, `(() => { for (let y = 30; y < innerHeight; y += 8) for (let x = 6; x < innerWidth; x += 8) { const h = window.__district.hit(x, y); if (h && h.kind === 'door') return true; } return false; })()`, 'the phone held sideways: the hit map', 30000);
+    const turn = await pg.evaluate(() => { const t = document.getElementById('ns-turn'); return !!t && getComputedStyle(t).display !== 'none'; });
+    const dpt = await pg.evaluate(() => { for (let y = 30; y < innerHeight - 12; y += 6) for (let x = 6; x < 140; x += 6) { const h = window.__district.hit(x, y); if (h && h.kind === 'door') return [x, y]; } return null; });
+    ok(turn && !!dpt, `a real phone held sideways (844 × 390, touch): TURN YOUR PHONE UPRIGHT is up over the city (the door under it at ${JSON.stringify(dpt)})`);
+    if (dpt) {
+      await sleep(3000);                                                      // (past the opening — a tap would be answered if it could be)
+      for (let i = 0; i < 4; i++) { await pg.touchscreen.tap(dpt[0], dpt[1]); await sleep(200); }
+      const q = await pg.evaluate((x, y) => ({ join: document.querySelector('.nd-actions').classList.contains('is-join'), card: !!document.querySelector('.nd-card-sheet'), cov: window.__district.covered(document.elementFromPoint(x, y)) }), dpt[0], dpt[1]);
+      ok(!q.join && !q.card && q.cov, `… the card owns the touch: 4 taps on the door's point → no JOIN, no game card behind it (${JSON.stringify(q)})`);
+    }
+    await W.ctx.close();
+    // THE TITLE PREVIEW held sideways (the owner's check link — the preview page has no TURN card): the door at the far left → JOIN
+    {
+      const ctx = await browser.createBrowserContext(), pv = await ctx.newPage();
+      await pv.setViewport({ width: 844, height: 390, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+      await pv.goto(guardUrl(`${BASE}/tests/integration/title-preview.html`, 'e2e-daily'));
+      await waitFor(pv, `!!window.__district && !!document.querySelector('.title-screen.nd') && (() => { for (let y = 30; y < innerHeight; y += 8) for (let x = 6; x < 140; x += 8) { const h = window.__district.hit(x, y); if (h && h.kind === 'door') return true; } return false; })()`, 'the title preview sideways', 40000);
+      // (the door's point asked again before every tap — the preview's camera is still settling right after its load)
+      const doorPt = () => pv.evaluate(() => { const pts = []; for (let y = 30; y < innerHeight - 12; y += 6) for (let x = 6; x < 140; x += 6) { const h = window.__district.hit(x, y); if (h && h.kind === 'door') pts.push([x, y]); } return pts[Math.floor(pts.length / 2)] || null; });
+      let opened = false, pt = null;
+      for (let i = 0; i < 20 && !opened; i++) { pt = await doorPt(); if (!pt) { await sleep(400); continue; } await pv.touchscreen.tap(pt[0], pt[1]); opened = await pv.waitForFunction(() => document.querySelector('.nd-actions').classList.contains('is-join'), { timeout: 700, polling: 50 }).then(() => true).catch(() => false); }
+      ok(opened, `the title preview held sideways (844 × 390, touch — no TURN card there): the door at [${pt}] → JOIN opens`);
+      await ctx.close();
+    }
+  }
 });

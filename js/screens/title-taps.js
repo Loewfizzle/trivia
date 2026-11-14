@@ -15,7 +15,7 @@ import { cardActions, playersLine } from '../core/room-logic.js';
 import { markFor } from '../core/marks.js';
 import { playSolo } from '../host.js';
 import { dbRef, update as dbUpdate } from '../firebase.js';
-import { layersOpen, cityCovered } from '../ui/layers.js';
+import { layersOpen, cityCovered, touchInCity } from '../ui/layers.js';
 import { reducedMotion } from '../ui/dom.js';
 import { lazyImport } from '../ui/lazy-import.js';
 
@@ -43,11 +43,12 @@ export function createTaps(T) {
   // THE SHARED RULE (ui/layers.js#cityCovered, PURE — every screen over the city, not just this one): the city answers a touch only when
   // NOTHING is open on THE LAYER STACK (every sheet, the dailies, CUSTOMIZE, a full card, the player page, the radio…), the city is not HELD
   // under a full-screen overlay (ui/city-hold.js tells the window 'vl-cover' — heard here, so the boot graph gains no module), and the touch
-  // BEGAN on the city's own root (never on an element another screen put on <body>). Asked at the DOWN (the screen that is up when the
-  // finger lands owns the touch) and again at the tap.
+  // BEGAN on the city (never on an element another screen put on <body>). Asked at the DOWN (the screen that is up when the finger lands
+  // owns the touch) and again at the tap. PFIX-3 (FABLE REVIEW 2 — C1): "on the city" = the root, the root's ANCESTORS (the bare page beside
+  // the title's column — a desktop, an iPad, a phone held sideways) and the scene's own wrap (ui/layers.js#touchInCity).
   let held = false;
   const onCover = e => { held = !!(e && e.detail); };
-  const covered = t => cityCovered({ layers: layersOpen(), held, inCity: !!(t && T.els.root && T.els.root.contains && T.els.root.contains(t)) });
+  const covered = t => cityCovered({ layers: layersOpen(), held, inCity: touchInCity(t, T.els.root, T.els.sceneWrap) });
   const onShown = () => { if (document.visibilityState !== 'hidden') shownAt = performance.now(); };
   function onCityDown(e) {
     // (a touch that began while the gate / the intro was up — it opened or skipped them — never becomes a city tap)
