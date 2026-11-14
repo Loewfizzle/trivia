@@ -95,7 +95,13 @@ export const prepDrop = ({ inputs, look = 'night' } = {}) => prepShare(async () 
 export const shareDrop = ({ inputs, look = 'night' } = {}) => prepDrop({ inputs, look }).send();
 
 // ---------------------------------------------------------------------------------------------- SHARE TODAY's SECTION
-export const SECTION_H = RHYTHM.H;
+/** PFIX-3 (Ben, Nov 14 — "make sure the PRISM DROP box is tall enough … I want that box to be decent sized"): the board's strip is TALLER
+ *  than the rhythm's — STRIP_H — and the section with it (the same 8 rows, bigger cells: the box grows both ways); COAST CLEAR's lamps
+ *  gave up the room (coastclear/share.js#STRIP_H). The name, the big time and the stat line keep the rhythm's sizes. */
+export const STRIP_H = 228;
+export const SECTION_H = RHYTHM.H - RHYTHM.artH + STRIP_H;
+/** this section's natural height — share-today.js lays the card out by it */
+export const sectionH = () => SECTION_H;
 export const STRIP_ROWS = 8;
 export const NAME = 'THE DROP';
 /** PURE: the rows the strip shows — the stack's top `n` rows (a topped-out board: its top 8; a low stack: the bottom 8) → { from, to } (rows
@@ -140,11 +146,11 @@ function paintStrip(c, P, I, look, cx, y, h) {
 export function paintSection(c, { inputs, look = 'night', W = 1080, H = SECTION_H, P = null } = {}) {
   const I = dropInputs(inputs), R = RHYTHM, cw = W - 2 * R.COL;
   c.save();
-  c.translate(0, Math.max(0, (H - R.H) / 2));
+  c.translate(0, Math.max(0, (H - SECTION_H) / 2));
   c.textAlign = 'center'; c.textBaseline = 'middle';
   paintName(c, look, NAME, W / 2, R.nameY, R.namePx, cw);
   paintBig(c, look, timeOf(I.t), W / 2, R.bigY, R.bigPx);
   paintStat(c, look, statOf(I), W / 2, R.statY, R.statPx, cw);
-  if (P) paintStrip(c, P, I, look, W / 2, R.artY, R.artH);
+  if (P) paintStrip(c, P, I, look, W / 2, R.artY, STRIP_H);
   c.restore();
 }

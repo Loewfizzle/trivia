@@ -121,8 +121,19 @@ for (const look of ['night', 'day']) {
     const tall = await T.drawToday(today, () => '', 'night', { streak: 3, share: { ...SHARE, password: lostPw } }), flat = await T.drawToday(today, () => '', 'night', { streak: 3, share: SHARE });
     const cell = NEW_PW.stripOf(G.runFromShare(lostPw), 1080 / tall.sections[0].s, tall.sections[0].s).cell * tall.sections[0].s;
     out.push({ card: `SHARE TODAY: a six-row PASSWORD grid keeps its tiles >= 22 px on the card (${cell.toFixed(1)} px)`, diff: cell >= 21.99 ? 0 : 1 });
-    out.push({ card: 'SHARE TODAY: the tall grid makes ITS section grow (the others keep the rhythm\'s box)', diff: tall.sections[0].h > R.H && tall.sections[1].h === R.H && tall.sections[2].h === R.H ? 0 : 1 });
-    out.push({ card: 'SHARE TODAY: short grids — every section the rhythm\'s box', diff: flat.sections.every(x => x.h === R.H) ? 0 : 1 });
+    // (PFIX-3 — Ben, Nov 14: each section has ITS OWN natural box — COAST CLEAR's lamps shorter, THE DROP's board taller than the rhythm's)
+    const OWN_H = [R.H, NEW_CC.SECTION_H, DR.SECTION_H];
+    out.push({ card: 'SHARE TODAY: the tall grid makes ITS section grow (the others keep their own box)', diff: tall.sections[0].h > R.H && tall.sections[1].h === OWN_H[1] && tall.sections[2].h === OWN_H[2] ? 0 : 1 });
+    out.push({ card: 'SHARE TODAY: short grids — THE PASSWORD the rhythm\'s box, the lamps\' shorter, the board\'s taller', diff: flat.sections[0].h <= R.H + 12 && flat.sections[1].h === OWN_H[1] && flat.sections[2].h === OWN_H[2] && OWN_H[1] < R.H && OWN_H[2] > R.H ? 0 : 1 });
+    {
+      // THE DROP's board box on the card with all three: DECENT SIZED (it was 177 × 138 px — 17-px cells)
+      const sec = flat.sections[2], g = flat.getContext('2d'), y0 = Math.round(sec.y + (R.artY + 6) * sec.s), y1 = Math.round(sec.y + (R.artY + DR.STRIP_H) * sec.s);
+      let x0 = 1e9, x1 = -1;
+      const d = g.getImageData(0, Math.round((y0 + y1) / 2), 1080, 1).data, bg = [d[160], d[161], d[162]];
+      for (let x = 150; x < 930; x++) { const j = x * 4; if (Math.abs(d[j] - bg[0]) + Math.abs(d[j + 1] - bg[1]) + Math.abs(d[j + 2] - bg[2]) > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; } }
+      const boxH = DR.STRIP_H * sec.s;
+      out.push({ card: `SHARE TODAY with all three: THE DROP's board box ${x1 - x0 + 1} × ${boxH.toFixed(0)} px on the card (${(boxH / DR.STRIP_ROWS).toFixed(1)}-px cells), centred`, diff: boxH >= 195 && x1 - x0 >= 240 && Math.abs((x0 + x1) / 2 - 540) <= 3 ? 0 : 1 });
+    }
     const last = tall.sections[2];
     out.push({ card: 'SHARE TODAY: the grown card still ends above the foot', diff: last.y + last.h * last.s <= 1202 ? 0 : 1 });
   }
@@ -144,7 +155,7 @@ for (const look of ['night', 'day']) {
     for (const look of ['night', 'day']) {
       for (const [label, today, share, idx] of [['3 dailies', today3, SHARE, 1], ['2 dailies', today2, { coastclear: CCS.clear, drop: SHARE.drop }, 0]]) {
         const cv = await T.drawToday(today, () => '', look, { streak: 3, share }), sec = cv.sections[idx];
-        const b = inkBox(cv, sec.y + (R.artY + 4) * sec.s, sec.y + (R.artY + R.artH - 4) * sec.s);
+        const b = inkBox(cv, sec.y + (R.artY + 4) * sec.s, sec.y + (R.artY + NEW_CC.STRIP_H - 4) * sec.s);
         out.push({ card: `SHARE TODAY ${look}, ${label}: the lamps centred on their ink (${(b.mid - 540).toFixed(1)} px off) inside the column (${b.x0}–${b.x1})`, diff: Math.abs(b.mid - 540) <= 2.5 && b.x0 >= R.COL && b.x1 <= 1080 - R.COL ? 0 : 1 });
       }
       const own = NEW_CC.renderShare({ inputs: CCS.clear, look }), b = inkBox(own, 700, 960);

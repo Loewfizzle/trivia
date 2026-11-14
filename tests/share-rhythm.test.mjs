@@ -36,11 +36,13 @@ test('ONE RHYTHM: the four pieces stack inside the box with EQUAL gaps (the name
 });
 
 test('every section is laid out by the SAME numbers: each daily\'s paintSection reads RHYTHM (name · big · stat · art) and its SECTION_H is the rhythm\'s', () => {
-  assert.equal(DROP_H, RHYTHM.H);
+  // (PFIX-3 — Ben, Nov 14: the ART STRIP's height is each daily's own — THE DROP's board taller, COAST CLEAR's lamps shorter, THE PASSWORD's
+  //  the rhythm's (grown for a tall grid); the name, the big time and the stat line are the SAME numbers in every section)
+  assert.equal(DROP_H, RHYTHM.H - RHYTHM.artH + 228);
   for (const p of ['js/games/password/share.js', 'js/games/coastclear/share.js', 'js/games/drop/share.js']) {
     const s = read(p), sec = s.slice(s.indexOf(s.includes('export function stripOf') ? 'export function stripOf' : 'export function paintSection'));
-    assert.match(s, /export const SECTION_H = RHYTHM\.H;/, p);
-    for (const k of ['nameY', 'namePx', 'bigY', 'bigPx', 'statY', 'statPx', 'artY', 'artH']) assert.match(sec, new RegExp(`R\\.${k}\\b`), `${p} reads RHYTHM.${k}`);
+    assert.match(s, p.includes('password') ? /export const SECTION_H = RHYTHM\.H;/ : /export const SECTION_H = RHYTHM\.H - RHYTHM\.artH \+ STRIP_H;/, p);
+    for (const k of ['nameY', 'namePx', 'bigY', 'bigPx', 'statY', 'statPx', 'artY']) assert.match(sec, new RegExp(`R\\.${k}\\b`), `${p} reads RHYTHM.${k}`);
     // (SKINS 2B) the three text pieces are the KIT's — the same name, time and stat line in every section
     assert.match(sec, /paintName\(c, look, NAME, W \/ 2, R\.nameY, R\.namePx, [^;]+\);/, `${p}: the kit's name`);
     assert.match(sec, /paintBig\(c, look, [^;]+, W \/ 2, R\.bigY, R\.bigPx\);/, `${p}: the kit's big time`);
@@ -234,13 +236,13 @@ test('PFIX-3 — S7, COAST CLEAR\'s LAMPS: centred on their INK, never wider tha
   assert.ok(Math.abs(right - left - CC.lampsWidth(S, gap)) < 1e-6);
   // the cap: the scale the column allows — at 1.45× (two dailies) the lamps shrink to fit, at ~1× (three) the strip's height decides
   for (const k of [1.45, 0.97]) {
-    const W = 1080 / k, cw = W - 2 * RHYTHM.COL, s = Math.min((RHYTHM.artH - 12) / 22, CC.lampScale(cw, 8.5));
+    const W = 1080 / k, cw = W - 2 * RHYTHM.COL, s = Math.min((CC.STRIP_H - 12) / 22, CC.lampScale(cw, 8.5));
     assert.ok(CC.lampsWidth(s, s * 8.5) <= cw + 1e-6, `${k}×: the lamps fit the column (${(CC.lampsWidth(s, s * 8.5) * k).toFixed(0)} of ${(cw * k).toFixed(0)} px on the card)`);
   }
-  assert.ok(CC.lampScale(1080 / 1.45 - 2 * RHYTHM.COL, 8.5) < (RHYTHM.artH - 12) / 22, 'with two dailies the column — not the strip — decides');
+  assert.ok(CC.lampScale(1080 / 1.45 - 2 * RHYTHM.COL, 8.5) < (CC.STRIP_H - 12) / 22, 'with two dailies the column — not the strip — decides');
   const own = Math.min(8, CC.lampScale(1080 - 2 * RHYTHM.COL, 6.25));
   assert.ok(CC.lampsWidth(own, own * 6.25) <= 1080 - 2 * RHYTHM.COL + 1e-6, 'its own card too');
-  assert.match(read('js/games/coastclear/share.js'), /const S = Math\.min\(\(R\.artH - 12\) \/ 22, lampScale\(cw, 8\.5\)\);/);
+  assert.match(read('js/games/coastclear/share.js'), /const S = Math\.min\(\(STRIP_H - 12\) \/ 22, lampScale\(cw, 8\.5\)\);/);
 });
 
 test('PFIX-3 — S8 / N6 / S9: THE PASSWORD\'s door takes the LOOK (day fills), its SHARE TODAY grids are BOTTOM-aligned (its own card top-aligned); THE DROP\'s own card is on the kit\'s rule', async () => {
@@ -313,4 +315,24 @@ test('PFIX-3 — S11, THE CARD IS BUILT BEFORE THE TAP: prepShare builds once, t
   assert.match(read('js/screens/daily.js'), /if \(share\) warmShare\(t\);/);
   assert.match(read('js/games/drop/view.js'), /sharer\(sc\)\.then\(H => H\.warm\(\)\)/);
   assert.match(read('js/daily/share-today.js'), /export function prepToday\(today, lineOf, \{ streak = 0, look \} = \{\}\) \{\n  return prepShare\(async \(\) => \{/);
+});
+
+test('PFIX-3 (Ben, Nov 14) — SHARE TODAY: THE DROP\'s board box is DECENT SIZED — its strip is taller than the rhythm\'s, COAST CLEAR\'s lamps gave up the room', async () => {
+  const DR = await import('../js/games/drop/share.js'), CC = await import('../js/games/coastclear/share.js'), PW = await import('../js/games/password/share.js'), G = await import('../js/games/password/logic.js');
+  assert.ok(DR.STRIP_H >= 1.5 * RHYTHM.artH, `THE DROP's strip ${DR.STRIP_H} (the rhythm's ${RHYTHM.artH})`);
+  assert.ok(CC.STRIP_H < RHYTHM.artH && CC.STRIP_H >= 0.7 * RHYTHM.artH, `the lamps shrink a LITTLE (${CC.STRIP_H} of ${RHYTHM.artH})`);
+  assert.equal(DR.sectionH(), RHYTHM.H - RHYTHM.artH + DR.STRIP_H); assert.equal(CC.sectionH(), RHYTHM.H - RHYTHM.artH + CC.STRIP_H);
+  // the card with all three, as share-today.js lays it out (the header with a streak, three sections, two gaps): the board's box on the card
+  const T = read('js/daily/share-today.js');
+  assert.match(T, /const natural = \(sec, k\) => \{ const M = sec\.own \? mods\[sec\.id\] : null; return M && M\.S\.sectionH \? M\.S\.sectionH\(/, 'each section is laid out by ITS OWN height');
+  const H = MISSV => MISSV;
+  const door = marks => ({ state: 'solved', marks, guesses: marks.map(() => 'xxxxx') });
+  const run = { doors: [door([[G.MISS], [G.MISS], [G.MISS]]), door([[G.MISS], [G.MISS]])] };
+  const avail = 1200 - 248 - 2 * 24;
+  let s = 1; for (let i = 0; i < 6; i++) s = Math.min(1.45, avail / (PW.sectionH({ run, W: 1080 / s, k: s }) + CC.sectionH() + DR.sectionH()));
+  const boxH = DR.STRIP_H * s, cell = boxH / DR.STRIP_ROWS, lamp = 22 * ((CC.STRIP_H - 12) / 22) * s;
+  assert.ok(boxH >= 195 && cell >= 24, `the board's box is ${boxH.toFixed(0)} px tall on the card — ${cell.toFixed(1)}-px cells (it was 138 px, 17-px cells)`);
+  assert.ok(lamp >= 80, `the lamps still read: ${lamp.toFixed(0)} px tall`);
+  assert.ok(RHYTHM.namePx * s >= 34 && RHYTHM.bigPx * s >= 72, `the names + the times stay their size (${(RHYTHM.namePx * s).toFixed(0)} / ${(RHYTHM.bigPx * s).toFixed(0)} px)`);
+  void H;
 });

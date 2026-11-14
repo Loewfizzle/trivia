@@ -59,7 +59,9 @@ export function shareFrame(L, look) {
  * CLEAR's 3 lamps · THE DROP's board, its top 8 rows) — the SAME sizes and spacing in every section, centred inside ONE column (COL each side
  * of a 1080 card). The three text pieces are drawn by ONE painter each (paintName · paintBig · paintStat — below), never by a daily's own.
  * A section's natural box = H tall (share-today.js scales every section by the same factor); every y is a text MIDDLE; the strip =
- * [artY, artY + artH].
+ * [artY, artY + artH]. PFIX-3 (Ben, Nov 14): the ART STRIP's HEIGHT IS EACH DAILY's OWN — a daily may export `sectionH` + its `STRIP_H`:
+ * THE DROP's board is TALLER (a decent-sized box), COAST CLEAR's lamps SHORTER (they gave up the room), THE PASSWORD's the rhythm's
+ * (grown for a tall grid). The name, the big time and the stat line stay the SAME sizes in every section.
  */
 export const RHYTHM = Object.freeze({ H: 312, COL: 150, nameY: 18, namePx: 40, bigY: 87, bigPx: 84, statY: 141, statPx: 32, artY: 167, artH: 145 });
 /** the same rule on a daily's OWN card (1080 × 1350): the name · the big time · the stat line · the art (its box: artY → artBot) · the foot */

@@ -1,4 +1,4 @@
-// (PFIX-3 — the EXPECTED copy, re-taken ON PURPOSE on Nov 14 (FABLE REVIEW 2's S7): the three lamps centred on their INK (the row sat 12-18 px right of every other band) and capped by the column's width (its own card + the section). A frozen copy of js/games/coastclear/share.js for tests/integration/share-same.html — never imported by the app.)
+// (PFIX-3 — the EXPECTED copy, re-taken ON PURPOSE on Nov 14 (FABLE REVIEW 2's S7 + Ben's add-on the same evening): the three lamps centred on their INK (the row sat 12-18 px right of every other band), capped by the column's width, and their SHARE TODAY strip SHORTER than the rhythm's (STRIP_H — the room goes to THE DROP's board). A frozen copy of js/games/coastclear/share.js for tests/integration/share-same.html — never imported by the app.)
 // COAST CLEAR — THE SHARE CARD (CC2 — docs/coastclear.md "THE SHARE"; built on THE PASSWORD's share.js). SHARE renders an IMAGE on a canvas
 // (1080 × 1350, in the look on screen — the night harbor's neon or the sunny harbor) with NO BOARD (everyone gets the same harbor that day: a
 // picture of yours would give the searchlights away): the sign, the headline (COAST CLEAR · CAUGHT), the big time (a clear) or the one line,
@@ -103,7 +103,13 @@ export function renderShare({ inputs, look = 'night' } = {}) {
 }
 
 // ---------------------------------------------------------------------------------------------- SHARE TODAY's SECTION
-export const SECTION_H = RHYTHM.H;
+/** PFIX-3 (Ben, Nov 14 — "the three signal things are big: shrink them a little to give THE DROP's box more room"): the lamps' strip is
+ *  SHORTER than the rhythm's — STRIP_H — and the section with it (share-today.js lays the card out by each section's own height: the room
+ *  goes to THE DROP's board). The name, the big time and the stat line keep the rhythm's sizes. */
+export const STRIP_H = 112;
+export const SECTION_H = RHYTHM.H - RHYTHM.artH + STRIP_H;
+/** this section's natural height — share-today.js lays the card out by it */
+export const sectionH = () => SECTION_H;
 /**
  * COAST CLEAR as a section of SHARE TODAY — THE ONE RULE (SKINS 2B; js/daily/share.js#RHYTHM): the name · the big TIME · the stat line · the
  * art strip (the three searchlights, as tall as the strip, centred) — every piece centred on the card's centre line inside the column, the
@@ -114,15 +120,15 @@ export function paintSection(c, { inputs, look = 'night', W = SHARE_W, H = SECTI
   const L = tokens(look);
   const R = RHYTHM, cw = W - 2 * R.COL, P = partsOf(I);
   c.save();
-  c.translate(0, Math.max(0, (H - R.H) / 2));
+  c.translate(0, Math.max(0, (H - SECTION_H) / 2));
   c.textAlign = 'center'; c.textBaseline = 'middle';
   paintName(c, look, NAME, W / 2, R.nameY, R.namePx, cw, P.result);
   paintBig(c, look, P.big, W / 2, R.bigY, R.bigPx);
   paintStat(c, look, P.stat, W / 2, R.statY, R.statPx, cw);
   // (a lamp is 22 tall in its own units: the strip's height less a breath — and never wider than the column: with TWO dailies a section is
   //  scaled 1.45× and the row stuck out past the foot line — S7)
-  const S = Math.min((R.artH - 12) / 22, lampScale(cw, 8.5));
-  paintLamps(c, I, L, look, W / 2, R.artY + (R.artH - 22 * S) / 2, S, S * 8.5);
+  const S = Math.min((STRIP_H - 12) / 22, lampScale(cw, 8.5));
+  paintLamps(c, I, L, look, W / 2, R.artY + (STRIP_H - 22 * S) / 2, S, S * 8.5);
   c.restore();
 }
 
