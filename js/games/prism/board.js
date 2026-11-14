@@ -305,7 +305,10 @@ export function drawPiece(canvas, t, { cell = 12, dim = false, skin = null, look
 }
 
 /** Opponent mini-board from a published board string (+ optional active piece "t,r,x,y"). */
-export function drawMini(canvas, str, piece, { cell = 4, ko = false, skin = null, look = 'glass', pal = null } = {}) {
+/** (SKINS 2A) a share card's JUNK cell, drawn SOLID: a dim filled grey with a slightly darker edge — never an outline square (the board reads
+ *  packed; the day's holes are already filled — drop/share.js#solidJunk). The CALLER picks the pair (the card's look) → drawMini's `solid` */
+export const SOLID_JUNK = Object.freeze({ night: Object.freeze({ fill: '#5b6174', edge: '#434859' }), day: Object.freeze({ fill: '#9a9da6', edge: '#7c808b' }) });
+export function drawMini(canvas, str, piece, { cell = 4, ko = false, skin = null, look = 'glass', pal = null, solid = null } = {}) {
   const K = skinArg({ skin, look }), env = K.env(pal);
   const dpr = Math.min(3, window.devicePixelRatio || 1);
   const px = Math.max(2, Math.round(cell * dpr));
@@ -317,7 +320,11 @@ export function drawMini(canvas, str, piece, { cell = 4, ko = false, skin = null
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const n = Math.min((str || '').length, W * VISIBLE);
   // (the skin's own cell: a big mini — spectating, the podium — draws its real blocks; a small one its simple fill)
-  const cellAt = (x, y, t) => K.mini(ctx, { X: x * px, Y: (VISIBLE - 1 - y) * px, s: px - (px > 3 ? 1 : 0), px, t, ko, x, y, env });
+  const SJ = solid && solid.fill ? solid : null, se = Math.max(1, Math.round(px * 0.09));
+  const cellAt = (x, y, t) => {
+    if (SJ && t === 8) { const X = x * px, Y = (VISIBLE - 1 - y) * px; ctx.fillStyle = SJ.edge; ctx.fillRect(X, Y, px, px); ctx.fillStyle = SJ.fill; ctx.fillRect(X + se, Y + se, px - 2 * se, px - 2 * se); return; }
+    K.mini(ctx, { X: x * px, Y: (VISIBLE - 1 - y) * px, s: px - (px > 3 ? 1 : 0), px, t, ko, x, y, env });
+  };
   for (let i = 0; i < n; i++) {
     const t = str.charCodeAt(i) - 48;
     if (!t) continue;

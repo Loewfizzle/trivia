@@ -2,12 +2,15 @@
 // before it was "a weird one"). ONE 1080 × 1350 card: ONE header (the date + the streak flame), a SECTION per FINISHED daily in the dailies' order —
 // each drawn by THAT DAILY's own share card's pieces (its `paintSection` — js/games/<id>/share.js: the same painters its own card calls, never a
 // redraw or a copy; its own small wordmark on top), ONE foot (NEONSPEAKEASY.COM as the headline — CITY FIXES' rule; no per-daily footers).
+// SKINS 2A (the owner, Nov 14) — ONE RHYTHM: every section = the name (or the win word when it IS the name) · ONE big result · ONE stat line ·
+// ONE art strip, the SAME sizes + spacing in every section (js/daily/share.js#RHYTHM — every section scaled by the SAME factor), centred in one
+// column. NO PILLS, EVER: the foot = ONE straight thin neon line + NEONSPEAKEASY.COM in plain neon lettering (share.js#shareAddress).
 // The data: each section from its daily's SPOILER-FREE share inputs, which the SERVER builds from its record of the finished run (`today { share }`
 // — THE PASSWORD's marks + counts, COAST CLEAR's no-board inputs; never a word, a letter or the board). An unfinished daily = no section, one quiet
 // "NOT YET: <name>" line. ONE daily finished = that daily's OWN card, exactly as it is. A daily with no section painter (a new one plugged in) or
 // no share data → its name + its result line (its meta's scoreLine). Up to 6 sections, scaled evenly. Both looks (the day sky / the night neon).
 // THE BAR: shown 360 px wide in a text thread, THE PASSWORD's grid colours, the time and the address still read (the pass log's shots).
-import { shareFrame, sendShare } from './share.js';
+import { shareFrame, sendShare, shareAddress, RHYTHM, FOOT } from './share.js';
 import { shareTodayLine, MAX_ROWS } from './today-logic.js';
 import { dateLineOf } from './ticket-art.js';
 import { lazyImport } from '../ui/lazy-import.js';
@@ -35,7 +38,6 @@ async function flameImage(state, w) {
     return new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(s)}`; });
   } catch { return null; }
 }
-function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 
 /** the plan (PURE — tests/share-today.test.mjs): which dailies get a section, which read NOT YET, whether ONE daily's own card is the whole image */
 export function planToday(today, share = {}, painters = Object.keys(SECTIONS)) {
@@ -73,48 +75,37 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
     c.textAlign = 'center';
     top = 222;
   }
-  // THE SECTIONS — ALL the room between the header and the foot, shared evenly (≤ 6; PD-4's Group 0: no empty band above the foot), each drawn by
-  // its daily's own pieces in its whole box (a box taller than the section's smallest lays itself out in it — centred)
+  // THE SECTIONS — ONE RHYTHM (SKINS 2A): the room between the header and the foot shared evenly (≤ 6), every section drawn by its daily's own
+  // pieces at the SAME scale (the rhythm's box — RHYTHM.H — fitted to a section's share of the card, never past 1.45×: two dailies read bigger
+  // than three, never differently from each other), each centred in its box
   const notLine = plan.notYet.length ? `NOT YET: ${plan.notYet.join(' · ')}` : '';
-  const bottom = notLine ? 1166 : 1218, gap = 24, n = Math.max(1, plan.sections.length);
+  const bottom = notLine ? 1150 : 1200, gap = 24, n = Math.max(1, plan.sections.length);
   const each = (bottom - top - gap * (n - 1)) / n;
+  const s = Math.min(1.45, each / RHYTHM.H);
   plan.sections.forEach((sec, i) => {
     const y = top + i * (each + gap);
-    if (i) { c.save(); c.strokeStyle = L.rule; c.lineWidth = 2; c.beginPath(); c.moveTo(150, y - gap / 2); c.lineTo(W - 150, y - gap / 2); c.stroke(); c.restore(); }
+    if (i) { c.save(); c.strokeStyle = L.rule; c.lineWidth = 2; c.beginPath(); c.moveTo(RHYTHM.COL, y - gap / 2); c.lineTo(W - RHYTHM.COL, y - gap / 2); c.stroke(); c.restore(); }
     const M = sec.own ? mods[sec.id] : null;
-    if (M) {
-      // (scaled to its share of the card's height, never past its own size; drawn W / s wide, so it always spans the card's full width)
-      const H0 = M.S.SECTION_H || 420, s = Math.min(1, each / H0);
-      c.save(); c.translate(0, y); c.scale(s, s);
-      M.S.paintSection(c, { ...M.input(share[sec.id]), look, W: W / s, H: each / s });
-      c.restore();
-    } else {
-      // a daily with no section painter / no share data: its name (a small sign) + its result line
-      const cy = y + each / 2, k = Math.min(1, each / 300);
-      c.save(); c.font = `900 ${Math.round(46 * k)}px ${FONT_D}`; c.letterSpacing = `${Math.round(8 * k)}px`;
+    c.save(); c.translate(0, y); c.scale(s, s);
+    if (M) M.S.paintSection(c, { ...M.input(share[sec.id]), look, W: W / s, H: each / s });
+    else {
+      // a daily with no section painter / no share data: its name in the name's slot + its result line as the big result (the same rhythm)
+      const w = W / s, R = RHYTHM;
+      c.translate(0, Math.max(0, (each / s - R.H) / 2) + (R.H - (R.bigY + R.bigPx / 2)) / 2);
+      c.save(); c.font = `900 ${R.namePx}px ${FONT_D}`; c.letterSpacing = '8px';
       if (night) { c.shadowColor = L.glow; c.shadowBlur = 22; }
-      c.fillStyle = night ? '#fff3fb' : L.sign; c.fillText(String(sec.name || '').toUpperCase(), W / 2 + 4, cy - 46 * k); c.restore();
-      c.save(); c.font = `800 ${Math.round(52 * k)}px ${FONT_U}`; c.letterSpacing = '3px'; c.fillStyle = L.ink;
-      c.fillText(String(lineOf(sec.id, today.mine[sec.id])), W / 2 + 2, cy + 34 * k); c.restore();
+      c.fillStyle = night ? '#fff3fb' : L.sign; c.fillText(String(sec.name || '').toUpperCase(), w / 2 + 4, R.nameY); c.restore();
+      c.save(); let px = R.bigPx * 0.7; c.font = `700 ${px}px ${FONT_U}`; c.letterSpacing = '3px'; c.fillStyle = L.ink;
+      const t = String(lineOf(sec.id, today.mine[sec.id]));
+      while (px > 24 && c.measureText(t).width > w - 2 * R.COL) { px -= 2; c.font = `700 ${px}px ${FONT_U}`; }
+      c.fillText(t, w / 2 + 2, R.bigY + 6); c.restore();
     }
+    c.restore();
   });
-  if (notLine) { c.save(); c.font = `700 26px ${FONT_U}`; c.letterSpacing = '5px'; c.fillStyle = L.dim; c.fillText(notLine, W / 2 + 3, 1196); c.restore(); }
-  // ONE FOOT = THE ADDRESS AS ITS HEADLINE (CITY FIXES — the dailies chat, Nov 8): NEONSPEAKEASY.COM about the result lines' size, bold, wide
-  // tracking; NIGHT a small neon sign (the pink in a soft glow, a white core, a thin pink tube round it); DAY strong dark navy. It must read when
-  // the image is shown SMALL in a text thread (a 360-px-wide downscale: ~17 px letters)
-  { const ADDR = 'NEONSPEAKEASY.COM', ay = 1280;
-    c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
-    let fs = 52, ls = 7; c.font = `800 ${fs}px ${FONT_U}`; c.letterSpacing = `${ls}px`;
-    while (c.measureText(ADDR).width > W - 220 && fs > 34) { fs -= 2; ls = Math.max(4, ls - 0.3); c.font = `800 ${fs}px ${FONT_U}`; c.letterSpacing = `${ls}px`; }
-    const tw = c.measureText(ADDR).width, cx = W / 2 + ls / 2;
-    if (night) {
-      const bw = tw + 76, bh = fs + 36;
-      c.save(); c.shadowColor = L.glow; c.shadowBlur = 22; c.strokeStyle = L.sign; c.lineWidth = 4; roundRect(c, W / 2 - bw / 2, ay - bh / 2, bw, bh, bh / 2); c.stroke();
-      c.shadowBlur = 4; c.strokeStyle = 'rgba(255,236,248,0.85)'; c.lineWidth = 1.4; roundRect(c, W / 2 - bw / 2, ay - bh / 2, bw, bh, bh / 2); c.stroke(); c.restore();
-      c.shadowColor = L.glow; c.shadowBlur = 30; c.fillStyle = L.sign; c.fillText(ADDR, cx, ay);
-      c.shadowBlur = 7; c.fillStyle = '#fff3fb'; c.fillText(ADDR, cx, ay);
-    } else { c.fillStyle = '#10234a'; c.fillText(ADDR, cx, ay); }
-    c.restore(); }
+  if (notLine) { c.save(); c.font = `700 26px ${FONT_U}`; c.letterSpacing = '5px'; c.fillStyle = L.dim; c.fillText(notLine, W / 2 + 3, FOOT.lineY - 40); c.restore(); }
+  // ONE FOOT = THE ADDRESS AS ITS HEADLINE (CITY FIXES — the dailies chat, Nov 8) — SKINS 2A, NO PILLS: ONE straight thin neon line + the
+  // address in plain neon lettering under it (the kit's foot — every share card's)
+  shareAddress(c, look, { W });
   return cv;
 }
 

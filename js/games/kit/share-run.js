@@ -6,7 +6,7 @@
 // phone's share sheet with the IMAGE + the site's URL; no file sharing → the line + the image saved (js/daily/share.js#sendShare).
 // Lazy: the console's podium (ui/final.js) asks the cartridge's shareRun on the first SHARE.
 import { ctx2d } from '../../ui/canvas-safe.js';
-import { sendShare, SHARE_W, SHARE_H, SITE } from '../../daily/share.js';
+import { sendShare, shareAddress, SHARE_W, SHARE_H, SITE } from '../../daily/share.js';
 
 export const RUN_W = SHARE_W, RUN_H = SHARE_H;
 const clip = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f]/g, '').slice(0, n);
@@ -77,13 +77,12 @@ export function drawRunCard(card, drawMiddle = null) {
   // the name + the result
   c.save(); c.textAlign = 'center';
   c.font = FONT(800, 78, DISPLAY); try { c.letterSpacing = '6px'; } catch { /* fine */ }
-  c.fillStyle = day ? '#1d2236' : '#ffffff'; c.fillText(card.name || 'A PLAYER', W / 2 + 3, 1140);
+  c.fillStyle = day ? '#1d2236' : '#ffffff'; c.fillText(card.name || 'A PLAYER', W / 2 + 3, 1132);
   c.font = FONT(700, 46); try { c.letterSpacing = '4px'; } catch { /* fine */ }
-  c.fillStyle = day ? '#2f3653' : '#e6e1ff'; c.fillText(card.result, W / 2 + 2, 1206, W - 80);
-  // the site
-  c.font = FONT(700, 32); try { c.letterSpacing = '6px'; } catch { /* fine */ }
-  c.fillStyle = day ? '#c21d86' : '#ff8fdc'; c.fillText(SITE.toUpperCase(), W / 2 + 3, 1290);
+  c.fillStyle = day ? '#2f3653' : '#e6e1ff'; c.fillText(card.result, W / 2 + 2, 1190, W - 80);
   c.restore();
+  // THE FOOT (SKINS 2A — the kit's, every share card's: ONE straight thin neon line + NEONSPEAKEASY.COM in plain neon lettering — no frame)
+  shareAddress(c, card.look, { W, color: '#ff6fc8' });
   return cv;
 }
 /** SHARE: draw + send → 'shared' | 'saved' | 'copied' | 'none' | 'failed' */

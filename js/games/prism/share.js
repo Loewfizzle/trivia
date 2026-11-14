@@ -3,7 +3,7 @@
 // (SCORE RUSH / SURVIVAL), the result (SURVIVED 1:52 · 14 LINES / the points), the name. Lazy (index.js#shareRun — the first SHARE).
 import { runCard, shareRunCard } from '../kit/share-run.js';
 import { momentLine } from './victory.js';
-import { drawMini } from './board.js';
+import { drawMini, SOLID_JUNK } from './board.js';
 import { W, VISIBLE } from './engine.js';
 import { ACCENT } from './meta.js';
 
@@ -13,8 +13,8 @@ export function prismRunCard(game, { uid, name, board, look }) {
   return runCard({ game: 'prism', title: 'PRISM DROP', mode: mode === 'rush' ? 'SCORE RUSH' : mode === 'survival' ? 'SURVIVAL' : 'BATTLE',
     name, result: momentLine(game, uid), board: board || null, look, accent: ACCENT });
 }
-/** the middle: the board in a lit frame */
-export function drawBoardMiddle(c, box, card) {
+/** the middle: the board in a lit frame ({ solid } = THE DROP's card: every junk cell a SOLID filled grey block — board.js#SOLID_JUNK) */
+export function drawBoardMiddle(c, box, card, { solid = false } = {}) {
   const day = card.look === 'day';
   const ch = box.h - 40, cw = ch * W / VISIBLE, x = box.x + (box.w - cw) / 2, y = box.y + 20;
   c.save();
@@ -25,7 +25,7 @@ export function drawBoardMiddle(c, box, card) {
   c.restore();
   if (card.board) {
     const t = document.createElement('canvas');
-    drawMini(t, card.board, null, { cell: 36, look: day ? 'crayon' : 'neon' });
+    drawMini(t, card.board, null, { cell: 36, look: day ? 'crayon' : 'neon', solid: solid ? SOLID_JUNK[day ? 'day' : 'night'] : null });
     c.drawImage(t, x, y, cw, ch);
   } else {
     c.save(); c.textAlign = 'center'; c.font = '700 34px "Chakra Petch", system-ui, sans-serif'; c.fillStyle = day ? '#4a5170' : '#b9c4ff';

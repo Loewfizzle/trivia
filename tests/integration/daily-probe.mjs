@@ -11,10 +11,12 @@ mkdirSync(OUT, { recursive: true });
 const browser = await puppeteer.launch({ executablePath: process.argv[2], headless: true, args: ['--mute-audio', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const frames = (page, ms) => page.evaluate(ms => new Promise(res => { const t = []; let last = performance.now(); const t0 = last; const f = now => { t.push(now - last); last = now; if (now - t0 < ms) requestAnimationFrame(f); else { const s = t.slice(1).sort((a, b) => a - b); res({ fps: Math.round(10 * (t.length - 1) / ((now - t0) / 1000)) / 10, p95: Math.round(10 * s[Math.floor(s.length * 0.95)]) / 10, long: s.filter(x => x > 25).length }); } }; requestAnimationFrame(f); }), ms);
 try {
-  for (const look of ['night', 'day']) for (const state of ['swept', 'one']) {
+  // (SKINS 2A) CARDS="name:query,…" = the cards to save (name = the file's, query = the preview's — "three:state=swept&drop=1"); the default: swept + one
+  const CARDS = process.env.CARDS ? process.env.CARDS.split(',').map(c => { const i = c.indexOf(':'); return [c.slice(0, i), c.slice(i + 1)]; }) : [['swept', 'state=swept'], ['one', 'state=one']];
+  for (const look of ['night', 'day']) for (const [state, query] of CARDS) {
     const p = await browser.newPage();
     await p.setViewport({ width: 1080, height: 1350 });
-    await p.goto(`${BASE}/tests/integration/daily-preview.html?view=share&state=${state}&look=${look}${process.env.Q || ''}`);   // (Q="&pw=locked&cc=caught" — another run)
+    await p.goto(`${BASE}/tests/integration/daily-preview.html?view=share&${query}&look=${look}${process.env.Q || ''}`);   // (Q="&pw=locked&cc=caught" — another run)
     await p.waitForFunction(() => document.body.dataset.ready === '1' && !!window.__share, { timeout: 30000 });
     const url = await p.evaluate(() => window.__share.toDataURL('image/png'));
     writeFileSync(`${OUT}${TAG}share-canvas-${state}-${look}.png`, Buffer.from(url.split(',')[1], 'base64'));

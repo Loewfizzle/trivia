@@ -6,10 +6,13 @@
 // BOARD 2.0 B (the owner's add-on — SHARE TODAY = ONE CARD FROM EACH DAILY's OWN PIECES): the card is built from EXPORTED PIECES (the sign, the
 // doors, the headline, the line, the grids) that BOTH this card and SHARE TODAY's section (`paintSection` — js/daily/share-today.js) call: never a
 // redraw or a copy; this card stays pixel-identical (tests/integration/share-same.html checks it against the code before the split).
+// SKINS 2A (the owner, Nov 14) — ONE RHYTHM + NO PILLS: the card and the section = the name · ONE big result (WELCOME IN · LOCKED OUT) · ONE
+// stat line ("7 GUESSES · 2:54") · ONE art strip (the doors + their tiles) — js/daily/share.js#RHYTHM / OWN; the foot = the kit's (one straight
+// neon line + the address, no frame); a hit tile's mark is a straight bar (no rounded capsule).
 //   renderShare({ run, look }) → <canvas>      shareRun({ run, line, look }) → 'shared' | 'saved' | 'copied' | 'none'
-//   paintSection(c, { run, look, W, H }) — SHARE TODAY's section (the box W × H ≥ SECTION_H, its wordmark on top — PD-4 Group 0: centred, the grids big)
+//   paintSection(c, { run, look, W, H }) — SHARE TODAY's section (the rhythm's box, centred in W × H)
 import { scoreOf, fmtTime, doorState, HEAD_IN, HEAD_OUT, DOOR_NAMES, DOORS, HIT, NEAR } from './logic.js';
-import { SHARE_W, SHARE_H, SITE, shareFrame, shareFoot, sendShare } from '../../daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
+import { SHARE_W, SHARE_H, SITE, shareFrame, shareFoot, sendShare, RHYTHM, OWN, WORD_K } from '../../daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
 export { SHARE_W, SHARE_H, SITE };
 const LOOK = {
   night: { bg0: '#0d0a1c', bg1: '#05040c', sign: '#ff5ec4', signCore: '#fff2fa', ink: '#f4f6ff', dim: 'rgba(244,246,255,0.62)', faint: 'rgba(244,246,255,0.4)', good: '#3dff8b', close: '#ffd23d', red: '#ff3355', tile: 'rgba(255,255,255,0.05)', tileLine: 'rgba(255,255,255,0.16)', miss: 'rgba(0,0,0,0.42)', near: 'rgba(0,0,0,0.45)', hitInk: '#06130b', doorOn: '#ff5ec4', doorLock: 'rgba(255,255,255,0.28)', doorHeld: 'rgba(255,92,120,0.8)', room: '#ffc266', font: '"Orbitron", "Chakra Petch", system-ui, sans-serif' },
@@ -51,7 +54,7 @@ function grid(c, marks, x, y, cell, gap, L) {
   marks.forEach((row, r) => row.forEach((m, i) => {
     const cx = x + i * (cell + gap), cy = y + r * (cell + gap);
     c.save();
-    if (m === HIT) { c.shadowColor = L.good; c.shadowBlur = cell * 0.35; c.fillStyle = L.good; rr(c, cx, cy, cell, cell, cell * 0.18); c.fill(); c.shadowBlur = 0; c.fillStyle = '#fff'; rr(c, cx + cell * 0.18, cy + cell * 0.8, cell * 0.64, cell * 0.1, cell * 0.05); c.fill(); }
+    if (m === HIT) { c.shadowColor = L.good; c.shadowBlur = cell * 0.35; c.fillStyle = L.good; rr(c, cx, cy, cell, cell, cell * 0.18); c.fill(); c.shadowBlur = 0; c.fillStyle = '#fff'; c.fillRect(cx + cell * 0.18, cy + cell * 0.8, cell * 0.64, cell * 0.1); }
     else if (m === NEAR) { c.fillStyle = L.near; rr(c, cx, cy, cell, cell, cell * 0.18); c.fill(); c.strokeStyle = L.close; c.lineWidth = cell * 0.08; c.stroke(); c.fillStyle = L.close; c.beginPath(); c.arc(cx + cell * 0.78, cy + cell * 0.22, cell * 0.11, 0, Math.PI * 2); c.fill(); }
     else { c.fillStyle = L.miss; rr(c, cx, cy, cell, cell, cell * 0.18); c.fill(); c.strokeStyle = L.tileLine; c.lineWidth = cell * 0.05; c.stroke(); }
     c.restore();
@@ -114,54 +117,53 @@ export function renderShare({ run, look = 'night', dayNo = null } = {}) {
     const hz = c.createRadialGradient(W / 2, -80, 0, W / 2, -80, 700); hz.addColorStop(0, 'rgba(255,94,196,0.18)'); hz.addColorStop(1, 'rgba(255,94,196,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, H);
   }
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  paintSign(c, L, look, W / 2, 140);
-  paintDoors(c, run, L, look, { xs: [250, 650], y: 250, S: 2.9, font: 26, ls: 4, tx: 18, ty: 290 });
-  paintHead(c, run, L, look, W / 2, 500, 96, 8);
-  paintLine(c, run, L, W / 2, 592, 44, 6);
-  paintGrids(c, run, L, W / 2, 690, 56, 10, 90);
-  // the site (+ the day number) — the kit's foot
-  shareFoot(c, { name: 'THE PASSWORD', dayNo, dim: L.dim, color: look === 'day' ? L.doorOn : L.sign, W });
+  // ONE RHYTHM (SKINS 2A): the name · ONE big result (WELCOME IN · LOCKED OUT) · ONE stat line · THE ART (the two doors + their names, then
+  // both doors' tiles) · the foot
+  paintSign(c, L, look, W / 2, OWN.nameY, OWN.namePx / (look === 'day' ? 74 : 58));
+  paintHead(c, run, L, look, W / 2, OWN.bigY, OWN.bigPx * WORD_K, 8, W - 120);
+  paintLine(c, run, L, W / 2, OWN.statY, OWN.statPx, 6);
+  // (the art block — the doors' row + the tallest grid — sits a little above the middle of the art box)
+  const rows = Math.max(1, ...run.doors.map(d => d.marks.length)), blockH = 176 + rows * 66 - 10;
+  const ay = OWN.artY + Math.max(0, (OWN.artBot - OWN.artY - blockH) * 0.4);
+  paintDoors(c, run, L, look, { xs: [250, 650], y: ay + 6, S: 2.9, font: 26, ls: 4, tx: 18, ty: ay + 46 });
+  paintGrids(c, run, L, W / 2, ay + 176, 56, 10, 90);
+  // the day number + THE FOOT (the kit's)
+  shareFoot(c, { dayNo, dim: L.dim, color: look === 'day' ? L.doorOn : L.sign, W, look });
   return cv;
 }
 
 // ---------------------------------------------------------------------------------------------- SHARE TODAY's SECTION
-/** the section's box height in its own units — its smallest (SHARE TODAY scales it below this; above it, the section lays out in the taller box) */
-export const SECTION_H = 420;
+/** the section's box height in its own units — the rhythm's (SHARE TODAY scales every section by the same factor) */
+export const SECTION_H = RHYTHM.H;
 /** one door alone (a piece: SHARE TODAY's section heads each grid with its door — no name; the door's state as on the card) */
 export function paintDoor(c, run, L, i, x, y, S) { door(c, x, y, S, doorState(run, i), L); }
 /**
- * THE PASSWORD as a section of SHARE TODAY (BOARD 2.0 B; PD-4's Group 0 — the owner, Nov 9: "centred, the grids bigger"): its wordmark on top, the
- * headline (WELCOME IN · LOCKED OUT) + "n GUESSES · m:ss" centred under it, then THE TWO GRIDS SIDE BY SIDE, centred, each headed by its small drawn
- * door (no names — unreadable at thread size; the daily's OWN card keeps them). The cell as big as the box allows (≤ 56 — ~40 % over the old 40),
- * the same gutter both sides; the whole block centred in the box (W × H). The same pieces as the card.
+ * THE PASSWORD as a section of SHARE TODAY — ONE RHYTHM (SKINS 2A; js/daily/share.js#RHYTHM): the name · the big result (WELCOME IN · LOCKED
+ * OUT) · the stat line ("n GUESSES · m:ss") · the art strip: each door played BESIDE its tiles (no names — unreadable at thread size; the
+ * daily's OWN card keeps them), the units side by side, centred. The tiles as big as the strip allows (≤ 36 a cell — a LOCKED OUT door's six
+ * rows fill the strip's height). The block centred in the box (W × H). The same pieces as the card.
  */
 export function paintSection(c, { run, look = 'night', W = SHARE_W, H = SECTION_H } = {}) {
-  const L = tokens(look);
+  const L = tokens(look), R = RHYTHM;
   const played = run.doors.map((d, i) => ({ d, i })).filter(x => x.d.guesses.length);
   const n = Math.max(1, played.length);
   const rows = Math.max(1, ...played.map(x => x.d.marks.length));
-  const GUT = 90, doorS = 1.4, doorH = 44 * doorS, doorW = 34 * doorS, doorTop = 206;
-  // a tall run (more than 3 rows — every LOCKED OUT door has 6) → each door BESIDE its grid (the height goes to the cells); else ABOVE it
-  const beside = rows > 3, dx = beside ? doorW + 14 : 0;
-  const gridTop = beside ? doorTop : doorTop + doorH + 10;
-  // the cell: as big as the room + the card's width (the same gutter both sides) allow — a grid = 5 cells + 4 gaps of 0.2, 1.5 cells between grids
-  const byH = (H - gridTop - 12) / (1.2 * rows - 0.2);
-  const byW = (W - 2 * GUT - n * dx) / (n * 5.8 - 0.8 + (n - 1) * 1.5);
-  const cell = Math.max(18, Math.min(56, byH, byW)), gap = cell * 0.2, gx = cell * 1.5;
-  const contentH = gridTop + rows * cell + (rows - 1) * gap;
+  const doorS = 1.5, doorH = 44 * doorS, doorW = 34 * doorS, dx = doorW + 14;
+  // the cell: as big as the strip's height + the column's width allow — a grid = 5 cells + 4 gaps of 0.2, 1.5 cells between the units
+  const byH = R.artH / (1.2 * rows - 0.2);
+  const byW = (W - 2 * R.COL - n * dx) / (n * 5.8 - 0.8 + (n - 1) * 1.5);
+  const cell = Math.max(10, Math.min(36, byH, byW)), gap = cell * 0.2, gx = cell * 1.5;
+  const gridH = rows * cell + (rows - 1) * gap, top = R.artY + (R.artH - Math.max(gridH, doorH)) / 2;
   c.save();
-  c.translate(0, Math.max(0, (H - contentH) / 2));
+  c.translate(0, Math.max(0, (H - R.H) / 2));
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  paintSign(c, L, look, W / 2, 40, 0.87);
-  paintHead(c, run, L, look, W / 2, 118, 72, 6, W - 2 * GUT);
-  paintLine(c, run, L, W / 2, 176, 42, 5);
-  // the units [door][grid] side by side, centred (paintGrids lays the grids out — its gap widened by each door, its centre shifted by one)
+  paintSign(c, L, look, W / 2, R.nameY, R.namePx / (look === 'day' ? 74 : 58));
+  paintHead(c, run, L, look, W / 2, R.bigY, R.bigPx * WORD_K, 6, W - 2 * R.COL);
+  paintLine(c, run, L, W / 2, R.statY, R.statPx, 4);
+  // the units [door][tiles] side by side, centred (paintGrids lays the grids out — its gap widened by each door, its centre shifted by one)
   const gw = 5 * cell + 4 * gap, total = n * (dx + gw) + (n - 1) * gx, x0 = W / 2 - total / 2;
-  played.forEach((x, k) => {
-    const ux = x0 + k * (dx + gw + gx);
-    paintDoor(c, run, L, x.i, beside ? ux : ux + gw / 2 - doorW / 2, doorTop, doorS);
-  });
-  paintGrids(c, run, L, W / 2 + dx / 2, gridTop, cell, gap, gx + dx);
+  played.forEach((x, k) => paintDoor(c, run, L, x.i, x0 + k * (dx + gw + gx), top, doorS));
+  paintGrids(c, run, L, W / 2 + dx / 2, top, cell, gap, gx + dx);
   c.restore();
 }
 
