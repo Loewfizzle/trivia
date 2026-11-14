@@ -747,6 +747,16 @@ body.pd-duel .pd-mode { letter-spacing: 0.2em; }
 .dr-left { font: 700 10px/1 var(--font-num); color: var(--pd-dim); }
 .pd.dr-paused .pd-board-c, .pd.dr-paused .pd-hold, .pd.dr-paused .pd-next, .pd.dr-paused .pd-light, .pd.dr-paused .pd-inc-tag { visibility: hidden; }
 .dr-card[hidden] { display: none; }
+/* THE DROP B — THE ONE-TIME HINT: one calm line at the board's top (a first run only), a soft fade away */
+.dr-hint {
+  position: absolute; left: 12px; top: 10px; width: calc(var(--boardW, 300px) - 24px); margin: 0 12px; box-sizing: border-box; padding: 9px 12px; border-radius: 10px;
+  background: rgba(6, 8, 18, 0.82); border: 1px solid var(--pd-line-2); color: var(--text, #fff); font: 600 14px/1.35 var(--font-ui); text-align: center;
+  pointer-events: none; transition: opacity 0.6s ease;
+}
+.dr-hint.is-gone { opacity: 0; }
+.pd[data-look='crayon'] .dr-hint { background: rgba(255, 252, 244, 0.94); border-color: rgba(60, 50, 30, 0.35); color: #2a2418; }
+.pd[data-slam='left'] .dr-hint { left: auto; right: 12px; }
+@media (prefers-reduced-motion: reduce) { .dr-hint { transition: none; } }
 .dr-card {
   position: absolute; left: 12px; top: 34%; width: calc(var(--boardW, 300px) - 24px); margin: 0 12px; box-sizing: border-box; padding: 18px 14px; border-radius: 14px; text-align: center;
   background: rgba(6, 8, 18, 0.86); border: 1px solid var(--pd-line-2); display: flex; flex-direction: column; align-items: center; gap: 8px;

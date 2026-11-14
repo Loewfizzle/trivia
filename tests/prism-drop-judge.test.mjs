@@ -211,3 +211,26 @@ test('ABANDONED: silent past every budget (or no resume possible) → the close 
   assert.ok(F.score != null && F.t === S.rec.t, `scored at its last checkpoint by ONE replay (${F.refused || ''})`);
   void COUNT_MS; void upload;
 });
+
+test('THE DROP B — AWAY WITH NO PAUSE LEFT (`aw`): checked on the server\'s clock — a short hide goes on; past SLOW_TOL_MS the run ends at the checkpoint + MAX_TAIL_MS and scores', () => {
+  const S = server(); const P = phone(S);
+  S.now = S.rec.go;
+  runFor(S, P, 8000, { ck: false });
+  P.send();
+  const t0 = S.rec.t, k0 = P.run.k;
+  // a claim with no real gap: nothing ends
+  S.now += 5000; stepTo(P.run, P.tick());
+  let r = S.move('checkpoint', P.body({ aw: 1 }));
+  assert.ok(!r.refused && !S.rec.e, 'a short hide with `aw` is just a checkpoint');
+  P.sent = S.rec.len;
+  const t1 = S.rec.t, k1 = P.run.k;
+  // away 30 s: the phone steps 15 s of play (no input) and says aw → ended late at the checkpoint + 15 s
+  S.now += 30_000;
+  stepTo(P.run, Math.min(P.tick(), k1 + Math.round(MAX_TAIL_MS / TICK)));
+  r = S.move('checkpoint', P.body({ aw: 1 }));
+  assert.equal(S.rec.e, 1); assert.equal(S.rec.o, 'late');
+  assert.ok(P.run.over || Math.abs(S.rec.t - (t1 + MAX_TAIL_MS)) <= TICK, `ended at the checkpoint + 15 s (${S.rec.t} vs ${t1 + MAX_TAIL_MS})`);
+  const F = S.finish();
+  assert.ok(F.score != null, `scored (${F.refused || F.score})`);
+  void t0; void k0;
+});

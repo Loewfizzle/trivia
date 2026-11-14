@@ -5,6 +5,8 @@
 // PAUSE hides the board (one of the 3) → RESUME → a REFRESH resumes at the latest checkpoint, paused, one more pause used (the one line says so)
 // → RESUME → the run tops out → the final upload + finish → the stored score = the replayed one + its points; a tampered upload + an early
 // finish are refused (over /api, a second player). Shots of the run, the pause + the end at 390 / 402 / 430 × Safari heights.
+// THE DROP B: the run plays PRISM DROP's own songs (the console's music silent) · the one-time hint (a first run) · HIDING THE PAGE = a pause
+// (a 10 s hide → paused, RESUME, the run goes on) · a second phone: 3 hides, then a 30 s hide with none left → ended at its checkpoint + 15 s.
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
 process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
 process.env.GCLOUD_PROJECT ||= 'demo-arcade';
@@ -25,6 +27,8 @@ const day = streakDay(Date.now());
 const WEEK_AGO = Date.now() - 7 * 864e5;
 const waitFor = (p, js, what, timeout = 20000) => p.waitForFunction(js, { timeout, polling: 100 }).catch(e => { throw new Error(`${what}: ${e.message}`); });
 const st = p => p.evaluate(() => (window.__drop ? window.__drop.state() : null));
+/** a phone's app switch: the page hidden / shown (visibilityState + hidden + the event — as iOS's) */
+const setHidden = (p, on) => p.evaluate(hid => { for (const [k, v] of [['visibilityState', hid ? 'hidden' : 'visible'], ['hidden', hid]]) Object.defineProperty(document, k, { configurable: true, get: () => v }); document.dispatchEvent(new Event('visibilitychange')); }, on);
 
 async function openApp(slot, name) {
   const ctx = await browser.createBrowserContext();
@@ -55,6 +59,13 @@ await H.run(async () => {
   const top = await A.page.evaluate(() => document.querySelector('.pd-mode').textContent);
   ok(/^THE DROP · \d+:\d\d$/.test(top), `the top line: ${top}`);
   ok(await A.page.evaluate(() => !!document.querySelector('.pd-rail .dr-pause') && document.querySelector('.dr-pause .dr-left').textContent === '3'), 'the PAUSE control at the rail\'s top, 3 left');
+  // THE DROP B — PRISM DROP's OWN SONGS (the night set by night), the console's decks silent; the one-time hint on a first run
+  const bt = await A.page.evaluate(() => (window.__prism && window.__prism.beat ? window.__prism.beat() : null));
+  ok(bt && typeof bt.id === 'string' && bt.set === 'night', `the run plays PRISM DROP's own songs — the night set (${bt && bt.id}, ${bt && bt.set})`);
+  ok(await A.page.evaluate(() => window.__arcade.musicDebug().desired == null), 'the console plays nothing of its own (no daily deck over the songs)');
+  ok(await A.page.evaluate(() => { const e = document.querySelector('.dr-hint'); return !!e && /rows keep rising/.test(e.textContent); }), 'the one-time hint on a first run');
+  await waitFor(A.page, '!document.querySelector(".dr-hint")', 'the hint goes (6 s of play)', 15000);
+  { let ls = null; for (let i = 0; i < 30 && ls !== 1; i++) { ls = await val(`pstats/${A.pid}/ls/drop`); if (ls !== 1) await sleep(200); } ok(ls === 1, 'the hint seen once — the server\'s flag (every device)'); }
   await A.page.evaluate(() => window.__drop.bot({ every: 70 }));
   await waitFor(A.page, 'window.__drop.state().sent > 0', 'the first checkpoint (30 s of play — the add-on rhythm)', 45000);
   await sleep(500);
@@ -69,7 +80,7 @@ await H.run(async () => {
   await sleep(800);
   const pz = await A.page.evaluate(() => ({ board: getComputedStyle(document.querySelector('.pd-board-c')).visibility, next: getComputedStyle(document.querySelector('.pd-next')).visibility, card: document.querySelector('.dr-card').innerText }));
   ok(pz.board === 'hidden' && pz.next === 'hidden', `the board + NEXT hidden while paused (${pz.board}, ${pz.next})`);
-  ok(/PAUSED/.test(pz.card) && /2 PAUSES LEFT/.test(pz.card) && /RESUME/.test(pz.card), `the card: ${pz.card.replace(/\s+/g, ' ')}`);
+  ok(/PAUSED · 2 LEFT/.test(pz.card) && /RESUME/.test(pz.card), `the card: ${pz.card.replace(/\s+/g, ' ')}`);
   const kp = (await st(A.page)).k;
   await sleep(1500);
   ok((await st(A.page)).k === kp, 'the run stands still while paused');
@@ -81,6 +92,24 @@ await H.run(async () => {
   await sleep(7000);
   ok((await st(A.page)).k > kp + 300, 'RESUME: the run goes on');
 
+  // ================================================================ 2b. THE DROP B — HIDING THE PAGE = an automatic PLAYER pause (one of the 3)
+  await setHidden(A.page, true);
+  await waitFor(A.page, 'window.__drop.state().paused && window.__drop.state().away && window.__drop.state().pzOk', 'the hide paused the run (server-confirmed)', 8000);
+  const kh = (await st(A.page)).k;
+  const rh = await val(`dly/drop/${day}/p/${A.pid}`);
+  ok(rh.pz && rh.pz.n === 2 && rh.pz.at != null && rh.k === kh, `the hide = a PLAYER pause, server-timed, its chunk carried (pauses used ${rh.pz && rh.pz.n}, tick ${rh.k} = ${kh})`);
+  await sleep(10000);                                                       // (10 s away — a call)
+  await setHidden(A.page, false);
+  await sleep(600);
+  const ph = await A.page.evaluate(() => ({ board: getComputedStyle(document.querySelector('.pd-board-c')).visibility, card: document.querySelector('.dr-card').innerText.replace(/\s+/g, ' ') }));
+  ok(ph.board === 'hidden' && /PAUSED · 1 LEFT/.test(ph.card) && /RESUME/.test(ph.card), `back on the page: the board hidden behind RESUME (${ph.board}; ${ph.card})`);
+  ok((await st(A.page)).k === kh, 'the run stood still while away');
+  await sizes(A.page, 'drop-02b-hidden');
+  await A.page.evaluate(() => document.querySelector('.dr-card .btn').click());
+  await waitFor(A.page, '!window.__drop.state().paused', 'RESUME after the hide', 8000);
+  await sleep(4000);
+  ok((await st(A.page)).k > kh + 150, 'the run goes on after the hide');
+
   // ================================================================ 3. A REFRESH: back at the latest checkpoint, paused, one more pause used
   // (the page hiding sends a checkpoint of its own — THE ADD-ON — so "the latest" is the record as the resume finds it)
   await A.page.evaluate(() => localStorage.setItem('ns:look', 'day'));     // (the refresh + the end in THE DAY LOOK — PRISM's crayon; the run + pause by night)
@@ -91,7 +120,7 @@ await H.run(async () => {
   const rs = await st(A.page);
   const before = await val(`dly/drop/${day}/p/${A.pid}`);
   const card = await A.page.evaluate(() => document.querySelector('.dr-card').innerText.replace(/\s+/g, ' '));
-  ok(rs.refresh && rs.left === 1 && rs.k === before.k && before.k > kp, `the refresh resumed at the latest checkpoint (tick ${rs.k} = the record's ${before.k}, past the pause's ${kp}), one pause used (${rs.left} left)`);
+  ok(rs.refresh && rs.left === 0 && rs.k === before.k && before.k > kh, `the refresh resumed at the latest checkpoint (tick ${rs.k} = the record's ${before.k}, past the hide's ${kh}), one pause used (${rs.left} left)`);
   ok(/LAST CHECKPOINT · 1 PAUSE USED/.test(card), `one line says so: ${card}`);
   ok(await A.page.evaluate(() => document.querySelector('.pd').dataset.look === 'crayon'), 'the day look: PRISM DROP’s crayon board');
   await sizes(A.page, 'drop-03-refresh');
@@ -124,4 +153,36 @@ await H.run(async () => {
   const early = await dailyAction('e2e-dr-bob', { action: 'finish', game: 'drop', day: sb.day }).then(() => null, e => e);
   ok(early && early.status === 409 && early.code === 'not_done', `a finish before the end is refused (${early && early.code})`);
   log(`THE DROP: ${(end.t / 1000).toFixed(1)} s · ${end.lines} lines · score ${r}`);
+
+  // ================================================================ 6. THE DROP B — 3 hides, then a 30 s hide with none left → ended at its checkpoint + 15 s
+  const C = await openApp('drc', 'HIDER');
+  await ref(`ppriv/${C.pid}/at`).set(WEEK_AGO);
+  await ref('/').update(Object.fromEntries(['s', 'r', 'p', 'l', 'x'].map(k => [`dly/drop/${day}/${k}/${C.pid}`, null])));
+  await openRun(C.page);
+  await waitFor(C.page, '!!window.__drop && window.__drop.state().k > 200', 'the second phone\'s run', 30000);
+  await C.page.evaluate(() => window.__drop.bot({ every: 120 }));
+  for (let i = 1; i <= 3; i++) {
+    await setHidden(C.page, true);
+    await waitFor(C.page, 'window.__drop.state().paused && window.__drop.state().pzOk', `hide ${i} paused`, 8000);
+    await sleep(1200);
+    await setHidden(C.page, false);
+    await C.page.evaluate(() => document.querySelector('.dr-card .btn').click());
+    await waitFor(C.page, '!window.__drop.state().paused', `resume ${i}`, 8000);
+    await sleep(1500);
+  }
+  ok((await st(C.page)).left === 0 && (await val(`dly/drop/${day}/p/${C.pid}`)).pz.n === 3, 'three hides = the three pauses');
+  await C.page.evaluate(() => window.__drop.noBot());
+  await setHidden(C.page, true);
+  await sleep(1500);
+  const c0 = await st(C.page), rc0 = await val(`dly/drop/${day}/p/${C.pid}`);
+  ok(!c0.paused && rc0.k === c0.k && !rc0.pz.at, `the 4th hide pauses nothing — its checkpoint landed (tick ${rc0.k})`);
+  await sleep(30000);                                                       // (30 s away, no pause left)
+  await setHidden(C.page, false);
+  await waitFor(C.page, 'window.__drop.state().finished || !!window.__drop.state().refused', 'the away run ended + was scored', 30000);
+  const ce = await st(C.page), rc = await val(`dly/drop/${day}/p/${C.pid}`), sc = await val(`dly/drop/${day}/r/${C.pid}`);
+  ok(!ce.refused && rc.e === 1 && rc.o === 'late', `ended by the bound (${rc.o}; ${ce.refused || 'accepted'})`);
+  ok(Math.abs(rc.t - (rc0.t + 15000)) <= 50 || ce.over, `at the checkpoint + 15 s of play (${(rc.t / 1000).toFixed(1)} s vs ${((rc0.t + 15000) / 1000).toFixed(1)} s)`);
+  ok(sc != null && Math.floor(sc / 1000) === Math.round(rc.t / 100), `scored at that time (${sc})`);
+  await sizes(C.page, 'drop-06-away-end');
+  await C.ctx.close();
 });

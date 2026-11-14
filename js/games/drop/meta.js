@@ -4,8 +4,9 @@
 export const DEFAULT_SETTINGS = {};
 export const OPTIONS = [];
 export const estimateMinutes = () => 4;
-// a solo run on THE DAILY KIT's decks like the other dailies (index.js#musicFor: the day deck by day, the evening deck by night)
-export const MUSIC = 'mood:evening';
+// THE DROP B: PRISM DROP's OWN SONGS (the day / night set by the phone's look — drop/view.js deals them; the row's `ownMusic` tells the console
+// to play nothing of its own during the run) — never THE DAILY KIT's decks
+export const MUSIC = null;
 export const SOLO = true;
 export const MIN_PLAYERS = 1;
 export const BANNER_NAME = 'THE DROP';

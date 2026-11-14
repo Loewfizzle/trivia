@@ -206,7 +206,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         list = list.map(m => ({ a: m.a, cell: m.cell, ...(m.a === 'chord' ? { buoys: m.buoys } : {}) }));
       } else {
         if (!(cart.moves || []).includes(body.action)) throw new ApiError(400, 'bad_action', 'This daily has no such move.');
-        list = [{ a: body.action, cell: body.cell, buoys: body.buoys, at: body.at, add: body.add, k: body.k, fin: body.fin }];   // (THE DROP A: a run's chunk)
+        list = [{ a: body.action, cell: body.cell, buoys: body.buoys, at: body.at, add: body.add, k: body.k, fin: body.fin, aw: body.aw }];   // (THE DROP A: a run's chunk; THE DROP B: `aw` — away past the bound, no pause left)
       }
       // the record HELD in the SDK's cache for this call (a listener): the transaction's first attempt then runs on the real value — ONE round
       // trip, not the "first null" two (the listener goes in `finally`, whatever happens)

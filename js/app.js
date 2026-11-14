@@ -5,7 +5,7 @@ import { h, $ } from './ui/dom.js';
 import './ui/vv.js';   // (THE VAULT 1B: --vv-ob — every bottom sheet above Safari's toolbar)
 import { watchLayers } from './ui/layers.js';
 import { toast } from './ui/toast.js';
-import { APP_NAME, GAMES } from './config.js';
+import { APP_NAME, GAMES, gameRow } from './config.js';
 import { state, setState, subscribe } from './store.js';
 import { initFirebase, isConfigured, serverNow, lineInfo } from './firebase.js';
 import { inviteCode, watchDuplicateTabs, slot, loadSession } from './identity.js';
@@ -226,7 +226,8 @@ function paintDaily(st) {
 // Which music track a state should hear. [track, fallbackIfMissing]
 function musicFor(st) {
   // (DM2 — a daily RUN: THE MUSIC FOLLOWS THE LOOK, as on its own (daily/end.js#lookMusic) — the day deck by day, the evening deck by night)
-  if (dailyOn(st) && st.daily.v === 'run') return [document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
+  // (THE DROP B: a row with `ownMusic` — THE DROP — plays its game's own songs in its view: the console's music stays silent)
+  if (dailyOn(st) && st.daily.v === 'run') return (gameRow(st.daily.id) || {}).ownMusic ? [null] : [document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
   if (moodOn() && !(st.code && st.meta && st.meta.status === 'playing' && st.game && st.quit !== st.game.matchId)) {
     if (lobbySynced && inLobby(st)) return [null];          // the room's synced song is playing (lobby-music.js)
     if (partySynced && !st.code) return [null];             // (NIGHT-C) the party's synced song is playing (party-music.js)

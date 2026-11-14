@@ -25,5 +25,7 @@ export function step(game) {
 export const livePaths = () => ({});
 export const finalRanks = game => Object.keys((game && game.participants) || {}).slice(0, 1).map(uid => ({ uid, rank: 1 }));
 export const resultFor = game => result(game);
-/** the music follows the look (THE DAILY KIT's day / evening decks — like the other dailies) */
-export { lookMusic as musicFor } from '../../daily/end.js';
+/** THE DROP B: the run plays PRISM DROP's own songs (its view) — the console plays nothing over them */
+export const musicFor = () => [null];
+/** THE DROP B — THE ONE-TIME HINT (the row's `lesson: true`): one line under the board on a player's FIRST DROP only (seen once — pstats/{pid}/ls) */
+export const HINT = 'Survive as long as you can — the rows keep rising. One run a day.';

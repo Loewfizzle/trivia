@@ -91,10 +91,10 @@ export const DAILIES = [
   { id: 'coastclear', name: 'COAST CLEAR', theme: 'coastclear', tag: 'DAILY · THE NIGHT HARBOR', blurb: 'Slip your boat across the harbor past the hidden searchlights. Buoy the ones you find. Once a day.', hook: 'Slip past the searchlights.', playable: false, daily: true, order: 2, ticket: 'coastclear', lesson: true, on: true },
   // THE DROP A (Nov 13 — docs/prism.md "THE DROP"): PRISM DROP's daily — SURVIVAL on the day's pieces + rows, the server REPLAYS the run's input
   // log. Ships OFF (`on: false` — THE DROP B gives it its ticket + TODAY's third row; the owner goes live only at a 4 am turn)
-  { id: 'drop', name: 'THE DROP', theme: 'prism', tag: 'DAILY · PRISM DROP', blurb: 'Everyone gets the same pieces and the same rising rows. Survive as long as you can. Once a day.', hook: 'Same pieces. Same rows. Hold on.', playable: false, daily: true, order: 3, ticket: 'drop', lesson: false, on: false },
+  { id: 'drop', name: 'THE DROP', theme: 'prism', tag: 'DAILY · PRISM DROP', blurb: 'Everyone gets the same pieces and the same rising rows. Survive as long as you can. Once a day.', hook: 'Same pieces. Same rows. Hold on.', playable: false, daily: true, order: 3, ticket: 'drop', lesson: true, ownMusic: true, on: false },
 ];
 // DM1 — PLUG-AND-PLAY: every row's `order` (the picker's order), `ticket` (its ticket art key — DM2), `lesson` (a first-time lesson — DFIX3's
-// ONE-TIME HINT under the board, the cartridge's HINT line), `on` (in the set). DM2: `hook` = the TODAY row's one line (else `tag`). The server opens a row only while THE GO-LIVE SWITCH is on (api/_lib/dailies.js) — `on` alone opens nothing.
+// ONE-TIME HINT under the board, the cartridge's HINT line), `on` (in the set). DM2: `hook` = the TODAY row's one line (else `tag`). THE DROP B: `ownMusic` = the run plays its own songs (the console's decks stay silent). The server opens a row only while THE GO-LIVE SWITCH is on (api/_lib/dailies.js) — `on` alone opens nothing.
 export const gameRow = id => GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || null;
 
 /** WINDOWS: can a match of this game start? (the one switch: GAMES[].playable) */

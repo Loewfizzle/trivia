@@ -158,6 +158,49 @@ test('PLAYER PAUSES: 3 a run (server-timed, the board\'s clock stopped), a 4th r
   assert.ok(!(await val(`dly/drop/${P.day}/p/${pa}`)).e, 'the run goes on after a 5-minute room game');
 });
 
+test('THE DROP B — HIDING THE PAGE: each hide = a PLAYER pause (the chunk carried, one of the 3, server-timed); the 4th hide pauses nothing (the chunk still lands); away past the bound with none left (`aw`) → ended at the checkpoint + 15 s, scored', async () => {
+  await ensure('dr-hid', 'DropHid');
+  const s = await D('dr-hid', { action: 'start', game: 'drop' }, NOW + 3.5 * 60e3);
+  const P = phone('dr-hid', s);
+  P.now = s.run.go;
+  await P.play(6e3);
+  const pa = await pidOf('dr-hid');
+  for (let i = 1; i <= PAUSES; i++) {
+    const k0 = P.run.k;
+    const p = await P.send('ppause');                                           // (the hide: a ppause with the freshest chunk — keepalive on a phone)
+    assert.equal(p.left, PAUSES - i, `hide ${i}: one of the 3`); assert.ok(p.pa != null, `hide ${i}: paused`);
+    const rec = await val(`dly/drop/${P.day}/p/${pa}`);
+    assert.equal(rec.k, k0, `hide ${i}: the chunk carried to the hide's tick`); assert.equal(rec.pz.n, i);
+    P.now += 10e3;                                                              // (10 s away)
+    const b = await D('dr-hid', { action: 'resume', game: 'drop', day: P.day }, P.now);
+    P.pm = b.pm;
+    assert.ok(Math.abs(P.tick() - k0) < 30, `hide ${i}: the clock stood still while away`);
+    await P.play(3e3);
+  }
+  // the 4th hide: no pause left — the phone sends a checkpoint (a ppause would be answered the same: the chunk stored, no pause)
+  const k4 = P.run.k;
+  const q = await P.send('ppause');
+  assert.equal(q.refusedPause, 'pause_limit'); assert.equal(q.pa, null, 'no pause granted');
+  assert.equal((await val(`dly/drop/${P.day}/p/${pa}`)).k, k4, 'its chunk still landed');
+  // a short hide (≤ 20 s) with `aw` claimed is NOT an end: the server checks the gap on its own clock
+  P.now += 8e3;
+  stepTo(P.run, P.tick());
+  const short = await P.send('checkpoint', { aw: 1 });
+  assert.ok(!short.e, 'a short hide: the run goes on (the gap is under the bound)');
+  await P.play(4e3);
+  const kh = P.run.k; await P.send('checkpoint');                               // (the 5th hide's checkpoint — keepalive on a phone)
+  const t0 = (await val(`dly/drop/${P.day}/p/${pa}`)).t;
+  // away 30 s, no pause left: back on the page the phone steps 15 s of play (no input) and says `aw`
+  P.now += 30e3;
+  stepTo(P.run, Math.min(P.tick(), kh + Math.round(15e3 / TICK)));
+  const e = await P.send('checkpoint', { aw: 1 });
+  assert.equal(e.e, 1); assert.equal(e.o, 'late');
+  const rec = await val(`dly/drop/${P.day}/p/${pa}`);
+  assert.ok(Math.abs(rec.t - (t0 + 15e3)) <= TICK || P.run.over, `ended at the checkpoint + 15 s of play (${rec.t} vs ${t0 + 15e3})`);
+  const f = await D('dr-hid', { action: 'finish', game: 'drop', day: P.day }, P.now + 500);
+  assert.ok(Number.isFinite(f.score) && f.score > 0, `scored at the cut (${f.score})`);
+});
+
 test('THE REFUSALS: a forged log (stored by a checkpoint — refused by THE RE-PLAY CHECK at the finish), a log from the future, a finish before the end', async () => {
   await ensure('dr-fay', 'DropFay');
   const s = await D('dr-fay', { action: 'start', game: 'drop' }, NOW + 4 * 60e3);

@@ -87,7 +87,11 @@ export function upload(rec, body, { now }) {
   const due = dueMs(rec, now);
   if (tickTime(k) > due + FAST_TOL_MS) return { refused: 'too_early', status: 422 };
   const len = rec.len + add.length;
-  if (due - tickTime(k) > SLOW_TOL_MS) {
+  // (THE DROP B — AWAY WITH NO PAUSE LEFT: the phone was hidden past the bound with its 3 pauses spent — it says so (`aw`) and the server checks
+  //  it against ITS clock: the time since the last checkpoint really is past SLOW_TOL_MS → the same end as a slowed run, at the last checkpoint
+  //  + MAX_TAIL_MS of play. Ending your own run early is only ever a loss — the replay still stops at the cut)
+  const away = !!(body && body.aw) && due - rec.t > SLOW_TOL_MS;
+  if (away || due - tickTime(k) > SLOW_TOL_MS) {
     const cut = Math.max(rec.k, Math.min(k, ticksOf(rec.t + MAX_TAIL_MS)));
     const next = end({ ...rec, len, k: cut, t: tickTime(cut), ca: now }, 'late', now);
     return { record: next, resp: { k: cut, len, e: 1, o: 'late' } };
