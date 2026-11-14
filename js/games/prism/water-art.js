@@ -114,7 +114,7 @@ function blockArt(size, col, pool, v, o = {}) {
   const near = o.near || null;
   // THE WASH: one transparent pass of the paint (the paper shows through all of it)
   shape();
-  x.fillStyle = rgba(mixHex(col, '#ffffff', 0.06), o.thin ? 0.32 : 0.7);
+  x.fillStyle = rgba(mixHex(col, '#ffffff', 0.04), o.thin ? 0.32 : 0.78);
   x.fill();
   x.save();
   shape();
@@ -133,7 +133,7 @@ function blockArt(size, col, pool, v, o = {}) {
   // THE POOLING: the pigment gathered at the edge as the wash dried — a SOFT BAND in the colour's own deeper shade, deepening to the edge
   // (wide faint passes under narrow ones: a gradient, never a line)…
   shape();
-  for (const [w, a] of [[0.24, 0.08], [0.15, 0.13], [0.09, 0.19], [0.05, 0.24]]) {
+  for (const [w, a] of [[0.24, 0.08], [0.15, 0.13], [0.09, 0.2], [0.055, 0.25]]) {
     x.lineWidth = size * w;
     x.strokeStyle = rgba(pool, o.thin ? a * 0.6 : a);
     x.stroke();
@@ -143,6 +143,14 @@ function blockArt(size, col, pool, v, o = {}) {
   for (let i = 0; i < 3; i++) {
     const a = a0 + i * (1.6 + rnd() * 1.1), px = cx + Math.cos(a) * half * 0.96, py = cy + Math.sin(a) * half * 0.96;
     patch(px, py, size * (0.2 + rnd() * 0.14), pool, o.thin ? 0.16 : 0.36);
+  }
+  // (the sheet lay a little tilted: the wash settled toward each tile's LOWER edge — a soft deeper foot, so a row still reads as a row at speed)
+  {
+    const g = x.createLinearGradient(0, size * 0.66, 0, size);
+    g.addColorStop(0, rgba(pool, 0));
+    g.addColorStop(1, rgba(pool, o.thin ? 0.08 : 0.2));
+    x.fillStyle = g;
+    x.fillRect(0, size * 0.66, size, size * 0.34);
   }
   // THE LIGHTER MIDDLE: the wash is thinnest inside — the paper comes through (the paint itself goes; never a white highlight). Two or three
   // off-centre lifts, so the middle is uneven too
