@@ -175,3 +175,12 @@ the sounds' files) · `crayon-art.js` (the tweak) · `audio.js` (the files, the 
 `prism-skins-2a.test.mjs`, `prism-tier-step.test.mjs`; tools `prism-glance.html`, `prism-sfx-probe.mjs`, `prism-sfx-level.mjs`,
 `daily-probe.mjs CARDS=`, `prism-shots.mjs SETS=glance,skinsheet`. PRISM's preload graph: 52 modules / 534 KB → 52 modules / 553 KB (the
 budget: 1.5 MB).
+
+## The cloud (the ONE push — `05de3bca`, the harbor tag; not re-run)
+- **tests: GREEN** (unit + the whole-match simulations; rules + /api + smoke).
+- **harbor: 13 of 15 jobs green; 2 red, one check each — both in the CITY, which this push does not touch** (its 15 changed files are the
+  share kit + PRISM DROP's own; nothing under `js/screens/`):
+  - `lobby` 77 / 78 — **NO TWO CAMERAS at the boot reveal** (one frame of 345 showed the city built for 402 × 659 CSS-fitted in a 402 × 712 box)
+    — the known city timing check (the "cameras" one; it failed the same way on THE DROP B's late push).
+  - `legend` 78 / 79 — **SIGHTINGS: a FAST legendary's photo** — the fireball was 83 % (not 100 %) inside the photo taken 19 ms after the tap
+    (the blackbird + the f22 fine). A timing check on a fast craft; NOT on the known-noise list — worth a look by the city chat.
