@@ -26,6 +26,19 @@ function style() {
 }
 
 export const TILE = Object.freeze({ w: 66, h: 46, cell: 19 });
+// PFIX-3 — K4 (FABLE REVIEW 2): THE TILES ARE DRAWN ONE A FRAME. Every tile asked for its own frame, so all eight painted in ONE (the crayon
+// tile alone cost 143 ms at 4× CPU — long tasks of 87–164 ms as Settings opened). One queue: a tile a frame, each skin's own tile first, the
+// ROTATE tiles (a block of every skin of the look) last.
+const paints = [];
+let pumping = false;
+const nextFrame = fn => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(fn) : setTimeout(fn, 16));
+function pump() { const p = paints.shift(); if (p) p(); if (paints.length) nextFrame(pump); else pumping = false; }
+/** a tile's paint, in turn (`last`: after every tile already waiting) */
+export function queuePaint(paint, last = false) {
+  if (last) paints.push(paint); else { const i = paints.findIndex(p => p.last); if (i < 0) paints.push(paint); else paints.splice(i, 0, paint); }
+  if (last) paint.last = true;
+  if (!pumping) { pumping = true; nextFrame(pump); }
+}
 // the sample: three blocks — two side by side, one on top (an L's corner): three pieces' colours, so the skin's palette + its edges read
 const SAMPLE = Object.freeze([[0, 1, 5], [1, 1, 1], [1, 0, 2]]);   // [col, row (0 = top), piece]
 
@@ -90,9 +103,9 @@ export function skinRows(settings, choose) {
       const b = h('button.pdp-opt', { type: 'button', 'aria-pressed': String(id === cur), 'aria-label': skin ? `${skin.name} — ${skin.line}` : 'Rotate — a different skin every match', 'data-skin': id,
         onclick: () => { for (const o of opts) o.setAttribute('aria-pressed', String(o === b)); choose(look, id); } },
         cv, h('b', skin ? skin.name : 'ROTATE'));
-      // (drawn after the sheet is up: a skin's first sprites are made here — never in the tap that opens the sheet)
+      // (drawn after the sheet is up: a skin's first sprites are made here — never in the tap that opens the sheet — ONE TILE A FRAME: K4)
       const paint = () => { try { if (skin) drawSample(cv, skin); else drawRotate(cv, ids.map(k => SKINS[k])); } catch { /* a canvas the browser refused: the name alone */ } };
-      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(paint); else paint();
+      queuePaint(paint, !skin);
       return b;
     });
     rows.push({ look, label: look === 'day' ? 'DAY SKIN' : 'NIGHT SKIN', el: h('div.pdp', { role: 'group', 'aria-label': look === 'day' ? 'Day skin' : 'Night skin', 'data-look': look }, ...opts) });

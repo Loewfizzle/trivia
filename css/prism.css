@@ -849,7 +849,8 @@ body.pd-duel .pd-mode { letter-spacing: 0.2em; }
 .pd[data-skin='pixel'] .pd-board-glass::before { display: none; }
 /* the panels: dark, a pixel border */
 .pd[data-skin='pixel'] .pd-corner { background: rgba(5, 7, 22, 0.86); border: 2px solid var(--pd-cy); border-radius: 0; box-shadow: 2px 2px 0 #021019; }
-.pd[data-skin='pixel'] .pd-corner small { font-family: var(--pd-px); font-size: 6px; line-height: 9px; letter-spacing: 0; color: #b8f1ff; text-shadow: none; }
+/* (PFIX-3 — K5: HOLD / NEXT at 8 px — the font's own grid; they were 6 px, about 1 mm on a phone. The INCOMING tag 8 px too (was 7.5)) */
+.pd[data-skin='pixel'] .pd-corner small { font-family: var(--pd-px); font-size: 8px; line-height: 10px; letter-spacing: 0; color: #b8f1ff; text-shadow: none; }
 .pd[data-skin='pixel'] .pd-mode { font-family: var(--pd-px); font-weight: 400; font-size: 11px; letter-spacing: 0; color: #fff; text-shadow: 2px 2px 0 #0b4b63; }
 .pd[data-skin='pixel'] .pd-sub { color: #b8f1ff; }
 .pd[data-skin='pixel'] .pd-tile { background: #050716; border: 2px solid var(--c); border-radius: 0; box-shadow: 2px 2px 0 #02040c; }
@@ -857,7 +858,7 @@ body.pd-duel .pd-mode { letter-spacing: 0.2em; }
 .pd[data-skin='pixel'] .pd-tile-ini { font-family: var(--pd-px); font-weight: 400; font-size: 10px; text-shadow: 1px 1px 0 #000; }
 .pd[data-skin='pixel'] .pd-tile.is-high { border-color: #ff4f74; box-shadow: 2px 2px 0 #3a0614; }
 .pd[data-skin='pixel'] .pd-tile.is-ko { box-shadow: none; }
-.pd[data-skin='pixel'] .pd-inc-tag { font-family: var(--pd-px); font-weight: 400; font-size: 7.5px; letter-spacing: 0; background: #1a0209; border: 2px solid #ff4f74; border-radius: 0; box-shadow: 2px 2px 0 #3a0614; text-shadow: none; }
+.pd[data-skin='pixel'] .pd-inc-tag { font-family: var(--pd-px); font-weight: 400; font-size: 8px; letter-spacing: 0; background: #1a0209; border: 2px solid #ff4f74; border-radius: 0; box-shadow: 2px 2px 0 #3a0614; text-shadow: none; }
 .pd[data-skin='pixel'] .pd-ann { border-radius: 0; }
 /* THE CALLOUTS: Press Start 2P, white with a hard pixel shadow in the kind's colour + a black edge (no glow) — one letter = one em wide */
 .pd[data-skin='pixel'] .pd-callout .pd-ann-in { font-family: var(--pd-px); font-weight: 400; font-size: 8.5px; line-height: 1.7; letter-spacing: 0; color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; --sh: #0e7f9c; }

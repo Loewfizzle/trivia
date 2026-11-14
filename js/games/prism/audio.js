@@ -28,6 +28,7 @@ import { createSyncedSongs, speakerLead } from '../../audio/synced-songs.js';
 import { createOnsets, onsetStep, createLead, leadKick, leadState, kickLag } from '../../core/harbor-beat.js';
 import { songUrl, beatClock, loadManifest } from './songs.js';
 import { heardSongPos, serverSongPos, ctxForSongTime, unreportedOut, kickErr, leadGrid } from './sync.js';
+import { LOCK_WANDER_CENTS, keyShift, pitchedLockRate } from './sfx-key.js';
 
 const SCALES = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
 const PENT = { major: [0, 2, 4, 7, 9], minor: [0, 3, 5, 7, 10] };
@@ -267,8 +268,17 @@ export const SAMPLE_GAIN = Object.freeze({ plip: () => 0.176, tap: () => 0.18, s
 export const NOTE_GAIN = Object.freeze({ swish: 0.058, rip: 0.05, chip: 0.028, dust: 0.03 });
 /** a 4-line clear's run of notes under a file is lifted this much (the other skins' 4-line run is the loudest thing they play) */
 export const RUN_LIFT = 2;
-/** a lock's file: its pitch varies ± this much each play (3 %) */
+/** a lock's file: its pitch varies ± this much each play (3 %) — an UNPITCHED file's (a drop, a paper tap) */
 export const LOCK_PITCH = 0.03;
+// PFIX-3 — S13 (FABLE REVIEW 2): THE PITCHED SKIN SOUNDS ARE KEYED TO THE SONG. The code-made voices always followed the song's key (setKey —
+// each song's `tonic` + `mode`: data/prism/<id>.json, THE per-song key table); the SOURCED files were played as recorded — pixel's lock is a
+// clear G, galaxy's lock + the shimmer of its clear a clear C: galaxy's C clashed under the D-major night song, both under three of the five
+// day songs — and the lock's random ±3 % is ±51 cents (sour on its own note six plays in ten). A skin now names each pitched file's note
+// (skins.js `sounds.pitch`: { lock: 7 } = G — a pitch class 0 … 11; a noise file has none) and the synth plays it at the rate that lands
+// that note on the song's ROOT or FIFTH, whichever is nearer (never more than 3 semitones — a blip / a chime keeps its character; a file
+// that rings a CHORD lands where the whole chord is in the scale — sfx-key.js); a pitched lock's wander is held inside
+// ±LOCK_WANDER_CENTS. Levels unchanged (SAMPLE_GAIN). An unpitched file plays as before.
+export { LOCK_WANDER_CENTS, keyShift, pitchedLockRate };   // (PURE — sfx-key.js: the unit tests import it without the audio engine)
 const sampleBytes = new Map();   // file → Promise<ArrayBuffer | null> (the page's — fetched once)
 const fetchSample = file => {
   if (!sampleBytes.has(file)) sampleBytes.set(file, fetch(`${SFX_DIR}${file}.mp3`).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null));
@@ -322,6 +332,7 @@ export function createSynth() {
   let clockFn = null; // () => { pos (song seconds now), clk (beatClock) } | null
   let voices = {};    // (SKINS 1) a skin's own voices: name → the SOUNDS entry that plays instead
   let files = {};     // (SKINS 2A) the skin's sourced sounds: name ('lock' | 'clear') → its file — the voice's code-made sound is the fallback
+  let pitch = {};     // (PFIX-3 — S13) the note of each PITCHED file: name → its pitch class (skins.js `sounds.pitch`); none = a noise file
   const bufs = new Map();   // file → AudioBuffer | Promise | null (this context's)
   let bufCtx = null;
   /** the skin's file for a sound, decoded → an AudioBuffer once it is ready; null = not (yet) → the code-made voice plays */
@@ -502,7 +513,10 @@ export function createSynth() {
   const record = (name, notes, songAt, voice, file, rate) => { log.push({ name, notes, songAt, key: tonic, mode, ...(voice ? { voice } : {}), ...(file ? { file } : {}), ...(file && rate ? { rate } : {}) }); if (log.length > 400) log.shift(); };
   /** (the owner's add-on, Nov 14) a LOCK's file plays a little higher or lower each time — ± LOCK_PITCH (3 %) at random: a sound heard many
    *  times a minute never repeats exactly (a one-shot effect's own pitch — never a song's) */
-  const lockRate = () => 1 + (Math.random() * 2 - 1) * LOCK_PITCH;
+  // (PFIX-3 — S13: a PITCHED lock (the skin names its note) lands on the song's root / fifth and wanders inside ±20 cents instead)
+  const lockRate = () => (pitch.lock != null ? pitchedLockRate(pitch.lock, tonic, mode, Math.random()) : 1 + (Math.random() * 2 - 1) * LOCK_PITCH);
+  /** a clear's file: as recorded — or, pitched, moved onto the song's root / fifth (no wander: it rings under the clear's own notes) */
+  const clearRate = () => (pitch.clear != null ? keyShift(pitch.clear, tonic, mode).rate : 1);
 
   const SOUNDS = {
     move() {
@@ -707,13 +721,14 @@ export function createSynth() {
       const q = q16();
       const notes = clearNotes(lines, combo);
       const b = sample('clear');
-      if (b) playBuf(b, q.at, SAMPLE_GAIN.chip(lines), 0);
+      const crate = clearRate();
+      if (b) playBuf(b, q.at, SAMPLE_GAIN.chip(lines), 0, crate);
       notes.forEach((m, i) => pluck(m, q.at + i * q.step, { gain: b ? NOTE_GAIN.chip * (lines >= 4 ? RUN_LIFT : 1) : 0.085, dur: 0.11, bright: 5200, rev: 0.05, type: 'square' }));
       if (lines >= 4) {
         const top = q.at + notes.length * q.step, base = 2 + Math.min(10, Math.max(0, combo));
         [7, 9, 11, 14].forEach((d, i) => pluck(note(base + d, 5), top + i * 0.035, { gain: b ? 0.02 : 0.04, dur: 0.2, bright: 5200, rev: 0.1, type: 'square' }));
       }
-      record('clear', notes, q.songAt, 'chip', b ? files.clear : null);
+      record('clear', notes, q.songAt, 'chip', b ? files.clear : null, crate);
     },
     /** GALAXY's lock: a STAR CHIME — the sourced chime, else a small high bell on the tonic */
     chime() {
@@ -727,14 +742,15 @@ export function createSynth() {
       const q = q16();
       const notes = clearNotes(lines, combo);
       const b = sample('clear');
-      if (b) playBuf(b, q.at, SAMPLE_GAIN.dust(lines), 0.3);
+      const crate = clearRate();
+      if (b) playBuf(b, q.at, SAMPLE_GAIN.dust(lines), 0.3, crate);
       else brush(q.at, { gain: 0.03 + 0.007 * Math.min(4, lines), dur: 0.4 + 0.05 * Math.min(4, lines), lo: 2200, hi: 7000 });
       notes.forEach((m, i) => bell(m, q.at + i * q.step, { gain: b ? NOTE_GAIN.dust * (lines >= 4 ? RUN_LIFT : 1) : lines >= 4 ? 0.055 : 0.043, dur: 0.7, rev: 0.6, ratio: 2.76 }));
       if (lines >= 4) {
         const top = q.at + notes.length * q.step, base = 2 + Math.min(10, Math.max(0, combo));
         [7, 9, 11, 14].forEach((d, i) => bell(note(base + d, 5), top + i * 0.035, { gain: 0.03, dur: 1.8, rev: 0.75 }));
       }
-      record('clear', notes, q.songAt, 'dust', b ? files.clear : null);
+      record('clear', notes, q.songAt, 'dust', b ? files.clear : null, crate);
     },
   };
   /** the notes a clear plays (the synth's own rule — combos climb the scale; 4 lines = a run up) */
@@ -816,6 +832,7 @@ export function createSynth() {
     setVoices(v) {
       voices = v || {};
       files = (v && v.files) || {};
+      pitch = (v && v.pitch) || {};
       for (const f of soundFiles(v)) fetchSample(f);
       if (ensure()) for (const name of Object.keys(files)) sample(name);
     },
@@ -836,7 +853,7 @@ export function createSynth() {
     scale: () => ({ tonic, mode, notes: SCALES[mode].map(s => (tonic + s) % 12) }),
     log,
     /** PFIX-A: lets go of the clock (it holds the view) + the context's nodes (the shared chain stays the context's) */
-    destroy() { clockFn = null; ctx = bus = dry = verb = null; log.length = 0; bufs.clear(); bufCtx = null; files = {}; },
+    destroy() { clockFn = null; ctx = bus = dry = verb = null; log.length = 0; bufs.clear(); bufCtx = null; files = {}; pitch = {}; },
   };
 }
 

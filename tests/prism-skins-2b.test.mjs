@@ -202,8 +202,9 @@ test('NO PILLS in the new skins: no capsule radius in their CSS; the pixel skin 
 test("GROK's NIGHT SOUNDS: the pixel's + the galaxy's lock / clear are SOURCED files (≤ 30 KB, credited), fetched only when the skin shows; the code-made voice is the fallback; levelled under the song", () => {
   const audio = read('js/games/prism/audio.js');
   // each night skin names its two voices + its two files — and only its own
-  assert.deepEqual(SKINS.pixel.sounds, { lock: 'blip', clear: 'chip', files: { lock: 'pixel-lock', clear: 'pixel-clear' } });
-  assert.deepEqual(SKINS.galaxy.sounds, { lock: 'chime', clear: 'dust', files: { lock: 'galaxy-lock', clear: 'galaxy-clear' } });
+  // (PFIX-3 — S13: + `pitch` — the note of each PITCHED file: the blip a G, the chime a C, the stardust's shimmer a C major-seventh chord)
+  assert.deepEqual(SKINS.pixel.sounds, { lock: 'blip', clear: 'chip', files: { lock: 'pixel-lock', clear: 'pixel-clear' }, pitch: { lock: 7 } });
+  assert.deepEqual(SKINS.galaxy.sounds, { lock: 'chime', clear: 'dust', files: { lock: 'galaxy-lock', clear: 'galaxy-clear' }, pitch: { lock: 0, clear: { pc: 0, chord: 'maj7' } } });
   assert.deepEqual(SKINS.neon.sounds, {}, "the neon keeps the synth's own sounds");
   const credits = read('audio/sfx/prism/CREDITS.md'), line = f => credits.split('\n').find(l => l.startsWith(`- \`${f}\` — `)) || '';
   for (const f of ['pixel-lock.mp3', 'pixel-clear.mp3', 'galaxy-lock.mp3', 'galaxy-clear.mp3']) {
@@ -220,17 +221,18 @@ test("GROK's NIGHT SOUNDS: the pixel's + the galaxy's lock / clear are SOURCED f
   // the four voices exist, each with its file path AND its code-made fallback
   for (const [voice, viaFile, fallback] of [
     ['blip', 'if (b) playBuf(b, at, SAMPLE_GAIN.blip(), 0, rate);', "else pluck(m, at, { gain: 0.06, dur: 0.05, bright: 5200, rev: 0, type: 'square' });"],
-    ['chip', 'if (b) playBuf(b, q.at, SAMPLE_GAIN.chip(lines), 0);', "b ? NOTE_GAIN.chip * (lines >= 4 ? RUN_LIFT : 1) : 0.085"],
+    ['chip', 'if (b) playBuf(b, q.at, SAMPLE_GAIN.chip(lines), 0, crate);', "b ? NOTE_GAIN.chip * (lines >= 4 ? RUN_LIFT : 1) : 0.085"],
     ['chime', 'if (b) playBuf(b, at, SAMPLE_GAIN.chime(), 0.25, rate);', 'else bell(m, at, { gain: 0.03, dur: 0.4, rev: 0.4, ratio: 2.76 });'],
-    ['dust', 'if (b) playBuf(b, q.at, SAMPLE_GAIN.dust(lines), 0.3);', 'else brush(q.at, { gain: 0.03 + 0.007 * Math.min(4, lines)'],
+    ['dust', 'if (b) playBuf(b, q.at, SAMPLE_GAIN.dust(lines), 0.3, crate);', 'else brush(q.at, { gain: 0.03 + 0.007 * Math.min(4, lines)'],
   ]) {
     assert.ok(audio.includes(`    ${voice}(`), `${voice} is a voice`);
     assert.ok(audio.includes(viaFile), `${voice}: the file plays through the synth`);
     assert.ok(audio.includes(fallback), `${voice}: its code-made sound is the fallback`);
   }
-  // a LOCK's file varies its pitch ± 3 % a play; a clear keeps its own
+  // a LOCK's file varies its pitch a play; a clear never wanders (PFIX-3 — S13: a PITCHED clear is moved onto the song's key by `clearRate` — a
+  // fixed rate for the song, never the lock's random one)
   for (const v of ['blip', 'chime']) assert.match(audio, new RegExp(`${v}\\(\\) \\{\\n      const at = ctx\\.currentTime \\+ 0\\.002, m = note\\(0, \\d\\), b = sample\\('lock'\\), rate = lockRate\\(\\);`), `${v}: a random pitch a play`);
-  for (const v of ['chip', 'dust']) { const a = audio.indexOf(`    ${v}(`); assert.doesNotMatch(audio.slice(a, audio.indexOf("record('clear'", a)), /lockRate|rate\)/, `${v}: a clear keeps its pitch`); }
+  for (const v of ['chip', 'dust']) { const a = audio.indexOf(`    ${v}(`); assert.doesNotMatch(audio.slice(a, audio.indexOf("record('clear'", a)), /lockRate/, `${v}: a clear never takes the lock's random pitch`); assert.match(audio.slice(a, audio.indexOf("record('clear'", a)), /const crate = clearRate\(\);/, `${v}: its rate is the song's key (1 for a file with no note)`); }
   // THE LEVELS (measured on the game's SFX bus — tests/integration/prism-sfx-level.mjs): quiet effects under the song, a clear grows with its lines
   const konst = name => { const m = new RegExp(`export const ${name} = ([^;]+);`).exec(audio); assert.ok(m, `audio.js exports ${name}`); return new Function(`return ${m[1]};`)(); };
   const G = konst('SAMPLE_GAIN'), N = konst('NOTE_GAIN'), peak = 0.4;
@@ -244,4 +246,50 @@ test("GROK's NIGHT SOUNDS: the pixel's + the galaxy's lock / clear are SOURCED f
   assert.ok(G.blip() < G.chime());
   // the day skins' levels did not move
   assert.equal(G.plip(), 0.176); assert.equal(G.tap(), 0.18); assert.equal(G.rip(4), 0.15 + 0.04 * 4); assert.equal(G.swish(1), 0.09 + 0.035);
+});
+
+// ---------------------------------------------------------------- PFIX-3 (FABLE REVIEW 2's K1, K2, K4, K5)
+test('PFIX-3 — K5: ARCADE PIXEL\'s lettering sits on the font\'s 8-px grid (HOLD / NEXT were 6 px, the INCOMING tag 7.5) + its callouts use the skin\'s own arrow', () => {
+  const css = read('css/prism.css');
+  const px = sel => { const m = css.match(new RegExp(sel.replace(/[.[\]']/g, c => '\\' + c) + ' \\{[^}]*font-size: ([\\d.]+)px')); return m ? Number(m[1]) : null; };
+  assert.equal(px(".pd[data-skin='pixel'] .pd-corner small"), 8);
+  assert.equal(px(".pd[data-skin='pixel'] .pd-inc-tag"), 8);
+  assert.ok(px(".pd[data-skin='pixel'] .pd-callout .pd-ann-in") >= 8);
+  for (const m of css.matchAll(/\.pd\[data-skin='pixel'\][^{]*\{[^}]*font-family: var\(--pd-px\)[^}]*font-size: ([\d.]+)px/g)) assert.ok(Number(m[1]) >= 8, `no Press Start 2P lettering under 8 px (${m[1]})`);
+  assert.equal(SKINS.pixel.arrow, '>', 'a glyph Press Start 2P HAS (it has no "→": that fell back to a thin glyph of another font)');
+  for (const id of ['crayon', 'watercolor', 'paper', 'neon', 'galaxy']) assert.equal(SKINS[id].arrow, undefined, `${id}: the plain arrow`);
+  const v = read('js/games/prism/view.js');
+  assert.match(v, /const arrow = \(\) => \(skin && skin\.arrow\) \|\| '→';/);
+  assert.doesNotMatch(v.split('\n').filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l) && !/const arrow = /.test(l)).join('\n').replace(/\/\/.*$/gm, '').replace(/\/\*\*?[^]*?\*\//g, ''), /`[^`]*→[^`]*`/, 'no callout builds its own "→" — the skin decides');
+});
+
+test('PFIX-3 — K4: THE SKINS tiles are drawn ONE A FRAME, the ROTATE tiles last; the picker loads once Settings is up + idle', async () => {
+  const p = read('js/games/prism/picker.js');
+  assert.match(p, /queuePaint\(paint, !skin\);/); assert.doesNotMatch(code('js/games/prism/picker.js'), /requestAnimationFrame\(paint\)/, 'never every tile in one frame');
+  assert.match(read('js/ui/settings-panel.js'), /if \(typeof requestIdleCallback === 'function'\) requestIdleCallback\(load, \{ timeout: 900 \}\); else setTimeout\(load, 320\);/);
+  // the queue itself: one paint a frame, in order, a `last` one after the others
+  const frames = [];
+  const had = globalThis.requestAnimationFrame;
+  globalThis.requestAnimationFrame = fn => { frames.push(fn); return frames.length; };
+  try {
+    const { queuePaint } = await import('../js/games/prism/picker.js');
+    const done = [];
+    queuePaint(() => done.push('rotate-day'), true);
+    queuePaint(() => done.push('crayon')); queuePaint(() => done.push('watercolor'));
+    queuePaint(() => done.push('rotate-night'), true);
+    queuePaint(() => done.push('neon'));
+    let n = 0;
+    while (frames.length && n++ < 20) { const before = done.length; frames.shift()(); assert.ok(done.length - before <= 1, 'at most ONE tile a frame'); }
+    assert.deepEqual(done, ['crayon', 'watercolor', 'neon', 'rotate-day', 'rotate-night']);
+  } finally { if (had) globalThis.requestAnimationFrame = had; else delete globalThis.requestAnimationFrame; }
+});
+
+test('PFIX-3 — K2 / K3: the preview\'s &heavy=1 (+ the speed tool that rides it) fires REAL clears — rows written under the stack, the long piece slammed down a well', () => {
+  const v = read('js/games/prism/view.js');
+  const real = v.slice(v.indexOf("if (kind === 'clear' && o.real) {"), v.indexOf("if (kind === 'clear') {\n      const n = Math.max(1, Math.min(4, o.lines || 1));"));
+  assert.match(real, /eng\.cells\.copyWithin\(n \* E\.W, 0, eng\.cells\.length - n \* E\.W\);/, 'the stack lifted n rows');
+  assert.match(real, /const p = \{ t: 1, r: 1, x: well - 2, y: E\.VISIBLE \};/, 'the long piece, upright, over the well');
+  assert.match(real, /E\.hardDrop\(eng\); handleEvents\(\);/, 'slammed: the engine\'s own lock + clear + events');
+  assert.doesNotMatch(real, /eng\.events\.push/, 'no event is made up');
+  assert.match(read('tests/integration/prism-preview.html'), /window\.__prism\.fire\('clear', REAL \? \{ lines: 4, real: true, well: 2 \+ \(k\+\+ % 6\) \}/);
 });

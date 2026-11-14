@@ -99,7 +99,7 @@ test("THE SKINS' SOURCED SOUNDS: only a skin's own files, each ≤ 30 KB + in CR
   }
   assert.doesNotMatch(credits, /CC BY-NC|CC BY-ND|All rights|Sonniss/i);
   // the synth: fetched at setVoices (the skin shows), never before; a file not ready → the code-made voice
-  assert.match(audio, /setVoices\(v\) \{\n      voices = v \|\| \{\};\n      files = \(v && v\.files\) \|\| \{\};\n      for \(const f of soundFiles\(v\)\) fetchSample\(f\);/);
+  assert.match(audio, /setVoices\(v\) \{\n      voices = v \|\| \{\};\n      files = \(v && v\.files\) \|\| \{\};\n      pitch = \(v && v\.pitch\) \|\| \{\};\n      for \(const f of soundFiles\(v\)\) fetchSample\(f\);/);   // (PFIX-3 — S13: + the pitched files' notes)
   assert.equal((audio.match(/fetchSample\(/g) || []).length, 2, 'fetched in two places only: setVoices (the skin shows) + the decode');
   for (const [voice, code] of [['plip', 'else drip(m, ctx.currentTime + 0.002, { gain: 0.05, dur: 0.1 });'], ['swish', 'else brush(q.at, { gain: 0.035 + 0.008 * Math.min(4, lines)'], ['tap', 'noise(at, { gain: 0.045, dur: 0.035, from: 3800, to: 1600, q: 1.4 });'], ['rip', 'tear(q.at, { gain: 0.05 + 0.008 * Math.min(4, lines)']]) {
     assert.ok(audio.includes(code), `${voice}: its code-made sound is still there — the fallback`);
@@ -126,7 +126,8 @@ test("THE SKINS' SOURCED SOUNDS: only a skin's own files, each ≤ 30 KB + in CR
     // THE LOCK's PITCH: ± 3 % at random each play — on the file's own source node (a one-shot effect; never a song)
     assert.equal(LOCK_PITCH, 0.03);
   }
-  assert.match(audio, /const lockRate = \(\) => 1 \+ \(Math\.random\(\) \* 2 - 1\) \* LOCK_PITCH;/);
+  // (PFIX-3 — S13: an UNPITCHED lock keeps the random ±3 %; a PITCHED one lands on the song's root / fifth and wanders inside ±20 cents)
+  assert.match(audio, /const lockRate = \(\) => \(pitch\.lock != null \? pitchedLockRate\(pitch\.lock, tonic, mode, Math\.random\(\)\) : 1 \+ \(Math\.random\(\) \* 2 - 1\) \* LOCK_PITCH\);/);
   assert.equal((audio.match(/rate = lockRate\(\)/g) || []).length, 4, 'the four lock voices (plip · tap — + SKINS 2B: blip · chime) — a clear keeps its pitch');
   assert.match(audio, /src\.playbackRate\.value = rate;/);
   // the credits: the sourced parts CC0, the other layers "generated (Grok)" (the owner checked Grok's terms); a -b backup only if its pick fails

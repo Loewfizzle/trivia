@@ -158,9 +158,12 @@ function tableRow() {
 //  game); a tap changes the board live, this phone only — settings.prismSkinDay / prismSkinNight)
 function skinsRows() {
   const box = h('div.set-skins');
-  lazyImport(import('../games/prism/picker.js'), '../games/prism/picker.js')
+  // (PFIX-3 — K4: the picker + every skin's code (25 modules) load once the sheet is UP and the page is idle — never in the tap that opens
+  //  Settings; its tiles then paint one a frame — games/prism/picker.js#queuePaint)
+  const load = () => lazyImport(import('../games/prism/picker.js'), '../games/prism/picker.js')
     .then(m => box.replaceChildren(...m.skinRows(settings, (look, id) => updateSettings(look === 'day' ? { prismSkinDay: id } : { prismSkinNight: id }))
       .map(r => h('div.set-row.set-table.set-skin', { 'data-look': r.look }, h('span.label', r.label), h('div.set-pick', r.el))))).catch(() => {});
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(load, { timeout: 900 }); else setTimeout(load, 320);
   return box;
 }
 

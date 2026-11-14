@@ -783,3 +783,19 @@ test('PFIX-B (optional 12): the playlist moves past the first song at START — 
   const fin = nextStep(g, { now: 54_200, online: online(2), live: { boards: {} } });
   assert.ok(fin.$room['meta/prism/n'] >= L.playlistAdvance('night', g.pl0)['meta/prism/n']);
 });
+
+test('PFIX-3 — S12 (FABLE REVIEW 2): ONE CLEAR = ONE ATTACK whoever the target — a piece already in the queue mirror under ANY target is never sent again', () => {
+  const q = { bob: { 'alice-41': { f: 'alice', n: 4, i: 41, at: 1000 } }, carol: { 'alice-12': { f: 'alice', n: 2, i: 12, at: 500 }, 'dave-41': { f: 'dave', n: 1, i: 41, at: 900 } }, dave: null };
+  assert.equal(L.attackSent(q, 'alice', 41), true, 'piece 41 hit BOB — a replay that now aims at CAROL must not send it again');
+  assert.equal(L.attackSent(q, 'alice', 12), true);
+  assert.equal(L.attackSent(q, 'alice', 42), false, 'a new piece');
+  assert.equal(L.attackSent(q, 'dave', 41), true); assert.equal(L.attackSent(q, 'bob', 41), false, 'the key is the SENDER\'s — another player\'s piece 41 is theirs');
+  assert.equal(L.attackSent(q, 'alice', null), false, 'no piece number (a preview\'s scripted clear) is never held back');
+  assert.equal(L.attackSent(null, 'alice', 41), false); assert.equal(L.attackSent({}, 'alice', 41), false); assert.equal(L.attackSent(q, '', 41), false);
+  assert.equal(L.attackSent({ bob: { 'alice-4': {}, 'alice-410': {} } }, 'alice', 41), false, 'the whole key, never a prefix');
+  // where the view asks it: before a target is picked, once the mirror is live
+  const v = readFileSync(new URL('../js/games/prism/view.js', import.meta.url), 'utf8');
+  const send = v.slice(v.indexOf('function sendAttack(n, i) {'), v.indexOf('function watchAttacks()'));
+  const iAsk = send.indexOf('if (liveReady() && attackSent(st.live && st.live.queues, me(), i)) return;'), iPick = send.indexOf('pickTarget(true);');
+  assert.ok(iAsk > 0 && iAsk < iPick, 'asked BEFORE the target is picked (and before the callout)');
+});

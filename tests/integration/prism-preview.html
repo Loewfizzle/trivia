@@ -62,7 +62,7 @@ import { slotOf, setOfSong } from '/js/games/prism/logic.js';
 import { loadManifest } from '/js/games/prism/songs.js';
 import { rngFrom } from '/js/core/rng.js';
 import { loadGame, liveKeyFor } from '/js/games/registry.js';
-import { updateSettings } from '/js/audio/settings.js';
+import { updateSettings, settings } from '/js/audio/settings.js';
 import { setState } from '/js/store.js';
 import { installEmblems } from '/js/ui/emblems.js';
 import { SKINS } from '/js/games/prism/skins.js';
@@ -194,7 +194,8 @@ if (q.has('shatter') && ready()) { await wait(500); window.__prism.counter(Numbe
 if (q.get('state') === 'kocard' && ready()) window.__prism.topOut();
 if (q.get('tip') === '1') { window.__prism.showTip(); }
 const CALLOUT = { send: ['+4 → DANA', 'send'], blocked: ['BLOCKED!\n+2 → DANA', 'good'], twist: ['TWIST +2\n+2 → EVE', 'clear'], b2b: ['BACK-TO-BACK\n+5 → CHARLIE', 'big'], ko: ['KO → EVE', 'ko'], pc: ['PERFECT CLEAR\n+10 → BOBBY', 'big'] };
-if (q.has('callout') && CALLOUT[q.get('callout')]) window.__prism.calloutHold(...CALLOUT[q.get('callout')]);
+// (PFIX-3 — K5: the sample callouts use the skin's own arrow, as the game's do — ARCADE PIXEL's font has no "→")
+if (q.has('callout') && CALLOUT[q.get('callout')]) { const [t, k] = CALLOUT[q.get('callout')]; window.__prism.calloutHold(t.replaceAll('→', (window.__prism.look && window.__prism.look().arrow) || '→'), k); }
 if (q.has('after')) await wait(Number(q.get('after')));
 if (q.get('down') === '1') document.querySelector('.pd-slam-b')?.classList.add('is-down');
 // (SKINS 1) &settings=1 opens the SETTINGS sheet at PRISM DROP's SKINS rows (the real sheet — a tile tap changes the board behind it, live)
@@ -225,7 +226,10 @@ if (q.has('fx') && ready()) {
 if (q.get('heavy') === '1' && ready()) {
   window.__prism.incoming(3, uids[3] || uids[1], 600_000); window.__prism.incoming(3, uids[4] || uids[1], 600_000);
   let k = 0;
-  setInterval(() => window.__prism.fire('clear', { lines: 4, combo: 1 + (k++ % 6) }), 650);
+  // (PFIX-3 — K2 / K3: a REAL clear — the rows written under the stack, the long piece slammed down its well: the engine's own lock, clear,
+  //  collapse, kick and combo. &heavy=forged = the old made-up event, kept for an A / B)
+  const REAL = q.get('heavy') !== 'forged';
+  setInterval(() => window.__prism.fire('clear', REAL ? { lines: 4, real: true, well: 2 + (k++ % 6) } : { lines: 4, combo: 1 + (k++ % 6) }), 650);
 }
 // (PD-5B) THE SOUND in every state that plays the song (Ben's silent DAY-MATCH preview: only &beat=1 had it): the engine's tap listeners
 // (app.js#installAudio — the first tap unlocks the audio, as in the app) + the TAP FOR SOUND button; the podium (&state=final) plays none here
@@ -238,8 +242,59 @@ if (SOUND) {
   tap.className = 'pvw-tap';
   tap.textContent = 'TAP FOR SOUND';
   tap.style.cssText = 'position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:10000;min-height:56px;padding:0 28px;border-radius:12px;border:2px solid #ff4fd8;background:#16061a;color:#fff;font:700 18px "Chakra Petch",sans-serif;letter-spacing:.08em';
-  tap.addEventListener('click', () => { tap.remove(); });
-  document.body.append(tap);
+  // PFIX-3 (FABLE REVIEW 2, §9 — the previews' silence on the owner's iPhone, cause not found): two things that make it findable.
+  //  1. THE SONG CLOCK RESTARTS AT THE TAP: the preview fixed its song clock at the page's load, so a tab left open past the playlist's end
+  //     (~15 min battle, ~2:45 rush) had no song left to play — the tap now puts the song (and the match's clock) back where the load had it.
+  //  2. THE SOUND READOUT (&sound=1): one small strip that says what is audible and, if nothing is, WHY — the audio context (running /
+  //     suspended / none), its clock moving, the song + its gain, the skin's files decoded, the last effect (its file, its rate, the key),
+  //     this origin's saved settings (mute, music off, effects off, the two sliders). A screenshot of it answers the question.
+  const loadedAt = now;
+  const E0 = await import('/js/audio/engine.js');
+  const restart = () => {
+    const d = Date.now() - loadedAt - (window.__pvwShift || 0);
+    if (d < 1500) return;
+    window.__pvwShift = (window.__pvwShift || 0) + d;
+    state.game.songStartAt += d; if (state.game.playStartAt) state.game.playStartAt += d; if (state.game.endAt) state.game.endAt += d;
+    push();
+  };
+  const arm = (label = 'TAP FOR SOUND') => {
+    tap.textContent = label;
+    if (!tap.isConnected) document.body.append(tap);
+  };
+  tap.addEventListener('click', () => {
+    restart(); tap.remove();
+    // (still locked a moment later — an iPhone that wants another gesture: the button comes back and says so)
+    setTimeout(() => { const c = E0.getContext(); if (!c || c.state !== 'running') arm('TAP AGAIN — THE AUDIO IS STILL LOCKED'); }, 1200);
+  });
+  arm();
+  if (q.get('sound') === '1') {
+    const read = document.createElement('div');
+    read.className = 'pvw-sound';
+    read.style.cssText = 'position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom, 0px) + 6px);z-index:9999;pointer-events:none;background:rgba(8,6,14,.92);color:#e9f3ff;font:600 11px/1.5 "JetBrains Mono",ui-monospace,monospace;padding:7px 10px;border:1px solid rgba(255,255,255,.22);white-space:pre-wrap;word-break:break-word';
+    document.body.append(read);
+    let lastT = -1, moved = false;
+    const N = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const paint = () => {
+      const c = E0.getContext(), P = window.__prism;
+      const t = c ? c.currentTime : -1; moved = c ? t > lastT + 0.01 : false; lastT = t;
+      const a = P && P.audio ? P.audio() : null, b = P && P.beat ? P.beat() : null, sc = P && P.scale ? P.scale() : null;
+      const slot = a && a.slots ? a.slots.filter(s => s.gain > 0.01).sort((x, y) => y.gain - x.gain)[0] : null;
+      const log = P && P.synthLog ? P.synthLog() : [], last = log[log.length - 1], ready = P && P.samplesReady ? P.samplesReady() : [];
+      const why = !c ? 'NO AUDIO CONTEXT YET — tap TAP FOR SOUND' : c.state !== 'running' ? `THE AUDIO IS ${String(c.state).toUpperCase()} — tap again (iPhone: Silent Mode off)`
+        : !moved ? 'THE AUDIO CLOCK IS NOT MOVING — reload' : settings.muted ? 'MUTED in ☰ → Settings' : settings.musicOff && settings.sfxOff ? 'MUSIC + EFFECTS ARE OFF in ☰ → Settings'
+        : !slot && !last ? 'NO SONG IS PLAYING (past the playlist — tap TAP FOR SOUND / reload) and no effect yet' : '';
+      window.__pvwSound = { state: c ? c.state : 'none', moved, song: slot ? slot.id : null, gain: slot ? slot.gain : 0, last: last || null, ready, why };
+      read.textContent = [
+        why ? `SILENT — ${why}` : `SOUNDING${slot ? '' : ' (effects only — no song playing)'}`,
+        `audio: ${c ? c.state : 'none'}${c ? ` · clock ${moved ? 'moving' : 'STILL'} (${t.toFixed(1)} s)` : ''}`,
+        `song: ${slot ? `${slot.id} · ${Math.max(0, slot.t).toFixed(0)} s in · gain ${slot.gain}` : b && b.id ? `${b.id} (not sounding)` : 'none'}${sc ? ` · key ${N[sc.tonic]} ${sc.mode}` : ''}`,
+        `skin files ready: ${ready.length ? ready.join(', ') : 'none'}`,
+        `last effect: ${last ? `${last.name}${last.voice ? ` (${last.voice})` : ''}${last.file ? ` · ${last.file}${last.rate ? ` × ${last.rate.toFixed(3)}` : ''}` : ' · code-made'} · in ${N[last.key]} ${last.mode}` : 'none yet'}`,
+        `settings here: mute ${settings.muted ? 'ON' : 'off'} · music ${settings.musicOff ? 'OFF' : settings.music} · effects ${settings.sfxOff ? 'OFF' : settings.sfx}`,
+      ].join('\n');
+    };
+    setInterval(paint, 400); paint();
+  }
 }
 // (PD-5A) THE BEAT CHECK: a full-screen flash on every beat AS HEARD (window.__prism.beat() — the same clock every beat-timed visual reads)
 if (BEAT) {

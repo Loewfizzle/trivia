@@ -18,7 +18,7 @@ import * as E from './engine.js';
 import {
   songAt, songStarts, battleLevel, suddenRows, suddenGap, junkDelay, autoTarget, attackersOf,
   survivalRows, survivalRowAt, survivalGap, SUDDEN_MS, SUDDEN_EVERY_MS, DANGER_ZONE_ROWS, CLEAR_NAME, aliveOf, QUEUE_MAX, boardWritable,
-  soloHeld,
+  soloHeld, attackSent,
 } from './logic.js';
 import { ghostBands, incomingTag } from './incoming.js';
 import { loadSong, beatClock } from './songs.js';
@@ -515,6 +515,8 @@ export function createView() {
   // "+4 → DANA" (lines sent, to whom) · "BLOCKED!" (you cancelled incoming) · "TWIST +2" · "BACK-TO-BACK" · "KO → EVE". A moment's parts (a clear
   // + what it sent / blocked) gather in one batch of engine events, then go out as ONE callout: the headline big, the rest small under it.
   function part(p) { callout = { ...(callout || {}), ...p }; }
+  /** the callouts' arrow: the skin's own mark (skins.js `arrow` — ARCADE PIXEL's font has no "→"), else "→" */
+  const arrow = () => (skin && skin.arrow) || '→';
   function flushCallout() {
     const c = callout;
     callout = null;
@@ -522,7 +524,7 @@ export function createView() {
     const lines = [];
     if (c.special) lines.push({ t: c.special, k: c.kind || 'clear' });
     if (c.blocked) lines.push({ t: 'BLOCKED!', k: 'good' });
-    if (c.sent) lines.push({ t: `+${c.sent}${c.to ? ` → ${c.to}` : ''}`, k: 'send' });
+    if (c.sent) lines.push({ t: `+${c.sent}${c.to ? ` ${arrow()} ${c.to}` : ''}`, k: 'send' });
     if (!lines.length) return;
     const [head, ...rest] = lines;
     calls.announce(rest.length ? `${head.t}\n${rest.map(r => r.t).join(' · ')}` : head.t, head.k);
@@ -595,6 +597,9 @@ export function createView() {
 
   function sendAttack(n, i) {
     if (!battle() || !game || game.phase !== 'play') return;
+    // (PFIX-3 — FABLE REVIEW 2's S12: a piece that already made its attack — under ANY target: the queue mirror — sends nothing. A refresh's
+    //  replay re-picks its target, and the create-only key only guards the SAME target)
+    if (liveReady() && attackSent(st.live && st.live.queues, me(), i)) return;
     pickTarget(true);
     if (!target) return;
     part({ sent: n, to: String(player(target).name || '').toUpperCase() });
@@ -879,7 +884,7 @@ export function createView() {
       if (uid === me()) { showKO(o.by); continue; }   // (your own KO card learns its place)
       if (o.by === me()) {
         // (PD-2 — the callout for the one who scored it: "KO → EVE")
-        if (calls) calls.announce(`KO → ${String(victim).toUpperCase()}`, 'ko');
+        if (calls) calls.announce(`KO ${arrow()} ${String(victim).toUpperCase()}`, 'ko');
         synth.play('ko'); setTimeout(() => synth.play('badge'), 380); vibrate([20, 40, 20]);
       } else if (o.by) announce(`${player(o.by).name} KO'd ${victim}`, 'ko');
       else announce(o.away ? `${victim} — AWAY` : o.gone ? `${victim} — SIGNAL LOST` : `${victim} TOPPED OUT`, 'ko');
@@ -893,7 +898,7 @@ export function createView() {
       if (seenEv[uid] === n.ev.at) continue;
       const fresh = seenEv[uid] !== undefined || now - n.ev.at < 4000;
       seenEv[uid] = n.ev.at;
-      if (fresh && now - n.ev.at < 6000) announce(`${player(uid).name} → ${CLEAR_NAME[n.ev.k] || 'CLEAR'}`, 'other');
+      if (fresh && now - n.ev.at < 6000) announce(`${player(uid).name} ${arrow()} ${CLEAR_NAME[n.ev.k] || 'CLEAR'}`, 'other');
     }
     // FINAL DUEL
     if (game.duelAt && !duelShown) {
@@ -1574,8 +1579,11 @@ export function createView() {
   function kick() {
     if (reduced() || !els.boardWrap || typeof els.boardWrap.animate !== 'function') return;
     for (const k of kicks) { try { k.cancel(); } catch { /* gone */ } }
+    // (PFIX-3 — K1, FABLE REVIEW 2: `composite: 'add'` — the kick ADDS its dip to whatever the board is doing. As a replacing animation it
+    //  HID the big clear's pulse (css .pd-pulse — a scale on this same element) while it ran, so on a slam-made 4-line clear the board
+    //  snapped to scale 1.016 in ONE frame when the kick ended; added, the pulse ramps underneath. An engine without `composite` keeps the old way.)
     kicks = [els.boardWrap, skin.light && els.light && els.light.style.visibility !== 'hidden' ? els.light : null].filter(Boolean)
-      .map(el => el.animate(KICK, { duration: 120 }));
+      .map(el => el.animate(KICK, { duration: 120, composite: 'add' }));
     kickCount++;
   }
   function bump(el, cls) {
@@ -1625,6 +1633,21 @@ export function createView() {
     if (!eng) return false;
     if (kind === 'slam') { if (!eng.cur) return false; E.hardDrop(eng); handleEvents(); return true; }
     if (kind === 'lock' && eng.cur) { eng.events.push({ e: 'lock', t: eng.cur.t, cells: E.cellsOf(eng.cur) }); handleEvents(); return true; }
+    if (kind === 'clear' && o.real) {
+      // PFIX-3 — K2 / K3 (FABLE REVIEW 2): A REAL CLEAR for the preview's &heavy=1 + the speed tool — `n` rows written UNDER the stack with ONE
+      // well, the long piece stood in the well and SLAMMED: the engine's own lock, clear, collapse and events (the slam's kick included). The
+      // forged event below never removed the rows, so a skin that holds "the board before the clear" drew four rows put back under a stack
+      // that never lost them — a jump the game does not have — and the 60-fps number was measured without a slam, a kick or a real collapse.
+      const n = Math.max(1, Math.min(4, o.lines || 4)), well = Math.max(0, Math.min(E.W - 1, o.well ?? 4));
+      if (!eng.cur || eng.over) return false;
+      eng.cells.copyWithin(n * E.W, 0, eng.cells.length - n * E.W);
+      for (let y = 0; y < E.H; y++) for (let x = 0; x < E.W; x++) { if (x === well) eng.cells[y * E.W + x] = 0; else if (y < n) eng.cells[y * E.W + x] = 1 + ((x * 3 + y) % 7); }
+      const p = { t: 1, r: 1, x: well - 2, y: E.VISIBLE };
+      if (!E.fits(eng, p)) return false;
+      eng.cur = p;
+      E.hardDrop(eng); handleEvents();
+      return true;
+    }
     if (kind === 'clear') {
       const n = Math.max(1, Math.min(4, o.lines || 1));
       const rows = Array.from({ length: n }, (_, i) => (o.from || 0) + i);
@@ -1697,7 +1720,7 @@ export function createView() {
       beat: () => { const c = songClock(); return c ? { i: c.i, id: game.songs[c.i], pos: c.pos, cue: c.cue, lead: c.lead, origin: c.origin, unreported: c.unreported, speaker: c.speaker, beat: lastBeat, bpm: c.doc && c.doc.bpm, title: c.doc && c.doc.title, set: game.set || 'night', leadState: heardBeat.state(c.i), raw: heardBeat.raw(c.i) } : null; },
       fxCount: () => fx.count,
       // (PD-3) the night look: the look, the palette, the light layer + a way to fire its effects down the real path (the preview + the E2E)
-      look: () => ({ look: skin.family, skin: skin.id, sk: game ? game.sk : null, dayWarm, pal: pal.id, paper: paper ? paper.id : null, light: !!light, lit: light ? light.effects + light.count : 0, size: light ? light.size : null, visible: els.light.style.visibility !== 'hidden', warm: warmPx === (board && board.px), crayonBusy: !!(board && board.fxBusy) }),
+      look: () => ({ look: skin.family, skin: skin.id, sk: game ? game.sk : null, dayWarm, pal: pal.id, paper: paper ? paper.id : null, light: !!light, lit: light ? light.effects + light.count : 0, size: light ? light.size : null, visible: els.light.style.visibility !== 'hidden', warm: warmPx === (board && board.px), crayonBusy: !!(board && board.fxBusy), arrow: arrow() }),
       freeze: ms => light && light.freeze(ms),
       fire: (kind, o = {}) => fireFx(kind, o),
     });

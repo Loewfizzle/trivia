@@ -166,6 +166,20 @@ export function creditedBy(queue, by, outAt) {
   return Object.values(queue).some(a => a && a.f === by && Number(a.at) >= from && Number(a.at) <= outAt);
 }
 
+/**
+ * PFIX-3 (FABLE REVIEW 2 — S12) — ONE CLEAR = ONE ATTACK, WHOEVER THE TARGET: an attack's key is `{sender}-{piece}` and it lives under its
+ * TARGET (prismq/{match}/{target}/{key} — create-only THERE). A refresh replays the piece and re-picks its target (auto-target moves), so the
+ * same key was new under a DIFFERENT opponent and one clear's rows landed on two players. Every phone mirrors the whole queue (`live.queues`
+ * — it is never trimmed during a match): has piece `i` of `sender` already made an attack, under ANY target? PURE. (A modified phone could
+ * still skip this — a rule-side ledger rides the next rules pass; an honest phone never doubles.)
+ */
+export function attackSent(queues, sender, i) {
+  if (!queues || typeof queues !== 'object' || !sender || !Number.isInteger(i)) return false;
+  const key = `${sender}-${i}`;
+  for (const q of Object.values(queues)) if (q && typeof q === 'object' && Object.prototype.hasOwnProperty.call(q, key)) return true;
+  return false;
+}
+
 /** PFIX-B (finding 7): the most junk a board takes into its queue — an attack that would take it past this is dropped (a flood can't bury) */
 export const QUEUE_MAX = 40;
 

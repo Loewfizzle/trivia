@@ -258,8 +258,12 @@ const neon = {
 const pixelUnit = px => Math.max(1, Math.round(px / PIXEL_GRID));
 const pixel = {
   id: 'pixel', name: 'ARCADE PIXEL', line: 'Chunky 8-bit pixels', look: 'night', unlock: null, family: 'neon', holiday: false,
+  // (PFIX-3 — K5: the callouts' arrow in the skin's own lettering — Press Start 2P has no "→": it fell back to a thin glyph of another font.
+  //  A skin's `arrow` = the mark its callouts use between "+5" and a name; none = "→")
+  arrow: '>',
   tokens: { ink: '#ffffff', sub: '#b8f1ff', panel: '#050716', line: '#35e6ff' },
-  lettering: 'pixel', sounds: { lock: 'blip', clear: 'chip', files: { lock: 'pixel-lock', clear: 'pixel-clear' } },
+  // (PFIX-3 — S13: `pitch` = the note of each PITCHED file, a pitch class 0 … 11 — the blip is a clear G; the sting is a chromatic sweep: none)
+  lettering: 'pixel', sounds: { lock: 'blip', clear: 'chip', files: { lock: 'pixel-lock', clear: 'pixel-clear' }, pitch: { lock: 7 } },
   variants: PIXEL_VARIANTS,
   sprite: (px, kind, t, v = 0) => pixelSprite(px, kind, t, v),
   fallV: (n, i) => (n * 3 + i) % PIXEL_VARIANTS,
@@ -304,7 +308,8 @@ const pixel = {
 const galaxy = {
   id: 'galaxy', name: 'GALAXY', line: 'Glowing nebula clouds', look: 'night', unlock: null, family: 'neon', holiday: false,
   tokens: { ink: '#ffffff', sub: '#cfd8f6', panel: '#07051a', line: '#dfe8ff' },
-  lettering: 'starlight', sounds: { lock: 'chime', clear: 'dust', files: { lock: 'galaxy-lock', clear: 'galaxy-clear' } },
+  // (PFIX-3 — S13: the chime is a clear C; the stardust's shimmer a C major-seventh chord (C–E–G–B) under its noise — placed as a chord)
+  lettering: 'starlight', sounds: { lock: 'chime', clear: 'dust', files: { lock: 'galaxy-lock', clear: 'galaxy-clear' }, pitch: { lock: 0, clear: { pc: 0, chord: 'maj7' } } },
   variants: GALAXY_VARIANTS,
   sprite: (px, kind, t, v = 0) => galaxySprite(px, kind, t, v),
   fallV: (n, i) => (n * 5 + i) % GALAXY_VARIANTS,

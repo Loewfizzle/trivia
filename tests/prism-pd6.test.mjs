@@ -11,7 +11,7 @@ test('THE BOARD KICK: a Web Animation on the board (+ the night light), transfor
   const fn = v.slice(v.indexOf('function kick()'), v.indexOf('function bump('));
   assert.match(fn, /if \(reduced\(\) \|\|/, 'OFF under Reduced effects + prefers-reduced-motion (reduced() = both)');
   assert.match(fn, /els\.boardWrap/); assert.match(fn, /skin\.light && els\.light/, 'the light layer moves with the board (SKINS 1: a skin with a light layer — the night)');
-  assert.match(fn, /\.animate\(KICK, \{ duration: 120 \}\)/, '~0.1 s');
+  assert.match(fn, /\.animate\(KICK, \{ duration: 120, composite: 'add' \}\)/, '~0.1 s — ADDED to the board\'s own motion (PFIX-3 — K1: as a replacing animation it hid the big clear\'s pulse, which then popped in one frame when the kick ended)');
   const kf = v.slice(v.indexOf('const KICK = ['), v.indexOf('let kicks'));
   assert.doesNotMatch(kf.replace(/transform/g, '').replace(/easing|offset/g, ''), /[a-z]+:\s*'(?!translateY|cubic|ease)/i, 'transform only');
   assert.match(v, /const KICK_PT = 2\.5;/, 'a 2–3 pt dip');

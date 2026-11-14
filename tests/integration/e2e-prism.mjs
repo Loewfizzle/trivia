@@ -592,8 +592,20 @@ try {
   // switches smooth (no frame over 100 ms); THE PAPER = the host's deal, the SAME page on every phone of the match
   {
     const setLook = l => A.evaluate(v => { localStorage.setItem('ns:look', v); window.dispatchEvent(new CustomEvent('ns-look', { detail: v })); }, l);
+    // (PFIX-3 — K6, FABLE REVIEW 2: since the night rotation `look === 'neon'` is the night FAMILY — true for ARCADE PIXEL + GALAXY too, which
+    //  have no light layer — and the room's first counter decides the skin: this check was red two full runs in three. The night skin is
+    //  PINNED on this phone: first a PAGE skin (ARCADE PIXEL: no light layer, its own clear on the board), then NEON for the light checks.)
+    const pinNight = id => A.evaluate(v => import('/js/audio/settings.js').then(m => m.updateSettings({ prismSkinNight: v })), id);
+    await pinNight('pixel');
     await setLook('night');
-    await waitFor(A, () => document.body.dataset.look === 'night' && window.__prism.look().look === 'neon', 'the night look');
+    await waitFor(A, () => document.body.dataset.look === 'night' && window.__prism.look().skin === 'pixel', 'the night look — ARCADE PIXEL pinned');
+    await P(A, 'window.__prism.fire("clear", { lines: 4, combo: 2 })');
+    await sleep(120);
+    const px = await P(A, 'window.__prism.look()');
+    ok(px.look === 'neon' && px.skin === 'pixel' && !px.visible && px.lit === 0, `NIGHT LOOK, a PAGE skin (ARCADE PIXEL pinned): the night family with NO light layer — its clear is its own (${JSON.stringify({ look: px.look, skin: px.skin, light: px.visible, lit: px.lit })})`);
+    await sleep(700);
+    await pinNight('neon');
+    await waitFor(A, () => document.body.dataset.look === 'night' && window.__prism.look().skin === 'neon' && window.__prism.look().light, 'the night look — NEON pinned');
     const n0 = await P(A, 'window.__prism.look()');
     const dom = await A.evaluate(() => ({ look: document.querySelector('.pd').dataset.look, edge: getComputedStyle(document.querySelector('.pd')).getPropertyValue('--pd-edge').trim(), canvas: !!document.querySelector('.pd-light') }));
     await P(A, 'window.__prism.fire("slam")');
@@ -698,6 +710,11 @@ try {
   const skills = [0.85, 0.8, 0.98, 0.7, 0.6, 0.75, 0.65, 0.55];
   // human-ish pace (a few moves a second), so the battle lasts long enough to test knockouts and calls
   for (const i of alive()) await P(pages[i], `window.__prism.bot({ skill: ${skills[i]}, every: ${i === 0 ? 160 : 220 + i * 15}, seed: ${i + 1} })`);
+  // (PFIX-3 — FABLE REVIEW 2, a test assumption: the DISCONNECT check below needs the HOST still in at its kill, but the host is the fastest
+  //  bot — everyone's hit-back aims at her, and in 3 of 12 saved full runs she had ALREADY topped out (a real KO has no `gone`: red 0.1 s
+  //  after the new host took over). Her stack is kept low from here until that kill — she plays on, she just can't be buried.)
+  const hKeep = await hostIdx();
+  await P(pages[hKeep], `(async () => { const E = await import('/js/games/prism/engine.js'); window.__keepAlive = setInterval(() => { const e = window.__prism && window.__prism.engine(); if (e && !e.over && E.stackHeight(e) + E.pendingTotal(e) > 9) { e.cells.fill(0); e.pending.length = 0; } }, 200); })()`);
   // AUTO-TARGET (PD-2): a living opponent with no button — and whoever hits you is who you hit back
   await sleep(9000);
   const tgt = await P(pages[1], 'window.__prism.target()');
@@ -781,6 +798,7 @@ try {
     const watchI = alive().find(i => i !== hk && i !== awayV);
     if (awayV != null && gNow.phase === 'play') awayP = awayCheck(awayV, watchI);
   }
+  { const pre = await game(anyPage()); ok(!(pre.out && pre.out[uids[hk]]) && pre.phase === 'play', `DISCONNECT: ${NAMES[hk]} (the host) is still IN at the kill — the 30-s rule is the only way out`); }
   await pages[hk].close();
   dead.add(hk);
   await waitFor(anyPage(), (s, old) => s.meta.hostId && s.meta.hostId !== old, 'new host', 40000, uids[hk]);
