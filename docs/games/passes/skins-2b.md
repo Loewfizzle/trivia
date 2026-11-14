@@ -188,3 +188,8 @@ Share: `js/daily/share.js` (the three painters, INK, RHYTHM) · `share-today.js`
 `tests/prism-skins-2b.test.mjs`, `city-covered.test.mjs`, `share-rhythm.test.mjs` (rewritten); tools `share-same.mjs`, `prism-tier-probe.mjs`,
 `prism-glance.html?look=night`, `prism-shots.mjs SETS=nskins,nglance`, `prism-sfx-level.mjs SKINS=`, `prism-sfx-probe.mjs` (+ assets).
 PRISM's preload graph: 52 modules / 553 KB → 57 modules / 614 KB (the budget: 1.5 MB). THE BOOT PRELOAD: 307 modules (unchanged).
+
+## The cloud (the ONE push — `52b660dc`, the harbor tag; not re-run)
+- **tests: GREEN** (7m17s — unit + the whole-match simulations; rules + /api + smoke).
+- **harbor: GREEN — 15 of 15 jobs** (11m2s: perf · lobbyfix · legend · wild · show · lobbyfix2 · audio · street · windows · lobby · room2 · city ·
+  models · speed · holiday). None of the known city timing checks tripped this run.
