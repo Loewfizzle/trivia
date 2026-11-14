@@ -8,7 +8,21 @@ export const TICKET_ART = {
   password: tube('<path d="M6.6 20.6V4.6c0-.6.5-1.1 1.1-1.1h8.6c.6 0 1.1.5 1.1 1.1v16"/><circle cx="12" cy="10.6" r="1.6"/><path d="M12 12.2v3"/><path d="M4 20.6h16"/>'),
   coastclear: tube('<path d="M9.6 20.6l1.1-10.4h2.6l1.1 10.4"/><path d="M10 10.2h4M10.5 7.7h3l-.3-2.6h-2.4z"/><path d="M14.6 6.1l5.6-2.2M14.6 7.6l5.8 1"/><path d="M3.6 20.6c2.2-1.3 4.4-1.3 6.6 0s4.4 1.3 6.6 0 2.4-1 3.6-.6"/>'),
   star: tube('<path d="M12 3.6l2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.5l-5.1 2.8 1.1-5.7-4.3-4 5.8-.7z"/>'),
+  // THE DROP B — THE DROP's prism (PRISM DROP's own mark, small): a white beam in, the prism in the ticket's ink, the light split OUT in three
+  // spectral tubes (red · green · blue — PRISM's mark colours; the `sp` strokes keep their own colours by day too)
+  drop: `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="t"><path d="M12 3.2l7.8 15.2H4.2z"/><path d="M0.4 14.8l7-2.4"/></g><g class="c"><path d="M12 3.2l7.8 15.2H4.2z"/><path d="M0.4 14.8l7-2.4"/></g>`
+    + `<g class="sp"><path d="M15.6 10.2l8-2.6" stroke="#ff5a6a"/><path d="M16.3 11.6h7.5" stroke="#4fe08a"/><path d="M17 13l6.8 2.8" stroke="#6aa8ff"/></g></svg>`,
 };
+/** THE DROP B — each ticket's INK by its key (the edge, the punched holes, the stub's art, the ADMITTED stamp) — night · day; a key not here = the
+ *  house pink. THE DROP = PRISM DROP's WHITE LIGHT (its theme accent — its ice blue would twin COAST CLEAR's cyan) + a spectral violet by day,
+ *  told apart at a glance by the prism's split beam. `stamp` = the stamp's own ink when it differs from the ticket's. */
+export const TICKET_INK = {
+  password: { night: '#ff5ec4', day: '#2f86ff' },
+  coastclear: { night: '#5fe1ff', day: '#0f86b0' },
+  drop: { night: '#eef1ff', day: '#6a3fd0', stamp: '#d9ccff' },
+};
+export const inkOf = (key, look = 'night') => { const k = TICKET_INK[key]; return k ? (look === 'day' ? k.day : k.night) : look === 'day' ? '#2f86ff' : '#ff6fc8'; };
+export const stampInkOf = (key, look = 'night') => { const k = TICKET_INK[key]; return k && k.stamp && look !== 'day' ? k.stamp : inkOf(key, look); };
 /** the art's PATHS alone (the share image draws them on its canvas through an SVG image) */
 export const TICKET_PATHS = Object.fromEntries(Object.entries(TICKET_ART).map(([k, v]) => [k, /<g class="t">(.*?)<\/g>/.exec(v)[1]]));
 

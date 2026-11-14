@@ -282,7 +282,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         if (v == null) return;
         mineScores[g] = v;
         // (BOARD 2.0 B — SHARE TODAY: the finished run's spoiler-free share inputs from the SERVER's record, only when asked — the share tap)
-        if (body.share) { let cart = null; try { cart = cartOf(g); } catch { /* not a judged daily */ } if (cart && cart.share) { try { const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day, now) : null]); const s = cart.share({ record, day, startedAt: s0, data }); if (s) shareOf[g] = s; } catch { /* the card falls back to the line */ } } }
+        if (body.share) { let cart = null; try { cart = cartOf(g); } catch { /* not a judged daily */ } if (cart && cart.share) { try { const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day, now) : null]); const s = await cart.share({ record, day, startedAt: s0, data, base, pid }); if (s) shareOf[g] = s; } catch { /* the card falls back to the line */ } } }
         if (await val(`${base}/x/${pid}`)) { gated[g] = true; return; }
         // THE EVERYONE LINE (DM2): where a COUNTED score stands — only once the day has BAND_MIN counting finishers (never a stranger's data)
         const [hist, n] = await Promise.all([val(`${base}/h`), val(`${base}/n`)]);

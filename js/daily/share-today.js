@@ -21,6 +21,10 @@ const FONT_D = 'Orbitron, "Chakra Petch", system-ui, sans-serif', FONT_U = '"Cha
 const SECTIONS = {
   password: { load: () => Promise.all([lazyImport(import('../games/password/share.js'), '../games/password/share.js'), lazyImport(import('../games/password/logic.js'), '../games/password/logic.js')]).then(([S, G]) => ({ S, input: s => ({ run: G.runFromShare(s) }), ok: s => !!G.runFromShare(s) })) },
   coastclear: { load: () => lazyImport(import('../games/coastclear/share.js'), '../games/coastclear/share.js').then(S => ({ S, input: s => ({ inputs: s }), ok: s => !!s })) },
+  // THE DROP B: its card / section from the server's spoiler-free inputs (the time, the lines, the final board with every junk row SOLID —
+  // api/_lib/drop.js#share) + PRISM DROP's board module (its mini — the tubes by night, the crayon by day)
+  drop: { load: () => Promise.all([lazyImport(import('../games/drop/share.js'), '../games/drop/share.js'), lazyImport(import('../games/prism/board.js'), '../games/prism/board.js')])
+    .then(([S, B]) => ({ S, input: s => ({ inputs: s, P: B }), ok: s => !!s && Number.isFinite(Number(s.t)) })) },
 };
 
 /** the streak flame (js/progress/flame-art.js — the one flame everywhere) as a bitmap */
@@ -52,7 +56,7 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
   const mods = {};
   await Promise.all(plan.sections.filter(s => s.own).map(async s => { try { mods[s.id] = await SECTIONS[s.id].load(); if (!mods[s.id].ok(share[s.id])) { delete mods[s.id]; s.own = false; } } catch { s.own = false; } }));
   // ONE daily finished → that daily's OWN card, exactly as it is (its own sign, foot and all)
-  if (plan.single && mods[plan.single]) { const M = mods[plan.single]; return M.S.renderShare({ ...M.input(share[plan.single]), look }); }
+  if (plan.single && mods[plan.single]) { const M = mods[plan.single]; return M.S.renderShare({ ...M.input(share[plan.single]), look }); }   // (THE DROP's is async — awaited by the caller)
   const { cv, c, W } = shareFrame({ bg0: L.bg0, bg1: L.bg1 }, look);
   const flame = streak > 0 ? await flameImage('lit', 160) : null;
   if (night) { const hz = c.createRadialGradient(W / 2, -60, 0, W / 2, -60, 720); hz.addColorStop(0, 'rgba(255,111,200,0.14)'); hz.addColorStop(1, 'rgba(255,111,200,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, 1350); }

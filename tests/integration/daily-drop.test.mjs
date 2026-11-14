@@ -101,6 +101,19 @@ test('A WHOLE RUN over /api: checkpoints → the final upload → finish = the r
   await rejects(P.send(), 409, 'finished');
 });
 
+test('THE DROP B — SHARE TODAY’s inputs (`today { share }`, the tap only): the finished run replayed once → the time, the lines + the final board with every junk row SOLID; nothing else', async () => {
+  const t = await D('dr-cal', { action: 'today', share: true }, NOW + 60e3 + 15 * 60e3);
+  const sh = t.share && t.share.drop;
+  assert.ok(sh, 'THE DROP’s share inputs');
+  assert.deepEqual(Object.keys(sh).sort(), ['b', 'day', 'ln', 't']);
+  const sc = t.mine.drop;
+  assert.equal(Math.round(sh.t / 100), Math.floor(sc / 1000), 'the time = the stored score’s'); assert.equal(sh.ln, sc % 1000, 'the lines');
+  assert.ok(/^[0-9]*$/.test(sh.b) && sh.b.length % 10 === 0 && sh.b.length <= 200, 'a board string');
+  assert.equal((sh.b.match(/.{10}/g) || []).filter(r => r.includes('8') && r.includes('0')).length, 0, 'no junk row keeps its hole');
+  const plain = await D('dr-cal', { action: 'today' }, NOW + 60e3 + 15 * 60e3 + 500);
+  assert.equal(plain.share, undefined, 'never without the tap');
+});
+
 test('A REFRESH: start again mid-run → the latest checkpoint + its log, paused (one of the 3); nothing but a resume while paused; RESUME → the run goes on', async () => {
   await ensure('dr-dee', 'DropDee');
   const s = await D('dr-dee', { action: 'start', game: 'drop' }, NOW + 2 * 60e3);

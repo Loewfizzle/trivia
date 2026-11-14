@@ -50,7 +50,7 @@ export const lineOf = (id, score) => { const m = META[id]; return m && typeof m.
 
 // ------------------------------------------------------------------------------------------------ the drawn pieces (no emoji, no pills)
 // (DFIX3 — THE PREMIUM TICKET: the art, the ADMITTED stamp + the serial live in js/daily/ticket-art.js, shared with SHARE TODAY's image)
-import { TICKET_ART, stampSvg, serialOf } from '../daily/ticket-art.js';
+import { TICKET_ART, TICKET_INK, stampSvg, serialOf } from '../daily/ticket-art.js';
 import { lazyImport } from '../ui/lazy-import.js';
 import { afterTap } from '../ui/tapwatch.js';
 export { TICKET_ART };
@@ -200,7 +200,7 @@ function openScreen(tab0) {
       act = h('span.dy-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' });
     } else info = h('div.dy-info', h('b.dy-name', d.name), h('span.dy-hook', d.hook || row.hook || row.tag || ''));
     if (st !== 'done') act = tubeButton(st === 'progress' ? 'RESUME' : 'PLAY', { kind: st === 'progress' ? 'secondary' : 'main', cls: 'dy-play', onClick: () => play(d.id) });
-    const ticket = h(`div.dy-ticket.is-${st}`, { dataset: { id: d.id }, style: { '--tk0': themeInk(d.id) } },
+    const ticket = h(`div.dy-ticket.is-${st}`, { dataset: { id: d.id }, style: inkVars(d.id) },
       h('div.dy-stub', art, serial), info, h('div.dy-act', act), h('i.dy-foil', { 'aria-hidden': 'true' }));
     return h('div.dy-tkw', ticket);
   }
@@ -236,7 +236,7 @@ function openScreen(tab0) {
       const more = cut.hidden.length ? h('button.dy-more', { type: 'button', onclick: () => { sfx('select'); showAll[d.id] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
       const still = stillToPlay(waiting);
       if (tb.rows.length > 1) lonely = false;
-      els.body.append(h('section.dy-sec', { style: { '--tk0': themeInk(d.id) }, dataset: { id: d.id } },
+      els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } },
         h('h2.dy-sec-h', h('span.dy-sec-art', { html: TICKET_ART[d.ticket] || TICKET_ART.star }), d.name),
         h('h3.dy-sub', 'YOUR TABLE'),
         cut.shown.length ? list : null,
@@ -268,7 +268,7 @@ function openScreen(tab0) {
             ln.score ? h('span.lb-pts', h('span.lb-score.dy-cscore', ln.score, h('small.dy-unit', ln.unit))) : null))); })) : null;
       const more = cut.hidden.length ? h('button.dy-more', { type: 'button', onclick: () => { sfx('select'); showAll[`all:${d.id}`] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
       const ev = h('ol.board-list.is-strips.dy-cards.dy-every-list', { 'aria-label': `${d.name} — everyone, all time` });
-      const sec = h('section.dy-sec', { style: { '--tk0': themeInk(d.id) }, dataset: { id: d.id } },
+      const sec = h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } },
         h('h2.dy-sec-h', h('span.dy-sec-art', { html: TICKET_ART[d.ticket] || TICKET_ART.star }), d.name),
         h('h3.dy-sub', 'YOUR TABLE · AVERAGE A DAY'),
         list || h('p.dy-quiet', pts.down ? 'The averages are resting. Try again in a minute.' : `Play ${d.name} to start your average — a player is ranked from ${MIN_DAYS} days.`),
@@ -354,10 +354,13 @@ function openScreen(tab0) {
 let pidMod = null;
 const pidNow = () => (pidMod ? pidMod.myPid() : null);
 const pidReady = lazyImport(import('../profile/me.js'), '../profile/me.js').then(m => { pidMod = m; }).catch(() => {});
-/** a daily's ink on the ticket (its theme accent) — THE PASSWORD pink, COAST CLEAR cyan, else the house pink */
 /** DFIX3 — the one hint at the foot of SCORES while no friend sits at any table (the house small-caps style) */
 export const FOOT_HINT = 'ADD FRIENDS BY THEIR NAME TAG — THEIR SCORES LAND HERE';
-const themeInk = id => ({ password: '#ff5ec4', coastclear: '#5fe1ff' })[id] || '#ff6fc8';
+/** a daily's ink on the ticket (its theme accent — THE DROP B: ONE per-id table, js/daily/ticket-art.js#TICKET_INK) — THE PASSWORD pink, COAST
+ *  CLEAR cyan, THE DROP PRISM's white light, else the house pink; the day inks + the stamp's own ink ride as CSS vars (css/daily.css) */
+const inkRow = id => TICKET_INK[(dailyRow(id) || {}).ticket || id] || TICKET_INK[id] || null;
+const themeInk = id => (inkRow(id) || {}).night || '#ff6fc8';
+const inkVars = id => { const k = inkRow(id) || {}; return { '--tk0': themeInk(id), ...(k.day ? { '--tkd': k.day } : {}), ...(k.stamp ? { '--tks': k.stamp } : {}) }; };
 
 /** PLAY / RESUME: a profile first (the dailies are official — /api counts them), then the run */
 async function play(id) {

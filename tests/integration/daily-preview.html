@@ -48,6 +48,9 @@ const D = [
   { id: 'password', name: 'THE PASSWORD', order: 1, ticket: 'password', lesson: false, better: 'low', hook: 'Two doors. Six guesses each.' },
   { id: 'coastclear', name: 'COAST CLEAR', order: 2, ticket: 'coastclear', lesson: true, better: 'low', hook: 'Slip past the searchlights.' },
 ];
+// THE DROP B — &drop=1: THE DROP's row as the third ticket (its states ride on each scripted state below: &dropst=play|progress|done)
+const DROP3 = q.get('drop') === '1';
+if (DROP3) D.push({ id: 'drop', name: 'THE DROP', order: 3, ticket: 'drop', lesson: true, better: 'high', hook: 'Same pieces. Same rows. Hold on.' });
 // the friends' cards (api/_lib/friends.js#cardOf's shape): a legendary (BEN), a rare (KIM), an uncommon with the 12-letter name (MAXIMILIANOS),
 // LOU's zebra UNAPPROVED → plain, RAY with no card → the Gilded plain strip, SAM a common
 const F = (pid, n, a, c, cd, x, extra = {}) => ({ pid, n, a, c, l: Math.max(1, Math.round(x / 220)), x, cd, es: null, g: null, tb: null, mn: null, ...extra });
@@ -85,6 +88,12 @@ if (big) {
   fin.forEach((p, i) => { pick.friends[p] = { password: { score: [2, 3, 3, 4, 4, 4, 4, 4, 6, 7][i] }, ...(i < 6 ? { coastclear: { score: 120 + i * 17 } } : {}) }; });
   pick.friends.P_lou = {}; pick.friends.P_sam = {};
   pick.mine = { password: 5, coastclear: 132 };
+}
+if (DROP3) {
+  // (the DROP's state: done = 5:12.4 · 17 lines (+ BEN 6:01.0 · 22, KIM 3:40.2 · 9 on the table); progress = RESUME; play = still to play)
+  const ds = q.get('dropst') || (pick.mine.password != null && pick.mine.coastclear != null ? 'done' : 'play');
+  if (ds === 'done') { pick.mine.drop = 3124017; for (const [p, v] of [['P_ben', 3610022], ['P_kim', 2202009]]) if (pick.friends[p]) pick.friends[p].drop = { score: v }; }
+  if (ds === 'progress') pick.started = { ...(pick.started || {}), drop: true };
 }
 if (q.get('solo') === '1') { window.__dyFriends = []; pick.friends = {}; }   // (DFIX3 — a table of one: you alone)
 const dailies = pick.extra ? [...D, { id: 'nightcap', name: 'THE NIGHTCAP', order: 3, ticket: 'star', lesson: false, better: 'high', hook: 'A third daily, plugged in by one row.' }] : D;
@@ -129,6 +138,8 @@ if (view === 'screen') {
   if (q.get('scope') === 'all') { await new Promise(r => setTimeout(r, 300)); const b = [...document.querySelectorAll('.dy-scope-b')].find(x => /ALL TIME/.test(x.textContent)); if (b) b.click(); await new Promise(r => setTimeout(r, 600)); }
   if (q.get('tab') === 'scores') { for (let i = 0; i < 100 && ![...document.querySelectorAll('.dy-cards')].every(l => l.dataset.strips); i++) await new Promise(r => setTimeout(r, 50)); }
 } else if (view === 'share') {
+  // (THE DROP B: a final board — three junk rows at its foot under the stack, their holes drawn SOLID by the share)
+  var DROP_BOARD = ['1100033300', '1105533340', '0605554440', '6600007770', '0600000700', '8888088888', '8808888888', '8888888088'].reverse().join('').padEnd(200, '0').slice(0, 200);
   // DFIX3 — THE SHARE IMAGE at real size (the preview's own stage; the fonts loaded first so the canvas draws them)
   await import('/js/screens/daily.js').then(m => m.dailySheet());
   try { await document.fonts.load('900 92px Orbitron'); await document.fonts.load('800 40px "Chakra Petch"'); await document.fonts.load('700 20px "JetBrains Mono"'); } catch { /* fine */ }
@@ -139,7 +150,7 @@ if (view === 'screen') {
   // (PD-4's Group 0: &pw=locked = a LOCKED OUT run — the back room's six rows, the tallest grid a section must fit)
   if (q.get('pw') === 'locked') pwRun.doors = [{ state: 'solved', marks: [[M, N, M, M, H], [H, H, H, H, H]], n: 2 }, { state: 'failed', marks: Array.from({ length: 6 }, () => [N, M, H, M, M]), n: 6 }];
   const ccIn = q.get('cc') === 'caught' ? { head: 'CAUGHT', caught: true, time: null, line: '3 SPOTTED · 1:58', spots: 3, dayNo: 9, site: 'neonspeakeasy.com' } : { head: 'COAST CLEAR', caught: false, time: '2:12', line: '1 SPOTTED · +30 s', spots: 1, dayNo: 9, site: 'neonspeakeasy.com' };
-  const share = { password: pwRun, coastclear: ccIn };
+  const share = { password: pwRun, coastclear: ccIn, ...(DROP3 ? { drop: { t: 312400, ln: 17, b: DROP_BOARD, day: 'd20261108' } } : {}) };
   const { drawToday } = await import(q.get('old') === '1' ? '/tests/integration/_old/share-today.js' : '/js/daily/share-today.js');
   const { lineOf } = await import('/js/screens/daily.js');
   const metas = {}; for (const d of dailies) metas[d.id] = await import(`/js/games/${d.id}/meta.js`).catch(() => ({}));

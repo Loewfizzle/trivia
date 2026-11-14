@@ -111,8 +111,7 @@ body:not([data-look="day"]) .dy-tkw::before { box-shadow: 0 10px 22px -8px var(-
   border-radius: 12px; overflow: hidden;
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tk) 60%, transparent), inset 0 1px 0 var(--dy-paper-hi); }
 body[data-look="day"] .dy-ticket { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tk) 45%, #c9b89a), inset 0 1px 0 var(--dy-paper-hi); }
-body[data-look="day"] .dy-ticket, body[data-look="day"] .dy-sec, body[data-look="day"] .dy-tkw { --tk: #2f86ff; }
-body[data-look="day"] .dy-ticket[data-id="coastclear"], body[data-look="day"] .dy-tkw:has(.dy-ticket[data-id="coastclear"]) { --tk: #0f86b0; }
+body[data-look="day"] .dy-ticket, body[data-look="day"] .dy-sec, body[data-look="day"] .dy-tkw { --tk: var(--tkd, #2f86ff); }   /* (THE DROP B: each daily's day ink from ticket-art.js#TICKET_INK) */
 /* the notches' own outline: a ring round each cut (its inner half masked away — only the arc inside the ticket shows) */
 .dy-ticket::before, .dy-ticket::after { content: ''; position: absolute; top: 50%; width: calc(var(--nr) * 2 + 3px); height: calc(var(--nr) * 2 + 3px); margin-top: calc(var(--nr) * -1 - 1.5px);
   border-radius: 50%; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tk) 60%, transparent); pointer-events: none; z-index: 2; }
@@ -139,8 +138,10 @@ body[data-look="day"] .dy-overlay .btn { --tube-in: rgba(255, 255, 255, 0.9); co
 body[data-look="day"] .dy-overlay .btn-primary { --tc: #2f86ff; --tcore: #2f86ff; --tg: rgba(47, 134, 255, 0.5); --tg2: rgba(47, 134, 255, 0.22); }
 body[data-look="day"] .dy-overlay .btn-ghost { --tc: #5a7aa8; --tcore: #5a7aa8; --tg: rgba(90, 122, 168, 0.3); --tg2: transparent; }
 /* THE STAMP: ADMITTED — a drawn rubber stamp in the daily's ink, tilted; its ink a touch translucent like a real one */
-.dy-stamp { position: relative; display: block; width: 86px; height: 32px; margin-right: 0; color: var(--tk); transform: rotate(-8deg); transform-origin: 50% 50%; opacity: 0.96; }
+.dy-stamp { position: relative; display: block; width: 86px; height: 32px; margin-right: 0; color: var(--tks, var(--tk)); transform: rotate(-8deg); transform-origin: 50% 50%; opacity: 0.96; }
 body[data-look="day"] .dy-stamp { color: color-mix(in srgb, var(--tk) 82%, #14284a); }
+/* THE DROP B — the prism's split light: three spectral tubes that keep their own colours (the art's glow round them at night) */
+.dy-art .sp, .dy-sec-art .sp { stroke-width: 1.5; }
 .dy-stamp-svg { display: block; width: 100%; height: 100%; overflow: visible; }
 body:not([data-look="day"]) .dy-stamp-svg { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--tk) 45%, transparent)); }
 /* the ink spread under a stamp coming down (its own layer — opacity only) */

@@ -15,7 +15,9 @@
 import { h } from '../../ui/dom.js';
 import { tubeButton } from '../../ui/components.js';
 import { createView as createPrismView } from '../prism/view.js';
-import { createDropRun, input, stepTo, replay, TICK, COUNT_MS, dropLine, scoreOf, ticksOf } from '../prism/drop.js';
+import { createDropRun, input, stepTo, replay, TICK, COUNT_MS, dropLine, scoreOf, ticksOf, tenthsOf, linesOf } from '../prism/drop.js';
+import { boardString } from '../prism/engine.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 import { CK_MS, SLOW_TOL_MS, MAX_TAIL_MS } from '../prism/drop-judge.js';
 import { dropKey } from '../prism/bot.js';
 import { rngFrom, hashString } from '../../core/rng.js';
@@ -228,6 +230,8 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
       const sc = result && result.score != null ? result.score : scoreOf(run.k * TICK, run.eng.lines);
       kids.push(h('b.dr-title', 'THE DROP'), h('span.dr-line', dropLine(sc)));
       kids.push(h('small.dr-sub', refused ? 'THIS RUN COULDN’T BE CHECKED' : finished ? (result && result.counted === false ? 'COUNTS FROM TOMORROW' : 'SCORED') : 'SENDING YOUR RUN…'));
+      // THE DROP B — SHARE: SHARE YOUR RUN's card with THE DROP's final board (every junk row SOLID — js/games/drop/share.js), the time, the lines
+      if (finished && !refused) kids.push(tubeButton('SHARE', { kind: 'secondary', cls: 'dr-share', onClick: () => shareRun(sc) }));
     } else if (pausedAt != null) {
       // (THE DROP B: ONE line — PAUSED · 2 LEFT — for a tap, a hide and a refresh alike; a refresh adds where it came back; a room's pause is free)
       if (kind === 'r') kids.push(h('b.dr-title', 'YOUR ROOM STARTED A GAME'), h('small.dr-sub', 'THIS PAUSE IS FREE'));
@@ -245,6 +249,14 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     setTimeout(() => { el.remove(); if (els.hint === el) els.hint = null; }, 700);
     if (typeof onHint === 'function') { try { onHint(); } catch (e) { console.warn('[drop] hint', e); } }
   }
+  async function shareRun(sc) {
+    try {
+      const S = await lazyImport(import('./share.js'), './share.js');
+      const look = typeof document !== 'undefined' && document.body.dataset.look === 'day' ? 'day' : 'night';
+      shared = await S.shareDrop({ inputs: { t: tenthsOf(sc) * 100, ln: linesOf(sc), b: boardString(run.eng, 20), day: start.day }, look });
+    } catch (e) { console.warn('[drop] share', e); shared = 'failed'; }
+  }
+  let shared = null;
   function stop() {
     document.removeEventListener('visibilitychange', onVis);
     window.removeEventListener('pagehide', onHide);
@@ -269,6 +281,7 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     resume: () => resume(),
     hide: () => gone(),
     hint: () => !!(els.hint && !els.hint.classList.contains('is-gone')),
+    shared: () => shared,
     show: () => back(),
     send: () => send(),
     log: () => run.log,

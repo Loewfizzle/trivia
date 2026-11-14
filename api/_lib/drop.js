@@ -14,7 +14,9 @@
 import { ref, val } from './fb.js';
 import { dailySeed } from './dailies.js';   // (a cycle — dailies.js lists this cartridge; the seed is only read inside a call)
 import { act, begin, clockOf, judgeFinish, joinChunks, abandoned, abandon, CHUNK_MAX } from '../../js/games/prism/drop-judge.js';
-import { tenthsOf } from '../../js/games/prism/drop.js';
+import { tenthsOf, replay } from '../../js/games/prism/drop.js';
+import { boardString } from '../../js/games/prism/engine.js';
+import { dropInputs } from '../../js/games/drop/share.js';
 
 const SEEDS = new Map();
 /** THE DAY: its seed (an HMAC of THE DAILY SECRET — the same for everyone, memoised per warm function) */
@@ -67,6 +69,16 @@ export const DROP_DAILY = {
   /** THE PRUNE (daily-close.js#sweepRuns calls it for days 2 … KEEP_LOG_DAYS + 2 back; a marker `pr` makes it once): → the paths removed */
   prune: ({ day, back }) => pruneDay(day, back),
   abandon: ({ record, now }) => abandon(record, now),
+  /** THE DROP B — SHARE TODAY's inputs for a FINISHED run (the share tap only — `today { share }`): its log replayed ONCE to the record's end →
+   *  the time, the lines + the FINAL BOARD with every junk row drawn SOLID (share.js#solidJunk — the day's holes never leave the server) */
+  async share({ record, data, base, pid, day } = {}) {
+    if (!record || !record.e || !data || !base || !pid) return null;
+    const log = record.len ? joinChunks(await val(`${base}/l/${pid}`), record.len) : '';
+    if (log == null) return null;
+    const R = record.o === 'fin' ? replay(log, data.seed, { to: record.k, final: true }) : replay(log, data.seed, { cut: record.k });
+    if (!R.ok) return null;
+    return dropInputs({ t: R.t, ln: R.lines, b: boardString(R.run.eng, 20), day });
+  },
 };
 
 /** THE PRUNE's rules: the top PRUNE_KEEP runs of a day keep their record + log (the anti-cheat's look back) for KEEP_LOG_DAYS; the rest — a
