@@ -211,6 +211,11 @@ await H.run(async () => {
   await sleep(1000);
   const k1b = (await st(E.page)).k;
   ok(k1b > k1 && k1b - k1 < 120 * 3, `M1: RESUME goes on from the tap — no fast-forward through the pause (${((k1b - k1) / 120).toFixed(2)} s of play 1 s after RESUME; it was the whole pause)`);
+  // S4 — a SLOW answer no longer moves the run's clock back (it froze the board for the answer's delay, then lurched)
+  const s4 = await E.page.evaluate(() => { const o0 = window.__drop.off(), k0 = window.__drop.state().k; window.__drop.took({ now: Date.now() + o0 - 2500 }); return { o0, o1: window.__drop.off(), k0 }; });
+  await sleep(600);
+  const k4b = (await st(E.page)).k;
+  ok(s4.o1 === s4.o0 && k4b - s4.k0 > 40, `S4: an answer that took 2.5 s leaves the clock where it was (offset ${s4.o0} → ${s4.o1} ms) — the run keeps stepping (${k4b - s4.k0} ticks in 0.6 s; it stood still for 2.4 s)`);
   // M2 — the page hides while a checkpoint is uploading: paused, 27 s away, the run goes on
   await sleep(1500);
   await E.page.evaluate(() => { window.__drop.send(); });
@@ -246,9 +251,50 @@ await H.run(async () => {
   await sleep(2500);
   const s3b = await st(E.page), r3c = await recE();
   ok(!s3b.ended && !r3c.e && s3b.k > s3.k && s3b.k - s3.k < 120 * 5, `M3: the run goes on from the hide's tick (${((s3b.k - s3.k) / 120).toFixed(2)} s of play 2.5 s after RESUME)`);
-  await E.page.evaluate(() => window.__drop.bot({ every: 150, dumb: true }));
-  await waitFor(E.page, 'window.__drop.state().finished || !!window.__drop.state().refused', 'the third phone\'s run topped out + was scored', 90000);
-  const eE = await st(E.page), scE = await val(`dly/drop/${day}/r/${E.pid}`);
+  // S5 — THE FINISH NEVER GIVES UP: no signal as the run tops out → "SENDING YOUR RUN…" for as long as it takes (it used to stop after 6
+  // tries, ~21 s, for good); the signal back (`online`) → sent at once
+  await E.page.evaluate(() => { window.__drop.lose(true); window.__drop.bot({ every: 150, dumb: true }); });
+  await waitFor(E.page, 'window.__drop.state().ended', 'the third phone\'s run topped out (no signal)', 90000);
+  await sleep(25000);
+  const s5 = await st(E.page), c5 = await E.page.evaluate(() => document.querySelector('.dr-card').innerText.replace(/\s+/g, ' '));
+  ok(s5.ended && !s5.finished && !s5.refused && /SENDING YOUR RUN/.test(c5) && (await val(`dly/drop/${day}/r/${E.pid}`)) == null, `S5: 25 s with no signal — still trying, never given up (${c5})`);
+  const t5 = Date.now();
+  await E.page.evaluate(() => { window.__drop.lose(false); window.dispatchEvent(new Event('online')); });
+  await waitFor(E.page, 'window.__drop.state().finished || !!window.__drop.state().refused', 'the third phone\'s run was scored once the signal came back', 20000);
+  ok(Date.now() - t5 < 6000, `S5: the signal back → the finish goes at once (${Date.now() - t5} ms — not the back-off's 15 s)`);
+  const eE =await st(E.page), scE = await val(`dly/drop/${day}/r/${E.pid}`);
   ok(!eE.refused && eE.result && eE.result.score === scE && Math.floor(scE / 1000) === Math.round(eE.t / 100), `after a pause in flight, a hide in flight and a lost hide the whole run is scored (${scE})`);
   await E.ctx.close();
+
+  // ================================================================ 8. PFIX-3 — S3: A REFUSED FINISH IS NEVER A DEAD END
+  // (the hole FABLE REVIEW 2 made — here the stored log is simply taken away mid-run: the finish's replay cannot check the run → it is scored
+  //  at the last point the store can prove (nothing → the floor), marked, and the phone SAYS so: the end card, TODAY's ticket, a re-open)
+  const F = await openApp('drf', 'HOLEY');
+  await ref(`ppriv/${F.pid}/at`).set(WEEK_AGO);
+  await ref('/').update(Object.fromEntries(['s', 'r', 'p', 'l', 'x'].map(k => [`dly/drop/${day}/${k}/${F.pid}`, null])));
+  await openRun(F.page);
+  await waitFor(F.page, '!!window.__drop && window.__drop.state().k > 300', 'the fourth phone\'s run', 30000);
+  await F.page.evaluate(() => window.__drop.bot({ every: 110 }));
+  await sleep(3000);
+  await F.page.evaluate(() => { window.__drop.send(); });
+  await waitFor(F.page, 'window.__drop.state().sent > 0', 'a checkpoint landed', 8000);
+  await ref(`dly/drop/${day}/l/${F.pid}`).remove();
+  await F.page.evaluate(() => window.__drop.bot({ every: 150, dumb: true }));
+  await waitFor(F.page, 'window.__drop.state().finished || (!!window.__drop.state().refused && !window.__drop.state().ended)', 'the run with a hole in its log ended + was answered', 90000);
+  const sF = await st(F.page), rF = await val(`dly/drop/${day}/r/${F.pid}`), pF = await val(`dly/drop/${day}/p/${F.pid}`);
+  ok(sF.finished && sF.result && sF.result.rf === true && rF === sF.result.score && rF != null, `S3: the finish is ANSWERED with a score (${rF}) — no 422, nothing left "in progress"`);
+  ok(pF.rf === 'log_missing' && Math.floor(rF / 1000) === 0, `S3: the record is marked (${pF.rf}); with nothing of the log provable the score is the floor (${rF})`);
+  const cF = await F.page.evaluate(() => document.querySelector('.dr-card').innerText.replace(/\s+/g, ' '));
+  ok(/THIS RUN COULDN’T BE CHECKED/.test(cF) && !/SENDING/.test(cF) && !/SHARE/.test(cF), `S3: the end card says so (${cF})`);
+  await sizes(F.page, 'drop-08-unchecked');
+  await F.page.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen' } })));
+  await waitFor(F.page, `!!document.querySelector('.dy-ticket[data-id="drop"].is-done')`, 'TODAY: THE DROP done (never RESUME)', 15000);
+  const tF = await F.page.evaluate(() => document.querySelector('.dy-ticket[data-id="drop"]').innerText.replace(/\s+/g, ' '));
+  ok(/THIS RUN COULDN’T BE CHECKED/.test(tF) && !/RESUME/.test(tF), `S3: TODAY's ticket: ${tF}`);
+  await sizes(F.page, 'drop-08b-ticket');
+  await openRun(F.page);
+  await waitFor(F.page, `!!document.querySelector('.dr-done')`, 'the re-opened run', 15000);
+  const dF = await F.page.evaluate(() => document.querySelector('.dr-done').innerText.replace(/\s+/g, ' '));
+  ok(/TODAY’S DROP IS DONE/.test(dF) && /THIS RUN COULDN’T BE CHECKED/.test(dF), `S3: re-opened: ${dF} (never "SENDING YOUR RUN…")`);
+  await F.ctx.close();
 });

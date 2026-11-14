@@ -13,7 +13,7 @@
 //   default deny). Registered by dailies.js like the others: THE GO-LIVE SWITCH + its row's `on` (OFF in THE DROP A) or DAILY_TEST=1.
 import { ref, val } from './fb.js';
 import { dailySeed } from './dailies.js';   // (a cycle — dailies.js lists this cartridge; the seed is only read inside a call)
-import { act, begin, clockOf, judgeFinish, joinChunks, abandoned, abandon, storable, chunkKey, CHUNK_MAX } from '../../js/games/prism/drop-judge.js';
+import { act, begin, clockOf, judgeFinish, joinChunks, joinPrefix, rescueFinish, abandoned, abandon, storable, chunkKey, CHUNK_MAX } from '../../js/games/prism/drop-judge.js';
 import { tenthsOf, replay } from '../../js/games/prism/drop.js';
 import { boardString } from '../../js/games/prism/engine.js';
 import { dropInputs } from '../../js/games/drop/share.js';
@@ -55,7 +55,7 @@ export const DROP_DAILY = {
   async resume({ record, data, now, base, pid }) {
     if (!record) return { seed: data && data.seed, fresh: true };
     const log = record.len ? joinChunks(await val(`${base}/l/${pid}`), record.len) : '';
-    return { seed: data && data.seed, log: log || '', k: record.k, len: record.len, t: record.t, ...clockOf(record, now), ...(record.e ? { e: 1, o: record.o } : {}), ...(record.pz && record.pz.rf && record.pz.at != null ? { refresh: 1 } : {}) };
+    return { seed: data && data.seed, log: log || '', k: record.k, len: record.len, t: record.t, ...clockOf(record, now), ...(record.e ? { e: 1, o: record.o } : {}), ...(record.rf ? { rf: 1 } : {}), ...(record.pz && record.pz.rf && record.pz.at != null ? { refresh: 1 } : {}) };
   },
   act: ({ action, body, record, now, data, room = false }) => act({ action, body, record, now, seed: data && data.seed, room }),
   /** the score from the server's own record + the WHOLE log replayed — the phone's claim is never read; null = refused */
@@ -67,6 +67,13 @@ export const DROP_DAILY = {
     if (F.refused) { console.warn('drop finish refused', F.refused); return null; }
     return F.score;
   },
+  /** PFIX-3 (FABLE REVIEW 2 — S3) — A REFUSED FINISH IS NEVER A DEAD END: the run scored at the LAST POINT its stored log can prove (or the
+   *  floor) — drop-judge.js#rescueFinish; api/daily.js#finishRun marks the record (`rf` the reason, `rk` the tick) + reports it to /admin */
+  async rescue({ record, data, base, pid } = {}) {
+    if (!record || !record.e || !data || !base || !pid) return null;
+    const R = rescueFinish(record, await val(`${base}/l/${pid}`), { seed: data.seed });
+    return { score: R.score, why: R.why || 'refused', mark: { rf: String(R.why || 'refused').slice(0, 24), rk: R.k }, note: `${record.o} · ${record.len} chars · tick ${record.k} → scored at tick ${R.k}` };
+  },
   /** an unfinished run that can never come back → its record ENDED at the last checkpoint (the next call / THE DAY'S CLOSE scores it) */
   abandoned: ({ record, now }) => abandoned(record, now),
   /** THE PRUNE (daily-close.js#sweepRuns calls it for days 2 … KEEP_LOG_DAYS + 2 back; a marker `pr` makes it once): → the paths removed */
@@ -76,9 +83,11 @@ export const DROP_DAILY = {
    *  the time, the lines + the FINAL BOARD with every junk row drawn SOLID (share.js#solidJunk — the day's holes never leave the server) */
   async share({ record, data, base, pid, day } = {}) {
     if (!record || !record.e || !data || !base || !pid) return null;
-    const log = record.len ? joinChunks(await val(`${base}/l/${pid}`), record.len) : '';
+    // (PFIX-3: a run the finish could not check — `rf` — shows the board at the point it was scored at: `rk`)
+    const chunks = record.len ? await val(`${base}/l/${pid}`) : null;
+    const log = !record.len ? '' : record.rf ? joinPrefix(chunks, record.len).replace(/\d+$/, '') : joinChunks(chunks, record.len);
     if (log == null) return null;
-    const R = record.o === 'fin' ? replay(log, data.seed, { to: record.k, final: true }) : replay(log, data.seed, { cut: record.k });
+    const R = record.rf ? replay(log, data.seed, { cut: record.rk || 0 }) : record.o === 'fin' ? replay(log, data.seed, { to: record.k, final: true }) : replay(log, data.seed, { cut: record.k });
     if (!R.ok) return null;
     return dropInputs({ t: R.t, ln: R.lines, b: boardString(R.run.eng, 20), day });
   },

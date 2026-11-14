@@ -205,3 +205,20 @@ test('DFIX2 — FABLE REVIEW #2 finding 1: a run that crossed 4 am finishes on Y
   assert.equal(v.dl.sb, 3);
   assert.deepEqual(Object.keys(v.dl.days).sort(), [A, B], 'only the two newest days are kept');
 });
+
+test('PFIX-3 — N4 (FABLE REVIEW 2): a run settled TWO DAYS LATE keeps its own day — the step no longer throws, the two newer days stay untouched', () => {
+  const now = Date.UTC(2026, 10, 12, 20, 0, 0);
+  // two newer days already hold finishes (the 11th + the 12th) …
+  let s = dailyStep(null, { game: 'fake', day: 'd20261111', now: now - 864e5, hourET: 12 }).next;
+  s = dailyStep(s, { game: 'fake', day: 'd20261112', now, hourET: 12 }).next;
+  assert.deepEqual(Object.keys(s.dl.days).sort(), ['d20261111', 'd20261112']);
+  // … then the 10th's run is settled (the old code deleted the 10th's fresh entry as "older than the two newest" and read D.x of undefined)
+  let r = null;
+  assert.doesNotThrow(() => { r = dailyStep(s, { game: 'fakelow', day: 'd20261110', now: now + 60e3, hourET: 12 }); });
+  assert.ok(r && !r.skip && r.xp && r.xp.total > 0, 'the late run gets its streak / XP step');
+  assert.equal(r.next.dl.days.d20261110.g.fakelow, 1, 'its own day holds it');
+  assert.equal(r.next.dl.days.d20261111.g.fake, 1); assert.equal(r.next.dl.days.d20261112.g.fake, 1);
+  // the next normal finish trims back to the two newest (+ its own)
+  const t = dailyStep(r.next, { game: 'fakelow', day: 'd20261112', now: now + 120e3, hourET: 12 }).next;
+  assert.deepEqual(Object.keys(t.dl.days).sort(), ['d20261111', 'd20261112']);
+});

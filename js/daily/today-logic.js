@@ -12,6 +12,8 @@
 import { dayNum, dayOf } from '../core/streak.js';
 
 export const COUNTS_FROM_TOMORROW = 'YOUR SCORE COUNTS FROM TOMORROW';
+/** PFIX-3: a run whose finish the server could not check (scored at the last point it could prove) — the ticket + the run's end card */
+export const UNCHECKED = 'THIS RUN COULDN’T BE CHECKED';
 export const ROOM_BANNER = 'GAME STARTING · YOUR DAILY IS SAVED';
 export const RESUME_CHIP = 'RESUME YOUR DAILY';
 export const MAX_ROWS = 6;

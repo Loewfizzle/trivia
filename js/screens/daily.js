@@ -22,7 +22,7 @@ import { streakDay } from '../core/streak.js';
 import { dailyRow } from '../core/daily.js';
 import { msToTurn, fmtCountdown } from '../daily/clock.js';
 import { loadToday, todayNow, onToday, markFinished, markStarted, markLesson, heldRun, holdRun, dropHeld, turnNow, staleToday } from '../daily/today.js';
-import { rowState, sweepState, tableFor, everyoneLine, ordinal, tableCut, cardRows, stillToPlay, allTimeRows, allTimeLine, COUNTS_FROM_TOMORROW, ROOM_BANNER } from '../daily/today-logic.js';
+import { rowState, sweepState, tableFor, everyoneLine, ordinal, tableCut, cardRows, stillToPlay, allTimeRows, allTimeLine, COUNTS_FROM_TOMORROW, UNCHECKED, ROOM_BANNER } from '../daily/today-logic.js';
 import { MIN_DAYS } from '../core/daily-points.js';
 import { syncMidFlag, wantFlag } from '../daily/room-flag.js';
 import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
@@ -195,7 +195,7 @@ function openScreen(tab0) {
       // DONE: the result where the hook was (the score + YOUR TABLE's place, or the everyone line), the ADMITTED stamp on the right
       const tb = tableFor(t, d.id, { names: names(), me: me(), better: d.better });
       const gated = !!(t.gated && t.gated[d.id]);
-      const sub = gated ? COUNTS_FROM_TOMORROW : tb.line || everyoneLine(t.stand && t.stand[d.id]) || 'DONE FOR TODAY';
+      const sub = gated ? COUNTS_FROM_TOMORROW : t.rf && t.rf[d.id] ? UNCHECKED : tb.line || everyoneLine(t.stand && t.stand[d.id]) || 'DONE FOR TODAY';
       info = h('div.dy-info', h('b.dy-name', d.name), h('span.dy-result', lineOf(d.id, t.mine[d.id])), h('small.dy-rank', sub));
       act = h('span.dy-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' });
     } else info = h('div.dy-info', h('b.dy-name', d.name), h('span.dy-hook', d.hook || row.hook || row.tag || ''));

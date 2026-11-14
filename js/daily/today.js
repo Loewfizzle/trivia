@@ -33,6 +33,7 @@ export function loadToday({ fresh = false } = {}) {
 export function markFinished(id, score, extra = {}) {
   if (cache) {
     cache = { ...cache, mine: { ...(cache.mine || {}), [id]: score }, started: { ...(cache.started || {}), [id]: false },
+      ...(extra.rf ? { rf: { ...(cache.rf || {}), [id]: true } } : {}),   // (PFIX-3: a finish the server could not check — the ticket says so)
       ...(extra.counted === false ? { gated: { ...(cache.gated || {}), [id]: true }, countsFrom: extra.countsFrom || cache.countsFrom } : {}) };
     tell();
   }

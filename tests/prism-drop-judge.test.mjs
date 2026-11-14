@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createDropRun, input, stepTo, replay, TICK, COUNT_MS, scoreOf } from '../js/games/prism/drop.js';
-import { act, begin, upload, judgeFinish, joinChunks, abandoned, abandon, dueMs, clockOf, storable, chunkKey, isPaused, PAUSES, PAUSE_MS, CK_MS, SLOW_TOL_MS, MAX_TAIL_MS } from '../js/games/prism/drop-judge.js';
+import { act, begin, upload, judgeFinish, joinChunks, joinPrefix, rescueFinish, clockOffset, OFF_RESET_MS, abandoned, abandon, dueMs, clockOf, storable, chunkKey, isPaused, PAUSES, PAUSE_MS, CK_MS, SLOW_TOL_MS, MAX_TAIL_MS } from '../js/games/prism/drop-judge.js';
 import { dropKey } from '../js/games/prism/bot.js';
 import { rngFrom } from '../js/core/rng.js';
 
@@ -383,4 +383,61 @@ test('PFIX-3 — THE CHUNK STORE (M2 order B, S1): keyed by offset + length — 
   assert.equal(storable({ ...S2.rec, pz: { n: 1, ms: 0, at: S2.now, kd: 'p' } }, body, { now: S2.now }), false, 'a paused run');
   S2.move('checkpoint', body);
   assert.equal(storable(S2.rec, body, { now: S2.now }), false, 'nothing new');
+});
+
+// ---------------------------------------------------------------- PFIX-3 Group B — THE EDGES (FABLE REVIEW 2: S3, S4)
+test('PFIX-3 — A REFUSED FINISH IS NEVER A DEAD END (S3): scored at the LAST POINT the stored log can prove — a forged tail, a hole, a claim the replay does not reach; nothing provable → the floor', () => {
+  // an honest run: the rescue is the finish (no reason)
+  const S0 = server(); const P0 = phone(S0);
+  S0.now = S0.rec.go; runFor(S0, P0, 40_000); S0.rec = abandon(S0.rec, S0.now);
+  const ok0 = rescueFinish(S0.rec, S0.chunks, { seed: SEED });
+  assert.equal(ok0.why, null); assert.equal(ok0.score, S0.finish().score);
+  // a forged lock in the LAST chunk: the finish refuses the run; the rescue keeps everything before the forgery
+  const S = server(); const P = phone(S);
+  S.now = S.rec.go; runFor(S, P, 35_000);
+  const t1 = S.rec.t, k1 = S.rec.k;
+  for (let i = 0; i < 200; i++) { S.now += 16; P.frame(); }
+  const b = P.body();
+  assert.ok(!S.move('checkpoint', { ...b, add: '1K' + b.add }).refused);
+  S.rec = abandon(S.rec, S.now);
+  assert.ok(S.finish().refused, 'the one replay refuses it');
+  const R = rescueFinish(S.rec, S.chunks, { seed: SEED });
+  assert.ok(R.why, `the reason (${R.why})`);
+  assert.ok(R.k >= k1 - 120 && R.k <= S.rec.k && R.t >= t1 - 1000, `scored where the log still checks out — just before the forged event (tick ${R.k}; the last good checkpoint ${k1})`);
+  assert.equal(R.score, scoreOf(R.t, R.lines));
+  // a HOLE (a chunk never stored): nothing past the last event the store holds is proven
+  const S2 = server(); const P2 = phone(S2);
+  S2.now = S2.rec.go;
+  runFor(S2, P2, 7000, { ck: false }); P2.send();
+  const tA = S2.rec.t;
+  for (let i = 0; i < 3; i++) { runFor(S2, P2, 5000, { ck: false }); P2.send(); }
+  S2.rec = abandon(S2.rec, S2.now);
+  const keys = Object.keys(S2.chunks).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  assert.ok(keys.length >= 3, `${keys.length} chunks`);
+  const lost = keys[1], firstLen = S2.chunks[keys[0]].length;
+  delete S2.chunks[lost];
+  assert.equal(joinChunks(S2.chunks, S2.rec.len), null);
+  assert.equal(joinPrefix(S2.chunks, S2.rec.len).length, firstLen, 'the join holds together up to the hole');
+  assert.equal(judgeFinish(S2.rec, joinChunks(S2.chunks, S2.rec.len), { seed: SEED }).refused, 'log_missing');
+  const R2 = rescueFinish(S2.rec, S2.chunks, { seed: SEED });
+  assert.equal(R2.why, 'log_missing');
+  assert.ok(R2.t > tA - 3000 && R2.t <= tA + TICK && R2.t < S2.rec.t - 5000, `scored at the last event before the hole (${(R2.t / 1000).toFixed(1)} s of a ${(S2.rec.t / 1000).toFixed(1)} s run; the first chunk reached ${(tA / 1000).toFixed(1)} s) — never the unproven rest`);
+  // nothing stored at all → the floor
+  const R3 = rescueFinish(S2.rec, {}, { seed: SEED });
+  assert.equal(R3.score, 0); assert.equal(R3.why, 'log_missing');
+  // a `fin` the replay does not reach (the run is NOT over at its tick): scored as the time at that tick
+  const S4 = server(); const P4 = phone(S4);
+  S4.now = S4.rec.go; runFor(S4, P4, 12_000, { ck: false });
+  S4.move('checkpoint', { ...P4.body(), fin: 1 });
+  assert.equal(S4.finish().refused, 'not_over');
+  const R4 = rescueFinish(S4.rec, S4.chunks, { seed: SEED });
+  assert.equal(R4.why, 'not_over'); assert.equal(R4.k, S4.rec.k);
+});
+
+test('PFIX-3 — THE PHONE\'s CLOCK (S4): the largest offset estimate wins (a slow answer never moves the run\'s clock back); a far smaller one (the phone\'s clock was moved) is believed', () => {
+  assert.equal(clockOffset(1000, 1200), 1200, 'a quicker answer: a better (larger) estimate');
+  assert.equal(clockOffset(1200, -1300), 1200, 'an answer that took 2.5 s: NOT believed — the board no longer freezes for it');
+  assert.equal(clockOffset(1200, 1200 - OFF_RESET_MS + 1), 1200);
+  assert.equal(clockOffset(1200, 1200 - OFF_RESET_MS - 1), 1200 - OFF_RESET_MS - 1, 'the phone\'s own clock jumped forward: re-based');
+  assert.equal(clockOffset(NaN, 5), 5); assert.equal(clockOffset(7, NaN), 7);
 });

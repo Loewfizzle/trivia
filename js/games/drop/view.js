@@ -23,7 +23,7 @@ import { createView as createPrismView } from '../prism/view.js';
 import { createDropRun, input, stepTo, replay, TICK, COUNT_MS, dropLine, scoreOf, ticksOf, tenthsOf, linesOf } from '../prism/drop.js';
 import { boardString } from '../prism/engine.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { CK_MS, SLOW_TOL_MS, MAX_TAIL_MS } from '../prism/drop-judge.js';
+import { CK_MS, SLOW_TOL_MS, MAX_TAIL_MS, clockOffset } from '../prism/drop-judge.js';
 import { dropKey } from '../prism/bot.js';
 import { rngFrom, hashString } from '../../core/rng.js';
 import { installTestHook, removeTestHook } from '../kit/hook.js';
@@ -35,6 +35,8 @@ import { settings, updateSettings } from '../../audio/settings.js';
 export const DROP_SONGS = 10;
 /** the one-time hint stays this long into the run at most (the first move takes it sooner) */
 export const HINT_MS = 6000;
+/** the finish's retries: backed off to this, and woken at once by `online` / the page showing — no limit while the card is open */
+export const FINISH_WAIT_MAX_MS = 15_000;
 
 export function createView() {
   let inner = null, drv = null, host = null, gone = false;
@@ -53,7 +55,7 @@ export function createView() {
     if (!judge) throw new Error('no judge');
     const r = await judge.start();
     if (gone) return;
-    if (r.done != null) { host.replaceChildren(doneCard(r.done)); return; }
+    if (r.done != null) { host.replaceChildren(doneCard(r.done, !!(r.run && r.run.rf))); return; }
     drv = createDriver({ judge, start: r, uid: state.uid, hint: state.hint || null, onHint: state.onHint || null });
     // THE DROP B — PRISM DROP's OWN SONGS: the DAY or the NIGHT set by this phone's look (a solo daily — the phone's own look decides), dealt from
     // the day (everyone's run hears the same order), on the view's synced player (the quick start, the heard-beat clock, the night gains) from
@@ -73,7 +75,8 @@ export function createView() {
   }
 }
 
-const doneCard = score => h('div.dr-done', h('b', 'TODAY’S DROP IS DONE'), h('span', dropLine(score)));
+const UNCHECKED = 'THIS RUN COULDN’T BE CHECKED';
+const doneCard = (score, rf = false) => h('div.dr-done', h('b', 'TODAY’S DROP IS DONE'), h('span', dropLine(score)), rf ? h('small.dr-sub', UNCHECKED) : null);
 
 /** the run's driver — what PRISM's view asks each frame (+ the pause control, the end) */
 export function createDriver({ judge, start, uid, hint = null, onHint = null }) {
@@ -117,7 +120,13 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
   judge.bind && judge.bind(D);
   function target() { return Math.floor((clock() - go - pm) / TICK); }
   const chunkNow = () => ({ at: sent, add: run.log.slice(sent), k: run.k, ...(run.over ? { fin: 1 } : {}) });
-  const took = r => { if (r && Number.isFinite(Number(r.now))) off = Number(r.now) - Date.now(); if (r && r.pm != null) pm = r.pm; if (r && r.go) go = r.go; if (r && r.left != null) left = r.left; };
+  // (PFIX-3 — FABLE REVIEW 2's S4: the offset to the server's clock keeps the LARGEST estimate seen — an answer's latency only ever makes one
+  //  too SMALL, and re-reading it from every answer moved the run's clock BACK by each slow answer's delay: the board froze, then lurched. A
+  //  far smaller one (the phone's own clock was set forward mid-run) is believed again — drop-judge.js#clockOffset.)
+  const took = r => {
+    if (r && Number.isFinite(Number(r.now))) off = clockOffset(off, Number(r.now) - Date.now());
+    if (r && r.pm != null) pm = r.pm; if (r && r.go) go = r.go; if (r && r.left != null) left = r.left;
+  };
 
   function frame() {
     if (ended || pausedAt != null || holding || hiddenNow()) return;   // (hidden: no frames on a phone anyway — the return decides)
@@ -142,26 +151,37 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
       if (r.e && !ended) { ended = true; finish(); }
       return r;
     } catch (e) {
-      if (e && e.status === 422) refused = e.code || 'refused';
+      if (e && e.status === 422 && e.code !== 'too_early') refused = e.code || 'refused';
       // (the server holds a pause this phone didn't know of — a pause call that landed after the phone gave up on it: shown, RESUME ends it)
       if (e && e.code === 'paused') { if (pausedAt == null) { pausedAt = clock(); kind = 'p'; away = false; } pzOk = true; paint(); }
       lastCk = clock();
       throw e;
     } finally { flights--; }
   }
+  /** THE END's upload + the finish. PFIX-3 (FABLE REVIEW 2 — S5): it NEVER gives up while the card is open — backed off to FINISH_WAIT_MAX_MS,
+   *  woken at once when the signal is back (`online`) or the page shows again; a refusal the server can't take back ends it (its own line). */
+  let finishing = false, wake = null, stopped = false;
   async function finish() {
+    if (finishing) return;
+    finishing = true;
     paint();
-    for (let i = 0; i < 6 && !finished; i++) {
+    for (let i = 0; !finished && !stopped; i++) {
       try {
         while (flights) await sleep(100);
-        if (sent < run.log.length || run.over) { const b = D.chunk(); const r = await judge.checkpoint(b).catch(e => (e && e.code === 'finished' ? { e: 1 } : Promise.reject(e))); if (r && !r.resync) sent = b.at + b.add.length; else if (r && r.resync) { sent = r.len; continue; } }
+        if (lost) throw Object.assign(new Error('lost'), { status: 0, code: 'offline' });
+        if (sent < run.log.length || run.over) { const b = D.chunk(); const r = await judge.checkpoint(b).catch(e => (e && (e.code === 'finished' || e.code === 'done') ? { e: 1 } : Promise.reject(e))); if (r && !r.resync) sent = Math.max(sent, b.at + b.add.length); else if (r && r.resync) { sent = r.len; continue; } }
         result = await judge.finish();
         finished = true;
+        refused = result && result.rf ? 'unchecked' : null;       // (the server scored it at the last point it could prove — it says so)
       } catch (e) {
-        if (e && e.status === 422) { refused = e.code || 'refused'; break; }
-        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+        // (a refusal the server can't take back ends it; `too_early` is not one — the run's last tick is a moment ahead of the server's clock:
+        //  the same upload is in bounds a moment later)
+        if (e && e.status === 422 && e.code !== 'too_early') { refused = e.code || 'refused'; break; }
+        await new Promise(r => { const t = setTimeout(r, Math.min(FINISH_WAIT_MAX_MS, 1000 * (i + 1))); wake = () => { clearTimeout(t); r(); }; });
+        wake = null;
       }
     }
+    finishing = false;
     paint();
   }
   /** PAUSE (the tap): frozen at once; the server's pause asked AFTER the upload in flight (M1) — never "paused" on no answer */
@@ -251,9 +271,9 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     if (left > 0) hidePause();
     else { hid = { at: clock(), k: run.k }; send('checkpoint', true, chunkNow()).catch(() => {}); }
   }
-  function onVis() { if (document.visibilityState === 'hidden') gone(); else back(); }
+  function onVis() { if (document.visibilityState === 'hidden') gone(); else { if (wake) wake(); back(); } }
   const onHide = () => gone();
-  const onLine = () => { if (!hiddenNow()) back(); };                            // (the signal is back: an unconfirmed pause is asked again)
+  const onLine = () => { if (wake) wake(); if (!hiddenNow()) back(); };          // (the signal is back: the finish tries at once; an unconfirmed pause is asked again)
   document.addEventListener('visibilitychange', onVis);
   window.addEventListener('pagehide', onHide);
   window.addEventListener('online', onLine);
@@ -269,6 +289,9 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     // the board's top through the 3-2-1, gone at the first move or HINT_MS of play — then seen (the server's flag, every device)
     if (hint) { els.hint = h('p.dr-hint', String(hint)); overlay.append(els.hint); }
     paint();
+    // (PFIX-3 — S3: a run that comes back already ENDED (its final upload landed, the finish never did) is finished NOW — it used to sit on
+    //  "SENDING YOUR RUN…" for good: nothing ever called the finish)
+    if (ended && !finished) finish();
   }
   function paint() {
     if (!els.root) return;
@@ -281,7 +304,7 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     if (ended) {
       const sc = result && result.score != null ? result.score : scoreOf(run.k * TICK, run.eng.lines);
       kids.push(h('b.dr-title', 'THE DROP'), h('span.dr-line', dropLine(sc)));
-      kids.push(h('small.dr-sub', refused ? 'THIS RUN COULDN’T BE CHECKED' : finished ? (result && result.counted === false ? 'COUNTS FROM TOMORROW' : 'SCORED') : 'SENDING YOUR RUN…'));
+      kids.push(h('small.dr-sub', refused && (finished || !finishing) ? UNCHECKED : finished ? (result && result.counted === false ? 'COUNTS FROM TOMORROW' : 'SCORED') : 'SENDING YOUR RUN…'));
       // THE DROP B — SHARE: SHARE YOUR RUN's card with THE DROP's final board (every junk row SOLID — js/games/drop/share.js), the time, the lines
       if (finished && !refused) kids.push(tubeButton('SHARE', { kind: 'secondary', cls: 'dr-share', onClick: () => shareRun(sc) }));
     } else if (pausedAt != null) {
@@ -310,6 +333,7 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
   }
   let shared = null;
   function stop() {
+    stopped = true; if (wake) wake();
     document.removeEventListener('visibilitychange', onVis);
     window.removeEventListener('pagehide', onHide);
     window.removeEventListener('online', onLine);
@@ -338,6 +362,8 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     shared: () => shared,
     show: () => back(),
     send: () => send().catch(() => null),
+    off: () => off,
+    took: r => took(r),
     lose: (on = true) => { lost = !!on; },          // (the tests: the next calls never leave the phone — a lost hide)
     log: () => run.log,
   });

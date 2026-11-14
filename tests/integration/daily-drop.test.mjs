@@ -227,9 +227,29 @@ test('THE REFUSALS: a forged log (stored by a checkpoint — refused by THE RE-P
   // a forged lock: a checkpoint is only bounded (size / order / time) — it stores it; the run's ONE replay at the finish refuses it
   const ck = await D('dr-fay', { ...P.body('checkpoint'), add: '1K' + P.body('checkpoint').add, fin: 1 }, P.now);
   assert.equal(ck.e, 1, 'stored + ended (fin)');
-  const e = await rejects(D('dr-fay', { action: 'finish', game: 'drop', day: P.day }, P.now + 300), 422, 'refused');
-  void e;
-  assert.equal(await val(`dly/drop/${P.day}/r/${pid}`), null, 'no score stored');
+  // PFIX-3 (FABLE REVIEW 2 — S3): the refused finish is NOT a dead end any more — the run is scored at the last point its log can prove (just
+  // before the forged event), its record marked, the refusal reported; TODAY shows it done + unchecked (never RESUME all day)
+  const good = (await val(`dly/drop/${P.day}/p/${pid}`));
+  await ref('errlog').remove();
+  const f = await D('dr-fay', { action: 'finish', game: 'drop', day: P.day }, P.now + 300);
+  assert.equal(f.rf, true, 'the finish says the run could not be checked');
+  const stored = await val(`dly/drop/${P.day}/r/${pid}`);
+  assert.equal(stored, f.score, 'a score IS stored');
+  assert.ok(Math.floor(f.score / 1000) >= 250 && Math.floor(f.score / 1000) <= Math.round(good.t / 100), `… at the last provable point: ${(Math.floor(f.score / 1000) / 10).toFixed(1)} s of a ${(good.t / 1000).toFixed(1)} s claim — nothing past the forgery`);
+  const marked = await val(`dly/drop/${P.day}/p/${pid}`);
+  assert.equal(marked.rf, 'lock_mismatch'); assert.ok(marked.rk > 0 && marked.rk < marked.k, 'the record is marked: the reason + the tick it was scored at');
+  let errs = null; for (let i = 0; i < 30 && !errs; i++) { errs = await val('errlog'); if (!errs) await new Promise(r => setTimeout(r, 50)); }
+  const row = Object.values(errs || {})[0];
+  assert.ok(row && /THE DROP: a finish the replay refused \(lock_mismatch\)/.test(row.m) && row.p === 'server' && row.w === 'drop-refused' && row.n === 1, `reported to /admin's error log (${row && row.m})`);
+  assert.ok(!JSON.stringify(row).includes(pid), 'no id in the report');
+  const td = await D('dr-fay', { action: 'today' }, P.now + 600);
+  assert.equal(td.mine.drop, f.score); assert.ok(!td.started.drop, 'TODAY: done — never RESUME all day'); assert.deepEqual(td.rf, { drop: true });
+  const again = await D('dr-fay', { action: 'finish', game: 'drop', day: P.day }, P.now + 900);
+  assert.equal(again.score, f.score); assert.equal(again.again, true); assert.equal(again.rf, true, 'a repeat gets the same answer');
+  const re = await D('dr-fay', { action: 'start', game: 'drop' }, P.now + 1200);
+  assert.equal(re.done, f.score); assert.equal(re.run.rf, 1, 'a re-opened run: done + unchecked (never "SENDING YOUR RUN…")');
+  const sh = await D('dr-fay', { action: 'today', share: true }, P.now + 1500);
+  assert.ok(sh.share && sh.share.drop && typeof sh.share.drop.b === 'string', 'SHARE TODAY still gets a board — the one at the scored point');
   // a log built faster than real time: 60 s of play uploaded 5 s later
   const fast = createDropRun(s.run.seed); let plan = null; const rnd = rngFrom('fast');
   for (let k = 0; k < 7200 && !fast.over; k += 12) { stepTo(fast, k); const x = dropKey(fast.eng, plan, { rnd }); plan = x.plan; if (x.code) input(fast, x.code); }
@@ -423,4 +443,30 @@ test('PFIX-3 — THE LOST HIDE over /api (M3): the hide\'s pause call never arri
   const f = await D('dr-m3', { action: 'finish', game: 'drop', day: P.day }, P.now + 500);
   assert.equal(f.score, scoreOf(P.run.k * TICK, P.run.eng.lines));
   assert.ok(P.run.k * TICK > 55e3, 'the run went on past the hide');
+});
+
+test('PFIX-3 — A REFUSED FINISH over /api (S3): a HOLE in the stored log → scored at the last event before it (never the unproven rest); an honest run is untouched (no rf)', async () => {
+  await ensure('dr-s3', 'DropSthree');
+  const pid = await pidOf('dr-s3');
+  const s = await D('dr-s3', { action: 'start', game: 'drop' }, NOW + 50 * 60e3);
+  const P = phone('dr-s3', s);
+  P.now = s.run.go;
+  await P.play(10 * 60e3);
+  assert.ok(P.run.over);
+  await P.send();
+  const chunks = await val(`dly/drop/${P.day}/l/${pid}`);
+  const keys = Object.keys(chunks).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  assert.ok(keys.length >= 3, `${keys.length} chunks`);
+  await ref(`dly/drop/${P.day}/l/${pid}/${keys[1]}`).remove();                 // (the hole FABLE REVIEW 2 made with a shorter chunk over a longer one)
+  const f = await D('dr-s3', { action: 'finish', game: 'drop', day: P.day }, P.now + 500);
+  assert.equal(f.rf, true);
+  const t = Math.floor(f.score / 1000) / 10, full = P.run.k * TICK / 1000;
+  assert.ok(t > 15 && t <= 31 && t < full, `scored at the last event before the hole: ${t.toFixed(1)} s of a ${full.toFixed(1)} s run`);
+  assert.equal((await val(`dly/drop/${P.day}/p/${pid}`)).rf, 'log_missing');
+  assert.ok(f.outcome && f.counted, 'it counts like any finish (the streak, the XP, the points of the time it could prove)');
+  // … and an honest run carries no mark
+  const cal = await pidOf('dr-cal');
+  assert.equal((await val(`dly/drop/${streakDay(NOW)}/p/${cal}`)).rf, undefined);
+  const tc = await D('dr-cal', { action: 'today' }, NOW + 55 * 60e3);
+  assert.equal(tc.rf, undefined);
 });

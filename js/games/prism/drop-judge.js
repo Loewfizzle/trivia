@@ -6,7 +6,8 @@
 //                              t (= k's engine time), ca (the server time of the last checkpoint),
 //                              pz: { n (player pauses used), ms (their time, closed), at? (an open pause's start), kd? 'p' | 'r', rf? (a refresh) },
 //                              rz (closed room-pause time), e? 1 (ended) + o ('fin' (the phone's top-out / THE END) | 'abandoned' | 'late' |
-//                              'pause_over'), fa (the end's server time) }   ≈ 250 bytes
+//                              'pause_over'), fa (the end's server time), rf? (PFIX-3: the finish's replay REFUSED it — the reason; the run was
+//                              scored at the last point its log could prove) + rk? (that point's tick) }   ≈ 250 bytes
 //   dly/drop/{day}/l/{pid}/{offset}_{length} = a log CHUNK (PFIX-3: keyed by where it starts AND how far it reaches — a SHORTER chunk can
 //     never replace a longer one from the same offset; stored only for a run in flight, when the judge would take it — `storable`; the join
 //     still reads the old `{offset}` keys)
@@ -36,7 +37,15 @@ export const MAX_TAIL_MS = 15_000;    // a late / slowed run keeps at most this 
 export const CHUNK_MAX = 24_000;      // one upload's chars (an honest 30-s chunk is ~1–3 K)
 export const CK_MS = 30_000;          // the phone's checkpoint rhythm (THE ADD-ON: ~every 30 s of play + a pause / the page hiding — ≲ 30 calls a run)
 const LOG_CHARS = new RegExp(`^[0-9${CODES}]*$`);
+const TICK_MS = tickTime(1);
 export const ABANDON_MS = PAUSE_MS + ROOM_MAX_MS + DROP_END_MS;   // a run silent this long can never come back
+
+/** THE PHONE's CLOCK (js/games/drop/view.js — PURE, here with the rules it serves): the offset to the server's clock, re-read from an answer.
+ *  PFIX-3 (FABLE REVIEW 2 — S4): the LARGEST estimate wins — an answer's latency only ever makes one too SMALL, and taking every answer's own
+ *  moved the run's clock BACK by each slow answer's delay (the board froze, then lurched). One more than OFF_RESET_MS below the kept offset
+ *  is no latency — the phone's own clock was moved: believed again. */
+export const OFF_RESET_MS = 20_000;
+export const clockOffset = (off, est) => (!Number.isFinite(est) ? off : !Number.isFinite(off) || est > off || off - est > OFF_RESET_MS ? est : off);
 
 export function newRecord(st) {
   return { st, go: st + COUNT_MS, len: 0, k: 0, t: 0, ca: st, pz: { n: 0, ms: 0 }, rz: 0 };
@@ -249,13 +258,43 @@ export function judgeFinish(rec, log, { seed }) {
  *  may be LONGER (its answer was lost, the log had grown): the join takes, at each point, the chunk reaching furthest, and cuts the result at
  *  the CHECKED length (anything past it was never checked) */
 export function joinChunks(chunks, len) {
+  const s = joinPrefix(chunks, len);
+  return s.length < len ? null : s;
+}
+/** the log as far as it HOLDS TOGETHER from the start (≤ len) — the join without the "no hole" demand (what a rescue can still read) */
+export function joinPrefix(chunks, len) {
   const list = Object.entries(chunks || {}).map(([k, v]) => [Number(String(k).split('_')[0]), v]).filter(([o, v]) => Number.isInteger(o) && o >= 0 && typeof v === 'string' && v.length);
   let s = '';
   while (s.length < len) {
     let best = null;
     for (const [o, v] of list) if (o <= s.length && o + v.length > s.length && (!best || o + v.length > best[0] + best[1].length)) best = [o, v];
-    if (!best) return null;
+    if (!best) break;
     s += best[1].slice(s.length - best[0]);
   }
   return s.slice(0, len);
+}
+
+/**
+ * PFIX-3 (FABLE REVIEW 2 — S3) — A REFUSED FINISH IS NEVER A DEAD END: a run the one replay refuses (a hole in the stored log, a log that
+ * stops making sense, a claim the replay doesn't reach) used to store NOTHING — RESUME all day, "SENDING YOUR RUN…" for good. It is SCORED AT
+ * THE LAST POINT ITS STORED LOG CAN PROVE: the log as far as it holds together, replayed and CUT just before the first thing that doesn't
+ * check (never past the record's tick, never past the wall clock + FAST_TOL_MS; with a hole, never past the last event the store holds);
+ * nothing provable → the floor (0:00.0). A forger gains nothing: every tick it keeps is play the replay accepted.
+ * → { score, t, lines, k (the tick it was cut at), why (the refusal — null when the run checks out as it is) }
+ */
+export function rescueFinish(rec, chunks, { seed }) {
+  const full = joinChunks(chunks, rec.len);
+  const first = judgeFinish(rec, full, { seed });
+  if (first.score != null) return { score: first.score, t: first.t, lines: first.lines, k: rec.k, why: null };
+  const why = first.refused || 'refused';
+  const log = joinPrefix(chunks, rec.len).replace(/\d+$/, '');   // (a chunk cut mid-number: the dangling count is dropped)
+  const wall = (rec.fa || rec.ca) - rec.go - ((pzOf(rec).ms || 0) + (rec.rz || 0));
+  let cut = Math.max(0, Math.min(rec.k, Math.floor(Math.max(0, wall + FAST_TOL_MS) / TICK_MS)));
+  if (full == null) { const P = replay(log, seed); cut = Math.min(cut, P.ok ? P.k : Math.max(0, (Number(P.at) || 0) - 1)); }
+  for (let i = 0; i < 8 && cut > 0; i++) {
+    const R = replay(log, seed, { cut });
+    if (R.ok) return { score: scoreOf(R.t, R.lines), t: R.t, lines: R.lines, k: R.k, why };
+    cut = Math.min(cut, Number.isFinite(R.at) ? R.at : cut) - 1;
+  }
+  return { score: scoreOf(0, 0), t: 0, lines: 0, k: 0, why };
 }

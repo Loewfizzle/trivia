@@ -10,6 +10,8 @@
 //                                 DM1 — THE ROOM WINS: `pause { room? }` only while the player's room has really started a game (_lib/daily-room.js) — else 409 no_room_game
 //   finish { game, result }    → { day, score, counted, stand: { n, pct, top, band }, outcome: { streak, items, ach, xp, lv, swept } }   checked + stored
 //                                 server-side (a judged daily scores from ITS record — the phone's result is ignored; an unfinished run → 409 not_done)
+//                                 PFIX-3: a finish THE DROP's replay refuses is scored at the last point its log can prove → + rf: true (`today` then
+//                                 carries rf: { drop: true }) — never a 422 dead end
 //                                 DM1 — THE THROWAWAY GATE: counted = the profile existed before that day's 4 am Eastern start (ppriv/{pid}/at — server-written
 //                                 at creation). A non-counting result is kept (one try, the player's own score, the streak + the XP as usual) but is NOT in
 //                                 the histogram / the band, YOUR TABLE, THE BOARD or any reward; `countsFrom` = when this profile's dailies start counting
@@ -269,7 +271,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       // DFIX2 — THE DAY'S CLOSE runs from `today` too (the title's first call of the day): a memo per warm function
       const closing = closeDays({ games, now }).then(() => sweepRuns({ games, now, settle: settleRun })).catch(() => null);
       if (!pid) { await closing; return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true }; }
-      const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {}, shareOf = {};
+      const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {}, shareOf = {}, rfOf = {};
       const [ls, createdAt] = await Promise.all([val(`pstats/${pid}/ls`), createdAtOf(pid)]);
       const yday = prevDay(day);
       await Promise.all(games.map(async g => {
@@ -286,6 +288,8 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         }
         if (v == null) return;
         mineScores[g] = v;
+        // (PFIX-3: a run its finish could not check — the ticket says so; one small read, only for a cartridge that can rescue)
+        if (dailyOf(g) && dailyOf(g).rescue && await val(`${base}/p/${pid}/rf`)) rfOf[g] = true;
         // (BOARD 2.0 B — SHARE TODAY: the finished run's spoiler-free share inputs from the SERVER's record, only when asked — the share tap)
         if (body.share) { let cart = null; try { cart = cartOf(g); } catch { /* not a judged daily */ } if (cart && cart.share) { try { const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day, now) : null]); const s = await cart.share({ record, day, startedAt: s0, data, base, pid }); if (s) shareOf[g] = s; } catch { /* the card falls back to the line */ } } }
         if (await val(`${base}/x/${pid}`)) { gated[g] = true; return; }
@@ -309,7 +313,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         friends[p] = todayView(mineScores, theirs);
       }));
       await closing;
-      return { day, dailies, mine: mineScores, gated, started, startedDay, stand, lessons: ls || {}, friends, table: pids, ...(body.share ? { share: shareOf } : {}),
+      return { day, dailies, mine: mineScores, gated, started, startedDay, stand, ...(Object.keys(rfOf).length ? { rf: rfOf } : {}), lessons: ls || {}, friends, table: pids, ...(body.share ? { share: shareOf } : {}),
         ...(countsOn(createdAt, day) ? {} : { countsFrom: dayStartAt(dayOf(dayNum(day) + 1)) }) };
     }
     case 'lesson': {
@@ -375,13 +379,28 @@ async function finishRun({ pid, cart, day, now, today = streakDay(now), result =
   const record = cart.judged ? await val(`${base}/p/${pid}`) : null;
   if (cart.judged && !(record && record.e)) throw new ApiError(409, 'not_done', 'Finish the run first.');
   const data = cart.judged && cart.load ? await cart.load(day, now) : null;
-  const score = await cart.verify(await dailySeed(cart.id, day), cart.judged ? null : result, { startedAt, now, record, day, data, pid, base, T });   // (THE DROP A: a verify may be async — it reads its log)
+  let score = await cart.verify(await dailySeed(cart.id, day), cart.judged ? null : result, { startedAt, now, record, day, data, pid, base, T });   // (THE DROP A: a verify may be async — it reads its log)
+  // PFIX-3 (FABLE REVIEW 2 — S3) — A REFUSED FINISH IS NEVER A DEAD END (a cartridge's `rescue` — THE DROP): the run is scored at the last
+  // point its stored log can prove (or the floor), its record MARKED (`rf` — the reason), the refusal reported to /admin's error log; the
+  // phone's ticket then says THIS RUN COULDN'T BE CHECKED — never RESUME all day, never "SENDING YOUR RUN…" for good
+  let rescued = null;
+  if ((typeof score !== 'number' || !Number.isFinite(score)) && cart.judged && cart.rescue && record && record.e) {
+    rescued = await cart.rescue({ record, data, base, pid, day }).catch(e => { console.warn('rescue', cart.id, e && e.message); return null; });
+    if (rescued && typeof rescued.score === 'number' && Number.isFinite(rescued.score)) score = rescued.score; else rescued = null;
+    T.mark('rescue');
+  }
   if (typeof score !== 'number' || !Number.isFinite(score)) throw new ApiError(422, 'refused', 'That result doesn’t check out.');
   // DM1 — THE THROWAWAY GATE: does this profile's result COUNT on this day?
   const counts = countsOn(createdAt, day) && !preReset;
   // ONE official try: the first finish is the score (a retry gets the stored one back)
   const claim = await ref(`${base}/r/${pid}`).transaction(cur => (cur != null ? undefined : score));
   const kept = claim.snapshot.val();
+  if (rescued && claim.committed) {
+    await ref(`${base}/p/${pid}`).update(rescued.mark || { rf: 'refused' }).catch(() => {});
+    // (no id, no name — the reason + the run's shape; one entry per reason, counted: api/log.js#logServer)
+    import('./log.js').then(m => m.logServer({ m: `${cart.name || cart.id}: a finish the replay refused (${rescued.why}) — scored at its last provable point`, s: 'api/daily.js', w: `${cart.id}-refused`, k: `${day} · ${rescued.note || ''}` }, { now })).catch(e => console.warn('logServer', e && e.message));
+  }
+  const rf = rescued ? true : !!(record && record.rf);
   if (claim.committed) {
     const { ServerValue } = await import('firebase-admin/database');
     await ref('/').update(counts
@@ -423,7 +442,7 @@ async function finishRun({ pid, cart, day, now, today = streakDay(now), result =
   }
   // THE ONE DAY LINE (S2): a counting finish on a day already CLOSED (the run crossed 4 am) re-ranks it once more — it can only ADD a PENTHOUSE
   if (counts && claim.committed && day !== today) await recloseDay({ game: cart.id, day, now }).catch(e => console.warn('reclose', e && e.message));
-  return { day, score: kept, again: !claim.committed, counted: counts, ...(preReset ? { pre: true } : {}), ...(counts || preReset ? {} : { countsFrom: dayStartAt(dayOf(dayNum(streakDay(Number(createdAt) || now)) + 1)) }),
+  return { day, score: kept, again: !claim.committed, counted: counts, ...(rf ? { rf: true } : {}), ...(preReset ? { pre: true } : {}), ...(counts || preReset ? {} : { countsFrom: dayStartAt(dayOf(dayNum(streakDay(Number(createdAt) || now)) + 1)) }),
     stand: { n: stand.n, pct: stand.pct, top: Math.round(stand.top * 10) / 10, band: stand.band ? stand.band.name : null },
     outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach, xp: res.xp, lv: res.lv, swept: res.swept, run: res.swept && res.dl.sr ? res.dl.sr.n : 0, points: res.points } : null };
 }

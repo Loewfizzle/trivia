@@ -333,7 +333,8 @@ function dayCounters(dl, day) {
   for (const [k, v] of Object.entries(dl.days || {})) days[k] = { ...v, g: { ...((v && v.g) || {}) } };
   if (dl.day && dl.day.k && !days[dl.day.k]) days[dl.day.k] = { g: { ...(dl.day.g || {}) }, x: dl.day.x || 0, ...(dl.day.sw ? { sw: 1 } : {}) };
   if (!days[day]) days[day] = { g: {}, x: 0 };
-  for (const k of Object.keys(days).sort().slice(0, -2)) delete days[k];
+  // (PFIX-3 — FABLE REVIEW 2's N4: never the run's OWN day — a run settled two days late found its day deleted here and the step threw)
+  for (const k of Object.keys(days).sort().slice(0, -2)) if (k !== day) delete days[k];
   return days;
 }
 const nextDayKey = d => dayOf(dayNum(d) + 1);

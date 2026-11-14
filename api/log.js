@@ -119,6 +119,24 @@ export async function logErrors(body, { ip = '', ua = '', now = Date.now() } = {
   return n;
 }
 
+/**
+ * PFIX-3 — THE SERVER's OWN NOTE in the same log (/admin → Errors from phones): something a function wants the owner to hear about (THE DROP's
+ * refused finish). ONE entry per message (long numbers folded), counted — never an id, a name or a room code. → 1 kept
+ */
+export async function logServer(e, { now = Date.now() } = {}) {
+  const x0 = cleanItem(e);
+  if (!x0) return 0;
+  const v = str(process.env.VERCEL_GIT_COMMIT_SHA, 7) || 'local';
+  await ref(`errlog/${errorSig(x0)}`).transaction(cur => {
+    const x = cur || { m: x0.m, s: x0.s, l: x0.l, c: x0.c, n: 0, first: now, d: {}, b: {} };
+    x.n = (x.n || 0) + 1; x.last = now; x.k = x0.k || x.k || ''; x.w = x0.w || x.w || ''; x.ua = 'server'; x.v = v; x.p = 'server';
+    x.d = { ...(x.d || {}), Server: ((x.d || {}).Server || 0) + 1 };
+    x.b = x.b || {};
+    return x;
+  });
+  return 1;
+}
+
 export default route(['POST', 'GET'], async (req, res) => {
   // (HOTFIX Oct 29: GET = THE BUILD ID — the deployed commit, for City 2.0's &debug=1 readout's first line; nothing stored, nothing read)
   if (req.method === 'GET') { send(res, 200, { v: str(process.env.VERCEL_GIT_COMMIT_SHA, 7) || 'local' }, { 'Cache-Control': 'public, max-age=0, s-maxage=60' }); return; }

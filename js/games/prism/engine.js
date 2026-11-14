@@ -69,10 +69,16 @@ export function pieceAt(seed, n) {
 }
 
 // ---------------------------------------------------------------- gravity
-/** Milliseconds per row at a level (the usual modern curve; capped so the top levels stay playable). */
+/** Milliseconds per row at a level (the usual modern curve; capped so the top levels stay playable): max(1000 × (0.8 − (l − 1) × 0.007)^(l − 1),
+ *  1000 / 60). PFIX-3 (FABLE REVIEW 2 — S6): A TABLE, not Math.pow — Safari's engine computes pow with different last bits than node's (8 of
+ *  THE DROP's 12 levels, 1–3 bits), and THE DROP rests on the phone and the server stepping BIT-IDENTICALLY. These are node's exact values
+ *  (tests/prism-gravity.test.mjs pins the bits — the server's results are unchanged); a level between two whole ones keeps the formula. */
+export const GRAVITY_MS = Object.freeze([1000, 793, 617.796, 472.72913900000003, 355.19692825600004, 262.003549978125, 189.67724533271814, 134.7347308155587,
+  93.88224890421264, 64.15158495985582, 42.976258297035564, 28.21767780121165, 18.153328543517738,
+  16.666666666666668, 16.666666666666668, 16.666666666666668, 16.666666666666668, 16.666666666666668, 16.666666666666668, 16.666666666666668]);
 export function gravityMs(level) {
   const l = Math.max(1, Math.min(20, level));
-  return Math.max(1000 * Math.pow(0.8 - (l - 1) * 0.007, l - 1), 1000 / 60);
+  return Number.isInteger(l) ? GRAVITY_MS[l - 1] : Math.max(1000 * Math.pow(0.8 - (l - 1) * 0.007, l - 1), 1000 / 60);
 }
 export const SOFT_FACTOR = 20;
 
