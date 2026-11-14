@@ -167,6 +167,34 @@ try {
     ok(P.errs.length === 0, `no page error (${P.errs.slice(0, 2).join(' | ') || 'none'})`);
     await P.ctx.close();
   }
+  if (!ONLY.length || ONLY.includes('lost')) {
+    // (THE DROP A Group 0 (c) — THE LOST RUN: BACK TO THE CITY tapped AT ONCE on a SCORE RUSH podium, then on a SURVIVAL podium (that one inside
+    //  the 45 s gap — the server holds it for a resend) — the solo room closed both times before any line landed; both runs still credited)
+    const P = await phone('leaver');
+    const pid = await P.ev("(Object.keys(localStorage).filter(k => /:me$/.test(k)).map(k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }).find(x => x && x.pid) || {}).pid");
+    const soloN = async () => { const d = await dbGet(`pstats/${pid}/day`); return (d && d.so) || 0; };
+    const n0 = await soloN();
+    const leaveNow = async () => { const code = await P.ev(`${S}.code`); await P.ev("document.querySelector('.final .final-city').click()"); const gone = await P.waitFor(`!${S}.code`, 15000); return { code, gone }; };
+    await openCard(P, 'prism');
+    await P.ev("document.querySelector('.nd-card-solo[data-mode=\"rush\"]').click()");
+    await P.waitFor(`(() => { const s = ${S}; return !!(s.game && s.game.id === 'prism' && /^s/.test(s.game.matchId || '') && (s.game.phase === 'count' || s.game.phase === 'play')); })()`, 15000);
+    await botPlays(P);
+    if (!await endRun(P)) ok(false, 'the SCORE RUSH run reached its podium');
+    const a = await leaveNow();
+    ok(a.gone && (await dbGet(`rooms/${a.code}/meta`)) == null, `BACK TO THE CITY at once on the SCORE RUSH podium: the room closed (${a.gone})`);
+    await openCard(P, 'prism');
+    await P.ev("document.querySelector('.nd-card-solo[data-mode=\"survival\"]').click()");
+    await P.waitFor(`(() => { const s = ${S}; return !!(s.game && s.game.id === 'prism' && /^s/.test(s.game.matchId || '') && (s.game.phase === 'count' || s.game.phase === 'play')); })()`, 15000);
+    if (!await topOut(P)) ok(false, 'the SURVIVAL run reached its podium');
+    const b = await leaveNow();
+    ok(b.gone && (await dbGet(`rooms/${b.code}/meta`)) == null, `BACK TO THE CITY at once on the SURVIVAL podium: the room closed (${b.gone})`);
+    // both credited — the server's solo count for the day moves by 2 (the second after its resend, from the held, checked extract)
+    let n = 0; const end = Date.now() + 120000;
+    while (Date.now() < end) { n = await soloN(); if (n >= n0 + 2) break; await sleep(1000); }
+    ok(n === n0 + 2, `both runs credited after leaving at once — the day's solo count ${n0} → ${n} (want ${n0 + 2})`);
+    ok(P.errs.length === 0, `no page error (${P.errs.slice(0, 2).join(' | ') || 'none'})`);
+    await P.ctx.close();
+  }
   if (!ONLY.length || ONLY.includes('one')) {
     // (the owner's add-on: ALONE IN A ROOM — the old way: HOST → a room of one → its podium offers PLAY AGAIN (the quick start) beside BACK TO
     //  THE ROOM, + SHARE)
