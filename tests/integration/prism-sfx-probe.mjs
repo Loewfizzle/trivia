@@ -12,12 +12,12 @@ const WANT = { watercolor: ['watercolor-clear.mp3', 'watercolor-lock.mp3'], pape
   pixel: ['pixel-clear.mp3', 'pixel-lock.mp3'], galaxy: ['galaxy-clear.mp3', 'galaxy-lock.mp3'] };   // (SKINS 2B: the night skins')
 async function run(skin, block) {
   const page = await browser.newPage();
-  const errors = [], got = [];
+  const errors = [], got = [], fonts = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|net::ERR_FAILED/.test(m.text())) errors.push(m.text()); });
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await page.setRequestInterception(true);
-  page.on('request', r => { const m = /\/audio\/sfx\/prism\/([^/?]+)$/.exec(r.url()); if (m) got.push(m[1]); if (m && block) r.abort(); else r.continue(); });
+  page.on('request', r => { const m = /\/audio\/sfx\/prism\/([^/?]+)$/.exec(r.url()); if (m) got.push(m[1]); const f = /\/assets\/(?:fonts\/prism|prism\/paper)\/([^/?]+)$/.exec(r.url()); if (f) fonts.push(f[1]); if (m && block) r.abort(); else r.continue(); });
   await page.goto(`${BASE}/tests/integration/prism-preview.html?skin=${skin}&n=1&stack=4&under=1&sound=1`, { waitUntil: 'load' });
   await page.waitForFunction(() => document.body.dataset.ready === '1' && !!window.__prism, { timeout: 20000 });
   // the first tap unlocks the audio (the engine's own listeners) — the preview's TAP FOR SOUND button
@@ -36,6 +36,14 @@ async function run(skin, block) {
   });
   const tag = `${skin}${block ? ' (its files BLOCKED)' : ''}`;
   ok(JSON.stringify([...new Set(got)].sort()) === JSON.stringify(want), `${tag}: fetched only its own files (${[...new Set(got)].sort().join(', ') || 'none'})`);
+  // (SKINS 2B) ONLY THE SHOWN SKIN's ASSETS: the pixel font is fetched by the pixel skin alone; a night skin fetches no paper + no marker font;
+  // the galaxy fetches nothing at all (its sky is made in code)
+  const assets = [...new Set(fonts)].sort();
+  if (!block) {
+    ok(assets.includes('press-start-2p-latin-400.woff2') === (skin === 'pixel'), `${tag}: the pixel font ${skin === 'pixel' ? 'loaded' : 'never loaded'} (${assets.join(', ') || 'no font / paper'})`);
+    if (['neon', 'pixel', 'galaxy'].includes(skin)) ok(!assets.some(a => /marker|\.webp$/.test(a)), `${tag}: no paper, no marker font`);
+    if (skin === 'galaxy' || skin === 'neon') ok(assets.length === 0, `${tag}: no font + no texture at all`);
+  }
   const lock = log.find(x => x.name === 'lock'), clear = log.find(x => x.name === 'clear');
   ok(!!lock && !!clear, `${tag}: a lock + a clear sounded (${JSON.stringify(log)})`);
   if (want.length && !block) {

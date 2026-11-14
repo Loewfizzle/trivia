@@ -301,7 +301,9 @@ try {
     await hide(false);
     await P.waitFor(`${S}.game && ${S}.game.pz == null && ${S}.game.rz != null`, 5000);
     const after = await P.ev(`(() => { const g = ${S}.game; let t = g.songStartAt; const n = g.rz; return { pos: n - t, left: g.endAt - n }; })()`);
-    ok(Math.abs(after.pos - hid.pos) < 50 && Math.abs(after.left - hid.left) < 50 && hid.left < before.left, `SCORE RUSH hidden 20 s mid-song: at GO again the song (${(hid.pos / 1000).toFixed(2)} → ${(after.pos / 1000).toFixed(2)} s in) and the clock (${(hid.left / 1000).toFixed(1)} → ${(after.left / 1000).toFixed(1)} s left) stand where they stopped`);
+    // (SKINS 2B: `<=` — `before` and the hide's stamp are two calls a millisecond or so apart; in the SAME millisecond the strict `<` failed
+    //  (2 of 4 full Chromium runs on the mini PC) though nothing was wrong: the hide never moves the clock BACK is what is asked)
+    ok(Math.abs(after.pos - hid.pos) < 50 && Math.abs(after.left - hid.left) < 50 && hid.left <= before.left, `SCORE RUSH hidden 20 s mid-song: at GO again the song (${(hid.pos / 1000).toFixed(2)} → ${(after.pos / 1000).toFixed(2)} s in) and the clock (${(hid.left / 1000).toFixed(1)} → ${(after.left / 1000).toFixed(1)} s left) stand where they stopped (before the hide: ${(before.pos / 1000).toFixed(2)} s in, ${(before.left / 1000).toFixed(1)} s left)`);
     await P.waitFor(`window.__arcade.serverNow() > ${S}.game.rz + 500`, 8000);
     // (SKINS 1: by DAY the run plays the day set — a day song starts at its CUE-IN, and the heard position counts from the file's start: the cue
     //  comes off before it is compared with the song's own clock. This check had only ever run at night — it was red by day on the commit before too)

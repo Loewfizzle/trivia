@@ -521,9 +521,11 @@ else** (no `look === '<a skin>'`, no skin named, no art module imported: `tests/
 | `watercolor` | day | translucent washes on cold-press paper; the clear RUNS (drips) | `water-art.js` · `waterfx.js` · `skin-pages.js#WATER_PAGE` |
 | `paper` | day | cut paper on a white sheet, a kraft table; the clear PEELS | `paper-art.js` · `paperfx.js` · `skin-pages.js#PAPER_PAGE` |
 | `neon` | night | PD-3's neon tubes in the world's palette + the light layer | `neon-art.js` · `neonfx.js` · `light.js` |
+| `pixel` | night | ARCADE PIXEL (SKINS 2B): chunky 8 × 8 pixel blocks, crisp — no bloom; the clear = a flash bar + a pixel burst + LINE! | `pixel-art.js` · `pixelfx.js` · `night-pages.js#PIXEL_PAGE` |
+| `galaxy` | night | GALAXY (SKINS 2B): FILLED glowing nebula clouds, a strong rim; the clear = stardust + a soft supernova | `galaxy-art.js` · `galaxyfx.js` · `night-pages.js#GALAXY_PAGE` |
 | `glass` | — (no pool) | the first glass blocks (retired by PD-4; what an unnamed look draws) | `glass-art.js` |
 
-SKINS 2 adds the night's (arcade pixel, galaxy). `skin-kit.js` = what every skin's drawing shares (a LEAF: the colour maths, a sprite cache, a
+SKINS 2B added the night's (arcade pixel, galaxy — below). `skin-kit.js` = what every skin's drawing shares (a LEAF: the colour maths, a sprite cache, a
 seeded random, `ghostBlocked`, the incoming rows drawn as LIGHT — `lightIncoming` — or ON PAPER — `sketchIncoming`).
 
 **THE HOOKS** (the contract — `skins.js#HOOKS`; the header of skins.js is the reference):
@@ -540,14 +542,16 @@ seeded random, `ghostBlocked`, the incoming rows drawn as LIGHT — `lightIncomi
   `pieceGlow` · `grid(g, o)` · `incoming(ctx, bands, o)` (the kit's rules: an occupied cell only TINTED, the gap open, never covering a block) ·
   `mini(ctx, c)` (a mini board's cell — the rail, spectating, the podium) · `shard(t, env)` + `crumbs` (a top-out) · OPTIONAL `seams(ctx, { cells,
   px, sy, grey })` (SKINS 2A — what the skin paints where the settled stack's blocks touch: the watercolor's BLEED; board.js calls it once per
-  stack change, inside its cached stack layer).
+  stack change, inside its cached stack layer) · OPTIONAL `sampleAt { x, y }` (SKINS 2B, with `seams`: the board place the settings tile's
+  3-block sample sits at — a place whose seams it paints — so the tile shows them too: `picker.js#drawSample` calls the same hook).
 - **The moments:** `fx()` → the moments drawn ON the board's canvas (crayonfx.js's interface: `event · erase · under · clears · streaks · over ·
   setCap · busy · clear`) or null (the night: `light: true` — the WebGL light layer + neonfx.js) · `flash` (the glass's own) · `bands` · `pulse`.
   A clear's `event()` may answer `{ hold, gap }`: the view holds the stack that long with the cleared rows EMPTY (`board.js#holdClear` — the
   paper strip peels off + leaves a clean gap for a beat; a lock ends it early).
 - **The scene:** `world` (`'shader'` — the WebGL world | `'page'` — page.js draws the skin's `page` painter `{ id, ok, key, files, paint, lite }`,
   once per change, no shader work) · `enter(o)` (the skin SHOWS: its own files load NOW — a texture, the marker font — never before; **only the
-  shown skin's textures load**) · `idle(o)` (what to warm in idle slices while another look shows) · `warm(px, ms)` · `drop()` · `count()`.
+  shown skin's textures load**; SKINS 2B: `o.sky` = the view's EMPTY `.pd-sky` layer above the page, under the board — a skin puts what
+  MOVES behind its board there (a few DOM pieces moved by CSS on the compositor); the view empties it when another skin shows) · `idle(o)` (what to warm in idle slices while another look shows) · `warm(px, ms)` · `drop()` · `count()`.
 
 **HOW TO ADD A SKIN:** (1) its art file(s) — sprites through `skin-kit.js#spriteCache`, an fx with the interface above (or `fx: () => null` +
 `light: true`), a page painter for a `'page'` world; (2) ONE definition in `SKINS` — its place in the object = its place in its pool's rotation;
@@ -559,7 +563,8 @@ skin=<id>` = the real view, `prism-shots.mjs SETS=skins`) + the speed run (`Q="&
 `prism-skin-snap.mjs check` — the skins that existed must not have moved a pixel.
 
 **THE ROTATION** (PURE — `skins.js` + the leaf `skin-deal.js`; the owner's rule):
-- THE GAME LOOK (AUTO / DAY / NIGHT) picks day vs night first. `POOLS.day` = crayon · watercolor · paper; `POOLS.night` = neon.
+- THE GAME LOOK (AUTO / DAY / NIGHT) picks day vs night first. `POOLS.day` = crayon · watercolor · paper; `POOLS.night` = neon · pixel ·
+  galaxy (SKINS 2B).
 - **ONE counter k a match — `game.sk`.** A ROOM's = the HOST's deal at `index.js#start()` (`dealSkin`: +1 a match, remembered in the night's
   memory `meta/used/prism/sk<k>` like the paper's `pp<k>-<i>` — no rules change; the night's first from the match's seed). A SOLO run's (PLAY NOW
   / a room of one) = the PLAYER's own counter (`settings.prismSkinK`, +1 a run — `soloSkin`); THE DROP's = its day's (`settings.prismSkinDrop
@@ -575,8 +580,9 @@ skin=<id>` = the real view, `prism-shots.mjs SETS=skins`) + the speed run (`Q="&
 
 **THE SETTING:** ☰ → Settings → PRISM DROP → **DAY SKIN** + **NIGHT SKIN** rows (`js/games/prism/picker.js`, lazy — HOLD'EM's picker pattern):
 ROTATE + one tile per owned skin, each a 3-block sample drawn with the skin's OWN sprites at a real 19-pt cell on its panel colour (no thumbnail
-image; nothing of a skin downloads). A look with ONE owned skin has no row (the NIGHT row appears with SKINS 2). This phone only; live, even
-mid-match.
+image; nothing of a skin downloads). A look with ONE owned skin has no row. **The NIGHT SKIN row is there since SKINS 2B: ROTATE · NEON ·
+ARCADE PIXEL · GALAXY.** A tile also shows what its skin paints where blocks touch (the watercolor's three washes bleed, like the board —
+the skin's `seams` + `sampleAt`). This phone only; live, even mid-match.
 
 **WATERCOLOR** (REWORKED in SKINS 2A — the owner: "it read too close to crayon at 390") — blocks: **NO DARK OUTLINE** (no line is stroked round
 a block); a brushed near-square that fills its cell; ONE transparent wash made UNEVEN + BLOTCHY by wet-in-wet patches (a heavier second pass, a
@@ -642,6 +648,61 @@ match. A local tool (a baseline is this machine's rasters).
 - **THE DROP's SHARE PICTURES:** the junk rows draw SOLID FILLED grey blocks with a slightly darker edge (`board.js#SOLID_JUNK` through
   `drawMini`'s `solid` — the share code picks the pair by its look: never outline squares), on its card + in SHARE TODAY; SHARE TODAY's strip =
   a crop of the board's top 6 rows (`drop/share.js#cropRows`, PURE). The share cards' rules (NO PILLS, ONE RHYTHM): docs/progression.md.
+
+### SKINS 2B (Nov 14 2026 — docs/games/passes/skins-2b.md; plan.md "SKINS 2B")
+**THE NIGHT POOL = neon · ARCADE PIXEL · GALAXY** (the rotation as SKINS 1: `pool[k % n]`, ONE counter a match; a night pin =
+`settings.prismSkinNight`; an un-owned pin = ROTATE — `ownedOf` / `poolOf` take an optional registry so that is tested). Both new skins are
+**PAGE skins of the night family** (`world: 'page'`, `family: 'neon'`, `light: false`): the page host paints their background ONCE per
+change, **the WebGL world + the light layer do no work** (hidden by the CSS), their moments are their own `fx()` on the board's canvas, and
+what moves behind the board is the skin's own pieces in the view's **SKY layer** (`.pd-sky` — `enter({ sky })`), moved by CSS keyframes
+(transform / opacity only — never a frame loop). **THE TIERS for them = the page skins' class step (3 → 1 → 0):** the view marks the lower
+tiers `.pd[data-lite]` (tier ≤ `LITE_TIER`) and reduced effects `.pd[data-still]`; there the CSS stops the sky (the pixel's twinkle, the
+galaxy's drift) and drops the pixel's scanlines, and the fx's lean cap (`sparks` ≤ 100) thins the burst / the stardust — **the extras go
+FIRST, the board's 3× LAST**. Watched (`tests/integration/prism-tier-probe.mjs`, AUTO, heavy, 10× CPU): both skins 3 → 1 at 0.8 s (sky
+still, scanlines off, the board still 3×) → 0 at ~2.3 s (the 2× board).
+
+**ARCADE PIXEL** — blocks: an **8 × 8 chunky pixel grid** whose lines are WHOLE DEVICE PIXELS (`pixel-art.js#pixelGrid` — round(i × size / 8)
+at any cell size), flat `fillRect`s only (no gradient, no blur — the unit test greps for it): the piece's colour · a BRIGHT top + left edge
+(toward white) · a DARK bottom + right edge (its darker shade) · 2–3 white GLINT pixels top-left · a rare darker pixel inside (`textureOf` —
+PURE, the same on every phone); **4 variants**; **NO bloom** (`glow` 0, `pieceGlow` 0). Ghost = a DOTTED pixel outline. Incoming rows = a
+dithered grey pixel block inside a red pixel edge (never a piece), a dotted red leading edge — the kit's rules. The clear: a **WHITE FLASH
+BAR** across the row (the row held EMPTY under it — the view's hold, 120 ms), then a **BURST OF SQUARE PIXELS** in the pieces' colours
+(snapped to the pixel grid, fading in steps) + a big **LINE! / DOUBLE! / TRIPLE!** in Press Start 2P over the rows (`pixelfx.js#clearWord` —
+a pre-drawn word sprite, the font's pixels on whole device pixels: its size a multiple of 8). 4 LINES / TWIST / PERFECT CLEAR keep the
+view's CALLOUT (never the name twice) — printed in Press Start 2P by the CSS; 4 lines = the well flashes once. A lock = a white pixel
+blink; SLAM = dotted pixel trails + sparks; a cancel = grey + red pixels. **Reduced effects = the flash only.** Background: a deep
+blue-black radial + sparse pixel stars (2–3 px squares, painted once), a dozen stars that TWINKLE (a hard two-step blink — the sky), faint
+SCANLINES over the whole screen (`.pd[data-skin='pixel']::after` — static, one dark line in three at 0.16). The frame = a crisp CYAN PIXEL
+BORDER; the panels dark with a pixel border + hard offset shadows (square corners everywhere — no glow); ink white / pale cyan. **Lettering:
+"Press Start 2P"** (SIL OFL 1.1 — `assets/fonts/prism/press-start-2p-latin-400.woff2`, 12.5 KB, + `LICENSE-PressStart2P.txt`; the credit in
+`assets/prism/paper/CREDITS.md` + ☰ → CREDITS), loaded as 'PD Pixel' by `pixel-art.js#loadPixelFont` **only when the skin shows**. Sounds: an
+8-bit blip (lock), an 8-bit rising sting under the clear's own notes as square chips — SOURCED (CC0, Juhani Junkala); the code-made BLIP /
+CHIP the fallback.
+
+**GALAXY** — **COLOUR FIRST**: a block is FILLED with the piece's own colour (deeper toward the corners), 2–3 soft cloud layers swirled
+round the middle (the colour lifted + a touch of a NEIGHBOURING hue — `GALAXY_NEAR` — + a deeper lane for depth, never a dark centre), a
+softer bright core, 3–5 tiny star points (decoration only), a **STRONG glowing rim** in the colour with a near-white hot line toward the
+upper left; **6 variants**; the rims' gentle bloom = the baked glow ring under the stack + the piece (`glow` 0.62 · `pieceGlow` 0.75 — the
+tier's `glow`). **It must not read as neon** (neon = glowing outline tubes with DARK centres; galaxy = FILLED glowing clouds — the unit
+test pins the galaxy's fill starting at the piece's own colour + its small mini being filled). Ghost = a faint STARLIGHT outline. Incoming
+rows = dark ASTEROID rock (an uneven outline, craters, a faint red rim), a thin red glow line on the leading edge — the kit's rules. The
+clear: the row **BURSTS INTO STARDUST** — its blocks go out as light where they stood (~0.14 s; the row held EMPTY 110 ms) while fine
+glowing grains in the pieces' colours drift outward, coast to a stop and fade (~0.6–0.9 s), with a brief soft SUPERNOVA flash along the rows
+(wider for 4 LINES / a perfect clear). A lock = the rim blooms; SLAM = starlight streaks + a puff; a cancel = grey dust. **Reduced effects =
+a quick fade** (in place: no dust, no flash, no hold). Background: deep space, a faint nebula (three big soft clouds), still fine stars,
+**DIMMED under the well**; ONE slow-drifting star field in the sky (a 256-px tile made once in code — a data URL, no download — sliding
+~5 px a second). The frame = a THIN cool-white glow line; the lettering = the night font in a soft STARLIGHT glow — the world's palette is
+set aside for both new skins (`--pd-edge / --pd-frame / --pd-well` are the skin's own in every song: an `!important` in the CSS beats the
+view's inline palette). **The galaxy downloads nothing** (no texture, no font). Sounds: a star chime (lock), a stardust whoosh + shimmer
+under the clear's own notes as soft bells — GROK-GENERATED files; the code-made CHIME / DUST the fallback.
+
+**Measured** (`prism-shots.mjs`, 390 × 844 @3, 7 opponents, a bot, 4× CPU, GPU; each tier locked, ~300 frames): ARCADE PIXEL rest 60 fps
+(CPU p75 / p95 1.9 / 2.7 ms at tier 3 · 1.9 / 3.0 at tier 0), heavy — a 4-line clear every 650 ms, six incoming rows — 60 fps (3.0 / 3.9 ·
+2.3 / 3.5); GALAXY rest 60 fps (2.8 / 4.9 · 2.5 / 3.8), heavy 60 fps (5.7 / 6.9 · 3.7 / 5.4). **THE GLANCE TEST** for the night:
+`prism-glance.html?look=night` (neon · pixel · galaxy, the same night board) · `prism-shots.mjs SETS=nglance` (`GLANCE_DSF=1` = the size a
+hand holds it at) · `SETS=nskins` = each new skin's frames (mid-game, a 1 / 2 / 4-line clear, the flash, SLAM, a cancel, reduced, incoming
+rows, the podium, the settings sheet). **THE PIXEL-IDENTICAL PROOF** after the pass: crayon + neon 152 / 152, watercolor + paper 86 / 86
+IDENTICAL against the commit before it. **THE SHARE CARD's ONE RULE** (this pass's Group 0 — the name carries the result): docs/progression.md.
 
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 

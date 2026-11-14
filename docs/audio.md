@@ -1773,6 +1773,32 @@ SKINS 2B. Copies only — the originals are never moved or edited.
   `tests/integration/prism-sfx-probe.mjs` (a real page with the audio unlocked: watercolor + paper fetch only their own two files and play
   them; crayon + neon fetch none; the files BLOCKED → the code-made voices, no error). NOT judged by ear by the pass — the owner's.
 
+
+**SKINS 2B (Nov 14 2026) — THE NIGHT SKINS' SOUNDS:** the other four PICKS of Grok's set are in — `pixel-lock` (an 8-bit blip) ·
+`pixel-clear` (an 8-bit rising sting) — SOURCED: "sfx_sounds_Blip6.wav" / "sfx_sounds_powerup8.wav" from "512 Sound Effects (8-bit style)"
+by Juhani Junkala (SubspaceAudio), **CC0 1.0** (https://opengameart.org/content/512-sound-effects-8-bit-style) · `galaxy-lock` (a star
+chime) · `galaxy-clear` (a stardust whoosh with a shimmer tail) — **GROK-GENERATED**, credited "generated (Grok)" (never called CC0). The
+same script, the same rules (copies only — the 16 originals still match their SHA-256; a `-b` backup only if its pick fails: none did):
+**1.6 KB · 5.0 KB · 2.8 KB · 9.4 KB** (the limit: 30 KB each; the folder = 8 mp3, 35.7 KB in all). Voices (`audio.js#SOUNDS`): `blip` /
+`chip` (ARCADE PIXEL) · `chime` / `dust` (GALAXY) — the file when the skin's is in (fetched at `setVoices`, only when the skin shows),
+else code-made (a square tick · square chips on the clear's notes · a small high bell · a high brush of noise + bells). A lock's file
+varies its pitch ± 3 % a play (`LOCK_PITCH`); a clear keeps its pitch + its own notes under the file. **LEVELLED ON THE SFX BUS**
+(`prism-sfx-level.mjs` — now every skin; `SKINS=a,b` picks which): as first wired the pixel's lock sat 2.4 dB OVER the other skins' and its
+clears 2.7 / 1.5 dB over (dense 8-bit), the galaxy's clears 2.5 / 1.9 / 3.0 dB over — its 4-line clear louder than the song. After the
+balance (`SAMPLE_GAIN`: blip 0.076 · chime 0.1 · chip 0.03 + 0.03 × lines · dust 0.096 / 0.132 / 0.146 / 0.16 by lines; `NOTE_GAIN` chip
+0.028 · dust 0.03):
+
+| | lock | clear × 1 | clear × 2 | clear × 4 | the song |
+|---|---|---|---|---|---|
+| neon (code-made) | −50.2 | −44.2 | −41.0 | −35.0 | −34.3 |
+| ARCADE PIXEL (files) | −50.2 | −43.7 | −40.2 | −35.2 | |
+| GALAXY (files) | −50.1 | −44.4 | −41.7 | −35.2 | |
+| pixel / galaxy (code-made fallback) | −50.8 / −49.8 | −44.9 / −43.8 | −41.8 / −40.9 | −37.7 / −35.9 | |
+
+Within 0.8 dB of the neon's, all under the song. **A machine's balance, not an ear's** — the numbers to move: `SAMPLE_GAIN` + `NOTE_GAIN`.
+`prism-sfx-probe.mjs` = 52 sound checks (+ the asset checks: the pixel font is fetched by the pixel skin alone; the neon + the galaxy fetch
+no font + no texture).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

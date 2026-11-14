@@ -699,6 +699,27 @@ load problem, not a flake to patch.
   beside the others' + the song — `BLOCK=1` adds the code-made fallbacks), `prism-skin-snap.mjs` A/B against a worktree of the commit before (`E2E_BASE=…:5174 … save`,
   then `check` on the working tree): after SKINS 2A's watercolor + share work 152 / 152 IDENTICAL; after the crayon's tweak 114 IDENTICAL +
   38 DIFFERENT ON PURPOSE (exactly the crayon frames that draw a block + the share cards' crayon mini).
+- **SKINS 2B (Nov 14):** unit `tests/prism-skins-2b.test.mjs` (the night pool + the rotation, the NIGHT row, pins + the un-owned
+  fallback, the pixel grid on whole device pixels + no blur in its art, the clear's word vs the callout, the galaxy filled — never the
+  neon's dark core, only the shown skin's assets, the tiers, no pills, Grok's night sounds + their levels) + `tests/share-rhythm.test.mjs`
+  rewritten for THE SHARE CARD's ONE RULE (the kit's `paintName / paintBig / paintStat` in every section + own card, the name's colours
+  readable in both palettes, a modest glow, `partsOf`, the tiles only, 8 rows). **`node tests/integration/share-same.mjs "<browser>"`**
+  (new — runs `share-same.html` from the shell on any static server, exit 1 on a DIFF) = **35 rows** (the expected copies in `_old/`
+  re-taken ON PURPOSE; + the name check: all made / one failed / both failed × night + day). Dev tools: `prism-shots.mjs`
+  **`SETS=nskins`** (pixel + galaxy: the skin's frames + `-flash` `-clear1` `-slam` `-cancel` `-reduced`) · **`SETS=nglance`** (the night's
+  glance test — `prism-glance.html?look=night`) · `SETS=skinsheet` (+ pixel, galaxy) · speed: `Q="&skin=pixel" PERF_SETS=rest,heavy` at
+  4× CPU with `GPU=1` · **`prism-tier-probe.mjs`** (new — AUTO under a throttled CPU: every tier change with its time + the board's
+  ratio, the sky moving / still, the scanlines on / off) · `prism-sfx-level.mjs` **`SKINS=a,b`** (every skin now) · `prism-sfx-probe.mjs`
+  (52 sound checks + the asset checks: the pixel font only for the pixel skin, no font / texture for neon + galaxy) · `daily-probe.mjs`
+  `Q="&cc=caught"` / `Q="&pw=locked&cc=caught"` (a failed day's share cards) · `prism-skin-snap.mjs` A/B: crayon + neon 152 / 152,
+  `SKINS=watercolor,paper` 86 / 86 IDENTICAL after the pass.
+  **THE ADD-ONS:** share-same = **39 rows** (+ THE PASSWORD's floor: a six-row grid ≥ 22 px on the card, its section grown, short grids
+  unchanged, the card still ends above the foot; `daily-preview.html` `&pw=front` = THE FRONT DOOR failed). **`tests/city-covered.test.mjs`**
+  (A SCREEN ON TOP OF THE CITY OWNS THE TOUCH — `ui/layers.js#cityCovered` + where `title-taps.js` asks it) + **e2e-daily = 62 checks**
+  (+ 9: REAL touches — `page.touchscreen.tap` — on every SCORES card, its edges + gaps + padding, ALL TIME, TODAY's results, and on a
+  billboard's own points under the screen (`window.__district.hit` scans for them): no pop-up EVER opens — a MutationObserver counts them;
+  closed, the same tap opens the game's card). e2e-daily needs **`DAILY_TEST=1 node scripts/serve.mjs <port> --emu`** (its fake third
+  daily) — a plain `--emu` server ends at "the DAILY button".
 
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
