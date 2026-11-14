@@ -76,3 +76,38 @@ test('CRAYON — THE TEXTURE TWEAK: more hatching, a waxy grain, a heavier press
   assert.deepEqual([...C.CRAYON].slice(1, 8).map(c => c.toLowerCase()).length, 7);
   for (let t = 1; t <= 7; t++) assert.ok(Math.abs(hueDiff(hue(JEWEL[t]), hue(C.CRAYON[t]))) <= 20, `piece ${t}'s crayon`);
 });
+
+//   THE SOUNDS  each DAY skin's SOURCED lock / clear (audio/sfx/prism/ — Grok's CC0 picks through scripts/build-prism-skin-sfx.py): a skin names
+//               only its own two files, each ≤ 30 KB + credited; the code-made voice stays the fallback (audio.js); the night's pixel-* /
+//               galaxy-* files wait for SKINS 2B
+test("THE SKINS' SOURCED SOUNDS: only a skin's own files, each ≤ 30 KB + in CREDITS; the code-made voice is the fallback", async () => {
+  const { statSync, readdirSync } = await import('node:fs');
+  const skins = read('js/games/prism/skins.js'), audio = read('js/games/prism/audio.js');
+  const filesOf = id => { const a = skins.indexOf(`const ${id} = {`), body = skins.slice(a, skins.indexOf('\n};', a)); const m = /sounds: \{[^}]*files: \{ lock: '([a-z-]+)', clear: '([a-z-]+)' \} \}/.exec(body); return m ? [m[1], m[2]] : []; };
+  assert.deepEqual(filesOf('watercolor'), ['watercolor-lock', 'watercolor-clear']);
+  assert.deepEqual(filesOf('paper'), ['paper-lock', 'paper-clear']);
+  for (const id of ['crayon', 'neon', 'glass']) assert.deepEqual(filesOf(id), [], `${id} keeps the synth's own sounds`);
+  const dir = new URL('../audio/sfx/prism/', import.meta.url), have = readdirSync(dir).sort();
+  assert.deepEqual(have, ['CREDITS.md', 'paper-clear.mp3', 'paper-lock.mp3', 'watercolor-clear.mp3', 'watercolor-lock.mp3'], 'the four picks + their credits — no pixel-* / galaxy-* yet (SKINS 2B)');
+  const credits = read('audio/sfx/prism/CREDITS.md');
+  for (const f of have.filter(x => x.endsWith('.mp3'))) {
+    const n = statSync(new URL(f, dir)).size;
+    assert.ok(n > 600 && n <= 30 * 1024, `${f}: ${n} B ≤ 30 KB`);
+    assert.match(credits, new RegExp(`\`${f.replace('.', '\.')}\` — .*CC0 1\.0`), `${f} is credited, CC0`);
+  }
+  assert.doesNotMatch(credits, /CC BY-NC|CC BY-ND|All rights|Sonniss/i);
+  // the synth: fetched at setVoices (the skin shows), never before; a file not ready → the code-made voice
+  assert.match(audio, /setVoices\(v\) \{\n      voices = v \|\| \{\};\n      files = \(v && v\.files\) \|\| \{\};\n      for \(const f of soundFiles\(v\)\) fetchSample\(f\);/);
+  assert.equal((audio.match(/fetchSample\(/g) || []).length, 2, 'fetched in two places only: setVoices (the skin shows) + the decode');
+  for (const [voice, code] of [['plip', 'else drip(m, ctx.currentTime + 0.002, { gain: 0.05, dur: 0.1 });'], ['swish', 'else brush(q.at, { gain: 0.035 + 0.008 * Math.min(4, lines)'], ['tap', 'noise(at, { gain: 0.045, dur: 0.035, from: 3800, to: 1600, q: 1.4 });'], ['rip', 'tear(q.at, { gain: 0.05 + 0.008 * Math.min(4, lines)']]) {
+    assert.ok(audio.includes(code), `${voice}: its code-made sound is still there — the fallback`);
+    assert.match(audio, new RegExp(`SAMPLE_GAIN\.${voice}\(`), `${voice}: the file plays at the voice's own level`);
+  }
+  const A = await import('../js/games/prism/skins.js').catch(() => null);   // (the registry imports DOM-free)
+  if (A) { const { soundFiles } = { soundFiles: s => (s && s.files ? [...new Set(Object.values(s.files))] : []) }; assert.deepEqual(soundFiles(A.SKINS.watercolor.sounds), ['watercolor-lock', 'watercolor-clear']); assert.deepEqual(soundFiles(A.SKINS.crayon.sounds), []); }
+  // the levels: a file's peak is −8 dBFS (≈ 0.4) — × its gain it lands near the code-made voice's own gain (0.05 – 0.09), never louder than 0.1
+  const g = /export const SAMPLE_GAIN = Object\.freeze\(\{ plip: \(\) => (0\.\d+), tap: \(\) => (0\.\d+), swish: l => (0\.\d+) \+ (0\.\d+) \* Math\.min\(4, l \|\| 1\), rip: l => (0\.\d+) \+ (0\.\d+) \* Math\.min\(4, l \|\| 1\) \}\);/.exec(audio);
+  assert.ok(g, 'SAMPLE_GAIN');
+  const peak = 0.4, [plip, tap, sw0, sw1, rp0, rp1] = g.slice(1).map(Number);
+  for (const [n, v] of [['plip', plip], ['tap', tap], ['swish × 4 lines', sw0 + 4 * sw1], ['rip × 4 lines', rp0 + 4 * rp1]]) assert.ok(v * peak >= 0.04 && v * peak <= 0.1, `${n}: ${(v * peak).toFixed(3)} — quiet under the song`);
+});

@@ -248,6 +248,22 @@ export function createHeardBeat(player) {
 // PFIX-A (FABLE REVIEW optional 18): ONE reverb a page — the convolver + its ~1 MB impulse were built per mount (31 after 30 matches).
 // The synth's chain (bus → the sfx bus, dry, the reverb) is the AudioContext's, shared by every PRISM screen that context ever hosts.
 let CHAIN = null;   // { ctx, bus, dry, verb }
+// SKINS 2A — A SKIN's SOURCED SOUNDS (docs/prism.md "THE SKINS" → the sounds; audio/sfx/prism/ + its CREDITS.md — scripts/build-prism-skin-sfx.py):
+// a skin's `sounds.files` = { lock, clear } → a small mp3 each, FETCHED ONLY WHEN THE SKIN SHOWS (setVoices), decoded on the first context,
+// played through the synth's own chain at the level of the code-made voice it replaces (SAMPLE_GAIN × the file's −8 dBFS peak ≈ the voice's
+// own gain — quiet under the song). THE FALLBACK IS THE CODE-MADE VOICE: a file that is missing, still loading or will not decode = the
+// synth's plip / swish / tap / rip plays, exactly as before — audio is polish, never a dependency.
+export const SFX_DIR = new URL('../../../audio/sfx/prism/', import.meta.url).href;
+/** how loud a file plays, by the voice it replaces (the file's peak is −8 dBFS ≈ 0.4: × 0.14 ≈ the plip's 0.05) — a clear grows a little
+ *  with its lines, as the code-made one does */
+export const SAMPLE_GAIN = Object.freeze({ plip: () => 0.14, tap: () => 0.18, swish: l => 0.11 + 0.02 * Math.min(4, l || 1), rip: l => 0.14 + 0.02 * Math.min(4, l || 1) });
+const sampleBytes = new Map();   // file → Promise<ArrayBuffer | null> (the page's — fetched once)
+const fetchSample = file => {
+  if (!sampleBytes.has(file)) sampleBytes.set(file, fetch(`${SFX_DIR}${file}.mp3`).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null));
+  return sampleBytes.get(file);
+};
+/** the files a skin's sounds name ([] = none): only these are ever fetched for it (tests/prism-skins-2a.test.mjs) */
+export const soundFiles = sounds => (sounds && sounds.files ? [...new Set(Object.values(sounds.files))] : []);
 /** (tests) how many reverbs this page has built */
 export let reverbsBuilt = 0;
 function chainFor(c) {
@@ -293,6 +309,29 @@ export function createSynth() {
   let lastMove = 0;
   let clockFn = null; // () => { pos (song seconds now), clk (beatClock) } | null
   let voices = {};    // (SKINS 1) a skin's own voices: name → the SOUNDS entry that plays instead
+  let files = {};     // (SKINS 2A) the skin's sourced sounds: name ('lock' | 'clear') → its file — the voice's code-made sound is the fallback
+  const bufs = new Map();   // file → AudioBuffer | Promise | null (this context's)
+  let bufCtx = null;
+  /** the skin's file for a sound, decoded → an AudioBuffer once it is ready; null = not (yet) → the code-made voice plays */
+  function sample(name) {
+    const f = files[name];
+    if (!f || !ctx) return null;
+    if (bufCtx !== ctx) { bufs.clear(); bufCtx = ctx; }
+    if (bufs.has(f)) { const b = bufs.get(f); return b && typeof b.then !== 'function' ? b : null; }
+    const c = ctx;
+    bufs.set(f, fetchSample(f).then(a => (a ? new Promise((res, rej) => c.decodeAudioData(a.slice(0), res, rej)) : null))
+      .then(b => { if (bufCtx === c) bufs.set(f, b || null); }, () => { if (bufCtx === c) bufs.set(f, null); }));
+    return null;
+  }
+  /** a decoded file through the synth's chain (the SFX bus, a little of the shared reverb) */
+  function playBuf(buf, at, gain, rev = 0) {
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = buf;
+    g.gain.value = gain;
+    src.connect(g);
+    out(g, rev);
+    src.start(at);
+  }
   const log = []; // test hook: what was played, in which key, when (song position)
 
   function ensure() {
@@ -447,7 +486,7 @@ export function createSynth() {
     return { at: Math.max(now + 0.005, c.atCtx(tNext)), step, songAt: tNext };
   }
 
-  const record = (name, notes, songAt, voice) => { log.push({ name, notes, songAt, key: tonic, mode, ...(voice ? { voice } : {}) }); if (log.length > 400) log.shift(); };
+  const record = (name, notes, songAt, voice, file) => { log.push({ name, notes, songAt, key: tonic, mode, ...(voice ? { voice } : {}), ...(file ? { file } : {}) }); if (log.length > 400) log.shift(); };
 
   const SOUNDS = {
     move() {
@@ -590,41 +629,54 @@ export function createSynth() {
     // only the VOICE changes. The slam's thud is never swapped. Logged under the name the game played ('lock' / 'clear') + the voice.
     /** WATERCOLOR's lock: a soft wet PLIP — a drop's quick upward chirp on the tonic */
     plip() {
-      const m = note(0, 5);
-      drip(m, ctx.currentTime + 0.002, { gain: 0.05, dur: 0.1 });
-      record('lock', [m], undefined, 'plip');
+      const m = note(0, 5), b = sample('lock');
+      if (b) playBuf(b, ctx.currentTime + 0.002, SAMPLE_GAIN.plip());   // (SKINS 2A: the sourced water drop — else the code-made chirp)
+      else drip(m, ctx.currentTime + 0.002, { gain: 0.05, dur: 0.1 });
+      record('lock', [m], undefined, 'plip', b ? files.lock : null);
     },
     /** WATERCOLOR's clear: a brush SWISH (soft noise swept up + back) + a tiny DRIP on each of the clear's notes */
     swish({ lines = 1, combo = 0 } = {}) {
       const q = q16();
       const notes = clearNotes(lines, combo);
-      brush(q.at, { gain: 0.035 + 0.008 * Math.min(4, lines), dur: 0.26 + 0.04 * Math.min(4, lines), lo: 700, hi: 3200 });
-      notes.forEach((m, i) => drip(m, q.at + 0.05 + i * q.step, { gain: 0.07, dur: 0.2, rev: 0.3 }));
+      // (SKINS 2A: the sourced brush swish + its drip replaces the code-made brush; the clear's own notes stay — quieter under a file — so a
+      //  bigger clear / a combo still climbs the scale)
+      const b = sample('clear');
+      if (b) playBuf(b, q.at, SAMPLE_GAIN.swish(lines), 0.15);
+      else brush(q.at, { gain: 0.035 + 0.008 * Math.min(4, lines), dur: 0.26 + 0.04 * Math.min(4, lines), lo: 700, hi: 3200 });
+      notes.forEach((m, i) => drip(m, q.at + 0.05 + i * q.step, { gain: b ? 0.045 : 0.07, dur: 0.2, rev: 0.3 }));
       if (lines >= 4) {
         const top = q.at + notes.length * q.step, base = 2 + Math.min(10, Math.max(0, combo));
         [7, 9, 11, 14].forEach((d, i) => bell(note(base + d, 5), top + i * 0.035, { gain: 0.028, dur: 1.6, rev: 0.7 }));
       }
-      record('clear', notes, q.songAt, 'swish');
+      record('clear', notes, q.songAt, 'swish', b ? files.clear : null);
     },
     /** PAPER CUT-OUT's lock: a papery TAP — a short dry tick of filtered noise + a muted tonic knock */
     tap() {
-      const at = ctx.currentTime + 0.002, m = note(0, 4);
-      noise(at, { gain: 0.045, dur: 0.035, from: 3800, to: 1600, q: 1.4 });
-      pluck(m, at, { gain: 0.035, dur: 0.05, bright: 700, rev: 0.04 });
-      record('lock', [m], undefined, 'tap');
+      const at = ctx.currentTime + 0.002, m = note(0, 4), b = sample('lock');
+      if (b) playBuf(b, at, SAMPLE_GAIN.tap());   // (SKINS 2A: the sourced paper rustle + its thup — else the code-made tick + knock)
+      else {
+        noise(at, { gain: 0.045, dur: 0.035, from: 3800, to: 1600, q: 1.4 });
+        pluck(m, at, { gain: 0.035, dur: 0.05, bright: 700, rev: 0.04 });
+      }
+      record('lock', [m], undefined, 'tap', b ? files.lock : null);
     },
     /** PAPER CUT-OUT's clear: a short RIP (a crackle of noise torn upward) + a soft WHOOSH as the strip flies off, the clear's notes muted under it */
     rip({ lines = 1, combo = 0 } = {}) {
       const q = q16();
       const notes = clearNotes(lines, combo);
-      tear(q.at, { gain: 0.05 + 0.008 * Math.min(4, lines), dur: 0.13 + 0.02 * Math.min(4, lines) });
-      brush(q.at + 0.1, { gain: 0.03, dur: 0.3, lo: 500, hi: 1800 });
-      notes.forEach((m, i) => pluck(m, q.at + i * q.step, { gain: 0.05, dur: 0.16, bright: 1500, rev: 0.2 }));
+      // (SKINS 2A: the sourced paper rip + its lift whoosh replaces the code-made tear + brush; the clear's notes stay, quieter under a file)
+      const b = sample('clear');
+      if (b) playBuf(b, q.at, SAMPLE_GAIN.rip(lines), 0.1);
+      else {
+        tear(q.at, { gain: 0.05 + 0.008 * Math.min(4, lines), dur: 0.13 + 0.02 * Math.min(4, lines) });
+        brush(q.at + 0.1, { gain: 0.03, dur: 0.3, lo: 500, hi: 1800 });
+      }
+      notes.forEach((m, i) => pluck(m, q.at + i * q.step, { gain: b ? 0.035 : 0.05, dur: 0.16, bright: 1500, rev: 0.2 }));
       if (lines >= 4) {
         const top = q.at + notes.length * q.step, base = 2 + Math.min(10, Math.max(0, combo));
         [7, 9, 11, 14].forEach((d, i) => bell(note(base + d, 5), top + i * 0.035, { gain: 0.026, dur: 1.5, rev: 0.65 }));
       }
-      record('clear', notes, q.songAt, 'rip');
+      record('clear', notes, q.songAt, 'rip', b ? files.clear : null);
     },
   };
   /** the notes a clear plays (the synth's own rule — combos climb the scale; 4 lines = a run up) */
@@ -701,7 +753,16 @@ export function createSynth() {
     setKey(t, m) { tonic = ((t | 0) % 12 + 12) % 12; mode = m === 'major' ? 'major' : 'minor'; },
     setClock(fn) { clockFn = fn; },
     /** SKINS 1 — a skin's own voices: { lock: 'plip', clear: 'swish' } = play('lock') sounds SOUNDS.plip (skins.js `sounds`); {} = the synth's own */
-    setVoices(v) { voices = v || {}; },
+    /** SKINS 2A — + its SOURCED sounds (`files`: { lock, clear }): fetched NOW (the skin shows — never before, never another skin's) and
+     *  decoded as soon as there is a context; until a file is ready — or if it never is — the voice's code-made sound plays */
+    setVoices(v) {
+      voices = v || {};
+      files = (v && v.files) || {};
+      for (const f of soundFiles(v)) fetchSample(f);
+      if (ensure()) for (const name of Object.keys(files)) sample(name);
+    },
+    /** (the test hook) which of the skin's files are decoded + ready on this context */
+    samplesReady: () => Object.keys(files).filter(name => !!sample(name)),
     play(name, opts) {
       if (settings.muted || !ensure() || ctx.state !== 'running') return;
       const fn = SOUNDS[voices[name]] || SOUNDS[name];
@@ -717,7 +778,7 @@ export function createSynth() {
     scale: () => ({ tonic, mode, notes: SCALES[mode].map(s => (tonic + s) % 12) }),
     log,
     /** PFIX-A: lets go of the clock (it holds the view) + the context's nodes (the shared chain stays the context's) */
-    destroy() { clockFn = null; ctx = bus = dry = verb = null; log.length = 0; },
+    destroy() { clockFn = null; ctx = bus = dry = verb = null; log.length = 0; bufs.clear(); bufCtx = null; files = {}; },
   };
 }
 

@@ -11,6 +11,8 @@
 //   tokens    { ink, sub, panel, line (+ line2) } — the panels' colours (ink ≥ 4.5:1 on panel — the contract test). `papers: true` = the match's
 //             PAPER (crayon.js#paperOf — the host's deal) gives panel + ink + the grain instead (the crayon skin only)
 //   lettering what the callouts are drawn with (CSS, by data-skin) · sounds { lock, clear } — the synth's voices (audio.js) this skin swaps in
+//             (+ SKINS 2A `files: { lock, clear }` — its SOURCED sounds in audio/sfx/prism/, fetched only when the skin shows; the voice's
+//             code-made sound is the fallback)
 //   — THE BLOCKS (pre-drawn sprites, cached per cell size, warmed in idle slices: no stroke, shadow or blur is drawn in a frame)
 //   variants · sprite(px, kind, t, v, env) — kind: block | grey (the danger drain) | ghost (the landing preview) | glow | incoming | iglow
 //   fallV(n, i) · pieceV(x, y, t) — the falling piece's + HOLD / NEXT's variants (the stack's = by place: (x·7 + y·13) % variants)
@@ -103,7 +105,7 @@ const crayon = {
 const watercolor = {
   id: 'watercolor', name: 'WATERCOLOR', line: 'Washes on cold-press paper', look: 'day', unlock: null, family: 'crayon', holiday: false,
   tokens: { ink: '#2e3340', sub: '#4a5266', panel: WATER_PAPER, line: 'rgba(92, 111, 146, 0.62)', line2: 'rgba(92, 111, 146, 0.3)', grain: `url("${WATER_TEX}")` },
-  lettering: 'marker-paint', sounds: { lock: 'plip', clear: 'swish' },
+  lettering: 'marker-paint', sounds: { lock: 'plip', clear: 'swish', files: { lock: 'watercolor-lock', clear: 'watercolor-clear' } },
   variants: WATER_VARIANTS,
   sprite: (px, kind, t, v = 0) => waterSprite(px, kind, t, v),
   fallV: (n, i) => (n * 5 + i) % WATER_VARIANTS,
@@ -169,7 +171,7 @@ const watercolor = {
 const paper = {
   id: 'paper', name: 'PAPER CUT-OUT', line: 'Cut paper on a kraft table', look: 'day', unlock: null, family: 'crayon', holiday: false,
   tokens: { ink: '#3a2a18', sub: '#5a4630', panel: SHEET, line: 'rgba(58, 42, 24, 0.34)', line2: 'rgba(58, 42, 24, 0.16)' },
-  lettering: 'label', sounds: { lock: 'tap', clear: 'rip' },
+  lettering: 'label', sounds: { lock: 'tap', clear: 'rip', files: { lock: 'paper-lock', clear: 'paper-clear' } },
   variants: PAPER_VARIANTS,
   sprite: (px, kind, t, v = 0) => paperSprite(px, kind, t, v),
   fallV: (n, i) => (n * 5 + i) % PAPER_VARIANTS,

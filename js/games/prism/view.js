@@ -1658,6 +1658,9 @@ export function createView() {
       ko: () => (els.boardWrap.querySelector('.pd-ko') || {}).textContent || '',
       audio: () => songPlayer.debug(),
       synthLog: () => synth.log.slice(),
+      // (SKINS 2A) the skin's sourced sounds: which are decoded + ready, and a sound played by name (the probe: prism-sfx-probe.mjs)
+      samplesReady: () => synth.samplesReady(),
+      sound: (name, o) => synth.play(name, o),
       scale: () => synth.scale(),
       world: () => world && world.current(),
       tier: () => tier,
