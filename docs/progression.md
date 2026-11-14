@@ -462,18 +462,26 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
   pieces + a `paintSection` (+ `SECTION_H`) + a row in `share-today.js#SECTIONS` + its server cart's `share()` (spoiler-free) — without them it gets
   its name + its result line. The data: `today { share: true }` (the SHARE TODAY tap only) → each finished run's spoiler-free inputs from the
   SERVER's record (THE PASSWORD: `logic.js#shareRunOf` — marks + counts, never a word; COAST CLEAR: `shareInputs` — no board).
-- **THE SHARE CARDS — NO PILLS, ONE RHYTHM (SKINS 2A, Nov 14 — the owner's rules; docs/games/passes/skins-2a.md):**
+- **THE SHARE CARDS — NO PILLS (SKINS 2A) + THE ONE RULE (SKINS 2B) — Nov 14, the owner's rules; docs/games/passes/skins-2a.md + skins-2b.md:**
   **THE FOOT** of EVERY share card = ONE painter, `js/daily/share.js#shareAddress`: ONE straight thin neon line + NEONSPEAKEASY.COM in plain
   neon lettering (navy by day) — no frame, no rounded shape (SHARE TODAY's tube capsule is gone); each daily's own card (`shareFoot` = a small
   dim "Nº n" + it — the name is on a card ONCE, never again in the foot) and SHARE YOUR RUN's card (`games/kit/share-run.js`) draw the same.
-  **ONE RHYTHM** (`share.js#RHYTHM`): every SHARE TODAY section = (1) the name — or the win word when it IS the name (COAST CLEAR's
-  name-once) · (2) ONE big result (a WORD at `WORD_K` = 0.9× so it stands as tall as a TIME) · (3) ONE stat line · (4) ONE art strip (128
-  tall) — the SAME sizes + even gaps in every section, centred in one column (`RHYTHM.COL`); `SECTION_H = RHYTHM.H`; SHARE TODAY scales every
-  section by ONE factor (≤ 1.45× — two dailies read bigger than three, never differently from each other). A daily's OWN card keeps the same
-  order (`share.js#OWN`). The strips: THE PASSWORD = each door beside its tiles; COAST CLEAR = the three lamps (THE BEAM WEDGE IS REMOVED —
-  SHARE TODAY + its own card); THE DROP = a crop of the board's top rows, the junk SOLID. A NEW daily's `paintSection` reads `RHYTHM` for every
-  size (`tests/share-rhythm.test.mjs` checks it). `share-same.html`: the expected copies (`tests/integration/_old/pw-share.js` + `cc-share.js`)
-  were RE-TAKEN ON PURPOSE with this pass's cards + a "no frame round the address" check — 29 rows.
+  **THE ONE RULE (SKINS 2B, Nov 14 — the owner, from a mockup + his 11:16 am add-on; it replaces SKINS 2A's "the name or the win word" —
+  docs/games/passes/skins-2b.md)** (`share.js#RHYTHM`): every SHARE TODAY section = (1) **THE NAME** — the daily's own name, the SAME small
+  size for all, and **IT CARRIES THE RESULT**: a clean GREEN neon when the run was made, RED when it failed (a modest glow — never a blazing
+  headline), WHITE for a daily with no win / lose (THE DROP); no win word (no WELCOME IN), no name-swap, no CAUGHT / LOCKED OUT word anywhere
+  · (2) **ONE big TIME**, white, the same size for all (84 px — 2:54 · 2:12 · 2:38.9; a caught / locked-out run's time too) · (3) **ONE grey
+  stat line** (5 GUESSES · 1 SPOTTED · +30 s · 101 LINES) · (4) **ONE art strip** (145 tall) — the SAME sizes + even gaps in every section,
+  centred in one column (`RHYTHM.COL`); `SECTION_H = RHYTHM.H`; SHARE TODAY scales every section by ONE factor (≤ 1.45×). **The three text
+  pieces are the KIT's painters — `paintName(c, look, name, cx, y, px, fitW, result)` (`MADE` | `FAILED` | none; `INK` = the colours, the
+  day's green / red / navy in the day palette; the night's green = the page's `--good`) · `paintBig` · `paintStat`** — a daily never draws
+  its own sign or headline. A daily's OWN card keeps the same order + the same painters (`share.js#OWN`). The strips: THE PASSWORD = THE TILES
+  ONLY, bigger (≤ `TILE_MAX` 46 a cell — no doors; its own card keeps the doors + their names); COAST CLEAR = the three lamps, as tall as
+  the strip (a caught run: its time is read off the end of its line — `coastclear/share.js#partsOf`, PURE; the server's inputs are
+  unchanged); THE DROP = a crop of the board's top 8 rows, the junk SOLID. A NEW daily's `paintSection` reads `RHYTHM` for every size and
+  calls the three painters (`tests/share-rhythm.test.mjs` checks it). `share-same.html` (run it: `node tests/integration/share-same.mjs
+  "<browser>"`): the expected copies (`tests/integration/_old/pw-share.js` + `cc-share.js`) were RE-TAKEN ON PURPOSE with this pass's cards
+  + the name check (all made / one failed / both failed, both looks) — 35 rows.
   **BALANCED (PD-4's Group 0 — the owner, Nov 9, his real share in a text thread):** the sections share ALL the height between the header and the
   foot, each handed its whole box (`paintSection(c, { W, H })` centres its block in it; under `SECTION_H` it is scaled); the header + each wordmark
   ~1.4×; THE PASSWORD centred — the result + the line on top, the two grids side by side (cell ≤ 56), each headed by its small drawn door

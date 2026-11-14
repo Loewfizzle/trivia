@@ -20,7 +20,8 @@
 //   grid(g, o) — the well's grid layer · incoming(ctx, bands, o) — THE RISING ROWS (skin-kit.js: an occupied cell only tinted, the gap open)
 //   mini(ctx, c) — one cell of a mini board (the rail, spectating, the podium) · shard(t, env) — a top-out's shard colour · crumbs — paint, not light
 //   seams(ctx, o) — OPTIONAL: what the skin paints where the settled stack's blocks touch (the watercolor's BLEED) — drawn once into the
-//   board's cached stack layer, over the blocks (o: { cells, px, sy, grey })
+//   board's cached stack layer, over the blocks (o: { cells, px, sy, grey }) · sampleAt { x, y } — OPTIONAL (with seams): the board place the
+//   settings tile's 3-block sample sits at, so the tile shows the seams too (picker.js)
 //   — THE MOMENTS
 //   fx()      the moments drawn ON the board's canvas (a lock, a slam, a clear, a cancel — crayonfx.js's interface) or null
 //   light     the WebGL light layer + neonfx.js run (the night's clears are LIGHT) · flash — the glass's own lock flash + sweeps
@@ -102,6 +103,12 @@ const crayon = {
 };
 
 // ================================================================ WATERCOLOR (day — SKINS 1: translucent washes on cold-press paper)
+/** (SKINS 2B) where the settings tile's sample sits on the board: the first place whose TWO seams (the pair side by side, the one on top) both
+ *  bleed — the tile shows its three washes touching + bleeding, like the board */
+const WATER_SAMPLE = (() => {
+  for (let y = 0; y < VISIBLE - 1; y++) for (let x = 0; x < W - 1; x++) if (seamAt(x, y, false) && seamAt(x + 1, y, true)) return Object.freeze({ x, y });
+  return Object.freeze({ x: 0, y: 0 });
+})();
 const watercolor = {
   id: 'watercolor', name: 'WATERCOLOR', line: 'Washes on cold-press paper', look: 'day', unlock: null, family: 'crayon', holiday: false,
   tokens: { ink: '#2e3340', sub: '#4a5266', panel: WATER_PAPER, line: 'rgba(92, 111, 146, 0.62)', line2: 'rgba(92, 111, 146, 0.3)', grain: `url("${WATER_TEX}")` },
@@ -159,6 +166,7 @@ const watercolor = {
     }
     ctx.globalAlpha = 1;
   },
+  sampleAt: WATER_SAMPLE,
   shard: t => WATER[t] || WATER[8], crumbs: true,
   fx: () => createWaterFx(), light: false, flash: false, bands: false, pulse: true,
   world: 'page', page: WATER_PAGE,

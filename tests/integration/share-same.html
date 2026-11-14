@@ -9,7 +9,11 @@
      Run with the fonts loaded (the canvas text). Open: /tests/integration/share-same.html → document.body.dataset.ready + window.__same.
      SKINS 2A (Nov 14): the copies in _old/ are the EXPECTED cards, re-taken ON PURPOSE with the pass's changes (NO PILLS — the foot; ONE RHYTHM;
      the beam removed) — a frozen copy of each daily's share.js; + the foot check (no rounded frame: the address's row has no ink left / right
-     of the lettering except the ONE straight line above it). -->
+     of the lettering except the ONE straight line above it).
+     SKINS 2B (Nov 14): the copies re-taken ON PURPOSE again — THE SHARE CARD's ONE RULE (the kit's small neon name CARRIES THE RESULT on
+     every card — green made, red failed, THE DROP white — ONE big TIME, ONE grey stat line, THE PASSWORD's strip = the tiles only, THE
+     DROP's = 8 rows); + the name check (SHARE TODAY, all made / one failed / both failed, both looks: each name's row is inked in ITS
+     result's colour and no other; the big time + the stat line carry no green / red). -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="/css/base.css">
 <style>body { margin: 0; background: #222; color: #ddd; font: 13px monospace; }</style>
@@ -72,6 +76,37 @@ for (const look of ['night', 'day']) {
     for (let x = 160; x <= 920; x += 40) if (far(px(x, 1226), px(40, 1226)) > 40) line++;
     out.push({ card: `SHARE TODAY ${look}: no frame round the address`, diff: frame });
     out.push({ card: `SHARE TODAY ${look}: ONE straight line above it`, diff: line === 20 ? 0 : 20 - line });
+  }
+  // SKINS 2B — THE ONE RULE (+ the 11:16 am add-on): in SHARE TODAY with three finished, each section's NAME row is inked in ITS RESULT's
+  // colour — green made, red failed, THE DROP white (navy by day) — and no other; the big time's + the stat line's rows hold NO green / red
+  // (no win word, no CAUGHT / LOCKED OUT word anywhere). All made · one failed · both failed, both looks.
+  {
+    const R = (await import('/js/daily/share.js')).RHYTHM;
+    const lostPw = { done: true, door: 1, startedAt: 1000, finishedAt: 420000, doors: RUNS.lockedBack.doors.map(d => ({ state: d.state, marks: d.marks, n: d.marks.length })) };
+    const DAYS = { 'all made': [SHARE, ['green', 'green', 'none']], 'one failed': [{ ...SHARE, coastclear: CCS.caught }, ['green', 'red', 'none']], 'both failed': [{ ...SHARE, password: lostPw, coastclear: CCS.caught }, ['red', 'red', 'none']] };
+    for (const look of ['night', 'day']) for (const [label, [share, want]] of Object.entries(DAYS)) {
+      const today = { day: 'd20261113', dailies: ROWS, mine: { password: 1, coastclear: 1, drop: 1 } };
+      const cv = await T.drawToday(today, () => '', look, { streak: 3, share });
+      const g = cv.getContext('2d');
+      // (the sections' boxes as share-today.js lays them out: top 222 with a streak, the foot's room 1200, a 24-px gap, three sections)
+      const top = 222, each = (1200 - top - 48) / 3, k = Math.min(1.45, each / R.H), off = Math.max(0, (each / k - R.H) / 2);
+      const count = (i, ya, yb) => {
+        const y0 = top + i * (each + 24) + off * k, d = g.getImageData(R.COL, Math.round(y0 + ya * k), 1080 - 2 * R.COL, Math.max(1, Math.round((yb - ya) * k))).data;
+        let green = 0, red = 0;
+        for (let j = 0; j < d.length; j += 4) { const r = d[j], gg = d[j + 1], b = d[j + 2]; if (gg > r + 40 && gg > b + 25) green++; else if (r > gg + 70 && r > b + 50) red++; }
+        return { green, red };
+      };
+      let bad = 0;
+      want.forEach((w, i) => {
+        const n = count(i, R.nameY - R.namePx * 0.36, R.nameY + R.namePx * 0.36);
+        if (w === 'green' && !(n.green > 400 && n.red === 0)) bad++;
+        if (w === 'red' && !(n.red > 400 && n.green === 0)) bad++;
+        if (w === 'none' && (n.green || n.red)) bad++;
+        const rest = count(i, R.bigY - R.bigPx * 0.42, R.statY + R.statPx * 0.4);
+        if (rest.green || rest.red) bad++;
+      });
+      out.push({ card: `SHARE TODAY ${look}, ${label}: each name in its result's colour; the time + the stat line plain`, diff: bad });
+    }
   }
   // (the holes never reach the picture: every junk row of the DROP's board is solid)
   const holes = DR.solidJunk(DROP_B).match(/.{10}/g).filter(row => row.includes('8') && row.includes('0')).length;

@@ -6,14 +6,15 @@
 // Loaded LAZILY by ui/settings-panel.js (the boot graph never names a game). Its CSS is its own (injected once — the settings sheet can open
 // where css/prism.css isn't loaded). Prefix pdp-.
 import { h } from '../../ui/dom.js';
+import { W, VISIBLE } from './engine.js';
 import { SKINS, ROTATE, ownedOf, phoneOf } from './skins.js';
 
 const CSS = `
 .pdp { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; padding: 2px 0 6px; }
-.pdp-opt { display: grid; justify-items: center; gap: 6px; padding: 7px 4px 8px; border-radius: 14px; cursor: pointer; min-height: 44px; min-width: 0;
+.pdp-opt { display: grid; justify-items: center; gap: 6px; padding: 7px 2px 8px; border-radius: 14px; cursor: pointer; min-height: 44px; min-width: 0;
   background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255, 255, 255, 0.10); color: var(--text, #fff); font: inherit; }
 .pdp-opt[aria-pressed='true'] { border-color: var(--accent, #d6f0ff); box-shadow: 0 0 0 1px var(--accent, #d6f0ff), 0 0 14px rgba(214, 240, 255, 0.35); background: rgba(214, 240, 255, 0.07); }
-.pdp-opt b { font: 800 10px/1.15 var(--font-ui); letter-spacing: 0.08em; text-align: center; min-height: 12px; display: grid; align-items: center; }
+.pdp-opt b { font: 800 10px/1.15 var(--font-ui); letter-spacing: 0.03em; text-align: center; min-height: 23px; display: grid; align-items: center; max-width: 100%; }
 .pdp-opt[aria-pressed='true'] b { color: var(--accent, #d6f0ff); }
 .pdp-mini { display: block; width: 66px; height: 46px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
 `;
@@ -46,6 +47,16 @@ export function drawSample(canvas, skin, { cell = TILE.cell, w = TILE.w, hgt = T
     c.globalCompositeOperation = 'source-over';
   }
   for (const [x, y, t] of SAMPLE) c.drawImage(skin.sprite(px, 'block', t, skin.pieceV(x, y, t), env), ox + x * px, oy + y * px);
+  // (SKINS 2B) what the skin paints where the stack's blocks TOUCH (its `seams` — the watercolor's bleed) shows in the tile too: the sample
+  // laid on the board at the skin's own `sampleAt` (a place whose seams it paints), the board's hook called as the board calls it
+  if (skin.seams) {
+    const at = skin.sampleAt || { x: 0, y: 0 }, cells = new Uint8Array(W * VISIBLE);
+    for (const [x, y, t] of SAMPLE) cells[(at.y + 1 - y) * W + at.x + x] = t;
+    c.save();
+    c.translate(ox - at.x * px, 0);
+    skin.seams(c, { cells, px, sy: r => oy + (at.y + 1 - r) * px, grey: 0 });
+    c.restore();
+  }
 }
 /** ROTATE's tile: one block of each owned skin of the look, side by side (what the rotation will deal) */
 function drawRotate(canvas, skins) {

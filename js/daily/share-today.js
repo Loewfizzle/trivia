@@ -2,15 +2,15 @@
 // before it was "a weird one"). ONE 1080 × 1350 card: ONE header (the date + the streak flame), a SECTION per FINISHED daily in the dailies' order —
 // each drawn by THAT DAILY's own share card's pieces (its `paintSection` — js/games/<id>/share.js: the same painters its own card calls, never a
 // redraw or a copy; its own small wordmark on top), ONE foot (NEONSPEAKEASY.COM as the headline — CITY FIXES' rule; no per-daily footers).
-// SKINS 2A (the owner, Nov 14) — ONE RHYTHM: every section = the name (or the win word when it IS the name) · ONE big result · ONE stat line ·
-// ONE art strip, the SAME sizes + spacing in every section (js/daily/share.js#RHYTHM — every section scaled by the SAME factor), centred in one
-// column. NO PILLS, EVER: the foot = ONE straight thin neon line + NEONSPEAKEASY.COM in plain neon lettering (share.js#shareAddress).
+// SKINS 2B (the owner, Nov 14) — THE ONE RULE: every section = the daily's NAME (small neon that CARRIES THE RESULT: green made · red failed ·
+// white for THE DROP — never a win word) · ONE big TIME (white) · ONE grey stat line · ONE art strip, the SAME sizes + spacing in every section (js/daily/share.js#RHYTHM —
+// every section scaled by the SAME factor), centred in one column. NO PILLS, EVER: the foot = ONE straight thin neon line + NEONSPEAKEASY.COM in plain neon lettering (share.js#shareAddress).
 // The data: each section from its daily's SPOILER-FREE share inputs, which the SERVER builds from its record of the finished run (`today { share }`
 // — THE PASSWORD's marks + counts, COAST CLEAR's no-board inputs; never a word, a letter or the board). An unfinished daily = no section, one quiet
 // "NOT YET: <name>" line. ONE daily finished = that daily's OWN card, exactly as it is. A daily with no section painter (a new one plugged in) or
 // no share data → its name + its result line (its meta's scoreLine). Up to 6 sections, scaled evenly. Both looks (the day sky / the night neon).
 // THE BAR: shown 360 px wide in a text thread, THE PASSWORD's grid colours, the time and the address still read (the pass log's shots).
-import { shareFrame, sendShare, shareAddress, RHYTHM, FOOT } from './share.js';
+import { shareFrame, sendShare, shareAddress, paintName, RHYTHM, FOOT } from './share.js';
 import { shareTodayLine, MAX_ROWS } from './today-logic.js';
 import { dateLineOf } from './ticket-art.js';
 import { lazyImport } from '../ui/lazy-import.js';
@@ -19,7 +19,7 @@ const LOOKS = {
   night: { bg0: '#05040c', bg1: '#140a24', ink: '#f6f2ff', dim: 'rgba(226,222,246,0.72)', sign: '#ff6fc8', glow: 'rgba(255,111,200,0.75)', rule: 'rgba(255,255,255,0.12)' },
   day: { bg0: '#9fcdff', bg1: '#f2f8ff', ink: '#14284a', dim: '#3a5582', sign: '#16305c', glow: 'transparent', rule: 'rgba(22,48,92,0.16)' },
 };
-const FONT_D = 'Orbitron, "Chakra Petch", system-ui, sans-serif', FONT_U = '"Chakra Petch", system-ui, sans-serif';
+const FONT_U = '"Chakra Petch", system-ui, sans-serif';
 /** the dailies whose OWN share card can paint a section: the module + its inputs from the server's share data */
 const SECTIONS = {
   password: { load: () => Promise.all([lazyImport(import('../games/password/share.js'), '../games/password/share.js'), lazyImport(import('../games/password/logic.js'), '../games/password/logic.js')]).then(([S, G]) => ({ S, input: s => ({ run: G.runFromShare(s) }), ok: s => !!G.runFromShare(s) })) },
@@ -89,12 +89,10 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
     c.save(); c.translate(0, y); c.scale(s, s);
     if (M) M.S.paintSection(c, { ...M.input(share[sec.id]), look, W: W / s, H: each / s });
     else {
-      // a daily with no section painter / no share data: its name in the name's slot + its result line as the big result (the same rhythm)
+      // a daily with no section painter / no share data: its name in the name's slot + its result line as the big result (the same rule)
       const w = W / s, R = RHYTHM;
       c.translate(0, Math.max(0, (each / s - R.H) / 2) + (R.H - (R.bigY + R.bigPx / 2)) / 2);
-      c.save(); c.font = `900 ${R.namePx}px ${FONT_D}`; c.letterSpacing = '8px';
-      if (night) { c.shadowColor = L.glow; c.shadowBlur = 22; }
-      c.fillStyle = night ? '#fff3fb' : L.sign; c.fillText(String(sec.name || '').toUpperCase(), w / 2 + 4, R.nameY); c.restore();
+      paintName(c, look, sec.name, w / 2, R.nameY, R.namePx, w - 2 * R.COL);
       c.save(); let px = R.bigPx * 0.7; c.font = `700 ${px}px ${FONT_U}`; c.letterSpacing = '3px'; c.fillStyle = L.ink;
       const t = String(lineOf(sec.id, today.mine[sec.id]));
       while (px > 24 && c.measureText(t).width > w - 2 * R.COL) { px -= 2; c.font = `700 ${px}px ${FONT_U}`; }

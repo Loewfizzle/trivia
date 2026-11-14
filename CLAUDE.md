@@ -141,8 +141,9 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - A RUN KEEPS ITS OWN DAY (`js/daily/run-day.js`); THE THROWAWAY GATE; the phone side on the kit (`js/daily/` — never a copy in a game).
 - THE GO-LIVE SWITCH + THE RESEED = /admin → THE DAILIES (owner-only); NO PILLS on the dailies; every colour a `--pw-*` / `--cc-*` token.
 - THE SCHEDULED GO-LIVE: an OFF daily opens ONLY at a 4 am turn the owner schedules (/admin → GO LIVE AT THE NEXT 4 AM — `progress/dlive`; `core/daily.js#rowOpenOn`), never mid-day; a finish sweeps its OWN day's set (`dailies.js#liveFor`) → docs/progression.md.
-- THE SHARE CARDS: ONE FOOT (`js/daily/share.js#shareAddress` — a straight line + the address, no frame) + ONE RHYTHM (`share.js#RHYTHM` — every
-  SHARE TODAY section the same sizes: name · big result · stat line · art strip; `tests/share-rhythm.test.mjs`) → docs/progression.md.
+- THE SHARE CARDS: ONE FOOT (`js/daily/share.js#shareAddress` — a straight line + the address, no frame) + THE ONE RULE (`share.js#RHYTHM` — every
+  SHARE TODAY section: the NAME in its result's colour (green made · red failed · white) · ONE big TIME · ONE grey stat line · the art strip,
+  through the kit's `paintName` / `paintBig` / `paintStat` — never a win word; `tests/share-rhythm.test.mjs`) → docs/progression.md.
 - THE DROP: the phone PLAYS, the server REPLAYS (ONE pure engine — `prism/drop.js` + `drop-judge.js`); a log upload never re-sends the log (chunks beside a small record) → docs/prism.md#the-drop.
 
 **The games** (read the game's doc before a pass on it)

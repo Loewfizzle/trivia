@@ -7,12 +7,14 @@
 // reads packed); the section follows ONE RHYTHM (js/daily/share.js#RHYTHM): THE DROP · the big time · the lines · the art strip = A CROP OF THE
 // BOARD's TOP ROWS (cropRows — the stack's top STRIP_ROWS rows at the strip's height: readable at real size; a whole board in the strip was
 // 6-px cells); the card's foot = the kit's (one straight neon line + the address).
+// SKINS 2B (the owner, Nov 14) — THE ONE RULE: the section = THE DROP (the kit's neon name — WHITE: no win / lose) · the big TIME · the lines · the board's top
+// 8 rows (it was 6); the three text pieces are the kit's painters (js/daily/share.js#paintName · paintBig · paintStat).
 //   solidJunk(board) — PURE (the server runs it too: api/_lib/drop.js#share never sends a hole)
 //   dropInputs({ t, ln, b, day }) — PURE: the card's only inputs (SHARE_KEYS)
 //   renderShare({ inputs, look }) → <canvas>   ·   shareDrop({ inputs, look }) → 'shared' | 'saved' | 'copied' | 'none' | 'failed'
 //   paintSection(c, { inputs, look, W, H })   ·   cropRows(board, n) — PURE: which rows the strip shows
 import { W as BW, VISIBLE, JUNK } from '../prism/engine.js';
-import { RHYTHM } from '../../daily/share.js';
+import { RHYTHM, paintName, paintBig, paintStat } from '../../daily/share.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 
 export const SHARE_KEYS = Object.freeze(['t', 'ln', 'b', 'day']);
@@ -76,8 +78,9 @@ export async function shareDrop({ inputs, look = 'night' } = {}) {
 
 // ---------------------------------------------------------------------------------------------- SHARE TODAY's SECTION
 export const SECTION_H = RHYTHM.H;
-export const STRIP_ROWS = 6;
-/** PURE: the rows the strip shows — the stack's top `n` rows (a topped-out board: its top 6; a low stack: the bottom 6) → { from, to } (rows
+export const STRIP_ROWS = 8;
+export const NAME = 'THE DROP';
+/** PURE: the rows the strip shows — the stack's top `n` rows (a topped-out board: its top 8; a low stack: the bottom 8) → { from, to } (rows
  *  from the floor, `to` exclusive) */
 export function cropRows(board, n = STRIP_ROWS) {
   const s = typeof board === 'string' ? board : '';
@@ -112,24 +115,18 @@ function paintStrip(c, P, I, look, cx, y, h) {
   c.restore();
 }
 /**
- * THE DROP as a section of SHARE TODAY — ONE RHYTHM (SKINS 2A; js/daily/share.js#RHYTHM): its wordmark · the big time · the lines · the art
+ * THE DROP as a section of SHARE TODAY — THE ONE RULE (SKINS 2B; js/daily/share.js#RHYTHM): its name · the big time · the lines · the art
  * strip (the board's top rows, the junk SOLID) — centred on the card's centre line, the block centred in the box (W × H). P = PRISM DROP's
  * board module (its drawMini — share-today.js loads it).
  */
 export function paintSection(c, { inputs, look = 'night', W = 1080, H = SECTION_H, P = null } = {}) {
-  const I = dropInputs(inputs), R = RHYTHM;
-  const day = look === 'day';
-  const ink = day ? '#14284a' : '#f6f2ff', sign = day ? '#5b33c9' : '#eef1ff', glow = day ? 'transparent' : 'rgba(170,190,255,0.8)';
+  const I = dropInputs(inputs), R = RHYTHM, cw = W - 2 * R.COL;
   c.save();
   c.translate(0, Math.max(0, (H - R.H) / 2));
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  // the wordmark (THE DROP, PRISM's white light by night — the ticket's ink)
-  c.save(); c.font = `900 ${R.namePx}px "Orbitron", "Chakra Petch", system-ui, sans-serif`; c.letterSpacing = '9px';
-  if (!day) { c.shadowColor = glow; c.shadowBlur = 20; }
-  c.fillStyle = sign; c.fillText('THE DROP', W / 2 + 4.5, R.nameY); c.restore();
-  // the big time · the lines
-  c.save(); c.font = `700 ${R.bigPx}px "Chakra Petch", system-ui, sans-serif`; c.fillStyle = ink; c.fillText(timeOf(I.t), W / 2, R.bigY); c.restore();
-  c.save(); c.font = `700 ${R.statPx}px "Chakra Petch", system-ui, sans-serif`; c.letterSpacing = '4px'; c.fillStyle = ink; c.fillText(isEnd(I) ? `THE END · ${linesOf(I.ln)}` : linesOf(I.ln), W / 2 + 2, R.statY); c.restore();
+  paintName(c, look, NAME, W / 2, R.nameY, R.namePx, cw);
+  paintBig(c, look, timeOf(I.t), W / 2, R.bigY, R.bigPx);
+  paintStat(c, look, isEnd(I) ? `THE END · ${linesOf(I.ln)}` : linesOf(I.ln), W / 2, R.statY, R.statPx, cw);
   if (P) paintStrip(c, P, I, look, W / 2, R.artY, R.artH);
   c.restore();
 }

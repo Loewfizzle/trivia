@@ -1,4 +1,4 @@
-// (SKINS 2A — the EXPECTED copy, re-taken ON PURPOSE on Nov 14: the foot = one straight neon line + the address, ONE RHYTHM, COAST CLEAR's beam removed. A frozen copy of js/games/password/share.js for tests/integration/share-same.html — a later refactor of the card must stay pixel-identical to it.)
+// (SKINS 2B — the EXPECTED copy, re-taken ON PURPOSE on Nov 14: THE SHARE CARD's ONE RULE — the daily's small neon name CARRIES THE RESULT (green made · red failed), ONE big TIME, ONE grey stat line, the art. A frozen copy of js/games/password/share.js for tests/integration/share-same.html — never imported by the app.)
 // THE PASSWORD — THE SHARE CARD (PW2 — docs/password.md "THE SHARE"): SHARE renders an IMAGE on a canvas (1080 × 1350, in the look on
 // screen — night neon or the day sky): the sign, the two drawn doors, the result line ("7 GUESSES · 2:54" or the held line), both doors'
 // MINI GRIDS (marks only — NO letters, NO words), neonspeakeasy.com. The headline: WELCOME IN · LOCKED OUT (the owner's ADD-ON). Sent through the phone's share sheet (navigator.share with the file)
@@ -10,10 +10,14 @@
 // SKINS 2A (the owner, Nov 14) — ONE RHYTHM + NO PILLS: the card and the section = the name · ONE big result (WELCOME IN · LOCKED OUT) · ONE
 // stat line ("7 GUESSES · 2:54") · ONE art strip (the doors + their tiles) — js/daily/share.js#RHYTHM / OWN; the foot = the kit's (one straight
 // neon line + the address, no frame); a hit tile's mark is a straight bar (no rounded capsule).
+// SKINS 2B (the owner, Nov 14) — THE SHARE CARD's ONE RULE: the card and the section = THE PASSWORD — the NAME CARRIES THE RESULT (the kit's
+// small neon name: GREEN when both doors opened, RED when locked out — no WELCOME IN / LOCKED OUT headline, no extra word) · ONE big TIME ·
+// ONE grey stat line ("5 GUESSES") · the art (the section: the TILES ONLY, bigger — no doors; this card keeps its doors + their names over
+// the tiles). The three text pieces are the kit's painters (js/daily/share.js#paintName · paintBig · paintStat).
 //   renderShare({ run, look }) → <canvas>      shareRun({ run, line, look }) → 'shared' | 'saved' | 'copied' | 'none'
 //   paintSection(c, { run, look, W, H }) — SHARE TODAY's section (the rhythm's box, centred in W × H)
-import { scoreOf, fmtTime, doorState, HEAD_IN, HEAD_OUT, DOOR_NAMES, DOORS, HIT, NEAR } from '/js/games/password/logic.js';
-import { SHARE_W, SHARE_H, SITE, shareFrame, shareFoot, sendShare, RHYTHM, OWN, WORD_K } from '/js/daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
+import { scoreOf, fmtTime, doorState, guessesLine, DOOR_NAMES, DOORS, HIT, NEAR } from '/js/games/password/logic.js';
+import { SHARE_W, SHARE_H, SITE, shareFrame, shareFoot, sendShare, RHYTHM, OWN, paintName, paintBig, paintStat, MADE, FAILED } from '/js/daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
 export { SHARE_W, SHARE_H, SITE };
 const LOOK = {
   night: { bg0: '#0d0a1c', bg1: '#05040c', sign: '#ff5ec4', signCore: '#fff2fa', ink: '#f4f6ff', dim: 'rgba(244,246,255,0.62)', faint: 'rgba(244,246,255,0.4)', good: '#3dff8b', close: '#ffd23d', red: '#ff3355', tile: 'rgba(255,255,255,0.05)', tileLine: 'rgba(255,255,255,0.16)', miss: 'rgba(0,0,0,0.42)', near: 'rgba(0,0,0,0.45)', hitInk: '#06130b', doorOn: '#ff5ec4', doorLock: 'rgba(255,255,255,0.28)', doorHeld: 'rgba(255,92,120,0.8)', room: '#ffc266', font: '"Orbitron", "Chakra Petch", system-ui, sans-serif' },
@@ -30,7 +34,6 @@ export function tokens(look) {
   return L;
 }
 const rr = (c, x, y, w, h, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); };
-const glowText = (c, text, x, y, color, glow, blur) => { c.save(); c.shadowColor = glow; c.shadowBlur = blur; c.fillStyle = color; c.fillText(text, x, y); c.fillText(text, x, y); c.restore(); };
 
 /** a drawn door (the same shape as doors.js, in canvas): state locked | on | open | held; S = the scale (1 = 34 × 44) */
 function door(c, x, y, S, st, L) {
@@ -63,11 +66,12 @@ function grid(c, marks, x, y, cell, gap, L) {
 }
 
 // ---------------------------------------------------------------------------------------------- THE PIECES (this card + SHARE TODAY's section)
-/** the sign: "the password." by day, the neon THE PASSWORD by night — centred on cx (k = its scale: 1 on this card, small as a section's wordmark) */
-export function paintSign(c, L, look, cx, y, k = 1) {
-  if (look === 'day') { c.font = `800 ${74 * k}px ${L.font}`; c.fillStyle = L.sign; c.fillText('the password', cx - 14 * k, y); c.fillStyle = L.doorOn; c.fillText('.', cx + 232 * k, y); }
-  else { c.font = `900 ${58 * k}px ${L.font}`; c.save(); c.letterSpacing = `${14 * k}px`; glowText(c, 'THE PASSWORD', cx + 7 * k, y, L.signCore, L.sign, 40 * k); c.restore(); }
-}
+/** the daily's name (the kit paints it, in its result's colour) · the result: MADE (both doors opened) | FAILED (locked out) */
+export const NAME = 'THE PASSWORD';
+export const resultOf = run => (scoreOf(run).doors === DOORS ? MADE : FAILED);
+/** the big TIME ("2:54") · the stat line ("5 GUESSES" — a locked-out run's too: the red name says it) */
+export const timeOf = run => fmtTime(scoreOf(run).time);
+export const statOf = run => guessesLine(run);
 /** the two drawn doors + their names (THE FRONT DOOR · THE BACK ROOM) — each door at xs[i], its name to its right */
 export function paintDoors(c, run, L, look, { xs, y, S, font, ls, tx, ty }) {
   DOOR_NAMES.forEach((n, i) => {
@@ -80,24 +84,6 @@ export function paintDoors(c, run, L, look, { xs, y, S, font, ls, tx, ty }) {
     c.restore();
   });
   c.textAlign = 'center';
-}
-/** the headline (WELCOME IN · LOCKED OUT) at cx, y in px; fitW = the widest it may print (a section's column) */
-export function paintHead(c, run, L, look, cx, y, px, ls, fitW = 0) {
-  const s = scoreOf(run), crack = s.doors === DOORS;
-  const head = crack ? HEAD_IN : HEAD_OUT;
-  c.font = `900 ${px}px ${L.font}`;
-  c.save(); c.letterSpacing = `${ls}px`;
-  if (fitW) { let p = px; while (p > 24 && c.measureText(head).width > fitW) { p -= 2; c.font = `900 ${p}px ${L.font}`; } }
-  const hc = crack ? (look === 'day' ? '#1f7a45' : L.good) : L.red;
-  glowText(c, head, cx + ls / 2, y, hc, look === 'day' ? 'rgba(0,0,0,0)' : hc, look === 'day' ? 0 : Math.round(px * 0.375));
-  c.restore();
-}
-/** the result line ("7 GUESSES · 2:54") */
-export function paintLine(c, run, L, cx, y, px, ls) {
-  const s = scoreOf(run);
-  c.font = `700 ${px}px "Chakra Petch", system-ui, sans-serif`; c.fillStyle = L.ink; c.save(); c.letterSpacing = `${ls}px`;
-  c.fillText(`${s.guesses} ${s.guesses === 1 ? 'GUESS' : 'GUESSES'} · ${fmtTime(s.time)}`, cx + ls / 2, y);
-  c.restore();
 }
 /** the mini grids of the doors attempted (marks only), centred on cx from `top` */
 export function paintGrids(c, run, L, cx, top, cell, gap, gapX) {
@@ -118,11 +104,11 @@ export function renderShare({ run, look = 'night', dayNo = null } = {}) {
     const hz = c.createRadialGradient(W / 2, -80, 0, W / 2, -80, 700); hz.addColorStop(0, 'rgba(255,94,196,0.18)'); hz.addColorStop(1, 'rgba(255,94,196,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, H);
   }
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  // ONE RHYTHM (SKINS 2A): the name · ONE big result (WELCOME IN · LOCKED OUT) · ONE stat line · THE ART (the two doors + their names, then
-  // both doors' tiles) · the foot
-  paintSign(c, L, look, W / 2, OWN.nameY, OWN.namePx / (look === 'day' ? 74 : 58));
-  paintHead(c, run, L, look, W / 2, OWN.bigY, OWN.bigPx * WORD_K, 8, W - 120);
-  paintLine(c, run, L, W / 2, OWN.statY, OWN.statPx, 6);
+  // THE ONE RULE (SKINS 2B): the name (green made · red locked out) · ONE big TIME · ONE grey stat line · THE ART (the two doors + their
+  // names, then both doors' tiles) · the foot
+  paintName(c, look, NAME, W / 2, OWN.nameY, OWN.namePx, W - 120, resultOf(run));
+  paintBig(c, look, timeOf(run), W / 2, OWN.bigY, OWN.bigPx);
+  paintStat(c, look, statOf(run), W / 2, OWN.statY, OWN.statPx, W - 120);
   // (the art block — the doors' row + the tallest grid — sits a little above the middle of the art box)
   const rows = Math.max(1, ...run.doors.map(d => d.marks.length)), blockH = 176 + rows * 66 - 10;
   const ay = OWN.artY + Math.max(0, (OWN.artBot - OWN.artY - blockH) * 0.4);
@@ -136,35 +122,31 @@ export function renderShare({ run, look = 'night', dayNo = null } = {}) {
 // ---------------------------------------------------------------------------------------------- SHARE TODAY's SECTION
 /** the section's box height in its own units — the rhythm's (SHARE TODAY scales every section by the same factor) */
 export const SECTION_H = RHYTHM.H;
-/** one door alone (a piece: SHARE TODAY's section heads each grid with its door — no name; the door's state as on the card) */
-export function paintDoor(c, run, L, i, x, y, S) { door(c, x, y, S, doorState(run, i), L); }
+/** the biggest a tile prints in the strip (a short run — one or two rows a door — never balloons) */
+export const TILE_MAX = 46;
 /**
- * THE PASSWORD as a section of SHARE TODAY — ONE RHYTHM (SKINS 2A; js/daily/share.js#RHYTHM): the name · the big result (WELCOME IN · LOCKED
- * OUT) · the stat line ("n GUESSES · m:ss") · the art strip: each door played BESIDE its tiles (no names — unreadable at thread size; the
- * daily's OWN card keeps them), the units side by side, centred. The tiles as big as the strip allows (≤ 36 a cell — a LOCKED OUT door's six
- * rows fill the strip's height). The block centred in the box (W × H). The same pieces as the card.
+ * THE PASSWORD as a section of SHARE TODAY — THE ONE RULE (SKINS 2B; js/daily/share.js#RHYTHM): the name · the big TIME · the stat line · the
+ * art strip: the TILES ONLY (no doors — the owner: the tiles read small beside them), each door's grid side by side, as big as the strip allows
+ * (≤ TILE_MAX a cell; a LOCKED OUT door's six rows fill the strip's height), centred. The result = the NAME's colour (+ the tiles: a cracked
+ * door ends on a full green row). The block centred in the box (W × H). The same pieces as the card.
  */
 export function paintSection(c, { run, look = 'night', W = SHARE_W, H = SECTION_H } = {}) {
   const L = tokens(look), R = RHYTHM;
-  const played = run.doors.map((d, i) => ({ d, i })).filter(x => x.d.guesses.length);
+  const played = run.doors.filter(d => d.guesses.length);
   const n = Math.max(1, played.length);
-  const rows = Math.max(1, ...played.map(x => x.d.marks.length));
-  const doorS = 1.5, doorH = 44 * doorS, doorW = 34 * doorS, dx = doorW + 14;
-  // the cell: as big as the strip's height + the column's width allow — a grid = 5 cells + 4 gaps of 0.2, 1.5 cells between the units
+  const rows = Math.max(1, ...played.map(d => d.marks.length));
+  // the cell: as big as the strip's height + the column's width allow — a grid = 5 cells + 4 gaps of 0.2, 1.5 cells between the grids
   const byH = R.artH / (1.2 * rows - 0.2);
-  const byW = (W - 2 * R.COL - n * dx) / (n * 5.8 - 0.8 + (n - 1) * 1.5);
-  const cell = Math.max(10, Math.min(36, byH, byW)), gap = cell * 0.2, gx = cell * 1.5;
-  const gridH = rows * cell + (rows - 1) * gap, top = R.artY + (R.artH - Math.max(gridH, doorH)) / 2;
+  const byW = (W - 2 * R.COL) / (n * 5.8 - 0.8 + (n - 1) * 1.5);
+  const cell = Math.max(10, Math.min(TILE_MAX, byH, byW)), gap = cell * 0.2, gx = cell * 1.5;
+  const gridH = rows * cell + (rows - 1) * gap, top = R.artY + (R.artH - gridH) / 2;
   c.save();
   c.translate(0, Math.max(0, (H - R.H) / 2));
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  paintSign(c, L, look, W / 2, R.nameY, R.namePx / (look === 'day' ? 74 : 58));
-  paintHead(c, run, L, look, W / 2, R.bigY, R.bigPx * WORD_K, 6, W - 2 * R.COL);
-  paintLine(c, run, L, W / 2, R.statY, R.statPx, 4);
-  // the units [door][tiles] side by side, centred (paintGrids lays the grids out — its gap widened by each door, its centre shifted by one)
-  const gw = 5 * cell + 4 * gap, total = n * (dx + gw) + (n - 1) * gx, x0 = W / 2 - total / 2;
-  played.forEach((x, k) => paintDoor(c, run, L, x.i, x0 + k * (dx + gw + gx), top, doorS));
-  paintGrids(c, run, L, W / 2 + dx / 2, top, cell, gap, gx + dx);
+  paintName(c, look, NAME, W / 2, R.nameY, R.namePx, W - 2 * R.COL, resultOf(run));
+  paintBig(c, look, timeOf(run), W / 2, R.bigY, R.bigPx);
+  paintStat(c, look, statOf(run), W / 2, R.statY, R.statPx, W - 2 * R.COL);
+  paintGrids(c, run, L, W / 2, top, cell, gap, gx);
   c.restore();
 }
 

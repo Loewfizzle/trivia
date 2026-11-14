@@ -18,17 +18,71 @@ export function shareFrame(L, look) {
   return { cv, c, W, H };
 }
 /**
- * ONE RHYTHM (SKINS 2A — the owner, Nov 14): every SHARE TODAY section = (1) the name — or the win word when it IS the name (name-once) ·
- * (2) ONE big result · (3) ONE stat line · (4) ONE art strip — the SAME sizes and the same spacing in every section, centred inside ONE column
- * (COL each side of a 1080 card). A section's natural box = H tall (share-today.js scales every section by the same factor); every y is a
- * text MIDDLE; the strip = [artY, artY + artH].
+ * THE SHARE CARD's ONE RULE (SKINS 2B — the owner, Nov 14, approved from a mockup + his 11:16 am add-on; it replaces SKINS 2A's "the name or
+ * the win word"): every SHARE TODAY section = (1) THE NAME — the daily's own name, the SAME small size for all, and IT CARRIES THE RESULT:
+ * a clean GREEN neon when the run was made, RED when it failed (a modest glow — never a blazing headline), WHITE for a daily with no win /
+ * lose (THE DROP). No win word, no name-swap, no extra word for a lost run · (2) ONE big TIME, the same size for all, white (2:54 · 2:12 ·
+ * 2:38.9) · (3) ONE stat line, grey (5 GUESSES · 1 SPOTTED · +30 s · 101 LINES) · (4) ONE art strip (THE PASSWORD's tiles — no doors · COAST
+ * CLEAR's 3 lamps · THE DROP's board, its top 8 rows) — the SAME sizes and spacing in every section, centred inside ONE column (COL each side
+ * of a 1080 card). The three text pieces are drawn by ONE painter each (paintName · paintBig · paintStat — below), never by a daily's own.
+ * A section's natural box = H tall (share-today.js scales every section by the same factor); every y is a text MIDDLE; the strip =
+ * [artY, artY + artH].
  */
-export const RHYTHM = Object.freeze({ H: 312, COL: 150, nameY: 21, namePx: 40, bigY: 92, bigPx: 92, statY: 151, statPx: 32, artY: 181, artH: 128 });
-/** a big result that is a WORD (WELCOME IN · LOCKED OUT · CAUGHT — the display font, wide + tall) prints at this share of the big size, so it
- *  stands as tall as a big TIME (the number font) — "the same size in every section" is judged by eye, not by the font's px */
-export const WORD_K = 0.9;
-/** the same rhythm on a daily's OWN card (1080 × 1350): the name · the big result · the stat line · the art (its box: artY → artBot) · the foot */
+export const RHYTHM = Object.freeze({ H: 312, COL: 150, nameY: 18, namePx: 40, bigY: 87, bigPx: 84, statY: 141, statPx: 32, artY: 167, artH: 145 });
+/** the same rule on a daily's OWN card (1080 × 1350): the name · the big time · the stat line · the art (its box: artY → artBot) · the foot */
 export const OWN = Object.freeze({ nameY: 150, namePx: 72, bigY: 378, bigPx: 150, statY: 506, statPx: 46, artY: 590, artBot: 1150 });
+/** the three text pieces' colours — the SAME on every daily's card + section: the NAME by its result (`made` green · `failed` red · none =
+ *  white; by day the same green / red / navy in the day palette), the big time = the ink (white), the stat line = grey */
+export const INK = Object.freeze({
+  night: Object.freeze({ name: '#ffffff', made: '#3dff8b', failed: '#ff4a68', ink: '#f4f6ff', stat: '#b6bcd4' }),
+  day: Object.freeze({ name: '#16305c', made: '#17703d', failed: '#b02040', ink: '#14284a', stat: '#3a5582' }),
+});
+export const MADE = 'made', FAILED = 'failed';
+const FONT_NAME = '"Orbitron", "Chakra Petch", system-ui, sans-serif', FONT_TEXT = '"Chakra Petch", system-ui, sans-serif';
+const inkOf = look => INK[look === 'day' ? 'day' : 'night'];
+const toward = (hex, k) => `rgb(${[1, 3, 5].map(i => { const v = parseInt(hex.slice(i, i + 2), 16); return Math.round(v + (255 - v) * k); }).join(',')})`;
+/** the name's colour for a result (`MADE` | `FAILED` | null) — the night's green is the page's --good token (the colour-blind swap rides
+ *  along; the result is never by colour alone: the art shows it too) */
+export function nameInk(look, result = null) {
+  const K = inkOf(look);
+  let col = result === MADE ? K.made : result === FAILED ? K.failed : K.name;
+  if (result === MADE && look !== 'day') { try { const g = getComputedStyle(document.body).getPropertyValue('--good').trim(); if (/^#[0-9a-f]{6}$/i.test(g)) col = g; } catch { /* no DOM tokens */ } }
+  return col;
+}
+/** (1) THE NAME — the daily's own name as small clean neon in its RESULT's colour (a soft glow in the colour under a lighter core; by day
+ *  plain ink — no glow), centred on cx; fitW = the widest it may print */
+export function paintName(c, look, name, cx, y, px, fitW = 0, result = null) {
+  const col = nameInk(look, result), t = String(name || '').toUpperCase();
+  c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
+  let p = px;
+  const set = () => { c.font = `900 ${p}px ${FONT_NAME}`; c.letterSpacing = `${p * 0.22}px`; };
+  set();
+  while (fitW && p > 20 && c.measureText(t).width > fitW) { p -= 2; set(); }
+  const x = cx + p * 0.11;
+  if (look !== 'day') {
+    // (a MODEST glow: one soft pass in the colour, then the core — the colour lifted toward white so the letters stay crisp)
+    c.globalAlpha = result ? 0.8 : 0.9; c.shadowColor = result ? col : 'rgba(186,206,255,0.9)'; c.shadowBlur = p * (result ? 0.42 : 0.55); c.fillStyle = col; c.fillText(t, x, y);
+    c.globalAlpha = 1; c.shadowBlur = p * 0.12; c.fillStyle = result ? toward(col, 0.3) : col; c.fillText(t, x, y);
+  } else { c.fillStyle = col; c.fillText(t, x, y); }
+  c.restore();
+}
+/** (2) THE BIG TIME — the number font's bold, the ink (white by night), centred on cx */
+export function paintBig(c, look, text, cx, y, px) {
+  c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.font = `700 ${px}px ${FONT_TEXT}`; c.fillStyle = inkOf(look).ink; c.fillText(String(text == null ? '' : text), cx, y);
+  c.restore();
+}
+/** (3) THE STAT LINE — ONE grey line, centred on cx (never a coloured word: a lost run is said by the NAME's red); fitW = the widest it may print */
+export function paintStat(c, look, text, cx, y, px, fitW = 0) {
+  const t = String(text == null ? '' : text);
+  c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
+  let p = px;
+  const set = () => { c.font = `700 ${p}px ${FONT_TEXT}`; c.letterSpacing = `${p * 0.125}px`; };
+  set();
+  while (fitW && p > 16 && c.measureText(t).width > fitW) { p -= 1; set(); }
+  c.fillStyle = inkOf(look).stat; c.fillText(t, cx + p * 0.0625, y);
+  c.restore();
+}
 
 /**
  * THE FOOT — EVERY share card's (SKINS 2A — NO PILLS, EVER: the address's rounded tube frame is gone): ONE straight thin neon line + under it

@@ -92,6 +92,8 @@ for before the audio runs is held ≤ 400 ms and played the moment the context r
 without a gesture); every buffer is decoded at the unlock. The preview + the E2E's page install the console's unlock (`installAudio`) like the real game;
 the E2E proves every sound STARTS on the context + the catch.
 
+**THE SHARE CARD — SKINS 2B (Nov 14; docs/progression.md "THE ONE RULE" — it replaces the order below):** the card + SHARE TODAY's section = COAST CLEAR as the kit's small neon NAME that CARRIES THE RESULT (GREEN on a clear, RED when caught — no CAUGHT word, no name-swap) · ONE big TIME (a caught run's too — read off the end of its line: `share.js#partsOf`, PURE; the server's inputs are unchanged) · ONE grey stat line ("1 SPOTTED · +30 s" · "3 SPOTTED") · the three lamps (as tall as SHARE TODAY's strip). The text = the kit's `paintName / paintBig / paintStat`.
+
 **THE SHARE CARD — SKINS 2A (Nov 14; docs/progression.md "THE SHARE CARDS — NO PILLS, ONE RHYTHM"):** **THE BEAM WEDGE IS REMOVED** (the card +
 SHARE TODAY's section — `paintBeam` + the `beam` token are gone; the three lamps stay, centred). The card's order: the name (a CLEAR: the green
 COAST CLEAR, once; CAUGHT: the sign) · ONE big result (the time; CAUGHT) · the stat line (under the result, in the ink colour) · the three

@@ -93,6 +93,8 @@ page now install the console's unlock (`installAudio`) — before DFIX1 they wer
 iPhone); the E2E proves the sounds start on the context after a trusted tap + the catch (`pwSfxPlayed()`). **Music off + the ring / silent switch on =
 no effects on an iPhone** (the audio session is 'ambient' with the music off — engine.js; by design).
 
+**THE SHARE CARD — SKINS 2B (Nov 14; docs/progression.md "THE ONE RULE" — it replaces the order below):** the card + SHARE TODAY's section = THE PASSWORD as the kit's small neon NAME that CARRIES THE RESULT (GREEN when both doors opened, RED when locked out — no WELCOME IN / LOCKED OUT headline) · ONE big TIME · ONE grey stat line ("5 GUESSES") · the art: SHARE TODAY's strip = THE TILES ONLY, bigger (≤ 46 px a cell — no doors); the card keeps its doors + names over the tiles. `share.js#resultOf / timeOf / statOf`; the text = the kit's `paintName / paintBig / paintStat`.
+
 **THE SHARE CARD — SKINS 2A (Nov 14; docs/progression.md "THE SHARE CARDS — NO PILLS, ONE RHYTHM"):** the card's order is now the name · WELCOME
 IN / LOCKED OUT · "n GUESSES · m:ss" · the art (the doors + their names, then both doors' tiles) · THE FOOT (a small dim "Nº n", ONE straight
 neon line, NEONSPEAKEASY.COM — the kit's `shareFoot`; the foot no longer repeats THE PASSWORD); a hit tile's white mark is a straight bar;
