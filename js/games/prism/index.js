@@ -8,6 +8,8 @@ import { state } from '../../store.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { markUsed } from '../kit/night.js';
 import { pickPaper } from './crayon.js';
+import { dealSkin, soloSkin } from './skin-deal.js';
+import { settings as phoneSettings, updateSettings } from '../../audio/settings.js';
 import { currentLook, resolveLook, sunUpNow } from '../kit/look.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 
@@ -50,13 +52,20 @@ export async function start({ matchId, settings, participants, now, used }) {
   const seed = newSeed();
   // (PD-4 — THE PAPER: the host deals one page per match — the same for everyone, a different one every match; the night's memory remembers it)
   const paper = pickPaper(seed, (used && used.prism) || {});
+  // (SKINS 1 — THE SKIN COUNTER: ONE k a match, stored on the game — every phone draws pool[k % its pool] (skins.js#skinOf). A ROOM's = the
+  //  host's deal, +1 a match, from the night's memory (`sk<k>`); a SOLO run's (PLAY NOW / a room of one) = the PLAYER's own counter — this
+  //  phone's settings, +1 a run)
+  const soloRun = Object.keys(participants || {}).length === 1;
+  let sk, skKey = null;
+  if (soloRun) { const r = soloSkin(phoneSettings.prismSkinK); sk = r.k; updateSettings({ prismSkinK: r.next }); }
+  else { const d = dealSkin(seed, (used && used.prism) || {}); sk = d.k; skKey = d.key; }
   const game = { ...createGame({
     matchId, settings: s, participants, now, seed, songs: list, sd, pl0,
     songStartAt, playStartAt, endAt, set, cu, ff,
-  }), pp: paper.i };
+  }), pp: paper.i, sk };
   // (PFIX-B — optional 12: the playlist moves past this match's first song NOW — an END GAME never deals it again; a room's first match also
   //  stores the room's seed + the NIGHT position it left)
-  const $room = { ...markUsed('prism', [paper.key]), ...(pm.seed ? {} : { 'meta/prism': { seed: roomSeed, n: pm.n || 0 } }) };
+  const $room = { ...markUsed('prism', skKey ? [paper.key, skKey] : [paper.key]), ...(pm.seed ? {} : { 'meta/prism': { seed: roomSeed, n: pm.n || 0 } }) };
   if (list.length) Object.assign($room, set === 'day' ? playlistAdvance('day', pl0) : playlistAdvance('night', pl0, pm.seed ? null : roomSeed));
   return { ...game, $room };
 }

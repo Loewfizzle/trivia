@@ -24,6 +24,8 @@ import { rngFrom, hashString } from '../../core/rng.js';
 import { installTestHook, removeTestHook } from '../kit/hook.js';
 import { loadManifest } from '../prism/songs.js';
 import { dealSongs, setForLook } from '../prism/logic.js';
+import { dropSkin } from '../prism/skin-deal.js';
+import { settings, updateSettings } from '../../audio/settings.js';
 /** the songs a run deals (≈ 3 min each: 8 minutes of play + the pauses' 20 minutes never run out) */
 export const DROP_SONGS = 10;
 /** the one-time hint stays this long into the run at most (the first move takes it sooner) */
@@ -54,8 +56,11 @@ export function createView() {
     const manifest = await loadManifest().catch(() => []);
     if (gone) return;
     const deal = dealSongs({ manifest, set: setForLook(document.body.dataset.look === 'day' ? 'day' : 'night'), roomSeed: `drop:${r.day}`, pos: 0, count: DROP_SONGS });
+    // (SKINS 1: THE DROP draws in the PLAYER's own rotation — this phone's counter, +1 a day's run; a refresh / a resume keeps the day's skin)
+    const sk = dropSkin(settings, r.day);
+    if (sk.patch) updateSettings(sk.patch);
     const game = {
-      id: 'prism', matchId: `drop-${r.day}`, phase: 'play', settings: { mode: 'survival' }, seed: r.run.seed, songs: deal.songs, sd: deal.sd, set: deal.set, cu: deal.cu, ff: deal.ff,
+      sk: sk.k, id: 'prism', matchId: `drop-${r.day}`, phase: 'play', settings: { mode: 'survival' }, seed: r.run.seed, songs: deal.songs, sd: deal.sd, set: deal.set, cu: deal.cu, ff: deal.ff,
       participants: { [state.uid]: true }, playStartAt: drv.goLocal(), songStartAt: drv.goLocal() - COUNT_MS, pp: hashString(`${r.run.seed}:paper`) % 4, drop: true,
     };
     inner = createPrismView();

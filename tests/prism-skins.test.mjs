@@ -170,3 +170,37 @@ test('ROTATION: the PLAYER\'s own counter (a solo run + THE DROP): +1 a run, fro
   const n = POOLS.day.length;
   for (let i = 0; i + n <= seen.length; i++) assert.equal(new Set(seen.slice(i, i + n)).size, n, 'every day skin before a repeat, run after run');
 });
+
+test('THE DROP\'s counter: the player\'s own, ONE a day — a refresh / a resume of the day\'s run keeps its skin; a new day takes the next', async () => {
+  const { dropSkin } = await import('../js/games/prism/skin-deal.js');
+  const s = { prismSkinK: 4 };
+  const a = dropSkin(s, '2026-11-14');
+  assert.deepEqual(a, { k: 4, patch: { prismSkinK: 5, prismSkinDrop: { d: '2026-11-14', k: 4 } } });
+  Object.assign(s, a.patch);
+  assert.deepEqual(dropSkin(s, '2026-11-14'), { k: 4, patch: null }, 'the same day: the same skin, nothing saved again');
+  const b = dropSkin(s, '2026-11-15');
+  assert.equal(b.k, 5); assert.equal(b.patch.prismSkinK, 6);
+  assert.deepEqual(dropSkin({}, 'd'), { k: 0, patch: { prismSkinK: 1, prismSkinDrop: { d: 'd', k: 0 } } });
+  assert.deepEqual(dropSkin(null, 'd').k, 0);
+});
+
+test('THE HOST\'s deal is wired: start() stores game.sk + its key in the night\'s memory; a solo run takes the phone\'s counter; THE DROP its day\'s', () => {
+  const idx = read('js/games/prism/index.js');
+  assert.match(idx, /import \{ dealSkin, soloSkin \} from '\.\/skin-deal\.js'/, 'the leaf — the cartridge loads no skin art to deal');
+  assert.match(idx, /if \(soloRun\) \{ const r = soloSkin\(phoneSettings\.prismSkinK\); sk = r\.k; updateSettings\(\{ prismSkinK: r\.next \}\); \}/);
+  assert.match(idx, /else \{ const d = dealSkin\(seed, \(used && used\.prism\) \|\| \{\}\); sk = d\.k; skKey = d\.key; \}/);
+  assert.match(idx, /pp: paper\.i, sk \}/);
+  assert.match(idx, /markUsed\('prism', skKey \? \[paper\.key, skKey\] : \[paper\.key\]\)/);
+  const drop = read('js/games/drop/view.js');
+  assert.match(drop, /const sk = dropSkin\(settings, r\.day\);\s+if \(sk\.patch\) updateSettings\(sk\.patch\);/);
+  assert.match(drop, /sk: sk\.k, id: 'prism'/);
+  // the settings: this phone only, ROTATE by default
+  const st = read('js/audio/settings.js');
+  assert.match(st, /prismSkinDay: 'rotate', prismSkinNight: 'rotate', prismSkinK: 0/);
+  // the view reads the skin from the game + the pins — never a local guess
+  const v = read('js/games/prism/view.js');
+  assert.match(v, /const matchSkin = lk => skinOf\(game, lk, phoneOf\(settings\)\);/);
+  // the settings sheet: the rows come from the picker, lazily; a look with one owned skin has no row
+  assert.match(read('js/ui/settings-panel.js'), /lazyImport\(import\('\.\.\/games\/prism\/picker\.js'\), '\.\.\/games\/prism\/picker\.js'\)/);
+  assert.match(read('js/games/prism/picker.js'), /if \(ids\.length < 2\) continue;/);
+});

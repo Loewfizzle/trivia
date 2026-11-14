@@ -398,6 +398,9 @@ async function survivalAndSolo() {
   await waitFor(h, s => s.game && s.game.phase === 'play', 'SOLO SCORE RUSH: GO', 40000);
   const gR = await game(h);
   ok(gR.settings.mode === 'rush' && Object.keys(gR.participants).length === 1, `SOLO: a room of one is dealt SCORE RUSH, never BATTLE (${gR.settings.mode})`);
+  // (SKINS 1: a solo run draws in the PLAYER's own rotation — this phone's counter, +1 a run; never the room's night memory)
+  const soloK = await h.evaluate(async () => (await import('/js/audio/settings.js')).settings.prismSkinK);
+  ok(Number.isInteger(gR.sk) && soloK === gR.sk + 1, `THE SKIN: a solo run takes the player's own counter (${gR.sk} → the phone keeps ${soloK})`);
   await h.waitForFunction(() => window.__prism.engine() && window.__prism.engine().cur, { timeout: 20000 });
   await P(h, 'window.__prism.bot({ skill: 0.9, every: 120, seed: 71 })');
   await sleep(5000);
@@ -623,6 +626,32 @@ try {
     for (const i of alive()) papers.push(await pages[i].evaluate(() => { const g = window.__arcade.state.game; return { pp: g && g.pp, el: document.querySelector('.pd') && document.querySelector('.pd').dataset.paper }; }));
     const PIDS = ['notepad', 'graph', 'construction', 'coloring'];
     ok(papers.every(x => Number.isInteger(x.pp) && x.pp === papers[0].pp && x.el === PIDS[x.pp]), `THE PAPER: the host dealt ${PIDS[papers[0].pp]} — the same page on all ${papers.length} phones (${papers.map(x => x.el).join(', ')})`);
+    // SKINS 1 — THE SKIN: the host dealt ONE counter (game.sk) — every phone draws pool[k % its pool] for its own look, from the shared game
+    // state (never a local guess); a PIN on one phone narrows ITS pool to one, live, and ROTATE gives the match's skin back
+    const skins = [];
+    for (const i of alive()) skins.push(await pages[i].evaluate(async () => {
+      const S = await import('/js/games/prism/skins.js'), { settings } = await import('/js/audio/settings.js');
+      const g = window.__arcade.state.game, lk = document.body.dataset.look === 'day' ? 'day' : 'night', L = window.__prism.look();
+      return { sk: g && g.sk, lk, drawn: L.skin, want: S.skinOf(g, lk, S.phoneOf(settings)).id, pool: S.poolOf(lk, S.phoneOf(settings)), el: document.querySelector('.pd').dataset.skin };
+    }));
+    ok(skins.every(x => Number.isInteger(x.sk) && x.sk === skins[0].sk && x.drawn === x.want && x.el === x.drawn && x.drawn === x.pool[x.sk % x.pool.length]),
+      `THE SKIN: the host dealt counter ${skins[0].sk} — every phone draws pool[k % n] for its look (${skins.map(x => `${x.lk}:${x.drawn}`).join(', ')})`);
+    const pin = await A.evaluate(async () => {
+      const S = await import('/js/games/prism/skins.js'), M = await import('/js/audio/settings.js');
+      const g = window.__arcade.state.game, mine = S.ownedOf('day', S.phoneOf(M.settings)), cur = window.__prism.look().skin;
+      const other = mine.find(id => id !== cur) || cur;
+      M.updateSettings({ prismSkinDay: other });
+      await new Promise(r => setTimeout(r, 300));
+      const pinned = window.__prism.look().skin, fam = document.querySelector('.pd').dataset.look;
+      M.updateSettings({ prismSkinDay: 'nope' });   // (a retired / un-owned pin = ROTATE)
+      await new Promise(r => setTimeout(r, 300));
+      const bad = window.__prism.look().skin;
+      M.updateSettings({ prismSkinDay: 'rotate' });
+      await new Promise(r => setTimeout(r, 300));
+      return { n: mine.length, cur, other, pinned, fam, bad, back: window.__prism.look().skin, want: S.skinOf(g, 'day', S.phoneOf(M.settings)).id };
+    });
+    ok(pin.pinned === pin.other && pin.fam === 'crayon' && pin.bad === pin.want && pin.back === pin.want,
+      `THE SKIN: a DAY pin draws that skin live (${pin.cur} → ${pin.pinned}, ${pin.n} owned), an un-owned pin = ROTATE (${pin.bad}), ROTATE gives the match's back (${pin.back})`);
     // day → night, live
     await sleep(600);
     await P(A, 'window.__prism.record(true)');
@@ -866,6 +895,10 @@ try {
     await waitFor(h, s => s.game && s.game.phase === 'count' && s.game.settings.mode === 'rush', 'rush count');
     const gR = await game(h);
     ok(gR.set === 'night', `THE HOST's SET: the NEW host's look picks the next match's set (${gR.set})`);
+    // (SKINS 1: the room's skin counter climbs by one a match — from the night's memory, whoever hosts now)
+    const usedR = await evalIn(h, s => (s.meta && s.meta.used && s.meta.used.prism) || {});
+    ok(Number.isInteger(gR.sk) && Number.isInteger(gA.sk) && gR.sk === gA.sk + 1 && usedR[`sk${gA.sk}`] && usedR[`sk${gR.sk}`],
+      `THE SKIN: the next match's counter = the last + 1, from the night's memory (${gA.sk} → ${gR.sk}; a new host)`);
     const expect = await h.evaluate(async (seed, n) => { const L = await import('/js/games/prism/logic.js'); const S = await import('/js/games/prism/songs.js'); const ids = (await S.loadManifest()).filter(x => L.setOfSong(x) === 'night').map(x => x.id); return L.playlistAt(seed, n, ids); }, plBefore.seed, plBefore.n);
     ok(gR.songs[0] === expect && gR.songs[0] !== gA.songs[1], `PLAYLIST: the next match plays the next song of the room playlist (${gR.songs[0]}, position ${plBefore.n})`);
     ok(gR.endAt - gR.songStartAt > 60_000, `SCORE RUSH: the match is one song long (${Math.round((gR.endAt - gR.songStartAt) / 1000)} s, ends on its final beat)`);

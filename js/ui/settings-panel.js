@@ -127,7 +127,9 @@ function open() {
       slider('SWIPE SENSITIVITY', 'prismSens'),
       slider('BUTTON SIZE', 'prismBtn'),
       h('div.set-row.set-seg', h('span.label', 'SLAM BUTTON'), segmented([{ value: 'left', label: 'LEFT' }, { value: 'right', label: 'RIGHT' }], settings.prismSlam || 'right', v => updateSettings({ prismSlam: v }))),
-      toggle('Swipe-down slam', 'prismFlick')] : []),
+      toggle('Swipe-down slam', 'prismFlick'),
+      // (SKINS 1 — THE SKINS: a DAY row + a NIGHT row, each ROTATE or one owned skin, as small live tiles; a look with one owned skin has no row)
+      skinsRows()] : []),
     // (HE3 — HOLD'EM's card faces: the FOUR-COLOUR deck (spades black · hearts red · diamonds blue · clubs green) or the CLASSIC two —
     //  this phone only; shown while its match is on screen until it's playable)
     ...(playable('holdem') || (state.game && state.game.id === 'holdem') ? [
@@ -150,6 +152,16 @@ function tableRow() {
   lazyImport(import('../games/holdem/picker.js'), '../games/holdem/picker.js')
     .then(m => body.replaceChildren(m.tablePicker(settings.heSkin, id => updateSettings({ heSkin: id })))).catch(() => {});
   return h('div.set-row.set-table', h('span.label', 'TABLE'), body);
+}
+
+// (SKINS 1 — PRISM DROP's SKINS: live tiles drawn with each skin's own blocks (games/prism/picker.js, loaded lazily: the boot graph never names a
+//  game); a tap changes the board live, this phone only — settings.prismSkinDay / prismSkinNight)
+function skinsRows() {
+  const box = h('div.set-skins');
+  lazyImport(import('../games/prism/picker.js'), '../games/prism/picker.js')
+    .then(m => box.replaceChildren(...m.skinRows(settings, (look, id) => updateSettings(look === 'day' ? { prismSkinDay: id } : { prismSkinNight: id }))
+      .map(r => h('div.set-row.set-table.set-skin', { 'data-look': r.look }, h('span.label', r.label), h('div.set-pick', r.el))))).catch(() => {});
+  return box;
 }
 
 function close() { if (sheet) sheet.close(); }

@@ -65,10 +65,15 @@ import { loadGame, liveKeyFor } from '/js/games/registry.js';
 import { updateSettings } from '/js/audio/settings.js';
 import { setState } from '/js/store.js';
 import { installEmblems } from '/js/ui/emblems.js';
+import { SKINS } from '/js/games/prism/skins.js';
 
 const q = new URLSearchParams(location.search);
 const ROOT = document.documentElement;
-document.body.dataset.look = q.get('look') === 'day' ? 'day' : 'night';   // (PD-3: as app.js#paintLook sets it during a match)
+// (SKINS 1) &skin=<id> opens THAT skin directly: its look + a pin on it (this page only — the pins are reset to ROTATE on every load without it);
+// &sk=<k> = the match's skin counter (what the host deals — the rotation: pool[k % n])
+const FORCED = SKINS[q.get('skin')] && SKINS[q.get('skin')].look ? SKINS[q.get('skin')] : null;
+document.body.dataset.look = (FORCED ? FORCED.look : q.get('look')) === 'day' ? 'day' : 'night';   // (PD-3: as app.js#paintLook sets it during a match)
+updateSettings({ prismSkinDay: FORCED && FORCED.look === 'day' ? FORCED.id : 'rotate', prismSkinNight: FORCED && FORCED.look === 'night' ? FORCED.id : 'rotate' });
 if (q.has('st')) ROOT.style.setProperty('--safe-t', `${q.get('st')}px`);
 if (q.has('sb')) ROOT.style.setProperty('--safe-b', `${q.get('sb')}px`);
 updateSettings({ prismScheme: q.get('scheme') === 'buttons' ? 'buttons' : 'gesture', prismSlam: q.get('slam') === 'left' ? 'left' : 'right', prismBtn: 0.5, reducedFx: q.get('reduced') === '1' });   // (PD-3: &reduced=1 = Settings → Reduced effects)
@@ -112,6 +117,7 @@ const game = { ...createGame({ matchId: 'pvw', settings: { mode }, participants,
 game.out = {}; game.bd = {}; game.ko = {};
 // (PD-4) the page the host dealt: &paper=notepad|graph|construction|coloring (default: the seed's — as a game from before the deal)
 { const P = ['notepad', 'graph', 'construction', 'coloring'].indexOf(q.get('paper')); if (P >= 0) game.pp = P; }
+game.sk = Math.max(0, Number(q.get('sk') || 0) | 0);   // (SKINS 1: the match's skin counter)
 // the others' boards: a believable mid-game stack each (the engine + the bot), one in danger, one KO'd (battle)
 const boards = {};
 uids.slice(1).forEach((u, i) => {

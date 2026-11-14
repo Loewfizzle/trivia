@@ -29,7 +29,8 @@
 //   holiday   takes the holiday hook's overrides (holiday.js — crayon + neon only)
 //
 // THE ROTATION (PURE — tests/prism-skins.test.mjs): POOLS · owned(skin, phone) · poolOf(look, phone) · skinOf(game, look, phone) ·
-// dealSkin(seed, used) (the HOST's counter, from the night's memory) · soloSkin(cur) (the PLAYER's own counter) · phoneOf(settings)
+// phoneOf(settings) — and the COUNTER's own maths in skin-deal.js (a leaf the cartridge's index.js takes without the art): skinK(game) ·
+// dealSkin(seed, used) (the HOST's counter, from the night's memory) · soloSkin(cur) + dropSkin(settings, day) (the PLAYER's own counter)
 import { W, VISIBLE } from './engine.js';
 import { JEWEL, rgba, mix, lightIncoming, sketchIncoming } from './skin-kit.js';
 import { neonPalette } from './neon.js';
@@ -39,6 +40,8 @@ import { createCrayonFx } from './crayonfx.js';
 import { neonSprite, clearNeon, neonCount } from './neon-art.js';
 import { glassSprite, clearGlass, glassCount } from './glass-art.js';
 import { CRAYON_PAGE, warmDay } from './page.js';
+import { skinK } from './skin-deal.js';
+export { skinK, dealSkin, soloSkin, dropSkin, SK_START } from './skin-deal.js';
 
 /** the well's grid as lines + dots at the crossings (the night's + the glass's): a calm, precise stage */
 function lineGrid(g, { px, w, h }, line, dot, d) {
@@ -177,8 +180,6 @@ export function poolOf(look, phone) {
   const pin = phone && phone.pin && phone.pin[look === 'day' ? 'day' : 'night'];
   return pin && pin !== ROTATE && mine.includes(pin) ? [pin] : mine;
 }
-/** the match's skin counter: the host's deal (`game.sk`); a game from before SKINS 1 (no counter) = 0 — the look's first skin */
-export const skinK = game => (game && Number.isInteger(game.sk) && game.sk >= 0 ? game.sk : 0);
 /**
  * THE SKIN A PHONE DRAWS: pool[k % its pool size] — the same pool = the same skin on every phone; every skin before a repeat, never the same
  * twice in a row (for one pool size); fixed for the match — a mid-match look change uses the SAME k on the other pool. From the shared game
@@ -188,28 +189,5 @@ export function skinOf(game, look, phone) {
   const pool = poolOf(look, phone);
   return SKINS[pool[skinK(game) % pool.length]];
 }
-/**
- * THE HOST's deal at start(): the room's skin counter, +1 a match — remembered in THE NIGHT'S MEMORY (meta/used/prism: `sk<k>` = a match
- * tonight drew counter k; no rules change — kit/night.js, like the paper's `pp<k>-<i>`). The night's first match starts from the match's seed
- * (a room's first skin isn't always the same one). → { k, key } (key → `markUsed('prism', [key])`)
- */
-export function dealSkin(seed, used = {}) {
-  const past = Object.keys(used || {}).map(k => /^sk(\d+)$/.exec(k)).filter(Boolean).map(m => Number(m[1]));
-  const k = past.length ? Math.max(...past) + 1 : hash(String(seed)) % SK_START;
-  return { k, key: `sk${k}` };
-}
-/** the first counter of a night is under this (a multiple of every pool size up to 6 — every skin is as likely to open a night) */
-export const SK_START = 60;
-/** THE PLAYER's OWN COUNTER (a solo run + THE DROP — this phone's settings, +1 a run): cur = settings.prismSkinK → { k, next } */
-export function soloSkin(cur) {
-  const k = Number.isInteger(cur) && cur >= 0 ? cur : 0;
-  return { k, next: (k + 1) % 1_000_000 };
-}
 /** this phone, for the rotation: its pins (settings.prismSkinDay / prismSkinNight — ROTATE or one skin) + the server's grants (none yet) */
 export const phoneOf = (settings, grants = null) => ({ pin: { day: (settings && settings.prismSkinDay) || ROTATE, night: (settings && settings.prismSkinNight) || ROTATE }, grants });
-
-function hash(s) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
