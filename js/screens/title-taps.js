@@ -15,7 +15,7 @@ import { cardActions, playersLine } from '../core/room-logic.js';
 import { markFor } from '../core/marks.js';
 import { playSolo } from '../host.js';
 import { dbRef, update as dbUpdate } from '../firebase.js';
-import { layersOpen } from '../ui/layers.js';
+import { layersOpen, cityCovered } from '../ui/layers.js';
 import { reducedMotion } from '../ui/dom.js';
 import { lazyImport } from '../ui/lazy-import.js';
 
@@ -35,12 +35,26 @@ export function createTaps(T) {
   // sighting on a preview link (&force= / &when= …) sends its trace to /admin's "Errors from phones" (the event, its timing, its target),
   // so if it ever happens again we see exactly what started it.
   let shownAt = performance.now();
+  // A SCREEN ON TOP OF THE CITY (the owner's live bug, Nov 14: on DAILY → SCORES a tap on a slim card opened PRISM DROP's game card — the
+  // tap went THROUGH the DAILY screen to the billboard behind it). THE LEAK: the city hears every pointerdown / pointerup on the WINDOW (iOS
+  // sends no click to a plain canvas), so a touch on ANYTHING over it reached onCityTap — which let through every target not on a short
+  // list of classes (button · .sh · .modal · .sheet …). The DAILY screen is a body-level overlay that takes its layer with no element
+  // (no [data-layer]) and whose slim cards / gaps / padding are plain divs: not on the list → the city answered at that x, y.
+  // THE SHARED RULE (ui/layers.js#cityCovered, PURE — every screen over the city, not just this one): the city answers a touch only when
+  // NOTHING is open on THE LAYER STACK (every sheet, the dailies, CUSTOMIZE, a full card, the player page, the radio…), the city is not HELD
+  // under a full-screen overlay (ui/city-hold.js tells the window 'vl-cover' — heard here, so the boot graph gains no module), and the touch
+  // BEGAN on the city's own root (never on an element another screen put on <body>). Asked at the DOWN (the screen that is up when the
+  // finger lands owns the touch) and again at the tap.
+  let held = false;
+  const onCover = e => { held = !!(e && e.detail); };
+  const covered = t => cityCovered({ layers: layersOpen(), held, inCity: !!(t && T.els.root && T.els.root.contains && T.els.root.contains(t)) });
   const onShown = () => { if (document.visibilityState !== 'hidden') shownAt = performance.now(); };
   function onCityDown(e) {
     // (a touch that began while the gate / the intro was up — it opened or skipped them — never becomes a city tap)
     if (introTap != null && (introTap === true || introTap === e.pointerId)) { introTap = null; down = null; return; }
     introTap = null;
     if (!e.isTrusted) { down = null; return; }
+    if (covered(e.target)) { down = null; return; }   // (a screen sits on top: this touch is that screen's — never a city tap)
     down = swallowed || !T.tl || !T.tl.done ? null : { x: e.clientX, y: e.clientY, t: performance.now(), target: e.target, id: e.pointerId, type: e.pointerType,
       shown: Math.round(performance.now() - shownAt), sg: T.scene && T.scene.sightAt ? T.scene.sightAt(e.clientX, e.clientY) : null };
   }
@@ -72,6 +86,7 @@ export function createTaps(T) {
   }
   function onCityTap(e) {
     if (T.destroyed || !T.scene || !T.tl || !T.tl.done || swallowed) return;
+    if (covered(e.target)) return;   // (the shared rule — a screen over the city owns every touch on it)
     if (e.target.closest('button, input, label, a, .sh, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .sg-fly, .sg-modal')) return;
     const x = e.clientX, y = e.clientY;
     // (WIN — the spider on the sign is asked BEFORE the letters: a tap on it bolts it down its thread; the letter taps keep the rest of the rect)
@@ -181,7 +196,7 @@ export function createTaps(T) {
     hoverRaf = 0;
     const p = hoverAt; if (!p || T.destroyed || !T.els.root) return;
     let hv = null;
-    if (T.scene && T.scene.hover && T.tl && T.tl.done && !swallowed && !(p.t && p.t.closest && p.t.closest(HOVER_UI))) {
+    if (T.scene && T.scene.hover && T.tl && T.tl.done && !swallowed && !covered(p.t) && !(p.t && p.t.closest && p.t.closest(HOVER_UI))) {
       const r = T.logoRect();
       hv = r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y - 12 && p.y <= r.y + r.h + 12 ? { kind: 'logo' } : T.scene.hover(p.x, p.y);
     }
@@ -333,6 +348,8 @@ export function createTaps(T) {
     get introTap() { return introTap; }, set introTap(v) { introTap = v; },
     get onCityDown() { return onCityDown; },
     get onCityUp() { return onCityUp; },
+    get onCover() { return onCover; },
+    get covered() { return covered; },
     get onMouse() { return onMouse; },
     get onShown() { return onShown; },
     get onWake() { return onWake; },

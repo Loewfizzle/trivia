@@ -107,6 +107,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - A cartridge's module graph is preloaded (`js/games/preload.js` + the GENERATED `preload-graph.js` — `node scripts/build-preload-graph.mjs` after a game's imports change).
 - A game's podium music = `FINAL_MUSIC` in its index.js; THE GAME LOOK = `body[data-look]` (`kit/look.js`) — games read it LIVE, no switch of their own.
 - THE STALE-MODULE RULE (FR7 FIXES C2): a LAZY chunk never imports a boot-graph module for a NEW export — it reads a hub that module registers (NOW PLAYING → `globalThis.__nsNowPlaying`); a face that fails to load says TAP TO RETRY + reports it → docs/audio.md.
+- A SCREEN ON TOP OF THE CITY OWNS THE TOUCH: the city answers a touch only through `title-taps.js#covered` (`ui/layers.js#cityCovered` — a layer open · the city held · a touch begun off the city's root); never a per-screen class list → docs/title.md.
 - THE TAP WATCH (`js/ui/tapwatch.js`, always on): never re-render a control under a finger; every `:hover` behind `@media (hover: hover)` → docs/title.md (moved).
 - COLOUR-BLIND: right / close = `--good` / `--close` only, NEVER by colour alone (a shape / mark too); `body[data-cb]` → docs/title.md (moved).
 - EVERYONE TIED = a DRAW for every game (`core/night.js#nightPoints`); every corner button's tap area 44 × 44 (harbor `tapfit`).
@@ -150,7 +151,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - OVERCLOCK: its timings are the owner's (pinned by tests); NO SIDEWAYS SCROLL, EVER; right = green, wrong = red + cracked, NO ✓ / ✕; the
   pools are BUILT (never edit `data/oc/*.json` by hand — `node scripts/oc-pools/build.mjs`) → docs/overclock.md (moved).
 - PRISM DROP: never the words "Tetris", "tetromino" or "T-spin"; THE ANTI-CHEAT RULES A PASS MUST KEEP (the board node's write window) → docs/prism.md (moved).
-- PRISM's SKINS: a skin = ONE definition in `prism/skins.js` + its art — NO skin-specific path in view / board / rail / victory; ONE counter a match (`game.sk`), every phone draws `pool[k % n]`; a refactor proves `prism-skin-snap.mjs` IDENTICAL; a skin's sourced sounds = `sounds.files` (the code-made voice the fallback); by day the tiers drop the extras FIRST, the board's 3× LAST → docs/prism.md#the-skins.
+- PRISM's SKINS: a skin = ONE definition in `prism/skins.js` + its art — NO skin-specific path in view / board / rail / victory; ONE counter a match (`game.sk`), every phone draws `pool[k % n]`; a refactor proves `prism-skin-snap.mjs` IDENTICAL; a skin's sourced sounds = `sounds.files` (the code-made voice the fallback); by day the tiers drop the extras FIRST, the board's 3× LAST; a NIGHT skin with its own background = a PAGE skin (no shader work — its moving pieces in the view's `.pd-sky`, by CSS; `.pd[data-lite]` / `[data-still]` stop them) → docs/prism.md#the-skins.
 - HOLD'EM: the engine PURE + DETERMINISTIC; THE SERVER IS THE DEALER (the deck only in `hrec/{CODE}`); PLAY CHIPS ONLY — no money words;
   ANIMATIONS COME FROM THE STATE; THE PORTRAIT IS UNTOUCHED by sideways CSS → docs/holdem.md (moved).
 

@@ -29,6 +29,17 @@ export function takeLayer(el, { close = null, min = 0 } = {}) {
 export const isTopLayer = el => !open.length || open[open.length - 1].el === el;
 /** how many pop-ups are open on THE LAYER STACK (CITY FIXES: the title's screen at rest waits for none) */
 export const layersOpen = () => open.length;
+/**
+ * IS A SCREEN ON TOP OF THE CITY? — PURE (the owner's live bug, Nov 14 2026: a tap on a SCORES slim card opened a billboard's game card
+ * THROUGH the DAILY screen; docs/title.md "A SCREEN ON TOP OF THE CITY"). The city listens on the WINDOW, so it asks before it answers a touch:
+ *   layers   how many pop-ups / overlays are open on THE LAYER STACK (layersOpen() — every sheet, the dailies' screen + runs, CUSTOMIZE, a
+ *            full card, the player page, the album, the radio, a streak card, a sighting's photo)
+ *   held     the city is HELD under a full-screen overlay (ui/city-hold.js — the DAILY screen, a full card, the guests' screen)
+ *   inCity   the touch began on an element inside the city's OWN root (false = on something another screen put on <body>: an overlay still
+ *            fading out after it left the stack, a game's screen, a banner)
+ * → true = the touch belongs to the screen on top: the city's taps, sightings, billboards, door and hover all ignore it.
+ */
+export function cityCovered({ layers = 0, held = false, inCity = true } = {}) { return layers > 0 || !!held || !inCity; }
 export const layerDebug = () => ({ z, open: open.length, top: open.length ? open[open.length - 1].el.className : null, esc: escN });
 
 // THE ONE Esc: the top layer's own close (a layer taken without one — a watched .modal — gets its backdrop's click, the way a tap outside

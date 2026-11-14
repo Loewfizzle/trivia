@@ -835,6 +835,33 @@ area — `css/board.css .bd-back`), the music TOP-RIGHT as everywhere; `body.bd-
 its own row under the corner row at every height (Safari's ~660 pt with its bars once squeezed it over the tabs), the five tabs on one row. The app's
 board and the public `/board` alike. Guard: the harbor `tapfit` group (390 · 390 × 664 · 402 · 430 · 1440).
 
+## A SCREEN ON TOP OF THE CITY OWNS THE TOUCH (SKINS 2B's add-on, Nov 14 2026 — the owner's LIVE BUG; docs/games/passes/skins-2b.md)
+**The bug:** on DAILY → SCORES a tap on ZACK's slim card opened PRISM DROP's game card — the tap went THROUGH the DAILY screen to the
+billboard behind it. **The leak:** the city hears every `pointerdown` / `pointerup` on the WINDOW (title.js — iOS sends no `click` to a plain
+canvas), so a touch on ANYTHING over it reached `title-taps.js#onCityTap`, which let through every target not on a short list of classes
+(`button · .sh · .modal · .sheet …`). The DAILY screen is a body-level overlay (`.dy-overlay`) that takes its layer with NO element (no
+`[data-layer]`) and whose slim cards, gaps and padding are plain `div`s — not on the list → the city answered at that x, y (a sign's game
+card, a sighting, a letter of the sign, the door). (It was never the strips' effect canvas: the overlay's own surface took the DOM event —
+the WINDOW listener did not care whose it was.)
+
+**THE RULE — fixed at the shared layer, for every screen over the city:** the city answers a touch only when NO screen sits on top —
+`ui/layers.js#cityCovered({ layers, held, inCity })` (PURE):
+- **layers** — anything open on THE LAYER STACK (`layersOpen()` — every sheet, the dailies' screen + runs, CUSTOMIZE, a full card, the
+  player page, the album, the radio, a streak card, a sighting's photo): true even while a screen's element cannot be hit yet (the DAILY
+  screen stays `visibility: hidden` until its stylesheet is in);
+- **held** — the city HELD under a full-screen overlay (`ui/city-hold.js` tells the window `vl-cover`; the taps hear it — no new boot module);
+- **inCity** — the touch BEGAN on an element inside the city's own root (false = on something another screen put on `<body>`: an overlay
+  still fading out after it left the stack, a game's screen, a banner).
+
+`title-taps.js#covered(target)` asks it **at the DOWN** (the screen up when the finger lands owns the touch — the down is never recorded),
+**at the TAP — before the class list, the sightings, the billboards, the door** — and **for the desktop hover** (no pointer cursor / glow
+through a screen). **A NEW screen over the city needs nothing** (put it on the stack or on `<body>`); never add a class to the city's list
+for it. A tap on a SCORES slim card does nothing (no handler — as before). `window.__district.covered()` = the rule's answer now.
+**Proof:** `tests/city-covered.test.mjs` (the rule + where the city asks) · `e2e-daily` (+ 9: REAL touches on every SCORES card — its
+middle + four edges — the gaps, the panel padding, ALL TIME, TODAY's results list, and on a billboard's own points under the screen: no
+pop-up EVER opens (a MutationObserver counts them); closed, the same tap opens the game's card again). With the rule switched off the same
+checks go red with the game card opening under every billboard tap — the owner's bug.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

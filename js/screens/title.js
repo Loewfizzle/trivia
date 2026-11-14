@@ -489,6 +489,7 @@ export function createTitle() {
     // city taps come from the touch itself (iOS Safari never sends 'click' to plain page areas like the city)
     window.addEventListener('pointerdown', tap.onCityDown, { passive: true });
     window.addEventListener('pointerup', tap.onCityUp, { passive: true });
+    window.addEventListener('vl-cover', tap.onCover);   // (the city HELD under a full-screen overlay — ui/city-hold.js: title-taps.js#covered)
     document.addEventListener('visibilitychange', tap.onShown); window.addEventListener('pageshow', tap.onShown); window.addEventListener('focus', tap.onShown);
     els.probe = h('div', { style: { position: 'fixed', top: '0', left: '0', width: '1px', height: 'var(--safe-t)', visibility: 'hidden', pointerEvents: 'none' } });
     els.probeB = h('div', { style: { position: 'fixed', bottom: '0', left: '0', width: '1px', height: 'var(--safe-b)', visibility: 'hidden', pointerEvents: 'none' } });
@@ -1209,6 +1210,7 @@ export function createTitle() {
       signDim: (id, o) => (scene && scene.dimSign ? (id ? scene.dimSign(id, o) : scene.signDim()) : null),   // (City 2.0, C1.5: the sign-dim hook)            // (City 2.0, NEON PASS 5: the tier, the frame-rate cap found)
       reduced,
       hit: (x, y) => scene && scene.hit(x, y),
+      covered: t => tap.covered(t || els.canvas),   // (is a screen on top of the city? — title-taps.js#covered; e2e-daily's tap-through checks)
       sightBoxes: () => (scene && scene.sightBoxes ? scene.sightBoxes() : []),   // (PROGRESSION B: the legendaries' tap boxes up now)
       idle: () => tap.goIdle(),
       quickIdle: () => tap.quickIdle,   // (9e: the QUICK FADE armed — the dock up for ~2 s over a front-street scene)
@@ -1274,6 +1276,7 @@ export function createTitle() {
     window.removeEventListener('pointermove', tap.onMouse); if (tap.hoverRaf) cancelAnimationFrame(tap.hoverRaf); tap.hoverRaf = 0;
     window.removeEventListener('pointerdown', tap.onCityDown);
     window.removeEventListener('pointerup', tap.onCityUp);
+    window.removeEventListener('vl-cover', tap.onCover);
     document.removeEventListener('visibilitychange', tap.onShown); window.removeEventListener('pageshow', tap.onShown); window.removeEventListener('focus', tap.onShown);
     clearTimeout(sgDemoT); clearTimeout(extrasT);
     clearTimeout(neon.surgeIv); clearTimeout(neon.beatT); clearTimeout(bycT); document.removeEventListener('pointerup', neon.armTap, true);

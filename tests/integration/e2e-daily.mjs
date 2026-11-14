@@ -177,6 +177,85 @@ await H.run(async () => {
   ok(sc2.rows[0] === '1ST|ALICE|2 GUESSES' && sc2.rows[1] === '2ND|BOBBY|3 GUESSES', `SCORES as slim cards: ${sc2.rows.join(' · ')}`);
   ok(sc2.under && sc2.rightEnd && sc2.rankLeft && sc2.frame && !sc2.still, `the rank LEFT of the card, the score UNDER it at its right end, YOU framed, nobody still to play (${JSON.stringify({ under: sc2.under, rightEnd: sc2.rightEnd, rankLeft: sc2.rankLeft, frame: sc2.frame })})`);
   if (H.SHOTS) await H.shotAll(A.page, 'dy-08-scores');
+  // ================================================================ 3b. NO TAP EVER GOES THROUGH THE DAILY SCREEN TO THE CITY
+  // (the owner's live bug, Nov 14: on SCORES a tap on a slim card opened PRISM DROP's game card — the city behind answered it. title-taps.js
+  //  #covered + ui/layers.js#cityCovered: a screen on top owns every touch.) REAL touches (trusted pointer events) on every SCORES card — its
+  //  middle, its four edges — the gaps between the rows, the panel's padding, and on the very points where the city WOULD answer (a game's
+  //  sign / billboard under the screen): no game card, no sheet, the DAILY screen still up on the same tab. Then ALL TIME + the TODAY
+  //  results list the same way; closed, the same point opens the game's card again (the test's teeth: the point was a real billboard).
+  {
+    const pg = A.page;
+    const cityOpened = () => pg.evaluate(() => ({ card: !!document.querySelector('.nd-card-sheet'), sheet: document.querySelectorAll('.sh, .modal').length, daily: !!document.querySelector('.dy-screen'), tab: (document.querySelector('.dy-tab.is-on, .dy-tab[aria-selected="true"]') || {}).textContent || '' }));
+    // (a REAL touch — and only on a plain part of the DAILY screen: what is under the point is asked again at the tap, a list may have moved)
+    const tap = async (x, y, anywhere = false) => {
+      // (plain = the DAILY screen's own non-button surface, with no button within 14 px above / below — a real button is never pressed here)
+      const plain = anywhere || await pg.evaluate((x, y) => [-14, 0, 14].every(d => { const e = document.elementFromPoint(x, y + d); return !!(e && e.closest('.dy-overlay') && !e.closest('button, a, input, label')); }), Math.round(x), Math.round(y));
+      if (!plain) return false;
+      await pg.touchscreen.tap(Math.round(x), Math.round(y)); await new Promise(r => setTimeout(r, 40));
+      return true;
+    };
+    // the points where the city answers with a game's card (a playable game's sign), wherever they are on this screen
+    const signs = await pg.evaluate(async () => {
+      const { GAMES } = await import('/js/config.js'), play = new Set(GAMES.filter(g => g.playable).map(g => g.id)), out = [];
+      for (let y = 70; y < innerHeight - 70; y += 10) for (let x = 10; x < innerWidth - 10; x += 10) { const h = window.__district.hit(x, y); if (h && h.kind === 'sign' && play.has(h.id)) out.push([x, y, h.id]); }
+      return out;
+    });
+    ok(signs.length > 0, `the city has a game sign to hit behind the DAILY screen (${signs.length} points — ${[...new Set(signs.map(p => p[2]))].join(', ')})`);
+    // a list's tap points: each row's middle + its four edges, the gaps between the rows, the padding left + right of the rows
+    const pointsOf = sel => pg.evaluate(sel => {
+      const rows = [...document.querySelectorAll(sel)].map(r => r.getBoundingClientRect()).filter(r => r.width > 0 && r.bottom > 0 && r.top < innerHeight), pts = [];
+      rows.forEach((r, i) => {
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        pts.push([cx, cy, 'middle'], [r.left + 2, cy, 'left edge'], [r.right - 2, cy, 'right edge'], [cx, r.top + 1, 'top edge'], [cx, r.bottom - 1, 'bottom edge']);
+        pts.push([Math.max(2, r.left / 2), cy, 'padding left'], [Math.min(innerWidth - 2, (r.right + innerWidth) / 2), cy, 'padding right']);
+        if (rows[i + 1] && rows[i + 1].top > r.bottom) pts.push([cx, (r.bottom + rows[i + 1].top) / 2, 'gap']);
+      });
+      return pts.filter(p => p[1] > 0 && p[1] < innerHeight).map(p => { const e = document.elementFromPoint(p[0], p[1]); return [...p, !!(e && e.closest('button, a, input, label'))]; });
+    }, sel);
+    // (a list must have LANDED before it is tapped — ALL TIME's rows + EVERYONE's top 3 arrive async and push the buttons down)
+    const settled = async () => { let last = '', same = 0; for (let i = 0; i < 40 && same < 4; i++) { const sig = await pg.evaluate(() => { const b = document.querySelector('.dy-body'); return b ? `${b.scrollHeight}|${b.querySelectorAll('*').length}|${[...b.querySelectorAll('.dy-quiet')].some(q => /…$/.test(q.textContent.trim()))}` : ''; }); same = sig === last && !/\|true$/.test(sig) ? same + 1 : 0; last = sig; await new Promise(r => setTimeout(r, 200)); } };
+    // (every pop-up that EVER opens is counted — a card the next tap closes again must not slip past an end-of-sweep look)
+    await pg.evaluate(() => { window.__popups = []; new MutationObserver(l => { for (const m of l) for (const n of m.addedNodes) if (n.nodeType === 1 && n.matches('.sh, .modal, .sheet')) window.__popups.push(String(n.className).slice(0, 60)); }).observe(document.body, { childList: true }); });
+    const sweep = async (what, sel) => {
+      await settled();
+      await pg.evaluate(() => { window.__popups.length = 0; });
+      const pts = (await pointsOf(sel)).filter(p => !p[3]);   // (a button is a button: never tapped here)
+      const before = await cityOpened();
+      let n = 0, m = 0;
+      for (const [x, y] of pts) if (await tap(x, y)) n++;
+      // + the city's own answering points under this screen (whatever lies over them — a card, a gap, the padding; never a button)
+      const under = (await pg.evaluate(pts => pts.filter(([x, y]) => { const e = document.elementFromPoint(x, y); return e && e.closest('.dy-overlay') && !e.closest('button, a, input, label'); }), signs)).filter((_, i) => i % 3 === 0).slice(0, 14);
+      for (const [x, y] of under) if (await tap(x, y)) m++;
+      await new Promise(r => setTimeout(r, 350));
+      const after = await cityOpened(), cov = await pg.evaluate(() => !!window.__district && window.__district.covered()), pops = await pg.evaluate(() => window.__popups.slice());
+      ok(!after.card && pops.length === 0 && after.sheet === before.sheet && after.daily && after.tab === before.tab, `${what}: ${n} taps on the rows (middles, edges, gaps, padding) + ${m} on a billboard's own points → no game card, no sheet EVER opened (${pops.length ? pops.join(' | ') : 'none'}), the screen still up (${JSON.stringify(after)})`);
+      ok(cov, `${what}: the city knows a screen is on top (title-taps.js#covered)`);
+      return under.slice(0, m);
+    };
+    const u1 = await sweep('SCORES · TODAY’S SCORES', '.dy-sec .dy-crow');
+    await pg.evaluate(() => { const b = [...document.querySelectorAll('.dy-scope-b')].find(x => /ALL TIME/.test(x.textContent)); if (b) b.click(); });
+    await sweep('SCORES · ALL TIME', '.dy-sec .dy-crow, .dy-sec .dy-card, .dy-sec .lb-row, .dy-sec p');
+    await pg.evaluate(() => { const b = [...document.querySelectorAll('.dy-scope-b')].find(x => /TODAY/.test(x.textContent)); if (b) b.click(); });
+    await click(pg, '.dy-tab:nth-child(1)');
+    await waitFor(pg, `document.querySelectorAll('.dy-ticket').length === 3`, 'TODAY for the taps', 8000);
+    const u2 = await sweep('TODAY · the results list (the tickets)', '.dy-ticket');
+    ok(u1.length + u2.length > 0, `a billboard's own points lay under the DAILY screen's plain areas (${u1.length} on SCORES, ${u2.length} on TODAY) — the taps above would have reached it`);
+    // THE TEETH: with the screen CLOSED the same kind of tap opens the game's card (the point is a real billboard; the rule lifts with the screen)
+    await click(pg, '.dy-screen .dy-back');
+    await waitFor(pg, `!document.querySelector('.dy-overlay')`, 'closed for the city tap', 6000);
+    const free = await pg.evaluate(pts => { const p = pts.find(([x, y]) => { const e = document.elementFromPoint(x, y); return e && !e.closest('button, a, input, label, .nd-actions'); }); return p || null; }, signs);
+    if (free) {
+      await new Promise(r => setTimeout(r, 300));
+      await tap(free[0], free[1], true);
+      const opened = await pg.waitForFunction(() => !!document.querySelector('.nd-card-sheet'), { timeout: 4000 }).then(() => true).catch(() => false);
+      ok(opened, `the screen closed: the same tap on the city opens ${free[2]}'s card again (the point was a real billboard)`);
+      await pg.keyboard.press('Escape');
+      await waitFor(pg, `!document.querySelector('.nd-card-sheet')`, 'the card closed', 6000);
+    } else ok(true, 'the screen closed (every sign point sits under the dock on this size — the city tap not repeated)');
+    // (back to SCORES for the checks below)
+    await pg.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));
+    await waitFor(pg, `(() => { const l = document.querySelector('.dy-sec[data-id="password"] .dy-cards'); return l && l.dataset.strips === '2'; })()`, 'SCORES again', 10000);
+  }
   // no leak: 30 opens / closes of SCORES → every effect surface gone with the screen
   for (let i = 0; i < 30; i++) {
     await click(A.page, '.dy-screen .dy-back');
