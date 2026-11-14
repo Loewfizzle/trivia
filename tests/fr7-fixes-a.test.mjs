@@ -216,7 +216,10 @@ test('PD5 + PD6 + PD7: PRISM DROP with no WebGL draws on; a 30 Hz cap is not a s
   assert.equal(slow.capped, false);
   assert.match(v, /capProbeSaysCapped\(capProbe\.p50, quantile\(frameTimes, 0\.5\)\)/, 'PRISM\'s own tier rule takes the same probe');
   // PD7 — the caches: a clear for each, scheduled a minute after unmount, cancelled by the next mount
-  assert.match(read('js/games/prism/board.js'), /export const clearSprites = \(\) => \{ dropMap\(sprites\); dropMap\(neonSprites\); \}/);
+  // (SKINS 1: the board's clear = EVERY skin's cache — skins.js#dropSkins calls each skin's drop(): the crayon's, the neon's, the glass's…)
+  assert.match(read('js/games/prism/board.js'), /export \{ dropSkins as clearSprites, skinCount as spriteCount \} from '\.\/skins\.js'/);
+  assert.match(read('js/games/prism/skins.js'), /export const dropSkins = \(\) => \{ for \(const id of SKIN_IDS\) SKINS\[id\]\.drop\(\); \}/);
+  assert.match(read('js/games/prism/skins.js'), /drop: clearCrayon/); assert.match(read('js/games/prism/skins.js'), /drop: clearNeon/);
   assert.match(read('js/games/prism/crayon-art.js'), /export const clearCrayon = \(\) => \{ dropMap\(cache\); dropMap\(tooth\); toothJobs\.clear\(\); \}/);
   assert.match(read('js/games/prism/fx.js'), /export function clearShards\(\)/);
   assert.match(v, /dropT = setTimeout\(dropCaches, DROP_MS\)/);

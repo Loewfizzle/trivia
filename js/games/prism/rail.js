@@ -40,7 +40,7 @@ export function createRail(host) {
     el: box,
     /**
      * list: [{ uid, name, color, height (0–20 rows), ko, off, target, attacker, rank?, board?, piece? }] in display order
-     * o: { duel (one opponent: draw their board), duelCell, look + pal (PD-3: the mini in the night look's tubes) }
+     * o: { duel (one opponent: draw their board), duelCell, skin + pal (SKINS 1: the mini in MY skin — skins.js; the night's in the world's palette) }
      */
     update(list, o = {}) {
       const keep = new Set();
@@ -67,8 +67,8 @@ export function createRail(host) {
         const fq = Math.round(f * 40) / 40;
         if (fq !== t.fill) { t.fill = fq; t.el.style.setProperty('--fill', String(fq)); t.el.classList.toggle('is-high', fq >= 0.65); }
         if (t.mini) {
-          const ms = `${p.board}|${p.piece}|${p.ko}|${o.duelCell}|${o.look}|${o.pal ? o.pal.id : ''}`;
-          if (ms !== t.miniSig) { t.miniSig = ms; drawMini(t.mini, p.board, p.piece, { cell: o.duelCell || 3, ko: !!p.ko, look: o.look, pal: o.pal }); }
+          const ms = `${p.board}|${p.piece}|${p.ko}|${o.duelCell}|${o.skin ? o.skin.id : ''}|${o.pal ? o.pal.id : ''}`;
+          if (ms !== t.miniSig) { t.miniSig = ms; drawMini(t.mini, p.board, p.piece, { cell: o.duelCell || 3, ko: !!p.ko, skin: o.skin, pal: o.pal }); }
         }
       });
       for (const [uid, t] of tiles) if (!keep.has(uid)) { t.el.remove(); tiles.delete(uid); }

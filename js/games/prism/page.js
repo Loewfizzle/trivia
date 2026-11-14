@@ -8,27 +8,35 @@
 //   waves) — drawn once per song into its own canvas (cached), in crayon colours (the coloring page: black outlines, like a coloring book).
 //   THE BOARD — the well washed with the paper (the doodle only faintly through it) + a hand-drawn PENCIL frame (two passes, corners overshooting).
 // The papers + the font load ONLY when the day look shows (warmDay — never in the boot graph); until a paper arrives the page is its flat colour.
+// SKINS 1 — THE PAGE IS A SKIN's HOOK: createPage() is the host (the canvas, the redraw-only-on-change signature, the files' loading, a layer
+// cache); WHAT is drawn is the skin's `page` painter — { id, ok(st), key(st), files(st) → [url], paint(ctx, st, tools) } (skins.js). CRAYON_PAGE
+// below = the crayon skin's (the paper + its rulings + the doodle + the pencil frame — not a pixel changed).
 import { CRAYON, GRAPHITE, PAPERS } from './crayon.js';
 import { punchTiled } from './crayon-art.js';
 
 const BASE = new URL('../../../assets/prism/paper/', import.meta.url);
 const FONT = new URL('../../../assets/fonts/prism/permanent-marker-latin-400.woff2', import.meta.url);
-const imgs = new Map();   // file → { img, ready }
+const imgs = new Map();   // url → { img, ready, p }
 let fontP = null;
 
-/** load a paper's grain (once); resolves when decoded */
-export function loadPaper(paper) {
-  let e = imgs.get(paper.file);
+/** load an image (once); resolves when decoded (null = it failed: the page keeps its flat colour) — a skin's page loads ONLY its own files */
+export function loadImg(url) {
+  let e = imgs.get(url);
   if (!e) {
     const img = new Image();
     img.decoding = 'async';
     e = { img, ready: false, p: null };
     e.p = new Promise(res => { img.onload = () => { e.ready = true; res(img); }; img.onerror = () => res(null); });
-    img.src = new URL(paper.file, BASE).href;
-    imgs.set(paper.file, e);
+    img.src = url;
+    imgs.set(url, e);
   }
   return e.p;
 }
+/** a loaded image, or null while it's on its way */
+export const imgOf = url => { const e = imgs.get(url); return e && e.ready ? e.img : null; };
+const paperUrl = paper => new URL(paper.file, BASE).href;
+/** load a paper's grain (once); resolves when decoded */
+export const loadPaper = paper => loadImg(paperUrl(paper));
 /** the day look's own files, fetched only when it shows (the papers ~80 KB, the marker font ~30 KB) — the callouts fall back until it's in */
 export function warmDay(first) {
   if (first) loadPaper(first);
@@ -211,79 +219,69 @@ export const DOODLES = {
   },
 };
 
-export function createPage(canvas) {
-  const ctx = canvas.getContext('2d');
-  let st = { paper: null, world: '', w: 0, h: 0, board: null, on: false };
-  let sig = '';
-  const doodles = new Map();   // `${world}|${style}|${w}|${h}` → canvas
-  let waitFor = '';
+/** the doodle for a world: drawn on its own canvas at the page's size, the tooth punched through it */
+function drawDoodle(world, style, w, h, dpr) {
+  const d = document.createElement('canvas');
+  d.width = Math.round(w * dpr); d.height = Math.round(h * dpr);
+  const x = d.getContext('2d');
+  x.scale(dpr, dpr);
+  const fn = DOODLES[world] || DOODLES.sunset;
+  fn(x, w, h, style === 'outline' ? '#2a2c31' : null, rng(world.length * 131 + 7));
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  punchTiled(x, d.width, d.height, 0.45, Math.max(1, dpr * 0.8));
+  return d;
+}
 
-  /** the doodle for a world (cached): drawn on its own canvas at the page's size, the tooth punched through it */
-  function doodle(world, style, w, h, dpr) {
-    const key = `${world}|${style}|${w}|${h}|${dpr}`;
-    let d = doodles.get(key);
-    if (d) return d;
-    if (doodles.size > 4) doodles.clear();
-    d = document.createElement('canvas');
-    d.width = Math.round(w * dpr); d.height = Math.round(h * dpr);
-    const x = d.getContext('2d');
-    x.scale(dpr, dpr);
-    const fn = DOODLES[world] || DOODLES.sunset;
-    fn(x, w, h, style === 'outline' ? '#2a2c31' : null, rng(world.length * 131 + 7));
-    x.setTransform(1, 0, 0, 1, 0, 0);
-    punchTiled(x, d.width, d.height, 0.45, Math.max(1, dpr * 0.8));
-    doodles.set(key, d);
-    return d;
+function rulings(x, p, w, h, r) {
+  x.save();
+  if (p.rule === 'lines') {
+    // a notepad: the ruled lines (a plain top band), the red margin (doubled), three punched holes
+    for (let y = 72; y < h; y += 26) { x.fillStyle = rgba(p.line, 0.62); x.fillRect(0, y, w, 1); }
+    x.fillStyle = rgba(p.margin, 0.7);
+    x.fillRect(30, 0, 1.2, h); x.fillRect(33.5, 0, 0.8, h);
+  } else if (p.rule === 'grid') {
+    for (let k = 0, X = 0; X < w; X += 13, k++) { x.fillStyle = rgba(k % 5 ? p.line : p.major, k % 5 ? 0.42 : 0.58); x.fillRect(Math.round(X), 0, k % 5 ? 0.8 : 1.2, h); }
+    for (let k = 0, Y = 0; Y < h; Y += 13, k++) { x.fillStyle = rgba(k % 5 ? p.line : p.major, k % 5 ? 0.42 : 0.58); x.fillRect(0, Math.round(Y), w, k % 5 ? 0.8 : 1.2); }
+  } else if (p.rule === 'frame') {
+    // a coloring page: a thick hand-drawn frame round the page
+    const i = 7, pts = [[i, i], [w - i, i], [w - i, h - i], [i, h - i]];
+    crayonLine(x, [...pts, pts[0], [pts[0][0] + 20, pts[0][1]]], { w: 3.4, col: p.line, a: 0.85, r });
   }
+  x.restore();
+}
 
-  function rulings(x, p, w, h, r) {
-    x.save();
-    if (p.rule === 'lines') {
-      // a notepad: the ruled lines (a plain top band), the red margin (doubled), three punched holes
-      for (let y = 72; y < h; y += 26) { x.fillStyle = rgba(p.line, 0.62); x.fillRect(0, y, w, 1); }
-      x.fillStyle = rgba(p.margin, 0.7);
-      x.fillRect(30, 0, 1.2, h); x.fillRect(33.5, 0, 0.8, h);
-    } else if (p.rule === 'grid') {
-      for (let k = 0, X = 0; X < w; X += 13, k++) { x.fillStyle = rgba(k % 5 ? p.line : p.major, k % 5 ? 0.42 : 0.58); x.fillRect(Math.round(X), 0, k % 5 ? 0.8 : 1.2, h); }
-      for (let k = 0, Y = 0; Y < h; Y += 13, k++) { x.fillStyle = rgba(k % 5 ? p.line : p.major, k % 5 ? 0.42 : 0.58); x.fillRect(0, Math.round(Y), w, k % 5 ? 0.8 : 1.2); }
-    } else if (p.rule === 'frame') {
-      // a coloring page: a thick hand-drawn frame round the page
-      const i = 7, pts = [[i, i], [w - i, i], [w - i, h - i], [i, h - i]];
-      crayonLine(x, [...pts, pts[0], [pts[0][0] + 20, pts[0][1]]], { w: 3.4, col: p.line, a: 0.85, r });
-    }
-    x.restore();
+/** the board: the well washed with the paper (the doodle only faintly through it) + the pencil frame (two passes, the corners overshooting) */
+function boardOn(x, p, pat, b, r) {
+  const pad = 3;
+  x.save();
+  x.globalAlpha = p.well;
+  x.fillStyle = pat || p.base;
+  x.fillRect(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad);
+  x.restore();
+  const o = 5, L = b.x - o, T = b.y - o, R = b.x + b.w + o, B = b.y + b.h + o, ov = 7;
+  for (let pass = 0; pass < 2; pass++) {
+    const j = () => (r() - 0.5) * (pass ? 2.2 : 1.2);
+    x.lineCap = 'round';
+    x.lineWidth = pass ? 1.3 : 2.2;
+    x.strokeStyle = rgba(GRAPHITE, pass ? 0.5 : 0.82);
+    x.beginPath();
+    x.moveTo(L - ov * r(), T + j()); x.lineTo(R + ov * r(), T + j());
+    x.moveTo(R + j(), T - ov * r()); x.lineTo(R + j(), B + ov * r());
+    x.moveTo(R + ov * r(), B + j()); x.lineTo(L - ov * r(), B + j());
+    x.moveTo(L + j(), B + ov * r()); x.lineTo(L + j(), T - ov * r());
+    x.stroke();
   }
+}
 
-  /** the board: the well washed with the paper (the doodle only faintly through it) + the pencil frame (two passes, the corners overshooting) */
-  function boardOn(x, p, pat, b, r) {
-    const pad = 3;
-    x.save();
-    x.globalAlpha = p.well;
-    x.fillStyle = pat || p.base;
-    x.fillRect(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad);
-    x.restore();
-    const o = 5, L = b.x - o, T = b.y - o, R = b.x + b.w + o, B = b.y + b.h + o, ov = 7;
-    for (let pass = 0; pass < 2; pass++) {
-      const j = () => (r() - 0.5) * (pass ? 2.2 : 1.2);
-      x.lineCap = 'round';
-      x.lineWidth = pass ? 1.3 : 2.2;
-      x.strokeStyle = rgba(GRAPHITE, pass ? 0.5 : 0.82);
-      x.beginPath();
-      x.moveTo(L - ov * r(), T + j()); x.lineTo(R + ov * r(), T + j());
-      x.moveTo(R + j(), T - ov * r()); x.lineTo(R + j(), B + ov * r());
-      x.moveTo(R + ov * r(), B + j()); x.lineTo(L - ov * r(), B + j());
-      x.moveTo(L + j(), B + ov * r()); x.lineTo(L + j(), T - ov * r());
-      x.stroke();
-    }
-  }
-
-  function draw() {
+/** THE CRAYON SKIN's PAGE (PD-4): the match's paper (its grain + rulings), the world's doodle, the board's wash + pencil frame */
+export const CRAYON_PAGE = Object.freeze({
+  id: 'crayon',
+  ok: st => !!st.paper,
+  key: st => st.paper.id,
+  files: st => [paperUrl(st.paper)],
+  paint(ctx, st, T) {
     const { paper: p, world, w, h, board } = st;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const e = imgs.get(p.file);
-    const img = e && e.ready ? e.img : null;
+    const img = T.img(paperUrl(p));
     // the paper: the grain tiled at its own size (one tile pixel = one CSS px ÷ 2 — the tooth stays fine on a phone)
     let pat = null;
     if (img) { pat = ctx.createPattern(img, 'repeat'); if (pat.setTransform) pat.setTransform(new DOMMatrix().scale(0.5)); }
@@ -292,33 +290,63 @@ export function createPage(canvas) {
     const r = rng(17);
     rulings(ctx, p, w, h, r);
     // the doodle: faint (the coloring page's black lines a little firmer)
-    const d = doodle(world || 'sunset', p.doodle, Math.round(w), Math.round(h), dpr);
+    const d = T.doodle(world || 'sunset', p.doodle, Math.round(w), Math.round(h), T.dpr);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = p.doodle === 'outline' ? 0.2 : 0.24;
     ctx.drawImage(d, 0, 0);
     ctx.restore();
     if (board) boardOn(ctx, p, pat, board, r);
+  },
+});
+
+export function createPage(canvas) {
+  const ctx = canvas.getContext('2d');
+  let st = { painter: CRAYON_PAGE, paper: null, world: '', w: 0, h: 0, board: null, on: false, lite: false };
+  let sig = '';
+  const layers = new Map();   // key → canvas (a painter's pre-drawn layers: the crayon doodle, a skin's washes / silhouettes)
+  let waitFor = '';
+  /** a cached layer (a few at a time — a song change or a resize makes new ones) */
+  const layer = (key, make) => {
+    let d = layers.get(key);
+    if (d) return d;
+    if (layers.size > 4) layers.clear();
+    d = make();
+    layers.set(key, d);
+    return d;
+  };
+  /** the doodle for a world (cached): drawn on its own canvas at the page's size, the tooth punched through it */
+  const doodle = (world, style, w, h, dpr) => layer(`${world}|${style}|${w}|${h}|${dpr}`, () => drawDoodle(world, style, w, h, dpr));
+
+  function draw() {
+    const { w, h } = st;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    st.painter.paint(ctx, st, { dpr, img: imgOf, doodle, layer });
   }
 
   return {
-    /** o: { paper, world, w, h (the page in CSS px), board ({ x, y, w, h } CSS px), on } — redraws only when one of them changed */
+    /** o: { painter (the skin's page — default the crayon's), paper, world, w, h (the page in CSS px), board ({ x, y, w, h } CSS px), on, lite (the
+     *  low tier: a painter drops its extras) } — redraws only when one of them changed */
     set(o) {
       st = { ...st, ...o };
-      if (!st.on || !st.paper || !st.w) return false;
-      const e = imgs.get(st.paper.file);
-      const ready = !!(e && e.ready);
-      const s = [st.paper.id, ready, st.world, st.w, st.h, st.board ? [st.board.x, st.board.y, st.board.w, st.board.h].map(Math.round).join(',') : ''].join('|');
+      if (!st.painter) st.painter = CRAYON_PAGE;
+      if (!st.on || !st.w || !st.painter.ok(st)) return false;
+      const files = st.painter.files(st);
+      const ready = files.every(u => !!imgOf(u));
+      const s = [st.painter.id, st.painter.key(st), ready, st.world, st.w, st.h, st.board ? [st.board.x, st.board.y, st.board.w, st.board.h].map(Math.round).join(',') : '', st.lite ? 'lite' : ''].join('|');
       if (s === sig) return false;
       sig = s;
       draw();
-      if (!ready && waitFor !== st.paper.file) { waitFor = st.paper.file; loadPaper(st.paper).then(() => { waitFor = ''; sig = ''; if (st.on) this.set({}); }); }
+      const want = files.join(' ');
+      if (!ready && waitFor !== want) { waitFor = want; Promise.all(files.map(loadImg)).then(() => { waitFor = ''; sig = ''; if (st.on) this.set({}); }); }
       return true;
     },
     get paper() { return st.paper; },
     /** PFIX-B (optional 17): pre-draw a world's doodle at the page's size while the page is hidden (night) — CPU only, no paper or font is
      *  fetched (those still load only when the day look shows); the first switch to day then only composites it */
     warm(world, style, w, h) { if (w > 0 && h > 0) doodle(world || 'sunset', style || 'crayon', Math.round(w), Math.round(h), Math.min(2, window.devicePixelRatio || 1)); },
-    destroy() { doodles.clear(); },
+    destroy() { layers.clear(); },
   };
 }

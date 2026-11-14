@@ -292,6 +292,7 @@ export function createSynth() {
   let walk = 2;
   let lastMove = 0;
   let clockFn = null; // () => { pos (song seconds now), clk (beatClock) } | null
+  let voices = {};    // (SKINS 1) a skin's own voices: name → the SOUNDS entry that plays instead
   const log = []; // test hook: what was played, in which key, when (song position)
 
   function ensure() {
@@ -589,9 +590,11 @@ export function createSynth() {
   return {
     setKey(t, m) { tonic = ((t | 0) % 12 + 12) % 12; mode = m === 'major' ? 'major' : 'minor'; },
     setClock(fn) { clockFn = fn; },
+    /** SKINS 1 — a skin's own voices: { lock: 'plip', clear: 'swish' } = play('lock') sounds SOUNDS.plip (skins.js `sounds`); {} = the synth's own */
+    setVoices(v) { voices = v || {}; },
     play(name, opts) {
       if (settings.muted || !ensure() || ctx.state !== 'running') return;
-      const fn = SOUNDS[name];
+      const fn = SOUNDS[voices[name]] || SOUNDS[name];
       if (fn) { try { fn(opts); } catch (e) { console.warn('prism sfx', name, e && e.message); } }
     },
     /** ctx time for a song position (seconds) of the current song, for scheduling the countdown on the beat */

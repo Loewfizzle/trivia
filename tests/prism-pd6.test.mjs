@@ -10,7 +10,7 @@ test('THE BOARD KICK: a Web Animation on the board (+ the night light), transfor
   const v = read('js/games/prism/view.js');
   const fn = v.slice(v.indexOf('function kick()'), v.indexOf('function bump('));
   assert.match(fn, /if \(reduced\(\) \|\|/, 'OFF under Reduced effects + prefers-reduced-motion (reduced() = both)');
-  assert.match(fn, /els\.boardWrap/); assert.match(fn, /look === 'neon' && els\.light/, 'the light layer moves with the board');
+  assert.match(fn, /els\.boardWrap/); assert.match(fn, /skin\.light && els\.light/, 'the light layer moves with the board (SKINS 1: a skin with a light layer — the night)');
   assert.match(fn, /\.animate\(KICK, \{ duration: 120 \}\)/, '~0.1 s');
   const kf = v.slice(v.indexOf('const KICK = ['), v.indexOf('let kicks'));
   assert.doesNotMatch(kf.replace(/transform/g, '').replace(/easing|offset/g, ''), /[a-z]+:\s*'(?!translateY|cubic|ease)/i, 'transform only');

@@ -1,0 +1,151 @@
+<!doctype html>
+<!-- SKINS 1 — THE PIXEL-IDENTICAL PROOF's page (docs/prism.md "THE SKINS"): PRISM DROP's drawing code rendered DETERMINISTICALLY — a fixed clock
+     (performance.now), a seeded Math.random, a fixed engine state — into the game's own canvases: the board mid-game (the stack, the falling piece,
+     the landing ghost), the danger drain, the incoming rows, a clear (frames along it), a slam + a lock, a cancel, HOLD / NEXT, the rail's + the
+     podium's mini boards (the empty well too) and the day page. window.__snap = [{ name, w, h, url }] (PNG data URLs) once done.
+     The runner (prism-skin-snap.mjs) hashes them: run on the commit BEFORE a refactor (→ a baseline file), then after — every frame must match.
+     Works on the code from before THE SKIN SYSTEM (look: 'crayon' | 'neon') and after (skin: skinById(id)).   ?skins=crayon,neon  ?cell=33 -->
+<html lang="en">
+<head><meta charset="utf-8"><title>Prism skin snap</title><link rel="icon" href="data:,">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>body { background: #222; color: #ccc; font: 12px monospace; } canvas { display: block; margin: 4px; }</style></head>
+<body>
+<script type="module">
+// ---- the fixed clock + the seeded random (before any module draws)
+let T = 500000;
+performance.now = () => T;
+let seed = 1;
+const reseed = s => { seed = s >>> 0 || 1; };
+Math.random = () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+
+const q = new URLSearchParams(location.search);
+const E = await import('/js/games/prism/engine.js');
+const B = await import('/js/games/prism/board.js');
+const N = await import('/js/games/prism/neon.js');
+const C = await import('/js/games/prism/crayon.js');
+const PG = await import('/js/games/prism/page.js');
+const { preClear } = await import('/js/games/prism/neonfx.js');
+const { chooseMove } = await import('/js/games/prism/bot.js');
+const { rngFrom } = await import('/js/core/rng.js');
+let SK = null;
+try { SK = await import('/js/games/prism/skins.js'); } catch { SK = null; }
+const IDS = (q.get('skins') || 'crayon,neon').split(',');
+const CELL = Number(q.get('cell') || 33);
+// the adapter: the look's argument, the board's moments — before + after THE SKIN SYSTEM
+const arg = id => (SK ? { skin: SK.skinById(id) } : { look: id });
+const bEvent = (b, ev, o) => (b.event ? b.event(ev, o) : b.crayonEvent(ev, o));
+const bCancel = (b, id, n, o) => (b.cancelGhost ? b.cancelGhost(n, o) : id === 'crayon' ? b.eraseGhost(n, o) : b.shatterGhost(n));
+const isLight = id => (SK ? !!SK.skinById(id).light : id === 'neon');
+const glowOf = id => (SK ? SK.skinById(id).glow || 0 : id === 'neon' ? 0.62 : 0);
+
+const out = [];
+const snap = (name, canvas) => { out.push({ name, w: canvas.width, h: canvas.height, url: canvas.toDataURL('image/png') }); };
+const mk = () => { const c = document.createElement('canvas'); document.body.append(c); return c; };
+
+// ---- a fixed engine state: ten pieces stacked by the bot (seeded), one held, one falling a few rows down
+function engine(stack = 10) {
+  const g = E.createEngine({ seed: 'snap', level: 1, mode: 'battle' });
+  E.start(g);
+  const rnd = rngFrom('p');
+  for (let i = 0; i < stack && g.cur; i++) { const m = chooseMove(g, { skill: 0.6, rnd }); if (m) { while (g.cur && g.cur.r !== m.r) if (!E.rotate(g, 1)) break; while (g.cur && g.cur.x !== m.x) if (!E.move(g, Math.sign(m.x - g.cur.x))) break; } E.hardDrop(g); }
+  if (g.cur) E.holdPiece(g);
+  for (let i = 0; i < 4 && g.cur; i++) E.stepDown(g);
+  E.takeEvents(g);
+  return g;
+}
+
+for (const id of IDS) {
+  const pals = isLight(id) ? [N.neonPalette('sunset'), N.neonPalette('crystal')] : [null];
+  for (const pal of pals) {
+    const tag = `${id}${pal ? `-${pal.id}` : ''}`;
+    const look = { ...arg(id), pal };
+    const glow = glowOf(id);
+    // ---- the board: mid-game, the danger drain, frozen
+    {
+      reseed(11); T = 500000;
+      const g = engine(), c = mk(), b = B.createBoardView(c);
+      b.size(CELL, 3);
+      b.draw(g, { danger: 0, glow, incoming: null, reduced: false, ...look });
+      snap(`${tag}/board-play`, c);
+      b.draw(g, { danger: 0.6, glow, incoming: null, reduced: false, ...look });
+      snap(`${tag}/board-danger`, c);
+      b.draw(g, { danger: 0, glow, frozen: true, incoming: null, reduced: false, ...look });
+      snap(`${tag}/board-frozen`, c);
+      b.draw(g, { danger: 0, glow: 0, showGhost: false, incoming: null, reduced: true, ...look });
+      snap(`${tag}/board-noglow-noghost`, c);
+      // ---- the incoming rows: fresh, mid, hot (two bands), then a cancel of two rows + its frames
+      const bands = [{ rows: 1.4, n: 2, gap: 3, hot: false, prog: 0.5 }, { rows: 3, n: 3, gap: 7, hot: true, prog: 1 }];
+      T = 500400;
+      b.draw(g, { danger: 0, glow, incoming: bands, reduced: false, ...look });
+      snap(`${tag}/incoming`, c);
+      b.draw(g, { danger: 0, glow, incoming: bands, reduced: true, ...look });
+      snap(`${tag}/incoming-reduced`, c);
+      reseed(12);
+      b.draw(g, { danger: 0, glow, incoming: bands, reduced: false, ...look });
+      bCancel(b, id, 2, { reduced: false });
+      for (const dt of [60, 180, 360]) { T = 500400 + dt; b.draw(g, { danger: 0, glow, incoming: bands.slice(1), reduced: false, ...look }); snap(`${tag}/cancel-${dt}`, c); }
+      // ---- a slam + its lock (the boing / the streaks by day; the light layer by night — not on this canvas)
+      reseed(13); T = 501000;
+      const cells = E.cellsOf({ ...g.cur, y: E.ghostY(g) });
+      if (!isLight(id)) { bEvent(b, { e: 'hard', rows: 6 }, { reduced: false }); bEvent(b, { e: 'lock', t: g.cur.t, cells }, { reduced: false }); }
+      else b.lockFlash(cells);
+      for (const dt of [40, 130, 230]) { T = 501000 + dt; b.draw(g, { danger: 0, glow, incoming: null, reduced: false, ...look }); snap(`${tag}/lock-${dt}`, c); }
+      // ---- a clear: 2 lines, then 4 lines with a combo (the scribble / the star by day; by night the held rows)
+      for (const [lines, combo, base] of [[2, 0, 502000], [4, 3, 504000]]) {
+        reseed(14 + lines); T = base;
+        const rows = Array.from({ length: lines }, (_, i) => i);
+        const cl = rows.map(y => Array.from({ length: E.W }, (_, x) => g.cells[y * E.W + x] || 1 + ((x * 3 + y) % 7)));
+        const ev = { e: 'clear', lines, rows, cells: cl, twist: null, combo, pc: false };
+        if (!isLight(id)) bEvent(b, ev, { reduced: false });
+        else b.holdClear(preClear(g.cells, ev), 300);
+        for (const dt of [50, 150, 260, 420, 700]) { T = base + dt; b.draw(g, { danger: 0, glow, incoming: null, reduced: false, ...look }); snap(`${tag}/clear${lines}-${dt}`, c); }
+      }
+      // (reduced effects: the clear just shows + fades)
+      if (!isLight(id)) {
+        reseed(20); T = 506000;
+        bEvent(b, { e: 'clear', lines: 4, rows: [0, 1, 2, 3], cells: [0, 1, 2, 3].map(y => Array.from({ length: E.W }, (_, x) => 1 + ((x + y) % 7))), twist: null, combo: 0, pc: true }, { reduced: true });
+        for (const dt of [50, 300]) { T = 506000 + dt; b.draw(g, { danger: 0, glow, incoming: null, reduced: true, ...look }); snap(`${tag}/clear-reduced-${dt}`, c); }
+      }
+      // ---- the board at the low tier's 2×, and a small cell
+      T = 510000;
+      b.size(CELL, 2);
+      b.draw(g, { danger: 0, glow, incoming: bands, reduced: true, ...look });
+      snap(`${tag}/board-2x`, c);
+      b.size(24, 3);
+      b.draw(g, { danger: 0.3, glow, incoming: null, reduced: true, ...look });
+      snap(`${tag}/board-cell24`, c);
+      // ---- HOLD + NEXT
+      for (let t = 1; t <= 7; t++) { const p = mk(); B.drawPiece(p, t, { cell: 12, ...look }); snap(`${tag}/piece-${t}`, p); }
+      { const p = mk(); B.drawPiece(p, 3, { cell: 12 * 0.86, ...look }); snap(`${tag}/piece-small`, p); }
+      { const p = mk(); B.drawPiece(p, 5, { cell: 12, dim: true, ...look }); snap(`${tag}/piece-dim`, p); }
+      // ---- the minis: the rail's (3 pt), the duel's (4), the podium's (8 + 7), a knocked-out one, the EMPTY well, with a falling piece
+      const str = E.boardString(g);
+      for (const [nm, cell, ko, piece, s] of [['rail3', 3, false, '3,1,4,12', str], ['duel4', 4, false, null, str], ['podium8', 8, false, null, str], ['podium7', 7, false, null, str], ['ko3', 3, true, '3,1,4,12', str], ['ko8', 8, true, null, str], ['empty8', 8, false, null, '']]) {
+        const m = mk(); B.drawMini(m, s, piece, { cell, ko, ...look }); snap(`${tag}/mini-${nm}`, m);
+      }
+      b.destroy();
+    }
+  }
+}
+// ---- the share cards' minis (they pass the look by NAME — they stay crayon by day, neon by night)
+{
+  const g = engine(), str = E.boardString(g);
+  for (const lk of ['crayon', 'neon']) { const m = mk(); B.drawMini(m, str, null, { cell: 36, look: lk }); snap(`share/mini36-${lk}`, m); }
+}
+// ---- the day page (crayon): every paper, two worlds, with + without the board
+if (IDS.includes('crayon')) {
+  const paperSkin = SK ? { skin: SK.skinById('crayon') } : {};
+  await Promise.all(C.PAPERS.map(p => PG.loadPaper(p)));
+  for (const p of C.PAPERS) for (const world of p.id === 'notepad' ? ['sunset', 'city', 'crystal', 'nebula', 'aurora'] : ['sunset']) {
+    const c = mk(), pg = PG.createPage(c);
+    pg.set({ on: true, paper: p, world, w: 390, h: 844, board: { x: 14, y: 96, w: 330, h: 660 }, ...paperSkin });
+    snap(`page/${p.id}-${world}`, c);
+    if (world === 'sunset') { pg.set({ board: null }); snap(`page/${p.id}-noboard`, c); }
+    pg.destroy();
+  }
+}
+window.__snap = out;
+document.title = `snap done ${out.length}`;
+</script>
+</body>
+</html>

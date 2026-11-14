@@ -30,9 +30,9 @@ import { createNeonFx, preClear, holdMs, endsHold } from './neonfx.js';
 import { holidayNow, withHoliday } from './holiday.js';
 import { tierOf, TOP_TIER, stepTier } from './tiers.js';
 import { capProbeSaysCapped, CAP_PROBE_MS, CAP_WORK_MS, quantile } from '../kit/tiers.js';
-import { paperOf, CRAYON } from './crayon.js';
-import { warmCrayon, toothMaskURL, warmTooth, clearCrayon, crayonCount } from './crayon-art.js';
-import { createPage, warmDay } from './page.js';
+import { paperOf } from './crayon.js';
+import { createPage } from './page.js';
+import { skinOf, phoneOf } from './skins.js';
 import { createRail } from './rail.js';
 import { createFx, clearShards, shardCount } from './fx.js';
 
@@ -42,8 +42,8 @@ import { createFx, clearShards, shardCount } from './fx.js';
 export const DROP_MS = 60_000;
 let dropT = 0;
 let attackNoIdx = false;   // (FR7 FIXES A — PD3: set once the live rules refuse an attack's `i` — the rules-lag fallback, for this page)
-export function dropCaches() { clearTimeout(dropT); dropT = 0; clearSprites(); clearCrayon(); clearShards(); }
-export const cacheCount = () => spriteCount() + crayonCount() + shardCount();
+export function dropCaches() { clearTimeout(dropT); dropT = 0; clearSprites(); clearShards(); }   // (SKINS 1: clearSprites = every skin's cache — skins.js#dropSkins)
+export const cacheCount = () => spriteCount() + shardCount();
 import { attachInput } from './input.js';
 import { createSongPlayer, createSynth, createHeardBeat } from './audio.js';
 import { beatPulse } from './sync.js';
@@ -88,7 +88,10 @@ export function createView() {
   // (PD-3 — THE NIGHT LOOK) the look this screen draws in (THE GAME LOOK: body[data-look] — day = CRAYON (PD-4), night = NEON),
   // the world's neon palette, the light layer above the board (light.js) + the game's light (neonfx.js)
   // (PD-4 — THE DAY LOOK) the page (page.js: the paper the host dealt, the world's doodle, the board's pencil frame) — the WebGL world skipped by day
-  let look = '';
+  // (SKINS 1 — THE SKIN SYSTEM, skins.js) `skin` = the skin this screen draws in — the match's counter (game.sk — the host's deal) on this
+  // phone's pool for THE GAME LOOK (day / night), read LIVE; `shown` = the skin whose scene is up (its files entered, the page synced) — every
+  // look-dependent line below asks the SKIN (its hooks + what it can do), never its name
+  let skin = null, shown = null, skinSig = '';
   let page = null, paper = null, curWorld = '';
   let warmT = 0, warmPx = 0;
   let dayWarmT = 0, dayWarm = 0;   // (PFIX-B — optional 17) the day art warmed in idle slices after GO: 0 = not yet, 1 = running, 2 = done
@@ -184,6 +187,7 @@ export function createView() {
     game = state.game;
     drop = state.drop || null;
     seenOut = { ...(game.out || {}) };   // (PD-2: a refresh mid-match never re-announces the knockouts that already happened)
+    skin = pickSkin();
     root = h('div.pd', { 'data-mode': game.settings.mode });
     els.world = h('canvas.pd-world', { 'aria-hidden': 'true' });
     els.fx = h('canvas.pd-fx', { 'aria-hidden': 'true' });
@@ -466,11 +470,11 @@ export function createView() {
     const evs = E.takeEvents(eng);
     if (!evs.length) return;
     let hardThisBatch = false;
-    const neon = look === 'neon' && nfx;
+    const lit = skin.light && nfx;
     for (const ev of evs) {
       if (board && endsHold(ev)) board.endHold();   // (PFIX-B — optional 11: a lock / landed rows end the clear's hold; this batch's own clear sets the next)
-      if (neon && (ev.e === 'hard' || ev.e === 'lock' || ev.e === 'counter')) nfx.event(ev, { reduced: reduced() });
-      else if (look === 'crayon' && board && (ev.e === 'hard' || ev.e === 'lock')) board.crayonEvent(ev, { reduced: reduced() });   // (PD-4: the boing, SLAM's lines)
+      if (lit && (ev.e === 'hard' || ev.e === 'lock' || ev.e === 'counter')) nfx.event(ev, { reduced: reduced() });
+      else if (!lit && board && (ev.e === 'hard' || ev.e === 'lock')) board.event(ev, { reduced: reduced() });   // (the skin's own moments on the board: the boing, SLAM's lines)
       switch (ev.e) {
         case 'move': synth.play('move'); break;
         case 'rotate': synth.play('rotate', { dir: ev.dir }); break;
@@ -523,10 +527,10 @@ export function createView() {
   function onClear(ev) {
     const big = ev.lines >= 4 || ev.twist === 'twist' || ev.pc;
     const strength = ev.lines >= 4 || ev.pc ? 1 : ev.lines >= 2 ? 0.75 : 0.45;
-    const neon = look === 'neon' && nfx && light;
-    const crayon = look === 'crayon';
-    // (PD-4 — THE CRAYON LOOK's clears: the rows SCRIBBLED OUT, then crumbs; 4 LINES = the star burst — crayonfx.js on the board's canvas)
-    if (crayon) board.crayonEvent(ev, { reduced: reduced() });
+    const neon = skin.light && nfx && light;   // (the clear is LIGHT: the light layer's race + burst)
+    const onBoard = !skin.light && !skin.flash;   // (the clear is the skin's own, on the board's canvas)
+    // (a day skin's clears — the crayon's rows SCRIBBLED OUT then crumbs + the star burst, a wash's drips, a peel — its fx on the board's canvas)
+    if (onBoard) board.event(ev, { reduced: reduced() });
     else if (!neon) board.flashRows(ev.rows.map((y, i) => y - i >= 0 ? ev.rows[i] : y), strength, (fxs.hue * 57) % 360);
     // (PD-3 — THE NEON LOOK's clears: light RACES along the rows, then they BURST into shards (fx.js, behind the board) + sparks (the light layer)
     //  — every clear, bigger clears bigger; 4 LINES = a full-board flash; a combo lifts the frame's light)
@@ -544,7 +548,7 @@ export function createView() {
     const comboBoost = Math.min(1, Math.max(0, ev.combo) * 0.12);
     fxs.bloom = Math.min(1.2, fxs.bloom + (ev.lines >= 2 ? 0.35 : 0.15) + comboBoost * 0.5);
     if (!reduced()) fxs.hue += 0.08 + Math.max(0, ev.combo) * 0.05;
-    if (crayon) { if (big && !reduced()) bump(els.boardWrap, 'pd-pulse'); }
+    if (onBoard) { if (skin.pulse && big && !reduced()) bump(els.boardWrap, 'pd-pulse'); }
     else if (big && !reduced() && !neon) {
       const r = els.board.getBoundingClientRect();
       const rf = els.fx.getBoundingClientRect();
@@ -775,7 +779,8 @@ export function createView() {
     const s = [...frameTimes].sort((a, b) => a - b);
     const p75 = s[Math.floor(s.length * 0.75)];
     // (PFIX-B: by day a step goes straight to the tier that changes what the day look draws — tiers.js#stepTier)
-    const down = stepTier(tier, -1, look);
+    const tierLook = skin.world === 'page' ? 'crayon' : 'neon';   // (tiers.js: a PAGE skin steps like the day — only the board's ratio moves its frame)
+    const down = stepTier(tier, -1, tierLook);
     if (p75 > 19.5 && down !== tier) {
       if (capped && quantile(workTimes, 0.75) <= CAP_WORK_MS) return;
       if (!capped && !capProbe) capProbe = { from: tier, p50: quantile(frameTimes, 0.5), at: performance.now() };
@@ -783,7 +788,7 @@ export function createView() {
     }
     // plenty of headroom for ~4 s: try one tier up again (never back to one that already struggled)
     const w = [...workTimes].sort((a, b) => a - b)[Math.floor(workTimes.length * 0.75)] || 99;
-    const up = stepTier(tier, 1, look);
+    const up = stepTier(tier, 1, tierLook);
     if (p75 < 17.5 && w < 6 && up !== tier && up !== tierUpBlocked) {
       if (!goodSince) goodSince = performance.now();
       else if (performance.now() - goodSince > 4000) { setTier(up); tierCool = 120; frameTimes.length = 0; goodSince = 0; }
@@ -792,7 +797,7 @@ export function createView() {
   function setTier(t) {
     tier = Math.max(0, Math.min(TOP_TIER, t));
     if (world) world.setTier(tier);
-    if (board) board.setCrumbs(tierOf(tier).sparks);
+    if (board) board.setFxCap(tierOf(tier).sparks);
     if (fx) fx.setCap(tierOf(tier).shards);
     if (nfx) nfx.tier(tier);
     layoutSig = '';
@@ -903,9 +908,9 @@ export function createView() {
     const wave = fxs.waveT >= 0 ? [-0.2 + fxs.waveT * 1.6, Math.sin(Math.PI * fxs.waveT), fxs.wave[2]] : [0, 0, 0];
     const danger = eng && !eng.over ? dangerOf() : 0;
     watchLook();
-    if (world && look !== 'crayon') {   // (PD-4: by day the world is the page — its shader's work skipped entirely)
+    if (world && skin.world === 'shader') {   // (a PAGE skin's world is the page — the shader's work skipped entirely)
       world.set({
-        calm: look === 'neon' ? 1 : 0,
+        calm: skin.light ? 1 : 0,
         beat: reduced() ? 0 : fxs.beat * 0.8, energy: fxs.energy ?? 0.5, bloom: reduced() ? fxs.bloom * 0.3 : fxs.bloom,
         hue: reduced() ? 0 : fxs.hue, danger, glitch: reduced() ? 0 : fxs.glitch, duel: fxs.duel, wave,
       });
@@ -917,13 +922,12 @@ export function createView() {
     if (eng && board) {
       const frozen = !!(game.out && game.out[me()]);
       const bands = incomingNow();
-      const neon = look === 'neon';
-      const r = board.draw(eng, { danger, glow: tierOf(tier).glow && neon ? 0.62 : 0, frozen, incoming: bands, reduced: reduced(), look, pal });
+      const r = board.draw(eng, { danger, glow: tierOf(tier).glow ? skin.glow : 0, frozen, incoming: bands, reduced: reduced(), skin, pal });
       ghostGeo = (r && r.ghost) || [];
       paintTag(r && r.ghostTop);
     }
     // (PD-3) the light layer: the falling piece's spill + every running effect (nothing when idle — the canvas hides itself)
-    if (nfx && look === 'neon') {
+    if (nfx && skin.light) {
       // (FR7 FIXES A — PD5: no WebGL — Lockdown Mode, a blocklisted GPU — = no light layer: this line threw every frame, before drawHud,
       // so HOLD + NEXT were never drawn)
       if (light) light.setReduced(reduced());
@@ -932,32 +936,60 @@ export function createView() {
     drawHud();
   }
 
-  // ================================================================ THE NIGHT LOOK (PD-3): the look, the palette, the clears' shards
-  /** THE GAME LOOK, read LIVE (a cheap attribute read): day = THE CRAYON LOOK (PD-4), anything else = NEON */
+  // ================================================================ THE SKIN (SKINS 1 — skins.js): which one, its scene, its tokens
+  const bodyLook = () => (document.body.dataset.look === 'day' ? 'day' : 'night');
+  /** the match's skin for a look on THIS phone: pool[game.sk % its pool] — from the shared game state + this phone's pins (never a local guess) */
+  const matchSkin = lk => skinOf(game, lk, phoneOf(settings));
+  /** the skin to draw now (THE GAME LOOK picks day vs night first) — recomputed only when the look, the match's counter or a pin changes */
+  function pickSkin() {
+    const lk = bodyLook();
+    const sig = `${lk}|${game ? game.sk : ''}|${settings.prismSkinDay || ''}|${settings.prismSkinNight || ''}`;
+    if (sig !== skinSig || !skin) { skinSig = sig; skin = matchSkin(lk); }
+    return skin;
+  }
+  /** a holiday's overrides are the crayon's + the neon's only (holiday.js — none yet) */
+  const holFor = lk => (matchSkin(lk).holiday ? hol : null);
+  /** THE GAME LOOK + the skin, read LIVE (a cheap attribute read): the skin's scene goes up when it changes — its CSS family (.pd[data-look]:
+   *  the day's paper panels · the night's glass), its own id (.pd[data-skin]), its tokens, its files (fetched only now), its sounds */
   function watchLook() {
-    const lk = document.body.dataset.look === 'day' ? 'crayon' : 'neon';
-    if (lk === look) return;
-    look = lk;
-    root.dataset.look = lk;
-    if (light && lk !== 'neon') { light.clear(); light.render(); }
-    if (lk === 'crayon') { warmDay(paper); root.style.setProperty('--pd-tooth', `url(${toothMaskURL()})`); }   // (the papers + the marker font — fetched only when the day look shows; the lettering's crayon tooth)
+    if (pickSkin() === shown) return;
+    shown = skin;
+    root.dataset.look = skin.family;
+    root.dataset.skin = skin.id;
+    applyTokens();
+    if (light && !skin.light) { light.clear(); light.render(); }
+    skin.enter({ root, paper });   // (the skin's own files — papers, a font, a texture — fetched only when it shows)
+    synth.setVoices(skin.sounds);
+    if (board) board.setSkin(skin, pal);
     if (fx) fx.clear();
     lastHoldSig = ''; lastNextSig = ''; miniSig = {}; topSig = '';
     syncPage();
     warmSprites();
     if (rail) layoutSig = '';
   }
-  // ================================================================ THE DAY LOOK (PD-4): the paper, the page, the crayon sprites warmed in idle slices
+  /** the skin's panel tokens → CSS variables (--pd-sk-*: every skin; the day family's cards read --pd-paper / --pd-ink / --pd-pencil — the
+   *  crayon's from the match's PAPER, another day skin's from its own tokens) */
+  function applyTokens() {
+    if (!root || !skin) return;
+    const t = skin.tokens, set = (k, v) => root.style.setProperty(k, v);
+    set('--pd-sk-ink', t.ink); set('--pd-sk-sub', t.sub); set('--pd-sk-panel', t.panel); set('--pd-sk-line', t.line);
+    const own = skin.world === 'page' && !skin.papers;   // (a page skin with panels of its own; else the match's paper, as always)
+    if (own) { set('--pd-paper', t.panel); set('--pd-ink', t.ink); set('--pd-grain', t.grain || 'none'); }
+    else if (paper) {
+      set('--pd-paper', paper.base); set('--pd-ink', paper.ink);
+      set('--pd-grain', `url(${new URL(`../../../assets/prism/paper/${paper.file}`, import.meta.url).href})`);
+    }
+    if (skin.world === 'page') { set('--pd-pencil', t.line); set('--pd-pencil-2', t.line2 || t.line); }
+  }
+  // ================================================================ THE PAPER (PD-4 — the crayon skin's), the page, the sprites warmed in idle slices
   /** the match's paper (crayon.js#paperOf — the host's deal): CSS reads its colour + ink + grain (the panels, the cards, the top line) */
   function setPaper(p0) {
     const p = p0 && withHoliday('day', { paper: p0, world: '' }, hol).paper;   // (PD-5B: a holiday's paper overrides — none yet)
     if (!p || p === paper || (paper && p.id === paper.id && p0 !== p)) return;
     paper = p;
     root.dataset.paper = p.id;
-    root.style.setProperty('--pd-paper', p.base);
-    root.style.setProperty('--pd-ink', p.ink);
-    root.style.setProperty('--pd-grain', `url(${new URL(`../../../assets/prism/paper/${p.file}`, import.meta.url).href})`);
-    if (look === 'crayon') warmDay(p);
+    applyTokens();
+    if (shown && skin.papers) skin.enter({ root, paper: p });
     syncPage();
   }
   /** the page: drawn only when its paper / world / size / the board's place changes (never in the frame loop) */
@@ -965,33 +997,38 @@ export function createView() {
     if (!page) return;
     const d0 = docOf(0);
     const field = !!game && game.phase !== 'final' && !specNow();   // (spectating + the podium: no board on the page — the cards stand alone)
-    const world = withHoliday('day', { paper, world: curWorld || (d0 && d0.world) || 'sunset' }, hol).world;   // (PD-5B: a holiday's doodle — none yet)
-    page.set({ on: look === 'crayon', paper, world, w: (L && L.W0) || root.clientWidth, h: (L && L.H0) || root.clientHeight, board: field ? boardRect : null });
+    const world = withHoliday('day', { paper, world: curWorld || (d0 && d0.world) || 'sunset' }, holFor('day')).world;   // (PD-5B: a holiday's doodle — none yet)
+    const pg = skin.world === 'page' ? skin.page : null;
+    page.set({ on: !!pg, ...(pg ? { painter: pg } : {}), paper, world, w: (L && L.W0) || root.clientWidth, h: (L && L.H0) || root.clientHeight, board: field ? boardRect : null,
+      lite: !!(pg && pg.lite) && tier === 0 });   // (the low tier: a skin's page drops its extras first — the world's silhouettes)
   }
   /** PFIX-B (FABLE REVIEW optional 17): the rest of the DAY art, warmed at night in idle slices once the match is under way — the crayon tooth
    *  (the lettering's mask + the doodle's tile: noise, ≤ 4 ms a slice), the mask's URL, the current world's doodle at the page's size. The first
    *  switch to day then only composites (it was ~0.4 s of 100 ms frames at 4× CPU). CPU only: no paper or font is fetched (still day-only). */
   function warmDayArt() {
-    if (dayWarm || destroyed || look === 'crayon' || !page || !paper) return;
+    const ds = game ? matchSkin('day') : null;   // (the skin a switch to DAY would show this match)
+    if (dayWarm || destroyed || !ds || skin === ds || !page || !paper) return;
+    if (!ds.idle) { dayWarm = 2; return; }
     dayWarm = 1;
     // (an idle moment, but never more than ~60 ms away: on a busy, slow phone idle time may never come — 4 ms slices still fit between frames)
     const idle = fn => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 60 }) : setTimeout(fn, 30));
-    const stages = [
-      () => warmTooth(4, Math.min(2, window.devicePixelRatio || 1), (board && board.px) || 0),
-      () => { toothMaskURL(); return true; },
-      () => { const d0 = docOf(0); page.warm(curWorld || (d0 && d0.world) || 'sunset', paper.doodle, (L && L.W0) || root.clientWidth, (L && L.H0) || root.clientHeight); return true; },
-    ];
+    const stages = ds.idle({
+      get px() { return (board && board.px) || 0; }, page, paper,
+      get world() { const d0 = docOf(0); return curWorld || (d0 && d0.world) || 'sunset'; },
+      get w() { return (L && L.W0) || root.clientWidth; }, get h() { return (L && L.H0) || root.clientHeight; },
+    });
     const step = () => {
       dayWarmT = 0;
       if (destroyed) return;
-      if (look === 'crayon') { dayWarm = 2; return; }   // (the switch came first: it draws them itself)
+      if (skin === ds) { dayWarm = 2; return; }   // (the switch came first: it draws them itself)
       if (stages[0]()) stages.shift();   // one stage (or one tooth slice) an idle moment
       if (!stages.length) { dayWarm = 2; return; }
       dayWarmT = idle(step);
     };
     dayWarmT = idle(step);
   }
-  /** every crayon block for the board's size, drawn in slices of <= 4 ms between frames — a live switch to day never waits on them */
+  /** every block of the match's skins (the day's AND the night's) for the board's size, drawn in slices of <= 4 ms between frames — a live look
+   *  switch never waits on them (the crayon's + a day skin's sprites are the costly ones; the neon's are made on first use) */
   function warmSprites() {
     clearTimeout(warmT);
     const px = board && board.px;
@@ -1002,7 +1039,8 @@ export function createView() {
     const sizes = [px, Math.round(pc * r), Math.round(pc * 0.86 * r)];
     const step = () => {
       if (destroyed) return;
-      while (sizes.length && warmCrayon(sizes[0], 4)) sizes.shift();
+      const ws = game ? [matchSkin('day'), matchSkin('night')] : [skin];
+      while (sizes.length && ws.every(k => k.warm(sizes[0], 4))) sizes.shift();
       if (!sizes.length) { warmPx = px; return; }
       warmT = setTimeout(step, 16);
     };
@@ -1010,7 +1048,7 @@ export function createView() {
   }
   /** the world's neon palette (neon.js): the pieces' shade + glow, the frame, the well, the sparks — CSS reads the frame + the well */
   function setPalette(worldId) {
-    const p = withHoliday('night', { palette: neonPalette(worldId) }, hol).palette;   // (PD-5B: a holiday's palette overrides — none yet)
+    const p = withHoliday('night', { palette: neonPalette(worldId) }, holFor('night')).palette;   // (PD-5B: a holiday's palette overrides — none yet)
     if (p === pal) return;
     pal = p;
     if (nfx) nfx.palette(p);
@@ -1066,21 +1104,20 @@ export function createView() {
   function shatterGhosts(n) {
     vibrate(8);
     if (!board || reduced()) { ghostGeo = ghostGeo.slice(Math.max(0, n)); return; }
-    if (look === 'crayon') board.eraseGhost(n, { reduced: reduced() });   // (PD-4: the pencil rows crumble into eraser crumbs)
-    else board.shatterGhost(n);
+    board.cancelGhost(n, { reduced: reduced() });   // (the skin's own cancel — the pencil rows crumble into eraser crumbs; the night's shards)
     ghostGeo = ghostGeo.slice(Math.max(0, n));
   }
 
   function drawHud() {
     if (!eng || !L) return;
     const hs = `${eng.hold}|${eng.held}|${L.pieceCell}`;
-    const skin = { look, pal };
-    if (hs !== lastHoldSig) { lastHoldSig = hs; drawPiece(els.hold, eng.hold, { cell: L.pieceCell, dim: eng.held, ...skin }); }
+    const sk = { skin, pal };
+    if (hs !== lastHoldSig) { lastHoldSig = hs; drawPiece(els.hold, eng.hold, { cell: L.pieceCell, dim: eng.held, ...sk }); }
     const nq = E.nextQueue(eng, 3);
     const ns = `${nq.join('')}|${L.pieceCell}`;
     if (ns !== lastNextSig) {
       lastNextSig = ns;
-      nq.forEach((t, i) => drawPiece(els.next[i], t, { cell: L.pieceCell * (i ? 0.86 : 1), ...skin }));
+      nq.forEach((t, i) => drawPiece(els.next[i], t, { cell: L.pieceCell * (i ? 0.86 : 1), ...sk }));
     }
     // a piece (or the stack) under a corner panel → that panel fades further, so the piece stays readable
     const cover = c => {
@@ -1212,7 +1249,7 @@ export function createView() {
         board: n.b, piece: n.p,
       };
     });
-    rail.update(rows, { duel: !!duelOpp, duelCell: L ? L.duelCell : 3, look, pal });
+    rail.update(rows, { duel: !!duelOpp, duelCell: L ? L.duelCell : 3, skin, pal });
   }
 
   // ================================================================ spectator / call the winner / KO
@@ -1311,8 +1348,8 @@ export function createView() {
       const se = card.querySelector('.pd-spec-stat');
       if (se.textContent !== stat) se.textContent = stat;
       card.classList.toggle('is-danger', uid === danger && hgt(uid) >= 12);
-      const sig = `${n.b}|${n.p}|${mc}|${look}|${pal.id}`;
-      if (miniSig[`s:${uid}`] !== sig) { miniSig[`s:${uid}`] = sig; drawMini(card.querySelector('canvas'), n.b, n.p, { cell: mc, look, pal }); }
+      const sig = `${n.b}|${n.p}|${mc}|${skin.id}|${pal.id}`;
+      if (miniSig[`s:${uid}`] !== sig) { miniSig[`s:${uid}`] = sig; drawMini(card.querySelector('canvas'), n.b, n.p, { cell: mc, skin, pal }); }
     }
     for (const c of [...grid.children]) if (!keep.has(c.dataset.uid)) c.remove();
     // the rest of the field, one line: initial · stack height (or KO)
@@ -1415,10 +1452,10 @@ export function createView() {
         const t = eng.cells[y * E.W + x];
         if (!t) continue;
         const [cx, cy] = board.cellCenter(x, y);
-        cells.push({ x: r.left - rf.left + cx, y: r.top - rf.top + cy, color: look === 'neon' ? pal.piece[t] : look === 'crayon' ? CRAYON[t] || CRAYON[8] : JEWEL[t] });
+        cells.push({ x: r.left - rf.left + cx, y: r.top - rf.top + cy, color: skin.shard(t, pal) });
       }
       fx.setCap(Math.max(200, cells.length * 3));
-      fx.shatter(cells, { cx: r.left - rf.left + r.width / 2, cy: r.top - rf.top + r.height / 2, power: 1.5, crayon: look === 'crayon' });   // (PD-4: by day the board crumbles into crayon bits)
+      fx.shatter(cells, { cx: r.left - rf.left + r.width / 2, cy: r.top - rf.top + r.height / 2, power: 1.5, crayon: skin.crumbs });   // (a paper skin's board crumbles into bits of paint, not shards of light)
       eng.cells.fill(0);
       eng.cur = null;
     }
@@ -1513,7 +1550,7 @@ export function createView() {
   function kick() {
     if (reduced() || !els.boardWrap || typeof els.boardWrap.animate !== 'function') return;
     for (const k of kicks) { try { k.cancel(); } catch { /* gone */ } }
-    kicks = [els.boardWrap, look === 'neon' && els.light && els.light.style.visibility !== 'hidden' ? els.light : null].filter(Boolean)
+    kicks = [els.boardWrap, skin.light && els.light && els.light.style.visibility !== 'hidden' ? els.light : null].filter(Boolean)
       .map(el => el.animate(KICK, { duration: 120 }));
     kickCount++;
   }
@@ -1633,7 +1670,7 @@ export function createView() {
       beat: () => { const c = songClock(); return c ? { i: c.i, id: game.songs[c.i], pos: c.pos, cue: c.cue, lead: c.lead, origin: c.origin, unreported: c.unreported, speaker: c.speaker, beat: lastBeat, bpm: c.doc && c.doc.bpm, title: c.doc && c.doc.title, set: game.set || 'night', leadState: heardBeat.state(c.i), raw: heardBeat.raw(c.i) } : null; },
       fxCount: () => fx.count,
       // (PD-3) the night look: the look, the palette, the light layer + a way to fire its effects down the real path (the preview + the E2E)
-      look: () => ({ look, dayWarm, pal: pal.id, paper: paper ? paper.id : null, light: !!light, lit: light ? light.effects + light.count : 0, size: light ? light.size : null, visible: els.light.style.visibility !== 'hidden', warm: warmPx === (board && board.px), crayonBusy: !!(board && board.crayonBusy) }),
+      look: () => ({ look: skin.family, skin: skin.id, sk: game ? game.sk : null, dayWarm, pal: pal.id, paper: paper ? paper.id : null, light: !!light, lit: light ? light.effects + light.count : 0, size: light ? light.size : null, visible: els.light.style.visibility !== 'hidden', warm: warmPx === (board && board.px), crayonBusy: !!(board && board.fxBusy) }),
       freeze: ms => light && light.freeze(ms),
       fire: (kind, o = {}) => fireFx(kind, o),
     });

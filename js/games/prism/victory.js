@@ -10,6 +10,8 @@ import { leaderboard, fmtNum } from '../../ui/components.js';
 import { colorHex } from '../../config.js';
 import { standings } from './logic.js';
 import { drawMini } from './board.js';
+import { skinOf, phoneOf } from './skins.js';
+import { settings } from '../../audio/settings.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
@@ -64,7 +66,8 @@ export function finalScene(el, game, state) {
     // (PD-6 — THE SOLO PODIUM FITS: a solo run on a short screen (Safari with its toolbars) draws the board at 7-pt cells — 140 pt tall, not 160 —
     //  so the board, the slim card + its score line sit above the foot; read once here, never in a frame loop)
     const short = soloOf(game) && typeof innerHeight === 'number' && innerHeight < 760;
-    drawMini(c, str, null, { cell: short ? 7 : 8, look: document.body.dataset.look === 'day' ? 'crayon' : 'neon' });   // (PD-3: the night look's tubes; PD-4: the day's crayon)
+    // (SKINS 1: the board in THE MATCH's skin — the match's counter on this phone's pool for its look (skins.js#skinOf): what the match was played in)
+    drawMini(c, str, null, { cell: short ? 7 : 8, skin: skinOf(game, document.body.dataset.look === 'day' ? 'day' : 'night', phoneOf(settings)) });
     moment.append(h('div.pd-fs-frame', c));
   }
   moment.append(h('div.pd-fs-line',
