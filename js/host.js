@@ -136,10 +136,36 @@ export async function claimHost(oldHost) {
   }
 }
 
+// THE DROP B add-on (Ben, Nov 13 9:59 pm) — A SOLO RUN PAUSES WHILE HIDDEN: in a room of ONE this phone is the host, so the page hiding
+// (visibilitychange → hidden / pagehide) writes the cartridge's PURE `soloPause(game, { at })` patch at once (the SDK applies it locally first —
+// the next tick already sees it), and coming back writes `soloResume(game, { now })` (every clock shifted by the time away + a 3-2-1). A cartridge
+// without them, or a room of 2+, is untouched (the multiplayer AWAY rule stands). direct() also resumes a paused run found on a visible page
+// (a rejoin after the app was closed).
+const soloRoom = game => !!game && Object.keys(game.participants || {}).length === 1;
+const pageHidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
+function soloHold(kind) {
+  const game = state.game;
+  if (!state.code || !game || !isHost() || !soloRoom(game) || !state.meta || state.meta.status !== 'playing') return false;
+  const mod = GAME_MODULES[game.id];
+  const f = mod && (kind === 'pause' ? mod.soloPause : mod.soloResume);
+  if (typeof f !== 'function') return false;
+  const patch = f(game, kind === 'pause' ? { at: serverNow() } : { now: serverNow() });
+  if (!patch) return false;
+  update(dbRef(`rooms/${state.code}`), roomPatch(game, patch)).catch(e => console.warn('solo pause', e && e.message));
+  return true;
+}
+export const soloPauseNow = () => soloHold('pause');
+export const soloResumeNow = () => soloHold('resume');
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => { if (pageHidden()) soloHold('pause'); else soloHold('resume'); });
+  window.addEventListener('pagehide', () => soloHold('pause'));
+}
+
 function direct(now) {
   const game = state.game;
   const mod = GAME_MODULES[game.id];
   if (!mod) { loadGame(game.id).catch(() => {}); return; }   // (SHELL 2.0 B1: a new host / a refresh — the cartridge loads, the next tick directs)
+  if (game.pz != null && !pageHidden() && soloHold('resume')) return;   // (THE DROP B add-on: a paused solo run on a visible page — back with its 3-2-1)
   // Only decide with player data that belongs to the current step.
   if (state.liveKey !== liveKeyFor(game)) return;
   mod.prepare(game, { code: state.code, host: true, now, live: state.live }); // e.g. word lists / trivia top-ups on a freshly promoted host (FR7 FIXES A: + the clock + the room's live data — HOLD'EM's host poke)

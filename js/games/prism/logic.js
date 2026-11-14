@@ -229,3 +229,32 @@ export const CLEAR_NAME = {
 };
 
 /** THE CARTRIDGE PLUG (docs/cartridge.md) — the chat's lock: locked while your board is live; knocked out (battle) = watch and talk */
+
+// ---------------------------------------------------------------- THE DROP B add-on (Ben, Nov 13 9:59 pm) — A SOLO RUN PAUSES WHILE HIDDEN
+// A solo run (PLAY NOW or a room of ONE — SCORE RUSH + SURVIVAL) stops while its page is hidden: the HOST (this same phone) writes `pz` (the server
+// time it hid) and, back on the page, shifts every clock of the match by the time away + the 3-2-1 — so the rows' schedule, the song, SCORE RUSH's
+// end and SURVIVAL's time (out.at − playStartAt) all resume EXACTLY where they were: the time = time PLAYED. `rz` = when play resumes (the 3-2-1's
+// GO), `pms` = the paused total (the podium never shows it — the time already excludes it). PURE (host.js wires them; the multiplayer AWAY rule
+// is untouched — never a pause with 2+ players).
+export const RESUME_MS = 3000;
+/** one participant (PLAY NOW's solo room or a room of one) */
+export const isSoloGame = game => !!game && Object.keys(game.participants || {}).length === 1;
+const pausable = game => isSoloGame(game) && (game.phase === 'play' || game.phase === 'count') && !!game.settings && (game.settings.mode === 'rush' || game.settings.mode === 'survival');
+/** the page hid at server time `at` → the patch (null: nothing to pause — not solo, not playing, already paused) */
+export function soloPause(game, { at } = {}) {
+  if (!pausable(game) || game.pz != null || !Number.isFinite(at)) return null;
+  return { pz: at };
+}
+/** back on the page at server time `now` → the patch: every clock shifted by (now + RESUME_MS − pz), pz cleared, rz = GO again */
+export function soloResume(game, { now } = {}) {
+  if (!game || game.pz == null || !Number.isFinite(now)) return null;
+  const rz = now + RESUME_MS, shift = Math.max(0, rz - Number(game.pz));
+  const plus = v => (Number.isFinite(v) ? v + shift : v);
+  const patch = { pz: null, rz, pms: (Number(game.pms) || 0) + Math.max(0, now - Number(game.pz)), playStartAt: plus(game.playStartAt), songStartAt: plus(game.songStartAt) };
+  if (Number.isFinite(game.endAt)) patch.endAt = plus(game.endAt);
+  if (Number.isFinite(game.phaseEndsAt)) patch.phaseEndsAt = plus(game.phaseEndsAt);
+  if (game.phase === 'play' && Number.isFinite(game.phaseStartAt)) patch.phaseStartAt = plus(game.phaseStartAt);
+  return patch;
+}
+/** is the run held now — paused (pz) or inside the 3-2-1 back (rz)? */
+export const soloHeld = (game, now) => !!game && (game.pz != null || (Number.isFinite(game.rz) && now < game.rz));

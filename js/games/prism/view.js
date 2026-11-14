@@ -18,6 +18,7 @@ import * as E from './engine.js';
 import {
   songAt, songStarts, battleLevel, suddenRows, suddenGap, junkDelay, autoTarget, attackersOf,
   survivalRows, survivalRowAt, survivalGap, SUDDEN_MS, SUDDEN_EVERY_MS, DANGER_ZONE_ROWS, CLEAR_NAME, aliveOf, QUEUE_MAX, boardWritable,
+  soloHeld,
 } from './logic.js';
 import { ghostBands, incomingTag } from './incoming.js';
 import { loadSong, beatClock } from './songs.js';
@@ -245,7 +246,7 @@ export function createView() {
       softHeld: v => { softHeld = v; if (drop) drop.input(v ? 'S' : 'U'); },
       cell: () => board.cell,
       sens: () => settings.prismSens ?? 0.5,
-      enabled: () => !!(eng && eng.cur && !eng.over && game.phase === 'play' && performance.now() > rebootUntil && !(drop && drop.paused())),
+      enabled: () => !!(eng && eng.cur && !eng.over && game.phase === 'play' && performance.now() > rebootUntil && !(drop && drop.paused()) && !soloHeld(game, serverNow())),
       midX: () => window.innerWidth / 2,
       flick: () => !!settings.prismFlick,
     });
@@ -413,6 +414,7 @@ export function createView() {
   // ================================================================ actions
   function act(a) {
     if (!eng || !eng.cur || eng.over) return;
+    if (!drop && soloHeld(game, serverNow())) return;   // (THE DROP B add-on: a solo run paused / counting back in — no move lands)
     if (tipEl) hideTip();
     if (drop) {
       // THE DROP: every input through the run's recorder (one code a step — the log keeps the ones that did something)
@@ -707,6 +709,11 @@ export function createView() {
       drop.frame();
       handleEvents();
       if (!dayWarm && performance.now() - lastFrame0 > 1500) warmDayArt();
+    } else if (eng && (game.phase === 'play' || game.phase === 'count') && soloHeld(game, now)) {
+      // THE DROP B add-on — A SOLO RUN PAUSED WHILE HIDDEN / its 3-2-1 back: the engine, the rows + the clock stand still (the host shifted every
+      // clock by the time away — logic.js#soloResume); the board keeps saving so the AWAY rule sees it alive
+      handleEvents();
+      publish();
     } else if (eng && (game.phase === 'play' || game.phase === 'count')) {
       startIfDue();
       if (eng.cur && !eng.over) {
@@ -883,6 +890,7 @@ export function createView() {
     if (game.phase === 'end' && !endShown) { endShown = true; showEnd(); }
     // the count overlay
     renderCount(now);
+    renderResume(now);
   }
 
   // ================================================================ drawing
@@ -1150,7 +1158,8 @@ export function createView() {
   /** THE TOP LINE (between ☰ and the music): the mode + the players left (BATTLE) / your score (SCORE RUSH), the world's name under it — sized
    *  from its length + the room between the buttons (no measuring), never wrapping, never under a button */
   function renderStats() {
-    const now = serverNow();
+    // (THE DROP B add-on: a solo run paused / counting back in shows the clock where it stopped — the moment it hid = its resume's GO)
+    const now0 = serverNow(), now = !drop && soloHeld(game, now0) ? (game.pz != null ? Number(game.pz) : Number(game.rz)) : now0;
     let line;
     const played = game.phase === 'play' ? now - game.playStartAt : 0;
     if (rush()) line = `SCORE RUSH${eng ? ` · ${eng.score.toLocaleString('en-US')}` : ''}`;
@@ -1329,8 +1338,9 @@ export function createView() {
   }
 
   function renderCount(now) {
-    let el = els.overlay.querySelector('.pd-count');
+    let el = els.overlay.querySelector('.pd-count:not(.pd-resume)');
     if (game.phase !== 'count' && !(game.phase === 'play' && now - game.playStartAt < 700)) { if (el) el.remove(); return; }
+    if (game.pz != null || (game.rz != null && (game.phase === 'play' || now < game.rz + 600))) { if (el) el.remove(); return; }   // (THE DROP B add-on: paused / back from a pause — the resume's own 3-2-1)
     const c = songClock();
     if (!el) {
       el = h('div.pd-count', h('div.pd-count-song'), h('div.pd-count-n'));
@@ -1367,8 +1377,28 @@ export function createView() {
     }
   }
 
+  /** THE DROP B add-on — the 3-2-1 back from a solo pause: the count's own big number over the board until `rz` (the host's resume), then GO */
+  function renderResume(now) {
+    let el = els.overlay.querySelector('.pd-resume');
+    const rz = Number(game && game.rz);
+    const on = !drop && game && (game.phase === 'play' || game.phase === 'count') && (game.pz != null || (Number.isFinite(rz) && now < rz + 600));
+    if (!on) { if (el) el.remove(); return; }
+    if (!el) { el = h('div.pd-count.pd-resume', h('div.pd-count-song.pd-resume-l', h('small', 'PAUSED WHILE YOU WERE AWAY'), h('b', 'BACK IN')), h('div.pd-count-n')); els.overlay.append(el); }
+    const left = Number.isFinite(rz) && game.pz == null ? (rz - now) / 1000 : 9;
+    const n = game.pz != null ? '' : left > 0 ? String(Math.min(3, Math.ceil(left))) : 'GO';   // (the resume's own 3 s — 3 at once, never a blank beat)
+    const ne = el.querySelector('.pd-count-n');
+    if (ne.dataset.n !== n) {
+      ne.dataset.n = n;
+      put(ne, n ? h('b', { 'data-text': n }, n) : null);
+      if (n) el.classList.add('has-n');
+      if (n && n !== 'GO') { try { synth.play('count', { go: false }); } catch { /* polish */ } }
+      else if (n === 'GO') { try { synth.play('count', { go: true }); } catch { /* polish */ } }
+    }
+  }
+
   function finale() {
     if (destroyed) return;
+    if (rush() && game.endAt && serverNow() < game.endAt - 400) { finaleScheduled = false; return; }   // (THE DROP B add-on: a solo pause moved the end — the finale waits for the new one)
     shatterBoard();
     fxs.waveT = 0; fxs.bloom = 1.2;
     bump(els.boardWrap, 'pd-pulse');

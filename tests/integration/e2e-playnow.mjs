@@ -7,8 +7,10 @@
 //   friends  PRISM DROP's card → PLAY WITH FRIENDS → a normal room (unlocked, not solo) with PRISM DROP's options open
 //   holdem   HOLD'EM's card: no PLAY NOW — "Needs 2+ players" + PLAY WITH FRIENDS (the main) → a room with HOLD'EM's options open
 //   sign     a tap on the PRISM DROP sign in the skyline → PRISM DROP's card
+//   pause    THE DROP B add-on: a solo SURVIVAL hidden 60 s → its clock + engine stand still, the 3-2-1 back, the result = time PLAYED, the
+//            podium's board; a SCORE RUSH hidden 20 s mid-song → the song + the clock stand where they stopped
 //   (PD-6: the solo case also checks BOTH solo tubes, PLAY AGAIN keeping the mode, and the podium's XP line — runs 1, 3, 4 pay; the 5th says DONE)
-//   node tests/integration/e2e-playnow.mjs [--browser webkit|chromium] [--base http://localhost:5173] [--only solo,one,friends,holdem,sign] [--shots DIR]
+//   node tests/integration/e2e-playnow.mjs [--browser webkit|chromium] [--base http://localhost:5173] [--only solo,lost,one,friends,holdem,pause,sign] [--shots DIR]
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -245,6 +247,64 @@ try {
     const opts = await P.waitFor(`!!${S}.code && [...document.querySelectorAll('.sh.options.is-in .sh-t b')].some(b => /HOLD/.test(b.textContent))`, 20000);
     ok(opts, 'PLAY WITH FRIENDS → a room with HOLD\'EM picked (its options open)');
     await P.ev("import('/js/room.js').then(m => m.leaveRoom())"); await sleep(800);
+    await P.ctx.close();
+  }
+  // THE DROP B add-on (Ben, Nov 13 9:59 pm — "SURVIVED 2:04 · 0 LINES" after 2 minutes away): A SOLO RUN PAUSES WHILE HIDDEN — a SURVIVAL hidden
+  // 60 s: the run's clock + engine stand still, the host wrote the pause; back on the page the 3-2-1, then play; the result = time PLAYED. A SCORE
+  // RUSH hidden mid-song: the song + the clock come back together.
+  if (!ONLY.length || ONLY.includes('pause')) {
+    const P = await phone('pauser');
+    const hide = on => P.ev(`(() => { for (const [k, v] of [['visibilityState', ${on} ? 'hidden' : 'visible'], ['hidden', ${on}]]) Object.defineProperty(document, k, { configurable: true, get: () => v }); document.dispatchEvent(new Event('visibilitychange')); })()`);
+    const played = `(() => { const g = ${S}.game, n = window.__arcade.serverNow(); return (g.pz != null ? g.pz : n) - g.playStartAt; })()`;
+    await openCard(P, 'prism');
+    await P.ev("document.querySelector('.nd-card-solo[data-mode=\"survival\"]').click()");
+    await P.waitFor(`(() => { const g = ${S}.game; return !!(g && g.settings.mode === 'survival' && g.phase === 'play' && window.__arcade.serverNow() > g.playStartAt + 4000); })()`, 30000);
+    await P.ev('window.__prism.bot({ skill: 0.85, every: 120, seed: 5 })');
+    await sleep(4000);
+    await P.ev('window.__prism.stopBot()');
+    const w0 = Date.now(), p0 = await P.ev(played);
+    await hide(true);
+    const paused = await P.waitFor(`${S}.game && ${S}.game.pz != null`, 5000);
+    const e0 = await P.ev('(() => { const e = window.__prism.engine(); return { n: e.n, sd: e.sd, b: JSON.stringify(Array.from(e.cells)) }; })()');
+    await sleep(60_000);                                                                     // (60 s away)
+    const e1 = await P.ev('(() => { const e = window.__prism.engine(); return { n: e.n, sd: e.sd, b: JSON.stringify(Array.from(e.cells)) }; })()');
+    const p1 = await P.ev(played);
+    ok(paused && Math.abs(p1 - p0) < 1500 && e1.n === e0.n && e1.sd === e0.sd && e1.b === e0.b, `SURVIVAL hidden 60 s: paused by the host (pz ${paused}), the run's time stood still (${(p0 / 1000).toFixed(1)} → ${(p1 / 1000).toFixed(1)} s), the engine + the rising rows too (piece ${e0.n} → ${e1.n}, rows ${e0.sd} → ${e1.sd})`);
+    await hide(false);
+    const back = await P.waitFor(`${S}.game && ${S}.game.pz == null && ${S}.game.rz > window.__arcade.serverNow() && !!document.querySelector('.pd-resume')`, 5000);
+    const num = await P.ev("(document.querySelector('.pd-resume .pd-count-n') || {}).textContent || ''");
+    const held = await P.ev(`(() => { const e = window.__prism.engine(); return e.n; })()`);
+    await P.shot('pause-321');
+    ok(back && /^[123]?$/.test(num), `back on the page: the 3-2-1 over the board (rz set, "${num || 'BACK IN'}")`);
+    await P.waitFor(`window.__arcade.serverNow() > ${S}.game.rz + 300 && !document.querySelector('.pd-resume')`, 8000);
+    const pGo = await P.ev(played);
+    ok(Math.abs(pGo - p0) < 2000 && (await P.ev('window.__prism.engine().n')) >= held, `GO again: the run picks up at its ${(p0 / 1000).toFixed(1)} s (${(pGo / 1000).toFixed(1)} s now)`);
+    const end = await topOut(P);
+    const r = await P.ev(`(() => { const s = ${S}; const u = s.uid; return s.game && s.game.results && s.game.results[u]; })()`);
+    const wall = Date.now() - w0;
+    const line = await P.ev("(document.querySelector('.final .pd-fs-line span') || {}).textContent || ''");
+    ok(end && r && r.t < wall - 55_000 + p0 && r.t >= p0, `the result = time PLAYED: ${(r && r.t / 1000 || 0).toFixed(1)} s, never the ${((wall + p0) / 1000).toFixed(0)} s of wall time (the podium: ${line})`);
+    ok(await P.ev("!!document.querySelector('.final .pd-fs-board')"), 'the solo podium draws YOUR LAST BOARD');
+    await P.shot('pause-podium');
+    // SCORE RUSH hidden mid-song: the song + the clock resume together
+    await P.ev("document.querySelector('.final .final-city').click()");
+    await P.waitFor(`!${S}.code && ${S}.view === 'title'`, 15000);
+    await openCard(P, 'prism');
+    await P.ev("document.querySelector('.nd-card-solo[data-mode=\"rush\"]').click()");
+    await P.waitFor(`(() => { const g = ${S}.game; return !!(g && g.settings.mode === 'rush' && g.phase === 'play' && window.__arcade.serverNow() > g.playStartAt + 6000); })()`, 30000);
+    const songPos = `(() => { const g = ${S}.game; const n = g.pz != null ? g.pz : Math.max(window.__arcade.serverNow(), g.rz || 0); let t = g.songStartAt, i = 0; const st = []; for (let k = 0; k < g.songs.length; k++) { st.push(t); t += (g.sd[k] || 180000) - 0; } while (i + 1 < st.length && n >= st[i + 1]) i++; return { i, pos: n - st[i], left: g.endAt - n }; })()`;
+    const before = await P.ev(songPos);
+    await hide(true);
+    await P.waitFor(`${S}.game && ${S}.game.pz != null`, 5000);
+    const hid = await P.ev(songPos);
+    await sleep(20_000);
+    await hide(false);
+    await P.waitFor(`${S}.game && ${S}.game.pz == null && ${S}.game.rz != null`, 5000);
+    const after = await P.ev(`(() => { const g = ${S}.game; let t = g.songStartAt; const n = g.rz; return { pos: n - t, left: g.endAt - n }; })()`);
+    ok(Math.abs(after.pos - hid.pos) < 50 && Math.abs(after.left - hid.left) < 50 && hid.left < before.left, `SCORE RUSH hidden 20 s mid-song: at GO again the song (${(hid.pos / 1000).toFixed(2)} → ${(after.pos / 1000).toFixed(2)} s in) and the clock (${(hid.left / 1000).toFixed(1)} → ${(after.left / 1000).toFixed(1)} s left) stand where they stopped`);
+    await P.waitFor(`window.__arcade.serverNow() > ${S}.game.rz + 500`, 8000);
+    const pl = await P.ev('(() => { const b = window.__prism.beat && window.__prism.beat(); return b ? b.pos : null; })()');
+    ok(pl == null || Math.abs(pl - (after.pos + 500) / 1000) < 1.5, `the song plays on from there (heard at ${pl == null ? 'n/a (no audio in the test)' : pl.toFixed(2) + ' s'})`);
     await P.ctx.close();
   }
   if (!ONLY.length || ONLY.includes('sign')) {

@@ -6,7 +6,7 @@
 // the song does / you top out. The results carry what PD-5's cards need: KOs (ko), perfect clears (pc), the danger-zone flag (dz — BATTLE:
 // your stack reached the top 5 rows) + SURVIVAL's time survived (t, ms).
 import {
-  cleanSettings, aliveOf, applyKo, callBonus, songsUsed, OFFLINE_OUT_MS, END_MS, DANGER_ZONE_ROWS, dayKey, creditedBy,
+  cleanSettings, aliveOf, applyKo, callBonus, songsUsed, OFFLINE_OUT_MS, END_MS, DANGER_ZONE_ROWS, dayKey, creditedBy, isSoloGame,
 } from './logic.js';
 
 /**
@@ -62,10 +62,13 @@ export function nextStep(game, ctx) {
   const queues = (ctx.live && ctx.live.queues) || {};   // (PFIX-B: prismq/{m} — who really attacked whom, for the KO credit)
   switch (game.phase) {
     case 'count':
+      if (game.pz != null) return null;   // (THE DROP B add-on: a solo run paused while hidden — its clocks shift when it comes back)
       if (now < game.playStartAt) return null;
       return { phase: 'play', phaseStartAt: game.playStartAt, phaseEndsAt: game.endAt || null };
 
     case 'play': {
+      // THE DROP B add-on — A SOLO RUN PAUSES WHILE HIDDEN (logic.js#soloPause / soloResume): nothing happens while it is paused (no end, no out)
+      if (game.pz != null) return null;
       if (game.settings.mode === 'rush') {
         if (now < game.endAt) return null;
         return { phase: 'end', phaseStartAt: now, phaseEndsAt: now + END_MS };
@@ -75,10 +78,13 @@ export function nextStep(game, ctx) {
       const out = { ...(game.out || {}) };
       let alive = aliveOf(game);
       const fresh = [];
+      // (THE DROP B add-on: a SOLO run back from a pause gets OFFLINE_OUT_MS after its 3-2-1 before AWAY / SIGNAL LOST can apply — its last save
+      //  is from before it hid; with 2+ players nothing changes)
+      const fresh0 = isSoloGame(game) && Number.isFinite(game.rz) && now < game.rz + OFFLINE_OUT_MS;
       for (const uid of alive) {
         const b = boards[uid];
         const pres = ctx.presence && ctx.presence[uid];
-        const late = now - game.playStartAt >= OFFLINE_OUT_MS;
+        const late = now - game.playStartAt >= OFFLINE_OUT_MS && !fresh0;
         const gone = !(ctx.online && ctx.online[uid]) && (!pres || !pres.lastSeen || now - pres.lastSeen >= OFFLINE_OUT_MS) && late;
         // PFIX-A (FABLE REVIEW finding 2 + question E — AWAY): a board that has said nothing for OFFLINE_OUT_MS during play is OUT, credited to
         // nobody, whatever presence says — a hidden tab keeps its socket (online) but runs no frames: its board froze, no row could land on it.
@@ -136,7 +142,8 @@ export function nextStep(game, ctx) {
         if (mode === 'battle' && (Number(sv.pk) || 0) >= DANGER_ZONE_ROWS) r.dz = 1;
         if (mode === 'survival') {
           const o = game.out && game.out[uid];
-          r.t = Math.max(0, (o ? o.at : game.phaseStartAt) - game.playStartAt);
+          r.t = Math.max(0, (o ? o.at : game.phaseStartAt) - game.playStartAt);   // (THE DROP B add-on: playStartAt shifted by every solo pause — time PLAYED)
+          r.sd = Math.max(0, Math.min(100_000, Number(b.sv && b.sv.sd) || 0));      // (the rising rows the engine really took — match-report.js checks t against them)
         }
       }
       const calls = {};

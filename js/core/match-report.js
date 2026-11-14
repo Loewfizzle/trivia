@@ -19,7 +19,7 @@ import { standings as bluffStandings } from '../games/bluff/logic.js';
 import { standings as pulseStandings, multiplier } from '../games/pulse/logic.js';
 import { totals as golfTotals, standings as golfStandings, CAP as GOLF_CAP } from '../games/golf/logic.js';
 import { standings as agentStandings } from '../games/agent/logic.js';
-import { standings as prismStandings } from '../games/prism/logic.js';
+import { standings as prismStandings, survivalRowAt } from '../games/prism/logic.js';
 import { standings as slipStandings } from '../games/slip/logic.js';
 import { maxSpeed } from '../games/slip/course.js';
 import { standings as gridlockStandings } from '../games/gridlock/logic.js';
@@ -237,6 +237,9 @@ function agentExtra(game, uid, out) {
 /** PFIX-B (FABLE REVIEW finding 6): the award flags only from plausible numbers — a match this player PLAYED long enough (from GO to their
  *  KO / the end), a piece count a person can place in that time (≤ 10 a second) */
 export const PRISM_AWARD_MIN_MS = 15_000;
+/** THE DROP B add-on: the longest a SOLO SURVIVAL can honestly last having taken `sd` rising rows — until the row after the next (+ slack) */
+export const PRISM_T_SLACK_MS = 5000;
+export const survivalCap = sd => survivalRowAt(Math.max(0, Math.floor(sd)) + 1) + PRISM_T_SLACK_MS;
 function prismPlausible(game, uid, r) {
   const o = game.out && game.out[uid];
   const end = (o && Number(o.at)) || Number(game.phaseStartAt) || 0;
@@ -265,6 +268,11 @@ function prismExtra(game, uid, out, row, ctx, win) {
   if (pcs >= 1 && num(r.ln) >= 2 * pcs && (r.pn == null || ok.pn >= pcPieces * pcs) && ok.long && ok.pieces) (out.f ||= {}).pc = 1;
   // COMEBACK — comeback: WON a BATTLE (2+ players, the room's winner) after the stack reached the danger zone (dz — the top 5 rows)
   if (mode === 'battle' && n >= 2 && win && game.winner === uid && r.dz === 1) (out.f ||= {}).comeback = 1;
+  // THE DROP B add-on (Ben, Nov 13 9:59 pm — "SURVIVED 2:04 · 0 LINES" after 2 minutes away): a SOLO SURVIVAL's time is checked against what its
+  // ENGINE really took — the rising rows (results `sd`, from the board's own save): a run can't outlast the row after the next one it took
+  // (+ PRISM_T_SLACK_MS for a late save). A time past that (hidden time, a host's own number) → THE SOLO LANE counts the run as EMPTY (no XP, no
+  // streak day, no lane count) — a hidden-time run never pays more than a played one. Old results with no `sd` are left alone.
+  if (mode === 'survival' && n === 1 && r.sd != null && r.t != null && num(r.t) > survivalCap(num(r.sd))) { out.rejected.push({ uid, board: 'prism-survival', v: num(r.t) }); out.hidden = 1; }
   if (!game.settings || game.settings.mode !== 'rush') return;
   const sc = num(r.sc), ln = num(r.ln);
   const sd = vals(game.sd).map(num);
@@ -374,7 +382,8 @@ export function extractMatch(game, ctx = {}) {
     const win = !solo && row.rank === 1 && firsts < n;
     const o = { rank: row.rank, win, c: { p: 1, ...(win ? { w: 1 } : {}) }, rec: {}, rejected: out.rejected };
     EXTRA[game.id](game, row.uid, o, row, ctx, win);
-    if (solo && soloEmpty(game, row.uid, row)) o.empty = 1;   // (B1: nothing answered, nothing scored → never counted)
+    if (solo && (soloEmpty(game, row.uid, row) || o.hidden)) o.empty = 1;   // (B1: nothing answered, nothing scored → never counted; THE DROP B: a solo SURVIVAL's time past its rows — hidden time — neither)
+    delete o.hidden;
     if (solo) { o.solo = true; const rec = {}; for (const [b, v] of Object.entries(o.rec)) { const sb = soloBoard(b); if (sb) rec[sb] = v; } o.rec = rec; }
     delete o.rejected;
     out.rows[row.uid] = o;

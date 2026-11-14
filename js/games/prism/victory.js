@@ -56,7 +56,10 @@ export function finalScene(el, game, state) {
   const node = state && state.live && state.live.boards && state.live.boards[top.uid];
   const str = (node && node.b) || '';
   const moment = h('div.pd-fs-moment', { style: { '--c': colorHex(w.color) } });
-  if (str) {
+  // (THE DROP B add-on — Ben: a solo podium after a run that ended on an EMPTY board showed no picture at all: the board string is '' when nothing
+  //  stands in the well. Now the well is ALWAYS drawn — the published board, or the empty well — both looks; only a match with no node for the
+  //  winner at all (a ghost) keeps the line alone)
+  if (str || node || soloOf(game)) {
     const c = h('canvas.pd-fs-board', { 'aria-hidden': 'true' });
     // (PD-6 — THE SOLO PODIUM FITS: a solo run on a short screen (Safari with its toolbars) draws the board at 7-pt cells — 140 pt tall, not 160 —
     //  so the board, the slim card + its score line sit above the foot; read once here, never in a frame loop)
