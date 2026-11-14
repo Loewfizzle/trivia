@@ -69,8 +69,11 @@ export function createView() {
   let engFor = null;        // matchId the engine belongs to
   let restored = false;
   let raf = 0;
-  let lastFrame = 0;
+  let lastFrame = 0, lastFrame0 = 0;
   let softHeld = false;
+  // THE DROP A — THE DROP MODE (js/games/drop/view.js): the daily's DRIVER — the run's engine, its clock (the server's), the recorder, the
+  // checkpoints + pauses. With it: the engine is the run's, every input goes through its recorder, nothing is published, no room is watched.
+  let drop = null;
   let input = null;
   let world = null, fx = null, board = null;
   const songPlayer = createSongPlayer();
@@ -156,7 +159,7 @@ export function createView() {
   // PFIX-A (FABLE REVIEW findings 2 + 5): the board is SAVED the moment the page is hidden or put away (a call, the app switcher, a refresh) —
   // a refresh comes back from where it was, never ≤ 3 s back. (A hidden page runs no frames: the board then falls silent, and after 30 s the
   // director counts it AWAY.)
-  const saveNow = () => { if (!destroyed && participant() && eng && !eng.over && game && game.phase !== 'final') publish(true); };
+  const saveNow = () => { if (!destroyed && !drop && participant() && eng && !eng.over && game && game.phase !== 'final') publish(true); };
   const onVis = () => { if (document.visibilityState === 'hidden') saveNow(); };
 
   const me = () => st.uid;
@@ -178,6 +181,7 @@ export function createView() {
     clearTimeout(dropT); dropT = 0;   // (PD7: a rematch keeps the caches the last match drew)
     st = state;
     game = state.game;
+    drop = state.drop || null;
     seenOut = { ...(game.out || {}) };   // (PD-2: a refresh mid-match never re-announces the knockouts that already happened)
     root = h('div.pd', { 'data-mode': game.settings.mode });
     els.world = h('canvas.pd-world', { 'aria-hidden': 'true' });
@@ -238,10 +242,10 @@ export function createView() {
     els.slamBtn.addEventListener('pointerup', () => { if (!reduced()) bump(els.slamBtn, 'is-flash'); });
     input = attachInput(els.ui, {
       act: a => act(a),
-      softHeld: v => { softHeld = v; },
+      softHeld: v => { softHeld = v; if (drop) drop.input(v ? 'S' : 'U'); },
       cell: () => board.cell,
       sens: () => settings.prismSens ?? 0.5,
-      enabled: () => !!(eng && eng.cur && !eng.over && game.phase === 'play' && performance.now() > rebootUntil),
+      enabled: () => !!(eng && eng.cur && !eng.over && game.phase === 'play' && performance.now() > rebootUntil && !(drop && drop.paused())),
       midX: () => window.innerWidth / 2,
       flick: () => !!settings.prismFlick,
     });
@@ -255,8 +259,9 @@ export function createView() {
     window.addEventListener('pagehide', saveNow);
     setupTestHook();
     if (/[?&]pdperf\b/.test(location.search)) startPerfReadout();
+    if (drop) { root.classList.add('pd-drop'); drop.attach({ root, rail: els.rail, overlay: els.overlay }); }
     update(state);
-    lastFrame = performance.now();
+    lastFrame = lastFrame0 = performance.now();
     raf = requestAnimationFrame(frame);
   }
 
@@ -360,6 +365,7 @@ export function createView() {
   // ================================================================ engine lifecycle
   function ensureEngine() {
     if (!participant() || game.phase === 'final') return;
+    if (drop) { if (engFor !== game.matchId) { eng = drop.run.eng; engFor = game.matchId; lastLevel = eng.level; E.takeEvents(eng); } return; }
     if (engFor === game.matchId) return;
     if (!liveReady()) return; // wait: a saved board might be in our node
     const node = myNode();
@@ -396,6 +402,7 @@ export function createView() {
   }
 
   function startIfDue() {
+    if (drop) return;   // (THE DROP: the run started itself — drop.js#createDropRun)
     if (!eng || eng.over || eng.cur || game.phase === 'final') return;
     if (serverNow() >= game.playStartAt && (game.phase === 'play' || game.phase === 'count') && !rushOver()) {
       if (!restored && eng.n === 0 && !eng.stats.pieces) E.start(eng); else if (!eng.cur) { E.spawn(eng, resumeT); resumeT = null; }
@@ -407,6 +414,16 @@ export function createView() {
   function act(a) {
     if (!eng || !eng.cur || eng.over) return;
     if (tipEl) hideTip();
+    if (drop) {
+      // THE DROP: every input through the run's recorder (one code a step — the log keeps the ones that did something)
+      if (a.a === 'move') { const n = Math.abs(a.dx); for (let i = 0; i < n; i++) if (drop.input(a.dx < 0 ? 'L' : 'R') !== 'ok') break; }
+      else if (a.a === 'rotate') drop.input(a.dir > 0 ? 'C' : 'W');
+      else if (a.a === 'soft') { for (let i = 0; i < a.n; i++) if (drop.input('D') !== 'ok') break; }
+      else if (a.a === 'hard') drop.input('X');
+      else if (a.a === 'hold') drop.input('H');
+      handleEvents();
+      return;
+    }
     if (a.a === 'move') { const n = Math.abs(a.dx); for (let i = 0; i < n; i++) if (!E.move(eng, Math.sign(a.dx))) break; }
     else if (a.a === 'rotate') E.rotate(eng, a.dir);
     else if (a.a === 'soft') { for (let i = 0; i < a.n; i++) if (!E.stepDown(eng, true)) break; }
@@ -588,6 +605,7 @@ export function createView() {
   }
 
   function watchAttacks() {
+    if (drop) return;
     if (qRef || !participant() || !battle() || !game || game.phase === 'final' || !eng) return;
     qRef = dbRef(`rooms/${st.code}/prismq/${game.matchId}/${me()}`);
     onValue(qRef, snap => {
@@ -621,6 +639,7 @@ export function createView() {
   function onTopOut() {
     synth.play('topout');
     vibrate([30, 60, 60]);
+    if (drop) { if (tipEl) hideTip(); return; }   // (THE DROP: no room, no KO card — the run's driver ends it: the final upload, the finish, its card)
     if (rush()) {
       // family mode: no elimination — the board resets after a breath, the score stays
       announce('REBOOT', 'self');
@@ -644,6 +663,7 @@ export function createView() {
   let pubDirty = false;
   function markPublish() { pubDirty = true; }
   function publish(force = false) {
+    if (drop) return;   // (THE DROP: nothing goes to a room — the run's driver uploads its log to /api)
     if (!eng || !participant() || !game || game.phase === 'final' || (eng.over && !rush())) return;
     // (PFIX-B: only inside the rules' window — never a write they refuse: before GO, after the out, after SCORE RUSH's song)
     if (!boardWritable(game, me(), serverNow(), myNode())) return;
@@ -682,7 +702,12 @@ export function createView() {
     // (PFIX-A: out by the director — SIGNAL LOST / AWAY — while this board still ran: it stops here, never plays on under the KO card)
     if (eng && !eng.over && !rush() && game.out && game.out[me()]) { eng.over = true; eng.cur = null; }
     // engine
-    if (eng && (game.phase === 'play' || game.phase === 'count')) {
+    if (eng && drop) {
+      // THE DROP: the driver steps the run to the server's clock (paused = still) + uploads its checkpoints; the view draws + sounds it
+      drop.frame();
+      handleEvents();
+      if (!dayWarm && performance.now() - lastFrame0 > 1500) warmDayArt();
+    } else if (eng && (game.phase === 'play' || game.phase === 'count')) {
       startIfDue();
       if (eng.cur && !eng.over) {
         if (rushOver()) { eng.cur = null; publish(true); }
@@ -712,7 +737,7 @@ export function createView() {
     songPlayer.tick();
     if (t - lastStatsT > 250) { lastStatsT = t; renderStats(); if (lastSpec !== null && specNow() !== lastSpec) { layoutSig = ''; applyLayout(); } }
     watchWorld(now);
-    watchMatch(now);
+    if (!drop) watchMatch(now);
     drawAll(dt, t);
     workTimes.push(performance.now() - w0);
     if (workTimes.length > 90) workTimes.shift();
@@ -1129,6 +1154,7 @@ export function createView() {
     let line;
     const played = game.phase === 'play' ? now - game.playStartAt : 0;
     if (rush()) line = `SCORE RUSH${eng ? ` · ${eng.score.toLocaleString('en-US')}` : ''}`;
+    else if (drop) line = `THE DROP${eng ? ` · ${mmss(drop.run.k * E.TICK)}` : ''}`;   // (THE DROP: the run's own clock — pauses stop it)
     else if (surv() && solo()) line = `SURVIVAL${game.phase === 'play' ? ` · ${mmss(eng && eng.over ? 0 : played)}` : ''}`;
     else line = `${modeName()}${game.phase === 'play' ? ` · ${aliveOf(game).length} LEFT` : ''}`;
     const c = curSong >= 0 ? docOf(curSong) : null;
@@ -1469,7 +1495,7 @@ export function createView() {
 
   // ================================================================ bot (tests only)
   function runBot(t) {
-    if (!eng.cur) return;
+    if (drop || !eng.cur) return;   // (THE DROP's bot is the driver's — window.__drop.bot)
     if (t < bot.next) return;
     bot.next = t + bot.every;
     if (!bot.plan || bot.plan.n !== eng.n) {

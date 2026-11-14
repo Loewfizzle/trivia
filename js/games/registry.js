@@ -32,6 +32,7 @@ const LOADERS = {
   gridlock: () => import('./gridlock/index.js'), stakes: () => import('./stakes/index.js'), rum: () => import('./rum/index.js'),
   password: () => import('./password/index.js'),   // (PW1 — DAILY-ONLY: never playable in a room; no meta at boot — the console never offers it)
   coastclear: () => import('./coastclear/index.js'),   // (CC1 — DAILY-ONLY, like THE PASSWORD)
+  drop: () => import('./drop/index.js'),   // (THE DROP A — DAILY-ONLY: PRISM DROP's daily — its row ships OFF)
   holdem: () => import('./holdem/index.js'),
 };
 export const GAME_IDS = Object.freeze(Object.keys(LOADERS));

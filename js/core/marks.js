@@ -76,6 +76,13 @@ export const MARKS = {
     { d: 'M30 66 H72 L64 76 H38 Z M50 66 V52 L62 62', col: '#7fe8ff' },
     { d: 'M12 86 Q24 80 36 86 T60 86 T88 86', col: '#5fa8ff' },
   ] },
+  // THE DROP (THE DROP A — PRISM DROP's daily): a block falling onto a rising stack, the day's one gap
+  drop: { blade: 'THE DROP', tubes: [
+    { d: 'M40 12 H60 V32 H40 Z', col: '#7cf3ff' },
+    { d: 'M50 38 V50', col: '#d6f0ff' },
+    { d: 'M14 62 H62 M70 62 H86 M14 76 H48 M56 76 H86', col: '#b48cff' },
+    { d: 'M14 88 H86', col: '#6aa8ff' },
+  ] },
   // SLIPSTREAM: a gold-and-blue swoosh
   slip: { blade: 'SLIPSTREAM', tubes: [
     { d: 'M8 70 C32 70 46 28 92 24', col: '#ffc46b' },
