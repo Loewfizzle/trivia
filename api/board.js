@@ -17,6 +17,20 @@ import { weekEndsAt } from '../js/core/week.js';
 import { activity } from './_lib/activity.js';
 import { take } from './_lib/limit.js';
 import { notifyOwner } from './_lib/radio.js';
+import { val } from './_lib/fb.js';
+import { DAILIES } from '../js/config.js';
+import { rowOpenOn } from '../js/core/daily.js';
+import { streakDay } from '../js/core/streak.js';
+
+// THE DROP B — THE SCHEDULED GO-LIVE on /board: a DAILIES board's answer carries the dailies in the set TODAY (a row that ships OFF joins on its
+// scheduled day — progress/dlive), so a daily scheduled from /admin gets its chip without a deploy. One small read, memoised a minute.
+let dliveMemo = null;
+export async function liveDailyIds(now = Date.now()) {
+  if (!dliveMemo || now - dliveMemo.at > 60_000 || now < dliveMemo.at) dliveMemo = { at: now, v: await val('progress/dlive').catch(() => null) };
+  const day = streakDay(now), sc = dliveMemo.v || {};
+  return DAILIES.filter(r => rowOpenOn(r, sc[r.id], day)).map(r => r.id);
+}
+export const forgetLiveDailies = () => { dliveMemo = null; };
 
 // BOARD 2.0 A — a public row = the board id + the USERNAME + the SLIM CARD's display ids (cd · es · tb · g) + the level, the rank emblem, the place, the
 // value. Never the pid, the key, the tag's digits or the member Nº (server.test.mjs walks every key)
@@ -30,7 +44,8 @@ export async function boardQuery(q, now = Date.now()) {
   const start = Math.max(0, Math.min(TOP_N, Number(q.start) || 0));
   const n = Math.max(1, Math.min(TOP_N, Number(q.n) || TOP_N));
   const data = await topRows(b, p, now);
-  return { b, p, key: data.p, rows: data.rows.slice(start, start + n).map(pub), more: data.rows.length > start + n, at: data.at, ends: p === 'week' ? weekEndsAt(now) : null };
+  return { b, p, key: data.p, rows: data.rows.slice(start, start + n).map(pub), more: data.rows.length > start + n, at: data.at, ends: p === 'week' ? weekEndsAt(now) : null,
+    ...(/^daily(-|$)/.test(b) ? { live: await liveDailyIds(now) } : {}) };
 }
 
 export const FLAG_LIMITS = { ipPerHour: 8, devPerHour: 5, perDay: 400 };

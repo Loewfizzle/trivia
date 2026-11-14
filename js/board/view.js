@@ -182,7 +182,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   const isGame = () => S.tab !== 'xp' && S.tab !== 'dailies';
   function boardsNow() {
     if (S.tab === 'xp') return [boardDef('xp')];
-    if (S.tab === 'dailies') return [{ ...boardDef('daily'), chip: 'ALL DAILIES' }, ...POINT_DAILIES.filter(g => (DAILIES.find(d => d.id === g) || {}).on !== false).map(g => ({ ...boardDef(`daily-${g}`), chip: gameName(g) }))];   // (THE DROP A: a row that ships OFF gets no chip)
+    if (S.tab === 'dailies') return [{ ...boardDef('daily'), chip: 'ALL DAILIES' }, ...POINT_DAILIES.filter(g => (DAILIES.find(d => d.id === g) || {}).on !== false || (S.live || []).includes(g)).map(g => ({ ...boardDef(`daily-${g}`), chip: gameName(g) }))];   // (THE DROP A: a row that ships OFF gets no chip — THE DROP B: until its scheduled go-live day: the daily board's `live`)
     const own = tabBoards(S.tab);   // (HOLD'EM: its one board — no RECORDS / CAREER switch)
     if (own) return own.filter(Boolean).map(b => ({ ...b, game: S.tab }));
     return S.cat === 'career' ? careerBoards(S.tab).map(b => ({ ...b, game: S.tab })) : recordBoards(S.tab).map(b => ({ ...b, game: S.tab }));
@@ -211,7 +211,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     els.cat.hidden = !isGame() || !!tabBoards(S.tab);
     if (isGame() && !tabBoards(S.tab)) catSeg.set(S.cat, { records: !recordBoards(S.tab).length });
     periodSeg.set(S.period);
-    const want = list.length > 1 ? chipRow(`${S.tab}|${isGame() && !tabBoards(S.tab) ? S.cat : ''}`, list) : null;
+    const want = list.length > 1 ? chipRow(`${S.tab}|${isGame() && !tabBoards(S.tab) ? S.cat : ''}|${S.tab === 'dailies' ? (S.live || []).join(',') : ''}`, list) : null;
     for (const r of chipRows.values()) {
       const show = r === want;
       if (r.row.hidden === show) r.row.hidden = !show;
@@ -341,6 +341,8 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       if (token !== S.token || destroyed) return;
       K = kit;
       S.rows = data.rows || []; S.more = !!data.more; S.ends = data.ends || null;
+      // (THE DROP B: a daily scheduled live from /admin — its chip joins once the board says it's in today's set)
+      if (Array.isArray(data.live) && data.live.join(',') !== (S.live || []).join(',')) { S.live = data.live; ctrlSig = ''; renderControls(); }
       paintPlate(def);
       swapRows(token, () => renderRows(def, true));
     } catch (e) {

@@ -11,6 +11,7 @@
 //   { startedAt, now }) → a score (a finite number) | null (refused) }. Register with registerDaily(); the server lists its cartridges in
 //   api/_lib/dailies.js (+ a TEST-ONLY fake behind DAILY_TEST=1).
 import { DAILIES } from '../config.js';
+import { streakDay, dayNum, dayOf } from './streak.js';
 
 export const BAND_MIN = 50;
 export const BANDS = [
@@ -41,6 +42,15 @@ const ord = r => (r && Number.isFinite(r.order) ? r.order : 99);
 export const dailyRows = () => [...DAILIES, ...EXTRA.values()].sort((a, b) => ord(a) - ord(b));
 export const dailyRow = id => dailyRows().find(r => r.id === String(id)) || null;
 export const listedDailies = () => dailyRows().filter(r => r.on !== false).map(r => r.id);
+/** THE DROP B — THE SCHEDULED GO-LIVE (PURE): is a row in the set on `day`? An ON row always; an OFF row only from its scheduled day
+ *  (sched = { from: 'dYYYYMMDD' } — api/_lib/dailies.js reads progress/dlive) — whole days: a day key is compared, never a time */
+export function rowOpenOn(row, sched, day) {
+  if (!row) return false;
+  if (row.on !== false) return true;
+  return !!(sched && /^d\d{8}$/.test(String(sched.from || '')) && /^d\d{8}$/.test(String(day || '')) && String(day) >= String(sched.from));
+}
+/** the next 4 am turn's day key (the day a GO LIVE AT THE NEXT 4 AM opens on) — from any time of today (never today itself) */
+export const nextLiveDay = now => dayOf(dayNum(streakDay(now)) + 1);
 
 /** DM2 — PENTHOUSE (the owner, Step 0): the top 1 % of a daily's COUNTING finishers that day by PLACE — rank ≤ max(1, floor(n × 1 %)) — and
  *  only once the day has BAND_MIN (50) counting finishers (dormant below). rank = 1-based (1 + the finishers strictly better). */

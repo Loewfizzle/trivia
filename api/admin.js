@@ -43,6 +43,8 @@
 //                                    owner's switch (progress/dailies — OFF until THE SWITCH-OVER, audited); FRESH = wipe every stored daily day
 //                                    (dly/ — the test runs, the pairs, the boards) + THE FROZEN SCHEDULE (dsched/) so the first live day builds them
 //                                    anew — refused while the switch is ON, typed FRESH (docs/progression.md "THE SWITCH-OVER")
+//   dailySchedule { game, cancel? } → THE DROP B — THE SCHEDULED GO-LIVE: GO LIVE AT THE NEXT 4 AM (progress/dlive/{game}.from = the next
+//                                    streak day — it opens by itself at that 4 am turn) / CANCEL before then; owner only, audited
 //   dailyStats                     → DFIX3 — THE DAILIES' STATS (admin only, cheap reads — never a scan of the profiles): per live daily STARTED +
 //                                    FINISHED today and the last 7 days (dly/{game}/{day}/s + /r keys), + TODAY'S PLAYERS: everyone with a start today
 //                                    (newest first, ≤ 50 of n) — name#tag, level, each daily's score / PLAYING / —, COUNTS or NEW TODAY (the gate),
@@ -59,7 +61,7 @@ const holdemPublic = v => { const D = schedKnob('billboard.holdem'), c = cleanHo
 /** THE TRI-VISION: JAYWALK's switch as /admin shows it (the timetable's default when never set: ON, COMING SOON, no open day) */
 const jaywalkPublic = v => { const D = schedKnob('billboard.jaywalk'), c = cleanJaywalk(v && v.jaywalk); return c ? { on: c.on, bar: c.bar, open: c.open, since: c.since || D.since, set: true } : { on: D.on !== false, bar: 'soon', open: D.open || null, since: D.since, set: false }; };
 import { displayOf } from './_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
-import { dailiesState, setDailiesSwitch, forgetPicks, openDailies } from './_lib/dailies.js';
+import { dailiesState, setDailiesSwitch, forgetPicks, openDailies, scheduleDaily } from './_lib/dailies.js';
 import { countsOn } from './daily.js';
 import { relOf as friendRel } from '../js/core/friends.js';
 import { dailyRow } from '../js/core/daily.js';
@@ -387,6 +389,22 @@ export async function adminAction(uid, body, now = Date.now()) {
       const on = body.on === true;
       const st = await setDailiesSwitch(on, me, now);
       await audit(me, on ? 'dailiesOn' : 'dailiesOff', null);
+      return { dailies: st };
+    }
+    // THE DROP B — THE SCHEDULED GO-LIVE (owner only — the admin gate above; the page's confirm tap): GO LIVE AT THE NEXT 4 AM = progress/dlive/{id}
+    // { from: the next streak day } — the daily opens by itself at that 4 am turn, never mid-day; CANCEL only before then; audited
+    case 'dailySchedule': {
+      const id = String(body.game || ''), cancel = body.cancel === true;
+      let st;
+      try { st = await scheduleDaily(id, { cancel, by: me, now }); } catch (e) {
+        const code = e && e.code;
+        if (code === 'no_daily') throw new ApiError(404, 'no_daily');
+        if (code === 'always_on') throw new ApiError(409, 'always_on', 'That daily is always in the set.');
+        if (code === 'already_live') throw new ApiError(409, 'already_live', 'It’s already live — it can’t be cancelled mid-day.');
+        throw e;
+      }
+      forgetPicks();
+      await audit(me, cancel ? 'dailyGoLiveCancel' : 'dailyGoLive', null, { b: `${id}${cancel ? '' : ` from ${st.next}`}` });
       return { dailies: st };
     }
     case 'dailyFresh': {

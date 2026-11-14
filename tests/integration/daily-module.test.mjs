@@ -590,3 +590,64 @@ test('BOARD 2.0 A — DAILY POINTS: the server\'s score → points, the boards, 
     assert.equal(await val(`pstats/${await pidOf('g-crack')}/dp`), null, 'a non-counting result still earns nothing');
   } finally { process.env.ADMIN_PIDS = ''; }
 });
+
+// ---------------------------------------------------------------- THE DROP B — THE SCHEDULED GO-LIVE (Ben, Nov 13 — /admin → GO LIVE AT THE NEXT 4 AM)
+test('THE DROP B — THE SCHEDULED GO-LIVE: the owner schedules an OFF daily at THE NEXT 4 AM (audited) → the day before = two dailies (swept with two), from that 4 am = three (the sweep + the XP cap need all three), never mid-day; a run that crossed 4 am keeps ITS day\'s set; a finished sweep is never turned incomplete; CANCEL only before its day', async () => {
+  const { dailySchedule, SCHED_PATH: DLIVE } = await import('../../api/_lib/dailies.js');
+  const A0 = NOW + 30 * DAY, A = streakDay(A0), B = dayOf(dayNum(A) + 1), C = dayOf(dayNum(A) + 2);
+  const atA = A0, at4B = dayStartAt(B), atB = at4B + 3 * 3600e3, atC = dayStartAt(C) + 3600e3;
+  await ensure('g-own', 'GoOwner'); await ensure('g-amy', 'GoAmy'); await ensure('g-bob', 'GoBob');
+  const own = await pidOf('g-own');
+  const rows = DAILIES.filter(r => r.id === 'password' || r.id === 'coastclear');
+  for (const r of rows) r.on = false;                                    // (the sweep's set = the test dailies alone: early + the fake + the late one)
+  registerTestDaily({ order: 3 }, fakeCart('early'));
+  registerTestDaily({ order: 4, on: false }, fakeCart('late'));
+  process.env.ADMIN_PIDS = own;
+  try {
+    const t0 = await D('g-amy', { action: 'today' }, atA);
+    assert.deepEqual(t0.dailies.map(d => d.id), ['early', 'test'], 'an OFF row is not in the set');
+    await rejects(adminAction('g-amy', { action: 'dailySchedule', game: 'late' }, atA), 403, 'not_admin');
+    const sc = await adminAction('g-own', { action: 'dailySchedule', game: 'late' }, atA);
+    const lr = sc.dailies.rows.find(r => r.id === 'late');
+    assert.equal(lr.state, 'scheduled'); assert.equal(lr.from, B, 'from = THE NEXT 4 AM\'s day');
+    assert.equal((await val(`${DLIVE}/late`)).from, B);
+    assert.ok(Object.values((await val('audit')) || {}).some(a => a.act === 'dailyGoLive'), 'audited');
+    // the day before: still two — `late` refused, THE SWEEP complete with two
+    clearSwitchCache();
+    assert.deepEqual((await D('g-amy', { action: 'today' }, atA + 1e3)).dailies.map(d => d.id), ['early', 'test'], 'never mid-day');
+    await rejects(D('g-amy', { action: 'start', game: 'late' }, atA + 2e3), 404, 'no_daily');
+    const a1 = await perfect('g-amy', 'early', atA + 3e3), a2 = await perfect('g-amy', 'test', atA + 6e3);
+    assert.equal(a1.outcome.swept, false); assert.equal(a2.outcome.swept, true, 'day A swept with its two');
+    // bob: early on A, then THE FAKE started at 3:59 on A and finished at 4:01 on B (DFIX1) — swept on A with A's set (two), not B's three
+    await perfect('g-bob', 'early', atA + 9e3);
+    const s0 = await D('g-bob', { action: 'start', game: 'test' }, at4B - 60e3);
+    const crossed = await D('g-bob', { action: 'finish', game: 'test', day: A, result: { guess: FAKE_DAILY.target(s0.seed) } }, at4B + 60e3);
+    assert.equal(crossed.day, A); assert.equal(crossed.outcome.swept, true, 'a run that crossed 4 am keeps ITS day\'s set (two)');
+    // from B's 4 am: three — the sweep + the XP cap need all three
+    const tB = await D('g-amy', { action: 'today' }, at4B + 5e3);
+    assert.deepEqual(tB.dailies.map(d => d.id), ['early', 'late', 'test'], 'live from that 4 am turn, by itself');
+    let xp = 0, last = null;
+    for (const g of ['early', 'test', 'late']) { last = await perfect('g-amy', g, atB + xp * 10); xp += last.outcome.xp.total; assert.equal(last.outcome.swept, g === 'late', `${g}: the sweep only with all three`); }
+    assert.equal(xp, 3 * DAILY_XP + SWEEP_XP, 'daily XP 3 × 15 + 10');
+    assert.equal(last.outcome.run, 2, 'PERFECT WEEK\'s run: A + B in a row');
+    const st = await val(`pstats/${await pidOf('g-amy')}/dl/days`);
+    assert.equal(st[A].sw, 1, 'day A\'s sweep stays complete (never turned incomplete by the third daily)');
+    // CANCEL: refused once live (never mid-day); a fresh schedule cancelled before its day → never opens
+    await rejects(adminAction('g-own', { action: 'dailySchedule', game: 'late', cancel: true }, atB), 409, 'already_live');
+    registerTestDaily({ order: 5, on: false }, fakeCart('later'));
+    const s2 = await adminAction('g-own', { action: 'dailySchedule', game: 'later' }, atB + 1e3);
+    assert.equal(s2.dailies.rows.find(r => r.id === 'later').from, C);
+    const c2 = await adminAction('g-own', { action: 'dailySchedule', game: 'later', cancel: true }, atB + 2e3);
+    assert.equal(c2.dailies.rows.find(r => r.id === 'later').state, 'off');
+    assert.ok(Object.values((await val('audit')) || {}).some(a => a.act === 'dailyGoLiveCancel'), 'the cancel audited');
+    clearSwitchCache();
+    assert.deepEqual((await D('g-amy', { action: 'today' }, atC)).dailies.map(d => d.id), ['early', 'late', 'test'], 'the cancelled one never opened; the live one stays');
+    assert.deepEqual(Object.keys(await dailySchedule(atC)).sort(), ['late']);
+    await rejects(adminAction('g-own', { action: 'dailySchedule', game: 'early' }, atC), 409, 'always_on');
+  } finally {
+    for (const r of rows) r.on = true;
+    process.env.ADMIN_PIDS = '';
+    await ref(DLIVE).remove();
+    removeTestDaily('early'); removeTestDaily('late'); removeTestDaily('later'); clearSwitchCache(); loadDailies();
+  }
+});

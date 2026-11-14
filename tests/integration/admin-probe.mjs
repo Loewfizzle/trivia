@@ -4,6 +4,8 @@
 //   node tests/integration/admin-probe.mjs "<browser>" [./shots-dfix3]      (the emulators up; port 5179)
 // STATS=1 (THE POOL FIXES add-on 3): /admin → STATS instead — WHO'S ON (its server answer stubbed in the browser: two rows, the city + a room)
 // + GAMES PLAYED, at 390 / 402 / 430 + 1440
+// GOLIVE=1 (THE DROP B): /admin → THE DAILIES → THE SCHEDULED GO-LIVE rows — THE DROP OFF, GO LIVE AT THE NEXT 4 AM tapped twice (the confirm) →
+// LIVE FROM <date> 4 AM + CANCEL, then CANCEL twice → OFF again; shots of each at 390 / 402 / 430 + 1440 (the schedule removed after)
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
 process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
 process.env.GCLOUD_PROJECT ||= 'demo-arcade';
@@ -74,7 +76,28 @@ try {
     }
     console.log(`shots → ${OUT}admin-stats-*.png`);
   }
-  for (const [w, h, tag] of process.env.STATS ? [] : [[390, 844, 'phone'], [1440, 900, 'desk']]) {
+  if (process.env.GOLIVE) {
+    await ref('progress/dlive').remove();
+    const rowOf = () => p.evaluate(() => { const r = document.querySelector('.ad-dly-live[data-id="drop"]'); return r ? { state: r.dataset.state, text: r.innerText.replace(/\s+/g, ' ') } : null; });
+    const tap = async label => { for (let i = 0; i < 2; i++) { await p.evaluate(l => { const b = [...document.querySelectorAll('.ad-dly-live[data-id="drop"] .btn')].find(x => x.textContent.includes(l) || /TAP AGAIN/.test(x.textContent)); if (b) b.click(); }, label); await new Promise(r2 => setTimeout(r2, 700)); } };
+    for (const [w, h, tag] of [[390, 844, '390'], [402, 874, '402'], [430, 932, '430'], [1440, 900, 'desk']]) {
+      const ph = tag !== 'desk';
+      await p.setViewport({ width: w, height: h, deviceScaleFactor: ph ? 2 : 1, isMobile: ph, hasTouch: ph });
+      await p.goto(`http://localhost:${PORT}/admin?emu&slot=adm`);
+      await p.waitForFunction(() => !!document.querySelector('.ad-dly-live[data-id="drop"]'), { timeout: 40000 });
+      const shoot = async step => { await p.evaluate(() => document.getElementById('ad-dly-golive').scrollIntoView({ block: 'center' })); await new Promise(r2 => setTimeout(r2, 300)); await p.screenshot({ path: `${OUT}admin-golive-${step}-${tag}.png` }); };
+      console.log(tag, 'before', JSON.stringify(await rowOf())); await shoot('off');
+      await tap('GO LIVE');
+      await p.waitForFunction(() => (document.querySelector('.ad-dly-live[data-id="drop"]') || {}).dataset?.state === 'scheduled', { timeout: 10000 }).catch(() => {});
+      console.log(tag, 'scheduled', JSON.stringify(await rowOf()), JSON.stringify(await (await import('../../api/_lib/fb.js')).val('progress/dlive'))); await shoot('scheduled');
+      await tap('CANCEL');
+      await p.waitForFunction(() => (document.querySelector('.ad-dly-live[data-id="drop"]') || {}).dataset?.state === 'off', { timeout: 10000 }).catch(() => {});
+      console.log(tag, 'cancelled', JSON.stringify(await rowOf())); await shoot('cancelled');
+    }
+    await ref('progress/dlive').remove();
+    console.log(`shots → ${OUT}admin-golive-*.png`);
+  }
+  for (const [w, h, tag] of process.env.STATS || process.env.GOLIVE ? [] : [[390, 844, 'phone'], [1440, 900, 'desk']]) {
     await p.setViewport({ width: w, height: h, deviceScaleFactor: tag === 'phone' ? 2 : 1, isMobile: tag === 'phone', hasTouch: tag === 'phone' });
     await p.goto(`http://localhost:${PORT}/admin?emu&slot=adm`);
     await p.waitForFunction(() => !!document.querySelector('.ad-dly-players, #ad-dly-stats p'), { timeout: 40000 });

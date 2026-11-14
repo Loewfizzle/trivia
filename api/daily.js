@@ -41,7 +41,7 @@ import { ref, val } from './_lib/fb.js';
 import { pidOf } from './_lib/profiles.js';
 import { bumpOwners } from './_lib/owners.js';
 import { take } from './_lib/limit.js';
-import { dailySeed, openDailies, pickDay } from './_lib/dailies.js';
+import { dailySeed, openDailies, pickDay, liveFor } from './_lib/dailies.js';
 import { roomStarted, midDaily } from './_lib/daily-room.js';
 import { closeDays, recloseDay, sweepRuns } from './_lib/daily-close.js';
 import { dailyOf, bucketOf, standing, todayView, todaysDailies, dailyRow, BAND_MIN } from '../js/core/daily.js';
@@ -397,7 +397,9 @@ async function finishRun({ pid, cart, day, now, today = streakDay(now), result =
   let res = null;
   // (PW2 — a judged daily's FLAGS come from the server's own record, never the phone: THE PASSWORD's crack / safe → KEYHOLE / SAFECRACKER)
   const flags = counts && cart.judged && cart.flags ? cart.flags({ record, day, startedAt, data }) : null;
-  const live = todaysDailies();
+  // (THE DROP B — THE SCHEDULED GO-LIVE: THE SWEEP / the XP cap read the set of the RUN's day — a run that crossed 4 am into a go-live day
+  //  keeps its own day's set, and a day before a go-live is swept with the dailies it had)
+  const live = liveFor(day);
   // BOARD 2.0 A — DAILY POINTS from the KEPT score (the server's own — never the phone's claim), a COUNTED result only
   const points = counts ? dailyPoints(cart.id, kept) : null;
   let cur0 = null;

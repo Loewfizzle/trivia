@@ -137,6 +137,9 @@ function shell() {
       h('p.ad-dim', 'THE GO-LIVE SWITCH turns every daily on or off for everyone, at once (any time). RESEED gives the dailies a fresh secret from the next 4 am Eastern — run it when the repo goes private (preview first; today’s run and every past result stay as they are).'),
       h('div.ad-row', { id: 'ad-dly-row' }, h('span.ad-dim', 'Loading…')),
       h('div.ad-dly-out', { id: 'ad-dly-out' }),
+      // THE DROP B — THE SCHEDULED GO-LIVE: one row per daily — LIVE / LIVE FROM <date> 4 AM (+ CANCEL) / OFF (+ GO LIVE AT THE NEXT 4 AM)
+      h('p.ad-dim', 'GO LIVE AT THE NEXT 4 AM (per daily, any time): the daily turns on by itself at the next 4 am Eastern turn — never mid-day. CANCEL works until then. From that day THE SWEEP and PERFECT WEEK need it too. (Only while the switch above is ON.)'),
+      h('div.ad-dly-golive', { id: 'ad-dly-golive' }),
       // DFIX3 — THE STATS (started / finished per daily, today + 7 days) + TODAY'S PLAYERS (ADD FRIEND = the ordinary friend request)
       h('div.ad-dly-stats', { id: 'ad-dly-stats' }, h('p.ad-dim', 'Loading…'))),
     // PROGRESSION A — THE OUTAGE BUTTON: a day the site was down breaks nobody's streak (audited; the streak day turns at 4 am Eastern)
@@ -572,7 +575,26 @@ async function dailies(st) {
         out.replaceChildren(h('p.ad-dim', r.dryRun ? 'THE PLAN (nothing written yet):' : 'Nothing to do:'), lines(r),
           r.dryRun ? confirmBtn('RESEED NOW', async () => { const x = (await call('dailyReseed', { confirm: true })).reseed; out.replaceChildren(h('p.ad-dim', x.changed ? `DONE — the new days start ${x.from} at 4 am Eastern (today untouched).` : 'Nothing changed.'), lines(x)); toast(x.changed ? 'Reseeded' : 'Nothing changed'); audit(); }, 'is-danger') : null);
       } }));
+    goLiveRows(st);
   } catch (e) { row.replaceChildren(h('span.ad-dim', `Couldn’t load (${e.message || e})`)); }
+}
+/** THE DROP B — "SUN NOV 15" from a day key (its own calendar day — never the admin's zone) */
+const dayLabel = dk => { const m = /^d(\d{4})(\d{2})(\d{2})$/.exec(String(dk || '')); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }).replace(',', '').toUpperCase() : String(dk || ''); };
+/** THE DROP B — THE SCHEDULED GO-LIVE's rows: each daily's state + its one action (a confirm tap — TAP AGAIN TO CONFIRM) */
+function goLiveRows(st) {
+  const box = document.getElementById('ad-dly-golive');
+  if (!box || !st || !Array.isArray(st.rows)) return;
+  const act = async (game, cancel) => {
+    const r = await call('dailySchedule', { game, ...(cancel ? { cancel: true } : {}) });
+    const row = (r.dailies.rows || []).find(x => x.id === game) || {};
+    toast(cancel ? `${row.name || game}: the go-live is cancelled` : `${row.name || game} goes LIVE ${dayLabel(row.from)} at 4 am`);
+    dailies(r.dailies); audit();
+  };
+  box.replaceChildren(...st.rows.map(r => h('div.ad-row.ad-dly-live', { dataset: { id: r.id, state: r.state } },
+    h('b.ad-dly-state', `${r.name}: ${r.state === 'live' ? 'LIVE' : r.state === 'scheduled' ? `LIVE FROM ${dayLabel(r.from)} 4 AM` : 'OFF'}`),
+    r.state === 'off' ? confirmBtn('GO LIVE AT THE NEXT 4 AM', () => act(r.id, false), 'is-primary') : null,
+    r.state === 'scheduled' ? confirmBtn('CANCEL', () => act(r.id, true)) : null,
+    h('span.ad-dim', r.always ? 'always in the set' : r.state === 'off' ? `would open ${dayLabel(st.next)} at 4 am` : r.state === 'scheduled' ? 'opens by itself — no deploy needed' : `live since ${dayLabel(r.from)}`))));
 }
 async function outages(r) {
   const row = document.getElementById('ad-outage-row');
