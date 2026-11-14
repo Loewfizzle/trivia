@@ -28,7 +28,9 @@
 //   bands     a junk glitch draws digital colour bands · pulse — a big clear pulses the board (CSS)
 //   — THE SCENE
 //   world     'shader' (the WebGL world behind the board) | 'page' (page.js — the skin's `page` painter fills the screen; no shader work)
-//   page      { id, ok, key, files, paint } (page.js) | null · enter(o) — the skin shows: its own files load NOW, never before (o: { root, paper })
+//   page      { id, ok, key, files, paint } (page.js) | null · enter(o) — the skin shows: its own files load NOW, never before (o: { root, paper,
+//             sky — the view's EMPTY layer above the page, under the board: a skin puts what MOVES behind its board there (a few DOM pieces
+//             moved by CSS on the compositor); the view empties it when another skin shows })
 //   idle(o)   → [stage] the art worth warming in idle slices while ANOTHER look shows (a live switch then only composites) — optional
 //   warm(px, ms) → true once every block of a size is drawn · drop() · count() — the sprite cache (dropped a minute after the match's screen)
 //   holiday   takes the holiday hook's overrides (holiday.js — crayon + neon only)
@@ -37,7 +39,7 @@
 // phoneOf(settings) — and the COUNTER's own maths in skin-deal.js (a leaf the cartridge's index.js takes without the art): skinK(game) ·
 // dealSkin(seed, used) (the HOST's counter, from the night's memory) · soloSkin(cur) + dropSkin(settings, day) (the PLAYER's own counter)
 import { W, VISIBLE } from './engine.js';
-import { JEWEL, rgba, mix, lightIncoming, sketchIncoming } from './skin-kit.js';
+import { JEWEL, INCOMING, rgba, mix, lightIncoming, sketchIncoming } from './skin-kit.js';
 import { neonPalette } from './neon.js';
 import { CRAYON, CRAYON_LINE, GRAPHITE } from './crayon.js';
 import { crayonSprite, VARIANTS as CRAYON_VARIANTS, warmCrayon, clearCrayon, crayonCount, toothMaskURL, warmTooth } from './crayon-art.js';
@@ -50,6 +52,9 @@ import { createWaterFx } from './waterfx.js';
 import { WATER_PAGE, WATER_TEX, WATER_PAPER, PAPER_PAGE, KRAFT_TEX, SHEET } from './skin-pages.js';
 import { CUT, CARD, CUT_LINE, VARIANTS as PAPER_VARIANTS, paperSprite, warmPaper, clearPaper, paperCount } from './paper-art.js';
 import { createPaperFx } from './paperfx.js';
+import { PIXEL, VARIANTS as PIXEL_VARIANTS, GRID as PIXEL_GRID, pixelSprite, warmPixel, clearPixel, pixelCount, loadPixelFont, lightOf as pixelLight, darkOf as pixelDark } from './pixel-art.js';
+import { createPixelFx } from './pixelfx.js';
+import { PIXEL_PAGE, pixelSky } from './night-pages.js';
 import { skinK } from './skin-deal.js';
 export { skinK, dealSkin, soloSkin, dropSkin, SK_START } from './skin-deal.js';
 
@@ -247,6 +252,52 @@ const neon = {
   warm: () => true, drop: clearNeon, count: neonCount,
 };
 
+// ================================================================ ARCADE PIXEL (night — SKINS 2B: chunky 8 × 8 pixel blocks, crisp — no bloom)
+const pixelUnit = px => Math.max(1, Math.round(px / PIXEL_GRID));
+const pixel = {
+  id: 'pixel', name: 'ARCADE PIXEL', line: 'Chunky 8-bit pixels', look: 'night', unlock: null, family: 'neon', holiday: false,
+  tokens: { ink: '#ffffff', sub: '#b8f1ff', panel: '#050716', line: '#35e6ff' },
+  lettering: 'pixel', sounds: {},
+  variants: PIXEL_VARIANTS,
+  sprite: (px, kind, t, v = 0) => pixelSprite(px, kind, t, v),
+  fallV: (n, i) => (n * 3 + i) % PIXEL_VARIANTS,
+  pieceV: (x, y, t) => (x + y * 3 + t) % PIXEL_VARIANTS,
+  env: () => null, glow: 0, pieceGlow: 0,   // (NO BLOOM on the blocks: crisp is the look)
+  /** the well's guide: one cyan PIXEL at each crossing (a block's own pixel size, on whole device pixels) — nothing ruled */
+  grid(g, { px }) {
+    const u = pixelUnit(px);
+    g.fillStyle = 'rgba(53, 230, 255, 0.2)';
+    for (let x = 1; x < W; x++) for (let y = 1; y < VISIBLE; y++) g.fillRect(x * px - (u >> 1), y * px - (u >> 1), u, u);
+  },
+  // the INCOMING rows: GREY PIXEL BLOCKS with a RED PIXEL EDGE (a dithered grey — never a piece), the leading edge a dotted red pixel line
+  incoming: sketchIncoming({
+    spr: (px, hot) => pixelSprite(px, hot ? 'ihot' : 'incoming', 0), ink: INCOMING, marks: false,
+    edge(ctx, yTop, px) {
+      const u = pixelUnit(px), y = Math.round(yTop) - u;
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ff6f8d';
+      for (let x = 0; x < W * px; x += u * 2) ctx.fillRect(x, y, u, u);
+    },
+  }),
+  /** a big mini draws the real pixel blocks; a small one the piece's colour with a bright top + left and a dark bottom + right pixel edge
+   *  (a KO'd board in flat grey) */
+  mini(ctx, { X, Y, s, px, t, ko, x, y }) {
+    if (px >= 18 && !ko) { ctx.drawImage(pixelSprite(px, 'block', t, (x * 7 + y * 13) % PIXEL_VARIANTS), X, Y); return; }
+    const c = ko ? '#4a4f5e' : PIXEL[t] || PIXEL[8], e = Math.max(1, Math.round(px / PIXEL_GRID));
+    ctx.fillStyle = c; ctx.fillRect(X, Y, s, s);
+    if (s > 3 * e && !ko) {
+      ctx.fillStyle = pixelLight(c); ctx.fillRect(X, Y, s - e, e); ctx.fillRect(X, Y, e, s - e);
+      ctx.fillStyle = pixelDark(c); ctx.fillRect(X + e, Y + s - e, s - e, e); ctx.fillRect(X + s - e, Y + e, e, s - e);
+    }
+  },
+  shard: t => PIXEL[t] || PIXEL[8], crumbs: true,   // (a top-out breaks into flat bits, not shards of light)
+  fx: () => createPixelFx(), light: false, flash: false, bands: true, pulse: false,
+  world: 'page', page: PIXEL_PAGE,
+  /** its lettering (Press Start 2P, ~12 KB) — fetched only when the skin shows; its twinkling stars into the view's sky layer */
+  enter({ sky } = {}) { loadPixelFont(); pixelSky(sky); },
+  warm: (px, ms) => warmPixel(px, ms), drop: clearPixel, count: pixelCount,
+};
+
 // ================================================================ GLASS (the first look — retired by PD-4; in no pool, kept drawable)
 const glass = {
   id: 'glass', name: 'GLASS', line: 'Glass crystals', look: null, unlock: null, family: 'neon', holiday: false,
@@ -267,8 +318,8 @@ const glass = {
   warm: () => true, drop: clearGlass, count: glassCount,
 };
 
-// (the order = each pool's rotation: DAY crayon · watercolor · paper — NIGHT neon)
-export const SKINS = Object.freeze({ crayon: Object.freeze(crayon), watercolor: Object.freeze(watercolor), paper: Object.freeze(paper), neon: Object.freeze(neon), glass: Object.freeze(glass) });
+// (the order = each pool's rotation: DAY crayon · watercolor · paper — NIGHT neon · arcade pixel · galaxy)
+export const SKINS = Object.freeze({ crayon: Object.freeze(crayon), watercolor: Object.freeze(watercolor), paper: Object.freeze(paper), neon: Object.freeze(neon), pixel: Object.freeze(pixel), glass: Object.freeze(glass) });
 export const SKIN_IDS = Object.freeze(Object.keys(SKINS));
 /** every hook a skin must have (the contract — tests/prism-skins.test.mjs) */
 export const HOOKS = Object.freeze({

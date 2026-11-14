@@ -21,6 +21,9 @@
 .pd-world { z-index: 0; }
 /* (PD-4) THE PAGE (page.js — the day look's paper, its rulings, the world's doodle, the board's pencil frame): under everything, shown only by day */
 .pd-page { z-index: 0; display: none; }
+/* (SKINS 2B) THE SKY: an empty layer above the page, under the board — the shown skin's own moving pieces (skins.js enter({ sky }): a star field),
+   moved on the compositor (transform / opacity only). .pd[data-lite] (the lower tiers) + .pd[data-still] (reduced effects) stop them. */
+.pd-sky { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
 .pd-fx { z-index: 1; }
 /* (PD-3) THE LIGHT LAYER (light.js): above the board, under the overlays — pure added light (premultiplied: light + below × (1 − a)); hidden when idle */
 .pd-light { z-index: 3; }
@@ -821,6 +824,65 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd[data-skin='paper'] .pd-call-pick { border-radius: 1.5px; background: #fff; }
 
 body.pd-duel .pd-mode { letter-spacing: 0.2em; }
+
+/* ==================================================================================================================================
+   SKINS 2B — THE NIGHT SKINS that are PAGE skins (js/games/prism/skins.js: world 'page', family 'neon'): the page (page.js — the skin's own
+   painter) + the sky show; the WebGL world + the light layer do no work and are hidden.
+   ================================================================================================================================== */
+.pd:is([data-skin='pixel'], [data-skin='galaxy']) .pd-page { display: block; }
+.pd:is([data-skin='pixel'], [data-skin='galaxy']) :is(.pd-world, .pd-light) { visibility: hidden; }
+
+/* ---- ARCADE PIXEL: crisp everywhere — square corners, hard pixel borders, hard offset shadows (no blur, no glow), Press Start 2P ('PD
+   Pixel' — pixel-art.js#loadPixelFont, fetched only when the skin shows; the UI font until it is in). Readable ink: white / pale cyan on
+   near-black panels. ---- */
+.pd[data-skin='pixel'] { --pd-px: 'PD Pixel', var(--font-mono); --pd-cy: #35e6ff; background: #05060f; }
+.pd[data-skin='pixel'] .pd-page { image-rendering: pixelated; }
+/* the stars that twinkle: a hard two-step blink (opacity only) — off on the lower tiers + with reduced effects */
+.pd-tw { position: absolute; animation: pd-tw 2.4s steps(1, end) infinite; }
+@keyframes pd-tw { 0% { opacity: 1; } 55% { opacity: 0.15; } 80% { opacity: 0.6; } }
+.pd:is([data-lite], [data-still]) .pd-tw { animation: none; opacity: 0.7; }
+/* faint SCANLINES over the whole screen (static — one dark line in three, very low alpha: the lettering stays readable); the lower tiers drop them */
+.pd[data-skin='pixel']::after { content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, rgba(0, 0, 0, 0) 1px 3px); }
+.pd[data-skin='pixel'][data-lite]::after { display: none; }
+/* THE BOARD's frame: a crisp CYAN PIXEL BORDER (a hard dark step outside it — no glow), the well's wash is the page's */
+.pd[data-skin='pixel'] .pd-board-glass { inset: -4px; border-radius: 0; background: rgba(255, 63, 95, calc(var(--danger, 0) * 0.14)); border: 3px solid var(--pd-cy); box-shadow: 0 0 0 2px #063245, inset 0 0 0 1px #063245; }
+.pd[data-skin='pixel'] .pd-board-glass::before { display: none; }
+/* the panels: dark, a pixel border */
+.pd[data-skin='pixel'] .pd-corner { background: rgba(5, 7, 22, 0.86); border: 2px solid var(--pd-cy); border-radius: 0; box-shadow: 2px 2px 0 #021019; }
+.pd[data-skin='pixel'] .pd-corner small { font-family: var(--pd-px); font-size: 6px; line-height: 9px; letter-spacing: 0; color: #b8f1ff; text-shadow: none; }
+.pd[data-skin='pixel'] .pd-mode { font-family: var(--pd-px); font-weight: 400; font-size: 11px; letter-spacing: 0; color: #fff; text-shadow: 2px 2px 0 #0b4b63; }
+.pd[data-skin='pixel'] .pd-sub { color: #b8f1ff; }
+.pd[data-skin='pixel'] .pd-tile { background: #050716; border: 2px solid var(--c); border-radius: 0; box-shadow: 2px 2px 0 #02040c; }
+.pd[data-skin='pixel'] .pd-tile-fill { background: color-mix(in srgb, var(--c) 46%, #050716); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--c) 80%, #fff); }
+.pd[data-skin='pixel'] .pd-tile-ini { font-family: var(--pd-px); font-weight: 400; font-size: 10px; text-shadow: 1px 1px 0 #000; }
+.pd[data-skin='pixel'] .pd-tile.is-high { border-color: #ff4f74; box-shadow: 2px 2px 0 #3a0614; }
+.pd[data-skin='pixel'] .pd-tile.is-ko { box-shadow: none; }
+.pd[data-skin='pixel'] .pd-inc-tag { font-family: var(--pd-px); font-weight: 400; font-size: 7.5px; letter-spacing: 0; background: #1a0209; border: 2px solid #ff4f74; border-radius: 0; box-shadow: 2px 2px 0 #3a0614; text-shadow: none; }
+.pd[data-skin='pixel'] .pd-ann { border-radius: 0; }
+/* THE CALLOUTS: Press Start 2P, white with a hard pixel shadow in the kind's colour + a black edge (no glow) — one letter = one em wide */
+.pd[data-skin='pixel'] .pd-callout .pd-ann-in { font-family: var(--pd-px); font-weight: 400; font-size: 8.5px; line-height: 1.7; letter-spacing: 0; color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; --sh: #0e7f9c; }
+.pd[data-skin='pixel'] .pd-callout .pd-ann-in::first-line, .pd[data-skin='pixel'] .pd-callout .pd-ann-in:is(.is-good, .is-ko, .is-send, .is-big, .is-clear)::first-line {
+  font-size: min(22px, calc((100cqw - 24px) / (var(--len) * 1.04))); font-weight: 400; letter-spacing: 0; color: #fff;
+  text-shadow: 2px 2px 0 var(--sh), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 3px 3px 0 #000; }
+.pd[data-skin='pixel'] .pd-callout .pd-ann-in.is-good { --sh: #12803c; }
+.pd[data-skin='pixel'] .pd-callout .pd-ann-in.is-good.is-good::first-line { color: var(--good); }
+.pd[data-skin='pixel'] .pd-callout .pd-ann-in.is-ko { --sh: #a81f3f; }
+.pd[data-skin='pixel'] .pd-callout .pd-ann-in.is-ko.is-ko::first-line { color: #ffd2dc; }
+.pd[data-skin='pixel'] .pd-callout .pd-ann-in.is-send { --sh: #1f4fc4; }
+.pd[data-skin='pixel'] .pd-callout .pd-ann-in.is-send.is-send::first-line { color: #e2f6ff; }
+.pd[data-skin='pixel'] .pd-callout .pd-ann-in.is-big { --sh: #c22a6e; }
+.pd[data-skin='pixel'] .pd-callout .pd-ann-in.is-clear { --sh: #6a2fc0; }
+/* the cards over the board */
+.pd[data-skin='pixel'] :is(.pd-count-song, .pd-tip, .pd-call, .pd-spec-card, .pd-fs-moment) { border-radius: 0; border: 2px solid var(--pd-cy); box-shadow: 3px 3px 0 #021019; }
+.pd[data-skin='pixel'] .pd-count-song b { font-family: var(--pd-px); font-weight: 400; color: #fff; text-shadow: 2px 2px 0 #0b4b63; }
+.pd[data-skin='pixel'] .pd-count-n b { font-family: var(--pd-px); font-weight: 400; font-size: 64px; color: #fff; text-shadow: 5px 5px 0 #0e7f9c, 8px 8px 0 #000; }
+.pd[data-skin='pixel'] .pd-count-n b::before, .pd[data-skin='pixel'] .pd-count-n b::after { display: none; }
+.pd[data-skin='pixel'] .pd-ko { border: 3px solid #ff4f74; border-radius: 0; box-shadow: 4px 4px 0 #3a0614; }
+.pd[data-skin='pixel'] .pd-ko b { font-family: var(--pd-px); font-weight: 400; font-size: 44px; letter-spacing: 0; text-shadow: 4px 4px 0 #a81f3f; }
+.pd[data-skin='pixel'] .pd-title b { font-family: var(--pd-px); font-weight: 400; letter-spacing: 0; text-shadow: 3px 3px 0 #0e7f9c; }
+.pd[data-skin='pixel'] .pd-title b::before, .pd[data-skin='pixel'] .pd-title b::after { display: none; }
+.pd[data-skin='pixel'] :is(.pd-spec-frame, .pd-fs-frame) { border-radius: 0; box-shadow: 0 0 0 2px var(--pd-cy), 0 0 0 4px #063245; }
+.pd[data-skin='pixel'] .pd-slam-bezel { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1px rgba(0, 0, 0, 0.55); }
 
 @media (prefers-reduced-motion: reduce) {
   .pd-board.pd-pulse { animation: none; }

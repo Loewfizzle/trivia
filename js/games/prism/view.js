@@ -121,6 +121,7 @@ export function createView() {
   let lastSpec = null;
   let tierUpBlocked = -1;  // a tier that already failed this match is not retried
   let capProbe = null, capped = false;   // (FR7 FIXES A — PD6: a step down is a probe; a phone capped at 30 Hz is not a slow one)
+  let lastStill = null;                  // (SKINS 2B) reduced effects as the CSS last saw them (.pd[data-still])
   let descentFrom = null;                // (SKINS 2A — THE TIER STEP) the tier a day descent began at (its first, cheap step arms no probe)
   let goodSince = 0;
   const workTimes = [];      // CPU time per frame (dt alone can't show headroom on a 60 Hz screen)
@@ -229,7 +230,9 @@ export function createView() {
     els.overlay = h('div.pd-overlay');
     els.light = h('canvas.pd-light', { 'aria-hidden': 'true' });
     els.page = h('canvas.pd-page', { 'aria-hidden': 'true' });
-    root.append(els.page, els.world, els.fx, els.ui, els.light, els.overlay);
+    // (SKINS 2B) THE SKY: an empty layer above the page, under the board — the shown skin puts what MOVES behind its board there (its enter())
+    els.sky = h('div.pd-sky', { 'aria-hidden': 'true' });
+    root.append(els.page, els.sky, els.world, els.fx, els.ui, els.light, els.overlay);
     el.append(root);
     document.body.classList.add('pd-on');
 
@@ -813,6 +816,7 @@ export function createView() {
   }
   function setTier(t) {
     tier = Math.max(0, Math.min(TOP_TIER, t));
+    if (root) root.toggleAttribute('data-lite', tier <= LITE_TIER);   // (SKINS 2B: the CSS's cue — a skin's moving extras stop on the lower tiers FIRST)
     if (world) world.setTier(tier);
     if (board) board.setFxCap(tierOf(tier).sparks);
     if (fx) fx.setCap(tierOf(tier).shards);
@@ -924,6 +928,8 @@ export function createView() {
     if (fxs.waveT >= 0) { fxs.waveT += dt / 1500; if (fxs.waveT > 1) fxs.waveT = -1; }
     const wave = fxs.waveT >= 0 ? [-0.2 + fxs.waveT * 1.6, Math.sin(Math.PI * fxs.waveT), fxs.wave[2]] : [0, 0, 0];
     const danger = eng && !eng.over ? dangerOf() : 0;
+    const still = reduced();
+    if (still !== lastStill) { lastStill = still; root.toggleAttribute('data-still', still); }   // (SKINS 2B: reduced effects → the CSS stops a skin's sky)
     watchLook();
     if (world && skin.world === 'shader') {   // (a PAGE skin's world is the page — the shader's work skipped entirely)
       world.set({
@@ -975,7 +981,8 @@ export function createView() {
     root.dataset.skin = skin.id;
     applyTokens();
     if (light && !skin.light) { light.clear(); light.render(); }
-    skin.enter({ root, paper });   // (the skin's own files — papers, a font, a texture — fetched only when it shows)
+    if (els.sky) els.sky.replaceChildren();   // (another skin's sky goes at once)
+    skin.enter({ root, paper, sky: els.sky });   // (the skin's own files — papers, a font, a texture — fetched only when it shows; its sky's pieces)
     synth.setVoices(skin.sounds);
     if (board) board.setSkin(skin, pal);
     if (fx) fx.clear();

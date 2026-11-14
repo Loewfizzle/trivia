@@ -1,6 +1,6 @@
 // PRISM DROP preview screenshots + frame timing (no Firebase) — PD-1: prism-preview.html mounts the REAL view.
 //   node tests/integration/prism-shots.mjs "<browser path>" ./shots-prism [cpu throttle, default 1]
-//   env: SETS=look,states,worlds,pd6,skins,glance,skinsheet (default look,states)  NOSAFE=1 (no safe areas: Safari with its toolbars)  SIZES=390x844,402x874,430x932,1440x900  PERF=0 (skip the timing)  GPU=1  DSF=3
+//   env: SETS=look,states,worlds,pd6,skins,nskins,glance,nglance,skinsheet (default look,states)  NOSAFE=1 (no safe areas: Safari with its toolbars)  SIZES=390x844,402x874,430x932,1440x900  PERF=0 (skip the timing)  GPU=1  DSF=3
 //        WAIT=ms before a shot   Q="&extra=1" added to every preview URL   ONLY=name,name (shoot only those)
 // Needs scripts/serve.mjs running on :5173. Each phone size gets its real safe areas (iPhone 13/14 · 15/16 Pro · Pro Max).
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
@@ -19,6 +19,23 @@ const sets = (process.env.SETS || 'look,states').split(',');
 const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null;
 const EXTRA = process.env.Q || '';
 
+/** a skin's six frames (prism-preview.html?skin=<id>): mid-game, mid-clear (2 lines + 4 lines), with incoming rows, the podium, the settings sheet */
+function skinSet(ids) {
+  return Object.fromEntries(ids.flatMap(id => [
+    [`sk-${id}-play`, `skin=${id}&n=5&stack=12`],
+    [`sk-${id}-clear2`, { q: `skin=${id}&n=5&stack=12&under=1`, js: 'window.__prism.fire("clear", { lines: 2, from: 2 })', w: 230 }],
+    [`sk-${id}-clear4`, { q: `skin=${id}&n=5&stack=12&under=1&world=city`, js: 'window.__prism.fire("clear", { lines: 4, combo: 2 })', w: 250 }],
+    [`sk-${id}-inc`, `skin=${id}&n=5&stack=8&inc=4&rise=hot&world=crystal`],
+    // (SKINS 2B) the clear's first beat (the flash / the first frames of the burst), a single line, SLAM, a cancel, reduced effects
+    [`sk-${id}-flash`, { q: `skin=${id}&n=5&stack=12&under=1`, js: 'window.__prism.fire("clear", { lines: 1, from: 3 })', w: 40 }],
+    [`sk-${id}-clear1`, { q: `skin=${id}&n=5&stack=12&under=1`, js: 'window.__prism.fire("clear", { lines: 1, from: 3 })', w: 210 }],
+    [`sk-${id}-slam`, { q: `skin=${id}&n=5&stack=8`, js: 'window.__prism.fire("slam")', w: 50 }],
+    [`sk-${id}-cancel`, { q: `skin=${id}&n=5&stack=6&inc=6&rise=mid`, js: 'window.__prism.counter(4)', w: 150 }],
+    [`sk-${id}-reduced`, { q: `skin=${id}&n=5&stack=12&under=1&reduced=1`, js: 'window.__prism.fire("clear", { lines: 4 })', w: 60 }],
+    [`sk-${id}-final`, `skin=${id}&n=5&state=final&w=4600`],
+    [`sk-${id}-settings`, { q: `skin=${id}&n=5&stack=8&under=1`, js: "import('/js/ui/settings-panel.js').then(m => { m.installSettingsPanel(); document.querySelector('.gear').click(); setTimeout(() => { const el = document.querySelector('.set-skins'); if (el) el.scrollIntoView({ block: 'center' }); }, 700); })", w: 1900 }],
+  ]));
+}
 // name → preview query (every size)
 const SHOTS = {
   look: {
@@ -139,14 +156,9 @@ const SHOTS = {
   // SKINS 1 — THE NEW DAY SKINS (prism-preview.html?skin=<id>): each mid-game, mid-clear (a 2-line run / peel + a 4-line one), with incoming rows,
   // the podium + the settings sheet's SKINS rows; SIZES=390x650,402x690,430x746 NOSAFE=1 = Safari WITH its toolbars, the default sizes = a
   // home-screen app, SIZES=1440x900 = the desktop
-  skins: Object.fromEntries(['watercolor', 'paper'].flatMap(id => [
-    [`sk-${id}-play`, `skin=${id}&n=5&stack=12`],
-    [`sk-${id}-clear2`, { q: `skin=${id}&n=5&stack=12&under=1`, js: 'window.__prism.fire("clear", { lines: 2, from: 2 })', w: 230 }],
-    [`sk-${id}-clear4`, { q: `skin=${id}&n=5&stack=12&under=1&world=city`, js: 'window.__prism.fire("clear", { lines: 4, combo: 2 })', w: 250 }],
-    [`sk-${id}-inc`, `skin=${id}&n=5&stack=8&inc=4&rise=hot&world=crystal`],
-    [`sk-${id}-final`, `skin=${id}&n=5&state=final&w=4600`],
-    [`sk-${id}-settings`, { q: `skin=${id}&n=5&stack=8&under=1`, js: "import('/js/ui/settings-panel.js').then(m => { m.installSettingsPanel(); document.querySelector('.gear').click(); setTimeout(() => { const el = document.querySelector('.set-skins'); if (el) el.scrollIntoView({ block: 'center' }); }, 700); })", w: 1900 }],
-  ])),
+  skins: skinSet(['watercolor', 'paper']),
+  // SKINS 2B — THE NEW NIGHT SKINS (the same six frames each: mid-game, a 2-line + a 4-line clear, incoming rows, the podium, the settings sheet)
+  nskins: skinSet(['pixel', 'galaxy']),
   // SKINS 2A — THE GLANCE TEST (prism-glance.html: crayon · watercolor · paper side by side, the same day board mid-game, each a phone wide —
   // the shot is 3 phones + the gaps wide, at DSF; GLANCE_DSF=1 = the size a hand holds it at) + each day skin's sprite sheet
   glance: {
