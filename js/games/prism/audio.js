@@ -254,9 +254,17 @@ let CHAIN = null;   // { ctx, bus, dry, verb }
 // own gain — quiet under the song). THE FALLBACK IS THE CODE-MADE VOICE: a file that is missing, still loading or will not decode = the
 // synth's plip / swish / tap / rip plays, exactly as before — audio is polish, never a dependency.
 export const SFX_DIR = new URL('../../../audio/sfx/prism/', import.meta.url).href;
-/** how loud a file plays, by the voice it replaces (the file's peak is −8 dBFS ≈ 0.4: × 0.14 ≈ the plip's 0.05) — a clear grows a little
- *  with its lines, as the code-made one does */
-export const SAMPLE_GAIN = Object.freeze({ plip: () => 0.14, tap: () => 0.18, swish: l => 0.11 + 0.02 * Math.min(4, l || 1), rip: l => 0.14 + 0.02 * Math.min(4, l || 1) });
+/** how loud a file plays, by the voice it replaces — LEVELLED IN THE GAME (the owner's add-on, Nov 14): each skin's lock + clear measured on
+ *  the SFX bus in the real view (tests/integration/prism-sfx-level.mjs — K-weighted, the loudest 400 ms) and set so they sit LEVEL WITH THE
+ *  OTHER SKINS' (the crayon's / the neon's code-made lock + clear at 1, 2 and 4 lines) and under the song. As recorded, paper's clear sat
+ *  1.6 – 3.2 dB under the others and watercolor's lock 2 dB under — hence these. A clear grows with its lines, as the code-made one does.
+ *  NOTE_GAIN = the clear's own notes under a file. (A machine's balance — the owner's ear is the last word: these are the numbers to move.) */
+export const SAMPLE_GAIN = Object.freeze({ plip: () => 0.176, tap: () => 0.18, swish: l => 0.09 + 0.035 * Math.min(4, l || 1), rip: l => 0.15 + 0.04 * Math.min(4, l || 1) });
+export const NOTE_GAIN = Object.freeze({ swish: 0.058, rip: 0.05 });
+/** a 4-line clear's run of notes under a file is lifted this much (the other skins' 4-line run is the loudest thing they play) */
+export const RUN_LIFT = 2;
+/** a lock's file: its pitch varies ± this much each play (3 %) */
+export const LOCK_PITCH = 0.03;
 const sampleBytes = new Map();   // file → Promise<ArrayBuffer | null> (the page's — fetched once)
 const fetchSample = file => {
   if (!sampleBytes.has(file)) sampleBytes.set(file, fetch(`${SFX_DIR}${file}.mp3`).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null));
@@ -323,10 +331,11 @@ export function createSynth() {
       .then(b => { if (bufCtx === c) bufs.set(f, b || null); }, () => { if (bufCtx === c) bufs.set(f, null); }));
     return null;
   }
-  /** a decoded file through the synth's chain (the SFX bus, a little of the shared reverb) */
-  function playBuf(buf, at, gain, rev = 0) {
+  /** a decoded file through the synth's chain (the SFX bus, a little of the shared reverb); rate = its pitch (1 = as recorded) */
+  function playBuf(buf, at, gain, rev = 0, rate = 1) {
     const src = ctx.createBufferSource(), g = ctx.createGain();
     src.buffer = buf;
+    src.playbackRate.value = rate;
     g.gain.value = gain;
     src.connect(g);
     out(g, rev);
@@ -486,7 +495,10 @@ export function createSynth() {
     return { at: Math.max(now + 0.005, c.atCtx(tNext)), step, songAt: tNext };
   }
 
-  const record = (name, notes, songAt, voice, file) => { log.push({ name, notes, songAt, key: tonic, mode, ...(voice ? { voice } : {}), ...(file ? { file } : {}) }); if (log.length > 400) log.shift(); };
+  const record = (name, notes, songAt, voice, file, rate) => { log.push({ name, notes, songAt, key: tonic, mode, ...(voice ? { voice } : {}), ...(file ? { file } : {}), ...(file && rate ? { rate } : {}) }); if (log.length > 400) log.shift(); };
+  /** (the owner's add-on, Nov 14) a LOCK's file plays a little higher or lower each time — ± LOCK_PITCH (3 %) at random: a sound heard many
+   *  times a minute never repeats exactly (a one-shot effect's own pitch — never a song's) */
+  const lockRate = () => 1 + (Math.random() * 2 - 1) * LOCK_PITCH;
 
   const SOUNDS = {
     move() {
@@ -629,10 +641,10 @@ export function createSynth() {
     // only the VOICE changes. The slam's thud is never swapped. Logged under the name the game played ('lock' / 'clear') + the voice.
     /** WATERCOLOR's lock: a soft wet PLIP — a drop's quick upward chirp on the tonic */
     plip() {
-      const m = note(0, 5), b = sample('lock');
-      if (b) playBuf(b, ctx.currentTime + 0.002, SAMPLE_GAIN.plip());   // (SKINS 2A: the sourced water drop — else the code-made chirp)
+      const m = note(0, 5), b = sample('lock'), rate = lockRate();
+      if (b) playBuf(b, ctx.currentTime + 0.002, SAMPLE_GAIN.plip(), 0, rate);   // (SKINS 2A: the sourced water drop — else the code-made chirp)
       else drip(m, ctx.currentTime + 0.002, { gain: 0.05, dur: 0.1 });
-      record('lock', [m], undefined, 'plip', b ? files.lock : null);
+      record('lock', [m], undefined, 'plip', b ? files.lock : null, rate);
     },
     /** WATERCOLOR's clear: a brush SWISH (soft noise swept up + back) + a tiny DRIP on each of the clear's notes */
     swish({ lines = 1, combo = 0 } = {}) {
@@ -643,7 +655,7 @@ export function createSynth() {
       const b = sample('clear');
       if (b) playBuf(b, q.at, SAMPLE_GAIN.swish(lines), 0.15);
       else brush(q.at, { gain: 0.035 + 0.008 * Math.min(4, lines), dur: 0.26 + 0.04 * Math.min(4, lines), lo: 700, hi: 3200 });
-      notes.forEach((m, i) => drip(m, q.at + 0.05 + i * q.step, { gain: b ? 0.045 : 0.07, dur: 0.2, rev: 0.3 }));
+      notes.forEach((m, i) => drip(m, q.at + 0.05 + i * q.step, { gain: b ? NOTE_GAIN.swish * (lines >= 4 ? RUN_LIFT : 1) : 0.07, dur: 0.2, rev: 0.3 }));
       if (lines >= 4) {
         const top = q.at + notes.length * q.step, base = 2 + Math.min(10, Math.max(0, combo));
         [7, 9, 11, 14].forEach((d, i) => bell(note(base + d, 5), top + i * 0.035, { gain: 0.028, dur: 1.6, rev: 0.7 }));
@@ -652,13 +664,13 @@ export function createSynth() {
     },
     /** PAPER CUT-OUT's lock: a papery TAP — a short dry tick of filtered noise + a muted tonic knock */
     tap() {
-      const at = ctx.currentTime + 0.002, m = note(0, 4), b = sample('lock');
-      if (b) playBuf(b, at, SAMPLE_GAIN.tap());   // (SKINS 2A: the sourced paper rustle + its thup — else the code-made tick + knock)
+      const at = ctx.currentTime + 0.002, m = note(0, 4), b = sample('lock'), rate = lockRate();
+      if (b) playBuf(b, at, SAMPLE_GAIN.tap(), 0, rate);   // (SKINS 2A: the sourced paper rustle + its thup — else the code-made tick + knock)
       else {
         noise(at, { gain: 0.045, dur: 0.035, from: 3800, to: 1600, q: 1.4 });
         pluck(m, at, { gain: 0.035, dur: 0.05, bright: 700, rev: 0.04 });
       }
-      record('lock', [m], undefined, 'tap', b ? files.lock : null);
+      record('lock', [m], undefined, 'tap', b ? files.lock : null, rate);
     },
     /** PAPER CUT-OUT's clear: a short RIP (a crackle of noise torn upward) + a soft WHOOSH as the strip flies off, the clear's notes muted under it */
     rip({ lines = 1, combo = 0 } = {}) {
@@ -671,7 +683,7 @@ export function createSynth() {
         tear(q.at, { gain: 0.05 + 0.008 * Math.min(4, lines), dur: 0.13 + 0.02 * Math.min(4, lines) });
         brush(q.at + 0.1, { gain: 0.03, dur: 0.3, lo: 500, hi: 1800 });
       }
-      notes.forEach((m, i) => pluck(m, q.at + i * q.step, { gain: b ? 0.035 : 0.05, dur: 0.16, bright: 1500, rev: 0.2 }));
+      notes.forEach((m, i) => pluck(m, q.at + i * q.step, { gain: b ? NOTE_GAIN.rip * (lines >= 4 ? RUN_LIFT : 1) : 0.05, dur: 0.16, bright: 1500, rev: 0.2 }));
       if (lines >= 4) {
         const top = q.at + notes.length * q.step, base = 2 + Math.min(10, Math.max(0, combo));
         [7, 9, 11, 14].forEach((d, i) => bell(note(base + d, 5), top + i * 0.035, { gain: 0.026, dur: 1.5, rev: 0.65 }));

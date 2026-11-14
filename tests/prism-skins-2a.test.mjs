@@ -106,9 +106,33 @@ test("THE SKINS' SOURCED SOUNDS: only a skin's own files, each ≤ 30 KB + in CR
   }
   const A = await import('../js/games/prism/skins.js').catch(() => null);   // (the registry imports DOM-free)
   if (A) { const { soundFiles } = { soundFiles: s => (s && s.files ? [...new Set(Object.values(s.files))] : []) }; assert.deepEqual(soundFiles(A.SKINS.watercolor.sounds), ['watercolor-lock', 'watercolor-clear']); assert.deepEqual(soundFiles(A.SKINS.crayon.sounds), []); }
-  // the levels: a file's peak is −8 dBFS (≈ 0.4) — × its gain it lands near the code-made voice's own gain (0.05 – 0.09), never louder than 0.1
-  const g = /export const SAMPLE_GAIN = Object\.freeze\(\{ plip: \(\) => (0\.\d+), tap: \(\) => (0\.\d+), swish: l => (0\.\d+) \+ (0\.\d+) \* Math\.min\(4, l \|\| 1\), rip: l => (0\.\d+) \+ (0\.\d+) \* Math\.min\(4, l \|\| 1\) \}\);/.exec(audio);
-  assert.ok(g, 'SAMPLE_GAIN');
-  const peak = 0.4, [plip, tap, sw0, sw1, rp0, rp1] = g.slice(1).map(Number);
-  for (const [n, v] of [['plip', plip], ['tap', tap], ['swish × 4 lines', sw0 + 4 * sw1], ['rip × 4 lines', rp0 + 4 * rp1]]) assert.ok(v * peak >= 0.04 && v * peak <= 0.1, `${n}: ${(v * peak).toFixed(3)} — quiet under the song`);
+  // THE LEVELS (the owner's add-on — levelled in the game: tests/integration/prism-sfx-level.mjs measured each skin's lock + clear on the SFX
+  // bus against the crayon's / the neon's): a file's peak is −8 dBFS (≈ 0.4) — × its gain it stays a quiet effect (a lock ≤ 0.08 of full
+  // scale, the biggest clear ≤ 0.13), a clear grows with its lines, and paper's clear is LIFTED over watercolor's (as recorded it sat under)
+  // (audio.js needs a page to load — the constants are read from its source and evaluated here, so these pins always run)
+  const konst = name => { const m = new RegExp(`export const ${name} = ([^;]+);`).exec(audio); assert.ok(m, `audio.js exports ${name}`); return new Function(`return ${m[1]};`)(); };
+  const SAMPLE_GAIN = konst('SAMPLE_GAIN'), NOTE_GAIN = konst('NOTE_GAIN'), RUN_LIFT = konst('RUN_LIFT'), LOCK_PITCH = konst('LOCK_PITCH');
+  {
+    const peak = 0.4;
+    for (const v of ['plip', 'tap']) assert.ok(SAMPLE_GAIN[v]() * peak >= 0.04 && SAMPLE_GAIN[v]() * peak <= 0.08, `${v}: ${(SAMPLE_GAIN[v]() * peak).toFixed(3)}`);
+    for (const v of ['swish', 'rip']) {
+      assert.ok(SAMPLE_GAIN[v](1) * peak >= 0.04 && SAMPLE_GAIN[v](4) * peak <= 0.13, `${v}: ${(SAMPLE_GAIN[v](1) * peak).toFixed(3)} – ${(SAMPLE_GAIN[v](4) * peak).toFixed(3)} — quiet under the song`);
+      assert.ok(SAMPLE_GAIN[v](1) < SAMPLE_GAIN[v](2) && SAMPLE_GAIN[v](2) < SAMPLE_GAIN[v](4) && SAMPLE_GAIN[v](9) === SAMPLE_GAIN[v](4), `${v}: a clear grows with its lines (to 4)`);
+      assert.ok(NOTE_GAIN[v] > 0.03 && NOTE_GAIN[v] <= 0.07, `${v}: the clear keeps its own notes under the file`);
+    }
+    for (const l of [1, 2, 4]) assert.ok(SAMPLE_GAIN.rip(l) > SAMPLE_GAIN.swish(l), `paper's clear is lifted over watercolor's at ${l} line(s)`);
+    assert.ok(RUN_LIFT >= 1 && RUN_LIFT <= 2.5);
+    // THE LOCK's PITCH: ± 3 % at random each play — on the file's own source node (a one-shot effect; never a song)
+    assert.equal(LOCK_PITCH, 0.03);
+  }
+  assert.match(audio, /const lockRate = \(\) => 1 \+ \(Math\.random\(\) \* 2 - 1\) \* LOCK_PITCH;/);
+  assert.equal((audio.match(/rate = lockRate\(\)/g) || []).length, 2, 'the two lock voices (plip · tap) — a clear keeps its pitch');
+  assert.match(audio, /src\.playbackRate\.value = rate;/);
+  // the credits: the sourced parts CC0, the other layers "generated (Grok)" (the owner checked Grok's terms); a -b backup only if its pick fails
+  for (const f of ['watercolor-clear.mp3', 'paper-lock.mp3', 'paper-clear.mp3']) assert.ok((credits.split('\n').find(l => l.startsWith(`- \`${f}\` — `)) || '').includes('generated (Grok)'), `${f}: its generated layer is credited "generated (Grok)"`);
+  assert.ok(!(credits.split('\n').find(l => l.startsWith('- `watercolor-lock.mp3`')) || '').includes('generated'), 'watercolor-lock is all sourced');
+  assert.ok(!credits.includes('THE BACKUP'), 'every pick imported — no backup in use');
+  const script = read('scripts/build-prism-skin-sfx.py');
+  for (const b of ['watercolor-lock-b.wav', 'paper-lock-b.wav', 'paper-clear-b.wav']) assert.ok(script.includes(`'${b}'`), `${b} is the pick's backup`);
+  assert.ok(script.includes("ALLOWED = ('CC0 1.0', 'CC BY 4.0', 'CC BY 3.0', 'generated (Grok)')"));
 });

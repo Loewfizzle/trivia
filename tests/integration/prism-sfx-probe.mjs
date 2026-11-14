@@ -31,7 +31,7 @@ async function run(skin, block) {
     const n0 = window.__prism.synthLog().length;
     window.__prism.sound('lock'); window.__prism.sound('clear', { lines: 2, combo: 1 });
     await new Promise(r => setTimeout(r, 300));
-    return window.__prism.synthLog().slice(n0).map(x => ({ name: x.name, voice: x.voice || null, file: x.file || null, notes: x.notes.length }));
+    return window.__prism.synthLog().slice(n0).map(x => ({ name: x.name, voice: x.voice || null, file: x.file || null, rate: x.rate == null ? null : x.rate, notes: x.notes.length }));
   });
   const tag = `${skin}${block ? ' (its files BLOCKED)' : ''}`;
   ok(JSON.stringify([...new Set(got)].sort()) === JSON.stringify(want), `${tag}: fetched only its own files (${[...new Set(got)].sort().join(', ') || 'none'})`);
@@ -40,6 +40,16 @@ async function run(skin, block) {
   if (want.length && !block) {
     ok(ready.length === 2, `${tag}: both files decoded (${ready})`);
     ok(lock && lock.file === `${skin}-lock` && clear && clear.file === `${skin}-clear`, `${tag}: the FILES played (lock ${lock && lock.file}, clear ${clear && clear.file}); the clear kept its ${clear && clear.notes} notes`);
+    // (the owner's add-on) THE LOCK's PITCH: ± 3 % at random each play — 12 locks: every rate inside 0.97 – 1.03, and they differ
+    const rates = await page.evaluate(async () => {
+      const n0 = window.__prism.synthLog().length;
+      for (let i = 0; i < 12; i++) { window.__prism.sound('lock'); await new Promise(r => setTimeout(r, 40)); }
+      return window.__prism.synthLog().slice(n0).filter(x => x.name === 'lock').map(x => x.rate);
+    });
+    const lo = Math.min(...rates), hi = Math.max(...rates);
+    ok(rates.length === 12 && rates.every(r => typeof r === 'number') && lo >= 0.97 && hi <= 1.03 && hi - lo > 0.005 && new Set(rates.map(r => r.toFixed(4))).size >= 6,
+      `${tag}: a lock's pitch varies ± 3 % a play (${rates.length} plays: ${lo.toFixed(3)} – ${hi.toFixed(3)})`);
+    ok(clear && clear.rate == null, `${tag}: a clear keeps its pitch`);
   } else {
     ok(ready.length === 0 && lock && !lock.file && clear && !clear.file, `${tag}: the code-made ${lock && lock.voice ? `voices (${lock.voice} · ${clear.voice})` : 'synth'} played — no file`);
   }
