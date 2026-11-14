@@ -259,8 +259,12 @@ export const SFX_DIR = new URL('../../../audio/sfx/prism/', import.meta.url).hre
  *  OTHER SKINS' (the crayon's / the neon's code-made lock + clear at 1, 2 and 4 lines) and under the song. As recorded, paper's clear sat
  *  1.6 – 3.2 dB under the others and watercolor's lock 2 dB under — hence these. A clear grows with its lines, as the code-made one does.
  *  NOTE_GAIN = the clear's own notes under a file. (A machine's balance — the owner's ear is the last word: these are the numbers to move.) */
-export const SAMPLE_GAIN = Object.freeze({ plip: () => 0.176, tap: () => 0.18, swish: l => 0.09 + 0.035 * Math.min(4, l || 1), rip: l => 0.15 + 0.04 * Math.min(4, l || 1) });
-export const NOTE_GAIN = Object.freeze({ swish: 0.058, rip: 0.05 });
+export const SAMPLE_GAIN = Object.freeze({ plip: () => 0.176, tap: () => 0.18, swish: l => 0.09 + 0.035 * Math.min(4, l || 1), rip: l => 0.15 + 0.04 * Math.min(4, l || 1),
+  // (SKINS 2B — the NIGHT skins' files, levelled the same way — the pixel's dense 8-bit blip + sting sit far under their −8 dBFS peak, the
+  //  galaxy's chime + stardust whoosh are airy. Measured: locks −50.2 / −50.1 beside the neon's −50.2 · clears × 1 / 2 / 4 −43.7 / −40.2 /
+  //  −35.2 (pixel) and −44.4 / −41.7 / −35.2 (galaxy) beside −44.2 / −41.0 / −35.0 — the song −34.3)
+  blip: () => 0.076, chime: () => 0.1, chip: l => 0.03 + 0.03 * Math.min(4, l || 1), dust: l => [0.096, 0.096, 0.132, 0.146, 0.16][Math.max(0, Math.min(4, Math.round(l || 1)))] });
+export const NOTE_GAIN = Object.freeze({ swish: 0.058, rip: 0.05, chip: 0.028, dust: 0.03 });
 /** a 4-line clear's run of notes under a file is lifted this much (the other skins' 4-line run is the loudest thing they play) */
 export const RUN_LIFT = 2;
 /** a lock's file: its pitch varies ± this much each play (3 %) */
@@ -689,6 +693,48 @@ export function createSynth() {
         [7, 9, 11, 14].forEach((d, i) => bell(note(base + d, 5), top + i * 0.035, { gain: 0.026, dur: 1.5, rev: 0.65 }));
       }
       record('clear', notes, q.songAt, 'rip', b ? files.clear : null);
+    },
+    // ---- SKINS 2B — the NIGHT skins' voices (the same rules: the song's key, the clears on its 16ths, a file when the skin's is in — else code-made)
+    /** ARCADE PIXEL's lock: an 8-bit BLIP — the sourced chip blip, else a short square tick on the tonic */
+    blip() {
+      const at = ctx.currentTime + 0.002, m = note(0, 5), b = sample('lock'), rate = lockRate();
+      if (b) playBuf(b, at, SAMPLE_GAIN.blip(), 0, rate);
+      else pluck(m, at, { gain: 0.06, dur: 0.05, bright: 5200, rev: 0, type: 'square' });
+      record('lock', [m], undefined, 'blip', b ? files.lock : null, rate);
+    },
+    /** ARCADE PIXEL's clear: the sourced 8-bit rising STING under the clear's own notes as square chips (code-made: the chips alone, a touch louder) */
+    chip({ lines = 1, combo = 0 } = {}) {
+      const q = q16();
+      const notes = clearNotes(lines, combo);
+      const b = sample('clear');
+      if (b) playBuf(b, q.at, SAMPLE_GAIN.chip(lines), 0);
+      notes.forEach((m, i) => pluck(m, q.at + i * q.step, { gain: b ? NOTE_GAIN.chip * (lines >= 4 ? RUN_LIFT : 1) : 0.085, dur: 0.11, bright: 5200, rev: 0.05, type: 'square' }));
+      if (lines >= 4) {
+        const top = q.at + notes.length * q.step, base = 2 + Math.min(10, Math.max(0, combo));
+        [7, 9, 11, 14].forEach((d, i) => pluck(note(base + d, 5), top + i * 0.035, { gain: b ? 0.02 : 0.04, dur: 0.2, bright: 5200, rev: 0.1, type: 'square' }));
+      }
+      record('clear', notes, q.songAt, 'chip', b ? files.clear : null);
+    },
+    /** GALAXY's lock: a STAR CHIME — the sourced chime, else a small high bell on the tonic */
+    chime() {
+      const at = ctx.currentTime + 0.002, m = note(0, 6), b = sample('lock'), rate = lockRate();
+      if (b) playBuf(b, at, SAMPLE_GAIN.chime(), 0.25, rate);
+      else bell(m, at, { gain: 0.03, dur: 0.4, rev: 0.4, ratio: 2.76 });
+      record('lock', [m], undefined, 'chime', b ? files.lock : null, rate);
+    },
+    /** GALAXY's clear: the sourced STARDUST WHOOSH + its shimmer under the clear's own notes as soft bells (code-made: a high brush of noise) */
+    dust({ lines = 1, combo = 0 } = {}) {
+      const q = q16();
+      const notes = clearNotes(lines, combo);
+      const b = sample('clear');
+      if (b) playBuf(b, q.at, SAMPLE_GAIN.dust(lines), 0.3);
+      else brush(q.at, { gain: 0.03 + 0.007 * Math.min(4, lines), dur: 0.4 + 0.05 * Math.min(4, lines), lo: 2200, hi: 7000 });
+      notes.forEach((m, i) => bell(m, q.at + i * q.step, { gain: b ? NOTE_GAIN.dust * (lines >= 4 ? RUN_LIFT : 1) : lines >= 4 ? 0.055 : 0.043, dur: 0.7, rev: 0.6, ratio: 2.76 }));
+      if (lines >= 4) {
+        const top = q.at + notes.length * q.step, base = 2 + Math.min(10, Math.max(0, combo));
+        [7, 9, 11, 14].forEach((d, i) => bell(note(base + d, 5), top + i * 0.035, { gain: 0.03, dur: 1.8, rev: 0.75 }));
+      }
+      record('clear', notes, q.songAt, 'dust', b ? files.clear : null);
     },
   };
   /** the notes a clear plays (the synth's own rule — combos climb the scale; 4 lines = a run up) */

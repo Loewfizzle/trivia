@@ -259,7 +259,7 @@ const pixelUnit = px => Math.max(1, Math.round(px / PIXEL_GRID));
 const pixel = {
   id: 'pixel', name: 'ARCADE PIXEL', line: 'Chunky 8-bit pixels', look: 'night', unlock: null, family: 'neon', holiday: false,
   tokens: { ink: '#ffffff', sub: '#b8f1ff', panel: '#050716', line: '#35e6ff' },
-  lettering: 'pixel', sounds: {},
+  lettering: 'pixel', sounds: { lock: 'blip', clear: 'chip', files: { lock: 'pixel-lock', clear: 'pixel-clear' } },
   variants: PIXEL_VARIANTS,
   sprite: (px, kind, t, v = 0) => pixelSprite(px, kind, t, v),
   fallV: (n, i) => (n * 3 + i) % PIXEL_VARIANTS,
@@ -304,7 +304,7 @@ const pixel = {
 const galaxy = {
   id: 'galaxy', name: 'GALAXY', line: 'Glowing nebula clouds', look: 'night', unlock: null, family: 'neon', holiday: false,
   tokens: { ink: '#ffffff', sub: '#cfd8f6', panel: '#07051a', line: '#dfe8ff' },
-  lettering: 'starlight', sounds: {},
+  lettering: 'starlight', sounds: { lock: 'chime', clear: 'dust', files: { lock: 'galaxy-lock', clear: 'galaxy-clear' } },
   variants: GALAXY_VARIANTS,
   sprite: (px, kind, t, v = 0) => galaxySprite(px, kind, t, v),
   fallV: (n, i) => (n * 5 + i) % GALAXY_VARIANTS,

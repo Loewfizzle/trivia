@@ -198,3 +198,50 @@ test('NO PILLS in the new skins: no capsule radius in their CSS; the pixel skin 
   assert.ok(px.length >= 5);
   for (const l of px) assert.match(l, /border-radius: 0;/, l.slice(0, 80));
 });
+
+test("GROK's NIGHT SOUNDS: the pixel's + the galaxy's lock / clear are SOURCED files (≤ 30 KB, credited), fetched only when the skin shows; the code-made voice is the fallback; levelled under the song", () => {
+  const audio = read('js/games/prism/audio.js');
+  // each night skin names its two voices + its two files — and only its own
+  assert.deepEqual(SKINS.pixel.sounds, { lock: 'blip', clear: 'chip', files: { lock: 'pixel-lock', clear: 'pixel-clear' } });
+  assert.deepEqual(SKINS.galaxy.sounds, { lock: 'chime', clear: 'dust', files: { lock: 'galaxy-lock', clear: 'galaxy-clear' } });
+  assert.deepEqual(SKINS.neon.sounds, {}, "the neon keeps the synth's own sounds");
+  const credits = read('audio/sfx/prism/CREDITS.md'), line = f => credits.split('\n').find(l => l.startsWith(`- \`${f}\` — `)) || '';
+  for (const f of ['pixel-lock.mp3', 'pixel-clear.mp3', 'galaxy-lock.mp3', 'galaxy-clear.mp3']) {
+    const n = statSync(new URL(`../audio/sfx/prism/${f}`, import.meta.url)).size;
+    assert.ok(n > 600 && n <= 30 * 1024, `${f}: ${n} B ≤ 30 KB`);
+    assert.ok(line(f), `${f} has its credit line`);
+  }
+  // the pixel's are SOURCED 8-bit (CC0, Juhani Junkala); the galaxy's are GROK-GENERATED — credited so, never called CC0
+  for (const f of ['pixel-lock.mp3', 'pixel-clear.mp3']) { assert.match(line(f), /Juhani Junkala \(SubspaceAudio\), CC0 1\.0/); assert.doesNotMatch(line(f), /generated/); }
+  for (const f of ['galaxy-lock.mp3', 'galaxy-clear.mp3']) { assert.match(line(f), /generated \(Grok\)\. Licence: generated \(Grok\)\.$/); assert.doesNotMatch(line(f), /CC0/); }
+  assert.ok(!credits.includes('THE BACKUP'), 'every pick imported — no backup in use');
+  const script = read('scripts/build-prism-skin-sfx.py');
+  for (const b of ['pixel-lock-b.wav', 'pixel-clear-b.wav', 'galaxy-lock-b.wav']) assert.ok(script.includes(`'${b}'`), `${b} is the pick's backup (used only if its pick fails)`);
+  // the four voices exist, each with its file path AND its code-made fallback
+  for (const [voice, viaFile, fallback] of [
+    ['blip', 'if (b) playBuf(b, at, SAMPLE_GAIN.blip(), 0, rate);', "else pluck(m, at, { gain: 0.06, dur: 0.05, bright: 5200, rev: 0, type: 'square' });"],
+    ['chip', 'if (b) playBuf(b, q.at, SAMPLE_GAIN.chip(lines), 0);', "b ? NOTE_GAIN.chip * (lines >= 4 ? RUN_LIFT : 1) : 0.085"],
+    ['chime', 'if (b) playBuf(b, at, SAMPLE_GAIN.chime(), 0.25, rate);', 'else bell(m, at, { gain: 0.03, dur: 0.4, rev: 0.4, ratio: 2.76 });'],
+    ['dust', 'if (b) playBuf(b, q.at, SAMPLE_GAIN.dust(lines), 0.3);', 'else brush(q.at, { gain: 0.03 + 0.007 * Math.min(4, lines)'],
+  ]) {
+    assert.ok(audio.includes(`    ${voice}(`), `${voice} is a voice`);
+    assert.ok(audio.includes(viaFile), `${voice}: the file plays through the synth`);
+    assert.ok(audio.includes(fallback), `${voice}: its code-made sound is the fallback`);
+  }
+  // a LOCK's file varies its pitch ± 3 % a play; a clear keeps its own
+  for (const v of ['blip', 'chime']) assert.match(audio, new RegExp(`${v}\\(\\) \\{\\n      const at = ctx\\.currentTime \\+ 0\\.002, m = note\\(0, \\d\\), b = sample\\('lock'\\), rate = lockRate\\(\\);`), `${v}: a random pitch a play`);
+  for (const v of ['chip', 'dust']) { const a = audio.indexOf(`    ${v}(`); assert.doesNotMatch(audio.slice(a, audio.indexOf("record('clear'", a)), /lockRate|rate\)/, `${v}: a clear keeps its pitch`); }
+  // THE LEVELS (measured on the game's SFX bus — tests/integration/prism-sfx-level.mjs): quiet effects under the song, a clear grows with its lines
+  const konst = name => { const m = new RegExp(`export const ${name} = ([^;]+);`).exec(audio); assert.ok(m, `audio.js exports ${name}`); return new Function(`return ${m[1]};`)(); };
+  const G = konst('SAMPLE_GAIN'), N = konst('NOTE_GAIN'), peak = 0.4;
+  for (const v of ['blip', 'chime']) assert.ok(G[v]() * peak >= 0.02 && G[v]() * peak <= 0.08, `${v}: ${(G[v]() * peak).toFixed(3)} of full scale`);
+  for (const v of ['chip', 'dust']) {
+    assert.ok(G[v](1) * peak >= 0.02 && G[v](4) * peak <= 0.13, `${v}: ${(G[v](1) * peak).toFixed(3)} – ${(G[v](4) * peak).toFixed(3)} — quiet under the song`);
+    assert.ok(G[v](1) < G[v](2) && G[v](2) < G[v](4) && G[v](9) === G[v](4), `${v}: a clear grows with its lines (to 4)`);
+    assert.ok(N[v] > 0.02 && N[v] <= 0.07, `${v}: the clear keeps its own notes under the file (a combo still climbs the scale)`);
+  }
+  // the dense 8-bit blip is turned down further than the airy chime (as recorded it sat 2.4 dB over the other skins' locks)
+  assert.ok(G.blip() < G.chime());
+  // the day skins' levels did not move
+  assert.equal(G.plip(), 0.176); assert.equal(G.tap(), 0.18); assert.equal(G.rip(4), 0.15 + 0.04 * 4); assert.equal(G.swish(1), 0.09 + 0.035);
+});

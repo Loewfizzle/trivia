@@ -88,13 +88,14 @@ test("THE SKINS' SOURCED SOUNDS: only a skin's own files, each ≤ 30 KB + in CR
   assert.deepEqual(filesOf('paper'), ['paper-lock', 'paper-clear']);
   for (const id of ['crayon', 'neon', 'glass']) assert.deepEqual(filesOf(id), [], `${id} keeps the synth's own sounds`);
   const dir = new URL('../audio/sfx/prism/', import.meta.url), have = readdirSync(dir).sort();
-  assert.deepEqual(have, ['CREDITS.md', 'paper-clear.mp3', 'paper-lock.mp3', 'watercolor-clear.mp3', 'watercolor-lock.mp3'], 'the four picks + their credits — no pixel-* / galaxy-* yet (SKINS 2B)');
+  // (SKINS 2B — updated ON PURPOSE: + the night skins' four picks; their own pins: tests/prism-skins-2b.test.mjs)
+  assert.deepEqual(have, ['CREDITS.md', 'galaxy-clear.mp3', 'galaxy-lock.mp3', 'paper-clear.mp3', 'paper-lock.mp3', 'pixel-clear.mp3', 'pixel-lock.mp3', 'watercolor-clear.mp3', 'watercolor-lock.mp3'], 'the eight picks + their credits');
   const credits = read('audio/sfx/prism/CREDITS.md');
   for (const f of have.filter(x => x.endsWith('.mp3'))) {
     const n = statSync(new URL(f, dir)).size;
     assert.ok(n > 600 && n <= 30 * 1024, `${f}: ${n} B ≤ 30 KB`);
     const line = credits.split('\n').find(l => l.startsWith(`- \`${f}\` — `)) || '';
-    assert.ok(line.includes('CC0 1.0'), `${f} is credited, CC0`);
+    assert.ok(line.includes('CC0 1.0') || line.includes('generated (Grok)'), `${f} is credited: CC0, or generated (Grok)`);
   }
   assert.doesNotMatch(credits, /CC BY-NC|CC BY-ND|All rights|Sonniss/i);
   // the synth: fetched at setVoices (the skin shows), never before; a file not ready → the code-made voice
@@ -126,7 +127,7 @@ test("THE SKINS' SOURCED SOUNDS: only a skin's own files, each ≤ 30 KB + in CR
     assert.equal(LOCK_PITCH, 0.03);
   }
   assert.match(audio, /const lockRate = \(\) => 1 \+ \(Math\.random\(\) \* 2 - 1\) \* LOCK_PITCH;/);
-  assert.equal((audio.match(/rate = lockRate\(\)/g) || []).length, 2, 'the two lock voices (plip · tap) — a clear keeps its pitch');
+  assert.equal((audio.match(/rate = lockRate\(\)/g) || []).length, 4, 'the four lock voices (plip · tap — + SKINS 2B: blip · chime) — a clear keeps its pitch');
   assert.match(audio, /src\.playbackRate\.value = rate;/);
   // the credits: the sourced parts CC0, the other layers "generated (Grok)" (the owner checked Grok's terms); a -b backup only if its pick fails
   for (const f of ['watercolor-clear.mp3', 'paper-lock.mp3', 'paper-clear.mp3']) assert.ok((credits.split('\n').find(l => l.startsWith(`- \`${f}\` — `)) || '').includes('generated (Grok)'), `${f}: its generated layer is credited "generated (Grok)"`);

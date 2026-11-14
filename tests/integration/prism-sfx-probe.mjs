@@ -8,7 +8,8 @@ const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const browser = await puppeteer.launch({ executablePath: process.argv[2], headless: 'new', args: ['--autoplay-policy=no-user-gesture-required', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 let bad = 0;
 const ok = (c, m) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) bad++; };
-const WANT = { watercolor: ['watercolor-clear.mp3', 'watercolor-lock.mp3'], paper: ['paper-clear.mp3', 'paper-lock.mp3'], crayon: [], neon: [] };
+const WANT = { watercolor: ['watercolor-clear.mp3', 'watercolor-lock.mp3'], paper: ['paper-clear.mp3', 'paper-lock.mp3'], crayon: [], neon: [],
+  pixel: ['pixel-clear.mp3', 'pixel-lock.mp3'], galaxy: ['galaxy-clear.mp3', 'galaxy-lock.mp3'] };   // (SKINS 2B: the night skins')
 async function run(skin, block) {
   const page = await browser.newPage();
   const errors = [], got = [];
@@ -57,8 +58,8 @@ async function run(skin, block) {
   await page.close();
 }
 try {
-  for (const skin of ['watercolor', 'paper', 'crayon', 'neon']) await run(skin, false);
-  for (const skin of ['watercolor', 'paper']) await run(skin, true);
+  for (const skin of ['watercolor', 'paper', 'pixel', 'galaxy', 'crayon', 'neon']) await run(skin, false);
+  for (const skin of ['watercolor', 'paper', 'pixel', 'galaxy']) await run(skin, true);
 } finally { await browser.close(); }
 console.log(bad ? `${bad} FAILED` : 'all ok');
 process.exit(bad ? 1 : 0);

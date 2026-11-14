@@ -52,7 +52,7 @@ async function measure(skin, block) {
   await page.waitForFunction(async () => { const e = await import('/js/audio/engine.js'); return e.isUnlocked(); }, { timeout: 10000 });
   const files = await page.evaluate(() => window.__prism.synthLog && 1);
   void files;
-  if (!block) await page.waitForFunction(() => { const s = window.__prism; return !s.samplesReady || s.samplesReady().length === 2 || !/watercolor|paper/.test(location.search); }, { timeout: 8000 }).catch(() => {});
+  if (!block) await page.waitForFunction(() => { const s = window.__prism; return !s.samplesReady || s.samplesReady().length === 2 || !/watercolor|paper|pixel|galaxy/.test(location.search); }, { timeout: 8000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 2500));   // (the song has started)
   const cap = (which, ms, fn) => page.evaluate(`(${CAPTURE})(${JSON.stringify(which)}, ${ms}, ${JSON.stringify(fn || '')})`);
   const tag = `${skin}${block ? ' (code-made)' : ''}`;
@@ -68,8 +68,10 @@ async function measure(skin, block) {
   await page.close();
 }
 try {
-  for (const skin of ['crayon', 'neon', 'watercolor', 'paper']) await measure(skin, false);
-  if (process.env.BLOCK === '1') for (const skin of ['watercolor', 'paper']) await measure(skin, true);
+  // (SKINS 2B: + the night skins' — SKINS=a,b picks which)
+  const ALL = ['crayon', 'neon', 'watercolor', 'paper', 'pixel', 'galaxy'], PICK = process.env.SKINS ? process.env.SKINS.split(',') : ALL;
+  for (const skin of PICK) await measure(skin, false);
+  if (process.env.BLOCK === '1') for (const skin of PICK.filter(k => !['crayon', 'neon'].includes(k))) await measure(skin, true);
 } finally { await browser.close(); }
 const f = v => (v <= -100 ? '  —  ' : v.toFixed(1).padStart(5));
 console.log('the loudest 400 ms, K-weighted (dB, LUFS-like) · peak dBFS in brackets');

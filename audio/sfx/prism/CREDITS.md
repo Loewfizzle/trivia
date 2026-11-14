@@ -9,3 +9,7 @@ CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
 - `watercolor-clear.mp3` — a brush swish — generated (Grok) — with a drip excerpt from "water-drop-01.wav" by Jan Schupke (Vehicle), CC0 1.0 — https://opengameart.org/content/fantasy-sound-effects-tinysized-sfx. Licence: generated (Grok) + CC0 1.0.
 - `paper-lock.mp3` — "Paper Sound - 1.wav" from "Various Paper Sound Effects" by Luckius, CC0 1.0 — https://opengameart.org/content/various-paper-sound-effects — with a landing thup, generated (Grok). Licence: CC0 1.0 + generated (Grok).
 - `paper-clear.mp3` — "Paper Ripped - 1.wav" from "Various Paper Sound Effects" by Luckius, CC0 1.0 — https://opengameart.org/content/various-paper-sound-effects — with a lift whoosh, generated (Grok). Licence: CC0 1.0 + generated (Grok).
+- `pixel-lock.mp3` — "sfx_sounds_Blip6.wav" from "512 Sound Effects (8-bit style)" by Juhani Junkala (SubspaceAudio), CC0 1.0 — https://opengameart.org/content/512-sound-effects-8-bit-style. Licence: CC0 1.0.
+- `pixel-clear.mp3` — "sfx_sounds_powerup8.wav" from "512 Sound Effects (8-bit style)" by Juhani Junkala (SubspaceAudio), CC0 1.0 — https://opengameart.org/content/512-sound-effects-8-bit-style. Licence: CC0 1.0.
+- `galaxy-lock.mp3` — a star chime (additive inharmonic partials) — generated (Grok). Licence: generated (Grok).
+- `galaxy-clear.mp3` — a stardust whoosh with a shimmer tail — generated (Grok). Licence: generated (Grok).
