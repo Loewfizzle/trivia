@@ -722,6 +722,50 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 /* SLAM: the red push button, sitting on paper — a soft paper shadow instead of the night's glow */
 .pd[data-look='crayon'] .pd-slam-bezel { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 4px 8px rgba(40, 32, 20, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1px rgba(0, 0, 0, 0.55); }
 
+/* ==================================================================================================================================
+   SKINS 1 — THE SKINS (js/games/prism/skins.js): .pd[data-skin='<id>'] beside the family's .pd[data-look]. A DAY skin is of the paper family
+   (data-look='crayon' — every card above): its tokens re-tone them (view.js#applyTokens: --pd-paper = its panel, --pd-ink, --pd-pencil = its
+   line, --pd-grain = its own tile); below, ONLY what a skin does differently. Every skin also carries --pd-sk-ink / -sub / -panel / -line.
+   ================================================================================================================================== */
+/* ---- WATERCOLOR: washes on cold-press paper. The cards = soft sheets of the same paper (rounder, a brushed blue-grey line, drawn once — no
+   second pencil pass, nothing askew); the lettering = the marker font FILLED LIKE PAINT (no crayon tooth) with a soft offset wash behind it */
+.pd[data-skin='watercolor'] :is(.pd-corner, .pd-tip, .pd-ko, .pd-count-song, .pd-call, .pd-spec-head, .pd-spec-card, .pd-ann, .pd-inc-tag, .pd-title b, .pd-title small, .pd-fs-moment, .pd-btn) {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset, 0 3px 9px rgba(52, 66, 104, 0.15);
+}
+.pd[data-skin='watercolor'] :is(.pd-corner, .pd-tip, .pd-ko, .pd-count-song, .pd-call, .pd-spec-card, .pd-fs-moment)::after { display: none; }
+.pd[data-skin='watercolor'] .pd-corner { border-radius: 9px; }
+.pd[data-skin='watercolor'] :is(.pd-hold, .pd-next, .pd-tip, .pd-title b) { rotate: none; }
+.pd[data-skin='watercolor'] .pd-inc-tag { border-color: #6a6f7b; rotate: none; border-radius: 7px; }
+.pd[data-skin='watercolor'] .pd-ann { border-radius: 9px; }
+.pd[data-skin='watercolor'] .pd-ann::before { background: linear-gradient(90deg, #e23f5a, #f2b61e, #2faa5e, #19b3c8, #3a6fd8, #8f5bd9); height: 3px; opacity: 0.55; filter: none; }
+/* the board: the danger = a red wash rising with it */
+.pd[data-skin='watercolor'] .pd-board-glass { background: rgba(226, 63, 90, calc(var(--danger, 0) * 0.12)); }
+/* THE RAIL: the stack as a wash of the player's colour, its pigment gathered at the top edge (no hatch, no tooth) */
+.pd[data-skin='watercolor'] .pd-tile { border-radius: 7px; box-shadow: 0 2px 6px rgba(52, 66, 104, 0.14); }
+.pd[data-skin='watercolor'] .pd-tile-fill {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 78%, #1c1638) 0 2px, color-mix(in srgb, var(--c) 70%, transparent) 2px, color-mix(in srgb, var(--c) 48%, transparent));
+  -webkit-mask-image: none; mask-image: none;
+  border-radius: 0 0 5px 5px;
+}
+.pd[data-skin='watercolor'] .pd-tile.is-high .pd-tile-fill { background: linear-gradient(180deg, #b8253d 0 2px, color-mix(in srgb, var(--c) 70%, transparent) 2px, rgba(226, 63, 90, 0.5)); }
+.pd[data-skin='watercolor'] .pd-tile.is-ko .pd-tile-fill { background: linear-gradient(180deg, rgba(110, 114, 124, 0.6), rgba(110, 114, 124, 0.25)); }
+/* THE CALLOUTS: paint — the ink solid (no tooth mask), the paper's halo so it reads over any block, a soft wash a little off behind it */
+.pd[data-skin='watercolor'] .pd-callout .pd-ann-in {
+  -webkit-mask-image: none; mask-image: none;
+  text-shadow: -2px -2px 0 var(--pd-paper), 2px -2px 0 var(--pd-paper), -2px 2px 0 var(--pd-paper), 2px 2px 0 var(--pd-paper), 0 -2.5px 0 var(--pd-paper), 0 2.5px 0 var(--pd-paper), -2.5px 0 0 var(--pd-paper), 2.5px 0 0 var(--pd-paper),
+    5px 6px 0 color-mix(in srgb, var(--wash, #3a6fd8) 26%, transparent), 4px 5px 7px color-mix(in srgb, var(--wash, #3a6fd8) 30%, transparent);
+}
+.pd[data-skin='watercolor'] .pd-callout .pd-ann-in::first-line { color: #2f5fc4; }
+.pd[data-skin='watercolor'] .pd-callout .pd-ann-in.is-big { --wash: #e23f5a; }
+.pd[data-skin='watercolor'] .pd-callout .pd-ann-in.is-big::first-line { color: #cf2f4c; }
+.pd[data-skin='watercolor'] .pd-callout .pd-ann-in.is-good { --wash: #2faa5e; }
+.pd[data-skin='watercolor'] .pd-callout .pd-ann-in.is-ko { --wash: #e23f5a; }
+.pd[data-skin='watercolor'] .pd-callout .pd-ann-in.is-clear { --wash: #8f5bd9; }
+.pd[data-skin='watercolor'] .pd-callout .pd-ann-in.is-clear::first-line { color: #7a44c9; }
+.pd[data-skin='watercolor'] .pd-count-song b { color: #2f5fc4; }
+.pd[data-skin='watercolor'] :is(.pd-ko, .pd-count-song, .pd-call, .pd-spec-card, .pd-fs-moment) { border-radius: 12px; }
+.pd[data-skin='watercolor'] :is(.pd-spec-frame, .pd-fs-frame) { border-radius: 6px; }
+
 body.pd-duel .pd-mode { letter-spacing: 0.2em; }
 
 @media (prefers-reduced-motion: reduce) {

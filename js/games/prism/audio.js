@@ -447,7 +447,7 @@ export function createSynth() {
     return { at: Math.max(now + 0.005, c.atCtx(tNext)), step, songAt: tNext };
   }
 
-  const record = (name, notes, songAt) => { log.push({ name, notes, songAt, key: tonic, mode }); if (log.length > 400) log.shift(); };
+  const record = (name, notes, songAt, voice) => { log.push({ name, notes, songAt, key: tonic, mode, ...(voice ? { voice } : {}) }); if (log.length > 400) log.shift(); };
 
   const SOUNDS = {
     move() {
@@ -585,7 +585,117 @@ export function createSynth() {
       notes.forEach((m, i) => bell(m, q.at + i * q.step, { gain: 0.04, dur: 1, rev: 0.5 }));
       record('level', notes, q.songAt);
     },
+    // ---- SKINS 1 — a skin's own voices (skins.js `sounds`: play('lock') / play('clear') sound these instead — setVoices). Code-made, QUIET,
+    // in the song's key (note()), the clears on its 16ths (q16) with the same notes the synth's own clear plays (a combo still climbs the scale):
+    // only the VOICE changes. The slam's thud is never swapped. Logged under the name the game played ('lock' / 'clear') + the voice.
+    /** WATERCOLOR's lock: a soft wet PLIP — a drop's quick upward chirp on the tonic */
+    plip() {
+      const m = note(0, 5);
+      drip(m, ctx.currentTime + 0.002, { gain: 0.05, dur: 0.1 });
+      record('lock', [m], undefined, 'plip');
+    },
+    /** WATERCOLOR's clear: a brush SWISH (soft noise swept up + back) + a tiny DRIP on each of the clear's notes */
+    swish({ lines = 1, combo = 0 } = {}) {
+      const q = q16();
+      const notes = clearNotes(lines, combo);
+      brush(q.at, { gain: 0.035 + 0.008 * Math.min(4, lines), dur: 0.26 + 0.04 * Math.min(4, lines), lo: 700, hi: 3200 });
+      notes.forEach((m, i) => drip(m, q.at + 0.05 + i * q.step, { gain: 0.07, dur: 0.2, rev: 0.3 }));
+      if (lines >= 4) {
+        const top = q.at + notes.length * q.step, base = 2 + Math.min(10, Math.max(0, combo));
+        [7, 9, 11, 14].forEach((d, i) => bell(note(base + d, 5), top + i * 0.035, { gain: 0.028, dur: 1.6, rev: 0.7 }));
+      }
+      record('clear', notes, q.songAt, 'swish');
+    },
+    /** PAPER CUT-OUT's lock: a papery TAP — a short dry tick of filtered noise + a muted tonic knock */
+    tap() {
+      const at = ctx.currentTime + 0.002, m = note(0, 4);
+      noise(at, { gain: 0.045, dur: 0.035, from: 3800, to: 1600, q: 1.4 });
+      pluck(m, at, { gain: 0.035, dur: 0.05, bright: 700, rev: 0.04 });
+      record('lock', [m], undefined, 'tap');
+    },
+    /** PAPER CUT-OUT's clear: a short RIP (a crackle of noise torn upward) + a soft WHOOSH as the strip flies off, the clear's notes muted under it */
+    rip({ lines = 1, combo = 0 } = {}) {
+      const q = q16();
+      const notes = clearNotes(lines, combo);
+      tear(q.at, { gain: 0.05 + 0.008 * Math.min(4, lines), dur: 0.13 + 0.02 * Math.min(4, lines) });
+      brush(q.at + 0.1, { gain: 0.03, dur: 0.3, lo: 500, hi: 1800 });
+      notes.forEach((m, i) => pluck(m, q.at + i * q.step, { gain: 0.05, dur: 0.16, bright: 1500, rev: 0.2 }));
+      if (lines >= 4) {
+        const top = q.at + notes.length * q.step, base = 2 + Math.min(10, Math.max(0, combo));
+        [7, 9, 11, 14].forEach((d, i) => bell(note(base + d, 5), top + i * 0.035, { gain: 0.026, dur: 1.5, rev: 0.65 }));
+      }
+      record('clear', notes, q.songAt, 'rip');
+    },
   };
+  /** the notes a clear plays (the synth's own rule — combos climb the scale; 4 lines = a run up) */
+  function clearNotes(lines, combo) {
+    const base = 2 + Math.min(10, Math.max(0, combo));
+    const degs = lines >= 4 ? [0, 1, 2, 3, 4, 5, 6, 7].map(d => base + d) : lines === 3 ? [base, base + 2, base + 4] : lines === 2 ? [base, base + 2] : [base];
+    return degs.map(d => note(d, 5));
+  }
+  /** a water DROP: a sine that chirps UP into its note (a fifth below → the note in ~35 ms), a quick soft decay */
+  function drip(midi, at, { gain = 0.06, dur = 0.14, rev = 0.2 } = {}) {
+    const f = mtof(midi);
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f * 0.62, at);
+    o.frequency.exponentialRampToValueAtTime(f, at + 0.035);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(gain, at + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0005, at + dur);
+    o.connect(g);
+    out(g, rev);
+    o.start(at);
+    o.stop(at + dur + 0.05);
+  }
+  /** a BRUSH / a whoosh: soft noise through a band that sweeps up then back, a slow swell in + out (never a click) */
+  function brush(at, { gain = 0.04, dur = 0.3, lo = 700, hi = 3000 } = {}) {
+    const len = Math.floor(ctx.sampleRate * dur);
+    const b = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const s = ctx.createBufferSource();
+    s.buffer = b;
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.Q.value = 0.9;
+    f.frequency.setValueAtTime(lo, at);
+    f.frequency.exponentialRampToValueAtTime(hi, at + dur * 0.45);
+    f.frequency.exponentialRampToValueAtTime(lo * 1.3, at + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(gain, at + dur * 0.35);
+    g.gain.linearRampToValueAtTime(0, at + dur);
+    s.connect(f).connect(g);
+    out(g, 0.15);
+    s.start(at);
+  }
+  /** a TEAR: a crackle — noise chopped into uneven grains, high-passed, its band rising as the rip runs */
+  function tear(at, { gain = 0.05, dur = 0.14 } = {}) {
+    const len = Math.floor(ctx.sampleRate * dur);
+    const b = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = b.getChannelData(0);
+    let on = 1, left = 0;
+    for (let i = 0; i < len; i++) {
+      if (left-- <= 0) { on = Math.random() < 0.72 ? 1 : 0.12; left = 20 + Math.random() * 130; }
+      d[i] = (Math.random() * 2 - 1) * on * (0.55 + 0.45 * (i / len));
+    }
+    const s = ctx.createBufferSource();
+    s.buffer = b;
+    const f = ctx.createBiquadFilter();
+    f.type = 'highpass';
+    f.frequency.setValueAtTime(1400, at);
+    f.frequency.exponentialRampToValueAtTime(3600, at + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(gain, at + 0.008);
+    g.gain.setValueAtTime(gain, at + dur * 0.8);
+    g.gain.linearRampToValueAtTime(0, at + dur);
+    s.connect(f).connect(g);
+    out(g, 0.08);
+    s.start(at);
+  }
 
   return {
     setKey(t, m) { tonic = ((t | 0) % 12 + 12) % 12; mode = m === 'major' ? 'major' : 'minor'; },

@@ -1,0 +1,47 @@
+<!doctype html>
+<!-- SKINS 1 — A SKIN's SPRITE SHEET (the look review of its blocks, before the board): every colour × every variant at the board's real size
+     (33-pt cells at the screen's ratio), the landing ghost, the danger drain, the incoming rows' cells, a small stack as the board draws it,
+     HOLD / NEXT's pieces and the minis — on the skin's own panel colour.   ?skin=watercolor  ?cell=33 -->
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Prism skin sheet</title><link rel="icon" href="data:,">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>html, body { margin: 0; font: 11px/1.3 monospace; } body { padding: 8px; } .row { display: flex; gap: 0; align-items: flex-end; margin: 0 0 6px; } .row canvas { display: block; } h2 { font: 700 11px monospace; margin: 8px 0 3px; letter-spacing: 0.06em; }</style></head>
+<body>
+<script type="module">
+import { SKINS } from '/js/games/prism/skins.js';
+import { drawPiece, drawMini } from '/js/games/prism/board.js';
+const q = new URLSearchParams(location.search);
+const skin = SKINS[q.get('skin')] || SKINS.crayon;
+const CELL = Number(q.get('cell') || 33), dpr = Math.min(3, devicePixelRatio || 1), px = Math.round(CELL * dpr);
+document.body.style.background = skin.tokens.panel;
+document.body.style.color = skin.tokens.ink;
+const env = skin.env(null);
+const put = (label, sprites) => {
+  document.body.append(Object.assign(document.createElement('h2'), { textContent: label }));
+  const row = document.createElement('div'); row.className = 'row';
+  for (const s of sprites) { const c = document.createElement('canvas'); c.width = s.width; c.height = s.height; c.style.width = `${s.width / dpr}px`; c.style.height = `${s.height / dpr}px`; c.getContext('2d').drawImage(s, 0, 0); row.append(c); }
+  document.body.append(row);
+};
+for (let t = 1; t <= 8; t++) put(`piece ${t} — ${skin.variants} variants`, Array.from({ length: skin.variants }, (_, v) => skin.sprite(px, 'block', t, v, env)));
+put('the landing ghost · the danger drain · the incoming rows (rising, due)', [skin.sprite(px, 'ghost', 3, 0, env), skin.sprite(px, 'grey', 3, 0, env), skin.sprite(px, 'grey', 5, 0, env), skin.sprite(px, 'incoming', 0, 0, env), skin.sprite(px, 'ihot', 0, 0, env)].filter(Boolean));
+// a small stack, the way the board places the variants
+{
+  document.body.append(Object.assign(document.createElement('h2'), { textContent: 'a stack (the variants by place)' }));
+  const c = document.createElement('canvas'); c.width = px * 10; c.height = px * 4; c.style.width = `${CELL * 10}px`; c.style.height = `${CELL * 4}px`;
+  const x = c.getContext('2d');
+  const rows = ['1111223344', '5566778811', '3344556622', '7711330055'];
+  rows.forEach((r, y) => [...r].forEach((ch, xx) => { const t = Number(ch); if (t) x.drawImage(skin.sprite(px, 'block', t, (xx * 7 + y * 13) % skin.variants, env), xx * px, y * px); }));
+  document.body.append(c);
+}
+{
+  document.body.append(Object.assign(document.createElement('h2'), { textContent: 'HOLD / NEXT · the minis (rail 3 pt, duel 4, podium 8, a KO)' }));
+  const row = document.createElement('div'); row.className = 'row'; row.style.gap = '10px';
+  for (let t = 1; t <= 7; t++) { const c = document.createElement('canvas'); drawPiece(c, t, { cell: 12, skin }); row.append(c); }
+  const str = '1111223344556677881133445566227711330055'.padEnd(200, '0');
+  for (const [cell, ko] of [[3, false], [4, false], [8, false], [3, true]]) { const c = document.createElement('canvas'); drawMini(c, str, '3,1,4,12', { cell, ko, skin }); row.append(c); }
+  document.body.append(row);
+}
+document.title = 'sheet done';
+</script>
+</body>
+</html>

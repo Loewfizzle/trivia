@@ -9,6 +9,7 @@ Built by `scripts/build-prism-paper.py` (the grain only: a high-pass, made seaml
 | `notepad.webp`, `graph.webp` | "CC0 PBR Paper Textures" (`CC0-Texture-Paper01.zip` → `PaperAlbedo.png`) — https://opengameart.org/content/cc0-pbr-paper-textures | CC0 ("License(s): CC0") |
 | `coloring.webp` | ambientCG **Paper001** (`Paper001_1K-JPG_Color.jpg`) — https://ambientcg.com/view?id=Paper001 | CC0 1.0 Universal (https://ambientcg.com/license) |
 | `construction.webp` | ambientCG **Paper002** (`Paper002_1K-JPG_Color.jpg`) — https://ambientcg.com/view?id=Paper002 | CC0 1.0 Universal (https://ambientcg.com/license) |
+| `watercolor.webp` (THE WATERCOLOR skin's cold-press sheet), `kraft.webp` (THE PAPER CUT-OUT skin's kraft board) — SKINS 1 | ambientCG **Paper001** (`Paper001_2K-JPG_Color.jpg`, its clean left square — the high-pass grain only, tinted `#f6f0e2` / `#c6a576`, the tooth lifted: `--only watercolor,kraft`) — https://ambientcg.com/view?id=Paper001 | CC0 1.0 Universal (https://ambientcg.com/license) |
 
 ## The font — `assets/fonts/prism/permanent-marker-latin-400.woff2`
 

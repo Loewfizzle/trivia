@@ -41,7 +41,11 @@ export const loadPaper = paper => loadImg(paperUrl(paper));
 export function warmDay(first) {
   if (first) loadPaper(first);
   for (const p of PAPERS) loadPaper(p);
-  if (!fontP && typeof FontFace === 'function' && document.fonts) {
+  return loadMarker();
+}
+/** the day skins' lettering — Permanent Marker ('PD Marker', ~30 KB), fetched once, only when a skin that letters with it shows */
+export function loadMarker() {
+  if (!fontP && typeof FontFace === 'function' && typeof document !== 'undefined' && document.fonts) {
     fontP = new FontFace('PD Marker', `url(${FONT.href}) format('woff2')`, { display: 'swap' }).load()
       .then(f => { document.fonts.add(f); return true; }).catch(() => false);
   }

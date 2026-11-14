@@ -1,4 +1,7 @@
 """PRISM DROP — THE DAY LOOK's PAPERS (PD-4). Builds assets/prism/paper/{notepad,graph,construction,coloring}.webp from CC0 sources.
+SKINS 1: + watercolor.webp (THE WATERCOLOR skin's cold-press sheet: a coarser, deeper tooth) and kraft.webp (THE PAPER CUT-OUT skin's kraft
+board: the fibres, tan) — both from ambientCG Paper001 (--acg1; the 2K map works too). Only the papers whose source is given are built
+(--only watercolor,kraft builds just those).
 
 The rulings (notepad lines + margin, the graph grid, the coloring page's frame) are DRAWN IN CODE over the grain (js/games/prism/page.js) —
 these files are the GRAIN only: tileable, the paper's colour baked in, the grain's contrast lifted a little so it reads on a phone.
@@ -24,6 +27,11 @@ PAPERS = {
     'graph': ('oga', 512, (243, 247, 245), 1.8, 2.5),
     'construction': ('acg2', 512, (205, 214, 222), 1.4, 10),
     'coloring': ('acg1', 512, (248, 246, 241), 1.7, 6),
+    # SKINS 1 — the colours are skins.js's tokens / skin-pages.js's bases (keep them in step)
+    # (a 6th value = the source's crop, as shares of its width / height: the 2K map on this machine has a column of print show-through at its
+    #  right edge — the clean left square is used; seamless() makes any crop tile)
+    'watercolor': ('acg1', 512, (246, 240, 226), 2.7, 9, (0.0, 0.0, 0.58, 0.99)),    # cold-press: the bumps kept (a wide high-pass), the tooth lifted
+    'kraft': ('acg1', 512, (198, 165, 118), 2.3, 4, (0.0, 0.0, 0.58, 0.99)),         # kraft board: the fine fibres, tan
 }
 
 
@@ -58,15 +66,23 @@ def build(src, size, base, gain, radius):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--oga', required=True)
-    ap.add_argument('--acg1', required=True)
-    ap.add_argument('--acg2', required=True)
+    ap.add_argument('--oga', default=None)
+    ap.add_argument('--acg1', default=None)
+    ap.add_argument('--acg2', default=None)
+    ap.add_argument('--only', default=None, help='ids, comma-separated (default: every paper whose source is given)')
     ap.add_argument('--check', default=None)
     a = ap.parse_args()
-    srcs = {'oga': Image.open(a.oga), 'acg1': Image.open(a.acg1), 'acg2': Image.open(a.acg2)}
+    srcs = {k: Image.open(v) for k, v in (('oga', a.oga), ('acg1', a.acg1), ('acg2', a.acg2)) if v}
+    only = set(a.only.split(',')) if a.only else None
     os.makedirs(OUT, exist_ok=True)
-    for pid, (s, size, base, gain, radius) in PAPERS.items():
-        im = build(srcs[s], size, base, gain, radius)
+    for pid, (s, size, base, gain, radius, *crop) in PAPERS.items():
+        if s not in srcs or (only and pid not in only):
+            continue
+        src = srcs[s]
+        if crop:
+            x0, y0, x1, y1 = crop[0]
+            src = src.crop((int(src.width * x0), int(src.height * y0), int(src.width * x1), int(src.height * y1)))
+        im = build(src, size, base, gain, radius)
         path = os.path.join(OUT, f'{pid}.webp')
         im.save(path, 'WEBP', quality=82, method=6)
         print(f'{pid:13s} {im.size[0]}x{im.size[1]}  {os.path.getsize(path) / 1024:.1f} KB  mean {np.asarray(im).reshape(-1, 3).mean(0).round(1)}')

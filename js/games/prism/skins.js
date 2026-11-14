@@ -39,7 +39,10 @@ import { crayonSprite, VARIANTS as CRAYON_VARIANTS, warmCrayon, clearCrayon, cra
 import { createCrayonFx } from './crayonfx.js';
 import { neonSprite, clearNeon, neonCount } from './neon-art.js';
 import { glassSprite, clearGlass, glassCount } from './glass-art.js';
-import { CRAYON_PAGE, warmDay } from './page.js';
+import { CRAYON_PAGE, warmDay, loadMarker, loadImg } from './page.js';
+import { WATER, PENCIL, WASH, VARIANTS as WATER_VARIANTS, waterSprite, warmWater, clearWater, waterCount } from './water-art.js';
+import { createWaterFx } from './waterfx.js';
+import { WATER_PAGE, WATER_TEX, WATER_PAPER } from './skin-pages.js';
 import { skinK } from './skin-deal.js';
 export { skinK, dealSkin, soloSkin, dropSkin, SK_START } from './skin-deal.js';
 
@@ -90,6 +93,52 @@ const crayon = {
     () => { if (page && paper) page.warm(world, paper.doodle, w, h); return true; },
   ],
   warm: (px, ms) => warmCrayon(px, ms), drop: clearCrayon, count: crayonCount,
+};
+
+// ================================================================ WATERCOLOR (day — SKINS 1: translucent washes on cold-press paper)
+const watercolor = {
+  id: 'watercolor', name: 'WATERCOLOR', line: 'Washes on cold-press paper', look: 'day', unlock: null, family: 'crayon', holiday: false,
+  tokens: { ink: '#2e3340', sub: '#4a5266', panel: WATER_PAPER, line: 'rgba(92, 111, 146, 0.62)', line2: 'rgba(92, 111, 146, 0.3)', grain: `url("${WATER_TEX}")` },
+  lettering: 'marker-paint', sounds: { lock: 'plip', clear: 'swish' },
+  variants: WATER_VARIANTS,
+  sprite: (px, kind, t, v = 0) => waterSprite(px, kind, t, v),
+  fallV: (n, i) => (n * 5 + i) % WATER_VARIANTS,
+  pieceV: (x, y, t) => (x * 3 + y * 5 + t) % WATER_VARIANTS,
+  env: () => null, glow: 0, pieceGlow: 0,
+  /** a very faint pencil grid — the columns to aim by, nothing more (paint, not graph paper) */
+  grid(g, { px }) {
+    g.fillStyle = rgba(PENCIL, 0.075);
+    for (let x = 1; x < W; x++) g.fillRect(x * px - 0.5, 0, Math.max(1, px * 0.012), VISIBLE * px);
+    g.fillStyle = rgba(PENCIL, 0.05);
+    for (let y = 1; y < VISIBLE; y++) g.fillRect(0, y * px - 0.5, W * px, Math.max(1, px * 0.012));
+  },
+  // the INCOMING rows: a GREY WASH with a darker pigment edge (flat — never a painted block: no highlight), the leading edge a wet line of wash
+  incoming: sketchIncoming({
+    spr: (px, hot) => waterSprite(px, hot ? 'ihot' : 'incoming', 0), ink: WASH,
+    edge(ctx, yTop, px) {
+      const g = ctx.createLinearGradient(0, yTop - px * 0.42, 0, yTop);
+      g.addColorStop(0, rgba(WASH, 0));
+      g.addColorStop(1, rgba(WASH, 0.3));
+      ctx.fillStyle = g;
+      ctx.fillRect(0, yTop - px * 0.42, W * px, px * 0.42);
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = '#5d616b';
+      ctx.fillRect(0, yTop - Math.max(1, px * 0.025), W * px, Math.max(2, px * 0.05));
+    },
+  }),
+  /** a big mini draws the real washes; a small one a flat paint fill inside its pigment rim (a KO'd board in grey wash) */
+  mini(ctx, { X, Y, s, px, t, ko, x, y }) {
+    if (px >= 18 && !ko) { ctx.drawImage(waterSprite(px, 'block', t, (x * 7 + y * 13) % WATER_VARIANTS), X, Y); return; }
+    const c = ko ? '#a9acb4' : WATER[t] || WATER[8], e = Math.max(1, Math.round(px * 0.14));
+    ctx.fillStyle = ko ? '#7d818b' : mix(c, '#1c1638', 0.38); ctx.fillRect(X, Y, s, s);
+    if (s > 2 * e) { ctx.fillStyle = c; ctx.fillRect(X + e, Y + e, s - 2 * e, s - 2 * e); }
+  },
+  shard: t => WATER[t] || WATER[8], crumbs: true,
+  fx: () => createWaterFx(), light: false, flash: false, bands: false, pulse: true,
+  world: 'page', page: WATER_PAGE,
+  /** its paper + the marker font — fetched only when the skin shows */
+  enter() { loadImg(WATER_TEX); loadMarker(); },
+  warm: (px, ms) => warmWater(px, ms), drop: clearWater, count: waterCount,
 };
 
 // ================================================================ NEON (night — PD-3: neon tubes in the world's palette)
@@ -143,7 +192,8 @@ const glass = {
   warm: () => true, drop: clearGlass, count: glassCount,
 };
 
-export const SKINS = Object.freeze({ crayon: Object.freeze(crayon), neon: Object.freeze(neon), glass: Object.freeze(glass) });
+// (the order = each pool's rotation: DAY crayon · watercolor · paper — NIGHT neon)
+export const SKINS = Object.freeze({ crayon: Object.freeze(crayon), watercolor: Object.freeze(watercolor), neon: Object.freeze(neon), glass: Object.freeze(glass) });
 export const SKIN_IDS = Object.freeze(Object.keys(SKINS));
 /** every hook a skin must have (the contract — tests/prism-skins.test.mjs) */
 export const HOOKS = Object.freeze({
