@@ -835,7 +835,7 @@ body.pd-duel .pd-mode { letter-spacing: 0.2em; }
 /* ---- ARCADE PIXEL: crisp everywhere — square corners, hard pixel borders, hard offset shadows (no blur, no glow), Press Start 2P ('PD
    Pixel' — pixel-art.js#loadPixelFont, fetched only when the skin shows; the UI font until it is in). Readable ink: white / pale cyan on
    near-black panels. ---- */
-.pd[data-skin='pixel'] { --pd-px: 'PD Pixel', var(--font-mono); --pd-cy: #35e6ff; background: #05060f; }
+.pd[data-skin='pixel'] { --pd-px: 'PD Pixel', var(--font-mono); --pd-cy: #35e6ff; --pd-edge: #35e6ff !important; --pd-frame: #0e7f9c !important; --pd-well: #b8f1ff !important; background: #05060f; }
 .pd[data-skin='pixel'] .pd-page { image-rendering: pixelated; }
 /* the stars that twinkle: a hard two-step blink (opacity only) — off on the lower tiers + with reduced effects */
 .pd-tw { position: absolute; animation: pd-tw 2.4s steps(1, end) infinite; }
@@ -883,6 +883,24 @@ body.pd-duel .pd-mode { letter-spacing: 0.2em; }
 .pd[data-skin='pixel'] .pd-title b::before, .pd[data-skin='pixel'] .pd-title b::after { display: none; }
 .pd[data-skin='pixel'] :is(.pd-spec-frame, .pd-fs-frame) { border-radius: 0; box-shadow: 0 0 0 2px var(--pd-cy), 0 0 0 4px #063245; }
 .pd[data-skin='pixel'] .pd-slam-bezel { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1px rgba(0, 0, 0, 0.55); }
+
+/* ---- GALAXY: deep space behind FILLED glowing clouds. The world's palette is set aside (the frame + the lettering are STARLIGHT — a cool
+   white — in every song: !important beats the view's inline palette), so every night-family rule above lights in starlight. ---- */
+.pd[data-skin='galaxy'] { --pd-edge: #dfe8ff !important; --pd-frame: #93a8ff !important; --pd-well: #eef2ff !important; background: #05031a; }
+/* the slow-drifting star field: one tile-repeated layer sliding down by a transform (linear, endless) — stopped on the lower tiers + with
+   reduced effects (the stars stay where they are) */
+.pd-drift { position: absolute; left: 0; right: 0; bottom: 0; will-change: transform; animation: pd-drift 48s linear infinite; }
+@keyframes pd-drift { to { transform: translate3d(0, var(--pd-drift, 256px), 0); } }
+.pd:is([data-lite], [data-still]) .pd-drift { animation: none; }
+/* THE BOARD's frame: a THIN cool-white glow line; the well dimmed (the page dims it too) */
+.pd[data-skin='galaxy'] .pd-board-glass { inset: -3px; border-radius: 7px; background: rgba(3, 2, 12, calc(0.34 + var(--danger, 0) * 0.22)); border: 1px solid rgba(232, 240, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 7px rgba(214, 226, 255, 0.6), 0 0 26px rgba(147, 168, 255, 0.26), inset 0 0 20px rgba(147, 168, 255, 0.09); }
+.pd[data-skin='galaxy'] .pd-board-glass::before { display: none; }
+.pd[data-skin='galaxy'] .pd-corner { background: rgba(7, 5, 26, 0.56); border-color: rgba(223, 232, 255, 0.4); box-shadow: 0 0 9px rgba(170, 190, 255, 0.2); }
+/* the lettering: the night font with a SOFT STARLIGHT glow */
+.pd[data-skin='galaxy'] .pd-mode { text-shadow: 0 0 2px rgba(255, 255, 255, 0.85), 0 0 10px rgba(205, 220, 255, 0.85), 0 0 24px rgba(147, 168, 255, 0.5); }
+.pd[data-skin='galaxy'] .pd-callout .pd-ann-in::first-line, .pd[data-skin='galaxy'] .pd-callout .pd-ann-in.is-big::first-line { text-shadow: 0 0 3px #fff, 0 0 12px rgba(205, 220, 255, 0.95), 0 0 30px rgba(147, 168, 255, 0.6), 0 2px 3px rgba(0, 0, 0, 0.85); }
+.pd[data-skin='galaxy'] .pd-tile { background: rgba(7, 5, 26, 0.74); }
 
 @media (prefers-reduced-motion: reduce) {
   .pd-board.pd-pulse { animation: none; }

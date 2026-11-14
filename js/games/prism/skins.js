@@ -54,7 +54,9 @@ import { CUT, CARD, CUT_LINE, VARIANTS as PAPER_VARIANTS, paperSprite, warmPaper
 import { createPaperFx } from './paperfx.js';
 import { PIXEL, VARIANTS as PIXEL_VARIANTS, GRID as PIXEL_GRID, pixelSprite, warmPixel, clearPixel, pixelCount, loadPixelFont, lightOf as pixelLight, darkOf as pixelDark } from './pixel-art.js';
 import { createPixelFx } from './pixelfx.js';
-import { PIXEL_PAGE, pixelSky } from './night-pages.js';
+import { PIXEL_PAGE, pixelSky, GALAXY_PAGE, galaxySky } from './night-pages.js';
+import { GALAXY, VARIANTS as GALAXY_VARIANTS, galaxySprite, warmGalaxy, clearGalaxy, galaxyCount } from './galaxy-art.js';
+import { createGalaxyFx } from './galaxyfx.js';
 import { skinK } from './skin-deal.js';
 export { skinK, dealSkin, soloSkin, dropSkin, SK_START } from './skin-deal.js';
 
@@ -298,6 +300,51 @@ const pixel = {
   warm: (px, ms) => warmPixel(px, ms), drop: clearPixel, count: pixelCount,
 };
 
+// ================================================================ GALAXY (night — SKINS 2B: FILLED glowing nebula clouds — colour first)
+const galaxy = {
+  id: 'galaxy', name: 'GALAXY', line: 'Glowing nebula clouds', look: 'night', unlock: null, family: 'neon', holiday: false,
+  tokens: { ink: '#ffffff', sub: '#cfd8f6', panel: '#07051a', line: '#dfe8ff' },
+  lettering: 'starlight', sounds: {},
+  variants: GALAXY_VARIANTS,
+  sprite: (px, kind, t, v = 0) => galaxySprite(px, kind, t, v),
+  fallV: (n, i) => (n * 5 + i) % GALAXY_VARIANTS,
+  pieceV: (x, y, t) => (x * 3 + y * 5 + t) % GALAXY_VARIANTS,
+  env: () => null, glow: 0.62, pieceGlow: 0.75,   // (a gentle bloom on the rims: the baked ring under the stack + the piece — the tier's glow)
+  /** the well's guide: a faint point of starlight at each crossing — nothing ruled (deep space stays dark) */
+  grid(g, { px }) {
+    const d = Math.max(1.5, px * 0.022);
+    g.fillStyle = 'rgba(214, 226, 255, 0.2)';
+    for (let x = 1; x < W; x++) for (let y = 1; y < VISIBLE; y++) { g.beginPath(); g.arc(x * px, y * px, d, 0, 6.2832); g.fill(); }
+  },
+  // the INCOMING rows: DARK ASTEROID ROCK with a faint red rim (an uneven rock — never a piece), the leading edge a thin red glow line
+  incoming: sketchIncoming({
+    spr: (px, hot) => galaxySprite(px, hot ? 'ihot' : 'incoming', 0), ink: INCOMING, marks: false,
+    edge(ctx, yTop, px) {
+      const g = ctx.createLinearGradient(0, yTop - px * 0.6, 0, yTop);
+      g.addColorStop(0, rgba(INCOMING, 0));
+      g.addColorStop(1, rgba(INCOMING, 0.26));
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = g;
+      ctx.fillRect(0, yTop - px * 0.6, W * px, px * 0.6);
+      ctx.fillStyle = 'rgba(255, 150, 172, 0.9)';
+      ctx.fillRect(0, yTop - Math.max(1, px * 0.02), W * px, Math.max(2, px * 0.035));
+    },
+  }),
+  /** a big mini draws the real clouds; a small one the piece's colour FILLED inside its lighter rim (a KO'd board in dim grey) */
+  mini(ctx, { X, Y, s, px, t, ko, x, y }) {
+    if (px >= 18 && !ko) { ctx.drawImage(galaxySprite(px, 'block', t, (x * 7 + y * 13) % GALAXY_VARIANTS), X, Y); return; }
+    const c = ko ? '#474c5c' : GALAXY[t] || GALAXY[8], e = Math.max(1, Math.round(px * 0.16));
+    ctx.fillStyle = ko ? '#5a6072' : mix(c, '#ffffff', 0.5); ctx.fillRect(X, Y, s, s);
+    if (s > 2 * e) { ctx.fillStyle = c; ctx.fillRect(X + e, Y + e, s - 2 * e, s - 2 * e); }
+  },
+  shard: t => GALAXY[t] || GALAXY[8], crumbs: false,   // (a top-out flies apart as light)
+  fx: () => createGalaxyFx(), light: false, flash: false, bands: false, pulse: true,
+  world: 'page', page: GALAXY_PAGE,
+  /** its drifting star field into the view's sky layer (made in code — the galaxy downloads nothing) */
+  enter({ sky } = {}) { galaxySky(sky); },
+  warm: (px, ms) => warmGalaxy(px, ms), drop: clearGalaxy, count: galaxyCount,
+};
+
 // ================================================================ GLASS (the first look — retired by PD-4; in no pool, kept drawable)
 const glass = {
   id: 'glass', name: 'GLASS', line: 'Glass crystals', look: null, unlock: null, family: 'neon', holiday: false,
@@ -319,7 +366,7 @@ const glass = {
 };
 
 // (the order = each pool's rotation: DAY crayon · watercolor · paper — NIGHT neon · arcade pixel · galaxy)
-export const SKINS = Object.freeze({ crayon: Object.freeze(crayon), watercolor: Object.freeze(watercolor), paper: Object.freeze(paper), neon: Object.freeze(neon), pixel: Object.freeze(pixel), glass: Object.freeze(glass) });
+export const SKINS = Object.freeze({ crayon: Object.freeze(crayon), watercolor: Object.freeze(watercolor), paper: Object.freeze(paper), neon: Object.freeze(neon), pixel: Object.freeze(pixel), galaxy: Object.freeze(galaxy), glass: Object.freeze(glass) });
 export const SKIN_IDS = Object.freeze(Object.keys(SKINS));
 /** every hook a skin must have (the contract — tests/prism-skins.test.mjs) */
 export const HOOKS = Object.freeze({
