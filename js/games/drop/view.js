@@ -306,7 +306,7 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
       kids.push(h('b.dr-title', 'THE DROP'), h('span.dr-line', dropLine(sc)));
       kids.push(h('small.dr-sub', refused && (finished || !finishing) ? UNCHECKED : finished ? (result && result.counted === false ? 'COUNTS FROM TOMORROW' : 'SCORED') : 'SENDING YOUR RUN…'));
       // THE DROP B — SHARE: SHARE YOUR RUN's card with THE DROP's final board (every junk row SOLID — js/games/drop/share.js), the time, the lines
-      if (finished && !refused) kids.push(tubeButton('SHARE', { kind: 'secondary', cls: 'dr-share', onClick: () => shareRun(sc) }));
+      if (finished && !refused) { kids.push(tubeButton('SHARE', { kind: 'secondary', cls: 'dr-share', onClick: () => shareRun(sc) })); sharer(sc).then(H => H.warm()).catch(() => {}); }   // (PFIX-3 — S11: built as the card shows)
     } else if (pausedAt != null) {
       // (THE DROP B: ONE line — PAUSED · 2 LEFT — for a tap, a hide and a refresh alike; a refresh adds where it came back; a room's pause is free)
       if (kind === 'r') kids.push(h('b.dr-title', 'YOUR ROOM STARTED A GAME'), h('small.dr-sub', 'THIS PAUSE IS FREE'));
@@ -324,12 +324,19 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     setTimeout(() => { el.remove(); if (els.hint === el) els.hint = null; }, 700);
     if (typeof onHint === 'function') { try { onHint(); } catch (e) { console.warn('[drop] hint', e); } }
   }
-  async function shareRun(sc) {
-    try {
+  /** THE SHARE CARD's handle (share.js#prepDrop — the kit's prepShare): ONE per look; the card + its file are made when the end card shows,
+   *  the tap only sends them (one send at a time) */
+  let shareH = null, shareLook = null;
+  async function sharer(sc) {
+    const look = typeof document !== 'undefined' && document.body.dataset.look === 'day' ? 'day' : 'night';
+    if (!shareH || shareLook !== look) {
       const S = await lazyImport(import('./share.js'), './share.js');
-      const look = typeof document !== 'undefined' && document.body.dataset.look === 'day' ? 'day' : 'night';
-      shared = await S.shareDrop({ inputs: { t: tenthsOf(sc) * 100, ln: linesOf(sc), b: boardString(run.eng, 20), day: start.day }, look });
-    } catch (e) { console.warn('[drop] share', e); shared = 'failed'; }
+      shareLook = look; shareH = S.prepDrop({ inputs: { t: tenthsOf(sc) * 100, ln: linesOf(sc), b: boardString(run.eng, 20), day: start.day }, look });
+    }
+    return shareH;
+  }
+  async function shareRun(sc) {
+    try { shared = await (await sharer(sc)).send(); } catch (e) { console.warn('[drop] share', e); shared = 'failed'; }
   }
   let shared = null;
   function stop() {

@@ -15,7 +15,7 @@
 //   (the preview's fake; default THE API JUDGE — judge.js) · window.__coastclear = the test hook (the preview + the E2E)
 import { h, clear, reducedMotion } from '../../ui/dom.js';
 import { foldAnswer, emptyView, clockMs, fmtClock, buoysLeft, chordTargets, nbOf, headline, endLine, finalMs, endMap, shareLine, shareInputs, MAX_SPOTS, W, H, LIGHTS, SPOT_S } from './logic.js';
-import { retryable, recordFinish, tickTurn, endActions, shareOrLine, NOT_RECORDED } from '../../daily/end.js';
+import { retryable, recordFinish, tickTurn, endActions, endShare, NOT_RECORDED } from '../../daily/end.js';
 import { runDayKey } from '../../daily/clock.js';
 import { createApiJudge } from './judge.js';
 import { ccSfx, ccSfxBytes } from './sfx.js';
@@ -476,6 +476,7 @@ export function createView() {
     const title = h('h2.cc-end-t', headline(view));
     const stage = h('div.cc-end-stage', clean ? h('div.cc-lh', { 'aria-hidden': 'true' }, h('i.cc-lh-glow'), h('i.cc-lh-beam', h('i.cc-lh-core'))) : null, title);
     const acts = endActions('cc', { onShare: () => share(), rec: finished === 'FAILED' ? NOT_RECORDED : '' });   // (DM1 — THE DAILY KIT)
+    sharer().warm();   // (PFIX-3 — S11: the card is built NOW, as the end screen shows — the tap only sends it)
     const next = acts.next;
     els.rec = acts.rec;
     els.end.append(
@@ -498,11 +499,15 @@ export function createView() {
     if (r.ok) { doneScore = r.resp.score; finished = 'RECORDED'; return; }
     if (doneScore == null) { finished = 'FAILED'; if (els.rec) els.rec.textContent = NOT_RECORDED; }
   }
-  /** SHARE (CC2 — share.js, lazy): an image with NO BOARD + the one line, through the share sheet */
-  async function share() {
-    const line = shareLine(view, dayKey());
-    return shareOrLine(async () => (await lazyImport(import('./share.js'), './share.js')).shareRun({ inputs: shareInputs(view, dayKey()), line, look: document.body.dataset.look || 'night' }), line);
-  }
+  /** SHARE (CC2 — share.js, lazy): an image with NO BOARD + the one line, through the share sheet. PFIX-3 — S11: the card + its file are made
+   *  when the end screen shows (the kit's endShare), so the tap reaches the share sheet at once */
+  let shareH = null;
+  const lookNow = () => (document.body.dataset.look === 'day' ? 'day' : 'night');
+  const sharer = () => (shareH ||= endShare(async () => {
+    const S = await lazyImport(import('./share.js'), './share.js');
+    return { cv: S.renderShare({ inputs: shareInputs(view, dayKey()), look: lookNow() }), name: 'coast-clear.png', line: shareLine(view, dayKey()) };
+  }, () => shareLine(view, dayKey()), lookNow));
+  const share = () => sharer().send();
 
   const api = {
     mount(el, state) {

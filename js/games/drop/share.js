@@ -9,12 +9,16 @@
 // 6-px cells); the card's foot = the kit's (one straight neon line + the address).
 // SKINS 2B (the owner, Nov 14) — THE ONE RULE: the section = THE DROP (the kit's neon name — WHITE: no win / lose) · the big TIME · the lines · the board's top
 // 8 rows (it was 6); the three text pieces are the kit's painters (js/daily/share.js#paintName · paintBig · paintStat).
+// PFIX-3 (Ben's call on FABLE REVIEW 2's S9) — THE DROP's OWN CARD JOINS THE ONE RULE: the kit's frame (no NEON SPEAKEASY sign) · THE DROP
+// in the kit's small neon name, WHITE (no win / lose) · the kit's big TIME · ONE grey stat line (the lines) · THE ART = the final board (its
+// junk rows SOLID) · the date small over the kit's foot — js/daily/share.js#OWN, like THE PASSWORD's + COAST CLEAR's own cards. The share
+// text carries the bare domain like the others (N7). The card is BUILT BEFORE THE TAP (prepDrop — S11).
 //   solidJunk(board) — PURE (the server runs it too: api/_lib/drop.js#share never sends a hole)
 //   dropInputs({ t, ln, b, day }) — PURE: the card's only inputs (SHARE_KEYS)
 //   renderShare({ inputs, look }) → <canvas>   ·   shareDrop({ inputs, look }) → 'shared' | 'saved' | 'copied' | 'none' | 'failed'
 //   paintSection(c, { inputs, look, W, H })   ·   cropRows(board, n) — PURE: which rows the strip shows
 import { W as BW, VISIBLE, JUNK } from '../prism/engine.js';
-import { RHYTHM, paintName, paintBig, paintStat } from '../../daily/share.js';
+import { RHYTHM, OWN, FOOT, shareFrame, shareFoot, prepShare, paintName, paintBig, paintStat } from '../../daily/share.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 
 export const SHARE_KEYS = Object.freeze(['t', 'ln', 'b', 'day']);
@@ -51,30 +55,44 @@ function dateOf(day) {
   return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }).replace(',', '').toUpperCase();
 }
 const isEnd = I => I.t >= END_MS;
-/** the one plain line: "THE DROP · FRI NOV 13 · 5:12.4 · 17 LINES · https://neonspeakeasy.com" */
+/** the one plain line: "THE DROP · FRI NOV 13 · 5:12.4 · 17 LINES · neonspeakeasy.com" (the bare domain, like the other dailies' — N7) */
 export function shareLine(inputs, site = 'neonspeakeasy.com') {
   const I = dropInputs(inputs);
-  return ['THE DROP', dateOf(I.day), timeOf(I.t), isEnd(I) ? 'THE END' : '', linesOf(I.ln), `https://${site}`].filter(Boolean).join(' · ');
+  return ['THE DROP', dateOf(I.day), timeOf(I.t), isEnd(I) ? 'THE END' : '', linesOf(I.ln), site].filter(Boolean).join(' · ');
 }
+/** the stat line under the big time (the card + the section) */
+const statOf = I => (isEnd(I) ? `THE END · ${linesOf(I.ln)}` : linesOf(I.ln));
 
 let mods = null;
-const load = () => (mods ||= Promise.all([lazyImport(import('../kit/share-run.js'), '../kit/share-run.js'), lazyImport(import('../prism/share.js'), '../prism/share.js'),
-  lazyImport(import('../prism/meta.js'), '../prism/meta.js'), lazyImport(import('../../daily/share.js'), '../../daily/share.js')]).then(([K, P, M, S]) => ({ K, P, M, S })));
+const load = () => (mods ||= Promise.all([lazyImport(import('../prism/share.js'), '../prism/share.js'), lazyImport(import('../prism/meta.js'), '../prism/meta.js')]).then(([P, M]) => ({ P, M })));
+const CARD = {
+  night: { bg0: '#0b0820', bg1: '#05040e', dim: 'rgba(226,222,246,0.72)' },
+  day: { bg0: '#9fcdff', bg1: '#f2f8ff', dim: '#3a5582' },
+};
+/** the board's box on the card: under the stat line, over the date (prism/share.js#drawBoardMiddle fits the board's 10 × 20 inside it) */
+export const BOARD_BOX = Object.freeze({ x: 140, y: OWN.artY - 36, w: 1080 - 280, h: FOOT.lineY - 62 - (OWN.artY - 36) });
 
-/** THE CARD: SHARE YOUR RUN's frame + PRISM DROP's board middle (the holes filled) → a canvas */
+/** THE CARD — THE ONE RULE (js/daily/share.js#OWN): the name (white) · the big TIME · the stat line · the final board (the holes filled) ·
+ *  the date + the kit's foot → a canvas */
 export async function renderShare({ inputs, look = 'night' } = {}) {
-  const { K, P, M } = await load();
-  const I = dropInputs(inputs);
-  const card = K.runCard({ game: 'drop', title: 'THE DROP', mode: dateOf(I.day), name: timeOf(I.t), result: isEnd(I) ? `THE END · ${linesOf(I.ln)}` : linesOf(I.ln), board: I.b || null, look, accent: M.ACCENT });
-  return K.drawRunCard(card, (c, box, k) => P.drawBoardMiddle(c, box, k, { solid: true }));   // (the junk rows SOLID FILLED)
+  const { P, M } = await load();
+  const I = dropInputs(inputs), day = look === 'day', L = CARD[day ? 'day' : 'night'];
+  const { cv, c, W, H } = shareFrame(L, look);   // (the ground + the day's sun — the kit)
+  if (!day) { const hz = c.createRadialGradient(W / 2, -80, 0, W / 2, -80, 700); hz.addColorStop(0, 'rgba(143,216,255,0.16)'); hz.addColorStop(1, 'rgba(143,216,255,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, H); }
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  paintName(c, look, NAME, W / 2, OWN.nameY, OWN.namePx, W - 120);          // (WHITE — THE DROP has no win / lose)
+  paintBig(c, look, timeOf(I.t), W / 2, OWN.bigY, OWN.bigPx);
+  paintStat(c, look, statOf(I), W / 2, OWN.statY, OWN.statPx, W - 120);
+  c.save(); c.textBaseline = 'alphabetic';
+  P.drawBoardMiddle(c, BOARD_BOX, { look, board: I.b || null }, { solid: true });   // (the junk rows SOLID FILLED)
+  c.restore();
+  shareFoot(c, { note: dateOf(I.day), dim: L.dim, color: day ? '#2f86ff' : M.ACCENT, W, look });
+  return cv;
 }
-/** SHARE: the card through the phone's share sheet with the line (THE DAILY KIT's sender) */
-export async function shareDrop({ inputs, look = 'night' } = {}) {
-  const cv = await renderShare({ inputs, look });
-  if (!cv) return 'failed';
-  const { S } = await load();
-  return S.sendShare(cv, { file: 'the-drop.png', line: shareLine(inputs) });
-}
+/** THE CARD, BUILT BEFORE THE TAP (S11 — the kit's prepShare): warm() when the end card shows, send() at the tap */
+export const prepDrop = ({ inputs, look = 'night' } = {}) => prepShare(async () => ({ cv: await renderShare({ inputs, look }), name: 'the-drop.png', line: shareLine(inputs) }));
+/** SHARE at a tap with nothing prepared (kept for a caller that has no handle) → 'shared' | 'none' | 'shown' | 'failed' */
+export const shareDrop = ({ inputs, look = 'night' } = {}) => prepDrop({ inputs, look }).send();
 
 // ---------------------------------------------------------------------------------------------- SHARE TODAY's SECTION
 export const SECTION_H = RHYTHM.H;
@@ -126,7 +144,7 @@ export function paintSection(c, { inputs, look = 'night', W = 1080, H = SECTION_
   c.textAlign = 'center'; c.textBaseline = 'middle';
   paintName(c, look, NAME, W / 2, R.nameY, R.namePx, cw);
   paintBig(c, look, timeOf(I.t), W / 2, R.bigY, R.bigPx);
-  paintStat(c, look, isEnd(I) ? `THE END · ${linesOf(I.ln)}` : linesOf(I.ln), W / 2, R.statY, R.statPx, cw);
+  paintStat(c, look, statOf(I), W / 2, R.statY, R.statPx, cw);
   if (P) paintStrip(c, P, I, look, W / 2, R.artY, R.artH);
   c.restore();
 }

@@ -10,7 +10,7 @@
 // "NOT YET: <name>" line. ONE daily finished = that daily's OWN card, exactly as it is. A daily with no section painter (a new one plugged in) or
 // no share data → its name + its result line (its meta's scoreLine). Up to 6 sections, scaled evenly. Both looks (the day sky / the night neon).
 // THE BAR: shown 360 px wide in a text thread, THE PASSWORD's grid colours, the time and the address still read (the pass log's shots).
-import { shareFrame, sendShare, shareAddress, paintName, RHYTHM, FOOT } from './share.js';
+import { shareFrame, prepShare, shareAddress, paintName, spacedText, spacedWidth, RHYTHM, FOOT } from './share.js';
 import { shareTodayLine, MAX_ROWS } from './today-logic.js';
 import { dateLineOf } from './ticket-art.js';
 import { lazyImport } from '../ui/lazy-import.js';
@@ -20,6 +20,8 @@ const LOOKS = {
   day: { bg0: '#9fcdff', bg1: '#f2f8ff', ink: '#14284a', dim: '#3a5582', sign: '#16305c', glow: 'transparent', rule: 'rgba(22,48,92,0.16)' },
 };
 const FONT_U = '"Chakra Petch", system-ui, sans-serif';
+/** where the sections start: under the date alone · under the streak line (PFIX-3 — N6: the mockup's breath; it was 136 / 222) */
+export const HEAD = Object.freeze({ bare: 160, streak: 248 });
 /** the dailies whose OWN share card can paint a section: the module + its inputs from the server's share data */
 const SECTIONS = {
   password: { load: () => Promise.all([lazyImport(import('../games/password/share.js'), '../games/password/share.js'), lazyImport(import('../games/password/logic.js'), '../games/password/logic.js')]).then(([S, G]) => ({ S, input: s => ({ run: G.runFromShare(s) }), ok: s => !!G.runFromShare(s) })) },
@@ -31,10 +33,10 @@ const SECTIONS = {
 };
 
 /** the streak flame (js/progress/flame-art.js — the one flame everywhere) as a bitmap */
-async function flameImage(state, w) {
+async function flameImage(state, w, look = 'night') {
   try {
     const { flameSvg } = await lazyImport(import('../progress/flame-art.js'), '../progress/flame-art.js');
-    const s = new XMLSerializer().serializeToString(flameSvg(state, w));
+    const s = new XMLSerializer().serializeToString(flameSvg(state, w, { glow: look !== 'day' }));   // (PFIX-3 — N7: by day no night glow)
     return new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(s)}`; });
   } catch { return null; }
 }
@@ -60,20 +62,21 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
   // ONE daily finished → that daily's OWN card, exactly as it is (its own sign, foot and all)
   if (plan.single && mods[plan.single]) { const M = mods[plan.single]; return M.S.renderShare({ ...M.input(share[plan.single]), look }); }   // (THE DROP's is async — awaited by the caller)
   const { cv, c, W } = shareFrame({ bg0: L.bg0, bg1: L.bg1 }, look);
-  const flame = streak > 0 ? await flameImage('lit', 160) : null;
+  const flame = streak > 0 ? await flameImage('lit', 160, look) : null;
   if (night) { const hz = c.createRadialGradient(W / 2, -60, 0, W / 2, -60, 720); hz.addColorStop(0, 'rgba(255,111,200,0.14)'); hz.addColorStop(1, 'rgba(255,111,200,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, 1350); }
   c.textAlign = 'center'; c.textBaseline = 'middle';
   // ONE HEADER: the date + the streak flame (PD-4's Group 0 — the owner: ~1.4× bigger, it reads in a thread)
-  c.save(); c.font = `800 53px ${FONT_U}`; c.letterSpacing = '12px'; c.fillStyle = L.ink; c.fillText(dateLineOf(today.day), W / 2 + 6, 82); c.restore();
-  let top = 136;
+  c.save(); c.font = `800 53px ${FONT_U}`; c.fillStyle = L.ink; spacedText(c, dateLineOf(today.day), W / 2 + 6, 82, 12); c.restore();
+  // (PFIX-3 — N6: the first section's breath under the header like the approved mockup — its name ≈ 100 px under the streak line's middle)
+  let top = HEAD.bare;
   if (streak > 0) {
     const fw = 72, fh = Math.round(fw * 160 / 140), label = `${streak}-DAY STREAK`;
-    c.save(); c.font = `800 45px ${FONT_U}`; c.letterSpacing = '6px';
-    const tw = c.measureText(label).width, lx = W / 2 - (fw + 18 + tw) / 2;
+    c.save(); c.font = `800 45px ${FONT_U}`;
+    const tw = spacedWidth(c, label, 6), lx = W / 2 - (fw + 18 + tw) / 2;
     if (flame) c.drawImage(flame, lx, 158 - fh / 2, fw, fh);
-    c.textAlign = 'left'; c.fillStyle = L.dim; c.fillText(label, lx + fw + 18, 160); c.restore();
+    c.textAlign = 'left'; c.fillStyle = L.dim; spacedText(c, label, lx + fw + 18, 160, 6); c.restore();
     c.textAlign = 'center';
-    top = 222;
+    top = HEAD.streak;
   }
   // THE SECTIONS — THE ONE RULE: the room between the header and the foot shared by the sections (≤ 6), every section drawn by its daily's own
   // pieces at the SAME scale `s` (never past 1.45×: two dailies read bigger than three, never differently from each other). A section's
@@ -100,26 +103,33 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
       const w = W / s, R = RHYTHM;
       c.translate(0, Math.max(0, (box / s - R.H) / 2) + (R.H - (R.bigY + R.bigPx / 2)) / 2);
       paintName(c, look, sec.name, w / 2, R.nameY, R.namePx, w - 2 * R.COL);
-      c.save(); let px = R.bigPx * 0.7; c.font = `700 ${px}px ${FONT_U}`; c.letterSpacing = '3px'; c.fillStyle = L.ink;
+      c.save(); let px = R.bigPx * 0.7; c.font = `700 ${px}px ${FONT_U}`; c.fillStyle = L.ink;
       const t = String(lineOf(sec.id, today.mine[sec.id]));
-      while (px > 24 && c.measureText(t).width > w - 2 * R.COL) { px -= 2; c.font = `700 ${px}px ${FONT_U}`; }
-      c.fillText(t, w / 2 + 2, R.bigY + 6); c.restore();
+      while (px > 24 && spacedWidth(c, t, 3) > w - 2 * R.COL) { px -= 2; c.font = `700 ${px}px ${FONT_U}`; }
+      spacedText(c, t, w / 2 + 2, R.bigY + 6, 3); c.restore();
     }
     c.restore();
     y += box + gap;
   });
-  if (notLine) { c.save(); c.font = `700 26px ${FONT_U}`; c.letterSpacing = '5px'; c.fillStyle = L.dim; c.fillText(notLine, W / 2 + 3, FOOT.lineY - 40); c.restore(); }
+  if (notLine) { c.save(); c.font = `700 26px ${FONT_U}`; c.fillStyle = L.dim; spacedText(c, notLine, W / 2 + 3, FOOT.lineY - 40, 5); c.restore(); }
   // ONE FOOT = THE ADDRESS AS ITS HEADLINE (CITY FIXES — the dailies chat, Nov 8) — SKINS 2A, NO PILLS: ONE straight thin neon line + the
   // address in plain neon lettering under it (the kit's foot — every share card's)
   shareAddress(c, look, { W });
   return cv;
 }
 
-/** SHARE TODAY's tap: the server's spoiler-free share inputs for your finished runs (`today { share }`), the card, the share sheet + the one line */
-export async function shareToday(today, lineOf, { streak = 0 } = {}) {
-  const line = shareTodayLine(today, (id, s) => String(lineOf(id, s)).toLowerCase());
-  let share = {};
-  try { const { dailyShare } = await lazyImport(import('./contract.js'), './contract.js'); const r = await dailyShare(); share = (r && r.day === today.day && r.share) || {}; } catch { /* the sections fall back to the result lines */ }
-  const cv = await drawToday(today, lineOf, undefined, { streak, share });
-  return sendShare(cv, { file: 'neon-speakeasy-dailies.png', line });
+/**
+ * SHARE TODAY, BUILT BEFORE THE TAP (PFIX-3 — FABLE REVIEW 2's S11): the server's spoiler-free share inputs for your finished runs (`today
+ * { share }`), the card and its PNG are made when the DAILY screen SHOWS the button (`warm()`); the tap (`send()`) then opens the share sheet
+ * at once with the ready file + the one line (js/daily/share.js#prepShare — one send at a time; no file sharing → the card shown in a sheet).
+ */
+export function prepToday(today, lineOf, { streak = 0, look } = {}) {
+  return prepShare(async () => {
+    const line = shareTodayLine(today, (id, s) => String(lineOf(id, s)).toLowerCase());
+    let share = {};
+    try { const { dailyShare } = await lazyImport(import('./contract.js'), './contract.js'); const r = await dailyShare(); share = (r && r.day === today.day && r.share) || {}; } catch { /* the sections fall back to the result lines */ }
+    return { cv: await drawToday(today, lineOf, look, { streak, share }), name: 'neon-speakeasy-dailies.png', line };
+  });
 }
+/** SHARE TODAY at a tap with nothing prepared (the old path — kept for a caller that has no handle) */
+export const shareToday = (today, lineOf, opts = {}) => prepToday(today, lineOf, opts).send();

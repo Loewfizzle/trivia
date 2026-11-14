@@ -27,9 +27,9 @@ const S = (tag, a = {}, ...kids) => { const e = document.createElementNS(NS, tag
 let uid = 0;
 
 /** a tube: its glow (two soft wide strokes), the coloured tube, the white core line */
-function tube(d, col, glow, a, w, cls = '') {
+function tube(d, col, glow, a, w, cls = '', lit = true) {
   const g = S('g', { class: cls });
-  if (a > 0) {
+  if (a > 0 && lit) {
     g.append(S('path', { d, fill: 'none', stroke: `rgba(${glow},${(0.16 * a).toFixed(3)})`, 'stroke-width': String(w * 3.6), 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
     g.append(S('path', { d, fill: 'none', stroke: `rgba(${glow},${(0.34 * a).toFixed(3)})`, 'stroke-width': String(w * 2), 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
   }
@@ -39,7 +39,7 @@ function tube(d, col, glow, a, w, cls = '') {
 }
 
 /** the flame as an <svg> (state: lit · waiting · frozen · out; w: its width in px — the height is 1.25 ×) */
-export function flameSvg(state = 'lit', w = 160) {
+export function flameSvg(state = 'lit', w = 160, { glow = true } = {}) {
   const L = FLAME_LOOK[state] || FLAME_LOOK.lit, id = `fl${++uid}`;
   const thin = w < 40;   // (a small flame: thicker tubes so it reads; the licks drop)
   const tw = thin ? 5.2 : 3.2;
@@ -49,13 +49,14 @@ export function flameSvg(state = 'lit', w = 160) {
     S('radialGradient', { id: `${id}g`, cx: '0.5', cy: '0.68', r: '0.5' },
       S('stop', { offset: '0', 'stop-color': `rgba(${L.g},${(0.5 * L.a).toFixed(3)})` }), S('stop', { offset: '1', 'stop-color': `rgba(${L.g},0)` })));
   const svg = S('svg', { viewBox: '-10 -6 140 160', width: String(w), height: String(Math.round(w * 160 / 140)), 'aria-hidden': 'true', class: 'pg-fl-svg' }, defs,
-    S('ellipse', { cx: '60', cy: '98', rx: '66', ry: '62', fill: `url(#${id}g)`, class: 'pg-fl-halo' }),
+    // (PFIX-3 — N7: `glow: false` = the flame on a DAY share card — no halo, no soft wide strokes: on the sky they read as a pink-grey smudge)
+    glow ? S('ellipse', { cx: '60', cy: '98', rx: '66', ry: '62', fill: `url(#${id}g)`, class: 'pg-fl-halo' }) : null,
     S('path', { d: FLAME.outer, fill: `url(#${id}f)` }),
-    tube(FLAME.outer, L.o, L.g, L.a, tw, 'pg-fl-outer'),
-    thin ? null : tube(FLAME.lickL, L.o, L.g, L.a, tw * 0.9, 'pg-fl-lick pg-fl-l'),
-    thin ? null : tube(FLAME.lickR, L.o, L.g, L.a, tw * 0.9, 'pg-fl-lick pg-fl-r'),
-    tube(FLAME.mid, L.m, L.g, L.a, tw * 0.9, 'pg-fl-mid'),
-    tube(FLAME.core, L.c, '255,240,220', L.a, tw * 0.85, 'pg-fl-core'));
+    tube(FLAME.outer, L.o, L.g, L.a, tw, 'pg-fl-outer', glow),
+    thin ? null : tube(FLAME.lickL, L.o, L.g, L.a, tw * 0.9, 'pg-fl-lick pg-fl-l', glow),
+    thin ? null : tube(FLAME.lickR, L.o, L.g, L.a, tw * 0.9, 'pg-fl-lick pg-fl-r', glow),
+    tube(FLAME.mid, L.m, L.g, L.a, tw * 0.9, 'pg-fl-mid', glow),
+    tube(FLAME.core, L.c, '255,240,220', L.a, tw * 0.85, 'pg-fl-core', glow));
   return svg;
 }
 /** the flame in a span (the shared root class pg-flame + is-<state>) */

@@ -1,4 +1,4 @@
-// (SKINS 2B — the EXPECTED copy, re-taken ON PURPOSE on Nov 14: THE SHARE CARD's ONE RULE — the daily's small neon name CARRIES THE RESULT (green made · red failed), ONE big TIME, ONE grey stat line, the art. A frozen copy of js/games/coastclear/share.js for tests/integration/share-same.html — never imported by the app.)
+// (PFIX-3 — the EXPECTED copy, re-taken ON PURPOSE on Nov 14 (FABLE REVIEW 2's S7): the three lamps centred on their INK (the row sat 12-18 px right of every other band) and capped by the column's width (its own card + the section). A frozen copy of js/games/coastclear/share.js for tests/integration/share-same.html — never imported by the app.)
 // COAST CLEAR — THE SHARE CARD (CC2 — docs/coastclear.md "THE SHARE"; built on THE PASSWORD's share.js). SHARE renders an IMAGE on a canvas
 // (1080 × 1350, in the look on screen — the night harbor's neon or the sunny harbor) with NO BOARD (everyone gets the same harbor that day: a
 // picture of yours would give the searchlights away): the sign, the headline (COAST CLEAR · CAUGHT), the big time (a clear) or the one line,
@@ -64,9 +64,16 @@ export function partsOf(I) {
 export const COL_PAD = RHYTHM.COL;
 
 // ---------------------------------------------------------------------------------------------- THE PIECES (this card + SHARE TODAY's section)
-/** THREE drawn searchlights, lit per spot, centred on cx */
+/** a lamp's INK inside its 32-unit box (the bulb's left edge → the cone's tip, strokes included) — what the eye centres on */
+export const LAMP_INK = Object.freeze({ x0: 4.6, x1: 31.5, h: 22 });
+/** the three lamps' ink width at scale S with `gap` between the boxes */
+export const lampsWidth = (S, gap) => 2 * (32 * S + gap) + (LAMP_INK.x1 - LAMP_INK.x0) * S;
+/** the biggest scale the three lamps fit `maxW` at (the gap = `gapK` × S) */
+export const lampScale = (maxW, gapK) => maxW / (64 + 2 * gapK + LAMP_INK.x1 - LAMP_INK.x0);
+/** THREE drawn searchlights, lit per spot, centred on cx BY THEIR INK (PFIX-3 — FABLE REVIEW 2's S7: the 32-unit boxes were centred, and a
+ *  lamp's ink sits right of its box's middle — the row read 12–18 px right of every other band) */
 export function paintLamps(c, I, L, look, cx, y, S, gap) {
-  const lw = 32 * S, x0 = (cx * 2 - (3 * lw + 2 * gap)) / 2;
+  const lw = 32 * S, x0 = cx - lampsWidth(S, gap) / 2 - LAMP_INK.x0 * S;
   for (let k = 0; k < 3; k++) lamp(c, x0 + k * (lw + gap), y, S, k < (Number(I.spots) || 0), L, look);
 }
 
@@ -87,8 +94,9 @@ export function renderShare({ inputs, look = 'night' } = {}) {
   paintName(c, look, NAME, W / 2, OWN.nameY, OWN.namePx, W - 120, P.result);
   paintBig(c, look, P.big, W / 2, OWN.bigY, OWN.bigPx);
   paintStat(c, look, P.stat, W / 2, OWN.statY, OWN.statPx, W - 120);
-  const S = 8, lh = 22 * S;
-  paintLamps(c, I, L, look, W / 2, OWN.artY + (OWN.artBot - OWN.artY - lh) / 2 - 40, S, 50);
+  // (the lamps never wider than the card's column — S7: capped by its width)
+  const S = Math.min(8, lampScale(W - 2 * RHYTHM.COL, 6.25)), lh = 22 * S;
+  paintLamps(c, I, L, look, W / 2, OWN.artY + (OWN.artBot - OWN.artY - lh) / 2 - 40, S, S * 6.25);
   // the day number + THE FOOT (the kit's)
   shareFoot(c, { dayNo: I.dayNo, dim: L.dim, color: L.site, site: I.site, W, look });
   return cv;
@@ -111,7 +119,9 @@ export function paintSection(c, { inputs, look = 'night', W = SHARE_W, H = SECTI
   paintName(c, look, NAME, W / 2, R.nameY, R.namePx, cw, P.result);
   paintBig(c, look, P.big, W / 2, R.bigY, R.bigPx);
   paintStat(c, look, P.stat, W / 2, R.statY, R.statPx, cw);
-  const S = (R.artH - 12) / 22;   // (a lamp is 22 tall in its own units: the strip's height less a breath)
+  // (a lamp is 22 tall in its own units: the strip's height less a breath — and never wider than the column: with TWO dailies a section is
+  //  scaled 1.45× and the row stuck out past the foot line — S7)
+  const S = Math.min((R.artH - 12) / 22, lampScale(cw, 8.5));
   paintLamps(c, I, L, look, W / 2, R.artY + (R.artH - 22 * S) / 2, S, S * 8.5);
   c.restore();
 }

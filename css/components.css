@@ -1288,3 +1288,9 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .wo-wait { padding: 14px 0; font: 600 13px/1.4 var(--font-ui); color: var(--text-dim); text-align: center; }
 .wo-guests { margin: 4px 0 6px; font: 700 12px/1.4 var(--font-ui); letter-spacing: 0.06em; color: var(--text-dim); }
 .wo-stamp { margin: 0; font: 600 10.5px/1.4 var(--font-mono); letter-spacing: 0.08em; color: var(--text-faint); }
+
+/* PFIX-3 — THE SHARE CARD SHOWN (js/daily/share.js#showCard — a phone that can't share a file, or refused): the picture itself, which a
+   press-and-hold saves on a phone (the page turns the callout off everywhere else — base.css), ONE line, a SHARE tube where it can share */
+.shr-img { display: block; width: min(100%, 300px); height: auto; aspect-ratio: 4 / 5; margin: 0 auto; border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  -webkit-touch-callout: default; user-select: auto; -webkit-user-select: auto; pointer-events: auto; }
+.shr-hold { margin: 2px 0 4px; text-align: center; font: 700 12px/1.3 var(--font-ui); letter-spacing: 0.14em; color: var(--text-dim); }

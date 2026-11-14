@@ -71,7 +71,7 @@ test('NO PILLS in the share kit: no rounded-rect helper, no roundRect / arcTo fr
   assert.match(read('js/daily/share-today.js'), /shareAddress\(c, look, \{ W \}\);/);
   assert.match(read('js/games/kit/share-run.js'), /shareAddress\(c, card\.look, /);
   for (const p of ['js/games/password/share.js', 'js/games/coastclear/share.js']) assert.match(read(p), /shareFoot\(c, \{ dayNo/, `${p}: the kit's foot (the name is on the card once — never again in the foot)`);
-  assert.match(kit, /export function shareFoot\(c, \{ dayNo = null, dim, color, site = SITE, W = SHARE_W, look = 'night' \}\)/);
+  assert.match(kit, /export function shareFoot\(c, \{ dayNo = null, note = null, dim, color, site = SITE, W = SHARE_W, look = 'night' \}\)/);   // (PFIX-3: `note` — THE DROP's date in the Nº's place)
 });
 
 test('COAST CLEAR: the beam wedge is gone (the card + the section); the three lamps stay', () => {
@@ -85,7 +85,7 @@ test("THE DROP: the junk rows draw SOLID FILLED; the strip = the stack's top row
   assert.match(b, /export const SOLID_JUNK = Object\.freeze\(\{ night: Object\.freeze\(\{ fill: '#[0-9a-f]{6}', edge: '#[0-9a-f]{6}' \}\), day: /);
   assert.match(b, /if \(SJ && t === 8\) \{[^}]*ctx\.fillRect\(X, Y, px, px\);[^}]*ctx\.fillRect\(X \+ se, Y \+ se, px - 2 \* se, px - 2 \* se\); return; \}/, 'a filled block with a darker edge — never an outline square');
   const d = read('js/games/drop/share.js');
-  assert.match(d, /P\.drawBoardMiddle\(c, box, k, \{ solid: true \}\)/, "the DROP's own card");
+  assert.match(d, /P\.drawBoardMiddle\(c, BOARD_BOX, \{ look, board: I\.b \|\| null \}, \{ solid: true \}\)/, "the DROP's own card");
   assert.match(d, /look: day \? 'crayon' : 'neon', solid: P\.SOLID_JUNK\[day \? 'day' : 'night'\] \}\)/, "SHARE TODAY's strip");
   assert.match(read('js/games/prism/share.js'), /solid: solid \? SOLID_JUNK\[day \? 'day' : 'night'\] : null \}\)/, 'the card picks the pair by its look — board.js never tests one');
   // the crop
@@ -166,7 +166,8 @@ test("THE ADD-ON (Ben, Nov 14 11:25 am) — THE PASSWORD: each room ONE centred 
   assert.ok(PW.sectionH({ run: tall, W: 1080, k: 1 }) > RHYTHM.H, 'a tall grid grows its section (readability beats equal strip heights)');
   // THE OWN CARD: paintRooms — each room's door + label + grid share ONE centre; both rooms start at the same top
   const calls = [];
-  const ctx = new Proxy({}, { get: (_, k) => (k === 'measureText' ? () => ({ width: 100 }) : (...a) => { calls.push([k, ...a]); }), set: (_, k, v) => { calls.push(['set', k, v]); return true; } });
+  // (a canvas WITH letterSpacing — `has`: the kit's spacedText then prints a label in ONE fillText, as a current browser does)
+  const ctx = new Proxy({}, { has: () => true, get: (_, k) => (k === 'measureText' ? () => ({ width: 100 }) : (...a) => { calls.push([k, ...a]); }), set: (_, k, v) => { calls.push(['set', k, v]); return true; } });
   PW.paintRooms(ctx, tall, PW.tokens('night'), 'night', 540, 600);
   const G = PW.ROOMS, gw = 5 * G.cell + 4 * G.gap, mids = [540 - (gw + G.colGap) / 2, 540 + (gw + G.colGap) / 2];
   const labels = calls.filter(c => c[0] === 'fillText');
@@ -183,5 +184,127 @@ test("THE ADD-ON (Ben, Nov 14 11:25 am) — THE PASSWORD: each room ONE centred 
   const src = read('js/games/password/share.js');
   assert.match(src, /if \(d && d\.marks\.length\) grid\(c, d\.marks, mid - gw \/ 2, top \+ roomsHead\(\), G\.cell, G\.gap, L\);/, 'every grid starts at the same y under its own label');
   assert.doesNotMatch(src, /paintDoors|xs: \[250, 650\]/, 'no label hanging beside a door');
-  assert.match(src, /c\.fillStyle = st === 'open' \? \(look === 'day' \? '#1f7a45' : L\.good\) : st === 'on' \? L\.doorOn : st === 'held' \? L\.doorHeld : L\.faint;/, "a held room's label stays red");
+  assert.match(src, /c\.fillStyle = st === 'open' \? \(look === 'day' \? '#1f7a45' : L\.good\) : st === 'on' \? L\.doorOn : st === 'held' \? \(L\.heldInk \|\| L\.doorHeld\) : L\.faint;/, "a held room's label stays red (PFIX-3: by day the solid dark red — >= 4.5:1 on the sky)");
+});
+
+// ---------------------------------------------------------------- PFIX-3 (FABLE REVIEW 2's share-card fixes — the pure halves; the pixels: tests/integration/share-same.html)
+test('PFIX-3 — S10, LETTER-SPACING BY HAND: ONE helper (spacedText / spacedWidth) — no share file sets canvas letterSpacing itself; without the property a line is drawn letter by letter, as wide and as centred as the tracked one', async () => {
+  const K = await import('../js/daily/share.js');
+  for (const p of [...KIT, 'js/games/overclock/share.js']) {
+    const c = code(p);
+    if (p === 'js/daily/share.js') assert.equal((c.match(/c\.letterSpacing = /g) || []).length, 2, 'only inside the helper (spacedWidth + spacedText)');
+    else assert.doesNotMatch(c, /letterSpacing/, `${p}: every tracked line goes through the kit's helper`);
+  }
+  // a canvas WITHOUT letterSpacing (an iPhone before iOS 18.4): every letter 10 px wide
+  const calls = [];
+  const old = { textAlign: 'center', measureText: t => ({ width: 10 * [...String(t)].length }), fillText: (t, x, y) => calls.push([t, x, y]), strokeText: (t, x, y) => calls.push(['s' + t, x, y]), save() {}, restore() {} };
+  assert.equal(K.spacedWidth(old, 'ABCD', 5), 60, 'four letters + a gap after each (the trailing one too — what the canvas measures)');
+  K.spacedText(old, 'ABCD', 500 + 2.5, 80, 5);                       // (the callers' own half-gap shift)
+  assert.deepEqual(calls.map(c => c[0]), ['A', 'B', 'C', 'D']);
+  assert.deepEqual(calls.map(c => c[1]), [472.5, 487.5, 502.5, 517.5], 'letter by letter from the left');
+  const inkMid = (calls[0][1] + calls[3][1] + 10) / 2;
+  assert.equal(inkMid, 500, 'the INK is centred on the card\'s centre line (it sat 4–8 px right, and the names shrank)');
+  calls.length = 0; old.textAlign = 'left';
+  K.spacedText(old, 'AB', 100, 80, 6);
+  assert.deepEqual(calls.map(c => c[1]), [100, 116]);
+  // a canvas WITH it: ONE call, the property set
+  const now = { textAlign: 'center', letterSpacing: '0px', measureText: () => ({ width: 77 }), fillText: (t, x, y) => calls.push([t, x, y]) };
+  calls.length = 0;
+  K.spacedText(now, 'ABCD', 502.5, 80, 5);
+  assert.deepEqual(calls, [['ABCD', 502.5, 80]]); assert.equal(now.letterSpacing, '5px');
+  assert.equal(K.spacedWidth(now, 'ABCD', 5), 77);
+  // the tests' switch: by hand even where the canvas could
+  K.forceManualSpacing(true); calls.length = 0;
+  K.spacedText({ ...old, letterSpacing: '0px', textAlign: 'left' }, 'AB', 0, 0, 4);
+  K.forceManualSpacing(false);
+  assert.deepEqual(calls.map(c => c[0]), ['A', 'B']);
+});
+
+test('PFIX-3 — S7, COAST CLEAR\'s LAMPS: centred on their INK, never wider than the column (SHARE TODAY with 2 + 3 dailies, its own card)', async () => {
+  const CC = await import('../js/games/coastclear/share.js');
+  const { x0, x1 } = CC.LAMP_INK;
+  // three lamps at scale S: the ink runs from the first lamp's bulb to the last lamp's cone tip
+  const S = 6, gap = S * 8.5, calls = [];
+  const ctx = new Proxy({}, { get: (_, k) => (...a) => { calls.push([k, ...a]); return undefined; }, set: () => true });
+  CC.paintLamps(ctx, { spots: 1 }, CC.tokens('night'), 'night', 540, 100, S, gap);
+  const xs = calls.filter(c => c[0] === 'translate').map(c => c[1]);
+  assert.equal(xs.length, 3);
+  const left = xs[0] + x0 * S, right = xs[2] + x1 * S;
+  assert.ok(Math.abs((left + right) / 2 - 540) < 1e-6, `the ink's middle is the centre line (${((left + right) / 2).toFixed(2)})`);
+  assert.ok(Math.abs(right - left - CC.lampsWidth(S, gap)) < 1e-6);
+  // the cap: the scale the column allows — at 1.45× (two dailies) the lamps shrink to fit, at ~1× (three) the strip's height decides
+  for (const k of [1.45, 0.97]) {
+    const W = 1080 / k, cw = W - 2 * RHYTHM.COL, s = Math.min((RHYTHM.artH - 12) / 22, CC.lampScale(cw, 8.5));
+    assert.ok(CC.lampsWidth(s, s * 8.5) <= cw + 1e-6, `${k}×: the lamps fit the column (${(CC.lampsWidth(s, s * 8.5) * k).toFixed(0)} of ${(cw * k).toFixed(0)} px on the card)`);
+  }
+  assert.ok(CC.lampScale(1080 / 1.45 - 2 * RHYTHM.COL, 8.5) < (RHYTHM.artH - 12) / 22, 'with two dailies the column — not the strip — decides');
+  const own = Math.min(8, CC.lampScale(1080 - 2 * RHYTHM.COL, 6.25));
+  assert.ok(CC.lampsWidth(own, own * 6.25) <= 1080 - 2 * RHYTHM.COL + 1e-6, 'its own card too');
+  assert.match(read('js/games/coastclear/share.js'), /const S = Math\.min\(\(R\.artH - 12\) \/ 22, lampScale\(cw, 8\.5\)\);/);
+});
+
+test('PFIX-3 — S8 / N6 / S9: THE PASSWORD\'s door takes the LOOK (day fills), its SHARE TODAY grids are BOTTOM-aligned (its own card top-aligned); THE DROP\'s own card is on the kit\'s rule', async () => {
+  const pw = read('js/games/password/share.js');
+  assert.match(pw, /function door\(c, x, y, S, st, L, look = 'night'\) \{\n  const day = look === 'day';/);
+  assert.doesNotMatch(code('js/games/password/share.js'), /L === LOOK\.day/, 'the old test was never true (tokens() hands out a copy)');
+  assert.match(pw, /door\(c, mid - dw \/ 2, top, G\.S, st, L, look\);/);
+  assert.match(pw, /st === 'held' \? \(L\.heldInk \|\| L\.doorHeld\) : L\.faint/, 'a failed room\'s label: the solid day red');
+  // the grids: each starts (rows - its rows) × (cell + gap) lower — they end on ONE floor
+  const calls = [];
+  const ctx = new Proxy({}, { get: (_, k) => (...a) => { calls.push([k, ...a]); return undefined; }, set: () => true });
+  const PW = await import('../js/games/password/share.js'), G = await import('../js/games/password/logic.js');
+  const run = { doors: [{ guesses: ['a', 'b', 'c'], marks: [[G.MISS], [G.MISS], [G.MISS]] }, { guesses: ['a'], marks: [[G.MISS]] }] };
+  PW.paintGrids(ctx, run, PW.tokens('night'), 540, 200, 40, 8, 60);
+  const ys = calls.filter(c => c[0] === 'moveTo').map(c => c[2]);
+  assert.deepEqual([...new Set(ys)].sort((a, b) => a - b), [200, 248, 296], 'the tall grid\'s three rows');
+  assert.equal(ys[ys.length - 1], 296, 'the one-row grid sits on the tall grid\'s LAST row (bottom-aligned)');
+  assert.match(pw, /if \(d && d\.marks\.length\) grid\(c, d\.marks, mid - gw \/ 2, top \+ roomsHead\(\), G\.cell, G\.gap, L\);/, 'its own card: every column from the same top');
+  // THE DROP's own card: the kit's frame + the kit's three painters + the kit's foot — never SHARE YOUR RUN's frame
+  const d = read('js/games/drop/share.js'), card = d.slice(d.indexOf('export async function renderShare'), d.indexOf('export const prepDrop'));
+  assert.match(card, /shareFrame\(L, look\)/); assert.match(card, /paintName\(c, look, NAME, W \/ 2, OWN\.nameY, OWN\.namePx, W - 120\);/, 'the name: no result → WHITE');
+  assert.match(card, /paintBig\(c, look, timeOf\(I\.t\), W \/ 2, OWN\.bigY, OWN\.bigPx\);/); assert.match(card, /paintStat\(c, look, statOf\(I\), W \/ 2, OWN\.statY, OWN\.statPx, W - 120\);/);
+  assert.match(card, /shareFoot\(c, \{ note: dateOf\(I\.day\)/);
+  assert.doesNotMatch(code('js/games/drop/share.js'), /runCard|drawRunCard|share-run\.js/);
+  const DR = await import('../js/games/drop/share.js');
+  assert.ok(DR.BOARD_BOX.y > OWN.statY + OWN.statPx / 2 + 20, 'the board starts clear of the stat line');
+  assert.ok(DR.BOARD_BOX.y + DR.BOARD_BOX.h <= FOOT.lineY - 50, '… and ends clear of the date + the foot');
+  assert.equal(DR.shareLine({ t: 1000, ln: 2, day: 'd20261113' }).includes('https://'), false, 'the bare domain, like the other dailies\' lines');
+});
+
+test('PFIX-3 — S11, THE CARD IS BUILT BEFORE THE TAP: prepShare builds once, the tap sends the ready file with nothing awaited that takes time; one send at a time; never a download', async () => {
+  const K = await import('../js/daily/share.js');
+  const kit = code('js/daily/share.js');
+  assert.doesNotMatch(kit, /\.download\b|a\.click\(\)|createElement\('a'\)/, 'never a silent download');
+  assert.match(read('js/daily/share.js'), /PRESS AND HOLD TO SAVE/);
+  // a fake phone that shares files
+  const shares = [];
+  const nav = { canShare: d => !!(d && d.files && d.files.length), share: d => { shares.push(d); return new Promise(r => setTimeout(r, 30)); } };
+  const had = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: nav });
+  try {
+    let made = 0;
+    const cv = () => ({ width: 1080, height: 1350, toBlob: cb => cb(new Blob(['png'], { type: 'image/png' })) });
+    const H = K.prepShare(async () => { made++; return { cv: cv(), name: 'card.png', line: 'the line' }; });
+    H.warm(); H.warm();
+    assert.equal(await H.ready(), true);
+    assert.equal(made, 1, 'built ONCE, when the screen opened');
+    const a = H.send(), b = H.send();
+    assert.equal(await b, 'busy', 'a double tap: ONE send');
+    assert.equal(await a, 'shared');
+    assert.equal(shares.length, 1); assert.equal(shares[0].files[0].name, 'card.png'); assert.equal(shares[0].text, 'the line');
+    assert.equal(made, 1, 'the tap built nothing');
+    // the player closes the share sheet: nothing else happens
+    nav.share = () => Promise.reject(Object.assign(new Error('x'), { name: 'AbortError' }));
+    assert.equal(await H.send(), 'none');
+    // a build that fails is tried again by the next send
+    let n = 0;
+    const F = K.prepShare(async () => { if (!n++) throw new Error('no'); return { cv: cv(), name: 'c.png', line: '' }; });
+    assert.equal(await F.ready(), false);
+    nav.share = d => { shares.push(d); return Promise.resolve(); };
+    assert.equal(await F.send(), 'shared');
+  } finally { if (had) Object.defineProperty(globalThis, 'navigator', had); else delete globalThis.navigator; }
+  // where it is warmed: the DAILY screen as TODAY shows the button, each daily's end screen, THE DROP's end card
+  assert.match(read('js/screens/daily.js'), /if \(share\) warmShare\(t\);/);
+  assert.match(read('js/games/drop/view.js'), /sharer\(sc\)\.then\(H => H\.warm\(\)\)/);
+  assert.match(read('js/daily/share-today.js'), /export function prepToday\(today, lineOf, \{ streak = 0, look \} = \{\}\) \{\n  return prepShare\(async \(\) => \{/);
 });

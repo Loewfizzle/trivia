@@ -6,6 +6,7 @@ import { h } from '../ui/dom.js';
 import { tubeButton } from '../ui/components.js';
 import { streakDay } from '../core/streak.js';
 import { msToTurn, fmtCountdown } from './clock.js';
+import { lazyImport } from '../ui/lazy-import.js';
 
 // (an error worth another try — js/daily/retry.js, PURE: the shared rule)
 import { retryable } from './retry.js';
@@ -49,6 +50,35 @@ export function fitTitle(el) {
   let size = max;
   el.style.fontSize = '';
   for (let i = 0; i < 12 && el.scrollWidth > el.clientWidth + 1 && size > 18; i++) { size -= 2; el.style.fontSize = `${size}px`; }
+}
+
+/**
+ * PFIX-3 (FABLE REVIEW 2 — S11) — A DAILY's SHARE, BUILT BEFORE THE TAP: endShare(make, lineOf, key?) → { warm(), send() }. `make()` (async →
+ * { cv, name, line } — the game's share.js, lazy + its drawing) runs when the END SCREEN shows (`warm()`); the tap (`send()`) opens the share
+ * sheet at once with the ready file (js/daily/share.js#prepShare: one send at a time; no file sharing → the card SHOWN in a sheet, PRESS AND
+ * HOLD TO SAVE). `key()` (the look) changing → the card is made again. A card that can't be made → the plain line, as before.
+ */
+export function endShare(make, lineOf, key = () => '') {
+  let H = null, at = null, busy = false;
+  const handle = async () => {
+    const k = key();
+    if (!H || k !== at) { const S = await lazyImport(import('./share.js'), './share.js'); at = k; H = S.prepShare(make); }
+    return H;
+  };
+  return {
+    warm() { handle().then(x => x.warm()).catch(() => {}); },
+    async send() {
+      if (busy) return 'busy';
+      busy = true;
+      try {
+        let how = 'failed';
+        try { how = await (await handle()).send(); } catch (e) { console.warn('[share]', e); }
+        if (how !== 'failed') return how;
+        try { const line = lineOf(); if (navigator.share) await navigator.share({ text: line }); else await navigator.clipboard.writeText(line); } catch { /* the user closed it */ }
+        return 'line';
+      } finally { busy = false; }
+    },
+  };
 }
 
 /** SHARE: the game's share card (lazy — `load()` imports + shares it); if that fails, the plain line through the share sheet (or copied) */

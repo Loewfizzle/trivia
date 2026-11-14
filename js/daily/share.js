@@ -3,8 +3,41 @@
 // every share card's — SHARE TODAY, each daily's own card, SHARE YOUR RUN) — and leaves through ONE sender: the image with the line through the
 // phone's share sheet; no file sharing → the line shared (or copied) + the image saved. A game draws only its own middle (its doors, its
 // searchlights, its clouds / night glow). Lazy: a game's share.js imports this on the first SHARE.
+// PFIX-3 (FABLE REVIEW 2): LETTER-SPACING BY HAND where the canvas has none (S10 — `spacedText` / `spacedWidth`: every share card's
+// tracked lettering goes through them) · THE CARD IS BUILT BEFORE THE TAP (S11 — `prepShare`: the image + its file are ready when the screen
+// opens, so the tap calls the share sheet AT ONCE; a phone that can't share a file — or refuses — is SHOWN the card in a sheet, PRESS AND HOLD
+// TO SAVE: never a silent download).
+import { lazyImport } from '../ui/lazy-import.js';
 export const SHARE_W = 1080, SHARE_H = 1350;
 export const SITE = 'neonspeakeasy.com';
+
+// ---------------------------------------------------------------------------------------------- LETTER-SPACING (ONE helper — S10)
+// Canvas `letterSpacing` arrived in Safari 18.4: an older iPhone drew every card with NO tracking (the names shrank ~20 % and sat 4–8 px right
+// of centre — every caller shifts x by half a gap for the canvas's trailing space). Where the property is missing the text is drawn LETTER BY
+// LETTER with the same gap after each (the trailing one too — so the same x centres it exactly as the canvas would).
+let manualSpacing = false;
+/** the tests / the same-pixels page: draw by hand even where the canvas could (what an older iPhone does) */
+export const forceManualSpacing = on => { manualSpacing = !!on; };
+const tracks = c => !manualSpacing && 'letterSpacing' in c;
+/** the width `t` prints at in the context's font with `ls` px after every letter */
+export function spacedWidth(c, t, ls = 0) {
+  const str = String(t == null ? '' : t);
+  if (tracks(c)) { c.letterSpacing = `${ls}px`; return c.measureText(str).width; }
+  return c.measureText(str).width + ls * [...str].length;
+}
+/** `t` at (x, y) in the context's font / align / fill (or stroke), `ls` px after every letter */
+export function spacedText(c, t, x, y, ls = 0, { stroke = false, maxW = 0 } = {}) {
+  const str = String(t == null ? '' : t);
+  const put = (txt, px) => (stroke ? c.strokeText(txt, px, y) : maxW ? c.fillText(txt, px, y, maxW) : c.fillText(txt, px, y));
+  if (tracks(c)) { c.letterSpacing = `${ls}px`; put(str, x); return; }
+  if (!ls) { put(str, x); return; }
+  const chars = [...str], ws = chars.map(ch => c.measureText(ch).width), total = ws.reduce((a, b) => a + b, 0) + ls * chars.length;
+  const al = c.textAlign, k = maxW && total > maxW ? maxW / total : 1;
+  let px = al === 'center' ? x - (total * k) / 2 : al === 'right' || al === 'end' ? x - total * k : x;
+  c.save(); c.textAlign = 'left';
+  chars.forEach((ch, i) => { stroke ? c.strokeText(ch, px, y) : k < 1 ? c.fillText(ch, px, y, ws[i] * k) : c.fillText(ch, px, y); px += (ws[i] + ls) * k; });
+  c.restore();
+}
 
 /** a fresh card: the ground (L.bg0 → L.bg1) + the day look's sun → { cv, c, W, H } */
 export function shareFrame(L, look) {
@@ -55,15 +88,15 @@ export function paintName(c, look, name, cx, y, px, fitW = 0, result = null) {
   const col = nameInk(look, result), t = String(name || '').toUpperCase();
   c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
   let p = px;
-  const set = () => { c.font = `900 ${p}px ${FONT_NAME}`; c.letterSpacing = `${p * 0.22}px`; };
+  const set = () => { c.font = `900 ${p}px ${FONT_NAME}`; };
   set();
-  while (fitW && p > 20 && c.measureText(t).width > fitW) { p -= 2; set(); }
-  const x = cx + p * 0.11;
+  while (fitW && p > 20 && spacedWidth(c, t, p * 0.22) > fitW) { p -= 2; set(); }
+  const x = cx + p * 0.11, ls = p * 0.22;
   if (look !== 'day') {
     // (a MODEST glow: one soft pass in the colour, then the core — the colour lifted toward white so the letters stay crisp)
-    c.globalAlpha = result ? 0.8 : 0.9; c.shadowColor = result ? col : 'rgba(186,206,255,0.9)'; c.shadowBlur = p * (result ? 0.42 : 0.55); c.fillStyle = col; c.fillText(t, x, y);
-    c.globalAlpha = 1; c.shadowBlur = p * 0.12; c.fillStyle = result ? toward(col, 0.3) : col; c.fillText(t, x, y);
-  } else { c.fillStyle = col; c.fillText(t, x, y); }
+    c.globalAlpha = result ? 0.8 : 0.9; c.shadowColor = result ? col : 'rgba(186,206,255,0.9)'; c.shadowBlur = p * (result ? 0.42 : 0.55); c.fillStyle = col; spacedText(c, t, x, y, ls);
+    c.globalAlpha = 1; c.shadowBlur = p * 0.12; c.fillStyle = result ? toward(col, 0.3) : col; spacedText(c, t, x, y, ls);
+  } else { c.fillStyle = col; spacedText(c, t, x, y, ls); }
   c.restore();
 }
 /** (2) THE BIG TIME — the number font's bold, the ink (white by night), centred on cx */
@@ -77,10 +110,10 @@ export function paintStat(c, look, text, cx, y, px, fitW = 0) {
   const t = String(text == null ? '' : text);
   c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
   let p = px;
-  const set = () => { c.font = `700 ${p}px ${FONT_TEXT}`; c.letterSpacing = `${p * 0.125}px`; };
+  const set = () => { c.font = `700 ${p}px ${FONT_TEXT}`; };
   set();
-  while (fitW && p > 16 && c.measureText(t).width > fitW) { p -= 1; set(); }
-  c.fillStyle = inkOf(look).stat; c.fillText(t, cx + p * 0.0625, y);
+  while (fitW && p > 16 && spacedWidth(c, t, p * 0.125) > fitW) { p -= 1; set(); }
+  c.fillStyle = inkOf(look).stat; spacedText(c, t, cx + p * 0.0625, y, p * 0.125);
   c.restore();
 }
 
@@ -102,39 +135,91 @@ export function shareAddress(c, look, { W = SHARE_W, y = FOOT.y, lineY = FOOT.li
     c.shadowBlur = 4; c.strokeStyle = 'rgba(255,240,250,0.9)'; c.lineWidth = 1.3; c.stroke(); c.restore();
   } else { c.strokeStyle = 'rgba(16,35,74,0.62)'; c.lineWidth = 3; c.stroke(); }
   // the address
-  let fs = 52, ls = 7; c.font = `800 ${fs}px "Chakra Petch", system-ui, sans-serif`; c.letterSpacing = `${ls}px`;
-  while (c.measureText(ADDR).width > W - 220 && fs > 34) { fs -= 2; ls = Math.max(4, ls - 0.3); c.font = `800 ${fs}px "Chakra Petch", system-ui, sans-serif`; c.letterSpacing = `${ls}px`; }
+  let fs = 52, ls = 7; c.font = `800 ${fs}px "Chakra Petch", system-ui, sans-serif`;
+  while (spacedWidth(c, ADDR, ls) > W - 220 && fs > 34) { fs -= 2; ls = Math.max(4, ls - 0.3); c.font = `800 ${fs}px "Chakra Petch", system-ui, sans-serif`; }
   const cx = W / 2 + ls / 2;
   if (night) {
-    c.shadowColor = glow; c.shadowBlur = 30; c.fillStyle = color; c.fillText(ADDR, cx, y);
-    c.shadowBlur = 7; c.fillStyle = '#fff3fb'; c.fillText(ADDR, cx, y);
-  } else { c.fillStyle = '#10234a'; c.fillText(ADDR, cx, y); }
+    c.shadowColor = glow; c.shadowBlur = 30; c.fillStyle = color; spacedText(c, ADDR, cx, y, ls);
+    c.shadowBlur = 7; c.fillStyle = '#fff3fb'; spacedText(c, ADDR, cx, y, ls);
+  } else { c.fillStyle = '#10234a'; spacedText(c, ADDR, cx, y, ls); }
   c.restore();
 }
-/** a daily's OWN card's foot: its day number, small + dim ("Nº 12" — the name is on the card ONCE, at the top), over THE FOOT */
-export function shareFoot(c, { dayNo = null, dim, color, site = SITE, W = SHARE_W, look = 'night' }) {
-  if (dayNo != null) { c.save(); c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '700 30px "Chakra Petch", system-ui, sans-serif'; c.letterSpacing = '6px'; c.fillStyle = dim; c.fillText(`Nº ${dayNo}`, W / 2 + 3, FOOT.lineY - 36); c.restore(); }
+/** a daily's OWN card's foot: its day number, small + dim ("Nº 12" — the name is on the card ONCE, at the top; THE DROP: its date — `note`),
+ *  over THE FOOT */
+export function shareFoot(c, { dayNo = null, note = null, dim, color, site = SITE, W = SHARE_W, look = 'night' }) {
+  const small = note != null && note !== '' ? String(note) : dayNo != null ? `Nº ${dayNo}` : '';
+  if (small) { c.save(); c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '700 30px "Chakra Petch", system-ui, sans-serif'; c.fillStyle = dim; spacedText(c, small, W / 2 + 3, FOOT.lineY - 36, 6); c.restore(); }
   shareAddress(c, look, { W, color, site });
 }
 
-const blobOf = cv => new Promise(res => cv.toBlob(b => res(b), 'image/png'));
-/** SHARE: the image through the share sheet with the line; no file sharing → the line shared (or copied) + the image saved →
- *  'shared' | 'saved' | 'copied' | 'none' */
+const blobOf = cv => new Promise(res => { try { cv.toBlob(b => res(b), 'image/png'); } catch { res(null); } });
+/** a card's PNG as a file the share sheet takes → { blob, file } | null */
+export async function shareFile(cv, name) {
+  const blob = cv ? await blobOf(cv) : null;
+  if (!blob) return null;
+  let file = null;
+  try { file = new File([blob], name, { type: 'image/png' }); } catch { /* an old WebView: no File */ }
+  return { blob, file };
+}
+const canShareFile = file => { try { return !!(file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })); } catch { return false; } };
+/**
+ * SEND A READY CARD (PFIX-3 — S11): the share sheet with the image + the line, called with NOTHING awaited before it (the file is ready —
+ * `prepShare`): Safari refuses a share that comes too long after the tap. No file sharing on this phone (a desktop, plain http), or the
+ * sheet refused → THE CARD IS SHOWN in a sheet — PRESS AND HOLD TO SAVE (+ a SHARE tube where the phone can share: a fresh tap) — and a
+ * message says so. Never a silent download prompt, never nothing.
+ * → 'shared' | 'none' (the player closed the share sheet) | 'shown' | 'failed'
+ */
+export async function sendReady({ blob, file, line = '' } = {}) {
+  if (!blob) return 'failed';
+  const can = canShareFile(file);
+  if (can) {
+    try { await navigator.share({ files: [file], text: line }); return 'shared'; }
+    catch (e) { if (e && e.name === 'AbortError') return 'none'; /* refused (too long after the tap · not allowed here) → shown */ }
+  }
+  return showCard({ blob, file, line, can });
+}
+/** the card in THE SHEET: the picture (press and hold saves it on a phone), ONE line, a SHARE tube where a file can be shared → 'shown' */
+export async function showCard({ blob, file = null, line = '', can = false } = {}) {
+  try {
+    const [{ openSheet }, { toast }, { h }, { tubeButton }] = await Promise.all([lazyImport(import('../ui/sheet.js'), '../ui/sheet.js'), lazyImport(import('../ui/toast.js'), '../ui/toast.js'),
+      lazyImport(import('../ui/dom.js'), '../ui/dom.js'), lazyImport(import('../ui/components.js'), '../ui/components.js')]);
+    const url = URL.createObjectURL(blob);
+    const img = h('img.shr-img', { src: url, alt: 'Your share card', draggable: 'false' });
+    let busy = false;
+    const again = can ? tubeButton('SHARE', { kind: 'main', block: true, cls: 'shr-go', onClick: async () => {
+      if (busy) return; busy = true;
+      try { await navigator.share({ files: [file], text: line }); S.close(); } catch { /* closed / refused: the picture stays */ } finally { busy = false; }
+    } }) : null;
+    const S = openSheet({ title: 'YOUR CARD', cls: 'shr-sheet', label: 'Your share card', body: [img, h('p.shr-hold', 'PRESS AND HOLD TO SAVE'), again], onClose: () => setTimeout(() => URL.revokeObjectURL(url), 1500) });
+    toast('Your card is ready', 'ok', { sub: 'Press and hold the picture to save it.' });
+    return 'shown';
+  } catch (e) { console.warn('[share] show', e); return 'failed'; }
+}
+/**
+ * PFIX-3 — S11, THE CARD IS BUILT BEFORE THE TAP: `make()` (async → { cv, name, line } — its imports, an /api call, the drawing) runs when
+ * the screen OPENS (`warm()`), the PNG + its file are kept, the canvas freed; the tap (`send()`) then reaches the share sheet with nothing
+ * left to wait for. ONE send at a time (a double tap = 'busy'). A build that failed is tried again by the next warm / send.
+ */
+export function prepShare(make) {
+  let p = null, busy = false;
+  const build = () => (p ||= Promise.resolve().then(make).then(async o => {
+    if (!o || !o.cv) return null;
+    const f = await shareFile(o.cv, o.name || 'neon-speakeasy.png');
+    try { o.cv.width = o.cv.height = 0; } catch { /* fine */ }               // (5.8 MB a card — freed at once: only the PNG is kept)
+    return f ? { ...f, line: o.line || '' } : null;
+  }).catch(e => { console.warn('[share] build', e); return null; }).then(r => { if (!r) p = null; return r; }));
+  return {
+    warm() { build(); },
+    ready: () => build().then(r => !!r),
+    async send() {
+      if (busy) return 'busy';
+      busy = true;
+      try { const r = await build(); return r ? await sendReady(r) : 'failed'; } finally { busy = false; }
+    },
+  };
+}
+/** SHARE a card drawn at the tap (SHARE YOUR RUN's podium card — small, drawn in one frame): the same sender → 'shared' | 'none' | 'shown' | 'failed' */
 export async function sendShare(cv, { file: name, line }) {
-  const blob = await blobOf(cv);
-  const file = blob ? new File([blob], name, { type: 'image/png' }) : null;
-  if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], text: line }); return 'shared'; } catch (e) { if (e && e.name === 'AbortError') return 'none'; }
-  }
-  // the fallback: the line, then the image saved
-  let how = 'none';
-  try { if (navigator.share) { await navigator.share({ text: line }); how = 'shared'; } else { await navigator.clipboard.writeText(line); how = 'copied'; } } catch { /* closed */ }
-  if (blob) {
-    try {
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.rel = 'noopener';
-      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      how = how === 'none' ? 'saved' : how;
-    } catch { /* no download */ }
-  }
-  return how;
+  const f = await shareFile(cv, name);
+  return f ? sendReady({ ...f, line }) : 'failed';
 }

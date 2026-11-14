@@ -44,7 +44,8 @@ test('ONE copy: neither game keeps its own judge plumbing, retries, countdown, s
     assert.match(judge, /createDailyJudge\(/, `${g}: the kit's judge`);
     assert.doesNotMatch(judge, /runDay\(|api\('daily'/, `${g}: no judge plumbing of its own`);
     assert.doesNotMatch(view, /const retryable|NOT RECORDED · NO SIGNAL|easternParts|setInterval\(\(\) => \{ if \(gone\) clearInterval\(clockT\)/, `${g}: no retries / countdown of its own`);
-    assert.match(view, /recordFinish\(/); assert.match(view, /tickTurn\(/); assert.match(view, /endActions\(/); assert.match(view, /shareOrLine\(/);
+    assert.match(view, /recordFinish\(/); assert.match(view, /tickTurn\(/); assert.match(view, /endActions\(/); assert.match(view, /endShare\(/);   // (PFIX-3 — S11: the kit's endShare — the card built before the tap; it replaced shareOrLine in both views)
+    assert.match(view, /sharer\(\)\.warm\(\);/, 'the card is built as the end screen shows'); assert.doesNotMatch(view, /shareRun\(\{/, 'no share drawn at the tap');
     assert.doesNotMatch(share, /\.toBlob\(|navigator\.share\(|createLinearGradient\(0, 0, 0, H\)/,`${g}: the kit sends + frames the card`);
     assert.match(share, /sendShare\(/); assert.match(share, /shareFrame\(/); assert.match(share, /shareFoot\(/);
     assert.match(index, /lookMusic as musicFor/);

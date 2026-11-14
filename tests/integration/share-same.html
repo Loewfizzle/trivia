@@ -13,7 +13,12 @@
      SKINS 2B (Nov 14): the copies re-taken ON PURPOSE again — THE SHARE CARD's ONE RULE (the kit's small neon name CARRIES THE RESULT on
      every card — green made, red failed, THE DROP white — ONE big TIME, ONE grey stat line, THE PASSWORD's strip = the tiles only, THE
      DROP's = 8 rows); + the name check (SHARE TODAY, all made / one failed / both failed, both looks: each name's row is inked in ITS
-     result's colour and no other; the big time + the stat line carry no green / red). -->
+     result's colour and no other; the big time + the stat line carry no green / red).
+     PFIX-3 (Nov 14 — FABLE REVIEW 2's fixes): the copies re-taken ON PURPOSE once more — COAST CLEAR's lamps centred on their INK + capped by
+     the column (S7), THE PASSWORD's day doors + readable labels (S8), SHARE TODAY's grids BOTTOM-aligned (N6); + the lamp check (the lamps'
+     ink centred within 2.5 px and inside the column — SHARE TODAY with 2 + 3 dailies, its own card), the day-door check, the bottom check,
+     THE DROP's own card on the one rule (its name white), and LETTER-SPACING BY HAND (S10 — forceManualSpacing: what an iPhone before iOS
+     18.4 draws: every name as wide as the tracked one and centred). -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="/css/base.css">
 <style>body { margin: 0; background: #222; color: #ddd; font: 13px monospace; }</style>
@@ -120,6 +125,85 @@ for (const look of ['night', 'day']) {
     out.push({ card: 'SHARE TODAY: short grids — every section the rhythm\'s box', diff: flat.sections.every(x => x.h === R.H) ? 0 : 1 });
     const last = tall.sections[2];
     out.push({ card: 'SHARE TODAY: the grown card still ends above the foot', diff: last.y + last.h * last.s <= 1202 ? 0 : 1 });
+  }
+  // ------------------------------------------------------------------------------------------ PFIX-3 (FABLE REVIEW 2's fixes)
+  {
+    const K = await import('/js/daily/share.js'), R = K.RHYTHM;
+    const today3 = { day: 'd20261113', dailies: ROWS, mine: { password: 1, coastclear: 1, drop: 1 } };
+    const today2 = { day: 'd20261113', dailies: ROWS, mine: { coastclear: 1, drop: 1 } };
+    /** the ink's left + right edge inside a band of rows: a pixel far from the card's own ground at x = 40 on its row — or, for LETTERING
+     *  (`how`: 'bright' = night letters, 'dark' = day letters), only pixels that are lettering (never the moon's glow / the day's sun) */
+    const inkBox = (cv, ya, yb, xa = 0, xb = 1080, how = 'far') => {
+      const g = cv.getContext('2d'), w = xb - xa, d = g.getImageData(xa, Math.round(ya), w, Math.max(1, Math.round(yb - ya))).data, bg = g.getImageData(40, Math.round(ya), 1, Math.max(1, Math.round(yb - ya))).data;
+      let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1;
+      const hgt = Math.max(1, Math.round(yb - ya));
+      for (let y = 0; y < hgt; y++) for (let x = 0; x < w; x++) { const j = (y * w + x) * 4, k = y * 4; if (how === 'bright' ? Math.max(d[j], d[j + 1], d[j + 2]) > 170 : how === 'dark' ? 0.2126 * d[j] + 0.7152 * d[j + 1] + 0.0722 * d[j + 2] < 95 : Math.abs(d[j] - bg[k]) + Math.abs(d[j + 1] - bg[k + 1]) + Math.abs(d[j + 2] - bg[k + 2]) > 60) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
+      return { x0: x0 + xa, x1: x1 + xa, y0: y0 + ya, y1: y1 + ya, mid: (x0 + x1) / 2 + xa, w: x1 - x0 };
+    };
+    // S7 — COAST CLEAR's LAMPS: centred on their INK (within 2.5 px of the centre line) and inside the column — SHARE TODAY with 3 + with 2, its own card
+    for (const look of ['night', 'day']) {
+      for (const [label, today, share, idx] of [['3 dailies', today3, SHARE, 1], ['2 dailies', today2, { coastclear: CCS.clear, drop: SHARE.drop }, 0]]) {
+        const cv = await T.drawToday(today, () => '', look, { streak: 3, share }), sec = cv.sections[idx];
+        const b = inkBox(cv, sec.y + (R.artY + 4) * sec.s, sec.y + (R.artY + R.artH - 4) * sec.s);
+        out.push({ card: `SHARE TODAY ${look}, ${label}: the lamps centred on their ink (${(b.mid - 540).toFixed(1)} px off) inside the column (${b.x0}–${b.x1})`, diff: Math.abs(b.mid - 540) <= 2.5 && b.x0 >= R.COL && b.x1 <= 1080 - R.COL ? 0 : 1 });
+      }
+      const own = NEW_CC.renderShare({ inputs: CCS.clear, look }), b = inkBox(own, 700, 960);
+      out.push({ card: `coastclear's own card ${look}: the lamps centred on their ink (${(b.mid - 540).toFixed(1)} px off) inside the column (${b.x0}–${b.x1})`, diff: Math.abs(b.mid - 540) <= 2.5 && b.x0 >= R.COL - 1 && b.x1 <= 1080 - R.COL + 1 ? 0 : 1 });
+    }
+    // S8 — THE PASSWORD's OWN card by DAY: a room never opened = a LIGHT door (it was a near-black slab), a held door a light rose; the failed
+    // room's label + the locked room's label read >= 4.5:1 on the sky
+    {
+      const cv = NEW_PW.renderShare({ run: RUNS.lockedFront, look: 'day' }), g = cv.getContext('2d');
+      const G0 = NEW_PW.ROOMS, gw = 5 * G0.cell + 4 * G0.gap, x0 = 540 - (2 * gw + G0.colGap) / 2, top = K.OWN.artY + Math.max(0, (K.OWN.artBot - K.OWN.artY - NEW_PW.roomsH(RUNS.lockedFront)) * 0.4);
+      const leaf = i => { const mid = x0 + i * (gw + G0.colGap) + gw / 2, d = g.getImageData(Math.round(mid - 34 * G0.S / 2 + 12 * G0.S), Math.round(top + 16 * G0.S), 1, 1).data; return 0.2126 * d[0] + 0.7152 * d[1] + 0.0722 * d[2]; };
+      out.push({ card: `password day: the room never opened is a LIGHT door (luma ${leaf(1).toFixed(0)}), the held door a light rose (${leaf(0).toFixed(0)}) — never a dark slab`, diff: leaf(1) > 200 && leaf(0) > 180 ? 0 : 1 });
+      const lum = (r, gg, b) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(gg) + 0.0722 * f(b); };
+      const ratio = i => {
+        const mid = x0 + i * (gw + G0.colGap) + gw / 2, y = Math.round(top + 44 * G0.S + G0.padDoor), w = Math.round(gw), d = g.getImageData(Math.round(mid - gw / 2), y, w, G0.label).data, bg = g.getImageData(40, y + 12, 1, 1).data;
+        let dark = 1; for (let j = 0; j < d.length; j += 4) dark = Math.min(dark, lum(d[j], d[j + 1], d[j + 2]));
+        return (lum(bg[0], bg[1], bg[2]) + 0.05) / (dark + 0.05);
+      };
+      out.push({ card: `password day: the failed room's label ${ratio(0).toFixed(2)}:1 · the locked room's ${ratio(1).toFixed(2)}:1 on the sky (>= 4.5)`, diff: ratio(0) >= 4.5 && ratio(1) >= 4.5 ? 0 : 1 });
+    }
+    // N6 — SHARE TODAY's PASSWORD grids are BOTTOM-aligned (a 3-row + a 2-row grid end on the same row; the short one starts lower)
+    for (const look of ['night', 'day']) {
+      const cv = await T.drawToday(today3, () => '', look, { streak: 3, share: SHARE }), sec = cv.sections[0];
+      const ya = sec.y + (R.artY - 2) * sec.s, yb = sec.y + (R.artY + R.artH + 14) * sec.s;
+      const L0 = inkBox(cv, ya, yb, 150, 540), R0 = inkBox(cv, ya, yb, 540, 930);
+      out.push({ card: `SHARE TODAY ${look}: THE PASSWORD's grids BOTTOM-aligned (ends ${L0.y1.toFixed(0)} / ${R0.y1.toFixed(0)}; the short grid starts ${(R0.y0 - L0.y0).toFixed(0)} px lower)`, diff: Math.abs(L0.y1 - R0.y1) <= 3 && R0.y0 - L0.y0 > 20 ? 0 : 1 });
+    }
+    // S9 — THE DROP's OWN card on THE ONE RULE: its name WHITE by night (no ice-blue, no green / red), navy by day; the name, the time and the
+    // stat line centred like the other dailies' own cards
+    for (const look of ['night', 'day']) {
+      const cv = await DR.renderShare({ inputs: SHARE.drop, look }), g = cv.getContext('2d'), O = K.OWN;
+      const d = g.getImageData(150, Math.round(O.nameY - O.namePx * 0.3), 780, Math.round(O.namePx * 0.6)).data;
+      let tint = 0, ink = 0;
+      for (let j = 0; j < d.length; j += 4) { const r = d[j], gg = d[j + 1], b = d[j + 2]; if (look === 'night' ? (r > 235 && gg > 235 && b > 235) : (r < 60 && gg < 80 && b < 130)) ink++; if ((gg > r + 40 && gg > b + 25) || (r > gg + 70 && r > b + 50)) tint++; }
+      const how = look === 'night' ? 'bright' : 'dark';
+      const nm = inkBox(cv, O.nameY - O.namePx * 0.3, O.nameY + O.namePx * 0.3, 0, 1080, how), bg = inkBox(cv, O.bigY - O.bigPx * 0.3, O.bigY + O.bigPx * 0.3, 0, 1080, how), stt = inkBox(cv, O.statY - O.statPx * 0.3, O.statY + O.statPx * 0.3, 0, 1080, look === 'night' ? 'far' : 'dark');
+      out.push({ card: `THE DROP's own card ${look}: on the one rule — the name ${look === 'night' ? 'WHITE' : 'navy'} (${ink} px, ${tint} tinted), name / time / stat centred (${(nm.mid - 540).toFixed(1)} · ${(bg.mid - 540).toFixed(1)} · ${(stt.mid - 540).toFixed(1)} px)`, diff: ink > 800 && tint === 0 && Math.abs(nm.mid - 540) <= 3 && Math.abs(bg.mid - 540) <= 3 && Math.abs(stt.mid - 540) <= 3 ? 0 : 1 });
+    }
+    // S10 — LETTER-SPACING BY HAND (an iPhone before iOS 18.4 has no canvas letterSpacing): drawn letter by letter, every name is as wide as
+    // the tracked one (within 4 %) and centred (within 3 px) — SHARE TODAY's three names + the date + each own card's name + the address
+    {
+      const rows = [];
+      const measure = async () => {
+        const o = [];
+        const cv = await T.drawToday(today3, () => '', 'night', { streak: 3, share: SHARE });
+        o.push(['SHARE TODAY: the date', inkBox(cv, 62, 102, 0, 1080, 'bright')]);
+        cv.sections.forEach((sec, i) => o.push([`SHARE TODAY: ${ROWS[i].name}`, inkBox(cv, sec.y + (R.nameY - R.namePx * 0.3) * sec.s, sec.y + (R.nameY + R.namePx * 0.3) * sec.s, 0, 1080, 'bright')]));
+        o.push(['SHARE TODAY: the address', inkBox(cv, 1268, 1300, 0, 1080, 'bright')]);
+        const pwc = NEW_PW.renderShare({ run: RUNS.crack, look: 'night' }), ccc = NEW_CC.renderShare({ inputs: CCS.clear, look: 'night' }), drc = await DR.renderShare({ inputs: SHARE.drop, look: 'night' });
+        for (const [n, c2] of [['password', pwc], ['coastclear', ccc], ['drop', drc]]) o.push([`${n}'s own card: the name`, inkBox(c2, K.OWN.nameY - K.OWN.namePx * 0.3, K.OWN.nameY + K.OWN.namePx * 0.3, 0, 1080, 'bright')]);
+        return o;
+      };
+      const native = await measure();
+      K.forceManualSpacing(true);
+      const manual = await measure();
+      K.forceManualSpacing(false);
+      native.forEach(([label, a], i) => { const b = manual[i][1]; rows.push({ card: `no canvas letterSpacing — ${label}: ${b.w} px wide (tracked ${a.w}), ${(b.mid - 540).toFixed(1)} px off centre`, diff: Math.abs(b.w - a.w) <= a.w * 0.04 && Math.abs(b.mid - 540) <= 3 ? 0 : 1 }); });
+      out.push(...rows);
+    }
   }
   // (the holes never reach the picture: every junk row of the DROP's board is solid)
   const holes = DR.solidJunk(DROP_B).match(/.{10}/g).filter(row => row.includes('8') && row.includes('0')).length;

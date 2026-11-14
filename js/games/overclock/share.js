@@ -1,6 +1,7 @@
 // OVERCLOCK — SHARE YOUR RUN (PLAY NOW's add-on, Nov 13 noon): a solo run's card on the same frame (js/games/kit/share-run.js): the score as
 // the hero + "POINTS", the result line (7 OF 10 CHALLENGES RIGHT), the mode, the name. Lazy (index.js#shareRun — the first SHARE).
 import { runCard, shareRunCard } from '../kit/share-run.js';
+import { spacedText } from '../../daily/share.js';
 import { totals } from './logic.js';
 import { ACCENT } from './meta.js';
 import { fmtNum } from '../../ui/components.js';
@@ -20,8 +21,8 @@ export function drawScoreMiddle(c, box, card) {
   c.font = 'italic 900 230px "Barlow Condensed", "Chakra Petch", system-ui, sans-serif';
   c.fillStyle = card.accent; if (!day) { c.shadowColor = card.accent; c.shadowBlur = 40; }
   c.fillText(card.big || '0', cx, box.y + box.h * 0.58);
-  c.shadowBlur = 0; c.font = '800 54px "Orbitron", "Chakra Petch", system-ui, sans-serif'; try { c.letterSpacing = '14px'; } catch { /* fine */ }
-  c.fillStyle = day ? '#2f3653' : '#ffe2cc'; c.fillText(card.bigUnit || 'POINTS', cx + 7, box.y + box.h * 0.58 + 90);
+  c.shadowBlur = 0; c.font = '800 54px "Orbitron", "Chakra Petch", system-ui, sans-serif';
+  c.fillStyle = day ? '#2f3653' : '#ffe2cc'; spacedText(c, card.bigUnit || 'POINTS', cx + 7, box.y + box.h * 0.58 + 90, 14);   // (PFIX-3 — S10: the kit's helper)
   c.restore();
 }
 export function shareRun(game, state) {

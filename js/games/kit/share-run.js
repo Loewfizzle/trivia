@@ -6,7 +6,7 @@
 // phone's share sheet with the IMAGE + the site's URL; no file sharing → the line + the image saved (js/daily/share.js#sendShare).
 // Lazy: the console's podium (ui/final.js) asks the cartridge's shareRun on the first SHARE.
 import { ctx2d } from '../../ui/canvas-safe.js';
-import { sendShare, shareAddress, SHARE_W, SHARE_H, SITE } from '../../daily/share.js';
+import { sendShare, shareAddress, spacedText, SHARE_W, SHARE_H, SITE } from '../../daily/share.js';
 
 export const RUN_W = SHARE_W, RUN_H = SHARE_H;
 const clip = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f]/g, '').slice(0, n);
@@ -36,14 +36,14 @@ const DISPLAY = '"Orbitron", "Chakra Petch", system-ui, sans-serif';
 function neonText(c, text, x, y, { px, col, day, spacing = 0, weight = 800, fam = DISPLAY }) {
   c.save();
   c.font = FONT(weight, px, fam); c.textAlign = 'center'; c.textBaseline = 'alphabetic';
-  try { c.letterSpacing = `${spacing}px`; } catch { /* an older canvas: no tracking */ }
+  // (PFIX-3 — S10: every tracked line through the kit's ONE helper — drawn letter by letter where the canvas has no letterSpacing)
   if (day) {
-    c.lineWidth = px * 0.1; c.strokeStyle = 'rgba(20,24,40,0.55)'; c.strokeText(text, x, y);
-    c.fillStyle = col; c.fillText(text, x, y);
+    c.lineWidth = px * 0.1; c.strokeStyle = 'rgba(20,24,40,0.55)'; spacedText(c, text, x, y, spacing, { stroke: true });
+    c.fillStyle = col; spacedText(c, text, x, y, spacing);
   } else {
-    c.shadowColor = col; c.shadowBlur = px * 0.55; c.fillStyle = col; c.fillText(text, x, y);
-    c.shadowBlur = px * 0.18; c.fillText(text, x, y);
-    c.shadowBlur = 0; c.fillStyle = 'rgba(255,245,252,0.92)'; c.lineWidth = px * 0.035; c.strokeStyle = 'rgba(255,255,255,0.9)'; c.strokeText(text, x, y);
+    c.shadowColor = col; c.shadowBlur = px * 0.55; c.fillStyle = col; spacedText(c, text, x, y, spacing);
+    c.shadowBlur = px * 0.18; spacedText(c, text, x, y, spacing);
+    c.shadowBlur = 0; c.fillStyle = 'rgba(255,245,252,0.92)'; c.lineWidth = px * 0.035; c.strokeStyle = 'rgba(255,255,255,0.9)'; spacedText(c, text, x, y, spacing, { stroke: true });
   }
   c.restore();
 }
@@ -63,23 +63,23 @@ export function drawRunCard(card, drawMiddle = null) {
   if (!day) { const r = c.createRadialGradient(W / 2, 150, 0, W / 2, 150, 520); r.addColorStop(0, 'rgba(255,79,196,0.22)'); r.addColorStop(1, 'rgba(255,79,196,0)'); c.fillStyle = r; c.fillRect(0, 0, W, H); }   // (the whole card — a clipped haze left a hard edge)
   // THE SIGN: NEON (pink tubes) + SPEAKEASY (white, spaced) between two rules
   neonText(c, 'NEON', W / 2, 168, { px: 128, col: day ? '#e3249b' : '#ff4fc4', day, spacing: 14 });
-  c.save(); c.font = FONT(700, 34, DISPLAY); c.textAlign = 'center'; try { c.letterSpacing = '22px'; } catch { /* fine */ }
-  c.fillStyle = day ? '#2a2f45' : '#f2ecff'; c.fillText('SPEAKEASY', W / 2 + 11, 232); c.restore();
+  c.save(); c.font = FONT(700, 34, DISPLAY); c.textAlign = 'center';
+  c.fillStyle = day ? '#2a2f45' : '#f2ecff'; spacedText(c, 'SPEAKEASY', W / 2 + 11, 232, 22); c.restore();
   c.strokeStyle = day ? 'rgba(42,47,69,0.35)' : 'rgba(242,236,255,0.35)'; c.lineWidth = 3;
   c.beginPath(); c.moveTo(150, 220); c.lineTo(260, 220); c.moveTo(W - 260, 220); c.lineTo(W - 150, 220); c.stroke();
   // the game + the mode (the game's colour)
-  c.save(); c.font = FONT(800, 44, DISPLAY); c.textAlign = 'center'; try { c.letterSpacing = '8px'; } catch { /* fine */ }
+  c.save(); c.font = FONT(800, 44, DISPLAY); c.textAlign = 'center';
   c.fillStyle = day ? deepen(card.accent) : card.accent; if (!day) { c.shadowColor = card.accent; c.shadowBlur = 18; }
-  c.fillText(card.mode ? `${card.title} · ${card.mode}` : card.title, W / 2 + 4, 318); c.restore();
+  spacedText(c, card.mode ? `${card.title} · ${card.mode}` : card.title, W / 2 + 4, 318, 8); c.restore();
   // the game's own middle
   const box = { x: 140, y: 360, w: W - 280, h: 690 };
   if (drawMiddle) { try { drawMiddle(c, box, card); } catch (e) { console.warn('[share-run] middle', e); } }
   // the name + the result
   c.save(); c.textAlign = 'center';
-  c.font = FONT(800, 78, DISPLAY); try { c.letterSpacing = '6px'; } catch { /* fine */ }
-  c.fillStyle = day ? '#1d2236' : '#ffffff'; c.fillText(card.name || 'A PLAYER', W / 2 + 3, 1132);
-  c.font = FONT(700, 46); try { c.letterSpacing = '4px'; } catch { /* fine */ }
-  c.fillStyle = day ? '#2f3653' : '#e6e1ff'; c.fillText(card.result, W / 2 + 2, 1190, W - 80);
+  c.font = FONT(800, 78, DISPLAY);
+  c.fillStyle = day ? '#1d2236' : '#ffffff'; spacedText(c, card.name || 'A PLAYER', W / 2 + 3, 1132, 6);
+  c.font = FONT(700, 46);
+  c.fillStyle = day ? '#2f3653' : '#e6e1ff'; spacedText(c, card.result, W / 2 + 2, 1190, 4, { maxW: W - 80 });
   c.restore();
   // THE FOOT (SKINS 2A — the kit's, every share card's: ONE straight thin neon line + NEONSPEAKEASY.COM in plain neon lettering — no frame)
   shareAddress(c, card.look, { W, color: '#ff6fc8' });

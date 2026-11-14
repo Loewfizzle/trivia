@@ -359,6 +359,52 @@ await H.run(async () => {
     const drawn = await A.page.evaluate(async () => { const m = await import('/js/daily/share-today.js'); const t = await import('/js/daily/contract.js').then(c => c.dailyShare()); const cv = await m.drawToday(t, (id, s) => String(s), 'night', { share: t.share }); return { w: cv.width, h: cv.height, plan: m.planToday(t, t.share) }; });
     ok(drawn.w === 1080 && drawn.h === 1350 && drawn.plan.sections.filter(s => s.own).length >= 2, `SHARE TODAY draws ONE card: a section from each daily's own pieces (${JSON.stringify(drawn.plan.sections)})`);
   }
+  // PFIX-3 — S11, THE CARD IS BUILT BEFORE THE TAP (FABLE REVIEW 2: the tap used to start imports + an /api call + the drawing, and only then
+  // the share sheet — Safari may refuse a share that late, and nothing was shown). TODAY with every daily done: the card's file is READY
+  // before any tap; the tap calls navigator.share AT ONCE with it; a double tap sends ONE; a phone that can't share a file is SHOWN the card
+  // in a sheet (PRESS AND HOLD TO SAVE) + a message — never a silent download.
+  {
+    const pg = A.page;
+    await waitFor(pg, `!!document.querySelector('.dy-today .dy-share')`, 'the SHARE TODAY button', 10000);
+    const ready = await pg.evaluate(() => window.__daily2.shareReady());
+    ok(ready === true, 'S11: the share card (its PNG file) is BUILT when TODAY shows the button — before any tap');
+    // a phone that shares files: the tap reaches navigator.share in the same task as the click (nothing awaited that takes time)
+    const fast = await pg.evaluate(async () => {
+      const calls = [];
+      Object.defineProperty(navigator, 'canShare', { configurable: true, value: d => !!(d && d.files && d.files.length) });
+      Object.defineProperty(navigator, 'share', { configurable: true, value: d => { calls.push({ at: performance.now(), file: d.files && d.files[0] ? { name: d.files[0].name, type: d.files[0].type, size: d.files[0].size } : null, text: d.text || '' }); return new Promise(r => setTimeout(r, 400)); } });
+      let downloads = 0; const click0 = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () { if (this.download) downloads++; return click0.call(this); };
+      const btn = document.querySelector('.dy-today .dy-share'), t0 = performance.now();
+      btn.click(); btn.click();                                              // (a double tap)
+      await new Promise(r => setTimeout(r, 900));
+      HTMLAnchorElement.prototype.click = click0;
+      return { calls, t0, downloads, sheet: !!document.querySelector('.shr-img') };
+    });
+    ok(fast.calls.length === 1, `S11: a double tap sends ONE share (${fast.calls.length})`);
+    const c0 = fast.calls[0] || {};
+    ok(c0.file && c0.file.name === 'neon-speakeasy-dailies.png' && c0.file.type === 'image/png' && c0.file.size > 20000 && /neonspeakeasy\.com/.test(c0.text), `S11: the share sheet gets the READY file + the line (${JSON.stringify(c0.file)}; "${String(c0.text).slice(0, 60)}")`);
+    ok(c0.at - fast.t0 < 50, `S11: navigator.share is called ${(c0.at - fast.t0).toFixed(1)} ms after the tap — at once (it used to wait for imports, /api and the drawing)`);
+    ok(fast.downloads === 0 && !fast.sheet, 'S11: shared → no download, no sheet');
+    // a phone that CAN'T share a file (plain http, a desktop): the card is SHOWN — the picture + PRESS AND HOLD TO SAVE + a message
+    const shown = await pg.evaluate(async () => {
+      Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => false });
+      let shares = 0; Object.defineProperty(navigator, 'share', { configurable: true, value: () => { shares++; return Promise.reject(new Error('no')); } });
+      let downloads = 0; const click0 = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () { if (this.download) downloads++; return click0.call(this); };
+      document.querySelector('.dy-today .dy-share').click();
+      for (let i = 0; i < 60 && !document.querySelector('.shr-img'); i++) await new Promise(r => setTimeout(r, 50));
+      const img = document.querySelector('.shr-img');
+      if (img && !img.complete) await new Promise(r => { img.onload = r; img.onerror = r; setTimeout(r, 2000); });
+      HTMLAnchorElement.prototype.click = click0;
+      const sheet = img && img.closest('.sh');
+      return { img: !!img, nat: img ? [img.naturalWidth, img.naturalHeight] : null, w: img ? Math.round(img.getBoundingClientRect().width) : 0, hold: sheet ? /PRESS AND HOLD TO SAVE/.test(sheet.innerText) : false, go: !!(sheet && sheet.querySelector('.shr-go')),
+        toast: [...document.querySelectorAll('.sh-msgs b')].map(b => b.textContent).join(' | '), downloads, shares, callout: img ? getComputedStyle(img).webkitTouchCallout || getComputedStyle(img).getPropertyValue('-webkit-touch-callout') : '' };
+    });
+    ok(shown.img && shown.nat && shown.nat[0] === 1080 && shown.nat[1] === 1350 && shown.w >= 200 && shown.hold, `S11: no file sharing → the card is SHOWN in a sheet (${shown.nat} px, ${shown.w} px wide on screen) with PRESS AND HOLD TO SAVE`);
+    ok(/card is ready/i.test(shown.toast) && shown.downloads === 0 && !shown.go, `S11: + a message ("${shown.toast}") — never a silent download (${shown.downloads}); no SHARE tube where the phone can't share`);
+    if (H.SHOTS) await H.shotAll(pg, 'dy-09-share-shown', [[390, 844]]);
+    await pg.keyboard.press('Escape');
+    await waitFor(pg, `!document.querySelector('.shr-img')`, 'the card sheet closed', 6000);
+  }
   for (let i = 0; i < 30 && (await val(`rooms/${code}/players/${aUid}/dy`)) != null; i++) await sleep(200);
   ok((await val(`rooms/${code}/players/${aUid}/dy`)) == null, 'the run finished → the flag cleared (the host\'s line goes)');
   await click(A.page, '.dy-screen .dy-back');

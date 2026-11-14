@@ -19,11 +19,11 @@
 //   renderShare({ run, look }) → <canvas>      shareRun({ run, line, look }) → 'shared' | 'saved' | 'copied' | 'none'
 //   paintSection(c, { run, look, W, H }) — SHARE TODAY's section (the rhythm's box, centred in W × H)
 import { scoreOf, fmtTime, doorState, guessesLine, DOOR_NAMES, DOORS, HIT, NEAR } from './logic.js';
-import { SHARE_W, SHARE_H, SITE, shareFrame, shareFoot, sendShare, RHYTHM, OWN, paintName, paintBig, paintStat, MADE, FAILED } from '../../daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
+import { SHARE_W, SHARE_H, SITE, shareFrame, shareFoot, sendShare, spacedText, RHYTHM, OWN, paintName, paintBig, paintStat, MADE, FAILED } from '../../daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
 export { SHARE_W, SHARE_H, SITE };
 const LOOK = {
   night: { bg0: '#0d0a1c', bg1: '#05040c', sign: '#ff5ec4', signCore: '#fff2fa', ink: '#f4f6ff', dim: 'rgba(244,246,255,0.62)', faint: 'rgba(244,246,255,0.4)', good: '#3dff8b', close: '#ffd23d', red: '#ff3355', tile: 'rgba(255,255,255,0.05)', tileLine: 'rgba(255,255,255,0.16)', miss: 'rgba(0,0,0,0.42)', near: 'rgba(0,0,0,0.45)', hitInk: '#06130b', doorOn: '#ff5ec4', doorLock: 'rgba(255,255,255,0.28)', doorHeld: 'rgba(255,92,120,0.8)', room: '#ffc266', font: '"Orbitron", "Chakra Petch", system-ui, sans-serif' },
-  day: { bg0: '#8ec6ff', bg1: '#f7fbff', sign: '#16305c', signCore: '#16305c', ink: '#14284a', dim: '#3a5582', faint: '#5a7196', good: '#3dff8b', close: '#ffd23d', red: '#c0304a', tile: 'rgba(255,255,255,0.78)', tileLine: 'rgba(80,120,180,0.25)', miss: 'rgba(160,176,198,0.6)', near: 'rgba(255,255,255,0.9)', hitInk: '#06220f', doorOn: '#2f86ff', doorLock: 'rgba(22,48,92,0.32)', doorHeld: 'rgba(196,60,80,0.75)', room: '#ffd27a', font: 'ui-rounded, "SF Pro Rounded", "Chakra Petch", system-ui, sans-serif' },
+  day: { bg0: '#8ec6ff', bg1: '#f7fbff', sign: '#16305c', signCore: '#16305c', ink: '#14284a', dim: '#3a5582', faint: '#3a5582', heldInk: '#9c1a36', good: '#3dff8b', close: '#ffd23d', red: '#c0304a', tile: 'rgba(255,255,255,0.78)', tileLine: 'rgba(80,120,180,0.25)', miss: 'rgba(160,176,198,0.6)', near: 'rgba(255,255,255,0.9)', hitInk: '#06220f', doorOn: '#2f86ff', doorLock: 'rgba(22,48,92,0.32)', doorHeld: 'rgba(196,60,80,0.75)', room: '#ffd27a', font: 'ui-rounded, "SF Pro Rounded", "Chakra Petch", system-ui, sans-serif' },
 };
 /** the shared answer tokens as the page has them now (the colour-blind swap rides along) */
 export function tokens(look) {
@@ -37,8 +37,11 @@ export function tokens(look) {
 }
 const rr = (c, x, y, w, h, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); };
 
-/** a drawn door (the same shape as doors.js, in canvas): state locked | on | open | held; S = the scale (1 = 34 × 44) */
-function door(c, x, y, S, st, L) {
+/** a drawn door (the same shape as doors.js, in canvas): state locked | on | open | held; S = the scale (1 = 34 × 44). PFIX-3 (FABLE REVIEW
+ *  2 — S8): the LOOK is passed in — by day the leaf is a light panel (a room never opened was a near-black slab on the sunny card: the old
+ *  test `L === LOOK.day` was never true — tokens() hands out a copy), a held door a light rose, the ajar leaf navy */
+function door(c, x, y, S, st, L, look = 'night') {
+  const day = look === 'day';
   const col = st === 'open' ? L.good : st === 'on' ? L.doorOn : st === 'held' ? L.doorHeld : L.doorLock;
   c.save(); c.translate(x, y); c.scale(S, S);
   c.lineCap = 'round'; c.lineJoin = 'round';
@@ -47,9 +50,9 @@ function door(c, x, y, S, st, L) {
   if (st === 'on' || st === 'open') { c.strokeStyle = col; c.lineWidth = 4.2; c.globalAlpha = 0.35; frame(); c.stroke(); c.globalAlpha = 1; }
   c.strokeStyle = col; c.lineWidth = 1.7; frame(); c.stroke();
   // the leaf: closed (a panel + its knob) or swung ajar (a narrow slab at the hinge)
-  if (st === 'open') { c.fillStyle = 'rgba(10,8,18,0.85)'; c.fillRect(5.5, 3.5, 7, 36); c.strokeStyle = col; c.lineWidth = 1.5; c.strokeRect(6, 4, 6, 35); }
+  if (st === 'open') { c.fillStyle = day ? 'rgba(22,48,92,0.7)' : 'rgba(10,8,18,0.85)'; c.fillRect(5.5, 3.5, 7, 36); c.strokeStyle = col; c.lineWidth = 1.5; c.strokeRect(6, 4, 6, 35); }
   else {
-    c.fillStyle = st === 'held' ? 'rgba(60,10,20,0.5)' : L === LOOK.day ? 'rgba(255,255,255,0.85)' : 'rgba(8,6,18,0.9)'; c.fillRect(7, 5, 20, 33);
+    c.fillStyle = st === 'held' ? (day ? 'rgba(255,214,222,0.92)' : 'rgba(60,10,20,0.5)') : day ? 'rgba(255,255,255,0.85)' : 'rgba(8,6,18,0.9)'; c.fillRect(7, 5, 20, 33);
     c.strokeStyle = col; c.lineWidth = 1.5; c.strokeRect(7, 5, 20, 33);
     c.fillStyle = col; c.beginPath(); c.arc(22.5, 22, 1.7, 0, Math.PI * 2); c.fill();
   }
@@ -90,21 +93,24 @@ export function paintRooms(c, run, L, look, cx, top) {
   const n = DOOR_NAMES.length, x0 = cx - (n * gw + (n - 1) * G.colGap) / 2;
   DOOR_NAMES.forEach((name, i) => {
     const mid = x0 + i * (gw + G.colGap) + gw / 2, st = doorState(run, i), d = run.doors[i];
-    door(c, mid - dw / 2, top, G.S, st, L);
-    c.save(); c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `700 ${G.label}px "Chakra Petch", system-ui, sans-serif`; c.letterSpacing = `${G.ls}px`;
-    c.fillStyle = st === 'open' ? (look === 'day' ? '#1f7a45' : L.good) : st === 'on' ? L.doorOn : st === 'held' ? L.doorHeld : L.faint;
-    c.fillText(name, mid + G.ls / 2, top + dh + G.padDoor + G.label / 2);
+    door(c, mid - dw / 2, top, G.S, st, L, look);
+    c.save(); c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `700 ${G.label}px "Chakra Petch", system-ui, sans-serif`;
+    // (S8: by day a failed room's label is a solid dark red, a room never opened the dim navy — both ≥ 4.5:1 on the sky)
+    c.fillStyle = st === 'open' ? (look === 'day' ? '#1f7a45' : L.good) : st === 'on' ? L.doorOn : st === 'held' ? (L.heldInk || L.doorHeld) : L.faint;
+    spacedText(c, name, mid + G.ls / 2, top + dh + G.padDoor + G.label / 2, G.ls);
     c.restore();
     if (d && d.marks.length) grid(c, d.marks, mid - gw / 2, top + roomsHead(), G.cell, G.gap, L);
   });
 }
-/** the mini grids of the doors attempted (marks only), centred on cx from `top` */
+/** the mini grids of the doors attempted (marks only), centred on cx from `top` — BOTTOM-ALIGNED (PFIX-3 — Ben's call on N6, like the
+ *  approved mockup: a short grid sits on the same floor as the tall one; this is SHARE TODAY's strip — the daily's own card keeps its
+ *  top-aligned columns under their labels: paintRooms) */
 export function paintGrids(c, run, L, cx, top, cell, gap, gapX) {
   const played = run.doors.filter(d => d.guesses.length);
-  const gw = 5 * cell + 4 * gap;
+  const gw = 5 * cell + 4 * gap, rows = Math.max(0, ...played.map(d => d.marks.length));
   const total = played.length * gw + (played.length - 1) * gapX;
   let x0 = (cx * 2 - total) / 2;
-  for (const d of played) { grid(c, d.marks, x0, top, cell, gap, L); x0 += gw + gapX; }
+  for (const d of played) { grid(c, d.marks, x0, top + (rows - d.marks.length) * (cell + gap), cell, gap, L); x0 += gw + gapX; }
 }
 
 /** the share image (a canvas, 1080 × 1350) */

@@ -9,7 +9,7 @@
 //   createView() → { mount(el, state), update(state), unmount() }   state.game = the run shell (daily.create / start) · state.judge = a judge
 //   (the preview's fake; default THE API JUDGE — judge.js) · window.__password = the test hook (the preview + the E2E)
 import { h, clear, reducedMotion } from '../../ui/dom.js';
-import { recordFinish, tickTurn, endActions, fitTitle, shareOrLine, NOT_RECORDED, retryable } from '../../daily/end.js';
+import { recordFinish, tickTurn, endActions, fitTitle, endShare, NOT_RECORDED, retryable } from '../../daily/end.js';
 import { runDayKey as dayKeyOf } from '../../daily/clock.js';
 import { createKeyboard } from '../kit/keyboard.js';
 import { createApiJudge } from './judge.js';
@@ -205,6 +205,7 @@ export function createView() {
     const title = h('h2.pw-end-t', headline(run));
     // (the owner's ADD-ON: no status text on the end screen — the record's state lives in the hook + a quiet NO SIGNAL line only when it failed)
     const acts = endActions('pw', { onShare: () => share() });   // (DM1 — THE DAILY KIT: SHARE + the countdown + the record line)
+    sharer().warm();   // (PFIX-3 — S11: the card is built NOW, as the end screen shows — the tap only sends it)
     const rec = acts.rec, next = acts.next;
     const played = run.doors.filter(d => d.guesses.length);
     els.end.append(
@@ -246,11 +247,15 @@ export function createView() {
     clearInterval(clockT);
     clockT = tickTurn(el, { now: () => Date.now() + offset, day: runDayKey, open: 'TODAY’S PASSWORD IS OPEN', next: 'NEXT PASSWORD IN', alive: () => !gone });
   }
-  /** SHARE (PW2 — share.js, lazy): the image + the one line; the plain line if the card can't be made */
-  async function share() {
-    const line = shareLine(run, runDayKey());
-    await shareOrLine(async () => (await lazyImport(import('./share.js'), './share.js')).shareRun({ run, line, look: document.body.dataset.look || 'night', root }), line);
-  }
+  /** SHARE (PW2 — share.js, lazy): the image + the one line; the plain line if the card can't be made. PFIX-3 — S11: the card + its file are
+   *  made when the end screen shows (the kit's endShare), so the tap reaches the share sheet at once */
+  let shareH = null;
+  const lookNow = () => (document.body.dataset.look === 'day' ? 'day' : 'night');
+  const sharer = () => (shareH ||= endShare(async () => {
+    const S = await lazyImport(import('./share.js'), './share.js');
+    return { cv: S.renderShare({ run, look: lookNow() }), name: 'the-password.png', line: shareLine(run, runDayKey()) };
+  }, () => shareLine(run, runDayKey()), lookNow));
+  const share = () => sharer().send();
 
   /** the run from the server (a mount, a resume, a re-sync after an out-of-step answer) */
   // FR7 FIXES A — DY7: a resume in a dead spot showed the local EMPTY shell with the keys unlocked — the next word landed as guess n + 1 under

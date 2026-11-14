@@ -18,6 +18,7 @@ import { serverNow } from '../firebase.js';
 import { loadProfile } from '../identity.js';
 import { takeLayer, onCloseAll } from '../ui/layers.js';
 import { holdCity } from '../ui/city-hold.js';
+import { toast } from '../ui/toast.js';
 import { streakDay } from '../core/streak.js';
 import { dailyRow } from '../core/daily.js';
 import { msToTurn, fmtCountdown } from '../daily/clock.js';
@@ -174,6 +175,7 @@ function openScreen(tab0) {
       h('div.dy-sweep-l', sw.swept ? h('b', 'SWEPT') : h('span', h('b', `${sw.done} OF ${sw.of}`), ' · THE SWEEP')));
     const rows = t.dailies.map(d => ticketRow(t, d));
     const share = sw.done ? tubeButton('SHARE TODAY', { kind: 'secondary', block: true, cls: 'dy-share', onClick: () => shareToday(t) }) : null;
+    if (share) warmShare(t);   // (PFIX-3 — S11: the card is built NOW — when the screen shows the button, and again when a result changes)
     els.next = h('div.dy-next', { 'aria-live': 'off' });
     // DFIX3 — TODAY CENTRED: one box (the meter → the tickets → SHARE → the countdown) sits mid-way between the tabs and the bottom safe area; taller
     // than the space (a third daily, the gated line) → it simply scrolls from the top (an auto margin, never a flex centre that clips)
@@ -374,12 +376,29 @@ async function play(id) {
 }
 
 // ------------------------------------------------------------------------------------------------ SHARE TODAY
+// PFIX-3 (FABLE REVIEW 2 — S11) — THE CARD IS BUILT BEFORE THE TAP: the tap used to start a lazy import, an /api call, more imports and the
+// drawing before it reached the share sheet — Safari may refuse a share that comes that long after the tap, and nothing was shown. Now the
+// card (its PNG file) is made when TODAY shows the button — ONE build per day + look + streak + scores (again when a result changes) — and the
+// tap sends the ready file; a second tap while one is out does nothing (busy); a card that can't be shared is SHOWN (js/daily/share.js).
+let shareKey = '', shareH = null, sharing = false;
+const shareStreak = () => { const pub = pidMod && pidMod.myPublic ? pidMod.myPublic() : null; return pub && Number(pub.s) > 0 ? Number(pub.s) : 0; };   // (DFIX3 — the streak flame on the share image)
+const shareKeyOf = t => `${t.day}|${document.body.dataset.look === 'day' ? 'day' : 'night'}|${shareStreak()}|${JSON.stringify(t.mine || {})}`;
+async function shareHandle(t) {
+  const key = shareKeyOf(t);
+  if (key === shareKey && shareH) return shareH;
+  const m = await lazyImport(import('../daily/share-today.js'), '../daily/share-today.js');
+  if (key !== shareKey || !shareH) { shareKey = key; shareH = m.prepToday(t, lineOf, { streak: shareStreak() }); }
+  return shareH;
+}
+function warmShare(t) { shareHandle(t).then(H => H.warm()).catch(e => console.warn('[daily share] warm', e)); }
 async function shareToday(t) {
+  if (sharing) return;
+  sharing = true;
   try {
-    const m = await lazyImport(import('../daily/share-today.js'), '../daily/share-today.js');
-    const pub = pidMod && pidMod.myPublic ? pidMod.myPublic() : null;   // (DFIX3 — the streak flame on the share image: the profile's streak)
-    await m.shareToday(t, lineOf, { streak: pub && Number(pub.s) > 0 ? Number(pub.s) : 0 });
-  } catch (e) { console.warn('[daily share]', e); }
+    const how = await (await shareHandle(t)).send();
+    if (how === 'failed') toast('Couldn’t draw the card', 'warn');
+    return how;
+  } catch (e) { console.warn('[daily share]', e); } finally { sharing = false; }
 }
 
 // ------------------------------------------------------------------------------------------------ A RUN (+ its one-time hint)
@@ -469,7 +488,7 @@ function openRun(id) {
   };
 }
 // (test hook: the screens' state)
-if (typeof window !== 'undefined') window.__daily2 = { syncDaily, state: () => ({ screen: !!scr, run: run ? run.id : null, key: lastKey }), sweptAt: () => sweptAt, heldRun, setSweepNext: v => { sweepNext = !!v; },
+if (typeof window !== 'undefined') window.__daily2 = { shareReady: () => (shareH ? shareH.ready() : Promise.resolve(false)), syncDaily, state: () => ({ screen: !!scr, run: run ? run.id : null, key: lastKey }), sweptAt: () => sweptAt, heldRun, setSweepNext: v => { sweepNext = !!v; },
   setStampNext: id => { stampNext.add(id); },   // (DFIX3 — the previews + the tests: the stamp-down on the next paint)
   // DFIX2 — the tests: the effect surfaces open on SCORES (0 once the screen closes), the 4 am turn (stale = make the kept answer yesterday's)
   surfaces: () => (scr ? scr.surfaces() : 0), stale: staleToday, turn: turnNow };
