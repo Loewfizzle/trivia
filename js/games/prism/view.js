@@ -28,7 +28,7 @@ import { neonPalette } from './neon.js';
 import { createLight } from './light.js';
 import { createNeonFx, preClear, holdMs, endsHold } from './neonfx.js';
 import { holidayNow, withHoliday } from './holiday.js';
-import { tierOf, TOP_TIER, stepTier } from './tiers.js';
+import { tierOf, TOP_TIER, stepTier, LITE_TIER } from './tiers.js';
 import { capProbeSaysCapped, CAP_PROBE_MS, CAP_WORK_MS, quantile } from '../kit/tiers.js';
 import { paperOf } from './crayon.js';
 import { createPage } from './page.js';
@@ -121,6 +121,7 @@ export function createView() {
   let lastSpec = null;
   let tierUpBlocked = -1;  // a tier that already failed this match is not retried
   let capProbe = null, capped = false;   // (FR7 FIXES A — PD6: a step down is a probe; a phone capped at 30 Hz is not a slow one)
+  let descentFrom = null;                // (SKINS 2A — THE TIER STEP) the tier a day descent began at (its first, cheap step arms no probe)
   let goodSince = 0;
   const workTimes = [];      // CPU time per frame (dt alone can't show headroom on a 60 Hz screen)
   const rec = { on: false, f: [], w: [] };   // (PD-3) the speed run's recorder: every frame of a window (the 90-frame rings above are the tier logic's)
@@ -791,15 +792,23 @@ export function createView() {
     const down = stepTier(tier, -1, tierLook);
     if (p75 > 19.5 && down !== tier) {
       if (capped && quantile(workTimes, 0.75) <= CAP_WORK_MS) return;
-      if (!capped && !capProbe) capProbe = { from: tier, p50: quantile(frameTimes, 0.5), at: performance.now() };
-      tierUpBlocked = tier; setTier(down); tierCool = 30; frameTimes.length = 0; goodSince = 0; return;
+      // (SKINS 2A — THE TIER STEP: by day the extras go FIRST, the board's 3× LAST. A step that keeps the board's ratio can't make a frame
+      //  faster, so it arms NO cap probe (the probe would call the phone capped) and is judged again after a few frames; the probe waits for
+      //  the step that changes the ratio, and goes back to where the descent BEGAN — a capped phone gets its silhouettes back too)
+      const cheap = tierLook === 'crayon' && tierOf(down).board === tierOf(tier).board;
+      if (cheap) { if (descentFrom == null) descentFrom = tier; }
+      else {
+        if (!capped && !capProbe) capProbe = { from: descentFrom != null ? descentFrom : tier, p50: quantile(frameTimes, 0.5), at: performance.now() };
+        descentFrom = null;
+      }
+      tierUpBlocked = tier; setTier(down); tierCool = cheap ? 8 : 30; frameTimes.length = 0; goodSince = 0; return;
     }
     // plenty of headroom for ~4 s: try one tier up again (never back to one that already struggled)
     const w = [...workTimes].sort((a, b) => a - b)[Math.floor(workTimes.length * 0.75)] || 99;
     const up = stepTier(tier, 1, tierLook);
     if (p75 < 17.5 && w < 6 && up !== tier && up !== tierUpBlocked) {
       if (!goodSince) goodSince = performance.now();
-      else if (performance.now() - goodSince > 4000) { setTier(up); tierCool = 120; frameTimes.length = 0; goodSince = 0; }
+      else if (performance.now() - goodSince > 4000) { descentFrom = null; setTier(up); tierCool = 120; frameTimes.length = 0; goodSince = 0; }
     } else goodSince = 0;
   }
   function setTier(t) {
@@ -1008,7 +1017,7 @@ export function createView() {
     const world = withHoliday('day', { paper, world: curWorld || (d0 && d0.world) || 'sunset' }, holFor('day')).world;   // (PD-5B: a holiday's doodle — none yet)
     const pg = skin.world === 'page' ? skin.page : null;
     page.set({ on: !!pg, ...(pg ? { painter: pg } : {}), paper, world, w: (L && L.W0) || root.clientWidth, h: (L && L.H0) || root.clientHeight, board: field ? boardRect : null,
-      lite: !!(pg && pg.lite) && tier <= 1 });   // (the lower tiers: a skin's page drops its extras first — the world's silhouettes; its fx their extra particles — tiers.js `sparks`)
+      lite: !!(pg && pg.lite) && tier <= LITE_TIER });   // (the lower tiers: a skin's page drops its extras first — the world's silhouettes; its fx their extra particles — tiers.js `sparks`)
   }
   /** PFIX-B (FABLE REVIEW optional 17): the rest of the DAY art, warmed at night in idle slices once the match is under way — the crayon tooth
    *  (the lettering's mask + the doodle's tile: noise, ≤ 4 ms a slice), the mask's URL, the current world's doodle at the page's size. The first

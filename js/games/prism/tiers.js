@@ -14,23 +14,34 @@ export const TIERS = Object.freeze([
 export const TOP_TIER = TIERS.length - 1;
 export const tierOf = t => TIERS[Math.max(0, Math.min(TOP_TIER, t | 0))];
 
+/** (SKINS 2A) at or below this tier a PAGE skin has dropped its EXTRAS — the world's silhouettes behind the board (view.js → the page's
+ *  `lite`) + the moments' extra particles (the fx's lean cap: `sparks` ≤ 100) — while the board keeps its full 3× */
+export const LITE_TIER = 1;
+/** a tier's CLASS for a page skin (the day): 2 = everything · 1 = the 3× board, the extras dropped · 0 = the 2× board (the extras stay off) */
+export const dayClass = t => { const k = TIERS.indexOf(tierOf(t)); return TIERS[k].board !== TIERS[TOP_TIER].board ? 0 : k <= LITE_TIER ? 1 : 2; };
+
 /** PFIX-B (FABLE REVIEW finding 10): THE STEPS, by look. NIGHT steps one tier at a time (the light first, the board's 3× last). THE DAY LOOK
- *  (crayon) draws no world and no light layer: of a tier it draws only the board's ratio, the effects canvas and the crumbs (`sparks`), and only
- *  the board's ratio moves its frame time (the review, at 4× CPU: DAY HEAVY 15 / 17 / 19 / 38.5 fps at tiers 3 / 2 / 1 / 0 — 15.5 s on AUTO to
- *  reach the one that helps). So by day a step goes straight to the next tier whose BOARD differs — down 3 → 0, up 0 → 3 (the top of its class).
+ *  (a PAGE skin — crayon, watercolor, paper) draws no world shader and no light layer: of a tier it draws only the board's ratio, the effects
+ *  canvas, the particles (`sparks`) and its page's extras, and only the board's ratio moves its frame time (the review, at 4× CPU: DAY HEAVY
+ *  15 / 17 / 19 / 38.5 fps at tiers 3 / 2 / 1 / 0), so a day step never walks tier by tier.
+ *  SKINS 2A — THE TIER STEP (the owner's order: the extras FIRST, the board's sharpness LAST): a day step goes to the next CLASS (dayClass) —
+ *  down 3 → 1 (the silhouettes + the extra particles go; the board stays 3×) → 0 (the board's 2×); up 0 → 1 → 3 (the top of its class). It
+ *  was 3 → 0 in one step: the extras went TOGETHER with the 3×. (The first step is cheap — it can't make a frame faster: view.js arms no cap
+ *  probe on it and waits only a few frames before judging again, so a slow phone still reaches the 2× board in ~3.5 s.)
  *  dir: −1 down · +1 up → the tier to step to (the same tier = nowhere to go). */
 export function stepTier(t, dir, look = 'neon') {
   const cur = tierOf(t);
   t = TIERS.indexOf(cur);
   if (look !== 'crayon') return Math.max(0, Math.min(TOP_TIER, t + Math.sign(dir)));
+  const c = dayClass(t);
   if (dir < 0) {
-    for (let k = t - 1; k >= 0; k--) if (TIERS[k].board !== cur.board) return k;
+    for (let k = t - 1; k >= 0; k--) if (dayClass(k) < c) return k;
     return t;
   }
   for (let k = t + 1; k <= TOP_TIER; k++) {
-    if (TIERS[k].board === cur.board) continue;
+    if (dayClass(k) <= c) continue;
     let top = k;
-    while (top < TOP_TIER && TIERS[top + 1].board === TIERS[k].board) top++;
+    while (top < TOP_TIER && dayClass(top + 1) === dayClass(k)) top++;
     return top;
   }
   return t;

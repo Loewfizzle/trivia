@@ -228,7 +228,7 @@ test('ONLY THE SHOWN SKIN\'s FILES: a page lists its own texture(s) and nothing 
 test('THE TIERS: a page skin drops its world silhouettes on the lower tiers (lite); the fx keep fewer particles under the low tiers\' cap', async () => {
   const P = await import('../js/games/prism/skin-pages.js');
   assert.equal(P.WATER_PAGE.lite, true); assert.equal(P.PAPER_PAGE.lite, true);
-  assert.match(read('js/games/prism/view.js'), /lite: !!\(pg && pg\.lite\) && tier <= 1/);
+  assert.match(read('js/games/prism/view.js'), /lite: !!\(pg && pg\.lite\) && tier <= LITE_TIER/);   // (SKINS 2A: the tier's name — tiers.js#LITE_TIER = 1)
   for (const f of ['waterfx.js', 'paperfx.js']) assert.match(read(`js/games/prism/${f}`), /const lean = \(\) => cap <= 100;/, `${f}: the lower tiers' cap (tiers.js sparks 40 / 90) keeps fewer`);
   const { TIERS } = await import('../js/games/prism/tiers.js');
   assert.ok(TIERS[0].sparks <= 100 && TIERS[1].sparks <= 100 && TIERS[2].sparks > 100 && TIERS[3].sparks > 100);
