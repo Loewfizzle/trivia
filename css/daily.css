@@ -130,7 +130,7 @@ body[data-look="day"] .dy-art .c, body[data-look="day"] .dy-sec-art .c { display
 .dy-serial { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.08em; color: var(--dy-serial); white-space: nowrap; }
 .dy-info { min-width: 0; padding: 12px 6px 12px 14px; display: flex; flex-direction: column; gap: 6px; }
 .dy-name { font: 900 15px/1.1 var(--font-display); letter-spacing: 0.06em; color: var(--dy-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dy-hook { font: 600 13px/1.25 var(--font-ui); color: var(--dy-dim); }
+.dy-hook { font: 600 13px/1.25 var(--font-ui); color: var(--dy-dim); text-wrap: balance; }   /* (THE DROP B: a two-line hook never leaves one word alone) */
 .dy-act { position: relative; z-index: 1; padding-right: 12px; }
 .dy-ticket .btn.dy-play { min-height: 44px; min-width: 92px; padding: 0 16px; border-radius: 10px; font-size: 12px; letter-spacing: 0.18em; }
 .dy-ticket .btn.dy-play::before, .dy-ticket .btn.dy-play::after { border-radius: 10px; }

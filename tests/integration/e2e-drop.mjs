@@ -64,6 +64,7 @@ await H.run(async () => {
   ok(bt && typeof bt.id === 'string' && bt.set === 'night', `the run plays PRISM DROP's own songs — the night set (${bt && bt.id}, ${bt && bt.set})`);
   ok(await A.page.evaluate(() => window.__arcade.musicDebug().desired == null), 'the console plays nothing of its own (no daily deck over the songs)');
   ok(await A.page.evaluate(() => { const e = document.querySelector('.dr-hint'); return !!e && /rows keep rising/.test(e.textContent); }), 'the one-time hint on a first run');
+  await sizes(A.page, 'drop-00-hint');
   await waitFor(A.page, '!document.querySelector(".dr-hint")', 'the hint goes (6 s of play)', 15000);
   { let ls = null; for (let i = 0; i < 30 && ls !== 1; i++) { ls = await val(`pstats/${A.pid}/ls/drop`); if (ls !== 1) await sleep(200); } ok(ls === 1, 'the hint seen once — the server\'s flag (every device)'); }
   await A.page.evaluate(() => window.__drop.bot({ every: 70 }));
