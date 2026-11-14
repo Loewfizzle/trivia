@@ -536,6 +536,23 @@ ONE line for everything a play is credited on: **the 4:00 AM America/New_York st
   (`api/_lib/board-fill.js`), as `filledWeek` / `filledHoldem` already did — so the back-fill is safe any time after the reset.
 - **THE RESET's FREEZES SHOW (S5):** `streakView` reads `st.f` with no `st.d` (THE PROGRESS RESET keeps `st = { f }`), capped at the hold limit.
 
+## THE DAILY MODULE — THE DROP A (Nov 13 2026 — the THIRD daily, PRISM DROP's; docs/prism.md "THE DROP"; ships OFF)
+- **ONE ROW + ITS CARTRIDGE, as DM1 promised:** `config.js#DAILIES` → `drop` (theme prism, ticket drop, order 3, **`on: false`**), `SERVER_CARTS.drop`
+  (`api/_lib/drop.js`), `js/games/drop/`, a `daily-points.js` row. Nothing else counts it: THE SWEEP, the XP cap, the picker + `today` follow by
+  themselves once its row is on (GO LIVE only at a 4 am turn — then THE SWEEP + PERFECT WEEK need all three; the daily XP = 3 × 15 + 10).
+  /board's DAILIES chips skip a row that ships OFF. `DAILY_TEST_OFF=<ids>` (the emulators + DAILY_TEST only) opens an OFF row for the tests.
+- **THE GENERIC PATH GREW (api/daily.js — every daily, the old two unchanged):** a cartridge may have `begin({ record, startedAt, now, data })` (the
+  start on its record inside ONE transaction — THE DROP's resume costs a pause there), `stash({ body, base, pid })` (an upload's own data written
+  beside the record, in parallel with the move's reads — THE DROP's log chunk), an ASYNC `resume` / `verify` (they get `pid`, `base`, `T`), and
+  `abandoned` / `abandon` (a run that can never come back). The single-move body now carries `at` · `add` · `k` · `fin`; the moves list adds
+  `checkpoint` + `ppause`. **`finish` = `finishRun()`** (the case's body moved unchanged) — shared with **`settleRun()`**: an abandoned (or ended,
+  never finished) run scored at its last checkpoint by the player's next `today` and by **THE DAY'S CLOSE's sweep** (`daily-close.js#sweepRuns` —
+  yesterday's that can't come back; the day before's, whose run window is over, all; a memo per warm function).
+- **THE PRUNE (the add-on — the cost check):** a cartridge's optional `prune({ day, back, now })` — `sweepRuns` calls it for the days 2 … 9 back
+  (a memo per warm function; THE DROP's own `pr` marker makes each step once): only what the boards + the anti-cheat need is kept.
+- **THE PROGRESS RESET** clears THE DROP like the others (its points in `dp`, its board in `lb/`, a run started before the reset never paid — S4);
+  `daily-drop.test.mjs` proves it.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

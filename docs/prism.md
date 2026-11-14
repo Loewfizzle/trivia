@@ -414,6 +414,57 @@ the last strong beat, the key, `lufs` / `tp` / `check` in the song's JSON; `writ
   `__prism.kicks()`. 60 fps at 4× CPU with SLAM spammed: `prism-shots.mjs` `PERF_SETS=slam`.
 - No "TIME!" moment at a SCORE RUSH song's end (the owner). Look review: `prism-shots.mjs` `SETS=pd6` (+ `NOSAFE=1 SIZES=390x650,402x690,430x746`).
 
+## THE DROP — PRISM DROP's DAILY (THE DROP A, Nov 13 2026 — docs/games/passes/drop-a.md; the owner's plan: docs/games/plan.md "THE DROP")
+SURVIVAL on the day's pieces + rising rows (the same for everyone), ONE counted run a day, score = TIME SURVIVED (lines break a tie). **Ships
+OFF** (`config.js#DAILIES` `on: false`) — THE DROP B brings the ticket, TODAY's third row, SHARE TODAY + the polish.
+
+| file | what |
+| --- | --- |
+| `js/games/prism/drop.js` (PURE) | THE RUN — `createDropRun(seed)` (`createEngine({ mode: 'survival' })` + the schedule on the engine's 1/120 s TICK: inputs at k → one tick → k + 1 → the level + the rows due), `input` / `stepTo` (the phone: play + record), `replay(log, seed, { from, to, final, cut })` (the server), `snapshot` / `fromSnapshot` (EXACT — one JSON string), `scoreOf` / `dropLine` |
+| `js/games/prism/drop-judge.js` (PURE) | THE SERVER's JUDGE — the small record, `upload` (a chunk SIZE- / ORDER- / TIME-bounded — never replayed), `act` (checkpoint · ppause · pause · resume), `begin` (the start: fresh / a RESUME that costs a pause), `abandoned`, `judgeFinish` (THE RE-PLAY CHECK — once a run), `joinChunks` |
+| `api/_lib/drop.js` | `SERVER_CARTS.drop` on THE DAILY MODULE's generic path (`begin` · `stash` · async `resume` + `verify` · `abandon`) — the seed = HMAC(THE DAILY SECRET, `daily:drop:<day>`), nothing stored for the day |
+| `js/games/drop/` | the DAILY-ONLY cartridge (meta · logic · daily · judge · index · view): `view.js` = THE DRIVER around PRISM's REAL view in its DROP MODE |
+| `js/games/prism/view.js` | THE DROP MODE (`state.drop`): the engine = the run's, every input through the recorder (L R C W H X D S U), no publishing, no room watcher, no KO card, the top line `THE DROP · m:ss` |
+
+- **THE SCHEDULE** (`dropEvery`): SURVIVAL's rows (10 s → 4 s over 150 s — `survivalEvery`) until **4:00**, then a smoothstep over 3 min down to
+  one every **0.6 s** (7:00), held; **THE END at 8:00** (`END_TICK` 57 600): the run is over whatever the board (a bot at the floor tops out
+  well before). The level = SURVIVAL's (`battleLevel`); each row's gap = `survivalGap(seed, k)`.
+- **THE LOG**: one event per input that DID something — `<ticks since the last event><code>`; a natural lock writes `K` (the replay asserts it).
+  THE HUMAN FLOOR: ≤ 24 inputs a tick, ≤ 160 a second, a slam ≥ 12 ticks (0.1 s — ≤ 10 pieces a second) after the last; the phone keeps it (a quick
+  slam WAITS for its tick), the server refuses a log that doesn't. `LOG_MAX` 120 K chars (the heaviest bot run: 24.6 K).
+- **THE REFUSALS** (`replay`): bad_log · too_big · out_of_order · illegal (an input that does nothing there) · lock_mismatch (a K with no lock / a
+  lock with no K) · too_fast · past_end · not_over. A refused chunk changes nothing.
+- **THE ADD-ON (the city chat's cost check — it overrides the lines below where they differ):** a CHECKPOINT every **30 s of play** + a pause +
+  the page hiding / pagehide (the phone side — no auto-pause: the 3 are the player's) — ≲ 30 calls for an 8-minute run (start + 16 + the final
+  upload + finish = 19, + 2 a pause); a checkpoint is only SIZE- / ORDER- / TIME-bounded, **NEVER replayed** — THE RE-PLAY CHECK runs ONCE per run
+  (the finish; the close of an abandoned run at its last checkpoint); **THE PRUNE** (`api/_lib/drop.js#prune`, from THE DAY'S CLOSE's sweep, its
+  own `pr` marker): 2 days on (the board final) only the top `PRUNE_KEEP` 10 runs keep their record + log, for `KEEP_LOG_DAYS` 7; everyone else the
+  score row (`s` + `r`) — from the day's own keys, never a profile scan. A run's stored size: ≈ 250 B of record + its log (≈ 2–4 KB a minute of
+  play) while it runs → ≈ 60 B (the score row) once pruned; a top-10 run ≈ 10–30 KB for a week.
+- **THE RECORD** (`dly/drop/{day}/p/{pid}`, ≈ 250 B): `st, go (= st + 3 s: tick 0), len, k, t, ca, pz { n, ms, at?, kd 'p'|'r', rf? }, rz, e? o
+  ('fin' | 'abandoned' | 'late' | 'pause_over') fa`; the log's CHUNKS at `dly/drop/{day}/l/{pid}/{offset}` — written once beside each move (`stash`), the finish
+  joins them up to the CHECKED length (a resend at an old offset may be longer — the join takes the furthest). A checkpoint never re-sends the log.
+- **THE CLOCK CHECK** on every upload: the engine time due = now − go − every pause; a tick AHEAD of it + 4 s → 422 `too_early` (a log built faster
+  than real time); 20 s+ BEHIND (slow motion / a finish that arrived late) → the run ENDS at its last checkpoint + 15 s of play (`o: 'late'`).
+  THE SLOW-MOTION CHECK again at the finish (the wall clock start → the last upload ≥ the engine time − the pauses − 4 s).
+- **PAUSES**: 3 PLAYER pauses (`ppause`), 20 min in all, server-timed, the board + HOLD + NEXT + the light HIDDEN; over 20 min → ended at the
+  checkpoint (`pause_over`). **A REFRESH** (a start on a run in flight — `begin`) = back at the LATEST checkpoint, the time since a player pause
+  (backdated — the clock never runs ahead of the board): one of the 3 ("LAST CHECKPOINT · 1 PAUSE USED"); none left → ended there. **THE ROOM
+  WINS** (`pause { room }`, checked like COAST CLEAR's — 409 `no_room_game`) uses none of the 3 (its own 60-min cap); its call carries the freshest
+  chunk (`judge.bind`).
+- **ABANDONED**: silent past every budget / no resume possible → scored at its last checkpoint by the player's next `today` (`api/daily.js#settleRun`
+  — an ENDED run whose finish never came too) and by THE DAY'S CLOSE's sweep (`daily-close.js#sweepRuns`: yesterday's that can't come back; the
+  day before's all — its run window is over).
+- **THE SCORE**: `round(t / 100) × 1000 + lines` (`better: 'high'`, 5-s buckets) — YOUR TABLE, PENTHOUSE, the band + DAILY POINTS rank alike
+  (lines capped at 999 — a tie-break only). **DAILY POINTS**: 10 + 90 × (t / 8:00)^0.6 — 0:30 → 27 · 2:00 → 49 · 4:00 → 69 · 6:00 → 85 · THE END 100.
+- **THE COST** (measured): a whole-log replay 4–17 ms in node (the heaviest bot run: 351 s, 2 747 pieces) — once a run; a checkpoint does no
+  replay at all; a finish over /api on the emulators ≈ 25–36 ms in all. Server-Timing names the replay (`replay;desc="8.1 ms"`).
+- **Tests**: `tests/prism-drop.test.mjs` · `tests/prism-drop-judge.test.mjs` · `tests/integration/daily-drop.test.mjs` (/api) · `e2e-drop.mjs`
+  (needs `DAILY_TEST=1 DAILY_TEST_OFF=drop` on the server — `DAILY_TEST_OFF` opens an OFF row on the emulators only).
+- **THE DROP A's Group 0 (PD-6's review):** SLAM = the column − 6 (`SLAM_PAD`; 62 / 54 / 55 pt at 390 / 402 / 430 in Safari, `SLAM_MAX` 66);
+  THE DUCK (`audio.js#duck` — its own gain in the song chain: −4 dB, 20 ms down, 0.1 s held, 0.12 s back, one per 0.32 s; none with the music
+  off); THE LOST RUN (docs/profiles.md).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

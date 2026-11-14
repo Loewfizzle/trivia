@@ -287,6 +287,14 @@ reads the look LIVE (a change mid-game re-themes the screen at once). Right / cl
   the right end in the number font — never over the card.
 - **The music** waits for the frame; **the sound** — `OWN_VICTORY_SOUND`; **the colour** — `ACCENT` (the table above).
 
+## THE DROP A — a third DAILY-ONLY cartridge + the plug-in's new optional pieces (Nov 13 2026 — docs/prism.md "THE DROP")
+- `js/games/drop/` (DAILY_ONLY in `tests/cartridge.test.mjs`; its tube mark, its loader; `daily.on: false`): its `createView` wraps PRISM DROP's
+  REAL view (`js/games/prism/view.js` — mounted with `state.drop` = THE DRIVER: the run's engine + clock, the recorder, checkpoints, pauses, the end).
+  A game's view MAY offer such a mode for a daily — never a copy of the game.
+- The server half's optional pieces (THE DAILY MODULE's generic path — docs/progression.md "THE DROP A"): `begin` · `stash` · async `resume` /
+  `verify` (+ `pid`, `base`, `T`) · `abandoned` / `abandon`. THE DROP's judge (`drop/judge.js`) is THE DAILY KIT's with `checkpoint` / `ppause` /
+  `pause` / `resume` + `bind(driver)` (THE ROOM WINS' pause carries the run's freshest chunk).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

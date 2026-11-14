@@ -2,7 +2,7 @@
 
 Mobile-first multiplayer party games (2–8 players, one phone each). Thirteen games, **THREE PLAYABLE**: PRISM DROP, OVERCLOCK, HOLD'EM
 (`js/config.js` GAMES[].playable is the one switch — the other ten are hidden everywhere, their code + data + rules FROZEN, not deleted;
-`sign: true` = THE FIVE SIGNS in the city). Two DAILY-ONLY games (THE PASSWORD, COAST CLEAR) live in `config.js#DAILIES`, never GAMES.
+`sign: true` = THE FIVE SIGNS in the city). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
 **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (City 1.0 deleted Nov 5; its code at the tag `city-1.0-final`). Static site on Vercel
 (**neonspeakeasy.com**) + Firebase Realtime Database + Anonymous Auth + eight Vercel functions in `/api` (profiles, server-checked results +
 HOLD'EM's dealer, THE BOARD, admin, errors, the dailies, the weather, the clock). In code the city is still "the district" (`nd-` prefix,
@@ -140,6 +140,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE SERVER JUDGES every guess / move; answers + boards + THE DAILY SECRET live ONLY in the database (`tests/daily-secrets.test.mjs`) — never the pepper.
 - A RUN KEEPS ITS OWN DAY (`js/daily/run-day.js`); THE THROWAWAY GATE; the phone side on the kit (`js/daily/` — never a copy in a game).
 - THE GO-LIVE SWITCH + THE RESEED = /admin → THE DAILIES (owner-only); NO PILLS on the dailies; every colour a `--pw-*` / `--cc-*` token.
+- THE DROP: the phone PLAYS, the server REPLAYS (ONE pure engine — `prism/drop.js` + `drop-judge.js`); a log upload never re-sends the log (chunks beside a small record) → docs/prism.md#the-drop.
 
 **The games** (read the game's doc before a pass on it)
 - OVERCLOCK: its timings are the owner's (pinned by tests); NO SIDEWAYS SCROLL, EVER; right = green, wrong = red + cracked, NO ✓ / ✕; the

@@ -565,6 +565,16 @@ names its room); a daily confirmed by its own record (`dly/{game}/{day}/s` set, 
 the PURE core `js/core/whos-on.js`) on the owner's ask (`radioWhosOn` — `ROLES.whoson`: the owner only; the crew + everyone else 403), refreshed
 every 30 s ONLY while it is open + on screen. Tests: `server.test` (WHO'S ON), `tests/whos-on.test.mjs`, the harbor `radio` group.
 
+## THE LOST RUN (THE DROP A Group 0, Nov 13 2026 — PD-6's follow-up)
+A solo podium's BACK TO THE CITY closed (deleted) the solo room within ~2 s — a report still waiting for its retry then had nothing to check
+against: refused for good, the run never credited. Two halves, either alone enough for its case:
+- **The leave settles the report first** (`host.js#soloLeave` → `profile/queue.js#settle(key, 3000)` — lazy, the queue stays out of the boot
+  graph): this match's report sent at once (no backoff), the leave waiting until the server answered it or 3 s passed.
+- **A held report needs no room** (`api/report.js`): M4's "count it in a moment" record (`results/{key}` st `retry`) keeps the CHECKED extract (`xs`
+  — the server's own, server-only); the resend credits from it, never re-reading the room (`credit()` — the claim + apply, shared).
+- Proof: `server.test.mjs` (a held report credited after its room was deleted) · `e2e-playnow.mjs --only lost` (BACK TO THE CITY at once after a
+  SCORE RUSH + a SURVIVAL inside the 45 s gap → the day's solo count moves by 2).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

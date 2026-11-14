@@ -663,6 +663,19 @@ load problem, not a flake to patch.
 - The smoke's `GAMES=` names only playable games (`overclock` · `prism` · `holdem`) — anything else stops red. THE LINE's upstream + every WebKit launcher
   go through THE LIVE-SITE GUARD. `e2e-profiles` first, on fresh emulators (its board-row check reads the first other row).
 
+## THE DROP A (Nov 13 2026 — docs/prism.md "THE DROP")
+- Unit: `tests/prism-drop.test.mjs` (the schedule, the guaranteed end, record → replay, checkpoint chains, every refusal, the phone ≡ the server
+  for 12 seeds, the replay's cost) · `tests/prism-drop-judge.test.mjs` (the record on a fake clock: a whole run, a refresh, the pauses, the
+  room's pause, too early, slow motion, resync, a tampered chunk, abandoned) · `board-points` (THE DROP's curve).
+- `/api`: `node --test daily-drop.test.mjs` in tests/integration (its OWN file: it sets `DAILY_TEST_OFF=drop`, so the other suites' lists stay
+  password · coastclear · test).
+- E2E: `DAILY_TEST=1 DAILY_TEST_OFF=drop node scripts/serve.mjs 5173 --emu` then `node e2e-drop.mjs "<chromium>" ./shots-drop` (21 checks, ~40 s;
+  shots at 390 × 650 / 402 × 690 / 430 × 746, the refresh + the end by day). Run e2e-daily against a server WITHOUT `DAILY_TEST_OFF` (it
+  counts exactly three dailies — the fake third).
+- `e2e-playnow.mjs --only lost` — THE LOST RUN (docs/profiles.md).
+- THE ADD-ON (the cost check): `prism-drop-judge` asserts ≲ 30 uploads a run + no snapshot kept; `daily-drop.test` the request count, a forged
+  log stored by a checkpoint + refused at the finish, THE PRUNE (the top 10 keep their logs, 7 days later none; every score row stays).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
