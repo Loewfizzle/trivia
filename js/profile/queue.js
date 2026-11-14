@@ -92,6 +92,27 @@ export async function flush(force = false) {
   }
 }
 
+/**
+ * THE DROP A Group 0 (c) — THE LOST RUN: a solo room's BACK TO THE CITY closes (deletes) the room, and a report still waiting on its retry then
+ * found nothing to check and was refused for good — that run never credited. The leave now SETTLES this match's report first: sent at once
+ * (no backoff), the leave waiting until the server answered it or `ms` passed. A "count it in a moment" answer (M4 — the server holds the
+ * VERIFIED match in results/{key}: api/report.js) no longer needs the room, so its later resend still credits. → true = answered
+ */
+export async function settle(k, ms = 3000) {
+  if (!k || !pending(k)) return true;
+  const until = Date.now() + ms;
+  const q = loadQueue(), x = q.find(y => y.k === k);
+  if (x) { x.next = 0; saveQueue(q); }
+  flush(true).catch(() => {});
+  while (Date.now() < until) {
+    await new Promise(r => setTimeout(r, 100));
+    const y = loadQueue().find(z => z.k === k);
+    if (!y || (y.w || 0) > 0) return true;     // answered — or held by the server for a resend (it no longer needs the room)
+    if (!busy && y.next <= Date.now()) flush(true).catch(() => {});
+  }
+  return !pending(k);
+}
+
 function schedule() {
   clearTimeout(timer);
   const q = loadQueue();

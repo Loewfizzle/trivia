@@ -459,6 +459,7 @@ export function createView() {
         case 'hard':
           hardThisBatch = true;
           synth.play('hard');
+          if (!settings.musicOff && !settings.muted) songPlayer.duck();   // (THE DROP A Group 0 — THE DUCK: the music dips under the thud; none with the music off)
           kick();
           break;
         case 'lock':

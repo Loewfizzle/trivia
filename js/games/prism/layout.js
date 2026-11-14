@@ -9,7 +9,7 @@
 //   THE BUTTONS scheme only: the board shrinks to fit the button bar under it; GESTURES (the default) gets the full MAX BOARD.
 //   PD-6 — THE SPARE-WIDTH COLUMN: when the cell is HEIGHT-bound (Safari WITH its toolbars — 20 square rows can't get wider without getting
 //   taller) the spare width is no longer split as empty strips: the board sits at the outer margin and the spare goes to the rail + SLAM
-//   column (34 → COL_MAX pt); SLAM grows with it (→ SLAM_MAX, centred at the column's foot). WIDTH-bound (fullscreen / a home-screen app / a
+//   column (34 → COL_MAX pt); SLAM grows with it (the column − SLAM_PAD, centred across the column at its foot — THE DROP A). WIDTH-bound (fullscreen / a home-screen app / a
 //   narrow phone / a desktop's MAX_CELL) = PD-1's numbers exactly.
 import { W, VISIBLE } from './engine.js';
 import { tierOf, TOP_TIER } from './tiers.js';
@@ -24,9 +24,9 @@ export const TILE_MAX = 54;   // a rail tile's height (shrinks to fit 7 opponent
 export const TILE_MIN = 22;
 export const TILE_GAP = 6;
 export const COL_MAX = 72;    // PD-6: the widest the rail + SLAM column grows into the spare width
-export const SLAM_MAX = 56;   // PD-6: the biggest SLAM (in a wide column)
-export const SLAM_PAD = 10;   // PD-6: SLAM's diameter = the column − this (5 pt of air each side inside the column; the plan said −16, which left SLAM ~45 pt on a real
-                              //   Safari column of 60–68 pt — not the ~56 the owner asked for)
+export const SLAM_PAD = 6;    // THE DROP A Group 0 (PD-6's review, Ben): SLAM's diameter = the column − this — AS BIG AS THE COLUMN ALLOWS, its chrome rim 3 pt
+                              //   clear of each edge (PD-6 had −10 / max 56 → 56 / 50 / 51 pt; now ≈ 62 pt at 390 in Safari with its toolbars)
+export const SLAM_MAX = COL_MAX - SLAM_PAD;   // the biggest SLAM (the widest column): 66
 
 /**
  * { W0, H0 (the screen, pt), safe: { t, r, b, l }, scheme: 'gesture' | 'buttons', spectating, btnScale (0–1), tier (2 | 1 | 0), dpr, n (opponents

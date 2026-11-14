@@ -34,6 +34,8 @@ const PENT = { major: [0, 2, 4, 7, 9], minor: [0, 3, 5, 7, 10] };
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 
 // ================================================================ songs
+/** THE DROP A Group 0 — THE DUCK's shape (s / dB): down in 20 ms, held 0.1 s, back over 0.12 s (~0.15 s of dip under the thud), −4 dB; one a DUCK_GAP */
+export const DUCK_DB = 4, DUCK_IN = 0.02, DUCK_HOLD = 0.1, DUCK_OUT = 0.12, DUCK_GAP = 0.32;
 export function createSongPlayer() {
   let chain = null;      // { filter, lift, out }
   // (PFIX-A — THE NIGHT GAIN: the manifest's `gain` (dB, a cut) per song — the night set played at the day set's −14.4 LUFS; the files untouched)
@@ -60,7 +62,10 @@ export function createSongPlayer() {
       lift.gain.value = 1;
       const out = ctx.createGain();
       out.gain.value = 1;
-      filter.connect(lift).connect(out).connect(getMusicBus());
+      // (THE DROP A Group 0 — THE DUCK: a short dip under every SLAM's thud, its own gain so the finale's fade + the duel's swell never fight it)
+      const dk = ctx.createGain();
+      dk.gain.value = 1;
+      filter.connect(lift).connect(dk).connect(out).connect(getMusicBus());
       // THE LISTENER (PD-5A — the city's own, audio/beat.js#analyser: a 150 Hz low-pass → a 1024 analyser's time-domain RMS, pulled
       // through a silent gain, so its KICK_LAG holds): the songs' low end BEFORE the danger filter / the volume — its kicks only
       // calibrate the lead (createHeardBeat), they never time anything themselves
@@ -75,7 +80,7 @@ export function createSongPlayer() {
       inp.connect(filter);
       inp.connect(lp).connect(an).connect(z).connect(ctx.destination);
       wave = new Float32Array(an.fftSize);
-      chain = { filter, lift, out, inp, an, lp, z };
+      chain = { filter, lift, out, dk, inp, an, lp, z };
       return inp;
     },
   });
@@ -113,7 +118,26 @@ export function createSongPlayer() {
     }
   }
 
+  // THE DROP A Group 0 (PD-6's review, Ben) — THE DUCK: on a SLAM the music dips DUCK_DB for ~0.15 s under the thud, then comes back — the thud
+  // heard without getting louder. On the audio clock (scheduled automation — no timers); ONE dip at a time: a SLAM inside DUCK_GAP of the last
+  // dip's start is skipped, so a spammed SLAM never stacks into a long dip (the music back between dips). No songs / no chain = nothing to duck.
+  let duckAt = -1, ducks = 0;
+  function duck() {
+    if (!chain || !chain.dk) return false;
+    const ctx = chain.dk.context, now = ctx.currentTime;
+    if (duckAt >= 0 && now - duckAt < DUCK_GAP && now >= duckAt) return false;
+    duckAt = now; ducks++;
+    const g = chain.dk.gain, lo = Math.pow(10, -DUCK_DB / 20);
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    g.linearRampToValueAtTime(lo, now + DUCK_IN);
+    g.setValueAtTime(lo, now + DUCK_IN + DUCK_HOLD);
+    g.linearRampToValueAtTime(1, now + DUCK_IN + DUCK_HOLD + DUCK_OUT);
+    return true;
+  }
+
   return {
+    duck,
     setGame(g) { songs.setGame(g); game = g; duelAt = g && g.duelAt ? g.duelAt : duelAt; },
     setDanger(d) { danger = Math.max(0, Math.min(1, d)); },
     setDuel(at) { if (at && !duelAt) duelAt = at; },
@@ -127,12 +151,12 @@ export function createSongPlayer() {
     now: () => songs.now(),
     kick: () => kick,
     debug() {
-      return { ready: !!chain, filter: chain ? Math.round(chain.filter.frequency.value) : null, lift: chain ? +chain.lift.gain.value.toFixed(3) : 1, ...songs.debug(), levels: songs.levels() };
+      return { ready: !!chain, filter: chain ? Math.round(chain.filter.frequency.value) : null, lift: chain ? +chain.lift.gain.value.toFixed(3) : 1, duck: chain ? +chain.dk.gain.value.toFixed(3) : 1, ducks, ...songs.debug(), levels: songs.levels() };
     },
     stop() {
       songs.stop();
       void game;
-      if (chain) setTimeout(() => { try { chain.inp.disconnect(); chain.lp.disconnect(); chain.an.disconnect(); chain.z.disconnect(); chain.filter.disconnect(); chain.lift.disconnect(); chain.out.disconnect(); } catch { /* fine */ } }, 900);
+      if (chain) setTimeout(() => { try { chain.inp.disconnect(); chain.lp.disconnect(); chain.an.disconnect(); chain.z.disconnect(); chain.filter.disconnect(); chain.lift.disconnect(); chain.dk.disconnect(); chain.out.disconnect(); } catch { /* fine */ } }, 900);
     },
   };
 }

@@ -294,7 +294,14 @@ async function playSoloNow(gameId, settings) {
 }
 // (PLAY NOW — the podium's foot in a solo room (ui/final.js — a lazy chunk: it reads THIS hub, never a new export — THE STALE-MODULE RULE):
 //  PLAY AGAIN = the same game + settings, THE SOLO START again · BACK TO THE CITY = the solo room closed like a QUIT, the walk back out)
-if (typeof globalThis !== 'undefined') globalThis.__nsPlayNow = Object.freeze({ isSolo: () => isSoloMeta(state.meta), again: () => rematch(), leave: () => leaveRoom() });
+// (THE DROP A Group 0 (c) — THE LOST RUN: BACK TO THE CITY settles this match's report first — sent at once, ≤ 3 s — the room it is checked
+//  against is deleted by the leave; profile/queue.js#settle)
+async function soloLeave() {
+  const code = state.code, g = state.game || null, m = g && g.matchId ? g.matchId : (state.meta && state.meta.back && state.meta.back.m);
+  if (code && m) await lazyImport(import('./profile/queue.js'), './profile/queue.js').then(q => q.settle(q.matchKey(code, m), 3000)).catch(() => {});   // (lazy — the queue is never in the boot graph)
+  return leaveRoom();
+}
+if (typeof globalThis !== 'undefined') globalThis.__nsPlayNow = Object.freeze({ isSolo: () => isSoloMeta(state.meta), again: () => rematch(), leave: () => soloLeave() });
 
 // Same game, same settings, everyone currently connected (late joiners included).
 // (LOBBY 2.0 B — THE REMATCH RING: back in the room the match is gone (game: null) — the game it replays is meta/back's)

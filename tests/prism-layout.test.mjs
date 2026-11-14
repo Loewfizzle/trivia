@@ -3,7 +3,7 @@
 // smaller, the tiers step the board's pixel ratio down, the corner panels' cover zones.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { prismLayout, panelCells, MARGIN, GAP, RAIL, TOP, TILE_MIN, TILE_GAP, COL_MAX, SLAM_MAX } from '../js/games/prism/layout.js';
+import { prismLayout, panelCells, MARGIN, GAP, RAIL, TOP, TILE_MIN, TILE_GAP, COL_MAX, SLAM_MAX, SLAM_PAD } from '../js/games/prism/layout.js';
 import { TIERS } from '../js/games/prism/tiers.js';
 
 const PHONES = [[390, 844, 47, 34], [402, 874, 62, 34], [430, 932, 59, 34], [375, 667, 20, 0], [412, 915, 24, 16]];
@@ -88,7 +88,9 @@ test('PD-6 THE SPARE-WIDTH COLUMN: Safari with its toolbars → a wide column, a
     assert.ok(lf.railW >= 60, `${W0}×${H0}: a real column (${lf.railW})`);
   }
   const L = prismLayout({ W0: 390, H0: 650, dpr: 3, n: 5 });
-  assert.deepEqual([L.cell, L.railW, L.slamD], [29, 68, 56], 'the owner screenshot (390 × ~650): 29-pt cells, a 68-pt column, SLAM 56');
+  assert.deepEqual([L.cell, L.railW, L.slamD], [29, 68, 62], 'the owner screenshot (390 × ~650): 29-pt cells, a 68-pt column, SLAM 62 (THE DROP A — the column − 6)');
+  // THE DROP A Group 0 — SLAM as big as the column allows: the column − SLAM_PAD (6) on every Safari phone, its rim clear of both edges
+  for (const [W0, H0] of SAFARI) { const S = prismLayout({ W0, H0, dpr: 3, n: 5 }); assert.equal(S.slamD, Math.round(S.railW - SLAM_PAD), `${W0}×${H0}: SLAM = the column − ${SLAM_PAD}`); assert.ok(S.slamD <= S.railW - 6, 'the rim clear'); }
 });
 
 test('PD-6: a home-screen app / fullscreen (width-bound) keeps the PD-1 34-pt rail + the old SLAM exactly', () => {

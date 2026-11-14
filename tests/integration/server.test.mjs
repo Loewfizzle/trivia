@@ -289,6 +289,28 @@ test('PD-6: a report BEFORE the night record is written (the phone first, the ho
   tick();
 });
 
+test('THE DROP A Group 0 (c) — THE LOST RUN: a report held for a resend (too soon) still credits after the room is DELETED (BACK TO THE CITY)', async () => {
+  const uids = ['u-lr1', 'u-lr2'];
+  for (const u of uids) await ensure(u, u.slice(2).toUpperCase());
+  const first = await seedRoom('bluff', uids);
+  assert.equal((await report('u-lr1', first)).status, 'counted');
+  const quick = await seedRoom('bluff', uids);
+  const e = await report('u-lr1', quick, clock + 6000).then(() => null, x => x);
+  assert.equal(e && e.code, 'too_soon');
+  const held = await val(`results/${quick.code}_${quick.matchId}`);
+  assert.equal(held.st, 'retry'); assert.equal(typeof held.xs, 'string', 'the checked extract is kept with the held result');
+  await ref(`rooms/${quick.code}`).set(null);                     // the room closed before the resend
+  const r2 = await report('u-lr1', quick, clock + 6000 + e.extra.retryAfter);
+  assert.equal(r2.status, 'counted', 'credited from the held extract — no room needed');
+  for (const u of uids) assert.equal((await stats(u)).g.bluff.p, 2, `${u} counted once for the second match`);
+  await rejects(report('u-intruder', quick, clock + 7000 + e.extra.retryAfter), 403, 'not_in_match').catch(async () => {
+    // (sealed done by now: a stranger simply gets no outcome)
+    const r = await report('u-intruder', quick, clock + 7000 + e.extra.retryAfter); assert.equal(r.outcome, null);
+  });
+  clock += 7000 + e.extra.retryAfter;
+  tick();
+});
+
 test('forged and impossible reports are refused; the match itself still counts', async () => {
   await ensure('u-f1', 'FONE'); await ensure('u-f2', 'FTWO');
   await rejects(processReport('u-x', { code: 'nope', matchId: 'm1' }, clock), 400, 'bad_match');

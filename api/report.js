@@ -130,6 +130,17 @@ export async function processReport(uid, body, now = Date.now()) {
   const myPid = await pidOf(uid);
   const done = await val(`results/${key}`);
   if (done && done.st === 'done') return { ok: true, status: done.pre ? 'before_reset' : 'done', outcome: myPid ? (done.o && done.o[myPid]) || null : null };
+  // THE DROP A Group 0 (c) — THE LOST RUN: a match the server already VERIFIED and held for a resend (M4's 'retry') carries its checked extract
+  // (`xs` — the server's own, server-only node): the resend credits from it, never from the room — a solo room closed by BACK TO THE CITY (or
+  // any room gone in the meantime) can no longer lose that run
+  if (done && done.st === 'retry' && typeof done.xs === 'string') {
+    let x = null;
+    try { x = JSON.parse(done.xs); } catch { x = null; }
+    if (x && x.ex && x.ex.rows) {
+      if (!x.ex.rows[uid]) throw new ApiError(403, 'not_in_match');
+      return credit({ key, uid, myPid, ex: x.ex, pids: x.pids || {}, now, room: { code, meta: { hostId: x.mh || null, createdAt: x.mc || 0 }, win: x.win || null }, at: x.at, src: x.src || 'room' });
+    }
+  }
 
   const [game, night, players, meta, resetAt] = await Promise.all([val(`rooms/${code}/game`), val(`rooms/${code}/night/${matchId}`), val(`rooms/${code}/players`), val(`rooms/${code}/meta`), val(RESET_AT)]);
   // HE10 (A2 / B1): a dealer's game or a game nobody can start is never credited here — on either path (the room's game, the snapshot's night)
@@ -209,18 +220,6 @@ export async function processReport(uid, body, now = Date.now()) {
   }
   ex.n = ex.solo ? 1 : Math.min(MAX_PLAYERS, real);
 
-  // one processor at a time (a stuck claim expires); pstats/m keeps it exactly-once even if two overlap
-  const claim = await ref(`results/${key}`).transaction(cur => {
-    if (cur && cur.st === 'done') return undefined;
-    if (cur && cur.st === 'busy' && now - (cur.at || 0) < 30_000) return undefined;
-    return { st: 'busy', at: now, by: uid, ...(cur && cur.o ? { o: cur.o } : {}) };   // (M4: the outcomes of an earlier try are kept)
-  });
-  if (!claim.committed) {
-    const cur = claim.snapshot.val();
-    if (cur && cur.st === 'done') return { ok: true, status: 'done', outcome: myPid ? (cur.o && cur.o[myPid]) || null : null };
-    throw new ApiError(425, 'busy', 'Already being counted.');
-  }
-
   // (a uid with no profile is never given one here — it isn't counted: each phone makes its own profile when it joins)
   const pids = {};
   await Promise.all(Object.keys(ex.rows).map(async u => { const pid = await pidOf(u); if (pid) pids[u] = pid; }));
@@ -228,13 +227,33 @@ export async function processReport(uid, body, now = Date.now()) {
   //  device never farms a better one; the match's window goes with it — ONE ACCOUNT, ONE ROOM: progress.js#overlaps)
   dedupePids(ex.rows, pids);
   const win = { c: code, s: (game && game.matchId === matchId && Number(game.go)) || night.at, e: night.at };
+  return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });
+}
+
+/** the verified match → the players' stats (one processor at a time; M4's resend keeps the checked extract — THE DROP A Group 0 (c)) */
+async function credit({ key, uid, myPid, ex, pids, now, room, at, src }) {
+  const { code, meta, win } = room;
+  // one processor at a time (a stuck claim expires); pstats/m keeps it exactly-once even if two overlap
+  const claim = await ref(`results/${key}`).transaction(cur => {
+    if (cur && cur.st === 'done') return undefined;
+    if (cur && cur.st === 'busy' && now - (cur.at || 0) < 30_000) return undefined;
+    return { st: 'busy', at: now, by: uid, ...(cur && cur.o ? { o: cur.o } : {}), ...(cur && cur.xs ? { xs: cur.xs } : {}) };   // (M4: the outcomes of an earlier try are kept — + its checked extract)
+  });
+  if (!claim.committed) {
+    const cur = claim.snapshot.val();
+    if (cur && cur.st === 'done') return { ok: true, status: 'done', outcome: myPid ? (cur.o && cur.o[myPid]) || null : null };
+    throw new ApiError(425, 'busy', 'Already being counted.');
+  }
+
   const tried = claim.snapshot.val() || {};
   const outcomes = mergeOutcomes(tried.o, await applyMatch(key, ex, pids, now, { code, meta, win }, at));
   // THE ONE DAY LINE (FR7 FIXES C — M4): a player skipped by the 45 s gap (two queued matches flushed seconds apart) or a transaction that didn't
   // commit is NOT sealed done — the result waits ('retry', the outcomes so far kept) and the phone is told 425 + retryAfter; the next try credits
   // the rest (the credited ones skip as 'counted' — exactly once by pstats m/{key})
   if (needsRetry(outcomes)) {
-    await ref(`results/${key}`).set({ st: 'retry', at: now, g: ex.gid, by: uid, o: outcomes });
+    // (THE DROP A Group 0 (c): + the checked extract — the resend needs no room)
+    const xs = tried.xs || JSON.stringify({ ex, pids, at, win: win || null, mh: (meta && meta.hostId) || null, mc: (meta && meta.createdAt) || 0, src });
+    await ref(`results/${key}`).set({ st: 'retry', at: now, g: ex.gid, by: uid, o: outcomes, xs });
     throw new ApiError(425, 'too_soon', 'Counting it in a moment.', { retryAfter: MIN_MATCH_GAP_MS + 2000 });
   }
   if (!tried.o) await bumpPlayed(ex.gid, now).catch(e => console.warn('activity', e && e.message));
