@@ -40,6 +40,12 @@ function lamp(c, x, y, S, lit, L, look) {
   c.restore();
 }
 const pick = inputs => { const I = {}; for (const k of SHARE_KEYS) I[k] = inputs ? inputs[k] : undefined; return I; };
+/** THE DROP B add-on (Ben, Nov 13 10:19 pm — "COAST CLEAR" then "COAST CLEAR" read as a typo): the result word IS the daily's own name (a clear)
+ *  → it shows ONCE, as the coloured result word in the title's slot (no white sign above it); a lost run (CAUGHT, the red word) is unchanged */
+export const NAME = 'COAST CLEAR';
+export const doubledName = I => !I.caught && String(I.head || '').trim().toUpperCase() === NAME;
+/** the content column a SHARE TODAY section keeps to (the card's rules — every section centred on the card's centre line inside it) */
+export const COL_PAD = 150;
 
 // ---------------------------------------------------------------------------------------------- THE PIECES (this card + SHARE TODAY's section)
 /** the sign: "coast clear." by day, the neon COAST CLEAR by night — centred on cx (k = its scale) */
@@ -91,14 +97,16 @@ export function renderShare({ inputs, look = 'night' } = {}) {
     const moon = c.createRadialGradient(W * 0.86, 30, 0, W * 0.86, 30, 420); moon.addColorStop(0, 'rgba(200,225,255,0.14)'); moon.addColorStop(1, 'rgba(200,225,255,0)'); c.fillStyle = moon; c.fillRect(0, 0, W, H);
   }
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  // the sign (the name once; the headline below is the result)
-  paintSign(c, L, look, W / 2, 140);
+  // THE DROP B add-on: a CLEAR's result word is the daily's own name — it takes the TITLE's slot, ONCE (no white sign over it); CAUGHT keeps the
+  // sign + its red word
+  const once = doubledName(I);
+  if (!once) paintSign(c, L, look, W / 2, 140);   // (the sign: the name once; the headline below is the result)
   // the headline, with a soft lighthouse beam behind a clear
-  const hy = I.caught ? 540 : 440;   // (a caught card has no big time: its block sits lower, centred)
-  if (!I.caught) paintBeam(c, L, W * 0.12, hy + 120);
-  paintHead(c, I, L, look, W / 2, hy, I.caught ? 118 : 104, 8);
+  const hy = once ? 230 : I.caught ? 540 : 440;   // (a caught card has no big time: its block sits lower, centred)
+  if (!I.caught) { c.save(); c.beginPath(); c.rect(0, hy - 120, W, H - hy); c.clip(); paintBeam(c, L, W * 0.12, once ? 630 : hy + 120); c.restore(); }
+  paintHead(c, I, L, look, W / 2, hy, I.caught ? 118 : 104, 8, W - 120);
   // the big time (a clear) + the one line
-  let y = hy + 150;
+  let y = once ? 510 : hy + 150;
   if (!I.caught && I.time) { paintTime(c, I, L, W / 2, y + 30, 190); y += 190; }
   paintLine(c, I, L, W / 2, y, 44, 6);
   // THREE drawn searchlights, lit per spot (under the result — never a hole above them)
@@ -118,6 +126,23 @@ export const SECTION_H = 420;
 export function paintSection(c, { inputs, look = 'night', W = SHARE_W, H = SECTION_H } = {}) {
   const I = pick(inputs);
   const L = tokens(look);
+  // THE DROP B add-on — ONE NAME + ONE COLUMN: a CLEAR = the green COAST CLEAR in the title's slot (the wordmark's), the stat line under it, the
+  // big time under that with the beam behind it CLIPPED to the column (COL_PAD each side — the rules the card draws between sections), the three
+  // lamps centred under — every piece centred on the card's centre line, nothing past the column
+  if (doubledName(I) && I.time) {
+    const col = Math.max(0, COL_PAD * (W / SHARE_W)), cw = W - 2 * col;
+    const lampS = 5.2, lampH = 22 * lampS, lampTop = 300, contentH = lampTop + lampH;
+    c.save();
+    c.translate(0, Math.max(0, (H - contentH) / 2));
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.save(); c.beginPath(); c.rect(col, -40, cw, contentH + 80); c.clip(); paintBeam(c, L, col + 40, 286, 430, 0.3); c.restore();   // (short + flat: it stays under the stat line by itself)
+    paintHead(c, I, L, look, W / 2, 40, 66, 10, cw);
+    paintLine(c, I, L, W / 2, 104, 36, 4);
+    paintTime(c, I, L, W / 2, 210, 150);
+    paintLamps(c, I, L, look, W / 2, lampTop, lampS, 44);
+    c.restore();
+    return;
+  }
   const clear = !I.caught && !!I.time;
   const lampS = 5.2, lampH = 22 * lampS, lampTop = clear ? 262 : 246;
   const contentH = lampTop + lampH;

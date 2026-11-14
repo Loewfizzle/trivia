@@ -38,17 +38,20 @@ const same = (a, b) => {
 const out = [];
 for (const look of ['night', 'day']) {
   for (const [k, run] of Object.entries(RUNS)) for (const dayNo of [null, 7]) out.push({ card: `password ${k} ${look}${dayNo ? ' #7' : ''}`, diff: same(NEW_PW.renderShare({ run, look, dayNo }), OLD_PW.renderShare({ run, look, dayNo })) });
-  for (const [k, inputs] of Object.entries(CCS)) out.push({ card: `coastclear ${k} ${look}`, diff: same(NEW_CC.renderShare({ inputs, look }), OLD_CC.renderShare({ inputs, look })) });
+  // (THE DROP B add-on — the name once: a CLEAR's card no longer draws the white sign over the green COAST CLEAR — CHANGED ON PURPOSE (it must
+  //  differ from the old copy); CAUGHT is untouched (still pixel-identical to it))
+  for (const [k, inputs] of Object.entries(CCS)) { const d = same(NEW_CC.renderShare({ inputs, look }), OLD_CC.renderShare({ inputs, look })); out.push(inputs.caught ? { card: `coastclear ${k} ${look}`, diff: d } : { card: `coastclear ${k} ${look} — CHANGED ON PURPOSE (the name once)`, diff: d > 0 ? 0 : 1, purpose: true }); }
 }
 // THE DROP B — each daily's OWN card is pixel-identical INSIDE SHARE TODAY: with ONE daily finished, SHARE TODAY is that card, exactly (THE
 // PASSWORD · COAST CLEAR · THE DROP — the DROP's board with its junk rows SOLID), both looks
 {
   const T = await import('/js/daily/share-today.js'), DR = await import('/js/games/drop/share.js'), B = await import('/js/games/prism/board.js');
-  const DROP_B = ['1100033300', '1105533340', '0605554440', '6600007770', '0600000700', '8888088888', '8808888888', '8888888088'].reverse().join('').padEnd(200, '0');
+  // (THE DROP B add-on: a REAL finished run — drop-sample.js: the bot to its top-out, the log replayed as the server does)
+  const DRUN = (await import('/tests/integration/drop-sample.js')).sampleDropRun('20261108', { day: 'd20261113' }), DROP_B = DRUN.raw;
   const ROWS = [{ id: 'password', name: 'THE PASSWORD' }, { id: 'coastclear', name: 'COAST CLEAR' }, { id: 'drop', name: 'THE DROP' }];
   // (each from the SERVER's share shape — THE PASSWORD's marks + counts, never a word)
   const pwShare = { done: true, door: 1, startedAt: 1000, finishedAt: 175000, doors: RUNS.crack.doors.map(d => ({ state: d.state, marks: d.marks, n: d.marks.length })) };
-  const SHARE = { password: pwShare, coastclear: CCS.clear, drop: { t: 312400, ln: 17, b: DROP_B, day: 'd20261113' } };
+  const SHARE = { password: pwShare, coastclear: CCS.clear, drop: DRUN.inputs };
   const own = { password: (look) => NEW_PW.renderShare({ run: G.runFromShare(pwShare), look }), coastclear: (look) => NEW_CC.renderShare({ inputs: CCS.clear, look }), drop: (look) => DR.renderShare({ inputs: SHARE.drop, look }) };
   for (const look of ['night', 'day']) for (const r of ROWS) {
     const today = { day: 'd20261113', dailies: ROWS, mine: { [r.id]: 1 } };
@@ -61,7 +64,7 @@ for (const look of ['night', 'day']) {
   void B;
 }
 window.__same = out;
-document.getElementById('out').textContent = out.map(o => `${o.diff === 0 ? 'SAME' : 'DIFF ' + o.diff}  ${o.card}`).join('\n');
+document.getElementById('out').textContent = out.map(o => `${o.diff === 0 ? (o.purpose ? 'OK  ' : 'SAME') : (o.purpose ? 'UNCHANGED?!' : 'DIFF ' + o.diff)}  ${o.card}`).join('\n');
 document.body.dataset.ready = '1';
 </script>
 </body>
