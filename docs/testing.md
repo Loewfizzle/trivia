@@ -688,6 +688,17 @@ load problem, not a flake to patch.
   3-2-1, the result = time played, the podium's board; a SCORE RUSH hidden 20 s mid-song: the song + the clock where they stopped — ~2.5 min);
   `tests/integration/drop-sample.js` = a REAL seeded DROP run to its top-out for the share previews (`daily-preview.html?…&dropseed=`); share-same
   marks COAST CLEAR's clear / ghost cards CHANGED ON PURPOSE (the name once) — CAUGHT + every "alone inside SHARE TODAY" row must stay SAME.
+- **SKINS 2A (Nov 14):** unit `tests/share-rhythm.test.mjs` (ONE RHYTHM's even gaps, every section reads `RHYTHM`, no rounded shape in the
+  share kit, no beam, solid junk, the crop), `tests/prism-skins-2a.test.mjs` (the watercolor: no stroked line / no hairline / no white
+  highlight, the pooled shade, the blooms, the neighbours' hues, `seamAt`, the `seams` hook in the cached layer; the crayon's tweak; the
+  sourced sounds), `tests/prism-tier-step.test.mjs` (by day 3 → 1 → 0). `share-same.html` = **29 rows**, every one SAME (the expected copies
+  in `_old/` re-taken ON PURPOSE; + "no frame round the address" + "ONE straight line above it", both looks). Dev tools:
+  `daily-probe.mjs` **`CARDS="name:query,…"`** (any share card set — `SHARE_ONLY=1 CARDS="three:state=swept&drop=1,cc:state=cc"`),
+  `prism-glance.html` + `prism-shots.mjs SETS=glance` (`GLANCE_DSF`) / `SETS=skinsheet`, `prism-sfx-probe.mjs` (the skins' sourced sounds
+  in a real page — needs only a static server; 30 checks) + `prism-sfx-level.mjs` (each skin's lock + clear captured on the SFX bus, K-weighted,
+  beside the others' + the song — `BLOCK=1` adds the code-made fallbacks), `prism-skin-snap.mjs` A/B against a worktree of the commit before (`E2E_BASE=…:5174 … save`,
+  then `check` on the working tree): after SKINS 2A's watercolor + share work 152 / 152 IDENTICAL; after the crayon's tweak 114 IDENTICAL +
+  38 DIFFERENT ON PURPOSE (exactly the crayon frames that draw a block + the share cards' crayon mini).
 
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 

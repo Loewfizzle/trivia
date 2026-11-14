@@ -93,6 +93,11 @@ page now install the console's unlock (`installAudio`) — before DFIX1 they wer
 iPhone); the E2E proves the sounds start on the context after a trusted tap + the catch (`pwSfxPlayed()`). **Music off + the ring / silent switch on =
 no effects on an iPhone** (the audio session is 'ambient' with the music off — engine.js; by design).
 
+**THE SHARE CARD — SKINS 2A (Nov 14; docs/progression.md "THE SHARE CARDS — NO PILLS, ONE RHYTHM"):** the card's order is now the name · WELCOME
+IN / LOCKED OUT · "n GUESSES · m:ss" · the art (the doors + their names, then both doors' tiles) · THE FOOT (a small dim "Nº n", ONE straight
+neon line, NEONSPEAKEASY.COM — the kit's `shareFoot`; the foot no longer repeats THE PASSWORD); a hit tile's white mark is a straight bar;
+SHARE TODAY's section = the rhythm's (each door beside its tiles). The older description below is the card before it.
+
 **THE SHARE CARD (Group 6 — `share.js`):** SHARE renders a 1080 × 1350 canvas in the look on screen — the sign, the two drawn doors with their
 names, the headline + "5 GUESSES · 2:15", both mini grids (marks only — NO letters, NO words), THE PASSWORD #n, neonspeakeasy.com — and sends it
 through the iPhone's share sheet (`navigator.share` with the file) with ONE plain line: `THE PASSWORD #<n> · 7 guesses · neonspeakeasy.com`

@@ -531,13 +531,16 @@ seeded random, `ghostBlocked`, the incoming rows drawn as LIGHT — `lightIncomi
   grant later; nothing is locked now) · `family` (the CSS family the view sets as `.pd[data-look]`: `'crayon'` = the day's PAPER cards, `'neon'` =
   the night's glass; the skin itself is `.pd[data-skin]`) · `tokens { ink, sub, panel, line (+ line2, grain) }` (ink + sub ≥ 4.5:1 on panel — the
   contract test; `papers: true` = the match's paper gives panel + ink + grain instead — the crayon only) · `lettering` · `sounds { lock, clear }`
-  (the synth's voices it swaps in — `audio.js#setVoices`; the slam's thud is never swapped) · `holiday` (takes holiday.js's overrides — crayon +
+  (the synth's voices it swaps in — `audio.js#setVoices`; the slam's thud is never swapped; SKINS 2A `+ files: { lock, clear }` = its SOURCED
+  sounds in `audio/sfx/prism/`, fetched only when the skin shows — the voice's code-made sound is the fallback) · `holiday` (takes holiday.js's overrides — crayon +
   neon only).
 - **The blocks** (pre-drawn sprites, cached per cell size, warmed in ≤ 4 ms slices — no stroke, shadow or blur is drawn in a frame): `variants` ·
   `sprite(px, kind, t, v, env)` (kind `block` | `grey` — the danger drain | `ghost` | `glow` | `incoming` | `iglow`) · `fallV(n, i)` + `pieceV(x, y,
   t)` (the falling piece's + HOLD / NEXT's variants; the stack's = by place) · `env(pal)` (the night's world palette, or null) · `glow` /
   `pieceGlow` · `grid(g, o)` · `incoming(ctx, bands, o)` (the kit's rules: an occupied cell only TINTED, the gap open, never covering a block) ·
-  `mini(ctx, c)` (a mini board's cell — the rail, spectating, the podium) · `shard(t, env)` + `crumbs` (a top-out).
+  `mini(ctx, c)` (a mini board's cell — the rail, spectating, the podium) · `shard(t, env)` + `crumbs` (a top-out) · OPTIONAL `seams(ctx, { cells,
+  px, sy, grey })` (SKINS 2A — what the skin paints where the settled stack's blocks touch: the watercolor's BLEED; board.js calls it once per
+  stack change, inside its cached stack layer).
 - **The moments:** `fx()` → the moments drawn ON the board's canvas (crayonfx.js's interface: `event · erase · under · clears · streaks · over ·
   setCap · busy · clear`) or null (the night: `light: true` — the WebGL light layer + neonfx.js) · `flash` (the glass's own) · `bands` · `pulse`.
   A clear's `event()` may answer `{ hold, gap }`: the view holds the stack that long with the cleared rows EMPTY (`board.js#holdClear` — the
@@ -575,13 +578,21 @@ ROTATE + one tile per owned skin, each a 3-block sample drawn with the skin's OW
 image; nothing of a skin downloads). A look with ONE owned skin has no row (the NIGHT row appears with SKINS 2). This phone only; live, even
 mid-match.
 
-**WATERCOLOR** — blocks: four translucent washes on a wobbly soft-cornered square (a squircle — never a perfect rect, never a round blob), each
-pass's own dried edge inside, granulation, the pigment rim (the colour's darker shade), a soft white lift top-left, six variants; the paper shows
-THROUGH. Ghost = a faint pencil outline; incoming rows = a flat grey wash, a darker pigment edge. The clear: the row's paint goes thin (~0.13 s)
-then RUNS — 1–2 drips a cell (~0.4 s) soaking away; 4 LINES = a wet bloom behind the stack; a lock = a wet sheen; SLAM = wash streaks +
-droplets. Reduced effects = a quick fade. Page: cold-press paper (`watercolor.webp`, 40 KB, CC0), three faint pastel washes, the world as a very
-faint loose wash (the crayon's doodle shapes painted wide + soft). Lettering: the marker font filled like paint + a soft offset wash. Sounds:
-a wet PLIP (lock), a brush SWISH + a DRIP on each of the clear's notes.
+**WATERCOLOR** (REWORKED in SKINS 2A — the owner: "it read too close to crayon at 390") — blocks: **NO DARK OUTLINE** (no line is stroked round
+a block); a brushed near-square that fills its cell; ONE transparent wash made UNEVEN + BLOTCHY by wet-in-wet patches (a heavier second pass, a
+close hue run in — `WATER_NEAR`, inside the piece's colour family — deeper spots where the pigment settled); the pigment **POOLED at the edge**
+as a SOFT BAND in the colour's own deeper shade (`poolOf` — wide faint passes under narrow ones, heavier along two or three stretches and
+toward the tile's lower edge: never a line); a **LIGHTER MIDDLE** (the paint itself lifted — the paper + its tooth, never a white highlight); a
+**BLOOM** on 2 of the 6 variants (a cauliflower back-run: a paler patch inside an uneven crinkled edge of pushed pigment); six variants.
+**THE BLEED:** where two DIFFERENT colours touch in the settled stack, a soft patch of the two paints runs across the seam (`seamSprite` — two
+feathered pools, gradients only, no blur; `seamAt` — PURE, ≈ 3 seams in 5 by place, the same on every phone) — painted ONCE into the board's
+cached stack layer through the skin's optional `seams` hook, never per frame. Ghost = a faint WASH outline in the piece's own colour (no pencil
+line); HOLD / NEXT, the podium board + the settings tile draw the same sprites; a small mini = a flat wash, its edge a shade deeper. Incoming
+rows = a flat grey wash, its edge pooled. The clear (KEPT): the row's paint goes thin (~0.13 s) then RUNS — 1–2 drips a cell (~0.4 s) soaking
+away; 4 LINES = a wet bloom behind the stack; a lock = a wet sheen; SLAM = wash streaks + droplets. Reduced effects = a quick fade. Page:
+cold-press paper (`watercolor.webp`, 40 KB, CC0), three faint pastel washes, the world as a very faint loose wash. Lettering: the marker font
+filled like paint + a soft offset wash. Sounds: a water drop (lock), a brush swish + a drip under the clear's own notes — SOURCED files
+(`audio/sfx/prism/`), the code-made PLIP / SWISH the fallback.
 
 **PAPER CUT-OUT** — blocks: matte paper squares (the colour lifted toward white), hand-cut edges, turned ±1.5°, fibre flecks, a thin white top
 edge, the drop shadow BAKED INTO THE SPRITE, six variants. Ghost = a dashed cut line; incoming rows = grey card stock; the frame = a dashed cut
@@ -589,11 +600,17 @@ line. The clear = THE PEEL: the row is ONE strip — it lifts from the left, its
 gap for a beat (the hold); 4 LINES = confetti snips; a lock = a pat; SLAM = a puff of snips. Reduced effects = a quick lift + fade. Page: a
 kraft-board table (`kraft.webp`, 22 KB, CC0), a white sheet under the board (its shadow, turned a hair), the world as three layered paper
 silhouettes along the foot + one cut-out over the top edge. Lettering: the callout on a white paper LABEL (sharp corners, tilted 3°, its own
-shadow). Sounds: a papery TAP (lock), a short RIP + a soft WHOOSH (clear).
+shadow). Sounds: a paper rustle + a soft thup (lock), a paper rip + a lift whoosh under the clear's own notes — SOURCED files
+(`audio/sfx/prism/`), the code-made TAP / RIP the fallback.
 
-**THE TIERS:** a page skin's world silhouettes go on the lower tiers (`lite` — tiers 0–1) and its fx keep fewer particles under the low tiers'
-cap (`sparks` ≤ 100: one drip every other cell, no confetti). By day AUTO steps straight 3 → 0 (PFIX-B: only the board's ratio moves a day
-frame), so on a slow phone they go together with the board's 3×. **Measured** (`prism-shots.mjs`, 390 × 844 @3, 7 opponents, a bot, 4× CPU,
+**THE TIERS — THE TIER STEP (SKINS 2A):** a page skin's EXTRAS — the world's silhouettes (`lite`) + the moments' extra particles (the fx's lean
+cap, `sparks` ≤ 100: one drip every other cell, no confetti) — go at `tiers.js#LITE_TIER` (tier 1), the board's 3× only at tier 0. By day AUTO
+steps CLASS BY CLASS (`stepTier` + `dayClass`): **down 3 → 1 → 0** (the extras FIRST — the board still 3× — the board's sharpness LAST), up
+0 → 1 → 3. (It was 3 → 0 in one step: the extras went together with the 3×.) The first step can't make a frame faster, so the view arms NO
+cap probe on it and judges again after 8 frames; the probe waits for the step that changes the board's ratio and goes back to where the
+descent began (a Low-Power-capped phone gets its silhouettes back). Measured in the real view by day (7 opponents, a 4-line clear every 650
+ms, the CPU throttled 10×): watercolor 3 → 1 at 3.6 s → 0 at 7.0 s. `tests/prism-tier-step.test.mjs`.
+**Measured** (`prism-shots.mjs`, 390 × 844 @3, 7 opponents, a bot, 4× CPU,
 GPU; each tier locked, ~300 frames): WATERCOLOR rest 60 fps (CPU p75 / p95 2.0 / 3.2 ms at tier 3 · 1.6 / 2.5 at tier 0), heavy — a 4-line
 clear every 650 ms, the combo climbing, six incoming rows — 60 fps (3.1 / 4.2 · 2.8 / 3.9); PAPER CUT-OUT rest 60 fps (1.9 / 2.7 · 1.8 / 2.5),
 heavy 60 fps (2.6 / 3.8 · 2.2 / 3.0); the crayon beside them: heavy 5.3 / 6.2 at tier 3.
@@ -603,6 +620,28 @@ seeded random, a fixed engine state) — 136 board-level frames (crayon + neon i
 a slam + lock / a 2-line + a 4-line clear / reduced / the 2× tier / HOLD + NEXT / the minis incl. the EMPTY well / the share cards' minis / the
 day page on every paper) + 16 whole screens with the canvases hidden. `save` on the commit before a refactor, `check` after: every frame must
 match. A local tool (a baseline is this machine's rasters).
+
+### SKINS 2A (Nov 14 2026 — docs/games/passes/skins-2a.md; plan.md "SKINS 2A")
+- **WATERCOLOR REWORKED** (above) · **THE TIER STEP** (above).
+- **CRAYON — THE TEXTURE TWEAK** (its OWN commit, `fdc9a7ad` — revert it to undo): LIGHT, the blocks only (`crayon-art.js#crayonFill` +
+  `blockArt`): the hatching reads (the strokes a little apart over a thinner base — the paper's tooth in the gaps — more pressure variation, a
+  few thin darker PRESSED strokes), a fine waxy grain over the tooth, the outline pressed a touch heavier (0.085 / 0.05 → 0.096 / 0.058 of the
+  cell). The colours, the papers, the outlines' colours, the ghost, the clears, the incoming rows, the lettering are untouched. A day share
+  card's board (the crayon's 36-pt mini) carries it.
+- **THE GLANCE TEST** (the owner: "could you tell which is which at a glance?"): `tests/integration/prism-glance.html` = crayon · watercolor ·
+  paper side by side, the SAME day board, each frame a phone wide (three real previews; the skin by the match's counter `&sk=0 / 1 / 2` — three
+  frames share one storage, so no pins); `prism-shots.mjs SETS=glance` at 390 / 402 / 430 (`GLANCE_DSF`), `SETS=skinsheet` = each day skin's
+  sprite sheet. What tells them apart: crayon = saturated hatching inside dark pressed outlines on ruled paper; watercolor = pale translucent
+  washes with no outline, pooled edges, blooms + bleeds on cold-press; paper = flat matte squares, a white top edge + a shadow, on a white sheet.
+- **THE SOURCED SOUNDS** (Grok's CC0 picks — `scripts/build-prism-skin-sfx.py` → `audio/sfx/prism/` + its `CREDITS.md`; docs/audio.md): a
+  skin's `sounds.files`; `audio.js` fetches them at `setVoices` (the skin shows), decodes on the first context, plays them through the synth's
+  chain, LEVELLED with the other skins' sounds and under the song (`SAMPLE_GAIN` — measured in the game: `prism-sfx-level.mjs`; a machine's
+  balance, the owner's ear is the last word); a LOCK's file varies its pitch ± 3 % each play (`LOCK_PITCH`); a clear keeps its own notes
+  under the file; a file missing / loading / undecodable = the code-made voice. The sourced parts are CC0, the other layers "generated
+  (Grok)". `tests/integration/prism-sfx-probe.mjs` (a real page: only a skin's own files, the files played, the pitch, the blocked fallback).
+- **THE DROP's SHARE PICTURES:** the junk rows draw SOLID FILLED grey blocks with a slightly darker edge (`board.js#SOLID_JUNK` through
+  `drawMini`'s `solid` — the share code picks the pair by its look: never outline squares), on its card + in SHARE TODAY; SHARE TODAY's strip =
+  a crop of the board's top 6 rows (`drop/share.js#cropRows`, PURE). The share cards' rules (NO PILLS, ONE RHYTHM): docs/progression.md.
 
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 

@@ -92,6 +92,12 @@ for before the audio runs is held ≤ 400 ms and played the moment the context r
 without a gesture); every buffer is decoded at the unlock. The preview + the E2E's page install the console's unlock (`installAudio`) like the real game;
 the E2E proves every sound STARTS on the context + the catch.
 
+**THE SHARE CARD — SKINS 2A (Nov 14; docs/progression.md "THE SHARE CARDS — NO PILLS, ONE RHYTHM"):** **THE BEAM WEDGE IS REMOVED** (the card +
+SHARE TODAY's section — `paintBeam` + the `beam` token are gone; the three lamps stay, centred). The card's order: the name (a CLEAR: the green
+COAST CLEAR, once; CAUGHT: the sign) · ONE big result (the time; CAUGHT) · the stat line (under the result, in the ink colour) · the three
+lamps · THE FOOT (a small dim "Nº n", ONE straight neon line, NEONSPEAKEASY.COM — the kit's `shareFoot`). Still ONLY `shareInputs`. The older
+description below is the card before it.
+
 **THE SHARE CARD (CC2 — `share.js`):** SHARE renders a 1080 × 1350 canvas in the look on screen with **NO BOARD** (everyone gets the same harbor — a picture
 would give the searchlights away): the sign, the headline (a soft lighthouse cone behind COAST CLEAR), the big time or the caught line, THREE drawn
 searchlights lit per spot, COAST CLEAR #n, neonspeakeasy.com — drawn ONLY from `logic.js#shareInputs` (`SHARE_KEYS`: head · caught · time · line · spots ·

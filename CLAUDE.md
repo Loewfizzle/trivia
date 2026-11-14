@@ -141,13 +141,15 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - A RUN KEEPS ITS OWN DAY (`js/daily/run-day.js`); THE THROWAWAY GATE; the phone side on the kit (`js/daily/` — never a copy in a game).
 - THE GO-LIVE SWITCH + THE RESEED = /admin → THE DAILIES (owner-only); NO PILLS on the dailies; every colour a `--pw-*` / `--cc-*` token.
 - THE SCHEDULED GO-LIVE: an OFF daily opens ONLY at a 4 am turn the owner schedules (/admin → GO LIVE AT THE NEXT 4 AM — `progress/dlive`; `core/daily.js#rowOpenOn`), never mid-day; a finish sweeps its OWN day's set (`dailies.js#liveFor`) → docs/progression.md.
+- THE SHARE CARDS: ONE FOOT (`js/daily/share.js#shareAddress` — a straight line + the address, no frame) + ONE RHYTHM (`share.js#RHYTHM` — every
+  SHARE TODAY section the same sizes: name · big result · stat line · art strip; `tests/share-rhythm.test.mjs`) → docs/progression.md.
 - THE DROP: the phone PLAYS, the server REPLAYS (ONE pure engine — `prism/drop.js` + `drop-judge.js`); a log upload never re-sends the log (chunks beside a small record) → docs/prism.md#the-drop.
 
 **The games** (read the game's doc before a pass on it)
 - OVERCLOCK: its timings are the owner's (pinned by tests); NO SIDEWAYS SCROLL, EVER; right = green, wrong = red + cracked, NO ✓ / ✕; the
   pools are BUILT (never edit `data/oc/*.json` by hand — `node scripts/oc-pools/build.mjs`) → docs/overclock.md (moved).
 - PRISM DROP: never the words "Tetris", "tetromino" or "T-spin"; THE ANTI-CHEAT RULES A PASS MUST KEEP (the board node's write window) → docs/prism.md (moved).
-- PRISM's SKINS: a skin = ONE definition in `prism/skins.js` + its art — NO skin-specific path in view / board / rail / victory; ONE counter a match (`game.sk`), every phone draws `pool[k % n]`; a refactor proves `prism-skin-snap.mjs` IDENTICAL → docs/prism.md#the-skins.
+- PRISM's SKINS: a skin = ONE definition in `prism/skins.js` + its art — NO skin-specific path in view / board / rail / victory; ONE counter a match (`game.sk`), every phone draws `pool[k % n]`; a refactor proves `prism-skin-snap.mjs` IDENTICAL; a skin's sourced sounds = `sounds.files` (the code-made voice the fallback); by day the tiers drop the extras FIRST, the board's 3× LAST → docs/prism.md#the-skins.
 - HOLD'EM: the engine PURE + DETERMINISTIC; THE SERVER IS THE DEALER (the deck only in `hrec/{CODE}`); PLAY CHIPS ONLY — no money words;
   ANIMATIONS COME FROM THE STATE; THE PORTRAIT IS UNTOUCHED by sideways CSS → docs/holdem.md (moved).
 
@@ -228,6 +230,8 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
 - **THE SHELL — ONE builder each, a screen never keeps its own copy (`tests/shell.test.mjs`):** THE NEON TUBE = every button (`tubeButton()`,
   ONE pink MAIN a screen) · THE SHEET = every pop-up (`ui/sheet.js#openSheet`, the ONE Esc in `ui/layers.js`) · THE ROW (`row()` + `ICONS`) ·
   THE MESSAGE (`toast()`). Gold is a vault / card accent only — never a button.
+- **NO PILLS, EVER (the owner, Nov 14):** no rounded-capsule shape anywhere NEW — labels, chips, badges, frames, footers; the ones that still
+  exist are listed, not fixed (docs/games/passes/skins-2a.md "THE OTHER PILLS") → docs/title.md "THE SHELL".
 - **THE CORNER BUTTONS ARE SPLIT ON EVERY SCREEN:** ☰ TOP-LEFT, music TOP-RIGHT, 36 pt with a 44 pt tap area; every header makes room with
   `var(--cb-room)`; a full-width game pins BOTH to the screen's edges. Helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
 

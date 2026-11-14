@@ -800,6 +800,12 @@ never at rest while any pop-up is on THE LAYER STACK.
 - **DFIX3 (Nov 8) — the corner music button on THE DAILY SCREEN** (an overlay over the title, so it wears the title's smoked glass): `body[data-daily]`
   pins it to the SCREEN's corner (the menus' "beside the gear" offset put it half over THE DAILIES sign at 430 — there is no gear there) and by DAY
   retokens it to light glass + the day text colour (css/daily.css); night unchanged. THE DAILY SCREEN itself: docs/progression.md "DFIX3".
+**NO PILLS, EVER (the owner's standing rule, Nov 14 2026 — docs/games/plan.md "SKINS 2A"; it overrides any earlier "keep the foot"):** no
+rounded-capsule shape anywhere — labels, chips, badges, frames, footers (a shape wider than tall with fully rounded ends). Nothing NEW is
+built as one. The share kit is clean (`tests/share-rhythm.test.mjs`); the pills that still exist — THE NEON TUBE button itself (`.btn`,
+999 px), the dock's glass bar, the board's tabs + chips, the chat chips, the count badges… — are LISTED, not yet fixed:
+docs/games/passes/skins-2a.md "THE OTHER PILLS" (the owner decides which go, and what a tube becomes).
+
 Four parts, ONE builder + ONE block of CSS each (components.css "THE SHELL"); a new screen uses them, never a copy (tests/shell.test.mjs):
 - **THE NEON TUBE** — every action button: `tubeButton(label, { kind: 'main' | 'secondary' | 'danger', size: 'sm', block, onClick, confirm })`
   or the classes `.btn.btn-primary | .btn-ghost | .btn-danger (.btn-sm, .btn-block)`. ONE main (pink) a screen. A second tap to confirm:

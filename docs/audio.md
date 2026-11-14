@@ -1732,6 +1732,47 @@ loops + recorded neon, the intercom, the party / station songs, the lobby song a
   110 ms apart (the motion deals at that pace too); YOUR TURN / the 5-second TICK / CHAMPION (OWN_VICTORY_SOUND) from the view.
 - The motion demo (`holdem-preview.html?play=1`) plays them after TAP FOR SOUND; `tests/integration/he-sound-demo.mjs` = the demo on a real context.
 
+## PRISM DROP's SKIN SOUNDS (SKINS 2A, Nov 14 2026) — `js/games/prism/audio.js`, `audio/sfx/prism/`, `scripts/build-prism-skin-sfx.py`
+PRISM DROP's sounds are CODE-MADE (the synth — in the song's key). SKINS 2A adds SOURCED sounds for the two new day skins' lock + clear, in
+place of their code-made voices: Grok's set (`~/Downloads/grok/PrismSkins/` — 16 wav + CREDITS.md + SHA256SUMS.txt; the originals are read
+only, their SHA-256 checked) → THE PICKS (the main file of each): `watercolor-lock` (a water drop) · `watercolor-clear` (a brush swish + a
+drip) · `paper-lock` (a paper rustle + a soft thup) · `paper-clear` (a paper rip + a lift whoosh). LICENCES (the owner, Nov 14): the SOURCED
+parts are CC0 1.0 (OpenGameArt: Jan Schupke's Tinysized SFX, Luckius' paper sounds); the other layers are GROK-GENERATED — fine to use (Ben
+checked Grok's terms), credited **"generated (Grok)"**. The script lets through CC0 / CC BY sources + generated (Grok) layers only; the credit
+lines (from Grok's CREDITS.md) are in `audio/sfx/prism/CREDITS.md`. A `-b` BACKUP is used ONLY IF ITS PICK FAILS (missing, a SHA mismatch,
+unreadable, too big — the script says so and marks the credit); none was needed. Import: `python -I scripts/build-prism-skin-sfx.py` — silence trimmed (below −55 dBFS), ONE stored peak (−8
+dBFS), mono 44.1 kHz 96 kbps mp3, no metadata: **1.3 KB · 6.6 KB · 1.9 KB · 7.2 KB** (the limit: 30 KB each). `pixel-*` / `galaxy-*` wait for
+SKINS 2B. Copies only — the originals are never moved or edited.
+- **Wiring:** a skin's `sounds.files: { lock, clear }` (skins.js). `audio.js#setVoices` fetches the skin's two files WHEN IT SHOWS (never
+  before, never another skin's), decodes them on the first context, and the voice plays the FILE through the synth's own chain (the SFX bus,
+  a touch of the shared reverb) at `SAMPLE_GAIN` (below). A clear keeps its own NOTES under the file (`NOTE_GAIN`; a 4-line run lifted by
+  `RUN_LIFT`) — a bigger clear / a combo still climbs the scale; a 4-line clear keeps its bells; the slam's thud is never swapped.
+- **THE LOCK's PITCH (the owner's add-on):** a lock's file plays ± 3 % at random each play (`LOCK_PITCH` on the file's own source node — a
+  one-shot effect's pitch, never a song's; a clear keeps its pitch): a sound heard many times a minute never repeats exactly.
+- **LEVELLED IN THE GAME (the owner's add-on — "each skin's clear level with the others, and under the song"):**
+  `tests/integration/prism-sfx-level.mjs` plays each skin's lock + clear through the real synth in the real view and captures the SFX bus
+  sample for sample — K-weighted (BS.1770's two filters), the loudest 400 ms, in LUFS-like dB — beside the crayon's + the neon's code-made
+  sounds, and the song on the music bus. As first wired, paper's clear sat 1.6 / 3.2 / 2.5 dB under the others at 1 / 2 / 4 lines and
+  watercolor's lock 2 dB under. After the balance (`SAMPLE_GAIN`: plip 0.176 · tap 0.18 · swish 0.09 + 0.035 × lines · rip 0.15 + 0.04 ×
+  lines; `NOTE_GAIN` 0.058 / 0.05; `RUN_LIFT` 2):
+
+  | | lock | clear × 1 | clear × 2 | clear × 4 | the song |
+  |---|---|---|---|---|---|
+  | crayon (code-made) | −50.2 | −44.2 | −40.9 | −34.6 | −34.3 |
+  | neon (code-made) | −50.3 | −44.2 | −40.9 | −34.9 | −34.3 |
+  | **watercolor (files)** | −50.3 | −43.8 | −41.3 | −35.2 | −34.3 |
+  | **paper (files)** | −49.9 | −43.9 | −41.7 | −36.1 | −34.3 |
+  | watercolor (the code-made fallback) | −52.1 | −45.3 | −42.5 | −37.0 | |
+  | paper (the code-made fallback) | −56.0 | −44.0 | −41.9 | −37.8 | |
+
+  Level within 0.4 dB (locks) and 1.4 dB (clears), all under the song. **A machine's balance, not an ear's** (the pass cannot hear): the
+  three constants are the numbers to move if the owner's ear disagrees; re-run the tool to see where they land.
+- **The fallback = the code-made voice** (plip · swish · tap · rip, unchanged): a file missing, still loading or undecodable plays it; nothing
+  throws (audio is polish). The synth's log carries `file` when a file played (`window.__prism.synthLog()`; `samplesReady()`).
+- **Checks:** `tests/prism-skins-2a.test.mjs` (a skin names only its own files, each ≤ 30 KB + credited CC0, the fallbacks, the levels);
+  `tests/integration/prism-sfx-probe.mjs` (a real page with the audio unlocked: watercolor + paper fetch only their own two files and play
+  them; crayon + neon fetch none; the files BLOCKED → the code-made voices, no error). NOT judged by ear by the pass — the owner's.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
