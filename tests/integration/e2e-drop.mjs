@@ -56,8 +56,8 @@ await H.run(async () => {
   ok(/^THE DROP · \d+:\d\d$/.test(top), `the top line: ${top}`);
   ok(await A.page.evaluate(() => !!document.querySelector('.pd-rail .dr-pause') && document.querySelector('.dr-pause .dr-left').textContent === '3'), 'the PAUSE control at the rail\'s top, 3 left');
   await A.page.evaluate(() => window.__drop.bot({ every: 70 }));
-  await waitFor(A.page, 'window.__drop.state().sent > 0', 'a checkpoint uploaded', 15000);
-  await sleep(6500);
+  await waitFor(A.page, 'window.__drop.state().sent > 0', 'the first checkpoint (30 s of play — the add-on rhythm)', 45000);
+  await sleep(500);
   const rec1 = await val(`dly/drop/${day}/p/${A.pid}`);
   const s1 = await st(A.page);
   ok(rec1 && rec1.k > 0 && rec1.len > 0 && rec1.len <= s1.len, `the checkpoints reach the server (its tick ${rec1 && rec1.k}, log ${rec1 && rec1.len} / ${s1.len} chars)`);
@@ -82,15 +82,16 @@ await H.run(async () => {
   ok((await st(A.page)).k > kp + 300, 'RESUME: the run goes on');
 
   // ================================================================ 3. A REFRESH: back at the latest checkpoint, paused, one more pause used
-  const before = await val(`dly/drop/${day}/p/${A.pid}`);
+  // (the page hiding sends a checkpoint of its own — THE ADD-ON — so "the latest" is the record as the resume finds it)
   await A.page.evaluate(() => localStorage.setItem('ns:look', 'day'));     // (the refresh + the end in THE DAY LOOK — PRISM's crayon; the run + pause by night)
   await A.page.reload();
   await waitFor(A.page, '!document.getElementById("boot") && !!window.__arcade', 'the reload', 40000);
   await openRun(A.page);
   await waitFor(A.page, '!!window.__drop && window.__drop.state().paused', 'resumed into a pause', 30000);
   const rs = await st(A.page);
+  const before = await val(`dly/drop/${day}/p/${A.pid}`);
   const card = await A.page.evaluate(() => document.querySelector('.dr-card').innerText.replace(/\s+/g, ' '));
-  ok(rs.refresh && rs.left === 1 && rs.k === before.k, `the refresh resumed at the latest checkpoint (tick ${rs.k} = ${before.k}), one pause used (${rs.left} left)`);
+  ok(rs.refresh && rs.left === 1 && rs.k === before.k && before.k > kp, `the refresh resumed at the latest checkpoint (tick ${rs.k} = the record's ${before.k}, past the pause's ${kp}), one pause used (${rs.left} left)`);
   ok(/LAST CHECKPOINT · 1 PAUSE USED/.test(card), `one line says so: ${card}`);
   ok(await A.page.evaluate(() => document.querySelector('.pd').dataset.look === 'crayon'), 'the day look: PRISM DROP’s crayon board');
   await sizes(A.page, 'drop-03-refresh');

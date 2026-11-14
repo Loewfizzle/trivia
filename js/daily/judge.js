@@ -20,6 +20,11 @@ export function createDailyJudge(game, { moves = {} } = {}) {
     },
     async finish() { const r = await call('finish', { result: null }); rd.scored(); return r; },
   };
-  for (const [name, body] of Object.entries(moves)) judge[name] = (...a) => call(name, body(...a));
+  // (THE DROP A: a move body may ask for `$ka` — sent with keepalive, so it lands though the page is going: THE DROP's checkpoint on pagehide)
+  for (const [name, body] of Object.entries(moves)) judge[name] = (...a) => {
+    const b = { ...(body(...a) || {}) }, ka = !!b.$ka;
+    delete b.$ka;
+    return ka ? api('daily', rd.with({ action: name, game, ...b }), { keepalive: true }) : call(name, b);
+  };
   return judge;
 }

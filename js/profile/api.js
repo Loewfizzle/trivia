@@ -49,7 +49,7 @@ export async function api(name, body, opts = {}) {
   return withLimit((async () => {
     const token = await idToken();
     return fetchJson(`/api/${name}`, {
-      method: 'POST', timeout: opts.timeout,
+      method: 'POST', timeout: opts.timeout, ...(opts.keepalive ? { keepalive: true } : {}),   // (THE DROP A: a checkpoint as the page goes — it outlives the page)
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
       body: JSON.stringify(body || {}),
     });

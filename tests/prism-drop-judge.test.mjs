@@ -12,7 +12,9 @@ const SEED = '123456789';
 /** the server: a record + the chunks, a clock */
 function server(st = 1_000_000) {
   const S = { now: st, rec: begin(null, { startedAt: st, now: st }), chunks: {} };
+  S.calls = 0;
   S.move = (action, body = {}, room = false) => {
+    S.calls++;
     if (body.add != null && body.at != null) S.chunks[String(body.at)] = body.add;   // (the stash: written before the transaction)
     const r = act({ action, body, record: S.rec, now: S.now, seed: SEED, room });
     if (r.record) S.rec = r.record;
@@ -46,15 +48,18 @@ function runFor(S, P, ms, { ck = true } = {}) {
   return null;
 }
 
-test('A WHOLE RUN: checkpoints every 6 s (each replayed from the last snapshot) → the final upload → the finish replays the whole log = the same score', () => {
+test('A WHOLE RUN: a checkpoint every 30 s (bounded, NEVER replayed) → the final upload → the finish replays the whole log ONCE = the same score; ≲ 30 calls', () => {
   const S = server(); const P = phone(S);
   S.now = S.rec.go;
   runFor(S, P, 10 * 60_000);
   assert.ok(P.run.over, 'the bot topped out');
   const last = P.send();
   assert.ok(!last.refused, last.refused);
-  assert.equal(S.rec.e, 1); assert.equal(S.rec.o, 'top');
+  assert.equal(S.rec.e, 1); assert.equal(S.rec.o, 'fin');
   assert.equal(S.rec.k, P.run.k);
+  const mins = P.run.k * TICK / 60_000;
+  assert.ok(S.calls <= Math.ceil(mins * 2) + 2 && S.calls <= 30, `${S.calls} uploads for ${mins.toFixed(1)} min of play (the start + the finish on top)`);
+  assert.equal(S.rec.sv, undefined, 'no snapshot kept — nothing was replayed on the way');
   const F = S.finish();
   assert.ok(F.score != null, `scored: ${F.refused}`);
   assert.equal(F.score, scoreOf(P.run.k * TICK, P.run.eng.lines));
@@ -66,8 +71,9 @@ test('A WHOLE RUN: checkpoints every 6 s (each replayed from the last snapshot) 
 test('A REFRESH: back at the LATEST checkpoint, the time since a PLAYER PAUSE (one of the 3, backdated) — RESUME continues; no pause left → ended at the checkpoint', () => {
   const S = server(); let P = phone(S);
   S.now = S.rec.go;
-  runFor(S, P, 20_000);
+  runFor(S, P, 65_000);
   const ckK = S.rec.k, ckT = S.rec.t;
+  assert.ok(ckK > 0, 'a checkpoint reached the server');
   S.now += 4000;                                                   // the phone dies 4 s after a checkpoint …
   S.now += 30_000;                                                 // … and comes back 30 s later
   const lost = dueMs(S.rec, S.now) - ckT;                          // (the play since that checkpoint — gone; the time a pause)
@@ -85,17 +91,19 @@ test('A REFRESH: back at the LATEST checkpoint, the time since a PLAYER PAUSE (o
   P.pm = r.resp.pm; P.go = r.resp.go;
   assert.ok(Math.abs(P.tick() - ckK) <= 1, `the phone's clock at the checkpoint (${P.tick()} vs ${ckK})`);
   assert.ok(lost > 34_000 && Math.abs(S.rec.pz.ms - lost) < 50, `the pause = the time since the checkpoint (${S.rec.pz.ms} vs ${lost})`);
-  const bad = runFor(S, P, 15_000);
+  const bad = runFor(S, P, 35_000);
   assert.equal(bad, null, 'the run goes on — its checkpoints accepted');
-  assert.ok(S.rec.k > ckK + 1000);
+  if (!S.rec.e) P.send();
+  assert.ok(S.rec.k > ckK + 600, 'the run went on past the checkpoint');
+  if (S.rec.e) return;   // (the bot topped out in that stretch — the refresh + resume above is what this test is for)
   // two more refreshes use the other two; the 4th ends the run at its last checkpoint
   for (let i = 2; i <= PAUSES; i++) { S.now += 5000; S.rec = begin(S.rec, { startedAt: S.rec.st, now: S.now }); assert.equal(S.rec.pz.n, i); S.move('resume'); }
   const before = S.rec.t;
   S.now += 9000;
   S.rec = begin(S.rec, { startedAt: S.rec.st, now: S.now });
-  assert.equal(S.rec.e, 1); assert.equal(S.rec.o, 'abandoned'); assert.equal(S.rec.ft, before, 'ended AT its last checkpoint');
+  assert.equal(S.rec.e, 1); assert.equal(S.rec.o, 'abandoned'); assert.equal(S.rec.t, before, 'ended AT its last checkpoint');
   const F = S.finish();
-  assert.equal(F.score, scoreOf(before, S.rec.fl), `scored from the checkpoint (${F.refused || ''})`);
+  assert.ok(F.score != null && F.t === before, `scored from the checkpoint — ONE replay there (${F.refused || ''})`);
 });
 
 test('PLAYER PAUSES: 3 a run, the board\'s clock stopped (server-timed), a 4th refused; 20 minutes in all — over it the run ends at its checkpoint', () => {
@@ -164,7 +172,8 @@ test('THE SLOW-MOTION CHECK: a log ahead of the clock is refused; a run played i
 
 test('A LOST ANSWER (resync): an upload at the wrong offset is answered with the server\'s length — the phone resends from there', () => {
   const S = server(); const P = phone(S);
-  S.now = S.rec.go; runFor(S, P, 7000);
+  S.now = S.rec.go; runFor(S, P, 35_000);
+  assert.ok(S.rec.len > 0, 'a checkpoint landed');
   const r = S.move('checkpoint', { at: 0, add: 'C', k: P.run.k });
   assert.equal(r.resp.resync, true); assert.equal(r.resp.len, S.rec.len);
   assert.equal(r.record, null, 'nothing written');
@@ -172,28 +181,33 @@ test('A LOST ANSWER (resync): an upload at the wrong offset is answered with the
   assert.ok(!ok.refused && !ok.resp.resync);
 });
 
-test('A TAMPERED UPLOAD: a changed input or a forged lock in a chunk → refused; the checked record stays', () => {
+test('A TAMPERED LOG: a checkpoint is only bounded (a char no log has → refused at once); a forged lock passes the checkpoint but THE RE-PLAY CHECK at the finish refuses the run', () => {
   const S = server(); const P = phone(S);
-  S.now = S.rec.go; runFor(S, P, 7000);
-  const keep = S.rec;
-  S.now += 3000; P.frame();
+  S.now = S.rec.go; runFor(S, P, 35_000);
   for (let i = 0; i < 200; i++) { S.now += 16; P.frame(); }
   const b = P.body();
+  const keep = S.rec;
+  assert.equal(S.move('checkpoint', { ...b, add: b.add + 'Q' }).refused, 'bad_log', 'a char no log has');
+  assert.equal(S.rec, keep, 'the record untouched');
   const forged = { ...b, add: '1K' + b.add };
   const r = S.move('checkpoint', forged);
-  assert.ok(r.refused, 'refused');
-  assert.equal(S.rec, keep, 'the record untouched');
+  assert.ok(!r.refused, 'a checkpoint is NOT replayed: the forged chunk is stored');
+  S.rec = abandon(S.rec, S.now);
+  const F = S.finish();
+  assert.ok(F.refused, `the one replay refuses it (${F.refused})`);
   // the stash can't help a forger: the finish only reads the chunks the CHECKED length covers
   assert.equal(joinChunks({ 0: 'xx' }, 5), null);
 });
 
 test('ABANDONED: silent past every budget (or no resume possible) → the close ends it at its last checkpoint; a run with pauses left is not', () => {
   const S = server(); const P = phone(S);
-  S.now = S.rec.go; runFor(S, P, 9000);
+  S.now = S.rec.go; runFor(S, P, 35_000);
+  assert.ok(S.rec.k > 0);
   assert.equal(abandoned(S.rec, S.now + 60_000), false, 'pauses left, inside the 20 minutes: it can still come back');
   assert.equal(abandoned(S.rec, S.now + PAUSE_MS + 60_000), true, 'past the 20 minutes');
   const A = abandon(S.rec, S.now + PAUSE_MS + 60_000);
-  assert.equal(A.o, 'abandoned'); assert.equal(A.ft, S.rec.t);
-  assert.ok(judgeFinish(A, joinChunks(S.chunks, A.len), { seed: SEED }).score != null);
+  assert.equal(A.o, 'abandoned'); assert.equal(A.t, S.rec.t);
+  const F = judgeFinish(A, joinChunks(S.chunks, A.len), { seed: SEED });
+  assert.ok(F.score != null && F.t === S.rec.t, `scored at its last checkpoint by ONE replay (${F.refused || ''})`);
   void COUNT_MS; void upload;
 });

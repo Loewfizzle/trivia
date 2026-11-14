@@ -63,6 +63,14 @@ export async function sweepRuns({ games, now = Date.now(), settle }) {
         }
       } catch { SWEPT.delete(key); }
     }
+    // THE PRUNE (THE DROP A's add-on — the cost check): once a day's board is final (2 days on: its run window over, every run swept above) the
+    // cartridge keeps only what the boards + the anti-cheat need — its own `pr` marker makes each step once; a memo per warm function
+    if (cart.prune) for (let back = 2; back <= (cart.pruneDays || 9); back++) {
+      const day = dayOf(dayNum(today) - back), key = `${game}|${day}|prune`;
+      if (SWEPT.has(key)) continue;
+      SWEPT.add(key);
+      await cart.prune({ day, back, now }).catch(() => { SWEPT.delete(key); });
+    }
   }
   return out;
 }

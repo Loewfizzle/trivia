@@ -3,7 +3,8 @@
 //   · THE CLOCK: the run's tick = (the server's now − go − the pauses) / TICK — `go` + the pauses from the server's answers, the phone's offset
 //     to the server's clock from each answer's `now` (no database socket — THE PARKED DATABASE); the run is stepped to it (drop.js#stepTo)
 //   · THE RECORDER: every input the view hands over goes through drop.js#input (the log keeps the ones that did something)
-//   · CHECKPOINTS: the log's new chunk every CK_MS (6 s) + when the page hides; a lost answer → resync from the server's length
+//   · CHECKPOINTS: the log's new chunk every CK_MS (30 s of play) + a pause + the page hiding / pagehide (batched — ≲ 30 calls a run); a lost
+//     answer → resync from the server's length
 //   · PAUSE (3 a run): the board HIDDEN, the clock stopped by the server; a REFRESH resumes at the latest checkpoint — one pause used (one line)
 //   · THE ROOM WINS: the daily screen's pause (judge.pause(room)) carries the freshest chunk (judge.bind)
 //   · THE END: the top-out (or THE END at 8:00) → the final upload → judge.finish() → the score's line
@@ -86,10 +87,10 @@ export function createDriver({ judge, start, uid }) {
     if (run.over) { ended = true; finish(); return; }
     if (!flying && clock() - lastCk >= CK_MS) send();
   }
-  async function send(action = 'checkpoint') {
-    if (flying) return null;
+  async function send(action = 'checkpoint', ka = false) {
+    if (flying && !ka) return null;
     flying = true;
-    const body = D.chunk();
+    const body = ka ? { ...D.chunk(), $ka: 1 } : D.chunk();
     try {
       const r = await judge[action](body);
       took(r);
@@ -129,11 +130,15 @@ export function createDriver({ judge, start, uid }) {
   async function resume() {
     try { const r = await judge.resume(); took(r); pausedAt = null; kind = null; paint(); if (r.e) { ended = true; finish(); } } catch (e) { console.warn('[drop] resume', e); }
   }
+  // THE ADD-ON (the cost check): the page hiding / the phone locking / leaving = a checkpoint (the run's freshest chunk — a refresh resumes
+  // there); never a pause of its own (the 3 are the player's)
   function onVis() {
-    if (document.visibilityState !== 'hidden' || ended) return;
-    if (pausedAt == null && left > 0) pause(); else if (pausedAt == null) send().catch(() => {});
+    if (ended || pausedAt != null) return;
+    if (document.visibilityState === 'hidden') send('checkpoint', true).catch(() => {});
   }
+  const onHide = () => { if (!ended && pausedAt == null) send('checkpoint', true).catch(() => {}); };
   document.addEventListener('visibilitychange', onVis);
+  window.addEventListener('pagehide', onHide);
 
   // ---- the view's places: the PAUSE control at the rail's top, the paused / the end card over the board
   function attach({ root, rail, overlay }) {
@@ -167,6 +172,7 @@ export function createDriver({ judge, start, uid }) {
   }
   function stop() {
     document.removeEventListener('visibilitychange', onVis);
+    window.removeEventListener('pagehide', onHide);
     if (!ended && pausedAt == null) send().catch(() => {});
     if (hook) { removeTestHook('__drop', hook); hook = null; }
   }

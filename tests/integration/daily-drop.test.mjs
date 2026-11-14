@@ -38,7 +38,8 @@ before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n,
 after(async () => { await deleteApp(fb().app); });
 
 const ensure = (uid, name, at = WEEK_AGO) => profileAction(uid, { action: 'ensure', name, avatar: 'bolt', color: 'cyan' }, '', at);
-const D = (uid, body, at, T) => dailyAction(uid, body, at, T);
+let CALLS = 0;
+const D = (uid, body, at, T) => { CALLS++; return dailyAction(uid, body, at, T); };
 const rejects = async (p, status, code) => {
   try { await p; } catch (e) { assert.equal(e.status, status, `${code}: status ${e.status} ${e.code} (${e.message})`); if (code) assert.equal(e.code, code); return e; }
   assert.fail(`expected ${status} ${code}`);
@@ -72,6 +73,7 @@ test('THE DROP is registered only through the test opener (its row ships OFF); t
 
 test('A WHOLE RUN over /api: checkpoints → the final upload → finish = the replayed score (tenths × 1000 + lines), stored once, the points; Server-Timing carries the replay', async () => {
   await ensure('dr-cal', 'DropCal');
+  CALLS = 0;
   const s = await D('dr-cal', { action: 'start', game: 'drop' }, NOW + 60e3);
   const P = phone('dr-cal', s);
   P.now = s.run.go;
@@ -79,8 +81,13 @@ test('A WHOLE RUN over /api: checkpoints → the final upload → finish = the r
   assert.ok(P.run.over, 'the bot topped out');
   const last = await P.send();
   assert.equal(last.e, 1);
+  const pr = await val(`dly/drop/${P.day}/p/${await pidOf('dr-cal')}`);
+  assert.equal(pr.sv, undefined, 'no snapshot: a checkpoint is never replayed (THE ADD-ON)');
   const T = timing();
   const f = await D('dr-cal', { action: 'finish', game: 'drop', day: P.day }, P.now + 500, T);
+  const mins = P.run.k * TICK / 60_000;
+  assert.ok(CALLS <= Math.ceil(mins * 2) + 3, `${CALLS} calls for a ${mins.toFixed(1)}-min run (a checkpoint every 30 s + the start, the final upload, the finish)`);
+  console.log(`# THE DROP requests: ${CALLS} for ${mins.toFixed(1)} min — an 8-min run ≈ ${16 + 3}; the record ${JSON.stringify(pr).length} bytes, the log ${P.run.log.length} chars`);
   const want = scoreOf(P.run.k * TICK, P.run.eng.lines);
   assert.equal(f.score, want, 'the server\'s replay = the phone\'s run');
   assert.equal(f.counted, true);
@@ -99,7 +106,7 @@ test('A REFRESH: start again mid-run → the latest checkpoint + its log, paused
   const s = await D('dr-dee', { action: 'start', game: 'drop' }, NOW + 2 * 60e3);
   let P = phone('dr-dee', s);
   P.now = s.run.go;
-  await P.play(20e3);
+  await P.play(35e3);
   const k0 = P.run.k;
   const r = await D('dr-dee', { action: 'start', game: 'drop', day: P.day }, P.now + 25e3);
   assert.equal(r.run.refresh, 1); assert.equal(r.run.left, PAUSES - 1, 'one pause used');
@@ -116,9 +123,10 @@ test('A REFRESH: start again mid-run → the latest checkpoint + its log, paused
   const back = await D('dr-dee', { action: 'resume', game: 'drop', day: P.day }, P.now);
   P.pm = back.pm; P.go = back.go;
   assert.ok(Math.abs(P.tick() - r.run.k) <= 1, 'the clock stands at the checkpoint');
-  await P.play(15e3);
+  await P.play(35e3);
+  if (!P.run.over) await P.send();
   const pr = await val(`dly/drop/${P.day}/p/${await pidOf('dr-dee')}`);
-  assert.ok(pr.k > r.run.k + 1000 && !pr.e, 'the run went on, its checkpoints accepted');
+  assert.ok(pr.k > r.run.k + 600, 'the run went on, its checkpoints accepted');
 });
 
 test('PLAYER PAUSES: 3 a run (server-timed, the board\'s clock stopped), a 4th refused; THE ROOM WINS\' pause needs a room and uses none of the 3', async () => {
@@ -150,18 +158,22 @@ test('PLAYER PAUSES: 3 a run (server-timed, the board\'s clock stopped), a 4th r
   assert.ok(!(await val(`dly/drop/${P.day}/p/${pa}`)).e, 'the run goes on after a 5-minute room game');
 });
 
-test('THE REFUSALS: a forged chunk, a log from the future (faster than the clock), a finish before the end; a refused chunk changes nothing', async () => {
+test('THE REFUSALS: a forged log (stored by a checkpoint — refused by THE RE-PLAY CHECK at the finish), a log from the future, a finish before the end', async () => {
   await ensure('dr-fay', 'DropFay');
   const s = await D('dr-fay', { action: 'start', game: 'drop' }, NOW + 4 * 60e3);
   const P = phone('dr-fay', s);
   P.now = s.run.go;
-  await P.play(7e3);
+  await P.play(35e3);
   const pid = await pidOf('dr-fay');
-  const keep = await val(`dly/drop/${P.day}/p/${pid}`);
   for (let i = 0; i < 100; i++) { P.now += 16; P.frame(); }
-  const e = await rejects(D('dr-fay', { ...P.body('checkpoint'), add: '1K' + P.body('checkpoint').add }, P.now), 422);
-  assert.ok(['lock_mismatch', 'out_of_order'].includes(e.code), `a forged lock refused (${e.code})`);
-  assert.deepEqual(await val(`dly/drop/${P.day}/p/${pid}`), keep, 'the record untouched');
+  const bad = await rejects(D('dr-fay', { ...P.body('checkpoint'), add: P.body('checkpoint').add + 'Q' }, P.now), 422, 'bad_log');
+  void bad;
+  // a forged lock: a checkpoint is only bounded (size / order / time) — it stores it; the run's ONE replay at the finish refuses it
+  const ck = await D('dr-fay', { ...P.body('checkpoint'), add: '1K' + P.body('checkpoint').add, fin: 1 }, P.now);
+  assert.equal(ck.e, 1, 'stored + ended (fin)');
+  const e = await rejects(D('dr-fay', { action: 'finish', game: 'drop', day: P.day }, P.now + 300), 422, 'refused');
+  void e;
+  assert.equal(await val(`dly/drop/${P.day}/r/${pid}`), null, 'no score stored');
   // a log built faster than real time: 60 s of play uploaded 5 s later
   const fast = createDropRun(s.run.seed); let plan = null; const rnd = rngFrom('fast');
   for (let k = 0; k < 7200 && !fast.over; k += 12) { stepTo(fast, k); const x = dropKey(fast.eng, plan, { rnd }); plan = x.plan; if (x.code) input(fast, x.code); }
@@ -176,15 +188,16 @@ test('ABANDONED: a run silent past its budgets is scored at its LAST checkpoint 
   const s = await D('dr-hal', { action: 'start', game: 'drop' }, NOW + 6 * 60e3);
   const P = phone('dr-hal', s);
   P.now = s.run.go;
-  await P.play(13e3);
+  await P.play(35e3);
   const pid = await pidOf('dr-hal');
   const rec = await val(`dly/drop/${P.day}/p/${pid}`);
+  assert.ok(rec.k > 0, 'a checkpoint landed');
   // a minute later: pauses left, inside the 20 minutes — still resumable (RESUME on TODAY)
   const t1 = await D('dr-hal', { action: 'today' }, P.now + 60e3);
   assert.equal(t1.started.drop, true); assert.equal(t1.mine.drop, undefined);
   // 25 minutes of silence: it can never come back → scored at its last checkpoint
   const t2 = await D('dr-hal', { action: 'today' }, P.now + PAUSE_MS + 5 * 60e3);
-  assert.equal(t2.mine.drop, scoreOf(rec.t, rec.ln), 'the checkpoint\'s time + lines');
+  assert.equal(Math.floor(t2.mine.drop / 1000), Math.round(rec.t / 100), 'the checkpoint\'s time (+ its lines — ONE replay to there)');
   assert.ok(!t2.started.drop);
   // THE DAY'S CLOSE: a run of the day before yesterday left in flight (a room pause — never abandoned on its own) is swept
   await ensure('dr-ivy', 'DropIvy');
@@ -192,7 +205,7 @@ test('ABANDONED: a run silent past its budgets is scored at its LAST checkpoint 
   const so = await D('dr-ivy', { action: 'start', game: 'drop' }, old);
   const Q = phone('dr-ivy', so);
   Q.now = so.run.go;
-  await Q.play(7e3);
+  await Q.play(35e3);
   const ivy = await pidOf('dr-ivy');
   await ref('rooms/DRPY').set({ meta: { hostId: 'y', status: 'playing', createdAt: Q.now }, players: { 'dr-ivy': { name: 'Ivy', pid: ivy }, y: { name: 'Y' } } });
   await Q.send('pause', { room: 'DRPY' });
@@ -241,5 +254,28 @@ test('/admin\'s PROGRESS RESET clears THE DROP\'s records like the others: its p
     const Q = phone('dr-lee', s2); Q.now = s2.run.go; await Q.play(10 * 60e3); await Q.send();
     const f2 = await D('dr-lee', { action: 'finish', game: 'drop', day: Q.day }, Q.now + 300);
     assert.equal(f2.pre, true, 'started before the reset: kept for the player, never paid'); assert.equal(f2.outcome, null);
-  } finally { process.env.ADMIN_PIDS = ''; await ref('progress/resetAt').remove(); }
+  } finally { process.env.ADMIN_PIDS = ''; await ref('progress/resetAt').remove(); await ref('backups').remove(); }   // (the reset's backup: other suites expect none)
+});
+
+test('THE PRUNE (the cost check): once a day\'s board is final, only the top runs keep their record + log (7 days) — everyone else the score row; never a profile scan', async () => {
+  const { keepOf, PRUNE_KEEP, KEEP_LOG_DAYS } = await import('../../api/_lib/drop.js');
+  const old = NOW - 3 * DAY, day = streakDay(old), base = `dly/drop/${day}`;
+  const patch = { [`${base}/pr`]: null };   // (an earlier test's sweep already pruned this day while it was empty)
+  for (let i = 0; i < 14; i++) { const pid = `pr${i}`; patch[`${base}/s/${pid}`] = old; patch[`${base}/r/${pid}`] = (100 + i) * 1000; patch[`${base}/p/${pid}`] = { st: old, e: 1, len: 5 }; patch[`${base}/l/${pid}/0`] = '5X5X5'; }
+  await ref('/').update(patch);
+  assert.equal(keepOf({ a: 1, b: 2, c: 2 }, 2).size, 2); assert.equal(keepOf({ a: 3, b: 2, c: 2 }, 2).size, 3, 'ties at the cut kept');
+  forgetClosed(); forgetSwept();
+  await D('dr-ann', { action: 'today' }, NOW + 9 * 60e3);
+  const left = Object.keys((await val(`${base}/l`)) || {}).sort();
+  assert.equal(left.length, PRUNE_KEEP, `the top ${PRUNE_KEEP} logs kept (${left.join(',')})`);
+  assert.ok(!left.includes('pr0') && left.includes('pr13'), 'the best ones');
+  assert.equal(Object.keys((await val(`${base}/p`)) || {}).length, PRUNE_KEEP);
+  assert.equal(Object.keys((await val(`${base}/r`)) || {}).length, 14, 'every score row stays');
+  assert.equal(await val(`${base}/pr`), 1);
+  // KEEP_LOG_DAYS on: the rest go too
+  forgetClosed(); forgetSwept();
+  await D('dr-ann', { action: 'today' }, old + (KEEP_LOG_DAYS + 2) * DAY + 60e3);
+  assert.equal(await val(`${base}/l`), null); assert.equal(await val(`${base}/p`), null);
+  assert.equal(Object.keys((await val(`${base}/r`)) || {}).length, 14, 'the score rows stay');
+  assert.equal(await val(`${base}/pr`), 2);
 });

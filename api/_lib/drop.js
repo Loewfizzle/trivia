@@ -4,12 +4,14 @@
 // SECRET (dailies.js#dailySeed — never the date, never the pepper); the phone gets the seed (it plays the pieces), never anything else.
 //
 //   start            → { run: { seed, go, k, len, log, t, ln, clock…, e? } } — a fresh run, or a RESUME at the latest checkpoint (a pause used)
-//   checkpoint { at, add, k, fin? } → the chunk checked from the record's snapshot (≈ 1 ms) — { k, len, e? } | { resync, len }
+//   checkpoint { at, add, k, fin? } → the chunk bounded by size / order / time (NO replay — THE ADD-ON) — { k, len, e? } | { resync, len }
 //   ppause / pause / resume  → a PLAYER pause (one of the 3) · THE ROOM WINS' pause (the api checks the room — free) · the clock back
-//   finish           → the WHOLE log (its chunks) replayed → ONE score: tenths × 1000 + lines (`better: 'high'`)
+//   finish           → the WHOLE log (its chunks) replayed ONCE → ONE score: tenths × 1000 + lines (`better: 'high'`)
+//   THE PRUNE (THE ADD-ON): once the day's board is final (2 days on — the run window over, every run settled) only the TOP runs keep their
+//   record + log (PRUNE_KEEP), for KEEP_LOG_DAYS; everyone else keeps the score row (s + r). From the day's own keys — never a profile scan.
 //   dly/drop/{day}/p/{pid} = the small record (drop-judge.js) · dly/drop/{day}/l/{pid}/{offset} = the log's chunks (server-only — the rules'
 //   default deny). Registered by dailies.js like the others: THE GO-LIVE SWITCH + its row's `on` (OFF in THE DROP A) or DAILY_TEST=1.
-import { val } from './fb.js';
+import { ref, val } from './fb.js';
 import { dailySeed } from './dailies.js';   // (a cycle — dailies.js lists this cartridge; the seed is only read inside a call)
 import { act, begin, clockOf, judgeFinish, joinChunks, abandoned, abandon, CHUNK_MAX } from '../../js/games/prism/drop-judge.js';
 import { tenthsOf } from '../../js/games/prism/drop.js';
@@ -48,7 +50,7 @@ export const DROP_DAILY = {
   async resume({ record, data, now, base, pid }) {
     if (!record) return { seed: data && data.seed, fresh: true };
     const log = record.len ? joinChunks(await val(`${base}/l/${pid}`), record.len) : '';
-    return { seed: data && data.seed, log: log || '', k: record.k, len: record.len, t: record.t, ln: record.ln, ...clockOf(record, now), ...(record.e ? { e: 1, o: record.o } : {}), ...(record.pz && record.pz.rf && record.pz.at != null ? { refresh: 1 } : {}) };
+    return { seed: data && data.seed, log: log || '', k: record.k, len: record.len, t: record.t, ...clockOf(record, now), ...(record.e ? { e: 1, o: record.o } : {}), ...(record.pz && record.pz.rf && record.pz.at != null ? { refresh: 1 } : {}) };
   },
   act: ({ action, body, record, now, data, room = false }) => act({ action, body, record, now, seed: data && data.seed, room }),
   /** the score from the server's own record + the WHOLE log replayed — the phone's claim is never read; null = refused */
@@ -62,5 +64,34 @@ export const DROP_DAILY = {
   },
   /** an unfinished run that can never come back → its record ENDED at the last checkpoint (the next call / THE DAY'S CLOSE scores it) */
   abandoned: ({ record, now }) => abandoned(record, now),
+  /** THE PRUNE (daily-close.js#sweepRuns calls it for days 2 … KEEP_LOG_DAYS + 2 back; a marker `pr` makes it once): → the paths removed */
+  prune: ({ day, back }) => pruneDay(day, back),
   abandon: ({ record, now }) => abandon(record, now),
 };
+
+/** THE PRUNE's rules: the top PRUNE_KEEP runs of a day keep their record + log (the anti-cheat's look back) for KEEP_LOG_DAYS; the rest — a
+ *  finished run's score row only (dly/drop/{day}/s + r — the boards + YOUR TABLE read those) */
+export const PRUNE_KEEP = 10, KEEP_LOG_DAYS = 7;
+/** the pids whose logs a final day keeps: the best PRUNE_KEEP scores (ties at the cut kept too) */
+export function keepOf(scores, n = PRUNE_KEEP) {
+  const rows = Object.entries(scores || {}).filter(([, v]) => Number.isFinite(Number(v))).sort((a, b) => Number(b[1]) - Number(a[1]));
+  if (rows.length <= n) return new Set(rows.map(r => r[0]));
+  const cut = Number(rows[n - 1][1]);
+  return new Set(rows.filter(r => Number(r[1]) >= cut).map(r => r[0]));
+}
+async function pruneDay(day, back) {
+  const base = `dly/drop/${day}`;
+  const mark = Number(await val(`${base}/pr`)) || 0;
+  if (back >= KEEP_LOG_DAYS + 2) {
+    if (mark >= 2) return 0;
+    await ref('/').update({ [`${base}/l`]: null, [`${base}/p`]: null, [`${base}/pr`]: 2 });
+    return 1;
+  }
+  if (back < 2 || mark >= 1) return 0;
+  const [starts, scores] = await Promise.all([val(`${base}/s`), val(`${base}/r`)]);
+  const keep = keepOf(scores);
+  const patch = { [`${base}/pr`]: 1 };
+  for (const pid of Object.keys(starts || {})) if (!keep.has(pid) && scores && scores[pid] != null) { patch[`${base}/l/${pid}`] = null; patch[`${base}/p/${pid}`] = null; }
+  await ref('/').update(patch);
+  return Object.keys(patch).length - 1;
+}
