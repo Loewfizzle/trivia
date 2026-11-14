@@ -1,4 +1,4 @@
-// (SKINS 2B — the EXPECTED copy, re-taken ON PURPOSE on Nov 14: THE SHARE CARD's ONE RULE — the daily's small neon name CARRIES THE RESULT (green made · red failed), ONE big TIME, ONE grey stat line, the art. A frozen copy of js/games/password/share.js for tests/integration/share-same.html — never imported by the app.)
+// (SKINS 2B — the EXPECTED copy, re-taken ON PURPOSE on Nov 14: THE SHARE CARD's ONE RULE — the daily's small neon name CARRIES THE RESULT (green made · red failed), ONE big TIME, ONE grey stat line, the art; + the 11:25 am add-on: each room ONE centred column (its door + label over its own grid, top-aligned). A frozen copy of js/games/password/share.js for tests/integration/share-same.html — never imported by the app.)
 // THE PASSWORD — THE SHARE CARD (PW2 — docs/password.md "THE SHARE"): SHARE renders an IMAGE on a canvas (1080 × 1350, in the look on
 // screen — night neon or the day sky): the sign, the two drawn doors, the result line ("7 GUESSES · 2:54" or the held line), both doors'
 // MINI GRIDS (marks only — NO letters, NO words), neonspeakeasy.com. The headline: WELCOME IN · LOCKED OUT (the owner's ADD-ON). Sent through the phone's share sheet (navigator.share with the file)
@@ -14,6 +14,9 @@
 // small neon name: GREEN when both doors opened, RED when locked out — no WELCOME IN / LOCKED OUT headline, no extra word) · ONE big TIME ·
 // ONE grey stat line ("5 GUESSES") · the art (the section: the TILES ONLY, bigger — no doors; this card keeps its doors + their names over
 // the tiles). The three text pieces are the kit's painters (js/daily/share.js#paintName · paintBig · paintStat).
+// ADD-ON (Ben, Nov 14 11:25 am): on THIS card each room = ONE centred column — its small door + its label stacked and CENTRED over ITS OWN
+// grid, the two columns TOP-ALIGNED, the pair centred, an even gap (paintRooms); in SHARE TODAY the tiles never shrink under a FLOOR (≈ 22 px
+// on the 1080 card) — a tall grid makes its strip GROW (stripOf / sectionH: readability beats equal strip heights).
 //   renderShare({ run, look }) → <canvas>      shareRun({ run, line, look }) → 'shared' | 'saved' | 'copied' | 'none'
 //   paintSection(c, { run, look, W, H }) — SHARE TODAY's section (the rhythm's box, centred in W × H)
 import { scoreOf, fmtTime, doorState, guessesLine, DOOR_NAMES, DOORS, HIT, NEAR } from '/js/games/password/logic.js';
@@ -72,18 +75,29 @@ export const resultOf = run => (scoreOf(run).doors === DOORS ? MADE : FAILED);
 /** the big TIME ("2:54") · the stat line ("5 GUESSES" — a locked-out run's too: the red name says it) */
 export const timeOf = run => fmtTime(scoreOf(run).time);
 export const statOf = run => guessesLine(run);
-/** the two drawn doors + their names (THE FRONT DOOR · THE BACK ROOM) — each door at xs[i], its name to its right */
-export function paintDoors(c, run, L, look, { xs, y, S, font, ls, tx, ty }) {
-  DOOR_NAMES.forEach((n, i) => {
-    const st = doorState(run, i);
-    door(c, xs[i], y, S, st, L);
-    c.textAlign = 'left'; c.font = `700 ${font}px "Chakra Petch", system-ui, sans-serif`; c.save(); c.letterSpacing = `${ls}px`;
-    c.fillStyle = st === 'open' ? L.good : st === 'on' ? L.doorOn : st === 'held' ? L.doorHeld : L.faint;
-    if (look === 'day' && st === 'open') c.fillStyle = '#1f7a45';
-    c.fillText(n, xs[i] + 34 * S + tx, ty);
+/** THE ROOMS' sizes on the card (the door's scale — 1 = 34 × 44 — the tiles, the gap between the two columns, the label) */
+export const ROOMS = Object.freeze({ S: 2.3, cell: 56, gap: 10, colGap: 110, label: 24, ls: 4, padDoor: 14, padLabel: 20 });
+const roomsHead = () => 44 * ROOMS.S + ROOMS.padDoor + ROOMS.label + ROOMS.padLabel;
+/** PURE: the rooms block's height for a run (the door + its label + the TALLEST grid) */
+export const roomsH = run => { const rows = Math.max(0, ...run.doors.map(d => d.marks.length)); return roomsHead() + (rows ? rows * (ROOMS.cell + ROOMS.gap) - ROOMS.gap : -ROOMS.padLabel); };
+/**
+ * THE ROOMS (this card's art — the owner's add-on, Nov 14): each room = ONE CENTRED COLUMN — its small door, then its label (THE FRONT DOOR ·
+ * THE BACK ROOM), stacked and centred over ITS OWN grid; both columns start at `top` (TOP-ALIGNED: a short grid never floats mid-height),
+ * the pair centred on cx with an even gap. A label is always inside its own column (never beside a door, never over the other room). A
+ * room's door + label keep its state's colour (a held room red). A room never played = its door + label alone.
+ */
+export function paintRooms(c, run, L, look, cx, top) {
+  const G = ROOMS, gw = 5 * G.cell + 4 * G.gap, dw = 34 * G.S, dh = 44 * G.S;
+  const n = DOOR_NAMES.length, x0 = cx - (n * gw + (n - 1) * G.colGap) / 2;
+  DOOR_NAMES.forEach((name, i) => {
+    const mid = x0 + i * (gw + G.colGap) + gw / 2, st = doorState(run, i), d = run.doors[i];
+    door(c, mid - dw / 2, top, G.S, st, L);
+    c.save(); c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `700 ${G.label}px "Chakra Petch", system-ui, sans-serif`; c.letterSpacing = `${G.ls}px`;
+    c.fillStyle = st === 'open' ? (look === 'day' ? '#1f7a45' : L.good) : st === 'on' ? L.doorOn : st === 'held' ? L.doorHeld : L.faint;
+    c.fillText(name, mid + G.ls / 2, top + dh + G.padDoor + G.label / 2);
     c.restore();
+    if (d && d.marks.length) grid(c, d.marks, mid - gw / 2, top + roomsHead(), G.cell, G.gap, L);
   });
-  c.textAlign = 'center';
 }
 /** the mini grids of the doors attempted (marks only), centred on cx from `top` */
 export function paintGrids(c, run, L, cx, top, cell, gap, gapX) {
@@ -104,16 +118,13 @@ export function renderShare({ run, look = 'night', dayNo = null } = {}) {
     const hz = c.createRadialGradient(W / 2, -80, 0, W / 2, -80, 700); hz.addColorStop(0, 'rgba(255,94,196,0.18)'); hz.addColorStop(1, 'rgba(255,94,196,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, H);
   }
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  // THE ONE RULE (SKINS 2B): the name (green made · red locked out) · ONE big TIME · ONE grey stat line · THE ART (the two doors + their
-  // names, then both doors' tiles) · the foot
+  // THE ONE RULE (SKINS 2B): the name (green made · red locked out) · ONE big TIME · ONE grey stat line · THE ART (the two rooms, each ONE
+  // centred column: its door + its label over its own grid — top-aligned, the pair centred) · the foot
   paintName(c, look, NAME, W / 2, OWN.nameY, OWN.namePx, W - 120, resultOf(run));
   paintBig(c, look, timeOf(run), W / 2, OWN.bigY, OWN.bigPx);
   paintStat(c, look, statOf(run), W / 2, OWN.statY, OWN.statPx, W - 120);
-  // (the art block — the doors' row + the tallest grid — sits a little above the middle of the art box)
-  const rows = Math.max(1, ...run.doors.map(d => d.marks.length)), blockH = 176 + rows * 66 - 10;
-  const ay = OWN.artY + Math.max(0, (OWN.artBot - OWN.artY - blockH) * 0.4);
-  paintDoors(c, run, L, look, { xs: [250, 650], y: ay + 6, S: 2.9, font: 26, ls: 4, tx: 18, ty: ay + 46 });
-  paintGrids(c, run, L, W / 2, ay + 176, 56, 10, 90);
+  // (the rooms sit a little above the middle of the art box — a six-row room fills it)
+  paintRooms(c, run, L, look, W / 2, OWN.artY + Math.max(0, (OWN.artBot - OWN.artY - roomsH(run)) * 0.4));
   // the day number + THE FOOT (the kit's)
   shareFoot(c, { dayNo, dim: L.dim, color: look === 'day' ? L.doorOn : L.sign, W, look });
   return cv;
@@ -122,31 +133,40 @@ export function renderShare({ run, look = 'night', dayNo = null } = {}) {
 // ---------------------------------------------------------------------------------------------- SHARE TODAY's SECTION
 /** the section's box height in its own units — the rhythm's (SHARE TODAY scales every section by the same factor) */
 export const SECTION_H = RHYTHM.H;
-/** the biggest a tile prints in the strip (a short run — one or two rows a door — never balloons) */
-export const TILE_MAX = 46;
+/** the biggest a tile prints in the strip (a short run — one or two rows a door — never balloons) · the SMALLEST, in px of the 1080 card
+ *  (the owner's add-on: tiles shrink only to a floor — a tall grid makes the strip GROW instead; never a squashed sliver) */
+export const TILE_MAX = 46, TILE_FLOOR = 22;
+/**
+ * PURE — the strip's layout for a run: the cell as big as the strip's height + the column's width allow (a grid = 5 cells + 4 gaps of 0.2,
+ * 1.5 cells between the grids), never over TILE_MAX, never under the FLOOR (TILE_FLOOR px ON THE CARD: ÷ the section's scale k) — and the
+ * strip as tall as its grids need (≥ the rhythm's). W = the section's width in its own units.
+ */
+export function stripOf(run, W = SHARE_W, k = 1) {
+  const R = RHYTHM, played = run.doors.filter(d => d.guesses.length);
+  const n = Math.max(1, played.length), rows = Math.max(1, ...played.map(d => d.marks.length));
+  const byH = R.artH / (1.2 * rows - 0.2), byW = (W - 2 * R.COL) / (n * 5.8 - 0.8 + (n - 1) * 1.5);
+  const cell = Math.max(TILE_FLOOR / Math.max(0.5, k), Math.min(TILE_MAX, byH, byW)), gap = cell * 0.2;
+  const gridH = rows * cell + (rows - 1) * gap;
+  return { cell, gap, gx: cell * 1.5, rows, n, gridH, stripH: gridH > R.artH + 0.01 ? gridH : R.artH };   // (a grid that just fills the strip never grows it by a rounding hair)
+}
+/** PURE — this section's natural height for a run (the rhythm's box, its strip grown for a tall grid) — share-today.js lays the card out by it */
+export const sectionH = ({ run, W = SHARE_W, k = 1 } = {}) => RHYTHM.H - RHYTHM.artH + stripOf(run, W, k).stripH;
 /**
  * THE PASSWORD as a section of SHARE TODAY — THE ONE RULE (SKINS 2B; js/daily/share.js#RHYTHM): the name · the big TIME · the stat line · the
- * art strip: the TILES ONLY (no doors — the owner: the tiles read small beside them), each door's grid side by side, as big as the strip allows
- * (≤ TILE_MAX a cell; a LOCKED OUT door's six rows fill the strip's height), centred. The result = the NAME's colour (+ the tiles: a cracked
- * door ends on a full green row). The block centred in the box (W × H). The same pieces as the card.
+ * art strip: the TILES ONLY (no doors — the owner: the tiles read small beside them), each door's grid side by side (top-aligned), as big
+ * as the strip allows (≤ TILE_MAX a cell), READABLE always (≥ the floor — a LOCKED OUT door's six rows make the strip grow: `stripOf`),
+ * centred. The result = the NAME's colour (+ the tiles: a cracked door ends on a full green row). The block centred in the box (W × H);
+ * k = the section's scale on the card. The same pieces as the card.
  */
-export function paintSection(c, { run, look = 'night', W = SHARE_W, H = SECTION_H } = {}) {
-  const L = tokens(look), R = RHYTHM;
-  const played = run.doors.filter(d => d.guesses.length);
-  const n = Math.max(1, played.length);
-  const rows = Math.max(1, ...played.map(d => d.marks.length));
-  // the cell: as big as the strip's height + the column's width allow — a grid = 5 cells + 4 gaps of 0.2, 1.5 cells between the grids
-  const byH = R.artH / (1.2 * rows - 0.2);
-  const byW = (W - 2 * R.COL) / (n * 5.8 - 0.8 + (n - 1) * 1.5);
-  const cell = Math.max(10, Math.min(TILE_MAX, byH, byW)), gap = cell * 0.2, gx = cell * 1.5;
-  const gridH = rows * cell + (rows - 1) * gap, top = R.artY + (R.artH - gridH) / 2;
+export function paintSection(c, { run, look = 'night', W = SHARE_W, H = SECTION_H, k = 1 } = {}) {
+  const L = tokens(look), R = RHYTHM, T = stripOf(run, W, k);
   c.save();
-  c.translate(0, Math.max(0, (H - R.H) / 2));
+  c.translate(0, Math.max(0, (H - sectionH({ run, W, k })) / 2));
   c.textAlign = 'center'; c.textBaseline = 'middle';
   paintName(c, look, NAME, W / 2, R.nameY, R.namePx, W - 2 * R.COL, resultOf(run));
   paintBig(c, look, timeOf(run), W / 2, R.bigY, R.bigPx);
   paintStat(c, look, statOf(run), W / 2, R.statY, R.statPx, W - 2 * R.COL);
-  paintGrids(c, run, L, W / 2, top, cell, gap, gx);
+  paintGrids(c, run, L, W / 2, R.artY + (T.stripH - T.gridH) / 2, T.cell, T.gap, T.gx);
   c.restore();
 }
 

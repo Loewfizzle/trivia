@@ -482,6 +482,13 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
   calls the three painters (`tests/share-rhythm.test.mjs` checks it). `share-same.html` (run it: `node tests/integration/share-same.mjs
   "<browser>"`): the expected copies (`tests/integration/_old/pw-share.js` + `cc-share.js`) were RE-TAKEN ON PURPOSE with this pass's cards
   + the name check (all made / one failed / both failed, both looks) — 35 rows.
+  **THE PASSWORD's ADD-ON (Ben, Nov 14 11:25 am):** on its OWN card each room = ONE centred column — its small door + its label stacked
+  and centred over ITS OWN grid, the two columns TOP-ALIGNED, the pair centred, an even gap (`password/share.js#paintRooms` + `ROOMS`; a
+  room never played = its door + label alone; a held room's door + label stay red). In SHARE TODAY its tiles never shrink under a FLOOR
+  (`TILE_FLOOR` — 22 px ON THE CARD at any section scale): a tall grid makes ITS strip grow (`stripOf` / `sectionH`, PURE) —
+  **readability beats equal strip heights**. So SHARE TODAY fits ONE scale to the SUM of the sections' natural heights (a daily may
+  export `sectionH(input)`; default `RHYTHM.H`), shares the spare room evenly and records where each section sits (`cv.sections` — the
+  look checks read it). share-same = **39 rows** (+ the floor, the grown section, short grids unchanged, the card still ends above the foot).
   **BALANCED (PD-4's Group 0 — the owner, Nov 9, his real share in a text thread):** the sections share ALL the height between the header and the
   foot, each handed its whole box (`paintSection(c, { W, H })` centres its block in it; under `SECTION_H` it is scaled); the header + each wordmark
   ~1.4×; THE PASSWORD centred — the result + the line on top, the two grids side by side (cell ≤ 56), each headed by its small drawn door

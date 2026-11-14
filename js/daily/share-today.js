@@ -75,23 +75,30 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
     c.textAlign = 'center';
     top = 222;
   }
-  // THE SECTIONS — ONE RHYTHM (SKINS 2A): the room between the header and the foot shared evenly (≤ 6), every section drawn by its daily's own
-  // pieces at the SAME scale (the rhythm's box — RHYTHM.H — fitted to a section's share of the card, never past 1.45×: two dailies read bigger
-  // than three, never differently from each other), each centred in its box
+  // THE SECTIONS — THE ONE RULE: the room between the header and the foot shared by the sections (≤ 6), every section drawn by its daily's own
+  // pieces at the SAME scale `s` (never past 1.45×: two dailies read bigger than three, never differently from each other). A section's
+  // NATURAL height is the rhythm's box (RHYTHM.H) — or its daily's own `sectionH` when its strip must GROW to stay readable (the owner's
+  // add-on, Nov 14: THE PASSWORD's six-row grid keeps its tiles ≥ 22 px on the card): the scale is fitted to the SUM of the natural heights,
+  // the spare room shared evenly, each section centred in its box.
   const notLine = plan.notYet.length ? `NOT YET: ${plan.notYet.join(' · ')}` : '';
-  const bottom = notLine ? 1150 : 1200, gap = 24, n = Math.max(1, plan.sections.length);
-  const each = (bottom - top - gap * (n - 1)) / n;
-  const s = Math.min(1.45, each / RHYTHM.H);
+  const bottom = notLine ? 1150 : 1200, gap = 24, n = Math.max(1, plan.sections.length), avail = bottom - top - gap * (n - 1);
+  const natural = (sec, k) => { const M = sec.own ? mods[sec.id] : null; return M && M.S.sectionH ? M.S.sectionH({ ...M.input(share[sec.id]), W: W / k, k }) : RHYTHM.H; };
+  let s = Math.min(1.45, avail / (n * RHYTHM.H)), hs = plan.sections.map(() => RHYTHM.H);
+  for (let i = 0; i < 4; i++) { hs = plan.sections.map(sec => natural(sec, s)); s = Math.min(1.45, avail / hs.reduce((a, h) => a + h, 0)); }
+  const spare = Math.max(0, avail - hs.reduce((a, h) => a + h, 0) * s) / n;
+  let y = top;
+  cv.sections = [];   // (where each section's rhythm box sits on the card — the look checks read it: tests/integration/share-same.html)
   plan.sections.forEach((sec, i) => {
-    const y = top + i * (each + gap);
+    const box = hs[i] * s + spare;
     if (i) { c.save(); c.strokeStyle = L.rule; c.lineWidth = 2; c.beginPath(); c.moveTo(RHYTHM.COL, y - gap / 2); c.lineTo(W - RHYTHM.COL, y - gap / 2); c.stroke(); c.restore(); }
     const M = sec.own ? mods[sec.id] : null;
+    cv.sections.push({ id: sec.id, y: y + Math.max(0, (box - hs[i] * s) / 2), s, h: hs[i] });
     c.save(); c.translate(0, y); c.scale(s, s);
-    if (M) M.S.paintSection(c, { ...M.input(share[sec.id]), look, W: W / s, H: each / s });
+    if (M) M.S.paintSection(c, { ...M.input(share[sec.id]), look, W: W / s, H: box / s, k: s });
     else {
       // a daily with no section painter / no share data: its name in the name's slot + its result line as the big result (the same rule)
       const w = W / s, R = RHYTHM;
-      c.translate(0, Math.max(0, (each / s - R.H) / 2) + (R.H - (R.bigY + R.bigPx / 2)) / 2);
+      c.translate(0, Math.max(0, (box / s - R.H) / 2) + (R.H - (R.bigY + R.bigPx / 2)) / 2);
       paintName(c, look, sec.name, w / 2, R.nameY, R.namePx, w - 2 * R.COL);
       c.save(); let px = R.bigPx * 0.7; c.font = `700 ${px}px ${FONT_U}`; c.letterSpacing = '3px'; c.fillStyle = L.ink;
       const t = String(lineOf(sec.id, today.mine[sec.id]));
@@ -99,6 +106,7 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
       c.fillText(t, w / 2 + 2, R.bigY + 6); c.restore();
     }
     c.restore();
+    y += box + gap;
   });
   if (notLine) { c.save(); c.font = `700 26px ${FONT_U}`; c.letterSpacing = '5px'; c.fillStyle = L.dim; c.fillText(notLine, W / 2 + 3, FOOT.lineY - 40); c.restore(); }
   // ONE FOOT = THE ADDRESS AS ITS HEADLINE (CITY FIXES — the dailies chat, Nov 8) — SKINS 2A, NO PILLS: ONE straight thin neon line + the

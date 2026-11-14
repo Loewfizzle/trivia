@@ -38,7 +38,7 @@ test('ONE RHYTHM: the four pieces stack inside the box with EQUAL gaps (the name
 test('every section is laid out by the SAME numbers: each daily\'s paintSection reads RHYTHM (name · big · stat · art) and its SECTION_H is the rhythm\'s', () => {
   assert.equal(DROP_H, RHYTHM.H);
   for (const p of ['js/games/password/share.js', 'js/games/coastclear/share.js', 'js/games/drop/share.js']) {
-    const s = read(p), sec = s.slice(s.indexOf('export function paintSection'));
+    const s = read(p), sec = s.slice(s.indexOf(s.includes('export function stripOf') ? 'export function stripOf' : 'export function paintSection'));
     assert.match(s, /export const SECTION_H = RHYTHM\.H;/, p);
     for (const k of ['nameY', 'namePx', 'bigY', 'bigPx', 'statY', 'statPx', 'artY', 'artH']) assert.match(sec, new RegExp(`R\\.${k}\\b`), `${p} reads RHYTHM.${k}`);
     // (SKINS 2B) the three text pieces are the KIT's — the same name, time and stat line in every section
@@ -49,7 +49,8 @@ test('every section is laid out by the SAME numbers: each daily\'s paintSection 
     assert.doesNotMatch(sec.split('\n/** SHARE')[0], /\b(1[0-9]{2}|[2-9][0-9]{2})px\b/, `${p}: no size of its own in the section`);
   }
   const T = read('js/daily/share-today.js');
-  assert.match(T, /const s = Math\.min\(1\.45, each \/ RHYTHM\.H\);/, 'SHARE TODAY scales every section by ONE factor');
+  assert.match(T, /s = Math\.min\(1\.45, avail \/ hs\.reduce\(\(a, h\) => a \+ h, 0\)\);/, 'SHARE TODAY scales every section by ONE factor (fitted to the sum of their natural heights)');
+  assert.match(T, /M\.S\.paintSection\(c, \{ \.\.\.M\.input\(share\[sec\.id\]\), look, W: W \/ s, H: box \/ s, k: s \}\);/, 'every section at the same scale');
 });
 
 test('NO PILLS in the share kit: no rounded-rect helper, no roundRect / arcTo frame — the foot is ONE straight line + plain lettering', () => {
@@ -133,7 +134,7 @@ test('SKINS 2B — THE ONE RULE: the NAME carries the result (green made · red 
   assert.doesNotMatch(code('js/games/password/share.js'), /HEAD_OUT|HEAD_IN|LOCKED OUT|WELCOME IN/);
   const sec = pw.slice(pw.indexOf('export function paintSection'));
   assert.doesNotMatch(sec, /door\(|paintDoor|paintDoors/, "no doors in SHARE TODAY's strip (the daily's own card keeps them)");
-  assert.match(pw, /export const TILE_MAX = (4[0-9]|5[0-9]);/, 'the tiles are bigger (they were ≤ 36)');
+  assert.match(pw, /export const TILE_MAX = (4[0-9]|5[0-9]), TILE_FLOOR = 22;/, 'the tiles are bigger (they were ≤ 36) + never under the floor');
   // THE DROP: no win / lose — its name stays white
   const dr = read('js/games/drop/share.js');
   assert.match(dr, /paintName\(c, look, NAME, W \/ 2, R\.nameY, R\.namePx, cw\);/, 'no result passed: white');
@@ -144,4 +145,43 @@ test('SKINS 2B — THE ONE RULE: the NAME carries the result (green made · red 
     assert.match(own, /paintBig\(c, look, [^;]+, W \/ 2, OWN\.bigY, OWN\.bigPx\);/, p);
     assert.match(own, /paintStat\(c, look, [^;]+, W \/ 2, OWN\.statY, OWN\.statPx, /, p);
   }
+});
+
+test("THE ADD-ON (Ben, Nov 14 11:25 am) — THE PASSWORD: each room ONE centred column on its own card; SHARE TODAY's tiles never under the floor — a tall grid makes its strip grow", async () => {
+  const PW = await import('../js/games/password/share.js');
+  const { HIT: H, NEAR: N, MISS: M } = await import('../js/games/password/logic.js');
+  const door = (state, rows) => ({ state, marks: Array.from({ length: rows }, () => [M, N, H, M, M]), guesses: new Array(rows).fill('') });
+  const run = (a, b) => ({ done: true, door: 1, startedAt: 1000, finishedAt: 175000, doors: [door(a[0], a[1]), door(b[0], b[1])] });
+  const short = run(['solved', 3], ['solved', 2]), tall = run(['solved', 2], ['failed', 6]), front = run(['failed', 6], ['open', 0]);
+  // THE STRIP: short grids fill the rhythm's strip; a six-row grid stops at the FLOOR (22 px on the card at any section scale) and the strip grows
+  const s1 = PW.stripOf(short, 1080, 1);
+  assert.ok(s1.cell > 36 && s1.cell <= PW.TILE_MAX && s1.stripH === RHYTHM.artH, `short: ${s1.cell.toFixed(1)}-px tiles in the rhythm's strip`);
+  assert.equal(PW.sectionH({ run: short, W: 1080, k: 1 }), RHYTHM.H);
+  for (const k of [1.45, 1, 0.94, 0.8]) for (const r of [tall, front]) {
+    const T = PW.stripOf(r, 1080 / k, k);
+    assert.ok(T.cell * k >= PW.TILE_FLOOR - 1e-9, `k ${k}: ${(T.cell * k).toFixed(2)} px on the card — never a sliver`);
+    assert.ok(T.stripH >= T.gridH - 1e-9, 'the strip holds the whole grid');
+    assert.equal(PW.sectionH({ run: r, W: 1080 / k, k }), RHYTHM.H - RHYTHM.artH + T.stripH);
+  }
+  assert.ok(PW.sectionH({ run: tall, W: 1080, k: 1 }) > RHYTHM.H, 'a tall grid grows its section (readability beats equal strip heights)');
+  // THE OWN CARD: paintRooms — each room's door + label + grid share ONE centre; both rooms start at the same top
+  const calls = [];
+  const ctx = new Proxy({}, { get: (_, k) => (k === 'measureText' ? () => ({ width: 100 }) : (...a) => { calls.push([k, ...a]); }), set: (_, k, v) => { calls.push(['set', k, v]); return true; } });
+  PW.paintRooms(ctx, tall, PW.tokens('night'), 'night', 540, 600);
+  const G = PW.ROOMS, gw = 5 * G.cell + 4 * G.gap, mids = [540 - (gw + G.colGap) / 2, 540 + (gw + G.colGap) / 2];
+  const labels = calls.filter(c => c[0] === 'fillText');
+  assert.deepEqual(labels.map(l => l[1]), ['THE FRONT DOOR', 'THE BACK ROOM']);
+  labels.forEach((l, i) => { assert.ok(Math.abs(l[2] - G.ls / 2 - mids[i]) < 1e-6, `${l[1]} is centred on its own column`); assert.equal(l[3], labels[0][3], 'the labels share one line'); });
+  const doors = calls.filter(c => c[0] === 'translate');
+  assert.equal(doors.length, 2);
+  doors.forEach((d, i) => { assert.ok(Math.abs(d[1] + 34 * G.S / 2 - mids[i]) < 1e-6, 'the door is centred over its column'); assert.equal(d[2], 600, 'both columns start at the same top'); });
+  // a label never reaches into the other column: its widest (14 letters at 24 px + spacing) is narrower than its grid, and the gap is even
+  assert.ok(14 * (G.label * 0.62 + G.ls) < gw && G.colGap >= 80);
+  // the rooms fit the card's art box even at six rows; a room never played = its door + label alone
+  assert.ok(PW.roomsH(tall) <= OWN.artBot - OWN.artY, `a six-row room fits (${PW.roomsH(tall)} of ${OWN.artBot - OWN.artY})`);
+  assert.ok(PW.roomsH(short) < PW.roomsH(tall));
+  const src = read('js/games/password/share.js');
+  assert.match(src, /if \(d && d\.marks\.length\) grid\(c, d\.marks, mid - gw \/ 2, top \+ roomsHead\(\), G\.cell, G\.gap, L\);/, 'every grid starts at the same y under its own label');
+  assert.doesNotMatch(src, /paintDoors|xs: \[250, 650\]/, 'no label hanging beside a door');
+  assert.match(src, /c\.fillStyle = st === 'open' \? \(look === 'day' \? '#1f7a45' : L\.good\) : st === 'on' \? L\.doorOn : st === 'held' \? L\.doorHeld : L\.faint;/, "a held room's label stays red");
 });

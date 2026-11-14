@@ -152,6 +152,8 @@ if (view === 'screen') {
   const pwRun = { done: true, door: 1, startedAt: 1000, finishedAt: 175000, doors: [{ state: 'solved', marks: [[M, N, M, M, H], [H, H, N, M, M], [H, H, H, H, H]], n: 3 }, { state: 'solved', marks: [[N, M, M, H, M], [H, H, H, H, H]], n: 2 }] };
   // (PD-4's Group 0: &pw=locked = a LOCKED OUT run — the back room's six rows, the tallest grid a section must fit)
   if (q.get('pw') === 'locked') pwRun.doors = [{ state: 'solved', marks: [[M, N, M, M, H], [H, H, H, H, H]], n: 2 }, { state: 'failed', marks: Array.from({ length: 6 }, () => [N, M, H, M, M]), n: 6 }];
+  // (SKINS 2B's add-on: &pw=front = THE FRONT DOOR failed after 6 — the back room never opened: one tall grid, the other room its door alone)
+  if (q.get('pw') === 'front') { pwRun.door = 0; pwRun.doors = [{ state: 'failed', marks: Array.from({ length: 6 }, (_, i) => [M, i % 2 ? N : M, N, M, i > 2 ? H : M]), n: 6 }, { state: 'open', marks: [], n: 0 }]; }
   const ccIn = q.get('cc') === 'caught' ? { head: 'CAUGHT', caught: true, time: null, line: '3 SPOTTED · 1:58', spots: 3, dayNo: 9, site: 'neonspeakeasy.com' } : { head: 'COAST CLEAR', caught: false, time: '2:12', line: '1 SPOTTED · +30 s', spots: 1, dayNo: 9, site: 'neonspeakeasy.com' };
   const share = { password: pwRun, coastclear: ccIn, ...(DROP_RUN ? { drop: DROP_RUN.inputs } : {}) };
   const { drawToday } = await import(q.get('old') === '1' ? '/tests/integration/_old/share-today.js' : '/js/daily/share-today.js');

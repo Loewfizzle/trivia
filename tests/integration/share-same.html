@@ -88,10 +88,9 @@ for (const look of ['night', 'day']) {
       const today = { day: 'd20261113', dailies: ROWS, mine: { password: 1, coastclear: 1, drop: 1 } };
       const cv = await T.drawToday(today, () => '', look, { streak: 3, share });
       const g = cv.getContext('2d');
-      // (the sections' boxes as share-today.js lays them out: top 222 with a streak, the foot's room 1200, a 24-px gap, three sections)
-      const top = 222, each = (1200 - top - 48) / 3, k = Math.min(1.45, each / R.H), off = Math.max(0, (each / k - R.H) / 2);
+      // (where each section's rhythm box sits on the card + its scale: share-today.js records it on the canvas — `cv.sections`)
       const count = (i, ya, yb) => {
-        const y0 = top + i * (each + 24) + off * k, d = g.getImageData(R.COL, Math.round(y0 + ya * k), 1080 - 2 * R.COL, Math.max(1, Math.round((yb - ya) * k))).data;
+        const y0 = cv.sections[i].y, k = cv.sections[i].s, d = g.getImageData(R.COL, Math.round(y0 + ya * k), 1080 - 2 * R.COL, Math.max(1, Math.round((yb - ya) * k))).data;
         let green = 0, red = 0;
         for (let j = 0; j < d.length; j += 4) { const r = d[j], gg = d[j + 1], b = d[j + 2]; if (gg > r + 40 && gg > b + 25) green++; else if (r > gg + 70 && r > b + 50) red++; }
         return { green, red };
@@ -107,6 +106,20 @@ for (const look of ['night', 'day']) {
       });
       out.push({ card: `SHARE TODAY ${look}, ${label}: each name in its result's colour; the time + the stat line plain`, diff: bad });
     }
+  }
+  // THE ADD-ON (Ben, Nov 14 11:25 am) — SHARE TODAY's PASSWORD strip stays READABLE: with the Back Room failed after 6 (three finished) the
+  // tiles are ≥ 22 px on the card and the section GROWS past the rhythm's box (the other two keep theirs); with short grids nothing grows
+  {
+    const R = (await import('/js/daily/share.js')).RHYTHM;
+    const lostPw = { done: true, door: 1, startedAt: 1000, finishedAt: 420000, doors: RUNS.lockedBack.doors.map(d => ({ state: d.state, marks: d.marks, n: d.marks.length })) };
+    const today = { day: 'd20261113', dailies: ROWS, mine: { password: 1, coastclear: 1, drop: 1 } };
+    const tall = await T.drawToday(today, () => '', 'night', { streak: 3, share: { ...SHARE, password: lostPw } }), flat = await T.drawToday(today, () => '', 'night', { streak: 3, share: SHARE });
+    const cell = NEW_PW.stripOf(G.runFromShare(lostPw), 1080 / tall.sections[0].s, tall.sections[0].s).cell * tall.sections[0].s;
+    out.push({ card: `SHARE TODAY: a six-row PASSWORD grid keeps its tiles >= 22 px on the card (${cell.toFixed(1)} px)`, diff: cell >= 21.99 ? 0 : 1 });
+    out.push({ card: 'SHARE TODAY: the tall grid makes ITS section grow (the others keep the rhythm\'s box)', diff: tall.sections[0].h > R.H && tall.sections[1].h === R.H && tall.sections[2].h === R.H ? 0 : 1 });
+    out.push({ card: 'SHARE TODAY: short grids — every section the rhythm\'s box', diff: flat.sections.every(x => x.h === R.H) ? 0 : 1 });
+    const last = tall.sections[2];
+    out.push({ card: 'SHARE TODAY: the grown card still ends above the foot', diff: last.y + last.h * last.s <= 1202 ? 0 : 1 });
   }
   // (the holes never reach the picture: every junk row of the DROP's board is solid)
   const holes = DR.solidJunk(DROP_B).match(/.{10}/g).filter(row => row.includes('8') && row.includes('0')).length;
