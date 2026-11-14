@@ -6,7 +6,8 @@ export class ApiFail extends Error {
 export const calls = [];
 export async function api(name, body = {}) {
   calls.push({ name, body });
-  if (name === 'daily' && body.action === 'today') return JSON.parse(JSON.stringify(window.__dyToday || { dailies: [] }));
+  // (PFIX-3: `today { share }` — SHARE TODAY's tap — carries the preview's scripted share inputs for the dailies that are done: window.__dyShare)
+  if (name === 'daily' && body.action === 'today') { const t = JSON.parse(JSON.stringify(window.__dyToday || { dailies: [] })); if (body.share) t.share = Object.fromEntries(Object.entries(window.__dyShare || {}).filter(([id]) => t.mine && t.mine[id] != null)); return t; }
   if (name === 'daily' && body.action === 'room') return { mid: window.__dyMid || [] };
   if (name === 'daily' && body.action === 'lesson') return { ok: true };
   if (name === 'daily' && body.action === 'points') { if (!window.__dyPoints) throw new ApiFail(0, 'offline', 'preview'); return JSON.parse(JSON.stringify(window.__dyPoints)); }

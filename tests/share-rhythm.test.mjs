@@ -303,6 +303,12 @@ test('PFIX-3 — S11, THE CARD IS BUILT BEFORE THE TAP: prepShare builds once, t
     nav.share = d => { shares.push(d); return Promise.resolve(); };
     assert.equal(await F.send(), 'shared');
   } finally { if (had) Object.defineProperty(globalThis, 'navigator', had); else delete globalThis.navigator; }
+  // the lettering is in before a card is drawn (a card built as a screen opens could come before a font weight the screen never used)
+  assert.match(read('js/daily/share.js'), /const build = \(\) => \(p \|\|= shareFonts\(\)\.then\(make\)/);
+  assert.deepEqual(K.SHARE_FONTS, ['900 72px "Orbitron"', '700 84px "Chakra Petch"', '800 52px "Chakra Petch"']);
+  await K.shareFonts();   // (no document: returns at once, never throws)
+  // no message over the YOUR CARD sheet (the add-on, Nov 14 4:14 pm)
+  assert.doesNotMatch(kit, /toast\(/);
   // where it is warmed: the DAILY screen as TODAY shows the button, each daily's end screen, THE DROP's end card
   assert.match(read('js/screens/daily.js'), /if \(share\) warmShare\(t\);/);
   assert.match(read('js/games/drop/view.js'), /sharer\(sc\)\.then\(H => H\.warm\(\)\)/);

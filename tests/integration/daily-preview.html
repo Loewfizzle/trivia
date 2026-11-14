@@ -122,7 +122,22 @@ const { state, setState, subscribe } = await import('/js/store.js');
 state.uid = 'pv';
 const T = await import('/js/daily/today.js');
 T.setToday(window.__dyToday);
+// (BOARD 2.0 B — SHARE TODAY = ONE CARD from each daily's own pieces: the server's spoiler-free share inputs scripted here — THE PASSWORD's marks,
+//  COAST CLEAR's no-board inputs; &old=1 = the ticket version before it (tests/integration/_old/share-today.js) for the before / after shots.
+//  PFIX-3: ONE function — the &view=share card AND the real SHARE TODAY tap on the screen (the preview's api answers `today { share }` with
+//  it: window.__dyShare) draw from the same inputs)
+async function scriptedShare() {
+  const G = await import('/js/games/password/logic.js'), H = G.HIT, N = G.NEAR, M = G.MISS;
+  const pwRun = { done: true, door: 1, startedAt: 1000, finishedAt: 175000, doors: [{ state: 'solved', marks: [[M, N, M, M, H], [H, H, N, M, M], [H, H, H, H, H]], n: 3 }, { state: 'solved', marks: [[N, M, M, H, M], [H, H, H, H, H]], n: 2 }] };
+  // (PD-4's Group 0: &pw=locked = a LOCKED OUT run — the back room's six rows, the tallest grid a section must fit)
+  if (q.get('pw') === 'locked') pwRun.doors = [{ state: 'solved', marks: [[M, N, M, M, H], [H, H, H, H, H]], n: 2 }, { state: 'failed', marks: Array.from({ length: 6 }, () => [N, M, H, M, M]), n: 6 }];
+  // (SKINS 2B's add-on: &pw=front = THE FRONT DOOR failed after 6 — the back room never opened: one tall grid, the other room its door alone)
+  if (q.get('pw') === 'front') { pwRun.door = 0; pwRun.doors = [{ state: 'failed', marks: Array.from({ length: 6 }, (_, i) => [M, i % 2 ? N : M, N, M, i > 2 ? H : M]), n: 6 }, { state: 'open', marks: [], n: 0 }]; }
+  const ccIn = q.get('cc') === 'caught' ? { head: 'CAUGHT', caught: true, time: null, line: '3 SPOTTED · 1:58', spots: 3, dayNo: 9, site: 'neonspeakeasy.com' } : { head: 'COAST CLEAR', caught: false, time: '2:12', line: '1 SPOTTED · +30 s', spots: 1, dayNo: 9, site: 'neonspeakeasy.com' };
+  return { password: pwRun, coastclear: ccIn, ...(DROP_RUN ? { drop: DROP_RUN.inputs } : {}) };
+}
 const view = q.get('view') || 'screen';
+window.__dyShare = await scriptedShare();
 if (view === 'screen') {
   const M = await import('/js/screens/daily.js');
   subscribe(st => M.syncDaily(st));
@@ -146,16 +161,7 @@ if (view === 'screen') {
   // DFIX3 — THE SHARE IMAGE at real size (the preview's own stage; the fonts loaded first so the canvas draws them)
   await import('/js/screens/daily.js').then(m => m.dailySheet());
   try { await document.fonts.load('900 92px Orbitron'); await document.fonts.load('800 40px "Chakra Petch"'); await document.fonts.load('700 20px "JetBrains Mono"'); } catch { /* fine */ }
-  // (BOARD 2.0 B — SHARE TODAY = ONE CARD from each daily's own pieces: the server's spoiler-free share inputs scripted here — THE PASSWORD's marks,
-  //  COAST CLEAR's no-board inputs; &old=1 = the ticket version before it (tests/integration/_old/share-today.js) for the before / after shots)
-  const G = await import('/js/games/password/logic.js'), H = G.HIT, N = G.NEAR, M = G.MISS;
-  const pwRun = { done: true, door: 1, startedAt: 1000, finishedAt: 175000, doors: [{ state: 'solved', marks: [[M, N, M, M, H], [H, H, N, M, M], [H, H, H, H, H]], n: 3 }, { state: 'solved', marks: [[N, M, M, H, M], [H, H, H, H, H]], n: 2 }] };
-  // (PD-4's Group 0: &pw=locked = a LOCKED OUT run — the back room's six rows, the tallest grid a section must fit)
-  if (q.get('pw') === 'locked') pwRun.doors = [{ state: 'solved', marks: [[M, N, M, M, H], [H, H, H, H, H]], n: 2 }, { state: 'failed', marks: Array.from({ length: 6 }, () => [N, M, H, M, M]), n: 6 }];
-  // (SKINS 2B's add-on: &pw=front = THE FRONT DOOR failed after 6 — the back room never opened: one tall grid, the other room its door alone)
-  if (q.get('pw') === 'front') { pwRun.door = 0; pwRun.doors = [{ state: 'failed', marks: Array.from({ length: 6 }, (_, i) => [M, i % 2 ? N : M, N, M, i > 2 ? H : M]), n: 6 }, { state: 'open', marks: [], n: 0 }]; }
-  const ccIn = q.get('cc') === 'caught' ? { head: 'CAUGHT', caught: true, time: null, line: '3 SPOTTED · 1:58', spots: 3, dayNo: 9, site: 'neonspeakeasy.com' } : { head: 'COAST CLEAR', caught: false, time: '2:12', line: '1 SPOTTED · +30 s', spots: 1, dayNo: 9, site: 'neonspeakeasy.com' };
-  const share = { password: pwRun, coastclear: ccIn, ...(DROP_RUN ? { drop: DROP_RUN.inputs } : {}) };
+  const share = await scriptedShare();
   const { drawToday } = await import(q.get('old') === '1' ? '/tests/integration/_old/share-today.js' : '/js/daily/share-today.js');
   const { lineOf } = await import('/js/screens/daily.js');
   const metas = {}; for (const d of dailies) metas[d.id] = await import(`/js/games/${d.id}/meta.js`).catch(() => ({}));

@@ -197,6 +197,15 @@ export async function showCard({ blob, file = null, line = '', can = false } = {
     return 'shown';
   } catch (e) { console.warn('[share] show', e); return 'failed'; }
 }
+/** the cards' lettering is IN before a card is drawn (a canvas draws a font only once it is loaded — a card built as a screen opens could
+ *  come before a weight the screen itself never used: it then printed in the system's font). ≤ 2.5 s, never a failure. */
+export const SHARE_FONTS = Object.freeze(['900 72px "Orbitron"', '700 84px "Chakra Petch"', '800 52px "Chakra Petch"']);
+export async function shareFonts() {
+  try {
+    if (typeof document === 'undefined' || !document.fonts || !document.fonts.load) return;
+    await Promise.race([Promise.all(SHARE_FONTS.map(f => document.fonts.load(f).catch(() => null))), new Promise(r => setTimeout(r, 2500))]);
+  } catch { /* the card draws in what it has */ }
+}
 /**
  * PFIX-3 — S11, THE CARD IS BUILT BEFORE THE TAP: `make()` (async → { cv, name, line } — its imports, an /api call, the drawing) runs when
  * the screen OPENS (`warm()`), the PNG + its file are kept, the canvas freed; the tap (`send()`) then reaches the share sheet with nothing
@@ -204,7 +213,7 @@ export async function showCard({ blob, file = null, line = '', can = false } = {
  */
 export function prepShare(make) {
   let p = null, busy = false;
-  const build = () => (p ||= Promise.resolve().then(make).then(async o => {
+  const build = () => (p ||= shareFonts().then(make).then(async o => {
     if (!o || !o.cv) return null;
     const f = await shareFile(o.cv, o.name || 'neon-speakeasy.png');
     try { o.cv.width = o.cv.height = 0; } catch { /* fine */ }               // (5.8 MB a card — freed at once: only the PNG is kept)
