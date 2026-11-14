@@ -409,3 +409,4 @@
 
 ## FABLE REVIEW 2 — PRISM DROP: THE DROP + THE SKINS + THE SHARE CARDS (Nov 14 2026 — read-only)
 - FABLE REVIEW 2 started (Nov 14) — read-only; Ben taps GO LIVE AT THE NEXT 4 AM after this review (after the fix pass if the review finds a must-fix in THE DROP itself).
+- THE RESULT (docs/games/review-prism-2.md): **THE DROP — SAFE TO GO LIVE: NO, not yet** — the scoring + the cheat checks hold, but an honest run can be lost three ways around PAUSE and the page hiding (M1 a PAUSE tapped while a checkpoint uploads · M2 a hide in the same moment, or a shorter log chunk overwriting a longer one · M3 the hide's pause call lost). The fix pass's GROUP A (~1.5 h) first, then GO LIVE. Also found, outside THE DROP: SKINS 2B's tap-guard made the city's edges dead on desktop / iPad / a sideways phone (C1 — the city chat, live now).
