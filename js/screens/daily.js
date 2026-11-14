@@ -27,6 +27,7 @@ import { rowState, sweepState, tableFor, everyoneLine, ordinal, tableCut, cardRo
 import { MIN_DAYS } from '../core/daily-points.js';
 import { syncMidFlag, wantFlag } from '../daily/room-flag.js';
 import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
+import { everyPlaceLine, TOP_SHOW } from '../core/every.js';
 
 // ------------------------------------------------------------------------------------------------ the sheet + each daily's thin meta
 let css = null, cssReady = false;
@@ -48,6 +49,17 @@ function metaFor(id) {
 const META = {};
 async function loadMetas(ds) { await Promise.all(ds.map(async d => { META[d.id] = await metaFor(d.id); })); }
 export const lineOf = (id, score) => { const m = META[id]; return m && typeof m.scoreLine === 'function' ? m.scoreLine(score) : String(score); };
+/** DFIX5 — A RESULT ON SCREEN: the score's line + a daily's own drawn marks (its meta's resultMarks / RESULT_MARK — COAST CLEAR: one searchlight
+ *  per spot, "2:18 [lamp]"), in the result's colour, ONE line (never wrapping); the marks named for a screen reader ("2:18, 1 spot") */
+export function resultEl(id, score, extra, cls = 'lb-score.dy-cscore') {
+  const m = META[id] || {}, text = lineOf(id, score);
+  const n = typeof m.resultMarks === 'function' && m.RESULT_MARK ? m.resultMarks(score, extra) : 0;
+  if (!n) return h(`span.${cls}`, text);
+  return h(`span.${cls}.dy-marked`, { 'aria-label': `${text}, ${m.RESULT_MARK.label(n)}` }, h('span', { 'aria-hidden': 'true' }, text),
+    h('span.dy-marks', { 'aria-hidden': 'true' }, ...Array.from({ length: n }, () => h('i.dy-mark', { html: `<svg viewBox="${m.RESULT_MARK.box}">${m.RESULT_MARK.svg}</svg>` }))));
+}
+/** the FRIENDS box's tick (drawn — never a glyph) */
+const TICK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.4 8.4l3 3 6.2-7"/></svg>';
 
 // ------------------------------------------------------------------------------------------------ the drawn pieces (no emoji, no pills)
 // (DFIX3 — THE PREMIUM TICKET: the art, the ADMITTED stamp + the serial live in js/daily/ticket-art.js, shared with SHARE TODAY's image)
@@ -137,6 +149,9 @@ function openScreen(tab0) {
   // BOARD 2.0 B — SCORES → ALL TIME: TODAY · ALL TIME on SCORES; YOUR TABLE's averages (/api/daily points — once a visit) + the everyone board's top 3
   let scope = 'today', pts = null, ptsP = null;
   const every = {};
+  // DFIX5 — EVERYONE ON SCORES: the FRIENDS box (unchecked on every visit — never remembered), the `every` answer + its SHOW ALLs
+  let friendsOnly = false, ev = null, evP = null, evAgain = false, evKey = '';
+  const evAll = new Set();
   const dropSurfaces = () => { for (const sf of surfaces) { try { sf.destroy(); } catch { /* fine */ } } surfaces = []; };
   els.head = h('header.dy-head', backBtn('Back', () => closeAll()),
     h('h1.dy-sign', { 'aria-label': 'The dailies' }, h('span.dy-sign-t', 'THE DAILIES')));
@@ -156,7 +171,7 @@ function openScreen(tab0) {
     await loadMetas(t.dailies || []);
     if (gone) return;
     // (a repaint only when something on screen changed — a tap never lands on a row that was just rebuilt)
-    const sig = JSON.stringify([tab, t, names(), pidNow(), showAll, scope, pts, Object.keys(every).filter(k => every[k] !== 'loading')]);
+    const sig = JSON.stringify([tab, t, names(), pidNow(), showAll, scope, pts, Object.keys(every).filter(k => every[k] !== 'loading'), friendsOnly, ev, [...evAll]]);
     if (sig === lastSig && !sweepNext && !stampNext.size) return;
     lastSig = sig;
     dropSurfaces();
@@ -194,11 +209,11 @@ function openScreen(tab0) {
     const serial = h('span.dy-serial', { 'aria-hidden': 'true' }, serialOf(t.day));
     let info, act;
     if (st === 'done') {
-      // DONE: the result where the hook was (the score + YOUR TABLE's place, or the everyone line), the ADMITTED stamp on the right
-      const tb = tableFor(t, d.id, { names: names(), me: me(), better: d.better });
-      const gated = !!(t.gated && t.gated[d.id]);
-      const sub = gated ? COUNTS_FROM_TOMORROW : t.rf && t.rf[d.id] ? UNCHECKED : tb.line || everyoneLine(t.stand && t.stand[d.id]) || 'DONE FOR TODAY';
-      info = h('div.dy-info', h('b.dy-name', d.name), h('span.dy-result', lineOf(d.id, t.mine[d.id])), h('small.dy-rank', sub));
+      // DONE: the result where the hook was (DFIX5: the score + COAST CLEAR's spot icons · the EVERYONE place — "4TH OF 12 TODAY" — or the
+      // everyone line), the ADMITTED stamp on the right
+      const gated = !!(t.gated && t.gated[d.id]), pl = t.place && t.place[d.id];
+      const sub = gated ? COUNTS_FROM_TOMORROW : t.rf && t.rf[d.id] ? UNCHECKED : (pl ? everyPlaceLine(pl.p, pl.n, ordinal) : '') || everyoneLine(t.stand && t.stand[d.id]) || 'DONE FOR TODAY';
+      info = h('div.dy-info', h('b.dy-name', d.name), resultEl(d.id, t.mine[d.id], t.extra && t.extra[d.id], 'dy-result'), h('small.dy-rank', sub));
       act = h('span.dy-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' });
     } else info = h('div.dy-info', h('b.dy-name', d.name), h('span.dy-hook', d.hook || row.hook || row.tag || ''));
     if (st !== 'done') act = tubeButton(st === 'progress' ? 'RESUME' : 'PLAY', { kind: st === 'progress' ? 'secondary' : 'main', cls: 'dy-play', onClick: () => play(d.id) });
@@ -214,14 +229,34 @@ function openScreen(tab0) {
     try { sfx('select'); } catch { /* polish */ }
   }
 
-  // SCORES — YOUR TABLE as SLIM CARDS (DFIX2 — Ben: "they look so good, we need to start using them"): each FINISHER's row = their equipped slim
-  // card through the results lists' own code (ui/strip-board.js — never a second strip system), the rank LEFT of the card, the SCORE on the line
-  // under it at its right end (never over the card), YOU = your card + a lit frame; the ones STILL TO PLAY get no card — one line under the
-  // cards; a long table = the top 5 + you (your real place) + SHOW ALL n. The everyone line stays at the panel's foot.
+  // DFIX5 — EVERYONE ON SCORES (the owner, Nov 14: "show everyone playing the dailies, friends or not"; his approved mockup): the scope row =
+  // the TODAY'S SCORES / ALL TIME switch on the left + a drawn ☐ FRIENDS box on the right (its own line under the switch when it can't fit);
+  // UNCHECKED on every visit. Unchecked = EVERYONE: each daily's panel lists the day's top counting finishers (/api/daily `every` — once a
+  // visit; SHOW ALL n asks for up to 50) as slim cards — the rank left, the card, the result under it at its right end (COAST CLEAR's spots
+  // as drawn searchlights); YOU = the lit frame; a FRIEND = "LV 3 · FRIEND" in gold foil on the card; you below the top 10 → one more row with
+  // your place. Checked = YOUR TABLE (DFIX2's view — "YOUR FRIENDS · TODAY", no FRIEND word); ALL TIME the same two ways (the daily's ALL TIME
+  // board top 10 + YOU, friends marked · YOUR TABLE's averages). The ten-days rule + the average unchanged. Works for 1–6 dailies.
+  function scopeRow() {
+    const sw = h('div.dy-scope', { role: 'tablist', 'aria-label': 'Today or all time' }, ...[['today', 'TODAY’S SCORES'], ['all', 'ALL TIME']].map(([v, l]) =>
+      h(`button.dy-scope-b${scope === v ? '.is-on' : ''}`, { type: 'button', role: 'tab', 'aria-selected': String(scope === v), onclick: () => { if (scope !== v) { sfx('select'); scope = v; paint(); } } }, l)));
+    const box = h(`button.dy-fbox${friendsOnly ? '.is-on' : ''}`, { type: 'button', role: 'checkbox', 'aria-checked': String(friendsOnly), 'aria-label': 'Friends only', onclick: () => { sfx('select'); friendsOnly = !friendsOnly; paint(); } },
+      h('i.dy-fbox-sq', { 'aria-hidden': 'true', html: TICK }), h('span', 'FRIENDS'));
+    return h('div.dy-scope-row', sw, box);
+  }
   function paintScores(t) {
-    els.body.append(h('div.dy-scope', { role: 'tablist', 'aria-label': 'Today or all time' }, ...[['today', 'TODAY’S SCORES'], ['all', 'ALL TIME']].map(([v, l]) =>
-      h(`button.dy-scope-b${scope === v ? '.is-on' : ''}`, { type: 'button', role: 'tab', 'aria-selected': String(scope === v), onclick: () => { if (scope !== v) { sfx('select'); scope = v; paint(); } } }, l))));
+    els.body.append(scopeRow());
     if (scope === 'all') { paintAllTime(t); return; }
+    if (friendsOnly) { paintTable(t); return; }
+    paintEveryone(t);
+  }
+  /** a daily's panel head (its ticket art + name) */
+  const secHead = d => h('h2.dy-sec-h', h('span.dy-sec-art', { html: TICKET_ART[d.ticket] || TICKET_ART.star }), d.name);
+
+  // SCORES · FRIENDS — YOUR TABLE as SLIM CARDS (DFIX2 — Ben: "they look so good, we need to start using them"): each FINISHER's row = their
+  // equipped slim card through the results lists' own code (ui/strip-board.js — never a second strip system), the rank LEFT of the card, the
+  // SCORE on the line under it at its right end (never over the card), YOU = your card + a lit frame; the ones STILL TO PLAY get no card — one
+  // line under the cards; a long table = the top 5 + you (your real place) + SHOW ALL n. The everyone line stays at the panel's foot.
+  function paintTable(t) {
     let lonely = true;   // (DFIX3: no friend at any table → ONE hint at the foot, never inside a panel)
     for (const d of t.dailies) {
       const tb = tableFor(t, d.id, { names: names(), me: me(), better: d.better });
@@ -229,18 +264,19 @@ function openScreen(tab0) {
       const { finishers, waiting } = cardRows(tb.rows);
       const cut = tableCut(finishers, { all: !!showAll[d.id] });
       const soloTable = finishers.length <= 1;   // (DFIX3 — a table of one: the card alone, no rank; the ranks come with a second finisher)
-      const list = h(`ol.board-list.is-strips.dy-cards${soloTable ? '.is-solo' : ''}`, { 'aria-label': `${d.name} — your table` },
+      const extraOf = r => (r.me ? t.extra && t.extra[d.id] : ((t.friends && t.friends[r.pid] && t.friends[r.pid][d.id]) || {}).e);
+      const list = h(`ol.board-list.is-strips.dy-cards${soloTable ? '.is-solo' : ''}`, { 'aria-label': `${d.name} — your friends` },
         ...cut.shown.map(r => h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.place === 1 && !soloTable ? '.is-first' : ''}`, { dataset: { pid: r.pid } },
           h('span.lb-rank', r.place && !soloTable ? ordinal(r.place) : ''),
           h('div.lb-card.dy-card', h('div.lb-sub',
             r.gated ? h('small.dy-cnote', 'NOT COUNTED') : null,
-            h('span.lb-pts', h('span.lb-score.dy-cscore', r.score != null ? lineOf(d.id, r.score) : 'PLAYED')))))));
+            h('span.lb-pts', r.score != null ? resultEl(d.id, r.score, extraOf(r)) : h('span.lb-score.dy-cscore', 'PLAYED')))))));
       const more = cut.hidden.length ? h('button.dy-more', { type: 'button', onclick: () => { sfx('select'); showAll[d.id] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
       const still = stillToPlay(waiting);
       if (tb.rows.length > 1) lonely = false;
       els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } },
-        h('h2.dy-sec-h', h('span.dy-sec-art', { html: TICKET_ART[d.ticket] || TICKET_ART.star }), d.name),
-        h('h3.dy-sub', 'YOUR TABLE'),
+        secHead(d),
+        h('h3.dy-sub', 'YOUR FRIENDS · TODAY'),
         cut.shown.length ? list : null,
         more,
         still ? h('p.dy-still', still) : null,
@@ -250,9 +286,68 @@ function openScreen(tab0) {
     }
     if (lonely) els.body.append(h('p.dy-foot-hint', FOOT_HINT));
   }
-  // BOARD 2.0 B — SCORES → ALL TIME: per daily, YOUR TABLE's average a day as slim cards (ranked from MIN_DAYS days played — the boards' rule; YOU
-  // below it: "3 MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3"), then EVERYONE's top 3 (the daily's ALL TIME board) + SEE THE FULL BOARD › (THE BOARD →
-  // DAILIES · ALL TIME on that daily). /api down → a quiet line, never a dead panel.
+
+  // SCORES · EVERYONE (DFIX5): the day's top counting finishers, per daily (`every` — re-asked when one of YOUR results changes: a finish shows
+  // the scores; SHOW ALL asks for that daily's 50)
+  function loadEvery() {
+    if (evP) { evAgain = true; return; }
+    evP = lazyImport(import('../daily/contract.js'), '../daily/contract.js').then(C => C.dailyEvery([...evAll]))
+      .then(r => { ev = (r && r.every) || {}; }).catch(() => { if (!ev) ev = { down: true }; })
+      .finally(() => { evP = null; if (evAgain) { evAgain = false; loadEvery(); } else if (!gone) repaint(); });
+  }
+  function paintEveryone(t) {
+    const key = JSON.stringify([(t && t.mine) || {}, [...evAll]]);
+    if (key !== evKey) { evKey = key; loadEvery(); }
+    for (const d of t.dailies) {
+      const E = ev && !ev.down ? ev[d.id] : null;
+      const sec = h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'EVERYONE · TODAY'));
+      if (!ev) sec.append(h('p.dy-quiet', '…'));
+      else if (!E) sec.append(h('p.dy-quiet', 'The scores are resting. Try again in a minute.'));
+      else if (!E.rows.length && !E.me) sec.append(h('p.dy-none', 'NO ONE HAS FINISHED YET'));
+      else {
+        const pl = t.place && t.place[d.id];
+        const meRow = E.me ? { ...E.me, rank: E.me.gated ? null : E.me.rank || (pl && pl.p) || null, below: true } : null;
+        const rows = [...E.rows, ...(meRow ? [meRow] : [])];
+        const list = h('ol.board-list.is-strips.dy-cards.dy-every-today', { 'aria-label': `${d.name} — everyone today` }, ...rows.map((r, i) => everyRow(d, r, E.played, i)));
+        sec.append(list);
+        if (E.more > E.rows.length && !evAll.has(d.id)) sec.append(h('button.dy-more', { type: 'button', onclick: () => { sfx('select'); evAll.add(d.id); paint(); } }, h('span', `SHOW ALL ${E.more}`), h('i', { 'aria-hidden': 'true' })));
+        if (!E.played) sec.append(h('p.dy-quiet', 'Play it to see their scores.'));
+        dressEvery(list, rows, d);
+      }
+      if (everyoneLine(t.stand && t.stand[d.id])) sec.append(h('p.dy-every', everyoneLine(t.stand[d.id])));
+      els.body.append(sec);
+    }
+  }
+  /** one EVERYONE row: the place (once you've played) · the card · the result under it (or PLAYED) — YOU framed, a gated YOU = NOT COUNTED */
+  function everyRow(d, r, played, i) {
+    const shown = played && r.v != null;
+    return h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${shown && r.rank === 1 ? '.is-first' : ''}${r.below ? '.is-below' : ''}`, { dataset: { pid: r.id || `me${i}` } },
+      h('span.lb-rank', shown && r.rank ? ordinal(r.rank) : ''),
+      h('div.lb-card.dy-card', h('div.lb-sub',
+        r.gated ? h('small.dy-cnote', 'NOT COUNTED') : null,
+        h('span.lb-pts', shown ? resultEl(d.id, r.v, r.e) : h('span.lb-score.dy-cscore', 'PLAYED')))));
+  }
+  /** the strips into the EVERYONE rows (one surface per panel): a public face from the server (YOU: your own card), a FRIEND's "LV n · FRIEND" */
+  async function dressEvery(list, rows, d) {
+    const K = await stripKit();
+    if (gone || !list.isConnected) return;
+    const surface = K.createSurface(list, { label: `every-today:${d.id}` });
+    surfaces.push(surface);
+    const slots = [...list.querySelectorAll('.dy-crow .dy-card')];
+    rows.forEach((r, i) => {
+      const slot = slots[i];
+      if (!slot) return;
+      const pub = r.me && !r.id ? (pidMod && pidMod.myPublic && pidMod.myPublic()) || { n: me().name } : r;
+      const strip = stripFor(K, pub, { friend: !!r.f });
+      slot.prepend(strip.el);
+      stripFx(K, surface, strip, i + 1);
+    });
+    list.dataset.strips = String(rows.length);
+  }
+
+  // BOARD 2.0 B → DFIX5 — SCORES → ALL TIME: EVERYONE (unchecked) = the daily's ALL TIME board — its top 10 + YOU (your place, or how far from
+  // being ranked) + SEE THE FULL BOARD ›, friends marked · FRIENDS (checked) = YOUR TABLE's average a day as slim cards (ranked from MIN_DAYS
+  // days played — the boards' rule; YOU below it: "3 MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3"). /api down → a quiet line, never a dead panel.
   function paintAllTime(t) {
     if (!pts && !ptsP) {
       ptsP = lazyImport(import('../daily/contract.js'), '../daily/contract.js').then(C => C.dailyPoints(((friends && friends.friends) || []).map(c => c.pid)))
@@ -261,41 +356,54 @@ function openScreen(tab0) {
     if (!pts) { els.body.append(h('p.dy-quiet', 'Counting up the averages…')); return; }
     for (const d of t.dailies) {
       const board = `daily-${d.id}`;
-      const rows = pts.down ? [] : allTimeRows(pts, { board, me: { pid: pidNow() || 'me', name: me().name }, names: names(), need: MIN_DAYS });
-      const cut = tableCut(rows, { all: !!showAll[`all:${d.id}`] });
-      const list = rows.length ? h('ol.board-list.is-strips.dy-cards', { 'aria-label': `${d.name} — your table, all time` },
+      const seeBoard = h('button.dy-more.dy-seeboard', { type: 'button', onclick: () => { sfx('select'); setState({ daily: null, view: 'board', boardGame: 'dailies', boardBoard: board, boardPeriod: 'all' }); } }, h('span', 'SEE THE FULL BOARD'), h('b', { 'aria-hidden': 'true' }, '›'));
+      const myRows = pts.down ? [] : allTimeRows(pts, { board, me: { pid: pidNow() || 'me', name: me().name }, names: names(), need: MIN_DAYS });
+      if (!friendsOnly) {
+        const evl = h('ol.board-list.is-strips.dy-cards.dy-every-list', { 'aria-label': `${d.name} — everyone, all time` });
+        els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'EVERYONE · ALL TIME'), evl, seeBoard));
+        paintEvery(evl, board, d, myRows.find(r => r.me) || null);
+        continue;
+      }
+      const cut = tableCut(myRows, { all: !!showAll[`all:${d.id}`] });
+      const list = myRows.length ? h('ol.board-list.is-strips.dy-cards', { 'aria-label': `${d.name} — your friends, all time` },
         ...cut.shown.map(r => { const ln = allTimeLine(r, MIN_DAYS); return h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.place === 1 ? '.is-first' : ''}`, { dataset: { pid: r.pid } },
           h('span.lb-rank', r.place ? ordinal(r.place) : ''),
           h('div.lb-card.dy-card', h('div.lb-sub', ln.note ? h('small.dy-cnote.dy-anote', ...ln.note.split(' · ').map(x => h('span', x))) : null,
             ln.score ? h('span.lb-pts', h('span.lb-score.dy-cscore', ln.score, h('small.dy-unit', ln.unit))) : null))); })) : null;
       const more = cut.hidden.length ? h('button.dy-more', { type: 'button', onclick: () => { sfx('select'); showAll[`all:${d.id}`] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
-      const ev = h('ol.board-list.is-strips.dy-cards.dy-every-list', { 'aria-label': `${d.name} — everyone, all time` });
-      const sec = h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } },
-        h('h2.dy-sec-h', h('span.dy-sec-art', { html: TICKET_ART[d.ticket] || TICKET_ART.star }), d.name),
-        h('h3.dy-sub', 'YOUR TABLE · AVERAGE A DAY'),
+      els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } },
+        secHead(d),
+        h('h3.dy-sub', 'YOUR FRIENDS · AVERAGE A DAY'),
         list || h('p.dy-quiet', pts.down ? 'The averages are resting. Try again in a minute.' : `Play ${d.name} to start your average — a player is ranked from ${MIN_DAYS} days.`),
-        more,
-        h('h3.dy-sub', 'EVERYONE · ALL TIME'),
-        ev,
-        h('button.dy-more.dy-seeboard', { type: 'button', onclick: () => { sfx('select'); setState({ daily: null, view: 'board', boardGame: 'dailies', boardBoard: board, boardPeriod: 'all' }); } }, h('span', 'SEE THE FULL BOARD'), h('b', { 'aria-hidden': 'true' }, '›')));
-      els.body.append(sec);
+        more, seeBoard));
       if (list) dressCards(list, cut.shown, d);
-      paintEvery(ev, board, d);
     }
   }
-  /** EVERYONE's top 3 on a daily's ALL TIME board (the public rows — the slim card's own ids), loaded once a visit */
-  function paintEvery(ev, board, d) {
+  /** EVERYONE on a daily's ALL TIME board (the public rows — the slim card's own ids), loaded once a visit: the top 10 (friends marked by their
+   *  board ids — `points` hands them over, never a pid), YOU framed — below the 10 your own row with your place, unranked your days to go */
+  function paintEvery(ev, board, d, mine) {
     const got = every[board];
-    if (!got) { every[board] = 'loading'; lazyImport(import('../profile/api.js'), '../profile/api.js').then(A => A.board(board, 'all', { n: 3 })).then(r => { every[board] = (r && r.rows) || []; }).catch(() => { every[board] = []; }).finally(() => { if (!gone) repaint(); }); }
+    if (!got) { every[board] = 'loading'; lazyImport(import('../profile/api.js'), '../profile/api.js').then(A => A.board(board, 'all', { n: 100 })).then(r => { every[board] = (r && r.rows) || []; }).catch(() => { every[board] = []; }).finally(() => { if (!gone) repaint(); }); }
     if (!Array.isArray(got)) { ev.replaceWith(h('p.dy-quiet', '…')); return; }
-    if (!got.length) { ev.replaceWith(h('p.dy-quiet', `Nobody is ranked yet — it takes ${MIN_DAYS} days of ${d.name}.`)); return; }
-    ev.append(...got.map(r => h('li.lb-row.lb-strip.dy-crow', { dataset: { pid: r.id } }, h('span.lb-rank', ordinal(r.rank)),
-      h('div.lb-card.dy-card', h('div.lb-sub', h('span.lb-pts', h('span.lb-score.dy-cscore', (r.v / 100).toFixed(1), h('small.dy-unit', 'AVG'))))))));
+    const ids = (pts && pts.ids) || {}, fids = new Set(ids.f || []);
+    const rows = got.slice(0, TOP_SHOW).map(r => ({ ...r, me: r.id && r.id === ids.me, f: fids.has(r.id) }));
+    const meAt = ids.me ? got.findIndex(r => r.id === ids.me) : -1;
+    const you = meAt >= TOP_SHOW ? { ...got[meAt], me: true, below: true } : meAt < 0 && mine ? { me: true, below: true, mine } : null;
+    if (!rows.length && !you) { ev.replaceWith(h('p.dy-quiet', `Nobody is ranked yet — it takes ${MIN_DAYS} days of ${d.name}.`)); return; }
+    const all = [...rows, ...(you ? [you] : [])];
+    ev.append(...all.map((r, i) => {
+      const ln = r.mine ? allTimeLine(r.mine, MIN_DAYS) : null;
+      return h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.rank === 1 ? '.is-first' : ''}${r.below ? '.is-below' : ''}`, { dataset: { pid: r.id || `me${i}` } }, h('span.lb-rank', r.rank ? ordinal(r.rank) : ''),
+        h('div.lb-card.dy-card', h('div.lb-sub', ln && ln.note ? h('small.dy-cnote.dy-anote', ...ln.note.split(' · ').map(x => h('span', x))) : null,
+          ln ? (ln.score ? h('span.lb-pts', h('span.lb-score.dy-cscore', ln.score, h('small.dy-unit', ln.unit))) : null)
+            : h('span.lb-pts', h('span.lb-score.dy-cscore', (r.v / 100).toFixed(1), h('small.dy-unit', 'AVG'))))));
+    }));
     stripKit().then(K => {
       if (gone || !ev.isConnected) return;
       const surface = K.createSurface(ev, { label: `every:${d.id}` }); surfaces.push(surface);
-      got.forEach((r, i) => { const slot = ev.querySelector(`.dy-crow[data-pid="${r.id}"] .dy-card`); if (!slot) return; const st = stripFor(K, r); slot.prepend(st.el); stripFx(K, surface, st, i + 1); });
-      ev.dataset.strips = String(got.length);
+      const slots = [...ev.querySelectorAll('.dy-crow .dy-card')];
+      all.forEach((r, i) => { const slot = slots[i]; if (!slot) return; const pub = r.mine ? (pidMod && pidMod.myPublic && pidMod.myPublic()) || { n: me().name } : r; const st = stripFor(K, pub, { friend: !!r.f && !r.me }); slot.prepend(st.el); stripFx(K, surface, st, i + 1); });
+      ev.dataset.strips = String(all.length);
     }).catch(() => {});
   }
   /** the strips into their rows (async: the kit loads once a page) — a friend from their card in the friends list, you from `me` */

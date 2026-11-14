@@ -82,6 +82,9 @@ await H.run(async () => {
   const B = await profileAction('e2e-dy-bob', { action: 'ensure', name: 'BOBBY', avatar: 'bolt', color: 'cyan' }, '', WEEK_AGO);
   const bobPid = B.pid; await backdate(bobPid);
   await ref('/').update(Object.fromEntries(['s', 'r', 'p', 'x'].map(k => [`dly/password/${day}/${k}/${bobPid}`, null])));
+  // (DFIX5 — EVERYONE ON SCORES lists the WHOLE day: a clean day for this suite's dailies — every earlier run's finishers gone, the day's stored
+  //  pair / board (b) + its close marker (c) kept — so the everyone list holds exactly this run's players)
+  for (const g of ['password', 'coastclear', 'test']) { const node = (await val(`dly/${g}/${day}`)) || {}; await ref('/').update(Object.fromEntries(Object.keys(node).filter(k => k !== 'b' && k !== 'c').map(k => [`dly/${g}/${day}/${k}`, null]))); }
   const A = await openApp('dya', 'ALICE'); await backdate(A.pid);
   await ref('/').update({ [`pfr/${A.pid}/f/${bobPid}`]: Date.now(), [`pfr/${bobPid}/f/${A.pid}`]: Date.now() });   // (friends — FRIENDS A's shape)
   // BOBBY cracks THE PASSWORD in three (a miss first)
@@ -90,6 +93,13 @@ await H.run(async () => {
   for (const w of [MISS, W1, W2]) await dailyAction('e2e-dy-bob', { action: 'guess', game: 'password', word: w });
   const bf = await dailyAction('e2e-dy-bob', { action: 'finish', game: 'password' });
   log(`BOBBY's PASSWORD: ${bf.score}`);
+  // DFIX5 — BOBBY clears COAST CLEAR with ONE spot (a light dug first, then every safe cell) — THE SPOT ICONS on SCORES, from the server's record
+  { const bd = await ccBoard(day), LB = new Set(bd.lights);
+    await dailyAction('e2e-dy-bob', { action: 'start', game: 'coastclear' });
+    let r = await dailyAction('e2e-dy-bob', { action: 'dig', game: 'coastclear', cell: bd.lights[0] });
+    for (let i = 0; i < bd.w * bd.h && !r.done; i++) if (!LB.has(i)) r = await dailyAction('e2e-dy-bob', { action: 'dig', game: 'coastclear', cell: i });
+    const cf = await dailyAction('e2e-dy-bob', { action: 'finish', game: 'coastclear' });
+    log(`BOBBY's COAST CLEAR: ${cf.score} (1 spot)`); }
   await today(A.page);
   await waitFor(A.page, `(() => { const t = document.querySelector('.nd-tab-daily'); return t && !t.hidden; })()`, 'the DAILY button', 20000);
   let d = await dock(A.page);
@@ -111,19 +121,29 @@ await H.run(async () => {
   if (H.SHOTS) await H.shotAll(A.page, 'dy-01-today');
   await click(A.page, '.dy-tab:nth-child(2)');
   await waitFor(A.page, `!!document.querySelector('.dy-sec')`, 'SCORES', 6000);
-  // DFIX2 — SLIM CARDS: BOBBY (played, his score hidden) = his strip + PLAYED under it; ALICE hasn't played → STILL TO PLAY · YOU
-  await waitFor(A.page, `[...document.querySelectorAll('.dy-sec[data-id="password"] .dy-cards')].length === 1 && !!document.querySelector('.dy-sec[data-id="password"] .dy-cards').dataset.strips`, 'the strips on SCORES', 10000);
-  const sc = await A.page.evaluate(() => [...document.querySelectorAll('.dy-sec')].map(s => ({ h: s.querySelector('.dy-sec-h').textContent, rows: [...s.querySelectorAll('.dy-crow')].map(r => r.innerText.replace(/\s+/g, ' ').trim()),
-    strips: s.querySelectorAll('.dy-crow .vl-strip').length, still: (s.querySelector('.dy-still') || {}).textContent || '', canvases: s.querySelectorAll('.fx-host canvas').length })));
-  const pwSec = sc.find(x => /PASSWORD/.test(x.h));
-  ok(pwSec && pwSec.rows.some(r => /BOBBY.*PLAYED/.test(r)) && !pwSec.rows.some(r => /GUESS/.test(r)), `SCORES before you play: YOUR TABLE shows BOBBY PLAYED — never his score (${pwSec && pwSec.rows.join(' | ')})`);
-  ok(pwSec && pwSec.strips === 1 && pwSec.rows.length === 1 && /STILL TO PLAY · YOU/.test(pwSec.still) && pwSec.canvases <= 1, `DFIX2 — SLIM CARDS: BOBBY's row is his slim card (${pwSec && pwSec.strips} strip, ${pwSec && pwSec.canvases} effect canvas for the panel); ALICE in one line: "${pwSec && pwSec.still}"`);
+  // DFIX5 — EVERYONE BY DEFAULT: the day's counting finishers (BOBBY — PLAYED, his score hidden until ALICE plays; his card says "LV n · FRIEND"
+  // in gold), the FRIENDS box UNCHECKED; checked → YOUR TABLE (DFIX2's slim cards: BOBBY + "STILL TO PLAY · YOU", no FRIEND word)
+  const scan = () => A.page.evaluate(() => [...document.querySelectorAll('.dy-sec')].map(s => ({ h: s.querySelector('.dy-sec-h').textContent, sub: (s.querySelector('.dy-sub') || {}).textContent || '', rows: [...s.querySelectorAll('.dy-crow')].map(r => r.innerText.replace(/\s+/g, ' ').trim()),
+    strips: s.querySelectorAll('.dy-crow .vl-strip').length, friend: [...s.querySelectorAll('.dy-crow .vl-friend')].map(f => f.closest('.vl-strip').querySelector('.vl-name').textContent), still: (s.querySelector('.dy-still') || {}).textContent || '', canvases: s.querySelectorAll('.fx-host canvas').length, quiet: [...s.querySelectorAll('.dy-quiet, .dy-none')].map(q => q.textContent).join(' | ') })));
+  const box = () => A.page.evaluate(() => { const b = document.querySelector('.dy-fbox'), sw = document.querySelector('.dy-scope'); if (!b) return null; const r = b.getBoundingClientRect(), rs = sw.getBoundingClientRect(); return { on: b.getAttribute('aria-checked') === 'true', text: b.textContent, h: r.height, right: r.left >= rs.right - 1 || r.top >= rs.bottom - 1, inside: r.right <= innerWidth - 8, tick: !!b.querySelector('svg path') }; });
+  await waitFor(A.page, `(() => { const l = document.querySelector('.dy-sec[data-id="password"] .dy-cards'); return l && l.dataset.strips === '1'; })()`, 'the everyone strips on SCORES', 10000);
+  let pwSec = (await scan()).find(x => /PASSWORD/.test(x.h));
+  const bx0 = await box();
+  ok(bx0 && !bx0.on && bx0.text === 'FRIENDS' && bx0.h >= 44 && bx0.right && bx0.inside && bx0.tick, `DFIX5 — the scope row: the switch + a drawn FRIENDS box beside it, UNCHECKED, a 44 pt tap (${JSON.stringify(bx0)})`);
+  ok(pwSec && pwSec.sub === 'EVERYONE · TODAY' && pwSec.rows.length === 1 && /BOBBY.*PLAYED/.test(pwSec.rows[0]) && !pwSec.rows.some(r => /GUESS/.test(r)) && pwSec.friend.join() === 'BOBBY' && /Play it to see their scores/.test(pwSec.quiet), `SCORES before you play = EVERYONE: BOBBY PLAYED (never his score), his card "FRIEND" in gold (${pwSec && pwSec.rows.join(' | ')})`);
   if (H.SHOTS) await H.shotAll(A.page, 'dy-07-scores-before');
-  // (BOARD 2.0 B — ALL TIME OPENED: TODAY'S SCORES · ALL TIME on SCORES; ALL TIME = YOUR TABLE's average a day + EVERYONE's top 3, never an empty tab)
-  ok(await A.page.evaluate(() => [...document.querySelectorAll('.dy-scope-b')].map(b => b.textContent).join('|') === 'TODAY’S SCORES|ALL TIME'), 'SCORES: TODAY’S SCORES · ALL TIME (BOARD 2.0 B opened it)');
+  await click(A.page, '.dy-fbox');
+  await waitFor(A.page, `(() => { const s = document.querySelector('.dy-sec[data-id="password"]'); return s && /YOUR FRIENDS · TODAY/.test(s.innerText) && s.querySelector('.dy-cards') && s.querySelector('.dy-cards').dataset.strips; })()`, 'YOUR TABLE', 10000);
+  pwSec = (await scan()).find(x => /PASSWORD/.test(x.h));
+  ok((await box()).on && pwSec && pwSec.strips === 1 && pwSec.rows.length === 1 && /STILL TO PLAY · YOU/.test(pwSec.still) && pwSec.canvases <= 1 && !pwSec.friend.length, `the FRIENDS box CHECKED → YOUR TABLE: BOBBY's slim card (${pwSec && pwSec.strips} strip, ${pwSec && pwSec.canvases} effect canvas), ALICE in one line ("${pwSec && pwSec.still}"), no FRIEND word`);
+  // (BOARD 2.0 B → DFIX5 — ALL TIME: EVERYONE's board by default; the box → YOUR FRIENDS' average a day)
+  ok(await A.page.evaluate(() => [...document.querySelectorAll('.dy-scope-b')].map(b => b.textContent).join('|') === 'TODAY’S SCORES|ALL TIME'), 'SCORES: TODAY’S SCORES · ALL TIME (the switch unchanged)');
   await A.page.evaluate(() => [...document.querySelectorAll('.dy-scope-b')].find(b => /ALL TIME/.test(b.textContent)).click());
-  await A.page.waitForFunction(() => document.querySelectorAll('.dy-sec .dy-sub').length && /AVERAGE A DAY/.test(document.querySelector('.dy-overlay').innerText), { timeout: 10000 });
-  ok(/YOUR TABLE · AVERAGE A DAY/.test(await A.page.evaluate(() => document.querySelector('.dy-overlay').innerText)) && /EVERYONE · ALL TIME/.test(await A.page.evaluate(() => document.querySelector('.dy-overlay').innerText)), 'ALL TIME: YOUR TABLE’s average a day + EVERYONE (from /api/daily points + the board)');
+  await A.page.waitForFunction(() => /AVERAGE A DAY/.test(document.querySelector('.dy-overlay').innerText), { timeout: 10000 });
+  ok(/YOUR FRIENDS · AVERAGE A DAY/.test(await A.page.evaluate(() => document.querySelector('.dy-overlay').innerText)), 'ALL TIME + the box: YOUR FRIENDS’ average a day (/api/daily points)');
+  await click(A.page, '.dy-fbox');
+  await A.page.waitForFunction(() => /EVERYONE · ALL TIME/.test(document.querySelector('.dy-overlay').innerText) && !/AVERAGE A DAY/.test(document.querySelector('.dy-overlay').innerText), { timeout: 10000 });
+  ok(true, 'ALL TIME, the box unchecked: EVERYONE · ALL TIME (the daily’s ALL TIME board)');
   await A.page.evaluate(() => [...document.querySelectorAll('.dy-scope-b')].find(b => /TODAY/.test(b.textContent)).click());
   await click(A.page, '.dy-tab:nth-child(1)');
 
@@ -159,10 +179,10 @@ await H.run(async () => {
   await sleep(1200);
   await click(A.page, '.dy-run > .dy-back');
   await waitFor(A.page, `!!document.querySelector('.dy-ticket[data-id="password"].is-done')`, 'DONE', 10000);
-  await waitFor(A.page, `/1ST OF 2 AT YOUR TABLE/.test(document.querySelector('.dy-ticket[data-id="password"]').innerText)`, 'the table rank', 10000).catch(() => {});
+  await waitFor(A.page, `/1ST OF 2 TODAY/.test(document.querySelector('.dy-ticket[data-id="password"]').innerText)`, 'the everyone place', 10000).catch(() => {});
   const pwRow = await ev(A.page, `document.querySelector('.dy-ticket[data-id="password"]').innerText.replace(/\\s+/g, ' ')`);
   const stamp = await A.page.evaluate(() => { const s = document.querySelector('.dy-ticket[data-id="password"] .dy-stamp'); if (!s) return null; const m = /rotate\((-?[\d.]+)deg\)|matrix\(([^)]+)\)/.exec(getComputedStyle(s).transform) || []; return { svg: !!s.querySelector('svg text'), word: (s.querySelector('svg text') || {}).textContent, check: !!document.querySelector('.dy-check'), serial: (document.querySelector('.dy-ticket[data-id="password"] .dy-serial') || {}).textContent, tilted: getComputedStyle(s).transform !== 'none' }; });
-  ok(/2 GUESSES/.test(pwRow) && /1ST OF 2 AT YOUR TABLE/.test(pwRow) && stamp && stamp.svg && stamp.word === 'ADMITTED' && !stamp.check && stamp.tilted && /^Nº \d{4}$/.test(stamp.serial || ''), `DONE: the score + YOUR TABLE's place + the drawn ADMITTED stamp (tilted, no check circle) + the serial ${stamp && stamp.serial} ("${pwRow}")`);
+  ok(/2 GUESSES/.test(pwRow) && /1ST OF 2 TODAY/.test(pwRow) && stamp && stamp.svg && stamp.word === 'ADMITTED' && !stamp.check && stamp.tilted && /^Nº \d{4}$/.test(stamp.serial || ''), `DONE: the score + the EVERYONE place (DFIX5 — "1ST OF 2 TODAY") + the drawn ADMITTED stamp (tilted, no check circle) + the serial ${stamp && stamp.serial} ("${pwRow}")`);
   if (H.SHOTS) await H.shotAll(A.page, 'dy-03-mixed');
   // DFIX2 — SCORES after you play: ALICE 1ST (2 GUESSES) framed as YOU, BOBBY 2ND (3 GUESSES) — each their slim card, the score UNDER it
   await click(A.page, '.dy-tab:nth-child(2)');
@@ -174,7 +194,9 @@ await H.run(async () => {
     return { rows: rows.map(r => `${r.querySelector('.lb-rank').textContent}|${r.querySelector('.vl-name').textContent}|${r.querySelector('.dy-cscore').textContent}`),
       under: sc.top >= sr.bottom - 1, rightEnd: Math.abs(sc.right - sr.right) < 8, rankLeft: rk.right <= sr.left, frame: getComputedStyle(me.querySelector('.dy-card .vl-strip')).boxShadow !== 'none' && getComputedStyle(me.querySelector('.dy-card'), '::after').boxShadow === 'none', still: !!document.querySelector('.dy-sec[data-id="password"] .dy-still') };
   });
-  ok(sc2.rows[0] === '1ST|ALICE|2 GUESSES' && sc2.rows[1] === '2ND|BOBBY|3 GUESSES', `SCORES as slim cards: ${sc2.rows.join(' · ')}`);
+  ok(sc2.rows[0] === '1ST|ALICE|2 GUESSES' && sc2.rows[1] === '2ND|BOBBY|3 GUESSES', `SCORES · EVERYONE as slim cards: ${sc2.rows.join(' · ')}`);
+  { const fr = await A.page.evaluate(() => [...document.querySelectorAll('.dy-sec[data-id="password"] .dy-crow')].map(r => !!r.querySelector('.vl-friend')));
+    ok(fr.join() === 'false,true', `a FRIEND in the everyone list: BOBBY's card says FRIEND, YOU's doesn't (${fr.join()})`); }
   ok(sc2.under && sc2.rightEnd && sc2.rankLeft && sc2.frame && !sc2.still, `the rank LEFT of the card, the score UNDER it at its right end, YOU framed, nobody still to play (${JSON.stringify({ under: sc2.under, rightEnd: sc2.rightEnd, rankLeft: sc2.rankLeft, frame: sc2.frame })})`);
   if (H.SHOTS) await H.shotAll(A.page, 'dy-08-scores');
   // ================================================================ 3b. NO TAP EVER GOES THROUGH THE DAILY SCREEN TO THE CITY
@@ -256,6 +278,14 @@ await H.run(async () => {
     await pg.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));
     await waitFor(pg, `(() => { const l = document.querySelector('.dy-sec[data-id="password"] .dy-cards'); return l && l.dataset.strips === '2'; })()`, 'SCORES again', 10000);
   }
+  // DFIX5 — the FRIENDS box is UNCHECKED on every visit (never remembered): checked, closed, opened again → unchecked, EVERYONE
+  await click(A.page, '.dy-fbox');
+  await waitFor(A.page, `document.querySelector('.dy-fbox').getAttribute('aria-checked') === 'true'`, 'the box checked', 4000);
+  await click(A.page, '.dy-screen .dy-back');
+  await waitFor(A.page, `!document.querySelector('.dy-overlay')`, 'closed', 6000);
+  await A.page.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));
+  await waitFor(A.page, `!!document.querySelector('.dy-fbox')`, 'SCORES again', 8000);
+  ok(await A.page.evaluate(() => document.querySelector('.dy-fbox').getAttribute('aria-checked') === 'false' && /EVERYONE · TODAY/.test(document.querySelector('.dy-body').innerText)), 'the FRIENDS box unchecked on the next visit — EVERYONE again');
   // no leak: 30 opens / closes of SCORES → every effect surface gone with the screen
   for (let i = 0; i < 30; i++) {
     await click(A.page, '.dy-screen .dy-back');
@@ -343,6 +373,20 @@ await H.run(async () => {
   await click(A.page, '.dy-run > .dy-back');
   await waitFor(A.page, `window.__daily2.sweptAt() > 0 && /SWEPT/.test(document.querySelector('.dy-sweep-l').textContent)`, 'THE SWEEP moment', 10000);
   ok(true, 'THE SWEEP: the last daily done → the meter fills, SWEPT + a short flourish');
+  // DFIX5 — THE SPOT ICONS (the server's own spots): COAST CLEAR's ticket = ALICE's time, no lamp (a clean run); SCORES · EVERYONE — BOBBY's
+  // time + ONE drawn searchlight ("…, 1 spot"), ALICE's none; one line each, never wrapping
+  {
+    const tkc = await A.page.evaluate(() => { const r = document.querySelector('.dy-ticket[data-id="coastclear"] .dy-result'); return { text: r.textContent, marks: r.querySelectorAll('.dy-mark').length, place: (document.querySelector('.dy-ticket[data-id="coastclear"] .dy-rank') || {}).textContent }; });
+    ok(/^\d+:\d\d$/.test(tkc.text) && tkc.marks === 0 && /^(1ST|2ND) OF 2 TODAY$/.test(tkc.place), `COAST CLEAR's ticket: the time, no lamp on a clean run, the everyone place (${JSON.stringify(tkc)})`);
+    await click(A.page, '.dy-tab:nth-child(2)');
+    await waitFor(A.page, `(() => { const l = document.querySelector('.dy-sec[data-id="coastclear"] .dy-cards'); return l && l.dataset.strips === '2'; })()`, 'COAST CLEAR on SCORES', 10000);
+    const cc = await A.page.evaluate(() => [...document.querySelectorAll('.dy-sec[data-id="coastclear"] .dy-crow')].map(r => { const s = r.querySelector('.dy-cscore'), b = s.getBoundingClientRect(); return { who: r.querySelector('.vl-name').textContent, text: s.textContent, marks: s.querySelectorAll('.dy-mark svg path').length ? s.querySelectorAll('.dy-mark').length : 0, label: s.getAttribute('aria-label') || '', oneLine: b.height < 24 }; }));
+    const bob = cc.find(r => r.who === 'BOBBY'), ali = cc.find(r => r.who === 'ALICE');
+    ok(bob && bob.marks === 1 && /^\d+:\d\d, 1 spot$/.test(bob.label) && bob.oneLine && ali && ali.marks === 0 && ali.oneLine, `SCORES: BOBBY "${bob && bob.label}" — one drawn searchlight; ALICE "${ali && ali.text}" — none`);
+    if (H.SHOTS) await H.shotAll(A.page, 'dy-09-spot-icons');
+    await click(A.page, '.dy-tab:nth-child(1)');
+    await waitFor(A.page, `!!document.querySelector('.dy-today .dy-share')`, 'TODAY again', 8000);
+  }
   if (H.SHOTS) { await sleep(300); await H.shotAll(A.page, 'dy-04-swept'); }
   const st = await val(`pstats/${A.pid}`);
   ok(st.dl && st.dl.sw === 1 && st.dl.sr && st.dl.sr.n === 1, `the server: one swept day (dl.sw ${st.dl && st.dl.sw}), PERFECT WEEK's run started (dl.sr.n ${st.dl && st.dl.sr && st.dl.sr.n})`);
@@ -428,6 +472,11 @@ await H.run(async () => {
   ok(/YOUR SCORE COUNTS FROM TOMORROW/.test(await ev(C.page, `document.querySelector('.dy-ticket[data-id="test"]').innerText`)), 'YOUR SCORE COUNTS FROM TOMORROW on its own result (quiet, small)');
   const bobToday = await dailyAction('e2e-dy-bob', { action: 'today' });
   ok(!bobToday.table.includes(C.pid), 'absent from others\' tables (not a friend; a friend\'s non-counting result is left out on the server)');
+  // DFIX5 — THE THROWAWAY GATE on the everyone lists: CASEY never appears, never counts in "OF n"; CASEY's own row = NOT COUNTED (no place)
+  { const evB = await dailyAction('e2e-dy-bob', { action: 'every' }), evC = await api(C.page, { action: 'every' });
+    const t = evB.every.test;
+    ok(t && !t.rows.some(r => r.n === 'CASEY') && t.n === 1 && t.rows.length === 1 && t.rows.every(r => !('k' in r) && !('pid' in r)), `the everyone list: CASEY (a same-day profile) never listed, never counted — n ${t && t.n}, rows ${t && t.rows.map(r => r.n).join(', ')}; no pid in a row`);
+    ok(evC.every.test.me && evC.every.test.me.gated === 1 && !evC.every.test.me.rank, `CASEY's own view: her row NOT COUNTED, no place (${JSON.stringify(evC.every.test.me)})`); }
   // DFIX2 — A ROOM OF ONE CAN'T PAUSE: CASEY alone in a room, COAST CLEAR open, starts a game → the banner + the hold, but the server refuses the
   // pause (409 no_room_game) — the clock keeps running
   await C.page.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: null })));

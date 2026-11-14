@@ -19,6 +19,11 @@
 .vl-who:has(.fit-2) { gap: 2px; }
 .vl-emb > svg:not(.vl-e) { width: 34px; height: 34px; }
 .vl-lv { font: 700 11.5px/1 var(--font-num); letter-spacing: 0.16em; color: rgba(245, 236, 218, 0.82); white-space: nowrap; }
+/* DFIX5 — a FRIEND in an everyone list (SCORES): the word in GOLD FOIL after the level (a static gradient through the letters — no pill, no motion) */
+/* (the plate makes room for "LV n · FRIEND" — it may run to the gem, never past it; the level row a touch tighter) */
+.vl-has-friend .vl-plate { max-width: calc(100% - 58px); }
+.vl-has-friend .vl-lv { letter-spacing: 0.11em; }
+.vl-friend { font-weight: 800; color: #f3cf74; background: linear-gradient(100deg, #ffe7a3 0%, #e7b448 38%, #fff1c4 52%, #d9a43a 70%, #f6d27f 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.75)); }
 .vl-frame { position: absolute; inset: 0; z-index: 3; border-radius: inherit; pointer-events: none; }
 
 /* ---- the tiers' frames (static; the motion lives in the canvas) */

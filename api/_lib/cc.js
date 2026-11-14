@@ -44,6 +44,13 @@ export const CC_DAILY = {
     const view = runView(record, data, { startedAt });
     return view && view.done ? shareInputs(view, day) : null;
   },
+  /** DFIX5 — THE SPOT ICONS: a finished run's EXTRA beside its score (dly/coastclear/{day}/e/{pid} + the everyone list's row) — its spots, from
+   *  the SERVER's replay of its record (never the phone's claim); the result line draws one searchlight per spot on a clear */
+  extra({ record, data, startedAt } = {}) {
+    if (!record || !data) return null;
+    const r = replay(record, data, { startedAt });
+    return r ? { sp: r.spots } : null;
+  },
   /** CC2 — THE FLAGS a finished run earns, from the RECORD (the award engine keys them `coastclear-<flag>`): `clear` = any clear (LIGHTHOUSE) ·
    *  `ghost` = a clear with ZERO spots at or under GHOST_S on the score's clock (GHOST RUN — ≈ the best ~10 % of clean runs: scripts/sim-coastclear.mjs) */
   flags({ record, startedAt, data } = {}) {

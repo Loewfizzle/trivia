@@ -33,7 +33,7 @@ export function stripKit() {
 
 /**
  * ONE player's slim card. pub = their public face ({ n, x | l, cd, es, tb, g, mn, a, c } — profiles/{pid}, a friend's card, your `me`), p = the room
- * node's fallbacks ({ name, color, avatar }). An unapproved card → its plain colours; no card → the Gilded plain strip; the NAME always whole.
+ * node's fallbacks ({ name, color, avatar, friend? — DFIX5: "LV n · FRIEND" in gold foil on the plate, the everyone lists on SCORES }). An unapproved card → its plain colours; no card → the Gilded plain strip; the NAME always whole.
  * → { el, card, real }
  */
 export function stripFor(K, pub, p = {}) {
@@ -41,7 +41,7 @@ export function stripFor(K, pub, p = {}) {
   const real = !!(K.approved.has(card) && K.V.LOOKS[card]);
   const lv = pub && pub.x != null ? levelOf(pub.x || 0) : (pub && pub.l) || levelOf(0);
   const el = K.V.stripEl({ card: real ? card : null, tier, plain: real ? null : K.cardVars(card), name: String((pub && pub.n) || p.name || '').toUpperCase(),
-    lv, emblem: pub && pub.es, avatar: p.avatar || (pub && pub.a), color: p.color || (pub && pub.c), tube: pub && pub.tb, glow: pub && pub.g, no: pub ? memberLabel(pub.mn) : null });
+    lv, emblem: pub && pub.es, avatar: p.avatar || (pub && pub.a), color: p.color || (pub && pub.c), tube: pub && pub.tb, glow: pub && pub.g, no: pub ? memberLabel(pub.mn) : null, friend: !!p.friend });
   if (K.isOneOfOne(card) && real) lazyImport(import('../vault/dress.js'), '../vault/dress.js').then(m => m.oneOfOne(el)).catch(() => {});
   return { el, card, real };
 }

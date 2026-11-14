@@ -124,7 +124,7 @@ export const embTier = id => (id && ((LAB.find(x => x.id === id) || {}).tier || 
 
 /** one strip: card (an id with a LOOK) — or plain (a card not approved yet: its palette's vars, a plain strip) + tier; embEl = the player's
  *  own emblem element (else a test emblem); the NAME always whole (ui/fit.js — shrunk, then two lines; never an ellipsis) */
-export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tierIn, no, avatar, color, tube, glow }) {
+export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tierIn, no, avatar, color, tube, glow, friend }) {
   const look = plain ? { mat: 'plain' } : (LOOKS[card] || LOOKS['card-brushed']), tier = tierIn || tierOf(card);
   // THE EMBLEM (THE VAULT 2A): the player's own (an emblem with art, else their sign-up shape in neon) with its tube style — or 1A's test pair
   let embId, mode, emb;
@@ -138,8 +138,8 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
   if (tier === 'legendary') nameEl.classList.add('vg-still');
   const plate = h('div.vl-plate',
     h('span.vl-emb', emb),
-    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', dev ? 'DEV' : host ? `LV ${lv} · HOST` : `LV ${lv}`)));
-  const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}${one ? ' vl-dev1' : ''}${one && !dev ? ' vl-gift' : ''}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
+    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', dev ? 'DEV' : host ? `LV ${lv} · HOST` : friend ? [`LV ${lv} · `, h('span.vl-friend', 'FRIEND')] : `LV ${lv}`)));   // (DFIX5 — a FRIEND in an everyone list: the word in gold foil after the level)
+  const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}${one ? ' vl-dev1' : ''}${one && !dev ? ' vl-gift' : ''}${friend && !dev && !host ? ' vl-has-friend' : ''}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     plate,
     // (THE VAULT 2C — THE TIER GEM, the owner's approved mock: no words on the strip — a small gem in the corner; the DEV cards' own

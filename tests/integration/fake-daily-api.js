@@ -9,13 +9,14 @@ export async function api(name, body = {}) {
   // (PFIX-3: `today { share }` — SHARE TODAY's tap — carries the preview's scripted share inputs for the dailies that are done: window.__dyShare)
   if (name === 'daily' && body.action === 'today') { const t = JSON.parse(JSON.stringify(window.__dyToday || { dailies: [] })); if (body.share) t.share = Object.fromEntries(Object.entries(window.__dyShare || {}).filter(([id]) => t.mine && t.mine[id] != null)); return t; }
   if (name === 'daily' && body.action === 'room') return { mid: window.__dyMid || [] };
+  if (name === 'daily' && body.action === 'every') { if (!window.__dyEvery) throw new ApiFail(0, 'offline', 'preview'); const e = JSON.parse(JSON.stringify(window.__dyEvery)); for (const g of body.all || []) if (e[g] && window.__dyEveryAll) e[g] = window.__dyEveryAll(g); return { day: 'd20261108', every: e }; }   // (DFIX5)
   if (name === 'daily' && body.action === 'lesson') return { ok: true };
   if (name === 'daily' && body.action === 'points') { if (!window.__dyPoints) throw new ApiFail(0, 'offline', 'preview'); return JSON.parse(JSON.stringify(window.__dyPoints)); }
   if (name === 'profile' && body.action === 'player') { if (!window.__ppAnswer) throw new ApiFail(0, 'offline', 'preview'); await new Promise(r => setTimeout(r, window.__ppDelay || 200)); return JSON.parse(JSON.stringify(window.__ppAnswer(body))); }
   if (name === 'profile' && body.action === 'friends') return { friends: window.__dyFriends || [], in: [], out: [], blocked: [], recent: [], caps: {} };
   throw new ApiFail(0, 'offline', 'preview');
 }
-export async function board(b) { return { rows: ((window.__dyBoard || {})[b] || []).slice(0, 3) }; }
+export async function board(b, p, { n = 3 } = {}) { return { rows: ((window.__dyBoard || {})[b] || []).slice(0, n) }; }
 export const clearBoardCache = () => {};
 export function reportRow() { return Promise.resolve(); }
 export function activeGames() { return []; }

@@ -13,3 +13,6 @@ export const dailyToday = (pids = []) => api('daily', { action: 'today', pids })
 export const dailyPoints = (pids = []) => api('daily', { action: 'points', pids });
 /** BOARD 2.0 B — SHARE TODAY: today + each finished run's spoiler-free share inputs from the server's record ({ …today, share: { [game]: … } }) */
 export const dailyShare = () => api('daily', { action: 'today', share: true });
+/** DFIX5 — EVERYONE ON SCORES: per live daily, the day's top counting finishers ({ every: { [game]: { n, played, rows, me?, more } } });
+ *  `all` = the dailies whose SHOW ALL is open (up to 50 rows each) */
+export const dailyEvery = (all = []) => api('daily', { action: 'every', ...(all.length ? { all } : {}) });

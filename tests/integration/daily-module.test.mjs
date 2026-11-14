@@ -651,3 +651,67 @@ test('THE DROP B — THE SCHEDULED GO-LIVE: the owner schedules an OFF daily at 
     removeTestDaily('early'); removeTestDaily('late'); removeTestDaily('later'); clearSwitchCache(); loadDailies();
   }
 });
+
+// ---------------------------------------------------------------- DFIX5 — EVERYONE ON SCORES (docs/progression.md "EVERYONE ON SCORES")
+import { TOP_KEEP, TOP_SHOW } from '../../js/core/every.js';
+
+test('DFIX5 — EVERYONE ON SCORES: the day\'s top kept at every COUNTING finish (ties → the earlier finish), same-day profiles never in it; `every` = public faces + places (no pid), scores only once you\'ve played, friends marked, hidden profiles left out; the ticket\'s place; the backfill; a retried finish the same node', async () => {
+  const T0 = NOW + 211 * DAY, dk = streakDay(T0), base = `dly/test/${dk}`;   // (a day no other test plays)
+  const names = ['e-ann', 'e-bea', 'e-cal', 'e-dot', 'e-eve'];
+  for (const u of names) await ensure(u, u.slice(2).toUpperCase(), T0 - 7 * DAY);
+  await ensure('e-new', 'NEWBIE', T0 - 60e3);                                   // (a same-day profile — THE THROWAWAY GATE)
+  // ANN / BEA / CAL perfect (a TIE — 1000 each, BEA first, then ANN, then CAL); DOT off by 3 (997); EVE hasn't played; NEWBIE perfect, first of all
+  const run = async (u, at, off = 0) => { const s = await D(u, { action: 'start', game: 'test' }, at); return D(u, { action: 'finish', game: 'test', result: { guess: (FAKE_DAILY.target(s.seed) + off) % 1000 } }, at + 500); };
+  await run('e-new', T0 + 1e3);
+  await run('e-bea', T0 + 10e3); await run('e-ann', T0 + 20e3); await run('e-cal', T0 + 30e3); await run('e-dot', T0 + 5e3, 3);
+  const pid = {}; for (const u of [...names, 'e-new']) pid[u] = await pidOf(u);
+  let t = await val(`${base}/t`);
+  assert.deepEqual(t.rows.map(r => r.k), [pid['e-bea'], pid['e-ann'], pid['e-cal'], pid['e-dot']], 'the kept top: the tie broken by the EARLIER finish; the same-day profile never in it');
+  assert.ok(t.rows.every(r => typeof r.at === 'number'), 'every row has its finish time');
+  assert.equal(await val(`${base}/n`), 4, '"OF n" counts only the counting finishers');
+  // a retried finish = the stored score back, the node unchanged
+  const again = await D('e-ann', { action: 'finish', game: 'test', result: { guess: 1 } }, T0 + 40e3);
+  assert.equal(again.again, true); assert.deepEqual(await val(`${base}/t`), t, 'a retried finish: the same node');
+  // the ticket's place (today)
+  const ta = await D('e-ann', { action: 'today' }, T0 + 41e3);
+  assert.deepEqual(ta.place.test, { p: 2, n: 4 }, 'ANN: 2ND OF 4 TODAY');
+  const tn = await D('e-new', { action: 'today' }, T0 + 41e3);
+  assert.ok(!tn.place.test && tn.gated.test, 'a same-day profile: no place (its line = COUNTS FROM TOMORROW)');
+  // `every` — before you play: the faces + no score, no place shown on the phone (the server sends no v)
+  await ref(`pfr/${pid['e-eve']}/f/${pid['e-cal']}`).set(T0);
+  const ee = await D('e-eve', { action: 'every' }, T0 + 42e3);
+  const E = ee.every.test;
+  assert.equal(E.n, 4); assert.equal(E.played, false);
+  assert.deepEqual(E.rows.map(r => r.n), ['BEA', 'ANN', 'CAL', 'DOT']);
+  assert.ok(E.rows.every(r => r.v == null && typeof r.id === 'string' && r.id.length === 16 && !('k' in r) && !('pid' in r)), 'no score before you play; a board id, never a pid');
+  assert.deepEqual(E.rows.map(r => !!r.f), [false, false, true, false], 'a FRIEND marked (CAL — EVE\'s friend)');
+  assert.ok(!E.me, 'EVE hasn\'t played: no YOU row');
+  // after you play: the scores + the places; you marked
+  await run('e-eve', T0 + 50e3, 500);
+  const e2 = (await D('e-eve', { action: 'every' }, T0 + 51e3)).every.test;
+  assert.equal(e2.played, true); assert.equal(e2.n, 5);
+  assert.deepEqual(e2.rows.map(r => [r.n, r.rank, r.v]), [['BEA', 1, 1000], ['ANN', 2, 1000], ['CAL', 3, 1000], ['DOT', 4, 997], ['EVE', 5, 500]]);
+  assert.equal(e2.rows[4].me, 1); assert.ok(!e2.rows[4].f);
+  // a profile HIDDEN from the boards (the opt-out): left out of the list, the places never re-ranked around it
+  await ref(`profiles/${pid['e-ann']}/h`).set(true);
+  const { clearBoardCache } = await import('../../api/_lib/lb.js'); clearBoardCache();
+  const e3 = (await D('e-eve', { action: 'every' }, T0 + 52e3)).every.test;
+  assert.deepEqual(e3.rows.map(r => [r.n, r.rank]), [['BEA', 1], ['CAL', 3], ['DOT', 4], ['EVE', 5]], 'ANN (hidden) left out; CAL keeps 3RD');
+  await ref(`profiles/${pid['e-ann']}/h`).remove(); clearBoardCache();
+  // a same-day profile's own view: its row NOT COUNTED, never placed
+  const en = (await D('e-new', { action: 'every' }, T0 + 53e3)).every.test;
+  assert.ok(en.me && en.me.gated === 1 && !en.me.rank && !en.rows.some(r => r.n === 'NEWBIE'));
+  // THE BACKFILL: a day with finishers but no node (before DFIX5) → built once from r/ − x/ (no times: after the timed ones, by pid)
+  await ref(`${base}/t`).remove();
+  const e4 = (await D('e-eve', { action: 'every' }, T0 + 54e3)).every.test;
+  assert.deepEqual(e4.rows.map(r => r.n).slice(0, 4).sort(), ['ANN', 'BEA', 'CAL', 'DOT'].sort());
+  assert.equal(e4.rows[4].n, 'EVE'); assert.equal(e4.rows.length, 5);
+  assert.ok(!(await val(`${base}/t`)).rows.some(r => r.k === pid['e-new']), 'the backfill leaves the same-day profile out too');
+  // YOU below the shown rows: 11 more counting finishers above EVE → EVE's own row with her place; SHOW ALL lists up to TOP_KEEP
+  for (let i = 0; i < 11; i++) { const u = `e-x${i}`; await ensure(u, `X${i}`, T0 - 7 * DAY); await run(u, T0 + 60e3 + i * 1e3, 1); }
+  const e5 = (await D('e-eve', { action: 'every' }, T0 + 90e3)).every.test;
+  assert.equal(e5.rows.length, TOP_SHOW); assert.equal(e5.me.rank, 16); assert.equal(e5.me.n, 'EVE'); assert.equal(e5.more, 16);
+  const e6 = (await D('e-eve', { action: 'every', all: ['test'] }, T0 + 91e3)).every.test;
+  assert.equal(e6.rows.length, 16); assert.ok(!e6.me, 'SHOW ALL: you are in the list itself');
+  assert.ok(TOP_KEEP >= 50);
+});

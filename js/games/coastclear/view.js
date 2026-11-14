@@ -14,7 +14,8 @@
 //   createView() → { mount(el, state), update(state), unmount() }   state.game = the run shell (daily.create / start) · state.judge = a judge
 //   (the preview's fake; default THE API JUDGE — judge.js) · window.__coastclear = the test hook (the preview + the E2E)
 import { h, clear, reducedMotion } from '../../ui/dom.js';
-import { PING_MS, SURF_MS, DIAG_N, diagLine } from './logic.js';   // (DFIX5 — the ping's timings + the owner's readout line: pure)
+import { PING_MS, SURF_MS, DIAG_N, diagLine } from './logic.js';
+import { LAMP_SVG } from './meta.js';   // (DFIX5 — the ping's timings + the owner's readout line: pure)
 import { foldAnswer, emptyView, clockMs, fmtClock, buoysLeft, chordTargets, nbOf, headline, endLine, finalMs, endMap, shareLine, shareInputs, MAX_SPOTS, W, H, LIGHTS, SPOT_S } from './logic.js';
 import { retryable, recordFinish, tickTurn, endActions, endShare, NOT_RECORDED } from '../../daily/end.js';
 import { runDayKey } from '../../daily/clock.js';
@@ -37,7 +38,7 @@ const svg = (vb, cls, inner) => { const s = document.createElementNS(SVGNS, 'svg
 const BUOY = '<circle class="cc-bu-halo" cx="12" cy="7" r="5.5"/><path class="cc-bu-mast" d="M12 3.5V9"/><circle class="cc-bu-lamp" cx="12" cy="4.6" r="1.7"/>'
   + '<path class="cc-bu-body" d="M4.5 17.2 C5 11.4 8.4 9 12 9 C15.6 9 19 11.4 19.5 17.2 Z"/><path class="cc-bu-band" d="M6.1 13.4 H17.9"/><path class="cc-bu-band2" d="M8.4 10.6 H15.6 M4.9 16.1 H19.1"/><path class="cc-bu-wl" d="M3 19.6 Q7.5 18 12 19.6 T21 19.6"/>';
 /** THE SEARCHLIGHT (drawn): a lamp on a short stand, its beam a cone to the upper right */
-const LAMP = '<path class="cc-sl-beam" d="M13.5 9.5 L31 1.5 L31 14.5 L14.5 13.5 Z"/><circle class="cc-sl-head" cx="10" cy="11.5" r="4.6"/><circle class="cc-sl-lens" cx="11.4" cy="11.2" r="2"/><path class="cc-sl-stand" d="M10 16 V21 M6.5 21.5 H13.5"/>';
+const LAMP = LAMP_SVG;   // (DFIX5 — one path: meta.js#LAMP_SVG — the same lamp beside a result on SCORES)
 /** the spotted cell's light: a gold lamp face + its rays */
 const BURST = '<g class="cc-lt-rays"><path d="M12 1.5V5 M12 19V22.5 M1.5 12H5 M19 12H22.5 M4.6 4.6L7 7 M17 17L19.4 19.4 M19.4 4.6L17 7 M7 17L4.6 19.4"/></g><circle class="cc-lt-glow" cx="12" cy="12" r="7.5"/><circle class="cc-lt-core" cx="12" cy="12" r="4.4"/>';
 /** DIG = a sounding probe: a ring with its centre dot + four ticks (where the tap lands) */

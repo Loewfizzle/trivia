@@ -252,3 +252,34 @@ body[data-look="day"] .dy-run > .dy-back { color: #14284a; }
 .dy-sec .dy-sub:not(:first-of-type) { margin-top: 16px; }
 .dy-seeboard { gap: 6px; }
 .dy-seeboard b { font: 800 16px/1 var(--font-ui); color: var(--dy-seg-on); }
+
+/* ---- DFIX5 — EVERYONE ON SCORES (the owner's approved mockup): the scope row = the TODAY'S SCORES / ALL TIME switch on the LEFT + a drawn
+   FRIENDS box on the RIGHT (wrapped onto its own line under the switch when the row can't hold both — never squeezed); the box: a small square,
+   the ink's outline (night: the pale ink · day: dark navy), a WHITE TICK ON BLUE when checked, the word in the house small caps; its tap area
+   44 pt tall. No pill anywhere. ---- */
+.dy-scope-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; margin: -6px 0 12px; }
+.dy-scope-row .dy-scope { margin: 0; }
+.dy-fbox { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-left: auto; padding: 0 2px 0 8px; border: 0; background: none; cursor: pointer;
+  font: 800 11px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--dy-ink); -webkit-tap-highlight-color: transparent; }
+.dy-fbox-sq { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 3px; box-shadow: inset 0 0 0 2px var(--dy-box-line); background: transparent; }
+.dy-fbox-sq svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.dy-fbox.is-on .dy-fbox-sq { background: var(--dy-box-on); box-shadow: inset 0 0 0 2px var(--dy-box-on), 0 0 10px var(--dy-box-glow); }
+.dy-fbox.is-on .dy-fbox-sq svg { opacity: 1; }
+.dy-fbox:active { opacity: 0.75; }
+.dy-overlay { --dy-box-line: rgba(244, 241, 255, 0.86); --dy-box-on: #3a86ff; --dy-box-glow: rgba(58, 134, 255, 0.55); }
+body[data-look="day"] .dy-overlay { --dy-box-line: #16305c; --dy-box-on: #2f86ff; --dy-box-glow: transparent; }
+/* nobody finished yet: the house small caps, centred */
+.dy-none { margin: 10px 0 4px; text-align: center; font: 800 11px/1.4 var(--font-ui); letter-spacing: 0.2em; color: var(--dy-dim); }
+/* YOU below the top 10: one more row, a breath above it (a thin rule — never a pill) */
+.dy-cards .lb-row.lb-strip.is-below { margin-top: 6px; padding-top: 12px; border-top: 1px dashed var(--dy-line); }
+
+/* ---- DFIX5 — THE SPOT ICONS beside a result (COAST CLEAR — its meta's RESULT_MARK): ONE line ("2:18" + a small drawn searchlight per spot),
+   ~the text's cap height, in the result's own colour (currentColor) — never an emoji, never a pill, never wrapping ---- */
+.dy-marked { display: inline-flex; align-items: center; gap: 0.32em; white-space: nowrap; }
+.dy-marks { display: inline-flex; align-items: center; gap: 0.16em; }
+.dy-mark { display: inline-block; height: 1.12em; width: calc(1.12em * 32 / 24); margin-top: -0.12em; }
+.dy-mark svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 2px var(--dy-seg-glow)); }
+.dy-mark .cc-sl-beam { fill: currentColor; opacity: 0.6; }
+.dy-mark .cc-sl-head { fill: currentColor; }
+.dy-mark .cc-sl-lens { fill: var(--dy-bg-0); opacity: 0.55; }
+.dy-mark .cc-sl-stand { fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; }

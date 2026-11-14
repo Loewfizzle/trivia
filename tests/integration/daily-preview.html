@@ -15,6 +15,9 @@
        &solo=1                                                           DFIX3 — a table of ONE (you alone on SCORES: no rank, the card alone)
        &scope=all (&days=7 | 12) (&pts=down) (&every=empty)                  BOARD 2.0 B — SCORES → ALL TIME
        &look=day | night                                                  the look (THE GAME LOOK — Settings in the app)
+       &tab=scores (&state=swept)                                         DFIX5 — EVERYONE ON SCORES: 14 players (3 friends — BEN · KIM · MAXIMILIANOS), you
+                                                                          2ND; COAST CLEAR with 0 / 1 / 2 spots + one CAUGHT · &friends=1 = the FRIENDS box
+                                                                          checked · &rank=23 = you below the top 10 (the YOU row) · &evday=empty = nobody yet
      DFIX2 — SLIM CARDS ON SCORES: the fake friends wear REAL cards (a legendary, a rare, an uncommon, one UNAPPROVED → its plain colours, one with
      no card → the Gilded plain strip, one 12-letter name); the page approves exactly that set through &labmarks= (js/vault/approved.js — a local
      server only). The dock button + the RESUME chip + the host's line live on the real title: title-preview.html?daily=waiting|done|off&held=1
@@ -116,7 +119,39 @@ const table2 = q.get('solo') === '1' ? [] : table;
     'daily-coastclear': top([['ROOK', 'card-velvet', 'bolt', 'red', 12, 9120], ['NOVA', 'card-sg-aurora', 'star', 'cyan', 44, 9050], ['DEX', null, 'moon', 'green', 9, 8870]]),
   };
 }
-window.__dyToday = { day: 'd20261108', dailies, mine: pick.mine, gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table: table2, ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
+// DFIX5 — EVERYONE ON SCORES: the `every` answer (14 counting finishers a daily, public faces — board ids, never a pid), you 2ND (or 23RD of 30
+// with &rank=23), 3 friends marked; COAST CLEAR's results carry their spots (0 / 1 / 2) + one CAUGHT; scores hidden until you've played
+{
+  const ME = { id: 'bme', n: 'AVA', a: 'bolt', c: 'magenta', l: 12, cd: 'card-marquee' };
+  const P = [['NOVA', 'card-sg-aurora', 'star', 'cyan', 44], ['BEN', 'card-sg-aurora', 'star', 'cyan', 45, 1], ['ROOK', 'card-velvet', 'bolt', 'red', 12], ['KIM', 'card-chrome', 'hex', 'yellow', 19, 1],
+    ['DEX', null, 'moon', 'green', 9], ['MAXIMILIANOS', 'card-inferno', 'wave', 'orange', 15, 1], ['ZOE', 'card-emerald', 'diamond', 'green', 7], ['IVY', 'card-neonglass', 'wave', 'violet', 22],
+    ['JUNO', 'card-carbon', 'hex', 'cyan', 5], ['OTTO', 'card-heartbreaker', 'bolt', 'magenta', 31], ['PRIYA', 'card-sapphire', 'star', 'yellow', 11], ['QUINN', 'card-noir', 'moon', 'orange', 3],
+    ['ROSA', 'card-brass', 'diamond', 'red', 8]].map(([n, cd, a, c, l, f], i) => ({ id: `b${i}`, n, cd, a, c, l, ...(f ? { f: 1 } : {}) }));
+  const below = q.get('rank') === '23', empty = q.get('evday') === 'empty';
+  const pwS = [3, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 10], ccS = [[98, 0], [132, 1], [158, 0], [171, 2], [189, 1], [201, 0], [214, 2], [230, 0], [244, 1], [260, 0], [275, 0], [290, 1], [302, 0], [10004, null]];
+  const mk = (g, scoreOf) => {
+    const played = pick.mine[g] != null;
+    const order = below || !played ? [...P, { ...P[0], id: 'bz', n: 'WREN', f: undefined }] : [P[0], { ...ME, me: 1 }, ...P.slice(1)];   // (you're in it only once you've played)
+    const rows = order.slice(0, 14).map((r, i) => { const [v, sp] = scoreOf(i); const { f, me, ...face } = r; return { ...face, rank: i + 1, ...(played ? { v, ...(sp != null ? { e: { sp } } : {}) } : {}), ...(f ? { f: 1 } : {}), ...(me ? { me: 1 } : {}) }; });
+    if (empty) return { n: 0, played, rows: [], more: 0 };
+    const all = q.get('all') === '1';
+    return { n: below ? 30 : 14, played, rows: rows.slice(0, all ? 14 : 10), ...(below && played ? { me: { ...ME, rank: 23, v: scoreOf(9)[0] + 2, e: { sp: 1 }, me: 1 } } : {}), more: below ? 30 : 14 };
+  };
+  window.__dyEvery = { password: mk('password', i => [pwS[i], null]), coastclear: mk('coastclear', i => ccS[i]) };
+  if (pick.mine.password != null) pick.place = { password: below ? { p: 23, n: 30 } : { p: 2, n: 14 }, ...(pick.mine.coastclear != null ? { coastclear: below ? { p: 23, n: 30 } : { p: 2, n: 14 } } : {}) };
+  if (pick.mine.coastclear != null) pick.extraMine = { coastclear: { sp: 1 } };
+  // YOUR TABLE's spots (the FRIENDS box): BEN clean, RAY two spots, KIM caught
+  for (const [p, sp] of [['P_ben', 0], ['P_ray', 2]]) if (pick.friends[p] && pick.friends[p].coastclear && pick.friends[p].coastclear.score != null) pick.friends[p].coastclear.e = { sp };
+  if (window.__dyPoints) window.__dyPoints.ids = { me: 'bme', f: ['b1', 'b3', 'b5'] };
+  // the ALL TIME boards (12 rows a daily; YOU on them at 4TH once you have 10 days — &days=12 — else unranked below them)
+  if (q.get('every') !== 'empty') {
+    const ranked = Number(q.get('days') ?? 7) >= 10;
+    const avgs = [9410, 9350, 9320, 9280, 9190, 9120, 9050, 8990, 8870, 8800, 8720, 8650];
+    const brd = shift => { const list = [...P.slice(shift), ...P.slice(0, shift)].slice(0, 12).map(({ f, ...r }) => r); if (ranked) list.splice(3, 0, { ...ME }); return list.slice(0, 12).map((r, i) => ({ ...r, rank: i + 1, v: avgs[i] })); };
+    window.__dyBoard = { 'daily-password': brd(0), 'daily-coastclear': brd(2) };
+  }
+}
+window.__dyToday = { day: 'd20261108', dailies, mine: pick.mine, ...(pick.place ? { place: pick.place } : {}), ...(pick.extraMine ? { extra: pick.extraMine } : {}), gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table: table2, ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
 
 const { state, setState, subscribe } = await import('/js/store.js');
 state.uid = 'pv';
@@ -156,6 +191,7 @@ if (view === 'screen') {
   setState({ daily: { v: 'screen', tab: q.get('tab') === 'scores' ? 'scores' : 'today' } });
   // (the cards' strips land async — the shots wait for them: data-strips on every list)
   if (q.get('scope') === 'all') { await new Promise(r => setTimeout(r, 300)); const b = [...document.querySelectorAll('.dy-scope-b')].find(x => /ALL TIME/.test(x.textContent)); if (b) b.click(); await new Promise(r => setTimeout(r, 600)); }
+  if (q.get('friends') === '1') { await new Promise(r => setTimeout(r, 300)); const b = document.querySelector('.dy-fbox'); if (b) b.click(); await new Promise(r => setTimeout(r, 300)); }
   if (q.get('tab') === 'scores') { for (let i = 0; i < 100 && ![...document.querySelectorAll('.dy-cards')].every(l => l.dataset.strips); i++) await new Promise(r => setTimeout(r, 50)); }
 } else if (view === 'share') {
   // DFIX3 — THE SHARE IMAGE at real size (the preview's own stage; the fonts loaded first so the canvas draws them)

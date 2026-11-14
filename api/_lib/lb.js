@@ -132,6 +132,13 @@ export function publicRow(pid, p) {
     cd: p.cd || OLD_FINISH[p.f] || null, es: p.es || null, tb: p.tb || null, g: OLD_GLOW[p.g] || p.g || null };
 }
 
+/** DFIX5 — EVERYONE ON SCORES: the public faces of some profiles (the slim card's ids — publicRow; cached like the boards' rows) → { pid: row | null }
+ *  null = no profile, or HIDDEN from the boards (the opt-out / the admin's hide) — never listed */
+export async function publicFaces(pids) {
+  const profs = await profilesOf([...new Set(pids)]);
+  return Object.fromEntries(Object.entries(profs).map(([pid, p]) => [pid, p && !p.h ? publicRow(pid, p) : null]));
+}
+
 export async function topRows(board, period, now = Date.now()) {
   const def = boardDef(board);
   if (!def) return null;
