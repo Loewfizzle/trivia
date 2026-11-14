@@ -1,0 +1,40 @@
+<!doctype html>
+<!-- SKINS 2A — THE GLANCE TEST (the owner: "crayon, watercolor and paper side by side at 390 / 402 / 430, a day board mid-game, unzoomed — could
+     you tell which is which at a glance?"): the REAL view three times (prism-preview.html in three frames, each a phone wide — its own layout),
+     side by side, the SAME board in each. No pins (three frames share one storage): the match's skin counter picks the skin — &sk=0 / 1 / 2 =
+     the day pool's crayon · watercolor · paper (pool[k % n]).
+       ?w=390&h=844       one phone's size (the page = 3 of them + the gaps)
+       &q=<query>         the preview's own query, URL-encoded (default n=5&stack=10&under=1)
+       &labels=0          no name under each (the blind test)
+     prism-shots.mjs SETS=glance shoots it at 390 / 402 / 430 (body[data-ready] once the three previews are ready). -->
+<html lang="en">
+<head><meta charset="utf-8"><title>PRISM DROP — the glance test</title><link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; background: #1b1d24; }
+  .gl-row { display: flex; gap: 6px; padding: 0; }
+  .gl-col { display: flex; flex-direction: column; }
+  .gl-col iframe { border: 0; display: block; }
+  .gl-name { font: 700 13px/22px ui-monospace, monospace; color: #cfd3de; text-align: center; letter-spacing: 0.12em; height: 22px; }
+</style></head>
+<body>
+<div class="gl-row" id="row"></div>
+<script type="module">
+const q = new URLSearchParams(location.search);
+const w = Number(q.get('w') || 390), h = Number(q.get('h') || 844), inner = q.get('q') || 'n=5&stack=10&under=1';
+const { POOLS, SKINS } = await import('/js/games/prism/skins.js');
+const frames = POOLS.day.map((id, k) => {
+  const col = Object.assign(document.createElement('div'), { className: 'gl-col' });
+  const f = document.createElement('iframe');
+  f.width = w; f.height = h; f.src = `/tests/integration/prism-preview.html?look=day&sk=${k}&${inner}`;
+  col.append(f);
+  if (q.get('labels') !== '0') col.append(Object.assign(document.createElement('div'), { className: 'gl-name', textContent: SKINS[id].name }));
+  document.getElementById('row').append(col);
+  return f;
+});
+const ready = f => { try { return f.contentDocument && f.contentDocument.body && f.contentDocument.body.dataset.ready === '1'; } catch { return false; } };
+const t0 = performance.now();
+while (!frames.every(ready) && performance.now() - t0 < 20000) await new Promise(r => setTimeout(r, 100));
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

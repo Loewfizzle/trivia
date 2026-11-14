@@ -1,13 +1,18 @@
-// PRISM DROP — THE WATERCOLOR SKIN's DRAWINGS (SKINS 1 — the owner's spec: docs/games/plan.md "SKINS 1 — WATERCOLOR"; docs/prism.md "THE SKINS").
+// PRISM DROP — THE WATERCOLOR SKIN's DRAWINGS (SKINS 1; REWORKED in SKINS 2A — the owner via the city chat, Nov 14: "it read too close to
+// crayon at 390" — docs/games/plan.md "SKINS 2A"; docs/prism.md "THE SKINS").
 // Every piece of paint is PRE-DRAWN ONCE into a cached sprite at the board's full pixel ratio (3× on an iPhone) — the frame loop only blits.
-//   THE BLOCK: 3–4 TRANSLUCENT layers of the piece's colour on a wobbly SOFT-CORNERED SQUARE (a squircle — hand-painted, never a perfect rect,
-//   never a round blob), each layer a little off the last so the paint is thin at the edges and deep where they overlap; a darker PIGMENT RIM
-//   where the paint pooled as it dried (the colour's own darker shade), the paper's tooth showing through (granulation), a soft white highlight
-//   top-left. SIX variants a colour (the wobble, the layers' drift, where the pigment gathered). The paper shows THROUGH the paint — the sprite
-//   keeps its translucency. Junk = a neutral grey wash.
-//   + the landing ghost (a faint pencil outline), the danger drain (the block in grey), the INCOMING rows' grey wash with a darker pigment edge,
-//   the wet sheen (a lock), the drip (a clear's run), the droplet (a splash, a cancel), the bloom (4 LINES — a wet wash spreading behind the stack).
-//   waterSprite(size, kind, t, v) · dripSprite(w, color) · dropSprite(size, color) · bloomSprite(size, colors) · warmWater(size, ms) · clearWater()
+//   THE BLOCK — WATERCOLOR, NOT CRAYON: NO DARK OUTLINE. Two TRANSPARENT washes of the piece's colour on a wobbly soft-cornered square (never a
+//   perfect rect, never a round blob); a LIGHTER MIDDLE where the paper shows through (the wash lifted there + the paper's tooth); the pigment
+//   POOLED darker at the edge — a SOFT BAND in the colour's own deeper shade that thickens unevenly (never a line); an uneven, BLOTCHY wash
+//   (soft lighter + darker patches); 2 of the 6 variants carry a BLOOM (a cauliflower back-run: a paler patch inside a crinkled, scalloped
+//   edge of pushed pigment). SIX variants a colour. The sprite keeps its translucency — the paper shows THROUGH the paint. Junk = a neutral
+//   grey wash.
+//   + THE BLEED (seamSprite — where two DIFFERENT colours touch in the stack, a soft patch of the two paints run together across the seam;
+//   painted once into the board's cached stack layer — skins.js#seams — never per frame, no blur), the landing ghost (a faint WASH outline in
+//   the piece's own colour — no dark line), the danger drain (the block in grey), the INCOMING rows' grey wash, the wet sheen (a lock), the
+//   drip (a clear's run — KEPT), the droplet (a splash, a cancel), the bloom (4 LINES — a wet wash spreading behind the stack).
+//   waterSprite(size, kind, t, v) · seamSprite(size, a, b, flat) · dripSprite(w, color) · dropSprite(size, color) · bloomSprite(size, colors) ·
+//   warmWater(size, ms) · clearWater()
 import { mixHex } from './neon.js';
 import { seeded, spriteCache, newCanvas, rgba } from './skin-kit.js';
 
@@ -16,9 +21,17 @@ export const VARIANTS = 6;
 // — the SAME colour families as every skin (tests/prism-skins.test.mjs: the hue within its JEWEL family)
 export const WATER = Object.freeze([null, '#19b3c8', '#f2b61e', '#8f5bd9', '#2faa5e', '#e23f5a', '#3a6fd8', '#f2812a', '#878b95']);
 const DEEP = '#1c1638';
-/** where the pigment pooled: the paint's own darker shade */
+/** the paint's darkest shade (a drip's bead, a droplet's edge, the wet sheen) */
 export const rimOf = hex => mixHex(hex, DEEP, 0.46);
 export const WATER_RIM = Object.freeze(WATER.map(c => (c ? rimOf(c) : c)));
+/** where the pigment POOLED as the wash dried: the colour's own deeper shade — still clearly the colour (never a dark line) */
+export const poolOf = hex => mixHex(hex, DEEP, 0.3);
+export const WATER_POOL = Object.freeze(WATER.map(c => (c ? poolOf(c) : c)));
+/** a paint's NEIGHBOURS on the palette (wet-in-wet: a blotch of a close hue ran into the wash) — each stays inside the piece's own colour
+ *  family (a blotch is mixed ≤ 35 % toward one, over a part of the tile) */
+export const WATER_NEAR = Object.freeze([null, ['#2f8fd6', '#2fc79a'], ['#f29a1e', '#f4d23a'], ['#b85ad6', '#6a6fe6'], ['#1fa38e', '#57b84f'], ['#f0603a', '#d93f8a'], ['#6a55d8', '#2f9fe0'], ['#ea5a3a', '#f2ac2a'], ['#7a8496', '#958d88']]);
+/** the variants that carry a BLOOM (a cauliflower back-run): 2 of the 6 — a strong one + a faint one (≈ 1 tile in 4 shows one at a glance) */
+export const BLOOMS = Object.freeze({ 1: 1, 4: 0.55 });
 export const PENCIL = '#5b6272';   // the ghost's outline, the grid, the warning marks
 export const WASH = '#8d919b';     // the incoming rows' grey wash
 
@@ -72,89 +85,122 @@ function punchGrain(x, size, strength, seed) {
   x.restore();
 }
 
-/** THE BLOCK: the washes, the pigment rim, the tooth, the highlight. o: { junk, grey, thin (the incoming rows' flat wash), hot } */
-function blockArt(size, col, rim, v, o = {}) {
-  const c = newCanvas(size), x = c.getContext('2d');
-  const rnd = seeded(v * 7919 + 13 + (o.junk ? 71 : 0) + Math.round(parseInt(col.slice(1), 16) % 997));
-  const cx = size / 2, cy = size / 2, half = size * 0.468;
-  const layers = o.thin ? 2 : 4;
-  // the washes: each a little off the last + a little smaller — thin at the edge (one layer: the paper shows through), deep where they overlap;
-  // their own edges stay visible inside the block, the way a second pass of paint dries over the first
-  for (let i = 0; i < layers; i++) {
-    const dx = (rnd() - 0.5) * size * 0.05, dy = (rnd() - 0.5) * size * 0.05;
-    const h = half * (1 - i * 0.035 - rnd() * 0.02);
-    squircle(x, cx + dx, cy + dy, h, rnd, 0.026 + rnd() * 0.016, 6.6);
-    const shade = i === 0 ? mixHex(col, '#ffffff', 0.14) : i === layers - 1 ? mixHex(col, rim, 0.1) : col;
-    x.fillStyle = rgba(shade, o.thin ? 0.3 : i === 0 ? 0.5 : 0.36);
-    x.fill();
-    // each pass dries with a faint edge of its own
-    if (!o.thin && i > 0) { x.lineWidth = Math.max(1, size * 0.012); x.strokeStyle = rgba(rim, 0.16); x.stroke(); }
+/** a BLOOM's edge: a crinkled, scalloped blob (a cauliflower back-run — uneven lobes, never a stamped flower) as a closed path */
+function cauliflower(x, bx, by, R, rnd) {
+  const lobes = 5 + Math.floor(rnd() * 3), n = 84, p1 = rnd() * 6.28, p2 = rnd() * 6.28, p3 = rnd() * 6.28, sq = 0.7 + rnd() * 0.45, rot = rnd() * 3.14;
+  const cr = Math.cos(rot), sr = Math.sin(rot);
+  x.beginPath();
+  for (let i = 0; i <= n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const r = R * (0.7 + 0.3 * Math.pow(Math.abs(Math.sin(a * lobes / 2 + p1)), 0.7)) * (1 + 0.24 * Math.sin(a + p2) + 0.12 * Math.sin(a * 3 + p3));
+    const ux = Math.cos(a) * r, uy = Math.sin(a) * r * sq;
+    const px = bx + ux * cr - uy * sr, py = by + ux * sr + uy * cr;
+    if (i) x.lineTo(px, py); else x.moveTo(px, py);
   }
+  x.closePath();
+}
+
+/**
+ * THE BLOCK (SKINS 2A): transparent washes, a lighter middle, the pigment pooled at the edge as a soft band, blotches, the tooth, sometimes a
+ * bloom — and NO outline. col = the paint, pool = its deeper shade. o: { junk, grey, thin (the incoming rows' flat wash), hot }
+ */
+function blockArt(size, col, pool, v, o = {}) {
+  const c = newCanvas(size), x = c.getContext('2d');
+  const hue = Math.round(parseInt(col.slice(1), 16) % 997);
+  const rnd = seeded(v * 7919 + 13 + (o.junk ? 71 : 0) + hue);
+  const cx = size / 2, cy = size / 2, half = size * 0.478;
+  // (a brushed SQUARE: nearly square, soft corners, a hand's wobble — it fills its cell, so neighbours' washes meet)
+  const shape = (k = 1) => squircle(x, cx, cy, half * k, seeded(v * 131 + 5), 0.028, 8.5);
+  const near = o.near || null;
+  // THE WASH: one transparent pass of the paint (the paper shows through all of it)
+  shape();
+  x.fillStyle = rgba(mixHex(col, '#ffffff', 0.06), o.thin ? 0.32 : 0.7);
+  x.fill();
+  x.save();
+  shape();
+  x.clip();
   x.globalCompositeOperation = 'source-atop';
-  // granulation: the pigment settled unevenly — a few soft darker patches + lighter back-runs (flat paint, never a shaded ball)
-  for (let i = 0; i < 5; i++) {
-    const px = size * (0.15 + rnd() * 0.7), py = size * (0.15 + rnd() * 0.7), rr = size * (0.14 + rnd() * 0.16), dark = i % 2 === 0;
-    const g = x.createRadialGradient(px, py, 0, px, py, rr);
-    g.addColorStop(0, dark ? rgba(rim, o.thin ? 0.08 : 0.17) : `rgba(255,255,255,${o.thin ? 0.08 : 0.15})`);
-    g.addColorStop(1, dark ? rgba(rim, 0) : 'rgba(255,255,255,0)');
-    x.fillStyle = g;
+  // UNEVEN + BLOTCHY: wet-in-wet patches — a second pass that went on heavier here, a close hue that ran in there, a few deeper spots where
+  // the pigment settled (soft patches, each a different size — never a shaded ball)
+  const patch = (px, py, rr, color, a) => { const g = x.createRadialGradient(px, py, rr * 0.15, px, py, rr); g.addColorStop(0, rgba(color, a)); g.addColorStop(0.6, rgba(color, a * 0.6)); g.addColorStop(1, rgba(color, 0)); x.fillStyle = g; x.fillRect(px - rr, py - rr, rr * 2, rr * 2); };
+  const spots = o.thin ? 3 : 7;
+  for (let i = 0; i < spots; i++) {
+    const px = size * (0.1 + rnd() * 0.8), py = size * (0.1 + rnd() * 0.8), rr = size * (0.16 + rnd() * 0.22), pick = rnd();
+    if (near && pick < 0.36) patch(px, py, rr, mixHex(col, near[i % 2], 0.6), 0.34);
+    else if (pick < 0.7) patch(px, py, rr, col, o.thin ? 0.14 : 0.32);
+    else patch(px, py, rr * 0.8, pool, o.thin ? 0.08 : 0.2);
+  }
+  // THE POOLING: the pigment gathered at the edge as the wash dried — a SOFT BAND in the colour's own deeper shade, deepening to the edge
+  // (wide faint passes under narrow ones: a gradient, never a line)…
+  shape();
+  for (const [w, a] of [[0.24, 0.08], [0.15, 0.13], [0.09, 0.19], [0.05, 0.24]]) {
+    x.lineWidth = size * w;
+    x.strokeStyle = rgba(pool, o.thin ? a * 0.6 : a);
+    x.stroke();
+  }
+  // …unevenly: it pooled much more along two or three stretches of the edge (the low side of a tilted sheet)
+  const a0 = rnd() * 6.28;
+  for (let i = 0; i < 3; i++) {
+    const a = a0 + i * (1.6 + rnd() * 1.1), px = cx + Math.cos(a) * half * 0.96, py = cy + Math.sin(a) * half * 0.96;
+    patch(px, py, size * (0.2 + rnd() * 0.14), pool, o.thin ? 0.16 : 0.36);
+  }
+  // THE LIGHTER MIDDLE: the wash is thinnest inside — the paper comes through (the paint itself goes; never a white highlight). Two or three
+  // off-centre lifts, so the middle is uneven too
+  x.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 3; i++) {
+    const px = cx + (rnd() - 0.5) * size * 0.36, py = cy + (rnd() - 0.5) * size * 0.36, rr = size * (0.2 + rnd() * 0.16);
+    const l = x.createRadialGradient(px, py, 0, px, py, rr);
+    l.addColorStop(0, `rgba(0,0,0,${o.thin ? 0.1 : 0.2})`);
+    l.addColorStop(0.6, `rgba(0,0,0,${o.thin ? 0.05 : 0.09})`);
+    l.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = l;
     x.fillRect(px - rr, py - rr, rr * 2, rr * 2);
   }
-  // THE PIGMENT RIM: the paint pooled at its edge as it dried — a narrow soft band just inside the outline…
-  const er = seeded(v * 131 + 5);
-  squircle(x, cx, cy, half * 0.99, er, 0.03, 6.6);
-  x.lineWidth = size * 0.085;
-  x.strokeStyle = rgba(rim, o.thin ? 0.2 : 0.24);
-  x.stroke();
-  x.lineWidth = size * 0.04;
-  x.strokeStyle = rgba(rim, o.thin ? 0.3 : 0.4);
-  x.stroke();
-  // …and its crisp hard edge, uneven like a real one (the paint dried harder in places)
-  x.lineWidth = Math.max(1, size * 0.02);
-  x.strokeStyle = rgba(rim, o.thin ? 0.5 : 0.85);
-  x.setLineDash([size * (0.6 + er() * 0.6), size * (0.03 + er() * 0.05), size * (0.35 + er() * 0.5), size * 0.025]);
-  x.lineDashOffset = er() * size;
-  x.stroke();
-  x.setLineDash([]);
-  // the tooth: the paper's valleys the paint skipped
-  x.globalCompositeOperation = 'source-over';
-  punchGrain(x, size, o.thin ? 0.34 : 0.3, v * 3 + 1);
-  if (!o.thin && !o.grey) {
-    // the soft white highlight top-left: a lighter lift of the brush, not a gloss
+  // A BLOOM (2 variants of 6): water ran back into the drying wash — a paler patch, its pigment pushed out into a crinkled, scalloped edge
+  // (most of them reach the tile's edge: only a part of the bloom shows)
+  const bloom = !o.thin && !o.grey ? BLOOMS[v] || 0 : 0;
+  if (bloom) {
+    const br = seeded(v * 577 + 9 + (hue % 89));
+    const ba = br() * 6.28, bd = half * (0.45 + br() * 0.4), bx = cx + Math.cos(ba) * bd, by = cy + Math.sin(ba) * bd, R = size * (0.26 + br() * 0.1);
+    const seed = Math.round(br() * 1e6);
+    cauliflower(x, bx, by, R, seeded(seed));
+    x.globalCompositeOperation = 'destination-out';
+    x.fillStyle = `rgba(0,0,0,${0.26 * bloom})`;
+    x.fill();
     x.globalCompositeOperation = 'source-atop';
-    x.save();
-    x.translate(size * 0.34, size * 0.3);
-    x.rotate(-0.6);
-    x.scale(1.7, 0.75);
-    const hg = x.createRadialGradient(0, 0, 0, 0, 0, size * 0.17);
-    hg.addColorStop(0, `rgba(255,255,255,${o.junk ? 0.22 : 0.36})`);
-    hg.addColorStop(0.6, `rgba(255,255,255,${o.junk ? 0.1 : 0.16})`);
-    hg.addColorStop(1, 'rgba(255,255,255,0)');
-    x.fillStyle = hg;
-    x.fillRect(-size * 0.25, -size * 0.25, size * 0.5, size * 0.5);
-    x.restore();
-    x.globalCompositeOperation = 'source-over';
+    cauliflower(x, bx, by, R, seeded(seed));
+    x.lineJoin = 'round';
+    x.lineWidth = size * 0.09; x.strokeStyle = rgba(pool, 0.12 * bloom); x.stroke();     // (the pushed pigment: a soft halo…)
+    x.lineWidth = size * 0.03; x.strokeStyle = rgba(pool, 0.42 * bloom); x.stroke();     // (…gathered in the crinkled edge)
   }
+  x.restore();
+  // the tooth: the paper's valleys the paint skipped (granulation)
+  x.globalCompositeOperation = 'source-over';
+  punchGrain(x, size, o.thin ? 0.34 : 0.4, v * 3 + 1);
   if (o.hot) {
-    // a due row: the wash still wet — a firmer, darker edge all round
-    squircle(x, cx, cy, half * 0.985, seeded(v * 131 + 5), 0.03, 6.6);
-    x.lineWidth = Math.max(1.5, size * 0.04);
-    x.strokeStyle = rgba(rim, 0.85);
-    x.stroke();
+    // a due row: the wash still wet — its edge pooled much deeper all round (a band, not a line)
+    x.save();
+    shape(); x.clip(); shape();
+    x.globalCompositeOperation = 'source-atop';
+    for (const [w, a] of [[0.2, 0.2], [0.1, 0.34]]) { x.lineWidth = size * w; x.strokeStyle = rgba(pool, a); x.stroke(); }
+    x.restore();
   }
   return c;
 }
 
-/** where the falling piece lands: a faint PENCIL outline (two passes — a hand drew it), nothing filled */
-function ghostArt(size) {
-  const c = newCanvas(size), x = c.getContext('2d'), r = seeded(77);
-  x.lineJoin = 'round';
-  for (let pass = 0; pass < 2; pass++) {
-    squircle(x, size / 2 + (pass ? size * 0.012 : 0), size / 2 - (pass ? size * 0.01 : 0), size * (pass ? 0.425 : 0.435), r, 0.02, 6.5);
-    x.lineWidth = Math.max(1, size * (pass ? 0.02 : 0.034));
-    x.strokeStyle = rgba(PENCIL, pass ? 0.3 : 0.6);
-    x.stroke();
-  }
+/** where the falling piece lands: a faint WASH outline in the piece's own colour — a ring of thin paint, the paper clear inside (no dark line) */
+function ghostArt(size, col, pool) {
+  const c = newCanvas(size), x = c.getContext('2d'), cx = size / 2, cy = size / 2, half = size * 0.44;
+  squircle(x, cx, cy, half, seeded(77), 0.03, 8.5);
+  x.fillStyle = rgba(col, 0.09);
+  x.fill();
+  x.save();
+  squircle(x, cx, cy, half, seeded(77), 0.03, 8.5);
+  x.clip();
+  squircle(x, cx, cy, half, seeded(77), 0.03, 8.5);
+  for (const [w, a] of [[0.3, 0.14], [0.2, 0.2], [0.11, 0.26]]) { x.lineWidth = size * w; x.strokeStyle = rgba(mixHex(col, pool, 0.35), a); x.stroke(); }
+  x.restore();
+  punchGrain(x, size, 0.3, 11);
   return c;
 }
 /** the wet sheen of a block that just set: a soft darker wash over the cell, fading as it dries (waterfx.js) */
@@ -175,14 +221,54 @@ const greyOf = h => { const n = parseInt(h.slice(1), 16); const l = Math.round((
 export function waterSprite(size, kind, t, v = 0) {
   const vv = kind === 'block' ? v % VARIANTS : 0;
   return cache.get(`${size}|${kind}|${t}|${vv}`, () => {
-    const col = WATER[t] || WATER[8], rim = WATER_RIM[t] || WATER_RIM[8];
-    if (kind === 'block') return blockArt(size, col, rim, vv, { junk: t === 8 });
-    if (kind === 'grey') { const g = greyOf(col); return blockArt(size, g, rimOf(g), 1, { junk: true, grey: true }); }
-    if (kind === 'ghost') return ghostArt(size);
+    const col = WATER[t] || WATER[8], rim = WATER_RIM[t] || WATER_RIM[8], pool = WATER_POOL[t] || WATER_POOL[8];
+    if (kind === 'block') return blockArt(size, col, pool, vv, { junk: t === 8, near: WATER_NEAR[t] || null });
+    if (kind === 'grey') { const g = greyOf(col); return blockArt(size, g, poolOf(g), 2, { junk: true, grey: true }); }
+    if (kind === 'ghost') return ghostArt(size, col, pool);
     if (kind === 'wet') return wetArt(size, rim);
-    if (kind === 'incoming' || kind === 'ihot') return blockArt(size, WASH, rimOf(WASH), kind === 'ihot' ? 2 : 4, { thin: true, hot: kind === 'ihot' });
-    return blockArt(size, col, rim, 0);
+    if (kind === 'incoming' || kind === 'ihot') return blockArt(size, WASH, poolOf(WASH), kind === 'ihot' ? 2 : 3, { thin: true, hot: kind === 'ihot' });
+    return blockArt(size, col, pool, 0);
   });
+}
+
+/**
+ * THE BLEED (SKINS 2A): where two DIFFERENT paints touch, a little of each ran into the other — a soft patch across the seam, colour `a` on
+ * one side shading into `b` on the other, its edge feathered (two overlapping soft pools — gradients, no blur). flat = the seam lies
+ * horizontally (a block on top of another: a = the upper one); else the two sit side by side (a = the left one). k = which of 3 shapes.
+ * The sprite is 0.62 × 0.8 of a cell, centred on the seam.
+ */
+export function seamSprite(size, a, b, flat = false, k = 0) {
+  const A = WATER[a] || WATER[8], B = WATER[b] || WATER[8];
+  return cache.get(`seam|${size}|${a}|${b}|${flat ? 1 : 0}|${k % 3}`, () => {
+    const across = Math.max(4, Math.round(size * 0.62)), along = Math.max(4, Math.round(size * 0.8));
+    const c = flat ? newCanvas(along, across) : newCanvas(across, along), x = c.getContext('2d'), r = seeded(a * 31 + b * 7 + (k % 3) * 101 + (flat ? 3 : 0));
+    // the two paints, run together across the seam
+    const g = flat ? x.createLinearGradient(0, 0, 0, across) : x.createLinearGradient(0, 0, across, 0);
+    g.addColorStop(0, rgba(A, 0)); g.addColorStop(0.3, rgba(A, 0.7)); g.addColorStop(0.5, rgba(mixHex(A, B, 0.5), 0.8)); g.addColorStop(0.7, rgba(B, 0.7)); g.addColorStop(1, rgba(B, 0));
+    x.fillStyle = g;
+    x.fillRect(0, 0, c.width, c.height);
+    // …kept only inside two soft pools on the seam (the feathered edge)
+    const m = newCanvas(c.width, c.height), mx = m.getContext('2d');
+    for (let i = 0; i < 2; i++) {
+      const t = 0.32 + r() * 0.36 + (i ? (r() - 0.5) * 0.3 : 0), rad = along * (0.26 + r() * 0.12);
+      const px = flat ? along * t : across / 2 + (r() - 0.5) * across * 0.12, py = flat ? across / 2 + (r() - 0.5) * across * 0.12 : along * t;
+      const mg = mx.createRadialGradient(px, py, 0, px, py, rad);
+      mg.addColorStop(0, 'rgba(0,0,0,0.95)'); mg.addColorStop(0.55, 'rgba(0,0,0,0.6)'); mg.addColorStop(1, 'rgba(0,0,0,0)');
+      mx.save();
+      mx.translate(px, py); mx.scale(flat ? 1 : 0.62, flat ? 0.62 : 1); mx.translate(-px, -py);   // (a pool is longer along the seam)
+      mx.fillStyle = mg; mx.fillRect(px - rad * 2, py - rad * 2, rad * 4, rad * 4);
+      mx.restore();
+    }
+    x.globalCompositeOperation = 'destination-in';
+    x.drawImage(m, 0, 0);
+    m.width = 0; m.height = 0;
+    return c;
+  });
+}
+/** PURE: does the seam between a cell and its neighbour bleed? ≈ 3 seams in 5, by place (the same on every phone) → 0 (no) or 1–3 (its shape) */
+export function seamAt(x, y, flat) {
+  const h = ((x * 73856093) ^ (y * 19349663) ^ (flat ? 83492791 : 0)) >>> 0;
+  return h % 5 < 3 ? 1 + (h >>> 3) % 3 : 0;
 }
 
 /** a DRIP (a clear's paint running): a thin trail down to a darker bead — drawn stretched to its length (w = its width in px) */
@@ -250,9 +336,9 @@ export function warmWater(size, budgetMs = 4) {
   const t0 = performance.now();
   for (let t = 1; t <= 8; t++) {
     for (let v = 0; v < VARIANTS; v++) if (!cache.has(`${size}|block|${t}|${v}`)) { waterSprite(size, 'block', t, v); if (performance.now() - t0 > budgetMs) return false; }
-    for (const k of ['grey', 'wet']) if (!cache.has(`${size}|${k}|${t}|0`)) { waterSprite(size, k, t); if (performance.now() - t0 > budgetMs) return false; }
+    for (const k of ['grey', 'wet', 'ghost']) if (!cache.has(`${size}|${k}|${t}|0`)) { waterSprite(size, k, t); if (performance.now() - t0 > budgetMs) return false; }
   }
-  for (const k of ['ghost', 'incoming', 'ihot']) if (!cache.has(`${size}|${k}|0|0`)) waterSprite(size, k, 0);
+  for (const k of ['incoming', 'ihot']) if (!cache.has(`${size}|${k}|0|0`)) waterSprite(size, k, 0);
   return true;
 }
 export const clearWater = () => { cache.clear(); if (grainC) { grainC.width = 0; grainC.height = 0; grainC = null; } };

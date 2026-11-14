@@ -1,6 +1,6 @@
 // PRISM DROP preview screenshots + frame timing (no Firebase) — PD-1: prism-preview.html mounts the REAL view.
 //   node tests/integration/prism-shots.mjs "<browser path>" ./shots-prism [cpu throttle, default 1]
-//   env: SETS=look,states,worlds,pd6 (default look,states)  NOSAFE=1 (no safe areas: Safari with its toolbars)  SIZES=390x844,402x874,430x932,1440x900  PERF=0 (skip the timing)  GPU=1  DSF=3
+//   env: SETS=look,states,worlds,pd6,skins,glance,skinsheet (default look,states)  NOSAFE=1 (no safe areas: Safari with its toolbars)  SIZES=390x844,402x874,430x932,1440x900  PERF=0 (skip the timing)  GPU=1  DSF=3
 //        WAIT=ms before a shot   Q="&extra=1" added to every preview URL   ONLY=name,name (shoot only those)
 // Needs scripts/serve.mjs running on :5173. Each phone size gets its real safe areas (iPhone 13/14 · 15/16 Pro · Pro Max).
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
@@ -147,6 +147,14 @@ const SHOTS = {
     [`sk-${id}-final`, `skin=${id}&n=5&state=final&w=4600`],
     [`sk-${id}-settings`, { q: `skin=${id}&n=5&stack=8&under=1`, js: "import('/js/ui/settings-panel.js').then(m => { m.installSettingsPanel(); document.querySelector('.gear').click(); setTimeout(() => { const el = document.querySelector('.set-skins'); if (el) el.scrollIntoView({ block: 'center' }); }, 700); })", w: 1900 }],
   ])),
+  // SKINS 2A — THE GLANCE TEST (prism-glance.html: crayon · watercolor · paper side by side, the same day board mid-game, each a phone wide —
+  // the shot is 3 phones + the gaps wide, at DSF; GLANCE_DSF=1 = the size a hand holds it at) + each day skin's sprite sheet
+  glance: {
+    'glance-play': { page: 'prism-glance.html', glance: 'n=5&stack=10&under=1', w: 1500 },
+    'glance-inc': { page: 'prism-glance.html', glance: 'n=5&stack=8&inc=4&rise=hot&under=1', w: 1500 },
+    'glance-full': { page: 'prism-glance.html', glance: 'n=7&stack=16&bot=1', w: 2600 },
+  },
+  skinsheet: Object.fromEntries(['crayon', 'watercolor', 'paper'].map(id => [`sheet-${id}`, { page: 'prism-skin-sheet.html', q: `skin=${id}`, w: 600 }])),
   // PD-4 — THE DAY LOOK: the crayon sheet (every drawing on each paper — one size), then the game's own day screens
   sheet:Object.fromEntries(['notepad', 'graph', 'construction', 'coloring'].map(p => [`sheet-${p}`, { page: 'prism-crayon-sheet.html', q: `paper=${p}`, w: 400 }])),
 };
@@ -167,6 +175,17 @@ for (const set of sets) {
       page.on('console', m => { if (m.type() === 'error') errors.push(`${name}@${width}: ${m.text()}`); });
       page.on('pageerror', e => errors.push(`${name}@${width}: ${e.message}`));
       const desk = width >= 900;
+      if (typeof spec === 'object' && spec.glance) {
+        // (SKINS 2A) the glance page: three phones side by side — the page is 3 × the width + 2 gaps, + the names' row
+        await page.setViewport({ width: width * 3 + 12, height: height + 22, deviceScaleFactor: Number(process.env.GLANCE_DSF || DSF) });
+        await page.goto(`${BASE}/tests/integration/${spec.page}?w=${width}&h=${height}&q=${encodeURIComponent(spec.glance + EXTRA)}`, { waitUntil: 'load' });
+        await page.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 30000 }).catch(() => errors.push(`${name}@${width}: never ready`));
+        await sleep(spec.w || 1200);
+        await page.screenshot({ path: `${outDir}/${name}-${width}.png` });
+        n++;
+        await page.close();
+        continue;
+      }
       await page.setViewport({ width, height, deviceScaleFactor: desk ? 1 : DSF, isMobile: !desk, hasTouch: !desk });
       const [st, sb] = desk || process.env.NOSAFE === '1' ? [0, 0] : (SAFE[width] || [47, 34]);   // (PD-6: NOSAFE=1 = Safari with its toolbars — no insets)
       const html = (typeof spec === 'object' && spec.page) || 'prism-preview.html';   // (PD-4: an entry may name another page — the crayon sheet)

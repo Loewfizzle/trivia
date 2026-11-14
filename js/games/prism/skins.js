@@ -17,6 +17,8 @@
 //   env(pal)  what the sprites draw with (the night's world palette) or null · glow / pieceGlow — the added light under the stack / the piece
 //   grid(g, o) — the well's grid layer · incoming(ctx, bands, o) — THE RISING ROWS (skin-kit.js: an occupied cell only tinted, the gap open)
 //   mini(ctx, c) — one cell of a mini board (the rail, spectating, the podium) · shard(t, env) — a top-out's shard colour · crumbs — paint, not light
+//   seams(ctx, o) — OPTIONAL: what the skin paints where the settled stack's blocks touch (the watercolor's BLEED) — drawn once into the
+//   board's cached stack layer, over the blocks (o: { cells, px, sy, grey })
 //   — THE MOMENTS
 //   fx()      the moments drawn ON the board's canvas (a lock, a slam, a clear, a cancel — crayonfx.js's interface) or null
 //   light     the WebGL light layer + neonfx.js run (the night's clears are LIGHT) · flash — the glass's own lock flash + sweeps
@@ -40,7 +42,7 @@ import { createCrayonFx } from './crayonfx.js';
 import { neonSprite, clearNeon, neonCount } from './neon-art.js';
 import { glassSprite, clearGlass, glassCount } from './glass-art.js';
 import { CRAYON_PAGE, warmDay, loadMarker, loadImg } from './page.js';
-import { WATER, PENCIL, WASH, VARIANTS as WATER_VARIANTS, waterSprite, warmWater, clearWater, waterCount } from './water-art.js';
+import { WATER, WATER_POOL, PENCIL, WASH, VARIANTS as WATER_VARIANTS, waterSprite, seamSprite, seamAt, warmWater, clearWater, waterCount } from './water-art.js';
 import { createWaterFx } from './waterfx.js';
 import { WATER_PAGE, WATER_TEX, WATER_PAPER, PAPER_PAGE, KRAFT_TEX, SHEET } from './skin-pages.js';
 import { CUT, CARD, CUT_LINE, VARIANTS as PAPER_VARIANTS, paperSprite, warmPaper, clearPaper, paperCount } from './paper-art.js';
@@ -128,12 +130,32 @@ const watercolor = {
       ctx.fillRect(0, yTop - Math.max(1, px * 0.025), W * px, Math.max(2, px * 0.05));
     },
   }),
-  /** a big mini draws the real washes; a small one a flat paint fill inside its pigment rim (a KO'd board in grey wash) */
+  /** a big mini draws the real washes; a small one a flat wash, its edge pooled a shade deeper — the same wash, no dark rim (a KO'd board in
+   *  grey wash) */
   mini(ctx, { X, Y, s, px, t, ko, x, y }) {
     if (px >= 18 && !ko) { ctx.drawImage(waterSprite(px, 'block', t, (x * 7 + y * 13) % WATER_VARIANTS), X, Y); return; }
     const c = ko ? '#a9acb4' : WATER[t] || WATER[8], e = Math.max(1, Math.round(px * 0.14));
-    ctx.fillStyle = ko ? '#7d818b' : mix(c, '#1c1638', 0.38); ctx.fillRect(X, Y, s, s);
-    if (s > 2 * e) { ctx.fillStyle = c; ctx.fillRect(X + e, Y + e, s - 2 * e, s - 2 * e); }
+    ctx.fillStyle = ko ? '#93979f' : WATER_POOL[t] || WATER_POOL[8]; ctx.globalAlpha = 0.8; ctx.fillRect(X, Y, s, s);
+    if (s > 2 * e) { ctx.globalAlpha = 1; ctx.clearRect(X + e, Y + e, s - 2 * e, s - 2 * e); ctx.globalAlpha = 0.72; ctx.fillStyle = c; ctx.fillRect(X + e, Y + e, s - 2 * e, s - 2 * e); }
+    ctx.globalAlpha = 1;
+  },
+  /** THE BLEED (SKINS 2A): where two DIFFERENT colours touch in the settled stack, a soft patch of the two paints run together across the seam
+   *  (≈ 3 seams in 5, by place). Painted ONCE into the board's cached stack layer (board.js — when the stack changes), never per frame.
+   *  o: { cells, px, sy (row → canvas y), grey (the danger drain: the bleed fades with the colour) } */
+  seams(ctx, { cells, px, sy, grey = 0 }) {
+    const a = Math.max(0, 1 - grey * 1.2);
+    if (a <= 0.02) return;
+    ctx.globalAlpha = a;
+    for (let y = 0; y < VISIBLE; y++) for (let x = 0; x < W; x++) {
+      const t = cells[y * W + x];
+      if (!t) continue;
+      const r = x + 1 < W ? cells[y * W + x + 1] : 0, u = y + 1 < VISIBLE ? cells[(y + 1) * W + x] : 0;
+      let k = r && r !== t ? seamAt(x, y, false) : 0;
+      if (k) { const sp = seamSprite(px, t, r, false, k); ctx.drawImage(sp, (x + 1) * px - sp.width / 2, sy(y) + (px - sp.height) / 2); }
+      k = u && u !== t ? seamAt(x, y, true) : 0;
+      if (k) { const sp = seamSprite(px, u, t, true, k); ctx.drawImage(sp, x * px + (px - sp.width) / 2, sy(y) - sp.height / 2); }
+    }
+    ctx.globalAlpha = 1;
   },
   shard: t => WATER[t] || WATER[8], crumbs: true,
   fx: () => createWaterFx(), light: false, flash: false, bands: false, pulse: true,

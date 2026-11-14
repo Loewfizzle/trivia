@@ -182,6 +182,7 @@ export function createBoardView(canvas) {
           const t = cells[y * W + x];
           if (t) drawCell(x, y, t, grey, 0);
         }
+        if (skin.seams) skin.seams(ctx, { cells, px, sy, grey });   // (SKINS 2A: what a skin paints where the stack's blocks touch — in the cached layer, never per frame)
         ctx = main;
       }
       if (glitching) {
