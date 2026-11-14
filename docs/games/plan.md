@@ -348,3 +348,12 @@
   - CHECKPOINTS: no more often than ~every 30 s of play + on a pause / the page hiding (visibilitychange → hidden, pagehide) / the phone locking — batched, never one request per move or per few seconds (replaces Group 2's "every few seconds"). A refresh resumes from the latest checkpoint as decided (one pause used). The summary states the per-run request count (target ≲ 30 for an 8-minute run).
   - THE MOVE RECORDINGS: once a day's board is final, prune them — keep only what the boards + the anti-cheat need (e.g. the top runs' logs for 7 days, everyone else's score row only); a scheduled server prune or the next day's first call does it, never a scan of every profile. The summary states a run's stored size.
   - THE RE-PLAY CHECK runs ONCE per finished run (and once when an abandoned run is closed at its last checkpoint) — NEVER per checkpoint (replaces Group 2's "validated by replaying up to it"); a checkpoint is only size- / order- / time-bounded on arrival.
+
+## THE DROP — PASS B (Nov 13 2026)
+- FIX (pass A broke a decision): HIDING THE PAGE (a call, a lock, an app switch) = an AUTOMATIC PLAYER PAUSE — server-timed, one of the 3, the board hidden on return (resume = one tap); with NO pauses left, the run keeps its clock (and may end — the slow-motion bound applies). Pass A's hide-without-pause is replaced. A REFRESH still resumes at the latest checkpoint and costs a pause; a ROOM start still pauses for free.
+- THE DROP plays PRISM DROP's own songs — the DAY or NIGHT set by the phone's look (the daily is solo: the phone's own look decides), on the same heard-beat clock as a match.
+- THE TICKET: THE DROP's own admission ticket (`ticket: 'drop'`) in PRISM's accent colour, clearly distinct from THE PASSWORD + COAST CLEAR's; its ADMITTED stamp + ink in the per-id tables.
+- TODAY with THREE tickets (centred); SHARE TODAY composed for three (built for 1–6), still spoiler-free.
+- THE DROP's share picture = SHARE YOUR RUN's board image with the junk rows drawn SOLID (hides the day's holes) + THE DROP · the time · the lines.
+- THE SCHEDULED GO-LIVE (Ben, Nov 13 — he won't stay up for 4 am): /admin → THE DAILIES → THE DROP → "GO LIVE AT THE NEXT 4 AM" — any time; the server stores the start day (`liveFrom`), THE DROP turns on by itself at that 4 am turn (never mid-day), cancellable before then; no code edit / deploy needed. From then THE SWEEP + PERFECT WEEK need all three; daily XP 3 × 15 + 10.
+- THE ORDER (Ben): THE DROP B → SKINS 1 → SKINS 2 → Ben taps GO LIVE → ONE FABLE REVIEW (THE DROP + the skins) → fixes → JAYWALK.
