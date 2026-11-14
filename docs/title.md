@@ -850,8 +850,15 @@ the WINDOW listener did not care whose it was.)
   player page, the album, the radio, a streak card, a sighting's photo): true even while a screen's element cannot be hit yet (the DAILY
   screen stays `visibility: hidden` until its stylesheet is in);
 - **held** — the city HELD under a full-screen overlay (`ui/city-hold.js` tells the window `vl-cover`; the taps hear it — no new boot module);
-- **inCity** — the touch BEGAN on an element inside the city's own root (false = on something another screen put on `<body>`: an overlay
-  still fading out after it left the stack, a game's screen, a banner).
+- **inCity** — the touch BEGAN ON THE CITY (false = on something another screen put on `<body>`: a game's screen, a banner). **PFIX-3
+  (FABLE REVIEW 2's C1, Nov 14):** "the city" = `ui/layers.js#touchInCity(t, root, wrap)` — the title's root, the root's ANCESTORS
+  (`#stage`, `<body>`: the bare page beside the title's column) and the scene's own wrap (the canvas on `<body>`). The first rule asked
+  only `root.contains(target)`, and the root is a COLUMN (560 px; 1180 px on a big screen): on a desktop, an iPad and any wide window
+  every touch beside it counted as "a screen on top" — the door, the signs out there, the sightings and the hover were dead.
+  **A real PHONE held sideways is another case:** the console's TURN YOUR PHONE UPRIGHT card (`index.html #ns-turn`) covers everything
+  there and OWNS the touch — nothing behind it answers (before SKINS 2B a tap went through it). `e2e-daily` holds all of it: 844 × 390
+  with a mouse, 820 × 1180 touch, 1440 × 900 mouse (REAL input on points BESIDE the column: the door → JOIN, a sign, the pointer), the
+  turn card, the title preview sideways.
 
 `title-taps.js#covered(target)` asks it **at the DOWN** (the screen up when the finger lands owns the touch — the down is never recorded),
 **at the TAP — before the class list, the sightings, the billboards, the door** — and **for the desktop hover** (no pointer cursor / glow

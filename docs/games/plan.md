@@ -415,3 +415,5 @@
 - PFIX-3 (Ben, Nov 14 3 pm): fixes FABLE REVIEW 2 — Group A makes THE DROP safe; Ben taps GO LIVE AT THE NEXT 4 AM after this pass.
 - Ben's calls: THE DROP's OWN share card joins the one rule (S9); THE PASSWORD's grids BOTTOM-aligned in SHARE TODAY like the approved mockup (N6; its own card keeps top-aligned columns under the labels); the pitched skin sounds KEYED to the song (S13); the share card BUILT BEFORE THE TAP (S11).
 - C1 (the city's dead edges, from SKINS 2B) is fixed HERE, not by the city chat; C2 + C3 stay the city chat's.
+- ADD-ON (the games chat, Nov 14 4:14 pm — built in PFIX-3): the YOUR CARD sheet (the share fallback) shows NO message over the card; a test / fake daily can NEVER reach a real card or the live site (the test switch is honoured only off Vercel).
+- Ben (Nov 14 eve, mid-pass): in SHARE TODAY with all three, THE DROP's board box must be DECENT SIZED — the three COAST CLEAR lamps may shrink a little to give it the room. Built: the art strip's height is each daily's own (THE DROP 228 · COAST CLEAR 112 · THE PASSWORD the rhythm's 145).

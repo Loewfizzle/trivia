@@ -9,6 +9,30 @@
 
 **THE DROP — SAFE TO GO LIVE: NO** — because a player who taps PAUSE, takes a call or locks the phone at the wrong moment can lose the day's run with pauses still left (M1–M3). Nothing is wrong with the scoring or the cheat checks. One fix pass (Group A below, about 2–3 h) and it is safe; then tap GO LIVE AT THE NEXT 4 AM.
 
+## WHAT BECAME OF EACH FINDING — PFIX-3 (Nov 14 2026; docs/games/passes/pfix-3.md)
+- **M1** — FIXED IN PFIX-3 (Group A, `fe48ce19`): a tap's pause waits for the upload in flight; no answer / no `pa` is never "paused".
+- **M2** — FIXED IN PFIX-3 (Group A): a pause never waits on its chunk (in step by the tail, or `resync` + the pause); chunks keyed `{offset}_{length}` — a shorter one never replaces a longer one.
+- **M3** — FIXED IN PFIX-3 (Group A): a late `ppause` with a pause left = a backdated pause (one of the 3); every player pause stands at its chunk's tick.
+- **C1** — FIXED IN PFIX-3 (Group A2, `8ed112f8`): `ui/layers.js#touchInCity`. NOTE: a real PHONE held sideways shows the TURN YOUR PHONE UPRIGHT card (index.html `#ns-turn`), which owns the touch by design — the review drove the title preview, which has no such card.
+- **S1** — FIXED IN PFIX-3 (Group A): the record is read first; a chunk is stored only for a run in flight when the judge would take it.
+- **S2** — FIXED IN PFIX-3 (Group A): the room's pause is in step though its chunk already landed; the close sends no checkpoint behind it.
+- **S3** — FIXED IN PFIX-3 (Group B, `e78d6e83`): a refused finish is scored at its last provable point, marked `rf`, reported, and said on the ticket.
+- **S4** — FIXED IN PFIX-3 (Group B): the largest clock offset wins (`clockOffset`).
+- **S5** — FIXED IN PFIX-3 (Group B): the finish never gives up while the card is open; `online` / the page showing wake it.
+- **S6** — FIXED IN PFIX-3 (Group B): `engine.js#GRAVITY_MS` — a table of node's exact values, every bit pinned.
+- **S7** — FIXED IN PFIX-3 (Group C, `4f4735da`): the lamps centred on their ink + capped by the column.
+- **S8** — FIXED IN PFIX-3 (Group C): the look passed into `door()`; day fills; the labels ≥ 4.5:1 (6.06 / 5.65).
+- **S9** — FIXED IN PFIX-3 (Group C — Ben's call: yes): THE DROP's own card is on the one rule.
+- **S10** — FIXED IN PFIX-3 (Group C): `spacedText` / `spacedWidth` — by hand where the canvas has no letterSpacing.
+- **S11** — FIXED IN PFIX-3 (Group C — Ben's call: built before the tap): `prepShare`; no file sharing / refused → the card shown in a sheet (+ the add-on: no message over it).
+- **S12** — FIXED IN PFIX-3 (Group D, `3ea6d1d4`): `logic.js#attackSent` — client only; the rule-side ledger still rides the next rules pass.
+- **S13** — FIXED IN PFIX-3 (Group F, `3ea6d1d4`): `sfx-key.js` — a note on the song's root / fifth, a chord where it is all in key, the lock's wander ±20 cents.
+- **K1** — FIXED IN PFIX-3 (Group F): the kick is `composite: 'add'`. **K2 / K3** — FIXED: `&heavy=1` fires real clears; re-measured 59.6–60 fps at 4× CPU (galaxy, neon, pixel). **K4** — FIXED: the tiles one a frame. **K5** — FIXED: 8 px + the skin's own arrow. **K6** — FIXED: the NIGHT LOOK check pins its skin.
+- **DISCONNECT (§8)** — FIXED IN PFIX-3 (Group D, test only): the host kept alive until the kill + a check that she is in.
+- **N4** — FIXED IN PFIX-3 (Group B). **N6** — FIXED IN PFIX-3 (Group C — Ben's call: bottom-aligned; the first section's breath). **N7** — the flame by day + THE DROP's bare domain FIXED IN PFIX-3; THE PASSWORD's missing "Nº" + "THE END" at 8:00 are LEFT OPEN.
+- **C2, C3** — NOT in PFIX-3 (the city chat's). **N1, N2, N3, N5, N8 (but the freed canvas of a prepared card), N9** — LEFT OPEN.
+- **§9, the previews' silence** — cause still not found; PFIX-3 adds the SOUND READOUT (`&sound=1`) + restarts the song clock at the tap, so one screenshot says why.
+
 How I worked: read the docs + pass logs + the code named in the brief; ran my OWN emulators + two `serve.mjs --emu` servers; wrote scratch scripts outside the repo (none committed); four read-only sub-reviews (skins, share cards, tap-guard + sound, the two old PRISM reds), whose main claims I re-checked in the code or the pixels. Nothing in `js/`, `api/`, `css/`, `tests/` or the rules was changed.
 
 ---

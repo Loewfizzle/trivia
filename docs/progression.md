@@ -606,6 +606,35 @@ ONE line for everything a play is credited on: **the 4:00 AM America/New_York st
   slot (COAST CLEAR's clear); every section's content group is centred on the card's centre line inside the column the rules mark (150 px each
   side). The previews draw a REAL DROP run (`tests/integration/drop-sample.js` — the bot to its top-out, the log replayed like the server's finish).
 
+## THE DAILY MODULE — PFIX-3: THE REFUSED FINISH + THE SHARE CARDS (Nov 14 2026 — FABLE REVIEW 2's fixes; docs/games/passes/pfix-3.md)
+**A REFUSED FINISH (a cartridge's `rescue` — THE DROP's):** `api/daily.js#finishRun` — when a judged daily's `verify` refuses and the
+cartridge has a `rescue`, the run is scored at the last point its own record can prove (THE DROP: docs/prism.md "PFIX-3"), the record
+marked (`rf`), the refusal reported (`api/log.js#logServer` → /admin's errors, `p: 'server'`, no id), and the finish answers `rf: true`;
+`today` then carries `rf: { <game>: true }` and the start of a done run `run.rf`. The phone: `today-logic.js#UNCHECKED` on the ticket. It
+counts like any finish (the streak, the XP, the points of the score it could prove). A daily with no `rescue` keeps the 422.
+`core/progress.js#dayCounters` never deletes the run's OWN day (a run settled two days late lost its stats step).
+
+**THE SHARE CARDS (js/daily/share.js — the kit):**
+- **THE CARD IS BUILT BEFORE THE TAP** — `prepShare(make)` → `{ warm(), ready(), send() }`: `make()` (the imports, an /api call, the
+  drawing) runs when the screen OPENS; the PNG + its file are kept, the canvas freed; the tap calls `navigator.share` AT ONCE with the
+  ready file. ONE send at a time. Warmed by: the DAILY screen as TODAY shows SHARE TODAY (`share-today.js#prepToday` — one build per day +
+  look + streak + scores), each daily's end screen (`js/daily/end.js#endShare`), THE DROP's end card (`drop/share.js#prepDrop`).
+- **NO FILE SHARING / REFUSED → THE CARD IS SHOWN** (`showCard`): a sheet with the picture + PRESS AND HOLD TO SAVE (+ a SHARE tube where
+  the phone can share a file). No message over it, never a silent download.
+- **LETTER-SPACING BY HAND** — `spacedText` / `spacedWidth`: every tracked line of every share card goes through them (a canvas without
+  `letterSpacing` — Safari before 18.4 — draws letter by letter, as wide and as centred). No share file sets `letterSpacing` itself.
+- **THE DROP's OWN CARD IS ON THE ONE RULE** (the kit's frame · the name WHITE · the big time · the stat line · the final board · the
+  date over the foot). **THE PASSWORD's grids are BOTTOM-aligned in SHARE TODAY** (its own card: top-aligned columns under their labels)
+  and its own card by DAY draws day doors (`door(…, look)`). **COAST CLEAR's lamps** are centred on their INK and capped by the column.
+  The first section sits under the header like the mockup (`share-today.js#HEAD`). By day the streak flame has no night glow.
+- **THE ART STRIP's HEIGHT IS EACH DAILY's OWN (Ben, Nov 14 eve — "make sure the PRISM DROP box is tall enough … shrink the three signal
+  things a little"):** a daily's share.js may export `STRIP_H` + `sectionH()`; `share-today.js` lays the card out by each section's own
+  height. THE DROP `STRIP_H` 228 (the same 8 rows, bigger cells — with all three the box is 265 × 210 px on the card; it was 177 × 138),
+  COAST CLEAR 112 (the lamps ≈ 90 px tall; they were ≈ 127), THE PASSWORD the rhythm's 145 (grown for a tall grid). The name, the big
+  time and the stat line keep ONE size in every section (with all three ≈ 5 % smaller than before: 36 / 76 px).
+- **Proof:** `tests/share-rhythm.test.mjs` · `tests/integration/share-same.html` (59 rows; the copies in `_old/` re-taken on purpose) ·
+  `e2e-daily` (the file ready before any tap, the share 0.3 ms after it, a double tap = one share, the sheet).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

@@ -1799,6 +1799,13 @@ Within 0.8 dB of the neon's, all under the song. **A machine's balance, not an e
 `prism-sfx-probe.mjs` = 52 sound checks (+ the asset checks: the pixel font is fetched by the pixel skin alone; the neon + the galaxy fetch
 no font + no texture).
 
+## PRISM DROP's SKIN SOUNDS — KEYED TO THE SONG (PFIX-3, Nov 14 2026)
+The sourced skin files with a clear pitch (pixel's blip = G · galaxy's chime = C · galaxy's stardust = a C major-seventh shimmer) are
+played at the rate that lands them in the CURRENT song's key — `js/games/prism/sfx-key.js` (PURE; docs/prism.md "PFIX-3 — THE SKINS +
+SOUND"): a note on the root or the fifth, a chord where all its notes are in the scale, a pitched lock's wander inside ±20 cents. The
+key is the song's `tonic` + `mode` (data/prism/<id>.json — the table the code-made sounds follow). Levels unchanged. Never a song's
+playbackRate — only a one-shot effect's.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

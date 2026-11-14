@@ -509,6 +509,38 @@ and THE SCHEDULED GO-LIVE (docs/progression.md — the owner turns it on from /a
   (+ the hides, the share inputs) · `prism-layout` (+ the strip, both viewports) · `e2e-drop.mjs` (+ the songs, the console silent, the hint, a 10 s
   hide, 3 hides then a 30 s hide → ended late at checkpoint + 15 s).
 
+### PFIX-3 — THE DROP's PAUSE + CHUNK RULES, THE REFUSED FINISH, THE EDGES (Nov 14 2026 — docs/games/passes/pfix-3.md; FABLE REVIEW 2's M1–M3, S1–S6, N4)
+**NO HONEST RUN LOST.** The review found three ways an honest run died around PAUSE and the page hiding. The rules now (all in the PURE
+`js/games/prism/drop-judge.js`; the phone's side in `js/games/drop/view.js`):
+- **ONE GROWING LOG.** A chunk is IN STEP when it starts at the checked length — or starts before it and reaches it at a tick not behind the
+  record's: then only its TAIL past the checked length is new (two uploads from one offset, an answer that was lost). Anything else brings
+  nothing → `resync` (the phone re-sends from the server's length).
+- **A PAUSE NEVER WAITS ON ITS CHUNK.** A `ppause` / `pause` whose chunk is out of step STILL pauses — the answer carries `resync: true` + the
+  pause's clock; a `checkpoint` out of step is still only a resync.
+- **A PLAYER PAUSE STANDS AT THE BOARD's MOMENT.** It is stamped at its chunk's tick — backdated by the time the call took — so RESUME never
+  fast-forwards. **THE LOST HIDE:** a `ppause` that arrives far behind the clock (it would end the run `late`) while a pause is left = that
+  same backdated pause, one of the 3, inside the 20 minutes (the refresh's rule). None left, or over the 20 minutes → `late`, as before.
+- **THE CHUNK STORE** (`api/daily.js` reads the RECORD FIRST, then `api/_lib/drop.js#stash`): a chunk is stored only for a run in flight that
+  is not paused, when the judge would take it now (`storable` — at ≤ the checked length, inside `LOG_MAX`, on the clock), under the key
+  `{offset}_{length}` — **a shorter chunk can never replace a longer one**; `joinChunks` reads both key forms (an older run's `{offset}`).
+  A chunk from a profile with no run is NEVER stored. A chunk that could not be stored is marked `ns` and never counted (a resync).
+- **THE PHONE:** a tap's pause waits for the upload in flight; the hide's pause goes AT ONCE with keepalive (a page going away may never
+  get a second chance — the server takes both orders); **no answer, or an answer with no `pa`, is never "paused"**: the phone stays frozen
+  + unconfirmed and asks again (the return, `online`, the RESUME tap); RESUME never goes out before the pause is confirmed; the server's
+  checked length is the truth for the phone's `sent`; the run's close sends NO checkpoint right behind THE ROOM WINS' pause.
+- **A REFUSED FINISH IS NEVER A DEAD END** (`drop-judge.js#rescueFinish`, `api/_lib/drop.js#rescue`, `api/daily.js#finishRun`): a run the
+  one replay refuses is scored at the LAST POINT ITS STORED LOG CAN PROVE (cut just before the first thing that does not check; with a hole,
+  never past the last event the store holds; nothing provable → the floor), its record marked `rf` (the reason) + `rk` (the tick), the
+  refusal reported to /admin's error log (`api/log.js#logServer` — one counted entry per reason, no id). The phone says THIS RUN COULDN'T
+  BE CHECKED on the end card, on TODAY's ticket and on a re-open. A forger gains nothing — every tick kept is play the replay accepted.
+- **THE EDGES:** the phone's clock offset keeps the LARGEST estimate (`clockOffset` — a slow answer no longer freezes the board); the
+  finish never gives up while the card is open (woken by `online` / the page showing); `engine.js#gravityMs` is a TABLE of node's exact
+  values (`GRAVITY_MS` — Safari's `Math.pow` differs in the last bits; `tests/prism-gravity.test.mjs` pins every bit).
+- **A TEST DAILY CAN NEVER BE LIVE:** `api/_lib/dailies.js#testingEnv` honours `DAILY_TEST` only off Vercel (`tests/daily-test-guard.test.mjs`).
+- **Tests:** `prism-drop-judge` (15) · `prism-gravity` (2) · `daily-drop.test` (14) · `e2e-drop` (53: `send(); pause()` → the server paused;
+  `send(); hide` → paused, 27 s away, the run goes on; the hide's call lost → a backdated pause; a slow answer; 25 s with no signal →
+  still sending; the stored log taken away → the finish answered + said).
+
 ## THE SKINS (SKINS 1, Nov 14 2026 — docs/games/passes/skins-1.md; the owner's plan: docs/games/plan.md "PRISM DROP — SKINS")
 
 **A skin = ONE definition in `js/games/prism/skins.js`** (HOLD'EM's `holdem/skins.js` pattern) + its art module. The board (`board.js`), the view
@@ -703,6 +735,28 @@ under the clear's own notes as soft bells — GROK-GENERATED files; the code-mad
 hand holds it at) · `SETS=nskins` = each new skin's frames (mid-game, a 1 / 2 / 4-line clear, the flash, SLAM, a cancel, reduced, incoming
 rows, the podium, the settings sheet). **THE PIXEL-IDENTICAL PROOF** after the pass: crayon + neon 152 / 152, watercolor + paper 86 / 86
 IDENTICAL against the commit before it. **THE SHARE CARD's ONE RULE** (this pass's Group 0 — the name carries the result): docs/progression.md.
+
+### PFIX-3 — THE SKINS + SOUND (Nov 14 2026 — docs/games/passes/pfix-3.md; FABLE REVIEW 2's K1–K6, S12, S13)
+- **ONE CLEAR = ONE ATTACK, WHOEVER THE TARGET (S12):** `logic.js#attackSent(queues, sender, i)` (PURE) — a piece already in the queue
+  mirror under ANY target sends nothing (a refresh's replay re-picks its target; the create-only key only guards the same one). Client only.
+- **THE BOARD KICK ADDS (K1):** `view.js#kick` animates with `composite: 'add'` — it no longer hides the big clear's pulse, which popped
+  in one frame when the kick ended.
+- **THE PREVIEW's `&heavy=1` FIRES REAL CLEARS (K2 / K3):** `fireFx('clear', { real: true })` writes the rows under the stack and slams
+  the long piece down a well — the engine's own lock, clear, collapse and kick (`&heavy=forged` = the old made-up event). The speed tool
+  (`prism-shots.mjs PERF_SETS=heavy`) rides it. Re-measured at 4× CPU, 390 × 844 @3: galaxy 59.6 / 60 fps (top / lowest tier) · neon
+  59.8 / 60 · pixel 60 / 59.6.
+- **THE SKINS TILES, ONE A FRAME (K4):** `picker.js#queuePaint` (each skin's tile first, the ROTATE tiles last); the picker loads once
+  Settings is up + idle.
+- **ARCADE PIXEL's LETTERING (K5):** on the font's 8-px grid (HOLD / NEXT + the INCOMING tag); a skin may name its callouts' arrow
+  (`skins.js` `arrow` — pixel's `>`; Press Start 2P has no "→").
+- **THE PITCHED SKIN SOUNDS ARE KEYED TO THE SONG (S13 — `js/games/prism/sfx-key.js`, PURE):** a skin names each pitched file's note
+  (`sounds.pitch` — a pitch class, or `{ pc, chord: 'maj7' }`); the synth plays it at the rate that lands a single note on the song's ROOT
+  or FIFTH (≤ 3 semitones) and a chord where all its notes are in the scale (major: root / fourth · minor: third / sixth). The key = the
+  song's `tonic` + `mode` (data/prism/<id>.json). A pitched lock wanders inside ±20 cents; a noise file plays as before; levels unchanged.
+  **A new pitched file = its note in `sounds.pitch`** (`tests/prism-sfx-key.test.mjs` checks every song of both sets).
+- **THE PREVIEW's SOUND READOUT** (`prism-preview.html?…&sound=1`): the audio context, its clock, the song + gain + key, the skin's
+  files, the last effect (file + rate), this origin's settings — and WHY it is silent when it is; the song clock restarts at the TAP FOR
+  SOUND tap.
 
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 

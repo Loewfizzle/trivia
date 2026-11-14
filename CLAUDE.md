@@ -111,7 +111,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - A cartridge's module graph is preloaded (`js/games/preload.js` + the GENERATED `preload-graph.js` — `node scripts/build-preload-graph.mjs` after a game's imports change).
 - A game's podium music = `FINAL_MUSIC` in its index.js; THE GAME LOOK = `body[data-look]` (`kit/look.js`) — games read it LIVE, no switch of their own.
 - THE STALE-MODULE RULE (FR7 FIXES C2): a LAZY chunk never imports a boot-graph module for a NEW export — it reads a hub that module registers (NOW PLAYING → `globalThis.__nsNowPlaying`); a face that fails to load says TAP TO RETRY + reports it → docs/audio.md.
-- A SCREEN ON TOP OF THE CITY OWNS THE TOUCH: the city answers a touch only through `title-taps.js#covered` (`ui/layers.js#cityCovered` — a layer open · the city held · a touch begun off the city's root); never a per-screen class list → docs/title.md.
+- A SCREEN ON TOP OF THE CITY OWNS THE TOUCH: the city answers a touch only through `title-taps.js#covered` (`ui/layers.js#cityCovered` — a layer open · the city held · a touch begun off the city: `touchInCity` = the root, its ancestors, the scene's wrap); never a per-screen class list → docs/title.md.
 - THE TAP WATCH (`js/ui/tapwatch.js`, always on): never re-render a control under a finger; every `:hover` behind `@media (hover: hover)` → docs/title.md (moved).
 - COLOUR-BLIND: right / close = `--good` / `--close` only, NEVER by colour alone (a shape / mark too); `body[data-cb]` → docs/title.md (moved).
 - EVERYONE TIED = a DRAW for every game (`core/night.js#nightPoints`); every corner button's tap area 44 × 44 (harbor `tapfit`).
@@ -148,8 +148,9 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE SCHEDULED GO-LIVE: an OFF daily opens ONLY at a 4 am turn the owner schedules (/admin → GO LIVE AT THE NEXT 4 AM — `progress/dlive`; `core/daily.js#rowOpenOn`), never mid-day; a finish sweeps its OWN day's set (`dailies.js#liveFor`) → docs/progression.md.
 - THE SHARE CARDS: ONE FOOT (`js/daily/share.js#shareAddress` — a straight line + the address, no frame) + THE ONE RULE (`share.js#RHYTHM` — every
   SHARE TODAY section: the NAME in its result's colour (green made · red failed · white) · ONE big TIME · ONE grey stat line · the art strip,
-  through the kit's `paintName` / `paintBig` / `paintStat` — never a win word; `tests/share-rhythm.test.mjs`) → docs/progression.md.
-- THE DROP: the phone PLAYS, the server REPLAYS (ONE pure engine — `prism/drop.js` + `drop-judge.js`); a log upload never re-sends the log (chunks beside a small record) → docs/prism.md#the-drop.
+  through the kit's `paintName` / `paintBig` / `paintStat` — never a win word; `tests/share-rhythm.test.mjs`); tracked lettering only through
+  `spacedText`; THE CARD IS BUILT BEFORE THE TAP (`prepShare` — never a share drawn at the tap, never a download) → docs/progression.md.
+- THE DROP: the phone PLAYS, the server REPLAYS (ONE pure engine — `prism/drop.js` + `drop-judge.js`); a log upload never re-sends the log (chunks beside a small record); a pause never waits on its chunk, a refused finish is scored at its last provable point (PFIX-3) → docs/prism.md#the-drop.
 
 **The games** (read the game's doc before a pass on it)
 - OVERCLOCK: its timings are the owner's (pinned by tests); NO SIDEWAYS SCROLL, EVER; right = green, wrong = red + cracked, NO ✓ / ✕; the
