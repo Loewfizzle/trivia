@@ -378,7 +378,8 @@ G('cartridge', async () => {
   // (PW1: a DAILY-ONLY cartridge — GAMES daily: true, never playable — is checked like a playable one, never counted as hidden)
   // (HE3: a game being BUILT — config.js `preview: true`, HOLD'EM — is checked like a playable one too)
   const play = Object.entries(r).filter(([, x]) => x.playable || x.daily || x.building), hidden = Object.entries(r).filter(([, x]) => !x.playable && !x.daily && !x.building);
-  ok(play.length === 5 && play.every(([, x]) => !x.problems.length && x.warm && x.lock), `THE CARTRIDGE PLUG: the playable + the daily-only games meet the contract in a real page (${play.map(([id, x]) => `${id}: ${x.problems.length ? x.problems.join('; ') : 'ok'}`).join(' · ')}) — warmable views, their own chat locks`);
+  // (THE DROP A: + THE DROP — the third daily-only cartridge, its row OFF)
+  ok(play.length === 6 && play.every(([, x]) => !x.problems.length && x.warm && x.lock), `THE CARTRIDGE PLUG: the playable + the daily-only games meet the contract in a real page (${play.map(([id, x]) => `${id}: ${x.problems.length ? x.problems.join('; ') : 'ok'}`).join(' · ')}) — warmable views, their own chat locks`);
   ok(hidden.length === 10, `the ${hidden.length} hidden games are EXEMPT until each comes back (${hidden.map(([id, x]) => `${id} ${x.problems.length}`).join(', ')} gaps — frozen)`);
   await Q.ctx.close();
 });
