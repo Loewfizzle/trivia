@@ -90,7 +90,21 @@ deployment can never register THE TEST DAILY (it showed in this pass's own emula
 | harbor groups `core,dock,desktop,billboard,speakeasy,sightings,sheetstack,shell,tapfit` | 106 / 106 (NO full local harbor — the cloud runs it) |
 
 ## The cloud runs of the push
-(added by the next local commit — it rides the next pass's push, as SKINS 2B's did)
+The ONE push: `9122b837..63548cc2` (10 commits, the harbor tag on the last). One run of each, not re-run.
+- **tests** (43648300041): **GREEN**, 6m34s.
+- **harbor** (43648300098): **RED — 13 of 15 jobs green**, 13m3s. Three checks, none in code this pass touched:
+  - `city` · **LOAD WEATHER — kept on this device: "0 changes after"** saw `bake crossfade 1200 ms · neon` after the reveal. **It follows
+    the clock, not the code:** the cloud ran it at 5:31 pm Eastern; on the mini PC at 5:44 pm the same neon crossfade failed the sibling
+    case ("answered in 1.2 s") on this pass's code; at 5:52 / 5:55 / 5:58 / 6:02 pm the whole `load` group was GREEN (34 / 34, four runs alternating) on the commit from
+    BEFORE the pass (a worktree on :5174) and on this pass's code alike. Dusk: the neon's bake changes as night falls and the checks use
+    the real clock. NOT proven: the pre-pass code inside the red window (the window had passed). For the city chat — the LOAD WEATHER
+    cases want a fixed `&when`, or the dusk change counted as expected.
+  - `city` · **THE DELAY: "the city still rain after 3 s" read `snow`** (the panel's queued SNOW started although the reopened sheet had
+    cancelled the countdown). Green locally on this pass's code (`ONLY=panel`, 5:47 pm). Cause not found; not a known flake.
+  - `street` · **THE DANCERS' ARMS NEVER JUMP: 7 jumps** (6 dancers, 268 frames). Green locally (0 jumps over 446 frames). A check with a
+    history of cloud reds (POOL FIXES' full run: 1 jump; PLAY NOW 0f's frame-stamp fix) — the cloud's software GL draws ~8–10 fps.
+- **Vercel: BUILT + deployed** (`63548cc2`, Production — "Deployment has completed").
+- This pass's servers (its emulators, :5173, :5176, :5177, the A / B's :5174) are STOPPED; :5190 is left running.
 
 ## Left open
 - N1, N2, N3, N5, N8, N9 · N7's two others (THE PASSWORD's "Nº", "THE END") · C2 + C3 (the city chat) · S12's rule-side ledger (the
