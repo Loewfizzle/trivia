@@ -330,3 +330,17 @@
   - From the OUTCOME THE SERVER RETURNED — never computed on the phone. If /api's solo outcome doesn't carry today's solo count yet, add it to the response (no rules change, no new call); while the outcome hasn't arrived (offline / queued), show nothing rather than a guess.
   - It must fit with Group 2's podium fix: no MORE BELOW at 390 / 402 / 430 in Safari WITH its toolbars. No pill — plain text, the podium's small type.
   - e2e-playnow checks the line on a paying run AND on the 5th solo run of a day.
+
+## THE DROP — PRISM DROP's DAILY (the owner's decisions, Nov 13 2026 — reverses Nov 3's "no PRISM daily": solo + SURVIVAL + a deterministic engine make it fair)
+- A third daily, named THE DROP (the daily section only — never on a billboard), its OWN admission ticket (`ticket: 'drop'`) in its own colour (PRISM's accent, clearly distinct from THE PASSWORD + COAST CLEAR's).
+- SURVIVAL only (a SCORE RUSH day maybe later). Everyone gets the SAME piece order + the SAME rising rows that day (the day's seed from THE DAILY SECRET — never the date, never the pepper). ONE counted run a day; score = TIME SURVIVED, lines break a tie. Practice any time with PLAY NOW (other seeds).
+- A GUARANTEED END: THE DROP's rows follow SURVIVAL's 10 s → 4 s, then KEEP speeding up after ~4 min so even the best run ends by ~8 min (bounds the replay + the log).
+- PAUSES: 3 PLAYER pauses a run (COAST CLEAR-style caps — 3 a run, 20 min in all), the BOARD HIDDEN while paused, the pause time server-timed. A REFRESH / resume COSTS one of the 3 (no checkpoint save-scumming). A ROOM start (THE ROOM WINS) pauses it too but does NOT use up the 3.
+- CHECKPOINTS during the run: a refresh / a dead phone resumes from the LATEST checkpoint (never an older one); an abandoned run ends at its last checkpoint; DFIX1 holds (a run started before 4 am finishes on its own day).
+- ANTI-CHEAT: the phone's INPUT LOG is REPLAYED by the server through the SAME pure engine with the day's seed + rows → the real time + lines, or REFUSED. THE SLOW-MOTION CHECK: wall-clock start → finish ≥ engine time − the server-timed pauses (+ a small tolerance). A human floor on input timings; the log's size capped; the replay measured + well under api/daily.js's 10 s. (It stops forged results; it can't stop a script that plays at human speed — accepted for friends.)
+- ONE STORED SCORE: `better: 'high'`, = time in tenths × 1000 + lines — so YOUR TABLE, PENTHOUSE, the TOP x% band + DAILY POINTS all rank the same way.
+- DAILY POINTS: a CAPPED curve in core/daily-points.js (a better time never fewer points; a played day ≥ POINTS_FLOOR).
+- SHARE (pass B): the final-board picture KEPT, the junk rows drawn SOLID (hides the day's holes). Throwaways learn the piece order + the holes — accepted until public; on the BEFORE-PUBLIC list.
+- GO LIVE: only at a 4 am turn, never mid-day (THE SWEEP + PERFECT WEEK then need all three; daily XP = 3 × 15 + 10). /admin's PROGRESS RESET clears THE DROP's records like the others.
+- TWO PASSES: A (this) = the engine run + the server's replay + checkpoints + pauses + the score + points, the row OFF; B = the ticket, TODAY with three tickets, SHARE TODAY for three, the share picture, both looks, the one-time hint.
+- PD-6 REVIEW (Ben, Nov 13 7:11 pm) → this pass's Group 0: SLAM as big as the column allows (column − ~6, ≈ 62 pt at 390 in Safari), centred across the column, kept at its FOOT for the thumb; a short MUSIC DUCK on every slam (~0.15 s) so the thud is heard without getting louder; a solo run must never be lost by a fast BACK TO THE CITY.
