@@ -391,15 +391,16 @@ export const POOLS = Object.freeze({
 export const ROTATE = 'rotate';
 /** does this phone own a skin? unlock null = everyone; a level unlock = the server's grant (phone.grants — nothing is locked now) */
 export const owned = (skin, phone) => !!skin && (!skin.unlock || !!(phone && phone.grants && phone.grants[skin.id]));
-/** the skins a phone owns in a look, in the pool's order (never empty: a look's first skin is everyone's) */
-export function ownedOf(look, phone) {
+/** the skins a phone owns in a look, in the pool's order (never empty: a look's first skin is everyone's). `reg` = the registry (the tests
+ *  pass one with a locked skin — nothing is locked in SKINS today) */
+export function ownedOf(look, phone, reg = SKINS) {
   const all = POOLS[look === 'day' ? 'day' : 'night'];
-  const mine = all.filter(id => owned(SKINS[id], phone));
+  const mine = all.filter(id => owned(reg[id], phone));
   return mine.length ? mine : [all[0]];
 }
 /** a phone's pool for a look: the skins it owns — a PIN narrows it to one (a pin on a skin it doesn't own, or of the other look = ROTATE) */
-export function poolOf(look, phone) {
-  const mine = ownedOf(look, phone);
+export function poolOf(look, phone, reg = SKINS) {
+  const mine = ownedOf(look, phone, reg);
   const pin = phone && phone.pin && phone.pin[look === 'day' ? 'day' : 'night'];
   return pin && pin !== ROTATE && mine.includes(pin) ? [pin] : mine;
 }

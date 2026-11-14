@@ -166,7 +166,13 @@ const SHOTS = {
     'glance-inc': { page: 'prism-glance.html', glance: 'n=5&stack=8&inc=4&rise=hot&under=1', w: 1500 },
     'glance-full': { page: 'prism-glance.html', glance: 'n=7&stack=16&bot=1', w: 2600 },
   },
-  skinsheet: Object.fromEntries(['crayon', 'watercolor', 'paper'].map(id => [`sheet-${id}`, { page: 'prism-skin-sheet.html', q: `skin=${id}`, w: 600 }])),
+  // SKINS 2B — THE NIGHT's GLANCE TEST: neon · arcade pixel · galaxy side by side, the same night board
+  nglance: {
+    'nglance-play': { page: 'prism-glance.html', glance: 'n=5&stack=10&under=1', look: 'night', w: 1500 },
+    'nglance-inc': { page: 'prism-glance.html', glance: 'n=5&stack=8&inc=4&rise=hot&under=1', look: 'night', w: 1500 },
+    'nglance-full': { page: 'prism-glance.html', glance: 'n=7&stack=16&bot=1', look: 'night', w: 2600 },
+  },
+  skinsheet: Object.fromEntries(['crayon', 'watercolor', 'paper', 'pixel', 'galaxy'].map(id => [`sheet-${id}`, { page: 'prism-skin-sheet.html', q: `skin=${id}`, w: 600 }])),
   // PD-4 — THE DAY LOOK: the crayon sheet (every drawing on each paper — one size), then the game's own day screens
   sheet:Object.fromEntries(['notepad', 'graph', 'construction', 'coloring'].map(p => [`sheet-${p}`, { page: 'prism-crayon-sheet.html', q: `paper=${p}`, w: 400 }])),
 };
@@ -190,7 +196,7 @@ for (const set of sets) {
       if (typeof spec === 'object' && spec.glance) {
         // (SKINS 2A) the glance page: three phones side by side — the page is 3 × the width + 2 gaps, + the names' row
         await page.setViewport({ width: width * 3 + 12, height: height + 22, deviceScaleFactor: Number(process.env.GLANCE_DSF || DSF) });
-        await page.goto(`${BASE}/tests/integration/${spec.page}?w=${width}&h=${height}&q=${encodeURIComponent(spec.glance + EXTRA)}`, { waitUntil: 'load' });
+        await page.goto(`${BASE}/tests/integration/${spec.page}?w=${width}&h=${height}${spec.look ? `&look=${spec.look}` : ''}&q=${encodeURIComponent(spec.glance + EXTRA)}`, { waitUntil: 'load' });
         await page.waitForFunction(() => document.body.dataset.ready === '1', { timeout: 30000 }).catch(() => errors.push(`${name}@${width}: never ready`));
         await sleep(spec.w || 1200);
         await page.screenshot({ path: `${outDir}/${name}-${width}.png` });

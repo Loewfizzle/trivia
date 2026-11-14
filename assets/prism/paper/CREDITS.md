@@ -18,3 +18,12 @@ Built by `scripts/build-prism-paper.py` (the grain only: a high-pass, made seaml
 (https://github.com/google/fonts/tree/main/apache/permanentmarker — METADATA.pb `license: "APACHE2"`), equally free to self-host + ship.
 The latin subset woff2 unchanged, from the `@fontsource/permanent-marker` 5.3.0 package (npm). It has no `→` glyph: the callouts' arrow
 falls back to the UI font.
+
+## The pixel font — `assets/fonts/prism/press-start-2p-latin-400.woff2` (SKINS 2B — THE ARCADE PIXEL skin's lettering)
+
+**Press Start 2P** — Copyright 2012 The Press Start 2P Project Authors (cody@zone38.net), with Reserved Font Name "Press Start 2P" —
+**SIL Open Font License 1.1** (the full text beside it: `assets/fonts/prism/LICENSE-PressStart2P.txt`;
+https://github.com/google/fonts/tree/main/ofl/pressstart2p). The latin subset woff2 unchanged (12.5 KB), from the
+`@fontsource/press-start-2p` 5.2.7 package (npm) — never renamed as a font file, never sold on its own (the OFL's terms); loaded in the
+page under the family name 'PD Pixel' only when THE ARCADE PIXEL skin shows (`js/games/prism/pixel-art.js#loadPixelFont`). It has no `→`
+glyph: a callout's arrow falls back to the UI font.

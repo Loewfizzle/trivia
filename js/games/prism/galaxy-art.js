@@ -49,20 +49,20 @@ function block(size, col, near, v, o = {}) {
   const a0 = r() * 6.28, turn = r() < 0.5 ? 1 : -1, layers = 2 + (r() < 0.6 ? 1 : 0);
   for (let k = 0; k < layers; k++) {
     const ang = a0 + turn * k * (1.9 + r() * 0.5), d = size * (0.2 + r() * 0.1);
-    cloud(x, cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, size * (0.34 + r() * 0.12), k === 1 ? near : hexOf(mix(col, WHITE, 0.22)), (k === 1 ? 0.6 : 0.7) * dim);
+    cloud(x, cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, size * (0.34 + r() * 0.12), k === 1 ? near : hexOf(mix(col, WHITE, 0.14)), (k === 1 ? 0.62 : 0.66) * dim);
   }
   // (the lane: a deeper wisp across — depth, never a dark centre)
   const la = a0 + turn * 2.9;
   cloud(x, cx + Math.cos(la) * size * 0.3, cy + Math.sin(la) * size * 0.3, size * 0.26, hexOf(mix(col, BLACK, 0.6)), 0.42);
   // THE CORE: a softer bright heart, a little off-centre
   const kx = cx + (r() - 0.5) * size * 0.16, ky = cy + (r() - 0.5) * size * 0.16;
-  cloud(x, kx, ky, size * 0.24, hexOf(mix(col, WHITE, 0.7)), 0.5 * dim);
+  cloud(x, kx, ky, size * 0.22, hexOf(mix(col, WHITE, 0.62)), 0.4 * dim);
   // THE STARS: 3–5 tiny points (one with a small cross) — decoration only
   if (!o.plain) {
     const n = 3 + Math.floor(r() * 3);
     for (let i = 0; i < n; i++) {
       const sx = p + size * 0.14 + r() * (b - size * 0.28), sy = p + size * 0.14 + r() * (b - size * 0.28), sr = Math.max(0.7, size * (0.016 + r() * 0.016));
-      x.fillStyle = rgba(WHITE, 0.95);
+      x.fillStyle = rgba(WHITE, i === 0 ? 0.95 : 0.8);
       x.beginPath(); x.arc(sx, sy, sr, 0, 6.2832); x.fill();
       if (i === 0) { x.fillRect(sx - sr * 3.2, sy - sr * 0.3, sr * 6.4, sr * 0.6); x.fillRect(sx - sr * 0.3, sy - sr * 3.2, sr * 0.6, sr * 6.4); }
     }

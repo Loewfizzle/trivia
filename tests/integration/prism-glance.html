@@ -6,6 +6,7 @@
        ?w=390&h=844       one phone's size (the page = 3 of them + the gaps)
        &q=<query>         the preview's own query, URL-encoded (default n=5&stack=10&under=1)
        &labels=0          no name under each (the blind test)
+       &look=night        (SKINS 2B) THE NIGHT's test: neon · arcade pixel · galaxy, the same night board (the night pool by the same counter)
      prism-shots.mjs SETS=glance shoots it at 390 / 402 / 430 (body[data-ready] once the three previews are ready). -->
 <html lang="en">
 <head><meta charset="utf-8"><title>PRISM DROP — the glance test</title><link rel="icon" href="data:,">
@@ -22,10 +23,11 @@
 const q = new URLSearchParams(location.search);
 const w = Number(q.get('w') || 390), h = Number(q.get('h') || 844), inner = q.get('q') || 'n=5&stack=10&under=1';
 const { POOLS, SKINS } = await import('/js/games/prism/skins.js');
-const frames = POOLS.day.map((id, k) => {
+const look = q.get('look') === 'night' ? 'night' : 'day';
+const frames = POOLS[look].map((id, k) => {
   const col = Object.assign(document.createElement('div'), { className: 'gl-col' });
   const f = document.createElement('iframe');
-  f.width = w; f.height = h; f.src = `/tests/integration/prism-preview.html?look=day&sk=${k}&${inner}`;
+  f.width = w; f.height = h; f.src = `/tests/integration/prism-preview.html?look=${look}&sk=${k}&${inner}`;
   col.append(f);
   if (q.get('labels') !== '0') col.append(Object.assign(document.createElement('div'), { className: 'gl-name', textContent: SKINS[id].name }));
   document.getElementById('row').append(col);
