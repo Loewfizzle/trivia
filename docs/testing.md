@@ -683,6 +683,11 @@ load problem, not a flake to patch.
   = its own card. `admin-probe.mjs` **`GOLIVE=1`** = /admin's go-live rows OFF → scheduled → cancelled in the real page (390 / 402 / 430 / 1440).
   `daily-preview.html?drop=1` (`&dropst=play|progress|done`, `&view=share`) = TODAY / SHARE TODAY with THE DROP's ticket. `e2e-playnow --shots` adds
   the game card at 390 × 650 / 402 × 690 / 430 × 746.
+- **THE DROP B's late add-ons:** unit `tests/prism-solo-pause.test.mjs` (the pause / resume patches, the director's hold, SURVIVAL = time played,
+  SCORE RUSH's song + clock, the server's `survivalCap`); `e2e-playnow --only pause` (a solo SURVIVAL hidden 60 s: the clock + engine still, the
+  3-2-1, the result = time played, the podium's board; a SCORE RUSH hidden 20 s mid-song: the song + the clock where they stopped — ~2.5 min);
+  `tests/integration/drop-sample.js` = a REAL seeded DROP run to its top-out for the share previews (`daily-preview.html?…&dropseed=`); share-same
+  marks COAST CLEAR's clear / ghost cards CHANGED ON PURPOSE (the name once) — CAUGHT + every "alone inside SHARE TODAY" row must stay SAME.
 
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 

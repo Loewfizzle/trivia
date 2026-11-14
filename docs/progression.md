@@ -575,6 +575,9 @@ ONE line for everything a play is credited on: **the 4:00 AM America/New_York st
   OWN card, exactly (share-same.html: each of the three, both looks).
 - Tests: `daily-module.test.mjs` (+ THE SCHEDULED GO-LIVE), `tests/daily-golive.test.mjs` (the pure rule), `admin-probe.mjs` `GOLIVE=1` (the real
   page: OFF → scheduled → cancelled).
+- **SHARE TODAY — ONE NAME, ONE COLUMN** (Ben's add-on): a section whose result word IS the daily's own name shows it ONCE, coloured, in the title's
+  slot (COAST CLEAR's clear); every section's content group is centred on the card's centre line inside the column the rules mark (150 px each
+  side). The previews draw a REAL DROP run (`tests/integration/drop-sample.js` — the bot to its top-out, the log replayed like the server's finish).
 
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 

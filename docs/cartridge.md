@@ -299,6 +299,10 @@ reads the look LIVE (a change mid-game re-themes the screen at once). Right / cl
 - The ticket: art in `ticket-art.js#TICKET_ART[key]`, its inks in **`TICKET_INK[key]`** `{ night, day, stamp? }` (THE ONE per-id table — the
   DAILY screen's `--tk0` / `--tkd` / `--tks`); a key with no row = the house pink.
 - **THE SCHEDULED GO-LIVE** (docs/progression.md): a row that ships `on: false` opens from the day the owner schedules in /admin — no code edit.
+- **A SOLO RUN PAUSES WHILE HIDDEN** (Ben's add-on): a cartridge may export PURE **`soloPause(game, { at })`** + **`soloResume(game, { now })`** →
+  a game patch (or null). `host.js` calls them in a room of ONE on the host's own phone when its page hides / comes back (+ a paused run found on a
+  visible page). PRISM DROP: `logic.js` — `pz` while paused, every clock shifted by the time away + a 3-2-1 (`rz`). A cartridge without them is
+  untouched; a room of 2+ never pauses.
 
 ## THE DROP A — a third DAILY-ONLY cartridge + the plug-in's new optional pieces (Nov 13 2026 — docs/prism.md "THE DROP")
 - `js/games/drop/` (DAILY_ONLY in `tests/cartridge.test.mjs`; its tube mark, its loader; `daily.on: false`): its `createView` wraps PRISM DROP's

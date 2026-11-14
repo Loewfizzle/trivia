@@ -493,6 +493,18 @@ and THE SCHEDULED GO-LIVE (docs/progression.md — the owner turns it on from /a
   edge − `SLAM_RIM` 4 pt each side (whole points), centred across that strip at the column's foot (`slamX` → css `--slamX`, LEFT mirrors it); the
   board + the rail tiles never change; capped at `SLAM_CAP` 84 (a desktop). The home-screen app 40 → **46 / 47 / 46** pt at 390 / 402 / 430 (the
   real strip is 54.3–55.3 pt); Safari with its toolbars 62 / 54 / 55 → **80 / 72 / 73**. The BUTTON SIZE slider now sizes the BUTTONS bar only.
+- **A SOLO RUN PAUSES WHILE HIDDEN** (Ben, Nov 13 9:59 pm — "SURVIVED 2:04 · 0 LINES": the multiplayer AWAY rule had put his solo SURVIVAL out
+  when he came back, its time = wall time): a room of ONE (PLAY NOW or a room of one), SCORE RUSH + SURVIVAL, both looks — the page hiding
+  (visibilitychange / pagehide) → `host.js` (this phone IS the host) writes the cartridge's PURE `soloPause(game, { at })` = `{ pz }` at once;
+  back on the page `soloResume(game, { now })` shifts EVERY clock (`playStartAt`, `songStartAt`, `endAt`, `phaseEndsAt`, …) by the time away +
+  `RESUME_MS` (3 s) and sets `rz` (GO again) + `pms` (the paused total) — the rows' schedule, the song, SCORE RUSH's end + SURVIVAL's time
+  (`out.at − playStartAt`) resume exactly where they stopped: **the time = time PLAYED** on the result, the podium + the report. The director
+  holds a paused run (no end, no AWAY / SIGNAL LOST, 30 s of grace after the 3-2-1); `direct()` also resumes a paused run on a visible page (a
+  rejoin). The view holds the engine + input (`logic.js#soloHeld`), freezes the clock where it stopped, and draws the 3-2-1 in the count's own look
+  (`.pd-resume` — PAUSED WHILE YOU WERE AWAY · BACK IN · 3 2 1 GO). A room of 2+ is untouched (the AWAY rule stands). **The server agrees**
+  (`match-report.js#survivalCap`): a solo SURVIVAL's time past the row after the next its engine took (results `sd`, + 5 s) = EMPTY (no XP,
+  streak or lane count) — and nothing was ever paid by time. **YOUR LAST BOARD** always draws its well now (an empty board's string is `''` —
+  it used to draw no frame at all). Tests: `tests/prism-solo-pause.test.mjs`, `e2e-playnow --only pause`.
 - **Tests**: `tests/drop-share.test.mjs` (the solid junk, the inputs, the line, the ink table) · `prism-drop-judge` (+ `aw`) · `daily-drop.test`
   (+ the hides, the share inputs) · `prism-layout` (+ the strip, both viewports) · `e2e-drop.mjs` (+ the songs, the console silent, the hint, a 10 s
   hide, 3 hides then a 30 s hide → ended late at checkpoint + 15 s).

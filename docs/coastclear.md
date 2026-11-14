@@ -112,6 +112,12 @@ real no-guess boards: median 1:20, p10 0:52 → GHOST_S = 50 s = 8.6 % of clean 
 re-mount's `start` brings them back); the re-mount resumes from the server's record. A run PAUSED by THE DAILY MODULE resumes itself when the screen
 comes back (`judge.resume()` on mount); any move resumes it too.
 
+## THE NAME ONCE (THE DROP B add-on, Ben Nov 13 10:19 pm)
+A CLEAR's result word IS the daily's name ("COAST CLEAR") — `share.js#doubledName`: it shows ONCE, as the coloured result word in the title's slot
+(the white sign is not drawn over it), on the card AND in SHARE TODAY's section; CAUGHT (the red word) keeps the sign. SHARE TODAY's clear section
+is a centred stack (the green name · the stat line · the big time · the three lamps) inside the card's column (`COL_PAD` 150 each side), the beam
+short, flat and clipped to the column.
+
 ## The board maker (`api/_lib/cc-board.js` + `cc-solve.js`)
 **DM1 ADD-ON:** the board comes from THE DAILY SECRET (`api/_lib/daily-secret.js` — `cc.js#ccBoard`), never the pepper; THE RESEED gives every day from the next 4 am a fresh harbor. THE ROOM WINS (DM1): a `pause` only while the player's room really started a game (`judge.pause(room)`; docs/progression.md).
 ONE ATTEMPT: a start cell in the middle band (x 2…6, y 4…7) with its 3 × 3 kept clear (so it is a 0), the 18 lights scattered over the rest by a
