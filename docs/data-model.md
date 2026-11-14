@@ -199,6 +199,9 @@ position), phase: count|play|end|final, songStartAt, playStartAt (= a downbeat o
 n0, out{uid:{at,place,rem,by,gone}}, ko{uid}, bd{uid badges}, duelAt, winner, results{uid:{sc,ln,lv,mc,se,best,ko,bd,pc,pn (pieces — PFIX-B),dz?,t?}}, calls{uid:{w,ok,bonus}} }`
 (PD-2: `pc` perfect clears, `dz: 1` BATTLE's danger zone — the stack reached the top 5 rows, `t` SURVIVAL's ms survived; a player's `sv` carries
 `pk` = the stack's peak height — inside `sv`, whose extra keys the rules already allow: no rules change).
+(SKINS 1: `sk` = the match's SKIN COUNTER — every phone draws `pool[sk % its pool size]` for its look (js/games/prism/skins.js#skinOf); a room's
+= the host's deal, +1 a match, remembered as `meta/used/prism/sk<k>` beside the paper's `pp<k>-<i>` (no rules change); a solo run's + THE DROP's =
+the PLAYER's own counter — this phone's settings `prismSkinK` / `prismSkinDrop { d, k }`; the pins `prismSkinDay` / `prismSkinNight`.)
 
 GRIDLOCK `game`: `{ id:'gridlock', matchId, settings{mode: classic|salvo|royale|arcade, placeSec, turnSec}, mode, participants, names, size
 (10 for 2–3 players, 8 for 4+), fleet [lengths], n0, order[] (seeded Classic turn order), phase: place|turn|aim|resolve|show|end|final,

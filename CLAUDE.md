@@ -147,6 +147,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - OVERCLOCK: its timings are the owner's (pinned by tests); NO SIDEWAYS SCROLL, EVER; right = green, wrong = red + cracked, NO ✓ / ✕; the
   pools are BUILT (never edit `data/oc/*.json` by hand — `node scripts/oc-pools/build.mjs`) → docs/overclock.md (moved).
 - PRISM DROP: never the words "Tetris", "tetromino" or "T-spin"; THE ANTI-CHEAT RULES A PASS MUST KEEP (the board node's write window) → docs/prism.md (moved).
+- PRISM's SKINS: a skin = ONE definition in `prism/skins.js` + its art — NO skin-specific path in view / board / rail / victory; ONE counter a match (`game.sk`), every phone draws `pool[k % n]`; a refactor proves `prism-skin-snap.mjs` IDENTICAL → docs/prism.md#the-skins.
 - HOLD'EM: the engine PURE + DETERMINISTIC; THE SERVER IS THE DEALER (the deck only in `hrec/{CODE}`); PLAY CHIPS ONLY — no money words;
   ANIMATIONS COME FROM THE STATE; THE PORTRAIT IS UNTOUCHED by sideways CSS → docs/holdem.md (moved).
 
@@ -241,8 +242,10 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
 ## Testing (the short version; every suite + flag: `docs/testing.md` (moved))
 - **YOUR OWN SERVERS:** every pass starts its OWN fresh emulators + `scripts/serve.mjs --emu` (a leftover stopped first) and STOPS every server
   it started as its LAST step (the summary says so).
-- **THE BUILD MACHINE IS THE MINI PC** (Beelink SER8, 32 GB, Java): before EVERY final push run LOCALLY the unit suite, the rules + `/api` tests,
-  the smoke test AND the FULL `e2e-harbor` suite (a City 2.0 pass) with nothing else busy. Browser tests run OUTSIDE the sandbox; every browser
+- **THE BUILD MACHINE IS THE MINI PC** (Beelink SER8, 32 GB, Java): before EVERY final push run LOCALLY the unit suite, the rules + `/api` tests
+  (when touched), the smoke test, the game's own E2E AND the harbor GROUPS the pass touches, with nothing else busy.
+- **THE LOCAL TESTING RULE (Ben, Nov 14 — while the repo is PUBLIC):** the FULL `e2e-harbor` suite runs in the CLOUD on the tagged push, NOT
+  locally; if the repo ever goes private this flips (the cloud then never runs harbor on a push) → docs/testing.md. Browser tests run OUTSIDE the sandbox; every browser
   script imports puppeteer from `tests/integration/kit/puppeteer.mjs`. Chromium: `C:\Users\benja\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe`.
 - **GitHub checks + the harbor cloud run only on a pass's FINAL push** — the top commit tagged `[ci]` (a game / app pass) or `[harbor]` (a city
   pass); at most TWO cloud runs a pass, never re-run to confirm a flake. A new harbor group: its `G()` + its name in exactly one job in `harbor-jobs.mjs`.

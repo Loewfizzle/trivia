@@ -303,7 +303,9 @@ try {
     const after = await P.ev(`(() => { const g = ${S}.game; let t = g.songStartAt; const n = g.rz; return { pos: n - t, left: g.endAt - n }; })()`);
     ok(Math.abs(after.pos - hid.pos) < 50 && Math.abs(after.left - hid.left) < 50 && hid.left < before.left, `SCORE RUSH hidden 20 s mid-song: at GO again the song (${(hid.pos / 1000).toFixed(2)} → ${(after.pos / 1000).toFixed(2)} s in) and the clock (${(hid.left / 1000).toFixed(1)} → ${(after.left / 1000).toFixed(1)} s left) stand where they stopped`);
     await P.waitFor(`window.__arcade.serverNow() > ${S}.game.rz + 500`, 8000);
-    const pl = await P.ev('(() => { const b = window.__prism.beat && window.__prism.beat(); return b ? b.pos : null; })()');
+    // (SKINS 1: by DAY the run plays the day set — a day song starts at its CUE-IN, and the heard position counts from the file's start: the cue
+    //  comes off before it is compared with the song's own clock. This check had only ever run at night — it was red by day on the commit before too)
+    const pl = await P.ev('(() => { const b = window.__prism.beat && window.__prism.beat(); return b ? b.pos - (b.cue || 0) : null; })()');
     ok(pl == null || Math.abs(pl - (after.pos + 500) / 1000) < 1.5, `the song plays on from there (heard at ${pl == null ? 'n/a (no audio in the test)' : pl.toFixed(2) + ' s'})`);
     await P.ctx.close();
   }

@@ -204,3 +204,62 @@ test('THE HOST\'s deal is wired: start() stores game.sk + its key in the night\'
   assert.match(read('js/ui/settings-panel.js'), /lazyImport\(import\('\.\.\/games\/prism\/picker\.js'\), '\.\.\/games\/prism\/picker\.js'\)/);
   assert.match(read('js/games/prism/picker.js'), /if \(ids\.length < 2\) continue;/);
 });
+
+test('ONLY THE SHOWN SKIN\'s FILES: a page lists its own texture(s) and nothing else; enter() loads only its own', async () => {
+  const P = await import('../js/games/prism/skin-pages.js');
+  const files = id => SKINS[id].page.files({ paper: PAPERS[0] }).map(u => u.split('/').pop());
+  assert.deepEqual(files('watercolor'), ['watercolor.webp']);
+  assert.deepEqual(files('paper'), ['kraft.webp']);
+  assert.deepEqual(files('crayon'), [PAPERS[0].file], 'the crayon: the match\'s paper only');
+  assert.match(P.WATER_TEX, /assets\/prism\/paper\/watercolor\.webp$/);
+  assert.match(P.KRAFT_TEX, /assets\/prism\/paper\/kraft\.webp$/);
+  const src = read('js/games/prism/skins.js');
+  const body = id => { const a = src.indexOf(`const ${id} = {`); return src.slice(a, src.indexOf('\n};', a)); };
+  assert.match(body('watercolor'), /enter\(\) \{ loadImg\(WATER_TEX\); loadMarker\(\); \}/);
+  assert.doesNotMatch(body('watercolor'), /KRAFT_TEX|warmDay/);
+  assert.match(body('paper'), /enter\(\) \{ loadImg\(KRAFT_TEX\); loadMarker\(\); \}/);
+  assert.doesNotMatch(body('paper'), /WATER_TEX|warmDay/);
+  assert.doesNotMatch(body('neon'), /loadImg|loadMarker|warmDay/, 'the night loads no paper + no marker font');
+  // the textures are small (the cartridge's preload budget is the JS; these load only when their skin shows)
+  const { statSync } = await import('node:fs');
+  for (const f of ['watercolor.webp', 'kraft.webp']) assert.ok(statSync(new URL(`../assets/prism/paper/${f}`, import.meta.url)).size < 60 * 1024, `${f} < 60 KB`);
+});
+
+test('THE TIERS: a page skin drops its world silhouettes on the lower tiers (lite); the fx keep fewer particles under the low tiers\' cap', async () => {
+  const P = await import('../js/games/prism/skin-pages.js');
+  assert.equal(P.WATER_PAGE.lite, true); assert.equal(P.PAPER_PAGE.lite, true);
+  assert.match(read('js/games/prism/view.js'), /lite: !!\(pg && pg\.lite\) && tier <= 1/);
+  for (const f of ['waterfx.js', 'paperfx.js']) assert.match(read(`js/games/prism/${f}`), /const lean = \(\) => cap <= 100;/, `${f}: the lower tiers' cap (tiers.js sparks 40 / 90) keeps fewer`);
+  const { TIERS } = await import('../js/games/prism/tiers.js');
+  assert.ok(TIERS[0].sparks <= 100 && TIERS[1].sparks <= 100 && TIERS[2].sparks > 100 && TIERS[3].sparks > 100);
+});
+
+test('THE CLEAR\'s HOLD: a skin\'s clear may ask for a beat with the cleared rows EMPTY (the peel) — the crayon + the watercolor ask for none', async () => {
+  const mk = () => ({ e: 'clear', lines: 2, rows: [0, 1], cells: [Array(10).fill(1), Array(10).fill(2)], combo: 0, pc: false });
+  globalThis.document = { createElement: () => ({ width: 0, height: 0, getContext: () => new Proxy({}, { get: () => () => ({ addColorStop() {} }), set: () => true }) }) };
+  try {
+    const { createPaperFx, GAP_MS, STAGGER_MS } = await import('../js/games/prism/paperfx.js');
+    const p = createPaperFx();
+    assert.deepEqual(p.event(mk(), { px: 30, reduced: false }), { hold: GAP_MS + STAGGER_MS, gap: true });
+    assert.equal(createPaperFx().event(mk(), { px: 30, reduced: true }), null, 'reduced effects: no hold, nothing flies');
+    assert.equal(p.event({ e: 'lock', t: 1, cells: [[0, 0]] }, { px: 30, reduced: false }), null);
+    const { createWaterFx } = await import('../js/games/prism/waterfx.js');
+    assert.equal(createWaterFx().event(mk(), { px: 30, reduced: false }) || null, null);
+    const { createCrayonFx } = await import('../js/games/prism/crayonfx.js');
+    assert.equal(createCrayonFx().event(mk(), { px: 30, reduced: false }) || null, null);
+  } finally { delete globalThis.document; }
+  const v = read('js/games/prism/view.js');
+  assert.match(v, /if \(ask\.gap\) for \(const y of ev\.rows\) if \(y >= 0 && \(y \+ 1\) \* E\.W <= pre\.length\) pre\.fill\(0, y \* E\.W, \(y \+ 1\) \* E\.W\);/);
+});
+
+test('PAPER CUT-OUT: the world\'s corner cut-out is a LIGHT paper — the top line\'s ink keeps ≥ 4.5:1 where it crosses it; every world has its layers', async () => {
+  const { WORLD_CUTS } = await import('../js/games/prism/skin-pages.js');
+  for (const w of ['sunset', 'city', 'crystal', 'nebula', 'aurora']) {
+    const C = WORLD_CUTS[w];
+    assert.ok(C && C.papers.length === 3 && C.shapes.length === 3, `${w}: three layers`);
+    assert.ok(contrast('#33230f', C.disc.col) >= 4.5, `${w}: the top line's ink on its cut-out ${C.disc.col} = ${contrast('#33230f', C.disc.col).toFixed(2)}`);
+    for (const f of C.shapes) for (let u = 0; u <= 1; u += 0.1) assert.ok(Number.isFinite(f(u)));
+  }
+  // the top line on the kraft board itself
+  assert.ok(contrast('#33230f', '#c6a576') >= 4.5);
+});

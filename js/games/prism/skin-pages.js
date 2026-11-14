@@ -109,7 +109,7 @@ export const WATER_PAGE = Object.freeze({
 const hills = (n, amp, ph) => u => 0.45 + amp * Math.sin(u * Math.PI * n + ph) + amp * 0.4 * Math.sin(u * Math.PI * n * 2.3 + ph * 2);
 const zig = (n, amp, ph) => u => { const t = (u * n + ph) % 1; return 0.35 + amp * (t < 0.5 ? t * 2 : 2 - t * 2); };
 const steps = (n, seed) => { const r = seeded(seed), hs = Array.from({ length: n + 1 }, () => 0.25 + r() * 0.6); return u => hs[Math.min(n, Math.floor(u * n))]; };
-const WORLD_CUTS = {
+export const WORLD_CUTS = {
   sunset: { papers: ['#e9967a', '#b56a8e', '#6f4a86'], shapes: [zig(3, 0.5, 0.2), zig(4, 0.42, 0.6), hills(2, 0.14, 1)], disc: { col: '#f6c453', at: [0.78, 0.5], r: 0.42 } },
   city: { papers: ['#7f8fc4', '#566aa8', '#39457c'], shapes: [steps(9, 5), steps(12, 9), steps(7, 14)], disc: { col: '#f3e3a6', at: [0.2, 0.42], r: 0.3 } },
   crystal: { papers: ['#8fd3e0', '#6aa9d8', '#7b6fcf'], shapes: [zig(7, 0.75, 0.1), zig(9, 0.6, 0.45), zig(5, 0.5, 0.8)], disc: { col: '#e8f6fb', at: [0.82, 0.4], r: 0.26 } },
@@ -121,7 +121,8 @@ function cutWorld(world, w, h, dpr) {
   x.scale(dpr, dpr);
   const shadow = () => { x.shadowColor = 'rgba(60, 38, 10, 0.4)'; x.shadowBlur = 7; x.shadowOffsetY = -2; };
   // the corner cut-out (a sun, a moon, a planet): a disc of paper high on the page, half off its edge
-  // (rising over the page's top edge, between the top line and a corner button: never behind the lettering, never under a button)
+  // (rising over the page's top edge, clear of the corner buttons; where the top line's lettering crosses it — Safari with its toolbars: no
+  //  inset above the line — every disc's paper is LIGHT: the ink keeps ≥ 4.5:1 on it, tests/prism-skins.test.mjs)
   const top = Math.min(110, h * 0.13), D = C.disc, R = top * 0.62, cx = w * (D.at[0] > 0.5 ? 0.7 : 0.3), cy = -R * 0.28;
   x.save(); x.shadowColor = 'rgba(60, 38, 10, 0.38)'; x.shadowBlur = 6; x.shadowOffsetY = 3;
   x.fillStyle = D.col; x.beginPath(); x.arc(cx, cy, R, 0, Math.PI * 2); x.fill();

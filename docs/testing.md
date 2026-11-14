@@ -738,6 +738,19 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 ### Testing (the short version, as it stood)
 
 ## Testing (the short version; every suite and flag: `docs/testing.md`)
+- **THE LOCAL TESTING RULE (Ben, Nov 14 2026 — SKINS 1's Step 0; the repo stays PUBLIC, so the cloud's full harbor run is free):** each pass
+  runs LOCALLY only the unit suite + the game's own E2E (+ the rules / `/api` tests it touches, the smoke test) + the harbor GROUPS it touches
+  (`ONLY=shell,sololook,…`); **the FULL `e2e-harbor` suite runs in the CLOUD on the tagged push, not locally** — the pass waits for both cloud
+  runs + reports them. (Replaces "the FULL harbor suite locally before every final push". If the repo ever goes PRIVATE this flips: the cloud
+  then never runs harbor on a push — THE PRIVATE-REPO WORKFLOW — and the full suite is local again.) Known noise a pass doesn't chase: PRISM
+  full's REFRESH one-attack check (on the Fable list), the city's timing checks (cameras, radio, rebuild, stations, the toast).
+- **PRISM DROP's SKINS (SKINS 1):** `tests/prism-skins.test.mjs` (the contract + the rotation's pure rules) · THE PIXEL-IDENTICAL PROOF —
+  `node tests/integration/prism-skin-snap.mjs "<browser>" save <file.json>` on the commit BEFORE a drawing refactor, `… check <file.json>` after
+  (`PAGE=1` = + 16 whole screens with the canvases hidden; 152 frames; exit 1 on any difference; this machine's rasters — a local tool) ·
+  `tests/integration/prism-skin-sheet.html?skin=<id>` (a skin's sprite sheet) · `prism-preview.html?skin=<id>` (that skin directly: its look + a
+  pin; `&sk=<k>` = the match's counter) · `SETS=skins node prism-shots.mjs "<browser>" <dir>` (each new skin mid-game, mid-clear, with incoming
+  rows, the podium, the settings sheet's SKINS rows — `NOSAFE=1 SIZES=390x650,402x690,430x746` = Safari with its toolbars) · the speed run:
+  `GPU=1 SETS=none PERF_SETS=rest,heavy PERF_TIERS=3,0 Q="&skin=<id>" node prism-shots.mjs "<browser>" <dir> 4`.
 - **YOUR OWN SERVERS (the owner, FRIENDS B):** every pass starts its OWN fresh local servers (the emulators + `scripts/serve.mjs --emu`) — a server
   left from an earlier pass is stopped first (FRIENDS A's emulators were still up at FRIENDS B's start: "port taken") — and STOPS every server it
   started as its LAST step (the emulators' Java + node, serve.mjs, any preview); the summary says so.

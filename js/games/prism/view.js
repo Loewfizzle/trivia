@@ -1008,7 +1008,7 @@ export function createView() {
     const world = withHoliday('day', { paper, world: curWorld || (d0 && d0.world) || 'sunset' }, holFor('day')).world;   // (PD-5B: a holiday's doodle — none yet)
     const pg = skin.world === 'page' ? skin.page : null;
     page.set({ on: !!pg, ...(pg ? { painter: pg } : {}), paper, world, w: (L && L.W0) || root.clientWidth, h: (L && L.H0) || root.clientHeight, board: field ? boardRect : null,
-      lite: !!(pg && pg.lite) && tier === 0 });   // (the low tier: a skin's page drops its extras first — the world's silhouettes)
+      lite: !!(pg && pg.lite) && tier <= 1 });   // (the lower tiers: a skin's page drops its extras first — the world's silhouettes; its fx their extra particles — tiers.js `sparks`)
   }
   /** PFIX-B (FABLE REVIEW optional 17): the rest of the DAY art, warmed at night in idle slices once the match is under way — the crayon tooth
    *  (the lettering's mask + the doodle's tile: noise, ≤ 4 ms a slice), the mask's URL, the current world's doodle at the page's size. The first

@@ -612,14 +612,14 @@ try {
     const d1 = await P(A, 'window.__prism.look()');
     const dd = await A.evaluate(() => { const r = document.querySelector('.pd'), cs = n => getComputedStyle(document.querySelector(n)); return { look: r.dataset.look, page: cs('.pd-page').display, world: cs('.pd-world').visibility, paper: r.dataset.paper, ink: getComputedStyle(r).getPropertyValue('--pd-ink').trim() }; });
     ok(d1.look === 'crayon' && !d1.visible && dd.page === 'block' && dd.world === 'hidden' && /^#/.test(dd.ink) && d1.paper === dd.paper,
-      `DAY LOOK: THE CRAYON LOOK live — the page on (${dd.paper}), the world + the light layer off (${JSON.stringify({ look: d1.look, page: dd.page, world: dd.world, light: d1.visible })})`);
+      `DAY LOOK: the day skin live (${d1.skin}, the paper family) — the page on (${dd.paper}), the world + the light layer off (${JSON.stringify({ look: d1.look, page: dd.page, world: dd.world, light: d1.visible })})`);
     const worst = a => Math.max(0, ...a);
     ok(worst(swD.f) <= 100, `DAY LOOK: the switch night → day is smooth (the longest frame ${worst(swD.f).toFixed(0)} ms over ${swD.f.length} frames)`);
     await P(A, 'window.__prism.fire("slam")');
     await P(A, 'window.__prism.fire("clear", { lines: 4, combo: 2 })');
     await sleep(100);
     const d2 = await P(A, 'window.__prism.look()');
-    ok(d2.crayonBusy && !d2.visible, `DAY LOOK: a SLAM + a 4-line clear play the crayon moments on the board (the light layer stays off)`);
+    ok(d2.crayonBusy && !d2.visible, `DAY LOOK: a SLAM + a 4-line clear play the day skin's own moments on the board (${d2.skin}; the light layer stays off)`);
     await shotBoth(A, 'pd-04-day');
     // the paper: the host's deal — the same page on every phone of the match
     const papers = [];

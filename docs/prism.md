@@ -509,6 +509,101 @@ and THE SCHEDULED GO-LIVE (docs/progression.md — the owner turns it on from /a
   (+ the hides, the share inputs) · `prism-layout` (+ the strip, both viewports) · `e2e-drop.mjs` (+ the songs, the console silent, the hint, a 10 s
   hide, 3 hides then a 30 s hide → ended late at checkpoint + 15 s).
 
+## THE SKINS (SKINS 1, Nov 14 2026 — docs/games/passes/skins-1.md; the owner's plan: docs/games/plan.md "PRISM DROP — SKINS")
+
+**A skin = ONE definition in `js/games/prism/skins.js`** (HOLD'EM's `holdem/skins.js` pattern) + its art module. The board (`board.js`), the view
+(`view.js`), the page (`page.js`), the rail, the podium and the picker draw ONLY through a skin's hooks — **no skin-specific code path anywhere
+else** (no `look === '<a skin>'`, no skin named, no art module imported: `tests/prism-skins.test.mjs` pins it). The skins today:
+
+| id | look (pool) | what | art |
+|---|---|---|---|
+| `crayon` | day | PD-4's coloring book (the match's PAPER rotates inside it only) | `crayon-art.js` · `crayonfx.js` · `page.js#CRAYON_PAGE` |
+| `watercolor` | day | translucent washes on cold-press paper; the clear RUNS (drips) | `water-art.js` · `waterfx.js` · `skin-pages.js#WATER_PAGE` |
+| `paper` | day | cut paper on a white sheet, a kraft table; the clear PEELS | `paper-art.js` · `paperfx.js` · `skin-pages.js#PAPER_PAGE` |
+| `neon` | night | PD-3's neon tubes in the world's palette + the light layer | `neon-art.js` · `neonfx.js` · `light.js` |
+| `glass` | — (no pool) | the first glass blocks (retired by PD-4; what an unnamed look draws) | `glass-art.js` |
+
+SKINS 2 adds the night's (arcade pixel, galaxy). `skin-kit.js` = what every skin's drawing shares (a LEAF: the colour maths, a sprite cache, a
+seeded random, `ghostBlocked`, the incoming rows drawn as LIGHT — `lightIncoming` — or ON PAPER — `sketchIncoming`).
+
+**THE HOOKS** (the contract — `skins.js#HOOKS`; the header of skins.js is the reference):
+- **Data:** `id` · `name` · `line` · `look` (`'day'` | `'night'` — its pool; `null` = none) · `unlock` (`null` = everyone | `{ level }` — a server
+  grant later; nothing is locked now) · `family` (the CSS family the view sets as `.pd[data-look]`: `'crayon'` = the day's PAPER cards, `'neon'` =
+  the night's glass; the skin itself is `.pd[data-skin]`) · `tokens { ink, sub, panel, line (+ line2, grain) }` (ink + sub ≥ 4.5:1 on panel — the
+  contract test; `papers: true` = the match's paper gives panel + ink + grain instead — the crayon only) · `lettering` · `sounds { lock, clear }`
+  (the synth's voices it swaps in — `audio.js#setVoices`; the slam's thud is never swapped) · `holiday` (takes holiday.js's overrides — crayon +
+  neon only).
+- **The blocks** (pre-drawn sprites, cached per cell size, warmed in ≤ 4 ms slices — no stroke, shadow or blur is drawn in a frame): `variants` ·
+  `sprite(px, kind, t, v, env)` (kind `block` | `grey` — the danger drain | `ghost` | `glow` | `incoming` | `iglow`) · `fallV(n, i)` + `pieceV(x, y,
+  t)` (the falling piece's + HOLD / NEXT's variants; the stack's = by place) · `env(pal)` (the night's world palette, or null) · `glow` /
+  `pieceGlow` · `grid(g, o)` · `incoming(ctx, bands, o)` (the kit's rules: an occupied cell only TINTED, the gap open, never covering a block) ·
+  `mini(ctx, c)` (a mini board's cell — the rail, spectating, the podium) · `shard(t, env)` + `crumbs` (a top-out).
+- **The moments:** `fx()` → the moments drawn ON the board's canvas (crayonfx.js's interface: `event · erase · under · clears · streaks · over ·
+  setCap · busy · clear`) or null (the night: `light: true` — the WebGL light layer + neonfx.js) · `flash` (the glass's own) · `bands` · `pulse`.
+  A clear's `event()` may answer `{ hold, gap }`: the view holds the stack that long with the cleared rows EMPTY (`board.js#holdClear` — the
+  paper strip peels off + leaves a clean gap for a beat; a lock ends it early).
+- **The scene:** `world` (`'shader'` — the WebGL world | `'page'` — page.js draws the skin's `page` painter `{ id, ok, key, files, paint, lite }`,
+  once per change, no shader work) · `enter(o)` (the skin SHOWS: its own files load NOW — a texture, the marker font — never before; **only the
+  shown skin's textures load**) · `idle(o)` (what to warm in idle slices while another look shows) · `warm(px, ms)` · `drop()` · `count()`.
+
+**HOW TO ADD A SKIN:** (1) its art file(s) — sprites through `skin-kit.js#spriteCache`, an fx with the interface above (or `fx: () => null` +
+`light: true`), a page painter for a `'page'` world; (2) ONE definition in `SKINS` — its place in the object = its place in its pool's rotation;
+(3) its CSS under `.pd[data-skin='<id>']` (only what differs from its family — the tokens re-tone the cards); (4) its voices in
+`audio.js#SOUNDS` if it has any; (5) a texture through `scripts/build-prism-paper.py` + its line in `assets/prism/paper/CREDITS.md`; (6) the
+contract (`tests/prism-skins.test.mjs` walks `SKINS` — every hook, readable ink, the colour families: each piece within ±20° of its JEWEL hue);
+(7) `node scripts/build-preload-graph.mjs`; (8) the look review (`prism-skin-sheet.html?skin=<id>` = its sprite sheet, `prism-preview.html?
+skin=<id>` = the real view, `prism-shots.mjs SETS=skins`) + the speed run (`Q="&skin=<id>" PERF_SETS=rest,heavy` at 4× CPU); (9)
+`prism-skin-snap.mjs check` — the skins that existed must not have moved a pixel.
+
+**THE ROTATION** (PURE — `skins.js` + the leaf `skin-deal.js`; the owner's rule):
+- THE GAME LOOK (AUTO / DAY / NIGHT) picks day vs night first. `POOLS.day` = crayon · watercolor · paper; `POOLS.night` = neon.
+- **ONE counter k a match — `game.sk`.** A ROOM's = the HOST's deal at `index.js#start()` (`dealSkin`: +1 a match, remembered in the night's
+  memory `meta/used/prism/sk<k>` like the paper's `pp<k>-<i>` — no rules change; the night's first from the match's seed). A SOLO run's (PLAY NOW
+  / a room of one) = the PLAYER's own counter (`settings.prismSkinK`, +1 a run — `soloSkin`); THE DROP's = its day's (`settings.prismSkinDrop
+  { d, k }` — a refresh / a resume keeps the day's skin; `dropSkin`).
+- **Every phone draws `pool[k % its pool size]`** (`skinOf(game, look, phone)`): the same pool = the same skin; every skin before a repeat; never
+  the same twice in a row (for one pool size); fixed for the match — a mid-match look flip uses the SAME k on the other pool. From the shared
+  game state + this phone's pins only (a refresh, a rejoin, a host change draw the same skin; a game from before SKINS 1 = the look's first).
+- **A phone's pool** = the skins it OWNS (`owned` — unlock null = everyone); **a PIN** narrows it to one (`settings.prismSkinDay` /
+  `prismSkinNight` = `'rotate'` or an id; an un-owned / retired / other-look pin = ROTATE). Opponents' mini boards draw in MY skin; the podium's
+  YOUR LAST BOARD in the match's skin. **Skins never touch:** the rules, the controls, the engine, the music, SLAM (the red push button), each
+  piece's colour family, the share cards / tickets / SHARE TODAY (they name a LOOK — `'crayon'` / `'neon'` → `skinById`: crayon by day, neon by
+  night). Crayon's papers still rotate inside crayon only; holidays override crayon / neon only.
+
+**THE SETTING:** ☰ → Settings → PRISM DROP → **DAY SKIN** + **NIGHT SKIN** rows (`js/games/prism/picker.js`, lazy — HOLD'EM's picker pattern):
+ROTATE + one tile per owned skin, each a 3-block sample drawn with the skin's OWN sprites at a real 19-pt cell on its panel colour (no thumbnail
+image; nothing of a skin downloads). A look with ONE owned skin has no row (the NIGHT row appears with SKINS 2). This phone only; live, even
+mid-match.
+
+**WATERCOLOR** — blocks: four translucent washes on a wobbly soft-cornered square (a squircle — never a perfect rect, never a round blob), each
+pass's own dried edge inside, granulation, the pigment rim (the colour's darker shade), a soft white lift top-left, six variants; the paper shows
+THROUGH. Ghost = a faint pencil outline; incoming rows = a flat grey wash, a darker pigment edge. The clear: the row's paint goes thin (~0.13 s)
+then RUNS — 1–2 drips a cell (~0.4 s) soaking away; 4 LINES = a wet bloom behind the stack; a lock = a wet sheen; SLAM = wash streaks +
+droplets. Reduced effects = a quick fade. Page: cold-press paper (`watercolor.webp`, 40 KB, CC0), three faint pastel washes, the world as a very
+faint loose wash (the crayon's doodle shapes painted wide + soft). Lettering: the marker font filled like paint + a soft offset wash. Sounds:
+a wet PLIP (lock), a brush SWISH + a DRIP on each of the clear's notes.
+
+**PAPER CUT-OUT** — blocks: matte paper squares (the colour lifted toward white), hand-cut edges, turned ±1.5°, fibre flecks, a thin white top
+edge, the drop shadow BAKED INTO THE SPRITE, six variants. Ghost = a dashed cut line; incoming rows = grey card stock; the frame = a dashed cut
+line. The clear = THE PEEL: the row is ONE strip — it lifts from the left, its shadow grows, it flies off up-left (~0.45 s) and leaves a clean
+gap for a beat (the hold); 4 LINES = confetti snips; a lock = a pat; SLAM = a puff of snips. Reduced effects = a quick lift + fade. Page: a
+kraft-board table (`kraft.webp`, 22 KB, CC0), a white sheet under the board (its shadow, turned a hair), the world as three layered paper
+silhouettes along the foot + one cut-out over the top edge. Lettering: the callout on a white paper LABEL (sharp corners, tilted 3°, its own
+shadow). Sounds: a papery TAP (lock), a short RIP + a soft WHOOSH (clear).
+
+**THE TIERS:** a page skin's world silhouettes go on the lower tiers (`lite` — tiers 0–1) and its fx keep fewer particles under the low tiers'
+cap (`sparks` ≤ 100: one drip every other cell, no confetti). By day AUTO steps straight 3 → 0 (PFIX-B: only the board's ratio moves a day
+frame), so on a slow phone they go together with the board's 3×. **Measured** (`prism-shots.mjs`, 390 × 844 @3, 7 opponents, a bot, 4× CPU,
+GPU; each tier locked, ~300 frames): WATERCOLOR rest 60 fps (CPU p75 / p95 2.0 / 3.2 ms at tier 3 · 1.6 / 2.5 at tier 0), heavy — a 4-line
+clear every 650 ms, the combo climbing, six incoming rows — 60 fps (3.1 / 4.2 · 2.8 / 3.9); PAPER CUT-OUT rest 60 fps (1.9 / 2.7 · 1.8 / 2.5),
+heavy 60 fps (2.6 / 3.8 · 2.2 / 3.0); the crayon beside them: heavy 5.3 / 6.2 at tier 3.
+
+**THE PIXEL-IDENTICAL PROOF** (`tests/integration/prism-skin-snap.html` + `.mjs`): PRISM's drawing rendered deterministically (a fixed clock, a
+seeded random, a fixed engine state) — 136 board-level frames (crayon + neon in two palettes × mid-game / drain / frozen / incoming / a cancel /
+a slam + lock / a 2-line + a 4-line clear / reduced / the 2× tier / HOLD + NEXT / the minis incl. the EMPTY well / the share cards' minis / the
+day page on every paper) + 16 whole screens with the canvases hidden. `save` on the commit before a refactor, `check` after: every frame must
+match. A local tool (a baseline is this machine's rasters).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

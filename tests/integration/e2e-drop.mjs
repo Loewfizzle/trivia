@@ -52,6 +52,9 @@ await H.run(async () => {
   await ref('/').update(Object.fromEntries(['s', 'r', 'p', 'l', 'x'].map(k => [`dly/drop/${day}/${k}/${A.pid}`, null])));
 
   // ================================================================ 1. the run opens on PRISM DROP's real view, its clock running
+  // (SKINS 1: THE GAME LOOK pinned to NIGHT for the run + the pause — AUTO follows the real sun, so this suite went red by day: the night set
+  //  was expected whatever the hour; the refresh + the end switch to DAY below, as before)
+  await A.page.evaluate(() => { localStorage.setItem('ns:look', 'night'); window.dispatchEvent(new CustomEvent('ns-look', { detail: 'night' })); });
   await openRun(A.page);
   await waitFor(A.page, '!!window.__drop && !!document.querySelector(".pd.pd-drop .pd-board-c")', 'THE DROP run on the PRISM view', 30000);
   ok(true, 'THE DROP mounts PRISM DROP\'s real view in its DROP mode (the board, the rail, SLAM)');

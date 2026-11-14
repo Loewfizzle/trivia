@@ -136,8 +136,19 @@ const SHOTS = {
     'c-buttons': 'n=5&stack=10&scheme=buttons', 'c-duel': 'n=3&stack=10&state=duel', 'c-down': 'n=5&stack=10&down=1', 'c-hit': 'n=5&stack=10&hit=1',
     'c-day5': 'look=day&paper=notepad&n=5&stack=10', 'c-day-left': 'look=day&paper=graph&n=7&stack=10&slam=left',
   },
+  // SKINS 1 — THE NEW DAY SKINS (prism-preview.html?skin=<id>): each mid-game, mid-clear (a 2-line run / peel + a 4-line one), with incoming rows,
+  // the podium + the settings sheet's SKINS rows; SIZES=390x650,402x690,430x746 NOSAFE=1 = Safari WITH its toolbars, the default sizes = a
+  // home-screen app, SIZES=1440x900 = the desktop
+  skins: Object.fromEntries(['watercolor', 'paper'].flatMap(id => [
+    [`sk-${id}-play`, `skin=${id}&n=5&stack=12`],
+    [`sk-${id}-clear2`, { q: `skin=${id}&n=5&stack=12&under=1`, js: 'window.__prism.fire("clear", { lines: 2, from: 2 })', w: 230 }],
+    [`sk-${id}-clear4`, { q: `skin=${id}&n=5&stack=12&under=1&world=city`, js: 'window.__prism.fire("clear", { lines: 4, combo: 2 })', w: 250 }],
+    [`sk-${id}-inc`, `skin=${id}&n=5&stack=8&inc=4&rise=hot&world=crystal`],
+    [`sk-${id}-final`, `skin=${id}&n=5&state=final&w=4600`],
+    [`sk-${id}-settings`, { q: `skin=${id}&n=5&stack=8&under=1`, js: "import('/js/ui/settings-panel.js').then(m => { m.installSettingsPanel(); document.querySelector('.gear').click(); setTimeout(() => { const el = document.querySelector('.set-skins'); if (el) el.scrollIntoView({ block: 'center' }); }, 700); })", w: 1900 }],
+  ])),
   // PD-4 — THE DAY LOOK: the crayon sheet (every drawing on each paper — one size), then the game's own day screens
-  sheet: Object.fromEntries(['notepad', 'graph', 'construction', 'coloring'].map(p => [`sheet-${p}`, { page: 'prism-crayon-sheet.html', q: `paper=${p}`, w: 400 }])),
+  sheet:Object.fromEntries(['notepad', 'graph', 'construction', 'coloring'].map(p => [`sheet-${p}`, { page: 'prism-crayon-sheet.html', q: `paper=${p}`, w: 400 }])),
 };
 
 const browser = await puppeteer.launch({
