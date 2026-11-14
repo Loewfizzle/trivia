@@ -417,3 +417,10 @@
 - C1 (the city's dead edges, from SKINS 2B) is fixed HERE, not by the city chat; C2 + C3 stay the city chat's.
 - ADD-ON (the games chat, Nov 14 4:14 pm — built in PFIX-3): the YOUR CARD sheet (the share fallback) shows NO message over the card; a test / fake daily can NEVER reach a real card or the live site (the test switch is honoured only off Vercel).
 - Ben (Nov 14 eve, mid-pass): in SHARE TODAY with all three, THE DROP's board box must be DECENT SIZED — the three COAST CLEAR lamps may shrink a little to give it the room. Built: the art strip's height is each daily's own (THE DROP 228 · COAST CLEAR 112 · THE PASSWORD the rhythm's 145).
+
+## DFIX5 — COAST CLEAR's DIG FEEL + EVERYONE ON SCORES + THE TAP-THROUGH + THE SPOT ICONS (Nov 14 2026)
+- Nov 14 — COAST CLEAR's dig lag (Ben: "noticeable lag on every tap"): an owner-only dig-time readout, a leaner server answer, an instant SONAR PING on touch with the number surfacing when it lands. Press-and-hold for buoys KEPT (Ben); digging on touch-down only if it still lags after this.
+- Nov 14 — SCORES = EVERYONE by default (Ben: "show everyone playing the dailies, friends or not"): each daily's panel shows everyone's counting results (today's top 10 + YOU + SHOW ALL; ALL TIME the same); friends get a gold FRIEND mark on their card (hidden when the FRIENDS box is checked); a ☐ FRIENDS checkbox narrows every list to YOUR TABLE (unchecked on every visit). The ticket line = the everyone place ("4TH OF 12 TODAY"). Same-day throwaway profiles never appear. The TODAY'S SCORES / ALL TIME switch stays as it is. ALL TIME keeps its 10-days-played ranking + the 'span' average.
+- Nov 14 — No tap on a screen over the city ever reaches the city (Ben's live bug: tapping a SCORES card opened PRISM DROP's billboard card).
+- Nov 14 — COAST CLEAR's result = the time + one small drawn SEARCHLIGHT icon per spot (0–2); CAUGHT unchanged.
+- BEFORE PUBLIC: the everyone lists are a cheater target (throwaways can learn the day) — harden or limit them before going public.
