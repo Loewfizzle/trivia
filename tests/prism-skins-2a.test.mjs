@@ -59,3 +59,20 @@ test('THE BLEED: seamAt is PURE + by place (≈ 3 seams in 5, three shapes); the
   assert.doesNotMatch(wc, /filter\s*=|blur\(/, 'no blur (Safari has no canvas filter; nothing per frame)');
   for (const id of ['crayon', 'paper', 'neon']) { const a = skins.indexOf(`const ${id} = {`); assert.doesNotMatch(skins.slice(a, skins.indexOf('\n};', a)), /seams\(/, `${id} paints no seams`); }
 });
+
+//   CRAYON      THE TEXTURE TWEAK (light — the blocks only): the hatching reads (strokes a little apart over a thinner base, a few thin PRESSED
+//               strokes), a fine waxy grain over the tooth, the outline pressed a touch heavier — the same colours + outline colours
+test('CRAYON — THE TEXTURE TWEAK: more hatching, a waxy grain, a heavier pressed outline; the colours + the outline colours untouched', async () => {
+  const src = read('js/games/prism/crayon-art.js'), fill = fnBody(src, 'crayonFill'), block = fnBody(src, 'blockArt');
+  assert.match(fill, /const step = S \* \(pass \? 0\.12 : 0\.072\);/, 'the strokes sit a little apart');
+  assert.match(fill, /THE PRESSED STROKES/);
+  assert.match(fill, /x\.lineWidth = S \* \(0\.018 \+ rnd\(\) \* 0\.016\);/, 'thin pressed hatch lines');
+  assert.match(block, /base: junk \? 0\.3 : 0\.32 \}/, 'a thinner base: the paper through the gaps');
+  assert.equal((block.match(/punch\(fx, S, /g) || []).length, 2, 'the tooth + the waxy grain');
+  const w = /ox\.lineWidth = S \* (0\.\d+);/.exec(block);
+  assert.ok(w && Number(w[1]) > 0.085 && Number(w[1]) <= 0.105, `the outline a touch heavier (${w && w[1]}) — never a thick frame`);
+  // (the palette is the crayon's own module — this pass never touched it)
+  const C = await import('../js/games/prism/crayon.js');
+  assert.deepEqual([...C.CRAYON].slice(1, 8).map(c => c.toLowerCase()).length, 7);
+  for (let t = 1; t <= 7; t++) assert.ok(Math.abs(hueDiff(hue(JEWEL[t]), hue(C.CRAYON[t]))) <= 20, `piece ${t}'s crayon`);
+});

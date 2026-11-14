@@ -4,6 +4,9 @@
 //   crayon skipped), a bold, slightly WOBBLY outline in a darker shade of the same crayon (TWO passes, like a real crayon), a small waxy highlight.
 //   SIX variants a colour (the stroke angle, the wobble, the pressure) — the stack picks one by place, the falling piece by cell, so no two
 //   neighbours look stamped and a block keeps its drawing while it falls. Junk = a graphite crayon, cross-hatched.
+//   SKINS 2A — THE TEXTURE TWEAK (the owner, Nov 14 — LIGHT, the blocks only; its own commit): the HATCHING reads — the strokes sit a little
+//   apart over a thinner base (the paper's tooth in the gaps), their pressure varies more, and a few thin PRESSED strokes run over them; a
+//   fine WAXY GRAIN on top of the tooth; the outline pressed a touch HEAVIER. The same colours, papers, outline colours, clears, rows, lettering.
 //   + the landing ghost (a light pencil outline), the danger drain (the same block in grey), the INCOMING rows' pencil sketch, the outline alone (the
 //   landing's boing), the crumbs (crayon + eraser), the scribble (a zig-zag across a row), the 4-LINES star burst, the speed streak, the marks.
 //   crayonSprite(size, kind, t, v) · crumbSprite(size, color, k) · scribbleSprite(w, h, color, level) · starSprite(size) · markSprite(size, kind)
@@ -142,7 +145,7 @@ function crayonFill(x, size, col, rnd, v, { cross = false, base = 0.5 } = {}) {
   const dirs = cross ? [ang, ang + Math.PI / 2 + 0.2] : [ang, ang + 0.22];
   dirs.forEach((a, pass) => {
     const ca = Math.cos(a), sa = Math.sin(a);
-    const step = S * (pass ? 0.11 : 0.06);
+    const step = S * (pass ? 0.12 : 0.072);   // (SKINS 2A: the strokes a little apart — each one reads, the tooth shows between them)
     const L = S * 1.6;
     for (let o = -S * 0.8; o < S * 0.8; o += step * (0.75 + rnd() * 0.5)) {
       const cx = S / 2 - sa * o, cy = S / 2 + ca * o;
@@ -150,13 +153,27 @@ function crayonFill(x, size, col, rnd, v, { cross = false, base = 0.5 } = {}) {
       x.beginPath();
       x.moveTo(cx - ca * L / 2, cy - sa * L / 2);
       x.quadraticCurveTo(cx - sa * bend, cy + ca * bend, cx + ca * L / 2, cy + sa * L / 2);
-      x.lineWidth = S * (0.045 + rnd() * 0.035);
-      const shade = rnd() < 0.3 ? mixHex(col, '#ffffff', 0.12) : rnd() < 0.5 ? mixHex(col, '#000000', 0.08) : col;
-      x.strokeStyle = rgba(shade, (pass ? 0.38 : 0.66) + rnd() * 0.3);
+      x.lineWidth = S * (0.042 + rnd() * 0.034);
+      const shade = rnd() < 0.3 ? mixHex(col, '#ffffff', 0.16) : rnd() < 0.5 ? mixHex(col, '#000000', 0.13) : col;
+      x.strokeStyle = rgba(shade, (pass ? 0.36 : 0.62) + rnd() * 0.36);   // (the pressure varies more from stroke to stroke)
       x.lineCap = 'round';
       x.stroke();
     }
   });
+  // (SKINS 2A) THE PRESSED STROKES: a few thin, darker hatch lines where the hand bore down — along the first direction, unevenly spaced
+  {
+    const a = dirs[0] + (rnd() - 0.5) * 0.08, ca = Math.cos(a), sa = Math.sin(a), L = S * 1.6, dark = mixHex(col, '#000000', 0.26);
+    for (let o = -S * 0.62 + rnd() * S * 0.1; o < S * 0.66; o += S * (0.15 + rnd() * 0.16)) {
+      const cx = S / 2 - sa * o, cy = S / 2 + ca * o, bend = (rnd() - 0.5) * S * 0.08, t0 = rnd() * 0.25, t1 = 1 - rnd() * 0.25;
+      x.beginPath();
+      x.moveTo(cx - ca * L * (0.5 - t0), cy - sa * L * (0.5 - t0));
+      x.quadraticCurveTo(cx - sa * bend, cy + ca * bend, cx + ca * L * (t1 - 0.5), cy + sa * L * (t1 - 0.5));
+      x.lineWidth = S * (0.018 + rnd() * 0.016);
+      x.strokeStyle = rgba(dark, 0.3 + rnd() * 0.26);
+      x.lineCap = 'round';
+      x.stroke();
+    }
+  }
 }
 
 /** one crayon block: col = the crayon, line = its outline; v = the variant */
@@ -172,7 +189,7 @@ function blockArt(size, col, line, v, { junk = false, grey = false } = {}) {
   handSquare(fx, p + S * 0.02, b - S * 0.04, r, rng(v * 13 + 5), wob);
   fx.save();
   fx.clip();
-  crayonFill(fx, S, col, rnd, v, { cross: junk, base: junk ? 0.36 : 0.4 });
+  crayonFill(fx, S, col, rnd, v, { cross: junk, base: junk ? 0.3 : 0.32 });   // (SKINS 2A: a thinner base — more paper through the gaps)
   // the wax builds up where the crayon turns at the edges (a darker band just inside the outline, heavier at the foot)
   fx.lineWidth = S * 0.16;
   fx.strokeStyle = rgba(mixHex(col, '#000000', 0.18), 0.32);
@@ -183,7 +200,8 @@ function blockArt(size, col, line, v, { junk = false, grey = false } = {}) {
   fx.fillStyle = g;
   fx.fillRect(0, 0, S, S);
   fx.restore();
-  punch(fx, S, v * 7 + 1, grey ? 0.5 : 0.62, Math.max(1.1, S * 0.022), 0.34);
+  punch(fx, S, v * 7 + 1, grey ? 0.54 : 0.68, Math.max(1.1, S * 0.022), 0.36);
+  punch(fx, S, v * 7 + 2, grey ? 0.2 : 0.26, Math.max(1, S * 0.009), 0.3);   // (SKINS 2A: the WAXY GRAIN — a fine speckle over the tooth)
   x.drawImage(f, 0, 0);
   // the outline: two passes of the darker crayon (the second a little off the first), its own tooth (a crayon line is never solid)
   const o = canvas(S);
@@ -191,12 +209,12 @@ function blockArt(size, col, line, v, { junk = false, grey = false } = {}) {
   ox.lineJoin = 'round';
   ox.lineCap = 'round';
   handSquare(ox, p + S * 0.035, b - S * 0.07, r, rng(v * 13 + 5), wob);
-  ox.lineWidth = S * 0.085;
-  ox.strokeStyle = rgba(line, 0.94);
+  ox.lineWidth = S * 0.096;   // (SKINS 2A: pressed a touch heavier — was 0.085 / 0.05)
+  ox.strokeStyle = rgba(line, 0.96);
   ox.stroke();
   handSquare(ox, p + S * 0.035 + (rnd() - 0.5) * S * 0.02, b - S * 0.07, r, rng(v * 29 + 11), wob * 1.3);
-  ox.lineWidth = S * 0.05;
-  ox.strokeStyle = rgba(mixHex(line, '#000000', 0.15), 0.7);
+  ox.lineWidth = S * 0.058;
+  ox.strokeStyle = rgba(mixHex(line, '#000000', 0.15), 0.74);
   ox.stroke();
   punch(ox, S, v * 7 + 3, 0.42, Math.max(1, S * 0.018), 0.3);
   x.drawImage(o, 0, 0);
