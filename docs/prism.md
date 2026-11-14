@@ -416,7 +416,8 @@ the last strong beat, the key, `lufs` / `tp` / `check` in the song's JSON; `writ
 
 ## THE DROP — PRISM DROP's DAILY (THE DROP A, Nov 13 2026 — docs/games/passes/drop-a.md; the owner's plan: docs/games/plan.md "THE DROP")
 SURVIVAL on the day's pieces + rising rows (the same for everyone), ONE counted run a day, score = TIME SURVIVED (lines break a tie). **Ships
-OFF** (`config.js#DAILIES` `on: false`) — THE DROP B brings the ticket, TODAY's third row, SHARE TODAY + the polish.
+OFF** (`config.js#DAILIES` `on: false`) — THE DROP B (below) brought the ticket, TODAY's third row, SHARE TODAY, the hide pause, PRISM's songs,
+and THE SCHEDULED GO-LIVE (docs/progression.md — the owner turns it on from /admin, no deploy).
 
 | file | what |
 | --- | --- |
@@ -464,6 +465,37 @@ OFF** (`config.js#DAILIES` `on: false`) — THE DROP B brings the ticket, TODAY'
 - **THE DROP A's Group 0 (PD-6's review):** SLAM = the column − 6 (`SLAM_PAD`; 62 / 54 / 55 pt at 390 / 402 / 430 in Safari, `SLAM_MAX` 66);
   THE DUCK (`audio.js#duck` — its own gain in the song chain: −4 dB, 20 ms down, 0.1 s held, 0.12 s back, one per 0.32 s; none with the music
   off); THE LOST RUN (docs/profiles.md).
+
+### THE DROP B (Nov 13 2026 — docs/games/passes/drop-b.md; plan.md "THE DROP — PASS B")
+- **HIDING THE PAGE = AN AUTOMATIC PLAYER PAUSE** (it replaces pass A's hide-without-pause): `visibilitychange → hidden` / `pagehide` during a run
+  = a `ppause` carrying the freshest chunk, sent with keepalive — one of the 3, server-timed; back on the page the board stays hidden behind RESUME
+  (ONE line `PAUSED · n LEFT` — a tap's pause, a hide's and a refresh's alike). An unconfirmed hide pause is asked again on the return. **No pause
+  left** → the hide sends a checkpoint, the clock runs: back within `SLOW_TOL_MS` (20 s) the run catches up; later → the phone steps at most
+  `MAX_TAIL_MS` (15 s) of gravity past the hide and uploads with **`aw: 1`** — `drop-judge.js#upload` checks the gap on ITS clock (due − the last
+  checkpoint's t > 20 s) and ends the run `late` at the checkpoint + 15 s (a short hide's `aw` is just a checkpoint; ending your own run early is
+  only a loss). A reload's own pagehide pauses it first (that is its one pause — the start resumes into it; the LAST CHECKPOINT line). The driver
+  runs no frame while hidden (`hiddenNow`).
+- **THE SONGS**: a run deals PRISM DROP's own set — the DAY or the NIGHT set by the phone's look (`setForLook(body[data-look])`), 10 songs from the
+  day's seed (`drop/view.js#DROP_SONGS`) — onto the view's synced player (the quick start, the heard-beat clock, the night gains) from the 3-2-1;
+  the row's `ownMusic: true` keeps the console's music silent (`app.js#musicFor` → `[null]`); the meta's `MUSIC = null`, `musicFor` → `[null]`.
+- **THE ONE-TIME HINT**: the row's `lesson: true` + `drop/index.js#HINT` ("Survive as long as you can — the rows keep rising. One run a day.") —
+  one line at the board's top through the 3-2-1 (`.dr-hint`), gone at the first move or 6 s of play (`HINT_MS`), seen once (`pstats/{pid}/ls/drop`).
+- **THE SHARE** (`js/games/drop/share.js`): SHARE YOUR RUN's card (`kit/share-run.js` + `prism/share.js#drawBoardMiddle`, both looks) with THE
+  DROP's final board — **every junk row drawn SOLID** (`solidJunk` — the day's holes never reach a picture; the server runs it too) — THE DROP · the
+  day, the time big (m:ss.t / 8:00), the lines; SHARE on the run's end card (the phone's own engine board); SHARE TODAY's section
+  (`paintSection(c, { inputs, look, W, H, P })` — the board + the time pair; `P` = prism/board.js); the server's spoiler-free inputs
+  (`api/_lib/drop.js#share` — the finished run replayed once, on the tap only: `{ t, ln, b, day }`). share-same.html proves the card is
+  pixel-identical inside SHARE TODAY.
+- **THE TICKET**: `ticket-art.js#TICKET_ART.drop` (the prism + its split light — three spectral tubes `.sp` that keep their colours) + THE INK
+  TABLE `TICKET_INK.drop` — night PRISM DROP's white light `#eef1ff` (its ice-blue accent would twin COAST CLEAR's cyan), day a spectral violet
+  `#6a3fd0`, the stamp `#d9ccff` by night.
+- **THE SLAM ADD-ON** (Ben, Nov 13 9:56 pm — `layout.js`, PURE): in EVERY layout SLAM = the whole strip from the board's edge to the screen's safe
+  edge − `SLAM_RIM` 4 pt each side (whole points), centred across that strip at the column's foot (`slamX` → css `--slamX`, LEFT mirrors it); the
+  board + the rail tiles never change; capped at `SLAM_CAP` 84 (a desktop). The home-screen app 40 → **46 / 47 / 46** pt at 390 / 402 / 430 (the
+  real strip is 54.3–55.3 pt); Safari with its toolbars 62 / 54 / 55 → **80 / 72 / 73**. The BUTTON SIZE slider now sizes the BUTTONS bar only.
+- **Tests**: `tests/drop-share.test.mjs` (the solid junk, the inputs, the line, the ink table) · `prism-drop-judge` (+ `aw`) · `daily-drop.test`
+  (+ the hides, the share inputs) · `prism-layout` (+ the strip, both viewports) · `e2e-drop.mjs` (+ the songs, the console silent, the hint, a 10 s
+  hide, 3 hides then a 30 s hide → ended late at checkpoint + 15 s).
 
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 

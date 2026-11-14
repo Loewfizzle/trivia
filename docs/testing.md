@@ -675,6 +675,14 @@ load problem, not a flake to patch.
 - `e2e-playnow.mjs --only lost` — THE LOST RUN (docs/profiles.md).
 - THE ADD-ON (the cost check): `prism-drop-judge` asserts ≲ 30 uploads a run + no snapshot kept; `daily-drop.test` the request count, a forged
   log stored by a checkpoint + refused at the finish, THE PRUNE (the top 10 keep their logs, 7 days later none; every score row stays).
+- **THE DROP B:** e2e-drop now **34 checks, ~2 min** (+ PRISM DROP's own songs + the console silent, the one-time hint + its flag, a 10 s HIDE → paused
+  + resumed (the page hidden = `visibilityState` faked + the event), a SECOND phone: 3 hides, then a 30 s hide with none left → ended `late` at the
+  checkpoint + 15 s and scored; shot `drop-02b-hidden`, `drop-06-away-end`, `drop-00-hint`). `daily-drop.test` + the hides + SHARE TODAY's inputs
+  (no junk row keeps a hole); `daily-module.test` + THE SCHEDULED GO-LIVE; unit `drop-share`, `daily-golive`, `prism-layout` (+ the SLAM strip).
+  `tests/integration/share-same.html` (open it on any local server — `window.__same`, 25 rows): + each of the three dailies ALONE inside SHARE TODAY
+  = its own card. `admin-probe.mjs` **`GOLIVE=1`** = /admin's go-live rows OFF → scheduled → cancelled in the real page (390 / 402 / 430 / 1440).
+  `daily-preview.html?drop=1` (`&dropst=play|progress|done`, `&view=share`) = TODAY / SHARE TODAY with THE DROP's ticket. `e2e-playnow --shots` adds
+  the game card at 390 × 650 / 402 × 690 / 430 × 746.
 
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 

@@ -240,6 +240,8 @@ needs NOTHING new: its normal `start()` / podium run; the podium's foot reads PL
 (`globalThis.__nsPlayNow` — the console's `ui/final.js`). THE SOLO LANE below is unchanged (the streak + a small capped XP, never a counted play).
 A game WITHOUT `SOLO` shows PLAY WITH FRIENDS (a normal room, the game picked) + "Needs 2+ players"; JAYWALK gets PLAY NOW by `SOLO: true` alone.
 **TWO SOLO BUTTONS (PD-6, Nov 13 — the plan's `solo` list, exported as `SOLO_RUNS`: a capital like every meta export, beside the `SOLO` switch).**
+(THE DROP B add-on, Ben Nov 13 10:17 pm: a card with a solo list draws EVERY button as the SAME plain white tube — `cardActions` → `equal` — no
+pink "pre-selected" one; the players + the minutes are ONE plain line "SOLO · 2–8 PLAYERS · ABOUT 5 MIN", never two pills.)
 A SOLO cartridge's `meta.js` may list `SOLO_RUNS = [{ mode, label, sub }]` (1–3; `label` ≤ 16, `sub` ≤ 24; each `mode` one ONE player can play —
 `cleanSettings({ mode }, 1)` keeps it; checked by `checkCartridge`). THE GAME CARD draws ONE THE NEON TUBE per entry — the FIRST the pink MAIN, the
 rest plain, the `sub` the small line under the label — then PLAY WITH FRIENDS (`core/room-logic.js#cardActions({ runs })` → `main` + `more`).
@@ -286,6 +288,17 @@ reads the look LIVE (a change mid-game re-themes the screen at once). Right / cl
 - **The score is in the line under each slim card** (`ui/strip-board.js`): the game's `note` on the left ("3 KO · 2 SENT · 1 BADGES"), the score at
   the right end in the number font — never over the card.
 - **The music** waits for the frame; **the sound** — `OWN_VICTORY_SOUND`; **the colour** — `ACCENT` (the table above).
+
+## THE DROP B — a daily row's `ownMusic`, a cartridge's async `share` + SHARE TODAY's section (Nov 13 2026 — docs/prism.md "THE DROP B")
+- A DAILIES row may say **`ownMusic: true`** — the run plays its game's own songs in its view; the console's music stays silent (`app.js#musicFor`).
+  THE DROP: PRISM DROP's day / night set by the phone's look.
+- A judged cartridge's server **`share`** may be ASYNC and gets `{ record, day, startedAt, data, base, pid }` (`today { share }` awaits it) — THE
+  DROP replays its finished run once there. Its phone half adds a `SECTIONS` entry in `js/daily/share-today.js` (`load` → `{ S, input, ok }`); a
+  section painter may take extra modules through `input` (THE DROP: `P` = prism/board.js for its mini board). A daily with no painter still gets
+  its name + its result line.
+- The ticket: art in `ticket-art.js#TICKET_ART[key]`, its inks in **`TICKET_INK[key]`** `{ night, day, stamp? }` (THE ONE per-id table — the
+  DAILY screen's `--tk0` / `--tkd` / `--tks`); a key with no row = the house pink.
+- **THE SCHEDULED GO-LIVE** (docs/progression.md): a row that ships `on: false` opens from the day the owner schedules in /admin — no code edit.
 
 ## THE DROP A — a third DAILY-ONLY cartridge + the plug-in's new optional pieces (Nov 13 2026 — docs/prism.md "THE DROP")
 - `js/games/drop/` (DAILY_ONLY in `tests/cartridge.test.mjs`; its tube mark, its loader; `daily.on: false`): its `createView` wraps PRISM DROP's

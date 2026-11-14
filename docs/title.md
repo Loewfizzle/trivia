@@ -616,7 +616,9 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
 - **THE GAMES SHELF** (`title-taps.js#shelf`, THE SHEET): the playable games, ONE ROW each (THE ROW — the game's neon mark as its icon, the name,
   "solo · 2–8" / "2–8", "≈ N min").
 - **THE GAME CARD** (`title-taps.js#gameCard`, THE SHEET — nested ‹ to the shelf; it replaced the old preview): the art, the one line, the players +
-  minutes chips, the actions (`core/room-logic.js#cardActions`): PLAY NOW (the pink MAIN, SOLO games) + PLAY WITH FRIENDS (the secondary tube;
+  minutes as ONE plain line (THE DROP B add-on — never pills: "SOLO · 2–8 PLAYERS · ABOUT 5 MIN"), the actions (`core/room-logic.js#cardActions`):
+  a SOLO_RUNS list → every run + PLAY WITH FRIENDS the SAME plain white tube (`equal` — no pink on that card, THE DROP B add-on); else PLAY NOW
+  (the pink MAIN, SOLO games) + PLAY WITH FRIENDS (the secondary tube;
   the MAIN without SOLO + "Needs 2+ players"); in a room: PICK THIS GAME (the host) / "The host picks the game" (a guest); HOW TO PLAY a quiet
   link; THE BOARD's top three. PLAY WITH FRIENDS = the dock's HOST with the game kept in `sessionStorage nd:pick` → the room opens its options.
 - **THE SIGNS open the card** (`title-taps.js#onCityTap`): a playable game's sign or the speakeasy's blade (`scene.js#bladeHit` — this week's

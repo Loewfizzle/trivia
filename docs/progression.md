@@ -553,6 +553,29 @@ ONE line for everything a play is credited on: **the 4:00 AM America/New_York st
 - **THE PROGRESS RESET** clears THE DROP like the others (its points in `dp`, its board in `lb/`, a run started before the reset never paid — S4);
   `daily-drop.test.mjs` proves it.
 
+## THE DAILY MODULE — THE DROP B (Nov 13 2026 — THE SCHEDULED GO-LIVE, TODAY with three, SHARE TODAY for three; docs/games/passes/drop-b.md)
+- **THE SCHEDULED GO-LIVE** (Ben, Nov 13 — he won't stay up for 4 am): **/admin → THE DAILIES → the row's GO LIVE AT THE NEXT 4 AM** (owner only, a
+  confirm tap — TAP AGAIN TO CONFIRM; audited `dailyGoLive`) → `progress/dlive/{id}` = `{ from: <the next streak day>, at, by }` (server-only — the
+  rules' default deny; `api/admin.js` `dailySchedule { game, cancel? }` → `api/_lib/dailies.js#scheduleDaily`). The daily opens **by itself at that
+  day's 4 am turn**, never mid-day: `core/daily.js#rowOpenOn(row, sched, day)` compares DAY KEYS (an ON row always; an OFF row from its `from`); the
+  switch + the schedule are cached 30 s, the day comes from each call's clock, so the turn is exact. **CANCEL** only before its day (409
+  `already_live` after — never mid-day; audited `dailyGoLiveCancel`). The row reads **LIVE** / **LIVE FROM <date> 4 AM** (+ CANCEL) / **OFF** (+ the
+  button); `dailiesState` lists `rows` with `state` + `from` and `next`. Plug-and-play for any `on: false` row — no code edit, no deploy. Only
+  while THE GO-LIVE SWITCH is ON (it gates everything). `DAILY_TEST=1` lets the tests schedule a test-registered row.
+- **THE SET OF A DAY** (`api/_lib/dailies.js#liveFor(day)`): THE SWEEP, the daily XP cap + PERFECT WEEK's run of a finish read the set of the
+  RUN's day — a run that crossed 4 am into the go-live day keeps its own day's two; the day before is swept with the dailies it had, and a sweep
+  already earned is never turned incomplete (`D.sw` stays). From the go-live day: three to sweep, the daily XP 3 × 15 + 10.
+- **/board**: a DAILIES board's answer carries `live` — today's set (`api/board.js#liveDailyIds`, the schedule memoised a minute) — so a scheduled
+  daily gets its chip without a deploy (`board/view.js` re-draws the chips when it changes).
+- **TODAY with THREE tickets** (`screens/daily.js`): the meter + the rows count `t.dailies` (the server's live list); a DROP ticket's states — PLAY ·
+  RESUME (in progress / yesterday's) · DONE (the time + the lines via `meta.scoreLine`, the table line, ADMITTED) — centred, nothing clipped at 390 /
+  402 / 430 in Safari with its toolbars; a two-line hook balanced (`text-wrap: balance`). The inks: ONE per-id table `ticket-art.js#TICKET_INK`.
+- **SHARE TODAY for THREE** (built for 1–6): THE DROP's section from its own share pieces (`games/drop/share.js#paintSection` — its board with
+  every junk row SOLID + the time pair) and the server's spoiler-free `share` (async now — the run replayed once on the tap). One daily done = its
+  OWN card, exactly (share-same.html: each of the three, both looks).
+- Tests: `daily-module.test.mjs` (+ THE SCHEDULED GO-LIVE), `tests/daily-golive.test.mjs` (the pure rule), `admin-probe.mjs` `GOLIVE=1` (the real
+  page: OFF → scheduled → cancelled).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
