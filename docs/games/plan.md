@@ -379,3 +379,12 @@
 - QUALITY: 60 fps measured on the mid-range profile in both new skins (a 4-line clear included); the low tier drops the world silhouettes + the extra drip / peel particles first; only the shown skin's textures load; a ?skin=<id> forcer on the PRISM preview page.
 - LOCAL TESTING RULE (Ben, Nov 14 — the repo stays PUBLIC, the cloud's full harbor is free): each pass runs locally only unit + the game's e2e + the harbor GROUPS it touches; the FULL harbor suite runs in the cloud on the tagged push, not locally. (If the repo ever goes private, this flips — the cloud then never runs harbor on a push.)
 - THE ORDER (Ben): SKINS 1 → SKINS 2 (arcade pixel + galaxy, night) → Ben taps GO LIVE → ONE FABLE REVIEW (THE DROP + the skins) → fixes → JAYWALK.
+
+### SKINS 2A — THE SHARE CARDS (NO PILLS, ONE RHYTHM) + WATERCOLOR REWORK + CRAYON TEXTURE + GROK's SOUNDS (Nov 14 2026)
+- NO PILLS, EVER (Ben, Nov 14 — his standing rule, overrides any earlier "keep the foot"): no rounded-capsule shapes anywhere — labels, chips, badges, frames, footers. The share cards' NEONSPEAKEASY.COM capsule → plain neon lettering + one straight line.
+- SHARE CARDS — ONE RHYTHM: every section = (1) the name, or the win word when it equals the name (name-once stays) · (2) ONE big result, the same size in every section · (3) ONE stat line, the same size · (4) ONE art strip of the same height. Equal spacing, centred inside one column. THE DROP's junk rows draw SOLID; COAST CLEAR's beam wedge is removed (the lamps stay).
+- WATERCOLOR REWORK (Ben via the city chat, Nov 14): it read too close to crayon at 390. Watercolor = NO dark outline; transparent washes (lighter middle, the paper through); pigment POOLING darker at the edge; occasional bloom / cauliflower edges; a touch of bleed where colours touch; uneven, blotchy wash; the drips KEPT; the ghost + HOLD / NEXT in the same wash.
+- CRAYON (Ben, Nov 14 7:58 am): a LIGHT texture tweak only — more hatching strokes, waxy grain, paper tooth in the gaps, a slightly heavier pressed edge; the same colours, papers, outlines, clears; its own commit (revertable) with BEFORE / AFTER shots.
+- THE TEST: crayon, watercolor and paper side by side at 390 / 402 / 430, day board, unzoomed — "could you tell which is which at a glance?"
+- SOUNDS: sourced sounds (Grok, CC0 / CC BY) replace the code-made ones where they exist; code-made stays the fallback.
+- LOCAL TESTING RULE stands (repo public: no full local harbor; the cloud runs it).
