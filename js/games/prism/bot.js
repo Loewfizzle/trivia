@@ -52,3 +52,14 @@ export function chooseMove(g, { skill = 0.9, rnd = Math.random } = {}) {
   if (rnd() > skill) return all[Math.min(all.length - 1, 1 + Math.floor(rnd() * Math.min(6, all.length - 1)))];
   return all[0];
 }
+
+/** THE DROP's test bot (PURE — tests/prism-drop.test.mjs + the e2e's window hook): the next key for the current piece toward its planned
+ *  placement → { code: 'C' | 'L' | 'R' | 'X', plan } (plan carried between calls; a new piece → a new plan) */
+export function dropKey(g, plan, { skill = 1, rnd = Math.random } = {}) {
+  if (!g.cur) return { code: null, plan };
+  if (!plan || plan.n !== g.n || plan.t !== g.cur.t) { const mv = chooseMove(g, { skill, rnd }); plan = mv ? { ...mv, n: g.n, t: g.cur.t, tries: 0 } : { n: g.n, t: g.cur.t, r: g.cur.r, x: g.cur.x, tries: 0 }; }
+  if (++plan.tries > 12) return { code: 'X', plan };
+  if (g.cur.r !== plan.r) return { code: 'C', plan };
+  if (g.cur.x !== plan.x) return { code: plan.x < g.cur.x ? 'L' : 'R', plan };
+  return { code: 'X', plan };
+}
