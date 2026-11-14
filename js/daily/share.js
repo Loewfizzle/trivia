@@ -165,8 +165,8 @@ const canShareFile = file => { try { return !!(file && navigator.share && naviga
 /**
  * SEND A READY CARD (PFIX-3 — S11): the share sheet with the image + the line, called with NOTHING awaited before it (the file is ready —
  * `prepShare`): Safari refuses a share that comes too long after the tap. No file sharing on this phone (a desktop, plain http), or the
- * sheet refused → THE CARD IS SHOWN in a sheet — PRESS AND HOLD TO SAVE (+ a SHARE tube where the phone can share: a fresh tap) — and a
- * message says so. Never a silent download prompt, never nothing.
+ * sheet refused → THE CARD IS SHOWN in a sheet — PRESS AND HOLD TO SAVE (+ a SHARE tube where the phone can share: a fresh tap). Never a
+ * silent download prompt, never nothing.
  * → 'shared' | 'none' (the player closed the share sheet) | 'shown' | 'failed'
  */
 export async function sendReady({ blob, file, line = '' } = {}) {
@@ -178,10 +178,11 @@ export async function sendReady({ blob, file, line = '' } = {}) {
   }
   return showCard({ blob, file, line, can });
 }
-/** the card in THE SHEET: the picture (press and hold saves it on a phone), ONE line, a SHARE tube where a file can be shared → 'shown' */
+/** the card in THE SHEET: the picture (press and hold saves it on a phone), ONE line under it, a SHARE tube where a file can be shared — and
+ *  nothing over the card (no message) → 'shown' */
 export async function showCard({ blob, file = null, line = '', can = false } = {}) {
   try {
-    const [{ openSheet }, { toast }, { h }, { tubeButton }] = await Promise.all([lazyImport(import('../ui/sheet.js'), '../ui/sheet.js'), lazyImport(import('../ui/toast.js'), '../ui/toast.js'),
+    const [{ openSheet }, { h }, { tubeButton }] = await Promise.all([lazyImport(import('../ui/sheet.js'), '../ui/sheet.js'),
       lazyImport(import('../ui/dom.js'), '../ui/dom.js'), lazyImport(import('../ui/components.js'), '../ui/components.js')]);
     const url = URL.createObjectURL(blob);
     const img = h('img.shr-img', { src: url, alt: 'Your share card', draggable: 'false' });
@@ -191,7 +192,8 @@ export async function showCard({ blob, file = null, line = '', can = false } = {
       try { await navigator.share({ files: [file], text: line }); S.close(); } catch { /* closed / refused: the picture stays */ } finally { busy = false; }
     } }) : null;
     const S = openSheet({ title: 'YOUR CARD', cls: 'shr-sheet', label: 'Your share card', body: [img, h('p.shr-hold', 'PRESS AND HOLD TO SAVE'), again], onClose: () => setTimeout(() => URL.revokeObjectURL(url), 1500) });
-    toast('Your card is ready', 'ok', { sub: 'Press and hold the picture to save it.' });
+    // (THE ADD-ON, Nov 14 4:14 pm: NO message over this sheet — it covered the card and repeated the line under it; the sheet IS the answer)
+    void S;
     return 'shown';
   } catch (e) { console.warn('[share] show', e); return 'failed'; }
 }

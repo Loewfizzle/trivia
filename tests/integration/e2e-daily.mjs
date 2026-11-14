@@ -400,8 +400,9 @@ await H.run(async () => {
         toast: [...document.querySelectorAll('.sh-msgs b')].map(b => b.textContent).join(' | '), downloads, shares, callout: img ? getComputedStyle(img).webkitTouchCallout || getComputedStyle(img).getPropertyValue('-webkit-touch-callout') : '' };
     });
     ok(shown.img && shown.nat && shown.nat[0] === 1080 && shown.nat[1] === 1350 && shown.w >= 200 && shown.hold, `S11: no file sharing → the card is SHOWN in a sheet (${shown.nat} px, ${shown.w} px wide on screen) with PRESS AND HOLD TO SAVE`);
-    ok(/card is ready/i.test(shown.toast) && shown.downloads === 0 && !shown.go, `S11: + a message ("${shown.toast}") — never a silent download (${shown.downloads}); no SHARE tube where the phone can't share`);
-    if (H.SHOTS) await H.shotAll(pg, 'dy-09-share-shown', [[390, 844]]);
+    // (THE ADD-ON, Nov 14 4:14 pm: NO message over this sheet — it covered the card and repeated the line under it. No shot of it here
+    //  either: this suite's third daily is the TEST-ONLY fake — the sheet is reviewed on the preview links, which hold real dailies only)
+    ok(!/card is ready/i.test(shown.toast) && shown.downloads === 0 && !shown.go, `S11: nothing over the card (no message: "${shown.toast}") — and never a silent download (${shown.downloads}); no SHARE tube where the phone can't share`);
     await pg.keyboard.press('Escape');
     await waitFor(pg, `!document.querySelector('.shr-img')`, 'the card sheet closed', 6000);
   }

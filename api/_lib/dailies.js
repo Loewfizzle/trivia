@@ -38,7 +38,13 @@ export const FAKE_DAILY = {
 /** a row's id → its SERVER cartridge (the list's rows; the test ones join through registerTestDaily) */
 export const SERVER_CARTS = { password: PW_DAILY, coastclear: CC_DAILY, drop: DROP_DAILY };   // (THE DROP A: its row ships `on: false`)
 const TEST_CARTS = new Map();
-const testing = () => process.env.DAILY_TEST === '1';
+/** PFIX-3 (the add-on, Nov 14 4:14 pm — "confirm a test / fake daily can NEVER reach a real card or the live site"): the test switch is
+ *  honoured ONLY off Vercel. "Vercel has no DAILY_TEST" was a habit, not a guard — now a deployment (production OR preview: Vercel sets
+ *  VERCEL / VERCEL_ENV on every one) never registers THE FAKE daily, a test daily, or an OFF row DAILY_TEST_OFF names, whatever its
+ *  environment variables say. The phone's list of dailies is the server's `today`, so nothing of a test daily can reach a phone, a ticket
+ *  or a share card there. PURE (tests/daily-test-guard.test.mjs). */
+export const testingEnv = (env = process.env) => env.DAILY_TEST === '1' && !env.VERCEL && !env.VERCEL_ENV;
+const testing = () => testingEnv(process.env);
 
 /** TEST-ONLY: a whole daily (its row + its cartridge) — refused outside DAILY_TEST=1 */
 export function registerTestDaily(row, cart) {
